@@ -47,7 +47,7 @@ def run_ihsg_native_engine(raw: dict, shared_core: dict, features: dict, macro_b
     prices = raw.get('prices', {})
     price_frames = raw.get('price_frames', {})
     asset_ranges = (shared_core.get('risk_range', {}) or {}).get('asset_ranges', {}) or {}
-    all_symbols = get_market_ranking_universe(IHSG_BUCKETS, IHSG_BACKEND_UNIVERSE)
+    all_symbols = (raw.get('runtime_universe', {}) or {}).get('ihsg') or get_market_ranking_universe(IHSG_BUCKETS, IHSG_BACKEND_UNIVERSE)
     exec_flags = (shared_core.get('execution_mode', {}) or {}).get('flags', {}) or {}
     ranking_ctx = ihsg_ranking_context(shared_core, features)
     strong, weak = rank_symbols(prices, all_symbols, top_n=16, context=ranking_ctx, price_frames=price_frames, asset_ranges=asset_ranges)

@@ -67,6 +67,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Verify MacroRegime project structure and snapshot surface.")
     parser.add_argument("--strict", action="store_true", help="Exit non-zero if any required snapshot fields are missing.")
     parser.add_argument("--allow-live-fetch", action="store_true", help="Do not force MRP_LIVE_FETCH=0 during verification.")
+    parser.add_argument("--rebuild-snapshot", action="store_true", help="Rebuild snapshot instead of using saved snapshot when available.")
     args = parser.parse_args()
 
     if not args.allow_live_fetch:
@@ -81,7 +82,7 @@ def main() -> None:
 
     build_mod = importlib.import_module("orchestration.build_snapshot")
     universe_mod = importlib.import_module("data.universe_loader")
-    snap = build_mod.build_snapshot(force_refresh=False, prefer_saved=False, compact_mode=True)
+    snap = build_mod.build_snapshot(force_refresh=False, prefer_saved=(not args.rebuild_snapshot), compact_mode=True)
     shape = _validate_snapshot_shape(snap)
 
     report = {

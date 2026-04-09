@@ -1,0 +1,133 @@
+{
+  "market": "commodities",
+  "generated_at": "2026-04-09T09:35:13.609119+00:00",
+  "source": "Built-in curated commodities manifest",
+  "sources": [],
+  "symbols": [
+    "GC=F",
+    "SI=F",
+    "PL=F",
+    "PA=F",
+    "CL=F",
+    "BZ=F",
+    "NG=F",
+    "RB=F",
+    "HO=F",
+    "HG=F",
+    "ZC=F",
+    "ZW=F",
+    "ZS=F",
+    "KC=F",
+    "SB=F",
+    "CT=F",
+    "CC=F",
+    "LE=F",
+    "HE=F",
+    "DBC",
+    "GSG",
+    "DBA",
+    "DBB",
+    "URA"
+  ],
+  "records": [
+    {
+      "symbol": "GC=F",
+      "group": "precious"
+    },
+    {
+      "symbol": "SI=F",
+      "group": "precious"
+    },
+    {
+      "symbol": "PL=F",
+      "group": "precious"
+    },
+    {
+      "symbol": "PA=F",
+      "group": "precious"
+    },
+    {
+      "symbol": "CL=F",
+      "group": "energy"
+    },
+    {
+      "symbol": "BZ=F",
+      "group": "energy"
+    },
+    {
+      "symbol": "NG=F",
+      "group": "energy"
+    },
+    {
+      "symbol": "RB=F",
+      "group": "energy"
+    },
+    {
+      "symbol": "HO=F",
+      "group": "energy"
+    },
+    {
+      "symbol": "HG=F",
+      "group": "industrial_metals"
+    },
+    {
+      "symbol": "ZC=F",
+      "group": "agri_softs"
+    },
+    {
+      "symbol": "ZW=F",
+      "group": "agri_softs"
+    },
+    {
+      "symbol": "ZS=F",
+      "group": "agri_softs"
+    },
+    {
+      "symbol": "KC=F",
+      "group": "agri_softs"
+    },
+    {
+      "symbol": "SB=F",
+      "group": "agri_softs"
+    },
+    {
+      "symbol": "CT=F",
+      "group": "agri_softs"
+    },
+    {
+      "symbol": "CC=F",
+      "group": "agri_softs"
+    },
+    {
+      "symbol": "LE=F",
+      "group": "agri_softs"
+    },
+    {
+      "symbol": "HE=F",
+      "group": "agri_softs"
+    },
+    {
+      "symbol": "DBC",
+      "group": "broad_proxies"
+    },
+    {
+      "symbol": "GSG",
+      "group": "broad_proxies"
+    },
+    {
+      "symbol": "DBA",
+      "group": "broad_proxies"
+    },
+    {
+      "symbol": "DBB",
+      "group": "broad_proxies"
+    },
+    {
+      "symbol": "URA",
+      "group": "broad_proxies"
+    }
+  ],
+  "stats": {
+    "count": 24
+  }
+}

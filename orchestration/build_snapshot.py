@@ -5,10 +5,10 @@ from typing import Any
 
 
 from config.settings import DEFAULT_PRICE_PERIOD, LIVE_RUNTIME_MODE, SNAPSHOT_SCHEMA
-from config.universes import FULL_UNIVERSE
 from config.asset_buckets import US_BUCKETS, IHSG_BUCKETS, FX_BUCKETS, COMMODITY_BUCKETS, CRYPTO_BUCKETS
 from config.universe_registry import US_BACKEND_UNIVERSE, IHSG_BACKEND_UNIVERSE, FX_BACKEND_UNIVERSE, COMMODITIES_BACKEND_UNIVERSE, CRYPTO_BACKEND_UNIVERSE, build_coverage_report, build_manifest_repo
 from data.loaders import load_all_data
+from data.universe_loader import get_runtime_universe, build_runtime_meta
 from data.snapshot_store import load_snapshot, save_snapshot, load_snapshot_manifest
 from data.history_store import history_coverage
 from features.macro_features import build_macro_features
@@ -385,7 +385,18 @@ def build_snapshot(
         if isinstance(cached, dict) and cached.get("meta", {}).get("schema") == SNAPSHOT_SCHEMA:
             return cached
 
-    raw = load_all_data(FULL_UNIVERSE, period=DEFAULT_PRICE_PERIOD, force_refresh=force_refresh, prefer_local_history=True)
+    runtime_universe = get_runtime_universe(compact_mode=compact_mode)
+    runtime_symbols: list[str] = []
+    for market in ('us', 'ihsg', 'fx', 'commodities', 'crypto'):
+        for sym in runtime_universe.get(market, []):
+            if sym not in runtime_symbols:
+                runtime_symbols.append(sym)
+    core_anchors = ["SPY","QQQ","IWM","RSP","TLT","HYG","UUP","EEM","^JKSE","^VIX"]
+    for sym in core_anchors:
+        if sym not in runtime_symbols:
+            runtime_symbols.insert(0, sym)
+    raw = load_all_data(runtime_symbols, period=DEFAULT_PRICE_PERIOD, force_refresh=force_refresh, prefer_local_history=True)
+    raw['runtime_universe'] = runtime_universe
 
     macro = build_macro_features(raw["fred"], raw["prices"], raw.get("loader_meta", {}))
     market = build_market_features(raw["prices"])
@@ -493,7 +504,7 @@ def build_snapshot(
         },
     }
 
-    history_meta = history_coverage(FULL_UNIVERSE)
+    history_meta = history_coverage(runtime_symbols)
     prior_manifest = load_snapshot_manifest() or {}
 
     snapshot = {
@@ -502,6 +513,7 @@ def build_snapshot(
             "schema": SNAPSHOT_SCHEMA,
             "force_refresh": force_refresh,
             "compact_mode": compact_mode,
+            "runtime_universe_meta": build_runtime_meta(compact_mode=compact_mode),
             "runtime_mode": LIVE_RUNTIME_MODE,
             "loader_meta": raw.get("loader_meta", {}),
             "history_meta": history_meta,

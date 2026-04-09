@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 
 APP_NAME = "MacroRegime Pro"
-APP_VERSION = "0.31.0-full-manifests-bundled"
+APP_VERSION = "0.32.0-route-aware-compact"
 
 # Historical storage policy
 DEFAULT_PRICE_PERIOD = "max"
@@ -21,7 +21,7 @@ PRICE_CACHE_TTL_SECONDS = 300
 FRED_CACHE_TTL_SECONDS = 1800
 NEWS_CACHE_TTL_SECONDS = 900
 EVENT_CACHE_TTL_SECONDS = 1800
-SNAPSHOT_SCHEMA = "v31.0-full-manifests-bundled"
+SNAPSHOT_SCHEMA = "v32.0-route-aware-compact"
 LIVE_RUNTIME_MODE = "snapshot_only"
 LIVE_FETCH_ENABLED = os.getenv('MRP_LIVE_FETCH', '1').strip().lower() not in {'0', 'false', 'no', 'off'}
 

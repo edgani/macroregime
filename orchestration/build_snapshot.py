@@ -385,16 +385,40 @@ def build_snapshot(
         if isinstance(cached, dict) and cached.get("meta", {}).get("schema") == SNAPSHOT_SCHEMA:
             return cached
 
-    runtime_universe = get_runtime_universe(compact_mode=compact_mode)
+    core_anchors = ["SPY","QQQ","IWM","RSP","TLT","HYG","UUP","EEM","^JKSE","^VIX","GC=F","CL=F","EURUSD=X","BTC-USD"]
+    anchor_raw = load_all_data(core_anchors, period=DEFAULT_PRICE_PERIOD, force_refresh=force_refresh, prefer_local_history=True)
+
+    pre_macro = build_macro_features(anchor_raw["fred"], anchor_raw["prices"], anchor_raw.get("loader_meta", {}))
+    pre_market = build_market_features(anchor_raw["prices"])
+    pre_breadth = build_breadth_features(pre_market)
+    pre_vol_credit = build_vol_credit_features(pre_market)
+    pre_plumbing = build_plumbing_features(pre_macro, pre_market)
+    pre_scenario = build_scenario_features(pre_macro, pre_market, pre_plumbing)
+    pre_positioning = build_positioning_features(pre_market)
+    pre_derivatives = build_derivatives_vol_features(anchor_raw["prices"], pre_market)
+
+    pre_features = {
+        "macro": pre_macro,
+        "market": pre_market,
+        "breadth": pre_breadth,
+        "vol_credit": pre_vol_credit,
+        "plumbing": pre_plumbing,
+        "scenario": pre_scenario,
+        "positioning": pre_positioning,
+        "derivatives": pre_derivatives,
+    }
+    pre_shared_core = build_shared_core(pre_features, anchor_raw)
+
+    runtime_universe = get_runtime_universe(compact_mode=compact_mode, shared_core=pre_shared_core)
     runtime_symbols: list[str] = []
     for market in ('us', 'ihsg', 'fx', 'commodities', 'crypto'):
         for sym in runtime_universe.get(market, []):
             if sym not in runtime_symbols:
                 runtime_symbols.append(sym)
-    core_anchors = ["SPY","QQQ","IWM","RSP","TLT","HYG","UUP","EEM","^JKSE","^VIX"]
     for sym in core_anchors:
         if sym not in runtime_symbols:
             runtime_symbols.insert(0, sym)
+
     raw = load_all_data(runtime_symbols, period=DEFAULT_PRICE_PERIOD, force_refresh=force_refresh, prefer_local_history=True)
     raw['runtime_universe'] = runtime_universe
 
@@ -419,6 +443,13 @@ def build_snapshot(
     }
 
     shared_core = build_shared_core(shared_features, raw)
+    shared_core['route_router_state'] = (build_runtime_meta(compact_mode=True, shared_core=shared_core).get('_route_state', {}) if shared_core else {})
+    shared_core['pre_router'] = {
+        'status_ribbon': pre_shared_core.get('status_ribbon', {}),
+        'execution_mode': pre_shared_core.get('execution_mode', {}),
+        'risk_summary': pre_shared_core.get('risk_summary', {}),
+        'route_state': build_runtime_meta(compact_mode=True, shared_core=pre_shared_core).get('_route_state', {}),
+    }
 
     native_features = {
         "us": build_us_equity_features(raw, shared_core),
@@ -513,7 +544,7 @@ def build_snapshot(
             "schema": SNAPSHOT_SCHEMA,
             "force_refresh": force_refresh,
             "compact_mode": compact_mode,
-            "runtime_universe_meta": build_runtime_meta(compact_mode=compact_mode),
+            "runtime_universe_meta": build_runtime_meta(compact_mode=compact_mode, shared_core=pre_shared_core),
             "runtime_mode": LIVE_RUNTIME_MODE,
             "loader_meta": raw.get("loader_meta", {}),
             "history_meta": history_meta,

@@ -89,10 +89,33 @@ def _read_manifest(base_dir: str | None = None) -> dict:
 
 def update_manifest(symbol: str, series: pd.Series, base_dir: str | None = None) -> dict:
     manifest = _read_manifest(base_dir)
+    clean = pd.to_numeric(series, errors='coerce').dropna().sort_index()
+    ret_20d = None
+    ret_63d = None
+    vol_21d = None
+    downside_vol_21d = None
+    if len(clean) >= 22:
+        base = float(clean.iloc[-21]) if float(clean.iloc[-21]) != 0 else 0.0
+        if base:
+            ret_20d = float(clean.iloc[-1] / base - 1.0)
+        rets = clean.pct_change().dropna().tail(21)
+        if not rets.empty:
+            vol_21d = float(rets.std())
+            dn = rets[rets < 0]
+            downside_vol_21d = float(dn.std()) if not dn.empty else 0.0
+    if len(clean) >= 64:
+        base = float(clean.iloc[-64]) if float(clean.iloc[-64]) != 0 else 0.0
+        if base:
+            ret_63d = float(clean.iloc[-1] / base - 1.0)
     info = {
-        'rows': int(len(series)),
-        'first_date': str(series.index[0].date()) if len(series) else None,
-        'last_date': str(series.index[-1].date()) if len(series) else None,
+        'rows': int(len(clean)),
+        'first_date': str(clean.index[0].date()) if len(clean) else None,
+        'last_date': str(clean.index[-1].date()) if len(clean) else None,
+        'last_close': float(clean.iloc[-1]) if len(clean) else None,
+        'ret_20d': ret_20d,
+        'ret_63d': ret_63d,
+        'vol_21d': vol_21d,
+        'downside_vol_21d': downside_vol_21d,
     }
     manifest.setdefault('symbols', {})[str(symbol)] = info
     manifest['updated_at'] = datetime.now(timezone.utc).isoformat()

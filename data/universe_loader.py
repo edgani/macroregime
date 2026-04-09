@@ -13,6 +13,7 @@ from config.universe_registry import (
     CRYPTO_CURATED_BACKEND_UNIVERSE,
     build_manifest_repo,
 )
+from utils.regime_router import select_runtime_universe as select_runtime_universe_regime, derive_route_state
 
 
 def flatten_universe(obj) -> list[str]:
@@ -75,8 +76,12 @@ def _prioritized_market_symbols(market: str) -> list[str]:
     return out
 
 
-def get_runtime_universe(compact_mode: bool = True, limits: dict[str, int] | None = None) -> dict[str, list[str]]:
+def get_runtime_universe(compact_mode: bool = True, limits: dict[str, int] | None = None, shared_core: dict | None = None) -> dict[str, list[str]]:
     limits = dict(_DEFAULT_COMPACT_LIMITS | (limits or {}))
+    if compact_mode and shared_core:
+        route_state = derive_route_state(shared_core)
+        runtime, _meta = select_runtime_universe_regime(True, route_state, limits=limits)
+        return runtime
     backend = get_backend_universe()
     out: dict[str, list[str]] = {}
     for market in ('us', 'ihsg', 'fx', 'commodities', 'crypto'):
@@ -89,10 +94,10 @@ def get_runtime_universe(compact_mode: bool = True, limits: dict[str, int] | Non
     return out
 
 
-def build_runtime_meta(compact_mode: bool = True, limits: dict[str, int] | None = None) -> dict[str, dict]:
+def build_runtime_meta(compact_mode: bool = True, limits: dict[str, int] | None = None, shared_core: dict | None = None) -> dict[str, dict]:
     backend = get_backend_universe()
-    runtime = get_runtime_universe(compact_mode=compact_mode, limits=limits)
-    return {
+    runtime = get_runtime_universe(compact_mode=compact_mode, limits=limits, shared_core=shared_core)
+    meta = {
         market: {
             'backend_count': len(backend.get(market, [])),
             'runtime_count': len(runtime.get(market, [])),
@@ -100,3 +105,14 @@ def build_runtime_meta(compact_mode: bool = True, limits: dict[str, int] | None 
         }
         for market in ('us', 'ihsg', 'fx', 'commodities', 'crypto')
     }
+    if compact_mode and shared_core:
+        route_state = derive_route_state(shared_core)
+        _runtime, router_meta = select_runtime_universe_regime(True, route_state, limits=limits)
+        for market, info in (router_meta.get('markets', {}) or {}).items():
+            if market in meta:
+                meta[market]['selector_method'] = info.get('method')
+                meta[market]['label_counts'] = info.get('label_counts', {})
+                meta[market]['family_counts'] = info.get('family_counts', {})
+        meta['_route_state'] = router_meta.get('route_state', {})
+        meta['_selector_method'] = router_meta.get('method')
+    return meta

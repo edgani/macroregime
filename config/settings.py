@@ -22,7 +22,7 @@ FRED_CACHE_TTL_SECONDS = 1800
 NEWS_CACHE_TTL_SECONDS = 900
 EVENT_CACHE_TTL_SECONDS = 1800
 SNAPSHOT_SCHEMA = "v33.0-final-route-aware-full-manifests-light-runtime"
-LIVE_RUNTIME_MODE = "snapshot_only"
+LIVE_RUNTIME_MODE = "smart_fresh"
 LIVE_FETCH_ENABLED = os.getenv('MRP_LIVE_FETCH', '1').strip().lower() not in {'0', 'false', 'no', 'off'}
 
 # Price updater defaults
@@ -30,6 +30,8 @@ PRICE_UPDATE_BATCH_SIZE = 12
 PRICE_FULL_BOOTSTRAP_PERIOD = "max"
 PRICE_INCREMENTAL_REFRESH_PERIOD = "3mo"
 PRICE_MIN_HISTORY_POINTS = 60
+PRICE_STALE_DAYS_NON_CRYPTO = int(os.getenv('MRP_PRICE_STALE_DAYS_NON_CRYPTO', '2'))
+PRICE_STALE_DAYS_CRYPTO = int(os.getenv('MRP_PRICE_STALE_DAYS_CRYPTO', '1'))
 
 
 # Universe manifest / full-universe controls

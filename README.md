@@ -1,4 +1,8 @@
-# MacroRegime Pro v29 — final audit, live-history, snapshot-first
+## Smart fresh runtime
+
+Default open mode now rebuilds from local history plus smart live tail refresh, then falls back to snapshot only if needed.
+
+# MacroRegime Pro v33 — final audit, live-history, snapshot-first
 
 This build hardens the original MacroRegime app for the workflow you asked for:
 

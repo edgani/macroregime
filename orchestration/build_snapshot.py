@@ -363,8 +363,9 @@ def _build_master_correlated_rotation_graph(shared_core: dict, sections: dict, t
 
 def build_snapshot(
     force_refresh: bool = False,
-    prefer_saved: bool = True,
+    prefer_saved: bool = False,
     compact_mode: bool = True,
+    open_mode: str = 'smart_fresh',
     **kwargs: Any,
 ) -> dict:
     """Build the shared app snapshot.
@@ -377,16 +378,30 @@ def build_snapshot(
         force_refresh = bool(kwargs["refresh"])
     if "load_saved" in kwargs:
         prefer_saved = bool(kwargs["load_saved"])
+        if prefer_saved and open_mode == "smart_fresh":
+            open_mode = "snapshot_only"
     if "compact" in kwargs:
         compact_mode = bool(kwargs["compact"])
+    if "open_mode" in kwargs and kwargs["open_mode"]:
+        open_mode = str(kwargs["open_mode"]).strip().lower()
 
+    open_mode = (open_mode or 'smart_fresh').strip().lower()
+    if open_mode == 'force_rebuild':
+        force_refresh = True
+        prefer_saved = False
+    elif open_mode == 'snapshot_only':
+        prefer_saved = True
+    else:
+        open_mode = 'smart_fresh'
+        prefer_saved = False
+
+    cached = load_snapshot()
     if prefer_saved and not force_refresh:
-        cached = load_snapshot()
         if isinstance(cached, dict) and cached.get("meta", {}).get("schema") == SNAPSHOT_SCHEMA:
             return cached
 
     core_anchors = ["SPY","QQQ","IWM","RSP","TLT","HYG","UUP","EEM","^JKSE","^VIX","GC=F","CL=F","EURUSD=X","BTC-USD"]
-    anchor_raw = load_all_data(core_anchors, period=DEFAULT_PRICE_PERIOD, force_refresh=force_refresh, prefer_local_history=True)
+    anchor_raw = load_all_data(core_anchors, period=DEFAULT_PRICE_PERIOD, force_refresh=force_refresh, prefer_local_history=True, smart_tail_refresh=True)
 
     pre_macro = build_macro_features(anchor_raw["fred"], anchor_raw["prices"], anchor_raw.get("loader_meta", {}))
     pre_market = build_market_features(anchor_raw["prices"])
@@ -419,7 +434,7 @@ def build_snapshot(
         if sym not in runtime_symbols:
             runtime_symbols.insert(0, sym)
 
-    raw = load_all_data(runtime_symbols, period=DEFAULT_PRICE_PERIOD, force_refresh=force_refresh, prefer_local_history=True)
+    raw = load_all_data(runtime_symbols, period=DEFAULT_PRICE_PERIOD, force_refresh=force_refresh, prefer_local_history=True, smart_tail_refresh=True)
     raw['runtime_universe'] = runtime_universe
 
     macro = build_macro_features(raw["fred"], raw["prices"], raw.get("loader_meta", {}))
@@ -442,13 +457,15 @@ def build_snapshot(
         "derivatives": derivatives,
     }
 
+    pre_runtime_meta = build_runtime_meta(compact_mode=compact_mode, shared_core=pre_shared_core)
     shared_core = build_shared_core(shared_features, raw)
-    shared_core['route_router_state'] = (build_runtime_meta(compact_mode=True, shared_core=shared_core).get('_route_state', {}) if shared_core else {})
+    runtime_meta = build_runtime_meta(compact_mode=compact_mode, shared_core=shared_core)
+    shared_core['route_router_state'] = (runtime_meta.get('_route_state', {}) if shared_core else {})
     shared_core['pre_router'] = {
         'status_ribbon': pre_shared_core.get('status_ribbon', {}),
         'execution_mode': pre_shared_core.get('execution_mode', {}),
         'risk_summary': pre_shared_core.get('risk_summary', {}),
-        'route_state': build_runtime_meta(compact_mode=True, shared_core=pre_shared_core).get('_route_state', {}),
+        'route_state': pre_runtime_meta.get('_route_state', {}),
     }
 
     native_features = {
@@ -544,14 +561,15 @@ def build_snapshot(
             "schema": SNAPSHOT_SCHEMA,
             "force_refresh": force_refresh,
             "compact_mode": compact_mode,
-            "runtime_universe_meta": build_runtime_meta(compact_mode=compact_mode, shared_core=pre_shared_core),
-            "runtime_mode": LIVE_RUNTIME_MODE,
+            "runtime_universe_meta": runtime_meta,
+            "runtime_mode": open_mode,
             "loader_meta": raw.get("loader_meta", {}),
             "history_meta": history_meta,
         "universe_manifest_meta": build_manifest_repo(),
             "snapshot_status": {
                 "prior_generated_at": prior_manifest.get("generated_at"),
                 "used_saved_snapshot": False,
+                "open_mode": open_mode,
                 "history_store_present": history_meta.get("present", 0),
                 "history_store_missing": history_meta.get("missing", 0),
             },

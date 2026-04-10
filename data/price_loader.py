@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Dict, Iterable
+from datetime import datetime, timezone
 import time
 
 import numpy as np
@@ -13,6 +14,8 @@ from config.settings import (
     DEFAULT_PRICE_PERIOD,
     LIVE_FETCH_ENABLED,
     PRICE_CACHE_TTL_SECONDS,
+    PRICE_STALE_DAYS_CRYPTO,
+    PRICE_STALE_DAYS_NON_CRYPTO,
     PRICE_FULL_BOOTSTRAP_PERIOD,
     PRICE_INCREMENTAL_REFRESH_PERIOD,
     PRICE_UPDATE_BATCH_SIZE,
@@ -235,7 +238,7 @@ def _provider_download_bundle(batch: list[str], period: str) -> tuple[Dict[str, 
             data = yf.download(
                 yf_batch,
                 period=period,
-                auto_adjust=True,
+                auto_adjust=False,
                 progress=False,
                 group_by="ticker",
                 threads=False,
@@ -248,7 +251,7 @@ def _provider_download_bundle(batch: list[str], period: str) -> tuple[Dict[str, 
                     data = yf.download(
                         ticker,
                         period=period,
-                        auto_adjust=True,
+                        auto_adjust=False,
                         progress=False,
                         group_by="ticker",
                         threads=False,
@@ -267,17 +270,60 @@ def _provider_download_bundle(batch: list[str], period: str) -> tuple[Dict[str, 
     return out_series, out_frames
 
 
+def _last_bar_date(ser: pd.Series | None):
+    if ser is None or getattr(ser, "empty", True):
+        return None
+    try:
+        ts = pd.Timestamp(ser.index[-1])
+        if ts.tzinfo is not None:
+            ts = ts.tz_convert("UTC").tz_localize(None)
+        return ts.date()
+    except Exception:
+        return None
+
+
+def _staleness_days(symbol: str) -> int:
+    return PRICE_STALE_DAYS_CRYPTO if _is_coingecko_symbol(symbol) else PRICE_STALE_DAYS_NON_CRYPTO
+
+
+def _refresh_reason(symbol: str, ser: pd.Series | None, now_utc: datetime, smart_tail_refresh: bool) -> str | None:
+    if ser is None or getattr(ser, "empty", True):
+        return "missing_history"
+    if not smart_tail_refresh:
+        return None
+    last_date = _last_bar_date(ser)
+    if last_date is None:
+        return "missing_last_bar"
+    age_days = max(0, (now_utc.date() - last_date).days)
+    if age_days >= _staleness_days(symbol):
+        return f"stale_{age_days}d"
+    return None
+
+
+def _freshness_summary(series: Dict[str, pd.Series], requested: tuple[str, ...]) -> dict:
+    last_bar_dates = {
+        t: (str(_last_bar_date(series.get(t))) if _last_bar_date(series.get(t)) is not None else None)
+        for t in requested
+    }
+    available = sorted(d for d in last_bar_dates.values() if d)
+    return {
+        "last_bar_dates": last_bar_dates,
+        "min_last_bar_date": available[0] if available else None,
+        "max_last_bar_date": available[-1] if available else None,
+    }
+
+
 def _load_local_histories(requested: tuple[str, ...]) -> Dict[str, pd.Series]:
     return {t: load_history(t) for t in requested}
 
 
-@st.cache_data(ttl=PRICE_CACHE_TTL_SECONDS, show_spinner=False)
 def load_price_bundle(
     tickers: Iterable[str],
     period: str = DEFAULT_PRICE_PERIOD,
     *,
     force_refresh: bool = False,
     prefer_local_history: bool = True,
+    smart_tail_refresh: bool = True,
 ) -> dict:
     requested = tuple(dict.fromkeys(str(t).strip() for t in tickers if str(t).strip()))
     series: Dict[str, pd.Series] = _load_local_histories(requested) if prefer_local_history else {t: pd.Series(dtype=float, name=t) for t in requested}
@@ -286,35 +332,55 @@ def load_price_bundle(
 
     coverage = history_coverage(requested)
     fetched = 0
+    fetch_reasons: dict[str, str] = {}
+    fetch_candidates: list[str] = []
+    now_utc = datetime.now(timezone.utc)
 
     if LIVE_FETCH_ENABLED and requested:
-        should_fetch = force_refresh or (not prefer_local_history)
-        if should_fetch:
-            to_fetch = list(requested)
-            for i in range(0, len(to_fetch), PRICE_UPDATE_BATCH_SIZE):
-                batch = to_fetch[i:i + PRICE_UPDATE_BATCH_SIZE]
-                batch_period = (
-                    PRICE_FULL_BOOTSTRAP_PERIOD
-                    if any(series.get(t, pd.Series(dtype=float)).empty for t in batch)
-                    else PRICE_INCREMENTAL_REFRESH_PERIOD
-                )
-                if not force_refresh and not prefer_local_history:
-                    batch_period = period or DEFAULT_PRICE_PERIOD
-                fresh_series, fresh_frames = _provider_download_bundle(batch, period=batch_period)
-                for ticker in batch:
-                    merged = merge_history(series.get(ticker, pd.Series(dtype=float)), fresh_series.get(ticker, pd.Series(dtype=float)), symbol=ticker)
-                    if not merged.empty:
-                        save_history(ticker, merged)
-                        series[ticker] = merged
-                        fetched += 1 if not fresh_series.get(ticker, pd.Series(dtype=float)).empty else 0
-                    else:
-                        series.setdefault(ticker, pd.Series(dtype=float, name=ticker))
-                    frame = fresh_frames.get(ticker, _empty_frame(ticker))
-                    frames[ticker] = frame if not frame.empty else _frame_from_series(series.get(ticker, pd.Series(dtype=float)), ticker)
+        if force_refresh:
+            fetch_candidates = list(requested)
+            fetch_reasons = {t: 'force_refresh' for t in fetch_candidates}
+        elif not prefer_local_history:
+            fetch_candidates = list(requested)
+            fetch_reasons = {t: 'live_provider_requested' for t in fetch_candidates}
+        else:
+            for ticker in requested:
+                reason = _refresh_reason(ticker, series.get(ticker), now_utc, smart_tail_refresh)
+                if reason:
+                    fetch_candidates.append(ticker)
+                    fetch_reasons[ticker] = reason
+
+        for i in range(0, len(fetch_candidates), PRICE_UPDATE_BATCH_SIZE):
+            batch = fetch_candidates[i:i + PRICE_UPDATE_BATCH_SIZE]
+            batch_period = (
+                PRICE_FULL_BOOTSTRAP_PERIOD
+                if any(series.get(t, pd.Series(dtype=float)).empty for t in batch)
+                else PRICE_INCREMENTAL_REFRESH_PERIOD
+            )
+            if not force_refresh and not prefer_local_history:
+                batch_period = period or DEFAULT_PRICE_PERIOD
+            fresh_series, fresh_frames = _provider_download_bundle(batch, period=batch_period)
+            for ticker in batch:
+                merged = merge_history(series.get(ticker, pd.Series(dtype=float)), fresh_series.get(ticker, pd.Series(dtype=float)), symbol=ticker)
+                if not merged.empty:
+                    save_history(ticker, merged)
+                    series[ticker] = merged
+                    fetched += 1 if not fresh_series.get(ticker, pd.Series(dtype=float)).empty else 0
+                else:
+                    series.setdefault(ticker, pd.Series(dtype=float, name=ticker))
+                frame = fresh_frames.get(ticker, _empty_frame(ticker))
+                frames[ticker] = frame if not frame.empty else _frame_from_series(series.get(ticker, pd.Series(dtype=float)), ticker)
 
     loaded_keys = [k for k, v in series.items() if not getattr(v, "empty", True)]
     missing_keys = [k for k in requested if k not in loaded_keys]
     ohlcv_loaded = sum(1 for k in requested if not frames.get(k, _empty_frame(k)).empty)
+    freshness = _freshness_summary(series, requested)
+    refresh_mode = (
+        'force_refresh' if force_refresh else
+        'live_provider_only' if not prefer_local_history else
+        'smart_tail_refresh' if smart_tail_refresh else
+        'local_history_only'
+    )
     meta.update({
         "requested": len(requested),
         "loaded": len(loaded_keys),
@@ -322,32 +388,38 @@ def load_price_bundle(
         "loaded_keys": loaded_keys,
         "missing_keys": missing_keys,
         "real_share": (len(loaded_keys) / max(len(requested), 1)),
-        "provider": "yfinance",
+        "provider": "coingecko+yfinance",
         "history_store_hits": int(coverage.get("present", 0)),
         "history_store_misses": int(coverage.get("missing", 0)),
         "history_mode": "local_history_plus_live_tail" if LIVE_FETCH_ENABLED else "local_history_only",
         "fetched_from_provider": fetched,
+        "fetch_candidates": len(fetch_candidates),
+        "fetch_candidate_keys": fetch_candidates,
+        "fetch_reasons": fetch_reasons,
         "requested_period": period,
         "stored_period_policy": DEFAULT_PRICE_PERIOD,
+        "refresh_mode": refresh_mode,
         "ohlcv_loaded": ohlcv_loaded,
         "ohlcv_share": (ohlcv_loaded / max(len(requested), 1)),
+        **freshness,
     })
     return {"series": series, "frames": frames, "meta": meta}
 
 
-@st.cache_data(ttl=PRICE_CACHE_TTL_SECONDS, show_spinner=False)
 def load_prices(
     tickers: Iterable[str],
     period: str = DEFAULT_PRICE_PERIOD,
     *,
     force_refresh: bool = False,
     prefer_local_history: bool = True,
+    smart_tail_refresh: bool = True,
 ) -> Dict[str, pd.Series]:
     return load_price_bundle(
         tickers,
         period=period,
         force_refresh=force_refresh,
         prefer_local_history=prefer_local_history,
+        smart_tail_refresh=smart_tail_refresh,
     )["series"]
 
 
@@ -357,10 +429,12 @@ def load_price_frames(
     *,
     force_refresh: bool = False,
     prefer_local_history: bool = True,
+    smart_tail_refresh: bool = True,
 ) -> Dict[str, pd.DataFrame]:
     return load_price_bundle(
         tickers,
         period=period,
         force_refresh=force_refresh,
         prefer_local_history=prefer_local_history,
+        smart_tail_refresh=smart_tail_refresh,
     )["frames"]

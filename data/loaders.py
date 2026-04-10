@@ -14,6 +14,7 @@ def load_all_data(
     *,
     force_refresh: bool = False,
     prefer_local_history: bool = True,
+    smart_tail_refresh: bool = True,
 ) -> Dict[str, Any]:
     fred_bundle = load_fred_bundle(force_refresh=force_refresh)
     price_bundle = load_price_bundle(
@@ -21,6 +22,7 @@ def load_all_data(
         period=period,
         force_refresh=force_refresh,
         prefer_local_history=prefer_local_history,
+        smart_tail_refresh=smart_tail_refresh,
     )
 
     fred_series = fred_bundle['series']

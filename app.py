@@ -16,10 +16,11 @@ from data.snapshot_store import snapshot_path, load_snapshot, load_snapshot_mani
 from ui.theme import inject_theme
 
 
-def _safe_build_snapshot(refresh: bool, load_saved: bool, compact_mode: bool) -> dict:
+def _safe_build_snapshot(refresh: bool, open_mode: str, compact_mode: bool) -> dict:
     attempts = [
-        lambda: build_snapshot(force_refresh=refresh, prefer_saved=load_saved, compact_mode=compact_mode),
-        lambda: build_snapshot(force_refresh=refresh, prefer_saved=load_saved),
+        lambda: build_snapshot(force_refresh=refresh, compact_mode=compact_mode, open_mode=open_mode),
+        lambda: build_snapshot(force_refresh=refresh, prefer_saved=(open_mode == 'snapshot_only'), compact_mode=compact_mode),
+        lambda: build_snapshot(force_refresh=refresh, prefer_saved=(open_mode == 'snapshot_only')),
         lambda: build_snapshot(force_refresh=refresh),
         lambda: build_snapshot(),
     ]
@@ -39,10 +40,14 @@ def _render_sidebar_meta(snapshot: dict) -> None:
     meta = snapshot.get('meta', {}) or {}
     loader_meta = meta.get('loader_meta', {}) or {}
     hist = meta.get('history_meta', {}) or {}
+    prices_meta = loader_meta.get('prices', {}) or {}
     st.sidebar.caption(f"v{APP_VERSION} · runtime: {meta.get('runtime_mode', LIVE_RUNTIME_MODE)}")
     st.sidebar.caption(f"Snapshot as of: {meta.get('generated_at', '-')}")
     st.sidebar.caption(
-        f"History store: {hist.get('present', 0)}/{hist.get('requested', 0)} symbols | price loaded: {loader_meta.get('prices', {}).get('loaded', 0)}"
+        f"History store: {hist.get('present', 0)}/{hist.get('requested', 0)} symbols | price loaded: {prices_meta.get('loaded', 0)}"
+    )
+    st.sidebar.caption(
+        f"Price refresh: {prices_meta.get('refresh_mode', '-')} | provider fetch: {prices_meta.get('fetched_from_provider', 0)} | last bar max: {prices_meta.get('max_last_bar_date', '-')}"
     )
     if int(hist.get('present', 0) or 0) == 0:
         st.sidebar.warning('Local history belum kebangun. Jalankan updater script atau klik refresh backend snapshot saat online.')
@@ -53,10 +58,10 @@ def main() -> None:
     inject_theme()
 
     st.sidebar.title(APP_NAME)
-    st.sidebar.caption('Live history is updated in backend. App reads the latest snapshot by default so runtime stays light.')
+    st.sidebar.caption('Fresh-first mode tries live/local merge first, then falls back to snapshot only if needed.')
 
-    refresh = st.sidebar.button('Refresh backend snapshot now')
-    load_saved = st.sidebar.checkbox('Use latest saved snapshot on open', value=not refresh)
+    open_mode = st.sidebar.radio('Open mode', ['Smart fresh', 'Force rebuild', 'Snapshot only'], index=0)
+    refresh = open_mode == 'Force rebuild' or st.sidebar.button('Refresh backend snapshot now')
     clear_snap = st.sidebar.button('Clear saved snapshot')
     compact_mode = st.sidebar.toggle('Compact mode', value=True)
 
@@ -72,7 +77,8 @@ def main() -> None:
             st.sidebar.warning(f'Gagal clear snapshot: {exc}')
 
     try:
-        snapshot = _safe_build_snapshot(refresh=refresh, load_saved=load_saved, compact_mode=compact_mode)
+        normalized_open_mode = {'Smart fresh': 'smart_fresh', 'Force rebuild': 'force_rebuild', 'Snapshot only': 'snapshot_only'}[open_mode]
+        snapshot = _safe_build_snapshot(refresh=refresh, open_mode=normalized_open_mode, compact_mode=compact_mode)
     except Exception as exc:
         cached = load_snapshot()
         detail = traceback.format_exc()

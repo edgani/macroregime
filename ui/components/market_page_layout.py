@@ -144,7 +144,7 @@ def render_market_page(*, title: str, section: dict, checklist_title: str, hub_t
     top_next = section.get('top_opportunities_next', []) or []
 
     live_col, next_col = st.columns(2, gap='small')
-    extra_cols = ['ticker','bias','horizon','entry_zone','target','countdown_days_left','review_state','next_action','route_source_label','ev_score']
+    extra_cols = ['ticker','bias','horizon','display_price_text','price_mode_badge','price_as_of_text','entry_zone','target','countdown_days_left','review_state','next_action','route_source_label','ev_score']
     if title == 'IHSG':
         extra_cols = extra_cols + ['microstructure_flag']
     with live_col:

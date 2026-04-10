@@ -128,6 +128,7 @@ def run_crypto_native_engine(raw: dict, shared_core: dict, features: dict, macro
 def _setup_row(r, side: str):
     base_action = classify_action(r['score'], side)
     return {
+        'ticker': r.get('ticker', r.get('symbol', r['name'])),
         'name': r['name'],
         'bucket': 'Crypto',
         'side': side,
@@ -147,6 +148,7 @@ def _setup_row(r, side: str):
 def _radar_row(r, side: str):
     why_not = not_ready_from_row(r, side)
     return {
+        'ticker': r.get('ticker', r.get('symbol', r['name'])),
         'name': r['name'],
         'bucket': 'Crypto',
         'side': side,

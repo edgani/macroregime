@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 
@@ -8,7 +8,8 @@ from config.settings import DEFAULT_PRICE_PERIOD, LIVE_RUNTIME_MODE, SNAPSHOT_SC
 from config.asset_buckets import US_BUCKETS, IHSG_BUCKETS, FX_BUCKETS, COMMODITY_BUCKETS, CRYPTO_BUCKETS
 from config.universe_registry import US_BACKEND_UNIVERSE, IHSG_BACKEND_UNIVERSE, FX_BACKEND_UNIVERSE, COMMODITIES_BACKEND_UNIVERSE, CRYPTO_BACKEND_UNIVERSE, build_coverage_report, build_manifest_repo
 from data.loaders import load_all_data
-from data.universe_loader import get_runtime_universe, build_runtime_meta
+from data.price_loader import load_display_quotes
+from data.universe_loader import get_runtime_universe, build_runtime_meta, build_runtime_plan
 from data.snapshot_store import load_snapshot, save_snapshot, load_snapshot_manifest
 from data.history_store import history_coverage
 from features.macro_features import build_macro_features
@@ -424,7 +425,7 @@ def build_snapshot(
     }
     pre_shared_core = build_shared_core(pre_features, anchor_raw)
 
-    runtime_universe = get_runtime_universe(compact_mode=compact_mode, shared_core=pre_shared_core)
+    runtime_universe, pre_runtime_meta = build_runtime_plan(compact_mode=compact_mode, shared_core=pre_shared_core)
     runtime_symbols: list[str] = []
     for market in ('us', 'ihsg', 'fx', 'commodities', 'crypto'):
         for sym in runtime_universe.get(market, []):
@@ -457,9 +458,8 @@ def build_snapshot(
         "derivatives": derivatives,
     }
 
-    pre_runtime_meta = build_runtime_meta(compact_mode=compact_mode, shared_core=pre_shared_core)
     shared_core = build_shared_core(shared_features, raw)
-    runtime_meta = build_runtime_meta(compact_mode=compact_mode, shared_core=shared_core)
+    _runtime_universe_final, runtime_meta = build_runtime_plan(compact_mode=compact_mode, shared_core=shared_core)
     shared_core['route_router_state'] = (runtime_meta.get('_route_state', {}) if shared_core else {})
     shared_core['pre_router'] = {
         'status_ribbon': pre_shared_core.get('status_ribbon', {}),
@@ -513,9 +513,13 @@ def build_snapshot(
     }
 
     sections = {'us': us, 'ihsg': ihsg, 'fx': fx, 'commodities': commodities, 'crypto': crypto}
+    display_quote_bundle = _load_section_display_quotes(sections, raw.get('prices', {}), force_refresh=force_refresh)
+    raw['display_quotes'] = display_quote_bundle.get('quotes', {})
+    raw['display_quotes_meta'] = display_quote_bundle.get('meta', {})
+    _attach_display_quotes(sections, raw['display_quotes'])
     master_graph = _build_master_correlated_rotation_graph(shared_core, sections, transmissions)
     prior_snapshot = load_snapshot()
-    generated_at = datetime.utcnow().isoformat()
+    generated_at = datetime.now(timezone.utc).isoformat()
     master_routes = build_master_routes(shared_core, sections, master_graph, as_of=generated_at)
     master_opportunities = build_master_opportunities(sections, master_routes, as_of=generated_at, prior_snapshot=prior_snapshot)
     position_lifecycle = build_position_lifecycle(master_opportunities, master_routes, as_of=generated_at, prior_snapshot=prior_snapshot)
@@ -642,7 +646,8 @@ def build_snapshot(
             "validation": shared_core.get("validation", {}),
             "news_state": shared_core.get("news_state", {}),
             "ihsg_structural_state": native_features.get("ihsg", {}).get("structural_state", {}),
-            "price_info": _price_info(raw.get("prices", {}), ["SPY", "^JKSE", "GC=F", "CL=F", "BTC-USD", "EURUSD=X"]),
+            "price_info": _price_info(raw.get("prices", {}), ["SPY", "^JKSE", "GC=F", "CL=F", "BTC-USD", "EURUSD=X"], raw.get("display_quotes", {})),
+            "price_quote_meta": raw.get("display_quotes_meta", {}),
             "events_library": raw.get("events", []),
             "macro_calendar": raw.get("macro_calendar", {}),
             "next_path": shared_core.get("next_path", {}),
@@ -690,6 +695,48 @@ def build_snapshot(
     return snapshot
 
 
+
+
+def _collect_display_symbols(sections: dict) -> list[str]:
+    symbols: list[str] = []
+    for sec in (sections or {}).values():
+        for key in ('setups_now', 'forward_radar'):
+            for row in (sec.get(key, []) or []):
+                sym = str(row.get('ticker') or row.get('symbol') or '').strip()
+                if sym:
+                    symbols.append(sym)
+    # anchor symbols for diagnostics and trust-building
+    symbols += ['SPY', '^JKSE', 'GC=F', 'CL=F', 'BTC-USD', 'EURUSD=X']
+    return list(dict.fromkeys(symbols))
+
+
+def _attach_display_quotes(sections: dict, quotes: dict) -> None:
+    for sec in (sections or {}).values():
+        for key in ('setups_now', 'forward_radar'):
+            rows = sec.get(key, []) or []
+            for row in rows:
+                sym = str(row.get('ticker') or row.get('symbol') or '').strip()
+                q = (quotes or {}).get(sym, {}) or {}
+                if not q:
+                    continue
+                row.update({
+                    'display_price': q.get('display_price'),
+                    'display_price_text': q.get('display_price_text'),
+                    'price_as_of': q.get('price_as_of'),
+                    'price_as_of_text': q.get('price_as_of_text'),
+                    'price_source': q.get('price_source'),
+                    'price_mode_badge': q.get('price_mode_badge'),
+                    'price_delay_note': q.get('price_delay_note'),
+                    'last_close': q.get('last_close'),
+                    'last_close_as_of': q.get('last_close_as_of'),
+                    'display_vs_close_pct': q.get('display_vs_close_pct'),
+                })
+
+
+def _load_section_display_quotes(sections: dict, prices: dict, force_refresh: bool = False) -> dict:
+    symbols = _collect_display_symbols(sections)
+    return load_display_quotes(symbols, base_series=prices, force_refresh=force_refresh)
+
 def _preview(sections: dict, key: str) -> list[dict]:
     rows = []
     for market_name, sec in sections.items():
@@ -706,16 +753,25 @@ def _strongest_markets(market_cards: dict) -> list[dict]:
     return sorted(rows, key=lambda x: x["score"], reverse=True)
 
 
-def _price_info(prices: dict, symbols: list[str]) -> dict:
+def _price_info(prices: dict, symbols: list[str], quotes: dict | None = None) -> dict:
     out = {}
+    quotes = quotes or {}
     for sym in symbols:
         s = prices.get(sym)
-        if s is None or getattr(s, "empty", True):
+        q = quotes.get(sym, {}) or {}
+        if (s is None or getattr(s, "empty", True)) and not q:
             continue
         try:
+            last = float(s.iloc[-1]) if s is not None and not getattr(s, 'empty', True) else None
+            r21 = float(s.iloc[-1] / s.iloc[-22] - 1) if s is not None and len(s) >= 22 and s.iloc[-22] != 0 else 0.0
             out[sym] = {
-                "last": float(s.iloc[-1]),
-                "r21": float(s.iloc[-1] / s.iloc[-22] - 1) if len(s) >= 22 and s.iloc[-22] != 0 else 0.0,
+                "last_close": last,
+                "r21": r21,
+                "display_price": q.get('display_price', last),
+                "display_price_text": q.get('display_price_text'),
+                "price_as_of_text": q.get('price_as_of_text'),
+                "price_source": q.get('price_source', 'historical_close'),
+                "price_mode_badge": q.get('price_mode_badge', 'Close'),
             }
         except Exception:
             continue

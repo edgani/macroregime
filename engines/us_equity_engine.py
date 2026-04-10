@@ -123,6 +123,7 @@ def _setup_row(r, bucket, side):
     action = action_from_row(r, side, base_action)
     invalidator = invalidation_from_row(r, side, 'breadth gagal confirm / yield spike' if side == 'long' else 'breadth recover / squeeze risk')
     return {
+        'ticker': r.get('ticker', r.get('symbol', r['name'])),
         'name': r['name'],
         'bucket': bucket,
         'side': side,
@@ -142,6 +143,7 @@ def _setup_row(r, bucket, side):
 def _radar_row(r, bucket, side):
     why_not = not_ready_from_row(r, side)
     return {
+        'ticker': r.get('ticker', r.get('symbol', r['name'])),
         'name': r['name'],
         'bucket': bucket,
         'side': side,

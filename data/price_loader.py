@@ -11,6 +11,7 @@ from config.settings import (
     COINGECKO_API_BASE,
     COINGECKO_DEMO_API_KEY,
     COINGECKO_HISTORY_DAYS,
+    COINGECKO_MARKETS_VS_CURRENCY,
     DEFAULT_PRICE_PERIOD,
     LIVE_FETCH_ENABLED,
     PRICE_CACHE_TTL_SECONDS,
@@ -19,6 +20,10 @@ from config.settings import (
     PRICE_FULL_BOOTSTRAP_PERIOD,
     PRICE_INCREMENTAL_REFRESH_PERIOD,
     PRICE_UPDATE_BATCH_SIZE,
+    QUOTE_CACHE_TTL_SECONDS,
+    QUOTE_UPDATE_BATCH_SIZE,
+    QUOTE_INTRADAY_PERIOD,
+    QUOTE_INTRADAY_INTERVAL,
 )
 from data.history_store import history_coverage, load_history, merge_history, save_history
 from utils.streamlit_compat import st
@@ -438,3 +443,249 @@ def load_price_frames(
         prefer_local_history=prefer_local_history,
         smart_tail_refresh=smart_tail_refresh,
     )["frames"]
+
+
+
+def _fmt_price(x) -> str:
+    try:
+        x = float(x)
+    except Exception:
+        return '-'
+    if not np.isfinite(x):
+        return '-'
+    ax = abs(x)
+    if ax >= 1000:
+        return f"{x:,.0f}"
+    if ax >= 100:
+        return f"{x:,.2f}"
+    if ax >= 1:
+        return f"{x:,.4f}"
+    if ax >= 0.01:
+        return f"{x:,.6f}"
+    return f"{x:,.8f}"
+
+
+def _fmt_pct(x) -> str:
+    try:
+        x = float(x)
+    except Exception:
+        return '-'
+    if not np.isfinite(x):
+        return '-'
+    return f"{100.0 * x:+.2f}%"
+
+
+def _short_ts(ts) -> str:
+    if not ts:
+        return '-'
+    try:
+        dt = pd.Timestamp(ts)
+        if dt.tzinfo is not None:
+            dt = dt.tz_convert('UTC')
+        else:
+            dt = dt.tz_localize('UTC')
+        return dt.strftime('%Y-%m-%d %H:%M UTC')
+    except Exception:
+        return str(ts)
+
+
+def _last_series_meta(ser: pd.Series | None) -> tuple[float | None, str | None]:
+    if ser is None or getattr(ser, 'empty', True):
+        return None, None
+    try:
+        px = float(pd.to_numeric(ser, errors='coerce').dropna().iloc[-1])
+    except Exception:
+        px = None
+    try:
+        ts = pd.Timestamp(ser.index[-1])
+        if ts.tzinfo is not None:
+            ts = ts.tz_convert('UTC')
+        else:
+            ts = ts.tz_localize('UTC')
+        ts_iso = ts.isoformat()
+    except Exception:
+        ts_iso = None
+    return px, ts_iso
+
+
+@st.cache_data(ttl=QUOTE_CACHE_TTL_SECONDS, show_spinner=False)
+def _cached_yf_display_quotes(batch_key: tuple[str, ...]) -> Dict[str, dict]:
+    quotes: Dict[str, dict] = {}
+    batch = [str(x).strip() for x in batch_key if str(x).strip()]
+    if not batch or yf is None:
+        return quotes
+    try:
+        data = yf.download(
+            batch,
+            period=QUOTE_INTRADAY_PERIOD,
+            interval=QUOTE_INTRADAY_INTERVAL,
+            auto_adjust=False,
+            progress=False,
+            group_by='ticker',
+            threads=False,
+            prepost=True,
+            timeout=8,
+        )
+    except Exception:
+        data = None
+    if data is not None and not getattr(data, 'empty', True):
+        multi = isinstance(getattr(data, 'columns', None), pd.MultiIndex)
+        for ticker in batch:
+            try:
+                sub = data[ticker] if multi and ticker in data.columns.get_level_values(0) else (data if len(batch) == 1 else None)
+                frame = _safe_frame(sub, ticker)
+                if frame.empty:
+                    continue
+                close = pd.to_numeric(frame['Close'], errors='coerce').dropna()
+                if close.empty:
+                    continue
+                ts = pd.Timestamp(close.index[-1])
+                if ts.tzinfo is not None:
+                    ts = ts.tz_convert('UTC')
+                else:
+                    ts = ts.tz_localize('UTC')
+                px = float(close.iloc[-1])
+                prev = float(close.iloc[-2]) if len(close) >= 2 else None
+                quotes[ticker] = {
+                    'display_price': px,
+                    'price_as_of': ts.isoformat(),
+                    'price_source': 'yfinance_intraday',
+                    'price_mode_badge': 'Live',
+                    'price_delay_note': 'Yahoo intraday quote proxy',
+                    'intraday_change_pct': (px / prev - 1.0) if isinstance(prev, float) and prev not in {0.0, -0.0} else None,
+                }
+            except Exception:
+                continue
+    missing = [t for t in batch if t not in quotes]
+    for ticker in missing:
+        try:
+            tk = yf.Ticker(ticker)
+            fast = getattr(tk, 'fast_info', {}) or {}
+            px = fast.get('lastPrice') or fast.get('regularMarketPrice') or fast.get('last_price')
+            prev = fast.get('previousClose') or fast.get('previous_close')
+            if px is None:
+                continue
+            quotes[ticker] = {
+                'display_price': float(px),
+                'price_as_of': datetime.now(timezone.utc).isoformat(),
+                'price_source': 'yfinance_fast_info',
+                'price_mode_badge': 'Live',
+                'price_delay_note': 'Yahoo fast-info quote proxy',
+                'intraday_change_pct': (float(px) / float(prev) - 1.0) if prev not in {None, 0, 0.0} else None,
+            }
+        except Exception:
+            continue
+    return quotes
+
+
+@st.cache_data(ttl=QUOTE_CACHE_TTL_SECONDS, show_spinner=False)
+def _cached_cg_display_quotes(batch_key: tuple[str, ...]) -> Dict[str, dict]:
+    quotes: Dict[str, dict] = {}
+    batch = [str(x).strip() for x in batch_key if str(x).strip()]
+    if not batch or requests is None:
+        return quotes
+    ids = [_coingecko_id(t) for t in batch]
+    params = {
+        'ids': ','.join(ids),
+        'vs_currencies': COINGECKO_MARKETS_VS_CURRENCY,
+        'include_last_updated_at': 'true',
+        'include_24hr_change': 'true',
+    }
+    url = f"{COINGECKO_API_BASE}/simple/price"
+    try:
+        resp = requests.get(url, params=params, headers=_coingecko_headers(), timeout=20)
+        resp.raise_for_status()
+        payload = resp.json() if resp.content else {}
+    except Exception:
+        payload = {}
+    id_to_symbol = {coin_id: sym for coin_id, sym in zip(ids, batch)}
+    for coin_id, quote in (payload or {}).items():
+        sym = id_to_symbol.get(coin_id)
+        if not sym:
+            continue
+        px = quote.get(COINGECKO_MARKETS_VS_CURRENCY)
+        ts = quote.get('last_updated_at')
+        change = quote.get(f'{COINGECKO_MARKETS_VS_CURRENCY}_24h_change')
+        if px is None:
+            continue
+        as_of = datetime.fromtimestamp(int(ts), tz=timezone.utc).isoformat() if ts else datetime.now(timezone.utc).isoformat()
+        quotes[sym] = {
+            'display_price': float(px),
+            'price_as_of': as_of,
+            'price_source': 'coingecko_spot',
+            'price_mode_badge': 'Live',
+            'price_delay_note': 'CoinGecko spot quote',
+            'intraday_change_pct': float(change) / 100.0 if change is not None else None,
+        }
+    return quotes
+
+
+def load_display_quotes(
+    tickers: Iterable[str],
+    *,
+    base_series: Dict[str, pd.Series] | None = None,
+    force_refresh: bool = False,
+) -> dict:
+    requested = tuple(dict.fromkeys(str(t).strip() for t in tickers if str(t).strip()))
+    base_series = base_series or {}
+    quotes: Dict[str, dict] = {}
+    for sym in requested:
+        last_close, close_as_of = _last_series_meta(base_series.get(sym))
+        quotes[sym] = {
+            'ticker': sym,
+            'display_price': last_close,
+            'display_price_text': _fmt_price(last_close),
+            'price_as_of': close_as_of,
+            'price_as_of_text': _short_ts(close_as_of),
+            'price_source': 'historical_close',
+            'price_mode_badge': 'Close',
+            'price_delay_note': 'Last available historical close',
+            'last_close': last_close,
+            'last_close_as_of': close_as_of,
+            'last_close_as_of_text': _short_ts(close_as_of),
+            'display_vs_close_pct': 0.0 if last_close is not None else None,
+            'intraday_change_pct': None,
+        }
+
+    fetched = 0
+    if LIVE_FETCH_ENABLED and requested:
+        if force_refresh:
+            for _fn in (_cached_yf_display_quotes, _cached_cg_display_quotes):
+                try:
+                    _fn.clear()
+                except Exception:
+                    pass
+        cg = [t for t in requested if _is_coingecko_symbol(t)]
+        yf_syms = [t for t in requested if not _is_coingecko_symbol(t)]
+        live_quotes: Dict[str, dict] = {}
+        for i in range(0, len(yf_syms), QUOTE_UPDATE_BATCH_SIZE):
+            batch = tuple(yf_syms[i:i + QUOTE_UPDATE_BATCH_SIZE])
+            live_quotes.update(_cached_yf_display_quotes(batch))
+        for i in range(0, len(cg), QUOTE_UPDATE_BATCH_SIZE):
+            batch = tuple(cg[i:i + QUOTE_UPDATE_BATCH_SIZE])
+            live_quotes.update(_cached_cg_display_quotes(batch))
+        for sym, live in live_quotes.items():
+            q = quotes.setdefault(sym, {'ticker': sym})
+            q.update(live)
+            q['display_price_text'] = _fmt_price(q.get('display_price'))
+            q['price_as_of_text'] = _short_ts(q.get('price_as_of'))
+            last_close = q.get('last_close')
+            disp = q.get('display_price')
+            if last_close not in {None, 0, 0.0} and disp is not None:
+                try:
+                    q['display_vs_close_pct'] = float(disp) / float(last_close) - 1.0
+                except Exception:
+                    q['display_vs_close_pct'] = None
+            fetched += 1
+
+    available_dates = sorted(v.get('price_as_of_text') for v in quotes.values() if v.get('price_as_of_text') and v.get('price_as_of_text') != '-')
+    return {
+        'quotes': quotes,
+        'meta': {
+            'requested': len(requested),
+            'fetched_live': fetched,
+            'live_share': fetched / max(len(requested), 1),
+            'max_price_as_of': available_dates[-1] if available_dates else None,
+            'min_price_as_of': available_dates[0] if available_dates else None,
+        }
+    }

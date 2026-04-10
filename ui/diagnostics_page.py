@@ -122,5 +122,6 @@ def render_diagnostics_page(snapshot: dict) -> None:
         _show_rows(_flat_rows(sec.get('historical_analog_state', {})), max_height=260)
         _show_rows(_flat_rows(sec.get('validation', {})), max_height=220)
     with t6:
-        _show_rows(_flat_rows(sec.get('price_info', {})), max_height=220)
+        _show_rows(_flat_rows(sec.get('price_quote_meta', {})), max_height=180)
+        _show_rows(_flat_rows(sec.get('price_info', {})), max_height=240)
         _show_rows(_flat_rows(sec.get('macro_calendar', {})), max_height=220)

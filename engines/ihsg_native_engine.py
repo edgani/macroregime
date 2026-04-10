@@ -157,6 +157,7 @@ def _setup_row(r, side):
     struct_flag = str(r.get('structural_flag', '') or '')
     base_action = classify_action(r['score'], side=side)
     return {
+        'ticker': r.get('ticker', r.get('symbol', r['name'])),
         'name': r['name'],
         'bucket': 'IHSG',
         'side': side,
@@ -178,6 +179,7 @@ def _radar_row(r, side):
     struct_flag = str(r.get('structural_flag', '') or '')
     why_not = not_ready_from_row(r, side)
     return {
+        'ticker': r.get('ticker', r.get('symbol', r['name'])),
         'name': r['name'],
         'bucket': 'IHSG',
         'side': side,

@@ -21,7 +21,7 @@ def _prep(rows: list[dict]) -> pd.DataFrame:
 def _show(df: pd.DataFrame, title: str) -> None:
     if df.empty:
         return
-    keep = [c for c in ['name','bucket','side','score','entry_zone','t1_t2','why_radar','why_not_yet','trigger','signal_quality','risk','radar_type'] if c in df.columns]
+    keep = [c for c in ['ticker','name','bucket','side','score','display_price_text','price_mode_badge','price_as_of_text','entry_zone','t1_t2','why_radar','why_not_yet','trigger','signal_quality','risk','radar_type'] if c in df.columns]
     st.markdown(f"**{title}**")
     st.dataframe(df[keep], use_container_width=True, hide_index=True, height=frame_height(len(df), base=72, row=34, max_height=320))
 

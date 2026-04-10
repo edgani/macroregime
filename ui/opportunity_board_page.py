@@ -43,4 +43,4 @@ def render_opportunity_board_page(snapshot: dict) -> None:
     ihsg_flagged = sum(1 for r in rows if r.get('market') == 'IHSG' and str(r.get('microstructure_flag', '') or '').strip())
     st.caption(f"IHSG flagged rows: {ihsg_flagged} · filter ini cuma nambah konteks, bukan auto-buang ticker.")
 
-    render_opportunity_table(filtered, 'Master ranked opportunities', cols=['ticker','market','bias','horizon','entry_zone','invalidation','target','countdown_days_left','review_state','next_action','macro_aligned','route_source_label','confidence','ev_score','microstructure_flag'])
+    render_opportunity_table(filtered, 'Master ranked opportunities', cols=['ticker','market','bias','horizon','display_price_text','price_mode_badge','price_as_of_text','entry_zone','invalidation','target','countdown_days_left','review_state','next_action','macro_aligned','route_source_label','confidence','ev_score','microstructure_flag'])

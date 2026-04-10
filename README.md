@@ -92,3 +92,8 @@ The strict verifier checks imports, compiles the codebase, builds a snapshot, an
 ## Clean repo note
 This package preserves the existing app/UI while adding backend-only support paths for optional full-universe manifests and crypto `CG:<coin_id>` loading.
 No page layout or visual components were intentionally changed.
+
+
+## Full hardening bundle
+
+This package includes fresh-first runtime behavior, smart tail-refresh for price history, display/live quote separation, packaging/version cleanup, and basic smoke tests under `tests/` plus `scripts/run_smoke_checks.py`.

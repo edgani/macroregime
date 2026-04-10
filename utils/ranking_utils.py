@@ -255,9 +255,19 @@ def rank_symbols(prices: dict, symbols: Iterable[str], top_n: int = 12, context:
         base_score = native_signal
         context_adj, ctx_meta = _context_adjustment(sym, context)
         score = base_score + context_adj
+        last_close = float(s.iloc[-1]) if len(s) else None
+        last_bar_date = None
+        try:
+            last_bar_date = str(pd.Timestamp(s.index[-1]).date()) if len(s) else None
+        except Exception:
+            last_bar_date = None
         rows.append({
             "symbol": sym,
+            "ticker": sym,
             "name": DISPLAY_NAME_MAP.get(sym, sym),
+            "display_name": DISPLAY_NAME_MAP.get(sym, sym),
+            "last_close": last_close,
+            "last_bar_date": last_bar_date,
             "score": float(score),
             "base_score": float(base_score),
             "context_adj": float(context_adj),

@@ -6,7 +6,7 @@ import streamlit as st
 from ui.components.compact_table_helpers import frame_height
 
 DEFAULT_COLS = [
-    'ticker', 'market', 'bias', 'horizon', 'entry_zone', 'invalidation', 'target',
+    'ticker', 'market', 'bias', 'horizon', 'display_price_text', 'price_mode_badge', 'price_as_of_text', 'entry_zone', 'invalidation', 'target',
     'countdown_days_left', 'review_state', 'next_action', 'macro_aligned',
     'route_source_label', 'confidence', 'ev_score'
 ]
@@ -17,6 +17,9 @@ _RENAME = {
     'market': 'Market',
     'bias': 'Bias',
     'horizon': 'Horizon',
+    'display_price_text': 'Price',
+    'price_mode_badge': 'Mode',
+    'price_as_of_text': 'Price as of',
     'entry_zone': 'Entry zone',
     'invalidation': 'Invalidation',
     'target': 'Target',

@@ -765,9 +765,13 @@ def load_all()->Dict:
     chk=build_checklists(f,h,q,ih)
     opps=build_opportunities(prices,q,f,h,rot)
     family=get_dominant_family(q,f,rot)
+    risk_ranges=build_risk_range(prices,f,cr)
+    asset_chk=build_asset_checklists_full(f,h,q,ih,prices)
+    macro_impact=build_macro_impact_all(q,f,rot)
     return dict(prices=prices,fred=fred,f=f,q=q,h=h,crash=cr,rotation=rot,ihsg=ih,
                 analog=analog,playbooks=pb,scenarios=sc,checklists=chk,
-                opportunities=opps,family=family,
+                opportunities=opps,family=family,risk_ranges=risk_ranges,
+                asset_checklists=asset_chk,macro_impact=macro_impact,
                 ts=datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"))
 
 # ── UI helpers ────────────────────────────────────────────────────────────────
@@ -1141,6 +1145,232 @@ def render_checklist(items:list,title:str="Checklist")->None:
     st.dataframe(pd.DataFrame(rows),use_container_width=True,hide_index=True,height=len(items)*36+40)
 
 
+
+def build_risk_range(prices:Dict[str,pd.Series], f:Dict, crash:Dict) -> Dict:
+    """v33 Risk Range Engine: ATR-based trade/trend range per asset."""
+    vix=f.get("vix_last",20.0); hy=f.get("hy_oas",350.0); uup=nf(f.get("uup_1m",0.0))
+    shock_pen=clamp(f.get("inf_shock",0.0)*1.5); vol_st=clamp((vix-13)/20)
+    crowd=crash.get("breadth_dmg",0.3)
+    stress_scalar=1.0+0.35*shock_pen+0.20*vol_st+0.10*crowd
+    down_asym=1.0+0.15*clamp(0.5+uup/0.04)+0.15*clamp(crash.get("crash_score",0.3))
+    up_asym=max(0.80, 1.0-0.08*clamp(uup/0.04))
+
+    WATCH_TICKERS=["SPY","QQQ","IWM","GLD","GC=F","CL=F","TLT","BTC-USD","ETH-USD","^JKSE",
+                   "BBCA.JK","ADRO.JK","PTBA.JK","TLKM.JK","XLE","EEM","UUP"]
+    out={}
+    for tk in WATCH_TICKERS:
+        s=_s(prices.get(tk,pd.Series()))
+        if len(s)<35: continue
+        px=float(s.iloc[-1])
+        if px<=0 or not math.isfinite(px): continue
+        # Fair value: EMA fast/slow
+        ema20=float(s.ewm(span=20).mean().iloc[-1])
+        ema50=float(s.ewm(span=50).mean().iloc[-1])
+        # ATR proxy from daily returns
+        rets=s.pct_change().dropna().abs()
+        atr_pct=float(rets.tail(14).mean())*math.sqrt(5) if len(rets)>=14 else 0.03
+        rv21=float(s.pct_change().dropna().std()*math.sqrt(252)) if len(s)>=22 else 0.20
+        base_vol=max(0.004, 0.55*atr_pct+0.45*rv21/math.sqrt(252)*math.sqrt(5))
+        tw=base_vol*1.20*stress_scalar
+        rw=base_vol*2.10*stress_scalar
+        tlo=ema20*(1-tw*down_asym); thi=ema20*(1+tw*up_asym)
+        rlo=ema50*(1-rw*down_asym); rhi=ema50*(1+rw*up_asym)
+        # Position in range
+        band=max(thi-tlo, px*0.001)
+        pos=(px-tlo)/band
+        stretch="overbought" if pos>=0.85 else("oversold" if pos<=0.15 else("extended" if pos>=0.70 else("reset_zone" if pos<=0.30 else "neutral")))
+        trend="bullish" if px>ema50 else("bearish" if px<ema50 else "neutral")
+        out[tk]={"px":round(px,4),"trade_low":round(tlo,4),"trade_high":round(thi,4),
+                 "trend_low":round(rlo,4),"trend_high":round(rhi,4),
+                 "stretch":stretch,"trend":trend,"atr_pct":round(atr_pct,4),
+                 "pos_in_range":round(pos,3)}
+    return out
+
+
+def build_asset_checklists_full(f:Dict, h:Dict, q:Dict, ih:Dict, prices:Dict) -> Dict:
+    """v33-style asset checklists per market (US, FX, Commodities, Crypto)."""
+    vix=f.get("vix_last",20.0); hy=f.get("hy_oas",350.0)
+    uup_1m=nf(f.get("uup_1m",0.0)); uup_3m=nf(f.get("uup_3m",f.get("dxy_3m",0.0)))
+    oil_3m=nf(f.get("clf_3m",f.get("oil_3m",0.0))); gold_3m=nf(f.get("gld_3m",f.get("gold_3m",0.0)))
+    spy_1m=nf(f.get("spy_1m",0.0)); iwm_1m=nf(f.get("iwm_1m",0.0))
+    tlt_1m=nf(f.get("tlt_1m",0.0))
+    btc_1m=ret_n(prices.get("BTC-USD",pd.Series()),21)
+    eth_1m=ret_n(prices.get("ETH-USD",pd.Series()),21)
+    hg_1m=ret_n(prices.get("HG=F",pd.Series()),21)
+    sf=q.get("slowdown_flags",0.0); shock=q.get("inf_shock",0.0)
+
+    us=[
+        ("Breadth melebar (equal-weight confirm)",clamp(0.5+nf(ret_n(prices.get("RSP",pd.Series()),21))*5),"RSP vs SPY 1M"),
+        ("Small caps ikut (IWM confirm)",clamp(0.5+iwm_1m*5),"IWM 1M: "+pct(iwm_1m)),
+        ("Credit aman (HY spreads)",clamp(1-(hy-250)/450) if math.isfinite(hy) else 0.5,f"HY OAS: {hy:.0f}bps" if math.isfinite(hy) else "proxy"),
+        ("VIX investable (<19)",clamp(1-(vix-13)/20),f"VIX: {vix:.1f}"),
+        ("Sector breadth sehat",h.get("sec_support",0.5),f"{h.get('sec_above50',0)}/11 di atas 50-DMA"),
+        ("SPY trend positif",h.get("spy_trend",0.5),"Price above 20+50 DMA"),
+    ]
+
+    fx=[
+        ("USD tidak terlalu kuat",clamp(0.5-uup_1m*8),"UUP 1M: "+pct(uup_1m)),
+        ("USD trend tidak melonjak",clamp(0.5-uup_3m*4),"UUP 3M: "+pct(uup_3m)),
+        ("Inflasi tidak re-accelerate",clamp(1-shock*2),"Shock: "+f"{shock:.2f}"),
+        ("Carry tidak terlalu panas",clamp(0.65-shock*0.5),"Proxy dari VIX dan inflasi"),
+        ("EM FX tidak stress",1-ih.get("usd_idr_pressure",0.5),"USD/IDR: "+pct(ih.get("usd_idr_1m",float("nan")))),
+    ]
+
+    commodities=[
+        ("Gold trend positif",clamp(0.5+gold_3m*3),"GLD 3M: "+pct(gold_3m)),
+        ("Oil tidak collapse",clamp(0.5+oil_3m*2),"Oil 3M: "+pct(oil_3m)),
+        ("Copper (growth proxy)",clamp(0.5+nf(hg_1m)*5),"HG 1M: "+pct(nf(hg_1m))),
+        ("USD tidak tekanan commodity",clamp(0.5-uup_3m*3),"DXY headwind: "+pct(-uup_3m)),
+        ("Inflasi pulse mendukung",clamp(0.5+shock*2),"Shock: "+f"{shock:.2f}" if shock>0 else "No shock"),
+    ]
+
+    crypto=[
+        ("BTC trend positif",clamp(0.5+nf(btc_1m)*2),"BTC 1M: "+pct(nf(btc_1m))),
+        ("ETH confirm",clamp(0.5+nf(eth_1m)*2),"ETH 1M: "+pct(nf(eth_1m))),
+        ("VIX rendah (risk-on)",clamp(1-(vix-13)/20),f"VIX: {vix:.1f}"),
+        ("Credit aman",clamp(1-(hy-250)/450) if math.isfinite(hy) else 0.5,"HY spreads"),
+        ("Regime supportif (Q1/Q2)",clamp({"Q1":0.80,"Q2":0.65,"Q3":0.25,"Q4":0.15}.get(q.get("quad","Q3"),0.5)),f"Regime {q.get('quad','?')}"),
+        ("Breadth lebar (tidak cuma BTC)",clamp(0.5+nf(btc_1m)-abs(nf(btc_1m)-nf(eth_1m))*0.5),"BTC-ETH divergence"),
+    ]
+
+    return {"us":us,"fx":fx,"commodities":commodities,"crypto":crypto}
+
+
+def build_macro_impact_all(q:Dict, f:Dict, rot:Dict) -> Dict:
+    """v33 Macro Impact Board per market: now/best_expression/invalidator/branch."""
+    quad=q["quad"]; conf=q["confidence"]; cb=q["conf_band"]
+    oil_3m=nf(f.get("clf_3m",f.get("oil_3m",0.0))); uup_1m=nf(f.get("uup_1m",0.0))
+    sf=q.get("slowdown_flags",0.0); shock=q.get("inf_shock",0.0)
+
+    boards={
+        "us":{
+            "Q1":("Growth + inflasi turun = risk-on lebar.","QQQ + quality growth + EM beta.","Kalau breadth lebar dan credit ketat, second-line leaders bisa nyusul.","Yield spike + breadth makin sempit + credit stress.",["real yields","breadth","credit","sector"]),
+            "Q2":("Growth + inflasi sama2 naik = reflation.","XLE + XLI + XLF + commodities-linked.","Kalau ISM bertahan >52, cyclical rotation bisa makin lebar.","ISM rollover + Fed overtighten.",["ISM","yields","commodities","earnings"]),
+            "Q3":("Stagflasi = risk broadly bearish.","GLD + XLE selektif + XLP/XLU + cash.","Kalau Fed pivot kredibel, duration dapat relief squeeze.","VIX spike + credit + breadth collapse.",["gold","USD","defensives","short beta"]),
+            "Q4":("Deflasi/resesi = capital preservation.","TLT + GLD + XLP/XLU/XLV.","Kalau fiscal/Fed stimulus besar, V-shape recovery trade.","Stimulus besar + ISM rebound dari <45.",["TLT","gold","defensives","quality"]),
+        },
+        "ihsg":{
+            "Q1":("Goldilocks = asing masuk, IHSG kondusif.","Bank besar + consumer cyclical + domestic beta.","Kalau rupiah stabil dan asing beli, breadth bisa melebar.","USD/IDR naik lagi + asing sell.",["rupiah","asing","bank","broad breadth"]),
+            "Q2":("Reflation = commodity exporter + bank lead.","ADRO + PTBA + ANTM + BBCA.","Kalau coal/mineral bertahan, exporter dan bank bisa naik bareng.","Commodity rollback + USD kuat.",["batubara","logam","rupiah","asing"]),
+            "Q3":("Stagflasi = IHSG mixed-bearish, defensif.","ADRO/PTBA (coal) + TLKM + ICBP. Kurangi consumer cyclical.","Coal exporter bisa survive stagflasi. Rest butuh USD/IDR stabil.","Oil drop + USD/IDR naik + asing keluar.",["coal","USD/IDR","defensif","asing"]),
+            "Q4":("Resesi = IHSG broadly bearish.","TLKM + ICBP + KLBF (consumer staples).","Kalau Fed cut agresif + IDR stabil, quality IHSG bisa outperform.","USD/IDR terus naik + asing outflow masif.",["defensif","dividend quality","rupiah"]),
+        },
+        "fx":{
+            "Q1":("Goldilocks = USD mild, carry works.","AUD/USD long, EUR/USD long, IDR selective.","Kalau inflasi melandai dan data kuat, EM FX bisa lebar.","USD re-accelerates, carry unwinds.",["USD","carry","EM FX","inflasi"]),
+            "Q2":("Reflation = commodity FX naik.","AUD, CAD, NOK (commodity FX). Short JPY/CHF.","Commodity FX bisa lanjut kalau ISM dan oil bertahan.","Demand scare + oil rollback.",["commodity FX","carry","EM FX"]),
+            "Q3":("Stagflasi = USD dan funding king.","Long USD (UUP), short carry (IDR, TRY). JPY counter-trend.","USD bisa lanjut dominan sampai Fed pivot kredibel.","De-escalation + Fed pivot + oil drop.",["USD dominan","carry pain","EM fragile"]),
+            "Q4":("Deflasi = JPY, CHF, USD defensive.","USD/JPY short (yen menguat), EUR/USD mixed.","Kalau risk-off melebar, JPY dan CHF outperform.","Risk-on squeeze + Fed cut surprise.",["JPY","CHF","USD defensive"]),
+        },
+        "commodities":{
+            "Q1":("Goldilocks = gold ok, oil ok.","GLD + selective oil. Copper ok.","Kalau pertumbuhan bertahan, broad commodity bisa positif.","Yield spike + USD naik.",["gold","copper","broad commodity"]),
+            "Q2":("Reflation = energy + metals king.","WTI/Brent + XLE + Copper + Agri.","Commodity super-cycle bisa lanjut kalau ISM bertahan.","Demand scare + dollar squeeze.",["energy","metals","agri"]),
+            "Q3":("Stagflasi = gold best trade.","XAUUSD + GLD. Oil volatile (bisa naik dulu).","Gold bisa lanjut selama real yields tidak meledak.","Real yields spike + USD super-strong.",["gold","oil volatile","industrial metals avoid"]),
+            "Q4":("Deflasi = gold only.","GLD saja. Semua lain broadly bearish.","Gold bisa menguat kalau Fed cut agresif + safe-haven demand.","Commodity demand collapse breadth.",["gold","oil bearish","metals bearish"]),
+        },
+        "crypto":{
+            "Q1":("Goldilocks = crypto bull market.","BTC + ETH + SOL + L1/L2 alts.","Kalau breadth lebar dan BTC rally, alts bisa outperform.","VIX spike + credit stress + breadth collapse.",["BTC lead","ETH catch-up","alts beta"]),
+            "Q2":("Reflation = crypto ok tapi commodities lead.","BTC + ETH. Alts selective.","Jaga sizing karena reflation bisa cepat berubah ke stagflasi.","Inflation panic + rate spike tiba-tiba.",["BTC/ETH ok","alts secondary"]),
+            "Q3":("Stagflasi = crypto very bearish.","BTC only (sebagai digital gold proxy). Jangan alts.","Bahkan BTC bisa tekanan kalau USD sangat kuat.","Yield spike + dollar dominance masif.",["BTC saja","alts hindari","preserve capital"]),
+            "Q4":("Deflasi = crypto worst environment.","Cash > semua crypto. BTC hold only.","Hanya jika Fed pivot agresif → BTC bisa relief bounce.","Resesi deep + credit collapse.",["cash king","avoid all crypto"])}
+    }
+
+    result={}
+    for mkt,quad_boards in boards.items():
+        bd=quad_boards.get(quad, quad_boards.get("Q3",("—","—","—","—",[])))
+        result[mkt]={"now":bd[0],"best_expression":bd[1],"forward_branch":bd[2],
+                     "invalidator":bd[3],"drivers":bd[4],"quad":quad,"confidence":conf}
+    return result
+
+
+def render_flow_state_strip(q:Dict)->None:
+    """v33 Flow State Strip: Structural→Monthly→Resolved→Next as horizontal pills."""
+    s_quad=q["quad"]; m_quad=q["monthly_quad"]; div=q["divergence"]
+    next_q=q.get("next_quad",s_quad); flip=q.get("flip_hazard",0.5)
+    operating=q.get("operating","?"); cb=q.get("conf_band","?")
+    items=[
+        {"label":"Structural","value":s_quad,"note":cb,"tone":"structural"},
+        {"label":"Monthly","value":m_quad,"note":"aligned" if div=="aligned" else "divergent","tone":"monthly"},
+        {"label":"Operating","value":operating[:22],"note":f"Conf {q.get('confidence',0):.0%}","tone":"resolved"},
+        {"label":"Next","value":next_q,"note":f"Flip {flip:.0%}","tone":"next"},
+    ]
+    tone_colors={"structural":"#378ADD","monthly":"#e5a020" if div=="divergent" else "#3dbb6c",
+                 "resolved":"#9b6aff","next":"#e05252" if flip>0.55 else "#aaa"}
+    parts=[]
+    for i,item in enumerate(items):
+        tc=tone_colors.get(item["tone"],"#888")
+        parts.append(
+            '<div style="flex:1;min-width:0;border:1px solid '+tc+'44;border-radius:8px;padding:6px 10px;'+
+            ('background:'+tc+'18;' if i<3 else "")+'">'+
+            '<div style="font-size:9px;font-weight:700;letter-spacing:.08em;color:'+tc+';">'+item["label"].upper()+'</div>'+
+            '<div style="font-size:14px;font-weight:700;margin:2px 0;color:var(--color-text-primary)">'+item["value"]+'</div>'+
+            '<div style="font-size:10px;color:var(--color-text-secondary)">'+item["note"]+'</div>'+
+            '</div>'
+        )
+        if i<len(items)-1:
+            parts.append('<div style="font-size:18px;color:#aaa;padding:0 2px;display:flex;align-items:center">&rarr;</div>')
+    html_strip='<div style="display:flex;align-items:stretch;gap:4px;margin-bottom:10px">'+'\n'.join(parts)+'</div>'
+    st.markdown(html_strip, unsafe_allow_html=True)
+
+
+def render_master_rotation_graph(q:Dict, f:Dict, rot:Dict, family:str)->None:
+    """v33 Master Rotation Graph: YOU ARE HERE mind-map with stage nodes."""
+    s_quad=q["quad"]; m_quad=q["monthly_quad"]; div=q["divergence"]
+    next_q=q.get("next_quad",s_quad); flip=q.get("flip_hazard",0.5)
+    top_ben=rot.get("top_ben","XAUUSD"); top_safe=rot.get("top_safe","Gold")
+    em_state=rot.get("em_state","Wait"); petro=rot.get("petro_score",0.0)
+    oil_3m=nf(f.get("clf_3m",f.get("oil_3m",0.0))); shock=q.get("inf_shock",0.0)
+
+    # Determine current stage
+    if div=="aligned" and flip<0.35: stage="structural"
+    elif div=="divergent": stage="monthly"
+    else: stage="resolved"
+
+    family_meta=ROTATION_FAMILIES.get(family,{})
+    family_label=family_meta.get("name","?")
+
+    def _node(title, label, note, tickers, *, active=False, next_path=False, danger=False)->str:
+        if danger: bc,bg="#e05252","rgba(224,82,82,0.10)"
+        elif next_path: bc,bg="#e5a020","rgba(229,160,32,0.10)"
+        elif active: bc,bg="#378ADD","rgba(55,138,221,0.12)"
+        else: bc,bg="rgba(255,255,255,0.15)","rgba(255,255,255,0.03)"
+        badge=""
+        if active: badge='<span style="font-size:9px;font-weight:800;color:'+bc+'">● YOU ARE HERE</span><br>'
+        elif next_path: badge='<span style="font-size:9px;font-weight:800;color:'+bc+'">→ NEXT</span><br>'
+        elif danger: badge='<span style="font-size:9px;font-weight:800;color:'+bc+'">⚠ RISK</span><br>'
+        tks=", ".join(tickers[:3]) if tickers else "—"
+        return (
+            '<div style="border:1.5px solid '+bc+';background:'+bg+';border-radius:10px;padding:10px 8px;text-align:center;min-height:120px;display:flex;flex-direction:column;justify-content:center;flex:1">'+
+            badge+
+            '<div style="font-size:9px;color:rgba(255,255,255,0.4);letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px">'+title+'</div>'+
+            '<div style="font-size:14px;font-weight:700;color:var(--color-text-primary);margin-bottom:2px">'+label+'</div>'+
+            '<div style="font-size:10px;color:var(--color-text-secondary);margin-bottom:4px">'+note+'</div>'+
+            '<div style="font-size:9px;color:'+bc+';font-family:monospace">'+tks+'</div>'+
+            '</div>'
+        )
+
+    nodes_html=[
+        _node("Structural Regime", s_quad, QUAD_META.get(s_quad,{}).get("label","?")[:20],
+              QUAD_META.get(s_quad,{}).get("best",[])[:2], active=(stage=="structural")),
+        _node("Monthly Overlay", m_quad, "divergent" if div=="divergent" else "aligned",
+              [], active=(stage=="monthly"), next_path=(stage=="structural" and div=="divergent")),
+        _node("Operating / Resolved", q.get("operating","?")[:22], q.get("conf_band","?"),
+              [top_ben, top_safe], active=(stage=="resolved")),
+        _node("Best Long / Safe Harbor", top_ben, "beneficiary", [top_ben],
+              next_path=True),
+        _node("Next / Invalidation", next_q, f"flip {flip:.0%}",
+              ["confirm: breadth+credit"], danger=(flip>0.55)),
+    ]
+    sep='<div style="font-size:20px;color:rgba(255,255,255,0.3);display:flex;align-items:center;padding:0 2px">&rarr;</div>'
+    graph_html=(
+        '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:12px 10px;margin-bottom:10px">'+
+        '<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,0.35);margin-bottom:8px">MASTER ROTATION GRAPH — '+family_label.upper()+'</div>'+
+        '<div style="display:flex;align-items:center;gap:4px;flex-wrap:nowrap">'+
+        sep.join(nodes_html)+
+        '</div></div>'
+    )
+    st.markdown(graph_html, unsafe_allow_html=True)
+
+
 def page_opportunities(snap:Dict)->None:
     """Full opportunity board: Long/Short table with entry/target/invalidation."""
     opps=snap.get("opportunities",[])
@@ -1148,8 +1378,6 @@ def page_opportunities(snap:Dict)->None:
     family=snap.get("family","reflation")
     rot_meta=ROTATION_FAMILIES.get(family,ROTATION_FAMILIES["reflation"])
     prices=snap["prices"]
-    f=snap.get("f",{})
-    rot=snap.get("rotation",{})
 
     # Status header
     longs=[r for r in opps if "LONG" in r.get("Bias","")]
@@ -1306,6 +1534,11 @@ def page_radar(snap:Dict)->None:
         '<span style="background:rgba(255,255,255,0.06);padding:2px 10px;border-radius:10px">Flip hazard: <b>' + f'{q.get("flip_hazard",0):.0%}' + '</b></span></div>'
     )
     st.markdown(mat_html, unsafe_allow_html=True)
+    # Master Rotation Graph (v33 YOU ARE HERE mind-map)
+    render_master_rotation_graph(q,f,snap["rotation"],snap["family"])
+    # Flow State Strip (horizontal pill chain)
+    render_flow_state_strip(q)
+    st.markdown("---")
     c1,c2,c3,c4=st.columns(4)
     with c1:
         g_acc=q.get("growth_acc"); mc("Growth Rate-of-Change",acc_txt(g_acc),"vs 3 bulan lalu","good" if g_acc else "bad")
@@ -1485,6 +1718,13 @@ def page_health(snap:Dict)->None:
     if chk.get("global"):
         render_checklist(chk["global"],"✅ KONDISI GLOBAL — CHECKLIST TRADING")
         st.caption("✓ = Kondisi baik | ~ = Mixed/watch | ✗ = Kondisi buruk")
+    # Asset checklists for US and cross-asset
+    asset_chk=snap.get("asset_checklists",{})
+    if asset_chk.get("us"):
+        st.markdown("---")
+        render_checklist(asset_chk["us"],"🇺🇸 US EQUITY CHECKLIST")
+    if asset_chk.get("fx"):
+        render_checklist(asset_chk["fx"],"💱 FX CHECKLIST")
 
 def page_playbook(snap:Dict)->None:
     q=snap["q"]; rot=snap["rotation"]; sc=snap["scenarios"]; pb=snap["playbooks"]; prices=snap["prices"]
@@ -1661,6 +1901,19 @@ def page_markets(snap:Dict)->None:
 
 def page_diag(snap:Dict)->None:
     f=snap["f"]; fred=snap["fred"]; prices=snap["prices"]; q=snap["q"]
+    # Risk Range table (v33 ATR-based)
+    rr=snap.get("risk_ranges",{})
+    if rr:
+        sh("📐 RISK RANGE ENGINE (ATR-based per aset)")
+        rr_rows=[]
+        for tk,v in rr.items():
+            px=v.get("px",0); tlo=v.get("trade_low",0); thi=v.get("trade_high",0)
+            stretch=v.get("stretch","neutral"); trend=v.get("trend","neutral")
+            stretch_sym="🔴" if "overbought" in stretch else("🟢" if "oversold" in stretch else("🟡" if "reset" in stretch else "⚪"))
+            rr_rows.append({"Ticker":disp(tk),"Price":f"{px:.2f}","Trade Low":f"{tlo:.2f}","Trade High":f"{thi:.2f}","Stretch":stretch_sym+" "+stretch,"Trend":"▲" if trend=="bullish" else("▼" if trend=="bearish" else "—"),"ATR%":f"{v.get('atr_pct',0)*100:.1f}%"})
+        st.dataframe(pd.DataFrame(rr_rows),use_container_width=True,hide_index=True,height=360)
+        st.caption("🟢 oversold/reset = possible entry | 🔴 overbought = consider trimming | Trade range = ATR-based 1-2 week range")
+        st.markdown("---")
     sh("📋 FRED DATA COVERAGE")
     cov=[{"Series":k,"FRED ID":FRED_SERIES.get(k,""),"Points":len(_s(s)),"Latest":str(_s(s).index[-1])[:10] if not _s(s).empty else "—","Last Value":round(float(_s(s).iloc[-1]),4) if not _s(s).empty else None,"Status":"✓ Loaded" if not _s(s).empty else "✗ Missing"} for k,s in fred.items()]
     st.dataframe(pd.DataFrame(cov),use_container_width=True,hide_index=True,height=480)
@@ -1840,6 +2093,25 @@ def page_markets_full(snap:Dict)->None:
                 st.markdown(f'<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.05)"><span><b>{tk}</b></span><span class="bad">{r["1M"]} {r["Trend"]}</span></div>',unsafe_allow_html=True)
         st.caption(f"Regime-adjusted: {s_quad} boosts certain sectors. Data from yfinance 1M returns.")
 
+        # Macro Impact Board for US (v33)
+        macro_impact=snap.get("macro_impact",{})
+        if macro_impact.get("us"):
+            st.markdown("---"); sh("📊 MACRO IMPACT BOARD — US")
+            bd=macro_impact["us"]
+            a3,b3=st.columns(2)
+            with a3:
+                mc("Sekarang",bd["quad"]+" Regime",bd["now"])
+                mc("Best Expression","→",bd["best_expression"])
+            with b3:
+                mc("Forward Branch","→",bd["forward_branch"])
+                mc("Invalidator","⚠️",bd["invalidator"])
+            st.markdown("**Drivers:** "+" · ".join(bd.get("drivers",[])),unsafe_allow_html=True)
+        # US Asset Checklist
+        asset_chk2=snap.get("asset_checklists",{})
+        if asset_chk2.get("us"):
+            st.markdown("---")
+            render_checklist(asset_chk2["us"],"🇺🇸 US EQUITY CHECKLIST")
+
     # ── FX ─────────────────────────────────────────────────────────────────────
     with t3:
         sh("💱 FX RATES")
@@ -1853,6 +2125,13 @@ def page_markets_full(snap:Dict)->None:
         uup_txt=f"UUP (USD proxy): {pct(uup_1m)} 1M. "
         regime_fx={"Q1":"Q1 Goldilocks = USD biasanya lemah. EM dan commodity FX benefit.","Q2":"Q2 Reflation = commodity FX (AUD, CAD) outperform. USD mixed.","Q3":"Q3 Stagflasi = USD kuat. IDR/EM FX tertekan. Dollar king.","Q4":"Q4 Deflasi = USD kuat awalnya, tapi Fed cut → Dollar bisa lemah."}
         st.info(uup_txt + regime_fx.get(s_quad,""))
+        # FX Macro Impact + Checklist
+        mi3=snap.get("macro_impact",{})
+        if mi3.get("fx"):
+            bd=mi3["fx"]; sh("📊 MACRO IMPACT — FX")
+            mc("Sekarang",bd["quad"],bd["now"]); mc("Best",bd["best_expression"][:40])
+        ac3=snap.get("asset_checklists",{})
+        if ac3.get("fx"): render_checklist(ac3["fx"],"💱 FX CHECKLIST")
 
     # ── Komoditas ──────────────────────────────────────────────────────────────
     with t4:

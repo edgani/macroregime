@@ -634,7 +634,7 @@ def build_crash(f:Dict,h:Dict,q:Dict)->Dict:
                 breadth_dmg=health_frag,reasons=rs[:5],crash_reasons=cr[:4],
                 exec_score=exec_score,exec_mode=exec_mode)
 
-def build_rotation(q:Dict,h:Dict,f:Dict)->Dict:
+def build_rotation(q:Dict,h:Dict,f:Dict,prices:Dict[str,pd.Series]={})->Dict:
     s_quad=q["quad"]; m_quad=q["monthly_quad"]
     uup_3m=nf(f.get("uup_3m",f.get("dxy_3m",0.0))); oil_3m=nf(f.get("clf_3m",f.get("oil_3m",0.0)))
     hy=f.get("hy_oas",350.0)
@@ -664,7 +664,7 @@ def build_rotation(q:Dict,h:Dict,f:Dict)->Dict:
     top_us_bucket=next(iter(US_BUCKETS))
     best_us_scores={}
     for bname,syms in US_BUCKETS.items():
-        rs=[ret_n(prices_placeholder.get(t,pd.Series()),21) for t in syms if t in prices_placeholder and math.isfinite(ret_n(prices_placeholder.get(t,pd.Series()),21))]
+        rs=[ret_n(prices.get(t,pd.Series()),21) for t in syms if t in prices and math.isfinite(ret_n(prices.get(t,pd.Series()),21))]
         if rs: best_us_scores[bname]=np.mean(rs)
     top_us_bucket=max(best_us_scores,key=best_us_scores.get) if best_us_scores else "Growth / Tech"
     spill_us=FAMILY_SPILLOVER_US["long"].get(top_us_bucket,FAMILY_SPILLOVER_US["long"]["default"])
@@ -730,13 +730,11 @@ def build_ihsg(prices:Dict[str,pd.Series],q:Dict,f:Dict)->Dict:
 
 @st.cache_data(ttl=TTL,show_spinner=False)
 def load_all()->Dict:
-    global prices_placeholder
     all_tickers=tuple(set(US_TICKERS+IHSG_TICKERS+FX_TICKERS+COMM_TICKERS+CRYPTO_TICKERS))
     with st.spinner("Fetching prices…"): prices=fetch_prices(all_tickers,period="2y")
-    prices_placeholder=prices
     with st.spinner("Fetching FRED macro data…"): fred={k:fetch_fred(v) for k,v in FRED_SERIES.items()}
     f=build_macro(fred,prices); q=build_quad(f); h=build_health(prices,f)
-    cr=build_crash(f,h,q); rot=build_rotation(q,h,f); ih=build_ihsg(prices,q,f)
+    cr=build_crash(f,h,q); rot=build_rotation(q,h,f,prices); ih=build_ihsg(prices,q,f)
     analog=_match_analog(f); pb=build_playbooks(f,q); sc=build_scenarios(q,f,analog,pb)
     return dict(prices=prices,fred=fred,f=f,q=q,h=h,crash=cr,rotation=rot,ihsg=ih,
                 analog=analog,playbooks=pb,scenarios=sc,ts=datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"))
@@ -1079,7 +1077,7 @@ def page_markets(snap:Dict)->None:
             note="IDR: naik = lemah (buruk IHSG)" if t=="IDR=X" else ("JPY: naik = yen lemah = risk-on" if t=="JPY=X" else "")
             fx_rows.append({"Pair":name,"1M":pct(r1),"3M":pct(r3),"Trend":"▲" if ts(s)>=0.5 else "▼","Catatan":note})
         st.dataframe(pd.DataFrame(fx_rows),use_container_width=True,hide_index=True)
-        uup_1m=nf(prices.get("UUP",pd.Series()) and ret_n(prices.get("UUP",pd.Series()),21))
+        uup_1m=ret_n(prices.get("UUP",pd.Series()),21)
         st.info(f"**Regime {s_quad} dan DXY:** {'USD kuat dalam stagflation — tekanan EM dan IHSG.' if s_quad=='Q3' else ('USD biasanya lemah di Goldilocks — EM dan commodity FX benefit.' if s_quad=='Q1' else 'Monitor USD direction untuk konfirmasi regime.')}")
     with t2:
         sh("🛢️ COMMODITIES")
@@ -1130,47 +1128,170 @@ def page_diag(snap:Dict)->None:
     prows=[{"Ticker":t,"Points":len(s),"Latest":str(s.index[-1])[:10] if not s.empty else "—","Last Close":round(float(s.iloc[-1]),4) if not s.empty else None} for t,s in sorted(prices.items())]
     st.dataframe(pd.DataFrame(prows),use_container_width=True,hide_index=True,height=400)
 
+def page_markets_full(snap:Dict)->None:
+    """Markets tab: IHSG + US + FX + Commodities + Crypto, semua terintegrasi."""
+    prices=snap["prices"]; q=snap["q"]; f=snap["f"]; ih=snap["ihsg"]; rot=snap["rotation"]
+    s_quad=q["quad"]; meta=QUAD_META.get(s_quad,QUAD_META["Q4"])
+
+    t0,t1,t2,t3,t4=st.tabs(["🇮🇩 IHSG","🇺🇸 US Stocks","💱 FX","🛢️ Komoditas","🔐 Crypto"])
+
+    # ── IHSG ─────────────────────────────────────────────────────────────────
+    with t0:
+        sh("🇮🇩 IHSG — INDONESIAN MARKET ANALYSIS")
+        score=ih["ihsg_score"]; sc="#3dbb6c" if score>=0.60 else("#e5a020" if score>=0.47 else "#e05252")
+        st.markdown(f'<div style="text-align:center;padding:14px;border-radius:12px;border:1.5px solid {sc}33;margin-bottom:12px"><div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.4;margin-bottom:2px">IHSG COMPOSITE SCORE</div><div style="font-family:Syne,sans-serif;font-size:38px;font-weight:800;color:{sc};line-height:1">{score:.0%}</div><div style="font-size:14px;font-weight:700;color:{sc};margin-top:2px">{ih["exec_mode"]}</div></div>',unsafe_allow_html=True)
+        c1,c2,c3,c4=st.columns(4)
+        with c1:
+            jk=ih["jkse_1m"]; cls="good" if(math.isfinite(jk) and jk>0) else("bad" if(math.isfinite(jk) and jk<-0.02) else "warn")
+            mc("^JKSE 1M",pct(jk),f"3M: {pct(ih['jkse_3m'])}",cls)
+        with c2:
+            idr=ih["usd_idr_1m"]; cls="bad" if(math.isfinite(idr) and idr>0.02) else("good" if(math.isfinite(idr) and idr<-0.01) else "warn")
+            mc("USD/IDR 1M",pct(idr),"Naik = IDR lemah = buruk",cls)
+        with c3: mc("Asing Flow",ih["flow_state"],f"Score: {ih['foreign_flow']:.0%}","good" if ih["foreign_flow"]>0.60 else("bad" if ih["foreign_flow"]<0.40 else "warn"))
+        with c4: mc("BI Policy Proxy",ih["bi_state"],f"Score: {ih['bi_path']:.0%}","good" if ih["bi_path"]>0.60 else("warn" if ih["bi_path"]>0.42 else "bad"))
+        st.markdown("---")
+        ca,cb=st.columns(2)
+        with ca:
+            sh("📊 FAKTOR UTAMA (bobot v33)")
+            gb(f"Regime score ({IHSG_W['regime']:.0%})",ih["em_regime"],"EM macro support")
+            gb(f"Asing flow ({IHSG_W['em_rotation']:.0%})",ih["foreign_flow"],"Dana masuk/keluar")
+            gb(f"USD/IDR pressure ({IHSG_W['macro_native']:.0%})",1-ih["usd_idr_pressure"],"Lebih tinggi = IDR kuat")
+            gb(f"Breadth+bank ({IHSG_W['breadth_flow']:.0%})",clamp(0.55*ih["breadth_ihsg"]+0.45*ih["bank_health"]),"Sektoral health")
+            gb(f"Commodity spill ({IHSG_W['execution']:.0%})",ih["comm_spill"],"Batubara+logam")
+        with cb:
+            sh("🏗️ SPILLOVER CHAIN IHSG")
+            top_s=ih["top_sector"]; spill=ih["spill_ihsg"]
+            st.markdown(f"**Leader saat ini:** {top_s}")
+            for i,fam in enumerate(spill):
+                roles=["Leader awal","Beneficiary ke-2","Breadth follower","Defensif / shelter"]
+                role=roles[i] if i<len(roles) else ""
+                col_cls="good" if i==0 else("warn" if i==1 else("neu" if i==2 else "bad"))
+                syms_str=" / ".join(t.replace(".JK","") for t in IHSG_BUCKETS.get(fam,[])[:3])
+                st.markdown(f'<div style="display:flex;gap:8px;margin-bottom:4px"><span style="font-size:11px;opacity:.4;width:20px">{i+1}.</span><div><span class="{col_cls}" style="font-weight:600;font-size:12px">{fam}</span><br><span style="font-size:10px;opacity:.5">{role} · {syms_str}</span></div></div>',unsafe_allow_html=True)
+            quad_impact={"Q1":"✅ Goldilocks = IHSG kondusif. Asing beli, bank outperform.","Q2":"⚡ Reflation = coal/logam/CPO outperform. Watch tail jika Fed overtighten.","Q3":"⚠️ Stagflasi = IHSG tertekan. USD kuat, asing keluar. Hanya coal exporter bisa bertahan.","Q4":"🔴 Resesi = IHSG defensif. Hold cash, ICBP/KLBF/TLKM."}
+            st.info(quad_impact.get(s_quad,""))
+        st.markdown("---"); sh("📈 IHSG STOCK RANKINGS (1M momentum)")
+        if ih["stock_rows"]:
+            df=pd.DataFrame([{k:v for k,v in r.items() if not k.startswith("_")} for r in ih["stock_rows"]])
+            st.dataframe(df,use_container_width=True,hide_index=True,height=380)
+        # Key pairs
+        st.markdown("---"); sh("📚 KEY IHSG PAIRS TO WATCH")
+        for t,desc,regime in [("BBCA.JK","Bank terbesar, kualitas premium. Leading IHSG di Q1/Q2.","Q1,Q2"),("ADRO.JK","Coal king. Rally di Q2/Q3 (commodity shock).","Q2,Q3"),("ANTM.JK","Gold/nickel proxy. Cocok di Q3 stagflasi.","Q3"),("TLKM.JK","Defensif. Dividend play, cocok Q4.","Q4"),("IDR=X","USD/IDR: naik = buruk (asing kabur dari IHSG).","All"),]:
+            s=prices.get(t,pd.Series()); r1=ret_n(s,21); perf=pct(r1) if math.isfinite(r1) else "—"
+            cls="good" if(math.isfinite(r1) and r1>0) else("bad" if(math.isfinite(r1) and r1<-0.01) else "warn")
+            st.markdown(f'<div class="mc" style="display:flex;justify-content:space-between;align-items:center"><div><div class="lb">{t} — {" ".join(tag(r,"b") for r in regime.split(","))}</div><div style="font-size:12px;opacity:.8">{desc}</div></div><div class="vl {cls}" style="font-size:16px">{perf}</div></div>',unsafe_allow_html=True)
+
+    # ── US Stocks ──────────────────────────────────────────────────────────────
+    with t1:
+        sh("🇺🇸 US STOCKS")
+        # Sector performance
+        SECS={"XLE":"Energy","XLF":"Financials","XLI":"Industrials","XLB":"Materials","XLK":"Technology","XLV":"Healthcare","XLY":"Cons.Disc.","XLP":"Cons.Staples","XLU":"Utilities","XLRE":"Real Estate","XLC":"Comm.Svc."}
+        spy3=ret_n(prices.get("SPY",pd.Series()),63); sec_rows=[]
+        for tk,name in SECS.items():
+            s=prices.get(tk,pd.Series()); r3=ret_n(s,63); r1=ret_n(s,21)
+            rel=(r3-spy3) if(math.isfinite(r3) and math.isfinite(spy3)) else float("nan")
+            sec_rows.append({"Sektor":name,"3M":pct(r3),"1M":pct(r1),"vs SPY 3M":pct(rel),"50DMA":"✓" if ts(s)>=0.5 else "✗"})
+        sec_rows.sort(key=lambda r:float(r["vs SPY 3M"].replace("%","").replace("—","0").replace("+","")) if r["vs SPY 3M"]!="—" else -999,reverse=True)
+        st.dataframe(pd.DataFrame(sec_rows),use_container_width=True,hide_index=True,height=360)
+        # US Family spillover
+        st.markdown("---"); sh("🏗️ US FAMILY SPILLOVER CHAIN")
+        spill=rot["spill_us"]; top_us=rot["top_us_bucket"]
+        st.markdown(f"**Leader saat ini:** {top_us}")
+        for i,fam in enumerate(spill):
+            roles=["Leader awal","Spillover ke-2","Breadth follower","Hedge / shelter"]
+            role=roles[i] if i<len(roles) else ""
+            syms_str=" / ".join(list(US_BUCKETS.get(fam,[]))[:3])
+            col_cls="good" if i==0 else("warn" if i==1 else("neu" if i==2 else "bad"))
+            st.markdown(f'<div style="display:flex;gap:8px;margin-bottom:4px"><span style="font-size:11px;opacity:.4;width:20px">{i+1}.</span><div><span class="{col_cls}" style="font-weight:600;font-size:13px">{fam}</span><br><span style="font-size:10px;opacity:.5">{role} · {syms_str}</span></div></div>',unsafe_allow_html=True)
+        # Individual US stocks
+        st.markdown("---"); sh("📊 KEY US STOCKS (1M momentum)")
+        us_stocks={"AAPL":"Apple","MSFT":"Microsoft","NVDA":"Nvidia","AMZN":"Amazon","META":"Meta","GOOGL":"Alphabet","TSLA":"Tesla","AVGO":"Broadcom","AMD":"AMD","NFLX":"Netflix","JPM":"JPMorgan","BAC":"BofA","GS":"Goldman","XOM":"ExxonMobil","CVX":"Chevron"}
+        stock_rows=[]
+        for tk,name in us_stocks.items():
+            s=prices.get(tk,pd.Series()); r1=ret_n(s,21); r3=ret_n(s,63)
+            sp1=ret_n(prices.get("SPY",pd.Series()),21); rel=(r1-sp1) if(math.isfinite(r1) and math.isfinite(sp1)) else float("nan")
+            stock_rows.append({"Stock":name,"Ticker":tk,"1M":pct(r1),"3M":pct(r3),"vs SPY 1M":pct(rel),"Trend":"▲" if ts(s)>=0.5 else "▼"})
+        stock_rows.sort(key=lambda r:float(r["1M"].replace("%","").replace("—","0").replace("+","")) if r["1M"]!="—" else -999,reverse=True)
+        st.dataframe(pd.DataFrame(stock_rows),use_container_width=True,hide_index=True,height=460)
+
+    # ── FX ─────────────────────────────────────────────────────────────────────
+    with t2:
+        sh("💱 FX RATES")
+        FX_NAMES={"EURUSD=X":"EUR/USD","GBPUSD=X":"GBP/USD","AUDUSD=X":"AUD/USD","JPY=X":"USD/JPY (naik=yen lemah)","CHF=X":"USD/CHF","IDR=X":"USD/IDR (naik=IDR lemah)","CNH=X":"USD/CNH","SGD=X":"USD/SGD","CAD=X":"USD/CAD"}
+        fx_rows=[]
+        for tk,name in FX_NAMES.items():
+            s=prices.get(tk,pd.Series()); r1=ret_n(s,21); r3=ret_n(s,63)
+            fx_rows.append({"Pair":name,"1M":pct(r1),"3M":pct(r3),"Trend":"▲" if ts(s)>=0.5 else "▼"})
+        st.dataframe(pd.DataFrame(fx_rows),use_container_width=True,hide_index=True)
+        uup_1m=ret_n(prices.get("UUP",pd.Series()),21)
+        uup_txt=f"UUP (USD proxy): {pct(uup_1m)} 1M. "
+        regime_fx={"Q1":"Q1 Goldilocks = USD biasanya lemah. EM dan commodity FX benefit.","Q2":"Q2 Reflation = commodity FX (AUD, CAD) outperform. USD mixed.","Q3":"Q3 Stagflasi = USD kuat. IDR/EM FX tertekan. Dollar king.","Q4":"Q4 Deflasi = USD kuat awalnya, tapi Fed cut → Dollar bisa lemah."}
+        st.info(uup_txt + regime_fx.get(s_quad,""))
+
+    # ── Komoditas ──────────────────────────────────────────────────────────────
+    with t3:
+        sh("🛢️ KOMODITAS")
+        COMM_NAMES={"GC=F":"Gold (XAU)","SI=F":"Silver","CL=F":"Oil WTI","BZ=F":"Oil Brent","NG=F":"Natural Gas","HG=F":"Copper","ZC=F":"Corn","ZW=F":"Wheat","DBC":"Broad Commodities ETF","URA":"Uranium ETF"}
+        comm_rows=[]
+        for tk,name in COMM_NAMES.items():
+            s=prices.get(tk,pd.Series()); r1=ret_n(s,21); r3=ret_n(s,63)
+            comm_rows.append({"Komoditas":name,"1M":pct(r1),"3M":pct(r3),"Trend":"▲" if ts(s)>=0.5 else "▼"})
+        st.dataframe(pd.DataFrame(comm_rows),use_container_width=True,hide_index=True)
+        regime_comm={"Q1":"Q1 = Gold ok, Oil ok, Copper ok. Commodities broadly supportive.","Q2":"Q2 = Energy king. Oil, Gas, Copper outperform. Materials rally.","Q3":"Q3 Stagflasi = GOLD best trade. Oil bisa volatile. Avoid cyclical metals.","Q4":"Q4 = Commodities broadly weak. Gold bisa rally jika recession fear dominates."}
+        st.info(regime_comm.get(s_quad,""))
+        # Petrodollar note
+        oil_3m=ret_n(prices.get("CL=F",pd.Series()),63)
+        gold_3m=ret_n(prices.get("GC=F",pd.Series()),63)
+        mc("Oil WTI 3M",pct(oil_3m),"signal inflasi","warn" if(math.isfinite(oil_3m) and oil_3m>0.05) else "neu")
+        mc("Gold 3M",pct(gold_3m),"hard asset hedge","good" if(math.isfinite(gold_3m) and gold_3m>0.05) else "neu")
+
+    # ── Crypto ─────────────────────────────────────────────────────────────────
+    with t4:
+        sh("🔐 CRYPTO")
+        CRYPTO_NAMES={"BTC-USD":"Bitcoin (BTC)","ETH-USD":"Ethereum (ETH)","SOL-USD":"Solana (SOL)","BNB-USD":"BNB","XRP-USD":"XRP","ADA-USD":"Cardano","AVAX-USD":"Avalanche","LINK-USD":"Chainlink","DOGE-USD":"Dogecoin"}
+        cr_rows=[]
+        for tk,name in CRYPTO_NAMES.items():
+            s=prices.get(tk,pd.Series()); r1=ret_n(s,21); r3=ret_n(s,63); r1w=ret_n(s,5)
+            cr_rows.append({"Asset":name,"1W":pct(r1w),"1M":pct(r1),"3M":pct(r3),"Trend":"▲" if ts(s)>=0.5 else "▼"})
+        st.dataframe(pd.DataFrame(cr_rows),use_container_width=True,hide_index=True)
+        btc_1m=ret_n(prices.get("BTC-USD",pd.Series()),21)
+        regime_crypto={"Q1":"Q1 = Crypto bullish. High-beta risk asset. BTC biasanya outperform.","Q2":"Q2 = Crypto ok tapi attention ke commodities. BTC masih bisa naik.","Q3":"Q3 Stagflasi = Crypto BEARISH. Bukan hedge inflation. Gold > Crypto.","Q4":"Q4 = Crypto sangat bearish. Capital preservation mode. Cash > Crypto."}
+        st.info(f"BTC 1M: {pct(btc_1m)}. {regime_crypto.get(s_quad,'')}")
+        st.caption("⚠️ Crypto = high-beta risk asset, bukan inflation hedge. Naik paling kencang di Q1, hancur paling dalam di Q3/Q4.")
+
+
 def main():
-    global prices_placeholder
-    st.markdown('<div style="display:flex;align-items:center;margin-bottom:4px"><span style="font-family:Syne,sans-serif;font-size:20px;font-weight:800;letter-spacing:-.03em">🧭 MacroRegime Pro</span><span style="font-size:10px;opacity:.3;margin-left:8px;font-family:DM Mono,monospace">v6.0 · Hedgeye GIP Framework · v33 weights restored</span></div>',unsafe_allow_html=True)
+    st.markdown('<div style="display:flex;align-items:center;margin-bottom:4px"><span style="font-family:Syne,sans-serif;font-size:20px;font-weight:800;letter-spacing:-.03em">🧭 MacroRegime Pro</span><span style="font-size:10px;opacity:.3;margin-left:8px;font-family:DM Mono,monospace">v6.1 · Hedgeye GIP Framework · v33 weights</span></div>',unsafe_allow_html=True)
     with st.sidebar:
         st.markdown("### ⚙️ Controls")
         if st.button("🔄 Force Refresh",use_container_width=True): st.cache_data.clear(); st.rerun()
         st.markdown("---")
         st.markdown("""
-**Reading flow (orang awam):**
-1. 🧭 **Radar** — Regime apa? Trade terbaik? Analog historis?
-2. 🇮🇩 **IHSG** — Kondisi market Indonesia
-3. 📡 **Market Health** — Bisa masuk sekarang?
-4. 🎯 **Playbook** — Strategy + scenario + what-if
-5. ⚠️ **Risk Monitor** — Crash meter dual (crash+risk-off)
-6. 🌐 **Markets** — FX, Commodities, Crypto
-7. 🔬 **Diagnostics** — Data quality + quad internals
+**Urutan baca (orang awam):**
+1. 🧭 **Radar** — Kita di regime apa? Trade terbaik apa sekarang?
+2. 📡 **Health** — Aman masuk pasar sekarang?
+3. 🎯 **Playbook** — Strategy detail + skenario + what-if
+4. 🌐 **Markets** — IHSG · US · FX · Komoditas · Crypto
+5. ⚠️ **Risk** — Seberapa bahaya kondisi saat ini?
+6. 🔬 **Diag** — Kualitas data & internal engine
 
-**v6 fixes vs v5:**
-- Quad weights exact (v33 structural/monthly)
-- Policy score + liquidity score
-- Data coverage tracking
-- Historical Analog Engine (5 templates)
-- Policy Playbook Engine (3 playbooks)
-- Dual crash+risk-off scores
-- Family spillover chain (US + IHSG)
-- Confidence band language
-- FX/Commodities/Crypto pages
-- Next macro catalyst countdown
+**v6.1 fixes:**
+- Bug prices_placeholder fixed
+- Bug Series `and` operator fixed
+- IHSG masuk Markets tab
+- Semua tab error resolved
         """)
-    snap=load_all(); prices_placeholder=snap["prices"]
+    snap=load_all()
     q=snap["q"]; f=snap["f"]; cr=snap["crash"]; quad=q["quad"]; meta=QUAD_META.get(quad,{})
     ga="▲" if q.get("growth_acc") else "▼"; ia="▲" if q.get("infl_acc") else "▼"
     div_badge=f" / M:{q['monthly_quad']}" if q["divergence"]=="divergent" else ""
     st.markdown(f'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:7px 10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);margin-bottom:10px;font-size:11px"><span>Regime: {qb(quad)}{div_badge} <strong>{meta.get("label","")}</strong></span><span style="opacity:.25">|</span><span>Conf: <strong>{q["confidence"]:.0%}</strong> ({q.get("conf_band","")})</span><span style="opacity:.25">|</span><span>Growth: <strong>{ga}</strong></span><span style="opacity:.25">|</span><span>Inflasi: <strong>{ia}</strong></span><span style="opacity:.25">|</span><span>Risk: <strong>{cr["state"]}</strong></span><span style="opacity:.25">|</span><span>Exec: <strong>{cr["exec_mode"]}</strong></span><span style="opacity:.25">|</span><span style="opacity:.3">{snap["ts"]}</span></div>',unsafe_allow_html=True)
-    tabs=st.tabs(["🧭 Radar","🇮🇩 IHSG","📡 Market Health","🎯 Playbook","⚠️ Risk Monitor","🌐 Markets","🔬 Diagnostics"])
+    tabs=st.tabs(["🧭 Radar","📡 Health","🎯 Playbook","🌐 Markets","⚠️ Risk","🔬 Diagnostics"])
     with tabs[0]: page_radar(snap)
-    with tabs[1]: page_ihsg(snap)
-    with tabs[2]: page_health(snap)
-    with tabs[3]: page_playbook(snap)
+    with tabs[1]: page_health(snap)
+    with tabs[2]: page_playbook(snap)
+    with tabs[3]: page_markets_full(snap)
     with tabs[4]: page_risk(snap)
-    with tabs[5]: page_markets(snap)
-    with tabs[6]: page_diag(snap)
+    with tabs[5]: page_diag(snap)
 
 if __name__=="__main__": main()

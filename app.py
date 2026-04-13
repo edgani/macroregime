@@ -737,8 +737,11 @@ def load_all()->Dict:
     cr=build_crash(f,h,q); rot=build_rotation(q,h,f,prices); ih=build_ihsg(prices,q,f)
     analog=_match_analog(f); pb=build_playbooks(f,q); sc=build_scenarios(q,f,analog,pb)
     chk=build_checklists(f,h,q,ih)
+    opps=build_opportunities(prices,q,f,h,rot)
+    family=get_dominant_family(q,f,rot)
     return dict(prices=prices,fred=fred,f=f,q=q,h=h,crash=cr,rotation=rot,ihsg=ih,
                 analog=analog,playbooks=pb,scenarios=sc,checklists=chk,
+                opportunities=opps,family=family,
                 ts=datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"))
 
 # ── UI helpers ────────────────────────────────────────────────────────────────
@@ -756,6 +759,296 @@ def chk(flag,good_txt="Yes",bad_txt="No"):
     if flag is True: return f'<span class="chk-ok">✓ {good_txt}</span>'
     if flag is False: return f'<span class="chk-no">✗ {bad_txt}</span>'
     return '<span style="opacity:.4">? Unknown</span>'
+
+
+import math
+from typing import Dict, List, Optional
+import numpy as np
+import pandas as pd
+
+# ── Regime policy (exact from v33 config/regime_policy.py) ────────────────────
+QUAD_POLICY = {
+    "Q1": {
+        "us":          {"long":["Growth/Tech","Quality","Semis/AI"],       "short":["Energy/Value"],         "avoid":["Energy","Small beta"]},
+        "ihsg":        {"long":["Bank","Consumer","Telco/Infra"],           "short":["Batu Bara/Energi"],     "avoid":["Logam","Special board"]},
+        "fx":          {"long":["Majors","Defensive USD"],                  "short":["Carry beta"],           "avoid":["Commodity FX"]},
+        "commodities": {"long":["Gold","Silver","Broad proxy"],             "short":["Industrial metals"],    "avoid":["Energy","Agri"]},
+        "crypto":      {"long":["BTC","ETH","SOL","Infra"],                 "short":["High beta alts"],      "avoid":["Meme coins"]},
+    },
+    "Q2": {
+        "us":          {"long":["Growth/Tech","Semis","Energy/Value","Industrials"], "short":["Defensives"],  "avoid":["Bonds"]},
+        "ihsg":        {"long":["Bank","Batu Bara/Energi","Logam","Consumer"], "short":["Consumer Def"],     "avoid":["Special board"]},
+        "fx":          {"long":["Commodity FX","AUD","CAD"],                "short":["Defensive USD"],       "avoid":["JPY/CHF hedges"]},
+        "commodities": {"long":["Oil","Copper","Agri"],                     "short":["Gold"],                "avoid":["Precious"]},
+        "crypto":      {"long":["BTC","ETH","L1/L2","DeFi","AI crypto"],   "short":["Micro alts"],          "avoid":["Stables only"]},
+    },
+    "Q3": {
+        "us":          {"long":["Defensives","Energy/Value","Gold via GLD"], "short":["Consumer disc","Small caps","Cyclicals"], "avoid":["QQQ","IWM","HYG"]},
+        "ihsg":        {"long":["Batu Bara/Energi","Logam","Consumer Def","Telco/Infra"], "short":["Consumer","Properti"], "avoid":["IDR-sensitive stocks"]},
+        "fx":          {"long":["USD","Defensive FX"],                      "short":["Carry","Asia EM FX"],  "avoid":["IDR","TRY","BRL"]},
+        "commodities": {"long":["Gold","Silver","Oil (selective)"],         "short":["Copper","Base metals"],"avoid":["Industrial metals"]},
+        "crypto":      {"long":["BTC only"],                                "short":["Alts","High beta"],   "avoid":["DeFi","Meme"]},
+    },
+    "Q4": {
+        "us":          {"long":["Defensives","TLT","Gold","Quality"],       "short":["Consumer disc","Small caps","Cyclicals"], "avoid":["Commodities","Junk credit"]},
+        "ihsg":        {"long":["Consumer Def","Telco/Infra (TLKM)"],      "short":["Consumer cyc","Logam"], "avoid":["Coal (demand collapse)"]},
+        "fx":          {"long":["USD","JPY","CHF"],                         "short":["Carry","Commodity FX"],"avoid":["EM FX"]},
+        "commodities": {"long":["Gold"],                                    "short":["Oil","Industrial"],     "avoid":["Agri","Energy"]},
+        "crypto":      {"long":["BTC (only)"],                              "short":["All alts"],            "avoid":["High beta entirely"]},
+    },
+}
+
+# ── Rotation Family definitions (from v33 orchestration/route_layers.py) ──────
+ROTATION_FAMILIES = {
+    "petrodollar": {
+        "name": "Petrodollar Route",
+        "desc": "Oil/war shock → freight → importer pain → exporter benefit. USD dan energy dominan.",
+        "trigger": "Oil shock / geopolitical event → freight stress → USD tightening",
+        "nodes": [
+            {"label":"Oil/War Shock",        "role":"Trigger",         "bias":"up",  "why":"Supply risk premium → oil dan freight naik."},
+            {"label":"Freight/Energy Stress","role":"First Order",     "bias":"up",  "why":"Higher oil hurts importers, lifts producers."},
+            {"label":"Importer Pain/USD↑",   "role":"Second Order",   "bias":"mixed","why":"EM FX tertekan, IDR dan Asia FX rapuh."},
+            {"label":"Exporter Winners",     "role":"Expression",     "bias":"up",  "why":"Coal/energy exporter menang. ADRO, PTBA, XLE."},
+            {"label":"Breaks If Oil Fades",  "role":"Invalidator",    "bias":"down","why":"Route pecah jika oil dan USD keduanya turun."},
+        ],
+        "best_expressions": {
+            "US":["XLE","XOM","CVX"],   "IHSG":["ADRO.JK","PTBA.JK","AADI.JK"],
+            "FX":["USD/IDR short IDR"], "Commodities":["CL=F","BZ=F","GC=F"],
+            "Crypto":["BTC (defensive)"],
+        },
+        "confirms":["Oil > $85 bertahan","ADRO/PTBA outperform","USD/IDR stays elevated"],
+        "invalidators":["Oil drops >10% in week","Fed signals cuts urgently","De-escalation confirmed"],
+    },
+    "em_rotation": {
+        "name": "EM Rotation Route",
+        "desc": "USD relief → selective EM flows → IHSG/EEM catch-up. Exporters lead dulu.",
+        "trigger": "USD softening → EEM breadth improves → IHSG foreign flow turns positive",
+        "nodes": [
+            {"label":"USD Relief",           "role":"Trigger",         "bias":"down","why":"DXY softens → EM funding condition improves."},
+            {"label":"Selective EM Flows",   "role":"First Order",     "bias":"up",  "why":"Exporters dan quality EM first to catch bids."},
+            {"label":"Broader Participation","role":"Second Order",    "bias":"up",  "why":"Breadth must broaden beyond just exporters."},
+            {"label":"IHSG/EEM Catch-Up",    "role":"Expression",     "bias":"up",  "why":"Banks dan domestic consumer join the rally."},
+            {"label":"Breaks If USD Re-Accel","role":"Invalidator",   "bias":"down","why":"Route gagal jika USD kuat kembali."},
+        ],
+        "best_expressions": {
+            "US":["EEM","selective EM-linked"], "IHSG":["BBCA.JK","BBRI.JK","coal exporters"],
+            "FX":["Selective EM FX longs"],    "Commodities":["Less defensive skew"],
+            "Crypto":["Higher beta watch if liquidity confirms"],
+        },
+        "confirms":["EEM > SPY 1M dan 3M","USD/IDR stabilizes","IHSG asing nett beli"],
+        "invalidators":["USD re-accelerates","Only exporters work","EEM breadth rolls over"],
+    },
+    "reflation": {
+        "name": "Reflation Route",
+        "desc": "Growth + inflation keduanya naik. Cyclicals, real assets, dan EM lebar semua menang.",
+        "trigger": "ISM >52 + commodity pulse up → earnings revision up → broad risk-on",
+        "nodes": [
+            {"label":"Growth Reaccel",       "role":"Trigger",         "bias":"up",  "why":"ISM/PMI naik, earnings revision positif."},
+            {"label":"Commodity/Cyclical Up","role":"First Order",     "bias":"up",  "why":"Energy, materials, industrials lead."},
+            {"label":"Broad Beta Up",        "role":"Second Order",    "bias":"up",  "why":"Small caps, EM, dan quality growth ikut."},
+            {"label":"Risk-On Expression",   "role":"Expression",     "bias":"up",  "why":"Seluruh risk asset naik, defensives lag."},
+            {"label":"Breaks If Fed Bites",  "role":"Invalidator",    "bias":"down","why":"Tightening terlalu agresif → Q3 pivot."},
+        ],
+        "best_expressions": {
+            "US":["QQQ","IWM","XLE","XLI"],    "IHSG":["BBCA.JK","ADRO.JK","ANTM.JK"],
+            "FX":["AUD","CAD","commodity FX"], "Commodities":["Oil","Copper","Agri"],
+            "Crypto":["BTC","ETH","L1/L2 alts"],
+        },
+        "confirms":["ISM >52 dua bulan","IWM outperforms SPY","Commodities breadth positive"],
+        "invalidators":["ISM fails to hold >50","Fed overtightens","Credit spreads widen"],
+    },
+    "growth_scare": {
+        "name": "Growth Scare / Defensive Route",
+        "desc": "Growth scare dominan. Defensives, TLT, gold, cash menang. Capital preservation mode.",
+        "trigger": "ISM <48 + payrolls miss → earnings cuts → broad de-risking",
+        "nodes": [
+            {"label":"Growth Miss",          "role":"Trigger",         "bias":"down","why":"Data miss → recession fear pricing in."},
+            {"label":"Credit/Breadth Break", "role":"First Order",     "bias":"down","why":"HY spreads widen, breadth collapses."},
+            {"label":"Risk-Off Cascade",     "role":"Second Order",    "bias":"down","why":"Forced selling: ETFs, momentum, leveraged."},
+            {"label":"Defensive Winners",    "role":"Expression",     "bias":"up",  "why":"TLT, gold, defensives, cash all rally."},
+            {"label":"Breaks If Fed Pivots", "role":"Invalidator",    "bias":"up",  "why":"Credible Fed cut → risk-on relief squeeze."},
+        ],
+        "best_expressions": {
+            "US":["TLT","XLP","XLU","XLV","GLD"],  "IHSG":["TLKM.JK","ICBP.JK","KLBF.JK"],
+            "FX":["USD","JPY","CHF"],               "Commodities":["Gold"],
+            "Crypto":["BTC (hold only)","avoid alts"],
+        },
+        "confirms":["TLT > SPY 1M","Credit spreads keep widening","ISM stays <49"],
+        "invalidators":["Fed credible pivot","ISM rebounds from <45","Fiscal stimulus announced"],
+    },
+}
+
+# ── Determine active rotation family (from v33 route_layers._dominant_family) ─
+def get_dominant_family(q:Dict, f:Dict, rot:Dict) -> str:
+    petro=rot.get("petro_score",0.0)
+    em=rot.get("em_score",0.0)
+    oil_3m=f.get("clf_3m",f.get("oil_3m",0.0))
+    if not (oil_3m is not None and hasattr(oil_3m,"__float__")): oil_3m=0.0
+    try: oil_3m=float(oil_3m)
+    except: oil_3m=0.0
+    sf=q.get("slowdown_flags",0.0); shock=q.get("inf_shock",0.0)
+    flip=q.get("flip_hazard",0.5); quad=q.get("quad","Q3")
+    if oil_3m>0.08 or shock>0.30 or petro>0.45: return "petrodollar"
+    if em>0.60 and quad in("Q1","Q2"): return "em_rotation"
+    if quad in("Q3","Q4") and sf>=0.50: return "growth_scare"
+    return "reflation"
+
+# ── Build opportunity rows (Long/Short ranked with entry/target/invalidation) ─
+def build_opportunities(prices:Dict[str,pd.Series], q:Dict, f:Dict, h:Dict, rot:Dict) -> List[Dict]:
+    quad=q["quad"]; policy=QUAD_POLICY.get(quad,{})
+    vix=f.get("vix_last",20.0); hy=f.get("hy_oas",350.0)
+    sf=q.get("slowdown_flags",0.0); conf=q.get("confidence",0.5)
+    uup_1m=float(f.get("uup_1m",0.0) or 0.0)
+
+    # EV multiplier from regime confidence and market health
+    regime_ev=conf*0.6+h.get("weather",0.5)*0.4
+
+    def _score(s:pd.Series, bias:str)->float:
+        r1=ret_n(s,21); r3=ret_n(s,63); tr=ts(s)
+        if not (math.isfinite(r1) and math.isfinite(r3)): return 0.0
+        base=r1*0.6+r3*0.4
+        if bias=="LONG": return float(np.nan_to_num(base,nan=0.0))
+        return float(np.nan_to_num(-base,nan=0.0))
+
+    def _atr_pct(s:pd.Series,n=14)->float:
+        s2=_s(s)
+        if len(s2)<n+2: return 0.03
+        returns=s2.pct_change().dropna().abs()
+        return float(returns.tail(n).mean())*math.sqrt(252)/math.sqrt(252)*0.5
+
+    def _entry_zone(px:float,atr:float,bias:str)->str:
+        if not math.isfinite(px) or px<=0: return "—"
+        if bias=="LONG": return f"{px*(1-atr):.2f} – {px*(1-atr*0.3):.2f}"
+        return f"{px*(1+atr*0.3):.2f} – {px*(1+atr):.2f}"
+
+    def _target(px:float,atr:float,bias:str,rr=2.0)->str:
+        if not math.isfinite(px) or px<=0: return "—"
+        if bias=="LONG": return f"{px*(1+atr*rr):.2f} (+{atr*rr*100:.1f}%)"
+        return f"{px*(1-atr*rr):.2f} (-{atr*rr*100:.1f}%)"
+
+    def _invalidation(px:float,atr:float,bias:str)->str:
+        if not math.isfinite(px) or px<=0: return "—"
+        if bias=="LONG": return f"<{px*(1-atr*1.5):.2f}"
+        return f">{px*(1+atr*1.5):.2f}"
+
+    rows=[]
+
+    # ── US Longs ──────────────────────────────────────────────────────────────
+    us_long_map={
+        "Q1":{"QQQ":"Growth bull market","NVDA":"AI/semis leader","AAPL":"Quality large cap","MSFT":"Quality+AI","GLD":"Inflation hedge"},
+        "Q2":{"XLE":"Energy reflation","HG=F":"Copper supply/demand","XLI":"Industrials lead","XLF":"Financials reflation","QQQ":"Growth+momentum"},
+        "Q3":{"GLD":"Stagflation best asset","XLE":"Energy still wins","XLP":"Defensive consumer","XLU":"Utilities defensive","SHY":"Short-duration safe"},
+        "Q4":{"TLT":"Long bonds rally hard","GLD":"Gold deflation hedge","XLP":"Defensives lead","XLV":"Healthcare defensive","XLU":"Utilities"},
+    }
+    us_short_map={
+        "Q1":{"XLE":"Energy underperforms Q1","UUP":"USD weakens"},
+        "Q2":{"TLT":"Bonds get killed","XLP":"Defensives lag"},
+        "Q3":{"QQQ":"Tech crushed in stagflation","XLY":"Consumer disc bearish","IWM":"Small caps hit hard","EEM":"EM pain"},
+        "Q4":{"XLE":"Commodity collapse","XLI":"Cyclicals crash","IWM":"Small caps worst","HYG":"Credit stress"},
+    }
+
+    for tk,why in us_long_map.get(quad,{}).items():
+        s=prices.get(tk,pd.Series())
+        sc=_score(s,"LONG")
+        px=last(s); atr=_atr_pct(s)
+        ev=clamp(regime_ev+sc*0.5)
+        horizon="Trade" if atr>0.04 else("Trend" if atr>0.02 else "Tail")
+        rows.append({"Ticker":tk,"Market":"US","Bias":"▲ LONG","Horizon":horizon,
+            "Entry Zone":_entry_zone(px,atr,"LONG"),"Target":_target(px,atr,"LONG"),
+            "Invalidation":_invalidation(px,atr,"LONG"),"Why Now":why,
+            "EV":f"{ev:.0%}","Conf":f"{conf:.0%}",
+            "Macro Aligned":"✓" if quad in("Q1","Q2") or tk in("GLD","XLP","XLU") else "~",
+            "_score":sc,"_ev":ev})
+
+    for tk,why in us_short_map.get(quad,{}).items():
+        s=prices.get(tk,pd.Series())
+        sc=_score(s,"SHORT")
+        px=last(s); atr=_atr_pct(s)
+        ev=clamp(regime_ev*0.7+sc*0.3)
+        rows.append({"Ticker":tk,"Market":"US","Bias":"▼ SHORT","Horizon":"Trade",
+            "Entry Zone":_entry_zone(px,atr,"SHORT"),"Target":_target(px,atr,"SHORT"),
+            "Invalidation":_invalidation(px,atr,"SHORT"),"Why Now":why,
+            "EV":f"{ev:.0%}","Conf":f"{conf:.0%}",
+            "Macro Aligned":"✓","_score":sc,"_ev":ev})
+
+    # ── IHSG Longs ────────────────────────────────────────────────────────────
+    ihsg_long_map={
+        "Q1":{"BBCA.JK":"Bank premium Q1","BBRI.JK":"Bank growth","TLKM.JK":"Defensive anchor"},
+        "Q2":{"ADRO.JK":"Coal king Q2","PTBA.JK":"Coal exporter","ANTM.JK":"Metals Q2","BBCA.JK":"Bank lead"},
+        "Q3":{"ADRO.JK":"Coal survives Q3","AADI.JK":"Coal exporter","ANTM.JK":"Gold/nickel Q3","TLKM.JK":"Defensive","ICBP.JK":"Consumer def"},
+        "Q4":{"TLKM.JK":"Defensive dividend","ICBP.JK":"Consumer staples","KLBF.JK":"Healthcare"},
+    }
+    ihsg_short_map={
+        "Q3":{"CTRA.JK":"Property bearish Q3","BSDE.JK":"Property USD-sensitive","AMRT.JK":"Consumer cyc rapuh"},
+        "Q4":{"ADRO.JK":"Coal demand collapse","ANTM.JK":"Metals crash Q4","AMRT.JK":"Consumer discretionary"},
+    }
+
+    for tk,why in ihsg_long_map.get(quad,{}).items():
+        s=prices.get(tk,pd.Series())
+        sc=_score(s,"LONG"); px=last(s); atr=_atr_pct(s)
+        ev=clamp(regime_ev*0.8+sc*0.4)
+        rows.append({"Ticker":tk.replace(".JK","")+" (JK)","Market":"IHSG","Bias":"▲ LONG","Horizon":"Trend",
+            "Entry Zone":_entry_zone(px,atr,"LONG"),"Target":_target(px,atr,"LONG"),
+            "Invalidation":_invalidation(px,atr,"LONG"),"Why Now":why,
+            "EV":f"{ev:.0%}","Conf":f"{conf:.0%}","Macro Aligned":"✓","_score":sc,"_ev":ev})
+
+    for tk,why in ihsg_short_map.get(quad,{}).items():
+        s=prices.get(tk,pd.Series())
+        sc=_score(s,"SHORT"); px=last(s); atr=_atr_pct(s)
+        ev=clamp(regime_ev*0.6+sc*0.3)
+        rows.append({"Ticker":tk.replace(".JK","")+" (JK)","Market":"IHSG","Bias":"▼ SHORT","Horizon":"Trade",
+            "Entry Zone":_entry_zone(px,atr,"SHORT"),"Target":_target(px,atr,"SHORT"),
+            "Invalidation":_invalidation(px,atr,"SHORT"),"Why Now":why,
+            "EV":f"{ev:.0%}","Conf":f"{conf:.0%}","Macro Aligned":"✓","_score":sc,"_ev":ev})
+
+    # ── Commodities ───────────────────────────────────────────────────────────
+    comm_long={"Q1":{"GC=F":"Gold Q1 ok","GLD":"Gold ETF"},"Q2":{"CL=F":"Oil king Q2","HG=F":"Copper Q2","GC=F":"Gold hedge"},
+               "Q3":{"GC=F":"Gold stagflation trade","CL=F":"Oil volatile but up","GLD":"Gold ETF"},
+               "Q4":{"GC=F":"Gold deflation","GLD":"Gold safe haven"}}
+    comm_short={"Q2":{"GC=F":"Gold lags reflation"},"Q3":{"HG=F":"Copper demand collapse"},"Q4":{"CL=F":"Oil crash","HG=F":"Copper recession"}}
+
+    for tk,why in comm_long.get(quad,{}).items():
+        s=prices.get(tk,pd.Series()); sc=_score(s,"LONG"); px=last(s); atr=_atr_pct(s)
+        ev=clamp(regime_ev*0.7+sc*0.4)
+        rows.append({"Ticker":tk,"Market":"Commodities","Bias":"▲ LONG","Horizon":"Trend",
+            "Entry Zone":_entry_zone(px,atr,"LONG"),"Target":_target(px,atr,"LONG"),
+            "Invalidation":_invalidation(px,atr,"LONG"),"Why Now":why,
+            "EV":f"{ev:.0%}","Conf":f"{conf:.0%}","Macro Aligned":"✓","_score":sc,"_ev":ev})
+
+    for tk,why in comm_short.get(quad,{}).items():
+        s=prices.get(tk,pd.Series()); sc=_score(s,"SHORT"); px=last(s); atr=_atr_pct(s)
+        ev=clamp(regime_ev*0.5+sc*0.3)
+        rows.append({"Ticker":tk,"Market":"Commodities","Bias":"▼ SHORT","Horizon":"Trade",
+            "Entry Zone":_entry_zone(px,atr,"SHORT"),"Target":_target(px,atr,"SHORT"),
+            "Invalidation":_invalidation(px,atr,"SHORT"),"Why Now":why,
+            "EV":f"{ev:.0%}","Conf":f"{conf:.0%}","Macro Aligned":"✓","_score":sc,"_ev":ev})
+
+    # ── Crypto ────────────────────────────────────────────────────────────────
+    if quad=="Q1":
+        for tk,why in {"BTC-USD":"BTC Q1 bullish","ETH-USD":"ETH Q1 catch-up","SOL-USD":"SOL high beta Q1"}.items():
+            s=prices.get(tk,pd.Series()); sc=_score(s,"LONG"); px=last(s); atr=_atr_pct(s)
+            ev=clamp(regime_ev*0.7+sc*0.3)
+            rows.append({"Ticker":tk,"Market":"Crypto","Bias":"▲ LONG","Horizon":"Trade",
+                "Entry Zone":_entry_zone(px,atr,"LONG"),"Target":_target(px,atr,"LONG"),
+                "Invalidation":_invalidation(px,atr,"LONG"),"Why Now":why,
+                "EV":f"{ev:.0%}","Conf":f"{conf:.0%}","Macro Aligned":"✓","_score":sc,"_ev":ev})
+    elif quad in("Q3","Q4"):
+        for tk,why in {"ETH-USD":"ETH avoid stagflation","SOL-USD":"SOL avoid Q3/Q4","BNB-USD":"BNB avoid Q3/Q4"}.items():
+            s=prices.get(tk,pd.Series()); sc=_score(s,"SHORT"); px=last(s); atr=_atr_pct(s)
+            ev=clamp(regime_ev*0.5+sc*0.3)
+            rows.append({"Ticker":tk,"Market":"Crypto","Bias":"▼ SHORT","Horizon":"Trade",
+                "Entry Zone":_entry_zone(px,atr,"SHORT"),"Target":_target(px,atr,"SHORT"),
+                "Invalidation":_invalidation(px,atr,"SHORT"),"Why Now":why,
+                "EV":f"{ev:.0%}","Conf":f"{conf:.0%}","Macro Aligned":"✓","_score":sc,"_ev":ev})
+
+    # Sort: LONG first by EV, then SHORT
+    longs=[r for r in rows if "LONG" in r["Bias"]]; shorts=[r for r in rows if "SHORT" in r["Bias"]]
+    longs.sort(key=lambda x:x["_ev"],reverse=True); shorts.sort(key=lambda x:x["_ev"],reverse=True)
+    combined=longs+shorts
+    # Remove internal sort keys before returning
+    for r in combined:
+        r.pop("_score",None); r.pop("_ev",None)
+    return combined
 
 
 # ── Checklist engine (v33 inspired) ───────────────────────────────────────────
@@ -822,7 +1115,110 @@ def render_checklist(items:list,title:str="Checklist")->None:
     st.dataframe(pd.DataFrame(rows),use_container_width=True,hide_index=True,height=len(items)*36+40)
 
 
-def page_radar(snap:Dict)->None:
+def page_opportunities(snap:Dict)->None:
+    """Full opportunity board: Long/Short table with entry/target/invalidation."""
+    opps=snap.get("opportunities",[])
+    q=snap["q"]; quad=q["quad"]; conf=q["confidence"]
+    family=snap.get("family","reflation")
+    rot_meta=ROTATION_FAMILIES.get(family,ROTATION_FAMILIES["reflation"])
+    prices=snap["prices"]
+
+    # Status header
+    longs=[r for r in opps if "LONG" in r.get("Bias","")]
+    shorts=[r for r in opps if "SHORT" in r.get("Bias","")]
+    c1,c2,c3,c4=st.columns(4)
+    with c1: mc("Total Opportunities",str(len(opps)),f"{len(longs)} long · {len(shorts)} short","good" if len(longs)>len(shorts) else "warn")
+    with c2: mc("Dominant Family",rot_meta["name"][:20],"Active rotation route","good")
+    with c3: mc("Regime Confidence",f"{conf:.0%}",q.get("conf_band",""),"good" if conf>0.50 else "warn")
+    with c4: mc("Execution Mode",snap["crash"]["exec_mode"],f"Score: {snap['crash']['exec_score']:.0%}","good" if snap["crash"]["exec_score"]>=0.60 else "warn")
+
+    # Rotation Flow Panel
+    st.markdown("---")
+    sh(f"🔄 ROTATIONAL FLOW MAP — {rot_meta['name'].upper()}")
+    st.markdown(f'<div style="padding:10px 14px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);margin-bottom:10px;font-size:12px;opacity:.85">{rot_meta["desc"]}</div>',unsafe_allow_html=True)
+    st.markdown(f'**Trigger:** {rot_meta["trigger"]}')
+    
+    # Flow nodes as visual chain
+    nodes=rot_meta["nodes"]
+    node_cols=st.columns(len(nodes))
+    role_colors={"Trigger":"#3dbb6c","First Order":"#59a8e5","Second Order":"#e5a020","Expression":"#9b6aff","Invalidator":"#e05252"}
+    for i,(col,node) in enumerate(zip(node_cols,nodes)):
+        with col:
+            rc=role_colors.get(node["role"],"#888")
+            bias_sym="▲" if node["bias"]=="up" else("▼" if node["bias"]=="down" else "↔")
+            html_node=(
+                '<div style="border:1px solid '+rc+'44;border-radius:8px;padding:8px;text-align:center;height:100px;display:flex;flex-direction:column;justify-content:center">' +
+                '<div style="font-size:9px;font-weight:700;letter-spacing:.08em;color:'+rc+';margin-bottom:3px">'+node["role"].upper()+'</div>' +
+                '<div style="font-size:12px;font-weight:600;line-height:1.3">'+bias_sym+' '+node["label"]+'</div>' +
+                '<div style="font-size:10px;opacity:.5;margin-top:3px">'+node["why"][:40]+'</div>' +
+                '</div>'
+            )
+            st.markdown(html_node,unsafe_allow_html=True)
+            if i<len(nodes)-1:
+                pass  # arrows between columns not easy in streamlit
+
+    # Best expressions per market
+    st.markdown("---")
+    sh("🎯 BEST EXPRESSIONS PER MARKET (Rotation Flow)")
+    be=rot_meta.get("best_expressions",{})
+    be_cols=st.columns(len(be))
+    for col,(market,tickers) in zip(be_cols,be.items()):
+        with col:
+            st.markdown(f"**{market}**")
+            for t in tickers[:4]:
+                s=prices.get(t,pd.Series())
+                r1=ret_n(s,21)
+                perf=pct(r1) if math.isfinite(r1) else ""
+                cls="good" if(math.isfinite(r1) and r1>0) else("bad" if(math.isfinite(r1) and r1<-0.01) else "")
+                st.markdown(f'<span class="{cls}" style="font-size:12px">{t.replace(".JK","").replace("-USD","")} {perf}</span><br>',unsafe_allow_html=True)
+
+    # Confirms / Invalidators
+    ca,cb2=st.columns(2)
+    with ca:
+        sh("✓ KONFIRMASI (route masih hidup)")
+        for c in rot_meta.get("confirms",[]):
+            st.markdown(f'<span class="good">✓</span> {c}',unsafe_allow_html=True)
+    with cb2:
+        sh("✗ INVALIDASI (route pecah jika)")
+        for inv in rot_meta.get("invalidators",[]):
+            st.markdown(f'<span class="bad">✗</span> {inv}',unsafe_allow_html=True)
+
+    # Opportunity Table — LONG
+    st.markdown("---")
+    sh(f"▲ LONG OPPORTUNITIES — {quad} REGIME")
+    if longs:
+        df_long=pd.DataFrame([{k:v for k,v in r.items()} for r in longs])
+        st.dataframe(df_long,use_container_width=True,hide_index=True,height=min(len(longs)*38+50,420))
+    else:
+        st.info("Tidak ada long opportunity yang qualified untuk regime ini.")
+
+    # Opportunity Table — SHORT
+    st.markdown("---")
+    sh(f"▼ SHORT OPPORTUNITIES — {quad} REGIME")
+    if shorts:
+        df_short=pd.DataFrame([{k:v for k,v in r.items()} for r in shorts])
+        st.dataframe(df_short,use_container_width=True,hide_index=True,height=min(len(shorts)*38+50,360))
+    else:
+        st.info("Tidak ada short opportunity yang qualified untuk regime ini.")
+
+    # Regime Policy Matrix
+    st.markdown("---")
+    sh(f"📋 REGIME POLICY MATRIX — {quad} (dari v33 config)")
+    policy=QUAD_POLICY.get(quad,{})
+    pol_cols=st.columns(5)
+    for col,(market,pol) in zip(pol_cols,policy.items()):
+        with col:
+            st.markdown(f"**{market.upper()}**")
+            st.markdown("🟢 **LONG:**")
+            for x in pol.get("long",[])[:3]: st.markdown(f'<span style="font-size:11px;color:#3dbb6c">• {x}</span>',unsafe_allow_html=True)
+            st.markdown("🔴 **SHORT:**")
+            for x in pol.get("short",[])[:3]: st.markdown(f'<span style="font-size:11px;color:#e05252">• {x}</span>',unsafe_allow_html=True)
+            st.markdown("⚫ **AVOID:**")
+            for x in pol.get("avoid",[])[:2]: st.markdown(f'<span style="font-size:11px;opacity:.5">• {x}</span>',unsafe_allow_html=True)
+
+
+
+def page_radarar(snap:Dict)->None:
     q=snap["q"]; f=snap["f"]; rot=snap["rotation"]; analog=snap["analog"]
     s_quad=q["quad"]; m_quad=q["monthly_quad"]; meta=QUAD_META.get(s_quad,QUAD_META["Q4"])
     ps=f.get("_proxy_share",1.0); fl=int(f.get("_fred_loaded",0)); ft=int(f.get("_fred_total",0))
@@ -1431,21 +1827,22 @@ def page_markets_full(snap:Dict)->None:
 
 
 def main():
-    st.markdown('<div style="display:flex;align-items:center;margin-bottom:4px"><span style="font-family:Syne,sans-serif;font-size:20px;font-weight:800;letter-spacing:-.03em">🧭 MacroRegime Pro</span><span style="font-size:10px;opacity:.3;margin-left:8px;font-family:DM Mono,monospace">v6.1 · Hedgeye GIP Framework · v33 weights</span></div>',unsafe_allow_html=True)
+    st.markdown('<div style="display:flex;align-items:center;margin-bottom:4px"><span style="font-family:Syne,sans-serif;font-size:20px;font-weight:800;letter-spacing:-.03em">🧭 MacroRegime Pro</span><span style="font-size:10px;opacity:.3;margin-left:8px;font-family:DM Mono,monospace">v7.0 · Hedgeye GIP Framework · Full Feature Parity</span></div>',unsafe_allow_html=True)
     with st.sidebar:
         st.markdown("### ⚙️ Controls")
         if st.button("🔄 Force Refresh",use_container_width=True): st.cache_data.clear(); st.rerun()
         st.markdown("---")
         st.markdown("""
 **Urutan baca (orang awam):**
-1. 🧭 **Radar** — Kita di regime apa? Trade terbaik apa sekarang?
-2. 📡 **Health** — Aman masuk pasar sekarang?
-3. 🎯 **Playbook** — Strategy detail + skenario + what-if
-4. 🌐 **Markets** — IHSG · US · FX · Komoditas · Crypto
-5. ⚠️ **Risk** — Seberapa bahaya kondisi saat ini?
-6. 🔬 **Diag** — Kualitas data & internal engine
+1. 🧭 **Radar** — Regime apa? Trade terbaik? Analog historis?
+2. 📊 **Opportunities** — Long/Short konkret + Rotation Flow + Policy Matrix
+3. 📡 **Health** — Aman masuk? Breadth + credit + checklist
+4. 🎯 **Playbook** — Full strategy + scenarios + what-if
+5. 🌐 **Markets** — IHSG · US · FX · Komoditas · Crypto
+6. ⚠️ **Risk** — Crash meter + sizing guide
+7. 🔬 **Diag** — Data quality + quad internals
 
-**v6.1 fixes:**
+**v7 feature additions:**
 - Bug prices_placeholder fixed
 - Bug Series `and` operator fixed
 - IHSG masuk Markets tab
@@ -1456,12 +1853,13 @@ def main():
     ga="▲" if q.get("growth_acc") else "▼"; ia="▲" if q.get("infl_acc") else "▼"
     div_badge=f" / M:{q['monthly_quad']}" if q["divergence"]=="divergent" else ""
     st.markdown(f'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:7px 10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);margin-bottom:10px;font-size:11px"><span>Regime: {qb(quad)}{div_badge} <strong>{meta.get("label","")}</strong></span><span style="opacity:.25">|</span><span>Conf: <strong>{q["confidence"]:.0%}</strong> ({q.get("conf_band","")})</span><span style="opacity:.25">|</span><span>Growth: <strong>{ga}</strong></span><span style="opacity:.25">|</span><span>Inflasi: <strong>{ia}</strong></span><span style="opacity:.25">|</span><span>Risk: <strong>{cr["state"]}</strong></span><span style="opacity:.25">|</span><span>Exec: <strong>{cr["exec_mode"]}</strong></span><span style="opacity:.25">|</span><span style="opacity:.3">{snap["ts"]}</span></div>',unsafe_allow_html=True)
-    tabs=st.tabs(["🧭 Radar","📡 Health","🎯 Playbook","🌐 Markets","⚠️ Risk","🔬 Diagnostics"])
+    tabs=st.tabs(["🧭 Radar","📊 Opportunities","📡 Health","🎯 Playbook","🌐 Markets","⚠️ Risk","🔬 Diagnostics"])
     with tabs[0]: page_radar(snap)
-    with tabs[1]: page_health(snap)
-    with tabs[2]: page_playbook(snap)
-    with tabs[3]: page_markets_full(snap)
-    with tabs[4]: page_risk(snap)
-    with tabs[5]: page_diag(snap)
+    with tabs[1]: page_opportunities(snap)
+    with tabs[2]: page_health(snap)
+    with tabs[3]: page_playbook(snap)
+    with tabs[4]: page_markets_full(snap)
+    with tabs[5]: page_risk(snap)
+    with tabs[6]: page_diag(snap)
 
 if __name__=="__main__": main()

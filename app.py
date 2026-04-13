@@ -1103,15 +1103,18 @@ def page_risk(snap:Dict)->None:
     cr=snap["crash"]; f=snap["f"]; q=snap["q"]
     sc=cr["crash_score"]; ro=cr["risk_off"]; col="#e05252" if sc>=0.65 else("#e5a020" if sc>=0.42 else "#3dbb6c")
     ro_col="#e05252" if ro>=0.65 else("#e5a020" if ro>=0.42 else "#3dbb6c")
-    st.markdown(f"""<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
-    <div style="text-align:center;padding:18px;border-radius:12px;border:1.5px solid {col}33">
-    <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.4;margin-bottom:4px">CRASH METER (tail/cascade risk)</div>
-    <div style="font-family:Syne,sans-serif;font-size:44px;font-weight:800;color:{col};line-height:1">{sc:.0%}</div>
-    <div style="font-size:14px;font-weight:600;color:{col};margin-top:3px">{cr['state']}</div></div>
-    <div style="text-align:center;padding:18px;border-radius:12px;border:1.5px solid {ro_col}33">
-    <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.4;margin-bottom:4px">RISK-OFF METER (broad defensive)</div>
-    <div style="font-family:Syne,sans-serif;font-size:44px;font-weight:800;color:{ro_col};line-height:1">{ro:.0%}</div>
-    <div style="font-size:14px;font-weight:600;color:{ro_col};margin-top:3px">Div state: {cr['div_state']}</div></div></div>""",unsafe_allow_html=True)
+    crash_html = (
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">' +
+        '<div style="text-align:center;padding:18px;border-radius:12px;border:1.5px solid ' + col + '33">' +
+        '<div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.4;margin-bottom:4px">CRASH METER (tail/cascade)</div>' +
+        '<div style="font-family:Syne,sans-serif;font-size:44px;font-weight:800;color:' + col + ';line-height:1">' + f'{sc:.0%}' + '</div>' +
+        '<div style="font-size:14px;font-weight:600;color:' + col + ';margin-top:3px">' + cr["state"] + '</div></div>' +
+        '<div style="text-align:center;padding:18px;border-radius:12px;border:1.5px solid ' + ro_col + '33">' +
+        '<div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.4;margin-bottom:4px">RISK-OFF METER (broad defensive)</div>' +
+        '<div style="font-family:Syne,sans-serif;font-size:44px;font-weight:800;color:' + ro_col + ';line-height:1">' + f'{ro:.0%}' + '</div>' +
+        '<div style="font-size:14px;font-weight:600;color:' + ro_col + ';margin-top:3px">Div: ' + cr["div_state"] + '</div></div></div>'
+    )
+    st.markdown(crash_html, unsafe_allow_html=True)
     st.info("> **Crash vs Risk-Off:** Crash meter = tail/cascade risk (sudden unwind). Risk-Off meter = broad defensive deterioration. 'tail_heavier' = sudden crash risk lebih besar dari broad tape. 'broad_defensive' = tape luas defensive tapi belum ada panic.")
     r1,r2,r3=st.columns(3)
     def rm(label,v,sub):
@@ -1140,6 +1143,22 @@ def page_risk(snap:Dict)->None:
     c1,c2=st.columns(2)
     with c1: mc("HY OAS",f"{hy:.0f}bps" if math.isfinite(hy) else "—",f"1M Δ: {f.get('hy_oas_1m',0):+.0f}bps" if math.isfinite(f.get('hy_oas_1m',float('nan'))) else "","good" if(math.isfinite(hy) and hy<350) else("bad" if(math.isfinite(hy) and hy>500) else "warn")); st.caption("Normal<350 | Watch 350-500 | Stress>500")
     with c2: mc("IG OAS ★",f"{ig:.0f}bps" if math.isfinite(ig) else "—",f"1M Δ: {f.get('ig_oas_1m',0):+.0f}bps" if math.isfinite(f.get('ig_oas_1m',float('nan'))) else "","good" if(math.isfinite(ig) and ig<100) else("bad" if(math.isfinite(ig) and ig>150) else "warn")); st.caption("Normal<100 | Watch 100-150 | Stress>150")
+    # Position sizing guide (v33 VIX bucket based)
+    st.markdown("---"); sh("📐 POSITION SIZING GUIDE (VIX-based)")
+    vix2=f.get("vix_last",20.0)
+    if vix2<19:
+        sizing="**Full size (100%)** — VIX Investable. Pasar tenang, bisa masuk penuh sesuai conviction."
+        sizing_cls="good"
+    elif vix2<29:
+        sizing="**Reduced size (50-75%)** — VIX Chop. Volatility elevated, kurangi size, prioritas high-conviction setup saja."
+        sizing_cls="warn"
+    else:
+        sizing="**Defensive size (25% max)** — VIX Defensive. Capital preservation mode. Hanya hedge dan cash."
+        sizing_cls="bad"
+    mc("Rekomendasi Sizing",f"VIX {vix2:.1f}",sizing,sizing_cls)
+    exec_score2=cr.get("exec_score",0.5)
+    mc("Execution Bridge Score",cr.get("exec_mode","?"),f"Score: {exec_score2:.0%} — {'Masuk dengan sizing normal' if exec_score2>=0.60 else ('Wait reclaim key levels' if exec_score2>=0.45 else 'Defensive only — jangan force entry')}",
+       "good" if exec_score2>=0.60 else("warn" if exec_score2>=0.45 else "bad"))
     st.markdown("---"); sh("🔭 FORWARD RISK")
     lei=f.get("lei_3m",float("nan")); cg=f.get("copper_gold_ratio_3m",float("nan")); umi=f.get("umcsent_last",float("nan"))
     st.markdown(f"""
@@ -1216,6 +1235,26 @@ def page_diag(snap:Dict)->None:
     sh("📦 PRICE DATA COVERAGE")
     prows=[{"Ticker":t,"Points":len(s),"Latest":str(s.index[-1])[:10] if not s.empty else "—","Last Close":round(float(s.iloc[-1]),4) if not s.empty else None} for t,s in sorted(prices.items())]
     st.dataframe(pd.DataFrame(prows),use_container_width=True,hide_index=True,height=400)
+
+
+def build_strong_weak(prices:Dict[str,pd.Series],quad:str,limit:int=6)->Dict:
+    """Rank stocks by 1M momentum, regime-adjusted. Returns strong/weak lists."""
+    # Regime multipliers: Q1=growth, Q2=commodity/cyclical, Q3=gold/energy, Q4=defensive
+    regime_boost = {
+        "Q3": {"ANTM.JK":1.3,"ADRO.JK":1.2,"PTBA.JK":1.2,"GC=F":1.4,"XLE":1.3,"UUP":1.2,"XLP":1.2,"XLU":1.1},
+        "Q2": {"XLE":1.3,"HG=F":1.3,"XLB":1.2,"XLF":1.2,"ADRO.JK":1.3,"PTBA.JK":1.3},
+        "Q1": {"QQQ":1.2,"NVDA":1.3,"META":1.2,"AAPL":1.1,"BBCA.JK":1.2,"BBRI.JK":1.1},
+        "Q4": {"TLT":1.4,"GLD":1.2,"XLP":1.3,"XLU":1.3,"XLV":1.2,"TLKM.JK":1.2,"ICBP.JK":1.2},
+    }
+    boosts = regime_boost.get(quad,{})
+    rows = []
+    for tk,s in prices.items():
+        r1 = ret_n(s,21)
+        if not math.isfinite(r1): continue
+        adj = r1 * boosts.get(tk,1.0)
+        rows.append({"Ticker":tk,"1M":pct(r1),"Adjusted Score":round(adj,4),"Trend":"▲" if ts(s)>=0.5 else "▼"})
+    rows.sort(key=lambda x:x["Adjusted Score"],reverse=True)
+    return {"strong":rows[:limit],"weak":rows[-limit:]}
 
 def page_markets_full(snap:Dict)->None:
     """Markets tab: IHSG + US + FX + Commodities + Crypto, semua terintegrasi."""
@@ -1327,6 +1366,23 @@ def page_markets_full(snap:Dict)->None:
             stock_rows.append({"Stock":name,"Ticker":tk,"1M":pct(r1),"3M":pct(r3),"vs SPY 1M":pct(rel),"Trend":"▲" if ts(s)>=0.5 else "▼"})
         stock_rows.sort(key=lambda r:float(r["1M"].replace("%","").replace("—","0").replace("+","")) if r["1M"]!="—" else -999,reverse=True)
         st.dataframe(pd.DataFrame(stock_rows),use_container_width=True,hide_index=True,height=460)
+        # Strong / Weak Map (v33 style)
+        st.markdown("---"); sh(f"💪 STRONG vs WEAK — US STOCKS (regime-adjusted {s_quad})")
+        sw=build_strong_weak(prices,s_quad,limit=5)
+        col_s,col_w=st.columns(2)
+        with col_s:
+            st.markdown("**🟢 STRONG (buy/hold):**")
+            for r in sw["strong"]:
+                tk=r["Ticker"]
+                if any(tk.endswith(x) for x in [".JK","=F","=X","-USD"]): continue  # US stocks only
+                st.markdown(f'<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.05)"><span><b>{tk}</b></span><span class="good">{r["1M"]} {r["Trend"]}</span></div>',unsafe_allow_html=True)
+        with col_w:
+            st.markdown("**🔴 WEAK (avoid/reduce):**")
+            for r in sw["weak"]:
+                tk=r["Ticker"]
+                if any(tk.endswith(x) for x in [".JK","=F","=X","-USD"]): continue
+                st.markdown(f'<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.05)"><span><b>{tk}</b></span><span class="bad">{r["1M"]} {r["Trend"]}</span></div>',unsafe_allow_html=True)
+        st.caption(f"Regime-adjusted: {s_quad} boosts certain sectors. Data from yfinance 1M returns.")
 
     # ── FX ─────────────────────────────────────────────────────────────────────
     with t2:

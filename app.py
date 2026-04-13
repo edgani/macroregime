@@ -81,6 +81,32 @@ IHSG_W = {"regime":0.24,"em_rotation":0.16,"macro_native":0.24,"breadth_flow":0.
 EXEC_W = {"weather":0.20,"health":0.14,"vix":0.10,"quad":0.12,"conf":0.10,"cross":0.09,"crowd":0.09,"shock":0.08,"crash":0.08}
 
 TTL=3600
+
+# ── Ticker display name mapping (from v33 data_symbol_map.py) ─────────────────
+TICKER_DISPLAY = {
+    "GC=F":"XAUUSD (Gold)","GLD":"GLD (Gold ETF)","SI=F":"XAGUSD (Silver)",
+    "PL=F":"Platinum","CL=F":"WTI Oil","BZ=F":"Brent Oil","NG=F":"Natural Gas",
+    "HG=F":"Copper","ZC=F":"Corn","ZW=F":"Wheat","ZS=F":"Soybeans",
+    "DBC":"DBC (Broad Commod)","GSG":"GSG (Commodities)","DBA":"DBA (Agri ETF)",
+    "URA":"URA (Uranium)","DJP":"DJP (Commodities)",
+    "EURUSD=X":"EUR/USD","GBPUSD=X":"GBP/USD","AUDUSD=X":"AUD/USD",
+    "NZDUSD=X":"NZD/USD","JPY=X":"USD/JPY","CHF=X":"USD/CHF","CAD=X":"USD/CAD",
+    "IDR=X":"USD/IDR","CNH=X":"USD/CNH","SGD=X":"USD/SGD",
+    "EURJPY=X":"EUR/JPY","GBPJPY=X":"GBP/JPY","AUDJPY=X":"AUD/JPY",
+    "BTC-USD":"BTC/USD","ETH-USD":"ETH/USD","SOL-USD":"SOL/USD",
+    "BNB-USD":"BNB/USD","XRP-USD":"XRP/USD","ADA-USD":"ADA/USD",
+    "AVAX-USD":"AVAX/USD","LINK-USD":"LINK/USD","DOGE-USD":"DOGE/USD",
+    "^JKSE":"IHSG","^VIX":"VIX","^VXV":"VXV","UUP":"USD Index (UUP)",
+    "EEM":"EEM (EM Equity)","EFA":"EFA (Dev Market)",
+    "TLT":"TLT (20Y Bond)","IEF":"IEF (7-10Y Bond)","SHY":"SHY (1-3Y Bond)",
+    "HYG":"HYG (HY Credit)","LQD":"LQD (IG Credit)",
+    "QQQ":"QQQ (Nasdaq/Growth)","IWM":"IWM (Small Cap)","RSP":"RSP (Equal Weight)",
+    "SPY":"SPY (S&P 500)","GLD":"GLD (Gold ETF)",
+}
+def disp(tk:str)->str:
+    """Convert ticker to human-readable name."""
+    return TICKER_DISPLAY.get(tk, tk.replace("=X","").replace("=F","").replace("-USD","").replace(".JK",""))
+
 FRED_SERIES = {
     "INDPRO":"INDPRO","PAYEMS":"PAYEMS","UNRATE":"UNRATE","ICSA":"ICSA",
     "RSAFS":"RSAFS","HOUST":"HOUST","ISM":"NAPMNOI","LEI":"USSLIND",
@@ -1010,7 +1036,7 @@ def build_opportunities(prices:Dict[str,pd.Series], q:Dict, f:Dict, h:Dict, rot:
     for tk,why in comm_long.get(quad,{}).items():
         s=prices.get(tk,pd.Series()); sc=_score(s,"LONG"); px=last(s); atr=_atr_pct(s)
         ev=clamp(regime_ev*0.7+sc*0.4)
-        rows.append({"Ticker":tk,"Market":"Commodities","Bias":"▲ LONG","Horizon":"Trend",
+        rows.append({"Ticker":disp(tk),"Market":"Commodities","Bias":"▲ LONG","Horizon":"Trend",
             "Entry Zone":_entry_zone(px,atr,"LONG"),"Target":_target(px,atr,"LONG"),
             "Invalidation":_invalidation(px,atr,"LONG"),"Why Now":why,
             "EV":f"{ev:.0%}","Conf":f"{conf:.0%}","Macro Aligned":"✓","_score":sc,"_ev":ev})
@@ -1018,7 +1044,7 @@ def build_opportunities(prices:Dict[str,pd.Series], q:Dict, f:Dict, h:Dict, rot:
     for tk,why in comm_short.get(quad,{}).items():
         s=prices.get(tk,pd.Series()); sc=_score(s,"SHORT"); px=last(s); atr=_atr_pct(s)
         ev=clamp(regime_ev*0.5+sc*0.3)
-        rows.append({"Ticker":tk,"Market":"Commodities","Bias":"▼ SHORT","Horizon":"Trade",
+        rows.append({"Ticker":disp(tk),"Market":"Commodities","Bias":"▼ SHORT","Horizon":"Trade",
             "Entry Zone":_entry_zone(px,atr,"SHORT"),"Target":_target(px,atr,"SHORT"),
             "Invalidation":_invalidation(px,atr,"SHORT"),"Why Now":why,
             "EV":f"{ev:.0%}","Conf":f"{conf:.0%}","Macro Aligned":"✓","_score":sc,"_ev":ev})
@@ -1028,7 +1054,7 @@ def build_opportunities(prices:Dict[str,pd.Series], q:Dict, f:Dict, h:Dict, rot:
         for tk,why in {"BTC-USD":"BTC Q1 bullish","ETH-USD":"ETH Q1 catch-up","SOL-USD":"SOL high beta Q1"}.items():
             s=prices.get(tk,pd.Series()); sc=_score(s,"LONG"); px=last(s); atr=_atr_pct(s)
             ev=clamp(regime_ev*0.7+sc*0.3)
-            rows.append({"Ticker":tk,"Market":"Crypto","Bias":"▲ LONG","Horizon":"Trade",
+            rows.append({"Ticker":disp(tk),"Market":"Crypto","Bias":"▲ LONG","Horizon":"Trade",
                 "Entry Zone":_entry_zone(px,atr,"LONG"),"Target":_target(px,atr,"LONG"),
                 "Invalidation":_invalidation(px,atr,"LONG"),"Why Now":why,
                 "EV":f"{ev:.0%}","Conf":f"{conf:.0%}","Macro Aligned":"✓","_score":sc,"_ev":ev})
@@ -1036,7 +1062,7 @@ def build_opportunities(prices:Dict[str,pd.Series], q:Dict, f:Dict, h:Dict, rot:
         for tk,why in {"ETH-USD":"ETH avoid stagflation","SOL-USD":"SOL avoid Q3/Q4","BNB-USD":"BNB avoid Q3/Q4"}.items():
             s=prices.get(tk,pd.Series()); sc=_score(s,"SHORT"); px=last(s); atr=_atr_pct(s)
             ev=clamp(regime_ev*0.5+sc*0.3)
-            rows.append({"Ticker":tk,"Market":"Crypto","Bias":"▼ SHORT","Horizon":"Trade",
+            rows.append({"Ticker":disp(tk),"Market":"Crypto","Bias":"▼ SHORT","Horizon":"Trade",
                 "Entry Zone":_entry_zone(px,atr,"SHORT"),"Target":_target(px,atr,"SHORT"),
                 "Invalidation":_invalidation(px,atr,"SHORT"),"Why Now":why,
                 "EV":f"{ev:.0%}","Conf":f"{conf:.0%}","Macro Aligned":"✓","_score":sc,"_ev":ev})
@@ -1138,26 +1164,53 @@ def page_opportunities(snap:Dict)->None:
     st.markdown(f'<div style="padding:10px 14px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);margin-bottom:10px;font-size:12px;opacity:.85">{rot_meta["desc"]}</div>',unsafe_allow_html=True)
     st.markdown(f'**Trigger:** {rot_meta["trigger"]}')
     
-    # Flow nodes as visual chain
+    # Flow nodes as visual chain — with current state indicator
     nodes=rot_meta["nodes"]
+    # Determine which node we're at based on market data
+    oil_3m=nf(f.get("clf_3m",f.get("oil_3m",0.0)))
+    uup_1m=nf(f.get("uup_1m",0.0))
+    shock=q.get("inf_shock",0.0)
+    sf=q.get("slowdown_flags",0.0)
+    # Heuristic: which stage are we at?
+    if family=="petrodollar":
+        if oil_3m>0.15: current_node=1   # Oil Shock active
+        elif uup_1m>0.02: current_node=2  # USD pressure / importer pain
+        elif shock>0.25: current_node=3   # Expression (exporters)
+        else: current_node=0             # Trigger only
+    elif family=="em_rotation":
+        em_score=rot.get("em_score",0.5)
+        if em_score>0.60: current_node=3
+        elif em_score>0.50: current_node=2
+        elif uup_1m<-0.01: current_node=1
+        else: current_node=0
+    elif family=="growth_scare":
+        if sf>=0.50: current_node=2
+        elif sf>=0.25: current_node=1
+        else: current_node=0
+    else:  # reflation
+        current_node=1 if q.get("g_core",0)>0 else 0
+
     node_cols=st.columns(len(nodes))
     role_colors={"Trigger":"#3dbb6c","First Order":"#59a8e5","Second Order":"#e5a020","Expression":"#9b6aff","Invalidator":"#e05252"}
     for i,(col,node) in enumerate(zip(node_cols,nodes)):
         with col:
             rc=role_colors.get(node["role"],"#888")
+            is_current=(i==current_node)
             bias_sym="▲" if node["bias"]=="up" else("▼" if node["bias"]=="down" else "↔")
+            bg_style="background:"+rc+"18;" if is_current else ""
+            border_style="border:2px solid "+rc+";" if is_current else "border:1px solid "+rc+"44;"
+            you_here='<div style="font-size:9px;font-weight:800;color:'+rc+';margin-bottom:2px">◉ KITA DI SINI</div>' if is_current else ""
             html_node=(
-                '<div style="border:1px solid '+rc+'44;border-radius:8px;padding:8px;text-align:center;height:100px;display:flex;flex-direction:column;justify-content:center">' +
+                '<div style="'+border_style+bg_style+'border-radius:8px;padding:8px;text-align:center;min-height:110px;display:flex;flex-direction:column;justify-content:center">' +
+                you_here +
                 '<div style="font-size:9px;font-weight:700;letter-spacing:.08em;color:'+rc+';margin-bottom:3px">'+node["role"].upper()+'</div>' +
                 '<div style="font-size:12px;font-weight:600;line-height:1.3">'+bias_sym+' '+node["label"]+'</div>' +
-                '<div style="font-size:10px;opacity:.5;margin-top:3px">'+node["why"][:40]+'</div>' +
+                '<div style="font-size:10px;opacity:.55;margin-top:3px">'+node["why"][:45]+'</div>' +
                 '</div>'
             )
             st.markdown(html_node,unsafe_allow_html=True)
-            if i<len(nodes)-1:
-                pass  # arrows between columns not easy in streamlit
 
-    # Best expressions per market
+    # Best expressions per market — use human-readable names
     st.markdown("---")
     sh("🎯 BEST EXPRESSIONS PER MARKET (Rotation Flow)")
     be=rot_meta.get("best_expressions",{})
@@ -1170,7 +1223,8 @@ def page_opportunities(snap:Dict)->None:
                 r1=ret_n(s,21)
                 perf=pct(r1) if math.isfinite(r1) else ""
                 cls="good" if(math.isfinite(r1) and r1>0) else("bad" if(math.isfinite(r1) and r1<-0.01) else "")
-                st.markdown(f'<span class="{cls}" style="font-size:12px">{t.replace(".JK","").replace("-USD","")} {perf}</span><br>',unsafe_allow_html=True)
+                name=disp(t)  # human-readable ticker name
+                st.markdown('<span class="'+cls+'" style="font-size:12px">'+name+' '+perf+'</span><br>',unsafe_allow_html=True)
 
     # Confirms / Invalidators
     ca,cb2=st.columns(2)
@@ -1657,10 +1711,14 @@ def page_markets_full(snap:Dict)->None:
     prices=snap["prices"]; q=snap["q"]; f=snap["f"]; ih=snap["ihsg"]; rot=snap["rotation"]
     s_quad=q["quad"]; meta=QUAD_META.get(s_quad,QUAD_META["Q4"])
 
-    t0,t1,t2,t3,t4=st.tabs(["🇮🇩 IHSG","🇺🇸 US Stocks","💱 FX","🛢️ Komoditas","🔐 Crypto"])
+    t0,t1,t2,t3,t4,t5=st.tabs(["📊 Opportunities","🇮🇩 IHSG","🇺🇸 US Stocks","💱 FX","🛢️ Komoditas","🔐 Crypto"])
+
+    # ── Opportunities ────────────────────────────────────────────────────────
+    with t0:
+        page_opportunities(snap)
 
     # ── IHSG ─────────────────────────────────────────────────────────────────
-    with t0:
+    with t1:
         sh("🇮🇩 IHSG — INDONESIAN MARKET ANALYSIS")
         score=ih["ihsg_score"]; sc="#3dbb6c" if score>=0.60 else("#e5a020" if score>=0.47 else "#e05252")
         st.markdown(f'<div style="text-align:center;padding:14px;border-radius:12px;border:1.5px solid {sc}33;margin-bottom:12px"><div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.4;margin-bottom:2px">IHSG COMPOSITE SCORE</div><div style="font-family:Syne,sans-serif;font-size:38px;font-weight:800;color:{sc};line-height:1">{score:.0%}</div><div style="font-size:14px;font-weight:700;color:{sc};margin-top:2px">{ih["exec_mode"]}</div></div>',unsafe_allow_html=True)
@@ -1731,7 +1789,7 @@ def page_markets_full(snap:Dict)->None:
                 mc("Next Branch","→ "+impact.get("next",""))
 
     # ── US Stocks ──────────────────────────────────────────────────────────────
-    with t1:
+    with t2:
         sh("🇺🇸 US STOCKS")
         # Sector performance
         SECS={"XLE":"Energy","XLF":"Financials","XLI":"Industrials","XLB":"Materials","XLK":"Technology","XLV":"Healthcare","XLY":"Cons.Disc.","XLP":"Cons.Staples","XLU":"Utilities","XLRE":"Real Estate","XLC":"Comm.Svc."}
@@ -1781,7 +1839,7 @@ def page_markets_full(snap:Dict)->None:
         st.caption(f"Regime-adjusted: {s_quad} boosts certain sectors. Data from yfinance 1M returns.")
 
     # ── FX ─────────────────────────────────────────────────────────────────────
-    with t2:
+    with t3:
         sh("💱 FX RATES")
         FX_NAMES={"EURUSD=X":"EUR/USD","GBPUSD=X":"GBP/USD","AUDUSD=X":"AUD/USD","JPY=X":"USD/JPY (naik=yen lemah)","CHF=X":"USD/CHF","IDR=X":"USD/IDR (naik=IDR lemah)","CNH=X":"USD/CNH","SGD=X":"USD/SGD","CAD=X":"USD/CAD"}
         fx_rows=[]
@@ -1795,7 +1853,7 @@ def page_markets_full(snap:Dict)->None:
         st.info(uup_txt + regime_fx.get(s_quad,""))
 
     # ── Komoditas ──────────────────────────────────────────────────────────────
-    with t3:
+    with t4:
         sh("🛢️ KOMODITAS")
         COMM_NAMES={"GC=F":"Gold (XAU)","SI=F":"Silver","CL=F":"Oil WTI","BZ=F":"Oil Brent","NG=F":"Natural Gas","HG=F":"Copper","ZC=F":"Corn","ZW=F":"Wheat","DBC":"Broad Commodities ETF","URA":"Uranium ETF"}
         comm_rows=[]
@@ -1812,7 +1870,7 @@ def page_markets_full(snap:Dict)->None:
         mc("Gold 3M",pct(gold_3m),"hard asset hedge","good" if(math.isfinite(gold_3m) and gold_3m>0.05) else "neu")
 
     # ── Crypto ─────────────────────────────────────────────────────────────────
-    with t4:
+    with t5:
         sh("🔐 CRYPTO")
         CRYPTO_NAMES={"BTC-USD":"Bitcoin (BTC)","ETH-USD":"Ethereum (ETH)","SOL-USD":"Solana (SOL)","BNB-USD":"BNB","XRP-USD":"XRP","ADA-USD":"Cardano","AVAX-USD":"Avalanche","LINK-USD":"Chainlink","DOGE-USD":"Dogecoin"}
         cr_rows=[]
@@ -1835,12 +1893,11 @@ def main():
         st.markdown("""
 **Urutan baca (orang awam):**
 1. 🧭 **Radar** — Regime apa? Trade terbaik? Analog historis?
-2. 📊 **Opportunities** — Long/Short konkret + Rotation Flow + Policy Matrix
-3. 📡 **Health** — Aman masuk? Breadth + credit + checklist
-4. 🎯 **Playbook** — Full strategy + scenarios + what-if
-5. 🌐 **Markets** — IHSG · US · FX · Komoditas · Crypto
-6. ⚠️ **Risk** — Crash meter + sizing guide
-7. 🔬 **Diag** — Data quality + quad internals
+2. 📡 **Health** — Aman masuk? Breadth + credit + checklist
+3. 🎯 **Playbook** — Full strategy + scenarios + what-if
+4. 🌐 **Markets** → 📊 Opportunities + IHSG + US + FX + Komoditas + Crypto
+5. ⚠️ **Risk** — Crash meter + sizing guide
+6. 🔬 **Diag** — Data quality + quad internals
 
 **v7 feature additions:**
 - Bug prices_placeholder fixed
@@ -1853,13 +1910,12 @@ def main():
     ga="▲" if q.get("growth_acc") else "▼"; ia="▲" if q.get("infl_acc") else "▼"
     div_badge=f" / M:{q['monthly_quad']}" if q["divergence"]=="divergent" else ""
     st.markdown(f'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:7px 10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);margin-bottom:10px;font-size:11px"><span>Regime: {qb(quad)}{div_badge} <strong>{meta.get("label","")}</strong></span><span style="opacity:.25">|</span><span>Conf: <strong>{q["confidence"]:.0%}</strong> ({q.get("conf_band","")})</span><span style="opacity:.25">|</span><span>Growth: <strong>{ga}</strong></span><span style="opacity:.25">|</span><span>Inflasi: <strong>{ia}</strong></span><span style="opacity:.25">|</span><span>Risk: <strong>{cr["state"]}</strong></span><span style="opacity:.25">|</span><span>Exec: <strong>{cr["exec_mode"]}</strong></span><span style="opacity:.25">|</span><span style="opacity:.3">{snap["ts"]}</span></div>',unsafe_allow_html=True)
-    tabs=st.tabs(["🧭 Radar","📊 Opportunities","📡 Health","🎯 Playbook","🌐 Markets","⚠️ Risk","🔬 Diagnostics"])
+    tabs=st.tabs(["🧭 Radar","📡 Health","🎯 Playbook","🌐 Markets","⚠️ Risk","🔬 Diagnostics"])
     with tabs[0]: page_radar(snap)
-    with tabs[1]: page_opportunities(snap)
-    with tabs[2]: page_health(snap)
-    with tabs[3]: page_playbook(snap)
-    with tabs[4]: page_markets_full(snap)
-    with tabs[5]: page_risk(snap)
-    with tabs[6]: page_diag(snap)
+    with tabs[1]: page_health(snap)
+    with tabs[2]: page_playbook(snap)
+    with tabs[3]: page_markets_full(snap)
+    with tabs[4]: page_risk(snap)
+    with tabs[5]: page_diag(snap)
 
 if __name__=="__main__": main()

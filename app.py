@@ -1218,7 +1218,7 @@ def page_opportunities(snap:Dict)->None:
 
 
 
-def page_radarar(snap:Dict)->None:
+def page_radar(snap:Dict)->None:
     q=snap["q"]; f=snap["f"]; rot=snap["rotation"]; analog=snap["analog"]
     s_quad=q["quad"]; m_quad=q["monthly_quad"]; meta=QUAD_META.get(s_quad,QUAD_META["Q4"])
     ps=f.get("_proxy_share",1.0); fl=int(f.get("_fred_loaded",0)); ft=int(f.get("_fred_total",0))

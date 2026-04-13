@@ -1148,6 +1148,8 @@ def page_opportunities(snap:Dict)->None:
     family=snap.get("family","reflation")
     rot_meta=ROTATION_FAMILIES.get(family,ROTATION_FAMILIES["reflation"])
     prices=snap["prices"]
+    f=snap.get("f",{})
+    rot=snap.get("rotation",{})
 
     # Status header
     longs=[r for r in opps if "LONG" in r.get("Bias","")]

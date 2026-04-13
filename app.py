@@ -768,10 +768,13 @@ def load_all()->Dict:
     risk_ranges=build_risk_range(prices,f,cr)
     asset_chk=build_asset_checklists_full(f,h,q,ih,prices)
     macro_impact=build_macro_impact_all(q,f,rot)
+    fwd_radar=build_forward_radar(prices,q,f)
+    sw_all=build_strong_weak_all(prices,q)
     return dict(prices=prices,fred=fred,f=f,q=q,h=h,crash=cr,rotation=rot,ihsg=ih,
                 analog=analog,playbooks=pb,scenarios=sc,checklists=chk,
                 opportunities=opps,family=family,risk_ranges=risk_ranges,
                 asset_checklists=asset_chk,macro_impact=macro_impact,
+                forward_radar=fwd_radar,strong_weak_all=sw_all,
                 ts=datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"))
 
 # ── UI helpers ────────────────────────────────────────────────────────────────
@@ -1371,11 +1374,172 @@ def render_master_rotation_graph(q:Dict, f:Dict, rot:Dict, family:str)->None:
     st.markdown(graph_html, unsafe_allow_html=True)
 
 
+
+def build_forward_radar(prices:Dict[str,pd.Series], q:Dict, f:Dict) -> List[Dict]:
+    """v33 Forward Radar: setups not actionable yet but on watchlist."""
+    quad=q["quad"]; conf=q["confidence"]; sf=q.get("slowdown_flags",0)
+    # Tickers worth watching but not yet triggering
+    RADAR_MAP = {
+        "Q1": [
+            {"ticker":"EEM","side":"LONG","why_not_yet":"Needs USD/DXY to stop rising","trigger":"DXY 1M < -1%","signal_quality":"B+"},
+            {"ticker":"IWM","side":"LONG","why_not_yet":"Small caps lagging breadth","trigger":"IWM > SPY 3 days running","signal_quality":"B"},
+            {"ticker":"XLF","side":"LONG","why_not_yet":"Waiting for credit spread confirmation","trigger":"HY OAS < 350bps","signal_quality":"B+"},
+        ],
+        "Q2": [
+            {"ticker":"XLI","side":"LONG","why_not_yet":"ISM not confirmed above 52 yet","trigger":"ISM >52 two months","signal_quality":"B+"},
+            {"ticker":"HG=F","side":"LONG","why_not_yet":"Copper needs USD to stop strengthening","trigger":"DXY 1M negative","signal_quality":"B"},
+            {"ticker":"ADRO.JK","side":"LONG","why_not_yet":"Coal price needs to sustain","trigger":"Coal >$200 1M","signal_quality":"B+"},
+        ],
+        "Q3": [
+            {"ticker":"GLD","side":"LONG","why_not_yet":"Gold needs real yields to stop rising","trigger":"10Y real yield peaks","signal_quality":"A-"},
+            {"ticker":"TLT","side":"SHORT","why_not_yet":"Short bonds needs more long-end pressure","trigger":"10Y > 4.8%","signal_quality":"B+"},
+            {"ticker":"QQQ","side":"SHORT","why_not_yet":"Tech needs breadth failure confirmation","trigger":"IWM underperforms for 5 days","signal_quality":"B"},
+            {"ticker":"CTRA.JK","side":"SHORT","why_not_yet":"Property needs USD/IDR to break higher","trigger":"IDR/USD > 16200","signal_quality":"B"},
+        ],
+        "Q4": [
+            {"ticker":"TLT","side":"LONG","why_not_yet":"Long bonds need credit spread to widen","trigger":"HY OAS > 500bps","signal_quality":"A-"},
+            {"ticker":"XLP","side":"LONG","why_not_yet":"Defensives need equity vol to rise","trigger":"VIX > 25","signal_quality":"B+"},
+            {"ticker":"XLE","side":"SHORT","why_not_yet":"Energy short needs oil to break support","trigger":"WTI < $70 for 3 days","signal_quality":"B"},
+        ],
+    }
+    rows = RADAR_MAP.get(quad, [])
+    # Score by 1M momentum alignment
+    for r in rows:
+        tk_raw = r["ticker"]
+        tk_prices = tk_raw+".JK" if not ("." in tk_raw or "-" in tk_raw or "=F" in tk_raw) else tk_raw
+        # handle .JK already in name
+        s = prices.get(tk_raw, prices.get(tk_prices, pd.Series()))
+        r1 = ret_n(s,21)
+        bias = r["side"]
+        aligned = (bias=="LONG" and math.isfinite(r1) and r1>0) or (bias=="SHORT" and math.isfinite(r1) and r1<0)
+        r["momentum_1m"] = pct(r1) if math.isfinite(r1) else "—"
+        r["status"] = "On radar" if not aligned else "Starting to confirm"
+        r["ticker_display"] = disp(tk_raw)
+    return rows
+
+
+def build_strong_weak_all(prices:Dict[str,pd.Series], q:Dict) -> Dict:
+    """v33 Strong/Weak per market for FX, Commodities, Crypto."""
+    quad=q["quad"]
+    def sw_market(tickers, names_map, n=5):
+        rows=[]
+        for tk in tickers:
+            s=prices.get(tk,pd.Series()); r1=ret_n(s,21); r3=ret_n(s,63)
+            if not math.isfinite(r1): continue
+            rows.append({"tk":tk,"name":names_map.get(tk,disp(tk)),"r1":r1,"r3":r3,"trend":ts(s)})
+        rows.sort(key=lambda x:x["r1"],reverse=True)
+        return {"strong":rows[:n],"weak":rows[-n:][::-1]}
+
+    fx_tickers=["EURUSD=X","GBPUSD=X","AUDUSD=X","JPY=X","CHF=X","IDR=X","CAD=X","SGD=X"]
+    fx_names={"EURUSD=X":"EUR/USD","GBPUSD=X":"GBP/USD","AUDUSD=X":"AUD/USD","JPY=X":"USD/JPY","CHF=X":"USD/CHF","IDR=X":"USD/IDR","CAD=X":"USD/CAD","SGD=X":"USD/SGD"}
+    comm_tickers=["GC=F","SI=F","CL=F","BZ=F","NG=F","HG=F","ZC=F","ZW=F"]
+    comm_names={"GC=F":"XAUUSD","SI=F":"XAGUSD","CL=F":"WTI Oil","BZ=F":"Brent","NG=F":"Nat Gas","HG=F":"Copper","ZC=F":"Corn","ZW=F":"Wheat"}
+    crypto_tickers=["BTC-USD","ETH-USD","SOL-USD","BNB-USD","XRP-USD","ADA-USD","AVAX-USD","LINK-USD"]
+    crypto_names={t:disp(t) for t in crypto_tickers}
+
+    return {"fx":sw_market(fx_tickers,fx_names),"commodities":sw_market(comm_tickers,comm_names),"crypto":sw_market(crypto_tickers,crypto_names)}
+
+
+def render_rotational_flow_map(q:Dict, rot:Dict, f:Dict, family:str)->None:
+    """
+    v33 Rotational Flow Map — visual mind map for orang awam.
+    Shows causal chain: macro trigger → market family → spillover → expression → shelter.
+    This is the KEY visual the user asked for: easy to read, shows "mana yang jalan duluan".
+    """
+    quad=q["quad"]; m_quad=q["monthly_quad"]; div=q["divergence"]
+    top_ben=rot.get("top_ben","XAUUSD"); top_safe=rot.get("top_safe","Gold")
+    spill_us=rot.get("spill_us",[]); top_us=rot.get("top_us_bucket","Growth / Tech")
+    em_score=rot.get("em_score",0.5); em_state=rot.get("em_state","Wait")
+    petro=rot.get("petro_score",0.0)
+    uup_1m=nf(f.get("uup_1m",0.0)); oil_3m=nf(f.get("clf_3m",f.get("oil_3m",0.0)))
+
+    # Colors per role
+    C={"trigger":"#378ADD","first":"#3dbb6c","second":"#e5a020","expression":"#9b6aff",
+       "shelter":"#e05252","active":"#59a8e5","dim":"rgba(255,255,255,0.15)"}
+
+    # Determine active stage
+    if div=="aligned" and q.get("flip_hazard",0.5)<0.40: active_stage=0  # structural holds
+    elif div=="divergent": active_stage=1   # monthly overlay in play
+    elif petro>0.45: active_stage=2         # expression: energy
+    else: active_stage=2                    # expression: default
+
+    # Build 5-node flow based on active family
+    family_meta=ROTATION_FAMILIES.get(family,ROTATION_FAMILIES["reflation"])
+    nodes_data=family_meta.get("nodes",[])
+
+    def _pill(t,bc)->str:
+        return ('<span style="display:inline-block;padding:1px 7px;border-radius:99px;'+
+                'border:1px solid '+bc+'44;background:'+bc+'15;color:'+bc+';'+
+                'font-size:9px;font-weight:700;margin:1px 2px">'+ t+'</span>')
+
+    def _node(title, label, note, tickers, role_color, *, is_active=False)->str:
+        bc=role_color if not is_active else "#fff"
+        bg=role_color+"20" if is_active else "rgba(255,255,255,0.02)"
+        border="2px solid "+role_color if is_active else "1px solid "+role_color+"33"
+        you_badge=('<div style="font-size:8px;font-weight:800;color:'+role_color+';margin-bottom:2px">◉ KITA DI SINI</div>') if is_active else ""
+        pills="".join(_pill(t,role_color) for t in tickers[:3])
+        return (
+            '<div style="'+border+';background:'+bg+';border-radius:10px;padding:9px 8px;'+
+            'text-align:center;flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center">'+
+            you_badge+
+            '<div style="font-size:8px;color:'+role_color+';font-weight:700;letter-spacing:.08em;text-transform:uppercase;margin-bottom:2px">'+title+'</div>'+
+            '<div style="font-size:13px;font-weight:700;color:var(--color-text-primary);line-height:1.2;margin-bottom:3px">'+label+'</div>'+
+            '<div style="font-size:9px;color:var(--color-text-secondary);line-height:1.3;margin-bottom:4px">'+note[:42]+'</div>'+
+            '<div>'+pills+'</div>'
+            '</div>'
+        )
+
+    def _arrow()->str:
+        return '<div style="font-size:16px;color:rgba(255,255,255,0.3);display:flex;align-items:center;padding:0 3px">&rarr;</div>'
+
+    role_cols=[C["trigger"],C["first"],C["second"],C["expression"],C["shelter"]]
+    nodes_html=[]
+    for i,node in enumerate(nodes_data[:5]):
+        rc=role_cols[i] if i<len(role_cols) else C["dim"]
+        is_active=(i==active_stage)
+        tickers=ROTATION_FAMILIES.get(family,{}).get("best_expressions",{})
+        # get relevant tickers for this node stage
+        expr_tickers=[]
+        if i==3:  # expression node
+            for mkt_tickers in list(tickers.values())[:2]:
+                expr_tickers.extend([t for t in mkt_tickers[:2] if not t.startswith("select")])
+        nodes_html.append(_node(node["role"],node["label"],node["why"],expr_tickers[:3],rc,is_active=is_active))
+
+    sep=_arrow()
+    container=(
+        '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);'+
+        'border-radius:12px;padding:12px 10px;margin:6px 0">'+
+        '<div style="font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;'+
+        'color:rgba(255,255,255,0.3);margin-bottom:8px">ROTATIONAL FLOW MAP — '+
+        family_meta.get("name","").upper()+' &mdash; CARA BACA: dari kiri ke kanan</div>'+
+        '<div style="display:flex;align-items:stretch;gap:3px;flex-wrap:nowrap">'+
+        sep.join(nodes_html)+
+        '</div>'+
+        '<div style="margin-top:8px;font-size:10px;color:rgba(255,255,255,0.4);">'+
+        '&bull; Panah = urutan transmisi. &#9679; = saat ini. Warna: Trigger &rarr; First order &rarr; Second order &rarr; Expression &rarr; Invalidation</div>'+
+        '</div>'
+    )
+    st.markdown(container, unsafe_allow_html=True)
+
+    # Best expressions table below the map (compact)
+    be=family_meta.get("best_expressions",{})
+    if be:
+        be_cols=st.columns(len(be))
+        for col,(mkt,tickers) in zip(be_cols,be.items()):
+            with col:
+                st.markdown(f"**{mkt}**")
+                for t in tickers[:3]:
+                    s=prices_placeholder.get(t,pd.Series()) if t in prices_placeholder else pd.Series()
+                    r1=ret_n(s,21); perf=pct(r1) if math.isfinite(r1) else ""
+                    cls="good" if(math.isfinite(r1) and r1>0) else("bad" if(math.isfinite(r1) and r1<-0.01) else "")
+                    st.markdown('<span class="'+cls+'" style="font-size:11px">'+disp(t)+' '+perf+'</span>  \n',unsafe_allow_html=True)
+
+
 def page_opportunities(snap:Dict)->None:
     """Full opportunity board: Long/Short table with entry/target/invalidation."""
     opps=snap.get("opportunities",[])
     q=snap["q"]; quad=q["quad"]; conf=q["confidence"]
-    family=snap.get("family","reflation")
+    family=snap.get("family","reflation"); f=snap["f"]; rot=snap["rotation"]
     rot_meta=ROTATION_FAMILIES.get(family,ROTATION_FAMILIES["reflation"])
     prices=snap["prices"]
 
@@ -1388,10 +1552,13 @@ def page_opportunities(snap:Dict)->None:
     with c3: mc("Regime Confidence",f"{conf:.0%}",q.get("conf_band",""),"good" if conf>0.50 else "warn")
     with c4: mc("Execution Mode",snap["crash"]["exec_mode"],f"Score: {snap['crash']['exec_score']:.0%}","good" if snap["crash"]["exec_score"]>=0.60 else "warn")
 
-    # Rotation Flow Panel
+    # Rotational Flow Map (v33 visual mind-map — what user asked for)
     st.markdown("---")
     sh(f"🔄 ROTATIONAL FLOW MAP — {rot_meta['name'].upper()}")
-    st.markdown(f'<div style="padding:10px 14px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);margin-bottom:10px;font-size:12px;opacity:.85">{rot_meta["desc"]}</div>',unsafe_allow_html=True)
+    st.markdown('<div style="font-size:12px;opacity:.75;margin-bottom:8px">'+rot_meta["desc"]+'</div>',unsafe_allow_html=True)
+    render_rotational_flow_map(q,rot,f,family)
+    st.markdown("---")
+    sh(f"⬆ CAUSAL CHAIN DETAIL")
     st.markdown(f'**Trigger:** {rot_meta["trigger"]}')
     
     # Flow nodes as visual chain — with current state indicator
@@ -1484,6 +1651,14 @@ def page_opportunities(snap:Dict)->None:
         st.dataframe(df_short,use_container_width=True,hide_index=True,height=min(len(shorts)*38+50,360))
     else:
         st.info("Tidak ada short opportunity yang qualified untuk regime ini.")
+
+    # Forward Radar (P2: watchlist setups)
+    fwd=snap.get("forward_radar",[])
+    if fwd:
+        st.markdown("---"); sh("🔭 FORWARD RADAR — Next Setups (belum actionable, sudah on radar)")
+        st.caption("Setup yang sudah di-monitor tapi belum trigger. Siapkan order jika trigger hit.")
+        fwd_rows=[{"Ticker":r.get("ticker_display",r.get("ticker","")),"Side":r.get("side",""),"Status":r.get("status",""),"Trigger":r.get("trigger",""),"Why Not Yet":r.get("why_not_yet",""),"1M":r.get("momentum_1m","—"),"Signal":r.get("signal_quality","")} for r in fwd]
+        st.dataframe(pd.DataFrame(fwd_rows),use_container_width=True,hide_index=True,height=len(fwd_rows)*38+50)
 
     # Regime Policy Matrix
     st.markdown("---")
@@ -2125,7 +2300,21 @@ def page_markets_full(snap:Dict)->None:
         uup_txt=f"UUP (USD proxy): {pct(uup_1m)} 1M. "
         regime_fx={"Q1":"Q1 Goldilocks = USD biasanya lemah. EM dan commodity FX benefit.","Q2":"Q2 Reflation = commodity FX (AUD, CAD) outperform. USD mixed.","Q3":"Q3 Stagflasi = USD kuat. IDR/EM FX tertekan. Dollar king.","Q4":"Q4 Deflasi = USD kuat awalnya, tapi Fed cut → Dollar bisa lemah."}
         st.info(uup_txt + regime_fx.get(s_quad,""))
-        # FX Macro Impact + Checklist
+        # FX Strong/Weak + Macro Impact + Checklist
+        sw3=snap.get("strong_weak_all",{})
+        if sw3.get("fx"):
+            sh("💪 FX STRONG vs WEAK (1M momentum)")
+            fx_sw=sw3["fx"]; fc1,fc2=st.columns(2)
+            with fc1:
+                st.markdown("**Strong (▲):**")
+                for r in fx_sw["strong"][:4]:
+                    cls="good" if r["r1"]>0 else "bad"
+                    st.markdown(f'<span class="{cls}" style="font-size:12px">▲ {r["name"]}: {pct(r["r1"])}</span>',unsafe_allow_html=True)
+            with fc2:
+                st.markdown("**Weak (▼):**")
+                for r in fx_sw["weak"][:4]:
+                    cls="bad" if r["r1"]<0 else "good"
+                    st.markdown(f'<span class="{cls}" style="font-size:12px">▼ {r["name"]}: {pct(r["r1"])}</span>',unsafe_allow_html=True)
         mi3=snap.get("macro_impact",{})
         if mi3.get("fx"):
             bd=mi3["fx"]; sh("📊 MACRO IMPACT — FX")
@@ -2144,11 +2333,26 @@ def page_markets_full(snap:Dict)->None:
         st.dataframe(pd.DataFrame(comm_rows),use_container_width=True,hide_index=True)
         regime_comm={"Q1":"Q1 = Gold ok, Oil ok, Copper ok. Commodities broadly supportive.","Q2":"Q2 = Energy king. Oil, Gas, Copper outperform. Materials rally.","Q3":"Q3 Stagflasi = GOLD best trade. Oil bisa volatile. Avoid cyclical metals.","Q4":"Q4 = Commodities broadly weak. Gold bisa rally jika recession fear dominates."}
         st.info(regime_comm.get(s_quad,""))
-        # Petrodollar note
-        oil_3m=ret_n(prices.get("CL=F",pd.Series()),63)
-        gold_3m=ret_n(prices.get("GC=F",pd.Series()),63)
+        oil_3m=ret_n(prices.get("CL=F",pd.Series()),63); gold_3m=ret_n(prices.get("GC=F",pd.Series()),63)
         mc("Oil WTI 3M",pct(oil_3m),"signal inflasi","warn" if(math.isfinite(oil_3m) and oil_3m>0.05) else "neu")
         mc("Gold 3M",pct(gold_3m),"hard asset hedge","good" if(math.isfinite(gold_3m) and gold_3m>0.05) else "neu")
+        # Commodities Strong/Weak + Impact + Checklist
+        sw4=snap.get("strong_weak_all",{})
+        if sw4.get("commodities"):
+            sh("💪 COMMODITIES STRONG vs WEAK")
+            cs=sw4["commodities"]; cc1,cc2=st.columns(2)
+            with cc1:
+                for r in cs["strong"][:4]:
+                    st.markdown(f'<span class="good" style="font-size:12px">▲ {r["name"]}: {pct(r["r1"])}</span>',unsafe_allow_html=True)
+            with cc2:
+                for r in cs["weak"][:4]:
+                    st.markdown(f'<span class="bad" style="font-size:12px">▼ {r["name"]}: {pct(r["r1"])}</span>',unsafe_allow_html=True)
+        mi4=snap.get("macro_impact",{})
+        if mi4.get("commodities"):
+            bd=mi4["commodities"]; sh("📊 MACRO IMPACT — COMMODITIES")
+            mc("Sekarang",bd["quad"],bd["now"]); mc("Best",bd["best_expression"][:40])
+        ac4=snap.get("asset_checklists",{})
+        if ac4.get("commodities"): render_checklist(ac4["commodities"],"🛢️ COMMODITIES CHECKLIST")
 
     # ── Crypto ─────────────────────────────────────────────────────────────────
     with t5:
@@ -2162,7 +2366,23 @@ def page_markets_full(snap:Dict)->None:
         btc_1m=ret_n(prices.get("BTC-USD",pd.Series()),21)
         regime_crypto={"Q1":"Q1 = Crypto bullish. High-beta risk asset. BTC biasanya outperform.","Q2":"Q2 = Crypto ok tapi attention ke commodities. BTC masih bisa naik.","Q3":"Q3 Stagflasi = Crypto BEARISH. Bukan hedge inflation. Gold > Crypto.","Q4":"Q4 = Crypto sangat bearish. Capital preservation mode. Cash > Crypto."}
         st.info(f"BTC 1M: {pct(btc_1m)}. {regime_crypto.get(s_quad,'')}")
-        st.caption("⚠️ Crypto = high-beta risk asset, bukan inflation hedge. Naik paling kencang di Q1, hancur paling dalam di Q3/Q4.")
+        sw5=snap.get("strong_weak_all",{})
+        if sw5.get("crypto"):
+            sh("💪 CRYPTO STRONG vs WEAK")
+            crs=sw5["crypto"]; cr1,cr2=st.columns(2)
+            with cr1:
+                for r in crs["strong"][:4]:
+                    st.markdown(f'<span class="good" style="font-size:12px">▲ {r["name"]}: {pct(r["r1"])}</span>',unsafe_allow_html=True)
+            with cr2:
+                for r in crs["weak"][:4]:
+                    st.markdown(f'<span class="bad" style="font-size:12px">▼ {r["name"]}: {pct(r["r1"])}</span>',unsafe_allow_html=True)
+        mi5=snap.get("macro_impact",{})
+        if mi5.get("crypto"):
+            bd=mi5["crypto"]; sh("📊 MACRO IMPACT — CRYPTO")
+            mc("Sekarang",bd["quad"],bd["now"]); mc("Best",bd["best_expression"][:40])
+        ac5=snap.get("asset_checklists",{})
+        if ac5.get("crypto"): render_checklist(ac5["crypto"],"🔐 CRYPTO CHECKLIST")
+        st.caption("⚠️ Crypto = high-beta risk asset, bukan inflation hedge.")
 
 
 def main():

@@ -736,8 +736,10 @@ def load_all()->Dict:
     f=build_macro(fred,prices); q=build_quad(f); h=build_health(prices,f)
     cr=build_crash(f,h,q); rot=build_rotation(q,h,f,prices); ih=build_ihsg(prices,q,f)
     analog=_match_analog(f); pb=build_playbooks(f,q); sc=build_scenarios(q,f,analog,pb)
+    chk=build_checklists(f,h,q,ih)
     return dict(prices=prices,fred=fred,f=f,q=q,h=h,crash=cr,rotation=rot,ihsg=ih,
-                analog=analog,playbooks=pb,scenarios=sc,ts=datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"))
+                analog=analog,playbooks=pb,scenarios=sc,checklists=chk,
+                ts=datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"))
 
 # ── UI helpers ────────────────────────────────────────────────────────────────
 def qb(q:str)->str:
@@ -755,22 +757,103 @@ def chk(flag,good_txt="Yes",bad_txt="No"):
     if flag is False: return f'<span class="chk-no">✗ {bad_txt}</span>'
     return '<span style="opacity:.4">? Unknown</span>'
 
+
+# ── Checklist engine (v33 inspired) ───────────────────────────────────────────
+def _chk(score:float)->(str,str):
+    """Returns (symbol, color_class) for a checklist item."""
+    if score>=0.62: return "✓","good"
+    if score>=0.42: return "~","warn"
+    return "✗","bad"
+
+def build_checklists(f:Dict,h:Dict,q:Dict,ih:Dict)->Dict:
+    """v33-style checklist: ✓/✗/? per condition per market."""
+    sf=q.get("slowdown_flags",0); shock=q.get("inf_shock",0)
+    g_acc=q.get("growth_acc",False); i_acc=q.get("infl_acc",False)
+    vix=f.get("vix_last",20.0); hy=f.get("hy_oas",350.0)
+    uup_1m=nf(f.get("uup_1m",0.0)); yc=f.get("yield_curve_state","")
+
+    # Global checklist (Health tab)
+    global_items=[
+        ("Growth accelerating",clamp(0.5+0.5*float(g_acc)),
+         "INDPRO/payrolls trending up" if g_acc else "Growth momentum slowing"),
+        ("Inflasi terkendali",clamp(1.0-i_acc*0.6-shock*0.4),
+         "Core inflation falling/stable" if not i_acc else "Inflation re-accelerating"),
+        ("USD/DXY tidak tekanan",clamp(0.5-uup_1m*8),
+         "Dollar stable or weakening" if uup_1m<0.01 else "USD strengthening = EM headwind"),
+        ("Yield curve normal",clamp(0.70 if "Normal" in yc or "Steep" in yc else (0.35 if "Flat" in yc else 0.15)),
+         yc),
+        ("Breadth sehat",h.get("breadth",0.5),
+         f"Sektor di atas 50-DMA: {h.get('sec_above50',0)}/11"),
+        ("Credit aman (HY spreads)",clamp(1.0-(hy-250)/450) if math.isfinite(hy) else 0.5,
+         f"HY OAS: {hy:.0f}bps" if math.isfinite(hy) else "Proxy mode"),
+        ("VIX investable",clamp(1.0-(vix-13)/20),
+         "Investable" if vix<19 else ("Chop" if vix<29 else "Defensive")),
+        ("Tidak ada shock aktif",clamp(1.0-shock*2),
+         "No major inflation/oil shock" if shock<0.2 else f"Shock level: {shock:.2f}"),
+    ]
+
+    # IHSG checklist
+    ihsg_items=[
+        ("USD/IDR aman",1-ih.get("usd_idr_pressure",0.5),
+         f"IDR 1M: {pct(ih.get('usd_idr_1m',float('nan')))} (naik=buruk)"),
+        ("Asing nett beli",ih.get("foreign_flow",0.5),
+         f"Flow state: {ih.get('flow_state','?')}"),
+        ("Bank health (BBCA/BBRI/BMRI)",ih.get("bank_health",0.5),
+         "Big banks holding up" if ih.get("bank_health",0.5)>0.55 else "Banks under pressure"),
+        ("Commodity spillover positif",ih.get("comm_spill",0.5),
+         "Coal/metals supporting" if ih.get("comm_spill",0.5)>0.55 else "Commodity chain weak"),
+        ("Breadth sektoral",ih.get("breadth_ihsg",0.5),
+         f"{sum(1 for v in [ih.get('breadth_ihsg',0)] if v>0.5)}/6 sectors positive"),
+        ("EM regime supportif",ih.get("em_regime",0.5),
+         f"EM score: {ih.get('em_regime',0):.0%}"),
+        ("BI policy supportif",ih.get("bi_path",0.5),
+         ih.get("bi_state","?")),
+    ]
+
+    return {"global":global_items,"ihsg":ihsg_items}
+
+def render_checklist(items:list,title:str="Checklist")->None:
+    """Render v33-style ✓/✗/~ checklist in plain text (no HTML in dataframe)."""
+    sh(title)
+    rows=[]
+    for label,score,note in items:
+        sym,cls=_chk(score)
+        rows.append({"Status":sym,"Kondisi":label,"Score":f"{score:.0%}","Catatan":note})
+    st.dataframe(pd.DataFrame(rows),use_container_width=True,hide_index=True,height=len(items)*36+40)
+
+
 def page_radar(snap:Dict)->None:
     q=snap["q"]; f=snap["f"]; rot=snap["rotation"]; analog=snap["analog"]
     s_quad=q["quad"]; m_quad=q["monthly_quad"]; meta=QUAD_META.get(s_quad,QUAD_META["Q4"])
     ps=f.get("_proxy_share",1.0); fl=int(f.get("_fred_loaded",0)); ft=int(f.get("_fred_total",0))
-    if ps>0.60: st.markdown(f'<div class="proxy-b">⚠️ <strong>Proxy mode</strong> — FRED {fl}/{ft} series. Quad dari price proxy. Set FRED_API_KEY env var untuk data lebih akurat.</div>',unsafe_allow_html=True)
-    else: st.markdown(f'<div class="real-b">✓ FRED {fl}/{ft} series. Data coverage: {f.get("data_coverage",0):.0%}</div>',unsafe_allow_html=True)
+    if ps>0.60:
+        st.markdown(f'<div class="proxy-b">⚠️ <strong>Proxy mode</strong> — FRED {fl}/{ft} series. Quad dari price proxy. Set FRED_API_KEY env var.</div>',unsafe_allow_html=True)
+    else:
+        st.markdown(f'<div class="real-b">&#10003; FRED {fl}/{ft} series. Data coverage: {f.get("data_coverage",0):.0%}</div>',unsafe_allow_html=True)
     div=q["divergence"]; cb=q["conf_band"]; meta_col=meta["text"]
-    st.markdown(f"""<div style="text-align:center;padding:18px 16px">
-    <div style="margin-bottom:6px">{qb(s_quad)} <span style="opacity:.4;font-size:12px">Structural</span>
-    {"&nbsp;↔&nbsp;"+qb(m_quad)+' <span style="opacity:.4;font-size:12px">Monthly</span>' if div=="divergent" else ""}
-    </div>
-    <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;letter-spacing:-.03em;color:{meta_col}">{meta['label']}</div>
-    <div style="font-size:12px;opacity:.5;margin-bottom:4px">{cb} {q['operating']} · Conf {q['confidence']:.0%} · Deepness {q['deepness']:.0%}</div>
-    <div style="font-size:13px;opacity:.75;max-width:480px;margin:0 auto;line-height:1.7">{meta['desc']}</div></div>""",unsafe_allow_html=True)
-    if div=="divergent":
-        st.info(f"🔄 **Divergensi aktif:** Structural {s_quad} vs Monthly {m_quad}. Tren besar masih {s_quad}, tapi bulan ini bergerak seperti {m_quad}. Gunakan Monthly sebagai trigger masuk/keluar, Structural sebagai arah besar.")
+    # Build regime hero as string concat (avoids f-string HTML rendering bug with nested quotes)
+    div_badge = ""
+    if div == "divergent":
+        div_badge = " &nbsp;&#8596;&nbsp; " + qb(m_quad) + ' <span style="opacity:.4;font-size:12px">Monthly</span>'
+    hero = (
+        '<div style="text-align:center;padding:18px 16px">' +
+        '<div style="margin-bottom:6px">' + qb(s_quad) + ' <span style="opacity:.4;font-size:12px">Structural</span>' + div_badge + '</div>' +
+        '<div style="font-family:Syne,sans-serif;font-size:28px;font-weight:800;letter-spacing:-.03em;color:' + meta_col + ';margin-bottom:2px">' + meta["label"] + '</div>' +
+        '<div style="font-size:12px;opacity:.5;margin-bottom:4px">' + cb + " " + q["operating"] + " &middot; Conf " + f'{q["confidence"]:.0%}' + " &middot; Deepness " + f'{q["deepness"]:.0%}' + '</div>' +
+        '<div style="font-size:13px;opacity:.75;max-width:480px;margin:0 auto;line-height:1.7">' + meta["desc"] + '</div></div>'
+    )
+    st.markdown(hero, unsafe_allow_html=True)
+    if div == "divergent":
+        st.info(f"🔄 **Divergensi aktif:** Structural {s_quad} vs Monthly {m_quad}. Tren besar masih {s_quad}, bulan ini bergerak seperti {m_quad}. Monthly = trigger, Structural = arah besar.")
+    # Regime maturity badges
+    dm=q.get("duration_mat",0)
+    maturity = "Early" if dm<0.35 else ("Mid-Cycle" if dm<0.60 else "Late / Mature")
+    mat_html = ('<div style="display:flex;gap:8px;justify-content:center;margin:6px 0;flex-wrap:wrap;font-size:11px">' +
+        '<span style="background:rgba(255,255,255,0.06);padding:2px 10px;border-radius:10px">Maturity: <b>' + maturity + '</b></span>' +
+        '<span style="background:rgba(255,255,255,0.06);padding:2px 10px;border-radius:10px">Deepness: <b>' + f'{q.get("deepness",0):.0%}' + '</b></span>' +
+        '<span style="background:rgba(255,255,255,0.06);padding:2px 10px;border-radius:10px">Flip hazard: <b>' + f'{q.get("flip_hazard",0):.0%}' + '</b></span></div>'
+    )
+    st.markdown(mat_html, unsafe_allow_html=True)
     c1,c2,c3,c4=st.columns(4)
     with c1:
         g_acc=q.get("growth_acc"); mc("Growth Rate-of-Change",acc_txt(g_acc),"vs 3 bulan lalu","good" if g_acc else "bad")
@@ -944,6 +1027,12 @@ def page_health(snap:Dict)->None:
         rows.append({"Sektor":name,"3M":pct(r3),"1M":pct(r1),"vs SPY 3M":pct(rel),"50DMA":"✓" if ts(s)>=0.5 else "✗"})
     rows.sort(key=lambda r:float(r["vs SPY 3M"].replace("%","").replace("—","0").replace("+","")) if r["vs SPY 3M"]!="—" else -999,reverse=True)
     st.dataframe(pd.DataFrame(rows),use_container_width=True,hide_index=True,height=360)
+    # v33-style checklist
+    st.markdown("---")
+    chk=snap.get("checklists",{})
+    if chk.get("global"):
+        render_checklist(chk["global"],"✅ KONDISI GLOBAL — CHECKLIST TRADING")
+        st.caption("✓ = Kondisi baik | ~ = Mixed/watch | ✗ = Kondisi buruk")
 
 def page_playbook(snap:Dict)->None:
     q=snap["q"]; rot=snap["rotation"]; sc=snap["scenarios"]; pb=snap["playbooks"]; prices=snap["prices"]
@@ -1179,7 +1268,32 @@ def page_markets_full(snap:Dict)->None:
         for t,desc,regime in [("BBCA.JK","Bank terbesar, kualitas premium. Leading IHSG di Q1/Q2.","Q1,Q2"),("ADRO.JK","Coal king. Rally di Q2/Q3 (commodity shock).","Q2,Q3"),("ANTM.JK","Gold/nickel proxy. Cocok di Q3 stagflasi.","Q3"),("TLKM.JK","Defensif. Dividend play, cocok Q4.","Q4"),("IDR=X","USD/IDR: naik = buruk (asing kabur dari IHSG).","All"),]:
             s=prices.get(t,pd.Series()); r1=ret_n(s,21); perf=pct(r1) if math.isfinite(r1) else "—"
             cls="good" if(math.isfinite(r1) and r1>0) else("bad" if(math.isfinite(r1) and r1<-0.01) else "warn")
-            st.markdown(f'<div class="mc" style="display:flex;justify-content:space-between;align-items:center"><div><div class="lb">{t} — {" ".join(tag(r,"b") for r in regime.split(","))}</div><div style="font-size:12px;opacity:.8">{desc}</div></div><div class="vl {cls}" style="font-size:16px">{perf}</div></div>',unsafe_allow_html=True)
+            st.markdown('<div class="mc" style="display:flex;justify-content:space-between;align-items:center"><div><div class="lb">'+t+' — '+' '.join(tag(r,"b") for r in regime.split(","))+'</div><div style="font-size:12px;opacity:.8">'+desc+'</div></div><div class="vl '+cls+'" style="font-size:16px">'+perf+'</div></div>',unsafe_allow_html=True)
+        # IHSG Checklist (v33 style)
+        st.markdown("---")
+        chk=snap.get("checklists",{})
+        if chk.get("ihsg"):
+            render_checklist(chk["ihsg"],"🇮🇩 IHSG CHECKLIST — KONDISI MASUK")
+            st.caption("v33 checklist: ✓ = kondisi oke | ~ = mixed/watch | ✗ = kondisi buruk")
+        # Macro impact board for IHSG
+        st.markdown("---")
+        sh("📊 MACRO IMPACT PADA IHSG — SEKARANG vs NEXT")
+        q2=snap["q"]; s_quad2=q2["quad"]
+        macro_impact_ihsg={
+            "Q1":{"sekarang":"Growth global naik + inflasi turun = kondisi ideal. Asing masuk EM. IHSG bisa ikut naik terutama bank dan consumer.","best_path":"BBCA/BBRI lead, consumer cyclical ikut, foreign flow positif.","invalidator":"USD strengthens kembali atau yields spike.","next":"Jika Q1 bertahan: IHSG rally lebar. Jika Q2: rotate ke coal/commodity."},
+            "Q2":{"sekarang":"Commodity rally = IHSG coal exporters kuat. Tapi USD bisa menguat, menekan IDR dan asing.","best_path":"ADRO/PTBA/ITMG lead, ANTM ikut. Banks mixed.","invalidator":"Oil reversal cepat atau Fed tighten lebih agresif dari ekspektasi.","next":"Jika Q2 → Q3: coal still ok tapi bank dan consumer mulai rapuh."},
+            "Q3":{"sekarang":"Stagflasi = IHSG mixed-bearish. USD kuat menekan IDR dan asing keluar. Hanya coal exporter bisa bertahan.","best_path":"Defensive pada TLKM/ICBP. Coal exporter: ADRO, PTBA. Kurangi posisi bank dan consumer cyclical.","invalidator":"Fed pivot atau oil breakdown + IDR stabilize.","next":"Jika Q3 berlanjut: cash dan coal. Jika Q4: switch ke defensives penuh."},
+            "Q4":{"sekarang":"Resesi / deflasi = IHSG broadly bearish. Asing keluar EM. Hanya defensive quality yang bisa tahan.","best_path":"TLKM (dividend), ICBP, KLBF. Kurangi semua beta tinggi.","invalidator":"Fed cut agresif + fiscal stimulus besar = V-shape recovery di EM.","next":"Early signs of Q1 recovery: bank lead kembali."},
+        }
+        impact=macro_impact_ihsg.get(s_quad2,{})
+        if impact:
+            a2,b2=st.columns(2)
+            with a2:
+                mc("Kondisi Sekarang",s_quad2,impact.get("sekarang",""))
+                mc("Best Path Sekarang","→ "+impact.get("best_path",""))
+            with b2:
+                mc("Invalidator","⚠️ "+impact.get("invalidator",""))
+                mc("Next Branch","→ "+impact.get("next",""))
 
     # ── US Stocks ──────────────────────────────────────────────────────────────
     with t1:

@@ -770,11 +770,15 @@ def load_all()->Dict:
     macro_impact=build_macro_impact_all(q,f,rot)
     fwd_radar=build_forward_radar(prices,q,f)
     sw_all=build_strong_weak_all(prices,q)
+    route=derive_route_state(q,h,cr)
+    asset_trans=build_asset_translation(route["primary"],q,h,f)
+    news_overlay=build_news_catalyst_overlay(q,f,h)
     return dict(prices=prices,fred=fred,f=f,q=q,h=h,crash=cr,rotation=rot,ihsg=ih,
                 analog=analog,playbooks=pb,scenarios=sc,checklists=chk,
                 opportunities=opps,family=family,risk_ranges=risk_ranges,
                 asset_checklists=asset_chk,macro_impact=macro_impact,
                 forward_radar=fwd_radar,strong_weak_all=sw_all,
+                route=route,asset_translation=asset_trans,news_overlay=news_overlay,
                 ts=datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"))
 
 # ── UI helpers ────────────────────────────────────────────────────────────────
@@ -1375,6 +1379,292 @@ def render_master_rotation_graph(q:Dict, f:Dict, rot:Dict, family:str)->None:
 
 
 
+
+# ── Route State System (v33 regime_router.py exact logic) ─────────────────────
+ROUTE_STATE_META = {
+    "quality_disinflation": {
+        "label": "Quality Disinflation",
+        "emoji": "✨",
+        "desc": "Growth cukup bagus, inflasi melandai. Quality names dan selected growth menang. Defensives ok tapi bukan pemenang.",
+        "color": "#3dbb6c",
+        "long": ["Quality growth (MSFT, AAPL, GOOGL)", "Selected tech", "IHSG bank quality"],
+        "avoid": ["Deep cyclicals", "High-beta", "Commodities"],
+    },
+    "reflation_reaccel": {
+        "label": "Reflation Re-Acceleration",
+        "emoji": "⚡",
+        "desc": "Growth dan inflasi sama-sama naik. Commodity, cyclical, dan EM dalam satu trade. Jangan defensif.",
+        "color": "#e5a020",
+        "long": ["XLE, XLI, XLF", "ADRO, PTBA, ANTM", "AUD, CAD, commodity FX"],
+        "avoid": ["TLT", "Defensives", "USD longs"],
+    },
+    "stagflation_persist": {
+        "label": "Stagflation Persists",
+        "emoji": "🔥",
+        "desc": "Growth melambat tapi inflasi keras. Quad paling sulit. Hard assets dan cash menang. Equities broadly suffer.",
+        "color": "#e5a020",
+        "long": ["Gold (XAUUSD)", "Energy selective (XLE)", "USD (UUP)", "Defensives (XLP, XLU)"],
+        "avoid": ["QQQ", "IWM", "EEM", "IHSG domestic beta"],
+    },
+    "growth_scare": {
+        "label": "Growth Scare / De-Risk",
+        "emoji": "📉",
+        "desc": "Growth data memburuk cepat, inflasi belum benar-benar turun. Risk-off tapi belum full crash. Quality dan cash.",
+        "color": "#e05252",
+        "long": ["TLT", "Gold (GLD)", "XLP, XLV", "USD"],
+        "avoid": ["Cyclicals", "EM", "Crypto", "Small caps"],
+    },
+    "deflationary_riskoff": {
+        "label": "Deflationary Risk-Off",
+        "emoji": "❄️",
+        "desc": "Growth dan inflasi turun. Resesi pricing. Long bonds, gold, dan defensives. Capital preservation mode.",
+        "color": "#e05252",
+        "long": ["TLT (20Y bonds)", "Gold (GLD)", "XLP, XLU, XLV", "USD, JPY, CHF"],
+        "avoid": ["Semua commodity", "Cyclicals", "EM", "Crypto"],
+    },
+    "vshape_rebound": {
+        "label": "V-Shape Rebound Watch",
+        "emoji": "🚀",
+        "desc": "Setelah downturn, tanda awal recovery muncul. Equal-weight, IWM, EM bisa rebound keras. High risk/reward.",
+        "color": "#59a8e5",
+        "long": ["IWM (small caps)", "EEM", "XLI, XLF", "IHSG broad"],
+        "avoid": ["Ultra-defensives", "Long bonds", "Cash heavy"],
+    },
+    "panic_crash": {
+        "label": "Panic / Crash Mode",
+        "emoji": "🚨",
+        "desc": "Tail event. Forced selling, liquidity stress. Cash adalah king. Aktif hedge. Jangan beli the dip dulu.",
+        "color": "#e05252",
+        "long": ["Cash (BIL, SHY)", "Gold (GLD)", "JPY, CHF", "VIX hedges"],
+        "avoid": ["SEMUA equities", "SEMUA credit", "Crypto", "EM"],
+    },
+}
+
+def derive_route_state(q:Dict, h:Dict, crash:Dict) -> Dict:
+    """v33 regime_router.derive_route_state — 7 named route states."""
+    structural=q["quad"]; monthly=q["monthly_quad"]; div=q["divergence"]
+    risk_off=crash["risk_off"]; crash_score=crash["crash_score"]
+    exec_score=crash["exec_score"]; weather=h["weather"]
+    tail_state=h.get("tail_state","neutral")
+    sf=q.get("slowdown_flags",0)
+
+    if crash_score>=0.75:
+        primary="panic_crash"; alt="vshape_rebound"
+    elif structural=="Q4" or risk_off>=0.68:
+        primary="deflationary_riskoff"; alt="vshape_rebound" if exec_score>=0.52 else "reflation_reaccel"
+    elif structural=="Q3" and (monthly in("Q3","Q4") or tail_state=="stressed"):
+        primary="stagflation_persist"; alt="growth_scare" if risk_off>=0.58 else "reflation_reaccel"
+    elif monthly=="Q2" and exec_score>=0.55 and weather>=0.55:
+        primary="reflation_reaccel"; alt="growth_scare"
+    elif structural=="Q1" and weather>=0.52:
+        primary="quality_disinflation"; alt="reflation_reaccel"
+    else:
+        primary="growth_scare" if risk_off>=0.55 else "quality_disinflation"
+        alt="reflation_reaccel" if primary!="reflation_reaccel" else "growth_scare"
+
+    if div=="divergent" and monthly=="Q2" and exec_score>=0.56 and weather>=0.56:
+        alt="reflation_reaccel"
+    if div=="divergent" and monthly=="Q4" and risk_off>=0.58:
+        alt="vshape_rebound" if primary=="deflationary_riskoff" else "deflationary_riskoff"
+    if alt==primary:
+        alt="vshape_rebound" if primary!="vshape_rebound" else "reflation_reaccel"
+
+    primary_meta=ROUTE_STATE_META.get(primary,ROUTE_STATE_META["growth_scare"])
+    alt_meta=ROUTE_STATE_META.get(alt,ROUTE_STATE_META["growth_scare"])
+    return {"primary":primary,"alt":alt,"primary_meta":primary_meta,"alt_meta":alt_meta,
+            "risk_off":risk_off,"crash_score":crash_score,"exec_score":exec_score}
+
+
+def build_asset_translation(route_state:str, q:Dict, h:Dict, f:Dict) -> Dict:
+    """v33 AssetTranslationEngine — LONG/WATCH/AVOID per market per route state."""
+    shock=q.get("inf_shock",0.0); sf=q.get("slowdown_flags",0.0)
+    uup=nf(f.get("uup_1m",0.0)); oil=nf(f.get("clf_3m",f.get("oil_3m",0.0)))
+    stress=(shock>0.30 or h.get("tail_state")=="stressed")
+    mixed=(h.get("weather",0.5)<0.58)
+
+    translations = {
+        "stagflation_persist": {
+            "US":[
+                {"bias":"LONG","setup":"Energy & cash-flow leaders","why":"Cash-flow producers dan hard-asset linked equities paling tahan di Q3.","invalidator":"Oil dan hard-asset leadership cepat luntur sambil breadth melebar."},
+                {"bias":"LONG" if not mixed else "WATCH","setup":"Selective defensives / quality","why":"Dipakai saat growth melemah tapi broad relief belum confirm.","invalidator":"Small caps, equal-weight, dan credit membaik bareng-bareng."},
+                {"bias":"SHORT" if stress else "AVOID","setup":"Weak small-cap & long-duration laggards","why":"Saat breadth rusak, small caps dan long-duration beta paling rapuh.","invalidator":"USD/yields adem dan breadth membaik jelas."},
+            ],
+            "IHSG":[
+                {"bias":"LONG","setup":"Exporters & resource-linked (ADRO, PTBA, ANTM)","why":"IHSG sehat lewat exporter dan resource leaders saat shock inflasi masih hidup.","invalidator":"Commodity chain dan USD pressure luntur bareng."},
+                {"bias":"WATCH","setup":"Selective quality banks (BBCA)","why":"Bank besar kualitas tinggi bisa ikut tahan, tapi jangan broad domestic beta.","invalidator":"Funding stress atau USD pressure makin besar."},
+                {"bias":"AVOID","setup":"Import-sensitive (Consumer, Property)","why":"Importer sensitif dua kali: ke FX dan ke biaya input/energi.","invalidator":"USD benar-benar melemah dan energy pressure reda."},
+            ],
+            "FX":[
+                {"bias":"LONG","setup":"USD vs fragile EM importers","why":"Q3+stress biasanya bikin dolar relatif kuat melawan importer rapuh.","invalidator":"Breadth global membaik dan dollar berhenti naik."},
+                {"bias":"AVOID","setup":"Carry trades, IDR, TRY","why":"Carry rentan banget di stagflasi — funding cost naik, risk appetite turun.","invalidator":"Vol drops below VIX 18."},
+            ],
+            "Commodities":[
+                {"bias":"LONG","setup":"Gold (XAUUSD) — stagflation best asset","why":"Gold = inflation hedge + growth hedge. Perfect untuk Q3.","invalidator":"Real yields spike keras + USD dominance."},
+                {"bias":"WATCH","setup":"Energy (WTI) selective","why":"Oil bisa naik dalam stagflasi tapi volatile — manage sizing.","invalidator":"De-escalation cepat atau demand collapse."},
+                {"bias":"AVOID","setup":"Industrial metals (copper)","why":"Copper butuh growth. Q3 = growth turun = copper suffer.","invalidator":"China stimulus besar-besaran."},
+            ],
+            "Crypto":[
+                {"bias":"AVOID","setup":"Semua altcoin","why":"Stagflasi = risk appetite collapse. Alts paling kena.","invalidator":"—"},
+                {"bias":"WATCH","setup":"BTC only (digital gold proxy)","why":"BTC bisa ada tiny safe-haven bid tapi jangan overweight.","invalidator":"Dollar dan vol naik bareng terus."},
+            ],
+        },
+        "quality_disinflation": {
+            "US":[
+                {"bias":"LONG","setup":"Quality growth (MSFT, AAPL, GOOGL, NVDA)","why":"Goldilocks = quality compounders paling bersih. Duration ok, earnings kuat.","invalidator":"Yield spike atau breadth gagal confirm."},
+                {"bias":"LONG","setup":"Equal-weight & small caps (IWM)","why":"Kalau breadth lebar, second-line leaders bisa nyusul.","invalidator":"USD re-accelerates atau credit spreads widen."},
+                {"bias":"WATCH","setup":"Defensives as hedge","why":"Defensif masih ok tapi jangan overweight — tidak akan outperform.","invalidator":"—"},
+            ],
+            "IHSG":[
+                {"bias":"LONG","setup":"Banks + domestic beta (BBCA, BBRI, consumer)","why":"Goldilocks = asing masuk, rupiah stabil, bank dan consumer lead.","invalidator":"USD/IDR naik lagi, asing sell."},
+                {"bias":"WATCH","setup":"Coal/resource selective","why":"Resource bisa ikut tapi bukan leader di Q1 disinflation.","invalidator":"Oil/commodity rollback."},
+            ],
+            "FX":[
+                {"bias":"WATCH","setup":"EM FX selective (IDR, selective carry)","why":"Kalau USD mild dan EM flow positif, carry bisa work.","invalidator":"USD re-accelerates."},
+                {"bias":"AVOID","setup":"USD longs","why":"Goldilocks biasanya mild USD or softer.","invalidator":"—"},
+            ],
+            "Commodities":[
+                {"bias":"WATCH","setup":"Gold sebagai portfolio balancer","why":"Gold ok tapi bukan leader di Q1 disinflation.","invalidator":"Yield spike + risk-on."},
+                {"bias":"LONG","setup":"Copper & broad commodities","why":"Growth ok = demand ok = commodities supported.","invalidator":"China demand miss."},
+            ],
+            "Crypto":[
+                {"bias":"LONG","setup":"BTC + ETH + selected L1","why":"Goldilocks = risk appetite high = crypto bullish.","invalidator":"Yield spike atau vol spike."},
+            ],
+        },
+        "reflation_reaccel": {
+            "US":[
+                {"bias":"LONG","setup":"Cyclicals: XLE, XLI, XLF, XLB","why":"Reflation = earnings upgrade untuk cyclicals. Lebih kuat dari growth saat ini.","invalidator":"ISM rollover atau Fed overtighten."},
+                {"bias":"LONG","setup":"EM-linked stocks","why":"Dollar soft + growth ok = EM-linked names ikut naik.","invalidator":"Dollar re-accelerates."},
+                {"bias":"AVOID","setup":"Long bonds (TLT)","why":"Reflation = yields naik = bonds get killed.","invalidator":"—"},
+            ],
+            "IHSG":[
+                {"bias":"LONG","setup":"Coal exporters + banks (ADRO, BBCA, ANTM)","why":"Reflation = commodity naik + foreign flow masuk = IHSG broad rally.","invalidator":"Commodity rollback + USD kuat."},
+                {"bias":"LONG","setup":"Consumer cyclical (domestic beta)","why":"Kalau IDR stabil dan foreign flow positif, domestic beta bisa ikut.","invalidator":"IDR pressure balik."},
+            ],
+            "FX":[
+                {"bias":"LONG","setup":"Commodity FX: AUD, CAD, NOK","why":"Commodity naik = commodity exporter currencies naik.","invalidator":"Commodity demand miss."},
+                {"bias":"SHORT","setup":"USD longs","why":"Reflation = risk-on = USD softens.","invalidator":"Safe-haven demand surge."},
+            ],
+            "Commodities":[
+                {"bias":"LONG","setup":"Energy + metals + agri broad basket","why":"Pure reflation trade — semua commodity naik bareng.","invalidator":"China demand scare."},
+            ],
+            "Crypto":[
+                {"bias":"LONG","setup":"BTC + ETH + alts broad","why":"Reflation + risk appetite = crypto super-cycle potential.","invalidator":"Regulatory shock atau macro reversal."},
+            ],
+        },
+        "growth_scare": {
+            "US":[
+                {"bias":"LONG","setup":"TLT + defensives (XLP, XLV, XLU)","why":"Growth scare = duration relief + defensives outperform.","invalidator":"Inflation re-accelerates cepat."},
+                {"bias":"AVOID","setup":"Cyclicals, small caps, EM","why":"Growth scare = earnings risk untuk cyclicals.","invalidator":"Fed credible pivot."},
+            ],
+            "IHSG":[
+                {"bias":"AVOID","setup":"Most IHSG positions","why":"Growth scare + EM risk = asing keluar IHSG.","invalidator":"Fed pivot + IDR stabil."},
+                {"bias":"WATCH","setup":"TLKM, ICBP defensif only","why":"Defensive quality names relatif lebih aman.","invalidator":"Global risk appetite collapse."},
+            ],
+            "FX":[
+                {"bias":"LONG","setup":"USD, JPY, CHF","why":"Growth scare = flight to safety = safe haven currencies naik.","invalidator":"Risk appetite recovers."},
+            ],
+            "Commodities":[
+                {"bias":"LONG","setup":"Gold only","why":"Growth scare = gold as safe haven.","invalidator":"Deflationary spiral yang terlalu dalam."},
+                {"bias":"AVOID","setup":"Oil, copper, agri","why":"Demand fear = commodity selloff.","invalidator":"Supply shock besar."},
+            ],
+            "Crypto":[
+                {"bias":"AVOID","setup":"Semua crypto","why":"Growth scare + risk-off = crypto sangat bearish.","invalidator":"—"},
+            ],
+        },
+        "deflationary_riskoff": {
+            "US":[
+                {"bias":"LONG","setup":"TLT + gold + XLP/XLU/XLV","why":"Deflasi = long bonds rally + defensives + gold.","invalidator":"Fiscal/monetary bazooka."},
+                {"bias":"SHORT","setup":"Cyclicals, small caps, credit (HYG)","why":"Resesi = earnings collapse untuk cyclicals dan credit.","invalidator":"Policy response massive."},
+            ],
+            "IHSG":[
+                {"bias":"AVOID","setup":"Most IHSG","why":"Deflasi = global demand collapse = IHSG broadly suffer.","invalidator":"Fed cut + IDR stabil."},
+                {"bias":"WATCH","setup":"TLKM, ICBP, KLBF only","why":"Consumer staples domestic dengan dividend.","invalidator":"Global contagion."},
+            ],
+            "FX":[
+                {"bias":"LONG","setup":"USD, JPY, CHF — defensive trio","why":"Deflasi = safe haven demand = JPY dan CHF outperform.","invalidator":"Fed aggressive QE."},
+            ],
+            "Commodities":[
+                {"bias":"LONG","setup":"Gold only","why":"Gold safe haven dalam deflasi juga.","invalidator":"Real yields spike paradoxically."},
+                {"bias":"SHORT","setup":"Oil, copper, agri","why":"Deflasi = demand destruction = all cyclical commodity suffers.","invalidator":"OPEC extreme cuts."},
+            ],
+            "Crypto":[
+                {"bias":"AVOID","setup":"Semua crypto","why":"Deflasi/resesi = worst environment for crypto.","invalidator":"ETF flow atau Fed surprise."},
+            ],
+        },
+        "vshape_rebound": {
+            "US":[
+                {"bias":"LONG","setup":"IWM + equal-weight + XLF","why":"V-shape rebound = laggards yang paling oversold naik paling kencang dulu.","invalidator":"Rebound gagal dan breadth tidak melebar."},
+                {"bias":"LONG","setup":"Selective cyclicals on dip","why":"Beli cyclicals yang sudah kena paling keras saat recovery confirm.","invalidator":"Growth data tidak improve."},
+            ],
+            "IHSG":[
+                {"bias":"LONG","setup":"BBCA, BBRI + broad IHSG","why":"V-shape = asing kembali + IDR recovery + IHSG broad rally.","invalidator":"External shock tambahan."},
+            ],
+            "FX":[
+                {"bias":"WATCH","setup":"EM FX recovery","why":"Risk-on recovery = EM FX ikut naik.","invalidator":"Fundamental tidak support."},
+            ],
+            "Commodities":[
+                {"bias":"WATCH","setup":"Copper + broad basket","why":"Recovery = demand recovery = industrial metals ikut.","invalidator":"Recovery palsu (dead cat bounce)."},
+            ],
+            "Crypto":[
+                {"bias":"WATCH","setup":"BTC + ETH (wait for confirmation)","why":"V-shape rebound bisa jadi awal crypto recovery.","invalidator":"Macro kondisi tidak benar-benar membaik."},
+            ],
+        },
+        "panic_crash": {
+            "US":[
+                {"bias":"LONG","setup":"SHY, BIL (cash equivalents only)","why":"Panic = cash is king. Jangan beli the dip dulu.","invalidator":"Coordinated policy response."},
+                {"bias":"AVOID","setup":"Semua equities dan credit","why":"Forced selling bisa bikin bahkan quality names drop drastically.","invalidator":"—"},
+            ],
+            "IHSG":[
+                {"bias":"AVOID","setup":"Semua IHSG","why":"Panic global = asing kabur semua. IHSG bisa turun cepat.","invalidator":"BI/pemerintah intervensi masif."},
+            ],
+            "FX":[
+                {"bias":"LONG","setup":"JPY, CHF, USD","why":"Classic flight to safety dalam panic.","invalidator":"Fed emergency cut."},
+            ],
+            "Commodities":[
+                {"bias":"LONG","setup":"Gold only","why":"Gold = safest asset dalam panic.","invalidator":"Margin call forced selling gold too."},
+            ],
+            "Crypto":[
+                {"bias":"AVOID","setup":"SEMUA crypto","why":"Crypto = most liquid beta = get sold first in panic.","invalidator":"—"},
+            ],
+        },
+    }
+    return translations.get(route_state, translations["growth_scare"])
+
+
+def build_news_catalyst_overlay(q:Dict, f:Dict, h:Dict) -> Dict:
+    """v33-inspired News Event Engine — derive hazard scores from price action."""
+    oil_3m=nf(f.get("clf_3m",f.get("oil_3m",0.0)))
+    uup_1m=nf(f.get("uup_1m",0.0)); uup_3m=nf(f.get("uup_3m",0.0))
+    tlt_1m=nf(f.get("tlt_1m",0.0)); vix=f.get("vix_last",20.0)
+    vix_1m=nf(f.get("vix_1m",0.0)); spy_1m=nf(f.get("spy_1m",0.0))
+    iwm_1m=nf(f.get("iwm_1m",0.0))
+    sf=q.get("slowdown_flags",0.0); shock=q.get("inf_shock",0.0)
+    oil_up=max(0.0,oil_3m); oil_down=max(0.0,-oil_3m)
+    usd_up=max(0.0,uup_1m); usd_down=max(0.0,-uup_1m)
+    long_end=max(0.0,-tlt_1m); vol_stress=max(0.0,vix_1m/20)
+    breadth_stress=max(0.0,-iwm_1m+spy_1m) if spy_1m>0 else 0.0
+    breadth_relief=max(0.0,iwm_1m-spy_1m) if iwm_1m>spy_1m else 0.0
+
+    war_oil=clamp(0.24*clamp(0.5+oil_up/0.12)+0.20*clamp(0.5+usd_up/0.04)+0.20*shock+0.18*clamp(0.5+vol_stress)+0.18*clamp(0.5+breadth_stress/0.03))
+    policy_pressure=clamp(0.24*clamp(0.5+long_end/0.05)+0.20*sf+0.18*clamp(0.5+usd_up/0.04)+0.18*clamp(0.5+vol_stress)+0.20*shock)
+    relief=clamp(0.30*clamp(0.5+oil_down/0.10)+0.20*clamp(0.5+usd_down/0.04)+0.25*clamp(0.5+breadth_relief/0.03)+0.25*(1-shock))
+
+    def state(war,pol,rel):
+        if war>=0.62: return "war_oil","⚔️ War/Oil Shock Active","Oil dan USD dominan. Exporter menang, importer suffering.","bad"
+        if pol>=0.62: return "policy_pressure","📋 Policy Pressure Active","Long-end dan smallcap menderita. Watchlist breadth dan credit.","warn"
+        if rel>=0.55: return "relief","🕊️ Relief/De-escalation","Pressure mereda. Watch breadth broadening dan EM rotation.","good"
+        return "quiet","😶 Market Quiet","Tidak ada catalyst dominan saat ini. Follow the regime.","neu"
+
+    s,label,desc,cls=state(war_oil,policy_pressure,relief)
+    events=[
+        {"type":"MACRO","label":f"War/Oil Hazard: {war_oil:.0%}","impact":"high" if war_oil>=0.5 else "watch"},
+        {"type":"MACRO","label":f"Policy Pressure: {policy_pressure:.0%}","impact":"high" if policy_pressure>=0.5 else "watch"},
+        {"type":"MACRO","label":f"Relief Signal: {relief:.0%}","impact":"medium" if relief>=0.4 else "watch"},
+    ]
+    return {"state":s,"label":label,"desc":desc,"cls":cls,"war_oil":war_oil,
+            "policy_pressure":policy_pressure,"relief":relief,"events":events}
+
+
 def build_forward_radar(prices:Dict[str,pd.Series], q:Dict, f:Dict) -> List[Dict]:
     """v33 Forward Radar: setups not actionable yet but on watchlist."""
     quad=q["quad"]; conf=q["confidence"]; sf=q.get("slowdown_flags",0)
@@ -1709,6 +1999,36 @@ def page_radar(snap:Dict)->None:
         '<span style="background:rgba(255,255,255,0.06);padding:2px 10px;border-radius:10px">Flip hazard: <b>' + f'{q.get("flip_hazard",0):.0%}' + '</b></span></div>'
     )
     st.markdown(mat_html, unsafe_allow_html=True)
+    # Route State Banner (v33 named route state - more actionable than Q1-Q4)
+    route_snap=snap.get("route",{}); rm=route_snap.get("primary_meta",{}); alt_m=route_snap.get("alt_meta",{})
+    rc=rm.get("color","#888")
+    route_html=(
+        '<div style="display:flex;gap:8px;margin-bottom:10px;align-items:stretch">'+
+        '<div style="flex:2;border:1.5px solid '+rc+';border-radius:10px;padding:10px 14px;background:'+rc+'12">'+
+        '<div style="font-size:9px;font-weight:700;letter-spacing:.1em;color:'+rc+';text-transform:uppercase;margin-bottom:3px">ROUTE STATE AKTIF</div>'+
+        '<div style="font-size:18px;font-weight:700;color:var(--color-text-primary)">'+rm.get("emoji","")+" "+rm.get("label","?")+'</div>'+
+        '<div style="font-size:11px;color:var(--color-text-secondary);margin-top:3px">'+rm.get("desc","")[:90]+'</div>'+
+        '<div style="margin-top:5px;font-size:10px"><b style="color:'+rc+'">Best:</b> '+", ".join(rm.get("long",[])[:2])+' &nbsp;|&nbsp; <b style="color:#e05252">Avoid:</b> '+", ".join(rm.get("avoid",[])[:2])+'</div>'+
+        '</div>'+
+        '<div style="flex:1;border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:10px 12px">'+
+        '<div style="font-size:9px;font-weight:700;letter-spacing:.08em;opacity:.4;text-transform:uppercase;margin-bottom:3px">ALT ROUTE (jika primary fails)</div>'+
+        '<div style="font-size:14px;font-weight:600">'+alt_m.get("emoji","")+" "+alt_m.get("label","?")+'</div>'+
+        '<div style="font-size:10px;opacity:.55;margin-top:3px">'+alt_m.get("desc","")[:50]+'</div></div>'+
+        '</div>'
+    )
+    st.markdown(route_html, unsafe_allow_html=True)
+    # News Catalyst Overlay
+    news_snap=snap.get("news_overlay",{})
+    if news_snap:
+        nc={"bad":"#e05252","warn":"#e5a020","good":"#3dbb6c","neu":"rgba(255,255,255,0.3)"}.get(news_snap.get("cls","neu"),"#888")
+        st.markdown(
+            '<div style="padding:6px 12px;border-radius:8px;border:1px solid '+nc+'44;background:'+nc+'10;font-size:11px;margin-bottom:8px">'+
+            '<b style="color:'+nc+'">'+news_snap.get("label","")+'</b> &nbsp;—&nbsp; '+news_snap.get("desc","")[:70]+
+            ' &nbsp;|&nbsp; war/oil: '+f'{news_snap.get("war_oil",0):.0%}'+
+            ' | policy: '+f'{news_snap.get("policy_pressure",0):.0%}'+
+            ' | relief: '+f'{news_snap.get("relief",0):.0%}'+"</div>",
+            unsafe_allow_html=True
+        )
     # Master Rotation Graph (v33 YOU ARE HERE mind-map)
     render_master_rotation_graph(q,f,snap["rotation"],snap["family"])
     # Flow State Strip (horizontal pill chain)
@@ -1904,6 +2224,25 @@ def page_health(snap:Dict)->None:
 def page_playbook(snap:Dict)->None:
     q=snap["q"]; rot=snap["rotation"]; sc=snap["scenarios"]; pb=snap["playbooks"]; prices=snap["prices"]
     s_quad=q["quad"]; meta=QUAD_META.get(s_quad,QUAD_META["Q4"])
+    # Asset Translation Engine (v33 — per market LONG/WATCH/AVOID in plain language)
+    at=snap.get("asset_translation",{}); route=snap.get("route",{})
+    route_label=route.get("primary_meta",{}).get("label","?")
+    route_primary=route.get("primary","growth_scare")
+    sh(f"🎯 ASSET TRANSLATION — {route_label.upper()} ({s_quad})")
+    st.caption("Tabel ini menjawab: per market, mana yang LONG, mana WATCH, mana AVOID. Dari v33 Asset Translation Engine.")
+    if at:
+        at_cols=st.columns(len(at))
+        for col,(mkt,setups) in zip(at_cols,at.items()):
+            with col:
+                st.markdown(f"**{mkt}**")
+                for setup in setups[:3]:
+                    bias=setup.get("bias","")
+                    bc="good" if "LONG" in bias else("bad" if "AVOID" in bias or "SHORT" in bias else "warn")
+                    st.markdown('<div style="border-left:2px solid currentColor;padding:3px 6px;margin:3px 0;font-size:11px" class="'+bc+'">'+
+                        '<b>'+bias+'</b><br>'+setup.get("setup","")[:40]+'<br>'+
+                        '<span style="opacity:.55;font-size:9px">✗ '+setup.get("invalidator","")[:35]+"</span></div>",
+                        unsafe_allow_html=True)
+    st.markdown("---")
     sh(f"🎯 FULL PLAYBOOK — {q['operating'].upper()}")
     st.markdown("**BENEFICIARY (long / beli):**")
     for row in rot["ben_rows"]:
@@ -2410,7 +2749,38 @@ def main():
     q=snap["q"]; f=snap["f"]; cr=snap["crash"]; quad=q["quad"]; meta=QUAD_META.get(quad,{})
     ga="▲" if q.get("growth_acc") else "▼"; ia="▲" if q.get("infl_acc") else "▼"
     div_badge=f" / M:{q['monthly_quad']}" if q["divergence"]=="divergent" else ""
-    st.markdown(f'<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:7px 10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);margin-bottom:10px;font-size:11px"><span>Regime: {qb(quad)}{div_badge} <strong>{meta.get("label","")}</strong></span><span style="opacity:.25">|</span><span>Conf: <strong>{q["confidence"]:.0%}</strong> ({q.get("conf_band","")})</span><span style="opacity:.25">|</span><span>Growth: <strong>{ga}</strong></span><span style="opacity:.25">|</span><span>Inflasi: <strong>{ia}</strong></span><span style="opacity:.25">|</span><span>Risk: <strong>{cr["state"]}</strong></span><span style="opacity:.25">|</span><span>Exec: <strong>{cr["exec_mode"]}</strong></span><span style="opacity:.25">|</span><span style="opacity:.3">{snap["ts"]}</span></div>',unsafe_allow_html=True)
+    route=snap.get("route",{}); news=snap.get("news_overlay",{})
+    route_meta=route.get("primary_meta",{}); route_label=route_meta.get("label","?"); route_emoji=route_meta.get("emoji","")
+    route_color=route_meta.get("color","#888")
+    # Best long/short from opportunities for quick summary
+    opps_all=snap.get("opportunities",[])
+    best_long=next((o for o in opps_all if "LONG" in o.get("Bias","")),None)
+    best_short=next((o for o in opps_all if "SHORT" in o.get("Bias","")),None)
+    best_long_tk=best_long["Ticker"] if best_long else "—"
+    best_short_tk=best_short["Ticker"] if best_short else "—"
+    # Enhanced status bar with route state
+    news_label=news.get("label","") if news else ""
+    st.markdown(
+        '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 12px;'+
+        'border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);'+
+        'margin-bottom:10px;font-size:11px">'+
+        '<span>'+qb(quad)+div_badge+' <strong>'+meta.get("label","")+"</strong></span>"+
+        '<span style="opacity:.2">|</span>'+
+        '<span style="color:'+route_color+';font-weight:700">'+route_emoji+' '+route_label+'</span>'+
+        '<span style="opacity:.2">|</span>'+
+        '<span>Conf: <strong>'+f'{q["confidence"]:.0%}'+' ('+q.get("conf_band","")+")</strong></span>"+
+        '<span style="opacity:.2">|</span>'+
+        '<span>Growth: <strong>'+ga+'</strong> | Inflasi: <strong>'+ia+'</strong></span>'+
+        '<span style="opacity:.2">|</span>'+
+        '<span>▲ Best Long: <strong>'+best_long_tk+'</strong></span>'+
+        '<span style="opacity:.2">|</span>'+
+        '<span>▼ Best Short: <strong>'+best_short_tk+'</strong></span>'+
+        '<span style="opacity:.2">|</span>'+
+        '<span>Risk: <strong>'+cr["state"]+'</strong> | Exec: <strong>'+cr["exec_mode"]+'</strong></span>'+
+        ('<span style="opacity:.2">|</span><span style="opacity:.6">'+news_label+'</span>' if news_label else "")+
+        '<span style="opacity:.25;margin-left:auto">'+snap["ts"]+'</span></div>',
+        unsafe_allow_html=True
+    )
     tabs=st.tabs(["🧭 Radar","📡 Health","🎯 Playbook","🌐 Markets","⚠️ Risk","🔬 Diagnostics"])
     with tabs[0]: page_radar(snap)
     with tabs[1]: page_health(snap)

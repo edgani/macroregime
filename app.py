@@ -197,13 +197,21 @@ ANALOG_LIBRARY = [
     {"label":"2025 tariff bond rout","vector":{"growth":-0.25,"inflation":0.30,"dollar":0.50,"oil":0.10,"smallcap":-0.55,"vol":0.45},"path_1m":"long-end pain and broad stress","path_3m":"negotiation relief can squeeze laggards","path_6m":"outcome hinges on de-escalation","scenario_family":"rates_shock","impacts":{"us":"defensive","ihsg":"bearish","fx":"usd_up","commodities":"gold_over_cyclicals"},"next_bias":"Structural stress dominates unless policy relief lands"},
     {"label":"2026 war-oil stagflation","vector":{"growth":-0.30,"inflation":0.80,"dollar":0.35,"oil":0.95,"smallcap":-0.45,"vol":0.55},"path_1m":"oil-first stagflation pressure","path_3m":"energy lead with mixed broader tape","path_6m":"de-escalation can abruptly rotate leadership","scenario_family":"petrodollar_tightening","impacts":{"us":"energy_vs_cyclicals","ihsg":"coal_up_rupiah_fragile","fx":"usd_and_petrocurrency_bid","commodities":"energy_gold_up"},"next_bias":"Petrodollar branch can keep monthly Q3 alive inside structural slowdown"},
     {"label":"Mid-cycle mixed slowdown","vector":{"growth":-0.05,"inflation":0.05,"dollar":0.00,"oil":0.00,"smallcap":-0.05,"vol":0.10},"path_1m":"rotation without panic","path_3m":"slowdown signs but no crash","path_6m":"macro path decides winners","scenario_family":"mixed_slowdown","impacts":{"us":"mixed","ihsg":"mixed","fx":"range","commodities":"selective"},"next_bias":"Base case stays mixed until a cleaner impulse emerges"},
+    # ── NEW: From Ricky's analysis (April 2026) ─────────────────────────────
+    {"label":"2026 TACO de-escalation rally (Ricky pattern)","vector":{"growth":-0.10,"inflation":0.45,"dollar":-0.20,"oil":-0.30,"smallcap":0.40,"vol":-0.35},"path_1m":"de-escalation spike dan relief squeeze laggard","path_3m":"most hated inflated rally — semua aset naik bareng","path_6m":"Warsh cuts + FIFA deadline → rally berlanjut tapi valuasi rapuh","scenario_family":"taco_deescalation","impacts":{"us":"broad risk-on tapi most hated (banyak yang tidak percaya)","ihsg":"asing masuk, MSCI clear catalyze inflow","fx":"DXY turun, IDR menguat, carry works again","commodities":"oil turun tapi gold hold, copper naik"},"next_bias":"Rally ini bukan karena fundamental tapi karena likuiditas. Satu tangan di pintu keluar."},
+    {"label":"1999 post-LTCM inflated rally (bubble endgame)","vector":{"growth":0.20,"inflation":0.10,"dollar":-0.10,"oil":0.15,"smallcap":0.60,"vol":-0.50},"path_1m":"everything rally — saham crypto emas semua naik","path_3m":"FOMO masuk puncak, valuasi tertinggi sepanjang sejarah","path_6m":"sistem fragile + likuiditas habis = koreksi brutal","scenario_family":"bubble_endgame","impacts":{"us":"Nasdaq-type blow-off top sebelum crash 78%","ihsg":"asing masuk tapi hati-hati keluar duluan","fx":"DXY weak = EM rally, tapi reversal tajam","commodities":"gold dan komoditas naik awal, lalu selloff saat crash"},"next_bias":"Nikmati tapi satu tangan di pintu keluar. Valuasi AS sudah setara 1929 dan 2000."},
 ]
 UPCOMING_EVENTS = [
-    {"title":"US CPI (Apr)","family":"inflation","when":"~Apr 16","countdown":"T-3d","impact":"Panas = yields naik, USD up, QQQ turun. Dingin = relief rally."},
-    {"title":"US Retail Sales (Mar)","family":"growth","when":"~Apr 16","countdown":"T-3d","impact":"Miss = growth scare deepens. Beat = soft-landing hope."},
-    {"title":"US Nonfarm Payrolls (Apr)","family":"labor","when":"~May 2","countdown":"T-19d","impact":"Data labor jadi kunci apakah Fed bisa cut. Miss = Q4 risk naik."},
-    {"title":"FOMC Meeting","family":"policy","when":"~May 6-7","countdown":"T-24d","impact":"Fed hold/cut/pivot → langsung gerakkan rates path, USD, dan durasi."},
-    {"title":"US GDP Q1 (advance)","family":"growth","when":"~Apr 30","countdown":"T-17d","impact":"Kontraksi = Q4 scare resmi. Ekspansi = Q3 dominated lebih lama."},
+    {"title":"US CPI (Apr)","family":"inflation","when":"~Apr 16","countdown":"T-3d","impact":"Panas = yields naik, USD up, QQQ turun. Dingin = buka pintu Warsh cut lebih cepat."},
+    {"title":"Kevin Warsh Fed Confirmation Hearing ⭐","family":"policy","when":"Apr 16","countdown":"T-3d","impact":"[CRITICAL] Warsh sudah commit suku bunga harus lebih rendah. Konfirmasi = DXY drop, risk-on, most hated rally dimulai. Warsh menggantikan Powell 15 Mei 2026."},
+    {"title":"FOMC Meeting (Powell terakhir)","family":"policy","when":"~May 6-7","countdown":"T-24d","impact":"Pertemuan Powell terakhir sebelum diganti Warsh. Hold expected tapi forward guidance penting."},
+    {"title":"Kevin Warsh resmi jadi Fed Chair","family":"policy","when":"May 15","countdown":"T-31d","impact":"[CRITICAL] Warsh masuk = pemotongan suku bunga defensif dimulai. ON RRP tinggal $0.6M dari $2.3T — sistem butuh inject likuiditas baru. Most hated inflated rally bisa mulai."},
+    {"title":"OJK-MSCI Meeting (Indonesia) ⭐","family":"growth","when":"~Apr 21-25","countdown":"T-8d","impact":"[IHSG KEY] OJK ketemu MSCI terkait status Indonesia. Worst case = turun ke frontier (kecil). Base case = tetap emerging market, bobot disesuaikan. Saham clear HSC = penerima flow asing."},
+    {"title":"US Nonfarm Payrolls (Apr)","family":"labor","when":"~May 2","countdown":"T-19d","impact":"Data labor kunci untuk justifikasi Warsh cut. Miss = Warsh punya argumen lebih kuat untuk cut agresif."},
+    {"title":"Iran-AS Perundingan Lanjutan","family":"geopolitics","when":"TBD","countdown":"T-?","impact":"[TACO Chapter 2] Ceasefire 2 minggu berakhir ~Apr 22. Vance tinggalkan 1 proposal final. Kalau Iran terima = de-escalation, oil drop, risk-on. Kalau gagal = re-eskalasi, oil naik ke $100+."},
+    {"title":"FIFA World Cup 2026 deadline ⭐","family":"geopolitics","when":"Jun 2026","countdown":"T-~50d","impact":"[POLITICAL DEADLINE] Trump tidak mau panggung terbesar 4 tahun presidennya dirusak perang + harga bensin tinggi. De-eskalasi HARUS terjadi sebelum Juni. Calendar deadline yang tidak bisa ditunda."},
+    {"title":"US GDP Q1 (advance)","family":"growth","when":"~Apr 30","countdown":"T-17d","impact":"Kontraksi = growth scare deepens. Ekspansi = soft landing hope, tapi Warsh masih mau cut."},
+    {"title":"US Treasury Debt Refinancing Deadline","family":"policy","when":"~Jun 2026","countdown":"T-~50d","impact":"Kebanyakan deadline refinancing utang AS ada di Juni. Treasury butuh yields rendah untuk refinancing. Ini salah satu alasan struktural kenapa Warsh HARUS cut sebelum Juni."},
 ]
 
 def _s(s)->pd.Series:
@@ -548,6 +556,11 @@ def build_playbooks(f:Dict,q:Dict)->List[Dict]:
     pain_relief=clamp(0.35*long_end+0.20*breadth_dmg+0.20*sf+0.15*max(0,uup_1m*5)+0.10*max(0,oil_3m))
     war_de=clamp(0.45*max(0,oil_3m*2)+0.20*max(0,uup_1m*5)+0.20*breadth_dmg+0.15*(1.0 if q.get("inf_shock",0)>0.3 else 0.0))
     tariff_neg=clamp(0.35*max(0,uup_1m*5)+0.25*long_end+0.20*max(0,iwm_1m*-5)+0.20*breadth_dmg)
+    # New playbooks (Ricky / April 2026)
+    taco_ch2=clamp(0.35*(1-max(0,oil_3m))+0.20*(1-sf)+0.25*(1-long_end)+0.20*(1-breadth_dmg))
+    warsh_cut=clamp(0.20*(1-sf)+0.25*(1-long_end)+0.25*(1-breadth_dmg)+0.30*(1-sf))
+    shock_pen_p=clamp(q.get("inf_shock",0)*1.5)
+    bubble_end=clamp(0.12+0.15*(1 if q.get("quad","Q3") in("Q1","Q2") else 0)+0.15*q.get("confidence",0.3)+0.15*(1-shock_pen_p))
     return [{"name":"Pain-before-relief refinancing","evidence":clamp(0.55*long_end+0.25*sf+0.20*max(0,-iwm_1m*5)),"hypothesis":pain_relief,
              "desc":"Long-end pain, growth stress, dan weak internals naikan odds bahwa financial-pain thresholds akhirnya memicu relief messaging.",
              "invalidators":["Long-end worsening tanpa policy response","Credit dan breadth deteriorate bersama-sama","Inflation shock accelerates"]},
@@ -557,6 +570,15 @@ def build_playbooks(f:Dict,q:Dict)->List[Dict]:
             {"name":"Tariff-pressure then negotiation relief","evidence":clamp(0.40*max(0,uup_1m*5)+0.35*max(0,-iwm_1m*5)+0.25*long_end),"hypothesis":tariff_neg,
              "desc":"Rising dollar, weak small caps, dan long-end pain mirip prior pressure cycles di mana later negotiation moderation triggers tactical relief.",
              "invalidators":["Escalation rhetoric compounds","Small caps tidak bisa stabilize","Long-end dan vol stress reinforce each other"]},
+            {"name":"TACO Ch.2: Iran de-escalation inevitable before June 2026 ⭐","evidence":clamp(0.50*(1-max(0,oil_3m))+0.30*(1-sf)+0.20*(1-long_end)),"hypothesis":taco_ch2,
+             "desc":"Setiap perundingan gagal, efeknya ke pasar makin kecil (less effect). De-eskalasi HARUS terjadi sebelum Juni: FIFA World Cup 2026 (Trump butuh panggung), Treasury debt refinancing June deadline, Warsh confirmation butuh market stabil. Pattern Liberation Day 2025 terulang sempurna.",
+             "invalidators":["Iran massive retaliation ke pangkalan AS/Israel","Warsh gagal dikonfirmasi Senat","Serangan militer skala baru sebelum FIFA deadline","Ceasefire collapses completely tanpa negosiasi lanjutan"]},
+            {"name":"Warsh Fed cut + ON RRP habis → Most Hated Inflated Rally ⭐","evidence":clamp(0.40*(1-long_end)+0.35*(1-sf)+0.25*(1-shock_pen_p)),"hypothesis":warsh_cut,
+             "desc":"Warsh masuk 15 Mei menggantikan Powell. Komit suku bunga harus turun. ON RRP tinggal $0.6M dari $2.3T — sistem butuh likuiditas baru. Pemotongan defensif (bukan ekspansif) → semua aset naik bukan karena fundamental tapi karena uang tidak tahu harus ke mana. Most hated karena banyak yang skeptis dan tidak ikut, justru itu yang bikin rally lama.",
+             "invalidators":["Inflasi re-accelerate lebih cepat dari cut","Warsh gagal dikonfirmasi","Shock eksternal baru","Likuiditas habis lebih cepat dari yang diperkirakan"]},
+            {"name":"Bubble Endgame / Ujung Siklus → koreksi brutal setelah most hated rally ⚠️","evidence":clamp(0.30*(1-shock_pen_p)+0.40*(1-sf)+0.30*(1-long_end)),"hypothesis":bubble_end,
+             "desc":"Valuasi AS setara 1929 dan 2000. Utang global tertinggi masa damai. Warsh cut defensif = rally suntikan. Ricky anatomy bubble: inovasi/ekspansi → harga naik → FOMO → everything rally → ujung siklus. 1999: Nasdaq -78%. 2007: S&P -57%. 2021: growth stocks -60-80%. Nikmati pestanya, tapi satu tangan di pintu keluar.",
+             "invalidators":["AI genuinely changes productivity (super cycle valid)","QE infinity dari Fed","Resolusi geopolitik global simultaneous (peace dividend besar)"]},
     ]
 
 def build_scenarios(q:Dict,f:Dict,analog:Dict,playbooks:List)->Dict:
@@ -586,12 +608,32 @@ def build_scenarios(q:Dict,f:Dict,analog:Dict,playbooks:List)->Dict:
     raw[f"Analog: {analog.get('label','Historical echo')}"]=0.08+0.18*float(analog.get("similarity",0.5))
     pb=max(playbooks,key=lambda x:x["hypothesis"])
     raw[f"Playbook: {pb['name']}"]=0.08+0.25*float(pb["hypothesis"])
+    # ── NEW SCENARIOS (April 2026 — Ricky/real-world framework) ───────────────
+    # 1. TACO de-escalation: scales with weather and low flip hazard
+    _taco=clamp(0.30+0.25*(1-q.get("flip_hazard",0.5))+0.25*h.get("weather",0.5)+0.20*(1-max(0,shock_str)))
+    raw["TACO Ch.2: Iran de-escalation → risk-on rally"]=_taco
+    # 2. Warsh Fed cut → most hated inflated rally
+    _warsh=clamp(0.20+0.30*(1-shock_str)+0.25*(1-q.get("slowdown_flags",0))+0.25*h.get("weather",0.5))
+    raw["Most Hated Inflated Rally (Warsh cut + TACO final)"]=_warsh
+    # 3. Bubble endgame / ujung siklus
+    _vix_low=f.get("vix_last",20); _bubble=clamp(0.08+0.15*(1 if s_quad in("Q1","Q2") else 0)+0.10*q.get("confidence",0.3)+0.10*clamp(1-(_vix_low-13)/15))
+    raw["Bubble Endgame / Ujung Siklus (Ricky bubble anatomy)"]=_bubble
+    # 4. MSCI Indonesia clear → asing masuk IHSG
+    raw["MSCI Indonesia clear → asing masuk IHSG"]=clamp(0.08 if s_quad in("Q1","Q2") else 0.04+0.10*(1-max(0,nf(uup_1m)*5)))
+    # 5. Hormuz blockade re-eskalasi → WTI $110+
+    if max(0,oil_3m)>0.10 or shock_str>0.20:
+        raw["Hormuz Blockade / re-eskalasi → WTI $110+"]=clamp(0.12+0.20*shock_str+0.15*max(0,oil_3m))
     # Normalize
     total=sum(raw.values()); probs={k:v/total for k,v in raw.items()}
     def _winners_losers(name:str):
         nl=name.lower()
         if "petrodollar" in nl or "shock" in nl: return ["Energy / Gold","Petro FX","Shipping"],["Oil importers","Broad cyclicals","Fragile EM FX"],["Oil fades quickly","USD and rates calm","Importer pain not spreading"]
         if "carry unwind" in nl or "dollar" in nl: return ["USD cash","Funding-safe majors","JPY/CHF hedges"],["Crowded carry","Fragile EM FX","High beta crypto"],["Dollar fails to extend","Vol compresses fast","Carry re-bid returns"]
+        if "taco" in nl or "de-escalation" in nl: return ["Risk assets broad (most hated)","IWM small caps","EEM/IHSG eksportir","BTC/ETH","Oil DOWN"],["USD longs","TLT","Defensives"],["Iran massive retaliation","Warsh not confirmed","Ceasefire collapses again"]
+        if "most hated inflated" in nl or "warsh" in nl: return ["Everything: saham+emas+crypto+komoditas","EM/IHSG inflow","High beta alts"],["Cash holders terlambat","TLT longs"],["Inflasi re-accelerate","Warsh gagal","External shock baru"]
+        if "bubble" in nl or "ujung siklus" in nl: return ["Yang masuk duluan + keluar sebelum crash","Gold hedge","Short beta setelah puncak"],["Retail FOMO di puncak","High-multiple growth","Leverage positions"],["Valuasi sustained (super cycle)","Fed terus inject infinity"]
+        if "msci" in nl: return ["IHSG quality (BBCA,BMRI,TLKM)","Saham clear HSC","Coal exporters (ADRO,PTBA)","IDR"],["Saham HSC tinggi (BREN type)","Free float rendah"],["Indonesia turun ke frontier","Asing tidak masuk meski clear"]
+        if "hormuz" in nl or "blockade" in nl: return ["WTI/Brent oil","XLE energy","ADRO/PTBA coal","Gold","Shipping tankers"],["Oil importers","Consumer (biaya naik)","EM importers","Airlines"],["Hormuz reopens quickly","Iran capitulates","Diplomatic resolution sudden"]
         if "broadening" in nl: return ["Equal-weight / selective beta","EM catch-up","Quality laggards"],["Consensus hedges","Ultra-defensive late trades"],["Small caps fail to confirm","USD re-accelerates","Credit fails to improve"]
         if "analog" in nl: return ["Names aligned with analog path","Selective hard assets"],["Crowded late-cycle beta","Consensus laggards"],["Cross-asset path diverges from analog","Breadth expands against analog"]
         if "playbook" in nl: return ["Second-order beneficiaries","Relief duration beneficiaries"],["Consensus late trades","Overcrowded trend-chasing"],["Long-end pain does not trigger relief","Breadth stays narrow"]

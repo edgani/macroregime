@@ -24,7 +24,7 @@ Free data: yfinance + FRED public CSV
 Run: streamlit run macro_regime_pro_v6.py
 """
 from __future__ import annotations
-import datetime,math,os
+import datetime,math,os,html
 from io import StringIO
 from typing import Dict,List,Optional,Tuple
 import numpy as np
@@ -64,6 +64,36 @@ html,[class*="css"]{font-family:'DM Sans',sans-serif}
 .tag-r{background:rgba(224,82,82,0.15);color:#e05252}
 .tag-y{background:rgba(229,160,32,0.15);color:#e5a020}
 .tag-b{background:rgba(100,150,255,0.15);color:#6496ff}
+.rally-shell{background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02));border:1px solid rgba(255,255,255,0.08);border-radius:14px;padding:14px 14px 10px;margin:8px 0 12px 0}
+.rally-top{display:flex;gap:12px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;margin-bottom:10px}
+.rally-kicker{font-size:10px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;opacity:.45;margin-bottom:3px}
+.rally-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;line-height:1.05;margin-bottom:4px}
+.rally-sub{font-size:12px;opacity:.62;max-width:760px}
+.rally-pill{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;font-size:11px;font-weight:700;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);margin:2px 6px 2px 0}
+.rally-pill.ok{color:#3dbb6c;background:rgba(61,187,108,0.12)}
+.rally-pill.warn{color:#e5a020;background:rgba(229,160,32,0.12)}
+.rally-pill.bad{color:#e05252;background:rgba(224,82,82,0.12)}
+.rally-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:10px}
+.rally-item{border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px 12px 10px;background:rgba(255,255,255,0.025)}
+.rally-item-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px}
+.rally-item-label{font-size:12px;font-weight:700;line-height:1.2}
+.rally-item-note{font-size:10px;opacity:.60;line-height:1.35;min-height:28px}
+.rally-chip{min-width:24px;height:24px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;border:1px solid currentColor}
+.rally-ok{color:#3dbb6c}
+.rally-warn{color:#e5a020}
+.rally-bad{color:#e05252}
+.rally-meter{height:7px;border-radius:999px;background:rgba(255,255,255,0.08);overflow:hidden;margin:8px 0 4px}
+.rally-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#e05252 0%,#e5a020 50%,#3dbb6c 100%)}
+.rally-scale{display:flex;justify-content:space-between;font-size:10px;opacity:.42;margin-top:2px}
+.rally-legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.rally-mini{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.rally-mini-card{padding:8px 10px;border-radius:10px;border:1px solid rgba(255,255,255,0.07);background:rgba(255,255,255,0.025);font-size:11px}
+@media (max-width:1100px){.rally-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media (max-width:640px){.rally-grid{grid-template-columns:1fr;}.rally-title{font-size:18px}}
+
+.rally-mini-card{min-width:180px;flex:1}
+.rally-shell .rally-mini-card{background:rgba(255,255,255,0.03)}
+
 </style>
 """,unsafe_allow_html=True)
 
@@ -94,6 +124,7 @@ TICKER_DISPLAY = {
     "IDR=X":"USD/IDR","CNH=X":"USD/CNH","SGD=X":"USD/SGD",
     "EURJPY=X":"EUR/JPY","GBPJPY=X":"GBP/JPY","AUDJPY=X":"AUD/JPY",
     "BTC-USD":"BTC/USD","ETH-USD":"ETH/USD","SOL-USD":"SOL/USD",
+    "DX-Y.NYB":"DXY (Dollar Index)",
     "BNB-USD":"BNB/USD","XRP-USD":"XRP/USD","ADA-USD":"ADA/USD",
     "AVAX-USD":"AVAX/USD","LINK-USD":"LINK/USD","DOGE-USD":"DOGE/USD",
     "^JKSE":"IHSG","^VIX":"VIX","^VXV":"VXV","UUP":"USD Index (UUP)",
@@ -115,7 +146,7 @@ FRED_SERIES = {
     "BREAKEVEN":"T5YIE","FEDFUNDS":"FEDFUNDS","HYOAS":"BAMLH0A0HYM2","IGSPR":"BAMLC0A0CM",
 }
 US_TICKERS = ["SPY","QQQ","IWM","RSP","XLE","XLF","XLI","XLB","XLK","XLV","XLY","XLP","XLU","XLRE","XLC",
-    "HYG","LQD","TLT","IEF","SHY","GLD","GC=F","SI=F","HG=F","CL=F","NG=F","UUP","EEM","EFA",
+    "HYG","LQD","TLT","IEF","SHY","GLD","GC=F","SI=F","HG=F","CL=F","NG=F","UUP","DX-Y.NYB","EEM","EFA",
     "^VIX","^VXV","^VIX9D","BTC-USD","ETH-USD","SOL-USD","XRP-USD",
     "AAPL","MSFT","NVDA","AMZN","META","GOOGL","TSLA","AVGO","AMD","NFLX","JPM","BAC","GS","XOM","CVX"]
 IHSG_TICKERS = ["^JKSE","IDR=X","BBCA.JK","BBRI.JK","BMRI.JK","BBNI.JK","BRIS.JK","TLKM.JK","ASII.JK",
@@ -805,7 +836,8 @@ def load_all()->Dict:
     cr=build_crash(f,h,q); rot=build_rotation(q,h,f,prices); ih=build_ihsg(prices,q,f)
     analog=_match_analog(f); pb=build_playbooks(f,q); sc=build_scenarios(q,f,h,analog,pb)
     chk=build_checklists(f,h,q,ih)
-    opps=build_opportunities(prices,q,f,h,rot)
+    most_hated=build_most_hated_rally_monitor(f,prices)
+    opps=build_opportunities(prices,q,f,h,rot,ih,most_hated)
     family=get_dominant_family(q,f,rot)
     risk_ranges=build_risk_range(prices,f,cr)
     asset_chk=build_asset_checklists_full(f,h,q,ih,prices)
@@ -817,7 +849,7 @@ def load_all()->Dict:
     news_overlay=build_news_catalyst_overlay(q,f,h)
     return dict(prices=prices,fred=fred,f=f,q=q,h=h,crash=cr,rotation=rot,ihsg=ih,
                 analog=analog,playbooks=pb,scenarios=sc,checklists=chk,
-                opportunities=opps,family=family,risk_ranges=risk_ranges,
+                most_hated_rally=most_hated,opportunities=opps,family=family,risk_ranges=risk_ranges,
                 asset_checklists=asset_chk,macro_impact=macro_impact,
                 forward_radar=fwd_radar,strong_weak_all=sw_all,
                 route=route,asset_translation=asset_trans,news_overlay=news_overlay,
@@ -973,46 +1005,148 @@ def get_dominant_family(q:Dict, f:Dict, rot:Dict) -> str:
     return "reflation"
 
 # ── Build opportunity rows (Long/Short ranked with entry/target/invalidation) ─
-def build_opportunities(prices:Dict[str,pd.Series], q:Dict, f:Dict, h:Dict, rot:Dict) -> List[Dict]:
-    quad=q["quad"]; policy=QUAD_POLICY.get(quad,{})
-    vix=f.get("vix_last",20.0); hy=f.get("hy_oas",350.0)
-    sf=q.get("slowdown_flags",0.0); conf=q.get("confidence",0.5)
-    uup_1m=float(f.get("uup_1m",0.0) or 0.0)
-
-    # EV multiplier from regime confidence and market health
+def build_opportunities(prices:Dict[str,pd.Series], q:Dict, f:Dict, h:Dict, rot:Dict, ih:Dict, most_hated:Dict) -> List[Dict]:
+    """Opportunity engine with Most Hated Rally branch overlay, sizing, and explainability."""
+    quad=q["quad"]
+    conf=q.get("confidence",0.5)
     regime_ev=conf*0.6+h.get("weather",0.5)*0.4
+    rally_clear=int(most_hated.get("hard_clear_count", most_hated.get("clear_count",0)) or 0)
+    branch_state=str(most_hated.get("branch_state","dormant"))
+    posture=str(most_hated.get("posture","Defense / selective only"))
+    size_mult=float(most_hated.get("size_mult",0.35) or 0.35)
+    long_boost=float(most_hated.get("scanner_long_boost",0.0) or 0.0)
+    short_penalty=float(most_hated.get("scanner_short_penalty",0.0) or 0.0)
+    foreign_flow=float(ih.get("foreign_flow",0.5) or 0.5)
+    ihsg_score=float(ih.get("ihsg_score",0.5) or 0.5)
+    active_branch=branch_state in {"arming","pre_confirmed","active"}
+    hot_branch=branch_state in {"pre_confirmed","active"}
 
     def _score(s:pd.Series, bias:str)->float:
         r1=ret_n(s,21); r3=ret_n(s,63); tr=ts(s)
-        if not (math.isfinite(r1) and math.isfinite(r3)): return 0.0
-        base=r1*0.6+r3*0.4
-        if bias=="LONG": return float(np.nan_to_num(base,nan=0.0))
-        return float(np.nan_to_num(-base,nan=0.0))
+        if not (math.isfinite(r1) and math.isfinite(r3)):
+            return 0.0
+        base=r1*0.6+r3*0.4+0.02*(tr-0.5)
+        return float(np.nan_to_num(base if bias=="LONG" else -base,nan=0.0))
 
     def _atr_pct(s:pd.Series,n=14)->float:
         s2=_s(s)
-        if len(s2)<n+2: return 0.03
+        if len(s2)<n+2:
+            return 0.03
         returns=s2.pct_change().dropna().abs()
-        return float(returns.tail(n).mean())*math.sqrt(252)/math.sqrt(252)*0.5
+        return float(returns.tail(n).mean())*0.5
 
     def _entry_zone(px:float,atr:float,bias:str)->str:
-        if not math.isfinite(px) or px<=0: return "—"
-        if bias=="LONG": return f"{px*(1-atr):.2f} – {px*(1-atr*0.3):.2f}"
+        if not math.isfinite(px) or px<=0:
+            return "—"
+        if bias=="LONG":
+            return f"{px*(1-atr):.2f} – {px*(1-atr*0.3):.2f}"
         return f"{px*(1+atr*0.3):.2f} – {px*(1+atr):.2f}"
 
     def _target(px:float,atr:float,bias:str,rr=2.0)->str:
-        if not math.isfinite(px) or px<=0: return "—"
-        if bias=="LONG": return f"{px*(1+atr*rr):.2f} (+{atr*rr*100:.1f}%)"
+        if not math.isfinite(px) or px<=0:
+            return "—"
+        if bias=="LONG":
+            return f"{px*(1+atr*rr):.2f} (+{atr*rr*100:.1f}%)"
         return f"{px*(1-atr*rr):.2f} (-{atr*rr*100:.1f}%)"
 
     def _invalidation(px:float,atr:float,bias:str)->str:
-        if not math.isfinite(px) or px<=0: return "—"
-        if bias=="LONG": return f"<{px*(1-atr*1.5):.2f}"
+        if not math.isfinite(px) or px<=0:
+            return "—"
+        if bias=="LONG":
+            return f"<{px*(1-atr*1.5):.2f}"
         return f">{px*(1+atr*1.5):.2f}"
+
+    def _rally_overlay(tk:str, market:str, bias:str)->Tuple[float,str,str]:
+        if branch_state in {"dormant","watching"}:
+            return 0.0, "Neutral", ""
+        stage_mult={"arming":0.65,"pre_confirmed":0.90,"active":1.00}.get(branch_state,0.0)
+        base=long_boost*stage_mult
+        fit="Neutral"
+        note=""
+        adj=0.0
+
+        risk_on_us={"QQQ","IWM","RSP","XLF","XLI","EEM","NVDA","AAPL","MSFT","META","AVGO","AMD"}
+        safe_us={"UUP","SHY","XLP","XLU","XLV","TLT"}
+        ihsg_beneficiaries={"BBCA.JK","BBRI.JK","BMRI.JK","TLKM.JK","ADRO.JK","PTBA.JK","ANTM.JK","AADI.JK","INCO.JK","MDKA.JK"}
+        ihsg_defensive={"ICBP.JK","KLBF.JK","TLKM.JK"}
+        crypto_beta={"BTC-USD","ETH-USD","SOL-USD","BNB-USD","XRP-USD","ADA-USD","AVAX-USD","LINK-USD","DOGE-USD"}
+        squeeze_shorts={"QQQ","IWM","EEM","RSP","BTC-USD","ETH-USD","SOL-USD","BNB-USD","CTRA.JK","BSDE.JK","AMRT.JK","XLF","XLI"}
+
+        if bias=="LONG":
+            if market=="US" and tk in risk_on_us:
+                adj=base+(0.03 if tk in {"IWM","EEM","RSP"} else 0.015)
+                fit="Boosted"
+                note="Checklist hidup → beta, breadth, dan catch-up longs dinaikkan"
+            elif market=="IHSG" and tk in ihsg_beneficiaries:
+                adj=base+(0.02 if foreign_flow>0.52 else 0.0)+(0.02 if ihsg_score>0.56 else 0.0)
+                fit="Boosted"
+                note="Likuiditas global + potensi flow asing mendukung IHSG beneficiaries"
+            elif market=="Crypto" and tk in crypto_beta:
+                adj=base+0.05
+                fit="Boosted"
+                note="Crypto jadi high-beta expression paling sensitif ke liquidity rally"
+            elif market=="Commodities" and tk in {"HG=F","GC=F","GLD"}:
+                adj=(0.05 if tk=="HG=F" else 0.02)+(0.01 if hot_branch else 0.0)
+                fit="Boosted"
+                note="Copper ikut bantu risk-on; gold tetap boleh jadi hedge likuiditas"
+            elif market=="US" and tk in safe_us and hot_branch:
+                adj=-0.05
+                fit="Fade"
+                note="Saat branch hidup, leadership cenderung pindah dari safe harbor ke beta"
+            elif market=="IHSG" and tk in ihsg_defensive and hot_branch and tk!="TLKM.JK":
+                adj=-0.02
+                fit="Fade"
+                note="Masih boleh dipegang, tapi bukan penerima flow paling agresif"
+            elif market=="Commodities" and tk=="CL=F":
+                adj=-0.05 if hot_branch else -0.025
+                fit="Fade"
+                note="De-escalation branch biasanya jadi headwind buat oil"
+        else:
+            if tk in squeeze_shorts and market in {"US","IHSG","Crypto"}:
+                adj=short_penalty-(0.02 if hot_branch else 0.0)
+                fit="Squeezed"
+                note="Short ini rawan disqueeze kalau 3/4–4/4 trigger hidup"
+            elif tk=="UUP" and market=="US" and active_branch:
+                adj=max(0.03, base*0.7)
+                fit="Boosted"
+                note="Short USD adalah expression direct dari DXY softening branch"
+            elif tk=="CL=F" and market=="Commodities" and hot_branch:
+                adj=max(0.03, base*0.6)
+                fit="Boosted"
+                note="Kalau de-escalation final terjadi, oil short bisa jadi expression bersih"
+        return adj, fit, note
+
+    def _push(rows:list, tk:str, market:str, bias:str, horizon:str, why:str, ev_base:float, macro_aligned:str="✓", display_ticker:Optional[str]=None):
+        s=prices.get(tk,pd.Series())
+        sc=_score(s,"LONG" if "LONG" in bias else "SHORT")
+        px=last(s)
+        atr=_atr_pct(s)
+        ev=clamp(ev_base)
+        rally_adj, rally_fit, rally_note=_rally_overlay(tk,market,"LONG" if "LONG" in bias else "SHORT")
+        ev=clamp(ev+rally_adj)
+        why_full=why if not rally_note else f"{why} · {rally_note}"
+        rows.append({
+            "Ticker": display_ticker or (disp(tk) if market in {"Crypto","Commodities"} else (tk.replace('.JK','')+" (JK)" if market=="IHSG" else tk)),
+            "Market":market,
+            "Bias":bias,
+            "Horizon":horizon,
+            "Entry Zone":_entry_zone(px,atr,"LONG" if "LONG" in bias else "SHORT"),
+            "Target":_target(px,atr,"LONG" if "LONG" in bias else "SHORT"),
+            "Invalidation":_invalidation(px,atr,"LONG" if "LONG" in bias else "SHORT"),
+            "Why Now":why_full,
+            "EV":f"{ev:.0%}",
+            "Conf":f"{conf:.0%}",
+            "Macro Aligned":macro_aligned,
+            "Rally Fit":rally_fit,
+            "Sizing":f"{size_mult:.2f}x",
+            "Rally State":posture,
+            "_score":sc,
+            "_ev":ev,
+            "_raw_ticker":tk,
+        })
 
     rows=[]
 
-    # ── US Longs ──────────────────────────────────────────────────────────────
     us_long_map={
         "Q1":{"QQQ":"Growth bull market","NVDA":"AI/semis leader","AAPL":"Quality large cap","MSFT":"Quality+AI","GLD":"Inflation hedge"},
         "Q2":{"XLE":"Energy reflation","HG=F":"Copper supply/demand","XLI":"Industrials lead","XLF":"Financials reflation","QQQ":"Growth+momentum"},
@@ -1025,32 +1159,19 @@ def build_opportunities(prices:Dict[str,pd.Series], q:Dict, f:Dict, h:Dict, rot:
         "Q3":{"QQQ":"Tech crushed in stagflation","XLY":"Consumer disc bearish","IWM":"Small caps hit hard","EEM":"EM pain"},
         "Q4":{"XLE":"Commodity collapse","XLI":"Cyclicals crash","IWM":"Small caps worst","HYG":"Credit stress"},
     }
-
     for tk,why in us_long_map.get(quad,{}).items():
         s=prices.get(tk,pd.Series())
         sc=_score(s,"LONG")
-        px=last(s); atr=_atr_pct(s)
+        atr=_atr_pct(s)
         ev=clamp(regime_ev+sc*0.5)
-        horizon="Trade" if atr>0.04 else("Trend" if atr>0.02 else "Tail")
-        rows.append({"Ticker":tk,"Market":"US","Bias":"▲ LONG","Horizon":horizon,
-            "Entry Zone":_entry_zone(px,atr,"LONG"),"Target":_target(px,atr,"LONG"),
-            "Invalidation":_invalidation(px,atr,"LONG"),"Why Now":why,
-            "EV":f"{ev:.0%}","Conf":f"{conf:.0%}",
-            "Macro Aligned":"✓" if quad in("Q1","Q2") or tk in("GLD","XLP","XLU") else "~",
-            "_score":sc,"_ev":ev})
-
+        horizon="Trade" if atr>0.04 else ("Trend" if atr>0.02 else "Tail")
+        _push(rows,tk,"US","▲ LONG",horizon,why,ev,macro_aligned="✓" if quad in ("Q1","Q2") or tk in ("GLD","XLP","XLU","XLV","SHY","TLT") else "~")
     for tk,why in us_short_map.get(quad,{}).items():
         s=prices.get(tk,pd.Series())
         sc=_score(s,"SHORT")
-        px=last(s); atr=_atr_pct(s)
         ev=clamp(regime_ev*0.7+sc*0.3)
-        rows.append({"Ticker":tk,"Market":"US","Bias":"▼ SHORT","Horizon":"Trade",
-            "Entry Zone":_entry_zone(px,atr,"SHORT"),"Target":_target(px,atr,"SHORT"),
-            "Invalidation":_invalidation(px,atr,"SHORT"),"Why Now":why,
-            "EV":f"{ev:.0%}","Conf":f"{conf:.0%}",
-            "Macro Aligned":"✓","_score":sc,"_ev":ev})
+        _push(rows,tk,"US","▼ SHORT","Trade",why,ev)
 
-    # ── IHSG Longs ────────────────────────────────────────────────────────────
     ihsg_long_map={
         "Q1":{"BBCA.JK":"Bank premium Q1","BBRI.JK":"Bank growth","TLKM.JK":"Defensive anchor"},
         "Q2":{"ADRO.JK":"Coal king Q2","PTBA.JK":"Coal exporter","ANTM.JK":"Metals Q2","BBCA.JK":"Bank lead"},
@@ -1061,73 +1182,94 @@ def build_opportunities(prices:Dict[str,pd.Series], q:Dict, f:Dict, h:Dict, rot:
         "Q3":{"CTRA.JK":"Property bearish Q3","BSDE.JK":"Property USD-sensitive","AMRT.JK":"Consumer cyc rapuh"},
         "Q4":{"ADRO.JK":"Coal demand collapse","ANTM.JK":"Metals crash Q4","AMRT.JK":"Consumer discretionary"},
     }
-
     for tk,why in ihsg_long_map.get(quad,{}).items():
         s=prices.get(tk,pd.Series())
-        sc=_score(s,"LONG"); px=last(s); atr=_atr_pct(s)
+        sc=_score(s,"LONG")
         ev=clamp(regime_ev*0.8+sc*0.4)
-        rows.append({"Ticker":tk.replace(".JK","")+" (JK)","Market":"IHSG","Bias":"▲ LONG","Horizon":"Trend",
-            "Entry Zone":_entry_zone(px,atr,"LONG"),"Target":_target(px,atr,"LONG"),
-            "Invalidation":_invalidation(px,atr,"LONG"),"Why Now":why,
-            "EV":f"{ev:.0%}","Conf":f"{conf:.0%}","Macro Aligned":"✓","_score":sc,"_ev":ev})
-
+        _push(rows,tk,"IHSG","▲ LONG","Trend",why,ev)
     for tk,why in ihsg_short_map.get(quad,{}).items():
         s=prices.get(tk,pd.Series())
-        sc=_score(s,"SHORT"); px=last(s); atr=_atr_pct(s)
+        sc=_score(s,"SHORT")
         ev=clamp(regime_ev*0.6+sc*0.3)
-        rows.append({"Ticker":tk.replace(".JK","")+" (JK)","Market":"IHSG","Bias":"▼ SHORT","Horizon":"Trade",
-            "Entry Zone":_entry_zone(px,atr,"SHORT"),"Target":_target(px,atr,"SHORT"),
-            "Invalidation":_invalidation(px,atr,"SHORT"),"Why Now":why,
-            "EV":f"{ev:.0%}","Conf":f"{conf:.0%}","Macro Aligned":"✓","_score":sc,"_ev":ev})
+        _push(rows,tk,"IHSG","▼ SHORT","Trade",why,ev)
 
-    # ── Commodities ───────────────────────────────────────────────────────────
     comm_long={"Q1":{"GC=F":"Gold Q1 ok","GLD":"Gold ETF"},"Q2":{"CL=F":"Oil king Q2","HG=F":"Copper Q2","GC=F":"Gold hedge"},
                "Q3":{"GC=F":"Gold stagflation trade","CL=F":"Oil volatile but up","GLD":"Gold ETF"},
                "Q4":{"GC=F":"Gold deflation","GLD":"Gold safe haven"}}
     comm_short={"Q2":{"GC=F":"Gold lags reflation"},"Q3":{"HG=F":"Copper demand collapse"},"Q4":{"CL=F":"Oil crash","HG=F":"Copper recession"}}
-
     for tk,why in comm_long.get(quad,{}).items():
-        s=prices.get(tk,pd.Series()); sc=_score(s,"LONG"); px=last(s); atr=_atr_pct(s)
+        s=prices.get(tk,pd.Series())
+        sc=_score(s,"LONG")
         ev=clamp(regime_ev*0.7+sc*0.4)
-        rows.append({"Ticker":disp(tk),"Market":"Commodities","Bias":"▲ LONG","Horizon":"Trend",
-            "Entry Zone":_entry_zone(px,atr,"LONG"),"Target":_target(px,atr,"LONG"),
-            "Invalidation":_invalidation(px,atr,"LONG"),"Why Now":why,
-            "EV":f"{ev:.0%}","Conf":f"{conf:.0%}","Macro Aligned":"✓","_score":sc,"_ev":ev})
-
+        _push(rows,tk,"Commodities","▲ LONG","Trend",why,ev)
     for tk,why in comm_short.get(quad,{}).items():
-        s=prices.get(tk,pd.Series()); sc=_score(s,"SHORT"); px=last(s); atr=_atr_pct(s)
+        s=prices.get(tk,pd.Series())
+        sc=_score(s,"SHORT")
         ev=clamp(regime_ev*0.5+sc*0.3)
-        rows.append({"Ticker":disp(tk),"Market":"Commodities","Bias":"▼ SHORT","Horizon":"Trade",
-            "Entry Zone":_entry_zone(px,atr,"SHORT"),"Target":_target(px,atr,"SHORT"),
-            "Invalidation":_invalidation(px,atr,"SHORT"),"Why Now":why,
-            "EV":f"{ev:.0%}","Conf":f"{conf:.0%}","Macro Aligned":"✓","_score":sc,"_ev":ev})
+        _push(rows,tk,"Commodities","▼ SHORT","Trade",why,ev)
 
-    # ── Crypto ────────────────────────────────────────────────────────────────
     if quad=="Q1":
         for tk,why in {"BTC-USD":"BTC Q1 bullish","ETH-USD":"ETH Q1 catch-up","SOL-USD":"SOL high beta Q1"}.items():
-            s=prices.get(tk,pd.Series()); sc=_score(s,"LONG"); px=last(s); atr=_atr_pct(s)
+            s=prices.get(tk,pd.Series())
+            sc=_score(s,"LONG")
             ev=clamp(regime_ev*0.7+sc*0.3)
-            rows.append({"Ticker":disp(tk),"Market":"Crypto","Bias":"▲ LONG","Horizon":"Trade",
-                "Entry Zone":_entry_zone(px,atr,"LONG"),"Target":_target(px,atr,"LONG"),
-                "Invalidation":_invalidation(px,atr,"LONG"),"Why Now":why,
-                "EV":f"{ev:.0%}","Conf":f"{conf:.0%}","Macro Aligned":"✓","_score":sc,"_ev":ev})
-    elif quad in("Q3","Q4"):
+            _push(rows,tk,"Crypto","▲ LONG","Trade",why,ev)
+    elif quad in ("Q3","Q4"):
         for tk,why in {"ETH-USD":"ETH avoid stagflation","SOL-USD":"SOL avoid Q3/Q4","BNB-USD":"BNB avoid Q3/Q4"}.items():
-            s=prices.get(tk,pd.Series()); sc=_score(s,"SHORT"); px=last(s); atr=_atr_pct(s)
+            s=prices.get(tk,pd.Series())
+            sc=_score(s,"SHORT")
             ev=clamp(regime_ev*0.5+sc*0.3)
-            rows.append({"Ticker":disp(tk),"Market":"Crypto","Bias":"▼ SHORT","Horizon":"Trade",
-                "Entry Zone":_entry_zone(px,atr,"SHORT"),"Target":_target(px,atr,"SHORT"),
-                "Invalidation":_invalidation(px,atr,"SHORT"),"Why Now":why,
-                "EV":f"{ev:.0%}","Conf":f"{conf:.0%}","Macro Aligned":"✓","_score":sc,"_ev":ev})
+            _push(rows,tk,"Crypto","▼ SHORT","Trade",why,ev)
 
-    # Sort: LONG first by EV, then SHORT
-    longs=[r for r in rows if "LONG" in r["Bias"]]; shorts=[r for r in rows if "SHORT" in r["Bias"]]
-    longs.sort(key=lambda x:x["_ev"],reverse=True); shorts.sort(key=lambda x:x["_ev"],reverse=True)
+    if active_branch:
+        existing={(r.get("_raw_ticker"),r["Bias"],r["Market"]) for r in rows}
+        extra_longs=[
+            ("IWM","US","▲ LONG","Trade","Relief squeeze + breadth catch-up saat most hated rally mulai hidup"),
+            ("RSP","US","▲ LONG","Trade","Equal-weight ikut bangun = rally makin sehat"),
+            ("EEM","US","▲ LONG","Trade","USD softer + EM catch-up expression"),
+            ("BBCA.JK","IHSG","▲ LONG","Trend","Asing inflow + bank quality jadi penerima flow utama"),
+            ("BBRI.JK","IHSG","▲ LONG","Trend","Domestic beta ikut hidup kalau likuiditas global membaik"),
+            ("TLKM.JK","IHSG","▲ LONG","Trend","Likuiditas masuk tanpa terlalu spekulatif"),
+            ("BTC-USD","Crypto","▲ LONG","Trade","BTC jadi barometer likuiditas global yang paling jujur"),
+            ("ETH-USD","Crypto","▲ LONG","Trade","ETH catch-up ketika liquidity branch aktif"),
+            ("SOL-USD","Crypto","▲ LONG","Trade","High beta crypto paling sensitif ke risk-on"),
+        ]
+        for tk,market,bias,horizon,why in extra_longs:
+            key=(tk,bias,market)
+            if key in existing:
+                continue
+            s=prices.get(tk,pd.Series())
+            sc=_score(s,"LONG")
+            market_base={"US":0.66,"IHSG":0.64,"Crypto":0.62}.get(market,0.60)
+            ev=clamp(regime_ev*0.45+market_base*0.30+sc*0.15+0.08)
+            _push(rows,tk,market,bias,horizon,why,ev,macro_aligned="~ Tactical")
+
+    if hot_branch:
+        existing={(r.get("_raw_ticker"),r["Bias"],r["Market"]) for r in rows}
+        extra_shorts=[
+            ("UUP","US","▼ SHORT","Trade","Dollar short = expression paling bersih kalau DXY mulai lemah"),
+            ("CL=F","Commodities","▼ SHORT","Trade","De-escalation final + oil mean reversion"),
+        ]
+        for tk,market,bias,horizon,why in extra_shorts:
+            key=(tk,bias,market)
+            if key in existing:
+                continue
+            s=prices.get(tk,pd.Series())
+            sc=_score(s,"SHORT")
+            ev=clamp(regime_ev*0.35+0.22+sc*0.18)
+            _push(rows,tk,market,bias,horizon,why,ev,macro_aligned="~ Tactical")
+
+    longs=[r for r in rows if "LONG" in r["Bias"]]
+    shorts=[r for r in rows if "SHORT" in r["Bias"]]
+    longs.sort(key=lambda x:(x["_ev"], x.get("Rally Fit")=="Boosted", x.get("Macro Aligned") in {"✓","~ Tactical"}), reverse=True)
+    shorts.sort(key=lambda x:(x["_ev"], x.get("Rally Fit")=="Boosted"), reverse=True)
     combined=longs+shorts
-    # Remove internal sort keys before returning
     for r in combined:
-        r.pop("_score",None); r.pop("_ev",None)
+        r.pop("_score",None)
+        r.pop("_ev",None)
+        r.pop("_raw_ticker",None)
     return combined
+
 
 
 # ── Checklist engine (v33 inspired) ───────────────────────────────────────────
@@ -1183,6 +1325,270 @@ def build_checklists(f:Dict,h:Dict,q:Dict,ih:Dict)->Dict:
     ]
 
     return {"global":global_items,"ihsg":ihsg_items}
+
+def build_most_hated_rally_monitor(f:Dict, prices:Dict[str,pd.Series])->Dict:
+    """Advanced four-point trigger engine for Ricky's Most Hated Inflated Rally thesis."""
+    def _fmt_num(v:float, digits:int=2, prefix:str="", suffix:str="") -> str:
+        if not math.isfinite(v):
+            return "—"
+        return f"{prefix}{v:,.{digits}f}{suffix}"
+
+    def _score_below(v:float, clear_thr:float, near_thr:float, conf:float=1.0) -> Tuple[float,bool,bool]:
+        if not math.isfinite(v):
+            return 0.42*conf, False, False
+        if v < clear_thr:
+            return 1.00*conf, True, True
+        if v < near_thr:
+            return 0.72*conf, False, True
+        return 0.24*conf, False, False
+
+    def _score_above(v:float, clear_thr:float, near_thr:float, conf:float=1.0, strong_thr:Optional[float]=None) -> Tuple[float,bool,bool]:
+        if not math.isfinite(v):
+            return 0.42*conf, False, False
+        if strong_thr is not None and v >= strong_thr:
+            return 1.00*conf, True, True
+        if v >= clear_thr:
+            return 0.90*conf, True, True
+        if v >= near_thr:
+            return 0.68*conf, False, True
+        return 0.24*conf, False, False
+
+    cards=[]
+    tuple_items=[]
+
+    vix=last(prices.get("^VIX",pd.Series()))
+    vix_score,vix_hard,vix_soft=_score_below(vix,20.0,22.0,1.0)
+    vix_note="Volatility fear mereda" if vix_hard else ("Sudah mendekat, tapi fear belum bersih" if vix_soft else "Masih terlalu tinggi untuk bilang fear sudah lewat")
+    cards.append({"label":"VIX < 20","value":f"VIX {_fmt_num(vix,2)}","threshold":"Clear <20 · near <22","score":vix_score,"hard_clear":vix_hard,"soft_clear":vix_soft,"source":"Exact","confidence":1.0,"note":vix_note})
+    tuple_items.append(("VIX < 20",vix_score,vix_note if math.isfinite(vix) else "Data VIX belum tersedia"))
+
+    dxy=last(prices.get("DX-Y.NYB",pd.Series()))
+    dxy_exact=math.isfinite(dxy)
+    if dxy_exact:
+        dxy_score,dxy_hard,dxy_soft=_score_below(dxy,98.0,98.5,1.0)
+        dxy_note="Modal global mulai keluar dari USD" if dxy_hard else ("Sudah dekat area break, butuh sedikit lagi" if dxy_soft else "Dollar masih terlalu kuat untuk rally broad risk-on")
+        dxy_value=f"DXY {_fmt_num(dxy,3)}"
+        dxy_source="Exact"
+        dxy_conf=1.0
+    else:
+        uup_s=prices.get("UUP",pd.Series())
+        uup=last(uup_s); uup_1m=ret_n(uup_s,21)
+        dxy_hard=False
+        dxy_soft=math.isfinite(uup_1m) and uup_1m<0
+        dxy_conf=0.55
+        if math.isfinite(uup_1m) and uup_1m<0:
+            dxy_score=0.62*dxy_conf + 0.10
+            dxy_note="DXY exact belum ada, tapi proxy UUP sudah melemah 1M"
+        elif math.isfinite(uup_1m):
+            dxy_score=0.24*dxy_conf
+            dxy_note="Proxy UUP belum mendukung soft dollar"
+        else:
+            dxy_score=0.38*dxy_conf
+            dxy_note="DXY exact belum ada dan proxy juga terbatas"
+        dxy_value=f"UUP {_fmt_num(uup,2)} · 1M {pct(uup_1m)}"
+        dxy_source="Proxy"
+    cards.append({"label":"DXY < 98","value":dxy_value,"threshold":"Clear <98 · near <98.5","score":dxy_score,"hard_clear":dxy_hard,"soft_clear":dxy_soft,"source":dxy_source,"confidence":dxy_conf,"note":dxy_note})
+    tuple_items.append(("DXY < 98",dxy_score,dxy_note))
+
+    ust2y=f.get("dgs2",float("nan"))
+    ust_score,ust_hard,ust_soft=_score_below(ust2y,3.5,3.7,1.0)
+    ust_note="Market sudah pricing deeper cuts" if ust_hard else ("Hampir sampai threshold cut-friendly" if ust_soft else "Rate expectations masih terlalu ketat")
+    cards.append({"label":"UST 2Y < 3.5%","value":f"UST 2Y {_fmt_num(ust2y,2,suffix='%')}","threshold":"Clear <3.5% · near <3.7%","score":ust_score,"hard_clear":ust_hard,"soft_clear":ust_soft,"source":"Exact","confidence":1.0,"note":ust_note})
+    tuple_items.append(("UST 2Y < 3.5%",ust_score,ust_note if math.isfinite(ust2y) else "FRED DGS2 belum tersedia"))
+
+    btc=last(prices.get("BTC-USD",pd.Series()))
+    btc_score,btc_hard,btc_soft=_score_above(btc,72000,70000,1.0,strong_thr=74000)
+    btc_note="Liquidity proxy sudah hidup; >74k = stronger confirm" if btc_hard else ("Sudah dekat tapi belum betul-betul clear" if btc_soft else "Liquidity proxy belum confirm")
+    cards.append({"label":"BTC > 72k–73k","value":f"BTC {_fmt_num(btc,0,prefix='$')}","threshold":"Clear >72k · strong >74k","score":btc_score,"hard_clear":btc_hard,"soft_clear":btc_soft,"source":"Exact","confidence":1.0,"note":btc_note})
+    tuple_items.append(("BTC > 72k–73k",btc_score,btc_note if math.isfinite(btc) else "BTC data belum tersedia"))
+
+    hard_clear_count=sum(1 for c in cards if c["hard_clear"])
+    soft_clear_count=sum(1 for c in cards if c["soft_clear"])
+    data_quality=float(np.mean([c["confidence"] for c in cards])) if cards else 0.0
+    exact_count=sum(1 for c in cards if c["source"]=="Exact")
+    score=float(np.mean([c["score"] for c in cards])) if cards else 0.0
+
+    branch_score=clamp(0.55*(hard_clear_count/4.0)+0.25*(soft_clear_count/4.0)+0.20*data_quality)
+    if hard_clear_count<=1 and branch_score<0.48:
+        branch_state="dormant"; stage="Belum hidup"; posture="Defense / selective only"; action="Belum ada alasan buat agresif. Fokus defense, quality, dan jangan kejar beta."; size_mult=0.35; cls="bad"
+    elif hard_clear_count<=1:
+        branch_state="watching"; stage="Watching / early"; posture="Probe only"; action="Ada tanda awal, tapi belum cukup. Naikkan watchlist, jangan naikkan size terlalu cepat."; size_mult=0.45; cls="warn"
+    elif hard_clear_count==2:
+        branch_state="arming"; stage="Transisi 2/4"; posture="Scale in pelan"; action="Branch sedang dibangun. Boleh mulai scale-in bertahap ke beta/EM/crypto-quality, tapi tetap disiplin."; size_mult=0.60; cls="warn"
+    elif hard_clear_count==3:
+        branch_state="pre_confirmed"; stage="Nyaris aktif 3/4"; posture="Tactical risk-on bertahap"; action="Pre-confirmation. Scanner boleh upgrade risk-on longs dan kurangi conviction short yang rawan kesqueeze."; size_mult=0.82; cls="good"
+    else:
+        branch_state="active"; stage="Rally live 4/4"; posture="Tactical risk-on aktif"; action="Likuiditas-led branch aktif. Risk-on tactical boleh lebih agresif, tapi tetap satu tangan di pintu keluar."; size_mult=1.00; cls="good"
+
+    oil_1m=nf(f.get("clf_1m", f.get("oil_1m", 0.0)))
+    hy=f.get("hy_oas",float("nan"))
+    fragility=clamp(0.55*clamp(max(0.0,oil_1m)/0.10)+0.45*(clamp((hy-350)/180) if math.isfinite(hy) else 0.35))
+    fragility_note="Fondasi rally tetap rapuh: ini liquidity rally, bukan fundamental repair." if branch_state in {"pre_confirmed","active"} else "Belum ada risk-on branch yang cukup kuat; jangan over-interpret satu-dua sinyal."
+    if branch_state=="active" and fragility>=0.55:
+        stage += " · fragile"
+        action += " Credit/oil belum sepenuhnya bersih, jadi treat ini sebagai tactical move, bukan izin euforia."
+
+    scanner_long_boost={"dormant":0.00,"watching":0.02,"arming":0.05,"pre_confirmed":0.10,"active":0.14}.get(branch_state,0.0)
+    scanner_short_penalty={"dormant":0.00,"watching":-0.02,"arming":-0.05,"pre_confirmed":-0.10,"active":-0.14}.get(branch_state,0.0)
+
+    cross_asset=[
+        ("US", "Beta & breadth catch-up belum prioritas" if branch_state in {"dormant","watching"} else "QQQ / IWM / XLF / XLI / EEM mulai lebih layak diprioritaskan", "g" if branch_state in {"pre_confirmed","active"} else "y"),
+        ("IHSG", "Masih selective; fokus quality / defensif" if branch_state in {"dormant","watching"} else "Bank besar, telco, exporter, metal names lebih diuntungkan oleh flow asing", "g" if branch_state in {"arming","pre_confirmed","active"} else "y"),
+        ("Crypto", "Tunggu BTC confirm dulu" if branch_state in {"dormant","watching"} else "BTC/ETH/SOL jadi expression paling sensitif ke liquidity branch", "g" if branch_state in {"pre_confirmed","active"} else "y"),
+        ("Commodities", "Gold masih hedge; oil belum tentu turun" if branch_state in {"dormant","watching"} else "Copper positif, gold tetap oke, oil cenderung jadi headwind saat de-escalation", "b"),
+    ]
+
+    invalidators=[]
+    if not vix_hard: invalidators.append("VIX gagal turun <20")
+    if not dxy_hard: invalidators.append("DXY belum pecah <98")
+    if not ust_hard: invalidators.append("UST 2Y belum turun <3.5%")
+    if not btc_hard: invalidators.append("BTC belum tahan di atas 72k–73k")
+    if branch_state in {"pre_confirmed","active"}:
+        invalidators.extend(["Oil spike baru / geopolitik re-escalate", "Credit spreads widen lagi"])
+    invalidators=invalidators[:4]
+
+    ihsg_title=("Belum ada dukungan likuiditas global untuk IHSG beta" if branch_state in {"dormant","watching"} else
+                "Likuiditas global mulai buka pintu untuk IHSG" if branch_state=="arming" else
+                "Trigger global sudah mendukung inflow IHSG")
+    ihsg_msg=("Fokus quality dan jangan maksa ke saham yang butuh risk appetite besar." if branch_state in {"dormant","watching"} else
+              "Mulai prioritaskan bank besar, telco, dan exporter yang paling siap menerima flow." if branch_state=="arming" else
+              "Bank besar, telco, exporter, dan metal names lebih pantas dinaikkan ranking-nya, tapi tetap hati-hati euforia.")
+
+    return {
+        "items":tuple_items,
+        "cards":cards,
+        "clear_count":hard_clear_count,
+        "hard_clear_count":hard_clear_count,
+        "soft_clear_count":soft_clear_count,
+        "total":4,
+        "stage":stage,
+        "action":action,
+        "cls":cls,
+        "score":score,
+        "branch_score":branch_score,
+        "dxy_exact":dxy_exact,
+        "data_quality":data_quality,
+        "exact_count":exact_count,
+        "branch_state":branch_state,
+        "posture":posture,
+        "size_mult":size_mult,
+        "scanner_long_boost":scanner_long_boost,
+        "scanner_short_penalty":scanner_short_penalty,
+        "cross_asset":cross_asset,
+        "invalidators":invalidators,
+        "fragility":fragility,
+        "fragility_note":fragility_note,
+        "ihsg_title":ihsg_title,
+        "ihsg_msg":ihsg_msg,
+    }
+
+
+def _rally_bucket(score:float)->Tuple[str,str]:
+    if score>=0.90: return "✓","rally-ok"
+    if score>=0.60: return "~","rally-warn"
+    return "✗","rally-bad"
+
+
+def _rally_tone(state:str)->str:
+    if state in {"pre_confirmed","active"}: return "ok"
+    if state in {"watching","arming"}: return "warn"
+    return "bad"
+
+
+def render_most_hated_rally_monitor(mon:Dict, compact:bool=False)->None:
+    state=str(mon.get("branch_state","dormant"))
+    tone=_rally_tone(state)
+    fill=max(0.0,min(100.0,float(mon.get("branch_score",mon.get("score",0)))*100.0))
+    stage=html.escape(mon.get("stage",""))
+    action=html.escape(mon.get("action",""))
+    posture=html.escape(mon.get("posture",""))
+    size_txt=f"{float(mon.get('size_mult',0.35)):.2f}x"
+    if compact:
+        pills=[]
+        for card in mon.get("cards",[]):
+            sym,_cls=_rally_bucket(float(card.get("score",0.0)))
+            pills.append(f'<span class="rally-pill {_rally_tone("active" if card.get("hard_clear") else "arming" if card.get("soft_clear") else "dormant")}">{sym} {html.escape(card.get("label",""))}</span>')
+        st.markdown(
+            f'<div class="rally-shell">'
+            f'<div class="rally-top">'
+            f'<div><div class="rally-kicker">Most Hated Inflated Rally</div><div class="rally-title">{mon.get("clear_count",0)}/{mon.get("total",4)} · {stage}</div><div class="rally-sub">{posture} · size {size_txt} · data {float(mon.get("data_quality",0.0)):.0%}</div></div>'
+            f'<div class="rally-pill {tone}">Composite {fill:.0f}%</div>'
+            f'</div>'
+            f'<div class="rally-mini">{"".join(pills)}</div>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+        return
+
+    sh(f"🔥 MOST HATED INFLATED RALLY MONITOR — {mon.get('clear_count',0)}/{mon.get('total',4)}")
+    legend=''.join([
+        '<span class="rally-pill bad">0–1/4 · belum hidup</span>',
+        '<span class="rally-pill warn">2/4 · transisi</span>',
+        '<span class="rally-pill ok">3/4 · nyaris aktif</span>',
+        '<span class="rally-pill ok">4/4 · rally live</span>'
+    ])
+    items_html=[]
+    for card in mon.get("cards",[]):
+        sym,cls=_rally_bucket(float(card.get("score",0.0)))
+        width=max(8.0,min(100.0,float(card.get("score",0.0))*100.0))
+        items_html.append(
+            f'<div class="rally-item">'
+            f'<div class="rally-item-top"><div><div class="rally-item-label">{html.escape(card.get("label",""))}</div><div style="font-size:11px;opacity:.72;margin-top:2px">{html.escape(card.get("value","—"))}</div></div><span class="rally-chip {cls}">{sym}</span></div>'
+            f'<div class="rally-item-note"><b>{html.escape(card.get("threshold",""))}</b><br>{html.escape(card.get("note",""))}</div>'
+            f'<div class="rally-meter"><div class="rally-fill" style="width:{width:.0f}%"></div></div>'
+            f'<div class="rally-scale"><span>{html.escape(card.get("source",""))}</span><span>conf {float(card.get("confidence",0.0)):.0%}</span><span>{"hard" if card.get("hard_clear") else "near" if card.get("soft_clear") else "fail"}</span></div>'
+            f'</div>'
+        )
+
+    side_cards=''.join(
+        f'<div class="rally-mini-card"><div style="font-size:10px;opacity:.5;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">{html.escape(title)}</div><div style="font-size:12px;font-weight:700;margin-bottom:3px">{html.escape(desc)}</div></div>'
+        for title,desc,_kind in mon.get("cross_asset",[])
+    )
+    invalidators=''.join(
+        f'<div class="rally-mini-card"><div style="font-size:10px;opacity:.5;letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px">Fail-fast</div><div style="font-size:12px">{html.escape(x)}</div></div>'
+        for x in mon.get("invalidators",[])
+    )
+
+    st.markdown(
+        f'<div class="rally-shell">'
+        f'<div class="rally-top">'
+        f'<div><div class="rally-kicker">Narrative → Execution Bridge</div><div class="rally-title">{stage}</div><div class="rally-sub">{action}</div></div>'
+        f'<div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'
+        f'<span class="rally-pill {tone}">Posture · {posture}</span>'
+        f'<span class="rally-pill {tone}">Sizing · {size_txt}</span>'
+        f'<span class="rally-pill {tone}">Composite · {fill:.0f}%</span>'
+        f'<span class="rally-pill {tone}">Data · {float(mon.get("data_quality",0.0)):.0%}</span>'
+        f'</div></div>'
+        f'<div class="rally-meter"><div class="rally-fill" style="width:{fill:.0f}%"></div></div>'
+        f'<div class="rally-legend">{legend}</div>'
+        f'<div class="rally-grid">{"".join(items_html)}</div>'
+        f'<div class="rally-mini" style="margin-top:10px">{side_cards}</div>'
+        f'<div style="font-size:11px;opacity:.62;margin-top:8px">{html.escape(mon.get("fragility_note",""))}</div>'
+        f'<div class="rally-mini" style="margin-top:10px">{invalidators}</div>'
+        f'</div>',
+        unsafe_allow_html=True
+    )
+
+def render_ihsg_rally_note(mon:Dict, ih:Dict)->None:
+    clear_count=int(mon.get("hard_clear_count", mon.get("clear_count",0)) or 0)
+    title=mon.get("ihsg_title","Global liquidity → IHSG")
+    msg=mon.get("ihsg_msg","")
+    flow=ih.get("foreign_flow",0.5)
+    idr=nf(ih.get("usd_idr_1m",0.0))
+    flow_txt=f"Asing {ih.get('flow_state','mixed')}"
+    idr_txt=("IDR supportif" if idr<-0.01 else ("IDR netral" if idr<0.01 else "IDR tertekan"))
+    if clear_count>=4: bc="#3dbb6c"; bg="rgba(61,187,108,0.10)"
+    elif clear_count>=2: bc="#e5a020"; bg="rgba(229,160,32,0.10)"
+    else: bc="#e05252"; bg="rgba(224,82,82,0.10)"
+    st.markdown(
+        f'<div style="border:1px solid {bc}55;background:{bg};border-radius:12px;padding:12px 14px;margin-bottom:12px">'
+        f'<div style="font-size:10px;letter-spacing:.10em;text-transform:uppercase;opacity:.52;margin-bottom:3px">Global Liquidity → IHSG</div>'
+        f'<div style="font-weight:800;font-size:16px;margin-bottom:3px;color:{bc}">{html.escape(str(title))}</div>'
+        f'<div style="font-size:12px;opacity:.88">{html.escape(str(msg))}</div>'
+        f'<div style="font-size:11px;opacity:.65;margin-top:6px">Checklist {clear_count}/4 · {flow_txt} · {idr_txt} · posture {html.escape(str(mon.get("posture","")))}</div>'
+        f'</div>',
+        unsafe_allow_html=True
+    )
 
 def render_checklist(items:list,title:str="Checklist")->None:
     """Render v33-style ✓/✗/~ checklist in plain text (no HTML in dataframe)."""
@@ -1878,11 +2284,15 @@ def page_opportunities(snap:Dict)->None:
     # Status header
     longs=[r for r in opps if "LONG" in r.get("Bias","")]
     shorts=[r for r in opps if "SHORT" in r.get("Bias","")]
-    c1,c2,c3,c4=st.columns(4)
+    most_hated=snap.get("most_hated_rally",{})
+    c1,c2,c3,c4,c5=st.columns(5)
     with c1: mc("Total Opportunities",str(len(opps)),f"{len(longs)} long · {len(shorts)} short","good" if len(longs)>len(shorts) else "warn")
     with c2: mc("Dominant Family",rot_meta["name"][:20],"Active rotation route","good")
     with c3: mc("Regime Confidence",f"{conf:.0%}",q.get("conf_band",""),"good" if conf>0.50 else "warn")
     with c4: mc("Execution Mode",snap["crash"]["exec_mode"],f"Score: {snap['crash']['exec_score']:.0%}","good" if snap["crash"]["exec_score"]>=0.60 else "warn")
+    with c5: mc("Rally Trigger",f"{most_hated.get('clear_count',0)}/4",most_hated.get("stage","Most hated monitor"),"good" if most_hated.get("clear_count",0)>=3 else "warn")
+    if most_hated:
+        st.caption(f"Most Hated Engine: {most_hated.get('stage','monitor')} · {most_hated.get('posture','')} · size {float(most_hated.get('size_mult',0.35)):.2f}x. Ranking long/short sudah disesuaikan: beta/EM/crypto longs dinaikkan saat trigger hidup, short yang rawan squeeze diturunkan conviction-nya.")
 
     # Rotational Flow Map (v33 visual mind-map — what user asked for)
     st.markdown("---")
@@ -2164,8 +2574,10 @@ def page_radar(snap:Dict)->None:
     st.dataframe(pd.DataFrame(rows,columns=["Indikator","Nilai","Catatan"]),use_container_width=True,hide_index=True,height=540)
 
 def page_ihsg(snap:Dict)->None:
-    ih=snap["ihsg"]; q=snap["q"]; f=snap["f"]; prices=snap["prices"]
+    ih=snap["ihsg"]; q=snap["q"]; f=snap["f"]; prices=snap["prices"]; most_hated=snap.get("most_hated_rally",{})
     sh("🇮🇩 IHSG — INDONESIAN MARKET ANALYSIS")
+    if most_hated:
+        render_ihsg_rally_note(most_hated,ih)
     score=ih["ihsg_score"]; sc="#3dbb6c" if score>=0.60 else("#e5a020" if score>=0.47 else "#e05252")
     st.markdown(f'<div style="text-align:center;padding:16px;border-radius:12px;border:1.5px solid {sc}33;margin-bottom:12px"><div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.4;margin-bottom:3px">IHSG COMPOSITE SCORE (v33 formula)</div><div style="font-family:Syne,sans-serif;font-size:40px;font-weight:800;color:{sc};line-height:1">{score:.0%}</div><div style="font-size:15px;font-weight:700;color:{sc};margin-top:3px">{ih["exec_mode"]}</div></div>',unsafe_allow_html=True)
     c1,c2,c3,c4=st.columns(4)
@@ -2205,7 +2617,7 @@ def page_ihsg(snap:Dict)->None:
     else: st.info("Saham IHSG belum tersedia. Cek koneksi internet.")
 
 def page_health(snap:Dict)->None:
-    h=snap["h"]; f=snap["f"]; prices=snap["prices"]
+    h=snap["h"]; f=snap["f"]; prices=snap["prices"]; most_hated=snap.get("most_hated_rally",{})
     sh("📡 TACTICAL WEATHER — CAN WE TRADE? (v33 weights)")
     c1,c2,c3,c4=st.columns(4)
     def mcard3(label,s,sub,states):
@@ -2215,6 +2627,10 @@ def page_health(snap:Dict)->None:
     with c2: mcard3("Market Trend",h["trend_state"].capitalize(),"price+breadth+dollar",("Persistent","Mixed","Fragile"))
     with c3: mcard3("Tail State",h["tail_state"].capitalize(),"vol+credit+small+narrow",("Calm","Neutral","Stressed"))
     with c4: mcard3("Overall Weather",h["weather_state"],"composite 35/35/30",("Risk-On","Mixed","Risk-Off"))
+    st.markdown("---")
+    if most_hated:
+        render_most_hated_rally_monitor(most_hated,compact=False)
+        st.caption("Ini bukan pengganti quad/regime. Fungsinya sebagai tactical branch confirmer untuk TACO de-escalation / Warsh liquidity rally.")
     st.markdown("---"); ca,cb=st.columns(2)
     with ca:
         sh(f"📊 BREADTH (trade={TACT_TRADE_W['breadth']:.0%} weight)")
@@ -2264,7 +2680,7 @@ def page_health(snap:Dict)->None:
         render_checklist(asset_chk["fx"],"💱 FX CHECKLIST")
 
 def page_playbook(snap:Dict)->None:
-    q=snap["q"]; rot=snap["rotation"]; sc=snap["scenarios"]; pb=snap["playbooks"]; prices=snap["prices"]
+    q=snap["q"]; rot=snap["rotation"]; sc=snap["scenarios"]; pb=snap["playbooks"]; prices=snap["prices"]; most_hated=snap.get("most_hated_rally",{})
     s_quad=q["quad"]; meta=QUAD_META.get(s_quad,QUAD_META["Q4"])
     # Asset Translation Engine (v33 — per market LONG/WATCH/AVOID in plain language)
     at=snap.get("asset_translation",{}); route=snap.get("route",{})
@@ -2285,6 +2701,10 @@ def page_playbook(snap:Dict)->None:
                         '<span style="opacity:.55;font-size:9px">✗ '+setup.get("invalidator","")[:35]+"</span></div>",
                         unsafe_allow_html=True)
     st.markdown("---")
+    if most_hated:
+        render_most_hated_rally_monitor(most_hated,compact=True)
+        st.caption("Mini-trigger ini ngikat narrative Warsh/TACO ke playbook risk-on vs wait mode.")
+        st.markdown("---")
     sh(f"🎯 FULL PLAYBOOK — {q['operating'].upper()}")
     st.markdown("**BENEFICIARY (long / beli):**")
     for row in rot["ben_rows"]:
@@ -2531,6 +2951,8 @@ def page_markets_full(snap:Dict)->None:
     # ── IHSG ─────────────────────────────────────────────────────────────────
     with t1:
         sh("🇮🇩 IHSG — INDONESIAN MARKET ANALYSIS")
+        if snap.get("most_hated_rally"):
+            render_ihsg_rally_note(snap.get("most_hated_rally",{}),ih)
         score=ih["ihsg_score"]; sc="#3dbb6c" if score>=0.60 else("#e5a020" if score>=0.47 else "#e05252")
         st.markdown(f'<div style="text-align:center;padding:14px;border-radius:12px;border:1.5px solid {sc}33;margin-bottom:12px"><div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.4;margin-bottom:2px">IHSG COMPOSITE SCORE</div><div style="font-family:Syne,sans-serif;font-size:38px;font-weight:800;color:{sc};line-height:1">{score:.0%}</div><div style="font-size:14px;font-weight:700;color:{sc};margin-top:2px">{ih["exec_mode"]}</div></div>',unsafe_allow_html=True)
         c1,c2,c3,c4=st.columns(4)
@@ -2819,6 +3241,7 @@ def main():
         '<span>▼ Best Short: <strong>'+best_short_tk+'</strong></span>'+
         '<span style="opacity:.2">|</span>'+
         '<span>Risk: <strong>'+cr["state"]+'</strong> | Exec: <strong>'+cr["exec_mode"]+'</strong></span>'+
+        ('<span style="opacity:.2">|</span><span>Rally Trigger: <strong>'+str(most_hated.get("clear_count","—"))+'/4</strong></span>' if most_hated else '')+
         ('<span style="opacity:.2">|</span><span style="opacity:.6">'+news_label+'</span>' if news_label else "")+
         '<span style="opacity:.25;margin-left:auto">'+snap["ts"]+'</span></div>',
         unsafe_allow_html=True

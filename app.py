@@ -581,7 +581,7 @@ def build_playbooks(f:Dict,q:Dict)->List[Dict]:
              "invalidators":["AI genuinely changes productivity (super cycle valid)","QE infinity dari Fed","Resolusi geopolitik global simultaneous (peace dividend besar)"]},
     ]
 
-def build_scenarios(q:Dict,f:Dict,analog:Dict,playbooks:List)->Dict:
+def build_scenarios(q:Dict,f:Dict,h:Dict,analog:Dict,playbooks:List)->Dict:
     s_quad=q["quad"]; m_quad=q["monthly_quad"]; s_next=q.get("next_quad",s_quad)
     m_next=q.get("monthly_next",m_quad); div=q["divergence"]; hazard=q.get("flip_hazard",0.5)
     shock_str=clamp(q.get("inf_shock",0.0)*2); conf=q.get("confidence",0.5)
@@ -803,7 +803,7 @@ def load_all()->Dict:
     with st.spinner("Fetching FRED macro data…"): fred={k:fetch_fred(v) for k,v in FRED_SERIES.items()}
     f=build_macro(fred,prices); q=build_quad(f); h=build_health(prices,f)
     cr=build_crash(f,h,q); rot=build_rotation(q,h,f,prices); ih=build_ihsg(prices,q,f)
-    analog=_match_analog(f); pb=build_playbooks(f,q); sc=build_scenarios(q,f,analog,pb)
+    analog=_match_analog(f); pb=build_playbooks(f,q); sc=build_scenarios(q,f,h,analog,pb)
     chk=build_checklists(f,h,q,ih)
     opps=build_opportunities(prices,q,f,h,rot)
     family=get_dominant_family(q,f,rot)

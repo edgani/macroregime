@@ -2273,15 +2273,46 @@ def render_rotational_flow_map(q:Dict, rot:Dict, f:Dict, family:str)->None:
                     st.markdown('<span class="'+cls+'" style="font-size:11px">'+disp(t)+' '+perf+'</span>  \n',unsafe_allow_html=True)
 
 
+def _opp_view_df(rows:List[Dict], detail:bool=False)->pd.DataFrame:
+    if not rows:
+        return pd.DataFrame()
+    df=pd.DataFrame([{k:v for k,v in r.items()} for r in rows])
+    primary_cols=["Ticker","Market","Horizon","Entry Zone","Invalidation","Target","EV","Macro Aligned","Rally Fit","Sizing"]
+    detail_cols=["Ticker","Market","Bias","Horizon","Entry Zone","Invalidation","Target","EV","Conf","Macro Aligned","Rally Fit","Sizing","Rally State","Why Now"]
+    cols=[c for c in (detail_cols if detail else primary_cols) if c in df.columns]
+    return df[cols]
+
+
+def _opp_card_html(rows:List[Dict], empty_text:str, accent:str, icon:str)->str:
+    if not rows:
+        return f'<div class="mc" style="border-left:3px solid {accent}55"><div style="font-size:12px;opacity:.65">{html.escape(empty_text)}</div></div>'
+    cards=[]
+    for r in rows[:5]:
+        ticker=html.escape(str(r.get("Ticker","—")))
+        market=html.escape(str(r.get("Market","—")))
+        ev=html.escape(str(r.get("EV","—")))
+        fit=html.escape(str(r.get("Rally Fit","Neutral")))
+        note=html.escape(str(r.get("Why Now","")))[:120]
+        cards.append(
+            f'<div class="mc" style="border-left:3px solid {accent}55;padding:8px 10px">'
+            f'<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">'
+            f'<div><div style="font-size:13px;font-weight:700">{icon} {ticker}</div><div style="font-size:10px;opacity:.5;margin-top:1px">{market} · {fit}</div></div>'
+            f'<div style="font-family:DM Mono,monospace;font-size:12px;font-weight:700;color:{accent}">{ev}</div></div>'
+            f'<div style="font-size:11px;opacity:.72;margin-top:4px;line-height:1.45">{note}</div>'
+            f'</div>'
+        )
+    return ''.join(cards)
+
+
+
 def page_opportunities(snap:Dict)->None:
-    """Full opportunity board: Long/Short table with entry/target/invalidation."""
+    """Full opportunity board: decision-first execution view, then full detail."""
     opps=snap.get("opportunities",[])
     q=snap["q"]; quad=q["quad"]; conf=q["confidence"]
     family=snap.get("family","reflation"); f=snap["f"]; rot=snap["rotation"]
     rot_meta=ROTATION_FAMILIES.get(family,ROTATION_FAMILIES["reflation"])
     prices=snap["prices"]
 
-    # Status header
     longs=[r for r in opps if "LONG" in r.get("Bias","")]
     shorts=[r for r in opps if "SHORT" in r.get("Bias","")]
     most_hated=snap.get("most_hated_rally",{})
@@ -2292,9 +2323,31 @@ def page_opportunities(snap:Dict)->None:
     with c4: mc("Execution Mode",snap["crash"]["exec_mode"],f"Score: {snap['crash']['exec_score']:.0%}","good" if snap["crash"]["exec_score"]>=0.60 else "warn")
     with c5: mc("Rally Trigger",f"{most_hated.get('clear_count',0)}/4",most_hated.get("stage","Most hated monitor"),"good" if most_hated.get("clear_count",0)>=3 else "warn")
     if most_hated:
+        render_most_hated_rally_monitor(most_hated,compact=True)
         st.caption(f"Most Hated Engine: {most_hated.get('stage','monitor')} · {most_hated.get('posture','')} · size {float(most_hated.get('size_mult',0.35)):.2f}x. Ranking long/short sudah disesuaikan: beta/EM/crypto longs dinaikkan saat trigger hidup, short yang rawan squeeze diturunkan conviction-nya.")
 
-    # Rotational Flow Map (v33 visual mind-map — what user asked for)
+    boosted_longs=[r for r in longs if r.get("Rally Fit")=="Boosted"][:5]
+    squeezed_shorts=[r for r in shorts if r.get("Rally Fit")=="Squeezed"][:5]
+    tactical_longs=[r for r in longs if r.get("Macro Aligned") in {"✓","~ Tactical"}][:5]
+    clean_shorts=[r for r in shorts if r.get("Rally Fit")!="Squeezed"][:5]
+
+    st.markdown("---")
+    sh("⚡ EXECUTION FOCUS — apa yang paling layak dilihat dulu")
+    fc1,fc2,fc3,fc4=st.columns(4)
+    with fc1:
+        st.markdown("**Best longs sekarang**")
+        st.markdown(_opp_card_html(longs[:5],"Belum ada long utama.","#3dbb6c","▲"),unsafe_allow_html=True)
+    with fc2:
+        st.markdown("**Best shorts sekarang**")
+        st.markdown(_opp_card_html(shorts[:5],"Belum ada short utama.","#e05252","▼"),unsafe_allow_html=True)
+    with fc3:
+        st.markdown("**Boosted by rally**")
+        st.markdown(_opp_card_html(boosted_longs or tactical_longs,"Belum ada long yang benar-benar di-boost branch ini.","#59a8e5","⚡"),unsafe_allow_html=True)
+    with fc4:
+        st.markdown("**Shorts to respect**")
+        st.markdown(_opp_card_html(squeezed_shorts or clean_shorts,"Belum ada short yang perlu perhatian khusus.","#e5a020","⚠"),unsafe_allow_html=True)
+
+    # Rotational Flow Map
     st.markdown("---")
     sh(f"🔄 ROTATIONAL FLOW MAP — {rot_meta['name'].upper()}")
     st.markdown('<div style="font-size:12px;opacity:.75;margin-bottom:8px">'+rot_meta["desc"]+'</div>',unsafe_allow_html=True)
@@ -2302,20 +2355,17 @@ def page_opportunities(snap:Dict)->None:
     st.markdown("---")
     sh(f"⬆ CAUSAL CHAIN DETAIL")
     st.markdown(f'**Trigger:** {rot_meta["trigger"]}')
-    
-    # Flow nodes as visual chain — with current state indicator
+
     nodes=rot_meta["nodes"]
-    # Determine which node we're at based on market data
     oil_3m=nf(f.get("clf_3m",f.get("oil_3m",0.0)))
     uup_1m=nf(f.get("uup_1m",0.0))
     shock=q.get("inf_shock",0.0)
     sf=q.get("slowdown_flags",0.0)
-    # Heuristic: which stage are we at?
     if family=="petrodollar":
-        if oil_3m>0.15: current_node=1   # Oil Shock active
-        elif uup_1m>0.02: current_node=2  # USD pressure / importer pain
-        elif shock>0.25: current_node=3   # Expression (exporters)
-        else: current_node=0             # Trigger only
+        if oil_3m>0.15: current_node=1
+        elif uup_1m>0.02: current_node=2
+        elif shock>0.25: current_node=3
+        else: current_node=0
     elif family=="em_rotation":
         em_score=rot.get("em_score",0.5)
         if em_score>0.60: current_node=3
@@ -2326,7 +2376,7 @@ def page_opportunities(snap:Dict)->None:
         if sf>=0.50: current_node=2
         elif sf>=0.25: current_node=1
         else: current_node=0
-    else:  # reflation
+    else:
         current_node=1 if q.get("g_core",0)>0 else 0
 
     node_cols=st.columns(len(nodes))
@@ -2349,7 +2399,6 @@ def page_opportunities(snap:Dict)->None:
             )
             st.markdown(html_node,unsafe_allow_html=True)
 
-    # Best expressions per market — use human-readable names
     st.markdown("---")
     sh("🎯 BEST EXPRESSIONS PER MARKET (Rotation Flow)")
     be=rot_meta.get("best_expressions",{})
@@ -2362,10 +2411,9 @@ def page_opportunities(snap:Dict)->None:
                 r1=ret_n(s,21)
                 perf=pct(r1) if math.isfinite(r1) else ""
                 cls="good" if(math.isfinite(r1) and r1>0) else("bad" if(math.isfinite(r1) and r1<-0.01) else "")
-                name=disp(t)  # human-readable ticker name
+                name=disp(t)
                 st.markdown('<span class="'+cls+'" style="font-size:12px">'+name+' '+perf+'</span><br>',unsafe_allow_html=True)
 
-    # Confirms / Invalidators
     ca,cb2=st.columns(2)
     with ca:
         sh("✓ KONFIRMASI (route masih hidup)")
@@ -2376,25 +2424,34 @@ def page_opportunities(snap:Dict)->None:
         for inv in rot_meta.get("invalidators",[]):
             st.markdown(f'<span class="bad">✗</span> {inv}',unsafe_allow_html=True)
 
-    # Opportunity Table — LONG
     st.markdown("---")
-    sh(f"▲ LONG OPPORTUNITIES — {quad} REGIME")
-    if longs:
-        df_long=pd.DataFrame([{k:v for k,v in r.items()} for r in longs])
-        st.dataframe(df_long,use_container_width=True,hide_index=True,height=min(len(longs)*38+50,420))
-    else:
-        st.info("Tidak ada long opportunity yang qualified untuk regime ini.")
+    sh("📋 EXECUTION BOARD — ringkas dulu, detail belakangan")
+    st.caption("Execution view fokus ke entry / invalidation / target / EV. Full detail tetap ada di bawah supaya dashboard tidak terlalu padat.")
 
-    # Opportunity Table — SHORT
-    st.markdown("---")
-    sh(f"▼ SHORT OPPORTUNITIES — {quad} REGIME")
-    if shorts:
-        df_short=pd.DataFrame([{k:v for k,v in r.items()} for r in shorts])
-        st.dataframe(df_short,use_container_width=True,hide_index=True,height=min(len(shorts)*38+50,360))
-    else:
-        st.info("Tidak ada short opportunity yang qualified untuk regime ini.")
+    long_tabs=st.tabs([f"▲ Long Execution View ({len(longs)})", "▲ Long Full Detail"])
+    with long_tabs[0]:
+        if longs:
+            st.dataframe(_opp_view_df(longs,detail=False),use_container_width=True,hide_index=True,height=min(len(longs)*38+50,420))
+        else:
+            st.info("Tidak ada long opportunity yang qualified untuk regime ini.")
+    with long_tabs[1]:
+        if longs:
+            st.dataframe(_opp_view_df(longs,detail=True),use_container_width=True,hide_index=True,height=min(len(longs)*38+50,520))
+        else:
+            st.info("Tidak ada long opportunity yang qualified untuk regime ini.")
 
-    # Forward Radar (P2: watchlist setups)
+    short_tabs=st.tabs([f"▼ Short Execution View ({len(shorts)})", "▼ Short Full Detail"])
+    with short_tabs[0]:
+        if shorts:
+            st.dataframe(_opp_view_df(shorts,detail=False),use_container_width=True,hide_index=True,height=min(len(shorts)*38+50,360))
+        else:
+            st.info("Tidak ada short opportunity yang qualified untuk regime ini.")
+    with short_tabs[1]:
+        if shorts:
+            st.dataframe(_opp_view_df(shorts,detail=True),use_container_width=True,hide_index=True,height=min(len(shorts)*38+50,480))
+        else:
+            st.info("Tidak ada short opportunity yang qualified untuk regime ini.")
+
     fwd=snap.get("forward_radar",[])
     if fwd:
         st.markdown("---"); sh("🔭 FORWARD RADAR — Next Setups (belum actionable, sudah on radar)")
@@ -2402,7 +2459,6 @@ def page_opportunities(snap:Dict)->None:
         fwd_rows=[{"Ticker":r.get("ticker_display",r.get("ticker","")),"Side":r.get("side",""),"Status":r.get("status",""),"Trigger":r.get("trigger",""),"Why Not Yet":r.get("why_not_yet",""),"1M":r.get("momentum_1m","—"),"Signal":r.get("signal_quality","")} for r in fwd]
         st.dataframe(pd.DataFrame(fwd_rows),use_container_width=True,hide_index=True,height=len(fwd_rows)*38+50)
 
-    # Regime Policy Matrix
     st.markdown("---")
     sh(f"📋 REGIME POLICY MATRIX — {quad} (dari v33 config)")
     policy=QUAD_POLICY.get(quad,{})
@@ -2416,6 +2472,7 @@ def page_opportunities(snap:Dict)->None:
             for x in pol.get("short",[])[:3]: st.markdown(f'<span style="font-size:11px;color:#e05252">• {x}</span>',unsafe_allow_html=True)
             st.markdown("⚫ **AVOID:**")
             for x in pol.get("avoid",[])[:2]: st.markdown(f'<span style="font-size:11px;opacity:.5">• {x}</span>',unsafe_allow_html=True)
+
 
 
 

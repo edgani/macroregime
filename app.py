@@ -955,27 +955,36 @@ def load_all()->Dict:
     analog=_match_analog(f); pb=build_playbooks(f,q); sc=build_scenarios(q,f,h,analog,pb)
     chk=build_checklists(f,h,q,ih)
     most_hated=build_most_hated_rally_monitor(f,prices)
-    opps=build_opportunities(prices,q,f,h,rot,ih,most_hated)
-    signal_strength=build_signal_strength(opps,prices,q,f,h)
     family=get_dominant_family(q,f,rot)
     risk_ranges=build_risk_range(prices,f,cr)
+    sizing=build_position_sizing(q,h,cr,f,risk_ranges,price_meta)
     asset_chk=build_asset_checklists_full(f,h,q,ih,prices)
     macro_impact=build_macro_impact_all(q,f,rot)
     fwd_radar=build_forward_radar(prices,q,f)
     sw_all=build_strong_weak_all(prices,q)
     route=derive_route_state(q,h,cr)
-    asset_trans=build_asset_translation(route["primary"],q,h,f)
+    asset_trans=build_asset_translation(route["primary"],q,h,f,route)
+    opps=build_opportunities(prices,q,f,h,rot,ih,most_hated,risk_ranges=risk_ranges,sizing=sizing,price_meta=price_meta,route=route)
+    signal_strength=build_signal_strength(opps,prices,q,f,h,risk_ranges=risk_ranges,route=route,crash=cr,sizing=sizing)
     news_overlay=build_news_catalyst_overlay(q,f,h)
     top_drivers=build_top_drivers_now(q,f,h,cr,route,most_hated,news_overlay)
     return dict(prices=prices,price_meta=price_meta,fred=fred,f=f,q=q,h=h,crash=cr,rotation=rot,ihsg=ih,
                 analog=analog,playbooks=pb,scenarios=sc,checklists=chk,
                 most_hated_rally=most_hated,opportunities=opps,signal_strength=signal_strength,family=family,risk_ranges=risk_ranges,
-                asset_checklists=asset_chk,macro_impact=macro_impact,
+                position_sizing=sizing,asset_checklists=asset_chk,macro_impact=macro_impact,
                 forward_radar=fwd_radar,strong_weak_all=sw_all,
                 route=route,asset_translation=asset_trans,news_overlay=news_overlay,top_drivers=top_drivers,
+                decision_context={
+                    "route_primary":route.get("primary"),
+                    "route_bias":route.get("route_bias"),
+                    "long_allowed":route.get("long_allowed"),
+                    "short_allowed":route.get("short_allowed"),
+                    "position_cap":route.get("position_cap"),
+                    "crash_score":cr.get("crash_score"),
+                },
                 ts=datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
                 build_meta={
-                    "app_version":"v10.0",
+                    "app_version":"v10.0-final-macro-brain",
                     "price_period":price_period,
                     "regime_prior_mode":f.get("prior_mode","off"),
                     "signal_enter_threshold":SIGNAL_ENTER_THRESHOLD,
@@ -984,7 +993,10 @@ def load_all()->Dict:
                     "markets_integrated_signals":True,
                     "top_drivers_enabled":True,
                     "setup_quality_enabled":True,
+                    "risk_range_ttt_enabled":True,
+                    "position_sizing_enabled":True,
                 })
+
 
 # ── UI helpers ────────────────────────────────────────────────────────────────
 def qb(q:str)->str:
@@ -1136,294 +1148,290 @@ def get_dominant_family(q:Dict, f:Dict, rot:Dict) -> str:
     return "reflation"
 
 # ── Build opportunity rows (Long/Short ranked with entry/target/invalidation) ─
-def build_opportunities(prices:Dict[str,pd.Series], q:Dict, f:Dict, h:Dict, rot:Dict, ih:Dict, most_hated:Dict) -> List[Dict]:
-    """Opportunity engine with Most Hated Rally branch overlay, sizing, and explainability."""
-    quad=q["quad"]
-    conf=q.get("confidence",0.5)
-    regime_ev=conf*0.6+h.get("weather",0.5)*0.4
-    rally_clear=int(most_hated.get("hard_clear_count", most_hated.get("clear_count",0)) or 0)
+def build_opportunities(prices:Dict[str,pd.Series], q:Dict, f:Dict, h:Dict, rot:Dict, ih:Dict, most_hated:Dict,
+                        risk_ranges:Optional[Dict]=None, sizing:Optional[Dict]=None,
+                        price_meta:Optional[Dict]=None, route:Optional[Dict]=None) -> List[Dict]:
+    """Final opportunity engine: macro + route + Trade/Trend/Tail + sizing aware."""
+    risk_ranges = risk_ranges or {}
+    sizing = sizing or {}
+    price_meta = price_meta or {}
+    route = route or {}
+
+    quad=str(q.get("quad","Q3"))
+    conf=float(q.get("confidence",0.5) or 0.5)
+    monthly_quad=str(q.get("monthly_quad",quad))
+    weather=float(h.get("weather",0.5) or 0.5)
+    regime_ev=0.60*conf+0.40*weather
     branch_state=str(most_hated.get("branch_state","dormant"))
     posture=str(most_hated.get("posture","Defense / selective only"))
-    size_mult=float(most_hated.get("size_mult",0.35) or 0.35)
     long_boost=float(most_hated.get("scanner_long_boost",0.0) or 0.0)
     short_penalty=float(most_hated.get("scanner_short_penalty",0.0) or 0.0)
-    foreign_flow=float(ih.get("foreign_flow",0.5) or 0.5)
-    ihsg_score=float(ih.get("ihsg_score",0.5) or 0.5)
     active_branch=branch_state in {"arming","pre_confirmed","active"}
     hot_branch=branch_state in {"pre_confirmed","active"}
+    route_primary=str(route.get("primary","growth_scare"))
+    route_conf=float(route.get("confidence",0.5) or 0.5)
+    long_allowed=bool(route.get("long_allowed",True))
+    short_allowed=bool(route.get("short_allowed",True))
+    crash_score=clamp((route.get("crash_score", q.get("crash_score", 0.0)) or 0.0))
+    coverage=float(price_meta.get("coverage",1.0) or 1.0)
+    short_hist=float(price_meta.get("short_history_share",0.0) or 0.0)
+    stale_share=float(price_meta.get("stale_share",0.0) or 0.0)
+    data_penalty=float(np.clip(0.45*max(0.0,0.90-coverage)/0.90+0.30*short_hist+0.25*stale_share,0.0,1.0))
 
-    def _score(s:pd.Series, bias:str)->float:
+    def _market_of(tk:str)->str:
+        if tk in IHSG_TICKERS or tk.endswith('.JK'):
+            return 'IHSG'
+        if tk in FX_TICKERS:
+            return 'FX'
+        if tk in COMM_TICKERS:
+            return 'Commodities'
+        if tk in CRYPTO_TICKERS:
+            return 'Crypto'
+        return 'US'
+
+    def _display(tk:str, market:str)->str:
+        if market == 'IHSG':
+            return tk.replace('.JK','') + ' (JK)'
+        if market in {'Crypto','Commodities','FX'}:
+            return disp(tk)
+        return tk
+
+    def _ret_score(s:pd.Series,bias:str)->float:
+        s=_s(s)
         r1=ret_n(s,21); r3=ret_n(s,63); tr=ts(s)
         if not (math.isfinite(r1) and math.isfinite(r3)):
             return 0.0
-        base=r1*0.6+r3*0.4+0.02*(tr-0.5)
-        return float(np.nan_to_num(base if bias=="LONG" else -base,nan=0.0))
+        base=0.55*r1+0.45*r3+0.03*(tr-0.5)
+        return float(np.nan_to_num(base if bias=='LONG' else -base, nan=0.0))
 
-    def _atr_pct(s:pd.Series,n=14)->float:
-        s2=_s(s)
-        if len(s2)<n+2:
-            return 0.03
-        returns=s2.pct_change().dropna().abs()
-        return float(returns.tail(n).mean())*0.5
+    def _macro_align(tk:str,bias:str,market:str)->Tuple[float,str]:
+        rr=risk_ranges.get(tk,{})
+        bullish=rr.get('trade_state')=='bullish' and rr.get('trend_state')=='bullish'
+        bearish=rr.get('trade_state')=='bearish' and rr.get('trend_state')=='bearish'
+        risk_on={'QQQ','IWM','RSP','XLF','XLI','XLE','EEM','BTC-USD','ETH-USD','SOL-USD','BBCA.JK','BBRI.JK','BMRI.JK','ADRO.JK','PTBA.JK','ANTM.JK'}
+        defensives={'TLT','GLD','GC=F','UUP','XLP','XLV','XLU','TLKM.JK'}
+        if bias=='LONG':
+            if quad in {'Q1','Q2'} and tk in risk_on:
+                return (1.0 if bullish or rr.get('buy_dip_ok') else 0.80), '✓'
+            if quad=='Q3' and tk in {'GLD','GC=F','UUP','XLE','TLKM.JK','ADRO.JK','PTBA.JK','ANTM.JK'}:
+                return (1.0 if bullish or rr.get('buy_dip_ok') else 0.78), '✓'
+            if quad=='Q4' and tk in defensives:
+                return (1.0 if bullish or rr.get('buy_dip_ok') else 0.78), '✓'
+            if rr.get('triple_aligned') and bullish:
+                return 0.75, '~'
+            return 0.42, '✗'
+        else:
+            if quad in {'Q3','Q4'} and tk in {'QQQ','IWM','HYG','EEM','BTC-USD','ETH-USD','SOL-USD','^JKSE'}:
+                return (1.0 if bearish or rr.get('sell_rip_ok') else 0.78), '✓'
+            if quad in {'Q1','Q2'} and tk in {'UUP','TLT'}:
+                return (0.72 if bearish or rr.get('sell_rip_ok') else 0.60), '~ Tactical'
+            if rr.get('triple_aligned') and bearish:
+                return 0.74, '~'
+            return 0.40, '✗'
 
-    def _entry_zone(px:float,atr:float,bias:str)->str:
+    def _route_align(tk:str,bias:str)->Tuple[float,str]:
+        bull_routes={'quality_disinflation','reflation_reaccel','vshape_rebound'}
+        bear_routes={'growth_scare','deflationary_riskoff','panic_crash'}
+        if bias=='LONG':
+            if not long_allowed:
+                return 0.20, '✗'
+            if route_primary in bull_routes:
+                return 1.0 if hot_branch or route_conf>=0.55 else 0.84, '✓'
+            if route_primary=='stagflation_persist' and tk in {'GLD','GC=F','UUP','XLE','ADRO.JK','PTBA.JK','ANTM.JK','TLKM.JK'}:
+                return 0.90, '✓'
+            return 0.55, '~ Tactical'
+        else:
+            if not short_allowed:
+                return 0.20, '✗'
+            if route_primary in bear_routes:
+                return 1.0 if route_conf>=0.55 else 0.84, '✓'
+            if hot_branch and tk in {'UUP','CL=F'}:
+                return 0.82, '~ Tactical'
+            return 0.52, '~ Tactical'
+
+    def _entry_zone(px:float, rr:Dict, bias:str)->str:
         if not math.isfinite(px) or px<=0:
-            return "—"
-        if bias=="LONG":
-            return f"{px*(1-atr):.2f} – {px*(1-atr*0.3):.2f}"
-        return f"{px*(1+atr*0.3):.2f} – {px*(1+atr):.2f}"
+            return '—'
+        if rr:
+            if bias=='LONG':
+                lo=rr.get('trade_low', px*0.97)
+                hi=min(rr.get('trade_basis', px), rr.get('trade_high', px*1.02))
+            else:
+                lo=max(rr.get('trade_basis', px), rr.get('trade_low', px*0.98))
+                hi=rr.get('trade_high', px*1.03)
+            return f"{lo:.2f} – {hi:.2f}"
+        atr=max(0.02,abs(px)*0.03)
+        return f"{px-atr:.2f} – {px-atr*0.3:.2f}" if bias=='LONG' else f"{px+atr*0.3:.2f} – {px+atr:.2f}"
 
-    def _target(px:float,atr:float,bias:str,rr=2.0)->str:
+    def _target(px:float, rr:Dict, bias:str)->str:
         if not math.isfinite(px) or px<=0:
-            return "—"
-        if bias=="LONG":
-            return f"{px*(1+atr*rr):.2f} (+{atr*rr*100:.1f}%)"
-        return f"{px*(1-atr*rr):.2f} (-{atr*rr*100:.1f}%)"
+            return '—'
+        if rr:
+            if bias=='LONG':
+                t1=rr.get('trend_high', px*1.05); t2=rr.get('tail_high', t1)
+                return f"{t1:.2f} / {t2:.2f}"
+            t1=rr.get('trend_low', px*0.95); t2=rr.get('tail_low', t1)
+            return f"{t1:.2f} / {t2:.2f}"
+        return f"{px*1.06:.2f}" if bias=='LONG' else f"{px*0.94:.2f}"
 
-    def _invalidation(px:float,atr:float,bias:str)->str:
-        if not math.isfinite(px) or px<=0:
-            return "—"
-        if bias=="LONG":
-            return f"<{px*(1-atr*1.5):.2f}"
-        return f">{px*(1+atr*1.5):.2f}"
+    def _invalidation(px:float, rr:Dict, bias:str)->str:
+        if rr:
+            if bias=='LONG':
+                return f"<{rr.get('trade_low',px*0.97):.2f} then <{rr.get('trend_low',px*0.94):.2f}"
+            return f">{rr.get('trade_high',px*1.03):.2f} then >{rr.get('trend_high',px*1.06):.2f}"
+        return f"<{px*0.95:.2f}" if bias=='LONG' else f">{px*1.05:.2f}"
+
+    def _holding_window(rr:Dict)->str:
+        if rr.get('triple_aligned'):
+            return 'Trend / Tail'
+        if rr.get('trade_state') == rr.get('trend_state') and rr.get('trade_state') in {'bullish','bearish'}:
+            return 'Trade / Trend'
+        return 'Trade'
+
+    def _setup_quality(score:float)->str:
+        return 'A' if score>=0.72 else ('B' if score>=0.58 else ('C' if score>=0.44 else 'D'))
+
+    def _path_state(macro_txt:str, route_txt:str)->str:
+        if macro_txt=='✓' and route_txt=='✓': return 'Primary'
+        if 'Tactical' in macro_txt or 'Tactical' in route_txt or '~' in macro_txt or '~' in route_txt: return 'Tactical'
+        return 'Watch'
+
+    def _risk_bucket(rr:Dict)->str:
+        rq=float(rr.get('range_quality',0.5) or 0.5)
+        return 'Tight' if rq>=0.72 else ('Medium' if rq>=0.48 else 'Wide')
 
     def _rally_overlay(tk:str, market:str, bias:str)->Tuple[float,str,str]:
-        if branch_state in {"dormant","watching"}:
-            return 0.0, "Neutral", ""
-        stage_mult={"arming":0.65,"pre_confirmed":0.90,"active":1.00}.get(branch_state,0.0)
+        if branch_state in {'dormant','watching'}:
+            return 0.0,'Neutral',''
+        stage_mult={'arming':0.65,'pre_confirmed':0.90,'active':1.00}.get(branch_state,0.0)
         base=long_boost*stage_mult
-        fit="Neutral"
-        note=""
-        adj=0.0
-
-        risk_on_us={"QQQ","IWM","RSP","XLF","XLI","EEM","NVDA","AAPL","MSFT","META","AVGO","AMD"}
-        safe_us={"UUP","SHY","XLP","XLU","XLV","TLT"}
-        ihsg_beneficiaries={"BBCA.JK","BBRI.JK","BMRI.JK","TLKM.JK","ADRO.JK","PTBA.JK","ANTM.JK","AADI.JK","INCO.JK","MDKA.JK"}
-        ihsg_defensive={"ICBP.JK","KLBF.JK","TLKM.JK"}
-        crypto_beta={"BTC-USD","ETH-USD","SOL-USD","BNB-USD","XRP-USD","ADA-USD","AVAX-USD","LINK-USD","DOGE-USD"}
-        squeeze_shorts={"QQQ","IWM","EEM","RSP","BTC-USD","ETH-USD","SOL-USD","BNB-USD","CTRA.JK","BSDE.JK","AMRT.JK","XLF","XLI"}
-
-        if bias=="LONG":
-            if market=="US" and tk in risk_on_us:
-                adj=base+(0.03 if tk in {"IWM","EEM","RSP"} else 0.015)
-                fit="Boosted"
-                note="Checklist hidup → beta, breadth, dan catch-up longs dinaikkan"
-            elif market=="IHSG" and tk in ihsg_beneficiaries:
-                adj=base+(0.02 if foreign_flow>0.52 else 0.0)+(0.02 if ihsg_score>0.56 else 0.0)
-                fit="Boosted"
-                note="Likuiditas global + potensi flow asing mendukung IHSG beneficiaries"
-            elif market=="Crypto" and tk in crypto_beta:
-                adj=base+0.05
-                fit="Boosted"
-                note="Crypto jadi high-beta expression paling sensitif ke liquidity rally"
-            elif market=="Commodities" and tk in {"HG=F","GC=F","GLD"}:
-                adj=(0.05 if tk=="HG=F" else 0.02)+(0.01 if hot_branch else 0.0)
-                fit="Boosted"
-                note="Copper ikut bantu risk-on; gold tetap boleh jadi hedge likuiditas"
-            elif market=="US" and tk in safe_us and hot_branch:
-                adj=-0.05
-                fit="Fade"
-                note="Saat branch hidup, leadership cenderung pindah dari safe harbor ke beta"
-            elif market=="IHSG" and tk in ihsg_defensive and hot_branch and tk!="TLKM.JK":
-                adj=-0.02
-                fit="Fade"
-                note="Masih boleh dipegang, tapi bukan penerima flow paling agresif"
-            elif market=="Commodities" and tk=="CL=F":
-                adj=-0.05 if hot_branch else -0.025
-                fit="Fade"
-                note="De-escalation branch biasanya jadi headwind buat oil"
+        if bias=='LONG':
+            if market in {'US','Crypto'} and tk in {'QQQ','IWM','RSP','XLF','XLI','EEM','BTC-USD','ETH-USD','SOL-USD'}:
+                return base+0.03,'Boosted','Checklist hidup → beta dan catch-up longs dinaikkan'
+            if market=='IHSG' and tk in {'BBCA.JK','BBRI.JK','BMRI.JK','TLKM.JK','ADRO.JK','PTBA.JK','ANTM.JK'}:
+                return base+0.02,'Boosted','Likuiditas global + potensi flow asing mendukung beneficiaries'
+            if market=='Commodities' and tk in {'HG=F','GC=F'}:
+                return (0.05 if tk=='HG=F' else 0.02)+(0.01 if hot_branch else 0.0),'Boosted','Copper ikut bantu risk-on; gold tetap boleh jadi hedge'
+            if market=='Commodities' and tk=='CL=F':
+                return (-0.05 if hot_branch else -0.025),'Fade','De-escalation branch biasanya jadi headwind buat oil'
+            if market=='US' and tk in {'UUP','XLP','XLU','XLV','TLT'} and hot_branch:
+                return -0.05,'Fade','Saat branch hidup, leadership cenderung pindah dari safe harbor ke beta'
         else:
-            if tk in squeeze_shorts and market in {"US","IHSG","Crypto"}:
-                adj=short_penalty-(0.02 if hot_branch else 0.0)
-                fit="Squeezed"
-                note="Short ini rawan disqueeze kalau 3/4–4/4 trigger hidup"
-            elif tk=="UUP" and market=="US" and active_branch:
-                adj=max(0.03, base*0.7)
-                fit="Boosted"
-                note="Short USD adalah expression direct dari DXY softening branch"
-            elif tk=="CL=F" and market=="Commodities" and hot_branch:
-                adj=max(0.03, base*0.6)
-                fit="Boosted"
-                note="Kalau de-escalation final terjadi, oil short bisa jadi expression bersih"
-        return adj, fit, note
-
-    def _setup_meta(ev:float, macro_aligned:str, rally_fit:str, atr:float, bias:str)->Tuple[str,str,str,str]:
-        score=0.55*clamp(ev)+0.20*clamp(conf)
-        if macro_aligned=="✓": score+=0.14
-        elif macro_aligned in {"~","~ Tactical"}: score+=0.06
-        if rally_fit=="Boosted": score+=0.06
-        elif rally_fit in {"Fade","Squeezed"}: score-=0.07
-        if atr<=0.025: score+=0.03
-        elif atr>=0.055: score-=0.03
-        score=clamp(score)
-        setup_quality="A" if score>=0.72 else ("B" if score>=0.58 else ("C" if score>=0.44 else "D"))
-        path_state="Primary" if macro_aligned=="✓" and rally_fit not in {"Fade","Squeezed"} else ("Tactical" if ("Tactical" in macro_aligned or rally_fit=="Boosted") else "Watch")
-        risk_bucket="Tight" if atr<0.025 else ("Medium" if atr<0.045 else "Wide")
-        blockers=[]
-        if macro_aligned not in {"✓","~ Tactical"}: blockers.append("macro alignment belum penuh")
-        if rally_fit=="Fade": blockers.append("branch aktif masih lawan ekspresi ini")
-        if rally_fit=="Squeezed": blockers.append("short rawan squeeze dulu")
-        if ev<0.55: blockers.append("EV belum cukup bersih")
-        if atr>0.05: blockers.append("range masih lebar")
-        if h.get("weather",0.5)<0.48 and "LONG" in bias: blockers.append("weather market belum sehat")
-        if h.get("weather",0.5)>0.60 and "SHORT" in bias and rally_fit!="Boosted": blockers.append("short belum punya angin cukup")
-        why_not_yet="Ready / size sesuai guide" if not blockers else " · ".join(blockers[:2])
-        return setup_quality, path_state, risk_bucket, why_not_yet
-
-    def _push(rows:list, tk:str, market:str, bias:str, horizon:str, why:str, ev_base:float, macro_aligned:str="✓", display_ticker:Optional[str]=None):
-        s=prices.get(tk,pd.Series())
-        sc=_score(s,"LONG" if "LONG" in bias else "SHORT")
-        px=last(s)
-        atr=_atr_pct(s)
-        ev=clamp(ev_base)
-        rally_adj, rally_fit, rally_note=_rally_overlay(tk,market,"LONG" if "LONG" in bias else "SHORT")
-        ev=clamp(ev+rally_adj)
-        why_full=why if not rally_note else f"{why} · {rally_note}"
-        setup_quality, path_state, risk_bucket, why_not_yet = _setup_meta(ev, macro_aligned, rally_fit, atr, bias)
-        rows.append({
-            "Ticker": display_ticker or (disp(tk) if market in {"Crypto","Commodities"} else (tk.replace('.JK','')+" (JK)" if market=="IHSG" else tk)),
-            "Market":market,
-            "Bias":bias,
-            "Horizon":horizon,
-            "Entry Zone":_entry_zone(px,atr,"LONG" if "LONG" in bias else "SHORT"),
-            "Target":_target(px,atr,"LONG" if "LONG" in bias else "SHORT"),
-            "Invalidation":_invalidation(px,atr,"LONG" if "LONG" in bias else "SHORT"),
-            "Why Now":why_full,
-            "Why Not Yet":why_not_yet,
-            "Setup":setup_quality,
-            "Path":path_state,
-            "Risk Bucket":risk_bucket,
-            "EV":f"{ev:.0%}",
-            "Conf":f"{conf:.0%}",
-            "Macro Aligned":macro_aligned,
-            "Rally Fit":rally_fit,
-            "Sizing":f"{size_mult:.2f}x",
-            "Rally State":posture,
-            "_score":sc,
-            "_ev":ev,
-            "_raw_ticker":tk,
-        })
+            if tk in {'QQQ','IWM','EEM','RSP','BTC-USD','ETH-USD','SOL-USD','BNB-USD','XLF','XLI'}:
+                return short_penalty-(0.02 if hot_branch else 0.0),'Squeezed','Short ini rawan disqueeze kalau branch hidup'
+            if tk=='UUP' and active_branch:
+                return max(0.03,base*0.7),'Boosted','Short USD = expression direct dari DXY softening branch'
+            if tk=='CL=F' and hot_branch:
+                return max(0.03,base*0.6),'Boosted','De-escalation final + oil mean reversion'
+        return 0.0,'Neutral',''
 
     rows=[]
+    all_candidates=sorted(set(US_TICKERS+IHSG_TICKERS+FX_TICKERS+COMM_TICKERS+CRYPTO_TICKERS))
+    for tk in all_candidates:
+        market=_market_of(tk)
+        if market=='FX':
+            continue  # keep board focused like current scanner
+        s=_s(prices.get(tk,pd.Series(dtype=float)))
+        rr=risk_ranges.get(tk,{})
+        sz=sizing.get(tk,{})
+        if len(s)<80:
+            continue
+        px=last(s)
+        if not math.isfinite(px):
+            continue
 
-    us_long_map={
-        "Q1":{"QQQ":"Growth bull market","NVDA":"AI/semis leader","AAPL":"Quality large cap","MSFT":"Quality+AI","GLD":"Inflation hedge"},
-        "Q2":{"XLE":"Energy reflation","HG=F":"Copper supply/demand","XLI":"Industrials lead","XLF":"Financials reflation","QQQ":"Growth+momentum"},
-        "Q3":{"GLD":"Stagflation best asset","XLE":"Energy still wins","XLP":"Defensive consumer","XLU":"Utilities defensive","SHY":"Short-duration safe"},
-        "Q4":{"TLT":"Long bonds rally hard","GLD":"Gold deflation hedge","XLP":"Defensives lead","XLV":"Healthcare defensive","XLU":"Utilities"},
-    }
-    us_short_map={
-        "Q1":{"XLE":"Energy underperforms Q1","UUP":"USD weakens"},
-        "Q2":{"TLT":"Bonds get killed","XLP":"Defensives lag"},
-        "Q3":{"QQQ":"Tech crushed in stagflation","XLY":"Consumer disc bearish","IWM":"Small caps hit hard","EEM":"EM pain"},
-        "Q4":{"XLE":"Commodity collapse","XLI":"Cyclicals crash","IWM":"Small caps worst","HYG":"Credit stress"},
-    }
-    for tk,why in us_long_map.get(quad,{}).items():
-        s=prices.get(tk,pd.Series())
-        sc=_score(s,"LONG")
-        atr=_atr_pct(s)
-        ev=clamp(regime_ev+sc*0.5)
-        horizon="Trade" if atr>0.04 else ("Trend" if atr>0.02 else "Tail")
-        _push(rows,tk,"US","▲ LONG",horizon,why,ev,macro_aligned="✓" if quad in ("Q1","Q2") or tk in ("GLD","XLP","XLU","XLV","SHY","TLT") else "~")
-    for tk,why in us_short_map.get(quad,{}).items():
-        s=prices.get(tk,pd.Series())
-        sc=_score(s,"SHORT")
-        ev=clamp(regime_ev*0.7+sc*0.3)
-        _push(rows,tk,"US","▼ SHORT","Trade",why,ev)
-
-    ihsg_long_map={
-        "Q1":{"BBCA.JK":"Bank premium Q1","BBRI.JK":"Bank growth","TLKM.JK":"Defensive anchor"},
-        "Q2":{"ADRO.JK":"Coal king Q2","PTBA.JK":"Coal exporter","ANTM.JK":"Metals Q2","BBCA.JK":"Bank lead"},
-        "Q3":{"ADRO.JK":"Coal survives Q3","AADI.JK":"Coal exporter","ANTM.JK":"Gold/nickel Q3","TLKM.JK":"Defensive","ICBP.JK":"Consumer def"},
-        "Q4":{"TLKM.JK":"Defensive dividend","ICBP.JK":"Consumer staples","KLBF.JK":"Healthcare"},
-    }
-    ihsg_short_map={
-        "Q3":{"CTRA.JK":"Property bearish Q3","BSDE.JK":"Property USD-sensitive","AMRT.JK":"Consumer cyc rapuh"},
-        "Q4":{"ADRO.JK":"Coal demand collapse","ANTM.JK":"Metals crash Q4","AMRT.JK":"Consumer discretionary"},
-    }
-    for tk,why in ihsg_long_map.get(quad,{}).items():
-        s=prices.get(tk,pd.Series())
-        sc=_score(s,"LONG")
-        ev=clamp(regime_ev*0.8+sc*0.4)
-        _push(rows,tk,"IHSG","▲ LONG","Trend",why,ev)
-    for tk,why in ihsg_short_map.get(quad,{}).items():
-        s=prices.get(tk,pd.Series())
-        sc=_score(s,"SHORT")
-        ev=clamp(regime_ev*0.6+sc*0.3)
-        _push(rows,tk,"IHSG","▼ SHORT","Trade",why,ev)
-
-    comm_long={"Q1":{"GC=F":"Gold Q1 ok","GLD":"Gold ETF"},"Q2":{"CL=F":"Oil king Q2","HG=F":"Copper Q2","GC=F":"Gold hedge"},
-               "Q3":{"GC=F":"Gold stagflation trade","CL=F":"Oil volatile but up","GLD":"Gold ETF"},
-               "Q4":{"GC=F":"Gold deflation","GLD":"Gold safe haven"}}
-    comm_short={"Q2":{"GC=F":"Gold lags reflation"},"Q3":{"HG=F":"Copper demand collapse"},"Q4":{"CL=F":"Oil crash","HG=F":"Copper recession"}}
-    for tk,why in comm_long.get(quad,{}).items():
-        s=prices.get(tk,pd.Series())
-        sc=_score(s,"LONG")
-        ev=clamp(regime_ev*0.7+sc*0.4)
-        _push(rows,tk,"Commodities","▲ LONG","Trend",why,ev)
-    for tk,why in comm_short.get(quad,{}).items():
-        s=prices.get(tk,pd.Series())
-        sc=_score(s,"SHORT")
-        ev=clamp(regime_ev*0.5+sc*0.3)
-        _push(rows,tk,"Commodities","▼ SHORT","Trade",why,ev)
-
-    if quad=="Q1":
-        for tk,why in {"BTC-USD":"BTC Q1 bullish","ETH-USD":"ETH Q1 catch-up","SOL-USD":"SOL high beta Q1"}.items():
-            s=prices.get(tk,pd.Series())
-            sc=_score(s,"LONG")
-            ev=clamp(regime_ev*0.7+sc*0.3)
-            _push(rows,tk,"Crypto","▲ LONG","Trade",why,ev)
-    elif quad in ("Q3","Q4"):
-        for tk,why in {"ETH-USD":"ETH avoid stagflation","SOL-USD":"SOL avoid Q3/Q4","BNB-USD":"BNB avoid Q3/Q4"}.items():
-            s=prices.get(tk,pd.Series())
-            sc=_score(s,"SHORT")
-            ev=clamp(regime_ev*0.5+sc*0.3)
-            _push(rows,tk,"Crypto","▼ SHORT","Trade",why,ev)
-
-    if active_branch:
-        existing={(r.get("_raw_ticker"),r["Bias"],r["Market"]) for r in rows}
-        extra_longs=[
-            ("IWM","US","▲ LONG","Trade","Relief squeeze + breadth catch-up saat most hated rally mulai hidup"),
-            ("RSP","US","▲ LONG","Trade","Equal-weight ikut bangun = rally makin sehat"),
-            ("EEM","US","▲ LONG","Trade","USD softer + EM catch-up expression"),
-            ("BBCA.JK","IHSG","▲ LONG","Trend","Asing inflow + bank quality jadi penerima flow utama"),
-            ("BBRI.JK","IHSG","▲ LONG","Trend","Domestic beta ikut hidup kalau likuiditas global membaik"),
-            ("TLKM.JK","IHSG","▲ LONG","Trend","Likuiditas masuk tanpa terlalu spekulatif"),
-            ("BTC-USD","Crypto","▲ LONG","Trade","BTC jadi barometer likuiditas global yang paling jujur"),
-            ("ETH-USD","Crypto","▲ LONG","Trade","ETH catch-up ketika liquidity branch aktif"),
-            ("SOL-USD","Crypto","▲ LONG","Trade","High beta crypto paling sensitif ke risk-on"),
-        ]
-        for tk,market,bias,horizon,why in extra_longs:
-            key=(tk,bias,market)
-            if key in existing:
+        for bias in ['LONG','SHORT']:
+            if bias=='LONG' and not long_allowed and market not in {'Commodities'}:
                 continue
-            s=prices.get(tk,pd.Series())
-            sc=_score(s,"LONG")
-            market_base={"US":0.66,"IHSG":0.64,"Crypto":0.62}.get(market,0.60)
-            ev=clamp(regime_ev*0.45+market_base*0.30+sc*0.15+0.08)
-            _push(rows,tk,market,bias,horizon,why,ev,macro_aligned="~ Tactical")
-
-    if hot_branch:
-        existing={(r.get("_raw_ticker"),r["Bias"],r["Market"]) for r in rows}
-        extra_shorts=[
-            ("UUP","US","▼ SHORT","Trade","Dollar short = expression paling bersih kalau DXY mulai lemah"),
-            ("CL=F","Commodities","▼ SHORT","Trade","De-escalation final + oil mean reversion"),
-        ]
-        for tk,market,bias,horizon,why in extra_shorts:
-            key=(tk,bias,market)
-            if key in existing:
+            if bias=='SHORT' and not short_allowed and not (hot_branch and tk in {'UUP','CL=F'}):
                 continue
-            s=prices.get(tk,pd.Series())
-            sc=_score(s,"SHORT")
-            ev=clamp(regime_ev*0.35+0.22+sc*0.18)
-            _push(rows,tk,market,bias,horizon,why,ev,macro_aligned="~ Tactical")
 
-    longs=[r for r in rows if "LONG" in r["Bias"]]
-    shorts=[r for r in rows if "SHORT" in r["Bias"]]
-    longs.sort(key=lambda x:(x["_ev"], x.get("Rally Fit")=="Boosted", x.get("Macro Aligned") in {"✓","~ Tactical"}), reverse=True)
-    shorts.sort(key=lambda x:(x["_ev"], x.get("Rally Fit")=="Boosted"), reverse=True)
-    combined=longs+shorts
-    return combined
+            score_ret=_ret_score(s,bias)
+            macro_score, macro_txt=_macro_align(tk,bias,market)
+            route_score, route_txt=_route_align(tk,bias)
+            range_score=(1.0 if rr.get('buy_dip_ok') else 0.72 if rr.get('trade_state')=='bullish' and rr.get('trend_state')=='bullish' else 0.38) if bias=='LONG' else (1.0 if rr.get('sell_rip_ok') else 0.72 if rr.get('trade_state')=='bearish' and rr.get('trend_state')=='bearish' else 0.38)
+            size_scalar=float(sz.get('size_scalar_long' if bias=='LONG' else 'size_scalar_short',0.25) or 0.25)
+            size_label=str(sz.get('size_current_long' if bias=='LONG' else 'size_current_short','0.25x'))
+            rally_adj, rally_fit, rally_note = _rally_overlay(tk, market, bias)
+            rr_quality=float(rr.get('range_quality',0.50) or 0.50)
+
+            ev_base=float(np.clip(
+                0.24*(0.50+score_ret)+
+                0.22*macro_score+
+                0.18*route_score+
+                0.18*range_score+
+                0.18*rr_quality,
+                0.0,1.0
+            ))
+            final_ev=float(np.clip(
+                (ev_base + rally_adj)
+                * (0.72 + 0.28*conf)
+                * (0.72 + 0.28*weather)
+                * (0.70 + 0.30*route_conf)
+                * size_scalar
+                * (1.0 - 0.35*data_penalty)
+                * (1.0 - 0.35*crash_score if bias=='LONG' else 1.0),
+                0.0,1.0
+            ))
+
+            if final_ev < 0.20:
+                continue
+            if bias=='SHORT' and tk not in {'UUP','CL=F','QQQ','IWM','EEM','BTC-USD','ETH-USD','SOL-USD','^JKSE','HYG'} and final_ev < 0.38:
+                continue
+            if bias=='LONG' and market=='Crypto' and final_ev < 0.36:
+                continue
+
+            why_now=[]; why_not=[]
+            if macro_txt=='✓': why_now.append('macro aligned')
+            else: why_not.append('macro alignment incomplete')
+            if route_txt=='✓': why_now.append('route aligned')
+            else: why_not.append('route branch not clean')
+            if range_score>=0.90: why_now.append('range setup clean')
+            elif range_score>=0.60: why_not.append('range not at ideal edge yet')
+            else: why_not.append('durations not aligned')
+            if data_penalty>=0.35: why_not.append('data confidence reduced')
+            if rally_note: why_now.append(rally_note)
+
+            setup=_setup_quality(final_ev)
+            path=_path_state(macro_txt, route_txt)
+            risk_bucket=_risk_bucket(rr)
+            bias_label='▲ LONG' if bias=='LONG' else '▼ SHORT'
+            if final_ev<0.28:
+                bias_label='WATCH'
+            rows.append({
+                'Ticker': _display(tk, market),
+                'Market': market,
+                'Bias': bias_label,
+                'Horizon': _holding_window(rr),
+                'Entry Zone': _entry_zone(px, rr, bias),
+                'Target': _target(px, rr, bias),
+                'Invalidation': _invalidation(px, rr, bias),
+                'Why Now': '; '.join(why_now) if why_now else 'none',
+                'Why Not Yet': '; '.join(why_not) if why_not else 'none',
+                'Setup': setup,
+                'Path': path,
+                'Risk Bucket': risk_bucket,
+                'EV': f"{final_ev:.0%}",
+                'Conf': f"{conf:.0%}",
+                'Macro Aligned': macro_txt,
+                'Route Aligned': route_txt,
+                'Range Aligned': '✓' if range_score>=0.90 else ('~' if range_score>=0.60 else '✗'),
+                'Rally Fit': rally_fit,
+                'Sizing': size_label,
+                'Rally State': posture,
+                'Trade State': rr.get('trade_state','neutral'),
+                'Trend State': rr.get('trend_state','neutral'),
+                'Tail State': rr.get('tail_state','neutral'),
+                '_score': score_ret,
+                '_ev': final_ev,
+                '_raw_ticker': tk,
+            })
+
+    longs=[r for r in rows if 'LONG' in r['Bias']]
+    shorts=[r for r in rows if 'SHORT' in r['Bias']]
+    longs.sort(key=lambda x:(x['_ev'], x.get('Rally Fit')=='Boosted', x.get('Macro Aligned') in {'✓','~ Tactical'}), reverse=True)
+    shorts.sort(key=lambda x:(x['_ev'], x.get('Rally Fit')=='Boosted'), reverse=True)
+    return longs + shorts
 
 
 def build_top_drivers_now(q:Dict, f:Dict, h:Dict, cr:Dict, route:Dict, most_hated:Dict, news_overlay:Dict)->List[Dict]:
@@ -1626,21 +1634,45 @@ def write_signal_snapshot(active_df:pd.DataFrame, removed_df:pd.DataFrame, asof_
         conn.commit()
 
 
-def build_signal_strength(opps:List[Dict], prices:Dict[str,pd.Series], q:Dict, f:Dict, h:Dict) -> Dict:
+def build_signal_strength(opps:List[Dict], prices:Dict[str,pd.Series], q:Dict, f:Dict, h:Dict,
+                          risk_ranges:Optional[Dict]=None, route:Optional[Dict]=None,
+                          crash:Optional[Dict]=None, sizing:Optional[Dict]=None) -> Dict:
+    """Lifecycle engine: Added / Active / Weakening / Removed / Invalidated."""
+    risk_ranges = risk_ranges or {}
+    route = route or {}
+    crash = crash or {}
+    sizing = sizing or {}
+
     asof_date=_signal_snapshot_date()
     prev_df=read_prev_signal_state(asof_date)
     prev_map={}
     if isinstance(prev_df,pd.DataFrame) and not prev_df.empty:
         for _,row in prev_df.iterrows():
-            prev_map[(str(row.get("ticker","")), str(row.get("market","")), str(row.get("bias","")))] = row.to_dict()
+            prev_map[(str(row.get('ticker','')), str(row.get('market','')), str(row.get('bias','')))] = row.to_dict()
+
+    route_conf=float(route.get('confidence',0.5) or 0.5)
+    crash_score=clamp(crash.get('crash_score',0.0))
+    long_allowed=bool(route.get('long_allowed',True))
+    short_allowed=bool(route.get('short_allowed',True))
+
+    def _status(score_now:float, score_prev:float, invalidated:bool)->str:
+        if invalidated:
+            return 'Invalidated'
+        if score_now >= SIGNAL_ENTER_THRESHOLD and score_prev < SIGNAL_ENTER_THRESHOLD:
+            return 'added'
+        if score_now >= SIGNAL_ENTER_THRESHOLD and score_prev >= SIGNAL_ENTER_THRESHOLD:
+            return 'remaining'
+        if SIGNAL_EXIT_THRESHOLD <= score_now < SIGNAL_ENTER_THRESHOLD and score_prev >= SIGNAL_ENTER_THRESHOLD:
+            return 'weakening'
+        return 'removed'
 
     active_rows=[]
     current_keys=set()
     for r in opps:
-        raw_ticker=str(r.get("_raw_ticker") or r.get("Ticker") or "")
-        market=str(r.get("Market",""))
-        bias=str(r.get("Bias",""))
-        if not raw_ticker or not market or not bias:
+        raw_ticker=str(r.get('_raw_ticker') or r.get('Ticker') or '')
+        market=str(r.get('Market',''))
+        bias=str(r.get('Bias',''))
+        if not raw_ticker or not market or not bias or bias=='WATCH':
             continue
         s=prices.get(raw_ticker,pd.Series())
         if _s(s).empty:
@@ -1648,53 +1680,76 @@ def build_signal_strength(opps:List[Dict], prices:Dict[str,pd.Series], q:Dict, f
         current_close=last(s)
         if not math.isfinite(current_close):
             continue
-        trade_state=compute_trade_state(s)
-        trend_state=compute_trend_state(s)
-        ev_hint=_coerce_pctish(r.get("_ev", r.get("EV", 0.0)), 0.0)
-        signal_score=compute_signal_score(s,bias,ev_hint)
         key=(raw_ticker,market,bias)
-        prev=prev_map.get(key,{})
-        prev_active=bool(prev)
-        thresh=SIGNAL_EXIT_THRESHOLD if prev_active else SIGNAL_ENTER_THRESHOLD
-        if "LONG" in bias:
-            aligned=trade_state != "bearish" and trend_state != "bearish"
-        else:
-            aligned=trade_state != "bullish" and trend_state != "bullish"
-        active=aligned and signal_score >= thresh
-        if not active:
-            continue
         current_keys.add(key)
-        signal_start_date=str(prev.get("signal_start_date", asof_date)) if prev else asof_date
-        entry_close=_safe_float(prev.get("entry_close"), current_close) if prev else current_close
-        entry_close=current_close if not math.isfinite(entry_close) else entry_close
+        prev=prev_map.get(key,{})
+        prev_score=_safe_float(prev.get('signal_score'),0.0)
+        rr=risk_ranges.get(raw_ticker,{})
+        sz=sizing.get(raw_ticker,{})
+
+        trade_state=str(rr.get('trade_state','neutral'))
+        trend_state=str(rr.get('trend_state','neutral'))
+        tail_state=str(rr.get('tail_state','neutral'))
+        triple_aligned=bool(rr.get('triple_aligned',False))
+        opp_score=_safe_float(r.get('_ev',0.0),0.0)
+        size_scalar=_safe_float(sz.get('size_scalar_long' if 'LONG' in bias else 'size_scalar_short'),0.25)
+        macro_fit=1.0 if str(r.get('Macro Aligned','')).startswith('✓') else 0.70
+        route_fit=1.0 if str(r.get('Route Aligned','')).startswith('✓') else 0.65
+        range_fit=1.0 if str(r.get('Range Aligned','')).startswith('✓') else 0.60
+        invalidated=False
+        if 'LONG' in bias and not long_allowed:
+            invalidated=True
+        if 'SHORT' in bias and not short_allowed:
+            invalidated=True
+        if 'LONG' in bias and crash_score>=0.75:
+            invalidated=True
+        if 'LONG' in bias and trade_state=='bearish' and trend_state=='bearish':
+            invalidated=True
+        if 'SHORT' in bias and trade_state=='bullish' and trend_state=='bullish':
+            invalidated=True
+
+        signal_score=float(np.clip(
+            opp_score*(0.55+0.20*macro_fit+0.15*route_fit+0.10*range_fit)*(0.70+0.30*size_scalar)*(0.85+0.15*route_conf)*(1.0-0.30*crash_score if 'LONG' in bias else 1.0),
+            -1.0,1.0
+        ))
+        status_today=_status(signal_score, prev_score, invalidated)
+        if status_today in {'removed','Invalidated'}:
+            continue
+        signal_start_date=str(prev.get('signal_start_date') or asof_date)
+        entry_close=_safe_float(prev.get('entry_close'), current_close)
+        if not prev or status_today=='added':
+            signal_start_date=asof_date
+            entry_close=current_close
         try:
             days_on=max((datetime.date.fromisoformat(asof_date)-datetime.date.fromisoformat(signal_start_date)).days+1,1)
         except Exception:
-            signal_start_date=asof_date
-            days_on=1
-        pct_since=(current_close/entry_close-1.0) if (math.isfinite(current_close) and math.isfinite(entry_close) and entry_close) else float("nan")
+            days_on=int(_safe_float(prev.get('days_on'),1))
+        pct_since=(current_close/entry_close-1.0) if (math.isfinite(current_close) and math.isfinite(entry_close) and entry_close) else float('nan')
+        if 'SHORT' in bias:
+            pct_since *= -1.0
         active_rows.append({
-            "asof_date":asof_date,
-            "ticker":raw_ticker,
-            "ticker_display":str(r.get("Ticker", raw_ticker)),
-            "market":market,
-            "bias":bias,
-            "signal_active":1,
-            "status_today":"remaining" if prev else "added",
-            "signal_score":signal_score,
-            "trade_state":trade_state,
-            "trend_state":trend_state,
-            "entry_close":entry_close,
-            "last_close":current_close,
-            "pct_since_signal":pct_since,
-            "signal_start_date":signal_start_date,
-            "days_on":int(days_on),
-            "opportunity_ev":ev_hint,
-            "macro_aligned":str(r.get("Macro Aligned","")),
-            "horizon":str(r.get("Horizon","")),
-            "why_now":str(r.get("Why Now","")),
-            "quad":str(q.get("quad","")),
-            "monthly_quad":str(q.get("monthly_quad","")),
+            'asof_date':asof_date,
+            'ticker':raw_ticker,
+            'ticker_display':str(r.get('Ticker', raw_ticker)),
+            'market':market,
+            'bias':bias,
+            'signal_active':1,
+            'status_today':status_today,
+            'signal_score':signal_score,
+            'trade_state':trade_state,
+            'trend_state':trend_state,
+            'tail_state':tail_state,
+            'entry_close':entry_close,
+            'last_close':current_close,
+            'pct_since_signal':pct_since,
+            'signal_start_date':signal_start_date,
+            'days_on':int(days_on),
+            'opportunity_ev':opp_score,
+            'macro_aligned':str(r.get('Macro Aligned','')),
+            'horizon':str(r.get('Horizon','')),
+            'why_now':str(r.get('Why Now','')),
+            'quad':str(q.get('quad','')),
+            'monthly_quad':str(q.get('monthly_quad','')),
         })
 
     removed_rows=[]
@@ -1703,88 +1758,96 @@ def build_signal_strength(opps:List[Dict], prices:Dict[str,pd.Series], q:Dict, f
             continue
         ticker,market,bias=key
         s=prices.get(ticker,pd.Series())
-        current_close=last(s) if not _s(s).empty else _safe_float(prev.get("last_close"))
-        entry_close=_safe_float(prev.get("entry_close"), current_close)
-        pct_since=(current_close/entry_close-1.0) if (math.isfinite(current_close) and math.isfinite(entry_close) and entry_close) else float("nan")
-        signal_start_date=str(prev.get("signal_start_date", asof_date))
+        current_close=last(s) if not _s(s).empty else _safe_float(prev.get('last_close'))
+        entry_close=_safe_float(prev.get('entry_close'), current_close)
+        pct_since=(current_close/entry_close-1.0) if (math.isfinite(current_close) and math.isfinite(entry_close) and entry_close) else float('nan')
+        if 'SHORT' in bias:
+            pct_since *= -1.0
+        signal_start_date=str(prev.get('signal_start_date', asof_date))
         try:
             days_on=max((datetime.date.fromisoformat(asof_date)-datetime.date.fromisoformat(signal_start_date)).days+1,1)
         except Exception:
-            days_on=int(_safe_float(prev.get("days_on"),1))
+            days_on=int(_safe_float(prev.get('days_on'),1))
         removed_rows.append({
-            "asof_date":asof_date,
-            "ticker":ticker,
-            "ticker_display":str(prev.get("ticker_display", ticker)),
-            "market":market,
-            "bias":bias,
-            "signal_active":0,
-            "status_today":"removed",
-            "signal_score":_safe_float(prev.get("signal_score"), float("nan")),
-            "trade_state":str(prev.get("trade_state","neutral")),
-            "trend_state":str(prev.get("trend_state","neutral")),
-            "entry_close":entry_close,
-            "last_close":current_close,
-            "pct_since_signal":pct_since,
-            "signal_start_date":signal_start_date,
-            "days_on":int(days_on),
-            "opportunity_ev":_safe_float(prev.get("opportunity_ev"), float("nan")),
-            "macro_aligned":str(prev.get("macro_aligned","")),
-            "horizon":str(prev.get("horizon","")),
-            "why_now":str(prev.get("why_now","Signal no longer qualifies under current state")),
-            "quad":str(q.get("quad","")),
-            "monthly_quad":str(q.get("monthly_quad","")),
+            'asof_date':asof_date,
+            'ticker':ticker,
+            'ticker_display':str(prev.get('ticker_display', ticker)),
+            'market':market,
+            'bias':bias,
+            'signal_active':0,
+            'status_today':'removed',
+            'signal_score':_safe_float(prev.get('signal_score'), float('nan')),
+            'trade_state':str(prev.get('trade_state','neutral')),
+            'trend_state':str(prev.get('trend_state','neutral')),
+            'tail_state':str(prev.get('tail_state','neutral')),
+            'entry_close':entry_close,
+            'last_close':current_close,
+            'pct_since_signal':pct_since,
+            'signal_start_date':signal_start_date,
+            'days_on':int(days_on),
+            'opportunity_ev':_safe_float(prev.get('opportunity_ev'), float('nan')),
+            'macro_aligned':str(prev.get('macro_aligned','')),
+            'horizon':str(prev.get('horizon','')),
+            'why_now':str(prev.get('why_now','Signal no longer qualifies under current state')),
+            'quad':str(q.get('quad','')),
+            'monthly_quad':str(q.get('monthly_quad','')),
         })
 
     active_df=pd.DataFrame(active_rows)
     removed_df=pd.DataFrame(removed_rows)
     write_signal_snapshot(active_df, removed_df, asof_date)
 
-    long_active=active_df[active_df["bias"].str.contains("LONG", na=False)] if not active_df.empty else pd.DataFrame()
-    short_active=active_df[active_df["bias"].str.contains("SHORT", na=False)] if not active_df.empty else pd.DataFrame()
-    added_df=active_df[active_df["status_today"]=="added"].copy() if not active_df.empty else pd.DataFrame()
-    remaining_df=active_df[active_df["status_today"]=="remaining"].copy() if not active_df.empty else pd.DataFrame()
+    long_active=active_df[active_df['bias'].str.contains('LONG', na=False)] if not active_df.empty else pd.DataFrame()
+    short_active=active_df[active_df['bias'].str.contains('SHORT', na=False)] if not active_df.empty else pd.DataFrame()
+    added_df=active_df[active_df['status_today']=='added'].copy() if not active_df.empty else pd.DataFrame()
+    remaining_df=active_df[active_df['status_today']=='remaining'].copy() if not active_df.empty else pd.DataFrame()
+    weakening_df=active_df[active_df['status_today']=='weakening'].copy() if not active_df.empty else pd.DataFrame()
 
     if not active_df.empty:
-        active_df=active_df.sort_values(["days_on","pct_since_signal"], ascending=[False,False], na_position="last")
+        active_df=active_df.sort_values(['days_on','pct_since_signal'], ascending=[False,False], na_position='last')
     if not removed_df.empty:
-        removed_df=removed_df.sort_values(["days_on","pct_since_signal"], ascending=[False,False], na_position="last")
+        removed_df=removed_df.sort_values(['days_on','pct_since_signal'], ascending=[False,False], na_position='last')
     if not added_df.empty:
-        added_df=added_df.sort_values(["signal_score","pct_since_signal"], ascending=[False,False], na_position="last")
+        added_df=added_df.sort_values(['signal_score','pct_since_signal'], ascending=[False,False], na_position='last')
     if not remaining_df.empty:
-        remaining_df=remaining_df.sort_values(["days_on","pct_since_signal"], ascending=[False,False], na_position="last")
+        remaining_df=remaining_df.sort_values(['days_on','pct_since_signal'], ascending=[False,False], na_position='last')
+    if not weakening_df.empty:
+        weakening_df=weakening_df.sort_values(['signal_score','pct_since_signal'], ascending=[False,False], na_position='last')
 
     market_summary={}
-    market_order=["US","IHSG","FX","Commodities","Crypto"]
+    market_order=['US','IHSG','FX','Commodities','Crypto']
     for market in market_order:
-        adf=active_df[active_df["market"]==market].copy() if not active_df.empty else pd.DataFrame()
-        rdf=removed_df[removed_df["market"]==market].copy() if not removed_df.empty else pd.DataFrame()
-        m_added=added_df[added_df["market"]==market].copy() if not added_df.empty else pd.DataFrame()
-        m_remaining=remaining_df[remaining_df["market"]==market].copy() if not remaining_df.empty else pd.DataFrame()
+        adf=active_df[active_df['market']==market].copy() if not active_df.empty else pd.DataFrame()
+        rdf=removed_df[removed_df['market']==market].copy() if not removed_df.empty else pd.DataFrame()
+        m_added=added_df[added_df['market']==market].copy() if not added_df.empty else pd.DataFrame()
+        m_remaining=remaining_df[remaining_df['market']==market].copy() if not remaining_df.empty else pd.DataFrame()
         market_summary[market]={
-            "active_total":int(len(adf)),
-            "active_longs":int(len(adf[adf["bias"].str.contains("LONG", na=False)])) if not adf.empty else 0,
-            "active_shorts":int(len(adf[adf["bias"].str.contains("SHORT", na=False)])) if not adf.empty else 0,
-            "added_today":int(len(m_added)),
-            "remaining_total":int(len(m_remaining)),
-            "removed_today":int(len(rdf)),
-            "best_active":str(adf.iloc[0]["ticker_display"]) if not adf.empty else "—",
-            "best_added":str(m_added.iloc[0]["ticker_display"]) if not m_added.empty else "—",
-            "best_removed":str(rdf.iloc[0]["ticker_display"]) if not rdf.empty else "—",
+            'active_total':int(len(adf)),
+            'active_longs':int(len(adf[adf['bias'].str.contains('LONG', na=False)])) if not adf.empty else 0,
+            'active_shorts':int(len(adf[adf['bias'].str.contains('SHORT', na=False)])) if not adf.empty else 0,
+            'added_today':int(len(m_added)),
+            'remaining_total':int(len(m_remaining)),
+            'removed_today':int(len(rdf)),
+            'best_active':str(adf.iloc[0]['ticker_display']) if not adf.empty else '—',
+            'best_added':str(m_added.iloc[0]['ticker_display']) if not m_added.empty else '—',
+            'best_removed':str(rdf.iloc[0]['ticker_display']) if not rdf.empty else '—',
         }
 
     return {
-        "asof_date":asof_date,
-        "active":active_df,
-        "added":added_df,
-        "remaining":remaining_df,
-        "removed":removed_df,
-        "market_summary":market_summary,
-        "summary":{
-            "active_longs":int(len(long_active)),
-            "active_shorts":int(len(short_active)),
-            "added_today":int(len(added_df)),
-            "removed_today":int(len(removed_df)),
-            "active_total":int(len(active_df)),
+        'asof_date':asof_date,
+        'active':active_df,
+        'added':added_df,
+        'remaining':remaining_df,
+        'weakening':weakening_df,
+        'removed':removed_df,
+        'invalidated':pd.DataFrame(),
+        'market_summary':market_summary,
+        'summary':{
+            'active_longs':int(len(long_active)),
+            'active_shorts':int(len(short_active)),
+            'added_today':int(len(added_df)),
+            'removed_today':int(len(removed_df)),
+            'active_total':int(len(active_df)),
         },
     }
 
@@ -2126,45 +2189,198 @@ def render_checklist(items:list,title:str="Checklist")->None:
 
 
 def build_risk_range(prices:Dict[str,pd.Series], f:Dict, crash:Dict) -> Dict:
-    """v33 Risk Range Engine: ATR-based trade/trend range per asset."""
-    vix=f.get("vix_last",20.0); hy=f.get("hy_oas",350.0); uup=nf(f.get("uup_1m",0.0))
-    shock_pen=clamp(f.get("inf_shock",0.0)*1.5); vol_st=clamp((vix-13)/20)
-    crowd=crash.get("breadth_dmg",0.3)
-    stress_scalar=1.0+0.35*shock_pen+0.20*vol_st+0.10*crowd
-    down_asym=1.0+0.15*clamp(0.5+uup/0.04)+0.15*clamp(crash.get("crash_score",0.3))
-    up_asym=max(0.80, 1.0-0.08*clamp(uup/0.04))
+    """Final Trade/Trend/Tail risk range engine with state + buy-dip / sell-rip context."""
+    vix=float(f.get("vix_last",20.0) or 20.0)
+    uup_1m=nf(f.get("uup_1m", f.get("dxy_1m", 0.0)))
+    inf_shock=clamp(f.get("inf_shock",0.0))
+    crash_score=clamp(crash.get("crash_score",0.0))
+    breadth_dmg=clamp(crash.get("breadth_dmg",0.0))
 
-    WATCH_TICKERS=["SPY","QQQ","IWM","GLD","GC=F","CL=F","TLT","BTC-USD","ETH-USD","^JKSE",
-                   "BBCA.JK","ADRO.JK","PTBA.JK","TLKM.JK","XLE","EEM","UUP"]
+    stress_scalar=1.0+0.30*inf_shock+0.22*clamp((vix-13.0)/20.0)+0.18*crash_score+0.10*breadth_dmg
+    down_asym=1.0+0.18*clamp(0.5+uup_1m/0.04)+0.18*crash_score
+    up_asym=max(0.78,1.0-0.10*clamp(uup_1m/0.04))
+
+    WATCH_TICKERS=sorted(set([
+        "SPY","QQQ","IWM","RSP","XLE","XLF","XLI","XLP","XLU","XLV","GLD","GC=F","CL=F","TLT","UUP","EEM",
+        "BTC-USD","ETH-USD","SOL-USD","BNB-USD","XRP-USD","ADA-USD","AVAX-USD","LINK-USD","DOGE-USD",
+        "^JKSE","BBCA.JK","BBRI.JK","BMRI.JK","BBNI.JK","TLKM.JK","ADRO.JK","PTBA.JK","ANTM.JK","INCO.JK","MDKA.JK"
+    ]))
+
+    def _rv_annual(s:pd.Series,n:int)->float:
+        s=_s(s)
+        if len(s)<n+2:
+            return 0.20
+        rets=s.pct_change().dropna()
+        if len(rets)<n:
+            return 0.20
+        return float(rets.tail(n).std()*np.sqrt(252))
+
+    def _slope_norm(series:pd.Series,lookback:int=10)->float:
+        s=_s(series)
+        if len(s)<lookback+2:
+            return 0.0
+        a=float(s.iloc[-1]); b=float(s.iloc[-(lookback+1)])
+        if not math.isfinite(a) or not math.isfinite(b) or b==0:
+            return 0.0
+        return float(a/b-1.0)
+
+    def _state(px:float,basis:float,slope:float,tol:float=0.003)->str:
+        if not math.isfinite(px) or not math.isfinite(basis):
+            return "neutral"
+        rel=(px/basis)-1.0
+        if rel>tol and slope>0:
+            return "bullish"
+        if rel<-tol and slope<0:
+            return "bearish"
+        return "neutral"
+
+    def _stretch(px:float,lo:float,hi:float)->str:
+        band=max(hi-lo, abs(px)*0.001)
+        pos=(px-lo)/band if band>0 else 0.5
+        if pos>=0.90: return "overbought"
+        if pos<=0.10: return "oversold"
+        if pos>=0.72: return "extended_up"
+        if pos<=0.28: return "reset_zone"
+        return "neutral"
+
     out={}
     for tk in WATCH_TICKERS:
-        s=_s(prices.get(tk,pd.Series()))
-        if len(s)<35: continue
+        s=_s(prices.get(tk,pd.Series(dtype=float)))
+        if len(s)<260:
+            continue
         px=float(s.iloc[-1])
-        if px<=0 or not math.isfinite(px): continue
-        # Fair value: EMA fast/slow
-        ema20=float(s.ewm(span=20).mean().iloc[-1])
-        ema50=float(s.ewm(span=50).mean().iloc[-1])
-        # ATR proxy from daily returns
-        rets=s.pct_change().dropna().abs()
-        atr_pct=float(rets.tail(14).mean())*math.sqrt(5) if len(rets)>=14 else 0.03
-        rv21=float(s.pct_change().dropna().std()*math.sqrt(252)) if len(s)>=22 else 0.20
-        base_vol=max(0.004, 0.55*atr_pct+0.45*rv21/math.sqrt(252)*math.sqrt(5))
-        tw=base_vol*1.20*stress_scalar
-        rw=base_vol*2.10*stress_scalar
-        tlo=ema20*(1-tw*down_asym); thi=ema20*(1+tw*up_asym)
-        rlo=ema50*(1-rw*down_asym); rhi=ema50*(1+rw*up_asym)
-        # Position in range
-        band=max(thi-tlo, px*0.001)
-        pos=(px-tlo)/band
-        stretch="overbought" if pos>=0.85 else("oversold" if pos<=0.15 else("extended" if pos>=0.70 else("reset_zone" if pos<=0.30 else "neutral")))
-        trend="bullish" if px>ema50 else("bearish" if px<ema50 else "neutral")
-        out[tk]={"px":round(px,4),"trade_low":round(tlo,4),"trade_high":round(thi,4),
-                 "trend_low":round(rlo,4),"trend_high":round(rhi,4),
-                 "stretch":stretch,"trend":trend,"atr_pct":round(atr_pct,4),
-                 "pos_in_range":round(pos,3)}
+        if px<=0 or not math.isfinite(px):
+            continue
+
+        ema20=float(s.ewm(span=20,adjust=False).mean().iloc[-1])
+        ema63=float(s.ewm(span=63,adjust=False).mean().iloc[-1])
+        ema252=float(s.ewm(span=252,adjust=False).mean().iloc[-1])
+
+        rv21=_rv_annual(s,21); rv63=_rv_annual(s,63); rv126=_rv_annual(s,126)
+        base_trade=max(0.006,(rv21/np.sqrt(252))*np.sqrt(5))
+        base_trend=max(0.010,(rv63/np.sqrt(252))*np.sqrt(21))
+        base_tail=max(0.018,(rv126/np.sqrt(252))*np.sqrt(63))
+
+        tw=base_trade*1.10*stress_scalar
+        rw=base_trend*1.35*stress_scalar
+        lw=base_tail*1.60*stress_scalar
+
+        trade_low=ema20*(1.0-tw*down_asym); trade_high=ema20*(1.0+tw*up_asym)
+        trend_low=ema63*(1.0-rw*down_asym); trend_high=ema63*(1.0+rw*up_asym)
+        tail_low=ema252*(1.0-lw*down_asym); tail_high=ema252*(1.0+lw*up_asym)
+
+        trade_slope=_slope_norm(s.ewm(span=20,adjust=False).mean(),8)
+        trend_slope=_slope_norm(s.ewm(span=63,adjust=False).mean(),12)
+        tail_slope=_slope_norm(s.ewm(span=252,adjust=False).mean(),21)
+
+        trade_state=_state(px,ema20,trade_slope)
+        trend_state=_state(px,ema63,trend_slope)
+        tail_state=_state(px,ema252,tail_slope)
+        triple_aligned=trade_state==trend_state==tail_state and trade_state in {"bullish","bearish"}
+
+        if not triple_aligned:
+            phase_transition="mixed"
+        elif trade_state=="bullish":
+            phase_transition="bull_trend_persistent"
+        else:
+            phase_transition="bear_trend_persistent"
+
+        range_quality=float(np.clip(
+            0.34*(1.0 if trade_state==trend_state else 0.0)+
+            0.34*(1.0 if trend_state==tail_state else 0.0)+
+            0.32*(1.0-crash_score),
+            0.0,1.0
+        ))
+
+        buy_dip_ok=triple_aligned and trade_state=="bullish" and px>=trade_low and px<=trade_high
+        sell_rip_ok=triple_aligned and trade_state=="bearish" and px>=trade_low and px<=trade_high
+
+        out[tk]={
+            "px":round(px,4),
+            "trade_basis":round(ema20,4),"trade_low":round(trade_low,4),"trade_high":round(trade_high,4),"trade_state":trade_state,
+            "trend_basis":round(ema63,4),"trend_low":round(trend_low,4),"trend_high":round(trend_high,4),"trend_state":trend_state,
+            "tail_basis":round(ema252,4),"tail_low":round(tail_low,4),"tail_high":round(tail_high,4),"tail_state":tail_state,
+            "triple_aligned":bool(triple_aligned),
+            "phase_transition":phase_transition,
+            "stretch":_stretch(px,trade_low,trade_high),
+            "range_quality":round(range_quality,3),
+            "buy_dip_ok":bool(buy_dip_ok),
+            "sell_rip_ok":bool(sell_rip_ok),
+            "trend":trend_state,
+        }
     return out
 
+
+
+
+def build_position_sizing(q:Dict, h:Dict, crash:Dict, f:Dict, risk_ranges:Dict, price_meta:Dict)->Dict:
+    """Position sizing ladder from regime + crash + range alignment + data quality."""
+    quad=str(q.get("quad","Q3"))
+    quad_conf=float(q.get("confidence",0.5) or 0.5)
+    weather=float(h.get("weather",0.5) or 0.5)
+    crash_score=clamp(crash.get("crash_score",0.0))
+    breadth_dmg=clamp(crash.get("breadth_dmg",0.0))
+
+    coverage=float(price_meta.get("coverage",1.0) or 1.0)
+    short_hist=float(price_meta.get("short_history_share",0.0) or 0.0)
+    stale_share=float(price_meta.get("stale_share",0.0) or 0.0)
+
+    data_penalty=np.clip(
+        0.45*max(0.0,0.90-coverage)/0.90+
+        0.30*short_hist+
+        0.25*stale_share,
+        0.0,1.0
+    )
+
+    if quad in {"Q1","Q2"}:
+        long_base, short_base = 1.00, 0.60
+    elif quad=="Q3":
+        long_base, short_base = 0.55, 0.90
+    else:
+        long_base, short_base = 0.40, 1.00
+
+    regime_scalar=np.clip(0.55*quad_conf+0.45*weather,0.25,1.00)
+    defensive_scalar=np.clip(1.0-0.50*crash_score-0.20*breadth_dmg-0.35*data_penalty,0.20,1.00)
+
+    def _bucket(x:float)->str:
+        if x>=0.90: return "1.00x"
+        if x>=0.70: return "0.75x"
+        if x>=0.45: return "0.50x"
+        return "0.25x"
+
+    out={}
+    for tk, rr in risk_ranges.items():
+        triple=bool(rr.get("triple_aligned",False))
+        t_state=str(rr.get("trade_state","neutral"))
+        tr_state=str(rr.get("trend_state","neutral"))
+        tl_state=str(rr.get("tail_state","neutral"))
+
+        align_scalar=1.0 if triple else 0.65
+        if t_state==tr_state==tl_state=="bullish":
+            long_state_scalar, short_state_scalar = 1.00, 0.45
+        elif t_state==tr_state==tl_state=="bearish":
+            long_state_scalar, short_state_scalar = 0.40, 1.00
+        else:
+            long_state_scalar = short_state_scalar = 0.65
+
+        long_current=float(np.clip(long_base*regime_scalar*defensive_scalar*align_scalar*long_state_scalar,0.10,1.00))
+        short_current=float(np.clip(short_base*regime_scalar*defensive_scalar*align_scalar*short_state_scalar,0.10,1.00))
+        reasons=[]
+        if crash_score>=0.60: reasons.append("crash override")
+        if not triple: reasons.append("durations not fully aligned")
+        if data_penalty>=0.35: reasons.append("data confidence reduced")
+        if quad in {"Q3","Q4"}: reasons.append("defensive macro backdrop")
+        out[tk]={
+            "size_floor":"0.25x",
+            "size_base_long":_bucket(long_base),
+            "size_base_short":_bucket(short_base),
+            "size_current_long":_bucket(long_current),
+            "size_current_short":_bucket(short_current),
+            "size_scalar_long":round(long_current,3),
+            "size_scalar_short":round(short_current,3),
+            "size_reason":", ".join(reasons) if reasons else "full conditions acceptable",
+        }
+    return out
 
 def build_asset_checklists_full(f:Dict, h:Dict, q:Dict, ih:Dict, prices:Dict) -> Dict:
     """v33-style asset checklists per market (US, FX, Commodities, Crypto)."""
@@ -2413,194 +2629,180 @@ ROUTE_STATE_META = {
 }
 
 def derive_route_state(q:Dict, h:Dict, crash:Dict) -> Dict:
-    """v33 regime_router.derive_route_state — 7 named route states."""
-    structural=q["quad"]; monthly=q["monthly_quad"]; div=q["divergence"]
-    risk_off=crash["risk_off"]; crash_score=crash["crash_score"]
-    exec_score=crash["exec_score"]; weather=h["weather"]
-    tail_state=h.get("tail_state","neutral")
-    sf=q.get("slowdown_flags",0)
+    """Route engine with permissions, confidence, alt, and invalidator route."""
+    structural=str(q.get('quad','Q3'))
+    monthly=str(q.get('monthly_quad',structural))
+    div=str(q.get('divergence','aligned'))
+    risk_off=clamp(crash.get('risk_off',0.0))
+    crash_score=clamp(crash.get('crash_score',0.0))
+    exec_score=clamp(crash.get('exec_score',0.0))
+    weather=clamp(h.get('weather',0.5))
+    tail_state=str(h.get('tail_state','neutral'))
+    slowdown_flags=float(q.get('slowdown_flags',0.0) or 0.0)
+    inf_shock=float(q.get('inf_shock',0.0) or 0.0)
 
-    if crash_score>=0.75:
-        primary="panic_crash"; alt="vshape_rebound"
-    elif structural=="Q4" or risk_off>=0.68:
-        primary="deflationary_riskoff"; alt="vshape_rebound" if exec_score>=0.52 else "reflation_reaccel"
-    elif structural=="Q3" and (monthly in("Q3","Q4") or tail_state=="stressed"):
-        primary="stagflation_persist"; alt="growth_scare" if risk_off>=0.58 else "reflation_reaccel"
-    elif monthly=="Q2" and exec_score>=0.55 and weather>=0.55:
-        primary="reflation_reaccel"; alt="growth_scare"
-    elif structural=="Q1" and weather>=0.52:
-        primary="quality_disinflation"; alt="reflation_reaccel"
+    if crash_score>=0.78:
+        primary='panic_crash'; alt='vshape_rebound'; invalidator='deflationary_riskoff'
+    elif structural=='Q4' or risk_off>=0.68:
+        primary='deflationary_riskoff'; alt='vshape_rebound' if exec_score>=0.55 else 'reflation_reaccel'; invalidator='quality_disinflation'
+    elif structural=='Q3' and (monthly in {'Q3','Q4'} or tail_state=='stressed' or inf_shock>0.30):
+        primary='stagflation_persist'; alt='growth_scare' if risk_off>=0.58 else 'reflation_reaccel'; invalidator='quality_disinflation'
+    elif monthly=='Q2' and exec_score>=0.56 and weather>=0.56:
+        primary='reflation_reaccel'; alt='growth_scare'; invalidator='deflationary_riskoff'
+    elif structural=='Q1' and weather>=0.52:
+        primary='quality_disinflation'; alt='reflation_reaccel'; invalidator='growth_scare'
     else:
-        primary="growth_scare" if risk_off>=0.55 else "quality_disinflation"
-        alt="reflation_reaccel" if primary!="reflation_reaccel" else "growth_scare"
+        primary='growth_scare' if risk_off>=0.55 else 'quality_disinflation'
+        alt='reflation_reaccel' if primary!='reflation_reaccel' else 'growth_scare'
+        invalidator='deflationary_riskoff' if primary!='deflationary_riskoff' else 'vshape_rebound'
 
-    if div=="divergent" and monthly=="Q2" and exec_score>=0.56 and weather>=0.56:
-        alt="reflation_reaccel"
-    if div=="divergent" and monthly=="Q4" and risk_off>=0.58:
-        alt="vshape_rebound" if primary=="deflationary_riskoff" else "deflationary_riskoff"
+    if div=='divergent' and monthly=='Q2' and exec_score>=0.56 and weather>=0.56:
+        alt='reflation_reaccel'
+    if div=='divergent' and monthly=='Q4' and risk_off>=0.58:
+        alt='vshape_rebound' if primary=='deflationary_riskoff' else 'deflationary_riskoff'
     if alt==primary:
-        alt="vshape_rebound" if primary!="vshape_rebound" else "reflation_reaccel"
+        alt='vshape_rebound' if primary!='vshape_rebound' else 'reflation_reaccel'
 
-    primary_meta=ROUTE_STATE_META.get(primary,ROUTE_STATE_META["growth_scare"])
-    alt_meta=ROUTE_STATE_META.get(alt,ROUTE_STATE_META["growth_scare"])
-    return {"primary":primary,"alt":alt,"primary_meta":primary_meta,"alt_meta":alt_meta,
-            "risk_off":risk_off,"crash_score":crash_score,"exec_score":exec_score}
+    confidence=float(np.clip(
+        0.28*(1.0-abs(risk_off-0.5))+
+        0.24*weather+
+        0.20*exec_score+
+        0.16*(1.0 if div=='aligned' else 0.55)+
+        0.12*(1.0-min(crash_score,0.75)),
+        0.0,1.0
+    ))
+
+    if primary in {'panic_crash','deflationary_riskoff'}:
+        long_allowed=False; short_allowed=True; route_bias='defensive'; position_cap=0.25 if primary=='panic_crash' else 0.50
+    elif primary=='stagflation_persist':
+        long_allowed=True; short_allowed=True; route_bias='barbell'; position_cap=0.60
+    elif primary in {'reflation_reaccel','quality_disinflation','vshape_rebound'}:
+        long_allowed=True; short_allowed=False if primary!='vshape_rebound' else True; route_bias='pro-risk'; position_cap=1.00 if confidence>=0.60 else 0.75
+    else:
+        long_allowed=True; short_allowed=True; route_bias='mixed'; position_cap=0.60
+
+    primary_meta=ROUTE_STATE_META.get(primary,ROUTE_STATE_META['growth_scare'])
+    alt_meta=ROUTE_STATE_META.get(alt,ROUTE_STATE_META['growth_scare'])
+    invalidator_meta=ROUTE_STATE_META.get(invalidator,ROUTE_STATE_META['growth_scare'])
+    return {
+        'primary':primary,'alt':alt,'invalidator_route':invalidator,
+        'primary_meta':primary_meta,'alt_meta':alt_meta,'invalidator_meta':invalidator_meta,
+        'confidence':round(confidence,3),'route_bias':route_bias,'position_cap':position_cap,
+        'long_allowed':long_allowed,'short_allowed':short_allowed,
+        'risk_off':risk_off,'crash_score':crash_score,'exec_score':exec_score,
+        'structural_quad':structural,'monthly_quad':monthly,'divergence':div,
+        'slowdown_flags':slowdown_flags,'tail_state':tail_state,
+    }
 
 
-def build_asset_translation(route_state:str, q:Dict, h:Dict, f:Dict) -> Dict:
-    """v33 AssetTranslationEngine — LONG/WATCH/AVOID per market per route state."""
-    shock=q.get("inf_shock",0.0); sf=q.get("slowdown_flags",0.0)
-    uup=nf(f.get("uup_1m",0.0)); oil=nf(f.get("clf_3m",f.get("oil_3m",0.0)))
-    stress=(shock>0.30 or h.get("tail_state")=="stressed")
-    mixed=(h.get("weather",0.5)<0.58)
+def build_asset_translation(route_state:str, q:Dict, h:Dict, f:Dict, route:Optional[Dict]=None) -> Dict:
+    """Structured asset translation with bias, trigger, invalidator, size cap, and execution note."""
+    route = route or {}
+    shock=float(q.get('inf_shock',0.0) or 0.0)
+    stress=(shock>0.30 or h.get('tail_state')=='stressed')
+    mixed=(h.get('weather',0.5)<0.58)
+    position_cap=float(route.get('position_cap',0.60) or 0.60)
 
-    translations = {
-        "stagflation_persist": {
-            "US":[
-                {"bias":"LONG","setup":"Energy & cash-flow leaders","why":"Cash-flow producers dan hard-asset linked equities paling tahan di Q3.","invalidator":"Oil dan hard-asset leadership cepat luntur sambil breadth melebar."},
-                {"bias":"LONG" if not mixed else "WATCH","setup":"Selective defensives / quality","why":"Dipakai saat growth melemah tapi broad relief belum confirm.","invalidator":"Small caps, equal-weight, dan credit membaik bareng-bareng."},
-                {"bias":"SHORT" if stress else "AVOID","setup":"Weak small-cap & long-duration laggards","why":"Saat breadth rusak, small caps dan long-duration beta paling rapuh.","invalidator":"USD/yields adem dan breadth membaik jelas."},
+    def _cap(x:float)->str:
+        if x>=0.95: return '1.00x'
+        if x>=0.70: return '0.75x'
+        if x>=0.45: return '0.50x'
+        return '0.25x'
+
+    route_caps={'panic_crash':0.25,'deflationary_riskoff':0.50,'stagflation_persist':0.60,'growth_scare':0.50,'quality_disinflation':0.75,'reflation_reaccel':1.00,'vshape_rebound':0.60}
+    local_cap=_cap(min(position_cap, route_caps.get(route_state,0.60)))
+
+    translations={
+        'panic_crash': {
+            'US':[
+                {'bias':'AVOID','setup':'Broad beta longs','tickers':['SPY','QQQ','IWM'],'why':'Crash branch aktif, broad beta jadi alat jual paksa.','trigger':'Crash meter turun jelas + breadth stabil.','invalidator':'Cascade selling berlanjut.','size_cap':'0.25x','timeframe':'Trade only','execution_note':'No aggressive longs.'},
+                {'bias':'LONG','setup':'Safe havens','tickers':['TLT','GLD','UUP'],'why':'Survival dulu, offense belakangan.','trigger':'Yields turun / fear lanjut.','invalidator':'V-shape relief kuat.','size_cap':'0.50x','timeframe':'Trade / Trend','execution_note':'Prioritize capital preservation.'},
+                {'bias':'SHORT','setup':'Broken high beta','tickers':['QQQ','IWM','HYG'],'why':'Forced deleveraging masih dominan.','trigger':'Breakdown persists.','invalidator':'Breadth + credit repair.','size_cap':'0.50x','timeframe':'Trade','execution_note':'Only if liquid and clean.'},
             ],
-            "IHSG":[
-                {"bias":"LONG","setup":"Exporters & resource-linked (ADRO, PTBA, ANTM)","why":"IHSG sehat lewat exporter dan resource leaders saat shock inflasi masih hidup.","invalidator":"Commodity chain dan USD pressure luntur bareng."},
-                {"bias":"WATCH","setup":"Selective quality banks (BBCA)","why":"Bank besar kualitas tinggi bisa ikut tahan, tapi jangan broad domestic beta.","invalidator":"Funding stress atau USD pressure makin besar."},
-                {"bias":"AVOID","setup":"Import-sensitive (Consumer, Property)","why":"Importer sensitif dua kali: ke FX dan ke biaya input/energi.","invalidator":"USD benar-benar melemah dan energy pressure reda."},
-            ],
-            "FX":[
-                {"bias":"LONG","setup":"USD vs fragile EM importers","why":"Q3+stress biasanya bikin dolar relatif kuat melawan importer rapuh.","invalidator":"Breadth global membaik dan dollar berhenti naik."},
-                {"bias":"AVOID","setup":"Carry trades, IDR, TRY","why":"Carry rentan banget di stagflasi — funding cost naik, risk appetite turun.","invalidator":"Vol drops below VIX 18."},
-            ],
-            "Commodities":[
-                {"bias":"LONG","setup":"Gold (XAUUSD) — stagflation best asset","why":"Gold = inflation hedge + growth hedge. Perfect untuk Q3.","invalidator":"Real yields spike keras + USD dominance."},
-                {"bias":"WATCH","setup":"Energy (WTI) selective","why":"Oil bisa naik dalam stagflasi tapi volatile — manage sizing.","invalidator":"De-escalation cepat atau demand collapse."},
-                {"bias":"AVOID","setup":"Industrial metals (copper)","why":"Copper butuh growth. Q3 = growth turun = copper suffer.","invalidator":"China stimulus besar-besaran."},
-            ],
-            "Crypto":[
-                {"bias":"AVOID","setup":"Semua altcoin","why":"Stagflasi = risk appetite collapse. Alts paling kena.","invalidator":"—"},
-                {"bias":"WATCH","setup":"BTC only (digital gold proxy)","why":"BTC bisa ada tiny safe-haven bid tapi jangan overweight.","invalidator":"Dollar dan vol naik bareng terus."},
-            ],
+            'IHSG':[{'bias':'AVOID','setup':'Broad domestic beta','tickers':['^JKSE','BBRI.JK','BSDE.JK'],'why':'EM beta rentan saat crash branch global.','trigger':'Need USD calm + foreign flow stabilize.','invalidator':'USD pressure persists.','size_cap':'0.25x','timeframe':'Trade','execution_note':'Stay selective only.'}],
+            'FX':[{'bias':'LONG','setup':'USD safety','tickers':['UUP','IDR=X','CNH=X'],'why':'Funding stress favors dollar.','trigger':'Vol high + breadth weak.','invalidator':'DXY breaks down.','size_cap':'0.50x','timeframe':'Trade / Trend','execution_note':'Prefer USD over carry.'}],
+            'Commodities':[{'bias':'WATCH','setup':'Gold only, not broad commodities','tickers':['GC=F','GLD'],'why':'Gold can hedge, cyclicals still fragile.','trigger':'Real yields stop rising.','invalidator':'USD + real yields rip higher.','size_cap':'0.50x','timeframe':'Trade / Trend','execution_note':'Avoid oil/copper beta.'}],
+            'Crypto':[{'bias':'AVOID','setup':'High beta crypto','tickers':['BTC-USD','ETH-USD','SOL-USD'],'why':'Liquidity stress hits crypto fast.','trigger':'Need relief branch active.','invalidator':'Another volatility shock.','size_cap':'0.25x','timeframe':'Trade only','execution_note':'No hero catching.'}],
         },
-        "quality_disinflation": {
-            "US":[
-                {"bias":"LONG","setup":"Quality growth (MSFT, AAPL, GOOGL, NVDA)","why":"Goldilocks = quality compounders paling bersih. Duration ok, earnings kuat.","invalidator":"Yield spike atau breadth gagal confirm."},
-                {"bias":"LONG","setup":"Equal-weight & small caps (IWM)","why":"Kalau breadth lebar, second-line leaders bisa nyusul.","invalidator":"USD re-accelerates atau credit spreads widen."},
-                {"bias":"WATCH","setup":"Defensives as hedge","why":"Defensif masih ok tapi jangan overweight — tidak akan outperform.","invalidator":"—"},
+        'deflationary_riskoff': {
+            'US':[
+                {'bias':'LONG','setup':'Long bonds + defensives','tickers':['TLT','XLP','XLU','XLV'],'why':'Q4/risk-off favors duration and defensives.','trigger':'Yields down, defensives outperform.','invalidator':'Reflation surprise.','size_cap':local_cap,'timeframe':'Trend / Tail','execution_note':'Prefer quality cash-flow.'},
+                {'bias':'WATCH','setup':'Gold','tickers':['GLD','GC=F'],'why':'Can still work, but bonds are cleaner in pure deflationary scare.','trigger':'Dollar stops overpowering.','invalidator':'Real yields jump.','size_cap':'0.50x','timeframe':'Trade / Trend','execution_note':'Secondary safe harbor.'},
+                {'bias':'SHORT','setup':'Cyclicals / junk beta','tickers':['IWM','HYG','XLY'],'why':'Growth scare hurts balance-sheet-light risk.','trigger':'Breadth remains weak.','invalidator':'Credit repair.','size_cap':'0.50x','timeframe':'Trade','execution_note':'Short only on weakness, not late chase.'},
             ],
-            "IHSG":[
-                {"bias":"LONG","setup":"Banks + domestic beta (BBCA, BBRI, consumer)","why":"Goldilocks = asing masuk, rupiah stabil, bank dan consumer lead.","invalidator":"USD/IDR naik lagi, asing sell."},
-                {"bias":"WATCH","setup":"Coal/resource selective","why":"Resource bisa ikut tapi bukan leader di Q1 disinflation.","invalidator":"Oil/commodity rollback."},
-            ],
-            "FX":[
-                {"bias":"WATCH","setup":"EM FX selective (IDR, selective carry)","why":"Kalau USD mild dan EM flow positif, carry bisa work.","invalidator":"USD re-accelerates."},
-                {"bias":"AVOID","setup":"USD longs","why":"Goldilocks biasanya mild USD or softer.","invalidator":"—"},
-            ],
-            "Commodities":[
-                {"bias":"WATCH","setup":"Gold sebagai portfolio balancer","why":"Gold ok tapi bukan leader di Q1 disinflation.","invalidator":"Yield spike + risk-on."},
-                {"bias":"LONG","setup":"Copper & broad commodities","why":"Growth ok = demand ok = commodities supported.","invalidator":"China demand miss."},
-            ],
-            "Crypto":[
-                {"bias":"LONG","setup":"BTC + ETH + selected L1","why":"Goldilocks = risk appetite high = crypto bullish.","invalidator":"Yield spike atau vol spike."},
-            ],
+            'IHSG':[{'bias':'WATCH','setup':'Top-quality banks only','tickers':['BBCA.JK'],'why':'If must own IHSG, own quality.','trigger':'USD pressure eases.','invalidator':'Foreign flow deteriorates again.','size_cap':'0.25x','timeframe':'Trade','execution_note':'No broad IHSG beta.'}],
+            'FX':[{'bias':'LONG','setup':'USD vs fragile beta','tickers':['IDR=X','CNH=X','SGD=X'],'why':'Dollar stays cleaner than EM beta.','trigger':'Risk-off persists.','invalidator':'Broad reflation branch.','size_cap':'0.50x','timeframe':'Trade / Trend','execution_note':'Avoid carry-heavy longs.'}],
+            'Commodities':[{'bias':'AVOID','setup':'Oil / copper cyclicals','tickers':['CL=F','HG=F'],'why':'Pure growth scare hurts cyclicals.','trigger':'Need reflation reaccel first.','invalidator':'Demand impulse returns.','size_cap':'0.25x','timeframe':'Trade','execution_note':'Stay defensive.'}],
+            'Crypto':[{'bias':'AVOID','setup':'Broad crypto beta','tickers':['BTC-USD','ETH-USD'],'why':'Deflationary risk-off rarely rewards aggressive crypto longs.','trigger':'Need route flip.','invalidator':'Liquidity impulse returns.','size_cap':'0.25x','timeframe':'Trade only','execution_note':'Preserve cash.'}],
         },
-        "reflation_reaccel": {
-            "US":[
-                {"bias":"LONG","setup":"Cyclicals: XLE, XLI, XLF, XLB","why":"Reflation = earnings upgrade untuk cyclicals. Lebih kuat dari growth saat ini.","invalidator":"ISM rollover atau Fed overtighten."},
-                {"bias":"LONG","setup":"EM-linked stocks","why":"Dollar soft + growth ok = EM-linked names ikut naik.","invalidator":"Dollar re-accelerates."},
-                {"bias":"AVOID","setup":"Long bonds (TLT)","why":"Reflation = yields naik = bonds get killed.","invalidator":"—"},
+        'stagflation_persist': {
+            'US':[
+                {'bias':'LONG','setup':'Energy & cash-flow leaders','tickers':['XLE','XOM','CVX'],'why':'Hard-asset/cash-flow producers tahan paling baik.','trigger':'Oil/gold leadership persists.','invalidator':'Breadth widens and hard-asset lead fades.','size_cap':local_cap,'timeframe':'Trade / Trend','execution_note':'Best longs are selective, not broad.'},
+                {'bias':'LONG' if not mixed else 'WATCH','setup':'Selective defensives / quality','tickers':['XLP','XLV','TLT'],'why':'Dipakai saat growth melemah tapi broad relief belum confirm.','trigger':'Beta remains fragile.','invalidator':'Equal-weight + small caps confirm upside.','size_cap':'0.50x','timeframe':'Trade / Trend','execution_note':'Barbell posture.'},
+                {'bias':'SHORT' if stress else 'AVOID','setup':'Weak small-cap & long-duration laggards','tickers':['QQQ','IWM','HYG'],'why':'Stagflation punishes duration-sensitive beta.','trigger':'USD firm + breadth weak.','invalidator':'Yields + USD cool together.','size_cap':'0.50x','timeframe':'Trade','execution_note':'Short laggards, not leaders.'},
             ],
-            "IHSG":[
-                {"bias":"LONG","setup":"Coal exporters + banks (ADRO, BBCA, ANTM)","why":"Reflation = commodity naik + foreign flow masuk = IHSG broad rally.","invalidator":"Commodity rollback + USD kuat."},
-                {"bias":"LONG","setup":"Consumer cyclical (domestic beta)","why":"Kalau IDR stabil dan foreign flow positif, domestic beta bisa ikut.","invalidator":"IDR pressure balik."},
+            'IHSG':[
+                {'bias':'LONG','setup':'Exporters / resource-linked','tickers':['ADRO.JK','PTBA.JK','ANTM.JK'],'why':'Exporter/resource branch helps IHSG in Q3.','trigger':'Commodity chain still alive.','invalidator':'USD pressure and commodity lead both fade.','size_cap':local_cap,'timeframe':'Trade / Trend','execution_note':'Prefer resource over domestic demand beta.'},
+                {'bias':'WATCH','setup':'Quality banks','tickers':['BBCA.JK'],'why':'Quality financials can survive but not broad domestic beta.','trigger':'Funding stress stays contained.','invalidator':'FX pressure worsens.','size_cap':'0.25x','timeframe':'Trade','execution_note':'Selective only.'},
+                {'bias':'AVOID','setup':'Import-sensitive domestic names','tickers':['ICBP.JK','BSDE.JK'],'why':'FX + input-cost squeeze.','trigger':'Need USD down + energy pressure cool.','invalidator':'Domestic relief confirmed.','size_cap':'0.25x','timeframe':'Trade','execution_note':'Avoid broad consumer/property chase.'},
             ],
-            "FX":[
-                {"bias":"LONG","setup":"Commodity FX: AUD, CAD, NOK","why":"Commodity naik = commodity exporter currencies naik.","invalidator":"Commodity demand miss."},
-                {"bias":"SHORT","setup":"USD longs","why":"Reflation = risk-on = USD softens.","invalidator":"Safe-haven demand surge."},
-            ],
-            "Commodities":[
-                {"bias":"LONG","setup":"Energy + metals + agri broad basket","why":"Pure reflation trade — semua commodity naik bareng.","invalidator":"China demand scare."},
-            ],
-            "Crypto":[
-                {"bias":"LONG","setup":"BTC + ETH + alts broad","why":"Reflation + risk appetite = crypto super-cycle potential.","invalidator":"Regulatory shock atau macro reversal."},
-            ],
+            'FX':[{'bias':'LONG','setup':'USD vs fragile importers','tickers':['IDR=X','CNH=X'],'why':'Dollar usually cleaner in stagflation stress.','trigger':'Vol and breadth remain fragile.','invalidator':'Broad risk-on confirmation.','size_cap':'0.50x','timeframe':'Trade / Trend','execution_note':'Avoid funding-sensitive carry.'}],
+            'Commodities':[{'bias':'LONG','setup':'Gold first, oil selective','tickers':['GC=F','GLD','CL=F'],'why':'Gold is cleanest; oil only if shock branch still live.','trigger':'Real yields stable, supply shock not resolved.','invalidator':'USD + real yields both surge.','size_cap':local_cap,'timeframe':'Trade / Trend','execution_note':'Gold cleaner than copper.'}],
+            'Crypto':[{'bias':'WATCH','setup':'Only high-quality liquid crypto','tickers':['BTC-USD','ETH-USD'],'why':'Can trade, but macro backdrop still hostile.','trigger':'Liquidity relief improves.','invalidator':'Dollar re-accelerates + vol spikes.','size_cap':'0.25x','timeframe':'Trade only','execution_note':'Do not size like Q1/Q2.'}],
         },
-        "growth_scare": {
-            "US":[
-                {"bias":"LONG","setup":"TLT + defensives (XLP, XLV, XLU)","why":"Growth scare = duration relief + defensives outperform.","invalidator":"Inflation re-accelerates cepat."},
-                {"bias":"AVOID","setup":"Cyclicals, small caps, EM","why":"Growth scare = earnings risk untuk cyclicals.","invalidator":"Fed credible pivot."},
+        'growth_scare': {
+            'US':[
+                {'bias':'LONG','setup':'Defensives / duration','tickers':['TLT','XLV','XLP'],'why':'Growth scare favors safety before clean reflation.','trigger':'Yields falling + cyclicals lag.','invalidator':'Reflation branch confirmed.','size_cap':'0.50x','timeframe':'Trade / Trend','execution_note':'Stay patient.'},
+                {'bias':'WATCH','setup':'Gold','tickers':['GLD'],'why':'Useful hedge, but not always first best expression.','trigger':'Dollar not too dominant.','invalidator':'Real yields rise.','size_cap':'0.50x','timeframe':'Trade','execution_note':'Secondary offense.'},
+                {'bias':'AVOID','setup':'Broad cyclicals','tickers':['IWM','XLY','HYG'],'why':'Growth scare punishes weak balance sheets.','trigger':'Need route flip.','invalidator':'Breadth/cyclicals repair.','size_cap':'0.25x','timeframe':'Trade','execution_note':'No broad chase.'},
             ],
-            "IHSG":[
-                {"bias":"AVOID","setup":"Most IHSG positions","why":"Growth scare + EM risk = asing keluar IHSG.","invalidator":"Fed pivot + IDR stabil."},
-                {"bias":"WATCH","setup":"TLKM, ICBP defensif only","why":"Defensive quality names relatif lebih aman.","invalidator":"Global risk appetite collapse."},
-            ],
-            "FX":[
-                {"bias":"LONG","setup":"USD, JPY, CHF","why":"Growth scare = flight to safety = safe haven currencies naik.","invalidator":"Risk appetite recovers."},
-            ],
-            "Commodities":[
-                {"bias":"LONG","setup":"Gold only","why":"Growth scare = gold as safe haven.","invalidator":"Deflationary spiral yang terlalu dalam."},
-                {"bias":"AVOID","setup":"Oil, copper, agri","why":"Demand fear = commodity selloff.","invalidator":"Supply shock besar."},
-            ],
-            "Crypto":[
-                {"bias":"AVOID","setup":"Semua crypto","why":"Growth scare + risk-off = crypto sangat bearish.","invalidator":"—"},
-            ],
+            'IHSG':[{'bias':'WATCH','setup':'Quality + defensive exposure','tickers':['BBCA.JK','TLKM.JK'],'why':'If touching IHSG, keep it high quality.','trigger':'USD and foreign flow stabilize.','invalidator':'Commodity/em pressure worsens.','size_cap':'0.25x','timeframe':'Trade','execution_note':'No broad domestic beta.'}],
+            'FX':[{'bias':'LONG','setup':'USD defensive tilt','tickers':['IDR=X','CNH=X'],'why':'Growth scare keeps safety demand alive.','trigger':'Risk appetite weak.','invalidator':'Global breadth repair.','size_cap':'0.50x','timeframe':'Trade / Trend','execution_note':'Avoid carry stretch.'}],
+            'Commodities':[{'bias':'WATCH','setup':'Gold over cyclicals','tickers':['GC=F','GLD'],'why':'Gold cleaner than oil/copper in scare.','trigger':'Rates soften.','invalidator':'Real yields surge.','size_cap':'0.50x','timeframe':'Trade','execution_note':'Skip demand-sensitive cyclicals.'}],
+            'Crypto':[{'bias':'AVOID','setup':'Broad crypto risk','tickers':['BTC-USD','ETH-USD'],'why':'Still too correlated to liquidity appetite.','trigger':'Need better route.','invalidator':'Another risk-off wave.','size_cap':'0.25x','timeframe':'Trade only','execution_note':'Cash is a position.'}],
         },
-        "deflationary_riskoff": {
-            "US":[
-                {"bias":"LONG","setup":"TLT + gold + XLP/XLU/XLV","why":"Deflasi = long bonds rally + defensives + gold.","invalidator":"Fiscal/monetary bazooka."},
-                {"bias":"SHORT","setup":"Cyclicals, small caps, credit (HYG)","why":"Resesi = earnings collapse untuk cyclicals dan credit.","invalidator":"Policy response massive."},
+        'quality_disinflation': {
+            'US':[
+                {'bias':'LONG','setup':'Quality growth + disinflation winners','tickers':['QQQ','MSFT','AAPL'],'why':'Growth improving while inflation eases.','trigger':'Breadth expands, yields orderly.','invalidator':'Inflation shock returns.','size_cap':local_cap,'timeframe':'Trend / Tail','execution_note':'Higher quality first.'},
+                {'bias':'WATCH','setup':'EM / selective cyclicals','tickers':['EEM','XLF'],'why':'Second-wave beneficiaries after quality confirms.','trigger':'USD softer + breadth wider.','invalidator':'Dollar re-accelerates.','size_cap':'0.50x','timeframe':'Trade / Trend','execution_note':'Scale after confirmation.'},
             ],
-            "IHSG":[
-                {"bias":"AVOID","setup":"Most IHSG","why":"Deflasi = global demand collapse = IHSG broadly suffer.","invalidator":"Fed cut + IDR stabil."},
-                {"bias":"WATCH","setup":"TLKM, ICBP, KLBF only","why":"Consumer staples domestic dengan dividend.","invalidator":"Global contagion."},
-            ],
-            "FX":[
-                {"bias":"LONG","setup":"USD, JPY, CHF — defensive trio","why":"Deflasi = safe haven demand = JPY dan CHF outperform.","invalidator":"Fed aggressive QE."},
-            ],
-            "Commodities":[
-                {"bias":"LONG","setup":"Gold only","why":"Gold safe haven dalam deflasi juga.","invalidator":"Real yields spike paradoxically."},
-                {"bias":"SHORT","setup":"Oil, copper, agri","why":"Deflasi = demand destruction = all cyclical commodity suffers.","invalidator":"OPEC extreme cuts."},
-            ],
-            "Crypto":[
-                {"bias":"AVOID","setup":"Semua crypto","why":"Deflasi/resesi = worst environment for crypto.","invalidator":"ETF flow atau Fed surprise."},
-            ],
+            'IHSG':[{'bias':'LONG','setup':'Quality banks + selective growth','tickers':['BBCA.JK','BMRI.JK','TLKM.JK'],'why':'Better backdrop for domestic quality.','trigger':'IDR stable + foreign flow improves.','invalidator':'USD pressure returns.','size_cap':local_cap,'timeframe':'Trend','execution_note':'Prefer quality compounders.'}],
+            'FX':[{'bias':'WATCH','setup':'EM catch-up','tickers':['IDR=X'],'why':'Works only if USD properly softens.','trigger':'DXY downtrend confirmed.','invalidator':'Dollar squeeze.','size_cap':'0.50x','timeframe':'Trade / Trend','execution_note':'Selective carry only.'}],
+            'Commodities':[{'bias':'WATCH','setup':'Gold / selective copper','tickers':['GLD','HG=F'],'why':'Mixed, depends on inflation and growth quality.','trigger':'Growth and breadth both improve.','invalidator':'Shock branch returns.','size_cap':'0.50x','timeframe':'Trade','execution_note':'Not first-best expression.'}],
+            'Crypto':[{'bias':'WATCH','setup':'Majors only','tickers':['BTC-USD','ETH-USD'],'why':'Can improve in better liquidity backdrop, but still need confirmation.','trigger':'Breadth + liquidity improve together.','invalidator':'Dollar/real yields reverse.','size_cap':'0.50x','timeframe':'Trade','execution_note':'No low-quality alt chase.'}],
         },
-        "vshape_rebound": {
-            "US":[
-                {"bias":"LONG","setup":"IWM + equal-weight + XLF","why":"V-shape rebound = laggards yang paling oversold naik paling kencang dulu.","invalidator":"Rebound gagal dan breadth tidak melebar."},
-                {"bias":"LONG","setup":"Selective cyclicals on dip","why":"Beli cyclicals yang sudah kena paling keras saat recovery confirm.","invalidator":"Growth data tidak improve."},
+        'reflation_reaccel': {
+            'US':[
+                {'bias':'LONG','setup':'Cyclicals / reflation winners','tickers':['XLE','XLF','IWM'],'why':'Growth and inflation re-accelerating reopens broad beta.','trigger':'Breadth widens, yields rise orderly.','invalidator':'Growth scare or oil rollback collapse.','size_cap':local_cap,'timeframe':'Trade / Trend','execution_note':'Broader offense allowed.'},
+                {'bias':'WATCH','setup':'Quality growth','tickers':['QQQ','NVDA'],'why':'Still works, but cyclicals may catch up harder.','trigger':'Leadership broadens.','invalidator':'Rates spike disorderly.','size_cap':'0.75x','timeframe':'Trade / Trend','execution_note':"Don't be one-factor only."},
             ],
-            "IHSG":[
-                {"bias":"LONG","setup":"BBCA, BBRI + broad IHSG","why":"V-shape = asing kembali + IDR recovery + IHSG broad rally.","invalidator":"External shock tambahan."},
-            ],
-            "FX":[
-                {"bias":"WATCH","setup":"EM FX recovery","why":"Risk-on recovery = EM FX ikut naik.","invalidator":"Fundamental tidak support."},
-            ],
-            "Commodities":[
-                {"bias":"WATCH","setup":"Copper + broad basket","why":"Recovery = demand recovery = industrial metals ikut.","invalidator":"Recovery palsu (dead cat bounce)."},
-            ],
-            "Crypto":[
-                {"bias":"WATCH","setup":"BTC + ETH (wait for confirmation)","why":"V-shape rebound bisa jadi awal crypto recovery.","invalidator":"Macro kondisi tidak benar-benar membaik."},
-            ],
+            'IHSG':[{'bias':'LONG','setup':'Banks + resource + selective domestic','tickers':['BBCA.JK','ADRO.JK','PTBA.JK'],'why':'IHSG likes both bank quality and commodity spillover in reflation.','trigger':'Foreign flow improves.','invalidator':'USD up / commodity rollover.','size_cap':local_cap,'timeframe':'Trade / Trend','execution_note':'Best broad IHSG branch.'}],
+            'FX':[{'bias':'WATCH','setup':'Carry / EM FX selectively','tickers':['IDR=X'],'why':'Only works if vol behaves.','trigger':'DXY softer, vol lower.','invalidator':'Dollar squeezes.','size_cap':'0.50x','timeframe':'Trade','execution_note':'Selective, not blind carry.'}],
+            'Commodities':[{'bias':'LONG','setup':'Oil / copper / reflation basket','tickers':['CL=F','HG=F','DBC'],'why':'Best cyclical commodity branch.','trigger':'Demand impulse alive.','invalidator':'Growth slowdown returns.','size_cap':local_cap,'timeframe':'Trade / Trend','execution_note':'More offense okay here.'}],
+            'Crypto':[{'bias':'WATCH','setup':'Majors on liquidity expansion','tickers':['BTC-USD','ETH-USD'],'why':'Can participate if risk appetite broadens.','trigger':'Dollar down + liquidity up.','invalidator':'Policy shock or yields spike.','size_cap':'0.50x','timeframe':'Trade','execution_note':'Still use disciplined sizing.'}],
         },
-        "panic_crash": {
-            "US":[
-                {"bias":"LONG","setup":"SHY, BIL (cash equivalents only)","why":"Panic = cash is king. Jangan beli the dip dulu.","invalidator":"Coordinated policy response."},
-                {"bias":"AVOID","setup":"Semua equities dan credit","why":"Forced selling bisa bikin bahkan quality names drop drastically.","invalidator":"—"},
+        'vshape_rebound': {
+            'US':[
+                {'bias':'WATCH','setup':'Fast beta rebound','tickers':['QQQ','IWM','SPY'],'why':'Powerful but fragile reflex rally.','trigger':'Breadth thrust and short-covering persist.','invalidator':'Fails within 1–2 weeks.','size_cap':'0.50x','timeframe':'Trade only','execution_note':'Do not confuse with durable trend yet.'},
+                {'bias':'WATCH','setup':'Most hated squeeze names','tickers':['IWM','HYG'],'why':'Can rip hardest but break hardest too.','trigger':'Confirmation via breadth + credit.','invalidator':'Breadth fades quickly.','size_cap':'0.25x','timeframe':'Trade only','execution_note':'Hit-and-run, not investment.'},
             ],
-            "IHSG":[
-                {"bias":"AVOID","setup":"Semua IHSG","why":"Panic global = asing kabur semua. IHSG bisa turun cepat.","invalidator":"BI/pemerintah intervensi masif."},
-            ],
-            "FX":[
-                {"bias":"LONG","setup":"JPY, CHF, USD","why":"Classic flight to safety dalam panic.","invalidator":"Fed emergency cut."},
-            ],
-            "Commodities":[
-                {"bias":"LONG","setup":"Gold only","why":"Gold = safest asset dalam panic.","invalidator":"Margin call forced selling gold too."},
-            ],
-            "Crypto":[
-                {"bias":"AVOID","setup":"SEMUA crypto","why":"Crypto = most liquid beta = get sold first in panic.","invalidator":"—"},
-            ],
+            'IHSG':[{'bias':'WATCH','setup':'Tactical beta bounce','tickers':['^JKSE','BBRI.JK'],'why':'Can squeeze if foreign relief comes fast.','trigger':'USD cools and flows stabilize.','invalidator':'Relief dies fast.','size_cap':'0.25x','timeframe':'Trade only','execution_note':"Don't overstay."}],
+            'FX':[{'bias':'WATCH','setup':'USD fade tactical','tickers':['IDR=X'],'why':'Only if relief is real.','trigger':'Dollar loses momentum.','invalidator':'DXY reclaims trend.','size_cap':'0.25x','timeframe':'Trade only','execution_note':'Tactical only.'}],
+            'Commodities':[{'bias':'WATCH','setup':'Cyclical rebound basket','tickers':['CL=F','HG=F'],'why':'Good for squeeze, not durable by default.','trigger':'Demand expectations rebound.','invalidator':'Relief fails.','size_cap':'0.25x','timeframe':'Trade only','execution_note':'No oversized conviction.'}],
+            'Crypto':[{'bias':'WATCH','setup':'High beta bounce','tickers':['BTC-USD','ETH-USD'],'why':'Can bounce violently, but still fragile.','trigger':'Liquidity improves quickly.','invalidator':'Vol returns.','size_cap':'0.25x','timeframe':'Trade only','execution_note':'Tactical, not core.'}],
         },
     }
-    return translations.get(route_state, translations["growth_scare"])
+
+    out=translations.get(route_state, translations['growth_scare'])
+    for market, rows in out.items():
+        for row in rows:
+            row['route']=route_state
+            row['route_bias']=route.get('route_bias','mixed')
+            row['weather']='mixed' if mixed else 'supportive'
+            row['stress']='stressed' if stress else 'contained'
+            if stress and row['bias']=='LONG' and row['size_cap']=='1.00x':
+                row['size_cap']='0.75x'
+    return out
 
 
 def build_news_catalyst_overlay(q:Dict, f:Dict, h:Dict) -> Dict:

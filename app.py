@@ -1374,11 +1374,11 @@ def build_opportunities(prices:Dict[str,pd.Series], q:Dict, f:Dict, h:Dict, rot:
                 0.0,1.0
             ))
 
-            if final_ev < 0.20:
+            if final_ev < 0.12:
                 continue
-            if bias=='SHORT' and tk not in {'UUP','CL=F','QQQ','IWM','EEM','BTC-USD','ETH-USD','SOL-USD','^JKSE','HYG'} and final_ev < 0.38:
+            if bias=='SHORT' and tk not in {'UUP','CL=F','QQQ','IWM','EEM','BTC-USD','ETH-USD','SOL-USD','^JKSE','HYG'} and final_ev < 0.28:
                 continue
-            if bias=='LONG' and market=='Crypto' and final_ev < 0.36:
+            if bias=='LONG' and market=='Crypto' and final_ev < 0.24:
                 continue
 
             why_now=[]; why_not=[]
@@ -1396,7 +1396,7 @@ def build_opportunities(prices:Dict[str,pd.Series], q:Dict, f:Dict, h:Dict, rot:
             path=_path_state(macro_txt, route_txt)
             risk_bucket=_risk_bucket(rr)
             bias_label='▲ LONG' if bias=='LONG' else '▼ SHORT'
-            if final_ev<0.28:
+            if final_ev<0.36:
                 bias_label='WATCH-LONG' if bias=='LONG' else 'WATCH-SHORT'
             rows.append({
                 'Ticker': _display(tk, market),
@@ -1429,6 +1429,68 @@ def build_opportunities(prices:Dict[str,pd.Series], q:Dict, f:Dict, h:Dict, rot:
 
     longs=[r for r in rows if 'LONG' in r['Bias']]
     shorts=[r for r in rows if 'SHORT' in r['Bias']]
+
+    # fallback: never leave Markets board completely empty on selective / low-conviction days
+    if not longs and not shorts:
+        if quad in {'Q1','Q2'}:
+            fallback_longs=['QQQ','XLE','BBCA.JK','ADRO.JK','GC=F']
+            fallback_shorts=['TLT','UUP']
+        elif quad=='Q3':
+            fallback_longs=['GLD','GC=F','XLE','TLKM.JK','ADRO.JK']
+            fallback_shorts=['QQQ','IWM','EEM','BTC-USD']
+        else:
+            fallback_longs=['TLT','GLD','TLKM.JK','BBCA.JK']
+            fallback_shorts=['QQQ','IWM','HYG','BTC-USD']
+
+        def _mk_fallback(tk:str,bias:str):
+            s=_s(prices.get(tk,pd.Series(dtype=float)))
+            if len(s)<40:
+                return None
+            px=last(s)
+            if not math.isfinite(px):
+                return None
+            market=_market_of(tk)
+            rr=risk_ranges.get(tk,{})
+            sz=sizing.get(tk,{})
+            size_label=str(sz.get('size_current_long' if bias=='LONG' else 'size_current_short','0.25x'))
+            return {
+                'Ticker': _display(tk, market),
+                'Market': market,
+                'Bias': 'WATCH-LONG' if bias=='LONG' else 'WATCH-SHORT',
+                'Horizon': _holding_window(rr) if rr else 'Trade',
+                'Entry Zone': _entry_zone(px, rr, bias),
+                'Target': _target(px, rr, bias),
+                'Invalidation': _invalidation(px, rr, bias),
+                'Why Now': 'fallback watchlist to avoid empty board on selective day',
+                'Why Not Yet': 'conviction below launch threshold',
+                'Setup': 'C',
+                'Path': 'Watch',
+                'Risk Bucket': _risk_bucket(rr) if rr else 'Medium',
+                'EV': '18%',
+                'Conf': f"{conf:.0%}",
+                'Macro Aligned': '~',
+                'Route Aligned': '~',
+                'Range Aligned': '~' if rr else '✗',
+                'Rally Fit': 'Neutral',
+                'Sizing': size_label,
+                'Rally State': posture,
+                'Trade State': rr.get('trade_state','neutral') if rr else 'neutral',
+                'Trend State': rr.get('trend_state','neutral') if rr else 'neutral',
+                'Tail State': rr.get('tail_state','neutral') if rr else 'neutral',
+                '_score': 0.0,
+                '_ev': 0.18,
+                '_raw_ticker': tk,
+            }
+
+        for tk in fallback_longs:
+            row=_mk_fallback(tk,'LONG')
+            if row is not None:
+                longs.append(row)
+        for tk in fallback_shorts:
+            row=_mk_fallback(tk,'SHORT')
+            if row is not None:
+                shorts.append(row)
+
     longs.sort(key=lambda x:(x['_ev'], x.get('Rally Fit')=='Boosted', x.get('Macro Aligned') in {'✓','~ Tactical'}), reverse=True)
     shorts.sort(key=lambda x:(x['_ev'], x.get('Rally Fit')=='Boosted'), reverse=True)
     return longs + shorts
@@ -3051,6 +3113,7 @@ def page_opportunities(snap:Dict)->None:
 
     longs=[r for r in opps if "LONG" in r.get("Bias","")]
     shorts=[r for r in opps if "SHORT" in r.get("Bias","")]
+    watchs=[r for r in opps if str(r.get("Bias","")).startswith("WATCH")]
     clear_count=int(most_hated.get("clear_count",0) or 0)
     boosted_longs=[r for r in longs if r.get("Rally Fit")=="Boosted"]
     squeezed_shorts=[r for r in shorts if r.get("Rally Fit")=="Squeezed"]
@@ -3059,7 +3122,7 @@ def page_opportunities(snap:Dict)->None:
     with c1: mc("Rally State",most_hated.get("stage","monitor"),f"{clear_count}/4 checklist","good" if clear_count>=3 else ("warn" if clear_count>=2 else "bad"))
     with c2: mc("Action",most_hated.get("action","Selective")[:24],most_hated.get("posture",""),"good" if clear_count>=3 else ("warn" if clear_count>=2 else "bad"))
     with c3: mc("Exec Mode",snap["crash"]["exec_mode"],f"score {snap['crash']['exec_score']:.0%}","good" if snap["crash"]["exec_score"]>=0.60 else "warn")
-    with c4: mc("Board",f"{len(longs)}L / {len(shorts)}S",f"{quad} · {conf:.0%} conf","good" if len(longs)>=len(shorts) else "warn")
+    with c4: mc("Board",f"{len(longs)}L / {len(shorts)}S / {len(watchs)}W",f"{quad} · {conf:.0%} conf","good" if len(longs)>=len(shorts) else "warn")
 
     if most_hated:
         render_most_hated_rally_monitor(most_hated,compact=True)
@@ -3094,6 +3157,10 @@ def page_opportunities(snap:Dict)->None:
             st.dataframe(_opp_view_df(short_view,detail=False),use_container_width=True,hide_index=True,height=min(max(220,len(short_view)*35+46),420))
         else:
             st.info("Belum ada short yang qualified.")
+
+    if watchs:
+        sh("👀 WATCHLIST — selective / belum launch")
+        st.dataframe(_opp_view_df(watchs[:top_n],detail=False),use_container_width=True,hide_index=True,height=min(max(180,len(watchs[:top_n])*35+46),360))
 
     f1,f2=st.columns(2)
     with f1:

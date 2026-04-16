@@ -1397,7 +1397,7 @@ def build_opportunities(prices:Dict[str,pd.Series], q:Dict, f:Dict, h:Dict, rot:
             risk_bucket=_risk_bucket(rr)
             bias_label='▲ LONG' if bias=='LONG' else '▼ SHORT'
             if final_ev<0.28:
-                bias_label='WATCH'
+                bias_label='WATCH-LONG' if bias=='LONG' else 'WATCH-SHORT'
             rows.append({
                 'Ticker': _display(tk, market),
                 'Market': market,

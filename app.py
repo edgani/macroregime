@@ -2331,186 +2331,136 @@ def _opp_card_html(rows:List[Dict], empty_text:str, accent:str, icon:str)->str:
 
 
 def page_opportunities(snap:Dict)->None:
-    """Decision-first opportunity board with collapsed secondary context."""
+    """Refactored one-fold decision board: action first, detail second."""
     opps=snap.get("opportunities",[])
     q=snap["q"]; quad=q["quad"]; conf=q["confidence"]
     family=snap.get("family","reflation"); f=snap["f"]; rot=snap["rotation"]
     rot_meta=ROTATION_FAMILIES.get(family,ROTATION_FAMILIES["reflation"])
     prices=snap["prices"]
+    most_hated=snap.get("most_hated_rally",{})
 
     longs=[r for r in opps if "LONG" in r.get("Bias","")]
     shorts=[r for r in opps if "SHORT" in r.get("Bias","")]
-    most_hated=snap.get("most_hated_rally",{})
+    clear_count=int(most_hated.get("clear_count",0) or 0)
+    boosted_longs=[r for r in longs if r.get("Rally Fit")=="Boosted"]
+    squeezed_shorts=[r for r in shorts if r.get("Rally Fit")=="Squeezed"]
 
-    c1,c2,c3,c4,c5,c6=st.columns(6)
-    with c1: mc("Total",str(len(opps)),f"{len(longs)} long · {len(shorts)} short","good" if len(longs)>=len(shorts) else "warn")
-    with c2: mc("Family",rot_meta["name"][:18],"dominant route","good")
-    with c3: mc("Quad",quad,q.get("operating",""),"good" if conf>0.50 else "warn")
-    with c4: mc("Confidence",f"{conf:.0%}",q.get("conf_band",""),"good" if conf>0.50 else "warn")
-    with c5: mc("Exec Mode",snap["crash"]["exec_mode"],f"score {snap['crash']['exec_score']:.0%}","good" if snap["crash"]["exec_score"]>=0.60 else "warn")
-    with c6: mc("Rally",f"{most_hated.get('clear_count',0)}/4",most_hated.get("stage","monitor"),"good" if most_hated.get("clear_count",0)>=3 else "warn")
+    c1,c2,c3,c4=st.columns(4)
+    with c1: mc("Rally State",most_hated.get("stage","monitor"),f"{clear_count}/4 checklist","good" if clear_count>=3 else ("warn" if clear_count>=2 else "bad"))
+    with c2: mc("Action",most_hated.get("action","Selective")[:24],most_hated.get("posture",""),"good" if clear_count>=3 else ("warn" if clear_count>=2 else "bad"))
+    with c3: mc("Exec Mode",snap["crash"]["exec_mode"],f"score {snap['crash']['exec_score']:.0%}","good" if snap["crash"]["exec_score"]>=0.60 else "warn")
+    with c4: mc("Board",f"{len(longs)}L / {len(shorts)}S",f"{quad} · {conf:.0%} conf","good" if len(longs)>=len(shorts) else "warn")
 
     if most_hated:
         render_most_hated_rally_monitor(most_hated,compact=True)
-        st.caption(
-            f"Most Hated Engine: {most_hated.get('stage','monitor')} · {most_hated.get('posture','')} · "
-            f"size {float(most_hated.get('size_mult',0.35)):.2f}x. Long beta/EM/crypto dinaikkan saat trigger hidup; "
-            "short yang rawan squeeze diturunkan conviction-nya."
-        )
+        if clear_count>=4:
+            st.success("Rally branch live. Fokus: long leaders + boosted risk-on. Short hanya yang benar-benar bersih dan tidak rawan squeeze.")
+        elif clear_count>=3:
+            st.warning("Pre-confirmed. Scale in bertahap ke risk-on names, tapi jangan over-size sebelum 4/4 clear.")
+        elif clear_count>=2:
+            st.info("Transisi. Watchlist risk-on naik, tapi board utama tetap selective.")
+        else:
+            st.error("Belum aktif. Default mode: selective / defensive.")
 
-    depth=st.radio("Board depth",["Top 5","Top 8","Top 12","All"],horizontal=True,key="opp_depth_compact")
+    depth=st.radio("Board depth",["Top 5","Top 8","Top 12","All"],horizontal=True,key="opp_depth_onefold")
     top_n=len(opps) if depth=="All" else int(depth.split()[1])
     long_view=longs[:top_n]
     short_view=shorts[:top_n]
 
-    boosted_longs=[r for r in longs if r.get("Rally Fit")=="Boosted"][:min(5,top_n)]
-    squeezed_shorts=[r for r in shorts if r.get("Rally Fit")=="Squeezed"][:min(5,top_n)]
-    tactical_longs=[r for r in longs if r.get("Macro Aligned") in {"✓","~ Tactical"}][:min(5,top_n)]
-    clean_shorts=[r for r in shorts if r.get("Rally Fit")!="Squeezed"][:min(5,top_n)]
-
-    st.markdown("---")
-    sh("⚡ EXECUTION FOCUS — lihat ini dulu")
-    fc1,fc2,fc3,fc4=st.columns(4)
-    with fc1:
-        st.markdown("**Best longs**")
-        st.markdown(_opp_card_html(longs[:min(5,top_n)],"Belum ada long utama.","#3dbb6c","▲"),unsafe_allow_html=True)
-    with fc2:
-        st.markdown("**Best shorts**")
-        st.markdown(_opp_card_html(shorts[:min(5,top_n)],"Belum ada short utama.","#e05252","▼"),unsafe_allow_html=True)
-    with fc3:
-        st.markdown("**Boosted by rally**")
-        st.markdown(_opp_card_html(boosted_longs or tactical_longs,"Belum ada long yang benar-benar di-boost branch ini.","#59a8e5","⚡"),unsafe_allow_html=True)
-    with fc4:
-        st.markdown("**Short squeeze risk**")
-        st.markdown(_opp_card_html(squeezed_shorts or clean_shorts,"Belum ada short yang perlu perhatian khusus.","#e5a020","⚠"),unsafe_allow_html=True)
-
-    st.markdown("---")
-    sh("📋 EXECUTION BOARD — ringkas dan langsung pakai")
-    ec1,ec2=st.columns(2)
-    with ec1:
-        st.markdown(f"**▲ Long board ({len(long_view)})**")
+    sh("🎯 EXECUTION BOARD — lihat ini dulu")
+    a,b=st.columns(2)
+    with a:
+        st.markdown(f"**▲ Top longs ({len(long_view)})**")
         if long_view:
-            st.dataframe(_opp_view_df(long_view,detail=False),use_container_width=True,hide_index=True,height=min(max(220,len(long_view)*36+46),420))
+            st.dataframe(_opp_view_df(long_view,detail=False),use_container_width=True,hide_index=True,height=min(max(220,len(long_view)*35+46),420))
         else:
-            st.info("Tidak ada long opportunity yang qualified untuk regime ini.")
-    with ec2:
-        st.markdown(f"**▼ Short board ({len(short_view)})**")
+            st.info("Belum ada long yang qualified.")
+    with b:
+        st.markdown(f"**▼ Top shorts ({len(short_view)})**")
         if short_view:
-            st.dataframe(_opp_view_df(short_view,detail=False),use_container_width=True,hide_index=True,height=min(max(220,len(short_view)*36+46),420))
+            st.dataframe(_opp_view_df(short_view,detail=False),use_container_width=True,hide_index=True,height=min(max(220,len(short_view)*35+46),420))
         else:
-            st.info("Tidak ada short opportunity yang qualified untuk regime ini.")
+            st.info("Belum ada short yang qualified.")
 
-    fwd=snap.get("forward_radar",[])
-    if fwd:
-        with st.expander("🔭 Forward radar — setup belum actionable", expanded=False):
-            st.caption("Setup yang sudah di-monitor tapi belum trigger. Siapkan order kalau trigger hit.")
-            fwd_rows=[{"Ticker":r.get("ticker_display",r.get("ticker","")),"Side":r.get("side",""),"Status":r.get("status",""),"Trigger":r.get("trigger",""),"Why Not Yet":r.get("why_not_yet",""),"1M":r.get("momentum_1m","—"),"Signal":r.get("signal_quality","")} for r in fwd]
-            st.dataframe(pd.DataFrame(fwd_rows),use_container_width=True,hide_index=True,height=min(len(fwd_rows)*36+46,360))
+    f1,f2=st.columns(2)
+    with f1:
+        sh("⚡ BOOSTED / PRIORITY LONGS")
+        st.markdown(_opp_card_html(boosted_longs[:5] or longs[:5],"Belum ada boosted long yang bersih.","#3dbb6c","⚡"),unsafe_allow_html=True)
+    with f2:
+        sh("⚠ SHORTS AT RISK OF SQUEEZE")
+        st.markdown(_opp_card_html(squeezed_shorts[:5] or shorts[:5],"Belum ada short yang rawan squeeze.","#e5a020","⚠"),unsafe_allow_html=True)
 
-    with st.expander("🔄 Rotation route, causal map, dan confirm/invalidator", expanded=False):
-        sh(f"ROTATIONAL FLOW MAP — {rot_meta['name'].upper()}")
-        st.markdown('<div style="font-size:12px;opacity:.75;margin-bottom:8px">'+rot_meta["desc"]+'</div>',unsafe_allow_html=True)
-        render_rotational_flow_map(q,rot,f,family)
-
-        sh("CAUSAL CHAIN DETAIL")
-        st.markdown(f'**Trigger:** {rot_meta["trigger"]}')
-        nodes=rot_meta["nodes"]
-        oil_3m=nf(f.get("clf_3m",f.get("oil_3m",0.0)))
-        uup_1m=nf(f.get("uup_1m",0.0))
-        shock=q.get("inf_shock",0.0)
-        sf=q.get("slowdown_flags",0.0)
-        if family=="petrodollar":
-            if oil_3m>0.15: current_node=1
-            elif uup_1m>0.02: current_node=2
-            elif shock>0.25: current_node=3
-            else: current_node=0
-        elif family=="em_rotation":
-            em_score=rot.get("em_score",0.5)
-            if em_score>0.60: current_node=3
-            elif em_score>0.50: current_node=2
-            elif uup_1m<-0.01: current_node=1
-            else: current_node=0
-        elif family=="growth_scare":
-            if sf>=0.50: current_node=2
-            elif sf>=0.25: current_node=1
-            else: current_node=0
-        else:
-            current_node=1 if q.get("g_core",0)>0 else 0
-
-        node_cols=st.columns(len(nodes))
-        role_colors={"Trigger":"#3dbb6c","First Order":"#59a8e5","Second Order":"#e5a020","Expression":"#9b6aff","Invalidator":"#e05252"}
-        for i,(col,node) in enumerate(zip(node_cols,nodes)):
-            with col:
-                rc=role_colors.get(node["role"],"#888")
-                is_current=(i==current_node)
-                bias_sym="▲" if node["bias"]=="up" else("▼" if node["bias"]=="down" else "↔")
-                bg_style="background:"+rc+"18;" if is_current else ""
-                border_style="border:2px solid "+rc+";" if is_current else "border:1px solid "+rc+"44;"
-                you_here='<div style="font-size:9px;font-weight:800;color:'+rc+';margin-bottom:2px">◉ KITA DI SINI</div>' if is_current else ""
-                html_node=(
-                    '<div style="'+border_style+bg_style+'border-radius:8px;padding:8px;text-align:center;min-height:110px;display:flex;flex-direction:column;justify-content:center">' +
-                    you_here +
-                    '<div style="font-size:9px;font-weight:700;letter-spacing:.08em;color:'+rc+';margin-bottom:3px">'+node["role"].upper()+'</div>' +
-                    '<div style="font-size:12px;font-weight:600;line-height:1.3">'+bias_sym+' '+node["label"]+'</div>' +
-                    '<div style="font-size:10px;opacity:.55;margin-top:3px">'+node["why"][:45]+'</div>' +
-                    '</div>'
-                )
-                st.markdown(html_node,unsafe_allow_html=True)
-
-        sh("BEST EXPRESSIONS PER MARKET")
-        be=rot_meta.get("best_expressions",{})
-        be_cols=st.columns(len(be))
-        for col,(market,tickers) in zip(be_cols,be.items()):
-            with col:
-                st.markdown(f"**{market}**")
-                for t in tickers[:4]:
-                    s=prices.get(t,pd.Series())
-                    r1=ret_n(s,21)
-                    perf=pct(r1) if math.isfinite(r1) else ""
-                    cls="good" if(math.isfinite(r1) and r1>0) else("bad" if(math.isfinite(r1) and r1<-0.01) else "")
-                    name=disp(t)
-                    st.markdown('<span class="'+cls+'" style="font-size:12px">'+name+' '+perf+'</span><br>',unsafe_allow_html=True)
-
-        ca,cb2=st.columns(2)
-        with ca:
-            sh("✓ KONFIRMASI")
-            for c in rot_meta.get("confirms",[]):
-                st.markdown(f'<span class="good">✓</span> {c}',unsafe_allow_html=True)
-        with cb2:
-            sh("✗ INVALIDASI")
-            for inv in rot_meta.get("invalidators",[]):
-                st.markdown(f'<span class="bad">✗</span> {inv}',unsafe_allow_html=True)
-
-    with st.expander("🧾 Full detail, policy matrix, dan long/short lengkap", expanded=False):
-        ld, sd = st.columns(2)
-        with ld:
-            st.markdown(f"**▲ Long full detail ({len(long_view)})**")
-            if long_view:
-                st.dataframe(_opp_view_df(long_view,detail=True),use_container_width=True,hide_index=True,height=min(max(260,len(long_view)*36+46),520))
+    with st.expander("Secondary context — forward radar, causal map, translation, full detail", expanded=False):
+        tab_a,tab_b,tab_c=st.tabs(["🔭 Radar","🔄 Route / Translation","🧾 Full Detail"])
+        with tab_a:
+            fwd=snap.get("forward_radar",[])
+            if fwd:
+                st.caption("Setup yang sudah dipantau tapi belum trigger.")
+                fwd_rows=[{"Ticker":r.get("ticker_display",r.get("ticker","")),"Side":r.get("side",""),"Status":r.get("status",""),"Trigger":r.get("trigger",""),"Why Not Yet":r.get("why_not_yet",""),"1M":r.get("momentum_1m","—"),"Signal":r.get("signal_quality","")} for r in fwd]
+                st.dataframe(pd.DataFrame(fwd_rows),use_container_width=True,hide_index=True,height=min(len(fwd_rows)*36+46,360))
             else:
-                st.info("Tidak ada long opportunity yang qualified untuk regime ini.")
-        with sd:
-            st.markdown(f"**▼ Short full detail ({len(short_view)})**")
-            if short_view:
-                st.dataframe(_opp_view_df(short_view,detail=True),use_container_width=True,hide_index=True,height=min(max(260,len(short_view)*36+46),520))
-            else:
-                st.info("Tidak ada short opportunity yang qualified untuk regime ini.")
+                st.info("Belum ada forward radar yang menonjol.")
 
-        sh(f"REGIME POLICY MATRIX — {quad}")
-        policy=QUAD_POLICY.get(quad,{})
-        pol_cols=st.columns(5)
-        for col,(market,pol) in zip(pol_cols,policy.items()):
-            with col:
-                st.markdown(f"**{market.upper()}**")
-                st.markdown("🟢 **LONG:**")
-                for x in pol.get("long",[])[:3]:
-                    st.markdown(f'<span style="font-size:11px;color:#3dbb6c">• {x}</span>',unsafe_allow_html=True)
-                st.markdown("🔴 **SHORT:**")
-                for x in pol.get("short",[])[:3]:
-                    st.markdown(f'<span style="font-size:11px;color:#e05252">• {x}</span>',unsafe_allow_html=True)
-                st.markdown("⚫ **AVOID:**")
-                for x in pol.get("avoid",[])[:2]:
-                    st.markdown(f'<span style="font-size:11px;opacity:.5">• {x}</span>',unsafe_allow_html=True)
+        with tab_b:
+            sh(f"ROTATIONAL FLOW MAP — {rot_meta['name'].upper()}")
+            st.markdown('<div style="font-size:12px;opacity:.75;margin-bottom:8px">'+rot_meta["desc"]+'</div>',unsafe_allow_html=True)
+            render_rotational_flow_map(q,rot,f,family)
+            be=rot_meta.get("best_expressions",{})
+            if be:
+                st.markdown("---")
+                be_cols=st.columns(len(be))
+                for col,(market,tickers) in zip(be_cols,be.items()):
+                    with col:
+                        st.markdown(f"**{market}**")
+                        for t in tickers[:4]:
+                            s=prices.get(t,pd.Series()); r1=ret_n(s,21)
+                            perf=pct(r1) if math.isfinite(r1) else ""
+                            cls="good" if(math.isfinite(r1) and r1>0) else("bad" if(math.isfinite(r1) and r1<-0.01) else "")
+                            st.markdown('<span class="'+cls+'" style="font-size:12px">'+disp(t)+' '+perf+'</span><br>',unsafe_allow_html=True)
+            at=snap.get("asset_translation",{})
+            if at:
+                st.markdown("---")
+                sh("ASSET TRANSLATION")
+                at_cols=st.columns(len(at))
+                for col,(mkt,setups) in zip(at_cols,at.items()):
+                    with col:
+                        st.markdown(f"**{mkt}**")
+                        for setup in setups[:3]:
+                            bias=setup.get("bias","")
+                            bc="good" if "LONG" in bias else ("bad" if "AVOID" in bias or "SHORT" in bias else "warn")
+                            st.markdown('<div style="border-left:2px solid currentColor;padding:3px 6px;margin:3px 0;font-size:11px" class="'+bc+'"><b>'+bias+'</b><br>'+setup.get("setup","")[:40]+'<br><span style="opacity:.55;font-size:9px">✗ '+setup.get("invalidator","")[:35]+'</span></div>',unsafe_allow_html=True)
+
+        with tab_c:
+            ld, sd = st.columns(2)
+            with ld:
+                st.markdown(f"**▲ Long full detail ({len(long_view)})**")
+                if long_view:
+                    st.dataframe(_opp_view_df(long_view,detail=True),use_container_width=True,hide_index=True,height=min(max(260,len(long_view)*36+46),520))
+                else:
+                    st.info("Tidak ada long opportunity yang qualified untuk regime ini.")
+            with sd:
+                st.markdown(f"**▼ Short full detail ({len(short_view)})**")
+                if short_view:
+                    st.dataframe(_opp_view_df(short_view,detail=True),use_container_width=True,hide_index=True,height=min(max(260,len(short_view)*36+46),520))
+                else:
+                    st.info("Tidak ada short opportunity yang qualified untuk regime ini.")
+
+            st.markdown("---")
+            sh(f"REGIME POLICY MATRIX — {quad}")
+            policy=QUAD_POLICY.get(quad,{})
+            pol_cols=st.columns(5)
+            for col,(market,pol) in zip(pol_cols,policy.items()):
+                with col:
+                    st.markdown(f"**{market.upper()}**")
+                    st.markdown("🟢 **LONG:**")
+                    for x in pol.get("long",[])[:3]:
+                        st.markdown(f'<span style="font-size:11px;color:#3dbb6c">• {x}</span>',unsafe_allow_html=True)
+                    st.markdown("🔴 **SHORT:**")
+                    for x in pol.get("short",[])[:3]:
+                        st.markdown(f'<span style="font-size:11px;color:#e05252">• {x}</span>',unsafe_allow_html=True)
+                    st.markdown("⚫ **AVOID:**")
+                    for x in pol.get("avoid",[])[:2]:
+                        st.markdown(f'<span style="font-size:11px;opacity:.5">• {x}</span>',unsafe_allow_html=True)
 
 
 def page_radar(snap:Dict)->None:
@@ -2712,66 +2662,99 @@ def page_ihsg(snap:Dict)->None:
 
 def page_health(snap:Dict)->None:
     h=snap["h"]; f=snap["f"]; prices=snap["prices"]; most_hated=snap.get("most_hated_rally",{})
-    sh("📡 TACTICAL WEATHER — CAN WE TRADE? (v33 weights)")
+    sh("📡 HEALTH — ONE-SCREEN DECISION BOARD")
+
     c1,c2,c3,c4=st.columns(4)
     def mcard3(label,s,sub,states):
         cls="good" if s==states[0] else("bad" if s==states[-1] else "warn")
         mc(label,s,sub,cls)
     with c1: mcard3("Trade Environment","Supportive" if h["trade_state"]=="supportive" else("Hostile" if h["trade_state"]=="hostile" else "Balanced"),"breadth+credit+USD",("Supportive","Balanced","Hostile"))
-    with c2: mcard3("Market Trend",h["trend_state"].capitalize(),"price+breadth+dollar",("Persistent","Mixed","Fragile"))
-    with c3: mcard3("Tail State",h["tail_state"].capitalize(),"vol+credit+small+narrow",("Calm","Neutral","Stressed"))
-    with c4: mcard3("Overall Weather",h["weather_state"],"composite 35/35/30",("Risk-On","Mixed","Risk-Off"))
-    st.markdown("---")
+    with c2: mcard3("Overall Weather",h["weather_state"],"composite 35/35/30",("Risk-On","Mixed","Risk-Off"))
+    with c3:
+        stage=most_hated.get("stage","monitor") if most_hated else "Monitor"
+        cls="good" if most_hated.get("clear_count",0)>=3 else ("warn" if most_hated.get("clear_count",0)>=2 else "bad")
+        mc("Rally State",stage,f"{most_hated.get('clear_count',0)}/4 checklist",cls)
+    with c4:
+        action=most_hated.get("action","Tetap selective") if most_hated else "Tetap selective"
+        posture=most_hated.get("posture","") if most_hated else ""
+        cls="good" if most_hated.get("clear_count",0)>=3 else ("warn" if most_hated.get("clear_count",0)>=2 else "bad")
+        mc("Action Now",action[:24],posture,cls)
+
     if most_hated:
         render_most_hated_rally_monitor(most_hated,compact=False)
-        st.caption("Ini bukan pengganti quad/regime. Fungsinya sebagai tactical branch confirmer untuk TACO de-escalation / Warsh liquidity rally.")
-    st.markdown("---"); ca,cb=st.columns(2)
-    with ca:
-        sh(f"📊 BREADTH (trade={TACT_TRADE_W['breadth']:.0%} weight)")
-        gb("Sektor di atas 50-DMA",h["sec_support"],note=f"({h['sec_above50']}/11)")
-        gb("SPY trend health",h["spy_trend"])
-        gb("Small cap (IWM)",h["iwm_trend"])
-        gb("Equal-weight vs cap-weight",clamp(0.5+h.get("eqw_vs_cw",0)*5),note=pct(h.get("eqw_vs_cw",0))+" 3M diff")
-        gb("Narrow leadership (inverse)",1-h.get("narrow_leadership",0.5),"low narrow = health")
-        gb("Breadth composite",h["breadth"])
-    with cb:
-        sh("⚡ CREDIT & VOL (tail weights)")
-        hy=f.get("hy_oas",float("nan")); ig=f.get("ig_oas",float("nan"))
-        gb("HY Credit health",clamp(1.0-(hy-250)/500) if math.isfinite(hy) else 0.5,note=f"{hy:.0f}bps" if math.isfinite(hy) else "proxy")
-        gb("IG Credit health ★",clamp(1.0-(ig-50)/200) if math.isfinite(ig) else 0.5,note=f"{ig:.0f}bps" if math.isfinite(ig) else "n/a")
-        vix=f.get("vix_last",20.0); gb("VIX health",clamp(1.0-(vix-13)/25),note=f"VIX {vix:.1f}")
-        vr=f.get("vix_vxv_ratio",float("nan"))
-        gb("VIX term structure ★",clamp(1.0-(vr-0.85)/0.25) if math.isfinite(vr) else 0.5,note=f.get("vix_term_state",""))
-        gb("Credit+Vol composite",(h["tail"]))
-    st.markdown("---"); sh("📈 YIELD CURVE ★")
-    sp=f.get("spread_2s10s",float("nan")); sp30=f.get("spread_10s30s",float("nan")); sp3m=f.get("spread_2s10s_3m",float("nan"))
-    y1,y2,y3=st.columns(3)
-    with y1: mc("2s10s Spread",f"{sp:+.2f}%" if math.isfinite(sp) else "—",f.get("yield_curve_state",""),"good" if(math.isfinite(sp) and sp>0.5) else("bad" if(math.isfinite(sp) and sp<0) else "warn"))
-    with y2: mc("10s30s Spread",f"{sp30:+.2f}%" if math.isfinite(sp30) else "—")
-    with y3: mc("2s10s 3M Δ",f"{sp3m:+.2f}%" if math.isfinite(sp3m) else "—","Uninverting → resesi dimulai" if f.get("yield_curve_uninverting") else "","warn" if f.get("yield_curve_uninverting") else "neu")
-    st.info("> **Yield curve:** 2Y > 10Y = inverted = sinyal resesi. Ketika curve *steepen* (uninverting), itu tanda resesi sedang dimulai bukan ending. Watch 3M direction.")
-    st.markdown("---"); sh("📦 SEKTOR US vs SPY (3M)")
-    SECS={"XLE":"Energy","XLF":"Financials","XLI":"Industrials","XLB":"Materials","XLK":"Technology","XLV":"Healthcare","XLY":"Cons.Disc.","XLP":"Cons.Staples","XLU":"Utilities","XLRE":"Real Estate","XLC":"Comm.Svc."}
-    spy3=ret_n(prices.get("SPY",pd.Series()),63); rows=[]
-    for t,name in SECS.items():
-        s=prices.get(t,pd.Series()); r3=ret_n(s,63); r1=ret_n(s,21)
-        rel=(r3-spy3) if(math.isfinite(r3) and math.isfinite(spy3)) else float("nan")
-        rows.append({"Sektor":name,"3M":pct(r3),"1M":pct(r1),"vs SPY 3M":pct(rel),"50DMA":"✓" if ts(s)>=0.5 else "✗"})
-    rows.sort(key=lambda r:float(r["vs SPY 3M"].replace("%","").replace("—","0").replace("+","")) if r["vs SPY 3M"]!="—" else -999,reverse=True)
-    st.dataframe(pd.DataFrame(rows),use_container_width=True,hide_index=True,height=360)
-    # v33-style checklist
-    st.markdown("---")
-    chk=snap.get("checklists",{})
-    if chk.get("global"):
-        render_checklist(chk["global"],"✅ KONDISI GLOBAL — CHECKLIST TRADING")
-        st.caption("✓ = Kondisi baik | ~ = Mixed/watch | ✗ = Kondisi buruk")
-    # Asset checklists for US and cross-asset
-    asset_chk=snap.get("asset_checklists",{})
-    if asset_chk.get("us"):
-        st.markdown("---")
-        render_checklist(asset_chk["us"],"🇺🇸 US EQUITY CHECKLIST")
-    if asset_chk.get("fx"):
-        render_checklist(asset_chk["fx"],"💱 FX CHECKLIST")
+        cc=int(most_hated.get("clear_count",0) or 0)
+        if cc>=4:
+            st.success("4/4 clear — rally branch aktif. Mode: tactical risk-on. Long beta/EM/crypto boleh dinaikkan, tapi tetap ingat ini liquidity rally yang rapuh.")
+        elif cc>=3:
+            st.warning("3/4 clear — nyaris aktif. Risk-on boleh dinaikkan bertahap, tapi masih perlu disiplin invalidator dan sizing.")
+        elif cc>=2:
+            st.info("2/4 clear — transisi. Watchlist risk-on naik, tapi belum full confirm.")
+        else:
+            st.error("0–1/4 clear — branch most hated rally belum hidup. Fokus defense / selective execution.")
+
+    tape_tab, sector_tab, extra_tab = st.tabs(["⚡ Core Tape","📦 Sector Leadership","🧾 Extra Checklists"])
+
+    with tape_tab:
+        ca,cb=st.columns(2)
+        with ca:
+            sh(f"📊 BREADTH (trade={TACT_TRADE_W['breadth']:.0%} weight)")
+            gb("Sektor di atas 50-DMA",h["sec_support"],note=f"({h['sec_above50']}/11)")
+            gb("SPY trend health",h["spy_trend"])
+            gb("Small cap (IWM)",h["iwm_trend"])
+            gb("Equal-weight vs cap-weight",clamp(0.5+h.get("eqw_vs_cw",0)*5),note=pct(h.get("eqw_vs_cw",0))+" 3M diff")
+            gb("Narrow leadership (inverse)",1-h.get("narrow_leadership",0.5),"low narrow = sehat")
+            gb("Breadth composite",h["breadth"])
+        with cb:
+            sh("⚡ CREDIT & VOL")
+            hy=f.get("hy_oas",float("nan")); ig=f.get("ig_oas",float("nan")); vix=f.get("vix_last",20.0)
+            gb("HY Credit health",clamp(1.0-(hy-250)/500) if math.isfinite(hy) else 0.5,note=f"{hy:.0f}bps" if math.isfinite(hy) else "proxy")
+            gb("IG Credit health",clamp(1.0-(ig-50)/200) if math.isfinite(ig) else 0.5,note=f"{ig:.0f}bps" if math.isfinite(ig) else "n/a")
+            gb("VIX health",clamp(1.0-(vix-13)/25),note=f"VIX {vix:.1f}")
+            vr=f.get("vix_vxv_ratio",float("nan"))
+            gb("VIX term structure",clamp(1.0-(vr-0.85)/0.25) if math.isfinite(vr) else 0.5,note=f.get("vix_term_state",""))
+            gb("Credit+Vol composite",h["tail"])
+
+        sh("📈 YIELD CURVE")
+        sp=f.get("spread_2s10s",float("nan")); sp30=f.get("spread_10s30s",float("nan")); sp3m=f.get("spread_2s10s_3m",float("nan"))
+        y1,y2,y3=st.columns(3)
+        with y1: mc("2s10s Spread",f"{sp:+.2f}%" if math.isfinite(sp) else "—",f.get("yield_curve_state",""),"good" if(math.isfinite(sp) and sp>0.5) else("bad" if(math.isfinite(sp) and sp<0) else "warn"))
+        with y2: mc("10s30s Spread",f"{sp30:+.2f}%" if math.isfinite(sp30) else "—")
+        with y3: mc("2s10s 3M Δ",f"{sp3m:+.2f}%" if math.isfinite(sp3m) else "—","Uninverting = risiko resesi berjalan" if f.get("yield_curve_uninverting") else "", "warn" if f.get("yield_curve_uninverting") else "neu")
+
+    with sector_tab:
+        sh("📦 SECTOR LEADERSHIP — lihat ini setelah trigger")
+        SECS={"XLE":"Energy","XLF":"Financials","XLI":"Industrials","XLB":"Materials","XLK":"Technology","XLV":"Healthcare","XLY":"Cons.Disc.","XLP":"Cons.Staples","XLU":"Utilities","XLRE":"Real Estate","XLC":"Comm.Svc."}
+        spy3=ret_n(prices.get("SPY",pd.Series()),63); rows=[]
+        for t,name in SECS.items():
+            s=prices.get(t,pd.Series()); r3=ret_n(s,63); r1=ret_n(s,21)
+            rel=(r3-spy3) if(math.isfinite(r3) and math.isfinite(spy3)) else float("nan")
+            rows.append({"Sektor":name,"3M":pct(r3),"1M":pct(r1),"vs SPY 3M":pct(rel),"50DMA":"✓" if ts(s)>=0.5 else "✗","_rel":rel if math.isfinite(rel) else -999})
+        top=sorted(rows,key=lambda r:r["_rel"],reverse=True)[:5]
+        bot=sorted(rows,key=lambda r:r["_rel"])[:4]
+        sa,sb=st.columns(2)
+        with sa:
+            st.markdown("**Leaders sekarang**")
+            st.dataframe(pd.DataFrame([{k:v for k,v in r.items() if not k.startswith("_")} for r in top]),use_container_width=True,hide_index=True,height=250)
+        with sb:
+            st.markdown("**Laggards / perlu hati-hati**")
+            st.dataframe(pd.DataFrame([{k:v for k,v in r.items() if not k.startswith("_")} for r in bot]),use_container_width=True,hide_index=True,height=250)
+        with st.expander("Lihat full sector table", expanded=False):
+            full=sorted(rows,key=lambda r:r["_rel"],reverse=True)
+            st.dataframe(pd.DataFrame([{k:v for k,v in r.items() if not k.startswith("_")} for r in full]),use_container_width=True,hide_index=True,height=380)
+
+    with extra_tab:
+        chk=snap.get("checklists",{})
+        asset_chk=snap.get("asset_checklists",{})
+        if chk.get("global"):
+            render_checklist(chk["global"],"✅ KONDISI GLOBAL — CHECKLIST TRADING")
+            st.caption("Checklist ini sekunder. Hero trigger utama tetap 4 Ricky signals di atas.")
+        if asset_chk.get("us"):
+            st.markdown("---")
+            render_checklist(asset_chk["us"],"🇺🇸 US EQUITY CHECKLIST")
+        if asset_chk.get("fx"):
+            st.markdown("---")
+            render_checklist(asset_chk["fx"],"💱 FX CHECKLIST")
+
 
 def page_playbook(snap:Dict)->None:
     q=snap["q"]; rot=snap["rotation"]; sc=snap["scenarios"]; pb=snap["playbooks"]; prices=snap["prices"]; most_hated=snap.get("most_hated_rally",{})
@@ -3304,6 +3287,7 @@ def main():
 - Semua tab error resolved
         """)
     snap=load_all()
+    most_hated=snap.get("most_hated_rally",{})
     q=snap["q"]; f=snap["f"]; cr=snap["crash"]; quad=q["quad"]; meta=QUAD_META.get(quad,{})
     ga="▲" if q.get("growth_acc") else "▼"; ia="▲" if q.get("infl_acc") else "▼"
     div_badge=f" / M:{q['monthly_quad']}" if q["divergence"]=="divergent" else ""

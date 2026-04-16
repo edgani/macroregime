@@ -3355,18 +3355,22 @@ def page_signal_strength(snap:Dict)->None:
 
 
 def page_markets_full(snap:Dict)->None:
-    """Markets tab: IHSG + US + FX + Commodities + Crypto, semua terintegrasi."""
+    """Markets tab: execution board + signal lifecycle + market-specific views."""
     prices=snap["prices"]; q=snap["q"]; f=snap["f"]; ih=snap["ihsg"]; rot=snap["rotation"]
     s_quad=q["quad"]; meta=QUAD_META.get(s_quad,QUAD_META["Q4"])
 
-    t0,t1,t2,t3,t4,t5=st.tabs(["📊 Opportunities","🇮🇩 IHSG","🇺🇸 US Stocks","💱 FX","🛢️ Komoditas","🔐 Crypto"])
+    t0,t1,t2,t3,t4,t5,t6=st.tabs(["📊 Opportunities","📈 Signal Strength","🇮🇩 IHSG","🇺🇸 US Stocks","💱 FX","🛢️ Komoditas","🔐 Crypto"])
 
     # ── Opportunities ────────────────────────────────────────────────────────
     with t0:
         page_opportunities(snap)
 
-    # ── IHSG ─────────────────────────────────────────────────────────────────
+    # ── Signal Strength ──────────────────────────────────────────────────────
     with t1:
+        page_signal_strength(snap)
+
+    # ── IHSG ─────────────────────────────────────────────────────────────────
+    with t2:
         sh("🇮🇩 IHSG — INDONESIAN MARKET ANALYSIS")
         if snap.get("most_hated_rally"):
             render_ihsg_rally_note(snap.get("most_hated_rally",{}),ih)
@@ -3439,7 +3443,7 @@ def page_markets_full(snap:Dict)->None:
                 mc("Next Branch","→ "+impact.get("next",""))
 
     # ── US Stocks ──────────────────────────────────────────────────────────────
-    with t2:
+    with t3:
         sh("🇺🇸 US STOCKS")
         # Sector performance
         SECS={"XLE":"Energy","XLF":"Financials","XLI":"Industrials","XLB":"Materials","XLK":"Technology","XLV":"Healthcare","XLY":"Cons.Disc.","XLP":"Cons.Staples","XLU":"Utilities","XLRE":"Real Estate","XLC":"Comm.Svc."}
@@ -3508,7 +3512,7 @@ def page_markets_full(snap:Dict)->None:
             render_checklist(asset_chk2["us"],"🇺🇸 US EQUITY CHECKLIST")
 
     # ── FX ─────────────────────────────────────────────────────────────────────
-    with t3:
+    with t4:
         sh("💱 FX RATES")
         FX_NAMES={"EURUSD=X":"EUR/USD","GBPUSD=X":"GBP/USD","AUDUSD=X":"AUD/USD","JPY=X":"USD/JPY (naik=yen lemah)","CHF=X":"USD/CHF","IDR=X":"USD/IDR (naik=IDR lemah)","CNH=X":"USD/CNH","SGD=X":"USD/SGD","CAD=X":"USD/CAD"}
         fx_rows=[]
@@ -3543,7 +3547,7 @@ def page_markets_full(snap:Dict)->None:
         if ac3.get("fx"): render_checklist(ac3["fx"],"💱 FX CHECKLIST")
 
     # ── Komoditas ──────────────────────────────────────────────────────────────
-    with t4:
+    with t5:
         sh("🛢️ KOMODITAS")
         COMM_NAMES={"GC=F":"Gold (XAU)","SI=F":"Silver","CL=F":"Oil WTI","BZ=F":"Oil Brent","NG=F":"Natural Gas","HG=F":"Copper","ZC=F":"Corn","ZW=F":"Wheat","DBC":"Broad Commodities ETF","URA":"Uranium ETF"}
         comm_rows=[]
@@ -3575,7 +3579,7 @@ def page_markets_full(snap:Dict)->None:
         if ac4.get("commodities"): render_checklist(ac4["commodities"],"🛢️ COMMODITIES CHECKLIST")
 
     # ── Crypto ─────────────────────────────────────────────────────────────────
-    with t5:
+    with t6:
         sh("🔐 CRYPTO")
         CRYPTO_NAMES={"BTC-USD":"Bitcoin (BTC)","ETH-USD":"Ethereum (ETH)","SOL-USD":"Solana (SOL)","BNB-USD":"BNB","XRP-USD":"XRP","ADA-USD":"Cardano","AVAX-USD":"Avalanche","LINK-USD":"Chainlink","DOGE-USD":"Dogecoin"}
         cr_rows=[]
@@ -3606,7 +3610,7 @@ def page_markets_full(snap:Dict)->None:
 
 
 def main():
-    st.markdown('<div style="display:flex;align-items:center;margin-bottom:4px"><span style="font-family:Syne,sans-serif;font-size:20px;font-weight:800;letter-spacing:-.03em">🧭 MacroRegime Pro</span><span style="font-size:10px;opacity:.3;margin-left:8px;font-family:DM Mono,monospace">v7.0 · Hedgeye GIP Framework · Full Feature Parity</span></div>',unsafe_allow_html=True)
+    st.markdown('<div style="display:flex;align-items:center;margin-bottom:4px"><span style="font-family:Syne,sans-serif;font-size:20px;font-weight:800;letter-spacing:-.03em">🧭 MacroRegime Pro</span><span style="font-size:10px;opacity:.3;margin-left:8px;font-family:DM Mono,monospace">v8.0 · Hedgeye GIP Framework · Markets-Integrated Signal Strength</span></div>',unsafe_allow_html=True)
     with st.sidebar:
         st.markdown("### ⚙️ Controls")
         if st.button("🔄 Force Refresh",use_container_width=True): st.cache_data.clear(); st.rerun()
@@ -3616,12 +3620,12 @@ def main():
 1. 🧭 **Radar** — Regime apa? Trade terbaik? Analog historis?
 2. 📡 **Health** — Aman masuk? Breadth + credit + checklist
 3. 🎯 **Playbook** — Full strategy + scenarios + what-if
-4. 📈 **Signal Strength** — Added / Remaining / Removed + Days On
-5. 🌐 **Markets** → 📊 Opportunities + IHSG + US + FX + Komoditas + Crypto
-6. ⚠️ **Risk** — Crash meter + sizing guide
-7. 🔬 **Diag** — Data quality + quad internals
+4. 🌐 **Markets** → 📊 Opportunities + 📈 Signal Strength + IHSG + US + FX + Komoditas + Crypto
+5. ⚠️ **Risk** — Crash meter + sizing guide
+6. 🔬 **Diag** — Data quality + quad internals
 
-**v7 feature additions:**
+**v8 feature additions:**
+- Signal Strength digabung ke Markets tab
 - Bug prices_placeholder fixed
 - Bug Series `and` operator fixed
 - IHSG masuk Markets tab
@@ -3665,13 +3669,12 @@ def main():
         '<span style="opacity:.25;margin-left:auto">'+snap["ts"]+'</span></div>',
         unsafe_allow_html=True
     )
-    tabs=st.tabs(["🧭 Radar","📈 Signal Strength","📡 Health","🎯 Playbook","🌐 Markets","⚠️ Risk","🔬 Diagnostics"])
+    tabs=st.tabs(["🧭 Radar","📡 Health","🎯 Playbook","🌐 Markets","⚠️ Risk","🔬 Diagnostics"])
     with tabs[0]: page_radar(snap)
-    with tabs[1]: page_signal_strength(snap)
-    with tabs[2]: page_health(snap)
-    with tabs[3]: page_playbook(snap)
-    with tabs[4]: page_markets_full(snap)
-    with tabs[5]: page_risk(snap)
-    with tabs[6]: page_diag(snap)
+    with tabs[1]: page_health(snap)
+    with tabs[2]: page_playbook(snap)
+    with tabs[3]: page_markets_full(snap)
+    with tabs[4]: page_risk(snap)
+    with tabs[5]: page_diag(snap)
 
 if __name__=="__main__": main()

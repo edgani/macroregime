@@ -1540,12 +1540,32 @@ def build_signal_strength(opps:List[Dict], prices:Dict[str,pd.Series], q:Dict, f
     if not remaining_df.empty:
         remaining_df=remaining_df.sort_values(["days_on","pct_since_signal"], ascending=[False,False], na_position="last")
 
+    market_summary={}
+    market_order=["US","IHSG","FX","Commodities","Crypto"]
+    for market in market_order:
+        adf=active_df[active_df["market"]==market].copy() if not active_df.empty else pd.DataFrame()
+        rdf=removed_df[removed_df["market"]==market].copy() if not removed_df.empty else pd.DataFrame()
+        m_added=added_df[added_df["market"]==market].copy() if not added_df.empty else pd.DataFrame()
+        m_remaining=remaining_df[remaining_df["market"]==market].copy() if not remaining_df.empty else pd.DataFrame()
+        market_summary[market]={
+            "active_total":int(len(adf)),
+            "active_longs":int(len(adf[adf["bias"].str.contains("LONG", na=False)])) if not adf.empty else 0,
+            "active_shorts":int(len(adf[adf["bias"].str.contains("SHORT", na=False)])) if not adf.empty else 0,
+            "added_today":int(len(m_added)),
+            "remaining_total":int(len(m_remaining)),
+            "removed_today":int(len(rdf)),
+            "best_active":str(adf.iloc[0]["ticker_display"]) if not adf.empty else "—",
+            "best_added":str(m_added.iloc[0]["ticker_display"]) if not m_added.empty else "—",
+            "best_removed":str(rdf.iloc[0]["ticker_display"]) if not rdf.empty else "—",
+        }
+
     return {
         "asof_date":asof_date,
         "active":active_df,
         "added":added_df,
         "remaining":remaining_df,
         "removed":removed_df,
+        "market_summary":market_summary,
         "summary":{
             "active_longs":int(len(long_active)),
             "active_shorts":int(len(short_active)),
@@ -3308,7 +3328,62 @@ def _signal_view_df(df:pd.DataFrame)->pd.DataFrame:
     return out
 
 
-def page_signal_strength(snap:Dict)->None:
+def _signal_market_summary_cards(sig:Dict, show_header:bool=True)->None:
+    market_summary=sig.get("market_summary",{}) or {}
+    markets=[("US","🇺🇸"),("IHSG","🇮🇩"),("FX","💱"),("Commodities","🛢️"),("Crypto","🔐")]
+    if show_header:
+        sh("📈 SIGNAL SNAPSHOT BY MARKET")
+    cols=st.columns(len(markets))
+    for col,(market,emoji) in zip(cols,markets):
+        m=market_summary.get(market,{}) or {}
+        active_total=int(m.get("active_total",0))
+        added=int(m.get("added_today",0))
+        removed=int(m.get("removed_today",0))
+        best=str(m.get("best_active","—"))
+        tone="good" if active_total>0 and added>=removed else ("warn" if active_total>0 else "neu")
+        with col:
+            mc(f"{emoji} {market}", str(active_total), f"+{added} / -{removed} · lead: {best}", tone)
+
+
+def _signal_market_detail(sig:Dict, market:str, key_suffix:str="", compact:bool=False)->None:
+    active_df=sig.get("active",pd.DataFrame())
+    added_df=sig.get("added",pd.DataFrame())
+    removed_df=sig.get("removed",pd.DataFrame())
+    remaining_df=sig.get("remaining",pd.DataFrame())
+    market_summary=(sig.get("market_summary",{}) or {}).get(market,{}) or {}
+
+    def _flt(df:pd.DataFrame)->pd.DataFrame:
+        if isinstance(df,pd.DataFrame) and not df.empty:
+            return df[df["market"]==market].copy()
+        return pd.DataFrame()
+
+    adf=_flt(active_df)
+    addf=_flt(added_df)
+    remf=_flt(removed_df)
+    keepf=_flt(remaining_df)
+
+    c1,c2,c3,c4=st.columns(4)
+    with c1: mc("Active", str(int(market_summary.get("active_total", len(adf)))), f"lead: {market_summary.get('best_active','—')}", "good" if len(adf) else "neu")
+    with c2: mc("Added", str(int(market_summary.get("added_today", len(addf)))), f"new: {market_summary.get('best_added','—')}", "good" if len(addf) else "neu")
+    with c3: mc("Remaining", str(int(market_summary.get("remaining_total", len(keepf)))), "persisting lifecycle", "warn" if len(keepf) else "neu")
+    with c4: mc("Removed", str(int(market_summary.get("removed_today", len(remf)))), f"last out: {market_summary.get('best_removed','—')}", "bad" if len(remf) else "neu")
+
+    view_choice=st.radio(
+        f"{market} signal view",
+        ["Active","Added","Remaining","Removed"],
+        horizontal=True,
+        key=f"signal_market_view_{market}_{key_suffix}",
+    )
+    source_map={"Active":adf,"Added":addf,"Remaining":keepf,"Removed":remf}
+    view_df=source_map.get(view_choice,pd.DataFrame())
+    if isinstance(view_df,pd.DataFrame) and not view_df.empty:
+        height=340 if compact else min(max(260, len(view_df)*35+46), 560)
+        st.dataframe(_signal_view_df(view_df), use_container_width=True, hide_index=True, height=height)
+    else:
+        st.info(f"Belum ada {view_choice.lower()} signals untuk {market}.")
+
+
+def page_signal_strength(snap:Dict, forced_market:Optional[str]=None, key_suffix:str="global", compact:bool=False, show_header:bool=True)->None:
     sig=snap.get("signal_strength",{}) or {}
     summary=sig.get("summary",{}) or {}
     active_df=sig.get("active",pd.DataFrame())
@@ -3316,8 +3391,9 @@ def page_signal_strength(snap:Dict)->None:
     remaining_df=sig.get("remaining",pd.DataFrame())
     removed_df=sig.get("removed",pd.DataFrame())
 
-    sh("📈 SIGNAL STRENGTH — lifecycle monitor")
-    st.caption("Layer ini stateful: Added / Remaining / Removed, Days On, Signal Date, dan return sejak signal aktif. Verified mulai sejak persistence layer ini hidup.")
+    if show_header:
+        sh("📈 SIGNAL STRENGTH — lifecycle monitor")
+        st.caption("Layer ini stateful: Added / Remaining / Removed, Days On, Signal Date, dan return sejak signal aktif. Verified mulai sejak persistence layer ini hidup.")
 
     c1,c2,c3,c4=st.columns(4)
     with c1: mc("Active Longs",str(summary.get("active_longs",0)),f"as of {sig.get('asof_date','—')}","good")
@@ -3325,24 +3401,30 @@ def page_signal_strength(snap:Dict)->None:
     with c3: mc("Added Today",str(summary.get("added_today",0)),"newly activated","good")
     with c4: mc("Removed Today",str(summary.get("removed_today",0)),"fell out of active set","bad" if summary.get("removed_today",0) else "neu")
 
+    _signal_market_summary_cards(sig, show_header=show_header)
+
     market_order=["US","IHSG","FX","Commodities","Crypto"]
     available_markets=[]
     for df in (active_df,removed_df):
         if isinstance(df,pd.DataFrame) and not df.empty:
             available_markets.extend(df["market"].dropna().astype(str).tolist())
     available_markets=[m for m in market_order if m in set(available_markets)]
-    market_choice=st.radio("Market", ["All"]+available_markets, horizontal=True, key="signal_market_filter")
-    view_choice=st.radio("View", ["Added","Remaining","Removed","Active All"], horizontal=True, key="signal_status_filter")
 
-    source_map={"Added":added_df, "Remaining":remaining_df, "Removed":removed_df, "Active All":active_df}
-    view_df=source_map.get(view_choice,pd.DataFrame())
-    if market_choice!="All" and isinstance(view_df,pd.DataFrame) and not view_df.empty:
-        view_df=view_df[view_df["market"]==market_choice].copy()
-
-    if isinstance(view_df,pd.DataFrame) and not view_df.empty:
-        st.dataframe(_signal_view_df(view_df), use_container_width=True, hide_index=True, height=min(max(280, len(view_df)*35+46), 760))
+    if forced_market:
+        st.caption(f"Filtered untuk market: {forced_market}")
+        _signal_market_detail(sig, forced_market, key_suffix=key_suffix, compact=compact)
     else:
-        st.info("Belum ada signal untuk filter ini. Pada first live day, seluruh signal aktif biasanya masuk Added karena belum ada history hari sebelumnya.")
+        market_choice=st.radio("Market", ["All"]+available_markets, horizontal=True, key=f"signal_market_filter_{key_suffix}")
+        if market_choice=="All":
+            view_choice=st.radio("View", ["Added","Remaining","Removed","Active All"], horizontal=True, key=f"signal_status_filter_{key_suffix}")
+            source_map={"Added":added_df, "Remaining":remaining_df, "Removed":removed_df, "Active All":active_df}
+            view_df=source_map.get(view_choice,pd.DataFrame())
+            if isinstance(view_df,pd.DataFrame) and not view_df.empty:
+                st.dataframe(_signal_view_df(view_df), use_container_width=True, hide_index=True, height=min(max(280, len(view_df)*35+46), 760))
+            else:
+                st.info("Belum ada signal untuk filter ini. Pada first live day, seluruh signal aktif biasanya masuk Added karena belum ada history hari sebelumnya.")
+        else:
+            _signal_market_detail(sig, market_choice, key_suffix=key_suffix, compact=compact)
 
     with st.expander("Signal detail dan caveat", expanded=False):
         st.markdown("""
@@ -3353,7 +3435,6 @@ def page_signal_strength(snap:Dict)->None:
 - Ini **bukan** copy exact formula Hedgeye; ini lifecycle layer kausal di atas board opportunity yang sudah ada.
         """)
 
-
 def page_markets_full(snap:Dict)->None:
     """Markets tab: execution board + signal lifecycle + market-specific views."""
     prices=snap["prices"]; q=snap["q"]; f=snap["f"]; ih=snap["ihsg"]; rot=snap["rotation"]
@@ -3361,13 +3442,17 @@ def page_markets_full(snap:Dict)->None:
 
     t0,t1,t2,t3,t4,t5,t6=st.tabs(["📊 Opportunities","📈 Signal Strength","🇮🇩 IHSG","🇺🇸 US Stocks","💱 FX","🛢️ Komoditas","🔐 Crypto"])
 
+    sig=snap.get("signal_strength",{}) or {}
+    _signal_market_summary_cards(sig, show_header=True)
+    st.caption("Signal lifecycle sekarang jadi bagian dari Markets flow: pilih market → cek execution board → cek durability signal tanpa pindah top-level tab.")
+
     # ── Opportunities ────────────────────────────────────────────────────────
     with t0:
         page_opportunities(snap)
 
     # ── Signal Strength ──────────────────────────────────────────────────────
     with t1:
-        page_signal_strength(snap)
+        page_signal_strength(snap, key_suffix="markets", show_header=False)
 
     # ── IHSG ─────────────────────────────────────────────────────────────────
     with t2:
@@ -3416,6 +3501,10 @@ def page_markets_full(snap:Dict)->None:
             s=prices.get(t,pd.Series()); r1=ret_n(s,21); perf=pct(r1) if math.isfinite(r1) else "—"
             cls="good" if(math.isfinite(r1) and r1>0) else("bad" if(math.isfinite(r1) and r1<-0.01) else "warn")
             st.markdown('<div class="mc" style="display:flex;justify-content:space-between;align-items:center"><div><div class="lb">'+t+' — '+' '.join(tag(r,"b") for r in regime.split(","))+'</div><div style="font-size:12px;opacity:.8">'+desc+'</div></div><div class="vl '+cls+'" style="font-size:16px">'+perf+'</div></div>',unsafe_allow_html=True)
+        st.markdown("---")
+        sh("📈 SIGNAL LIFECYCLE — IHSG")
+        page_signal_strength(snap, forced_market="IHSG", key_suffix="ihsg", compact=True, show_header=False)
+
         # IHSG Checklist (v33 style)
         st.markdown("---")
         chk=snap.get("checklists",{})
@@ -3492,6 +3581,10 @@ def page_markets_full(snap:Dict)->None:
                 st.markdown(f'<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.05)"><span><b>{tk}</b></span><span class="bad">{r["1M"]} {r["Trend"]}</span></div>',unsafe_allow_html=True)
         st.caption(f"Regime-adjusted: {s_quad} boosts certain sectors. Data from yfinance 1M returns.")
 
+        st.markdown("---")
+        sh("📈 SIGNAL LIFECYCLE — US")
+        page_signal_strength(snap, forced_market="US", key_suffix="us", compact=True, show_header=False)
+
         # Macro Impact Board for US (v33)
         macro_impact=snap.get("macro_impact",{})
         if macro_impact.get("us"):
@@ -3524,6 +3617,10 @@ def page_markets_full(snap:Dict)->None:
         uup_txt=f"UUP (USD proxy): {pct(uup_1m)} 1M. "
         regime_fx={"Q1":"Q1 Goldilocks = USD biasanya lemah. EM dan commodity FX benefit.","Q2":"Q2 Reflation = commodity FX (AUD, CAD) outperform. USD mixed.","Q3":"Q3 Stagflasi = USD kuat. IDR/EM FX tertekan. Dollar king.","Q4":"Q4 Deflasi = USD kuat awalnya, tapi Fed cut → Dollar bisa lemah."}
         st.info(uup_txt + regime_fx.get(s_quad,""))
+        st.markdown("---")
+        sh("📈 SIGNAL LIFECYCLE — FX")
+        page_signal_strength(snap, forced_market="FX", key_suffix="fx", compact=True, show_header=False)
+
         # FX Strong/Weak + Macro Impact + Checklist
         sw3=snap.get("strong_weak_all",{})
         if sw3.get("fx"):
@@ -3560,6 +3657,10 @@ def page_markets_full(snap:Dict)->None:
         oil_3m=ret_n(prices.get("CL=F",pd.Series()),63); gold_3m=ret_n(prices.get("GC=F",pd.Series()),63)
         mc("Oil WTI 3M",pct(oil_3m),"signal inflasi","warn" if(math.isfinite(oil_3m) and oil_3m>0.05) else "neu")
         mc("Gold 3M",pct(gold_3m),"hard asset hedge","good" if(math.isfinite(gold_3m) and gold_3m>0.05) else "neu")
+        st.markdown("---")
+        sh("📈 SIGNAL LIFECYCLE — KOMODITAS")
+        page_signal_strength(snap, forced_market="Commodities", key_suffix="commodities", compact=True, show_header=False)
+
         # Commodities Strong/Weak + Impact + Checklist
         sw4=snap.get("strong_weak_all",{})
         if sw4.get("commodities"):
@@ -3590,6 +3691,10 @@ def page_markets_full(snap:Dict)->None:
         btc_1m=ret_n(prices.get("BTC-USD",pd.Series()),21)
         regime_crypto={"Q1":"Q1 = Crypto bullish. High-beta risk asset. BTC biasanya outperform.","Q2":"Q2 = Crypto ok tapi attention ke commodities. BTC masih bisa naik.","Q3":"Q3 Stagflasi = Crypto BEARISH. Bukan hedge inflation. Gold > Crypto.","Q4":"Q4 = Crypto sangat bearish. Capital preservation mode. Cash > Crypto."}
         st.info(f"BTC 1M: {pct(btc_1m)}. {regime_crypto.get(s_quad,'')}")
+        st.markdown("---")
+        sh("📈 SIGNAL LIFECYCLE — CRYPTO")
+        page_signal_strength(snap, forced_market="Crypto", key_suffix="crypto", compact=True, show_header=False)
+
         sw5=snap.get("strong_weak_all",{})
         if sw5.get("crypto"):
             sh("💪 CRYPTO STRONG vs WEAK")
@@ -3610,7 +3715,7 @@ def page_markets_full(snap:Dict)->None:
 
 
 def main():
-    st.markdown('<div style="display:flex;align-items:center;margin-bottom:4px"><span style="font-family:Syne,sans-serif;font-size:20px;font-weight:800;letter-spacing:-.03em">🧭 MacroRegime Pro</span><span style="font-size:10px;opacity:.3;margin-left:8px;font-family:DM Mono,monospace">v8.0 · Hedgeye GIP Framework · Markets-Integrated Signal Strength</span></div>',unsafe_allow_html=True)
+    st.markdown('<div style="display:flex;align-items:center;margin-bottom:4px"><span style="font-family:Syne,sans-serif;font-size:20px;font-weight:800;letter-spacing:-.03em">🧭 MacroRegime Pro</span><span style="font-size:10px;opacity:.3;margin-left:8px;font-family:DM Mono,monospace">v8.1 · Hedgeye GIP Framework · Markets-Integrated Signal Lifecycle</span></div>',unsafe_allow_html=True)
     with st.sidebar:
         st.markdown("### ⚙️ Controls")
         if st.button("🔄 Force Refresh",use_container_width=True): st.cache_data.clear(); st.rerun()
@@ -3626,6 +3731,7 @@ def main():
 
 **v8 feature additions:**
 - Signal Strength digabung ke Markets tab
+- Signal lifecycle summary tampil lintas market + per market
 - Bug prices_placeholder fixed
 - Bug Series `and` operator fixed
 - IHSG masuk Markets tab

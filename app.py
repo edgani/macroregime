@@ -1,5 +1,5 @@
 """
-MacroRegime Pro v9.0 — Full-Final Candidate
+MacroRegime Pro v10.0 — Maxed Full-Final Candidate
 ==========================================
 Current build goals:
 - Markets-integrated Signal Strength / lifecycle monitor
@@ -120,9 +120,18 @@ IHSG_W = {"regime":0.24,"em_rotation":0.16,"macro_native":0.24,"breadth_flow":0.
 EXEC_W = {"weather":0.20,"health":0.14,"vix":0.10,"quad":0.12,"conf":0.10,"cross":0.09,"crowd":0.09,"shock":0.08,"crash":0.08}
 
 TTL=3600
-SIGNAL_STORE_PATH = Path(__file__).with_name("macroregime_signal_strength.sqlite3")
-SIGNAL_ENTER_THRESHOLD = 0.035
-SIGNAL_EXIT_THRESHOLD = 0.015
+
+def _env_float(name:str, default:float) -> float:
+    try:
+        raw=os.environ.get(name, None)
+        return float(raw) if raw not in {None, ""} else float(default)
+    except Exception:
+        return float(default)
+
+_SIGNAL_STORE_DEFAULT = str(Path(__file__).with_name("macroregime_signal_strength.sqlite3"))
+SIGNAL_STORE_PATH = Path(os.environ.get("MRP_SIGNAL_STORE_PATH", _SIGNAL_STORE_DEFAULT))
+SIGNAL_ENTER_THRESHOLD = _env_float("MRP_SIGNAL_ENTER_THRESHOLD", 0.035)
+SIGNAL_EXIT_THRESHOLD = _env_float("MRP_SIGNAL_EXIT_THRESHOLD", 0.015)
 
 
 # ── Ticker display name mapping (from v33 data_symbol_map.py) ─────────────────
@@ -957,14 +966,25 @@ def load_all()->Dict:
     route=derive_route_state(q,h,cr)
     asset_trans=build_asset_translation(route["primary"],q,h,f)
     news_overlay=build_news_catalyst_overlay(q,f,h)
+    top_drivers=build_top_drivers_now(q,f,h,cr,route,most_hated,news_overlay)
     return dict(prices=prices,price_meta=price_meta,fred=fred,f=f,q=q,h=h,crash=cr,rotation=rot,ihsg=ih,
                 analog=analog,playbooks=pb,scenarios=sc,checklists=chk,
                 most_hated_rally=most_hated,opportunities=opps,signal_strength=signal_strength,family=family,risk_ranges=risk_ranges,
                 asset_checklists=asset_chk,macro_impact=macro_impact,
                 forward_radar=fwd_radar,strong_weak_all=sw_all,
-                route=route,asset_translation=asset_trans,news_overlay=news_overlay,
+                route=route,asset_translation=asset_trans,news_overlay=news_overlay,top_drivers=top_drivers,
                 ts=datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
-                build_meta={"price_period":price_period,"regime_prior_mode":f.get("prior_mode","off")})
+                build_meta={
+                    "app_version":"v10.0",
+                    "price_period":price_period,
+                    "regime_prior_mode":f.get("prior_mode","off"),
+                    "signal_enter_threshold":SIGNAL_ENTER_THRESHOLD,
+                    "signal_exit_threshold":SIGNAL_EXIT_THRESHOLD,
+                    "signal_store_path":str(SIGNAL_STORE_PATH),
+                    "markets_integrated_signals":True,
+                    "top_drivers_enabled":True,
+                    "setup_quality_enabled":True,
+                })
 
 # ── UI helpers ────────────────────────────────────────────────────────────────
 def qb(q:str)->str:
@@ -1227,6 +1247,29 @@ def build_opportunities(prices:Dict[str,pd.Series], q:Dict, f:Dict, h:Dict, rot:
                 note="Kalau de-escalation final terjadi, oil short bisa jadi expression bersih"
         return adj, fit, note
 
+    def _setup_meta(ev:float, macro_aligned:str, rally_fit:str, atr:float, bias:str)->Tuple[str,str,str,str]:
+        score=0.55*clamp(ev)+0.20*clamp(conf)
+        if macro_aligned=="✓": score+=0.14
+        elif macro_aligned in {"~","~ Tactical"}: score+=0.06
+        if rally_fit=="Boosted": score+=0.06
+        elif rally_fit in {"Fade","Squeezed"}: score-=0.07
+        if atr<=0.025: score+=0.03
+        elif atr>=0.055: score-=0.03
+        score=clamp(score)
+        setup_quality="A" if score>=0.72 else ("B" if score>=0.58 else ("C" if score>=0.44 else "D"))
+        path_state="Primary" if macro_aligned=="✓" and rally_fit not in {"Fade","Squeezed"} else ("Tactical" if ("Tactical" in macro_aligned or rally_fit=="Boosted") else "Watch")
+        risk_bucket="Tight" if atr<0.025 else ("Medium" if atr<0.045 else "Wide")
+        blockers=[]
+        if macro_aligned not in {"✓","~ Tactical"}: blockers.append("macro alignment belum penuh")
+        if rally_fit=="Fade": blockers.append("branch aktif masih lawan ekspresi ini")
+        if rally_fit=="Squeezed": blockers.append("short rawan squeeze dulu")
+        if ev<0.55: blockers.append("EV belum cukup bersih")
+        if atr>0.05: blockers.append("range masih lebar")
+        if h.get("weather",0.5)<0.48 and "LONG" in bias: blockers.append("weather market belum sehat")
+        if h.get("weather",0.5)>0.60 and "SHORT" in bias and rally_fit!="Boosted": blockers.append("short belum punya angin cukup")
+        why_not_yet="Ready / size sesuai guide" if not blockers else " · ".join(blockers[:2])
+        return setup_quality, path_state, risk_bucket, why_not_yet
+
     def _push(rows:list, tk:str, market:str, bias:str, horizon:str, why:str, ev_base:float, macro_aligned:str="✓", display_ticker:Optional[str]=None):
         s=prices.get(tk,pd.Series())
         sc=_score(s,"LONG" if "LONG" in bias else "SHORT")
@@ -1236,6 +1279,7 @@ def build_opportunities(prices:Dict[str,pd.Series], q:Dict, f:Dict, h:Dict, rot:
         rally_adj, rally_fit, rally_note=_rally_overlay(tk,market,"LONG" if "LONG" in bias else "SHORT")
         ev=clamp(ev+rally_adj)
         why_full=why if not rally_note else f"{why} · {rally_note}"
+        setup_quality, path_state, risk_bucket, why_not_yet = _setup_meta(ev, macro_aligned, rally_fit, atr, bias)
         rows.append({
             "Ticker": display_ticker or (disp(tk) if market in {"Crypto","Commodities"} else (tk.replace('.JK','')+" (JK)" if market=="IHSG" else tk)),
             "Market":market,
@@ -1245,6 +1289,10 @@ def build_opportunities(prices:Dict[str,pd.Series], q:Dict, f:Dict, h:Dict, rot:
             "Target":_target(px,atr,"LONG" if "LONG" in bias else "SHORT"),
             "Invalidation":_invalidation(px,atr,"LONG" if "LONG" in bias else "SHORT"),
             "Why Now":why_full,
+            "Why Not Yet":why_not_yet,
+            "Setup":setup_quality,
+            "Path":path_state,
+            "Risk Bucket":risk_bucket,
             "EV":f"{ev:.0%}",
             "Conf":f"{conf:.0%}",
             "Macro Aligned":macro_aligned,
@@ -1376,6 +1424,77 @@ def build_opportunities(prices:Dict[str,pd.Series], q:Dict, f:Dict, h:Dict, rot:
     shorts.sort(key=lambda x:(x["_ev"], x.get("Rally Fit")=="Boosted"), reverse=True)
     combined=longs+shorts
     return combined
+
+
+def build_top_drivers_now(q:Dict, f:Dict, h:Dict, cr:Dict, route:Dict, most_hated:Dict, news_overlay:Dict)->List[Dict]:
+    drivers=[]
+    def add(label:str, score:float, tone:str, why:str, tag:str=""):
+        sc=clamp(score)
+        if sc<=0.05:
+            return
+        drivers.append({"label":label,"score":sc,"tone":tone,"why":why,"tag":tag})
+
+    slowdown=float(q.get("slowdown_flags",0.0) or 0.0)
+    add("Growth slowdown", slowdown, "bad" if slowdown>=0.50 else "warn", "Claims / ISM / housing memberi sinyal perlambatan growth.", "macro")
+
+    inf=float(q.get("inf_shock",0.0) or 0.0)
+    add("Inflation shock", inf, "bad" if inf>=0.45 else "warn", "Oil / breakeven / USD mendorong tekanan inflasi jangka pendek.", "macro")
+
+    usd_1m=float(nf(f.get("uup_1m", f.get("dxy_1m", 0.0)), 0.0))
+    if abs(usd_1m) >= 0.012:
+        add("USD pressure" if usd_1m>0 else "USD easing", abs(usd_1m)/0.04, "bad" if usd_1m>0 else "good", "Dollar mengubah risk appetite lintas aset dan EM sensitivity.", "cross-asset")
+
+    oil_1m=float(nf(f.get("clf_1m", f.get("oil_1m", 0.0)), 0.0))
+    if abs(oil_1m) >= 0.02:
+        add("Oil impulse" if oil_1m>0 else "Oil rollback", abs(oil_1m)/0.08, "warn" if oil_1m>0 else "good", "Gerak oil mempengaruhi inflation branch, exporters, dan margin pressure.", "commodities")
+
+    breadth=float(h.get("breadth", 0.5) or 0.5)
+    if breadth <= 0.45:
+        add("Breadth fragility", (0.50-breadth)/0.20, "bad", "Partisipasi sempit; rally lebih rawan unwind jika leaders gagal.", "internals")
+    elif breadth >= 0.60:
+        add("Breadth healing", (breadth-0.50)/0.20, "good", "Partisipasi melebar; tape lebih sehat untuk beta dan follow-through.", "internals")
+
+    crash_score=float(cr.get("crash_score",0.0) or 0.0)
+    if crash_score >= 0.42:
+        add("Tail-risk pressure", crash_score, "bad" if crash_score>=0.60 else "warn", "Crash meter belum jinak; sizing dan invalidation harus lebih disiplin.", "risk")
+
+    clear_count=int(most_hated.get("hard_clear_count", most_hated.get("clear_count", 0)) or 0)
+    if clear_count >= 2:
+        add("Liquidity / relief branch", clear_count/4.0, "good" if clear_count>=3 else "warn", "Checklist rally makin hidup; catch-up beta dan squeeze risk ikut naik.", "branch")
+
+    route_meta=(route or {}).get("primary_meta", {}) or {}
+    if route_meta:
+        add(route_meta.get("label","Primary route"), 0.45 + 0.35*float(q.get("confidence",0.0) or 0.0), "good", route_meta.get("desc",""), "route")
+
+    if news_overlay:
+        nl=str(news_overlay.get("label",""))
+        if nl:
+            tone_map={"good":"good","warn":"warn","bad":"bad","neu":"warn"}
+            add(nl, max(float(news_overlay.get("war_oil",0.0) or 0.0), float(news_overlay.get("policy_pressure",0.0) or 0.0), float(news_overlay.get("relief",0.0) or 0.0), 0.30), tone_map.get(str(news_overlay.get("cls","neu")),"warn"), str(news_overlay.get("desc",""))[:110], "catalyst")
+
+    drivers.sort(key=lambda x:(x["score"], x["tone"]=="bad", x["tone"]=="good"), reverse=True)
+    return drivers[:6]
+
+
+def render_top_drivers_now(drivers:List[Dict], title:str="🧠 TOP DRIVERS NOW") -> None:
+    if not drivers:
+        return
+    sh(title)
+    cols=st.columns(min(3, len(drivers)))
+    for idx,drv in enumerate(drivers[:min(6,len(drivers))]):
+        col=cols[idx % len(cols)]
+        tone=str(drv.get("tone","warn"))
+        css=tone if tone in {"good","warn","bad"} else "neu"
+        with col:
+            st.markdown(
+                '<div class="mc" style="border-left:3px solid currentColor">'+
+                '<div class="lb">'+html.escape(str(drv.get("tag","driver")).upper())+'</div>'+
+                '<div class="vl '+css+'" style="font-size:16px">'+html.escape(str(drv.get("label","—")))+'</div>'+
+                '<div style="font-size:11px;opacity:.76;line-height:1.45;margin-top:4px">'+html.escape(str(drv.get("why","")))+'</div>'+
+                '<div style="font-family:DM Mono,monospace;font-size:10px;opacity:.45;margin-top:5px">Intensity '+f'{float(drv.get("score",0.0)):.0%}'+'</div>'+
+                '</div>',
+                unsafe_allow_html=True,
+            )
 
 
 def _signal_snapshot_date()->str:
@@ -2684,10 +2803,10 @@ def _opp_view_df(rows:List[Dict], detail:bool=False)->pd.DataFrame:
         return pd.DataFrame()
     df=pd.DataFrame([{k:v for k,v in r.items()} for r in rows])
     if detail:
-        detail_cols=["Ticker","Market","Bias","Horizon","Entry Zone","Invalidation","Target","EV","Conf","Macro Aligned","Rally Fit","Sizing","Rally State","Why Now"]
+        detail_cols=["Ticker","Market","Bias","Setup","Path","Risk Bucket","Horizon","Entry Zone","Invalidation","Target","EV","Conf","Macro Aligned","Rally Fit","Sizing","Rally State","Why Now","Why Not Yet"]
         cols=[c for c in detail_cols if c in df.columns]
         return df[cols]
-    compact_cols=["Ticker","Market","Entry Zone","Invalidation","Target","EV","Rally Fit","Sizing"]
+    compact_cols=["Ticker","Market","Setup","Entry Zone","Invalidation","Target","EV","Rally Fit","Sizing"]
     cols=[c for c in compact_cols if c in df.columns]
     out=df[cols].copy()
     rename_map={"Entry Zone":"Entry","Invalidation":"Stop","Target":"TP","EV":"EV+","Rally Fit":"Fit","Sizing":"Size"}
@@ -2703,11 +2822,13 @@ def _opp_card_html(rows:List[Dict], empty_text:str, accent:str, icon:str)->str:
         market=html.escape(str(r.get("Market","—")))
         ev=html.escape(str(r.get("EV","—")))
         fit=html.escape(str(r.get("Rally Fit","Neutral")))
+        setup=html.escape(str(r.get("Setup","—")))
+        path=html.escape(str(r.get("Path","—")))
         note=html.escape(str(r.get("Why Now","")))[:120]
         cards.append(
             f'<div class="mc" style="border-left:3px solid {accent}55;padding:8px 10px">'
             f'<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start">'
-            f'<div><div style="font-size:13px;font-weight:700">{icon} {ticker}</div><div style="font-size:10px;opacity:.5;margin-top:1px">{market} · {fit}</div></div>'
+            f'<div><div style="font-size:13px;font-weight:700">{icon} {ticker}</div><div style="font-size:10px;opacity:.5;margin-top:1px">{market} · {fit} · setup {setup} · {path}</div></div>'
             f'<div style="font-family:DM Mono,monospace;font-size:12px;font-weight:700;color:{accent}">{ev}</div></div>'
             f'<div style="font-size:11px;opacity:.72;margin-top:4px;line-height:1.45">{note}</div>'
             f'</div>'
@@ -2748,6 +2869,9 @@ def page_opportunities(snap:Dict)->None:
             st.info("Transisi. Watchlist risk-on naik, tapi board utama tetap selective.")
         else:
             st.error("Belum aktif. Default mode: selective / defensive.")
+
+    drivers=snap.get("top_drivers",[])
+    render_top_drivers_now(drivers, title="🧠 TOP DRIVERS NOW — peluang ini bergerak karena apa")
 
     depth=st.radio("Board depth",["Top 5","Top 8","Top 12","All"],horizontal=True,key="opp_depth_onefold")
     top_n=len(opps) if depth=="All" else int(depth.split()[1])
@@ -2918,6 +3042,7 @@ def page_radar(snap:Dict)->None:
     render_master_rotation_graph(q,f,snap["rotation"],snap["family"])
     # Flow State Strip (horizontal pill chain)
     render_flow_state_strip(q)
+    render_top_drivers_now(snap.get("top_drivers",[]))
     st.markdown("---")
     c1,c2,c3,c4=st.columns(4)
     with c1:
@@ -3395,6 +3520,20 @@ def page_diag(snap:Dict)->None:
         ("Flip hazard",f"{q.get('flip_hazard',0):.3f}"),("Deepness",f"{q.get('deepness',0):.3f}"),("Duration maturity",f"{q.get('duration_mat',0):.3f}"),
     ]
     st.dataframe(pd.DataFrame(internal_rows,columns=["Internal Feature","Value"]),use_container_width=True,hide_index=True,height=500)
+    build_meta=snap.get("build_meta",{}) or {}
+    sh("🛠️ BUILD / FEATURE FLAGS")
+    build_rows=[
+        ("App version", build_meta.get("app_version","v10.0")),
+        ("Price period", build_meta.get("price_period","")),
+        ("Regime prior mode", build_meta.get("regime_prior_mode","off")),
+        ("Signal enter threshold", f"{float(build_meta.get('signal_enter_threshold',0.0)):.3f}"),
+        ("Signal exit threshold", f"{float(build_meta.get('signal_exit_threshold',0.0)):.3f}"),
+        ("Signal store", str(build_meta.get("signal_store_path",""))[-60:]),
+        ("Markets-integrated signals", "on" if build_meta.get("markets_integrated_signals") else "off"),
+        ("Top drivers", "on" if build_meta.get("top_drivers_enabled") else "off"),
+        ("Setup quality", "on" if build_meta.get("setup_quality_enabled") else "off"),
+    ]
+    st.dataframe(pd.DataFrame(build_rows,columns=["Build Lens","Value"]),use_container_width=True,hide_index=True,height=300)
     sh("📦 PRICE DATA COVERAGE")
     pm_summary=[
         ("Expected tickers",price_meta.get("expected",0)),
@@ -3566,7 +3705,7 @@ def page_markets_full(snap:Dict)->None:
 
     sig=snap.get("signal_strength",{}) or {}
     _signal_market_summary_cards(sig, show_header=True)
-    st.caption("Signal lifecycle sekarang jadi bagian dari Markets flow: pilih market → cek execution board → cek durability signal tanpa pindah top-level tab.")
+    st.caption("Signal lifecycle sekarang jadi bagian dari Markets flow: pilih market → cek execution board → cek setup quality / path → cek durability signal tanpa pindah top-level tab.")
 
     # ── Opportunities ────────────────────────────────────────────────────────
     with t0:
@@ -3837,7 +3976,7 @@ def page_markets_full(snap:Dict)->None:
 
 
 def main():
-    st.markdown('<div style="display:flex;align-items:center;margin-bottom:4px"><span style="font-family:Syne,sans-serif;font-size:20px;font-weight:800;letter-spacing:-.03em">🧭 MacroRegime Pro</span><span style="font-size:10px;opacity:.3;margin-left:8px;font-family:DM Mono,monospace">v9.0 · Full-Final Candidate · Markets-Integrated Signal Lifecycle + Truth-Layer Diagnostics</span></div>',unsafe_allow_html=True)
+    st.markdown('<div style="display:flex;align-items:center;margin-bottom:4px"><span style="font-family:Syne,sans-serif;font-size:20px;font-weight:800;letter-spacing:-.03em">🧭 MacroRegime Pro</span><span style="font-size:10px;opacity:.3;margin-left:8px;font-family:DM Mono,monospace">v10.0 · Maxed Candidate · Markets-Integrated Signals + Top Drivers + Setup Quality</span></div>',unsafe_allow_html=True)
     with st.sidebar:
         st.markdown("### ⚙️ Controls")
         if st.button("🔄 Force Refresh",use_container_width=True): st.cache_data.clear(); st.rerun()
@@ -3851,8 +3990,10 @@ def main():
 5. ⚠️ **Risk** — Crash meter + sizing guide
 6. 🔬 **Diag** — Data quality + quad internals
 
-**v9 feature additions:**
+**v10 feature additions:**
 - Signal Strength tetap di Markets
+- Top Drivers Now untuk jelasin kenapa tape bergerak sekarang
+- Setup Quality + Path + Why Not Yet di opportunity board
 - Truth-layer diagnostics: observed vs proxy vs market-implied
 - Price panel coverage / short-history / stale-share diagnostics
 - Prior mode ditampilkan eksplisit (default off)
@@ -3896,6 +4037,10 @@ def main():
         '<span style="opacity:.25;margin-left:auto">'+snap["ts"]+'</span></div>',
         unsafe_allow_html=True
     )
+    top_drivers=snap.get("top_drivers",[]) or []
+    if top_drivers:
+        driver_line=" · ".join([f"{d.get('label','')}: {float(d.get('score',0)):.0%}" for d in top_drivers[:3]])
+        st.caption("Top drivers now → "+driver_line)
     tabs=st.tabs(["🧭 Radar","📡 Health","🎯 Playbook","🌐 Markets","⚠️ Risk","🔬 Diagnostics"])
     with tabs[0]: page_radar(snap)
     with tabs[1]: page_health(snap)

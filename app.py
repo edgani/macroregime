@@ -1,27 +1,24 @@
 """
-MacroRegime Pro v6.0 — Full Fidelity Rebuild
-=============================================
-All 30 gaps from v33 audit fixed:
-- Quad weights match v33 exactly (structural vs monthly separate)
-- Structural vs monthly feature builder properly separated
-- Policy score + liquidity score
-- Data coverage + confidence penalty
-- Regime prior system (off/gentle/strong)
-- Historical Analog Engine (5 templates)
-- Policy Playbook Engine (3 playbooks)
-- Full Scenario Discovery (context-aware, divergence-aware)
-- Separate crash_score vs risk_off_score
-- Petrodollar chain analysis
-- Family spillover templates (US + IHSG)
-- Confidence band language
-- Regime deepness + duration maturity
-- Next macro catalyst countdown
-- FX, Commodities, Crypto mini-pages
-- Execution Bridge score
-- IHSG engine with correct weights
+MacroRegime Pro v9.0 — Full-Final Candidate
+==========================================
+Current build goals:
+- Markets-integrated Signal Strength / lifecycle monitor
+- Cleaner truth layer: observed macro vs fallback proxy vs market-implied features
+- Better data quality accounting: macro source map + price panel diagnostics
+- Structural/monthly quad logic preserved
+- More honest versioning, source-quality, and prior-mode diagnostics
+
+What this file is:
+- Best current integrated app.py candidate based on app(8)
+- Syntax-checked single-file Streamlit build
+
+What this file is not:
+- Full-universe final scanner
+- Fully walk-forward validated research engine
+- Guaranteed bug-free production release
 
 Free data: yfinance + FRED public CSV
-Run: streamlit run macro_regime_pro_v6.py
+Run: streamlit run app.py
 """
 from __future__ import annotations
 import datetime,math,os,html,sqlite3
@@ -337,7 +334,7 @@ def fetch_fred(sid:str)->pd.Series:
     return pd.Series(dtype=float)
 
 @st.cache_data(ttl=TTL,show_spinner=False)
-def fetch_prices(tickers:tuple,period:str="2y")->Dict[str,pd.Series]:
+def fetch_prices(tickers:tuple,period:str="5y")->Dict[str,pd.Series]:
     try:
         import yfinance as yf
         raw=yf.download(list(tickers),period=period,auto_adjust=False,progress=False,threads=True,ignore_tz=True)
@@ -350,9 +347,53 @@ def fetch_prices(tickers:tuple,period:str="2y")->Dict[str,pd.Series]:
                         s=close[t].dropna()
                         if len(s)>5: out[t]=s
         return out
-    except: return {}
+    except:
+        return {}
 
-def build_proxy(prices:Dict[str,pd.Series])->Dict:
+
+def summarize_price_panel(prices:Dict[str,pd.Series], expected_tickers:tuple)->Dict:
+    rows=[]; loaded=0; history_years=[]; latest_dates=[]; missing=[]
+    for t in expected_tickers:
+        s=_s(prices.get(t,pd.Series(dtype=float)))
+        pts=len(s)
+        if pts>0:
+            loaded+=1
+            years=pts/252.0
+            history_years.append(years)
+            latest=str(s.index[-1])[:10]
+            latest_dates.append(pd.to_datetime(s.index[-1]))
+            rows.append({"Ticker":t,"Points":pts,"Years":years,"Latest":latest,"Missing":False})
+        else:
+            missing.append(t)
+            rows.append({"Ticker":t,"Points":0,"Years":0.0,"Latest":"—","Missing":True})
+    expected=len(expected_tickers)
+    coverage=loaded/max(expected,1)
+    short_hist=sum(1 for y in history_years if y<1.25)
+    short_share=short_hist/max(len(history_years),1) if history_years else 1.0
+    median_years=float(np.median(history_years)) if history_years else 0.0
+    latest_max=max(latest_dates) if latest_dates else None
+    stale_share=0.0
+    if latest_max is not None and latest_dates:
+        stale_share=sum(1 for d in latest_dates if (latest_max-d).days>7)/len(latest_dates)
+    return {
+        "expected":expected,
+        "loaded":loaded,
+        "missing_count":expected-loaded,
+        "coverage":coverage,
+        "short_history_share":short_share,
+        "median_years":median_years,
+        "stale_share":stale_share,
+        "missing_tickers":missing,
+        "rows":rows,
+    }
+
+
+def get_regime_prior_mode()->str:
+    mode=str(os.environ.get("MRP_REGIME_PRIOR_MODE","off") or "off").strip().lower()
+    return mode if mode in {"off","gentle","strong"} else "off"
+
+
+def build_fallback_macro_proxies(prices:Dict[str,pd.Series])->Dict:
     spy_3m=ret_n(prices.get("SPY",pd.Series()),63); xli_3m=ret_n(prices.get("XLI",pd.Series()),63)
     xly_3m=ret_n(prices.get("XLY",pd.Series()),63); iwm_3m=ret_n(prices.get("IWM",pd.Series()),63)
     uup_3m=ret_n(prices.get("UUP",pd.Series()),63); oil_3m=ret_n(prices.get("CL=F",pd.Series()),63)
@@ -385,33 +426,85 @@ def build_proxy(prices:Dict[str,pd.Series])->Dict:
         indpro_acc=None, payrolls_acc=None, cpi_acc=None, corepce_acc=None, lei_acc=None,
     )
 
-def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series])->Dict:
-    f=build_proxy(prices); proxy_used=0; fred_loaded=0; fred_total=0
-    raw_macro_keys=["indpro_yoy","retail_yoy","payrolls_yoy","unrate_3m_delta","claims_13w_delta","ism_last","housing_yoy","cpi_yoy","core_cpi_yoy","breakeven"]
-    def ov(k,fk,fn,*args):
-        nonlocal fred_loaded,fred_total; fred_total+=1
-        s=fred.get(k,pd.Series())
+
+def build_macro_observed(fred:Dict[str,pd.Series])->Tuple[Dict,Dict,int,int]:
+    obs={}; source_map={}; fred_loaded=0; fred_total=0
+    def put(field:str, series_key:str, fn, *args):
+        nonlocal fred_loaded, fred_total
+        fred_total+=1
+        s=fred.get(series_key,pd.Series())
         if not _s(s).empty:
             v=fn(s,*args)
-            if math.isfinite(v): f[fk]=v; fred_loaded+=1; return True
+            if math.isfinite(v):
+                obs[field]=v
+                source_map[field]="observed_fred"
+                fred_loaded+=1
+                return True
         return False
-    for rk in raw_macro_keys:
-        if not math.isfinite(f.get(rk,float("nan"))): proxy_used+=1
-    ov("INDPRO","indpro_yoy",ret_n,12); ov("PAYEMS","payrolls_yoy",ret_n,12)
-    ov("PAYEMS","payrolls_mom",ret_n,1); ov("UNRATE","unrate",last)
-    ov("UNRATE","unrate_3m_delta",delta_n,3); ov("ICSA","claims_13w_delta",delta_n,13)
-    ov("ICSA","claims_last",last); ov("ISM","ism_last",last)
-    ov("RSAFS","retail_yoy",ret_n,12); ov("HOUST","housing_yoy",ret_n,12)
-    ov("LEI","lei_3m",ret_n,3); ov("UMCSENT","umcsent_last",last)
-    ov("CPI","cpi_yoy",ret_n,12); ov("CPI","cpi_mom",ret_n,1)
-    ov("CORECPI","core_cpi_yoy",ret_n,12); ov("COREPCE","corepce_yoy",ret_n,12)
-    ov("BREAKEVEN","breakeven",last); ov("BREAKEVEN","breakeven_1m",delta_n,1)
-    ov("REAL10","real_10y",last); ov("FEDFUNDS","policy_rate",last)
-    ov("FEDFUNDS","policy_rate_3m",delta_n,3); ov("DGS2","dgs2",last)
-    ov("DGS10","dgs10",last); ov("DGS30","dgs30",last)
-    ov("HYOAS","hy_oas",last); ov("HYOAS","hy_oas_1m",delta_n,21)
-    ov("IGSPR","ig_oas",last); ov("IGSPR","ig_oas_1m",delta_n,21)
-    # Yield curve
+    put("indpro_yoy","INDPRO",ret_n,12); put("payrolls_yoy","PAYEMS",ret_n,12)
+    put("payrolls_mom","PAYEMS",ret_n,1); put("unrate","UNRATE",last)
+    put("unrate_3m_delta","UNRATE",delta_n,3); put("claims_13w_delta","ICSA",delta_n,13)
+    put("claims_last","ICSA",last); put("ism_last","ISM",last)
+    put("retail_yoy","RSAFS",ret_n,12); put("housing_yoy","HOUST",ret_n,12)
+    put("lei_3m","LEI",ret_n,3); put("umcsent_last","UMCSENT",last)
+    put("cpi_yoy","CPI",ret_n,12); put("cpi_mom","CPI",ret_n,1)
+    put("core_cpi_yoy","CORECPI",ret_n,12); put("corepce_yoy","COREPCE",ret_n,12)
+    put("breakeven","BREAKEVEN",last); put("breakeven_1m","BREAKEVEN",delta_n,1)
+    put("real_10y","REAL10",last); put("policy_rate","FEDFUNDS",last)
+    put("policy_rate_3m","FEDFUNDS",delta_n,3); put("dgs2","DGS2",last)
+    put("dgs10","DGS10",last); put("dgs30","DGS30",last)
+    put("hy_oas","HYOAS",last); put("hy_oas_1m","HYOAS",delta_n,21)
+    put("ig_oas","IGSPR",last); put("ig_oas_1m","IGSPR",delta_n,21)
+    return obs, source_map, fred_loaded, fred_total
+
+
+def build_market_implied_features(prices:Dict[str,pd.Series])->Dict:
+    f={}
+    for t in ["SPY","QQQ","IWM","RSP","UUP","TLT","EEM","EFA","GLD","HYG","LQD",
+              "XLE","XLI","XLY","XLP","XLB","XLK","XLF","CL=F","GC=F","HG=F","SI=F"]:
+        s=prices.get(t,pd.Series())
+        tk=t.replace("^","").replace("=F","f").lower()
+        f[f"{tk}_1m"]=ret_n(s,21); f[f"{tk}_3m"]=ret_n(s,63); f[f"{tk}_ts"]=ts(s)
+    cop=prices.get("HG=F",pd.Series()); gld=prices.get("GC=F",pd.Series())
+    if not _s(cop).empty and not _s(gld).empty:
+        c2,g2=_s(cop).align(_s(gld),join="inner")
+        if len(c2)>63: f["copper_gold_ratio_3m"]=ret_n(c2/g2,63)
+    vix_s=prices.get("^VIX",pd.Series()); vxv_s=prices.get("^VXV",pd.Series())
+    f["vix_last"]=last(vix_s); f["vix_1m"]=delta_n(vix_s,21)
+    if not _s(vix_s).empty and not _s(vxv_s).empty:
+        v,vxv=_s(vix_s).align(_s(vxv_s),join="inner")
+        if len(v)>5:
+            r=float(v.iloc[-1])/float(vxv.iloc[-1]); f["vix_vxv_ratio"]=r
+            f["vix_term_state"]="Contango (calm)" if r<0.90 else("Flat (neutral)" if r<1.00 else "Backwardation (fear)")
+        else:
+            f["vix_vxv_ratio"]=float("nan"); f["vix_term_state"]="Unknown"
+    else:
+        f["vix_vxv_ratio"]=float("nan"); f["vix_term_state"]="Unknown"
+    return f
+
+
+def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:Optional[Dict]=None)->Dict:
+    raw_macro_keys=["indpro_yoy","retail_yoy","payrolls_yoy","unrate_3m_delta","claims_13w_delta","ism_last","housing_yoy","cpi_yoy","core_cpi_yoy","breakeven"]
+    f=build_fallback_macro_proxies(prices)
+    source_map={k:"fallback_proxy" for k in raw_macro_keys if k in f}
+    source_detail={
+        "indpro_yoy":"XLI/SPY return proxy",
+        "retail_yoy":"XLY/SPY return proxy",
+        "payrolls_yoy":"IWM/SPY return proxy",
+        "unrate_3m_delta":"IWM inverse proxy",
+        "claims_13w_delta":"IWM inverse proxy",
+        "ism_last":"XLI return proxy",
+        "housing_yoy":"IWM proxy",
+        "cpi_yoy":"Oil/Gold/UUP proxy",
+        "core_cpi_yoy":"Oil/UUP proxy",
+        "breakeven":"Oil/Gold/UUP blend proxy",
+    }
+    observed, observed_sources, fred_loaded, fred_total = build_macro_observed(fred)
+    f.update(observed)
+    source_map.update(observed_sources)
+    market_features=build_market_implied_features(prices)
+    f.update(market_features)
+    # Yield curve observed path
     d2=f.get("dgs2",float("nan")); d10=f.get("dgs10",float("nan")); d30=f.get("dgs30",float("nan"))
     if math.isfinite(d2) and math.isfinite(d10):
         sp=d10-d2; f["spread_2s10s"]=sp
@@ -420,44 +513,38 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series])->Dict:
         if len(s2)>63 and len(s10)>63:
             a2,a10=s2.align(s10,join="inner"); f["spread_2s10s_3m"]=delta_n(a10-a2,63)
             f["yield_curve_uninverting"]=(math.isfinite(f.get("spread_2s10s_3m",float("nan"))) and f.get("spread_2s10s_3m",0)>0.20 and sp>-0.25)
-    if math.isfinite(d10) and math.isfinite(d30): f["spread_10s30s"]=d30-d10
+    if math.isfinite(d10) and math.isfinite(d30):
+        f["spread_10s30s"]=d30-d10
     # RoC flags
     f["indpro_acc"]=roc_acc(fred.get("INDPRO",pd.Series()),12,3)
     f["payrolls_acc"]=roc_acc(fred.get("PAYEMS",pd.Series()),12,3)
     f["cpi_acc"]=roc_acc(fred.get("CPI",pd.Series()),12,3)
     f["corepce_acc"]=roc_acc(fred.get("COREPCE",pd.Series()),12,3)
     f["lei_acc"]=roc_acc(fred.get("LEI",pd.Series()),3,2)
-    # Price features
-    for t in ["SPY","QQQ","IWM","RSP","UUP","TLT","EEM","EFA","GLD","HYG","LQD",
-              "XLE","XLI","XLY","XLP","XLB","XLK","XLF","CL=F","GC=F","HG=F","SI=F"]:
-        s=prices.get(t,pd.Series())
-        tk=t.replace("^","").replace("=F","f").lower()
-        f[f"{tk}_1m"]=ret_n(s,21); f[f"{tk}_3m"]=ret_n(s,63); f[f"{tk}_ts"]=ts(s)
-    # Copper/gold
-    cop=prices.get("HG=F",pd.Series()); gld=prices.get("GC=F",pd.Series())
-    if not _s(cop).empty and not _s(gld).empty:
-        c2,g2=_s(cop).align(_s(gld),join="inner")
-        if len(c2)>63: cg=c2/g2; f["copper_gold_ratio_3m"]=ret_n(cg,63)
-    # VIX
-    vix_s=prices.get("^VIX",pd.Series()); vxv_s=prices.get("^VXV",pd.Series())
-    f["vix_last"]=last(vix_s); f["vix_1m"]=delta_n(vix_s,21)
-    if not _s(vix_s).empty and not _s(vxv_s).empty:
-        v,vxv=_s(vix_s).align(_s(vxv_s),join="inner")
-        if len(v)>5:
-            r=float(v.iloc[-1])/float(vxv.iloc[-1]); f["vix_vxv_ratio"]=r
-            f["vix_term_state"]="Contango (calm)" if r<0.90 else("Flat (neutral)" if r<1.00 else "Backwardation (fear)")
-        else: f["vix_vxv_ratio"]=float("nan"); f["vix_term_state"]="Unknown"
-    else: f["vix_vxv_ratio"]=float("nan"); f["vix_term_state"]="Unknown"
-    # Data coverage
-    macro_covered=sum(1 for k in raw_macro_keys if math.isfinite(f.get(k,float("nan"))))
-    macro_proxy_share=1.0-(macro_covered/len(raw_macro_keys))
+
+    macro_observed_count=sum(1 for k in raw_macro_keys if source_map.get(k)=="observed_fred")
+    macro_proxy_count=len(raw_macro_keys)-macro_observed_count
+    observed_macro_share=macro_observed_count/max(len(raw_macro_keys),1)
+    macro_proxy_share=macro_proxy_count/max(len(raw_macro_keys),1)
+    price_panel_coverage=float((price_meta or {}).get("coverage",0.0)) if price_meta else 0.0
+    price_short_history_share=float((price_meta or {}).get("short_history_share",1.0)) if price_meta else 1.0
+    price_median_years=float((price_meta or {}).get("median_years",0.0)) if price_meta else 0.0
+    price_stale_share=float((price_meta or {}).get("stale_share",0.0)) if price_meta else 0.0
+
     price_avail=sum(1 for t in ["spy_1m","xli_1m","xly_1m","iwm_1m","oil_1m","gold_1m","dxy_1m"] if math.isfinite(f.get(t,float("nan"))))
     monthly_real_share=price_avail/7.0
     fred_real_share=fred_loaded/max(fred_total,1)
-    structural_real_share=0.70*fred_real_share+0.30*(1-macro_proxy_share)
-    data_coverage=clamp(0.70*structural_real_share+0.30*(1-macro_proxy_share))
-    monthly_data_coverage=clamp(0.60*monthly_real_share+0.25*(1-macro_proxy_share)+0.15*structural_real_share)
-    # Dual-horizon feature scaffolding (v33 exact formula)
+    structural_real_share=0.55*observed_macro_share+0.25*fred_real_share+0.20*price_panel_coverage
+    data_coverage=clamp(0.50*structural_real_share+0.20*(1-macro_proxy_share)+0.20*(1-price_short_history_share)+0.10*(1-price_stale_share))
+    monthly_data_coverage=clamp(0.45*monthly_real_share+0.20*observed_macro_share+0.20*price_panel_coverage+0.15*(1-price_stale_share))
+    macro_source_quality=clamp(0.45*observed_macro_share+0.20*fred_real_share+0.20*price_panel_coverage+0.10*(1-price_short_history_share)+0.05*(1-price_stale_share))
+    data_source_mode=(
+        "Observed-Heavy" if observed_macro_share>=0.70 and price_panel_coverage>=0.85 else
+        "Hybrid" if observed_macro_share>=0.35 else
+        "Proxy-Heavy"
+    )
+
+    # Dual-horizon feature scaffolding (v33 exact formula preserved)
     oil_3m=f.get("clf_3m",f.get("oil_3m",0.0)); gld_3m=f.get("gld_3m",f.get("gold_3m",0.0))
     uup_3m=f.get("uup_3m",f.get("dxy_3m",0.0)); spy_1m=f.get("spy_1m",0.0)
     xli_1m=f.get("xli_1m",0.0); xly_1m=f.get("xly_1m",0.0); iwm_1m=f.get("iwm_1m",0.0)
@@ -465,7 +552,6 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series])->Dict:
     uup_1m=f.get("uup_1m",f.get("dxy_1m",0.0)); bk1m=f.get("breakeven_1m",0.0)
     cpi=f.get("cpi_yoy",0.025); core=f.get("core_cpi_yoy",0.023)
     hcg=float(cpi-core) if(math.isfinite(cpi) and math.isfinite(core)) else 0.0
-    # Growth structural (slow-moving, FRED-heavy)
     gi=[th(f.get("indpro_yoy",0)-0.02,0.05),th(f.get("retail_yoy",0)-0.03,0.06),
         th(f.get("payrolls_yoy",0)-0.015,0.03),th(f.get("housing_yoy",0),0.10),
         th((f.get("ism_last",50)-50)/100,0.04),th(-f.get("unrate_3m_delta",0),0.12),
@@ -473,39 +559,31 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series])->Dict:
     gm=[th(f.get("housing_yoy",0),0.08),th(f.get("indpro_yoy",0),0.05),
         th(-f.get("unrate_3m_delta",0),0.10),th(-f.get("claims_13w_delta",0)/50,0.50)]
     g_level=nm(*gi); g_mom=nm(*gm)
-    # Inflation structural
     ii=[th(cpi-0.025,0.020),th(core-0.025,0.015),th((f.get("breakeven",2.2)-2.2)/2.0,0.300),
         th(nf(oil_3m),0.250),th(nf(gld_3m),0.180)]
     im=[th(nf(oil_3m),0.220),th(nf(gld_3m),0.180),th((f.get("breakeven",2.2)-2.2)/2.0,0.240),th(nf(uup_3m),0.140)]
     i_level=nm(*ii); i_mom=nm(*im)
-    # Slowdown flags
     sf=sum([1 if math.isfinite(f.get("unrate_3m_delta",float("nan"))) and f.get("unrate_3m_delta",0)>0.05 else 0,
         1 if math.isfinite(f.get("claims_13w_delta",float("nan"))) and f.get("claims_13w_delta",0)>0 else 0,
         1 if math.isfinite(f.get("ism_last",float("nan"))) and f.get("ism_last",50)<50 else 0,
         1 if math.isfinite(f.get("housing_yoy",float("nan"))) and f.get("housing_yoy",0)<0 else 0])/4.0
-    # Inflation shock
     inf_shock=nf(nm(th(nf(oil_3m),0.22),th((f.get("breakeven",2.2)-2.2)/2.0,0.24),th(nf(uup_3m),0.14)))
-    # Monthly growth signal (fast, price-based)
     monthly_gi=[th(nf(spy_1m),0.05),th(nf(xli_1m),0.05),th(nf(xly_1m),0.05),th(nf(iwm_1m),0.07),th(-nf(uup_1m),0.06)]
     monthly_ii=[th(nf(hcg),0.004),th(nf(oil_1m),0.06),th(nf(gld_1m),0.05),th(nf(bk1m),0.08),th(-nf(uup_1m),0.05)]
     monthly_g_signal=nm(*monthly_gi); monthly_i_signal=nm(*monthly_ii)
-    # Dual-horizon (exact v33 formulas)
     g_struct_level=nf(g_level); g_struct_mom=nf(g_mom)
     g_month_level=nf(0.65*g_level+0.35*g_mom); g_month_mom=nf(0.45*g_mom+0.55*monthly_g_signal)
     i_struct_level=nf(i_level); i_struct_mom=nf(i_mom)
     i_month_level=nf(0.55*i_level+0.25*i_mom+0.20*th(nf(hcg),0.004))
     i_month_mom=nf(0.45*i_mom+0.55*monthly_i_signal)
-    # Policy + liquidity scores
     policy_score=th(-nf(f.get("policy_rate_3m",0.0)),0.50)
     liq_proxy=nm(th(-nf(uup_3m),0.12),th(nf(f.get("tlt_1m",0.0)),0.08))
     liq_score=th(nf(liq_proxy),0.50)
     m_policy=nf(0.60*policy_score+0.40*th(-nf(f.get("policy_rate_3m",0.0)),0.25))
     m_liq=nf(0.50*liq_score+0.50*th(nf(liq_proxy),0.35))
     m_shock=nf(nm(max(0.0,th(nf(hcg),0.004)),max(0.0,th(nf(oil_1m),0.06)),max(0.0,th(nf(bk1m),0.08))))
-    # Coverage penalty prior
-    PRIOR_MODE="off"
-    prior_strength=0.0  # off mode
-    prior_map={"Q1":0.0,"Q2":0.0,"Q3":0.0,"Q4":0.0}
+
+    prior_mode=get_regime_prior_mode()
     f.update({
         "g_struct_level":g_struct_level,"g_struct_mom":g_struct_mom,
         "i_struct_level":i_struct_level,"i_struct_mom":i_struct_mom,
@@ -517,9 +595,22 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series])->Dict:
         "slowdown_flags":sf,"inf_shock":inf_shock,"headline_core_gap":hcg,
         "data_coverage":data_coverage,"monthly_data_coverage":monthly_data_coverage,
         "macro_proxy_share":macro_proxy_share,"fred_real_share":fred_real_share,
+        "macro_observed_share":observed_macro_share,"macro_source_quality":macro_source_quality,
+        "data_source_mode":data_source_mode,
+        "price_panel_coverage":price_panel_coverage,
+        "price_short_history_share":price_short_history_share,
+        "price_median_years":price_median_years,
+        "price_stale_share":price_stale_share,
+        "macro_source_map":source_map,
+        "macro_source_detail":source_detail,
+        "macro_observed_fields":[k for k in raw_macro_keys if source_map.get(k)=="observed_fred"],
+        "macro_proxy_fields":[k for k in raw_macro_keys if source_map.get(k)!="observed_fred"],
+        "prior_mode":prior_mode,
+        "prior_mode_active":prior_mode!="off",
         "_fred_loaded":fred_loaded,"_fred_total":fred_total,"_proxy_share":macro_proxy_share,
     })
     return f
+
 
 def _score_block(g_level,g_mom,i_level,i_mom,policy,liq,sf,shock,data_cov,proxy_share,w,mw,monthly=False)->Tuple:
     g_core=w["g_level"]*g_level+w["g_mom"]*g_mom
@@ -846,9 +937,11 @@ def build_ihsg(prices:Dict[str,pd.Series],q:Dict,f:Dict)->Dict:
 @st.cache_data(ttl=TTL,show_spinner=False)
 def load_all()->Dict:
     all_tickers=tuple(set(US_TICKERS+IHSG_TICKERS+FX_TICKERS+COMM_TICKERS+CRYPTO_TICKERS))
-    with st.spinner("Fetching prices…"): prices=fetch_prices(all_tickers,period="2y")
+    price_period=str(os.environ.get("MRP_PRICE_PERIOD","5y") or "5y").strip() or "5y"
+    with st.spinner("Fetching prices…"): prices=fetch_prices(all_tickers,period=price_period)
+    price_meta=summarize_price_panel(prices,all_tickers)
     with st.spinner("Fetching FRED macro data…"): fred={k:fetch_fred(v) for k,v in FRED_SERIES.items()}
-    f=build_macro(fred,prices); q=build_quad(f); h=build_health(prices,f)
+    f=build_macro(fred,prices,price_meta=price_meta); q=build_quad(f); h=build_health(prices,f)
     cr=build_crash(f,h,q); rot=build_rotation(q,h,f,prices); ih=build_ihsg(prices,q,f)
     analog=_match_analog(f); pb=build_playbooks(f,q); sc=build_scenarios(q,f,h,analog,pb)
     chk=build_checklists(f,h,q,ih)
@@ -864,13 +957,14 @@ def load_all()->Dict:
     route=derive_route_state(q,h,cr)
     asset_trans=build_asset_translation(route["primary"],q,h,f)
     news_overlay=build_news_catalyst_overlay(q,f,h)
-    return dict(prices=prices,fred=fred,f=f,q=q,h=h,crash=cr,rotation=rot,ihsg=ih,
+    return dict(prices=prices,price_meta=price_meta,fred=fred,f=f,q=q,h=h,crash=cr,rotation=rot,ihsg=ih,
                 analog=analog,playbooks=pb,scenarios=sc,checklists=chk,
                 most_hated_rally=most_hated,opportunities=opps,signal_strength=signal_strength,family=family,risk_ranges=risk_ranges,
                 asset_checklists=asset_chk,macro_impact=macro_impact,
                 forward_radar=fwd_radar,strong_weak_all=sw_all,
                 route=route,asset_translation=asset_trans,news_overlay=news_overlay,
-                ts=datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"))
+                ts=datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
+                build_meta={"price_period":price_period,"regime_prior_mode":f.get("prior_mode","off")})
 
 # ── UI helpers ────────────────────────────────────────────────────────────────
 def qb(q:str)->str:
@@ -2760,10 +2854,12 @@ def page_radar(snap:Dict)->None:
     q=snap["q"]; f=snap["f"]; rot=snap["rotation"]; analog=snap["analog"]
     s_quad=q["quad"]; m_quad=q["monthly_quad"]; meta=QUAD_META.get(s_quad,QUAD_META["Q4"])
     ps=f.get("_proxy_share",1.0); fl=int(f.get("_fred_loaded",0)); ft=int(f.get("_fred_total",0))
+    mode=f.get("data_source_mode","Hybrid")
+    src_q=f.get("macro_source_quality",0.0)
     if ps>0.60:
-        st.markdown(f'<div class="proxy-b">⚠️ <strong>Proxy mode</strong> — FRED {fl}/{ft} series. Quad dari price proxy. Set FRED_API_KEY env var.</div>',unsafe_allow_html=True)
+        st.markdown(f'<div class="proxy-b">⚠️ <strong>{mode}</strong> — FRED {fl}/{ft} series. Macro source quality {src_q:.0%}. Quad masih jalan, tapi lebih banyak ditopang fallback proxy/market-implied data.</div>',unsafe_allow_html=True)
     else:
-        st.markdown(f'<div class="real-b">&#10003; FRED {fl}/{ft} series. Data coverage: {f.get("data_coverage",0):.0%}</div>',unsafe_allow_html=True)
+        st.markdown(f'<div class="real-b">&#10003; <strong>{mode}</strong> — FRED {fl}/{ft} series. Data coverage: {f.get("data_coverage",0):.0%} · Macro source quality {src_q:.0%}</div>',unsafe_allow_html=True)
     div=q["divergence"]; cb=q["conf_band"]; meta_col=meta["text"]
     # Build regime hero as string concat (avoids f-string HTML rendering bug with nested quotes)
     div_badge = ""
@@ -3246,7 +3342,7 @@ def page_markets(snap:Dict)->None:
         st.info(f"**Crypto dan regime:** Crypto = high-beta risk asset. Q1 = most bullish. Q3/Q4 = sangat bearish. BTC 1M: {pct(btc_1m)}. Dalam Q3, crypto biasanya underperform bahkan Gold.")
 
 def page_diag(snap:Dict)->None:
-    f=snap["f"]; fred=snap["fred"]; prices=snap["prices"]; q=snap["q"]
+    f=snap["f"]; fred=snap["fred"]; prices=snap["prices"]; q=snap["q"]; price_meta=snap.get("price_meta",{})
     # Risk Range table (v33 ATR-based)
     rr=snap.get("risk_ranges",{})
     if rr:
@@ -3264,7 +3360,22 @@ def page_diag(snap:Dict)->None:
     cov=[{"Series":k,"FRED ID":FRED_SERIES.get(k,""),"Points":len(_s(s)),"Latest":str(_s(s).index[-1])[:10] if not _s(s).empty else "—","Last Value":round(float(_s(s).iloc[-1]),4) if not _s(s).empty else None,"Status":"✓ Loaded" if not _s(s).empty else "✗ Missing"} for k,s in fred.items()]
     st.dataframe(pd.DataFrame(cov),use_container_width=True,hide_index=True,height=480)
     ps=f.get("_proxy_share",1.0); fl=int(f.get("_fred_loaded",0)); ft=int(f.get("_fred_total",0))
-    if ps>0.50: st.warning(f"**FRED issue ({fl}/{ft} loaded).** Fix: `export FRED_API_KEY=key` (free at fred.stlouisfed.org/api/key/). App jalan di proxy mode, quad tetap bekerja.")
+    if ps>0.50: st.warning(f"**FRED issue ({fl}/{ft} loaded).** Fix: `export FRED_API_KEY=key` (free at fred.stlouisfed.org/api/key/). App jalan di {f.get('data_source_mode','Proxy-Heavy').lower()} mode; gunakan output dengan disiplin ekstra.")
+    sh("🧪 SOURCE QUALITY")
+    src_rows=[
+        ("Data source mode",f.get("data_source_mode","")),
+        ("Macro source quality",f"{f.get('macro_source_quality',0):.2f}"),
+        ("Observed macro share",f"{f.get('macro_observed_share',0):.2f}"),
+        ("Macro proxy share",f"{f.get('macro_proxy_share',0):.2f}"),
+        ("Price panel coverage",f"{f.get('price_panel_coverage',0):.2f}"),
+        ("Price short-history share",f"{f.get('price_short_history_share',0):.2f}"),
+        ("Price stale share",f"{f.get('price_stale_share',0):.2f}"),
+        ("Median price history (yrs)",f"{f.get('price_median_years',0):.2f}"),
+        ("Regime prior mode",f.get("prior_mode","off")),
+    ]
+    st.dataframe(pd.DataFrame(src_rows,columns=["Quality Lens","Value"]),use_container_width=True,hide_index=True,height=260)
+    core_source_rows=[{"Field":k,"Source":f.get("macro_source_map",{}).get(k,"unknown"),"Detail":f.get("macro_source_detail",{}).get(k,"") or ("FRED observed" if f.get("macro_source_map",{}).get(k)=="observed_fred" else "") ,"Value":f.get(k)} for k in ["indpro_yoy","retail_yoy","payrolls_yoy","unrate_3m_delta","claims_13w_delta","ism_last","housing_yoy","cpi_yoy","core_cpi_yoy","breakeven"]]
+    st.dataframe(pd.DataFrame(core_source_rows),use_container_width=True,hide_index=True,height=320)
     sh("🔬 QUAD INTERNALS (v33 weights verifikasi)")
     internal_rows=[
         ("Structural g_level",f"{f.get('g_struct_level',0):+.4f}"),("Structural g_mom",f"{f.get('g_struct_mom',0):+.4f}"),
@@ -3276,7 +3387,8 @@ def page_diag(snap:Dict)->None:
         ("Monthly shock",f"{f.get('m_shock',0):+.4f}"),("Slowdown flags",f"{f.get('slowdown_flags',0):.2f}"),
         ("Inflation shock",f"{f.get('inf_shock',0):.4f}"),("Data coverage",f"{f.get('data_coverage',0):.2f}"),
         ("Monthly coverage",f"{f.get('monthly_data_coverage',0):.2f}"),("FRED real share",f"{f.get('fred_real_share',0):.2f}"),
-        ("Macro proxy share",f"{f.get('macro_proxy_share',0):.2f}"),
+        ("Observed macro share",f"{f.get('macro_observed_share',0):.2f}"),("Macro proxy share",f"{f.get('macro_proxy_share',0):.2f}"),
+        ("Macro source quality",f"{f.get('macro_source_quality',0):.2f}"),("Prior mode",f.get("prior_mode","off")),
         ("Quad core g_core",f"{q.get('g_core',0):+.4f}"),("Quad core i_core",f"{q.get('i_core',0):+.4f}"),
         ("Structural quad",q.get("quad","")),("Structural conf",f"{q.get('confidence',0):.2f}"),
         ("Monthly quad",q.get("monthly_quad","")),("Monthly conf",f"{q.get('monthly_conf',0):.2f}"),
@@ -3284,6 +3396,16 @@ def page_diag(snap:Dict)->None:
     ]
     st.dataframe(pd.DataFrame(internal_rows,columns=["Internal Feature","Value"]),use_container_width=True,hide_index=True,height=500)
     sh("📦 PRICE DATA COVERAGE")
+    pm_summary=[
+        ("Expected tickers",price_meta.get("expected",0)),
+        ("Loaded tickers",price_meta.get("loaded",0)),
+        ("Missing tickers",price_meta.get("missing_count",0)),
+        ("Coverage",f"{price_meta.get('coverage',0):.2f}"),
+        ("Short-history share",f"{price_meta.get('short_history_share',0):.2f}"),
+        ("Median history (yrs)",f"{price_meta.get('median_years',0):.2f}"),
+        ("Stale share",f"{price_meta.get('stale_share',0):.2f}"),
+    ]
+    st.dataframe(pd.DataFrame(pm_summary,columns=["Price Panel Metric","Value"]),use_container_width=True,hide_index=True,height=240)
     prows=[{"Ticker":t,"Points":len(s),"Latest":str(s.index[-1])[:10] if not s.empty else "—","Last Close":round(float(s.iloc[-1]),4) if not s.empty else None} for t,s in sorted(prices.items())]
     st.dataframe(pd.DataFrame(prows),use_container_width=True,hide_index=True,height=400)
 
@@ -3715,7 +3837,7 @@ def page_markets_full(snap:Dict)->None:
 
 
 def main():
-    st.markdown('<div style="display:flex;align-items:center;margin-bottom:4px"><span style="font-family:Syne,sans-serif;font-size:20px;font-weight:800;letter-spacing:-.03em">🧭 MacroRegime Pro</span><span style="font-size:10px;opacity:.3;margin-left:8px;font-family:DM Mono,monospace">v8.1 · Hedgeye GIP Framework · Markets-Integrated Signal Lifecycle</span></div>',unsafe_allow_html=True)
+    st.markdown('<div style="display:flex;align-items:center;margin-bottom:4px"><span style="font-family:Syne,sans-serif;font-size:20px;font-weight:800;letter-spacing:-.03em">🧭 MacroRegime Pro</span><span style="font-size:10px;opacity:.3;margin-left:8px;font-family:DM Mono,monospace">v9.0 · Full-Final Candidate · Markets-Integrated Signal Lifecycle + Truth-Layer Diagnostics</span></div>',unsafe_allow_html=True)
     with st.sidebar:
         st.markdown("### ⚙️ Controls")
         if st.button("🔄 Force Refresh",use_container_width=True): st.cache_data.clear(); st.rerun()
@@ -3729,13 +3851,12 @@ def main():
 5. ⚠️ **Risk** — Crash meter + sizing guide
 6. 🔬 **Diag** — Data quality + quad internals
 
-**v8 feature additions:**
-- Signal Strength digabung ke Markets tab
-- Signal lifecycle summary tampil lintas market + per market
-- Bug prices_placeholder fixed
-- Bug Series `and` operator fixed
-- IHSG masuk Markets tab
-- Semua tab error resolved
+**v9 feature additions:**
+- Signal Strength tetap di Markets
+- Truth-layer diagnostics: observed vs proxy vs market-implied
+- Price panel coverage / short-history / stale-share diagnostics
+- Prior mode ditampilkan eksplisit (default off)
+- Header/versioning dirapikan agar lebih jujur ke kondisi build
         """)
     snap=load_all()
     most_hated=snap.get("most_hated_rally",{})

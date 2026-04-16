@@ -24,8 +24,9 @@ Free data: yfinance + FRED public CSV
 Run: streamlit run macro_regime_pro_v6.py
 """
 from __future__ import annotations
-import datetime,math,os,html
+import datetime,math,os,html,sqlite3
 from io import StringIO
+from pathlib import Path
 from typing import Dict,List,Optional,Tuple
 import numpy as np
 import pandas as pd
@@ -122,6 +123,10 @@ IHSG_W = {"regime":0.24,"em_rotation":0.16,"macro_native":0.24,"breadth_flow":0.
 EXEC_W = {"weather":0.20,"health":0.14,"vix":0.10,"quad":0.12,"conf":0.10,"cross":0.09,"crowd":0.09,"shock":0.08,"crash":0.08}
 
 TTL=3600
+SIGNAL_STORE_PATH = Path(__file__).with_name("macroregime_signal_strength.sqlite3")
+SIGNAL_ENTER_THRESHOLD = 0.035
+SIGNAL_EXIT_THRESHOLD = 0.015
+
 
 # ── Ticker display name mapping (from v33 data_symbol_map.py) ─────────────────
 TICKER_DISPLAY = {
@@ -849,6 +854,7 @@ def load_all()->Dict:
     chk=build_checklists(f,h,q,ih)
     most_hated=build_most_hated_rally_monitor(f,prices)
     opps=build_opportunities(prices,q,f,h,rot,ih,most_hated)
+    signal_strength=build_signal_strength(opps,prices,q,f,h)
     family=get_dominant_family(q,f,rot)
     risk_ranges=build_risk_range(prices,f,cr)
     asset_chk=build_asset_checklists_full(f,h,q,ih,prices)
@@ -860,7 +866,7 @@ def load_all()->Dict:
     news_overlay=build_news_catalyst_overlay(q,f,h)
     return dict(prices=prices,fred=fred,f=f,q=q,h=h,crash=cr,rotation=rot,ihsg=ih,
                 analog=analog,playbooks=pb,scenarios=sc,checklists=chk,
-                most_hated_rally=most_hated,opportunities=opps,family=family,risk_ranges=risk_ranges,
+                most_hated_rally=most_hated,opportunities=opps,signal_strength=signal_strength,family=family,risk_ranges=risk_ranges,
                 asset_checklists=asset_chk,macro_impact=macro_impact,
                 forward_radar=fwd_radar,strong_weak_all=sw_all,
                 route=route,asset_translation=asset_trans,news_overlay=news_overlay,
@@ -1275,12 +1281,279 @@ def build_opportunities(prices:Dict[str,pd.Series], q:Dict, f:Dict, h:Dict, rot:
     longs.sort(key=lambda x:(x["_ev"], x.get("Rally Fit")=="Boosted", x.get("Macro Aligned") in {"✓","~ Tactical"}), reverse=True)
     shorts.sort(key=lambda x:(x["_ev"], x.get("Rally Fit")=="Boosted"), reverse=True)
     combined=longs+shorts
-    for r in combined:
-        r.pop("_score",None)
-        r.pop("_ev",None)
-        r.pop("_raw_ticker",None)
     return combined
 
+
+def _signal_snapshot_date()->str:
+    return datetime.datetime.utcnow().strftime("%Y-%m-%d")
+
+
+def _safe_float(v, default:float=float("nan")) -> float:
+    try:
+        if v is None or (isinstance(v, str) and not v.strip()):
+            return default
+        return float(v)
+    except Exception:
+        return default
+
+
+def _coerce_pctish(v, default:float=0.0) -> float:
+    if isinstance(v, str):
+        s=v.strip().replace(",","")
+        if s.endswith("%"):
+            try:
+                return float(s[:-1])/100.0
+            except Exception:
+                return default
+    return _safe_float(v, default)
+
+
+def compute_trade_state(s:pd.Series) -> str:
+    s2=_s(s)
+    if len(s2)<25:
+        return "neutral"
+    px=float(s2.iloc[-1])
+    ma20=float(s2.rolling(20).mean().iloc[-1])
+    ma50=float(s2.rolling(50).mean().iloc[-1]) if len(s2)>=50 else ma20
+    if px>ma20 and ma20>=ma50:
+        return "bullish"
+    if px<ma20 and ma20<=ma50:
+        return "bearish"
+    return "neutral"
+
+
+def compute_trend_state(s:pd.Series) -> str:
+    s2=_s(s)
+    if len(s2)<100:
+        return "neutral"
+    px=float(s2.iloc[-1])
+    ma50=float(s2.rolling(50).mean().iloc[-1])
+    ma100=float(s2.rolling(100).mean().iloc[-1])
+    if px>ma50 and ma50>=ma100:
+        return "bullish"
+    if px<ma50 and ma50<=ma100:
+        return "bearish"
+    return "neutral"
+
+
+def compute_signal_score(s:pd.Series, bias:str, ev_hint:float=0.5) -> float:
+    r1=nf(ret_n(s,21),0.0)
+    r3=nf(ret_n(s,63),0.0)
+    tr=nf(ts(s)-0.5,0.0)
+    direction=1.0 if "LONG" in str(bias) else -1.0
+    raw=direction*(0.55*r1+0.35*r3+0.10*tr)+0.25*(ev_hint-0.5)
+    return float(np.nan_to_num(raw, nan=0.0))
+
+
+def init_signal_store() -> None:
+    SIGNAL_STORE_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with sqlite3.connect(str(SIGNAL_STORE_PATH)) as conn:
+        conn.execute("""
+        CREATE TABLE IF NOT EXISTS signal_snapshots (
+            asof_date TEXT NOT NULL,
+            ticker TEXT NOT NULL,
+            ticker_display TEXT,
+            market TEXT,
+            bias TEXT,
+            signal_active INTEGER,
+            status_today TEXT,
+            signal_score REAL,
+            trade_state TEXT,
+            trend_state TEXT,
+            entry_close REAL,
+            last_close REAL,
+            pct_since_signal REAL,
+            signal_start_date TEXT,
+            days_on INTEGER,
+            opportunity_ev REAL,
+            macro_aligned TEXT,
+            horizon TEXT,
+            why_now TEXT,
+            quad TEXT,
+            monthly_quad TEXT,
+            PRIMARY KEY (asof_date, ticker, market, bias)
+        )
+        """)
+        conn.commit()
+
+
+def read_prev_signal_state(asof_date:str) -> pd.DataFrame:
+    init_signal_store()
+    with sqlite3.connect(str(SIGNAL_STORE_PATH)) as conn:
+        cur=conn.execute(
+            "SELECT MAX(asof_date) FROM signal_snapshots WHERE asof_date < ? AND signal_active = 1",
+            (asof_date,)
+        )
+        row=cur.fetchone()
+        prev_date=row[0] if row else None
+        if not prev_date:
+            return pd.DataFrame()
+        return pd.read_sql_query(
+            "SELECT * FROM signal_snapshots WHERE asof_date = ? AND signal_active = 1",
+            conn, params=(prev_date,)
+        )
+
+
+def write_signal_snapshot(active_df:pd.DataFrame, removed_df:pd.DataFrame, asof_date:str) -> None:
+    init_signal_store()
+    cols=[
+        "asof_date","ticker","ticker_display","market","bias","signal_active","status_today",
+        "signal_score","trade_state","trend_state","entry_close","last_close","pct_since_signal",
+        "signal_start_date","days_on","opportunity_ev","macro_aligned","horizon","why_now",
+        "quad","monthly_quad"
+    ]
+    frames=[]
+    for df in (active_df, removed_df):
+        if isinstance(df,pd.DataFrame) and not df.empty:
+            frames.append(df[cols].copy())
+    with sqlite3.connect(str(SIGNAL_STORE_PATH)) as conn:
+        conn.execute("DELETE FROM signal_snapshots WHERE asof_date = ?", (asof_date,))
+        for frame in frames:
+            frame.to_sql("signal_snapshots", conn, if_exists="append", index=False)
+        conn.commit()
+
+
+def build_signal_strength(opps:List[Dict], prices:Dict[str,pd.Series], q:Dict, f:Dict, h:Dict) -> Dict:
+    asof_date=_signal_snapshot_date()
+    prev_df=read_prev_signal_state(asof_date)
+    prev_map={}
+    if isinstance(prev_df,pd.DataFrame) and not prev_df.empty:
+        for _,row in prev_df.iterrows():
+            prev_map[(str(row.get("ticker","")), str(row.get("market","")), str(row.get("bias","")))] = row.to_dict()
+
+    active_rows=[]
+    current_keys=set()
+    for r in opps:
+        raw_ticker=str(r.get("_raw_ticker") or r.get("Ticker") or "")
+        market=str(r.get("Market",""))
+        bias=str(r.get("Bias",""))
+        if not raw_ticker or not market or not bias:
+            continue
+        s=prices.get(raw_ticker,pd.Series())
+        if _s(s).empty:
+            continue
+        current_close=last(s)
+        if not math.isfinite(current_close):
+            continue
+        trade_state=compute_trade_state(s)
+        trend_state=compute_trend_state(s)
+        ev_hint=_coerce_pctish(r.get("_ev", r.get("EV", 0.0)), 0.0)
+        signal_score=compute_signal_score(s,bias,ev_hint)
+        key=(raw_ticker,market,bias)
+        prev=prev_map.get(key,{})
+        prev_active=bool(prev)
+        thresh=SIGNAL_EXIT_THRESHOLD if prev_active else SIGNAL_ENTER_THRESHOLD
+        if "LONG" in bias:
+            aligned=trade_state != "bearish" and trend_state != "bearish"
+        else:
+            aligned=trade_state != "bullish" and trend_state != "bullish"
+        active=aligned and signal_score >= thresh
+        if not active:
+            continue
+        current_keys.add(key)
+        signal_start_date=str(prev.get("signal_start_date", asof_date)) if prev else asof_date
+        entry_close=_safe_float(prev.get("entry_close"), current_close) if prev else current_close
+        entry_close=current_close if not math.isfinite(entry_close) else entry_close
+        try:
+            days_on=max((datetime.date.fromisoformat(asof_date)-datetime.date.fromisoformat(signal_start_date)).days+1,1)
+        except Exception:
+            signal_start_date=asof_date
+            days_on=1
+        pct_since=(current_close/entry_close-1.0) if (math.isfinite(current_close) and math.isfinite(entry_close) and entry_close) else float("nan")
+        active_rows.append({
+            "asof_date":asof_date,
+            "ticker":raw_ticker,
+            "ticker_display":str(r.get("Ticker", raw_ticker)),
+            "market":market,
+            "bias":bias,
+            "signal_active":1,
+            "status_today":"remaining" if prev else "added",
+            "signal_score":signal_score,
+            "trade_state":trade_state,
+            "trend_state":trend_state,
+            "entry_close":entry_close,
+            "last_close":current_close,
+            "pct_since_signal":pct_since,
+            "signal_start_date":signal_start_date,
+            "days_on":int(days_on),
+            "opportunity_ev":ev_hint,
+            "macro_aligned":str(r.get("Macro Aligned","")),
+            "horizon":str(r.get("Horizon","")),
+            "why_now":str(r.get("Why Now","")),
+            "quad":str(q.get("quad","")),
+            "monthly_quad":str(q.get("monthly_quad","")),
+        })
+
+    removed_rows=[]
+    for key,prev in prev_map.items():
+        if key in current_keys:
+            continue
+        ticker,market,bias=key
+        s=prices.get(ticker,pd.Series())
+        current_close=last(s) if not _s(s).empty else _safe_float(prev.get("last_close"))
+        entry_close=_safe_float(prev.get("entry_close"), current_close)
+        pct_since=(current_close/entry_close-1.0) if (math.isfinite(current_close) and math.isfinite(entry_close) and entry_close) else float("nan")
+        signal_start_date=str(prev.get("signal_start_date", asof_date))
+        try:
+            days_on=max((datetime.date.fromisoformat(asof_date)-datetime.date.fromisoformat(signal_start_date)).days+1,1)
+        except Exception:
+            days_on=int(_safe_float(prev.get("days_on"),1))
+        removed_rows.append({
+            "asof_date":asof_date,
+            "ticker":ticker,
+            "ticker_display":str(prev.get("ticker_display", ticker)),
+            "market":market,
+            "bias":bias,
+            "signal_active":0,
+            "status_today":"removed",
+            "signal_score":_safe_float(prev.get("signal_score"), float("nan")),
+            "trade_state":str(prev.get("trade_state","neutral")),
+            "trend_state":str(prev.get("trend_state","neutral")),
+            "entry_close":entry_close,
+            "last_close":current_close,
+            "pct_since_signal":pct_since,
+            "signal_start_date":signal_start_date,
+            "days_on":int(days_on),
+            "opportunity_ev":_safe_float(prev.get("opportunity_ev"), float("nan")),
+            "macro_aligned":str(prev.get("macro_aligned","")),
+            "horizon":str(prev.get("horizon","")),
+            "why_now":str(prev.get("why_now","Signal no longer qualifies under current state")),
+            "quad":str(q.get("quad","")),
+            "monthly_quad":str(q.get("monthly_quad","")),
+        })
+
+    active_df=pd.DataFrame(active_rows)
+    removed_df=pd.DataFrame(removed_rows)
+    write_signal_snapshot(active_df, removed_df, asof_date)
+
+    long_active=active_df[active_df["bias"].str.contains("LONG", na=False)] if not active_df.empty else pd.DataFrame()
+    short_active=active_df[active_df["bias"].str.contains("SHORT", na=False)] if not active_df.empty else pd.DataFrame()
+    added_df=active_df[active_df["status_today"]=="added"].copy() if not active_df.empty else pd.DataFrame()
+    remaining_df=active_df[active_df["status_today"]=="remaining"].copy() if not active_df.empty else pd.DataFrame()
+
+    if not active_df.empty:
+        active_df=active_df.sort_values(["days_on","pct_since_signal"], ascending=[False,False], na_position="last")
+    if not removed_df.empty:
+        removed_df=removed_df.sort_values(["days_on","pct_since_signal"], ascending=[False,False], na_position="last")
+    if not added_df.empty:
+        added_df=added_df.sort_values(["signal_score","pct_since_signal"], ascending=[False,False], na_position="last")
+    if not remaining_df.empty:
+        remaining_df=remaining_df.sort_values(["days_on","pct_since_signal"], ascending=[False,False], na_position="last")
+
+    return {
+        "asof_date":asof_date,
+        "active":active_df,
+        "added":added_df,
+        "remaining":remaining_df,
+        "removed":removed_df,
+        "summary":{
+            "active_longs":int(len(long_active)),
+            "active_shorts":int(len(short_active)),
+            "added_today":int(len(added_df)),
+            "removed_today":int(len(removed_df)),
+            "active_total":int(len(active_df)),
+        },
+    }
 
 
 # ── Checklist engine (v33 inspired) ───────────────────────────────────────────
@@ -3014,6 +3287,73 @@ def build_strong_weak(prices:Dict[str,pd.Series],quad:str,limit:int=6)->Dict:
     rows.sort(key=lambda x:x["Adjusted Score"],reverse=True)
     return {"strong":rows[:limit],"weak":rows[-limit:]}
 
+def _signal_view_df(df:pd.DataFrame)->pd.DataFrame:
+    if df is None or df.empty:
+        return pd.DataFrame()
+    out=df.copy()
+    out["Days On"]=out["days_on"].astype(int)
+    out["Ticker"]=out["ticker_display"]
+    out["Signal Date"]=out["signal_start_date"]
+    out["Entry Close"]=out["entry_close"].map(lambda x: num(x,2))
+    out["Last Close"]=out["last_close"].map(lambda x: num(x,2))
+    out["% Since Signal"]=out["pct_since_signal"].map(lambda x: pct(x,1))
+    out["Trade"]=out["trade_state"].str.title()
+    out["Trend"]=out["trend_state"].str.title()
+    out["Score"]=out["signal_score"].map(lambda x: f"{x:+.3f}")
+    out["EV+"]=out["opportunity_ev"].map(lambda x: pct(x,0) if math.isfinite(_safe_float(x)) else "—")
+    out["Macro"]=out["macro_aligned"].fillna("")
+    out["Why Now"]=out["why_now"].fillna("")
+    cols=["Days On","Ticker","market","bias","Signal Date","Entry Close","Last Close","% Since Signal","Trade","Trend","Score","EV+","Macro","Why Now"]
+    out=out[cols].rename(columns={"market":"Market","bias":"Bias"})
+    return out
+
+
+def page_signal_strength(snap:Dict)->None:
+    sig=snap.get("signal_strength",{}) or {}
+    summary=sig.get("summary",{}) or {}
+    active_df=sig.get("active",pd.DataFrame())
+    added_df=sig.get("added",pd.DataFrame())
+    remaining_df=sig.get("remaining",pd.DataFrame())
+    removed_df=sig.get("removed",pd.DataFrame())
+
+    sh("📈 SIGNAL STRENGTH — lifecycle monitor")
+    st.caption("Layer ini stateful: Added / Remaining / Removed, Days On, Signal Date, dan return sejak signal aktif. Verified mulai sejak persistence layer ini hidup.")
+
+    c1,c2,c3,c4=st.columns(4)
+    with c1: mc("Active Longs",str(summary.get("active_longs",0)),f"as of {sig.get('asof_date','—')}","good")
+    with c2: mc("Active Shorts",str(summary.get("active_shorts",0)),"directional downside","warn")
+    with c3: mc("Added Today",str(summary.get("added_today",0)),"newly activated","good")
+    with c4: mc("Removed Today",str(summary.get("removed_today",0)),"fell out of active set","bad" if summary.get("removed_today",0) else "neu")
+
+    market_order=["US","IHSG","FX","Commodities","Crypto"]
+    available_markets=[]
+    for df in (active_df,removed_df):
+        if isinstance(df,pd.DataFrame) and not df.empty:
+            available_markets.extend(df["market"].dropna().astype(str).tolist())
+    available_markets=[m for m in market_order if m in set(available_markets)]
+    market_choice=st.radio("Market", ["All"]+available_markets, horizontal=True, key="signal_market_filter")
+    view_choice=st.radio("View", ["Added","Remaining","Removed","Active All"], horizontal=True, key="signal_status_filter")
+
+    source_map={"Added":added_df, "Remaining":remaining_df, "Removed":removed_df, "Active All":active_df}
+    view_df=source_map.get(view_choice,pd.DataFrame())
+    if market_choice!="All" and isinstance(view_df,pd.DataFrame) and not view_df.empty:
+        view_df=view_df[view_df["market"]==market_choice].copy()
+
+    if isinstance(view_df,pd.DataFrame) and not view_df.empty:
+        st.dataframe(_signal_view_df(view_df), use_container_width=True, hide_index=True, height=min(max(280, len(view_df)*35+46), 760))
+    else:
+        st.info("Belum ada signal untuk filter ini. Pada first live day, seluruh signal aktif biasanya masuk Added karena belum ada history hari sebelumnya.")
+
+    with st.expander("Signal detail dan caveat", expanded=False):
+        st.markdown("""
+- **Added** = hari ini aktif, sebelumnya tidak aktif.
+- **Remaining** = aktif berlanjut dari snapshot sebelumnya.
+- **Removed** = sebelumnya aktif, sekarang gagal memenuhi rule.
+- **Days On** dan **% Since Signal** verified sejak engine ini mulai live.
+- Ini **bukan** copy exact formula Hedgeye; ini lifecycle layer kausal di atas board opportunity yang sudah ada.
+        """)
+
+
 def page_markets_full(snap:Dict)->None:
     """Markets tab: IHSG + US + FX + Commodities + Crypto, semua terintegrasi."""
     prices=snap["prices"]; q=snap["q"]; f=snap["f"]; ih=snap["ihsg"]; rot=snap["rotation"]
@@ -3276,9 +3616,10 @@ def main():
 1. 🧭 **Radar** — Regime apa? Trade terbaik? Analog historis?
 2. 📡 **Health** — Aman masuk? Breadth + credit + checklist
 3. 🎯 **Playbook** — Full strategy + scenarios + what-if
-4. 🌐 **Markets** → 📊 Opportunities + IHSG + US + FX + Komoditas + Crypto
-5. ⚠️ **Risk** — Crash meter + sizing guide
-6. 🔬 **Diag** — Data quality + quad internals
+4. 📈 **Signal Strength** — Added / Remaining / Removed + Days On
+5. 🌐 **Markets** → 📊 Opportunities + IHSG + US + FX + Komoditas + Crypto
+6. ⚠️ **Risk** — Crash meter + sizing guide
+7. 🔬 **Diag** — Data quality + quad internals
 
 **v7 feature additions:**
 - Bug prices_placeholder fixed
@@ -3324,12 +3665,13 @@ def main():
         '<span style="opacity:.25;margin-left:auto">'+snap["ts"]+'</span></div>',
         unsafe_allow_html=True
     )
-    tabs=st.tabs(["🧭 Radar","📡 Health","🎯 Playbook","🌐 Markets","⚠️ Risk","🔬 Diagnostics"])
+    tabs=st.tabs(["🧭 Radar","📈 Signal Strength","📡 Health","🎯 Playbook","🌐 Markets","⚠️ Risk","🔬 Diagnostics"])
     with tabs[0]: page_radar(snap)
-    with tabs[1]: page_health(snap)
-    with tabs[2]: page_playbook(snap)
-    with tabs[3]: page_markets_full(snap)
-    with tabs[4]: page_risk(snap)
-    with tabs[5]: page_diag(snap)
+    with tabs[1]: page_signal_strength(snap)
+    with tabs[2]: page_health(snap)
+    with tabs[3]: page_playbook(snap)
+    with tabs[4]: page_markets_full(snap)
+    with tabs[5]: page_risk(snap)
+    with tabs[6]: page_diag(snap)
 
 if __name__=="__main__": main()

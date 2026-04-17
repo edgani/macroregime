@@ -11,5 +11,4 @@ def render_forex_page(snapshot: dict) -> None:
         hub_title='Currency / Pair Hubs',
         master_graph=snapshot.get('master_graph', {}),
         market_key='fx',
-        snapshot=snapshot,
     )

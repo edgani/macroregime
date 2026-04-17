@@ -12,8 +12,11 @@
 .streamlit/secrets.toml.example
 FINAL_HARDENING_NOTES.md
 README.md
+README_RUN_FIRST.md
 __pycache__/app.cpython-313.pyc
+__pycache__/app_legacy_singlefile.cpython-313.pyc
 app.py
+app_legacy_singlefile.py
 config/__init__.py
 config/__pycache__/__init__.cpython-313.pyc
 config/__pycache__/asset_buckets.cpython-313.pyc
@@ -177,6 +180,7 @@ scripts/__pycache__/bootstrap_full_universe.cpython-313.pyc
 scripts/__pycache__/build_full_universe_manifests.cpython-313.pyc
 scripts/__pycache__/build_live_snapshot.cpython-313.pyc
 scripts/__pycache__/refresh_all.cpython-313.pyc
+scripts/__pycache__/run_smoke_checks.cpython-313.pyc
 scripts/__pycache__/update_full_history.cpython-313.pyc
 scripts/__pycache__/verify_project.cpython-313.pyc
 scripts/backfill_history_manifest_metrics.py
@@ -188,6 +192,10 @@ scripts/run_smoke_checks.py
 scripts/update_full_history.py
 scripts/verify_project.py
 tests/__init__.py
+tests/__pycache__/__init__.cpython-313.pyc
+tests/__pycache__/test_quote_fallback.cpython-313.pyc
+tests/__pycache__/test_runtime_plan.cpython-313.pyc
+tests/__pycache__/test_snapshot_smoke.cpython-313.pyc
 tests/test_quote_fallback.py
 tests/test_runtime_plan.py
 tests/test_snapshot_smoke.py
@@ -203,6 +211,8 @@ ui/__pycache__/forex_page.cpython-313.pyc
 ui/__pycache__/home_page.cpython-313.pyc
 ui/__pycache__/ihsg_page.cpython-313.pyc
 ui/__pycache__/opportunity_board_page.cpython-313.pyc
+ui/__pycache__/refactor_pages.cpython-313.pyc
+ui/__pycache__/refactor_runtime.cpython-313.pyc
 ui/__pycache__/scenario_lab_page.cpython-313.pyc
 ui/__pycache__/scenarios_page.cpython-313.pyc
 ui/__pycache__/theme.cpython-313.pyc
@@ -259,6 +269,8 @@ ui/forex_page.py
 ui/home_page.py
 ui/ihsg_page.py
 ui/opportunity_board_page.py
+ui/refactor_pages.py
+ui/refactor_runtime.py
 ui/scenario_lab_page.py
 ui/scenarios_page.py
 ui/theme.py
@@ -287,6 +299,3 @@ utils/setup_utils.py
 utils/streamlit_compat.py
 utils/streamlit_utils.py
 utils/symbol_utils.py
-
-FILES=289
-DIRS=25

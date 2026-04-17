@@ -1,63 +1,65 @@
 
 from __future__ import annotations
 
+import os
+from pathlib import Path
+
 import streamlit as st
 
 from orchestration.build_snapshot import build_snapshot
-from ui.dashboard_control_tower_page import render_dashboard_control_tower_page
-from ui.us_stocks_page import render_us_stocks_page
-from ui.ihsg_page import render_ihsg_page
-from ui.forex_page import render_forex_page
-from ui.commodities_page import render_commodities_page
-from ui.crypto_page import render_crypto_page
-from ui.risk_page import render_risk_page
-from ui.diagnostics_page import render_diagnostics_page
+from ui.refactor_runtime import build_scenario_stack, build_market_mix, build_market_bundle, build_dashboard_payload
+from ui.refactor_pages import render_dashboard_page, render_market_page, render_risk_page, render_diagnostics_page
 
-st.set_page_config(page_title="MacroRegime Pro", page_icon="🧭", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title='MacroRegime Pro Refactored', page_icon='🧭', layout='wide', initial_sidebar_state='expanded')
 
-
-def _sidebar_controls() -> tuple[bool, bool, str]:
-    with st.sidebar:
-        st.markdown("## 🧭 MacroRegime Pro")
-        st.caption("Refactor bridge: control tower + market action pages")
-        force_refresh = st.button("🔄 Force Refresh", use_container_width=True)
-        compact_mode = st.toggle("Compact runtime", value=True, help="Use runtime universe plan to keep the app lighter.")
-        open_mode = st.selectbox(
-            "Open mode",
-            ["smart_fresh", "snapshot_only", "force_rebuild"],
-            index=0,
-            help="smart_fresh = normal, snapshot_only = prefer cached snapshot, force_rebuild = rebuild now",
-        )
-        st.markdown("---")
-        page = st.radio(
-            "Page",
-            ["Dashboard", "US Stocks", "IHSG", "Forex", "Commodities", "Crypto", "Risk", "Diagnostics"],
-            index=0,
-        )
-    return force_refresh, compact_mode, open_mode, page
+st.markdown("""
+<style>
+#MainMenu, footer, header {visibility: hidden;}
+.block-container{padding-top:0.6rem;padding-bottom:2rem;max-width:1500px;}
+[data-testid="stSidebar"] {border-right:1px solid rgba(255,255,255,0.08);}
+</style>
+""", unsafe_allow_html=True)
 
 
-def main() -> None:
-    force_refresh, compact_mode, open_mode, page = _sidebar_controls()
-    snapshot = build_snapshot(force_refresh=force_refresh, compact_mode=compact_mode, open_mode=open_mode)
+def load_snapshot(force_refresh: bool = False) -> dict:
+    os.environ.setdefault('MRP_LIVE_FETCH', '0')
+    return build_snapshot(force_refresh=force_refresh, prefer_saved=not force_refresh, compact_mode=True)
 
-    if page == "Dashboard":
-        render_dashboard_control_tower_page(snapshot)
-    elif page == "US Stocks":
-        render_us_stocks_page(snapshot)
-    elif page == "IHSG":
-        render_ihsg_page(snapshot)
-    elif page == "Forex":
-        render_forex_page(snapshot)
-    elif page == "Commodities":
-        render_commodities_page(snapshot)
-    elif page == "Crypto":
-        render_crypto_page(snapshot)
-    elif page == "Risk":
+
+def main():
+    st.sidebar.title('MacroRegime Pro')
+    refresh = st.sidebar.button('Refresh snapshot')
+    page = st.sidebar.radio('Page', ['Dashboard', 'US Stocks', 'IHSG', 'Forex', 'Commodities', 'Crypto', 'Risk', 'Diagnostics'])
+    snapshot = load_snapshot(force_refresh=refresh)
+
+    stack = build_scenario_stack(snapshot)
+    market_mix = build_market_mix(snapshot, stack)
+    bundles = {
+        'us': build_market_bundle(snapshot, 'us', market_mix),
+        'ihsg': build_market_bundle(snapshot, 'ihsg', market_mix),
+        'fx': build_market_bundle(snapshot, 'fx', market_mix),
+        'commodities': build_market_bundle(snapshot, 'commodities', market_mix),
+        'crypto': build_market_bundle(snapshot, 'crypto', market_mix),
+    }
+    dashboard_payload = build_dashboard_payload(snapshot, stack, market_mix, bundles)
+
+    if page == 'Dashboard':
+        render_dashboard_page(dashboard_payload)
+    elif page == 'US Stocks':
+        render_market_page(bundles['us'], ihsg=False, title='US Stocks')
+    elif page == 'IHSG':
+        render_market_page(bundles['ihsg'], ihsg=True)
+    elif page == 'Forex':
+        render_market_page(bundles['fx'], ihsg=False, title='Forex')
+    elif page == 'Commodities':
+        render_market_page(bundles['commodities'], ihsg=False, title='Commodities')
+    elif page == 'Crypto':
+        render_market_page(bundles['crypto'], ihsg=False, title='Crypto')
+    elif page == 'Risk':
         render_risk_page(snapshot)
-    elif page == "Diagnostics":
+    elif page == 'Diagnostics':
         render_diagnostics_page(snapshot)
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     main()

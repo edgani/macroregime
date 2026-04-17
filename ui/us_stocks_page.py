@@ -11,5 +11,4 @@ def render_us_stocks_page(snapshot: dict) -> None:
         hub_title='Market Hubs US',
         master_graph=snapshot.get('master_graph', {}),
         market_key='us',
-        snapshot=snapshot,
     )

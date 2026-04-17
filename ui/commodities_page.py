@@ -11,4 +11,5 @@ def render_commodities_page(snapshot: dict) -> None:
         hub_title='Commodity Family Hubs',
         master_graph=snapshot.get('master_graph', {}),
         market_key='commodities',
+        snapshot=snapshot,
     )

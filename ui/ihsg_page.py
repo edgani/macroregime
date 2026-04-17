@@ -11,4 +11,5 @@ def render_ihsg_page(snapshot: dict) -> None:
         hub_title='Market Hubs IHSG',
         master_graph=snapshot.get('master_graph', {}),
         market_key='ihsg',
+        snapshot=snapshot,
     )

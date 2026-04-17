@@ -9,57 +9,36 @@ from ui.scenarios_page import render_scenarios_page
 from ui.cross_asset_page import render_cross_asset_page
 from ui.opportunity_board_page import render_opportunity_board_page
 from ui.components.compact_table_helpers import frame_height
+from ui.components.market_action_tables import build_market_action_payload
 
-
-def _pick(rows: list[dict], market: str, actionable: bool, side: str | None, n: int = 3) -> list[str]:
-    out: list[str] = []
-    for row in rows or []:
-        if str(row.get('market', '')).upper() != market.upper():
-            continue
-        state = str(row.get('state', '')).lower()
-        is_actionable = state == 'actionable'
-        if actionable != is_actionable:
-            continue
-        if side is not None:
-            rb = str(row.get('bias', '')).lower()
-            if side == 'long' and 'long' not in rb and 'buy' not in rb:
-                continue
-            if side == 'short' and 'short' not in rb:
-                continue
-        ticker = str(row.get('ticker', '')).strip()
-        if ticker and ticker not in out:
-            out.append(ticker)
-        if len(out) >= n:
-            break
-    return out
 
 
 def _attack_matrix(snapshot: dict) -> pd.DataFrame:
-    rows = snapshot.get('master_opportunities', {}).get('rows', []) or []
+    sections = {
+        'US': ('us', snapshot.get('us', {}) or {}),
+        'IHSG': ('ihsg', snapshot.get('ihsg', {}) or {}),
+        'FX': ('fx', snapshot.get('fx', {}) or {}),
+        'Commodities': ('commodities', snapshot.get('commodities', {}) or {}),
+        'Crypto': ('crypto', snapshot.get('crypto', {}) or {}),
+    }
     table = []
-    markets = [
-        ('US', 'US'),
-        ('IHSG', 'IHSG'),
-        ('FX', 'FX'),
-        ('Commodities', 'Commodities'),
-        ('Crypto', 'Crypto'),
-    ]
-    for label, key in markets:
-        if key == 'IHSG':
+    for label, (key, section) in sections.items():
+        payload = build_market_action_payload(snapshot, section, key)
+        if key == 'ihsg':
             table.append({
                 'Market': label,
-                'Best Longs / Buys Now': ', '.join(_pick(rows, key, True, 'long', 3)) or '—',
+                'Best Longs / Buys Now': ', '.join([r.get('ticker','') for r in payload.get('buy_now', [])[:3]]) or '—',
                 'Best Shorts Now': '—',
-                'Front-Run Longs / Buys': ', '.join(_pick(rows, key, False, 'long', 3)) or '—',
+                'Front-Run Longs / Buys': ', '.join([r.get('ticker','') for r in payload.get('front_run_buy', [])[:3]]) or '—',
                 'Front-Run Shorts': '—',
             })
         else:
             table.append({
                 'Market': label,
-                'Best Longs / Buys Now': ', '.join(_pick(rows, key, True, 'long', 3)) or '—',
-                'Best Shorts Now': ', '.join(_pick(rows, key, True, 'short', 3)) or '—',
-                'Front-Run Longs / Buys': ', '.join(_pick(rows, key, False, 'long', 3)) or '—',
-                'Front-Run Shorts': ', '.join(_pick(rows, key, False, 'short', 3)) or '—',
+                'Best Longs / Buys Now': ', '.join([r.get('ticker','') for r in payload.get('now_long', [])[:3]]) or '—',
+                'Best Shorts Now': ', '.join([r.get('ticker','') for r in payload.get('now_short', [])[:3]]) or '—',
+                'Front-Run Longs / Buys': ', '.join([r.get('ticker','') for r in payload.get('front_run_long', [])[:3]]) or '—',
+                'Front-Run Shorts': ', '.join([r.get('ticker','') for r in payload.get('front_run_short', [])[:3]]) or '—',
             })
     return pd.DataFrame(table)
 

@@ -14,6 +14,7 @@ from ui.components.current_setups_panel import render_current_setups_panel
 from ui.components.forward_radar_panel import render_forward_radar_panel
 from ui.components.score_explain_panel import render_score_explain_panel
 from ui.components.opportunity_table import render_opportunity_table
+from ui.components.market_action_tables import build_market_action_payload, render_action_table
 from utils.streamlit_utils import info_card, metric_card, render_pills
 
 
@@ -134,23 +135,95 @@ def _render_next_flow(section: dict) -> None:
     info_card('Next Flow / If-Then', lines, accent='#5d4b3b')
 
 
-def render_market_page(*, title: str, section: dict, checklist_title: str, hub_title: str, master_graph: dict | None = None, market_key: str | None = None) -> None:
+
+def render_market_page(*, title: str, section: dict, checklist_title: str, hub_title: str, master_graph: dict | None = None, market_key: str | None = None, snapshot: dict | None = None) -> None:
     st.title(title)
     flows = build_market_rotation_flows(title, section)
     grouped = _group_by_kind(flows)
     _render_regime_summary(section)
 
-    top_live = section.get('top_opportunities_now', []) or []
-    top_next = section.get('top_opportunities_next', []) or []
+    action = build_market_action_payload(snapshot or {}, section, market_key or title.lower())
 
-    live_col, next_col = st.columns(2, gap='small')
-    extra_cols = ['ticker','bias','horizon','display_price_text','price_mode_badge','price_as_of_text','entry_zone','target','countdown_days_left','review_state','next_action','route_source_label','ev_score']
-    if title == 'IHSG':
-        extra_cols = extra_cols + ['microstructure_flag']
-    with live_col:
-        render_opportunity_table(top_live[:6], 'Top opportunities now', cols=extra_cols, empty_msg='Belum ada top opportunities live untuk market ini.')
-    with next_col:
-        render_opportunity_table(top_next[:6], 'Next opportunities', cols=extra_cols, empty_msg='Belum ada next opportunities untuk market ini.')
+    st.markdown("### Action Board")
+    if (market_key or '').lower() == 'ihsg':
+        c1, c2 = st.columns(2, gap='small')
+        with c1:
+            render_action_table(
+                'Buy Now',
+                action.get('buy_now', []),
+                ['ticker','bias','bucket','entry_zone','invalidation','target','score','why_now'],
+                {'ticker':'Ticker','bias':'Bias','bucket':'Bucket','entry_zone':'Entry Zone','invalidation':'Invalidation','target':'Target','score':'Score','why_now':'Why Now'},
+                'Belum ada buy-now rows untuk IHSG.'
+            )
+        with c2:
+            render_action_table(
+                'Front-Run Buy',
+                action.get('front_run_buy', []),
+                ['ticker','bias','bucket','trigger','why_not_yet','invalidation','score'],
+                {'ticker':'Ticker','bias':'Bias','bucket':'Bucket','trigger':'Trigger','why_not_yet':'Why Not Yet','invalidation':'Invalidation','score':'FR Score'},
+                'Belum ada front-run buy rows untuk IHSG.'
+            )
+        c3, c4 = st.columns(2, gap='small')
+        with c3:
+            render_action_table(
+                'Avoid / Reduce',
+                action.get('avoid_reduce', []),
+                ['ticker','bias','bucket','why_not_yet','why_now'],
+                {'ticker':'Ticker','bias':'Bias','bucket':'Bucket','why_not_yet':'Problem','why_now':'Why Avoid'},
+                'Belum ada avoid/reduce rows.'
+            )
+        with c4:
+            render_action_table(
+                'Defensive Shelter / Cash',
+                action.get('defensive_shelter', []),
+                ['ticker','type','why_defensive','trigger_to_use'],
+                {'ticker':'Ticker','type':'Type','why_defensive':'Why Defensive','trigger_to_use':'Trigger to Use'},
+                'Belum ada defensive shelter rows.'
+            )
+    else:
+        c1, c2 = st.columns(2, gap='small')
+        with c1:
+            render_action_table(
+                'Best Longs Now',
+                action.get('now_long', []),
+                ['ticker','bias','bucket','entry_zone','invalidation','target','score','why_now'],
+                {'ticker':'Ticker','bias':'Bias','bucket':'Bucket','entry_zone':'Entry Zone','invalidation':'Invalidation','target':'Target','score':'Score','why_now':'Why Now'},
+                'Belum ada actionable long rows.'
+            )
+        with c2:
+            render_action_table(
+                'Best Shorts Now',
+                action.get('now_short', []),
+                ['ticker','bias','bucket','entry_zone','invalidation','target','score','why_now'],
+                {'ticker':'Ticker','bias':'Bias','bucket':'Bucket','entry_zone':'Entry Zone','invalidation':'Invalidation','target':'Target','score':'Score','why_now':'Why Now'},
+                'Belum ada actionable short rows.'
+            )
+        c3, c4 = st.columns(2, gap='small')
+        with c3:
+            render_action_table(
+                'Front-Run Longs',
+                action.get('front_run_long', []),
+                ['ticker','bias','bucket','trigger','why_not_yet','invalidation','score'],
+                {'ticker':'Ticker','bias':'Bias','bucket':'Bucket','trigger':'Trigger','why_not_yet':'Why Not Yet','invalidation':'Invalidation','score':'FR Score'},
+                'Belum ada front-run long rows.'
+            )
+        with c4:
+            render_action_table(
+                'Front-Run Shorts',
+                action.get('front_run_short', []),
+                ['ticker','bias','bucket','trigger','why_not_yet','invalidation','score'],
+                {'ticker':'Ticker','bias':'Bias','bucket':'Bucket','trigger':'Trigger','why_not_yet':'Why Not Yet','invalidation':'Invalidation','score':'FR Score'},
+                'Belum ada front-run short rows.'
+            )
+        render_action_table(
+            'Avoid / Reduce',
+            action.get('avoid_reduce', []),
+            ['ticker','bias','bucket','why_not_yet','why_now'],
+            {'ticker':'Ticker','bias':'Bias','bucket':'Bucket','why_not_yet':'Problem','why_now':'Why Avoid'},
+            'Belum ada avoid/reduce rows.'
+        )
+
+    st.divider()
 
     top_l, top_r = st.columns([1.05, 0.95], gap='small')
     with top_l:

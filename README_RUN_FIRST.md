@@ -1,19 +1,14 @@
-# MacroRegime Pro — Refactored Run-Ready Build
+# README_RUN_FIRST
 
-This archive is a real refactor on top of the uploaded current repo.
+This build keeps the current repo engines and snapshot pipeline, but replaces the broken bridge UI with a simpler visible refactor UI.
 
 What changed:
-- `app.py` is replaced with the new control-tower + market-action entry
-- legacy single-file app is preserved as `app_legacy_singlefile.py`
-- new modules added: `ui/refactor_runtime.py`, `ui/refactor_pages.py`
-- top navigation is now: Dashboard / US Stocks / IHSG / Forex / Commodities / Crypto / Risk / Diagnostics
-- dashboard includes scenario stack, why-this-is-moving, and ticker attack matrix
-- market pages are ticker-first
-- IHSG is buy-only surface
-- US / FX / Commodities / Crypto expose long + short surfaces
+- new app entry in `app.py`
+- backup of old app in `app_legacy_singlefile.py`
+- new render/runtime modules:
+  - `ui/final_runtime.py`
+  - `ui/final_pages.py`
 
 Run:
-```bash
-pip install -r requirements.txt
-streamlit run app.py
-```
+    pip install -r requirements.txt
+    streamlit run app.py

@@ -1,22 +1,18 @@
-
 from __future__ import annotations
 
 import os
-from pathlib import Path
-
 import streamlit as st
 
 from orchestration.build_snapshot import build_snapshot
-from ui.refactor_runtime import build_scenario_stack, build_market_mix, build_market_bundle, build_dashboard_payload
-from ui.refactor_pages import render_dashboard_page, render_market_page, render_risk_page, render_diagnostics_page
+from ui.final_runtime import build_dashboard_payload, build_market_bundle
+from ui.final_pages import render_dashboard, render_market_page, render_risk, render_diagnostics
 
-st.set_page_config(page_title='MacroRegime Pro Refactored', page_icon='🧭', layout='wide', initial_sidebar_state='expanded')
+st.set_page_config(page_title='MacroRegime Pro', page_icon='🧭', layout='wide', initial_sidebar_state='expanded')
 
 st.markdown("""
 <style>
-#MainMenu, footer, header {visibility: hidden;}
-.block-container{padding-top:0.6rem;padding-bottom:2rem;max-width:1500px;}
-[data-testid="stSidebar"] {border-right:1px solid rgba(255,255,255,0.08);}
+.block-container{max-width:1500px;padding-top:1rem;padding-bottom:2rem;}
+[data-testid="stSidebar"]{border-right:1px solid rgba(255,255,255,.08);}
 </style>
 """, unsafe_allow_html=True)
 
@@ -29,36 +25,25 @@ def load_snapshot(force_refresh: bool = False) -> dict:
 def main():
     st.sidebar.title('MacroRegime Pro')
     refresh = st.sidebar.button('Refresh snapshot')
-    page = st.sidebar.radio('Page', ['Dashboard', 'US Stocks', 'IHSG', 'Forex', 'Commodities', 'Crypto', 'Risk', 'Diagnostics'])
+    page = st.sidebar.radio('Page', ['Dashboard','US Stocks','IHSG','Forex','Commodities','Crypto','Risk','Diagnostics'])
     snapshot = load_snapshot(force_refresh=refresh)
 
-    stack = build_scenario_stack(snapshot)
-    market_mix = build_market_mix(snapshot, stack)
-    bundles = {
-        'us': build_market_bundle(snapshot, 'us', market_mix),
-        'ihsg': build_market_bundle(snapshot, 'ihsg', market_mix),
-        'fx': build_market_bundle(snapshot, 'fx', market_mix),
-        'commodities': build_market_bundle(snapshot, 'commodities', market_mix),
-        'crypto': build_market_bundle(snapshot, 'crypto', market_mix),
-    }
-    dashboard_payload = build_dashboard_payload(snapshot, stack, market_mix, bundles)
-
     if page == 'Dashboard':
-        render_dashboard_page(dashboard_payload)
+        render_dashboard(build_dashboard_payload(snapshot))
     elif page == 'US Stocks':
-        render_market_page(bundles['us'], ihsg=False, title='US Stocks')
+        render_market_page(build_market_bundle(snapshot, 'US'), ihsg=False, title='US Stocks')
     elif page == 'IHSG':
-        render_market_page(bundles['ihsg'], ihsg=True)
+        render_market_page(build_market_bundle(snapshot, 'IHSG'), ihsg=True, title='IHSG')
     elif page == 'Forex':
-        render_market_page(bundles['fx'], ihsg=False, title='Forex')
+        render_market_page(build_market_bundle(snapshot, 'FX'), ihsg=False, title='Forex')
     elif page == 'Commodities':
-        render_market_page(bundles['commodities'], ihsg=False, title='Commodities')
+        render_market_page(build_market_bundle(snapshot, 'Commodities'), ihsg=False, title='Commodities')
     elif page == 'Crypto':
-        render_market_page(bundles['crypto'], ihsg=False, title='Crypto')
+        render_market_page(build_market_bundle(snapshot, 'Crypto'), ihsg=False, title='Crypto')
     elif page == 'Risk':
-        render_risk_page(snapshot)
+        render_risk(snapshot)
     elif page == 'Diagnostics':
-        render_diagnostics_page(snapshot)
+        render_diagnostics(snapshot)
 
 
 if __name__ == '__main__':

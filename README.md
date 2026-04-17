@@ -97,13 +97,3 @@ No page layout or visual components were intentionally changed.
 ## Full hardening bundle
 
 This package includes fresh-first runtime behavior, smart tail-refresh for price history, display/live quote separation, packaging/version cleanup, and basic smoke tests under `tests/` plus `scripts/run_smoke_checks.py`.
-
-
-## Refactored app entry
-Run the new refactored interface with:
-
-```bash
-streamlit run app.py
-```
-
-The original single-file app is preserved as `app_legacy_singlefile.py`.

@@ -1,0 +1,1 @@
+Baseline-preserving patch: app.py kept old styling and engines, but changes top navigation to Dashboard/US/IHSG/Forex/Commodities/Crypto/Risk/Diagnostics and surfaces ticker-first action sections. app_legacy_singlefile.py contains the original app for rollback.

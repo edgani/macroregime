@@ -97,3 +97,10 @@ No page layout or visual components were intentionally changed.
 ## Full hardening bundle
 
 This package includes fresh-first runtime behavior, smart tail-refresh for price history, display/live quote separation, packaging/version cleanup, and basic smoke tests under `tests/` plus `scripts/run_smoke_checks.py`.
+
+
+## Refactor bridge entrypoint
+This repo now includes a refactor-bridge `app.py` that:
+- replaces the legacy single-file tab flow with top-nav pages
+- keeps scenarios / what-if accessible inside Dashboard
+- keeps old single-file app as `app_legacy_singlefile.py`

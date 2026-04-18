@@ -30,11 +30,6 @@ import pandas as pd
 import requests
 import streamlit as st
 
-try:
-    from data.news_loader import load_news_signals as _load_live_news_signals
-except Exception:
-    _load_live_news_signals = None
-
 st.set_page_config(page_title="MacroRegime Pro",page_icon="🧭",layout="wide",initial_sidebar_state="collapsed")
 st.markdown("""
 <style>
@@ -585,9 +580,18 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
     monthly_gi=[th(nf(spy_1m),0.05),th(nf(xli_1m),0.05),th(nf(xly_1m),0.05),th(nf(iwm_1m),0.07),th(-nf(uup_1m),0.06)]
     monthly_ii=[th(nf(hcg),0.004),th(nf(oil_1m),0.06),th(nf(gld_1m),0.05),th(nf(bk1m),0.08),th(-nf(uup_1m),0.05)]
     monthly_g_signal=nm(*monthly_gi); monthly_i_signal=nm(*monthly_ii)
-    g_struct_level=nf(g_level); g_struct_mom=nf(g_mom)
-    g_month_level=nf(0.65*g_level+0.35*g_mom); g_month_mom=nf(0.45*g_mom+0.55*monthly_g_signal)
-    i_struct_level=nf(i_level); i_struct_mom=nf(i_mom)
+    # Structural truth should be slower and less tape-driven than monthly weather.
+    # When observed macro coverage is weak, damp structural momentum and fast shock contamination
+    # instead of letting proxy/tape features force a quarterly flip.
+    structural_obs_reliability=clamp(0.65*observed_macro_share+0.35*fred_real_share)
+    structural_proxy_damp=clamp(1.0-0.70*macro_proxy_share,0.25,1.0)
+    structural_speed_damp=clamp(0.25+0.75*structural_obs_reliability,0.25,1.0)
+    g_struct_level=nf(g_level*structural_proxy_damp)
+    g_struct_mom=nf(g_mom*0.55*structural_speed_damp)
+    g_month_level=nf(0.65*g_level+0.35*g_mom)
+    g_month_mom=nf(0.45*g_mom+0.55*monthly_g_signal)
+    i_struct_level=nf(i_level*structural_proxy_damp)
+    i_struct_mom=nf(i_mom*0.50*structural_speed_damp)
     i_month_level=nf(0.55*i_level+0.25*i_mom+0.20*th(nf(hcg),0.004))
     i_month_mom=nf(0.45*i_mom+0.55*monthly_i_signal)
     policy_score=th(-nf(f.get("policy_rate_3m",0.0)),0.50)
@@ -619,6 +623,9 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
         "macro_source_detail":source_detail,
         "macro_observed_fields":[k for k in raw_macro_keys if source_map.get(k)=="observed_fred"],
         "macro_proxy_fields":[k for k in raw_macro_keys if source_map.get(k)!="observed_fred"],
+        "structural_obs_reliability":structural_obs_reliability,
+        "structural_proxy_damp":structural_proxy_damp,
+        "structural_speed_damp":structural_speed_damp,
         "prior_mode":prior_mode,
         "prior_mode_active":prior_mode!="off",
         "_fred_loaded":fred_loaded,"_fred_total":fred_total,"_proxy_share":macro_proxy_share,
@@ -651,10 +658,12 @@ def build_quad(f:Dict)->Dict:
     sf=f.get("slowdown_flags",0.0); shock=f.get("inf_shock",0.0)
     cov=f.get("data_coverage",0.5); proxy=f.get("macro_proxy_share",1.0)
     mcov=f.get("monthly_data_coverage",0.5)
+    struct_sf=nf(sf)*clamp(f.get("structural_speed_damp",0.5))
+    struct_shock=nf(shock)*clamp(0.25+0.75*f.get("structural_obs_reliability",0.5))
     s_probs,s_quad,s_next,s_conf,s_gc,s_ic,s_pc=_score_block(
         f.get("g_struct_level",0),f.get("g_struct_mom",0),
         f.get("i_struct_level",0),f.get("i_struct_mom",0),
-        f.get("policy_score",0),f.get("liq_score",0),sf,shock,cov,proxy,STRUCT_W,QUAD_MOD,False)
+        f.get("policy_score",0),f.get("liq_score",0),struct_sf,struct_shock,cov,proxy,STRUCT_W,QUAD_MOD,False)
     m_probs,m_quad,m_next,m_conf,m_gc,m_ic,m_pc=_score_block(
         f.get("g_month_level",0),f.get("g_month_mom",0),
         f.get("i_month_level",0),f.get("i_month_mom",0),
@@ -965,13 +974,13 @@ def load_all()->Dict:
     sizing=build_position_sizing(q,h,cr,f,risk_ranges,price_meta)
     asset_chk=build_asset_checklists_full(f,h,q,ih,prices)
     macro_impact=build_macro_impact_all(q,f,rot)
-    fwd_radar=build_forward_radar(prices,q,f)
     sw_all=build_strong_weak_all(prices,q)
     route=derive_route_state(q,h,cr)
+    news_overlay=build_news_catalyst_overlay(q,f,h,route=route,most_hated=most_hated)
     asset_trans=build_asset_translation(route["primary"],q,h,f,route)
     opps=build_opportunities(prices,q,f,h,rot,ih,most_hated,risk_ranges=risk_ranges,sizing=sizing,price_meta=price_meta,route=route)
+    fwd_radar=build_forward_radar(prices,q,f,route=route,opps=opps,risk_ranges=risk_ranges,most_hated=most_hated,news_overlay=news_overlay)
     signal_strength=build_signal_strength(opps,prices,q,f,h,risk_ranges=risk_ranges,route=route,crash=cr,sizing=sizing)
-    news_overlay=build_news_catalyst_overlay(q,f,h)
     top_drivers=build_top_drivers_now(q,f,h,cr,route,most_hated,news_overlay)
     return dict(prices=prices,price_meta=price_meta,fred=fred,f=f,q=q,h=h,crash=cr,rotation=rot,ihsg=ih,
                 analog=analog,playbooks=pb,scenarios=sc,checklists=chk,
@@ -2872,110 +2881,177 @@ def build_asset_translation(route_state:str, q:Dict, h:Dict, f:Dict, route:Optio
     return out
 
 
+def _countdown_to_proximity(countdown:str)->float:
+    s=str(countdown or '').strip().lower()
+    if not s or '?' in s:
+        return 0.45
+    try:
+        if 't-' in s and 'd' in s:
+            days=float(s.replace('t-','').replace('d','').replace('~','').strip())
+            return clamp(np.exp(-days/30.0))
+    except Exception:
+        pass
+    return 0.40
 
 
-def build_news_catalyst_overlay(q:Dict, f:Dict, h:Dict) -> Dict:
-    """Event-lite catalyst overlay: preserve price-derived hazard engine, then optionally blend lightweight live headline counts.
-    Core regime math stays unchanged; this is an adaptive overlay only.
+def build_news_catalyst_overlay(q:Dict, f:Dict, h:Dict, route:Optional[Dict]=None, most_hated:Optional[Dict]=None) -> Dict:
+    """Event-lite catalyst filter: combine current market-implied pressure with scheduled catalyst families.
+    This is intentionally not a literal news reader; it is a front-run catalyst mapper.
     """
+    route=route or {}
+    most_hated=most_hated or {}
     oil_3m=nf(f.get("clf_3m",f.get("oil_3m",0.0)))
     uup_1m=nf(f.get("uup_1m",0.0)); tlt_1m=nf(f.get("tlt_1m",0.0))
-    vix_1m=nf(f.get("vix_1m",0.0)); spy_1m=nf(f.get("spy_1m",0.0)); iwm_1m=nf(f.get("iwm_1m",0.0))
+    vix=f.get("vix_last",20.0); vix_1m=nf(f.get("vix_1m",0.0))
+    spy_1m=nf(f.get("spy_1m",0.0)); iwm_1m=nf(f.get("iwm_1m",0.0))
     sf=q.get("slowdown_flags",0.0); shock=q.get("inf_shock",0.0)
+    branch_state=str(most_hated.get("branch_state","dormant"))
+
     oil_up=max(0.0,oil_3m); oil_down=max(0.0,-oil_3m)
     usd_up=max(0.0,uup_1m); usd_down=max(0.0,-uup_1m)
     long_end=max(0.0,-tlt_1m); vol_stress=max(0.0,vix_1m/20)
     breadth_stress=max(0.0,-iwm_1m+spy_1m) if spy_1m>0 else 0.0
     breadth_relief=max(0.0,iwm_1m-spy_1m) if iwm_1m>spy_1m else 0.0
 
-    war_oil_px=clamp(0.24*clamp(0.5+oil_up/0.12)+0.20*clamp(0.5+usd_up/0.04)+0.20*shock+0.18*clamp(0.5+vol_stress)+0.18*clamp(0.5+breadth_stress/0.03))
-    policy_pressure_px=clamp(0.24*clamp(0.5+long_end/0.05)+0.20*sf+0.18*clamp(0.5+usd_up/0.04)+0.18*clamp(0.5+vol_stress)+0.20*shock)
-    relief_px=clamp(0.30*clamp(0.5+oil_down/0.10)+0.20*clamp(0.5+usd_down/0.04)+0.25*clamp(0.5+breadth_relief/0.03)+0.25*(1-shock))
+    war_oil=clamp(0.28*clamp(0.5+oil_up/0.12)+0.20*clamp(0.5+usd_up/0.04)+0.18*shock+0.16*clamp(0.5+vol_stress)+0.18*clamp(0.5+breadth_stress/0.03))
+    policy_pressure=clamp(0.28*clamp(0.5+long_end/0.05)+0.22*sf+0.18*clamp(0.5+usd_up/0.04)+0.14*clamp(0.5+vol_stress)+0.18*shock)
+    relief=clamp(0.26*clamp(0.5+oil_down/0.10)+0.18*clamp(0.5+usd_down/0.04)+0.22*clamp(0.5+breadth_relief/0.03)+0.16*(1-shock)+0.18*(1.0 if branch_state in {"arming","pre_confirmed","active"} else 0.0))
 
-    live_news = {'state':'quiet','counts':{'escalation':0,'relief':0,'oil':0,'rates':0,'usd':0},'top_headlines':[], 'generated_at':''}
-    try:
-        if _load_live_news_signals is not None:
-            live_news = _load_live_news_signals(force_refresh=bool(os.environ.get('MRP_LIVE_NEWS','0')=='1'))
-    except Exception:
-        live_news = {'state':'quiet','counts':{'escalation':0,'relief':0,'oil':0,'rates':0,'usd':0},'top_headlines':[], 'generated_at':''}
+    family_scores={
+        "inflation": max(war_oil, shock),
+        "policy": max(policy_pressure, relief*0.8),
+        "growth": max(sf, relief*0.6),
+        "labor": max(sf, policy_pressure*0.7),
+        "geopolitics": max(war_oil, relief),
+    }
+    event_rows=[]
+    for ev in UPCOMING_EVENTS:
+        fam=str(ev.get("family",""))
+        proximity=_countdown_to_proximity(ev.get("countdown",""))
+        fam_score=clamp(family_scores.get(fam,0.35))
+        score=clamp(0.58*fam_score+0.42*proximity)
+        event_rows.append({
+            "type":fam.upper() if fam else "EVENT",
+            "label":ev.get("title","Event"),
+            "impact":"high" if score>=0.68 else ("medium" if score>=0.52 else "watch"),
+            "score":score,
+            "countdown":ev.get("countdown",""),
+        })
+    event_rows.sort(key=lambda x:x["score"], reverse=True)
+    top_events=event_rows[:5]
 
-    counts = live_news.get('counts',{}) or {}
-    esc = float(counts.get('escalation',0) or 0)
-    rel = float(counts.get('relief',0) or 0)
-    oil_news = float(counts.get('oil',0) or 0)
-    rates_news = float(counts.get('rates',0) or 0)
-    usd_news = float(counts.get('usd',0) or 0)
+    dominant=max({"war_oil":war_oil,"policy_pressure":policy_pressure,"relief":relief}.items(), key=lambda kv: kv[1])
+    s=dominant[0]
+    if s=="war_oil" and war_oil>=0.58:
+        label="⚔️ Event-Lite: War/Oil Shock"
+        desc="Energy shock / USD pressure masih dominan. Front-run via exporters, avoid importers / broad beta."
+        cls="bad"
+    elif s=="policy_pressure" and policy_pressure>=0.56:
+        label="📋 Event-Lite: Policy / Duration Pressure"
+        desc="Long-end pain, slowdown flags, dan funding pressure masih dominan. Focus pada quality, selective shorts, dan confirmation breadth."
+        cls="warn"
+    elif relief>=0.50:
+        label="🕊️ Event-Lite: Relief / De-escalation"
+        desc="Pressure mulai mereda. Front-run breadth broadening, EM rotation, dan laggard catch-up; fade overcrowded safe havens."
+        cls="good"
+    else:
+        label="😶 Event-Lite: No Dominant Catalyst"
+        desc="Tidak ada catalyst dominan. Ikuti regime + route; hindari maksa front-run."
+        cls="neu"
 
-    news_war = clamp(0.35*clamp(esc/5)+0.35*clamp(oil_news/4)+0.15*clamp(usd_news/4)+0.15*clamp(rates_news/4))
-    news_relief = clamp(0.60*clamp(rel/4)+0.20*clamp((4-esc)/4)+0.20*clamp((4-oil_news)/4))
-    news_policy = clamp(0.55*clamp(rates_news/4)+0.25*clamp(usd_news/4)+0.20*clamp(esc/5))
-
-    blend = 0.22 if live_news.get('top_headlines') else 0.0
-    war_oil = clamp((1-blend)*war_oil_px + blend*news_war)
-    policy_pressure = clamp((1-blend)*policy_pressure_px + blend*news_policy)
-    relief = clamp((1-blend)*relief_px + blend*news_relief)
-
-    def state(war,pol,relf):
-        if war>=0.62: return "war_oil","⚔️ War/Oil Shock Active","Oil dan USD dominan. Exporter menang, importer suffering.","bad"
-        if pol>=0.62: return "policy_pressure","📋 Policy Pressure Active","Long-end dan smallcap menderita. Watch breadth dan credit.","warn"
-        if relf>=0.55: return "relief","🕊️ Relief/De-escalation","Pressure mereda. Watch breadth broadening dan EM rotation.","good"
-        return "quiet","😶 Market Quiet","Tidak ada catalyst dominan saat ini. Follow the regime.","neu"
-
-    s,label,desc,cls=state(war_oil,policy_pressure,relief)
-    top_headlines = [str(item.get('title','')).strip() for item in (live_news.get('top_headlines') or [])[:5] if str(item.get('title','')).strip()]
-    events=[
-        {"type":"MACRO","label":f"War/Oil Hazard: {war_oil:.0%}","impact":"high" if war_oil>=0.5 else "watch"},
-        {"type":"MACRO","label":f"Policy Pressure: {policy_pressure:.0%}","impact":"high" if policy_pressure>=0.5 else "watch"},
-        {"type":"MACRO","label":f"Relief Signal: {relief:.0%}","impact":"medium" if relief>=0.4 else "watch"},
-    ]
     return {
-        "state":s,"label":label,"desc":desc,"cls":cls,
-        "war_oil":war_oil,"policy_pressure":policy_pressure,"relief":relief,
-        "war_oil_px":war_oil_px,"policy_pressure_px":policy_pressure_px,"relief_px":relief_px,
-        "blend":blend,"news_counts":counts,"top_headlines":top_headlines,"generated_at":live_news.get('generated_at',''),
-        "events":events,
+        "state":s,
+        "label":label,
+        "desc":desc,
+        "cls":cls,
+        "war_oil":war_oil,
+        "policy_pressure":policy_pressure,
+        "relief":relief,
+        "events":top_events,
+        "dominant_family":top_events[0]["type"] if top_events else "EVENT",
     }
 
-def build_forward_radar(prices:Dict[str,pd.Series], q:Dict, f:Dict) -> List[Dict]:
-    """v33 Forward Radar: setups not actionable yet but on watchlist."""
-    quad=q["quad"]; conf=q["confidence"]; sf=q.get("slowdown_flags",0)
-    # Tickers worth watching but not yet triggering
-    RADAR_MAP = {
-        "Q1": [
-            {"ticker":"EEM","side":"LONG","why_not_yet":"Needs USD/DXY to stop rising","trigger":"DXY 1M < -1%","signal_quality":"B+"},
-            {"ticker":"IWM","side":"LONG","why_not_yet":"Small caps lagging breadth","trigger":"IWM > SPY 3 days running","signal_quality":"B"},
-            {"ticker":"XLF","side":"LONG","why_not_yet":"Waiting for credit spread confirmation","trigger":"HY OAS < 350bps","signal_quality":"B+"},
-        ],
-        "Q2": [
-            {"ticker":"XLI","side":"LONG","why_not_yet":"ISM not confirmed above 52 yet","trigger":"ISM >52 two months","signal_quality":"B+"},
-            {"ticker":"HG=F","side":"LONG","why_not_yet":"Copper needs USD to stop strengthening","trigger":"DXY 1M negative","signal_quality":"B"},
-            {"ticker":"ADRO.JK","side":"LONG","why_not_yet":"Coal price needs to sustain","trigger":"Coal >$200 1M","signal_quality":"B+"},
-        ],
-        "Q3": [
-            {"ticker":"GLD","side":"LONG","why_not_yet":"Gold needs real yields to stop rising","trigger":"10Y real yield peaks","signal_quality":"A-"},
-            {"ticker":"TLT","side":"SHORT","why_not_yet":"Short bonds needs more long-end pressure","trigger":"10Y > 4.8%","signal_quality":"B+"},
-            {"ticker":"QQQ","side":"SHORT","why_not_yet":"Tech needs breadth failure confirmation","trigger":"IWM underperforms for 5 days","signal_quality":"B"},
-            {"ticker":"CTRA.JK","side":"SHORT","why_not_yet":"Property needs USD/IDR to break higher","trigger":"IDR/USD > 16200","signal_quality":"B"},
-        ],
-        "Q4": [
-            {"ticker":"TLT","side":"LONG","why_not_yet":"Long bonds need credit spread to widen","trigger":"HY OAS > 500bps","signal_quality":"A-"},
-            {"ticker":"XLP","side":"LONG","why_not_yet":"Defensives need equity vol to rise","trigger":"VIX > 25","signal_quality":"B+"},
-            {"ticker":"XLE","side":"SHORT","why_not_yet":"Energy short needs oil to break support","trigger":"WTI < $70 for 3 days","signal_quality":"B"},
-        ],
-    }
-    rows = RADAR_MAP.get(quad, [])
-    # Score by 1M momentum alignment
-    for r in rows:
-        tk_raw = r["ticker"]
-        tk_prices = tk_raw+".JK" if not ("." in tk_raw or "-" in tk_raw or "=F" in tk_raw) else tk_raw
-        # handle .JK already in name
-        s = prices.get(tk_raw, prices.get(tk_prices, pd.Series()))
-        r1 = ret_n(s,21)
-        bias = r["side"]
-        aligned = (bias=="LONG" and math.isfinite(r1) and r1>0) or (bias=="SHORT" and math.isfinite(r1) and r1<0)
-        r["momentum_1m"] = pct(r1) if math.isfinite(r1) else "—"
-        r["status"] = "On radar" if not aligned else "Starting to confirm"
-        r["ticker_display"] = disp(tk_raw)
+
+def build_forward_radar(prices:Dict[str,pd.Series], q:Dict, f:Dict, route:Optional[Dict]=None,
+                        opps:Optional[List[Dict]]=None, risk_ranges:Optional[Dict]=None,
+                        most_hated:Optional[Dict]=None, news_overlay:Optional[Dict]=None) -> List[Dict]:
+    """Forward radar built from near-ready opportunities plus route/catalyst state.
+    Goal: show what can be front-run next without pretending it is already actionable.
+    """
+    route=route or {}
+    opps=opps or []
+    risk_ranges=risk_ranges or {}
+    most_hated=most_hated or {}
+    news_overlay=news_overlay or {}
+    quad=str(q.get("quad","Q3"))
+    hot_branch=str(most_hated.get("branch_state","dormant")) in {"arming","pre_confirmed","active"}
+    catalyst_state=str(news_overlay.get("state","quiet"))
+
+    rows=[]
+    seen=set()
+    for r in opps:
+        bias=str(r.get("Bias",""))
+        setup=str(r.get("Setup","C"))
+        path=str(r.get("Path","Watch"))
+        why_not=str(r.get("Why Not Yet","none"))
+        raw=str(r.get("_raw_ticker","") or r.get("Ticker",""))
+        if not raw or raw in seen:
+            continue
+        if path not in {"Watch","Tactical"}:
+            continue
+        if setup not in {"A","B","C"}:
+            continue
+        if "WATCH" not in bias and path=="Primary":
+            continue
+        rr=risk_ranges.get(raw,{})
+        side="LONG" if "LONG" in bias else "SHORT"
+        next_trigger=[]
+        if side=="LONG":
+            if str(r.get("Macro Aligned",""))!="✓":
+                next_trigger.append("macro alignment clean up")
+            if str(r.get("Route Aligned","")) not in {"✓","~ Tactical"}:
+                next_trigger.append("route branch confirm")
+            if str(r.get("Range Aligned",""))!="✓":
+                next_trigger.append("better edge / buy-dip zone")
+            if catalyst_state=="relief" and raw in {"EEM","IWM","RSP","QQQ","XLF","XLI","BTC-USD","ETH-USD","SOL-USD","BBCA.JK","BBRI.JK","BMRI.JK"}:
+                next_trigger.append("breadth broadening follow-through")
+            if hot_branch and raw in {"EEM","IWM","BTC-USD","ETH-USD","SOL-USD","BBCA.JK","BBRI.JK","BMRI.JK"}:
+                next_trigger.append("rally checklist stays alive")
+        else:
+            if str(r.get("Macro Aligned",""))!="✓":
+                next_trigger.append("risk-off macro confirm")
+            if str(r.get("Route Aligned","")) not in {"✓","~ Tactical"}:
+                next_trigger.append("bear route confirm")
+            if str(r.get("Range Aligned",""))!="✓":
+                next_trigger.append("better rip / breakdown zone")
+            if catalyst_state=="war_oil" and raw in {"QQQ","IWM","EEM","BTC-USD","ETH-USD","SOL-USD","^JKSE","HYG"}:
+                next_trigger.append("breadth failure persist")
+        s=_s(prices.get(raw,pd.Series()))
+        r1=ret_n(s,21)
+        status="Starting to confirm" if (side=="LONG" and math.isfinite(r1) and r1>0) or (side=="SHORT" and math.isfinite(r1) and r1<0) else "On radar"
+        rows.append({
+            "ticker": raw,
+            "ticker_display": disp(raw),
+            "side": side,
+            "why_not_yet": why_not,
+            "trigger": "; ".join(next_trigger[:3]) if next_trigger else "watch for cleaner confirmation",
+            "signal_quality": setup,
+            "momentum_1m": pct(r1) if math.isfinite(r1) else "—",
+            "status": status,
+        })
+        seen.add(raw)
+        if len(rows)>=12:
+            break
+
+    if not rows:
+        fallback={
+            "Q1":[("EEM","LONG","USD calm + EM breadth"),("IWM","LONG","small-cap breadth follow-through"),("XLF","LONG","credit tighten")],
+            "Q2":[("XLI","LONG","growth + reflation confirm"),("HG=F","LONG","copper follows through"),("ADRO.JK","LONG","commodity leadership persists")],
+            "Q3":[("GLD","LONG","real yields peak / slowdown deepens"),("QQQ","SHORT","breadth failure confirm"),("CTRA.JK","SHORT","USD/IDR pressure persists")],
+            "Q4":[("TLT","LONG","credit widens / yields roll over"),("XLP","LONG","defensive breadth improves"),("XLE","SHORT","oil breakdown confirms")],
+        }
+        for tk,side,trg in fallback.get(quad,[]):
+            rows.append({"ticker":tk,"ticker_display":disp(tk),"side":side,"why_not_yet":"fallback watchlist on selective day","trigger":trg,"signal_quality":"C","momentum_1m":pct(ret_n(prices.get(tk,pd.Series()),21)) if math.isfinite(ret_n(prices.get(tk,pd.Series()),21)) else "—","status":"On radar"})
     return rows
 
 
@@ -3137,181 +3213,6 @@ def _opp_card_html(rows:List[Dict], empty_text:str, accent:str, icon:str)->str:
 
 
 
-
-
-def build_scenario_stack_payload(snap:Dict)->Dict:
-    """Compact scenario stack from existing scenario probabilities. Keep core logic untouched."""
-    sc = snap.get('scenarios', {}) or {}
-    items = []
-    for name, meta in sc.items():
-        try:
-            p = float(meta.get('probability', 0.0) or 0.0)
-        except Exception:
-            p = 0.0
-        items.append({
-            'name': name,
-            'probability': p,
-            'winners': meta.get('winners', []) or [],
-            'losers': meta.get('losers', []) or [],
-            'invalidators': meta.get('invalidators', []) or [],
-        })
-    items.sort(key=lambda x: x['probability'], reverse=True)
-    primary = items[0] if items else None
-    secondary = items[1] if len(items) > 1 else None
-    stress_keywords = ('shock','blockade','tightening','pressure','unwind','bubble','crash','riskoff')
-    drag = next((x for x in items[1:] if any(k in x['name'].lower() for k in stress_keywords)), secondary)
-    tail = next((x for x in items[2:] if x is not drag and any(k in x['name'].lower() for k in ('blockade','war','bubble','carry','crash'))), items[2] if len(items) > 2 else None)
-    return {'primary': primary, 'secondary': secondary, 'residual_drag': drag, 'tail_risk': tail, 'all': items[:6]}
-
-
-def render_scenario_stack_strip(snap:Dict)->None:
-    stack = build_scenario_stack_payload(snap)
-    cards = [
-        ('Primary', stack.get('primary'), '#3dbb6c'),
-        ('Secondary', stack.get('secondary'), '#6496ff'),
-        ('Residual Drag', stack.get('residual_drag'), '#e5a020'),
-        ('Tail Risk', stack.get('tail_risk'), '#e05252'),
-    ]
-    cols = st.columns(4)
-    for col, (title, item, color) in zip(cols, cards):
-        with col:
-            if not item:
-                mc(title, '—', '', 'neu')
-                continue
-            nm = str(item.get('name','—'))
-            prob = float(item.get('probability', 0.0) or 0.0)
-            subtitle = ', '.join(item.get('winners', [])[:2]) or '—'
-            st.markdown(
-                f'<div class="mc" style="border-left:3px solid {color};min-height:92px">'
-                f'<div class="lb">{html.escape(title)}</div>'
-                f'<div class="vl" style="font-size:15px">{html.escape(nm[:58])}</div>'
-                f'<div class="sb">{prob:.0%} · {html.escape(subtitle[:64])}</div>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
-
-
-def _front_run_market_views(snap:Dict)->Dict[str,Dict[str,List[Dict]]]:
-    opps = snap.get('opportunities', []) or []
-    fwd = snap.get('forward_radar', []) or []
-    by = {m:{'now_long':[],'now_short':[],'front_run_long':[],'front_run_short':[],'avoid':[]} for m in ['US','IHSG','FX','Commodities','Crypto']}
-
-    for r in opps:
-        m = str(r.get('Market','US'))
-        if m not in by: continue
-        b = str(r.get('Bias',''))
-        row = {
-            'Ticker': r.get('Ticker','—'),
-            'Bias': b,
-            'Setup': r.get('Setup','—'),
-            'Path': r.get('Path','—'),
-            'Entry Zone': r.get('Entry Zone','—'),
-            'Invalidation': r.get('Invalidation','—'),
-            'Target': r.get('Target','—'),
-            'Why Now': r.get('Why Now','—'),
-            'Why Not Yet': r.get('Why Not Yet','—'),
-            'EV': r.get('EV','—'),
-            'score': float(r.get('_ev',0.0) or 0.0),
-        }
-        if m == 'IHSG':
-            if 'LONG' in b:
-                by[m]['now_long'].append(row)
-            elif 'SHORT' in b or 'AVOID' in b:
-                by[m]['avoid'].append(row)
-            elif b.startswith('WATCH'):
-                by[m]['front_run_long'].append(row)
-        else:
-            if 'LONG' in b:
-                by[m]['now_long'].append(row)
-            elif 'SHORT' in b:
-                by[m]['now_short'].append(row)
-            elif b.startswith('WATCH-LONG'):
-                by[m]['front_run_long'].append(row)
-            elif b.startswith('WATCH-SHORT'):
-                by[m]['front_run_short'].append(row)
-
-    # forward radar enrichment
-    for r in fwd:
-        tk = str(r.get('ticker',''))
-        side = str(r.get('side','LONG')).upper()
-        disp_tk = str(r.get('ticker_display', tk))
-        market='US'
-        if tk.endswith('.JK'): market='IHSG'
-        elif tk in FX_TICKERS: market='FX'
-        elif tk in COMM_TICKERS: market='Commodities'
-        elif tk in CRYPTO_TICKERS: market='Crypto'
-        row = {
-            'Ticker': disp_tk,
-            'Bias': side,
-            'Setup': r.get('status','On radar'),
-            'Path': 'Front-Run',
-            'Entry Zone': '—',
-            'Invalidation': 'see trigger fail',
-            'Target': '—',
-            'Why Now': 'watchlist from forward radar',
-            'Why Not Yet': r.get('why_not_yet','—'),
-            'EV': r.get('signal_quality','—'),
-            'score': 0.30,
-            'Trigger': r.get('trigger','—'),
-            '1M': r.get('momentum_1m','—'),
-        }
-        if market == 'IHSG':
-            by[market]['front_run_long'].append(row)
-        elif side == 'LONG':
-            by[market]['front_run_long'].append(row)
-        else:
-            by[market]['front_run_short'].append(row)
-
-    for m, buckets in by.items():
-        for k in buckets:
-            # dedupe by ticker and sort by score where possible
-            seen = {}
-            for row in buckets[k]:
-                seen[str(row.get('Ticker'))] = row if str(row.get('Ticker')) not in seen else max([seen[str(row.get('Ticker'))], row], key=lambda x: float(x.get('score',0.0) or 0.0))
-            buckets[k] = sorted(seen.values(), key=lambda x: float(x.get('score',0.0) or 0.0), reverse=True)
-    return by
-
-
-def render_front_run_market_views(snap:Dict)->None:
-    views = _front_run_market_views(snap)
-    tabs = st.tabs(['🇺🇸 US','🇮🇩 IHSG','💱 FX','🛢️ Commodities','🔐 Crypto'])
-    market_order = ['US','IHSG','FX','Commodities','Crypto']
-    for tab, market in zip(tabs, market_order):
-        with tab:
-            v = views[market]
-            if market == 'IHSG':
-                c1, c2, c3 = st.columns(3)
-                with c1:
-                    st.markdown('**Buy Now**')
-                    df = pd.DataFrame(v['now_long'][:5])[['Ticker','Setup','Entry Zone','Invalidation','EV']] if v['now_long'] else pd.DataFrame(columns=['Ticker','Setup','Entry Zone','Invalidation','EV'])
-                    st.dataframe(df, use_container_width=True, hide_index=True, height=220)
-                with c2:
-                    st.markdown('**Front-Run Buy**')
-                    df = pd.DataFrame(v['front_run_long'][:5])[[c for c in ['Ticker','Trigger','Why Not Yet','1M','EV'] if c in (v['front_run_long'][0].keys() if v['front_run_long'] else [])]] if v['front_run_long'] else pd.DataFrame(columns=['Ticker','Trigger','Why Not Yet','1M','EV'])
-                    st.dataframe(df, use_container_width=True, hide_index=True, height=220)
-                with c3:
-                    st.markdown('**Avoid / Reduce**')
-                    df = pd.DataFrame(v['avoid'][:5])[['Ticker','Setup','Why Not Yet','EV']] if v['avoid'] else pd.DataFrame(columns=['Ticker','Setup','Why Not Yet','EV'])
-                    st.dataframe(df, use_container_width=True, hide_index=True, height=220)
-            else:
-                c1, c2, c3, c4 = st.columns(4)
-                specs = [
-                    ('Long Now', 'now_long', ['Ticker','Setup','Entry Zone','Invalidation','EV']),
-                    ('Short Now', 'now_short', ['Ticker','Setup','Entry Zone','Invalidation','EV']),
-                    ('Front-Run Long', 'front_run_long', ['Ticker','Trigger','Why Not Yet','1M','EV']),
-                    ('Front-Run Short', 'front_run_short', ['Ticker','Trigger','Why Not Yet','1M','EV']),
-                ]
-                for col, (ttl, key, cols) in zip([c1,c2,c3,c4], specs):
-                    with col:
-                        st.markdown(f'**{ttl}**')
-                        rows = v[key][:5]
-                        if rows:
-                            available = [c for c in cols if c in rows[0]]
-                            df = pd.DataFrame(rows)[available]
-                        else:
-                            df = pd.DataFrame(columns=cols)
-                        st.dataframe(df, use_container_width=True, hide_index=True, height=220)
-
 def page_opportunities(snap:Dict)->None:
     """Refactored one-fold decision board: action first, detail second."""
     opps=snap.get("opportunities",[])
@@ -3347,12 +3248,6 @@ def page_opportunities(snap:Dict)->None:
 
     drivers=snap.get("top_drivers",[])
     render_top_drivers_now(drivers, title="🧠 TOP DRIVERS NOW — peluang ini bergerak karena apa")
-
-    sh("🧩 SCENARIO STACK — konteks yang lagi dominan")
-    render_scenario_stack_strip(snap)
-
-    sh("🚀 FRONT-RUN BOARD — apa yang hampir jalan per market")
-    render_front_run_market_views(snap)
 
     depth=st.radio("Board depth",["Top 5","Top 8","Top 12","All"],horizontal=True,key="opp_depth_onefold")
     top_n=len(opps) if depth=="All" else int(depth.split()[1])
@@ -3523,15 +3418,6 @@ def page_radar(snap:Dict)->None:
             ' | relief: '+f'{news_snap.get("relief",0):.0%}'+"</div>",
             unsafe_allow_html=True
         )
-    if news_snap and news_snap.get("top_headlines"):
-        with st.expander("📰 Event-lite catalyst headlines", expanded=False):
-            st.caption("Headlines ini cuma dipakai sebagai adaptive overlay, bukan pengganti core regime math.")
-            for hl in news_snap.get("top_headlines",[])[:5]:
-                st.markdown(f"- {hl}")
-
-    sh("🧩 SCENARIO STACK")
-    render_scenario_stack_strip(snap)
-
     # Master Rotation Graph (v33 YOU ARE HERE mind-map)
     render_master_rotation_graph(q,f,snap["rotation"],snap["family"])
     # Flow State Strip (horizontal pill chain)
@@ -4191,63 +4077,19 @@ def page_signal_strength(snap:Dict, forced_market:Optional[str]=None, key_suffix
         """)
 
 def page_markets_full(snap:Dict)->None:
-    """Markets tab: cleaner market flow. Overview first, then market-specific pages."""
+    """Markets tab: execution board + signal lifecycle + market-specific views."""
     prices=snap["prices"]; q=snap["q"]; f=snap["f"]; ih=snap["ihsg"]; rot=snap["rotation"]
     s_quad=q["quad"]; meta=QUAD_META.get(s_quad,QUAD_META["Q4"])
 
-    t0,t2,t3,t4,t5,t6=st.tabs(["🧭 Overview","🇮🇩 IHSG","🇺🇸 US Stocks","💱 FX","🛢️ Komoditas","🔐 Crypto"])
-
     sig=snap.get("signal_strength",{}) or {}
-    news=snap.get("news_overlay",{}) or {}
-    top_drivers=snap.get("top_drivers",[]) or []
+    _signal_market_summary_cards(sig, show_header=True)
+    st.caption("Markets sekarang fokus ke action per market. Opportunities dan signal overview dipadatkan di atas, supaya tidak dobel dengan tab market.")
+    with st.expander("📊 Execution overview", expanded=False):
+        page_opportunities(snap)
+    with st.expander("📈 Signal lifecycle overview", expanded=False):
+        page_signal_strength(snap, key_suffix="markets", show_header=False)
 
-    with t0:
-        sh("🧭 MARKETS OVERVIEW — lihat ini dulu")
-        _signal_market_summary_cards(sig, show_header=True)
-        st.caption("Flow baca: catalyst/event → scenario stack → front-run board per market → baru buka tab market untuk detail.")
-
-        st.markdown("---")
-        sh("🧱 SCENARIO STACK")
-        render_scenario_stack_strip(snap)
-
-        st.markdown("---")
-        c1,c2,c3=st.columns([1.2,1.2,1.6])
-        with c1:
-            sh("📰 EVENT-LITE / CATALYST")
-            cls = news.get('cls','neu')
-            mc("State", news.get('label','—'), news.get('desc',''), cls)
-            mc("War/Oil", f"{float(news.get('war_oil',0.0) or 0.0):.0%}", "hazard score", "bad" if float(news.get('war_oil',0.0) or 0.0)>=0.5 else "warn")
-            mc("Policy", f"{float(news.get('policy_pressure',0.0) or 0.0):.0%}", "pressure score", "warn" if float(news.get('policy_pressure',0.0) or 0.0)>=0.45 else "neu")
-            mc("Relief", f"{float(news.get('relief',0.0) or 0.0):.0%}", "de-escalation score", "good" if float(news.get('relief',0.0) or 0.0)>=0.45 else "neu")
-        with c2:
-            sh("🧠 TOP DRIVERS NOW")
-            if top_drivers:
-                for d in top_drivers[:5]:
-                    lbl = str(d.get('label','—'))
-                    sc = float(d.get('score',0.0) or 0.0)
-                    why = str(d.get('why',''))[:90]
-                    mc(lbl, f"{sc:.0%}", why)
-            else:
-                st.info("Belum ada driver dominan.")
-        with c3:
-            sh("📣 HEADLINE FILTER (opsional)")
-            headlines = news.get('top_headlines',[]) or []
-            if headlines:
-                for h in headlines[:5]:
-                    st.markdown(f"- {h}")
-                if news.get('generated_at'):
-                    st.caption(f"updated {news.get('generated_at')}")
-            else:
-                st.caption("Tidak ada headline penting atau live-news dimatikan. Overlay tetap jalan dari price action.")
-
-        st.markdown("---")
-        sh("🎯 FRONT-RUN / ACTION BOARD PER MARKET")
-        render_front_run_market_views(snap)
-
-        with st.expander("Legacy opportunity deep-dive"):
-            page_opportunities(snap)
-        with st.expander("Legacy signal lifecycle deep-dive"):
-            page_signal_strength(snap, key_suffix="markets_clean", show_header=False)
+    t2,t3,t4,t5,t6=st.tabs(["🇮🇩 IHSG","🇺🇸 US Stocks","💱 FX","🛢️ Komoditas","🔐 Crypto"])
 
     # ── IHSG ─────────────────────────────────────────────────────────────────
     with t2:
@@ -4265,28 +4107,6 @@ def page_markets_full(snap:Dict)->None:
             mc("USD/IDR 1M",pct(idr),"Naik = IDR lemah = buruk",cls)
         with c3: mc("Asing Flow",ih["flow_state"],f"Score: {ih['foreign_flow']:.0%}","good" if ih["foreign_flow"]>0.60 else("bad" if ih["foreign_flow"]<0.40 else "warn"))
         with c4: mc("BI Policy Proxy",ih["bi_state"],f"Score: {ih['bi_path']:.0%}","good" if ih["bi_path"]>0.60 else("warn" if ih["bi_path"]>0.42 else "bad"))
-        st.markdown("---")
-        sh("🧭 BUY NOW / FRONT-RUN BUY / AVOID")
-        views = _front_run_market_views(snap).get('IHSG',{})
-        ca,cb,cc=st.columns(3)
-        with ca:
-            st.markdown("**Buy Now**")
-            rows = views.get('now_long',[])[:5]
-            cols = [c for c in ['Ticker','Setup','Entry Zone','Invalidation','EV'] if (rows and c in rows[0])] if rows else ['Ticker','Setup','Entry Zone','Invalidation','EV']
-            df = pd.DataFrame(rows)[cols] if rows else pd.DataFrame(columns=cols)
-            st.dataframe(df, use_container_width=True, hide_index=True, height=220)
-        with cb:
-            st.markdown("**Front-Run Buy**")
-            rows = views.get('front_run_long',[])[:5]
-            cols = [c for c in ['Ticker','Trigger','Why Not Yet','1M','EV'] if (rows and c in rows[0])] if rows else ['Ticker','Trigger','Why Not Yet','1M','EV']
-            df = pd.DataFrame(rows)[cols] if rows else pd.DataFrame(columns=cols)
-            st.dataframe(df, use_container_width=True, hide_index=True, height=220)
-        with cc:
-            st.markdown("**Avoid / Reduce**")
-            rows = views.get('avoid',[])[:5]
-            cols = [c for c in ['Ticker','Setup','Why Not Yet','EV'] if (rows and c in rows[0])] if rows else ['Ticker','Setup','Why Not Yet','EV']
-            df = pd.DataFrame(rows)[cols] if rows else pd.DataFrame(columns=cols)
-            st.dataframe(df, use_container_width=True, hide_index=True, height=220)
         st.markdown("---")
         ca,cb=st.columns(2)
         with ca:
@@ -4308,30 +4128,50 @@ def page_markets_full(snap:Dict)->None:
                 st.markdown(f'<div style="display:flex;gap:8px;margin-bottom:4px"><span style="font-size:11px;opacity:.4;width:20px">{i+1}.</span><div><span class="{col_cls}" style="font-weight:600;font-size:12px">{fam}</span><br><span style="font-size:10px;opacity:.5">{role} · {syms_str}</span></div></div>',unsafe_allow_html=True)
             quad_impact={"Q1":"✅ Goldilocks = IHSG kondusif. Asing beli, bank outperform.","Q2":"⚡ Reflation = coal/logam/CPO outperform. Watch tail jika Fed overtighten.","Q3":"⚠️ Stagflasi = IHSG tertekan. USD kuat, asing keluar. Hanya coal exporter bisa bertahan.","Q4":"🔴 Resesi = IHSG defensif. Hold cash, ICBP/KLBF/TLKM."}
             st.info(quad_impact.get(s_quad,""))
+        st.markdown("---"); sh("📈 IHSG STOCK RANKINGS (1M momentum)")
+        if ih["stock_rows"]:
+            df=pd.DataFrame([{k:v for k,v in r.items() if not k.startswith("_")} for r in ih["stock_rows"]])
+            st.dataframe(df,use_container_width=True,hide_index=True,height=380)
+        # Key pairs
+        st.markdown("---"); sh("📚 KEY IHSG PAIRS TO WATCH")
+        for t,desc,regime in [("BBCA.JK","Bank terbesar, kualitas premium. Leading IHSG di Q1/Q2.","Q1,Q2"),("ADRO.JK","Coal king. Rally di Q2/Q3 (commodity shock).","Q2,Q3"),("ANTM.JK","Gold/nickel proxy. Cocok di Q3 stagflasi.","Q3"),("TLKM.JK","Defensif. Dividend play, cocok Q4.","Q4"),("IDR=X","USD/IDR: naik = buruk (asing kabur dari IHSG).","All"),]:
+            s=prices.get(t,pd.Series()); r1=ret_n(s,21); perf=pct(r1) if math.isfinite(r1) else "—"
+            cls="good" if(math.isfinite(r1) and r1>0) else("bad" if(math.isfinite(r1) and r1<-0.01) else "warn")
+            st.markdown('<div class="mc" style="display:flex;justify-content:space-between;align-items:center"><div><div class="lb">'+t+' — '+' '.join(tag(r,"b") for r in regime.split(","))+'</div><div style="font-size:12px;opacity:.8">'+desc+'</div></div><div class="vl '+cls+'" style="font-size:16px">'+perf+'</div></div>',unsafe_allow_html=True)
         st.markdown("---")
         sh("📈 SIGNAL LIFECYCLE — IHSG")
         page_signal_strength(snap, forced_market="IHSG", key_suffix="ihsg", compact=True, show_header=False)
+
+        # IHSG Checklist (v33 style)
         st.markdown("---")
         chk=snap.get("checklists",{})
         if chk.get("ihsg"):
             render_checklist(chk["ihsg"],"🇮🇩 IHSG CHECKLIST — KONDISI MASUK")
             st.caption("v33 checklist: ✓ = kondisi oke | ~ = mixed/watch | ✗ = kondisi buruk")
+        # Macro impact board for IHSG
+        st.markdown("---")
+        sh("📊 MACRO IMPACT PADA IHSG — SEKARANG vs NEXT")
+        q2=snap["q"]; s_quad2=q2["quad"]
+        macro_impact_ihsg={
+            "Q1":{"sekarang":"Growth global naik + inflasi turun = kondisi ideal. Asing masuk EM. IHSG bisa ikut naik terutama bank dan consumer.","best_path":"BBCA/BBRI lead, consumer cyclical ikut, foreign flow positif.","invalidator":"USD strengthens kembali atau yields spike.","next":"Jika Q1 bertahan: IHSG rally lebar. Jika Q2: rotate ke coal/commodity."},
+            "Q2":{"sekarang":"Commodity rally = IHSG coal exporters kuat. Tapi USD bisa menguat, menekan IDR dan asing.","best_path":"ADRO/PTBA/ITMG lead, ANTM ikut. Banks mixed.","invalidator":"Oil reversal cepat atau Fed tighten lebih agresif dari ekspektasi.","next":"Jika Q2 → Q3: coal still ok tapi bank dan consumer mulai rapuh."},
+            "Q3":{"sekarang":"Stagflasi = IHSG mixed-bearish. USD kuat menekan IDR dan asing keluar. Hanya coal exporter bisa bertahan.","best_path":"Defensive pada TLKM/ICBP. Coal exporter: ADRO, PTBA. Kurangi posisi bank dan consumer cyclical.","invalidator":"Fed pivot atau oil breakdown + IDR stabilize.","next":"Jika Q3 berlanjut: cash dan coal. Jika Q4: switch ke defensives penuh."},
+            "Q4":{"sekarang":"Resesi / deflasi = IHSG broadly bearish. Asing keluar EM. Hanya defensive quality yang bisa tahan.","best_path":"TLKM (dividend), ICBP, KLBF. Kurangi semua beta tinggi.","invalidator":"Fed cut agresif + fiscal stimulus besar = V-shape recovery di EM.","next":"Early signs of Q1 recovery: bank lead kembali."},
+        }
+        impact=macro_impact_ihsg.get(s_quad2,{})
+        if impact:
+            a2,b2=st.columns(2)
+            with a2:
+                mc("Kondisi Sekarang",s_quad2,impact.get("sekarang",""))
+                mc("Best Path Sekarang","→ "+impact.get("best_path",""))
+            with b2:
+                mc("Invalidator","⚠️ "+impact.get("invalidator",""))
+                mc("Next Branch","→ "+impact.get("next",""))
 
     # ── US Stocks ──────────────────────────────────────────────────────────────
     with t3:
         sh("🇺🇸 US STOCKS")
-        views = _front_run_market_views(snap).get('US',{})
-        u1,u2,u3,u4 = st.columns(4)
-        for col, title, key in [(u1,'Long Now','now_long'),(u2,'Short Now','now_short'),(u3,'Front-Run Long','front_run_long'),(u4,'Front-Run Short','front_run_short')]:
-            with col:
-                st.markdown(f"**{title}**")
-                rows = views.get(key,[])[:5]
-                want = ['Ticker','Setup','Entry Zone','Invalidation','EV'] if 'now' in key else ['Ticker','Trigger','Why Not Yet','1M','EV']
-                cols = [c for c in want if (rows and c in rows[0])] if rows else want
-                df = pd.DataFrame(rows)[cols] if rows else pd.DataFrame(columns=cols)
-                st.dataframe(df, use_container_width=True, hide_index=True, height=220)
-        st.markdown("---")
-        # legacy detail
+        # Sector performance
         SECS={"XLE":"Energy","XLF":"Financials","XLI":"Industrials","XLB":"Materials","XLK":"Technology","XLV":"Healthcare","XLY":"Cons.Disc.","XLP":"Cons.Staples","XLU":"Utilities","XLRE":"Real Estate","XLC":"Comm.Svc."}
         spy3=ret_n(prices.get("SPY",pd.Series()),63); sec_rows=[]
         for tk,name in SECS.items():
@@ -4340,6 +4180,7 @@ def page_markets_full(snap:Dict)->None:
             sec_rows.append({"Sektor":name,"3M":pct(r3),"1M":pct(r1),"vs SPY 3M":pct(rel),"50DMA":"✓" if ts(s)>=0.5 else "✗"})
         sec_rows.sort(key=lambda r:float(r["vs SPY 3M"].replace("%","").replace("—","0").replace("+","")) if r["vs SPY 3M"]!="—" else -999,reverse=True)
         st.dataframe(pd.DataFrame(sec_rows),use_container_width=True,hide_index=True,height=360)
+        # US Family spillover
         st.markdown("---"); sh("🏗️ US FAMILY SPILLOVER CHAIN")
         spill=rot["spill_us"]; top_us=rot["top_us_bucket"]
         st.markdown(f"**Leader saat ini:** {top_us}")
@@ -4349,9 +4190,39 @@ def page_markets_full(snap:Dict)->None:
             syms_str=" / ".join(list(US_BUCKETS.get(fam,[]))[:3])
             col_cls="good" if i==0 else("warn" if i==1 else("neu" if i==2 else "bad"))
             st.markdown(f'<div style="display:flex;gap:8px;margin-bottom:4px"><span style="font-size:11px;opacity:.4;width:20px">{i+1}.</span><div><span class="{col_cls}" style="font-weight:600;font-size:13px">{fam}</span><br><span style="font-size:10px;opacity:.5">{role} · {syms_str}</span></div></div>',unsafe_allow_html=True)
+        # Individual US stocks
+        st.markdown("---"); sh("📊 KEY US STOCKS (1M momentum)")
+        us_stocks={"AAPL":"Apple","MSFT":"Microsoft","NVDA":"Nvidia","AMZN":"Amazon","META":"Meta","GOOGL":"Alphabet","TSLA":"Tesla","AVGO":"Broadcom","AMD":"AMD","NFLX":"Netflix","JPM":"JPMorgan","BAC":"BofA","GS":"Goldman","XOM":"ExxonMobil","CVX":"Chevron"}
+        stock_rows=[]
+        for tk,name in us_stocks.items():
+            s=prices.get(tk,pd.Series()); r1=ret_n(s,21); r3=ret_n(s,63)
+            sp1=ret_n(prices.get("SPY",pd.Series()),21); rel=(r1-sp1) if(math.isfinite(r1) and math.isfinite(sp1)) else float("nan")
+            stock_rows.append({"Stock":name,"Ticker":tk,"1M":pct(r1),"3M":pct(r3),"vs SPY 1M":pct(rel),"Trend":"▲" if ts(s)>=0.5 else "▼"})
+        stock_rows.sort(key=lambda r:float(r["1M"].replace("%","").replace("—","0").replace("+","")) if r["1M"]!="—" else -999,reverse=True)
+        st.dataframe(pd.DataFrame(stock_rows),use_container_width=True,hide_index=True,height=460)
+        # Strong / Weak Map (v33 style)
+        st.markdown("---"); sh(f"💪 STRONG vs WEAK — US STOCKS (regime-adjusted {s_quad})")
+        sw=build_strong_weak(prices,s_quad,limit=5)
+        col_s,col_w=st.columns(2)
+        with col_s:
+            st.markdown("**🟢 STRONG (buy/hold):**")
+            for r in sw["strong"]:
+                tk=r["Ticker"]
+                if any(tk.endswith(x) for x in [".JK","=F","=X","-USD"]): continue  # US stocks only
+                st.markdown(f'<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.05)"><span><b>{tk}</b></span><span class="good">{r["1M"]} {r["Trend"]}</span></div>',unsafe_allow_html=True)
+        with col_w:
+            st.markdown("**🔴 WEAK (avoid/reduce):**")
+            for r in sw["weak"]:
+                tk=r["Ticker"]
+                if any(tk.endswith(x) for x in [".JK","=F","=X","-USD"]): continue
+                st.markdown(f'<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.05)"><span><b>{tk}</b></span><span class="bad">{r["1M"]} {r["Trend"]}</span></div>',unsafe_allow_html=True)
+        st.caption(f"Regime-adjusted: {s_quad} boosts certain sectors. Data from yfinance 1M returns.")
+
         st.markdown("---")
         sh("📈 SIGNAL LIFECYCLE — US")
         page_signal_strength(snap, forced_market="US", key_suffix="us", compact=True, show_header=False)
+
+        # Macro Impact Board for US (v33)
         macro_impact=snap.get("macro_impact",{})
         if macro_impact.get("us"):
             st.markdown("---"); sh("📊 MACRO IMPACT BOARD — US")
@@ -4364,6 +4235,7 @@ def page_markets_full(snap:Dict)->None:
                 mc("Forward Branch","→",bd["forward_branch"])
                 mc("Invalidator","⚠️",bd["invalidator"])
             st.markdown("**Drivers:** "+" · ".join(bd.get("drivers",[])),unsafe_allow_html=True)
+        # US Asset Checklist
         asset_chk2=snap.get("asset_checklists",{})
         if asset_chk2.get("us"):
             st.markdown("---")
@@ -4372,17 +4244,6 @@ def page_markets_full(snap:Dict)->None:
     # ── FX ─────────────────────────────────────────────────────────────────────
     with t4:
         sh("💱 FX RATES")
-        views = _front_run_market_views(snap).get('FX',{})
-        f1,f2,f3,f4 = st.columns(4)
-        for col, title, key in [(f1,'Long Now','now_long'),(f2,'Short Now','now_short'),(f3,'Front-Run Long','front_run_long'),(f4,'Front-Run Short','front_run_short')]:
-            with col:
-                st.markdown(f"**{title}**")
-                rows = views.get(key,[])[:5]
-                want = ['Ticker','Setup','Entry Zone','Invalidation','EV'] if 'now' in key else ['Ticker','Trigger','Why Not Yet','1M','EV']
-                cols = [c for c in want if (rows and c in rows[0])] if rows else want
-                df = pd.DataFrame(rows)[cols] if rows else pd.DataFrame(columns=cols)
-                st.dataframe(df, use_container_width=True, hide_index=True, height=220)
-        st.markdown("---")
         FX_NAMES={"EURUSD=X":"EUR/USD","GBPUSD=X":"GBP/USD","AUDUSD=X":"AUD/USD","JPY=X":"USD/JPY (naik=yen lemah)","CHF=X":"USD/CHF","IDR=X":"USD/IDR (naik=IDR lemah)","CNH=X":"USD/CNH","SGD=X":"USD/SGD","CAD=X":"USD/CAD"}
         fx_rows=[]
         for tk,name in FX_NAMES.items():
@@ -4396,6 +4257,22 @@ def page_markets_full(snap:Dict)->None:
         st.markdown("---")
         sh("📈 SIGNAL LIFECYCLE — FX")
         page_signal_strength(snap, forced_market="FX", key_suffix="fx", compact=True, show_header=False)
+
+        # FX Strong/Weak + Macro Impact + Checklist
+        sw3=snap.get("strong_weak_all",{})
+        if sw3.get("fx"):
+            sh("💪 FX STRONG vs WEAK (1M momentum)")
+            fx_sw=sw3["fx"]; fc1,fc2=st.columns(2)
+            with fc1:
+                st.markdown("**Strong (▲):**")
+                for r in fx_sw["strong"][:4]:
+                    cls="good" if r["r1"]>0 else "bad"
+                    st.markdown(f'<span class="{cls}" style="font-size:12px">▲ {r["name"]}: {pct(r["r1"])}</span>',unsafe_allow_html=True)
+            with fc2:
+                st.markdown("**Weak (▼):**")
+                for r in fx_sw["weak"][:4]:
+                    cls="bad" if r["r1"]<0 else "good"
+                    st.markdown(f'<span class="{cls}" style="font-size:12px">▼ {r["name"]}: {pct(r["r1"])}</span>',unsafe_allow_html=True)
         mi3=snap.get("macro_impact",{})
         if mi3.get("fx"):
             bd=mi3["fx"]; sh("📊 MACRO IMPACT — FX")
@@ -4406,17 +4283,6 @@ def page_markets_full(snap:Dict)->None:
     # ── Komoditas ──────────────────────────────────────────────────────────────
     with t5:
         sh("🛢️ KOMODITAS")
-        views = _front_run_market_views(snap).get('Commodities',{})
-        c1,c2,c3,c4 = st.columns(4)
-        for col, title, key in [(c1,'Long Now','now_long'),(c2,'Short Now','now_short'),(c3,'Front-Run Long','front_run_long'),(c4,'Front-Run Short','front_run_short')]:
-            with col:
-                st.markdown(f"**{title}**")
-                rows = views.get(key,[])[:5]
-                want = ['Ticker','Setup','Entry Zone','Invalidation','EV'] if 'now' in key else ['Ticker','Trigger','Why Not Yet','1M','EV']
-                cols = [c for c in want if (rows and c in rows[0])] if rows else want
-                df = pd.DataFrame(rows)[cols] if rows else pd.DataFrame(columns=cols)
-                st.dataframe(df, use_container_width=True, hide_index=True, height=220)
-        st.markdown("---")
         COMM_NAMES={"GC=F":"Gold (XAU)","SI=F":"Silver","CL=F":"Oil WTI","BZ=F":"Oil Brent","NG=F":"Natural Gas","HG=F":"Copper","ZC=F":"Corn","ZW=F":"Wheat","DBC":"Broad Commodities ETF","URA":"Uranium ETF"}
         comm_rows=[]
         for tk,name in COMM_NAMES.items():
@@ -4431,6 +4297,18 @@ def page_markets_full(snap:Dict)->None:
         st.markdown("---")
         sh("📈 SIGNAL LIFECYCLE — KOMODITAS")
         page_signal_strength(snap, forced_market="Commodities", key_suffix="commodities", compact=True, show_header=False)
+
+        # Commodities Strong/Weak + Impact + Checklist
+        sw4=snap.get("strong_weak_all",{})
+        if sw4.get("commodities"):
+            sh("💪 COMMODITIES STRONG vs WEAK")
+            cs=sw4["commodities"]; cc1,cc2=st.columns(2)
+            with cc1:
+                for r in cs["strong"][:4]:
+                    st.markdown(f'<span class="good" style="font-size:12px">▲ {r["name"]}: {pct(r["r1"])}</span>',unsafe_allow_html=True)
+            with cc2:
+                for r in cs["weak"][:4]:
+                    st.markdown(f'<span class="bad" style="font-size:12px">▼ {r["name"]}: {pct(r["r1"])}</span>',unsafe_allow_html=True)
         mi4=snap.get("macro_impact",{})
         if mi4.get("commodities"):
             bd=mi4["commodities"]; sh("📊 MACRO IMPACT — COMMODITIES")
@@ -4441,17 +4319,6 @@ def page_markets_full(snap:Dict)->None:
     # ── Crypto ─────────────────────────────────────────────────────────────────
     with t6:
         sh("🔐 CRYPTO")
-        views = _front_run_market_views(snap).get('Crypto',{})
-        c1,c2,c3,c4 = st.columns(4)
-        for col, title, key in [(c1,'Long Now','now_long'),(c2,'Short Now','now_short'),(c3,'Front-Run Long','front_run_long'),(c4,'Front-Run Short','front_run_short')]:
-            with col:
-                st.markdown(f"**{title}**")
-                rows = views.get(key,[])[:5]
-                want = ['Ticker','Setup','Entry Zone','Invalidation','EV'] if 'now' in key else ['Ticker','Trigger','Why Not Yet','1M','EV']
-                cols = [c for c in want if (rows and c in rows[0])] if rows else want
-                df = pd.DataFrame(rows)[cols] if rows else pd.DataFrame(columns=cols)
-                st.dataframe(df, use_container_width=True, hide_index=True, height=220)
-        st.markdown("---")
         CRYPTO_NAMES={"BTC-USD":"Bitcoin (BTC)","ETH-USD":"Ethereum (ETH)","SOL-USD":"Solana (SOL)","BNB-USD":"BNB","XRP-USD":"XRP","ADA-USD":"Cardano","AVAX-USD":"Avalanche","LINK-USD":"Chainlink","DOGE-USD":"Dogecoin"}
         cr_rows=[]
         for tk,name in CRYPTO_NAMES.items():
@@ -4464,6 +4331,17 @@ def page_markets_full(snap:Dict)->None:
         st.markdown("---")
         sh("📈 SIGNAL LIFECYCLE — CRYPTO")
         page_signal_strength(snap, forced_market="Crypto", key_suffix="crypto", compact=True, show_header=False)
+
+        sw5=snap.get("strong_weak_all",{})
+        if sw5.get("crypto"):
+            sh("💪 CRYPTO STRONG vs WEAK")
+            crs=sw5["crypto"]; cr1,cr2=st.columns(2)
+            with cr1:
+                for r in crs["strong"][:4]:
+                    st.markdown(f'<span class="good" style="font-size:12px">▲ {r["name"]}: {pct(r["r1"])}</span>',unsafe_allow_html=True)
+            with cr2:
+                for r in crs["weak"][:4]:
+                    st.markdown(f'<span class="bad" style="font-size:12px">▼ {r["name"]}: {pct(r["r1"])}</span>',unsafe_allow_html=True)
         mi5=snap.get("macro_impact",{})
         if mi5.get("crypto"):
             bd=mi5["crypto"]; sh("📊 MACRO IMPACT — CRYPTO")
@@ -4471,6 +4349,7 @@ def page_markets_full(snap:Dict)->None:
         ac5=snap.get("asset_checklists",{})
         if ac5.get("crypto"): render_checklist(ac5["crypto"],"🔐 CRYPTO CHECKLIST")
         st.caption("⚠️ Crypto = high-beta risk asset, bukan inflation hedge.")
+
 
 def main():
     st.markdown('<div style="display:flex;align-items:center;margin-bottom:4px"><span style="font-family:Syne,sans-serif;font-size:20px;font-weight:800;letter-spacing:-.03em">🧭 MacroRegime Pro</span><span style="font-size:10px;opacity:.3;margin-left:8px;font-family:DM Mono,monospace">v10.0 · Maxed Candidate · Markets-Integrated Signals + Top Drivers + Setup Quality</span></div>',unsafe_allow_html=True)
@@ -4483,8 +4362,7 @@ def main():
 1. 🧭 **Radar** — Regime apa? Trade terbaik? Analog historis?
 2. 📡 **Health** — Aman masuk? Breadth + credit + checklist
 3. 🎯 **Playbook** — Full strategy + scenarios + what-if
-4. 🌐 **Markets** → 🧭 Overview + IHSG + US + FX + Komoditas + Crypto
-   - lihat catalyst/event-lite + scenario stack + front-run board dulu, baru buka market detail
+4. 🌐 **Markets** → 📊 Opportunities + 📈 Signal Strength + IHSG + US + FX + Komoditas + Crypto
 5. ⚠️ **Risk** — Crash meter + sizing guide
 6. 🔬 **Diag** — Data quality + quad internals
 

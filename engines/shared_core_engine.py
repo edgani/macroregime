@@ -25,6 +25,8 @@ from engines.risk_range_engine import RiskRangeEngine
 from engines.crash_meter_engine import CrashMeterEngine
 from engines.regime_transition_engine import RegimeTransitionEngine
 from engines.regime_ticker_engine import RegimeTickerEngine
+from engines.narrative_discovery_engine import NarrativeDiscoveryEngine
+from data.narrative_news_loader import load_narrative_signals
 
 
 def _resolve_regime_stack(quad: dict, weather: dict) -> dict:
@@ -281,6 +283,45 @@ def build_shared_core(features: dict, raw: dict) -> dict:
     except Exception:
         ticker_dict = {}
 
+    # --- Narrative discovery engine: finds XNDU-style narrative plays ---
+    try:
+        narrative_signals = load_narrative_signals()
+        narrative_output_obj = NarrativeDiscoveryEngine().run(
+            narrative_signals=narrative_signals,
+            current_quad=quad.get("structural_quad", quad.get("current_quad", "Q?")),
+            monthly_quad=quad.get("monthly_quad", "Q?"),
+            scenario_features=features.get("scenario", {}),
+        )
+        narrative_dict = {
+            "active_narratives": [
+                {
+                    "name": c.name,
+                    "category": c.category,
+                    "stage": c.stage,
+                    "conviction": c.conviction,
+                    "regime_multiplier": c.regime_multiplier,
+                    "regime_adjusted_conviction": c.regime_adjusted_conviction,
+                    "pump_risk": c.pump_risk,
+                    "net_news_score": c.net_news_score,
+                    "primary_beneficiaries": c.primary_beneficiaries,
+                    "secondary_beneficiaries": c.secondary_beneficiaries,
+                    "what_fades": c.what_fades,
+                    "claude_insight": c.claude_insight,
+                    "confirmation_signals": c.confirmation_signals,
+                    "catalyst_type": c.catalyst_type,
+                    "action_summary": c.action_summary,
+                    "invalidators": c.invalidators,
+                    "headlines": c.headlines,
+                }
+                for c in narrative_output_obj.active_narratives
+            ],
+            "top_conviction": narrative_output_obj.top_conviction.name if narrative_output_obj.top_conviction else None,
+            "early_stage_alerts": [c.name for c in narrative_output_obj.early_stage_alerts],
+            "summary": narrative_output_obj.summary,
+        }
+    except Exception:
+        narrative_dict = {}
+
     scenario_cases = ScenarioDiscoveryEngine().run(
         quad, weather, shock, features.get('scenario', {}), playbooks, analogs, news_state,
         transition_output=transition_output,
@@ -390,6 +431,7 @@ def build_shared_core(features: dict, raw: dict) -> dict:
         'best_beneficiary': rotation.get('best_beneficiary', 'XAUUSD'),
         'regime_transition': transition_dict,
         'regime_tickers': ticker_dict,
+        'narrative_discovery': narrative_dict,
         'status_ribbon': {
             'current_quad': quad.get('current_quad', 'Q?'),
             'structural_quad': regime_stack['structural']['quad'],

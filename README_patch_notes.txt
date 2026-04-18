@@ -1,0 +1,1 @@
+Conservative patch on top of current app.py: keeps UI baseline, adds scenario stack strip, front-run board by market, and adaptive event-lite news overlay. Core regime math untouched. Set MRP_LIVE_NEWS=1 to force live headline refresh if supported.

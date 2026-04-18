@@ -30,6 +30,11 @@ import pandas as pd
 import requests
 import streamlit as st
 
+try:
+    from data.news_loader import load_news_signals as _load_live_news_signals
+except Exception:
+    _load_live_news_signals = None
+
 st.set_page_config(page_title="MacroRegime Pro",page_icon="🧭",layout="wide",initial_sidebar_state="collapsed")
 st.markdown("""
 <style>
@@ -2867,13 +2872,15 @@ def build_asset_translation(route_state:str, q:Dict, h:Dict, f:Dict, route:Optio
     return out
 
 
+
+
 def build_news_catalyst_overlay(q:Dict, f:Dict, h:Dict) -> Dict:
-    """v33-inspired News Event Engine — derive hazard scores from price action."""
+    """Event-lite catalyst overlay: preserve price-derived hazard engine, then optionally blend lightweight live headline counts.
+    Core regime math stays unchanged; this is an adaptive overlay only.
+    """
     oil_3m=nf(f.get("clf_3m",f.get("oil_3m",0.0)))
-    uup_1m=nf(f.get("uup_1m",0.0)); uup_3m=nf(f.get("uup_3m",0.0))
-    tlt_1m=nf(f.get("tlt_1m",0.0)); vix=f.get("vix_last",20.0)
-    vix_1m=nf(f.get("vix_1m",0.0)); spy_1m=nf(f.get("spy_1m",0.0))
-    iwm_1m=nf(f.get("iwm_1m",0.0))
+    uup_1m=nf(f.get("uup_1m",0.0)); tlt_1m=nf(f.get("tlt_1m",0.0))
+    vix_1m=nf(f.get("vix_1m",0.0)); spy_1m=nf(f.get("spy_1m",0.0)); iwm_1m=nf(f.get("iwm_1m",0.0))
     sf=q.get("slowdown_flags",0.0); shock=q.get("inf_shock",0.0)
     oil_up=max(0.0,oil_3m); oil_down=max(0.0,-oil_3m)
     usd_up=max(0.0,uup_1m); usd_down=max(0.0,-uup_1m)
@@ -2881,25 +2888,53 @@ def build_news_catalyst_overlay(q:Dict, f:Dict, h:Dict) -> Dict:
     breadth_stress=max(0.0,-iwm_1m+spy_1m) if spy_1m>0 else 0.0
     breadth_relief=max(0.0,iwm_1m-spy_1m) if iwm_1m>spy_1m else 0.0
 
-    war_oil=clamp(0.24*clamp(0.5+oil_up/0.12)+0.20*clamp(0.5+usd_up/0.04)+0.20*shock+0.18*clamp(0.5+vol_stress)+0.18*clamp(0.5+breadth_stress/0.03))
-    policy_pressure=clamp(0.24*clamp(0.5+long_end/0.05)+0.20*sf+0.18*clamp(0.5+usd_up/0.04)+0.18*clamp(0.5+vol_stress)+0.20*shock)
-    relief=clamp(0.30*clamp(0.5+oil_down/0.10)+0.20*clamp(0.5+usd_down/0.04)+0.25*clamp(0.5+breadth_relief/0.03)+0.25*(1-shock))
+    war_oil_px=clamp(0.24*clamp(0.5+oil_up/0.12)+0.20*clamp(0.5+usd_up/0.04)+0.20*shock+0.18*clamp(0.5+vol_stress)+0.18*clamp(0.5+breadth_stress/0.03))
+    policy_pressure_px=clamp(0.24*clamp(0.5+long_end/0.05)+0.20*sf+0.18*clamp(0.5+usd_up/0.04)+0.18*clamp(0.5+vol_stress)+0.20*shock)
+    relief_px=clamp(0.30*clamp(0.5+oil_down/0.10)+0.20*clamp(0.5+usd_down/0.04)+0.25*clamp(0.5+breadth_relief/0.03)+0.25*(1-shock))
 
-    def state(war,pol,rel):
+    live_news = {'state':'quiet','counts':{'escalation':0,'relief':0,'oil':0,'rates':0,'usd':0},'top_headlines':[], 'generated_at':''}
+    try:
+        if _load_live_news_signals is not None:
+            live_news = _load_live_news_signals(force_refresh=bool(os.environ.get('MRP_LIVE_NEWS','0')=='1'))
+    except Exception:
+        live_news = {'state':'quiet','counts':{'escalation':0,'relief':0,'oil':0,'rates':0,'usd':0},'top_headlines':[], 'generated_at':''}
+
+    counts = live_news.get('counts',{}) or {}
+    esc = float(counts.get('escalation',0) or 0)
+    rel = float(counts.get('relief',0) or 0)
+    oil_news = float(counts.get('oil',0) or 0)
+    rates_news = float(counts.get('rates',0) or 0)
+    usd_news = float(counts.get('usd',0) or 0)
+
+    news_war = clamp(0.35*clamp(esc/5)+0.35*clamp(oil_news/4)+0.15*clamp(usd_news/4)+0.15*clamp(rates_news/4))
+    news_relief = clamp(0.60*clamp(rel/4)+0.20*clamp((4-esc)/4)+0.20*clamp((4-oil_news)/4))
+    news_policy = clamp(0.55*clamp(rates_news/4)+0.25*clamp(usd_news/4)+0.20*clamp(esc/5))
+
+    blend = 0.22 if live_news.get('top_headlines') else 0.0
+    war_oil = clamp((1-blend)*war_oil_px + blend*news_war)
+    policy_pressure = clamp((1-blend)*policy_pressure_px + blend*news_policy)
+    relief = clamp((1-blend)*relief_px + blend*news_relief)
+
+    def state(war,pol,relf):
         if war>=0.62: return "war_oil","⚔️ War/Oil Shock Active","Oil dan USD dominan. Exporter menang, importer suffering.","bad"
-        if pol>=0.62: return "policy_pressure","📋 Policy Pressure Active","Long-end dan smallcap menderita. Watchlist breadth dan credit.","warn"
-        if rel>=0.55: return "relief","🕊️ Relief/De-escalation","Pressure mereda. Watch breadth broadening dan EM rotation.","good"
+        if pol>=0.62: return "policy_pressure","📋 Policy Pressure Active","Long-end dan smallcap menderita. Watch breadth dan credit.","warn"
+        if relf>=0.55: return "relief","🕊️ Relief/De-escalation","Pressure mereda. Watch breadth broadening dan EM rotation.","good"
         return "quiet","😶 Market Quiet","Tidak ada catalyst dominan saat ini. Follow the regime.","neu"
 
     s,label,desc,cls=state(war_oil,policy_pressure,relief)
+    top_headlines = [str(item.get('title','')).strip() for item in (live_news.get('top_headlines') or [])[:5] if str(item.get('title','')).strip()]
     events=[
         {"type":"MACRO","label":f"War/Oil Hazard: {war_oil:.0%}","impact":"high" if war_oil>=0.5 else "watch"},
         {"type":"MACRO","label":f"Policy Pressure: {policy_pressure:.0%}","impact":"high" if policy_pressure>=0.5 else "watch"},
         {"type":"MACRO","label":f"Relief Signal: {relief:.0%}","impact":"medium" if relief>=0.4 else "watch"},
     ]
-    return {"state":s,"label":label,"desc":desc,"cls":cls,"war_oil":war_oil,
-            "policy_pressure":policy_pressure,"relief":relief,"events":events}
-
+    return {
+        "state":s,"label":label,"desc":desc,"cls":cls,
+        "war_oil":war_oil,"policy_pressure":policy_pressure,"relief":relief,
+        "war_oil_px":war_oil_px,"policy_pressure_px":policy_pressure_px,"relief_px":relief_px,
+        "blend":blend,"news_counts":counts,"top_headlines":top_headlines,"generated_at":live_news.get('generated_at',''),
+        "events":events,
+    }
 
 def build_forward_radar(prices:Dict[str,pd.Series], q:Dict, f:Dict) -> List[Dict]:
     """v33 Forward Radar: setups not actionable yet but on watchlist."""
@@ -3102,6 +3137,181 @@ def _opp_card_html(rows:List[Dict], empty_text:str, accent:str, icon:str)->str:
 
 
 
+
+
+def build_scenario_stack_payload(snap:Dict)->Dict:
+    """Compact scenario stack from existing scenario probabilities. Keep core logic untouched."""
+    sc = snap.get('scenarios', {}) or {}
+    items = []
+    for name, meta in sc.items():
+        try:
+            p = float(meta.get('probability', 0.0) or 0.0)
+        except Exception:
+            p = 0.0
+        items.append({
+            'name': name,
+            'probability': p,
+            'winners': meta.get('winners', []) or [],
+            'losers': meta.get('losers', []) or [],
+            'invalidators': meta.get('invalidators', []) or [],
+        })
+    items.sort(key=lambda x: x['probability'], reverse=True)
+    primary = items[0] if items else None
+    secondary = items[1] if len(items) > 1 else None
+    stress_keywords = ('shock','blockade','tightening','pressure','unwind','bubble','crash','riskoff')
+    drag = next((x for x in items[1:] if any(k in x['name'].lower() for k in stress_keywords)), secondary)
+    tail = next((x for x in items[2:] if x is not drag and any(k in x['name'].lower() for k in ('blockade','war','bubble','carry','crash'))), items[2] if len(items) > 2 else None)
+    return {'primary': primary, 'secondary': secondary, 'residual_drag': drag, 'tail_risk': tail, 'all': items[:6]}
+
+
+def render_scenario_stack_strip(snap:Dict)->None:
+    stack = build_scenario_stack_payload(snap)
+    cards = [
+        ('Primary', stack.get('primary'), '#3dbb6c'),
+        ('Secondary', stack.get('secondary'), '#6496ff'),
+        ('Residual Drag', stack.get('residual_drag'), '#e5a020'),
+        ('Tail Risk', stack.get('tail_risk'), '#e05252'),
+    ]
+    cols = st.columns(4)
+    for col, (title, item, color) in zip(cols, cards):
+        with col:
+            if not item:
+                mc(title, '—', '', 'neu')
+                continue
+            nm = str(item.get('name','—'))
+            prob = float(item.get('probability', 0.0) or 0.0)
+            subtitle = ', '.join(item.get('winners', [])[:2]) or '—'
+            st.markdown(
+                f'<div class="mc" style="border-left:3px solid {color};min-height:92px">'
+                f'<div class="lb">{html.escape(title)}</div>'
+                f'<div class="vl" style="font-size:15px">{html.escape(nm[:58])}</div>'
+                f'<div class="sb">{prob:.0%} · {html.escape(subtitle[:64])}</div>'
+                f'</div>',
+                unsafe_allow_html=True,
+            )
+
+
+def _front_run_market_views(snap:Dict)->Dict[str,Dict[str,List[Dict]]]:
+    opps = snap.get('opportunities', []) or []
+    fwd = snap.get('forward_radar', []) or []
+    by = {m:{'now_long':[],'now_short':[],'front_run_long':[],'front_run_short':[],'avoid':[]} for m in ['US','IHSG','FX','Commodities','Crypto']}
+
+    for r in opps:
+        m = str(r.get('Market','US'))
+        if m not in by: continue
+        b = str(r.get('Bias',''))
+        row = {
+            'Ticker': r.get('Ticker','—'),
+            'Bias': b,
+            'Setup': r.get('Setup','—'),
+            'Path': r.get('Path','—'),
+            'Entry Zone': r.get('Entry Zone','—'),
+            'Invalidation': r.get('Invalidation','—'),
+            'Target': r.get('Target','—'),
+            'Why Now': r.get('Why Now','—'),
+            'Why Not Yet': r.get('Why Not Yet','—'),
+            'EV': r.get('EV','—'),
+            'score': float(r.get('_ev',0.0) or 0.0),
+        }
+        if m == 'IHSG':
+            if 'LONG' in b:
+                by[m]['now_long'].append(row)
+            elif 'SHORT' in b or 'AVOID' in b:
+                by[m]['avoid'].append(row)
+            elif b.startswith('WATCH'):
+                by[m]['front_run_long'].append(row)
+        else:
+            if 'LONG' in b:
+                by[m]['now_long'].append(row)
+            elif 'SHORT' in b:
+                by[m]['now_short'].append(row)
+            elif b.startswith('WATCH-LONG'):
+                by[m]['front_run_long'].append(row)
+            elif b.startswith('WATCH-SHORT'):
+                by[m]['front_run_short'].append(row)
+
+    # forward radar enrichment
+    for r in fwd:
+        tk = str(r.get('ticker',''))
+        side = str(r.get('side','LONG')).upper()
+        disp_tk = str(r.get('ticker_display', tk))
+        market='US'
+        if tk.endswith('.JK'): market='IHSG'
+        elif tk in FX_TICKERS: market='FX'
+        elif tk in COMM_TICKERS: market='Commodities'
+        elif tk in CRYPTO_TICKERS: market='Crypto'
+        row = {
+            'Ticker': disp_tk,
+            'Bias': side,
+            'Setup': r.get('status','On radar'),
+            'Path': 'Front-Run',
+            'Entry Zone': '—',
+            'Invalidation': 'see trigger fail',
+            'Target': '—',
+            'Why Now': 'watchlist from forward radar',
+            'Why Not Yet': r.get('why_not_yet','—'),
+            'EV': r.get('signal_quality','—'),
+            'score': 0.30,
+            'Trigger': r.get('trigger','—'),
+            '1M': r.get('momentum_1m','—'),
+        }
+        if market == 'IHSG':
+            by[market]['front_run_long'].append(row)
+        elif side == 'LONG':
+            by[market]['front_run_long'].append(row)
+        else:
+            by[market]['front_run_short'].append(row)
+
+    for m, buckets in by.items():
+        for k in buckets:
+            # dedupe by ticker and sort by score where possible
+            seen = {}
+            for row in buckets[k]:
+                seen[str(row.get('Ticker'))] = row if str(row.get('Ticker')) not in seen else max([seen[str(row.get('Ticker'))], row], key=lambda x: float(x.get('score',0.0) or 0.0))
+            buckets[k] = sorted(seen.values(), key=lambda x: float(x.get('score',0.0) or 0.0), reverse=True)
+    return by
+
+
+def render_front_run_market_views(snap:Dict)->None:
+    views = _front_run_market_views(snap)
+    tabs = st.tabs(['🇺🇸 US','🇮🇩 IHSG','💱 FX','🛢️ Commodities','🔐 Crypto'])
+    market_order = ['US','IHSG','FX','Commodities','Crypto']
+    for tab, market in zip(tabs, market_order):
+        with tab:
+            v = views[market]
+            if market == 'IHSG':
+                c1, c2, c3 = st.columns(3)
+                with c1:
+                    st.markdown('**Buy Now**')
+                    df = pd.DataFrame(v['now_long'][:5])[['Ticker','Setup','Entry Zone','Invalidation','EV']] if v['now_long'] else pd.DataFrame(columns=['Ticker','Setup','Entry Zone','Invalidation','EV'])
+                    st.dataframe(df, use_container_width=True, hide_index=True, height=220)
+                with c2:
+                    st.markdown('**Front-Run Buy**')
+                    df = pd.DataFrame(v['front_run_long'][:5])[[c for c in ['Ticker','Trigger','Why Not Yet','1M','EV'] if c in (v['front_run_long'][0].keys() if v['front_run_long'] else [])]] if v['front_run_long'] else pd.DataFrame(columns=['Ticker','Trigger','Why Not Yet','1M','EV'])
+                    st.dataframe(df, use_container_width=True, hide_index=True, height=220)
+                with c3:
+                    st.markdown('**Avoid / Reduce**')
+                    df = pd.DataFrame(v['avoid'][:5])[['Ticker','Setup','Why Not Yet','EV']] if v['avoid'] else pd.DataFrame(columns=['Ticker','Setup','Why Not Yet','EV'])
+                    st.dataframe(df, use_container_width=True, hide_index=True, height=220)
+            else:
+                c1, c2, c3, c4 = st.columns(4)
+                specs = [
+                    ('Long Now', 'now_long', ['Ticker','Setup','Entry Zone','Invalidation','EV']),
+                    ('Short Now', 'now_short', ['Ticker','Setup','Entry Zone','Invalidation','EV']),
+                    ('Front-Run Long', 'front_run_long', ['Ticker','Trigger','Why Not Yet','1M','EV']),
+                    ('Front-Run Short', 'front_run_short', ['Ticker','Trigger','Why Not Yet','1M','EV']),
+                ]
+                for col, (ttl, key, cols) in zip([c1,c2,c3,c4], specs):
+                    with col:
+                        st.markdown(f'**{ttl}**')
+                        rows = v[key][:5]
+                        if rows:
+                            available = [c for c in cols if c in rows[0]]
+                            df = pd.DataFrame(rows)[available]
+                        else:
+                            df = pd.DataFrame(columns=cols)
+                        st.dataframe(df, use_container_width=True, hide_index=True, height=220)
+
 def page_opportunities(snap:Dict)->None:
     """Refactored one-fold decision board: action first, detail second."""
     opps=snap.get("opportunities",[])
@@ -3137,6 +3347,12 @@ def page_opportunities(snap:Dict)->None:
 
     drivers=snap.get("top_drivers",[])
     render_top_drivers_now(drivers, title="🧠 TOP DRIVERS NOW — peluang ini bergerak karena apa")
+
+    sh("🧩 SCENARIO STACK — konteks yang lagi dominan")
+    render_scenario_stack_strip(snap)
+
+    sh("🚀 FRONT-RUN BOARD — apa yang hampir jalan per market")
+    render_front_run_market_views(snap)
 
     depth=st.radio("Board depth",["Top 5","Top 8","Top 12","All"],horizontal=True,key="opp_depth_onefold")
     top_n=len(opps) if depth=="All" else int(depth.split()[1])
@@ -3307,6 +3523,15 @@ def page_radar(snap:Dict)->None:
             ' | relief: '+f'{news_snap.get("relief",0):.0%}'+"</div>",
             unsafe_allow_html=True
         )
+    if news_snap and news_snap.get("top_headlines"):
+        with st.expander("📰 Event-lite catalyst headlines", expanded=False):
+            st.caption("Headlines ini cuma dipakai sebagai adaptive overlay, bukan pengganti core regime math.")
+            for hl in news_snap.get("top_headlines",[])[:5]:
+                st.markdown(f"- {hl}")
+
+    sh("🧩 SCENARIO STACK")
+    render_scenario_stack_strip(snap)
+
     # Master Rotation Graph (v33 YOU ARE HERE mind-map)
     render_master_rotation_graph(q,f,snap["rotation"],snap["family"])
     # Flow State Strip (horizontal pill chain)
@@ -4244,610 +4469,79 @@ def page_markets_full(snap:Dict)->None:
         st.caption("⚠️ Crypto = high-beta risk asset, bukan inflation hedge.")
 
 
-
-
-# ── Refactored workflow pages (baseline UI preserved) ─────────────────────────
-
-def _market_display_name(market:str)->str:
-    return {
-        'US':'US Stocks',
-        'IHSG':'IHSG',
-        'FX':'Forex',
-        'Commodities':'Commodities',
-        'Crypto':'Crypto',
-    }.get(market, market)
-
-
-def _market_icon(market:str)->str:
-    return {
-        'US':'🇺🇸',
-        'IHSG':'🇮🇩',
-        'FX':'💱',
-        'Commodities':'🛢️',
-        'Crypto':'🔐',
-    }.get(market, '•')
-
-
-def _infer_market_from_ticker(tk:str)->str:
-    if tk in US_TICKERS: return 'US'
-    if tk in IHSG_TICKERS: return 'IHSG'
-    if tk in FX_TICKERS: return 'FX'
-    if tk in COMM_TICKERS: return 'Commodities'
-    if tk in CRYPTO_TICKERS: return 'Crypto'
-    if str(tk).endswith('.JK'): return 'IHSG'
-    if str(tk).endswith('=X'): return 'FX'
-    if str(tk).endswith('=F'): return 'Commodities'
-    if str(tk).endswith('-USD'): return 'Crypto'
-    return 'US'
-
-
-def _market_opps(snap:Dict, market:str)->List[Dict]:
-    opps = snap.get('opportunities', []) or []
-    return [r for r in opps if str(r.get('Market','')) == market]
-
-
-def _market_now_rows(snap:Dict, market:str, bias_side:str)->List[Dict]:
-    rows = _market_opps(snap, market)
-    if market == 'IHSG':
-        return [r for r in rows if 'LONG' in str(r.get('Bias',''))][:8]
-    if bias_side == 'long':
-        return [r for r in rows if 'LONG' in str(r.get('Bias',''))][:8]
-    return [r for r in rows if 'SHORT' in str(r.get('Bias',''))][:8]
-
-
-def _market_watch_rows(snap:Dict, market:str, side:str='long')->List[Dict]:
-    rows = []
-    opps = _market_opps(snap, market)
-    if market == 'IHSG':
-        for r in opps:
-            b = str(r.get('Bias',''))
-            if b.startswith('WATCH') and 'LONG' in b:
-                rows.append(r)
-    else:
-        for r in opps:
-            b = str(r.get('Bias',''))
-            if not b.startswith('WATCH'):
-                continue
-            if side == 'long' and 'LONG' in b:
-                rows.append(r)
-            if side == 'short' and 'SHORT' in b:
-                rows.append(r)
-    # fallback to forward radar if too thin
-    if len(rows) < 3:
-        fwd = snap.get('forward_radar', []) or []
-        for r in fwd:
-            tk = r.get('ticker','')
-            if _infer_market_from_ticker(tk) != market:
-                continue
-            side0 = str(r.get('side','')).upper()
-            if market == 'IHSG' and side0 != 'LONG':
-                continue
-            if market != 'IHSG' and side and side0 != side.upper():
-                continue
-            rows.append({
-                'Ticker': r.get('ticker_display', disp(tk)),
-                'Market': market,
-                'Bias': ('WATCH-LONG' if side0 == 'LONG' else 'WATCH-SHORT'),
-                'Setup': r.get('signal_quality','B'),
-                'Entry Zone': r.get('trigger',''),
-                'Invalidation': r.get('why_not_yet',''),
-                'Target': r.get('status','watch'),
-                'EV': '—',
-                'Rally Fit': 'Watch',
-                'Sizing': '0.25x',
-                'Path': 'Watch',
-                'Why Now': r.get('status','watch'),
-                'Why Not Yet': r.get('why_not_yet',''),
-            })
-    return rows[:8]
-
-
-def _market_avoid_rows(snap:Dict, market:str)->List[Dict]:
-    trans = (snap.get('asset_translation', {}) or {}).get(market, []) or []
-    rows = []
-    for item in trans:
-        if 'AVOID' not in str(item.get('bias','')) and 'SHORT' not in str(item.get('bias','')):
-            continue
-        tks = item.get('tickers', []) or []
-        for tk in tks[:3]:
-            rows.append({
-                'Ticker': disp(tk),
-                'Market': market,
-                'Bias': 'Avoid' if market == 'IHSG' else item.get('bias','AVOID'),
-                'Setup': item.get('setup',''),
-                'Entry Zone': '—',
-                'Invalidation': item.get('invalidator',''),
-                'Target': '—',
-                'EV': '—',
-                'Rally Fit': 'Avoid',
-                'Sizing': item.get('size_cap','0.25x'),
-                'Path': 'Avoid',
-                'Why Now': item.get('why',''),
-                'Why Not Yet': '',
-            })
-    if not rows and market != 'IHSG':
-        rows = _market_now_rows(snap, market, 'short')[:5]
-    return rows[:8]
-
-
-def _market_defensive_rows(snap:Dict, market:str)->List[Dict]:
-    trans = (snap.get('asset_translation', {}) or {}).get(market, []) or []
-    rows = []
-    for item in trans:
-        txt = str(item.get('setup','')) + ' ' + str(item.get('why',''))
-        if market == 'IHSG' and ('defensive' in txt.lower() or 'shelter' in txt.lower() or 'cash' in txt.lower() or 'staple' in txt.lower()):
-            for tk in (item.get('tickers', []) or [])[:3]:
-                rows.append({
-                    'Ticker': disp(tk),
-                    'Type': item.get('setup','Defensive'),
-                    'Why Defensive': item.get('why',''),
-                    'Trigger to Use': item.get('trigger',''),
-                })
-    return rows[:6]
-
-
-def _best_market_tickers(snap:Dict, market:str)->str:
-    if market == 'IHSG':
-        rows = _market_now_rows(snap, market, 'long')[:3]
-    else:
-        rows = (_market_now_rows(snap, market, 'long')[:2] + _market_now_rows(snap, market, 'short')[:1])[:3]
-    return ', '.join([str(r.get('Ticker','—')) for r in rows]) or 'See market tab'
-
-
-def _driver_summary_line(drivers:List[Dict], n:int=3)->str:
-    parts=[]
-    for d in (drivers or [])[:n]:
-        label = d.get('label','—')
-        score = d.get('score',0.0)
-        try:
-            score_txt = f"{float(score):.0%}"
-        except Exception:
-            score_txt = '—'
-        parts.append(f"{label} {score_txt}")
-    return ' · '.join(parts) or 'No dominant driver'
-
-
-def render_hero_cards_refined(snap:Dict)->None:
-    q=snap['q']; cr=snap['crash']; route=snap.get('route',{}); most_hated=snap.get('most_hated_rally',{}) or {}
-    drivers = snap.get('top_drivers', []) or []
-    c1,c2,c3,c4 = st.columns(4)
-    with c1:
-        mc('Board State', route.get('route_bias', q.get('operating','mixed')), f"{q.get('quad','?')} / M:{q.get('monthly_quad','?')}", 'good' if cr.get('risk_off',0)<0.45 else ('warn' if cr.get('risk_off',0)<0.65 else 'bad'))
-    with c2:
-        action = most_hated.get('action','Selective') if most_hated else cr.get('exec_mode','Selective')
-        mc('Action Now', action[:24], most_hated.get('posture','') or cr.get('state',''), 'good' if most_hated.get('clear_count',0)>=3 else 'warn')
-    with c3:
-        mc('Main Driver', (drivers[0].get('label','—') if drivers else route.get('primary_meta',{}).get('label','—')), _driver_summary_line(drivers, 2), 'good' if drivers and drivers[0].get('tone')=='good' else ('bad' if drivers and drivers[0].get('tone')=='bad' else 'warn'))
-    with c4:
-        mc('Risk Alert', route.get('invalidator_meta',{}).get('label','Watch'), cr.get('state','')+' / '+cr.get('exec_mode',''), 'bad' if cr.get('crash_score',0)>=0.65 else ('warn' if cr.get('risk_off',0)>=0.5 else 'neu'))
-
-
-def render_causal_workflow_board(snap:Dict)->None:
-    q=snap['q']; f=snap['f']; route=snap.get('route',{}); drivers=snap.get('top_drivers',[]) or []
-    growth = 'Growth ↑' if q.get('growth_acc') else 'Growth ↓'
-    infl = 'Inflation ↑' if q.get('infl_acc') else 'Inflation ↓'
-    trans = [d.get('label','') for d in drivers[:3]]
-    trans_txt = ' · '.join(trans) if trans else 'Breadth / USD / rates mix'
-    us = snap.get('macro_impact',{}).get('us',{})
-    ih = snap.get('ihsg',{})
-    fx = snap.get('macro_impact',{}).get('fx',{})
-    cm = snap.get('macro_impact',{}).get('commodities',{})
-    cy = snap.get('macro_impact',{}).get('crypto',{})
-    market_effect = f"US {route.get('primary_meta',{}).get('label','?')} · IHSG {ih.get('exec_mode','selective')} · FX {fx.get('best_expression','mixed')[:18]}"
-
-    def _box(kicker, title, note, accent):
-        return (
-            '<div style="flex:1;min-width:0;border:1.5px solid '+accent+'44;background:'+accent+'14;border-radius:12px;padding:12px 10px;min-height:112px">'
-            '<div style="font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:'+accent+';font-weight:800;margin-bottom:3px">'+html.escape(kicker)+'</div>'
-            '<div style="font-size:16px;font-weight:800;line-height:1.15;color:var(--color-text-primary);margin-bottom:4px">'+html.escape(title)+'</div>'
-            '<div style="font-size:11px;opacity:.72;line-height:1.45">'+html.escape(note)+'</div>'
-            '</div>'
-        )
-    arrow = '<div style="display:flex;align-items:center;justify-content:center;padding:0 2px;color:rgba(255,255,255,0.28);font-size:22px">→</div>'
-    html_flow = (
-        '<div style="background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:14px;padding:12px 10px;margin:8px 0 12px 0">'
-        '<div style="font-size:10px;font-weight:800;letter-spacing:.09em;text-transform:uppercase;opacity:.35;margin-bottom:8px">Main Workflow — baca dari kiri ke kanan</div>'
-        '<div style="display:flex;align-items:stretch;gap:4px;flex-wrap:nowrap">'+
-        _box('Regime / Quad', f"{q.get('quad','?')} → {q.get('monthly_quad','?')}", q.get('operating','—')[:42], '#378ADD') + arrow +
-        _box('Macro Direction', f"{growth} · {infl}", f"Confidence {q.get('confidence',0):.0%} · {q.get('conf_band','')}", '#9b6aff') + arrow +
-        _box('Transmission', trans_txt[:48], route.get('primary_meta',{}).get('desc','')[:72] or 'drivers move through rates / USD / breadth / oil', '#e5a020') + arrow +
-        _box('Market Effect', market_effect[:58], 'Details and tickers live in market tabs', '#3dbb6c') +
-        '</div></div>'
-    )
-    st.markdown(html_flow, unsafe_allow_html=True)
-
-
-def render_market_branch_cards(snap:Dict)->None:
-    mi = snap.get('macro_impact',{}) or {}
-    cards = [
-        ('US', mi.get('us',{}).get('best_expression','See tab'), mi.get('us',{}).get('invalidator','')),
-        ('IHSG', snap.get('ihsg',{}).get('exec_mode','Selective'), snap.get('ihsg',{}).get('petro_impact','')),
-        ('FX', mi.get('fx',{}).get('best_expression','See tab'), mi.get('fx',{}).get('invalidator','')),
-        ('Commodities', mi.get('commodities',{}).get('best_expression','See tab'), mi.get('commodities',{}).get('invalidator','')),
-        ('Crypto', mi.get('crypto',{}).get('best_expression','See tab'), mi.get('crypto',{}).get('invalidator','')),
-    ]
-    cols = st.columns(5)
-    for col, (mkt, best, invalidator) in zip(cols, cards):
-        mk = 'Commodities' if mkt == 'Commodities' else mkt
-        with col:
-            st.markdown(
-                '<div class="mc" style="min-height:135px;border-top:2px solid rgba(255,255,255,0.10)">'
-                f'<div class="lb">{_market_icon(mk)} {_market_display_name(mk)}</div>'
-                f'<div class="vl" style="font-size:16px">{html.escape(str(best)[:46])}</div>'
-                f'<div class="sb">Top action: {html.escape(_best_market_tickers(snap, mk)[:60])}</div>'
-                f'<div style="font-size:10px;opacity:.45;margin-top:6px">Risk: {html.escape(str(invalidator)[:52])}</div>'
-                '</div>', unsafe_allow_html=True
-            )
-
-
-
-
-def _route_label(route:Dict, key:str, fallback:str='—')->str:
-    if not isinstance(route, dict):
-        return fallback
-    if isinstance(route.get(key), str) and route.get(key):
-        return str(route.get(key))
-    meta = route.get(f"{key}_meta", {}) if key in {'primary','secondary','invalidator'} else {}
-    if isinstance(meta, dict) and meta.get('label'):
-        return str(meta.get('label'))
-    return fallback
-
-
-def render_dashboard_master_workflow(snap:Dict)->None:
-    q=snap.get('q',{}) or {}
-    route=snap.get('route',{}) or {}
-    drivers=snap.get('top_drivers',[]) or []
-    ih=snap.get('ihsg',{}) or {}
-    mi=snap.get('macro_impact',{}) or {}
-
-    regime = q.get('quad','?')
-    growth = 'Growth ↑' if q.get('growth_acc') else 'Growth ↓'
-    infl = 'Inflation ↑' if q.get('infl_acc') else 'Inflation ↓'
-    direction = f"{growth} · {infl}"
-    transmission = ' · '.join([str(d.get('label','')) for d in drivers[:3] if d.get('label')]) or 'USD / rates / breadth mix'
-    us_txt = (mi.get('us',{}) or {}).get('best_expression','US mixed')
-    ih_txt = ih.get('exec_mode','IHSG selective')
-    fx_txt = (mi.get('fx',{}) or {}).get('best_expression','FX mixed')
-    cm_txt = (mi.get('commodities',{}) or {}).get('best_expression','Commod split')
-    cy_txt = (mi.get('crypto',{}) or {}).get('best_expression','Crypto tactical')
-    market_effect = f"US: {us_txt[:28]} · IHSG: {ih_txt[:24]} · FX: {fx_txt[:18]} · Commod: {cm_txt[:18]} · Crypto: {cy_txt[:18]}"
-    next_action = "Open market tab → ticker actions"
-
-    def _box(kicker, title, note, accent):
-        return (
-            '<div style="flex:1;min-width:0;border:1.3px solid '+accent+'44;background:'+accent+'12;border-radius:12px;padding:12px 12px;min-height:104px;display:flex;flex-direction:column;justify-content:space-between">'
-            '<div style="font-size:9px;letter-spacing:.10em;text-transform:uppercase;color:'+accent+';font-weight:800;margin-bottom:4px">'+html.escape(kicker)+'</div>'
-            '<div style="font-size:15px;font-weight:800;line-height:1.2;margin-bottom:6px">'+html.escape(str(title)[:52])+'</div>'
-            '<div style="font-size:11px;opacity:.72;line-height:1.45">'+html.escape(str(note)[:140])+'</div>'
-            '</div>'
-        )
-
-    arrow = '<div style="display:flex;align-items:center;justify-content:center;padding:0 2px;color:rgba(255,255,255,0.28);font-size:20px">→</div>'
-    html_flow = (
-        '<div style="display:flex;align-items:stretch;gap:6px;flex-wrap:nowrap;margin:8px 0 8px 0">'
-        + _box('Regime', regime, q.get('operating','Current macro state'), '#378ADD') + arrow
-        + _box('Growth / Inflation', direction, q.get('divergence','Structural vs monthly context'), '#7b61ff') + arrow
-        + _box('Transmission', transmission, 'How the macro shock is travelling through the tape', '#e5a020') + arrow
-        + _box('Market Effect', market_effect, 'Read each market tab for detailed beneficiaries / victims', '#3dbb6c') + arrow
-        + _box('Ticker Action', next_action, 'Dashboard stops at market branches; tickers live in market tabs', '#e05252')
-        + '</div>'
-    )
-    sh('🧭 MASTER WORKFLOW — lihat urutannya dari kiri ke kanan')
-    st.markdown(html_flow, unsafe_allow_html=True)
-
-
-def render_dashboard_alt_paths(snap:Dict)->None:
-    route=snap.get('route',{}) or {}
-    q=snap.get('q',{}) or {}
-    mi=snap.get('macro_impact',{}) or {}
-    cont = route.get('secondary_meta',{}).get('label') or route.get('secondary') or q.get('monthly_quad','?')
-    fail = route.get('invalidator_meta',{}).get('label') or route.get('invalidator') or 'Risk-off reasserts'
-    cont_note = route.get('secondary_meta',{}).get('desc') or (mi.get('us',{}) or {}).get('best_expression','Breadth / beta catch-up')
-    fail_note = route.get('invalidator_meta',{}).get('desc') or 'If USD/oil/yields push the wrong way, rotate defensive / reduce risk.'
-    c1,c2 = st.columns(2)
-    with c1:
-        st.markdown(
-            '<div class="mc" style="min-height:120px;border-top:2px solid #3dbb6c">'
-            '<div class="lb">If current path continues</div>'
-            f'<div class="vl">{html.escape(str(cont)[:58])}</div>'
-            f'<div class="sb" style="margin-top:6px">{html.escape(str(cont_note)[:160])}</div>'
-            '</div>', unsafe_allow_html=True)
-    with c2:
-        st.markdown(
-            '<div class="mc" style="min-height:120px;border-top:2px solid #e05252">'
-            '<div class="lb">If invalidator hits</div>'
-            f'<div class="vl">{html.escape(str(fail)[:58])}</div>'
-            f'<div class="sb" style="margin-top:6px">{html.escape(str(fail_note)[:160])}</div>'
-            '</div>', unsafe_allow_html=True)
-
-
-def render_market_branch_cards_v2(snap:Dict)->None:
-    mi = snap.get('macro_impact',{}) or {}
-    ih = snap.get('ihsg',{}) or {}
-    cards = [
-        ('US', (mi.get('us',{}) or {}).get('best_expression','See tab'), (mi.get('us',{}) or {}).get('invalidator','')),
-        ('IHSG', ih.get('exec_mode','Selective buy'), ih.get('petro_impact','')),
-        ('FX', (mi.get('fx',{}) or {}).get('best_expression','See tab'), (mi.get('fx',{}) or {}).get('invalidator','')),
-        ('Commodities', (mi.get('commodities',{}) or {}).get('best_expression','See tab'), (mi.get('commodities',{}) or {}).get('invalidator','')),
-        ('Crypto', (mi.get('crypto',{}) or {}).get('best_expression','See tab'), (mi.get('crypto',{}) or {}).get('invalidator','')),
-    ]
-    cols = st.columns(5)
-    for col, (mkt, best, invalidator) in zip(cols, cards):
-        with col:
-            st.markdown(
-                '<div class="mc" style="min-height:150px;border-top:2px solid rgba(255,255,255,0.16)">'
-                f'<div class="lb">{_market_icon(mkt)} {_market_display_name(mkt)}</div>'
-                f'<div class="vl" style="font-size:15px">{html.escape(str(best)[:48])}</div>'
-                f'<div class="sb" style="margin-top:8px">Driver/drag: {html.escape(str(invalidator)[:70]) or "See market tab"}</div>'
-                '<div style="margin-top:10px;font-size:10px;opacity:.55">Open the tab for tickers, front-run, and avoid lists.</div>'
-                '</div>', unsafe_allow_html=True)
-def page_dashboard_control_tower(snap:Dict)->None:
-    global prices_placeholder
-    prices_placeholder = snap.get('prices', {}) or {}
-    q=snap.get('q',{}) or {}
-    render_hero_cards_refined(snap)
-    st.markdown('---')
-    render_flow_state_strip(q)
-    render_dashboard_master_workflow(snap)
-    st.markdown('---')
-    render_dashboard_alt_paths(snap)
-    st.markdown('---')
-    drivers=snap.get('top_drivers',[]) or []
-    if drivers:
-        render_top_drivers_now(drivers, title='🧠 Drivers in Play')
-    sh('🌐 MARKET BRANCHES — dashboard stops at cause/effect; tickers live in market tabs')
-    render_market_branch_cards_v2(snap)
-    st.markdown('---')
-    t1,t2,t3 = st.tabs(['🧭 Control Tower Deep Dive','🎯 Scenarios & What-If','🔬 Health / Risk Internals'])
-    with t1:
-        page_radar(snap)
-    with t2:
-        page_playbook(snap)
-    with t3:
-        page_health(snap)
-
-
-
-def _render_market_action_boxes(snap:Dict, market:str)->None:
-    buy_only = market == 'IHSG'
-    if buy_only:
-        box_defs = [
-            ('Buy Now', _market_now_rows(snap, market, 'long')[:3], '#3dbb6c'),
-            ('Front-Run Buy', _market_watch_rows(snap, market, 'long')[:3], '#e5a020'),
-            ('Avoid / Reduce', _market_avoid_rows(snap, market)[:3], '#e05252'),
-            ('Defensive Shelter', _market_defensive_rows(snap, market)[:3], '#378ADD'),
-        ]
-    else:
-        box_defs = [
-            ('Long Now', _market_now_rows(snap, market, 'long')[:3], '#3dbb6c'),
-            ('Short Now', _market_now_rows(snap, market, 'short')[:3], '#e05252'),
-            ('Front-Run Long', _market_watch_rows(snap, market, 'long')[:3], '#e5a020'),
-            ('Front-Run Short', _market_watch_rows(snap, market, 'short')[:3], '#9b6aff'),
-        ]
-    cols = st.columns(4)
-    for col,(title,rows,accent) in zip(cols, box_defs):
-        items = []
-        for r in rows:
-            tk = r.get('Ticker', disp(str(r.get('ticker','—'))))
-            setup = r.get('Setup', r.get('bucket',''))
-            items.append(f'<div style="font-size:11px;line-height:1.5;margin:2px 0"><b>{html.escape(str(tk))}</b><span style="opacity:.58"> · {html.escape(str(setup))[:22]}</span></div>')
-        body = ''.join(items) if items else '<div style="font-size:11px;opacity:.55">Belum ada yang bersih.</div>'
-        with col:
-            st.markdown(
-                '<div class="mc" style="min-height:150px;border-top:2px solid '+accent+'">'
-                f'<div class="lb">{title}</div>'
-                f'{body}'
-                '</div>', unsafe_allow_html=True
-            )
-
-
-def _render_market_mini_flow(snap:Dict, market:str)->None:
-    route = snap.get('route', {})
-    at = (snap.get('asset_translation', {}) or {}).get(market, []) or []
-    mi = (snap.get('macro_impact', {}) or {}).get(market.lower() if market!='Commodities' else 'commodities', {}) or {}
-    primary = route.get('primary_meta',{}).get('label', route.get('primary','?'))
-    effect = mi.get('best_expression', 'See detailed board')
-    action = _best_market_tickers(snap, market)
-    arrow = '<div style="display:flex;align-items:center;justify-content:center;padding:0 2px;color:rgba(255,255,255,0.28);font-size:20px">→</div>'
-    def _mini(kicker, title, note, accent):
-        return '<div style="flex:1;min-width:0;border:1px solid '+accent+'44;background:'+accent+'14;border-radius:10px;padding:10px 8px;text-align:center">' +                '<div style="font-size:9px;letter-spacing:.09em;text-transform:uppercase;color:'+accent+';font-weight:800;margin-bottom:3px">'+html.escape(kicker)+'</div>' +                '<div style="font-size:14px;font-weight:800;margin-bottom:3px">'+html.escape(title[:42])+'</div>' +                '<div style="font-size:10px;opacity:.7;line-height:1.4">'+html.escape(note[:72])+'</div></div>'
-    html_flow = '<div style="display:flex;align-items:stretch;gap:4px;flex-wrap:nowrap;margin:8px 0 12px 0">' +         _mini('Driver', primary, route.get('primary_meta',{}).get('desc',''), '#378ADD') + arrow +         _mini('Transmission', effect, mi.get('now','')[:90], '#e5a020') + arrow +         _mini('Action', action or 'See tables below', 'Tickers & detailed levels below', '#3dbb6c') +         '</div>'
-    st.markdown(html_flow, unsafe_allow_html=True)
-
-
-def _render_action_table(title:str, rows:List[Dict], detail:bool=False, empty_msg:str='Belum ada kandidat.') -> None:
-    sh(title)
-    if rows:
-        st.dataframe(_opp_view_df(rows, detail=detail), use_container_width=True, hide_index=True, height=min(max(180, len(rows)*35+46), 360))
-    else:
-        st.info(empty_msg)
-
-
-def page_ihsg_refined(snap:Dict)->None:
-    sh('🇮🇩 IHSG — ACTION FIRST')
-    ih=snap.get('ihsg',{})
-    c1,c2,c3,c4 = st.columns(4)
-    with c1: mc('Bias', ih.get('exec_mode','Selective'), f"Score {ih.get('ihsg_score',0):.0%}", 'good' if ih.get('ihsg_score',0)>=0.60 else ('warn' if ih.get('ihsg_score',0)>=0.47 else 'bad'))
-    with c2: mc('Conflict', 'Selective' if ih.get('ihsg_score',0)>=0.47 else 'Fragile', 'USD/IDR + flow decide breadth', 'warn')
-    with c3: mc('Primary Driver', ih.get('flow_state','Flow / banks'), f"Top sector {ih.get('top_sector','—')}", 'good')
-    with c4: mc('Main Drag', 'USD/IDR' if ih.get('usd_idr_pressure',0)>0.50 else 'Flow breadth', ih.get('petro_impact',''), 'bad' if ih.get('usd_idr_pressure',0)>0.55 else 'warn')
-    _render_market_mini_flow(snap, 'IHSG')
-    _render_market_action_boxes(snap, 'IHSG')
-    st.markdown('---')
-    _render_action_table('🟢 BUY NOW', _market_now_rows(snap, 'IHSG', 'long')[:5], detail=False, empty_msg='Belum ada buy-now yang cukup bersih.')
-    _render_action_table('🟡 FRONT-RUN BUY', _market_watch_rows(snap, 'IHSG', 'long')[:5], detail=False, empty_msg='Belum ada front-run buy yang dekat trigger.')
-    _render_action_table('🔴 AVOID / REDUCE', _market_avoid_rows(snap, 'IHSG')[:5], detail=False, empty_msg='Tidak ada avoid list yang menonjol.')
-    sh('🛡️ DEFENSIVE SHELTER / CASH')
-    defs = _market_defensive_rows(snap, 'IHSG')
-    if defs:
-        st.dataframe(pd.DataFrame(defs), use_container_width=True, hide_index=True, height=min(max(160, len(defs)*35+46), 260))
-    else:
-        st.info('Belum ada defensive shelter yang menonjol.')
-    with st.expander('Deep Context — legacy IHSG board', expanded=False):
-        page_ihsg(snap)
-
-
-def page_market_refined(snap:Dict, market:str)->None:
-    name = _market_display_name(market)
-    mi_map = snap.get('macro_impact', {}) or {}
-    key = market.lower() if market != 'Commodities' else 'commodities'
-    bd = mi_map.get(key, {}) or {}
-    sw_all = snap.get('strong_weak_all', {}) or {}
-    sig = snap.get('signal_strength', {}) or {}
-    c1,c2,c3,c4 = st.columns(4)
-    long_rows = _market_now_rows(snap, market, 'long')
-    short_rows = _market_now_rows(snap, market, 'short')
-    with c1: mc('Bias', bd.get('quad', snap['q'].get('quad','?')), bd.get('now','')[:42], 'good' if long_rows else 'warn')
-    with c2: mc('Conflict', 'Mixed' if short_rows and long_rows else 'Selective', bd.get('invalidator','')[:42], 'warn' if short_rows and long_rows else 'good')
-    with c3: mc('Primary Driver', bd.get('best_expression','See action'), 'Route-driven', 'good')
-    with c4: mc('Main Drag', bd.get('invalidator','Watch'), 'Monitor invalidator', 'bad' if short_rows else 'warn')
-    _render_market_mini_flow(snap, market)
-    _render_market_action_boxes(snap, market)
-    st.markdown('---')
-    _render_action_table('🟢 LONG NOW', long_rows[:5], detail=False, empty_msg='Belum ada long-now yang cukup bersih.')
-    _render_action_table('🔴 SHORT NOW', short_rows[:5], detail=False, empty_msg='Belum ada short-now yang cukup bersih.')
-    _render_action_table('🟡 FRONT-RUN LONG', _market_watch_rows(snap, market, 'long')[:5], detail=False, empty_msg='Belum ada front-run long yang dekat trigger.')
-    _render_action_table('🟠 FRONT-RUN SHORT', _market_watch_rows(snap, market, 'short')[:5], detail=False, empty_msg='Belum ada front-run short yang dekat trigger.')
-    _render_action_table('⚠️ AVOID / REDUCE', _market_avoid_rows(snap, market)[:5], detail=False, empty_msg='Tidak ada avoid list yang menonjol.')
-
-    with st.expander('Deep Context — signal lifecycle, macro impact, checklist', expanded=False):
-        if market == 'US':
-            sh('🇺🇸 US STOCKS — DETAIL')
-            # Reuse legacy detailed logic from old US tab
-            prices=snap['prices']; rot=snap['rotation']; s_quad=snap['q']['quad']
-            SECS={"XLE":"Energy","XLF":"Financials","XLI":"Industrials","XLB":"Materials","XLK":"Technology","XLV":"Healthcare","XLY":"Cons.Disc.","XLP":"Cons.Staples","XLU":"Utilities","XLRE":"Real Estate","XLC":"Comm.Svc."}
-            spy3=ret_n(prices.get('SPY',pd.Series()),63); sec_rows=[]
-            for tk0,name0 in SECS.items():
-                s=prices.get(tk0,pd.Series()); r3=ret_n(s,63); r1=ret_n(s,21)
-                rel=(r3-spy3) if(math.isfinite(r3) and math.isfinite(spy3)) else float('nan')
-                sec_rows.append({'Sektor':name0,'3M':pct(r3),'1M':pct(r1),'vs SPY 3M':pct(rel),'50DMA':'✓' if ts(s)>=0.5 else '✗'})
-            st.dataframe(pd.DataFrame(sec_rows), use_container_width=True, hide_index=True, height=320)
-            sh('🏗️ US FAMILY SPILLOVER CHAIN')
-            spill=rot['spill_us']; top_us=rot['top_us_bucket']
-            st.markdown(f"**Leader saat ini:** {top_us}")
-            for i,fam in enumerate(spill):
-                roles=['Leader awal','Spillover ke-2','Breadth follower','Hedge / shelter']
-                syms_str=' / '.join(list(US_BUCKETS.get(fam,[]))[:3])
-                col_cls='good' if i==0 else ('warn' if i==1 else ('neu' if i==2 else 'bad'))
-                role=roles[i] if i<len(roles) else ''
-                st.markdown(f'<div style="display:flex;gap:8px;margin-bottom:4px"><span style="font-size:11px;opacity:.4;width:20px">{i+1}.</span><div><span class="{col_cls}" style="font-weight:600;font-size:13px">{fam}</span><br><span style="font-size:10px;opacity:.5">{role} · {syms_str}</span></div></div>', unsafe_allow_html=True)
-            sh('📈 SIGNAL LIFECYCLE — US')
-            page_signal_strength(snap, forced_market='US', key_suffix='us_refined', compact=True, show_header=False)
-            if bd:
-                sh('📊 MACRO IMPACT BOARD — US')
-                a,b=st.columns(2)
-                with a: mc('Sekarang', bd.get('quad','?')+' Regime', bd.get('now','')); mc('Best Expression','→',bd.get('best_expression',''))
-                with b: mc('Forward Branch','→',bd.get('forward_branch','')); mc('Invalidator','⚠️', bd.get('invalidator',''))
-                st.markdown('**Drivers:** '+' · '.join(bd.get('drivers',[])), unsafe_allow_html=True)
-            asset_chk = snap.get('asset_checklists',{})
-            if asset_chk.get('us'): render_checklist(asset_chk['us'], '🇺🇸 US EQUITY CHECKLIST')
-        elif market == 'FX':
-            sh('💱 FOREX — DETAIL')
-            prices=snap['prices']; s_quad=snap['q']['quad']
-            FX_NAMES={"EURUSD=X":"EUR/USD","GBPUSD=X":"GBP/USD","AUDUSD=X":"AUD/USD","JPY=X":"USD/JPY (naik=yen lemah)","CHF=X":"USD/CHF","IDR=X":"USD/IDR (naik=IDR lemah)","CNH=X":"USD/CNH","SGD=X":"USD/SGD","CAD=X":"USD/CAD"}
-            fx_rows=[]
-            for tk0,name0 in FX_NAMES.items():
-                s=prices.get(tk0,pd.Series()); r1=ret_n(s,21); r3=ret_n(s,63)
-                fx_rows.append({'Pair':name0,'1M':pct(r1),'3M':pct(r3),'Trend':'▲' if ts(s)>=0.5 else '▼'})
-            st.dataframe(pd.DataFrame(fx_rows), use_container_width=True, hide_index=True)
-            sh('📈 SIGNAL LIFECYCLE — FX'); page_signal_strength(snap, forced_market='FX', key_suffix='fx_refined', compact=True, show_header=False)
-            fx_sw=sw_all.get('fx')
-            if fx_sw:
-                sh('💪 FX STRONG vs WEAK (1M momentum)')
-                fc1,fc2=st.columns(2)
-                with fc1:
-                    st.markdown('**Strong (▲):**')
-                    for r in fx_sw['strong'][:4]: st.markdown(f'<span class="good" style="font-size:12px">▲ {r["name"]}: {pct(r["r1"])} </span>', unsafe_allow_html=True)
-                with fc2:
-                    st.markdown('**Weak (▼):**')
-                    for r in fx_sw['weak'][:4]: st.markdown(f'<span class="bad" style="font-size:12px">▼ {r["name"]}: {pct(r["r1"])} </span>', unsafe_allow_html=True)
-            if bd:
-                sh('📊 MACRO IMPACT — FX')
-                mc('Sekarang', bd.get('quad','?'), bd.get('now','')); mc('Best', bd.get('best_expression','')[:60])
-            ac = snap.get('asset_checklists',{})
-            if ac.get('fx'): render_checklist(ac['fx'], '💱 FX CHECKLIST')
-        elif market == 'Commodities':
-            sh('🛢️ COMMODITIES — DETAIL')
-            prices=snap['prices']; s_quad=snap['q']['quad']
-            COMM_NAMES={"GC=F":"Gold (XAU)","SI=F":"Silver","CL=F":"Oil WTI","BZ=F":"Oil Brent","NG=F":"Natural Gas","HG=F":"Copper","ZC=F":"Corn","ZW=F":"Wheat","DBC":"Broad Commodities ETF","URA":"Uranium ETF"}
-            comm_rows=[]
-            for tk0,name0 in COMM_NAMES.items():
-                s=prices.get(tk0,pd.Series()); r1=ret_n(s,21); r3=ret_n(s,63)
-                comm_rows.append({'Komoditas':name0,'1M':pct(r1),'3M':pct(r3),'Trend':'▲' if ts(s)>=0.5 else '▼'})
-            st.dataframe(pd.DataFrame(comm_rows), use_container_width=True, hide_index=True)
-            sh('📈 SIGNAL LIFECYCLE — KOMODITAS'); page_signal_strength(snap, forced_market='Commodities', key_suffix='commod_refined', compact=True, show_header=False)
-            cs=sw_all.get('commodities')
-            if cs:
-                sh('💪 COMMODITIES STRONG vs WEAK')
-                a,b=st.columns(2)
-                with a:
-                    for r in cs['strong'][:4]: st.markdown(f'<span class="good" style="font-size:12px">▲ {r["name"]}: {pct(r["r1"])} </span>', unsafe_allow_html=True)
-                with b:
-                    for r in cs['weak'][:4]: st.markdown(f'<span class="bad" style="font-size:12px">▼ {r["name"]}: {pct(r["r1"])} </span>', unsafe_allow_html=True)
-            if bd:
-                sh('📊 MACRO IMPACT — COMMODITIES')
-                mc('Sekarang', bd.get('quad','?'), bd.get('now','')); mc('Best', bd.get('best_expression','')[:60])
-            ac = snap.get('asset_checklists',{})
-            if ac.get('commodities'): render_checklist(ac['commodities'], '🛢️ COMMODITIES CHECKLIST')
-        elif market == 'Crypto':
-            sh('🔐 CRYPTO — DETAIL')
-            prices=snap['prices']; s_quad=snap['q']['quad']
-            CRYPTO_NAMES={"BTC-USD":"Bitcoin (BTC)","ETH-USD":"Ethereum (ETH)","SOL-USD":"Solana (SOL)","BNB-USD":"BNB","XRP-USD":"XRP","ADA-USD":"Cardano","AVAX-USD":"Avalanche","LINK-USD":"Chainlink","DOGE-USD":"Dogecoin"}
-            cr_rows=[]
-            for tk0,name0 in CRYPTO_NAMES.items():
-                s=prices.get(tk0,pd.Series()); r1=ret_n(s,21); r3=ret_n(s,63); r1w=ret_n(s,5)
-                cr_rows.append({'Asset':name0,'1W':pct(r1w),'1M':pct(r1),'3M':pct(r3),'Trend':'▲' if ts(s)>=0.5 else '▼'})
-            st.dataframe(pd.DataFrame(cr_rows), use_container_width=True, hide_index=True)
-            sh('📈 SIGNAL LIFECYCLE — CRYPTO'); page_signal_strength(snap, forced_market='Crypto', key_suffix='crypto_refined', compact=True, show_header=False)
-            crs=sw_all.get('crypto')
-            if crs:
-                sh('💪 CRYPTO STRONG vs WEAK')
-                a,b=st.columns(2)
-                with a:
-                    for r in crs['strong'][:4]: st.markdown(f'<span class="good" style="font-size:12px">▲ {r["name"]}: {pct(r["r1"])} </span>', unsafe_allow_html=True)
-                with b:
-                    for r in crs['weak'][:4]: st.markdown(f'<span class="bad" style="font-size:12px">▼ {r["name"]}: {pct(r["r1"])} </span>', unsafe_allow_html=True)
-            if bd:
-                sh('📊 MACRO IMPACT — CRYPTO')
-                mc('Sekarang', bd.get('quad','?'), bd.get('now','')); mc('Best', bd.get('best_expression','')[:60])
-            ac = snap.get('asset_checklists',{})
-            if ac.get('crypto'): render_checklist(ac['crypto'], '🔐 CRYPTO CHECKLIST')
-            st.caption('⚠️ Crypto = high-beta risk asset, bukan inflation hedge.')
-
-
 def main():
-    st.markdown('<div style="display:flex;align-items:center;margin-bottom:4px"><span style="font-family:Syne,sans-serif;font-size:20px;font-weight:800;letter-spacing:-.03em">🧭 MacroRegime Pro</span><span style="font-size:10px;opacity:.3;margin-left:8px;font-family:DM Mono,monospace">v10.1 · Workflow Board · Baseline UI preserved</span></div>',unsafe_allow_html=True)
+    st.markdown('<div style="display:flex;align-items:center;margin-bottom:4px"><span style="font-family:Syne,sans-serif;font-size:20px;font-weight:800;letter-spacing:-.03em">🧭 MacroRegime Pro</span><span style="font-size:10px;opacity:.3;margin-left:8px;font-family:DM Mono,monospace">v10.0 · Maxed Candidate · Markets-Integrated Signals + Top Drivers + Setup Quality</span></div>',unsafe_allow_html=True)
     with st.sidebar:
-        st.markdown('### ⚙️ Controls')
-        if st.button('🔄 Force Refresh', use_container_width=True):
-            st.cache_data.clear(); st.rerun()
-        st.markdown('---')
-        page = st.radio('Navigate', ['Dashboard','US Stocks','IHSG','Forex','Commodities','Crypto','Risk','Diagnostics'], index=0)
-        st.markdown('---')
+        st.markdown("### ⚙️ Controls")
+        if st.button("🔄 Force Refresh",use_container_width=True): st.cache_data.clear(); st.rerun()
+        st.markdown("---")
         st.markdown("""
 **Urutan baca (orang awam):**
-1. **Dashboard** — lihat board state, jalur sebab-akibat, dan market effect
-2. **Market tab** — lihat tickers, front-run, avoid, dan dampak detail
-3. **Risk** — cek posture, crash, sizing
-4. **Diagnostics** — detail kualitas data / engine
-        """)
-    snap = load_all()
-    if page == 'Dashboard':
-        page_dashboard_control_tower(snap)
-    elif page == 'IHSG':
-        page_ihsg_refined(snap)
-    elif page == 'US Stocks':
-        page_market_refined(snap, 'US')
-    elif page == 'Forex':
-        page_market_refined(snap, 'FX')
-    elif page == 'Commodities':
-        page_market_refined(snap, 'Commodities')
-    elif page == 'Crypto':
-        page_market_refined(snap, 'Crypto')
-    elif page == 'Risk':
-        page_risk(snap)
-    elif page == 'Diagnostics':
-        page_diag(snap)
+1. 🧭 **Radar** — Regime apa? Trade terbaik? Analog historis?
+2. 📡 **Health** — Aman masuk? Breadth + credit + checklist
+3. 🎯 **Playbook** — Full strategy + scenarios + what-if
+4. 🌐 **Markets** → 📊 Opportunities + 📈 Signal Strength + IHSG + US + FX + Komoditas + Crypto
+   - fokus baru: Front-Run Board, Scenario Stack strip, dan action per market
+5. ⚠️ **Risk** — Crash meter + sizing guide
+6. 🔬 **Diag** — Data quality + quad internals
 
-if __name__ == '__main__':
-    main()
+**v10 feature additions:**
+- Signal Strength tetap di Markets
+- Top Drivers Now untuk jelasin kenapa tape bergerak sekarang
+- Setup Quality + Path + Why Not Yet di opportunity board
+- Truth-layer diagnostics: observed vs proxy vs market-implied
+- Price panel coverage / short-history / stale-share diagnostics
+- Prior mode ditampilkan eksplisit (default off)
+- Header/versioning dirapikan agar lebih jujur ke kondisi build
+        """)
+    snap=load_all()
+    most_hated=snap.get("most_hated_rally",{})
+    q=snap["q"]; f=snap["f"]; cr=snap["crash"]; quad=q["quad"]; meta=QUAD_META.get(quad,{})
+    ga="▲" if q.get("growth_acc") else "▼"; ia="▲" if q.get("infl_acc") else "▼"
+    div_badge=f" / M:{q['monthly_quad']}" if q["divergence"]=="divergent" else ""
+    route=snap.get("route",{}); news=snap.get("news_overlay",{})
+    route_meta=route.get("primary_meta",{}); route_label=route_meta.get("label","?"); route_emoji=route_meta.get("emoji","")
+    route_color=route_meta.get("color","#888")
+    # Best long/short from opportunities for quick summary
+    opps_all=snap.get("opportunities",[])
+    best_long=next((o for o in opps_all if "LONG" in o.get("Bias","")),None)
+    best_short=next((o for o in opps_all if "SHORT" in o.get("Bias","")),None)
+    best_long_tk=best_long["Ticker"] if best_long else "—"
+    best_short_tk=best_short["Ticker"] if best_short else "—"
+    # Enhanced status bar with route state
+    news_label=news.get("label","") if news else ""
+    st.markdown(
+        '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:8px 12px;'+
+        'border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);'+
+        'margin-bottom:10px;font-size:11px">'+
+        '<span>'+qb(quad)+div_badge+' <strong>'+meta.get("label","")+"</strong></span>"+
+        '<span style="opacity:.2">|</span>'+
+        '<span style="color:'+route_color+';font-weight:700">'+route_emoji+' '+route_label+'</span>'+
+        '<span style="opacity:.2">|</span>'+
+        '<span>Conf: <strong>'+f'{q["confidence"]:.0%}'+' ('+q.get("conf_band","")+")</strong></span>"+
+        '<span style="opacity:.2">|</span>'+
+        '<span>Growth: <strong>'+ga+'</strong> | Inflasi: <strong>'+ia+'</strong></span>'+
+        '<span style="opacity:.2">|</span>'+
+        '<span>▲ Best Long: <strong>'+best_long_tk+'</strong></span>'+
+        '<span style="opacity:.2">|</span>'+
+        '<span>▼ Best Short: <strong>'+best_short_tk+'</strong></span>'+
+        '<span style="opacity:.2">|</span>'+
+        '<span>Risk: <strong>'+cr["state"]+'</strong> | Exec: <strong>'+cr["exec_mode"]+'</strong></span>'+
+        ('<span style="opacity:.2">|</span><span>Rally Trigger: <strong>'+str(most_hated.get("clear_count","—"))+'/4</strong></span>' if most_hated else '')+
+        ('<span style="opacity:.2">|</span><span style="opacity:.6">'+news_label+'</span>' if news_label else "")+
+        '<span style="opacity:.25;margin-left:auto">'+snap["ts"]+'</span></div>',
+        unsafe_allow_html=True
+    )
+    top_drivers=snap.get("top_drivers",[]) or []
+    if top_drivers:
+        driver_line=" · ".join([f"{d.get('label','')}: {float(d.get('score',0)):.0%}" for d in top_drivers[:3]])
+        st.caption("Top drivers now → "+driver_line)
+    tabs=st.tabs(["🧭 Radar","📡 Health","🎯 Playbook","🌐 Markets","⚠️ Risk","🔬 Diagnostics"])
+    with tabs[0]: page_radar(snap)
+    with tabs[1]: page_health(snap)
+    with tabs[2]: page_playbook(snap)
+    with tabs[3]: page_markets_full(snap)
+    with tabs[4]: page_risk(snap)
+    with tabs[5]: page_diag(snap)
+
+if __name__=="__main__": main()

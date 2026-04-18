@@ -107,9 +107,9 @@ html,[class*="css"]{font-family:'DM Sans',sans-serif}
 """,unsafe_allow_html=True)
 
 # ── WEIGHTS (exact from v33 config/weights.py) ─────────────────────────────────
-STRUCT_W = {"g_level":0.52,"g_mom":0.13,"i_level":0.20,"i_mom":0.10,"policy":0.03,"liq":0.02}
+STRUCT_W = {"g_level":0.35,"g_mom":0.25,"i_level":0.25,"i_mom":0.15,"policy":0.10,"liq":0.10}
 MONTHLY_W = {"g_level":0.20,"g_mom":0.45,"i_level":0.15,"i_mom":0.45,"i_shock":0.15,"policy":0.10,"liq":0.10}
-QUAD_MOD = {"sf_to_q3":0.06,"sf_to_q2":-0.04,"shock_to_q3":0.04,"shock_to_q1":-0.05,"gm_to_q2":0.02,"gm_to_q4":0.02,"cov_penalty":0.60}
+QUAD_MOD = {"sf_to_q3":0.10,"sf_to_q2":-0.08,"shock_to_q3":0.08,"shock_to_q1":-0.10,"gm_to_q2":0.05,"gm_to_q4":0.08,"cov_penalty":0.50}
 MONTHLY_MOD = {"sf_to_q3":0.12,"sf_to_q2":-0.06,"shock_to_q3":0.16,"shock_to_q1":-0.04,"gm_to_q2":0.04,"gm_to_q4":0.06,"cov_penalty":0.55}
 TACT_TRADE_W = {"breadth":0.35,"trend":0.25,"credit":0.20,"vol":0.20}
 TACT_TREND_W = {"spy":0.40,"eqw":0.20,"small":0.15,"sector":0.15,"dollar":0.10}
@@ -167,6 +167,9 @@ FRED_SERIES = {
     "DGS2":"DGS2","DGS10":"DGS10","DGS30":"DGS30","REAL10":"DFII10",
     "BREAKEVEN":"T5YIE","FEDFUNDS":"FEDFUNDS","HYOAS":"BAMLH0A0HYM2","IGSPR":"BAMLC0A0CM",
 }
+BASE_DIR=os.path.dirname(os.path.abspath(__file__)) if "__file__" in globals() else os.getcwd()
+FRED_LOCAL_CACHE_DIR=os.path.join(BASE_DIR,".cache","fred_series")
+os.makedirs(FRED_LOCAL_CACHE_DIR,exist_ok=True)
 US_TICKERS = ["SPY","QQQ","IWM","RSP","XLE","XLF","XLI","XLB","XLK","XLV","XLY","XLP","XLU","XLRE","XLC",
     "HYG","LQD","TLT","IEF","SHY","GLD","GC=F","SI=F","HG=F","CL=F","NG=F","UUP","DX-Y.NYB","EEM","EFA",
     "^VIX","^VXV","^VIX9D","BTC-USD","ETH-USD","SOL-USD","XRP-USD",
@@ -469,6 +472,35 @@ def delta_n(s,n:int)->float:
     s=_s(s)
     if len(s)<n+1: return float("nan")
     return float(s.iloc[-1]-s.iloc[-(n+1)])
+def trailing_mean(s,window:int)->float:
+    s=_s(s)
+    if s.empty: return float("nan")
+    w=max(int(window),1)
+    return float(s.tail(min(len(s),w)).mean())
+def trailing_mean_delta(s,window:int,lag:int)->float:
+    s=_s(s)
+    w=max(int(window),1); l=max(int(lag),1)
+    if len(s)<w+l: return float("nan")
+    cur=float(s.iloc[-w:].mean())
+    prev=float(s.iloc[-(w+l):-l].mean())
+    return cur-prev
+def yoy_series(s,periods:int=12)->pd.Series:
+    s=_s(s)
+    if len(s)<periods+1: return pd.Series(dtype=float)
+    y=pd.to_numeric(s/s.shift(periods)-1.0,errors="coerce").replace([np.inf,-np.inf],np.nan).dropna()
+    return y
+def yoy_trailing_mean(s,periods:int=12,window:int=3)->float:
+    y=yoy_series(s,periods)
+    if y.empty: return float("nan")
+    w=max(int(window),1)
+    return float(y.tail(min(len(y),w)).mean())
+def yoy_trailing_mean_delta(s,periods:int=12,window:int=3,lag:int=3)->float:
+    y=yoy_series(s,periods)
+    w=max(int(window),1); l=max(int(lag),1)
+    if len(y)<w+l: return float("nan")
+    cur=float(y.iloc[-w:].mean())
+    prev=float(y.iloc[-(w+l):-l].mean())
+    return cur-prev
 def roc_acc(s,n:int,lag:int)->Optional[bool]:
     s=_s(s)
     if len(s)<n+lag+2: return None
@@ -678,30 +710,59 @@ def build_transmission_graph(q:Dict, f:Dict, h:Dict, rot:Optional[Dict]=None, ro
         "summary":" → ".join(primary.get("chain",[])[:6]) if primary else "",
     }
 
-@st.cache_data(ttl=TTL,show_spinner=False)
+@st.cache_data(ttl=600,show_spinner=False)
 def fetch_fred(sid:str)->pd.Series:
-    key=os.environ.get("FRED_API_KEY","")
-    try: key=key or st.secrets.get("FRED_API_KEY","")
-    except: pass
-    urls=[f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={sid}"]
-    if key: urls.append(f"https://api.stlouisfed.org/fred/series/observations?series_id={sid}&api_key={key}&file_type=json")
-    sess=requests.Session(); sess.headers.update({"User-Agent":"Mozilla/5.0 MacroRegimePro/6.0"})
-    for url in urls:
+    def _cache_path(series_id:str)->str:
+        return os.path.join(FRED_LOCAL_CACHE_DIR,f"{series_id}.csv")
+    def _load_local(series_id:str)->pd.Series:
+        p=_cache_path(series_id)
+        if not os.path.exists(p):
+            return pd.Series(dtype=float)
         try:
-            r=sess.get(url,timeout=10); r.raise_for_status()
-            if "fredgraph" in url:
-                df=pd.read_csv(StringIO(r.text),index_col=0,parse_dates=True)
-                s=pd.to_numeric(df.iloc[:,0],errors="coerce").dropna()
-                if len(s)>0: return s
-            else:
-                import json; data=json.loads(r.text); obs=data.get("observations",[])
-                if obs:
+            df=pd.read_csv(p,index_col=0,parse_dates=True)
+            s=pd.to_numeric(df.iloc[:,0],errors="coerce").dropna()
+            return s if len(s)>0 else pd.Series(dtype=float)
+        except Exception:
+            return pd.Series(dtype=float)
+    def _save_local(series_id:str, s:pd.Series)->None:
+        try:
+            ss=_s(s)
+            if ss.empty:
+                return
+            ss.to_frame(name=series_id).to_csv(_cache_path(series_id))
+        except Exception:
+            pass
+
+    key=os.environ.get("FRED_API_KEY","")
+    try:
+        key=key or st.secrets.get("FRED_API_KEY","")
+    except Exception:
+        pass
+    urls=[f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={sid}"]
+    if key:
+        urls.append(f"https://api.stlouisfed.org/fred/series/observations?series_id={sid}&api_key={key}&file_type=json")
+    sess=requests.Session(); sess.headers.update({"User-Agent":"Mozilla/5.0 MacroRegimePro/6.1"})
+    for url in urls:
+        for timeout in (6,10,14):
+            try:
+                r=sess.get(url,timeout=timeout)
+                r.raise_for_status()
+                if "fredgraph" in url:
+                    df=pd.read_csv(StringIO(r.text),index_col=0,parse_dates=True)
+                    s=pd.to_numeric(df.iloc[:,0],errors="coerce").dropna()
+                else:
+                    import json
+                    data=json.loads(r.text)
+                    obs=data.get("observations",[])
                     idx=pd.to_datetime([o["date"] for o in obs])
                     vals=pd.to_numeric([o["value"] for o in obs],errors="coerce")
                     s=pd.Series(vals.values,index=idx).dropna()
-                    if len(s)>0: return s
-        except: continue
-    return pd.Series(dtype=float)
+                if len(s)>0:
+                    _save_local(sid,s)
+                    return s
+            except Exception:
+                continue
+    return _load_local(sid)
 
 @st.cache_data(ttl=TTL,show_spinner=False)
 def fetch_prices(tickers:tuple,period:str="5y")->Dict[str,pd.Series]:
@@ -811,6 +872,7 @@ def build_macro_observed(fred:Dict[str,pd.Series])->Tuple[Dict,Dict,int,int]:
                 fred_loaded+=1
                 return True
         return False
+    # Monthly/last-print observed features
     put("indpro_yoy","INDPRO",ret_n,12); put("payrolls_yoy","PAYEMS",ret_n,12)
     put("payrolls_mom","PAYEMS",ret_n,1); put("unrate","UNRATE",last)
     put("unrate_3m_delta","UNRATE",delta_n,3); put("claims_13w_delta","ICSA",delta_n,13)
@@ -825,6 +887,40 @@ def build_macro_observed(fred:Dict[str,pd.Series])->Tuple[Dict,Dict,int,int]:
     put("dgs10","DGS10",last); put("dgs30","DGS30",last)
     put("hy_oas","HYOAS",last); put("hy_oas_1m","HYOAS",delta_n,21)
     put("ig_oas","IGSPR",last); put("ig_oas_1m","IGSPR",delta_n,21)
+
+    def put_q(field:str, series_key:str, fn, *args):
+        s=fred.get(series_key,pd.Series())
+        if not _s(s).empty:
+            v=fn(s,*args)
+            if math.isfinite(v):
+                obs[field]=v
+                source_map[field]="observed_fred"
+                return True
+        return False
+
+    # Quarterly / climate features: 3M trailing averages and changes vs prior 3M block
+    put_q("indpro_qtr_yoy","INDPRO",yoy_trailing_mean,12,3)
+    put_q("indpro_qtr_delta","INDPRO",yoy_trailing_mean_delta,12,3,3)
+    put_q("retail_qtr_yoy","RSAFS",yoy_trailing_mean,12,3)
+    put_q("retail_qtr_delta","RSAFS",yoy_trailing_mean_delta,12,3,3)
+    put_q("payrolls_qtr_yoy","PAYEMS",yoy_trailing_mean,12,3)
+    put_q("payrolls_qtr_delta","PAYEMS",yoy_trailing_mean_delta,12,3,3)
+    put_q("housing_qtr_yoy","HOUST",yoy_trailing_mean,12,3)
+    put_q("housing_qtr_delta","HOUST",yoy_trailing_mean_delta,12,3,3)
+    put_q("ism_qtr_avg","ISM",trailing_mean,3)
+    put_q("ism_qtr_delta","ISM",trailing_mean_delta,3,3)
+    put_q("unrate_qtr_avg","UNRATE",trailing_mean,3)
+    put_q("unrate_qtr_delta","UNRATE",trailing_mean_delta,3,3)
+    put_q("claims_13w_avg","ICSA",trailing_mean,13)
+    put_q("claims_13w_avg_delta","ICSA",trailing_mean_delta,13,13)
+    put_q("cpi_qtr_yoy","CPI",yoy_trailing_mean,12,3)
+    put_q("cpi_qtr_delta","CPI",yoy_trailing_mean_delta,12,3,3)
+    put_q("core_cpi_qtr_yoy","CORECPI",yoy_trailing_mean,12,3)
+    put_q("core_cpi_qtr_delta","CORECPI",yoy_trailing_mean_delta,12,3,3)
+    put_q("corepce_qtr_yoy","COREPCE",yoy_trailing_mean,12,3)
+    put_q("corepce_qtr_delta","COREPCE",yoy_trailing_mean_delta,12,3,3)
+    put_q("breakeven_qtr_avg","BREAKEVEN",trailing_mean,63)
+    put_q("breakeven_qtr_delta","BREAKEVEN",trailing_mean_delta,63,63)
     return obs, source_map, fred_loaded, fred_total
 
 
@@ -874,7 +970,6 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
     source_map.update(observed_sources)
     market_features=build_market_implied_features(prices)
     f.update(market_features)
-    # Yield curve observed path
     d2=f.get("dgs2",float("nan")); d10=f.get("dgs10",float("nan")); d30=f.get("dgs30",float("nan"))
     if math.isfinite(d2) and math.isfinite(d10):
         sp=d10-d2; f["spread_2s10s"]=sp
@@ -885,7 +980,6 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
             f["yield_curve_uninverting"]=(math.isfinite(f.get("spread_2s10s_3m",float("nan"))) and f.get("spread_2s10s_3m",0)>0.20 and sp>-0.25)
     if math.isfinite(d10) and math.isfinite(d30):
         f["spread_10s30s"]=d30-d10
-    # RoC flags
     f["indpro_acc"]=roc_acc(fred.get("INDPRO",pd.Series()),12,3)
     f["payrolls_acc"]=roc_acc(fred.get("PAYEMS",pd.Series()),12,3)
     f["cpi_acc"]=roc_acc(fred.get("CPI",pd.Series()),12,3)
@@ -904,17 +998,17 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
     price_avail=sum(1 for t in ["spy_1m","xli_1m","xly_1m","iwm_1m","oil_1m","gold_1m","dxy_1m"] if math.isfinite(f.get(t,float("nan"))))
     monthly_real_share=price_avail/7.0
     fred_real_share=fred_loaded/max(fred_total,1)
-    structural_real_share=0.55*observed_macro_share+0.25*fred_real_share+0.20*price_panel_coverage
-    data_coverage=clamp(0.50*structural_real_share+0.20*(1-macro_proxy_share)+0.20*(1-price_short_history_share)+0.10*(1-price_stale_share))
+    structural_growth_fields=["indpro_qtr_yoy","retail_qtr_yoy","payrolls_qtr_yoy","housing_qtr_yoy","ism_qtr_avg","unrate_qtr_delta","claims_13w_avg_delta"]
+    structural_infl_fields=["cpi_qtr_yoy","core_cpi_qtr_yoy","breakeven_qtr_avg"]
+    structural_growth_obs_share=sum(1 for k in structural_growth_fields if source_map.get(k)=="observed_fred")/max(len(structural_growth_fields),1)
+    structural_infl_obs_share=sum(1 for k in structural_infl_fields if source_map.get(k)=="observed_fred")/max(len(structural_infl_fields),1)
+    structural_obs_reliability=clamp(0.55*structural_growth_obs_share+0.45*structural_infl_obs_share)
+    structural_real_share=clamp(0.75*structural_obs_reliability+0.25*fred_real_share)
+    data_coverage=clamp(0.65*structural_real_share+0.20*(1-price_short_history_share)+0.15*(1-price_stale_share))
     monthly_data_coverage=clamp(0.45*monthly_real_share+0.20*observed_macro_share+0.20*price_panel_coverage+0.15*(1-price_stale_share))
-    macro_source_quality=clamp(0.45*observed_macro_share+0.20*fred_real_share+0.20*price_panel_coverage+0.10*(1-price_short_history_share)+0.05*(1-price_stale_share))
-    data_source_mode=(
-        "Observed-Heavy" if observed_macro_share>=0.70 and price_panel_coverage>=0.85 else
-        "Hybrid" if observed_macro_share>=0.35 else
-        "Proxy-Heavy"
-    )
+    macro_source_quality=clamp(0.50*structural_real_share+0.20*observed_macro_share+0.15*price_panel_coverage+0.10*(1-price_short_history_share)+0.05*(1-price_stale_share))
+    data_source_mode=("Observed-Heavy" if structural_obs_reliability>=0.70 else "Hybrid" if structural_obs_reliability>=0.35 else "Proxy-Heavy")
 
-    # Dual-horizon feature scaffolding (v33 exact formula preserved)
     oil_3m=f.get("clf_3m",f.get("oil_3m",0.0)); gld_3m=f.get("gld_3m",f.get("gold_3m",0.0))
     uup_3m=f.get("uup_3m",f.get("dxy_3m",0.0)); spy_1m=f.get("spy_1m",0.0)
     xli_1m=f.get("xli_1m",0.0); xly_1m=f.get("xly_1m",0.0); iwm_1m=f.get("iwm_1m",0.0)
@@ -922,6 +1016,7 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
     uup_1m=f.get("uup_1m",f.get("dxy_1m",0.0)); bk1m=f.get("breakeven_1m",0.0)
     cpi=f.get("cpi_yoy",0.025); core=f.get("core_cpi_yoy",0.023)
     hcg=float(cpi-core) if(math.isfinite(cpi) and math.isfinite(core)) else 0.0
+
     gi=[th(f.get("indpro_yoy",0)-0.02,0.05),th(f.get("retail_yoy",0)-0.03,0.06),
         th(f.get("payrolls_yoy",0)-0.015,0.03),th(f.get("housing_yoy",0),0.10),
         th((f.get("ism_last",50)-50)/100,0.04),th(-f.get("unrate_3m_delta",0),0.12),
@@ -938,21 +1033,61 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
         1 if math.isfinite(f.get("ism_last",float("nan"))) and f.get("ism_last",50)<50 else 0,
         1 if math.isfinite(f.get("housing_yoy",float("nan"))) and f.get("housing_yoy",0)<0 else 0])/4.0
     inf_shock=nf(nm(th(nf(oil_3m),0.22),th((f.get("breakeven",2.2)-2.2)/2.0,0.24),th(nf(uup_3m),0.14)))
+
+    def obs_val(field:str, neutral:float)->float:
+        v=f.get(field,float("nan"))
+        if source_map.get(field)=="observed_fred" and math.isfinite(v):
+            return float(v)
+        return float(neutral)
+
+    g_struct_inputs=[
+        th(obs_val("indpro_qtr_yoy",0.02)-0.02,0.045),
+        th(obs_val("retail_qtr_yoy",0.03)-0.03,0.050),
+        th(obs_val("payrolls_qtr_yoy",0.015)-0.015,0.025),
+        th(obs_val("housing_qtr_yoy",0.0),0.080),
+        th((obs_val("ism_qtr_avg",50.0)-50.0)/100.0,0.030),
+        th(-obs_val("unrate_qtr_delta",0.0),0.060),
+        th(-obs_val("claims_13w_avg_delta",0.0)/35.0,0.600),
+    ]
+    g_struct_mom_inputs=[
+        th(obs_val("indpro_qtr_delta",0.0),0.008),
+        th(obs_val("retail_qtr_delta",0.0),0.010),
+        th(obs_val("payrolls_qtr_delta",0.0),0.006),
+        th(obs_val("housing_qtr_delta",0.0),0.020),
+        th(obs_val("ism_qtr_delta",0.0)/100.0,0.012),
+        th(-obs_val("unrate_qtr_delta",0.0),0.050),
+    ]
+    i_struct_inputs=[
+        th(obs_val("cpi_qtr_yoy",0.025)-0.025,0.012),
+        th(obs_val("core_cpi_qtr_yoy",0.025)-0.025,0.010),
+        th((obs_val("breakeven_qtr_avg",2.2)-2.2)/2.0,0.180),
+    ]
+    i_struct_mom_inputs=[
+        th(obs_val("cpi_qtr_delta",0.0),0.0035),
+        th(obs_val("core_cpi_qtr_delta",0.0),0.0030),
+        th(obs_val("breakeven_qtr_delta",0.0)/2.0,0.050),
+    ]
+    g_struct_level=nm(*g_struct_inputs)
+    g_struct_mom=nm(*g_struct_mom_inputs)
+    i_struct_level=nm(*i_struct_inputs)
+    i_struct_mom=nm(*i_struct_mom_inputs)
+    structural_slowdown_flags=sum([
+        1 if source_map.get("unrate_qtr_delta")=="observed_fred" and obs_val("unrate_qtr_delta",0.0)>0.03 else 0,
+        1 if source_map.get("claims_13w_avg_delta")=="observed_fred" and obs_val("claims_13w_avg_delta",0.0)>0 else 0,
+        1 if source_map.get("ism_qtr_avg")=="observed_fred" and obs_val("ism_qtr_avg",50.0)<50 else 0,
+        1 if source_map.get("housing_qtr_yoy")=="observed_fred" and obs_val("housing_qtr_yoy",0.0)<0 else 0,
+    ])/4.0
+    structural_inf_shock=nf(nm(
+        th(max(0.0,obs_val("cpi_qtr_delta",0.0)),0.0035),
+        th(max(0.0,obs_val("core_cpi_qtr_delta",0.0)),0.0030),
+        th(max(0.0,obs_val("breakeven_qtr_delta",0.0))/2.0,0.050),
+    ))
+
     monthly_gi=[th(nf(spy_1m),0.05),th(nf(xli_1m),0.05),th(nf(xly_1m),0.05),th(nf(iwm_1m),0.07),th(-nf(uup_1m),0.06)]
     monthly_ii=[th(nf(hcg),0.004),th(nf(oil_1m),0.06),th(nf(gld_1m),0.05),th(nf(bk1m),0.08),th(-nf(uup_1m),0.05)]
     monthly_g_signal=nm(*monthly_gi); monthly_i_signal=nm(*monthly_ii)
-    # Structural truth should be slower and less tape-driven than monthly weather.
-    # When observed macro coverage is weak, damp structural momentum and fast shock contamination
-    # instead of letting proxy/tape features force a quarterly flip.
-    structural_obs_reliability=clamp(0.65*observed_macro_share+0.35*fred_real_share)
-    structural_proxy_damp=clamp(1.0-0.70*macro_proxy_share,0.25,1.0)
-    structural_speed_damp=clamp(0.25+0.75*structural_obs_reliability,0.25,1.0)
-    g_struct_level=nf(g_level*structural_proxy_damp)
-    g_struct_mom=nf(g_mom*0.55*structural_speed_damp)
     g_month_level=nf(0.65*g_level+0.35*g_mom)
     g_month_mom=nf(0.45*g_mom+0.55*monthly_g_signal)
-    i_struct_level=nf(i_level*structural_proxy_damp)
-    i_struct_mom=nf(i_mom*0.50*structural_speed_damp)
     i_month_level=nf(0.55*i_level+0.25*i_mom+0.20*th(nf(hcg),0.004))
     i_month_mom=nf(0.45*i_mom+0.55*monthly_i_signal)
     policy_score=th(-nf(f.get("policy_rate_3m",0.0)),0.50)
@@ -961,7 +1096,6 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
     m_policy=nf(0.60*policy_score+0.40*th(-nf(f.get("policy_rate_3m",0.0)),0.25))
     m_liq=nf(0.50*liq_score+0.50*th(nf(liq_proxy),0.35))
     m_shock=nf(nm(max(0.0,th(nf(hcg),0.004)),max(0.0,th(nf(oil_1m),0.06)),max(0.0,th(nf(bk1m),0.08))))
-
     prior_mode=get_regime_prior_mode()
     f.update({
         "g_struct_level":g_struct_level,"g_struct_mom":g_struct_mom,
@@ -972,6 +1106,8 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
         "policy_score":policy_score,"liq_score":liq_score,
         "g_level":g_level,"g_mom":g_mom,"i_level":i_level,"i_mom":i_mom,
         "slowdown_flags":sf,"inf_shock":inf_shock,"headline_core_gap":hcg,
+        "structural_slowdown_flags":structural_slowdown_flags,
+        "structural_inf_shock":structural_inf_shock,
         "data_coverage":data_coverage,"monthly_data_coverage":monthly_data_coverage,
         "macro_proxy_share":macro_proxy_share,"fred_real_share":fred_real_share,
         "macro_observed_share":observed_macro_share,"macro_source_quality":macro_source_quality,
@@ -984,9 +1120,11 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
         "macro_source_detail":source_detail,
         "macro_observed_fields":[k for k in raw_macro_keys if source_map.get(k)=="observed_fred"],
         "macro_proxy_fields":[k for k in raw_macro_keys if source_map.get(k)!="observed_fred"],
+        "structural_growth_obs_share":structural_growth_obs_share,
+        "structural_infl_obs_share":structural_infl_obs_share,
         "structural_obs_reliability":structural_obs_reliability,
-        "structural_proxy_damp":structural_proxy_damp,
-        "structural_speed_damp":structural_speed_damp,
+        "structural_proxy_damp":1.0-macro_proxy_share,
+        "structural_speed_damp":structural_obs_reliability,
         "prior_mode":prior_mode,
         "prior_mode_active":prior_mode!="off",
         "_fred_loaded":fred_loaded,"_fred_total":fred_total,"_proxy_share":macro_proxy_share,
@@ -1019,13 +1157,12 @@ def build_quad(f:Dict)->Dict:
     sf=f.get("slowdown_flags",0.0); shock=f.get("inf_shock",0.0)
     cov=f.get("data_coverage",0.5); proxy=f.get("macro_proxy_share",1.0)
     mcov=f.get("monthly_data_coverage",0.5)
-    struct_sf=nf(sf)*clamp(f.get("structural_speed_damp",0.5))
-    struct_shock=nf(shock)*clamp(0.25+0.75*f.get("structural_obs_reliability",0.5))
-    structural_proxy=clamp(1.0-f.get("structural_obs_reliability",0.0))
+    struct_sf=nf(f.get("structural_slowdown_flags",sf))*clamp(0.25+0.75*f.get("structural_obs_reliability",0.5))
+    struct_shock=nf(f.get("structural_inf_shock",0.0))*clamp(0.25+0.75*f.get("structural_obs_reliability",0.5))
     s_probs,s_quad,s_next,s_conf,s_gc,s_ic,s_pc=_score_block(
         f.get("g_struct_level",0),f.get("g_struct_mom",0),
         f.get("i_struct_level",0),f.get("i_struct_mom",0),
-        f.get("policy_score",0),f.get("liq_score",0),struct_sf,struct_shock,cov,structural_proxy,STRUCT_W,QUAD_MOD,False)
+        f.get("policy_score",0),f.get("liq_score",0),struct_sf,struct_shock,cov,proxy,STRUCT_W,QUAD_MOD,False)
     m_probs,m_quad,m_next,m_conf,m_gc,m_ic,m_pc=_score_block(
         f.get("g_month_level",0),f.get("g_month_mom",0),
         f.get("i_month_level",0),f.get("i_month_mom",0),

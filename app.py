@@ -31,9 +31,13 @@ import requests
 import streamlit as st
 
 try:
-    from data.news_loader import load_news_signals as _load_live_news_signals
+    from data.news_loader import load_news_signals as _load_news_signals
 except Exception:
-    _load_live_news_signals = None
+    _load_news_signals = None
+try:
+    from data.event_loader import load_macro_calendar as _load_macro_calendar
+except Exception:
+    _load_macro_calendar = None
 
 st.set_page_config(page_title="MacroRegime Pro",page_icon="🧭",layout="wide",initial_sidebar_state="collapsed")
 st.markdown("""
@@ -972,13 +976,16 @@ def load_all()->Dict:
     opps=build_opportunities(prices,q,f,h,rot,ih,most_hated,risk_ranges=risk_ranges,sizing=sizing,price_meta=price_meta,route=route)
     signal_strength=build_signal_strength(opps,prices,q,f,h,risk_ranges=risk_ranges,route=route,crash=cr,sizing=sizing)
     news_overlay=build_news_catalyst_overlay(q,f,h)
+    event_lite=build_event_lite_overlay(q,f,h,news_overlay)
+    scenario_stack=build_scenario_stack(sc,event_lite,most_hated)
+    front_run_board=build_front_run_market_board({'opportunities': opps, 'forward_radar': fwd_radar})
     top_drivers=build_top_drivers_now(q,f,h,cr,route,most_hated,news_overlay)
     return dict(prices=prices,price_meta=price_meta,fred=fred,f=f,q=q,h=h,crash=cr,rotation=rot,ihsg=ih,
-                analog=analog,playbooks=pb,scenarios=sc,checklists=chk,
+                analog=analog,playbooks=pb,scenarios=sc,scenario_stack=scenario_stack,checklists=chk,
                 most_hated_rally=most_hated,opportunities=opps,signal_strength=signal_strength,family=family,risk_ranges=risk_ranges,
                 position_sizing=sizing,asset_checklists=asset_chk,macro_impact=macro_impact,
-                forward_radar=fwd_radar,strong_weak_all=sw_all,
-                route=route,asset_translation=asset_trans,news_overlay=news_overlay,top_drivers=top_drivers,
+                forward_radar=fwd_radar,front_run_board=front_run_board,strong_weak_all=sw_all,
+                route=route,asset_translation=asset_trans,news_overlay=news_overlay,event_lite=event_lite,top_drivers=top_drivers,
                 decision_context={
                     "route_primary":route.get("primary"),
                     "route_bias":route.get("route_bias"),
@@ -2872,15 +2879,13 @@ def build_asset_translation(route_state:str, q:Dict, h:Dict, f:Dict, route:Optio
     return out
 
 
-
-
 def build_news_catalyst_overlay(q:Dict, f:Dict, h:Dict) -> Dict:
-    """Event-lite catalyst overlay: preserve price-derived hazard engine, then optionally blend lightweight live headline counts.
-    Core regime math stays unchanged; this is an adaptive overlay only.
-    """
+    """v33-inspired News Event Engine — derive hazard scores from price action."""
     oil_3m=nf(f.get("clf_3m",f.get("oil_3m",0.0)))
-    uup_1m=nf(f.get("uup_1m",0.0)); tlt_1m=nf(f.get("tlt_1m",0.0))
-    vix_1m=nf(f.get("vix_1m",0.0)); spy_1m=nf(f.get("spy_1m",0.0)); iwm_1m=nf(f.get("iwm_1m",0.0))
+    uup_1m=nf(f.get("uup_1m",0.0)); uup_3m=nf(f.get("uup_3m",0.0))
+    tlt_1m=nf(f.get("tlt_1m",0.0)); vix=f.get("vix_last",20.0)
+    vix_1m=nf(f.get("vix_1m",0.0)); spy_1m=nf(f.get("spy_1m",0.0))
+    iwm_1m=nf(f.get("iwm_1m",0.0))
     sf=q.get("slowdown_flags",0.0); shock=q.get("inf_shock",0.0)
     oil_up=max(0.0,oil_3m); oil_down=max(0.0,-oil_3m)
     usd_up=max(0.0,uup_1m); usd_down=max(0.0,-uup_1m)
@@ -2888,53 +2893,25 @@ def build_news_catalyst_overlay(q:Dict, f:Dict, h:Dict) -> Dict:
     breadth_stress=max(0.0,-iwm_1m+spy_1m) if spy_1m>0 else 0.0
     breadth_relief=max(0.0,iwm_1m-spy_1m) if iwm_1m>spy_1m else 0.0
 
-    war_oil_px=clamp(0.24*clamp(0.5+oil_up/0.12)+0.20*clamp(0.5+usd_up/0.04)+0.20*shock+0.18*clamp(0.5+vol_stress)+0.18*clamp(0.5+breadth_stress/0.03))
-    policy_pressure_px=clamp(0.24*clamp(0.5+long_end/0.05)+0.20*sf+0.18*clamp(0.5+usd_up/0.04)+0.18*clamp(0.5+vol_stress)+0.20*shock)
-    relief_px=clamp(0.30*clamp(0.5+oil_down/0.10)+0.20*clamp(0.5+usd_down/0.04)+0.25*clamp(0.5+breadth_relief/0.03)+0.25*(1-shock))
+    war_oil=clamp(0.24*clamp(0.5+oil_up/0.12)+0.20*clamp(0.5+usd_up/0.04)+0.20*shock+0.18*clamp(0.5+vol_stress)+0.18*clamp(0.5+breadth_stress/0.03))
+    policy_pressure=clamp(0.24*clamp(0.5+long_end/0.05)+0.20*sf+0.18*clamp(0.5+usd_up/0.04)+0.18*clamp(0.5+vol_stress)+0.20*shock)
+    relief=clamp(0.30*clamp(0.5+oil_down/0.10)+0.20*clamp(0.5+usd_down/0.04)+0.25*clamp(0.5+breadth_relief/0.03)+0.25*(1-shock))
 
-    live_news = {'state':'quiet','counts':{'escalation':0,'relief':0,'oil':0,'rates':0,'usd':0},'top_headlines':[], 'generated_at':''}
-    try:
-        if _load_live_news_signals is not None:
-            live_news = _load_live_news_signals(force_refresh=bool(os.environ.get('MRP_LIVE_NEWS','0')=='1'))
-    except Exception:
-        live_news = {'state':'quiet','counts':{'escalation':0,'relief':0,'oil':0,'rates':0,'usd':0},'top_headlines':[], 'generated_at':''}
-
-    counts = live_news.get('counts',{}) or {}
-    esc = float(counts.get('escalation',0) or 0)
-    rel = float(counts.get('relief',0) or 0)
-    oil_news = float(counts.get('oil',0) or 0)
-    rates_news = float(counts.get('rates',0) or 0)
-    usd_news = float(counts.get('usd',0) or 0)
-
-    news_war = clamp(0.35*clamp(esc/5)+0.35*clamp(oil_news/4)+0.15*clamp(usd_news/4)+0.15*clamp(rates_news/4))
-    news_relief = clamp(0.60*clamp(rel/4)+0.20*clamp((4-esc)/4)+0.20*clamp((4-oil_news)/4))
-    news_policy = clamp(0.55*clamp(rates_news/4)+0.25*clamp(usd_news/4)+0.20*clamp(esc/5))
-
-    blend = 0.22 if live_news.get('top_headlines') else 0.0
-    war_oil = clamp((1-blend)*war_oil_px + blend*news_war)
-    policy_pressure = clamp((1-blend)*policy_pressure_px + blend*news_policy)
-    relief = clamp((1-blend)*relief_px + blend*news_relief)
-
-    def state(war,pol,relf):
+    def state(war,pol,rel):
         if war>=0.62: return "war_oil","⚔️ War/Oil Shock Active","Oil dan USD dominan. Exporter menang, importer suffering.","bad"
-        if pol>=0.62: return "policy_pressure","📋 Policy Pressure Active","Long-end dan smallcap menderita. Watch breadth dan credit.","warn"
-        if relf>=0.55: return "relief","🕊️ Relief/De-escalation","Pressure mereda. Watch breadth broadening dan EM rotation.","good"
+        if pol>=0.62: return "policy_pressure","📋 Policy Pressure Active","Long-end dan smallcap menderita. Watchlist breadth dan credit.","warn"
+        if rel>=0.55: return "relief","🕊️ Relief/De-escalation","Pressure mereda. Watch breadth broadening dan EM rotation.","good"
         return "quiet","😶 Market Quiet","Tidak ada catalyst dominan saat ini. Follow the regime.","neu"
 
     s,label,desc,cls=state(war_oil,policy_pressure,relief)
-    top_headlines = [str(item.get('title','')).strip() for item in (live_news.get('top_headlines') or [])[:5] if str(item.get('title','')).strip()]
     events=[
         {"type":"MACRO","label":f"War/Oil Hazard: {war_oil:.0%}","impact":"high" if war_oil>=0.5 else "watch"},
         {"type":"MACRO","label":f"Policy Pressure: {policy_pressure:.0%}","impact":"high" if policy_pressure>=0.5 else "watch"},
         {"type":"MACRO","label":f"Relief Signal: {relief:.0%}","impact":"medium" if relief>=0.4 else "watch"},
     ]
-    return {
-        "state":s,"label":label,"desc":desc,"cls":cls,
-        "war_oil":war_oil,"policy_pressure":policy_pressure,"relief":relief,
-        "war_oil_px":war_oil_px,"policy_pressure_px":policy_pressure_px,"relief_px":relief_px,
-        "blend":blend,"news_counts":counts,"top_headlines":top_headlines,"generated_at":live_news.get('generated_at',''),
-        "events":events,
-    }
+    return {"state":s,"label":label,"desc":desc,"cls":cls,"war_oil":war_oil,
+            "policy_pressure":policy_pressure,"relief":relief,"events":events}
+
 
 def build_forward_radar(prices:Dict[str,pd.Series], q:Dict, f:Dict) -> List[Dict]:
     """v33 Forward Radar: setups not actionable yet but on watchlist."""
@@ -3138,180 +3115,296 @@ def _opp_card_html(rows:List[Dict], empty_text:str, accent:str, icon:str)->str:
 
 
 
+def build_event_lite_overlay(q:Dict, f:Dict, h:Dict, news_overlay:Optional[Dict]=None) -> Dict:
+    """Adaptive but lightweight event/news layer. Core quad math stays untouched."""
+    news_overlay = news_overlay or {}
+    live = bool(int(os.environ.get("MRP_LIVE_NEWS", "0") or "0"))
+    top_headlines: List[Dict[str, str]] = []
+    events: List[Dict[str, object]] = []
+    catalyst_score = 0.0
+    headline_state = 'quiet'
+    try:
+        if live and _load_news_signals is not None:
+            ns = _load_news_signals(force_refresh=True) or {}
+            top_headlines = list(ns.get('top_headlines', []) or [])[:6]
+            headline_state = str(ns.get('state', 'quiet') or 'quiet')
+            counts = ns.get('counts', {}) or {}
+            catalyst_score += 0.18 * clamp((counts.get('oil', 0) or 0) / 4)
+            catalyst_score += 0.18 * clamp((counts.get('rates', 0) or 0) / 4)
+            catalyst_score += 0.18 * clamp((counts.get('escalation', 0) or 0) / 4)
+            catalyst_score += 0.12 * clamp((counts.get('relief', 0) or 0) / 4)
+    except Exception:
+        pass
+    try:
+        if live and _load_macro_calendar is not None:
+            cal = _load_macro_calendar(force_refresh=True) or {}
+            events = list(cal.get('events', []) or [])[:8]
+            high = sum(1 for e in events if str(e.get('importance', '')).lower() == 'high')
+            catalyst_score += 0.22 * clamp(high / 4)
+    except Exception:
+        pass
 
-def build_scenario_stack_payload(snap:Dict)->Dict:
-    """Compact scenario stack from existing scenario probabilities. Keep core logic untouched."""
-    sc = snap.get('scenarios', {}) or {}
+    oil_3m = nf(f.get('clf_3m', f.get('oil_3m', 0.0)))
+    usd_1m = nf(f.get('uup_1m', 0.0))
+    weather = clamp(h.get('weather', 0.5))
+    shock = clamp(q.get('inf_shock', 0.0))
+    slowdown = clamp(q.get('slowdown_flags', 0.0))
+    trans = []
+    if oil_3m > 0.05:
+        trans.append({'driver': 'Oil naik', 'chain': 'energy producers benefit → shipping/tankers benefit → importer pain / inflation pressure', 'impact': 'Oil / Energy / EM importers selective'})
+    elif oil_3m < -0.05:
+        trans.append({'driver': 'Oil rollback', 'chain': 'inflation cools → USD softens → breadth broadens → beta / EM catch-up', 'impact': 'Financials / small caps / EM / crypto beta'})
+    if usd_1m > 0.02:
+        trans.append({'driver': 'USD firm', 'chain': 'funding pressure → EM FX drag → importers pressured', 'impact': 'USD beneficiaries / defensive bias'})
+    elif usd_1m < -0.02:
+        trans.append({'driver': 'USD easing', 'chain': 'EM relief → carry improves → beta broadens', 'impact': 'EM / commodity FX / crypto assist'})
+    if shock > 0.25:
+        trans.append({'driver': 'Inflation residual', 'chain': 'rates / oil sensitivity stay alive', 'impact': 'energy/gold ok, fragile beta capped'})
+    if weather > 0.56:
+        trans.append({'driver': 'Breadth healing', 'chain': 'equal-weight / laggard catch-up', 'impact': 'IWM / RSP / cyclicals / second-wave beta'})
+
+    # marry existing price-derived overlay with optional live catalysts
+    base_label = str((news_overlay or {}).get('label', '') or '')
+    catalyst_score = clamp(catalyst_score + 0.22 * clamp((news_overlay or {}).get('score', 0.0) or 0.0))
+    return {
+        'state': headline_state,
+        'score': catalyst_score,
+        'label': base_label,
+        'headlines': top_headlines,
+        'calendar': events,
+        'transmission': trans[:5],
+        'live_enabled': live,
+    }
+
+
+def build_scenario_stack(sc:Dict, event_lite:Optional[Dict]=None, most_hated:Optional[Dict]=None) -> Dict:
+    """Lightweight scenario stack: primary / secondary / residual drag / tail risk."""
+    event_lite = event_lite or {}
+    most_hated = most_hated or {}
     items = []
-    for name, meta in sc.items():
-        try:
-            p = float(meta.get('probability', 0.0) or 0.0)
-        except Exception:
-            p = 0.0
-        items.append({
-            'name': name,
-            'probability': p,
-            'winners': meta.get('winners', []) or [],
-            'losers': meta.get('losers', []) or [],
-            'invalidators': meta.get('invalidators', []) or [],
-        })
-    items.sort(key=lambda x: x['probability'], reverse=True)
-    primary = items[0] if items else None
-    secondary = items[1] if len(items) > 1 else None
-    stress_keywords = ('shock','blockade','tightening','pressure','unwind','bubble','crash','riskoff')
-    drag = next((x for x in items[1:] if any(k in x['name'].lower() for k in stress_keywords)), secondary)
-    tail = next((x for x in items[2:] if x is not drag and any(k in x['name'].lower() for k in ('blockade','war','bubble','carry','crash'))), items[2] if len(items) > 2 else None)
-    return {'primary': primary, 'secondary': secondary, 'residual_drag': drag, 'tail_risk': tail, 'all': items[:6]}
+    for name, meta in (sc or {}).items():
+        p = float(meta.get('probability', 0.0) or 0.0)
+        items.append({'name': name, 'probability': p, 'winners': meta.get('winners', []), 'losers': meta.get('losers', []), 'invalidators': meta.get('invalidators', [])})
+    items = sorted(items, key=lambda x: x['probability'], reverse=True)
+    primary = items[0] if items else {}
+    secondary = items[1] if len(items) > 1 else {}
+    # residual drag: prefer names with shock / dollar / unwind / blockade / q3/q4 flavor
+    residual = {}
+    for it in items:
+        nl = it['name'].lower()
+        if any(k in nl for k in ['shock', 'dollar', 'unwind', 'blockade', 'stagflation', 'q3', 'q4', 'carry']):
+            residual = it
+            break
+    if not residual and len(items) > 2:
+        residual = items[2]
+    tail = {}
+    for it in items[::-1]:
+        nl = it['name'].lower()
+        if any(k in nl for k in ['blockade', 'bubble', 'panic', 'crash', 'carry unwind']):
+            tail = it
+            break
+    if not tail and items:
+        tail = items[min(3, len(items)-1)]
+    # add most hated state as context if relevant
+    branch = str(most_hated.get('branch_state', '') or '')
+    if branch in {'arming', 'pre_confirmed', 'active'} and primary:
+        primary = dict(primary)
+        primary['name'] = f"{primary['name']} · branch={branch}"
+    return {'primary': primary, 'secondary': secondary, 'residual_drag': residual, 'tail_risk': tail, 'all': items[:6]}
 
 
-def render_scenario_stack_strip(snap:Dict)->None:
-    stack = build_scenario_stack_payload(snap)
+def render_scenario_stack_strip(stack:Dict)->None:
+    sh("🧩 SCENARIO STACK")
+    c1,c2,c3,c4 = st.columns(4)
     cards = [
-        ('Primary', stack.get('primary'), '#3dbb6c'),
-        ('Secondary', stack.get('secondary'), '#6496ff'),
-        ('Residual Drag', stack.get('residual_drag'), '#e5a020'),
-        ('Tail Risk', stack.get('tail_risk'), '#e05252'),
+        ('Primary', stack.get('primary', {}), 'good'),
+        ('Secondary', stack.get('secondary', {}), 'warn'),
+        ('Residual Drag', stack.get('residual_drag', {}), 'bad'),
+        ('Tail Risk', stack.get('tail_risk', {}), 'warn'),
     ]
-    cols = st.columns(4)
-    for col, (title, item, color) in zip(cols, cards):
+    for col, (label, item, cls) in zip([c1,c2,c3,c4], cards):
         with col:
-            if not item:
-                mc(title, '—', '', 'neu')
-                continue
-            nm = str(item.get('name','—'))
-            prob = float(item.get('probability', 0.0) or 0.0)
-            subtitle = ', '.join(item.get('winners', [])[:2]) or '—'
-            st.markdown(
-                f'<div class="mc" style="border-left:3px solid {color};min-height:92px">'
-                f'<div class="lb">{html.escape(title)}</div>'
-                f'<div class="vl" style="font-size:15px">{html.escape(nm[:58])}</div>'
-                f'<div class="sb">{prob:.0%} · {html.escape(subtitle[:64])}</div>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
+            mc(label, str(item.get('name', '—'))[:44], f"prob {float(item.get('probability', 0.0) or 0.0):.0%}", cls)
 
 
-def _front_run_market_views(snap:Dict)->Dict[str,Dict[str,List[Dict]]]:
-    opps = snap.get('opportunities', []) or []
-    fwd = snap.get('forward_radar', []) or []
-    by = {m:{'now_long':[],'now_short':[],'front_run_long':[],'front_run_short':[],'avoid':[]} for m in ['US','IHSG','FX','Commodities','Crypto']}
+def _safe_market_name(r:Dict) -> str:
+    m = str(r.get('Market', '') or r.get('market', '') or '').strip()
+    if m:
+        return m
+    tk = str(r.get('Ticker', '') or r.get('ticker', '') or '')
+    if tk.endswith('.JK'):
+        return 'IHSG'
+    if tk in FX_TICKERS:
+        return 'FX'
+    if tk in COMM_TICKERS:
+        return 'Commodities'
+    if tk in CRYPTO_TICKERS:
+        return 'Crypto'
+    return 'US'
+
+
+def build_front_run_market_board(snap:Dict) -> Dict[str, Dict[str, List[Dict]]]:
+    """Ticker-first front-run board while preserving old opportunity/watch logic."""
+    opps = list(snap.get('opportunities', []) or [])
+    radar = list(snap.get('forward_radar', []) or [])
+    out = {
+        'US': {'long_now': [], 'short_now': [], 'front_run_long': [], 'front_run_short': [], 'avoid': []},
+        'IHSG': {'buy_now': [], 'front_run_buy': [], 'avoid': [], 'defensive': []},
+        'FX': {'long_now': [], 'short_now': [], 'front_run_long': [], 'front_run_short': [], 'avoid': []},
+        'Commodities': {'long_now': [], 'short_now': [], 'front_run_long': [], 'front_run_short': [], 'avoid': []},
+        'Crypto': {'long_now': [], 'short_now': [], 'front_run_long': [], 'front_run_short': [], 'avoid': []},
+    }
+
+    def _base_row_from_opp(r:Dict)->Dict:
+        return {
+            'ticker': r.get('Ticker', ''),
+            'ticker_display': r.get('Ticker', ''),
+            'bias': r.get('Bias', ''),
+            'setup': r.get('Setup', ''),
+            'trigger': r.get('Trigger', ''),
+            'why_not_yet': r.get('Why Not Yet', ''),
+            'invalidation': r.get('Invalidation', ''),
+            'target': r.get('Target', ''),
+            'score': r.get('EV+', r.get('Score', '')),
+            'market': _safe_market_name(r),
+        }
 
     for r in opps:
-        m = str(r.get('Market','US'))
-        if m not in by: continue
-        b = str(r.get('Bias',''))
-        row = {
-            'Ticker': r.get('Ticker','—'),
-            'Bias': b,
-            'Setup': r.get('Setup','—'),
-            'Path': r.get('Path','—'),
-            'Entry Zone': r.get('Entry Zone','—'),
-            'Invalidation': r.get('Invalidation','—'),
-            'Target': r.get('Target','—'),
-            'Why Now': r.get('Why Now','—'),
-            'Why Not Yet': r.get('Why Not Yet','—'),
-            'EV': r.get('EV','—'),
-            'score': float(r.get('_ev',0.0) or 0.0),
-        }
-        if m == 'IHSG':
-            if 'LONG' in b:
-                by[m]['now_long'].append(row)
-            elif 'SHORT' in b or 'AVOID' in b:
-                by[m]['avoid'].append(row)
-            elif b.startswith('WATCH'):
-                by[m]['front_run_long'].append(row)
-        else:
-            if 'LONG' in b:
-                by[m]['now_long'].append(row)
-            elif 'SHORT' in b:
-                by[m]['now_short'].append(row)
-            elif b.startswith('WATCH-LONG'):
-                by[m]['front_run_long'].append(row)
-            elif b.startswith('WATCH-SHORT'):
-                by[m]['front_run_short'].append(row)
-
-    # forward radar enrichment
-    for r in fwd:
-        tk = str(r.get('ticker',''))
-        side = str(r.get('side','LONG')).upper()
-        disp_tk = str(r.get('ticker_display', tk))
-        market='US'
-        if tk.endswith('.JK'): market='IHSG'
-        elif tk in FX_TICKERS: market='FX'
-        elif tk in COMM_TICKERS: market='Commodities'
-        elif tk in CRYPTO_TICKERS: market='Crypto'
-        row = {
-            'Ticker': disp_tk,
-            'Bias': side,
-            'Setup': r.get('status','On radar'),
-            'Path': 'Front-Run',
-            'Entry Zone': '—',
-            'Invalidation': 'see trigger fail',
-            'Target': '—',
-            'Why Now': 'watchlist from forward radar',
-            'Why Not Yet': r.get('why_not_yet','—'),
-            'EV': r.get('signal_quality','—'),
-            'score': 0.30,
-            'Trigger': r.get('trigger','—'),
-            '1M': r.get('momentum_1m','—'),
-        }
+        market = _safe_market_name(r)
+        row = _base_row_from_opp(r)
+        bias = str(row['bias']).upper()
         if market == 'IHSG':
-            by[market]['front_run_long'].append(row)
-        elif side == 'LONG':
-            by[market]['front_run_long'].append(row)
+            if 'LONG' in bias:
+                out['IHSG']['buy_now'].append(row)
+            elif 'WATCH' in bias:
+                out['IHSG']['front_run_buy'].append(row)
+            else:
+                out['IHSG']['avoid'].append(row)
         else:
-            by[market]['front_run_short'].append(row)
+            if 'LONG' in bias:
+                out[market]['long_now'].append(row)
+            elif 'SHORT' in bias:
+                out[market]['short_now'].append(row)
+            elif 'WATCH' in bias:
+                side = str(r.get('Watch Side', '') or r.get('Side', '') or '').upper()
+                if 'SHORT' in side:
+                    out[market]['front_run_short'].append(row)
+                else:
+                    out[market]['front_run_long'].append(row)
+            else:
+                out[market]['avoid'].append(row)
 
-    for m, buckets in by.items():
-        for k in buckets:
-            # dedupe by ticker and sort by score where possible
-            seen = {}
-            for row in buckets[k]:
-                seen[str(row.get('Ticker'))] = row if str(row.get('Ticker')) not in seen else max([seen[str(row.get('Ticker'))], row], key=lambda x: float(x.get('score',0.0) or 0.0))
-            buckets[k] = sorted(seen.values(), key=lambda x: float(x.get('score',0.0) or 0.0), reverse=True)
-    return by
+    for r in radar:
+        market = _safe_market_name(r)
+        row = {
+            'ticker': r.get('ticker', ''),
+            'ticker_display': r.get('ticker_display', r.get('ticker', '')),
+            'bias': r.get('side', ''),
+            'setup': r.get('status', ''),
+            'trigger': r.get('trigger', ''),
+            'why_not_yet': r.get('why_not_yet', ''),
+            'invalidation': r.get('invalidator', ''),
+            'target': r.get('target_hint', ''),
+            'score': r.get('signal_quality', ''),
+            'market': market,
+        }
+        side = str(r.get('side', '') or '').upper()
+        if market == 'IHSG':
+            out['IHSG']['front_run_buy'].append(row)
+        else:
+            if 'SHORT' in side:
+                out[market]['front_run_short'].append(row)
+            else:
+                out[market]['front_run_long'].append(row)
+
+    # dedup and cap
+    for market, sec in out.items():
+        for key, rows in sec.items():
+            seen = set(); clean = []
+            for r in rows:
+                tk = r.get('ticker_display') or r.get('ticker')
+                if tk and tk not in seen:
+                    seen.add(tk); clean.append(r)
+            sec[key] = clean[:8]
+    return out
 
 
-def render_front_run_market_views(snap:Dict)->None:
-    views = _front_run_market_views(snap)
+def render_event_lite_panel(ev:Dict)->None:
+    with st.expander("📰 Event-lite catalyst filter (adaptive, non-core)", expanded=False):
+        st.caption("Catalyst penting saja. Ini overlay untuk bantu front-run, bukan pengubah core quad math.")
+        c1,c2,c3 = st.columns(3)
+        with c1:
+            mc('Event State', ev.get('state', 'quiet'), ev.get('label', ''), 'warn' if ev.get('score',0)>=0.35 else 'neu')
+        with c2:
+            mc('Catalyst Score', f"{float(ev.get('score',0) or 0):.0%}", 'event-lite only', 'warn' if ev.get('score',0)>=0.35 else 'neu')
+        with c3:
+            mc('Live News', 'ON' if ev.get('live_enabled') else 'OFF', 'set MRP_LIVE_NEWS=1', 'good' if ev.get('live_enabled') else 'neu')
+        trans = ev.get('transmission', []) or []
+        if trans:
+            sh('Causal transmission')
+            for t in trans[:4]:
+                st.markdown(f"- **{t.get('driver','—')}** → {t.get('chain','—')} → *{t.get('impact','—')}*")
+        heads = ev.get('headlines', []) or []
+        if heads:
+            sh('Top headlines')
+            for h in heads[:5]:
+                title = h.get('title','') if isinstance(h, dict) else str(h)
+                link = h.get('link','') if isinstance(h, dict) else ''
+                if link:
+                    st.markdown(f"- [{title}]({link})")
+                else:
+                    st.markdown(f"- {title}")
+        cal = ev.get('calendar', []) or []
+        if cal:
+            sh('Upcoming macro events')
+            for e in cal[:6]:
+                st.markdown(f"- **{e.get('time','')}** {e.get('label','')} · {e.get('importance','watch')}")
+
+
+def render_front_run_market_board(snap:Dict)->None:
+    board = snap.get('front_run_board', {}) or {}
+    sh('🚀 FRONT-RUN BOARD — ticker-first by market')
     tabs = st.tabs(['🇺🇸 US','🇮🇩 IHSG','💱 FX','🛢️ Commodities','🔐 Crypto'])
-    market_order = ['US','IHSG','FX','Commodities','Crypto']
-    for tab, market in zip(tabs, market_order):
+    mapping = [('US', tabs[0]), ('IHSG', tabs[1]), ('FX', tabs[2]), ('Commodities', tabs[3]), ('Crypto', tabs[4])]
+    for market, tab in mapping:
+        sec = board.get(market, {}) or {}
         with tab:
-            v = views[market]
             if market == 'IHSG':
-                c1, c2, c3 = st.columns(3)
+                c1,c2 = st.columns(2)
                 with c1:
                     st.markdown('**Buy Now**')
-                    df = pd.DataFrame(v['now_long'][:5])[['Ticker','Setup','Entry Zone','Invalidation','EV']] if v['now_long'] else pd.DataFrame(columns=['Ticker','Setup','Entry Zone','Invalidation','EV'])
-                    st.dataframe(df, use_container_width=True, hide_index=True, height=220)
+                    rows = sec.get('buy_now', [])[:5]
+                    if rows:
+                        st.dataframe(pd.DataFrame([{'Ticker': r.get('ticker_display',''), 'Setup': r.get('setup',''), 'Invalidation': r.get('invalidation',''), 'Score': r.get('score','')} for r in rows]), use_container_width=True, hide_index=True)
+                    else:
+                        st.info('Belum ada buy sekarang yang bersih.')
                 with c2:
                     st.markdown('**Front-Run Buy**')
-                    df = pd.DataFrame(v['front_run_long'][:5])[[c for c in ['Ticker','Trigger','Why Not Yet','1M','EV'] if c in (v['front_run_long'][0].keys() if v['front_run_long'] else [])]] if v['front_run_long'] else pd.DataFrame(columns=['Ticker','Trigger','Why Not Yet','1M','EV'])
-                    st.dataframe(df, use_container_width=True, hide_index=True, height=220)
-                with c3:
-                    st.markdown('**Avoid / Reduce**')
-                    df = pd.DataFrame(v['avoid'][:5])[['Ticker','Setup','Why Not Yet','EV']] if v['avoid'] else pd.DataFrame(columns=['Ticker','Setup','Why Not Yet','EV'])
-                    st.dataframe(df, use_container_width=True, hide_index=True, height=220)
+                    rows = sec.get('front_run_buy', [])[:5]
+                    if rows:
+                        st.dataframe(pd.DataFrame([{'Ticker': r.get('ticker_display',''), 'Trigger': r.get('trigger',''), 'Why Not Yet': r.get('why_not_yet',''), 'Score': r.get('score','')} for r in rows]), use_container_width=True, hide_index=True)
+                    else:
+                        st.info('Belum ada front-run buy yang menonjol.')
+                if sec.get('avoid'):
+                    st.caption('Avoid / Reduce: ' + ', '.join([(r.get('ticker_display') or r.get('ticker') or '') for r in sec.get('avoid', [])[:5]]))
             else:
-                c1, c2, c3, c4 = st.columns(4)
+                c1,c2,c3,c4 = st.columns(4)
                 specs = [
-                    ('Long Now', 'now_long', ['Ticker','Setup','Entry Zone','Invalidation','EV']),
-                    ('Short Now', 'now_short', ['Ticker','Setup','Entry Zone','Invalidation','EV']),
-                    ('Front-Run Long', 'front_run_long', ['Ticker','Trigger','Why Not Yet','1M','EV']),
-                    ('Front-Run Short', 'front_run_short', ['Ticker','Trigger','Why Not Yet','1M','EV']),
+                    ('Long Now', 'long_now', c1),
+                    ('Short Now', 'short_now', c2),
+                    ('Front-Run Long', 'front_run_long', c3),
+                    ('Front-Run Short', 'front_run_short', c4),
                 ]
-                for col, (ttl, key, cols) in zip([c1,c2,c3,c4], specs):
+                for title, key, col in specs:
                     with col:
-                        st.markdown(f'**{ttl}**')
-                        rows = v[key][:5]
+                        st.markdown(f'**{title}**')
+                        rows = sec.get(key, [])[:5]
                         if rows:
-                            available = [c for c in cols if c in rows[0]]
-                            df = pd.DataFrame(rows)[available]
+                            st.dataframe(pd.DataFrame([{'Ticker': r.get('ticker_display',''), 'Setup/Trigger': r.get('trigger') or r.get('setup',''), 'Why': r.get('why_not_yet') or r.get('invalidation',''), 'Score': r.get('score','')} for r in rows]), use_container_width=True, hide_index=True)
                         else:
-                            df = pd.DataFrame(columns=cols)
-                        st.dataframe(df, use_container_width=True, hide_index=True, height=220)
-
+                            st.info('Belum ada.')
+                if sec.get('avoid'):
+                    st.caption('Avoid / Reduce: ' + ', '.join([(r.get('ticker_display') or r.get('ticker') or '') for r in sec.get('avoid', [])[:5]]))
 def page_opportunities(snap:Dict)->None:
     """Refactored one-fold decision board: action first, detail second."""
     opps=snap.get("opportunities",[])
@@ -3345,14 +3438,11 @@ def page_opportunities(snap:Dict)->None:
         else:
             st.error("Belum aktif. Default mode: selective / defensive.")
 
+    render_scenario_stack_strip(snap.get('scenario_stack', {}))
+    render_event_lite_panel(snap.get('event_lite', {}))
+
     drivers=snap.get("top_drivers",[])
     render_top_drivers_now(drivers, title="🧠 TOP DRIVERS NOW — peluang ini bergerak karena apa")
-
-    sh("🧩 SCENARIO STACK — konteks yang lagi dominan")
-    render_scenario_stack_strip(snap)
-
-    sh("🚀 FRONT-RUN BOARD — apa yang hampir jalan per market")
-    render_front_run_market_views(snap)
 
     depth=st.radio("Board depth",["Top 5","Top 8","Top 12","All"],horizontal=True,key="opp_depth_onefold")
     top_n=len(opps) if depth=="All" else int(depth.split()[1])
@@ -3385,6 +3475,8 @@ def page_opportunities(snap:Dict)->None:
     with f2:
         sh("⚠ SHORTS AT RISK OF SQUEEZE")
         st.markdown(_opp_card_html(squeezed_shorts[:5] or shorts[:5],"Belum ada short yang rawan squeeze.","#e5a020","⚠"),unsafe_allow_html=True)
+
+    render_front_run_market_board(snap)
 
     with st.expander("Secondary context — forward radar, causal map, translation, full detail", expanded=False):
         tab_a,tab_b,tab_c=st.tabs(["🔭 Radar","🔄 Route / Translation","🧾 Full Detail"])
@@ -3523,15 +3615,6 @@ def page_radar(snap:Dict)->None:
             ' | relief: '+f'{news_snap.get("relief",0):.0%}'+"</div>",
             unsafe_allow_html=True
         )
-    if news_snap and news_snap.get("top_headlines"):
-        with st.expander("📰 Event-lite catalyst headlines", expanded=False):
-            st.caption("Headlines ini cuma dipakai sebagai adaptive overlay, bukan pengganti core regime math.")
-            for hl in news_snap.get("top_headlines",[])[:5]:
-                st.markdown(f"- {hl}")
-
-    sh("🧩 SCENARIO STACK")
-    render_scenario_stack_strip(snap)
-
     # Master Rotation Graph (v33 YOU ARE HERE mind-map)
     render_master_rotation_graph(q,f,snap["rotation"],snap["family"])
     # Flow State Strip (horizontal pill chain)
@@ -4480,8 +4563,7 @@ def main():
 1. 🧭 **Radar** — Regime apa? Trade terbaik? Analog historis?
 2. 📡 **Health** — Aman masuk? Breadth + credit + checklist
 3. 🎯 **Playbook** — Full strategy + scenarios + what-if
-4. 🌐 **Markets** → 📊 Opportunities + 📈 Signal Strength + IHSG + US + FX + Komoditas + Crypto
-   - fokus baru: Front-Run Board, Scenario Stack strip, dan action per market
+4. 🌐 **Markets** → Opportunities + market tabs (gunakan Front-Run board dulu, lalu cek market detail)
 5. ⚠️ **Risk** — Crash meter + sizing guide
 6. 🔬 **Diag** — Data quality + quad internals
 

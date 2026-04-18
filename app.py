@@ -611,43 +611,72 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
     structural_proxy_damp=clamp(1.0-0.55*macro_proxy_share,0.35,1.0)
     structural_speed_damp=clamp(0.20+0.80*structural_obs_reliability,0.20,1.0)
     structural_proxy_scale=clamp(1.0-structural_obs_reliability)
-    
-    g_struct_proxy_level=nm(
-    th(nf(f.get("xli_3m",0.0)),0.10),
-    th(nf(f.get("xly_3m",0.0)),0.10),
-    th(nf(f.get("iwm_3m",0.0)),0.10),
-    th(nf(f.get("eem_3m",0.0)),0.10),
-    th(nf(f.get("rsp_3m",f.get("spy_3m",0.0))),0.10),
+
+    def acc_num(v):
+        if v is True: return 1.0
+        if v is False: return -1.0
+        return float("nan")
+
+    # True-root fix: structural quad must be driven by rate-of-change, not absolute level.
+    # Otherwise any positive growth + mildly positive inflation proxy mechanically biases toward Q2.
+    g_struct_roc_obs=nm(
+        acc_num(f.get("indpro_acc")),
+        acc_num(f.get("payrolls_acc")),
+        acc_num(f.get("lei_acc")),
+        th(-f.get("unrate_3m_delta",0.0),0.08),
+        th(-f.get("claims_13w_delta",0.0)/45.0,0.60),
     )
+    i_struct_roc_obs=nm(
+        acc_num(f.get("cpi_acc")),
+        acc_num(f.get("corepce_acc")),
+        th(f.get("breakeven_1m",0.0),0.08),
+        th(-nf(uup_1m),0.05),
+    )
+
+    g_struct_proxy_roc=nm(
+        th(nf(f.get("spy_1m",0.0))-nf(f.get("spy_3m",0.0))/3.0,0.03),
+        th(nf(f.get("xli_1m",0.0))-nf(f.get("xli_3m",0.0))/3.0,0.03),
+        th(nf(f.get("xly_1m",0.0))-nf(f.get("xly_3m",0.0))/3.0,0.03),
+        th(nf(f.get("iwm_1m",0.0))-nf(f.get("iwm_3m",0.0))/3.0,0.04),
+        th(nf(f.get("eem_1m",0.0))-nf(f.get("eem_3m",0.0))/3.0,0.04),
+        th(nf(f.get("rsp_1m",f.get("spy_1m",0.0)))-nf(f.get("rsp_3m",f.get("spy_3m",0.0)))/3.0,0.03),
+    )
+    i_struct_proxy_roc=nm(
+        th(nf(oil_1m)-nf(oil_3m)/3.0,0.05),
+        th(nf(bk1m),0.08),
+        th(nf(gld_1m)-nf(gld_3m)/3.0,0.04),
+        th(-nf(uup_1m),0.05),
+    )
+
+    g_struct_climate=nf(structural_obs_reliability*g_struct_roc_obs + 0.70*structural_proxy_scale*g_struct_proxy_roc)
+    i_struct_climate=nf(structural_obs_reliability*i_struct_roc_obs + 0.70*structural_proxy_scale*i_struct_proxy_roc)
+
     g_struct_proxy_mom=nm(
-    th(nf(f.get("xli_1m",0.0)),0.04),
-    th(nf(f.get("xly_1m",0.0)),0.04),
-    th(nf(f.get("iwm_1m",0.0)),0.05),
-    th(nf(f.get("eem_1m",0.0)),0.05),
-    th(nf(f.get("rsp_1m",f.get("spy_1m",0.0))),0.04),
+        th(nf(f.get("xli_1m",0.0)),0.04),
+        th(nf(f.get("xly_1m",0.0)),0.04),
+        th(nf(f.get("iwm_1m",0.0)),0.05),
+        th(nf(f.get("eem_1m",0.0)),0.05),
+        th(nf(f.get("rsp_1m",f.get("spy_1m",0.0))),0.04),
     )
-    i_struct_proxy_level=th((f.get("breakeven",2.2)-2.2)/2.0,0.24)
     i_struct_proxy_mom=nm(
-    th(nf(oil_1m),0.06),
-    th(nf(bk1m),0.08),
-    th(nf(uup_1m),0.06),
-    th(-nf(f.get("tlt_1m",0.0)),0.06),
+        th(nf(oil_1m),0.06),
+        th(nf(bk1m),0.08),
+        th(-nf(uup_1m),0.05),
+        th(-nf(f.get("tlt_1m",0.0)),0.06),
     )
-    
-    g_struct_level=nf(g_level*structural_proxy_damp + 0.45*structural_proxy_scale*g_struct_proxy_level)
-    g_struct_mom=nf(g_mom*0.45*structural_speed_damp + 0.25*structural_proxy_scale*g_struct_proxy_mom)
+
+    g_struct_level=clamp(g_struct_climate)
+    i_struct_level=clamp(i_struct_climate)
+    g_struct_mom=nf(0.70*g_struct_climate + 0.20*structural_proxy_scale*g_struct_proxy_mom)
+    i_struct_mom=nf(0.70*i_struct_climate + 0.20*structural_proxy_scale*i_struct_proxy_mom)
+
     g_month_level=nf(0.65*g_level+0.35*g_mom)
     g_month_mom=nf(0.45*g_mom+0.55*monthly_g_signal)
-    i_struct_level=nf((0.85*max(structural_obs_reliability,0.10))*i_level*structural_proxy_damp + 0.05*structural_proxy_scale*i_struct_proxy_level)
-    i_struct_mom=nf((0.40*structural_speed_damp)*i_mom + 0.45*structural_proxy_scale*i_struct_proxy_mom)
     i_month_level=nf(0.55*i_level+0.25*i_mom+0.20*th(nf(hcg),0.004))
     i_month_mom=nf(0.45*i_mom+0.55*monthly_i_signal)
-    structural_slowdown_flags=clamp(0.70*sf + 0.30*nm(
-    1.0 if nf(f.get("iwm_3m",0.0))<0 else 0.0,
-    1.0 if nf(f.get("xli_3m",0.0))<0 else 0.0,
-    1.0 if nf(f.get("rsp_3m",f.get("spy_3m",0.0)))<0 else 0.0,
-    ))
-    structural_inf_shock=clamp(max(0.0,0.65*max(0.0,i_struct_level)+0.35*max(0.0,i_struct_mom)))
+
+    structural_slowdown_flags=clamp(0.55*sf + 0.45*max(0.0,-g_struct_climate))
+    structural_inf_shock=clamp(0.60*max(0.0,i_struct_climate)+0.40*max(0.0,i_struct_proxy_mom))
     policy_score=th(-nf(f.get("policy_rate_3m",0.0)),0.50)
     liq_proxy=nm(th(-nf(uup_3m),0.12),th(nf(f.get("tlt_1m",0.0)),0.08))
     liq_score=th(nf(liq_proxy),0.50)
@@ -681,6 +710,12 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
         "structural_proxy_damp":structural_proxy_damp,
         "structural_speed_damp":structural_speed_damp,
         "structural_proxy_scale":structural_proxy_scale,
+        "g_struct_climate":g_struct_climate,
+        "i_struct_climate":i_struct_climate,
+        "g_struct_roc_obs":g_struct_roc_obs,
+        "i_struct_roc_obs":i_struct_roc_obs,
+        "g_struct_proxy_roc":g_struct_proxy_roc,
+        "i_struct_proxy_roc":i_struct_proxy_roc,
         "structural_slowdown_flags":structural_slowdown_flags,
         "structural_inf_shock":structural_inf_shock,
         "prior_mode":prior_mode,
@@ -717,10 +752,11 @@ def build_quad(f:Dict)->Dict:
     mcov=f.get("monthly_data_coverage",0.5)
     struct_sf=nf(f.get("structural_slowdown_flags",sf))*clamp(f.get("structural_speed_damp",0.5))
     struct_shock=nf(f.get("structural_inf_shock",shock))*clamp(0.25+0.75*f.get("structural_obs_reliability",0.5))
+    structural_proxy=clamp(1.0-f.get("structural_obs_reliability",0.0))
     s_probs,s_quad,s_next,s_conf,s_gc,s_ic,s_pc=_score_block(
         f.get("g_struct_level",0),f.get("g_struct_mom",0),
         f.get("i_struct_level",0),f.get("i_struct_mom",0),
-        f.get("policy_score",0),f.get("liq_score",0),struct_sf,struct_shock,cov,proxy,STRUCT_W,QUAD_MOD,False)
+        f.get("policy_score",0),f.get("liq_score",0),struct_sf,struct_shock,cov,structural_proxy,STRUCT_W,QUAD_MOD,False)
     m_probs,m_quad,m_next,m_conf,m_gc,m_ic,m_pc=_score_block(
         f.get("g_month_level",0),f.get("g_month_mom",0),
         f.get("i_month_level",0),f.get("i_month_mom",0),

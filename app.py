@@ -4510,12 +4510,46 @@ def main():
     if top_drivers:
         driver_line=" · ".join([f"{d.get('label','')}: {float(d.get('score',0)):.0%}" for d in top_drivers[:3]])
         st.caption("Top drivers now → "+driver_line)
-    tabs=st.tabs(["🧭 Radar","📡 Health","🎯 Playbook","🌐 Markets","⚠️ Risk","🔬 Diagnostics"])
-    with tabs[0]: page_radar(snap)
-    with tabs[1]: page_health(snap)
-    with tabs[2]: page_playbook(snap)
-    with tabs[3]: page_markets_full(snap)
-    with tabs[4]: page_risk(snap)
-    with tabs[5]: page_diag(snap)
+
+    # ---- New engines (v11) ----
+    try:
+        from ui.command_center_page import render_command_center
+        _has_cc = True
+    except Exception:
+        _has_cc = False
+    try:
+        from ui.components.narrative_discovery_panel import render_narrative_discovery_panel
+        _has_narr = True
+    except Exception:
+        _has_narr = False
+    try:
+        from ui.components.regime_transition_panel import render_regime_transition_panel
+        _has_rt = True
+    except Exception:
+        _has_rt = False
+
+    _tab_labels = ["⚡ Command Center", "🧭 Radar", "📡 Health", "🎯 Playbook", "🌐 Markets", "📖 Narrative Lab", "⚠️ Risk", "🔬 Diagnostics"]
+    tabs = st.tabs(_tab_labels)
+
+    with tabs[0]:
+        if _has_cc:
+            render_command_center(snap)
+        else:
+            st.warning("Command Center not available — import failed.")
+    with tabs[1]: page_radar(snap)
+    with tabs[2]: page_health(snap)
+    with tabs[3]: page_playbook(snap)
+    with tabs[4]: page_markets_full(snap)
+    with tabs[5]:
+        st.title("📖 Narrative Lab")
+        st.caption("Live narrative-driven opportunities — XNDU-style plays across all markets")
+        if _has_narr:
+            render_narrative_discovery_panel(snap)
+        if _has_rt:
+            st.markdown("---")
+            st.subheader("📡 Regime Transition Detail")
+            render_regime_transition_panel(snap)
+    with tabs[6]: page_risk(snap)
+    with tabs[7]: page_diag(snap)
 
 if __name__=="__main__": main()

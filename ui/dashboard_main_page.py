@@ -8,6 +8,7 @@ from ui.components.macro_impact_board import render_macro_impact_board
 from ui.components.checklist_panel import render_checklist_panel
 from ui.components.event_bubble_panel import render_event_bubble_panel
 from ui.components.next_macro_panel import render_next_macro_panel
+from ui.components.regime_transition_panel import render_regime_transition_panel
 from ui.components.rotation_flow_panel import render_rotation_flow_panel
 from ui.components.rotation_flow_logic import build_dashboard_global_flows
 from ui.components.compact_table_helpers import frame_height
@@ -60,7 +61,7 @@ def _breadth_lines(shared: dict) -> list[str]:
     ]
 
 
-def render_dashboard_main_page(snapshot: dict) -> None:
+
     st.title('Dashboard Utama')
     shared = snapshot['shared_core']
     dashboard = snapshot['dashboard']
@@ -93,6 +94,11 @@ def render_dashboard_main_page(snapshot: dict) -> None:
         render_rotation_flow_panel(flows[2:3], title='Escape / Safe Harbor')
 
     render_event_bubble_panel(dashboard.get('event_bubble', [])[:4])
+
+    # ---- Forward Radar / Regime Transition Panel ----
+    st.markdown("---")
+    st.subheader("📡 Forward Radar — Regime Transition & Front-Run Intelligence")
+    render_regime_transition_panel(shared)
 
     t1, t2 = st.columns(2, gap='small')
     with t1:

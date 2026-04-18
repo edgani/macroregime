@@ -15,9 +15,20 @@ from utils.math_utils import clamp01, softmax_dict
 class QuadStateEngine:
     """Dual-horizon quad engine.
 
-    Structural quad = slower dominant regime.
-    Monthly quad    = faster weather overlay inside the structural backdrop.
-    For backward compatibility, `current_quad` remains the structural quad.
+    Structural quad = slower dominant regime (quarterly to semi-annual).
+    Monthly quad    = faster weather overlay inside the structural backdrop (3-6 weeks).
+
+    FIXES vs original:
+    1. Policy score sign was INVERTED for Q1 and Q3.
+       - Old Q1: -p_core  → easing (p>0) DECREASED Q1 probability. WRONG.
+       - New Q1: +p_core  → easing supports Q1 when growth up, inflation down. CORRECT.
+       - Old Q3: +p_core  → easing (p>0) INCREASED Q3 probability. WRONG.
+       - New Q3: -p_core  → tightening (p<0) confirms stagflation (Q3). CORRECT.
+
+    Policy score convention (from macro_features.py):
+       policy_score = scaled(-policy_rate_3m_delta, 0.50)
+       → positive when Fed is CUTTING (easing)
+       → negative when Fed is HIKING (tightening)
     """
 
     def _score_block(
@@ -43,12 +54,22 @@ class QuadStateEngine:
         if monthly:
             i_core += core_w.get("inflation_shock", 0.0) * max(0.0, inflation_shock)
 
+        # FIXED policy sign interpretation:
+        # p_core > 0 = easing/liquidity injection
+        # p_core < 0 = tightening
+        #
+        # Q1 (g↑, i↓): Easing is consistent with Q1 → +p_core lifts Q1 score.
+        # Q2 (g↑, i↑): Policy neutral to slightly negative (tightening expected in hot growth+inflation).
+        # Q3 (g↓, i↑): Tightening CONFIRMS stagflation → -p_core: when tightening (p_core<0), score goes up.
+        # Q4 (g↓, i↓): Easing is the policy RESPONSE → +p_core confirms deep slowdown.
         raw = {
-            "Q1": +g_core - i_core - (0.10 if monthly else 0.20) * p_core,
-            "Q2": +g_core + i_core - (0.05 if monthly else 0.10) * p_core,
-            "Q3": -g_core + (1.10 if monthly else 1.00) * i_core + 0.05 * p_core,
+            "Q1": +g_core - i_core + (0.12 if monthly else 0.15) * p_core,
+            "Q2": +g_core + i_core - (0.05 if monthly else 0.08) * p_core,
+            "Q3": -g_core + (1.10 if monthly else 1.00) * i_core - (0.08 if monthly else 0.12) * p_core,
             "Q4": -g_core - (0.90 if monthly else 1.00) * i_core + (0.18 if monthly else 0.25) * p_core,
         }
+
+        # Modifier adjustments (unchanged logic, these were correct)
         raw["Q1"] += mod_w["inflation_shock_to_q1"] * max(0.0, inflation_shock)
         raw["Q2"] += mod_w["growth_momentum_to_q2"] * max(0.0, g_mom)
         raw["Q2"] += mod_w["slowdown_to_q2"] * slowdown_flags

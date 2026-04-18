@@ -23,6 +23,7 @@ from engines.rotation_engine import RotationEngine
 from engines.checklist_engine import build_global_checklist
 from engines.risk_range_engine import RiskRangeEngine
 from engines.crash_meter_engine import CrashMeterEngine
+from engines.regime_transition_engine import RegimeTransitionEngine
 
 
 def _resolve_regime_stack(quad: dict, weather: dict) -> dict:
@@ -206,7 +207,48 @@ def build_shared_core(features: dict, raw: dict) -> dict:
     em_rotation = _build_em_rotation(features['market'], validation, regime_stack, news_state)
     petrodollar = _build_petrodollar(features, news_state, regime_stack)
     rotation = RotationEngine().run(features['market'], em_rotation, regime_stack, news_state)
-    scenario_cases = ScenarioDiscoveryEngine().run(quad, weather, shock, features.get('scenario', {}), playbooks, analogs, news_state)
+    # --- Forward-looking regime transition engine ---
+    try:
+        from domain.types import RegimePosterior
+        regime_posterior_obj = QuadStateEngine().run(features['macro'])
+        transition_output = RegimeTransitionEngine().run(
+            features['macro'],
+            features['market'],
+            regime_posterior_obj,
+            news_state,
+            shock.get('override_strength', 0.0),
+        )
+        transition_dict = {
+            'current_quad': transition_output.current_quad,
+            'current_monthly_quad': transition_output.current_monthly_quad,
+            'most_likely_next': transition_output.most_likely_next,
+            'front_run_window': transition_output.front_run_window,
+            'front_run_rationale': transition_output.front_run_rationale,
+            'leading_composite': transition_output.leading_composite,
+            'early_warning_signals': transition_output.early_warning_signals,
+            'transition_paths': [
+                {
+                    'from_quad': p.from_quad,
+                    'to_quad': p.to_quad,
+                    'probability': p.probability,
+                    'timeframe_weeks': p.timeframe_weeks,
+                    'early_warning_score': p.early_warning_score,
+                    'confirmation_needed': p.confirmation_needed,
+                    'invalidators': p.invalidators,
+                    'asset_implications': p.asset_implications,
+                    'confidence': p.confidence,
+                }
+                for p in transition_output.transition_paths
+            ],
+        }
+    except Exception:
+        transition_output = None
+        transition_dict = {}
+
+    scenario_cases = ScenarioDiscoveryEngine().run(
+        quad, weather, shock, features.get('scenario', {}), playbooks, analogs, news_state,
+        transition_output=transition_output,
+    )
     scenario_tab_impact_map = _build_scenario_tab_impact_map(scenario_cases)
     execution_mode = ExecutionBridgeEngine().run(quad, weather, shock, health, vix_bucket, positioning, features.get('derivatives', {}))
     global_checklist = build_global_checklist({}, features, news_state, em_rotation)
@@ -310,6 +352,7 @@ def build_shared_core(features: dict, raw: dict) -> dict:
         'event_bubble': event_bubble,
         'safe_harbor': rotation.get('safe_harbor', 'USD'),
         'best_beneficiary': rotation.get('best_beneficiary', 'XAUUSD'),
+        'regime_transition': transition_dict,
         'status_ribbon': {
             'current_quad': quad.get('current_quad', 'Q?'),
             'structural_quad': regime_stack['structural']['quad'],

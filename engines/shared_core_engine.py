@@ -24,6 +24,7 @@ from engines.checklist_engine import build_global_checklist
 from engines.risk_range_engine import RiskRangeEngine
 from engines.crash_meter_engine import CrashMeterEngine
 from engines.regime_transition_engine import RegimeTransitionEngine
+from engines.regime_ticker_engine import RegimeTickerEngine
 
 
 def _resolve_regime_stack(quad: dict, weather: dict) -> dict:
@@ -245,6 +246,41 @@ def build_shared_core(features: dict, raw: dict) -> dict:
         transition_output = None
         transition_dict = {}
 
+    # --- Regime ticker engine: specific front-run tickers per current regime ---
+    try:
+        ticker_output = RegimeTickerEngine().run(
+            regime_posterior_obj,
+            transition_output=transition_output,
+            news_state=news_state,
+            scenario_features=features.get("scenario", {}),
+        )
+        ticker_dict = {
+            "structural_quad":    ticker_output.structural_quad,
+            "monthly_quad":       ticker_output.monthly_quad,
+            "front_run_window":   ticker_output.front_run_window,
+            "transition_alert":   ticker_output.transition_alert,
+            "most_important_signal": ticker_output.most_important_signal,
+            "us_longs":           ticker_output.us_longs,
+            "us_shorts":          ticker_output.us_shorts,
+            "ihsg_buys":          ticker_output.ihsg_buys,
+            "fx_longs":           ticker_output.fx_longs,
+            "fx_shorts":          ticker_output.fx_shorts,
+            "commodity_longs":    ticker_output.commodity_longs,
+            "commodity_shorts":   ticker_output.commodity_shorts,
+            "crypto_longs":       ticker_output.crypto_longs,
+            "crypto_shorts":      ticker_output.crypto_shorts,
+            "front_run_picks":    [
+                {
+                    "ticker": p.ticker, "market": p.market, "side": p.side,
+                    "conviction": p.conviction, "rationale": p.rationale,
+                    "front_run": p.front_run,
+                }
+                for p in ticker_output.front_run_picks
+            ],
+        }
+    except Exception:
+        ticker_dict = {}
+
     scenario_cases = ScenarioDiscoveryEngine().run(
         quad, weather, shock, features.get('scenario', {}), playbooks, analogs, news_state,
         transition_output=transition_output,
@@ -353,6 +389,7 @@ def build_shared_core(features: dict, raw: dict) -> dict:
         'safe_harbor': rotation.get('safe_harbor', 'USD'),
         'best_beneficiary': rotation.get('best_beneficiary', 'XAUUSD'),
         'regime_transition': transition_dict,
+        'regime_tickers': ticker_dict,
         'status_ribbon': {
             'current_quad': quad.get('current_quad', 'Q?'),
             'structural_quad': regime_stack['structural']['quad'],

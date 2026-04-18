@@ -42,7 +42,7 @@ def load_event_library() -> List[Dict[str, str]]:
 @st.cache_data(ttl=EVENT_CACHE_TTL_SECONDS, show_spinner=False)
 def load_macro_calendar(*, force_refresh: bool = False) -> Dict[str, object]:
     now = datetime.now(timezone.utc)
-    if not LIVE_FETCH_ENABLED or not force_refresh:
+    if not LIVE_FETCH_ENABLED:
         return {"generated_at": now.isoformat(), "events": [], "all_events": [], "next_event": None}
     collected: List[Dict[str, object]] = []
     for loader in (_load_bls_calendar, _load_bea_calendar, _load_fomc_calendar):

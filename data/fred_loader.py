@@ -56,7 +56,7 @@ def _fetch_series_csv(session: requests.Session, sid: str) -> pd.DataFrame:
 def load_fred_bundle(*, force_refresh: bool = False) -> dict:
     out: Dict[str, pd.Series] = {}
     meta = _empty_meta()
-    if not LIVE_FETCH_ENABLED or not force_refresh:
+    if not LIVE_FETCH_ENABLED:
         return {"series": {k: pd.Series(dtype=float) for k in FRED_SERIES.keys()}, "meta": meta}
     session = _session()
 

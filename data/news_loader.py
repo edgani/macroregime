@@ -30,7 +30,7 @@ def _parse_rss(xml_text: str) -> List[Dict[str, str]]:
 
 @st.cache_data(ttl=NEWS_CACHE_TTL_SECONDS, show_spinner=False)
 def load_news_signals(*, force_refresh: bool = False) -> Dict[str, object]:
-    if not LIVE_FETCH_ENABLED or not force_refresh:
+    if not LIVE_FETCH_ENABLED:
         return {'state': 'quiet', 'counts': {'escalation': 0, 'relief': 0, 'oil': 0, 'rates': 0, 'usd': 0}, 'groups': {k: [] for k, _ in _NEWS_QUERIES}, 'top_headlines': [], 'generated_at': datetime.now(timezone.utc).isoformat()}
     session = requests.Session()
     session.headers.update({'User-Agent': 'Mozilla/5.0'})

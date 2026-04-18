@@ -107,7 +107,7 @@ html,[class*="css"]{font-family:'DM Sans',sans-serif}
 """,unsafe_allow_html=True)
 
 # ── WEIGHTS (exact from v33 config/weights.py) ─────────────────────────────────
-STRUCT_W = {"g_level":0.46,"g_mom":0.14,"i_level":0.16,"i_mom":0.10,"policy":0.07,"liq":0.07}
+STRUCT_W = {"g_level":0.20,"g_mom":0.40,"i_level":0.10,"i_mom":0.30,"policy":0.10,"liq":0.10}
 MONTHLY_W = {"g_level":0.20,"g_mom":0.45,"i_level":0.15,"i_mom":0.45,"i_shock":0.15,"policy":0.10,"liq":0.10}
 QUAD_MOD = {"sf_to_q3":0.05,"sf_to_q2":-0.03,"shock_to_q3":0.04,"shock_to_q1":-0.04,"gm_to_q2":0.03,"gm_to_q4":0.03,"cov_penalty":0.62}
 MONTHLY_MOD = {"sf_to_q3":0.12,"sf_to_q2":-0.06,"shock_to_q3":0.16,"shock_to_q1":-0.04,"gm_to_q2":0.04,"gm_to_q4":0.06,"cov_penalty":0.55}
@@ -730,8 +730,8 @@ def _score_block(g_level,g_mom,i_level,i_mom,policy,liq,sf,shock,data_cov,proxy_
     i_core=w["i_level"]*i_level+w["i_mom"]*i_mom
     p_core=w["policy"]*policy+w["liq"]*liq
     if monthly: i_core+=w.get("i_shock",0.0)*max(0.0,shock)
-    raw={"Q1":+g_core-i_core-0.10*p_core,"Q2":+g_core+i_core-0.05*p_core,
-         "Q3":-g_core+1.10*i_core+0.05*p_core,"Q4":-g_core-0.90*i_core+0.18*p_core}
+    raw={"Q1":+g_core-i_core+0.15*p_core,"Q2":+g_core+i_core-0.08*p_core,
+         "Q3":-g_core+1.10*i_core-0.12*p_core,"Q4":-g_core-0.90*i_core+0.25*p_core}
     raw["Q1"]+=mw["shock_to_q1"]*max(0.0,shock)+mw["sf_to_q2"]*sf
     raw["Q2"]+=mw["gm_to_q2"]*max(0.0,g_mom)+mw["sf_to_q2"]*sf
     raw["Q3"]+=mw["sf_to_q3"]*sf+mw["shock_to_q3"]*max(0.0,shock)
@@ -1075,12 +1075,155 @@ def load_all()->Dict:
     fwd_radar=build_forward_radar(prices,q,f,route=route,opps=opps,risk_ranges=risk_ranges,most_hated=most_hated,news_overlay=news_overlay)
     signal_strength=build_signal_strength(opps,prices,q,f,h,risk_ranges=risk_ranges,route=route,crash=cr,sizing=sizing)
     top_drivers=build_top_drivers_now(q,f,h,cr,route,most_hated,news_overlay)
+    # ── New intelligence engines (v11) ──────────────────────────────────────────
+    try:
+        from engines.regime_transition_engine import RegimeTransitionEngine
+        from engines.regime_ticker_engine import RegimeTickerEngine
+        from engines.narrative_discovery_engine import NarrativeDiscoveryEngine
+        from engines.options_regime_engine import OptionsRegimeEngine
+        from data.narrative_news_loader import load_narrative_signals
+        from data.bei_flow_loader import load_bei_foreign_flow
+        from data.broker_flow_loader import load_broker_flow, get_broker_regime_confirmation
+        from dataclasses import asdict as _asdict
+
+        # Build compat regime_posterior from monolith q dict
+        class _RegimePosteriorCompat:
+            def __init__(self, q):
+                self.structural_quad = q.get("quad", "Q?")
+                self.monthly_quad = q.get("monthly_quad", q.get("quad", "Q?"))
+                self.structural_confidence = q.get("confidence", 0.5)
+                self.monthly_confidence = q.get("monthly_conf", 0.5)
+                self.flip_hazard = q.get("flip_hazard", 0.3)
+                self.divergence_state = q.get("divergence", "aligned")
+                self.g_core = q.get("g_core", 0.0)
+                self.i_core = q.get("i_core", 0.0)
+                self.p_core = q.get("p_core", 0.0)
+                self.structural_probs = q.get("probs", {})
+                self.monthly_probs = q.get("monthly_probs", {})
+                self.structural_next_quad = q.get("next_quad", "Q?")
+                self.monthly_next_quad = q.get("monthly_next", "Q?")
+
+        rpc = _RegimePosteriorCompat(q)
+
+        # Build minimal scenario_features from f dict
+        scen_feats = {
+            "oil_shock": 1.0 if nf(f.get("clf_3m", 0)) > 0.10 else 0.0,
+            "petrodollar_shock": clamp(0.4*max(0, nf(f.get("clf_3m",0))/0.12) + 0.3*max(0, nf(f.get("uup_1m",0))/0.04)),
+            "em_importer_pain": clamp(0.4*max(0, nf(f.get("clf_3m",0))/0.12) + 0.3*max(0, nf(f.get("uup_1m",0))/0.04)),
+            "carry_unwind": clamp(0.4*max(0,nf(f.get("uup_1m",0))/0.04) + 0.3*max(0,-nf(f.get("tlt_1m",0))/0.05)),
+            "war_oil_hazard": news_overlay.get("war_oil", 0.0),
+            "policy_pressure_hazard": news_overlay.get("policy_pressure", 0.0),
+            "credit_stress_hazard": 0.0,
+            "relief_hazard": news_overlay.get("relief", 0.0),
+        }
+
+        # Options regime
+        opt_engine = OptionsRegimeEngine()
+        opt_sig = opt_engine.run(prices, macro_quad=q.get("quad","Q?"), vix_last=f.get("vix_last",20.0), market_features=f)
+        options_regime = {
+            "vix_spot": opt_sig.vix_spot, "vix_3m": opt_sig.vix_3m,
+            "term_structure_slope": opt_sig.term_structure_slope,
+            "term_structure_state": opt_sig.term_structure_state,
+            "vix_bucket": opt_sig.vix_bucket, "vix_regime_signal": opt_sig.vix_regime_signal,
+            "vix_sizing_cap": opt_sig.vix_sizing_cap,
+            "iv_rv_spread": opt_sig.iv_rv_spread, "vol_premium_state": opt_sig.vol_premium_state,
+            "hyg_lqd_spread": opt_sig.hyg_lqd_spread, "credit_regime": opt_sig.credit_regime,
+            "options_regime_confirm": opt_sig.options_regime_confirm,
+            "regime_alignment_score": opt_sig.regime_alignment_score,
+        }
+
+        # Regime transition
+        transition_obj = RegimeTransitionEngine().run(f, f, rpc, scen_feats, float(scen_feats.get("oil_shock",0)))
+        regime_transition = {
+            "current_quad": transition_obj.current_quad,
+            "current_monthly_quad": transition_obj.current_monthly_quad,
+            "most_likely_next": transition_obj.most_likely_next,
+            "front_run_window": transition_obj.front_run_window,
+            "front_run_rationale": transition_obj.front_run_rationale,
+            "leading_composite": transition_obj.leading_composite,
+            "early_warning_signals": transition_obj.early_warning_signals,
+            "transition_paths": [
+                {"from_quad": p.from_quad, "to_quad": p.to_quad, "probability": p.probability,
+                 "timeframe_weeks": p.timeframe_weeks, "early_warning_score": p.early_warning_score,
+                 "confirmation_needed": p.confirmation_needed, "invalidators": p.invalidators,
+                 "asset_implications": p.asset_implications, "confidence": p.confidence}
+                for p in transition_obj.transition_paths
+            ],
+        }
+
+        # Regime tickers
+        ticker_obj = RegimeTickerEngine().run(rpc, transition_output=transition_obj, news_state=scen_feats, scenario_features=scen_feats)
+        regime_tickers = {
+            "structural_quad": ticker_obj.structural_quad, "monthly_quad": ticker_obj.monthly_quad,
+            "front_run_window": ticker_obj.front_run_window,
+            "transition_alert": ticker_obj.transition_alert,
+            "most_important_signal": ticker_obj.most_important_signal,
+            "us_longs": ticker_obj.us_longs, "us_shorts": ticker_obj.us_shorts,
+            "ihsg_buys": ticker_obj.ihsg_buys,
+            "fx_longs": ticker_obj.fx_longs, "fx_shorts": ticker_obj.fx_shorts,
+            "commodity_longs": ticker_obj.commodity_longs, "commodity_shorts": ticker_obj.commodity_shorts,
+            "crypto_longs": ticker_obj.crypto_longs, "crypto_shorts": ticker_obj.crypto_shorts,
+            "front_run_picks": [
+                {"ticker": p.ticker, "market": p.market, "side": p.side,
+                 "conviction": p.conviction, "rationale": p.rationale, "front_run": p.front_run}
+                for p in ticker_obj.front_run_picks
+            ],
+        }
+
+        # Narrative discovery
+        narr_signals = load_narrative_signals()
+        narr_obj = NarrativeDiscoveryEngine().run(
+            narrative_signals=narr_signals,
+            current_quad=q.get("quad","Q?"), monthly_quad=q.get("monthly_quad","Q?"),
+            scenario_features=scen_feats,
+        )
+        narrative_discovery = {
+            "active_narratives": [
+                {"name": c.name, "category": c.category, "stage": c.stage,
+                 "conviction": c.conviction, "regime_multiplier": c.regime_multiplier,
+                 "regime_adjusted_conviction": c.regime_adjusted_conviction,
+                 "pump_risk": c.pump_risk, "net_news_score": c.net_news_score,
+                 "primary_beneficiaries": c.primary_beneficiaries,
+                 "secondary_beneficiaries": c.secondary_beneficiaries,
+                 "what_fades": c.what_fades, "claude_insight": c.claude_insight,
+                 "confirmation_signals": c.confirmation_signals,
+                 "catalyst_type": c.catalyst_type, "action_summary": c.action_summary,
+                 "invalidators": c.invalidators, "headlines": c.headlines}
+                for c in narr_obj.active_narratives
+            ],
+            "top_conviction": narr_obj.top_conviction.name if narr_obj.top_conviction else None,
+            "early_stage_alerts": [c.name for c in narr_obj.early_stage_alerts],
+            "summary": narr_obj.summary,
+        }
+
+        # BEI foreign flow + broker flow
+        bei_flow = load_bei_foreign_flow()
+        broker_flow = load_broker_flow()
+        broker_confirm = get_broker_regime_confirmation(broker_flow, ticker_obj.ihsg_buys)
+
+    except Exception as _e:
+        options_regime = {}
+        regime_transition = {}
+        regime_tickers = {}
+        narrative_discovery = {}
+        bei_flow = {}
+        broker_flow = {}
+        broker_confirm = {}
+
+
     return dict(prices=prices,price_meta=price_meta,fred=fred,f=f,q=q,h=h,crash=cr,rotation=rot,ihsg=ih,
                 analog=analog,playbooks=pb,scenarios=sc,checklists=chk,
                 most_hated_rally=most_hated,opportunities=opps,signal_strength=signal_strength,family=family,risk_ranges=risk_ranges,
                 position_sizing=sizing,asset_checklists=asset_chk,macro_impact=macro_impact,
                 forward_radar=fwd_radar,strong_weak_all=sw_all,
                 route=route,asset_translation=asset_trans,news_overlay=news_overlay,top_drivers=top_drivers,
+                options_regime=options_regime,
+                regime_transition=regime_transition,
+                regime_tickers=regime_tickers,
+                narrative_discovery=narrative_discovery,
+                bei_flow=bei_flow,
+                broker_flow=broker_flow,
+                broker_confirm=broker_confirm,
                 decision_context={
                     "route_primary":route.get("primary"),
                     "route_bias":route.get("route_bias"),

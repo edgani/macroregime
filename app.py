@@ -254,18 +254,205 @@ ANALOG_LIBRARY = [
     {"label":"2026 TACO de-escalation rally (Ricky pattern)","vector":{"growth":-0.10,"inflation":0.45,"dollar":-0.20,"oil":-0.30,"smallcap":0.40,"vol":-0.35},"path_1m":"de-escalation spike dan relief squeeze laggard","path_3m":"most hated inflated rally — semua aset naik bareng","path_6m":"Warsh cuts + FIFA deadline → rally berlanjut tapi valuasi rapuh","scenario_family":"taco_deescalation","impacts":{"us":"broad risk-on tapi most hated (banyak yang tidak percaya)","ihsg":"asing masuk, MSCI clear catalyze inflow","fx":"DXY turun, IDR menguat, carry works again","commodities":"oil turun tapi gold hold, copper naik"},"next_bias":"Rally ini bukan karena fundamental tapi karena likuiditas. Satu tangan di pintu keluar."},
     {"label":"1999 post-LTCM inflated rally (bubble endgame)","vector":{"growth":0.20,"inflation":0.10,"dollar":-0.10,"oil":0.15,"smallcap":0.60,"vol":-0.50},"path_1m":"everything rally — saham crypto emas semua naik","path_3m":"FOMO masuk puncak, valuasi tertinggi sepanjang sejarah","path_6m":"sistem fragile + likuiditas habis = koreksi brutal","scenario_family":"bubble_endgame","impacts":{"us":"Nasdaq-type blow-off top sebelum crash 78%","ihsg":"asing masuk tapi hati-hati keluar duluan","fx":"DXY weak = EM rally, tapi reversal tajam","commodities":"gold dan komoditas naik awal, lalu selloff saat crash"},"next_bias":"Nikmati tapi satu tangan di pintu keluar. Valuasi AS sudah setara 1929 dan 2000."},
 ]
-UPCOMING_EVENTS = [
-    {"title":"US CPI (Apr)","family":"inflation","when":"~Apr 16","countdown":"T-3d","impact":"Panas = yields naik, USD up, QQQ turun. Dingin = buka pintu Warsh cut lebih cepat."},
-    {"title":"Kevin Warsh Fed Confirmation Hearing ⭐","family":"policy","when":"Apr 16","countdown":"T-3d","impact":"[CRITICAL] Warsh sudah commit suku bunga harus lebih rendah. Konfirmasi = DXY drop, risk-on, most hated rally dimulai. Warsh menggantikan Powell 15 Mei 2026."},
-    {"title":"FOMC Meeting (Powell terakhir)","family":"policy","when":"~May 6-7","countdown":"T-24d","impact":"Pertemuan Powell terakhir sebelum diganti Warsh. Hold expected tapi forward guidance penting."},
-    {"title":"Kevin Warsh resmi jadi Fed Chair","family":"policy","when":"May 15","countdown":"T-31d","impact":"[CRITICAL] Warsh masuk = pemotongan suku bunga defensif dimulai. ON RRP tinggal $0.6M dari $2.3T — sistem butuh inject likuiditas baru. Most hated inflated rally bisa mulai."},
-    {"title":"OJK-MSCI Meeting (Indonesia) ⭐","family":"growth","when":"~Apr 21-25","countdown":"T-8d","impact":"[IHSG KEY] OJK ketemu MSCI terkait status Indonesia. Worst case = turun ke frontier (kecil). Base case = tetap emerging market, bobot disesuaikan. Saham clear HSC = penerima flow asing."},
-    {"title":"US Nonfarm Payrolls (Apr)","family":"labor","when":"~May 2","countdown":"T-19d","impact":"Data labor kunci untuk justifikasi Warsh cut. Miss = Warsh punya argumen lebih kuat untuk cut agresif."},
-    {"title":"Iran-AS Perundingan Lanjutan","family":"geopolitics","when":"TBD","countdown":"T-?","impact":"[TACO Chapter 2] Ceasefire 2 minggu berakhir ~Apr 22. Vance tinggalkan 1 proposal final. Kalau Iran terima = de-escalation, oil drop, risk-on. Kalau gagal = re-eskalasi, oil naik ke $100+."},
-    {"title":"FIFA World Cup 2026 deadline ⭐","family":"geopolitics","when":"Jun 2026","countdown":"T-~50d","impact":"[POLITICAL DEADLINE] Trump tidak mau panggung terbesar 4 tahun presidennya dirusak perang + harga bensin tinggi. De-eskalasi HARUS terjadi sebelum Juni. Calendar deadline yang tidak bisa ditunda."},
-    {"title":"US GDP Q1 (advance)","family":"growth","when":"~Apr 30","countdown":"T-17d","impact":"Kontraksi = growth scare deepens. Ekspansi = soft landing hope, tapi Warsh masih mau cut."},
-    {"title":"US Treasury Debt Refinancing Deadline","family":"policy","when":"~Jun 2026","countdown":"T-~50d","impact":"Kebanyakan deadline refinancing utang AS ada di Juni. Treasury butuh yields rendah untuk refinancing. Ini salah satu alasan struktural kenapa Warsh HARUS cut sebelum Juni."},
+
+BASE_EVENT_TEMPLATES = [
+    {"title":"Next inflation print window","family":"inflation","when":"rolling window","countdown":"T-~2w","impact":"Hot print = yields/USD up, duration/high-beta under pressure. Cool print = relief branch and easier policy path gain odds."},
+    {"title":"Next labor print window","family":"labor","when":"rolling window","countdown":"T-~3w","impact":"Weak labor = slowdown / policy-relief odds up. Strong labor with sticky wages = inflation branch can stay alive longer."},
+    {"title":"Next policy meeting / speaker window","family":"policy","when":"rolling window","countdown":"T-~4w","impact":"Dovish surprise helps relief / duration / EM. Hawkish or higher-for-longer language reinforces dollar and fragile breadth."},
+    {"title":"Growth / PMIs / activity check","family":"growth","when":"rolling window","countdown":"T-~1w","impact":"Broad activity rebound supports cyclical / EM / industrial broadening. Weak prints reinforce slowdown and defensive quality."},
+    {"title":"Credit / funding stress checkpoint","family":"policy","when":"continuous","countdown":"Live","impact":"Funding pressure or credit widening can force policy-response scenarios even when headline macro still looks okay."},
+    {"title":"Geopolitical escalation or de-escalation headline risk","family":"geopolitics","when":"continuous","countdown":"Live","impact":"War / shipping-lane / sanctions headlines can move oil, tanker rates, USD, EM pain, and breadth before macro prints catch up."},
 ]
+UPCOMING_EVENTS = BASE_EVENT_TEMPLATES
+
+SCENARIO_FAMILY_LIBRARY = {
+    "war_oil_shock":{
+        "label":"War / Oil Shock",
+        "desc":"Geopolitical escalation, supply disruption, oil spike, tanker/freight/insurance stress, and tighter USD liquidity create stagflation-like pressure.",
+        "parent":"geopolitics",
+        "horizon":"1D-3M",
+        "winners":["Energy / tankers / selected defense","Gold and selective hard assets","Exporter-heavy EM pockets"],
+        "losers":["Importers / airlines / transports","Broad cyclicals and fragile beta","EM FX and importer-heavy EM equities"],
+        "triggers":["oil up with tanker/freight confirmation","USD and vol rising together","breadth narrows / small caps lag"],
+        "confirms":["credit not improving","importer pain broadens","EM FX weakens"],
+        "invalidators":["oil fades fast","tanker premium fails","USD and vol both calm down"],
+        "children":[
+            {"name":"Limited conflict / headline-only scare","weight":0.28,"trigger":"oil spike fades and breadth damage stays shallow","invalidator":"supply disruption becomes real"},
+            {"name":"Shipping-lane disruption / Hormuz-style branch","weight":0.44,"trigger":"oil+tanker+USD all confirm together","invalidator":"shipping risk premium collapses"},
+            {"name":"Demand destruction overtakes inflation shock","weight":0.28,"trigger":"oil spikes first, then yields roll over and growth scare dominates","invalidator":"cyclical breadth re-broadens quickly"},
+        ],
+    },
+    "deescalation_relief":{
+        "label":"De-escalation / Relief",
+        "desc":"Oil pressure cools, tanker premium fades, dollar eases, breadth improves, and laggards / EM get room to catch up.",
+        "parent":"geopolitics",
+        "horizon":"1D-3M",
+        "winners":["Equal-weight / small caps / laggards","EM / IHSG on USD relief","Crypto beta if liquidity breathes"],
+        "losers":["Crowded USD / defensive hedges","Late safe-haven longs","Pure oil-shock winners"],
+        "triggers":["oil down with USD softer","small caps and equal-weight confirm","EM and cyclicals join"],
+        "confirms":["credit stabilizes","vol compresses","importer pain eases"],
+        "invalidators":["oil re-spikes quickly","ceasefire/headline relief fails","breadth does not broaden"],
+        "children":[
+            {"name":"Headline relief only / fake peace","weight":0.36,"trigger":"oil down but breadth/credit fail to confirm","invalidator":"broad cross-asset confirmation appears"},
+            {"name":"Real de-escalation + importer relief","weight":0.42,"trigger":"oil, USD, vol, breadth all confirm","invalidator":"new military escalation"},
+            {"name":"De-escalation + policy/liquidity tailwind","weight":0.22,"trigger":"relief branch merges with falling yields / looser liquidity","invalidator":"hawkish surprise or renewed inflation"},
+        ],
+    },
+    "policy_relief":{
+        "label":"Policy / Liquidity Relief",
+        "desc":"Duration stress eases, yields or funding pressure back off, and lower discount-rate / liquidity conditions support broader risk assets.",
+        "parent":"policy",
+        "horizon":"1W-3M",
+        "winners":["Duration / tech / quality cyclicals","Small caps and EM if USD also softens","Gold if real yields fall"],
+        "losers":["Pure cash / late defensive hedges","Crowded USD longs","Policy-tightening winners"],
+        "triggers":["TLT up / long-end pain cooling","funding stress easing","policy messaging softens"],
+        "confirms":["USD softens","breadth broadens","credit tightens back in"],
+        "invalidators":["inflation re-accelerates fast","long-end pain returns","credit keeps widening"],
+        "children":[
+            {"name":"Good relief / breadth broadens","weight":0.45,"trigger":"equal-weight, small caps, EM all confirm","invalidator":"leadership stays narrow"},
+            {"name":"Bad relief / stress-response only","weight":0.32,"trigger":"policy eases because growth stress worsens","invalidator":"growth indicators re-accelerate"},
+            {"name":"Relief sparks later inflation comeback","weight":0.23,"trigger":"oil/breakevens re-accelerate after relief","invalidator":"inflation keeps cooling"},
+        ],
+    },
+    "dollar_em_pain":{
+        "label":"Dollar Squeeze / EM Pain",
+        "desc":"USD strength, tighter global liquidity, and imported-inflation pressure lean against EM FX and importer-heavy equities.",
+        "parent":"liquidity",
+        "horizon":"1W-3M",
+        "winners":["USD cash / funding-safe majors","Selected exporters / dollar earners","Quality over beta"],
+        "losers":["Fragile EM FX","Importer-heavy IHSG / EM names","High beta crypto and crowded carry"],
+        "triggers":["USD up with EM underperformance","real-yield pressure","carry unwind behavior"],
+        "confirms":["IDR / EM FX weaken","foreign flow deteriorates","high beta lags"],
+        "invalidators":["USD stalls or reverses","EM outperforms despite USD","credit/liquidity stress fades"],
+        "children":[
+            {"name":"Orderly USD grind higher","weight":0.38,"trigger":"USD rises without panic","invalidator":"EM breadth broadens"},
+            {"name":"Violent carry unwind","weight":0.37,"trigger":"vol + USD jump together","invalidator":"vol compresses fast"},
+            {"name":"USD up but exporters offset local pain","weight":0.25,"trigger":"commodity/exporter earnings cushion index damage","invalidator":"commodity support fades"},
+        ],
+    },
+    "growth_slowdown":{
+        "label":"Growth Slowdown / Defensive Drift",
+        "desc":"Activity rolls over, labor cools, breadth narrows, and the market leans toward defense / quality while waiting for policy response.",
+        "parent":"growth",
+        "horizon":"1M-6M",
+        "winners":["Defensives / quality / long duration if yields fall","Gold if policy response grows likely","Selective short setups in weak cyclicals"],
+        "losers":["Broad cyclicals / consumer discretionary","Small caps if credit does not help","Lower-quality credit"],
+        "triggers":["slowdown flags rise","small caps lag / breadth weakens","claims/unemployment trend worsens"],
+        "confirms":["credit not improving","yield curve relief is recessionary, not bullish","cyclical breadth remains weak"],
+        "invalidators":["PMIs / copper / EEM improve together","breadth re-broadens","labor data re-accelerates"],
+        "children":[
+            {"name":"Soft slowdown / no crash","weight":0.40,"trigger":"defensives lead but vol contained","invalidator":"credit shock appears"},
+            {"name":"Slowdown forces policy relief","weight":0.36,"trigger":"growth worsens enough to pull policy expectations dovish","invalidator":"policy stays hawkish"},
+            {"name":"Slowdown turns broad risk-off","weight":0.24,"trigger":"credit + vol + breadth all worsen together","invalidator":"liquidity backstop lands early"},
+        ],
+    },
+    "china_global_reaccel":{
+        "label":"China / Global Demand Re-acceleration",
+        "desc":"Copper / cyclical demand / EM impulse strengthen enough to broaden leadership beyond narrow US megacap dominance.",
+        "parent":"growth",
+        "horizon":"1M-6M",
+        "winners":["Industrials / materials / cyclicals","EM equities / selective IHSG commodities","FX tied to global trade / reflation"],
+        "losers":["Pure defensives","late USD longs","recession-only hedges"],
+        "triggers":["copper and EEM improve with softer USD","industrial breadth broadens","cyclical leadership persists"],
+        "confirms":["PMI / activity rebound","small caps / equal-weight join","commodity complex broadens beyond oil"],
+        "invalidators":["copper move fails","USD re-accelerates","only oil moves while cyclicals lag"],
+        "children":[
+            {"name":"Real demand revival","weight":0.42,"trigger":"broad cyclicals + EM + copper confirm","invalidator":"PMIs roll back over"},
+            {"name":"Policy headline without real demand","weight":0.33,"trigger":"headline optimism but breadth stays narrow","invalidator":"hard data improves"},
+            {"name":"Commodity squeeze without broad growth","weight":0.25,"trigger":"oil / metals rise but small caps and EM lag","invalidator":"leadership broadens"},
+        ],
+    },
+    "bubble_endgame":{
+        "label":"Late-Cycle / Bubble Endgame",
+        "desc":"Leadership narrows, volatility stays deceptively low, and a final chase can lift many assets before fragility shows up.",
+        "parent":"risk",
+        "horizon":"1W-6M",
+        "winners":["Momentum leaders while tape stays intact","Gold hedge / optional convex shorts","Fast traders, not complacent holders"],
+        "losers":["Late retail FOMO at the top","Overlevered beta","Crowded longs that ignore exit risk"],
+        "triggers":["narrow leadership + low vol + strong tape","quality leaders keep squeezing","macro backdrop still permissive enough"],
+        "confirms":["equal-weight lags while leaders fly","positioning gets crowded","upside keeps extending despite fragile breadth"],
+        "invalidators":["breadth broadens healthily","valuation pressure breaks leaders quickly","vol/credit stress hit early"],
+        "children":[
+            {"name":"Orderly melt-up","weight":0.36,"trigger":"leaders extend and vol remains suppressed","invalidator":"vol/credit shock"},
+            {"name":"Everything-rally / liquidity chase","weight":0.34,"trigger":"policy/liquidity relief joins the chase","invalidator":"USD and rates tighten together"},
+            {"name":"Blow-off then hard reversal","weight":0.30,"trigger":"momentum extreme + breadth / vol divergence","invalidator":"broad healthy participation persists"},
+        ],
+    },
+}
+
+TRANSMISSION_LIBRARY = {
+    "war_oil_shock":{
+        "chain":["war escalation / supply disruption risk","oil up","tanker / freight / marine insurance up","USD / funding stress up","EM pain / importer pain up","US breadth narrows / hard assets win"],
+        "markets":{
+            "US":{"winners":["Energy","Selected tankers / defense","Gold-related"],"losers":["Airlines / transports","Consumer discretionary","Fragile cyclicals"],"notes":"Hard assets and energy hold up better while imported-cost pressure and higher vol hit broader beta."},
+            "IHSG":{"winners":["Coal / energy exporters","Selected shipping / dollar earners"],"losers":["Importers","Airlines / consumer names","IDR-sensitive domestics"],"notes":"Exporter vs importer split matters more than index headline."},
+            "FX":{"winners":["USD","Selected petro / funding-safe FX"],"losers":["IDR and fragile EM FX","Carry trades"],"notes":"Oil + USD together are the painful combo for importers."},
+            "Commodities":{"winners":["Oil / products","Gold if fear dominates"],"losers":["Growth-linked cyclicals if slowdown takes over"],"notes":"Need to watch whether gold or dollar dominates the safe-haven bid."},
+            "Crypto":{"winners":["Maybe BTC relative only"],"losers":["Alt beta / high liquidity-beta"],"notes":"Usually negative if USD and vol both rise; BTC can hold relatively better than alt beta."},
+        },
+    },
+    "deescalation_relief":{
+        "chain":["de-escalation / ceasefire odds up","oil down","freight / tanker premium down","USD and vol ease","breadth broadens","EM / laggards catch up"],
+        "markets":{
+            "US":{"winners":["Small caps","Equal-weight","Transports / airlines"],"losers":["Crowded defensives","Pure oil-shock winners"],"notes":"Best version is when breadth and credit both confirm, not just one headline."},
+            "IHSG":{"winners":["Importers / consumers","Banks if flow stabilizes","IDR-sensitive quality"],"losers":["Pure energy exporters on relative basis"],"notes":"IHSG relief gets much cleaner when USD and oil cool at the same time."},
+            "FX":{"winners":["EM FX","Carry / higher-beta FX"],"losers":["Crowded USD longs"],"notes":"Need DXY softness plus local flow stability."},
+            "Commodities":{"winners":["Copper if growth relief follows"],"losers":["Oil"],"notes":"Gold reaction depends on rates and USD, not just geopolitics."},
+            "Crypto":{"winners":["BTC / ETH / alt beta"],"losers":["Cash-only positioning"],"notes":"Most constructive if breadth, vol, and USD all improve together."},
+        },
+    },
+    "policy_relief":{
+        "chain":["duration / funding pressure eases","yields or discount-rate fears ease","USD softens or stalls","breadth improves","laggards / duration / EM improve"],
+        "markets":{
+            "US":{"winners":["Tech / duration","Small caps if breadth broadens","Quality cyclicals"],"losers":["Late defensive hedges"],"notes":"Best when equal-weight and small caps confirm the move, not just QQQ."},
+            "IHSG":{"winners":["Banks / domestic quality","Property / rate-sensitive pockets if IDR stable"],"losers":["USD-sensitive balance sheets if relief fails"],"notes":"IHSG benefits more if policy relief coincides with softer USD."},
+            "FX":{"winners":["EM FX / carry"],"losers":["Pure USD longs"],"notes":"Need falling real-rate pressure, not just verbal dovishness."},
+            "Commodities":{"winners":["Gold if real yields drop","Growth-linked commodities if risk-on broadens"],"losers":["Nothing structurally unless inflation re-accelerates"],"notes":"Gold can rally with easier real yields even when oil is mixed."},
+            "Crypto":{"winners":["BTC / ETH / high beta"],"losers":["Defensive underweights"],"notes":"Liquidity-sensitive assets respond quickly if the market believes the relief."},
+        },
+    },
+    "dollar_em_pain":{
+        "chain":["USD / real-yield pressure up","global liquidity tighter","EM FX / carry pain","foreign flow weakens","importer pain broadens","beta underperforms quality"],
+        "markets":{
+            "US":{"winners":["Domestic quality / defensives","USD earners"],"losers":["Global cyclicals / weaker balance sheets"],"notes":"Can still coexist with narrow US leadership."},
+            "IHSG":{"winners":["Exporters / dollar earners"],"losers":["Importers / property / leveraged domestics"],"notes":"IDR weakness matters for sector split even if index looks resilient."},
+            "FX":{"winners":["USD"],"losers":["IDR / fragile EM FX / carry"],"notes":"Watch whether USD strength is orderly or disorderly."},
+            "Commodities":{"winners":["Exporter-linked hard assets"],"losers":["Demand-sensitive cyclicals if growth slows"],"notes":"Oil can cushion exporters while squeezing importers."},
+            "Crypto":{"winners":["Maybe BTC relative only"],"losers":["Alt beta"],"notes":"Liquidity-sensitive beta usually struggles."},
+        },
+    },
+    "growth_slowdown":{
+        "chain":["growth data cools","small caps / breadth lag","defensives / duration gain relative strength","policy-response odds rise","bifurcation widens"],
+        "markets":{
+            "US":{"winners":["Defensives","Long duration if yields fall","Selective shorts in cyclicals"],"losers":["Consumer discretionary / weak cyclicals","Lower quality credit"],"notes":"Need to separate soft slowdown from outright crash."},
+            "IHSG":{"winners":["Quality / defensives / maybe banks if stable"],"losers":["Cyclicals tied to weak domestic demand"],"notes":"Commodity exporters can offset some domestic slowdown if global hard assets stay firm."},
+            "FX":{"winners":["USD / safe havens"],"losers":["Cyclical / EM FX"],"notes":"EM pain deepens if slowdown pairs with stronger USD."},
+            "Commodities":{"winners":["Gold if policy-relief odds rise"],"losers":["Copper / growth-linked cyclicals"],"notes":"Oil can diverge if geopolitics dominate."},
+            "Crypto":{"winners":["Little beyond relative BTC resilience"],"losers":["Alt beta"],"notes":"Usually negative unless policy relief arrives fast."},
+        },
+    },
+    "china_global_reaccel":{
+        "chain":["China / global demand pulse improves","copper / cyclicals / EM strengthen","breadth broadens","USD pressure eases","laggards catch up"],
+        "markets":{
+            "US":{"winners":["Industrials / materials","Small caps / equal-weight if broad"],"losers":["Pure defensives"],"notes":"Need more than one copper bounce; want broad cyclical participation."},
+            "IHSG":{"winners":["Metals / commodities / selected banks"],"losers":["Defensive laggards"],"notes":"IHSG can ride global reflation if USD is not simultaneously crushing EM."},
+            "FX":{"winners":["Trade-linked / EM FX"],"losers":["Late USD longs"],"notes":"Best when DXY cools and carry stabilizes."},
+            "Commodities":{"winners":["Copper / industrial complex"],"losers":["Pure recession hedges"],"notes":"More powerful when broad commodity complex joins, not oil alone."},
+            "Crypto":{"winners":["Beta on broad risk-on"],"losers":["Cash-only hedges"],"notes":"Usually follows once breadth and liquidity improve."},
+        },
+    },
+    "bubble_endgame":{
+        "chain":["narrow leadership persists","vol stays deceptively calm","chase / FOMO extends","everything-rally risk rises","exit-risk also rises"],
+        "markets":{
+            "US":{"winners":["Momentum leaders","Selected AI / quality growth"],"losers":["Late FOMO / weak hands after the peak"],"notes":"Important to distinguish healthy broadening from dangerous narrowing."},
+            "IHSG":{"winners":["High beta only if flow reaches EM"],"losers":["Late chasers if global reversal hits"],"notes":"Need to watch foreign-flow quality, not just index level."},
+            "FX":{"winners":["Depends on liquidity source"],"losers":["Crowded consensus trades after reversal"],"notes":"Late-cycle FX can reverse fast."},
+            "Commodities":{"winners":["Gold hedge / selective momentum"],"losers":["Late commodity chasers if deflation scare hits after"],"notes":"Gold can serve as both participant and hedge."},
+            "Crypto":{"winners":["High beta during melt-up"],"losers":["Late alt FOMO after peak"],"notes":"Crypto often expresses late-cycle chase very aggressively."},
+        },
+    },
+}
+
 
 def _s(s)->pd.Series:
     if s is None: return pd.Series(dtype=float)
@@ -316,6 +503,180 @@ def conf_band(conf:float)->str:
     if conf<0.60: return "Moderate-Conviction"
     return "High-Conviction"
 def nf(x,d=0.0): return float(np.nan_to_num(x,nan=d))
+
+
+def _score_to_state(score:float)->str:
+    score=clamp(score)
+    if score>=0.68: return "active"
+    if score>=0.52: return "arming"
+    if score>=0.36: return "watch"
+    return "dormant"
+
+def _bucket_tone(score:float)->str:
+    if score>=0.68: return "bad"
+    if score>=0.52: return "warn"
+    if score>=0.38: return "good"
+    return "neu"
+
+def _truncate_list(vals:List[str], n:int=3)->List[str]:
+    return [str(v) for v in list(vals or [])[:n] if str(v).strip()]
+
+def detect_scenario_families(q:Dict, f:Dict, h:Dict, analog:Optional[Dict]=None, playbooks:Optional[List[Dict]]=None)->Dict[str,float]:
+    analog=analog or {}
+    playbooks=playbooks or []
+    oil_1m=nf(f.get("clf_1m",f.get("oil_1m",0.0)))
+    oil_3m=nf(f.get("clf_3m",f.get("oil_3m",0.0)))
+    usd_1m=nf(f.get("uup_1m",f.get("dxy_1m",0.0)))
+    usd_3m=nf(f.get("uup_3m",f.get("dxy_3m",0.0)))
+    tlt_1m=nf(f.get("tlt_1m",0.0))
+    eem_1m=nf(f.get("eem_1m",0.0))
+    eem_3m=nf(f.get("eem_3m",0.0))
+    iwm_1m=nf(f.get("iwm_1m",0.0))
+    spy_1m=nf(f.get("spy_1m",0.0))
+    rsp_3m=nf(f.get("rsp_3m",0.0))
+    spy_3m=nf(f.get("spy_3m",0.0))
+    copper_1m=nf(f.get("hgf_1m",f.get("hgf_1m",0.0)))
+    copper_3m=nf(f.get("hgf_3m",f.get("hg_3m",0.0)))
+    shock=clamp(q.get("inf_shock",0.0))
+    slowdown=clamp(q.get("slowdown_flags",0.0))
+    weather=clamp(h.get("weather",0.5))
+    breadth_stress=clamp(max(0.0, spy_1m-iwm_1m)*10)
+    breadth_relief=clamp(max(0.0, iwm_1m-spy_1m)*10)
+    narrow=clamp(h.get("narrow_leadership",0.5))
+    vol=clamp((nf(f.get("vix_last",20.0))-15.0)/20.0)
+    vol_jump=clamp(max(0.0,nf(f.get("vix_1m",0.0)))/10.0)
+    hy_oas=f.get("hy_oas",350.0)
+    credit_stress=clamp((hy_oas-320.0)/260.0) if math.isfinite(hy_oas) else 0.35
+    long_end_pain=clamp(max(0.0,-tlt_1m)*10)
+    long_end_relief=clamp(max(0.0,tlt_1m)*10)
+    em_relief=clamp(max(0.0,eem_1m)*8 + max(0.0,-usd_1m)*6)
+    analog_family=str(analog.get("scenario_family",""))
+    analog_sim=clamp(float(analog.get("similarity",0.0) or 0.0))
+
+    pb_boost={}
+    for p in playbooks:
+        name=str(p.get("name","")).lower()
+        hypo=clamp(float(p.get("hypothesis",0.0) or 0.0))
+        if hypo<=0:
+            continue
+        if "war" in name or "de-escal" in name:
+            pb_boost["war_oil_shock"]=max(pb_boost.get("war_oil_shock",0.0),hypo)
+            pb_boost["deescalation_relief"]=max(pb_boost.get("deescalation_relief",0.0),hypo*0.8)
+        if "relief" in name or "liquidity" in name or "policy" in name:
+            pb_boost["policy_relief"]=max(pb_boost.get("policy_relief",0.0),hypo)
+        if "bubble" in name or "endgame" in name:
+            pb_boost["bubble_endgame"]=max(pb_boost.get("bubble_endgame",0.0),hypo)
+
+    fam={}
+    fam["war_oil_shock"]=clamp(0.26*max(0.0,oil_1m)*6 + 0.18*max(0.0,oil_3m)*3 + 0.16*max(0.0,usd_1m)*8 + 0.14*shock + 0.10*vol + 0.08*vol_jump + 0.08*breadth_stress)
+    fam["deescalation_relief"]=clamp(0.24*max(0.0,-oil_1m)*6 + 0.16*max(0.0,-oil_3m)*3 + 0.16*max(0.0,-usd_1m)*8 + 0.16*breadth_relief + 0.12*max(0.0,weather-0.50)*2 + 0.16*long_end_relief)
+    fam["policy_relief"]=clamp(0.24*long_end_relief + 0.18*max(0.0,-usd_1m)*7 + 0.16*max(0.0,0.55-shock)*1.6 + 0.16*max(0.0,slowdown-0.20) + 0.12*breadth_relief + 0.14*max(0.0,0.55-credit_stress))
+    fam["dollar_em_pain"]=clamp(0.26*max(0.0,usd_1m)*8 + 0.16*max(0.0,usd_3m)*4 + 0.14*max(0.0,-eem_1m)*7 + 0.12*credit_stress + 0.10*vol + 0.10*shock + 0.12*max(0.0,oil_1m)*5)
+    fam["growth_slowdown"]=clamp(0.24*slowdown + 0.18*breadth_stress + 0.16*credit_stress + 0.12*max(0.0,-iwm_1m)*8 + 0.12*max(0.0,-spy_1m)*6 + 0.10*max(0.0,0.50-weather) + 0.08*long_end_pain)
+    fam["china_global_reaccel"]=clamp(0.24*max(0.0,copper_1m)*7 + 0.18*max(0.0,copper_3m)*4 + 0.18*em_relief + 0.14*breadth_relief + 0.12*max(0.0,rsp_3m-spy_3m)*5 + 0.14*max(0.0,0.45-shock))
+    fam["bubble_endgame"]=clamp(0.24*(1.0-vol) + 0.18*narrow + 0.14*max(0.0,weather-0.50)*2 + 0.14*max(0.0,spy_3m)*3 + 0.12*max(0.0,0.55-credit_stress) + 0.18*(1.0 if q.get("quad","Q3") in ("Q1","Q2") else 0.0))
+
+    if analog_family:
+        mapping={
+            "commodity_shock":"war_oil_shock",
+            "petrodollar_tightening":"war_oil_shock",
+            "rates_shock":"dollar_em_pain",
+            "mixed_slowdown":"growth_slowdown",
+            "taco_deescalation":"deescalation_relief",
+            "bubble_endgame":"bubble_endgame",
+        }
+        mapped=mapping.get(analog_family,"")
+        if mapped in fam:
+            fam[mapped]=clamp(fam[mapped]+0.10*analog_sim)
+
+    for k,v in pb_boost.items():
+        if k in fam:
+            fam[k]=clamp(fam[k]+0.08*v)
+
+    # Keep opposite families from both going max at once without evidence
+    relief_overlap=min(fam["war_oil_shock"], fam["deescalation_relief"])
+    if relief_overlap>0.35:
+        if fam["war_oil_shock"]>fam["deescalation_relief"]:
+            fam["deescalation_relief"]=clamp(fam["deescalation_relief"]-0.12*relief_overlap)
+        else:
+            fam["war_oil_shock"]=clamp(fam["war_oil_shock"]-0.12*relief_overlap)
+
+    return fam
+
+def build_event_surrogates(q:Dict, f:Dict, h:Dict, family_scores:Optional[Dict[str,float]]=None)->List[Dict]:
+    family_scores=family_scores or {}
+    rows=[dict(x) for x in UPCOMING_EVENTS]
+    families_sorted=sorted(family_scores.items(), key=lambda kv: kv[1], reverse=True)
+    dynamic=[]
+    for fam,score in families_sorted[:4]:
+        if score < 0.36 or fam not in SCENARIO_FAMILY_LIBRARY:
+            continue
+        meta=SCENARIO_FAMILY_LIBRARY[fam]
+        dynamic.append({
+            "title":f"Scenario watch: {meta['label']}",
+            "family":meta["parent"],
+            "when":"dynamic",
+            "countdown":"Live" if score>=0.58 else "Watch",
+            "impact":meta["desc"],
+            "_scenario_family":fam,
+            "_scenario_score":score,
+        })
+        child=meta.get("children",[{}])[0]
+        if child:
+            dynamic.append({
+                "title":f"Branch watch: {child.get('name','Child branch')}",
+                "family":meta["parent"],
+                "when":"conditional",
+                "countdown":"Trigger-based",
+                "impact":child.get("trigger","Waiting for confirmation"),
+                "_scenario_family":fam,
+                "_scenario_score":score*0.8,
+            })
+    rows.extend(dynamic)
+    return rows
+
+def build_transmission_graph(q:Dict, f:Dict, h:Dict, rot:Optional[Dict]=None, route:Optional[Dict]=None,
+                             news_overlay:Optional[Dict]=None, scenarios:Optional[Dict]=None,
+                             ih:Optional[Dict]=None)->Dict:
+    rot=rot or {}
+    route=route or {}
+    news_overlay=news_overlay or {}
+    ih=ih or {}
+    scenario_payload=scenarios or {}
+    cases=scenario_payload.get("cases", scenario_payload if isinstance(scenario_payload,dict) else {})
+    family_scores=dict((scenario_payload.get("family_scores") or {}))
+    if not family_scores:
+        family_scores=detect_scenario_families(q,f,h)
+    # Blend scenario / catalyst families a bit
+    family_scores["war_oil_shock"]=clamp(0.75*family_scores.get("war_oil_shock",0.0)+0.25*news_overlay.get("war_oil",0.0))
+    family_scores["policy_relief"]=clamp(0.70*family_scores.get("policy_relief",0.0)+0.30*news_overlay.get("relief",0.0))
+    family_scores["growth_slowdown"]=clamp(0.75*family_scores.get("growth_slowdown",0.0)+0.25*news_overlay.get("policy_pressure",0.0))
+    family_scores["dollar_em_pain"]=clamp(0.80*family_scores.get("dollar_em_pain",0.0)+0.20*max(0.0,nf(f.get("uup_1m",0.0))*8))
+
+    active=[]
+    for fam,score in sorted(family_scores.items(), key=lambda kv: kv[1], reverse=True):
+        if fam not in TRANSMISSION_LIBRARY:
+            continue
+        meta=TRANSMISSION_LIBRARY[fam]
+        active.append({
+            "family":fam,
+            "label":SCENARIO_FAMILY_LIBRARY.get(fam,{}).get("label",fam.replace("_"," ").title()),
+            "score":clamp(score),
+            "state":_score_to_state(score),
+            "chain":meta.get("chain",[]),
+            "markets":meta.get("markets",{}),
+            "invalidators":SCENARIO_FAMILY_LIBRARY.get(fam,{}).get("invalidators",[]),
+            "triggers":SCENARIO_FAMILY_LIBRARY.get(fam,{}).get("triggers",[]),
+            "child_branches":SCENARIO_FAMILY_LIBRARY.get(fam,{}).get("children",[]),
+        })
+    primary=active[0] if active else {}
+    return {
+        "primary_family":primary.get("family"),
+        "primary_label":primary.get("label"),
+        "active_families":active[:4],
+        "family_scores":family_scores,
+        "summary":" → ".join(primary.get("chain",[])[:6]) if primary else "",
+    }
 
 @st.cache_data(ttl=TTL,show_spinner=False)
 def fetch_fred(sid:str)->pd.Series:
@@ -709,102 +1070,178 @@ def _match_analog(f:Dict)->Dict:
         if sim>best_sim: best_sim=sim; best=dict(a,similarity=sim)
     return best or dict(ANALOG_LIBRARY[-1],similarity=0.5)
 
+
 def build_playbooks(f:Dict,q:Dict)->List[Dict]:
     oil_3m=nf(f.get("clf_3m",f.get("oil_3m",0.0)))
-    uup_1m=nf(f.get("uup_1m",0.0)); tlt_1m=nf(f.get("tlt_1m",0.0))
-    iwm_1m=nf(f.get("iwm_1m",0.0)); long_end=clamp(0.5-tlt_1m*5)
-    breadth_dmg=clamp(0.5-iwm_1m*5); sf=q.get("slowdown_flags",0)
-    pain_relief=clamp(0.35*long_end+0.20*breadth_dmg+0.20*sf+0.15*max(0,uup_1m*5)+0.10*max(0,oil_3m))
-    war_de=clamp(0.45*max(0,oil_3m*2)+0.20*max(0,uup_1m*5)+0.20*breadth_dmg+0.15*(1.0 if q.get("inf_shock",0)>0.3 else 0.0))
-    tariff_neg=clamp(0.35*max(0,uup_1m*5)+0.25*long_end+0.20*max(0,iwm_1m*-5)+0.20*breadth_dmg)
-    # New playbooks (Ricky / April 2026)
-    taco_ch2=clamp(0.35*(1-max(0,oil_3m))+0.20*(1-sf)+0.25*(1-long_end)+0.20*(1-breadth_dmg))
-    warsh_cut=clamp(0.20*(1-sf)+0.25*(1-long_end)+0.25*(1-breadth_dmg)+0.30*(1-sf))
-    shock_pen_p=clamp(q.get("inf_shock",0)*1.5)
-    bubble_end=clamp(0.12+0.15*(1 if q.get("quad","Q3") in("Q1","Q2") else 0)+0.15*q.get("confidence",0.3)+0.15*(1-shock_pen_p))
-    return [{"name":"Pain-before-relief refinancing","evidence":clamp(0.55*long_end+0.25*sf+0.20*max(0,-iwm_1m*5)),"hypothesis":pain_relief,
-             "desc":"Long-end pain, growth stress, dan weak internals naikan odds bahwa financial-pain thresholds akhirnya memicu relief messaging.",
-             "invalidators":["Long-end worsening tanpa policy response","Credit dan breadth deteriorate bersama-sama","Inflation shock accelerates"]},
-            {"name":"War-shock then de-escalation","evidence":clamp(0.60*max(0,oil_3m*2)+0.20*max(0,uup_1m*5)+0.20*breadth_dmg),"hypothesis":war_de,
-             "desc":"Energy shock mendukung stagflation trades dulu, tapi rising pain dapat membuat partial de-escalation atau relief narrative jauh lebih relevan.",
-             "invalidators":["Oil keeps extending tanpa pause","Dollar pressure intensifies dan breadth tidak stabilize","Small-cap dan credit failure deepens together"]},
-            {"name":"Tariff-pressure then negotiation relief","evidence":clamp(0.40*max(0,uup_1m*5)+0.35*max(0,-iwm_1m*5)+0.25*long_end),"hypothesis":tariff_neg,
-             "desc":"Rising dollar, weak small caps, dan long-end pain mirip prior pressure cycles di mana later negotiation moderation triggers tactical relief.",
-             "invalidators":["Escalation rhetoric compounds","Small caps tidak bisa stabilize","Long-end dan vol stress reinforce each other"]},
-            {"name":"TACO Ch.2: Iran de-escalation inevitable before June 2026 ⭐","evidence":clamp(0.50*(1-max(0,oil_3m))+0.30*(1-sf)+0.20*(1-long_end)),"hypothesis":taco_ch2,
-             "desc":"Setiap perundingan gagal, efeknya ke pasar makin kecil (less effect). De-eskalasi HARUS terjadi sebelum Juni: FIFA World Cup 2026 (Trump butuh panggung), Treasury debt refinancing June deadline, Warsh confirmation butuh market stabil. Pattern Liberation Day 2025 terulang sempurna.",
-             "invalidators":["Iran massive retaliation ke pangkalan AS/Israel","Warsh gagal dikonfirmasi Senat","Serangan militer skala baru sebelum FIFA deadline","Ceasefire collapses completely tanpa negosiasi lanjutan"]},
-            {"name":"Warsh Fed cut + ON RRP habis → Most Hated Inflated Rally ⭐","evidence":clamp(0.40*(1-long_end)+0.35*(1-sf)+0.25*(1-shock_pen_p)),"hypothesis":warsh_cut,
-             "desc":"Warsh masuk 15 Mei menggantikan Powell. Komit suku bunga harus turun. ON RRP tinggal $0.6M dari $2.3T — sistem butuh likuiditas baru. Pemotongan defensif (bukan ekspansif) → semua aset naik bukan karena fundamental tapi karena uang tidak tahu harus ke mana. Most hated karena banyak yang skeptis dan tidak ikut, justru itu yang bikin rally lama.",
-             "invalidators":["Inflasi re-accelerate lebih cepat dari cut","Warsh gagal dikonfirmasi","Shock eksternal baru","Likuiditas habis lebih cepat dari yang diperkirakan"]},
-            {"name":"Bubble Endgame / Ujung Siklus → koreksi brutal setelah most hated rally ⚠️","evidence":clamp(0.30*(1-shock_pen_p)+0.40*(1-sf)+0.30*(1-long_end)),"hypothesis":bubble_end,
-             "desc":"Valuasi AS setara 1929 dan 2000. Utang global tertinggi masa damai. Warsh cut defensif = rally suntikan. Ricky anatomy bubble: inovasi/ekspansi → harga naik → FOMO → everything rally → ujung siklus. 1999: Nasdaq -78%. 2007: S&P -57%. 2021: growth stocks -60-80%. Nikmati pestanya, tapi satu tangan di pintu keluar.",
-             "invalidators":["AI genuinely changes productivity (super cycle valid)","QE infinity dari Fed","Resolusi geopolitik global simultaneous (peace dividend besar)"]},
+    uup_1m=nf(f.get("uup_1m",0.0))
+    tlt_1m=nf(f.get("tlt_1m",0.0))
+    iwm_1m=nf(f.get("iwm_1m",0.0))
+    copper_1m=nf(f.get("hgf_1m",0.0))
+    sf=clamp(q.get("slowdown_flags",0.0))
+    shock=clamp(q.get("inf_shock",0.0))
+    weather=clamp(q.get("weather_proxy", q.get("confidence",0.5)))
+    long_end_pain=clamp(max(0.0,-tlt_1m)*10)
+    long_end_relief=clamp(max(0.0,tlt_1m)*10)
+    breadth_dmg=clamp(max(0.0,-iwm_1m)*8)
+    breadth_relief=clamp(max(0.0,iwm_1m)*8)
+
+    policy_relief=clamp(0.30*long_end_relief+0.20*max(0.0,-uup_1m)*8+0.20*sf+0.15*(1.0-shock)+0.15*breadth_relief)
+    war_then_relief=clamp(0.32*max(0.0,oil_3m)*4+0.22*max(0.0,uup_1m)*8+0.18*shock+0.14*breadth_dmg+0.14*max(0.0,-oil_3m)*2)
+    dollar_em=clamp(0.30*max(0.0,uup_1m)*8+0.22*max(0.0,oil_3m)*4+0.20*breadth_dmg+0.14*shock+0.14*sf)
+    china_reaccel=clamp(0.34*max(0.0,copper_1m)*7+0.22*breadth_relief+0.20*max(0.0,-uup_1m)*8+0.12*(1.0-shock)+0.12*max(0.0,weather-0.5)*2)
+    bubble_end=clamp(0.34*max(0.0,weather-0.5)*2+0.28*(1.0-clamp((f.get("vix_last",20.0)-14.0)/18.0))+0.18*(1.0-shock)+0.20*breadth_relief)
+
+    return [
+        {"name":"Policy pain → relief response","evidence":clamp(0.55*long_end_pain+0.25*sf+0.20*breadth_dmg),"hypothesis":policy_relief,
+         "desc":"Jika long-end pain, slowdown, dan funding stress sudah cukup terasa, odds policy/liquidity relief naik. Ini bukan quad core; ini tactical overlay / forward path.",
+         "invalidators":["Long-end pain terus naik","Inflation shock re-accelerates","Breadth tetap sempit walau yields turun"]},
+        {"name":"War shock → oil spike → later de-escalation branch","evidence":clamp(0.55*max(0.0,oil_3m)*4+0.25*max(0.0,uup_1m)*8+0.20*shock),"hypothesis":war_then_relief,
+         "desc":"Shock geopolitik bisa memukul dulu lewat oil/USD/EM pain, tapi relief branch tetap harus dipantau kalau tanker premium, oil, dan dollar gagal lanjut.",
+         "invalidators":["Oil dan tanker premium terus naik","USD pressure makin kuat","Broad importer pain terus menyebar"]},
+        {"name":"Dollar squeeze / EM pain","evidence":clamp(0.60*max(0.0,uup_1m)*8+0.20*breadth_dmg+0.20*shock),"hypothesis":dollar_em,
+         "desc":"USD strength bisa mendominasi cross-asset transmission lebih dulu daripada headline macro. Ini penting untuk IHSG / importer split / EM timing.",
+         "invalidators":["USD stall / reverse","EM breadth improve meski USD naik","Credit stress cepat reda"]},
+        {"name":"China/global demand re-acceleration","evidence":clamp(0.55*max(0.0,copper_1m)*7+0.25*breadth_relief+0.20*max(0.0,-uup_1m)*8),"hypothesis":china_reaccel,
+         "desc":"Kalau copper, EM, dan breadth ikut membaik, market bisa bertransisi dari narrow leadership ke broader cyclical / EM catch-up.",
+         "invalidators":["Copper gagal lanjut","USD re-accelerates","Only oil up, cyclical breadth tidak ikut"]},
+        {"name":"Late-cycle / bubble endgame","evidence":clamp(0.45*max(0.0,weather-0.5)*2+0.30*(1.0-clamp((f.get("vix_last",20.0)-14.0)/18.0))+0.25*(1.0-shock)),"hypothesis":bubble_end,
+         "desc":"Bukan base case wajib. Ini radar untuk saat narrow leadership, low vol, dan chase/fomo mulai dominan. Tujuannya bukan nebak top, tapi tahu kapan reward-risk makin rapuh.",
+         "invalidators":["Breadth broadens sehat","Vol/credit stress datang lebih dulu","Leaders rusak sebelum breadth join"]},
     ]
 
 def build_scenarios(q:Dict,f:Dict,h:Dict,analog:Dict,playbooks:List)->Dict:
     s_quad=q["quad"]; m_quad=q["monthly_quad"]; s_next=q.get("next_quad",s_quad)
-    m_next=q.get("monthly_next",m_quad); div=q["divergence"]; hazard=q.get("flip_hazard",0.5)
-    shock_str=clamp(q.get("inf_shock",0.0)*2); conf=q.get("confidence",0.5)
-    oil_3m=nf(f.get("clf_3m",f.get("oil_3m",0.0))); uup_1m=nf(f.get("uup_1m",0.0))
+    m_next=q.get("monthly_next",m_quad); div=q["divergence"]; hazard=clamp(q.get("flip_hazard",0.5))
+    conf=clamp(q.get("confidence",0.5))
+    family_scores=detect_scenario_families(q,f,h,analog=analog,playbooks=playbooks)
+
     raw={}
     if div=="aligned":
-        raw[f"Base: Aligned {s_quad} continuation"]=0.34+0.18*conf
-        raw[f"Alt: tactical move toward {s_next}"]=0.18+0.18*hazard
-        raw["Family: shock branch"]=0.12+0.22*shock_str
-        raw["Family: broadening leadership"]=0.12
-        raw["Family: false relief"]=0.10+0.12*max(0.0,hazard-conf)
+        raw[f"Base: {s_quad} continuation / route follow-through"]=0.30+0.22*conf
+        raw[f"Alt: tactical drift toward {s_next}"]=0.12+0.14*hazard
     else:
-        raw[f"Base: Monthly {m_quad} inside Structural {s_quad}"]=0.28+0.16*conf
-        raw[f"Alt: Monthly {m_quad} fades to Structural {s_quad}"]=0.18+0.16*max(0.0,0.55-conf)+0.10*hazard
-        raw[f"Transition: Monthly {m_quad} broadens into Structural {m_next}"]=0.12+0.14*conf
-        raw["Family: divergence resolves via confirmation"]=0.10
-        raw["Family: policy / rates override"]=0.08
-        raw["Family: shock branch"]=0.10+0.20*shock_str
-    # Out-of-box scenarios
-    petro=clamp(max(0,oil_3m*2)*0.5+shock_str*0.5)
-    if petro>=0.40: raw["Out-of-box: Petrodollar tightening shock"]=0.12+0.20*petro
-    usd_sq=clamp(max(0,uup_1m*8))
-    if usd_sq>=0.35: raw["Out-of-box: Carry unwind / dollar squeeze"]=0.10+0.16*usd_sq
-    raw[f"Analog: {analog.get('label','Historical echo')}"]=0.08+0.18*float(analog.get("similarity",0.5))
-    pb=max(playbooks,key=lambda x:x["hypothesis"])
-    raw[f"Playbook: {pb['name']}"]=0.08+0.25*float(pb["hypothesis"])
-    # ── NEW SCENARIOS (April 2026 — Ricky/real-world framework) ───────────────
-    # 1. TACO de-escalation: scales with weather and low flip hazard
-    _taco=clamp(0.30+0.25*(1-q.get("flip_hazard",0.5))+0.25*h.get("weather",0.5)+0.20*(1-max(0,shock_str)))
-    raw["TACO Ch.2: Iran de-escalation → risk-on rally"]=_taco
-    # 2. Warsh Fed cut → most hated inflated rally
-    _warsh=clamp(0.20+0.30*(1-shock_str)+0.25*(1-q.get("slowdown_flags",0))+0.25*h.get("weather",0.5))
-    raw["Most Hated Inflated Rally (Warsh cut + TACO final)"]=_warsh
-    # 3. Bubble endgame / ujung siklus
-    _vix_low=f.get("vix_last",20); _bubble=clamp(0.08+0.15*(1 if s_quad in("Q1","Q2") else 0)+0.10*q.get("confidence",0.3)+0.10*clamp(1-(_vix_low-13)/15))
-    raw["Bubble Endgame / Ujung Siklus (Ricky bubble anatomy)"]=_bubble
-    # 4. MSCI Indonesia clear → asing masuk IHSG
-    raw["MSCI Indonesia clear → asing masuk IHSG"]=clamp(0.08 if s_quad in("Q1","Q2") else 0.04+0.10*(1-max(0,nf(uup_1m)*5)))
-    # 5. Hormuz blockade re-eskalasi → WTI $110+
-    if max(0,oil_3m)>0.10 or shock_str>0.20:
-        raw["Hormuz Blockade / re-eskalasi → WTI $110+"]=clamp(0.12+0.20*shock_str+0.15*max(0,oil_3m))
-    # Normalize
-    total=sum(raw.values()); probs={k:v/total for k,v in raw.items()}
-    def _winners_losers(name:str):
-        nl=name.lower()
-        if "petrodollar" in nl or "shock" in nl: return ["Energy / Gold","Petro FX","Shipping"],["Oil importers","Broad cyclicals","Fragile EM FX"],["Oil fades quickly","USD and rates calm","Importer pain not spreading"]
-        if "carry unwind" in nl or "dollar" in nl: return ["USD cash","Funding-safe majors","JPY/CHF hedges"],["Crowded carry","Fragile EM FX","High beta crypto"],["Dollar fails to extend","Vol compresses fast","Carry re-bid returns"]
-        if "taco" in nl or "de-escalation" in nl: return ["Risk assets broad (most hated)","IWM small caps","EEM/IHSG eksportir","BTC/ETH","Oil DOWN"],["USD longs","TLT","Defensives"],["Iran massive retaliation","Warsh not confirmed","Ceasefire collapses again"]
-        if "most hated inflated" in nl or "warsh" in nl: return ["Everything: saham+emas+crypto+komoditas","EM/IHSG inflow","High beta alts"],["Cash holders terlambat","TLT longs"],["Inflasi re-accelerate","Warsh gagal","External shock baru"]
-        if "bubble" in nl or "ujung siklus" in nl: return ["Yang masuk duluan + keluar sebelum crash","Gold hedge","Short beta setelah puncak"],["Retail FOMO di puncak","High-multiple growth","Leverage positions"],["Valuasi sustained (super cycle)","Fed terus inject infinity"]
-        if "msci" in nl: return ["IHSG quality (BBCA,BMRI,TLKM)","Saham clear HSC","Coal exporters (ADRO,PTBA)","IDR"],["Saham HSC tinggi (BREN type)","Free float rendah"],["Indonesia turun ke frontier","Asing tidak masuk meski clear"]
-        if "hormuz" in nl or "blockade" in nl: return ["WTI/Brent oil","XLE energy","ADRO/PTBA coal","Gold","Shipping tankers"],["Oil importers","Consumer (biaya naik)","EM importers","Airlines"],["Hormuz reopens quickly","Iran capitulates","Diplomatic resolution sudden"]
-        if "broadening" in nl: return ["Equal-weight / selective beta","EM catch-up","Quality laggards"],["Consensus hedges","Ultra-defensive late trades"],["Small caps fail to confirm","USD re-accelerates","Credit fails to improve"]
-        if "analog" in nl: return ["Names aligned with analog path","Selective hard assets"],["Crowded late-cycle beta","Consensus laggards"],["Cross-asset path diverges from analog","Breadth expands against analog"]
-        if "playbook" in nl: return ["Second-order beneficiaries","Relief duration beneficiaries"],["Consensus late trades","Overcrowded trend-chasing"],["Long-end pain does not trigger relief","Breadth stays narrow"]
-        return ["Selective winners with scenario fit"],["Crowded mismatched expressions"],["Cross-asset confirmation flips","Shock state changes materially"]
+        raw[f"Base: Monthly {m_quad} inside Structural {s_quad}"]=0.24+0.18*conf
+        raw[f"Alt: Monthly {m_quad} fades back to Structural {s_quad}"]=0.12+0.12*max(0.0,0.55-conf)+0.10*hazard
+        raw[f"Transition: Monthly {m_quad} broadens toward {m_next}"]=0.10+0.12*conf+0.06*max(0.0,h.get("weather",0.5)-0.5)*2
+
+    if analog:
+        raw[f"Analog echo: {analog.get('label','Historical echo')}"]=0.08+0.18*clamp(float(analog.get("similarity",0.0) or 0.0))
+
+    if playbooks:
+        top_pb=max(playbooks,key=lambda x: x.get("hypothesis",0.0))
+        raw[f"Playbook watch: {top_pb.get('name','Policy / scenario path')}"]=0.08+0.16*clamp(float(top_pb.get("hypothesis",0.0) or 0.0))
+
+    for fam,score in family_scores.items():
+        meta=SCENARIO_FAMILY_LIBRARY.get(fam,{})
+        raw[f"Family: {meta.get('label', fam.replace('_',' ').title())}"]=0.06+0.22*clamp(score)
+
+    total=sum(raw.values()) or 1.0
+    probs={k:v/total for k,v in raw.items()}
+
     cases={}
-    for name,p in sorted(probs.items(),key=lambda kv:kv[1],reverse=True):
-        w,l,inv=_winners_losers(name)
-        cases[name]={"probability":p,"winners":w,"losers":l,"invalidators":inv,
-                     "description":f"{name} under {q['operating']}, {s_quad}/{m_quad}, shock={shock_str:.2f}."}
-    return cases
+    ordered=[]
+    # build family cases first so dashboard gets actionable branches, not just base/alt labels
+    for fam,score in sorted(family_scores.items(), key=lambda kv: kv[1], reverse=True):
+        meta=SCENARIO_FAMILY_LIBRARY.get(fam)
+        if not meta:
+            continue
+        label=meta["label"]
+        name=f"Family: {label}"
+        p=probs.get(name, 0.0)
+        children=[]
+        for child in meta.get("children",[]):
+            child_weight=clamp(float(child.get("weight",0.0) or 0.0))
+            child_prob=clamp(score*child_weight)
+            children.append({
+                "name":child.get("name","Child branch"),
+                "probability":child_prob,
+                "trigger":child.get("trigger",""),
+                "invalidator":child.get("invalidator",""),
+            })
+        evidence=[]
+        if fam=="war_oil_shock":
+            evidence=[f"Oil 1M {pct(nf(f.get('clf_1m',f.get('oil_1m',0.0))))}", f"USD 1M {pct(nf(f.get('uup_1m',0.0)))}", f"Shock {q.get('inf_shock',0):.0%}"]
+        elif fam=="deescalation_relief":
+            evidence=[f"Oil 1M {pct(nf(f.get('clf_1m',f.get('oil_1m',0.0))))}", f"USD 1M {pct(nf(f.get('uup_1m',0.0)))}", f"Weather {h.get('weather',0.5):.0%}"]
+        elif fam=="policy_relief":
+            evidence=[f"TLT 1M {pct(nf(f.get('tlt_1m',0.0)))}", f"USD 1M {pct(nf(f.get('uup_1m',0.0)))}", f"Slowdown {q.get('slowdown_flags',0):.0%}"]
+        elif fam=="dollar_em_pain":
+            evidence=[f"USD 1M {pct(nf(f.get('uup_1m',0.0)))}", f"EEM 1M {pct(nf(f.get('eem_1m',0.0)))}", f"Credit stress {clamp((f.get('hy_oas',350)-320)/260):.0%}" if math.isfinite(f.get('hy_oas',float('nan'))) else "Credit stress —"]
+        elif fam=="china_global_reaccel":
+            evidence=[f"Copper 1M {pct(nf(f.get('hgf_1m',0.0)))}", f"EEM 1M {pct(nf(f.get('eem_1m',0.0)))}", f"USD 1M {pct(nf(f.get('uup_1m',0.0)))}"]
+        elif fam=="bubble_endgame":
+            evidence=[f"VIX {num(f.get('vix_last',float('nan')),1)}", f"Narrow leadership {h.get('narrow_leadership',0.5):.0%}", f"SPY 3M {pct(nf(f.get('spy_3m',0.0)))}"]
+        else:
+            evidence=[f"Confidence {conf:.0%}", f"Hazard {hazard:.0%}"]
+
+        cases[name]={
+            "probability":p,
+            "family":fam,
+            "state":_score_to_state(score),
+            "tone":_bucket_tone(score),
+            "description":meta.get("desc",""),
+            "winners":_truncate_list(meta.get("winners",[]),3),
+            "losers":_truncate_list(meta.get("losers",[]),3),
+            "triggers":_truncate_list(meta.get("triggers",[]),3),
+            "confirms":_truncate_list(meta.get("confirms",[]),3),
+            "invalidators":_truncate_list(meta.get("invalidators",[]),3),
+            "child_branches":children,
+            "evidence":evidence,
+            "horizon":meta.get("horizon","1W-3M"),
+        }
+        ordered.append(name)
+
+    # append non-family base/alt/analog/playbook context
+    for name,p in sorted(probs.items(), key=lambda kv: kv[1], reverse=True):
+        if name in cases:
+            continue
+        lower=name.lower()
+        winners, losers, invalidators = [], [], []
+        desc=f"{name} under {q.get('operating','mixed')} with Structural {s_quad} / Monthly {m_quad}."
+        if "base:" in lower:
+            winners=["Current route leaders","Already-confirmed beneficiaries","Higher-confidence setups"]
+            losers=["Counter-trend punts","Narrative-only trades"]
+            invalidators=["Cross-asset confirmation flips","Route primary breaks","Hazard rises materially"]
+        elif "alt:" in lower or "transition:" in lower:
+            winners=["Early rotation candidates","Watchlist names with improving breadth","Adaptive hedges"]
+            losers=["Late consensus expressions","Over-anchored trend followers"]
+            invalidators=["Base route re-asserts","Signal engine cools","Catalyst does not confirm"]
+        elif "analog" in lower:
+            winners=["Names aligned with analog path","Hard assets if analog says so","Selective laggards"]
+            losers=["Crowded late-cycle beta","Names fighting the analog"]
+            invalidators=["Cross-asset path diverges from analog","Breadth contradicts analog","Policy path changes"]
+        elif "playbook" in lower:
+            winners=["Second-order beneficiaries","Tactical setups with catalyst support","Adaptive hedges"]
+            losers=["One-path-only trades","Late reaction chasers"]
+            invalidators=["Catalyst fails","Rates/oil/dollar move the other way","Breadth contradicts playbook"]
+        cases[name]={
+            "probability":p,
+            "family":"",
+            "state":"context",
+            "tone":"neu",
+            "description":desc,
+            "winners":winners,
+            "losers":losers,
+            "triggers":[],
+            "confirms":[],
+            "invalidators":invalidators,
+            "child_branches":[],
+            "evidence":[f"Confidence {conf:.0%}", f"Hazard {hazard:.0%}", f"Divergence {div}"],
+            "horizon":"1W-3M",
+        }
+        ordered.append(name)
+
+    ordered=sorted(ordered, key=lambda n: cases[n]["probability"], reverse=True)
+    return {
+        "cases":cases,
+        "ordered":ordered,
+        "family_scores":family_scores,
+        "base_case":ordered[0] if ordered else "",
+        "divergence":div,
+        "structural_quad":s_quad,
+        "monthly_quad":m_quad,
+    }
+
 
 def build_health(prices:Dict[str,pd.Series],f:Dict)->Dict:
     SECS=["XLE","XLF","XLI","XLB","XLK","XLV","XLY","XLP","XLU","XLRE","XLC"]
@@ -977,6 +1414,7 @@ def load_all()->Dict:
     sw_all=build_strong_weak_all(prices,q)
     route=derive_route_state(q,h,cr)
     news_overlay=build_news_catalyst_overlay(q,f,h,route=route,most_hated=most_hated)
+    trans_graph=build_transmission_graph(q,f,h,rot=rot,route=route,news_overlay=news_overlay,scenarios=sc,ih=ih)
     asset_trans=build_asset_translation(route["primary"],q,h,f,route)
     opps=build_opportunities(prices,q,f,h,rot,ih,most_hated,risk_ranges=risk_ranges,sizing=sizing,price_meta=price_meta,route=route)
     fwd_radar=build_forward_radar(prices,q,f,route=route,opps=opps,risk_ranges=risk_ranges,most_hated=most_hated,news_overlay=news_overlay)
@@ -987,7 +1425,7 @@ def load_all()->Dict:
                 most_hated_rally=most_hated,opportunities=opps,signal_strength=signal_strength,family=family,risk_ranges=risk_ranges,
                 position_sizing=sizing,asset_checklists=asset_chk,macro_impact=macro_impact,
                 forward_radar=fwd_radar,strong_weak_all=sw_all,
-                route=route,asset_translation=asset_trans,news_overlay=news_overlay,top_drivers=top_drivers,
+                route=route,asset_translation=asset_trans,news_overlay=news_overlay,transmission_graph=trans_graph,top_drivers=top_drivers,
                 decision_context={
                     "route_primary":route.get("primary"),
                     "route_bias":route.get("route_bias"),
@@ -1581,6 +2019,92 @@ def render_top_drivers_now(drivers:List[Dict], title:str="🧠 TOP DRIVERS NOW")
             )
 
 
+
+
+def render_active_scenario_graph(sc_payload:Dict, title:str="🧭 ACTIVE SCENARIO GRAPH") -> None:
+    if not sc_payload:
+        return
+    cases=sc_payload.get("cases", sc_payload if isinstance(sc_payload,dict) else {})
+    ordered=sc_payload.get("ordered", list(cases.keys()))
+    if not cases or not ordered:
+        return
+    sh(title)
+    for name in ordered[:4]:
+        case=cases.get(name,{})
+        prob=clamp(float(case.get("probability",0.0) or 0.0))
+        tone=str(case.get("tone","neu"))
+        border={"good":"#3dbb6c","warn":"#e5a020","bad":"#e05252","neu":"rgba(255,255,255,0.18)"}.get(tone,"rgba(255,255,255,0.18)")
+        child_branches=case.get("child_branches",[])[:2]
+        trigger_txt=" · ".join(_truncate_list(case.get("triggers",[]),2)) or "Wait for trigger / confirmation"
+        invalid_txt=" · ".join(_truncate_list(case.get("invalidators",[]),2)) or "No explicit invalidator yet"
+        ev_txt=" · ".join(_truncate_list(case.get("evidence",[]),3))
+        st.markdown(
+            '<div class="mc" style="border-left:3px solid '+border+'">'+
+            '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;margin-bottom:4px">'+
+            '<div><div class="lb">'+html.escape(str(case.get("state","scenario")).upper())+'</div>'+
+            '<div class="vl" style="font-size:16px">'+html.escape(name)+'</div></div>'+
+            '<div style="font-family:DM Mono,monospace;font-size:12px;color:'+border+'">'+f'{prob:.0%}'+'</div></div>'+
+            '<div style="font-size:11px;opacity:.76;line-height:1.45">'+html.escape(str(case.get("description","")))+'</div>'+
+            '<div style="font-size:10px;opacity:.52;margin-top:5px">Trigger: '+html.escape(trigger_txt)+'</div>'+
+            '<div style="font-size:10px;opacity:.52">Invalidator: '+html.escape(invalid_txt)+'</div>'+
+            (('<div style="font-size:10px;opacity:.45;margin-top:4px">Evidence: '+html.escape(ev_txt)+'</div>') if ev_txt else '')+
+            '</div>',
+            unsafe_allow_html=True,
+        )
+        if child_branches:
+            cols=st.columns(len(child_branches))
+            for col,ch in zip(cols, child_branches):
+                with col:
+                    st.markdown(
+                        '<div style="border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:8px 10px;margin-top:2px;background:rgba(255,255,255,0.02)">'+
+                        '<div style="font-size:10px;opacity:.45;letter-spacing:.06em;text-transform:uppercase">Child branch</div>'+
+                        '<div style="font-weight:700;font-size:12px;margin:2px 0 4px 0">'+html.escape(str(ch.get("name","Child branch")))+'</div>'+
+                        '<div style="font-family:DM Mono,monospace;font-size:10px;opacity:.62;margin-bottom:4px">'+f'{clamp(float(ch.get("probability",0.0) or 0.0)):.0%}'+'</div>'+
+                        '<div style="font-size:10px;opacity:.62;line-height:1.35">↳ '+html.escape(str(ch.get("trigger","")))+'</div>'+
+                        '</div>',
+                        unsafe_allow_html=True,
+                    )
+
+
+def render_transmission_graph(trans_payload:Dict, title:str="🕸️ TRANSMISSION GRAPH — siapa kena cipratan ke mana") -> None:
+    if not trans_payload:
+        return
+    active=trans_payload.get("active_families",[])
+    if not active:
+        return
+    sh(title)
+    for fam in active[:3]:
+        score=clamp(float(fam.get("score",0.0) or 0.0))
+        tone=_bucket_tone(score)
+        border={"good":"#3dbb6c","warn":"#e5a020","bad":"#e05252","neu":"rgba(255,255,255,0.18)"}.get(tone,"rgba(255,255,255,0.18)")
+        chain=" → ".join([str(x) for x in fam.get("chain",[])[:6]])
+        st.markdown(
+            '<div class="mc" style="border-left:3px solid '+border+'">'+
+            '<div style="display:flex;justify-content:space-between;gap:8px;align-items:flex-start;margin-bottom:4px">'+
+            '<div><div class="lb">'+html.escape(str(fam.get("state","path")).upper())+'</div>'+
+            '<div class="vl" style="font-size:16px">'+html.escape(str(fam.get("label","Scenario family")))+'</div></div>'+
+            '<div style="font-family:DM Mono,monospace;font-size:12px;color:'+border+'">'+f'{score:.0%}'+'</div></div>'+
+            '<div style="font-size:11px;opacity:.82;line-height:1.5">'+html.escape(chain)+'</div>'+
+            '</div>',
+            unsafe_allow_html=True,
+        )
+        mkts=fam.get("markets",{})
+        if mkts:
+            cols=st.columns(min(5,len(mkts)))
+            for col,(mkt,body) in zip(cols, mkts.items()):
+                with col:
+                    winners=", ".join(_truncate_list(body.get("winners",[]),2))
+                    losers=", ".join(_truncate_list(body.get("losers",[]),2))
+                    note=str(body.get("notes",""))
+                    st.markdown(
+                        '<div style="border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:8px 10px;background:rgba(255,255,255,0.02);height:100%">'+
+                        '<div style="font-size:11px;font-weight:700;margin-bottom:4px">'+html.escape(mkt)+'</div>'+
+                        '<div style="font-size:10px;opacity:.70;line-height:1.35"><b>Winners:</b> '+html.escape(winners)+'</div>'+
+                        '<div style="font-size:10px;opacity:.70;line-height:1.35;margin-top:3px"><b>Losers:</b> '+html.escape(losers)+'</div>'+
+                        '<div style="font-size:10px;opacity:.50;line-height:1.35;margin-top:5px">'+html.escape(note)+'</div>'+
+                        '</div>',
+                        unsafe_allow_html=True,
+                    )
 def _signal_snapshot_date()->str:
     return datetime.datetime.utcnow().strftime("%Y-%m-%d")
 
@@ -2894,9 +3418,11 @@ def _countdown_to_proximity(countdown:str)->float:
     return 0.40
 
 
+
 def build_news_catalyst_overlay(q:Dict, f:Dict, h:Dict, route:Optional[Dict]=None, most_hated:Optional[Dict]=None) -> Dict:
-    """Event-lite catalyst filter: combine current market-implied pressure with scheduled catalyst families.
-    This is intentionally not a literal news reader; it is a front-run catalyst mapper.
+    """Event-lite but adaptive catalyst mapper.
+    It does not pretend to be a full live news feed; instead it scores scenario-relevant catalyst families
+    and builds dynamic event surrogates so the app can front-run branches without contaminating the quad core.
     """
     route=route or {}
     most_hated=most_hated or {}
@@ -2904,61 +3430,67 @@ def build_news_catalyst_overlay(q:Dict, f:Dict, h:Dict, route:Optional[Dict]=Non
     uup_1m=nf(f.get("uup_1m",0.0)); tlt_1m=nf(f.get("tlt_1m",0.0))
     vix=f.get("vix_last",20.0); vix_1m=nf(f.get("vix_1m",0.0))
     spy_1m=nf(f.get("spy_1m",0.0)); iwm_1m=nf(f.get("iwm_1m",0.0))
-    sf=q.get("slowdown_flags",0.0); shock=q.get("inf_shock",0.0)
+    sf=clamp(q.get("slowdown_flags",0.0)); shock=clamp(q.get("inf_shock",0.0))
     branch_state=str(most_hated.get("branch_state","dormant"))
+    family_scores=detect_scenario_families(q,f,h)
 
     oil_up=max(0.0,oil_3m); oil_down=max(0.0,-oil_3m)
     usd_up=max(0.0,uup_1m); usd_down=max(0.0,-uup_1m)
     long_end=max(0.0,-tlt_1m); vol_stress=max(0.0,vix_1m/20)
-    breadth_stress=max(0.0,-iwm_1m+spy_1m) if spy_1m>0 else 0.0
+    breadth_stress=max(0.0,-iwm_1m+spy_1m) if spy_1m>0 else max(0.0,-iwm_1m)
     breadth_relief=max(0.0,iwm_1m-spy_1m) if iwm_1m>spy_1m else 0.0
 
-    war_oil=clamp(0.28*clamp(0.5+oil_up/0.12)+0.20*clamp(0.5+usd_up/0.04)+0.18*shock+0.16*clamp(0.5+vol_stress)+0.18*clamp(0.5+breadth_stress/0.03))
-    policy_pressure=clamp(0.28*clamp(0.5+long_end/0.05)+0.22*sf+0.18*clamp(0.5+usd_up/0.04)+0.14*clamp(0.5+vol_stress)+0.18*shock)
-    relief=clamp(0.26*clamp(0.5+oil_down/0.10)+0.18*clamp(0.5+usd_down/0.04)+0.22*clamp(0.5+breadth_relief/0.03)+0.16*(1-shock)+0.18*(1.0 if branch_state in {"arming","pre_confirmed","active"} else 0.0))
+    war_oil=clamp(0.55*family_scores.get("war_oil_shock",0.0)+0.20*clamp(0.5+oil_up/0.12)+0.10*shock+0.15*clamp(0.5+vol_stress))
+    policy_pressure=clamp(0.45*family_scores.get("growth_slowdown",0.0)+0.25*clamp(0.5+long_end/0.05)+0.15*sf+0.15*clamp(0.5+usd_up/0.04))
+    relief=clamp(0.45*max(family_scores.get("deescalation_relief",0.0), family_scores.get("policy_relief",0.0))+0.20*clamp(0.5+oil_down/0.10)+0.15*clamp(0.5+usd_down/0.04)+0.10*clamp(0.5+breadth_relief/0.03)+0.10*(1.0 if branch_state in {"arming","pre_confirmed","active"} else 0.0))
 
-    family_scores={
-        "inflation": max(war_oil, shock),
-        "policy": max(policy_pressure, relief*0.8),
-        "growth": max(sf, relief*0.6),
+    family_score_map={
+        "inflation": max(war_oil, shock, family_scores.get("war_oil_shock",0.0)),
+        "policy": max(policy_pressure, relief*0.8, family_scores.get("policy_relief",0.0)),
+        "growth": max(sf, relief*0.6, family_scores.get("growth_slowdown",0.0), family_scores.get("china_global_reaccel",0.0)),
         "labor": max(sf, policy_pressure*0.7),
         "geopolitics": max(war_oil, relief),
     }
+    surrogate_events=build_event_surrogates(q,f,h,family_scores=family_scores)
     event_rows=[]
-    for ev in UPCOMING_EVENTS:
+    for ev in surrogate_events:
         fam=str(ev.get("family",""))
         proximity=_countdown_to_proximity(ev.get("countdown",""))
-        fam_score=clamp(family_scores.get(fam,0.35))
-        score=clamp(0.58*fam_score+0.42*proximity)
+        fam_score=clamp(family_score_map.get(fam,0.35))
+        scenario_boost=clamp(float(ev.get("_scenario_score",0.0) or 0.0))
+        score=clamp(0.48*fam_score+0.24*proximity+0.28*scenario_boost)
         event_rows.append({
             "type":fam.upper() if fam else "EVENT",
             "label":ev.get("title","Event"),
             "impact":"high" if score>=0.68 else ("medium" if score>=0.52 else "watch"),
             "score":score,
             "countdown":ev.get("countdown",""),
+            "desc":ev.get("impact",""),
+            "scenario_family":ev.get("_scenario_family",""),
         })
     event_rows.sort(key=lambda x:x["score"], reverse=True)
-    top_events=event_rows[:5]
+    top_events=event_rows[:6]
 
     dominant=max({"war_oil":war_oil,"policy_pressure":policy_pressure,"relief":relief}.items(), key=lambda kv: kv[1])
     s=dominant[0]
-    if s=="war_oil" and war_oil>=0.58:
-        label="⚔️ Event-Lite: War/Oil Shock"
-        desc="Energy shock / USD pressure masih dominan. Front-run via exporters, avoid importers / broad beta."
+    if s=="war_oil" and war_oil>=0.56:
+        label="⚔️ Catalyst Map: War / Oil / USD Pressure"
+        desc="Shock transmission still points through oil → tanker/freight → USD → EM/importer pain. Front-run selective exporters / hard assets, avoid assuming broad risk-on."
         cls="bad"
-    elif s=="policy_pressure" and policy_pressure>=0.56:
-        label="📋 Event-Lite: Policy / Duration Pressure"
-        desc="Long-end pain, slowdown flags, dan funding pressure masih dominan. Focus pada quality, selective shorts, dan confirmation breadth."
+    elif s=="policy_pressure" and policy_pressure>=0.54:
+        label="📋 Catalyst Map: Growth / Duration Pressure"
+        desc="Slowdown / duration pressure still dominates. Focus on quality, route discipline, and only front-run relief when breadth and rates actually confirm."
         cls="warn"
-    elif relief>=0.50:
-        label="🕊️ Event-Lite: Relief / De-escalation"
-        desc="Pressure mulai mereda. Front-run breadth broadening, EM rotation, dan laggard catch-up; fade overcrowded safe havens."
+    elif relief>=0.48:
+        label="🕊️ Catalyst Map: Relief / Broadening Odds"
+        desc="Pressure is easing enough to watch breadth broadening, EM rotation, and laggard catch-up — but it still needs confirmation from credit / USD / breadth."
         cls="good"
     else:
-        label="😶 Event-Lite: No Dominant Catalyst"
-        desc="Tidak ada catalyst dominan. Ikuti regime + route; hindari maksa front-run."
+        label="😶 Catalyst Map: No Dominant Branch"
+        desc="No branch has enough evidence yet. Stick to quad + route + signal quality; avoid narrative forcing."
         cls="neu"
 
+    active_scenarios=[k for k,v in sorted(family_scores.items(), key=lambda kv: kv[1], reverse=True) if v>=0.42][:3]
     return {
         "state":s,
         "label":label,
@@ -2969,6 +3501,8 @@ def build_news_catalyst_overlay(q:Dict, f:Dict, h:Dict, route:Optional[Dict]=Non
         "relief":relief,
         "events":top_events,
         "dominant_family":top_events[0]["type"] if top_events else "EVENT",
+        "family_scores":family_scores,
+        "active_scenarios":active_scenarios,
     }
 
 
@@ -3423,6 +3957,8 @@ def page_radar(snap:Dict)->None:
     # Flow State Strip (horizontal pill chain)
     render_flow_state_strip(q)
     render_top_drivers_now(snap.get("top_drivers",[]))
+    render_active_scenario_graph(snap.get("scenarios",{}), title="🧭 ACTIVE SCENARIO GRAPH — base / alt / child branches")
+    render_transmission_graph(snap.get("transmission_graph",{}), title="🕸️ TRANSMISSION GRAPH — war → oil → tanker → dollar → EM pain dll")
     st.markdown("---")
     c1,c2,c3,c4=st.columns(4)
     with c1:
@@ -3718,17 +4254,10 @@ def page_playbook(snap:Dict)->None:
         <div style="font-size:12px;opacity:.8;margin-bottom:6px">{p['desc']}</div>
         <div style="font-size:10px;opacity:.5">✗ Invalidasi: {" · ".join(p['invalidators'][:2])}</div></div>""",unsafe_allow_html=True)
     # Scenario Lab
-    st.markdown("---"); sh("🔬 SCENARIO LAB — FULL CONTEXT-AWARE (v33 engine)")
+    st.markdown("---"); sh("🔬 SCENARIO LAB — FULL CONTEXT-AWARE")
     st.markdown(f"*Operating regime: {q['operating']} · Divergence: {q['divergence']} · Shock: {q.get('inf_shock',0):.2f}*")
-    for name,case in list(sc.items())[:8]:
-        p=case["probability"]; col="#3dbb6c" if p<0.15 else("#e5a020" if p<0.30 else "#e05252")
-        st.markdown(f"""<div class="mc" style="border-left:3px solid {col}44">
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-        <b style="font-size:12px">{name}</b><span style="font-family:DM Mono,monospace;color:{col};font-size:12px">{p:.0%}</span></div>
-        <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:11px;margin-top:3px">
-        <div><b>✓ Winners:</b> {", ".join(case['winners'][:2])}</div>
-        <div><b>✗ Losers:</b> {", ".join(case['losers'][:2])}</div></div>
-        <div style="font-size:10px;opacity:.45;margin-top:3px">Invalidasi: {" · ".join(case['invalidators'][:2])}</div></div>""",unsafe_allow_html=True)
+    render_active_scenario_graph(sc, title="🧭 ACTIVE SCENARIO GRAPH")
+    render_transmission_graph(snap.get("transmission_graph",{}), title="🕸️ TRANSMISSION GRAPH — siapa kena cipratan & beneficiary")
     # Cross-asset heatmap
     st.markdown("---"); sh("🌐 CROSS-ASSET RETURNS HEATMAP")
     ASSETS={"US Equity (SPY)":"SPY","Growth (QQQ)":"QQQ","Small Cap (IWM)":"IWM","Long Bond (TLT)":"TLT","Credit (HYG)":"HYG","Gold (GLD)":"GLD","Oil (CL=F)":"CL=F","Copper (HG=F)":"HG=F","USD (UUP)":"UUP","EM (EEM)":"EEM","IHSG (^JKSE)":"^JKSE","BTC":"BTC-USD","ETH":"ETH-USD"}

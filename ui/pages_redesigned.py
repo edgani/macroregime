@@ -90,370 +90,399 @@ def _pct(v) -> str:
 # ══════════════════════════════════════════════════════════════════════════════
 
 def page_regime_intel(snap: dict) -> None:
+    """
+    WHY the regime is what it is. Pure analysis, zero action.
+    Command Center has the action. This page has the depth.
+    
+    UNIQUE content (not in Command Center):
+    - Macro RoC internals (second derivatives that DRIVE the regime)
+    - Market health signals (breadth bars, credit, VIX term structure)
+    - Historical analog + transition paths with math
+    - Raw indicators table (all 25+ metrics)
+    Purposely removed: regime probs, route state, news catalyst — those live in CC
+    """
     q = snap["q"]; f = snap["f"]; rot = snap["rotation"]
     analog = snap.get("analog", {}); prices = snap.get("prices", {})
     rt = snap.get("regime_transition", {})
     opt = snap.get("options_regime", {})
-
     s_quad = q["quad"]; m_quad = q["monthly_quad"]; div = q["divergence"]
-    conf = q["confidence"]; fh = q["flip_hazard"]; meta_desc = {
-        "Q1": "Growth ↑  Inflation ↓ — Goldilocks",
-        "Q2": "Growth ↑  Inflation ↑ — Reflation",
-        "Q3": "Growth ↓  Inflation ↑ — Stagflation",
-        "Q4": "Growth ↓  Inflation ↓ — Deflation Risk",
-    }.get(s_quad, "Unknown")
+    conf = q["confidence"]; fh = q["flip_hazard"]
 
-    # ── Page title — clearly different from Command Center ────────────────────
-    g_acc = q.get("growth_acc", True); i_acc = q.get("infl_acc", False)
-
-    # Data quality banner first
-    ps = f.get("_proxy_share", 1.0); src_q = f.get("macro_source_quality", 0.0)
+    # Get transition paths once — available to all sub-tabs
+    paths = rt.get("transition_paths", [])
 
     st.markdown(
-        f'<div style="margin-bottom:10px;">' +
-        f'<div style="font-size:11px;font-weight:700;color:#718096;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">📊 REGIME INTEL — Why the regime is what it is</div>' +
-        f'<div style="font-size:12px;color:#4a5568;">Analytical depth layer. Not for action — for understanding the backdrop. Use Command Center for trades.</div>' +
-        f'</div>',
+        '<div style="padding:6px 12px;background:rgba(255,255,255,0.02);border-radius:6px;margin-bottom:10px;">' +
+        '<span style="font-size:11px;color:#4a5568;">📊 Regime Intel — analytical depth layer. ' +
+        'Not for action. Use <b>Command Center</b> for trades and tickers.</span></div>',
         unsafe_allow_html=True
     )
 
+    # Data quality / divergence alert
+    ps = f.get("_proxy_share", 1.0); src_q = f.get("macro_source_quality", 0.0)
     if ps > 0.60:
         st.warning(f"⚠️ Macro data quality {src_q:.0%} — FRED limited. Regime signal reliability reduced.")
-    elif div == "divergent":
-        st.info(f"🔄 **Structural {s_quad} vs Monthly {m_quad}** — Structural = big-picture regime. Monthly = what's happening right now inside that regime. Watch monthly for near-term trades, structural for 3m+ positioning.")
+    if div == "divergent":
+        qc_m = {"Q1":"#3dbb6c","Q2":"#e5a020","Q3":"#e05252","Q4":"#e05252"}.get(m_quad,"#888")
+        st.info(
+            f"🔄 **Structural {s_quad}** (big-picture, 3m+ horizon) vs "
+            f"**Monthly {m_quad}** (current conditions). "
+            f"Monthly leads structural by 4-8 weeks — use monthly for near-term trades."
+        )
 
-    # ── SUB-TABS: Macro | Health | Analog | Indicators ──────────────────────
-    t1, t2, t3, t4 = st.tabs(["📈 Macro & Regime", "📡 Market Health", "🕰️ Analog & Next", "🔑 Raw Indicators"])
+    t1, t2, t3, t4 = st.tabs(["📈 Macro Internals", "📡 Market Health", "🕰️ Analog & Paths", "🔑 Raw Indicators"])
 
-    # ── Macro & Regime ────────────────────────────────────────────────────────
+    # ── TAB 1: Macro Internals — the math behind the regime ──────────────────
     with t1:
         col_a, col_b = st.columns(2)
 
         with col_a:
-            _section("REGIME PROBABILITIES")
-            probs = q.get("probs", {}); m_probs = q.get("monthly_probs", {})
-            for qk in ["Q1","Q2","Q3","Q4"]:
-                p = probs.get(qk, 0.0); pm = m_probs.get(qk, 0.0)
-                is_active = qk == s_quad; is_monthly = qk == m_quad and not is_active
-                fc = "#3dbb6c" if is_active else ("#e5a020" if is_monthly else "rgba(255,255,255,0.25)")
-                marker = "●" if is_active else ("◉" if is_monthly else "○")
-                st.markdown(
-                    f'<div style="display:flex;align-items:center;gap:6px;margin:3px 0;">'
-                    f'<span style="font-size:11px;width:32px;color:{fc};font-family:monospace;">{marker} {qk}</span>'
-                    f'<div style="flex:1;background:rgba(255,255,255,0.07);height:{"7px" if is_active else "5px"};border-radius:3px;">'
-                    f'<div style="width:{p*100:.0f}%;background:{fc};height:100%;border-radius:3px;"></div></div>'
-                    f'<span style="font-size:11px;width:30px;text-align:right;color:{fc};font-family:monospace;">{p:.0%}</span>'
-                    f'<span style="font-size:10px;width:26px;opacity:.35;font-family:monospace;">{pm:.0%}M</span>'
-                    f'</div>',
-                    unsafe_allow_html=True,
-                )
-            st.caption(f"Next: **{q.get('next_quad','?')}** · Duration: {q.get('duration_mat',0):.0%} · Deepness: {q.get('deepness',0):.0%}")
+            _section("MACRO RoC INTERNALS — second derivatives")
+            st.caption("These are the signals that COMPUTE the regime. Positive = accelerating, Negative = decelerating.")
 
-            _section("MACRO RoC INTERNALS — What's driving the regime")
-            # This is the actual second-derivative math. Not shown in Command Center.
-            # Positive RoC = accelerating. Negative = decelerating.
             roc_rows = [
-                ("INDPRO level", f.get("indpro_yoy", float("nan")), f.get("indpro_acc"), "IP YoY"),
-                ("INDPRO Δ RoC", f.get("indpro_roc_3m", float("nan")), None, "Accel/decel"),
-                ("CPI level", f.get("cpi_yoy", float("nan")), f.get("cpi_acc"), "Headline CPI YoY"),
-                ("CPI Δ RoC", f.get("cpi_roc_3m", float("nan")), None, "CPI accel/decel"),
-                ("ISM Δ3M", f.get("ism_3m_delta", float("nan")), None, "Demand pipeline"),
-                ("Leading composite ★", f.get("leading_indicator_composite", 0.0), None, "Forward signal"),
-                ("Inflation shock", f.get("m_shock", f.get("inflation_shock", 0.0)), None, "Supply spike"),
-                ("Policy score", f.get("policy_score", 0.0), None, "+cut / -hike"),
+                ("── GROWTH ──", None, None, ""),
+                ("INDPRO YoY (level)", f.get("indpro_yoy", float("nan")), f.get("indpro_acc"), "IP YoY"),
+                ("INDPRO Δ RoC ★", f.get("indpro_roc_3m", float("nan")), None, "Accel/decel in growth rate"),
+                ("Payrolls YoY", f.get("payrolls_yoy", float("nan")), f.get("payrolls_acc"), "Employment"),
+                ("ISM Δ3M ★", f.get("ism_3m_delta", float("nan")), None, "Demand pipeline direction"),
+                ("Leading Composite ★", f.get("leading_indicator_composite", 0.0), None, "Forward 4-12w signal"),
+                ("── INFLATION ──", None, None, ""),
+                ("CPI YoY (level)", f.get("cpi_yoy", float("nan")), f.get("cpi_acc"), "Headline CPI"),
+                ("CPI Δ RoC ★", f.get("cpi_roc_3m", float("nan")), None, "Accel/decel in CPI"),
+                ("Core PCE YoY", f.get("corepce_yoy", float("nan")), f.get("corepce_acc"), "Fed's preferred"),
+                ("Inflation Shock ★", f.get("m_shock", f.get("inflation_shock", 0.0)), None, "Supply-side spike"),
+                ("Headline-Core Gap ★", f.get("headline_core_gap", float("nan")), None, "+ve = energy-driven"),
+                ("── POLICY ──", None, None, ""),
+                ("Policy Score ★", f.get("policy_score", 0.0), None, "+ve=cutting, -ve=hiking"),
+                ("Liquidity Score ★", f.get("liq_score", 0.0), None, "DXY+TLT derived"),
             ]
-            for lbl, val, acc, note in roc_rows:
+            for item in roc_rows:
+                lbl, val, acc, note = item
+                if val is None:
+                    st.markdown(f'<div style="margin:6px 0 3px;font-size:9px;font-weight:700;letter-spacing:.1em;color:#4a5568;">{lbl}</div>', unsafe_allow_html=True)
+                    continue
                 try:
-                    v = float(val) if val is not None else float("nan")
+                    v = float(val) if not isinstance(val, bool) else float("nan")
                     if not math.isfinite(v): continue
-                    if "level" in lbl or "CPI level" in lbl or "INDPRO level" in lbl:
-                        vc = "#3dbb6c" if acc is True else ("#e05252" if acc is False else "#a0aec0")
-                    else:
-                        vc = "#3dbb6c" if v > 0.003 else ("#e05252" if v < -0.003 else "#e5a020")
+                    if acc is True: vc = "#3dbb6c"
+                    elif acc is False: vc = "#e05252"
+                    elif v > 0.003: vc = "#3dbb6c"
+                    elif v < -0.003: vc = "#e05252"
+                    else: vc = "#e5a020"
                     fmt = f"{v:+.3f}" if abs(v) < 1 else f"{v:+.2f}"
                     acc_s = " ▲" if acc is True else (" ▼" if acc is False else "")
                     st.markdown(
-                        f'<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.04);">'
-                        f'<div><span style="font-size:11px;color:#a0aec0;">{lbl}</span>'
-                        f'<span style="font-size:9px;color:#4a5568;margin-left:4px;">{note}</span></div>'
+                        f'<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.04);">' +
+                        f'<div><span style="font-size:11px;color:#a0aec0;">{lbl}</span>' +
+                        f'<span style="font-size:9px;color:#4a5568;margin-left:4px;">{note}</span></div>' +
                         f'<span style="font-size:12px;font-weight:700;font-family:monospace;color:{vc};">{fmt}{acc_s}</span></div>',
                         unsafe_allow_html=True
                     )
                 except Exception:
                     pass
-                    st.markdown(f'<span style="font-size:10px;color:#4a5568;">❌ {sig}</span>', unsafe_allow_html=True)
+
+            _section("REGIME PROBABILITY TREND")
+            probs = q.get("probs", {}); m_probs = q.get("monthly_probs", {})
+            st.caption("S = Structural (3m+ horizon) · M = Monthly (current conditions)")
+            for qk in ["Q1","Q2","Q3","Q4"]:
+                p = probs.get(qk, 0.0); pm = m_probs.get(qk, 0.0)
+                is_s = qk == s_quad; is_m = qk == m_quad and not is_s
+                fc = "#3dbb6c" if is_s else ("#e5a020" if is_m else "rgba(255,255,255,0.2)")
+                # Show the S vs M spread — if they diverge, that's the signal
+                spread = pm - p
+                spread_txt = f" (M {spread:+.0%})" if abs(spread) > 0.05 else ""
+                st.markdown(
+                    f'<div style="display:flex;align-items:center;gap:6px;margin:2px 0;">' +
+                    f'<span style="font-size:11px;width:28px;color:{fc};font-family:monospace;">{"●" if is_s else "◉" if is_m else "○"} {qk}</span>' +
+                    f'<div style="width:120px;background:rgba(255,255,255,0.06);height:6px;border-radius:3px;">' +
+                    f'<div style="width:{p*100:.0f}%;background:{fc};height:100%;border-radius:3px;"></div></div>' +
+                    f'<span style="font-size:11px;font-family:monospace;color:{fc};">{p:.0%} S</span>' +
+                    f'<span style="font-size:10px;font-family:monospace;color:#4a5568;">{pm:.0%} M{spread_txt}</span>' +
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+            st.caption(f"Conf: {conf:.0%} · Flip hazard: {fh:.0%} · Duration: {q.get('duration_mat',0):.0%} · Next: {q.get('next_quad','?')}")
 
         with col_b:
-            route_snap = snap.get("route",{}); rm = route_snap.get("primary_meta",{}); alt_m = route_snap.get("alt_meta",{})
-            _section("ROUTE STATE")
-            rc = rm.get("color","#888")
-            st.markdown(
-                f'<div style="border:1.5px solid {rc};border-radius:10px;padding:10px 12px;margin-bottom:8px;">'
-                f'<div style="font-size:9px;font-weight:700;letter-spacing:.1em;color:{rc};text-transform:uppercase;margin-bottom:3px;">ACTIVE ROUTE</div>'
-                f'<div style="font-size:17px;font-weight:700;">{rm.get("emoji","")} {rm.get("label","?")}</div>'
-                f'<div style="font-size:11px;opacity:.7;margin-top:3px;">{rm.get("desc","")[:80]}</div>'
-                f'<div style="margin-top:5px;font-size:10px;"><b style="color:{rc};">Best:</b> {", ".join(rm.get("long",[])[:3])}</div>'
-                f'<div style="font-size:10px;"><b style="color:#e05252;">Avoid:</b> {", ".join(rm.get("avoid",[])[:2])}</div>'
-                f'<div style="font-size:10px;opacity:.5;margin-top:3px;">✓ {rm.get("confirm","")[:55]} · ✗ {rm.get("invalidate","")[:45]}</div>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
-            st.markdown(f'Alt: **{alt_m.get("emoji","")} {alt_m.get("label","?")}** — {alt_m.get("desc","")[:50]}')
+            _section("WHAT THIS REGIME MEANS (not in CC)")
+            meta_detail = {
+                "Q1": {
+                    "thesis": "Growth is accelerating while inflation is decelerating. The Goldilocks window. Risk assets get full tailwind.",
+                    "duration": "Typically 6-18 months. Ends when inflation re-accelerates (→Q2) or growth fades (→Q4).",
+                    "what_works": "Long equities broad, long small caps, long EM, short USD, short defensives.",
+                    "what_doesnt": "Cash, gold (safe haven), long bonds, defensives, energy inflation plays.",
+                    "historical": "2010-11, 2016-17, 2019, early 2021 — all Q1 windows. Best entry point of cycle.",
+                },
+                "Q2": {
+                    "thesis": "Growth AND inflation both rising. Commodity bull market. Rising rates but equities still work — for now.",
+                    "duration": "Typically 4-12 months. Ends via policy overtightening (→Q3) or demand destruction.",
+                    "what_works": "Energy, materials, cyclicals, commodity FX (AUD/CAD), IHSG coal exporters.",
+                    "what_doesnt": "Bonds (rate enemy), utilities, REITs, tech (multiple compression), defensives.",
+                    "historical": "2007, 2011, 2022 (early) — commodity supercycle characteristics.",
+                },
+                "Q3": {
+                    "thesis": "Stagflation. Growth falling, inflation sticky/rising. The hardest regime to navigate. Almost nothing works.",
+                    "duration": "Typically 3-8 months. Volatile and dangerous. Ends via supply shock resolution (→Q4) or demand collapse.",
+                    "what_works": "Cash, gold, energy (if shock ongoing), short everything else.",
+                    "what_doesnt": "Equities broadly, bonds (inflation still high), EM (dollar strong), crypto.",
+                    "historical": "1973-74, 1980, 2022 — all stagflation episodes. Worst returns of cycle.",
+                },
+                "Q4": {
+                    "thesis": "Deflation risk. Growth and inflation both falling. Recession fear. Policy easing eventually arrives.",
+                    "duration": "Typically 3-9 months. Ends via Fed pivot and fiscal stimulus creating next Q1.",
+                    "what_works": "Duration (bonds), defensives, gold (deflation hedge), cash, quality equities.",
+                    "what_doesnt": "Commodities, cyclicals, EM, small caps, junk credit, crypto.",
+                    "historical": "2008, 2015-16, 2020 — all Q4 episodes. Best bond entry point of cycle.",
+                },
+            }.get(s_quad, {})
 
-            _section("NEWS CATALYST")
-            news_snap = snap.get("news_overlay",{})
-            if news_snap:
-                nc = {"bad":"#e05252","warn":"#e5a020","good":"#3dbb6c","neu":"rgba(255,255,255,0.3)"}.get(news_snap.get("cls","neu"),"#888")
-                st.markdown(
-                    f'<div style="padding:6px 10px;border-radius:6px;border:1px solid {nc}44;background:{nc}10;font-size:11px;">'
-                    f'<b style="color:{nc};">{news_snap.get("label","")}</b><br>{news_snap.get("desc","")[:80]}'
-                    f'<br><span style="opacity:.6;">War/Oil: {news_snap.get("war_oil",0):.0%} · Policy: {news_snap.get("policy_pressure",0):.0%} · Relief: {news_snap.get("relief",0):.0%}</span>'
-                    f'</div>',
-                    unsafe_allow_html=True,
-                )
-
-            # Next macro events
-            UPCOMING_EVENTS = snap.get("_upcoming_events", [])
-            if UPCOMING_EVENTS:
-                _section("NEXT CATALYSTS")
-                for ev in UPCOMING_EVENTS[:3]:
-                    fam_col = {"inflation":"#e05252","labor":"#e5a020","growth":"#e5a020","policy":"#e05252"}.get(ev.get("family",""),"#888")
+            if meta_detail:
+                for key, val in meta_detail.items():
+                    key_label = key.replace("_", " ").title()
                     st.markdown(
-                        f'<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid rgba(255,255,255,0.05);">'
-                        f'<span style="font-size:11px;font-weight:600;color:{fam_col};">{ev.get("title","")[:35]}</span>'
-                        f'<span style="font-size:10px;opacity:.5;font-family:monospace;">{ev.get("countdown","")}</span>'
-                        f'</div>',
-                        unsafe_allow_html=True,
+                        f'<div style="padding:5px 8px;border-left:2px solid #21262d;margin-bottom:4px;">' +
+                        f'<div style="font-size:10px;font-weight:700;color:#4a5568;margin-bottom:2px;">{key_label.upper()}</div>' +
+                        f'<div style="font-size:11px;color:#a0aec0;">{val}</div></div>',
+                        unsafe_allow_html=True
                     )
 
-    # ── Market Health ─────────────────────────────────────────────────────────
+            _section("REGIME TRANSITION PATHS (math)")
+            st.caption("Probability comes from early warning signal count × base rate × news boost. Not sentiment.")
+            if paths:
+                for p_item in paths[:3]:
+                    pval = float(p_item.get("probability",0)); ew = float(p_item.get("early_warning_score",0))
+                    fq = p_item.get("from_quad","?"); tq = p_item.get("to_quad","?")
+                    tw = p_item.get("timeframe_weeks",0); conf_p = float(p_item.get("confidence",0))
+                    p_col = "#e53e3e" if pval>=0.35 else ("#dd6b20" if pval>=0.22 else "#4a5568")
+                    confirms = p_item.get("confirmation_needed",[])
+                    invs = p_item.get("invalidators",[])
+                    with st.expander(f"{fq}→{tq}  {int(pval*100)}% probability  {int(ew*100)}% EW firing", expanded=ew>=0.50):
+                        pb_cols = st.columns([2,1])
+                        with pb_cols[0]:
+                            st.markdown(
+                                f'<div style="background:{p_col}18;border-radius:6px;padding:6px 8px;margin-bottom:4px;">' +
+                                f'Probability: <b style="color:{p_col};">{int(pval*100)}%</b> · ' +
+                                f'EW score: <b style="color:{p_col};">{int(ew*100)}%</b> · ' +
+                                f'~{tw}w · Confidence: {int(conf_p*100)}%</div>',
+                                unsafe_allow_html=True
+                            )
+                            st.markdown("<div style=\"font-size:10px;color:#718096;\">Confirmation needed:</div>", unsafe_allow_html=True)
+                            for c in confirms[:2]:
+                                st.markdown(f'<div style="font-size:10px;color:#a0aec0;">→ {c[:60]}</div>', unsafe_allow_html=True)
+                        with pb_cols[1]:
+                            st.markdown("<div style=\"font-size:10px;color:#718096;\">Invalidators:</div>", unsafe_allow_html=True)
+                            for inv in invs[:2]:
+                                st.markdown(f'<div style="font-size:10px;color:#e05252;">✗ {str(inv)[:45]}</div>', unsafe_allow_html=True)
+            else:
+                st.caption("No transition paths computed — RegimeTransitionEngine output not available.")
+
+    # ── TAB 2: Market Health ──────────────────────────────────────────────────
     with t2:
         h = snap.get("h",{}); cr = snap.get("crash",{}); most_hated = snap.get("most_hated_rally",{})
 
-        top_row = st.columns(4)
+        top_row = st.columns(5)
         with top_row[0]:
             _mc("Trade Environment", h.get("trade_state","?").title(), "breadth+credit+USD",
                 "good" if h.get("trade_state")=="supportive" else ("bad" if h.get("trade_state")=="hostile" else "warn"))
         with top_row[1]:
+            _mc("Overall Weather", h.get("weather_state","?"), "composite", "good" if h.get("weather_state","").lower()=="risk-on" else ("bad" if h.get("weather_state","").lower()=="risk-off" else "warn"))
+        with top_row[2]:
             vix = f.get("vix_last",20.0)
             vix_b = "Investable" if vix<19 else ("Chop" if vix<29 else "Defensive")
             _mc("VIX", f"{vix:.1f}", vix_b, "good" if vix<19 else ("bad" if vix>28 else "warn"))
-        with top_row[2]:
-            hy = f.get("hy_oas",float("nan"))
-            _mc("HY Spread", f"{hy:.0f}bps" if math.isfinite(hy) else "—", f"1M Δ: {f.get('hy_oas_1m',0):+.0f}bps",
-                "good" if (math.isfinite(hy) and hy<350) else ("bad" if (math.isfinite(hy) and hy>500) else "warn"))
         with top_row[3]:
+            hy = f.get("hy_oas",float("nan"))
+            _mc("HY Spread", f"{hy:.0f}bps" if math.isfinite(hy) else "—", f"Δ1M: {f.get('hy_oas_1m',0):+.0f}bps",
+                "good" if (math.isfinite(hy) and hy<350) else ("bad" if (math.isfinite(hy) and hy>500) else "warn"))
+        with top_row[4]:
             sc = cr.get("crash_score",0)
-            _mc("Crash Meter", f"{sc:.0%}", cr.get("state","?"),
-                "good" if sc<0.35 else ("bad" if sc>0.65 else "warn"))
+            _mc("Crash Meter", f"{sc:.0%}", cr.get("state","?"), "good" if sc<0.35 else ("bad" if sc>=0.65 else "warn"))
 
         st.markdown('<div style="height:8px;"></div>', unsafe_allow_html=True)
-
         col1, col2 = st.columns(2)
+
         with col1:
-            _section("BREADTH")
+            _section("BREADTH SIGNALS")
             _bar("Sectors above 50-DMA", h.get("sec_support",0.5), f"({h.get('sec_above50',5)}/11)")
             _bar("Small cap health (IWM)", h.get("iwm_trend",0.5))
             _bar("Equal-weight vs cap-weight", max(0,min(1,0.5+h.get("eqw_vs_cw",0)*5)), f"{_pct(h.get('eqw_vs_cw',0))} 3M diff")
-            _bar("Broad breadth", h.get("breadth",0.5))
-            _bar("Narrow leadership (inv)", 1-h.get("narrow_leadership",0.5), good_high=True)
+            _bar("Broad breadth composite", h.get("breadth",0.5))
+            _bar("Narrow leadership (inv)", 1-h.get("narrow_leadership",0.5))
+            _bar("SPY trend health", h.get("spy_trend",0.5))
+
+            if opt:
+                _section("VIX TERM STRUCTURE")
+                ts_state = opt.get("term_structure_state","?")
+                ts_slope = opt.get("term_structure_slope",0)
+                iv_rv = opt.get("iv_rv_spread",0)
+                credit_r = opt.get("credit_regime","?")
+                ts_col = "#3dbb6c" if ts_state=="contango" else ("#e05252" if ts_state=="backwardation" else "#e5a020")
+                confirm = opt.get("options_regime_confirm","neutral")
+                confirm_col = "#3dbb6c" if "risk_on" in confirm else ("#e05252" if "risk_off" in confirm else "#e5a020")
+                rows_opt = [
+                    ("Term structure", f"{ts_state.upper()}  slope: {ts_slope:+.1f}pts", ts_col),
+                    ("IV-RV spread", f"{iv_rv:+.1f}pts  ({opt.get('vol_premium_state','?')})", "#e5a020" if iv_rv>4 else "#3dbb6c"),
+                    ("Credit regime (HYG/LQD)", credit_r, "#3dbb6c" if "tight" in credit_r else ("#e05252" if "blow" in credit_r else "#e5a020")),
+                    ("Options confirm", confirm.replace("_"," ").title(), confirm_col),
+                ]
+                for lbl, val, vc in rows_opt:
+                    st.markdown(
+                        f'<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.04);">' +
+                        f'<span style="font-size:11px;color:#a0aec0;">{lbl}</span>' +
+                        f'<span style="font-size:11px;font-weight:600;color:{vc};">{val}</span></div>',
+                        unsafe_allow_html=True
+                    )
 
         with col2:
-            _section("CREDIT & VOLATILITY")
+            _section("CREDIT & VOL")
             ig = f.get("ig_oas", float("nan"))
             _bar("HY credit health", max(0,min(1,1-(hy-250)/500)) if math.isfinite(hy) else 0.5, f"{hy:.0f}bps" if math.isfinite(hy) else "proxy")
             _bar("IG credit health", max(0,min(1,1-(ig-50)/200)) if math.isfinite(ig) else 0.5, f"{ig:.0f}bps" if math.isfinite(ig) else "n/a")
             _bar("VIX health", max(0,min(1,1-(vix-13)/25)), f"VIX {vix:.1f}")
             vr = f.get("vix_vxv_ratio",float("nan"))
-            _bar("Term structure", max(0,min(1,1-(vr-0.85)/0.25)) if math.isfinite(vr) else 0.5, f.get("vix_term_state",""))
-            _bar("Credit+Vol composite", h.get("tail",0.5))
+            _bar("Term structure health", max(0,min(1,1-(vr-0.85)/0.25)) if math.isfinite(vr) else 0.5, f.get("vix_term_state",""))
+            _bar("Credit+vol composite", h.get("tail",0.5))
 
-        if opt:
-            _section("VIX TERM STRUCTURE (OptionsEngine)")
-            ts_state = opt.get("term_structure_state","?")
-            ts_slope = opt.get("term_structure_slope",0)
-            ts_col = "#3dbb6c" if ts_state=="contango" else ("#e05252" if ts_state=="backwardation" else "#e5a020")
-            confirm = opt.get("options_regime_confirm","neutral")
-            st.markdown(
-                f'<div style="display:flex;gap:8px;margin-bottom:6px;">'
-                f'<span style="color:{ts_col};font-weight:700;">{ts_state.upper()}</span>'
-                f'<span style="opacity:.5;">slope: {ts_slope:+.1f}pts</span>'
-                f'<span style="margin-left:auto;color:{"#3dbb6c" if "risk_on" in confirm else "#e05252" if "risk_off" in confirm else "#e5a020"};">{confirm.replace("_"," ").title()}</span>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
-
-        # Yield curve
-        sp = f.get("spread_2s10s",float("nan"))
-        _section("YIELD CURVE")
-        col_y1, col_y2, col_y3 = st.columns(3)
-        with col_y1: _mc("2s10s", f"{sp:+.2f}%" if math.isfinite(sp) else "—", f.get("yield_curve_state",""))
-        with col_y2: _mc("10s30s", f"{f.get('spread_10s30s',float('nan')):+.2f}%" if math.isfinite(f.get('spread_10s30s',float('nan'))) else "—")
-        with col_y3:
+            _section("YIELD CURVE")
+            sp = f.get("spread_2s10s",float("nan"))
+            sp30 = f.get("spread_10s30s",float("nan"))
+            col_y1, col_y2 = st.columns(2)
+            with col_y1: _mc("2s10s", f"{sp:+.2f}%" if math.isfinite(sp) else "—", f.get("yield_curve_state",""))
+            with col_y2: _mc("10s30s", f"{sp30:+.2f}%" if math.isfinite(sp30) else "—")
             uninverting = f.get("yield_curve_uninverting",False)
-            _mc("2s10s 3M Δ", f"{f.get('spread_2s10s_3m',float('nan')):+.2f}%" if math.isfinite(f.get('spread_2s10s_3m',float('nan'))) else "—",
-                "⚠️ Uninverting = recession risk" if uninverting else "", "warn" if uninverting else "neu")
+            if uninverting:
+                st.warning("⚠️ Yield curve uninverting — historical recession risk signal active")
 
-        # Sector leadership table
-        if prices:
-            _section("SECTOR LEADERSHIP (vs SPY 3M)")
-            SECS = {"XLE":"Energy","XLF":"Fin","XLI":"Indust","XLB":"Materials","XLK":"Tech",
-                    "XLV":"Health","XLY":"Cons.D","XLP":"Cons.S","XLU":"Util","XLRE":"RE","XLC":"Comm"}
-            from utils.math_utils import clamp01 as clamp01_
-
-            def ret_n_(s, n):
-                if s is None or len(s) < n+1: return float("nan")
+            _section("SECTOR LEADERSHIP")
+            if prices:
+                SECS = {"XLE":"Energy","XLF":"Fin","XLI":"Ind","XLB":"Mat","XLK":"Tech","XLV":"Health","XLY":"Con.D","XLP":"Con.S","XLU":"Util","XLRE":"RE","XLC":"Comm"}
+                spy3 = None
                 try:
-                    b = float(s.iloc[-(n+1)]); e = float(s.iloc[-1])
-                    return float(e/b-1) if b != 0 else float("nan")
-                except: return float("nan")
-
-            spy3 = ret_n_(prices.get("SPY"), 63)
-            rows = []
-            for tk, name in SECS.items():
-                s = prices.get(tk)
-                r3 = ret_n_(s, 63); r1 = ret_n_(s, 21)
-                rel = (r3 - spy3) if (math.isfinite(r3) and math.isfinite(spy3)) else float("nan")
-                rows.append({"Sector": name, "1M": _pct(r1), "3M": _pct(r3), "vs SPY": _pct(rel)})
-            rows.sort(key=lambda r: float(r["vs SPY"].replace("%","").replace("—","0").replace("+","")) if r["vs SPY"]!="—" else -999, reverse=True)
-            df = pd.DataFrame(rows)
-            st.dataframe(df, use_container_width=True, hide_index=True, height=320)
-
-        # Checklists compact
-        chk = snap.get("checklists",{})
-        if chk.get("global"):
-            with st.expander("✅ Global trading checklist", expanded=False):
-                for item in chk["global"][:12]:
+                    spy_s = prices.get("SPY")
+                    if spy_s is not None and len(spy_s) > 64:
+                        spy3 = float(spy_s.iloc[-1]/spy_s.iloc[-64]-1)
+                except Exception: pass
+                rows_sec = []
+                for tk, nm in SECS.items():
                     try:
-                        label, score, note = item[0], float(item[1]), str(item[2]) if len(item)>2 else ""
-                        ok_col = "#3dbb6c" if score >= 0.62 else ("#e05252" if score <= 0.38 else "#e5a020")
-                        icon = "✓" if score >= 0.62 else ("✗" if score <= 0.38 else "~")
-                        st.markdown(
-                            f'<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04);">' +
-                            f'<span style="font-size:11px;color:#a0aec0;">{str(label)}</span>' +
-                            f'<span style="color:{ok_col};font-size:11px;font-weight:700;">{icon} {score:.0%}</span></div>',
-                            unsafe_allow_html=True
-                        )
-                        if note:
-                            st.markdown(f'<span style="font-size:10px;color:#4a5568;">{note}</span>', unsafe_allow_html=True)
-                    except Exception:
-                        pass
+                        s = prices.get(tk)
+                        if s is None or len(s) < 64: continue
+                        r3 = float(s.iloc[-1]/s.iloc[-64]-1)
+                        r1 = float(s.iloc[-1]/s.iloc[-22]-1) if len(s)>22 else float("nan")
+                        rel = (r3-spy3) if (spy3 is not None and math.isfinite(r3)) else float("nan")
+                        rows_sec.append({"S":nm,"1M":_pct(r1),"3M":_pct(r3),"vs SPY":_pct(rel)})
+                    except Exception: pass
+                if rows_sec:
+                    rows_sec.sort(key=lambda r: float(r["vs SPY"].replace("%","").replace("—","0").replace("+","")) if r["vs SPY"]!="—" else -999, reverse=True)
+                    st.dataframe(pd.DataFrame(rows_sec[:6]), use_container_width=True, hide_index=True, height=210)
 
-    # ── Analog & Next ─────────────────────────────────────────────────────────
+            # Checklists
+            chk = snap.get("checklists",{})
+            if chk.get("global"):
+                with st.expander("✅ Global trading checklist", expanded=False):
+                    for item in chk["global"][:10]:
+                        try:
+                            label_c, score_c, note_c = item[0], float(item[1]), str(item[2]) if len(item)>2 else ""
+                            ok_col = "#3dbb6c" if score_c >= 0.62 else ("#e05252" if score_c <= 0.38 else "#e5a020")
+                            icon_c = "✓" if score_c >= 0.62 else ("✗" if score_c <= 0.38 else "~")
+                            st.markdown(
+                                f'<div style="display:flex;justify-content:space-between;padding:2px 0;">' +
+                                f'<span style="font-size:11px;color:#a0aec0;">{str(label_c)}</span>' +
+                                f'<span style="color:{ok_col};font-size:11px;">{icon_c} {score_c:.0%}</span></div>',
+                                unsafe_allow_html=True
+                            )
+                        except Exception: pass
+
+    # ── TAB 3: Analog & Transition Paths ─────────────────────────────────────
     with t3:
-        col_an, col_next = st.columns([1.1, 0.9])
+        col_an, col_next = st.columns([1.2, 0.8])
         with col_an:
             _section("HISTORICAL ANALOG")
             a = analog
-            sim = a.get("similarity",0); sim_col = "#3dbb6c" if sim>=0.65 else ("#e5a020" if sim>=0.45 else "#e05252")
+            sim = a.get("similarity",0)
+            sim_col = "#3dbb6c" if sim>=0.65 else ("#e5a020" if sim>=0.45 else "#e05252")
             st.markdown(
-                f'<div style="padding:10px;border-radius:8px;border:1px solid {sim_col}44;background:{sim_col}08;margin-bottom:8px;">'
-                f'<div style="font-size:15px;font-weight:700;">{a.get("label","?")}</div>'
-                f'<div style="font-size:11px;opacity:.6;">Similarity: <b style="color:{sim_col};">{sim:.0%}</b></div>'
+                f'<div style="padding:10px;border:1px solid {sim_col}44;border-radius:8px;margin-bottom:8px;">' +
+                f'<div style="font-size:15px;font-weight:700;">{a.get("label","?")}</div>' +
+                f'<div style="font-size:11px;color:{sim_col};margin-top:2px;">Similarity: <b>{sim:.0%}</b></div>' +
                 f'</div>',
-                unsafe_allow_html=True,
+                unsafe_allow_html=True
             )
             path_cols = st.columns(3)
-            with path_cols[0]: _mc("1M Path", a.get("path_1m","—"))
-            with path_cols[1]: _mc("3M Path", a.get("path_3m","—"))
-            with path_cols[2]: _mc("6M Path", a.get("path_6m","—"))
+            with path_cols[0]: _mc("1M", a.get("path_1m","—"))
+            with path_cols[1]: _mc("3M", a.get("path_3m","—"))
+            with path_cols[2]: _mc("6M", a.get("path_6m","—"))
             if a.get("next_bias"):
                 st.info(f"**Next bias:** {a['next_bias']}")
             impacts = a.get("impacts",{})
             if impacts:
                 st.markdown("**Market impacts:**")
                 for mkt, view in impacts.items():
-                    v_col = "#3dbb6c" if any(x in str(view).lower() for x in ["bull","up","positive"]) else \
-                            "#e05252" if any(x in str(view).lower() for x in ["bear","down","negative"]) else "#e5a020"
+                    v_col = "#3dbb6c" if any(x in str(view).lower() for x in ["bull","up","positive"]) else                             "#e05252" if any(x in str(view).lower() for x in ["bear","down","negative"]) else "#e5a020"
                     st.markdown(f'<span style="font-size:11px;"><b>{mkt.upper()}:</b> <span style="color:{v_col};">{view}</span></span><br>', unsafe_allow_html=True)
 
-            # New: v11 RegimeTransitionEngine paths
-            if paths:
-                _section("TRANSITION PATHS (probability-weighted)")
-                for p in paths[:3]:
-                    pval = float(p.get("probability",0)); ew = float(p.get("early_warning_score",0))
-                    from_q = p.get("from_quad","?"); to_q = p.get("to_quad","?"); tw = p.get("timeframe_weeks",0)
-                    p_col = "#e53e3e" if pval>=0.35 else ("#dd6b20" if pval>=0.22 else "#4a5568")
-                    st.markdown(
-                        f'<div style="display:flex;gap:8px;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.05);">'
-                        f'<span style="font-weight:700;font-size:12px;">{from_q}→{to_q}</span>'
-                        f'<span style="color:{p_col};font-family:monospace;font-size:11px;">{int(pval*100)}%</span>'
-                        f'<span style="opacity:.5;font-size:10px;">~{tw}w</span>'
-                        f'<div style="flex:1;background:#1a202c;height:5px;border-radius:3px;">'
-                        f'<div style="width:{int(ew*100)}%;height:5px;background:{p_col};border-radius:3px;"></div></div>'
-                        f'<span style="font-size:10px;opacity:.6;">{int(ew*100)}% EW</span>'
-                        f'</div>',
-                        unsafe_allow_html=True,
-                    )
-                    confirms = p.get("confirmation_needed",[])
-                    if confirms:
-                        st.markdown(f'<span style="font-size:10px;color:#718096;">→ {confirms[0][:60]}</span>', unsafe_allow_html=True)
-
         with col_next:
-            _section("MACRO CALENDAR (next events)")
+            _section("ROTATION SIGNAL")
+            _bar("EM / IHSG rotation", rot.get("em_score",0.5))
+            petro = rot.get("petro_score",0.0)
+            if petro > 0.45:
+                st.warning(f"⚡ Petrodollar branch ({petro:.0%}) — coal exporters can outperform even in Q3.")
+
+            _section("NEXT MACRO EVENTS")
             news_snap = snap.get("news_overlay",{})
             events = news_snap.get("events",[]) if news_snap else []
-            for ev in events[:6]:
+            for ev in events[:5]:
                 impact = ev.get("impact","watch")
                 ev_col = {"high":"#e05252","medium":"#e5a020","watch":"#718096"}.get(impact,"#718096")
                 st.markdown(
-                    f'<div style="padding:5px 8px;border-left:3px solid {ev_col};margin-bottom:5px;">'
-                    f'<div style="display:flex;justify-content:space-between;font-size:11px;">'
-                    f'<b>{ev.get("label","")[:35]}</b>'
-                    f'<span style="font-family:monospace;opacity:.5;">{ev.get("countdown","")}</span>'
-                    f'</div>'
-                    f'<div style="font-size:10px;color:{ev_col};">{impact.upper()}</div>'
-                    f'</div>',
-                    unsafe_allow_html=True,
+                    f'<div style="padding:4px 8px;border-left:2px solid {ev_col};margin-bottom:4px;">' +
+                    f'<div style="display:flex;justify-content:space-between;">' +
+                    f'<b style="font-size:10px;">{ev.get("label","")[:30]}</b>' +
+                    f'<span style="font-size:10px;opacity:.5;">{ev.get("countdown","")}</span></div>' +
+                    f'<div style="font-size:9px;color:{ev_col};">{impact.upper()}</div></div>',
+                    unsafe_allow_html=True
                 )
 
-            _section("ROTATION FLOW")
-            _bar("EM/IHSG rotation", rot.get("em_score",0.5))
-            _bar("US breadth", rot.get("us_breadth",0.5) if rot.get("us_breadth") else snap.get("h",{}).get("breadth",0.5))
-            petro = rot.get("petro_score",0.0)
-            if petro > 0.45:
-                st.warning(f"⚡ **Petrodollar branch active** ({petro:.0%}). Coal exporters can outperform even in Q3.")
-
-    # ── Raw Indicators ────────────────────────────────────────────────────────
+    # ── TAB 4: Raw Indicators ─────────────────────────────────────────────────
     with t4:
         rows = [
             ("── GROWTH ──","",""),
-            ("Industrial Production YoY", _pct(f.get("indpro_yoy")), "▲" if f.get("indpro_acc") else "▼"),
+            ("INDPRO YoY", _pct(f.get("indpro_yoy")), "▲" if f.get("indpro_acc") else "▼"),
+            ("INDPRO RoC (Δ3M) ★", f"{f.get('indpro_roc_3m',float('nan')):+.4f}" if math.isfinite(f.get("indpro_roc_3m",float("nan"))) else "—", "Second derivative"),
             ("Payrolls YoY", _pct(f.get("payrolls_yoy")), "▲" if f.get("payrolls_acc") else "▼"),
             ("Retail Sales YoY", _pct(f.get("retail_yoy")), ""),
-            ("ISM Manufacturing", f"{f.get('ism_last',float('nan')):.1f}" if math.isfinite(f.get('ism_last',float('nan'))) else "—", ""),
-            ("Unemployment Rate", f"{f.get('unrate',float('nan')):.1f}%" if math.isfinite(f.get('unrate',float('nan'))) else "—", f"3M Δ: {f.get('unrate_3m_delta',0):+.2f}"),
-            ("Housing Starts YoY", _pct(f.get("housing_yoy",float("nan"))), ""),
-            ("Leading Indicator Composite ★", f"{f.get('leading_indicator_composite',0):+.3f}", "NEW: forward-looking signal"),
+            ("ISM Manufacturing", f"{f.get('ism_last',float('nan')):.1f}" if math.isfinite(f.get("ism_last",float("nan"))) else "—", ""),
+            ("ISM Δ3M ★", f"{f.get('ism_3m_delta',float('nan')):+.1f}" if math.isfinite(f.get("ism_3m_delta",float("nan"))) else "—", "Direction signal"),
+            ("Leading Composite ★", f"{f.get('leading_indicator_composite',0):+.3f}", "Forward 4-12w signal"),
+            ("Unemployment Rate", f"{f.get('unrate',float('nan')):.1f}%" if math.isfinite(f.get("unrate",float("nan"))) else "—", f"3M Δ: {f.get('unrate_3m_delta',0):+.2f}"),
             ("── INFLATION ──","",""),
             ("CPI YoY", _pct(f.get("cpi_yoy")), "▲" if f.get("cpi_acc") else "▼"),
+            ("CPI RoC (Δ3M) ★", f"{f.get('cpi_roc_3m',float('nan')):+.4f}" if math.isfinite(f.get("cpi_roc_3m",float("nan"))) else "—", "CPI acceleration"),
             ("Core PCE YoY ★", _pct(f.get("corepce_yoy")), "▲" if f.get("corepce_acc") else "▼"),
-            ("Headline-Core Gap ★", _pct(f.get("headline_core_gap")), "+ve = energy/supply-driven"),
-            ("5Y Breakeven", f"{f.get('breakeven',float('nan')):.2f}" if math.isfinite(f.get('breakeven',float('nan'))) else "—", ""),
-            ("Monthly Inflation Shock ★", f"{f.get('m_shock',0):.3f}", "Short-term supply shock signal"),
+            ("5Y Breakeven", f"{f.get('breakeven',float('nan')):.2f}" if math.isfinite(f.get("breakeven",float("nan"))) else "—", "Market inflation expectations"),
+            ("Headline-Core Gap ★", _pct(f.get("headline_core_gap")), "+ve = supply-driven"),
+            ("Monthly Shock ★", f"{f.get('m_shock',0):.3f}", "Supply-side spike"),
             ("── POLICY ──","",""),
-            ("Fed Funds Rate", f"{f.get('policy_rate',float('nan')):.2f}%" if math.isfinite(f.get('policy_rate',float('nan'))) else "—", f"3M Δ: {f.get('policy_rate_3m',0):+.2f}"),
-            ("Policy Score ★", f"{f.get('policy_score',0):+.3f}", "+ve = cutting/dovish, -ve = hiking"),
-            ("Liquidity Score ★", f"{f.get('liq_score',0):+.3f}", "DXY + TLT derived"),
-            ("2s10s Yield Curve ★", f"{f.get('spread_2s10s',float('nan')):+.2f}%" if math.isfinite(f.get('spread_2s10s',float('nan'))) else "—", f.get("yield_curve_state","")),
+            ("Fed Funds Rate", f"{f.get('policy_rate',float('nan')):.2f}%" if math.isfinite(f.get("policy_rate",float("nan"))) else "—", f"3M Δ: {f.get('policy_rate_3m',0):+.2f}"),
+            ("Policy Score ★", f"{f.get('policy_score',0):+.3f}", "+ve=cutting"),
+            ("Liquidity Score ★", f"{f.get('liq_score',0):+.3f}", "DXY+TLT"),
+            ("2s10s Yield Curve ★", f"{f.get('spread_2s10s',float('nan')):+.2f}%" if math.isfinite(f.get("spread_2s10s",float("nan"))) else "—", f.get("yield_curve_state","")),
             ("── CREDIT & VOL ──","",""),
-            ("HY OAS", f"{f.get('hy_oas',float('nan')):.0f}bps" if math.isfinite(f.get('hy_oas',float('nan'))) else "—", f"1M Δ: {f.get('hy_oas_1m',0):+.0f}bps"),
-            ("IG OAS ★", f"{f.get('ig_oas',float('nan')):.0f}bps" if math.isfinite(f.get('ig_oas',float('nan'))) else "—", f"1M Δ: {f.get('ig_oas_1m',0):+.0f}bps"),
-            ("VIX / Term Structure ★", f"{f.get('vix_last',20):.1f}", f.get("vix_term_state","")),
+            ("HY OAS", f"{f.get('hy_oas',float('nan')):.0f}bps" if math.isfinite(f.get("hy_oas",float("nan"))) else "—", f"Δ1M: {f.get('hy_oas_1m',0):+.0f}bps"),
+            ("IG OAS ★", f"{f.get('ig_oas',float('nan')):.0f}bps" if math.isfinite(f.get("ig_oas",float("nan"))) else "—", f"Δ1M: {f.get('ig_oas_1m',0):+.0f}bps"),
+            ("VIX", f"{f.get('vix_last',20):.1f}", f.get("vix_term_state","")),
             ("── QUAD INTERNALS ★ ──","",""),
-            ("Growth Core (RoC-adjusted)", f"{q.get('g_core',0):+.3f}", "+ve = accelerating"),
-            ("Inflation Core (RoC-adjusted)", f"{q.get('i_core',0):+.3f}", "+ve = rising"),
-            ("Slowdown Flags", f"{q.get('slowdown_flags',0):.0%}", "% of 4 slowdown signals active"),
+            ("Growth Core (adj)", f"{q.get('g_core',0):+.3f}", "RoC-adjusted"),
+            ("Inflation Core", f"{q.get('i_core',0):+.3f}", ""),
+            ("Policy Core", f"{q.get('p_core',0):+.3f}", "+ve=easing"),
+            ("Slowdown Flags", f"{q.get('slowdown_flags',0):.0%}", "% of 4 indicators active"),
             ("Data Coverage", f"{f.get('data_coverage',0):.0%}", "Input quality"),
+            ("FRED Real Share", f"{f.get('fred_real_share',0):.0%}", "% real FRED data"),
         ]
         st.dataframe(pd.DataFrame(rows, columns=["Indicator","Value","Note"]),
-                     use_container_width=True, hide_index=True, height=560)
+                     use_container_width=True, hide_index=True, height=620)
 
-
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB 3 — STRATEGY (merged Playbook + Narrative Lab + Scenarios)
-# WHAT: what to do, in what order, and why
-# ══════════════════════════════════════════════════════════════════════════════
 
 def page_strategy(snap: dict) -> None:
     q = snap["q"]; rot = snap["rotation"]; sc = snap["scenarios"]; pb = snap["playbooks"]

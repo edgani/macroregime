@@ -77,7 +77,7 @@ class OptionsRegimeEngine:
         vix_spot = float(market_features.get("vix_last", vix_last))
 
         # Try to get VIX 3m from prices dict; fallback to estimate
-        vix3m_series = prices.get("^VIX3M") or prices.get("VIX3M")
+        vix3m_series = prices.get("^VIX3M") or prices.get("^VXV") or prices.get("VIX3M")
         if vix3m_series is not None and len(vix3m_series) > 0:
             try:
                 vix_3m = float(vix3m_series.iloc[-1])

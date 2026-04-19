@@ -1192,7 +1192,16 @@ def load_all()->Dict:
                 for c in narr_obj.active_narratives
             ],
             "top_conviction": narr_obj.top_conviction.name if narr_obj.top_conviction else None,
-            "early_stage_alerts": [c.name for c in narr_obj.early_stage_alerts],
+            "early_stage_alerts": [
+                {"name": c.name, "stage": c.stage, "conviction": c.conviction,
+                 "regime_adjusted_conviction": c.regime_adjusted_conviction,
+                 "pump_risk": c.pump_risk, "action_summary": c.action_summary,
+                 "claude_insight": c.claude_insight, "catalyst_type": c.catalyst_type,
+                 "primary_beneficiaries": c.primary_beneficiaries,
+                 "what_fades": c.what_fades, "confirmation_signals": c.confirmation_signals,
+                 "invalidators": c.invalidators}
+                for c in narr_obj.early_stage_alerts
+            ],
             "summary": narr_obj.summary,
         }
 

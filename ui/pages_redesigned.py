@@ -103,37 +103,24 @@ def page_regime_intel(snap: dict) -> None:
         "Q4": "Growth ↓  Inflation ↓ — Deflation Risk",
     }.get(s_quad, "Unknown")
 
-    # ── Header ─────────────────────────────────────────────────────────────────
+    # ── Page title — clearly different from Command Center ────────────────────
     g_acc = q.get("growth_acc", True); i_acc = q.get("infl_acc", False)
-    g_arrow = "▲" if g_acc else "▼"; i_arrow = "▲" if i_acc else "▼"
-    g_col = "#3dbb6c" if g_acc else "#e05252"; i_col = "#e05252" if i_acc else "#3dbb6c"
 
-    quad_colors = {"Q1":"#3dbb6c","Q2":"#e5a020","Q3":"#e05252","Q4":"#e05252"}
-    qcol = quad_colors.get(s_quad,"#888")
+    # Data quality banner first
+    ps = f.get("_proxy_share", 1.0); src_q = f.get("macro_source_quality", 0.0)
 
-    header = (
-        f'<div style="text-align:center;padding:16px;background:rgba(255,255,255,0.02);'
-        f'border-radius:12px;margin-bottom:12px;">'
-        f'<div style="margin-bottom:6px;">{_qb(s_quad)}'
-        + (f' <span style="opacity:.4;font-size:12px;">↔</span> {_qb(m_quad)} <span style="opacity:.4;font-size:11px;">monthly</span>' if div=="divergent" else "")
-        + f'</div>'
-        f'<div style="font-size:26px;font-weight:800;color:{qcol};margin:4px 0;">{meta_desc}</div>'
-        f'<div style="font-size:13px;opacity:.6;">'
-        f'Conf: <b>{conf:.0%}</b> · Flip: <b>{fh:.0%}</b> · '
-        f'<span style="color:{g_col};">{g_arrow} Growth</span> · '
-        f'<span style="color:{i_col};">{i_arrow} Inflation</span></div>'
-        f'</div>'
+    st.markdown(
+        f'<div style="margin-bottom:10px;">' +
+        f'<div style="font-size:11px;font-weight:700;color:#718096;letter-spacing:.1em;text-transform:uppercase;margin-bottom:4px;">📊 REGIME INTEL — Why the regime is what it is</div>' +
+        f'<div style="font-size:12px;color:#4a5568;">Analytical depth layer. Not for action — for understanding the backdrop. Use Command Center for trades.</div>' +
+        f'</div>',
+        unsafe_allow_html=True
     )
-    st.markdown(header, unsafe_allow_html=True)
 
-    if div == "divergent":
-        st.info(f"🔄 **Divergence:** Structural {s_quad} (big trend) · Monthly {m_quad} (this month). Monthly leads structural by 4-8 weeks.")
-
-    # Data quality banner
-    ps = f.get("_proxy_share", 1.0)
-    src_q = f.get("macro_source_quality", 0.0)
     if ps > 0.60:
-        st.warning(f"⚠️ Macro source quality {src_q:.0%} — FRED limited, using market-proxy fallback. Regime less reliable.")
+        st.warning(f"⚠️ Macro data quality {src_q:.0%} — FRED limited. Regime signal reliability reduced.")
+    elif div == "divergent":
+        st.info(f"🔄 **Structural {s_quad} vs Monthly {m_quad}** — Structural = big-picture regime. Monthly = what's happening right now inside that regime. Watch monthly for near-term trades, structural for 3m+ positioning.")
 
     # ── SUB-TABS: Macro | Health | Analog | Indicators ──────────────────────
     t1, t2, t3, t4 = st.tabs(["📈 Macro & Regime", "📡 Market Health", "🕰️ Analog & Next", "🔑 Raw Indicators"])
@@ -162,29 +149,38 @@ def page_regime_intel(snap: dict) -> None:
                 )
             st.caption(f"Next: **{q.get('next_quad','?')}** · Duration: {q.get('duration_mat',0):.0%} · Deepness: {q.get('deepness',0):.0%}")
 
-            _section("FRONT-RUN TRANSITION")
-            fw = rt.get("front_run_window","not yet")
-            fw_col = {"now":"#e53e3e","1-2w":"#dd6b20","3-6w":"#d69e2e","not yet":"#718096"}.get(fw,"#718096")
-            paths = rt.get("transition_paths",[])
-            st.markdown(
-                f'<div style="background:{fw_col}18;border:1px solid {fw_col};border-radius:6px;padding:8px 10px;margin-bottom:6px;">'
-                f'<span style="color:{fw_col};font-weight:700;font-size:12px;">⚡ {fw.upper()}</span><br>'
-                f'<span style="font-size:11px;color:#a0aec0;">{rt.get("front_run_rationale","")[:100]}</span>'
-                f'</div>',
-                unsafe_allow_html=True,
-            )
-            if paths:
-                p0 = paths[0]
-                ew = float(p0.get("early_warning_score",0))
-                prob = float(p0.get("probability",0))
-                tw = p0.get("timeframe_weeks",0)
-                st.markdown(f'**{p0.get("from_quad","?")} → {p0.get("to_quad","?")}** · {int(prob*100)}% · ~{tw}w · EW: {int(ew*100)}%')
-                ew_signals = rt.get("early_warning_signals",{})
-                firing = [k.replace("_"," ").title() for k,v in ew_signals.items() if v >= 0.5]
-                for sig in firing[:4]:
-                    st.markdown(f'<span style="font-size:10px;color:#48bb78;">✅ {sig}</span>', unsafe_allow_html=True)
-                dormant = [k.replace("_"," ").title() for k,v in ew_signals.items() if v < 0.5]
-                for sig in dormant[:3]:
+            _section("MACRO RoC INTERNALS — What's driving the regime")
+            # This is the actual second-derivative math. Not shown in Command Center.
+            # Positive RoC = accelerating. Negative = decelerating.
+            roc_rows = [
+                ("INDPRO level", f.get("indpro_yoy", float("nan")), f.get("indpro_acc"), "IP YoY"),
+                ("INDPRO Δ RoC", f.get("indpro_roc_3m", float("nan")), None, "Accel/decel"),
+                ("CPI level", f.get("cpi_yoy", float("nan")), f.get("cpi_acc"), "Headline CPI YoY"),
+                ("CPI Δ RoC", f.get("cpi_roc_3m", float("nan")), None, "CPI accel/decel"),
+                ("ISM Δ3M", f.get("ism_3m_delta", float("nan")), None, "Demand pipeline"),
+                ("Leading composite ★", f.get("leading_indicator_composite", 0.0), None, "Forward signal"),
+                ("Inflation shock", f.get("m_shock", f.get("inflation_shock", 0.0)), None, "Supply spike"),
+                ("Policy score", f.get("policy_score", 0.0), None, "+cut / -hike"),
+            ]
+            for lbl, val, acc, note in roc_rows:
+                try:
+                    v = float(val) if val is not None else float("nan")
+                    if not math.isfinite(v): continue
+                    if "level" in lbl or "CPI level" in lbl or "INDPRO level" in lbl:
+                        vc = "#3dbb6c" if acc is True else ("#e05252" if acc is False else "#a0aec0")
+                    else:
+                        vc = "#3dbb6c" if v > 0.003 else ("#e05252" if v < -0.003 else "#e5a020")
+                    fmt = f"{v:+.3f}" if abs(v) < 1 else f"{v:+.2f}"
+                    acc_s = " ▲" if acc is True else (" ▼" if acc is False else "")
+                    st.markdown(
+                        f'<div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px solid rgba(255,255,255,0.04);">'
+                        f'<div><span style="font-size:11px;color:#a0aec0;">{lbl}</span>'
+                        f'<span style="font-size:9px;color:#4a5568;margin-left:4px;">{note}</span></div>'
+                        f'<span style="font-size:12px;font-weight:700;font-family:monospace;color:{vc};">{fmt}{acc_s}</span></div>',
+                        unsafe_allow_html=True
+                    )
+                except Exception:
+                    pass
                     st.markdown(f'<span style="font-size:10px;color:#4a5568;">❌ {sig}</span>', unsafe_allow_html=True)
 
         with col_b:
@@ -328,10 +324,20 @@ def page_regime_intel(snap: dict) -> None:
         if chk.get("global"):
             with st.expander("✅ Global trading checklist", expanded=False):
                 for item in chk["global"][:12]:
-                    ok = item.get("pass",None); label = item.get("label","")
-                    icon = "✓" if ok is True else ("✗" if ok is False else "~")
-                    col_i = "#3dbb6c" if ok is True else ("#e05252" if ok is False else "#e5a020")
-                    st.markdown(f'<span style="color:{col_i};font-size:12px;">{icon} {label}</span>', unsafe_allow_html=True)
+                    try:
+                        label, score, note = item[0], float(item[1]), str(item[2]) if len(item)>2 else ""
+                        ok_col = "#3dbb6c" if score >= 0.62 else ("#e05252" if score <= 0.38 else "#e5a020")
+                        icon = "✓" if score >= 0.62 else ("✗" if score <= 0.38 else "~")
+                        st.markdown(
+                            f'<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(255,255,255,0.04);">' +
+                            f'<span style="font-size:11px;color:#a0aec0;">{str(label)}</span>' +
+                            f'<span style="color:{ok_col};font-size:11px;font-weight:700;">{icon} {score:.0%}</span></div>',
+                            unsafe_allow_html=True
+                        )
+                        if note:
+                            st.markdown(f'<span style="font-size:10px;color:#4a5568;">{note}</span>', unsafe_allow_html=True)
+                    except Exception:
+                        pass
 
     # ── Analog & Next ─────────────────────────────────────────────────────────
     with t3:

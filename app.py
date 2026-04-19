@@ -1210,6 +1210,75 @@ def load_all()->Dict:
         broker_flow = load_broker_flow()
         broker_confirm = get_broker_regime_confirmation(broker_flow, ticker_obj.ihsg_buys)
 
+        # --- Data freshness ---
+        from engines.data_freshness_engine import build_data_freshness_report
+        data_freshness = build_data_freshness_report(fred, prices)
+
+        # --- Backtest (cached per session, expensive) ---
+        from engines.backtest_quad_engine import run_backtest, format_backtest_summary
+        @st.cache_data(ttl=3600*6, show_spinner=False)
+        def _run_backtest_cached(price_keys):
+            return run_backtest(prices)
+        try:
+            bt_results = _run_backtest_cached(tuple(sorted(prices.keys())))
+            backtest_data = format_backtest_summary(bt_results)
+        except Exception:
+            backtest_data = {}
+
+        # --- Intraday regime update ---
+        from engines.intraday_regime_engine import run_intraday_update
+        intraday_update = run_intraday_update(prices, q.get("quad","Q?"))
+        intraday_dict = {
+            "spy_1d": intraday_update.spy_1d,
+            "vix_1d": intraday_update.vix_1d,
+            "oil_1d": intraday_update.oil_1d,
+            "tlt_1d": intraday_update.tlt_1d,
+            "risk_on": intraday_update.risk_on_signal,
+            "inflation_pressure": intraday_update.inflation_pressure,
+            "flight_to_safety": intraday_update.flight_to_safety,
+            "credit_stress": intraday_update.credit_stress,
+            "q1_shift": intraday_update.q1_shift,
+            "q2_shift": intraday_update.q2_shift,
+            "q3_shift": intraday_update.q3_shift,
+            "q4_shift": intraday_update.q4_shift,
+            "intraday_regime": intraday_update.intraday_regime,
+            "signal_strength": intraday_update.signal_strength,
+            "summary": intraday_update.summary,
+            "action_note": intraday_update.action_note,
+        }
+
+        # --- Position tracker ---
+        from engines.position_tracker_engine import (
+            get_active_positions, enrich_positions_with_prices,
+            generate_exit_signals, get_position_history
+        )
+        raw_positions = get_active_positions()
+        active_positions = enrich_positions_with_prices(raw_positions, prices)
+        exit_signals = generate_exit_signals(active_positions, q.get("quad","Q?"), q.get("flip_hazard",0.3))
+        position_data = {
+            "active": [
+                {"id":p.id,"ticker":p.ticker,"market":p.market,"side":p.side,
+                 "entry_price":p.entry_price,"entry_date":p.entry_date,"entry_quad":p.entry_quad,
+                 "size_pct":p.size_pct,"current_price":p.current_price,"pnl_pct":p.pnl_pct,
+                 "days_held":p.days_held,"stop_price":p.stop_price,"target_price":p.target_price,
+                 "stop_hit":p.stop_hit,"target_hit":p.target_hit,
+                 "exit_signal_score":p.exit_signal_score,"notes":p.notes}
+                for p in active_positions
+            ],
+            "exit_signals": [
+                {"id":s.position_id,"ticker":s.ticker,"urgency":s.urgency,
+                 "reason":s.reason,"action":s.action}
+                for s in exit_signals
+            ],
+            "history": get_position_history(10),
+        }
+
+    except Exception as _e2:
+        data_freshness = {}
+        backtest_data = {}
+        intraday_dict = {}
+        position_data = {}
+
     except Exception as _e:
         options_regime = {}
         regime_transition = {}
@@ -1233,6 +1302,10 @@ def load_all()->Dict:
                 bei_flow=bei_flow,
                 broker_flow=broker_flow,
                 broker_confirm=broker_confirm,
+                data_freshness=data_freshness,
+                backtest_data=backtest_data,
+                intraday=intraday_dict,
+                positions=position_data,
                 decision_context={
                     "route_primary":route.get("primary"),
                     "route_bias":route.get("route_bias"),

@@ -84,6 +84,28 @@ def _pct(v) -> str:
     return f"{v:+.1%}" if isinstance(v, float) else str(v)
 
 
+    with t3:
+        try:
+            from ui.components.advanced_panels import render_position_tracker
+            render_position_tracker(snap)
+        except Exception as _pt_err:
+            st.error(f"Position tracker error: {_pt_err}")
+
+    with t4:
+        try:
+            from ui.components.advanced_panels import render_intraday_panel
+            render_intraday_panel(snap)
+        except Exception as _id_err:
+            st.info(f"Intraday panel: {_id_err}")
+
+    with t5:
+        try:
+            from ui.components.advanced_panels import render_data_freshness_detail
+            render_data_freshness_detail(snap)
+        except Exception as _fr_err:
+            st.info(f"Freshness panel: {_fr_err}")
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 2 — REGIME INTEL (merged Radar + Health, no duplicates)
 # WHY: macro backdrop, health signals, analog
@@ -101,7 +123,7 @@ def page_regime_intel(snap: dict) -> None:
     - Raw indicators table (all 25+ metrics)
     Purposely removed: regime probs, route state, news catalyst — those live in CC
     """
-    q = snap["q"]; f = snap["f"]; rot = snap["rotation"]
+    q = snap.get("q",{}); f = snap.get("f",{}); rot = snap.get("rotation",{})
     analog = snap.get("analog", {}); prices = snap.get("prices", {})
     rt = snap.get("regime_transition", {})
     opt = snap.get("options_regime", {})
@@ -110,6 +132,13 @@ def page_regime_intel(snap: dict) -> None:
 
     # Get transition paths once — available to all sub-tabs
     paths = rt.get("transition_paths", [])
+
+    # -- New: intraday update + freshness strip --
+    try:
+        from ui.components.advanced_panels import render_intraday_panel, render_data_freshness_strip
+        render_data_freshness_strip(snap)
+    except Exception:
+        pass
 
     st.markdown(
         '<div style="padding:6px 12px;background:rgba(255,255,255,0.02);border-radius:6px;margin-bottom:10px;">' +
@@ -130,7 +159,7 @@ def page_regime_intel(snap: dict) -> None:
             f"Monthly leads structural by 4-8 weeks — use monthly for near-term trades."
         )
 
-    t1, t2, t3, t4 = st.tabs(["📈 Macro Internals", "📡 Market Health", "🕰️ Analog & Paths", "🔑 Raw Indicators"])
+    t1, t2, t3, t4, t5 = st.tabs(["📈 Macro Internals", "📡 Market Health", "🕰️ Analog & Paths", "🔑 Raw Indicators", "📊 Backtest"])
 
     # ── TAB 1: Macro Internals — the math behind the regime ──────────────────
     with t1:
@@ -484,8 +513,16 @@ def page_regime_intel(snap: dict) -> None:
                      use_container_width=True, hide_index=True, height=620)
 
 
+    with t5:
+        try:
+            from ui.components.advanced_panels import render_backtest_panel
+            render_backtest_panel(snap)
+        except Exception as _bt_err:
+            st.info(f"Backtest panel error: {_bt_err}")
+
+
 def page_strategy(snap: dict) -> None:
-    q = snap["q"]; rot = snap["rotation"]; sc = snap["scenarios"]; pb = snap["playbooks"]
+    q = snap.get("q",{}); rot = snap.get("rotation",{}); sc = snap.get("scenarios",{}); pb = snap.get("playbooks",[])
     s_quad = q["quad"]
 
     at = snap.get("asset_translation",{}); route = snap.get("route",{}); route_label = route.get("primary_meta",{}).get("label","?")
@@ -608,8 +645,8 @@ def page_strategy(snap: dict) -> None:
 # ══════════════════════════════════════════════════════════════════════════════
 
 def page_markets_v2(snap: dict) -> None:
-    q = snap["q"]; f = snap["f"]; prices = snap.get("prices",{}); rot = snap["rotation"]
-    ih = snap["ihsg"]; s_quad = q["quad"]; m_quad = q["monthly_quad"]
+    q = snap.get("q",{}); f = snap.get("f",{}); prices = snap.get("prices",{}); rot = snap.get("rotation",{})
+    ih = snap.get("ihsg",{}); s_quad = q.get("quad","Q?"); m_quad = q["monthly_quad"]
     tickers = snap.get("regime_tickers",{})
     rt = snap.get("regime_transition",{})
     fw = rt.get("front_run_window","not yet")
@@ -638,7 +675,7 @@ def page_markets_v2(snap: dict) -> None:
             unsafe_allow_html=True,
         )
 
-    t_ihsg, t_us, t_fx, t_comm, t_crypto = st.tabs(["🇮🇩 IHSG","🇺🇸 US Stocks","💱 FX","🛢️ Commodities","🔐 Crypto"])
+    t_ihsg, t_us, t_fx, t_comm, t_crypto, t_afl = st.tabs(["🇮🇩 IHSG","🇺🇸 US Stocks","💱 FX","🛢️ Commodities","🔐 Crypto","🔌 AFL Bridge"])
 
     # ── Helper: render NOW/FRONT-RUN dual column ──────────────────────────────
     def _now_fr_header(market: str, now_label: str, fr_signal: str = "") -> None:
@@ -905,16 +942,24 @@ def page_markets_v2(snap: dict) -> None:
         st.dataframe(pd.DataFrame(cry_rows), use_container_width=True, hide_index=True, height=300)
 
 
+    with t_afl:
+        try:
+            from ui.components.advanced_panels import render_afl_bridge_panel
+            render_afl_bridge_panel(snap)
+        except Exception as _afl_err:
+            st.error(f"AFL Bridge error: {_afl_err}")
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 5 — RISK & DIAGNOSTICS (merged Risk + Diag)
 # SAFETY: crash, sizing, data quality — not duplicating health
 # ══════════════════════════════════════════════════════════════════════════════
 
 def page_risk_diag(snap: dict) -> None:
-    cr = snap["crash"]; f = snap["f"]; q = snap["q"]
+    cr = snap.get("crash",{}); f = snap.get("f",{}); q = snap.get("q",{})
     opt = snap.get("options_regime",{})
 
-    t1, t2 = st.tabs(["⚠️ Risk & Sizing", "🔬 Diagnostics"])
+    t1, t2, t3, t4, t5 = st.tabs(["⚠️ Risk & Sizing", "📈 Intraday", "💼 Position Tracker", "🔬 Diagnostics", "🛰️ Data Freshness"])
 
     with t1:
         sc = cr["crash_score"]; ro = cr["risk_off"]
@@ -970,7 +1015,7 @@ def page_risk_diag(snap: dict) -> None:
         # Kelly adjustments table
         adj_rows = []
         for label, mult, effect in [
-            (f"Regime {s_quad}", f"{[0.55,0.70,1.0,1.10,1.20].get(3,1.0):.2f}x", "Size multiplier"),
+            (f"Regime {s_quad}", f"{dict(Q1=1.20,Q2=1.10,Q3=0.55,Q4=0.70).get(s_quad,1.0):.2f}x", "Size multiplier"),
             (f"VIX {opt.get('vix_bucket','?') if opt else '?'}", f"{vix_cap:.0%}", "VIX-based cap"),
             (f"Confidence {conf:.0%}", f"{0.85+0.30*conf:.2f}x", "Conviction weight"),
             (f"Front-run window: {fw}", "0.60x" if fw=="now" else "1.00x", "Pre-confirmation penalty"),

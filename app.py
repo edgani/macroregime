@@ -4680,28 +4680,48 @@ def main():
     except Exception:
         _has_rt = False
 
-    _tab_labels = ["⚡ Command Center", "🧭 Radar", "📡 Health", "🎯 Playbook", "🌐 Markets", "📖 Narrative Lab", "⚠️ Risk", "🔬 Diagnostics"]
+    # ── v11: 5-tab consolidated architecture ──────────────────────────────────
+    try:
+        from ui.pages_redesigned import page_regime_intel, page_strategy, page_markets_v2, page_risk_diag
+        _has_new_pages = True
+    except Exception as _pe:
+        _has_new_pages = False
+
+    _tab_labels = ["⚡ Command Center", "📊 Regime Intel", "🎯 Strategy", "🌐 Markets", "⚠️ Risk & Diag"]
     tabs = st.tabs(_tab_labels)
 
     with tabs[0]:
         if _has_cc:
             render_command_center(snap)
         else:
-            st.warning("Command Center not available — import failed.")
-    with tabs[1]: page_radar(snap)
-    with tabs[2]: page_health(snap)
-    with tabs[3]: page_playbook(snap)
-    with tabs[4]: page_markets_full(snap)
-    with tabs[5]:
-        st.title("📖 Narrative Lab")
-        st.caption("Live narrative-driven opportunities — XNDU-style plays across all markets")
-        if _has_narr:
-            render_narrative_discovery_panel(snap)
-        if _has_rt:
+            st.warning("Command Center not available.")
+
+    with tabs[1]:
+        if _has_new_pages:
+            page_regime_intel(snap)
+        else:
+            page_radar(snap)
             st.markdown("---")
-            st.subheader("📡 Regime Transition Detail")
-            render_regime_transition_panel(snap)
-    with tabs[6]: page_risk(snap)
-    with tabs[7]: page_diag(snap)
+            page_health(snap)
+
+    with tabs[2]:
+        if _has_new_pages:
+            page_strategy(snap)
+        else:
+            page_playbook(snap)
+
+    with tabs[3]:
+        if _has_new_pages:
+            page_markets_v2(snap)
+        else:
+            page_markets_full(snap)
+
+    with tabs[4]:
+        if _has_new_pages:
+            page_risk_diag(snap)
+        else:
+            page_risk(snap)
+            st.markdown("---")
+            page_diag(snap)
 
 if __name__=="__main__": main()

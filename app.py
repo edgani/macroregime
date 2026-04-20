@@ -1185,6 +1185,113 @@ def build_ihsg(prices:Dict[str,pd.Series],q:Dict,f:Dict)->Dict:
                 rel_state=rel_state,petro_impact=petro_impact,em_regime=em_regime_score,
                 top_sector=top_sector,spill_ihsg=spill_ihsg,stock_rows=stock_rows[:30])
 
+# ── Modular compute adapters ─────────────────────────────────────────────────
+
+def _compat_aliases(f: dict) -> None:
+    """Map macro_features key names to monolith aliases so downstream
+    functions (build_health, build_crash, build_ihsg, etc.) keep working."""
+    # CL=F price aliases
+    f.setdefault("clf_1m",   f.get("oil_1m",   float("nan")))
+    f.setdefault("clf_3m",   f.get("oil_3m",   float("nan")))
+    f.setdefault("gcf_1m",   f.get("gold_1m",  float("nan")))
+    f.setdefault("gld_3m",   f.get("gold_3m",  float("nan")))
+    f.setdefault("gld_1m",   f.get("gold_1m",  float("nan")))
+    f.setdefault("dxy_1m",   f.get("uup_1m",   float("nan")))
+    f.setdefault("dxy_3m",   f.get("uup_3m",   float("nan")))
+    # Spread aliases from build_market_implied_features (HYG/LQD)
+    hyg_1m = f.get("hyg_1m", float("nan")); lqd_1m = f.get("lqd_1m", float("nan"))
+    if math.isfinite(hyg_1m) and math.isfinite(lqd_1m):
+        f.setdefault("hyg_lqd_spread", float((hyg_1m - lqd_1m) * 100))
+    # YoY aliases: macro_features uses "cpi_yoy", monolith also uses "cpi_yoy" — already same
+    # Policy aliases
+    f.setdefault("policy_rate",     f.get("policy_rate_level",  float("nan")))
+    f.setdefault("policy_rate_3m",  f.get("policy_rate_3m_delta", float("nan")))
+    f.setdefault("breakeven",       f.get("breakeven_last",     2.2))
+    f.setdefault("breakeven_1m",    f.get("breakeven_1m_delta", float("nan")))
+    f.setdefault("liq_score",       f.get("liquidity_score",    0.0))
+    f.setdefault("m_policy",        f.get("monthly_policy_score",  f.get("policy_score", 0.0)))
+    f.setdefault("m_liq",           f.get("monthly_liquidity_score", f.get("liquidity_score", 0.0)))
+    f.setdefault("m_shock",         f.get("monthly_inflation_shock", f.get("inflation_shock", 0.0)))
+    # Structural/monthly scaffolding keys (monolith uses g_struct_level etc.)
+    f.setdefault("g_struct_level",  f.get("growth_structural_level",   f.get("growth_level",   0.0)))
+    f.setdefault("g_struct_mom",    f.get("growth_structural_momentum", f.get("growth_momentum", 0.0)))
+    f.setdefault("i_struct_level",  f.get("inflation_structural_level",  f.get("inflation_level",  0.0)))
+    f.setdefault("i_struct_mom",    f.get("inflation_structural_momentum", f.get("inflation_momentum", 0.0)))
+    f.setdefault("g_month_level",   f.get("growth_monthly_level",   f.get("growth_level",   0.0)))
+    f.setdefault("g_month_mom",     f.get("growth_monthly_momentum", f.get("growth_momentum", 0.0)))
+    f.setdefault("i_month_level",   f.get("inflation_monthly_level",  f.get("inflation_level",  0.0)))
+    f.setdefault("i_month_mom",     f.get("inflation_monthly_momentum", f.get("inflation_momentum", 0.0)))
+    # data quality keys
+    f.setdefault("macro_proxy_share",  f.get("macro_proxy_share", 1.0))
+    f.setdefault("fred_real_share",    f.get("fred_real_share", 0.5))
+    f.setdefault("data_coverage",      f.get("data_coverage", 0.5))
+    f.setdefault("monthly_data_coverage", f.get("monthly_data_coverage", 0.5))
+    f.setdefault("structural_obs_reliability",
+                 clamp(0.65 * f.get("macro_real_share", 0.5) + 0.35 * f.get("fred_real_share", 0.5)))
+    f.setdefault("structural_proxy_scale", clamp(1.0 - f.get("structural_obs_reliability", 0.5)))
+    f.setdefault("_proxy_share",    f.get("macro_proxy_share", 1.0))
+    f.setdefault("macro_source_quality", f.get("macro_real_share", 0.5))
+
+
+def _q_posterior_to_dict(p, f: dict) -> dict:
+    """Convert RegimePosterior → monolith q dict format (UI unchanged)."""
+    import math as _math
+    s_quad = p.structural_quad; m_quad = p.monthly_quad
+    g_acc = f.get("growth_structural_momentum", f.get("growth_momentum", 0.0)) > 0
+    i_acc = f.get("inflation_structural_momentum", f.get("inflation_momentum", 0.0)) > 0
+    q_ordered = sorted(p.structural_probs.items(), key=lambda x: -x[1])
+    top_spread = q_ordered[0][1] - q_ordered[1][1]
+    is_transitional = p.structural_confidence < 0.20 and top_spread < 0.08
+    transitional_label = f"{q_ordered[0][0]}/{q_ordered[1][0]}" if is_transitional else s_quad
+    cb_map = {
+        (0.0, 0.25): "Low-Conviction",
+        (0.25, 0.45): "Moderate-Conviction",
+        (0.45, 0.65): "Conviction",
+        (0.65, 1.01): "High-Conviction",
+    }
+    cb = next((v for (lo, hi), v in cb_map.items() if lo <= p.structural_confidence < hi), "Low-Conviction")
+    return dict(
+        quad=s_quad,
+        probs=p.structural_probs,
+        next_quad=p.structural_next_quad,
+        confidence=p.structural_confidence,
+        conf_band=cb,
+        monthly_quad=m_quad,
+        monthly_probs=p.monthly_probs,
+        monthly_next=p.monthly_next_quad,
+        monthly_conf=p.monthly_confidence,
+        divergence=p.divergence_state,
+        operating=p.operating_regime,
+        flip_hazard=p.flip_hazard,
+        deepness=p.deepness,
+        duration_mat=p.duration_maturity,
+        g_core=p.g_core,
+        i_core=p.i_core,
+        p_core=p.p_core,
+        g_level=p.g_core,
+        i_level=p.i_core,
+        growth_acc=g_acc,
+        infl_acc=i_acc,
+        slowdown_flags=f.get("slowdown_flags", 0.0),
+        inf_shock=f.get("inflation_shock", 0.0),
+        transitional=is_transitional,
+        transitional_label=transitional_label,
+    )
+
+
+def _add_tariff_headwind(f: dict) -> None:
+    """Inject tariff/oil headwind into structural_slowdown_flags."""
+    ism = f.get("ism_last", 51.0)
+    ism_sub50 = max(0.0, (50.0 - ism) / 5.0) if math.isfinite(ism) else 0.0
+    oil_3m_s = clamp(nf(f.get("clf_3m", f.get("oil_3m", 0.0))) / 0.10)
+    usd_s = clamp(nf(f.get("uup_1m", 0.0)) / 0.03)
+    tariff_hw = clamp(0.35*ism_sub50 + 0.30*oil_3m_s + 0.20*usd_s + 0.15*max(0.0, f.get("claims_13w_delta", 0.0)/20.0))
+    f["tariff_growth_headwind"] = tariff_hw
+    # Augment slowdown_flags with tariff headwind
+    sf = f.get("slowdown_flags", 0.0)
+    f["slowdown_flags"] = clamp(0.55*sf + 0.20*max(0.0, -f.get("growth_structural_momentum", 0.0)) + 0.25*tariff_hw)
+
+
 # Core tickers needed for regime computation (fast subset)
 _CORE_TICKERS = (
     "SPY","QQQ","IWM","RSP","TLT","HYG","LQD","UUP","EEM","^VIX","^VXV",
@@ -1219,8 +1326,39 @@ def load_all()->Dict:
     price_meta=summarize_price_panel(prices,all_tickers)
     progress_bar.progress(45, text="Phase 3/3: FRED macro data (parallel fetch)…")
     with st.spinner("Fetching FRED macro data (parallel)…"): fred=fetch_fred_bundle(tuple(FRED_SERIES.items()))
-    progress_bar.progress(70, text="Computing regime signals…")
-    f=build_macro(fred,prices,price_meta=price_meta); q=build_quad(f); h=build_health(prices,f)
+    progress_bar.progress(70, text="Computing regime signals (modular engine)…")
+
+    # ── REBUILT compute layer: modular engines replace monolith build_macro/build_quad ──
+    try:
+        from features.macro_features import build_macro_features as _bmf
+        from engines.quad_state_engine import QuadStateEngine as _QSE
+        # 1. Build f dict from modular features (true Hedgeye RoC, delta_ret_n, etc.)
+        f = _bmf(fred, prices)
+        # 2. Augment with market-implied micro features (VIX, spreads, yield curve)
+        f.update(build_market_implied_features(prices))
+        # 3. Build FRED meta (loaded count etc.) for data quality display
+        fred_obs, fred_obs_meta, fred_loaded, fred_total = build_macro_observed(fred)
+        f.update(fred_obs)
+        f["_fred_loaded"] = fred_loaded; f["_fred_total"] = fred_total
+        f["data_source_mode"] = (
+            "Observed-Heavy" if f.get("macro_real_share",0)>=0.70 else
+            "Hybrid" if f.get("macro_real_share",0)>=0.35 else "Proxy-Heavy"
+        )
+        f["prior_mode"] = "off"
+        # 4. Add compat aliases for downstream functions
+        _compat_aliases(f)
+        # 5. Tariff/oil headwind
+        _add_tariff_headwind(f)
+        # 6. Compute quad via modular engine (correct policy signs, config/weights.py)
+        q_posterior = _QSE().run(f)
+        q = _q_posterior_to_dict(q_posterior, f)
+    except Exception as _compute_err:
+        # Fallback to monolith if modular fails (safety net)
+        import traceback; traceback.print_exc()
+        f = build_macro(fred, prices, price_meta=price_meta)
+        q = build_quad(f)
+    # ─────────────────────────────────────────────────────────────────────────────
+    h=build_health(prices,f)
     cr=build_crash(f,h,q,prices=prices); rot=build_rotation(q,h,f,prices); ih=build_ihsg(prices,q,f)
     analog=_match_analog(f); pb=build_playbooks(f,q); sc=build_scenarios(q,f,h,analog,pb)
     chk=build_checklists(f,h,q,ih)

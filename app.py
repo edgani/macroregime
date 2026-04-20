@@ -533,6 +533,20 @@ def build_market_implied_features(prices:Dict[str,pd.Series])->Dict:
     return f
 
 
+def _delta_roc(s: pd.Series, window: int = 12, offset: int = 3) -> float:
+    """Second derivative: change in YoY rate — Hedgeye's core signal."""
+    try:
+        if s is None or len(s) < window + offset + 2:
+            return float("nan")
+        roc = s.pct_change(window).dropna()
+        if len(roc) < offset + 1:
+            return float("nan")
+        delta = float(roc.iloc[-1]) - float(roc.iloc[-(offset+1)])
+        return delta if math.isfinite(delta) else float("nan")
+    except Exception:
+        return float("nan")
+
+
 def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:Optional[Dict]=None)->Dict:
     raw_macro_keys=["indpro_yoy","retail_yoy","payrolls_yoy","unrate_3m_delta","claims_13w_delta","ism_last","housing_yoy","cpi_yoy","core_cpi_yoy","breakeven"]
     f=build_fallback_macro_proxies(prices)
@@ -746,6 +760,19 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
         "structural_proxy_scale":structural_proxy_scale,
         "g_struct_climate":g_struct_climate,
         "tariff_growth_headwind":tariff_growth_headwind,
+        # --- 2nd-derivative (Hedgeye-style) signals injected from features layer ---
+        "indpro_roc_3m":   _delta_roc(fred.get("INDPRO",  pd.Series()), window=12, offset=3),
+        "cpi_roc_3m":      _delta_roc(fred.get("CPI",     pd.Series()), window=12, offset=3),
+        "payrolls_roc_3m": _delta_roc(fred.get("PAYEMS",  pd.Series()), window=12, offset=3),
+        "ism_3m_delta":    _delta_roc(fred.get("ISM",     pd.Series()), window=3,  offset=1),
+        "lei_3m_delta":    _delta_roc(fred.get("LEI",     pd.Series()), window=3,  offset=1),
+        "core_cpi_roc_3m": _delta_roc(fred.get("CORECPI", pd.Series()), window=12, offset=3),
+        "leading_indicator_composite": float(nm(
+            th(_delta_roc(fred.get("LEI",    pd.Series()), 3, 1),  0.30),
+            th(_delta_roc(fred.get("INDPRO", pd.Series()), 12, 3), 0.25),
+            th(_delta_roc(fred.get("PAYEMS", pd.Series()), 12, 3), 0.25),
+            th(-_delta_roc(fred.get("ISM",   pd.Series()), 3, 1),  0.20) * -1,
+        ) if True else 0.0),
         "i_struct_climate":i_struct_climate,
         "g_struct_roc_obs":g_struct_roc_obs,
         "i_struct_roc_obs":i_struct_roc_obs,

@@ -662,6 +662,35 @@ def page_strategy(snap: dict) -> None:
         st.dataframe(pd.DataFrame(heat), use_container_width=True, hide_index=True, height=460)
 
 
+    with t_s4:
+        try:
+            from ui.components.intelligence_panel import render_frontrun_panel
+            render_frontrun_panel(snap)
+        except Exception as _err:
+            st.error(f"Front-Run panel: {_err}")
+
+    with t_s5:
+        try:
+            from ui.components.intelligence_panel import render_global_quad_panel
+            render_global_quad_panel(snap)
+        except Exception as _err:
+            st.error(f"Global Quad panel: {_err}")
+
+    with t_s6:
+        try:
+            from ui.components.intelligence_panel import render_usd_correlation_panel
+            render_usd_correlation_panel(snap)
+        except Exception as _err:
+            st.error(f"USD Correlation panel: {_err}")
+
+    with t_s7:
+        try:
+            from ui.components.intelligence_panel import render_regional_survey_panel
+            render_regional_survey_panel(snap)
+        except Exception as _err:
+            st.error(f"Regional Survey panel: {_err}")
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB 4 — MARKETS (NOW plays + FRONT-RUN plays per market)
 # WHERE: specific tickers, each market has NOW + FRONT-RUN split

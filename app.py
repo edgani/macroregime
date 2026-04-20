@@ -1515,6 +1515,37 @@ def load_all()->Dict:
         broker_flow = load_broker_flow()
         broker_confirm = get_broker_regime_confirmation(broker_flow, ticker_obj.ihsg_buys)
 
+        # --- USD Correlation (THE mythic variable) ---
+        from engines.usd_correlation_engine import build_usd_correlation_matrix
+        usd_corr = build_usd_correlation_matrix(prices)
+
+        # --- Global Quad (50 countries) ---
+        from engines.global_quad_engine import run_global_quad_engine
+        global_quad_data = run_global_quad_engine(
+            prices,
+            us_structural_quad=q.get("quad","Q3"),
+            us_monthly_quad=q.get("monthly_quad","Q2"),
+            usd_trend=usd_corr.get("usd_trend","neutral"),
+        )
+
+        # --- Regional Survey (ISM New Orders, CapEx, Prices Paid) ---
+        from engines.regional_survey_engine import load_regional_surveys
+        regional_surveys = load_regional_surveys()
+
+        # --- Front-Run Engine (Signal + Quad ticker selection) ---
+        from engines.frontrun_engine import run_frontrun_engine
+        frontrun_data = run_frontrun_engine(
+            prices,
+            s_quad=q.get("quad","Q3"),
+            m_quad=q.get("monthly_quad","Q2"),
+            usd_trend=usd_corr.get("usd_trend","neutral"),
+            usd_correlations=usd_corr.get("correlations",{}),
+        )
+
+        # --- GDPNow (forward-looking GDP) ---
+        from data.gdpnow_loader import load_gdpnow
+        gdpnow = load_gdpnow()
+
         # --- Data freshness ---
         from engines.data_freshness_engine import build_data_freshness_report
         data_freshness = build_data_freshness_report(fred, prices)
@@ -1585,6 +1616,11 @@ def load_all()->Dict:
         }
 
     except Exception as _e2:
+        usd_corr = {}
+        global_quad_data = {}
+        regional_surveys = {}
+        frontrun_data = {}
+        gdpnow = {}
         data_freshness = {}
         backtest_data = {}
         intraday_dict = {}
@@ -1615,6 +1651,11 @@ def load_all()->Dict:
                 bei_flow=bei_flow,
                 broker_flow=broker_flow,
                 broker_confirm=broker_confirm,
+                usd_corr=usd_corr,
+                global_quad=global_quad_data,
+                regional_surveys=regional_surveys,
+                frontrun=frontrun_data,
+                gdpnow=gdpnow,
                 data_freshness=data_freshness,
                 backtest_data=backtest_data,
                 intraday=intraday_dict,

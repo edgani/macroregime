@@ -140,10 +140,33 @@ def page_regime_intel(snap: dict) -> None:
     except Exception:
         pass
 
+    is_div = div == "divergent"
+    qcol_m = {"Q1":"#3dbb6c","Q2":"#e5a020","Q3":"#e05252","Q4":"#e05252"}.get(m_quad,"#888")
+    qcol_s = {"Q1":"#3dbb6c","Q2":"#e5a020","Q3":"#e05252","Q4":"#e05252"}.get(s_quad,"#888")
+
+    # Header: always show S and M side by side
     st.markdown(
-        '<div style="padding:6px 12px;background:rgba(255,255,255,0.02);border-radius:6px;margin-bottom:10px;">' +
-        '<span style="font-size:11px;color:#4a5568;">📊 Regime Intel — analytical depth layer. ' +
-        'Not for action. Use <b>Command Center</b> for trades and tickers.</span></div>',
+        f'<div style="display:grid;grid-template-columns:1fr 4px 1fr;gap:12px;'
+        f'background:rgba(255,255,255,0.02);border-radius:8px;padding:12px 16px;margin-bottom:10px;">'
+        f'<div>'
+        f'<div style="font-size:9px;font-weight:700;color:#4a5568;letter-spacing:.1em;margin-bottom:3px;">STRUCTURAL — 3m+ HORIZON</div>'
+        f'<div style="font-size:20px;font-weight:800;color:{qcol_s};">{s_quad}</div>'
+        f'<div style="font-size:11px;color:#718096;">Conf: <b>{conf:.0%}</b> · Flip: <b>{fh:.0%}</b></div>'
+        f'</div>'
+        f'<div style="background:#21262d;border-radius:4px;"></div>'
+        f'<div>'
+        f'<div style="font-size:9px;font-weight:700;color:#4a5568;letter-spacing:.1em;margin-bottom:3px;">MONTHLY — CURRENT CONDITIONS</div>'
+        f'<div style="font-size:20px;font-weight:800;color:{qcol_m};">{m_quad}</div>'
+        f'<div style="font-size:11px;color:{"#dd6b20" if is_div else "#4a5568"};">'
+        f'{"⚡ Divergent — monthly leads by 4-8w" if is_div else f"Aligned with structural {s_quad}"}'
+        f'</div>'
+        f'</div>'
+        f'</div>',
+        unsafe_allow_html=True
+    )
+    st.markdown(
+        '<div style="padding:4px 10px;background:rgba(255,255,255,0.01);border-radius:6px;margin-bottom:8px;">' +
+        '<span style="font-size:10px;color:#4a5568;">📊 Regime Intel — analytical depth. Not for action. Use <b>Command Center</b> for trades.</span></div>',
         unsafe_allow_html=True
     )
 

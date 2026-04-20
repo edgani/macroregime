@@ -135,13 +135,23 @@ def _render_status_bar(snap: dict) -> None:
     best_ihsg = (tickers.get("ihsg_buys") or ["—"])[0]
     best_short = (tickers.get("us_shorts") or ["—"])[0]
 
-    # Status bar
+    # Divergence label
+    div = q.get("divergence", "aligned")
+    div_color = "#dd6b20" if div == "divergent" else "#4a5568"
+    div_label = "⚡ DIVERGEN" if div == "divergent" else "ALIGNED"
+
+    # Status bar — ALWAYS show S and M separately
     st.markdown(
         f'<div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 16px;'
         f'background:#0d1117;border:1px solid #21262d;border-radius:10px;margin-bottom:6px;font-size:12px;">'
+        f'<span style="font-size:9px;color:#4a5568;font-weight:700;">S:</span>'
         f'<span style="background:{qc["bg"]};border:1px solid {qc["border"]};color:{qc["text"]};'
         f'padding:3px 10px;border-radius:12px;font-weight:700;">{quad}</span>'
-        + (f'<span style="color:#4a5568;">M:</span><span style="background:{qc_m["bg"]};border:1px solid {qc_m["border"]};color:{qc_m["text"]};padding:2px 8px;border-radius:10px;font-size:11px;">{monthly}</span>' if monthly != quad else "")
+        f'<span style="font-size:9px;color:#4a5568;font-weight:700;">M:</span>'
+        f'<span style="background:{qc_m["bg"]};border:1px solid {qc_m["border"]};color:{qc_m["text"]};'
+        f'padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;">{monthly}</span>'
+        f'<span style="font-size:9px;color:{div_color};font-weight:700;padding:1px 6px;border:1px solid {div_color}44;border-radius:4px;">{div_label}</span>'
+        + (f'<span style="color:#4a5568;">|</span>')
         + f'<span style="color:#4a5568;">|</span>'
         f'<span style="color:#a0aec0;">Conf: <b style="color:#e2e8f0;">{_pct(conf)}</b></span>'
         f'<span style="color:#4a5568;">|</span>'
@@ -180,12 +190,29 @@ def _render_regime_card(snap: dict) -> None:
     qc = _qc(quad)
     qc_m = _qc(monthly)
 
+    div = q.get("divergence","aligned")
+    is_div = div == "divergent"
+    qc_m2 = _qc(monthly)
+
+    # Always show both S (structural, big-picture) and M (monthly, current conditions)
     st.markdown(
         f'<div style="background:{qc["bg"]};border-left:4px solid {qc["border"]};'
-        f'border-radius:8px;padding:14px 16px;margin-bottom:8px;">'
-        f'<div style="font-size:24px;font-weight:800;color:{qc["text"]};margin-bottom:2px;">'
-        f'{quad} — {qc["label"]}</div>'
-        f'<div style="color:#718096;font-size:12px;">{qc["desc"]}</div>'
+        f'border-radius:8px;padding:12px 16px;margin-bottom:8px;">'
+        f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;">'
+        f'<div>'
+        f'<div style="font-size:10px;font-weight:700;color:#4a5568;letter-spacing:.1em;">STRUCTURAL (3m+ horizon)</div>'
+        f'<div style="font-size:22px;font-weight:800;color:{qc["text"]};">{quad} — {qc["label"]}</div>'
+        f'<div style="color:#718096;font-size:11px;">{qc["desc"]}</div>'
+        f'</div>'
+        f'<div style="width:1px;background:#21262d;align-self:stretch;margin:0 4px;"></div>'
+        f'<div>'
+        f'<div style="font-size:10px;font-weight:700;color:#4a5568;letter-spacing:.1em;">MONTHLY (current)</div>'
+        f'<div style="font-size:22px;font-weight:800;color:{qc_m2["text"]};">{monthly}</div>'
+        f'<div style="font-size:11px;color:{"#dd6b20" if is_div else "#4a5568"};">'
+        f'{"⚡ Divergent — monthly leading" if is_div else "Aligned with structural"}'
+        f'</div>'
+        f'</div>'
+        f'</div>'
         f'</div>',
         unsafe_allow_html=True,
     )
@@ -206,13 +233,16 @@ def _render_regime_card(snap: dict) -> None:
                     f'<div style="font-size:20px;font-weight:700;color:{_qc(next_q)["text"]};">{next_q}</div>',
                     unsafe_allow_html=True)
 
-    # Divergence badge
+    # Divergence banner — only when divergent (card already shows labels)
     if div == "divergent":
+        m_meta = {"Q1":"Goldilocks","Q2":"Reflation","Q3":"Stagflation","Q4":"Deflation Risk"}.get(monthly,monthly)
+        s_meta = {"Q1":"Goldilocks","Q2":"Reflation","Q3":"Stagflation","Q4":"Deflation Risk"}.get(quad,quad)
         st.markdown(
-            f'<div style="background:{qc_m["bg"]};border:1px solid {qc_m["border"]};border-radius:6px;'
-            f'padding:5px 10px;margin:6px 0;font-size:11px;">'
-            f'⚠️ Monthly divergence: <b style="color:{qc_m["text"]};">{monthly}</b> inside Structural <b>{quad}</b> — '
-            f'Monthly signal is faster/leading</div>',
+            f'<div style="background:#dd6b2018;border:1px solid #dd6b20;border-radius:6px;'
+            f'padding:5px 10px;margin:4px 0 8px;font-size:11px;">'
+            f'⚡ <b>Divergence active:</b> Structural <b style="color:{qc["text"]};">{quad} {s_meta}</b> '
+            f'vs Monthly <b style="color:{qc_m["text"]};">{monthly} {m_meta}</b>. '
+            f'Monthly = near-term trade, Structural = 3m+ positioning.</div>',
             unsafe_allow_html=True,
         )
 

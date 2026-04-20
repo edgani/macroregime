@@ -941,7 +941,45 @@ def build_health(prices:Dict[str,pd.Series],f:Dict)->Dict:
                 weather_state="Risk-On" if weather>=0.58 else("Risk-Off" if weather<=0.42 else "Mixed"),
                 verdict="Healthy" if weather>=0.62 else("Narrow" if weather>=0.50 else("Fragile" if weather>=0.38 else "Broken")))
 
-def build_crash(f:Dict,h:Dict,q:Dict)->Dict:
+def _fetch_cnn_fear_greed() -> float:
+    """Fetch CNN Fear & Greed index (0=extreme fear, 100=extreme greed). Returns 0.5 on error."""
+    try:
+        import requests
+        resp = requests.get(
+            "https://production.dataviz.cnn.io/index/fearandgreed/graphdata",
+            headers={"User-Agent":"Mozilla/5.0 MacroRegimePro"},
+            timeout=6
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            score = float(data.get("fear_and_greed",{}).get("score",50))
+            return clamp(score / 100.0)
+    except Exception:
+        pass
+    # Fallback: approximate from VIX position (inverse relationship)
+    return None  # Signal that fetch failed
+
+def _iwm_ath_distance(prices:Dict[str,pd.Series]) -> float:
+    """IWM distance from ATH — proxy for small cap health / breadth peak.
+    High ATH-distance = crowded longs far from peak = cascade risk elevated."""
+    try:
+        s = prices.get("IWM", pd.Series())
+        if s is None or len(s) < 20: return 0.5
+        peak = float(s.rolling(252, min_periods=60).max().iloc[-1])
+        current = float(s.iloc[-1])
+        if peak > 0 and math.isfinite(peak) and math.isfinite(current):
+            drawdown_from_ath = (current - peak) / peak  # negative = below ATH
+            # Convert to risk score: 0% = 0.0, -15% = 0.5, -30% = 1.0
+            return clamp(-drawdown_from_ath / 0.30)
+    except Exception:
+        pass
+    return 0.5
+
+@st.cache_data(ttl=900, show_spinner=False)
+def _fetch_cnn_fg_cached() -> Optional[float]:
+    return _fetch_cnn_fear_greed()
+
+def build_crash(f:Dict,h:Dict,q:Dict,prices:Optional[Dict]=None)->Dict:
     vix=f.get("vix_last",20.0); hy=f.get("hy_oas",350.0); ig=f.get("ig_oas",100.0)
     tail_s=1.0 if h.get("tail_state")=="stressed" else(0.35 if h.get("tail_state")=="neutral" else 0.10)
     shock_s=clamp(q.get("inf_shock",0.0)*1.5)
@@ -950,8 +988,26 @@ def build_crash(f:Dict,h:Dict,q:Dict)->Dict:
     unwind=clamp(h.get("narrow_leadership",0.5)*0.8+max(0,nf(f.get("uup_1m",0.0))*5)*0.2)
     vol_st=clamp((vix-18)/20); tail_hedge=clamp((f.get("vix_vxv_ratio",0.9)-0.9)*5+0.3) if math.isfinite(f.get("vix_vxv_ratio",float("nan"))) else 0.3
     dol_pr=clamp(0.5+nf(f.get("uup_1m",0.0))/0.04)
-    # v33 exact crash formula
-    crash_score=clamp(CRASH_W["tail_state"]*tail_s+CRASH_W["shock_state"]*shock_s+0.16*health_frag+0.10*vix_s+CRASH_W["unwind"]*unwind+CRASH_W["vol"]*vol_st+CRASH_W["tail_hedge"]*tail_hedge+0.08*dol_pr)
+
+    # NEW: CNN Fear & Greed (extreme greed = crowding risk, extreme fear = tail risk)
+    cnn_fg_raw = _fetch_cnn_fg_cached() if st is not None else None
+    if cnn_fg_raw is not None:
+        cnn_fg = float(cnn_fg_raw)
+        # Extreme greed (>0.75) = crowding/complacency risk
+        # Extreme fear (<0.25) = panic / potential crash underway
+        cnn_greed_risk = clamp((cnn_fg - 0.65) / 0.35) if cnn_fg > 0.65 else 0.0  # greedy = crowding
+        cnn_fear_risk  = clamp((0.25 - cnn_fg) / 0.25) if cnn_fg < 0.25 else 0.0  # fearful = cascade
+        cnn_crash_signal = max(cnn_greed_risk * 0.6, cnn_fear_risk * 1.0)  # fear weighs more for crash
+    else:
+        cnn_fg = 0.5; cnn_crash_signal = 0.0
+        # VIX-based approximation when CNN unavailable
+        cnn_fg = clamp(1.0 - (vix - 10) / 30)
+
+    # NEW: IWM ATH-to-ATH distance (small cap health / breadth cascade risk)
+    iwm_ath = _iwm_ath_distance(prices) if prices else 0.5
+
+    # v33 exact crash formula (now with CNN F&G + IWM ATH)
+    crash_score=clamp(CRASH_W["tail_state"]*tail_s+CRASH_W["shock_state"]*shock_s+0.12*health_frag+0.10*vix_s+CRASH_W["unwind"]*unwind+CRASH_W["vol"]*vol_st+CRASH_W["tail_hedge"]*tail_hedge+0.06*dol_pr+0.08*cnn_crash_signal+0.06*iwm_ath)
     risk_off=clamp(0.30*(1.0-h.get("weather",0.5))+0.20*health_frag+0.15*dol_pr+0.15*vol_st+0.10*unwind+0.10*vix_s)
     div_s="aligned" if abs(crash_score-risk_off)<0.08 else("tail_heavier" if crash_score>risk_off else "broad_defensive")
     rs=[]; cr=[]
@@ -969,10 +1025,21 @@ def build_crash(f:Dict,h:Dict,q:Dict)->Dict:
     vix_buck_sc={"Investable":0.78,"Chop":0.42,"Defensive":0.22}.get("Investable" if vix<19 else("Chop" if vix<29 else "Defensive"),0.42)
     exec_score=clamp(EXEC_W["weather"]*h.get("weather",0.5)+EXEC_W["health"]*health_sc+EXEC_W["vix"]*vix_buck_sc+EXEC_W["quad"]*quad_sc+EXEC_W["conf"]*q.get("confidence",0.5)+EXEC_W["cross"]*h.get("trade",0.5)+EXEC_W["crowd"]*(1-unwind)+EXEC_W["shock"]*(1-shock_s)+EXEC_W["crash"]*(1-crash_score))
     exec_mode="🟢 Add on Reset" if exec_score>=0.60 else("🟡 Wait Reclaim" if exec_score>=0.45 else "🔴 Defensive Only")
+    if cnn_fg < 0.25:
+        cr.append(f"CNN Fear & Greed: {cnn_fg:.0%} — Extreme fear (panic selling risk)")
+    elif cnn_fg > 0.75:
+        rs.append(f"CNN Fear & Greed: {cnn_fg:.0%} — Extreme greed (crowding risk)")
+    if iwm_ath > 0.40:
+        cr.append(f"IWM {iwm_ath:.0%} below ATH — breadth deterioration, small cap cascade risk")
+
     return dict(crash_score=crash_score,risk_off=risk_off,div_state=div_s,state=state,
                 vol_stress=vol_st,credit_stress=clamp(0.60*clamp((hy-300)/400 if math.isfinite(hy) else 0.3)+0.40*clamp((ig-80)/120 if math.isfinite(ig) else 0.3)),
                 breadth_dmg=health_frag,reasons=rs[:5],crash_reasons=cr[:4],
-                exec_score=exec_score,exec_mode=exec_mode)
+                exec_score=exec_score,exec_mode=exec_mode,
+                cnn_fear_greed=round(cnn_fg,3),
+                cnn_crash_signal=round(cnn_crash_signal,3),
+                iwm_ath_distance=round(iwm_ath,3),
+                cnn_available=cnn_fg_raw is not None)
 
 def build_rotation(q:Dict,h:Dict,f:Dict,prices:Dict[str,pd.Series]={})->Dict:
     s_quad=q["quad"]; m_quad=q["monthly_quad"]
@@ -1104,7 +1171,7 @@ def load_all()->Dict:
     with st.spinner("Fetching FRED macro data (parallel)…"): fred=fetch_fred_bundle(tuple(FRED_SERIES.items()))
     progress_bar.progress(70, text="Computing regime signals…")
     f=build_macro(fred,prices,price_meta=price_meta); q=build_quad(f); h=build_health(prices,f)
-    cr=build_crash(f,h,q); rot=build_rotation(q,h,f,prices); ih=build_ihsg(prices,q,f)
+    cr=build_crash(f,h,q,prices=prices); rot=build_rotation(q,h,f,prices); ih=build_ihsg(prices,q,f)
     analog=_match_analog(f); pb=build_playbooks(f,q); sc=build_scenarios(q,f,h,analog,pb)
     chk=build_checklists(f,h,q,ih)
     most_hated=build_most_hated_rally_monitor(f,prices)

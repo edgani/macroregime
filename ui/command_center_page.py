@@ -695,6 +695,32 @@ def _render_sizing_compact(snap: dict) -> None:
             unsafe_allow_html=True,
         )
 
+    # Crash meter inline
+    cr = snap.get("crash", {})
+    crash_sc = float(cr.get("crash_score", 0))
+    crash_state = cr.get("state", "🟢 CALM")
+    cnn_fg = cr.get("cnn_fear_greed", None)
+    iwm_ath = float(cr.get("iwm_ath_distance", 0))
+    crash_col = "#e53e3e" if crash_sc >= 0.65 else ("#e5a020" if crash_sc >= 0.42 else "#3dbb6c")
+
+    st.markdown(
+        f'<div style="margin-top:6px;padding:5px 8px;background:#1a202c;border:1px solid #21262d;border-radius:6px;">' +
+        f'<div style="display:flex;justify-content:space-between;align-items:center;">' +
+        f'<span style="font-size:10px;font-weight:700;color:#718096;">CRASH METER</span>' +
+        f'<span style="font-size:12px;font-weight:700;color:{crash_col};">{crash_state} {crash_sc:.0%}</span>' +
+        f'</div>' +
+        f'<div style="background:#1a202c;height:5px;border-radius:3px;margin:3px 0;">' +
+        f'<div style="width:{int(crash_sc*100)}%;height:5px;background:{crash_col};border-radius:3px;"></div>' +
+        f'</div>' +
+        (f'<div style="display:flex;gap:8px;font-size:10px;">' +
+         f'<span style="color:#718096;">CNN F&G: <b style="color:{("#e05252" if cnn_fg<0.25 else "#f6ad55" if cnn_fg>0.75 else "#48bb78")};">{int(cnn_fg*100)}</b></span>' +
+         f'<span style="color:#718096;">IWM ATH: <b style="color:{("#e05252" if iwm_ath>0.4 else "#f6ad55" if iwm_ath>0.2 else "#48bb78")};"> -{int(iwm_ath*100)}%</b></span>' +
+         f'</div>' if cnn_fg is not None else
+         f'<div style="font-size:10px;color:#718096;">IWM ATH dist: <b style="color:{("#e05252" if iwm_ath>0.4 else "#f6ad55" if iwm_ath>0.2 else "#48bb78")};"> -{int(iwm_ath*100)}%</b></div>') +
+        f'</div>',
+        unsafe_allow_html=True,
+    )
+
     if vix_b in ("stress", "crisis"):
         st.markdown('<div style="background:#c5303022;border:1px solid #c53030;border-radius:4px;padding:4px 8px;margin-top:4px;font-size:10px;color:#fc8181;font-weight:700;">🚨 HIGH VIX — DEFENSIVE ONLY</div>', unsafe_allow_html=True)
     if fr_note:

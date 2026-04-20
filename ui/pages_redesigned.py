@@ -989,11 +989,20 @@ def page_risk_diag(snap: dict) -> None:
         col_c = "#e05252" if sc>=0.65 else ("#e5a020" if sc>=0.42 else "#3dbb6c")
         col_r = "#e05252" if ro>=0.65 else ("#e5a020" if ro>=0.42 else "#3dbb6c")
 
-        top_cols = st.columns(4)
-        with top_cols[0]: _mc("Crash Meter", f"{sc:.0%}", cr["state"], "good" if sc<0.35 else ("bad" if sc>=0.65 else "warn"))
+        cnn_fg  = cr.get("cnn_fear_greed")
+        iwm_ath = float(cr.get("iwm_ath_distance", 0))
+        top_cols = st.columns(5)
+        with top_cols[0]: _mc("Crash Meter", f"{sc:.0%}", cr.get("state","?"), "good" if sc<0.35 else ("bad" if sc>=0.65 else "warn"))
         with top_cols[1]: _mc("Risk-Off Meter", f"{ro:.0%}", cr.get("div_state","?"), "good" if ro<0.35 else ("bad" if ro>=0.65 else "warn"))
-        with top_cols[2]: _mc("Execution Mode", cr["exec_mode"], f"Score: {cr['exec_score']:.0%}")
+        with top_cols[2]:
+            if cnn_fg is not None:
+                fg_lbl = "Extreme Fear" if cnn_fg<0.25 else ("Fear" if cnn_fg<0.45 else ("Neutral" if cnn_fg<0.55 else ("Greed" if cnn_fg<0.75 else "Extreme Greed")))
+                _mc("CNN Fear&Greed", str(int(cnn_fg*100)), fg_lbl, "bad" if cnn_fg<0.25 or cnn_fg>0.75 else ("warn" if cnn_fg>0.60 or cnn_fg<0.40 else "good"))
+            else:
+                _mc("CNN F&G", "—", "Unavailable")
         with top_cols[3]:
+            _mc("IWM ATH Dist", f"-{iwm_ath:.0%}", "small cap health", "bad" if iwm_ath>0.4 else ("warn" if iwm_ath>0.2 else "good"))
+        with top_cols[4]:
             vix = f.get("vix_last",20.0)
             vix_cap = float(opt.get("vix_sizing_cap",0.85)) if opt else (1.0 if vix<19 else (0.60 if vix<29 else 0.30))
             _mc("Position Cap (VIX)", f"{vix_cap:.0%}", opt.get("vix_bucket","?") if opt else ("Investable" if vix<19 else "Reduced"), "good" if vix_cap>=0.85 else ("bad" if vix_cap<0.40 else "warn"))

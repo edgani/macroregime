@@ -109,7 +109,7 @@ html,[class*="css"]{font-family:'DM Sans',sans-serif}
 # ── WEIGHTS (exact from v33 config/weights.py) ─────────────────────────────────
 STRUCT_W = {"g_level":0.20,"g_mom":0.40,"i_level":0.10,"i_mom":0.30,"policy":0.10,"liq":0.10}
 MONTHLY_W = {"g_level":0.20,"g_mom":0.45,"i_level":0.15,"i_mom":0.45,"i_shock":0.15,"policy":0.10,"liq":0.10}
-QUAD_MOD = {"sf_to_q3":0.05,"sf_to_q2":-0.03,"shock_to_q3":0.04,"shock_to_q1":-0.04,"gm_to_q2":0.03,"gm_to_q4":0.03,"cov_penalty":0.62}
+QUAD_MOD = {"sf_to_q3":0.10,"sf_to_q2":-0.05,"shock_to_q3":0.10,"shock_to_q1":-0.06,"gm_to_q2":0.03,"gm_to_q4":0.03,"cov_penalty":0.62}  # boosted Q3 signal for oil+slowdown confluence
 MONTHLY_MOD = {"sf_to_q3":0.12,"sf_to_q2":-0.06,"shock_to_q3":0.16,"shock_to_q1":-0.04,"gm_to_q2":0.04,"gm_to_q4":0.06,"cov_penalty":0.55}
 TACT_TRADE_W = {"breadth":0.35,"trend":0.25,"credit":0.20,"vol":0.20}
 TACT_TREND_W = {"spy":0.40,"eqw":0.20,"small":0.15,"sector":0.15,"dollar":0.10}
@@ -693,7 +693,23 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
     i_month_level=nf(0.55*i_level+0.25*i_mom+0.20*th(nf(hcg),0.004))
     i_month_mom=nf(0.45*i_mom+0.55*monthly_i_signal)
 
-    structural_slowdown_flags=clamp(0.55*sf + 0.45*max(0.0,-g_struct_climate))
+    # Tariff/trade headwind: ISM below 50 + oil shock + USD strength = stagflation structural
+    # This is what Hedgeye's forward-looking model captures that lagging FRED misses
+    ism_last = f.get("ism_last", 51.0)
+    ism_sub50 = max(0.0, (50.0 - ism_last) / 5.0) if math.isfinite(ism_last) else 0.0
+    oil_3m_shock = clamp(nf(f.get("clf_3m", f.get("oil_3m", 0.0))) / 0.10)  # normalize: 10% = full signal
+    usd_stress = clamp(nf(f.get("uup_1m", 0.0)) / 0.03)
+    tariff_growth_headwind = clamp(
+        0.35 * ism_sub50
+        + 0.30 * oil_3m_shock  # oil up = inflation pressure that hits consumers
+        + 0.20 * usd_stress     # USD up = EM/export headwind
+        + 0.15 * max(0.0, f.get("claims_13w_delta", 0.0) / 20.0)  # claims rising
+    )
+    structural_slowdown_flags = clamp(
+        0.45 * sf
+        + 0.30 * max(0.0, -g_struct_climate)
+        + 0.25 * tariff_growth_headwind  # NEW: forward-looking headwind
+    )
     structural_inf_shock=clamp(0.60*max(0.0,i_struct_climate)+0.40*max(0.0,i_struct_proxy_mom))
     policy_score=th(-nf(f.get("policy_rate_3m",0.0)),0.50)
     liq_proxy=nm(th(-nf(uup_3m),0.12),th(nf(f.get("tlt_1m",0.0)),0.08))
@@ -729,6 +745,7 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
         "structural_speed_damp":structural_speed_damp,
         "structural_proxy_scale":structural_proxy_scale,
         "g_struct_climate":g_struct_climate,
+        "tariff_growth_headwind":tariff_growth_headwind,
         "i_struct_climate":i_struct_climate,
         "g_struct_roc_obs":g_struct_roc_obs,
         "i_struct_roc_obs":i_struct_roc_obs,
@@ -796,7 +813,13 @@ def build_quad(f:Dict)->Dict:
     i_acc=f.get("cpi_acc") or f.get("corepce_acc")
     if i_acc is None: i_acc=(s_ic>0)
     cb=conf_band(s_conf)
+    # Transitional state: when confidence < 20% AND spread between top 2 quads is < 5%, label it
+    q_ordered = sorted(s_probs.items(), key=lambda x: -x[1])
+    top_spread = q_ordered[0][1] - q_ordered[1][1]
+    is_transitional = s_conf < 0.20 and top_spread < 0.08
+    transitional_label = f"Transitional ({q_ordered[0][0]}/{q_ordered[1][0]})" if is_transitional else s_quad
     return dict(quad=s_quad,probs=s_probs,next_quad=s_next,confidence=s_conf,conf_band=cb,
+                transitional=is_transitional,transitional_label=transitional_label,
                 monthly_quad=m_quad,monthly_probs=m_probs,monthly_next=m_next,monthly_conf=m_conf,
                 divergence=div,operating=operating,flip_hazard=flip_h,deepness=deepness,duration_mat=duration_mat,
                 g_core=adj_gc,i_core=s_ic,p_core=s_pc,g_level=s_gc,i_level=s_ic,

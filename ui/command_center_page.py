@@ -193,6 +193,18 @@ def _render_regime_card(snap: dict) -> None:
     div = q.get("divergence","aligned")
     is_div = div == "divergent"
     qc_m2 = _qc(monthly)
+    is_transitional = q.get("transitional", False)
+    t_label = q.get("transitional_label", quad)
+
+    # Transitional warning — when confidence < 20% and spread < 8%
+    if is_transitional:
+        st.markdown(
+            f'<div style="background:#e5202018;border:1.5px solid #e52020;border-radius:6px;padding:5px 10px;margin-bottom:6px;">' +
+            f'<span style="color:#e52020;font-weight:700;font-size:11px;">⚠️ TRANSITIONAL — {t_label}</span> ' +
+            f'<span style="font-size:10px;color:#718096;">Confidence {conf:.0%} terlalu rendah. Regime belum confirmed. Trade monthly signal saja, jangan buka structural positions.</span>' +
+            f'</div>',
+            unsafe_allow_html=True,
+        )
 
     # Always show both S (structural, big-picture) and M (monthly, current conditions)
     st.markdown(

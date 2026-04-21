@@ -107,7 +107,7 @@ html,[class*="css"]{font-family:'DM Sans',sans-serif}
 """,unsafe_allow_html=True)
 
 # ── WEIGHTS (exact from v33 config/weights.py) ─────────────────────────────────
-STRUCT_W = {"g_level":0.20,"g_mom":0.40,"i_level":0.10,"i_mom":0.30,"policy":0.10,"liq":0.10}
+STRUCT_W = {"g_level":0.20,"g_mom":0.40,"i_level":0.25,"i_mom":0.20,"policy":0.10,"liq":0.10}
 MONTHLY_W = {"g_level":0.20,"g_mom":0.45,"i_level":0.15,"i_mom":0.45,"i_shock":0.15,"policy":0.10,"liq":0.10}
 QUAD_MOD = {"sf_to_q3":0.10,"sf_to_q2":-0.05,"shock_to_q3":0.10,"shock_to_q1":-0.06,"gm_to_q2":0.03,"gm_to_q4":0.03,"cov_penalty":0.62}  # boosted Q3 signal for oil+slowdown confluence
 MONTHLY_MOD = {"sf_to_q3":0.12,"sf_to_q2":-0.06,"shock_to_q3":0.16,"shock_to_q1":-0.04,"gm_to_q2":0.04,"gm_to_q4":0.06,"cov_penalty":0.55}
@@ -684,13 +684,15 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
         th(-nf(uup_1m),0.05),
     )
 
+    # Structural growth proxy: PURE 3M trend (bukan 1M-3M delta)
+    # 1M-3M delta = weather/momentum, 3M trend = climate/structural
     g_struct_proxy_roc=nm(
-        th(nf(f.get("spy_1m",0.0))-nf(f.get("spy_3m",0.0))/3.0,0.03),
-        th(nf(f.get("xli_1m",0.0))-nf(f.get("xli_3m",0.0))/3.0,0.03),
-        th(nf(f.get("xly_1m",0.0))-nf(f.get("xly_3m",0.0))/3.0,0.03),
-        th(nf(f.get("iwm_1m",0.0))-nf(f.get("iwm_3m",0.0))/3.0,0.04),
-        th(nf(f.get("eem_1m",0.0))-nf(f.get("eem_3m",0.0))/3.0,0.04),
-        th(nf(f.get("rsp_1m",f.get("spy_1m",0.0)))-nf(f.get("rsp_3m",f.get("spy_3m",0.0)))/3.0,0.03),
+        th(nf(f.get("spy_3m",0.0)),0.06),
+        th(nf(f.get("xli_3m",0.0)),0.06),
+        th(nf(f.get("xly_3m",0.0)),0.06),
+        th(nf(f.get("iwm_3m",0.0)),0.08),
+        th(nf(f.get("eem_3m",0.0)),0.08),
+        th(nf(f.get("rsp_3m",f.get("spy_3m",0.0))),0.06),
     )
     # Structural inflation proxy: use 3m-based signals, not 1m
     # 1M oil/gold moves are WEATHER (monthly), not CLIMATE (structural)
@@ -700,21 +702,38 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
         th(nf(bk1m),0.08),                     # breakeven = forward-looking inflation
         th(nf(gld_3m)/3.0, 0.03),              # gold TREND (3m)
         th(nf(f.get("tlt_1m",0.0))*-1, 0.04), # TLT inverse = bond inflation signal
+        th(nf(f.get("headline_core_gap",0.0)),0.005),  # headline-core gap = supply inflation
+        th(nf(f.get("m_shock",0.0)),0.10),             # monthly shock persistence
     )
 
     g_struct_climate=nf(structural_obs_reliability*g_struct_roc_obs + 0.70*structural_proxy_scale*g_struct_proxy_roc)
+    # ── Slowdown flag penalty: if claims/ISM/housing signal slowdown, penalize growth ──
+    _slowdown_penalty=0.0
+    if math.isfinite(f.get("claims_13w_delta",0.0)) and f.get("claims_13w_delta",0.0)>10:
+        _slowdown_penalty+=0.08
+    if math.isfinite(f.get("unrate_3m_delta",0.0)) and f.get("unrate_3m_delta",0.0)>0.05:
+        _slowdown_penalty+=0.06
+    if math.isfinite(f.get("ism_last",50.0)) and f.get("ism_last",50.0)<50:
+        _slowdown_penalty+=0.05
+    if math.isfinite(f.get("housing_yoy",0.0)) and f.get("housing_yoy",0.0)<-0.02:
+        _slowdown_penalty+=0.04
+    g_struct_climate-=min(_slowdown_penalty,0.20)  # cap penalty at 0.20
     i_struct_climate=nf(structural_obs_reliability*i_struct_roc_obs + 0.70*structural_proxy_scale*i_struct_proxy_roc)
     # ── Sticky-inflation floor: oil alone should not drag structural inflation negative
     # when other signals (core gap, breakeven, monthly shock) are still elevated. ──
     _sticky_inf_signals=[
         th(nf(f.get("headline_core_gap",0.0)),0.005),
-        th(nf(f.get("m_shock",0.0)),0.10),
-        th((f.get("breakeven",2.2)-2.2)/2.0,0.30),
-        th(-nf(f.get("uup_1m",0.0)),0.05),
+        th(nf(f.get("m_shock",0.0)),0.08),
+        th((f.get("breakeven",2.2)-2.2)/2.0,0.25),
+        th(-nf(f.get("uup_1m",0.0)),0.04),
+        th(nf(f.get("gld_3m",0.0)),0.06),       # gold trend = inflation hedge bid
+        th(nf(f.get("clf_3m",0.0)),0.08),       # oil 3M trend = commodity inflation
     ]
     _sticky_inflation=float(nm(*_sticky_inf_signals))
-    if _sticky_inflation>0.15 and i_struct_climate<0.08:
-        i_struct_climate=0.08  # floor: inflation is not fully dead
+    if _sticky_inflation>0.10 and i_struct_climate<0.10:
+        i_struct_climate=0.10  # floor: inflation is not fully dead
+    if _sticky_inflation>0.20 and i_struct_climate<0.15:
+        i_struct_climate=0.15  # stronger floor for elevated sticky
 
     g_struct_proxy_mom=nm(
         th(nf(f.get("xli_1m",0.0)),0.04),
@@ -732,8 +751,25 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
 
     g_struct_level=clamp(g_struct_climate)
     i_struct_level=clamp(i_struct_climate)
+    # ── Breakeven persistence: forward-looking inflation expectations ──
+    _breakeven=f.get("breakeven",2.2)
+    if math.isfinite(_breakeven) and _breakeven>2.35 and i_struct_level<0.12:
+        i_struct_level=0.12  # market pricing inflation > 2.35% = sticky
+    # ── Core PCE persistence: Fed's favorite metric ──
+    _corepce=f.get("corepce_yoy",float("nan"))
+    if math.isfinite(_corepce) and _corepce>2.50 and i_struct_level<0.10:
+        i_struct_level=0.10  # core > 2.5% = inflation not dead
     g_struct_mom=nf(0.70*g_struct_climate + 0.20*structural_proxy_scale*g_struct_proxy_mom)
     i_struct_mom=nf(0.70*i_struct_climate + 0.20*structural_proxy_scale*i_struct_proxy_mom)
+    # ── Sticky momentum floor: oil 1M swing tidak boleh override core persistence ──
+    _sticky_mom_signals=[
+        th(nf(f.get("headline_core_gap",0.0)),0.005),
+        th(nf(f.get("m_shock",0.0)),0.10),
+        th((f.get("breakeven",2.2)-2.2)/2.0,0.30),
+    ]
+    _sticky_mom=float(nm(*_sticky_mom_signals))
+    if _sticky_mom>0.12 and i_struct_mom<0.05:
+        i_struct_mom=0.05  # floor: momentum tidak boleh terlalu negatif saat sticky
 
     g_month_level=nf(0.65*g_level+0.35*g_mom)
     g_month_mom=nf(0.45*g_mom+0.55*monthly_g_signal)
@@ -1390,11 +1426,11 @@ NARRATIVE_REGISTRY = [
             "m_shock": (0.0, 0.30),             # inflation not exploding
         },
         "tickers": {
-            "US": ["QQQ","IWM","XLF","EEM","RSP"],
-            "IHSG": ["BBCA.JK","BBRI.JK","BMRI.JK","TLKM.JK"],
-            "FX": ["EURUSD=X","AUDUSD=X","IDR=X"],
-            "Commodities": ["GC=F","HG=F"],
-            "Crypto": ["BTC-USD","ETH-USD","SOL-USD"],
+            "US": ["QQQ","IWM","XLF","EEM","RSP","XLK","XLI","XLY","JPM","GS","META","GOOGL"],
+            "IHSG": ["BBCA.JK","BBRI.JK","BMRI.JK","TLKM.JK","BBNI.JK","BRIS.JK","ASII.JK"],
+            "FX": ["EURUSD=X","GBPUSD=X","AUDUSD=X","NZDUSD=X","IDR=X","SGD=X","CNH=X"],
+            "Commodities": ["GC=F","HG=F","SI=F","PL=F","DBC","GSG"],
+            "Crypto": ["BTC-USD","ETH-USD","SOL-USD","BNB-USD","XRP-USD","LINK-USD"],
         },
         "front_run": True,
         "conviction_boost": 0.18,
@@ -1413,11 +1449,11 @@ NARRATIVE_REGISTRY = [
             "clf_3m": (-0.20, 0.0),             # oil trend not spiking
         },
         "tickers": {
-            "US": ["QQQ","IWM","XLY","XLK","XLI"],
-            "IHSG": ["BBCA.JK","BBRI.JK","BMRI.JK","ADRO.JK"],
-            "FX": ["EURUSD=X","IDR=X"],
-            "Commodities": ["GC=F"],            # gold holds
-            "Crypto": ["BTC-USD","ETH-USD","SOL-USD"],
+            "US": ["QQQ","IWM","XLY","XLK","XLI","RSP","XLF","NFLX","META"],
+            "IHSG": ["BBCA.JK","BBRI.JK","BMRI.JK","ADRO.JK","PTBA.JK","ANTM.JK","TLKM.JK","ASII.JK"],
+            "FX": ["EURUSD=X","GBPUSD=X","AUDUSD=X","IDR=X","SGD=X","CAD=X"],
+            "Commodities": ["GC=F","SI=F","HG=F","PL=F"],
+            "Crypto": ["BTC-USD","ETH-USD","SOL-USD","BNB-USD","XRP-USD","ADA-USD","AVAX-USD"],
         },
         "front_run": True,
         "conviction_boost": 0.16,
@@ -1437,11 +1473,11 @@ NARRATIVE_REGISTRY = [
             "uup_1m": (0.0, 0.05),               # USD firm
         },
         "tickers": {
-            "US": ["GLD","GC=F","XLE","XLP","XLU"],
-            "IHSG": ["ADRO.JK","PTBA.JK","ANTM.JK","TLKM.JK"],
-            "FX": ["USD","JPY=X","CHF=X"],
-            "Commodities": ["GC=F","CL=F","SI=F"],
-            "Crypto": ["BTC-USD"],
+            "US": ["GLD","GC=F","XLE","XLP","XLU","XLV","UUP","SHY","BIL"],
+            "IHSG": ["ADRO.JK","PTBA.JK","ITMG.JK","HRUM.JK","ANTM.JK","INCO.JK","MDKA.JK","TLKM.JK","ICBP.JK","KLBF.JK"],
+            "FX": ["USD","JPY=X","CHF=X","EURUSD=X","GBPUSD=X"],
+            "Commodities": ["GC=F","CL=F","BZ=F","SI=F","NG=F","HG=F","URA"],
+            "Crypto": ["BTC-USD","ETH-USD"],
         },
         "front_run": False,  # already visible
         "conviction_boost": 0.14,
@@ -1459,11 +1495,11 @@ NARRATIVE_REGISTRY = [
             "xlk_1m": (0.02, 1.0),             # tech sector broad
         },
         "tickers": {
-            "US": ["NVDA","AVGO","AMD","AAPL","MSFT","META"],
-            "IHSG": [],  # no direct AI compute yet
-            "FX": [],
-            "Commodities": ["HG=F","GC=F"],     # copper for data centers
-            "Crypto": ["SOL-USD","LINK-USD"],   # AI-crypto proxies
+            "US": ["NVDA","AVGO","AMD","AAPL","MSFT","META","GOOGL","AMZN","NFLX","TSLA","CRM","ORCL","INTC","QCOM","MU","LRCX","AMAT","KLAC"],
+            "IHSG": ["EXCL.JK","TLKM.JK"],
+            "FX": ["USD","JPY=X"],
+            "Commodities": ["HG=F","GC=F","SI=F","CL=F"],
+            "Crypto": ["SOL-USD","LINK-USD","RNDR-USD","FET-USD","NEAR-USD","GRT-USD"],
         },
         "front_run": True,
         "conviction_boost": 0.12,
@@ -1481,11 +1517,11 @@ NARRATIVE_REGISTRY = [
             "jkse_1m": (0.0, 1.0),             # IHSG momentum
         },
         "tickers": {
-            "US": ["EEM"],
-            "IHSG": ["BBCA.JK","BBRI.JK","BMRI.JK","TLKM.JK","ADRO.JK"],
-            "FX": ["IDR=X"],
-            "Commodities": [],
-            "Crypto": [],
+            "US": ["EEM","EFA","IWM","RSP","XLF","XLI"],
+            "IHSG": ["BBCA.JK","BBRI.JK","BMRI.JK","BBNI.JK","BRIS.JK","TLKM.JK","ADRO.JK","PTBA.JK","ANTM.JK","ASII.JK","ICBP.JK","INDF.JK","KLBF.JK","AMRT.JK","ACES.JK","CTRA.JK","BSDE.JK","JSMR.JK","PGAS.JK","EXCL.JK","HEAL.JK"],
+            "FX": ["IDR=X","USD","SGD=X","CNH=X"],
+            "Commodities": ["GC=F","CL=F","HG=F"],
+            "Crypto": ["BTC-USD","ETH-USD"],
         },
         "front_run": True,
         "conviction_boost": 0.15,
@@ -1503,11 +1539,11 @@ NARRATIVE_REGISTRY = [
             "vix_last": (18.0, 9999.0),         # vol elevated
         },
         "tickers": {
-            "US": ["TLT","SHY","XLP","XLU","XLV"],
-            "IHSG": ["TLKM.JK","ICBP.JK","KLBF.JK"],
-            "FX": ["JPY=X","CHF=X"],
-            "Commodities": ["GC=F"],
-            "Crypto": [],
+            "US": ["TLT","SHY","IEF","BIL","XLP","XLU","XLV","GLD","GC=F","UUP"],
+            "IHSG": ["TLKM.JK","ICBP.JK","KLBF.JK","INDF.JK","HEAL.JK","PGAS.JK"],
+            "FX": ["JPY=X","CHF=X","USD","EURUSD=X"],
+            "Commodities": ["GC=F","SI=F","NG=F"],
+            "Crypto": ["BTC-USD"],
         },
         "front_run": False,
         "conviction_boost": 0.10,
@@ -1525,11 +1561,11 @@ NARRATIVE_REGISTRY = [
             "vix_last": (20.0, 9999.0),         # vol rising
         },
         "tickers": {
-            "US": ["IWM","HYG"],                # short or avoid
-            "IHSG": ["BSDE.JK","CTRA.JK"],      # property risk
-            "FX": [],
-            "Commodities": [],
-            "Crypto": ["DOGE-USD","ADA-USD"],   # high-beta alts
+            "US": ["IWM","HYG","LQD","XLF","XLY","RSP","ARKK","ARKG","ARKW"],
+            "IHSG": ["BSDE.JK","CTRA.JK","AMRT.JK","ACES.JK"],
+            "FX": ["AUDUSD=X","NZDUSD=X","IDR=X","BRL=X"],
+            "Commodities": ["CL=F","BZ=F","HG=F","ZC=F"],
+            "Crypto": ["DOGE-USD","ADA-USD","SHIB-USD","PEPE-USD","SOL-USD","AVAX-USD","MATIC-USD"],
         },
         "front_run": False,
         "conviction_boost": 0.10,
@@ -1620,6 +1656,102 @@ def build_narrative_bottlenecks(f:Dict, q:Dict, h:Dict, prices:Dict[str,pd.Serie
 # End Narrative Bottleneck Engine
 # ═══════════════════════════════════════════════════════════════════════════════
 
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# GLOBAL QUAD ENGINE v11 — Multi-country regime proxy from market prices
+# ═══════════════════════════════════════════════════════════════════════════════
+
+GLOBAL_QUAD_WEIGHTS = {
+    "US": 0.45,      # SPY, DXY, TLT, VIX
+    "EM": 0.20,      # EEM, IDR, BRL, ZAR proxies
+    "EU": 0.15,      # EFA, EURUSD, DAX proxy
+    "CN": 0.12,      # CNH, copper, Brent vs WTI
+    "JP": 0.08,      # JPY, Nikkei proxy
+}
+
+GLOBAL_QUAD_TICKERS = {
+    "US": ["SPY","UUP","TLT","^VIX","HYG","LQD"],
+    "EM": ["EEM","IDR=X","CL=F","GC=F"],
+    "EU": ["EFA","EURUSD=X","HG=F"],
+    "CN": ["CNH=X","HG=F","BZ=F"],
+    "JP": ["JPY=X","GLD"],
+}
+
+
+def build_global_quad(prices:Dict[str,pd.Series], f:Dict)->Dict:
+    """
+    Compute global regime proxy from cross-asset market prices.
+    Returns: {"global_quad": "Q3", "global_confidence": 0.6, "country_scores": {...}}
+    """
+    def _market_signal(tickers, g_weight, i_weight, p_weight):
+        g_score=0.0; i_score=0.0; p_score=0.0; n=0
+        for t in tickers:
+            s=prices.get(t,pd.Series())
+            if _s(s).empty:
+                continue
+            r1=ret_n(s,21); r3=ret_n(s,63)
+            if not math.isfinite(r1):
+                continue
+            # Growth proxy: equity up = growth up
+            if t in ["SPY","EEM","EFA"]:
+                g_score+=r3*g_weight; n+=1
+            # Inflation proxy: commodities up = inflation up
+            elif t in ["CL=F","BZ=F","GC=F","HG=F"]:
+                i_score+=r3*i_weight; n+=1
+            # Policy proxy: bonds up = dovish, DXY up = hawkish
+            elif t=="TLT":
+                p_score+=(-r3)*p_weight; n+=1  # TLT up = yields down = dovish
+            elif t=="UUP":
+                p_score+=r1*p_weight; n+=1     # DXY up = tight
+            elif t=="JPY=X":
+                p_score+=(-r1)*p_weight; n+=1   # JPY up = risk-off/dovish
+        return (g_score/max(n,1), i_score/max(n,1), p_score/max(n,1))
+
+    country_scores={}
+    for country, tickers in GLOBAL_QUAD_TICKERS.items():
+        w=GLOBAL_QUAD_WEIGHTS[country]
+        g,i,p=_market_signal(tickers, 0.5, 0.3, 0.2)
+        # Map to quad score
+        q1=+g-i+0.15*p; q2=+g+i-0.08*p; q3=-g+1.10*i-0.12*p; q4=-g-0.90*i+0.25*p
+        arr=np.array([q1,q2,q3,q4],dtype=float)
+        exp=np.exp(arr-arr.max()); probs=exp/exp.sum()
+        quad=["Q1","Q2","Q3","Q4"][int(np.argmax(probs))]
+        country_scores[country]={
+            "quad":quad,"probs":dict(zip(["Q1","Q2","Q3","Q4"],probs.tolist())),
+            "g_score":round(g,4),"i_score":round(i,4),"p_score":round(p,4),
+            "weight":w,
+        }
+
+    # Weighted global composite
+    global_scores={"Q1":0.0,"Q2":0.0,"Q3":0.0,"Q4":0.0}
+    for c,s in country_scores.items():
+        w=s["weight"]
+        for q,p in s["probs"].items():
+            global_scores[q]+=w*p
+    # Normalize
+    total=sum(global_scores.values())
+    global_probs={q:v/total for q,v in global_scores.items()}
+    global_quad=max(global_probs,key=global_probs.get)
+    global_conf=global_probs[global_quad]
+
+    # Global vs US divergence check
+    us_quad=country_scores.get("US",{}).get("quad","Q?")
+    divergence="aligned" if us_quad==global_quad else f"US {us_quad} vs Global {global_quad}"
+
+    return {
+        "global_quad":global_quad,
+        "global_confidence":round(global_conf,3),
+        "global_probs":global_probs,
+        "country_scores":country_scores,
+        "divergence":divergence,
+        "us_quad":us_quad,
+    }
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# End Global Quad Engine
+# ═══════════════════════════════════════════════════════════════════════════════
+
 def load_all()->Dict:
     # ── v11 engine fallback init (prevents UnboundLocalError) ───────────────────
     options_regime:Dict={}; regime_transition:Dict={}; regime_tickers:Dict={}
@@ -1627,7 +1759,7 @@ def load_all()->Dict:
     broker_confirm:Dict={}; usd_corr:Dict={}; global_quad_data:Dict={}
     regional_surveys:Dict={}; frontrun_data:Dict={}; gdpnow:Dict={}
     data_freshness:Dict={}; backtest_data:Dict={}; intraday_dict:Dict={}
-    position_data:Dict={}
+    position_data:Dict={}; global_quad_result:Dict={}
     # ────────────────────────────────────────────────────────────────────────────
     price_period=str(os.environ.get("MRP_PRICE_PERIOD","2y") or "2y").strip() or "2y"
 
@@ -1950,6 +2082,9 @@ def load_all()->Dict:
     narrative_output=build_narrative_bottlenecks(f,q,h,prices,{"ihsg":ih})
     narrative_front_run=narrative_output.get("front_run_picks",[])
     # ────────────────────────────────────────────────────────────────────────────
+    # ── Global Quad computation (v11) ─────────────────────────────────────────
+    global_quad_result=build_global_quad(prices,f)
+    # ──────────────────────────────────────────────────────────────────────────
     return dict(prices=prices,price_meta=price_meta,fred=fred,f=f,q=q,h=h,crash=cr,rotation=rot,ihsg=ih,
                 analog=analog,playbooks=pb,scenarios=sc,checklists=chk,
                 most_hated_rally=most_hated,opportunities=opps,signal_strength=signal_strength,family=family,risk_ranges=risk_ranges,
@@ -1961,11 +2096,12 @@ def load_all()->Dict:
                 regime_tickers=regime_tickers,
                 narrative_discovery=narrative_discovery,
                 narrative_bottlenecks=narrative_output,
+                global_quad=global_quad_result,
                 bei_flow=bei_flow,
                 broker_flow=broker_flow,
                 broker_confirm=broker_confirm,
                 usd_corr=usd_corr,
-                global_quad=global_quad_data,
+                global_quad_data=global_quad_data,
                 regional_surveys=regional_surveys,
                 frontrun=frontrun_data,
                 gdpnow=gdpnow,
@@ -1983,7 +2119,7 @@ def load_all()->Dict:
                 },
                 ts=datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
                 build_meta={
-                    "app_version":"v10.0-final-macro-brain",
+                    "app_version":"v11.0-global-narrative",
                     "price_period":price_period,
                     "regime_prior_mode":f.get("prior_mode","off"),
                     "signal_enter_threshold":SIGNAL_ENTER_THRESHOLD,
@@ -1994,6 +2130,9 @@ def load_all()->Dict:
                     "setup_quality_enabled":True,
                     "risk_range_ttt_enabled":True,
                     "position_sizing_enabled":True,
+                    "global_quad_enabled":True,
+                    "narrative_engine_enabled":True,
+                    "sticky_inflation_floor":True,
                 })
 
 
@@ -4386,11 +4525,13 @@ def page_opportunities(snap:Dict)->None:
     boosted_longs=[r for r in longs if r.get("Rally Fit")=="Boosted"]
     squeezed_shorts=[r for r in shorts if r.get("Rally Fit")=="Squeezed"]
 
-    c1,c2,c3,c4=st.columns(4)
+    gq=snap.get("global_quad",{}); gq_quad=gq.get("global_quad","Q?") if gq else "Q?"
+    c1,c2,c3,c4,c5=st.columns(5)
     with c1: mc("Rally State",most_hated.get("stage","monitor"),f"{clear_count}/4 checklist","good" if clear_count>=3 else ("warn" if clear_count>=2 else "bad"))
     with c2: mc("Action",most_hated.get("action","Selective")[:24],most_hated.get("posture",""),"good" if clear_count>=3 else ("warn" if clear_count>=2 else "bad"))
     with c3: mc("Exec Mode",snap["crash"]["exec_mode"],f"score {snap['crash']['exec_score']:.0%}","good" if snap["crash"]["exec_score"]>=0.60 else "warn")
     with c4: mc("Board",f"{len(longs)}L / {len(shorts)}S / {len(watchs)}W",f"{quad} · {conf:.0%} conf","good" if len(longs)>=len(shorts) else "warn")
+    with c5: mc("Global",gq_quad,f"US: {gq.get('us_quad','?') if gq else '?'} · {gq.get('divergence','?') if gq else '?'}" if gq else "—","good" if gq_quad in("Q1","Q2") else ("warn" if gq_quad=="Q3" else "bad"))
 
     if most_hated:
         render_most_hated_rally_monitor(most_hated,compact=True)
@@ -4536,6 +4677,21 @@ def page_radar(snap:Dict)->None:
     st.markdown(hero, unsafe_allow_html=True)
     if div == "divergent":
         st.info(f"🔄 **Divergensi aktif:** Structural {s_quad} vs Monthly {m_quad}. Tren besar masih {s_quad}, bulan ini bergerak seperti {m_quad}. Monthly = trigger, Structural = arah besar.")
+    # Global quad pill — ALWAYS show
+    gq=snap.get("global_quad",{})
+    gq_quad=gq.get("global_quad","Q?") if gq else "Q?"
+    gq_conf=gq.get("global_confidence",0.0) if gq else 0.0
+    gq_us=gq.get("us_quad","Q?") if gq else "Q?"
+    gq_div=gq.get("divergence","?") if gq else "?"
+    gq_col={"Q1":"#3dbb6c","Q2":"#e5a020","Q3":"#e5a020","Q4":"#e05252"}.get(gq_quad,"#888")
+    st.markdown(
+        f'<div style="display:flex;gap:8px;justify-content:center;margin:8px 0;flex-wrap:wrap">'
+        f'<span style="background:{gq_col}22;border:1px solid {gq_col}44;padding:3px 12px;border-radius:20px;font-size:11px;font-weight:700;color:{gq_col}">'
+        f'🌐 Global: {gq_quad} ({gq_conf:.0%})</span>'
+        f'<span style="background:rgba(255,255,255,0.06);padding:3px 10px;border-radius:20px;font-size:11px;opacity:.7">'
+        f'US: {gq_us} · {gq_div}</span></div>',
+        unsafe_allow_html=True
+    )
     # Regime maturity badges
     dm=q.get("duration_mat",0)
     maturity = "Early" if dm<0.35 else ("Mid-Cycle" if dm<0.60 else "Late / Mature")
@@ -4575,6 +4731,33 @@ def page_radar(snap:Dict)->None:
             ' | relief: '+f'{news_snap.get("relief",0):.0%}'+"</div>",
             unsafe_allow_html=True
         )
+    # Global Quad Display (v11) — ALWAYS VISIBLE
+    gq=snap.get("global_quad",{})
+    st.markdown("---")
+    sh("🌐 GLOBAL QUAD — Multi-Country Proxy")
+    if gq and gq.get("global_quad"):
+        gq_quad=gq.get("global_quad","Q?"); gq_conf=gq.get("global_confidence",0.0)
+        gq_us=gq.get("us_quad","Q?"); gq_div=gq.get("divergence","aligned")
+        gq_meta=QUAD_META.get(gq_quad,QUAD_META["Q3"])
+        gq_col="#e5a020" if gq_quad in("Q3","Q2") else("#3dbb6c" if gq_quad=="Q1" else "#e05252")
+        st.markdown(
+            f'<div style="display:flex;gap:10px;align-items:stretch;margin-bottom:10px">'
+            f'<div style="flex:1;border:1.5px solid {gq_col}44;border-radius:10px;padding:10px 14px;background:{gq_col}12">'
+            f'<div style="font-size:9px;font-weight:700;letter-spacing:.1em;color:{gq_col};text-transform:uppercase;margin-bottom:3px">GLOBAL REGIME</div>'
+            f'<div style="font-size:20px;font-weight:700">{gq_quad} · {gq_meta["label"][:20]}</div>'
+            f'<div style="font-size:11px;opacity:.75;margin-top:2px">Conf: {gq_conf:.0%} · US: {gq_us} · {gq_div}</div></div>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+        # Country breakdown
+        c_scores=gq.get("country_scores",{})
+        if c_scores:
+            c_rows=[]
+            for c,s in c_scores.items():
+                c_rows.append({"Country":c,"Quad":s["quad"],"G":f"{s['g_score']:+.3f}","I":f"{s['i_score']:+.3f}","P":f"{s['p_score']:+.3f}","Weight":f"{s['weight']:.0%}"})
+            st.dataframe(pd.DataFrame(c_rows),use_container_width=True,hide_index=True,height=200)
+    else:
+        st.warning("🌐 Global Quad: computation pending or data insufficient. Will auto-populate when price data loads fully.")
     # Master Rotation Graph (v33 YOU ARE HERE mind-map)
     render_master_rotation_graph(q,f,snap["rotation"],snap["family"])
     # Flow State Strip (horizontal pill chain)

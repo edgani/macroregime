@@ -465,6 +465,7 @@ def get_regime_prior_mode()->str:
 def build_fallback_macro_proxies(prices:Dict[str,pd.Series])->Dict:
     spy_3m=ret_n(prices.get("SPY",pd.Series()),63); xli_3m=ret_n(prices.get("XLI",pd.Series()),63)
     xly_3m=ret_n(prices.get("XLY",pd.Series()),63); iwm_3m=ret_n(prices.get("IWM",pd.Series()),63)
+    rsp_3m=ret_n(prices.get("RSP",pd.Series()),63)
     uup_3m=ret_n(prices.get("UUP",pd.Series()),63); oil_3m=ret_n(prices.get("CL=F",pd.Series()),63)
     gold_3m=ret_n(prices.get("GC=F",pd.Series()),63); tlt_1m=ret_n(prices.get("TLT",pd.Series()),21)
     hyg_1m=ret_n(prices.get("HYG",pd.Series()),21); cop_3m=ret_n(prices.get("HG=F",pd.Series()),63)
@@ -472,15 +473,33 @@ def build_fallback_macro_proxies(prices:Dict[str,pd.Series])->Dict:
     xly_1m=ret_n(prices.get("XLY",pd.Series()),21); iwm_1m=ret_n(prices.get("IWM",pd.Series()),21)
     oil_1m=ret_n(prices.get("CL=F",pd.Series()),21); gold_1m=ret_n(prices.get("GC=F",pd.Series()),21)
     uup_1m=ret_n(prices.get("UUP",pd.Series()),21)
-    bk=2.2+1.2*nf(oil_3m)+0.4*nf(gold_3m)-0.2*nf(uup_3m)
+
+    # ── Breadth & credit reality: equity rally tanpa breadth = growth slowing ──
+    _breadth_penalty = max(0.0, spy_3m - nf(rsp_3m)) * 0.5 if math.isfinite(rsp_3m) else 0.0
+    _credit_stress  = max(0.0, -nf(hyg_1m)) * 0.4 if math.isfinite(hyg_1m) else 0.0
+    _small_weak     = max(0.0, spy_3m - nf(iwm_3m)) * 0.4 if math.isfinite(iwm_3m) else 0.0
+
+    # ISM proxy: industrial + breadth + credit. Kalau breadth/credit rusak, ISM < 50
+    _ism_proxy = 50.0 + 20.0*nf(xli_3m) - 15.0*_breadth_penalty - 25.0*_credit_stress - 12.0*_small_weak
+
+    # Breakeven floor: sticky inflation expectations, gak boleh collapse cuma karena oil turun
+    bk_raw = 2.2 + 1.2*nf(oil_3m) + 0.4*nf(gold_3m) - 0.2*nf(uup_3m)
+    bk = max(2.15, bk_raw)  # floor 2.15% = sticky expectations anchor
+
     return dict(
-        indpro_yoy=nf(0.55*xli_3m+0.45*spy_3m), retail_yoy=nf(0.60*xly_3m+0.40*spy_3m),
-        payrolls_yoy=nf(0.50*iwm_3m+0.50*spy_3m), unrate_3m_delta=nf(-0.10*iwm_3m),
-        claims_13w_delta=nf(-10.0*iwm_3m), ism_last=50.0+20.0*nf(xli_3m),
-        housing_yoy=nf(iwm_3m*0.6), cpi_yoy=nf(0.025+0.35*oil_3m+0.05*gold_3m),
-        core_cpi_yoy=nf(0.023+0.15*oil_3m-0.05*uup_3m),
-        corepce_yoy=nf(0.022+0.12*oil_3m-0.04*uup_3m),
-        breakeven=bk, breakeven_1m=nf(0.15*oil_3m/3),
+        indpro_yoy=nf(0.55*xli_3m+0.45*spy_3m - _breadth_penalty - _small_weak),
+        retail_yoy=nf(0.60*xly_3m+0.40*spy_3m - _breadth_penalty),
+        payrolls_yoy=nf(0.50*iwm_3m+0.50*spy_3m - _small_weak),
+        unrate_3m_delta=nf(-0.10*iwm_3m),
+        claims_13w_delta=nf(-10.0*iwm_3m),
+        ism_last=_ism_proxy,
+        housing_yoy=nf(iwm_3m*0.6),
+        # Headline CPI: oil boleh turun (headline sensitive)
+        cpi_yoy=nf(0.025+0.35*nf(oil_3m)+0.05*nf(gold_3m)),
+        # Core metrics: base sticky 2.4-2.5%, oil hanya nge-boost kalai UP (supply shock)
+        core_cpi_yoy=nf(0.025+0.06*max(0.0,nf(oil_3m))-0.03*uup_3m),
+        corepce_yoy=nf(0.024+0.04*max(0.0,nf(oil_3m))-0.02*uup_3m),
+        breakeven=bk, breakeven_1m=nf(0.15*nf(oil_3m)/3),
         real_10y=1.8-30.0*nf(tlt_1m) if math.isfinite(tlt_1m) else 1.8,
         policy_rate=4.33, policy_rate_3m=0.0,
         dgs2=float("nan"),dgs10=float("nan"),dgs30=float("nan"),
@@ -1664,7 +1683,7 @@ GLOBAL_QUAD_TICKERS = {
 def build_global_quad(prices:Dict[str,pd.Series], f:Dict)->Dict:
     """
     Compute global regime proxy from cross-asset market prices.
-    v11.2-minimal: Error handling only, weights unchanged from v10.0.
+    v11.2: Error handling only, weights unchanged from v10.0.
     """
     try:
         def _market_signal(tickers, g_weight, i_weight, p_weight):
@@ -1724,7 +1743,6 @@ def build_global_quad(prices:Dict[str,pd.Series], f:Dict)->Dict:
             "us_quad":us_quad,
         }
     except Exception:
-        # Fail-safe: never return empty
         us_q = f.get("quad", "Q3")
         return {
             "global_quad": us_q,
@@ -1734,6 +1752,8 @@ def build_global_quad(prices:Dict[str,pd.Series], f:Dict)->Dict:
             "divergence": "fallback to US",
             "us_quad": us_q,
         }
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # End Global Quad Engine
 # ═══════════════════════════════════════════════════════════════════════════════

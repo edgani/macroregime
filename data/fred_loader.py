@@ -11,7 +11,8 @@ import requests
 from config.settings import FRED_CACHE_TTL_SECONDS, LIVE_FETCH_ENABLED
 from utils.streamlit_compat import st
 
-FRED_API_KEY = os.getenv("FRED_API_KEY", "").strip()
+# Auto-fallback to user's FRED API key if env var not set
+FRED_API_KEY = os.getenv("FRED_API_KEY", "5fbe5dc4c8a5fbb109c4809463a1c27f").strip()
 
 FRED_SERIES = {
     "INDPRO": "INDPRO",

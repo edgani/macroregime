@@ -1,4 +1,4 @@
-"""ui/command_center_page.py — Card-Based Live Opportunities"""
+"""ui/command_center_page.py — 2-Column Card Layout"""
 from __future__ import annotations
 from typing import Dict
 import streamlit as st
@@ -37,7 +37,6 @@ def render_command_center(snap: Dict) -> None:
     regime_state = "Relief" if "relief" in str(q.get("operating_regime", "")).lower() else q.get("operating_regime", "—")
     state_color = "#3fb950" if "Relief" in regime_state else "#d29922"
 
-    # Regime Pills
     _h(f"""
     <div style="background:#0d1117;border:1px solid #30363d;border-radius:12px;padding:14px;margin-bottom:14px;">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -52,7 +51,6 @@ def render_command_center(snap: Dict) -> None:
     </div>
     """)
 
-    # Top ticker pills
     us_longs = tickers.get("us_longs", [])[:1]
     ihsg_buys = tickers.get("ihsg_buys", [])[:1]
     us_shorts = tickers.get("us_shorts", [])[:1]
@@ -63,7 +61,6 @@ def render_command_center(snap: Dict) -> None:
     if pills:
         _h(f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;font-size:13px;">{" · ".join(pills)}</div>')
 
-    # Transitional Banner
     if conf < 0.25 or divergence == "divergent":
         _h(f"""
         <div style="background:#341a00;border:1px solid #d29922;border-radius:10px;padding:12px;margin-bottom:16px;">
@@ -72,7 +69,6 @@ def render_command_center(snap: Dict) -> None:
         </div>
         """)
 
-    # Front-Run Window
     fw = transition.get("front_run_window", "—")
     if fw != "—":
         st.success(f"**Front-Run Window:** {fw} | {transition.get('front_run_rationale', '—')}")
@@ -85,40 +81,62 @@ def render_command_center(snap: Dict) -> None:
         st.info("No active front-run window — regime stable.")
 
     # ═══════════════════════════════════════════════════════════════════════
-    # LIVE OPPORTUNITIES — Card-Based (no tables)
+    # LIVE OPPORTUNITIES — 2 Column Layout
     # ═══════════════════════════════════════════════════════════════════════
     st.markdown('<div style="font-size:16px;font-weight:700;color:#e6edf3;margin:16px 0 10px;">🎯 LIVE OPPORTUNITIES</div>', unsafe_allow_html=True)
 
-    def render_card_group(title, emoji, tickers_list, color, border_color):
-        if not tickers_list: return
-        _h(f"""
+    def card_group_html(title, emoji, tickers_list, color, border_color):
+        if not tickers_list: return ""
+        pills_html = "".join([f'<span style="background:#0d1117;color:{color};padding:4px 10px;border-radius:6px;font-size:12px;font-weight:700;border:1px solid {border_color};margin:2px;">{t}</span>' for t in tickers_list])
+        return f"""
         <div style="background:#161b22;border:1px solid {border_color};border-radius:10px;padding:10px;margin-bottom:8px;">
           <div style="font-size:12px;font-weight:700;color:#8b949e;margin-bottom:6px;">{emoji} {title}</div>
-          <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        """)
-        for t in tickers_list:
-            _h(f'<span style="background:#0d1117;color:{color};padding:4px 10px;border-radius:6px;font-size:12px;font-weight:700;border:1px solid {border_color};">{t}</span>')
-        _h("</div></div>")
+          <div style="display:flex;gap:4px;flex-wrap:wrap;">{pills_html}</div>
+        </div>
+        """
 
-    # 5 markets
-    render_card_group("US Longs", "🇺🇸", tickers.get("us_longs", [])[:6], "#3fb950", "#1a4d2e")
-    render_card_group("US Shorts", "🇺🇸", tickers.get("us_shorts", [])[:4], "#f85149", "#5c1a1a")
-    render_card_group("IHSG", "🇮🇩", tickers.get("ihsg_buys", [])[:6], "#fb923c", "#5c2b00")
-    render_card_group("FX", "💱", tickers.get("fx_longs", [])[:4], "#58a6ff", "#1a3a5c")
-    render_card_group("Commodities", "🛢️", tickers.get("commodity_longs", [])[:5], "#fb923c", "#5c2b00")
-    render_card_group("Crypto", "🔐", tickers.get("crypto_longs", [])[:5], "#a371f7", "#3c1a5c")
+    # Row 1: US Longs | US Shorts
+    c1, c2 = st.columns(2)
+    with c1:
+        _h(card_group_html("US Longs", "🇺🇸", tickers.get("us_longs", [])[:6], "#3fb950", "#1a4d2e"))
+    with c2:
+        _h(card_group_html("US Shorts", "🇺🇸", tickers.get("us_shorts", [])[:4], "#f85149", "#5c1a1a"))
 
-    # Narrative + Bottleneck extras (compact pills)
+    # Row 2: IHSG | FX
+    c3, c4 = st.columns(2)
+    with c3:
+        _h(card_group_html("IHSG", "🇮🇩", tickers.get("ihsg_buys", [])[:6], "#fb923c", "#5c2b00"))
+    with c4:
+        _h(card_group_html("FX", "💱", tickers.get("fx_longs", [])[:4], "#58a6ff", "#1a3a5c"))
+
+    # Row 3: Commodities | Crypto
+    c5, c6 = st.columns(2)
+    with c5:
+        _h(card_group_html("Commodities", "🛢️", tickers.get("commodity_longs", [])[:5], "#fb923c", "#5c2b00"))
+    with c6:
+        _h(card_group_html("Crypto", "🔐", tickers.get("crypto_longs", [])[:5], "#a371f7", "#3c1a5c"))
+
+    # Narrative + Bottleneck extras — 2 column pills
     st.markdown('<div style="font-size:14px;font-weight:700;color:#e6edf3;margin:12px 0 8px;">📰 Narrative & Adaptive Extras</div>', unsafe_allow_html=True)
-    extra_pills = []
+    extra_left = []
+    extra_right = []
     if narr and narr.get("active_narratives"):
-        for n in narr["active_narratives"][:2]:
+        for i, n in enumerate(narr["active_narratives"][:2]):
             for b in n.get("primary_beneficiaries", [])[:2]:
-                extra_pills.append(f'<span style="background:#21262d;color:#fb923c;padding:3px 8px;border-radius:4px;font-size:11px;">📰 {n.get("name","")[:10]}: {b}</span>')
+                pill = f'<span style="background:#21262d;color:#fb923c;padding:3px 8px;border-radius:4px;font-size:11px;">📰 {n.get("name","")[:10]}: {b}</span>'
+                if i % 2 == 0: extra_left.append(pill)
+                else: extra_right.append(pill)
     if btl and btl.get("front_run_basket"):
-        for item in btl["front_run_basket"][:4]:
-            extra_pills.append(f'<span style="background:#21262d;color:#58a6ff;padding:3px 8px;border-radius:4px;font-size:11px;">🔍 {item.get("ticker","—")}</span>')
-    if extra_pills:
-        _h(f'<div style="display:flex;gap:6px;flex-wrap:wrap;">' + "".join(extra_pills) + '</div>')
+        for i, item in enumerate(btl["front_run_basket"][:4]):
+            pill = f'<span style="background:#21262d;color:#58a6ff;padding:3px 8px;border-radius:4px;font-size:11px;">🔍 {item.get("ticker","—")}</span>'
+            if i % 2 == 0: extra_left.append(pill)
+            else: extra_right.append(pill)
+    
+    if extra_left or extra_right:
+        c7, c8 = st.columns(2)
+        with c7:
+            if extra_left: _h(f'<div style="display:flex;gap:6px;flex-wrap:wrap;">' + "".join(extra_left) + '</div>')
+        with c8:
+            if extra_right: _h(f'<div style="display:flex;gap:6px;flex-wrap:wrap;">' + "".join(extra_right) + '</div>')
     else:
         st.caption("No extras")

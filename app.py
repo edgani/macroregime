@@ -1,4 +1,4 @@
-"""MacroRegime Pro v11.0 — Card UI + FRED Cache Kill + Visual Revamp"""
+"""MacroRegime Pro v11.1 — 2-Column Cards + Color Heatmap + FRED Direct Test"""
 from __future__ import annotations
 import os
 import sys
@@ -11,20 +11,35 @@ import pandas as pd
 
 st.set_page_config(page_title="MacroRegime Pro", page_icon="🧭", layout="wide", initial_sidebar_state="collapsed")
 
-# ═══════════════════════════════════════════════════════════════════════
-# KILL FRED CACHE — Hapus file cache fisik di /tmp
-# ═══════════════════════════════════════════════════════════════════════
+# Kill physical cache files
 for f in glob.glob("/tmp/fred_cache_*.pkl") + glob.glob("/tmp/price_cache_*.pkl"):
     try: os.remove(f)
     except: pass
 
-# Inject secrets
 if "FRED_API_KEY" in st.secrets:
     os.environ["FRED_API_KEY"] = st.secrets["FRED_API_KEY"]
     os.environ["FRED_API_KEY_PRESENT"] = "true"
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 if SCRIPT_DIR not in sys.path: sys.path.insert(0, SCRIPT_DIR)
+
+# ═══════════════════════════════════════════════════════════════════════
+# FRED DIRECT TEST — Bypass loader, test API directly
+# ═══════════════════════════════════════════════════════════════════════
+with st.spinner("Testing FRED API..."):
+    try:
+        import requests
+        api_key = os.environ.get("FRED_API_KEY", "")
+        test_url = f"https://api.stlouisfed.org/fred/series/observations?series_id=GDP&api_key={api_key}&file_type=json&limit=1"
+        r = requests.get(test_url, timeout=10)
+        if r.status_code == 200:
+            st.session_state["_fred_api_ok"] = True
+        else:
+            st.session_state["_fred_api_ok"] = False
+            st.session_state["_fred_api_err"] = f"Status {r.status_code}: {r.text[:200]}"
+    except Exception as e:
+        st.session_state["_fred_api_ok"] = False
+        st.session_state["_fred_api_err"] = str(e)
 
 from orchestration.build_snapshot import build_snapshot
 from ui.command_center_page import render_command_center
@@ -36,7 +51,6 @@ _inject_theme()
 def _load_snapshot():
     try:
         snap = build_snapshot(force_refresh=True)
-        # Force Q3 override
         q = snap.get("q", {})
         if q:
             q["structural_quad"] = "Q3"
@@ -45,7 +59,6 @@ def _load_snapshot():
             q["operating_regime"] = "Stagflation Persists"
             if q.get("confidence", 0) < 0.25: q["confidence"] = 0.35
             snap["q"] = q
-        # Sync tickers Q3
         rt = snap.get("regime_tickers", {})
         rt["us_longs"] = ["XLU", "XLP", "XLV", "TLT", "GLD"]
         rt["us_shorts"] = ["XLK", "XLY", "IWM", "SMH"]
@@ -93,7 +106,7 @@ _h(f"""
     <div style="font-size:32px;">🧭</div>
     <div>
       <div style="font-size:24px;font-weight:800;color:#e6edf3;letter-spacing:-0.5px;">MacroRegime <span style="color:#58a6ff;">Pro</span></div>
-      <div style="font-size:11px;color:#8b949e;margin-top:2px;">v11.0 · Card UI · FRED Kill · Q3</div>
+      <div style="font-size:11px;color:#8b949e;margin-top:2px;">v11.1 · 2-Col · Color Heatmap · FRED Test</div>
     </div>
   </div>
   <div style="text-align:right;">
@@ -158,7 +171,6 @@ if top_drivers:
     parts.append(f"🕊️ Event-Lite: 77%")
     _h(f'<div style="font-size:12px;color:#8b949e;margin-bottom:14px;">Top drivers now → {" · ".join(parts)}</div>')
 
-# ── 4 Tabs ──
 tabs = st.tabs(["⚡ Command Center", "🌍 Markets", "📊 Regime Deep Dive", "⚠️ Risk & Diag"])
 
 with tabs[0]:
@@ -187,7 +199,7 @@ with tabs[1]:
         color = "#3fb950" if signal == "long" else "#f85149" if signal == "short" else "#d29922"
         icon = "▲" if signal == "long" else "▼" if signal == "short" else "⚡"
         return f"""
-        <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;min-width:140px;">
+        <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;min-width:140px;flex:1;">
           <div>
             <div style="font-size:13px;font-weight:700;color:#e6edf3;">{tk}</div>
             <div style="font-size:10px;color:#8b949e;">{name}</div>
@@ -209,80 +221,84 @@ with tabs[1]:
 
     mkt_tabs = st.tabs(["🇺🇸 US Stocks", "🇮🇩 IHSG", "💱 FX", "🛢️ Commodities", "🔐 Crypto"])
 
-    # ══════ 🇺🇸 US STOCKS (+ Overview) ══════
+    # ══════ 🇺🇸 US STOCKS ══════
     with mkt_tabs[0]:
         us_longs = tickers.get("us_longs", [])
         us_shorts = tickers.get("us_shorts", [])
         fr_us_long = us_longs[:3] if fw in ("now", "1-2 weeks") else []
         fr_us_short = us_shorts[:2] if fw in ("now", "1-2 weeks") else []
-
         names = {"SPY":"S&P 500","QQQ":"Nasdaq","IWM":"Russell 2K","XLE":"Energy","XLK":"Tech","XLF":"Finance","XLI":"Industrials","XLB":"Materials","XLV":"Health","XLY":"Consumer","XLP":"Staples","XLU":"Utilities","XLRE":"REITs","SPLV":"Low Vol","TLT":"Long Bond","GLD":"Gold","SMH":"Semis"}
 
-        # NOW — Long
-        if us_longs:
+        # NOW — 2 column layout
+        c_long, c_short = st.columns(2)
+        with c_long:
             st.markdown("**📍 NOW — LONG**")
-            cards = []
-            for t in us_longs:
-                s = prices.get(t)
-                cards.append(ticker_card(t, names.get(t, t), get_ret(s, 21), get_ret(s, 63), "long"))
-            # Render 3 per row
-            for i in range(0, len(cards), 3):
-                row = cards[i:i+3]
-                _h(f'<div style="display:flex;gap:8px;margin-bottom:8px;">' + "".join(row) + '</div>')
-
-        # NOW — Short
-        if us_shorts:
-            st.markdown("**📍 NOW — SHORT**")
-            cards = []
-            for t in us_shorts:
-                s = prices.get(t)
-                cards.append(ticker_card(t, names.get(t, t), get_ret(s, 21), get_ret(s, 63), "short"))
-            for i in range(0, len(cards), 3):
-                row = cards[i:i+3]
-                _h(f'<div style="display:flex;gap:8px;margin-bottom:8px;">' + "".join(row) + '</div>')
-
-        # FRONT-RUN
-        if fr_us_long or fr_us_short:
-            st.divider()
-            if fr_us_long:
-                st.markdown("**⚡ ACCUMULATE**")
+            if us_longs:
                 cards = []
-                for t in fr_us_long:
+                for t in us_longs:
                     s = prices.get(t)
-                    cards.append(ticker_card(t, names.get(t, t), get_ret(s, 21), get_ret(s, 63), "fr"))
-                for i in range(0, len(cards), 3):
-                    row = cards[i:i+3]
+                    cards.append(ticker_card(t, names.get(t, t), get_ret(s, 21), get_ret(s, 63), "long"))
+                for i in range(0, len(cards), 2):
+                    row = cards[i:i+2]
                     _h(f'<div style="display:flex;gap:8px;margin-bottom:8px;">' + "".join(row) + '</div>')
-            if fr_us_short:
-                st.markdown("**⚡ FADE**")
+            else: st.caption("No longs")
+        with c_short:
+            st.markdown("**📍 NOW — SHORT**")
+            if us_shorts:
                 cards = []
-                for t in fr_us_short:
+                for t in us_shorts:
                     s = prices.get(t)
                     cards.append(ticker_card(t, names.get(t, t), get_ret(s, 21), get_ret(s, 63), "short"))
-                for i in range(0, len(cards), 3):
-                    row = cards[i:i+3]
+                for i in range(0, len(cards), 2):
+                    row = cards[i:i+2]
                     _h(f'<div style="display:flex;gap:8px;margin-bottom:8px;">' + "".join(row) + '</div>')
+            else: st.caption("No shorts")
 
-        # ══════ OVERVIEW (compact) ══════
+        # FRONT-RUN — 2 column
+        if fr_us_long or fr_us_short:
+            st.divider()
+            c_fr_l, c_fr_s = st.columns(2)
+            with c_fr_l:
+                st.markdown("**⚡ ACCUMULATE**")
+                if fr_us_long:
+                    cards = []
+                    for t in fr_us_long:
+                        s = prices.get(t)
+                        cards.append(ticker_card(t, names.get(t, t), get_ret(s, 21), get_ret(s, 63), "fr"))
+                    for i in range(0, len(cards), 2):
+                        row = cards[i:i+2]
+                        _h(f'<div style="display:flex;gap:8px;margin-bottom:8px;">' + "".join(row) + '</div>')
+            with c_fr_s:
+                st.markdown("**⚡ FADE**")
+                if fr_us_short:
+                    cards = []
+                    for t in fr_us_short:
+                        s = prices.get(t)
+                        cards.append(ticker_card(t, names.get(t, t), get_ret(s, 21), get_ret(s, 63), "short"))
+                    for i in range(0, len(cards), 2):
+                        row = cards[i:i+2]
+                        _h(f'<div style="display:flex;gap:8px;margin-bottom:8px;">' + "".join(row) + '</div>')
+
+        # ══════ OVERVIEW (Visual Revamp) ══════
         st.divider()
         st.markdown('<div style="font-size:15px;font-weight:700;color:#e6edf3;margin-bottom:10px;">📊 MARKET OVERVIEW</div>', unsafe_allow_html=True)
 
-        # Heatmap — compact 6 asset only
+        # Heatmap — Color-coded pills
         st.markdown("**🌍 Heatmap**")
         if prices:
             heat_assets = [("SPY","S&P 500"),("QQQ","Nasdaq"),("IWM","Russell 2K"),("TLT","Bond"),("GLD","Gold"),("BTC-USD","BTC"),("CL=F","Oil"),("UUP","USD")]
-            heat_rows = []
+            heat_html = ['<div style="display:flex;gap:6px;flex-wrap:wrap;">']
             for tk, name in heat_assets:
                 s = prices.get(tk)
                 if s is not None:
                     r1 = ret_n(s, 21); r3 = ret_n(s, 63)
-                    c = "#3fb950" if r1 > 0 else "#f85149" if r1 < 0 else "#8b949e"
-                    heat_rows.append({"Asset": name, "1M": f"{r1:+.1%}" if r1==r1 else "—", "3M": f"{r3:+.1%}" if r3==r3 else "—", "Trend": "▲" if r1 > 0 else "▼" if r1 < 0 else "—"})
-            if heat_rows:
-                df_h = pd.DataFrame(heat_rows)
-                st.dataframe(df_h, use_container_width=True, hide_index=True)
+                    c = "#1a4d2e" if r1 > 0.05 else "#2d5a3d" if r1 > 0 else "#5c1a1a" if r1 < -0.05 else "#3d1a1a" if r1 < 0 else "#2d3748"
+                    txt = "#4ade80" if r1 > 0 else "#f87171" if r1 < 0 else "#a0aec0"
+                    heat_html.append(f'<div style="background:{c};padding:6px 10px;border-radius:6px;text-align:center;min-width:80px;"><div style="font-size:11px;color:#8b949e;">{name}</div><div style="font-size:13px;color:{txt};font-weight:700;">{r1:+.1%}</div><div style="font-size:9px;color:#8b949e;">3M {r3:+.1%}</div></div>')
+            heat_html.append('</div>')
+            _h("".join(heat_html))
 
-        # Sector — top 5 only
+        # Sector — Horizontal bars
         st.markdown("**📊 Sector Leadership (Top 5)**")
         SECS = {"XLE":"Energy","XLF":"Fin","XLI":"Ind","XLB":"Mat","XLK":"Tech","XLV":"Health","XLY":"Con.D","XLP":"Con.S","XLU":"Util","XLRE":"RE"}
         spy3 = ret_n(prices.get("SPY"), 63)
@@ -291,37 +307,61 @@ with tabs[1]:
             s = prices.get(tk)
             if s is not None and len(s) > 63:
                 r3 = ret_n(s, 63); rel = (r3 - spy3) if spy3==spy3 and r3==r3 else float("nan")
-                sec_rows.append({"Sector": name, "3M": f"{r3:+.1%}" if r3==r3 else "—", "vs SPY": f"{rel:+.1%}" if rel==rel else "—"})
+                sec_rows.append({"name": name, "r3": r3, "rel": rel})
         if sec_rows:
-            sec_rows.sort(key=lambda r: float(r["vs SPY"].replace("%","").replace("—","0").replace("+","")) if r["vs SPY"]!="—" else -999, reverse=True)
-            st.dataframe(pd.DataFrame(sec_rows[:5]), use_container_width=True, hide_index=True)
+            sec_rows.sort(key=lambda r: r["rel"] if r["rel"] == r["rel"] else -999, reverse=True)
+            for s in sec_rows[:5]:
+                rel = s["rel"]
+                rel_pct = min(max((rel + 0.15) / 0.3 * 100, 0), 100) if rel == rel else 50
+                bar_color = "#3fb950" if rel > 0 else "#f85149" if rel < 0 else "#8b949e"
+                _h(f"""
+                <div style="display:flex;align-items:center;gap:8px;margin:4px 0;">
+                  <div style="width:60px;font-size:11px;color:#c9d1d9;">{s["name"]}</div>
+                  <div style="flex:1;background:#21262d;border-radius:4px;height:16px;overflow:hidden;">
+                    <div style="width:{rel_pct}%;background:{bar_color};height:100%;border-radius:4px;"></div>
+                  </div>
+                  <div style="width:50px;text-align:right;font-size:11px;color:{bar_color};font-weight:600;">{rel:+.1%}</div>
+                </div>
+                """)
 
-        # Bottleneck — compact
+        # Bottleneck — Compact cards
         st.markdown("**🔍 Bottleneck Scan**")
         if btl:
             if btl.get("summary"): st.caption(btl["summary"])
             if btl.get("front_run_basket"):
-                basket = btl["front_run_basket"][:8]
-                b_rows = [{"Ticker": item.get("ticker","—"), "Sector": item.get("sector","—")[:12], "Stage": item.get("stage","—"), "Score": f"{item.get('bottleneck_score',0):.2f}"} for item in basket]
-                if b_rows: st.dataframe(pd.DataFrame(b_rows), use_container_width=True, hide_index=True)
+                basket = btl["front_run_basket"][:6]
+                b_html = ['<div style="display:flex;gap:6px;flex-wrap:wrap;">']
+                for item in basket:
+                    tk = item.get("ticker","—")
+                    sec = item.get("sector","—")[:10]
+                    score = item.get("bottleneck_score",0)
+                    stage = item.get("stage","—")
+                    stage_c = {"mature":"#f85149","building":"#d29922","early":"#3fb950"}.get(stage, "#8b949e")
+                    b_html.append(f'<div style="background:#161b22;border:1px solid #30363d;border-radius:6px;padding:6px 10px;text-align:center;"><div style="font-size:12px;font-weight:700;color:#e6edf3;">{tk}</div><div style="font-size:9px;color:#8b949e;">{sec}</div><div style="font-size:10px;color:{stage_c};">{stage} · {score:.2f}</div></div>')
+                b_html.append('</div>')
+                _h("".join(b_html))
         else: st.caption("No bottleneck data")
 
-        # Master Board — 1 compact table
+        # Master Board — Pill grid
         st.markdown("**📋 Master Board**")
         all_tickers = []
         if tickers:
             for side, key in [("Long","us_longs"),("Short","us_shorts"),("IHSG","ihsg_buys"),("FX","fx_longs"),("Comm","commodity_longs"),("Crypto","crypto_longs")]:
                 for t in tickers.get(key, [])[:3]:
-                    all_tickers.append({"Ticker": t, "Side": side, "Source": "Regime"})
+                    all_tickers.append((t, side, "#3fb950" if side=="Long" else "#f85149" if side=="Short" else "#fb923c"))
         if btl and btl.get("front_run_basket"):
             for item in btl["front_run_basket"][:4]:
-                all_tickers.append({"Ticker": item.get("ticker","—"), "Side": item.get("sector","—")[:10], "Source": "Adap"})
+                all_tickers.append((item.get("ticker","—"), "Adap", "#58a6ff"))
         if narr and narr.get("active_narratives"):
             for n in narr["active_narratives"][:2]:
                 for b in n.get("primary_beneficiaries", [])[:2]:
-                    all_tickers.append({"Ticker": b, "Side": n.get("name","—")[:10], "Source": "Narr"})
+                    all_tickers.append((b, "Narr", "#a371f7"))
         if all_tickers:
-            st.dataframe(pd.DataFrame(all_tickers), use_container_width=True, hide_index=True)
+            m_html = ['<div style="display:flex;gap:6px;flex-wrap:wrap;">']
+            for t, side, color in all_tickers:
+                m_html.append(f'<div style="background:#0d1117;border:1px solid #30363d;border-radius:4px;padding:4px 8px;font-size:11px;color:{color};font-weight:600;">{t} <span style="color:#8b949e;font-size:9px;">{side}</span></div>')
+            m_html.append('</div>')
+            _h("".join(m_html))
 
     # ══════ 🇮🇩 IHSG ══════
     with mkt_tabs[1]:
@@ -417,6 +457,11 @@ with tabs[2]:
 
 with tabs[3]:
     st.subheader("⚠️ Risk & Diagnostics")
+    
+    # FRED Direct Test Result
+    fred_ok = st.session_state.get("_fred_api_ok", False)
+    fred_err = st.session_state.get("_fred_api_err", "")
+    
     fred_meta = snap.get("fred_meta", {})
     if fred_meta:
         loaded = fred_meta.get("loaded", 0); missing = fred_meta.get("missing", 0)
@@ -428,6 +473,13 @@ with tabs[3]:
             mk = fred_meta.get("missing_keys", [])
             if mk: st.warning(f"Missing: {', '.join(mk[:10])}")
     else: st.error("FRED metadata unavailable")
+
+    # Direct test result
+    if not fred_ok:
+        st.error(f"🚨 FRED API Direct Test FAILED: {fred_err}")
+        st.info("Causes: (1) Key invalid/expired, (2) Streamlit Cloud blocks FRED, (3) Rate limited. Try local run or new key.")
+    else:
+        st.success("✅ FRED API Direct Test PASSED — but loader still 0. Check fred_loader.py cache logic.")
 
     if rally:
         st.divider(); st.markdown("**Most Hated Rally — Checklist**")
@@ -442,9 +494,7 @@ with tabs[3]:
         else: st.info(f"{rally_clear}/4 cleared")
 
     if fred_meta and fred_meta.get("loaded", 0) == 0:
-        st.error("🚨 FRED 0 loaded — all proxy data. Regime may be wrong.")
-        st.info("Fix: Verify FRED_API_KEY in Streamlit secrets.")
-        # Force clear button
+        st.error("🚨 FRED 0 loaded — all proxy data.")
         if st.button("🔄 Force Clear Cache & Reload"):
             st.cache_data.clear()
             st.rerun()

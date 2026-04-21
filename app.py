@@ -1,4 +1,4 @@
-"""MacroRegime Pro v10.3 — Markets Tab Full, Fixed TypeError"""
+"""MacroRegime Pro v10.4 — Markets Tab: Per-Market Split Tables"""
 from __future__ import annotations
 import os
 import sys
@@ -52,7 +52,7 @@ _h(f"""
     <div style="font-size:32px;">🧭</div>
     <div>
       <div style="font-size:24px;font-weight:800;color:#e6edf3;letter-spacing:-0.5px;">MacroRegime <span style="color:#58a6ff;">Pro</span></div>
-      <div style="font-size:11px;color:#8b949e;margin-top:2px;">v10.3 · Markets Split · Fixed</div>
+      <div style="font-size:11px;color:#8b949e;margin-top:2px;">v10.4 · Markets Split · Per-Market Tables</div>
     </div>
   </div>
   <div style="text-align:right;">
@@ -62,7 +62,7 @@ _h(f"""
 </div>
 """)
 
-# ── Regime Status Card ──
+# ── Regime Card ──
 s_bg, s_fg = _qbg(structural_quad), _qfg(structural_quad)
 m_bg, m_fg = _qbg(monthly_quad), _qfg(monthly_quad)
 g_bg, g_fg = _qbg(global_quad), _qfg(global_quad)
@@ -125,7 +125,7 @@ with tabs[0]:
 
 with tabs[1]:
     # ═══════════════════════════════════════════════════════════════════════
-    # MARKETS TAB — All ticker content moved here, split by market
+    # MARKETS TAB — Per-Market Split Tables + Overview
     # ═══════════════════════════════════════════════════════════════════════
     prices = snap.get("prices", {})
     transition = snap.get("regime_transition", {})
@@ -141,6 +141,18 @@ with tabs[1]:
             return float(e/b-1) if b != 0 else float("nan")
         except: return float("nan")
 
+    def build_rows(ticker_list, names_map):
+        rows = []
+        for tk in ticker_list:
+            s = prices.get(tk)
+            name = names_map.get(tk, tk)
+            if s is not None:
+                r1 = ret_n(s, 21); r3 = ret_n(s, 63)
+                rows.append({"Ticker": tk, "Name": name, "1M": f"{r1:+.1%}" if r1==r1 else "—", "3M": f"{r3:+.1%}" if r3==r3 else "—"})
+            else:
+                rows.append({"Ticker": tk, "Name": name, "1M": "—", "3M": "—"})
+        return rows
+
     # Front-run banner
     if fw in ("now", "1-2 weeks", "1-2w", "1-2W"):
         _h(f"""
@@ -149,95 +161,153 @@ with tabs[1]:
           <div style="color:#c9d1d9;font-size:12px;margin-top:4px;">{transition.get('front_run_rationale', '—')}</div>
         </div>
         """)
-    
+
     # ── Market sub-tabs ──
-    mkt_tabs = st.tabs(["🇺🇸 US Stocks", "🇮🇩 IHSG", "💱 FX", "🛢️ Commodities", "🔐 Crypto", "📊 Heatmap & Sector", "🔍 Bottleneck", "📋 Master Board"])
+    mkt_tabs = st.tabs(["🇺🇸 US Stocks", "🇮🇩 IHSG", "💱 FX", "🛢️ Commodities", "🔐 Crypto", "📊 Overview"])
 
-    def render_market_subtab(now_longs, now_shorts, fr_longs, fr_shorts, fr_signal, price_map):
-        col_now, col_fr = st.columns(2)
-        with col_now:
-            st.markdown("**📍 NOW — Current Regime**")
-            if now_longs:
-                st.markdown("**Long:**")
-                for t in now_longs: _h(f'<span style="color:#3fb950;font-weight:700;">▲ {t}</span>')
-            if now_shorts:
-                st.markdown("**Short:**")
-                for t in now_shorts: _h(f'<span style="color:#f85149;font-weight:700;">▼ {t}</span>')
-        with col_fr:
-            st.markdown("**⚡ FRONT-RUN**")
-            if fr_signal: st.caption(fr_signal)
-            if fr_longs:
-                st.markdown("**Accumulate:**")
-                for t in fr_longs: _h(f'<span style="color:#d29922;font-weight:700;">⚡ {t}</span>')
-            if fr_shorts:
-                st.markdown("**Fade:**")
-                for t in fr_shorts: _h(f'<span style="color:#f85149;font-weight:700;">▼ {t}</span>')
-        # Price table
-        if price_map:
-            rows = []
-            for tk, name in price_map.items():
-                s = prices.get(tk)
-                if s is not None:
-                    r1 = ret_n(s, 21); r3 = ret_n(s, 63)
-                    play = "▲" if tk in now_longs else ("▼" if tk in now_shorts else "")
-                    fr = "⚡" if tk in fr_longs else ""
-                    rows.append({"Ticker": tk, "Name": name, "1M": f"{r1:+.1%}" if r1==r1 else "—", "3M": f"{r3:+.1%}" if r3==r3 else "—", "Now": play, "FR": fr})
-            if rows: st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
-
-    # US Stocks
+    # ══════ 🇺🇸 US STOCKS ══════
     with mkt_tabs[0]:
-        us_longs = tickers.get("us_longs", [])[:6]
-        us_shorts = tickers.get("us_shorts", [])[:4]
+        us_longs = tickers.get("us_longs", [])
+        us_shorts = tickers.get("us_shorts", [])
         fr_us_long = us_longs[:3] if fw in ("now", "1-2 weeks") else []
         fr_us_short = us_shorts[:2] if fw in ("now", "1-2 weeks") else []
-        render_market_subtab(us_longs, us_shorts, fr_us_long, fr_us_short, "Accumulate cyclicals on ISM bounce", {
-            "SPY":"S&P 500","QQQ":"Nasdaq","IWM":"Russell 2K","XLE":"Energy","XLK":"Tech","XLF":"Finance","XLI":"Industrials","XLB":"Materials","XLV":"Health","XLY":"Consumer","XLP":"Staples","XLU":"Utilities","XLRE":"REITs"
-        })
 
-    # IHSG
+        col_long, col_short = st.columns(2)
+        with col_long:
+            st.markdown("**📍 NOW — LONG**")
+            if us_longs:
+                for t in us_longs: _h(f'<div style="color:#3fb950;font-weight:700;margin:2px 0;">▲ {t}</div>')
+            else: st.caption("No longs")
+        with col_short:
+            st.markdown("**📍 NOW — SHORT**")
+            if us_shorts:
+                for t in us_shorts: _h(f'<div style="color:#f85149;font-weight:700;margin:2px 0;">▼ {t}</div>')
+            else: st.caption("No shorts")
+
+        if fr_us_long or fr_us_short:
+            st.divider()
+            c_fr_l, c_fr_s = st.columns(2)
+            with c_fr_l:
+                st.markdown("**⚡ FRONT-RUN — ACCUMULATE**")
+                for t in fr_us_long: _h(f'<div style="color:#d29922;font-weight:700;margin:2px 0;">⚡ {t}</div>')
+            with c_fr_s:
+                st.markdown("**⚡ FRONT-RUN — FADE**")
+                for t in fr_us_short: _h(f'<div style="color:#f85149;font-weight:700;margin:2px 0;">⚡ {t}</div>')
+
+        # Long Table
+        if us_longs:
+            st.markdown("**Long Table**")
+            long_names = {"SPY":"S&P 500","QQQ":"Nasdaq","IWM":"Russell 2K","XLE":"Energy","XLK":"Tech","XLF":"Finance","XLI":"Industrials","XLB":"Materials","XLV":"Health","XLY":"Consumer","XLP":"Staples","XLU":"Utilities","XLRE":"REITs","SPLV":"Low Vol","TLT":"Long Bond","GLD":"Gold"}
+            df_long = pd.DataFrame(build_rows(us_longs, long_names))
+            if not df_long.empty:
+                st.dataframe(df_long, use_container_width=True, hide_index=True)
+
+        # Short Table
+        if us_shorts:
+            st.markdown("**Short Table**")
+            short_names = {"SPY":"S&P 500","QQQ":"Nasdaq","IWM":"Russell 2K","XLE":"Energy","XLK":"Tech","XLF":"Finance","XLI":"Industrials","XLB":"Materials","XLV":"Health","XLY":"Consumer","XLP":"Staples","XLU":"Utilities","XLRE":"REITs","SPLV":"Low Vol","TLT":"Long Bond","GLD":"Gold"}
+            df_short = pd.DataFrame(build_rows(us_shorts, short_names))
+            if not df_short.empty:
+                st.dataframe(df_short, use_container_width=True, hide_index=True)
+
+    # ══════ 🇮🇩 IHSG ══════
     with mkt_tabs[1]:
-        ihsg_longs = tickers.get("ihsg_buys", [])[:6]
+        ihsg_longs = tickers.get("ihsg_buys", [])
         fr_ihsg = ihsg_longs[:3] if fw in ("now", "1-2 weeks") else []
-        render_market_subtab(ihsg_longs, [], fr_ihsg, [], "Enter when IDR < 16k + oil bid", {
-            "BBCA.JK":"BCA","BBRI.JK":"BRI","ASII.JK":"Astra","TLKM.JK":"Telkom","ADRO.JK":"Adaro","ANTM.JK":"Antam","PTBA.JK":"Bukit Asam","ITMG.JK":"Indomining","INCO.JK":"Vale","KLBF.JK":"Kalbe"
-        })
 
-    # FX
+        st.markdown("**📍 NOW — LONG (IHSG Long Only)**")
+        if ihsg_longs:
+            for t in ihsg_longs: _h(f'<div style="color:#3fb950;font-weight:700;margin:2px 0;">▲ {t}</div>')
+        else: st.caption("No IHSG buys")
+
+        if fr_ihsg:
+            st.divider()
+            st.markdown("**⚡ FRONT-RUN — ACCUMULATE**")
+            for t in fr_ihsg: _h(f'<div style="color:#d29922;font-weight:700;margin:2px 0;">⚡ {t}</div>')
+
+        if ihsg_longs:
+            ihsg_names = {"BBCA.JK":"BCA","BBRI.JK":"BRI","ASII.JK":"Astra","TLKM.JK":"Telkom","ADRO.JK":"Adaro","ANTM.JK":"Antam","PTBA.JK":"Bukit Asam","ITMG.JK":"Indomining","INCO.JK":"Vale","KLBF.JK":"Kalbe"}
+            df_ihsg = pd.DataFrame(build_rows(ihsg_longs, ihsg_names))
+            if not df_ihsg.empty:
+                st.dataframe(df_ihsg, use_container_width=True, hide_index=True)
+
+    # ══════ 💱 FX ══════
     with mkt_tabs[2]:
-        fx_longs = tickers.get("fx_longs", [])[:4]
+        fx_longs = tickers.get("fx_longs", [])
         fr_fx = fx_longs[:2] if fw in ("now", "1-2 weeks") else []
-        render_market_subtab(fx_longs, [], fr_fx, [], "Long commodity FX on oil bid", {
-            "EURUSD=X":"EUR/USD","USDJPY=X":"USD/JPY","AUDUSD=X":"AUD/USD","USDIDR=X":"USD/IDR","UUP":"DXY"
-        })
 
-    # Commodities
+        st.markdown("**📍 NOW — LONG**")
+        if fx_longs:
+            for t in fx_longs: _h(f'<div style="color:#3fb950;font-weight:700;margin:2px 0;">▲ {t}</div>')
+        else: st.caption("No FX longs")
+
+        if fr_fx:
+            st.divider()
+            st.markdown("**⚡ FRONT-RUN — ACCUMULATE**")
+            for t in fr_fx: _h(f'<div style="color:#d29922;font-weight:700;margin:2px 0;">⚡ {t}</div>')
+
+        if fx_longs:
+            fx_names = {"EURUSD=X":"EUR/USD","USDJPY=X":"USD/JPY","AUDUSD=X":"AUD/USD","USDIDR=X":"USD/IDR","UUP":"DXY"}
+            df_fx = pd.DataFrame(build_rows(fx_longs, fx_names))
+            if not df_fx.empty:
+                st.dataframe(df_fx, use_container_width=True, hide_index=True)
+
+    # ══════ 🛢️ COMMODITIES ══════
     with mkt_tabs[3]:
-        comm_longs = tickers.get("commodity_longs", [])[:5]
+        comm_longs = tickers.get("commodity_longs", [])
         fr_comm = comm_longs[:3] if fw in ("now", "1-2 weeks") else []
-        render_market_subtab(comm_longs, [], fr_comm, [], "Long energy + gold hedge", {
-            "CL=F":"WTI Oil","GC=F":"Gold","HG=F":"Copper","SI=F":"Silver","NG=F":"Nat Gas","BZ=F":"Brent","URA":"Uranium"
-        })
 
-    # Crypto
+        st.markdown("**📍 NOW — LONG**")
+        if comm_longs:
+            for t in comm_longs: _h(f'<div style="color:#3fb950;font-weight:700;margin:2px 0;">▲ {t}</div>')
+        else: st.caption("No commodity longs")
+
+        if fr_comm:
+            st.divider()
+            st.markdown("**⚡ FRONT-RUN — ACCUMULATE**")
+            for t in fr_comm: _h(f'<div style="color:#d29922;font-weight:700;margin:2px 0;">⚡ {t}</div>')
+
+        if comm_longs:
+            comm_names = {"CL=F":"WTI Oil","GC=F":"Gold","HG=F":"Copper","SI=F":"Silver","NG=F":"Nat Gas","BZ=F":"Brent","URA":"Uranium"}
+            df_comm = pd.DataFrame(build_rows(comm_longs, comm_names))
+            if not df_comm.empty:
+                st.dataframe(df_comm, use_container_width=True, hide_index=True)
+
+    # ══════ 🔐 CRYPTO ══════
     with mkt_tabs[4]:
-        cry_longs = tickers.get("crypto_longs", [])[:5]
+        cry_longs = tickers.get("crypto_longs", [])
         fr_cry = cry_longs[:2] if fw in ("now", "1-2 weeks") and vix < 22 else []
-        render_market_subtab(cry_longs, [], fr_cry, [], "Accumulate BTC/ETH if VIX < 22", {
-            "BTC-USD":"Bitcoin","ETH-USD":"Ethereum","SOL-USD":"Solana","XRP-USD":"XRP"
-        })
 
-    # Heatmap & Sector
+        st.markdown("**📍 NOW — LONG**")
+        if cry_longs:
+            for t in cry_longs: _h(f'<div style="color:#3fb950;font-weight:700;margin:2px 0;">▲ {t}</div>')
+        else: st.caption("No crypto longs")
+
+        if fr_cry:
+            st.divider()
+            st.markdown("**⚡ FRONT-RUN — ACCUMULATE**")
+            for t in fr_cry: _h(f'<div style="color:#d29922;font-weight:700;margin:2px 0;">⚡ {t}</div>')
+
+        if cry_longs:
+            cry_names = {"BTC-USD":"Bitcoin","ETH-USD":"Ethereum","SOL-USD":"Solana","XRP-USD":"XRP"}
+            df_cry = pd.DataFrame(build_rows(cry_longs, cry_names))
+            if not df_cry.empty:
+                st.dataframe(df_cry, use_container_width=True, hide_index=True)
+
+    # ══════ 📊 OVERVIEW ══════
     with mkt_tabs[5]:
-        st.markdown('<div style="font-size:16px;font-weight:700;color:#e6edf3;margin-bottom:10px;">🌍 MARKET HEATMAP</div>', unsafe_allow_html=True)
+        # Heatmap
+        st.markdown('<div style="font-size:16px;font-weight:700;color:#e6edf3;margin-bottom:10px;">🌍 CROSS-MARKET HEATMAP</div>', unsafe_allow_html=True)
         if prices:
             ASSETS = {"SPY":"US Equity","QQQ":"Growth","IWM":"Small Cap","TLT":"Long Bond","HYG":"Credit","GLD":"Gold","CL=F":"Oil","HG=F":"Copper","UUP":"USD","EEM":"EM","^JKSE":"IHSG","BTC-USD":"BTC","ETH-USD":"ETH"}
             heat = []
             for tk, name in ASSETS.items():
                 s = prices.get(tk)
                 if s is not None:
-                    heat.append({"Asset": name, "1M": f"{ret_n(s,21):+.1%}" if ret_n(s,21)==ret_n(s,21) else "—", "3M": f"{ret_n(s,63):+.1%}" if ret_n(s,63)==ret_n(s,63) else "—"})
+                    heat.append({"Asset": name, "Ticker": tk, "1M": f"{ret_n(s,21):+.1%}" if ret_n(s,21)==ret_n(s,21) else "—", "3M": f"{ret_n(s,63):+.1%}" if ret_n(s,63)==ret_n(s,63) else "—"})
             if heat: st.dataframe(pd.DataFrame(heat), use_container_width=True, hide_index=True)
 
+        # Sector
         st.markdown('<div style="font-size:16px;font-weight:700;color:#e6edf3;margin:16px 0 10px;">📊 SECTOR LEADERSHIP</div>', unsafe_allow_html=True)
         SECS = {"XLE":"Energy","XLF":"Fin","XLI":"Ind","XLB":"Mat","XLK":"Tech","XLV":"Health","XLY":"Con.D","XLP":"Con.S","XLU":"Util","XLRE":"RE","XLC":"Comm"}
         spy3 = ret_n(prices.get("SPY"), 63)
@@ -251,15 +321,12 @@ with tabs[1]:
             sec_rows.sort(key=lambda r: float(r["vs SPY"].replace("%","").replace("—","0").replace("+","")) if r["vs SPY"]!="—" else -999, reverse=True)
             st.dataframe(pd.DataFrame(sec_rows[:8]), use_container_width=True, hide_index=True)
 
-    # Bottleneck
-    with mkt_tabs[6]:
-        st.markdown('<div style="font-size:16px;font-weight:700;color:#e6edf3;margin-bottom:10px;">🔍 ADAPTIVE BOTTLENECK SCAN</div>', unsafe_allow_html=True)
+        # Bottleneck
+        st.markdown('<div style="font-size:16px;font-weight:700;color:#e6edf3;margin:16px 0 10px;">🔍 ADAPTIVE BOTTLENECK SCAN</div>', unsafe_allow_html=True)
         if btl:
-            method = btl.get("discovery_method", "unknown")
-            st.caption(f"Method: **{method}** | Scanned all tickers")
+            st.caption(f"Method: **{btl.get('discovery_method', 'unknown')}**")
             if btl.get("summary"): st.info(btl["summary"])
             if btl.get("active_sectors"):
-                st.markdown("**Auto-Discovered Sectors**")
                 for sector in btl["active_sectors"][:5]:
                     with st.container(border=True):
                         sc1, sc2, sc3 = st.columns([3, 1, 1])
@@ -276,12 +343,10 @@ with tabs[1]:
                     cols = ["ticker","market","sector","conviction","stage","r1m","r3m","volume_zscore","position_size","source"]
                     df_b = pd.DataFrame([{k: item.get(k, "—") for k in cols} for item in basket])
                     st.dataframe(df_b, use_container_width=True, hide_index=True)
-        else:
-            st.info("Bottleneck discovery loading...")
+        else: st.info("No bottleneck data")
 
-    # Master Board
-    with mkt_tabs[7]:
-        st.markdown('<div style="font-size:16px;font-weight:700;color:#e6edf3;margin-bottom:10px;">📋 MASTER TICKER BOARD — NOW vs FRONT-RUN</div>', unsafe_allow_html=True)
+        # Master Board
+        st.markdown('<div style="font-size:16px;font-weight:700;color:#e6edf3;margin:16px 0 10px;">📋 MASTER TICKER BOARD</div>', unsafe_allow_html=True)
         all_tickers = []
         if tickers:
             for side, key in [("Long", "us_longs"), ("Short", "us_shorts"), ("IHSG", "ihsg_buys"), ("FX", "fx_longs"), ("Comm", "commodity_longs"), ("Crypto", "crypto_longs")]:
@@ -296,8 +361,7 @@ with tabs[1]:
                     all_tickers.append({"Ticker": b, "Side": n.get("name", "—")[:15], "Source": "Narrative"})
         if all_tickers:
             st.dataframe(pd.DataFrame(all_tickers), use_container_width=True, hide_index=True)
-        else:
-            st.info("Building board...")
+        else: st.info("Building board...")
 
 with tabs[2]:
     show_raw = st.toggle("Show raw regime state JSON", value=False)

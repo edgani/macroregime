@@ -1,8 +1,7 @@
-"""ui/command_center_page.py — Live Opportunities Split Per Market"""
+"""ui/command_center_page.py — Card-Based Live Opportunities"""
 from __future__ import annotations
 from typing import Dict
 import streamlit as st
-import pandas as pd
 
 def render_command_center(snap: Dict) -> None:
     q = snap.get("q", {})
@@ -38,6 +37,7 @@ def render_command_center(snap: Dict) -> None:
     regime_state = "Relief" if "relief" in str(q.get("operating_regime", "")).lower() else q.get("operating_regime", "—")
     state_color = "#3fb950" if "Relief" in regime_state else "#d29922"
 
+    # Regime Pills
     _h(f"""
     <div style="background:#0d1117;border:1px solid #30363d;border-radius:12px;padding:14px;margin-bottom:14px;">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -52,6 +52,7 @@ def render_command_center(snap: Dict) -> None:
     </div>
     """)
 
+    # Top ticker pills
     us_longs = tickers.get("us_longs", [])[:1]
     ihsg_buys = tickers.get("ihsg_buys", [])[:1]
     us_shorts = tickers.get("us_shorts", [])[:1]
@@ -62,6 +63,7 @@ def render_command_center(snap: Dict) -> None:
     if pills:
         _h(f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;font-size:13px;">{" · ".join(pills)}</div>')
 
+    # Transitional Banner
     if conf < 0.25 or divergence == "divergent":
         _h(f"""
         <div style="background:#341a00;border:1px solid #d29922;border-radius:10px;padding:12px;margin-bottom:16px;">
@@ -70,6 +72,7 @@ def render_command_center(snap: Dict) -> None:
         </div>
         """)
 
+    # Front-Run Window
     fw = transition.get("front_run_window", "—")
     if fw != "—":
         st.success(f"**Front-Run Window:** {fw} | {transition.get('front_run_rationale', '—')}")
@@ -81,36 +84,41 @@ def render_command_center(snap: Dict) -> None:
     else:
         st.info("No active front-run window — regime stable.")
 
+    # ═══════════════════════════════════════════════════════════════════════
+    # LIVE OPPORTUNITIES — Card-Based (no tables)
+    # ═══════════════════════════════════════════════════════════════════════
     st.markdown('<div style="font-size:16px;font-weight:700;color:#e6edf3;margin:16px 0 10px;">🎯 LIVE OPPORTUNITIES</div>', unsafe_allow_html=True)
 
-    def make_opp_table(title, emoji, color, ticker_list, opp_type):
-        if not ticker_list: return
-        st.markdown(f"**{emoji} {title}**")
-        rows = [{"Ticker": t, "Type": opp_type, "Signal": "▲" if opp_type=="Long" else "▼" if opp_type=="Short" else "⚡"} for t in ticker_list]
-        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+    def render_card_group(title, emoji, tickers_list, color, border_color):
+        if not tickers_list: return
+        _h(f"""
+        <div style="background:#161b22;border:1px solid {border_color};border-radius:10px;padding:10px;margin-bottom:8px;">
+          <div style="font-size:12px;font-weight:700;color:#8b949e;margin-bottom:6px;">{emoji} {title}</div>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        """)
+        for t in tickers_list:
+            _h(f'<span style="background:#0d1117;color:{color};padding:4px 10px;border-radius:6px;font-size:12px;font-weight:700;border:1px solid {border_color};">{t}</span>')
+        _h("</div></div>")
 
-    us_longs_full = tickers.get("us_longs", [])[:6]
-    us_shorts_full = tickers.get("us_shorts", [])[:4]
-    if us_longs_full or us_shorts_full:
-        c1, c2 = st.columns(2)
-        with c1: make_opp_table("US Longs", "🇺🇸", "#3fb950", us_longs_full, "Long")
-        with c2: make_opp_table("US Shorts", "🇺🇸", "#f85149", us_shorts_full, "Short")
+    # 5 markets
+    render_card_group("US Longs", "🇺🇸", tickers.get("us_longs", [])[:6], "#3fb950", "#1a4d2e")
+    render_card_group("US Shorts", "🇺🇸", tickers.get("us_shorts", [])[:4], "#f85149", "#5c1a1a")
+    render_card_group("IHSG", "🇮🇩", tickers.get("ihsg_buys", [])[:6], "#fb923c", "#5c2b00")
+    render_card_group("FX", "💱", tickers.get("fx_longs", [])[:4], "#58a6ff", "#1a3a5c")
+    render_card_group("Commodities", "🛢️", tickers.get("commodity_longs", [])[:5], "#fb923c", "#5c2b00")
+    render_card_group("Crypto", "🔐", tickers.get("crypto_longs", [])[:5], "#a371f7", "#3c1a5c")
 
-    make_opp_table("IHSG", "🇮🇩", "#fb923c", tickers.get("ihsg_buys", [])[:6], "Long")
-    make_opp_table("FX", "💱", "#58a6ff", tickers.get("fx_longs", [])[:4], "Long")
-    make_opp_table("Commodities", "🛢️", "#fb923c", tickers.get("commodity_longs", [])[:5], "Long")
-    make_opp_table("Crypto", "🔐", "#a371f7", tickers.get("crypto_longs", [])[:5], "Long")
-
-    st.markdown("**📰 Narrative & Adaptive Extras**")
-    extra_rows = []
+    # Narrative + Bottleneck extras (compact pills)
+    st.markdown('<div style="font-size:14px;font-weight:700;color:#e6edf3;margin:12px 0 8px;">📰 Narrative & Adaptive Extras</div>', unsafe_allow_html=True)
+    extra_pills = []
     if narr and narr.get("active_narratives"):
         for n in narr["active_narratives"][:2]:
             for b in n.get("primary_beneficiaries", [])[:2]:
-                extra_rows.append({"Source": f"📰 {n.get('name', '—')[:12]}", "Ticker": b, "Type": "Narrative"})
+                extra_pills.append(f'<span style="background:#21262d;color:#fb923c;padding:3px 8px;border-radius:4px;font-size:11px;">📰 {n.get("name","")[:10]}: {b}</span>')
     if btl and btl.get("front_run_basket"):
         for item in btl["front_run_basket"][:4]:
-            extra_rows.append({"Source": "🔍 Bottleneck", "Ticker": item.get("ticker", "—"), "Type": "Adaptive"})
-    if extra_rows:
-        st.dataframe(pd.DataFrame(extra_rows), use_container_width=True, hide_index=True)
+            extra_pills.append(f'<span style="background:#21262d;color:#58a6ff;padding:3px 8px;border-radius:4px;font-size:11px;">🔍 {item.get("ticker","—")}</span>')
+    if extra_pills:
+        _h(f'<div style="display:flex;gap:6px;flex-wrap:wrap;">' + "".join(extra_pills) + '</div>')
     else:
-        st.caption("No narrative/bottleneck extras")
+        st.caption("No extras")

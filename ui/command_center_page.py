@@ -81,7 +81,6 @@ def render_command_center(snap: Dict) -> None:
     else:
         st.info("No active front-run window — regime stable.")
 
-    # Live Opportunities — Split 5
     st.markdown('<div style="font-size:16px;font-weight:700;color:#e6edf3;margin:16px 0 10px;">🎯 LIVE OPPORTUNITIES</div>', unsafe_allow_html=True)
 
     def make_opp_table(title, emoji, color, ticker_list, opp_type):

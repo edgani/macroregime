@@ -1,4 +1,4 @@
-"""orchestration/build_snapshot_v12.py — Adaptive + Dynamic Discovery"""
+"""orchestration/build_snapshot.py — Adaptive + Safe Imports"""
 from __future__ import annotations
 from typing import Dict
 
@@ -6,10 +6,23 @@ from data.fred_loader import load_fred_bundle
 from data.price_loader import load_price_bundle
 from features.macro_features import build_macro_features
 from engines.quad_state_engine import QuadStateEngine
-from engines.shared_core_engine import SharedCoreEngine
 from engines.narrative_discovery_engine import NarrativeDiscoveryEngine
 from engines.adaptive_bottleneck_engine import AdaptiveBottleneckEngine
 from data.narrative_news_loader import load_narrative_signals
+
+# Safe import SharedCoreEngine
+try:
+    from engines.shared_core_engine import SharedCoreEngine
+    _HAS_SHARED_CORE = True
+except ImportError:
+    _HAS_SHARED_CORE = False
+    # Fallback inline
+    def _compute_global_quad(quad: dict, macro: dict) -> str:
+        s_quad = quad.get('structural_quad', quad.get('current_quad', 'Q?'))
+        m_quad = quad.get('monthly_quad', s_quad)
+        if s_quad == m_quad:
+            return s_quad
+        return s_quad
 
 
 def build_snapshot() -> Dict:
@@ -35,9 +48,13 @@ def build_snapshot() -> Dict:
     quad_engine = QuadStateEngine()
     quad = quad_engine.run(macro)
 
-    # ── Shared Core ──
-    shared = SharedCoreEngine()
-    regime_stack = shared._resolve_regime_stack(quad=vars(quad), features={"macro": macro})
+    # ── Global Quad ──
+    if _HAS_SHARED_CORE:
+        shared = SharedCoreEngine()
+        regime_stack = shared._resolve_regime_stack(quad=vars(quad), features={"macro": macro})
+        global_quad = regime_stack.get("global_quad", quad.current_quad)
+    else:
+        global_quad = _compute_global_quad(vars(quad), macro)
 
     # ── Narrative Discovery ──
     narrative_signals = load_narrative_signals()
@@ -50,7 +67,7 @@ def build_snapshot() -> Dict:
         use_claude=False,
     )
 
-    # ── Adaptive Bottleneck Engine (MANDIRI — no hardcoded tickers) ──
+    # ── Adaptive Bottleneck Engine ──
     try:
         ade = AdaptiveBottleneckEngine(prices, volumes=volumes, vix=vix_last)
         adaptive_output = ade.run(current_quad=quad.current_quad)
@@ -86,7 +103,7 @@ def build_snapshot() -> Dict:
             "quad": quad.current_quad,
             "structural_quad": quad.structural_quad,
             "monthly_quad": quad.monthly_quad,
-            "global_quad": regime_stack.get("global_quad", quad.current_quad),
+            "global_quad": global_quad,
             "next_quad": quad.next_quad,
             "confidence": quad.confidence,
             "deepness": quad.deepness,

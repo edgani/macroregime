@@ -19,7 +19,7 @@ if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 
 from orchestration.build_snapshot import build_snapshot
-from ui.command_center_v4 import render_command_center
+from ui.command_center_page import render_command_center
 
 
 @st.cache_data(ttl=300, show_spinner="Building adaptive macro snapshot...")
@@ -165,7 +165,6 @@ with tabs[4]:
 
     st.markdown(f"**VIX:** {vix:.1f} | Regime: {'Investable' if vix < 19 else 'Chop' if vix < 29 else 'Defensive'}")
 
-    # Adaptive engine status
     btl = snap.get("bottleneck_discovery", {})
     if btl:
         method = btl.get("discovery_method", "unknown")

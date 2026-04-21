@@ -1333,6 +1333,25 @@ def fetch_prices_core(period: str = "2y") -> Dict[str, pd.Series]:
     return fetch_prices(_CORE_TICKERS, period=period)
 
 def load_all()->Dict:
+
+    # --- SAFE DEFAULTS ---
+    bei_flow = {}
+    broker_flow = {}
+    broker_confirm = {}
+    usd_corr = {}
+    global_quad_data = {}
+    regional_surveys = {}
+    frontrun_data = {}
+    gdpnow = {}
+    data_freshness = {}
+    backtest_data = {}
+    intraday_dict = {}
+    position_data = {}
+    options_regime = {}
+    regime_transition = {}
+    regime_tickers = {}
+    narrative_discovery = {}
+
     price_period=str(os.environ.get("MRP_PRICE_PERIOD","2y") or "2y").strip() or "2y"
 
     # Phase 1: Core tickers (fast — only what regime engine needs)
@@ -1642,7 +1661,7 @@ def load_all()->Dict:
             "history": get_position_history(10),
         }
 
-    except Exception as _e2:
+    except Exception as e:
         usd_corr = {}
         global_quad_data = {}
         regional_surveys = {}
@@ -1653,7 +1672,7 @@ def load_all()->Dict:
         intraday_dict = {}
         position_data = {}
 
-    except Exception as _e:
+    
         options_regime = {}
         regime_transition = {}
         regime_tickers = {}

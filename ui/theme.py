@@ -1,24 +1,139 @@
+"""ui/theme.py — Global dark theme injection for v10 visual"""
 from __future__ import annotations
 import streamlit as st
 
-
-def inject_theme() -> None:
-    st.markdown("""
-    <style>
-    .block-container {padding-top: .18rem; padding-bottom: .28rem; max-width: 1500px;}
-    h1 {margin-bottom: .12rem !important;}
-    h2, h3 {letter-spacing:-0.01em; margin-top: .16rem !important; margin-bottom: .10rem !important;}
-    div[data-testid="stMetric"] {background:linear-gradient(180deg,rgba(14,32,62,.95),rgba(8,20,39,.95));border:1px solid #203552;padding:4px 6px;border-radius:10px;min-height:0 !important;}
-    div[data-testid="stMetric"] label {font-weight:700;}
-    .stDataFrame {border:1px solid #203552;border-radius:10px;overflow:hidden;}
-    div[data-testid="stVerticalBlock"] > div:has(> div[data-testid="stMarkdownContainer"] h1),
-    div[data-testid="stVerticalBlock"] > div:has(> div[data-testid="stMarkdownContainer"] h2),
-    div[data-testid="stVerticalBlock"] > div:has(> div[data-testid="stMarkdownContainer"] h3) {margin-bottom:.04rem;}
-    .stAlert {padding:.34rem .52rem;}
-    div[data-testid="column"] {padding-top: 0 !important;}
-    .element-container {margin-bottom: .02rem !important;}
-    .stMarkdown p, .stMarkdown li {line-height: 1.08; margin-bottom: .02rem;}
-    button[kind="secondary"] {padding-top:.16rem !important; padding-bottom:.16rem !important;}
-    div[role="tablist"] button {padding-top:.15rem !important; padding-bottom:.15rem !important;}
-    </style>
-    """, unsafe_allow_html=True)
+def _inject_theme() -> None:
+    st.markdown(
+        """
+        <style>
+        /* Global dark background */
+        .stApp {
+            background-color: #0d1117 !important;
+        }
+        /* Main text color */
+        .stApp, .stMarkdown, p, h1, h2, h3, h4, h5, h6, li, span {
+            color: #c9d1d9 !important;
+        }
+        /* Streamlit containers/cards */
+        [data-testid="stVerticalBlock"] > [style*="flex-direction: column"] {
+            background-color: #0d1117;
+        }
+        /* Tab styling */
+        button[data-baseweb="tab"] {
+            background-color: #161b22 !important;
+            color: #8b949e !important;
+            border: 1px solid #30363d !important;
+            border-radius: 8px 8px 0 0 !important;
+            margin-right: 4px !important;
+            font-size: 13px !important;
+            font-weight: 600 !important;
+        }
+        button[data-baseweb="tab"][aria-selected="true"] {
+            background-color: #1f6feb !important;
+            color: #ffffff !important;
+            border-bottom: 2px solid #58a6ff !important;
+        }
+        /* Metric cards */
+        [data-testid="stMetric"] {
+            background-color: #161b22 !important;
+            border: 1px solid #30363d !important;
+            border-radius: 10px !important;
+            padding: 12px !important;
+        }
+        [data-testid="stMetricLabel"] {
+            color: #8b949e !important;
+            font-size: 11px !important;
+        }
+        [data-testid="stMetricValue"] {
+            color: #e6edf3 !important;
+            font-size: 18px !important;
+            font-weight: 700 !important;
+        }
+        [data-testid="stMetricDelta"] {
+            font-size: 11px !important;
+        }
+        /* Dataframes */
+        .stDataFrame {
+            background-color: #161b22 !important;
+            border: 1px solid #30363d !important;
+            border-radius: 10px !important;
+        }
+        .stDataFrame th {
+            background-color: #21262d !important;
+            color: #e6edf3 !important;
+            font-weight: 600 !important;
+            font-size: 12px !important;
+        }
+        .stDataFrame td {
+            color: #c9d1d9 !important;
+            font-size: 12px !important;
+        }
+        /* Info / Warning / Success boxes */
+        .stAlert {
+            background-color: #161b22 !important;
+            border: 1px solid #30363d !important;
+            border-radius: 10px !important;
+        }
+        .stAlert [data-testid="stMarkdownContainer"] {
+            color: #c9d1d9 !important;
+        }
+        /* Progress bars */
+        .stProgress > div > div {
+            background-color: #1f6feb !important;
+        }
+        /* Expander */
+        .streamlit-expanderHeader {
+            background-color: #161b22 !important;
+            color: #e6edf3 !important;
+            border: 1px solid #30363d !important;
+            border-radius: 8px !important;
+            font-size: 13px !important;
+            font-weight: 600 !important;
+        }
+        .streamlit-expanderContent {
+            background-color: #0d1117 !important;
+            border: 1px solid #30363d !important;
+            border-top: none !important;
+            border-radius: 0 0 8px 8px !important;
+        }
+        /* Buttons */
+        .stButton > button {
+            background-color: #21262d !important;
+            color: #c9d1d9 !important;
+            border: 1px solid #30363d !important;
+            border-radius: 8px !important;
+            font-weight: 600 !important;
+        }
+        .stButton > button:hover {
+            background-color: #30363d !important;
+            border-color: #58a6ff !important;
+        }
+        /* JSON */
+        .stJson {
+            background-color: #161b22 !important;
+            border: 1px solid #30363d !important;
+            border-radius: 10px !important;
+        }
+        /* Container borders */
+        [data-testid="stVerticalBlockBorderWrapper"] {
+            border-color: #30363d !important;
+        }
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0d1117;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #30363d;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #484f58;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )

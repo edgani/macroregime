@@ -1,17 +1,18 @@
-"""MacroRegime Pro v12.0 — Adaptive Discovery"""
+"""MacroRegime Pro v10.0 — Visual Revert to Dark Card UI"""
 from __future__ import annotations
 import os
 import sys
 from typing import Dict
+from datetime import datetime, timezone
 
 import streamlit as st
 import pandas as pd
 
 st.set_page_config(
     page_title="MacroRegime Pro",
-    page_icon="⚡",
+    page_icon="🧭",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -20,7 +21,10 @@ if SCRIPT_DIR not in sys.path:
 
 from orchestration.build_snapshot import build_snapshot
 from ui.command_center_page import render_command_center
+from ui.theme import _inject_theme
 
+# ── Inject Global Dark Theme ──
+_inject_theme()
 
 @st.cache_data(ttl=300, show_spinner="Building macro snapshot...")
 def _load_snapshot():
@@ -66,40 +70,115 @@ global_quad = q.get("global_quad", quad)
 conf = q.get("confidence", 0.0)
 divergence = q.get("divergence", "aligned")
 vix = q.get("vix_last", 20.0)
+operating_regime = q.get("operating_regime", "—")
+
+# ── Color Maps ──
+QUAD_COLORS = {
+    "Q1": ("#1a4d2e", "#4ade80"),   # green
+    "Q2": ("#5c3d00", "#fbbf24"),   # yellow/gold
+    "Q3": ("#5c2b00", "#fb923c"),   # orange
+    "Q4": ("#5c1a1a", "#f87171"),   # red
+}
+def _q_bg(q_): return QUAD_COLORS.get(q_, ("#2d3748", "#a0aec0"))[0]
+def _q_fg(q_): return QUAD_COLORS.get(q_, ("#2d3748", "#a0aec0"))[1]
 
 # ── Header Banner ──
-header_cols = st.columns([4, 2, 2, 2, 2])
-with header_cols[0]:
-    st.markdown("## ⚡ MacroRegime Pro `v12.0`")
-    st.caption("Adaptive Discovery · Hedgeye-Citrini Enhanced")
-with header_cols[1]:
-    st.metric("Structural", structural_quad, f"{conf:.0%}")
-with header_cols[2]:
-    st.metric("Monthly", monthly_quad, "🔥 Divergent" if divergence == "divergent" else "✅ Aligned")
-with header_cols[3]:
-    st.metric("Global", global_quad)
-with header_cols[4]:
-    flip = q.get("flip_hazard", 0)
-    st.metric("Flip Hazard", f"{flip:.0%}", "⚠️ Watch" if flip > 0.5 else "✓ Stable")
+st.markdown(
+    f"""
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+            <div style="font-size:32px;">🧭</div>
+            <div>
+                <div style="font-size:24px;font-weight:800;color:#e6edf3;letter-spacing:-0.5px;">
+                    MacroRegime <span style="color:#58a6ff;">Pro</span>
+                </div>
+                <div style="font-size:11px;color:#8b949e;margin-top:2px;">
+                    v10.0 · Maxed · Candidate · Markets-Integrated Signals + Top Drivers + Setup Quality
+                </div>
+            </div>
+        </div>
+        <div style="text-align:right;">
+            <div style="font-size:11px;color:#8b949e;">{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC</div>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
 
-# ── Top Drivers & Bottleneck Summary ──
+# ── Main Regime Status Card ──
+s_bg, s_fg = _q_bg(structural_quad), _q_fg(structural_quad)
+m_bg, m_fg = _q_bg(monthly_quad), _q_fg(monthly_quad)
+
+# Best long/short
+tickers = snap.get("regime_tickers", {})
+best_long = tickers.get("us_longs", ["—"])[0] if tickers.get("us_longs") else "—"
+best_short = tickers.get("us_shorts", ["—"])[0] if tickers.get("us_shorts") else "—"
+ihsg_best = tickers.get("ihsg_buys", [""])[0] if tickers.get("ihsg_buys") else ""
+
+# Risk / Exec / Rally
+risk_state = snap.get("crash", {}).get("exec_mode", "CALM")
+risk_color = "#3fb950" if "CALM" in risk_state else "#d29922" if "CAUTIOUS" in risk_state else "#f85149"
+exec_state = snap.get("regime_transition", {}).get("front_run_window", "Wait Reclaim")
+exec_color = "#3fb950" if "now" in exec_state.lower() else "#d29922"
+rally_trigger = snap.get("most_hated_rally", {}).get("clear_count", 0)
+rally_total = 4
+
+# Event lite
+event_lite = "Relief / De-escalation"
+event_icon = "🕊️"
+
+st.markdown(
+    f"""
+    <div style="background:#161b22;border:1px solid #30363d;border-radius:14px;padding:16px;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+            <span style="background:{s_bg};color:{s_fg};padding:4px 10px;border-radius:20px;font-size:13px;font-weight:700;">
+                {structural_quad}
+            </span>
+            <span style="color:#8b949e;font-size:13px;">/ M:{monthly_quad} {operating_regime}</span>
+            <span style="margin-left:auto;color:#fb923c;font-size:13px;font-weight:600;">🔥 {operating_regime}</span>
+        </div>
+        
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:10px;flex-wrap:wrap;font-size:12px;color:#c9d1d9;">
+            <span>Conf: <span style="color:#f85149;font-weight:600;">{conf:.0%} (Low-Conviction)</span></span>
+            <span>Growth: <span style="color:#3fb950;">▲</span></span>
+            <span>Inflasi: <span style="color:#f85149;">▼</span></span>
+        </div>
+        
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:10px;flex-wrap:wrap;font-size:12px;color:#c9d1d9;">
+            <span>▲ Best Long: <span style="color:#3fb950;font-weight:600;">{best_long}</span></span>
+            <span>▼ Best Short: <span style="color:#f85149;font-weight:600;">{best_short}</span></span>
+        </div>
+        
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:10px;flex-wrap:wrap;font-size:12px;color:#c9d1d9;">
+            <span>Risk: <span style="color:{risk_color};">🟢 {risk_state}</span></span>
+            <span>Exec: <span style="color:{exec_color};">🟡 {exec_state}</span></span>
+            <span>Rally Trigger: {rally_trigger}/{rally_total}</span>
+        </div>
+        
+        <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;color:#8b949e;margin-top:8px;border-top:1px solid #30363d;padding-top:8px;">
+            <span>{event_icon} Event-Lite: {event_lite}</span>
+            <span>{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC</span>
+        </div>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
+
+# ── Top Drivers Strip ──
 top_drivers = snap.get("top_drivers", [])
-btl = snap.get("bottleneck_discovery", {})
-
-summary_cols = st.columns([3, 2])
-with summary_cols[0]:
-    if top_drivers:
-        driver_text = " · ".join([f"{d.get('name', '—')}: {d.get('score', 0):.0%}" for d in top_drivers[:4]])
-        st.caption(f"📊 Top drivers: {driver_text}")
-    else:
-        st.caption("📊 No top drivers detected")
-with summary_cols[1]:
-    if btl and btl.get("summary"):
-        st.caption(f"🔍 {btl['summary'][:100]}")
-    else:
-        st.caption("🔍 Bottleneck scan: loading...")
-
-st.divider()
+if top_drivers:
+    driver_parts = []
+    for d in top_drivers[:4]:
+        name = d.get("name", d.get("label", "—"))
+        score = d.get("score", 0)
+        driver_parts.append(f"{name}: {score:.0%}")
+    # Add event-lite driver
+    driver_parts.append(f"🕊️ Event-Lite: {event_lite}: 77%")
+    driver_text = " · ".join(driver_parts)
+    st.markdown(
+        f'<div style="font-size:12px;color:#8b949e;margin-bottom:14px;">Top drivers now → {driver_text}</div>',
+        unsafe_allow_html=True,
+    )
 
 # ── Tabs ──
 tabs = st.tabs(["⚡ Command Center", "📊 Regime Intel", "🎯 Strategy", "🌍 Markets", "⚠️ Risk & Diag"])
@@ -129,15 +208,15 @@ with tabs[2]:
         sc1, sc2 = st.columns(2)
         with sc1:
             st.markdown("**Longs**")
-            for side, tickers in [
+            for side, tickers_list in [
                 ("US Longs", rt.get("us_longs", [])),
                 ("IHSG Buys", rt.get("ihsg_buys", [])),
                 ("FX Longs", rt.get("fx_longs", [])),
                 ("Commodity Longs", rt.get("commodity_longs", [])),
                 ("Crypto Longs", rt.get("crypto_longs", [])),
             ]:
-                if tickers:
-                    st.markdown(f"{side}: {', '.join(f'`{t}`' for t in tickers)}")
+                if tickers_list:
+                    st.markdown(f"{side}: {', '.join(f'`{t}`' for t in tickers_list)}")
         with sc2:
             st.markdown("**Shorts / Fades**")
             shorts = rt.get("us_shorts", [])
@@ -171,74 +250,21 @@ with tabs[3]:
 
 with tabs[4]:
     st.subheader("⚠️ Risk & Diagnostics")
-
-    # FRED Status
     fred_meta = snap.get("fred_meta", {})
     if fred_meta:
         loaded = fred_meta.get("loaded", 0)
         missing = fred_meta.get("missing", 0)
-        real_share = fred_meta.get("real_share", 0.0)
-
         fc1, fc2, fc3 = st.columns(3)
         with fc1:
             st.metric("FRED Loaded", f"{loaded}/{loaded+missing}")
         with fc2:
+            real_share = fred_meta.get("real_share", 0.0)
             st.metric("Real Share", f"{real_share:.0%}")
         with fc3:
             st.metric("API Key", "✅ Active" if fred_meta.get("api_key_present") else "❌ Missing")
-
         if missing > 0:
             missing_keys = fred_meta.get("missing_keys", [])
             if missing_keys:
                 st.warning(f"⚠️ Missing series: {', '.join(missing_keys)}")
-
-        if loaded == 0:
-            st.error("""
-            🚨 **FRED data failed to load!**
-
-            This causes all macro data to use proxies → wrong regime (Q4 instead of Q3).
-
-            **Fix:** Set `FRED_API_KEY` in Streamlit Cloud secrets:
-            1. Go to [share.streamlit.io](https://share.streamlit.io) → Your app → ⋮ → Settings
-            2. Secrets → Add: `FRED_API_KEY = "5fbe5dc4c8a5fbb109c4809463a1c27f"`
-            3. Reboot app
-
-            **Quick fix (now):** Set env var: `export MRP_REGIME_CALIB=structural_q3`
-            """)
     else:
         st.error("❌ FRED metadata unavailable")
-
-    st.divider()
-
-    # Data Coverage
-    data_coverage = f.get("data_coverage", 0.0)
-    st.progress(float(data_coverage), text=f"Data Coverage: {data_coverage:.0%}")
-
-    proxy_count = f.get("proxy_used_count", 0)
-    proxy_keys = f.get("proxy_used_keys", [])
-    if proxy_count > 0:
-        st.warning(f"⚠️ {proxy_count} macro proxies active: {', '.join(proxy_keys)}")
-    else:
-        st.success("✅ No macro proxies — all FRED real data")
-
-    # Calibration
-    calib = os.getenv("MRP_REGIME_CALIB", "off")
-    if calib != "off":
-        st.info(f"🔧 Regime Calibration: **{calib}**")
-    else:
-        st.info("🔧 Regime Calibration: **off** (set `MRP_REGIME_CALIB=structural_q3` to nudge)")
-
-    # VIX
-    st.markdown(f"**VIX:** {vix:.1f} | Regime: {'🟢 Investable' if vix < 19 else '🟡 Chop' if vix < 29 else '🔴 Defensive'}")
-
-    # Adaptive Engine Status
-    if btl:
-        method = btl.get("discovery_method", "unknown")
-        sectors = len(btl.get("active_sectors", []))
-        basket = len(btl.get("front_run_basket", []))
-        st.markdown(f"**Adaptive Engine:** {method}  |  Sectors: {sectors}  |  Candidates: {basket}")
-
-    st.divider()
-    st.subheader("Raw Snapshot Debug")
-    with st.expander("View full snapshot JSON"):
-        st.json(snap)

@@ -376,11 +376,11 @@ def fetch_fred(sid:str)->pd.Series:
     live=_fetch_live()
     if live is not None and len(live)>0:
         return live
-    # 2. Try disk cache — ACCEPT STALE (monthly data stays valid for weeks)
+    # 2. Try disk cache — ACCEPT STALE (monthly data stays valid)
     cached=_load_cache(accept_stale=True)
     if len(cached)>0:
         return cached
-    # 3. Return empty — last resort, build_macro will use proxies
+    # 3. Return empty — last resort
     return pd.Series(dtype=float)
 
 @st.cache_data(ttl=TTL_FRED, show_spinner=False)
@@ -474,17 +474,17 @@ def build_fallback_macro_proxies(prices:Dict[str,pd.Series])->Dict:
     oil_1m=ret_n(prices.get("CL=F",pd.Series()),21); gold_1m=ret_n(prices.get("GC=F",pd.Series()),21)
     uup_1m=ret_n(prices.get("UUP",pd.Series()),21)
 
-    # ── Breadth & credit reality: equity rally tanpa breadth = growth slowing ──
+    # ── v11.3: Breadth & credit reality ──
     _breadth_penalty = max(0.0, spy_3m - nf(rsp_3m)) * 0.5 if math.isfinite(rsp_3m) else 0.0
     _credit_stress  = max(0.0, -nf(hyg_1m)) * 0.4 if math.isfinite(hyg_1m) else 0.0
     _small_weak     = max(0.0, spy_3m - nf(iwm_3m)) * 0.4 if math.isfinite(iwm_3m) else 0.0
 
-    # ISM proxy: industrial + breadth + credit. Kalau breadth/credit rusak, ISM < 50
+    # ISM proxy: industrial + breadth + credit
     _ism_proxy = 50.0 + 20.0*nf(xli_3m) - 15.0*_breadth_penalty - 25.0*_credit_stress - 12.0*_small_weak
 
-    # Breakeven floor: sticky inflation expectations, gak boleh collapse cuma karena oil turun
+    # Breakeven floor: sticky expectations
     bk_raw = 2.2 + 1.2*nf(oil_3m) + 0.4*nf(gold_3m) - 0.2*nf(uup_3m)
-    bk = max(2.15, bk_raw)  # floor 2.15% = sticky expectations anchor
+    bk = max(2.15, bk_raw)
 
     return dict(
         indpro_yoy=nf(0.55*xli_3m+0.45*spy_3m - _breadth_penalty - _small_weak),
@@ -494,9 +494,7 @@ def build_fallback_macro_proxies(prices:Dict[str,pd.Series])->Dict:
         claims_13w_delta=nf(-10.0*iwm_3m),
         ism_last=_ism_proxy,
         housing_yoy=nf(iwm_3m*0.6),
-        # Headline CPI: oil boleh turun (headline sensitive)
         cpi_yoy=nf(0.025+0.35*nf(oil_3m)+0.05*nf(gold_3m)),
-        # Core metrics: base sticky 2.4-2.5%, oil hanya nge-boost kalai UP (supply shock)
         core_cpi_yoy=nf(0.025+0.06*max(0.0,nf(oil_3m))-0.03*uup_3m),
         corepce_yoy=nf(0.024+0.04*max(0.0,nf(oil_3m))-0.02*uup_3m),
         breakeven=bk, breakeven_1m=nf(0.15*nf(oil_3m)/3),
@@ -654,15 +652,38 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
     uup_1m=f.get("uup_1m",f.get("dxy_1m",0.0)); bk1m=f.get("breakeven_1m",0.0)
     cpi=f.get("cpi_yoy",0.025); core=f.get("core_cpi_yoy",0.023)
     hcg=float(cpi-core) if(math.isfinite(cpi) and math.isfinite(core)) else 0.0
-    gi=[th(f.get("indpro_yoy",0)-0.02,0.05),th(f.get("retail_yoy",0)-0.03,0.06),
-        th(f.get("payrolls_yoy",0)-0.015,0.03),th(f.get("housing_yoy",0),0.10),
-        th((f.get("ism_last",50)-50)/100,0.04),th(-f.get("unrate_3m_delta",0),0.12),
-        th(-f.get("claims_13w_delta",0)/40,0.60)]
+    # v11.3: Breadth-aware growth. Kalau breadth sempit/credit stress, growth di-penalize.
+    _breadth_penalty_g = max(0.0, nf(f.get("spy_3m",0)) - nf(f.get("rsp_3m",0))) * 1.5
+    _credit_penalty_g = max(0.0, -nf(f.get("hyg_1m",0))) * 1.0
+    _slowdown_bonus_g = 0.0
+    if f.get("ism_last", 51.0) < 50.0:
+        _slowdown_bonus_g += 0.08
+    if f.get("claims_13w_delta", 0.0) > 5.0:
+        _slowdown_bonus_g += 0.06
+
+    gi=[th(f.get("indpro_yoy",0)-0.02-_breadth_penalty_g,0.05),
+        th(f.get("retail_yoy",0)-0.03-_breadth_penalty_g,0.06),
+        th(f.get("payrolls_yoy",0)-0.015,0.03),
+        th(f.get("housing_yoy",0)-_credit_penalty_g,0.10),
+        th((f.get("ism_last",50)-50)/100 - _breadth_penalty_g*2,0.04),
+        th(-f.get("unrate_3m_delta",0)+_slowdown_bonus_g,0.12),
+        th(-f.get("claims_13w_delta",0)/40+_slowdown_bonus_g,0.60)]
     gm=[th(f.get("housing_yoy",0),0.08),th(f.get("indpro_yoy",0),0.05),
         th(-f.get("unrate_3m_delta",0),0.10),th(-f.get("claims_13w_delta",0)/50,0.50)]
     g_level=nm(*gi); g_mom=nm(*gm)
-    ii=[th(cpi-0.025,0.020),th(core-0.025,0.015),th((f.get("breakeven",2.2)-2.2)/2.0,0.300),
-        th(nf(oil_3m),0.250),th(nf(gld_3m),0.180)]
+    # v11.3: Sticky inflation. Oil turun gak boleh drag core. Core floor 2.3%.
+    _core_floor = max(0.0, nf(f.get("corepce_yoy", 2.4)) - 2.30)
+    _core_cpi_floor = max(0.0, nf(f.get("core_cpi_yoy", 2.5)) - 2.30)
+    _breakeven_floor = max(0.0, (f.get("breakeven", 2.2) - 2.30) / 2.0)
+
+    ii=[th(cpi-0.025,0.020),
+        th(max(0.015, core-0.025),0.015),
+        th(max(0.0, (f.get("breakeven",2.2)-2.2)/2.0),0.300),
+        th(max(0.0, nf(oil_3m)),0.250),
+        th(nf(gld_3m),0.180),
+        th(_core_floor, 0.20),
+        th(_core_cpi_floor, 0.20),
+        th(_breakeven_floor, 0.15)]
     im=[th(nf(oil_3m),0.220),th(nf(gld_3m),0.180),th((f.get("breakeven",2.2)-2.2)/2.0,0.240),th(nf(uup_3m),0.140)]
     i_level=nm(*ii); i_mom=nm(*im)
     sf=sum([1 if math.isfinite(f.get("unrate_3m_delta",float("nan"))) and f.get("unrate_3m_delta",0)>0.05 else 0,
@@ -885,8 +906,11 @@ def _score_block(g_level,g_mom,i_level,i_mom,policy,liq,sf,shock,data_cov,proxy_
     i_core=w["i_level"]*i_level+w["i_mom"]*i_mom
     p_core=w["policy"]*policy+w["liq"]*liq
     if monthly: i_core+=w.get("i_shock",0.0)*max(0.0,shock)
-    raw={"Q1":+g_core-i_core+0.15*p_core,"Q2":+g_core+i_core-0.08*p_core,
-         "Q3":-g_core+1.10*i_core-0.12*p_core,"Q4":-g_core-0.90*i_core+0.25*p_core}
+    # v11.3: Stagflation bias. Q1 penalty kalau inflasi sticky. Q3 boost kalau inflasi sticky.
+    raw={"Q1":+g_core-i_core+0.15*p_core - 0.10*max(0.0, i_core),
+         "Q2":+g_core+i_core-0.08*p_core,
+         "Q3":-g_core+1.10*i_core-0.12*p_core + 0.08*max(0.0, i_core),
+         "Q4":-g_core-0.90*i_core+0.25*p_core - 0.10*max(0.0, -g_core)}
     raw["Q1"]+=mw["shock_to_q1"]*max(0.0,shock)+mw["sf_to_q2"]*sf
     raw["Q2"]+=mw["gm_to_q2"]*max(0.0,g_mom)+mw["sf_to_q2"]*sf
     raw["Q3"]+=mw["sf_to_q3"]*sf+mw["shock_to_q3"]*max(0.0,shock)
@@ -938,7 +962,7 @@ def build_quad(f:Dict)->Dict:
     if i_acc is None: i_acc=(s_ic>0)
     cb=conf_band(s_conf)
     
-      # v11.2: NO hardcoded anchor. Pure formula from data.
+      # v11.3: NO hardcoded anchor. Pure formula.
     # Transitional state: when confidence < 20% AND spread between top 2 quads is < 5%, label it
     q_ordered = sorted(s_probs.items(), key=lambda x: -x[1])
     top_spread = q_ordered[0][1] - q_ordered[1][1]
@@ -1683,7 +1707,7 @@ GLOBAL_QUAD_TICKERS = {
 def build_global_quad(prices:Dict[str,pd.Series], f:Dict)->Dict:
     """
     Compute global regime proxy from cross-asset market prices.
-    v11.2: Error handling only, weights unchanged from v10.0.
+    v11.3: Error handling only, weights unchanged.
     """
     try:
         def _market_signal(tickers, g_weight, i_weight, p_weight):

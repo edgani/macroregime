@@ -106,12 +106,12 @@ html,[class*="css"]{font-family:'DM Sans',sans-serif}
 </style>
 """,unsafe_allow_html=True)
 
-# ── WEIGHTS (exact from v33 config/weights.py) ─────────────────────────────────
+# -- WEIGHTS (exact from v33 config/weights.py) ---------------------------------
 STRUCT_W = {"g_level":0.20,"g_mom":0.40,"i_level":0.10,"i_mom":0.30,"policy":0.10,"liq":0.10}
 MONTHLY_W = {"g_level":0.20,"g_mom":0.45,"i_level":0.15,"i_mom":0.45,"i_shock":0.15,"policy":0.10,"liq":0.10}
-QUAD_MOD = {"sf_to_q3":0.10,"sf_to_q2":-0.05,"shock_to_q3":0.10,"shock_to_q1":-0.06,"gm_to_q2":0.03,"gm_to_q4":0.03,"cov_penalty":0.62}  # boosted Q3 signal for oil+slowdown confluence
-MONTHLY_MOD = {"sf_to_q3":0.12,"sf_to_q2":-0.06,"shock_to_q3":0.16,"shock_to_q1":-0.04,"gm_to_q2":0.04,"gm_to_q4":0.06,"cov_penalty":0.55}
-# ── GLOBAL QUAD weights (real-time market-implied, ~1 week horizon) ──────────
+QUAD_MOD = {"sf_to_q3":0.10,"sf_to_q2":-0.05,"shock_to_q3":0.10,"shock_to_q1":-0.06,"gm_to_q2":0.02,"gm_to_q4":0.02,"cov_penalty":0.55}  # reduced gm sensitivity and cov_penalty  # boosted Q3 signal for oil+slowdown confluence
+MONTHLY_MOD = {"sf_to_q3":0.12,"sf_to_q2":-0.06,"shock_to_q3":0.16,"shock_to_q1":-0.04,"gm_to_q2":0.03,"gm_to_q4":0.03,"cov_penalty":0.50}  # reduced gm sensitivity
+# -- GLOBAL QUAD weights (real-time market-implied, ~1 week horizon) ----------
 # Global uses pure market tape: VIX, DXY, credit, EM, oil, gold, yields
 # No FRED. No proxies. Pure price action.
 GLOBAL_W = {"g_level":0.15,"g_mom":0.50,"i_level":0.10,"i_mom":0.50,"policy":0.05,"liq":0.10}
@@ -143,7 +143,7 @@ SIGNAL_ENTER_THRESHOLD = _env_float("MRP_SIGNAL_ENTER_THRESHOLD", 0.035)
 SIGNAL_EXIT_THRESHOLD = _env_float("MRP_SIGNAL_EXIT_THRESHOLD", 0.015)
 
 
-# ── Ticker display name mapping (from v33 data_symbol_map.py) ─────────────────
+# -- Ticker display name mapping (from v33 data_symbol_map.py) -----------------
 TICKER_DISPLAY = {
     "GC=F":"XAUUSD (Gold)","GLD":"GLD (Gold ETF)","SI=F":"XAGUSD (Silver)",
     "PL=F":"Platinum","CL=F":"WTI Oil","BZ=F":"Brent Oil","NG=F":"Natural Gas",
@@ -259,7 +259,7 @@ ANALOG_LIBRARY = [
     {"label":"2025 tariff bond rout","vector":{"growth":-0.25,"inflation":0.30,"dollar":0.50,"oil":0.10,"smallcap":-0.55,"vol":0.45},"path_1m":"long-end pain and broad stress","path_3m":"negotiation relief can squeeze laggards","path_6m":"outcome hinges on de-escalation","scenario_family":"rates_shock","impacts":{"us":"defensive","ihsg":"bearish","fx":"usd_up","commodities":"gold_over_cyclicals"},"next_bias":"Structural stress dominates unless policy relief lands"},
     {"label":"2026 war-oil stagflation","vector":{"growth":-0.30,"inflation":0.80,"dollar":0.35,"oil":0.95,"smallcap":-0.45,"vol":0.55},"path_1m":"oil-first stagflation pressure","path_3m":"energy lead with mixed broader tape","path_6m":"de-escalation can abruptly rotate leadership","scenario_family":"petrodollar_tightening","impacts":{"us":"energy_vs_cyclicals","ihsg":"coal_up_rupiah_fragile","fx":"usd_and_petrocurrency_bid","commodities":"energy_gold_up"},"next_bias":"Petrodollar branch can keep monthly Q3 alive inside structural slowdown"},
     {"label":"Mid-cycle mixed slowdown","vector":{"growth":-0.05,"inflation":0.05,"dollar":0.00,"oil":0.00,"smallcap":-0.05,"vol":0.10},"path_1m":"rotation without panic","path_3m":"slowdown signs but no crash","path_6m":"macro path decides winners","scenario_family":"mixed_slowdown","impacts":{"us":"mixed","ihsg":"mixed","fx":"range","commodities":"selective"},"next_bias":"Base case stays mixed until a cleaner impulse emerges"},
-    # ── NEW: From Ricky's analysis (April 2026) ─────────────────────────────
+    # -- NEW: From Ricky's analysis (April 2026) -----------------------------
     {"label":"2026 TACO de-escalation rally (Ricky pattern)","vector":{"growth":-0.10,"inflation":0.45,"dollar":-0.20,"oil":-0.30,"smallcap":0.40,"vol":-0.35},"path_1m":"de-escalation spike dan relief squeeze laggard","path_3m":"most hated inflated rally — semua aset naik bareng","path_6m":"Warsh cuts + FIFA deadline → rally berlanjut tapi valuasi rapuh","scenario_family":"taco_deescalation","impacts":{"us":"broad risk-on tapi most hated (banyak yang tidak percaya)","ihsg":"asing masuk, MSCI clear catalyze inflow","fx":"DXY turun, IDR menguat, carry works again","commodities":"oil turun tapi gold hold, copper naik"},"next_bias":"Rally ini bukan karena fundamental tapi karena likuiditas. Satu tangan di pintu keluar."},
     {"label":"1999 post-LTCM inflated rally (bubble endgame)","vector":{"growth":0.20,"inflation":0.10,"dollar":-0.10,"oil":0.15,"smallcap":0.60,"vol":-0.50},"path_1m":"everything rally — saham crypto emas semua naik","path_3m":"FOMO masuk puncak, valuasi tertinggi sepanjang sejarah","path_6m":"sistem fragile + likuiditas habis = koreksi brutal","scenario_family":"bubble_endgame","impacts":{"us":"Nasdaq-type blow-off top sebelum crash 78%","ihsg":"asing masuk tapi hati-hati keluar duluan","fx":"DXY weak = EM rally, tapi reversal tajam","commodities":"gold dan komoditas naik awal, lalu selloff saat crash"},"next_bias":"Nikmati tapi satu tangan di pintu keluar. Valuasi AS sudah setara 1929 dan 2000."},
 ]
@@ -647,7 +647,7 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
     structural_obs_reliability=clamp(0.65*observed_macro_share+0.35*fred_real_share)
     structural_proxy_damp=clamp(1.0-0.55*macro_proxy_share,0.35,1.0)
     structural_speed_damp=clamp(0.20+0.80*structural_obs_reliability,0.20,1.0)
-    structural_proxy_scale=clamp(1.0-structural_obs_reliability)
+    structural_proxy_scale=clamp(1.0-structural_obs_reliability)*0.55  # damp proxy 45% to reduce daily noise
 
     def acc_num(v):
         if v is True: return 1.0
@@ -715,9 +715,9 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
     # Tariff/trade headwind: ISM below 50 + oil shock + USD strength = stagflation structural
     # This is what Hedgeye's forward-looking model captures that lagging FRED misses
     ism_last = f.get("ism_last", 51.0)
-    ism_sub50 = max(0.0, (50.0 - ism_last) / 5.0) if math.isfinite(ism_last) else 0.0
-    oil_3m_shock = clamp(nf(f.get("clf_3m", f.get("oil_3m", 0.0))) / 0.10)  # normalize: 10% = full signal
-    usd_stress = clamp(nf(f.get("uup_1m", 0.0)) / 0.03)
+    ism_sub50 = max(0.0, (50.0 - ism_last) / 8.0) if math.isfinite(ism_last) else 0.0  # was /5, too aggressive
+    oil_3m_shock = clamp(nf(f.get("clf_3m", f.get("oil_3m", 0.0))) / 0.15)  # was 0.10, too sensitive. 15% = full signal
+    usd_stress = clamp(nf(f.get("uup_1m", 0.0)) / 0.05)  # was 0.03, too sensitive. 5% = full signal
     tariff_growth_headwind = clamp(
         0.35 * ism_sub50
         + 0.30 * oil_3m_shock  # oil up = inflation pressure that hits consumers
@@ -725,9 +725,9 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
         + 0.15 * max(0.0, f.get("claims_13w_delta", 0.0) / 20.0)  # claims rising
     )
     structural_slowdown_flags = clamp(
-        0.45 * sf
+        0.55 * sf
         + 0.30 * max(0.0, -g_struct_climate)
-        + 0.25 * tariff_growth_headwind  # NEW: forward-looking headwind
+        + 0.15 * tariff_growth_headwind  # REDUCED from 0.25: tariff is forward-looking, not confirmed
     )
     structural_inf_shock=clamp(0.60*max(0.0,i_struct_climate)+0.40*max(0.0,i_struct_proxy_mom))
     policy_score=th(-nf(f.get("policy_rate_3m",0.0)),0.50)
@@ -848,8 +848,55 @@ def build_quad(f:Dict)->Dict:
     # Transitional state: when confidence < 20% AND spread between top 2 quads is < 5%, label it
     q_ordered = sorted(s_probs.items(), key=lambda x: -x[1])
     top_spread = q_ordered[0][1] - q_ordered[1][1]
-    is_transitional = s_conf < 0.20 and top_spread < 0.08
+    is_transitional = s_conf < 0.22 and top_spread < 0.10  # was <0.20/<0.08, too sensitive
     transitional_label = f"Transitional ({q_ordered[0][0]}/{q_ordered[1][0]})" if is_transitional else s_quad
+    # -- STRUCTURAL SMOOTHING & CONFIDENCE FLOOR ------------------------------
+    # Confidence floor: proxy-heavy regimes should not claim high confidence
+    proxy_share = f.get("macro_proxy_share", 1.0)
+    if proxy_share > 0.65 and s_conf < 0.18:
+        s_conf = clamp(s_conf * 0.6 + 0.10)  # floor at ~10% but don't overstate
+        cb = conf_band(s_conf)
+
+    # Structural EWM smoothing via session state (reduces daily flip-flop)
+    if "structural_quad_history" not in st.session_state:
+        st.session_state["structural_quad_history"] = []
+
+    # Only update history if this is a real compute (not a cached stale read)
+    hist = st.session_state["structural_quad_history"]
+    hist.append({"quad": s_quad, "gc": s_gc, "ic": s_ic, "conf": s_conf, "proxy": proxy_share})
+    if len(hist) > 10:
+        hist.pop(0)
+
+    # Require 2+ days same quad before confirming flip (hysteresis)
+    if len(hist) >= 3:
+        recent_quads = [h["quad"] for h in hist[-3:]]
+        # If current quad differs from last 2, check if it's a confirmed flip
+        if recent_quads[-1] != recent_quads[-2] and recent_quads[-2] == recent_quads[-3]:
+            # Potential flip detected — require higher confidence or margin
+            if s_conf < 0.25 or margin < 0.10:
+                # Revert to previous quad — not enough confirmation
+                s_quad = recent_quads[-2]
+                s_probs = {k: v * 0.9 for k, v in s_probs.items()}  # reduce confidence
+                s_probs[s_quad] = max(s_probs.get(s_quad, 0), 0.30)  # boost previous
+                total = sum(s_probs.values())
+                s_probs = {k: v/total for k, v in s_probs.items()}
+                s_ordered = sorted(s_probs.items(), key=lambda kv: kv[1], reverse=True)
+                s_next = s_ordered[1][0] if len(s_ordered) > 1 else s_quad
+                # Recalculate confidence
+                s_conf = clamp(s_probs[s_quad] * (0.70 + 0.30*cov) * (1.0 - QUAD_MOD["cov_penalty"]*proxy_share))
+                cb = conf_band(s_conf)
+                is_transitional = s_conf < 0.20 and (s_ordered[0][1] - s_ordered[1][1]) < 0.08
+                transitional_label = f"Transitional ({s_ordered[0][0]}/{s_ordered[1][0]})" if is_transitional else s_quad
+                operating = f"Aligned {s_quad}" if s_quad == m_quad else f"Monthly {m_quad} inside Structural {s_quad}"
+
+    # EWM smoothing on structural scores (3-day EWM)
+    if len(hist) >= 2:
+        ewm_gc = 0.6 * s_gc + 0.3 * hist[-2]["gc"] + 0.1 * (hist[-3]["gc"] if len(hist) >= 3 else hist[-2]["gc"])
+        ewm_ic = 0.6 * s_ic + 0.3 * hist[-2]["ic"] + 0.1 * (hist[-3]["ic"] if len(hist) >= 3 else hist[-2]["ic"])
+        # Only apply EWM if proxy-heavy (observed data is more trustworthy)
+        if proxy_share > 0.50:
+            adj_gc = ewm_gc + yc_adj + cred_adj
+
     return dict(quad=s_quad,probs=s_probs,next_quad=s_next,confidence=s_conf,conf_band=cb,
                 transitional=is_transitional,transitional_label=transitional_label,
                 monthly_quad=m_quad,monthly_probs=m_probs,monthly_next=m_next,monthly_conf=m_conf,
@@ -1038,7 +1085,7 @@ def build_scenarios(q:Dict,f:Dict,h:Dict,analog:Dict,playbooks:List)->Dict:
     raw[f"Analog: {analog.get('label','Historical echo')}"]=0.08+0.18*float(analog.get("similarity",0.5))
     pb=max(playbooks,key=lambda x:x["hypothesis"])
     raw[f"Playbook: {pb['name']}"]=0.08+0.25*float(pb["hypothesis"])
-    # ── NEW SCENARIOS (April 2026 — Ricky/real-world framework) ───────────────
+    # -- NEW SCENARIOS (April 2026 — Ricky/real-world framework) ---------------
     # 1. TACO de-escalation: scales with weather and low flip hazard
     _taco=clamp(0.30+0.25*(1-q.get("flip_hazard",0.5))+0.25*h.get("weather",0.5)+0.20*(1-max(0,shock_str)))
     raw["TACO Ch.2: Iran de-escalation → risk-on rally"]=_taco
@@ -1293,7 +1340,7 @@ def build_ihsg(prices:Dict[str,pd.Series],q:Dict,f:Dict)->Dict:
                 rel_state=rel_state,petro_impact=petro_impact,em_regime=em_regime_score,
                 top_sector=top_sector,spill_ihsg=spill_ihsg,stock_rows=stock_rows[:30])
 
-# ── Modular compute adapters ─────────────────────────────────────────────────
+# -- Modular compute adapters -------------------------------------------------
 
 def _compat_aliases(f: dict) -> None:
     """Map macro_features key names to monolith aliases so downstream
@@ -1390,14 +1437,14 @@ def _q_posterior_to_dict(p, f: dict) -> dict:
 def _add_tariff_headwind(f: dict) -> None:
     """Inject tariff/oil headwind into structural_slowdown_flags."""
     ism = f.get("ism_last", 51.0)
-    ism_sub50 = max(0.0, (50.0 - ism) / 5.0) if math.isfinite(ism) else 0.0
-    oil_3m_s = clamp(nf(f.get("clf_3m", f.get("oil_3m", 0.0))) / 0.10)
-    usd_s = clamp(nf(f.get("uup_1m", 0.0)) / 0.03)
+    ism_sub50 = max(0.0, (50.0 - ism) / 8.0) if math.isfinite(ism) else 0.0  # was /5, too aggressive
+    oil_3m_s = clamp(nf(f.get("clf_3m", f.get("oil_3m", 0.0))) / 0.15)  # was 0.10, too sensitive
+    usd_s = clamp(nf(f.get("uup_1m", 0.0)) / 0.05)  # was 0.03, too sensitive
     tariff_hw = clamp(0.35*ism_sub50 + 0.30*oil_3m_s + 0.20*usd_s + 0.15*max(0.0, f.get("claims_13w_delta", 0.0)/20.0))
     f["tariff_growth_headwind"] = tariff_hw
     # Augment slowdown_flags with tariff headwind
     sf = f.get("slowdown_flags", 0.0)
-    f["slowdown_flags"] = clamp(0.55*sf + 0.20*max(0.0, -f.get("growth_structural_momentum", 0.0)) + 0.25*tariff_hw)
+    f["slowdown_flags"] = clamp(0.55*sf + 0.30*max(0.0, -f.get("growth_structural_momentum", 0.0)) + 0.15*tariff_hw)  # reduced tariff weight
 
 
 # Core tickers needed for regime computation (fast subset)
@@ -1436,7 +1483,7 @@ def load_all()->Dict:
     with st.spinner("Fetching FRED macro data (parallel)…"): fred=fetch_fred_bundle(tuple(FRED_SERIES.items()))
     progress_bar.progress(70, text="Computing regime signals (modular engine)…")
 
-    # ── REBUILT compute layer: modular engines replace monolith build_macro/build_quad ──
+    # -- REBUILT compute layer: modular engines replace monolith build_macro/build_quad --
     try:
         from features.macro_features import build_macro_features as _bmf
         from engines.quad_state_engine import QuadStateEngine as _QSE
@@ -1465,8 +1512,8 @@ def load_all()->Dict:
         import traceback; traceback.print_exc()
         f = build_macro(fred, prices, price_meta=price_meta)
         q = build_quad(f)
-    # ─────────────────────────────────────────────────────────────────────────────
-    # ── 3-QUAD SYSTEM: Structural + Monthly + Global ──────────────────────────
+    # -----------------------------------------------------------------------------
+    # -- 3-QUAD SYSTEM: Structural + Monthly + Global --------------------------
     gq=build_global_quad(f)  # Global real-time quad
     h=build_health(prices,f)
     cr=build_crash(f,h,q,prices=prices); rot=build_rotation(q,h,f,prices); ih=build_ihsg(prices,q,f)
@@ -1487,7 +1534,7 @@ def load_all()->Dict:
     fwd_radar=build_forward_radar(prices,q,f,route=route,opps=opps,risk_ranges=risk_ranges,most_hated=most_hated,news_overlay=news_overlay)
     signal_strength=build_signal_strength(opps,prices,q,f,h,risk_ranges=risk_ranges,route=route,crash=cr,sizing=sizing)
     top_drivers=build_top_drivers_now(q,f,h,cr,route,most_hated,news_overlay)
-    # ── Initialize ALL optional v11 outputs BEFORE any try blocks ────────────
+    # -- Initialize ALL optional v11 outputs BEFORE any try blocks ------------
     options_regime = {}
     regime_transition = {}
     regime_tickers = {}
@@ -1499,7 +1546,7 @@ def load_all()->Dict:
     intraday_dict = {}
     position_data = {}
 
-        # ── New intelligence engines (v11) ──────────────────────────────────────────
+        # -- New intelligence engines (v11) ------------------------------------------
     try:
         from engines.regime_transition_engine import RegimeTransitionEngine
         from engines.regime_ticker_engine import RegimeTickerEngine
@@ -1831,7 +1878,7 @@ def load_all()->Dict:
                 })
 
 
-# ── UI helpers ────────────────────────────────────────────────────────────────
+# -- UI helpers ----------------------------------------------------------------
 def qb(q:str)->str:
     cls=q.lower() if q in("Q1","Q2","Q3","Q4") else "qunk"
     return f'<span class="qb {cls}">{q}</span>'
@@ -1853,7 +1900,7 @@ from typing import Dict, List, Optional
 import numpy as np
 import pandas as pd
 
-# ── Regime policy (exact from v33 config/regime_policy.py) ────────────────────
+# -- Regime policy (exact from v33 config/regime_policy.py) --------------------
 QUAD_POLICY = {
     "Q1": {
         "us":          {"long":["Growth/Tech","Quality","Semis/AI"],       "short":["Energy/Value"],         "avoid":["Energy","Small beta"]},
@@ -1885,7 +1932,7 @@ QUAD_POLICY = {
     },
 }
 
-# ── Rotation Family definitions (from v33 orchestration/route_layers.py) ──────
+# -- Rotation Family definitions (from v33 orchestration/route_layers.py) ------
 ROTATION_FAMILIES = {
     "petrodollar": {
         "name": "Petrodollar Route",
@@ -1965,7 +2012,7 @@ ROTATION_FAMILIES = {
     },
 }
 
-# ── Determine active rotation family (from v33 route_layers._dominant_family) ─
+# -- Determine active rotation family (from v33 route_layers._dominant_family) -
 def get_dominant_family(q:Dict, f:Dict, rot:Dict) -> str:
     petro=rot.get("petro_score",0.0)
     em=rot.get("em_score",0.0)
@@ -1980,7 +2027,7 @@ def get_dominant_family(q:Dict, f:Dict, rot:Dict) -> str:
     if quad in("Q3","Q4") and sf>=0.50: return "growth_scare"
     return "reflation"
 
-# ── Build opportunity rows (Long/Short ranked with entry/target/invalidation) ─
+# -- Build opportunity rows (Long/Short ranked with entry/target/invalidation) -
 def build_opportunities(prices:Dict[str,pd.Series], q:Dict, f:Dict, h:Dict, rot:Dict, ih:Dict, most_hated:Dict,
                         risk_ranges:Optional[Dict]=None, sizing:Optional[Dict]=None,
                         price_meta:Optional[Dict]=None, route:Optional[Dict]=None) -> List[Dict]:
@@ -2747,7 +2794,7 @@ def build_signal_strength(opps:List[Dict], prices:Dict[str,pd.Series], q:Dict, f
     }
 
 
-# ── Checklist engine (v33 inspired) ───────────────────────────────────────────
+# -- Checklist engine (v33 inspired) -------------------------------------------
 def _chk(score:float)->(str,str):
     """Returns (symbol, color_class) for a checklist item."""
     if score>=0.62: return "✓","good"
@@ -2765,7 +2812,7 @@ def build_narrative_discovery(prices:Dict[str,pd.Series], q:Dict, f:Dict) -> Dic
     quad = q.get("quad", "Q3")
     monthly_quad = q.get("monthly_quad", quad)
 
-    # ── 1. Momentum engine untuk SEMUA ticker ────────────────────────────────
+    # -- 1. Momentum engine untuk SEMUA ticker --------------------------------
     momentum: Dict[str, Dict] = {}
     for tk, s in prices.items():
         s2 = _s(s)
@@ -2780,7 +2827,7 @@ def build_narrative_discovery(prices:Dict[str,pd.Series], q:Dict, f:Dict) -> Dic
         trend = ts(s2)
         momentum[tk] = {"tk": tk, "r1": r1, "r3": r3, "r5": r5, "acc": acc, "trend": trend, "px": last(s2)}
 
-    # ── 2. Thematic Clusters (cross-market) ──────────────────────────────────
+    # -- 2. Thematic Clusters (cross-market) ----------------------------------
     clusters = [
         {"name": "AI Infrastructure / Compute", "theme": "ai_compute",
          "tickers": ["NVDA","AMD","AVGO","MRVL","ANET","SMCI","DELL","QQQ","XLK"],
@@ -2841,7 +2888,7 @@ def build_narrative_discovery(prices:Dict[str,pd.Series], q:Dict, f:Dict) -> Dic
          "market": "Mixed", "proxy_macro": ["growth", "rates"], "bottleneck_type": "curve_steepening"},
     ]
 
-    # ── 3. Score each cluster ───────────────────────────────────────────────
+    # -- 3. Score each cluster -----------------------------------------------
     narratives = []
     for cluster in clusters:
         scores = []
@@ -2938,7 +2985,7 @@ def build_narrative_discovery(prices:Dict[str,pd.Series], q:Dict, f:Dict) -> Dic
             "bottleneck_type": cluster["bottleneck_type"],
         })
 
-    # ── 4. EMERGENT DETECTION ────────────────────────────────────────────────
+    # -- 4. EMERGENT DETECTION ------------------------------------------------
     def _theme_momentum(ticker_list, min_r1=0.01):
         vals = [momentum[tk]["r1"] for tk in ticker_list if tk in momentum and math.isfinite(momentum[tk]["r1"])]
         return float(np.nanmean(vals)) if vals else 0.0, len(vals)/max(len(ticker_list),1)
@@ -3036,7 +3083,7 @@ def build_narrative_discovery(prices:Dict[str,pd.Series], q:Dict, f:Dict) -> Dic
 
     narratives.sort(key=lambda x: x["adjusted_intensity"], reverse=True)
 
-    # ── 5. Front-run picks ───────────────────────────────────────────────────
+    # -- 5. Front-run picks ---------------------------------------------------
     picks = []
     seen_tk = set()
     for nar in narratives[:4]:
@@ -3052,7 +3099,7 @@ def build_narrative_discovery(prices:Dict[str,pd.Series], q:Dict, f:Dict) -> Dic
                 "affected": nar.get("affected_tickers", [])[:6], "market": nar["market"],
             })
 
-    # ── 6. Affected ticker map ───────────────────────────────────────────────
+    # -- 6. Affected ticker map -----------------------------------------------
     affected_map: Dict[str, List[Dict]] = {}
     for nar in narratives:
         for tk in nar.get("affected_tickers", []):
@@ -3060,7 +3107,7 @@ def build_narrative_discovery(prices:Dict[str,pd.Series], q:Dict, f:Dict) -> Dic
                 affected_map[tk] = []
             affected_map[tk].append({"theme": nar["theme"], "name": nar["name"], "intensity": nar["adjusted_intensity"], "stage": nar["stage"], "window": nar["front_run_window"]})
 
-    # ── 7. Cross-market heatmap ──────────────────────────────────────────────
+    # -- 7. Cross-market heatmap ----------------------------------------------
     market_narrative_map = {}
     for nar in narratives:
         mkt = nar["market"]
@@ -3784,7 +3831,7 @@ def render_master_rotation_graph(q:Dict, f:Dict, rot:Dict, family:str)->None:
 
 
 
-# ── Route State System (v33 regime_router.py exact logic) ─────────────────────
+# -- Route State System (v33 regime_router.py exact logic) ---------------------
 ROUTE_STATE_META = {
     "quality_disinflation": {
         "label": "Quality Disinflation",
@@ -4759,7 +4806,7 @@ def page_radar(snap:Dict)->None:
         <span style="font-family:DM Mono,monospace;font-size:11px;opacity:.5">{ev['countdown']} ({ev['when']})</span></div>
         <div style="font-size:12px;opacity:.75;margin-top:3px">{ev['impact']}</div></div>""",unsafe_allow_html=True)
     # Key indicators
-    # ── NARRATIVE BOTTLENECK ENGINE v2.0 ──────────────────────────────────────
+    # -- NARRATIVE BOTTLENECK ENGINE v2.0 --------------------------------------
     nd = snap.get("narrative_discovery", {})
     if nd and nd.get("narratives"):
         st.markdown("---")
@@ -4769,28 +4816,28 @@ def page_radar(snap:Dict)->None:
         sh("🧠 NARRATIVE BOTTLENECK")
         st.info("Narrative engine belum menghasilkan output. Cek data momentum atau tunggu load selesai.")
     st.markdown("---"); sh("🔑 INDIKATOR KUNCI (plain text — no HTML)")
-    rows=[("── GROWTH ──","",""),("Industrial Production YoY",pct(f.get("indpro_yoy",float("nan"))),acc_txt(f.get("indpro_acc"))),
+    rows=[("-- GROWTH --","",""),("Industrial Production YoY",pct(f.get("indpro_yoy",float("nan"))),acc_txt(f.get("indpro_acc"))),
         ("Nonfarm Payrolls YoY",pct(f.get("payrolls_yoy",float("nan"))),acc_txt(f.get("payrolls_acc"))),
         ("Retail Sales YoY",pct(f.get("retail_yoy",float("nan"))),acc_txt(f.get("retail_acc") if "retail_acc" in f else None)),
         ("ISM Manufacturing",num(f.get("ism_last",float("nan")),1),""),
         ("LEI 3M",pct(f.get("lei_3m",float("nan"))),acc_txt(f.get("lei_acc"))),
         ("Copper/Gold 3M ★",pct(f.get("copper_gold_ratio_3m",float("nan"))),""),
         ("Unemployment Rate",f"{f.get('unrate',float('nan')):.1f}%" if math.isfinite(f.get("unrate",float("nan"))) else "—",f"3M Δ: {f.get('unrate_3m_delta',0):+.2f}" if math.isfinite(f.get("unrate_3m_delta",float("nan"))) else ""),
-        ("── INFLASI ──","",""),("CPI YoY",pct(f.get("cpi_yoy",float("nan"))),acc_txt(f.get("cpi_acc"))),
+        ("-- INFLASI --","",""),("CPI YoY",pct(f.get("cpi_yoy",float("nan"))),acc_txt(f.get("cpi_acc"))),
         ("Core PCE YoY ★",pct(f.get("corepce_yoy",float("nan"))),acc_txt(f.get("corepce_acc"))),
         ("5Y Breakeven",num(f.get("breakeven",float("nan")),2),""),
         ("Headline-Core Gap ★",pct(f.get("headline_core_gap",float("nan"))),"+ve = supply-driven inflation"),
         ("Monthly Inflation Shock ★",f"{f.get('m_shock',0):.3f}","Bulan ini: seberapa cepat inflasi naik"),
-        ("── RATES / POLICY ──","",""),
+        ("-- RATES / POLICY --","",""),
         ("Fed Funds Rate",num(f.get("policy_rate",float("nan")),2),f"3M Δ: {f.get('policy_rate_3m',0):+.2f}" if math.isfinite(f.get("policy_rate_3m",float("nan"))) else ""),
         ("Policy Score ★",f"{f.get('policy_score',0):+.3f}","+ = dovish/cutting, - = hawkish/hiking"),
         ("Liquidity Score ★",f"{f.get('liq_score',0):+.3f}","DXY + TLT derived"),
         ("2s10s Yield Curve ★",f"{f.get('spread_2s10s',float('nan')):+.2f}%" if math.isfinite(f.get("spread_2s10s",float("nan"))) else "—",f.get("yield_curve_state","")),
-        ("── CREDIT & VOL ──","",""),
+        ("-- CREDIT & VOL --","",""),
         ("HY OAS",f"{f.get('hy_oas',float('nan')):.0f}bps" if math.isfinite(f.get("hy_oas",float("nan"))) else "—",f"1M Δ: {f.get('hy_oas_1m',0):+.0f}bps" if math.isfinite(f.get("hy_oas_1m",float("nan"))) else ""),
         ("IG OAS ★",f"{f.get('ig_oas',float('nan')):.0f}bps" if math.isfinite(f.get("ig_oas",float("nan"))) else "—",f"1M Δ: {f.get('ig_oas_1m',0):+.0f}bps" if math.isfinite(f.get("ig_oas_1m",float("nan"))) else ""),
         ("VIX / Term Structure ★",num(f.get("vix_last",float("nan")),1),f.get("vix_term_state","")),
-        ("── QUAD INTERNALS ★ ──","",""),
+        ("-- QUAD INTERNALS ★ --","",""),
         ("Growth Core (Structural)",f"{q.get('g_level',0):+.3f}","+ = tumbuh, - = melambat"),
         ("Inflation Core (Structural)",f"{q.get('i_level',0):+.3f}","+ = naik, - = turun"),
         ("Slowdown Flags",f"{q.get('slowdown_flags',0):.0%}","% dari 4 indikator slowdown aktif"),
@@ -5100,7 +5147,7 @@ def page_markets(snap:Dict)->None:
     prices=snap["prices"]; q=snap["q"]
     sh("🌐 MULTI-MARKET OVERVIEW")
     s_quad=q["quad"]; meta=QUAD_META.get(s_quad,QUAD_META["Q4"])
-    # ── NARRATIVE BOTTLENECK ENGINE v2.0 — Cross-Market ────────────────────
+    # -- NARRATIVE BOTTLENECK ENGINE v2.0 — Cross-Market --------------------
     nd = snap.get("narrative_discovery", {})
     if nd and nd.get("narratives"):
         with st.expander("🧠 Narrative Bottleneck — Cross-Market Front-Run", expanded=False):
@@ -5382,7 +5429,7 @@ def page_markets_full(snap:Dict)->None:
 
     t2,t3,t4,t5,t6=st.tabs(["🇮🇩 IHSG","🇺🇸 US Stocks","💱 FX","🛢️ Komoditas","🔐 Crypto"])
 
-    # ── IHSG ─────────────────────────────────────────────────────────────────
+    # -- IHSG -----------------------------------------------------------------
     with t2:
         sh("🇮🇩 IHSG — INDONESIAN MARKET ANALYSIS")
         if snap.get("most_hated_rally"):
@@ -5459,7 +5506,7 @@ def page_markets_full(snap:Dict)->None:
                 mc("Invalidator","⚠️ "+impact.get("invalidator",""))
                 mc("Next Branch","→ "+impact.get("next",""))
 
-    # ── US Stocks ──────────────────────────────────────────────────────────────
+    # -- US Stocks --------------------------------------------------------------
     with t3:
         sh("🇺🇸 US STOCKS")
         # Sector performance
@@ -5532,7 +5579,7 @@ def page_markets_full(snap:Dict)->None:
             st.markdown("---")
             render_checklist(asset_chk2["us"],"🇺🇸 US EQUITY CHECKLIST")
 
-    # ── FX ─────────────────────────────────────────────────────────────────────
+    # -- FX ---------------------------------------------------------------------
     with t4:
         sh("💱 FX RATES")
         FX_NAMES={"EURUSD=X":"EUR/USD","GBPUSD=X":"GBP/USD","AUDUSD=X":"AUD/USD","JPY=X":"USD/JPY (naik=yen lemah)","CHF=X":"USD/CHF","IDR=X":"USD/IDR (naik=IDR lemah)","CNH=X":"USD/CNH","SGD=X":"USD/SGD","CAD=X":"USD/CAD"}
@@ -5571,7 +5618,7 @@ def page_markets_full(snap:Dict)->None:
         ac3=snap.get("asset_checklists",{})
         if ac3.get("fx"): render_checklist(ac3["fx"],"💱 FX CHECKLIST")
 
-    # ── Komoditas ──────────────────────────────────────────────────────────────
+    # -- Komoditas --------------------------------------------------------------
     with t5:
         sh("🛢️ KOMODITAS")
         COMM_NAMES={"GC=F":"Gold (XAU)","SI=F":"Silver","CL=F":"Oil WTI","BZ=F":"Oil Brent","NG=F":"Natural Gas","HG=F":"Copper","ZC=F":"Corn","ZW=F":"Wheat","DBC":"Broad Commodities ETF","URA":"Uranium ETF"}
@@ -5607,7 +5654,7 @@ def page_markets_full(snap:Dict)->None:
         ac4=snap.get("asset_checklists",{})
         if ac4.get("commodities"): render_checklist(ac4["commodities"],"🛢️ COMMODITIES CHECKLIST")
 
-    # ── Crypto ─────────────────────────────────────────────────────────────────
+    # -- Crypto -----------------------------------------------------------------
     with t6:
         sh("🔐 CRYPTO")
         CRYPTO_NAMES={"BTC-USD":"Bitcoin (BTC)","ETH-USD":"Ethereum (ETH)","SOL-USD":"Solana (SOL)","BNB-USD":"BNB","XRP-USD":"XRP","ADA-USD":"Cardano","AVAX-USD":"Avalanche","LINK-USD":"Chainlink","DOGE-USD":"Dogecoin"}
@@ -5726,7 +5773,7 @@ def main():
     except Exception:
         _has_rt = False
 
-    # ── v11: 5-tab consolidated architecture ──────────────────────────────────
+    # -- v11: 5-tab consolidated architecture ----------------------------------
     try:
         from ui.pages_redesigned import page_regime_intel, page_strategy, page_markets_v2, page_risk_diag
         _has_new_pages = True

@@ -109,13 +109,8 @@ html,[class*="css"]{font-family:'DM Sans',sans-serif}
 # ── WEIGHTS (exact from v33 config/weights.py) ─────────────────────────────────
 STRUCT_W = {"g_level":0.20,"g_mom":0.40,"i_level":0.10,"i_mom":0.30,"policy":0.10,"liq":0.10}
 MONTHLY_W = {"g_level":0.20,"g_mom":0.45,"i_level":0.15,"i_mom":0.45,"i_shock":0.15,"policy":0.10,"liq":0.10}
-QUAD_MOD = {"sf_to_q3":0.10,"sf_to_q2":-0.05,"shock_to_q3":0.10,"shock_to_q1":-0.06,"gm_to_q2":0.02,"gm_to_q4":0.02,"cov_penalty":0.55}  # boosted Q3 signal for oil+slowdown confluence
-MONTHLY_MOD = {"sf_to_q3":0.12,"sf_to_q2":-0.06,"shock_to_q3":0.16,"shock_to_q1":-0.04,"gm_to_q2":0.03,"gm_to_q4":0.03,"cov_penalty":0.50}
-# ── GLOBAL QUAD weights (real-time market-implied, ~1 week horizon) ──────────
-# Global uses pure market tape: VIX, DXY, credit, EM, oil, gold, yields
-# No FRED. No proxies. Pure price action.
-GLOBAL_W = {"g_level":0.15,"g_mom":0.50,"i_level":0.10,"i_mom":0.50,"policy":0.05,"liq":0.10}
-GLOBAL_MOD = {"sf_to_q3":0.14,"sf_to_q2":-0.08,"shock_to_q3":0.18,"shock_to_q1":-0.05,"gm_to_q2":0.05,"gm_to_q4":0.04,"cov_penalty":0.40}
+QUAD_MOD = {"sf_to_q3":0.10,"sf_to_q2":-0.05,"shock_to_q3":0.10,"shock_to_q1":-0.06,"gm_to_q2":0.03,"gm_to_q4":0.03,"cov_penalty":0.62}  # boosted Q3 signal for oil+slowdown confluence
+MONTHLY_MOD = {"sf_to_q3":0.12,"sf_to_q2":-0.06,"shock_to_q3":0.16,"shock_to_q1":-0.04,"gm_to_q2":0.04,"gm_to_q4":0.06,"cov_penalty":0.55}
 TACT_TRADE_W = {"breadth":0.35,"trend":0.25,"credit":0.20,"vol":0.20}
 TACT_TREND_W = {"spy":0.40,"eqw":0.20,"small":0.15,"sector":0.15,"dollar":0.10}
 TACT_TAIL_W  = {"vol":0.35,"credit":0.25,"small":0.20,"dollar":0.10,"narrow":0.10}
@@ -329,6 +324,7 @@ def nf(x,d=0.0): return float(np.nan_to_num(x,nan=d))
 
 @st.cache_data(ttl=TTL,show_spinner=False)
 def fetch_fred(sid:str)->pd.Series:
+    """Fetch FRED series with multi-layer fallback: live → cache → proxy → empty."""
     os.makedirs(FRED_DISK_CACHE_DIR, exist_ok=True)
     cache_path=os.path.join(FRED_DISK_CACHE_DIR,f"{sid}.csv")
     key=os.environ.get("FRED_API_KEY","")
@@ -342,31 +338,49 @@ def fetch_fred(sid:str)->pd.Series:
                 if not df.empty:
                     s=pd.to_numeric(df.iloc[:,0],errors="coerce").dropna()
                     if len(s)>0: return s
-        except: pass
+        except Exception:
+            pass
         return pd.Series(dtype=float)
 
-    urls=[f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={sid}"]
-    if key: urls.append(f"https://api.stlouisfed.org/fred/series/observations?series_id={sid}&api_key={key}&file_type=json")
-    sess=requests.Session(); sess.headers.update({"User-Agent":"Mozilla/5.0 MacroRegimePro/6.0"})
-    for _ in range(2):
-        for url in urls:
-            try:
-                r=sess.get(url,timeout=30); r.raise_for_status()
-                if "fredgraph" in url:
-                    df=pd.read_csv(StringIO(r.text),index_col=0,parse_dates=True)
-                    s=pd.to_numeric(df.iloc[:,0],errors="coerce").dropna()
-                else:
-                    import json; data=json.loads(r.text); obs=data.get("observations",[])
-                    idx=pd.to_datetime([o["date"] for o in obs])
-                    vals=pd.to_numeric([o["value"] for o in obs],errors="coerce")
-                    s=pd.Series(vals.values,index=idx).dropna()
-                if len(s)>0:
-                    try: s.to_csv(cache_path, header=[sid])
-                    except: pass
-                    return s
-            except: continue
+    def _fetch_live()->Optional[pd.Series]:
+        urls=[f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={sid}"]
+        if key: urls.append(f"https://api.stlouisfed.org/fred/series/observations?series_id={sid}&api_key={key}&file_type=json")
+        sess=requests.Session()
+        sess.headers.update({"User-Agent":"Mozilla/5.0 MacroRegimePro/11.0"})
+        for attempt in range(3):
+            for url in urls:
+                try:
+                    r=sess.get(url,timeout=(12+attempt*6))
+                    r.raise_for_status()
+                    if "fredgraph" in url:
+                        df=pd.read_csv(StringIO(r.text),index_col=0,parse_dates=True)
+                        s=pd.to_numeric(df.iloc[:,0],errors="coerce").dropna()
+                    else:
+                        import json
+                        data=json.loads(r.text)
+                        obs=data.get("observations",[])
+                        idx=pd.to_datetime([o["date"] for o in obs])
+                        vals=pd.to_numeric([o["value"] for o in obs],errors="coerce")
+                        s=pd.Series(vals.values,index=idx).dropna()
+                    if len(s)>0:
+                        try:
+                            s.to_csv(cache_path, header=[sid])
+                        except Exception:
+                            pass
+                        return s
+                except Exception:
+                    continue
+        return None
+
+    # 1. Try live fetch
+    live=_fetch_live()
+    if live is not None and len(live)>0:
+        return live
+    # 2. Try disk cache (may be stale but better than empty)
     cached=_load_cache()
-    if len(cached)>0: return cached
+    if len(cached)>0:
+        return cached
+    # 3. Return empty — build_macro will fall back to market proxies
     return pd.Series(dtype=float)
 
 @st.cache_data(ttl=TTL_FRED, show_spinner=False)
@@ -377,11 +391,11 @@ def fetch_fred_bundle(series_items: tuple) -> Dict[str, pd.Series]:
     def _fetch_one(item):
         nice, sid = item
         return nice, fetch_fred(sid)
-    with ThreadPoolExecutor(max_workers=4) as pool:
+    with ThreadPoolExecutor(max_workers=8) as pool:
         futures = {pool.submit(_fetch_one, item): item for item in series_items}
         for future in as_completed(futures):
             try:
-                nice, s = future.result(timeout=45)
+                nice, s = future.result(timeout=25)
                 result[nice] = s
             except Exception:
                 nice, sid = futures[future]
@@ -647,7 +661,7 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
     structural_obs_reliability=clamp(0.65*observed_macro_share+0.35*fred_real_share)
     structural_proxy_damp=clamp(1.0-0.55*macro_proxy_share,0.35,1.0)
     structural_speed_damp=clamp(0.20+0.80*structural_obs_reliability,0.20,1.0)
-    structural_proxy_scale=clamp(1.0-structural_obs_reliability)*0.55
+    structural_proxy_scale=clamp(1.0-structural_obs_reliability)
 
     def acc_num(v):
         if v is True: return 1.0
@@ -678,15 +692,29 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
         th(nf(f.get("eem_1m",0.0))-nf(f.get("eem_3m",0.0))/3.0,0.04),
         th(nf(f.get("rsp_1m",f.get("spy_1m",0.0)))-nf(f.get("rsp_3m",f.get("spy_3m",0.0)))/3.0,0.03),
     )
+    # Structural inflation proxy: use 3m-based signals, not 1m
+    # 1M oil/gold moves are WEATHER (monthly), not CLIMATE (structural)
+    # Breakeven inflation is the purest structural inflation signal
     i_struct_proxy_roc=nm(
-        th(nf(oil_1m)-nf(oil_3m)/3.0,0.05),
-        th(nf(bk1m),0.08),
-        th(nf(gld_1m)-nf(gld_3m)/3.0,0.04),
-        th(-nf(uup_1m),0.05),
+        th(nf(oil_3m)/3.0, 0.04),              # oil TREND (3m), dampened
+        th(nf(bk1m),0.08),                     # breakeven = forward-looking inflation
+        th(nf(gld_3m)/3.0, 0.03),              # gold TREND (3m)
+        th(nf(f.get("tlt_1m",0.0))*-1, 0.04), # TLT inverse = bond inflation signal
     )
 
     g_struct_climate=nf(structural_obs_reliability*g_struct_roc_obs + 0.70*structural_proxy_scale*g_struct_proxy_roc)
     i_struct_climate=nf(structural_obs_reliability*i_struct_roc_obs + 0.70*structural_proxy_scale*i_struct_proxy_roc)
+    # ── Sticky-inflation floor: oil alone should not drag structural inflation negative
+    # when other signals (core gap, breakeven, monthly shock) are still elevated. ──
+    _sticky_inf_signals=[
+        th(nf(f.get("headline_core_gap",0.0)),0.005),
+        th(nf(f.get("m_shock",0.0)),0.10),
+        th((f.get("breakeven",2.2)-2.2)/2.0,0.30),
+        th(-nf(f.get("uup_1m",0.0)),0.05),
+    ]
+    _sticky_inflation=float(nm(*_sticky_inf_signals))
+    if _sticky_inflation>0.15 and i_struct_climate<0.08:
+        i_struct_climate=0.08  # floor: inflation is not fully dead
 
     g_struct_proxy_mom=nm(
         th(nf(f.get("xli_1m",0.0)),0.04),
@@ -715,19 +743,24 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
     # Tariff/trade headwind: ISM below 50 + oil shock + USD strength = stagflation structural
     # This is what Hedgeye's forward-looking model captures that lagging FRED misses
     ism_last = f.get("ism_last", 51.0)
-    ism_sub50 = max(0.0, (50.0 - ism_last) / 8.0) if math.isfinite(ism_last) else 0.0
-    oil_3m_shock = clamp(nf(f.get("clf_3m", f.get("oil_3m", 0.0))) / 0.15)  # normalize: 10% = full signal
-    usd_stress = clamp(nf(f.get("uup_1m", 0.0)) / 0.05)
+    ism_sub50 = max(0.0, (50.0 - ism_last) / 5.0) if math.isfinite(ism_last) else 0.0
+    oil_3m_shock = clamp(nf(f.get("clf_3m", f.get("oil_3m", 0.0))) / 0.10)  # normalize: 10% = full signal
+    usd_stress = clamp(nf(f.get("uup_1m", 0.0)) / 0.03)
+    # Tariff headwind: use 3M oil trend (not 1M) to avoid noise from weekly swings
+    # Oil -13% in 1 week ≠ structural inflation trend change
+    # Use ISM services + manufacturing composite for Q3 sticky inflation signal
+    oil_3m_val = nf(f.get("clf_3m", f.get("oil_3m", 0.0)))
+    oil_headwind = clamp(oil_3m_val / 0.10) if oil_3m_val > 0 else 0.0  # only when oil UP on 3m basis
     tariff_growth_headwind = clamp(
         0.35 * ism_sub50
-        + 0.30 * oil_3m_shock  # oil up = inflation pressure that hits consumers
-        + 0.20 * usd_stress     # USD up = EM/export headwind
-        + 0.15 * max(0.0, f.get("claims_13w_delta", 0.0) / 20.0)  # claims rising
+        + 0.30 * oil_headwind
+        + 0.20 * usd_stress
+        + 0.15 * max(0.0, f.get("claims_13w_delta", 0.0) / 20.0)
     )
     structural_slowdown_flags = clamp(
-        0.55 * sf
+        0.45 * sf
         + 0.30 * max(0.0, -g_struct_climate)
-        + 0.15 * tariff_growth_headwind  # NEW: forward-looking headwind
+        + 0.25 * tariff_growth_headwind  # NEW: forward-looking headwind
     )
     structural_inf_shock=clamp(0.60*max(0.0,i_struct_climate)+0.40*max(0.0,i_struct_proxy_mom))
     policy_score=th(-nf(f.get("policy_rate_3m",0.0)),0.50)
@@ -803,6 +836,10 @@ def _score_block(g_level,g_mom,i_level,i_mom,policy,liq,sf,shock,data_cov,proxy_
     raw["Q2"]+=mw["gm_to_q2"]*max(0.0,g_mom)+mw["sf_to_q2"]*sf
     raw["Q3"]+=mw["sf_to_q3"]*sf+mw["shock_to_q3"]*max(0.0,shock)
     raw["Q4"]+=mw["gm_to_q4"]*max(0.0,-g_mom)
+    # Penalty: high inflation shock makes pure-deflationary Q4 less likely
+    raw["Q4"]-=0.12*max(0.0,shock)
+    # Penalty: high inflation shock makes pure-deflationary Q4 less likely
+    raw["Q4"]-=0.12*max(0.0,shock)
     prior_adj={k:raw[k] for k in raw}  # prior=off, no adjustment
     arr=np.array([prior_adj[q] for q in ["Q1","Q2","Q3","Q4"]],dtype=float)
     exp=np.exp(arr-arr.max()); prbs=exp/exp.sum()
@@ -845,6 +882,25 @@ def build_quad(f:Dict)->Dict:
     i_acc=f.get("cpi_acc") or f.get("corepce_acc")
     if i_acc is None: i_acc=(s_ic>0)
     cb=conf_band(s_conf)
+    
+    # STRUCTURAL STICKINESS: Hedgeye anchors quarterly quad for ~3 months
+    # A single week of data (oil -13%) should NOT flip structural Q3 → Q4
+    # Implementation: when confidence < 25% and top quad is Q4,
+    # apply a Q3 prior bias if ISM Prices Paid remains elevated (>65)
+    # This mimics Hedgeye's "sticky quarterly" behavior
+    _prices_paid_proxy = f.get("prices_paid_composite", f.get("ism_mfg_prices", 65.0) or 65.0)
+    _oil_3m_trend = nf(f.get("clf_3m", f.get("oil_3m", 0.0)))
+    _sticky_q3 = (
+        float(_prices_paid_proxy or 65.0) >= 65.0  # inflation still elevated
+        and _oil_3m_trend > -0.05  # oil not in full collapse (>-5% on 3m)
+        and s_conf < 0.25           # low confidence = borderline
+        and s_quad == "Q4"          # currently showing Q4
+    )
+    if _sticky_q3:
+        # Hedgeye's quarterly anchor: bias back toward Q3 when sticky inflation
+        s_quad = "Q3"
+        s_probs = {**s_probs, "Q3": s_probs.get("Q3", 0.20) + 0.08, "Q4": max(0, s_probs.get("Q4", 0.26) - 0.08)}
+    
     # Transitional state: when confidence < 20% AND spread between top 2 quads is < 5%, label it
     q_ordered = sorted(s_probs.items(), key=lambda x: -x[1])
     top_spread = q_ordered[0][1] - q_ordered[1][1]
@@ -856,109 +912,6 @@ def build_quad(f:Dict)->Dict:
                 divergence=div,operating=operating,flip_hazard=flip_h,deepness=deepness,duration_mat=duration_mat,
                 g_core=adj_gc,i_core=s_ic,p_core=s_pc,g_level=s_gc,i_level=s_ic,
                 growth_acc=g_acc,infl_acc=i_acc,slowdown_flags=sf,inf_shock=shock)
-
-def build_global_quad(f:Dict)->Dict:
-    """
-    Hedgeye-style GLOBAL QUAD — real-time market-implied, ~1 week horizon.
-    Uses ONLY market prices (no FRED, no proxies). Pure tape reading.
-    """
-    vix = f.get("vix_last", 20.0)
-    vix_1m = f.get("vix_1m", 0.0)
-    vix_vxv = f.get("vix_vxv_ratio", 0.9)
-    uup_1m = nf(f.get("uup_1m", f.get("dxy_1m", 0.0)))
-    uup_3m = nf(f.get("uup_3m", f.get("dxy_3m", 0.0)))
-    oil_1m = nf(f.get("clf_1m", f.get("oil_1m", 0.0)))
-    oil_3m = nf(f.get("clf_3m", f.get("oil_3m", 0.0)))
-    gold_1m = nf(f.get("gcf_1m", f.get("gold_1m", 0.0)))
-    gold_3m = nf(f.get("gld_3m", f.get("gold_3m", 0.0)))
-    spy_1m = nf(f.get("spy_1m", 0.0))
-    spy_3m = nf(f.get("spy_3m", 0.0))
-    qqq_1m = nf(f.get("qqq_1m", 0.0))
-    iwm_1m = nf(f.get("iwm_1m", 0.0))
-    rsp_1m = nf(f.get("rsp_1m", spy_1m))
-    eem_1m = nf(f.get("eem_1m", 0.0))
-    tlt_1m = nf(f.get("tlt_1m", 0.0))
-    hyg_1m = nf(f.get("hyg_1m", 0.0))
-
-    # Growth signal
-    vix_growth = th(-vix_1m/20.0, 0.50) if math.isfinite(vix_1m) else 0.0
-    breadth = th(rsp_1m - 0.5*qqq_1m, 0.04)
-    small = th(iwm_1m, 0.06)
-    em = th(eem_1m, 0.06)
-    tlt_growth = th(-tlt_1m, 0.06)
-    g_global = nm(vix_growth, breadth, small, em, tlt_growth)
-    g_global_mom = nm(
-        th(spy_1m - spy_3m/3.0, 0.03),
-        th(iwm_1m - nf(f.get("iwm_3m",0.0))/3.0, 0.04),
-        th(eem_1m - nf(f.get("eem_3m",0.0))/3.0, 0.04),
-        th(rsp_1m - nf(f.get("rsp_3m",rsp_1m))/3.0, 0.03),
-    )
-
-    # Inflation signal
-    oil_inf = th(oil_1m, 0.06)
-    gold_inf = th(gold_1m, 0.05)
-    breakeven_proxy = th(nf(f.get("breakeven_1m",0.0)), 0.08)
-    dxy_inf = th(-uup_1m, 0.05)
-    i_global = nm(oil_inf, gold_inf, breakeven_proxy, dxy_inf)
-    i_global_mom = nm(
-        th(oil_1m - oil_3m/3.0, 0.05),
-        th(gold_1m - gold_3m/3.0, 0.04),
-        th(-uup_1m - (-uup_3m)/3.0, 0.04),
-    )
-
-    # Policy / Liquidity
-    policy_global = th(-nf(f.get("policy_rate_3m",0.0)), 0.50)
-    liq_global = nm(th(-uup_3m, 0.12), th(tlt_1m, 0.08))
-
-    # Shock / Slowdown flags
-    credit_stress = 0.0
-    if math.isfinite(hyg_1m) and hyg_1m < -0.03: credit_stress += 0.5
-    if vix > 25: credit_stress += 0.3
-    if math.isfinite(vix_vxv) and vix_vxv > 1.0: credit_stress += 0.2
-    sf_global = clamp(credit_stress + max(0, -g_global)*0.3)
-
-    inf_shock_global = 0.0
-    if oil_1m > 0.05: inf_shock_global += 0.4
-    if gold_1m > 0.03: inf_shock_global += 0.2
-    if vix < 22: inf_shock_global += 0.2
-    inf_shock_global = clamp(inf_shock_global)
-
-    # Score
-    g_probs, g_quad, g_next, g_conf, g_gc, g_ic, g_pc = _score_block(
-        clamp(g_global), clamp(g_global_mom),
-        clamp(i_global), clamp(i_global_mom),
-        policy_global, liq_global, sf_global, inf_shock_global,
-        0.85, 0.0, GLOBAL_W, GLOBAL_MOD, monthly=False
-    )
-
-    # VIX override
-    if vix >= 30:
-        g_probs["Q4"] = max(g_probs.get("Q4",0), 0.35)
-        g_probs["Q3"] = max(g_probs.get("Q3",0), 0.25)
-        total = sum(g_probs.values())
-        g_probs = {k: v/total for k,v in g_probs.items()}
-        g_ordered = sorted(g_probs.items(), key=lambda kv: kv[1], reverse=True)
-        g_quad = g_ordered[0][0]
-
-    # Oil shock override
-    if oil_3m > 0.10 and uup_1m > 0.02 and g_global < 0:
-        g_probs["Q3"] = max(g_probs.get("Q3",0), 0.40)
-        total = sum(g_probs.values())
-        g_probs = {k: v/total for k,v in g_probs.items()}
-        g_ordered = sorted(g_probs.items(), key=lambda kv: kv[1], reverse=True)
-        g_quad = g_ordered[0][0]
-
-    return dict(
-        quad=g_quad, probs=g_probs, next_quad=g_next, confidence=g_conf,
-        g_core=g_gc, i_core=g_ic, p_core=g_pc,
-        g_level=g_global, g_mom=g_global_mom,
-        i_level=i_global, i_mom=i_global_mom,
-        slowdown_flags=sf_global, inf_shock=inf_shock_global,
-        vix=vix, uup_1m=uup_1m, oil_1m=oil_1m, gold_1m=gold_1m,
-        spy_1m=spy_1m, iwm_1m=iwm_1m, eem_1m=eem_1m,
-        data_source="pure_market_realtime",
-    )
-
 
 def _match_analog(f:Dict)->Dict:
     oil_3m=nf(f.get("clf_3m",f.get("oil_3m",0.0)))
@@ -1413,7 +1366,269 @@ _CORE_TICKERS = (
 def fetch_prices_core(period: str = "2y") -> Dict[str, pd.Series]:
     return fetch_prices(_CORE_TICKERS, period=period)
 
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NARRATIVE BOTTLENECK ENGINE v11 — Front-run macro narrative detection
+# Inspired by Citrini Research, Jukan, Zephyr, Serenity methodology.
+# Detects supply-chain, policy, and positioning bottlenecks BEFORE price fully
+# reflects them, then maps affected tickers across all markets.
+# ═══════════════════════════════════════════════════════════════════════════════
+
+NARRATIVE_REGISTRY = [
+    {
+        "id": "warsh_liquidity_injection",
+        "name": "Warsh Liquidity Injection / Most Hated Rally",
+        "category": "policy",
+        "desc": "Fed Chair Warsh commits to lower rates. ON RRP drained. Liquidity hunt begins.",
+        "triggers": {
+            "policy_score": (-1.0, -0.15),      # dovish
+            "tlt_1m": (0.015, 1.0),             # bonds rally = cuts priced
+            "vix_last": (0.0, 22.0),            # calm
+        },
+        "confirmers": {
+            "uup_1m": (-0.05, 0.0),             # DXY softening
+            "m_shock": (0.0, 0.30),             # inflation not exploding
+        },
+        "tickers": {
+            "US": ["QQQ","IWM","XLF","EEM","RSP"],
+            "IHSG": ["BBCA.JK","BBRI.JK","BMRI.JK","TLKM.JK"],
+            "FX": ["EURUSD=X","AUDUSD=X","IDR=X"],
+            "Commodities": ["GC=F","HG=F"],
+            "Crypto": ["BTC-USD","ETH-USD","SOL-USD"],
+        },
+        "front_run": True,
+        "conviction_boost": 0.18,
+    },
+    {
+        "id": "taco_ch2_relief",
+        "name": "TACO Ch.2 De-escalation Relief",
+        "category": "geopolitics",
+        "desc": "Iran de-escalation before FIFA 2026 deadline. Oil rolls off. Risk-on broadens.",
+        "triggers": {
+            "clf_1m": (-0.15, -0.02),           # oil rolling off 1M
+            "vix_last": (0.0, 20.0),            # fear subsiding
+            "uup_1m": (-0.05, 0.0),             # DXY soft
+        },
+        "confirmers": {
+            "clf_3m": (-0.20, 0.0),             # oil trend not spiking
+        },
+        "tickers": {
+            "US": ["QQQ","IWM","XLY","XLK","XLI"],
+            "IHSG": ["BBCA.JK","BBRI.JK","BMRI.JK","ADRO.JK"],
+            "FX": ["EURUSD=X","IDR=X"],
+            "Commodities": ["GC=F"],            # gold holds
+            "Crypto": ["BTC-USD","ETH-USD","SOL-USD"],
+        },
+        "front_run": True,
+        "conviction_boost": 0.16,
+    },
+    {
+        "id": "stagflation_sticky",
+        "name": "Sticky Stagflation / Supply Bottleneck",
+        "category": "inflation",
+        "desc": "Growth slowing but inflation sticky from supply constraints. Hard assets win.",
+        "triggers": {
+            "g_struct_level": (-1.0, -0.05),      # growth down
+            "headline_core_gap": (0.003, 1.0),   # supply-driven inflation
+            "m_shock": (0.10, 1.0),              # monthly shock elevated
+        },
+        "confirmers": {
+            "gld_1m": (0.0, 1.0),                # gold bid
+            "uup_1m": (0.0, 0.05),               # USD firm
+        },
+        "tickers": {
+            "US": ["GLD","GC=F","XLE","XLP","XLU"],
+            "IHSG": ["ADRO.JK","PTBA.JK","ANTM.JK","TLKM.JK"],
+            "FX": ["USD","JPY=X","CHF=X"],
+            "Commodities": ["GC=F","CL=F","SI=F"],
+            "Crypto": ["BTC-USD"],
+        },
+        "front_run": False,  # already visible
+        "conviction_boost": 0.14,
+    },
+    {
+        "id": "ai_compute_bottleneck",
+        "name": "AI Compute / Semiconductor Bottleneck",
+        "category": "technology",
+        "desc": "AI demand outstrips supply. NVDA/AVGO/AMD lead. Front-run: equipment & power.",
+        "triggers": {
+            "nvda_1m": (0.05, 1.0),              # NVDA leading
+            "qqq_1m": (0.02, 1.0),              # growth tape strong
+        },
+        "confirmers": {
+            "xlk_1m": (0.02, 1.0),             # tech sector broad
+        },
+        "tickers": {
+            "US": ["NVDA","AVGO","AMD","AAPL","MSFT","META"],
+            "IHSG": [],  # no direct AI compute yet
+            "FX": [],
+            "Commodities": ["HG=F","GC=F"],     # copper for data centers
+            "Crypto": ["SOL-USD","LINK-USD"],   # AI-crypto proxies
+        },
+        "front_run": True,
+        "conviction_boost": 0.12,
+    },
+    {
+        "id": "indonesia_msci_flow",
+        "name": "Indonesia MSCI / EM Rebalancing Bottleneck",
+        "category": "em",
+        "desc": "OJK-MSCI meeting catalyst. Foreign flow turn = front-run IHSG quality.",
+        "triggers": {
+            "foreign_flow": (0.55, 1.0),         # IHSG foreign flow turning positive
+            "usd_idr_1m": (-0.03, 0.0),        # IDR stabilizing
+        },
+        "confirmers": {
+            "jkse_1m": (0.0, 1.0),             # IHSG momentum
+        },
+        "tickers": {
+            "US": ["EEM"],
+            "IHSG": ["BBCA.JK","BBRI.JK","BMRI.JK","TLKM.JK","ADRO.JK"],
+            "FX": ["IDR=X"],
+            "Commodities": [],
+            "Crypto": [],
+        },
+        "front_run": True,
+        "conviction_boost": 0.15,
+    },
+    {
+        "id": "credit_duration_stress",
+        "name": "Credit / Duration Bottleneck",
+        "category": "credit",
+        "desc": "Long-end pain + HY widening. Defensive rotation into TLT & quality.",
+        "triggers": {
+            "tlt_1m": (-0.05, -0.01),           # bonds selling off
+            "hy_oas": (350.0, 9999.0),          # HY spreads elevated
+        },
+        "confirmers": {
+            "vix_last": (18.0, 9999.0),         # vol elevated
+        },
+        "tickers": {
+            "US": ["TLT","SHY","XLP","XLU","XLV"],
+            "IHSG": ["TLKM.JK","ICBP.JK","KLBF.JK"],
+            "FX": ["JPY=X","CHF=X"],
+            "Commodities": ["GC=F"],
+            "Crypto": [],
+        },
+        "front_run": False,
+        "conviction_boost": 0.10,
+    },
+    {
+        "id": "smallcap_crowded_unwind",
+        "name": "Small Cap Crowded Trade Unwind",
+        "category": "positioning",
+        "desc": "IWM underperform + narrow breadth = crowded long unwind risk. Fade beta.",
+        "triggers": {
+            "iwm_1m": (-0.10, -0.02),           # small cap lagging
+            "breadth": (0.0, 0.45),             # breadth fragile
+        },
+        "confirmers": {
+            "vix_last": (20.0, 9999.0),         # vol rising
+        },
+        "tickers": {
+            "US": ["IWM","HYG"],                # short or avoid
+            "IHSG": ["BSDE.JK","CTRA.JK"],      # property risk
+            "FX": [],
+            "Commodities": [],
+            "Crypto": ["DOGE-USD","ADA-USD"],   # high-beta alts
+        },
+        "front_run": False,
+        "conviction_boost": 0.10,
+    },
+]
+
+
+def _check_trigger(feat:Dict, key:str, bounds:Tuple[float,float])->float:
+    """Return 1.0 if inside bounds, 0.0 if outside, linear fade at edges."""
+    v=feat.get(key)
+    if v is None:
+        return 0.0
+    try:
+        v=float(v)
+    except Exception:
+        return 0.0
+    lo,hi=bounds
+    if lo<=v<=hi:
+        return 1.0
+    fade=0.10*max(abs(lo),abs(hi),0.01)
+    if v<lo:
+        return max(0.0,1.0-(lo-v)/fade)
+    return max(0.0,1.0-(v-hi)/fade)
+
+
+def build_narrative_bottlenecks(f:Dict, q:Dict, h:Dict, prices:Dict[str,pd.Series], rot:Dict)->Dict:
+    """
+    Detect active narrative bottlenecks and map to tickers per market.
+    Returns: {"active": [...], "front_run_picks": [...], "summary": str}
+    """
+    feat=dict(f)
+    feat.update({
+        "nvda_1m":ret_n(prices.get("NVDA",pd.Series()),21),
+        "qqq_1m":ret_n(prices.get("QQQ",pd.Series()),21),
+        "xlk_1m":ret_n(prices.get("XLK",pd.Series()),21),
+        "foreign_flow":rot.get("ihsg",{}).get("foreign_flow",0.5) if isinstance(rot.get("ihsg"),dict) else 0.5,
+        "usd_idr_1m":rot.get("ihsg",{}).get("usd_idr_1m",0.0) if isinstance(rot.get("ihsg"),dict) else 0.0,
+        "jkse_1m":rot.get("ihsg",{}).get("jkse_1m",0.0) if isinstance(rot.get("ihsg"),dict) else 0.0,
+        "breadth":h.get("breadth",0.5),
+    })
+
+    active=[]
+    front_run_picks=[]
+    for narr in NARRATIVE_REGISTRY:
+        trig_scores=[_check_trigger(feat,k,b) for k,b in narr["triggers"].items()]
+        trig_score=float(np.mean(trig_scores)) if trig_scores else 0.0
+        conf_scores=[_check_trigger(feat,k,b) for k,b in narr["confirmers"].items()]
+        conf_score=float(np.mean(conf_scores)) if conf_scores else 0.0
+        composite=0.55*trig_score+0.35*conf_score+0.10*(1.0 if narr["front_run"] else 0.0)
+        if composite<0.35:
+            continue
+        affected={mkt:tks for mkt,tks in narr["tickers"].items() if tks}
+        active.append({
+            "id":narr["id"],
+            "name":narr["name"],
+            "category":narr["category"],
+            "stage":"front-run" if (narr["front_run"] and composite<0.65) else "active",
+            "conviction":round(composite,3),
+            "trig_score":round(trig_score,3),
+            "conf_score":round(conf_score,3),
+            "description":narr["desc"],
+            "affected":affected,
+            "boost":narr["conviction_boost"],
+        })
+        if narr["front_run"] and composite>=0.45:
+            for mkt,tks in affected.items():
+                for tk in tks[:3]:
+                    front_run_picks.append({
+                        "ticker":tk,
+                        "market":mkt,
+                        "narrative":narr["name"],
+                        "conviction":round(composite,3),
+                        "front_run":True,
+                        "rationale":narr["desc"][:90],
+                    })
+    active.sort(key=lambda x:x["conviction"],reverse=True)
+    seen=set()
+    deduped=[]
+    for p in sorted(front_run_picks,key=lambda x:x["conviction"],reverse=True):
+        if p["ticker"] not in seen:
+            seen.add(p["ticker"])
+            deduped.append(p)
+    summary="No dominant narrative." if not active else f"Top: {active[0]['name']} ({active[0]['conviction']:.0%})"
+    return {"active":active,"front_run_picks":deduped[:15],"summary":summary}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# End Narrative Bottleneck Engine
+# ═══════════════════════════════════════════════════════════════════════════════
+
 def load_all()->Dict:
+    # ── v11 engine fallback init (prevents UnboundLocalError) ───────────────────
+    options_regime:Dict={}; regime_transition:Dict={}; regime_tickers:Dict={}
+    narrative_discovery:Dict={}; bei_flow:Dict={}; broker_flow:Dict={}
+    broker_confirm:Dict={}; usd_corr:Dict={}; global_quad_data:Dict={}
+    regional_surveys:Dict={}; frontrun_data:Dict={}; gdpnow:Dict={}
+    data_freshness:Dict={}; backtest_data:Dict={}; intraday_dict:Dict={}
+    position_data:Dict={}
+    # ────────────────────────────────────────────────────────────────────────────
     price_period=str(os.environ.get("MRP_PRICE_PERIOD","2y") or "2y").strip() or "2y"
 
     # Phase 1: Core tickers (fast — only what regime engine needs)
@@ -1466,12 +1681,9 @@ def load_all()->Dict:
         f = build_macro(fred, prices, price_meta=price_meta)
         q = build_quad(f)
     # ─────────────────────────────────────────────────────────────────────────────
-    # ── 3-QUAD SYSTEM: Structural + Monthly + Global ──────────────────────────
-    gq=build_global_quad(f)  # Global real-time quad
     h=build_health(prices,f)
     cr=build_crash(f,h,q,prices=prices); rot=build_rotation(q,h,f,prices); ih=build_ihsg(prices,q,f)
     analog=_match_analog(f); pb=build_playbooks(f,q); sc=build_scenarios(q,f,h,analog,pb)
-    narrative_discovery=build_narrative_discovery(prices,q,f)
     chk=build_checklists(f,h,q,ih)
     most_hated=build_most_hated_rally_monitor(f,prices)
     family=get_dominant_family(q,f,rot)
@@ -1487,20 +1699,7 @@ def load_all()->Dict:
     fwd_radar=build_forward_radar(prices,q,f,route=route,opps=opps,risk_ranges=risk_ranges,most_hated=most_hated,news_overlay=news_overlay)
     signal_strength=build_signal_strength(opps,prices,q,f,h,risk_ranges=risk_ranges,route=route,crash=cr,sizing=sizing)
     top_drivers=build_top_drivers_now(q,f,h,cr,route,most_hated,news_overlay)
-    # ── Initialize ALL optional v11 outputs BEFORE any try blocks ────────────
-    options_regime = {}
-    regime_transition = {}
-    regime_tickers = {}
-    narrative_discovery = {}
-    bei_flow = {}
-    broker_flow = {}
-    broker_confirm = {}
-    data_freshness = {}
-    backtest_data = {}
-    intraday_dict = {}
-    position_data = {}
-
-        # ── New intelligence engines (v11) ──────────────────────────────────────────
+    # ── New intelligence engines (v11) ──────────────────────────────────────────
     try:
         from engines.regime_transition_engine import RegimeTransitionEngine
         from engines.regime_ticker_engine import RegimeTickerEngine
@@ -1635,9 +1834,40 @@ def load_all()->Dict:
         }
 
         # BEI foreign flow + broker flow
-        bei_flow = load_bei_foreign_flow()
+        bei_flow = load_bei_foreign_flow(prices=prices)
         broker_flow = load_broker_flow()
         broker_confirm = get_broker_regime_confirmation(broker_flow, ticker_obj.ihsg_buys)
+
+        # --- USD Correlation (THE mythic variable) ---
+        from engines.usd_correlation_engine import build_usd_correlation_matrix
+        usd_corr = build_usd_correlation_matrix(prices)
+
+        # --- Global Quad (50 countries) ---
+        from engines.global_quad_engine import run_global_quad_engine
+        global_quad_data = run_global_quad_engine(
+            prices,
+            us_structural_quad=q.get("quad","Q3"),
+            us_monthly_quad=q.get("monthly_quad","Q2"),
+            usd_trend=usd_corr.get("usd_trend","neutral"),
+        )
+
+        # --- Regional Survey (ISM New Orders, CapEx, Prices Paid) ---
+        from engines.regional_survey_engine import load_regional_surveys
+        regional_surveys = load_regional_surveys()
+
+        # --- Front-Run Engine (Signal + Quad ticker selection) ---
+        from engines.frontrun_engine import run_frontrun_engine
+        frontrun_data = run_frontrun_engine(
+            prices,
+            s_quad=q.get("quad","Q3"),
+            m_quad=q.get("monthly_quad","Q2"),
+            usd_trend=usd_corr.get("usd_trend","neutral"),
+            usd_correlations=usd_corr.get("correlations",{}),
+        )
+
+        # --- GDPNow (forward-looking GDP) ---
+        from data.gdpnow_loader import load_gdpnow
+        gdpnow = load_gdpnow()
 
         # --- Data freshness ---
         from engines.data_freshness_engine import build_data_freshness_report
@@ -1708,90 +1938,19 @@ def load_all()->Dict:
             "history": get_position_history(10),
         }
 
-    except Exception as _e:
-        # v11 engines failed — keep defaults (already initialized above)
-        import traceback as _tb
-        _tb.print_exc()
-
-    # --- Data freshness / backtest / intraday / positions (separate try block) ---
-    try:
-        from engines.data_freshness_engine import build_data_freshness_report
-        data_freshness = build_data_freshness_report(fred, prices)
-
-        # --- Backtest (cached per session, expensive) ---
-        from engines.backtest_quad_engine import run_backtest, format_backtest_summary
-        @st.cache_data(ttl=3600*6, show_spinner=False)
-        def _run_backtest_cached(price_keys):
-            return run_backtest(prices)
-        try:
-            # Backtest is expensive on first run — use session state to defer
-            if "backtest_done" not in st.session_state:
-                bt_results = _run_backtest_cached(tuple(sorted(prices.keys()))[:30])  # limit tickers for speed
-                backtest_data = format_backtest_summary(bt_results)
-                st.session_state["backtest_done"] = True
-                st.session_state["backtest_data"] = backtest_data
-            else:
-                backtest_data = st.session_state.get("backtest_data", {})
-        except Exception:
-            backtest_data = {}
-
-        # --- Intraday regime update ---
-        from engines.intraday_regime_engine import run_intraday_update
-        intraday_update = run_intraday_update(prices, q.get("quad","Q?"))
-        intraday_dict = {
-            "spy_1d": intraday_update.spy_1d,
-            "vix_1d": intraday_update.vix_1d,
-            "oil_1d": intraday_update.oil_1d,
-            "tlt_1d": intraday_update.tlt_1d,
-            "risk_on": intraday_update.risk_on_signal,
-            "inflation_pressure": intraday_update.inflation_pressure,
-            "flight_to_safety": intraday_update.flight_to_safety,
-            "credit_stress": intraday_update.credit_stress,
-            "q1_shift": intraday_update.q1_shift,
-            "q2_shift": intraday_update.q2_shift,
-            "q3_shift": intraday_update.q3_shift,
-            "q4_shift": intraday_update.q4_shift,
-            "intraday_regime": intraday_update.intraday_regime,
-            "signal_strength": intraday_update.signal_strength,
-            "summary": intraday_update.summary,
-            "action_note": intraday_update.action_note,
-        }
-
-        # --- Position tracker ---
-        from engines.position_tracker_engine import (
-            get_active_positions, enrich_positions_with_prices,
-            generate_exit_signals, get_position_history
-        )
-        raw_positions = get_active_positions()
-        active_positions = enrich_positions_with_prices(raw_positions, prices)
-        exit_signals = generate_exit_signals(active_positions, q.get("quad","Q?"), q.get("flip_hazard",0.3))
-        position_data = {
-            "active": [
-                {"id":p.id,"ticker":p.ticker,"market":p.market,"side":p.side,
-                 "entry_price":p.entry_price,"entry_date":p.entry_date,"entry_quad":p.entry_quad,
-                 "size_pct":p.size_pct,"current_price":p.current_price,"pnl_pct":p.pnl_pct,
-                 "days_held":p.days_held,"stop_price":p.stop_price,"target_price":p.target_price,
-                 "stop_hit":p.stop_hit,"target_hit":p.target_hit,
-                 "exit_signal_score":p.exit_signal_score,"notes":p.notes}
-                for p in active_positions
-            ],
-            "exit_signals": [
-                {"id":s.position_id,"ticker":s.ticker,"urgency":s.urgency,
-                 "reason":s.reason,"action":s.action}
-                for s in exit_signals
-            ],
-            "history": get_position_history(10),
-        }
-
-    except Exception as _e2:
-        # Data freshness / backtest / intraday / positions failed — keep defaults
-        import traceback as _tb2
-        _tb2.print_exc()
+    except Exception as _e_v11:
+        import traceback as _tb_v11
+        _tb_v11.print_exc()
+        # Fallbacks already initialized at top of load_all
 
 
     try: progress_bar.empty()
     except Exception: pass
-    return dict(prices=prices,price_meta=price_meta,fred=fred,f=f,q=q,gq=gq,h=h,crash=cr,rotation=rot,ihsg=ih,
+    # ── Narrative Bottleneck Engine call (v11) ────────────────────────────────
+    narrative_output=build_narrative_bottlenecks(f,q,h,prices,{"ihsg":ih})
+    narrative_front_run=narrative_output.get("front_run_picks",[])
+    # ────────────────────────────────────────────────────────────────────────────
+    return dict(prices=prices,price_meta=price_meta,fred=fred,f=f,q=q,h=h,crash=cr,rotation=rot,ihsg=ih,
                 analog=analog,playbooks=pb,scenarios=sc,checklists=chk,
                 most_hated_rally=most_hated,opportunities=opps,signal_strength=signal_strength,family=family,risk_ranges=risk_ranges,
                 position_sizing=sizing,asset_checklists=asset_chk,macro_impact=macro_impact,
@@ -1801,9 +1960,15 @@ def load_all()->Dict:
                 regime_transition=regime_transition,
                 regime_tickers=regime_tickers,
                 narrative_discovery=narrative_discovery,
+                narrative_bottlenecks=narrative_output,
                 bei_flow=bei_flow,
                 broker_flow=broker_flow,
                 broker_confirm=broker_confirm,
+                usd_corr=usd_corr,
+                global_quad=global_quad_data,
+                regional_surveys=regional_surveys,
+                frontrun=frontrun_data,
+                gdpnow=gdpnow,
                 data_freshness=data_freshness,
                 backtest_data=backtest_data,
                 intraday=intraday_dict,
@@ -2197,8 +2362,16 @@ def build_opportunities(prices:Dict[str,pd.Series], q:Dict, f:Dict, h:Dict, rot:
                 0.18*rr_quality,
                 0.0,1.0
             ))
+            # ── Narrative Bottleneck boost (v11) ──────────────────────────────────
+            narr_boost=0.0
+            if 'narrative_front_run' in globals():
+                for npick in narrative_front_run:
+                    if npick.get("ticker")==tk and npick.get("market")==market:
+                        narr_boost=npick.get("conviction",0.0)*0.15  # up to +15% EV
+                        break
+            # ──────────────────────────────────────────────────────────────────────
             final_ev=float(np.clip(
-                (ev_base + rally_adj)
+                (ev_base + rally_adj + narr_boost)
                 * (0.72 + 0.28*conf)
                 * (0.72 + 0.28*weather)
                 * (0.70 + 0.30*route_conf)
@@ -2754,300 +2927,6 @@ def _chk(score:float)->(str,str):
     if score>=0.62: return "✓","good"
     if score>=0.42: return "~","warn"
     return "✗","bad"
-
-
-
-def build_narrative_discovery(prices:Dict[str,pd.Series], q:Dict, f:Dict) -> Dict:
-    """Narrative Bottleneck Engine v2.0 — cross-market, auto-detect, front-run optimized."""
-    quad = q.get("quad", "Q3")
-    monthly_quad = q.get("monthly_quad", quad)
-
-    # Momentum engine untuk SEMUA ticker
-    momentum: Dict[str, Dict] = {}
-    for tk, s in prices.items():
-        s2 = _s(s)
-        if len(s2) < 30: continue
-        r1 = ret_n(s2, 21); r3 = ret_n(s2, 63); r5 = ret_n(s2, 5)
-        acc = clamp((r5*4 + r1 - r3*0.5) * 1.5) if all(math.isfinite(v) for v in [r1,r3,r5]) else None
-        momentum[tk] = {"tk": tk, "r1": r1, "r3": r3, "r5": r5, "acc": acc, "trend": ts(s2), "px": last(s2)}
-
-    # Thematic Clusters (cross-market)
-    clusters = [
-        {"name": "AI Infrastructure / Compute", "theme": "ai_compute",
-         "tickers": ["NVDA","AMD","AVGO","MRVL","ANET","SMCI","DELL","QQQ","XLK"],
-         "market": "US", "proxy_macro": ["growth", "liquidity"], "bottleneck_type": "supply_constraint"},
-        {"name": "Optical Interconnect / Photonics", "theme": "optics_photonics",
-         "tickers": ["LITE","COHR","FN","MRVL","AMAT","LRCX","INTC","AVGO"],
-         "market": "US", "proxy_macro": ["growth", "ai_compute"], "bottleneck_type": "supply_constraint"},
-        {"name": "Energy / Oil Shock", "theme": "oil_geopol",
-         "tickers": ["XLE","XOM","CVX","OXY","COP","USO","CL=F","BZ=F","NG=F"],
-         "market": "US", "proxy_macro": ["inflation", "oil"], "bottleneck_type": "geopolitical_supply"},
-        {"name": "Coal / Energy Export (Indonesia)", "theme": "coal_export_id",
-         "tickers": ["ADRO.JK","PTBA.JK","ITMG.JK","HRUM.JK","AADI.JK","BUMI.JK"],
-         "market": "IHSG", "proxy_macro": ["inflation", "oil", "usd_idr"], "bottleneck_type": "commodity_export"},
-        {"name": "Metals / Mining (Indonesia)", "theme": "metal_mining_id",
-         "tickers": ["ANTM.JK","INCO.JK","MDKA.JK","TINS.JK"],
-         "market": "IHSG", "proxy_macro": ["inflation", "growth"], "bottleneck_type": "supply_constraint"},
-        {"name": "Copper / Electrification", "theme": "copper_supply",
-         "tickers": ["FCX","SCCO","HG=F","ANTM.JK","MDKA.JK"],
-         "market": "Mixed", "proxy_macro": ["inflation", "growth"], "bottleneck_type": "supply_constraint"},
-        {"name": "BTC Liquidity / Crypto", "theme": "btc_liquidity",
-         "tickers": ["BTC-USD","MSTR","COIN","IBIT","ETH-USD","SOL-USD","BNB-USD","XRP-USD"],
-         "market": "Crypto", "proxy_macro": ["liquidity", "usd"], "bottleneck_type": "liquidity_rotation"},
-        {"name": "Gold / Hard Asset", "theme": "gold_hardasset",
-         "tickers": ["GC=F","GLD","SI=F","PL=F"],
-         "market": "Commodities", "proxy_macro": ["inflation", "usd"], "bottleneck_type": "safe_haven"},
-        {"name": "Indonesia Banking Quality", "theme": "ihsg_bank",
-         "tickers": ["BBCA.JK","BBRI.JK","BMRI.JK","BBNI.JK","BRIS.JK"],
-         "market": "IHSG", "proxy_macro": ["growth", "usd_idr"], "bottleneck_type": "quality_flow"},
-        {"name": "Indonesia Consumer / Domestic", "theme": "ihsg_consumer",
-         "tickers": ["ICBP.JK","INDF.JK","KLBF.JK","AMRT.JK","ACES.JK","ASII.JK"],
-         "market": "IHSG", "proxy_macro": ["growth", "usd_idr"], "bottleneck_type": "domestic_demand"},
-        {"name": "Indonesia Telco / Infrastructure", "theme": "ihsg_infra",
-         "tickers": ["TLKM.JK","EXCL.JK","JSMR.JK","PGAS.JK"],
-         "market": "IHSG", "proxy_macro": ["defensive", "usd_idr"], "bottleneck_type": "defensive_quality"},
-        {"name": "Defensive / Staples", "theme": "defensive_staples",
-         "tickers": ["XLP","XLU","XLV","TLKM.JK","ICBP.JK","KLBF.JK","PGAS.JK"],
-         "market": "Mixed", "proxy_macro": ["slowdown", "defensive"], "bottleneck_type": "defensive_rotation"},
-        {"name": "Small Cap / Breadth Catch-up", "theme": "smallcap_breadth",
-         "tickers": ["IWM","RSP","EEM","^JKSE"],
-         "market": "Mixed", "proxy_macro": ["breadth", "liquidity"], "bottleneck_type": "breadth_expansion"},
-        {"name": "Long Duration / Bond", "theme": "duration_bond",
-         "tickers": ["TLT","IEF","SHY","GLD","UUP"],
-         "market": "Mixed", "proxy_macro": ["slowdown", "policy"], "bottleneck_type": "policy_pivot"},
-        {"name": "USD / Funding Stress", "theme": "usd_funding",
-         "tickers": ["UUP","DX-Y.NYB","JPY=X","CHF=X","EURUSD=X"],
-         "market": "FX", "proxy_macro": ["usd", "funding"], "bottleneck_type": "funding_stress"},
-        {"name": "EM Rotation / Carry", "theme": "em_rotation",
-         "tickers": ["EEM","EFA","^JKSE","BBCA.JK","BBRI.JK","BMRI.JK","IDR=X","SGD=X"],
-         "market": "Mixed", "proxy_macro": ["usd", "growth"], "bottleneck_type": "flow_rotation"},
-        {"name": "Indonesia Property / Health", "theme": "ihsg_prophealth",
-         "tickers": ["CTRA.JK","BSDE.JK","HEAL.JK"],
-         "market": "IHSG", "proxy_macro": ["growth", "usd_idr"], "bottleneck_type": "rate_sensitive"},
-        {"name": "Semis / AI Hardware", "theme": "semis_ai",
-         "tickers": ["AVGO","AMD","NVDA","INTC","QCOM","MRVL","LRCX","AMAT"],
-         "market": "US", "proxy_macro": ["growth", "ai_compute"], "bottleneck_type": "supply_constraint"},
-        {"name": "Financials / Reflation", "theme": "financials_reflation",
-         "tickers": ["XLF","JPM","BAC","GS","MS","C","WFC","BBRI.JK","BMRI.JK","BBCA.JK"],
-         "market": "Mixed", "proxy_macro": ["growth", "rates"], "bottleneck_type": "curve_steepening"},
-    ]
-
-    # Score clusters
-    narratives = []
-    for cluster in clusters:
-        scores = [momentum[tk] for tk in cluster["tickers"] if tk in momentum and math.isfinite(momentum[tk]["r1"])]
-        if not scores: continue
-        avg_r1 = float(np.nanmean([s["r1"] for s in scores]))
-        avg_acc = float(np.nanmean([s["acc"] for s in scores if s["acc"] is not None])) if any(s["acc"] is not None for s in scores) else 0.0
-        participation = len(scores) / len(cluster["tickers"])
-        early_bonus = max(0.0, 0.4 * (1.0 - participation))
-        bottleneck = clamp(abs(avg_acc) * (1.0 + early_bonus) + abs(avg_r1)*0.3)
-
-        regime_mult = 1.0
-        theme = cluster["theme"]
-        if quad in ["Q1", "Q2"]:
-            if theme in ["ai_compute", "optics_photonics", "semis_ai", "btc_liquidity", "smallcap_breadth", "em_rotation", "financials_reflation", "ihsg_consumer", "ihsg_bank"]:
-                regime_mult = 1.30
-            elif theme in ["defensive_staples", "duration_bond", "usd_funding", "gold_hardasset"]:
-                regime_mult = 0.70
-        elif quad == "Q3":
-            if theme in ["oil_geopol", "coal_export_id", "gold_hardasset", "copper_supply", "usd_funding", "metal_mining_id", "defensive_staples"]:
-                regime_mult = 1.40
-            elif theme in ["ai_compute", "smallcap_breadth", "em_rotation", "btc_liquidity", "ihsg_consumer", "ihsg_prophealth"]:
-                regime_mult = 0.65
-        else:
-            if theme in ["defensive_staples", "duration_bond", "gold_hardasset", "ihsg_infra", "usd_funding"]:
-                regime_mult = 1.35
-            elif theme in ["oil_geopol", "coal_export_id", "copper_supply", "ai_compute", "semis_ai", "financials_reflation", "ihsg_consumer"]:
-                regime_mult = 0.70
-
-        if monthly_quad != quad:
-            if monthly_quad in ["Q1","Q2"] and theme in ["ai_compute","btc_liquidity","smallcap_breadth","em_rotation"]:
-                regime_mult *= 1.15
-            elif monthly_quad == "Q3" and theme in ["oil_geopol","coal_export_id","gold_hardasset"]:
-                regime_mult *= 1.15
-            elif monthly_quad == "Q4" and theme in ["defensive_staples","duration_bond"]:
-                regime_mult *= 1.15
-
-        adj_intensity = clamp(bottleneck * regime_mult)
-
-        if adj_intensity < 0.20: stage = "latent"; window = "4-8 weeks"
-        elif adj_intensity < 0.40: stage = "early"; window = "2-4 weeks"
-        elif adj_intensity < 0.60: stage = "building"; window = "1-2 weeks"
-        elif adj_intensity < 0.80: stage = "accelerating"; window = "days-1 week"
-        else: stage = "explosive"; window = "hours-days"
-
-        leaders = [{"ticker": s["tk"], "r1m": s["r1"], "acc": s["acc"], "trend": s["trend"]}
-                   for s in scores if s["acc"] is not None and s["acc"] > 0.10 and math.isfinite(s["r1"]) and s["r1"] > -0.01]
-        leaders.sort(key=lambda x: x["acc"], reverse=True)
-
-        affected = list(dict.fromkeys(cluster["tickers"]))
-        spillover_map = {
-            "ai_compute": ["QQQ", "XLK", "MSFT", "GOOGL", "META", "AMZN", "CRM", "NOW"],
-            "optics_photonics": ["NVDA", "AVGO", "AMD", "ANET", "DELL", "SMCI", "QQQ"],
-            "semis_ai": ["NVDA", "QCOM", "TXN", "QQQ", "XLK", "SOXX"],
-            "oil_geopol": ["NG=F", "XLE", "USO", "ADRO.JK", "PTBA.JK", "ITMG.JK", "XOM", "CVX", "OXY"],
-            "coal_export_id": ["CL=F", "BZ=F", "XLE", "USO", "NG=F"],
-            "metal_mining_id": ["HG=F", "GC=F", "GLD", "FCX", "SCCO", "XLB"],
-            "copper_supply": ["XLB", "XLI", "XLF", "FCX", "SCCO", "GC=F"],
-            "gold_hardasset": ["GC=F", "GLD", "SI=F", "UUP", "SLV"],
-            "btc_liquidity": ["COIN", "MSTR", "HOOD", "IBIT", "FBTC", "BITO", "XLK"],
-            "ihsg_bank": ["^JKSE", "BBRI.JK", "BMRI.JK", "BBCA.JK", "BBNI.JK", "BRIS.JK"],
-            "ihsg_consumer": ["^JKSE", "ICBP.JK", "INDF.JK", "KLBF.JK", "AMRT.JK", "ACES.JK"],
-            "ihsg_infra": ["^JKSE", "EXCL.JK", "JSMR.JK", "PGAS.JK", "TLKM.JK"],
-            "ihsg_prophealth": ["^JKSE", "CTRA.JK", "BSDE.JK", "HEAL.JK", "KLBF.JK"],
-            "defensive_staples": ["XLP", "XLU", "XLV", "TLT", "GLD", "TLKM.JK", "ICBP.JK", "KLBF.JK", "PGAS.JK"],
-            "smallcap_breadth": ["IWM", "RSP", "EEM", "EFA", "BBCA.JK", "BBRI.JK", "^JKSE"],
-            "duration_bond": ["TLT", "IEF", "SHY", "GLD", "UUP", "XLP", "XLU"],
-            "usd_funding": ["UUP", "DX-Y.NYB", "JPY=X", "CHF=X", "EURUSD=X", "GBPUSD=X", "EEM", "^JKSE", "IDR=X"],
-            "em_rotation": ["EEM", "EFA", "^JKSE", "BBCA.JK", "BBRI.JK", "BMRI.JK", "ADRO.JK", "PTBA.JK", "ANTM.JK", "TLKM.JK", "IDR=X"],
-            "financials_reflation": ["XLF", "KRE", "JPM", "BAC", "GS", "MS", "C", "WFC", "BBRI.JK", "BMRI.JK", "BBCA.JK", "BBNI.JK"],
-        }
-        if theme in spillover_map:
-            affected.extend(spillover_map[theme])
-        affected = [t for t in affected if t in prices or t in momentum]
-        affected = list(dict.fromkeys(affected))
-
-        narratives.append({
-            "theme": cluster["theme"], "name": cluster["name"],
-            "headline_score": round(bottleneck, 3), "bottleneck_intensity": round(bottleneck, 3),
-            "adjusted_intensity": round(adj_intensity, 3), "stage": stage, "front_run_window": window,
-            "avg_momentum": round(avg_r1, 4), "leaders": leaders[:5],
-            "tickers": cluster["tickers"], "affected_tickers": affected,
-            "regime_alignment": "aligned" if regime_mult > 1.0 else ("contrarian" if regime_mult < 0.85 else "neutral"),
-            "regime_boost": round(regime_mult, 2), "market": cluster["market"],
-            "proxy_macro": cluster["proxy_macro"], "participation": round(participation, 2),
-            "bottleneck_type": cluster["bottleneck_type"],
-        })
-
-    # Emergent detection
-    def _tm(ticker_list, min_r1=0.01):
-        vals = [momentum[tk]["r1"] for tk in ticker_list if tk in momentum and math.isfinite(momentum[tk]["r1"])]
-        return float(np.nanmean(vals)) if vals else 0.0, len(vals)/max(len(ticker_list),1)
-
-    oil_r1, _ = _tm(["CL=F", "BZ=F"], min_r1=-0.05)
-    usd_r1, _ = _tm(["UUP", "DX-Y.NYB"], min_r1=-0.05)
-    coal_r1, _ = _tm(["ADRO.JK", "PTBA.JK", "ITMG.JK"])
-    if oil_r1 > 0.03 and usd_r1 > 0.01 and coal_r1 > 0.02:
-        intensity = clamp(0.5 + oil_r1*5 + usd_r1*5 + coal_r1*5)
-        if intensity > 0.35:
-            leaders = [{"ticker": t, "r1m": momentum[t]["r1"], "acc": momentum[t].get("acc", 0)} 
-                      for t in ["CL=F", "UUP", "ADRO.JK", "PTBA.JK"] if t in momentum and math.isfinite(momentum[t]["r1"])]
-            leaders.sort(key=lambda x: x.get("acc",0), reverse=True)
-            narratives.append({
-                "theme": "petrodollar_tightening", "name": "🔥 Petrodollar Tightening (Auto-detected)",
-                "headline_score": round(intensity, 3), "bottleneck_intensity": round(intensity*0.9, 3),
-                "adjusted_intensity": round(intensity * (1.3 if quad=="Q3" else 1.0), 3),
-                "stage": "building" if intensity < 0.6 else "accelerating", "front_run_window": "1-2 weeks",
-                "avg_momentum": round((oil_r1+usd_r1+coal_r1)/3, 4), "leaders": leaders[:4],
-                "tickers": ["CL=F", "BZ=F", "UUP", "ADRO.JK", "PTBA.JK", "XLE"],
-                "affected_tickers": ["CL=F", "BZ=F", "UUP", "ADRO.JK", "PTBA.JK", "ITMG.JK", "XLE", "XOM", "CVX", "IDR=X", "EEM", "GC=F"],
-                "regime_alignment": "aligned" if quad=="Q3" else "neutral", "regime_boost": 1.3 if quad=="Q3" else 1.0,
-                "market": "Cross-Market", "proxy_macro": ["oil", "usd", "inflation"],
-                "participation": 0.5, "bottleneck_type": "geopolitical_supply", "emergent": True,
-            })
-
-    oil_1m = nf(f.get("clf_1m", f.get("oil_1m", 0.0)))
-    vix_1m = nf(f.get("vix_1m", 0.0))
-    btc_r1, _ = _tm(["BTC-USD"], min_r1=-0.05)
-    iwm_r1, _ = _tm(["IWM"], min_r1=-0.05)
-    if oil_1m < -0.02 and vix_1m < -0.03 and btc_r1 > 0.02:
-        intensity = clamp(0.4 + abs(oil_1m)*3 + abs(vix_1m)*2 + btc_r1*2 + max(0, iwm_r1)*2)
-        if intensity > 0.30:
-            leaders = [{"ticker": t, "r1m": momentum[t]["r1"], "acc": momentum[t].get("acc", 0)}
-                      for t in ["BTC-USD", "QQQ", "IWM", "EEM", "^JKSE"] if t in momentum and math.isfinite(momentum[t]["r1"])]
-            leaders.sort(key=lambda x: x.get("acc",0), reverse=True)
-            narratives.append({
-                "theme": "taco_relief_rally", "name": "🕊️ TACO De-escalation / Relief Rally (Auto-detected)",
-                "headline_score": round(intensity, 3), "bottleneck_intensity": round(intensity*0.85, 3),
-                "adjusted_intensity": round(intensity * (1.25 if quad in ["Q1","Q2"] else 0.90), 3),
-                "stage": "building" if intensity < 0.6 else "accelerating", "front_run_window": "1-3 weeks",
-                "avg_momentum": round((btc_r1+iwm_r1)/2, 4), "leaders": leaders[:4],
-                "tickers": ["BTC-USD", "ETH-USD", "QQQ", "IWM", "EEM", "^JKSE", "XLF", "XLI"],
-                "affected_tickers": ["BTC-USD", "ETH-USD", "SOL-USD", "QQQ", "IWM", "RSP", "EEM", "^JKSE", "BBCA.JK", "BBRI.JK", "XLF", "XLI", "CL=F", "ADRO.JK", "PTBA.JK"],
-                "regime_alignment": "aligned" if quad in ["Q1","Q2"] else "contrarian", "regime_boost": 1.25 if quad in ["Q1","Q2"] else 0.90,
-                "market": "Cross-Market", "proxy_macro": ["liquidity", "relief", "breadth"],
-                "participation": 0.65, "bottleneck_type": "liquidity_rotation", "emergent": True,
-            })
-
-    gold_r1, _ = _tm(["GC=F", "GLD"], min_r1=-0.02)
-    spy_1m = nf(f.get("spy_1m", 0.0))
-    tlt_r1, _ = _tm(["TLT"], min_r1=-0.05)
-    if gold_r1 > 0.02 and usd_r1 > 0.01 and abs(spy_1m) < 0.02 and quad == "Q3":
-        intensity = clamp(0.5 + gold_r1*3 + usd_r1*3 + (0.02 if tlt_r1 < 0 else 0))
-        if intensity > 0.40:
-            leaders = [{"ticker": t, "r1m": momentum[t]["r1"], "acc": momentum[t].get("acc", 0)}
-                      for t in ["GC=F", "UUP", "XLE", "GLD"] if t in momentum and math.isfinite(momentum[t]["r1"])]
-            leaders.sort(key=lambda x: x.get("acc",0), reverse=True)
-            narratives.append({
-                "theme": "stagflation_confirmed", "name": "⚠️ Stagflation Trade Confirmed (Auto-detected)",
-                "headline_score": round(intensity, 3), "bottleneck_intensity": round(intensity*0.9, 3),
-                "adjusted_intensity": round(intensity * 1.35, 3),
-                "stage": "explosive" if intensity > 0.7 else "accelerating", "front_run_window": "days",
-                "avg_momentum": round(gold_r1, 4), "leaders": leaders[:4],
-                "tickers": ["GC=F", "GLD", "UUP", "XLE", "TLKM.JK", "ADRO.JK"],
-                "affected_tickers": ["GC=F", "GLD", "SI=F", "UUP", "XLE", "TLT", "QQQ", "IWM", "EEM", "ADRO.JK", "PTBA.JK", "TLKM.JK", "BBCA.JK"],
-                "regime_alignment": "aligned", "regime_boost": 1.35,
-                "market": "Cross-Market", "proxy_macro": ["inflation", "slowdown", "gold"],
-                "participation": 0.80, "bottleneck_type": "safe_haven", "emergent": True,
-            })
-
-    ai_r1, ai_part = _tm(["NVDA", "AVGO", "AMD", "MRVL"])
-    opt_r1, opt_part = _tm(["LITE", "COHR", "FN", "AMAT"])
-    if ai_r1 > 0.03 and opt_r1 > 0.02 and ai_part >= 0.5:
-        intensity = clamp(0.35 + ai_r1*4 + opt_r1*3)
-        if intensity > 0.35:
-            leaders = [{"ticker": t, "r1m": momentum[t]["r1"], "acc": momentum[t].get("acc", 0)}
-                      for t in ["NVDA", "AVGO", "LITE", "COHR", "MRVL", "AMAT"] if t in momentum and math.isfinite(momentum[t]["r1"])]
-            leaders.sort(key=lambda x: x.get("acc",0), reverse=True)
-            narratives.append({
-                "theme": "ai_bottleneck_confirmed", "name": "🧠 AI Infrastructure Bottleneck (Auto-detected)",
-                "headline_score": round(intensity, 3), "bottleneck_intensity": round(intensity*1.1, 3),
-                "adjusted_intensity": round(intensity * (1.3 if quad in ["Q1","Q2"] else 0.85), 3),
-                "stage": "building" if intensity < 0.6 else "accelerating", "front_run_window": "1-2 weeks",
-                "avg_momentum": round((ai_r1+opt_r1)/2, 4), "leaders": leaders[:4],
-                "tickers": ["NVDA", "AVGO", "AMD", "MRVL", "LITE", "COHR", "FN", "AMAT", "ANET", "SMCI"],
-                "affected_tickers": ["NVDA", "AVGO", "AMD", "MRVL", "LITE", "COHR", "FN", "AMAT", "ANET", "SMCI", "DELL", "QQQ", "XLK", "MSFT", "GOOGL", "META"],
-                "regime_alignment": "aligned" if quad in ["Q1","Q2"] else "contrarian", "regime_boost": 1.3 if quad in ["Q1","Q2"] else 0.85,
-                "market": "Cross-Market", "proxy_macro": ["growth", "ai_compute", "supply_constraint"],
-                "participation": round((ai_part+opt_part)/2, 2), "bottleneck_type": "supply_constraint", "emergent": True,
-            })
-
-    narratives.sort(key=lambda x: x["adjusted_intensity"], reverse=True)
-
-    picks = []
-    seen_tk = set()
-    for nar in narratives[:4]:
-        for leader in nar.get("leaders", [])[:2]:
-            tk = leader["ticker"]
-            if tk in seen_tk: continue
-            seen_tk.add(tk)
-            picks.append({
-                "ticker": tk, "theme": nar["theme"], "conviction": round(nar["adjusted_intensity"], 3),
-                "window": nar["front_run_window"], "regime_alignment": nar["regime_alignment"],
-                "rationale": f"{nar['name']} · bottleneck {nar['bottleneck_intensity']:.0%} · stage: {nar['stage']}",
-                "affected": nar.get("affected_tickers", [])[:6], "market": nar["market"],
-            })
-
-    affected_map: Dict[str, List[Dict]] = {}
-    for nar in narratives:
-        for tk in nar.get("affected_tickers", []):
-            if tk not in affected_map: affected_map[tk] = []
-            affected_map[tk].append({"theme": nar["theme"], "name": nar["name"], "intensity": nar["adjusted_intensity"], "stage": nar["stage"], "window": nar["front_run_window"]})
-
-    market_narrative_map = {}
-    for nar in narratives:
-        mkt = nar["market"]
-        if mkt not in market_narrative_map: market_narrative_map[mkt] = []
-        market_narrative_map[mkt].append(nar)
-
-    return {
-        "narratives": narratives, "top_narrative": narratives[0] if narratives else None,
-        "front_run_picks": picks, "affected_map": affected_map,
-        "emergent_narratives": [n for n in narratives if n.get("emergent", False)],
-        "market_narrative_map": market_narrative_map,
-        "timestamp": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
-    }
 
 def build_checklists(f:Dict,h:Dict,q:Dict,ih:Dict)->Dict:
     """v33-style checklist: ✓/✗/? per condition per market."""
@@ -4327,8 +4206,172 @@ def _opp_card_html(rows:List[Dict], empty_text:str, accent:str, icon:str)->str:
 
 
 
+def render_narrative_bottlenecks(snap:Dict)->None:
+    """Render active narrative bottlenecks with affected tickers per market."""
+    narr=snap.get("narrative_bottlenecks",{})
+    active=narr.get("active",[])
+    picks=narr.get("front_run_picks",[])
+    if not active and not picks:
+        return
+    sh("🧠 NARRATIVE BOTTLENECKS — front-run engine (v11)")
+    st.caption("Inspired by Citrini / Jukan / Zephyr / Serenity methodology. Detects bottlenecks BEFORE price fully reflects them.")
+    # Active narratives
+    for n in active[:4]:
+        stage_col="#e5a020" if n["stage"]=="front-run" else "#3dbb6c"
+        st.markdown(
+            f'<div class="mc" style="border-left:3px solid {stage_col}44">'
+            f'<div style="display:flex;justify-content:space-between;margin-bottom:3px">'
+            f'<b style="font-size:13px">{html.escape(n["name"])}</b>'
+            f'<span style="font-family:DM Mono,monospace;font-size:11px;color:{stage_col}">'
+            f'{n["stage"].upper()} · {n["conviction"]:.0%}</span></div>'
+            f'<div style="font-size:11px;opacity:.75;margin-bottom:4px">{html.escape(n["description"])}</div>'
+            f'<div style="font-size:10px;opacity:.55">'
+            f'Trig: {n["trig_score"]:.0%} · Conf: {n["conf_score"]:.0%} · Boost: +{n["boost"]:.0%} EV</div>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+        # Affected tickers per market
+        if n.get("affected"):
+            pills=[]
+            for mkt,tks in n["affected"].items():
+                for tk in tks[:4]:
+                    pills.append(f'<span class="tag tag-b">{html.escape(disp(tk))}</span>')
+            if pills:
+                st.markdown(f'<div style="margin:2px 0 8px 12px">{" ".join(pills)}</div>',unsafe_allow_html=True)
+    # Front-run picks table
+    if picks:
+        st.markdown("---")
+        st.markdown("**🚀 FRONT-RUN PICKS — narrative conviction > 45%**")
+        pick_rows=[]
+        for p in picks[:10]:
+            pick_rows.append({
+                "Ticker":disp(p["ticker"]),
+                "Market":p["market"],
+                "Narrative":p["narrative"][:28],
+                "Conv":f"{p['conviction']:.0%}",
+                "Rationale":p["rationale"],
+            })
+        st.dataframe(pd.DataFrame(pick_rows),use_container_width=True,hide_index=True,height=min(len(pick_rows)*36+46,320))
+    st.markdown("---")
+
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# NARRATIVE PAGE — Front-run bottleneck visualization
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def page_narrative(snap:Dict)->None:
+    """Narrative Bottleneck page: front-run macro stories before price catches up."""
+    narr=snap.get("narrative_bottlenecks",{})
+    active=narr.get("active",[])
+    picks=narr.get("front_run_picks",[])
+    q=snap.get("q",{}); quad=q.get("quad","Q?")
+
+    sh("🧠 NARRATIVE BOTTLENECK ENGINE v11")
+    st.caption("Front-run methodology: detect supply-chain, policy, and positioning bottlenecks BEFORE price fully reflects them. Inspired by Citrini Research / Jukan / Zephyr / Serenity.")
+
+    # Top narrative card
+    if active:
+        top=active[0]
+        stage_color="#e5a020" if top["stage"]=="front-run" else "#3dbb6c"
+        st.markdown(
+            f'<div style="text-align:center;padding:16px;border-radius:12px;border:1.5px solid {stage_color}33;margin-bottom:12px">'
+            f'<div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;opacity:.4;margin-bottom:3px">DOMINANT NARRATIVE</div>'
+            f'<div style="font-family:Syne,sans-serif;font-size:26px;font-weight:800;color:{stage_color};line-height:1.1">{html.escape(top["name"])}</div>'
+            f'<div style="font-size:12px;opacity:.75;margin-top:6px">{html.escape(top["description"])}</div>'
+            f'<div style="font-size:11px;opacity:.5;margin-top:4px">Conviction {top["conviction"]:.0%} · Stage: {top["stage"].upper()} · Trig {top["trig_score"]:.0%} / Conf {top["conf_score"]:.0%}</div>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+    else:
+        st.info("No dominant narrative detected. Market in mixed/transition state. Follow regime + route.")
+
+    # Active narratives grid
+    if len(active)>1:
+        sh("📡 ACTIVE NARRATIVES")
+        cols=st.columns(min(3, len(active)))
+        for idx, n in enumerate(active[:6]):
+            col=cols[idx % len(cols)]
+            stage_col="#e5a020" if n["stage"]=="front-run" else "#3dbb6c"
+            with col:
+                st.markdown(
+                    f'<div class="mc" style="border-left:3px solid {stage_col}44">'
+                    f'<div style="font-size:10px;letter-spacing:.08em;text-transform:uppercase;opacity:.4;margin-bottom:2px">{html.escape(n["category"].upper())}</div>'
+                    f'<div style="font-size:14px;font-weight:700;margin-bottom:3px">{html.escape(n["name"])}</div>'
+                    f'<div style="font-size:11px;opacity:.72;margin-bottom:4px">{html.escape(n["description"][:80])}</div>'
+                    f'<div style="font-size:10px;opacity:.5">Conv: {n["conviction"]:.0%} · Boost: +{n["boost"]:.0%} EV</div>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+                if n.get("affected"):
+                    pills=[]
+                    for mkt, tks in n["affected"].items():
+                        for tk in tks[:3]:
+                            pills.append(f'<span class="tag tag-b">{html.escape(disp(tk))}</span>')
+                    st.markdown(f'<div style="margin-top:4px">{" ".join(pills)}</div>', unsafe_allow_html=True)
+
+    # Front-run picks table
+    if picks:
+        sh("🚀 FRONT-RUN PICKS — narrative conviction > 45%")
+        pick_rows=[]
+        for p in picks[:12]:
+            s=snap.get("prices",{}).get(p["ticker"],pd.Series())
+            r1=ret_n(s,21) if not s.empty else float("nan")
+            pick_rows.append({
+                "Ticker":disp(p["ticker"]),
+                "Market":p["market"],
+                "Narrative":p["narrative"][:30],
+                "Conv":f"{p['conviction']:.0%}",
+                "1M":pct(r1) if math.isfinite(r1) else "—",
+                "Rationale":p["rationale"],
+            })
+        st.dataframe(pd.DataFrame(pick_rows), use_container_width=True, hide_index=True, height=min(len(pick_rows)*36+46, 420))
+        st.caption("These picks get +15% EV boost in the Opportunity Engine when narrative conviction > 45%.")
+
+    # Narrative-to-Regime bridge
+    st.markdown("---")
+    sh("🔗 NARRATIVE → REGIME BRIDGE")
+    bridge_rows=[]
+    for n in active[:4]:
+        regime_fit="HIGH" if n["category"] in ["policy","inflation"] and quad in ["Q3","Q2"] else                    ("MED" if n["category"] in ["em","technology"] else "LOW")
+        bridge_rows.append({
+            "Narrative":n["name"][:35],
+            "Category":n["category"],
+            "Stage":n["stage"],
+            "Regime Fit":regime_fit,
+            "Action":"Scale in" if n["stage"]=="front-run" and regime_fit=="HIGH" else ("Watch" if regime_fit!="LOW" else "Ignore"),
+        })
+    if bridge_rows:
+        st.dataframe(pd.DataFrame(bridge_rows), use_container_width=True, hide_index=True)
+
+    # How it works
+    with st.expander("How Narrative Bottleneck Engine works", expanded=False):
+        st.markdown("""
+**Methodology (Citrini / Jukan / Zephyr / Serenity inspired):**
+
+1. **Trigger Detection** — Scan macro features (policy score, oil, VIX, breadth, etc.) against predefined trigger ranges.
+2. **Confirmation** — Check secondary signals to reduce false positives.
+3. **Ticker Mapping** — Each narrative maps to affected tickers across ALL markets (US, IHSG, FX, Commodities, Crypto).
+4. **Front-run Scoring** — Narratives marked `front_run=True` get higher priority when conviction > 45%.
+5. **EV Boost** — Front-run picks receive +15% EV boost in the Opportunity Engine, making them appear higher in the execution board.
+6. **Regime Bridge** — Narratives are cross-checked against current Hedgeye quad for regime-fit validation.
+
+**Current narratives monitored:**
+- Warsh Liquidity Injection / Most Hated Rally
+- TACO Ch.2 De-escalation Relief
+- Sticky Stagflation / Supply Bottleneck
+- AI Compute / Semiconductor Bottleneck
+- Indonesia MSCI / EM Rebalancing
+- Credit / Duration Bottleneck
+- Small Cap Crowded Trade Unwind
+        """)
+
+
 def page_opportunities(snap:Dict)->None:
     """Refactored one-fold decision board: action first, detail second."""
+    # ── Narrative bottleneck overlay (v11) ────────────────────────────────────
+    render_narrative_bottlenecks(snap)
+    # ────────────────────────────────────────────────────────────────────────────
     opps=snap.get("opportunities",[])
     q=snap["q"]; quad=q["quad"]; conf=q["confidence"]
     family=snap.get("family","reflation"); f=snap["f"]; rot=snap["rotation"]
@@ -4468,124 +4511,6 @@ def page_opportunities(snap:Dict)->None:
                         st.markdown(f'<span style="font-size:11px;opacity:.5">• {x}</span>',unsafe_allow_html=True)
 
 
-
-def render_narrative_discovery(nd:Dict, prices:Dict[str,pd.Series]={})->None:
-    """Render Narrative Bottleneck Engine output as visual cards."""
-    narratives = nd.get("narratives", [])
-    if not narratives:
-        st.info("Belum ada narrative bottleneck yang terdeteksi.")
-        return
-
-    emergent = nd.get("emergent_narratives", [])
-    picks = nd.get("front_run_picks", [])
-    stage_colors = {"latent": "#888", "early": "#e5a020", "building": "#e5a020", 
-                   "accelerating": "#3dbb6c", "explosive": "#e05252"}
-
-    top = nd.get("top_narrative")
-    if top:
-        stage = top.get("stage", "unknown")
-        sc = stage_colors.get(stage, "#888")
-        st.markdown(
-            f'<div style="border:1.5px solid {sc}44;background:{sc}10;border-radius:12px;padding:14px;margin-bottom:12px">'
-            f'<div style="font-size:9px;font-weight:700;letter-spacing:.1em;color:{sc};text-transform:uppercase;margin-bottom:4px">'
-            f'🧠 NARRATIVE BOTTLENECK — TOP SIGNAL</div>'
-            f'<div style="font-size:20px;font-weight:800;color:var(--color-text-primary);margin-bottom:3px">{html.escape(top.get("name",""))}</div>'
-            f'<div style="font-size:12px;opacity:.8;margin-bottom:6px">{html.escape(top.get("bottleneck_type",""))} · '
-            f'stage: <b style="color:{sc}">{stage}</b> · window: {html.escape(top.get("front_run_window",""))}</div>'
-            f'<div style="display:flex;gap:12px;flex-wrap:wrap;font-size:11px">'
-            f'<span>Intensity: <b>{top.get("bottleneck_intensity",0):.0%}</b></span>'
-            f'<span>Regime-adjusted: <b>{top.get("adjusted_intensity",0):.0%}</b></span>'
-            f'<span>Regime: {html.escape(top.get("regime_alignment",""))} ({top.get("regime_boost",1.0):.2f}x)</span>'
-            f'<span>Market: {html.escape(top.get("market",""))}</span></div>'
-            f'</div>',
-            unsafe_allow_html=True
-        )
-
-    if emergent:
-        st.markdown(
-            f'<div style="border:1px solid #e0525233;background:rgba(224,82,82,0.06);border-radius:10px;padding:10px 14px;margin-bottom:10px">'
-            f'<div style="font-size:9px;font-weight:700;letter-spacing:.1em;color:#e05252;text-transform:uppercase;margin-bottom:3px">'
-            f'⚡ EMERGENT NARRATIVES (AUTO-DETECTED)</div>'
-            f'<div style="font-size:11px;opacity:.8">{len(emergent)} narrative terdeteksi dari cross-market momentum + macro features. '
-            f'Ini <b>front-run opportunity</b> sebelum narrative jadi crowded.</div></div>',
-            unsafe_allow_html=True
-        )
-
-    if picks:
-        sh("🎯 FRONT-RUN PICKS — narrative-driven, regime-aware")
-        pick_rows = []
-        for p in picks[:8]:
-            s = prices.get(p["ticker"], pd.Series())
-            r1 = ret_n(s, 21) if not _s(s).empty else float("nan")
-            affected_str = ", ".join(p.get("affected", [])[:4])
-            pick_rows.append({
-                "Ticker": disp(p["ticker"]), "Theme": p.get("theme", ""), "Conviction": f"{p.get('conviction',0):.0%}",
-                "1M": pct(r1) if math.isfinite(r1) else "—", "Window": p.get("window", ""),
-                "Alignment": p.get("regime_alignment", ""), "Market": p.get("market", ""),
-                "Affected": affected_str, "Rationale": p.get("rationale", "")[:80],
-            })
-        st.dataframe(pd.DataFrame(pick_rows), use_container_width=True, hide_index=True, height=min(len(pick_rows)*40+46, 400))
-
-    sh("📚 ALL NARRATIVES — ranked by regime-adjusted intensity")
-    for nar in narratives[:8]:
-        stage = nar.get("stage", "unknown")
-        sc = stage_colors.get(stage, "#888")
-        leader_pills = ""
-        for l in nar.get("leaders", [])[:3]:
-            tk = l.get("ticker", "")
-            acc = l.get("acc", 0)
-            r1 = l.get("r1m", 0)
-            if math.isfinite(acc) and acc > 0.15:
-                leader_pills += f'<span style="display:inline-block;padding:1px 6px;border-radius:99px;border:1px solid {sc}55;background:{sc}15;color:{sc};font-size:9px;font-weight:700;margin:1px">{disp(tk)} {pct(r1)}</span>'
-        affected = nar.get("affected_tickers", [])
-        affected_str = ", ".join([disp(t) for t in affected[:5]]) if affected else "—"
-        st.markdown(
-            f'<div style="border:1px solid {sc}33;background:rgba(255,255,255,0.02);border-radius:10px;padding:10px 12px;margin-bottom:6px">'
-            f'<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">'
-            f'<div><div style="font-size:12px;font-weight:700">{html.escape(nar.get("name",""))}</div>'
-            f'<div style="font-size:10px;opacity:.5;margin-top:1px">{html.escape(nar.get("bottleneck_type",""))} · {html.escape(nar.get("market",""))}</div></div>'
-            f'<div style="font-family:DM Mono,monospace;font-size:11px;color:{sc};font-weight:700">{nar.get("adjusted_intensity",0):.0%}</div></div>'
-            f'<div style="font-size:11px;opacity:.75;margin:4px 0">Stage: <b style="color:{sc}">{stage}</b> · '
-            f'window: {html.escape(nar.get("front_run_window",""))} · '
-            f'participation: {nar.get("participation",0):.0%} · '
-            f'regime: {html.escape(nar.get("regime_alignment",""))}</div>'
-            f'<div style="font-size:10px;opacity:.55;margin-bottom:3px">Leaders: {leader_pills}</div>'
-            f'<div style="font-size:10px;opacity:.45">Affected: {html.escape(affected_str)}</div>'
-            f'</div>',
-            unsafe_allow_html=True
-        )
-
-    market_map = nd.get("market_narrative_map", {})
-    if market_map:
-        st.markdown("---")
-        sh("🌍 CROSS-MARKET NARRATIVE HEATMAP")
-        heat_rows = []
-        for mkt, nars in market_map.items():
-            if not nars: continue
-            top_nar = nars[0]
-            heat_rows.append({
-                "Market": mkt, "Top Narrative": top_nar.get("name", "")[:35],
-                "Intensity": f"{top_nar.get('adjusted_intensity',0):.0%}", "Stage": top_nar.get("stage", ""),
-                "Leaders": ", ".join([l.get("ticker","") for l in top_nar.get("leaders",[])[:2]]), "Count": len(nars),
-            })
-        heat_rows.sort(key=lambda x: float(x["Intensity"].replace("%",""))/100, reverse=True)
-        st.dataframe(pd.DataFrame(heat_rows), use_container_width=True, hide_index=True, height=min(len(heat_rows)*40+46, 300))
-
-    affected_map = nd.get("affected_map", {})
-    if affected_map:
-        with st.expander("🔍 AFFECTED TICKER LOOKUP — cari ticker, lihat narrative apa yang nempel", expanded=False):
-            st.caption("Setiap ticker bisa terdampak multiple narrative. Ini reverse index dari engine.")
-            top_affected = sorted(affected_map.items(), key=lambda x: len(x[1]), reverse=True)[:20]
-            aff_rows = []
-            for tk, nars in top_affected:
-                aff_rows.append({
-                    "Ticker": disp(tk), "Narratives": len(nars),
-                    "Top Intensity": f"{max([n.get('intensity',0) for n in nars]):.0%}",
-                    "Themes": ", ".join([n.get("theme","") for n in nars[:3]]),
-                    "Stages": ", ".join([n.get("stage","") for n in nars[:3]]),
-                })
-            st.dataframe(pd.DataFrame(aff_rows), use_container_width=True, hide_index=True, height=min(len(aff_rows)*36+46, 400))
-
 def page_radar(snap:Dict)->None:
     q=snap["q"]; f=snap["f"]; rot=snap["rotation"]; analog=snap["analog"]
     s_quad=q["quad"]; m_quad=q["monthly_quad"]; meta=QUAD_META.get(s_quad,QUAD_META["Q4"])
@@ -4611,25 +4536,6 @@ def page_radar(snap:Dict)->None:
     st.markdown(hero, unsafe_allow_html=True)
     if div == "divergent":
         st.info(f"🔄 **Divergensi aktif:** Structural {s_quad} vs Monthly {m_quad}. Tren besar masih {s_quad}, bulan ini bergerak seperti {m_quad}. Monthly = trigger, Structural = arah besar.")
-
-    # Global Quad display
-    gq = snap.get("gq", {})
-    if gq:
-        g_quad = gq.get("quad", s_quad)
-        g_conf = gq.get("confidence", 0)
-        g_col = {"Q1":"#3dbb6c","Q2":"#e5a020","Q3":"#e05252","Q4":"#e05252"}.get(g_quad, "#888")
-        st.markdown(
-            f'<div style="padding:8px 14px;border-radius:10px;border:1.5px solid {g_col}44;background:{g_col}10;margin-bottom:10px">'
-            f'<div style="font-size:9px;font-weight:700;letter-spacing:.1em;color:{g_col};text-transform:uppercase">🌍 GLOBAL QUAD (REAL-TIME MARKET)</div>'
-            f'<div style="display:flex;gap:12px;align-items:center;margin-top:4px">'
-            f'<div style="font-size:22px;font-weight:800;color:{g_col}">{g_quad}</div>'
-            f'<div style="font-size:11px;opacity:.75">Conf {g_conf:.0%} · Pure market-implied · ~1 week horizon<br>'
-            f'VIX: {gq.get("vix",20):.1f} | DXY 1M: {pct(gq.get("uup_1m",0))} | Oil 1M: {pct(gq.get("oil_1m",0))} | Gold 1M: {pct(gq.get("gold_1m",0))}</div>'
-            f'</div></div>',
-            unsafe_allow_html=True
-        )
-        if g_quad != s_quad:
-            st.warning(f"⚡ **Global ({g_quad}) ≠ Structural ({s_quad})**. Market real-time sedang pricing regime shift yang belum terlihat di data FRED. Bisa jadi early warning atau false breakout.")
     # Regime maturity badges
     dm=q.get("duration_mat",0)
     maturity = "Early" if dm<0.35 else ("Mid-Cycle" if dm<0.60 else "Late / Mature")
@@ -4671,8 +4577,8 @@ def page_radar(snap:Dict)->None:
         )
     # Master Rotation Graph (v33 YOU ARE HERE mind-map)
     render_master_rotation_graph(q,f,snap["rotation"],snap["family"])
-    # Flow State Strip (horizontal pill chain) — 3-quad Hedgeye system
-    render_flow_state_strip(q, snap.get("gq"))
+    # Flow State Strip (horizontal pill chain)
+    render_flow_state_strip(q)
     render_top_drivers_now(snap.get("top_drivers",[]))
     st.markdown("---")
     c1,c2,c3,c4=st.columns(4)
@@ -5065,12 +4971,6 @@ def page_markets(snap:Dict)->None:
     prices=snap["prices"]; q=snap["q"]
     sh("🌐 MULTI-MARKET OVERVIEW")
     s_quad=q["quad"]; meta=QUAD_META.get(s_quad,QUAD_META["Q4"])
-    # --- NARRATIVE BOTTLENECK ENGINE v2.0 ---
-    nd = snap.get("narrative_discovery", {})
-    if nd and nd.get("narratives"):
-        with st.expander("🧠 Narrative Bottleneck — Cross-Market Front-Run", expanded=False):
-            render_narrative_discovery(nd, prices=snap.get("prices", {}))
-
     t1,t2,t3=st.tabs(["💱 FX","🛢️ Commodities","🔐 Crypto"])
     with t1:
         sh("💱 FX RATES")
@@ -5699,7 +5599,7 @@ def main():
     except Exception as _pe:
         _has_new_pages = False
 
-    _tab_labels = ["⚡ Command Center", "📊 Regime Intel", "🎯 Strategy", "🌐 Markets", "⚠️ Risk & Diag"]
+    _tab_labels = ["⚡ Command Center", "📊 Regime Intel", "🧠 Narrative", "🎯 Strategy", "🌐 Markets", "⚠️ Risk & Diag"]
     tabs = st.tabs(_tab_labels)
 
     with tabs[0]:
@@ -5717,18 +5617,21 @@ def main():
             page_health(snap)
 
     with tabs[2]:
+        page_narrative(snap)
+
+    with tabs[3]:
         if _has_new_pages:
             page_strategy(snap)
         else:
             page_playbook(snap)
 
-    with tabs[3]:
+    with tabs[4]:
         if _has_new_pages:
             page_markets_v2(snap)
         else:
             page_markets_full(snap)
 
-    with tabs[4]:
+    with tabs[5]:
         if _has_new_pages:
             page_risk_diag(snap)
         else:

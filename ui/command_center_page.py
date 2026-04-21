@@ -38,7 +38,6 @@ def render_command_center(snap: Dict) -> None:
     regime_state = "Relief" if "relief" in str(q.get("operating_regime", "")).lower() else q.get("operating_regime", "—")
     state_color = "#3fb950" if "Relief" in regime_state else "#d29922"
 
-    # Regime Pills
     _h(f"""
     <div style="background:#0d1117;border:1px solid #30363d;border-radius:12px;padding:14px;margin-bottom:14px;">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -53,7 +52,6 @@ def render_command_center(snap: Dict) -> None:
     </div>
     """)
 
-    # Top ticker pills
     us_longs = tickers.get("us_longs", [])[:1]
     ihsg_buys = tickers.get("ihsg_buys", [])[:1]
     us_shorts = tickers.get("us_shorts", [])[:1]
@@ -64,7 +62,6 @@ def render_command_center(snap: Dict) -> None:
     if pills:
         _h(f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;font-size:13px;">{" · ".join(pills)}</div>')
 
-    # Transitional Banner
     if conf < 0.25 or divergence == "divergent":
         _h(f"""
         <div style="background:#341a00;border:1px solid #d29922;border-radius:10px;padding:12px;margin-bottom:16px;">
@@ -73,7 +70,6 @@ def render_command_center(snap: Dict) -> None:
         </div>
         """)
 
-    # Front-Run Window
     fw = transition.get("front_run_window", "—")
     if fw != "—":
         st.success(f"**Front-Run Window:** {fw} | {transition.get('front_run_rationale', '—')}")
@@ -85,9 +81,7 @@ def render_command_center(snap: Dict) -> None:
     else:
         st.info("No active front-run window — regime stable.")
 
-    # ═══════════════════════════════════════════════════════════════════════
-    # LIVE OPPORTUNITIES — Split 5 tables per market
-    # ═══════════════════════════════════════════════════════════════════════
+    # Live Opportunities — Split 5
     st.markdown('<div style="font-size:16px;font-weight:700;color:#e6edf3;margin:16px 0 10px;">🎯 LIVE OPPORTUNITIES</div>', unsafe_allow_html=True)
 
     def make_opp_table(title, emoji, color, ticker_list, opp_type):
@@ -96,7 +90,6 @@ def render_command_center(snap: Dict) -> None:
         rows = [{"Ticker": t, "Type": opp_type, "Signal": "▲" if opp_type=="Long" else "▼" if opp_type=="Short" else "⚡"} for t in ticker_list]
         st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
-    # 1. US Stocks
     us_longs_full = tickers.get("us_longs", [])[:6]
     us_shorts_full = tickers.get("us_shorts", [])[:4]
     if us_longs_full or us_shorts_full:
@@ -104,23 +97,11 @@ def render_command_center(snap: Dict) -> None:
         with c1: make_opp_table("US Longs", "🇺🇸", "#3fb950", us_longs_full, "Long")
         with c2: make_opp_table("US Shorts", "🇺🇸", "#f85149", us_shorts_full, "Short")
 
-    # 2. IHSG
-    ihsg_full = tickers.get("ihsg_buys", [])[:6]
-    make_opp_table("IHSG", "🇮🇩", "#fb923c", ihsg_full, "Long")
+    make_opp_table("IHSG", "🇮🇩", "#fb923c", tickers.get("ihsg_buys", [])[:6], "Long")
+    make_opp_table("FX", "💱", "#58a6ff", tickers.get("fx_longs", [])[:4], "Long")
+    make_opp_table("Commodities", "🛢️", "#fb923c", tickers.get("commodity_longs", [])[:5], "Long")
+    make_opp_table("Crypto", "🔐", "#a371f7", tickers.get("crypto_longs", [])[:5], "Long")
 
-    # 3. FX
-    fx_full = tickers.get("fx_longs", [])[:4]
-    make_opp_table("FX", "💱", "#58a6ff", fx_full, "Long")
-
-    # 4. Commodities
-    comm_full = tickers.get("commodity_longs", [])[:5]
-    make_opp_table("Commodities", "🛢️", "#fb923c", comm_full, "Long")
-
-    # 5. Crypto
-    cry_full = tickers.get("crypto_longs", [])[:5]
-    make_opp_table("Crypto", "🔐", "#a371f7", cry_full, "Long")
-
-    # Narrative + Bottleneck extras (compact)
     st.markdown("**📰 Narrative & Adaptive Extras**")
     extra_rows = []
     if narr and narr.get("active_narratives"):

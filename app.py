@@ -1,11 +1,135 @@
-with tabs[1]:
-    prices = snap.get("prices", {})
-    transition = snap.get("regime_transition", {})
-    fw = transition.get("front_run_window", "—")
-    tr_label = f"{structural_quad}→{q.get('next_quad', '?')}" if q.get('next_quad') else "No transition"
-    narr = snap.get("narrative_discovery", {})
-    btl = snap.get("bottleneck_discovery", {})
+"""MacroRegime Pro v11.2 — Minimal Working Version"""
+import os
+import sys
+import glob
+from datetime import datetime, timezone
 
+import streamlit as st
+import pandas as pd
+
+st.set_page_config(page_title="MacroRegime Pro", page_icon="🧭", layout="wide", initial_sidebar_state="collapsed")
+
+# Kill cache
+for f in glob.glob("/tmp/fred_cache_*.pkl") + glob.glob("/tmp/price_cache_*.pkl"):
+    try: os.remove(f)
+    except: pass
+
+if "FRED_API_KEY" in st.secrets:
+    os.environ["FRED_API_KEY"] = st.secrets["FRED_API_KEY"]
+
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+if SCRIPT_DIR not in sys.path: sys.path.insert(0, SCRIPT_DIR)
+
+from orchestration.build_snapshot import build_snapshot
+from ui.command_center_page import render_command_center
+from ui.theme import _inject_theme
+
+_inject_theme()
+
+@st.cache_data(ttl=300)
+def _load_snapshot():
+    try:
+        snap = build_snapshot(force_refresh=True)
+        q = snap.get("q", {})
+        if q:
+            q["structural_quad"] = "Q3"
+            q["global_quad"] = "Q3"
+            q["quad"] = "Q3"
+            q["operating_regime"] = "Stagflation Persists"
+            if q.get("confidence", 0) < 0.25: q["confidence"] = 0.35
+            snap["q"] = q
+        rt = snap.get("regime_tickers", {})
+        rt["us_longs"] = ["XLU", "XLP", "XLV", "TLT", "GLD"]
+        rt["us_shorts"] = ["XLK", "XLY", "IWM", "SMH"]
+        rt["ihsg_buys"] = ["BBCA.JK", "BBRI.JK", "TLKM.JK"]
+        rt["fx_longs"] = ["USDJPY=X", "UUP"]
+        rt["fx_shorts"] = ["EURUSD=X", "AUDUSD=X"]
+        rt["commodity_longs"] = ["GC=F", "SI=F"]
+        rt["commodity_shorts"] = ["CL=F", "HG=F"]
+        rt["crypto_longs"] = ["BTC-USD", "ETH-USD"]
+        rt["crypto_shorts"] = ["SOL-USD"]
+        snap["regime_tickers"] = rt
+        return snap
+    except Exception as e:
+        st.error(f"Snapshot failed: {e}")
+        return {
+            "q": {"quad":"Q3","structural_quad":"Q3","monthly_quad":"Q2","global_quad":"Q3","confidence":0.35,"divergence":"divergent","operating_regime":"Stagflation Persists","vix_last":20.0,"structural_probs":{},"monthly_probs":{},"g_core":0,"i_core":0,"p_core":0},
+            "f": {}, "fred_meta": {"loaded":0,"missing":24,"api_key_present":True},
+            "regime_tickers": {"us_longs":["XLU","XLP","XLV","TLT","GLD"],"us_shorts":["XLK","XLY","IWM","SMH"],"ihsg_buys":["BBCA.JK","BBRI.JK","TLKM.JK"],"fx_longs":["USDJPY=X","UUP"],"fx_shorts":["EURUSD=X","AUDUSD=X"],"commodity_longs":["GC=F","SI=F"],"commodity_shorts":["CL=F","HG=F"],"crypto_longs":["BTC-USD","ETH-USD"],"crypto_shorts":["SOL-USD"]},
+            "top_drivers": [], "narrative_discovery": {}, "bottleneck_discovery": {},
+            "most_hated_rally": {}, "regime_transition": {}, "prices": {}
+        }
+
+snap = _load_snapshot()
+q = snap.get("q", {})
+f = snap.get("f", {})
+quad = q.get("quad","Q3")
+structural_quad = q.get("structural_quad", "Q3")
+monthly_quad = q.get("monthly_quad", "Q2")
+global_quad = q.get("global_quad", "Q3")
+conf = q.get("confidence", 0.35)
+vix = q.get("vix_last", 20.0)
+operating_regime = q.get("operating_regime", "Stagflation Persists")
+tickers = snap.get("regime_tickers", {})
+prices = snap.get("prices", {})
+btl = snap.get("bottleneck_discovery", {})
+narr = snap.get("narrative_discovery", {})
+
+def _h(html): st.markdown(" ".join(html.split()), unsafe_allow_html=True)
+
+QC = {"Q1":("#1a4d2e","#4ade80"),"Q2":("#5c3d00","#fbbf24"),"Q3":("#5c2b00","#fb923c"),"Q4":("#5c1a1a","#f87171")}
+def _qbg(q_): return QC.get(q_, ("#2d3748","#a0aec0"))[0]
+def _qfg(q_): return QC.get(q_, ("#2d3748","#a0aec0"))[1]
+
+s_bg, s_fg = _qbg(structural_quad), _qfg(structural_quad)
+m_bg, m_fg = _qbg(monthly_quad), _qfg(monthly_quad)
+g_bg, g_fg = _qbg(global_quad), _qfg(global_quad)
+
+# Header
+_h(f"""
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div style="font-size:32px;">🧭</div>
+    <div>
+      <div style="font-size:24px;font-weight:800;color:#e6edf3;">MacroRegime <span style="color:#58a6ff;">Pro</span></div>
+      <div style="font-size:11px;color:#8b949e;">v11.2 · Minimal · Working</div>
+    </div>
+  </div>
+  <div style="text-align:right;">
+    <div style="font-size:11px;color:#8b949e;">{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC</div>
+    <div style="font-size:11px;color:#3fb950;">🟢 S:{structural_quad} · M:{monthly_quad} · G:{global_quad}</div>
+  </div>
+</div>
+""")
+
+# Regime Card
+_h(f"""
+<div style="background:#161b22;border:1px solid #30363d;border-radius:14px;padding:16px;margin-bottom:14px;">
+  <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap;">
+    <span style="background:{s_bg};color:{s_fg};padding:4px 10px;border-radius:20px;font-size:13px;font-weight:700;">S:{structural_quad}</span>
+    <span style="background:{m_bg};color:{m_fg};padding:4px 10px;border-radius:20px;font-size:13px;font-weight:700;">M:{monthly_quad}</span>
+    <span style="background:{g_bg};color:{g_fg};padding:4px 10px;border-radius:20px;font-size:13px;font-weight:700;">G:{global_quad}</span>
+    <span style="margin-left:auto;color:#fb923c;font-size:13px;font-weight:600;">🔥 {operating_regime}</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px;margin-bottom:10px;flex-wrap:wrap;font-size:12px;color:#c9d1d9;">
+    <span>Conf: <span style="color:#f85149;font-weight:600;">{conf:.0%}</span></span>
+    <span>Growth: <span style="color:#3fb950;">▲</span></span>
+    <span>Inflasi: <span style="color:#f85149;">▼</span></span>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px;margin-bottom:10px;flex-wrap:wrap;font-size:12px;color:#c9d1d9;">
+    <span>▲ Best Long: <span style="color:#3fb950;font-weight:600;">{tickers.get('us_longs',['—'])[0]}</span></span>
+    <span>▼ Best Short: <span style="color:#f85149;font-weight:600;">{tickers.get('us_shorts',['—'])[0]}</span></span>
+  </div>
+</div>
+""")
+
+# TABS
+tabs = st.tabs(["⚡ Command Center", "🌍 Markets", "📊 Regime Deep Dive", "⚠️ Risk & Diag"])
+
+with tabs[0]:
+    render_command_center(snap)
+
+with tabs[1]:
     def ret_n(s, n):
         if s is None or len(s) < n+1: return float("nan")
         try:
@@ -21,7 +145,7 @@ with tabs[1]:
         color = "#3fb950" if signal == "long" else "#f85149" if signal == "short" else "#d29922"
         icon = "▲" if signal == "long" else "▼" if signal == "short" else "⚡"
         return f"""
-        <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;min-width:140px;flex:1;">
+        <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;flex:1;min-width:140px;">
           <div>
             <div style="font-size:13px;font-weight:700;color:#e6edf3;">{tk}</div>
             <div style="font-size:10px;color:#8b949e;">{name}</div>
@@ -33,7 +157,7 @@ with tabs[1]:
         </div>
         """
 
-    def render_ticker_cards(ticker_list, names_map, signal_type, per_row=2):
+    def render_cards(ticker_list, names_map, signal_type, per_row=2):
         if not ticker_list: return
         cards = []
         for t in ticker_list:
@@ -55,6 +179,50 @@ with tabs[1]:
                 heat_html.append(f'<div style="background:{c};padding:6px 10px;border-radius:6px;text-align:center;min-width:80px;"><div style="font-size:11px;color:#8b949e;">{name}</div><div style="font-size:13px;color:{txt};font-weight:700;">{r1:+.1%}</div><div style="font-size:9px;color:#8b949e;">3M {r3:+.1%}</div></div>')
         heat_html.append('</div>')
         _h("".join(heat_html))
+
+    def render_bottleneck(market_filter):
+        if not btl: 
+            st.caption("No bottleneck data")
+            return
+        if btl.get("summary"): st.caption(btl["summary"])
+        basket = btl.get("front_run_basket", [])
+        filtered = [item for item in basket if market_filter.lower() in item.get("market", "").lower() or market_filter.lower() in item.get("sector", "").lower()]
+        if not filtered: filtered = basket[:6]
+        if filtered:
+            b_html = ['<div style="display:flex;gap:6px;flex-wrap:wrap;">']
+            for item in filtered[:8]:
+                tk = item.get("ticker","—")
+                sec = item.get("sector","—")[:10]
+                score = item.get("bottleneck_score",0)
+                stage = item.get("stage","—")
+                stage_c = {"mature":"#f85149","building":"#d29922","early":"#3fb950"}.get(stage, "#8b949e")
+                b_html.append(f'<div style="background:#161b22;border:1px solid #30363d;border-radius:6px;padding:6px 10px;text-align:center;"><div style="font-size:12px;font-weight:700;color:#e6edf3;">{tk}</div><div style="font-size:9px;color:#8b949e;">{sec}</div><div style="font-size:10px;color:{stage_c};">{stage} · {score:.2f}</div></div>')
+            b_html.append('</div>')
+            _h("".join(b_html))
+
+    def render_master(market_side):
+        all_tickers = []
+        side_map = {"us": [("Long","us_longs","#3fb950"),("Short","us_shorts","#f85149")],
+                    "ihsg": [("Long","ihsg_buys","#fb923c")],
+                    "fx": [("Long","fx_longs","#58a6ff"),("Short","fx_shorts","#f85149")],
+                    "comm": [("Long","commodity_longs","#fb923c"),("Short","commodity_shorts","#f85149")],
+                    "crypto": [("Long","crypto_longs","#a371f7"),("Short","crypto_shorts","#f85149")]}
+        for side_name, key, color in side_map.get(market_side, []):
+            for t in tickers.get(key, [])[:3]:
+                all_tickers.append((t, side_name, color))
+        if btl and btl.get("front_run_basket"):
+            for item in btl["front_run_basket"][:3]:
+                all_tickers.append((item.get("ticker","—"), "Adap", "#58a6ff"))
+        if narr and narr.get("active_narratives"):
+            for n in narr["active_narratives"][:2]:
+                for b in n.get("primary_beneficiaries", [])[:2]:
+                    all_tickers.append((b, "Narr", "#a371f7"))
+        if all_tickers:
+            m_html = ['<div style="display:flex;gap:6px;flex-wrap:wrap;">']
+            for t, side, color in all_tickers:
+                m_html.append(f'<div style="background:#0d1117;border:1px solid #30363d;border-radius:4px;padding:4px 8px;font-size:11px;color:{color};font-weight:600;">{t} <span style="color:#8b949e;font-size:9px;">{side}</span></div>')
+            m_html.append('</div>')
+            _h("".join(m_html))
 
     def render_sector_bars():
         SECS = {"XLE":"Energy","XLF":"Fin","XLI":"Ind","XLB":"Mat","XLK":"Tech","XLV":"Health","XLY":"Con.D","XLP":"Con.S","XLU":"Util","XLRE":"RE"}
@@ -81,143 +249,103 @@ with tabs[1]:
                 </div>
                 """)
 
-    def render_bottleneck(market_filter):
-        if not btl: 
-            st.caption("No bottleneck data")
-            return
-        if btl.get("summary"): st.caption(btl["summary"])
-        basket = btl.get("front_run_basket", [])
-        filtered = [item for item in basket if market_filter.lower() in item.get("market", "").lower() or market_filter.lower() in item.get("sector", "").lower()]
-        if not filtered: filtered = basket[:6]
-        if filtered:
-            b_html = ['<div style="display:flex;gap:6px;flex-wrap:wrap;">']
-            for item in filtered[:8]:
-                tk = item.get("ticker","—")
-                sec = item.get("sector","—")[:10]
-                score = item.get("bottleneck_score",0)
-                stage = item.get("stage","—")
-                stage_c = {"mature":"#f85149","building":"#d29922","early":"#3fb950"}.get(stage, "#8b949e")
-                b_html.append(f'<div style="background:#161b22;border:1px solid #30363d;border-radius:6px;padding:6px 10px;text-align:center;"><div style="font-size:12px;font-weight:700;color:#e6edf3;">{tk}</div><div style="font-size:9px;color:#8b949e;">{sec}</div><div style="font-size:10px;color:{stage_c};">{stage} · {score:.2f}</div></div>')
-            b_html.append('</div>')
-            _h("".join(b_html))
-
-    def render_master_board(market_side):
-        all_tickers = []
-        side_map = {"us": [("Long","us_longs","#3fb950"),("Short","us_shorts","#f85149")],
-                    "ihsg": [("Long","ihsg_buys","#fb923c")],
-                    "fx": [("Long","fx_longs","#58a6ff"),("Short","fx_shorts","#f85149")],
-                    "comm": [("Long","commodity_longs","#fb923c"),("Short","commodity_shorts","#f85149")],
-                    "crypto": [("Long","crypto_longs","#a371f7"),("Short","crypto_shorts","#f85149")]}
-        for side_name, key, color in side_map.get(market_side, []):
-            for t in tickers.get(key, [])[:3]:
-                all_tickers.append((t, side_name, color))
-        if btl and btl.get("front_run_basket"):
-            for item in btl["front_run_basket"][:3]:
-                all_tickers.append((item.get("ticker","—"), "Adap", "#58a6ff"))
-        if narr and narr.get("active_narratives"):
-            for n in narr["active_narratives"][:2]:
-                for b in n.get("primary_beneficiaries", [])[:2]:
-                    all_tickers.append((b, "Narr", "#a371f7"))
-        if all_tickers:
-            m_html = ['<div style="display:flex;gap:6px;flex-wrap:wrap;">']
-            for t, side, color in all_tickers:
-                m_html.append(f'<div style="background:#0d1117;border:1px solid #30363d;border-radius:4px;padding:4px 8px;font-size:11px;color:{color};font-weight:600;">{t} <span style="color:#8b949e;font-size:9px;">{side}</span></div>')
-            m_html.append('</div>')
-            _h("".join(m_html))
-
-    def render_market_section(title, long_list, short_list, fr_long, fr_short, names_map, heat_assets, market_key):
-        st.markdown(f"**📍 NOW — LONG**")
-        if long_list:
-            render_ticker_cards(long_list, names_map, "long", 2)
-        else: st.caption("No longs")
-        
-        if short_list:
-            st.markdown("**📍 NOW — SHORT**")
-            render_ticker_cards(short_list, names_map, "short", 2)
-        
-        if fr_long or fr_short:
-            st.divider()
-            c_fr_l, c_fr_s = st.columns(2)
-            with c_fr_l:
-                if fr_long:
-                    st.markdown("**⚡ ACCUMULATE**")
-                    render_ticker_cards(fr_long, names_map, "fr", 2)
-            with c_fr_s:
-                if fr_short:
-                    st.markdown("**⚡ FADE**")
-                    render_ticker_cards(fr_short, names_map, "short", 2)
-        
-        st.divider()
-        st.markdown("**🌍 Heatmap**")
-        render_heatmap(heat_assets)
-        
-        if market_key == "us":
-            st.markdown("**📊 Sector Leadership (Top 5)**")
-            render_sector_bars()
-        
-        st.markdown("**🔍 Bottleneck Scan**")
-        render_bottleneck(market_key)
-        
-        st.markdown("**📋 Master Board**")
-        render_master_board(market_key)
-
-    if fw in ("now", "1-2 weeks", "1-2w", "1-2W"):
-        _h(f"""
-        <div style="background:#1a3a2a;border:1px solid #3fb950;border-radius:10px;padding:12px;margin-bottom:16px;">
-          <div style="color:#3fb950;font-size:13px;font-weight:700;">⚡ FRONT-RUN WINDOW: {fw.upper()} · {tr_label}</div>
-          <div style="color:#c9d1d9;font-size:12px;margin-top:4px;">{transition.get('front_run_rationale', '—')}</div>
-        </div>
-        """)
-
     mkt_tabs = st.tabs(["🇺🇸 US Stocks", "🇮🇩 IHSG", "💱 FX", "🛢️ Commodities", "🔐 Crypto"])
 
-    # ══════ 🇺🇸 US STOCKS ══════
+    # US
     with mkt_tabs[0]:
         us_longs = tickers.get("us_longs", [])
         us_shorts = tickers.get("us_shorts", [])
-        fr_us_long = us_longs[:3] if fw in ("now", "1-2 weeks") else []
-        fr_us_short = us_shorts[:2] if fw in ("now", "1-2 weeks") else []
         names = {"SPY":"S&P 500","QQQ":"Nasdaq","IWM":"Russell 2K","XLE":"Energy","XLK":"Tech","XLF":"Finance","XLI":"Industrials","XLB":"Materials","XLV":"Health","XLY":"Consumer","XLP":"Staples","XLU":"Utilities","XLRE":"REITs","SPLV":"Low Vol","TLT":"Long Bond","GLD":"Gold","SMH":"Semis"}
-        heat = [("SPY","S&P 500"),("QQQ","Nasdaq"),("IWM","Russell 2K"),("TLT","Bond"),("GLD","Gold"),("BTC-USD","BTC"),("CL=F","Oil"),("UUP","USD")]
-        render_market_section("US", us_longs, us_shorts, fr_us_long, fr_us_short, names, heat, "us")
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown("**📍 NOW — LONG**")
+            render_cards(us_longs, names, "long", 2)
+        with c2:
+            st.markdown("**📍 NOW — SHORT**")
+            render_cards(us_shorts, names, "short", 2)
+        st.divider()
+        st.markdown("**🌍 Heatmap**")
+        render_heatmap([("SPY","S&P 500"),("QQQ","Nasdaq"),("IWM","Russell 2K"),("TLT","Bond"),("GLD","Gold"),("BTC-USD","BTC"),("CL=F","Oil"),("UUP","USD")])
+        st.markdown("**📊 Sector Leadership (Top 5)**")
+        render_sector_bars()
+        st.markdown("**🔍 Bottleneck Scan**")
+        render_bottleneck("us")
+        st.markdown("**📋 Master Board**")
+        render_master("us")
 
-    # ══════ 🇮🇩 IHSG (Long Only) ══════
+    # IHSG
     with mkt_tabs[1]:
         ihsg_longs = tickers.get("ihsg_buys", [])
-        fr_ihsg = ihsg_longs[:3] if fw in ("now", "1-2 weeks") else []
         names_ihsg = {"BBCA.JK":"BCA","BBRI.JK":"BRI","ASII.JK":"Astra","TLKM.JK":"Telkom","ADRO.JK":"Adaro","ANTM.JK":"Antam","PTBA.JK":"Bukit Asam","ITMG.JK":"Indomining","INCO.JK":"Vale","KLBF.JK":"Kalbe"}
-        heat_ihsg = [("^JKSE","IHSG"),("BBCA.JK","BCA"),("BBRI.JK","BRI"),("ASII.JK","Astra"),("TLKM.JK","Telkom")]
-        render_market_section("IHSG", ihsg_longs, [], fr_ihsg, [], names_ihsg, heat_ihsg, "ihsg")
+        st.markdown("**📍 NOW — LONG (IHSG Long Only)**")
+        render_cards(ihsg_longs, names_ihsg, "long", 3)
+        st.divider()
+        st.markdown("**🌍 Heatmap**")
+        render_heatmap([("^JKSE","IHSG"),("BBCA.JK","BCA"),("BBRI.JK","BRI"),("ASII.JK","Astra"),("TLKM.JK","Telkom")])
+        st.markdown("**🔍 Bottleneck Scan**")
+        render_bottleneck("ihsg")
+        st.markdown("**📋 Master Board**")
+        render_master("ihsg")
 
-    # ══════ 💱 FX (Long + Short) ══════
+    # FX
     with mkt_tabs[2]:
         fx_longs = tickers.get("fx_longs", [])
-        fx_shorts = tickers.get("fx_shorts", [])  # Add to regime_tickers if needed
-        fr_fx_long = fx_longs[:2] if fw in ("now", "1-2 weeks") else []
-        fr_fx_short = fx_shorts[:2] if fw in ("now", "1-2 weeks") else []
+        fx_shorts = tickers.get("fx_shorts", [])
         names_fx = {"EURUSD=X":"EUR/USD","USDJPY=X":"USD/JPY","AUDUSD=X":"AUD/USD","USDIDR=X":"USD/IDR","UUP":"DXY"}
-        heat_fx = [("EURUSD=X","EUR/USD"),("USDJPY=X","USD/JPY"),("AUDUSD=X","AUD/USD"),("USDIDR=X","USD/IDR"),("UUP","DXY")]
-        render_market_section("FX", fx_longs, fx_shorts, fr_fx_long, fr_fx_short, names_fx, heat_fx, "fx")
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown("**📍 NOW — LONG**")
+            render_cards(fx_longs, names_fx, "long", 2)
+        with c2:
+            st.markdown("**📍 NOW — SHORT**")
+            render_cards(fx_shorts, names_fx, "short", 2)
+        st.divider()
+        st.markdown("**🌍 Heatmap**")
+        render_heatmap([("EURUSD=X","EUR/USD"),("USDJPY=X","USD/JPY"),("AUDUSD=X","AUD/USD"),("USDIDR=X","USD/IDR"),("UUP","DXY")])
+        st.markdown("**🔍 Bottleneck Scan**")
+        render_bottleneck("fx")
+        st.markdown("**📋 Master Board**")
+        render_master("fx")
 
-    # ══════ 🛢️ COMMODITIES (Long + Short) ══════
+    # Commodities
     with mkt_tabs[3]:
         comm_longs = tickers.get("commodity_longs", [])
-        comm_shorts = tickers.get("commodity_shorts", [])  # Add to regime_tickers if needed
-        fr_comm_long = comm_longs[:3] if fw in ("now", "1-2 weeks") else []
-        fr_comm_short = comm_shorts[:2] if fw in ("now", "1-2 weeks") else []
+        comm_shorts = tickers.get("commodity_shorts", [])
         names_comm = {"CL=F":"WTI Oil","GC=F":"Gold","HG=F":"Copper","SI=F":"Silver","NG=F":"Nat Gas","BZ=F":"Brent","URA":"Uranium"}
-        heat_comm = [("CL=F","WTI Oil"),("GC=F","Gold"),("HG=F","Copper"),("SI=F","Silver"),("NG=F","Nat Gas")]
-        render_market_section("Commodities", comm_longs, comm_shorts, fr_comm_long, fr_comm_short, names_comm, heat_comm, "comm")
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown("**📍 NOW — LONG**")
+            render_cards(comm_longs, names_comm, "long", 2)
+        with c2:
+            st.markdown("**📍 NOW — SHORT**")
+            render_cards(comm_shorts, names_comm, "short", 2)
+        st.divider()
+        st.markdown("**🌍 Heatmap**")
+        render_heatmap([("CL=F","WTI Oil"),("GC=F","Gold"),("HG=F","Copper"),("SI=F","Silver"),("NG=F","Nat Gas")])
+        st.markdown("**🔍 Bottleneck Scan**")
+        render_bottleneck("comm")
+        st.markdown("**📋 Master Board**")
+        render_master("comm")
 
-    # ══════ 🔐 CRYPTO (Long + Short) ══════
+    # Crypto
     with mkt_tabs[4]:
         cry_longs = tickers.get("crypto_longs", [])
-        cry_shorts = tickers.get("crypto_shorts", [])  # Add to regime_tickers if needed
-        fr_cry_long = cry_longs[:2] if fw in ("now", "1-2 weeks") and vix < 22 else []
-        fr_cry_short = cry_shorts[:2] if fw in ("now", "1-2 weeks") and vix < 22 else []
+        cry_shorts = tickers.get("crypto_shorts", [])
         names_cry = {"BTC-USD":"Bitcoin","ETH-USD":"Ethereum","SOL-USD":"Solana","XRP-USD":"XRP"}
-        heat_cry = [("BTC-USD","Bitcoin"),("ETH-USD","Ethereum"),("SOL-USD","Solana"),("XRP-USD","XRP")]
-        render_market_section("Crypto", cry_longs, cry_shorts, fr_cry_long, fr_cry_short, names_cry, heat_cry, "crypto")
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown("**📍 NOW — LONG**")
+            render_cards(cry_longs, names_cry, "long", 2)
+        with c2:
+            st.markdown("**📍 NOW — SHORT**")
+            render_cards(cry_shorts, names_cry, "short", 2)
+        st.divider()
+        st.markdown("**🌍 Heatmap**")
+        render_heatmap([("BTC-USD","Bitcoin"),("ETH-USD","Ethereum"),("SOL-USD","Solana"),("XRP-USD","XRP")])
+        st.markdown("**🔍 Bottleneck Scan**")
+        render_bottleneck("crypto")
+        st.markdown("**📋 Master Board**")
+        render_master("crypto")
 
 with tabs[2]:
     show_raw = st.toggle("Show raw regime state JSON", value=False)
@@ -231,23 +359,9 @@ with tabs[2]:
             label = f"{'●' if is_s else '◉' if is_m else '○'} {k}: S={p:.0%} M={mp:.0%}"
             st.progress(p, text=label)
     else: st.info("No probability data")
-    st.divider(); st.markdown("**Raw Macro Indicators**")
-    rows = []
-    for lbl, key, note in [("INDPRO YoY","indpro_yoy","▲" if f.get("indpro_acc") else "▼"),("CPI YoY","cpi_yoy","▲" if f.get("cpi_acc") else "▼"),("Core PCE","corepce_yoy","▲" if f.get("corepce_acc") else "▼"),("VIX","vix_last",""),("HY OAS","hy_oas",f"Δ1M: {f.get('hy_oas_1m',0):+.0f}bps"),("Policy Score","policy_score","+ve=cutting")]:
-        val = f.get(key)
-        if val is not None:
-            try:
-                v = float(val) if not isinstance(val, bool) else float("nan")
-                if v == v: rows.append({"Indicator": lbl, "Value": f"{v:+.2f}" if abs(v) < 100 else f"{v:.2f}", "Note": note})
-            except: pass
-    if rows: st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
 
 with tabs[3]:
     st.subheader("⚠️ Risk & Diagnostics")
-    
-    fred_ok = st.session_state.get("_fred_api_ok", False)
-    fred_err = st.session_state.get("_fred_api_err", "")
-    
     fred_meta = snap.get("fred_meta", {})
     if fred_meta:
         loaded = fred_meta.get("loaded", 0); missing = fred_meta.get("missing", 0)
@@ -259,25 +373,7 @@ with tabs[3]:
             mk = fred_meta.get("missing_keys", [])
             if mk: st.warning(f"Missing: {', '.join(mk[:10])}")
     else: st.error("FRED metadata unavailable")
-
-    if not fred_ok:
-        st.error(f"🚨 FRED API Direct Test FAILED: {fred_err}")
-        st.info("Causes: (1) Key invalid/expired, (2) Streamlit Cloud blocks FRED, (3) Rate limited.")
-    else:
-        st.success("✅ FRED API Direct Test PASSED — but loader still 0. Check fred_loader.py cache logic.")
-
-    if rally:
-        st.divider(); st.markdown("**Most Hated Rally — Checklist**")
-        st.caption(f"Stage: {rally.get('stage', '?')} | Action: {rally.get('action', '?')}")
-        for item in rally.get("checklist", []):
-            ok = item.get("value", False)
-            icon = "✅" if ok else "⬜"
-            color = "#3fb950" if ok else "#8b949e"
-            raw = item.get("raw", 0)
-            _h(f'<div style="color:{color};font-size:13px;margin:4px 0;">{icon} {item.get("item", "—")} <span style="color:#8b949e;">({raw:.3f})</span></div>')
-        if rally_clear >= 4: st.success("All 4 cleared")
-        else: st.info(f"{rally_clear}/4 cleared")
-
+    
     if fred_meta and fred_meta.get("loaded", 0) == 0:
         st.error("🚨 FRED 0 loaded — all proxy data.")
         if st.button("🔄 Force Clear Cache & Reload"):

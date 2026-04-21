@@ -1,4 +1,4 @@
-"""orchestration/build_snapshot.py — Adaptive + Safe Imports"""
+"""orchestration/build_snapshot.py — Fixed for repo signature"""
 from __future__ import annotations
 from typing import Dict
 
@@ -10,28 +10,41 @@ from engines.narrative_discovery_engine import NarrativeDiscoveryEngine
 from engines.adaptive_bottleneck_engine import AdaptiveBottleneckEngine
 from data.narrative_news_loader import load_narrative_signals
 
-# Safe import SharedCoreEngine
-try:
-    from engines.shared_core_engine import SharedCoreEngine
-    _HAS_SHARED_CORE = True
-except ImportError:
-    _HAS_SHARED_CORE = False
-    # Fallback inline
-    def _compute_global_quad(quad: dict, macro: dict) -> str:
-        s_quad = quad.get('structural_quad', quad.get('current_quad', 'Q?'))
-        m_quad = quad.get('monthly_quad', s_quad)
-        if s_quad == m_quad:
-            return s_quad
-        return s_quad
+# Ticker universe — synced with repo config
+TICKERS = [
+    # US Equities
+    "SPY", "QQQ", "IWM", "TLT", "UUP", "EEM", "XLI", "XLY", "XHB", "XLU", "XLP", "XLK",
+    "SMH", "XLE", "XLB", "XLV", "XLF", "XLRE", "SPLV", "OXY", "FCX", "LMT", "NOC", "RTX",
+    "GD", "HII", "AVAV", "NVDA", "AMD", "AVGO", "TSM", "ASML", "MRVL", "LITE", "COHR",
+    "CRDO", "ALAB", "NPTN", "AAOI", "POET", "MU", "WDC", "STX", "TER", "FORM", "AMKR",
+    "MKSI", "ENTG", "CCMP", "AMAT", "LRCX", "KLAC", "CIEN", "ANET", "INFN", "COMM",
+    "CEG", "NNE", "SMR", "OKLO", "VST", "NRG", "URA", "CCJ", "UUUU", "LEU", "TSLA",
+    "ENPH", "SEDG", "FLNC", "QS", "SLDP", "ALB", "SQM", "LLY", "NVO", "VKTX", "MRNA",
+    "ISRG", "IONQ", "RGTI", "QBTS", "QUBT", "IBM", "GOOGL", "MSFT", "AMZN", "META",
+    "DELL", "HPQ", "INTC", "F", "GM", "TM", "MCD", "SBUX", "PEP", "KO", "YUM", "XOM",
+    "CVX", "COP", "CL=F", "GC=F", "HG=F", "SI=F", "NG=F", "BZ=F",
+    # FX
+    "EURUSD=X", "USDJPY=X", "AUDUSD=X", "USDIDR=X",
+    # Crypto
+    "BTC-USD", "ETH-USD", "SOL-USD", "XRP-USD",
+    # IHSG
+    "ADRO.JK", "PTBA.JK", "ITMG.JK", "ANTM.JK", "INCO.JK", "BBCA.JK", "BBRI.JK",
+    "ASII.JK", "TLKM.JK", "IPCM.JK", "TMAS.JK", "PTDI.JK", "MNCN.JK", "KLBF.JK",
+]
 
 
-def build_snapshot() -> Dict:
+def build_snapshot(force_refresh: bool = False, prefer_saved: bool = False, compact_mode: bool = False) -> Dict:
     # ── Load Data ──
-    fred_bundle = load_fred_bundle()
+    fred_bundle = load_fred_bundle(force_refresh=force_refresh)
     fred = fred_bundle.get("series", {})
     fred_meta = fred_bundle.get("meta", {})
 
-    price_bundle = load_price_bundle()
+    # Price bundle WITH tickers argument (repo signature)
+    price_bundle = load_price_bundle(
+        tickers=TICKERS,
+        force_refresh=force_refresh,
+        prefer_local_history=prefer_saved,
+    )
     prices = price_bundle.get("series", {})
     price_meta = price_bundle.get("meta", {})
     volumes = price_bundle.get("volumes", {}) if isinstance(price_bundle, dict) else {}
@@ -48,13 +61,10 @@ def build_snapshot() -> Dict:
     quad_engine = QuadStateEngine()
     quad = quad_engine.run(macro)
 
-    # ── Global Quad ──
-    if _HAS_SHARED_CORE:
-        shared = SharedCoreEngine()
-        regime_stack = shared._resolve_regime_stack(quad=vars(quad), features={"macro": macro})
-        global_quad = regime_stack.get("global_quad", quad.current_quad)
-    else:
-        global_quad = _compute_global_quad(vars(quad), macro)
+    # ── Global Quad (inline fallback) ──
+    s_quad = quad.structural_quad
+    m_quad = quad.monthly_quad
+    global_quad = s_quad if s_quad == m_quad else s_quad
 
     # ── Narrative Discovery ──
     narrative_signals = load_narrative_signals()
@@ -82,17 +92,13 @@ def build_snapshot() -> Dict:
         }
     except Exception as e:
         bottleneck_dict = {
-            "active_sectors": [],
-            "leader_tickers": [],
-            "supply_chain_chains": [],
-            "front_run_basket": [],
-            "cross_market_opportunities": [],
-            "summary": f"Adaptive engine error: {str(e)}",
-            "discovery_method": "error",
+            "active_sectors": [], "leader_tickers": [], "supply_chain_chains": [],
+            "front_run_basket": [], "cross_market_opportunities": [],
+            "summary": f"Adaptive engine error: {str(e)}", "discovery_method": "error",
         }
 
     # ── Regime Tickers ──
-    regime_tickers = _build_regime_tickers(quad.current_quad, prices)
+    regime_tickers = _build_regime_tickers(quad.current_quad)
 
     # ── Top Drivers ──
     top_drivers = _build_top_drivers(macro, quad)
@@ -132,11 +138,17 @@ def build_snapshot() -> Dict:
         "bottleneck_discovery": bottleneck_dict,
         "most_hated_rally": _check_most_hated_rally(prices, macro),
         "regime_transition": _check_transition(quad, macro),
+        "meta": {
+            "generated_at": str(pd.Timestamp.now()),
+            "schema": "v12_adaptive",
+            "runtime_mode": "live",
+            "loader_meta": loader_meta,
+        },
     }
     return snapshot
 
 
-def _build_regime_tickers(quad: str, prices: Dict) -> Dict:
+def _build_regime_tickers(quad: str) -> Dict:
     tickers = {
         "Q1": {
             "us_longs": ["XLK", "XLY", "IWM", "QQQ", "SMH"],
@@ -223,3 +235,6 @@ def _check_transition(quad, macro):
         "front_run_rationale": "Regime stable — no transition imminent",
         "early_warning_signals": [],
     }
+
+
+import pandas as pd

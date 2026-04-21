@@ -673,14 +673,11 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
         th(nf(f.get("eem_1m",0.0))-nf(f.get("eem_3m",0.0))/3.0,0.04),
         th(nf(f.get("rsp_1m",f.get("spy_1m",0.0)))-nf(f.get("rsp_3m",f.get("spy_3m",0.0)))/3.0,0.03),
     )
-    # Structural inflation proxy: use 3m-based signals, not 1m
-    # 1M oil/gold moves are WEATHER (monthly), not CLIMATE (structural)
-    # Breakeven inflation is the purest structural inflation signal
     i_struct_proxy_roc=nm(
-        th(nf(oil_3m)/3.0, 0.04),              # oil TREND (3m), dampened
-        th(nf(bk1m),0.08),                     # breakeven = forward-looking inflation
-        th(nf(gld_3m)/3.0, 0.03),              # gold TREND (3m)
-        th(nf(f.get("tlt_1m",0.0))*-1, 0.04), # TLT inverse = bond inflation signal
+        th(nf(oil_1m)-nf(oil_3m)/3.0,0.05),
+        th(nf(bk1m),0.08),
+        th(nf(gld_1m)-nf(gld_3m)/3.0,0.04),
+        th(-nf(uup_1m),0.05),
     )
 
     g_struct_climate=nf(structural_obs_reliability*g_struct_roc_obs + 0.70*structural_proxy_scale*g_struct_proxy_roc)
@@ -716,16 +713,11 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
     ism_sub50 = max(0.0, (50.0 - ism_last) / 5.0) if math.isfinite(ism_last) else 0.0
     oil_3m_shock = clamp(nf(f.get("clf_3m", f.get("oil_3m", 0.0))) / 0.10)  # normalize: 10% = full signal
     usd_stress = clamp(nf(f.get("uup_1m", 0.0)) / 0.03)
-    # Tariff headwind: use 3M oil trend (not 1M) to avoid noise from weekly swings
-    # Oil -13% in 1 week ≠ structural inflation trend change
-    # Use ISM services + manufacturing composite for Q3 sticky inflation signal
-    oil_3m_val = nf(f.get("clf_3m", f.get("oil_3m", 0.0)))
-    oil_headwind = clamp(oil_3m_val / 0.10) if oil_3m_val > 0 else 0.0  # only when oil UP on 3m basis
     tariff_growth_headwind = clamp(
         0.35 * ism_sub50
-        + 0.30 * oil_headwind
-        + 0.20 * usd_stress
-        + 0.15 * max(0.0, f.get("claims_13w_delta", 0.0) / 20.0)
+        + 0.30 * oil_3m_shock  # oil up = inflation pressure that hits consumers
+        + 0.20 * usd_stress     # USD up = EM/export headwind
+        + 0.15 * max(0.0, f.get("claims_13w_delta", 0.0) / 20.0)  # claims rising
     )
     structural_slowdown_flags = clamp(
         0.45 * sf
@@ -848,25 +840,6 @@ def build_quad(f:Dict)->Dict:
     i_acc=f.get("cpi_acc") or f.get("corepce_acc")
     if i_acc is None: i_acc=(s_ic>0)
     cb=conf_band(s_conf)
-    
-    # STRUCTURAL STICKINESS: Hedgeye anchors quarterly quad for ~3 months
-    # A single week of data (oil -13%) should NOT flip structural Q3 → Q4
-    # Implementation: when confidence < 25% and top quad is Q4,
-    # apply a Q3 prior bias if ISM Prices Paid remains elevated (>65)
-    # This mimics Hedgeye's "sticky quarterly" behavior
-    _prices_paid_proxy = f.get("prices_paid_composite", f.get("ism_mfg_prices", 65.0) or 65.0)
-    _oil_3m_trend = nf(f.get("clf_3m", f.get("oil_3m", 0.0)))
-    _sticky_q3 = (
-        float(_prices_paid_proxy or 65.0) >= 65.0  # inflation still elevated
-        and _oil_3m_trend > -0.05  # oil not in full collapse (>-5% on 3m)
-        and s_conf < 0.25           # low confidence = borderline
-        and s_quad == "Q4"          # currently showing Q4
-    )
-    if _sticky_q3:
-        # Hedgeye's quarterly anchor: bias back toward Q3 when sticky inflation
-        s_quad = "Q3"
-        s_probs = {**s_probs, "Q3": s_probs.get("Q3", 0.20) + 0.08, "Q4": max(0, s_probs.get("Q4", 0.26) - 0.08)}
-    
     # Transitional state: when confidence < 20% AND spread between top 2 quads is < 5%, label it
     q_ordered = sorted(s_probs.items(), key=lambda x: -x[1])
     top_spread = q_ordered[0][1] - q_ordered[1][1]
@@ -1333,25 +1306,6 @@ def fetch_prices_core(period: str = "2y") -> Dict[str, pd.Series]:
     return fetch_prices(_CORE_TICKERS, period=period)
 
 def load_all()->Dict:
-
-    # --- SAFE DEFAULTS ---
-    bei_flow = {}
-    broker_flow = {}
-    broker_confirm = {}
-    usd_corr = {}
-    global_quad_data = {}
-    regional_surveys = {}
-    frontrun_data = {}
-    gdpnow = {}
-    data_freshness = {}
-    backtest_data = {}
-    intraday_dict = {}
-    position_data = {}
-    options_regime = {}
-    regime_transition = {}
-    regime_tickers = {}
-    narrative_discovery = {}
-
     price_period=str(os.environ.get("MRP_PRICE_PERIOD","2y") or "2y").strip() or "2y"
 
     # Phase 1: Core tickers (fast — only what regime engine needs)
@@ -1557,40 +1511,9 @@ def load_all()->Dict:
         }
 
         # BEI foreign flow + broker flow
-        bei_flow = load_bei_foreign_flow(prices=prices)
+        bei_flow = load_bei_foreign_flow()
         broker_flow = load_broker_flow()
         broker_confirm = get_broker_regime_confirmation(broker_flow, ticker_obj.ihsg_buys)
-
-        # --- USD Correlation (THE mythic variable) ---
-        from engines.usd_correlation_engine import build_usd_correlation_matrix
-        usd_corr = build_usd_correlation_matrix(prices)
-
-        # --- Global Quad (50 countries) ---
-        from engines.global_quad_engine import run_global_quad_engine
-        global_quad_data = run_global_quad_engine(
-            prices,
-            us_structural_quad=q.get("quad","Q3"),
-            us_monthly_quad=q.get("monthly_quad","Q2"),
-            usd_trend=usd_corr.get("usd_trend","neutral"),
-        )
-
-        # --- Regional Survey (ISM New Orders, CapEx, Prices Paid) ---
-        from engines.regional_survey_engine import load_regional_surveys
-        regional_surveys = load_regional_surveys()
-
-        # --- Front-Run Engine (Signal + Quad ticker selection) ---
-        from engines.frontrun_engine import run_frontrun_engine
-        frontrun_data = run_frontrun_engine(
-            prices,
-            s_quad=q.get("quad","Q3"),
-            m_quad=q.get("monthly_quad","Q2"),
-            usd_trend=usd_corr.get("usd_trend","neutral"),
-            usd_correlations=usd_corr.get("correlations",{}),
-        )
-
-        # --- GDPNow (forward-looking GDP) ---
-        from data.gdpnow_loader import load_gdpnow
-        gdpnow = load_gdpnow()
 
         # --- Data freshness ---
         from engines.data_freshness_engine import build_data_freshness_report
@@ -1661,18 +1584,13 @@ def load_all()->Dict:
             "history": get_position_history(10),
         }
 
-    except Exception as e:
-        usd_corr = {}
-        global_quad_data = {}
-        regional_surveys = {}
-        frontrun_data = {}
-        gdpnow = {}
+    except Exception as _e2:
         data_freshness = {}
         backtest_data = {}
         intraday_dict = {}
         position_data = {}
 
-    
+    except Exception as _e:
         options_regime = {}
         regime_transition = {}
         regime_tickers = {}
@@ -1697,11 +1615,6 @@ def load_all()->Dict:
                 bei_flow=bei_flow,
                 broker_flow=broker_flow,
                 broker_confirm=broker_confirm,
-                usd_corr=usd_corr,
-                global_quad=global_quad_data,
-                regional_surveys=regional_surveys,
-                frontrun=frontrun_data,
-                gdpnow=gdpnow,
                 data_freshness=data_freshness,
                 backtest_data=backtest_data,
                 intraday=intraday_dict,

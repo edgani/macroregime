@@ -376,11 +376,11 @@ def fetch_fred(sid:str)->pd.Series:
     live=_fetch_live()
     if live is not None and len(live)>0:
         return live
-    # 2. Try disk cache (may be stale but better than empty)
-    cached=_load_cache()
+    # 2. Try disk cache — ACCEPT STALE (monthly data stays valid for weeks)
+    cached=_load_cache(accept_stale=True)
     if len(cached)>0:
         return cached
-    # 3. Return empty — build_macro will fall back to market proxies
+    # 3. Return empty — last resort, build_macro will use proxies
     return pd.Series(dtype=float)
 
 @st.cache_data(ttl=TTL_FRED, show_spinner=False)
@@ -465,7 +465,6 @@ def get_regime_prior_mode()->str:
 def build_fallback_macro_proxies(prices:Dict[str,pd.Series])->Dict:
     spy_3m=ret_n(prices.get("SPY",pd.Series()),63); xli_3m=ret_n(prices.get("XLI",pd.Series()),63)
     xly_3m=ret_n(prices.get("XLY",pd.Series()),63); iwm_3m=ret_n(prices.get("IWM",pd.Series()),63)
-    rsp_3m=ret_n(prices.get("RSP",pd.Series()),63)
     uup_3m=ret_n(prices.get("UUP",pd.Series()),63); oil_3m=ret_n(prices.get("CL=F",pd.Series()),63)
     gold_3m=ret_n(prices.get("GC=F",pd.Series()),63); tlt_1m=ret_n(prices.get("TLT",pd.Series()),21)
     hyg_1m=ret_n(prices.get("HYG",pd.Series()),21); cop_3m=ret_n(prices.get("HG=F",pd.Series()),63)
@@ -473,33 +472,15 @@ def build_fallback_macro_proxies(prices:Dict[str,pd.Series])->Dict:
     xly_1m=ret_n(prices.get("XLY",pd.Series()),21); iwm_1m=ret_n(prices.get("IWM",pd.Series()),21)
     oil_1m=ret_n(prices.get("CL=F",pd.Series()),21); gold_1m=ret_n(prices.get("GC=F",pd.Series()),21)
     uup_1m=ret_n(prices.get("UUP",pd.Series()),21)
-
-    # ── Breadth & credit penalty: equity rally tanpa breadth = growth slowing ──
-    _breadth_penalty = max(0.0, spy_3m - nf(rsp_3m)) * 0.5 if math.isfinite(rsp_3m) else 0.0
-    _credit_stress  = max(0.0, -nf(hyg_1m)) * 0.4 if math.isfinite(hyg_1m) else 0.0
-    _small_weak     = max(0.0, spy_3m - nf(iwm_3m)) * 0.4 if math.isfinite(iwm_3m) else 0.0
-
-    # ISM proxy: industrial + breadth + credit. Kalau breadth/credit rusak, ISM < 50
-    _ism_proxy = 50.0 + 20.0*nf(xli_3m) - 15.0*_breadth_penalty - 25.0*_credit_stress - 12.0*_small_weak
-
-    # Breakeven floor: sticky inflation expectations, gak boleh collapse cuma karena oil turun 1 minggu
-    bk_raw = 2.2 + 1.2*nf(oil_3m) + 0.4*nf(gold_3m) - 0.2*nf(uup_3m)
-    bk = max(2.15, bk_raw)  # floor 2.15% = sticky expectations anchor
-
+    bk=2.2+1.2*nf(oil_3m)+0.4*nf(gold_3m)-0.2*nf(uup_3m)
     return dict(
-        indpro_yoy=nf(0.55*xli_3m+0.45*spy_3m - _breadth_penalty - _small_weak),
-        retail_yoy=nf(0.60*xly_3m+0.40*spy_3m - _breadth_penalty),
-        payrolls_yoy=nf(0.50*iwm_3m+0.50*spy_3m - _small_weak),
-        unrate_3m_delta=nf(-0.10*iwm_3m),
-        claims_13w_delta=nf(-10.0*iwm_3m),
-        ism_last=_ism_proxy,
-        housing_yoy=nf(iwm_3m*0.6),
-        # Headline CPI: oil boleh turun (headline sensitive)
-        cpi_yoy=nf(0.025+0.35*nf(oil_3m)+0.05*nf(gold_3m)),
-        # Core metrics: base sticky 2.4-2.5%, oil hanya nge-boost kalau UP (supply shock)
-        core_cpi_yoy=nf(0.025+0.06*max(0.0,nf(oil_3m))-0.03*uup_3m),
-        corepce_yoy=nf(0.024+0.04*max(0.0,nf(oil_3m))-0.02*uup_3m),
-        breakeven=bk, breakeven_1m=nf(0.15*nf(oil_3m)/3),
+        indpro_yoy=nf(0.55*xli_3m+0.45*spy_3m), retail_yoy=nf(0.60*xly_3m+0.40*spy_3m),
+        payrolls_yoy=nf(0.50*iwm_3m+0.50*spy_3m), unrate_3m_delta=nf(-0.10*iwm_3m),
+        claims_13w_delta=nf(-10.0*iwm_3m), ism_last=50.0+20.0*nf(xli_3m),
+        housing_yoy=nf(iwm_3m*0.6), cpi_yoy=nf(0.025+0.35*oil_3m+0.05*gold_3m),
+        core_cpi_yoy=nf(0.023+0.15*oil_3m-0.05*uup_3m),
+        corepce_yoy=nf(0.022+0.12*oil_3m-0.04*uup_3m),
+        breakeven=bk, breakeven_1m=nf(0.15*oil_3m/3),
         real_10y=1.8-30.0*nf(tlt_1m) if math.isfinite(tlt_1m) else 1.8,
         policy_rate=4.33, policy_rate_3m=0.0,
         dgs2=float("nan"),dgs10=float("nan"),dgs30=float("nan"),
@@ -687,8 +668,8 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
         if v is False: return -1.0
         return float("nan")
 
-    # True-root fix v11.2: structural quad driven by rate-of-change + breadth reality.
-    # NO hardcoded anchor. Kalau data bilang stagflation, ya Q3. Kalau data bilang deflation, ya Q4.
+    # True-root fix: structural quad must be driven by rate-of-change, not absolute level.
+    # Otherwise any positive growth + mildly positive inflation proxy mechanically biases toward Q2.
     g_struct_roc_obs=nm(
         acc_num(f.get("indpro_acc")),
         acc_num(f.get("payrolls_acc")),
@@ -703,8 +684,9 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
         th(-nf(uup_1m),0.05),
     )
 
-    # Structural growth proxy: PURE 3M trend + breadth penalty
-    _equity_growth_proxy=nm(
+    # Structural growth proxy: PURE 3M trend (bukan 1M-3M delta)
+    # 1M-3M delta = weather/momentum, 3M trend = climate/structural
+    g_struct_proxy_roc=nm(
         th(nf(f.get("spy_3m",0.0)),0.06),
         th(nf(f.get("xli_3m",0.0)),0.06),
         th(nf(f.get("xly_3m",0.0)),0.06),
@@ -712,37 +694,20 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
         th(nf(f.get("eem_3m",0.0)),0.08),
         th(nf(f.get("rsp_3m",f.get("spy_3m",0.0))),0.06),
     )
-    # Breadth reality check: kalau RSP/IWM underperform SPY, growth proxy di-penalize
-    _rsp_3m = nf(f.get("rsp_3m", f.get("spy_3m", 0.0)))
-    _spy_3m = nf(f.get("spy_3m", 0.0))
-    _breadth_penalty = max(0.0, _spy_3m - _rsp_3m) * 2.0 if math.isfinite(_rsp_3m) else 0.0
-    _iwm_3m = nf(f.get("iwm_3m", 0.0))
-    _small_penalty = max(0.0, _spy_3m - _iwm_3m) * 1.5 if math.isfinite(_iwm_3m) else 0.0
-    g_struct_proxy_roc = nf(_equity_growth_proxy - _breadth_penalty - _small_penalty)
-
-    # Structural inflation proxy v11.2: SUPPLY-SIDE & CORE PERSISTENCE ONLY.
-    # Oil turun = weather (TACO), bukan structural deflation. Core base 2.4% = sticky.
-    _oil_struct_signal = th(max(0.0, nf(oil_3m)) / 3.0, 0.04)   # hanya oil UP = inflationary
-    _core_pce_level = nf(f.get("corepce_yoy", 2.4))
-    _core_cpi_level = nf(f.get("core_cpi_yoy", 2.5))
-    _breakeven_level = f.get("breakeven", 2.2)
-
-    _core_persistence = nm(
-        th(max(0.0, _core_pce_level - 2.30), 0.20) if math.isfinite(_core_pce_level) else 0.0,
-        th(max(0.0, _core_cpi_level - 2.30), 0.20) if math.isfinite(_core_cpi_level) else 0.0,
-        th(max(0.0, _breakeven_level - 2.30) / 2.0, 0.12) if math.isfinite(_breakeven_level) else 0.0,
-        th(nf(bk1m), 0.08),
-    )
-    i_struct_proxy_roc = nm(
-        _oil_struct_signal,
-        _core_persistence,
-        th(nf(gld_3m) / 3.0, 0.03),
-        th(nf(f.get("headline_core_gap", 0.0)), 0.010),
-        th(nf(f.get("m_shock", 0.0)), 0.14),
+    # Structural inflation proxy: use 3m-based signals, not 1m
+    # 1M oil/gold moves are WEATHER (monthly), not CLIMATE (structural)
+    # Breakeven inflation is the purest structural inflation signal
+    i_struct_proxy_roc=nm(
+        th(nf(oil_3m)/3.0, 0.04),              # oil TREND (3m), dampened
+        th(nf(bk1m),0.08),                     # breakeven = forward-looking inflation
+        th(nf(gld_3m)/3.0, 0.03),              # gold TREND (3m)
+        th(nf(f.get("tlt_1m",0.0))*-1, 0.04), # TLT inverse = bond inflation signal
+        th(nf(f.get("headline_core_gap",0.0)),0.005),  # headline-core gap = supply inflation
+        th(nf(f.get("m_shock",0.0)),0.10),             # monthly shock persistence
     )
 
     g_struct_climate=nf(structural_obs_reliability*g_struct_roc_obs + 0.70*structural_proxy_scale*g_struct_proxy_roc)
-    # ── Slowdown flag penalty ──
+    # ── Slowdown flag penalty: if claims/ISM/housing signal slowdown, penalize growth ──
     _slowdown_penalty=0.0
     if math.isfinite(f.get("claims_13w_delta",0.0)) and f.get("claims_13w_delta",0.0)>10:
         _slowdown_penalty+=0.08
@@ -752,28 +717,25 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
         _slowdown_penalty+=0.05
     if math.isfinite(f.get("housing_yoy",0.0)) and f.get("housing_yoy",0.0)<-0.02:
         _slowdown_penalty+=0.04
-    g_struct_climate-=min(_slowdown_penalty,0.20)
+    g_struct_climate-=min(_slowdown_penalty,0.20)  # cap penalty at 0.20
     i_struct_climate=nf(structural_obs_reliability*i_struct_roc_obs + 0.70*structural_proxy_scale*i_struct_proxy_roc)
-
-    # ── Sticky-inflation floor: core persistence + supply gap ──
+    # ── Sticky-inflation floor: oil alone should not drag structural inflation negative
+    # when other signals (core gap, breakeven, monthly shock) are still elevated. ──
     _sticky_inf_signals=[
-        th(max(0.0, _core_pce_level - 2.30), 0.20) if math.isfinite(_core_pce_level) else 0.0,
-        th(max(0.0, _core_cpi_level - 2.30), 0.20) if math.isfinite(_core_cpi_level) else 0.0,
-        th(max(0.0, _breakeven_level - 2.30) / 2.0, 0.12) if math.isfinite(_breakeven_level) else 0.0,
-        th(nf(f.get("headline_core_gap",0.0)),0.010),
-        th(nf(f.get("m_shock",0.0)),0.10),
-        th(max(0.0, nf(gld_3m)) / 3.0, 0.04),
-        th(max(0.0, nf(oil_3m)) / 3.0, 0.04),
+        th(nf(f.get("headline_core_gap",0.0)),0.005),
+        th(nf(f.get("m_shock",0.0)),0.08),
+        th((f.get("breakeven",2.2)-2.2)/2.0,0.25),
+        th(-nf(f.get("uup_1m",0.0)),0.04),
+        th(nf(f.get("gld_3m",0.0)),0.06),       # gold trend = inflation hedge bid
+        th(nf(f.get("clf_3m",0.0)),0.08),       # oil 3M trend = commodity inflation
     ]
     _sticky_inflation=float(nm(*_sticky_inf_signals))
-    # Floor: kalau sticky signals ada, structural inflation gak boleh terlalu negatif
-    if _sticky_inflation>0.06 and i_struct_climate<0.12:
-        i_struct_climate=0.12
-    if _sticky_inflation>0.14 and i_struct_climate<0.20:
-        i_struct_climate=0.20
-    if _sticky_inflation>0.24 and i_struct_climate<0.30:
-        i_struct_climate=0.30
-g_struct_proxy_mom=nm(
+    if _sticky_inflation>0.10 and i_struct_climate<0.10:
+        i_struct_climate=0.10  # floor: inflation is not fully dead
+    if _sticky_inflation>0.20 and i_struct_climate<0.15:
+        i_struct_climate=0.15  # stronger floor for elevated sticky
+
+    g_struct_proxy_mom=nm(
         th(nf(f.get("xli_1m",0.0)),0.04),
         th(nf(f.get("xly_1m",0.0)),0.04),
         th(nf(f.get("iwm_1m",0.0)),0.05),
@@ -957,12 +919,8 @@ def build_quad(f:Dict)->Dict:
     if i_acc is None: i_acc=(s_ic>0)
     cb=conf_band(s_conf)
     
-        # ── v11.2: NO hardcoded anchor. Formula speaks. ──
-    q_ordered = sorted(s_probs.items(), key=lambda x: -x[1])
-    top_spread = q_ordered[0][1] - q_ordered[1][1]
-    is_transitional = s_conf < 0.20 and top_spread < 0.08
-    transitional_label = f"Transitional ({q_ordered[0][0]}/{q_ordered[1][0]})" if is_transitional else s_quad
-# Transitional state: when confidence < 20% AND spread between top 2 quads is < 5%, label it
+      # v11.2: NO hardcoded anchor. Pure formula from data.
+    # Transitional state: when confidence < 20% AND spread between top 2 quads is < 5%, label it
     q_ordered = sorted(s_probs.items(), key=lambda x: -x[1])
     top_spread = q_ordered[0][1] - q_ordered[1][1]
     is_transitional = s_conf < 0.20 and top_spread < 0.08
@@ -1662,12 +1620,36 @@ def build_narrative_bottlenecks(f:Dict, q:Dict, h:Dict, prices:Dict[str,pd.Serie
                         "ticker":tk,
                         "market":mkt,
                         "narrative":narr["name"],
-      GLOBAL_QUAD_WEIGHTS = {
-    "US": 0.35,      # Reduced — EM/commodity signal lebih penting untuk global regime
-    "EM": 0.25,      # EM stress = global stagflation signal
-    "EU": 0.15,
-    "CN": 0.15,      # China/commodity inflation
-    "JP": 0.10,
+                        "conviction":round(composite,3),
+                        "front_run":True,
+                        "rationale":narr["desc"][:90],
+                    })
+    active.sort(key=lambda x:x["conviction"],reverse=True)
+    seen=set()
+    deduped=[]
+    for p in sorted(front_run_picks,key=lambda x:x["conviction"],reverse=True):
+        if p["ticker"] not in seen:
+            seen.add(p["ticker"])
+            deduped.append(p)
+    summary="No dominant narrative." if not active else f"Top: {active[0]['name']} ({active[0]['conviction']:.0%})"
+    return {"active":active,"front_run_picks":deduped[:15],"summary":summary}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# End Narrative Bottleneck Engine
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# GLOBAL QUAD ENGINE v11 — Multi-country regime proxy from market prices
+# ═══════════════════════════════════════════════════════════════════════════════
+
+GLOBAL_QUAD_WEIGHTS = {
+    "US": 0.45,      # SPY, DXY, TLT, VIX
+    "EM": 0.20,      # EEM, IDR, BRL, ZAR proxies
+    "EU": 0.15,      # EFA, EURUSD, DAX proxy
+    "CN": 0.12,      # CNH, copper, Brent vs WTI
+    "JP": 0.08,      # JPY, Nikkei proxy
 }
 
 GLOBAL_QUAD_TICKERS = {
@@ -1682,7 +1664,7 @@ GLOBAL_QUAD_TICKERS = {
 def build_global_quad(prices:Dict[str,pd.Series], f:Dict)->Dict:
     """
     Compute global regime proxy from cross-asset market prices.
-    v11.2: Honest weights, no hardcoded override, robust error handling.
+    v11.2-minimal: Error handling only, weights unchanged from v10.0.
     """
     try:
         def _market_signal(tickers, g_weight, i_weight, p_weight):
@@ -1725,7 +1707,6 @@ def build_global_quad(prices:Dict[str,pd.Series], f:Dict)->Dict:
             w=s["weight"]
             for q,p in s["probs"].items():
                 global_scores[q]+=w*p
-
         total=sum(global_scores.values())
         global_probs={q:v/total for q,v in global_scores.items()}
         global_quad=max(global_probs,key=global_probs.get)
@@ -1753,38 +1734,6 @@ def build_global_quad(prices:Dict[str,pd.Series], f:Dict)->Dict:
             "divergence": "fallback to US",
             "us_quad": us_q,
         }
-es[country]={
-            "quad":quad,"probs":dict(zip(["Q1","Q2","Q3","Q4"],probs.tolist())),
-            "g_score":round(g,4),"i_score":round(i,4),"p_score":round(p,4),
-            "weight":w,
-        }
-
-    # Weighted global composite
-    global_scores={"Q1":0.0,"Q2":0.0,"Q3":0.0,"Q4":0.0}
-    for c,s in country_scores.items():
-        w=s["weight"]
-        for q,p in s["probs"].items():
-            global_scores[q]+=w*p
-    # Normalize
-    total=sum(global_scores.values())
-    global_probs={q:v/total for q,v in global_scores.items()}
-    global_quad=max(global_probs,key=global_probs.get)
-    global_conf=global_probs[global_quad]
-
-    # Global vs US divergence check
-    us_quad=country_scores.get("US",{}).get("quad","Q?")
-    divergence="aligned" if us_quad==global_quad else f"US {us_quad} vs Global {global_quad}"
-
-    return {
-        "global_quad":global_quad,
-        "global_confidence":round(global_conf,3),
-        "global_probs":global_probs,
-        "country_scores":country_scores,
-        "divergence":divergence,
-        "us_quad":us_quad,
-    }
-
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # End Global Quad Engine
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -2121,17 +2070,6 @@ def load_all()->Dict:
     # ────────────────────────────────────────────────────────────────────────────
     # ── Global Quad computation (v11) ─────────────────────────────────────────
     global_quad_result=build_global_quad(prices,f)
-    # v11.2 fail-safe: ensure global quad never empty
-    if not global_quad_result or not global_quad_result.get("global_quad"):
-        us_q = q.get("quad", "Q3")
-        global_quad_result = {
-            "global_quad": us_q,
-            "global_confidence": 0.35,
-            "global_probs": {"Q1":0.20,"Q2":0.20,"Q3":0.35,"Q4":0.25},
-            "country_scores": {},
-            "divergence": "fallback to US",
-            "us_quad": us_q,
-        }
     # ──────────────────────────────────────────────────────────────────────────
     return dict(prices=prices,price_meta=price_meta,fred=fred,f=f,q=q,h=h,crash=cr,rotation=rot,ihsg=ih,
                 analog=analog,playbooks=pb,scenarios=sc,checklists=chk,

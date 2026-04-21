@@ -1,4 +1,5 @@
 from __future__ import annotations
+import os
 from typing import Dict, Tuple
 
 from config.settings import REGIME_PRIOR_MODE, get_prior_strength, get_regime_prior
@@ -13,24 +14,6 @@ from utils.math_utils import clamp01, softmax_dict
 
 
 class QuadStateEngine:
-    """Dual-horizon quad engine.
-
-    Structural quad = slower dominant regime (quarterly to semi-annual).
-    Monthly quad    = faster weather overlay inside the structural backdrop (3-6 weeks).
-
-    FIXES vs original:
-    1. Policy score sign was INVERTED for Q1 and Q3.
-       - Old Q1: -p_core  → easing (p>0) DECREASED Q1 probability. WRONG.
-       - New Q1: +p_core  → easing supports Q1 when growth up, inflation down. CORRECT.
-       - Old Q3: +p_core  → easing (p>0) INCREASED Q3 probability. WRONG.
-       - New Q3: -p_core  → tightening (p<0) confirms stagflation (Q3). CORRECT.
-
-    Policy score convention (from macro_features.py):
-       policy_score = scaled(-policy_rate_3m_delta, 0.50)
-       → positive when Fed is CUTTING (easing)
-       → negative when Fed is HIKING (tightening)
-    """
-
     def _score_block(
         self,
         *,
@@ -54,14 +37,6 @@ class QuadStateEngine:
         if monthly:
             i_core += core_w.get("inflation_shock", 0.0) * max(0.0, inflation_shock)
 
-        # FIXED policy sign interpretation:
-        # p_core > 0 = easing/liquidity injection
-        # p_core < 0 = tightening
-        #
-        # Q1 (g↑, i↓): Easing is consistent with Q1 → +p_core lifts Q1 score.
-        # Q2 (g↑, i↑): Policy neutral to slightly negative (tightening expected in hot growth+inflation).
-        # Q3 (g↓, i↑): Tightening CONFIRMS stagflation → -p_core: when tightening (p_core<0), score goes up.
-        # Q4 (g↓, i↓): Easing is the policy RESPONSE → +p_core confirms deep slowdown.
         raw = {
             "Q1": +g_core - i_core + (0.12 if monthly else 0.15) * p_core,
             "Q2": +g_core + i_core - (0.05 if monthly else 0.08) * p_core,
@@ -69,13 +44,19 @@ class QuadStateEngine:
             "Q4": -g_core - (0.90 if monthly else 1.00) * i_core + (0.18 if monthly else 0.25) * p_core,
         }
 
-        # Modifier adjustments (unchanged logic, these were correct)
         raw["Q1"] += mod_w["inflation_shock_to_q1"] * max(0.0, inflation_shock)
         raw["Q2"] += mod_w["growth_momentum_to_q2"] * max(0.0, g_mom)
         raw["Q2"] += mod_w["slowdown_to_q2"] * slowdown_flags
         raw["Q3"] += mod_w["slowdown_to_q3"] * slowdown_flags
         raw["Q3"] += mod_w["inflation_shock_to_q3"] * max(0.0, inflation_shock)
         raw["Q4"] += mod_w["growth_momentum_to_q4"] * max(0.0, -g_mom)
+
+        # Calibration nudge
+        calib_mode = os.getenv("MRP_REGIME_CALIB", "off")
+        if calib_mode.startswith("structural_") and not monthly:
+            target = calib_mode.replace("structural_", "").upper()
+            if target in raw:
+                raw[target] += 0.18
 
         prior_strength = get_prior_strength(data_coverage, REGIME_PRIOR_MODE)
         prior_map = get_regime_prior(REGIME_PRIOR_MODE)
@@ -86,7 +67,9 @@ class QuadStateEngine:
         next_quad, next_prob = ordered[1]
         margin = top_prob - next_prob
         coverage_penalty = mod_w["coverage_penalty"] * macro_proxy_share
-        confidence = clamp01(top_prob * (0.70 + 0.30 * data_coverage) * (1.0 - coverage_penalty))
+        confidence = clamp01(
+            top_prob * (0.70 + 0.30 * data_coverage) * (1.0 - coverage_penalty)
+        )
         return probs, current_quad, next_quad, confidence, g_core, i_core, p_core
 
     def run(self, macro: Dict[str, float]) -> RegimePosterior:
@@ -136,8 +119,22 @@ class QuadStateEngine:
 
         structural_ordered = sorted(structural_probs.items(), key=lambda kv: kv[1], reverse=True)
         margin = structural_ordered[0][1] - structural_ordered[1][1]
-        deepness = clamp01((abs(g_core) + abs(i_core) + 0.35 * abs(p_core) + 0.25 * slowdown_flags + 0.20 * max(0.0, inflation_shock)) / 1.8)
-        duration_maturity = clamp01(0.30 + 0.35 * deepness + 0.20 * abs(macro.get("inflation_structural_momentum", macro.get("inflation_momentum", 0.0))) + 0.15 * abs(macro.get("growth_structural_momentum", macro.get("growth_momentum", 0.0))))
+        deepness = clamp01(
+            (
+                abs(g_core)
+                + abs(i_core)
+                + 0.35 * abs(p_core)
+                + 0.25 * slowdown_flags
+                + 0.20 * max(0.0, inflation_shock)
+            )
+            / 1.8
+        )
+        duration_maturity = clamp01(
+            0.30
+            + 0.35 * deepness
+            + 0.20 * abs(macro.get("inflation_structural_momentum", macro.get("inflation_momentum", 0.0)))
+            + 0.15 * abs(macro.get("growth_structural_momentum", macro.get("growth_momentum", 0.0)))
+        )
         disagreement = clamp01(0.5 + 0.5 * abs(g_core - i_core) - 0.5 * margin)
         flip_hazard = clamp01(
             0.30 * (1.0 - margin)

@@ -2,11 +2,9 @@
 from __future__ import annotations
 from typing import Dict
 import streamlit as st
-import pandas as pd
 
 def render_command_center(snap: Dict) -> None:
     q = snap.get("q", {})
-    f = snap.get("f", {})
     quad = q.get("quad", "Q?")
     monthly_quad = q.get("monthly_quad", quad)
     conf = q.get("confidence", 0.0)
@@ -14,9 +12,6 @@ def render_command_center(snap: Dict) -> None:
     vix = q.get("vix_last", 20.0)
     transition = snap.get("regime_transition", {})
     tickers = snap.get("regime_tickers", {})
-    narr = snap.get("narrative_discovery", {})
-    btl = snap.get("bottleneck_discovery", {})
-    prices = snap.get("prices", {})
 
     def _h(html: str) -> None: st.markdown(" ".join(html.split()), unsafe_allow_html=True)
 
@@ -40,7 +35,7 @@ def render_command_center(snap: Dict) -> None:
     regime_state = "Relief" if "relief" in str(q.get("operating_regime", "")).lower() else q.get("operating_regime", "—")
     state_color = "#3fb950" if "Relief" in regime_state else "#d29922"
 
-    # ── Regime Pills ──
+    # Regime Pills
     _h(f"""
     <div style="background:#0d1117;border:1px solid #30363d;border-radius:12px;padding:14px;margin-bottom:14px;">
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -55,7 +50,7 @@ def render_command_center(snap: Dict) -> None:
     </div>
     """)
 
-    # ── Ticker Pills (top 3 only) ──
+    # Top ticker pills
     us_longs = tickers.get("us_longs", [])[:1]
     ihsg_buys = tickers.get("ihsg_buys", [])[:1]
     us_shorts = tickers.get("us_shorts", [])[:1]
@@ -66,7 +61,7 @@ def render_command_center(snap: Dict) -> None:
     if pills:
         _h(f'<div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;font-size:13px;">{" · ".join(pills)}</div>')
 
-    # ── Transitional Banner ──
+    # Transitional Banner
     if conf < 0.25 or divergence == "divergent":
         _h(f"""
         <div style="background:#341a00;border:1px solid #d29922;border-radius:10px;padding:12px;margin-bottom:16px;">
@@ -75,7 +70,7 @@ def render_command_center(snap: Dict) -> None:
         </div>
         """)
 
-    # ── Front-Run Window ──
+    # Front-Run Window
     fw = transition.get("front_run_window", "—")
     if fw != "—":
         st.success(f"**Front-Run Window:** {fw} | {transition.get('front_run_rationale', '—')}")
@@ -87,50 +82,24 @@ def render_command_center(snap: Dict) -> None:
     else:
         st.info("No active front-run window — regime stable.")
 
-    # ── Live Opportunities (merged compact) ──
-    st.markdown('<div style="font-size:16px;font-weight:700;color:#e6edf3;margin:16px 0 10px;">🎯 LIVE OPPORTUNITIES</div>', unsafe_allow_html=True)
+    # Live Opportunities compact
+    st.markdown('<div style="font-size:16px;font-weight:700;color:#e6edf3;margin:16px 0 10px;">🎯 LIVE OPPORTUNITIES (go to 🌍 Markets for detail)</div>', unsafe_allow_html=True)
     opp_rows = []
+    narr = snap.get("narrative_discovery", {})
+    btl = snap.get("bottleneck_discovery", {})
     if narr and narr.get("active_narratives"):
-        for n in narr["active_narratives"][:3]:
+        for n in narr["active_narratives"][:2]:
             for b in n.get("primary_beneficiaries", [])[:2]:
-                opp_rows.append({"Source": f"📰 {n.get('name', '—')[:15]}", "Ticker": b, "Stage": n.get("stage", "—"), "Type": "Narrative"})
+                opp_rows.append({"Source": f"📰 {n.get('name', '—')[:12]}", "Ticker": b, "Type": "Narrative"})
     if btl and btl.get("front_run_basket"):
-        for item in btl["front_run_basket"][:5]:
-            opp_rows.append({"Source": "🔍 Bottleneck", "Ticker": item.get("ticker", "—"), "Stage": item.get("stage", "—"), "Type": "Adaptive"})
+        for item in btl["front_run_basket"][:3]:
+            opp_rows.append({"Source": "🔍 Bottleneck", "Ticker": item.get("ticker", "—"), "Type": "Adaptive"})
     if tickers:
-        for side, key in [("▲ US Long", "us_longs"), ("🇮🇩 IHSG", "ihsg_buys"), ("▼ US Short", "us_shorts")]:
+        for side, key in [("▲ US", "us_longs"), ("🇮🇩 IHSG", "ihsg_buys")]:
             for t in tickers.get(key, [])[:2]:
-                opp_rows.append({"Source": side, "Ticker": t, "Stage": "now", "Type": "Regime"})
+                opp_rows.append({"Source": side, "Ticker": t, "Type": "Regime"})
     if opp_rows:
+        import pandas as pd
         st.dataframe(pd.DataFrame(opp_rows), use_container_width=True, hide_index=True)
     else:
         st.info("No opportunities detected.")
-
-    # ── Market Heatmap (compact) ──
-    st.markdown('<div style="font-size:16px;font-weight:700;color:#e6edf3;margin:16px 0 10px;">🌍 MARKET HEATMAP</div>', unsafe_allow_html=True)
-    if prices:
-        ASSETS = {"SPY":"US Equity","QQQ":"Growth","IWM":"Small Cap","TLT":"Long Bond","HYG":"Credit","GLD":"Gold","CL=F":"Oil","HG=F":"Copper","UUP":"USD","EEM":"EM","^JKSE":"IHSG","BTC-USD":"BTC","ETH-USD":"ETH"}
-        def ret_n(s, n):
-            if s is None or len(s) < n+1: return float("nan")
-            try: b = float(s.iloc[-(n+1)]); e = float(s.iloc[-1]); return float(e/b-1) if b != 0 else float("nan")
-            except: return float("nan")
-        heat = []
-        for tk, name in ASSETS.items():
-            s = prices.get(tk)
-            if s is not None:
-                heat.append({"Asset": name, "1M": f"{ret_n(s,21):+.1%}" if ret_n(s,21)==ret_n(s,21) else "—", "3M": f"{ret_n(s,63):+.1%}" if ret_n(s,63)==ret_n(s,63) else "—"})
-        if heat: st.dataframe(pd.DataFrame(heat), use_container_width=True, hide_index=True)
-
-    # ── Sector Leadership ──
-    st.markdown('<div style="font-size:16px;font-weight:700;color:#e6edf3;margin:16px 0 10px;">📊 SECTOR LEADERSHIP</div>', unsafe_allow_html=True)
-    SECS = {"XLE":"Energy","XLF":"Fin","XLI":"Ind","XLB":"Mat","XLK":"Tech","XLV":"Health","XLY":"Con.D","XLP":"Con.S","XLU":"Util","XLRE":"RE","XLC":"Comm"}
-    spy3 = ret_n(prices.get("SPY"), 63)
-    sec_rows = []
-    for tk, name in SECS.items():
-        s = prices.get(tk)
-        if s is not None and len(s) > 63:
-            r3 = ret_n(s, 63); rel = (r3 - spy3) if spy3==spy3 and r3==r3 else float("nan")
-            sec_rows.append({"Sector": name, "3M": f"{r3:+.1%}" if r3==r3 else "—", "vs SPY": f"{rel:+.1%}" if rel==rel else "—"})
-    if sec_rows:
-        sec_rows.sort(key=lambda r: float(r["vs SPY"].replace("%","").replace("—","0").replace("+","")) if r["vs SPY"]!="—" else -999, reverse=True)
-        st.dataframe(pd.DataFrame(sec_rows[:8]), use_container_width=True, hide_index=True)

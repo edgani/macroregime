@@ -1,4 +1,4 @@
-"""MacroRegime Pro v10.2 — Markets Split + Global Quad + Fixed Render"""
+"""MacroRegime Pro v10.3 — Markets Tab Full, Fixed TypeError"""
 from __future__ import annotations
 import os
 import sys
@@ -52,7 +52,7 @@ _h(f"""
     <div style="font-size:32px;">🧭</div>
     <div>
       <div style="font-size:24px;font-weight:800;color:#e6edf3;letter-spacing:-0.5px;">MacroRegime <span style="color:#58a6ff;">Pro</span></div>
-      <div style="font-size:11px;color:#8b949e;margin-top:2px;">v10.2 · Split Markets · Global Quad</div>
+      <div style="font-size:11px;color:#8b949e;margin-top:2px;">v10.3 · Markets Split · Fixed</div>
     </div>
   </div>
   <div style="text-align:right;">
@@ -62,7 +62,7 @@ _h(f"""
 </div>
 """)
 
-# ── Regime Status Card (with Global badge) ──
+# ── Regime Status Card ──
 s_bg, s_fg = _qbg(structural_quad), _qfg(structural_quad)
 m_bg, m_fg = _qbg(monthly_quad), _qfg(monthly_quad)
 g_bg, g_fg = _qbg(global_quad), _qfg(global_quad)
@@ -79,8 +79,6 @@ exec_color = "#3fb950" if "now" in exec_state.lower() else "#d29922"
 rally = snap.get("most_hated_rally", {})
 rally_clear = rally.get("clear_count", 0)
 rally_total = rally.get("total", 4)
-
-event_lite = "Relief / De-escalation"
 
 _h(f"""
 <div style="background:#161b22;border:1px solid #30363d;border-radius:14px;padding:16px;margin-bottom:14px;">
@@ -107,13 +105,12 @@ _h(f"""
     <span>Rally: {rally_clear}/{rally_total} clear</span>
   </div>
   <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;color:#8b949e;margin-top:8px;border-top:1px solid #30363d;padding-top:8px;">
-    <span>🕊️ Event-Lite: {event_lite}</span>
+    <span>🕊️ Event-Lite: Relief / De-escalation</span>
     <span>{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC</span>
   </div>
 </div>
 """)
 
-# ── Top Drivers ──
 top_drivers = snap.get("top_drivers", [])
 if top_drivers:
     parts = [f"{d.get('name', d.get('label', '—'))}: {d.get('score', 0):.0%}" for d in top_drivers[:3]]
@@ -127,15 +124,24 @@ with tabs[0]:
     render_command_center(snap)
 
 with tabs[1]:
-    # ═════════════════════════════════════════════════════════════════
-    # MARKETS TAB — Split per market with Now vs Front-Run
-    # ═════════════════════════════════════════════════════════════════
+    # ═══════════════════════════════════════════════════════════════════════
+    # MARKETS TAB — All ticker content moved here, split by market
+    # ═══════════════════════════════════════════════════════════════════════
     prices = snap.get("prices", {})
     transition = snap.get("regime_transition", {})
     fw = transition.get("front_run_window", "—")
     tr_label = f"{structural_quad}→{q.get('next_quad', '?')}" if q.get('next_quad') else "No transition"
-    
-    # Front-run header
+    narr = snap.get("narrative_discovery", {})
+    btl = snap.get("bottleneck_discovery", {})
+
+    def ret_n(s, n):
+        if s is None or len(s) < n+1: return float("nan")
+        try:
+            b = float(s.iloc[-(n+1)]); e = float(s.iloc[-1])
+            return float(e/b-1) if b != 0 else float("nan")
+        except: return float("nan")
+
+    # Front-run banner
     if fw in ("now", "1-2 weeks", "1-2w", "1-2W"):
         _h(f"""
         <div style="background:#1a3a2a;border:1px solid #3fb950;border-radius:10px;padding:12px;margin-bottom:16px;">
@@ -144,95 +150,158 @@ with tabs[1]:
         </div>
         """)
     
-    mkt_tabs = st.tabs(["🇺🇸 US Stocks", "🇮🇩 IHSG", "💱 FX", "🛢️ Commodities", "🔐 Crypto"])
-    
-    def _ret_n(s, n):
-        if s is None or len(s) < n+1: return float("nan")
-        try:
-            b = float(s.iloc[-(n+1)]); e = float(s.iloc[-1])
-            return float(e/b-1) if b != 0 else float("nan")
-        except: return float("nan")
-    
-    def _render_market(now_longs, now_shorts, fr_longs, fr_shorts, fr_signal, price_tickers, names):
+    # ── Market sub-tabs ──
+    mkt_tabs = st.tabs(["🇺🇸 US Stocks", "🇮🇩 IHSG", "💱 FX", "🛢️ Commodities", "🔐 Crypto", "📊 Heatmap & Sector", "🔍 Bottleneck", "📋 Master Board"])
+
+    def render_market_subtab(now_longs, now_shorts, fr_longs, fr_shorts, fr_signal, price_map):
         col_now, col_fr = st.columns(2)
         with col_now:
             st.markdown("**📍 NOW — Current Regime**")
             if now_longs:
-                st.markdown("**Long:**"); _h(" ".join([f'<span style="color:#3fb950;font-weight:700;">▲ {t}</span>' for t in now_longs]))
+                st.markdown("**Long:**")
+                for t in now_longs: _h(f'<span style="color:#3fb950;font-weight:700;">▲ {t}</span>')
             if now_shorts:
-                st.markdown("**Short:**"); _h(" ".join([f'<span style="color:#f85149;font-weight:700;">▼ {t}</span>' for t in now_shorts]))
+                st.markdown("**Short:**")
+                for t in now_shorts: _h(f'<span style="color:#f85149;font-weight:700;">▼ {t}</span>')
         with col_fr:
             st.markdown("**⚡ FRONT-RUN**")
             if fr_signal: st.caption(fr_signal)
             if fr_longs:
-                st.markdown("**Accumulate:**"); _h(" ".join([f'<span style="color:#d29922;font-weight:700;">⚡ {t}</span>' for t in fr_longs]))
+                st.markdown("**Accumulate:**")
+                for t in fr_longs: _h(f'<span style="color:#d29922;font-weight:700;">⚡ {t}</span>')
             if fr_shorts:
-                st.markdown("**Fade:**"); _h(" ".join([f'<span style="color:#f85149;font-weight:700;">▼ {t}</span>' for t in fr_shorts]))
-        
+                st.markdown("**Fade:**")
+                for t in fr_shorts: _h(f'<span style="color:#f85149;font-weight:700;">▼ {t}</span>')
         # Price table
-        if price_tickers:
+        if price_map:
             rows = []
-            for tk, name in price_tickers.items():
+            for tk, name in price_map.items():
                 s = prices.get(tk)
                 if s is not None:
-                    r1 = _ret_n(s, 21); r3 = _ret_n(s, 63)
+                    r1 = ret_n(s, 21); r3 = ret_n(s, 63)
                     play = "▲" if tk in now_longs else ("▼" if tk in now_shorts else "")
                     fr = "⚡" if tk in fr_longs else ""
                     rows.append({"Ticker": tk, "Name": name, "1M": f"{r1:+.1%}" if r1==r1 else "—", "3M": f"{r3:+.1%}" if r3==r3 else "—", "Now": play, "FR": fr})
-            if rows:
-                st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
-    
-    # US
+            if rows: st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+    # US Stocks
     with mkt_tabs[0]:
         us_longs = tickers.get("us_longs", [])[:6]
         us_shorts = tickers.get("us_shorts", [])[:4]
         fr_us_long = us_longs[:3] if fw in ("now", "1-2 weeks") else []
         fr_us_short = us_shorts[:2] if fw in ("now", "1-2 weeks") else []
-        _render_market(us_longs, us_shorts, fr_us_long, fr_us_short, "Accumulate cyclicals on ISM bounce", {
+        render_market_subtab(us_longs, us_shorts, fr_us_long, fr_us_short, "Accumulate cyclicals on ISM bounce", {
             "SPY":"S&P 500","QQQ":"Nasdaq","IWM":"Russell 2K","XLE":"Energy","XLK":"Tech","XLF":"Finance","XLI":"Industrials","XLB":"Materials","XLV":"Health","XLY":"Consumer","XLP":"Staples","XLU":"Utilities","XLRE":"REITs"
         })
-    
+
     # IHSG
     with mkt_tabs[1]:
         ihsg_longs = tickers.get("ihsg_buys", [])[:6]
-        ihsg_shorts = []
         fr_ihsg = ihsg_longs[:3] if fw in ("now", "1-2 weeks") else []
-        _render_market(ihsg_longs, ihsg_shorts, fr_ihsg, [], "Enter when IDR < 16k + oil bid", {
+        render_market_subtab(ihsg_longs, [], fr_ihsg, [], "Enter when IDR < 16k + oil bid", {
             "BBCA.JK":"BCA","BBRI.JK":"BRI","ASII.JK":"Astra","TLKM.JK":"Telkom","ADRO.JK":"Adaro","ANTM.JK":"Antam","PTBA.JK":"Bukit Asam","ITMG.JK":"Indomining","INCO.JK":"Vale","KLBF.JK":"Kalbe"
         })
-    
+
     # FX
     with mkt_tabs[2]:
         fx_longs = tickers.get("fx_longs", [])[:4]
-        fx_shorts = []
         fr_fx = fx_longs[:2] if fw in ("now", "1-2 weeks") else []
-        _render_market(fx_longs, fx_shorts, fr_fx, [], "Long commodity FX on oil bid", {
+        render_market_subtab(fx_longs, [], fr_fx, [], "Long commodity FX on oil bid", {
             "EURUSD=X":"EUR/USD","USDJPY=X":"USD/JPY","AUDUSD=X":"AUD/USD","USDIDR=X":"USD/IDR","UUP":"DXY"
         })
-    
+
     # Commodities
     with mkt_tabs[3]:
         comm_longs = tickers.get("commodity_longs", [])[:5]
-        comm_shorts = []
         fr_comm = comm_longs[:3] if fw in ("now", "1-2 weeks") else []
-        _render_market(comm_longs, comm_shorts, fr_comm, [], "Long energy + gold hedge", {
+        render_market_subtab(comm_longs, [], fr_comm, [], "Long energy + gold hedge", {
             "CL=F":"WTI Oil","GC=F":"Gold","HG=F":"Copper","SI=F":"Silver","NG=F":"Nat Gas","BZ=F":"Brent","URA":"Uranium"
         })
-    
+
     # Crypto
     with mkt_tabs[4]:
         cry_longs = tickers.get("crypto_longs", [])[:5]
-        cry_shorts = []
         fr_cry = cry_longs[:2] if fw in ("now", "1-2 weeks") and vix < 22 else []
-        _render_market(cry_longs, cry_shorts, fr_cry, [], "Accumulate BTC/ETH if VIX < 22", {
+        render_market_subtab(cry_longs, [], fr_cry, [], "Accumulate BTC/ETH if VIX < 22", {
             "BTC-USD":"Bitcoin","ETH-USD":"Ethereum","SOL-USD":"Solana","XRP-USD":"XRP"
         })
 
+    # Heatmap & Sector
+    with mkt_tabs[5]:
+        st.markdown('<div style="font-size:16px;font-weight:700;color:#e6edf3;margin-bottom:10px;">🌍 MARKET HEATMAP</div>', unsafe_allow_html=True)
+        if prices:
+            ASSETS = {"SPY":"US Equity","QQQ":"Growth","IWM":"Small Cap","TLT":"Long Bond","HYG":"Credit","GLD":"Gold","CL=F":"Oil","HG=F":"Copper","UUP":"USD","EEM":"EM","^JKSE":"IHSG","BTC-USD":"BTC","ETH-USD":"ETH"}
+            heat = []
+            for tk, name in ASSETS.items():
+                s = prices.get(tk)
+                if s is not None:
+                    heat.append({"Asset": name, "1M": f"{ret_n(s,21):+.1%}" if ret_n(s,21)==ret_n(s,21) else "—", "3M": f"{ret_n(s,63):+.1%}" if ret_n(s,63)==ret_n(s,63) else "—"})
+            if heat: st.dataframe(pd.DataFrame(heat), use_container_width=True, hide_index=True)
+
+        st.markdown('<div style="font-size:16px;font-weight:700;color:#e6edf3;margin:16px 0 10px;">📊 SECTOR LEADERSHIP</div>', unsafe_allow_html=True)
+        SECS = {"XLE":"Energy","XLF":"Fin","XLI":"Ind","XLB":"Mat","XLK":"Tech","XLV":"Health","XLY":"Con.D","XLP":"Con.S","XLU":"Util","XLRE":"RE","XLC":"Comm"}
+        spy3 = ret_n(prices.get("SPY"), 63)
+        sec_rows = []
+        for tk, name in SECS.items():
+            s = prices.get(tk)
+            if s is not None and len(s) > 63:
+                r3 = ret_n(s, 63); rel = (r3 - spy3) if spy3==spy3 and r3==r3 else float("nan")
+                sec_rows.append({"Sector": name, "3M": f"{r3:+.1%}" if r3==r3 else "—", "vs SPY": f"{rel:+.1%}" if rel==rel else "—"})
+        if sec_rows:
+            sec_rows.sort(key=lambda r: float(r["vs SPY"].replace("%","").replace("—","0").replace("+","")) if r["vs SPY"]!="—" else -999, reverse=True)
+            st.dataframe(pd.DataFrame(sec_rows[:8]), use_container_width=True, hide_index=True)
+
+    # Bottleneck
+    with mkt_tabs[6]:
+        st.markdown('<div style="font-size:16px;font-weight:700;color:#e6edf3;margin-bottom:10px;">🔍 ADAPTIVE BOTTLENECK SCAN</div>', unsafe_allow_html=True)
+        if btl:
+            method = btl.get("discovery_method", "unknown")
+            st.caption(f"Method: **{method}** | Scanned all tickers")
+            if btl.get("summary"): st.info(btl["summary"])
+            if btl.get("active_sectors"):
+                st.markdown("**Auto-Discovered Sectors**")
+                for sector in btl["active_sectors"][:5]:
+                    with st.container(border=True):
+                        sc1, sc2, sc3 = st.columns([3, 1, 1])
+                        with sc1:
+                            stage_color = {"mature":"red","building":"orange","early":"green"}.get(sector.get("stage"), "gray")
+                            st.markdown(f"**{sector.get('sector_name', '—')}** · :{stage_color}[{sector.get('stage', '—')}]")
+                            st.caption(f"{', '.join(sector.get('tickers', [])[:8])}")
+                        with sc2: st.metric("Score", f"{sector.get('bottleneck_score', 0):.2f}")
+                        with sc3: st.metric("Vol Z", f"{sector.get('avg_volume_zscore', 0):.2f}")
+            if btl.get("front_run_basket"):
+                st.markdown("**Front-Run Basket**")
+                basket = btl["front_run_basket"][:12]
+                if basket:
+                    cols = ["ticker","market","sector","conviction","stage","r1m","r3m","volume_zscore","position_size","source"]
+                    df_b = pd.DataFrame([{k: item.get(k, "—") for k in cols} for item in basket])
+                    st.dataframe(df_b, use_container_width=True, hide_index=True)
+        else:
+            st.info("Bottleneck discovery loading...")
+
+    # Master Board
+    with mkt_tabs[7]:
+        st.markdown('<div style="font-size:16px;font-weight:700;color:#e6edf3;margin-bottom:10px;">📋 MASTER TICKER BOARD — NOW vs FRONT-RUN</div>', unsafe_allow_html=True)
+        all_tickers = []
+        if tickers:
+            for side, key in [("Long", "us_longs"), ("Short", "us_shorts"), ("IHSG", "ihsg_buys"), ("FX", "fx_longs"), ("Comm", "commodity_longs"), ("Crypto", "crypto_longs")]:
+                for t in tickers.get(key, [])[:4]:
+                    all_tickers.append({"Ticker": t, "Side": side, "Source": "Regime"})
+        if btl and btl.get("front_run_basket"):
+            for item in btl["front_run_basket"][:6]:
+                all_tickers.append({"Ticker": item.get("ticker", "—"), "Side": item.get("sector", "—"), "Source": "Adaptive"})
+        if narr and narr.get("active_narratives"):
+            for n in narr["active_narratives"][:3]:
+                for b in n.get("primary_beneficiaries", [])[:3]:
+                    all_tickers.append({"Ticker": b, "Side": n.get("name", "—")[:15], "Source": "Narrative"})
+        if all_tickers:
+            st.dataframe(pd.DataFrame(all_tickers), use_container_width=True, hide_index=True)
+        else:
+            st.info("Building board...")
+
 with tabs[2]:
     show_raw = st.toggle("Show raw regime state JSON", value=False)
-    if show_raw:
-        st.markdown("**Regime State**"); st.json(q)
-    
+    if show_raw: st.markdown("**Regime State**"); st.json(q)
     st.markdown("**Structural Probabilities**")
     probs = q.get("structural_probs", {}); m_probs = q.get("monthly_probs", {})
     if probs:
@@ -242,7 +311,6 @@ with tabs[2]:
             label = f"{'●' if is_s else '◉' if is_m else '○'} {k}: S={p:.0%} M={mp:.0%}"
             st.progress(p, text=label)
     else: st.info("No probability data")
-    
     st.divider(); st.markdown("**Raw Macro Indicators**")
     rows = []
     for lbl, key, note in [("INDPRO YoY","indpro_yoy","▲" if f.get("indpro_acc") else "▼"),("CPI YoY","cpi_yoy","▲" if f.get("cpi_acc") else "▼"),("Core PCE","corepce_yoy","▲" if f.get("corepce_acc") else "▼"),("VIX","vix_last",""),("HY OAS","hy_oas",f"Δ1M: {f.get('hy_oas_1m',0):+.0f}bps"),("Policy Score","policy_score","+ve=cutting")]:
@@ -267,8 +335,6 @@ with tabs[3]:
             mk = fred_meta.get("missing_keys", [])
             if mk: st.warning(f"Missing: {', '.join(mk[:10])}")
     else: st.error("FRED metadata unavailable")
-    
-    # Most Hated Rally Detail
     if rally:
         st.divider(); st.markdown("**Most Hated Rally — Checklist Detail**")
         st.caption(f"Stage: {rally.get('stage', '?')} | Action: {rally.get('action', '?')}")
@@ -280,8 +346,6 @@ with tabs[3]:
             _h(f'<div style="color:{color};font-size:13px;margin:4px 0;">{icon} {item.get("item", "—")} <span style="color:#8b949e;">(raw: {raw:.4f})</span></div>')
         if rally_clear >= 4: st.success("All 4 checklist items cleared")
         else: st.info(f"Only {rally_clear}/4 cleared — not fully confirmed")
-    
-    # Proxy warning
     if f.get("_proxy_warning"):
         st.error(f"🚨 {f['_proxy_warning']}")
         st.info("Fix: Set FRED_API_KEY in Streamlit secrets or env var.")

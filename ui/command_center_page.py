@@ -1,4 +1,4 @@
-"""ui/command_center_page.py — Merged Opportunity Board"""
+"""ui/command_center_page.py — Clean Overview Only"""
 from __future__ import annotations
 from typing import Dict
 import streamlit as st
@@ -18,12 +18,11 @@ def render_command_center(snap: Dict) -> None:
     btl = snap.get("bottleneck_discovery", {})
     prices = snap.get("prices", {})
 
-    def _h(html: str) -> None:
-        st.markdown(" ".join(html.split()), unsafe_allow_html=True)
+    def _h(html: str) -> None: st.markdown(" ".join(html.split()), unsafe_allow_html=True)
 
-    QC = {"Q1": ("#1a4d2e", "#4ade80"), "Q2": ("#5c3d00", "#fbbf24"), "Q3": ("#5c2b00", "#fb923c"), "Q4": ("#5c1a1a", "#f87171")}
-    def qbg(q): return QC.get(q, ("#2d3748", "#a0aec0"))[0]
-    def qfg(q): return QC.get(q, ("#2d3748", "#a0aec0"))[1]
+    QC = {"Q1":("#1a4d2e","#4ade80"),"Q2":("#5c3d00","#fbbf24"),"Q3":("#5c2b00","#fb923c"),"Q4":("#5c1a1a","#f87171")}
+    def qbg(q): return QC.get(q, ("#2d3748","#a0aec0"))[0]
+    def qfg(q): return QC.get(q, ("#2d3748","#a0aec0"))[1]
 
     s_bg, s_fg = qbg(quad), qfg(quad)
     m_bg, m_fg = qbg(monthly_quad), qfg(monthly_quad)
@@ -32,7 +31,7 @@ def render_command_center(snap: Dict) -> None:
     div_icon = "⚡" if divergence == "divergent" else "✅"
 
     horizon = transition.get("front_run_window", "1-2W")
-    horiz_label = "1-2W" if horizon in ("now", "1-2w", "1-2W") else "3-6W" if horizon in ("3-6w", "3-6W") else horizon
+    horiz_label = "1-2W" if horizon in ("now","1-2w","1-2W") else "3-6W" if horizon in ("3-6w","3-6W") else horizon
     horiz_icon = "🕐" if "1-2" in str(horiz_label) else "📅" if "3-6" in str(horiz_label) else "⏳"
 
     vix_label = "normal" if vix < 20 else "elevated" if vix < 25 else "high"
@@ -56,7 +55,7 @@ def render_command_center(snap: Dict) -> None:
     </div>
     """)
 
-    # ── Ticker Pills ──
+    # ── Ticker Pills (top 3 only) ──
     us_longs = tickers.get("us_longs", [])[:1]
     ihsg_buys = tickers.get("ihsg_buys", [])[:1]
     us_shorts = tickers.get("us_shorts", [])[:1]
@@ -71,17 +70,12 @@ def render_command_center(snap: Dict) -> None:
     if conf < 0.25 or divergence == "divergent":
         _h(f"""
         <div style="background:#341a00;border:1px solid #d29922;border-radius:10px;padding:12px;margin-bottom:16px;">
-          <div style="color:#d29922;font-size:13px;font-weight:700;margin-bottom:4px;">⚠️ TRANSITIONAL — {quad}/{monthly_quad} Conf {conf:.0%} terlalu rendah. Regime belum confirmed.</div>
-          <div style="color:#c9d1d9;font-size:12px;">Trade monthly signal saja, jangan buka structural positions.</div>
+          <div style="color:#d29922;font-size:13px;font-weight:700;">⚠️ TRANSITIONAL — {quad}/{monthly_quad} Conf {conf:.0%} terlalu rendah. Regime belum confirmed.</div>
+          <div style="color:#c9d1d9;font-size:12px;margin-top:4px;">Trade monthly signal saja, jangan buka structural positions.</div>
         </div>
         """)
 
-    # ═════════════════════════════════════════════════════════════════
-    # MERGED: Live Opportunities (Front-Run + Narrative + Bottleneck)
-    # ═════════════════════════════════════════════════════════════════
-    st.markdown('<div style="font-size:16px;font-weight:700;color:#e6edf3;margin:16px 0 10px;">🎯 LIVE OPPORTUNITIES</div>', unsafe_allow_html=True)
-
-    # Front-run window
+    # ── Front-Run Window ──
     fw = transition.get("front_run_window", "—")
     if fw != "—":
         st.success(f"**Front-Run Window:** {fw} | {transition.get('front_run_rationale', '—')}")
@@ -93,125 +87,50 @@ def render_command_center(snap: Dict) -> None:
     else:
         st.info("No active front-run window — regime stable.")
 
-    # Narrative + Bottleneck basket merge
+    # ── Live Opportunities (merged compact) ──
+    st.markdown('<div style="font-size:16px;font-weight:700;color:#e6edf3;margin:16px 0 10px;">🎯 LIVE OPPORTUNITIES</div>', unsafe_allow_html=True)
     opp_rows = []
-    
-    # From narratives
     if narr and narr.get("active_narratives"):
-        for n in narr["active_narratives"][:4]:
-            stage = n.get("stage", "—")
-            emoji = {"early": "🌱", "building": "🔥", "mature": "♟️", "exhausted": "💀"}.get(stage, "◆")
-            for b in n.get("primary_beneficiaries", [])[:3]:
-                opp_rows.append({
-                    "Source": f"{emoji} {n.get('name', '—')[:20]}",
-                    "Ticker": b,
-                    "Stage": stage,
-                    "Conv": f"{n.get('regime_adjusted_conviction', 0):.0%}",
-                    "Type": "Narrative",
-                })
-
-    # From bottleneck basket
+        for n in narr["active_narratives"][:3]:
+            for b in n.get("primary_beneficiaries", [])[:2]:
+                opp_rows.append({"Source": f"📰 {n.get('name', '—')[:15]}", "Ticker": b, "Stage": n.get("stage", "—"), "Type": "Narrative"})
     if btl and btl.get("front_run_basket"):
-        for item in btl["front_run_basket"][:8]:
-            opp_rows.append({
-                "Source": "🔍 Bottleneck",
-                "Ticker": item.get("ticker", "—"),
-                "Stage": item.get("stage", "—"),
-                "Conv": f"{item.get('conviction', 0):.0%}" if isinstance(item.get('conviction'), (int, float)) else str(item.get('conviction', '—')),
-                "Type": "Adaptive",
-            })
-
-    # From regime tickers
+        for item in btl["front_run_basket"][:5]:
+            opp_rows.append({"Source": "🔍 Bottleneck", "Ticker": item.get("ticker", "—"), "Stage": item.get("stage", "—"), "Type": "Adaptive"})
     if tickers:
-        for side, lst in [("▲ US Long", "us_longs"), ("🇮🇩 IHSG", "ihsg_buys"), ("▼ US Short", "us_shorts")]:
-            for t in tickers.get(lst, [])[:3]:
-                opp_rows.append({"Source": side, "Ticker": t, "Stage": "now", "Conv": "—", "Type": "Regime"})
-
+        for side, key in [("▲ US Long", "us_longs"), ("🇮🇩 IHSG", "ihsg_buys"), ("▼ US Short", "us_shorts")]:
+            for t in tickers.get(key, [])[:2]:
+                opp_rows.append({"Source": side, "Ticker": t, "Stage": "now", "Type": "Regime"})
     if opp_rows:
-        df_opp = pd.DataFrame(opp_rows)
-        st.dataframe(df_opp, use_container_width=True, hide_index=True)
+        st.dataframe(pd.DataFrame(opp_rows), use_container_width=True, hide_index=True)
     else:
         st.info("No opportunities detected.")
 
-    # ═════════════════════════════════════════════════════════════════
-    # MERGED: Market Heatmap (from old Markets tab)
-    # ═════════════════════════════════════════════════════════════════
+    # ── Market Heatmap (compact) ──
     st.markdown('<div style="font-size:16px;font-weight:700;color:#e6edf3;margin:16px 0 10px;">🌍 MARKET HEATMAP</div>', unsafe_allow_html=True)
-    
     if prices:
-        ASSETS = {
-            "SPY": "US Equity", "QQQ": "Growth", "IWM": "Small Cap",
-            "TLT": "Long Bond", "HYG": "Credit", "GLD": "Gold",
-            "CL=F": "Oil", "HG=F": "Copper", "UUP": "USD", "EEM": "EM",
-            "^JKSE": "IHSG", "BTC-USD": "BTC", "ETH-USD": "ETH",
-        }
+        ASSETS = {"SPY":"US Equity","QQQ":"Growth","IWM":"Small Cap","TLT":"Long Bond","HYG":"Credit","GLD":"Gold","CL=F":"Oil","HG=F":"Copper","UUP":"USD","EEM":"EM","^JKSE":"IHSG","BTC-USD":"BTC","ETH-USD":"ETH"}
         def ret_n(s, n):
             if s is None or len(s) < n+1: return float("nan")
-            try:
-                b = float(s.iloc[-(n+1)]); e = float(s.iloc[-1])
-                return float(e/b-1) if b != 0 else float("nan")
+            try: b = float(s.iloc[-(n+1)]); e = float(s.iloc[-1]); return float(e/b-1) if b != 0 else float("nan")
             except: return float("nan")
-        
         heat = []
         for tk, name in ASSETS.items():
             s = prices.get(tk)
             if s is not None:
-                heat.append({
-                    "Asset": name, "Ticker": tk,
-                    "1W": f"{ret_n(s, 5):+.1%}" if ret_n(s, 5) == ret_n(s, 5) else "—",
-                    "1M": f"{ret_n(s, 21):+.1%}" if ret_n(s, 21) == ret_n(s, 21) else "—",
-                    "3M": f"{ret_n(s, 63):+.1%}" if ret_n(s, 63) == ret_n(s, 63) else "—",
-                })
-        if heat:
-            st.dataframe(pd.DataFrame(heat), use_container_width=True, hide_index=True)
+                heat.append({"Asset": name, "1M": f"{ret_n(s,21):+.1%}" if ret_n(s,21)==ret_n(s,21) else "—", "3M": f"{ret_n(s,63):+.1%}" if ret_n(s,63)==ret_n(s,63) else "—"})
+        if heat: st.dataframe(pd.DataFrame(heat), use_container_width=True, hide_index=True)
 
-    # ═════════════════════════════════════════════════════════════════
-    # MERGED: Sector Leadership (compact)
-    # ═════════════════════════════════════════════════════════════════
+    # ── Sector Leadership ──
     st.markdown('<div style="font-size:16px;font-weight:700;color:#e6edf3;margin:16px 0 10px;">📊 SECTOR LEADERSHIP</div>', unsafe_allow_html=True)
-    SECS = {"XLE": "Energy", "XLF": "Fin", "XLI": "Ind", "XLB": "Mat", "XLK": "Tech", "XLV": "Health", "XLY": "Con.D", "XLP": "Con.S", "XLU": "Util", "XLRE": "RE", "XLC": "Comm"}
+    SECS = {"XLE":"Energy","XLF":"Fin","XLI":"Ind","XLB":"Mat","XLK":"Tech","XLV":"Health","XLY":"Con.D","XLP":"Con.S","XLU":"Util","XLRE":"RE","XLC":"Comm"}
     spy3 = ret_n(prices.get("SPY"), 63)
     sec_rows = []
     for tk, name in SECS.items():
         s = prices.get(tk)
         if s is not None and len(s) > 63:
-            r3 = ret_n(s, 63)
-            rel = (r3 - spy3) if spy3 == spy3 and r3 == r3 else float("nan")
-            sec_rows.append({"Sector": name, "3M": f"{r3:+.1%}" if r3 == r3 else "—", "vs SPY": f"{rel:+.1%}" if rel == rel else "—"})
+            r3 = ret_n(s, 63); rel = (r3 - spy3) if spy3==spy3 and r3==r3 else float("nan")
+            sec_rows.append({"Sector": name, "3M": f"{r3:+.1%}" if r3==r3 else "—", "vs SPY": f"{rel:+.1%}" if rel==rel else "—"})
     if sec_rows:
-        sec_rows.sort(key=lambda r: float(r["vs SPY"].replace("%", "").replace("—", "0").replace("+", "")) if r["vs SPY"] != "—" else -999, reverse=True)
+        sec_rows.sort(key=lambda r: float(r["vs SPY"].replace("%","").replace("—","0").replace("+","")) if r["vs SPY"]!="—" else -999, reverse=True)
         st.dataframe(pd.DataFrame(sec_rows[:8]), use_container_width=True, hide_index=True)
-
-    # ═════════════════════════════════════════════════════════════════
-    # Adaptive Bottleneck Detail (optional expander)
-    # ═════════════════════════════════════════════════════════════════
-    if btl:
-        with st.expander("🔍 Full Adaptive Bottleneck Scan", expanded=False):
-            st.caption(f"Method: {btl.get('discovery_method', 'unknown')}")
-            if btl.get("summary"): st.info(btl["summary"])
-            if btl.get("active_sectors"):
-                for sector in btl["active_sectors"][:5]:
-                    with st.container(border=True):
-                        c1, c2, c3 = st.columns([3, 1, 1])
-                        with c1:
-                            st.markdown(f"**{sector.get('sector_name', '—')}** · {sector.get('stage', '—')}")
-                            st.caption(f"{', '.join(sector.get('tickers', [])[:6])}")
-                        with c2: st.metric("Score", f"{sector.get('bottleneck_score', 0):.2f}")
-                        with c3: st.metric("Vol Z", f"{sector.get('avg_volume_zscore', 0):.2f}")
-
-    # ═════════════════════════════════════════════════════════════════
-    # Master Ticker Board (compact)
-    # ═════════════════════════════════════════════════════════════════
-    st.markdown('<div style="font-size:16px;font-weight:700;color:#e6edf3;margin:16px 0 10px;">📋 MASTER BOARD</div>', unsafe_allow_html=True)
-    all_tickers = []
-    if tickers:
-        for side, key in [("Long", "us_longs"), ("Short", "us_shorts"), ("IHSG", "ihsg_buys"), ("FX", "fx_longs"), ("Comm", "commodity_longs"), ("Crypto", "crypto_longs")]:
-            for t in tickers.get(key, [])[:4]:
-                all_tickers.append({"Ticker": t, "Side": side, "Source": "Regime"})
-    if btl and btl.get("front_run_basket"):
-        for item in btl["front_run_basket"][:6]:
-            all_tickers.append({"Ticker": item.get("ticker", "—"), "Side": item.get("sector", "—"), "Source": "Adaptive"})
-    if all_tickers:
-        st.dataframe(pd.DataFrame(all_tickers), use_container_width=True, hide_index=True)
-    else:
-        st.info("Building board...")

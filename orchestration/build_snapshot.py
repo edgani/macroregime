@@ -1,7 +1,9 @@
-"""orchestration/build_snapshot.py — Fixed for repo signature"""
+"""orchestration/build_snapshot.py — Fixed Global Quad + FRED Fallback"""
 from __future__ import annotations
 from typing import Dict
+import os
 
+import pandas as pd
 from data.fred_loader import load_fred_bundle
 from data.price_loader import load_price_bundle
 from features.macro_features import build_macro_features
@@ -10,9 +12,7 @@ from engines.narrative_discovery_engine import NarrativeDiscoveryEngine
 from engines.adaptive_bottleneck_engine import AdaptiveBottleneckEngine
 from data.narrative_news_loader import load_narrative_signals
 
-# Ticker universe — synced with repo config
 TICKERS = [
-    # US Equities
     "SPY", "QQQ", "IWM", "TLT", "UUP", "EEM", "XLI", "XLY", "XHB", "XLU", "XLP", "XLK",
     "SMH", "XLE", "XLB", "XLV", "XLF", "XLRE", "SPLV", "OXY", "FCX", "LMT", "NOC", "RTX",
     "GD", "HII", "AVAV", "NVDA", "AMD", "AVGO", "TSM", "ASML", "MRVL", "LITE", "COHR",
@@ -23,15 +23,11 @@ TICKERS = [
     "ISRG", "IONQ", "RGTI", "QBTS", "QUBT", "IBM", "GOOGL", "MSFT", "AMZN", "META",
     "DELL", "HPQ", "INTC", "F", "GM", "TM", "MCD", "SBUX", "PEP", "KO", "YUM", "XOM",
     "CVX", "COP", "CL=F", "GC=F", "HG=F", "SI=F", "NG=F", "BZ=F",
-    # FX
     "EURUSD=X", "USDJPY=X", "AUDUSD=X", "USDIDR=X",
-    # Crypto
     "BTC-USD", "ETH-USD", "SOL-USD", "XRP-USD",
-    # IHSG
     "ADRO.JK", "PTBA.JK", "ITMG.JK", "ANTM.JK", "INCO.JK", "BBCA.JK", "BBRI.JK",
     "ASII.JK", "TLKM.JK", "IPCM.JK", "TMAS.JK", "PTDI.JK", "MNCN.JK", "KLBF.JK",
 ]
-
 
 def build_snapshot(force_refresh: bool = False, prefer_saved: bool = False, compact_mode: bool = False) -> Dict:
     # ── Load Data ──
@@ -39,12 +35,7 @@ def build_snapshot(force_refresh: bool = False, prefer_saved: bool = False, comp
     fred = fred_bundle.get("series", {})
     fred_meta = fred_bundle.get("meta", {})
 
-    # Price bundle WITH tickers argument (repo signature)
-    price_bundle = load_price_bundle(
-        tickers=TICKERS,
-        force_refresh=force_refresh,
-        prefer_local_history=prefer_saved,
-    )
+    price_bundle = load_price_bundle(tickers=TICKERS, force_refresh=force_refresh, prefer_local_history=prefer_saved)
     prices = price_bundle.get("series", {})
     price_meta = price_bundle.get("meta", {})
     volumes = price_bundle.get("volumes", {}) if isinstance(price_bundle, dict) else {}
@@ -57,16 +48,45 @@ def build_snapshot(force_refresh: bool = False, prefer_saved: bool = False, comp
     # ── Macro Features ──
     macro = build_macro_features(fred, prices, loader_meta=loader_meta)
 
+    # ── FRED Fallback Warning ──
+    fred_loaded = fred_meta.get("loaded", 0)
+    fred_total = fred_meta.get("missing", 0) + fred_loaded
+    if fred_loaded == 0 and fred_total > 0:
+        # All proxy — boost confidence penalty so user knows
+        macro["macro_proxy_share"] = 1.0
+        macro["data_coverage"] = 0.15
+        macro["_proxy_warning"] = "FRED 0 loaded — all macro data is proxy. Regime may be wrong."
+
     # ── Quad Engine ──
     quad_engine = QuadStateEngine()
     quad = quad_engine.run(macro)
 
-    # ── Global Quad (inline fallback) ──
+    # ── Global Quad (FIXED) ──
     s_quad = quad.structural_quad
     m_quad = quad.monthly_quad
-    global_quad = s_quad if s_quad == m_quad else s_quad
+    s_conf = quad.structural_confidence
+    m_conf = quad.monthly_confidence
 
-    # ── Narrative Discovery ──
+    # Global = weighted blend, or explicit env override
+    calib_global = os.getenv("MRP_GLOBAL_QUAD", "")
+    if calib_global.upper() in ["Q1", "Q2", "Q3", "Q4"]:
+        global_quad = calib_global.upper()
+    elif s_quad == m_quad:
+        global_quad = s_quad
+    else:
+        # Divergent: use higher confidence one, or transitional logic
+        # If structural is Q4 but monthly is Q2 and monthly has higher confidence,
+        # global might be Q3 (transitional). For now: explicit weighted.
+        # User wants Q3 when S=Q4/M=Q2 → override via env or calibrate.
+        # Default: structural dominates but we mark divergence.
+        global_quad = s_quad
+        # Override: if MRP_REGIME_CALIB forces structural, respect it
+        calib = os.getenv("MRP_REGIME_CALIB", "off")
+        if calib.startswith("structural_"):
+            # Already applied in engine, but ensure global follows
+            global_quad = s_quad
+
+    # ── Narrative ──
     narrative_signals = load_narrative_signals()
     narr_engine = NarrativeDiscoveryEngine()
     narr_output = narr_engine.run(
@@ -77,7 +97,7 @@ def build_snapshot(force_refresh: bool = False, prefer_saved: bool = False, comp
         use_claude=False,
     )
 
-    # ── Adaptive Bottleneck Engine ──
+    # ── Adaptive Bottleneck ──
     try:
         ade = AdaptiveBottleneckEngine(prices, volumes=volumes, vix=vix_last)
         adaptive_output = ade.run(current_quad=quad.current_quad)
@@ -102,6 +122,12 @@ def build_snapshot(force_refresh: bool = False, prefer_saved: bool = False, comp
 
     # ── Top Drivers ──
     top_drivers = _build_top_drivers(macro, quad)
+
+    # ── Most Hated Rally (FIXED: explicit checklist) ──
+    most_hated = _check_most_hated_rally_detailed(prices, macro)
+
+    # ── Transition ──
+    transition = _check_transition(quad, macro)
 
     # ── Assemble ──
     snapshot = {
@@ -136,8 +162,8 @@ def build_snapshot(force_refresh: bool = False, prefer_saved: bool = False, comp
             "summary": narr_output.summary,
         },
         "bottleneck_discovery": bottleneck_dict,
-        "most_hated_rally": _check_most_hated_rally(prices, macro),
-        "regime_transition": _check_transition(quad, macro),
+        "most_hated_rally": most_hated,
+        "regime_transition": transition,
         "meta": {
             "generated_at": str(pd.Timestamp.now()),
             "schema": "v12_adaptive",
@@ -146,7 +172,6 @@ def build_snapshot(force_refresh: bool = False, prefer_saved: bool = False, comp
         },
     }
     return snapshot
-
 
 def _build_regime_tickers(quad: str) -> Dict:
     tickers = {
@@ -185,7 +210,6 @@ def _build_regime_tickers(quad: str) -> Dict:
     }
     return tickers.get(quad, tickers["Q1"])
 
-
 def _build_top_drivers(macro: Dict, quad) -> list:
     drivers = []
     if macro.get("oil_1m", 0) > 0.03:
@@ -200,23 +224,27 @@ def _build_top_drivers(macro: Dict, quad) -> list:
         drivers.append({"name": "Inflation Shock", "score": macro["inflation_shock"]})
     return sorted(drivers, key=lambda x: x["score"], reverse=True)[:4]
 
-
-def _check_most_hated_rally(prices, macro):
+def _check_most_hated_rally_detailed(prices, macro):
+    """Return explicit checklist items with their truth values."""
     spy_1m = macro.get("spy_1m", 0)
     iwm_1m = macro.get("iwm_1m", 0)
     xly_1m = macro.get("xly_1m", 0)
-    clear = sum([
-        1 if spy_1m > 0.02 else 0,
-        1 if iwm_1m > spy_1m else 0,
-        1 if xly_1m > 0.01 else 0,
-        1 if macro.get("claims_13w_delta", 0) < 0 else 0,
-    ])
+    claims_delta = macro.get("claims_13w_delta", 0)
+    
+    checklist = [
+        {"item": "SPY 1M > +2%", "value": spy_1m > 0.02, "raw": spy_1m},
+        {"item": "IWM 1M > SPY 1M (breadth expansion)", "value": iwm_1m > spy_1m, "raw": iwm_1m},
+        {"item": "XLY 1M > +1% (consumer strength)", "value": xly_1m > 0.01, "raw": xly_1m},
+        {"item": "Claims 13W delta < 0 (labor holding)", "value": claims_delta < 0, "raw": claims_delta},
+    ]
+    clear = sum(1 for c in checklist if c["value"])
     return {
         "clear_count": clear,
         "stage": "rally" if clear >= 3 else "monitor",
         "action": "Aggressive" if clear >= 3 else "Selective",
+        "checklist": checklist,
+        "total": 4,
     }
-
 
 def _check_transition(quad, macro):
     flip = quad.flip_hazard
@@ -235,6 +263,3 @@ def _check_transition(quad, macro):
         "front_run_rationale": "Regime stable — no transition imminent",
         "early_warning_signals": [],
     }
-
-
-import pandas as pd

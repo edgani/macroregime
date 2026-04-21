@@ -1,7 +1,8 @@
-"""ui/command_center_page.py — Clean Overview Only"""
+"""ui/command_center_page.py — Live Opportunities Split Per Market"""
 from __future__ import annotations
 from typing import Dict
 import streamlit as st
+import pandas as pd
 
 def render_command_center(snap: Dict) -> None:
     q = snap.get("q", {})
@@ -12,6 +13,8 @@ def render_command_center(snap: Dict) -> None:
     vix = q.get("vix_last", 20.0)
     transition = snap.get("regime_transition", {})
     tickers = snap.get("regime_tickers", {})
+    narr = snap.get("narrative_discovery", {})
+    btl = snap.get("bottleneck_discovery", {})
 
     def _h(html: str) -> None: st.markdown(" ".join(html.split()), unsafe_allow_html=True)
 
@@ -82,24 +85,52 @@ def render_command_center(snap: Dict) -> None:
     else:
         st.info("No active front-run window — regime stable.")
 
-    # Live Opportunities compact
-    st.markdown('<div style="font-size:16px;font-weight:700;color:#e6edf3;margin:16px 0 10px;">🎯 LIVE OPPORTUNITIES (go to 🌍 Markets for detail)</div>', unsafe_allow_html=True)
-    opp_rows = []
-    narr = snap.get("narrative_discovery", {})
-    btl = snap.get("bottleneck_discovery", {})
+    # ═══════════════════════════════════════════════════════════════════════
+    # LIVE OPPORTUNITIES — Split 5 tables per market
+    # ═══════════════════════════════════════════════════════════════════════
+    st.markdown('<div style="font-size:16px;font-weight:700;color:#e6edf3;margin:16px 0 10px;">🎯 LIVE OPPORTUNITIES</div>', unsafe_allow_html=True)
+
+    def make_opp_table(title, emoji, color, ticker_list, opp_type):
+        if not ticker_list: return
+        st.markdown(f"**{emoji} {title}**")
+        rows = [{"Ticker": t, "Type": opp_type, "Signal": "▲" if opp_type=="Long" else "▼" if opp_type=="Short" else "⚡"} for t in ticker_list]
+        st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+
+    # 1. US Stocks
+    us_longs_full = tickers.get("us_longs", [])[:6]
+    us_shorts_full = tickers.get("us_shorts", [])[:4]
+    if us_longs_full or us_shorts_full:
+        c1, c2 = st.columns(2)
+        with c1: make_opp_table("US Longs", "🇺🇸", "#3fb950", us_longs_full, "Long")
+        with c2: make_opp_table("US Shorts", "🇺🇸", "#f85149", us_shorts_full, "Short")
+
+    # 2. IHSG
+    ihsg_full = tickers.get("ihsg_buys", [])[:6]
+    make_opp_table("IHSG", "🇮🇩", "#fb923c", ihsg_full, "Long")
+
+    # 3. FX
+    fx_full = tickers.get("fx_longs", [])[:4]
+    make_opp_table("FX", "💱", "#58a6ff", fx_full, "Long")
+
+    # 4. Commodities
+    comm_full = tickers.get("commodity_longs", [])[:5]
+    make_opp_table("Commodities", "🛢️", "#fb923c", comm_full, "Long")
+
+    # 5. Crypto
+    cry_full = tickers.get("crypto_longs", [])[:5]
+    make_opp_table("Crypto", "🔐", "#a371f7", cry_full, "Long")
+
+    # Narrative + Bottleneck extras (compact)
+    st.markdown("**📰 Narrative & Adaptive Extras**")
+    extra_rows = []
     if narr and narr.get("active_narratives"):
         for n in narr["active_narratives"][:2]:
             for b in n.get("primary_beneficiaries", [])[:2]:
-                opp_rows.append({"Source": f"📰 {n.get('name', '—')[:12]}", "Ticker": b, "Type": "Narrative"})
+                extra_rows.append({"Source": f"📰 {n.get('name', '—')[:12]}", "Ticker": b, "Type": "Narrative"})
     if btl and btl.get("front_run_basket"):
-        for item in btl["front_run_basket"][:3]:
-            opp_rows.append({"Source": "🔍 Bottleneck", "Ticker": item.get("ticker", "—"), "Type": "Adaptive"})
-    if tickers:
-        for side, key in [("▲ US", "us_longs"), ("🇮🇩 IHSG", "ihsg_buys")]:
-            for t in tickers.get(key, [])[:2]:
-                opp_rows.append({"Source": side, "Ticker": t, "Type": "Regime"})
-    if opp_rows:
-        import pandas as pd
-        st.dataframe(pd.DataFrame(opp_rows), use_container_width=True, hide_index=True)
+        for item in btl["front_run_basket"][:4]:
+            extra_rows.append({"Source": "🔍 Bottleneck", "Ticker": item.get("ticker", "—"), "Type": "Adaptive"})
+    if extra_rows:
+        st.dataframe(pd.DataFrame(extra_rows), use_container_width=True, hide_index=True)
     else:
-        st.info("No opportunities detected.")
+        st.caption("No narrative/bottleneck extras")

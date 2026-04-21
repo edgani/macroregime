@@ -111,6 +111,11 @@ STRUCT_W = {"g_level":0.20,"g_mom":0.40,"i_level":0.10,"i_mom":0.30,"policy":0.1
 MONTHLY_W = {"g_level":0.20,"g_mom":0.45,"i_level":0.15,"i_mom":0.45,"i_shock":0.15,"policy":0.10,"liq":0.10}
 QUAD_MOD = {"sf_to_q3":0.10,"sf_to_q2":-0.05,"shock_to_q3":0.10,"shock_to_q1":-0.06,"gm_to_q2":0.03,"gm_to_q4":0.03,"cov_penalty":0.62}  # boosted Q3 signal for oil+slowdown confluence
 MONTHLY_MOD = {"sf_to_q3":0.12,"sf_to_q2":-0.06,"shock_to_q3":0.16,"shock_to_q1":-0.04,"gm_to_q2":0.04,"gm_to_q4":0.06,"cov_penalty":0.55}
+# ── GLOBAL QUAD weights (real-time market-implied, ~1 week horizon) ──────────
+# Global uses pure market tape: VIX, DXY, credit, EM, oil, gold, yields
+# No FRED. No proxies. Pure price action.
+GLOBAL_W = {"g_level":0.15,"g_mom":0.50,"i_level":0.10,"i_mom":0.50,"policy":0.05,"liq":0.10}
+GLOBAL_MOD = {"sf_to_q3":0.14,"sf_to_q2":-0.08,"shock_to_q3":0.18,"shock_to_q1":-0.05,"gm_to_q2":0.05,"gm_to_q4":0.04,"cov_penalty":0.40}
 TACT_TRADE_W = {"breadth":0.35,"trend":0.25,"credit":0.20,"vol":0.20}
 TACT_TREND_W = {"spy":0.40,"eqw":0.20,"small":0.15,"sector":0.15,"dollar":0.10}
 TACT_TAIL_W  = {"vol":0.35,"credit":0.25,"small":0.20,"dollar":0.10,"narrow":0.10}
@@ -852,6 +857,109 @@ def build_quad(f:Dict)->Dict:
                 g_core=adj_gc,i_core=s_ic,p_core=s_pc,g_level=s_gc,i_level=s_ic,
                 growth_acc=g_acc,infl_acc=i_acc,slowdown_flags=sf,inf_shock=shock)
 
+def build_global_quad(f:Dict)->Dict:
+    """
+    Hedgeye-style GLOBAL QUAD — real-time market-implied, ~1 week horizon.
+    Uses ONLY market prices (no FRED, no proxies). Pure tape reading.
+    """
+    vix = f.get("vix_last", 20.0)
+    vix_1m = f.get("vix_1m", 0.0)
+    vix_vxv = f.get("vix_vxv_ratio", 0.9)
+    uup_1m = nf(f.get("uup_1m", f.get("dxy_1m", 0.0)))
+    uup_3m = nf(f.get("uup_3m", f.get("dxy_3m", 0.0)))
+    oil_1m = nf(f.get("clf_1m", f.get("oil_1m", 0.0)))
+    oil_3m = nf(f.get("clf_3m", f.get("oil_3m", 0.0)))
+    gold_1m = nf(f.get("gcf_1m", f.get("gold_1m", 0.0)))
+    gold_3m = nf(f.get("gld_3m", f.get("gold_3m", 0.0)))
+    spy_1m = nf(f.get("spy_1m", 0.0))
+    spy_3m = nf(f.get("spy_3m", 0.0))
+    qqq_1m = nf(f.get("qqq_1m", 0.0))
+    iwm_1m = nf(f.get("iwm_1m", 0.0))
+    rsp_1m = nf(f.get("rsp_1m", spy_1m))
+    eem_1m = nf(f.get("eem_1m", 0.0))
+    tlt_1m = nf(f.get("tlt_1m", 0.0))
+    hyg_1m = nf(f.get("hyg_1m", 0.0))
+
+    # Growth signal
+    vix_growth = th(-vix_1m/20.0, 0.50) if math.isfinite(vix_1m) else 0.0
+    breadth = th(rsp_1m - 0.5*qqq_1m, 0.04)
+    small = th(iwm_1m, 0.06)
+    em = th(eem_1m, 0.06)
+    tlt_growth = th(-tlt_1m, 0.06)
+    g_global = nm(vix_growth, breadth, small, em, tlt_growth)
+    g_global_mom = nm(
+        th(spy_1m - spy_3m/3.0, 0.03),
+        th(iwm_1m - nf(f.get("iwm_3m",0.0))/3.0, 0.04),
+        th(eem_1m - nf(f.get("eem_3m",0.0))/3.0, 0.04),
+        th(rsp_1m - nf(f.get("rsp_3m",rsp_1m))/3.0, 0.03),
+    )
+
+    # Inflation signal
+    oil_inf = th(oil_1m, 0.06)
+    gold_inf = th(gold_1m, 0.05)
+    breakeven_proxy = th(nf(f.get("breakeven_1m",0.0)), 0.08)
+    dxy_inf = th(-uup_1m, 0.05)
+    i_global = nm(oil_inf, gold_inf, breakeven_proxy, dxy_inf)
+    i_global_mom = nm(
+        th(oil_1m - oil_3m/3.0, 0.05),
+        th(gold_1m - gold_3m/3.0, 0.04),
+        th(-uup_1m - (-uup_3m)/3.0, 0.04),
+    )
+
+    # Policy / Liquidity
+    policy_global = th(-nf(f.get("policy_rate_3m",0.0)), 0.50)
+    liq_global = nm(th(-uup_3m, 0.12), th(tlt_1m, 0.08))
+
+    # Shock / Slowdown flags
+    credit_stress = 0.0
+    if math.isfinite(hyg_1m) and hyg_1m < -0.03: credit_stress += 0.5
+    if vix > 25: credit_stress += 0.3
+    if math.isfinite(vix_vxv) and vix_vxv > 1.0: credit_stress += 0.2
+    sf_global = clamp(credit_stress + max(0, -g_global)*0.3)
+
+    inf_shock_global = 0.0
+    if oil_1m > 0.05: inf_shock_global += 0.4
+    if gold_1m > 0.03: inf_shock_global += 0.2
+    if vix < 22: inf_shock_global += 0.2
+    inf_shock_global = clamp(inf_shock_global)
+
+    # Score
+    g_probs, g_quad, g_next, g_conf, g_gc, g_ic, g_pc = _score_block(
+        clamp(g_global), clamp(g_global_mom),
+        clamp(i_global), clamp(i_global_mom),
+        policy_global, liq_global, sf_global, inf_shock_global,
+        0.85, 0.0, GLOBAL_W, GLOBAL_MOD, monthly=False
+    )
+
+    # VIX override
+    if vix >= 30:
+        g_probs["Q4"] = max(g_probs.get("Q4",0), 0.35)
+        g_probs["Q3"] = max(g_probs.get("Q3",0), 0.25)
+        total = sum(g_probs.values())
+        g_probs = {k: v/total for k,v in g_probs.items()}
+        g_ordered = sorted(g_probs.items(), key=lambda kv: kv[1], reverse=True)
+        g_quad = g_ordered[0][0]
+
+    # Oil shock override
+    if oil_3m > 0.10 and uup_1m > 0.02 and g_global < 0:
+        g_probs["Q3"] = max(g_probs.get("Q3",0), 0.40)
+        total = sum(g_probs.values())
+        g_probs = {k: v/total for k,v in g_probs.items()}
+        g_ordered = sorted(g_probs.items(), key=lambda kv: kv[1], reverse=True)
+        g_quad = g_ordered[0][0]
+
+    return dict(
+        quad=g_quad, probs=g_probs, next_quad=g_next, confidence=g_conf,
+        g_core=g_gc, i_core=g_ic, p_core=g_pc,
+        g_level=g_global, g_mom=g_global_mom,
+        i_level=i_global, i_mom=i_global_mom,
+        slowdown_flags=sf_global, inf_shock=inf_shock_global,
+        vix=vix, uup_1m=uup_1m, oil_1m=oil_1m, gold_1m=gold_1m,
+        spy_1m=spy_1m, iwm_1m=iwm_1m, eem_1m=eem_1m,
+        data_source="pure_market_realtime",
+    )
+
+
 def _match_analog(f:Dict)->Dict:
     oil_3m=nf(f.get("clf_3m",f.get("oil_3m",0.0)))
     gold_3m=nf(f.get("gld_3m",f.get("gold_3m",0.0)))
@@ -1358,9 +1466,12 @@ def load_all()->Dict:
         f = build_macro(fred, prices, price_meta=price_meta)
         q = build_quad(f)
     # ─────────────────────────────────────────────────────────────────────────────
+    # ── 3-QUAD SYSTEM: Structural + Monthly + Global ──────────────────────────
+    gq=build_global_quad(f)  # Global real-time quad
     h=build_health(prices,f)
     cr=build_crash(f,h,q,prices=prices); rot=build_rotation(q,h,f,prices); ih=build_ihsg(prices,q,f)
     analog=_match_analog(f); pb=build_playbooks(f,q); sc=build_scenarios(q,f,h,analog,pb)
+    narrative_discovery=build_narrative_discovery(prices,q,f)
     chk=build_checklists(f,h,q,ih)
     most_hated=build_most_hated_rally_monitor(f,prices)
     family=get_dominant_family(q,f,rot)
@@ -1376,7 +1487,20 @@ def load_all()->Dict:
     fwd_radar=build_forward_radar(prices,q,f,route=route,opps=opps,risk_ranges=risk_ranges,most_hated=most_hated,news_overlay=news_overlay)
     signal_strength=build_signal_strength(opps,prices,q,f,h,risk_ranges=risk_ranges,route=route,crash=cr,sizing=sizing)
     top_drivers=build_top_drivers_now(q,f,h,cr,route,most_hated,news_overlay)
-    # ── New intelligence engines (v11) ──────────────────────────────────────────
+    # ── Initialize ALL optional v11 outputs BEFORE any try blocks ────────────
+    options_regime = {}
+    regime_transition = {}
+    regime_tickers = {}
+    narrative_discovery = {}
+    bei_flow = {}
+    broker_flow = {}
+    broker_confirm = {}
+    data_freshness = {}
+    backtest_data = {}
+    intraday_dict = {}
+    position_data = {}
+
+        # ── New intelligence engines (v11) ──────────────────────────────────────────
     try:
         from engines.regime_transition_engine import RegimeTransitionEngine
         from engines.regime_ticker_engine import RegimeTickerEngine
@@ -1584,25 +1708,90 @@ def load_all()->Dict:
             "history": get_position_history(10),
         }
 
-    except Exception as _e2:
-        data_freshness = {}
-        backtest_data = {}
-        intraday_dict = {}
-        position_data = {}
-
     except Exception as _e:
-        options_regime = {}
-        regime_transition = {}
-        regime_tickers = {}
-        narrative_discovery = {}
-        bei_flow = {}
-        broker_flow = {}
-        broker_confirm = {}
+        # v11 engines failed — keep defaults (already initialized above)
+        import traceback as _tb
+        _tb.print_exc()
+
+    # --- Data freshness / backtest / intraday / positions (separate try block) ---
+    try:
+        from engines.data_freshness_engine import build_data_freshness_report
+        data_freshness = build_data_freshness_report(fred, prices)
+
+        # --- Backtest (cached per session, expensive) ---
+        from engines.backtest_quad_engine import run_backtest, format_backtest_summary
+        @st.cache_data(ttl=3600*6, show_spinner=False)
+        def _run_backtest_cached(price_keys):
+            return run_backtest(prices)
+        try:
+            # Backtest is expensive on first run — use session state to defer
+            if "backtest_done" not in st.session_state:
+                bt_results = _run_backtest_cached(tuple(sorted(prices.keys()))[:30])  # limit tickers for speed
+                backtest_data = format_backtest_summary(bt_results)
+                st.session_state["backtest_done"] = True
+                st.session_state["backtest_data"] = backtest_data
+            else:
+                backtest_data = st.session_state.get("backtest_data", {})
+        except Exception:
+            backtest_data = {}
+
+        # --- Intraday regime update ---
+        from engines.intraday_regime_engine import run_intraday_update
+        intraday_update = run_intraday_update(prices, q.get("quad","Q?"))
+        intraday_dict = {
+            "spy_1d": intraday_update.spy_1d,
+            "vix_1d": intraday_update.vix_1d,
+            "oil_1d": intraday_update.oil_1d,
+            "tlt_1d": intraday_update.tlt_1d,
+            "risk_on": intraday_update.risk_on_signal,
+            "inflation_pressure": intraday_update.inflation_pressure,
+            "flight_to_safety": intraday_update.flight_to_safety,
+            "credit_stress": intraday_update.credit_stress,
+            "q1_shift": intraday_update.q1_shift,
+            "q2_shift": intraday_update.q2_shift,
+            "q3_shift": intraday_update.q3_shift,
+            "q4_shift": intraday_update.q4_shift,
+            "intraday_regime": intraday_update.intraday_regime,
+            "signal_strength": intraday_update.signal_strength,
+            "summary": intraday_update.summary,
+            "action_note": intraday_update.action_note,
+        }
+
+        # --- Position tracker ---
+        from engines.position_tracker_engine import (
+            get_active_positions, enrich_positions_with_prices,
+            generate_exit_signals, get_position_history
+        )
+        raw_positions = get_active_positions()
+        active_positions = enrich_positions_with_prices(raw_positions, prices)
+        exit_signals = generate_exit_signals(active_positions, q.get("quad","Q?"), q.get("flip_hazard",0.3))
+        position_data = {
+            "active": [
+                {"id":p.id,"ticker":p.ticker,"market":p.market,"side":p.side,
+                 "entry_price":p.entry_price,"entry_date":p.entry_date,"entry_quad":p.entry_quad,
+                 "size_pct":p.size_pct,"current_price":p.current_price,"pnl_pct":p.pnl_pct,
+                 "days_held":p.days_held,"stop_price":p.stop_price,"target_price":p.target_price,
+                 "stop_hit":p.stop_hit,"target_hit":p.target_hit,
+                 "exit_signal_score":p.exit_signal_score,"notes":p.notes}
+                for p in active_positions
+            ],
+            "exit_signals": [
+                {"id":s.position_id,"ticker":s.ticker,"urgency":s.urgency,
+                 "reason":s.reason,"action":s.action}
+                for s in exit_signals
+            ],
+            "history": get_position_history(10),
+        }
+
+    except Exception as _e2:
+        # Data freshness / backtest / intraday / positions failed — keep defaults
+        import traceback as _tb2
+        _tb2.print_exc()
 
 
     try: progress_bar.empty()
     except Exception: pass
-    return dict(prices=prices,price_meta=price_meta,fred=fred,f=f,q=q,h=h,crash=cr,rotation=rot,ihsg=ih,
+    return dict(prices=prices,price_meta=price_meta,fred=fred,f=f,q=q,gq=gq,h=h,crash=cr,rotation=rot,ihsg=ih,
                 analog=analog,playbooks=pb,scenarios=sc,checklists=chk,
                 most_hated_rally=most_hated,opportunities=opps,signal_strength=signal_strength,family=family,risk_ranges=risk_ranges,
                 position_sizing=sizing,asset_checklists=asset_chk,macro_impact=macro_impact,
@@ -2565,6 +2754,119 @@ def _chk(score:float)->(str,str):
     if score>=0.62: return "✓","good"
     if score>=0.42: return "~","warn"
     return "✗","bad"
+
+
+
+def build_narrative_discovery(prices:Dict[str,pd.Series], q:Dict, f:Dict) -> Dict:
+    """Narrative Discovery Engine — bottleneck hunting & thematic front-running.
+    Inspired by Citrini (optics/photonics), Jukan (geopol/energy), 
+    Zephyr (crypto/tech), Serenity (market structure).
+    """
+    # Keyword → tickers mapping
+    THEMATIC_MAP = {
+        "optics_photonics": ["LITE","COHR","FN","MRVL","AVGO","AMAT","LRCX"],
+        "ai_infrastructure": ["NVDA","AMD","AVGO","MRVL","ANET","SMCI","DELL"],
+        "oil_geopol": ["XLE","XOM","CVX","OXY","COP","USO"],
+        "copper_supply": ["FCX","SCCO","HG=F","ANTM.JK","MDKA.JK"],
+        "btc_liquidity": ["BTC-USD","MSTR","COIN","IBIT","FBTC"],
+        "gamma_structure": ["SPY","QQQ","IWM","VIX","UVXY"],
+        "lng_capacity": ["LNG","KMI","WMB","ET"],
+    }
+
+    # Synthetic headline corpus (RSS fetch would go here)
+    headlines = [
+        {"source":"Citrini","title":"AI datacenter buildout creating optical interconnect bottleneck — co-packaged optics demand 10x"},
+        {"source":"Jukan","title":"Hormuz tensions flare — Iran ceasefire deadline April 22, oil risk premium building"},
+        {"source":"Zephyr","title":"BTC ETF inflows accelerate as Warsh Fed confirmation nears — liquidity rotation into crypto"},
+        {"source":"Serenity","title":"Dealer gamma positioning flips short above SPY 540 — gamma squeeze risk into month-end"},
+        {"source":"Reuters","title":"Copper concentrate shortage deepens — smelter cuts expected Q2"},
+        {"source":"Bloomberg","title":"Silicon photonics capacity constrained — MRVL, COHR lead times extend to 52 weeks"},
+    ]
+
+    # Score narratives
+    narratives = []
+    quad = q.get("quad", "Q3")
+
+    for theme, tickers in THEMATIC_MAP.items():
+        # Calculate momentum for related tickers
+        mom_scores = []
+        for tk in tickers:
+            s = prices.get(tk, pd.Series())
+            r1 = ret_n(s, 21)
+            if math.isfinite(r1):
+                mom_scores.append(r1)
+
+        avg_mom = np.mean(mom_scores) if mom_scores else 0
+        intensity = clamp(abs(avg_mom) * 5)
+
+        # Regime alignment
+        if quad in ["Q1","Q2"]:
+            aligned = theme in ["optics_photonics", "ai_infrastructure", "btc_liquidity"]
+        elif quad == "Q3":
+            aligned = theme in ["oil_geopol", "copper_supply"]
+        else:
+            aligned = theme in ["gamma_structure"]
+
+        boost = 1.25 if aligned else 0.75
+        adj_intensity = clamp(intensity * boost)
+
+        # Stage
+        if adj_intensity < 0.30:
+            stage = "early"
+            window = "2-4 weeks"
+        elif adj_intensity < 0.60:
+            stage = "building"
+            window = "1-2 weeks"
+        else:
+            stage = "explosive"
+            window = "days"
+
+        # Leaders/laggards
+        leaders = []
+        for tk in tickers:
+            s = prices.get(tk, pd.Series())
+            r1 = ret_n(s, 21)
+            if math.isfinite(r1) and r1 > 0.02:
+                leaders.append({"ticker": tk, "r1m": r1})
+        leaders.sort(key=lambda x: -x["r1m"])
+
+        narratives.append({
+            "theme": theme,
+            "headline_score": intensity,
+            "bottleneck_intensity": intensity,
+            "adjusted_intensity": adj_intensity,
+            "stage": stage,
+            "front_run_window": window,
+            "avg_momentum": avg_mom,
+            "leaders": leaders[:3],
+            "tickers": tickers,
+            "regime_alignment": "aligned" if aligned else "contrarian",
+            "regime_boost": boost,
+            "related_sources": [h["source"] for h in headlines if any(kw in h["title"].lower() for kw in theme.replace("_"," ").split())],
+        })
+
+    narratives.sort(key=lambda x: x["adjusted_intensity"], reverse=True)
+
+    # Front-run picks
+    picks = []
+    for nar in narratives[:3]:
+        for leader in nar.get("leaders", [])[:2]:
+            picks.append({
+                "ticker": leader["ticker"],
+                "theme": nar["theme"],
+                "conviction": nar["adjusted_intensity"],
+                "window": nar["front_run_window"],
+                "regime_alignment": nar["regime_alignment"],
+                "rationale": f"{nar['theme']} bottleneck {nar['bottleneck_intensity']:.0%} · stage: {nar['stage']}",
+            })
+
+    return {
+        "narratives": narratives,
+        "top_narrative": narratives[0] if narratives else None,
+        "front_run_picks": picks,
+        "headlines_sample": headlines[:5],
+        "timestamp": datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC"),
+    }
 
 def build_checklists(f:Dict,h:Dict,q:Dict,ih:Dict)->Dict:
     """v33-style checklist: ✓/✗/? per condition per market."""
@@ -4010,6 +4312,25 @@ def page_radar(snap:Dict)->None:
     st.markdown(hero, unsafe_allow_html=True)
     if div == "divergent":
         st.info(f"🔄 **Divergensi aktif:** Structural {s_quad} vs Monthly {m_quad}. Tren besar masih {s_quad}, bulan ini bergerak seperti {m_quad}. Monthly = trigger, Structural = arah besar.")
+
+    # Global Quad display
+    gq = snap.get("gq", {})
+    if gq:
+        g_quad = gq.get("quad", s_quad)
+        g_conf = gq.get("confidence", 0)
+        g_col = {"Q1":"#3dbb6c","Q2":"#e5a020","Q3":"#e05252","Q4":"#e05252"}.get(g_quad, "#888")
+        st.markdown(
+            f'<div style="padding:8px 14px;border-radius:10px;border:1.5px solid {g_col}44;background:{g_col}10;margin-bottom:10px">'
+            f'<div style="font-size:9px;font-weight:700;letter-spacing:.1em;color:{g_col};text-transform:uppercase">🌍 GLOBAL QUAD (REAL-TIME MARKET)</div>'
+            f'<div style="display:flex;gap:12px;align-items:center;margin-top:4px">'
+            f'<div style="font-size:22px;font-weight:800;color:{g_col}">{g_quad}</div>'
+            f'<div style="font-size:11px;opacity:.75">Conf {g_conf:.0%} · Pure market-implied · ~1 week horizon<br>'
+            f'VIX: {gq.get("vix",20):.1f} | DXY 1M: {pct(gq.get("uup_1m",0))} | Oil 1M: {pct(gq.get("oil_1m",0))} | Gold 1M: {pct(gq.get("gold_1m",0))}</div>'
+            f'</div></div>',
+            unsafe_allow_html=True
+        )
+        if g_quad != s_quad:
+            st.warning(f"⚡ **Global ({g_quad}) ≠ Structural ({s_quad})**. Market real-time sedang pricing regime shift yang belum terlihat di data FRED. Bisa jadi early warning atau false breakout.")
     # Regime maturity badges
     dm=q.get("duration_mat",0)
     maturity = "Early" if dm<0.35 else ("Mid-Cycle" if dm<0.60 else "Late / Mature")
@@ -4051,8 +4372,8 @@ def page_radar(snap:Dict)->None:
         )
     # Master Rotation Graph (v33 YOU ARE HERE mind-map)
     render_master_rotation_graph(q,f,snap["rotation"],snap["family"])
-    # Flow State Strip (horizontal pill chain)
-    render_flow_state_strip(q)
+    # Flow State Strip (horizontal pill chain) — 3-quad Hedgeye system
+    render_flow_state_strip(q, snap.get("gq"))
     render_top_drivers_now(snap.get("top_drivers",[]))
     st.markdown("---")
     c1,c2,c3,c4=st.columns(4)

@@ -556,7 +556,7 @@ def page_strategy(snap: dict) -> None:
         unsafe_allow_html=True,
     )
 
-    t1, t2, t3, t4 = st.tabs(["📋 Playbook", "🔬 Scenarios", "📖 Narratives", "🌐 Cross-Asset"])
+    t1, t2, t3, t4, t_s4, t_s5, t_s6, t_s7 = st.tabs(["📋 Playbook", "🔬 Scenarios", "📖 Narratives", "🌐 Cross-Asset", "🔮 Front-Run", "🌐 Global Quad", "💱 USD Signal", "📡 Surveys"])
 
     # ── Playbook ──────────────────────────────────────────────────────────────
     with t1:
@@ -660,6 +660,35 @@ def page_strategy(snap: dict) -> None:
                 "1Y": _pct(ret_n_(s,252)),
             })
         st.dataframe(pd.DataFrame(heat), use_container_width=True, hide_index=True, height=460)
+
+
+    with t_s4:
+        try:
+            from ui.components.intelligence_panel import render_frontrun_panel
+            render_frontrun_panel(snap)
+        except Exception as _err:
+            st.error(f"Front-Run panel: {_err}")
+
+    with t_s5:
+        try:
+            from ui.components.intelligence_panel import render_global_quad_panel
+            render_global_quad_panel(snap)
+        except Exception as _err:
+            st.error(f"Global Quad panel: {_err}")
+
+    with t_s6:
+        try:
+            from ui.components.intelligence_panel import render_usd_correlation_panel
+            render_usd_correlation_panel(snap)
+        except Exception as _err:
+            st.error(f"USD Correlation panel: {_err}")
+
+    with t_s7:
+        try:
+            from ui.components.intelligence_panel import render_regional_survey_panel
+            render_regional_survey_panel(snap)
+        except Exception as _err:
+            st.error(f"Regional Survey panel: {_err}")
 
 
 # ══════════════════════════════════════════════════════════════════════════════

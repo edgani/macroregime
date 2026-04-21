@@ -1,4 +1,4 @@
-"""MacroRegime Pro v11.3 — Cross-Market Leaders & Bottleneck Fix"""
+"""MacroRegime Pro v11.4 — IHSG Sector Leadership Fix"""
 import os
 import sys
 import glob
@@ -92,7 +92,7 @@ _h(f"""
     <div style="font-size:32px;">🧭</div>
     <div>
       <div style="font-size:24px;font-weight:800;color:#e6edf3;">MacroRegime <span style="color:#58a6ff;">Pro</span></div>
-      <div style="font-size:11px;color:#8b949e;">v11.3 · Cross-Market · Working</div>
+      <div style="font-size:11px;color:#8b949e;">v11.4 · IHSG Sectors · Working</div>
     </div>
   </div>
   <div style="text-align:right;">
@@ -187,7 +187,7 @@ with tabs[1]:
         _h("".join(heat_html))
 
     # ═══════════════════════════════════════════════════════════════════════
-    # SECTOR / MARKET LEADERSHIP BARS — Universal
+    # UNIVERSAL MARKET LEADERSHIP BARS
     # ═══════════════════════════════════════════════════════════════════════
     def render_market_leaders(asset_list, benchmark_tk=None, title="Market Leadership"):
         """Render top 5 leadership bars for any market."""
@@ -245,6 +245,54 @@ with tabs[1]:
                 """)
 
     # ═══════════════════════════════════════════════════════════════════════
+    # IHSG SECTOR LEADERSHIP — Proxy-based IDX sectors
+    # ═══════════════════════════════════════════════════════════════════════
+    def render_ihsg_sector_bars():
+        """IDX sector leadership using blue-chip proxies. Averages 3M return per sector vs ^JKSE."""
+        SECTORS = {
+            "Energy":   ["ADRO.JK", "ITMG.JK", "PTBA.JK"],
+            "Finance":  ["BBCA.JK", "BBRI.JK", "BMRI.JK"],
+            "Consumer": ["UNVR.JK", "INDF.JK", "ICBP.JK"],
+            "Infra":    ["TLKM.JK", "PGAS.JK", "EXCL.JK"],
+            "Property": ["CTRA.JK", "PWON.JK", "BSDE.JK"],
+            "Mining":   ["ANTM.JK", "INCO.JK", "MDKA.JK"],
+            "Health":   ["KLBF.JK", "SIDO.JK", "KAEF.JK"],
+            "Agri":     ["AALI.JK", "LSIP.JK", "SGRO.JK"],
+            "Industri": ["ASII.JK", "AUTO.JK", "MPMX.JK"],
+        }
+        jkse3 = ret_n(prices.get("^JKSE"), 63)
+        sec_rows = []
+        for name, proxies in SECTORS.items():
+            rets = []
+            for tk in proxies:
+                s = prices.get(tk)
+                if s is not None and len(s) > 63:
+                    r = ret_n(s, 63)
+                    if r == r: rets.append(r)
+            if rets:
+                avg = sum(rets) / len(rets)
+                rel = (avg - jkse3) if jkse3 == jkse3 else avg
+                sec_rows.append({"name": name, "rel": rel})
+        if sec_rows:
+            sec_rows.sort(key=lambda r: r["rel"] if r["rel"] == r["rel"] else -999, reverse=True)
+            st.markdown("**📊 IDX Sector Leadership (Top 5)**")
+            for s in sec_rows[:5]:
+                rel = s["rel"]
+                rel_pct = min(max((rel + 0.15) / 0.3 * 100, 0), 100) if rel == rel else 50
+                bar_color = "#3fb950" if rel > 0 else "#f85149" if rel < 0 else "#8b949e"
+                _h(f"""
+                <div style="display:flex;align-items:center;gap:8px;margin:4px 0;">
+                  <div style="width:60px;font-size:11px;color:#c9d1d9;">{s["name"]}</div>
+                  <div style="flex:1;background:#21262d;border-radius:4px;height:16px;overflow:hidden;">
+                    <div style="width:{rel_pct}%;background:{bar_color};height:100%;border-radius:4px;"></div>
+                  </div>
+                  <div style="width:50px;text-align:right;font-size:11px;color:{bar_color};font-weight:600;">{rel:+.1%}</div>
+                </div>
+                """)
+        else:
+            st.caption("No IDX sector data — proxy tickers unavailable.")
+
+    # ═══════════════════════════════════════════════════════════════════════
     # BOTTLENECK FILTER — Explicit per market, ga nyampur
     # ═══════════════════════════════════════════════════════════════════════
     def is_us_ticker(tk):
@@ -269,10 +317,8 @@ with tabs[1]:
         if btl.get("summary"): st.caption(btl["summary"])
         basket = btl.get("front_run_basket", [])
         total = len(basket)
-        # Filter by ticker pattern
         filtered = [item for item in basket if filter_fn(item.get("ticker", ""))]
         if not filtered:
-            # Explain why empty
             st.caption(f"No {market_name} bottleneck detected — adaptive scan returned {total} candidate(s), none matched {market_name} ticker patterns.")
             return
         b_html = ['<div style="display:flex;gap:6px;flex-wrap:wrap;">']
@@ -291,19 +337,16 @@ with tabs[1]:
     # ═══════════════════════════════════════════════════════════════════════
     def render_master_filtered(long_key, short_key, color_long, color_short, filter_fn, market_name):
         all_tickers = []
-        # Regime tickers for this market only
         for t in tickers.get(long_key, [])[:4]:
             all_tickers.append((t, "Long", color_long))
         if short_key:
             for t in tickers.get(short_key, [])[:4]:
                 all_tickers.append((t, "Short", color_short))
-        # Bottleneck filtered
         if btl and btl.get("front_run_basket"):
             for item in btl["front_run_basket"][:6]:
                 tk = item.get("ticker","—")
                 if filter_fn(tk) and tk not in [x[0] for x in all_tickers]:
                     all_tickers.append((tk, "Adap", "#58a6ff"))
-        # Narrative filtered
         if narr and narr.get("active_narratives"):
             for n in narr["active_narratives"][:3]:
                 for b in n.get("primary_beneficiaries", [])[:3]:
@@ -350,12 +393,8 @@ with tabs[1]:
         st.divider()
         st.markdown("**🌍 Heatmap**")
         render_heatmap([("^JKSE","IHSG"),("BBCA.JK","BCA"),("BBRI.JK","BRI"),("ASII.JK","Astra"),("TLKM.JK","Telkom")])
-        # IHSG Leadership (vs IHSG benchmark)
-        ihsg_leaders = [
-            ("^JKSE","IHSG"),("BBCA.JK","BCA"),("BBRI.JK","BRI"),("ASII.JK","Astra"),
-            ("TLKM.JK","Telkom"),("ADRO.JK","Adaro"),("ANTM.JK","Antam"),("KLBF.JK","Kalbe")
-        ]
-        render_market_leaders(ihsg_leaders, benchmark_tk="^JKSE", title="IHSG Leadership")
+        # IHSG Sector Leadership
+        render_ihsg_sector_bars()
         st.markdown("**🔍 Bottleneck Scan**")
         render_bottleneck_filtered(is_ihsg_ticker, "IHSG")
         st.markdown("**📋 Master Board**")
@@ -376,7 +415,6 @@ with tabs[1]:
         st.divider()
         st.markdown("**🌍 Heatmap**")
         render_heatmap([("EURUSD=X","EUR/USD"),("USDJPY=X","USD/JPY"),("AUDUSD=X","AUD/USD"),("USDIDR=X","USD/IDR"),("UUP","DXY")])
-        # FX Leadership (vs DXY/UUP)
         fx_leaders = [
             ("UUP","DXY"),("USDJPY=X","USD/JPY"),("EURUSD=X","EUR/USD"),
             ("AUDUSD=X","AUD/USD"),("GBPUSD=X","GBP/USD"),("USDCAD=X","USD/CAD")
@@ -402,7 +440,6 @@ with tabs[1]:
         st.divider()
         st.markdown("**🌍 Heatmap**")
         render_heatmap([("CL=F","WTI Oil"),("GC=F","Gold"),("HG=F","Copper"),("SI=F","Silver"),("NG=F","Nat Gas")])
-        # Commodity Leadership (vs Gold benchmark)
         comm_leaders = [
             ("GC=F","Gold"),("CL=F","WTI Oil"),("HG=F","Copper"),
             ("SI=F","Silver"),("NG=F","Nat Gas"),("BZ=F","Brent"),("URA","Uranium")
@@ -428,7 +465,6 @@ with tabs[1]:
         st.divider()
         st.markdown("**🌍 Heatmap**")
         render_heatmap([("BTC-USD","Bitcoin"),("ETH-USD","Ethereum"),("SOL-USD","Solana"),("XRP-USD","XRP")])
-        # Crypto Leadership (vs BTC benchmark)
         render_market_leaders([
             ("BTC-USD","Bitcoin"),("ETH-USD","Ethereum"),("SOL-USD","Solana"),
             ("XRP-USD","XRP"),("ADA-USD","Cardano"),("DOT-USD","Polkadot")

@@ -556,7 +556,7 @@ def page_strategy(snap: dict) -> None:
         unsafe_allow_html=True,
     )
 
-    t1, t2, t3, t4 = st.tabs(["📋 Playbook", "🔬 Scenarios", "📖 Narratives", "🌐 Cross-Asset"])
+    t1, t2, t3, t4, t_s4, t_s5, t_s6, t_s7 = st.tabs(["📋 Playbook", "🔬 Scenarios", "📖 Narratives", "🌐 Cross-Asset", "🔮 Front-Run", "🌐 Global Quad", "💱 USD Signal", "📡 Surveys"])
 
     # ── Playbook ──────────────────────────────────────────────────────────────
     with t1:

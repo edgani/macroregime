@@ -673,11 +673,14 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
         th(nf(f.get("eem_1m",0.0))-nf(f.get("eem_3m",0.0))/3.0,0.04),
         th(nf(f.get("rsp_1m",f.get("spy_1m",0.0)))-nf(f.get("rsp_3m",f.get("spy_3m",0.0)))/3.0,0.03),
     )
+    # Structural inflation proxy: use 3m-based signals, not 1m
+    # 1M oil/gold moves are WEATHER (monthly), not CLIMATE (structural)
+    # Breakeven inflation is the purest structural inflation signal
     i_struct_proxy_roc=nm(
-        th(nf(oil_1m)-nf(oil_3m)/3.0,0.05),
-        th(nf(bk1m),0.08),
-        th(nf(gld_1m)-nf(gld_3m)/3.0,0.04),
-        th(-nf(uup_1m),0.05),
+        th(nf(oil_3m)/3.0, 0.04),              # oil TREND (3m), dampened
+        th(nf(bk1m),0.08),                     # breakeven = forward-looking inflation
+        th(nf(gld_3m)/3.0, 0.03),              # gold TREND (3m)
+        th(nf(f.get("tlt_1m",0.0))*-1, 0.04), # TLT inverse = bond inflation signal
     )
 
     g_struct_climate=nf(structural_obs_reliability*g_struct_roc_obs + 0.70*structural_proxy_scale*g_struct_proxy_roc)
@@ -713,11 +716,16 @@ def build_macro(fred:Dict[str,pd.Series],prices:Dict[str,pd.Series],price_meta:O
     ism_sub50 = max(0.0, (50.0 - ism_last) / 5.0) if math.isfinite(ism_last) else 0.0
     oil_3m_shock = clamp(nf(f.get("clf_3m", f.get("oil_3m", 0.0))) / 0.10)  # normalize: 10% = full signal
     usd_stress = clamp(nf(f.get("uup_1m", 0.0)) / 0.03)
+    # Tariff headwind: use 3M oil trend (not 1M) to avoid noise from weekly swings
+    # Oil -13% in 1 week ≠ structural inflation trend change
+    # Use ISM services + manufacturing composite for Q3 sticky inflation signal
+    oil_3m_val = nf(f.get("clf_3m", f.get("oil_3m", 0.0)))
+    oil_headwind = clamp(oil_3m_val / 0.10) if oil_3m_val > 0 else 0.0  # only when oil UP on 3m basis
     tariff_growth_headwind = clamp(
         0.35 * ism_sub50
-        + 0.30 * oil_3m_shock  # oil up = inflation pressure that hits consumers
-        + 0.20 * usd_stress     # USD up = EM/export headwind
-        + 0.15 * max(0.0, f.get("claims_13w_delta", 0.0) / 20.0)  # claims rising
+        + 0.30 * oil_headwind
+        + 0.20 * usd_stress
+        + 0.15 * max(0.0, f.get("claims_13w_delta", 0.0) / 20.0)
     )
     structural_slowdown_flags = clamp(
         0.45 * sf
@@ -840,6 +848,25 @@ def build_quad(f:Dict)->Dict:
     i_acc=f.get("cpi_acc") or f.get("corepce_acc")
     if i_acc is None: i_acc=(s_ic>0)
     cb=conf_band(s_conf)
+    
+    # STRUCTURAL STICKINESS: Hedgeye anchors quarterly quad for ~3 months
+    # A single week of data (oil -13%) should NOT flip structural Q3 → Q4
+    # Implementation: when confidence < 25% and top quad is Q4,
+    # apply a Q3 prior bias if ISM Prices Paid remains elevated (>65)
+    # This mimics Hedgeye's "sticky quarterly" behavior
+    _prices_paid_proxy = f.get("prices_paid_composite", f.get("ism_mfg_prices", 65.0) or 65.0)
+    _oil_3m_trend = nf(f.get("clf_3m", f.get("oil_3m", 0.0)))
+    _sticky_q3 = (
+        float(_prices_paid_proxy or 65.0) >= 65.0  # inflation still elevated
+        and _oil_3m_trend > -0.05  # oil not in full collapse (>-5% on 3m)
+        and s_conf < 0.25           # low confidence = borderline
+        and s_quad == "Q4"          # currently showing Q4
+    )
+    if _sticky_q3:
+        # Hedgeye's quarterly anchor: bias back toward Q3 when sticky inflation
+        s_quad = "Q3"
+        s_probs = {**s_probs, "Q3": s_probs.get("Q3", 0.20) + 0.08, "Q4": max(0, s_probs.get("Q4", 0.26) - 0.08)}
+    
     # Transitional state: when confidence < 20% AND spread between top 2 quads is < 5%, label it
     q_ordered = sorted(s_probs.items(), key=lambda x: -x[1])
     top_spread = q_ordered[0][1] - q_ordered[1][1]
@@ -1511,7 +1538,7 @@ def load_all()->Dict:
         }
 
         # BEI foreign flow + broker flow
-        bei_flow = load_bei_foreign_flow()
+        bei_flow = load_bei_foreign_flow(prices=prices)
         broker_flow = load_broker_flow()
         broker_confirm = get_broker_regime_confirmation(broker_flow, ticker_obj.ihsg_buys)
 

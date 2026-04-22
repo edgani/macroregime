@@ -1,4 +1,4 @@
-"""MacroRegime Pro v11.6 — Crypto On-Chain Alpha Integrated"""
+"""MacroRegime Pro v11.6b — Standard Ticker Format (XAUUSD, USDJPY, etc.)"""
 import os
 import sys
 import glob
@@ -319,10 +319,10 @@ def _load_snapshot():
         rt["us_longs"] = ["XLU", "XLP", "XLV", "TLT", "GLD"]
         rt["us_shorts"] = ["XLK", "XLY", "IWM", "SMH"]
         rt["ihsg_buys"] = ["BBCA.JK", "BBRI.JK", "TLKM.JK"]
-        rt["fx_longs"] = ["USDJPY=X", "UUP"]
-        rt["fx_shorts"] = ["EURUSD=X", "AUDUSD=X"]
-        rt["commodity_longs"] = ["GC=F", "SI=F"]
-        rt["commodity_shorts"] = ["CL=F", "HG=F"]
+        rt["fx_longs"] = ["USDJPY", "UUP"]
+        rt["fx_shorts"] = ["EURUSD", "AUDUSD"]
+        rt["commodity_longs"] = ["XAUUSD", "XAGUSD"]
+        rt["commodity_shorts"] = ["XTIUSD", "XCUUSD"]
         rt["crypto_longs"] = ["BTC-USD", "ETH-USD"]
         rt["crypto_shorts"] = ["SOL-USD"]
         snap["regime_tickers"] = rt
@@ -332,7 +332,7 @@ def _load_snapshot():
         return {
             "q": {"quad":"Q3","structural_quad":"Q3","monthly_quad":"Q2","global_quad":"Q3","confidence":0.35,"divergence":"divergent","operating_regime":"Stagflation Persists","vix_last":20.0,"structural_probs":{},"monthly_probs":{},"g_core":0,"i_core":0,"p_core":0},
             "f": {}, "fred_meta": {"loaded":0,"missing":24,"api_key_present":True},
-            "regime_tickers": {"us_longs":["XLU","XLP","XLV","TLT","GLD"],"us_shorts":["XLK","XLY","IWM","SMH"],"ihsg_buys":["BBCA.JK","BBRI.JK","TLKM.JK"],"fx_longs":["USDJPY=X","UUP"],"fx_shorts":["EURUSD=X","AUDUSD=X"],"commodity_longs":["GC=F","SI=F"],"commodity_shorts":["CL=F","HG=F"],"crypto_longs":["BTC-USD","ETH-USD"],"crypto_shorts":["SOL-USD"]},
+            "regime_tickers": {"us_longs":["XLU","XLP","XLV","TLT","GLD"],"us_shorts":["XLK","XLY","IWM","SMH"],"ihsg_buys":["BBCA.JK","BBRI.JK","TLKM.JK"],"fx_longs":["USDJPY","UUP"],"fx_shorts":["EURUSD","AUDUSD"],"commodity_longs":["XAUUSD","XAGUSD"],"commodity_shorts":["XTIUSD","XCUUSD"],"crypto_longs":["BTC-USD","ETH-USD"],"crypto_shorts":["SOL-USD"]},
             "top_drivers": [], "narrative_discovery": {}, "bottleneck_discovery": {},
             "most_hated_rally": {}, "regime_transition": {}, "prices": {}
         }
@@ -369,7 +369,7 @@ _h(f"""
     <div style="font-size:32px;">🧭</div>
     <div>
       <div style="font-size:24px;font-weight:800;color:#e6edf3;">MacroRegime <span style="color:#58a6ff;">Pro</span></div>
-      <div style="font-size:11px;color:#8b949e;">v11.6 · Crypto On-Chain Alpha · Auto-Scan</div>
+      <div style="font-size:11px;color:#8b949e;">v11.6b · Standard Tickers · On-Chain Alpha</div>
     </div>
   </div>
   <div style="text-align:right;">
@@ -559,14 +559,18 @@ with tabs[1]:
                 </div>
                 """)
 
+    # ── Ticker Filter Sets ──
+    FX_TICKERS = {"USDJPY", "EURUSD", "AUDUSD", "GBPUSD", "USDCAD", "USDIDR", "UUP", "DXY", "EURGBP", "EURJPY", "GBPJPY", "NZDUSD", "USDCNH", "USDCHF"}
+    COMM_TICKERS = {"XAUUSD", "XAGUSD", "XTIUSD", "XBRUSD", "XCUUSD", "XNGUSD", "URA", "XPTUSD", "XPDUSD", "XALUSD", "XZNUSD", "USOIL", "UKOIL"}
+
     def is_us_ticker(tk):
-        return not any(x in tk for x in [".JK", "=X", "-USD", "=F", "URA"]) and tk not in ["^JKSE"]
+        return not any(x in tk for x in [".JK", "-USD"]) and tk not in ["^JKSE"] and tk not in FX_TICKERS and tk not in COMM_TICKERS
     def is_ihsg_ticker(tk):
         return ".JK" in tk or tk == "^JKSE"
     def is_fx_ticker(tk):
-        return "=X" in tk
+        return tk in FX_TICKERS
     def is_comm_ticker(tk):
-        return "=F" in tk or tk == "URA"
+        return tk in COMM_TICKERS
     def is_crypto_ticker(tk):
         return "-USD" in tk
 
@@ -634,7 +638,7 @@ with tabs[1]:
             render_cards(us_shorts, names, "short", 2)
         st.divider()
         st.markdown("**🌍 Heatmap**")
-        render_heatmap([("SPY","S&P 500"),("QQQ","Nasdaq"),("IWM","Russell 2K"),("TLT","Bond"),("GLD","Gold"),("BTC-USD","BTC"),("CL=F","Oil"),("UUP","USD")])
+        render_heatmap([("SPY","S&P 500"),("QQQ","Nasdaq"),("IWM","Russell 2K"),("TLT","Bond"),("GLD","Gold"),("BTC-USD","BTC"),("XTIUSD","Oil"),("UUP","USD")])
         render_sector_bars()
         st.markdown("**🔍 Bottleneck Scan**")
         render_bottleneck_filtered(is_us_ticker, "US")
@@ -660,7 +664,7 @@ with tabs[1]:
     with mkt_tabs[2]:
         fx_longs = tickers.get("fx_longs", [])
         fx_shorts = tickers.get("fx_shorts", [])
-        names_fx = {"EURUSD=X":"EUR/USD","USDJPY=X":"USD/JPY","AUDUSD=X":"AUD/USD","USDIDR=X":"USD/IDR","UUP":"DXY"}
+        names_fx = {"EURUSD":"EUR/USD","USDJPY":"USD/JPY","AUDUSD":"AUD/USD","USDIDR":"USD/IDR","UUP":"DXY","GBPUSD":"GBP/USD","USDCAD":"USD/CAD","NZDUSD":"NZD/USD","USDCHF":"USD/CHF"}
         c1, c2 = st.columns(2)
         with c1:
             st.markdown("**📍 NOW — LONG**")
@@ -670,8 +674,8 @@ with tabs[1]:
             render_cards(fx_shorts, names_fx, "short", 2)
         st.divider()
         st.markdown("**🌍 Heatmap**")
-        render_heatmap([("EURUSD=X","EUR/USD"),("USDJPY=X","USD/JPY"),("AUDUSD=X","AUD/USD"),("USDIDR=X","USD/IDR"),("UUP","DXY")])
-        render_market_leaders([("UUP","DXY"),("USDJPY=X","USD/JPY"),("EURUSD=X","EUR/USD"),("AUDUSD=X","AUD/USD"),("GBPUSD=X","GBP/USD"),("USDCAD=X","USD/CAD")], benchmark_tk="UUP", title="FX Leadership")
+        render_heatmap([("EURUSD","EUR/USD"),("USDJPY","USD/JPY"),("AUDUSD","AUD/USD"),("USDIDR","USD/IDR"),("UUP","DXY")])
+        render_market_leaders([("UUP","DXY"),("USDJPY","USD/JPY"),("EURUSD","EUR/USD"),("AUDUSD","AUD/USD"),("GBPUSD","GBP/USD"),("USDCAD","USD/CAD")], benchmark_tk="UUP", title="FX Leadership")
         st.markdown("**🔍 Bottleneck Scan**")
         render_bottleneck_filtered(is_fx_ticker, "FX")
         st.markdown("**📋 Master Board**")
@@ -681,7 +685,7 @@ with tabs[1]:
     with mkt_tabs[3]:
         comm_longs = tickers.get("commodity_longs", [])
         comm_shorts = tickers.get("commodity_shorts", [])
-        names_comm = {"CL=F":"WTI Oil","GC=F":"Gold","HG=F":"Copper","SI=F":"Silver","NG=F":"Nat Gas","BZ=F":"Brent","URA":"Uranium"}
+        names_comm = {"XTIUSD":"WTI Oil","XAUUSD":"Gold","XCUUSD":"Copper","XAGUSD":"Silver","XNGUSD":"Nat Gas","XBRUSD":"Brent","URA":"Uranium"}
         c1, c2 = st.columns(2)
         with c1:
             st.markdown("**📍 NOW — LONG**")
@@ -691,8 +695,8 @@ with tabs[1]:
             render_cards(comm_shorts, names_comm, "short", 2)
         st.divider()
         st.markdown("**🌍 Heatmap**")
-        render_heatmap([("CL=F","WTI Oil"),("GC=F","Gold"),("HG=F","Copper"),("SI=F","Silver"),("NG=F","Nat Gas")])
-        render_market_leaders([("GC=F","Gold"),("CL=F","WTI Oil"),("HG=F","Copper"),("SI=F","Silver"),("NG=F","Nat Gas"),("BZ=F","Brent"),("URA","Uranium")], benchmark_tk="GC=F", title="Commodity Leadership")
+        render_heatmap([("XTIUSD","WTI Oil"),("XAUUSD","Gold"),("XCUUSD","Copper"),("XAGUSD","Silver"),("XNGUSD","Nat Gas")])
+        render_market_leaders([("XAUUSD","Gold"),("XTIUSD","WTI Oil"),("XCUUSD","Copper"),("XAGUSD","Silver"),("XNGUSD","Nat Gas"),("XBRUSD","Brent"),("URA","Uranium")], benchmark_tk="XAUUSD", title="Commodity Leadership")
         st.markdown("**🔍 Bottleneck Scan**")
         render_bottleneck_filtered(is_comm_ticker, "Commodities")
         st.markdown("**📋 Master Board**")

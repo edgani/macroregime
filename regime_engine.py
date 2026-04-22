@@ -52,12 +52,12 @@ def fetch_fred_series(sid: str, api_key: str) -> Optional[pd.Series]:
             df = df.set_index('date').sort_index().drop_duplicates()
             s = df['value']
             if len(s) < 6: continue
-            logger.info(f"✅ FRED {sid}: {len(s)} pts, last={s.index[-1].date()}, val={s.iloc[-1]:.3f}")
+            logger.info(f"FRED {sid}: {len(s)} pts, last={s.index[-1].date()}, val={s.iloc[-1]:.3f}")
             return s
         except Exception as e:
             logger.error(f"FRED {sid} err attempt {attempt+1}: {e}")
             time.sleep(2**attempt+1)
-    logger.error(f"❌ FRED {sid}: all retries failed")
+    logger.error(f"FRED {sid}: all retries failed")
     return None
 
 def fetch_all_fred() -> Dict[str, pd.Series]:
@@ -126,33 +126,28 @@ def assign_quad(gt: str, it: str, gv=None, iv=None, use_abs=True) -> str:
     if gv is not None and isinstance(gv, float) and math.isnan(gv): gv = None
     if iv is not None and isinstance(iv, float) and math.isnan(iv): iv = None
     
-    # Trend-based mapping (priority)
     if gt=="accelerating" and it=="decelerating": return "Q1"
     if gt=="accelerating" and it=="accelerating": return "Q2"
     if gt=="decelerating" and it=="accelerating": return "Q3"
     if gt=="decelerating" and it=="decelerating": return "Q4"
     
-    # Abs-based ONLY if use_abs=True
     if use_abs and gv is not None and iv is not None:
         if gv < 2.0 and iv >= 2.8: return "Q3"
         if gv >= 2.5 and iv >= 2.8: return "Q2"
         if gv >= 2.5 and iv < 2.2: return "Q1"
         if gv < 2.0 and iv < 2.2: return "Q4"
     
-    # Single trend fallbacks
     if gt=="accelerating": return "Q2"
     if it=="accelerating": return "Q3"
     if gt=="decelerating": return "Q4"
     if it=="decelerating": return "Q1"
     
-    # Final abs fallback ONLY if use_abs=True
     if use_abs and gv is not None and iv is not None:
         if gv < 2.0 and iv >= 2.8: return "Q3"
         if gv >= 2.5 and iv >= 2.8: return "Q2"
         if gv >= 2.5 and iv < 2.2: return "Q1"
         if gv < 2.0 and iv < 2.2: return "Q4"
     
-    # Ultimate default
     return "Q2"
 
 def yf_proxy():

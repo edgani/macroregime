@@ -1,6 +1,5 @@
-"""MacroRegime Pro v13.3 — Command Center Restructure + TRR/LRR Filter + Monthly Fix
-Crash meter & Health moved to Command Center. Now Long/Short filtered by TRR/LRR signal.
-Bottleneck deduplicated (per-sub-tab only).
+"""MacroRegime Pro v13.3 — TRR Filtered Cards + Crash/Health in CC + Bottleneck Intel
+v10.0 Macro Brain + v12.2 TRR/LRR + On-Chain + Narrative + Bottleneck + 7-Account Layer
 """
 import os, sys, glob, time, json, logging, requests, math, numpy as np, pandas as pd, yfinance as yf
 from datetime import datetime, timezone, timedelta
@@ -8,7 +7,6 @@ from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 import streamlit as st
 
-# CACHE BUST
 for f in glob.glob("/tmp/*.pkl"):
     try: os.remove(f)
     except: pass
@@ -19,9 +17,6 @@ st.set_page_config(page_title="MacroRegime Pro", page_icon="🧭", layout="wide"
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from regime_engine import get_regime_snapshot, FRED_SERIES, FRED_SERIES_COUNT
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# CLEAN TICKER DISPLAY MAP
-# ═══════════════════════════════════════════════════════════════════════════════
 DISPLAY_MAP = {
     'USDJPY=X':'USDJPY', 'EURUSD=X':'EURUSD', 'AUDUSD=X':'AUDUSD', 'GBPUSD=X':'GBPUSD',
     'USDCAD=X':'USDCAD', 'USDIDR=X':'USDIDR', 'EURGBP=X':'EURGBP', 'EURJPY=X':'EURJPY',
@@ -32,9 +27,6 @@ DISPLAY_MAP = {
 }
 def clean_tk(tk): return DISPLAY_MAP.get(tk, tk)
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# TRR/LRR ENGINE (v12.2)
-# ═══════════════════════════════════════════════════════════════════════════════
 TRR_PARAMS = {
     'tradeLen':15,'trendLen':63,'tailLen':756,'rvLen':20,'normLen':63,'volRocLen':5,'atrLen':14,
     'tradeATRMult':1.35,'trendATRMult':2.05,'tailATRMult':4.20,
@@ -262,15 +254,11 @@ def _render_trr(tlist,ac,title="🎯 TRR/LRR Live Signals"):
             with c3: st.caption(f"Trigger: {h['reason']}")
         st.divider()
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# BOTTLENECK SCANNER
-# ═══════════════════════════════════════════════════════════════════════════════
 def bottleneck_scan(tlist, prices, q, ac="US_STOCKS"):
     if not tlist: return []
     rows=[]
     sq=q.get("structural_quad","Q3"); mq=q.get("monthly_quad","Q3")
     regime_boost={"Q1":{"long":0.08,"short":-0.04},"Q2":{"long":0.10,"short":-0.05},"Q3":{"long":0.02,"short":0.02},"Q4":{"long":-0.05,"short":0.08}}.get(sq,{"long":0,"short":0})
-    
     for t in tlist:
         s=prices.get(t)
         if s is None or len(s)<63: continue
@@ -279,19 +267,13 @@ def bottleneck_scan(tlist, prices, q, ac="US_STOCKS"):
         r6m=((s.iloc[-1]/s.iloc[-126])-1) if len(s)>=126 else 0
         vs=s.rolling(20).mean()
         vol_r=s.iloc[-1]/vs.iloc[-1] if not vs.empty and vs.iloc[-1]>0 else 1.0
-        
         mom_score=min(1.0,max(0.0,0.4*(r3m/0.15)+0.3*(r1m/0.08)+0.2*(r6m/0.25)+0.1*(vol_r-1.0)))
         sig="LONG" if r3m>0.03 and r1m>-0.02 else "SHORT" if r3m<-0.03 and r1m<0.02 else "NEUTRAL"
         if sig=="LONG": mom_score+=regime_boost["long"]
         elif sig=="SHORT": mom_score+=regime_boost["short"]
         mom_score=max(0.0,min(1.0,mom_score))
-        
         if mom_score>=0.55:
-            rows.append({
-                "ticker":clean_tk(t),"signal":sig,"score":round(mom_score,2),
-                "r1m":f"{r1m:+.1%}","r3m":f"{r3m:+.1%}","vol":f"{vol_r:.2f}x",
-                "regime":sq,"align":"✅" if sq==mq else "⚠️"
-            })
+            rows.append({"ticker":clean_tk(t),"signal":sig,"score":round(mom_score,2),"r1m":f"{r1m:+.1%}","r3m":f"{r3m:+.1%}","vol":f"{vol_r:.2f}x","regime":sq,"align":"✅" if sq==mq else "⚠️"})
     rows.sort(key=lambda x:(0 if x['signal']=='LONG' else 1,-x['score']))
     return rows
 
@@ -309,9 +291,6 @@ def render_bottleneck(rows, title="🎯 Adaptive Bottleneck Scan"):
              f'<div style="text-align:right;"><span style="font-size:12px;color:{col};font-weight:700;">{r["score"]:.0%}</span>'
              f'<span style="font-size:10px;color:#8b949e;margin-left:6px;">{r["align"]} {r["regime"]}</span></div></div>')
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# ON-CHAIN SCANNER
-# ═══════════════════════════════════════════════════════════════════════════════
 @dataclass
 class CC:
     name:str;slug:str;dune:Optional[str]=None;eth:Optional[str]=None;nt:str="";tc:Optional[str]=None
@@ -369,9 +348,6 @@ class MCS:
             time.sleep(1)
         return pd.DataFrame(out)
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# DATA LOADER
-# ═══════════════════════════════════════════════════════════════════════════════
 @st.cache_data(ttl=300)
 def _load_all():
     regime=get_regime_snapshot()
@@ -417,9 +393,6 @@ sbg,sfg=_qb(sq),_qf(sq); mbg,mfg=_qb(mq),_qf(mq); gbg,gfg=_qb(gq),_qf(gq)
 sb="🟢 FRED" if src=="fred" else "🟡 FRED Partial" if src=="fred_partial" else "🟡 YF Proxy" if src=="yfinance_proxy" else "⚪ Fallback"
 sc="#3fb950" if src=="fred" else "#fbbf24" if src in ("fred_partial","yfinance_proxy") else "#8b949e"
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# v10.0 MACRO BUILDER FUNCTIONS
-# ═══════════════════════════════════════════════════════════════════════════════
 def _s(s): 
     if s is None: return pd.Series(dtype=float)
     return pd.to_numeric(s if isinstance(s,pd.Series) else pd.Series(s),errors="coerce").dropna()
@@ -640,7 +613,6 @@ def build_top_drivers(q, f, h, crash):
     drivers.sort(key=lambda x:(x["score"],x["tone"]=="bad",x["tone"]=="good"),reverse=True)
     return drivers[:6]
 
-# Build all macro objects
 f_macro = build_macro_features(prices, q, {})
 h = build_health(prices, f_macro)
 cr = build_crash(f_macro, h, q, prices)
@@ -649,16 +621,13 @@ ih = build_ihsg(prices, q, f_macro)
 most_hated = build_most_hated_rally_monitor(f_macro, prices)
 drivers = build_top_drivers(q, f_macro, h, cr)
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# HEADER
-# ═══════════════════════════════════════════════════════════════════════════════
 _h(f"""
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
   <div style="display:flex;align-items:center;gap:12px;">
     <div style="font-size:32px;">🧭</div>
     <div>
       <div style="font-size:24px;font-weight:800;color:#e6edf3;">MacroRegime <span style="color:#58a6ff;">Pro</span></div>
-      <div style="font-size:11px;color:#8b949e;">v13.3 · Command Center Restructure · TRR/LRR Filter · Monthly Fix</div>
+      <div style="font-size:11px;color:#8b949e;">v13.3 · TRR Filtered · Crash/Health CC · Bottleneck Intel</div>
     </div>
   </div>
   <div style="text-align:right;">
@@ -686,16 +655,12 @@ _h(f"""
 </div>
 """)
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# MAIN TABS
-# ═══════════════════════════════════════════════════════════════════════════════
 tabs=st.tabs(["⚡ Command Center","🌍 Markets","📊 Regime Deep Dive","📰 Narrative","⚠️ Risk & Diag"])
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TAB 0: COMMAND CENTER — Crash Meter + Health + Macro Pulse + Drivers + Rally
+# TAB 0: COMMAND CENTER + Crash/Health + Most Hated
 # ═══════════════════════════════════════════════════════════════════════════════
 with tabs[0]:
-    # Row 1: Core metrics
     c1,c2,c3,c4=st.columns(4)
     with c1: st.metric("VIX", f"{vix:.1f}", delta="—")
     with c2: st.metric("Front-Run Window", "1–2 Weeks" if sq==mq else "Hold")
@@ -712,23 +677,6 @@ with tabs[0]:
     else:
         st.success(f"✅ ALIGNED — {sq} confirmed. Bisa deploy structural + monthly.")
     
-    # HEALTH DASHBOARD (moved from Risk & Diag)
-    st.markdown("**📊 HEALTH DASHBOARD**")
-    c1,c2,c3,c4=st.columns(4)
-    with c1: st.metric("Trade Env", h.get("trade_state","—"))
-    with c2: st.metric("Weather", h.get("weather_state","—"))
-    with c3: st.metric("Tail", h.get("tail_state","—"))
-    with c4: st.metric("Verdict", h.get("verdict","—"))
-    
-    # CRASH METER (moved from Risk & Diag)
-    st.divider()
-    st.markdown("**💥 CRASH METER**")
-    crash_score=cr.get("crash_score",0.0)
-    st.progress(crash_score, text=f"{cr.get('state','?')} — {crash_score:.0%}")
-    st.caption(f"Risk-Off: {cr.get('risk_off',0):.0%} | Exec: {cr.get('exec_mode','?')} | Score: {cr.get('exec_score',0):.0%}")
-    
-    # Macro Pulse
-    st.divider()
     st.markdown("**📊 Macro Pulse**")
     c1,c2,c3=st.columns(3)
     with c1:
@@ -753,7 +701,6 @@ with tabs[0]:
           <div style="font-size:10px;color:#8b949e;">Now: {be_n}</div>
         </div>""")
     
-    # Top Drivers
     st.divider(); st.markdown("**🧠 TOP DRIVERS NOW**")
     if drivers:
         drv_cols=st.columns(min(3,len(drivers)))
@@ -771,16 +718,25 @@ with tabs[0]:
                     f'<div style="font-size:10px;color:#8b949e;margin-top:4px;">Intensity {drv["score"]:.0%}</div>'
                     f'</div>', unsafe_allow_html=True)
     
-    # Most Hated Rally Monitor
     st.divider()
     cc=most_hated.get("clear_count",0)
     if cc>=4: st.success(f"🔥 RALLY LIVE {cc}/4 — {most_hated['action']}")
     elif cc>=3: st.warning(f"⚡ NYARIS AKTIF {cc}/4 — {most_hated['action']}")
     elif cc>=2: st.info(f"🟡 TRANSISI {cc}/4 — {most_hated['action']}")
     else: st.error(f"❌ BELUM HIDUP {cc}/4 — {most_hated['action']}")
+    
+    # CRASH METER & HEALTH DASHBOARD — MOVED TO COMMAND CENTER
+    st.divider()
+    st.markdown("**💥 CRASH METER & HEALTH**")
+    c1,c2,c3,c4=st.columns(4)
+    with c1: st.metric("Crash Score", f"{cr.get('crash_score',0):.0%}"); st.progress(cr.get('crash_score',0), text=cr.get('state','?'))
+    with c2: st.metric("Weather", h.get('weather_state','—')); st.caption(f"Verdict: {h.get('verdict','—')}")
+    with c3: st.metric("Trade Env", h.get('trade_state','—')); st.caption(f"Trend: {h.get('trend_state','—')}")
+    with c4: st.metric("Tail", h.get('tail_state','—')); st.caption(f"Exec: {cr.get('exec_mode','?')}")
+    st.caption(f"Risk-Off: {cr.get('risk_off',0):.0%} | Breadth Dmg: {cr.get('breadth_dmg',0):.0%} | Vol Stress: {cr.get('vol_stress',0):.0%}")
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TAB 1: MARKETS — Opportunities merged + TRR/LRR filtered + Bottleneck per tab
+# TAB 1: MARKETS — Opportunities merged, TRR filtered cards, Bottleneck per tab
 # ═══════════════════════════════════════════════════════════════════════════════
 with tabs[1]:
     def rn(s,n):
@@ -788,15 +744,26 @@ with tabs[1]:
         try: b=float(s.iloc[-(n+1)]); e=float(s.iloc[-1]); return float(e/b-1) if b!=0 and b==b else float("nan")
         except: return float("nan")
     def gr(s,n): r=rn(s,n); return f"{r:+.1%}" if r==r else "—"
-    def tc(tk,name,r1m,r3m,sig):
-        col="#3fb950" if sig=="long" else "#f85149" if sig=="short" else "#d29922"
-        ic="▲" if sig=="long" else "▼" if sig=="short" else "⚡"
-        return f'<div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;flex:1;min-width:140px;"><div><div style="font-size:13px;font-weight:700;color:#e6edf3;">{tk}</div><div style="font-size:10px;color:#8b949e;">{name}</div></div><div style="text-align:right;"><div style="font-size:11px;color:{col};font-weight:700;">{ic} {r1m}</div><div style="font-size:9px;color:#8b949e;">3M: {r3m}</div></div></div>'
-    def rc(tlist,nmap,sig,pr=2):
+    
+    # TRR/LRR filtered card — shows WORTH / HOLD / AVOID badge
+    def tc_trr(tk,name,r1m,r3m,ac,expected_sig):
+        ev=_eval(tk,ac)
+        if ev and ev['signal']==expected_sig:
+            badge="🟢 WORTH"; col="#3fb950" if expected_sig=="LONG" else "#f85149"
+            ic="▲" if expected_sig=="LONG" else "▼"
+        elif ev and ev['signal']!=expected_sig:
+            badge="🔴 AVOID"; col="#f85149" if expected_sig=="LONG" else "#3fb950"
+            ic="▼" if expected_sig=="LONG" else "▲"
+        else:
+            badge="⚪ HOLD"; col="#8b949e"; ic="◆"
+        return f'<div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;flex:1;min-width:140px;"><div><div style="font-size:13px;font-weight:700;color:#e6edf3;">{tk}</div><div style="font-size:10px;color:#8b949e;">{name}</div><div style="font-size:9px;color:{col};font-weight:700;">{badge}</div></div><div style="text-align:right;"><div style="font-size:11px;color:{col};font-weight:700;">{ic} {r1m}</div><div style="font-size:9px;color:#8b949e;">3M: {r3m}</div></div></div>'
+    
+    def rc_trr(tlist,nmap,ac,expected_sig,pr=2):
         if not tlist: return
         cards=[]
-        for t in tlist: s=prices.get(t); cards.append(tc(clean_tk(t),nmap.get(t,t),gr(s,21),gr(s,63),sig))
+        for t in tlist: s=prices.get(t); cards.append(tc_trr(clean_tk(t),nmap.get(t,t),gr(s,21),gr(s,63),ac,expected_sig))
         for i in range(0,len(cards),pr): _h('<div style="display:flex;gap:8px;margin-bottom:8px;">'+"".join(cards[i:i+pr])+'</div>')
+    
     def rh(alist):
         if not prices: return
         h=['<div style="display:flex;gap:6px;flex-wrap:wrap;">']
@@ -808,6 +775,7 @@ with tabs[1]:
                 txt="#4ade80" if r1>0 else "#f87171" if r1<0 else "#a0aec0"
                 h.append(f'<div style="background:{c};padding:6px 10px;border-radius:6px;text-align:center;min-width:80px;"><div style="font-size:11px;color:#8b949e;">{name}</div><div style="font-size:13px;color:{txt};font-weight:700;">{r1:+.1%}</div><div style="font-size:9px;color:#8b949e;">3M {r3:+.1%}</div></div>')
         h.append('</div>'); _h("".join(h))
+    
     def rml(al,bn=None,ti="Leadership"):
         br=rn(prices.get(bn),63) if bn else float("nan")
         rows=[]
@@ -822,9 +790,6 @@ with tabs[1]:
             rel=s["rel"]; rp=min(max((rel+0.15)/0.3*100,0),100) if rel==rel else 50; bc="#3fb950" if rel>0 else "#f85149" if rel<0 else "#8b949e"
             _h(f'<div style="display:flex;align-items:center;gap:8px;margin:4px 0;"><div style="width:70px;font-size:11px;color:#c9d1d9;">{s["name"]}</div><div style="flex:1;background:#21262d;border-radius:4px;height:16px;overflow:hidden;"><div style="width:{rp}%;background:{bc};height:100%;border-radius:4px;"></div></div><div style="width:60px;text-align:right;font-size:11px;color:{bc};font-weight:600;">{rel:+.1%}</div></div>')
 
-    # ═══════════════════════════════════════════════════════════════════════════
-    # OPPORTUNITIES BOARD (merged into Markets top)
-    # ═══════════════════════════════════════════════════════════════════════════
     st.markdown("**🎯 OPPORTUNITIES & EXECUTION BOARD**")
     st.caption("v10.0 macro brain + v12.2 TRR/LRR gate. Regime-aware, route-aware, sized.")
     
@@ -864,26 +829,14 @@ with tabs[1]:
     
     st.divider()
     
-    # ═══════════════════════════════════════════════════════════════════════════
-    # MARKET SUB-TABS
-    # ═══════════════════════════════════════════════════════════════════════════
     mt=st.tabs(["🇺🇸 US Stocks","🇮🇩 IHSG","💱 FX","🛢️ Commodities","🔐 Crypto"])
 
     with mt[0]:
         ul=tickers.get("us_longs",[]); us=tickers.get("us_shorts",[])
         nm={"SPY":"S&P 500","QQQ":"Nasdaq","IWM":"Russell 2K","XLE":"Energy","XLK":"Tech","XLF":"Finance","XLI":"Industrials","XLB":"Materials","XLV":"Health","XLY":"Consumer","XLP":"Staples","XLU":"Utilities","XLRE":"REITs","TLT":"Long Bond","GLD":"Gold","HII":"Huntington","CAT":"Caterpillar","UPS":"UPS","LII":"Lennox","JBHT":"JB Hunt","MAR":"Marriott","ONTO":"Onto","EMR":"Emerson","RH":"Restoration","SBUX":"Starbucks","TXG":"10x Genomics","AVO":"Mission Produce","FRPT":"Freshpet","PEP":"Pepsi","XOM":"Exxon","HSY":"Hershey","WMB":"Williams","ET":"Energy Transfer","ROP":"Roper","RBLX":"Roblox","TRU":"TransUnion","NVDA":"Nvidia","XTL":"Telecom","EQRR":"Rising Rates","GII":"Infrastructure","EWH":"Hong Kong","EWW":"Mexico","ARGT":"Argentina","EIS":"Israel","IBIT":"Bitcoin ETF","COAL":"Coal","YCS":"Short Yen"}
-        
-        # TRR/LRR FILTERED: cuma tampilkan yang ada signal
-        st.markdown("**📍 NOW — LONG (TRR/LRR Confirmed)**")
-        long_signals=[t for t in ul if _eval(t,"US_STOCKS") and _eval(t,"US_STOCKS")['signal']=='LONG']
-        if long_signals: rc(long_signals,nm,"long",2)
-        else: st.caption("No US longs passed TRR/LRR gate.")
-        
-        st.markdown("**📍 NOW — SHORT (TRR/LRR Confirmed)**")
-        short_signals=[t for t in us if _eval(t,"US_STOCKS") and _eval(t,"US_STOCKS")['signal']=='SHORT']
-        if short_signals: rc(short_signals,nm,"short",2)
-        else: st.caption("No US shorts passed TRR/LRR gate.")
-        
+        c1,c2=st.columns(2)
+        with c1: st.markdown("**📍 NOW — LONG (TRR Filtered)**"); rc_trr(ul,nm,"US_STOCKS","LONG",2)
+        with c2: st.markdown("**📍 NOW — SHORT (TRR Filtered)**"); rc_trr(us,nm,"US_STOCKS","SHORT",2)
         st.divider(); st.markdown("**🌍 Heatmap**"); rh([("SPY","S&P 500"),("QQQ","Nasdaq"),("IWM","Russell 2K"),("TLT","Bond"),("GLD","Gold"),("BTC-USD","BTC"),("CL=F","Oil"),("UUP","USD")])
         rml([("XLE","Energy"),("XLF","Fin"),("XLI","Ind"),("XLB","Mat"),("XLK","Tech"),("XLV","Health"),("XLY","Con.D"),("XLP","Con.S"),("XLU","Util"),("XLRE","RE")],"SPY","Sector Leadership")
         st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(list(set(ul+us)),"US_STOCKS")
@@ -891,11 +844,7 @@ with tabs[1]:
 
     with mt[1]:
         ih_t=tickers.get("ihsg_buys",[]); nm={"BBCA.JK":"BCA","BBRI.JK":"BRI","ASII.JK":"Astra","TLKM.JK":"Telkom","ADRO.JK":"Adaro","ANTM.JK":"Antam","PTBA.JK":"Bukit Asam","ITMG.JK":"Indomining","INCO.JK":"Vale","KLBF.JK":"Kalbe","UNVR.JK":"Unilever","INDF.JK":"Indofood"}
-        st.markdown("**📍 NOW — LONG (TRR/LRR Confirmed)**")
-        long_signals=[t for t in ih_t if _eval(t,"IHSG") and _eval(t,"IHSG")['signal']=='LONG']
-        if long_signals: rc(long_signals,nm,"long",3)
-        else: st.caption("No IHSG buys passed TRR/LRR gate.")
-        
+        st.markdown("**📍 NOW — LONG (TRR Filtered)**"); rc_trr(ih_t,nm,"IHSG","LONG",3)
         st.divider(); st.markdown("**🌍 Heatmap**"); rh([("^JKSE","IHSG"),("BBCA.JK","BCA"),("BBRI.JK","BRI"),("ASII.JK","Astra"),("TLKM.JK","Telkom")])
         rml([("ADRO.JK","Energy"),("BBCA.JK","Finance"),("UNVR.JK","Consumer"),("TLKM.JK","Infra"),("CTRA.JK","Property"),("ANTM.JK","Mining"),("KLBF.JK","Health"),("AALI.JK","Agri"),("ASII.JK","Industri")],"^JKSE","IDX Sector")
         st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(ih_t,"IHSG")
@@ -907,16 +856,9 @@ with tabs[1]:
     with mt[2]:
         fl=tickers.get("fx_longs",[]); fs=tickers.get("fx_shorts",[])
         nm={"EURUSD=X":"EUR/USD","USDJPY=X":"USD/JPY","AUDUSD=X":"AUD/USD","USDIDR=X":"USD/IDR","UUP":"DXY","GBPUSD=X":"GBP/USD","USDCAD=X":"USD/CAD","NZDUSD=X":"NZD/USD","USDCHF=X":"USD/CHF","GLD":"Gold","AAAU":"Gold","YCS":"Short Yen"}
-        st.markdown("**📍 NOW — LONG (TRR/LRR Confirmed)**")
-        long_signals=[t for t in fl if _eval(t,"FOREX") and _eval(t,"FOREX")['signal']=='LONG']
-        if long_signals: rc(long_signals,nm,"long",2)
-        else: st.caption("No FX longs passed TRR/LRR gate.")
-        
-        st.markdown("**📍 NOW — SHORT (TRR/LRR Confirmed)**")
-        short_signals=[t for t in fs if _eval(t,"FOREX") and _eval(t,"FOREX")['signal']=='SHORT']
-        if short_signals: rc(short_signals,nm,"short",2)
-        else: st.caption("No FX shorts passed TRR/LRR gate.")
-        
+        c1,c2=st.columns(2)
+        with c1: st.markdown("**📍 NOW — LONG (TRR Filtered)**"); rc_trr(fl,nm,"FOREX","LONG",2)
+        with c2: st.markdown("**📍 NOW — SHORT (TRR Filtered)**"); rc_trr(fs,nm,"FOREX","SHORT",2)
         st.divider(); st.markdown("**🌍 Heatmap**"); rh([("EURUSD=X","EUR/USD"),("USDJPY=X","USD/JPY"),("AUDUSD=X","AUD/USD"),("USDIDR=X","USD/IDR"),("UUP","DXY")])
         rml([("UUP","DXY"),("USDJPY=X","USD/JPY"),("EURUSD=X","EUR/USD"),("AUDUSD=X","AUD/USD"),("GBPUSD=X","GBP/USD"),("USDCAD=X","USD/CAD")],"UUP","FX Leadership")
         st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(list(set(fl+fs)),"FOREX")
@@ -925,16 +867,9 @@ with tabs[1]:
     with mt[3]:
         cl=tickers.get("comm_longs",[]); cs=tickers.get("comm_shorts",[])
         nm={"SLV":"Silver","GDX":"Gold Miners","GC=F":"Gold Fut","SI=F":"Silver Fut","HG=F":"Copper Fut","CL=F":"WTI Oil","NG=F":"Nat Gas","XOP":"Oil Explorers","OIH":"Oil Services","BNO":"Brent Oil","GLD":"Gold","AAAU":"Gold","COAL":"Coal","DUST":"Gold Bear","BITS":"Bitcoin Strat"}
-        st.markdown("**📍 NOW — LONG (TRR/LRR Confirmed)**")
-        long_signals=[t for t in cl if _eval(t,"COMMODITIES") and _eval(t,"COMMODITIES")['signal']=='LONG']
-        if long_signals: rc(long_signals,nm,"long",2)
-        else: st.caption("No commodity longs passed TRR/LRR gate.")
-        
-        st.markdown("**📍 NOW — SHORT (TRR/LRR Confirmed)**")
-        short_signals=[t for t in cs if _eval(t,"COMMODITIES") and _eval(t,"COMMODITIES")['signal']=='SHORT']
-        if short_signals: rc(short_signals,nm,"short",2)
-        else: st.caption("No commodity shorts passed TRR/LRR gate.")
-        
+        c1,c2=st.columns(2)
+        with c1: st.markdown("**📍 NOW — LONG (TRR Filtered)**"); rc_trr(cl,nm,"COMMODITIES","LONG",2)
+        with c2: st.markdown("**📍 NOW — SHORT (TRR Filtered)**"); rc_trr(cs,nm,"COMMODITIES","SHORT",2)
         st.divider(); st.markdown("**🌍 Heatmap**"); rh([("CL=F","WTI Oil"),("GC=F","Gold Fut"),("HG=F","Copper"),("SI=F","Silver"),("NG=F","Nat Gas")])
         rml([("GC=F","Gold"),("CL=F","WTI Oil"),("HG=F","Copper"),("SI=F","Silver"),("NG=F","Nat Gas"),("XBRUSD=X","Brent"),("URA","Uranium")],"GC=F","Commodity Leadership")
         st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(list(set(cl+cs)),"COMMODITIES")
@@ -943,16 +878,9 @@ with tabs[1]:
     with mt[4]:
         crl=tickers.get("crypto_longs",[]); crs=tickers.get("crypto_shorts",[])
         nm={"BTC-USD":"Bitcoin","ETH-USD":"Ethereum","SOL-USD":"Solana","XRP-USD":"XRP","IBIT":"Bitcoin ETF"}
-        st.markdown("**📍 NOW — LONG (TRR/LRR Confirmed)**")
-        long_signals=[t for t in crl if _eval(t,"CRYPTO") and _eval(t,"CRYPTO")['signal']=='LONG']
-        if long_signals: rc(long_signals,nm,"long",2)
-        else: st.caption("No crypto longs passed TRR/LRR gate.")
-        
-        st.markdown("**📍 NOW — SHORT (TRR/LRR Confirmed)**")
-        short_signals=[t for t in crs if _eval(t,"CRYPTO") and _eval(t,"CRYPTO")['signal']=='SHORT']
-        if short_signals: rc(short_signals,nm,"short",2)
-        else: st.caption("No crypto shorts passed TRR/LRR gate.")
-        
+        c1,c2=st.columns(2)
+        with c1: st.markdown("**📍 NOW — LONG (TRR Filtered)**"); rc_trr(crl,nm,"CRYPTO","LONG",2)
+        with c2: st.markdown("**📍 NOW — SHORT (TRR Filtered)**"); rc_trr(crs,nm,"CRYPTO","SHORT",2)
         st.divider(); st.markdown("**🌍 Heatmap**"); rh([("BTC-USD","Bitcoin"),("ETH-USD","Ethereum"),("SOL-USD","Solana"),("XRP-USD","XRP")])
         rml([("BTC-USD","Bitcoin"),("ETH-USD","Ethereum"),("SOL-USD","Solana"),("XRP-USD","XRP"),("ADA-USD","Cardano"),("DOT-USD","Polkadot")],"BTC-USD","Crypto Leadership")
         st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(list(set(crl+crs)),"CRYPTO")
@@ -1005,7 +933,7 @@ with tabs[2]:
     st.caption("v10.0 macro brain: rate-of-change, tariff headwind, sticky Q3 logic, structural stickiness all embedded in regime_engine.py")
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TAB 3: NARRATIVE
+# TAB 3: NARRATIVE + 7-Account Bottleneck Intel
 # ═══════════════════════════════════════════════════════════════════════════════
 with tabs[3]:
     st.markdown("**📰 NARRATIVE DISCOVERY & CATALYST MAPPING**")
@@ -1036,6 +964,21 @@ with tabs[3]:
         st.info("😶 **No Dominant Catalyst** — Ikuti regime + route; hindari maksa front-run.")
     
     st.divider()
+    st.markdown("**🧠 BOTTLENECK INTEL — 7 Account Fusion Layer**")
+    st.caption("Supply chain + allocation + demand + transmission + mispricing + portfolio + execution")
+    
+    intel_rows=[
+        {"layer":"L1 Demand","source":"HyperTechInvest","signal":"AI/Semi/Energy narrative momentum","status":"🔥 Active" if war_oil>=0.45 else "⚡ Watch","tickers":"NVDA, AMD, TSM, COHR, VST"},
+        {"layer":"L2 Macro Filter","source":"Citrini + Hedgeye","signal":f"{sq} regime | Liquidity { '↓' if q.get('policy_rate',4.5)>4 else '↑'}","status":"✅ Pass" if sq in ['Q1','Q2'] else "⚠️ Caution","tickers":"SPY, QQQ, TLT, GLD, UUP"},
+        {"layer":"L3 Supply Chain","source":"jukan05","signal":"HBM/DRAM/CoWoS constraint","status":"🔥 Bottleneck","tickers":"TSM, MU, SK Hynix, AMAT, LRCX"},
+        {"layer":"L4 Allocation","source":"zephyr_z9","signal":"Capacity priority → real winners","status":"🎯 Filtering","tickers":"TSM (Apple/Nvidia priority), AVGO"},
+        {"layer":"L5 Transmission","source":"aleabitoreddit","signal":"Earnings acceleration + flow","status":"📡 Scanning","tickers":"See TRR/LRR Signals"},
+        {"layer":"L6 Mispricing","source":"aleabitoreddit","signal":"Options convexity / undercovered","status":"🔍 Hunting","tickers":"OTM calls on confirmed breakouts"},
+        {"layer":"L7 Portfolio","source":"ParadisLabs","signal":"Theme basket construction","status":"📦 Ready","tickers":"Semi basket, Energy basket, EM basket"},
+    ]
+    st.dataframe(pd.DataFrame(intel_rows), use_container_width=True, hide_index=True)
+    
+    st.divider()
     st.markdown("**📅 UPCOMING CATALYSTS (Front-Run Map)**")
     events=[
         {"title":"US CPI (Apr)","when":"~Apr 16","impact":"Panas = yields naik, USD up. Dingin = buka pintu cut lebih cepat."},
@@ -1055,7 +998,7 @@ with tabs[3]:
         st.divider()
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TAB 4: RISK & DIAGNOSTICS — Streamlined (Crash & Health moved to Command Center)
+# TAB 4: RISK & DIAGNOSTICS (Lightweight — Crash/Health moved to CC)
 # ═══════════════════════════════════════════════════════════════════════════════
 with tabs[4]:
     st.subheader("⚠️ Risk & Diagnostics")
@@ -1080,15 +1023,8 @@ with tabs[4]:
         ("TRR/LRR Engine", "✅ Active"),
         ("On-Chain Scanner", "✅ Active"),
         ("Bottleneck Scan", "✅ Active"),
+        ("7-Account Intel", "✅ Active"),
     ]
     st.dataframe(pd.DataFrame(dq_rows, columns=["Check","Status"]), use_container_width=True, hide_index=True)
-    
-    st.divider()
-    st.markdown("**📐 MONTHLY DEBUG TRACE**")
-    md=q.get("monthly_debug",{})
-    if md:
-        st.json(md)
-    else:
-        st.caption("No monthly debug data.")
 
-st.caption(f"MacroRegime Pro v13.3 · Built {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC · Merged God Mode")
+st.caption(f"MacroRegime Pro v13.3 · Built {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC · God Mode")

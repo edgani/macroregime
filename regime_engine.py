@@ -135,15 +135,30 @@ def yoy_roc(series: pd.Series, months: int = 12) -> pd.Series:
 def ma(series: pd.Series, window: int) -> pd.Series:
     return series.rolling(window, min_periods=1).mean()
 
-def trend_direction(val_3m: float, val_6m: float, threshold: float = 0.15) -> str:
-    diff = val_3m - val_6m
-    if diff > threshold:
+def trend_direction(series: pd.Series, threshold: float = 0.03) -> str:
+    """
+    Detect trend using linear regression slope on last 6 months.
+    Threshold 0.03 = 3 bps per month (~18 bps over 6mo).
+    Much more sensitive than old 3m-vs-6m diff with 0.15 threshold.
+    """
+    if len(series) < 6:
+        return "stable"
+    y = series.iloc[-6:].values
+    x = np.arange(len(y))
+    slope = np.polyfit(x, y, 1)[0]
+    if slope > threshold:
         return "accelerating"
-    elif diff < -threshold:
+    elif slope < -threshold:
         return "decelerating"
     return "stable"
 
-def assign_quad(growth_trend: str, inflation_trend: str) -> str:
+def assign_quad(growth_trend: str, inflation_trend: str, 
+                growth_val: float = None, infl_val: float = None) -> str:
+    """
+    Assign quad based on trend direction.
+    CRITICAL FIX: when both stable, use absolute level bias instead of defaulting Q2.
+    """
+    # Exact trend match
     if growth_trend == "accelerating" and inflation_trend == "decelerating":
         return "Q1"
     elif growth_trend == "accelerating" and inflation_trend == "accelerating":
@@ -152,6 +167,8 @@ def assign_quad(growth_trend: str, inflation_trend: str) -> str:
         return "Q3"
     elif growth_trend == "decelerating" and inflation_trend == "decelerating":
         return "Q4"
+    
+    # Single trend match
     elif growth_trend == "accelerating":
         return "Q2"
     elif inflation_trend == "accelerating":
@@ -160,6 +177,18 @@ def assign_quad(growth_trend: str, inflation_trend: str) -> str:
         return "Q4"
     elif inflation_trend == "decelerating":
         return "Q1"
+    
+    # BOTH STABLE — absolute level bias (data-driven, not hardcoded date)
+    if growth_val is not None and infl_val is not None:
+        if growth_val < 2.0 and infl_val >= 2.8:
+            return "Q3"  # Stagflation bias: low growth + elevated inflation
+        elif growth_val >= 2.5 and infl_val >= 2.8:
+            return "Q2"  # Reflation bias
+        elif growth_val >= 2.5 and infl_val < 2.2:
+            return "Q1"  # Goldilocks bias
+        elif growth_val < 2.0 and infl_val < 2.2:
+            return "Q4"  # Deflation bias
+    
     return "Q2"
 
 def calculate_regime() -> Dict:
@@ -180,36 +209,29 @@ def calculate_regime() -> Dict:
         pce = fred.get('real_pce')
         if pce is not None and len(pce) >= 24:
             pce_yoy = yoy_roc(pce)
-            pce_3m = ma(pce_yoy, 3).iloc[-1]
-            pce_6m = ma(pce_yoy, 6).iloc[-1]
-            growth_trend = trend_direction(pce_3m, pce_6m)
-            growth_val = pce_yoy.iloc[-1]
+            growth_trend = trend_direction(pce_yoy)
+            growth_val = float(pce_yoy.iloc[-1])
         else:
             growth_trend, growth_val = "stable", 1.5
         
-        # FIX: ga pake 'or' pada pd.Series
         cpi = fred.get('cpi')
         if cpi is not None and len(cpi) >= 24:
             cpi_yoy = yoy_roc(cpi)
-            cpi_3m = ma(cpi_yoy, 3).iloc[-1]
-            cpi_6m = ma(cpi_yoy, 6).iloc[-1]
-            infl_trend = trend_direction(cpi_3m, cpi_6m)
-            infl_val = cpi_yoy.iloc[-1]
+            infl_trend = trend_direction(cpi_yoy)
+            infl_val = float(cpi_yoy.iloc[-1])
         else:
             cpi = fred.get('core_cpi')
             if cpi is not None and len(cpi) >= 24:
                 cpi_yoy = yoy_roc(cpi)
-                cpi_3m = ma(cpi_yoy, 3).iloc[-1]
-                cpi_6m = ma(cpi_yoy, 6).iloc[-1]
-                infl_trend = trend_direction(cpi_3m, cpi_6m)
-                infl_val = cpi_yoy.iloc[-1]
+                infl_trend = trend_direction(cpi_yoy)
+                infl_val = float(cpi_yoy.iloc[-1])
             else:
                 infl_trend, infl_val = "stable", 3.0
         
         ff = fred.get('fed_funds')
         t10 = fred.get('treasury_10y')
-        policy_rate = ff.iloc[-1] if ff is not None else 4.5
-        ten_y = t10.iloc[-1] if t10 is not None else 4.2
+        policy_rate = float(ff.iloc[-1]) if ff is not None else 4.5
+        ten_y = float(t10.iloc[-1]) if t10 is not None else 4.2
         confidence = 0.80 if len(fred) >= 6 else 0.65
         
     else:
@@ -238,34 +260,59 @@ def calculate_regime() -> Dict:
                 'timestamp': datetime.now().isoformat(),
             }
     
-    structural_quad = assign_quad(growth_trend, infl_trend)
+    # STRUCTURAL: 6-month regression slope (medium-term trend)
+    structural_quad = assign_quad(growth_trend, infl_trend, growth_val, infl_val)
     
+    # MONTHLY: 1-month vs 3-month average (near-term momentum)
+    # FIX: removed ±0.2 threshold — pure direction, much more responsive
     monthly_quad = structural_quad
     if source == 'fred':
-        # FIX: explicit None check, ga pake 'or' pada Series
         cpi_series = fred.get('cpi')
         if cpi_series is None:
             cpi_series = fred.get('core_cpi')
         pce_series = fred.get('real_pce')
+        
         if cpi_series is not None and len(cpi_series) >= 6:
             cpi_yoy = yoy_roc(cpi_series)
-            cpi_1m = cpi_yoy.iloc[-1]
-            cpi_3m_avg = cpi_yoy.iloc[-3:].mean()
-            monthly_infl = "accelerating" if cpi_1m > cpi_3m_avg + 0.2 else "decelerating" if cpi_1m < cpi_3m_avg - 0.2 else infl_trend
+            cpi_1m = float(cpi_yoy.iloc[-1])
+            cpi_3m_avg = float(cpi_yoy.iloc[-3:].mean())
+            monthly_infl = "accelerating" if cpi_1m > cpi_3m_avg else "decelerating" if cpi_1m < cpi_3m_avg else "stable"
         else:
             monthly_infl = infl_trend
         
         if pce_series is not None and len(pce_series) >= 6:
             pce_yoy = yoy_roc(pce_series)
-            pce_1m = pce_yoy.iloc[-1]
-            pce_3m_avg = pce_yoy.iloc[-3:].mean()
-            monthly_growth = "accelerating" if pce_1m > pce_3m_avg + 0.2 else "decelerating" if pce_1m < pce_3m_avg - 0.2 else growth_trend
+            pce_1m = float(pce_yoy.iloc[-1])
+            pce_3m_avg = float(pce_yoy.iloc[-3:].mean())
+            monthly_growth = "accelerating" if pce_1m > pce_3m_avg else "decelerating" if pce_1m < pce_3m_avg else "stable"
         else:
             monthly_growth = growth_trend
         
-        monthly_quad = assign_quad(monthly_growth, monthly_infl)
+        monthly_quad = assign_quad(monthly_growth, monthly_infl, growth_val, infl_val)
     
+    # GLOBAL: Independent calculation using DXY + 10Y as global macro proxy
+    # Strong dollar = global growth decelerating | High rates = global inflation pressure
     global_quad = structural_quad
+    if source == 'fred':
+        dxy = fred.get('dxy')
+        t10_series = fred.get('treasury_10y')
+        
+        if dxy is not None and len(dxy) >= 6:
+            dxy_trend = trend_direction(dxy, threshold=0.20)
+        else:
+            dxy_trend = "stable"
+            
+        if t10_series is not None and len(t10_series) >= 6:
+            rate_trend = trend_direction(t10_series, threshold=0.03)
+        else:
+            rate_trend = "stable"
+        
+        global_growth = "decelerating" if dxy_trend == "accelerating" else "accelerating" if dxy_trend == "decelerating" else growth_trend
+        global_infl = "accelerating" if rate_trend == "accelerating" else "decelerating" if rate_trend == "decelerating" else infl_trend
+        
+        global_quad = assign_quad(global_growth, global_infl, growth_val, infl_val)
+    else:
+        global_quad = structural_quad
     
     if policy_rate >= 5.25 or ten_y >= 4.8:
         policy_text = "Hawkish 🦅"

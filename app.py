@@ -1,4 +1,4 @@
-"""MacroRegime Pro v11.5 — On-Chain Alpha Edition"""
+"""MacroRegime Pro v11.6 — Crypto On-Chain Alpha Integrated"""
 import os
 import sys
 import glob
@@ -154,10 +154,6 @@ class MultiChainAlphaScanner:
         df['chain'] = chain; df['token'] = token_contract
         return df
 
-    def get_wallet_balances_dune(self, chain: str, wallet: str) -> Dict:
-        data = self._dune_sim_request("/balances", {"chain": chain, "address": wallet})
-        return data if data else {}
-
     def _etherscan_request(self, subdomain: str, params: Dict) -> Optional[Dict]:
         if not self.etherscan_key: return None
         elapsed = time.time() - self._last_etherscan_call
@@ -204,11 +200,6 @@ class MultiChainAlphaScanner:
 
     def get_solana_portfolio(self, wallet: str) -> Dict:
         return self._solscan_request(f"account/portfolio", {'address': wallet}) or {}
-
-    def get_solana_token_holders(self, token_address: str, limit: int = 50) -> pd.DataFrame:
-        data = self._solscan_request(f"token/holders", {'tokenAddress': token_address, 'limit': limit})
-        if data and isinstance(data, list): return pd.DataFrame(data)
-        return pd.DataFrame()
 
     def _taostats_request(self, endpoint: str) -> Optional[Dict]:
         if not self.taostats_key: return None
@@ -378,7 +369,7 @@ _h(f"""
     <div style="font-size:32px;">🧭</div>
     <div>
       <div style="font-size:24px;font-weight:800;color:#e6edf3;">MacroRegime <span style="color:#58a6ff;">Pro</span></div>
-      <div style="font-size:11px;color:#8b949e;">v11.5 · On-Chain Alpha · Multi-Chain</div>
+      <div style="font-size:11px;color:#8b949e;">v11.6 · Crypto On-Chain Alpha · Auto-Scan</div>
     </div>
   </div>
   <div style="text-align:right;">
@@ -409,15 +400,12 @@ _h(f"""
 </div>
 """)
 
-# TABS — 5 tabs sekarang
-tabs = st.tabs(["⚡ Command Center", "🌍 Markets", "📊 Regime Deep Dive", "⛓️ On-Chain Alpha", "⚠️ Risk & Diag"])
+# TABS
+tabs = st.tabs(["⚡ Command Center", "🌍 Markets", "📊 Regime Deep Dive", "⚠️ Risk & Diag"])
 
 with tabs[0]:
     render_command_center(snap)
 
-# =============================================================================
-# TAB 1: MARKETS (Original — unchanged)
-# =============================================================================
 with tabs[1]:
     prices = snap.get("prices", {})
     transition = snap.get("regime_transition", {})
@@ -632,6 +620,7 @@ with tabs[1]:
 
     mkt_tabs = st.tabs(["🇺🇸 US Stocks", "🇮🇩 IHSG", "💱 FX", "🛢️ Commodities", "🔐 Crypto"])
 
+    # ══════ 🇺🇸 US STOCKS ══════
     with mkt_tabs[0]:
         us_longs = tickers.get("us_longs", [])
         us_shorts = tickers.get("us_shorts", [])
@@ -652,6 +641,7 @@ with tabs[1]:
         st.markdown("**📋 Master Board**")
         render_master_filtered("us_longs", "us_shorts", "#3fb950", "#f85149", is_us_ticker, "US")
 
+    # ══════ 🇮🇩 IHSG (Long Only) ══════
     with mkt_tabs[1]:
         ihsg_longs = tickers.get("ihsg_buys", [])
         names_ihsg = {"BBCA.JK":"BCA","BBRI.JK":"BRI","ASII.JK":"Astra","TLKM.JK":"Telkom","ADRO.JK":"Adaro","ANTM.JK":"Antam","PTBA.JK":"Bukit Asam","ITMG.JK":"Indomining","INCO.JK":"Vale","KLBF.JK":"Kalbe"}
@@ -666,6 +656,7 @@ with tabs[1]:
         st.markdown("**📋 Master Board**")
         render_master_filtered("ihsg_buys", None, "#fb923c", "#f85149", is_ihsg_ticker, "IHSG")
 
+    # ══════ 💱 FX (Long + Short) ══════
     with mkt_tabs[2]:
         fx_longs = tickers.get("fx_longs", [])
         fx_shorts = tickers.get("fx_shorts", [])
@@ -686,6 +677,7 @@ with tabs[1]:
         st.markdown("**📋 Master Board**")
         render_master_filtered("fx_longs", "fx_shorts", "#58a6ff", "#f85149", is_fx_ticker, "FX")
 
+    # ══════ 🛢️ COMMODITIES (Long + Short) ══════
     with mkt_tabs[3]:
         comm_longs = tickers.get("commodity_longs", [])
         comm_shorts = tickers.get("commodity_shorts", [])
@@ -706,6 +698,7 @@ with tabs[1]:
         st.markdown("**📋 Master Board**")
         render_master_filtered("commodity_longs", "commodity_shorts", "#fb923c", "#f85149", is_comm_ticker, "Commodities")
 
+    # ══════ 🔐 CRYPTO (Long + Short + On-Chain Alpha Auto-Scan) ══════
     with mkt_tabs[4]:
         cry_longs = tickers.get("crypto_longs", [])
         cry_shorts = tickers.get("crypto_shorts", [])
@@ -726,108 +719,59 @@ with tabs[1]:
         st.markdown("**📋 Master Board**")
         render_master_filtered("crypto_longs", "crypto_shorts", "#a371f7", "#f85149", is_crypto_ticker, "Crypto")
 
-# =============================================================================
-# TAB 2: REGIME DEEP DIVE (Original)
-# =============================================================================
-with tabs[2]:
-    show_raw = st.toggle("Show raw regime state JSON", value=False)
-    if show_raw: st.markdown("**Regime State**"); st.json(q)
-    st.markdown("**Structural Probabilities**")
-    probs = q.get("structural_probs", {}); m_probs = q.get("monthly_probs", {})
-    if probs:
-        for k in ["Q1","Q2","Q3","Q4"]:
-            p = probs.get(k, 0.0); mp = m_probs.get(k, 0.0) if m_probs else 0.0
-            is_s = k == structural_quad; is_m = k == monthly_quad and not is_s
-            label = f"{'●' if is_s else '◉' if is_m else '○'} {k}: S={p:.0%} M={mp:.0%}"
-            st.progress(p, text=label)
-    else: st.info("No probability data")
+        # ═══════════════════════════════════════════════════════════════════════
+        # ON-CHAIN ALPHA — AUTO SCAN (Integrated into Crypto Tab)
+        # ═══════════════════════════════════════════════════════════════════════
+        st.divider()
+        st.markdown("**⛓️ On-Chain Alpha — Auto Scan**")
+        st.caption("Multi-chain accumulation detection · Runs automatically when you open this tab")
 
-# =============================================================================
-# TAB 3: ON-CHAIN ALPHA (NEW — Multi-Chain Scanner)
-# =============================================================================
-with tabs[3]:
-    st.markdown("**⛓️ On-Chain Alpha Scanner**")
-    st.caption("Multi-chain accumulation detection · Free APIs only · DeFiLlama + Dune Sim + Etherscan + Solscan + TAOStats")
+        # API keys dari secrets atau kosong (DeFiLlama works tanpa key)
+        dune_key = st.secrets.get("DUNE_SIM_KEY", "")
+        etherscan_key = st.secrets.get("ETHERSCAN_KEY", "")
+        taostats_key = st.secrets.get("TAOSTATS_KEY", "")
 
-    with st.expander("🔑 API Keys (Required untuk Whale Tracking & Realtime)", expanded=False):
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            dune_key = st.text_input("Dune Sim API Key", type="password", value=st.secrets.get("DUNE_SIM_KEY", ""), placeholder="sim.dune.com")
-        with c2:
-            etherscan_key = st.text_input("Etherscan API Key", type="password", value=st.secrets.get("ETHERSCAN_KEY", ""), placeholder="etherscan.io/apis")
-        with c3:
-            taostats_key = st.text_input("TAOStats API Key", type="password", value=st.secrets.get("TAOSTATS_KEY", ""), placeholder="docs.taostats.io")
+        with st.expander("🔑 API Keys (simpan di secrets.toml untuk auto-run)", expanded=False):
+            c1, c2, c3 = st.columns(3)
+            with c1: dune_input = st.text_input("Dune Sim", value=dune_key, type="password", key="dune_crypto")
+            with c2: eth_input = st.text_input("Etherscan", value=etherscan_key, type="password", key="eth_crypto")
+            with c3: tao_input = st.text_input("TAOStats", value=taostats_key, type="password", key="tao_crypto")
 
-    scanner = MultiChainAlphaScanner(dune_key=dune_key, etherscan_key=etherscan_key, taostats_key=taostats_key)
+        # Override dengan input manual kalo user isi
+        if dune_input: dune_key = dune_input
+        if eth_input: etherscan_key = eth_input
+        if tao_input: taostats_key = tao_input
 
-    c1, c2 = st.columns([2, 3])
-    with c1:
-        selected_chains = st.multiselect(
-            "⛓️ Select Chains to Scan",
-            options=list(CHAIN_REGISTRY.keys()),
-            default=['base', 'solana', 'bittensor'],
-            format_func=lambda x: f"{CHAIN_REGISTRY[x].name} ({x})"
-        )
-    with c2:
-        st.markdown("""
-        <div style="font-size:11px;color:#8b949e;">
-        <b>Free API Stack:</b><br>
-        • DeFiLlama — TVL / Stablecoin / DEX Volume / Fees (no key)<br>
-        • Dune Sim — Realtime holders & balances (1M CUs/mo)<br>
-        • Etherscan — Whale wallet tracking (5 calls/sec)<br>
-        • Solscan — Solana portfolio & holders (no key)<br>
-        • TAOStats — Bittensor subnets & staking (free key)
-        </div>
-        """, unsafe_allow_html=True)
+        scanner = MultiChainAlphaScanner(dune_key=dune_key, etherscan_key=etherscan_key, taostats_key=taostats_key)
 
-    st.divider()
+        # Auto-run targets: chains yang paling relevant untuk crypto narrative
+        crypto_targets = {
+            'base': {'token': '0x4200000000000000000000000000000000000006', 'wallets': []},
+            'solana': {'token': 'So11111111111111111111111111111111111111112', 'wallets': []},
+            'bittensor': {'token': None, 'wallets': []},
+            'ethereum': {'token': '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', 'wallets': []},
+        }
 
-    # Predefined quick targets
-    quick_targets = {
-        'base': {'token': '0x4200000000000000000000000000000000000006', 'wallets': []},
-        'ethereum': {'token': '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', 'wallets': []},
-        'solana': {'token': 'So11111111111111111111111111111111111111112', 'wallets': []},
-        'bittensor': {'token': None, 'wallets': []},
-    }
+        # Auto-run dengan spinner
+        with st.spinner("⛓️ Scanning on-chain flows (Base, Solana, Bittensor, Ethereum)... ⏳ ~30s"):
+            df_crypto = scanner.scan_all_chains(crypto_targets)
 
-    with st.expander("🎯 Custom Token & Whale Wallets (Optional)", expanded=False):
-        custom_token = st.text_input("Token Contract Address (kosong = native token only)", placeholder="0x... atau So111...")
-        whale_input = st.text_area("Whale Wallets (comma separated)", placeholder="0x123..., 0x456... (EVM) atau ABC123... (Solana)", height=80)
-        custom_wallets = [w.strip() for w in whale_input.split(",") if w.strip()] if whale_input else []
-
-    if st.button("🚀 RUN MULTI-CHAIN ALPHA SCAN", type="primary", use_container_width=True):
-        with st.spinner("Scanning chains... this may take 30-60s due to API rate limits"):
-            targets = {}
-            for ch in selected_chains:
-                cfg = CHAIN_REGISTRY[ch]
-                token = custom_token if custom_token else quick_targets.get(ch, {}).get('token')
-                wallets = custom_wallets if custom_wallets else quick_targets.get(ch, {}).get('wallets', [])
-                if ch == 'bittensor':
-                    token = None  # TAOStats handle sendiri
-                targets[ch] = {'token': token, 'wallets': wallets}
-
-            df = scanner.scan_all_chains(targets)
-
-        if df.empty:
-            st.warning("No scan results — check API keys or chain selection.")
-        else:
-            # Summary cards
-            hot = df[df['alpha_score'] >= 60]
-            warm = df[(df['alpha_score'] >= 40) & (df['alpha_score'] < 60)]
-            cold = df[df['alpha_score'] < 40]
+        if not df_crypto.empty:
+            # Summary counters
+            hot = df_crypto[df_crypto['alpha_score'] >= 60]
+            warm = df_crypto[(df_crypto['alpha_score'] >= 40) & (df_crypto['alpha_score'] < 60)]
+            cold = df_crypto[df_crypto['alpha_score'] < 40]
 
             cols = st.columns(3)
             with cols[0]:
-                _h(f'<div style="background:#1a4d2e;border:1px solid #30363d;border-radius:10px;padding:12px;text-align:center;"><div style="font-size:24px;font-weight:800;color:#4ade80;">{len(hot)}</div><div style="font-size:11px;color:#8b949e;">🔥 HOT Chains</div></div>')
+                _h(f'<div style="background:#1a4d2e;border:1px solid #30363d;border-radius:10px;padding:10px;text-align:center;"><div style="font-size:20px;font-weight:800;color:#4ade80;">{len(hot)}</div><div style="font-size:10px;color:#8b949e;">🔥 HOT</div></div>')
             with cols[1]:
-                _h(f'<div style="background:#5c3d00;border:1px solid #30363d;border-radius:10px;padding:12px;text-align:center;"><div style="font-size:24px;font-weight:800;color:#fbbf24;">{len(warm)}</div><div style="font-size:11px;color:#8b949e;">⚡ WARM Chains</div></div>')
+                _h(f'<div style="background:#5c3d00;border:1px solid #30363d;border-radius:10px;padding:10px;text-align:center;"><div style="font-size:20px;font-weight:800;color:#fbbf24;">{len(warm)}</div><div style="font-size:10px;color:#8b949e;">⚡ WARM</div></div>')
             with cols[2]:
-                _h(f'<div style="background:#5c1a1a;border:1px solid #30363d;border-radius:10px;padding:12px;text-align:center;"><div style="font-size:24px;font-weight:800;color:#f87171;">{len(cold)}</div><div style="font-size:11px;color:#8b949e;">❄️ COLD Chains</div></div>')
+                _h(f'<div style="background:#5c1a1a;border:1px solid #30363d;border-radius:10px;padding:10px;text-align:center;"><div style="font-size:20px;font-weight:800;color:#f87171;">{len(cold)}</div><div style="font-size:10px;color:#8b949e;">❄️ COLD</div></div>')
 
-            st.divider()
-
-            # Detailed results per chain
-            for _, row in df.iterrows():
+            # Per-chain cards
+            for _, row in df_crypto.iterrows():
                 ch = row['chain']
                 score = row['alpha_score']
                 verdict = row['verdict']
@@ -841,47 +785,43 @@ with tabs[3]:
                 score_bg = "#1a4d2e" if score >= 70 else "#5c3d00" if score >= 45 else "#5c1a1a"
 
                 _h(f"""
-                <div style="background:#161b22;border:1px solid #30363d;border-radius:12px;padding:14px;margin-bottom:12px;">
-                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-                    <div style="display:flex;align-items:center;gap:10px;">
-                      <div style="background:{score_bg};color:{score_color};padding:4px 12px;border-radius:20px;font-size:13px;font-weight:700;">{ch.upper()}</div>
-                      <div style="font-size:16px;font-weight:700;color:#e6edf3;">{verdict}</div>
+                <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:10px;margin-bottom:8px;">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                      <div style="background:{score_bg};color:{score_color};padding:3px 10px;border-radius:16px;font-size:11px;font-weight:700;">{ch.upper()}</div>
+                      <div style="font-size:13px;font-weight:700;color:#e6edf3;">{verdict}</div>
                     </div>
-                    <div style="font-size:24px;font-weight:800;color:{score_color};">{score:.0f}<span style="font-size:12px;color:#8b949e;">/100</span></div>
+                    <div style="font-size:18px;font-weight:800;color:{score_color};">{score:.0f}<span style="font-size:10px;color:#8b949e;">/100</span></div>
                   </div>
-                  <div style="display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:#c9d1d9;">
+                  <div style="display:flex;gap:12px;flex-wrap:wrap;font-size:10px;color:#c9d1d9;">
                     <span>📊 Macro: <span style="color:#fb923c;font-weight:600;">{macro_sig}</span></span>
-                    <span>📈 TVL Δ: <span style="color:#3fb950;font-weight:600;">{tvl_d:+.1f}%</span></span>
-                    <span>💰 Stable Δ: <span style="color:#3fb950;font-weight:600;">{stable_d:+.1f}%</span></span>
-                    <span>🌊 DEX Spike: <span style="color:#58a6ff;font-weight:600;">{dex_spike:.1f}x</span></span>
+                    <span>📈 TVL: <span style="color:#3fb950;font-weight:600;">{tvl_d:+.1f}%</span></span>
+                    <span>💰 Stable: <span style="color:#3fb950;font-weight:600;">{stable_d:+.1f}%</span></span>
+                    <span>🌊 DEX: <span style="color:#58a6ff;font-weight:600;">{dex_spike:.1f}x</span></span>
                     <span>🐋 Whale: <span style="color:#a371f7;font-weight:600;">{whale_s:.0f}</span></span>
                   </div>
                 </div>
                 """)
 
-            # Raw JSON toggle
-            with st.expander("📋 Raw Scan Data (JSON)"):
-                st.dataframe(df[['chain','alpha_score','verdict','macro_signal','tvl_delta','stable_delta','dex_spike','whale_score']], use_container_width=True)
-                for _, row in df.iterrows():
-                    with st.expander(f"🔍 {row['chain']} details"):
-                        st.json(row['detail'])
+            # Legend
+            st.caption("📊 Stable Δ = dry powder · 📈 TVL Δ = smart money deposit · 🌊 DEX = momentum · 🐋 Whale = accumulation")
+        else:
+            st.info("On-chain scan returned no data — check API keys or network connectivity.")
 
-    st.divider()
-    st.markdown("""
-    <div style="font-size:10px;color:#8b949e;">
-    <b>How to read signals:</b><br>
-    • <b>Stablecoin Δ > +10%</b> = dry powder masuk, leading indicator paling kuat<br>
-    • <b>TVL Δ > +5%</b> = smart money deposit, biasanya naik sebelum price<br>
-    • <b>DEX Spike > 3x</b> = momentum building, retail/sophisticated buyer masuk<br>
-    • <b>Whale Score > 60</b> = 3+ whale wallets accumulate dalam 7 hari terakhir<br>
-    • <b>Composite ≥ 70</b> = STRONG ACCUMULATION → front-run opportunity
-    </div>
-    """, unsafe_allow_html=True)
+with tabs[2]:
+    show_raw = st.toggle("Show raw regime state JSON", value=False)
+    if show_raw: st.markdown("**Regime State**"); st.json(q)
+    st.markdown("**Structural Probabilities**")
+    probs = q.get("structural_probs", {}); m_probs = q.get("monthly_probs", {})
+    if probs:
+        for k in ["Q1","Q2","Q3","Q4"]:
+            p = probs.get(k, 0.0); mp = m_probs.get(k, 0.0) if m_probs else 0.0
+            is_s = k == structural_quad; is_m = k == monthly_quad and not is_s
+            label = f"{'●' if is_s else '◉' if is_m else '○'} {k}: S={p:.0%} M={mp:.0%}"
+            st.progress(p, text=label)
+    else: st.info("No probability data")
 
-# =============================================================================
-# TAB 4: RISK & DIAG (Original — index shifted to 4)
-# =============================================================================
-with tabs[4]:
+with tabs[3]:
     st.subheader("⚠️ Risk & Diagnostics")
     fred_meta = snap.get("fred_meta", {})
     if fred_meta:

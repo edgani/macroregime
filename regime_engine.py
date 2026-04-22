@@ -122,30 +122,37 @@ def monthly_momentum(yoy_s: pd.Series, lvl_s: pd.Series):
     return "stable", debug
 
 def assign_quad(gt: str, it: str, gv=None, iv=None, use_abs=True) -> str:
+    """FIXED: use_abs=False will NEVER fallback to abs values."""
     if gv is not None and isinstance(gv, float) and math.isnan(gv): gv = None
     if iv is not None and isinstance(iv, float) and math.isnan(iv): iv = None
     
+    # Trend-based mapping (priority)
     if gt=="accelerating" and it=="decelerating": return "Q1"
     if gt=="accelerating" and it=="accelerating": return "Q2"
     if gt=="decelerating" and it=="accelerating": return "Q3"
     if gt=="decelerating" and it=="decelerating": return "Q4"
     
+    # Abs-based ONLY if use_abs=True
     if use_abs and gv is not None and iv is not None:
         if gv < 2.0 and iv >= 2.8: return "Q3"
         if gv >= 2.5 and iv >= 2.8: return "Q2"
         if gv >= 2.5 and iv < 2.2: return "Q1"
         if gv < 2.0 and iv < 2.2: return "Q4"
     
+    # Single trend fallbacks
     if gt=="accelerating": return "Q2"
     if it=="accelerating": return "Q3"
     if gt=="decelerating": return "Q4"
     if it=="decelerating": return "Q1"
     
-    if gv is not None and iv is not None:
+    # Final abs fallback ONLY if use_abs=True
+    if use_abs and gv is not None and iv is not None:
         if gv < 2.0 and iv >= 2.8: return "Q3"
         if gv >= 2.5 and iv >= 2.8: return "Q2"
         if gv >= 2.5 and iv < 2.2: return "Q1"
         if gv < 2.0 and iv < 2.2: return "Q4"
+    
+    # Ultimate default
     return "Q2"
 
 def yf_proxy():
@@ -187,12 +194,17 @@ def yf_proxy():
         return None
 
 def _calc_probs(gv, iv, gt, it):
-    """Simple heuristic probability distribution across quads."""
     base = {"Q1":0.15,"Q2":0.35,"Q3":0.35,"Q4":0.15}
     if gt=="accelerating" and it=="decelerating": base={"Q1":0.55,"Q2":0.25,"Q3":0.12,"Q4":0.08}
     elif gt=="accelerating" and it=="accelerating": base={"Q1":0.15,"Q2":0.55,"Q3":0.22,"Q4":0.08}
     elif gt=="decelerating" and it=="accelerating": base={"Q1":0.08,"Q2":0.15,"Q3":0.55,"Q4":0.22}
     elif gt=="decelerating" and it=="decelerating": base={"Q1":0.12,"Q2":0.08,"Q3":0.25,"Q4":0.55}
+    elif gt=="stable" and it=="stable": base={"Q1":0.20,"Q2":0.25,"Q3":0.35,"Q4":0.20}
+    elif gt=="stable" and it=="accelerating": base={"Q1":0.12,"Q2":0.18,"Q3":0.45,"Q4":0.25}
+    elif gt=="stable" and it=="decelerating": base={"Q1":0.35,"Q2":0.25,"Q3":0.18,"Q4":0.22}
+    elif gt=="accelerating" and it=="stable": base={"Q1":0.40,"Q2":0.35,"Q3":0.15,"Q4":0.10}
+    elif gt=="decelerating" and it=="stable": base={"Q1":0.15,"Q2":0.18,"Q3":0.40,"Q4":0.27}
+    
     if gv is not None and iv is not None:
         if gv >= 2.5: 
             base["Q2"]+=0.08; base["Q1"]+=0.05; base["Q3"]-=0.08; base["Q4"]-=0.05
@@ -236,7 +248,6 @@ def calculate_regime() -> Dict:
     md = {}
     
     if has_pce and has_cpi:
-        # FIX: explicit is not None check, no 'or' on Series
         pce = fred['real_pce']
         pce_yoy = yoy_roc(pce)
         growth_trend = trend_direction(pce_yoy)
@@ -267,7 +278,6 @@ def calculate_regime() -> Dict:
             macro_pulse['be_1m'] = round(float(be.iloc[-1] - be.iloc[-21]), 2)
             macro_pulse['be_now'] = round(float(be.iloc[-1]), 2)
     elif len(fred) >= 5:
-        # fred_partial: use whatever we have
         source = 'fred_partial'
         confidence = 0.65
         if 'real_pce' in fred:
@@ -298,7 +308,6 @@ def calculate_regime() -> Dict:
             macro_pulse['be_1m'] = round(float(be.iloc[-1] - be.iloc[-21]), 2)
             macro_pulse['be_now'] = round(float(be.iloc[-1]), 2)
         
-        # monthly momentum from whatever PCE/CPI we have
         ps = fred.get('real_pce')
         cs = fred.get('cpi')
         if cs is None:
@@ -369,7 +378,6 @@ def calculate_regime() -> Dict:
     probs = _calc_probs(growth_val, infl_val, growth_trend, infl_trend)
     m_probs = _calc_probs(growth_val, infl_val, mg, mi)
     
-    # Flip hazard & deepness
     flip_hazard = 0.0
     if sq != mq:
         flip_hazard = min(0.85, 0.35 + 0.15 * abs({"Q1":1,"Q2":2,"Q3":3,"Q4":4}[sq] - {"Q1":1,"Q2":2,"Q3":3,"Q4":4}[mq]))

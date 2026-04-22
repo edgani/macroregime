@@ -1,5 +1,6 @@
-"""MacroRegime Pro v13.2 — Opportunities Merged to Markets + Bottleneck Scan + Full Fix
-v10.0 Macro Brain + v12.2 TRR/LRR + On-Chain + Narrative + Bottleneck
+"""MacroRegime Pro v13.3 — Command Center Restructure + TRR/LRR Filter + Monthly Fix
+Crash meter & Health moved to Command Center. Now Long/Short filtered by TRR/LRR signal.
+Bottleneck deduplicated (per-sub-tab only).
 """
 import os, sys, glob, time, json, logging, requests, math, numpy as np, pandas as pd, yfinance as yf
 from datetime import datetime, timezone, timedelta
@@ -265,7 +266,6 @@ def _render_trr(tlist,ac,title="🎯 TRR/LRR Live Signals"):
 # BOTTLENECK SCANNER
 # ═══════════════════════════════════════════════════════════════════════════════
 def bottleneck_scan(tlist, prices, q, ac="US_STOCKS"):
-    """Adaptive bottleneck scan: momentum + regime alignment + breadth."""
     if not tlist: return []
     rows=[]
     sq=q.get("structural_quad","Q3"); mq=q.get("monthly_quad","Q3")
@@ -658,7 +658,7 @@ _h(f"""
     <div style="font-size:32px;">🧭</div>
     <div>
       <div style="font-size:24px;font-weight:800;color:#e6edf3;">MacroRegime <span style="color:#58a6ff;">Pro</span></div>
-      <div style="font-size:11px;color:#8b949e;">v13.2 · Merged Markets · Bottleneck · TRR/LRR · Macro Brain</div>
+      <div style="font-size:11px;color:#8b949e;">v13.3 · Command Center Restructure · TRR/LRR Filter · Monthly Fix</div>
     </div>
   </div>
   <div style="text-align:right;">
@@ -687,14 +687,15 @@ _h(f"""
 """)
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# MAIN TABS — 5 TABS ONLY (Opportunities merged into Markets)
+# MAIN TABS
 # ═══════════════════════════════════════════════════════════════════════════════
 tabs=st.tabs(["⚡ Command Center","🌍 Markets","📊 Regime Deep Dive","📰 Narrative","⚠️ Risk & Diag"])
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TAB 0: COMMAND CENTER — Clean, no Live Opportunities
+# TAB 0: COMMAND CENTER — Crash Meter + Health + Macro Pulse + Drivers + Rally
 # ═══════════════════════════════════════════════════════════════════════════════
 with tabs[0]:
+    # Row 1: Core metrics
     c1,c2,c3,c4=st.columns(4)
     with c1: st.metric("VIX", f"{vix:.1f}", delta="—")
     with c2: st.metric("Front-Run Window", "1–2 Weeks" if sq==mq else "Hold")
@@ -711,7 +712,23 @@ with tabs[0]:
     else:
         st.success(f"✅ ALIGNED — {sq} confirmed. Bisa deploy structural + monthly.")
     
-    # Macro Pulse Cards
+    # HEALTH DASHBOARD (moved from Risk & Diag)
+    st.markdown("**📊 HEALTH DASHBOARD**")
+    c1,c2,c3,c4=st.columns(4)
+    with c1: st.metric("Trade Env", h.get("trade_state","—"))
+    with c2: st.metric("Weather", h.get("weather_state","—"))
+    with c3: st.metric("Tail", h.get("tail_state","—"))
+    with c4: st.metric("Verdict", h.get("verdict","—"))
+    
+    # CRASH METER (moved from Risk & Diag)
+    st.divider()
+    st.markdown("**💥 CRASH METER**")
+    crash_score=cr.get("crash_score",0.0)
+    st.progress(crash_score, text=f"{cr.get('state','?')} — {crash_score:.0%}")
+    st.caption(f"Risk-Off: {cr.get('risk_off',0):.0%} | Exec: {cr.get('exec_mode','?')} | Score: {cr.get('exec_score',0):.0%}")
+    
+    # Macro Pulse
+    st.divider()
     st.markdown("**📊 Macro Pulse**")
     c1,c2,c3=st.columns(3)
     with c1:
@@ -763,7 +780,7 @@ with tabs[0]:
     else: st.error(f"❌ BELUM HIDUP {cc}/4 — {most_hated['action']}")
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TAB 1: MARKETS — Merged Opportunities + Bottleneck + TRR/LRR + On-Chain
+# TAB 1: MARKETS — Opportunities merged + TRR/LRR filtered + Bottleneck per tab
 # ═══════════════════════════════════════════════════════════════════════════════
 with tabs[1]:
     def rn(s,n):
@@ -804,10 +821,6 @@ with tabs[1]:
         for s in rows[:5]:
             rel=s["rel"]; rp=min(max((rel+0.15)/0.3*100,0),100) if rel==rel else 50; bc="#3fb950" if rel>0 else "#f85149" if rel<0 else "#8b949e"
             _h(f'<div style="display:flex;align-items:center;gap:8px;margin:4px 0;"><div style="width:70px;font-size:11px;color:#c9d1d9;">{s["name"]}</div><div style="flex:1;background:#21262d;border-radius:4px;height:16px;overflow:hidden;"><div style="width:{rp}%;background:{bc};height:100%;border-radius:4px;"></div></div><div style="width:60px;text-align:right;font-size:11px;color:{bc};font-weight:600;">{rel:+.1%}</div></div>')
-
-    FX={"USDJPY=X","EURUSD=X","AUDUSD=X","GBPUSD=X","USDCAD=X","USDIDR=X","UUP","DXY","EURGBP=X","EURJPY=X","GBPJPY=X","NZDUSD=X","USDCNH=X","USDCHF=X","AAAU","GLD","YCS"}
-    COMM={"SLV","GDX","GC=F","SI=F","HG=F","CL=F","NG=F","XOP","OIH","BNO","GLD","AAAU","DUST","BITS","XAUUSD=X","XAGUSD=X","XTIUSD=X","XBRUSD=X","XCUUSD=X","XNGUSD=X","URA","COAL"}
-    CRY={"BTC-USD","ETH-USD","SOL-USD","XRP-USD","ADA-USD","AVAX-USD","DOT-USD","MATIC-USD","LINK-USD","UNI-USD","LTC-USD","BCH-USD","ETC-USD","DOGE-USD","SHIB-USD","TON-USD","NEAR-USD","APT-USD","SUI-USD","IBIT"}
 
     # ═══════════════════════════════════════════════════════════════════════════
     # OPPORTUNITIES BOARD (merged into Markets top)
@@ -850,13 +863,6 @@ with tabs[1]:
     st.markdown(f"<span style='color:#{ {'good':'3fb950','warn':'fbbf24','bad':'f85149'}[sizing_col] };font-weight:700;'>{sizing}</span>",unsafe_allow_html=True)
     
     st.divider()
-    st.markdown("**🎯 ADAPTIVE BOTTLENECK SCAN**")
-    # Scan all tickers across all markets
-    all_tickers=list(set(tickers['us_longs']+tickers['us_shorts']+tickers['ihsg_buys']+tickers['fx_longs']+tickers['fx_shorts']+tickers['comm_longs']+tickers['comm_shorts']+tickers['crypto_longs']+tickers['crypto_shorts']))
-    bn_rows=bottleneck_scan(all_tickers,prices,q,"ALL")
-    render_bottleneck(bn_rows)
-    
-    st.divider()
     
     # ═══════════════════════════════════════════════════════════════════════════
     # MARKET SUB-TABS
@@ -866,9 +872,18 @@ with tabs[1]:
     with mt[0]:
         ul=tickers.get("us_longs",[]); us=tickers.get("us_shorts",[])
         nm={"SPY":"S&P 500","QQQ":"Nasdaq","IWM":"Russell 2K","XLE":"Energy","XLK":"Tech","XLF":"Finance","XLI":"Industrials","XLB":"Materials","XLV":"Health","XLY":"Consumer","XLP":"Staples","XLU":"Utilities","XLRE":"REITs","TLT":"Long Bond","GLD":"Gold","HII":"Huntington","CAT":"Caterpillar","UPS":"UPS","LII":"Lennox","JBHT":"JB Hunt","MAR":"Marriott","ONTO":"Onto","EMR":"Emerson","RH":"Restoration","SBUX":"Starbucks","TXG":"10x Genomics","AVO":"Mission Produce","FRPT":"Freshpet","PEP":"Pepsi","XOM":"Exxon","HSY":"Hershey","WMB":"Williams","ET":"Energy Transfer","ROP":"Roper","RBLX":"Roblox","TRU":"TransUnion","NVDA":"Nvidia","XTL":"Telecom","EQRR":"Rising Rates","GII":"Infrastructure","EWH":"Hong Kong","EWW":"Mexico","ARGT":"Argentina","EIS":"Israel","IBIT":"Bitcoin ETF","COAL":"Coal","YCS":"Short Yen"}
-        c1,c2=st.columns(2)
-        with c1: st.markdown("**📍 NOW — LONG**"); rc(ul,nm,"long",2)
-        with c2: st.markdown("**📍 NOW — SHORT**"); rc(us,nm,"short",2)
+        
+        # TRR/LRR FILTERED: cuma tampilkan yang ada signal
+        st.markdown("**📍 NOW — LONG (TRR/LRR Confirmed)**")
+        long_signals=[t for t in ul if _eval(t,"US_STOCKS") and _eval(t,"US_STOCKS")['signal']=='LONG']
+        if long_signals: rc(long_signals,nm,"long",2)
+        else: st.caption("No US longs passed TRR/LRR gate.")
+        
+        st.markdown("**📍 NOW — SHORT (TRR/LRR Confirmed)**")
+        short_signals=[t for t in us if _eval(t,"US_STOCKS") and _eval(t,"US_STOCKS")['signal']=='SHORT']
+        if short_signals: rc(short_signals,nm,"short",2)
+        else: st.caption("No US shorts passed TRR/LRR gate.")
+        
         st.divider(); st.markdown("**🌍 Heatmap**"); rh([("SPY","S&P 500"),("QQQ","Nasdaq"),("IWM","Russell 2K"),("TLT","Bond"),("GLD","Gold"),("BTC-USD","BTC"),("CL=F","Oil"),("UUP","USD")])
         rml([("XLE","Energy"),("XLF","Fin"),("XLI","Ind"),("XLB","Mat"),("XLK","Tech"),("XLV","Health"),("XLY","Con.D"),("XLP","Con.S"),("XLU","Util"),("XLRE","RE")],"SPY","Sector Leadership")
         st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(list(set(ul+us)),"US_STOCKS")
@@ -876,7 +891,11 @@ with tabs[1]:
 
     with mt[1]:
         ih_t=tickers.get("ihsg_buys",[]); nm={"BBCA.JK":"BCA","BBRI.JK":"BRI","ASII.JK":"Astra","TLKM.JK":"Telkom","ADRO.JK":"Adaro","ANTM.JK":"Antam","PTBA.JK":"Bukit Asam","ITMG.JK":"Indomining","INCO.JK":"Vale","KLBF.JK":"Kalbe","UNVR.JK":"Unilever","INDF.JK":"Indofood"}
-        st.markdown("**📍 NOW — LONG**"); rc(ih_t,nm,"long",3)
+        st.markdown("**📍 NOW — LONG (TRR/LRR Confirmed)**")
+        long_signals=[t for t in ih_t if _eval(t,"IHSG") and _eval(t,"IHSG")['signal']=='LONG']
+        if long_signals: rc(long_signals,nm,"long",3)
+        else: st.caption("No IHSG buys passed TRR/LRR gate.")
+        
         st.divider(); st.markdown("**🌍 Heatmap**"); rh([("^JKSE","IHSG"),("BBCA.JK","BCA"),("BBRI.JK","BRI"),("ASII.JK","Astra"),("TLKM.JK","Telkom")])
         rml([("ADRO.JK","Energy"),("BBCA.JK","Finance"),("UNVR.JK","Consumer"),("TLKM.JK","Infra"),("CTRA.JK","Property"),("ANTM.JK","Mining"),("KLBF.JK","Health"),("AALI.JK","Agri"),("ASII.JK","Industri")],"^JKSE","IDX Sector")
         st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(ih_t,"IHSG")
@@ -888,9 +907,16 @@ with tabs[1]:
     with mt[2]:
         fl=tickers.get("fx_longs",[]); fs=tickers.get("fx_shorts",[])
         nm={"EURUSD=X":"EUR/USD","USDJPY=X":"USD/JPY","AUDUSD=X":"AUD/USD","USDIDR=X":"USD/IDR","UUP":"DXY","GBPUSD=X":"GBP/USD","USDCAD=X":"USD/CAD","NZDUSD=X":"NZD/USD","USDCHF=X":"USD/CHF","GLD":"Gold","AAAU":"Gold","YCS":"Short Yen"}
-        c1,c2=st.columns(2)
-        with c1: st.markdown("**📍 NOW — LONG**"); rc(fl,nm,"long",2)
-        with c2: st.markdown("**📍 NOW — SHORT**"); rc(fs,nm,"short",2)
+        st.markdown("**📍 NOW — LONG (TRR/LRR Confirmed)**")
+        long_signals=[t for t in fl if _eval(t,"FOREX") and _eval(t,"FOREX")['signal']=='LONG']
+        if long_signals: rc(long_signals,nm,"long",2)
+        else: st.caption("No FX longs passed TRR/LRR gate.")
+        
+        st.markdown("**📍 NOW — SHORT (TRR/LRR Confirmed)**")
+        short_signals=[t for t in fs if _eval(t,"FOREX") and _eval(t,"FOREX")['signal']=='SHORT']
+        if short_signals: rc(short_signals,nm,"short",2)
+        else: st.caption("No FX shorts passed TRR/LRR gate.")
+        
         st.divider(); st.markdown("**🌍 Heatmap**"); rh([("EURUSD=X","EUR/USD"),("USDJPY=X","USD/JPY"),("AUDUSD=X","AUD/USD"),("USDIDR=X","USD/IDR"),("UUP","DXY")])
         rml([("UUP","DXY"),("USDJPY=X","USD/JPY"),("EURUSD=X","EUR/USD"),("AUDUSD=X","AUD/USD"),("GBPUSD=X","GBP/USD"),("USDCAD=X","USD/CAD")],"UUP","FX Leadership")
         st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(list(set(fl+fs)),"FOREX")
@@ -899,9 +925,16 @@ with tabs[1]:
     with mt[3]:
         cl=tickers.get("comm_longs",[]); cs=tickers.get("comm_shorts",[])
         nm={"SLV":"Silver","GDX":"Gold Miners","GC=F":"Gold Fut","SI=F":"Silver Fut","HG=F":"Copper Fut","CL=F":"WTI Oil","NG=F":"Nat Gas","XOP":"Oil Explorers","OIH":"Oil Services","BNO":"Brent Oil","GLD":"Gold","AAAU":"Gold","COAL":"Coal","DUST":"Gold Bear","BITS":"Bitcoin Strat"}
-        c1,c2=st.columns(2)
-        with c1: st.markdown("**📍 NOW — LONG**"); rc(cl,nm,"long",2)
-        with c2: st.markdown("**📍 NOW — SHORT**"); rc(cs,nm,"short",2)
+        st.markdown("**📍 NOW — LONG (TRR/LRR Confirmed)**")
+        long_signals=[t for t in cl if _eval(t,"COMMODITIES") and _eval(t,"COMMODITIES")['signal']=='LONG']
+        if long_signals: rc(long_signals,nm,"long",2)
+        else: st.caption("No commodity longs passed TRR/LRR gate.")
+        
+        st.markdown("**📍 NOW — SHORT (TRR/LRR Confirmed)**")
+        short_signals=[t for t in cs if _eval(t,"COMMODITIES") and _eval(t,"COMMODITIES")['signal']=='SHORT']
+        if short_signals: rc(short_signals,nm,"short",2)
+        else: st.caption("No commodity shorts passed TRR/LRR gate.")
+        
         st.divider(); st.markdown("**🌍 Heatmap**"); rh([("CL=F","WTI Oil"),("GC=F","Gold Fut"),("HG=F","Copper"),("SI=F","Silver"),("NG=F","Nat Gas")])
         rml([("GC=F","Gold"),("CL=F","WTI Oil"),("HG=F","Copper"),("SI=F","Silver"),("NG=F","Nat Gas"),("XBRUSD=X","Brent"),("URA","Uranium")],"GC=F","Commodity Leadership")
         st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(list(set(cl+cs)),"COMMODITIES")
@@ -910,9 +943,16 @@ with tabs[1]:
     with mt[4]:
         crl=tickers.get("crypto_longs",[]); crs=tickers.get("crypto_shorts",[])
         nm={"BTC-USD":"Bitcoin","ETH-USD":"Ethereum","SOL-USD":"Solana","XRP-USD":"XRP","IBIT":"Bitcoin ETF"}
-        c1,c2=st.columns(2)
-        with c1: st.markdown("**📍 NOW — LONG**"); rc(crl,nm,"long",2)
-        with c2: st.markdown("**📍 NOW — SHORT**"); rc(crs,nm,"short",2)
+        st.markdown("**📍 NOW — LONG (TRR/LRR Confirmed)**")
+        long_signals=[t for t in crl if _eval(t,"CRYPTO") and _eval(t,"CRYPTO")['signal']=='LONG']
+        if long_signals: rc(long_signals,nm,"long",2)
+        else: st.caption("No crypto longs passed TRR/LRR gate.")
+        
+        st.markdown("**📍 NOW — SHORT (TRR/LRR Confirmed)**")
+        short_signals=[t for t in crs if _eval(t,"CRYPTO") and _eval(t,"CRYPTO")['signal']=='SHORT']
+        if short_signals: rc(short_signals,nm,"short",2)
+        else: st.caption("No crypto shorts passed TRR/LRR gate.")
+        
         st.divider(); st.markdown("**🌍 Heatmap**"); rh([("BTC-USD","Bitcoin"),("ETH-USD","Ethereum"),("SOL-USD","Solana"),("XRP-USD","XRP")])
         rml([("BTC-USD","Bitcoin"),("ETH-USD","Ethereum"),("SOL-USD","Solana"),("XRP-USD","XRP"),("ADA-USD","Cardano"),("DOT-USD","Polkadot")],"BTC-USD","Crypto Leadership")
         st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(list(set(crl+crs)),"CRYPTO")
@@ -930,7 +970,7 @@ with tabs[1]:
             except Exception as e: st.error(f"On-chain scan error: {e}")
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TAB 2: REGIME DEEP DIVE — Fixed probabilities
+# TAB 2: REGIME DEEP DIVE
 # ═══════════════════════════════════════════════════════════════════════════════
 with tabs[2]:
     c1,c2,c3,c4=st.columns(4)
@@ -1015,7 +1055,7 @@ with tabs[3]:
         st.divider()
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TAB 4: RISK & DIAGNOSTICS
+# TAB 4: RISK & DIAGNOSTICS — Streamlined (Crash & Health moved to Command Center)
 # ═══════════════════════════════════════════════════════════════════════════════
 with tabs[4]:
     st.subheader("⚠️ Risk & Diagnostics")
@@ -1031,20 +1071,6 @@ with tabs[4]:
             st.cache_data.clear(); st.rerun()
     
     st.divider()
-    st.markdown("**📊 HEALTH DASHBOARD**")
-    c1,c2,c3,c4=st.columns(4)
-    with c1: st.metric("Trade Env", h.get("trade_state","—"))
-    with c2: st.metric("Weather", h.get("weather_state","—"))
-    with c3: st.metric("Tail", h.get("tail_state","—"))
-    with c4: st.metric("Verdict", h.get("verdict","—"))
-    
-    st.divider()
-    st.markdown("**💥 CRASH METER**")
-    crash_score=cr.get("crash_score",0.0)
-    st.progress(crash_score, text=f"{cr.get('state','?')} — {crash_score:.0%}")
-    st.caption(f"Risk-Off: {cr.get('risk_off',0):.0%} | Exec: {cr.get('exec_mode','?')} | Score: {cr.get('exec_score',0):.0%}")
-    
-    st.divider()
     st.markdown("**🧪 DATA QUALITY**")
     dq_rows=[
         ("Source Mode", sb),
@@ -1056,5 +1082,13 @@ with tabs[4]:
         ("Bottleneck Scan", "✅ Active"),
     ]
     st.dataframe(pd.DataFrame(dq_rows, columns=["Check","Status"]), use_container_width=True, hide_index=True)
+    
+    st.divider()
+    st.markdown("**📐 MONTHLY DEBUG TRACE**")
+    md=q.get("monthly_debug",{})
+    if md:
+        st.json(md)
+    else:
+        st.caption("No monthly debug data.")
 
-st.caption(f"MacroRegime Pro v13.2 · Built {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC · Merged God Mode")
+st.caption(f"MacroRegime Pro v13.3 · Built {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC · Merged God Mode")

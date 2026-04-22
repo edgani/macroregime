@@ -1,4 +1,4 @@
-"""MacroRegime Pro v13.4 — TRR Filtered + Crash/Health CC + 7-Account Intel
+"""MacroRegime Pro v13.5 — TRR Filtered + Crash/Health CC + 7-Account Intel
 v10.0 Macro Brain + v12.2 TRR/LRR + On-Chain + Narrative + Bottleneck + 7-Account Layer
 """
 import os, sys, glob, time, json, logging, requests, math, numpy as np, pandas as pd, yfinance as yf
@@ -232,9 +232,9 @@ def _render_trr(tlist,ac,title="🎯 TRR/LRR Live Signals"):
                     if r:
                         pr=df["Close"].iloc[-1]; cfg=GATE.get(ac,GATE["US_STOCKS"]); rs=[]
                         if not (r["tradeBreakUp"] or r["trendTransUp"] or r["tailTransUp"]): rs.append("No breakout")
-                        if r["qualityScore"]<cfg["qmin"]: rs.append(f"Q{r["qualityScore"]:.0f}<{cfg["qmin"]}")
-                        if r["activityScore"]<cfg["amin"]: rs.append(f"A{r["activityScore"]:.0f}<{cfg["amin"]}")
-                        if r["trendAge"]>cfg["agemax"]: rs.append(f"Age{r["trendAge"]}>{cfg["agemax"]}")
+                        if r["qualityScore"]<cfg["qmin"]: rs.append(f"Q{r['qualityScore']:.0f}<{cfg['qmin']}")
+                        if r["activityScore"]<cfg["amin"]: rs.append(f"A{r['activityScore']:.0f}<{cfg['amin']}")
+                        if r["trendAge"]>cfg["agemax"]: rs.append(f"Age{r['trendAge']}>{cfg['agemax']}")
                         dbg.append({"ticker":t,"price":round(pr,2),"q":round(r["qualityScore"],1),"a":round(r["activityScore"],1),"age":r["trendAge"],"phase":r["trendPhase"],"fail":" | ".join(rs) if rs else "N/A"})
                 except: pass
     if not hits:
@@ -559,6 +559,11 @@ def build_most_hated_rally_monitor(f, prices):
         if v < clear_thr: return 1.00, True, True
         if v < near_thr: return 0.72, False, True
         return 0.24, False, False
+    def _score_above(v, clear_thr, near_thr):
+        if not math.isfinite(v): return 0.42, False, False
+        if v > clear_thr: return 1.00, True, True
+        if v > near_thr: return 0.72, False, True
+        return 0.24, False, False
     vix=last(prices.get("^VIX",pd.Series()))
     vix_score,vix_hard,vix_soft=_score_below(vix,20.0,22.0)
     dxy=last(prices.get("DX-Y.NYB",pd.Series()))
@@ -573,7 +578,7 @@ def build_most_hated_rally_monitor(f, prices):
     ust2y=f.get("policy_rate",float("nan"))
     ust_score,ust_hard,ust_soft=_score_below(ust2y,3.5,3.7)
     btc=last(prices.get("BTC-USD",pd.Series()))
-    btc_score,btc_hard,btc_soft=_score_below(btc,72000,70000)
+    btc_score,btc_hard,btc_soft=_score_above(btc,72000,70000)
     cards=[
         {"label":"VIX < 20","score":vix_score,"hard":vix_hard,"soft":vix_soft},
         {"label":"DXY < 98","score":dxy_score,"hard":dxy_hard,"soft":dxy_soft},
@@ -598,9 +603,9 @@ def build_most_hated_rally_monitor(f, prices):
 
 def build_top_drivers(q, f, h, crash):
     drivers=[]
-    slowdown=float(q.get("slowdown_flags",0.0))
+    slowdown=float(f.get("slowdown_flags",0.0))
     if slowdown>=0.30: drivers.append({"label":"Growth slowdown","score":clamp(slowdown),"tone":"bad" if slowdown>=0.50 else "warn","why":"Claims/ISM/housing memberi sinyal perlambatan.","tag":"macro"})
-    inf=float(q.get("inf_shock",0.0))
+    inf=float(f.get("inf_shock",0.0))
     if inf>=0.20: drivers.append({"label":"Inflation shock","score":clamp(inf),"tone":"bad" if inf>=0.45 else "warn","why":"Oil/breakeven/USD mendorong tekanan inflasi.","tag":"macro"})
     usd_1m=nf(f.get("uup_1m",0.0))
     if abs(usd_1m)>=0.012: drivers.append({"label":"USD pressure" if usd_1m>0 else "USD easing","score":abs(usd_1m)/0.04,"tone":"bad" if usd_1m>0 else "good","why":"Dollar mengubah risk appetite lintas aset.","tag":"cross-asset"})
@@ -628,7 +633,7 @@ _h(f"""
     <div style="font-size:32px;">🧭</div>
     <div>
       <div style="font-size:24px;font-weight:800;color:#e6edf3;">MacroRegime <span style="color:#58a6ff;">Pro</span></div>
-      <div style="font-size:11px;color:#8b949e;">v13.4 · TRR Filtered · Crash/Health CC · Bottleneck Intel</div>
+      <div style="font-size:11px;color:#8b949e;">v13.5 · TRR Filtered · Crash/Health CC · Bottleneck Intel</div>
     </div>
   </div>
   <div style="text-align:right;">
@@ -681,25 +686,35 @@ with tabs[0]:
     st.markdown("**📊 Macro Pulse**")
     c1,c2,c3=st.columns(3)
     with c1:
-        ism_d=mp.get('ism_delta','—'); ism_n=mp.get('ism_now','—')
+        ism_d=mp.get('ism_delta'); ism_n=mp.get('ism_now')
+        ism_d_str = f"{ism_d:+.1f}" if isinstance(ism_d,(int,float)) and math.isfinite(ism_d) else "—"
+        ism_n_str = f"{ism_n:.1f}" if isinstance(ism_n,(int,float)) and math.isfinite(ism_n) else "—"
         _h(f"""<div style="background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:12px;">
           <div style="font-size:10px;color:#8b949e;">ISM Mfg Δ</div>
-          <div style="font-size:18px;font-weight:800;color:#e6edf3;">{ism_d}</div>
-          <div style="font-size:10px;color:#8b949e;">Now: {ism_n}</div>
+          <div style="font-size:18px;font-weight:800;color:#e6edf3;">{ism_d_str}</div>
+          <div style="font-size:10px;color:#8b949e;">Now: {ism_n_str}</div>
         </div>""")
     with c2:
-        cl_d=mp.get('claims_delta','—'); cl_n=mp.get('claims_now','—')
+        cl_d=mp.get('claims_delta'); cl_n=mp.get('claims_now')
+        def fmt_claims(v):
+            if isinstance(v,(int,float)) and math.isfinite(v):
+                if abs(v)>=1000: return f"{v/1000:+.1f}K"
+                return f"{v:+.0f}"
+            return "—"
+        cl_d_str=fmt_claims(cl_d); cl_n_str=fmt_claims(cl_n)
         _h(f"""<div style="background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:12px;">
           <div style="font-size:10px;color:#8b949e;">Claims Δ</div>
-          <div style="font-size:18px;font-weight:800;color:#e6edf3;">{cl_d}</div>
-          <div style="font-size:10px;color:#8b949e;">Now: {cl_n}</div>
+          <div style="font-size:18px;font-weight:800;color:#e6edf3;">{cl_d_str}</div>
+          <div style="font-size:10px;color:#8b949e;">Now: {cl_n_str}</div>
         </div>""")
     with c3:
-        be_d=mp.get('be_1m','—'); be_n=mp.get('be_now','—')
+        be_d=mp.get('be_1m'); be_n=mp.get('be_now')
+        be_d_str = f"{be_d:+.2f}pp" if isinstance(be_d,(int,float)) and math.isfinite(be_d) else "—"
+        be_n_str = f"{be_n:.2f}%" if isinstance(be_n,(int,float)) and math.isfinite(be_n) else "—"
         _h(f"""<div style="background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:12px;">
           <div style="font-size:10px;color:#8b949e;">Breakeven 1M</div>
-          <div style="font-size:18px;font-weight:800;color:#e6edf3;">{be_d}</div>
-          <div style="font-size:10px;color:#8b949e;">Now: {be_n}</div>
+          <div style="font-size:18px;font-weight:800;color:#e6edf3;">{be_d_str}</div>
+          <div style="font-size:10px;color:#8b949e;">Now: {be_n_str}</div>
         </div>""")
     
     st.divider(); st.markdown("**🧠 TOP DRIVERS NOW**")
@@ -721,12 +736,37 @@ with tabs[0]:
     
     st.divider()
     cc=most_hated.get("clear_count",0)
-    if cc>=4: st.success(f"🔥 RALLY LIVE {cc}/4 — {most_hated['action']}")
-    elif cc>=3: st.warning(f"⚡ NYARIS AKTIF {cc}/4 — {most_hated['action']}")
-    elif cc>=2: st.info(f"🟡 TRANSISI {cc}/4 — {most_hated['action']}")
-    else: st.error(f"❌ BELUM HIDUP {cc}/4 — {most_hated['action']}")
+    stage=most_hated.get("stage","monitor")
+    action=most_hated.get("action","—")
+    posture=most_hated.get("posture","Defense")
+    size_mult=most_hated.get("size_mult",0.35)
+    long_boost=most_hated.get("scanner_long_boost",0.0)
+    short_pen=most_hated.get("scanner_short_penalty",0.0)
+    invalidators=most_hated.get("invalidators",[])
     
-    # CRASH METER & HEALTH DASHBOARD — MOVED TO COMMAND CENTER v13.4
+    if cc>=4:
+        banner_col="#1a4d2e"; text_col="#4ade80"; emoji="🔥"
+    elif cc>=3:
+        banner_col="#5c3d00"; text_col="#fbbf24"; emoji="⚡"
+    elif cc>=2:
+        banner_col="#5c3d00"; text_col="#fbbf24"; emoji="🟡"
+    else:
+        banner_col="#5c1a1a"; text_col="#f87171"; emoji="❌"
+    
+    _h(f"""
+    <div style="background:{banner_col};border:1px solid #30363d;border-radius:12px;padding:14px;margin-bottom:10px;">
+      <div style="font-size:16px;font-weight:800;color:{text_col};">{emoji} MOST HATED RALLY — {cc}/4 CLEAR</div>
+      <div style="font-size:13px;color:#e6edf3;margin-top:6px;"><b>Stage:</b> {stage}</div>
+      <div style="font-size:12px;color:#c9d1d9;margin-top:4px;"><b>Posture:</b> {posture}</div>
+      <div style="font-size:12px;color:#c9d1d9;"><b>Action:</b> {action}</div>
+      <div style="font-size:12px;color:#c9d1d9;"><b>Size Multiplier:</b> {size_mult:.0%}</div>
+      <div style="font-size:11px;color:#8b949e;margin-top:8px;border-top:1px solid #30363d;padding-top:6px;">
+        Scanner Long Boost: +{long_boost:.0%} | Short Penalty: {short_pen:.0%}<br>
+        Invalidators: {', '.join(invalidators) if invalidators else 'None active'}
+      </div>
+    </div>
+    """)
+    
     st.divider()
     st.markdown("**💥 CRASH METER & HEALTH**")
     c1,c2,c3,c4=st.columns(4)
@@ -746,17 +786,22 @@ with tabs[1]:
         except: return float("nan")
     def gr(s,n): r=rn(s,n); return f"{r:+.1%}" if r==r else "—"
     
-    # TRR/LRR filtered card — shows WORTH / HOLD / AVOID badge v13.4
     def tc_trr(tk,name,r1m,r3m,ac,expected_sig):
         ev=_eval(tk,ac)
-        if ev and ev["signal"]==expected_sig:
-            badge="🟢 WORTH"; col="#3fb950" if expected_sig=="LONG" else "#f85149"
-            ic="▲" if expected_sig=="LONG" else "▼"
-        elif ev and ev["signal"]!=expected_sig:
-            badge="🔴 AVOID"; col="#f85149" if expected_sig=="LONG" else "#3fb950"
-            ic="▼" if expected_sig=="LONG" else "▲"
+        if ev:
+            actual = ev["signal"]
+            if actual == expected_sig:
+                badge = f"🟢 WORTH — TRR {actual}"
+                col = "#3fb950" if expected_sig=="LONG" else "#f85149"
+                ic = "▲" if expected_sig=="LONG" else "▼"
+            else:
+                badge = f"🔴 CONTRA — TRR {actual}"
+                col = "#f85149" if expected_sig=="LONG" else "#3fb950"
+                ic = "▼" if expected_sig=="LONG" else "▲"
         else:
-            badge="⚪ HOLD"; col="#8b949e"; ic="◆"
+            badge = "⚪ HOLD — No TRR Signal"
+            col = "#8b949e"
+            ic = "◆"
         return f'<div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:8px 12px;display:flex;align-items:center;justify-content:space-between;flex:1;min-width:140px;"><div><div style="font-size:13px;font-weight:700;color:#e6edf3;">{tk}</div><div style="font-size:10px;color:#8b949e;">{name}</div><div style="font-size:9px;color:{col};font-weight:700;">{badge}</div></div><div style="text-align:right;"><div style="font-size:11px;color:{col};font-weight:700;">{ic} {r1m}</div><div style="font-size:9px;color:#8b949e;">3M: {r3m}</div></div></div>'
     
     def rc_trr(tlist,nmap,ac,expected_sig,pr=2):
@@ -829,7 +874,6 @@ with tabs[1]:
     st.markdown(f"<span style='color:#{ {'good':'3fb950','warn':'fbbf24','bad':'f85149'}[sizing_col] };font-weight:700;'>{sizing}</span>",unsafe_allow_html=True)
     
     st.divider()
-    # NO GLOBAL BOTTLENECK HERE — only per sub-tab v13.4
     
     mt=st.tabs(["🇺🇸 US Stocks","🇮🇩 IHSG","💱 FX","🛢️ Commodities","🔐 Crypto"])
 
@@ -933,7 +977,7 @@ with tabs[2]:
     st.divider()
     st.markdown("**🕰️ REGIME CONTEXT**")
     st.info(f"**Operating:** {op} | **Flip Hazard:** {q.get('flip_hazard',0):.0%} | **Deepness:** {q.get('deepness',0):.0%}")
-    st.caption("v13.4: monthly threshold 0.15/0.25, ISM series NAPM, sticky stable logic.")
+    st.caption("v13.5: monthly threshold 0.15/0.25, ISM fallback NAPM→NAPMSISM, sticky stable logic.")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # TAB 3: NARRATIVE + 7-Account Bottleneck Intel with Maturity
@@ -970,7 +1014,6 @@ with tabs[3]:
     st.markdown("**🧠 BOTTLENECK INTEL — 7 Account Fusion Layer**")
     st.caption("Supply chain + allocation + demand + transmission + mispricing + portfolio + execution")
     
-    # Maturity classification v13.4
     def _maturity(score, trr_aligned):
         if score>=0.90 and trr_aligned: return "🔥 MATURE", "#1a4d2e", "#4ade80"
         if score>=0.75 and trr_aligned: return "✅ CONFIRMED", "#2d5a3d", "#3fb950"
@@ -1023,8 +1066,11 @@ with tabs[4]:
         if st.button("🔄 Clear Cache & Reload"):
             st.cache_data.clear(); st.rerun()
     elif q.get('fred_loaded',0) < FRED_SERIES_COUNT:
-        missing = [k for k in FRED_SERIES.keys() if k not in fred]
-        st.warning(f"🟡 FRED Partial — {q.get('fred_loaded',0)}/{FRED_SERIES_COUNT} loaded. Missing: {', '.join(missing)}")
+        missing_keys = q.get('fred_missing_keys', [])
+        if missing_keys:
+            st.warning(f"🟡 FRED Partial — {q.get('fred_loaded',0)}/{FRED_SERIES_COUNT} loaded. Missing: {', '.join(missing_keys)}")
+        else:
+            st.warning(f"🟡 FRED Partial — {q.get('fred_loaded',0)}/{FRED_SERIES_COUNT} loaded.")
     else:
         st.success("🟢 FRED Full — all series loaded.")
     
@@ -1044,8 +1090,8 @@ with tabs[4]:
     
     st.divider()
     st.markdown("**📋 FRED DEBUG**")
-    st.caption("v13.4: ISM series ID fixed to NAPM. If still missing, check FRED API limits or series availability.")
+    st.caption("v13.5: ISM primary NAPM, fallback NAPMSISM. If still missing, check FRED API limits or series availability.")
     if st.toggle("Show FRED series map", False):
         st.json(FRED_SERIES)
 
-st.caption(f"MacroRegime Pro v13.4 · Built {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC · God Mode")
+st.caption(f"MacroRegime Pro v13.5 · Built {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC · God Mode")

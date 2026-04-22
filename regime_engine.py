@@ -1,7 +1,7 @@
 """
 regime_engine.py — Hedgeye GIP Model + Macro Pulse + Probabilities
 Growth: Real PCE YoY | Inflation: Headline CPI YoY | Policy: DFF+DGS10+DXY
-v13.4 Fix: ISM series ID + monthly threshold + maturity
+v13.5 Fix: ISM fallback series + macro pulse units + fred_missing_keys
 """
 import os, time, logging, glob, math
 from datetime import datetime
@@ -20,7 +20,8 @@ FRED_SERIES = {
     'cpi': 'CPIAUCSL', 'core_cpi': 'CPILFESL',
     'fed_funds': 'DFF', 'treasury_10y': 'DGS10',
     'treasury_2y': 'DGS2', 'dxy': 'DTWEXBGS',
-    'ism_mfg': 'NAPM', 'claims': 'ICSA', 'breakeven_10y': 'T10YIE',
+    'ism_mfg': 'NAPM', 'ism_mfg_alt': 'NAPMSISM',
+    'claims': 'ICSA', 'breakeven_10y': 'T10YIE',
 }
 FRED_SERIES_COUNT = len(FRED_SERIES)
 
@@ -107,7 +108,7 @@ def trend_direction(s: pd.Series, thresh=0.03) -> str:
     return "stable"
 
 def monthly_momentum(yoy_s: pd.Series, lvl_s: pd.Series):
-    """v13.4: Higher thresholds to avoid false monthly flips."""
+    """v13.5: Higher thresholds to avoid false monthly flips."""
     debug = {}
     if len(yoy_s) < 6 or len(lvl_s) < 6: return "stable", debug
     mom = lvl_s.pct_change()*100.0
@@ -117,7 +118,6 @@ def monthly_momentum(yoy_s: pd.Series, lvl_s: pd.Series):
     y3p = float(yoy_s.iloc[-6:-3].mean())
     debug.update({'m3':round(m3,3),'m6':round(m6,3),'y1':round(y1,2),'y3':round(y3,2),'y3p':round(y3p,2)})
     a = d = 0
-    # v13.4: threshold naik 3x biar monthly lebih sticky ke stable
     if m3 > m6 + 0.15: a += 1; debug['ms']='accel'
     elif m3 < m6 - 0.15: d += 1; debug['ms']='decel'
     else: debug['ms']='stable'
@@ -128,7 +128,6 @@ def monthly_momentum(yoy_s: pd.Series, lvl_s: pd.Series):
     elif y3 < y3p - 0.25: d += 1; debug['y3s']='decel'
     else: debug['y3s']='stable'
     debug.update({'a':a,'d':d})
-    # Require 2/3 untuk flip (lebih konservatif)
     if a >= 2: return "accelerating", debug
     if d >= 2: return "decelerating", debug
     return "stable", debug
@@ -271,6 +270,8 @@ def calculate_regime() -> Dict:
         confidence = 0.80 if len(fred) >= 6 else 0.65
 
         ism = fred.get('ism_mfg')
+        if ism is None:
+            ism = fred.get('ism_mfg_alt')
         if ism is not None and len(ism) >= 2:
             macro_pulse['ism_delta'] = round(float(ism.iloc[-1] - ism.iloc[-2]), 1)
             macro_pulse['ism_now'] = round(float(ism.iloc[-1]), 1)
@@ -301,6 +302,8 @@ def calculate_regime() -> Dict:
         ten_y = float(t10.iloc[-1]) if t10 is not None else 4.2
 
         ism = fred.get('ism_mfg')
+        if ism is None:
+            ism = fred.get('ism_mfg_alt')
         if ism is not None and len(ism) >= 2:
             macro_pulse['ism_delta'] = round(float(ism.iloc[-1] - ism.iloc[-2]), 1)
             macro_pulse['ism_now'] = round(float(ism.iloc[-1]), 1)
@@ -342,7 +345,8 @@ def calculate_regime() -> Dict:
                     'probs':{"Q1":0.25,"Q2":0.25,"Q3":0.25,"Q4":0.25},
                     'monthly_probs':{"Q1":0.25,"Q2":0.25,"Q3":0.25,"Q4":0.25},
                     'flip_hazard':0.0,'deepness':0.0,
-                    'timestamp':datetime.now().isoformat()}
+                    'timestamp':datetime.now().isoformat(),
+                    'fred_missing_keys': list(FRED_SERIES.keys())}
 
     sq = assign_quad(growth_trend, infl_trend, growth_val, infl_val, use_abs=True)
 
@@ -405,6 +409,7 @@ def calculate_regime() -> Dict:
         'policy_rate':round(float(policy_rate),2),'treasury_10y':round(float(ten_y),2),
         'vix':round(float(vix),2),'policy_stance':ps_text,
         'fred_loaded':len(fred),'fred_missing':len(FRED_SERIES)-len(fred),
+        'fred_missing_keys': [k for k in FRED_SERIES.keys() if k not in fred],
         'operating_regime':rt,'monthly_debug':md,'macro_pulse':macro_pulse,
         'probs':probs,'monthly_probs':m_probs,
         'flip_hazard':round(flip_hazard,2),'deepness':round(deepness,2),

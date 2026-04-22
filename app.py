@@ -1023,8 +1023,9 @@ with tabs[1]:
         return tk in CRYPTO_TICKERS
 
     def render_bottleneck_filtered(filter_fn, market_name):
-        # FALLBACK: kalo btl kosong atau cuma sedikit, generate dari price momentum
-        if not btl or not btl.get("front_run_basket") or len(btl.get("front_run_basket", [])) < 3:
+        # CRITICAL FIX: use_btl biar gak UnboundLocalError
+        use_btl = btl
+        if not use_btl or not use_btl.get("front_run_basket") or len(use_btl.get("front_run_basket", [])) < 3:
             momentum_basket = []
             for tk in prices.keys():
                 if filter_fn(tk):
@@ -1040,13 +1041,13 @@ with tabs[1]:
                                 "bottleneck_score": round(score, 2), "stage": stage
                             })
             if momentum_basket:
-                btl = {"front_run_basket": sorted(momentum_basket, key=lambda x: x["bottleneck_score"], reverse=True)[:12]}
+                use_btl = {"front_run_basket": sorted(momentum_basket, key=lambda x: x["bottleneck_score"], reverse=True)[:12]}
             else:
                 st.caption(f"No {market_name} bottleneck — adaptive + momentum scan empty.")
                 return
         
-        if btl.get("summary"): st.caption(btl["summary"])
-        basket = btl.get("front_run_basket", [])
+        if use_btl.get("summary"): st.caption(use_btl["summary"])
+        basket = use_btl.get("front_run_basket", [])
         total = len(basket)
         filtered = [item for item in basket if filter_fn(item.get("ticker", ""))]
         if not filtered:

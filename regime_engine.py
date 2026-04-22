@@ -110,6 +110,7 @@ def fetch_all_fred() -> Dict[str, pd.Series]:
         s = fetch_fred_series(sid, api_key)
         if s is not None:
             results[name] = s
+        time.sleep(0.5)  # ← RATE LIMIT FIX: delay antar request
     logger.info(f"FRED total loaded: {len(results)}/{len(FRED_SERIES)} — {list(results.keys())}")
     return results
 
@@ -433,25 +434,4 @@ def calculate_regime() -> Dict:
         'growth_trend': growth_trend,
         'inflation_trend': infl_trend,
         'growth_yoy': round(float(growth_val), 2),
-        'inflation_yoy': round(float(infl_val), 2),
-        'policy_rate': round(float(policy_rate), 2),
-        'treasury_10y': round(float(ten_y), 2),
-        'policy_stance': policy_text,
-        'fred_loaded': len(fred),
-        'fred_missing': len(FRED_SERIES) - len(fred),
-        'operating_regime': regime_text,
-        'monthly_debug': monthly_debug,
-        'timestamp': datetime.now().isoformat(),
-    }
-    
-    try:
-        with open(CACHE_FILE, 'wb') as f:
-            pickle.dump(result, f)
-    except Exception:
-        pass
-    
-    return result
-
-@st.cache_data(ttl=1800)
-def get_regime_snapshot() -> Dict:
-    return calculate_regime()
+        'inflation_yoy': round

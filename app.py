@@ -16,14 +16,20 @@ from collections import defaultdict
 
 import streamlit as st
 
-st.set_page_config(page_title="MacroRegime Pro", page_icon="🧭", layout="wide", initial_sidebar_state="collapsed")
+# ═══════════════════════════════════════════════════════════════════════════════
+# CACHE BUST & FRED KEY — MUST BE FIRST (before regime_engine import)
+# ═══════════════════════════════════════════════════════════════════════════════
+if "FRED_API_KEY" in st.secrets:
+    os.environ["FRED_API_KEY"] = st.secrets["FRED_API_KEY"]
 
-for f in glob.glob("/tmp/fred_cache_*.pkl") + glob.glob("/tmp/price_cache_*.pkl"):
+for f in glob.glob("/tmp/fred_cache_*.pkl") + glob.glob("/tmp/price_cache_*.pkl") + glob.glob("/tmp/regime_cache_*.pkl"):
     try: os.remove(f)
     except: pass
 
-if "FRED_API_KEY" in st.secrets:
-    os.environ["FRED_API_KEY"] = st.secrets["FRED_API_KEY"]
+try: st.cache_data.clear()
+except: pass
+
+st.set_page_config(page_title="MacroRegime Pro", page_icon="🧭", layout="wide", initial_sidebar_state="collapsed")
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 if SCRIPT_DIR not in sys.path: sys.path.insert(0, SCRIPT_DIR)
@@ -391,12 +397,40 @@ def evaluate_ticker(ticker: str, asset_class: str) -> Optional[dict]:
 def render_trr_section(ticker_list: List[str], asset_class: str, title: str = "🎯 TRR/LRR Live Signals"):
     if not ticker_list: return
     hits = []
+    debug_rows = []
     for t in ticker_list:
         ev = evaluate_ticker(t, asset_class)
-        if ev: hits.append(ev)
+        if ev: 
+            hits.append(ev)
+        else:
+            df = _fetch_trr_data(t, "2y" if asset_class == "CRYPTO" else "3y")
+            if df is not None:
+                try:
+                    r = _trr_engine.calc_latest(df, vol_mult=GATE_CONFIG.get(asset_class, GATE_CONFIG["US_STOCKS"])['vol_mult'])
+                    if r:
+                        price = df['Close'].iloc[-1]
+                        cfg = GATE_CONFIG.get(asset_class, GATE_CONFIG["US_STOCKS"])
+                        reasons = []
+                        if not (r['tradeBreakUp'] or r['trendTransUp'] or r['tailTransUp']): reasons.append("No breakout")
+                        if r['qualityScore'] < cfg['quality_min']: reasons.append(f"Q{r['qualityScore']:.0f}<{cfg['quality_min']}")
+                        if r['activityScore'] < cfg['activity_min']: reasons.append(f"A{r['activityScore']:.0f}<{cfg['activity_min']}")
+                        if r['trendAge'] > cfg['max_trend_age']: reasons.append(f"Age{r['trendAge']}>{cfg['max_trend_age']}")
+                        debug_rows.append({
+                            'ticker': t, 'price': round(price, 2),
+                            'q': round(r['qualityScore'], 1), 'a': round(r['activityScore'], 1),
+                            'age': r['trendAge'], 'phase': r['trendPhase'],
+                            'fail': " | ".join(reasons) if reasons else "Short not allowed" if not cfg['allow_short'] else "Unknown"
+                        })
+                except Exception:
+                    pass
+    
     if not hits:
         st.caption(f"TRR/LRR: No {asset_class} tickers passed the gate today.")
+        if debug_rows:
+            with st.expander(f"🔍 {asset_class} TRR/LRR Debug ({len(debug_rows)} tickers evaluated)"):
+                st.dataframe(pd.DataFrame(debug_rows), use_container_width=True, height=200)
         return
+    
     hits.sort(key=lambda x: (0 if x['signal'] == 'LONG' else 1, -x['confidence']))
     st.markdown(f"**{title}**")
     for h in hits:
@@ -989,9 +1023,28 @@ with tabs[1]:
         return tk in CRYPTO_TICKERS
 
     def render_bottleneck_filtered(filter_fn, market_name):
-        if not btl:
-            st.caption("No bottleneck data")
-            return
+        # FALLBACK: kalo btl kosong atau cuma sedikit, generate dari price momentum
+        if not btl or not btl.get("front_run_basket") or len(btl.get("front_run_basket", [])) < 3:
+            momentum_basket = []
+            for tk in prices.keys():
+                if filter_fn(tk):
+                    s = prices.get(tk)
+                    if s is not None and len(s) > 21:
+                        r1 = ret_n(s, 21)
+                        r3 = ret_n(s, 63)
+                        score = abs(r1) * 2 + abs(r3) if r1 == r1 else 0
+                        if score > 0.05:
+                            stage = "early" if r1 > 0.05 else "mature" if r1 < -0.05 else "building"
+                            momentum_basket.append({
+                                "ticker": tk, "sector": market_name, 
+                                "bottleneck_score": round(score, 2), "stage": stage
+                            })
+            if momentum_basket:
+                btl = {"front_run_basket": sorted(momentum_basket, key=lambda x: x["bottleneck_score"], reverse=True)[:12]}
+            else:
+                st.caption(f"No {market_name} bottleneck — adaptive + momentum scan empty.")
+                return
+        
         if btl.get("summary"): st.caption(btl["summary"])
         basket = btl.get("front_run_basket", [])
         total = len(basket)

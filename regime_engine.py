@@ -187,6 +187,7 @@ def calculate_regime() -> Dict:
         else:
             growth_trend, growth_val = "stable", 1.5
         
+        # FIX: ga pake 'or' pada pd.Series
         cpi = fred.get('cpi')
         if cpi is not None and len(cpi) >= 24:
             cpi_yoy = yoy_roc(cpi)
@@ -241,7 +242,10 @@ def calculate_regime() -> Dict:
     
     monthly_quad = structural_quad
     if source == 'fred':
-        cpi_series = fred.get('cpi') or fred.get('core_cpi')
+        # FIX: explicit None check, ga pake 'or' pada Series
+        cpi_series = fred.get('cpi')
+        if cpi_series is None:
+            cpi_series = fred.get('core_cpi')
         pce_series = fred.get('real_pce')
         if cpi_series is not None and len(cpi_series) >= 6:
             cpi_yoy = yoy_roc(cpi_series)

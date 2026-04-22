@@ -1,7 +1,10 @@
 """
-bottleneck_engine.py — Simplified 7-Layer Bottleneck Scanner
-No fragile deps: no snscrape, no praw, no polygon, no apscheduler
-Requires: feedparser, yfinance, pandas, numpy, requests
+bottleneck_engine.py — Optimized 7-Layer Scanner
+Performance rules:
+  - RSS: max 3 feeds, 3 stories each = 9 total
+  - Options: only spot > $30, skip if priced_in
+  - No redundant price fetches
+  - Lightweight narrative classification
 """
 import os, json, math, logging, time, requests, feedparser
 from datetime import datetime
@@ -23,10 +26,6 @@ def load_config(path: str = CONFIG_PATH) -> Dict:
     except Exception as e:
         logger.error(f"Config load fail {path}: {e}")
         return {}
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# L3 — SUPPLY CHAIN GRAPH (External JSON)
-# ═══════════════════════════════════════════════════════════════════════════════
 
 @dataclass
 class SupplyNode:
@@ -81,6 +80,8 @@ class SupplyChainGraph:
                 score += 0.10; reasons.append("CoWoS")
             if "data_center_power" in tags:
                 score += 0.08; reasons.append("DC-Power")
+            if "supply_deficit" in tags:
+                score += 0.08; reasons.append("SupplyDeficit")
             if score >= 0.45:
                 bottlenecks.append({
                     "ticker": ticker, "name": node.name, "sector": node.sector, "layer": node.layer,
@@ -96,10 +97,10 @@ class SupplyChainGraph:
             tier = b.get("allocation_tier", "standard")
             if tier == "priority":
                 b.update({"allocation_verdict": "✅ PRIORITY", "allocation_score": 1.0,
-                           "allocation_note": "Guaranteed supply allocation from foundry/partner"})
+                           "allocation_note": "Guaranteed supply allocation"})
             elif tier == "standard":
                 b.update({"allocation_verdict": "⚠️ STANDARD", "allocation_score": 0.55,
-                           "allocation_note": "May face rationing if constraint worsens"})
+                           "allocation_note": "May face rationing"})
             else:
                 b.update({"allocation_verdict": "❌ CUT", "allocation_score": 0.15,
                            "allocation_note": "Supply constrained — avoid"})
@@ -114,36 +115,30 @@ class SupplyChainGraph:
         return self.db.get(ticker, SupplyNode(ticker, ticker, "", "")).outputs
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# L1 — DEMAND DETECTION (RSS Only — Stable)
-# ═══════════════════════════════════════════════════════════════════════════════
-
 class NarrativeEngine:
     def __init__(self, config: Optional[Dict] = None):
         self.cfg = config or load_config()
-        self.feeds = self.cfg.get("narrative_sources", {}).get("rss_feeds", [])
+        self.feeds = self.cfg.get("narrative_sources", {}).get("rss_feeds", [])[:3]  # MAX 3 feeds
         self.themes = {
-            "AI": ["nvidia", "ai chip", "gpu", "blackwell", "hbm3e", "cowos", "tsmc", "data center", "training", "inference", "cluster", "ai demand"],
-            "Energy": ["oil", "natural gas", "power", "vistra", "nuclear", "electricity", "grid", "data center power", "renewable", "lng", "permian"],
-            "Crypto": ["bitcoin", "ethereum", "etf", "halving", "mining", "hashrate", "spot etf", "institutional", "btc", "eth", "blackrock"],
+            "AI": ["nvidia", "ai chip", "gpu", "blackwell", "hbm3e", "cowos", "tsmc", "data center", "training", "inference", "cluster"],
+            "Energy": ["oil", "natural gas", "power", "vistra", "nuclear", "electricity", "grid", "data center power", "renewable", "lng"],
+            "Crypto": ["bitcoin", "ethereum", "etf", "halving", "mining", "hashrate", "spot etf", "institutional", "btc", "eth"],
             "Semi": ["memory", "dram", "nand", "foundry", "process node", "yield", "advanced packaging", "substrate", "semi", "chip"],
         }
 
-    def scrape_rss(self, max_per_feed: int = 5) -> List[Dict]:
+    def scrape_rss(self, max_per_feed: int = 3) -> List[Dict]:  # MAX 3 per feed
         stories = []
         for url in self.feeds:
             try:
                 fp = feedparser.parse(url)
                 for entry in fp.entries[:max_per_feed]:
-                    stories.append({"title": entry.get("title", ""), "summary": entry.get("summary", ""),
-                                    "link": entry.get("link", ""), "published": entry.get("published", ""), "source": url})
+                    stories.append({"title": entry.get("title", ""), "summary": entry.get("summary", "")[:200]})
             except Exception as e:
                 logger.warning(f"RSS fail {url}: {e}")
-            time.sleep(0.3)
         return stories
 
     def classify(self, text: str) -> Dict[str, float]:
-        text_lower = text.lower()
+        text_lower = text.lower()[:500]  # Limit text length
         scores = {}
         for theme, keywords in self.themes.items():
             hits = sum(2 if kw in text_lower else 0 for kw in keywords)
@@ -169,10 +164,6 @@ class NarrativeEngine:
         return pulse
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# L5 — TRANSMISSION MAPPING (Price Only — No CFTC)
-# ═══════════════════════════════════════════════════════════════════════════════
-
 class TransmissionMapper:
     def map(self, winners: List[Dict], prices: Dict[str, pd.Series]) -> List[Dict]:
         mapped = []
@@ -194,13 +185,10 @@ class TransmissionMapper:
         return mapped
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# L6 — MISPRICING (yfinance Options Only — Free)
-# ═══════════════════════════════════════════════════════════════════════════════
-
 class OptionsAnalyzer:
     def convexity_scan(self, ticker: str, spot: float, transmission_score: float) -> Optional[Dict]:
-        if transmission_score < 0.5 or spot <= 5:
+        # Performance: skip if priced-in, spot too low, or transmission weak
+        if transmission_score < 0.5 or spot <= 30:
             return None
         try:
             t = yf.Ticker(ticker)
@@ -223,20 +211,14 @@ class OptionsAnalyzer:
                 "ticker": ticker, "exp": exps[0], "strike": round(float(best["strike"]), 2), "spot": round(spot, 2),
                 "moneyness": round(float(best["moneyness"]), 2), "iv": round(float(best["impliedVolatility"]), 2),
                 "delta": round(float(best["delta"]), 3), "gamma": round(float(best["gamma"]), 4),
-                "theta": round(float(best["theta"]), 3) if "theta" in best else None,
-                "vega": round(float(best["vega"]), 3) if "vega" in best else None,
                 "volume": int(best["volume"]), "oi": int(best["openInterest"]),
                 "convexity_score": round(float(best["convexity"]), 2), "expected_move_pct": round(em, 1),
-                "verdict": "🎯 HIGH CONVEXITY" if best["convexity"] > 3.0 else "⚡ MODERATE" if best["convexity"] > 1.5 else "📉 LOW",
+                "verdict": "🎯 HIGH" if best["convexity"] > 3.0 else "⚡ MOD" if best["convexity"] > 1.5 else "📉 LOW",
             }
         except Exception as e:
             logger.debug(f"Options skip {ticker}: {e}")
             return None
 
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# L7 — PORTFOLIO CONSTRUCTION
-# ═══════════════════════════════════════════════════════════════════════════════
 
 class BasketConstructor:
     def __init__(self, max_corr=0.82, max_size=5):
@@ -270,10 +252,6 @@ class BasketConstructor:
         return basket
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# UNIFIED ORCHESTRATOR
-# ═══════════════════════════════════════════════════════════════════════════════
-
 class UnifiedBottleneckScanner:
     def __init__(self, regime: Dict, config: Optional[Dict] = None):
         self.regime = regime
@@ -289,25 +267,16 @@ class UnifiedBottleneckScanner:
         mq = self.regime.get("monthly_quad", "Q2")
         conf = self.regime.get("confidence", 0.5)
 
-        # L1
         stories = self.narrative.scrape_rss()
         demand = self.narrative.demand_pulse(stories)
-
-        # L3
         bottlenecks = self.supply.detect_bottlenecks()
-
-        # L4
         winners = self.supply.allocation_filter(bottlenecks)
-
-        # L5
         transmitted = self.transmission.map(winners, prices)
 
-        # L2 regime gate
         regime_mult = {"Q1": 1.15, "Q2": 1.20, "Q3": 0.95, "Q4": 0.75}.get(sq, 1.0)
         if sq != mq:
             regime_mult *= 0.70
 
-        # L6 + Fusion
         enriched = []
         for t in transmitted:
             tk = t["ticker"]; px = prices.get(tk)
@@ -317,7 +286,7 @@ class UnifiedBottleneckScanner:
             narr_score = demand.get(narr_key, {}).get("narrative_score", 0)
 
             opt = None
-            if run_options and not t.get("priced_in", True) and spot > 20:
+            if run_options and not t.get("priced_in", True) and spot > 30:
                 try:
                     opt = self.options.convexity_scan(tk, spot, t.get("transmission_score", 0))
                 except Exception as e:
@@ -336,9 +305,7 @@ class UnifiedBottleneckScanner:
             t["narrative_score"] = narr_score
             enriched.append(t)
 
-        # L7
         basket = self.basket.build(enriched, prices)
-
         sector_counts = {}
         for e in enriched:
             s = e.get("sector", "Other")
@@ -353,13 +320,6 @@ class UnifiedBottleneckScanner:
             "enriched_signals": enriched,
             "basket": basket,
             "sector_summary": sector_counts,
-            "stories_sample": stories[:5],
+            "stories_sample": stories[:3],
             "timestamp": datetime.now().isoformat(),
         }
-
-    def to_json(self, result: Dict, path: str = "./output/scan_results.json") -> str:
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(result, f, indent=2, default=str, ensure_ascii=False)
-        logger.info(f"Scanner output written to {path}")
-        return path

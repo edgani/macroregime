@@ -1,7 +1,6 @@
 """
-MacroRegime Pro v15.0 — Integrated Bottleneck Scanner
-Simplified: no snscrape, no praw, no polygon, no apscheduler
-Requires: feedparser (for RSS), yfinance, pandas, numpy, streamlit, requests
+MacroRegime Pro v15.1 — Optimized Bottleneck Scanner
+Fixes: visual bugs, performance, real nodes only
 """
 import os, sys, glob, time, json, logging, math, numpy as np, pandas as pd, yfinance as yf
 from datetime import datetime, timezone
@@ -18,12 +17,14 @@ st.set_page_config(page_title="MacroRegime Pro", page_icon="🧭", layout="wide"
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from regime_engine import get_regime_snapshot, FRED_SERIES, FRED_SERIES_COUNT
 
-# v15.0 bottleneck integration
 SCANNER_AVAILABLE = False
 btl_result = None
+SCANNER_TICKERS = set()
 try:
-    from bottleneck_engine import UnifiedBottleneckScanner, SupplyChainGraph, NarrativeEngine, SupplyNode, load_config
+    from bottleneck_engine import UnifiedBottleneckScanner, SupplyChainGraph, SupplyNode, load_config
     SCANNER_AVAILABLE = True
+    _cfg = load_config()
+    SCANNER_TICKERS = set(_cfg.get("nodes", {}).keys())
 except Exception as e:
     st.warning(f"Bottleneck engine not loaded: {e}")
 
@@ -266,7 +267,7 @@ def _render_trr(tlist,ac,title="🎯 TRR/LRR Live Signals"):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# v15.0 BOTTLENECK INTEGRATION
+# v15.1 BOTTLENECK INTEGRATION — Optimized + Real Nodes Only
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @st.cache_data(ttl=1800)
@@ -280,14 +281,15 @@ def _run_bottleneck_scanner(regime, prices):
         logging.error(f"Scanner run fail: {e}")
         return None
 
-def bottleneck_scan(tlist, prices, q, ac="US_STOCKS"):
-    btl = _run_bottleneck_scanner(q, prices)
+def _get_bottleneck_rows(tlist, btl):
+    """Filter scanner results for tickers in tlist. Returns [] if no match."""
     if not btl or not btl.get("enriched_signals"):
         return []
     rows = []
+    tlist_set = set(tlist)
     for sig in btl["enriched_signals"]:
         tk = sig["ticker"]
-        if tk not in tlist:
+        if tk not in tlist_set:
             continue
         fs = sig.get("fusion_score", 0)
         priced = sig.get("priced_in", False)
@@ -302,8 +304,7 @@ def bottleneck_scan(tlist, prices, q, ac="US_STOCKS"):
         rows.append({
             "ticker": clean_tk(tk), "signal": direction, "score": fs,
             "r1m": f"{sig.get('r1m', 0):+.1%}", "r3m": f"{sig.get('r3m', 0):+.1%}",
-            "vol": f"{sig.get('vol', 0):.2f}x", "regime": q.get("structural_quad", "Q2"),
-            "align": "✅" if q.get("structural_quad") == q.get("monthly_quad") else "⚠️",
+            "vol": f"{sig.get('vol', 0):.2f}x",
             "layer": sig.get("layer", "-"), "allocation": sig.get("allocation_verdict", "-"),
             "transmission": sig.get("transmission_note", "-"), "grade": sig.get("fusion_grade", "C"),
             "bottleneck": sig.get("bottleneck_score", 0), "options": "🎯" if sig.get("options_signal") else "—",
@@ -325,7 +326,7 @@ def render_bottleneck(rows, title="🎯 Adaptive Bottleneck Scan"):
              <div style="display:flex;align-items:center;gap:8px;"><span style="color:{col};font-weight:800;font-size:14px;">{ic} {r["ticker"]}
              </span><span style="font-size:10px;color:#8b949e;">{r["r1m"]} 1M · {r["r3m"]} 3M · {r["vol"]}
              </span></div><div style="text-align:right;"><span style="font-size:12px;color:{col};font-weight:700;">{r["score"]:.0%} {r["grade"]}
-             </span><span style="font-size:10px;color:#8b949e;margin-left:6px;">{r["align"]} {r["regime"]}
+             </span><span style="font-size:10px;color:#8b949e;margin-left:6px;">{r["allocation"]}
              </span><span style="font-size:10px;color:#58a6ff;margin-left:6px;">{r["options"]}</span></div></div>""", unsafe_allow_html=True)
 
 def render_bottleneck_intel(btl):
@@ -338,9 +339,11 @@ def render_bottleneck_intel(btl):
     regime_info = btl.get("regime", {})
     st.markdown("**🧠 LIVE BOTTLENECK INTEL — 7 Layer Fusion**")
     st.caption(f"Regime mult: {regime_info.get('regime_mult', 1.0):.2f} | Aligned: {regime_info.get('aligned', False)} | Confidence: {regime_info.get('confidence', 0):.0%}")
+
+    # L1 Demand
     st.markdown("**L1 — Demand Detection (RSS Narrative)**")
     if demand:
-        dcols = st.columns(len(demand))
+        dcols = st.columns(min(len(demand), 4))
         for idx, (theme, data) in enumerate(demand.items()):
             with dcols[idx]:
                 state = data.get("state", "❄️ COLD")
@@ -353,8 +356,10 @@ def render_bottleneck_intel(btl):
                     <div style="font-size:10px;color:#c9d1d9;">{sc:.0%} ({data.get('mentions',0)} mentions)</div>
                 </div>""", unsafe_allow_html=True)
     else:
-        st.caption("No narrative data — check RSS feeds in config.")
+        st.caption("No narrative data.")
     st.divider()
+
+    # L3-L6 Table
     st.markdown("**L3→L6 — Supply Chain → Allocation → Transmission → Options**")
     if enriched:
         df_rows = []
@@ -372,10 +377,15 @@ def render_bottleneck_intel(btl):
     else:
         st.caption("No enriched signals.")
     st.divider()
+
+    # L7 Basket — FIXED: no nested f-string HTML bug
     st.markdown("**L7 — Portfolio Basket (Uncorrelated Winners)**")
     if basket:
         for b in basket:
             opt = b.get("options_signal")
+            opt_line = ""
+            if opt:
+                opt_line = f"🎲 Options: {opt['strike']} Call @ {opt['exp']} (IV {opt['iv']:.0%}, γ {opt['gamma']})"
             st.markdown(f"""<div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:10px;margin-bottom:6px;">
                 <div style="display:flex;justify-content:space-between;align-items:center;">
                     <span style="font-size:14px;font-weight:700;color:#e6edf3;">🎯 {clean_tk(b['ticker'])} — {b.get('name', '')}</span>
@@ -384,11 +394,13 @@ def render_bottleneck_intel(btl):
                 <div style="font-size:10px;color:#8b949e;margin-top:4px;">
                     {b.get('reasons', '-')} | {b.get('allocation_verdict', '-')} | {b.get('transmission_note', '-')}
                 </div>
-                {f'<div style="font-size:10px;color:#fbbf24;margin-top:4px;">🎲 Options: {opt["strike"]} Call @ {opt["exp"]} (IV {opt["iv"]:.0%}, γ {opt["gamma"]})</div>' if opt else ''}
+                {opt_line}
             </div>""", unsafe_allow_html=True)
     else:
         st.caption("No basket — regime filter too tight or no early signals.")
     st.divider()
+
+    # L3 Supply Chain Graph — FIXED: no raw HTML span
     st.markdown("**L3 — Supply Chain Graph Explorer**")
     if SCANNER_AVAILABLE:
         graph = SupplyChainGraph()
@@ -406,7 +418,7 @@ def render_bottleneck_intel(btl):
                     st.markdown(f"<span style='color:#8b949e;font-size:11px;'>← {u} ({uname})</span>", unsafe_allow_html=True)
                 if not up: st.caption("Raw material / no upstream")
             with c2:
-                st.markdown(f"**<span style='color:#58a6ff;'>{selected}</span>**")
+                st.markdown(f"**{selected}**")
                 st.caption(f"{node.name} | {node.layer} | {node.sector}")
                 bi = node.bottleneck_indicators
                 st.caption(f"Cap: {bi.get('capacity_util', 0):.0%} | Demand: {bi.get('demand_growth', 0):.1f}x | Lead: {bi.get('lead_time_weeks', 0)}w")
@@ -417,6 +429,8 @@ def render_bottleneck_intel(btl):
                     st.markdown(f"<span style='color:#8b949e;font-size:11px;'>→ {d} ({dname})</span>", unsafe_allow_html=True)
                 if not down: st.caption("End product / no downstream")
     st.divider()
+
+    # L8 Options
     st.markdown("**L8 — Execution / Convexity Monitor**")
     opt_signals = [e for e in enriched if e.get("options_signal")]
     if opt_signals:
@@ -429,7 +443,7 @@ def render_bottleneck_intel(btl):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ON-CHAIN SCANNER (preserved from v13.5)
+# ON-CHAIN SCANNER (preserved)
 # ═══════════════════════════════════════════════════════════════════════════════
 
 from dataclasses import dataclass as _dataclass
@@ -533,8 +547,9 @@ conf=q.get("confidence",0.5); op=q.get("operating_regime","...")
 src=q.get("source","unknown"); gy=q.get("growth_yoy",0); iy=q.get("inflation_yoy",0)
 ps=q.get("policy_stance","—"); vix=q.get("vix",20.0)
 mp=q.get("macro_pulse",{})
-# v15.0: ISM proxy fallback when FRED ISM missing
-if not mp.get('ism_now') or mp.get('ism_now') == '—':
+
+# ISM proxy fallback
+if not mp.get('ism_now') or (isinstance(mp.get('ism_now'), str) and mp.get('ism_now') == '—'):
     try:
         xli = prices.get("XLI", pd.Series())
         if len(xli) >= 22:
@@ -545,9 +560,8 @@ if not mp.get('ism_now') or mp.get('ism_now') == '—':
             mp['ism_delta'] = round(xli_1m * 8.0, 1)
             mp['ism_source'] = 'XLI proxy (FRED missing)'
     except Exception as e:
-        logger.debug(f"ISM proxy fail: {e}")
+        pass
 
-# Run bottleneck scanner once
 btl_result = _run_bottleneck_scanner(q, prices) if SCANNER_AVAILABLE else None
 
 
@@ -805,7 +819,7 @@ _h(f"""
     <div style="font-size:32px;">🧭</div>
     <div>
       <div style="font-size:24px;font-weight:800;color:#e6edf3;">MacroRegime <span style="color:#58a6ff;">Pro</span></div>
-      <div style="font-size:11px;color:#8b949e;">v15.0 · Bottleneck Scanner · 7-Layer Fusion</div>
+      <div style="font-size:11px;color:#8b949e;">v15.1 · Bottleneck Scanner · 7-Layer Fusion</div>
     </div>
   </div>
   <div style="text-align:right;">
@@ -1003,7 +1017,7 @@ with tabs[1]:
             _h(f'<div style="display:flex;align-items:center;gap:8px;margin:4px 0;"><div style="width:70px;font-size:11px;color:#c9d1d9;">{s["name"]}</div><div style="flex:1;background:#21262d;border-radius:4px;height:16px;overflow:hidden;"><div style="width:{rp}%;background:{bc};height:100%;border-radius:4px;"></div></div><div style="width:60px;text-align:right;font-size:11px;color:{bc};font-weight:600;">{rel:+.1%}</div></div>')
 
     st.markdown("**🎯 OPPORTUNITIES & EXECUTION BOARD**")
-    st.caption("v15.0 macro brain + TRR/LRR gate + Real Bottleneck Scanner. Regime-aware, route-aware, sized.")
+    st.caption("v15.1 macro brain + TRR/LRR gate + Real Bottleneck Scanner. Regime-aware, route-aware, sized.")
     c1,c2,c3,c4=st.columns(4)
     with c1: st.metric("Rally State", most_hated.get("stage","monitor"), f"{most_hated.get('clear_count',0)}/4")
     with c2: st.metric("Action", most_hated.get("posture","Defense"))
@@ -1036,6 +1050,7 @@ with tabs[1]:
     st.markdown(f"<span style='color:#{ {'good':'3fb950','warn':'fbbf24','bad':'f85149'}[sizing_col] };font-weight:700;'>{sizing}</span>",unsafe_allow_html=True)
     st.divider()
     mt=st.tabs(["🇺🇸 US Stocks","🇮🇩 IHSG","💱 FX","🛢️ Commodities","🔐 Crypto"])
+
     with mt[0]:
         ul=tickers.get("us_longs",[]); us=tickers.get("us_shorts",[])
         nm={"SPY":"S&P 500","QQQ":"Nasdaq","IWM":"Russell 2K","XLE":"Energy","XLK":"Tech","XLF":"Finance","XLI":"Industrials","XLB":"Materials","XLV":"Health","XLY":"Consumer","XLP":"Staples","XLU":"Utilities","XLRE":"REITs","TLT":"Long Bond","GLD":"Gold","HII":"Huntington","CAT":"Caterpillar","UPS":"UPS","LII":"Lennox","JBHT":"JB Hunt","MAR":"Marriott","ONTO":"Onto","EMR":"Emerson","RH":"Restoration","SBUX":"Starbucks","TXG":"10x Genomics","AVO":"Mission Produce","FRPT":"Freshpet","PEP":"Pepsi","XOM":"Exxon","HSY":"Hershey","WMB":"Williams","ET":"Energy Transfer","ROP":"Roper","RBLX":"Roblox","TRU":"TransUnion","NVDA":"Nvidia","XTL":"Telecom","EQRR":"Rising Rates","GII":"Infrastructure","EWH":"Hong Kong","EWW":"Mexico","ARGT":"Argentina","EIS":"Israel","IBIT":"Bitcoin ETF","COAL":"Coal","YCS":"Short Yen"}
@@ -1045,17 +1060,25 @@ with tabs[1]:
         st.divider(); st.markdown("**🌍 Heatmap**"); rh([("SPY","S&P 500"),("QQQ","Nasdaq"),("IWM","Russell 2K"),("TLT","Bond"),("GLD","Gold"),("BTC-USD","BTC"),("CL=F","Oil"),("UUP","USD")])
         rml([("XLE","Energy"),("XLF","Fin"),("XLI","Ind"),("XLB","Mat"),("XLK","Tech"),("XLV","Health"),("XLY","Con.D"),("XLP","Con.S"),("XLU","Util"),("XLRE","RE")],"SPY","Sector Leadership")
         st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(list(set(ul+us)),"US_STOCKS")
-        st.markdown("**🎯 Bottleneck Scan (Real)**"); render_bottleneck(bottleneck_scan(list(set(ul+us)),prices,q,"US_STOCKS"),"US Bottleneck")
+        # Bottleneck: only for tickers in supply chain
+        btl_us = _get_bottleneck_rows(list(set(ul+us)), btl_result)
+        if btl_us:
+            st.markdown("**🎯 Bottleneck Scan (Real)**"); render_bottleneck(btl_us, "US Bottleneck")
+        else:
+            st.caption("Bottleneck: No US tickers with manufacturing supply chain constraints passed the gate. (AI/Semi/Energy only)")
+
     with mt[1]:
         ih_t=tickers.get("ihsg_buys",[]); nm={"BBCA.JK":"BCA","BBRI.JK":"BRI","ASII.JK":"Astra","TLKM.JK":"Telkom","ADRO.JK":"Adaro","ANTM.JK":"Antam","PTBA.JK":"Bukit Asam","ITMG.JK":"Indomining","INCO.JK":"Vale","KLBF.JK":"Kalbe","UNVR.JK":"Unilever","INDF.JK":"Indofood"}
         st.markdown("**📍 NOW — LONG (TRR Filtered)**"); rc_trr(ih_t,nm,"IHSG","LONG",3)
         st.divider(); st.markdown("**🌍 Heatmap**"); rh([("^JKSE","IHSG"),("BBCA.JK","BCA"),("BBRI.JK","BRI"),("ASII.JK","Astra"),("TLKM.JK","Telkom")])
         rml([("ADRO.JK","Energy"),("BBCA.JK","Finance"),("UNVR.JK","Consumer"),("TLKM.JK","Infra"),("CTRA.JK","Property"),("ANTM.JK","Mining"),("KLBF.JK","Health"),("AALI.JK","Agri"),("ASII.JK","Industri")],"^JKSE","IDX Sector")
         st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(ih_t,"IHSG")
-        st.markdown("**🎯 Bottleneck Scan (Real)**"); render_bottleneck(bottleneck_scan(ih_t,prices,q,"IHSG"),"IHSG Bottleneck")
+        # IHSG has no real bottleneck nodes
+        st.info("ℹ️ **Bottleneck Scan N/A for IHSG** — Banking/consumer stocks lack manufacturing supply chain constraints. Use TRR/LRR + Regime gate instead.")
         st.divider()
         st.markdown(f"**🇮🇩 IHSG Score: {ih['ihsg_score']:.0%}** · {ih['exec_mode']}")
         st.caption(f"Asing: {ih['flow_state']} | IDR 1M: {pct(ih['usd_idr_1m'])} | vs SPY: {ih['rel_state']}")
+
     with mt[2]:
         fl=tickers.get("fx_longs",[]); fs=tickers.get("fx_shorts",[])
         nm={"EURUSD=X":"EUR/USD","USDJPY=X":"USD/JPY","AUDUSD=X":"AUD/USD","USDIDR=X":"USD/IDR","UUP":"DXY","GBPUSD=X":"GBP/USD","USDCAD=X":"USD/CAD","NZDUSD=X":"NZD/USD","USDCHF=X":"USD/CHF","GLD":"Gold","AAAU":"Gold","YCS":"Short Yen"}
@@ -1065,7 +1088,9 @@ with tabs[1]:
         st.divider(); st.markdown("**🌍 Heatmap**"); rh([("EURUSD=X","EUR/USD"),("USDJPY=X","USD/JPY"),("AUDUSD=X","AUD/USD"),("USDIDR=X","USD/IDR"),("UUP","DXY")])
         rml([("UUP","DXY"),("USDJPY=X","USD/JPY"),("EURUSD=X","EUR/USD"),("AUDUSD=X","AUD/USD"),("GBPUSD=X","GBP/USD"),("USDCAD=X","USD/CAD")],"UUP","FX Leadership")
         st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(list(set(fl+fs)),"FOREX")
-        st.markdown("**🎯 Bottleneck Scan (Real)**"); render_bottleneck(bottleneck_scan(list(set(fl+fs)),prices,q,"FOREX"),"FX Bottleneck")
+        # FX has no real bottleneck nodes
+        st.info("ℹ️ **Bottleneck Scan N/A for FX** — Currencies lack manufacturing supply chain. Use TRR/LRR + Regime gate + Macro Pulse instead.")
+
     with mt[3]:
         cl=tickers.get("comm_longs",[]); cs=tickers.get("comm_shorts",[])
         nm={"SLV":"Silver","GDX":"Gold Miners","GC=F":"Gold Fut","SI=F":"Silver Fut","HG=F":"Copper Fut","CL=F":"WTI Oil","NG=F":"Nat Gas","XOP":"Oil Explorers","OIH":"Oil Services","BNO":"Brent Oil","GLD":"Gold","AAAU":"Gold","COAL":"Coal","DUST":"Gold Bear","BITS":"Bitcoin Strat"}
@@ -1075,7 +1100,12 @@ with tabs[1]:
         st.divider(); st.markdown("**🌍 Heatmap**"); rh([("CL=F","WTI Oil"),("GC=F","Gold Fut"),("HG=F","Copper"),("SI=F","Silver"),("NG=F","Nat Gas")])
         rml([("GC=F","Gold"),("CL=F","WTI Oil"),("HG=F","Copper"),("SI=F","Silver"),("NG=F","Nat Gas"),("XBRUSD=X","Brent"),("URA","Uranium")],"GC=F","Commodity Leadership")
         st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(list(set(cl+cs)),"COMMODITIES")
-        st.markdown("**🎯 Bottleneck Scan (Real)**"); render_bottleneck(bottleneck_scan(list(set(cl+cs)),prices,q,"COMMODITIES"),"Comm Bottleneck")
+        btl_comm = _get_bottleneck_rows(list(set(cl+cs)), btl_result)
+        if btl_comm:
+            st.markdown("**🎯 Bottleneck Scan (Real)**"); render_bottleneck(btl_comm, "Comm Bottleneck")
+        else:
+            st.caption("Bottleneck: No commodity tickers passed the unified gate.")
+
     with mt[4]:
         crl=tickers.get("crypto_longs",[]); crs=tickers.get("crypto_shorts",[])
         nm={"BTC-USD":"Bitcoin","ETH-USD":"Ethereum","SOL-USD":"Solana","XRP-USD":"XRP","IBIT":"Bitcoin ETF"}
@@ -1085,7 +1115,11 @@ with tabs[1]:
         st.divider(); st.markdown("**🌍 Heatmap**"); rh([("BTC-USD","Bitcoin"),("ETH-USD","Ethereum"),("SOL-USD","Solana"),("XRP-USD","XRP")])
         rml([("BTC-USD","Bitcoin"),("ETH-USD","Ethereum"),("SOL-USD","Solana"),("XRP-USD","XRP"),("ADA-USD","Cardano"),("DOT-USD","Polkadot")],"BTC-USD","Crypto Leadership")
         st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(list(set(crl+crs)),"CRYPTO")
-        st.markdown("**🎯 Bottleneck Scan (Real)**"); render_bottleneck(bottleneck_scan(list(set(crl+crs)),prices,q,"CRYPTO"),"Crypto Bottleneck")
+        btl_crypto = _get_bottleneck_rows(list(set(crl+crs)), btl_result)
+        if btl_crypto:
+            st.markdown("**🎯 Bottleneck Scan (Real)**"); render_bottleneck(btl_crypto, "Crypto Bottleneck")
+        else:
+            st.caption("Bottleneck: No crypto tickers passed the unified gate.")
         st.divider(); st.markdown("**⛓️ On-Chain Alpha**")
         scanner=MCS()
         with st.spinner("⛓️ Scanning chains... ⏳ ~30s"):
@@ -1153,7 +1187,7 @@ with tabs[3]:
     st.divider()
     st.markdown("**🕰️ REGIME CONTEXT**")
     st.info(f"**Operating:** {op} | **Flip Hazard:** {q.get('flip_hazard',0):.0%} | **Deepness:** {q.get('deepness',0):.0%}")
-    st.caption("v15.0: Bottleneck scanner integrated. Supply chain + allocation + options fusion active.")
+    st.caption("v15.1: Bottleneck scanner v3.0 — real nodes only (AI/Semi/Energy/Comm/Crypto). FX & IHSG excluded.")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1185,6 +1219,7 @@ with tabs[4]:
             st.write(f"- Signals: {len(btl_result.get('enriched_signals', []))}")
             st.write(f"- Basket: {len(btl_result.get('basket', []))} names")
             st.write(f"- Demand themes: {list(btl_result.get('demand_pulse', {}).keys())}")
+            st.write(f"- Supply chain nodes: {len(SCANNER_TICKERS)}")
         else:
             st.warning("⚠️ Scanner returned None — check config/supply_chain.json exists")
     else:
@@ -1198,15 +1233,16 @@ with tabs[4]:
         ("VIX Source", "^VIX index" if vix>15 else "VIXY proxy"),
         ("TRR/LRR Engine", "✅ Active"),
         ("On-Chain Scanner", "✅ Active"),
-        ("Bottleneck Scanner", "✅ Active" if SCANNER_AVAILABLE and btl_result else "❌ Failed"),
+        ("Bottleneck Scanner", "✅ Active v3" if SCANNER_AVAILABLE and btl_result else "❌ Failed"),
         ("Options Convexity", "✅ Active" if SCANNER_AVAILABLE and btl_result and any(e.get('options_signal') for e in btl_result.get('enriched_signals', [])) else "⚠️ No signals"),
         ("External Config", "✅ ./config/supply_chain.json" if os.path.exists("./config/supply_chain.json") else "❌ Missing"),
+        ("Scanner Nodes", f"{len(SCANNER_TICKERS)} real bottleneck nodes" if SCANNER_AVAILABLE else "❌ N/A"),
     ]
     st.dataframe(pd.DataFrame(dq_rows, columns=["Check","Status"]), use_container_width=True, hide_index=True)
     st.divider()
     st.markdown("**📋 FRED DEBUG**")
-    st.caption("v15.0: ISM primary NAPM, fallback NAPMSISM. If still missing, check FRED API limits or series availability.")
+    st.caption("v15.1: ISM primary NAPM, fallback NAPMSISM, proxy XLI if both missing.")
     if st.toggle("Show FRED series map", False):
         st.json(FRED_SERIES)
 
-st.caption(f"MacroRegime Pro v15.0 · Built {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC · God Mode")
+st.caption(f"MacroRegime Pro v15.1 · Built {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC · God Mode")

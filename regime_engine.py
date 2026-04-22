@@ -15,7 +15,7 @@ import numpy as np
 import streamlit as st
 
 FRED_BASE = "https://api.stlouisfed.org/fred"
-CACHE_FILE = "/tmp/regime_cache_v2.pkl"
+CACHE_FILE = "/tmp/regime_cache_v3.pkl"  # v3 to bust old cache
 MAX_RETRIES = 3
 REQUEST_TIMEOUT = 15
 
@@ -148,40 +148,90 @@ def trend_direction(series: pd.Series, threshold: float = 0.03) -> str:
         return "decelerating"
     return "stable"
 
-def monthly_level_momentum(level_series: pd.Series) -> str:
+def monthly_momentum(yoy_series: pd.Series, level_series: pd.Series) -> tuple[str, dict]:
     """
-    CRITICAL FIX for Monthly signal.
+    CRITICAL FIX v3: Monthly momentum using MoM pace comparison.
     
-    Monthly must use LEVEL momentum (not YoY) to avoid 12-month base effects.
-    Compares 3-month % change vs 6-month % change of the raw index.
-    If 3m > 6m → momentum picking up → accelerating.
-    Includes 1-month secondary check for extra sensitivity.
+    Problem with v2 (level 3m vs 6m): for monotonically increasing indices like CPI/PCE,
+    chg_6m is ALWAYS larger than chg_3m, forcing permanent "decelerating".
+    
+    Solution: Compare Month-over-Month % change pace.
+    - mom_3m_avg = average monthly change over last 3 months
+    - mom_6m_avg = average monthly change over last 6 months
+    - If recent pace > longer pace → accelerating (spending/prices heating up)
+    
+    Triple confirmation:
+    1. MoM 3m avg vs 6m avg (primary, highest weight)
+    2. YoY 1m vs 3m avg (catches base-effect inflection)
+    3. YoY recent 3m vs prior 3m (catches sustained shift)
     """
-    if len(level_series) < 6:
-        return "stable"
+    debug = {}
     
-    # Primary: 3-month vs 6-month level change
-    chg_3m = (level_series.iloc[-1] / level_series.iloc[-3] - 1) * 100
-    chg_6m = (level_series.iloc[-1] / level_series.iloc[-6] - 1) * 100
+    if len(yoy_series) < 6 or len(level_series) < 6:
+        return "stable", debug
     
-    # Tight threshold for monthly (more sensitive than structural)
-    if chg_3m > chg_6m + 0.05:
-        trend = "accelerating"
-    elif chg_3m < chg_6m - 0.05:
-        trend = "decelerating"
+    # --- Layer 1: MoM Pace (PRIMARY) ---
+    # pct_change() gives month-over-month % change
+    mom = level_series.pct_change() * 100.0
+    mom_3m = float(mom.iloc[-3:].mean())
+    mom_6m = float(mom.iloc[-6:].mean())
+    
+    debug['mom_3m_avg'] = round(mom_3m, 3)
+    debug['mom_6m_avg'] = round(mom_6m, 3)
+    debug['mom_diff'] = round(mom_3m - mom_6m, 3)
+    
+    # --- Layer 2: YoY 1m vs 3m avg (SECONDARY) ---
+    yoy_1m = float(yoy_series.iloc[-1])
+    yoy_3m_avg = float(yoy_series.iloc[-3:].mean())
+    yoy_3m_prior = float(yoy_series.iloc[-6:-3].mean())
+    
+    debug['yoy_1m'] = round(yoy_1m, 2)
+    debug['yoy_3m_avg'] = round(yoy_3m_avg, 2)
+    debug['yoy_3m_prior'] = round(yoy_3m_prior, 2)
+    
+    # --- Scoring ---
+    accel_score = 0
+    decel_score = 0
+    
+    # MoM pace (weight 2)
+    if mom_3m > mom_6m + 0.02:
+        accel_score += 2
+        debug['mom_signal'] = 'accelerating'
+    elif mom_3m < mom_6m - 0.02:
+        decel_score += 2
+        debug['mom_signal'] = 'decelerating'
     else:
-        trend = "stable"
+        debug['mom_signal'] = 'stable'
     
-    # Secondary: 1-month vs 2-month momentum for micro-bounces
-    if trend == "stable" and len(level_series) >= 3:
-        chg_1m = (level_series.iloc[-1] / level_series.iloc[-2] - 1) * 100
-        chg_2m = (level_series.iloc[-2] / level_series.iloc[-3] - 1) * 100
-        if chg_1m > chg_2m + 0.02:
-            trend = "accelerating"
-        elif chg_1m < chg_2m - 0.02:
-            trend = "decelerating"
+    # YoY 1m vs 3m avg (weight 1)
+    if yoy_1m > yoy_3m_avg + 0.05:
+        accel_score += 1
+        debug['yoy1m_signal'] = 'accelerating'
+    elif yoy_1m < yoy_3m_avg - 0.05:
+        decel_score += 1
+        debug['yoy1m_signal'] = 'decelerating'
+    else:
+        debug['yoy1m_signal'] = 'stable'
     
-    return trend
+    # YoY recent 3m vs prior 3m (weight 1)
+    if yoy_3m_avg > yoy_3m_prior + 0.05:
+        accel_score += 1
+        debug['yoy3m_signal'] = 'accelerating'
+    elif yoy_3m_avg < yoy_3m_prior - 0.05:
+        decel_score += 1
+        debug['yoy3m_signal'] = 'decelerating'
+    else:
+        debug['yoy3m_signal'] = 'stable'
+    
+    debug['accel_score'] = accel_score
+    debug['decel_score'] = decel_score
+    
+    # Decision: need 2+ points to confirm direction
+    if accel_score >= 2:
+        return "accelerating", debug
+    elif decel_score >= 2:
+        return "decelerating", debug
+    return "stable", debug
 
 def assign_quad(growth_trend: str, inflation_trend: str, 
                 growth_val: float = None, infl_val: float = None) -> str:
@@ -223,6 +273,13 @@ def assign_quad(growth_trend: str, inflation_trend: str,
     return "Q2"
 
 def calculate_regime() -> Dict:
+    # Bust cache v2
+    if os.path.exists("/tmp/regime_cache_v2.pkl"):
+        try:
+            os.remove("/tmp/regime_cache_v2.pkl")
+        except Exception:
+            pass
+    
     cached = None
     if os.path.exists(CACHE_FILE):
         try:
@@ -294,9 +351,10 @@ def calculate_regime() -> Dict:
     # STRUCTURAL: 6-month regression slope of YoY (medium-term trend)
     structural_quad = assign_quad(growth_trend, infl_trend, growth_val, infl_val)
     
-    # MONTHLY: LEVEL momentum — 3m vs 6m change of raw index (avoids 12mo base effect)
-    # CRITICAL FIX: was using YoY 1m vs 3m avg, which is blind to near-term level bounces
+    # MONTHLY: MoM pace momentum (v3 fix)
+    # Uses month-over-month % change pace, NOT level total return
     monthly_quad = structural_quad
+    monthly_debug = {}
     if source == 'fred':
         pce_series = fred.get('real_pce')
         cpi_series = fred.get('cpi')
@@ -304,14 +362,20 @@ def calculate_regime() -> Dict:
             cpi_series = fred.get('core_cpi')
         
         if pce_series is not None and len(pce_series) >= 6:
-            monthly_growth = monthly_level_momentum(pce_series)
+            pce_yoy = yoy_roc(pce_series)
+            monthly_growth, g_debug = monthly_momentum(pce_yoy, pce_series)
+            monthly_debug['growth'] = g_debug
         else:
             monthly_growth = growth_trend
+            monthly_debug['growth'] = {'error': 'insufficient data'}
         
         if cpi_series is not None and len(cpi_series) >= 6:
-            monthly_infl = monthly_level_momentum(cpi_series)
+            cpi_yoy = yoy_roc(cpi_series)
+            monthly_infl, i_debug = monthly_momentum(cpi_yoy, cpi_series)
+            monthly_debug['inflation'] = i_debug
         else:
             monthly_infl = infl_trend
+            monthly_debug['inflation'] = {'error': 'insufficient data'}
         
         monthly_quad = assign_quad(monthly_growth, monthly_infl, growth_val, infl_val)
     
@@ -369,6 +433,7 @@ def calculate_regime() -> Dict:
         'fred_loaded': len(fred) if source == 'fred' else 0,
         'fred_missing': len(FRED_SERIES) - len(fred) if source == 'fred' else len(FRED_SERIES),
         'operating_regime': regime_text,
+        'monthly_debug': monthly_debug,
         'timestamp': datetime.now().isoformat(),
     }
     

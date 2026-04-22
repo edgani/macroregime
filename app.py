@@ -1119,7 +1119,7 @@ with tabs[1]:
         if btl_crypto:
             st.markdown("**🎯 Bottleneck Scan (Real)**"); render_bottleneck(btl_crypto, "Crypto Bottleneck")
         else:
-            st.caption("Bottleneck: No crypto tickers passed the unified gate.")
+            st.info("ℹ️ **Bottleneck Scan N/A for Crypto** — BTC/ETH/SOL lack manufacturing supply chain. Use TRR/LRR + On-Chain Alpha instead.")
         st.divider(); st.markdown("**⛓️ On-Chain Alpha**")
         scanner=MCS()
         with st.spinner("⛓️ Scanning chains... ⏳ ~30s"):
@@ -1236,7 +1236,7 @@ with tabs[4]:
         ("Bottleneck Scanner", "✅ Active v3" if SCANNER_AVAILABLE and btl_result else "❌ Failed"),
         ("Options Convexity", "✅ Active" if SCANNER_AVAILABLE and btl_result and any(e.get('options_signal') for e in btl_result.get('enriched_signals', [])) else "⚠️ No signals"),
         ("External Config", "✅ ./config/supply_chain.json" if os.path.exists("./config/supply_chain.json") else "❌ Missing"),
-        ("Scanner Nodes", f"{len(SCANNER_TICKERS)} real bottleneck nodes" if SCANNER_AVAILABLE else "❌ N/A"),
+        ("Scanner Nodes", f"{len(SCANNER_TICKERS)} total (18 real + {len(SCANNER_TICKERS)-18} generic)" if SCANNER_AVAILABLE else "❌ N/A"),
     ]
     st.dataframe(pd.DataFrame(dq_rows, columns=["Check","Status"]), use_container_width=True, hide_index=True)
     st.divider()

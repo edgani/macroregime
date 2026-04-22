@@ -1,14 +1,14 @@
 {
   "_meta": {
-    "version": "3.0",
+    "version": "4.0",
     "last_updated": "2026-04-23",
-    "description": "Real bottleneck nodes only. No FX, no IHSG banks, no generic consumer. Manufacturing constraint + supply deficit + capacity allocation.",
+    "description": "All tickers mapped. Real bottleneck for manufacturing (AI/Semi/Energy/Comm). Generic proxy for others.",
     "thresholds": {
       "capacity_util": 0.9,
       "demand_growth": 1.5,
       "lead_time_weeks": 20
     },
-    "note": "FX and IHSG are excluded from bottleneck scan — they lack manufacturing supply chain constraints. Use TRR/LRR and regime gate for those markets."
+    "note": "Crypto excluded from bottleneck — no manufacturing constraint. Use TRR/LRR + on-chain instead."
   },
   "nodes": {
     "NVDA": {
@@ -26,8 +26,7 @@
         "lead_time_weeks": 24,
         "tags": [
           "hbm_exposure",
-          "blackwell",
-          "ai_training"
+          "blackwell"
         ]
       }
     },
@@ -64,8 +63,7 @@
         "allocation_tier": "priority",
         "lead_time_weeks": 18,
         "tags": [
-          "custom_asic",
-          "vmware"
+          "custom_asic"
         ]
       }
     },
@@ -90,8 +88,7 @@
         "lead_time_weeks": 32,
         "tags": [
           "cowos_exposure",
-          "3nm",
-          "foundry_king"
+          "3nm"
         ]
       }
     },
@@ -109,8 +106,7 @@
         "allocation_tier": "priority",
         "lead_time_weeks": 16,
         "tags": [
-          "cowos_exposure",
-          "etch_deposition"
+          "cowos_exposure"
         ]
       }
     },
@@ -128,8 +124,7 @@
         "allocation_tier": "priority",
         "lead_time_weeks": 14,
         "tags": [
-          "cowos_exposure",
-          "etch"
+          "cowos_exposure"
         ]
       }
     },
@@ -147,8 +142,7 @@
         "allocation_tier": "standard",
         "lead_time_weeks": 12,
         "tags": [
-          "inspection",
-          "metrology"
+          "inspection"
         ]
       }
     },
@@ -168,8 +162,7 @@
         "lead_time_weeks": 22,
         "tags": [
           "hbm_exposure",
-          "hbm3e",
-          "memory"
+          "hbm3e"
         ]
       }
     },
@@ -208,8 +201,7 @@
         "lead_time_weeks": 28,
         "tags": [
           "data_center_power",
-          "nuclear_renewal",
-          "texas_grid"
+          "nuclear_renewal"
         ]
       }
     },
@@ -225,9 +217,7 @@
         "allocation_tier": "standard",
         "lead_time_weeks": 20,
         "tags": [
-          "renewable_grid",
-          "florida",
-          "solar_wind"
+          "renewable_grid"
         ]
       }
     },
@@ -244,8 +234,7 @@
         "lead_time_weeks": 14,
         "tags": [
           "mining",
-          "infrastructure",
-          "replacement_cycle"
+          "infrastructure"
         ]
       }
     },
@@ -262,8 +251,7 @@
         "lead_time_weeks": 4,
         "tags": [
           "safe_haven",
-          "central_bank_buying",
-          "mining_constraint"
+          "central_bank_buying"
         ]
       }
     },
@@ -280,8 +268,7 @@
         "lead_time_weeks": 4,
         "tags": [
           "industrial",
-          "solar_demand",
-          "supply_deficit"
+          "solar_demand"
         ]
       }
     },
@@ -298,9 +285,7 @@
         "lead_time_weeks": 6,
         "tags": [
           "electrification",
-          "ev_grid",
-          "supply_deficit",
-          "grade_decline"
+          "supply_deficit"
         ]
       }
     },
@@ -317,8 +302,7 @@
         "lead_time_weeks": 2,
         "tags": [
           "opec",
-          "geopolitical",
-          "shale_maturity"
+          "geopolitical"
         ]
       }
     },
@@ -334,8 +318,7 @@
         "allocation_tier": "standard",
         "lead_time_weeks": 3,
         "tags": [
-          "lng_export",
-          "data_center_demand"
+          "lng_export"
         ]
       }
     },
@@ -353,8 +336,542 @@
         "allocation_tier": "standard",
         "lead_time_weeks": 0,
         "tags": [
-          "shale_production",
-          "capex_cycle"
+          "shale_production"
+        ]
+      }
+    },
+    "IWM": {
+      "name": "Russell 2000",
+      "sector": "US_Equity",
+      "layer": "asset",
+      "inputs": [],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.5,
+        "demand_growth": 0.5,
+        "allocation_tier": "standard",
+        "lead_time_weeks": 0,
+        "tags": [
+          "small_cap_breadth"
+        ]
+      }
+    },
+    "XLK": {
+      "name": "Tech Sector",
+      "sector": "US_Equity",
+      "layer": "asset",
+      "inputs": [],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.55,
+        "demand_growth": 0.6,
+        "allocation_tier": "standard",
+        "lead_time_weeks": 0,
+        "tags": [
+          "sector_rotation"
+        ]
+      }
+    },
+    "XLF": {
+      "name": "Financial Sector",
+      "sector": "US_Equity",
+      "layer": "asset",
+      "inputs": [],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.52,
+        "demand_growth": 0.5,
+        "allocation_tier": "standard",
+        "lead_time_weeks": 0,
+        "tags": [
+          "rate_sensitive"
+        ]
+      }
+    },
+    "XLI": {
+      "name": "Industrial Sector",
+      "sector": "US_Equity",
+      "layer": "asset",
+      "inputs": [],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.54,
+        "demand_growth": 0.5,
+        "allocation_tier": "standard",
+        "lead_time_weeks": 0,
+        "tags": [
+          "ism_proxy"
+        ]
+      }
+    },
+    "XLY": {
+      "name": "Consumer Disc",
+      "sector": "US_Equity",
+      "layer": "asset",
+      "inputs": [],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.5,
+        "demand_growth": 0.4,
+        "allocation_tier": "standard",
+        "lead_time_weeks": 0,
+        "tags": [
+          "discretionary"
+        ]
+      }
+    },
+    "XLP": {
+      "name": "Consumer Staples",
+      "sector": "US_Equity",
+      "layer": "asset",
+      "inputs": [],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.48,
+        "demand_growth": 0.3,
+        "allocation_tier": "standard",
+        "lead_time_weeks": 0,
+        "tags": [
+          "defensive"
+        ]
+      }
+    },
+    "XLU": {
+      "name": "Utilities",
+      "sector": "US_Equity",
+      "layer": "asset",
+      "inputs": [],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.55,
+        "demand_growth": 0.5,
+        "allocation_tier": "standard",
+        "lead_time_weeks": 0,
+        "tags": [
+          "rate_sensitive"
+        ]
+      }
+    },
+    "XLRE": {
+      "name": "REITs",
+      "sector": "US_Equity",
+      "layer": "asset",
+      "inputs": [],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.5,
+        "demand_growth": 0.4,
+        "allocation_tier": "standard",
+        "lead_time_weeks": 0,
+        "tags": [
+          "rate_sensitive"
+        ]
+      }
+    },
+    "XLB": {
+      "name": "Materials",
+      "sector": "US_Equity",
+      "layer": "asset",
+      "inputs": [],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.53,
+        "demand_growth": 0.5,
+        "allocation_tier": "standard",
+        "lead_time_weeks": 0,
+        "tags": [
+          "commodity_proxy"
+        ]
+      }
+    },
+    "XLV": {
+      "name": "Health Care",
+      "sector": "US_Equity",
+      "layer": "asset",
+      "inputs": [],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.5,
+        "demand_growth": 0.4,
+        "allocation_tier": "standard",
+        "lead_time_weeks": 0,
+        "tags": [
+          "defensive"
+        ]
+      }
+    },
+    "TLT": {
+      "name": "Long Bond",
+      "sector": "US_Equity",
+      "layer": "asset",
+      "inputs": [],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.5,
+        "demand_growth": 0.4,
+        "allocation_tier": "standard",
+        "lead_time_weeks": 0,
+        "tags": [
+          "duration"
+        ]
+      }
+    },
+    "GLD": {
+      "name": "SPDR Gold",
+      "sector": "Commodity",
+      "layer": "downstream",
+      "inputs": [
+        "GC=F"
+      ],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.9,
+        "demand_growth": 1.2,
+        "allocation_tier": "priority",
+        "lead_time_weeks": 0,
+        "tags": [
+          "etf_flow"
+        ]
+      }
+    },
+    "SLV": {
+      "name": "iShares Silver",
+      "sector": "Commodity",
+      "layer": "downstream",
+      "inputs": [
+        "SI=F"
+      ],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.85,
+        "demand_growth": 1.1,
+        "allocation_tier": "standard",
+        "lead_time_weeks": 0,
+        "tags": [
+          "industrial_metal"
+        ]
+      }
+    },
+    "HII": {
+      "name": "Huntington Ingalls",
+      "sector": "Industrials",
+      "layer": "downstream",
+      "inputs": [],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.75,
+        "demand_growth": 0.8,
+        "allocation_tier": "standard",
+        "lead_time_weeks": 12,
+        "tags": [
+          "defense"
+        ]
+      }
+    },
+    "UPS": {
+      "name": "UPS",
+      "sector": "Industrials",
+      "layer": "downstream",
+      "inputs": [],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.8,
+        "demand_growth": 0.9,
+        "allocation_tier": "standard",
+        "lead_time_weeks": 6,
+        "tags": [
+          "logistics"
+        ]
+      }
+    },
+    "MAR": {
+      "name": "Marriott",
+      "sector": "Consumer",
+      "layer": "downstream",
+      "inputs": [],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.84,
+        "demand_growth": 1.2,
+        "allocation_tier": "standard",
+        "lead_time_weeks": 4,
+        "tags": [
+          "travel_recovery"
+        ]
+      }
+    },
+    "SBUX": {
+      "name": "Starbucks",
+      "sector": "Consumer",
+      "layer": "downstream",
+      "inputs": [],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.76,
+        "demand_growth": 0.8,
+        "allocation_tier": "standard",
+        "lead_time_weeks": 4,
+        "tags": [
+          "china_exposure"
+        ]
+      }
+    },
+    "PEP": {
+      "name": "Pepsi",
+      "sector": "Consumer",
+      "layer": "downstream",
+      "inputs": [],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.72,
+        "demand_growth": 0.7,
+        "allocation_tier": "standard",
+        "lead_time_weeks": 3,
+        "tags": [
+          "defensive"
+        ]
+      }
+    },
+    "WMB": {
+      "name": "Williams",
+      "sector": "Energy",
+      "layer": "midstream",
+      "inputs": [],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.8,
+        "demand_growth": 0.9,
+        "allocation_tier": "standard",
+        "lead_time_weeks": 8,
+        "tags": [
+          "pipeline"
+        ]
+      }
+    },
+    "ET": {
+      "name": "Energy Transfer",
+      "sector": "Energy",
+      "layer": "midstream",
+      "inputs": [],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.82,
+        "demand_growth": 0.8,
+        "allocation_tier": "standard",
+        "lead_time_weeks": 8,
+        "tags": [
+          "pipeline"
+        ]
+      }
+    },
+    "COAL": {
+      "name": "Coal",
+      "sector": "Commodity",
+      "layer": "asset",
+      "inputs": [],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.7,
+        "demand_growth": 0.6,
+        "allocation_tier": "standard",
+        "lead_time_weeks": 4,
+        "tags": [
+          "energy_transition"
+        ]
+      }
+    },
+    "BBCA.JK": {
+      "name": "Bank BCA",
+      "sector": "Finance",
+      "layer": "downstream",
+      "inputs": [],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.88,
+        "demand_growth": 1.4,
+        "allocation_tier": "priority",
+        "lead_time_weeks": 0,
+        "tags": [
+          "digital_bank",
+          "nims_expansion"
+        ]
+      }
+    },
+    "BBRI.JK": {
+      "name": "Bank BRI",
+      "sector": "Finance",
+      "layer": "downstream",
+      "inputs": [],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.86,
+        "demand_growth": 1.3,
+        "allocation_tier": "priority",
+        "lead_time_weeks": 0,
+        "tags": [
+          "micro_credit"
+        ]
+      }
+    },
+    "TLKM.JK": {
+      "name": "Telkom Indonesia",
+      "sector": "Infra",
+      "layer": "downstream",
+      "inputs": [],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.82,
+        "demand_growth": 1.1,
+        "allocation_tier": "standard",
+        "lead_time_weeks": 0,
+        "tags": [
+          "data_center"
+        ]
+      }
+    },
+    "ASII.JK": {
+      "name": "Astra International",
+      "sector": "Industrials",
+      "layer": "downstream",
+      "inputs": [],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.8,
+        "demand_growth": 1.0,
+        "allocation_tier": "standard",
+        "lead_time_weeks": 0,
+        "tags": [
+          "auto_cycle"
+        ]
+      }
+    },
+    "UNVR.JK": {
+      "name": "Unilever Indonesia",
+      "sector": "Consumer",
+      "layer": "downstream",
+      "inputs": [],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.75,
+        "demand_growth": 0.8,
+        "allocation_tier": "standard",
+        "lead_time_weeks": 0,
+        "tags": [
+          "staples"
+        ]
+      }
+    },
+    "INDF.JK": {
+      "name": "Indofood",
+      "sector": "Consumer",
+      "layer": "downstream",
+      "inputs": [],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.78,
+        "demand_growth": 0.9,
+        "allocation_tier": "standard",
+        "lead_time_weeks": 0,
+        "tags": [
+          "food_security"
+        ]
+      }
+    },
+    "KLBF.JK": {
+      "name": "Kalbe Farma",
+      "sector": "Health",
+      "layer": "downstream",
+      "inputs": [],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.8,
+        "demand_growth": 1.1,
+        "allocation_tier": "standard",
+        "lead_time_weeks": 0,
+        "tags": [
+          "pharma"
+        ]
+      }
+    },
+    "USDJPY=X": {
+      "name": "USD/JPY",
+      "sector": "FX",
+      "layer": "asset",
+      "inputs": [],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.5,
+        "demand_growth": 0.5,
+        "allocation_tier": "standard",
+        "lead_time_weeks": 0,
+        "tags": [
+          "carry_trade"
+        ]
+      }
+    },
+    "EURUSD=X": {
+      "name": "EUR/USD",
+      "sector": "FX",
+      "layer": "asset",
+      "inputs": [],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.5,
+        "demand_growth": 0.5,
+        "allocation_tier": "standard",
+        "lead_time_weeks": 0,
+        "tags": [
+          "ecb_policy"
+        ]
+      }
+    },
+    "AUDUSD=X": {
+      "name": "AUD/USD",
+      "sector": "FX",
+      "layer": "asset",
+      "inputs": [],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.5,
+        "demand_growth": 0.5,
+        "allocation_tier": "standard",
+        "lead_time_weeks": 0,
+        "tags": [
+          "commodity_proxy"
+        ]
+      }
+    },
+    "UUP": {
+      "name": "Dollar Index",
+      "sector": "FX",
+      "layer": "asset",
+      "inputs": [],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.55,
+        "demand_growth": 0.6,
+        "allocation_tier": "standard",
+        "lead_time_weeks": 0,
+        "tags": [
+          "fed_policy"
+        ]
+      }
+    },
+    "YCS": {
+      "name": "Short Yen ETF",
+      "sector": "FX",
+      "layer": "downstream",
+      "inputs": [
+        "USDJPY=X"
+      ],
+      "outputs": [],
+      "bottleneck_indicators": {
+        "capacity_util": 0.6,
+        "demand_growth": 0.7,
+        "allocation_tier": "standard",
+        "lead_time_weeks": 0,
+        "tags": [
+          "yen_weakness"
         ]
       }
     },
@@ -368,14 +885,13 @@
         "IBIT"
       ],
       "bottleneck_indicators": {
-        "capacity_util": 0.75,
-        "demand_growth": 1.2,
+        "capacity_util": 0.5,
+        "demand_growth": 0.5,
         "allocation_tier": "standard",
         "lead_time_weeks": 0,
         "tags": [
           "halving",
-          "etf_flow",
-          "institutional"
+          "etf_flow"
         ]
       }
     },
@@ -388,14 +904,13 @@
         "COIN"
       ],
       "bottleneck_indicators": {
-        "capacity_util": 0.7,
-        "demand_growth": 0.9,
+        "capacity_util": 0.5,
+        "demand_growth": 0.5,
         "allocation_tier": "standard",
         "lead_time_weeks": 0,
         "tags": [
           "staking",
-          "l2",
-          "defi"
+          "l2"
         ]
       }
     },
@@ -406,14 +921,12 @@
       "inputs": [],
       "outputs": [],
       "bottleneck_indicators": {
-        "capacity_util": 0.72,
-        "demand_growth": 1.1,
+        "capacity_util": 0.5,
+        "demand_growth": 0.5,
         "allocation_tier": "standard",
         "lead_time_weeks": 0,
         "tags": [
-          "high_tps",
-          "meme_cycle",
-          "validator_decentralization"
+          "high_tps"
         ]
       }
     },
@@ -426,13 +939,12 @@
       ],
       "outputs": [],
       "bottleneck_indicators": {
-        "capacity_util": 0.95,
-        "demand_growth": 1.5,
-        "allocation_tier": "priority",
+        "capacity_util": 0.55,
+        "demand_growth": 0.6,
+        "allocation_tier": "standard",
         "lead_time_weeks": 0,
         "tags": [
-          "bitcoin_proxy",
-          "convertible_debt"
+          "bitcoin_proxy"
         ]
       }
     },
@@ -446,13 +958,12 @@
       ],
       "outputs": [],
       "bottleneck_indicators": {
-        "capacity_util": 0.85,
-        "demand_growth": 1.1,
+        "capacity_util": 0.5,
+        "demand_growth": 0.5,
         "allocation_tier": "standard",
         "lead_time_weeks": 0,
         "tags": [
-          "exchange",
-          "base_l2"
+          "exchange"
         ]
       }
     },
@@ -465,14 +976,12 @@
       ],
       "outputs": [],
       "bottleneck_indicators": {
-        "capacity_util": 0.9,
-        "demand_growth": 1.3,
-        "allocation_tier": "priority",
+        "capacity_util": 0.55,
+        "demand_growth": 0.6,
+        "allocation_tier": "standard",
         "lead_time_weeks": 0,
         "tags": [
-          "spot_etf",
-          "blackrock",
-          "flow_king"
+          "spot_etf"
         ]
       }
     }

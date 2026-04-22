@@ -1,5 +1,6 @@
 """
-regime_engine.py — Hedgeye GIP Model + Macro Pulse + Probabilities
+regime_engine.py v15.1 — Hedgeye GIP Model + Macro Pulse + Probabilities
+Fixes: FRED rate limit handling, backup series, longer timeouts
 Growth: Real PCE YoY | Inflation: Headline CPI YoY | Policy: DFF+DGS10+DXY
 v13.5 Fix: ISM fallback series + macro pulse units + fred_missing_keys
 """
@@ -13,14 +14,14 @@ logger = logging.getLogger(__name__)
 
 FRED_BASE = "https://api.stlouisfed.org/fred"
 MAX_RETRIES = 3
-TIMEOUT = 25
+TIMEOUT = 35
 
 FRED_SERIES = {
-    'real_pce': 'PCEC1', 'real_pce_dpi': 'DSPIC96',
+    'real_pce': 'PCEC1', 'real_pce_backup': 'PCE', 'real_pce_dpi': 'DSPIC96',
     'cpi': 'CPIAUCSL', 'core_cpi': 'CPILFESL',
     'fed_funds': 'DFF', 'treasury_10y': 'DGS10',
     'treasury_2y': 'DGS2', 'dxy': 'DTWEXBGS',
-    'ism_mfg': 'NAPM', 'ism_mfg_alt': 'NAPMSISM',
+    'ism_mfg': 'NAPM', 'ism_mfg_alt': 'NAPMSISM', 'ism_mfg_backup': 'ISM/MAN_PMI',
     'claims': 'ICSA', 'breakeven_10y': 'T10YIE',
 }
 FRED_SERIES_COUNT = len(FRED_SERIES)
@@ -42,7 +43,7 @@ def fetch_fred_series(sid: str, api_key: str) -> Optional[pd.Series]:
                 'series_id': sid, 'api_key': api_key, 'file_type': 'json',
                 'observation_start': '2019-01-01', 'sort_order': 'desc', 'limit': 500
             }, headers=headers, timeout=TIMEOUT)
-            if r.status_code == 429: time.sleep(2**attempt+1); continue
+            if r.status_code == 429: time.sleep(2**attempt + 3); continue
             if r.status_code != 200: 
                 logger.warning(f"FRED {sid} status {r.status_code}")
                 continue
@@ -77,7 +78,7 @@ def fetch_all_fred() -> Dict[str, pd.Series]:
     for name, sid in FRED_SERIES.items():
         s = fetch_fred_series(sid, key)
         if s is not None: out[name] = s
-        time.sleep(0.5)
+        time.sleep(1.2)  # v15.1: longer delay to avoid rate limit
     logger.info(f"FRED loaded: {len(out)}/{len(FRED_SERIES)} — {list(out.keys())}")
     return out
 
@@ -227,7 +228,7 @@ def calculate_regime() -> Dict:
         except: pass
 
     fred = fetch_all_fred()
-    has_pce = 'real_pce' in fred
+    has_pce = 'real_pce' in fred or 'real_pce_backup' in fred
     has_cpi = 'cpi' in fred or 'core_cpi' in fred
 
     if has_pce and has_cpi:
@@ -252,7 +253,7 @@ def calculate_regime() -> Dict:
     md = {}
 
     if has_pce and has_cpi:
-        pce = fred['real_pce']
+        pce = fred.get('real_pce') or fred.get('real_pce_backup')
         pce_yoy = yoy_roc(pce)
         growth_trend = trend_direction(pce_yoy)
         growth_val = float(pce_yoy.iloc[-1]) if len(pce_yoy)>0 else 0.0
@@ -269,12 +270,11 @@ def calculate_regime() -> Dict:
         ten_y = float(t10.iloc[-1]) if t10 is not None else 4.2
         confidence = 0.80 if len(fred) >= 6 else 0.65
 
-        ism = fred.get('ism_mfg')
-        if ism is None:
-            ism = fred.get('ism_mfg_alt')
+        ism = fred.get('ism_mfg') or fred.get('ism_mfg_alt') or fred.get('ism_mfg_backup')
         if ism is not None and len(ism) >= 2:
             macro_pulse['ism_delta'] = round(float(ism.iloc[-1] - ism.iloc[-2]), 1)
             macro_pulse['ism_now'] = round(float(ism.iloc[-1]), 1)
+            macro_pulse['ism_source'] = 'FRED'
         claims = fred.get('claims')
         if claims is not None and len(claims) >= 2:
             macro_pulse['claims_delta'] = round(float(claims.iloc[-1] - claims.iloc[-2]), 0)
@@ -286,8 +286,8 @@ def calculate_regime() -> Dict:
     elif len(fred) >= 5:
         source = 'fred_partial'
         confidence = 0.65
-        if 'real_pce' in fred:
-            pce = fred['real_pce']; pce_yoy = yoy_roc(pce)
+        if 'real_pce' in fred or 'real_pce_backup' in fred:
+            pce = fred.get('real_pce') or fred.get('real_pce_backup'); pce_yoy = yoy_roc(pce)
             growth_trend = trend_direction(pce_yoy)
             growth_val = float(pce_yoy.iloc[-1]) if len(pce_yoy)>0 else 0.0
         cpi = fred.get('cpi')
@@ -301,12 +301,11 @@ def calculate_regime() -> Dict:
         policy_rate = float(ff.iloc[-1]) if ff is not None else 4.5
         ten_y = float(t10.iloc[-1]) if t10 is not None else 4.2
 
-        ism = fred.get('ism_mfg')
-        if ism is None:
-            ism = fred.get('ism_mfg_alt')
+        ism = fred.get('ism_mfg') or fred.get('ism_mfg_alt') or fred.get('ism_mfg_backup')
         if ism is not None and len(ism) >= 2:
             macro_pulse['ism_delta'] = round(float(ism.iloc[-1] - ism.iloc[-2]), 1)
             macro_pulse['ism_now'] = round(float(ism.iloc[-1]), 1)
+            macro_pulse['ism_source'] = 'FRED'
         claims = fred.get('claims')
         if claims is not None and len(claims) >= 2:
             macro_pulse['claims_delta'] = round(float(claims.iloc[-1] - claims.iloc[-2]), 0)

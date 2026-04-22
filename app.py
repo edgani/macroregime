@@ -1,4 +1,4 @@
-"""MacroRegime Pro v11.6b — Standard Ticker Format (XAUUSD, USDJPY, etc.)"""
+"""MacroRegime Pro v11.6c — TRR/LRR Signal Layer Integrated"""
 import os
 import sys
 import glob
@@ -8,6 +8,7 @@ import logging
 import requests
 import numpy as np
 import pandas as pd
+import yfinance as yf
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional
 from dataclasses import dataclass
@@ -34,9 +35,392 @@ from ui.theme import _inject_theme
 
 _inject_theme()
 
-# =============================================================================
+# ═══════════════════════════════════════════════════════════════════════════════
+# MQA TRR/LRR ENGINE v6 — Pure Port dari Pine Script Section 5
+# ═══════════════════════════════════════════════════════════════════════════════
+
+TRR_PARAMS = {
+    'tradeLen': 15, 'trendLen': 63, 'tailLen': 756,
+    'rvLen': 20, 'normLen': 63, 'volRocLen': 5, 'atrLen': 14,
+    'tradeATRMult': 1.35, 'trendATRMult': 2.05, 'tailATRMult': 4.20,
+    'shockBoost': 0.22, 'trendShockBoost': 0.15, 'tailShockBoost': 0.12,
+    'tradeThresh': 0.20, 'tradeNeutralBand': 0.06,
+    'trendThresh': 0.14, 'trendNeutralBand': 0.05,
+    'tailThresh': 0.10, 'tailNeutralBand': 0.03,
+    'trendFreezeTF': 'M', 'tailFreezeTF': '3M',
+    'trendBreakATR': 0.50, 'tailBreakATR': 0.75,
+    'requireDoubleClose': True,
+    'stocksVolMult': 1.00, 'forexVolMult': 0.35,
+    'cryptoVolMult': 0.80, 'commodVolMult': 1.00,
+}
+
+def f_clip(x, lo, hi):
+    return np.clip(x, lo, hi)
+
+def f_clamp01(x):
+    return np.clip(x, 0.0, 1.0)
+
+def roc_s(series: pd.Series, length: int) -> pd.Series:
+    return (series / series.shift(length) - 1.0) * 100.0
+
+def z_score_s(series: pd.Series, length: int) -> pd.Series:
+    ma = series.rolling(length).mean()
+    sd = series.rolling(length).std()
+    out = pd.Series(0.0, index=series.index)
+    mask = sd.notna() & (sd != 0)
+    out[mask] = (series[mask] - ma[mask]) / sd[mask]
+    return out
+
+def eff_ratio_s(series: pd.Series, length: int) -> pd.Series:
+    den = series.diff().abs().rolling(length).sum()
+    num = series.diff(length).abs()
+    out = pd.Series(0.0, index=series.index)
+    mask = den.notna() & (den != 0)
+    out[mask] = num[mask] / den[mask]
+    return out
+
+def kama_s(series: pd.Series, er_len: int, fast: int, slow: int) -> pd.Series:
+    er = eff_ratio_s(series, er_len)
+    fsc = 2.0 / (fast + 1.0)
+    ssc = 2.0 / (slow + 1.0)
+    sc = np.power(er * (fsc - ssc) + ssc, 2.0)
+    out = pd.Series(np.nan, index=series.index)
+    out.iloc[0] = series.iloc[0]
+    for i in range(1, len(series)):
+        prev = out.iloc[i-1]
+        if np.isnan(prev) or np.isnan(sc.iloc[i]):
+            out.iloc[i] = series.iloc[i]
+        else:
+            out.iloc[i] = prev + sc.iloc[i] * (series.iloc[i] - prev)
+    return out
+
+def gk_bar_s(df: pd.DataFrame) -> pd.Series:
+    eps = 1e-10
+    h = np.maximum(df['High'], df['Open'] + eps)
+    l = np.maximum(df['Low'], eps)
+    o = np.maximum(df['Open'], eps)
+    c = np.maximum(df['Close'], eps)
+    return np.maximum(0.0, 0.5 * np.power(np.log(h / l), 2.0) - (2.0 * np.log(2.0) - 1.0) * np.power(np.log(c / o), 2.0))
+
+def atr_wilder_s(df: pd.DataFrame, length: int = 14) -> pd.Series:
+    high, low, close = df['High'], df['Low'], df['Close']
+    tr1 = high - low
+    tr2 = (high - close.shift(1)).abs()
+    tr3 = (low - close.shift(1)).abs()
+    tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+    return tr.ewm(alpha=1.0/length, adjust=False, min_periods=length).mean()
+
+def tf_reset_s(index: pd.DatetimeIndex, tf: str) -> pd.Series:
+    s = pd.Series(index, index=index)
+    shifted = s.shift(1)
+    if tf == 'W':
+        cur = s.dt.isocalendar().week
+        prev = shifted.dt.isocalendar().week
+        return pd.Series((cur != prev).fillna(False).values, index=index)
+    elif tf == 'M':
+        return pd.Series((s.dt.month != shifted.dt.month).fillna(False).values, index=index)
+    elif tf == '3M':
+        return pd.Series(((s.dt.month != shifted.dt.month) & (s.dt.month % 3 == 0)).fillna(False).values, index=index)
+    else:
+        return pd.Series((s.dt.year != shifted.dt.year).fillna(False).values, index=index)
+
+def state_hysteresis_s(score: float, th: float, neutral: float, prev: int) -> int:
+    if score > th: return 1
+    elif score < -th: return -1
+    elif abs(score) <= neutral: return 0
+    return int(prev)
+
+class TRRLRREngine:
+    def __init__(self, params: dict = TRR_PARAMS):
+        self.p = params
+
+    def calc_bundle(self, df: pd.DataFrame, vol_mult: float = 1.0) -> pd.DataFrame:
+        p = self.p
+        c = df['Close']; h, l, o = df['High'], df['Low'], df['Open']
+        v = df['Volume'].fillna(0)
+        atr14 = atr_wilder_s(df, p['atrLen'])
+        log_ret = np.log(c / c.shift(1))
+        rv_fast = log_ret.rolling(p['rvLen']).std() * np.sqrt(252.0)
+        rv_mid = log_ret.rolling(max(p['rvLen'] * 2, 30)).std() * np.sqrt(252.0)
+        rv_slow = log_ret.rolling(max(p['rvLen'] * 4, 60)).std() * np.sqrt(252.0)
+        tail_eff_len = max(63, min(p['tailLen'], 756))
+        trade_basis = kama_s(c, p['tradeLen'], 2, p['tradeLen'])
+        trend_basis = kama_s(c, p['trendLen'], 3, p['trendLen'])
+        tail_basis = kama_s(c, tail_eff_len, 5, tail_eff_len)
+        trade_roc = z_score_s(roc_s(c, p['tradeLen']), p['normLen'])
+        trend_roc = z_score_s(roc_s(c, p['trendLen']), p['normLen'])
+        tail_roc_raw = roc_s(c, 252).fillna(roc_s(c, 126)).fillna(roc_s(c, 63)).fillna(roc_s(c, 21)).fillna(0)
+        tail_roc = z_score_s(tail_roc_raw, p['normLen'])
+        trade_dist = z_score_s(((c / trade_basis.replace(0, np.nan)) - 1.0) * 100.0, p['normLen'])
+        trend_dist = z_score_s(((c / trend_basis.replace(0, np.nan)) - 1.0) * 100.0, p['normLen'])
+        tail_dist = z_score_s(((c / tail_basis.replace(0, np.nan)) - 1.0) * 100.0, p['normLen'])
+        trade_slope = z_score_s(roc_s(trade_basis, 3), p['normLen'])
+        trend_slope = z_score_s(roc_s(trend_basis, 10), p['normLen'])
+        tail_slope_raw = roc_s(tail_basis, 21).fillna(roc_s(tail_basis, 10)).fillna(roc_s(tail_basis, 5)).fillna(0)
+        tail_slope = z_score_s(tail_slope_raw, p['normLen'])
+        roc_vol = roc_s(v, p['volRocLen'])
+        trade_vol = z_score_s(roc_vol.ewm(span=2, adjust=False).mean(), p['normLen']) * vol_mult
+        trend_vol = z_score_s(roc_vol.ewm(span=5, adjust=False).mean(), p['normLen']) * vol_mult
+        tail_vol = z_score_s(roc_vol.ewm(span=10, adjust=False).mean(), p['normLen']) * vol_mult
+        trade_pers = z_score_s(eff_ratio_s(c, max(5, int(round(p['tradeLen'] * 0.7)))), p['normLen'])
+        trend_pers = z_score_s(eff_ratio_s(c, p['trendLen']), p['normLen'])
+        tail_pers_63 = z_score_s(eff_ratio_s(c, 63), p['normLen'])
+        tail_pers_21 = z_score_s(eff_ratio_s(c, 21), p['normLen'])
+        tail_pers = tail_pers_63.fillna(tail_pers_21).fillna(0.0)
+        rv_base_fast = rv_fast.rolling(50).mean().fillna(rv_fast)
+        rv_base_mid = rv_mid.rolling(50).mean().fillna(rv_mid)
+        rv_base_slow = rv_slow.rolling(50).mean().fillna(rv_slow)
+        vr_fast = pd.Series(np.where(rv_base_fast > 0, (rv_fast / rv_base_fast) - 1.0, 0.0), index=c.index)
+        vr_mid = pd.Series(np.where(rv_base_mid > 0, (rv_mid / rv_base_mid) - 1.0, 0.0), index=c.index)
+        vr_slow = pd.Series(np.where(rv_base_slow > 0, (rv_slow / rv_base_slow) - 1.0, 0.0), index=c.index)
+        trade_score = (0.30 * trade_roc + 0.24 * trade_slope + 0.18 * trade_dist + 0.14 * trade_pers + 0.10 * trade_vol - 0.08 * z_score_s(vr_fast, p['normLen']))
+        trend_score = (0.24 * trend_roc + 0.28 * trend_slope + 0.22 * trend_dist + 0.14 * trend_pers + 0.08 * trend_vol - 0.06 * z_score_s(vr_mid, p['normLen']))
+        tail_score = (0.18 * tail_roc + 0.30 * tail_slope + 0.24 * tail_dist + 0.16 * tail_pers + 0.06 * tail_vol - 0.04 * z_score_s(vr_slow, p['normLen']))
+        atr_pct = pd.Series(np.where(c != 0, atr14 / c, 0.0), index=c.index)
+        trade_shock = z_score_s(vr_fast + 0.60 * roc_s(atr_pct, 1), p['normLen'])
+        trend_shock = z_score_s(vr_mid + 0.45 * roc_s(atr_pct, 3), p['normLen'])
+        tail_shock = z_score_s(vr_slow + 0.30 * roc_s(atr_pct, 8), p['normLen'])
+        gk = gk_bar_s(df)
+        gk_rv = np.sqrt(np.maximum(gk.rolling(p['rvLen']).mean() * 252.0, 0.0))
+        gk_rv_base = gk_rv.rolling(50).mean().fillna(gk_rv)
+        gk_vov = gk_rv.rolling(max(p['rvLen'], 20)).std().fillna(0)
+        gk_vov_base = gk_vov.rolling(50).mean().fillna(np.maximum(gk_vov, 0.001))
+        bundle = pd.DataFrame({
+            'atr': atr14.shift(1),
+            'trdSc': trade_score.shift(1), 'trdShk': trade_shock.shift(1), 'trdBs': trade_basis.shift(1),
+            'trnSc': trend_score.shift(1), 'trnShk': trend_shock.shift(1), 'trnBs': trend_basis.shift(1),
+            'talSc': tail_score.shift(1),  'talShk': tail_shock.shift(1),  'talBs': tail_basis.shift(1),
+            'c1': c.shift(1), 'c2': c.shift(2),
+            'v1': v.shift(1), 'vsma1': v.rolling(20).mean().shift(1),
+            'gkRv': gk_rv.shift(1), 'gkRvBase': gk_rv_base.shift(1),
+            'gkVov': gk_vov.shift(1), 'gkVovBase': gk_vov_base.shift(1),
+        }, index=df.index)
+        return bundle
+
+    def calc_latest(self, df: pd.DataFrame, vol_mult: float = 1.0) -> Optional[dict]:
+        p = self.p
+        bundle = self.calc_bundle(df, vol_mult)
+        if len(bundle) < 300: return None
+        c = df['Close'].values
+        atr14_current = atr_wilder_s(df, 14).values
+        n = len(bundle)
+        atr = bundle['atr'].values; trdSc = bundle['trdSc'].values; trdShk = bundle['trdShk'].values; trdBs = bundle['trdBs'].values
+        trnSc = bundle['trnSc'].values; trnShk = bundle['trnShk'].values; trnBs = bundle['trnBs'].values
+        talSc = bundle['talSc'].values; talShk = bundle['talShk'].values; talBs = bundle['talBs'].values
+        gkRv = bundle['gkRv'].values; gkRvBase = bundle['gkRvBase'].values
+        gkVov = bundle['gkVov'].values; gkVovBase = bundle['gkVovBase'].values
+        trend_reset = tf_reset_s(df.index, p['trendFreezeTF']).values
+        tail_reset = tf_reset_s(df.index, p['tailFreezeTF']).values
+        trade_phase = np.zeros(n, dtype=int); trend_phase = np.zeros(n, dtype=int); tail_phase = np.zeros(n, dtype=int)
+        pub_trend_basis = np.full(n, np.nan); pub_trend_atr = np.full(n, np.nan)
+        pub_tail_basis = np.full(n, np.nan); pub_tail_atr = np.full(n, np.nan)
+        eff_trend_basis = np.full(n, np.nan); eff_tail_basis = np.full(n, np.nan)
+        trend_age = np.zeros(n, dtype=int); tail_age = np.zeros(n, dtype=int)
+        for i in range(n):
+            if i == 0:
+                pub_trend_basis[i] = trnBs[i] if not np.isnan(trnBs[i]) else c[i]
+                pub_trend_atr[i] = atr[i] if not np.isnan(atr[i]) else atr14_current[i]
+                pub_tail_basis[i] = talBs[i] if not np.isnan(talBs[i]) else c[i]
+                pub_tail_atr[i] = atr[i] if not np.isnan(atr[i]) else atr14_current[i]
+                continue
+            if trend_reset[i]:
+                pub_trend_basis[i] = trnBs[i] if not np.isnan(trnBs[i]) else c[i]
+                pub_trend_atr[i] = atr[i] if not np.isnan(atr[i]) else atr14_current[i]
+            else:
+                pub_trend_basis[i] = pub_trend_basis[i-1] if not np.isnan(pub_trend_basis[i-1]) else (trnBs[i] if not np.isnan(trnBs[i]) else c[i])
+                pub_trend_atr[i] = pub_trend_atr[i-1] if not np.isnan(pub_trend_atr[i-1]) else (atr[i] if not np.isnan(atr[i]) else atr14_current[i])
+            if tail_reset[i]:
+                pub_tail_basis[i] = talBs[i] if not np.isnan(talBs[i]) else c[i]
+                pub_tail_atr[i] = atr[i] if not np.isnan(atr[i]) else atr14_current[i]
+            else:
+                pub_tail_basis[i] = pub_tail_basis[i-1] if not np.isnan(pub_tail_basis[i-1]) else (talBs[i] if not np.isnan(talBs[i]) else c[i])
+                pub_tail_atr[i] = pub_tail_atr[i-1] if not np.isnan(pub_tail_atr[i-1]) else (atr[i] if not np.isnan(atr[i]) else atr14_current[i])
+            gk_rv_factor = f_clip(0.50 + 0.50 * (gkRv[i] / gkRvBase[i]), 0.65, 1.50) if gkRvBase[i] > 0 else 1.0
+            gk_vov_factor = f_clip(1.0 + 0.25 * max((gkVov[i] / gkVovBase[i]) - 1.0, 0.0), 1.0, 1.25) if gkVovBase[i] > 0 else 1.0
+            ptsw = 1.0 + p['shockBoost'] * max(trdShk[i], 0.0)
+            pre_trade_w = atr[i] * p['tradeATRMult'] * gk_rv_factor * gk_vov_factor * max(0.65, ptsw)
+            pre_trade_trr = trdBs[i] + pre_trade_w
+            pre_trade_lrr = max(trdBs[i] - pre_trade_w, 1e-10)
+            ptnsw = 1.0 + p['trendShockBoost'] * max(trnShk[i], 0.0)
+            pre_trend_w = max(pub_trend_atr[i], atr[i]) * p['trendATRMult'] * gk_rv_factor * gk_vov_factor * max(0.70, ptnsw)
+            pre_trend_trr = pub_trend_basis[i] + pre_trend_w
+            pre_trend_lrr = max(pub_trend_basis[i] - pre_trend_w, 1e-10)
+            ptlsW = 1.0 + p['tailShockBoost'] * max(talShk[i], 0.0)
+            pre_tail_w = max(pub_tail_atr[i], atr[i]) * p['tailATRMult'] * gk_rv_factor * gk_vov_factor * max(0.80, ptlsW)
+            pre_tail_trr = pub_tail_basis[i] + pre_tail_w
+            pre_tail_lrr = max(pub_tail_basis[i] - pre_tail_w, 1e-10)
+            raw_trade = state_hysteresis_s(trdSc[i], p['tradeThresh'], p['tradeNeutralBand'], trade_phase[i-1])
+            raw_trend = state_hysteresis_s(trnSc[i], p['trendThresh'], p['trendNeutralBand'], trend_phase[i-1])
+            raw_tail = state_hysteresis_s(talSc[i], p['tailThresh'], p['tailNeutralBand'], tail_phase[i-1])
+            tbu = c[i] > pre_trade_trr; tbd = c[i] < pre_trade_lrr
+            trade_phase[i] = 1 if tbu else (-1 if tbd else raw_trade)
+            ttu = c[i] > pre_trend_trr and trend_phase[i-1] <= 0
+            ttd = c[i] < pre_trend_lrr and trend_phase[i-1] >= 0
+            if ttu:
+                trend_phase[i] = 1; eff_trend_basis[i] = c[i]; pub_trend_atr[i] = atr14_current[i]
+            elif ttd:
+                trend_phase[i] = -1; eff_trend_basis[i] = c[i]; pub_trend_atr[i] = atr14_current[i]
+            else:
+                trend_phase[i] = raw_trend; eff_trend_basis[i] = eff_trend_basis[i-1] if not np.isnan(eff_trend_basis[i-1]) else pub_trend_basis[i]
+            tlu = c[i] > pre_tail_trr and tail_phase[i-1] <= 0
+            tld = c[i] < pre_tail_lrr and tail_phase[i-1] >= 0
+            if tlu:
+                tail_phase[i] = 1; eff_tail_basis[i] = c[i]; pub_tail_atr[i] = atr14_current[i]
+            elif tld:
+                tail_phase[i] = -1; eff_tail_basis[i] = c[i]; pub_tail_atr[i] = atr14_current[i]
+            else:
+                tail_phase[i] = raw_tail; eff_tail_basis[i] = eff_tail_basis[i-1] if not np.isnan(eff_tail_basis[i-1]) else pub_tail_basis[i]
+            trend_age[i] = 0 if (trend_reset[i] or ttu or ttd) else trend_age[i-1] + 1
+            tail_age[i] = 0 if (tail_reset[i] or tlu or tld) else tail_age[i-1] + 1
+        i = n - 1
+        use_trend_basis = eff_trend_basis[i] if not np.isnan(eff_trend_basis[i]) else pub_trend_basis[i]
+        use_tail_basis = eff_tail_basis[i] if not np.isnan(eff_tail_basis[i]) else pub_tail_basis[i]
+        final_trend_atr = max(pub_trend_atr[i], atr[i]); final_tail_atr = max(pub_tail_atr[i], atr[i])
+        tbb = 0.35 if (c[i] > pre_trade_trr or c[i] < pre_trade_lrr) else 0.0
+        trbb = 0.50 if (ttu or ttd) else 0.0
+        tlbb = 0.40 if (tlu or tld) else 0.0
+        gk_rv_factor = f_clip(0.50 + 0.50 * (gkRv[i] / gkRvBase[i]), 0.65, 1.50) if gkRvBase[i] > 0 else 1.0
+        gk_vov_factor = f_clip(1.0 + 0.25 * max((gkVov[i] / gkVovBase[i]) - 1.0, 0.0), 1.0, 1.25) if gkVovBase[i] > 0 else 1.0
+        tsw = 1.0 + (p['shockBoost'] + tbb) * max(trdShk[i], 0.0)
+        trade_w = atr[i] * p['tradeATRMult'] * gk_rv_factor * gk_vov_factor * max(0.65, tsw)
+        trade_trr = trdBs[i] + trade_w; trade_lrr = max(trdBs[i] - trade_w, 1e-10)
+        trsw = 1.0 + (p['trendShockBoost'] + trbb) * max(trnShk[i], 0.0)
+        trend_w = final_trend_atr * p['trendATRMult'] * gk_rv_factor * gk_vov_factor * max(0.70, trsw)
+        trend_trr = use_trend_basis + trend_w; trend_lrr = max(use_trend_basis - trend_w, 1e-10)
+        tlsw = 1.0 + (p['tailShockBoost'] + tlbb) * max(talShk[i], 0.0)
+        tail_w = final_tail_atr * p['tailATRMult'] * gk_rv_factor * gk_vov_factor * max(0.80, tlsw)
+        tail_trr = use_tail_basis + tail_w; tail_lrr = max(use_tail_basis - tail_w, 1e-10)
+        c_series = df['Close']
+        abs_chg = c_series.diff().abs()
+        er_den = abs_chg.rolling(20).sum()
+        er_val = pd.Series(np.where(er_den == 0, 0.0, c_series.diff(20).abs() / er_den), index=df.index)
+        idx0 = pd.Series(range(len(df)), index=df.index)
+        corr = c_series.rolling(30).corr(idx0)
+        r2 = pd.Series(np.where(np.isnan(corr), 0.0, corr ** 2), index=df.index)
+        adx_proxy = abs_chg.rolling(14).mean() / (df['High'] - df['Low']).rolling(14).mean().replace(0, np.nan)
+        adx_norm = f_clip((adx_proxy.iloc[-1] - 12.0) / 28.0, 0.0, 1.0)
+        er_norm = f_clip(er_val.iloc[-1], 0.0, 1.0)
+        r2_norm = f_clip(r2.iloc[-1], 0.0, 1.0)
+        quality_score = 100.0 * (0.45 * adx_norm + 0.35 * er_norm + 0.20 * r2_norm)
+        atr_pct_vals = np.where(c_series.values != 0, (bundle['atr'].values / c_series.values) * 100.0, 0.0)
+        atr_pct_ser = pd.Series(atr_pct_vals, index=df.index)
+        atr_pct_base = atr_pct_ser.rolling(50).mean().fillna(atr_pct_ser)
+        act_atr = f_clamp01(atr_pct_ser.iloc[-1] / (atr_pct_base.iloc[-1] * 1.25)) if atr_pct_base.iloc[-1] > 0 else 0.5
+        rv_now = np.log(c_series / c_series.shift(1)).rolling(p['rvLen']).std() * np.sqrt(252.0)
+        rv_base = rv_now.rolling(50).mean().fillna(rv_now)
+        act_rv = f_clamp01(rv_now.iloc[-1] / (rv_base.iloc[-1] * 1.20)) if rv_base.iloc[-1] > 0 else 0.5
+        vol_base20 = df['Volume'].rolling(20).mean().fillna(df['Volume'])
+        act_vol_raw = f_clamp01(df['Volume'].iloc[-1] / (vol_base20.iloc[-1] * 1.35)) if vol_base20.iloc[-1] > 0 else 0.5
+        act_vol = 0.35 + 0.65 * act_vol_raw * vol_mult
+        activity_score = 100.0 * f_clip(0.42 * act_atr + 0.43 * act_rv + 0.15 * act_vol, 0.0, 1.0)
+        compression_score = 100.0 * f_clip(1.0 - (0.50 * act_atr + 0.38 * act_rv + 0.12 * act_vol), 0.0, 1.0)
+        vol_regime_confirm = gkVov[i] > gkVovBase[i] * 1.30
+        return {
+            'tradeTRR': float(trade_trr), 'tradeLRR': float(trade_lrr),
+            'trendTRR': float(trend_trr), 'trendLRR': float(trend_lrr),
+            'tailTRR': float(tail_trr), 'tailLRR': float(tail_lrr),
+            'tradePhase': int(trade_phase[i]), 'trendPhase': int(trend_phase[i]), 'tailPhase': int(tail_phase[i]),
+            'trendTransUp': bool(ttu), 'trendTransDown': bool(ttd),
+            'tailTransUp': bool(tlu), 'tailTransDown': bool(tld),
+            'tradeBreakUp': bool(c[i] > trade_trr), 'tradeBreakDown': bool(c[i] < trade_lrr),
+            'trendAge': int(trend_age[i]), 'tailAge': int(tail_age[i]),
+            'qualityScore': float(quality_score), 'activityScore': float(activity_score),
+            'compressionScore': float(compression_score), 'volRegimeConfirm': bool(vol_regime_confirm),
+            'pubTradeScore': float(trdSc[i]), 'pubTrendScore': float(trnSc[i]), 'pubTailScore': float(talSc[i]),
+        }
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# TRR/LRR FETCHER, GATE & RENDERER
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@st.cache_data(ttl=600)
+def _fetch_trr_data(ticker: str, period: str = "3y") -> Optional[pd.DataFrame]:
+    try:
+        df = yf.download(ticker, period=period, interval="1d", progress=False, auto_adjust=True)
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
+        df = df.dropna()
+        return df if len(df) >= 300 else None
+    except Exception:
+        return None
+
+GATE_CONFIG = {
+    "US_STOCKS":  {"vol_mult": 1.00, "quality_min": 55, "activity_min": 40, "allow_short": True,  "max_trend_age": 35},
+    "IHSG":       {"vol_mult": 1.00, "quality_min": 50, "activity_min": 35, "allow_short": False, "max_trend_age": 30},
+    "COMMODITIES":{"vol_mult": 1.00, "quality_min": 50, "activity_min": 40, "allow_short": True,  "max_trend_age": 45},
+    "FOREX":      {"vol_mult": 0.35, "quality_min": 55, "activity_min": 40, "allow_short": True,  "max_trend_age": 40},
+    "CRYPTO":     {"vol_mult": 0.80, "quality_min": 50, "activity_min": 45, "allow_short": True,  "max_trend_age": 30},
+}
+
+_trr_engine = TRRLRREngine(TRR_PARAMS)
+
+def evaluate_ticker(ticker: str, asset_class: str) -> Optional[dict]:
+    cfg = GATE_CONFIG.get(asset_class, GATE_CONFIG["US_STOCKS"])
+    period = "2y" if asset_class == "CRYPTO" else "3y"
+    df = _fetch_trr_data(ticker, period)
+    if df is None: return None
+    try:
+        r = _trr_engine.calc_latest(df, vol_mult=cfg['vol_mult'])
+    except Exception:
+        return None
+    if not r: return None
+    price = df['Close'].iloc[-1]
+    long_gate = (r['tradeBreakUp'] or r['trendTransUp'] or r['tailTransUp']) and r['qualityScore'] >= cfg['quality_min'] and r['activityScore'] >= cfg['activity_min'] and r['trendAge'] <= cfg['max_trend_age']
+    short_gate = cfg['allow_short'] and (r['tradeBreakDown'] or r['trendTransDown'] or r['tailTransDown']) and r['qualityScore'] >= cfg['quality_min'] and r['activityScore'] >= cfg['activity_min'] and r['trendAge'] <= cfg['max_trend_age']
+    if not long_gate and not short_gate: return None
+    signal = "LONG" if long_gate else "SHORT"
+    conf = min(100, int(50 + r['qualityScore'] * 0.3 + r['activityScore'] * 0.2 + (25 if (r['trendTransUp'] or r['trendTransDown'] or r['tailTransUp'] or r['tailTransDown']) else 0)))
+    reasons = []
+    if r['tradeBreakUp']: reasons.append(f"Price > TradeTRR ({r['tradeTRR']:.2f})")
+    if r['tradeBreakDown']: reasons.append(f"Price < TradeLRR ({r['tradeLRR']:.2f})")
+    if r['trendTransUp']: reasons.append("TREND PHASE TRANSITION UP")
+    if r['trendTransDown']: reasons.append("TREND PHASE TRANSITION DOWN")
+    if r['tailTransUp']: reasons.append("TAIL PHASE TRANSITION UP")
+    if r['tailTransDown']: reasons.append("TAIL PHASE TRANSITION DOWN")
+    if r['trendPhase'] == 1: reasons.append("TrendPhase BULL")
+    if r['trendPhase'] == -1: reasons.append("TrendPhase BEAR")
+    return {
+        'ticker': ticker, 'signal': signal, 'confidence': conf, 'price': round(price, 4),
+        'tradeTRR': round(r['tradeTRR'], 4), 'tradeLRR': round(r['tradeLRR'], 4),
+        'trendTRR': round(r['trendTRR'], 4), 'trendLRR': round(r['trendLRR'], 4),
+        'tailTRR': round(r['tailTRR'], 4), 'tailLRR': round(r['tailLRR'], 4),
+        'trendPhase': r['trendPhase'], 'tailPhase': r['tailPhase'],
+        'trendAge': r['trendAge'], 'tailAge': r['tailAge'],
+        'quality': round(r['qualityScore'], 1), 'activity': round(r['activityScore'], 1),
+        'compression': round(r['compressionScore'], 1),
+        'volRegime': "EXPANDING" if r['volRegimeConfirm'] else "NORMAL",
+        'reason': " | ".join(reasons)
+    }
+
+def render_trr_section(ticker_list: List[str], asset_class: str, title: str = "🎯 TRR/LRR Live Signals"):
+    if not ticker_list: return
+    hits = []
+    for t in ticker_list:
+        ev = evaluate_ticker(t, asset_class)
+        if ev: hits.append(ev)
+    if not hits:
+        st.caption(f"TRR/LRR: No {asset_class} tickers passed the gate today.")
+        return
+    hits.sort(key=lambda x: (0 if x['signal'] == 'LONG' else 1, -x['confidence']))
+    st.markdown(f"**{title}**")
+    for h in hits:
+        color = "#3fb950" if h['signal'] == 'LONG' else "#f85149"
+        icon = "▲" if h['signal'] == 'LONG' else "▼"
+        with st.container():
+            c1, c2, c3 = st.columns([1.2, 2.5, 1.5])
+            with c1:
+                st.markdown(f"<span style='color:{color};font-weight:800;font-size:16px;'>{icon} {h['ticker']}</span>", unsafe_allow_html=True)
+                st.caption(f"Conf: **{h['confidence']}**/100")
+            with c2:
+                st.caption(f"Price {h['price']} | TradeTRR {h['tradeTRR']} | TradeLRR {h['tradeLRR']}")
+                st.caption(f"Trend: Phase {h['trendPhase']} | Age {h['trendAge']}d | Quality {h['quality']} | Activity {h['activity']}")
+            with c3:
+                st.caption(f"Trigger: {h['reason']}")
+        st.divider()
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # ON-CHAIN ALPHA SCANNER — Multi-Chain (Free APIs Only)
-# =============================================================================
+# ═══════════════════════════════════════════════════════════════════════════════
 logging.basicConfig(level=logging.INFO, format='%(asctime)s | %(levelname)s | %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -369,7 +753,7 @@ _h(f"""
     <div style="font-size:32px;">🧭</div>
     <div>
       <div style="font-size:24px;font-weight:800;color:#e6edf3;">MacroRegime <span style="color:#58a6ff;">Pro</span></div>
-      <div style="font-size:11px;color:#8b949e;">v11.6b · Standard Tickers · On-Chain Alpha</div>
+      <div style="font-size:11px;color:#8b949e;">v11.6c · TRR/LRR Signal Layer · On-Chain Alpha</div>
     </div>
   </div>
   <div style="text-align:right;">
@@ -644,6 +1028,9 @@ with tabs[1]:
         render_bottleneck_filtered(is_us_ticker, "US")
         st.markdown("**📋 Master Board**")
         render_master_filtered("us_longs", "us_shorts", "#3fb950", "#f85149", is_us_ticker, "US")
+        st.markdown("**🎯 TRR/LRR Signal Layer**")
+        all_us = list(set(us_longs + us_shorts + [item.get("ticker","") for item in btl.get("front_run_basket", []) if is_us_ticker(item.get("ticker",""))]))
+        render_trr_section(all_us, "US_STOCKS")
 
     # ══════ 🇮🇩 IHSG (Long Only) ══════
     with mkt_tabs[1]:
@@ -659,6 +1046,9 @@ with tabs[1]:
         render_bottleneck_filtered(is_ihsg_ticker, "IHSG")
         st.markdown("**📋 Master Board**")
         render_master_filtered("ihsg_buys", None, "#fb923c", "#f85149", is_ihsg_ticker, "IHSG")
+        st.markdown("**🎯 TRR/LRR Signal Layer**")
+        all_ihsg = list(set(ihsg_longs + [item.get("ticker","") for item in btl.get("front_run_basket", []) if is_ihsg_ticker(item.get("ticker",""))]))
+        render_trr_section(all_ihsg, "IHSG")
 
     # ══════ 💱 FX (Long + Short) ══════
     with mkt_tabs[2]:
@@ -680,6 +1070,9 @@ with tabs[1]:
         render_bottleneck_filtered(is_fx_ticker, "FX")
         st.markdown("**📋 Master Board**")
         render_master_filtered("fx_longs", "fx_shorts", "#58a6ff", "#f85149", is_fx_ticker, "FX")
+        st.markdown("**🎯 TRR/LRR Signal Layer**")
+        all_fx = list(set(fx_longs + fx_shorts + [item.get("ticker","") for item in btl.get("front_run_basket", []) if is_fx_ticker(item.get("ticker",""))]))
+        render_trr_section(all_fx, "FOREX")
 
     # ══════ 🛢️ COMMODITIES (Long + Short) ══════
     with mkt_tabs[3]:
@@ -701,6 +1094,9 @@ with tabs[1]:
         render_bottleneck_filtered(is_comm_ticker, "Commodities")
         st.markdown("**📋 Master Board**")
         render_master_filtered("commodity_longs", "commodity_shorts", "#fb923c", "#f85149", is_comm_ticker, "Commodities")
+        st.markdown("**🎯 TRR/LRR Signal Layer**")
+        all_comm = list(set(comm_longs + comm_shorts + [item.get("ticker","") for item in btl.get("front_run_basket", []) if is_comm_ticker(item.get("ticker",""))]))
+        render_trr_section(all_comm, "COMMODITIES")
 
     # ══════ 🔐 CRYPTO (Long + Short + On-Chain Alpha Auto-Scan) ══════
     with mkt_tabs[4]:
@@ -722,6 +1118,9 @@ with tabs[1]:
         render_bottleneck_filtered(is_crypto_ticker, "Crypto")
         st.markdown("**📋 Master Board**")
         render_master_filtered("crypto_longs", "crypto_shorts", "#a371f7", "#f85149", is_crypto_ticker, "Crypto")
+        st.markdown("**🎯 TRR/LRR Signal Layer**")
+        all_cry = list(set(cry_longs + cry_shorts + [item.get("ticker","") for item in btl.get("front_run_basket", []) if is_crypto_ticker(item.get("ticker",""))]))
+        render_trr_section(all_cry, "CRYPTO")
 
         # ═══════════════════════════════════════════════════════════════════════
         # ON-CHAIN ALPHA — AUTO SCAN (Integrated into Crypto Tab)

@@ -36,7 +36,15 @@ FRED_SERIES = {
 }
 
 def get_fred_api_key() -> str:
-    key = os.environ.get("FRED_API_KEY", st.secrets.get("FRED_API_KEY", ""))
+    # Layer 1: env var (set by app.py from st.secrets)
+    key = os.environ.get("FRED_API_KEY", "")
+    # Layer 2: st.secrets direct
+    if not key:
+        try: key = st.secrets.get("FRED_API_KEY", "")
+        except Exception: pass
+    # Layer 3: hardcode fallback (user-provided, for robustness)
+    if not key:
+        key = "5fbe5dc4c8a5fbb109c4809463a1c27f"
     return key.strip() if key else ""
 
 def fetch_fred_series(series_id: str, api_key: str, start_date: str = "2019-01-01") -> Optional[pd.Series]:
@@ -255,7 +263,14 @@ def monthly_momentum(yoy_series: pd.Series, level_series: pd.Series) -> tuple[st
     return "stable", debug
 
 def assign_quad(growth_trend: str, inflation_trend: str, 
-                growth_val: float = None, infl_val: float = None) -> str:
+                growth_val: float = None, infl_val: float = None,
+                use_absolute: bool = True) -> str:
+    """
+    CRITICAL FIX v6:
+    - use_absolute=True  → structural/global: anchor pake absolute level (growth<2 + infl>2.8 = Q3)
+    - use_absolute=False → monthly: pure trend ONLY, gak di-override absolute level
+    """
+    # 1. Exact dual-trend match
     if growth_trend == "accelerating" and inflation_trend == "decelerating":
         return "Q1"
     elif growth_trend == "accelerating" and inflation_trend == "accelerating":
@@ -264,7 +279,20 @@ def assign_quad(growth_trend: str, inflation_trend: str,
         return "Q3"
     elif growth_trend == "decelerating" and inflation_trend == "decelerating":
         return "Q4"
-    elif growth_trend == "accelerating":
+    
+    # 2. Mixed (one directional + one stable) → absolute level override untuk structural/global
+    if use_absolute and growth_val is not None and infl_val is not None:
+        if growth_val < 2.0 and infl_val >= 2.8:
+            return "Q3"   # Stagflation bias: low growth + elevated inflation
+        elif growth_val >= 2.5 and infl_val >= 2.8:
+            return "Q2"   # Reflation bias
+        elif growth_val >= 2.5 and infl_val < 2.2:
+            return "Q1"   # Goldilocks bias
+        elif growth_val < 2.0 and infl_val < 2.2:
+            return "Q4"   # Deflation bias
+    
+    # 3. Single trend default (monthly pure trend masuk sini)
+    if growth_trend == "accelerating":
         return "Q2"
     elif inflation_trend == "accelerating":
         return "Q3"
@@ -273,6 +301,7 @@ def assign_quad(growth_trend: str, inflation_trend: str,
     elif inflation_trend == "decelerating":
         return "Q1"
     
+    # 4. Both stable fallback
     if growth_val is not None and infl_val is not None:
         if growth_val < 2.0 and infl_val >= 2.8:
             return "Q3"
@@ -354,8 +383,10 @@ def calculate_regime() -> Dict:
                 'timestamp': datetime.now().isoformat(),
             }
     
-    structural_quad = assign_quad(growth_trend, infl_trend, growth_val, infl_val)
+    # STRUCTURAL: pake absolute level anchor
+    structural_quad = assign_quad(growth_trend, infl_trend, growth_val, infl_val, use_absolute=True)
     
+    # MONTHLY: pure trend ONLY, gak di-override absolute level
     monthly_quad = structural_quad
     monthly_debug = {}
     if source == 'fred':
@@ -378,17 +409,18 @@ def calculate_regime() -> Dict:
             monthly_infl = infl_trend
             monthly_debug['inflation'] = {'error': 'no cpi data'}
         
-        monthly_quad = assign_quad(monthly_growth, monthly_infl, growth_val, infl_val)
+        monthly_quad = assign_quad(monthly_growth, monthly_infl, growth_val, infl_val, use_absolute=False)
         logger.info(f"Monthly: growth={monthly_growth}, infl={monthly_infl} → {monthly_quad}")
     else:
         proxy = yfinance_proxy_regime()
         if proxy:
             monthly_growth = proxy.get('monthly_growth', growth_trend)
             monthly_infl = proxy.get('monthly_infl', infl_trend)
-            monthly_quad = assign_quad(monthly_growth, monthly_infl, growth_val, infl_val)
+            monthly_quad = assign_quad(monthly_growth, monthly_infl, growth_val, infl_val, use_absolute=False)
             monthly_debug['proxy'] = {'monthly_growth': monthly_growth, 'monthly_infl': monthly_infl}
             logger.info(f"Proxy Monthly: growth={monthly_growth}, infl={monthly_infl} → {monthly_quad}")
     
+    # GLOBAL: pake absolute level anchor
     global_quad = structural_quad
     if source == 'fred':
         dxy = fred.get('dxy')
@@ -406,7 +438,7 @@ def calculate_regime() -> Dict:
         
         global_growth = "decelerating" if dxy_trend == "accelerating" else "accelerating" if dxy_trend == "decelerating" else growth_trend
         global_infl = "accelerating" if rate_trend == "accelerating" else "decelerating" if rate_trend == "decelerating" else infl_trend
-        global_quad = assign_quad(global_growth, global_infl, growth_val, infl_val)
+        global_quad = assign_quad(global_growth, global_infl, growth_val, infl_val, use_absolute=True)
     else:
         global_quad = structural_quad
     

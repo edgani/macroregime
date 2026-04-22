@@ -1023,7 +1023,7 @@ with tabs[1]:
         return tk in CRYPTO_TICKERS
 
     def render_bottleneck_filtered(filter_fn, market_name):
-        # CRITICAL FIX: use_btl biar gak UnboundLocalError
+        # CRITICAL FIX: use_btl biar gak UnboundLocalError + threshold turun ke 0.005
         use_btl = btl
         if not use_btl or not use_btl.get("front_run_basket") or len(use_btl.get("front_run_basket", [])) < 3:
             momentum_basket = []
@@ -1034,7 +1034,7 @@ with tabs[1]:
                         r1 = ret_n(s, 21)
                         r3 = ret_n(s, 63)
                         score = abs(r1) * 2 + abs(r3) if r1 == r1 else 0
-                        if score > 0.05:
+                        if score > 0.005:
                             stage = "early" if r1 > 0.05 else "mature" if r1 < -0.05 else "building"
                             momentum_basket.append({
                                 "ticker": tk, "sector": market_name, 

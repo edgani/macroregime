@@ -1,6 +1,7 @@
 """
 regime_engine.py — Hedgeye GIP Model + Macro Pulse + Probabilities
 Growth: Real PCE YoY | Inflation: Headline CPI YoY | Policy: DFF+DGS10+DXY
+v13.4 Fix: ISM series ID + monthly threshold + maturity
 """
 import os, time, logging, glob, math
 from datetime import datetime
@@ -19,7 +20,7 @@ FRED_SERIES = {
     'cpi': 'CPIAUCSL', 'core_cpi': 'CPILFESL',
     'fed_funds': 'DFF', 'treasury_10y': 'DGS10',
     'treasury_2y': 'DGS2', 'dxy': 'DTWEXBGS',
-    'ism_mfg': 'NAPMN', 'claims': 'ICSA', 'breakeven_10y': 'T10YIE',
+    'ism_mfg': 'NAPM', 'claims': 'ICSA', 'breakeven_10y': 'T10YIE',
 }
 FRED_SERIES_COUNT = len(FRED_SERIES)
 
@@ -41,17 +42,25 @@ def fetch_fred_series(sid: str, api_key: str) -> Optional[pd.Series]:
                 'observation_start': '2019-01-01', 'sort_order': 'desc', 'limit': 500
             }, headers=headers, timeout=TIMEOUT)
             if r.status_code == 429: time.sleep(2**attempt+1); continue
-            if r.status_code != 200: continue
+            if r.status_code != 200: 
+                logger.warning(f"FRED {sid} status {r.status_code}")
+                continue
             data = r.json()
-            if 'observations' not in data or not data['observations']: continue
+            if 'observations' not in data or not data['observations']: 
+                logger.warning(f"FRED {sid}: no observations")
+                continue
             df = pd.DataFrame(data['observations'])
             df['date'] = pd.to_datetime(df['date'])
             df['value'] = pd.to_numeric(df['value'], errors='coerce')
             df = df.dropna(subset=['value'])
-            if df.empty: continue
+            if df.empty: 
+                logger.warning(f"FRED {sid}: all values NaN")
+                continue
             df = df.set_index('date').sort_index().drop_duplicates()
             s = df['value']
-            if len(s) < 6: continue
+            if len(s) < 6: 
+                logger.warning(f"FRED {sid}: only {len(s)} pts")
+                continue
             logger.info(f"FRED {sid}: {len(s)} pts, last={s.index[-1].date()}, val={s.iloc[-1]:.3f}")
             return s
         except Exception as e:
@@ -98,6 +107,7 @@ def trend_direction(s: pd.Series, thresh=0.03) -> str:
     return "stable"
 
 def monthly_momentum(yoy_s: pd.Series, lvl_s: pd.Series):
+    """v13.4: Higher thresholds to avoid false monthly flips."""
     debug = {}
     if len(yoy_s) < 6 or len(lvl_s) < 6: return "stable", debug
     mom = lvl_s.pct_change()*100.0
@@ -107,47 +117,47 @@ def monthly_momentum(yoy_s: pd.Series, lvl_s: pd.Series):
     y3p = float(yoy_s.iloc[-6:-3].mean())
     debug.update({'m3':round(m3,3),'m6':round(m6,3),'y1':round(y1,2),'y3':round(y3,2),'y3p':round(y3p,2)})
     a = d = 0
-    if m3 > m6 + 0.02: a += 2; debug['ms']='accel'
-    elif m3 < m6 - 0.02: d += 2; debug['ms']='decel'
+    # v13.4: threshold naik 3x biar monthly lebih sticky ke stable
+    if m3 > m6 + 0.15: a += 1; debug['ms']='accel'
+    elif m3 < m6 - 0.15: d += 1; debug['ms']='decel'
     else: debug['ms']='stable'
-    if y1 > y3 + 0.05: a += 1; debug['y1s']='accel'
-    elif y1 < y3 - 0.05: d += 1; debug['y1s']='decel'
+    if y1 > y3 + 0.25: a += 1; debug['y1s']='accel'
+    elif y1 < y3 - 0.25: d += 1; debug['y1s']='decel'
     else: debug['y1s']='stable'
-    if y3 > y3p + 0.05: a += 1; debug['y3s']='accel'
-    elif y3 < y3p - 0.05: d += 1; debug['y3s']='decel'
+    if y3 > y3p + 0.25: a += 1; debug['y3s']='accel'
+    elif y3 < y3p - 0.25: d += 1; debug['y3s']='decel'
     else: debug['y3s']='stable'
     debug.update({'a':a,'d':d})
+    # Require 2/3 untuk flip (lebih konservatif)
     if a >= 2: return "accelerating", debug
     if d >= 2: return "decelerating", debug
     return "stable", debug
 
 def assign_quad(gt: str, it: str, gv=None, iv=None, use_abs=True) -> str:
-    """FIXED: use_abs=False will NEVER fallback to abs values."""
     if gv is not None and isinstance(gv, float) and math.isnan(gv): gv = None
     if iv is not None and isinstance(iv, float) and math.isnan(iv): iv = None
-    
+
     if gt=="accelerating" and it=="decelerating": return "Q1"
     if gt=="accelerating" and it=="accelerating": return "Q2"
     if gt=="decelerating" and it=="accelerating": return "Q3"
     if gt=="decelerating" and it=="decelerating": return "Q4"
-    
+
     if use_abs and gv is not None and iv is not None:
         if gv < 2.0 and iv >= 2.8: return "Q3"
         if gv >= 2.5 and iv >= 2.8: return "Q2"
         if gv >= 2.5 and iv < 2.2: return "Q1"
         if gv < 2.0 and iv < 2.2: return "Q4"
-    
+
     if gt=="accelerating": return "Q2"
     if it=="accelerating": return "Q3"
     if gt=="decelerating": return "Q4"
     if it=="decelerating": return "Q1"
-    
+
     if use_abs and gv is not None and iv is not None:
         if gv < 2.0 and iv >= 2.8: return "Q3"
         if gv >= 2.5 and iv >= 2.8: return "Q2"
         if gv >= 2.5 and iv < 2.2: return "Q1"
         if gv < 2.0 and iv < 2.2: return "Q4"
-    
     return "Q2"
 
 def yf_proxy():
@@ -194,12 +204,12 @@ def _calc_probs(gv, iv, gt, it):
     elif gt=="accelerating" and it=="accelerating": base={"Q1":0.15,"Q2":0.55,"Q3":0.22,"Q4":0.08}
     elif gt=="decelerating" and it=="accelerating": base={"Q1":0.08,"Q2":0.15,"Q3":0.55,"Q4":0.22}
     elif gt=="decelerating" and it=="decelerating": base={"Q1":0.12,"Q2":0.08,"Q3":0.25,"Q4":0.55}
-    elif gt=="stable" and it=="stable": base={"Q1":0.20,"Q2":0.25,"Q3":0.35,"Q4":0.20}
-    elif gt=="stable" and it=="accelerating": base={"Q1":0.12,"Q2":0.18,"Q3":0.45,"Q4":0.25}
+    elif gt=="stable" and it=="stable": base={"Q1":0.20,"Q2":0.30,"Q3":0.30,"Q4":0.20}
+    elif gt=="stable" and it=="accelerating": base={"Q1":0.12,"Q2":0.20,"Q3":0.45,"Q4":0.23}
     elif gt=="stable" and it=="decelerating": base={"Q1":0.35,"Q2":0.25,"Q3":0.18,"Q4":0.22}
     elif gt=="accelerating" and it=="stable": base={"Q1":0.40,"Q2":0.35,"Q3":0.15,"Q4":0.10}
-    elif gt=="decelerating" and it=="stable": base={"Q1":0.15,"Q2":0.18,"Q3":0.40,"Q4":0.27}
-    
+    elif gt=="decelerating" and it=="stable": base={"Q1":0.15,"Q2":0.20,"Q3":0.40,"Q4":0.25}
+
     if gv is not None and iv is not None:
         if gv >= 2.5: 
             base["Q2"]+=0.08; base["Q1"]+=0.05; base["Q3"]-=0.08; base["Q4"]-=0.05
@@ -216,11 +226,11 @@ def calculate_regime() -> Dict:
     for old in glob.glob("/tmp/regime_cache_*.pkl"):
         try: os.remove(old)
         except: pass
-    
+
     fred = fetch_all_fred()
     has_pce = 'real_pce' in fred
     has_cpi = 'cpi' in fred or 'core_cpi' in fred
-    
+
     if has_pce and has_cpi:
         source = 'fred'
     elif len(fred) >= 5:
@@ -228,7 +238,7 @@ def calculate_regime() -> Dict:
     else:
         source = 'yfinance_proxy'
     logger.info(f"Source={source}, keys={list(fred.keys())}")
-    
+
     vix = get_vix()
     macro_pulse = {}
     growth_trend = "stable"
@@ -241,25 +251,25 @@ def calculate_regime() -> Dict:
     mg = "stable"
     mi = "stable"
     md = {}
-    
+
     if has_pce and has_cpi:
         pce = fred['real_pce']
         pce_yoy = yoy_roc(pce)
         growth_trend = trend_direction(pce_yoy)
         growth_val = float(pce_yoy.iloc[-1]) if len(pce_yoy)>0 else 0.0
-        
+
         cpi = fred.get('cpi')
         if cpi is None:
             cpi = fred.get('core_cpi')
         cpi_yoy = yoy_roc(cpi)
         infl_trend = trend_direction(cpi_yoy)
         infl_val = float(cpi_yoy.iloc[-1]) if len(cpi_yoy)>0 else 0.0
-        
+
         ff = fred.get('fed_funds'); t10 = fred.get('treasury_10y')
         policy_rate = float(ff.iloc[-1]) if ff is not None else 4.5
         ten_y = float(t10.iloc[-1]) if t10 is not None else 4.2
         confidence = 0.80 if len(fred) >= 6 else 0.65
-        
+
         ism = fred.get('ism_mfg')
         if ism is not None and len(ism) >= 2:
             macro_pulse['ism_delta'] = round(float(ism.iloc[-1] - ism.iloc[-2]), 1)
@@ -289,7 +299,7 @@ def calculate_regime() -> Dict:
         ff = fred.get('fed_funds'); t10 = fred.get('treasury_10y')
         policy_rate = float(ff.iloc[-1]) if ff is not None else 4.5
         ten_y = float(t10.iloc[-1]) if t10 is not None else 4.2
-        
+
         ism = fred.get('ism_mfg')
         if ism is not None and len(ism) >= 2:
             macro_pulse['ism_delta'] = round(float(ism.iloc[-1] - ism.iloc[-2]), 1)
@@ -302,7 +312,7 @@ def calculate_regime() -> Dict:
         if be is not None and len(be) >= 21:
             macro_pulse['be_1m'] = round(float(be.iloc[-1] - be.iloc[-21]), 2)
             macro_pulse['be_now'] = round(float(be.iloc[-1]), 2)
-        
+
         ps = fred.get('real_pce')
         cs = fred.get('cpi')
         if cs is None:
@@ -333,9 +343,9 @@ def calculate_regime() -> Dict:
                     'monthly_probs':{"Q1":0.25,"Q2":0.25,"Q3":0.25,"Q4":0.25},
                     'flip_hazard':0.0,'deepness':0.0,
                     'timestamp':datetime.now().isoformat()}
-    
+
     sq = assign_quad(growth_trend, infl_trend, growth_val, infl_val, use_abs=True)
-    
+
     mq = sq
     if source in ('fred','fred_partial'):
         ps = fred.get('real_pce')
@@ -355,7 +365,7 @@ def calculate_regime() -> Dict:
         if proxy:
             mq = assign_quad(proxy['monthly_growth'], proxy['monthly_infl'], growth_val, infl_val, use_abs=False)
             md['proxy'] = {'mg':proxy['monthly_growth'],'mi':proxy['monthly_infl']}
-    
+
     gq = sq
     if source in ('fred','fred_partial'):
         dxy = fred.get('dxy'); t10s = fred.get('treasury_10y')
@@ -366,19 +376,19 @@ def calculate_regime() -> Dict:
         gq = assign_quad(gg, gi, growth_val, infl_val, use_abs=True)
     else:
         gq = sq
-    
+
     ps_text = "Hawkish 🦅" if policy_rate>=5.25 or ten_y>=4.8 else "Dovish 🕊️" if policy_rate<=3.0 or ten_y<=3.2 else "In-a-box 📦"
     rt = {'Q1':'🟢 Q1 Goldilocks','Q2':'🟡 Q2 Reflation','Q3':'🟠 Q3 Stagflation','Q4':'🔴 Q4 Deflation'}.get(sq,'Unknown')
-    
+
     probs = _calc_probs(growth_val, infl_val, growth_trend, infl_trend)
     m_probs = _calc_probs(growth_val, infl_val, mg, mi)
-    
+
     flip_hazard = 0.0
     if sq != mq:
         flip_hazard = min(0.85, 0.35 + 0.15 * abs({"Q1":1,"Q2":2,"Q3":3,"Q4":4}[sq] - {"Q1":1,"Q2":2,"Q3":3,"Q4":4}[mq]))
     if confidence < 0.5:
         flip_hazard = max(flip_hazard, 0.45)
-    
+
     deepness = 0.0
     if sq == mq == gq:
         deepness = min(0.95, confidence * 0.8 + 0.15)
@@ -386,7 +396,7 @@ def calculate_regime() -> Dict:
         deepness = min(0.75, confidence * 0.6 + 0.10)
     else:
         deepness = min(0.45, confidence * 0.3)
-    
+
     return {
         'quad':sq,'structural_quad':sq,'monthly_quad':mq,'global_quad':gq,
         'confidence':confidence,'source':source,

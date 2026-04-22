@@ -7,6 +7,7 @@ import os
 import pickle
 import time
 import logging
+import glob
 from datetime import datetime
 from typing import Dict, Optional
 import requests
@@ -19,7 +20,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s | %(name)s | %(messa
 logger = logging.getLogger(__name__)
 
 FRED_BASE = "https://api.stlouisfed.org/fred"
-CACHE_FILE = "/tmp/regime_cache_v5.pkl"  # v5 bust
+CACHE_FILE = "/tmp/regime_cache_v5.pkl"
 MAX_RETRIES = 3
 REQUEST_TIMEOUT = 25
 
@@ -283,11 +284,20 @@ def assign_quad(growth_trend: str, inflation_trend: str,
     return "Q2"
 
 def calculate_regime() -> Dict:
-    # BUST ALL OLD CACHES — critical fix
     for old_cache in glob.glob("/tmp/regime_cache_*.pkl"):
         try:
             os.remove(old_cache)
             logger.info(f"Busted {old_cache}")
+        except Exception:
+            pass
+    
+    cached = None
+    if os.path.exists(CACHE_FILE):
+        try:
+            with open(CACHE_FILE, 'rb') as f:
+                cached = pickle.load(f)
+                if (datetime.now() - datetime.fromisoformat(cached.get('timestamp','2000-01-01'))).days > 2:
+                    cached = None
         except Exception:
             pass
     

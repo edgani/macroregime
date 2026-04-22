@@ -214,7 +214,6 @@ def calculate_regime() -> Dict:
     has_pce = 'real_pce' in fred
     has_cpi = 'cpi' in fred or 'core_cpi' in fred
     
-    # FIX: if >=5 FRED loaded, it's fred_partial even if missing PCE/CPI
     if has_pce and has_cpi:
         source = 'fred'
     elif len(fred) >= 5:
@@ -237,12 +236,15 @@ def calculate_regime() -> Dict:
     md = {}
     
     if has_pce and has_cpi:
+        # FIX: explicit is not None check, no 'or' on Series
         pce = fred['real_pce']
         pce_yoy = yoy_roc(pce)
         growth_trend = trend_direction(pce_yoy)
         growth_val = float(pce_yoy.iloc[-1]) if len(pce_yoy)>0 else 0.0
         
-        cpi = fred.get('cpi') or fred.get('core_cpi')
+        cpi = fred.get('cpi')
+        if cpi is None:
+            cpi = fred.get('core_cpi')
         cpi_yoy = yoy_roc(cpi)
         infl_trend = trend_direction(cpi_yoy)
         infl_val = float(cpi_yoy.iloc[-1]) if len(cpi_yoy)>0 else 0.0
@@ -272,8 +274,10 @@ def calculate_regime() -> Dict:
             pce = fred['real_pce']; pce_yoy = yoy_roc(pce)
             growth_trend = trend_direction(pce_yoy)
             growth_val = float(pce_yoy.iloc[-1]) if len(pce_yoy)>0 else 0.0
-        if 'cpi' in fred or 'core_cpi' in fred:
-            cpi = fred.get('cpi') or fred.get('core_cpi')
+        cpi = fred.get('cpi')
+        if cpi is None:
+            cpi = fred.get('core_cpi')
+        if cpi is not None:
             cpi_yoy = yoy_roc(cpi)
             infl_trend = trend_direction(cpi_yoy)
             infl_val = float(cpi_yoy.iloc[-1]) if len(cpi_yoy)>0 else 0.0
@@ -295,7 +299,10 @@ def calculate_regime() -> Dict:
             macro_pulse['be_now'] = round(float(be.iloc[-1]), 2)
         
         # monthly momentum from whatever PCE/CPI we have
-        ps = fred.get('real_pce'); cs = fred.get('cpi') or fred.get('core_cpi')
+        ps = fred.get('real_pce')
+        cs = fred.get('cpi')
+        if cs is None:
+            cs = fred.get('core_cpi')
         if ps is not None and len(ps)>=6:
             py = yoy_roc(ps); mg, gd = monthly_momentum(py, ps); md['growth']=gd
         else: mg = growth_trend; md['growth']={'error':'no pce'}
@@ -327,7 +334,10 @@ def calculate_regime() -> Dict:
     
     mq = sq
     if source in ('fred','fred_partial'):
-        ps = fred.get('real_pce'); cs = fred.get('cpi') or fred.get('core_cpi')
+        ps = fred.get('real_pce')
+        cs = fred.get('cpi')
+        if cs is None:
+            cs = fred.get('core_cpi')
         if ps is not None and len(ps)>=6:
             py = yoy_roc(ps); mg, gd = monthly_momentum(py, ps); md['growth']=gd
         else: mg = growth_trend; md['growth']={'error':'no pce'}
@@ -362,7 +372,6 @@ def calculate_regime() -> Dict:
     # Flip hazard & deepness
     flip_hazard = 0.0
     if sq != mq:
-        # Divergence = higher flip risk
         flip_hazard = min(0.85, 0.35 + 0.15 * abs({"Q1":1,"Q2":2,"Q3":3,"Q4":4}[sq] - {"Q1":1,"Q2":2,"Q3":3,"Q4":4}[mq]))
     if confidence < 0.5:
         flip_hazard = max(flip_hazard, 0.45)

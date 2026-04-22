@@ -132,14 +132,10 @@ def yfinance_proxy_regime() -> Optional[Dict]:
 def yoy_roc(series: pd.Series, months: int = 12) -> pd.Series:
     return (series / series.shift(months) - 1.0) * 100.0
 
-def ma(series: pd.Series, window: int) -> pd.Series:
-    return series.rolling(window, min_periods=1).mean()
-
 def trend_direction(series: pd.Series, threshold: float = 0.03) -> str:
     """
     Detect trend using linear regression slope on last 6 months.
     Threshold 0.03 = 3 bps per month (~18 bps over 6mo).
-    Much more sensitive than old 3m-vs-6m diff with 0.15 threshold.
     """
     if len(series) < 6:
         return "stable"
@@ -151,6 +147,41 @@ def trend_direction(series: pd.Series, threshold: float = 0.03) -> str:
     elif slope < -threshold:
         return "decelerating"
     return "stable"
+
+def monthly_level_momentum(level_series: pd.Series) -> str:
+    """
+    CRITICAL FIX for Monthly signal.
+    
+    Monthly must use LEVEL momentum (not YoY) to avoid 12-month base effects.
+    Compares 3-month % change vs 6-month % change of the raw index.
+    If 3m > 6m → momentum picking up → accelerating.
+    Includes 1-month secondary check for extra sensitivity.
+    """
+    if len(level_series) < 6:
+        return "stable"
+    
+    # Primary: 3-month vs 6-month level change
+    chg_3m = (level_series.iloc[-1] / level_series.iloc[-3] - 1) * 100
+    chg_6m = (level_series.iloc[-1] / level_series.iloc[-6] - 1) * 100
+    
+    # Tight threshold for monthly (more sensitive than structural)
+    if chg_3m > chg_6m + 0.05:
+        trend = "accelerating"
+    elif chg_3m < chg_6m - 0.05:
+        trend = "decelerating"
+    else:
+        trend = "stable"
+    
+    # Secondary: 1-month vs 2-month momentum for micro-bounces
+    if trend == "stable" and len(level_series) >= 3:
+        chg_1m = (level_series.iloc[-1] / level_series.iloc[-2] - 1) * 100
+        chg_2m = (level_series.iloc[-2] / level_series.iloc[-3] - 1) * 100
+        if chg_1m > chg_2m + 0.02:
+            trend = "accelerating"
+        elif chg_1m < chg_2m - 0.02:
+            trend = "decelerating"
+    
+    return trend
 
 def assign_quad(growth_trend: str, inflation_trend: str, 
                 growth_val: float = None, infl_val: float = None) -> str:
@@ -260,38 +291,31 @@ def calculate_regime() -> Dict:
                 'timestamp': datetime.now().isoformat(),
             }
     
-    # STRUCTURAL: 6-month regression slope (medium-term trend)
+    # STRUCTURAL: 6-month regression slope of YoY (medium-term trend)
     structural_quad = assign_quad(growth_trend, infl_trend, growth_val, infl_val)
     
-    # MONTHLY: 1-month vs 3-month average (near-term momentum)
-    # FIX: removed ±0.2 threshold — pure direction, much more responsive
+    # MONTHLY: LEVEL momentum — 3m vs 6m change of raw index (avoids 12mo base effect)
+    # CRITICAL FIX: was using YoY 1m vs 3m avg, which is blind to near-term level bounces
     monthly_quad = structural_quad
     if source == 'fred':
+        pce_series = fred.get('real_pce')
         cpi_series = fred.get('cpi')
         if cpi_series is None:
             cpi_series = fred.get('core_cpi')
-        pce_series = fred.get('real_pce')
-        
-        if cpi_series is not None and len(cpi_series) >= 6:
-            cpi_yoy = yoy_roc(cpi_series)
-            cpi_1m = float(cpi_yoy.iloc[-1])
-            cpi_3m_avg = float(cpi_yoy.iloc[-3:].mean())
-            monthly_infl = "accelerating" if cpi_1m > cpi_3m_avg else "decelerating" if cpi_1m < cpi_3m_avg else "stable"
-        else:
-            monthly_infl = infl_trend
         
         if pce_series is not None and len(pce_series) >= 6:
-            pce_yoy = yoy_roc(pce_series)
-            pce_1m = float(pce_yoy.iloc[-1])
-            pce_3m_avg = float(pce_yoy.iloc[-3:].mean())
-            monthly_growth = "accelerating" if pce_1m > pce_3m_avg else "decelerating" if pce_1m < pce_3m_avg else "stable"
+            monthly_growth = monthly_level_momentum(pce_series)
         else:
             monthly_growth = growth_trend
+        
+        if cpi_series is not None and len(cpi_series) >= 6:
+            monthly_infl = monthly_level_momentum(cpi_series)
+        else:
+            monthly_infl = infl_trend
         
         monthly_quad = assign_quad(monthly_growth, monthly_infl, growth_val, infl_val)
     
     # GLOBAL: Independent calculation using DXY + 10Y as global macro proxy
-    # Strong dollar = global growth decelerating | High rates = global inflation pressure
     global_quad = structural_quad
     if source == 'fred':
         dxy = fred.get('dxy')

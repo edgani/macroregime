@@ -1,4 +1,4 @@
-"""MacroRegime Pro v11.6f — Auto-Regime (No Hardcode) + TRR/LRR + On-Chain"""
+"""MacroRegime Pro v11.6g — Auto-Regime (No Hardcode) + TRR/LRR + On-Chain"""
 import os
 import sys
 import glob
@@ -17,7 +17,7 @@ from collections import defaultdict
 import streamlit as st
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# CACHE BUST & FRED KEY — MUST BE FIRST (before regime_engine import)
+# CACHE BUST & FRED KEY — MUST BE FIRST
 # ═══════════════════════════════════════════════════════════════════════════════
 if "FRED_API_KEY" in st.secrets:
     os.environ["FRED_API_KEY"] = st.secrets["FRED_API_KEY"]
@@ -26,8 +26,10 @@ for f in glob.glob("/tmp/fred_cache_*.pkl") + glob.glob("/tmp/price_cache_*.pkl"
     try: os.remove(f)
     except: pass
 
-try: st.cache_data.clear()
-except: pass
+try: 
+    st.cache_data.clear()
+except: 
+    pass
 
 st.set_page_config(page_title="MacroRegime Pro", page_icon="🧭", layout="wide", initial_sidebar_state="collapsed")
 
@@ -38,6 +40,12 @@ from orchestration.build_snapshot import build_snapshot
 from ui.command_center_page import render_command_center
 from ui.theme import _inject_theme
 from regime_engine import get_regime_snapshot
+
+# Explicit clear regime cache juga
+try:
+    get_regime_snapshot.clear()
+except:
+    pass
 
 _inject_theme()
 
@@ -721,9 +729,6 @@ def _load_snapshot():
         st.warning(f"build_snapshot error: {e}")
         snap = {}
     
-    # ═══════════════════════════════════════════════════════════════════════
-    # AUTO REGIME — 100% data-driven, zero hardcode
-    # ═══════════════════════════════════════════════════════════════════════
     regime = get_regime_snapshot()
     
     q = snap.get("q", {})
@@ -741,7 +746,6 @@ def _load_snapshot():
     q["source"] = regime['source']
     q["growth_trend"] = regime.get('growth_trend', '—')
     q["inflation_trend"] = regime.get('inflation_trend', '—')
-    # DEBUG: forward monthly calculation trace (read-only, zero logic impact)
     q["monthly_debug"] = regime.get('monthly_debug', {})
     snap["q"] = q
     
@@ -754,7 +758,6 @@ def _load_snapshot():
     fred_meta["inflation_yoy"] = regime['inflation_yoy']
     snap["fred_meta"] = fred_meta
     
-    # Tickers watchlist — Hedgeye research picks (human-curated, not data-driven)
     rt = snap.get("regime_tickers", {})
     if not rt:
         rt = {
@@ -813,7 +816,7 @@ _h(f"""
     <div style="font-size:32px;">🧭</div>
     <div>
       <div style="font-size:24px;font-weight:800;color:#e6edf3;">MacroRegime <span style="color:#58a6ff;">Pro</span></div>
-      <div style="font-size:11px;color:#8b949e;">v11.6f · Auto-Regime · TRR/LRR · On-Chain Alpha</div>
+      <div style="font-size:11px;color:#8b949e;">v11.6g · Auto-Regime · TRR/LRR · On-Chain Alpha</div>
     </div>
   </div>
   <div style="text-align:right;">
@@ -1011,8 +1014,9 @@ with tabs[1]:
     COMM_TICKERS = {"SLV","GDX","SLX","CPER","PPLT","XOP","OIH","BNO","GLD","AAAU","DUST","BITS","XAUUSD","XAGUSD","XTIUSD","XBRUSD","XCUUSD","XNGUSD","URA","COAL"}
     CRYPTO_TICKERS = {"BTC-USD","ETH-USD","SOL-USD","XRP-USD","ADA-USD","AVAX-USD","DOT-USD","MATIC-USD","LINK-USD","UNI-USD","LTC-USD","BCH-USD","ETC-USD","DOGE-USD","SHIB-USD","TON-USD","NEAR-USD","APT-USD","SUI-USD","IBIT"}
 
+    # CRITICAL FIX: exclude =F futures dari US
     def is_us_ticker(tk):
-        return not any(x in tk for x in [".JK","-USD"]) and tk not in ["^JKSE"] and tk not in FX_TICKERS and tk not in COMM_TICKERS and tk not in CRYPTO_TICKERS
+        return not any(x in tk for x in [".JK","-USD","=F"]) and tk not in ["^JKSE"] and tk not in FX_TICKERS and tk not in COMM_TICKERS and tk not in CRYPTO_TICKERS
     def is_ihsg_ticker(tk):
         return ".JK" in tk or tk == "^JKSE"
     def is_fx_ticker(tk):
@@ -1023,7 +1027,6 @@ with tabs[1]:
         return tk in CRYPTO_TICKERS
 
     def render_bottleneck_filtered(filter_fn, market_name):
-        # CRITICAL FIX: use_btl biar gak UnboundLocalError + threshold turun ke 0.005
         use_btl = btl
         if not use_btl or not use_btl.get("front_run_basket") or len(use_btl.get("front_run_basket", [])) < 3:
             momentum_basket = []
@@ -1040,6 +1043,21 @@ with tabs[1]:
                                 "ticker": tk, "sector": market_name, 
                                 "bottleneck_score": round(score, 2), "stage": stage
                             })
+            # FALLBACK: kalo prices kosong untuk market ini, pake watchlist
+            if not momentum_basket:
+                watchlist_map = {
+                    "US": tickers.get("us_longs", []) + tickers.get("us_shorts", []),
+                    "IHSG": tickers.get("ihsg_buys", []),
+                    "FX": tickers.get("fx_longs", []) + tickers.get("fx_shorts", []),
+                    "Commodities": tickers.get("commodity_longs", []) + tickers.get("commodity_shorts", []),
+                    "Crypto": tickers.get("crypto_longs", []) + tickers.get("crypto_shorts", []),
+                }
+                for tk in watchlist_map.get(market_name, []):
+                    if filter_fn(tk):
+                        momentum_basket.append({
+                            "ticker": tk, "sector": market_name,
+                            "bottleneck_score": 0.0, "stage": "building"
+                        })
             if momentum_basket:
                 use_btl = {"front_run_basket": sorted(momentum_basket, key=lambda x: x["bottleneck_score"], reverse=True)[:12]}
             else:
@@ -1284,7 +1302,6 @@ with tabs[2]:
     show_raw = st.toggle("Show raw regime state JSON", value=False)
     if show_raw: st.markdown("**Regime State**"); st.json(q)
     
-    # DEBUG: Monthly calculation trace (read-only, no logic impact)
     monthly_debug = q.get("monthly_debug", {})
     if monthly_debug:
         with st.expander("🔍 Monthly Calculation Trace (Debug)", expanded=False):

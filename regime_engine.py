@@ -4,10 +4,10 @@ Growth: Real PCE (monthly) | Inflation: Headline CPI YoY | Policy: DFF+DGS10+DXY
 Auto-regime, zero hardcode, robust fallback chain.
 """
 import os
-import pickle
 import time
 import logging
 import glob
+import math
 from datetime import datetime
 from typing import Dict, Optional
 import requests
@@ -20,7 +20,6 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s | %(name)s | %(messa
 logger = logging.getLogger(__name__)
 
 FRED_BASE = "https://api.stlouisfed.org/fred"
-CACHE_FILE = "/tmp/regime_cache_v5.pkl"
 MAX_RETRIES = 3
 REQUEST_TIMEOUT = 25
 
@@ -36,13 +35,10 @@ FRED_SERIES = {
 }
 
 def get_fred_api_key() -> str:
-    # Layer 1: env var (set by app.py from st.secrets)
     key = os.environ.get("FRED_API_KEY", "")
-    # Layer 2: st.secrets direct
     if not key:
         try: key = st.secrets.get("FRED_API_KEY", "")
         except Exception: pass
-    # Layer 3: hardcode fallback (user-provided, for robustness)
     if not key:
         key = "5fbe5dc4c8a5fbb109c4809463a1c27f"
     return key.strip() if key else ""
@@ -51,9 +47,7 @@ def fetch_fred_series(series_id: str, api_key: str, start_date: str = "2019-01-0
     if not api_key:
         logger.warning(f"No API key for {series_id}")
         return None
-    
     headers = {"User-Agent": "Mozilla/5.0 (compatible; MacroRegime/1.0)"}
-    
     for attempt in range(MAX_RETRIES):
         try:
             url = f"{FRED_BASE}/series/observations"
@@ -74,36 +68,28 @@ def fetch_fred_series(series_id: str, api_key: str, start_date: str = "2019-01-0
             if resp.status_code != 200:
                 logger.error(f"FRED {resp.status_code} for {series_id}: {resp.text[:200]}")
                 continue
-            
             data = resp.json()
             if 'observations' not in data or not data['observations']:
                 logger.warning(f"No observations for {series_id}")
                 continue
-            
             df = pd.DataFrame(data['observations'])
             df['date'] = pd.to_datetime(df['date'])
             df['value'] = pd.to_numeric(df['value'], errors='coerce')
             df = df.dropna(subset=['value'])
-            
             if df.empty:
                 logger.warning(f"All NaN values for {series_id}")
                 continue
-            
             df = df.set_index('date').sort_index()
             df = df[~df.index.duplicated(keep='last')]
             series = df['value']
-            
             if len(series) < 12:
                 logger.warning(f"{series_id}: only {len(series)} points, need 12+")
                 continue
-            
             logger.info(f"✅ FRED {series_id}: loaded {len(series)} points, last={series.index[-1].date()}, val={series.iloc[-1]}")
             return series
-            
         except Exception as e:
             logger.error(f"FRED error {series_id} attempt {attempt+1}: {e}")
             time.sleep(2 ** attempt + 1)
-    
     logger.error(f"❌ FRED {series_id}: all retries failed")
     return None
 
@@ -112,7 +98,6 @@ def fetch_all_fred() -> Dict[str, pd.Series]:
     if not api_key:
         logger.warning("No FRED API key available")
         return {}
-    
     results = {}
     for name, sid in FRED_SERIES.items():
         s = fetch_fred_series(sid, api_key)
@@ -130,14 +115,12 @@ def yfinance_proxy_regime() -> Optional[Dict]:
             close = data['Close']
         else:
             close = data
-        
         def mom(ticker, m1=21, m3=63, m6=126):
             s = close[ticker].dropna() if ticker in close else pd.Series()
             if len(s) < m6 + 5:
                 return 0.0, 0.0, 0.0
             p_now = s.iloc[-1]
             return (p_now/s.iloc[-m1]-1)*100, (p_now/s.iloc[-m3]-1)*100, (p_now/s.iloc[-m6]-1)*100
-        
         spy_1m, spy_3m, spy_6m = mom('SPY')
         tlt_1m, tlt_3m, tlt_6m = mom('TLT')
         gld_1m, gld_3m, gld_6m = mom('GLD')
@@ -148,29 +131,22 @@ def yfinance_proxy_regime() -> Optional[Dict]:
         hyg_1m, hyg_3m, hyg_6m = mom('HYG')
         iwm_1m, iwm_3m, iwm_6m = mom('IWM')
         xli_1m, xli_3m, xli_6m = mom('XLI')
-        
         growth_accel = (spy_3m > spy_6m + 0.5) and (xlf_3m > xlu_3m) and (xli_3m > xli_6m)
         growth_decel = (spy_3m < spy_6m - 0.5) or (xlu_3m > xlf_3m + 2) or (iwm_3m < iwm_6m - 1)
-        
         infl_accel = (gld_3m > gld_6m) and (xop_3m > -5) and (tlt_3m < tlt_6m)
         infl_decel = (gld_3m < gld_6m - 1) and (uup_3m > uup_6m)
-        
         policy_hawkish = (uup_3m > uup_6m + 1) and (tlt_3m < -5)
         policy_dovish = (uup_3m < uup_6m - 1) and (hyg_3m > hyg_6m)
-        
         growth_yoy = 3.0 if growth_accel else (0.5 if growth_decel else 1.8)
         inflation_yoy = 3.8 if infl_accel else (2.2 if infl_decel else 3.0)
         policy_rate = 5.0 if policy_hawkish else (3.5 if policy_dovish else 4.5)
         ten_y = 4.5 if policy_hawkish else (3.5 if policy_dovish else 4.2)
-        
         monthly_growth_accel = (spy_1m > spy_3m + 0.3) and (iwm_1m > iwm_3m)
         monthly_growth_decel = (spy_1m < spy_3m - 0.3) or (iwm_1m < iwm_3m - 0.5)
         monthly_infl_accel = (gld_1m > gld_3m) and (tlt_1m < tlt_3m)
         monthly_infl_decel = (gld_1m < gld_3m - 0.5) and (uup_1m > uup_3m)
-        
         monthly_growth = "accelerating" if monthly_growth_accel else "decelerating" if monthly_growth_decel else "stable"
         monthly_infl = "accelerating" if monthly_infl_accel else "decelerating" if monthly_infl_decel else "stable"
-        
         return {
             'growth_yoy': growth_yoy,
             'inflation_yoy': inflation_yoy,
@@ -206,26 +182,20 @@ def monthly_momentum(yoy_series: pd.Series, level_series: pd.Series) -> tuple[st
     debug = {}
     if len(yoy_series) < 6 or len(level_series) < 6:
         return "stable", debug
-    
     mom = level_series.pct_change() * 100.0
     mom_3m = float(mom.iloc[-3:].mean())
     mom_6m = float(mom.iloc[-6:].mean())
-    
     debug['mom_3m_avg'] = round(mom_3m, 3)
     debug['mom_6m_avg'] = round(mom_6m, 3)
     debug['mom_diff'] = round(mom_3m - mom_6m, 3)
-    
     yoy_1m = float(yoy_series.iloc[-1])
     yoy_3m_avg = float(yoy_series.iloc[-3:].mean())
     yoy_3m_prior = float(yoy_series.iloc[-6:-3].mean())
-    
     debug['yoy_1m'] = round(yoy_1m, 2)
     debug['yoy_3m_avg'] = round(yoy_3m_avg, 2)
     debug['yoy_3m_prior'] = round(yoy_3m_prior, 2)
-    
     accel_score = 0
     decel_score = 0
-    
     if mom_3m > mom_6m + 0.02:
         accel_score += 2
         debug['mom_signal'] = 'accelerating'
@@ -234,7 +204,6 @@ def monthly_momentum(yoy_series: pd.Series, level_series: pd.Series) -> tuple[st
         debug['mom_signal'] = 'decelerating'
     else:
         debug['mom_signal'] = 'stable'
-    
     if yoy_1m > yoy_3m_avg + 0.05:
         accel_score += 1
         debug['yoy1m_signal'] = 'accelerating'
@@ -243,7 +212,6 @@ def monthly_momentum(yoy_series: pd.Series, level_series: pd.Series) -> tuple[st
         debug['yoy1m_signal'] = 'decelerating'
     else:
         debug['yoy1m_signal'] = 'stable'
-    
     if yoy_3m_avg > yoy_3m_prior + 0.05:
         accel_score += 1
         debug['yoy3m_signal'] = 'accelerating'
@@ -252,10 +220,8 @@ def monthly_momentum(yoy_series: pd.Series, level_series: pd.Series) -> tuple[st
         debug['yoy3m_signal'] = 'decelerating'
     else:
         debug['yoy3m_signal'] = 'stable'
-    
     debug['accel_score'] = accel_score
     debug['decel_score'] = decel_score
-    
     if accel_score >= 2:
         return "accelerating", debug
     elif decel_score >= 2:
@@ -266,10 +232,17 @@ def assign_quad(growth_trend: str, inflation_trend: str,
                 growth_val: float = None, infl_val: float = None,
                 use_absolute: bool = True) -> str:
     """
-    CRITICAL FIX v6:
-    - use_absolute=True  → structural/global: anchor pake absolute level (growth<2 + infl>2.8 = Q3)
-    - use_absolute=False → monthly: pure trend ONLY, gak di-override absolute level
+    CRITICAL FIX v7:
+    - NaN guard: FRED last value bisa NaN → comparison False → salah quad
+    - use_absolute=True  → structural/global: anchor pake absolute level
+    - use_absolute=False → monthly: pure trend ONLY
     """
+    # NaN guard
+    if growth_val is not None and (isinstance(growth_val, float) and math.isnan(growth_val)):
+        growth_val = None
+    if infl_val is not None and (isinstance(infl_val, float) and math.isnan(infl_val)):
+        infl_val = None
+    
     # 1. Exact dual-trend match
     if growth_trend == "accelerating" and inflation_trend == "decelerating":
         return "Q1"
@@ -283,13 +256,13 @@ def assign_quad(growth_trend: str, inflation_trend: str,
     # 2. Mixed (one directional + one stable) → absolute level override untuk structural/global
     if use_absolute and growth_val is not None and infl_val is not None:
         if growth_val < 2.0 and infl_val >= 2.8:
-            return "Q3"   # Stagflation bias: low growth + elevated inflation
+            return "Q3"
         elif growth_val >= 2.5 and infl_val >= 2.8:
-            return "Q2"   # Reflation bias
+            return "Q2"
         elif growth_val >= 2.5 and infl_val < 2.2:
-            return "Q1"   # Goldilocks bias
+            return "Q1"
         elif growth_val < 2.0 and infl_val < 2.2:
-            return "Q4"   # Deflation bias
+            return "Q4"
     
     # 3. Single trend default (monthly pure trend masuk sini)
     if growth_trend == "accelerating":
@@ -314,20 +287,11 @@ def assign_quad(growth_trend: str, inflation_trend: str,
     return "Q2"
 
 def calculate_regime() -> Dict:
-    cached = None
+    # Bust all old caches
     for old_cache in glob.glob("/tmp/regime_cache_*.pkl"):
         try:
             os.remove(old_cache)
             logger.info(f"Busted {old_cache}")
-        except Exception:
-            pass
-    
-    if os.path.exists(CACHE_FILE):
-        try:
-            with open(CACHE_FILE, 'rb') as f:
-                cached = pickle.load(f)
-                if (datetime.now() - datetime.fromisoformat(cached.get('timestamp','2000-01-01'))).days > 2:
-                    cached = None
         except Exception:
             pass
     
@@ -368,8 +332,6 @@ def calculate_regime() -> Dict:
             ten_y = proxy['treasury_10y']
             confidence = proxy['confidence']
             source = proxy['source']
-        elif cached is not None:
-            return cached
         else:
             return {
                 'quad': 'Q2', 'structural_quad': 'Q2', 'monthly_quad': 'Q2', 'global_quad': 'Q2',
@@ -386,7 +348,7 @@ def calculate_regime() -> Dict:
     # STRUCTURAL: pake absolute level anchor
     structural_quad = assign_quad(growth_trend, infl_trend, growth_val, infl_val, use_absolute=True)
     
-    # MONTHLY: pure trend ONLY, gak di-override absolute level
+    # MONTHLY: pure trend ONLY
     monthly_quad = structural_quad
     monthly_debug = {}
     if source == 'fred':
@@ -465,8 +427,8 @@ def calculate_regime() -> Dict:
         'source': source,
         'growth_trend': growth_trend,
         'inflation_trend': infl_trend,
-        'growth_yoy': round(float(growth_val), 2),
-        'inflation_yoy': round(float(infl_val), 2),
+        'growth_yoy': round(float(growth_val), 2) if growth_val is not None and not math.isnan(growth_val) else 0.0,
+        'inflation_yoy': round(float(infl_val), 2) if infl_val is not None and not math.isnan(infl_val) else 0.0,
         'policy_rate': round(float(policy_rate), 2),
         'treasury_10y': round(float(ten_y), 2),
         'policy_stance': policy_text,
@@ -477,14 +439,9 @@ def calculate_regime() -> Dict:
         'timestamp': datetime.now().isoformat(),
     }
     
-    try:
-        with open(CACHE_FILE, 'wb') as f:
-            pickle.dump(result, f)
-    except Exception:
-        pass
-    
     return result
 
-@st.cache_data(ttl=1800)
+# CRITICAL: ttl=60 biar gak stale, tetep ada cache tapi fresh tiap 1 menit
+@st.cache_data(ttl=60)
 def get_regime_snapshot() -> Dict:
     return calculate_regime()

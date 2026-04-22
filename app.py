@@ -1,11 +1,13 @@
-"""MacroRegime Pro v12.0 — Fully Self-Contained"""
+"""MacroRegime Pro v12.1 — Fully Self-Contained · Rich Command Center"""
 import os, sys, glob, time, json, logging, requests, numpy as np, pandas as pd, yfinance as yf
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional
 from dataclasses import dataclass
 import streamlit as st
 
-# Cache bust
+# ═══════════════════════════════════════════════════════════════════════════════
+# CACHE BUST
+# ═══════════════════════════════════════════════════════════════════════════════
 for f in glob.glob("/tmp/*.pkl"):
     try: os.remove(f)
     except: pass
@@ -13,9 +15,21 @@ try: st.cache_data.clear()
 except: pass
 
 st.set_page_config(page_title="MacroRegime Pro", page_icon="🧭", layout="wide", initial_sidebar_state="collapsed")
-
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from regime_engine import get_regime_snapshot
+from regime_engine import get_regime_snapshot, FRED_SERIES, FRED_SERIES_COUNT
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# CLEAN TICKER DISPLAY MAP
+# ═══════════════════════════════════════════════════════════════════════════════
+DISPLAY_MAP = {
+    'USDJPY=X':'USDJPY', 'EURUSD=X':'EURUSD', 'AUDUSD=X':'AUDUSD', 'GBPUSD=X':'GBPUSD',
+    'USDCAD=X':'USDCAD', 'USDIDR=X':'USDIDR', 'EURGBP=X':'EURGBP', 'EURJPY=X':'EURJPY',
+    'GBPJPY=X':'GBPJPY', 'NZDUSD=X':'NZDUSD', 'USDCNH=X':'USDCNH', 'USDCHF=X':'USDCHF',
+    'GC=F':'XAUUSD', 'SI=F':'XAGUSD', 'HG=F':'XCUUSD', 'CL=F':'XTIUSD', 'NG=F':'XNGUSD',
+    'XBRUSD=X':'XBRUSD', 'XTIUSD=X':'XTIUSD', 'XAUUSD=X':'XAUUSD', 'XAGUSD=X':'XAGUSD',
+    'XCUUSD=X':'XCUUSD', 'XNGUSD=X':'XNGUSD',
+}
+def clean_tk(tk): return DISPLAY_MAP.get(tk, tk)
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # TRR/LRR ENGINE
@@ -251,7 +265,7 @@ def _render_trr(tlist,ac,title="🎯 TRR/LRR Live Signals"):
         col="#3fb950" if h['signal']=='LONG' else "#f85149"; ic="▲" if h['signal']=='LONG' else "▼"
         with st.container():
             c1,c2,c3=st.columns([1.2,2.5,1.5])
-            with c1: st.markdown(f"<span style='color:{col};font-weight:800;font-size:16px;'>{ic} {h['ticker']}</span>",unsafe_allow_html=True); st.caption(f"Conf: **{h['confidence']}**/100")
+            with c1: st.markdown(f"<span style='color:{col};font-weight:800;font-size:16px;'>{ic} {clean_tk(h['ticker'])}</span>",unsafe_allow_html=True); st.caption(f"Conf: **{h['confidence']}**/100")
             with c2: st.caption(f"Price {h['price']} | TradeTRR {h['tradeTRR']} | TradeLRR {h['tradeLRR']}"); st.caption(f"Trend: Phase {h['trendPhase']} | Age {h['trendAge']}d | Q {h['quality']} | A {h['activity']}")
             with c3: st.caption(f"Trigger: {h['reason']}")
         st.divider()
@@ -280,7 +294,7 @@ REG={
 
 class MCS:
     def __init__(self,dk=None,ek=None,tk=None):
-        self.dk=dk; self.ek=ek; self.tk=tk; self.le=0; self.ld=0; self.ls=0
+        self.dk=dk; self.ek=ek; self.tk=tk
     def _req(self,url,params=None,hd=None):
         try:
             r=requests.get(url,params=params,headers=hd,timeout=15)
@@ -299,7 +313,7 @@ class MCS:
                 res['stb_d']=round((res['stb_now']-res['stb_7d'])/res['stb_7d']*100,2) if res['stb_7d']>0 else 0
             d=self._req(f"{base}/overview/dexs/{slug}?excludeTotalDataChart=false&excludeTotalDataChartBreakdown=true&dataType=dailyVolume")
             if d and 'totalDataChart' in d and d['totalDataChart']:
-                v=[x[1] for x in d['totalDataChart'] if x[1]]; 
+                v=[x[1] for x in d['totalDataChart'] if x[1]]
                 if len(v)>=2: res['vol24']=v[-1]; res['vol7m']=np.median(v[-7:]) if len(v)>=7 else np.median(v); res['spike']=round(v[-1]/res['vol7m'],2) if res['vol7m']>0 else 0
             sc=0
             if res.get('stb_d',0)>15: sc+=40
@@ -357,7 +371,7 @@ q=snap["q"]; tickers=snap["tickers"]; prices=snap["prices"]
 sq=q.get("structural_quad","Q2"); mq=q.get("monthly_quad","Q2"); gq=q.get("global_quad","Q2")
 conf=q.get("confidence",0.5); op=q.get("operating_regime","...")
 src=q.get("source","unknown"); gy=q.get("growth_yoy",0); iy=q.get("inflation_yoy",0)
-ps=q.get("policy_stance","—")
+ps=q.get("policy_stance","—"); vix=q.get("vix",20.0)
 
 def _h(html): st.markdown(" ".join(html.split()),unsafe_allow_html=True)
 QC={"Q1":("#1a4d2e","#4ade80"),"Q2":("#5c3d00","#fbbf24"),"Q3":("#5c2b00","#fb923c"),"Q4":("#5c1a1a","#f87171")}
@@ -367,13 +381,16 @@ sbg,sfg=_qb(sq),_qf(sq); mbg,mfg=_qb(mq),_qf(mq); gbg,gfg=_qb(gq),_qf(gq)
 sb="🟢 FRED" if src=="fred" else "🟡 YF Proxy" if src=="yfinance_proxy" else "⚪ Fallback"
 sc="#3fb950" if src=="fred" else "#fbbf24" if src=="yfinance_proxy" else "#8b949e"
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# HEADER
+# ═══════════════════════════════════════════════════════════════════════════════
 _h(f"""
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
   <div style="display:flex;align-items:center;gap:12px;">
     <div style="font-size:32px;">🧭</div>
     <div>
       <div style="font-size:24px;font-weight:800;color:#e6edf3;">MacroRegime <span style="color:#58a6ff;">Pro</span></div>
-      <div style="font-size:11px;color:#8b949e;">v12.0 · Auto-Regime · TRR/LRR · On-Chain</div>
+      <div style="font-size:11px;color:#8b949e;">v12.1 · Auto-Regime · TRR/LRR · On-Chain</div>
     </div>
   </div>
   <div style="text-align:right;">
@@ -403,30 +420,76 @@ _h(f"""
 
 tabs=st.tabs(["⚡ Command Center","🌍 Markets","📊 Regime Deep Dive","⚠️ Risk & Diag"])
 
-# ─── TAB 0: COMMAND CENTER ───
+# ═══════════════════════════════════════════════════════════════════════════════
+# TAB 0: COMMAND CENTER (RICH RECONSTRUCT)
+# ═══════════════════════════════════════════════════════════════════════════════
 with tabs[0]:
-    c1,c2,c3=st.columns(3)
-    with c1: st.metric("Structural",sq); st.metric("Monthly",mq)
-    with c2: st.metric("Global",gq); st.metric("Confidence",f"{conf:.0%}")
-    with c3: st.metric("Growth",f"{gy:.1f}%"); st.metric("Inflation",f"{iy:.1f}%")
+    # Top metrics row
+    c1,c2,c3,c4=st.columns(4)
+    with c1: st.metric("VIX", f"{vix:.1f}", delta="—")
+    with c2: st.metric("Front-Run Window", "1–2 Weeks" if sq==mq else "Hold")
+    with c3: st.metric("Confidence", f"{conf:.0%}")
+    with c4:
+        if sq!=mq:
+            st.markdown("<span style='background:#5c2b00;color:#fb923c;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;'>⚠️ DIVERGEN</span>",unsafe_allow_html=True)
+        else:
+            st.markdown("<span style='background:#1a4d2e;color:#4ade80;padding:4px 10px;border-radius:20px;font-size:12px;font-weight:700;'>✅ ALIGNED</span>",unsafe_allow_html=True)
+    
     st.divider()
-    st.markdown("**📍 LIVE OPPORTUNITIES**")
-    cl,cs=st.columns(2)
-    with cl:
-        st.markdown("▲ US Longs"); 
-        for t in tickers['us_longs'][:5]: st.markdown(f"<span style='color:#3fb950;font-weight:600;'>{t}</span>",unsafe_allow_html=True)
-        st.markdown("▲ IHSG"); 
-        for t in tickers['ihsg_buys'][:5]: st.markdown(f"<span style='color:#fb923c;font-weight:600;'>{t}</span>",unsafe_allow_html=True)
-    with cs:
-        st.markdown("▼ US Shorts"); 
-        for t in tickers['us_shorts'][:5]: st.markdown(f"<span style='color:#f85149;font-weight:600;'>{t}</span>",unsafe_allow_html=True)
-    st.divider()
+    
+    # Transitional warning
     if sq!=mq:
-        st.warning(f"⚠️ TRANSITIONAL — {sq}/{mq} divergen. Trade monthly signal only, jangan buka structural positions.")
+        st.warning(f"⚠️ TRANSITIONAL — {sq}/{mq} divergen. Trade monthly signal only. Jangan buka structural positions.")
     else:
         st.success(f"✅ ALIGNED — {sq} confirmed. Bisa deploy structural + monthly.")
+    
+    # Macro cards
+    st.markdown("**📊 Macro Pulse**")
+    c1,c2,c3=st.columns(3)
+    with c1:
+        _h("""<div style="background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:12px;">
+          <div style="font-size:10px;color:#8b949e;">ISM Mfg Δ</div>
+          <div style="font-size:18px;font-weight:800;color:#e6edf3;">—</div>
+          <div style="font-size:10px;color:#8b949e;">FRED NAPMN</div>
+        </div>""")
+    with c2:
+        _h("""<div style="background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:12px;">
+          <div style="font-size:10px;color:#8b949e;">Claims Δ</div>
+          <div style="font-size:18px;font-weight:800;color:#e6edf3;">—</div>
+          <div style="font-size:10px;color:#8b949e;">FRED ICSA</div>
+        </div>""")
+    with c3:
+        _h("""<div style="background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:12px;">
+          <div style="font-size:10px;color:#8b949e;">Breakeven 1M</div>
+          <div style="font-size:18px;font-weight:800;color:#e6edf3;">—</div>
+          <div style="font-size:10px;color:#8b949e;">T10Y - T10YIE</div>
+        </div>""")
+    
+    st.divider()
+    st.markdown("**📍 LIVE OPPORTUNITIES**")
+    c1,c2=st.columns(2)
+    with c1:
+        st.markdown("<div style='color:#3fb950;font-weight:700;font-size:14px;'>▲ US LONGS</div>",unsafe_allow_html=True)
+        for t in tickers['us_longs'][:6]: st.markdown(f"<div style='color:#3fb950;font-weight:600;'>{clean_tk(t)}</div>",unsafe_allow_html=True)
+        st.markdown("<div style='color:#fb923c;font-weight:700;font-size:14px;margin-top:12px;'>▲ IHSG</div>",unsafe_allow_html=True)
+        for t in tickers['ihsg_buys'][:6]: st.markdown(f"<div style='color:#fb923c;font-weight:600;'>{clean_tk(t)}</div>",unsafe_allow_html=True)
+        st.markdown("<div style='color:#58a6ff;font-weight:700;font-size:14px;margin-top:12px;'>▲ FX LONGS</div>",unsafe_allow_html=True)
+        for t in tickers['fx_longs'][:4]: st.markdown(f"<div style='color:#58a6ff;font-weight:600;'>{clean_tk(t)}</div>",unsafe_allow_html=True)
+        st.markdown("<div style='color:#a371f7;font-weight:700;font-size:14px;margin-top:12px;'>▲ CRYPTO</div>",unsafe_allow_html=True)
+        for t in tickers['crypto_longs'][:4]: st.markdown(f"<div style='color:#a371f7;font-weight:600;'>{clean_tk(t)}</div>",unsafe_allow_html=True)
+    with c2:
+        st.markdown("<div style='color:#f85149;font-weight:700;font-size:14px;'>▼ US SHORTS</div>",unsafe_allow_html=True)
+        for t in tickers['us_shorts'][:6]: st.markdown(f"<div style='color:#f85149;font-weight:600;'>{clean_tk(t)}</div>",unsafe_allow_html=True)
+        st.markdown("<div style='color:#f85149;font-weight:700;font-size:14px;margin-top:12px;'>▼ FX SHORTS</div>",unsafe_allow_html=True)
+        for t in tickers['fx_shorts'][:4]: st.markdown(f"<div style='color:#f85149;font-weight:600;'>{clean_tk(t)}</div>",unsafe_allow_html=True)
+        st.markdown("<div style='color:#f85149;font-weight:700;font-size:14px;margin-top:12px;'>▼ COMM SHORTS</div>",unsafe_allow_html=True)
+        for t in tickers['comm_shorts'][:4]: st.markdown(f"<div style='color:#f85149;font-weight:600;'>{clean_tk(t)}</div>",unsafe_allow_html=True)
+        st.markdown("<div style='color:#f85149;font-weight:700;font-size:14px;margin-top:12px;'>▼ CRYPTO SHORTS</div>",unsafe_allow_html=True)
+        for t in tickers['crypto_shorts'][:4]: st.markdown(f"<div style='color:#f85149;font-weight:600;'>{clean_tk(t)}</div>",unsafe_allow_html=True)
 
-# ─── TAB 1: MARKETS ───
+# ═══════════════════════════════════════════════════════════════════════════════
+# TAB 1: MARKETS
+# ═══════════════════════════════════════════════════════════════════════════════
 with tabs[1]:
     def rn(s,n):
         if s is None or len(s)<n+1: return float("nan")
@@ -440,7 +503,7 @@ with tabs[1]:
     def rc(tlist,nmap,sig,pr=2):
         if not tlist: return
         cards=[]
-        for t in tlist: s=prices.get(t); cards.append(tc(t,nmap.get(t,t),gr(s,21),gr(s,63),sig))
+        for t in tlist: s=prices.get(t); cards.append(tc(clean_tk(t),nmap.get(t,t),gr(s,21),gr(s,63),sig))
         for i in range(0,len(cards),pr): _h('<div style="display:flex;gap:8px;margin-bottom:8px;">'+"".join(cards[i:i+pr])+'</div>')
     def rh(alist):
         if not prices: return
@@ -498,7 +561,7 @@ with tabs[1]:
         if not fb: st.caption(f"No {market_name} bottleneck matched."); return
         h=['<div style="display:flex;gap:6px;flex-wrap:wrap;">']
         for x in fb[:8]:
-            tk=x.get("ticker","—"); sc=x.get("score",0); stg=x.get("stage","—")
+            tk=clean_tk(x.get("ticker","—")); sc=x.get("score",0); stg=x.get("stage","—")
             c={"mature":"#f85149","building":"#d29922","early":"#3fb950"}.get(stg,"#8b949e")
             h.append(f'<div style="background:#161b22;border:1px solid #30363d;border-radius:6px;padding:6px 10px;text-align:center;"><div style="font-size:12px;font-weight:700;color:#e6edf3;">{tk}</div><div style="font-size:10px;color:{c};">{stg} · {sc:.2f}</div></div>')
         h.append('</div>'); _h("".join(h))
@@ -510,7 +573,7 @@ with tabs[1]:
             for t in tickers.get(sk,[])[:4]: at.append((t,"Short",cs))
         if at:
             h=['<div style="display:flex;gap:6px;flex-wrap:wrap;">']
-            for t,s,c in at: h.append(f'<div style="background:#0d1117;border:1px solid #30363d;border-radius:4px;padding:4px 8px;font-size:11px;color:{c};font-weight:600;">{t} <span style="color:#8b949e;font-size:9px;">{s}</span></div>')
+            for t,s,c in at: h.append(f'<div style="background:#0d1117;border:1px solid #30363d;border-radius:4px;padding:4px 8px;font-size:11px;color:{c};font-weight:600;">{clean_tk(t)} <span style="color:#8b949e;font-size:9px;">{s}</span></div>')
             h.append('</div>'); _h("".join(h))
         else: st.caption(f"No {mn} tickers")
 
@@ -588,7 +651,9 @@ with tabs[1]:
                 _h(f'<div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:10px;margin-bottom:8px;"><div style="display:flex;align-items:center;justify-content:space-between;"><div style="display:flex;align-items:center;gap:8px;"><div style="background:{bg};color:{co};padding:3px 10px;border-radius:16px;font-size:11px;font-weight:700;">{r["chain"].upper()}</div><div style="font-size:13px;font-weight:700;color:#e6edf3;">{r["verdict"]}</div></div><div style="font-size:18px;font-weight:800;color:{co};">{sc:.0f}<span style="font-size:10px;color:#8b949e;">/100</span></div></div><div style="display:flex;gap:12px;flex-wrap:wrap;font-size:10px;color:#c9d1d9;margin-top:6px;"><span>📊 Macro: <b>{r["macro"]}</b></span><span>📈 TVL: <b>{r["tvl"]:+.1f}%</b></span><span>💰 Stable: <b>{r["stb"]:+.1f}%</b></span><span>🌊 DEX: <b>{r["dex"]:.1f}x</b></span></div></div>')
         else: st.info("No on-chain data.")
 
-# ─── TAB 2: REGIME DEEP DIVE ───
+# ═══════════════════════════════════════════════════════════════════════════════
+# TAB 2: REGIME DEEP DIVE
+# ═══════════════════════════════════════════════════════════════════════════════
 with tabs[2]:
     if st.toggle("Show raw regime JSON",False): st.json(q)
     md=q.get("monthly_debug",{})
@@ -600,11 +665,13 @@ with tabs[2]:
         label=f"{'●' if k==sq else '◉' if k==mq else '○'} {k}: S={p:.0%} M={mp:.0%}"
         st.progress(p,text=label)
 
-# ─── TAB 3: RISK & DIAG ───
+# ═══════════════════════════════════════════════════════════════════════════════
+# TAB 3: RISK & DIAG
+# ═══════════════════════════════════════════════════════════════════════════════
 with tabs[3]:
     st.subheader("⚠️ Risk & Diagnostics")
     c1,c2,c3=st.columns(3)
-    with c1: st.metric("FRED Loaded",f"{q.get('fred_loaded',0)}/{len(FRED_PARAMS)}")
+    with c1: st.metric("FRED Loaded",f"{q.get('fred_loaded',0)}/{FRED_SERIES_COUNT}")
     with c2: st.metric("Source",src)
     with c3: st.metric("API Key","✅" if q.get('fred_loaded',0)>0 else "❌")
     if q.get('fred_loaded',0)==0:

@@ -19,9 +19,9 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s | %(name)s | %(messa
 logger = logging.getLogger(__name__)
 
 FRED_BASE = "https://api.stlouisfed.org/fred"
-CACHE_FILE = "/tmp/regime_cache_v4.pkl"  # v4 bust
+CACHE_FILE = "/tmp/regime_cache_v5.pkl"  # v5 bust
 MAX_RETRIES = 3
-REQUEST_TIMEOUT = 20
+REQUEST_TIMEOUT = 25
 
 FRED_SERIES = {
     'real_pce':      'PCEC1',
@@ -43,6 +43,8 @@ def fetch_fred_series(series_id: str, api_key: str, start_date: str = "2019-01-0
         logger.warning(f"No API key for {series_id}")
         return None
     
+    headers = {"User-Agent": "Mozilla/5.0 (compatible; MacroRegime/1.0)"}
+    
     for attempt in range(MAX_RETRIES):
         try:
             url = f"{FRED_BASE}/series/observations"
@@ -52,16 +54,16 @@ def fetch_fred_series(series_id: str, api_key: str, start_date: str = "2019-01-0
                 'file_type': 'json',
                 'observation_start': start_date,
                 'sort_order': 'desc',
-                'limit': 200
+                'limit': 500
             }
-            resp = requests.get(url, params=params, timeout=REQUEST_TIMEOUT)
+            resp = requests.get(url, params=params, headers=headers, timeout=REQUEST_TIMEOUT)
             if resp.status_code == 429:
                 wait = 2 ** attempt + 1
                 logger.warning(f"FRED 429 for {series_id}, waiting {wait}s")
                 time.sleep(wait)
                 continue
             if resp.status_code != 200:
-                logger.error(f"FRED {resp.status_code} for {series_id}: {resp.text[:100]}")
+                logger.error(f"FRED {resp.status_code} for {series_id}: {resp.text[:200]}")
                 continue
             
             data = resp.json()
@@ -78,8 +80,6 @@ def fetch_fred_series(series_id: str, api_key: str, start_date: str = "2019-01-0
                 logger.warning(f"All NaN values for {series_id}")
                 continue
             
-            # CRITICAL FIX: Don't resample monthly data — FRED already gives monthly EOM
-            # Just keep last per month in case of duplicates
             df = df.set_index('date').sort_index()
             df = df[~df.index.duplicated(keep='last')]
             series = df['value']
@@ -88,14 +88,14 @@ def fetch_fred_series(series_id: str, api_key: str, start_date: str = "2019-01-0
                 logger.warning(f"{series_id}: only {len(series)} points, need 12+")
                 continue
             
-            logger.info(f"FRED {series_id}: loaded {len(series)} points, last={series.index[-1].date()}, val={series.iloc[-1]}")
+            logger.info(f"✅ FRED {series_id}: loaded {len(series)} points, last={series.index[-1].date()}, val={series.iloc[-1]}")
             return series
             
         except Exception as e:
             logger.error(f"FRED error {series_id} attempt {attempt+1}: {e}")
             time.sleep(2 ** attempt + 1)
     
-    logger.error(f"FRED {series_id}: all retries failed")
+    logger.error(f"❌ FRED {series_id}: all retries failed")
     return None
 
 def fetch_all_fred() -> Dict[str, pd.Series]:
@@ -139,11 +139,9 @@ def yfinance_proxy_regime() -> Optional[Dict]:
         iwm_1m, iwm_3m, iwm_6m = mom('IWM')
         xli_1m, xli_3m, xli_6m = mom('XLI')
         
-        # Structural growth: 3m vs 6m
         growth_accel = (spy_3m > spy_6m + 0.5) and (xlf_3m > xlu_3m) and (xli_3m > xli_6m)
         growth_decel = (spy_3m < spy_6m - 0.5) or (xlu_3m > xlf_3m + 2) or (iwm_3m < iwm_6m - 1)
         
-        # Structural inflation: GLD + XOP + TLT
         infl_accel = (gld_3m > gld_6m) and (xop_3m > -5) and (tlt_3m < tlt_6m)
         infl_decel = (gld_3m < gld_6m - 1) and (uup_3m > uup_6m)
         
@@ -155,7 +153,6 @@ def yfinance_proxy_regime() -> Optional[Dict]:
         policy_rate = 5.0 if policy_hawkish else (3.5 if policy_dovish else 4.5)
         ten_y = 4.5 if policy_hawkish else (3.5 if policy_dovish else 4.2)
         
-        # MONTHLY proxy: 1m vs 3m momentum (near-term bounce detector)
         monthly_growth_accel = (spy_1m > spy_3m + 0.3) and (iwm_1m > iwm_3m)
         monthly_growth_decel = (spy_1m < spy_3m - 0.3) or (iwm_1m < iwm_3m - 0.5)
         monthly_infl_accel = (gld_1m > gld_3m) and (tlt_1m < tlt_3m)
@@ -196,15 +193,10 @@ def trend_direction(series: pd.Series, threshold: float = 0.03) -> str:
     return "stable"
 
 def monthly_momentum(yoy_series: pd.Series, level_series: pd.Series) -> tuple[str, dict]:
-    """
-    v4: MoM pace comparison using pct_change on level data.
-    """
     debug = {}
-    
     if len(yoy_series) < 6 or len(level_series) < 6:
         return "stable", debug
     
-    # Layer 1: MoM pace
     mom = level_series.pct_change() * 100.0
     mom_3m = float(mom.iloc[-3:].mean())
     mom_6m = float(mom.iloc[-6:].mean())
@@ -213,7 +205,6 @@ def monthly_momentum(yoy_series: pd.Series, level_series: pd.Series) -> tuple[st
     debug['mom_6m_avg'] = round(mom_6m, 3)
     debug['mom_diff'] = round(mom_3m - mom_6m, 3)
     
-    # Layer 2: YoY
     yoy_1m = float(yoy_series.iloc[-1])
     yoy_3m_avg = float(yoy_series.iloc[-3:].mean())
     yoy_3m_prior = float(yoy_series.iloc[-6:-3].mean())
@@ -225,7 +216,6 @@ def monthly_momentum(yoy_series: pd.Series, level_series: pd.Series) -> tuple[st
     accel_score = 0
     decel_score = 0
     
-    # MoM pace (weight 2)
     if mom_3m > mom_6m + 0.02:
         accel_score += 2
         debug['mom_signal'] = 'accelerating'
@@ -235,7 +225,6 @@ def monthly_momentum(yoy_series: pd.Series, level_series: pd.Series) -> tuple[st
     else:
         debug['mom_signal'] = 'stable'
     
-    # YoY 1m vs 3m avg (weight 1)
     if yoy_1m > yoy_3m_avg + 0.05:
         accel_score += 1
         debug['yoy1m_signal'] = 'accelerating'
@@ -245,7 +234,6 @@ def monthly_momentum(yoy_series: pd.Series, level_series: pd.Series) -> tuple[st
     else:
         debug['yoy1m_signal'] = 'stable'
     
-    # YoY recent 3m vs prior 3m (weight 1)
     if yoy_3m_avg > yoy_3m_prior + 0.05:
         accel_score += 1
         debug['yoy3m_signal'] = 'accelerating'
@@ -295,22 +283,11 @@ def assign_quad(growth_trend: str, inflation_trend: str,
     return "Q2"
 
 def calculate_regime() -> Dict:
-    # Bust old caches
-    for old_cache in ["/tmp/regime_cache_v2.pkl", "/tmp/regime_cache_v3.pkl"]:
-        if os.path.exists(old_cache):
-            try:
-                os.remove(old_cache)
-                logger.info(f"Busted {old_cache}")
-            except Exception:
-                pass
-    
-    cached = None
-    if os.path.exists(CACHE_FILE):
+    # BUST ALL OLD CACHES — critical fix
+    for old_cache in glob.glob("/tmp/regime_cache_*.pkl"):
         try:
-            with open(CACHE_FILE, 'rb') as f:
-                cached = pickle.load(f)
-                if (datetime.now() - datetime.fromisoformat(cached.get('timestamp','2000-01-01'))).days > 2:
-                    cached = None
+            os.remove(old_cache)
+            logger.info(f"Busted {old_cache}")
         except Exception:
             pass
     
@@ -321,7 +298,6 @@ def calculate_regime() -> Dict:
     
     logger.info(f"Regime source: {source}, FRED keys: {list(fred.keys())}")
     
-    # --- FRED PATH ---
     if has_pce and has_cpi:
         pce = fred.get('real_pce')
         pce_yoy = yoy_roc(pce)
@@ -341,7 +317,6 @@ def calculate_regime() -> Dict:
         ten_y = float(t10.iloc[-1]) if t10 is not None else 4.2
         confidence = 0.80 if len(fred) >= 6 else 0.65
         
-    # --- PROXY PATH ---
     else:
         proxy = yfinance_proxy_regime()
         if proxy is not None:
@@ -370,7 +345,6 @@ def calculate_regime() -> Dict:
     
     structural_quad = assign_quad(growth_trend, infl_trend, growth_val, infl_val)
     
-    # MONTHLY
     monthly_quad = structural_quad
     monthly_debug = {}
     if source == 'fred':
@@ -396,7 +370,6 @@ def calculate_regime() -> Dict:
         monthly_quad = assign_quad(monthly_growth, monthly_infl, growth_val, infl_val)
         logger.info(f"Monthly: growth={monthly_growth}, infl={monthly_infl} → {monthly_quad}")
     else:
-        # Proxy monthly from yfinance
         proxy = yfinance_proxy_regime()
         if proxy:
             monthly_growth = proxy.get('monthly_growth', growth_trend)
@@ -405,7 +378,6 @@ def calculate_regime() -> Dict:
             monthly_debug['proxy'] = {'monthly_growth': monthly_growth, 'monthly_infl': monthly_infl}
             logger.info(f"Proxy Monthly: growth={monthly_growth}, infl={monthly_infl} → {monthly_quad}")
     
-    # GLOBAL
     global_quad = structural_quad
     if source == 'fred':
         dxy = fred.get('dxy')

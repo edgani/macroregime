@@ -1,5 +1,5 @@
 """
-regime_engine.py — Hedgeye GIP Model
+regime_engine.py — Hedgeye GIP Model + Macro Pulse
 Growth: Real PCE YoY | Inflation: Headline CPI YoY | Policy: DFF+DGS10+DXY
 100% data-driven. Zero hardcode regime.
 """
@@ -20,6 +20,7 @@ FRED_SERIES = {
     'cpi': 'CPIAUCSL', 'core_cpi': 'CPILFESL',
     'fed_funds': 'DFF', 'treasury_10y': 'DGS10',
     'treasury_2y': 'DGS2', 'dxy': 'DTWEXBGS',
+    'ism_mfg': 'NAPMN', 'claims': 'ICSA', 'breakeven_10y': 'T10YIE',
 }
 FRED_SERIES_COUNT = len(FRED_SERIES)
 
@@ -51,7 +52,7 @@ def fetch_fred_series(sid: str, api_key: str) -> Optional[pd.Series]:
             if df.empty: continue
             df = df.set_index('date').sort_index().drop_duplicates()
             s = df['value']
-            if len(s) < 12: continue
+            if len(s) < 6: continue
             logger.info(f"✅ FRED {sid}: {len(s)} pts, last={s.index[-1].date()}, val={s.iloc[-1]:.3f}")
             return s
         except Exception as e:
@@ -70,6 +71,21 @@ def fetch_all_fred() -> Dict[str, pd.Series]:
         time.sleep(0.5)
     logger.info(f"FRED loaded: {len(out)}/{len(FRED_SERIES)} — {list(out.keys())}")
     return out
+
+def get_vix() -> float:
+    try:
+        v = yf.download("^VIX", period="5d", interval="1d", progress=False, auto_adjust=True)
+        if not v.empty and 'Close' in v:
+            val = float(v['Close'].iloc[-1])
+            if val > 5: return val
+    except: pass
+    try:
+        v = yf.download("VIXY", period="5d", interval="1d", progress=False, auto_adjust=True)
+        if not v.empty and 'Close' in v:
+            val = float(v['Close'].iloc[-1])
+            if val > 5: return val * 2.2
+    except: pass
+    return 20.0
 
 def yoy_roc(s: pd.Series, months=12) -> pd.Series:
     return ((s / s.shift(months) - 1.0) * 100.0).dropna()
@@ -135,7 +151,7 @@ def assign_quad(gt: str, it: str, gv=None, iv=None, use_abs=True) -> str:
 
 def yf_proxy():
     try:
-        tkrs = ['SPY','TLT','GLD','UUP','XOP','XLF','XLU','XLK','XLP','HYG','IWM','XLI','VIXY']
+        tkrs = ['SPY','TLT','GLD','UUP','XOP','XLF','XLU','XLK','XLP','HYG','IWM','XLI']
         data = yf.download(tkrs, period="9mo", interval="1d", progress=False, auto_adjust=True)
         close = data['Close'] if isinstance(data.columns, pd.MultiIndex) else data
         def mom(t, m1=21, m3=63, m6=126):
@@ -146,7 +162,7 @@ def yf_proxy():
         spy1,spy3,spy6 = mom('SPY'); tlt1,tlt3,tlt6 = mom('TLT'); gld1,gld3,gld6 = mom('GLD')
         uup1,uup3,uup6 = mom('UUP'); xop1,xop3,xop6 = mom('XOP'); xlf1,xlf3,xlf6 = mom('XLF')
         xlu1,xlu3,xlu6 = mom('XLU'); hyg1,hyg3,hyg6 = mom('HYG'); iwm1,iwm3,iwm6 = mom('IWM')
-        xli1,xli3,xli6 = mom('XLI'); vix1,vix3,vix6 = mom('VIXY')
+        xli1,xli3,xli6 = mom('XLI')
         g_acc = (spy3 > spy6+0.5) and (xlf3 > xlu3) and (xli3 > xli6)
         g_dec = (spy3 < spy6-0.5) or (xlu3 > xlf3+2) or (iwm3 < iwm6-1)
         i_acc = (gld3 > gld6) and (xop3 > -5) and (tlt3 < tlt6)
@@ -157,7 +173,6 @@ def yf_proxy():
         iy = 3.8 if i_acc else (2.2 if i_dec else 3.0)
         pr = 5.0 if ph else (3.5 if pd_ else 4.5)
         t10 = 4.5 if ph else (3.5 if pd_ else 4.2)
-        vix_now = vix1 if vix1 != 0 else 20.0
         mg_acc = (spy1 > spy3+0.3) and (iwm1 > iwm3)
         mg_dec = (spy1 < spy3-0.3) or (iwm1 < iwm3-0.5)
         mi_acc = (gld1 > gld3) and (tlt1 < tlt3)
@@ -165,7 +180,7 @@ def yf_proxy():
         mg = "accelerating" if mg_acc else "decelerating" if mg_dec else "stable"
         mi = "accelerating" if mi_acc else "decelerating" if mi_dec else "stable"
         return {'growth_yoy':gy,'inflation_yoy':iy,'policy_rate':pr,'treasury_10y':t10,
-                'vix':vix_now,'source':'yfinance_proxy','confidence':0.5,
+                'vix':get_vix(),'source':'yfinance_proxy','confidence':0.5,
                 'fred_loaded':0,'fred_missing':len(FRED_SERIES),
                 'monthly_growth':mg,'monthly_infl':mi}
     except Exception as e:
@@ -180,10 +195,18 @@ def calculate_regime() -> Dict:
     fred = fetch_all_fred()
     has_pce = 'real_pce' in fred
     has_cpi = 'cpi' in fred or 'core_cpi' in fred
-    source = 'fred' if (has_pce and has_cpi) else 'yfinance_proxy'
+    
+    if has_pce and has_cpi:
+        source = 'fred'
+    elif len(fred) >= 5:
+        source = 'fred_partial'
+    else:
+        source = 'yfinance_proxy'
     logger.info(f"Source={source}, keys={list(fred.keys())}")
     
-    vix = 20.0
+    vix = get_vix()
+    macro_pulse = {}
+    
     if has_pce and has_cpi:
         pce = fred['real_pce']
         pce_yoy = yoy_roc(pce)
@@ -199,6 +222,19 @@ def calculate_regime() -> Dict:
         policy_rate = float(ff.iloc[-1]) if ff is not None else 4.5
         ten_y = float(t10.iloc[-1]) if t10 is not None else 4.2
         confidence = 0.80 if len(fred) >= 6 else 0.65
+        
+        ism = fred.get('ism_mfg')
+        if ism is not None and len(ism) >= 2:
+            macro_pulse['ism_delta'] = round(float(ism.iloc[-1] - ism.iloc[-2]), 1)
+            macro_pulse['ism_now'] = round(float(ism.iloc[-1]), 1)
+        claims = fred.get('claims')
+        if claims is not None and len(claims) >= 2:
+            macro_pulse['claims_delta'] = round(float(claims.iloc[-1] - claims.iloc[-2]), 0)
+            macro_pulse['claims_now'] = round(float(claims.iloc[-1]), 0)
+        be = fred.get('breakeven_10y')
+        if be is not None and len(be) >= 21:
+            macro_pulse['be_1m'] = round(float(be.iloc[-1] - be.iloc[-21]), 2)
+            macro_pulse['be_now'] = round(float(be.iloc[-1]), 2)
     else:
         proxy = yf_proxy()
         if proxy:
@@ -212,14 +248,14 @@ def calculate_regime() -> Dict:
             return {'quad':'Q2','structural_quad':'Q2','monthly_quad':'Q2','global_quad':'Q2',
                     'confidence':0.25,'source':'fallback','growth_trend':'stable','inflation_trend':'stable',
                     'growth_yoy':1.5,'inflation_yoy':3.0,'policy_rate':4.5,'treasury_10y':4.2,
-                    'policy_stance':'In-a-box','fred_loaded':0,'fred_missing':len(FRED_SERIES),
-                    'vix':20.0,'operating_regime':'⚠️ Data Unavailable','monthly_debug':{},
+                    'vix':vix,'policy_stance':'In-a-box','fred_loaded':0,'fred_missing':len(FRED_SERIES),
+                    'operating_regime':'⚠️ Data Unavailable','monthly_debug':{},'macro_pulse':{},
                     'timestamp':datetime.now().isoformat()}
     
     sq = assign_quad(growth_trend, infl_trend, growth_val, infl_val, use_abs=True)
     
     mq = sq; md = {}
-    if source == 'fred':
+    if source in ('fred','fred_partial'):
         ps = fred.get('real_pce'); cs = fred.get('cpi') or fred.get('core_cpi')
         if ps is not None and len(ps)>=6:
             py = yoy_roc(ps); mg, gd = monthly_momentum(py, ps); md['growth']=gd
@@ -236,7 +272,7 @@ def calculate_regime() -> Dict:
             md['proxy'] = {'mg':proxy['monthly_growth'],'mi':proxy['monthly_infl']}
     
     gq = sq
-    if source == 'fred':
+    if source in ('fred','fred_partial'):
         dxy = fred.get('dxy'); t10s = fred.get('treasury_10y')
         dxy_t = trend_direction(dxy, 0.20) if dxy is not None and len(dxy)>=6 else "stable"
         rt = trend_direction(t10s, 0.03) if t10s is not None and len(t10s)>=6 else "stable"
@@ -257,7 +293,7 @@ def calculate_regime() -> Dict:
         'policy_rate':round(float(policy_rate),2),'treasury_10y':round(float(ten_y),2),
         'vix':round(float(vix),2),'policy_stance':ps_text,
         'fred_loaded':len(fred),'fred_missing':len(FRED_SERIES)-len(fred),
-        'operating_regime':rt,'monthly_debug':md,
+        'operating_regime':rt,'monthly_debug':md,'macro_pulse':macro_pulse,
         'timestamp':datetime.now().isoformat()
     }
 

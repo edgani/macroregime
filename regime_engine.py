@@ -1,12 +1,11 @@
 """
-regime_engine.py — Hedgeye GIP Model + Macro Pulse
+regime_engine.py — Hedgeye GIP Model + Macro Pulse + Probabilities
 Growth: Real PCE YoY | Inflation: Headline CPI YoY | Policy: DFF+DGS10+DXY
-100% data-driven. Zero hardcode regime.
 """
 import os, time, logging, glob, math
 from datetime import datetime
 from typing import Dict, Optional
-import requests, yfinance as yf, pandas as pd, numpy as np, streamlit as st
+import requests, yfinance as yf, pandas as pd, numpy as np
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s | %(name)s | %(message)s')
 logger = logging.getLogger(__name__)
@@ -27,7 +26,7 @@ FRED_SERIES_COUNT = len(FRED_SERIES)
 def get_fred_api_key() -> str:
     key = os.environ.get("FRED_API_KEY", "")
     if not key:
-        try: key = st.secrets.get("FRED_API_KEY", "")
+        try: key = __import__('streamlit').secrets.get("FRED_API_KEY", "")
         except: pass
     if not key: key = "5fbe5dc4c8a5fbb109c4809463a1c27f"
     return key.strip()
@@ -187,6 +186,25 @@ def yf_proxy():
         logger.error(f"yf_proxy fail: {e}")
         return None
 
+def _calc_probs(gv, iv, gt, it):
+    """Simple heuristic probability distribution across quads."""
+    base = {"Q1":0.15,"Q2":0.35,"Q3":0.35,"Q4":0.15}
+    if gt=="accelerating" and it=="decelerating": base={"Q1":0.55,"Q2":0.25,"Q3":0.12,"Q4":0.08}
+    elif gt=="accelerating" and it=="accelerating": base={"Q1":0.15,"Q2":0.55,"Q3":0.22,"Q4":0.08}
+    elif gt=="decelerating" and it=="accelerating": base={"Q1":0.08,"Q2":0.15,"Q3":0.55,"Q4":0.22}
+    elif gt=="decelerating" and it=="decelerating": base={"Q1":0.12,"Q2":0.08,"Q3":0.25,"Q4":0.55}
+    if gv is not None and iv is not None:
+        if gv >= 2.5: 
+            base["Q2"]+=0.08; base["Q1"]+=0.05; base["Q3"]-=0.08; base["Q4"]-=0.05
+        elif gv < 2.0:
+            base["Q3"]+=0.05; base["Q4"]+=0.08; base["Q1"]-=0.05; base["Q2"]-=0.08
+        if iv >= 2.8:
+            base["Q2"]+=0.05; base["Q3"]+=0.08; base["Q1"]-=0.05; base["Q4"]-=0.08
+        elif iv < 2.2:
+            base["Q1"]+=0.08; base["Q4"]+=0.05; base["Q2"]-=0.05; base["Q3"]-=0.08
+    total = sum(base.values())
+    return {k:round(v/total,3) for k,v in base.items()}
+
 def calculate_regime() -> Dict:
     for old in glob.glob("/tmp/regime_cache_*.pkl"):
         try: os.remove(old)
@@ -196,6 +214,7 @@ def calculate_regime() -> Dict:
     has_pce = 'real_pce' in fred
     has_cpi = 'cpi' in fred or 'core_cpi' in fred
     
+    # FIX: if >=5 FRED loaded, it's fred_partial even if missing PCE/CPI
     if has_pce and has_cpi:
         source = 'fred'
     elif len(fred) >= 5:
@@ -206,6 +225,16 @@ def calculate_regime() -> Dict:
     
     vix = get_vix()
     macro_pulse = {}
+    growth_trend = "stable"
+    infl_trend = "stable"
+    growth_val = 1.5
+    infl_val = 3.0
+    policy_rate = 4.5
+    ten_y = 4.2
+    confidence = 0.25
+    mg = "stable"
+    mi = "stable"
+    md = {}
     
     if has_pce and has_cpi:
         pce = fred['real_pce']
@@ -235,6 +264,44 @@ def calculate_regime() -> Dict:
         if be is not None and len(be) >= 21:
             macro_pulse['be_1m'] = round(float(be.iloc[-1] - be.iloc[-21]), 2)
             macro_pulse['be_now'] = round(float(be.iloc[-1]), 2)
+    elif len(fred) >= 5:
+        # fred_partial: use whatever we have
+        source = 'fred_partial'
+        confidence = 0.65
+        if 'real_pce' in fred:
+            pce = fred['real_pce']; pce_yoy = yoy_roc(pce)
+            growth_trend = trend_direction(pce_yoy)
+            growth_val = float(pce_yoy.iloc[-1]) if len(pce_yoy)>0 else 0.0
+        if 'cpi' in fred or 'core_cpi' in fred:
+            cpi = fred.get('cpi') or fred.get('core_cpi')
+            cpi_yoy = yoy_roc(cpi)
+            infl_trend = trend_direction(cpi_yoy)
+            infl_val = float(cpi_yoy.iloc[-1]) if len(cpi_yoy)>0 else 0.0
+        ff = fred.get('fed_funds'); t10 = fred.get('treasury_10y')
+        policy_rate = float(ff.iloc[-1]) if ff is not None else 4.5
+        ten_y = float(t10.iloc[-1]) if t10 is not None else 4.2
+        
+        ism = fred.get('ism_mfg')
+        if ism is not None and len(ism) >= 2:
+            macro_pulse['ism_delta'] = round(float(ism.iloc[-1] - ism.iloc[-2]), 1)
+            macro_pulse['ism_now'] = round(float(ism.iloc[-1]), 1)
+        claims = fred.get('claims')
+        if claims is not None and len(claims) >= 2:
+            macro_pulse['claims_delta'] = round(float(claims.iloc[-1] - claims.iloc[-2]), 0)
+            macro_pulse['claims_now'] = round(float(claims.iloc[-1]), 0)
+        be = fred.get('breakeven_10y')
+        if be is not None and len(be) >= 21:
+            macro_pulse['be_1m'] = round(float(be.iloc[-1] - be.iloc[-21]), 2)
+            macro_pulse['be_now'] = round(float(be.iloc[-1]), 2)
+        
+        # monthly momentum from whatever PCE/CPI we have
+        ps = fred.get('real_pce'); cs = fred.get('cpi') or fred.get('core_cpi')
+        if ps is not None and len(ps)>=6:
+            py = yoy_roc(ps); mg, gd = monthly_momentum(py, ps); md['growth']=gd
+        else: mg = growth_trend; md['growth']={'error':'no pce'}
+        if cs is not None and len(cs)>=6:
+            cy = yoy_roc(cs); mi, id_ = monthly_momentum(cy, cs); md['inflation']=id_
+        else: mi = infl_trend; md['inflation']={'error':'no cpi'}
     else:
         proxy = yf_proxy()
         if proxy:
@@ -244,17 +311,21 @@ def calculate_regime() -> Dict:
             policy_rate = proxy['policy_rate']; ten_y = proxy['treasury_10y']
             vix = proxy.get('vix', 20.0)
             confidence = proxy['confidence']; source = proxy['source']
+            mg = proxy['monthly_growth']; mi = proxy['monthly_infl']
         else:
             return {'quad':'Q2','structural_quad':'Q2','monthly_quad':'Q2','global_quad':'Q2',
                     'confidence':0.25,'source':'fallback','growth_trend':'stable','inflation_trend':'stable',
                     'growth_yoy':1.5,'inflation_yoy':3.0,'policy_rate':4.5,'treasury_10y':4.2,
-                    'vix':vix,'policy_stance':'In-a-box','fred_loaded':0,'fred_missing':len(FRED_SERIES),
+                    'vix':vix,'policy_stance':'In-a-box 📦','fred_loaded':0,'fred_missing':len(FRED_SERIES),
                     'operating_regime':'⚠️ Data Unavailable','monthly_debug':{},'macro_pulse':{},
+                    'probs':{"Q1":0.25,"Q2":0.25,"Q3":0.25,"Q4":0.25},
+                    'monthly_probs':{"Q1":0.25,"Q2":0.25,"Q3":0.25,"Q4":0.25},
+                    'flip_hazard':0.0,'deepness':0.0,
                     'timestamp':datetime.now().isoformat()}
     
     sq = assign_quad(growth_trend, infl_trend, growth_val, infl_val, use_abs=True)
     
-    mq = sq; md = {}
+    mq = sq
     if source in ('fred','fred_partial'):
         ps = fred.get('real_pce'); cs = fred.get('cpi') or fred.get('core_cpi')
         if ps is not None and len(ps)>=6:
@@ -285,6 +356,25 @@ def calculate_regime() -> Dict:
     ps_text = "Hawkish 🦅" if policy_rate>=5.25 or ten_y>=4.8 else "Dovish 🕊️" if policy_rate<=3.0 or ten_y<=3.2 else "In-a-box 📦"
     rt = {'Q1':'🟢 Q1 Goldilocks','Q2':'🟡 Q2 Reflation','Q3':'🟠 Q3 Stagflation','Q4':'🔴 Q4 Deflation'}.get(sq,'Unknown')
     
+    probs = _calc_probs(growth_val, infl_val, growth_trend, infl_trend)
+    m_probs = _calc_probs(growth_val, infl_val, mg, mi)
+    
+    # Flip hazard & deepness
+    flip_hazard = 0.0
+    if sq != mq:
+        # Divergence = higher flip risk
+        flip_hazard = min(0.85, 0.35 + 0.15 * abs({"Q1":1,"Q2":2,"Q3":3,"Q4":4}[sq] - {"Q1":1,"Q2":2,"Q3":3,"Q4":4}[mq]))
+    if confidence < 0.5:
+        flip_hazard = max(flip_hazard, 0.45)
+    
+    deepness = 0.0
+    if sq == mq == gq:
+        deepness = min(0.95, confidence * 0.8 + 0.15)
+    elif sq == mq:
+        deepness = min(0.75, confidence * 0.6 + 0.10)
+    else:
+        deepness = min(0.45, confidence * 0.3)
+    
     return {
         'quad':sq,'structural_quad':sq,'monthly_quad':mq,'global_quad':gq,
         'confidence':confidence,'source':source,
@@ -294,9 +384,10 @@ def calculate_regime() -> Dict:
         'vix':round(float(vix),2),'policy_stance':ps_text,
         'fred_loaded':len(fred),'fred_missing':len(FRED_SERIES)-len(fred),
         'operating_regime':rt,'monthly_debug':md,'macro_pulse':macro_pulse,
+        'probs':probs,'monthly_probs':m_probs,
+        'flip_hazard':round(flip_hazard,2),'deepness':round(deepness,2),
         'timestamp':datetime.now().isoformat()
     }
 
-@st.cache_data(ttl=60)
-def get_regime_snapshot() -> Dict:
+def get_regime_snapshot():
     return calculate_regime()

@@ -1,5 +1,5 @@
-"""MacroRegime Pro v13.1 — Visual v10 Restored + Math Fix
-v10.0 Macro Brain UI + v12.2 TRR/LRR + On-Chain + Narrative
+"""MacroRegime Pro v13.2 — Opportunities Merged to Markets + Bottleneck Scan + Full Fix
+v10.0 Macro Brain + v12.2 TRR/LRR + On-Chain + Narrative + Bottleneck
 """
 import os, sys, glob, time, json, logging, requests, math, numpy as np, pandas as pd, yfinance as yf
 from datetime import datetime, timezone, timedelta
@@ -32,7 +32,7 @@ DISPLAY_MAP = {
 def clean_tk(tk): return DISPLAY_MAP.get(tk, tk)
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TRR/LRR ENGINE (v12.2 fixed)
+# TRR/LRR ENGINE (v12.2)
 # ═══════════════════════════════════════════════════════════════════════════════
 TRR_PARAMS = {
     'tradeLen':15,'trendLen':63,'tailLen':756,'rvLen':20,'normLen':63,'volRocLen':5,'atrLen':14,
@@ -161,7 +161,7 @@ class TRRLRREngine:
             else: talph[i]=rta; etab[i]=etab[i-1] if not np.isnan(etab[i-1]) else ptab[i]
             tage[i]=0 if (tr[i] or ttu or ttd) else tage[i-1]+1
             talge[i]=0 if (tar[i] or tlu or tld) else talge[i-1]+1
-        i=n-1; utb=etb[i] if not np.isnan(etb[i]) else ptb[i]; utab=etab[i] if not np.isnan(etab[i]) else ptab[i]
+        i=n-1
         cs=df['Close']; ach=cs.diff().abs(); erd=ach.rolling(20).sum()
         erv=pd.Series(np.where(erd==0,0.0,cs.diff(20).abs()/erd),index=df.index)
         i0=pd.Series(range(len(df)),index=df.index); cr=cs.rolling(30).corr(i0)
@@ -262,7 +262,55 @@ def _render_trr(tlist,ac,title="🎯 TRR/LRR Live Signals"):
         st.divider()
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# ON-CHAIN SCANNER (v12.2)
+# BOTTLENECK SCANNER
+# ═══════════════════════════════════════════════════════════════════════════════
+def bottleneck_scan(tlist, prices, q, ac="US_STOCKS"):
+    """Adaptive bottleneck scan: momentum + regime alignment + breadth."""
+    if not tlist: return []
+    rows=[]
+    sq=q.get("structural_quad","Q3"); mq=q.get("monthly_quad","Q3")
+    regime_boost={"Q1":{"long":0.08,"short":-0.04},"Q2":{"long":0.10,"short":-0.05},"Q3":{"long":0.02,"short":0.02},"Q4":{"long":-0.05,"short":0.08}}.get(sq,{"long":0,"short":0})
+    
+    for t in tlist:
+        s=prices.get(t)
+        if s is None or len(s)<63: continue
+        r1m=((s.iloc[-1]/s.iloc[-22])-1) if len(s)>=22 else 0
+        r3m=((s.iloc[-1]/s.iloc[-64])-1) if len(s)>=64 else 0
+        r6m=((s.iloc[-1]/s.iloc[-126])-1) if len(s)>=126 else 0
+        vs=s.rolling(20).mean()
+        vol_r=s.iloc[-1]/vs.iloc[-1] if not vs.empty and vs.iloc[-1]>0 else 1.0
+        
+        mom_score=min(1.0,max(0.0,0.4*(r3m/0.15)+0.3*(r1m/0.08)+0.2*(r6m/0.25)+0.1*(vol_r-1.0)))
+        sig="LONG" if r3m>0.03 and r1m>-0.02 else "SHORT" if r3m<-0.03 and r1m<0.02 else "NEUTRAL"
+        if sig=="LONG": mom_score+=regime_boost["long"]
+        elif sig=="SHORT": mom_score+=regime_boost["short"]
+        mom_score=max(0.0,min(1.0,mom_score))
+        
+        if mom_score>=0.55:
+            rows.append({
+                "ticker":clean_tk(t),"signal":sig,"score":round(mom_score,2),
+                "r1m":f"{r1m:+.1%}","r3m":f"{r3m:+.1%}","vol":f"{vol_r:.2f}x",
+                "regime":sq,"align":"✅" if sq==mq else "⚠️"
+            })
+    rows.sort(key=lambda x:(0 if x['signal']=='LONG' else 1,-x['score']))
+    return rows
+
+def render_bottleneck(rows, title="🎯 Adaptive Bottleneck Scan"):
+    if not rows:
+        st.caption("Bottleneck: No tickers passed momentum gate.")
+        return
+    st.markdown(f"**{title} ({len(rows)} found)**")
+    for r in rows[:12]:
+        col="#3fb950" if r['signal']=='LONG' else "#f85149" if r['signal']=='SHORT' else "#8b949e"
+        ic="▲" if r['signal']=='LONG' else "▼" if r['signal']=='SHORT' else "◆"
+        _h(f'<div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:8px 12px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;">'
+             f'<div style="display:flex;align-items:center;gap:8px;"><span style="color:{col};font-weight:800;font-size:14px;">{ic} {r["ticker"]}</span>'
+             f'<span style="font-size:10px;color:#8b949e;">{r["r1m"]} 1M · {r["r3m"]} 3M · {r["vol"]}</span></div>'
+             f'<div style="text-align:right;"><span style="font-size:12px;color:{col};font-weight:700;">{r["score"]:.0%}</span>'
+             f'<span style="font-size:10px;color:#8b949e;margin-left:6px;">{r["align"]} {r["regime"]}</span></div></div>')
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# ON-CHAIN SCANNER
 # ═══════════════════════════════════════════════════════════════════════════════
 @dataclass
 class CC:
@@ -370,7 +418,7 @@ sb="🟢 FRED" if src=="fred" else "🟡 FRED Partial" if src=="fred_partial" el
 sc="#3fb950" if src=="fred" else "#fbbf24" if src in ("fred_partial","yfinance_proxy") else "#8b949e"
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# v10.0 MACRO BUILDER FUNCTIONS — FIXED math import
+# v10.0 MACRO BUILDER FUNCTIONS
 # ═══════════════════════════════════════════════════════════════════════════════
 def _s(s): 
     if s is None: return pd.Series(dtype=float)
@@ -406,24 +454,17 @@ def num(v,d=2):
     return f"{v:.{d}f}"
 def nf(x,d=0.0): return float(np.nan_to_num(x,nan=d))
 
-# Lightweight macro builders (v10.0 core logic inlined)
 def build_macro_features(prices, q, fred):
-    """Build macro feature dict from prices + regime snapshot."""
     f = {}
-    # Market-implied features
     for t in ["SPY","QQQ","IWM","RSP","UUP","TLT","EEM","GLD","HYG","LQD","XLE","XLI","XLY","CL=F","GC=F","HG=F"]:
         s = prices.get(t, pd.Series())
         tk = t.replace("^","").replace("=F","f").lower()
         f[f"{tk}_1m"] = ret_n(s,21)
         f[f"{tk}_3m"] = ret_n(s,63)
         f[f"{tk}_ts"] = ts(s)
-    
-    # VIX
     vix_s = prices.get("^VIX", pd.Series())
     f["vix_last"] = last(vix_s)
     f["vix_1m"] = delta_n(vix_s, 21)
-    
-    # Regime snapshot injection
     f["quad"] = q.get("quad", "Q2")
     f["monthly_quad"] = q.get("monthly_quad", "Q2")
     f["confidence"] = q.get("confidence", 0.5)
@@ -438,18 +479,13 @@ def build_macro_features(prices, q, fred):
     f["fred_loaded"] = q.get("fred_loaded", 0)
     f["fred_missing"] = q.get("fred_missing", 0)
     f["macro_pulse"] = q.get("macro_pulse", {})
-    
-    # Derived signals
     oil_3m = nf(f.get("clf_3m", f.get("oil_3m", 0.0)))
     uup_1m = nf(f.get("uup_1m", 0.0))
     spy_1m = nf(f.get("spy_1m", 0.0))
     iwm_1m = nf(f.get("iwm_1m", 0.0))
-    tlt_1m = nf(f.get("tlt_1m", 0.0))
-    
     f["slowdown_flags"] = clamp(0.5 - spy_1m*2 - iwm_1m*2)
     f["inf_shock"] = clamp(0.3 + oil_3m*3 + max(0, uup_1m)*2)
     f["data_coverage"] = clamp(q.get("fred_loaded",0) / max(FRED_SERIES_COUNT,1))
-    
     return f
 
 def build_health(prices, f):
@@ -614,7 +650,7 @@ most_hated = build_most_hated_rally_monitor(f_macro, prices)
 drivers = build_top_drivers(q, f_macro, h, cr)
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# HEADER — v10 STYLE
+# HEADER
 # ═══════════════════════════════════════════════════════════════════════════════
 _h(f"""
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
@@ -622,7 +658,7 @@ _h(f"""
     <div style="font-size:32px;">🧭</div>
     <div>
       <div style="font-size:24px;font-weight:800;color:#e6edf3;">MacroRegime <span style="color:#58a6ff;">Pro</span></div>
-      <div style="font-size:11px;color:#8b949e;">v13.1 · Visual v10 Restored · TRR/LRR · On-Chain · Macro Brain</div>
+      <div style="font-size:11px;color:#8b949e;">v13.2 · Merged Markets · Bottleneck · TRR/LRR · Macro Brain</div>
     </div>
   </div>
   <div style="text-align:right;">
@@ -651,12 +687,12 @@ _h(f"""
 """)
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# MAIN TABS — v10 LAYOUT
+# MAIN TABS — 5 TABS ONLY (Opportunities merged into Markets)
 # ═══════════════════════════════════════════════════════════════════════════════
-tabs=st.tabs(["⚡ Command Center","🌍 Markets","🎯 Opportunities","📊 Regime Deep Dive","📰 Narrative","⚠️ Risk & Diag"])
+tabs=st.tabs(["⚡ Command Center","🌍 Markets","📊 Regime Deep Dive","📰 Narrative","⚠️ Risk & Diag"])
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TAB 0: COMMAND CENTER — v10 EXACT
+# TAB 0: COMMAND CENTER — Clean, no Live Opportunities
 # ═══════════════════════════════════════════════════════════════════════════════
 with tabs[0]:
     c1,c2,c3,c4=st.columns(4)
@@ -725,31 +761,9 @@ with tabs[0]:
     elif cc>=3: st.warning(f"⚡ NYARIS AKTIF {cc}/4 — {most_hated['action']}")
     elif cc>=2: st.info(f"🟡 TRANSISI {cc}/4 — {most_hated['action']}")
     else: st.error(f"❌ BELUM HIDUP {cc}/4 — {most_hated['action']}")
-    
-    # Live Opportunities
-    st.divider(); st.markdown("**📍 LIVE OPPORTUNITIES**")
-    c1,c2=st.columns(2)
-    with c1:
-        st.markdown("<div style='color:#3fb950;font-weight:700;font-size:14px;'>▲ US LONGS</div>",unsafe_allow_html=True)
-        for t in tickers['us_longs'][:6]: st.markdown(f"<div style='color:#3fb950;font-weight:600;'>{clean_tk(t)}</div>",unsafe_allow_html=True)
-        st.markdown("<div style='color:#fb923c;font-weight:700;font-size:14px;margin-top:12px;'>▲ IHSG</div>",unsafe_allow_html=True)
-        for t in tickers['ihsg_buys'][:6]: st.markdown(f"<div style='color:#fb923c;font-weight:600;'>{clean_tk(t)}</div>",unsafe_allow_html=True)
-        st.markdown("<div style='color:#58a6ff;font-weight:700;font-size:14px;margin-top:12px;'>▲ FX LONGS</div>",unsafe_allow_html=True)
-        for t in tickers['fx_longs'][:4]: st.markdown(f"<div style='color:#58a6ff;font-weight:600;'>{clean_tk(t)}</div>",unsafe_allow_html=True)
-        st.markdown("<div style='color:#a371f7;font-weight:700;font-size:14px;margin-top:12px;'>▲ CRYPTO</div>",unsafe_allow_html=True)
-        for t in tickers['crypto_longs'][:4]: st.markdown(f"<div style='color:#a371f7;font-weight:600;'>{clean_tk(t)}</div>",unsafe_allow_html=True)
-    with c2:
-        st.markdown("<div style='color:#f85149;font-weight:700;font-size:14px;'>▼ US SHORTS</div>",unsafe_allow_html=True)
-        for t in tickers['us_shorts'][:6]: st.markdown(f"<div style='color:#f85149;font-weight:600;'>{clean_tk(t)}</div>",unsafe_allow_html=True)
-        st.markdown("<div style='color:#f85149;font-weight:700;font-size:14px;margin-top:12px;'>▼ FX SHORTS</div>",unsafe_allow_html=True)
-        for t in tickers['fx_shorts'][:4]: st.markdown(f"<div style='color:#f85149;font-weight:600;'>{clean_tk(t)}</div>",unsafe_allow_html=True)
-        st.markdown("<div style='color:#f85149;font-weight:700;font-size:14px;margin-top:12px;'>▼ COMM SHORTS</div>",unsafe_allow_html=True)
-        for t in tickers['comm_shorts'][:4]: st.markdown(f"<div style='color:#f85149;font-weight:600;'>{clean_tk(t)}</div>",unsafe_allow_html=True)
-        st.markdown("<div style='color:#f85149;font-weight:700;font-size:14px;margin-top:12px;'>▼ CRYPTO SHORTS</div>",unsafe_allow_html=True)
-        for t in tickers['crypto_shorts'][:4]: st.markdown(f"<div style='color:#f85149;font-weight:600;'>{clean_tk(t)}</div>",unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TAB 1: MARKETS — v10 HEATMAP + CARDS
+# TAB 1: MARKETS — Merged Opportunities + Bottleneck + TRR/LRR + On-Chain
 # ═══════════════════════════════════════════════════════════════════════════════
 with tabs[1]:
     def rn(s,n):
@@ -795,73 +809,9 @@ with tabs[1]:
     COMM={"SLV","GDX","GC=F","SI=F","HG=F","CL=F","NG=F","XOP","OIH","BNO","GLD","AAAU","DUST","BITS","XAUUSD=X","XAGUSD=X","XTIUSD=X","XBRUSD=X","XCUUSD=X","XNGUSD=X","URA","COAL"}
     CRY={"BTC-USD","ETH-USD","SOL-USD","XRP-USD","ADA-USD","AVAX-USD","DOT-USD","MATIC-USD","LINK-USD","UNI-USD","LTC-USD","BCH-USD","ETC-USD","DOGE-USD","SHIB-USD","TON-USD","NEAR-USD","APT-USD","SUI-USD","IBIT"}
 
-    mt=st.tabs(["🇺🇸 US Stocks","🇮🇩 IHSG","💱 FX","🛢️ Commodities","🔐 Crypto"])
-
-    with mt[0]:
-        ul=tickers.get("us_longs",[]); us=tickers.get("us_shorts",[])
-        nm={"SPY":"S&P 500","QQQ":"Nasdaq","IWM":"Russell 2K","XLE":"Energy","XLK":"Tech","XLF":"Finance","XLI":"Industrials","XLB":"Materials","XLV":"Health","XLY":"Consumer","XLP":"Staples","XLU":"Utilities","XLRE":"REITs","TLT":"Long Bond","GLD":"Gold","HII":"Huntington","CAT":"Caterpillar","UPS":"UPS","LII":"Lennox","JBHT":"JB Hunt","MAR":"Marriott","ONTO":"Onto","EMR":"Emerson","RH":"Restoration","SBUX":"Starbucks","TXG":"10x Genomics","AVO":"Mission Produce","FRPT":"Freshpet","PEP":"Pepsi","XOM":"Exxon","HSY":"Hershey","WMB":"Williams","ET":"Energy Transfer","ROP":"Roper","RBLX":"Roblox","TRU":"TransUnion","NVDA":"Nvidia","XTL":"Telecom","EQRR":"Rising Rates","GII":"Infrastructure","EWH":"Hong Kong","EWW":"Mexico","ARGT":"Argentina","EIS":"Israel","IBIT":"Bitcoin ETF","COAL":"Coal","YCS":"Short Yen"}
-        c1,c2=st.columns(2)
-        with c1: st.markdown("**📍 NOW — LONG**"); rc(ul,nm,"long",2)
-        with c2: st.markdown("**📍 NOW — SHORT**"); rc(us,nm,"short",2)
-        st.divider(); st.markdown("**🌍 Heatmap**"); rh([("SPY","S&P 500"),("QQQ","Nasdaq"),("IWM","Russell 2K"),("TLT","Bond"),("GLD","Gold"),("BTC-USD","BTC"),("CL=F","Oil"),("UUP","USD")])
-        rml([("XLE","Energy"),("XLF","Fin"),("XLI","Ind"),("XLB","Mat"),("XLK","Tech"),("XLV","Health"),("XLY","Con.D"),("XLP","Con.S"),("XLU","Util"),("XLRE","RE")],"SPY","Sector Leadership")
-        st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(list(set(ul+us)),"US_STOCKS")
-
-    with mt[1]:
-        ih_t=tickers.get("ihsg_buys",[]); nm={"BBCA.JK":"BCA","BBRI.JK":"BRI","ASII.JK":"Astra","TLKM.JK":"Telkom","ADRO.JK":"Adaro","ANTM.JK":"Antam","PTBA.JK":"Bukit Asam","ITMG.JK":"Indomining","INCO.JK":"Vale","KLBF.JK":"Kalbe","UNVR.JK":"Unilever","INDF.JK":"Indofood"}
-        st.markdown("**📍 NOW — LONG**"); rc(ih_t,nm,"long",3)
-        st.divider(); st.markdown("**🌍 Heatmap**"); rh([("^JKSE","IHSG"),("BBCA.JK","BCA"),("BBRI.JK","BRI"),("ASII.JK","Astra"),("TLKM.JK","Telkom")])
-        rml([("ADRO.JK","Energy"),("BBCA.JK","Finance"),("UNVR.JK","Consumer"),("TLKM.JK","Infra"),("CTRA.JK","Property"),("ANTM.JK","Mining"),("KLBF.JK","Health"),("AALI.JK","Agri"),("ASII.JK","Industri")],"^JKSE","IDX Sector")
-        st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(ih_t,"IHSG")
-        st.divider()
-        st.markdown(f"**🇮🇩 IHSG Score: {ih['ihsg_score']:.0%}** · {ih['exec_mode']}")
-        st.caption(f"Asing: {ih['flow_state']} | IDR 1M: {pct(ih['usd_idr_1m'])} | vs SPY: {ih['rel_state']}")
-
-    with mt[2]:
-        fl=tickers.get("fx_longs",[]); fs=tickers.get("fx_shorts",[])
-        nm={"EURUSD=X":"EUR/USD","USDJPY=X":"USD/JPY","AUDUSD=X":"AUD/USD","USDIDR=X":"USD/IDR","UUP":"DXY","GBPUSD=X":"GBP/USD","USDCAD=X":"USD/CAD","NZDUSD=X":"NZD/USD","USDCHF=X":"USD/CHF","GLD":"Gold","AAAU":"Gold","YCS":"Short Yen"}
-        c1,c2=st.columns(2)
-        with c1: st.markdown("**📍 NOW — LONG**"); rc(fl,nm,"long",2)
-        with c2: st.markdown("**📍 NOW — SHORT**"); rc(fs,nm,"short",2)
-        st.divider(); st.markdown("**🌍 Heatmap**"); rh([("EURUSD=X","EUR/USD"),("USDJPY=X","USD/JPY"),("AUDUSD=X","AUD/USD"),("USDIDR=X","USD/IDR"),("UUP","DXY")])
-        rml([("UUP","DXY"),("USDJPY=X","USD/JPY"),("EURUSD=X","EUR/USD"),("AUDUSD=X","AUD/USD"),("GBPUSD=X","GBP/USD"),("USDCAD=X","USD/CAD")],"UUP","FX Leadership")
-        st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(list(set(fl+fs)),"FOREX")
-
-    with mt[3]:
-        cl=tickers.get("comm_longs",[]); cs=tickers.get("comm_shorts",[])
-        nm={"SLV":"Silver","GDX":"Gold Miners","GC=F":"Gold Fut","SI=F":"Silver Fut","HG=F":"Copper Fut","CL=F":"WTI Oil","NG=F":"Nat Gas","XOP":"Oil Explorers","OIH":"Oil Services","BNO":"Brent Oil","GLD":"Gold","AAAU":"Gold","COAL":"Coal","DUST":"Gold Bear","BITS":"Bitcoin Strat"}
-        c1,c2=st.columns(2)
-        with c1: st.markdown("**📍 NOW — LONG**"); rc(cl,nm,"long",2)
-        with c2: st.markdown("**📍 NOW — SHORT**"); rc(cs,nm,"short",2)
-        st.divider(); st.markdown("**🌍 Heatmap**"); rh([("CL=F","WTI Oil"),("GC=F","Gold Fut"),("HG=F","Copper"),("SI=F","Silver"),("NG=F","Nat Gas")])
-        rml([("GC=F","Gold"),("CL=F","WTI Oil"),("HG=F","Copper"),("SI=F","Silver"),("NG=F","Nat Gas"),("XBRUSD=X","Brent"),("URA","Uranium")],"GC=F","Commodity Leadership")
-        st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(list(set(cl+cs)),"COMMODITIES")
-
-    with mt[4]:
-        crl=tickers.get("crypto_longs",[]); crs=tickers.get("crypto_shorts",[])
-        nm={"BTC-USD":"Bitcoin","ETH-USD":"Ethereum","SOL-USD":"Solana","XRP-USD":"XRP","IBIT":"Bitcoin ETF"}
-        c1,c2=st.columns(2)
-        with c1: st.markdown("**📍 NOW — LONG**"); rc(crl,nm,"long",2)
-        with c2: st.markdown("**📍 NOW — SHORT**"); rc(crs,nm,"short",2)
-        st.divider(); st.markdown("**🌍 Heatmap**"); rh([("BTC-USD","Bitcoin"),("ETH-USD","Ethereum"),("SOL-USD","Solana"),("XRP-USD","XRP")])
-        rml([("BTC-USD","Bitcoin"),("ETH-USD","Ethereum"),("SOL-USD","Solana"),("XRP-USD","XRP"),("ADA-USD","Cardano"),("DOT-USD","Polkadot")],"BTC-USD","Crypto Leadership")
-        st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(list(set(crl+crs)),"CRYPTO")
-        st.divider(); st.markdown("**⛓️ On-Chain Alpha**")
-        scanner=MCS()
-        with st.spinner("⛓️ Scanning chains... ⏳ ~30s"):
-            try:
-                df=scanner.scan({'base':{},'solana':{},'bittensor':{},'ethereum':{}})
-                if not df.empty:
-                    for _,r in df.iterrows():
-                        sc=r['alpha']; co="#4ade80" if sc>=70 else "#fbbf24" if sc>=45 else "#f87171"; bg="#1a4d2e" if sc>=70 else "#5c3d00" if sc>=45 else "#5c1a1a"
-                        _h(f'<div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:10px;margin-bottom:8px;"><div style="display:flex;align-items:center;justify-content:space-between;"><div style="display:flex;align-items:center;gap:8px;"><div style="background:{bg};color:{co};padding:3px 10px;border-radius:16px;font-size:11px;font-weight:700;">{r["chain"].upper()}</div><div style="font-size:13px;font-weight:700;color:#e6edf3;">{r["verdict"]}</div></div><div style="font-size:18px;font-weight:800;color:{co};">{sc:.0f}<span style="font-size:10px;color:#8b949e;">/100</span></div></div><div style="display:flex;gap:12px;flex-wrap:wrap;font-size:10px;color:#c9d1d9;margin-top:6px;"><span>📊 Macro: <b>{r["macro"]}</b></span><span>📈 TVL: <b>{r["tvl"]:+.1f}%</b></span><span>💰 Stable: <b>{r["stb"]:+.1f}%</b></span><span>🌊 DEX: <b>{r["dex"]:.1f}x</b></span></div></div>')
-                else: st.info("No on-chain data.")
-            except Exception as e: st.error(f"On-chain scan error: {e}")
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# TAB 2: OPPORTUNITIES — v10 EXACT
-# ═══════════════════════════════════════════════════════════════════════════════
-with tabs[2]:
+    # ═══════════════════════════════════════════════════════════════════════════
+    # OPPORTUNITIES BOARD (merged into Markets top)
+    # ═══════════════════════════════════════════════════════════════════════════
     st.markdown("**🎯 OPPORTUNITIES & EXECUTION BOARD**")
     st.caption("v10.0 macro brain + v12.2 TRR/LRR gate. Regime-aware, route-aware, sized.")
     
@@ -900,17 +850,89 @@ with tabs[2]:
     st.markdown(f"<span style='color:#{ {'good':'3fb950','warn':'fbbf24','bad':'f85149'}[sizing_col] };font-weight:700;'>{sizing}</span>",unsafe_allow_html=True)
     
     st.divider()
-    st.markdown("**⚡ TRR/LRR SIGNALS ACROSS ALL MARKETS**")
-    _render_trr(list(set(tickers['us_longs']+tickers['us_shorts'])),"US_STOCKS","🇺🇸 US TRR/LRR")
-    _render_trr(tickers['ihsg_buys'],"IHSG","🇮🇩 IHSG TRR/LRR")
-    _render_trr(list(set(tickers['fx_longs']+tickers['fx_shorts'])),"FOREX","💱 FX TRR/LRR")
-    _render_trr(list(set(tickers['comm_longs']+tickers['comm_shorts'])),"COMMODITIES","🛢️ Commodity TRR/LRR")
-    _render_trr(list(set(tickers['crypto_longs']+tickers['crypto_shorts'])),"CRYPTO","🔐 Crypto TRR/LRR")
+    st.markdown("**🎯 ADAPTIVE BOTTLENECK SCAN**")
+    # Scan all tickers across all markets
+    all_tickers=list(set(tickers['us_longs']+tickers['us_shorts']+tickers['ihsg_buys']+tickers['fx_longs']+tickers['fx_shorts']+tickers['comm_longs']+tickers['comm_shorts']+tickers['crypto_longs']+tickers['crypto_shorts']))
+    bn_rows=bottleneck_scan(all_tickers,prices,q,"ALL")
+    render_bottleneck(bn_rows)
+    
+    st.divider()
+    
+    # ═══════════════════════════════════════════════════════════════════════════
+    # MARKET SUB-TABS
+    # ═══════════════════════════════════════════════════════════════════════════
+    mt=st.tabs(["🇺🇸 US Stocks","🇮🇩 IHSG","💱 FX","🛢️ Commodities","🔐 Crypto"])
+
+    with mt[0]:
+        ul=tickers.get("us_longs",[]); us=tickers.get("us_shorts",[])
+        nm={"SPY":"S&P 500","QQQ":"Nasdaq","IWM":"Russell 2K","XLE":"Energy","XLK":"Tech","XLF":"Finance","XLI":"Industrials","XLB":"Materials","XLV":"Health","XLY":"Consumer","XLP":"Staples","XLU":"Utilities","XLRE":"REITs","TLT":"Long Bond","GLD":"Gold","HII":"Huntington","CAT":"Caterpillar","UPS":"UPS","LII":"Lennox","JBHT":"JB Hunt","MAR":"Marriott","ONTO":"Onto","EMR":"Emerson","RH":"Restoration","SBUX":"Starbucks","TXG":"10x Genomics","AVO":"Mission Produce","FRPT":"Freshpet","PEP":"Pepsi","XOM":"Exxon","HSY":"Hershey","WMB":"Williams","ET":"Energy Transfer","ROP":"Roper","RBLX":"Roblox","TRU":"TransUnion","NVDA":"Nvidia","XTL":"Telecom","EQRR":"Rising Rates","GII":"Infrastructure","EWH":"Hong Kong","EWW":"Mexico","ARGT":"Argentina","EIS":"Israel","IBIT":"Bitcoin ETF","COAL":"Coal","YCS":"Short Yen"}
+        c1,c2=st.columns(2)
+        with c1: st.markdown("**📍 NOW — LONG**"); rc(ul,nm,"long",2)
+        with c2: st.markdown("**📍 NOW — SHORT**"); rc(us,nm,"short",2)
+        st.divider(); st.markdown("**🌍 Heatmap**"); rh([("SPY","S&P 500"),("QQQ","Nasdaq"),("IWM","Russell 2K"),("TLT","Bond"),("GLD","Gold"),("BTC-USD","BTC"),("CL=F","Oil"),("UUP","USD")])
+        rml([("XLE","Energy"),("XLF","Fin"),("XLI","Ind"),("XLB","Mat"),("XLK","Tech"),("XLV","Health"),("XLY","Con.D"),("XLP","Con.S"),("XLU","Util"),("XLRE","RE")],"SPY","Sector Leadership")
+        st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(list(set(ul+us)),"US_STOCKS")
+        st.markdown("**🎯 Bottleneck Scan**"); render_bottleneck(bottleneck_scan(list(set(ul+us)),prices,q,"US_STOCKS"),"US Bottleneck")
+
+    with mt[1]:
+        ih_t=tickers.get("ihsg_buys",[]); nm={"BBCA.JK":"BCA","BBRI.JK":"BRI","ASII.JK":"Astra","TLKM.JK":"Telkom","ADRO.JK":"Adaro","ANTM.JK":"Antam","PTBA.JK":"Bukit Asam","ITMG.JK":"Indomining","INCO.JK":"Vale","KLBF.JK":"Kalbe","UNVR.JK":"Unilever","INDF.JK":"Indofood"}
+        st.markdown("**📍 NOW — LONG**"); rc(ih_t,nm,"long",3)
+        st.divider(); st.markdown("**🌍 Heatmap**"); rh([("^JKSE","IHSG"),("BBCA.JK","BCA"),("BBRI.JK","BRI"),("ASII.JK","Astra"),("TLKM.JK","Telkom")])
+        rml([("ADRO.JK","Energy"),("BBCA.JK","Finance"),("UNVR.JK","Consumer"),("TLKM.JK","Infra"),("CTRA.JK","Property"),("ANTM.JK","Mining"),("KLBF.JK","Health"),("AALI.JK","Agri"),("ASII.JK","Industri")],"^JKSE","IDX Sector")
+        st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(ih_t,"IHSG")
+        st.markdown("**🎯 Bottleneck Scan**"); render_bottleneck(bottleneck_scan(ih_t,prices,q,"IHSG"),"IHSG Bottleneck")
+        st.divider()
+        st.markdown(f"**🇮🇩 IHSG Score: {ih['ihsg_score']:.0%}** · {ih['exec_mode']}")
+        st.caption(f"Asing: {ih['flow_state']} | IDR 1M: {pct(ih['usd_idr_1m'])} | vs SPY: {ih['rel_state']}")
+
+    with mt[2]:
+        fl=tickers.get("fx_longs",[]); fs=tickers.get("fx_shorts",[])
+        nm={"EURUSD=X":"EUR/USD","USDJPY=X":"USD/JPY","AUDUSD=X":"AUD/USD","USDIDR=X":"USD/IDR","UUP":"DXY","GBPUSD=X":"GBP/USD","USDCAD=X":"USD/CAD","NZDUSD=X":"NZD/USD","USDCHF=X":"USD/CHF","GLD":"Gold","AAAU":"Gold","YCS":"Short Yen"}
+        c1,c2=st.columns(2)
+        with c1: st.markdown("**📍 NOW — LONG**"); rc(fl,nm,"long",2)
+        with c2: st.markdown("**📍 NOW — SHORT**"); rc(fs,nm,"short",2)
+        st.divider(); st.markdown("**🌍 Heatmap**"); rh([("EURUSD=X","EUR/USD"),("USDJPY=X","USD/JPY"),("AUDUSD=X","AUD/USD"),("USDIDR=X","USD/IDR"),("UUP","DXY")])
+        rml([("UUP","DXY"),("USDJPY=X","USD/JPY"),("EURUSD=X","EUR/USD"),("AUDUSD=X","AUD/USD"),("GBPUSD=X","GBP/USD"),("USDCAD=X","USD/CAD")],"UUP","FX Leadership")
+        st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(list(set(fl+fs)),"FOREX")
+        st.markdown("**🎯 Bottleneck Scan**"); render_bottleneck(bottleneck_scan(list(set(fl+fs)),prices,q,"FOREX"),"FX Bottleneck")
+
+    with mt[3]:
+        cl=tickers.get("comm_longs",[]); cs=tickers.get("comm_shorts",[])
+        nm={"SLV":"Silver","GDX":"Gold Miners","GC=F":"Gold Fut","SI=F":"Silver Fut","HG=F":"Copper Fut","CL=F":"WTI Oil","NG=F":"Nat Gas","XOP":"Oil Explorers","OIH":"Oil Services","BNO":"Brent Oil","GLD":"Gold","AAAU":"Gold","COAL":"Coal","DUST":"Gold Bear","BITS":"Bitcoin Strat"}
+        c1,c2=st.columns(2)
+        with c1: st.markdown("**📍 NOW — LONG**"); rc(cl,nm,"long",2)
+        with c2: st.markdown("**📍 NOW — SHORT**"); rc(cs,nm,"short",2)
+        st.divider(); st.markdown("**🌍 Heatmap**"); rh([("CL=F","WTI Oil"),("GC=F","Gold Fut"),("HG=F","Copper"),("SI=F","Silver"),("NG=F","Nat Gas")])
+        rml([("GC=F","Gold"),("CL=F","WTI Oil"),("HG=F","Copper"),("SI=F","Silver"),("NG=F","Nat Gas"),("XBRUSD=X","Brent"),("URA","Uranium")],"GC=F","Commodity Leadership")
+        st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(list(set(cl+cs)),"COMMODITIES")
+        st.markdown("**🎯 Bottleneck Scan**"); render_bottleneck(bottleneck_scan(list(set(cl+cs)),prices,q,"COMMODITIES"),"Comm Bottleneck")
+
+    with mt[4]:
+        crl=tickers.get("crypto_longs",[]); crs=tickers.get("crypto_shorts",[])
+        nm={"BTC-USD":"Bitcoin","ETH-USD":"Ethereum","SOL-USD":"Solana","XRP-USD":"XRP","IBIT":"Bitcoin ETF"}
+        c1,c2=st.columns(2)
+        with c1: st.markdown("**📍 NOW — LONG**"); rc(crl,nm,"long",2)
+        with c2: st.markdown("**📍 NOW — SHORT**"); rc(crs,nm,"short",2)
+        st.divider(); st.markdown("**🌍 Heatmap**"); rh([("BTC-USD","Bitcoin"),("ETH-USD","Ethereum"),("SOL-USD","Solana"),("XRP-USD","XRP")])
+        rml([("BTC-USD","Bitcoin"),("ETH-USD","Ethereum"),("SOL-USD","Solana"),("XRP-USD","XRP"),("ADA-USD","Cardano"),("DOT-USD","Polkadot")],"BTC-USD","Crypto Leadership")
+        st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(list(set(crl+crs)),"CRYPTO")
+        st.markdown("**🎯 Bottleneck Scan**"); render_bottleneck(bottleneck_scan(list(set(crl+crs)),prices,q,"CRYPTO"),"Crypto Bottleneck")
+        st.divider(); st.markdown("**⛓️ On-Chain Alpha**")
+        scanner=MCS()
+        with st.spinner("⛓️ Scanning chains... ⏳ ~30s"):
+            try:
+                df=scanner.scan({'base':{},'solana':{},'bittensor':{},'ethereum':{}})
+                if not df.empty:
+                    for _,r in df.iterrows():
+                        sc=r['alpha']; co="#4ade80" if sc>=70 else "#fbbf24" if sc>=45 else "#f87171"; bg="#1a4d2e" if sc>=70 else "#5c3d00" if sc>=45 else "#5c1a1a"
+                        _h(f'<div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:10px;margin-bottom:8px;"><div style="display:flex;align-items:center;justify-content:space-between;"><div style="display:flex;align-items:center;gap:8px;"><div style="background:{bg};color:{co};padding:3px 10px;border-radius:16px;font-size:11px;font-weight:700;">{r["chain"].upper()}</div><div style="font-size:13px;font-weight:700;color:#e6edf3;">{r["verdict"]}</div></div><div style="font-size:18px;font-weight:800;color:{co};">{sc:.0f}<span style="font-size:10px;color:#8b949e;">/100</span></div></div><div style="display:flex;gap:12px;flex-wrap:wrap;font-size:10px;color:#c9d1d9;margin-top:6px;"><span>📊 Macro: <b>{r["macro"]}</b></span><span>📈 TVL: <b>{r["tvl"]:+.1f}%</b></span><span>💰 Stable: <b>{r["stb"]:+.1f}%</b></span><span>🌊 DEX: <b>{r["dex"]:.1f}x</b></span></div></div>')
+                else: st.info("No on-chain data.")
+            except Exception as e: st.error(f"On-chain scan error: {e}")
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TAB 3: REGIME DEEP DIVE — v10 EXACT
+# TAB 2: REGIME DEEP DIVE — Fixed probabilities
 # ═══════════════════════════════════════════════════════════════════════════════
-with tabs[3]:
+with tabs[2]:
     c1,c2,c3,c4=st.columns(4)
     with c1: st.metric("Structural", sq); st.metric("Growth RoC", q.get("growth_trend","—"))
     with c2: st.metric("Monthly", mq); st.metric("Inflation RoC", q.get("inflation_trend","—"))
@@ -924,7 +946,8 @@ with tabs[3]:
     
     st.divider()
     st.markdown("**📊 Structural Probabilities**")
-    probs=q.get("probs",{}); m_probs=q.get("monthly_probs",{})
+    probs=q.get("probs",{"Q1":0.25,"Q2":0.25,"Q3":0.25,"Q4":0.25})
+    m_probs=q.get("monthly_probs",{"Q1":0.25,"Q2":0.25,"Q3":0.25,"Q4":0.25})
     for k in ["Q1","Q2","Q3","Q4"]:
         p=probs.get(k,0.0); mp=m_probs.get(k,0.0)
         label=f"{'●' if k==sq else '◉' if k==mq else '○'} {k}: S={p:.0%} M={mp:.0%}"
@@ -942,9 +965,9 @@ with tabs[3]:
     st.caption("v10.0 macro brain: rate-of-change, tariff headwind, sticky Q3 logic, structural stickiness all embedded in regime_engine.py")
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TAB 4: NARRATIVE — v10 EXACT
+# TAB 3: NARRATIVE
 # ═══════════════════════════════════════════════════════════════════════════════
-with tabs[4]:
+with tabs[3]:
     st.markdown("**📰 NARRATIVE DISCOVERY & CATALYST MAPPING**")
     st.caption("Front-run catalyst mapping: event-lite pressure + scheduled macro events.")
     
@@ -992,9 +1015,9 @@ with tabs[4]:
         st.divider()
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TAB 5: RISK & DIAGNOSTICS — v10 EXACT
+# TAB 4: RISK & DIAGNOSTICS
 # ═══════════════════════════════════════════════════════════════════════════════
-with tabs[5]:
+with tabs[4]:
     st.subheader("⚠️ Risk & Diagnostics")
     
     c1,c2,c3=st.columns(3)
@@ -1030,7 +1053,8 @@ with tabs[5]:
         ("VIX Source", "^VIX index" if vix>15 else "VIXY proxy"),
         ("TRR/LRR Engine", "✅ Active"),
         ("On-Chain Scanner", "✅ Active"),
+        ("Bottleneck Scan", "✅ Active"),
     ]
     st.dataframe(pd.DataFrame(dq_rows, columns=["Check","Status"]), use_container_width=True, hide_index=True)
 
-st.caption(f"MacroRegime Pro v13.1 · Built {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC · Visual v10 Restored")
+st.caption(f"MacroRegime Pro v13.2 · Built {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC · Merged God Mode")

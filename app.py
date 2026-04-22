@@ -22,7 +22,7 @@ from regime_engine import get_regime_snapshot, FRED_SERIES, FRED_SERIES_COUNT
 SCANNER_AVAILABLE = False
 btl_result = None
 try:
-    from bottleneck_engine import UnifiedBottleneckScanner, SupplyChainGraph, NarrativeEngine, load_config
+    from bottleneck_engine import UnifiedBottleneckScanner, SupplyChainGraph, NarrativeEngine, SupplyNode, load_config
     SCANNER_AVAILABLE = True
 except Exception as e:
     st.warning(f"Bottleneck engine not loaded: {e}")
@@ -402,7 +402,8 @@ def render_bottleneck_intel(btl):
             with c1:
                 st.markdown("**Upstream (Suppliers)**")
                 for u in up:
-                    st.markdown(f"<span style='color:#8b949e;font-size:11px;'>← {u} ({graph.db.get(u, SupplyNode(u,u,'','')).name})</span>", unsafe_allow_html=True)
+                    uname = graph.db[u].name if u in graph.db else u
+                    st.markdown(f"<span style='color:#8b949e;font-size:11px;'>← {u} ({uname})</span>", unsafe_allow_html=True)
                 if not up: st.caption("Raw material / no upstream")
             with c2:
                 st.markdown(f"**<span style='color:#58a6ff;'>{selected}</span>**")
@@ -412,7 +413,8 @@ def render_bottleneck_intel(btl):
             with c3:
                 st.markdown("**Downstream (Customers)**")
                 for d in down:
-                    st.markdown(f"<span style='color:#8b949e;font-size:11px;'>→ {d} ({graph.db.get(d, SupplyNode(d,d,'','')).name})</span>", unsafe_allow_html=True)
+                    dname = graph.db[d].name if d in graph.db else d
+                    st.markdown(f"<span style='color:#8b949e;font-size:11px;'>→ {d} ({dname})</span>", unsafe_allow_html=True)
                 if not down: st.caption("End product / no downstream")
     st.divider()
     st.markdown("**L8 — Execution / Convexity Monitor**")
@@ -531,6 +533,19 @@ conf=q.get("confidence",0.5); op=q.get("operating_regime","...")
 src=q.get("source","unknown"); gy=q.get("growth_yoy",0); iy=q.get("inflation_yoy",0)
 ps=q.get("policy_stance","—"); vix=q.get("vix",20.0)
 mp=q.get("macro_pulse",{})
+# v15.0: ISM proxy fallback when FRED ISM missing
+if not mp.get('ism_now') or mp.get('ism_now') == '—':
+    try:
+        xli = prices.get("XLI", pd.Series())
+        if len(xli) >= 22:
+            xli_1m = (xli.iloc[-1] / xli.iloc[-22] - 1) * 100
+            xli_3m = (xli.iloc[-1] / xli.iloc[-64] - 1) * 100 if len(xli) >= 64 else 0
+            ism_proxy = 50.0 + xli_1m * 8.0 + xli_3m * 4.0
+            mp['ism_now'] = round(max(30.0, min(70.0, ism_proxy)), 1)
+            mp['ism_delta'] = round(xli_1m * 8.0, 1)
+            mp['ism_source'] = 'XLI proxy (FRED missing)'
+    except Exception as e:
+        logger.debug(f"ISM proxy fail: {e}")
 
 # Run bottleneck scanner once
 btl_result = _run_bottleneck_scanner(q, prices) if SCANNER_AVAILABLE else None
@@ -850,10 +865,12 @@ with tabs[0]:
     c1,c2,c3=st.columns(3)
     with c1:
         ism_d=mp.get('ism_delta'); ism_n=mp.get('ism_now')
+        ism_src = mp.get('ism_source', '')
         ism_d_str = f"{ism_d:+.1f}" if isinstance(ism_d,(int,float)) and math.isfinite(ism_d) else "—"
         ism_n_str = f"{ism_n:.1f}" if isinstance(ism_n,(int,float)) and math.isfinite(ism_n) else "—"
+        src_note = f"<span style='font-size:9px;color:#fbbf24;'>⚠️ {ism_src}</span>" if ism_src else ""
         _h(f"""<div style="background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:12px;">
-          <div style="font-size:10px;color:#8b949e;">ISM Mfg Δ</div>
+          <div style="font-size:10px;color:#8b949e;">ISM Mfg Δ {src_note}</div>
           <div style="font-size:18px;font-weight:800;color:#e6edf3;">{ism_d_str}</div>
           <div style="font-size:10px;color:#8b949e;">Now: {ism_n_str}</div>
         </div>""")

@@ -705,6 +705,10 @@ def _load_snapshot():
     q["treasury_10y"] = regime['treasury_10y']
     q["policy_stance"] = regime['policy_stance']
     q["source"] = regime['source']
+    q["growth_trend"] = regime.get('growth_trend', '—')
+    q["inflation_trend"] = regime.get('inflation_trend', '—')
+    # DEBUG: forward monthly calculation trace (read-only, zero logic impact)
+    q["monthly_debug"] = regime.get('monthly_debug', {})
     snap["q"] = q
     
     fred_meta = snap.get("fred_meta", {})
@@ -1225,6 +1229,14 @@ with tabs[1]:
 with tabs[2]:
     show_raw = st.toggle("Show raw regime state JSON", value=False)
     if show_raw: st.markdown("**Regime State**"); st.json(q)
+    
+    # DEBUG: Monthly calculation trace (read-only, no logic impact)
+    monthly_debug = q.get("monthly_debug", {})
+    if monthly_debug:
+        with st.expander("🔍 Monthly Calculation Trace (Debug)", expanded=False):
+            st.caption("Read-only trace of how Monthly quad was derived. Zero impact on logic.")
+            st.json(monthly_debug)
+    
     st.markdown("**Structural Probabilities**")
     probs = q.get("structural_probs", {}); m_probs = q.get("monthly_probs", {})
     if probs:

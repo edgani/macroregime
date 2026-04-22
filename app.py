@@ -1,7 +1,7 @@
-"""MacroRegime Pro v13.0 — Merged God Mode
-v10.0 Macro Brain + v12.2 TRR/LRR + On-Chain + Narrative + All Tabs Fixed
+"""MacroRegime Pro v13.1 — Visual v10 Restored + Math Fix
+v10.0 Macro Brain UI + v12.2 TRR/LRR + On-Chain + Narrative
 """
-import os, sys, glob, time, json, logging, requests, numpy as np, pandas as pd, yfinance as yf
+import os, sys, glob, time, json, logging, requests, math, numpy as np, pandas as pd, yfinance as yf
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
@@ -370,7 +370,7 @@ sb="🟢 FRED" if src=="fred" else "🟡 FRED Partial" if src=="fred_partial" el
 sc="#3fb950" if src=="fred" else "#fbbf24" if src in ("fred_partial","yfinance_proxy") else "#8b949e"
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# v10.0 MACRO BUILDER FUNCTIONS (simplified inline — no external modules)
+# v10.0 MACRO BUILDER FUNCTIONS — FIXED math import
 # ═══════════════════════════════════════════════════════════════════════════════
 def _s(s): 
     if s is None: return pd.Series(dtype=float)
@@ -614,7 +614,7 @@ most_hated = build_most_hated_rally_monitor(f_macro, prices)
 drivers = build_top_drivers(q, f_macro, h, cr)
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# HEADER
+# HEADER — v10 STYLE
 # ═══════════════════════════════════════════════════════════════════════════════
 _h(f"""
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
@@ -622,7 +622,7 @@ _h(f"""
     <div style="font-size:32px;">🧭</div>
     <div>
       <div style="font-size:24px;font-weight:800;color:#e6edf3;">MacroRegime <span style="color:#58a6ff;">Pro</span></div>
-      <div style="font-size:11px;color:#8b949e;">v13.0 · Merged God Mode · TRR/LRR · On-Chain · Macro Brain</div>
+      <div style="font-size:11px;color:#8b949e;">v13.1 · Visual v10 Restored · TRR/LRR · On-Chain · Macro Brain</div>
     </div>
   </div>
   <div style="text-align:right;">
@@ -651,12 +651,12 @@ _h(f"""
 """)
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# MAIN TABS
+# MAIN TABS — v10 LAYOUT
 # ═══════════════════════════════════════════════════════════════════════════════
 tabs=st.tabs(["⚡ Command Center","🌍 Markets","🎯 Opportunities","📊 Regime Deep Dive","📰 Narrative","⚠️ Risk & Diag"])
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TAB 0: COMMAND CENTER
+# TAB 0: COMMAND CENTER — v10 EXACT
 # ═══════════════════════════════════════════════════════════════════════════════
 with tabs[0]:
     c1,c2,c3,c4=st.columns(4)
@@ -675,7 +675,7 @@ with tabs[0]:
     else:
         st.success(f"✅ ALIGNED — {sq} confirmed. Bisa deploy structural + monthly.")
     
-    # Macro Pulse Cards (now filled from FRED)
+    # Macro Pulse Cards
     st.markdown("**📊 Macro Pulse**")
     c1,c2,c3=st.columns(3)
     with c1:
@@ -707,13 +707,14 @@ with tabs[0]:
         for idx,drv in enumerate(drivers[:6]):
             col=drv_cols[idx%len(drv_cols)]
             tone=drv.get("tone","warn")
-            css=tone if tone in {"good","warn","bad"} else "neu"
+            bc={"good":"#1a4d2e","warn":"#5c3d00","bad":"#5c1a1a"}.get(tone,"#2d3748")
+            fc={"good":"#4ade80","warn":"#fbbf24","bad":"#f87171"}.get(tone,"#a0aec0")
             with col:
                 st.markdown(
-                    f'<div style="background:#0d1117;border:1px solid #30363d;border-radius:10px;padding:10px;border-left:3px solid currentColor;">'
+                    f'<div style="background:{bc};border:1px solid #30363d;border-radius:10px;padding:10px;">'
                     f'<div style="font-size:9px;color:#8b949e;text-transform:uppercase;letter-spacing:0.08em;">{drv.get("tag","driver")}</div>'
-                    f'<div style="font-size:14px;font-weight:700;color:#e6edf3;">{drv["label"]}</div>'
-                    f'<div style="font-size:10px;color:#8b949e;margin-top:4px;">{drv["why"]}</div>'
+                    f'<div style="font-size:14px;font-weight:700;color:{fc};">{drv["label"]}</div>'
+                    f'<div style="font-size:10px;color:#c9d1d9;margin-top:4px;">{drv["why"]}</div>'
                     f'<div style="font-size:10px;color:#8b949e;margin-top:4px;">Intensity {drv["score"]:.0%}</div>'
                     f'</div>', unsafe_allow_html=True)
     
@@ -748,7 +749,7 @@ with tabs[0]:
         for t in tickers['crypto_shorts'][:4]: st.markdown(f"<div style='color:#f85149;font-weight:600;'>{clean_tk(t)}</div>",unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TAB 1: MARKETS (US / IHSG / FX / COMM / CRYPTO + TRR/LRR + On-Chain)
+# TAB 1: MARKETS — v10 HEATMAP + CARDS
 # ═══════════════════════════════════════════════════════════════════════════════
 with tabs[1]:
     def rn(s,n):
@@ -794,12 +795,6 @@ with tabs[1]:
     COMM={"SLV","GDX","GC=F","SI=F","HG=F","CL=F","NG=F","XOP","OIH","BNO","GLD","AAAU","DUST","BITS","XAUUSD=X","XAGUSD=X","XTIUSD=X","XBRUSD=X","XCUUSD=X","XNGUSD=X","URA","COAL"}
     CRY={"BTC-USD","ETH-USD","SOL-USD","XRP-USD","ADA-USD","AVAX-USD","DOT-USD","MATIC-USD","LINK-USD","UNI-USD","LTC-USD","BCH-USD","ETC-USD","DOGE-USD","SHIB-USD","TON-USD","NEAR-USD","APT-USD","SUI-USD","IBIT"}
 
-    def is_us(tk): return not any(x in tk for x in [".JK","-USD","=F"]) and tk not in ["^JKSE"] and tk not in FX and tk not in COMM and tk not in CRY
-    def is_ih(tk): return ".JK" in tk or tk=="^JKSE"
-    def is_fx(tk): return tk in FX
-    def is_cm(tk): return tk in COMM
-    def is_cr(tk): return tk in CRY
-
     mt=st.tabs(["🇺🇸 US Stocks","🇮🇩 IHSG","💱 FX","🛢️ Commodities","🔐 Crypto"])
 
     with mt[0]:
@@ -818,7 +813,6 @@ with tabs[1]:
         st.divider(); st.markdown("**🌍 Heatmap**"); rh([("^JKSE","IHSG"),("BBCA.JK","BCA"),("BBRI.JK","BRI"),("ASII.JK","Astra"),("TLKM.JK","Telkom")])
         rml([("ADRO.JK","Energy"),("BBCA.JK","Finance"),("UNVR.JK","Consumer"),("TLKM.JK","Infra"),("CTRA.JK","Property"),("ANTM.JK","Mining"),("KLBF.JK","Health"),("AALI.JK","Agri"),("ASII.JK","Industri")],"^JKSE","IDX Sector")
         st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(ih_t,"IHSG")
-        # IHSG macro card
         st.divider()
         st.markdown(f"**🇮🇩 IHSG Score: {ih['ihsg_score']:.0%}** · {ih['exec_mode']}")
         st.caption(f"Asing: {ih['flow_state']} | IDR 1M: {pct(ih['usd_idr_1m'])} | vs SPY: {ih['rel_state']}")
@@ -865,7 +859,7 @@ with tabs[1]:
             except Exception as e: st.error(f"On-chain scan error: {e}")
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TAB 2: OPPORTUNITIES
+# TAB 2: OPPORTUNITIES — v10 EXACT
 # ═══════════════════════════════════════════════════════════════════════════════
 with tabs[2]:
     st.markdown("**🎯 OPPORTUNITIES & EXECUTION BOARD**")
@@ -914,7 +908,7 @@ with tabs[2]:
     _render_trr(list(set(tickers['crypto_longs']+tickers['crypto_shorts'])),"CRYPTO","🔐 Crypto TRR/LRR")
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TAB 3: REGIME DEEP DIVE
+# TAB 3: REGIME DEEP DIVE — v10 EXACT
 # ═══════════════════════════════════════════════════════════════════════════════
 with tabs[3]:
     c1,c2,c3,c4=st.columns(4)
@@ -948,13 +942,12 @@ with tabs[3]:
     st.caption("v10.0 macro brain: rate-of-change, tariff headwind, sticky Q3 logic, structural stickiness all embedded in regime_engine.py")
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TAB 4: NARRATIVE
+# TAB 4: NARRATIVE — v10 EXACT
 # ═══════════════════════════════════════════════════════════════════════════════
 with tabs[4]:
     st.markdown("**📰 NARRATIVE DISCOVERY & CATALYST MAPPING**")
     st.caption("Front-run catalyst mapping: event-lite pressure + scheduled macro events.")
     
-    # News catalyst overlay (lightweight, no external modules)
     oil_3m=nf(f_macro.get("clf_3m",f_macro.get("oil_3m",0.0)))
     uup_1m=nf(f_macro.get("uup_1m",0.0))
     vix_n=f_macro.get("vix_last",20.0)
@@ -999,7 +992,7 @@ with tabs[4]:
         st.divider()
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TAB 5: RISK & DIAGNOSTICS
+# TAB 5: RISK & DIAGNOSTICS — v10 EXACT
 # ═══════════════════════════════════════════════════════════════════════════════
 with tabs[5]:
     st.subheader("⚠️ Risk & Diagnostics")
@@ -1040,4 +1033,4 @@ with tabs[5]:
     ]
     st.dataframe(pd.DataFrame(dq_rows, columns=["Check","Status"]), use_container_width=True, hide_index=True)
 
-st.caption(f"MacroRegime Pro v13.0 · Built {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC · Merged God Mode")
+st.caption(f"MacroRegime Pro v13.1 · Built {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC · Visual v10 Restored")

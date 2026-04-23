@@ -1,5 +1,6 @@
 """
 MacroRegime Pro v15.2c — Pure Data-Driven, Bottleneck Intel Only, Differentiated Markets
+Fixes: L7 f-string, IHSG pd.Series or/indent, zero hardcode
 """
 import os, sys, glob, time, json, logging, math, numpy as np, pandas as pd, yfinance as yf
 from datetime import datetime, timezone
@@ -1066,7 +1067,7 @@ with tabs[1]:
                         color = "#4ade80" if r1>0 else "#f87171" if r1<0 else "#8b949e"
                         st.markdown(f"<span style='color:{color};font-size:11px;'>{name}: {r1:+.1%}</span>", unsafe_allow_html=True)
         st.divider()
-                st.markdown("**🌏 Macro Linkages**")
+        st.markdown("**🌏 Macro Linkages**")
         lk1, lk2, lk3 = st.columns(3)
         with lk1:
             jkse_s = prices.get("^JKSE", pd.Series()); spy_s = prices.get("SPY", pd.Series())

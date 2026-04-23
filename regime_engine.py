@@ -1,8 +1,6 @@
 """
-regime_engine.py v15.3d — AUDITED FINAL
-Structural: 12M pure slope + lower-highs bias
-Monthly: yf_proxy PRIMARY, PCE 3M confirmation
-Global: Fed Easing Narrative (DXY<98 + 10Y<4.5)
+regime_engine.py v15.3e — Structural Tie-Breaker Fix
+Fix: ambiguous 12M slope → 6M tie-breaker, hapus lower-highs override
 """
 import os, time, logging, glob, math
 from datetime import datetime
@@ -70,7 +68,7 @@ def _test_fred_key(api_key: str) -> bool:
 def fetch_fred_series(sid: str, api_key: str, session: requests.Session) -> Optional[pd.Series]:
     if not api_key:
         return None
-    headers = {"User-Agent": "Mozilla/5.0 (MacroRegimePro/15.3d)"}
+    headers = {"User-Agent": "Mozilla/5.0 (MacroRegimePro/15.3e)"}
     for attempt in range(MAX_RETRIES):
         try:
             r = session.get(
@@ -160,7 +158,7 @@ def fetch_all_fred() -> Dict[str, pd.Series]:
         return {}
 
     session = requests.Session()
-    session.headers.update({"User-Agent": "Mozilla/5.0 (MacroRegimePro/15.3d)"})
+    session.headers.update({"User-Agent": "Mozilla/5.0 (MacroRegimePro/15.3e)"})
 
     out = {}
     for name, sid in FRED_SERIES.items():
@@ -260,13 +258,12 @@ def yoy_roc(s: pd.Series, months=12) -> pd.Series:
     return ((s / s.shift(months) - 1.0) * 100.0).dropna()
 
 # ============================================================
-# STRUCTURAL: 12M pure slope (quarterly classification)
+# STRUCTURAL: 12M pure slope + 6M tie-breaker
 # ============================================================
 def structural_trend_direction(s: pd.Series, thresh=0.03) -> str:
     """
     Quarterly/Structural trend: pure 12-month slope.
-    Fallback ke 6M kalo data < 12 pts.
-    Ambiguous zone (-thresh, +thresh): check lower-highs bias.
+    Ambiguous zone (-thresh, +thresh): 6M slope tie-breaker.
     """
     if len(s) < 12:
         return monthly_trend_direction(s) if len(s) >= 6 else "stable"
@@ -281,18 +278,22 @@ def structural_trend_direction(s: pd.Series, thresh=0.03) -> str:
     if slope12 < -thresh:
         return "decelerating"
     
-    # Ambiguous zone: lower-highs / higher-highs bias
-    first6_max = float(np.max(y12[:6]))
-    last6_max = float(np.max(y12[6:]))
-    if first6_max > last6_max + 0.15:
-        return "decelerating"  # lower highs = downtrend bias
-    if last6_max > first6_max + 0.15:
-        return "accelerating"   # higher highs = uptrend bias
+    # Ambiguous zone: tie-breaker from 6M slope
+    y6 = s.iloc[-6:].values
+    x6 = np.arange(len(y6))
+    slope6 = np.polyfit(x6, y6, 1)[0]
+    
+    tie_thresh = thresh * 0.8  # 0.024
+    
+    if slope6 > tie_thresh:
+        return "accelerating"
+    if slope6 < -tie_thresh:
+        return "decelerating"
     
     return "stable"
 
 # ============================================================
-# MONTHLY: 6M diff (monthly classification)
+# MONTHLY: 6M diff
 # ============================================================
 def monthly_trend_direction(s: pd.Series, thresh=0.015) -> str:
     """
@@ -314,10 +315,6 @@ def monthly_trend_direction(s: pd.Series, thresh=0.015) -> str:
     return "stable"
 
 def monthly_momentum(yoy_s: pd.Series):
-    """
-    Monthly momentum: 3M vs 6M mean + slope diff.
-    Returns: (trend, debug_dict)
-    """
     debug = {}
     if len(yoy_s) < 4:
         return "stable", debug
@@ -438,9 +435,6 @@ def _calc_probs(gv, iv, gt, it):
     total = sum(base.values())
     return {k: round(v / total, 3) for k, v in base.items()}
 
-# ============================================================
-# YFINANCE PROXY: Market-based macro estimation
-# ============================================================
 def yf_proxy():
     try:
         tkrs = ['SPY', 'TLT', 'GLD', 'UUP', 'XOP', 'XLF', 'XLU', 'XLK', 'XLP', 'HYG', 'IWM', 'XLI', 'RSP']
@@ -466,25 +460,20 @@ def yf_proxy():
         xli1, xli3, xli6 = mom('XLI')
         rsp1, rsp3, rsp6 = mom('RSP')
 
-        # MONTHLY GROWTH: equity 3M momentum (market-led)
         g_acc = (spy3 > spy6 + 0.5) and (xlf3 > xlu3 + 2) and (xli3 > xli6)
         g_dec = (spy3 < spy6 - 0.5) or (xlu3 > xlf3 + 0.5) or (iwm3 < iwm6 - 1) or (tlt3 > tlt6 + 1) or (rsp3 < spy3 - 0.5)
-        mg = "accelerating" if g_acc else ("decelerating" if g_dec else "stable")
-
-        # MONTHLY INFLATION: commodity/currency signals
         i_acc = (gld3 > gld6) and (xop3 > -5) and (uup3 < uup6)
         i_dec = (gld3 < gld6 - 1.5) and (uup3 > uup6 + 1) and (tlt3 > tlt6)
-        mi = "accelerating" if i_acc else ("decelerating" if i_dec else "stable")
 
-        # STRUCTURAL GROWTH: broader macro decay (yields + small cap + defensives)
-        sg = "decelerating" if (tlt3 > tlt6 + 0.5 or iwm3 < iwm6 - 0.5 or xlu3 > xlf3) else ("accelerating" if g_acc else "stable")
-        si = "accelerating" if (gld3 > gld6 or xop3 > xop6) else ("decelerating" if i_dec else "stable")
-
-        # Policy signals
         ph = (uup3 > uup6 + 1) and (tlt3 < -5)
         pd_ = (uup3 < uup6 - 1) and (hyg3 > hyg6)
 
-        # Calibrated absolute levels (Apr 2026)
+        mg = "accelerating" if g_acc else ("decelerating" if g_dec else "stable")
+        mi = "accelerating" if i_acc else ("decelerating" if i_dec else "stable")
+
+        sg = "decelerating" if (tlt3 > tlt6 + 0.5 or iwm3 < iwm6 - 0.5 or xlu3 > xlf3) else ("accelerating" if g_acc else "stable")
+        si = "accelerating" if (gld3 > gld6 or xop3 > xop6) else ("decelerating" if i_dec else "stable")
+
         gy = 1.6 if g_dec else (2.8 if g_acc else 2.2)
         iy = 3.1 if i_acc else (2.4 if i_dec else 2.8)
         pr = 4.5 if ph else (3.5 if pd_ else 4.2)
@@ -501,9 +490,6 @@ def yf_proxy():
         logger.error(f"yf_proxy fail: {e}")
         return None
 
-# ============================================================
-# MAIN REGIME CALCULATOR
-# ============================================================
 def calculate_regime() -> Dict:
     for old in glob.glob("/tmp/regime_cache_*.pkl"):
         try:
@@ -543,34 +529,32 @@ def calculate_regime() -> Dict:
     md = {}
     structural_debug = {}
 
-    # Load proxy as backup for monthly + missing series
     proxy = None
     if not has_pce or fred_loaded < 8:
         proxy = yf_proxy()
 
-    # ========================================================
-    # FRED FULL / PARTIAL: PCE + CPI available
-    # ========================================================
     if has_pce and has_cpi:
         pce = resolved['real_pce']
         pce_yoy = yoy_roc(pce)
         
-        # STRUCTURAL: 12M pure slope on PCE
+        # STRUCTURAL: 12M pure slope
         growth_trend = structural_trend_direction(pce_yoy)
         growth_val = float(pce_yoy.iloc[-1]) if len(pce_yoy) > 0 else 0.0
         
-        # Debug
         if len(pce_yoy) >= 12:
             y12 = pce_yoy.iloc[-12:].values
             structural_debug['pce_yoy_12m'] = [round(float(x), 2) for x in y12]
             structural_debug['pce_slope_12m'] = round(float(np.polyfit(np.arange(12), y12, 1)[0]), 4)
+            if len(y12) >= 6:
+                y6 = y12[-6:]
+                structural_debug['pce_yoy_6m'] = [round(float(x), 2) for x in y6]
+                structural_debug['pce_slope_6m'] = round(float(np.polyfit(np.arange(6), y6, 1)[0]), 4)
         elif len(pce_yoy) >= 6:
             y6 = pce_yoy.iloc[-6:].values
             structural_debug['pce_yoy_6m'] = [round(float(x), 2) for x in y6]
             structural_debug['pce_slope_6m'] = round(float(np.polyfit(np.arange(6), y6, 1)[0]), 4)
         structural_debug['growth_trend_calc'] = growth_trend
 
-        # STRUCTURAL INFLATION: 12M pure slope on CPI
         cpi = resolved['cpi']
         cpi_yoy = yoy_roc(cpi)
         infl_trend = structural_trend_direction(cpi_yoy)
@@ -580,9 +564,16 @@ def calculate_regime() -> Dict:
             y12 = cpi_yoy.iloc[-12:].values
             structural_debug['cpi_yoy_12m'] = [round(float(x), 2) for x in y12]
             structural_debug['cpi_slope_12m'] = round(float(np.polyfit(np.arange(12), y12, 1)[0]), 4)
+            if len(y12) >= 6:
+                y6 = y12[-6:]
+                structural_debug['cpi_yoy_6m'] = [round(float(x), 2) for x in y6]
+                structural_debug['cpi_slope_6m'] = round(float(np.polyfit(np.arange(6), y6, 1)[0]), 4)
+        elif len(cpi_yoy) >= 6:
+            y6 = cpi_yoy.iloc[-6:].values
+            structural_debug['cpi_yoy_6m'] = [round(float(x), 2) for x in y6]
+            structural_debug['cpi_slope_6m'] = round(float(np.polyfit(np.arange(6), y6, 1)[0]), 4)
         structural_debug['inflation_trend_calc'] = infl_trend
 
-        # Policy rates
         ff = resolved.get('fed_funds')
         t10 = resolved.get('treasury_10y')
         policy_rate = float(ff.iloc[-1]) if ff is not None else 4.5
@@ -593,7 +584,6 @@ def calculate_regime() -> Dict:
         hy_oas = float(hy_s.iloc[-1]) if hy_s is not None else 350.0
         confidence = 0.85 if fred_loaded >= 7 else 0.70
 
-        # Macro pulse
         ism = resolved.get('ism_mfg')
         if ism is not None and len(ism) >= 2:
             macro_pulse['ism_delta'] = round(float(ism.iloc[-1] - ism.iloc[-2]), 1)
@@ -608,23 +598,17 @@ def calculate_regime() -> Dict:
             macro_pulse['be_1m'] = round(float(be.iloc[-1] - be.iloc[-21]), 2)
             macro_pulse['be_now'] = round(float(be.iloc[-1]), 2)
 
-        # ====================================================
-        # MONTHLY: yf_proxy PRIMARY, PCE 3M confirmation
-        # ====================================================
+        # MONTHLY: yf_proxy PRIMARY, PCE confirmation
         if proxy:
-            # Market-led monthly growth (equity 1-3M momentum)
             mg = proxy['monthly_growth']
-            if ps := resolved.get('real_pce'):
-                if len(ps) >= 6:
-                    py = yoy_roc(ps)
-                    pce_m, gd = monthly_momentum(py)
-                    md['growth'] = gd
-                    # Override proxy only if PCE STRONGLY contradicts
-                    if pce_m == "decelerating" and mg == "accelerating":
-                        if gd.get('diff', 0) < -0.025:
-                            mg = "decelerating"
+            if (ps := resolved.get('real_pce')) and len(ps) >= 6:
+                py = yoy_roc(ps)
+                pce_m, gd = monthly_momentum(py)
+                md['growth'] = gd
+                if pce_m == "decelerating" and mg == "accelerating":
+                    if gd.get('diff', 0) < -0.025:
+                        mg = "decelerating"
         else:
-            # Fallback to PCE monthly momentum
             if (ps := resolved.get('real_pce')) and len(ps) >= 6:
                 py = yoy_roc(ps)
                 mg, gd = monthly_momentum(py)
@@ -632,7 +616,6 @@ def calculate_regime() -> Dict:
             else:
                 mg = growth_trend
 
-        # Monthly inflation: CPI 3M momentum primary
         if (cs := resolved.get('cpi')) and len(cs) >= 6:
             cy = yoy_roc(cs)
             mi, id_ = monthly_momentum(cy)
@@ -640,21 +623,16 @@ def calculate_regime() -> Dict:
         else:
             mi = infl_trend
 
-    # ========================================================
-    # FRED PARTIAL: missing PCE or CPI
-    # ========================================================
     elif fred_loaded >= 5:
         source = 'fred_partial'
         confidence = 0.65
         
-        # Inflation from CPI if available
         if 'cpi' in resolved:
             cpi = resolved['cpi']
             cpi_yoy = yoy_roc(cpi)
             infl_trend = structural_trend_direction(cpi_yoy)
             infl_val = float(cpi_yoy.iloc[-1]) if len(cpi_yoy) > 0 else 0.0
 
-        # Growth: proxy if PCE missing, else PCE structural
         if not has_pce and proxy:
             growth_trend = proxy.get('structural_growth', 'stable')
             growth_val = proxy['growth_yoy']
@@ -670,7 +648,6 @@ def calculate_regime() -> Dict:
                 mg, gd = monthly_momentum(py)
                 md['growth'] = gd
 
-        # Policy
         ff = resolved.get('fed_funds')
         t10 = resolved.get('treasury_10y')
         policy_rate = float(ff.iloc[-1]) if ff is not None else 4.5
@@ -680,7 +657,6 @@ def calculate_regime() -> Dict:
         hy_s = resolved.get('hy_oas')
         hy_oas = float(hy_s.iloc[-1]) if hy_s is not None else 350.0
 
-        # Macro pulse
         ism = resolved.get('ism_mfg')
         if ism is not None and len(ism) >= 2:
             macro_pulse['ism_delta'] = round(float(ism.iloc[-1] - ism.iloc[-2]), 1)
@@ -695,7 +671,6 @@ def calculate_regime() -> Dict:
             macro_pulse['be_1m'] = round(float(be.iloc[-1] - be.iloc[-21]), 2)
             macro_pulse['be_now'] = round(float(be.iloc[-1]), 2)
 
-        # Monthly inflation
         if (cs := resolved.get('cpi')) and len(cs) >= 6:
             cy = yoy_roc(cs)
             mi, id_ = monthly_momentum(cy)
@@ -707,9 +682,6 @@ def calculate_regime() -> Dict:
             mi = infl_trend
             md['inflation'] = {'error': 'no cpi'}
 
-    # ========================================================
-    # YFINANCE PROXY ONLY: FRED < 5 series
-    # ========================================================
     else:
         proxy = yf_proxy()
         if proxy:
@@ -742,22 +714,16 @@ def calculate_regime() -> Dict:
                 'structural_debug': {}
             }
 
-    # ========================================================
-    # QUAD ASSIGNMENT
-    # ========================================================
     sq = assign_quad(growth_trend, infl_trend, growth_val, infl_val, use_abs=True)
     mq = assign_quad(mg, mi, growth_val, infl_val, use_abs=True)
 
-    # ========================================================
     # GLOBAL QUAD: Fed Easing Narrative
-    # ========================================================
     gq = sq
     if 'dxy' in resolved:
         dxy = resolved['dxy']
         dxy_latest = float(dxy.iloc[-1]) if len(dxy) > 0 else 100.0
         dxy_t = monthly_trend_direction(dxy, 0.15) if len(dxy) >= 6 else "stable"
 
-        # Fed easing signal: DXY weak + yields down
         fed_easing_signal = False
         if dxy_latest < 98.0:
             fed_easing_signal = True
@@ -769,9 +735,7 @@ def calculate_regime() -> Dict:
                 fed_easing_signal = True
         
         if fed_easing_signal:
-            # Fed easing because growth is SLOW → decelerating
             gg = "decelerating"
-            # Inflation: check if persistent
             gi = infl_trend
             if 'breakeven_10y' in resolved:
                 be_s = resolved['breakeven_10y']
@@ -782,7 +746,6 @@ def calculate_regime() -> Dict:
                 gi = "accelerating"
             gq = assign_quad(gg, gi, growth_val, infl_val, use_abs=True)
         else:
-            # Non-easing: old logic
             if dxy_latest > 102.0 and dxy_t == "accelerating":
                 gg = "decelerating"
             elif dxy_latest < 98.0 and dxy_t == "decelerating":
@@ -809,9 +772,6 @@ def calculate_regime() -> Dict:
         gi = "accelerating" if (t10_latest > 4.5 and t10_t == "accelerating") else "decelerating" if (t10_latest < 3.5 and t10_t == "decelerating") else infl_trend
         gq = assign_quad(growth_trend, gi, growth_val, infl_val, use_abs=True)
 
-    # ========================================================
-    # PROBABILITIES & CONTEXT
-    # ========================================================
     ps_text = "Hawkish 🦅" if policy_rate >= 5.25 or ten_y >= 4.8 else "Dovish 🕊️" if policy_rate <= 3.0 or ten_y <= 3.2 else "In-a-box 📦"
     rt = {'Q1': '🟢 Q1 Goldilocks', 'Q2': '🟡 Q2 Reflation', 'Q3': '🟠 Q3 Stagflation', 'Q4': '🔴 Q4 Deflation'}.get(sq, 'Unknown')
 

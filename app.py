@@ -282,11 +282,11 @@ if btl_result:
     for b in btl_result.get("basket", []):
         btl_basket_set.add(b.get("ticker"))
 
+# JADI INI:
 def get_btl_overlay(ticker):
-    """Return bottleneck badge data for a ticker"""
     e = btl_enriched_map.get(ticker)
     if not e:
-        return None, None, None
+        return None, None, None, None   # ✅ 4 values
     alloc = e.get("allocation_verdict", "—")
     fusion = e.get("fusion_score", 0)
     trans = e.get("transmission_note", "")

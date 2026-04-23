@@ -1,7 +1,6 @@
 """
-regime_engine.py v15.3b — PCEC Backup Chain + Proxy Growth Fix + Global Q3 Override
-Fix: real_pce fallback PCEC96/PCE, monthly growth dari proxy kalo pce missing, 
-     global DXY<98+Treasury<4.5 = decelerating (Fed easing narrative)
+regime_engine.py v15.3c — Structural 12M Window + Monthly 6M Window
+Fix: trend_direction dipisah jadi structural (12M) dan monthly (6M)
 """
 import os, time, logging, glob, math
 from datetime import datetime
@@ -15,11 +14,10 @@ FRED_BASE = "https://api.stlouisfed.org/fred"
 MAX_RETRIES = 3
 TIMEOUT = 45
 
-# v15.3b: PCEC1 primary, PCEC96 backup, PCE nominal last resort
 FRED_SERIES = {
     'real_pce': 'PCEC1',
     'real_pce_backup1': 'PCEC96',
-    'real_pce_backup2': 'PCE',  # nominal, will deflate by CPI
+    'real_pce_backup2': 'PCE',
     'cpi': 'CPIAUCSL',
     'core_cpi': 'CPILFESL',
     'fed_funds': 'DFF',
@@ -70,7 +68,7 @@ def _test_fred_key(api_key: str) -> bool:
 def fetch_fred_series(sid: str, api_key: str, session: requests.Session) -> Optional[pd.Series]:
     if not api_key:
         return None
-    headers = {"User-Agent": "Mozilla/5.0 (MacroRegimePro/15.3b)"}
+    headers = {"User-Agent": "Mozilla/5.0 (MacroRegimePro/15.3c)"}
     for attempt in range(MAX_RETRIES):
         try:
             r = session.get(
@@ -160,7 +158,7 @@ def fetch_all_fred() -> Dict[str, pd.Series]:
         return {}
 
     session = requests.Session()
-    session.headers.update({"User-Agent": "Mozilla/5.0 (MacroRegimePro/15.3b)"})
+    session.headers.update({"User-Agent": "Mozilla/5.0 (MacroRegimePro/15.3c)"})
 
     out = {}
     for name, sid in FRED_SERIES.items():
@@ -174,7 +172,6 @@ def fetch_all_fred() -> Dict[str, pd.Series]:
     resolved = {}
     sources = {}
 
-    # Real PCE with backup chain: PCEC1 → PCEC96 → PCE nominal deflated
     pce_loaded = False
     for pce_key in ['real_pce', 'real_pce_backup1']:
         if pce_key in out:
@@ -183,16 +180,13 @@ def fetch_all_fred() -> Dict[str, pd.Series]:
             pce_loaded = True
             break
     if not pce_loaded and 'real_pce_backup2' in out and 'cpi' in out:
-        # Deflate nominal PCE by CPI to estimate real PCE
         try:
             pce_nom = out['real_pce_backup2']
             cpi_s = out['cpi']
-            # Align dates
             common_idx = pce_nom.index.intersection(cpi_s.index)
             if len(common_idx) >= 6:
                 pce_aligned = pce_nom.loc[common_idx]
                 cpi_aligned = cpi_s.loc[common_idx]
-                # Real PCE ≈ Nominal PCE / CPI * 100 (simplified)
                 real_est = (pce_aligned / cpi_aligned) * 100.0
                 resolved['real_pce'] = real_est
                 sources['real_pce'] = 'fred_PCE_deflated_by_CPI'
@@ -263,14 +257,54 @@ def get_vix() -> float:
 def yoy_roc(s: pd.Series, months=12) -> pd.Series:
     return ((s / s.shift(months) - 1.0) * 100.0).dropna()
 
-def trend_direction(s: pd.Series, thresh=0.015) -> str:
+# v15.3c: STRUCTURAL pake 12M window (quarterly classification)
+def structural_trend_direction(s: pd.Series, thresh=0.03) -> str:
+    """
+    Quarterly/Structural trend: 12-month window (12 data points = 1 year)
+    Threshold lebih besar (0.03) karena quarterly lebih smooth
+    """
+    if len(s) < 12:
+        if len(s) < 6:
+            return "stable"
+        # Fallback ke 6M kalo data pendek
+        y6 = s.iloc[-6:].values; x6 = np.arange(len(y6))
+        slope6 = np.polyfit(x6, y6, 1)[0]
+        y3 = s.iloc[-3:].values; x3 = np.arange(len(y3))
+        slope3 = np.polyfit(x3, y3, 1)[0]
+        diff = slope3 - slope6
+        if diff > thresh:
+            return "accelerating"
+        if diff < -thresh:
+            return "decelerating"
+        return "stable"
+    
+    # 12-month window
+    y12 = s.iloc[-12:].values; x12 = np.arange(len(y12))
+    slope12 = np.polyfit(x12, y12, 1)[0]
+    
+    # 6-month window (recent momentum)
+    y6 = s.iloc[-6:].values; x6 = np.arange(len(y6))
+    slope6 = np.polyfit(x6, y6, 1)[0]
+    
+    diff = slope6 - slope12  # recent vs longer-term
+    
+    if diff > thresh:
+        return "accelerating"
+    if diff < -thresh:
+        return "decelerating"
+    return "stable"
+
+# v15.3c: MONTHLY pake 6M window (monthly classification)
+def monthly_trend_direction(s: pd.Series, thresh=0.015) -> str:
+    """
+    Monthly trend: 6-month window (6 data points = 6 months)
+    More sensitive for monthly classification
+    """
     if len(s) < 6:
         return "stable"
-    y6 = s.iloc[-6:].values
-    x6 = np.arange(len(y6))
+    y6 = s.iloc[-6:].values; x6 = np.arange(len(y6))
     slope6 = np.polyfit(x6, y6, 1)[0]
-    y3 = s.iloc[-3:].values
-    x3 = np.arange(len(y3))
+    y3 = s.iloc[-3:].values; x3 = np.arange(len(y3))
     slope3 = np.polyfit(x3, y3, 1)[0]
     diff = slope3 - slope6
     if diff > thresh:
@@ -421,7 +455,6 @@ def yf_proxy():
         xli1, xli3, xli6 = mom('XLI')
         rsp1, rsp3, rsp6 = mom('RSP')
 
-        # MONTHLY: equity rally = growth accelerating
         g_acc = (spy3 > spy6 + 0.5) and (xlf3 > xlu3 + 2) and (xli3 > xli6)
         g_dec = (spy3 < spy6 - 0.5) or (xlu3 > xlf3 + 0.5) or (iwm3 < iwm6 - 1) or (tlt3 > tlt6 + 1) or (rsp3 < spy3 - 0.5)
         i_acc = (gld3 > gld6) and (xop3 > -5) and (uup3 < uup6)
@@ -433,16 +466,13 @@ def yf_proxy():
         mg = "accelerating" if g_acc else ("decelerating" if g_dec else "stable")
         mi = "accelerating" if i_acc else ("decelerating" if i_dec else "stable")
 
-        # STRUCTURAL: broader macro decay (yields falling + small cap weak + defensives lead)
-        # v15.3b: TLT rally + IWM weak = growth SLOWING (Fed easing expectation)
         sg = "decelerating" if (tlt3 > tlt6 + 0.5 or iwm3 < iwm6 - 0.5 or xlu3 > xlf3) else ("accelerating" if g_acc else "stable")
         si = "accelerating" if (gld3 > gld6 or xop3 > xop6) else ("decelerating" if i_dec else "stable")
 
-        # Calibrated absolute levels (Apr 2026 macro reality)
-        gy = 1.6 if g_dec else (2.8 if g_acc else 2.2)   # Real PCE proxy
-        iy = 3.1 if i_acc else (2.4 if i_dec else 2.8)   # CPI proxy
-        pr = 4.5 if ph else (3.5 if pd_ else 4.2)          # Fed Funds proxy
-        t10 = 4.3 if ph else (3.5 if pd_ else 4.2)         # 10Y Treasury proxy
+        gy = 1.6 if g_dec else (2.8 if g_acc else 2.2)
+        iy = 3.1 if i_acc else (2.4 if i_dec else 2.8)
+        pr = 4.5 if ph else (3.5 if pd_ else 4.2)
+        t10 = 4.3 if ph else (3.5 if pd_ else 4.2)
 
         return {
             'growth_yoy': gy, 'inflation_yoy': iy, 'policy_rate': pr, 'treasury_10y': t10,
@@ -492,8 +522,8 @@ def calculate_regime() -> Dict:
     mg = "stable"
     mi = "stable"
     md = {}
+    structural_debug = {}
 
-    # v15.3b: Always get proxy as backup for missing PCE
     proxy = None
     if not has_pce or fred_loaded < 8:
         proxy = yf_proxy()
@@ -501,13 +531,32 @@ def calculate_regime() -> Dict:
     if has_pce and has_cpi:
         pce = resolved['real_pce']
         pce_yoy = yoy_roc(pce)
-        growth_trend = trend_direction(pce_yoy)
+        
+        # v15.3c: STRUCTURAL pake 12M window
+        growth_trend = structural_trend_direction(pce_yoy)
         growth_val = float(pce_yoy.iloc[-1]) if len(pce_yoy) > 0 else 0.0
+        
+        # Structural debug
+        if len(pce_yoy) >= 12:
+            y12 = pce_yoy.iloc[-12:].values
+            structural_debug['pce_yoy_12m'] = [round(float(x), 2) for x in y12]
+            structural_debug['pce_slope_12m'] = round(float(np.polyfit(np.arange(12), y12, 1)[0]), 4)
+        elif len(pce_yoy) >= 6:
+            y6 = pce_yoy.iloc[-6:].values
+            structural_debug['pce_yoy_6m'] = [round(float(x), 2) for x in y6]
+            structural_debug['pce_slope_6m'] = round(float(np.polyfit(np.arange(6), y6, 1)[0]), 4)
+        structural_debug['growth_trend_calc'] = growth_trend
 
         cpi = resolved['cpi']
         cpi_yoy = yoy_roc(cpi)
-        infl_trend = trend_direction(cpi_yoy)
+        infl_trend = structural_trend_direction(cpi_yoy)
         infl_val = float(cpi_yoy.iloc[-1]) if len(cpi_yoy) > 0 else 0.0
+        
+        if len(cpi_yoy) >= 12:
+            y12 = cpi_yoy.iloc[-12:].values
+            structural_debug['cpi_yoy_12m'] = [round(float(x), 2) for x in y12]
+            structural_debug['cpi_slope_12m'] = round(float(np.polyfit(np.arange(12), y12, 1)[0]), 4)
+        structural_debug['inflation_trend_calc'] = infl_trend
 
         ff = resolved.get('fed_funds')
         t10 = resolved.get('treasury_10y')
@@ -533,6 +582,7 @@ def calculate_regime() -> Dict:
             macro_pulse['be_1m'] = round(float(be.iloc[-1] - be.iloc[-21]), 2)
             macro_pulse['be_now'] = round(float(be.iloc[-1]), 2)
 
+        # MONTHLY: pake 6M window (monthly_momentum)
         ps = resolved.get('real_pce')
         cs = resolved.get('cpi')
         if ps is not None and len(ps) >= 6:
@@ -554,14 +604,12 @@ def calculate_regime() -> Dict:
         source = 'fred_partial'
         confidence = 0.65
         
-        # v15.3b: CPI available but PCE missing → use proxy for growth
         if 'cpi' in resolved:
             cpi = resolved['cpi']
             cpi_yoy = yoy_roc(cpi)
-            infl_trend = trend_direction(cpi_yoy)
+            infl_trend = structural_trend_direction(cpi_yoy)
             infl_val = float(cpi_yoy.iloc[-1]) if len(cpi_yoy) > 0 else 0.0
-        
-        # Growth from proxy if PCE missing
+
         if not has_pce and proxy:
             growth_trend = proxy.get('structural_growth', 'stable')
             growth_val = proxy['growth_yoy']
@@ -570,7 +618,7 @@ def calculate_regime() -> Dict:
         elif 'real_pce' in resolved:
             pce = resolved['real_pce']
             pce_yoy = yoy_roc(pce)
-            growth_trend = trend_direction(pce_yoy)
+            growth_trend = structural_trend_direction(pce_yoy)
             growth_val = float(pce_yoy.iloc[-1]) if len(pce_yoy) > 0 else 0.0
             if len(pce) >= 6:
                 py = yoy_roc(pce)
@@ -600,7 +648,6 @@ def calculate_regime() -> Dict:
             macro_pulse['be_1m'] = round(float(be.iloc[-1] - be.iloc[-21]), 2)
             macro_pulse['be_now'] = round(float(be.iloc[-1]), 2)
 
-        # Monthly inflation from CPI
         cs = resolved.get('cpi')
         if cs is not None and len(cs) >= 6:
             cy = yoy_roc(cs)
@@ -641,38 +688,32 @@ def calculate_regime() -> Dict:
                 'monthly_probs': {"Q1": 0.20, "Q2": 0.30, "Q3": 0.30, "Q4": 0.20},
                 'flip_hazard': 0.0, 'deepness': 0.0,
                 'timestamp': datetime.now().isoformat(),
-                'fred_missing_keys': fred_missing_keys
+                'fred_missing_keys': fred_missing_keys,
+                'structural_debug': {}
             }
 
     sq = assign_quad(growth_trend, infl_trend, growth_val, infl_val, use_abs=True)
     mq = assign_quad(mg, mi, growth_val, infl_val, use_abs=True)
 
-    # GLOBAL QUAD v15.3b: Fed Easing Narrative Override
-    # DXY < 98 + Treasury < 4.5 = Fed cutting because growth is SLOW → global decelerating
-    # Inflation persistent (CPI > 2.8, breakeven elevated) → accelerating
-    # Result: Q3 (decelerating growth + accelerating inflation)
+    # GLOBAL QUAD v15.3c: Fed Easing Narrative
     gq = sq
     if 'dxy' in resolved:
         dxy = resolved['dxy']
         dxy_latest = float(dxy.iloc[-1]) if len(dxy) > 0 else 100.0
-        dxy_t = trend_direction(dxy, 0.15) if len(dxy) >= 6 else "stable"
+        dxy_t = monthly_trend_direction(dxy, 0.15) if len(dxy) >= 6 else "stable"
 
-        # v15.3b: DXY melemah + yields turun = Fed easing karena growth lemah
-        # Ini Q3 narrative, bukan Q2 risk-on
         fed_easing_signal = False
         if dxy_latest < 98.0:
             fed_easing_signal = True
         if 'treasury_10y' in resolved:
             t10s = resolved['treasury_10y']
             t10_latest = float(t10s.iloc[-1]) if len(t10s) > 0 else 4.0
-            t10_t = trend_direction(t10s, 0.03) if len(t10s) >= 6 else "stable"
+            t10_t = monthly_trend_direction(t10s, 0.03) if len(t10s) >= 6 else "stable"
             if t10_latest < 4.5 and t10_t in ("decelerating", "stable"):
                 fed_easing_signal = True
         
         if fed_easing_signal:
-            # Fed easing = growth decelerating (they cut because economy slowing)
             gg = "decelerating"
-            # Inflation: check if persistent
             gi = infl_trend
             if 'breakeven_10y' in resolved:
                 be_s = resolved['breakeven_10y']
@@ -683,7 +724,6 @@ def calculate_regime() -> Dict:
                 gi = "accelerating"
             gq = assign_quad(gg, gi, growth_val, infl_val, use_abs=True)
         else:
-            # Old logic for non-easing environment
             if dxy_latest > 102.0 and dxy_t == "accelerating":
                 gg = "decelerating"
             elif dxy_latest < 98.0 and dxy_t == "decelerating":
@@ -695,7 +735,7 @@ def calculate_regime() -> Dict:
             if 'treasury_10y' in resolved:
                 t10s = resolved['treasury_10y']
                 t10_latest = float(t10s.iloc[-1]) if len(t10s) > 0 else 4.0
-                t10_t = trend_direction(t10s, 0.03) if len(t10s) >= 6 else "stable"
+                t10_t = monthly_trend_direction(t10s, 0.03) if len(t10s) >= 6 else "stable"
                 if t10_latest > 4.5 and t10_t == "accelerating":
                     gi = "accelerating"
                 elif t10_latest < 3.5 and t10_t == "decelerating":
@@ -706,7 +746,7 @@ def calculate_regime() -> Dict:
     elif 'treasury_10y' in resolved:
         t10s = resolved['treasury_10y']
         t10_latest = float(t10s.iloc[-1]) if len(t10s) > 0 else 4.0
-        t10_t = trend_direction(t10s, 0.03) if len(t10s) >= 6 else "stable"
+        t10_t = monthly_trend_direction(t10s, 0.03) if len(t10s) >= 6 else "stable"
         gi = "accelerating" if (t10_latest > 4.5 and t10_t == "accelerating") else "decelerating" if (t10_latest < 3.5 and t10_t == "decelerating") else infl_trend
         gq = assign_quad(growth_trend, gi, growth_val, infl_val, use_abs=True)
 
@@ -746,7 +786,8 @@ def calculate_regime() -> Dict:
         'operating_regime': rt, 'monthly_debug': md, 'macro_pulse': macro_pulse,
         'probs': probs, 'monthly_probs': m_probs,
         'flip_hazard': round(flip_hazard, 2), 'deepness': round(deepness, 2),
-        'timestamp': datetime.now().isoformat()
+        'timestamp': datetime.now().isoformat(),
+        'structural_debug': structural_debug
     }
 
 def get_regime_snapshot():

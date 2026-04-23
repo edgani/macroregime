@@ -1363,18 +1363,30 @@ with tabs[3]:
 
 with tabs[4]:
     st.subheader("⚠️ Risk & Diagnostics")
-    c1,c2,c3=st.columns(3)
-    with c1: st.metric("FRED Loaded", f"{q.get('fred_loaded',0)}/{len(PRIMARY_SERIES)}")
-    with c2: st.metric("Source", src)
-    with c3: st.metric("API Key", "✅ Active" if q.get('fred_loaded',0)>0 else "❌ Fallback")
-    if q.get('fred_loaded',0)==0:
-        st.error("🚨 FRED 0 loaded — using proxy data. Check API key.")
+    
+    # FIX: API Key status cek existence, bukan fred_loaded
+    api_key_present = bool(get_fred_api_key())
+    
+    c1, c2, c3 = st.columns(3)
+    with c1: 
+        st.metric("FRED Loaded", f"{q.get('fred_loaded',0)}/{len(PRIMARY_SERIES)}")
+    with c2: 
+        st.metric("Source", src)
+    with c3: 
+        st.metric("API Key", "✅ Set" if api_key_present else "❌ Missing")
+    
+    if q.get('fred_loaded',0) == 0:
+        if api_key_present:
+            st.error("🚨 FRED 0 loaded — API key set tapi semua request gagal. Cek: (1) API key valid di fred.stlouisfed.org, (2) koneksi internet, (3) rate limit.")
+        else:
+            st.error("🚨 FRED 0 loaded — API key belum di-set. Tambahkan FRED_API_KEY di environment variable atau Streamlit secrets.")
         if st.button("🔄 Clear Cache & Reload"):
-            st.cache_data.clear(); st.rerun()
+            st.cache_data.clear()
+            st.rerun()
     elif q.get('fred_loaded',0) < len(PRIMARY_SERIES):
         missing_keys = q.get('fred_missing_keys', [])
         if missing_keys:
-            st.warning(f"🟡 FRED Partial — {q.get('fred_loaded',0)}/{len(PRIMARY_SERIES)} loaded. Missing: {', '.join(missing_keys)}")
+            st.warning(f"🟡 FRED Partial — {q.get('fred_loaded',0)}/{len(PRIMARY_SERIES)} primary series loaded. Missing: {', '.join(missing_keys)}")
         else:
             st.warning(f"🟡 FRED Partial — {q.get('fred_loaded',0)}/{len(PRIMARY_SERIES)} loaded.")
     else:

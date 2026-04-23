@@ -1,6 +1,6 @@
 """
-regime_engine.py v15.3e — Structural Tie-Breaker Fix
-Fix: ambiguous 12M slope → 6M tie-breaker, hapus lower-highs override
+regime_engine.py v15.3f — FINAL: Growth 12M, Inflation 6M + Absolute Guard
+Fix: structural growth 12M slope, structural inflation 6M slope + level guard
 """
 import os, time, logging, glob, math
 from datetime import datetime
@@ -68,7 +68,7 @@ def _test_fred_key(api_key: str) -> bool:
 def fetch_fred_series(sid: str, api_key: str, session: requests.Session) -> Optional[pd.Series]:
     if not api_key:
         return None
-    headers = {"User-Agent": "Mozilla/5.0 (MacroRegimePro/15.3e)"}
+    headers = {"User-Agent": "Mozilla/5.0 (MacroRegimePro/15.3f)"}
     for attempt in range(MAX_RETRIES):
         try:
             r = session.get(
@@ -158,7 +158,7 @@ def fetch_all_fred() -> Dict[str, pd.Series]:
         return {}
 
     session = requests.Session()
-    session.headers.update({"User-Agent": "Mozilla/5.0 (MacroRegimePro/15.3e)"})
+    session.headers.update({"User-Agent": "Mozilla/5.0 (MacroRegimePro/15.3f)"})
 
     out = {}
     for name, sid in FRED_SERIES.items():
@@ -258,12 +258,12 @@ def yoy_roc(s: pd.Series, months=12) -> pd.Series:
     return ((s / s.shift(months) - 1.0) * 100.0).dropna()
 
 # ============================================================
-# STRUCTURAL: 12M pure slope + 6M tie-breaker
+# STRUCTURAL GROWTH: 12M pure slope (slow-moving: GDP/PCE)
 # ============================================================
-def structural_trend_direction(s: pd.Series, thresh=0.03) -> str:
+def structural_growth_trend(s: pd.Series, thresh=0.03) -> str:
     """
-    Quarterly/Structural trend: pure 12-month slope.
-    Ambiguous zone (-thresh, +thresh): 6M slope tie-breaker.
+    Growth structural: 12-month pure slope.
+    PCE/GDP slow-moving = longer window appropriate.
     """
     if len(s) < 12:
         return monthly_trend_direction(s) if len(s) >= 6 else "stable"
@@ -272,22 +272,60 @@ def structural_trend_direction(s: pd.Series, thresh=0.03) -> str:
     x12 = np.arange(len(y12))
     slope12 = np.polyfit(x12, y12, 1)[0]
     
-    # Clear directional
     if slope12 > thresh:
         return "accelerating"
     if slope12 < -thresh:
         return "decelerating"
     
-    # Ambiguous zone: tie-breaker from 6M slope
+    # Ambiguous: 6M tie-breaker
     y6 = s.iloc[-6:].values
     x6 = np.arange(len(y6))
     slope6 = np.polyfit(x6, y6, 1)[0]
     
-    tie_thresh = thresh * 0.8  # 0.024
-    
-    if slope6 > tie_thresh:
+    if slope6 > thresh * 0.8:
         return "accelerating"
-    if slope6 < -tie_thresh:
+    if slope6 < -thresh * 0.8:
+        return "decelerating"
+    
+    return "stable"
+
+# ============================================================
+# STRUCTURAL INFLATION: 6M slope + absolute guard (fast-moving: CPI)
+# ============================================================
+def structural_inflation_trend(s: pd.Series, current_val: float, thresh=0.02) -> str:
+    """
+    Inflation structural: 6-month slope (CPI volatile = shorter window).
+    Absolute guard: current > 3.0% + 6M slope up = accelerating.
+    """
+    if len(s) < 6:
+        return monthly_trend_direction(s) if len(s) >= 6 else "stable"
+    
+    # 6M slope
+    y6 = s.iloc[-6:].values
+    x6 = np.arange(len(y6))
+    slope6 = np.polyfit(x6, y6, 1)[0]
+    
+    # ABSOLUTE GUARD: high inflation + recent momentum up
+    if current_val > 3.0 and slope6 > 0.01:
+        return "accelerating"
+    if current_val < 2.0 and slope6 < -0.01:
+        return "decelerating"
+    
+    # Standard 6M slope
+    if slope6 > thresh:
+        return "accelerating"
+    if slope6 < -thresh:
+        return "decelerating"
+    
+    # 3M vs 6M diff (monthly-style for confirmation)
+    y3 = s.iloc[-3:].values
+    x3 = np.arange(len(y3))
+    slope3 = np.polyfit(x3, y3, 1)[0]
+    diff = slope3 - slope6
+    
+    if diff > 0.015:
+        return "accelerating"
+    if diff < -0.015:
         return "decelerating"
     
     return "stable"
@@ -537,42 +575,32 @@ def calculate_regime() -> Dict:
         pce = resolved['real_pce']
         pce_yoy = yoy_roc(pce)
         
-        # STRUCTURAL: 12M pure slope
-        growth_trend = structural_trend_direction(pce_yoy)
+        # STRUCTURAL GROWTH: 12M slope
+        growth_trend = structural_growth_trend(pce_yoy)
         growth_val = float(pce_yoy.iloc[-1]) if len(pce_yoy) > 0 else 0.0
         
         if len(pce_yoy) >= 12:
             y12 = pce_yoy.iloc[-12:].values
             structural_debug['pce_yoy_12m'] = [round(float(x), 2) for x in y12]
             structural_debug['pce_slope_12m'] = round(float(np.polyfit(np.arange(12), y12, 1)[0]), 4)
-            if len(y12) >= 6:
-                y6 = y12[-6:]
-                structural_debug['pce_yoy_6m'] = [round(float(x), 2) for x in y6]
-                structural_debug['pce_slope_6m'] = round(float(np.polyfit(np.arange(6), y6, 1)[0]), 4)
         elif len(pce_yoy) >= 6:
             y6 = pce_yoy.iloc[-6:].values
             structural_debug['pce_yoy_6m'] = [round(float(x), 2) for x in y6]
             structural_debug['pce_slope_6m'] = round(float(np.polyfit(np.arange(6), y6, 1)[0]), 4)
         structural_debug['growth_trend_calc'] = growth_trend
 
+        # STRUCTURAL INFLATION: 6M slope + absolute guard
         cpi = resolved['cpi']
         cpi_yoy = yoy_roc(cpi)
-        infl_trend = structural_trend_direction(cpi_yoy)
         infl_val = float(cpi_yoy.iloc[-1]) if len(cpi_yoy) > 0 else 0.0
+        infl_trend = structural_inflation_trend(cpi_yoy, infl_val)
         
-        if len(cpi_yoy) >= 12:
-            y12 = cpi_yoy.iloc[-12:].values
-            structural_debug['cpi_yoy_12m'] = [round(float(x), 2) for x in y12]
-            structural_debug['cpi_slope_12m'] = round(float(np.polyfit(np.arange(12), y12, 1)[0]), 4)
-            if len(y12) >= 6:
-                y6 = y12[-6:]
-                structural_debug['cpi_yoy_6m'] = [round(float(x), 2) for x in y6]
-                structural_debug['cpi_slope_6m'] = round(float(np.polyfit(np.arange(6), y6, 1)[0]), 4)
-        elif len(cpi_yoy) >= 6:
+        if len(cpi_yoy) >= 6:
             y6 = cpi_yoy.iloc[-6:].values
             structural_debug['cpi_yoy_6m'] = [round(float(x), 2) for x in y6]
             structural_debug['cpi_slope_6m'] = round(float(np.polyfit(np.arange(6), y6, 1)[0]), 4)
         structural_debug['inflation_trend_calc'] = infl_trend
+        structural_debug['inflation_current'] = round(infl_val, 2)
 
         ff = resolved.get('fed_funds')
         t10 = resolved.get('treasury_10y')
@@ -598,7 +626,7 @@ def calculate_regime() -> Dict:
             macro_pulse['be_1m'] = round(float(be.iloc[-1] - be.iloc[-21]), 2)
             macro_pulse['be_now'] = round(float(be.iloc[-1]), 2)
 
-        # MONTHLY: yf_proxy PRIMARY, PCE confirmation
+        # MONTHLY: yf_proxy PRIMARY
         if proxy:
             mg = proxy['monthly_growth']
             if (ps := resolved.get('real_pce')) and len(ps) >= 6:
@@ -630,8 +658,8 @@ def calculate_regime() -> Dict:
         if 'cpi' in resolved:
             cpi = resolved['cpi']
             cpi_yoy = yoy_roc(cpi)
-            infl_trend = structural_trend_direction(cpi_yoy)
             infl_val = float(cpi_yoy.iloc[-1]) if len(cpi_yoy) > 0 else 0.0
+            infl_trend = structural_inflation_trend(cpi_yoy, infl_val)
 
         if not has_pce and proxy:
             growth_trend = proxy.get('structural_growth', 'stable')
@@ -641,7 +669,7 @@ def calculate_regime() -> Dict:
         elif 'real_pce' in resolved:
             pce = resolved['real_pce']
             pce_yoy = yoy_roc(pce)
-            growth_trend = structural_trend_direction(pce_yoy)
+            growth_trend = structural_growth_trend(pce_yoy)
             growth_val = float(pce_yoy.iloc[-1]) if len(pce_yoy) > 0 else 0.0
             if len(pce) >= 6:
                 py = yoy_roc(pce)

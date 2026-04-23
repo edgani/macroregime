@@ -162,32 +162,21 @@ def get_vix() -> float:
 def yoy_roc(s: pd.Series, months=12) -> pd.Series:
     return ((s / s.shift(months) - 1.0) * 100.0).dropna()
 
-# ==================== FIXED TREND DETECTION ====================
 def trend_direction(s: pd.Series, thresh=0.015) -> str:
-    """
-    Hedgeye-style rate-of-change detection.
-    Compare 3-month slope vs 6-month slope untuk deteksi acceleration/deceleration
-    yang lebih sensitive daripada single slope threshold.
-    """
     if len(s) < 6:
         return "stable"
     y6 = s.iloc[-6:].values; x6 = np.arange(len(y6))
     slope6 = np.polyfit(x6, y6, 1)[0]
     y3 = s.iloc[-3:].values; x3 = np.arange(len(y3))
     slope3 = np.polyfit(x3, y3, 1)[0]
-    diff = slope3 - slope6  # positive = accelerating, negative = decelerating
+    diff = slope3 - slope6
     if diff > thresh:
         return "accelerating"
     if diff < -thresh:
         return "decelerating"
     return "stable"
 
-# ==================== FIXED MONTHLY MOMENTUM ====================
 def monthly_momentum(yoy_s: pd.Series):
-    """
-    Monthly momentum pakai 3m vs 6m slope comparison (konsisten dengan trend_direction).
-    Lebih sensitive daripada point-to-point threshold yang lama.
-    """
     debug = {}
     if len(yoy_s) < 4:
         return "stable", debug
@@ -205,71 +194,38 @@ def monthly_momentum(yoy_s: pd.Series):
             return "accelerating", debug
         if diff < -0.015:
             return "decelerating", debug
-    # Fallback: point vs 3-month average
     if m1 > m3 + 0.12:
         return "accelerating", debug
     if m1 < m3 - 0.12:
         return "decelerating", debug
     return "stable", debug
 
-# ==================== FIXED ASSIGN QUAD ====================
 def assign_quad(gt: str, it: str, gv=None, iv=None, use_abs=True) -> str:
-    """
-    Full-coverage quad assignment. NO blind fallback ke Q2.
-    Covers: trend pairs → stable-mix pairs → absolute level matrix.
-    """
-    if gv is not None and isinstance(gv, float) and math.isnan(gv):
-        gv = None
-    if iv is not None and isinstance(iv, float) and math.isnan(iv):
-        iv = None
+    if gv is not None and isinstance(gv, float) and math.isnan(gv): gv = None
+    if iv is not None and isinstance(iv, float) and math.isnan(iv): iv = None
 
-    # 1. Primary: Trend pair mapping (Hedgeye GIP philosophy)
-    if gt == "accelerating" and it == "decelerating":
-        return "Q1"
-    if gt == "accelerating" and it == "accelerating":
-        return "Q2"
-    if gt == "decelerating" and it == "accelerating":
-        return "Q3"
-    if gt == "decelerating" and it == "decelerating":
-        return "Q4"
+    if gt == "accelerating" and it == "decelerating": return "Q1"
+    if gt == "accelerating" and it == "accelerating": return "Q2"
+    if gt == "decelerating" and it == "accelerating": return "Q3"
+    if gt == "decelerating" and it == "decelerating": return "Q4"
 
-    # 2. Secondary: One side accelerating/decelerating, other stable
-    if gt == "accelerating" and it == "stable":
-        return "Q2"
-    if gt == "stable" and it == "accelerating":
-        return "Q3"
-    if gt == "decelerating" and it == "stable":
-        return "Q4"
-    if gt == "stable" and it == "decelerating":
-        return "Q1"
+    if gt == "accelerating" and it == "stable": return "Q2"
+    if gt == "stable" and it == "accelerating": return "Q3"
+    if gt == "decelerating" and it == "stable": return "Q4"
+    if gt == "stable" and it == "decelerating": return "Q1"
 
-    # 3. Tertiary: Absolute level fallback (full coverage, no gaps)
     if use_abs and gv is not None and iv is not None:
-        gv = float(gv)
-        iv = float(iv)
-        if gv >= 2.5:  # High growth
-            if iv >= 2.8:
-                return "Q2"
-            elif iv >= 2.2:
-                return "Q2"
-            else:
-                return "Q1"
-        elif gv >= 2.0:  # Moderate growth
-            if iv >= 2.8:
-                return "Q3"
-            elif iv >= 2.2:
-                return "Q2"
-            else:
-                return "Q1"
-        else:  # Low growth (< 2.0)
-            if iv >= 2.8:
-                return "Q3"
-            elif iv >= 2.2:
-                return "Q3"
-            else:
-                return "Q4"
-
-    # Ultimate fallback only kalau semua data missing
+        gv = float(gv); iv = float(iv)
+        if gv >= 2.5:
+            if iv >= 2.2: return "Q2"
+            else: return "Q1"
+        elif gv >= 2.0:
+            if iv >= 2.8: return "Q3"
+            elif iv >= 2.2: return "Q2"
+            else: return "Q1"
+        else:
+            if iv >= 2.2: return "Q3"
+            else: return "Q4"
     return "Q2"
 
 def _calc_probs(gv, iv, gt, it):
@@ -407,12 +363,10 @@ def calculate_regime() -> Dict:
         cs = resolved.get('cpi')
         if ps is not None and len(ps)>=6:
             py = yoy_roc(ps); mg, gd = monthly_momentum(py); md['growth']=gd
-        else:
-            mg = growth_trend; md['growth']={'error':'no pce'}
+        else: mg = growth_trend; md['growth']={'error':'no pce'}
         if cs is not None and len(cs)>=6:
             cy = yoy_roc(cs); mi, id_ = monthly_momentum(cy); md['inflation']=id_
-        else:
-            mi = infl_trend; md['inflation']={'error':'no cpi'}
+        else: mi = infl_trend; md['inflation']={'error':'no cpi'}
 
     elif len(resolved) >= 5:
         source = 'fred_partial'
@@ -451,12 +405,10 @@ def calculate_regime() -> Dict:
         cs = resolved.get('cpi')
         if ps is not None and len(ps)>=6:
             py = yoy_roc(ps); mg, gd = monthly_momentum(py); md['growth']=gd
-        else:
-            mg = growth_trend; md['growth']={'error':'no pce'}
+        else: mg = growth_trend; md['growth']={'error':'no pce'}
         if cs is not None and len(cs)>=6:
             cy = yoy_roc(cs); mi, id_ = monthly_momentum(cy); md['inflation']=id_
-        else:
-            mi = infl_trend; md['inflation']={'error':'no cpi'}
+        else: mi = infl_trend; md['inflation']={'error':'no cpi'}
     else:
         proxy = yf_proxy()
         if proxy:
@@ -485,7 +437,6 @@ def calculate_regime() -> Dict:
     sq = assign_quad(growth_trend, infl_trend, growth_val, infl_val, use_abs=True)
     mq = assign_quad(mg, mi, growth_val, infl_val, use_abs=True)
 
-    # ==================== FIXED GLOBAL QUAD ====================
     gq = sq
     if 'dxy' in resolved:
         dxy = resolved['dxy']

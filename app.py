@@ -1066,7 +1066,7 @@ with tabs[1]:
                         color = "#4ade80" if r1>0 else "#f87171" if r1<0 else "#8b949e"
                         st.markdown(f"<span style='color:{color};font-size:11px;'>{name}: {r1:+.1%}</span>", unsafe_allow_html=True)
         st.divider()
-        st.markdown("**🌏 Macro Linkages**")
+                st.markdown("**🌏 Macro Linkages**")
         lk1, lk2, lk3 = st.columns(3)
         with lk1:
             jkse_s = prices.get("^JKSE", pd.Series()); spy_s = prices.get("SPY", pd.Series())
@@ -1082,8 +1082,8 @@ with tabs[1]:
             else: st.caption("No IDR")
         with lk3:
             coal_s = prices.get("ADRO.JK")
-if coal_s is None or len(coal_s) == 0:
-    coal_s = prices.get("ITMG.JK")
+            if coal_s is None or len(coal_s) == 0:
+                coal_s = prices.get("ITMG.JK")
             oil_s = prices.get("CL=F", pd.Series())
             if coal_s is not None and len(coal_s)>22 and oil_s is not None and len(oil_s)>22:
                 c1m = rn(coal_s,21); o1m = rn(oil_s,21)

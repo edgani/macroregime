@@ -1,7 +1,7 @@
 """
-regime_engine.py v15.2d — Pure Data-Driven GIP, No Hardcoded Quarter
+regime_engine.py v15.2g — Pure Data-Driven GIP, No Hardcoded Quarter
 Growth: Real PCE YoY | Inflation: Headline CPI YoY | Policy: DFF+DGS10+DXY
-v15.2d Fix: Pass treasury_2y & hy_oas to output. Add HY OAS FRED series.
+v15.2g: ISM backup series (NAPMNOI, NAPMPROD) + indent fix
 """
 import os, time, logging, glob, math
 from datetime import datetime
@@ -26,9 +26,11 @@ FRED_SERIES = {
     'treasury_2y': 'DGS2',
     'dxy': 'DTWEXBGS',
     'ism_mfg': 'NAPM',
+    'ism_mfg_backup1': 'NAPMNOI',
+    'ism_mfg_backup2': 'NAPMPROD',
     'claims': 'ICSA',
     'breakeven_10y': 'T10YIE',
-    'hy_oas': 'BAMLH0A0HYM2',  # ICE BofA US High Yield OAS
+    'hy_oas': 'BAMLH0A0HYM2',
 }
 
 PRIMARY_SERIES = ['real_pce', 'cpi', 'fed_funds', 'treasury_10y', 'ism_mfg', 'claims', 'breakeven_10y', 'dxy']
@@ -123,6 +125,10 @@ def fetch_all_fred() -> Dict[str, pd.Series]:
 
     if 'ism_mfg' in out:
         resolved['ism_mfg'] = out['ism_mfg']; sources['ism_mfg'] = 'fred'
+    elif 'ism_mfg_backup1' in out:
+        resolved['ism_mfg'] = out['ism_mfg_backup1']; sources['ism_mfg'] = 'fred_napmnoi'
+    elif 'ism_mfg_backup2' in out:
+        resolved['ism_mfg'] = out['ism_mfg_backup2']; sources['ism_mfg'] = 'fred_napmprod'
     else:
         ism_proxy = fetch_ism_proxy()
         if ism_proxy is not None:

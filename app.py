@@ -367,7 +367,7 @@ def render_bottleneck_intel(btl):
     if demand:
         dcols = st.columns(min(len(demand), 4))
         for idx, (theme, data) in enumerate(demand.items()):
-            with dcols[idx]:
+            with dcols[idx % len(dcols)]:
                 state = data.get("state", "❄️ COLD")
                 sc = data.get("narrative_score", 0)
                 bc = "#1a4d2e" if "HOT" in state else "#5c3d00" if "WARM" in state else "#2d3748"

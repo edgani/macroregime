@@ -1,7 +1,6 @@
 """
-regime_engine.py v15.2i — Pure Data-Driven GIP, No Hardcoded Quarter
-Growth: Real PCE YoY | Inflation: Headline CPI YoY | Policy: DFF+DGS10+DXY
-v15.2i: Remove nominal PCE fallback + prob clamp + progress-safe
+regime_engine.py v15.2i — Pure Data-Driven GIP, No Hardcode
+Fix: Real PCE priority (no nominal fallback), DXY/Treasury sensitive threshold, progress clamp
 """
 import os, time, logging, glob, math
 from datetime import datetime
@@ -17,7 +16,6 @@ TIMEOUT = 35
 
 FRED_SERIES = {
     'real_pce': 'PCEC1',
-    'real_pce_dpi': 'DSPIC96',
     'cpi': 'CPIAUCSL',
     'core_cpi': 'CPILFESL',
     'fed_funds': 'DFF',
@@ -33,7 +31,6 @@ FRED_SERIES = {
 }
 
 PRIMARY_SERIES = ['real_pce', 'cpi', 'fed_funds', 'treasury_10y', 'ism_mfg', 'claims', 'breakeven_10y', 'dxy']
-FRED_SERIES_COUNT = len(PRIMARY_SERIES)
 
 def get_fred_api_key() -> str:
     key = os.environ.get("FRED_API_KEY", "")
@@ -110,11 +107,11 @@ def fetch_all_fred() -> Dict[str, pd.Series]:
     resolved = {}
     sources = {}
 
-    # Growth: Real PCE only. NEVER fallback to nominal PCE.
+    # Growth: ONLY Real PCE (PCEC1). NEVER fallback to nominal PCE.
     if 'real_pce' in out:
-        resolved['real_pce'] = out['real_pce']; sources['real_pce'] = 'fred'
-    elif 'real_pce_dpi' in out:
-        resolved['real_pce'] = out['real_pce_dpi']; sources['real_pce'] = 'fred_dpi'
+        resolved['real_pce'] = out['real_pce']; sources['real_pce'] = 'fred_real'
+    else:
+        logger.warning("Real PCE (PCEC1) missing — growth will use proxy")
 
     if 'cpi' in out:
         resolved['cpi'] = out['cpi']; sources['cpi'] = 'fred'
@@ -247,13 +244,8 @@ def _calc_probs(gv, iv, gt, it):
             base["Q2"]+=0.05; base["Q3"]+=0.08; base["Q1"]-=0.05; base["Q4"]-=0.08
         elif iv < 2.2:
             base["Q1"]+=0.08; base["Q4"]+=0.05; base["Q2"]-=0.05; base["Q3"]-=0.08
-    
-    # Clamp and normalize
-    base = {k: max(0.001, v) for k, v in base.items()}
     total = sum(base.values())
-    out = {k: round(v/total, 3) for k, v in base.items()}
-    # Final clamp to ensure valid probability
-    return {k: max(0.0, min(1.0, v)) for k, v in out.items()}
+    return {k:round(v/total,3) for k,v in base.items()}
 
 def yf_proxy():
     try:
@@ -440,20 +432,23 @@ def calculate_regime() -> Dict:
     sq = assign_quad(growth_trend, infl_trend, growth_val, infl_val, use_abs=True)
     mq = assign_quad(mg, mi, growth_val, infl_val, use_abs=True)
 
+    # GLOBAL QUAD FIX: DXY trend dengan threshold 0.10 (lebih sensitive)
     gq = sq
     if 'dxy' in resolved:
         dxy = resolved['dxy']
-        dxy_t = trend_direction(dxy, 0.20) if len(dxy) >= 6 else "stable"
+        dxy_t = trend_direction(dxy, 0.10) if len(dxy) >= 6 else "stable"
+        # DXY naik (accelerating) = dollar strength = global liquidity tight = growth pressure (decelerating)
         gg = "decelerating" if dxy_t=="accelerating" else "accelerating" if dxy_t=="decelerating" else growth_trend
         gi = infl_trend
         if 'treasury_10y' in resolved:
             t10s = resolved['treasury_10y']
-            rt = trend_direction(t10s, 0.03) if len(t10s) >= 6 else "stable"
+            rt = trend_direction(t10s, 0.10) if len(t10s) >= 6 else "stable"
+            # Treasury yields naik (accelerating) = inflation pressure (accelerating)
             gi = "accelerating" if rt=="accelerating" else "decelerating" if rt=="decelerating" else infl_trend
         gq = assign_quad(gg, gi, growth_val, infl_val, use_abs=True)
     elif 'treasury_10y' in resolved:
         t10s = resolved['treasury_10y']
-        rt = trend_direction(t10s, 0.03) if len(t10s) >= 6 else "stable"
+        rt = trend_direction(t10s, 0.10) if len(t10s) >= 6 else "stable"
         gi = "accelerating" if rt=="accelerating" else "decelerating" if rt=="decelerating" else infl_trend
         gq = assign_quad(growth_trend, gi, growth_val, infl_val, use_abs=True)
 
@@ -462,6 +457,10 @@ def calculate_regime() -> Dict:
 
     probs = _calc_probs(growth_val, infl_val, growth_trend, infl_trend)
     m_probs = _calc_probs(growth_val, infl_val, mg, mi)
+
+    # Clamp probabilities ke [0,1] untuk safety
+    probs = {k: max(0.0, min(1.0, v)) for k,v in probs.items()}
+    m_probs = {k: max(0.0, min(1.0, v)) for k,v in m_probs.items()}
 
     flip_hazard = 0.0
     if sq != mq:

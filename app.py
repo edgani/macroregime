@@ -335,7 +335,7 @@ def render_bottleneck_intel(btl):
                 c1, c2 = st.columns([3, 1])
                 with c1:
                     st.markdown(f"**🎯 {clean_tk(b['ticker'])} — {b.get('name', '')}**")
-                    st.caption(f"{b.get('reasons', '-')} | {b.get('allocation_verdict', '-')} | {b.get('transmission_note', '-')
+                    st.caption(f"{b.get('reasons', '-')} | {b.get('allocation_verdict', '-')} | {b.get('transmission_note', '-')}")
                     if opt:
                         st.caption(f"🎲 Options: {opt['strike']} Call @ {opt['exp']} (IV {opt['iv']:.0%}, γ {opt['gamma']})")
                 with c2:

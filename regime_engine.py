@@ -1,6 +1,6 @@
 """
-regime_engine.py v15.2i — Pure Data-Driven GIP, No Hardcode
-Fix: Real PCE priority (no nominal fallback), DXY/Treasury sensitive threshold, progress clamp
+regime_engine.py v15.2j — Pure Data-Driven GIP, No Hardcode
+Fix: Real PCE ONLY (no nominal fallback), Treasury/DXY level override, ISM proxy display, progress clamp
 """
 import os, time, logging, glob, math
 from datetime import datetime
@@ -14,6 +14,7 @@ FRED_BASE = "https://api.stlouisfed.org/fred"
 MAX_RETRIES = 3
 TIMEOUT = 35
 
+# v15.2j: NO nominal fallback. Real PCE = PCEC1 only.
 FRED_SERIES = {
     'real_pce': 'PCEC1',
     'cpi': 'CPIAUCSL',
@@ -107,27 +108,33 @@ def fetch_all_fred() -> Dict[str, pd.Series]:
     resolved = {}
     sources = {}
 
-    # Growth: ONLY Real PCE (PCEC1). NEVER fallback to nominal PCE.
+    # Growth: ONLY Real PCE (PCEC1). No nominal fallback.
     if 'real_pce' in out:
-        resolved['real_pce'] = out['real_pce']; sources['real_pce'] = 'fred_real'
+        resolved['real_pce'] = out['real_pce']
+        sources['real_pce'] = 'fred_PCEC1_real'
     else:
         logger.warning("Real PCE (PCEC1) missing — growth will use proxy")
 
     if 'cpi' in out:
-        resolved['cpi'] = out['cpi']; sources['cpi'] = 'fred'
+        resolved['cpi'] = out['cpi']; sources['cpi'] = 'fred_CPIAUCSL'
     elif 'core_cpi' in out:
-        resolved['cpi'] = out['core_cpi']; sources['cpi'] = 'fred_core'
+        resolved['cpi'] = out['core_cpi']; sources['cpi'] = 'fred_CPILFESL_core'
 
-    if 'ism_mfg' in out:
-        resolved['ism_mfg'] = out['ism_mfg']; sources['ism_mfg'] = 'fred'
-    elif 'ism_mfg_backup1' in out:
-        resolved['ism_mfg'] = out['ism_mfg_backup1']; sources['ism_mfg'] = 'fred_napmnoi'
-    elif 'ism_mfg_backup2' in out:
-        resolved['ism_mfg'] = out['ism_mfg_backup2']; sources['ism_mfg'] = 'fred_napmprod'
-    else:
+    # ISM with backup chain
+    ism_loaded = False
+    for ism_key in ['ism_mfg', 'ism_mfg_backup1', 'ism_mfg_backup2']:
+        if ism_key in out:
+            resolved['ism_mfg'] = out[ism_key]
+            sources['ism_mfg'] = f'fred_{ism_key}'
+            ism_loaded = True
+            break
+    if not ism_loaded:
         ism_proxy = fetch_ism_proxy()
         if ism_proxy is not None:
-            resolved['ism_mfg'] = ism_proxy; sources['ism_mfg'] = 'xli_proxy'
+            resolved['ism_mfg'] = ism_proxy
+            sources['ism_mfg'] = 'xli_proxy'
+        else:
+            sources['ism_mfg'] = 'missing'
 
     for k in ['fed_funds', 'treasury_10y', 'treasury_2y', 'dxy', 'claims', 'breakeven_10y', 'hy_oas']:
         if k in out:
@@ -432,24 +439,41 @@ def calculate_regime() -> Dict:
     sq = assign_quad(growth_trend, infl_trend, growth_val, infl_val, use_abs=True)
     mq = assign_quad(mg, mi, growth_val, infl_val, use_abs=True)
 
-    # GLOBAL QUAD FIX: DXY trend dengan threshold 0.10 (lebih sensitive)
+    # GLOBAL QUAD v15.2j: Level-based override + trend
     gq = sq
     if 'dxy' in resolved:
         dxy = resolved['dxy']
-        dxy_t = trend_direction(dxy, 0.10) if len(dxy) >= 6 else "stable"
-        # DXY naik (accelerating) = dollar strength = global liquidity tight = growth pressure (decelerating)
-        gg = "decelerating" if dxy_t=="accelerating" else "accelerating" if dxy_t=="decelerating" else growth_trend
+        dxy_latest = float(dxy.iloc[-1]) if len(dxy) > 0 else 100.0
+        dxy_t = trend_direction(dxy, 0.15) if len(dxy) >= 6 else "stable"
+        
+        # DXY > 102 and rising = strong dollar = global growth pressure
+        if dxy_latest > 102.0 and dxy_t == "accelerating":
+            gg = "decelerating"
+        elif dxy_latest < 98.0 and dxy_t == "decelerating":
+            gg = "accelerating"
+        else:
+            gg = "decelerating" if dxy_t=="accelerating" else "accelerating" if dxy_t=="decelerating" else growth_trend
+        
         gi = infl_trend
         if 'treasury_10y' in resolved:
             t10s = resolved['treasury_10y']
-            rt = trend_direction(t10s, 0.10) if len(t10s) >= 6 else "stable"
-            # Treasury yields naik (accelerating) = inflation pressure (accelerating)
-            gi = "accelerating" if rt=="accelerating" else "decelerating" if rt=="decelerating" else infl_trend
+            t10_latest = float(t10s.iloc[-1]) if len(t10s) > 0 else 4.0
+            t10_t = trend_direction(t10s, 0.03) if len(t10s) >= 6 else "stable"
+            
+            # Treasury > 4.5% and rising = inflation pressure
+            if t10_latest > 4.5 and t10_t == "accelerating":
+                gi = "accelerating"
+            elif t10_latest < 3.5 and t10_t == "decelerating":
+                gi = "decelerating"
+            else:
+                gi = "accelerating" if t10_t=="accelerating" else "decelerating" if t10_t=="decelerating" else infl_trend
+        
         gq = assign_quad(gg, gi, growth_val, infl_val, use_abs=True)
     elif 'treasury_10y' in resolved:
         t10s = resolved['treasury_10y']
-        rt = trend_direction(t10s, 0.10) if len(t10s) >= 6 else "stable"
-        gi = "accelerating" if rt=="accelerating" else "decelerating" if rt=="decelerating" else infl_trend
+        t10_latest = float(t10s.iloc[-1]) if len(t10s) > 0 else 4.0
+        t10_t = trend_direction(t10s, 0.03) if len(t10s) >= 6 else "stable"
+        gi = "accelerating" if (t10_latest > 4.5 and t10_t=="accelerating") else "decelerating" if (t10_latest < 3.5 and t10_t=="decelerating") else infl_trend
         gq = assign_quad(growth_trend, gi, growth_val, infl_val, use_abs=True)
 
     ps_text = "Hawkish 🦅" if policy_rate>=5.25 or ten_y>=4.8 else "Dovish 🕊️" if policy_rate<=3.0 or ten_y<=3.2 else "In-a-box 📦"
@@ -458,7 +482,7 @@ def calculate_regime() -> Dict:
     probs = _calc_probs(growth_val, infl_val, growth_trend, infl_trend)
     m_probs = _calc_probs(growth_val, infl_val, mg, mi)
 
-    # Clamp probabilities ke [0,1] untuk safety
+    # Clamp probabilities ke [0,1]
     probs = {k: max(0.0, min(1.0, v)) for k,v in probs.items()}
     m_probs = {k: max(0.0, min(1.0, v)) for k,v in m_probs.items()}
 

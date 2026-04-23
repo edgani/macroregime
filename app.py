@@ -1,5 +1,5 @@
 """
-MacroRegime Pro v15.2h — Full-Coverage Quad Fix, No Hardcode
+MacroRegime Pro v15.2j — Real PCE Only, Level Override, Progress Clamp
 """
 import os, sys, glob, time, json, logging, math, numpy as np, pandas as pd, yfinance as yf
 from datetime import datetime, timezone
@@ -7,15 +7,18 @@ from typing import Dict, List
 import streamlit as st
 import requests
 
+# FORCE CLEAR CACHE on every reload
 for f in glob.glob("/tmp/*.pkl"):
     try: os.remove(f)
     except: pass
 try: st.cache_data.clear()
 except: pass
+try: st.cache_resource.clear()
+except: pass
 
 st.set_page_config(page_title="MacroRegime Pro", page_icon="🧭", layout="wide", initial_sidebar_state="collapsed")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from regime_engine import get_regime_snapshot, FRED_SERIES, FRED_SERIES_COUNT, PRIMARY_SERIES
+from regime_engine import get_regime_snapshot, FRED_SERIES, PRIMARY_SERIES
 
 SCANNER_AVAILABLE = False
 btl_result = None
@@ -28,9 +31,6 @@ try:
 except Exception as e:
     st.warning(f"Bottleneck engine not loaded: {e}")
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# HEDGEYE MISSING ENGINES — v15.2h Integration (NO circular import)
-# ═══════════════════════════════════════════════════════════════════════════════
 COT_AVAILABLE = False
 PODS_AVAILABLE = False
 MOMENTUM_AVAILABLE = False
@@ -278,10 +278,6 @@ def _eval_watch(ticker,ac):
             "trendPhase":r["trendPhase"],"quality":round(r["qualityScore"],1),"activity":round(r["activityScore"],1),
             "trendAge":r["trendAge"],"fail":" | ".join(fail) if fail else "Gate passed"}
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# BOTTLENECK INTEGRATION
-# ═══════════════════════════════════════════════════════════════════════════════
-
 @st.cache_data(ttl=1800)
 def _run_bottleneck_scanner(regime, prices):
     if not SCANNER_AVAILABLE:
@@ -379,7 +375,7 @@ def render_bottleneck_intel(btl):
     if SCANNER_AVAILABLE:
         graph = SupplyChainGraph()
         tickers_in_graph = list(graph.db.keys())
-        selected = st.selectbox("Select node", tickers_in_graph, format_func=lambda x: f"{x} — {graph.db[x].name}", key="btl_node_select_v15h")
+        selected = st.selectbox("Select node", tickers_in_graph, format_func=lambda x: f"{x} — {graph.db[x].name}", key="btl_node_select_v15j")
         if selected:
             node = graph.db[selected]
             up = graph.upstream_map(selected)
@@ -413,11 +409,6 @@ def render_bottleneck_intel(btl):
             st.markdown(f"<span style='color:#fbbf24;font-size:12px;'>**{clean_tk(o['ticker'])}** {opt['strike']} Call (IV {opt['iv']:.0%}, γ {opt['gamma']}, δ {opt['delta']}) — Expected move: {opt['expected_move_pct']:.1f}%</span>", unsafe_allow_html=True)
     else:
         st.info("No high-convexity OTM calls — either priced-in or options data unavailable.")
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# ON-CHAIN SCANNER (preserved)
-# ═══════════════════════════════════════════════════════════════════════════════
 
 from dataclasses import dataclass as _dataclass
 from typing import Optional as _Optional
@@ -478,11 +469,6 @@ class MCS:
             out.append({"chain":k,"alpha":m.get("score",0),"verdict":("🔥 STRONG" if m.get("score",0)>=70 else "⚡ MONITOR" if m.get("score",0)>=45 else "❄️ PASS"),"macro":m.get("sig","N/A"),"tvl":m.get("tvl_d",0),"stb":m.get("stb_d",0),"dex":m.get("spike",0),"whale":0})
             time.sleep(1)
         return pd.DataFrame(out)
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# DATA LOADERS — CHUNKED DOWNLOAD
-# ═══════════════════════════════════════════════════════════════════════════════
 
 def _chunked_download(ticker_list, period="6mo", interval="1d", chunk=20):
     prices = {}
@@ -556,7 +542,6 @@ if btl_result:
     for b in btl_result.get("basket", []):
         btl_basket_set.add(b.get("ticker"))
 
-
 def _h(html): st.markdown(" ".join(html.split()),unsafe_allow_html=True)
 QC={"Q1":("#1a4d2e","#4ade80"),"Q2":("#5c3d00","#fbbf24"),"Q3":("#5c2b00","#fb923c"),"Q4":("#5c1a1a","#f87171")}
 def _qb(q): return QC.get(q,("#2d3748","#a0aec0"))[0]
@@ -595,11 +580,6 @@ def nf(x,d=0.0): return float(np.nan_to_num(x,nan=d))
 def pct(v,d=1):
     if not math.isfinite(v): return "—"
     return f"{v*100:+.{d}f}%"
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# MACRO FEATURE BUILDERS
-# ═══════════════════════════════════════════════════════════════════════════════
 
 def build_macro_features(prices, q, fred):
     f = {}
@@ -793,11 +773,6 @@ def build_top_drivers(q, f, h, crash):
     drivers.sort(key=lambda x:(x["score"],x["tone"]=="bad",x["tone"]=="good"),reverse=True)
     return drivers[:6]
 
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# MAIN DASHBOARD
-# ═══════════════════════════════════════════════════════════════════════════════
-
 f_macro = build_macro_features(prices, q, {})
 h = build_health(prices, f_macro)
 cr = build_crash(f_macro, h, q, prices)
@@ -812,7 +787,7 @@ _h(f"""
     <div style="font-size:32px;">🧭</div>
     <div>
       <div style="font-size:24px;font-weight:800;color:#e6edf3;">MacroRegime <span style="color:#58a6ff;">Pro</span></div>
-      <div style="font-size:11px;color:#8b949e;">v15.2h · Full-Coverage Quad · No Hardcode · ISM Backup</div>
+      <div style="font-size:11px;color:#8b949e;">v15.2j · Real PCE Only · Level Override · No Hardcode</div>
     </div>
   </div>
   <div style="text-align:right;">
@@ -836,19 +811,12 @@ _h(f"""
     <span>Inflation: <span style="color:#fb923c;">{iy:.1f}% YoY ({q.get('inflation_trend','—')})</span></span>
     <span>Policy: <span style="color:#58a6ff;">{ps}</span></span>
   </div>
-  <div style="font-size:11px;color:#8b949e;margin-top:8px;border-top:1px solid #30363d;padding-top:8px;">Data: {sb} · Real PCE (Growth) · CPI (Inflation) · DFF+DGS10+DGS2 (Policy) · Macro Pulse: ISM/Claims/Breakeven · HY OAS: {q.get('hy_oas', 350)}bp</div>
+  <div style="font-size:11px;color:#8b949e;margin-top:8px;border-top:1px solid #30363d;padding-top:8px;">Data: {sb} · Real PCE PCEC1 (Growth) · CPI (Inflation) · DFF+DGS10+DGS2 (Policy) · Macro Pulse: ISM/Claims/Breakeven · HY OAS: {q.get('hy_oas', 350)}bp</div>
 </div>
 """)
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# TABS
-# ═══════════════════════════════════════════════════════════════════════════════
-
 tabs=st.tabs(["⚡ Command Center","🌍 Markets","🧠 Bottleneck Intel","📊 Regime Deep Dive","⚠️ Risk & Diag"])
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# TAB 0: COMMAND CENTER
-# ═══════════════════════════════════════════════════════════════════════════════
 with tabs[0]:
     c1,c2,c3,c4=st.columns(4)
     with c1: st.metric("VIX", f"{vix:.1f}", delta="—")
@@ -952,16 +920,12 @@ with tabs[0]:
     st.divider()
     st.markdown("**💥 CRASH METER & HEALTH**")
     c1,c2,c3,c4=st.columns(4)
-    with c1: st.metric("Crash Score", f"{cr.get('crash_score',0):.0%}"); st.progress(cr.get('crash_score',0), text=cr.get('state','?'))
+    with c1: st.metric("Crash Score", f"{cr.get('crash_score',0):.0%}"); st.progress(min(1.0, max(0.0, cr.get('crash_score',0))), text=cr.get('state','?'))
     with c2: st.metric("Weather", h.get('weather_state','—')); st.caption(f"Verdict: {h.get('verdict','—')}")
     with c3: st.metric("Trade Env", h.get('trade_state','—')); st.caption(f"Trend: {h.get('trend_state','—')}")
     with c4: st.metric("Tail", h.get('tail_state','—')); st.caption(f"Exec: {cr.get('exec_mode','?')}")
     st.caption(f"Risk-Off: {cr.get('risk_off',0):.0%} | Breadth Dmg: {cr.get('breadth_dmg',0):.0%} | Vol Stress: {cr.get('vol_stress',0):.0%} | HY OAS: {q.get('hy_oas', 350)}bp")
 
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# TAB 1: MARKETS — FUSION LAYER v15.2h
-# ═══════════════════════════════════════════════════════════════════════════════
 with tabs[1]:
     def rn(s,n):
         if s is None or len(s)<n+1: return float("nan")
@@ -1076,7 +1040,7 @@ with tabs[1]:
             _h(f'<div style="display:flex;align-items:center;gap:8px;margin:4px 0;"><div style="width:70px;font-size:11px;color:#c9d1d9;">{s["name"]}</div><div style="flex:1;background:#21262d;border-radius:4px;height:16px;overflow:hidden;"><div style="width:{rp}%;background:{bc};height:100%;border-radius:4px;"></div></div><div style="width:60px;text-align:right;font-size:11px;color:{bc};font-weight:600;">{rel:+.1%}</div></div>')
 
     st.markdown("**🎯 OPPORTUNITIES & EXECUTION BOARD**")
-    st.caption("v15.2h: TRR signal + Bottleneck overlay + Regime alignment. Toggle di atas untuk show/hide HOLD.")
+    st.caption("v15.2j: TRR signal + Bottleneck overlay + Regime alignment. Toggle di atas untuk show/hide HOLD.")
     c1,c2,c3,c4=st.columns(4)
     with c1: st.metric("Rally State", most_hated.get("stage","monitor"), f"{most_hated.get('clear_count',0)}/4")
     with c2: st.metric("Action", most_hated.get("posture","Defense"))
@@ -1110,9 +1074,6 @@ with tabs[1]:
     st.divider()
     mt=st.tabs(["🇺🇸 US Stocks","🇮🇩 IHSG","💱 FX","🛢️ Commodities","🔐 Crypto"])
 
-    # ═════════════════════════════════════════════════════════════════
-    # US STOCKS TAB
-    # ═════════════════════════════════════════════════════════════════
     with mt[0]:
         ul=tickers.get("us_longs",[]); us=tickers.get("us_shorts",[])
         nm={"SPY":"S&P 500","QQQ":"Nasdaq","IWM":"Russell 2K","XLE":"Energy","XLK":"Tech","XLF":"Finance","XLI":"Industrials","XLB":"Materials","XLV":"Health","XLY":"Consumer","XLP":"Staples","XLU":"Utilities","XLRE":"REITs","TLT":"Long Bond","GLD":"Gold","HII":"Huntington","CAT":"Caterpillar","UPS":"UPS","LII":"Lennox","JBHT":"JB Hunt","MAR":"Marriott","ONTO":"Onto","EMR":"Emerson","RH":"Restoration","SBUX":"Starbucks","TXG":"10x Genomics","AVO":"Mission Produce","FRPT":"Freshpet","PEP":"Pepsi","XOM":"Exxon","HSY":"Hershey","WMB":"Williams","ET":"Energy Transfer","ROP":"Roper","RBLX":"Roblox","TRU":"TransUnion","NVDA":"Nvidia","XTL":"Telecom","EQRR":"Rising Rates","GII":"Infrastructure","EWH":"Hong Kong","EWW":"Mexico","ARGT":"Argentina","EIS":"Israel","IBIT":"Bitcoin ETF","COAL":"Coal","YCS":"Short Yen","DE":"Deere","NUE":"Nucor","VST":"Vistra","NRG":"NRG","CEG":"Constellation","BWXT":"BWX","CWEN":"Clearway","AES":"AES","FSLR":"First Solar","ENPH":"Enphase","NOVA":"Sunnova"}
@@ -1195,9 +1156,6 @@ with tabs[1]:
                 except Exception as e:
                     st.error(f"Pods error: {e}")
 
-    # ═════════════════════════════════════════════════════════════════
-    # IHSG TAB
-    # ═════════════════════════════════════════════════════════════════
     with mt[1]:
         ih_t=tickers.get("ihsg_buys",[])
         nm={"BBCA.JK":"BCA","BBRI.JK":"BRI","BMRI.JK":"Mandiri","BBNI.JK":"BNI","ASII.JK":"Astra","TLKM.JK":"Telkom","UNVR.JK":"Unilever","INDF.JK":"Indofood","KLBF.JK":"Kalbe","ANTM.JK":"Antam","ADRO.JK":"Adaro","ITMG.JK":"Indomining","PTBA.JK":"Bukit Asam","MDKA.JK":"Merdeka","INCO.JK":"Vale","CPIN.JK":"Charoen","JPFA.JK":"Japfa","EXCL.JK":"XL","ISAT.JK":"Indosat","TBIG.JK":"Tower","TOWR.JK":"Tower Bersama","SMGR.JK":"Semen","INTP.JK":"Indocement","CTRA.JK":"Ciputra","PWON.JK":"Pakuwon","BSDE.JK":"Bumi Serpong","AMRT.JK":"Alfamart","MPPA.JK":"Matahari","ACES.JK":"Ace Hardware","ERAA.JK":"Erajaya"}
@@ -1249,9 +1207,6 @@ with tabs[1]:
         st.markdown(f"**🇮🇩 IHSG Score: {ih['ihsg_score']:.0%}** · {ih['exec_mode']}")
         st.caption(f"Asing: {ih['flow_state']} | IDR 1M: {pct(ih['usd_idr_1m'])} | vs SPY: {ih['rel_state']}")
 
-    # ═════════════════════════════════════════════════════════════════
-    # FX TAB
-    # ═════════════════════════════════════════════════════════════════
     with mt[2]:
         fl=tickers.get("fx_longs",[]); fs=tickers.get("fx_shorts",[])
         nm={"EURUSD=X":"EUR/USD","USDJPY=X":"USD/JPY","AUDUSD=X":"AUD/USD","USDIDR=X":"USD/IDR","UUP":"DXY","GBPUSD=X":"GBP/USD","USDCAD=X":"USD/CAD","NZDUSD=X":"NZD/USD","USDCHF=X":"USD/CHF","USDCNH=X":"USD/CNH","USDSEK=X":"USD/SEK","USDNOK=X":"USD/NOK","EURJPY=X":"EUR/JPY","EURGBP=X":"EUR/GBP","GBPJPY=X":"GBP/JPY","CADJPY=X":"CAD/JPY","AUDJPY=X":"AUD/JPY","GLD":"Gold","AAAU":"Gold","YCS":"Short Yen","IDR=X":"IDR/USD"}
@@ -1281,9 +1236,6 @@ with tabs[1]:
             st.markdown("**Risk / Commodity FX**")
             rh([("AUDUSD=X","AUD/USD"),("USDCAD=X","USD/CAD"),("NZDUSD=X","NZD/USD"),("EURUSD=X","EUR/USD")])
 
-    # ═════════════════════════════════════════════════════════════════
-    # COMMODITIES TAB
-    # ═════════════════════════════════════════════════════════════════
     with mt[3]:
         cl=tickers.get("comm_longs",[]); cs=tickers.get("comm_shorts",[])
         nm={"SLV":"Silver","GDX":"Gold Miners","GC=F":"Gold Fut","SI=F":"Silver Fut","HG=F":"Copper Fut","CL=F":"WTI Oil","NG=F":"Nat Gas","XOP":"Oil Explorers","OIH":"Oil Services","BNO":"Brent Oil","GLD":"Gold","AAAU":"Gold","COAL":"Coal","URA":"Uranium","PPLT":"Platinum","PA=F":"Palladium","PL=F":"Platinum Fut","ZO=F":"Oats","ZC=F":"Corn","ZS=F":"Soybeans","ZW=F":"Wheat","CC=F":"Cocoa","KC=F":"Coffee","CT=F":"Cotton","SB=F":"Sugar","LBS=F":"Lumber","DUST":"Gold Bear","BITS":"Bitcoin Strat","SCO":"Short Oil","KOLD":"Short Gas"}
@@ -1317,9 +1269,6 @@ with tabs[1]:
             st.dataframe(pd.DataFrame(term_rows).style.format({"front_1m":"{:+.1%}","front_3m":"{:+.1%}"}), use_container_width=True, hide_index=True)
         else: st.caption("No futures data")
 
-    # ═════════════════════════════════════════════════════════════════
-    # CRYPTO TAB
-    # ═════════════════════════════════════════════════════════════════
     with mt[4]:
         crl=tickers.get("crypto_longs",[]); crs=tickers.get("crypto_shorts",[])
         nm={"BTC-USD":"Bitcoin","ETH-USD":"Ethereum","SOL-USD":"Solana","XRP-USD":"XRP","ADA-USD":"Cardano","DOT-USD":"Polkadot","AVAX-USD":"Avalanche","MATIC-USD":"Polygon","LINK-USD":"Chainlink","UNI-USD":"Uniswap","AAVE-USD":"Aave","CRV-USD":"Curve","IBIT":"Bitcoin ETF","COIN":"Coinbase","MSTR":"MicroStrategy","RIOT":"Riot","MARA":"Marathon","HUT":"Hut 8","BITF":"Bitfarms","WGMI":"Bitcoin Miners"}
@@ -1361,10 +1310,6 @@ with tabs[1]:
                 else: st.info("No on-chain data.")
             except Exception as e: st.error(f"On-chain scan error: {e}")
 
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# TAB 2: BOTTLENECK INTEL
-# ═══════════════════════════════════════════════════════════════════════════════
 with tabs[2]:
     render_bottleneck_intel(btl_result)
     st.divider()
@@ -1386,10 +1331,6 @@ with tabs[2]:
             with c2: st.markdown(f"<b style='font-size:13px;color:#e6edf3;'>{ev['title']}</b><br><span style='font-size:11px;color:#8b949e;'>{ev['impact']}</span>",unsafe_allow_html=True)
         st.divider()
 
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# TAB 3: REGIME DEEP DIVE
-# ═══════════════════════════════════════════════════════════════════════════════
 with tabs[3]:
     c1,c2,c3,c4=st.columns(4)
     with c1: st.metric("Structural", sq); st.metric("Growth RoC", q.get("growth_trend","—"))
@@ -1406,7 +1347,6 @@ with tabs[3]:
     m_probs=q.get("monthly_probs",{"Q1":0.20,"Q2":0.30,"Q3":0.30,"Q4":0.20})
     for k in ["Q1","Q2","Q3","Q4"]:
         p_raw=probs.get(k,0.0); mp_raw=m_probs.get(k,0.0)
-        # FIX: clamp ke [0.0, 1.0] supaya Streamlit ga crash
         p = max(0.0, min(1.0, float(p_raw) if math.isfinite(float(p_raw)) else 0.0))
         mp = max(0.0, min(1.0, float(mp_raw) if math.isfinite(float(mp_raw)) else 0.0))
         label=f"{chr(9679) if k==sq else chr(9689) if k==mq else chr(9675)} {k}: S={p:.0%} M={mp:.0%}"
@@ -1419,11 +1359,8 @@ with tabs[3]:
     st.divider()
     st.markdown("**🕰️ REGIME CONTEXT**")
     st.info(f"**Operating:** {op} | **Flip Hazard:** {q.get('flip_hazard',0):.0%} | **Deepness:** {q.get('deepness',0):.0%}")
-    st.caption("v15.2i: Real PCE only. DXY/Treasury sensitive threshold. Progress clamp. No hardcode.")
+    st.caption("v15.2j: Real PCE PCEC1 only. DXY/Treasury level override. Progress clamp. No hardcode.")
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# TAB 4: RISK & DIAGNOSTICS
-# ═══════════════════════════════════════════════════════════════════════════════
 with tabs[4]:
     st.subheader("⚠️ Risk & Diagnostics")
     c1,c2,c3=st.columns(3)
@@ -1477,8 +1414,8 @@ with tabs[4]:
     st.dataframe(pd.DataFrame(dq_rows, columns=["Check","Status"]), use_container_width=True, hide_index=True)
     st.divider()
     st.markdown("**📋 FRED DEBUG**")
-    st.caption("v15.2h: Full-coverage quad. 3m/6m slope trend detection. No hardcode. ISM backup. Bottleneck selectbox keyed.")
+    st.caption("v15.2j: Real PCE PCEC1 only. No nominal fallback. DXY/Treasury level override. ISM backup chain.")
     if st.toggle("Show FRED series map", False):
         st.json(FRED_SERIES)
 
-st.caption(f"MacroRegime Pro v15.2h · Built {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC · God Mode")
+st.caption(f"MacroRegime Pro v15.2j · Built {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC · God Mode")

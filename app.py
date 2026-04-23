@@ -1,5 +1,5 @@
 """
-MacroRegime Pro v15.2j — Real PCE Only, Level Override, Progress Clamp
+MacroRegime Pro v15.3 — FRED Robust + Source Fix + Diagnostics Fix
 """
 import os, sys, glob, time, json, logging, math, numpy as np, pandas as pd, yfinance as yf
 from datetime import datetime, timezone
@@ -18,7 +18,7 @@ except: pass
 
 st.set_page_config(page_title="MacroRegime Pro", page_icon="🧭", layout="wide", initial_sidebar_state="collapsed")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from regime_engine import get_regime_snapshot, FRED_SERIES, PRIMARY_SERIES
+from regime_engine import get_regime_snapshot, FRED_SERIES, PRIMARY_SERIES, get_fred_api_key
 
 SCANNER_AVAILABLE = False
 btl_result = None
@@ -787,7 +787,7 @@ _h(f"""
     <div style="font-size:32px;">🧭</div>
     <div>
       <div style="font-size:24px;font-weight:800;color:#e6edf3;">MacroRegime <span style="color:#58a6ff;">Pro</span></div>
-      <div style="font-size:11px;color:#8b949e;">v15.2j · Real PCE Only · Level Override · No Hardcode</div>
+      <div style="font-size:11px;color:#8b949e;">v15.3 · FRED Robust · Source Fix · No Hardcode</div>
     </div>
   </div>
   <div style="text-align:right;">
@@ -1040,7 +1040,7 @@ with tabs[1]:
             _h(f'<div style="display:flex;align-items:center;gap:8px;margin:4px 0;"><div style="width:70px;font-size:11px;color:#c9d1d9;">{s["name"]}</div><div style="flex:1;background:#21262d;border-radius:4px;height:16px;overflow:hidden;"><div style="width:{rp}%;background:{bc};height:100%;border-radius:4px;"></div></div><div style="width:60px;text-align:right;font-size:11px;color:{bc};font-weight:600;">{rel:+.1%}</div></div>')
 
     st.markdown("**🎯 OPPORTUNITIES & EXECUTION BOARD**")
-    st.caption("v15.2j: TRR signal + Bottleneck overlay + Regime alignment. Toggle di atas untuk show/hide HOLD.")
+    st.caption("v15.3: TRR signal + Bottleneck overlay + Regime alignment. Toggle di atas untuk show/hide HOLD.")
     c1,c2,c3,c4=st.columns(4)
     with c1: st.metric("Rally State", most_hated.get("stage","monitor"), f"{most_hated.get('clear_count',0)}/4")
     with c2: st.metric("Action", most_hated.get("posture","Defense"))
@@ -1359,12 +1359,11 @@ with tabs[3]:
     st.divider()
     st.markdown("**🕰️ REGIME CONTEXT**")
     st.info(f"**Operating:** {op} | **Flip Hazard:** {q.get('flip_hazard',0):.0%} | **Deepness:** {q.get('deepness',0):.0%}")
-    st.caption("v15.2j: Real PCE PCEC1 only. DXY/Treasury level override. Progress clamp. No hardcode.")
+    st.caption("v15.3: Real PCE PCEC1 only. DXY/Treasury level override. Primary-series count. No hardcode.")
 
 with tabs[4]:
     st.subheader("⚠️ Risk & Diagnostics")
     
-    # FIX: API Key status cek existence, bukan fred_loaded
     api_key_present = bool(get_fred_api_key())
     
     c1, c2, c3 = st.columns(3)
@@ -1391,6 +1390,7 @@ with tabs[4]:
             st.warning(f"🟡 FRED Partial — {q.get('fred_loaded',0)}/{len(PRIMARY_SERIES)} loaded.")
     else:
         st.success("🟢 FRED Full — all primary series loaded.")
+    
     st.divider()
     st.markdown("**🧠 BOTTLENECK SCANNER DIAGNOSTICS**")
     if SCANNER_AVAILABLE:
@@ -1404,6 +1404,7 @@ with tabs[4]:
             st.warning("⚠️ Scanner returned None — check config/supply_chain.json exists")
     else:
         st.error("❌ bottleneck_engine.py failed to import — install feedparser")
+    
     st.divider()
     st.markdown("**🧪 DATA QUALITY**")
     dq_rows=[
@@ -1424,10 +1425,17 @@ with tabs[4]:
         ("HY OAS", f"{q.get('hy_oas', '—')}bp" ),
     ]
     st.dataframe(pd.DataFrame(dq_rows, columns=["Check","Status"]), use_container_width=True, hide_index=True)
+    
     st.divider()
     st.markdown("**📋 FRED DEBUG**")
-    st.caption("v15.2j: Real PCE PCEC1 only. No nominal fallback. DXY/Treasury level override. ISM backup chain.")
+    st.caption("v15.3: Real PCE PCEC1 only. DXY/Treasury level override. ISM backup chain. Primary-series count.")
     if st.toggle("Show FRED series map", False):
         st.json(FRED_SERIES)
+    if st.toggle("Show regime JSON", False):
+        st.json(q)
+    md=q.get("monthly_debug",{})
+    if md:
+        with st.expander("🔍 Monthly Calculation Trace", expanded=False): 
+            st.json(md)
 
-st.caption(f"MacroRegime Pro v15.2j · Built {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC · God Mode")
+st.caption(f"MacroRegime Pro v15.3 · Built {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC · God Mode")

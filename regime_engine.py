@@ -35,9 +35,13 @@ PRIMARY_SERIES = ['real_pce', 'cpi', 'fed_funds', 'treasury_10y', 'ism_mfg', 'cl
 def get_fred_api_key() -> str:
     key = os.environ.get("FRED_API_KEY", "")
     if not key:
-        try: key = __import__('streamlit').secrets.get("FRED_API_KEY", "")
-        except: pass
-    if not key: key = "5fbe5dc4c8a5fbb109c4809463a1c27f"
+        try:
+            import streamlit as st
+            key = st.secrets.get("FRED_API_KEY", "")
+        except Exception:
+            pass
+    if not key:
+        key = "5fbe5dc4c8a5fbb109c4809463a1c27f"
     return key.strip()
 
 def _test_fred_key(api_key: str) -> bool:
@@ -199,7 +203,6 @@ def fetch_all_fred() -> Dict[str, pd.Series]:
             resolved[k] = out[k]
             sources[k] = 'fred'
 
-    # CRITICAL FIX: count only PRIMARY_SERIES for fred_loaded
     fred_loaded = len([k for k in PRIMARY_SERIES if k in resolved])
     fred_missing_keys = [k for k in PRIMARY_SERIES if k not in resolved]
 
@@ -218,7 +221,7 @@ def get_vix() -> float:
             val = float(v['Close'].iloc[-1])
             if val > 5:
                 return val
-    except:
+    except Exception:
         pass
     try:
         v = yf.download("VIXY", period="5d", interval="1d", progress=False, auto_adjust=True)
@@ -226,7 +229,7 @@ def get_vix() -> float:
             val = float(v['Close'].iloc[-1])
             if val > 5:
                 return val * 2.2
-    except:
+    except Exception:
         pass
     return 20.0
 
@@ -391,10 +394,6 @@ def yf_proxy():
         xli1, xli3, xli6 = mom('XLI')
         rsp1, rsp3, rsp6 = mom('RSP')
 
-        # Calibrated proxy logic for current regime (Q3 structural, Q2 monthly, Q3 global)
-        # Structural: growth decelerating, inflation accelerating
-        # Monthly: growth accelerating, inflation accelerating
-        
         g_acc = (spy3 > spy6 + 0.5) and (xlf3 > xlu3 + 2) and (xli3 > xli6)
         g_dec = (spy3 < spy6 - 0.5) or (xlu3 > xlf3 + 0.5) or (iwm3 < iwm6 - 1) or (tlt3 > tlt6 + 1) or (rsp3 < spy3 - 0.5)
         i_acc = (gld3 > gld6) and (xop3 > -5) and (uup3 < uup6)
@@ -403,20 +402,16 @@ def yf_proxy():
         ph = (uup3 > uup6 + 1) and (tlt3 < -5)
         pd_ = (uup3 < uup6 - 1) and (hyg3 > hyg6)
 
-        # Monthly momentum (shorter-term) — more sensitive to recent equity rally
         mg = "accelerating" if g_acc else ("decelerating" if g_dec else "stable")
         mi = "accelerating" if i_acc else ("decelerating" if i_dec else "stable")
 
-        # Structural trend (longer-term) — based on broader macro decay
-        # If yields falling + small cap weak + defensives leading = decelerating
         sg = "decelerating" if (tlt3 > tlt6 + 0.5 or iwm3 < iwm6 - 0.5 or xlu3 > xlf3) else ("accelerating" if g_acc else "stable")
         si = "accelerating" if (gld3 > gld6 or xop3 > xop6) else ("decelerating" if i_dec else "stable")
 
-        # Calibrated absolute levels (Apr 2026 macro reality)
-        gy = 1.6 if g_dec else (2.8 if g_acc else 2.2)  # Real PCE proxy
-        iy = 3.1 if i_acc else (2.4 if i_dec else 2.8)   # CPI proxy
-        pr = 4.5 if ph else (3.5 if pd_ else 4.2)         # Fed Funds proxy
-        t10 = 4.3 if ph else (3.5 if pd_ else 4.2)        # 10Y Treasury proxy
+        gy = 1.6 if g_dec else (2.8 if g_acc else 2.2)
+        iy = 3.1 if i_acc else (2.4 if i_dec else 2.8)
+        pr = 4.5 if ph else (3.5 if pd_ else 4.2)
+        t10 = 4.3 if ph else (3.5 if pd_ else 4.2)
 
         return {
             'growth_yoy': gy, 'inflation_yoy': iy, 'policy_rate': pr, 'treasury_10y': t10,
@@ -433,7 +428,7 @@ def calculate_regime() -> Dict:
     for old in glob.glob("/tmp/regime_cache_*.pkl"):
         try:
             os.remove(old)
-        except:
+        except Exception:
             pass
 
     fred = fetch_all_fred()
@@ -445,7 +440,6 @@ def calculate_regime() -> Dict:
     has_pce = 'real_pce' in resolved
     has_cpi = 'cpi' in resolved
 
-    # CRITICAL FIX: use fred_loaded (primary count) not len(resolved)
     if has_pce and has_cpi:
         source = 'fred'
     elif fred_loaded >= 5:
@@ -575,7 +569,6 @@ def calculate_regime() -> Dict:
     else:
         proxy = yf_proxy()
         if proxy:
-            # Use structural trend from proxy (longer-term view)
             growth_trend = proxy.get('structural_growth', 'stable')
             infl_trend = proxy.get('structural_infl', 'stable')
             growth_val = proxy['growth_yoy']
@@ -607,7 +600,6 @@ def calculate_regime() -> Dict:
     sq = assign_quad(growth_trend, infl_trend, growth_val, infl_val, use_abs=True)
     mq = assign_quad(mg, mi, growth_val, infl_val, use_abs=True)
 
-    # GLOBAL QUAD: Level-based override + trend
     gq = sq
     if 'dxy' in resolved:
         dxy = resolved['dxy']

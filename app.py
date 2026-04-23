@@ -1,6 +1,5 @@
 """
-MacroRegime Pro v15.1 — Optimized Bottleneck Scanner
-Fixes: visual bugs, performance, real nodes only
+MacroRegime Pro v15.2c — Pure Data-Driven, Bottleneck Intel Only, Differentiated Markets
 """
 import os, sys, glob, time, json, logging, math, numpy as np, pandas as pd, yfinance as yf
 from datetime import datetime, timezone
@@ -15,7 +14,7 @@ except: pass
 
 st.set_page_config(page_title="MacroRegime Pro", page_icon="🧭", layout="wide", initial_sidebar_state="collapsed")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from regime_engine import get_regime_snapshot, FRED_SERIES, FRED_SERIES_COUNT
+from regime_engine import get_regime_snapshot, FRED_SERIES, FRED_SERIES_COUNT, PRIMARY_SERIES
 
 SCANNER_AVAILABLE = False
 btl_result = None
@@ -34,7 +33,7 @@ DISPLAY_MAP = {
     'GBPJPY=X':'GBPJPY', 'NZDUSD=X':'NZDUSD', 'USDCNH=X':'USDCNH', 'USDCHF=X':'USDCHF',
     'GC=F':'XAUUSD', 'SI=F':'XAGUSD', 'HG=F':'XCUUSD', 'CL=F':'XTIUSD', 'NG=F':'XNGUSD',
     'XBRUSD=X':'XBRUSD', 'XTIUSD=X':'XTIUSD', 'XAUUSD=X':'XAUUSD', 'XAGUSD=X':'XAGUSD',
-    'XCUUSD=X':'XCUUSD', 'XNGUSD=X':'XNGUSD',
+    'XCUUSD=X':'XCUUSD', 'XNGUSD=X':'XNGUSD', 'BTC-USD':'BTC', 'ETH-USD':'ETH', 'SOL-USD':'SOL',
 }
 def clean_tk(tk): return DISPLAY_MAP.get(tk, tk)
 
@@ -267,7 +266,7 @@ def _render_trr(tlist,ac,title="🎯 TRR/LRR Live Signals"):
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# v15.1 BOTTLENECK INTEGRATION — Optimized + Real Nodes Only
+# v15.2c BOTTLENECK INTEGRATION — Intel Tab Only
 # ═══════════════════════════════════════════════════════════════════════════════
 
 @st.cache_data(ttl=1800)
@@ -281,54 +280,6 @@ def _run_bottleneck_scanner(regime, prices):
         logging.error(f"Scanner run fail: {e}")
         return None
 
-def _get_bottleneck_rows(tlist, btl):
-    """Filter scanner results for tickers in tlist. Returns [] if no match."""
-    if not btl or not btl.get("enriched_signals"):
-        return []
-    rows = []
-    tlist_set = set(tlist)
-    for sig in btl["enriched_signals"]:
-        tk = sig["ticker"]
-        if tk not in tlist_set:
-            continue
-        fs = sig.get("fusion_score", 0)
-        priced = sig.get("priced_in", False)
-        if fs >= 0.55 and not priced:
-            direction = "LONG"
-        elif fs >= 0.55 and priced:
-            direction = "HOLD"
-        elif fs <= 0.35:
-            direction = "SHORT"
-        else:
-            direction = "NEUTRAL"
-        rows.append({
-            "ticker": clean_tk(tk), "signal": direction, "score": fs,
-            "r1m": f"{sig.get('r1m', 0):+.1%}", "r3m": f"{sig.get('r3m', 0):+.1%}",
-            "vol": f"{sig.get('vol', 0):.2f}x",
-            "layer": sig.get("layer", "-"), "allocation": sig.get("allocation_verdict", "-"),
-            "transmission": sig.get("transmission_note", "-"), "grade": sig.get("fusion_grade", "C"),
-            "bottleneck": sig.get("bottleneck_score", 0), "options": "🎯" if sig.get("options_signal") else "—",
-        })
-    rows.sort(key=lambda x: -x["score"])
-    return [r for r in rows if r["score"] >= 0.45]
-
-def render_bottleneck(rows, title="🎯 Adaptive Bottleneck Scan"):
-    if not rows:
-        st.caption("Bottleneck: No tickers passed the unified gate.")
-        return
-    st.markdown(f"**{title} ({len(rows)} found)**")
-    for r in rows[:12]:
-        if r["signal"] == "LONG": col, ic = "#3fb950", "▲"
-        elif r["signal"] == "SHORT": col, ic = "#f85149", "▼"
-        elif r["signal"] == "HOLD": col, ic = "#fbbf24", "◆"
-        else: col, ic = "#8b949e", "◆"
-        st.markdown(f"""<div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:8px 12px;margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;">
-             <div style="display:flex;align-items:center;gap:8px;"><span style="color:{col};font-weight:800;font-size:14px;">{ic} {r["ticker"]}
-             </span><span style="font-size:10px;color:#8b949e;">{r["r1m"]} 1M · {r["r3m"]} 3M · {r["vol"]}
-             </span></div><div style="text-align:right;"><span style="font-size:12px;color:{col};font-weight:700;">{r["score"]:.0%} {r["grade"]}
-             </span><span style="font-size:10px;color:#8b949e;margin-left:6px;">{r["allocation"]}
-             </span><span style="font-size:10px;color:#58a6ff;margin-left:6px;">{r["options"]}</span></div></div>""", unsafe_allow_html=True)
-
 def render_bottleneck_intel(btl):
     if not btl:
         st.warning("Scanner unavailable — check feedparser install and config/supply_chain.json")
@@ -340,7 +291,6 @@ def render_bottleneck_intel(btl):
     st.markdown("**🧠 LIVE BOTTLENECK INTEL — 7 Layer Fusion**")
     st.caption(f"Regime mult: {regime_info.get('regime_mult', 1.0):.2f} | Aligned: {regime_info.get('aligned', False)} | Confidence: {regime_info.get('confidence', 0):.0%}")
 
-    # L1 Demand
     st.markdown("**L1 — Demand Detection (RSS Narrative)**")
     if demand:
         dcols = st.columns(min(len(demand), 4))
@@ -359,7 +309,6 @@ def render_bottleneck_intel(btl):
         st.caption("No narrative data.")
     st.divider()
 
-    # L3-L6 Table
     st.markdown("**L3→L6 — Supply Chain → Allocation → Transmission → Options**")
     if enriched:
         df_rows = []
@@ -378,29 +327,23 @@ def render_bottleneck_intel(btl):
         st.caption("No enriched signals.")
     st.divider()
 
-    # L7 Basket — FIXED: no nested f-string HTML bug
     st.markdown("**L7 — Portfolio Basket (Uncorrelated Winners)**")
     if basket:
         for b in basket:
             opt = b.get("options_signal")
-            opt_line = ""
-            if opt:
-                opt_line = f"🎲 Options: {opt['strike']} Call @ {opt['exp']} (IV {opt['iv']:.0%}, γ {opt['gamma']})"
-            st.markdown(f"""<div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:10px;margin-bottom:6px;">
-                <div style="display:flex;justify-content:space-between;align-items:center;">
-                    <span style="font-size:14px;font-weight:700;color:#e6edf3;">🎯 {clean_tk(b['ticker'])} — {b.get('name', '')}</span>
-                    <span style="font-size:12px;color:#58a6ff;font-weight:700;">{b.get('fusion_score', 0):.0%} {b.get('fusion_grade', 'C')}</span>
-                </div>
-                <div style="font-size:10px;color:#8b949e;margin-top:4px;">
-                    {b.get('reasons', '-')} | {b.get('allocation_verdict', '-')} | {b.get('transmission_note', '-')}
-                </div>
-                {opt_line}
-            </div>""", unsafe_allow_html=True)
+            with st.container():
+                c1, c2 = st.columns([3, 1])
+                with c1:
+                    st.markdown(f"**🎯 {clean_tk(b['ticker'])} — {b.get('name', '')}**")
+                    st.caption(f"{b.get('reasons', '-')} | {b.get('allocation_verdict', '-')} | {b.get('transmission_note', '-')
+                    if opt:
+                        st.caption(f"🎲 Options: {opt['strike']} Call @ {opt['exp']} (IV {opt['iv']:.0%}, γ {opt['gamma']})")
+                with c2:
+                    st.markdown(f"<span style='color:#58a6ff;font-weight:700;font-size:16px;'>{b.get('fusion_score', 0):.0%} {b.get('fusion_grade', 'C')}</span>", unsafe_allow_html=True)
     else:
         st.caption("No basket — regime filter too tight or no early signals.")
     st.divider()
 
-    # L3 Supply Chain Graph — FIXED: no raw HTML span
     st.markdown("**L3 — Supply Chain Graph Explorer**")
     if SCANNER_AVAILABLE:
         graph = SupplyChainGraph()
@@ -430,7 +373,6 @@ def render_bottleneck_intel(btl):
                 if not down: st.caption("End product / no downstream")
     st.divider()
 
-    # L8 Options
     st.markdown("**L8 — Execution / Convexity Monitor**")
     opt_signals = [e for e in enriched if e.get("options_signal")]
     if opt_signals:
@@ -508,56 +450,67 @@ class MCS:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# DATA LOADERS
+# DATA LOADERS — CHUNKED DOWNLOAD
 # ═══════════════════════════════════════════════════════════════════════════════
+
+def _chunked_download(ticker_list, period="6mo", interval="1d", chunk=20):
+    prices = {}
+    for i in range(0, len(ticker_list), chunk):
+        batch = ticker_list[i:i+chunk]
+        try:
+            data = yf.download(" ".join(batch), period=period, interval=interval, progress=False, auto_adjust=True)
+            if isinstance(data.columns, pd.MultiIndex):
+                for t in batch:
+                    if t in data["Close"]: prices[t] = data["Close"][t].dropna()
+            else:
+                if len(batch) == 1 and "Close" in data:
+                    prices[batch[0]] = data["Close"].dropna()
+        except Exception as e:
+            logging.warning(f"Batch fail {batch}: {e}")
+            for t in batch:
+                try:
+                    df = yf.download(t, period=period, interval=interval, progress=False, auto_adjust=True)
+                    if isinstance(df.columns, pd.MultiIndex): df.columns = df.columns.get_level_values(0)
+                    if not df.empty and "Close" in df: prices[t] = df["Close"].dropna()
+                except: pass
+        time.sleep(0.3)
+    return prices
 
 @st.cache_data(ttl=300)
 def _load_all():
-    regime=get_regime_snapshot()
-    tickers={
-        "us_longs":["IWM","XLI","ITB","XTL","EQRR","GII","EWH","EWW","ARGT","EIS","IBIT","HII","CAT","UPS","LII","JBHT","MAR","ONTO","EMR","RH","SBUX","TXG","AVO","FRPT","PEP","XOM","HSY","WMB","ET","COAL","YCS"],
-        "us_shorts":["XLK","XLF","XLY","IHF","PSCH","MAGS","CIBR","IVES","MSFO","DESK","GRNY","SKYY","MSTY","BTAL","XLP","TLT","ZROZ","ROP","RBLX","TRU","NVDA"],
-        "ihsg_buys":["BBCA.JK","BBRI.JK","TLKM.JK","ASII.JK","UNVR.JK","INDF.JK","KLBF.JK"],
-        "fx_longs":["USDJPY=X","GLD","AAAU","YCS"],"fx_shorts":["EURUSD=X","AUDUSD=X","UUP"],
-        "comm_longs":["SLV","GDX","GC=F","SI=F","HG=F","CL=F","NG=F","XOP","OIH","BNO","GLD","AAAU","COAL"],
-        "comm_shorts":["DUST","BITS"],"crypto_longs":["BTC-USD","ETH-USD","IBIT"],"crypto_shorts":["SOL-USD"],
+    regime = get_regime_snapshot()
+    tickers = {
+        "us_longs": ["IWM","XLI","ITB","XTL","EQRR","GII","EWH","EWW","ARGT","EIS","IBIT","HII","CAT","UPS","LII","JBHT","MAR","ONTO","EMR","RH","SBUX","TXG","AVO","FRPT","PEP","XOM","HSY","WMB","ET","COAL","YCS","DE","NUE","VST","NRG","CEG","BWXT","CWEN","AES","FSLR","ENPH","NOVA"],
+        "us_shorts": ["XLK","XLF","XLY","IHF","PSCH","MAGS","CIBR","IVES","MSFO","DESK","GRNY","SKYY","MSTY","BTAL","XLP","TLT","ZROZ","ROP","RBLX","TRU","NVDA","META","AMZN","GOOGL","NFLX","CRM","NOW","SNOW","PLTR","OKTA"],
+        "ihsg_buys": ["BBCA.JK","BBRI.JK","TLKM.JK","ASII.JK","UNVR.JK","INDF.JK","KLBF.JK","BMRI.JK","BBNI.JK","ANTM.JK","ADRO.JK","ITMG.JK","PTBA.JK","MDKA.JK","INCO.JK","CPIN.JK","JPFA.JK","EXCL.JK","ISAT.JK","TBIG.JK","TOWR.JK","SMGR.JK","INTP.JK","CTRA.JK","PWON.JK","BSDE.JK","AMRT.JK","MPPA.JK","ACES.JK","ERAA.JK"],
+        "fx_longs": ["USDJPY=X","GLD","AAAU","YCS","USDCNH=X","USDCHF=X","USDSEK=X","USDNOK=X"],
+        "fx_shorts": ["EURUSD=X","AUDUSD=X","UUP","GBPUSD=X","NZDUSD=X","EURJPY=X","EURGBP=X","GBPJPY=X","CADJPY=X","AUDJPY=X"],
+        "comm_longs": ["SLV","GDX","GC=F","SI=F","HG=F","CL=F","NG=F","XOP","OIH","BNO","GLD","AAAU","COAL","URA","PPLT","PA=F","PL=F","ZO=F","ZC=F","ZS=F","ZW=F","CC=F","KC=F","CT=F","SB=F","LBS=F"],
+        "comm_shorts": ["DUST","BITS","SCO","KOLD"],
+        "crypto_longs": ["BTC-USD","ETH-USD","IBIT","COIN","MSTR","RIOT","MARA","HUT","BITF","WGMI"],
+        "crypto_shorts": ["SOL-USD","ADA-USD","XRP-USD","DOT-USD","AVAX-USD","MATIC-USD","LINK-USD","UNI-USD","AAVE-USD","CRV-USD"],
     }
-    all_t=list(set([t for v in tickers.values() for t in v]))
-    prices={}
-    try:
-        data=yf.download(" ".join(all_t),period="6mo",interval="1d",progress=False,auto_adjust=True)
-        if isinstance(data.columns,pd.MultiIndex):
-            for t in all_t:
-                if t in data["Close"]: prices[t]=data["Close"][t].dropna()
-        else:
-            prices[all_t[0]]=data["Close"].dropna()
-    except:
-        for t in all_t:
-            try:
-                df=yf.download(t,period="6mo",interval="1d",progress=False,auto_adjust=True)
-                if isinstance(df.columns,pd.MultiIndex): df.columns=df.columns.get_level_values(0)
-                if not df.empty and "Close" in df: prices[t]=df["Close"].dropna()
-            except: pass
-    return {"q":regime,"tickers":tickers,"prices":prices}
+    all_t = list(set([t for v in tickers.values() for t in v]))
+    prices = _chunked_download(all_t, period="6mo", interval="1d", chunk=20)
+    return {"q": regime, "tickers": tickers, "prices": prices}
 
-snap=_load_all()
-q=snap["q"]; tickers=snap["tickers"]; prices=snap["prices"]
-sq=q.get("structural_quad","Q2"); mq=q.get("monthly_quad","Q2"); gq=q.get("global_quad","Q2")
-conf=q.get("confidence",0.5); op=q.get("operating_regime","...")
-src=q.get("source","unknown"); gy=q.get("growth_yoy",0); iy=q.get("inflation_yoy",0)
-ps=q.get("policy_stance","—"); vix=q.get("vix",20.0)
-mp=q.get("macro_pulse",{})
+snap = _load_all()
+q = snap["q"]; tickers = snap["tickers"]; prices = snap["prices"]
+sq = q.get("structural_quad", "Q2"); mq = q.get("monthly_quad", "Q2"); gq = q.get("global_quad", "Q2")
+conf = q.get("confidence", 0.5); op = q.get("operating_regime", "...")
+src = q.get("source", "unknown"); gy = q.get("growth_yoy", 0); iy = q.get("inflation_yoy", 0)
+ps = q.get("policy_stance", "—"); vix = q.get("vix", 20.0)
+mp = q.get("macro_pulse", {})
 
-# ISM proxy fallback
 if not mp.get('ism_now') or (isinstance(mp.get('ism_now'), str) and mp.get('ism_now') == '—'):
     try:
         xli = prices.get("XLI", pd.Series())
         if len(xli) >= 22:
             xli_1m = (xli.iloc[-1] / xli.iloc[-22] - 1) * 100
             xli_3m = (xli.iloc[-1] / xli.iloc[-64] - 1) * 100 if len(xli) >= 64 else 0
-            ism_proxy = 50.0 + xli_1m * 8.0 + xli_3m * 4.0
-            mp['ism_now'] = round(max(30.0, min(70.0, ism_proxy)), 1)
-            mp['ism_delta'] = round(xli_1m * 8.0, 1)
+            ism_proxy = 50.0 + xli_1m * 1.5 + xli_3m * 0.6
+            mp['ism_now'] = round(max(35.0, min(70.0, ism_proxy)), 1)
+            mp['ism_delta'] = round(xli_1m * 1.5, 1)
             mp['ism_source'] = 'XLI proxy (FRED missing)'
     except Exception as e:
         pass
@@ -640,7 +593,7 @@ def build_macro_features(prices, q, fred):
     iwm_1m = nf(f.get("iwm_1m", 0.0))
     f["slowdown_flags"] = clamp(0.5 - spy_1m*2 - iwm_1m*2)
     f["inf_shock"] = clamp(0.3 + oil_3m*3 + max(0, uup_1m)*2)
-    f["data_coverage"] = clamp(q.get("fred_loaded",0) / max(FRED_SERIES_COUNT,1))
+    f["data_coverage"] = clamp(q.get("fred_loaded",0) / max(len(PRIMARY_SERIES),1))
     return f
 
 def build_health(prices, f):
@@ -677,7 +630,7 @@ def build_crash(f, h, q, prices=None):
     vol_st=clamp((vix-18)/20)
     crash_score=clamp(0.16*tail_s+0.18*shock_s+0.12*health_frag+0.14*vix_s+0.14*unwind+0.12*vol_st+0.08*0.3+0.06*clamp(0.5+nf(f.get("uup_1m",0.0))/0.04))
     risk_off=clamp(0.30*(1.0-h.get("weather",0.5))+0.20*health_frag+0.15*clamp(0.5+nf(f.get("uup_1m",0.0))/0.04)+0.15*vol_st+0.10*unwind+0.10*vix_s)
-    exec_score=clamp(0.20*h.get("weather",0.5)+0.14*{"Healthy":0.80,"Narrow":0.48,"Fragile":0.34,"Mixed":0.35,"Broken":0.18}.get(h.get("verdict","Mixed"),0.50)+0.10*{"Investable":0.78,"Chop":0.42,"Defensive":0.22}.get("Investable" if vix<19 else ("Chop" if vix<29 else "Defensive"),0.42)+0.12*{"Q1":0.68,"Q2":0.78,"Q3":0.48,"Q4":0.25}.get(q.get("quad","Q3"),0.50)+0.10*q.get("confidence",0.5)+0.09*h.get("trade",0.5)+0.09*(1-unwind)+0.08*(1-shock_s)+0.08*(1-crash_score))
+    exec_score=clamp(0.20*h.get("weather",0.5)+0.14*{"Healthy":0.80,"Narrow":0.48,"Fragile":0.34,"Mixed":0.35,"Broken":0.18}.get(h.get("verdict","Mixed"),0.50)+0.10*{"Investable":0.78,"Chop":0.42,"Defensive":0.22}.get("Investable" if vix<19 else ("Chop" if vix<29 else "Defensive"),0.42)+0.12*{"Q1":0.68,"Q2":0.78,"Q3":0.48,"Q4":0.25}.get(q.get("quad","Q2"),0.50)+0.10*q.get("confidence",0.5)+0.09*h.get("trade",0.5)+0.09*(1-unwind)+0.08*(1-shock_s)+0.08*(1-crash_score))
     return {
         "crash_score":crash_score,"risk_off":risk_off,
         "state":"🔴 ELEVATED" if crash_score>=0.65 else ("🟡 WATCH" if crash_score>=0.42 else "🟢 CALM"),
@@ -687,7 +640,7 @@ def build_crash(f, h, q, prices=None):
     }
 
 def build_rotation(q, h, f, prices=None):
-    s_quad=q.get("quad","Q3"); uup_3m=nf(f.get("uup_3m",f.get("dxy_3m",0.0)))
+    s_quad=q.get("quad","Q2"); uup_3m=nf(f.get("uup_3m",f.get("dxy_3m",0.0)))
     oil_3m=nf(f.get("clf_3m",f.get("oil_3m",0.0)))
     safe_scores={
         "XAUUSD":{"Q1":0.30,"Q2":0.35,"Q3":0.72,"Q4":0.60}.get(s_quad,0.5),
@@ -719,11 +672,11 @@ def build_ihsg(prices, q, f):
     jkse=prices.get("^JKSE",pd.Series()); idr=prices.get("IDR=X",pd.Series()); spy=prices.get("SPY",pd.Series())
     jkse_1m=ret_n(jkse,21); jkse_3m=ret_n(jkse,63); spy_1m=ret_n(spy,21)
     usd_idr_1m=ret_n(idr,21); usd_idr_pressure=clamp(0.5+(nf(usd_idr_1m)/0.08))
-    bank_scores=[ret_n(prices.get(t,pd.Series()),21) for t in ["BBCA.JK","BBRI.JK"] if math.isfinite(ret_n(prices.get(t,pd.Series()),21))]
+    bank_scores=[ret_n(prices.get(t,pd.Series()),21) for t in ["BBCA.JK","BBRI.JK","BMRI.JK","BBNI.JK"] if math.isfinite(ret_n(prices.get(t,pd.Series()),21))]
     bank_health=clamp(0.5+np.mean(bank_scores)/0.06) if bank_scores else 0.5
     rel_1m=(jkse_1m-spy_1m) if math.isfinite(jkse_1m) and math.isfinite(spy_1m) else 0.0
     foreign_flow=clamp(0.5+rel_1m/0.06)
-    em_regime_score={"Q1":0.65,"Q2":0.70,"Q3":0.52,"Q4":0.28}.get(q.get("quad","Q3"),0.5)
+    em_regime_score={"Q1":0.65,"Q2":0.70,"Q3":0.52,"Q4":0.28}.get(q.get("quad","Q2"),0.5)
     ihsg_score=clamp(0.24*em_regime_score+0.16*foreign_flow+0.24*(1.0-usd_idr_pressure)+0.18*bank_health+0.18*0.5)
     return {
         "jkse_1m":jkse_1m,"jkse_3m":jkse_3m,"usd_idr_1m":usd_idr_1m,
@@ -819,7 +772,7 @@ _h(f"""
     <div style="font-size:32px;">🧭</div>
     <div>
       <div style="font-size:24px;font-weight:800;color:#e6edf3;">MacroRegime <span style="color:#58a6ff;">Pro</span></div>
-      <div style="font-size:11px;color:#8b949e;">v15.1 · Bottleneck Scanner · 7-Layer Fusion</div>
+      <div style="font-size:11px;color:#8b949e;">v15.2c · Bottleneck Scanner · 7-Layer Fusion</div>
     </div>
   </div>
   <div style="text-align:right;">
@@ -967,7 +920,7 @@ with tabs[0]:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TAB 1: MARKETS
+# TAB 1: MARKETS — DIFFERENTIATED LAYOUTS
 # ═══════════════════════════════════════════════════════════════════════════════
 with tabs[1]:
     def rn(s,n):
@@ -1017,7 +970,7 @@ with tabs[1]:
             _h(f'<div style="display:flex;align-items:center;gap:8px;margin:4px 0;"><div style="width:70px;font-size:11px;color:#c9d1d9;">{s["name"]}</div><div style="flex:1;background:#21262d;border-radius:4px;height:16px;overflow:hidden;"><div style="width:{rp}%;background:{bc};height:100%;border-radius:4px;"></div></div><div style="width:60px;text-align:right;font-size:11px;color:{bc};font-weight:600;">{rel:+.1%}</div></div>')
 
     st.markdown("**🎯 OPPORTUNITIES & EXECUTION BOARD**")
-    st.caption("v15.1 macro brain + TRR/LRR gate + Real Bottleneck Scanner. Regime-aware, route-aware, sized.")
+    st.caption("v15.2c macro brain + TRR/LRR gate. Regime-aware, route-aware, sized.")
     c1,c2,c3,c4=st.columns(4)
     with c1: st.metric("Rally State", most_hated.get("stage","monitor"), f"{most_hated.get('clear_count',0)}/4")
     with c2: st.metric("Action", most_hated.get("posture","Defense"))
@@ -1032,7 +985,7 @@ with tabs[1]:
         "Q3":{"US":"Defensives/Gold/Energy selective, Tech short","IHSG":"Coal exporter only, rest defensive","FX":"USD long, EM FX short","Comm":"Gold best, Oil volatile","Crypto":"BTC only, avoid alts"},
         "Q4":{"US":"TLT/Gold/Defensives long, Cyclicals short","IHSG":"Defensive quality only","FX":"USD/JPY/CHF long","Comm":"Gold only, rest bearish","Crypto":"Cash > all, BTC hold only"}
     }
-    qp=quad_policies.get(sq,quad_policies["Q3"])
+    qp=quad_policies.get(sq,quad_policies["Q2"])
     for col,(mkt,pol) in zip(pol_cols,[("US",qp["US"]),("IHSG",qp["IHSG"]),("FX",qp["FX"]),("Comm",qp["Comm"])]):
         with col:
             st.markdown(f"**{mkt}**")
@@ -1051,75 +1004,197 @@ with tabs[1]:
     st.divider()
     mt=st.tabs(["🇺🇸 US Stocks","🇮🇩 IHSG","💱 FX","🛢️ Commodities","🔐 Crypto"])
 
+    # ═════════════════════════════════════════════════════════════════
+    # US STOCKS TAB
+    # ═════════════════════════════════════════════════════════════════
     with mt[0]:
         ul=tickers.get("us_longs",[]); us=tickers.get("us_shorts",[])
-        nm={"SPY":"S&P 500","QQQ":"Nasdaq","IWM":"Russell 2K","XLE":"Energy","XLK":"Tech","XLF":"Finance","XLI":"Industrials","XLB":"Materials","XLV":"Health","XLY":"Consumer","XLP":"Staples","XLU":"Utilities","XLRE":"REITs","TLT":"Long Bond","GLD":"Gold","HII":"Huntington","CAT":"Caterpillar","UPS":"UPS","LII":"Lennox","JBHT":"JB Hunt","MAR":"Marriott","ONTO":"Onto","EMR":"Emerson","RH":"Restoration","SBUX":"Starbucks","TXG":"10x Genomics","AVO":"Mission Produce","FRPT":"Freshpet","PEP":"Pepsi","XOM":"Exxon","HSY":"Hershey","WMB":"Williams","ET":"Energy Transfer","ROP":"Roper","RBLX":"Roblox","TRU":"TransUnion","NVDA":"Nvidia","XTL":"Telecom","EQRR":"Rising Rates","GII":"Infrastructure","EWH":"Hong Kong","EWW":"Mexico","ARGT":"Argentina","EIS":"Israel","IBIT":"Bitcoin ETF","COAL":"Coal","YCS":"Short Yen"}
+        nm={"SPY":"S&P 500","QQQ":"Nasdaq","IWM":"Russell 2K","XLE":"Energy","XLK":"Tech","XLF":"Finance","XLI":"Industrials","XLB":"Materials","XLV":"Health","XLY":"Consumer","XLP":"Staples","XLU":"Utilities","XLRE":"REITs","TLT":"Long Bond","GLD":"Gold","HII":"Huntington","CAT":"Caterpillar","UPS":"UPS","LII":"Lennox","JBHT":"JB Hunt","MAR":"Marriott","ONTO":"Onto","EMR":"Emerson","RH":"Restoration","SBUX":"Starbucks","TXG":"10x Genomics","AVO":"Mission Produce","FRPT":"Freshpet","PEP":"Pepsi","XOM":"Exxon","HSY":"Hershey","WMB":"Williams","ET":"Energy Transfer","ROP":"Roper","RBLX":"Roblox","TRU":"TransUnion","NVDA":"Nvidia","XTL":"Telecom","EQRR":"Rising Rates","GII":"Infrastructure","EWH":"Hong Kong","EWW":"Mexico","ARGT":"Argentina","EIS":"Israel","IBIT":"Bitcoin ETF","COAL":"Coal","YCS":"Short Yen","DE":"Deere","NUE":"Nucor","VST":"Vistra","NRG":"NRG","CEG":"Constellation","BWXT":"BWX","CWEN":"Clearway","AES":"AES","FSLR":"First Solar","ENPH":"Enphase","NOVA":"Sunnova"}
         c1,c2=st.columns(2)
         with c1: st.markdown("**📍 NOW — LONG (TRR Filtered)**"); rc_trr(ul,nm,"US_STOCKS","LONG",2)
         with c2: st.markdown("**📍 NOW — SHORT (TRR Filtered)**"); rc_trr(us,nm,"US_STOCKS","SHORT",2)
         st.divider(); st.markdown("**🌍 Heatmap**"); rh([("SPY","S&P 500"),("QQQ","Nasdaq"),("IWM","Russell 2K"),("TLT","Bond"),("GLD","Gold"),("BTC-USD","BTC"),("CL=F","Oil"),("UUP","USD")])
+        st.divider()
+        st.markdown("**📊 Factor Regime**")
+        fc1, fc2, fc3 = st.columns(3)
+        with fc1:
+            rsp_s = prices.get("RSP", pd.Series()); spy_s = prices.get("SPY", pd.Series())
+            if len(rsp_s)>63 and len(spy_s)>63:
+                rel = (rsp_s.iloc[-1]/rsp_s.iloc[-64]-1) - (spy_s.iloc[-1]/spy_s.iloc[-64]-1)
+                st.metric("Equal vs Cap Weight", f"{rel:+.1%}", delta="EQW Lead" if rel>0 else "CW Lead")
+            else: st.caption("No RSP data")
+        with fc2:
+            vug = prices.get("VUG", pd.Series()); vtv = prices.get("VTV", pd.Series())
+            if len(vug)>63 and len(vtv)>63:
+                rel2 = (vug.iloc[-1]/vug.iloc[-64]-1) - (vtv.iloc[-1]/vtv.iloc[-64]-1)
+                st.metric("Growth vs Value", f"{rel2:+.1%}", delta="Growth" if rel2>0 else "Value")
+            else: st.caption("No VUG/VTV")
+        with fc3:
+            mtum = prices.get("MTUM", pd.Series()); usmv = prices.get("USMV", pd.Series())
+            if len(mtum)>63 and len(usmv)>63:
+                rel3 = (mtum.iloc[-1]/mtum.iloc[-64]-1) - (usmv.iloc[-1]/usmv.iloc[-64]-1)
+                st.metric("Momentum vs LowVol", f"{rel3:+.1%}", delta="Momentum" if rel3>0 else "LowVol")
+            else: st.caption("No MTUM/USMV")
+        st.divider()
         rml([("XLE","Energy"),("XLF","Fin"),("XLI","Ind"),("XLB","Mat"),("XLK","Tech"),("XLV","Health"),("XLY","Con.D"),("XLP","Con.S"),("XLU","Util"),("XLRE","RE")],"SPY","Sector Leadership")
         st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(list(set(ul+us)),"US_STOCKS")
-        # Bottleneck: only for tickers in supply chain
-        btl_us = _get_bottleneck_rows(list(set(ul+us)), btl_result)
-        if btl_us:
-            st.markdown("**🎯 Bottleneck Scan (Real)**"); render_bottleneck(btl_us, "US Bottleneck")
-        else:
-            st.caption("Bottleneck: No US tickers with manufacturing supply chain constraints passed the gate. (AI/Semi/Energy only)")
 
+    # ═════════════════════════════════════════════════════════════════
+    # IHSG TAB — DISTINCT
+    # ═════════════════════════════════════════════════════════════════
     with mt[1]:
-        ih_t=tickers.get("ihsg_buys",[]); nm={"BBCA.JK":"BCA","BBRI.JK":"BRI","ASII.JK":"Astra","TLKM.JK":"Telkom","ADRO.JK":"Adaro","ANTM.JK":"Antam","PTBA.JK":"Bukit Asam","ITMG.JK":"Indomining","INCO.JK":"Vale","KLBF.JK":"Kalbe","UNVR.JK":"Unilever","INDF.JK":"Indofood"}
+        ih_t=tickers.get("ihsg_buys",[])
+        nm={"BBCA.JK":"BCA","BBRI.JK":"BRI","BMRI.JK":"Mandiri","BBNI.JK":"BNI","ASII.JK":"Astra","TLKM.JK":"Telkom","UNVR.JK":"Unilever","INDF.JK":"Indofood","KLBF.JK":"Kalbe","ANTM.JK":"Antam","ADRO.JK":"Adaro","ITMG.JK":"Indomining","PTBA.JK":"Bukit Asam","MDKA.JK":"Merdeka","INCO.JK":"Vale","CPIN.JK":"Charoen","JPFA.JK":"Japfa","EXCL.JK":"XL","ISAT.JK":"Indosat","TBIG.JK":"Tower","TOWR.JK":"Tower Bersama","SMGR.JK":"Semen","INTP.JK":"Indocement","CTRA.JK":"Ciputra","PWON.JK":"Pakuwon","BSDE.JK":"Bumi Serpong","AMRT.JK":"Alfamart","MPPA.JK":"Matahari","ACES.JK":"Ace Hardware","ERAA.JK":"Erajaya"}
         st.markdown("**📍 NOW — LONG (TRR Filtered)**"); rc_trr(ih_t,nm,"IHSG","LONG",3)
-        st.divider(); st.markdown("**🌍 Heatmap**"); rh([("^JKSE","IHSG"),("BBCA.JK","BCA"),("BBRI.JK","BRI"),("ASII.JK","Astra"),("TLKM.JK","Telkom")])
-        rml([("ADRO.JK","Energy"),("BBCA.JK","Finance"),("UNVR.JK","Consumer"),("TLKM.JK","Infra"),("CTRA.JK","Property"),("ANTM.JK","Mining"),("KLBF.JK","Health"),("AALI.JK","Agri"),("ASII.JK","Industri")],"^JKSE","IDX Sector")
+        st.divider(); st.markdown("**🌍 Heatmap**"); rh([("^JKSE","IHSG"),("BBCA.JK","BCA"),("BBRI.JK","BRI"),("ASII.JK","Astra"),("TLKM.JK","Telkom"),("BMRI.JK","Mandiri"),("BBNI.JK","BNI"),("ANTM.JK","Antam"),("ADRO.JK","Adaro")])
+        st.divider()
+        st.markdown("**🏭 IDX Sector Rotation**")
+        sec_cols = st.columns(4)
+        sectors = [
+            ("Mining", [("ANTM.JK","Antam"),("ADRO.JK","Adaro"),("ITMG.JK","ITMG"),("MDKA.JK","MDKA"),("INCO.JK","INCO")]),
+            ("Banking", [("BBCA.JK","BCA"),("BBRI.JK","BRI"),("BMRI.JK","Mandiri"),("BBNI.JK","BNI")]),
+            ("Consumer", [("UNVR.JK","Unilever"),("INDF.JK","Indofood"),("KLBF.JK","Kalbe"),("CPIN.JK","CPIN"),("JPFA.JK","JPFA")]),
+            ("Telco/Infra", [("TLKM.JK","Telkom"),("EXCL.JK","XL"),("ISAT.JK","Indosat"),("TBIG.JK","TBIG"),("TOWR.JK","TOWR")]),
+        ]
+        for col, (sec_name, sec_tickers) in zip(sec_cols, sectors):
+            with col:
+                st.markdown(f"**{sec_name}**")
+                for tk, name in sec_tickers:
+                    s = prices.get(tk)
+                    if s is not None and len(s)>22:
+                        r1 = rn(s,21)
+                        color = "#4ade80" if r1>0 else "#f87171" if r1<0 else "#8b949e"
+                        st.markdown(f"<span style='color:{color};font-size:11px;'>{name}: {r1:+.1%}</span>", unsafe_allow_html=True)
+        st.divider()
+        st.markdown("**🌏 Macro Linkages**")
+        lk1, lk2, lk3 = st.columns(3)
+        with lk1:
+            jkse_s = prices.get("^JKSE", pd.Series()); spy_s = prices.get("SPY", pd.Series())
+            if len(jkse_s)>63 and len(spy_s)>63:
+                rel = (jkse_s.iloc[-1]/jkse_s.iloc[-64]-1) - (spy_s.iloc[-1]/spy_s.iloc[-64]-1)
+                st.metric("IHSG vs SPY 3M", f"{rel:+.1%}", delta="IHSG Lead" if rel>0 else "SPY Lead")
+            else: st.caption("No data")
+        with lk2:
+            idr_s = prices.get("IDR=X", pd.Series())
+            if len(idr_s)>22:
+                idr_1m = rn(idr_s, 21)
+                st.metric("IDR 1M", f"{idr_1m:+.1%}", delta="Weaker" if idr_1m>0 else "Stronger")
+            else: st.caption("No IDR")
+        with lk3:
+            coal_s = prices.get("ADRO.JK", pd.Series()) or prices.get("ITMG.JK", pd.Series())
+            oil_s = prices.get("CL=F", pd.Series())
+            if coal_s is not None and len(coal_s)>22 and oil_s is not None and len(oil_s)>22:
+                c1m = rn(coal_s,21); o1m = rn(oil_s,21)
+                st.metric("Coal vs Oil 1M", f"{c1m-o1m:+.1%}", delta="Coal Lead" if c1m>o1m else "Oil Lead")
+            else: st.caption("No coal/oil")
         st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(ih_t,"IHSG")
-        # IHSG has no real bottleneck nodes
-        st.info("ℹ️ **Bottleneck Scan N/A for IHSG** — Banking/consumer stocks lack manufacturing supply chain constraints. Use TRR/LRR + Regime gate instead.")
         st.divider()
         st.markdown(f"**🇮🇩 IHSG Score: {ih['ihsg_score']:.0%}** · {ih['exec_mode']}")
         st.caption(f"Asing: {ih['flow_state']} | IDR 1M: {pct(ih['usd_idr_1m'])} | vs SPY: {ih['rel_state']}")
 
+    # ═════════════════════════════════════════════════════════════════
+    # FX TAB — DISTINCT
+    # ═════════════════════════════════════════════════════════════════
     with mt[2]:
         fl=tickers.get("fx_longs",[]); fs=tickers.get("fx_shorts",[])
-        nm={"EURUSD=X":"EUR/USD","USDJPY=X":"USD/JPY","AUDUSD=X":"AUD/USD","USDIDR=X":"USD/IDR","UUP":"DXY","GBPUSD=X":"GBP/USD","USDCAD=X":"USD/CAD","NZDUSD=X":"NZD/USD","USDCHF=X":"USD/CHF","GLD":"Gold","AAAU":"Gold","YCS":"Short Yen"}
+        nm={"EURUSD=X":"EUR/USD","USDJPY=X":"USD/JPY","AUDUSD=X":"AUD/USD","USDIDR=X":"USD/IDR","UUP":"DXY","GBPUSD=X":"GBP/USD","USDCAD=X":"USD/CAD","NZDUSD=X":"NZD/USD","USDCHF=X":"USD/CHF","USDCNH=X":"USD/CNH","USDSEK=X":"USD/SEK","USDNOK=X":"USD/NOK","EURJPY=X":"EUR/JPY","EURGBP=X":"EUR/GBP","GBPJPY=X":"GBP/JPY","CADJPY=X":"CAD/JPY","AUDJPY=X":"AUD/JPY","GLD":"Gold","AAAU":"Gold","YCS":"Short Yen"}
         c1,c2=st.columns(2)
         with c1: st.markdown("**📍 NOW — LONG (TRR Filtered)**"); rc_trr(fl,nm,"FOREX","LONG",2)
         with c2: st.markdown("**📍 NOW — SHORT (TRR Filtered)**"); rc_trr(fs,nm,"FOREX","SHORT",2)
-        st.divider(); st.markdown("**🌍 Heatmap**"); rh([("EURUSD=X","EUR/USD"),("USDJPY=X","USD/JPY"),("AUDUSD=X","AUD/USD"),("USDIDR=X","USD/IDR"),("UUP","DXY")])
-        rml([("UUP","DXY"),("USDJPY=X","USD/JPY"),("EURUSD=X","EUR/USD"),("AUDUSD=X","AUD/USD"),("GBPUSD=X","GBP/USD"),("USDCAD=X","USD/CAD")],"UUP","FX Leadership")
+        st.divider(); st.markdown("**🌍 DXY Components Heatmap**"); rh([("UUP","DXY"),("EURUSD=X","EUR"),("USDJPY=X","JPY"),("GBPUSD=X","GBP"),("USDCAD=X","CAD"),("AUDUSD=X","AUD"),("NZDUSD=X","NZD"),("USDCHF=X","CHF"),("USDSEK=X","SEK"),("USDNOK=X","NOK")])
+        st.divider()
+        st.markdown("**💱 Carry & Momentum Monitor**")
+        fx_all = list(set(fl+fs))
+        fx_rows = []
+        for t in fx_all:
+            s = prices.get(t)
+            if s is not None and len(s)>22:
+                fx_rows.append({"pair":clean_tk(t), "1m":rn(s,21), "3m":rn(s,63), "ts":ts(s)})
+        if fx_rows:
+            fx_df = pd.DataFrame(fx_rows).sort_values("1m", ascending=False)
+            st.dataframe(fx_df.style.format({"1m":"{:+.1%}","3m":"{:+.1%}","ts":"{:.0%}"}), use_container_width=True, hide_index=True)
+        else: st.caption("No FX data")
+        st.divider()
+        st.markdown("**🏛️ Safe Haven vs Risk**")
+        sh1, sh2 = st.columns(2)
+        with sh1:
+            st.markdown("**Safe Haven**")
+            rh([("USDJPY=X","USD/JPY"),("USDCHF=X","USD/CHF"),("GLD","Gold"),("UUP","DXY")])
+        with sh2:
+            st.markdown("**Risk / Commodity FX**")
+            rh([("AUDUSD=X","AUD/USD"),("USDCAD=X","USD/CAD"),("NZDUSD=X","NZD/USD"),("EURUSD=X","EUR/USD")])
         st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(list(set(fl+fs)),"FOREX")
-        # FX has no real bottleneck nodes
-        st.info("ℹ️ **Bottleneck Scan N/A for FX** — Currencies lack manufacturing supply chain. Use TRR/LRR + Regime gate + Macro Pulse instead.")
 
+    # ═════════════════════════════════════════════════════════════════
+    # COMMODITIES TAB — DISTINCT
+    # ═════════════════════════════════════════════════════════════════
     with mt[3]:
         cl=tickers.get("comm_longs",[]); cs=tickers.get("comm_shorts",[])
-        nm={"SLV":"Silver","GDX":"Gold Miners","GC=F":"Gold Fut","SI=F":"Silver Fut","HG=F":"Copper Fut","CL=F":"WTI Oil","NG=F":"Nat Gas","XOP":"Oil Explorers","OIH":"Oil Services","BNO":"Brent Oil","GLD":"Gold","AAAU":"Gold","COAL":"Coal","DUST":"Gold Bear","BITS":"Bitcoin Strat"}
+        nm={"SLV":"Silver","GDX":"Gold Miners","GC=F":"Gold Fut","SI=F":"Silver Fut","HG=F":"Copper Fut","CL=F":"WTI Oil","NG=F":"Nat Gas","XOP":"Oil Explorers","OIH":"Oil Services","BNO":"Brent Oil","GLD":"Gold","AAAU":"Gold","COAL":"Coal","URA":"Uranium","PPLT":"Platinum","PA=F":"Palladium","PL=F":"Platinum Fut","ZO=F":"Oats","ZC=F":"Corn","ZS=F":"Soybeans","ZW=F":"Wheat","CC=F":"Cocoa","KC=F":"Coffee","CT=F":"Cotton","SB=F":"Sugar","LBS=F":"Lumber","DUST":"Gold Bear","BITS":"Bitcoin Strat","SCO":"Short Oil","KOLD":"Short Gas"}
         c1,c2=st.columns(2)
         with c1: st.markdown("**📍 NOW — LONG (TRR Filtered)**"); rc_trr(cl,nm,"COMMODITIES","LONG",2)
         with c2: st.markdown("**📍 NOW — SHORT (TRR Filtered)**"); rc_trr(cs,nm,"COMMODITIES","SHORT",2)
-        st.divider(); st.markdown("**🌍 Heatmap**"); rh([("CL=F","WTI Oil"),("GC=F","Gold Fut"),("HG=F","Copper"),("SI=F","Silver"),("NG=F","Nat Gas")])
-        rml([("GC=F","Gold"),("CL=F","WTI Oil"),("HG=F","Copper"),("SI=F","Silver"),("NG=F","Nat Gas"),("XBRUSD=X","Brent"),("URA","Uranium")],"GC=F","Commodity Leadership")
+        st.divider(); st.markdown("**🌍 Commodity Complex Heatmap**"); rh([("CL=F","WTI Oil"),("GC=F","Gold Fut"),("HG=F","Copper"),("SI=F","Silver"),("NG=F","Nat Gas"),("SLV","Silver ETF"),("URA","Uranium"),("PPLT","Platinum")])
+        st.divider()
+        st.markdown("**⚖️ Precious vs Industrial**")
+        pvi1, pvi2 = st.columns(2)
+        with pvi1:
+            gld_s = prices.get("GC=F", pd.Series()); slv_s = prices.get("SI=F", pd.Series())
+            if len(gld_s)>63 and len(slv_s)>63:
+                ratio = (gld_s.iloc[-1]/gld_s.iloc[-64]-1) - (slv_s.iloc[-1]/slv_s.iloc[-64]-1)
+                st.metric("Gold vs Silver 3M", f"{ratio:+.1%}", delta="Gold Lead" if ratio>0 else "Silver Lead")
+            else: st.caption("No data")
+        with pvi2:
+            hgf = prices.get("HG=F", pd.Series()); gcf = prices.get("GC=F", pd.Series())
+            if len(hgf)>63 and len(gcf)>63:
+                ratio2 = (hgf.iloc[-1]/hgf.iloc[-64]-1) - (gcf.iloc[-1]/gcf.iloc[-64]-1)
+                st.metric("Copper vs Gold 3M", f"{ratio2:+.1%}", delta="Copper Lead" if ratio2>0 else "Gold Lead")
+            else: st.caption("No data")
+        st.divider()
+        st.markdown("**📈 Term Structure Proxy (Front vs Back momentum)**")
+        term_rows = []
+        for t in ["CL=F","GC=F","SI=F","HG=F","NG=F","ZW=F","ZC=F"]:
+            s = prices.get(t)
+            if s is not None and len(s)>64:
+                term_rows.append({"contract":clean_tk(t), "front_1m":rn(s,21), "front_3m":rn(s,63)})
+        if term_rows:
+            st.dataframe(pd.DataFrame(term_rows).style.format({"front_1m":"{:+.1%}","front_3m":"{:+.1%}"}), use_container_width=True, hide_index=True)
+        else: st.caption("No futures data")
         st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(list(set(cl+cs)),"COMMODITIES")
-        btl_comm = _get_bottleneck_rows(list(set(cl+cs)), btl_result)
-        if btl_comm:
-            st.markdown("**🎯 Bottleneck Scan (Real)**"); render_bottleneck(btl_comm, "Comm Bottleneck")
-        else:
-            st.caption("Bottleneck: No commodity tickers passed the unified gate.")
 
+    # ═════════════════════════════════════════════════════════════════
+    # CRYPTO TAB — DISTINCT
+    # ═════════════════════════════════════════════════════════════════
     with mt[4]:
         crl=tickers.get("crypto_longs",[]); crs=tickers.get("crypto_shorts",[])
-        nm={"BTC-USD":"Bitcoin","ETH-USD":"Ethereum","SOL-USD":"Solana","XRP-USD":"XRP","IBIT":"Bitcoin ETF"}
+        nm={"BTC-USD":"Bitcoin","ETH-USD":"Ethereum","SOL-USD":"Solana","XRP-USD":"XRP","ADA-USD":"Cardano","DOT-USD":"Polkadot","AVAX-USD":"Avalanche","MATIC-USD":"Polygon","LINK-USD":"Chainlink","UNI-USD":"Uniswap","AAVE-USD":"Aave","CRV-USD":"Curve","IBIT":"Bitcoin ETF","COIN":"Coinbase","MSTR":"MicroStrategy","RIOT":"Riot","MARA":"Marathon","HUT":"Hut 8","BITF":"Bitfarms","WGMI":"Bitcoin Miners"}
         c1,c2=st.columns(2)
         with c1: st.markdown("**📍 NOW — LONG (TRR Filtered)**"); rc_trr(crl,nm,"CRYPTO","LONG",2)
         with c2: st.markdown("**📍 NOW — SHORT (TRR Filtered)**"); rc_trr(crs,nm,"CRYPTO","SHORT",2)
-        st.divider(); st.markdown("**🌍 Heatmap**"); rh([("BTC-USD","Bitcoin"),("ETH-USD","Ethereum"),("SOL-USD","Solana"),("XRP-USD","XRP")])
-        rml([("BTC-USD","Bitcoin"),("ETH-USD","Ethereum"),("SOL-USD","Solana"),("XRP-USD","XRP"),("ADA-USD","Cardano"),("DOT-USD","Polkadot")],"BTC-USD","Crypto Leadership")
+        st.divider(); st.markdown("**🌍 Heatmap**"); rh([("BTC-USD","Bitcoin"),("ETH-USD","Ethereum"),("SOL-USD","Solana"),("XRP-USD","XRP"),("ADA-USD","Cardano"),("DOT-USD","Polkadot"),("COIN","Coinbase"),("MSTR","MicroStrategy")])
+        st.divider()
+        st.markdown("**📊 Dominance & Correlation**")
+        d1, d2, d3 = st.columns(3)
+        with d1:
+            btc_s = prices.get("BTC-USD", pd.Series()); eth_s = prices.get("ETH-USD", pd.Series())
+            if len(btc_s)>63 and len(eth_s)>63:
+                btc_3m = rn(btc_s,63); eth_3m = rn(eth_s,63)
+                dom = btc_3m - eth_3m
+                st.metric("BTC vs ETH 3M", f"{dom:+.1%}", delta="BTC Lead" if dom>0 else "ETH Lead")
+            else: st.caption("No data")
+        with d2:
+            if len(btc_s)>63 and len(eth_s)>63:
+                ratio = (eth_s.iloc[-1]/btc_s.iloc[-1]) / (eth_s.iloc[-64]/btc_s.iloc[-64]) - 1
+                st.metric("ETH/BTC Ratio 3M", f"{ratio:+.1%}", delta="ETH↑" if ratio>0 else "BTC↑")
+            else: st.caption("No data")
+        with d3:
+            nq = prices.get("QQQ", pd.Series())
+            if len(btc_s)>63 and nq is not None and len(nq)>63:
+                btc_3m = rn(btc_s,63); nq_3m = rn(nq,63)
+                corr_proxy = btc_3m - nq_3m
+                st.metric("Crypto vs NQ 3M", f"{corr_proxy:+.1%}", delta="Crypto Lead" if corr_proxy>0 else "NQ Lead")
+            else: st.caption("No NQ")
         st.markdown("**🎯 TRR/LRR Signal Layer**"); _render_trr(list(set(crl+crs)),"CRYPTO")
-        btl_crypto = _get_bottleneck_rows(list(set(crl+crs)), btl_result)
-        if btl_crypto:
-            st.markdown("**🎯 Bottleneck Scan (Real)**"); render_bottleneck(btl_crypto, "Crypto Bottleneck")
-        else:
-            st.info("ℹ️ **Bottleneck Scan N/A for Crypto** — BTC/ETH/SOL lack manufacturing supply chain. Use TRR/LRR + On-Chain Alpha instead.")
         st.divider(); st.markdown("**⛓️ On-Chain Alpha**")
         scanner=MCS()
         with st.spinner("⛓️ Scanning chains... ⏳ ~30s"):
@@ -1134,7 +1209,7 @@ with tabs[1]:
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TAB 2: BOTTLENECK INTEL
+# TAB 2: BOTTLENECK INTEL (consolidated, no duplication in Markets)
 # ═══════════════════════════════════════════════════════════════════════════════
 with tabs[2]:
     render_bottleneck_intel(btl_result)
@@ -1173,8 +1248,8 @@ with tabs[3]:
         st.success(f"✅ ALIGNED: {sq} across all timeframes.")
     st.divider()
     st.markdown("**📊 Structural Probabilities**")
-    probs=q.get("probs",{"Q1":0.25,"Q2":0.25,"Q3":0.25,"Q4":0.25})
-    m_probs=q.get("monthly_probs",{"Q1":0.25,"Q2":0.25,"Q3":0.25,"Q4":0.25})
+    probs=q.get("probs",{"Q1":0.20,"Q2":0.30,"Q3":0.30,"Q4":0.20})
+    m_probs=q.get("monthly_probs",{"Q1":0.20,"Q2":0.30,"Q3":0.30,"Q4":0.20})
     for k in ["Q1","Q2","Q3","Q4"]:
         p=probs.get(k,0.0); mp=m_probs.get(k,0.0)
         label=f"{chr(9679) if k==sq else chr(9689) if k==mq else chr(9675)} {k}: S={p:.0%} M={mp:.0%}"
@@ -1187,7 +1262,7 @@ with tabs[3]:
     st.divider()
     st.markdown("**🕰️ REGIME CONTEXT**")
     st.info(f"**Operating:** {op} | **Flip Hazard:** {q.get('flip_hazard',0):.0%} | **Deepness:** {q.get('deepness',0):.0%}")
-    st.caption("v15.1: Bottleneck scanner v3.0 — real nodes only (AI/Semi/Energy/Comm/Crypto). FX & IHSG excluded.")
+    st.caption("v15.2c: Pure data-driven. No hardcoded quarter. Bottleneck scanner v4.0 — real nodes only (19 nodes).")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1196,21 +1271,21 @@ with tabs[3]:
 with tabs[4]:
     st.subheader("⚠️ Risk & Diagnostics")
     c1,c2,c3=st.columns(3)
-    with c1: st.metric("FRED Loaded", f"{q.get('fred_loaded',0)}/{FRED_SERIES_COUNT}")
+    with c1: st.metric("FRED Loaded", f"{q.get('fred_loaded',0)}/{len(PRIMARY_SERIES)}")
     with c2: st.metric("Source", src)
     with c3: st.metric("API Key", "✅ Active" if q.get('fred_loaded',0)>0 else "❌ Fallback")
     if q.get('fred_loaded',0)==0:
         st.error("🚨 FRED 0 loaded — using proxy data. Check API key.")
         if st.button("🔄 Clear Cache & Reload"):
             st.cache_data.clear(); st.rerun()
-    elif q.get('fred_loaded',0) < FRED_SERIES_COUNT:
+    elif q.get('fred_loaded',0) < len(PRIMARY_SERIES):
         missing_keys = q.get('fred_missing_keys', [])
         if missing_keys:
-            st.warning(f"🟡 FRED Partial — {q.get('fred_loaded',0)}/{FRED_SERIES_COUNT} loaded. Missing: {', '.join(missing_keys)}")
+            st.warning(f"🟡 FRED Partial — {q.get('fred_loaded',0)}/{len(PRIMARY_SERIES)} loaded. Missing: {', '.join(missing_keys)}")
         else:
-            st.warning(f"🟡 FRED Partial — {q.get('fred_loaded',0)}/{FRED_SERIES_COUNT} loaded.")
+            st.warning(f"🟡 FRED Partial — {q.get('fred_loaded',0)}/{len(PRIMARY_SERIES)} loaded.")
     else:
-        st.success("🟢 FRED Full — all series loaded.")
+        st.success("🟢 FRED Full — all primary series loaded.")
     st.divider()
     st.markdown("**🧠 BOTTLENECK SCANNER DIAGNOSTICS**")
     if SCANNER_AVAILABLE:
@@ -1228,21 +1303,21 @@ with tabs[4]:
     st.markdown("**🧪 DATA QUALITY**")
     dq_rows=[
         ("Source Mode", sb),
-        ("FRED Series", f"{q.get('fred_loaded',0)}/{FRED_SERIES_COUNT}"),
+        ("FRED Series", f"{q.get('fred_loaded',0)}/{len(PRIMARY_SERIES)}"),
         ("Macro Pulse", "✅" if mp else "❌"),
         ("VIX Source", "^VIX index" if vix>15 else "VIXY proxy"),
         ("TRR/LRR Engine", "✅ Active"),
         ("On-Chain Scanner", "✅ Active"),
-        ("Bottleneck Scanner", "✅ Active v3" if SCANNER_AVAILABLE and btl_result else "❌ Failed"),
+        ("Bottleneck Scanner", "✅ Active v4" if SCANNER_AVAILABLE and btl_result else "❌ Failed"),
         ("Options Convexity", "✅ Active" if SCANNER_AVAILABLE and btl_result and any(e.get('options_signal') for e in btl_result.get('enriched_signals', [])) else "⚠️ No signals"),
         ("External Config", "✅ ./config/supply_chain.json" if os.path.exists("./config/supply_chain.json") else "❌ Missing"),
-        ("Scanner Nodes", f"{len(SCANNER_TICKERS)} total (18 real + {len(SCANNER_TICKERS)-18} generic)" if SCANNER_AVAILABLE else "❌ N/A"),
+        ("Scanner Nodes", f"{len(SCANNER_TICKERS)} real" if SCANNER_AVAILABLE else "❌ N/A"),
     ]
     st.dataframe(pd.DataFrame(dq_rows, columns=["Check","Status"]), use_container_width=True, hide_index=True)
     st.divider()
     st.markdown("**📋 FRED DEBUG**")
-    st.caption("v15.1: ISM primary NAPM, fallback NAPMSISM, proxy XLI if both missing.")
+    st.caption("v15.2c: ISM primary NAPM, fallback XLI proxy if FRED missing. Real PCE fallback to nominal PCE or DPI. Zero hardcoded quarter.")
     if st.toggle("Show FRED series map", False):
         st.json(FRED_SERIES)
 
-st.caption(f"MacroRegime Pro v15.1 · Built {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC · God Mode")
+st.caption(f"MacroRegime Pro v15.2c · Built {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC · God Mode")

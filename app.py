@@ -1,6 +1,6 @@
 """
-MacroRegime Pro v15.2e — Markets Fusion Layer + Bottleneck Overlay
-Fixes: All-tickers-HOLD bug, Bottleneck→Markets integration, TRR watchlist mode
+MacroRegime Pro v15.2f — Full Hedgeye Suite
+CFTC CoT + Pods Model + Momentum Tracker + Bottleneck + TRR + On-Chain
 """
 import os, sys, glob, time, json, logging, math, numpy as np, pandas as pd, yfinance as yf
 from datetime import datetime, timezone
@@ -27,6 +27,28 @@ try:
     SCANNER_TICKERS = set(_cfg.get("nodes", {}).keys())
 except Exception as e:
     st.warning(f"Bottleneck engine not loaded: {e}")
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# HEDGEYE MISSING ENGINES — v15.2f Integration
+# ═══════════════════════════════════════════════════════════════════════════════
+COT_AVAILABLE = False
+PODS_AVAILABLE = False
+MOMENTUM_AVAILABLE = False
+try:
+    from cot_positioning import get_cot_snapshot
+    COT_AVAILABLE = True
+except Exception as e:
+    st.warning(f"CFTC CoT engine not loaded: {e}")
+try:
+    from pods_model import scan_pods
+    PODS_AVAILABLE = True
+except Exception as e:
+    st.warning(f"Pods Model not loaded: {e}")
+try:
+    from momentum_tracker import get_momentum_snapshot
+    MOMENTUM_AVAILABLE = True
+except Exception as e:
+    st.warning(f"Momentum Tracker not loaded: {e}")
 
 DISPLAY_MAP = {
     'USDJPY=X':'USDJPY', 'EURUSD=X':'EURUSD', 'AUDUSD=X':'AUDUSD', 'GBPUSD=X':'GBPUSD',
@@ -198,7 +220,6 @@ def _fetch(ticker,period="3y"):
         if isinstance(df.columns,pd.MultiIndex): df.columns=df.columns.get_level_values(0)
         df=df.dropna(); 
         if len(df)<300:
-            # v15.2e: fallback longer period
             df2=yf.download(ticker,period="5y",interval="1d",progress=False,auto_adjust=True)
             if isinstance(df2.columns,pd.MultiIndex): df2.columns=df2.columns.get_level_values(0)
             df2=df2.dropna()
@@ -237,7 +258,6 @@ def _eval(ticker,ac):
     return {"ticker":ticker,"signal":sig,"confidence":cf,"price":round(pr,4),"tradeTRR":round(r["tradeTRR"],4),"tradeLRR":round(r["tradeLRR"],4),"trendTRR":round(r["trendTRR"],4),"trendLRR":round(r["trendLRR"],4),"tailTRR":round(r["tailTRR"],4),"tailLRR":round(r["tailLRR"],4),"trendPhase":r["trendPhase"],"tailPhase":r["tailPhase"],"trendAge":r["trendAge"],"tailAge":r["tailAge"],"quality":round(r["qualityScore"],1),"activity":round(r["activityScore"],1),"compression":round(r["compressionScore"],1),"volRegime":"EXPANDING" if r["volRegimeConfirm"] else "NORMAL","reason":" | ".join(rs)}
 
 def _eval_watch(ticker,ac):
-    """v15.2e: Always return TRR metadata even if gate fails — for Markets watchlist mode"""
     cfg=GATE.get(ac,GATE["US_STOCKS"]); p="2y" if ac=="CRYPTO" else "3y"; df=_fetch(ticker,p)
     if df is None: return None
     try: r=_eng.latest(df,vm=cfg["vm"])
@@ -273,7 +293,6 @@ def _run_bottleneck_scanner(regime, prices):
         logging.error(f"Scanner run fail: {e}")
         return None
 
-# v15.2e: Build lookup maps from bottleneck result
 btl_enriched_map = {}
 btl_basket_set = set()
 if btl_result:
@@ -282,11 +301,10 @@ if btl_result:
     for b in btl_result.get("basket", []):
         btl_basket_set.add(b.get("ticker"))
 
-# JADI INI:
 def get_btl_overlay(ticker):
     e = btl_enriched_map.get(ticker)
     if not e:
-        return None, None, None, None   # ✅ 4 values
+        return None, None, None, None
     alloc = e.get("allocation_verdict", "—")
     fusion = e.get("fusion_score", 0)
     trans = e.get("transmission_note", "")
@@ -530,7 +548,6 @@ if not mp.get('ism_now') or (isinstance(mp.get('ism_now'), str) and mp.get('ism_
         pass
 
 btl_result = _run_bottleneck_scanner(q, prices) if SCANNER_AVAILABLE else None
-# v15.2e: rebuild maps after scanner runs
 btl_enriched_map = {}
 btl_basket_set = set()
 if btl_result:
@@ -795,7 +812,7 @@ _h(f"""
     <div style="font-size:32px;">🧭</div>
     <div>
       <div style="font-size:24px;font-weight:800;color:#e6edf3;">MacroRegime <span style="color:#58a6ff;">Pro</span></div>
-      <div style="font-size:11px;color:#8b949e;">v15.2e · Bottleneck Fusion · TRR Watchlist · Data Pipeline Fixed</div>
+      <div style="font-size:11px;color:#8b949e;">v15.2f · Full Hedgeye Suite · CFTC+Pods+Momentum+Bottleneck+TRR+OnChain</div>
     </div>
   </div>
   <div style="text-align:right;">
@@ -941,9 +958,32 @@ with tabs[0]:
     with c4: st.metric("Tail", h.get('tail_state','—')); st.caption(f"Exec: {cr.get('exec_mode','?')}")
     st.caption(f"Risk-Off: {cr.get('risk_off',0):.0%} | Breadth Dmg: {cr.get('breadth_dmg',0):.0%} | Vol Stress: {cr.get('vol_stress',0):.0%} | HY OAS: {q.get('hy_oas', 350)}bp")
 
+    # CFTC Positioning Overlay
+    if COT_AVAILABLE:
+        st.divider()
+        st.markdown("**🎯 CFTC POSITIONING — Wall Street Consensus**")
+        try:
+            cot = get_cot_snapshot()
+            if "markets" in cot:
+                cot_cols = st.columns(min(len(cot["markets"]), 4))
+                for idx, (mkt, data) in enumerate(list(cot["markets"].items())[:8]):
+                    with cot_cols[idx % len(cot_cols)]:
+                        idx_val = data.get("cot_index", 50)
+                        color = "#f87171" if idx_val >= 85 else "#4ade80" if idx_val <= 15 else "#fbbf24" if idx_val >= 70 or idx_val <= 30 else "#8b949e"
+                        st.markdown(f"""<div style="background:#161b22;border:1px solid #30363d;border-radius:8px;padding:8px;text-align:center;">
+                            <div style="font-size:10px;color:#8b949e;">{mkt}</div>
+                            <div style="font-size:16px;font-weight:800;color:{color};">{idx_val:.0f}</div>
+                            <div style="font-size:9px;color:#c9d1d9;">{data.get('extreme','—')}</div>
+                            <div style="font-size:9px;color:#8b949e;">Flip: {'🔥' if data.get('flip') else '—'}</div>
+                        </div>""", unsafe_allow_html=True)
+                if cot.get("extreme_names"):
+                    st.caption(f"Extremes: {', '.join(cot['extreme_names'])} | Flips: {', '.join(cot.get('flip_names', []))}")
+        except Exception as e:
+            st.error(f"CFTC load error: {e}")
+
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# TAB 1: MARKETS — FUSION LAYER v15.2e
+# TAB 1: MARKETS — FUSION LAYER v15.2f
 # ═══════════════════════════════════════════════════════════════════════════════
 with tabs[1]:
     def rn(s,n):
@@ -952,36 +992,25 @@ with tabs[1]:
         except: return float("nan")
     def gr(s,n): r=rn(s,n); return f"{r:+.1%}" if r==r else "—"
 
-    # v15.2e: Unified card renderer with TRR + Bottleneck fusion
     def render_fusion_card(ticker, name, ac, expected_sig):
         s = prices.get(ticker)
         r1m = gr(s,21); r3m = gr(s,63)
-        
-        # TRR Layer
         ev = _eval_watch(ticker, ac)
         if ev is None:
-            return None  # No data at all
-        
+            return None
         trr_sig = ev["signal"]
         trr_col = "#3fb950" if trr_sig=="LONG" else "#f85149" if trr_sig=="SHORT" else "#8b949e"
         trr_ic = "▲" if trr_sig=="LONG" else "▼" if trr_sig=="SHORT" else "◆"
         trr_badge = f"TRR {trr_sig}"
-        
-        # Bottleneck Layer
         btl_alloc, btl_fusion, btl_trans, btl_grade = get_btl_overlay(ticker)
         btl_html = ""
         if btl_alloc:
             bcol = "#3fb950" if "PRIORITY" in btl_alloc else "#fbbf24" if "STANDARD" in btl_alloc else "#f85149"
             btl_html = f'<span style="background:#161b22;border:1px solid {bcol};color:{bcol};padding:2px 8px;border-radius:12px;font-size:10px;font-weight:700;margin-left:6px;">{btl_alloc} {btl_grade}</span>'
-        
-        # Regime alignment
         regime_align = "✅" if sq==mq else "⚠️"
-        
-        # Footer detail
         footer = f"TRR {ev['tradeTRR']:.1f} / LRR {ev['tradeLRR']:.1f} | Phase {ev['trendPhase']} | Q{ev['quality']:.0f} A{ev['activity']:.0f} Age{ev['trendAge']}"
         if ev["signal"] == "HOLD":
             footer += f" | <span style='color:#f85171;'>{ev['fail']}</span>"
-        
         return f'''
         <div style="background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px 14px;margin-bottom:8px;">
             <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -1041,7 +1070,7 @@ with tabs[1]:
             _h(f'<div style="display:flex;align-items:center;gap:8px;margin:4px 0;"><div style="width:70px;font-size:11px;color:#c9d1d9;">{s["name"]}</div><div style="flex:1;background:#21262d;border-radius:4px;height:16px;overflow:hidden;"><div style="width:{rp}%;background:{bc};height:100%;border-radius:4px;"></div></div><div style="width:60px;text-align:right;font-size:11px;color:{bc};font-weight:600;">{rel:+.1%}</div></div>')
 
     st.markdown("**🎯 OPPORTUNITIES & EXECUTION BOARD**")
-    st.caption("v15.2e Fusion Layer: TRR signal + Bottleneck overlay + Regime alignment. Ticker tetap muncul meski HOLD — lihat reason di footer.")
+    st.caption("v15.2f Fusion Layer: TRR signal + Bottleneck overlay + Regime alignment + CFTC + Pods + Momentum.")
     c1,c2,c3,c4=st.columns(4)
     with c1: st.metric("Rally State", most_hated.get("stage","monitor"), f"{most_hated.get('clear_count',0)}/4")
     with c2: st.metric("Action", most_hated.get("posture","Defense"))
@@ -1108,6 +1137,59 @@ with tabs[1]:
             else: st.caption("No MTUM/USMV")
         st.divider()
         rml([("XLE","Energy"),("XLF","Fin"),("XLI","Ind"),("XLB","Mat"),("XLK","Tech"),("XLV","Health"),("XLY","Con.D"),("XLP","Con.S"),("XLU","Util"),("XLRE","RE")],"SPY","Sector Leadership")
+
+        # Momentum Tracker — Mag 7
+        if MOMENTUM_AVAILABLE:
+            st.divider()
+            st.markdown("**🔥 MOMENTUM STOCK TRACKER — Mag 7**")
+            try:
+                mag7_prices = {t: prices.get(t) for t in ["AAPL","MSFT","GOOGL","AMZN","NVDA","META","TSLA"] if t in prices}
+                mtm = get_momentum_snapshot(prices=mag7_prices, regime_quad=sq)
+                mtm_rows = []
+                for m in mtm:
+                    if "error" in m:
+                        continue
+                    mtm_rows.append({
+                        "Ticker": m["ticker"],
+                        "Signal": m["signal"],
+                        "Grade": m["grade"],
+                        "Strength": m["strength"],
+                        "Price": m["price"],
+                        "Trend": "BULL" if m["trend_phase"]==1 else "BEAR" if m["trend_phase"]==-1 else "NEUTRAL",
+                        "TRR": m["trade_trr"],
+                        "LRR": m["trade_lrr"],
+                        "Align": m["regime_alignment"],
+                    })
+                if mtm_rows:
+                    st.dataframe(pd.DataFrame(mtm_rows), use_container_width=True, hide_index=True)
+            except Exception as e:
+                st.error(f"Momentum tracker error: {e}")
+
+        # Pods Model — Fundamental Overlay
+        if PODS_AVAILABLE:
+            st.divider()
+            st.markdown("**🧮 PODS MODEL — Fundamental Overlay (Mag 7)**")
+            with st.spinner("Loading quarterly fundamentals..."):
+                try:
+                    pods = scan_pods(["AAPL","MSFT","GOOGL","AMZN","NVDA","META","TSLA"])
+                    pods_rows = []
+                    for p in pods:
+                        if "error" in p:
+                            continue
+                        pods_rows.append({
+                            "Ticker": p["ticker"],
+                            "Signal": p["signal"],
+                            "Grade": p["grade"],
+                            "Score": p["combined_score"],
+                            "Rev": p["pod1_revenue"].get("state", "-"),
+                            "Margin": p["pod2_margins"].get("state", "-"),
+                            "FCF": p["pod3_fcf"].get("state", "-"),
+                            "FCF Yld": f"{p['pod3_fcf'].get('fcf_yield', 0)}%",
+                        })
+                    if pods_rows:
+                        st.dataframe(pd.DataFrame(pods_rows), use_container_width=True, hide_index=True)
+                except Exception as e:
+                    st.error(f"Pods error: {e}")
 
     # ═════════════════════════════════════════════════════════════════
     # IHSG TAB
@@ -1330,7 +1412,7 @@ with tabs[3]:
     st.divider()
     st.markdown("**🕰️ REGIME CONTEXT**")
     st.info(f"**Operating:** {op} | **Flip Hazard:** {q.get('flip_hazard',0):.0%} | **Deepness:** {q.get('deepness',0):.0%}")
-    st.caption("v15.2e: Fusion layer active. TRR watchlist mode + Bottleneck overlay + Regime alignment.")
+    st.caption("v15.2f: Full Hedgeye Suite active. CFTC+Pods+Momentum+Bottleneck+TRR+OnChain.")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -1377,6 +1459,9 @@ with tabs[4]:
         ("TRR/LRR Engine", "✅ Active"),
         ("On-Chain Scanner", "✅ Active"),
         ("Bottleneck Scanner", "✅ Active v4" if SCANNER_AVAILABLE and btl_result else "❌ Failed"),
+        ("CFTC CoT", "✅ Active" if COT_AVAILABLE else "❌ Failed"),
+        ("Pods Model", "✅ Active" if PODS_AVAILABLE else "❌ Failed"),
+        ("Momentum Tracker", "✅ Active" if MOMENTUM_AVAILABLE else "❌ Failed"),
         ("Options Convexity", "✅ Active" if SCANNER_AVAILABLE and btl_result and any(e.get('options_signal') for e in btl_result.get('enriched_signals', [])) else "⚠️ No signals"),
         ("External Config", "✅ ./config/supply_chain.json" if os.path.exists("./config/supply_chain.json") else "❌ Missing"),
         ("Scanner Nodes", f"{len(SCANNER_TICKERS)} real" if SCANNER_AVAILABLE else "❌ N/A"),
@@ -1386,8 +1471,8 @@ with tabs[4]:
     st.dataframe(pd.DataFrame(dq_rows, columns=["Check","Status"]), use_container_width=True, hide_index=True)
     st.divider()
     st.markdown("**📋 FRED DEBUG**")
-    st.caption("v15.2e: ISM primary NAPM, fallback XLI proxy. Real PCE fallback to nominal PCE/DPI. Treasury 2Y (DGS2) & HY OAS (BAMLH0A0HYM2) fetched and wired. Markets Fusion Layer active.")
+    st.caption("v15.2f: Full Hedgeye Suite. ISM primary NAPM, fallback XLI proxy. Real PCE fallback to nominal PCE/DPI. Treasury 2Y (DGS2) & HY OAS (BAMLH0A0HYM2) fetched and wired. CFTC CoT + Pods Model + Momentum Tracker integrated.")
     if st.toggle("Show FRED series map", False):
         st.json(FRED_SERIES)
 
-st.caption(f"MacroRegime Pro v15.2e · Built {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC · God Mode")
+st.caption(f"MacroRegime Pro v15.2f · Built {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M')} UTC · God Mode")

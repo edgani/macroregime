@@ -1081,7 +1081,9 @@ with tabs[1]:
                 st.metric("IDR 1M", f"{idr_1m:+.1%}", delta="Weaker" if idr_1m>0 else "Stronger")
             else: st.caption("No IDR")
         with lk3:
-            coal_s = prices.get("ADRO.JK", pd.Series()) or prices.get("ITMG.JK", pd.Series())
+            coal_s = prices.get("ADRO.JK")
+if coal_s is None or len(coal_s) == 0:
+    coal_s = prices.get("ITMG.JK")
             oil_s = prices.get("CL=F", pd.Series())
             if coal_s is not None and len(coal_s)>22 and oil_s is not None and len(oil_s)>22:
                 c1m = rn(coal_s,21); o1m = rn(oil_s,21)

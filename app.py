@@ -1405,9 +1405,12 @@ with tabs[3]:
     probs=q.get("probs",{"Q1":0.20,"Q2":0.30,"Q3":0.30,"Q4":0.20})
     m_probs=q.get("monthly_probs",{"Q1":0.20,"Q2":0.30,"Q3":0.30,"Q4":0.20})
     for k in ["Q1","Q2","Q3","Q4"]:
-        p=probs.get(k,0.0); mp=m_probs.get(k,0.0)
+        p_raw=probs.get(k,0.0); mp_raw=m_probs.get(k,0.0)
+        # FIX: clamp ke [0.0, 1.0] supaya Streamlit ga crash
+        p = max(0.0, min(1.0, float(p_raw) if math.isfinite(float(p_raw)) else 0.0))
+        mp = max(0.0, min(1.0, float(mp_raw) if math.isfinite(float(mp_raw)) else 0.0))
         label=f"{chr(9679) if k==sq else chr(9689) if k==mq else chr(9675)} {k}: S={p:.0%} M={mp:.0%}"
-        st.progress(p,text=label)
+        st.progress(p, text=label)
     st.divider()
     if st.toggle("Show raw regime JSON", False): st.json(q)
     md=q.get("monthly_debug",{})
@@ -1416,8 +1419,7 @@ with tabs[3]:
     st.divider()
     st.markdown("**🕰️ REGIME CONTEXT**")
     st.info(f"**Operating:** {op} | **Flip Hazard:** {q.get('flip_hazard',0):.0%} | **Deepness:** {q.get('deepness',0):.0%}")
-    st.caption("v15.2h: Full-coverage quad assignment. No hardcode. 3m/6m slope trend detection. ISM backup. CFTC→Markets. HOLD filter.")
-
+    st.caption("v15.2i: Real PCE only. DXY/Treasury sensitive threshold. Progress clamp. No hardcode.")
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # TAB 4: RISK & DIAGNOSTICS

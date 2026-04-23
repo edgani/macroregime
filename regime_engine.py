@@ -1,7 +1,7 @@
 """
-regime_engine.py v15.2h — Pure Data-Driven GIP, No Hardcoded Quarter
+regime_engine.py v15.2i — Pure Data-Driven GIP, No Hardcoded Quarter
 Growth: Real PCE YoY | Inflation: Headline CPI YoY | Policy: DFF+DGS10+DXY
-v15.2h: Full-coverage absolute fallback + sensitive 3m/6m slope trend detection
+v15.2i: Remove nominal PCE fallback + prob clamp + progress-safe
 """
 import os, time, logging, glob, math
 from datetime import datetime
@@ -17,7 +17,6 @@ TIMEOUT = 35
 
 FRED_SERIES = {
     'real_pce': 'PCEC1',
-    'real_pce_backup': 'PCE',
     'real_pce_dpi': 'DSPIC96',
     'cpi': 'CPIAUCSL',
     'core_cpi': 'CPILFESL',
@@ -111,10 +110,9 @@ def fetch_all_fred() -> Dict[str, pd.Series]:
     resolved = {}
     sources = {}
 
+    # Growth: Real PCE only. NEVER fallback to nominal PCE.
     if 'real_pce' in out:
         resolved['real_pce'] = out['real_pce']; sources['real_pce'] = 'fred'
-    elif 'real_pce_backup' in out:
-        resolved['real_pce'] = out['real_pce_backup']; sources['real_pce'] = 'fred_backup'
     elif 'real_pce_dpi' in out:
         resolved['real_pce'] = out['real_pce_dpi']; sources['real_pce'] = 'fred_dpi'
 
@@ -249,8 +247,13 @@ def _calc_probs(gv, iv, gt, it):
             base["Q2"]+=0.05; base["Q3"]+=0.08; base["Q1"]-=0.05; base["Q4"]-=0.08
         elif iv < 2.2:
             base["Q1"]+=0.08; base["Q4"]+=0.05; base["Q2"]-=0.05; base["Q3"]-=0.08
+    
+    # Clamp and normalize
+    base = {k: max(0.001, v) for k, v in base.items()}
     total = sum(base.values())
-    return {k:round(v/total,3) for k,v in base.items()}
+    out = {k: round(v/total, 3) for k, v in base.items()}
+    # Final clamp to ensure valid probability
+    return {k: max(0.0, min(1.0, v)) for k, v in out.items()}
 
 def yf_proxy():
     try:

@@ -121,9 +121,11 @@ class NarrativeEngine:
         self.feeds = self.cfg.get("narrative_sources", {}).get("rss_feeds", [])[:3]  # MAX 3 feeds
         self.themes = {
             "AI": ["nvidia", "ai chip", "gpu", "blackwell", "hbm3e", "cowos", "tsmc", "data center", "training", "inference", "cluster"],
-            "Energy": ["oil", "natural gas", "power", "vistra", "nuclear", "electricity", "grid", "data center power", "renewable", "lng"],
+            "Energy": ["oil", "natural gas", "power", "vistra", "nuclear", "electricity", "grid", "data center power", "renewable", "lng", "hormuz", "strait", "supply shock", "opec"],
             "Crypto": ["bitcoin", "ethereum", "etf", "halving", "mining", "hashrate", "spot etf", "institutional", "btc", "eth"],
-            "Semi": ["memory", "dram", "nand", "foundry", "process node", "yield", "advanced packaging", "substrate", "semi", "chip"],
+            "Semi": ["memory", "dram", "nand", "foundry", "process node", "yield", "advanced packaging", "substrate", "semi", "chip", "helium", "neon"],
+            "Agri": ["fertilizer", "urea", "corn", "wheat", "soybean", "planting", "grain", "food"],
+            "Shipping": ["tanker", "vessel", "port", "transit", "chokepoint", "freight", "logistics", "supply chain"],
         }
 
     def scrape_rss(self, max_per_feed: int = 3) -> List[Dict]:  # MAX 3 per feed
@@ -148,11 +150,17 @@ class NarrativeEngine:
 
     def demand_pulse(self, stories: List[Dict]) -> Dict:
         theme_scores = {t: [] for t in self.themes}
+        supply_shock_mentions = 0
         for s in stories:
-            c = self.classify(s["title"] + " " + s.get("summary", ""))
+            text = s["title"] + " " + s.get("summary", "")
+            c = self.classify(text)
             for t, sc in c["scores"].items():
                 if sc > 0:
                     theme_scores[t].append(sc)
+            # Track explicit supply shock language
+            shock_words = ["blockade", "embargo", "shortage", "deficit", "halt", "offline", "disruption", "chokepoint", "spike"]
+            if any(w in text.lower() for w in shock_words):
+                supply_shock_mentions += 1
         pulse = {}
         for t, vals in theme_scores.items():
             if vals:
@@ -161,6 +169,7 @@ class NarrativeEngine:
                             "mentions": len(vals), "state": "🔥 HOT" if avg > 0.35 else "⚡ WARM" if avg > 0.18 else "❄️ COLD"}
             else:
                 pulse[t] = {"narrative_score": 0.0, "peak_intensity": 0.0, "mentions": 0, "state": "❄️ COLD"}
+        pulse["_supply_shock"] = {"mentions": supply_shock_mentions, "state": "🔥 ACTIVE" if supply_shock_mentions >= 2 else "⚡ WATCH" if supply_shock_mentions >= 1 else "❄️ CALM"}
         return pulse
 
 

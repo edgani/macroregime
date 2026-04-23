@@ -629,7 +629,8 @@ def calculate_regime() -> Dict:
         # MONTHLY: yf_proxy PRIMARY
         if proxy:
             mg = proxy['monthly_growth']
-            if (ps := resolved.get('real_pce')) and len(ps) >= 6:
+            ps = resolved.get('real_pce')
+            if ps is not None and len(ps) >= 6:
                 py = yoy_roc(ps)
                 pce_m, gd = monthly_momentum(py)
                 md['growth'] = gd
@@ -637,14 +638,16 @@ def calculate_regime() -> Dict:
                     if gd.get('diff', 0) < -0.025:
                         mg = "decelerating"
         else:
-            if (ps := resolved.get('real_pce')) and len(ps) >= 6:
+            ps = resolved.get('real_pce')
+            if ps is not None and len(ps) >= 6:
                 py = yoy_roc(ps)
                 mg, gd = monthly_momentum(py)
                 md['growth'] = gd
             else:
                 mg = growth_trend
 
-        if (cs := resolved.get('cpi')) and len(cs) >= 6:
+        cs = resolved.get('cpi')
+        if cs is not None and len(cs) >= 6:
             cy = yoy_roc(cs)
             mi, id_ = monthly_momentum(cy)
             md['inflation'] = id_
@@ -699,7 +702,8 @@ def calculate_regime() -> Dict:
             macro_pulse['be_1m'] = round(float(be.iloc[-1] - be.iloc[-21]), 2)
             macro_pulse['be_now'] = round(float(be.iloc[-1]), 2)
 
-        if (cs := resolved.get('cpi')) and len(cs) >= 6:
+        cs = resolved.get('cpi')
+        if cs is not None and len(cs) >= 6:
             cy = yoy_roc(cs)
             mi, id_ = monthly_momentum(cy)
             md['inflation'] = id_

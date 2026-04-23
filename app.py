@@ -58,6 +58,51 @@ DISPLAY_MAP = {
     'XBRUSD=X':'XBRUSD', 'XTIUSD=X':'XTIUSD', 'XAUUSD=X':'XAUUSD', 'XAGUSD=X':'XAGUSD',
     'XCUUSD=X':'XCUUSD', 'XNGUSD=X':'XNGUSD', 'BTC-USD':'BTC', 'ETH-USD':'ETH', 'SOL-USD':'SOL',
 }
+
+# Hedgeye GIP Model Backtests — Quarterly Expected Values by Quad (from Hedgeye research)
+QUAD_BACKTEST = {
+    "Q1": {
+        "best_assets": ["Equities", "Credit", "Commodities", "FX"],
+        "worst_assets": ["Fixed Income", "USD"],
+        "best_sectors": ["Tech", "Consumer Disc", "Communication Svcs", "Industrials", "Materials", "REITs"],
+        "worst_sectors": ["Utilities", "Consumer Staples", "Health Care"],
+        "best_factors": ["High Beta", "Momentum", "Leverage", "Secular Growth", "Mid Caps"],
+        "worst_factors": ["Low Beta", "Defensives", "Value", "Dividend Yield", "Small Caps"],
+        "best_fi": ["BDCs", "Convertibles", "HY Credit", "EM $ Debt", "Leveraged Loans"],
+        "worst_fi": ["TIPS", "Short Duration Treasuries", "MBS", "Treasury Belly", "Long Bond"],
+    },
+    "Q2": {
+        "best_assets": ["Commodities", "Equities", "Credit", "FX"],
+        "worst_assets": ["Fixed Income", "USD"],
+        "best_sectors": ["Tech", "Industrials", "Financials", "Energy", "Consumer Disc"],
+        "worst_sectors": ["Utilities", "Communication Svcs", "Consumer Staples", "REITs", "Health Care"],
+        "best_factors": ["Secular Growth", "High Beta", "Small Caps", "Cyclical Growth", "Momentum"],
+        "worst_factors": ["Low Beta", "Dividend Yield", "Value", "Defensives", "Size"],
+        "best_fi": ["Convertibles", "BDCs", "Preferreds", "Leveraged Loans", "HY Credit"],
+        "worst_fi": ["Long Bond", "Treasury Belly", "Munis", "MBS", "IG Credit"],
+    },
+    "Q3": {
+        "best_assets": ["Gold", "Commodities", "Fixed Income"],
+        "worst_assets": ["Credit"],
+        "best_sectors": ["Utilities", "Energy", "REITs", "Tech", "Consumer Staples", "Health Care"],
+        "worst_sectors": ["Communication Svcs", "Financials", "Consumer Disc", "Industrials", "Materials"],
+        "best_factors": ["Secular Growth", "Momentum", "Mid Caps", "Low Beta", "Quality"],
+        "worst_factors": ["Small Caps", "Dividend Yield", "Value", "Defensives", "Size"],
+        "best_fi": ["Munis", "EM $ Debt", "Long Bond", "TIPS", "Treasury Belly"],
+        "worst_fi": ["BDCs", "Preferreds", "Convertibles", "Leveraged Loans", "HY Credit"],
+    },
+    "Q4": {
+        "best_assets": ["Fixed Income", "Gold", "USD"],
+        "worst_assets": ["Commodities", "Equities", "Credit", "FX"],
+        "best_sectors": ["Consumer Staples", "Health Care", "Utilities"],
+        "worst_sectors": ["Energy", "Tech", "Financials", "Industrials", "Consumer Disc"],
+        "best_factors": ["Low Beta", "Dividend Yield", "Quality", "Defensives", "Value"],
+        "worst_factors": ["High Beta", "Momentum", "Leverage", "Secular Growth", "Cyclical Growth"],
+        "best_fi": ["Long Bond", "Treasury Belly", "IG Credit", "Munis", "MBS"],
+        "worst_fi": ["Preferreds", "EM Local Currency", "BDCs", "Leveraged Loans", "TIPS"],
+    },
+}
+
 def clean_tk(tk): return DISPLAY_MAP.get(tk, tk)
 
 TRR_PARAMS = {
@@ -618,6 +663,7 @@ def build_macro_features(prices, q, fred):
 
 def build_health(prices, f):
     SECS=["XLE","XLF","XLI","XLB","XLK","XLV","XLY","XLP","XLU","XLRE","XLC"]
+    SEC_NAMES={"XLE":"Energy","XLF":"Financial","XLI":"Industrial","XLB":"Material","XLK":"Tech","XLV":"Health","XLY":"Cons Disc","XLP":"Cons Stap","XLU":"Utility","XLRE":"REIT","XLC":"Communication"}
     spy_t=ts(prices.get("SPY",pd.Series())); iwm_t=ts(prices.get("IWM",pd.Series()))
     spy_3m=f.get("spy_3m",0.0); rsp_3m=ret_n(prices.get("RSP",pd.Series()),63)
     eqw=clamp(0.5+(rsp_3m-spy_3m)*5) if math.isfinite(rsp_3m) and math.isfinite(spy_3m) else 0.5
@@ -629,6 +675,30 @@ def build_health(prices, f):
     trend=clamp(0.40*spy_t+0.20*eqw+0.15*small_conf+0.15*sec_s+0.10*(0.5-nf(f.get("uup_1m",0.0))))
     tail=clamp(0.35*(1-clamp((vix-13)/25))+0.25*(1-clamp((hy-300)/400))+0.20*small_conf+0.10*(0.5-nf(f.get("uup_1m",0.0)))+0.10*(1-clamp(0.5+(rsp_3m-spy_3m)*5)))
     weather=clamp(0.35*trade+0.35*trend+0.30*tail)
+    # Sector-by-sector health detail (Hedgeye breadth concept: multiple sectors up = healthy market)
+    sector_rows=[]
+    for t in SECS:
+        s=_s(prices.get(t,pd.Series()))
+        if len(s)>=50:
+            above=float(s.iloc[-1])>float(s.rolling(50).mean().iloc[-1])
+            r1m=ret_n(s,21)
+            sector_rows.append({"sector":SEC_NAMES.get(t,t),"above50":above,"r1m":r1m if math.isfinite(r1m) else 0.0})
+    # Leadership concentration: if only 1-2 sectors carry the market = unhealthy (Hedgeye insight)
+    leaders=[r for r in sector_rows if r["above50"]]
+    laggards=[r for r in sector_rows if not r["above50"]]
+    leader_r1m_avg=np.mean([r["r1m"] for r in leaders]) if leaders else 0.0
+    laggard_r1m_avg=np.mean([r["r1m"] for r in laggards]) if laggards else 0.0
+    leadership_gap=leader_r1m_avg-laggard_r1m_avg if (leaders and laggards) else 0.0
+    concentration_risk=clamp(leadership_gap/0.08)  # high = few sectors dominate
+    # Hedgeye-style verdict: healthy = broad participation, not 1-sector wonder
+    if weather>=0.62 and len(leaders)>=7 and concentration_risk<0.55:
+        health_verdict="🟢 Healthy — Broad participation across sectors"
+    elif weather>=0.50 and len(leaders)>=5:
+        health_verdict="🟡 Narrow — Rally broad but leadership concentrated"
+    elif weather>=0.38 and len(leaders)>=4:
+        health_verdict="🟠 Fragile — Few sectors holding tape; breadth thinning"
+    else:
+        health_verdict="🔴 Broken — Single-sector (or none) tape; high unwind risk"
     return {
         "breadth":breadth_s,"trade":trade,"trend":trend,"tail":tail,"weather":weather,
         "sec_above50":ab50,"sec_support":sec_s,"eqw_vs_cw":rsp_3m-spy_3m if math.isfinite(rsp_3m) else 0.0,
@@ -637,7 +707,10 @@ def build_health(prices, f):
         "trend_state":"persistent" if trend>=0.60 else "fragile" if trend<=0.40 else "mixed",
         "tail_state":"calm" if tail>=0.58 else "stressed" if tail<=0.42 else "neutral",
         "weather_state":"Risk-On" if weather>=0.58 else "Risk-Off" if weather<=0.42 else "Mixed",
-        "verdict":"Healthy" if weather>=0.62 else "Narrow" if weather>=0.50 else "Fragile" if weather>=0.38 else "Broken"
+        "verdict":"Healthy" if weather>=0.62 else "Narrow" if weather>=0.50 else "Fragile" if weather>=0.38 else "Broken",
+        "sector_rows":sector_rows,"leaders_count":len(leaders),"laggards_count":len(laggards),
+        "leadership_gap":round(leadership_gap,3),"concentration_risk":round(concentration_risk,2),
+        "market_health_verdict":health_verdict
     }
 
 def build_crash(f, h, q, prices=None):
@@ -925,6 +998,26 @@ with tabs[0]:
     with c3: st.metric("Trade Env", h.get('trade_state','—')); st.caption(f"Trend: {h.get('trend_state','—')}")
     with c4: st.metric("Tail", h.get('tail_state','—')); st.caption(f"Exec: {cr.get('exec_mode','?')}")
     st.caption(f"Risk-Off: {cr.get('risk_off',0):.0%} | Breadth Dmg: {cr.get('breadth_dmg',0):.0%} | Vol Stress: {cr.get('vol_stress',0):.0%} | HY OAS: {q.get('hy_oas', 350)}bp")
+    st.divider()
+    st.markdown("**🌡️ SECTOR BREADTH & MARKET HEALTH**")
+    st.caption("Hedgeye rule: several sectors rising = healthy market; 1-sector tape = unhealthy & prone to unwind.")
+    mhv = h.get('market_health_verdict', '—')
+    mhv_color = '#4ade80' if '🟢' in mhv else '#fbbf24' if '🟡' in mhv else '#fb923c' if '🟠' in mhv else '#f87171'
+    st.markdown(f"<div style='font-size:15px;font-weight:700;color:{mhv_color};'>{mhv}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div style='font-size:11px;color:#8b949e;'>Sectors above 50D: {h.get('sec_above50',0)}/11 | Leadership concentration risk: {h.get('concentration_risk',0):.0%} | Leaders: {h.get('leaders_count',0)} | Laggards: {h.get('laggards_count',0)}</div>", unsafe_allow_html=True)
+    if h.get('sector_rows'):
+        srows = h['sector_rows']
+        srows_sorted = sorted(srows, key=lambda x: x['r1m'], reverse=True)
+        scols = st.columns(min(len(srows_sorted), 6))
+        for idx, sr in enumerate(srows_sorted):
+            with scols[idx % len(scols)]:
+                color = '#4ade80' if sr['above50'] else '#f87171'
+                bg = '#1a4d2e' if sr['above50'] else '#5c1a1a'
+                st.markdown(f"""<div style="background:{bg};border:1px solid #30363d;border-radius:6px;padding:6px;text-align:center;">
+                    <div style="font-size:10px;color:#8b949e;">{sr['sector']}</div>
+                    <div style="font-size:12px;font-weight:700;color:{color};">{sr['r1m']:+.1%}</div>
+                    <div style="font-size:9px;color:#8b949e;">{'Above 50D' if sr['above50'] else 'Below 50D'}</div>
+                </div>""", unsafe_allow_html=True)
 
 with tabs[1]:
     def rn(s,n):
@@ -1134,6 +1227,7 @@ with tabs[1]:
         if PODS_AVAILABLE:
             st.divider()
             st.markdown("**🧮 PODS MODEL — Fundamental Overlay (Mag 7)**")
+            st.caption("Hedgeye POD1 = Revenue Growth rate-of-change. In Q3, secular revenue acceleration can win while cyclical GDP slows.")
             with st.spinner("Loading quarterly fundamentals..."):
                 try:
                     pods = scan_pods(["AAPL","MSFT","GOOGL","AMZN","NVDA","META","TSLA"])
@@ -1141,12 +1235,17 @@ with tabs[1]:
                     for p in pods:
                         if "error" in p:
                             continue
+                        rev_state = p["pod1_revenue"].get("state", "-")
+                        # Highlight secular acceleration in Q3 context
+                        secular_badge = ""
+                        if sq == "Q3" and rev_state == "accelerating":
+                            secular_badge = " 🟡 SECULAR"
                         pods_rows.append({
                             "Ticker": p["ticker"],
                             "Signal": p["signal"],
                             "Grade": p["grade"],
                             "Score": p["combined_score"],
-                            "Rev": p["pod1_revenue"].get("state", "-"),
+                            "Rev": rev_state + secular_badge,
                             "Margin": p["pod2_margins"].get("state", "-"),
                             "FCF": p["pod3_fcf"].get("state", "-"),
                             "FCF Yld": f"{p['pod3_fcf'].get('fcf_yield', 0)}%",
@@ -1313,6 +1412,23 @@ with tabs[1]:
 with tabs[2]:
     render_bottleneck_intel(btl_result)
     st.divider()
+    st.markdown("**🧠 HOW HEDGEYE FINDS BOTTLENECKS**")
+    st.caption("Source: Hedgeye research process — earnings call forensics, capacity utilization, and demand-supply mismatch.")
+    _h("""
+    <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:12px;margin-bottom:10px;">
+      <div style="font-size:13px;font-weight:700;color:#58a6ff;margin-bottom:6px;">Hedgeye Bottleneck Detection Framework</div>
+      <div style="font-size:11px;color:#c9d1d9;line-height:1.5;">
+        1. <b>Earnings Call Forensics</b> — Listen for management mentioning capacity constraints, lead-time extensions, or order backlogs (e.g., SBUX mobile-order bottleneck, NVDA CoWoS capacity).<br>
+        2. <b>Capacity Utilization Data</b> — FRED TCU (Total Capacity Utilization) and regional Fed surveys. >85% = bottleneck zone.<br>
+        3. <b>Demand vs. Supply Narrative</b> — RSS/News classification for demand spikes (AI, data-center power, EV battery metals) against supply deficits.<br>
+        4. <b>Upstream/Downstream Mapping</b> — Identify who gets hurt when a node chokes (e.g., HBM shortage → GPU shortage → AI infra delay).<br>
+        5. <b>Allocation Verdict</b> — Priority = guaranteed supply; Standard = may face rationing; Cut = avoid.<br>
+        6. <b>Transmission Check</b> — If the bottleneck is already priced-in (3M move >25% or vol >40%), skip the chase. Early/undercovered = preferred.<br>
+        7. <b>Options Convexity</b> — Only scan OTM calls when spot >$30, transmission strong, and not priced-in.
+      </div>
+    </div>
+    """)
+    st.divider()
     st.markdown("**📅 UPCOMING CATALYSTS (Front-Run Map)**")
     events=[
         {"title":"US CPI (Apr)","when":"~Apr 16","impact":"Panas = yields naik, USD up. Dingin = buka pintu cut lebih cepat."},
@@ -1351,6 +1467,64 @@ with tabs[3]:
         mp = max(0.0, min(1.0, float(mp_raw) if math.isfinite(float(mp_raw)) else 0.0))
         label=f"{chr(9679) if k==sq else chr(9689) if k==mq else chr(9675)} {k}: S={p:.0%} M={mp:.0%}"
         st.progress(p, text=label)
+    st.divider()
+    st.markdown("**🎯 HEDGEYE QUAD BACKTEST — Expected Values by Regime**")
+    st.caption("Source: Hedgeye GIP Model Market Historical Backtests. Quarterly expected values since 1Q98.")
+    active_quad = sq
+    qb = QUAD_BACKTEST.get(active_quad, QUAD_BACKTEST["Q2"])
+    qcols = st.columns(4)
+    with qcols[0]:
+        st.markdown(f"<div style='background:{_qb(active_quad)};padding:8px;border-radius:8px;text-align:center;'><div style='font-size:11px;color:{_qf(active_quad)};font-weight:700;'>{active_quad} BEST ASSETS</div></div>", unsafe_allow_html=True)
+        for a in qb["best_assets"]: st.markdown(f"<div style='font-size:11px;color:#4ade80;'>▲ {a}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='font-size:11px;color:#f87171;font-weight:700;margin-top:6px;'>WORST ASSETS</div>", unsafe_allow_html=True)
+        for a in qb["worst_assets"]: st.markdown(f"<div style='font-size:11px;color:#f87171;'>▼ {a}</div>", unsafe_allow_html=True)
+    with qcols[1]:
+        st.markdown(f"<div style='background:{_qb(active_quad)};padding:8px;border-radius:8px;text-align:center;'><div style='font-size:11px;color:{_qf(active_quad)};font-weight:700;'>{active_quad} BEST SECTORS</div></div>", unsafe_allow_html=True)
+        for s in qb["best_sectors"]: st.markdown(f"<div style='font-size:11px;color:#4ade80;'>▲ {s}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='font-size:11px;color:#f87171;font-weight:700;margin-top:6px;'>WORST SECTORS</div>", unsafe_allow_html=True)
+        for s in qb["worst_sectors"]: st.markdown(f"<div style='font-size:11px;color:#f87171;'>▼ {s}</div>", unsafe_allow_html=True)
+    with qcols[2]:
+        st.markdown(f"<div style='background:{_qb(active_quad)};padding:8px;border-radius:8px;text-align:center;'><div style='font-size:11px;color:{_qf(active_quad)};font-weight:700;'>{active_quad} BEST FACTORS</div></div>", unsafe_allow_html=True)
+        for f_ in qb["best_factors"]: st.markdown(f"<div style='font-size:11px;color:#4ade80;'>▲ {f_}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='font-size:11px;color:#f87171;font-weight:700;margin-top:6px;'>WORST FACTORS</div>", unsafe_allow_html=True)
+        for f_ in qb["worst_factors"]: st.markdown(f"<div style='font-size:11px;color:#f87171;'>▼ {f_}</div>", unsafe_allow_html=True)
+    with qcols[3]:
+        st.markdown(f"<div style='background:{_qb(active_quad)};padding:8px;border-radius:8px;text-align:center;'><div style='font-size:11px;color:{_qf(active_quad)};font-weight:700;'>{active_quad} BEST FIXED INCOME</div></div>", unsafe_allow_html=True)
+        for fi in qb["best_fi"]: st.markdown(f"<div style='font-size:11px;color:#4ade80;'>▲ {fi}</div>", unsafe_allow_html=True)
+        st.markdown(f"<div style='font-size:11px;color:#f87171;font-weight:700;margin-top:6px;'>WORST FIXED INCOME</div>", unsafe_allow_html=True)
+        for fi in qb["worst_fi"]: st.markdown(f"<div style='font-size:11px;color:#f87171;'>▼ {fi}</div>", unsafe_allow_html=True)
+    st.divider()
+    st.markdown("**🧠 2 KINDS OF QUAD3 — GOOD vs BAD**")
+    st.caption("Hedgeye insight: Same macro backdrop can produce both sharp drawdowns and powerful squeezes depending on positioning and signal memory.")
+    if active_quad == "Q3":
+        _h("""
+        <div style="background:#161b22;border:1px solid #30363d;border-radius:10px;padding:12px;margin-bottom:10px;">
+          <div style="display:flex;gap:10px;">
+            <div style="flex:1;background:#5c1a1a;border-radius:8px;padding:10px;">
+              <div style="font-size:13px;font-weight:700;color:#f87171;margin-bottom:6px;">🔴 BAD Q3</div>
+              <div style="font-size:11px;color:#c9d1d9;line-height:1.5;">
+                Growth decelerating faster than expected + Inflation accelerating faster than modeled.<br>
+                Market finally listens to what the fractal had been saying.<br>
+                → Short Tech (XLK), REITs (XLRE), Financials (XLF)<br>
+                → Long Utilities (XLU), Energy (XOP), Gold (GLD)
+              </div>
+            </div>
+            <div style="flex:1;background:#5c3d00;border-radius:8px;padding:10px;">
+              <div style="font-size:13px;font-weight:700;color:#fbbf24;margin-bottom:6px;">🟡 GOOD Q3</div>
+              <div style="font-size:11px;color:#c9d1d9;line-height:1.5;">
+                Same Quad, different memory. Fractal remembered the oversold signal.<br>
+                Short squeeze runs its course. Tourist crowd calls it a new bull market.<br>
+                → Revenue acceleration (POD1) wins even in GDP slowdown<br>
+                → Long GOOGL, NFLX (POD1 accelerations)<br>
+                → Short ORCL, CRM, WDAY (software deceleration)
+              </div>
+            </div>
+          </div>
+          <div style="font-size:11px;color:#8b949e;margin-top:8px;text-align:center;">
+            Key differentiator: <b>Secular Revenue (POD1) Growth can accelerate while Cyclical Growth slows.</b>
+          </div>
+        </div>
+        """)
     st.divider()
     if st.toggle("Show raw regime JSON", False): st.json(q)
     md=q.get("monthly_debug",{})

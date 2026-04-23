@@ -168,6 +168,10 @@ class PodsModel:
         combined = 0.40 * p1["score"] + 0.35 * p2["score"] + 0.25 * p3["score"]
         grade = "A" if combined >= 0.6 else "B" if combined >= 0.2 else "C" if combined >= -0.2 else "D"
         signal = "LONG" if combined >= 0.4 else "SHORT" if combined <= -0.4 else "NEUTRAL"
+        # Hedgeye insight: In Q3, secular revenue acceleration (POD1) can win while cyclical GDP slows
+        # Distinguish secular growth (long-term trend) from cyclical (short-term GDP-linked)
+        secular_strength = "strong" if p1["score"] >= 0.5 and p2["score"] >= 0.0 else "moderate" if p1["score"] >= 0.0 else "weak"
+        cyclical_risk = "low" if p3["score"] >= 0.0 else "elevated" if p3["score"] >= -0.5 else "high"
         return {
             "ticker": self.ticker,
             "price": self.price,
@@ -178,6 +182,8 @@ class PodsModel:
             "combined_score": round(combined, 2),
             "grade": grade,
             "signal": signal,
+            "secular_strength": secular_strength,
+            "cyclical_risk": cyclical_risk,
             "timestamp": datetime.now().isoformat(),
         }
 

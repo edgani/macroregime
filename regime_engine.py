@@ -1,6 +1,7 @@
 """
-regime_engine.py v15.2c — Pure Data-Driven GIP, No Hardcoded Quarter
+regime_engine.py v15.2d — Pure Data-Driven GIP, No Hardcoded Quarter
 Growth: Real PCE YoY | Inflation: Headline CPI YoY | Policy: DFF+DGS10+DXY
+v15.2d Fix: Pass treasury_2y & hy_oas to output. Add HY OAS FRED series.
 """
 import os, time, logging, glob, math
 from datetime import datetime
@@ -27,6 +28,7 @@ FRED_SERIES = {
     'ism_mfg': 'NAPM',
     'claims': 'ICSA',
     'breakeven_10y': 'T10YIE',
+    'hy_oas': 'BAMLH0A0HYM2',  # ICE BofA US High Yield OAS
 }
 
 PRIMARY_SERIES = ['real_pce', 'cpi', 'fed_funds', 'treasury_10y', 'ism_mfg', 'claims', 'breakeven_10y', 'dxy']
@@ -126,7 +128,7 @@ def fetch_all_fred() -> Dict[str, pd.Series]:
         if ism_proxy is not None:
             resolved['ism_mfg'] = ism_proxy; sources['ism_mfg'] = 'xli_proxy'
 
-    for k in ['fed_funds', 'treasury_10y', 'treasury_2y', 'dxy', 'claims', 'breakeven_10y']:
+    for k in ['fed_funds', 'treasury_10y', 'treasury_2y', 'dxy', 'claims', 'breakeven_10y', 'hy_oas']:
         if k in out:
             resolved[k] = out[k]; sources[k] = 'fred'
 
@@ -211,7 +213,7 @@ def assign_quad(gt: str, it: str, gv=None, iv=None, use_abs=True) -> str:
         if gv >= 2.5 and iv >= 2.8: return "Q2"
         if gv >= 2.5 and iv < 2.2: return "Q1"
         if gv < 2.0 and iv < 2.2: return "Q4"
-    return "Q2"  # Neutral default
+    return "Q2"
 
 def yf_proxy():
     try:
@@ -303,6 +305,8 @@ def calculate_regime() -> Dict:
     infl_val = 3.0
     policy_rate = 4.5
     ten_y = 4.2
+    treasury_2y = 3.7
+    hy_oas = 350.0
     confidence = 0.25
     mg = "stable"
     mi = "stable"
@@ -322,6 +326,10 @@ def calculate_regime() -> Dict:
         ff = resolved.get('fed_funds'); t10 = resolved.get('treasury_10y')
         policy_rate = float(ff.iloc[-1]) if ff is not None else 4.5
         ten_y = float(t10.iloc[-1]) if t10 is not None else 4.2
+        t2 = resolved.get('treasury_2y')
+        treasury_2y = float(t2.iloc[-1]) if t2 is not None else (ten_y - 0.5)
+        hy_s = resolved.get('hy_oas')
+        hy_oas = float(hy_s.iloc[-1]) if hy_s is not None else 350.0
         confidence = 0.85 if len(resolved) >= 7 else 0.70
 
         ism = resolved.get('ism_mfg')
@@ -361,6 +369,10 @@ def calculate_regime() -> Dict:
         ff = resolved.get('fed_funds'); t10 = resolved.get('treasury_10y')
         policy_rate = float(ff.iloc[-1]) if ff is not None else 4.5
         ten_y = float(t10.iloc[-1]) if t10 is not None else 4.2
+        t2 = resolved.get('treasury_2y')
+        treasury_2y = float(t2.iloc[-1]) if t2 is not None else (ten_y - 0.5)
+        hy_s = resolved.get('hy_oas')
+        hy_oas = float(hy_s.iloc[-1]) if hy_s is not None else 350.0
 
         ism = resolved.get('ism_mfg')
         if ism is not None and len(ism) >= 2:
@@ -391,6 +403,8 @@ def calculate_regime() -> Dict:
             infl_trend = "accelerating" if proxy['inflation_yoy']>2.8 else "decelerating" if proxy['inflation_yoy']<2.3 else "stable"
             growth_val = proxy['growth_yoy']; infl_val = proxy['inflation_yoy']
             policy_rate = proxy['policy_rate']; ten_y = proxy['treasury_10y']
+            treasury_2y = ten_y - 0.5
+            hy_oas = 350.0
             vix = proxy.get('vix', 20.0)
             confidence = proxy['confidence']; source = proxy['source']
             mg = proxy['monthly_growth']; mi = proxy['monthly_infl']
@@ -398,7 +412,8 @@ def calculate_regime() -> Dict:
             return {'quad':'Q2','structural_quad':'Q2','monthly_quad':'Q2','global_quad':'Q2',
                     'confidence':0.25,'source':'fallback','growth_trend':'stable','inflation_trend':'stable',
                     'growth_yoy':1.5,'inflation_yoy':3.0,'policy_rate':4.5,'treasury_10y':4.2,
-                    'vix':vix,'policy_stance':'In-a-box 📦','fred_loaded':len(resolved),'fred_missing':len(PRIMARY_SERIES),
+                    'treasury_2y':3.7,'hy_oas':350.0,
+                    'vix':vix,'policy_stance':'In-a-box 📦','fred_loaded':0,'fred_missing':len(PRIMARY_SERIES),
                     'operating_regime':'⚠️ Data Unavailable','monthly_debug':{},'macro_pulse':{},
                     'probs':{"Q1":0.20,"Q2":0.30,"Q3":0.30,"Q4":0.20},
                     'monthly_probs':{"Q1":0.20,"Q2":0.30,"Q3":0.30,"Q4":0.20},
@@ -449,6 +464,7 @@ def calculate_regime() -> Dict:
         'growth_trend':growth_trend,'inflation_trend':infl_trend,
         'growth_yoy':round(float(growth_val),2),'inflation_yoy':round(float(infl_val),2),
         'policy_rate':round(float(policy_rate),2),'treasury_10y':round(float(ten_y),2),
+        'treasury_2y':round(float(treasury_2y),2),'hy_oas':round(float(hy_oas),2),
         'vix':round(float(vix),2),'policy_stance':ps_text,
         'fred_loaded':fred_loaded,'fred_missing':len(PRIMARY_SERIES)-fred_loaded,
         'fred_missing_keys': fred_missing_keys,

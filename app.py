@@ -142,6 +142,7 @@ global_ = snap.get("global",{})
 rr = snap.get("risk_ranges",{})
 scen = snap.get("scenarios",{})
 narr = snap.get("narratives",{})
+disc = snap.get("discovery",{})
 btk = snap.get("bottleneck",{})
 pb_data = snap.get("playbook",{})
 prices = snap.get("prices",{})
@@ -177,66 +178,63 @@ if page=="🏠 Dashboard":
         st.markdown("<br>",unsafe_allow_html=True)
         st.markdown("### 📊 Quad Transition Probabilities")
         
-        def _compact_transition_chart(probs: dict, current_q: str, label: str):
-            """Compact bar + scenario labels."""
+        def _transition_chart(probs: dict, current_q: str, label: str):
+            """Clear readable transition probability bar chart."""
             fig = go.Figure()
+            s_sorted = sorted(probs.items(), key=lambda x: x[1], reverse=True)
             for q,p in sorted(probs.items()):
-                is_current = (q == current_q)
-                fig.add_bar(x=[q], y=[p], marker_color=QC.get(q,"#9CA3AF"),
-                    marker_line=dict(width=2 if is_current else 0, color="white"),
-                    text=[f"{p:.0%}"], textposition="outside",
-                    name=q)
-            # Scenario annotations at bottom
-            scenarios_sorted = sorted(probs.items(), key=lambda x: x[1], reverse=True)
-            base = scenarios_sorted[0] if scenarios_sorted else ("Q3",0)
-            alt  = scenarios_sorted[1] if len(scenarios_sorted)>1 else ("Q4",0)
-            
+                is_top = (q == s_sorted[0][0])
+                fig.add_bar(
+                    x=[q], y=[p],
+                    marker_color=QC.get(q,"#9CA3AF"),
+                    marker_line=dict(width=3 if is_top else 0, color="white"),
+                    text=[f"<b>{p:.0%}</b>"], textposition="outside",
+                    textfont=dict(size=14, color=QC.get(q,"#E8ECF0")),
+                    name=q,
+                )
             fig.update_layout(
-                showlegend=False, height=170,
-                margin=dict(t=30,b=30,l=0,r=0),
+                showlegend=False, height=220,
+                margin=dict(t=40,b=8,l=4,r=4),
                 paper_bgcolor="#111827", plot_bgcolor="#111827",
-                font=dict(color="#E8ECF0", family="JetBrains Mono", size=10),
-                title=dict(text=f"From {current_q} → Next Quad | {label}", font=dict(size=10,color="#9CA3AF")),
-                yaxis=dict(range=[0,1.15], tickformat=".0%", showgrid=True, gridcolor="#1F2B3D", tickfont=dict(size=9)),
-                xaxis=dict(showgrid=False, tickfont=dict(size=10)),
-                bargap=0.3,
+                font=dict(color="#E8ECF0", family="JetBrains Mono"),
+                title=dict(text=f"<b>From {current_q} → Next</b>  <span style='color:#6B7280;font-size:11px'>{label}</span>",
+                    font=dict(size=13, color="#E8ECF0"), x=0),
+                yaxis=dict(range=[0,1.25], tickformat=".0%", showgrid=True,
+                    gridcolor="#1F2B3D", tickfont=dict(size=11), showticklabels=True),
+                xaxis=dict(showgrid=False, tickfont=dict(size=13, color="#E8ECF0")),
+                bargap=0.25,
             )
-            # Bottom annotation: BASE → ALT
-            base_txt = f"🎯BASE {base[0]}={base[1]:.0%}"
-            alt_txt  = f" | 🔄ALT {alt[0]}={alt[1]:.0%}"
-            if len(scenarios_sorted)>2:
-                risk = scenarios_sorted[2]
-                alt_txt += f" | ⚠️{risk[0]}={risk[1]:.0%}"
-            fig.add_annotation(x=0.5, y=-0.28, xref="paper", yref="paper",
-                text=base_txt+alt_txt, showarrow=False,
-                font=dict(size=9, color="#9CA3AF"), align="center")
             return fig
 
         tp1,tp2,tp3 = st.columns(3)
         with tp1:
-            st.plotly_chart(_compact_transition_chart(gip.structural_probs, sq, "Structural"), use_container_width=True, config={"displayModeBar":False})
+            st.plotly_chart(_transition_chart(gip.structural_probs, sq, "Structural — Quarterly"), use_container_width=True, config={"displayModeBar":False})
         with tp2:
-            st.plotly_chart(_compact_transition_chart(gip.monthly_probs, mq, "Monthly"), use_container_width=True, config={"displayModeBar":False})
+            st.plotly_chart(_transition_chart(gip.monthly_probs, mq, "Monthly — Weather"), use_container_width=True, config={"displayModeBar":False})
         with tp3:
-            # Global quad transition from global_
             gprobs = global_.get("global_probs",{})
             if gprobs:
-                st.plotly_chart(_compact_transition_chart(gprobs, gq, "Global"), use_container_width=True, config={"displayModeBar":False})
-        
-        # Scenario list compact
+                st.plotly_chart(_transition_chart(gprobs, gq, "Global — 50 Countries"), use_container_width=True, config={"displayModeBar":False})
+
+        # Scenario cards — 2×2 grid, readable size
         scenarios_list = scen.get("scenarios",[])
         if scenarios_list:
             badges = ["🎯 BASE","🔄 ALT","⚠️ RISK","📌 TAIL"]
-            scen_cols = st.columns(len(scenarios_list[:4]))
-            for i, (sc_item, col) in enumerate(zip(scenarios_list[:4], scen_cols)):
-                pc = "#10B981" if sc_item.probability>0.40 else "#F59E0B" if sc_item.probability>0.25 else "#6B7280"
+            badge_colors = ["#10B981","#F59E0B","#EF4444","#6366F1"]
+            row1, row2 = st.columns(2), st.columns(2)
+            grids = [row1[0], row1[1], row2[0], row2[1]]
+            for i, (sc_item, col) in enumerate(zip(scenarios_list[:4], grids)):
+                pc = badge_colors[i]
                 with col:
-                    st.markdown(f"""<div style="background:#1A2235;border-radius:8px;padding:10px;border-left:3px solid {pc}">
-<div style="font-size:10px;color:#9CA3AF">{badges[i]}</div>
-<div style="font-family:monospace;font-weight:700;color:{pc};font-size:12px">{sc_item.name}</div>
-<div style="font-size:10px;color:#9CA3AF;margin-top:4px">P={sc_item.probability:.0%} | Conf={sc_item.confirmation_score:.0%}</div>
-<div style="font-size:10px;color:#E8ECF0;margin-top:4px">{sc_item.headline[:60]}...</div>
-<div style="font-size:10px;color:#9CA3AF;margin-top:2px">EM: {sc_item.em_note[:55]}...</div>
+                    em_short = sc_item.em_note[:70] + "..." if len(sc_item.em_note) > 70 else sc_item.em_note
+                    st.markdown(f"""<div style="background:#111827;border:1px solid #1F2B3D;border-left:4px solid {pc};border-radius:8px;padding:14px 16px;margin:4px 0">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+  <span style="font-size:11px;color:{pc};font-weight:700;letter-spacing:1px">{badges[i]}</span>
+  <span style="font-family:monospace;font-size:11px;color:#9CA3AF">P={sc_item.probability:.0%} · Conf={sc_item.confirmation_score:.0%}</span>
+</div>
+<div style="font-family:monospace;font-weight:700;color:#E8ECF0;font-size:14px;margin-bottom:4px">{sc_item.name}</div>
+<div style="font-size:12px;color:#9CA3AF;line-height:1.4;margin-bottom:8px">{sc_item.headline}</div>
+<div style="font-size:11px;color:#6B7280;border-top:1px solid #1F2B3D;padding-top:6px">🌍 {em_short}</div>
 </div>""", unsafe_allow_html=True)
 
     st.markdown("---")
@@ -306,18 +304,13 @@ if page=="🏠 Dashboard":
 <div style="margin-top:8px;font-size:12px">🎯 Best: {', '.join(em_sig.get('best',[])[:6])}</div>
 </div>""",unsafe_allow_html=True)
 
-    bc=scen.get("base_case")
+    # Base scenario summary moved to dedicated Scenarios tab
+    bc = scen.get("base_case")
     if bc:
-        st.markdown("---\n### 🔮 Base Scenario")
-        pc="#10B981" if bc.probability>0.40 else "#F59E0B"
-        st.markdown(f"""<div style="background:#1F2B3D;border-radius:12px;padding:16px">
-<div style="font-size:14px;font-weight:700;color:{pc}">{bc.name}</div>
-<div style="font-size:12px;color:#E8ECF0;margin:4px 0">{bc.headline}</div>
-<div style="font-size:11px;color:#9CA3AF">Probability: {bc.probability:.0%}</div>
-<div style="margin-top:8px;font-size:12px">✅ LONG: {", ".join(bc.best_assets[:4])}  | 
-❌ AVOID: {", ".join(bc.worst_assets[:3])}</div>
-<div style="font-size:11px;color:#9CA3AF;margin-top:6px">Catalyst: {bc.catalyst}</div>
-</div>""",unsafe_allow_html=True)
+        st.markdown(f"""<div style="background:#111827;border:1px solid #1F2B3D;border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+<span style="font-size:12px;color:#9CA3AF">🔮 Base: <b style="color:#10B981">{bc.name}</b> — {bc.headline[:60]}...</span>
+<span style="font-size:11px;color:#6B7280">→ See <b>Scenarios</b> tab for full action plan</span>
+</div>""", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # GIP REGIME
@@ -1170,61 +1163,150 @@ elif page=="📖 Narratives":
                 for n in narr.get(mkey,[])[:6]: _narr_card(n)
     
     with tab5:
-        st.caption("🎯 **Pre-Consensus** = regime-aligned narratives that are brewing but not yet widely known. Low pump risk, high regime fit = the transformer/switchgear type setup.")
+        st.caption("🎯 **Pre-Consensus** = regime-aligned narratives that are brewing but not yet widely known.")
         for n in narr.get("pre_consensus",[])[:8]: _narr_card(n)
+
+    # ── AI Adaptive Discovery ────────────────────────────────────────────────
+    st.markdown("---")
+    st.markdown("### 🤖 Adaptive AI Discovery")
+    st.caption("Claude scans current market data and generates novel hypotheses NOT in the hardcoded list. Runs once per regime cycle, cached 4 hours.")
+    
+    if not disc or disc.get("status") == "api_unavailable":
+        st.warning(f"⚠️ {disc.get('message','Adaptive discovery unavailable.')} Set ANTHROPIC_API_KEY in environment.")
+        with st.expander("Why adaptive discovery matters"):
+            st.markdown("""
+**Hardcoded narratives** (e.g. Iran-Hormuz, BTC Halving) are known plays you can always scan.
+
+**Adaptive discovery** finds what's EMERGING but NOT YET in the library:
+- Like transformer/switchgear bottleneck in 2024 (before Hammond Power Solutions surged)
+- Like TAO/Bittensor in March 2026 (before the subnet narrative went mainstream)
+- Like SiC power semiconductors BEFORE the Wolfspeed distress thesis was obvious
+
+The system calls Claude API with current regime + top/bottom movers and asks:
+*"What am I missing? What narrative fits this data that isn't in my list?"*
+""")
+    elif disc.get("status") == "ok":
+        discoveries = disc.get("discoveries", [])
+        gen_at = disc.get("generated_at","")
+        st.caption(f"Generated: {gen_at} · {len(discoveries)} novel hypotheses · Regime: {sq}/{mq}")
+        
+        for i, d in enumerate(discoveries):
+            stage_c = {"active":"#10B981","building":"#F59E0B","brewing":"#6B7280"}.get(d.get("stage","brewing"),"#6B7280")
+            stage_b = {"active":"🟢 ACTIVE","building":"🟡 BUILDING","brewing":"⚪ BREWING"}.get(d.get("stage","brewing"),"⚪")
+            with st.expander(
+                f"🤖 {stage_b} {d['name']} — Conv:{d.get('conviction',0):.0%} · Pump:{d.get('pump_risk',0):.0%}",
+                expanded=(i==0)
+            ):
+                st.markdown(f"""<div style="background:#0D1520;border-left:3px solid {stage_c};border-radius:6px;padding:12px;margin-bottom:10px">
+<div style="font-size:13px;color:#E8ECF0">{d.get('thesis','')}</div>
+</div>""", unsafe_allow_html=True)
+                cc = st.columns(3)
+                cc[0].markdown(f"**✅ LONG**: {', '.join(d.get('beneficiary_tickers',[])[:5])}")
+                cc[1].markdown(f"**❌ FADE**: {', '.join(d.get('fade_tickers',[])[:3])}")
+                cc[2].markdown(f"**Confirm**: {d.get('confirmation_signal','')[:60]}")
+                st.caption(f"Category: {d.get('category','—')} · Regime fit: {d.get('regime_fit',0):.0%} · ⚠️ AI-generated hypothesis — verify with your own research")
+
+        if st.button("🔄 Refresh Discovery (new run)", help="Forces a new Claude API call"):
+            from engines.adaptive_discovery_engine import AdaptiveDiscoveryEngine
+            with st.spinner("Calling Claude API for new discovery..."):
+                new_disc = AdaptiveDiscoveryEngine().run(
+                    prices=prices, structural_quad=sq, monthly_quad=mq,
+                    gip_features=gip.features if gip else {}, force_refresh=True
+                )
+            st.session_state.snap["discovery"] = new_disc
+            st.rerun()
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SCENARIOS
 # ══════════════════════════════════════════════════════════════════════════════
 elif page=="🔮 Scenarios":
-    st.markdown("# 🔮 Adaptive Scenarios + Quad Transition Map")
-    st.caption("Data-driven regime transition discovery. Probabilities update with live GIP features.")
+    st.markdown("# 🔮 Scenario Action Plans")
+    st.caption("Full drill-down for each path: what to buy, sell, size, watch. This is DIFFERENT from Dashboard — deeper actionable detail.")
     if not scen: st.warning("No scenario data."); st.stop()
 
-    stab=scen.get("regime_stability","unknown")
-    c1,c2,c3=st.columns(3)
-    c1.markdown(f'<div style="background:#1F2B3D;border-radius:10px;padding:12px;text-align:center"><div style="font-size:11px;color:#9CA3AF">Regime Stability</div><div style="font-size:20px;font-weight:700;color:{"#10B981" if stab=="stable" else "#F59E0B"}">{stab.upper()}</div></div>',unsafe_allow_html=True)
-    c2.markdown(f'<div style="background:#1F2B3D;border-radius:10px;padding:12px;text-align:center"><div style="font-size:11px;color:#9CA3AF">Flip Risk</div><div style="font-size:20px;font-weight:700;color:{"#EF4444" if scen.get("flip_hazard",0)>0.4 else "#F59E0B"}">{scen.get("flip_hazard",0):.0%}</div></div>',unsafe_allow_html=True)
-    c3.markdown(f'<div style="background:#1F2B3D;border-radius:10px;padding:12px;text-align:center"><div style="font-size:11px;color:#9CA3AF">Current → Most Likely</div><div style="font-size:16px;font-weight:700;color:#E8ECF0">{scen.get("base_case").name if scen.get("base_case") else "—"}</div></div>',unsafe_allow_html=True)
+    scenarios = scen.get("scenarios",[])
+    badge_icons  = ["🎯","🔄","⚠️","📌"]
+    badge_labels = ["BASE","ALT","RISK","TAIL"]
+    badge_colors = ["#10B981","#F59E0B","#EF4444","#6366F1"]
+    
+    for i, s in enumerate(scenarios[:4]):
+        pc = badge_colors[i]
+        lbl = badge_labels[i]
+        with st.expander(f"{badge_icons[i]} {lbl}: {s.name}  —  P={s.probability:.0%} · Conf={s.confirmation_score:.0%} · ~{s.timeframe_weeks}w", expanded=(i==0)):
+            st.markdown(f'''<div style="background:#111827;border-left:4px solid {pc};border-radius:6px;padding:12px 16px;margin-bottom:12px">
+<div style="font-size:15px;font-weight:700;color:#E8ECF0">{s.headline}</div>
+<div style="font-size:12px;color:#9CA3AF;margin-top:4px">Catalyst: {s.catalyst}</div>
+</div>''', unsafe_allow_html=True)
+            
+            col_l, col_r = st.columns(2)
+            with col_l:
+                st.markdown("#### ✅ LONG — Position Sizing")
+                for j, asset in enumerate(s.best_assets[:6]):
+                    size = "2-4%" if j==0 else "1-3%" if j<3 else "0.5-2%"
+                    prio = "PRIMARY" if j==0 else "ADD" if j<3 else "WATCH"
+                    st.markdown(f'''<div style="display:flex;justify-content:space-between;padding:5px 8px;background:#0D1520;border-radius:4px;margin:2px 0">
+<span style="font-family:monospace;color:#E8ECF0;font-size:12px">{asset}</span>
+<span style="font-size:11px;color:#9CA3AF">{size} · <b style="color:{pc}">{prio}</b></span>
+</div>''', unsafe_allow_html=True)
+                st.markdown("")
+                st.markdown("#### 🔔 Confirmation Triggers")
+                st.caption("*When you see these → ADD exposure*")
+                for t in s.confirmation_triggers[:5]: st.markdown(f"• {t}")
+
+            with col_r:
+                st.markdown("#### ❌ AVOID / SHORT")
+                for j, asset in enumerate(s.worst_assets[:6]):
+                    action = "EXIT" if j==0 else "REDUCE" if j<3 else "AVOID"
+                    st.markdown(f'''<div style="display:flex;justify-content:space-between;padding:5px 8px;background:#0D1520;border-radius:4px;margin:2px 0">
+<span style="font-family:monospace;color:#9CA3AF;font-size:12px">{asset}</span>
+<span style="font-size:11px;color:#EF4444">{action}</span>
+</div>''', unsafe_allow_html=True)
+                st.markdown("")
+                st.markdown("#### 🚫 Exit Signals")
+                st.caption("*If these appear → scenario is wrong, exit*")
+                for t in s.invalidators[:4]: st.markdown(f"• {t}")
+            
+            if s.em_note:
+                em_c = "#10B981" if any(w in s.em_note.upper() for w in ["RECOVER","MAX EM","BROAD"]) else "#EF4444" if any(w in s.em_note.upper() for w in ["BRUTAL","HEADWIND","AVOID"]) else "#F59E0B"
+                st.markdown(f'''<div style="background:#0D1520;border:1px solid #1F2B3D;border-radius:6px;padding:12px;margin-top:10px">
+<div style="font-size:12px;font-weight:700;color:{em_c}">🌍 EM / IHSG POSITIONING</div>
+<div style="font-size:12px;color:#E8ECF0;margin-top:4px">{s.em_note}</div>
+</div>''', unsafe_allow_html=True)
+
+            st.markdown(f'''<div style="background:#1A2235;border-radius:6px;padding:12px;margin-top:10px">
+<div style="font-size:11px;color:#9CA3AF;font-weight:700;text-transform:uppercase;letter-spacing:1px">WHAT TO DO RIGHT NOW</div>
+<div style="font-size:12px;color:#E8ECF0;margin-top:6px">
+<b style="color:{pc}">LONG</b>: {", ".join(s.best_assets[:4])}<br>
+<b style="color:#EF4444">AVOID</b>: {", ".join(s.worst_assets[:3])}<br>
+<b style="color:#F59E0B">WATCH</b>: {s.confirmation_triggers[0] if s.confirmation_triggers else "Data-dependent"}
+</div>
+</div>''', unsafe_allow_html=True)
 
     st.markdown("---")
-    st.markdown("### 📊 Quad Transition Probabilities")
-    scenarios=scen.get("scenarios",[])
-    if scenarios:
-        trans_probs={s.to_quad:s.probability for s in scenarios}
-        fig=go.Figure()
-        for q,p in sorted(trans_probs.items()):
-            fig.add_bar(x=[q],y=[p],marker_color=QC.get(q,"#9CA3AF"),text=[f"{p:.0%}"],textposition="outside")
-        fig.update_layout(showlegend=False,height=220,margin=dict(t=25,b=5,l=0,r=0),
-            paper_bgcolor="#111827",plot_bgcolor="#111827",font=dict(color="#E8ECF0"),
-            title=dict(text=f"From {sq} → Next Quad Probabilities",font=dict(size=12,color="#9CA3AF")),
-            yaxis=dict(range=[0,1.1],tickformat=".0%",showgrid=True,gridcolor="#1F2B3D"),
-            xaxis=dict(showgrid=False),bargap=0.35)
-        st.plotly_chart(fig,use_container_width=True,config={"displayModeBar":False})
+    st.markdown("### 🌍 When Does EM / IHSG Start to Recover?")
+    c1, c2 = st.columns(2)
+    with c1:
+        st.markdown("""
+**Conditions needed (any 2 of 3):**
+1. **USD TREND breaks bearish** — DXY below 200d EMA, making lower highs
+2. **Global Quad shifts to Q1/Q2** — Growth re-acceleration confirmed by data
+3. **Fed cuts ≥ 25bps** — Real easing cycle begins
 
-    st.markdown("---")
-    st.markdown("### 🔮 Scenario Details")
-    for i,s in enumerate(scenarios):
-        badge=["🎯 BASE","🔄 ALT","⚠️ RISK","📌 TAIL"][min(i,3)]
-        pc="#10B981" if s.probability>0.40 else "#F59E0B" if s.probability>0.25 else "#6B7280"
-        with st.expander(f"{badge} {s.name} — P={s.probability:.0%} | Conf={s.confirmation_score:.0%} | {s.headline}",expanded=(i==0)):
-            cc=st.columns(3)
-            cc[0].metric("Probability",f"{s.probability:.0%}")
-            cc[1].metric("Confirmation",f"{s.confirmation_score:.0%}")
-            cc[2].metric("Timeframe",f"~{s.timeframe_weeks}w")
-            c1,c2=st.columns(2)
-            with c1:
-                st.markdown(f"**✅ Best**: {', '.join(s.best_assets[:5])}")
-                st.markdown("**🔔 Triggers:**")
-                for t in s.confirmation_triggers[:4]: st.markdown(f" • {t}")
-            with c2:
-                st.markdown(f"**❌ Avoid**: {', '.join(s.worst_assets[:5])}")
-                st.markdown("**🚫 Invalidators:**")
-                for t in s.invalidators[:3]: st.markdown(f" • {t}")
-            st.caption(f"Catalyst: {s.catalyst} | Conviction: {s.conviction}")
-
-            if s.name in ("Q3→Q2","Q4→Q1","Q3→Q1"):
-                em_note={"Q3→Q2":"EM commodity exporters early recovery. Monthly Q2 = commodity bid.",
-                    "Q4→Q1":"MAX EM recovery. Historical +25-40% in first 6M of Q1.",
-                    "Q3→Q1":"Selective EM recovery. Only high-quality EM (India, Indonesia, Singapore)."}.get(s.name,"")
-                st.success(f"🌍 EM IMPLICATION: {em_note}")
+**IHSG also needs:**
+- BI rate cut OR IDR stabilization below 15,800
+- Foreign net buy 3+ consecutive days
+- Commodity floor (coal/nickel holds)
+""")
+    with c2:
+        em_sig = btk.get("em_recovery", {})
+        if em_sig:
+            conf = em_sig.get("confidence", 0)
+            ec = "#10B981" if conf > 0.6 else "#F59E0B" if conf > 0.4 else "#6B7280"
+            st.markdown(f'''<div style="background:#111827;border:1px solid #1F2B3D;border-radius:8px;padding:14px">
+<div style="font-size:13px;font-weight:700;color:{ec}">{em_sig.get("trigger","")}</div>
+<div style="font-size:12px;color:#E8ECF0;margin:8px 0">{em_sig.get("rationale","")}</div>
+<div style="font-size:11px;color:#9CA3AF">Confidence: <b style="color:{ec}">{conf:.0%}</b></div>
+<div style="margin-top:10px;font-size:12px"><b>Best plays when confirmed:</b> {", ".join(em_sig.get("best",[])[:7])}</div>
+</div>''', unsafe_allow_html=True)
+        else:
+            st.info("EM recovery signal not yet triggered. Current regime = defensive only.")

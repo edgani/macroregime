@@ -12,6 +12,7 @@ from engines.hurst_rr_engine import HurstRREngine
 from engines.scenario_engine import ScenarioEngine
 from engines.bottleneck_engine import BottleneckEngine
 from engines.narrative_engine import NarrativeEngine
+from engines.adaptive_discovery_engine import AdaptiveDiscoveryEngine
 from config.settings import (
     MACRO_PROXIES, US_SECTORS, US_FACTORS, FOREX_PAIRS,
     COMMODITIES, CRYPTO, BONDS, IHSG_UNIVERSE, COUNTRY_UNIVERSE,
@@ -172,6 +173,20 @@ def build_snapshot(
         benchmark="SPY",
     )
     snap["narratives"] = narratives
+
+    # 15. Adaptive Discovery (Claude API — non-blocking, cached 4h)
+    _prog(progress_cb, "Running adaptive discovery (Claude API)...", 0.96)
+    try:
+        discovery = AdaptiveDiscoveryEngine().run(
+            prices=prices,
+            structural_quad=gip.structural_quad,
+            monthly_quad=gip.monthly_quad,
+            gip_features=gip.features,
+        )
+    except Exception as e:
+        logger.warning(f"Discovery engine failed: {e}")
+        discovery = {"discoveries": [], "status": "error", "message": str(e)}
+    snap["discovery"] = discovery
 
     # Store prices subset for UI charts (close prices only — light)
     snap["prices"] = {k: v for k, v in prices.items() if isinstance(v, pd.Series) and len(v) > 10}

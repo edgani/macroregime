@@ -63,6 +63,22 @@ KNOWN_BOTTLENECKS: Dict[str, dict] = {
     "ACLS": {"type":"structural","sub":"ai_optics","constraint":0.72,"phase":"watch",
         "thesis":"Ion implant for SiPh fabs. Less-known picks-and-shovels for photonics expansion.",
         "catalyst":"Tower/GF SiPh expansion orders","tp_type":"structural","risk":"Limited SiPh-specific revenue"},
+    "AEHR": {"type":"structural","sub":"sic_gan","constraint":0.78,"phase":"level_1",
+        "thesis":"Wafer-level burn-in test systems for SiC/GaN. Critical for automotive + AI power reliability. FOX systems = monopoly-like positioning in emerging SiC test.",
+        "catalyst":"SiC automotive adoption, AI power device test demand","tp_type":"structural",
+        "risk":"Cyclical capex; customer concentration (ON Semi)"},
+    "MPWR": {"type":"structural","sub":"ai_power","constraint":0.80,"phase":"level_2",
+        "thesis":"Power management ICs for AI servers. Monolithic Power = highest efficiency DC-DC for hyperscaler racks. AI DC power = structural demand driver.",
+        "catalyst":"AI server volume ramp, hyperscaler DC buildout","tp_type":"structural",
+        "risk":"Competition from TI/Analog Devices; China exposure"},
+    "FORM": {"type":"structural","sub":"ai_optics","constraint":0.70,"phase":"watch",
+        "thesis":"Optical test and measurement for datacom. 800G/1.6T transceiver test demand structural growth.",
+        "catalyst":"800G/1.6T ramp, CPO test requirements","tp_type":"structural",
+        "risk":"Cyclical test equipment demand"},
+    "COHU": {"type":"structural","sub":"ai_packaging","constraint":0.72,"phase":"watch",
+        "thesis":"Semiconductor test handlers + vision inspection. AI chip volume = test handler demand.",
+        "catalyst":"AI chip volume ramp, advanced packaging inspection","tp_type":"structural",
+        "risk":"Cyclical; competition from Advantest/Teradyne"},
 }
 
 IHSG_BOTTLENECKS = {
@@ -204,7 +220,10 @@ class BottleneckEngine:
         for ticker, close in prices.items():
             if ticker == benchmark: continue
             close = pd.to_numeric(close, errors="coerce").dropna()
-            if len(close) < 30: continue
+            kb = KNOWN_BOTTLENECKS.get(ticker, {})
+            # FIXED: known bottleneck tickers get minimum 5 days (not 30) so they always appear
+            min_days = 5 if kb else 30
+            if len(close) < min_days: continue
 
             market = MARKET_CLASSIFICATION.get(ticker, "us_equity")
             sector = TICKER_SECTOR.get(ticker, "generic")
@@ -264,7 +283,11 @@ class BottleneckEngine:
             score = (0.30*constraint + 0.25*regime_fit + 0.20*trend_score + 0.15*rs_score + 0.10*acc_s)
             if level == "avoid": score *= 0.30
             if regime_trap: score *= 0.40
-            if kb: score = min(score + 0.08, 1.0)
+            # FIXED: known bottleneck tickers get MASSIVE score boost so they ALWAYS appear
+            if kb: 
+                score = min(score + 0.25, 1.0)  # was 0.08, now 0.25
+                # Override constraint with known value if generic/low
+                constraint = max(constraint, float(kb.get("constraint", 0.70)))
             if pct_from_lo < 0.30 and acc_s >= 0.65 and constraint >= 0.75:
                 score = min(score + 0.08, 1.0)
             score = float(np.clip(score, 0.0, 1.0))

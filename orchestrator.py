@@ -50,7 +50,8 @@ def build_snapshot(
         prices.update(load_prices(list(US_SECTORS.keys()) + list(US_FACTORS.keys()), days=756))
         _prog(progress_cb, "Loading notable single stocks...", 0.21)
         notable = [t for t in TICKER_SECTOR if t not in prices and t not in ("generic",)]
-        prices.update(load_prices(notable[:60], days=365))
+        # FIXED: load ALL notable stocks (not just 60) so bottleneck tickers are always available
+        prices.update(load_prices(notable, days=365))
 
     # 4. Forex
     if include_forex:

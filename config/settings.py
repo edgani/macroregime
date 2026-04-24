@@ -253,22 +253,53 @@ BOTTLENECK_PROFILES: dict = {
 }
 
 TICKER_SECTOR: dict = {
+    # AI Compute
     "NVDA":"ai_compute","AMD":"ai_compute","AVGO":"ai_compute","TSM":"ai_compute","INTC":"ai_compute",
+    "MRVL":"ai_compute","QCOM":"ai_compute","MU":"ai_compute",
+    # AI Networking
     "ALAB":"ai_networking","CRDO":"ai_networking","MRVL":"ai_networking","ANET":"ai_networking","SMCI":"ai_networking",
+    "APH":"ai_networking","MCHP":"ai_networking","ENTG":"ai_networking",
+    # AI Optics / Photonics
     "LITE":"ai_optics","COHR":"ai_optics","CIEN":"ai_optics","POET":"ai_optics","VIAV":"ai_optics","GLW":"ai_optics",
+    "MKSI":"ai_optics","ACLS":"ai_optics","AEHR":"ai_optics","FORM":"ai_optics","COHU":"ai_optics",
+    # SiC / GaN / Power
     "ON":"sic_gan","WOLF":"sic_gan","STM":"sic_gan","IFNNY":"sic_gan",
+    "MPWR":"sic_gan","AEHR":"sic_gan","RMBS":"sic_gan",
+    # AI Power Infrastructure
     "VST":"ai_power_infra","CEG":"ai_power_infra","ETN":"ai_power_infra","NRG":"ai_power_infra","GEV":"ai_power_infra","EMR":"ai_power_infra",
+    "PWR":"ai_power_infra","BE":"ai_power_infra","PLUG":"ai_power_infra","FSLR":"ai_power_infra","ENPH":"ai_power_infra",
+    # AI Packaging / Advanced Packaging
     "AMKR":"ai_packaging","ASX":"ai_packaging","TSEM":"ai_packaging",
+    "KLIC":"ai_packaging","UCTT":"ai_packaging","CAMT":"ai_packaging",
+    # Healthcare Equipment
     "ISRG":"healthcare_eq","ABT":"healthcare_eq","BSX":"healthcare_eq","MDT":"healthcare_eq","EW":"healthcare_eq","SYK":"healthcare_eq",
+    "ZBH":"healthcare_eq","DXCM":"healthcare_eq","PODD":"healthcare_eq","RMD":"healthcare_eq",
+    # Pharma
     "LLY":"pharma","MRNA":"pharma","REGN":"pharma","BMY":"pharma","PFE":"pharma",
+    "JNJ":"pharma","ABBV":"pharma","MRK":"pharma","AZN":"pharma","NVO":"pharma",
+    # Defense
     "LMT":"defense","RTX":"defense","NOC":"defense","GD":"defense","KTOS":"defense","HII":"defense","LDOS":"defense","BAH":"defense",
+    "AXON":"defense","PLTR":"defense","SAIC":"defense","BWXT":"defense",
+    # Utilities
     "NEE":"utilities","DUK":"utilities","D":"utilities","SO":"utilities","XLU":"utilities",
+    "AEP":"utilities","EXC":"utilities","SRE":"utilities","PEG":"utilities","ED":"utilities",
+    # Water
     "AWK":"water","WTRG":"water","CWT":"water",
+    # Precious Metals
     "GLD":"precious_metals","GC=F":"precious_metals","SLV":"precious_metals","SI=F":"precious_metals","PPLT":"precious_metals","GFI":"precious_metals","NEM":"precious_metals",
+    "AEM":"precious_metals","WPM":"precious_metals","FNV":"precious_metals","RGLD":"precious_metals",
+    # Energy / Oil
     "XLE":"energy_infra","CL=F":"energy_infra","BZ=F":"energy_infra","XOM":"energy_infra","CVX":"energy_infra","COP":"energy_infra","SLB":"energy_infra",
+    "OXY":"energy_infra","MPC":"energy_infra","VLO":"energy_infra","PSX":"energy_infra","KMI":"energy_infra",
+    # Uranium
     "URA":"uranium","CCJ":"uranium","NXE":"uranium","UUUU":"uranium",
+    "LEU":"uranium","DNN":"uranium","URG":"uranium",
+    # Staples / Consumer Defensive
     "XLP":"staples","PG":"staples","KO":"staples","PEP":"staples","WMT":"staples","COST":"staples",
+    "PM":"staples","MO":"staples","GIS":"staples","K":"staples","HSY":"staples","MDLZ":"staples",
+    # Indices / Generic
     "SPY":"generic","QQQ":"generic","IWM":"generic","TLT":"generic","DIA":"generic","VTV":"generic","VUG":"generic",
+    "RSP":"generic","MTUM":"generic","QUAL":"generic","SIZE":"generic","USMV":"generic","HDV":"generic",
 }
 
 # ── Market Classification for Bottleneck Multi-Asset ─────────────────────────
@@ -296,7 +327,18 @@ MARKET_CLASSIFICATION: dict = {
     "XOM":"us_equity","CVX":"us_equity","COP":"us_equity","SLB":"us_equity",
     "URA":"us_equity","CCJ":"us_equity","NXE":"us_equity","UUUU":"us_equity",
     "PG":"us_equity","KO":"us_equity","PEP":"us_equity","WMT":"us_equity","COST":"us_equity",
-    "MKSI":"us_equity","ACLS":"us_equity",
+    "MKSI":"us_equity","ACLS":"us_equity","AEHR":"us_equity","FORM":"us_equity","COHU":"us_equity",
+    "MPWR":"us_equity","RMBS":"us_equity","QCOM":"us_equity","MU":"us_equity",
+    "APH":"us_equity","MCHP":"us_equity","ENTG":"us_equity",
+    "KLIC":"us_equity","UCTT":"us_equity","CAMT":"us_equity",
+    "ZBH":"us_equity","DXCM":"us_equity","PODD":"us_equity","RMD":"us_equity",
+    "JNJ":"us_equity","ABBV":"us_equity","MRK":"us_equity","AZN":"us_equity","NVO":"us_equity",
+    "AXON":"us_equity","PLTR":"us_equity","SAIC":"us_equity","BWXT":"us_equity",
+    "AEP":"us_equity","EXC":"us_equity","SRE":"us_equity","PEG":"us_equity","ED":"us_equity",
+    "AEM":"us_equity","WPM":"us_equity","FNV":"us_equity","RGLD":"us_equity",
+    "OXY":"us_equity","MPC":"us_equity","VLO":"us_equity","PSX":"us_equity","KMI":"us_equity",
+    "LEU":"us_equity","DNN":"us_equity","URG":"us_equity",
+    "PM":"us_equity","MO":"us_equity","GIS":"us_equity","K":"us_equity","HSY":"us_equity","MDLZ":"us_equity",
     # Forex
     "EURUSD=X":"forex","GBPUSD=X":"forex","USDJPY=X":"forex","USDCHF=X":"forex",
     "USDCAD=X":"forex","AUDUSD=X":"forex","NZDUSD=X":"forex","USDSEK=X":"forex","USDNOK=X":"forex",

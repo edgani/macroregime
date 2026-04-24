@@ -270,3 +270,101 @@ TICKER_SECTOR: dict = {
     "XLP":"staples","PG":"staples","KO":"staples","PEP":"staples","WMT":"staples","COST":"staples",
     "SPY":"generic","QQQ":"generic","IWM":"generic","TLT":"generic","DIA":"generic","VTV":"generic","VUG":"generic",
 }
+
+# ── Market Classification for Bottleneck Multi-Asset ─────────────────────────
+MARKET_CLASSIFICATION: dict = {
+    # US Stocks
+    "SPY":"us_equity","QQQ":"us_equity","IWM":"us_equity","DIA":"us_equity",
+    "XLK":"us_equity","XLY":"us_equity","XLI":"us_equity","XLF":"us_equity",
+    "XLE":"us_equity","XLB":"us_equity","XLV":"us_equity","XLP":"us_equity",
+    "XLU":"us_equity","XLRE":"us_equity","XLC":"us_equity",
+    "VTV":"us_equity","VUG":"us_equity","USMV":"us_equity","HDV":"us_equity",
+    "RSP":"us_equity","MTUM":"us_equity","QUAL":"us_equity","SIZE":"us_equity",
+    # AI / Tech single stocks
+    "NVDA":"us_equity","AMD":"us_equity","AVGO":"us_equity","TSM":"us_equity","INTC":"us_equity",
+    "ALAB":"us_equity","CRDO":"us_equity","MRVL":"us_equity","ANET":"us_equity","SMCI":"us_equity",
+    "LITE":"us_equity","COHR":"us_equity","CIEN":"us_equity","POET":"us_equity","VIAV":"us_equity","GLW":"us_equity",
+    "ON":"us_equity","WOLF":"us_equity","STM":"us_equity",
+    "VST":"us_equity","CEG":"us_equity","ETN":"us_equity","NRG":"us_equity","GEV":"us_equity","EMR":"us_equity",
+    "AMKR":"us_equity","ASX":"us_equity","TSEM":"us_equity",
+    "ISRG":"us_equity","ABT":"us_equity","BSX":"us_equity","MDT":"us_equity","EW":"us_equity","SYK":"us_equity",
+    "LLY":"us_equity","MRNA":"us_equity","REGN":"us_equity","BMY":"us_equity","PFE":"us_equity",
+    "LMT":"us_equity","RTX":"us_equity","NOC":"us_equity","GD":"us_equity","KTOS":"us_equity","HII":"us_equity","LDOS":"us_equity","BAH":"us_equity",
+    "NEE":"us_equity","DUK":"us_equity","D":"us_equity","SO":"us_equity",
+    "AWK":"us_equity","WTRG":"us_equity","CWT":"us_equity",
+    "GLD":"us_equity","SLV":"us_equity","PPLT":"us_equity","GFI":"us_equity","NEM":"us_equity",
+    "XOM":"us_equity","CVX":"us_equity","COP":"us_equity","SLB":"us_equity",
+    "URA":"us_equity","CCJ":"us_equity","NXE":"us_equity","UUUU":"us_equity",
+    "PG":"us_equity","KO":"us_equity","PEP":"us_equity","WMT":"us_equity","COST":"us_equity",
+    "MKSI":"us_equity","ACLS":"us_equity",
+    # Forex
+    "EURUSD=X":"forex","GBPUSD=X":"forex","USDJPY=X":"forex","USDCHF=X":"forex",
+    "USDCAD=X":"forex","AUDUSD=X":"forex","NZDUSD=X":"forex","USDSEK=X":"forex","USDNOK=X":"forex",
+    "USDMXN=X":"forex","USDBRL=X":"forex","USDTRY=X":"forex","USDZAR=X":"forex",
+    "USDIDR=X":"forex","USDSGD=X":"forex","USDINR=X":"forex","USDCNY=X":"forex","USDKRW=X":"forex",
+    "USDTHB=X":"forex","USDPHP=X":"forex","USDMYR=X":"forex",
+    "EURJPY=X":"forex","GBPJPY=X":"forex","AUDNZD=X":"forex","CADUSD=X":"forex",
+    "DX-Y.NYB":"forex",
+    # Commodities
+    "GC=F":"commodity","SI=F":"commodity","PL=F":"commodity","PA=F":"commodity",
+    "GLD":"commodity","SLV":"commodity","PPLT":"commodity",
+    "CL=F":"commodity","BZ=F":"commodity","NG=F":"commodity","RB=F":"commodity","HO=F":"commodity",
+    "USO":"commodity","UNG":"commodity","BNO":"commodity",
+    "HG=F":"commodity","ALI=F":"commodity","ZNC=F":"commodity","CPER":"commodity","JJC":"commodity",
+    "ZW=F":"commodity","ZC=F":"commodity","ZS=F":"commodity","ZO=F":"commodity",
+    "KC=F":"commodity","SB=F":"commodity","CT=F":"commodity","CC=F":"commodity",
+    "DBA":"commodity","WEAT":"commodity","CORN":"commodity","LBS=F":"commodity",
+    # Crypto
+    "BTC-USD":"crypto","ETH-USD":"crypto","BNB-USD":"crypto","SOL-USD":"crypto",
+    "XRP-USD":"crypto","ADA-USD":"crypto","AVAX-USD":"crypto","DOT-USD":"crypto",
+    "MATIC-USD":"crypto","LINK-USD":"crypto","DOGE-USD":"crypto","LTC-USD":"crypto",
+    "ATOM-USD":"crypto","NEAR-USD":"crypto","APT-USD":"crypto","ARB-USD":"crypto",
+    "OP-USD":"crypto","SUI-USD":"crypto","INJ-USD":"crypto",
+    "IBIT":"crypto","FBTC":"crypto","ETHA":"crypto",
+    # IHSG
+    "^JKSE":"ihsg","EIDO":"ihsg",
+    "BBCA.JK":"ihsg","BBRI.JK":"ihsg","BMRI.JK":"ihsg","TLKM.JK":"ihsg","ASII.JK":"ihsg",
+    "UNVR.JK":"ihsg","ICBP.JK":"ihsg","INDF.JK":"ihsg","KLBF.JK":"ihsg",
+    "ITMG.JK":"ihsg","ADRO.JK":"ihsg","PTBA.JK":"ihsg","HRUM.JK":"ihsg",
+    "INCO.JK":"ihsg","MDKA.JK":"ihsg","ANTM.JK":"ihsg","NCKL.JK":"ihsg",
+    "LSIP.JK":"ihsg","AALI.JK":"ihsg","SSMS.JK":"ihsg",
+    "BSDE.JK":"ihsg","CTRA.JK":"ihsg","PWON.JK":"ihsg",
+    "MYOR.JK":"ihsg","HMSP.JK":"ihsg",
+}
+
+# ── Quad → Market Direction (Long/Short bias per asset class) ────────────────
+# Format: {quad: {market: "long" / "short" / "neutral"}}
+QUAD_MARKET_DIRECTION: dict = {
+    "Q1": {"us_equity":"long","forex":"neutral","commodity":"short","crypto":"long","ihsg":"long"},
+    "Q2": {"us_equity":"long","forex":"long","commodity":"long","crypto":"neutral","ihsg":"long"},
+    "Q3": {"us_equity":"short","forex":"short","commodity":"long","crypto":"short","ihsg":"short"},
+    "Q4": {"us_equity":"short","forex":"short","commodity":"short","crypto":"short","ihsg":"short"},
+}
+
+# ── EM Recovery Signals (per quad transition) ────────────────────────────────
+EM_RECOVERY_SIGNALS: dict = {
+    "Q3→Q2": {
+        "trigger": "Monthly Q2 inside Structural Q3 = EM commodity exporters early recovery",
+        "best": ["EIDO","EWW","EWZ","EWC","NORW","EWA","USDMXN=X","USDBRL=X","AUDUSD=X"],
+        "rationale": "Q2 monthly = commodity bid + growth rebound. EM commodity exporters (Brazil, Mexico, Indonesia, Australia) lead. USD bearish TREND = EM FX relief.",
+        "confidence": 0.55,
+    },
+    "Q4→Q1": {
+        "trigger": "Deflation → Goldilocks = MAX EM recovery setup",
+        "best": ["EIDO","INDA","EWZ","EWW","EEM","VWO","USDMXN=X","USDBRL=X","USDZAR=X"],
+        "rationale": "Q4→Q1 = growth re-acceleration + inflation contained + Fed easing. EM equities historically +25-40% in first 6M of Q1. Highest conviction EM long.",
+        "confidence": 0.85,
+    },
+    "Q3→Q1": {
+        "trigger": "Direct stagflation → goldilocks = EM selective recovery",
+        "best": ["INDA","EIDO","EWS","EWT"],
+        "rationale": "Rare direct transition. Requires CPI collapse + ISM rebound. Only high-quality EM (India, Indonesia, Singapore, Taiwan) recover. Commodity EM lags.",
+        "confidence": 0.35,
+    },
+    "Q3→Q3": {
+        "trigger": "Stagflation persistence = EM headwind continues",
+        "best": [],
+        "rationale": "EM non-commodity exporters under pressure. Only gold/precious metals EM (South Africa) and defensive EM (India) viable. Avoid Indonesia, Brazil, Mexico.",
+        "confidence": 0.70,
+    },
+}

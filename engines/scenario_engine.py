@@ -1,12 +1,10 @@
-"""engines/scenario_engine.py
-
-Adaptive Scenario Discovery Engine.
+"""engines/scenario_engine.py v2 — Adaptive Scenario Discovery + EM Recovery Signals
 
 Rather than static hardcoded scenarios, this engine:
 1. Reads current quad state + signal state
 2. Computes all plausible near-term transitions (from transition probability matrix)
 3. Scores each scenario by: base probability × signal confirmation × leading indicators
-4. Returns ranked scenarios with investment implications
+4. Returns ranked scenarios with investment implications + EM recovery signals
 
 "Scenarios are not forecasts. They are probabilistic maps of what the data
 requires to be TRUE for each path." — McCullough framework
@@ -17,7 +15,6 @@ import math
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple
 import numpy as np
-
 
 # ---------------------------------------------------------------------------
 # Transition matrix (calibrated from Hedgeye 27yr back-test patterns)
@@ -32,83 +29,88 @@ BASE_TRANSITIONS: Dict[str, Dict[str, float]] = {
 }
 
 # Monthly → structural transition modifiers
-# If monthly is AHEAD of structural, structural likely moves there
 MONTHLY_STRUCTURAL_ALIGNMENT_BONUS: Dict[str, float] = {
     "Q1→Q1": 0.10, "Q2→Q2": 0.10, "Q3→Q3": 0.10, "Q4→Q4": 0.10,
-    # Monthly ahead of structural = structural likely to follow
-    "Q3→Q2": 0.05,  # Monthly Q2 inside Structural Q3 = structural may improve
-    "Q3→Q4": 0.05,  # Or get worse
-    "Q4→Q1": 0.15,  # Recovery setup = strongest conviction
-    "Q2→Q3": 0.08,  # Heating up
+    "Q3→Q2": 0.05, "Q3→Q4": 0.05,
+    "Q4→Q1": 0.15,
+    "Q2→Q3": 0.08,
 }
 
 # Investment implications per transition path
 TRANSITION_IMPLICATIONS: Dict[str, dict] = {
     "Q3→Q4": {
         "headline": "Stagflation → Deflation: Growth collapses, inflation cools",
-        "best":  ["TLT","IEF","GLD","XLV","XLP","XLU","USD"],
+        "best": ["TLT","IEF","GLD","XLV","XLP","XLU","USD"],
         "worst": ["XLK","XLE","IWM","HYG","EM Equities"],
         "catalyst": "GDP nowcast rolls over, payrolls miss, ISM <48, Fed signal pivot",
         "conviction": "HIGH if growth data continues to decelerate",
+        "em_note": "EM BRUTAL. All EM crushed except maybe India defensive. Avoid Indonesia, Brazil, Mexico.",
     },
     "Q3→Q2": {
         "headline": "Stagflation → Reflation: Growth rebounds, inflation stays elevated",
-        "best":  ["XLE","XLB","XLI","Commodities","EM commodity exporters","EWW","NORW"],
+        "best": ["XLE","XLB","XLI","Commodities","EM commodity exporters","EWW","NORW","EIDO"],
         "worst": ["TLT","Defensive bonds","Low beta"],
         "catalyst": "ISM rebounds >52, retail sales surprise, PMI acceleration",
         "conviction": "MODERATE — monthly Q2 signal leads structural confirmation",
+        "em_note": "EM COMMODITY EXPORTERS RECOVER. EIDO, EWW, EWZ, NORW, EWA lead. Monthly Q2 = commodity bid + USD bearish TREND = EM FX relief.",
     },
     "Q3→Q3": {
         "headline": "Stagflation Persistence: Stay defensive",
-        "best":  ["GLD","XLV","XLP","XLU","TLT (partial)"],
+        "best": ["GLD","XLV","XLP","XLU","TLT (partial)"],
         "worst": ["XLK","XLY","IWM","Credit","EM ex-commodity"],
         "catalyst": "CPI re-accelerates, ISM stays <50, payrolls miss",
         "conviction": "HIGH if inflation data re-accelerates",
+        "em_note": "EM HEADWIND CONTINUES. Only gold EM (South Africa) and defensive EM (India) viable. Avoid Indonesia, Brazil, Mexico commodity plays.",
     },
     "Q3→Q1": {
         "headline": "Stagflation → Goldilocks: Growth rebounds, inflation cools",
-        "best":  ["SPY","QQQ","XLK","XLY","IWM","Credit"],
+        "best": ["SPY","QQQ","XLK","XLY","IWM","Credit"],
         "worst": ["GLD","Commodities","Defensive"],
         "catalyst": "CPI reversal, growth acceleration, Fed easing cycle",
         "conviction": "LOW — rare direct transition, requires simultaneous G↑ and I↓",
+        "em_note": "SELECTIVE EM RECOVERY. Only high-quality EM: India (INDA), Indonesia (EIDO), Singapore (EWS), Taiwan (EWT). Commodity EM lags.",
     },
     "Q4→Q1": {
         "headline": "Deflation → Goldilocks: MAXIMUM CONVICTION LONG",
-        "best":  ["SPY","QQQ","XLK","XLI","IWM","Credit","EM equities"],
+        "best": ["SPY","QQQ","XLK","XLI","IWM","Credit","EM equities","EIDO","INDA","EWW"],
         "worst": ["GLD","Commodities","Defensive","TLT (rotate out)"],
         "catalyst": "Growth data accelerates, Fed cuts, liquidity injected, credit spreads tighten",
         "conviction": "VERY HIGH — Q4→Q1 is McCullough's highest conviction long setup",
+        "em_note": "MAX EM RECOVERY. Historical +25-40% in first 6M of Q1. Broad EM exposure viable: EEM, VWO, EIDO, INDA, EWW, EWZ. ALL EM benefits from USD bearish + growth re-acceleration.",
     },
     "Q2→Q3": {
         "headline": "Reflation → Stagflation: Inflation wins, growth fades",
-        "best":  ["GLD","XLV","XLP","Commodities (selective)"],
+        "best": ["GLD","XLV","XLP","Commodities (selective)"],
         "worst": ["XLK","XLY","Discretionary","Credit"],
         "catalyst": "Payrolls miss, ISM <50, CPI sticky, Fed overtightened",
         "conviction": "HIGH — classic late-cycle setup",
+        "em_note": "EM ROTATION OUT. Commodity EM peak. Defensive EM (India) only hold. Start reducing EIDO, EWW, EWZ exposure.",
     },
     "Q1→Q2": {
         "headline": "Goldilocks → Reflation: Growth matures, inflation picks up",
-        "best":  ["XLE","XLB","XLI","Commodities","Value","Cyclicals"],
+        "best": ["XLE","XLB","XLI","Commodities","Value","Cyclicals"],
         "worst": ["TLT","Defensive bonds","Low Beta"],
         "catalyst": "Breakevens rise, oil bid, ISM >55, retail strong",
         "conviction": "MODERATE — watch inflation prints for confirmation",
+        "em_note": "EM COMMODITY EXPORTERS BID. Brazil, Mexico, Australia, Norway, Indonesia commodity plays. EM FX mixed — commodity FX outperform.",
     },
     "Q2→Q1": {
         "headline": "Reflation → Goldilocks: Inflation cools, growth holds",
-        "best":  ["SPY","XLK","XLY","QQQ","Credit"],
+        "best": ["SPY","XLK","XLY","QQQ","Credit"],
         "worst": ["Commodities","XLE","XLB"],
         "catalyst": "CPI decelerates, energy rolls, Fed on hold/cutting",
         "conviction": "MODERATE",
+        "em_note": "BROAD EM RECOVERY. Tech EM (Taiwan, Korea) + quality EM (India, Singapore). Commodity EM fades.",
     },
     "Q4→Q3": {
         "headline": "Deflation → Stagflation: Supply shock or fiscal stimulus re-ignites inflation",
-        "best":  ["GLD","Commodities","Energy","Defensive Equities"],
+        "best": ["GLD","Commodities","Energy","Defensive Equities"],
         "worst": ["TLT","Bonds","Tech"],
         "catalyst": "Oil spike, tariff shock, fiscal easing while growth flat",
         "conviction": "LOW — unusual path, requires supply-side catalyst",
+        "em_note": "EM COMMODITY EXPORTERS ONLY. Gold EM (South Africa) + energy EM (Brazil, Mexico). Avoid tech EM and debt-heavy EM.",
     },
 }
-
 
 # ---------------------------------------------------------------------------
 # Scenario dataclass
@@ -120,20 +122,20 @@ class Scenario:
     from_quad: str
     to_quad: str
     probability: float
-    confirmation_score: float    # how much current data confirms this path
+    confirmation_score: float
     timeframe_weeks: int
     best_assets: List[str]
     worst_assets: List[str]
     catalyst: str
     conviction: str
     headline: str
+    em_note: str
     confirmation_triggers: List[str] = field(default_factory=list)
     invalidators: List[str] = field(default_factory=list)
 
     @property
     def weighted_score(self) -> float:
         return self.probability * (0.60 + 0.40 * self.confirmation_score)
-
 
 # ---------------------------------------------------------------------------
 # Confirmation triggers per transition
@@ -158,7 +160,6 @@ INVALIDATORS: Dict[str, List[str]] = {
     "Q4→Q1": ["Credit event / banking stress", "Inflation re-ignites before growth firms", "Dollar crisis"],
     "Q2→Q3": ["Payrolls surprise to upside", "ISM holds > 52", "CPI decelerates sharply"],
 }
-
 
 # ---------------------------------------------------------------------------
 # Engine
@@ -189,25 +190,25 @@ class ScenarioEngine:
             base_probs[monthly_quad] = min(base_probs[monthly_quad] + bonus, 0.99)
 
         # 3. Feature-based confirmation for each transition
-        g_mom   = float(features.get("growth_momentum",   0.0))
-        i_mom   = float(features.get("inflation_momentum", 0.0))
-        policy  = float(features.get("policy_score",       0.0))
+        g_mom = float(features.get("growth_momentum", 0.0))
+        i_mom = float(features.get("inflation_momentum", 0.0))
+        policy = float(features.get("policy_score", 0.0))
         leading = float(features.get("leading_indicator_composite", features.get("growth_momentum", 0.0)))
 
         # Adjust probabilities based on current signals
-        if g_mom < -0.10:   # growth deteriorating → more likely to worsen
+        if g_mom < -0.10:
             base_probs["Q4"] = base_probs.get("Q4", 0.0) + 0.08
             base_probs["Q3"] = base_probs.get("Q3", 0.0) - 0.04
-        if g_mom > 0.10:    # growth improving → more likely to improve
+        if g_mom > 0.10:
             base_probs["Q2"] = base_probs.get("Q2", 0.0) + 0.08
             base_probs["Q1"] = base_probs.get("Q1", 0.0) + 0.04
-        if i_mom < -0.10:   # inflation cooling → shift toward Q1/Q4
+        if i_mom < -0.10:
             base_probs["Q1"] = base_probs.get("Q1", 0.0) + 0.06
             base_probs["Q4"] = base_probs.get("Q4", 0.0) + 0.06
-        if i_mom > 0.10:    # inflation hot → shift toward Q2/Q3
+        if i_mom > 0.10:
             base_probs["Q2"] = base_probs.get("Q2", 0.0) + 0.05
             base_probs["Q3"] = base_probs.get("Q3", 0.0) + 0.05
-        if policy > 0.15:   # easing → boost Q1/Q4 outcomes
+        if policy > 0.15:
             base_probs["Q1"] = base_probs.get("Q1", 0.0) + 0.05
             base_probs["Q4"] = base_probs.get("Q4", 0.0) + 0.03
 
@@ -218,7 +219,6 @@ class ScenarioEngine:
 
         # 4. Build confirmation scores for each to_quad
         def _conf_score(to_quad: str) -> float:
-            """How strongly does current data confirm transition to to_quad?"""
             if to_quad == "Q1":
                 return float(np.clip(0.5 - 0.8*i_mom + 0.8*g_mom + 0.3*policy, 0.0, 1.0))
             elif to_quad == "Q2":
@@ -235,8 +235,6 @@ class ScenarioEngine:
             path_key = f"{structural_quad}→{to_quad}"
             impl = TRANSITION_IMPLICATIONS.get(path_key, {})
             conf_s = _conf_score(to_quad)
-
-            # Timeframe estimate: stay in same quad = 4-12w, change = 6-16w
             tf = 6 if to_quad == structural_quad else 10
 
             scenarios.append(Scenario(
@@ -251,16 +249,14 @@ class ScenarioEngine:
                 catalyst=impl.get("catalyst", "Data-dependent"),
                 conviction=impl.get("conviction", "MODERATE"),
                 headline=impl.get("headline", f"{structural_quad} → {to_quad}"),
+                em_note=impl.get("em_note", ""),
                 confirmation_triggers=CONFIRMATION_TRIGGERS.get(path_key, []),
                 invalidators=INVALIDATORS.get(path_key, []),
             ))
 
-        # Sort by weighted score
         scenarios.sort(key=lambda s: s.weighted_score, reverse=True)
-
-        # 6. Summary
         base_case = scenarios[0]
-        alt_case  = scenarios[1] if len(scenarios) > 1 else None
+        alt_case = scenarios[1] if len(scenarios) > 1 else None
 
         return dict(
             scenarios=scenarios,

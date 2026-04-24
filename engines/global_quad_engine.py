@@ -1,367 +1,248 @@
-"""global_quad_engine.py
+"""engines/global_quad_engine.py
 
-Global Quad Engine — Hedgeye runs GIP for top 50 economies.
+Per-country quad classification + global weighted quad.
+Hedgeye runs GIP for 50+ countries covering 90% of global GDP.
 
-How Hedgeye calculates Global Quad:
-  1. For each country: measure GDP growth RoC + CPI RoC
-  2. GDP proxy: country ETF 6-month return vs 12-month return (acceleration/deceleration)
-  3. CPI proxy: blend of: country ETF vs USD, commodity sensitivity, domestic PMI
-  4. Assign quad per country
-  5. Weight by market cap → Global Quad = weighted average
+Per-country methodology (from Hedgeye Monthly Macro Themes Monitor):
+  Growth proxy: Manufacturing PMI + Services PMI + IP + Export growth
+  Inflation proxy: CPI + commodity sensitivity * oil/commodity moves
+  Acceleration/deceleration = second derivative of YoY RoC
+  Country ETF performance vs USD = confirming/leading signal
 
-Per McCullough's process:
-  - Global Quad 3 = most major economies in stagflation 
-  - Global Quad 2 transition = demand still alive, inflation persists
-  - Country-specific Quad count = 3-month forward outlook (e.g. Mexico 2-1-2 = great)
+Global quad = market-cap weighted average of country quads.
 
-Why Long Hong Kong, Short Indonesia (April 2026):
-  ─────────────────────────────────────────────────────
-  HONG KONG (EWH):
-    • USD bearish TRADE+TREND → EM recovery via dollar channel
-    • EWH = highest USD beta in EM (Tencent, HSBC, AIA, Hang Seng)
-    • Hong Kong tech/financials benefit disproportionately from USD weakness
-    • China adjacent: reopening/recovery narrative still in play
-    • EWH Quad count: entering Q2 (recovery from Q3 base → bullish breakout)
-    • McCullough added EWH as "incremental add" on USD TREND breakdown
-
-  INDONESIA (^JKSE / EIDO) — WHY AVOID/SHORT:
-    • Indonesia = commodity exporter (coal, palm oil, nickel)
-    • Q3 oil shock phase OVER — coal/commodity cycle peaked
-    • ADRO.JK, PTBA.JK: peaked months ago, now in distribution
-    • IDR fragile: without commodity tailwind, BI rate story fades
-    • Global Q3 structural = growth slowdown → commodity demand weakens
-    • Indonesia NOT in Hedgeye's long book despite global USD weakness
-    • Unlike Mexico/Norway/Argentina: no reshoring/nearshoring tailwind
-    • The "All roads lead to Western Hemisphere" supply chain = anti-Asia EM
-  ─────────────────────────────────────────────────────
-
-Front-running Hedgeye on Country Selection:
-  1. Identify countries transitioning to better quad BEFORE Hedgeye does
-  2. ETF performance vs USD is a leading indicator for their GIP model
-  3. Look for: country ETF making higher lows while USD falling = early Quad 2 signal
-  4. Country CapEx plans (proxied by industrial ETFs) = forward-looking GDP
+USD relationship:
+  "Rising USD = deflationary for EM denominated in USD"
+  "Global Q1+Q2 = USD weakens (synchronized recovery)"
+  "Global Q3+Q4 divergences = USD strengthens"
 """
 from __future__ import annotations
+
 import math
 from typing import Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 
+from config.settings import COUNTRY_UNIVERSE
 
-# Country ETF universe with their characteristics
-# Format: {name: (etf_ticker, region, commodity_sensitivity, usd_sensitivity)}
-COUNTRY_UNIVERSE = {
-    # Americas — Western Hemisphere supply chain (Hedgeye's "All roads lead West")
-    "USA":       ("SPY",    "americas",   0.20, 1.00),
-    "Mexico":    ("EWW",    "americas",   0.40, 0.85),  # Nearshoring #1
-    "Canada":    ("EWC",    "americas",   0.55, 0.80),
-    "Argentina": ("ARGT",   "americas",   0.35, 0.90),  # Milei reform + commodities
-    "Brazil":    ("EWZ",    "americas",   0.65, 0.75),
-    # Asia-Pacific
-    "Hong_Kong": ("EWH",    "asia",       0.15, 0.95),  # HIGH USD sensitivity
-    "Japan":     ("EWJ",    "asia",       0.20, 0.80),
-    "Korea":     ("EWY",    "asia",       0.30, 0.75),
-    "Taiwan":    ("EWT",    "asia",       0.15, 0.70),
-    "China":     ("MCHI",   "asia",       0.30, 0.65),
-    "India":     ("INDA",   "asia",       0.25, 0.70),
-    "Indonesia": ("EIDO",   "asia",       0.70, 0.55),  # HIGH commodity sensitivity, LOW USD beta
-    "Australia": ("EWA",    "asia",       0.65, 0.70),
-    # Europe
-    "Germany":   ("EWG",    "europe",     0.35, 0.70),  # Entering Q3 (recession risk)
-    "UK":        ("EWU",    "europe",     0.30, 0.75),
-    "France":    ("EWQ",    "europe",     0.30, 0.70),
-    "Norway":    ("NORW",   "europe",     0.75, 0.80),  # Oil + Q2 exposure
-    "Sweden":    ("EWD",    "europe",     0.35, 0.75),
-    # MENA
-    "UAE":       ("UAE",    "mena",       0.80, 0.65),  # Oil boom
-    # Africa/EM
-    "South_Africa": ("EZA", "em",         0.55, 0.65),
+# Market cap weights (approximate 2026 GDP-proportional)
+MARKET_CAP_WEIGHTS: Dict[str, float] = {
+    "USA": 0.280, "China": 0.120, "Japan": 0.060, "Germany": 0.045,
+    "India": 0.040, "UK": 0.035, "France": 0.030, "Canada": 0.025,
+    "Korea": 0.022, "Australia": 0.020, "Brazil": 0.018, "Taiwan": 0.018,
+    "Mexico": 0.015, "Indonesia": 0.012, "Saudi": 0.012, "Norway": 0.008,
+    "Switzerland": 0.010, "Sweden": 0.008, "Hong_Kong": 0.012, "Argentina": 0.006,
+    "Chile": 0.005, "Colombia": 0.004, "Poland": 0.006, "Turkey": 0.006,
+    "Israel": 0.005, "UAE": 0.008, "South_Africa": 0.005, "Vietnam": 0.004,
+    "Egypt": 0.003, "Nigeria": 0.003, "Peru": 0.004,
 }
 
-# Hedgeye's known positions (from April 17-20, 2026 documents)
-HEDGEYE_KNOWN_LONGS = ["Mexico", "Hong_Kong", "Argentina", "Norway"]
-HEDGEYE_KNOWN_SHORTS_OR_AVOID = ["Germany", "Indonesia"]
+# Quad numeric codes for weighted averaging
+QUAD_SCORE: Dict[str, float] = {"Q1": 1.0, "Q2": 2.0, "Q3": 3.0, "Q4": 4.0}
 
 
 def _ret(s: pd.Series, n: int) -> Optional[float]:
-    if s is None or len(s) < n + 1:
+    if s is None or len(s) < n+1:
         return None
     try:
-        r = float(s.iloc[-1] / s.iloc[-n] - 1)
+        r = float(s.iloc[-1] / s.iloc[-n-1] - 1)
         return r if math.isfinite(r) else None
     except Exception:
         return None
 
 
-def _classify_country_quad(
-    etf_6m: Optional[float],
-    etf_12m: Optional[float],
-    usd_1m: float,
-    commodity_sensitivity: float,
+def _roc_acc(s: pd.Series) -> Optional[float]:
+    """Is 6M annualised return accelerating vs 12M? Returns delta."""
+    r6  = _ret(s, 126)
+    r12 = _ret(s, 252)
+    if r6 is None or r12 is None:
+        return None
+    return r6 * 2.0 - r12  # annualised 6M vs 12M
+
+
+def _classify_country(
+    etf_close: Optional[pd.Series],
+    commodity_sens: float,
+    usd_sens: float,
     oil_3m: float,
+    usd_1m: float,
+    global_growth_bias: float = 0.0,
+    global_inflation_bias: float = 0.0,
 ) -> Tuple[str, float, str]:
     """
-    Classify a country into a quad using price-based proxies.
-
-    Logic mirrors Hedgeye's GIP model:
-    - Growth proxy: ETF 6m vs 12m return (acceleration = 6m > 12m annualized)
-    - Inflation proxy: commodity sensitivity * oil move + USD sensitivity * USD move
+    Classify country quad using ETF price + macro sensitivity.
 
     Returns: (quad, confidence, rationale)
     """
-    if etf_6m is None or etf_12m is None:
-        return "Q?", 0.0, "insufficient data"
+    if etf_close is None or len(etf_close) < 63:
+        # Fallback: use global bias
+        if global_growth_bias > 0 and global_inflation_bias < 0:
+            return "Q1", 0.35, "global_bias_only"
+        elif global_growth_bias > 0 and global_inflation_bias > 0:
+            return "Q2", 0.35, "global_bias_only"
+        elif global_growth_bias < 0 and global_inflation_bias > 0:
+            return "Q3", 0.35, "global_bias_only"
+        else:
+            return "Q4", 0.30, "global_bias_only"
 
-    # Growth acceleration: is 6M annualized > 12M?
-    # (normalizes for time periods)
-    ann_6m = etf_6m * 2  # annualize 6M
-    ann_12m = etf_12m
-    growth_acc = ann_6m > ann_12m + 0.03  # 3% threshold to reduce noise
-    growth_dec = ann_6m < ann_12m - 0.03
+    # Growth signal: ETF acceleration (6M annualised vs 12M)
+    roc = _roc_acc(etf_close)
+    growth_acc  = roc is not None and roc > 0.03   # 3% annualised acceleration threshold
+    growth_dec  = roc is not None and roc < -0.03
 
-    # Inflation proxy: combination of commodity exposure + oil move
-    # High commodity sensitivity countries benefit from high oil = inflation signal
-    inf_pressure = commodity_sensitivity * max(0, oil_3m) + 0.3 * max(0, -usd_1m)
-    inf_releasing = commodity_sensitivity * min(0, oil_3m) * -1 + 0.3 * max(0, usd_1m)
-    infl_acc = inf_pressure > inf_releasing + 0.01
+    # Inflation signal: commodity sensitivity * oil move + USD sensitivity
+    inf_push    = commodity_sens * max(0.0, oil_3m) + 0.3 * max(0.0, -usd_1m)
+    inf_release = commodity_sens * max(0.0, -oil_3m) + 0.3 * max(0.0, usd_1m)
+    inflation_acc = inf_push > inf_release + 0.01
 
-    # Quad assignment
-    if growth_acc and not infl_acc:
-        quad, conf = "Q1", 0.70
-        rationale = f"Growth acc ({ann_6m:.0%} ann > {ann_12m:.0%}), inflation easing"
-    elif growth_acc and infl_acc:
-        quad, conf = "Q2", 0.65
-        rationale = f"Growth acc + inflation up — reflation"
-    elif not growth_acc and infl_acc:
-        quad, conf = "Q3", 0.65
-        rationale = f"Growth dec, inflation sticky — stagflation"
-    elif not growth_acc and not infl_acc:
-        quad, conf = "Q4", 0.60
-        rationale = f"Growth dec + deflation — late cycle"
+    # Classify
+    if growth_acc and not inflation_acc:
+        quad, conf = "Q1", 0.65
+        rationale = f"ETF acc +{roc:.0%} ann, inflation easing"
+    elif growth_acc and inflation_acc:
+        quad, conf = "Q2", 0.60
+        rationale = f"ETF acc +{roc:.0%} ann + commodity bid"
+    elif (growth_dec or not growth_acc) and inflation_acc:
+        quad, conf = "Q3", 0.60
+        rationale = f"ETF dec, inflation acc (commodity_sens={commodity_sens:.0%})"
+    elif (growth_dec or not growth_acc) and not inflation_acc:
+        quad, conf = "Q4", 0.55
+        rationale = f"ETF dec, inflation easing"
     else:
-        quad, conf = "Q?", 0.30
+        quad, conf = "Q3", 0.35  # default to global bias
         rationale = "Mixed signals"
 
-    # Lower confidence if signals are borderline
-    if abs(ann_6m - ann_12m) < 0.05:
-        conf *= 0.7
+    # Reduce confidence if ETF signal is borderline
+    if roc is not None and abs(roc) < 0.05:
+        conf *= 0.75
 
     return quad, round(conf, 2), rationale
 
 
-def _score_country_opportunity(
-    name: str,
-    quad: str,
-    conf: float,
-    etf_1m: Optional[float],
-    usd_sensitivity: float,
-    usd_trend: str,
-    s_quad: str,  # US structural quad
-    m_quad: str,  # US monthly quad
-) -> Dict:
+class GlobalQuadEngine:
     """
-    Score each country for long/short opportunity.
-
-    Hedgeye's Signal + Quad framework for countries:
-    1. Country's own Quad (better quad = more bullish)
-    2. USD sensitivity (USD bearish → high USD-sensitive countries rally)
-    3. Alignment with US structural backdrop
-    4. Trend/momentum (ETF 1M return as proxy for Signal)
+    Run Hedgeye-style GIP for 50 countries.
+    Outputs per-country quad + global weighted quad.
     """
-    # Base score from quad
-    quad_score = {"Q1": 0.85, "Q2": 0.70, "Q3": 0.35, "Q4": 0.20, "Q?": 0.40}.get(quad, 0.40)
 
-    # USD tailwind: if USD bearish, high-USD-sensitivity countries get boost
-    usd_boost = 0.0
-    if usd_trend == "bearish":
-        usd_boost = usd_sensitivity * 0.30
-    elif usd_trend == "bullish":
-        usd_boost = -usd_sensitivity * 0.20
+    def run(
+        self,
+        prices: Dict[str, pd.Series],
+        us_gip_result = None,   # GIPResult from GIPEngine
+        stress: Optional[Dict[str, float]] = None,
+    ) -> Dict[str, object]:
 
-    # Momentum: positive = buy dip, negative = caution
-    momentum = float(etf_1m) if etf_1m is not None and math.isfinite(etf_1m) else 0.0
-    momentum_score = max(0.0, min(1.0, 0.5 + momentum * 3))
+        stress = stress or {}
+        usd_series = prices.get("DX-Y.NYB") or prices.get("UUP")
+        oil_series = prices.get("CL=F") or prices.get("USO")
 
-    # Alignment with US quarterly (structural) backdrop
-    alignment = 0.5
-    if s_quad == "Q3" and quad in ("Q1", "Q2"):
-        alignment = 0.75  # Country doing better than US = relative winner
-    elif s_quad == "Q3" and quad == "Q3":
-        alignment = 0.30  # Both in stagflation = avoid
-    elif s_quad == "Q2" and quad in ("Q1", "Q2"):
-        alignment = 0.80  # Both in growth = high conviction
+        usd_1m = 0.0
+        if usd_series is not None:
+            r = _ret(pd.to_numeric(usd_series, errors="coerce").dropna(), 21)
+            usd_1m = r if r is not None else 0.0
 
-    composite = (0.35 * quad_score + 0.25 * (0.5 + usd_boost) +
-                 0.20 * momentum_score + 0.20 * alignment) * conf
+        oil_3m = 0.0
+        if oil_series is not None:
+            r = _ret(pd.to_numeric(oil_series, errors="coerce").dropna(), 63)
+            oil_3m = r if r is not None else 0.0
 
-    # Action
-    if composite >= 0.55:
-        action = "LONG"
-        conviction = composite
-    elif composite <= 0.30:
-        action = "SHORT/AVOID"
-        conviction = 1 - composite
-    else:
-        action = "NEUTRAL"
-        conviction = 0.50
+        # Global growth/inflation bias from US GIP (dominant signal per McCullough)
+        g_bias = 0.0
+        i_bias = 0.0
+        if us_gip_result is not None:
+            g_bias = float(us_gip_result.structural_g)
+            i_bias = float(us_gip_result.structural_i)
 
-    # Hedgeye alignment
-    in_hedgeye_longs = name in HEDGEYE_KNOWN_LONGS
-    in_hedgeye_shorts = name in HEDGEYE_KNOWN_SHORTS_OR_AVOID
+        country_results: Dict[str, dict] = {}
 
-    return {
-        "quad": quad,
-        "confidence": conf,
-        "composite_score": round(composite, 3),
-        "action": action,
-        "conviction": round(conviction, 3),
-        "etf_1m": round(momentum, 4) if etf_1m else None,
-        "usd_sensitivity": usd_sensitivity,
-        "usd_boost": round(usd_boost, 3),
-        "hedgeye_long": in_hedgeye_longs,
-        "hedgeye_short": in_hedgeye_shorts,
-        "our_vs_hedgeye": (
-            "✅ agree" if (action == "LONG" and in_hedgeye_longs) or
-                          (action == "SHORT/AVOID" and in_hedgeye_shorts)
-            else "❌ disagree" if (action == "SHORT/AVOID" and in_hedgeye_longs) or
-                                  (action == "LONG" and in_hedgeye_shorts)
-            else "➡️ untracked"
-        ),
-    }
+        for country, (etf, region, commodity_sens, usd_sens) in COUNTRY_UNIVERSE.items():
+            etf_raw = prices.get(etf)
+            etf_close = pd.to_numeric(etf_raw, errors="coerce").dropna() if etf_raw is not None else None
 
+            quad, conf, rationale = _classify_country(
+                etf_close, commodity_sens, usd_sens,
+                oil_3m, usd_1m, g_bias, i_bias,
+            )
 
-def run_global_quad_engine(
-    prices: Dict[str, pd.Series],
-    us_structural_quad: str = "Q3",
-    us_monthly_quad: str = "Q2",
-    usd_trend: str = "bearish",
-) -> Dict:
-    """
-    Run global quad classification for all countries.
+            # USD impact for EM countries
+            # "Rising USD = deflationary for EM"
+            usd_headwind = usd_sens * max(0.0, usd_1m) * 2.0   # 0-1 scale
+            usd_tailwind = usd_sens * max(0.0, -usd_1m) * 2.0
 
-    Returns a dict with:
-    - global_quad: weighted average regime
-    - countries: per-country quad + opportunity score
-    - top_longs: ranked country ETFs to buy
-    - top_shorts: ranked country ETFs to avoid
-    - vs_hedgeye: which of our calls agree/disagree with Hedgeye
-    - front_run_candidates: countries near quad transition (lead time ~4-8 weeks)
-    """
-    uup = prices.get("UUP", pd.Series())
-    usd_1m = float(uup.pct_change(21).iloc[-1]) if (uup is not None and len(uup) > 21) else 0.0
-    oil_3m = float(prices.get("CL=F", pd.Series()).pct_change(63).iloc[-1]) if prices.get("CL=F") is not None and len(prices.get("CL=F", pd.Series())) > 63 else 0.0
+            # ETF performance
+            etf_1m  = _ret(etf_close, 21)  if etf_close is not None and len(etf_close)>21  else None
+            etf_3m  = _ret(etf_close, 63)  if etf_close is not None and len(etf_close)>63  else None
+            etf_6m  = _ret(etf_close, 126) if etf_close is not None and len(etf_close)>126 else None
+            etf_12m = _ret(etf_close, 252) if etf_close is not None and len(etf_close)>252 else None
 
-    country_results = {}
-    quad_weights = {"Q1": 0, "Q2": 0, "Q3": 0, "Q4": 0}
-    total_weight = 0
+            country_results[country] = dict(
+                quad=quad, confidence=conf, rationale=rationale,
+                etf=etf, region=region,
+                commodity_sensitivity=commodity_sens,
+                usd_sensitivity=usd_sens,
+                usd_headwind=usd_headwind,
+                usd_tailwind=usd_tailwind,
+                etf_1m=etf_1m, etf_3m=etf_3m, etf_6m=etf_6m, etf_12m=etf_12m,
+                roc_acc=_roc_acc(etf_close) if etf_close is not None and len(etf_close)>252 else None,
+            )
 
-    for country_name, (etf_tk, region, comm_sens, usd_sens) in COUNTRY_UNIVERSE.items():
-        s = prices.get(etf_tk, pd.Series())
-        if s is None or len(s) < 30:
-            continue
+        # Global weighted quad
+        weighted_scores: Dict[str, float] = {"Q1":0.0,"Q2":0.0,"Q3":0.0,"Q4":0.0}
+        total_w = 0.0
+        for country, data in country_results.items():
+            w = MARKET_CAP_WEIGHTS.get(country, 0.003)
+            q = data["quad"]
+            if q in weighted_scores:
+                weighted_scores[q] += w * data["confidence"]
+                total_w += w
 
-        r1m = _ret(s, 21)
-        r6m = _ret(s, 126)
-        r12m = _ret(s, 252)
+        if total_w > 0:
+            weighted_scores = {k: v/total_w for k,v in weighted_scores.items()}
 
-        quad, conf, rationale = _classify_country_quad(r6m, r12m, usd_1m, comm_sens, oil_3m)
+        global_quad = max(weighted_scores, key=weighted_scores.get)
+        global_conf = weighted_scores[global_quad]
 
-        opportunity = _score_country_opportunity(
-            country_name, quad, conf, r1m,
-            usd_sens, usd_trend, us_structural_quad, us_monthly_quad
+        # Region breakdown
+        regions = {}
+        for country, data in country_results.items():
+            r = data["region"]
+            if r not in regions:
+                regions[r] = []
+            regions[r].append(data["quad"])
+        region_quads = {r: max(set(qs), key=qs.count) for r,qs in regions.items()}
+
+        # Divergence: are most major economies in same quad?
+        quad_dist = {}
+        for data in country_results.values():
+            q = data["quad"]
+            quad_dist[q] = quad_dist.get(q, 0) + 1
+        dominant_share = max(quad_dist.values()) / max(sum(quad_dist.values()), 1)
+        synchronized = dominant_share >= 0.55  # >55% in same quad = synchronized
+
+        # USD interpretation
+        if global_quad in ("Q1","Q2"):
+            usd_bias = "bearish"   # synchronized recovery = USD down
+            usd_rationale = "Global Q1/Q2 = synchronized recovery → USD weakens"
+        else:
+            usd_bias = "bullish"   # global divergences = USD up (flight to safety)
+            usd_rationale = "Global Q3/Q4 divergences → USD strengthens"
+
+        # EM assessment
+        em_countries = {c:d for c,d in country_results.items() if d["region"] in ("em","asia") and c!="Japan"}
+        em_in_q3 = sum(1 for d in em_countries.values() if d["quad"]=="Q3")
+        em_headwind = em_in_q3 / max(len(em_countries), 1) > 0.5
+
+        return dict(
+            countries=country_results,
+            global_quad=global_quad,
+            global_probs=weighted_scores,
+            global_conf=global_conf,
+            region_quads=region_quads,
+            quad_distribution=quad_dist,
+            synchronized=synchronized,
+            usd_bias=usd_bias,
+            usd_rationale=usd_rationale,
+            em_headwind=em_headwind,
+            em_in_q3=em_in_q3,
+            inputs=dict(usd_1m=usd_1m, oil_3m=oil_3m, g_bias=g_bias, i_bias=i_bias),
         )
-
-        country_results[country_name] = {
-            "etf": etf_tk,
-            "region": region,
-            "quad": quad,
-            "confidence": conf,
-            "rationale": rationale,
-            "r1m": round(r1m, 4) if r1m else None,
-            "r6m": round(r6m, 4) if r6m else None,
-            "r12m": round(r12m, 4) if r12m else None,
-            **opportunity,
-        }
-
-        # Weighted global quad (market-cap weight proxy by region)
-        weight = {"americas": 1.5, "europe": 0.8, "asia": 1.0, "mena": 0.4, "em": 0.3}.get(region, 0.5)
-        if quad in quad_weights:
-            quad_weights[quad] += weight * conf
-            total_weight += weight * conf
-
-    # Global quad = dominant weighted quad
-    if total_weight > 0:
-        global_quad = max(quad_weights, key=quad_weights.get)
-        global_conf = quad_weights[global_quad] / total_weight
-        global_probs = {k: round(v / max(total_weight, 0.001), 3) for k, v in quad_weights.items()}
-    else:
-        global_quad = "Q3"  # default from Hedgeye April 2026
-        global_conf = 0.5
-        global_probs = {"Q1": 0.15, "Q2": 0.25, "Q3": 0.40, "Q4": 0.20}
-
-    # Sort countries by opportunity score
-    ranked = sorted(country_results.items(), key=lambda x: x[1]["composite_score"], reverse=True)
-    top_longs = [(name, data["etf"], data["composite_score"])
-                 for name, data in ranked if data["action"] == "LONG"][:6]
-    top_shorts = [(name, data["etf"], data["composite_score"])
-                  for name, data in ranked if data["action"] == "SHORT/AVOID"][:4]
-
-    # Front-run candidates: countries about to transition quad
-    front_run = []
-    for name, data in ranked:
-        r1m = data.get("r1m", 0) or 0
-        r6m = data.get("r6m", 0) or 0
-        if data["quad"] == "Q3" and r1m > 0.03:
-            front_run.append({
-                "country": name, "etf": data["etf"],
-                "current_quad": "Q3",
-                "transition_to": "Q2",
-                "signal": f"Q3 country rallying +{r1m:.1%} 1M — potential early Q3→Q2 transition",
-                "priority": "watch",
-            })
-        elif data["quad"] == "Q2" and r1m < -0.03 and r6m < 0:
-            front_run.append({
-                "country": name, "etf": data["etf"],
-                "current_quad": "Q2",
-                "transition_to": "Q3",
-                "signal": f"Q2 country fading −{abs(r1m):.1%} — potential Q2→Q3 transition",
-                "priority": "watch",
-            })
-
-    # Indonesia-specific analysis
-    indo_data = country_results.get("Indonesia", {})
-    hk_data = country_results.get("Hong_Kong", {})
-
-    why_hk_long = (
-        f"EWH score {hk_data.get('composite_score',0):.0%}: "
-        f"Quad {hk_data.get('quad','?')} + USD sensitivity {hk_data.get('usd_sensitivity',0):.0%} "
-        f"+ USD bearish boost {hk_data.get('usd_boost',0):.0%}. "
-        "USD breakdown = mechanical long via dollar inverse correlation. "
-        "HK tech/financials = highest EM beta to USD weakness."
-    )
-    why_indo_avoid = (
-        f"EIDO/JKSE score {indo_data.get('composite_score',0):.0%}: "
-        f"Quad {indo_data.get('quad','?')} — commodity-driven economy in Q3 global context. "
-        "Coal/palm oil cycle peaked. USD weakness helps but not enough to offset "
-        "slowing commodity demand from global growth deceleration. "
-        "Unlike Mexico/Norway: no reshoring/nearshoring structural tailwind. "
-        "IDR fragile without sustained oil > $90."
-    )
-
-    # Check alignment with Hedgeye
-    agree_count = sum(1 for _, d in country_results.items() if "agree" in d.get("our_vs_hedgeye", ""))
-    disagree_count = sum(1 for _, d in country_results.items() if "disagree" in d.get("our_vs_hedgeye", ""))
-
-    return {
-        "global_quad": global_quad,
-        "global_confidence": round(global_conf, 3),
-        "global_probs": global_probs,
-        "countries": country_results,
-        "top_longs": top_longs,
-        "top_shorts": top_shorts,
-        "front_run_candidates": front_run[:5],
-        "why_long_hong_kong": why_hk_long,
-        "why_avoid_indonesia": why_indo_avoid,
-        "vs_hedgeye_alignment": f"{agree_count} agree, {disagree_count} disagree",
-        "global_macro_memetic": "Flation Now, Stag On A Lag — Q3 global backdrop persists, Monthly Q2 is the relief window",
-    }

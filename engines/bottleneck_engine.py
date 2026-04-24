@@ -60,6 +60,24 @@ KNOWN_BOTTLENECKS: Dict[str, dict] = {
     "MKSI": {"type":"structural","sub":"ai_optics","constraint":0.75,"phase":"watch",
         "thesis":"Laser systems for SiPh fab expansion. Tower+GF expanding SiPh = MKS capital equipment demand.",
         "catalyst":"SiPh foundry capex announcements","tp_type":"structural","risk":"Cyclical capex slowdown"},
+    # Transformer / Switchgear (Screenshot 3 type: Hammond Power Solutions, ETN, etc.)
+    "VRT":  {"type":"structural","sub":"transformer_infra","constraint":0.88,"phase":"level_2",
+        "thesis":"Vertiv = data center power infrastructure monopoly. Liquid cooling + UPS + power mgmt. AI DC buildout = 10yr order book. CEO called 2026 'breakout year'.",
+        "catalyst":"AI DC power density increase, hyperscaler capex guide up","tp_type":"structural",
+        "risk":"Valuation stretched; execution risk at scale"},
+    "HUBB": {"type":"structural","sub":"transformer_infra","constraint":0.82,"phase":"level_2",
+        "thesis":"Hubbell electrical components + switchgear. Data center + grid upgrade = multi-year demand. Similar to ETN but smaller = more upside leverage.",
+        "catalyst":"Utility grid upgrade cycle, AI DC power contracts","tp_type":"structural",
+        "risk":"Cyclical exposure, not pure AI play"},
+    "NVT":  {"type":"structural","sub":"transformer_infra","constraint":0.78,"phase":"level_1",
+        "thesis":"nVent Electric = electrical enclosures + thermal management for data centers. AI DC density = thermal bottleneck = nVent's specialty.",
+        "catalyst":"AI DC thermal demand, data center density increase","tp_type":"structural",
+        "risk":"Less known, limited liquidity"},
+    # TAO / Bittensor
+    "TAO22974-USD": {"type":"structural","sub":"depin_ai","constraint":0.75,"phase":"level_1",
+        "thesis":"Bittensor decentralized AI network. 21M max supply, ~8M circulating. March 2026 surge on subnet expansion. Tokenomics = structural supply constraint.",
+        "catalyst":"New subnet launches, institutional discovery, AI narrative amplification","tp_type":"crypto",
+        "risk":"High pump_risk=0.70. Binary: adoption or dump. Exit 14d before major unlock."},
     "ACLS": {"type":"structural","sub":"ai_optics","constraint":0.72,"phase":"watch",
         "thesis":"Ion implant for SiPh fabs. Less-known picks-and-shovels for photonics expansion.",
         "catalyst":"Tower/GF SiPh expansion orders","tp_type":"structural","risk":"Limited SiPh-specific revenue"},
@@ -312,6 +330,15 @@ class BottleneckEngine:
             # IHSG override: long-only
             if market == "ihsg":
                 direction = "long" if trd in ("uptrend", "range") else "avoid"
+
+            # KNOWN BOTTLENECK OVERRIDE: structural/defensive plays in Q3 get LONG classification
+            # even if market_dir=short. These are the Q3 defensive bottlenecks:
+            # GLD, XLV, defense, photonics, healthcare = exceptions to the Q3 short bias
+            if kb and btn_type in ("structural", "defensive") and regime_fit >= 0.55:
+                if trd in ("uptrend", "range"):
+                    direction = "long"
+                elif trd == "downtrend":
+                    direction = "avoid_long"  # known bottleneck but in downtrend = wait
 
             item = dict(
                 ticker=ticker, market=market, sector=sector, btn_type=btn_type,

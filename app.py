@@ -98,7 +98,7 @@ with st.sidebar:
         "🏠 Dashboard","📈 GIP Regime","🎯 Risk Ranges",
         "🌍 Global Quad","📊 US Stocks",
         "💱 Forex","🛢 Commodities","₿ Crypto",
-        "🇮🇩 IHSG","🔍 Bottleneck","🔮 Scenarios",
+        "🇮🇩 IHSG","🔍 Bottleneck","📖 Narratives","🔮 Scenarios",
     ], label_visibility="collapsed")
     st.divider()
     from data.loader import snapshot_age_str, load_snapshot
@@ -141,6 +141,7 @@ gip = snap.get("gip")
 global_ = snap.get("global",{})
 rr = snap.get("risk_ranges",{})
 scen = snap.get("scenarios",{})
+narr = snap.get("narratives",{})
 btk = snap.get("bottleneck",{})
 pb_data = snap.get("playbook",{})
 prices = snap.get("prices",{})
@@ -171,11 +172,72 @@ if page=="🏠 Dashboard":
 <div style="font-size:11px;color:#9CA3AF;margin-top:8px">Flip Risk: {flip:.0%}</div>
 </div>""",unsafe_allow_html=True)
 
-    st.markdown("<br>",unsafe_allow_html=True)
+    # ── Compact Quad Transition Probabilities (3-panel: Structural / Monthly / Global)
     if gip:
-        c1,c2=st.columns(2)
-        with c1: st.plotly_chart(prob_bar(gip.structural_probs,"Structural Probabilities"),use_container_width=True,config={"displayModeBar":False})
-        with c2: st.plotly_chart(prob_bar(gip.monthly_probs,"Monthly Probabilities"),use_container_width=True,config={"displayModeBar":False})
+        st.markdown("<br>",unsafe_allow_html=True)
+        st.markdown("### 📊 Quad Transition Probabilities")
+        
+        def _compact_transition_chart(probs: dict, current_q: str, label: str):
+            """Compact bar + scenario labels."""
+            fig = go.Figure()
+            for q,p in sorted(probs.items()):
+                is_current = (q == current_q)
+                fig.add_bar(x=[q], y=[p], marker_color=QC.get(q,"#9CA3AF"),
+                    marker_line=dict(width=2 if is_current else 0, color="white"),
+                    text=[f"{p:.0%}"], textposition="outside",
+                    name=q)
+            # Scenario annotations at bottom
+            scenarios_sorted = sorted(probs.items(), key=lambda x: x[1], reverse=True)
+            base = scenarios_sorted[0] if scenarios_sorted else ("Q3",0)
+            alt  = scenarios_sorted[1] if len(scenarios_sorted)>1 else ("Q4",0)
+            
+            fig.update_layout(
+                showlegend=False, height=170,
+                margin=dict(t=30,b=30,l=0,r=0),
+                paper_bgcolor="#111827", plot_bgcolor="#111827",
+                font=dict(color="#E8ECF0", family="JetBrains Mono", size=10),
+                title=dict(text=f"From {current_q} → Next Quad | {label}", font=dict(size=10,color="#9CA3AF")),
+                yaxis=dict(range=[0,1.15], tickformat=".0%", showgrid=True, gridcolor="#1F2B3D", tickfont=dict(size=9)),
+                xaxis=dict(showgrid=False, tickfont=dict(size=10)),
+                bargap=0.3,
+            )
+            # Bottom annotation: BASE → ALT
+            base_txt = f"🎯BASE {base[0]}={base[1]:.0%}"
+            alt_txt  = f" | 🔄ALT {alt[0]}={alt[1]:.0%}"
+            if len(scenarios_sorted)>2:
+                risk = scenarios_sorted[2]
+                alt_txt += f" | ⚠️{risk[0]}={risk[1]:.0%}"
+            fig.add_annotation(x=0.5, y=-0.28, xref="paper", yref="paper",
+                text=base_txt+alt_txt, showarrow=False,
+                font=dict(size=9, color="#9CA3AF"), align="center")
+            return fig
+
+        tp1,tp2,tp3 = st.columns(3)
+        with tp1:
+            st.plotly_chart(_compact_transition_chart(gip.structural_probs, sq, "Structural"), use_container_width=True, config={"displayModeBar":False})
+        with tp2:
+            st.plotly_chart(_compact_transition_chart(gip.monthly_probs, mq, "Monthly"), use_container_width=True, config={"displayModeBar":False})
+        with tp3:
+            # Global quad transition from global_
+            gprobs = global_.get("global_probs",{})
+            if gprobs:
+                st.plotly_chart(_compact_transition_chart(gprobs, gq, "Global"), use_container_width=True, config={"displayModeBar":False})
+        
+        # Scenario list compact
+        scenarios_list = scen.get("scenarios",[])
+        if scenarios_list:
+            badges = ["🎯 BASE","🔄 ALT","⚠️ RISK","📌 TAIL"]
+            scen_cols = st.columns(len(scenarios_list[:4]))
+            for i, (sc_item, col) in enumerate(zip(scenarios_list[:4], scen_cols)):
+                pc = "#10B981" if sc_item.probability>0.40 else "#F59E0B" if sc_item.probability>0.25 else "#6B7280"
+                with col:
+                    st.markdown(f"""<div style="background:#1A2235;border-radius:8px;padding:10px;border-left:3px solid {pc}">
+<div style="font-size:10px;color:#9CA3AF">{badges[i]}</div>
+<div style="font-family:monospace;font-weight:700;color:{pc};font-size:12px">{sc_item.name}</div>
+<div style="font-size:10px;color:#9CA3AF;margin-top:4px">P={sc_item.probability:.0%} | Conf={sc_item.confirmation_score:.0%}</div>
+<div style="font-size:10px;color:#E8ECF0;margin-top:4px">{sc_item.headline[:60]}...</div>
+<div style="font-size:10px;color:#9CA3AF;margin-top:2px">EM: {sc_item.em_note[:55]}...</div>
+</div>""", unsafe_allow_html=True)
 
     st.markdown("---")
     c_pb,c_sig=st.columns([1.3,1])
@@ -1051,6 +1113,65 @@ elif page=="🔍 Bottleneck":
             st.dataframe(pd.DataFrame(rows),hide_index=True,use_container_width=True,height=300)
             st.error("⚠️ These have bottleneck characteristics but are REGIME TRAPS. Do NOT buy.")
         else: st.success("No regime traps detected.")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# NARRATIVES
+# ══════════════════════════════════════════════════════════════════════════════
+elif page=="📖 Narratives":
+    st.markdown("# 📖 Active Narratives — Auto-Discovery")
+    st.caption("Narratives scored from price action. No news API needed. Brewing = early alpha before consensus.")
+    
+    if not narr:
+        st.warning("No narrative data. Refresh."); st.stop()
+    
+    sm=narr.get("summary",{})
+    s1,s2,s3,s4=st.columns(4)
+    s1.markdown(f'<div style="background:#1F2B3D;border-radius:8px;padding:12px"><div style="font-size:20px;font-weight:700;color:#10B981">{sm.get("active_count",0)}</div><div style="font-size:10px;color:#9CA3AF">ACTIVE</div></div>',unsafe_allow_html=True)
+    s2.markdown(f'<div style="background:#1F2B3D;border-radius:8px;padding:12px"><div style="font-size:20px;font-weight:700;color:#F59E0B">{sm.get("building_count",0)}</div><div style="font-size:10px;color:#9CA3AF">BUILDING</div></div>',unsafe_allow_html=True)
+    s3.markdown(f'<div style="background:#1F2B3D;border-radius:8px;padding:12px"><div style="font-size:20px;font-weight:700;color:#6B7280">{sm.get("brewing_count",0)}</div><div style="font-size:10px;color:#9CA3AF">BREWING</div></div>',unsafe_allow_html=True)
+    s4.markdown(f'<div style="background:#1F2B3D;border-radius:8px;padding:12px"><div style="font-size:12px;font-weight:700;color:#00D4AA">{sm.get("top_conviction","—")[:25]}</div><div style="font-size:10px;color:#9CA3AF">TOP CONVICTION</div></div>',unsafe_allow_html=True)
+
+    def _narr_card(n, expanded=False):
+        stage=n.get("stage","—"); score=n.get("score",0); conv=n.get("conviction",0)
+        sc={"active":"#10B981","building":"#F59E0B","brewing":"#6B7280","dormant":"#374151"}.get(stage,"#374151")
+        badge={"active":"🟢 ACTIVE","building":"🟡 BUILDING","brewing":"⚪ BREWING","dormant":"⚫ DORMANT"}.get(stage,"")
+        benef=[t for tlist in n.get("beneficiaries",{}).values() for t in tlist[:3]]
+        fades=[t for tlist in n.get("fades",{}).values() for t in tlist[:2]]
+        with st.expander(f"{badge} {n['name']} — Score:{score:.2f} | Conv:{conv:.0%} | Pump:{n.get('pump_risk',0):.0%}", expanded=expanded):
+            st.markdown(f"*{n.get('description','')[:150]}*")
+            cc=st.columns(3)
+            cc[0].markdown(f"**✅ LONG**: {', '.join(benef[:5])}")
+            cc[1].markdown(f"**❌ FADE**: {', '.join(fades[:3])}")
+            cc[2].markdown(f"**Duration**: ~{n.get('typical_weeks',8)}w")
+            if n.get("confirmation_signals"):
+                st.caption(f"Confirm: {' | '.join(n['confirmation_signals'][:3])}")
+            if n.get("catalyst_types"):
+                st.caption(f"Catalyst: {' | '.join(n['catalyst_types'][:3])}")
+
+    tab1,tab2,tab3,tab4,tab5 = st.tabs(["🟢 Active","🟡 Building","⚪ Brewing (Alpha)","📍 By Market","🔮 Pre-Consensus"])
+    
+    with tab1:
+        active = narr.get("active",[])
+        if active:
+            for n in active[:8]: _narr_card(n, expanded=(active.index(n)==0))
+        else: st.info(f"No active narratives in {sq}. Most narratives dormant in this regime.")
+    
+    with tab2:
+        for n in narr.get("building",[])[:8]: _narr_card(n)
+    
+    with tab3:
+        st.caption("⚡ **Brewing** = high constraint + regime fit + accumulation starting. These are the early-entry alpha plays before they become consensus.")
+        for n in narr.get("brewing",[])[:8]: _narr_card(n)
+    
+    with tab4:
+        market_tabs = st.tabs(["🇺🇸 US","🇮🇩 IHSG","₿ Crypto","💱 Forex","🛢 Commodity"])
+        for mtt, mkey in zip(market_tabs, ["us_narratives","ihsg_narratives","crypto_narratives","fx_narratives","commodity_narratives"]):
+            with mtt:
+                for n in narr.get(mkey,[])[:6]: _narr_card(n)
+    
+    with tab5:
+        st.caption("🎯 **Pre-Consensus** = regime-aligned narratives that are brewing but not yet widely known. Low pump risk, high regime fit = the transformer/switchgear type setup.")
+        for n in narr.get("pre_consensus",[])[:8]: _narr_card(n)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SCENARIOS

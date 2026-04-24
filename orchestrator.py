@@ -11,6 +11,7 @@ from engines.global_quad_engine import GlobalQuadEngine
 from engines.hurst_rr_engine import HurstRREngine
 from engines.scenario_engine import ScenarioEngine
 from engines.bottleneck_engine import BottleneckEngine
+from engines.narrative_engine import NarrativeEngine
 from config.settings import (
     MACRO_PROXIES, US_SECTORS, US_FACTORS, FOREX_PAIRS,
     COMMODITIES, CRYPTO, BONDS, IHSG_UNIVERSE, COUNTRY_UNIVERSE,
@@ -161,6 +162,16 @@ def build_snapshot(
         asset_ranges=asset_ranges,
     )
     snap["bottleneck"] = btk
+
+    # 14. Narrative Engine
+    _prog(progress_cb, "Scoring active narratives...", 0.93)
+    narratives = NarrativeEngine().run(
+        prices=prices,
+        quad_str=gip.structural_quad,
+        quad_mon=gip.monthly_quad,
+        benchmark="SPY",
+    )
+    snap["narratives"] = narratives
 
     # Store prices subset for UI charts (close prices only — light)
     snap["prices"] = {k: v for k, v in prices.items() if isinstance(v, pd.Series) and len(v) > 10}

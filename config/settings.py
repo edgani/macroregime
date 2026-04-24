@@ -250,6 +250,8 @@ BOTTLENECK_PROFILES: dict = {
     "nickel": {"constraint":0.70,"Q1":0.60,"Q2":0.82,"Q3":0.55,"Q4":0.30},
     "cpo_palm": {"constraint":0.65,"Q1":0.55,"Q2":0.75,"Q3":0.60,"Q4":0.30},
     "generic": {"constraint":0.20,"Q1":0.50,"Q2":0.50,"Q3":0.40,"Q4":0.40},
+    "transformer_infra": {"constraint":0.88,"Q1":0.70,"Q2":0.88,"Q3":0.80,"Q4":0.50},
+    "depin_ai":          {"constraint":0.75,"Q1":1.70,"Q2":1.10,"Q3":0.30,"Q4":0.50},
 }
 
 TICKER_SECTOR: dict = {
@@ -297,6 +299,13 @@ TICKER_SECTOR: dict = {
     # Staples / Consumer Defensive
     "XLP":"staples","PG":"staples","KO":"staples","PEP":"staples","WMT":"staples","COST":"staples",
     "PM":"staples","MO":"staples","GIS":"staples","K":"staples","HSY":"staples","MDLZ":"staples",
+    # Transformer / Switchgear infrastructure (Screenshot 3 category)
+    "HUBB":"transformer_infra","NVT":"transformer_infra","AYI":"transformer_infra",
+    "AMETEK":"transformer_infra","ROP":"transformer_infra","ROPER":"transformer_infra",
+    "ACNB":"transformer_infra","VRT":"transformer_infra",  # Vertiv = data center power
+    # Crypto TAO and related
+    "TAO22974-USD":"depin_ai","RNDR-USD":"depin_ai","FET-USD":"depin_ai",
+    "OCEAN-USD":"depin_ai","GRT6719-USD":"depin_ai","HNT-USD":"depin_ai",
     # Indices / Generic
     "SPY":"generic","QQQ":"generic","IWM":"generic","TLT":"generic","DIA":"generic","VTV":"generic","VUG":"generic",
     "RSP":"generic","MTUM":"generic","QUAL":"generic","SIZE":"generic","USMV":"generic","HDV":"generic",
@@ -339,6 +348,9 @@ MARKET_CLASSIFICATION: dict = {
     "OXY":"us_equity","MPC":"us_equity","VLO":"us_equity","PSX":"us_equity","KMI":"us_equity",
     "LEU":"us_equity","DNN":"us_equity","URG":"us_equity",
     "PM":"us_equity","MO":"us_equity","GIS":"us_equity","K":"us_equity","HSY":"us_equity","MDLZ":"us_equity",
+    "HUBB":"us_equity","NVT":"us_equity","AYI":"us_equity","AMETEK":"us_equity","ROP":"us_equity","VRT":"us_equity",
+    # Crypto TAO/DePIN
+    "TAO22974-USD":"crypto","RNDR-USD":"crypto","FET-USD":"crypto","OCEAN-USD":"crypto","GRT6719-USD":"crypto","HNT-USD":"crypto",
     # Forex
     "EURUSD=X":"forex","GBPUSD=X":"forex","USDJPY=X":"forex","USDCHF=X":"forex",
     "USDCAD=X":"forex","AUDUSD=X":"forex","NZDUSD=X":"forex","USDSEK=X":"forex","USDNOK=X":"forex",

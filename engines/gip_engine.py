@@ -148,6 +148,38 @@ def _price_proxy(prices: Dict) -> Dict[str, float]:
     oil_acc = _acc_spread(oil6, oil12)
     gld_acc = _acc_spread(gld6, gld12)
 
+    # ── Credit/Quality signals: Q3 differentiators (6M horizon) ───────────
+    # Using 6M (126d) lookback: more reliable, needs only 127 data points
+    hyg6  = _first_finite(r("HYG", 126), r("LQD", 126))
+    tlt6  = _first_finite(r("TLT", 126))
+    xlp6  = _first_finite(r("XLP", 126))
+    xly6v = _first_finite(r("XLY", 126))  # renamed from xly6 to avoid conflict
+    spy6v = _first_finite(r("SPY", 126))  # 6M SPY return for comparison
+    iwm6v = _first_finite(r("IWM", 126))  # 6M IWM return
+
+    # Credit spread: SPY 6M outpacing HYG 6M = credit stress = Q3 signal
+    credit_stress_6 = _nan(spy6v - hyg6)   # positive = Q3/Q4 signal
+    # Flight to quality: TLT positive while SPY flat/neg = Q3/Q4 signal
+    quality_bid_6   = _nan(tlt6 - spy6v*0.5)  # TLT outperforming = Q3
+    # Consumer bifurcation: XLP > XLY on 6M = defensive outperform = Q3
+    consumer_stress_6 = _nan(xlp6 - xly6v)  # positive = Q3 signal
+    # Breadth: SPY >> IWM on 6M = small cap lagging = Q3 breadth headwind
+    breadth_stress_6 = _nan(spy6v - iwm6v)   # positive = Q3 signal
+
+    # Q3 confirmation modifier: sum of confirming signals
+    q3_conf_raw = (
+        max(0.0, credit_stress_6) * 2.0 +    # credit stress (strongest signal)
+        max(0.0, quality_bid_6) * 1.5 +       # flight to quality
+        max(0.0, consumer_stress_6) * 2.0 +   # defensive outperform
+        max(0.0, breadth_stress_6) * 1.0      # small cap underperform
+    )
+    q3_modifier = float(np.tanh(q3_conf_raw / 0.12) * 0.40)  # max ±0.40 boost
+    # Also store the raw values for debugging
+    credit_stress_12 = credit_stress_6
+    quality_bid_12   = quality_bid_6
+    consumer_stress_12 = consumer_stress_6
+    breadth_stress_12  = breadth_stress_6
+
     return {
         # Growth level = 12M trend (long-term level)
         "indpro_yoy":    _nan(0.55*xli12 + 0.45*spy12),
@@ -184,6 +216,12 @@ def _price_proxy(prices: Dict) -> Dict[str, float]:
         "dxy_3m":        _nan(uup3),
         "policy_score":  0.0,
         "liquidity_score":0.0,
+        # Q3 confirmation signals (credit + quality + breadth)
+        "q3_credit_stress": _nan(credit_stress_12),
+        "q3_quality_bid":   _nan(quality_bid_12),
+        "q3_consumer_stress": _nan(consumer_stress_12),
+        "q3_breadth_stress":  _nan(breadth_stress_12),
+        "q3_modifier":      q3_modifier,
     }
 
 # ── FRED feature extraction ───────────────────────────────────────────────────
@@ -334,10 +372,18 @@ class GIPEngine:
         coverage= _coverage({**g_lvl, **g_mom, **i_lvl, **i_mom})
 
         # ── STRUCTURAL (Quarterly) ───────────────────────────────────────────
-        # FIXED: weights now inflation-dominant (55%) for Q3 accuracy
+        # Apply Q3 credit/quality confirmation from proxy signals
+        # Q3 credit/quality modifier from market prices (real-time, applies regardless of FRED coverage)
+        q3_mod = float(_nan(merge("q3_modifier")))
+        struct_modifiers = {}
+        if q3_mod > 0.05:
+            # Scale by proxy_share: stronger in proxy mode, lighter with FRED (FRED captures it already)
+            scale = 0.8 + 0.2 * proxy_share  # 0.8x with full FRED, 1.0x in proxy mode
+            struct_modifiers = {"Q3": q3_mod * scale, "Q2": -q3_mod * scale * 0.4}
         struct_probs, struct_quad, struct_conf = _score_quad(
             g_level, g_mom_, i_level, i_mom_, policy,
-            STRUCTURAL_WEIGHTS, POLICY_WEIGHT_STRUCTURAL)
+            STRUCTURAL_WEIGHTS, POLICY_WEIGHT_STRUCTURAL,
+            modifiers=struct_modifiers)
 
         # ── MONTHLY (Weather Overlay) ────────────────────────────────────────
         # More responsive to recent market signals (1M/3M)
@@ -368,6 +414,8 @@ class GIPEngine:
             growth_level=g_level, growth_momentum=g_mom_,
             inflation_level=i_level, inflation_momentum=i_mom_,
             policy_score=policy, data_coverage=coverage, proxy_share=proxy_share,
+            q3_modifier=q3_mod, q3_credit_stress=_nan(merge("q3_credit_stress")),
+            q3_consumer_stress=_nan(merge("q3_consumer_stress")),
             monthly_g_level=m_g_level, monthly_g_mom=m_g_mom,
             monthly_i_level=m_i_level, monthly_i_mom=m_i_mom,
             headline_gap=hgap, inflation_shock=shock,

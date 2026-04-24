@@ -4,17 +4,17 @@ Per-country quad classification + global weighted quad.
 Hedgeye runs GIP for 50+ countries covering 90% of global GDP.
 
 Per-country methodology (from Hedgeye Monthly Macro Themes Monitor):
-  Growth proxy: Manufacturing PMI + Services PMI + IP + Export growth
-  Inflation proxy: CPI + commodity sensitivity * oil/commodity moves
-  Acceleration/deceleration = second derivative of YoY RoC
-  Country ETF performance vs USD = confirming/leading signal
+ Growth proxy: Manufacturing PMI + Services PMI + IP + Export growth
+ Inflation proxy: CPI + commodity sensitivity * oil/commodity moves
+ Acceleration/deceleration = second derivative of YoY RoC
+ Country ETF performance vs USD = confirming/leading signal
 
 Global quad = market-cap weighted average of country quads.
 
 USD relationship:
-  "Rising USD = deflationary for EM denominated in USD"
-  "Global Q1+Q2 = USD weakens (synchronized recovery)"
-  "Global Q3+Q4 divergences = USD strengthens"
+ "Rising USD = deflationary for EM denominated in USD"
+ "Global Q1+Q2 = USD weakens (synchronized recovery)"
+ "Global Q3+Q4 divergences = USD strengthens"
 """
 from __future__ import annotations
 
@@ -27,19 +27,28 @@ from config.settings import COUNTRY_UNIVERSE
 
 # Market cap weights (approximate 2026 GDP-proportional)
 MARKET_CAP_WEIGHTS: Dict[str, float] = {
-    "USA": 0.280, "China": 0.120, "Japan": 0.060, "Germany": 0.045,
-    "India": 0.040, "UK": 0.035, "France": 0.030, "Canada": 0.025,
-    "Korea": 0.022, "Australia": 0.020, "Brazil": 0.018, "Taiwan": 0.018,
-    "Mexico": 0.015, "Indonesia": 0.012, "Saudi": 0.012, "Norway": 0.008,
-    "Switzerland": 0.010, "Sweden": 0.008, "Hong_Kong": 0.012, "Argentina": 0.006,
-    "Chile": 0.005, "Colombia": 0.004, "Poland": 0.006, "Turkey": 0.006,
-    "Israel": 0.005, "UAE": 0.008, "South_Africa": 0.005, "Vietnam": 0.004,
-    "Egypt": 0.003, "Nigeria": 0.003, "Peru": 0.004,
+ "USA": 0.280, "China": 0.120, "Japan": 0.060, "Germany": 0.045,
+ "India": 0.040, "UK": 0.035, "France": 0.030, "Canada": 0.025,
+ "Korea": 0.022, "Australia": 0.020, "Brazil": 0.018, "Taiwan": 0.018,
+ "Mexico": 0.015, "Indonesia": 0.012, "Saudi": 0.012, "Norway": 0.008,
+ "Switzerland": 0.010, "Sweden": 0.008, "Hong_Kong": 0.012, "Argentina": 0.006,
+ "Chile": 0.005, "Colombia": 0.004, "Poland": 0.006, "Turkey": 0.006,
+ "Israel": 0.005, "UAE": 0.008, "South_Africa": 0.005, "Vietnam": 0.004,
+ "Egypt": 0.003, "Nigeria": 0.003, "Peru": 0.004,
 }
 
 # Quad numeric codes for weighted averaging
 QUAD_SCORE: Dict[str, float] = {"Q1": 1.0, "Q2": 2.0, "Q3": 3.0, "Q4": 4.0}
 
+# ── Safe helpers (NEVER use `or` on pd.Series) ─────────────────────────────
+
+def _get_series(prices: Dict[str, pd.Series], *keys) -> Optional[pd.Series]:
+    """Return first non-None, non-empty pd.Series from keys."""
+    for k in keys:
+        s = prices.get(k)
+        if s is not None and isinstance(s, pd.Series) and not s.empty:
+            return s
+    return None
 
 def _ret(s: pd.Series, n: int) -> Optional[float]:
     if s is None or len(s) < n+1:
@@ -50,15 +59,13 @@ def _ret(s: pd.Series, n: int) -> Optional[float]:
     except Exception:
         return None
 
-
 def _roc_acc(s: pd.Series) -> Optional[float]:
     """Is 6M annualised return accelerating vs 12M? Returns delta."""
-    r6  = _ret(s, 126)
+    r6 = _ret(s, 126)
     r12 = _ret(s, 252)
     if r6 is None or r12 is None:
         return None
     return r6 * 2.0 - r12  # annualised 6M vs 12M
-
 
 def _classify_country(
     etf_close: Optional[pd.Series],
@@ -87,11 +94,11 @@ def _classify_country(
 
     # Growth signal: ETF acceleration (6M annualised vs 12M)
     roc = _roc_acc(etf_close)
-    growth_acc  = roc is not None and roc > 0.03   # 3% annualised acceleration threshold
-    growth_dec  = roc is not None and roc < -0.03
+    growth_acc = roc is not None and roc > 0.03  # 3% annualised acceleration threshold
+    growth_dec = roc is not None and roc < -0.03
 
     # Inflation signal: commodity sensitivity * oil move + USD sensitivity
-    inf_push    = commodity_sens * max(0.0, oil_3m) + 0.3 * max(0.0, -usd_1m)
+    inf_push = commodity_sens * max(0.0, oil_3m) + 0.3 * max(0.0, -usd_1m)
     inf_release = commodity_sens * max(0.0, -oil_3m) + 0.3 * max(0.0, usd_1m)
     inflation_acc = inf_push > inf_release + 0.01
 
@@ -118,7 +125,6 @@ def _classify_country(
 
     return quad, round(conf, 2), rationale
 
-
 class GlobalQuadEngine:
     """
     Run Hedgeye-style GIP for 50 countries.
@@ -128,13 +134,15 @@ class GlobalQuadEngine:
     def run(
         self,
         prices: Dict[str, pd.Series],
-        us_gip_result = None,   # GIPResult from GIPEngine
+        us_gip_result = None,  # GIPResult from GIPEngine
         stress: Optional[Dict[str, float]] = None,
     ) -> Dict[str, object]:
 
         stress = stress or {}
-        usd_series = prices.get("DX-Y.NYB") or prices.get("UUP")
-        oil_series = prices.get("CL=F") or prices.get("USO")
+
+        # FIXED: use _get_series instead of `or` on pd.Series
+        usd_series = _get_series(prices, "DX-Y.NYB", "UUP")
+        oil_series = _get_series(prices, "CL=F", "USO")
 
         usd_1m = 0.0
         if usd_series is not None:
@@ -166,13 +174,13 @@ class GlobalQuadEngine:
 
             # USD impact for EM countries
             # "Rising USD = deflationary for EM"
-            usd_headwind = usd_sens * max(0.0, usd_1m) * 2.0   # 0-1 scale
+            usd_headwind = usd_sens * max(0.0, usd_1m) * 2.0  # 0-1 scale
             usd_tailwind = usd_sens * max(0.0, -usd_1m) * 2.0
 
             # ETF performance
-            etf_1m  = _ret(etf_close, 21)  if etf_close is not None and len(etf_close)>21  else None
-            etf_3m  = _ret(etf_close, 63)  if etf_close is not None and len(etf_close)>63  else None
-            etf_6m  = _ret(etf_close, 126) if etf_close is not None and len(etf_close)>126 else None
+            etf_1m = _ret(etf_close, 21) if etf_close is not None and len(etf_close)>21 else None
+            etf_3m = _ret(etf_close, 63) if etf_close is not None and len(etf_close)>63 else None
+            etf_6m = _ret(etf_close, 126) if etf_close is not None and len(etf_close)>126 else None
             etf_12m = _ret(etf_close, 252) if etf_close is not None and len(etf_close)>252 else None
 
             country_results[country] = dict(
@@ -221,10 +229,10 @@ class GlobalQuadEngine:
 
         # USD interpretation
         if global_quad in ("Q1","Q2"):
-            usd_bias = "bearish"   # synchronized recovery = USD down
+            usd_bias = "bearish"  # synchronized recovery = USD down
             usd_rationale = "Global Q1/Q2 = synchronized recovery → USD weakens"
         else:
-            usd_bias = "bullish"   # global divergences = USD up (flight to safety)
+            usd_bias = "bullish"  # global divergences = USD up (flight to safety)
             usd_rationale = "Global Q3/Q4 divergences → USD strengthens"
 
         # EM assessment

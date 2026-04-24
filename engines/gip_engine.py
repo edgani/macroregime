@@ -1,7 +1,7 @@
-"""engines/gip_engine.py — TRUE Hedgeye GIP Model (fully patched)
+"""engines/gip_engine.py — TRUE Hedgeye GIP Model (fully patched v2)
 
 ROOT CAUSE FIX: `pd.Series or pd.Series` raises ValueError in Python.
-All fallback chains now use explicit None checks via _fv() helper.
+All fallback chains now use explicit None/finite checks via helpers.
 """
 from __future__ import annotations
 import math
@@ -49,7 +49,7 @@ def _roc(s, n=12, offset=3) -> float:
     s = _safe(s)
     if len(s) < n + offset + 1: return float("nan")
     try:
-        r_now  = float(s.iloc[-1]       / s.iloc[-n-1]        - 1)
+        r_now = float(s.iloc[-1] / s.iloc[-n-1] - 1)
         r_prev = float(s.iloc[-offset-1]/ s.iloc[-n-offset-1] - 1)
         if not (math.isfinite(r_now) and math.isfinite(r_prev)): return float("nan")
         return r_now - r_prev
@@ -92,51 +92,67 @@ def _softmax(scores: Dict[str, float]) -> Dict[str, float]:
 def _nan(v) -> float:
     return float(np.nan_to_num(v, nan=0.0))
 
+# NEW: safe float fallback — never uses `or` on floats
+
+def _first_finite(*vals, default=0.0):
+    """Return first arg that is not None and is finite (includes 0.0)."""
+    for v in vals:
+        if v is not None and math.isfinite(v):
+            return float(v)
+    return float(default)
+
 # ── Price proxy (when no FRED) ────────────────────────────────────────────────
 
 def _price_proxy(prices: Dict) -> Dict[str, float]:
     """Market-implied G+I proxy. Used when FRED unavailable."""
     def r(t, n): return _ret(prices.get(t), n)
 
-    spy3 = r("SPY",63) or 0.0; xli3 = r("XLI",63) or 0.0
-    xly3 = r("XLY",63) or 0.0; iwm3 = r("IWM",63) or 0.0
-    xhb3 = r("XHB",63) or 0.0; uup3 = r("UUP",63) or 0.0
-    oil3 = r("CL=F",63) or r("USO",63) or 0.0
-    gld3 = r("GLD",63) or 0.0; tlt1 = r("TLT",21) or 0.0
-    oil1 = r("CL=F",21) or r("USO",21) or 0.0
-    gld1 = r("GLD",21) or 0.0; uup1 = r("UUP",21) or 0.0
-    spy1 = r("SPY",21) or 0.0; xli1 = r("XLI",21) or 0.0
-    iwm1 = r("IWM",21) or 0.0
+    # FIXED: use _first_finite instead of `or` chains so 0.0 is preserved
+    spy3 = _first_finite(r("SPY",63))
+    xli3 = _first_finite(r("XLI",63))
+    xly3 = _first_finite(r("XLY",63))
+    iwm3 = _first_finite(r("IWM",63))
+    xhb3 = _first_finite(r("XHB",63))
+    uup3 = _first_finite(r("UUP",63))
+    oil3 = _first_finite(r("CL=F",63), r("USO",63))
+    gld3 = _first_finite(r("GLD",63))
+    tlt1 = _first_finite(r("TLT",21))
+    oil1 = _first_finite(r("CL=F",21), r("USO",21))
+    gld1 = _first_finite(r("GLD",21))
+    uup1 = _first_finite(r("UUP",21))
+    spy1 = _first_finite(r("SPY",21))
+    xli1 = _first_finite(r("XLI",21))
+    iwm1 = _first_finite(r("IWM",21))
 
     return {
         # Growth level proxies
-        "indpro_yoy":    _nan(0.55*xli3+0.45*spy3),
-        "retail_yoy":    _nan(0.60*xly3+0.40*spy3),
-        "payrolls_yoy":  _nan(0.50*iwm3+0.50*spy3),
-        "housing_yoy":   _nan(0.70*xhb3+0.30*iwm3),
-        "ism_norm":      _nan(10.0*xli3),
-        "unrate_inv":    _nan(-0.10*iwm3),
-        "claims_inv":    _nan(-5.0*iwm3),
+        "indpro_yoy": _nan(0.55*xli3+0.45*spy3),
+        "retail_yoy": _nan(0.60*xly3+0.40*spy3),
+        "payrolls_yoy": _nan(0.50*iwm3+0.50*spy3),
+        "housing_yoy": _nan(0.70*xhb3+0.30*iwm3),
+        "ism_norm": _nan(10.0*xli3),
+        "unrate_inv": _nan(-0.10*iwm3),
+        "claims_inv": _nan(-5.0*iwm3),
         # Inflation level proxies
-        "cpi_yoy":       _nan(0.025+0.35*oil3+0.05*gld3),
-        "core_cpi_yoy":  _nan(0.023+0.15*oil3-0.05*uup3),
-        "breakeven_5y":  _nan((2.2+1.2*oil3+0.4*gld3-2.2)/2.0),
-        "ppi_yoy":       _nan(0.03+0.55*oil3),
-        "oil_3m":        _nan(oil3), "gold_3m": _nan(gld3),
+        "cpi_yoy": _nan(0.025+0.35*oil3+0.05*gld3),
+        "core_cpi_yoy": _nan(0.023+0.15*oil3-0.05*uup3),
+        "breakeven_5y": _nan((2.2+1.2*oil3+0.4*gld3-2.2)/2.0),
+        "ppi_yoy": _nan(0.03+0.55*oil3),
+        "oil_3m": _nan(oil3), "gold_3m": _nan(gld3),
         # Growth momentum proxies
-        "indpro_roc":    _nan(0.60*xli1+0.40*spy1),
-        "retail_roc":    _nan(xly3-xly3*0.8),
-        "payrolls_roc":  _nan(iwm3*0.3),
-        "ism_delta":     _nan(xli1*100),
-        "unrate_delta":  _nan(-iwm1),
-        "claims_delta":  0.0,
+        "indpro_roc": _nan(0.60*xli1+0.40*spy1),
+        "retail_roc": _nan(xly3-xly3*0.8),
+        "payrolls_roc": _nan(iwm3*0.3),
+        "ism_delta": _nan(xli1*100),
+        "unrate_delta": _nan(-iwm1),
+        "claims_delta": 0.0,
         # Inflation momentum proxies
-        "cpi_roc":       _nan(oil1*0.4+gld1*0.1),
-        "core_cpi_roc":  _nan(oil1*0.2-uup1*0.1),
+        "cpi_roc": _nan(oil1*0.4+gld1*0.1),
+        "core_cpi_roc": _nan(oil1*0.2-uup1*0.1),
         "breakeven_delta":_nan(oil1*0.3+gld1*0.1),
         "oil_1m": oil1, "dxy_inv_1m": _nan(-uup1),
         "tlt_1m": tlt1, "dxy_3m": _nan(uup3),
-        "policy_score":  0.0, "liquidity_score": 0.0,
+        "policy_score": 0.0, "liquidity_score": 0.0,
     }
 
 # ── FRED feature extraction ───────────────────────────────────────────────────
@@ -146,43 +162,43 @@ def _extract_fred_features(fred: Dict) -> Dict[str, float]:
     f: Dict[str, float] = {}
 
     # Growth level
-    f["indpro_yoy"]    = _yoy(fred.get("INDPRO"))
-    f["retail_yoy"]    = _yoy(fred.get("RSAFS"))
-    f["payrolls_yoy"]  = _yoy(fred.get("PAYEMS"))
+    f["indpro_yoy"] = _yoy(fred.get("INDPRO"))
+    f["retail_yoy"] = _yoy(fred.get("RSAFS"))
+    f["payrolls_yoy"] = _yoy(fred.get("PAYEMS"))
     ism_s = _fv(fred.get("ISMNO"), fred.get("MANEMP"))  # FIXED: no `or`
-    ism   = _last(ism_s)
-    f["ism_norm"]      = (ism - ISM_NEUTRAL) / ISM_NEUTRAL if math.isfinite(ism) else float("nan")
-    f["housing_yoy"]   = _yoy(fred.get("HOUST"))
-    unrate_3m  = _delta(fred.get("UNRATE"), 3)
-    claims_d   = _delta(fred.get("ICSA"), 13)
-    f["unrate_inv"]    = -float(np.tanh(unrate_3m / 0.2)) if math.isfinite(unrate_3m) else float("nan")
-    f["claims_inv"]    = -float(np.tanh(claims_d / 50000)) if math.isfinite(claims_d) else float("nan")
+    ism = _last(ism_s)
+    f["ism_norm"] = (ism - ISM_NEUTRAL) / ISM_NEUTRAL if math.isfinite(ism) else float("nan")
+    f["housing_yoy"] = _yoy(fred.get("HOUST"))
+    unrate_3m = _delta(fred.get("UNRATE"), 3)
+    claims_d = _delta(fred.get("ICSA"), 13)
+    f["unrate_inv"] = -float(np.tanh(unrate_3m / 0.2)) if math.isfinite(unrate_3m) else float("nan")
+    f["claims_inv"] = -float(np.tanh(claims_d / 50000)) if math.isfinite(claims_d) else float("nan")
 
     # Growth momentum (2nd derivative — TRUE Hedgeye signal)
-    f["indpro_roc"]    = _roc(fred.get("INDPRO"),  12, 3)
-    f["retail_roc"]    = _roc(fred.get("RSAFS"),   12, 3)
-    f["payrolls_roc"]  = _roc(fred.get("PAYEMS"),  12, 3)
-    f["ism_delta"]     = _delta(ism_s, 3) / ISM_NEUTRAL if ism_s is not None else float("nan")
-    f["unrate_delta"]  = -unrate_3m / 0.2 if math.isfinite(unrate_3m) else float("nan")
-    f["claims_delta"]  = -claims_d / 50000 if math.isfinite(claims_d) else float("nan")
+    f["indpro_roc"] = _roc(fred.get("INDPRO"), 12, 3)
+    f["retail_roc"] = _roc(fred.get("RSAFS"), 12, 3)
+    f["payrolls_roc"] = _roc(fred.get("PAYEMS"), 12, 3)
+    f["ism_delta"] = _delta(ism_s, 3) / ISM_NEUTRAL if ism_s is not None else float("nan")
+    f["unrate_delta"] = -unrate_3m / 0.2 if math.isfinite(unrate_3m) else float("nan")
+    f["claims_delta"] = -claims_d / 50000 if math.isfinite(claims_d) else float("nan")
 
     # Inflation level
-    f["cpi_yoy"]       = _yoy(fred.get("CPIAUCSL"))
-    f["core_cpi_yoy"]  = _yoy(fred.get("CPILFESL"))
-    f["ppi_yoy"]       = _yoy(fred.get("PPIACO"))
+    f["cpi_yoy"] = _yoy(fred.get("CPIAUCSL"))
+    f["core_cpi_yoy"] = _yoy(fred.get("CPILFESL"))
+    f["ppi_yoy"] = _yoy(fred.get("PPIACO"))
     be5 = _last(fred.get("T5YIE"))
-    f["breakeven_5y"]  = (be5 - 2.2) / 2.0 if math.isfinite(be5) else float("nan")
+    f["breakeven_5y"] = (be5 - 2.2) / 2.0 if math.isfinite(be5) else float("nan")
 
     # Inflation momentum
-    f["cpi_roc"]         = _roc(fred.get("CPIAUCSL"),  12, 3)
-    f["core_cpi_roc"]    = _roc(fred.get("CPILFESL"),  12, 3)
+    f["cpi_roc"] = _roc(fred.get("CPIAUCSL"), 12, 3)
+    f["core_cpi_roc"] = _roc(fred.get("CPILFESL"), 12, 3)
     be5_d = _delta(fred.get("T5YIE"), 1)
     f["breakeven_delta"] = _nan(be5_d / 0.3) if math.isfinite(be5_d) else float("nan")
 
     # Policy — FIXED: use _fv() instead of `or` between Series
     ff_s = _fv(fred.get("FEDFUNDS"), fred.get("DFF"))  # FIXED ROOT CAUSE
     ff_delta = _delta(ff_s, 3)
-    f["policy_score"]    = float(np.tanh(-_nan(ff_delta) / 0.5))
+    f["policy_score"] = float(np.tanh(-_nan(ff_delta) / 0.5))
     m2_roc = _roc(fred.get("M2SL"), 12, 3)
     f["liquidity_score"] = float(np.tanh(_nan(m2_roc) / 0.05))
 
@@ -192,18 +208,18 @@ def _extract_fred_features(fred: Dict) -> Dict[str, float]:
 
 @dataclass
 class GIPResult:
-    structural_quad:  str; structural_probs: Dict[str,float]; structural_conf: float
-    structural_g:     float; structural_i: float
-    monthly_quad:     str; monthly_probs: Dict[str,float]; monthly_conf: float
-    monthly_g:        float; monthly_i: float
-    divergence:       str; operating_regime: str
-    policy_score:     float; data_coverage: float; proxy_share: float
-    features:         Dict[str,float] = field(default_factory=dict)
+    structural_quad: str; structural_probs: Dict[str,float]; structural_conf: float
+    structural_g: float; structural_i: float
+    monthly_quad: str; monthly_probs: Dict[str,float]; monthly_conf: float
+    monthly_g: float; monthly_i: float
+    divergence: str; operating_regime: str
+    policy_score: float; data_coverage: float; proxy_share: float
+    features: Dict[str,float] = field(default_factory=dict)
 
     @property
     def flip_hazard(self) -> float:
         margin = self.structural_probs.get(self.structural_quad, 0.5) - \
-                 sorted(self.structural_probs.values(), reverse=True)[1]
+            sorted(self.structural_probs.values(), reverse=True)[1]
         return float(np.clip(0.5 - 0.8*margin + 0.2*(1.0-self.data_coverage), 0.0, 1.0))
 
 def _quad_name(q): return {"Q1":"Goldilocks","Q2":"Reflation","Q3":"Stagflation","Q4":"Deflation"}.get(q,q)
@@ -222,16 +238,16 @@ def _score_quad(g_level, g_mom, i_level, i_mom, policy, sw, pw, modifiers=None):
     for q, delta in modifiers.items():
         if q in raw: raw[q] += delta
     probs = _softmax(raw)
-    top   = max(probs, key=probs.get)
+    top = max(probs, key=probs.get)
     margin= probs[top] - sorted(probs.values(), reverse=True)[1]
-    conf  = float(np.clip(probs[top]*(0.65+0.35*margin/0.5), 0.0, 1.0))
+    conf = float(np.clip(probs[top]*(0.65+0.35*margin/0.5), 0.0, 1.0))
     return probs, top, conf
 
 # ── Main Engine ───────────────────────────────────────────────────────────────
 
 class GIPEngine:
     def run(self, fred: Dict, prices: Dict) -> GIPResult:
-        f_fred  = _extract_fred_features(fred)
+        f_fred = _extract_fred_features(fred)
         f_proxy = _price_proxy(prices)
 
         # Coverage
@@ -246,43 +262,43 @@ class GIPEngine:
 
         # Scale inputs to [-1,1]
         g_lvl = {
-            "indpro_yoy":   _tanh_scale(merge("indpro_yoy")   - 0.02, 0.05),
-            "retail_yoy":   _tanh_scale(merge("retail_yoy")   - 0.03, 0.06),
+            "indpro_yoy": _tanh_scale(merge("indpro_yoy") - 0.02, 0.05),
+            "retail_yoy": _tanh_scale(merge("retail_yoy") - 0.03, 0.06),
             "payrolls_yoy": _tanh_scale(merge("payrolls_yoy") - 0.015, 0.03),
-            "housing_yoy":  _tanh_scale(merge("housing_yoy"),  0.10),
-            "ism_norm":     _tanh_scale(merge("ism_norm"),      0.10),
-            "unrate_inv":   merge("unrate_inv"),
-            "claims_inv":   merge("claims_inv"),
+            "housing_yoy": _tanh_scale(merge("housing_yoy"), 0.10),
+            "ism_norm": _tanh_scale(merge("ism_norm"), 0.10),
+            "unrate_inv": merge("unrate_inv"),
+            "claims_inv": merge("claims_inv"),
         }
         g_mom = {
-            "indpro_roc":   _tanh_scale(merge("indpro_roc"),   0.025),
-            "retail_roc":   _tanh_scale(merge("retail_roc"),   0.030),
+            "indpro_roc": _tanh_scale(merge("indpro_roc"), 0.025),
+            "retail_roc": _tanh_scale(merge("retail_roc"), 0.030),
             "payrolls_roc": _tanh_scale(merge("payrolls_roc"), 0.015),
-            "ism_delta":    _tanh_scale(merge("ism_delta"),     0.05),
-            "unrate_delta": _tanh_scale(merge("unrate_delta"),  1.0),
-            "claims_delta": _tanh_scale(merge("claims_delta"),  1.0),
+            "ism_delta": _tanh_scale(merge("ism_delta"), 0.05),
+            "unrate_delta": _tanh_scale(merge("unrate_delta"), 1.0),
+            "claims_delta": _tanh_scale(merge("claims_delta"), 1.0),
         }
         i_lvl = {
-            "cpi_yoy":      _tanh_scale(merge("cpi_yoy")     - 0.025, 0.020),
+            "cpi_yoy": _tanh_scale(merge("cpi_yoy") - 0.025, 0.020),
             "core_cpi_yoy": _tanh_scale(merge("core_cpi_yoy")- 0.025, 0.015),
             "breakeven_5y": merge("breakeven_5y"),
-            "ppi_yoy":      _tanh_scale(merge("ppi_yoy")     - 0.025, 0.030),
-            "oil_3m":       _tanh_scale(merge("oil_3m"),       0.25),
-            "gold_3m":      _tanh_scale(merge("gold_3m"),      0.18),
+            "ppi_yoy": _tanh_scale(merge("ppi_yoy") - 0.025, 0.030),
+            "oil_3m": _tanh_scale(merge("oil_3m"), 0.25),
+            "gold_3m": _tanh_scale(merge("gold_3m"), 0.18),
         }
         i_mom = {
-            "cpi_roc":       _tanh_scale(merge("cpi_roc"),       0.012),
-            "core_cpi_roc":  _tanh_scale(merge("core_cpi_roc"),  0.010),
+            "cpi_roc": _tanh_scale(merge("cpi_roc"), 0.012),
+            "core_cpi_roc": _tanh_scale(merge("core_cpi_roc"), 0.010),
             "breakeven_delta": _tanh_scale(merge("breakeven_delta"), 1.0),
-            "oil_1m":        _tanh_scale(merge("oil_1m"),         0.06),
-            "dxy_inv_1m":    _tanh_scale(merge("dxy_inv_1m"),     0.06),
+            "oil_1m": _tanh_scale(merge("oil_1m"), 0.06),
+            "dxy_inv_1m": _tanh_scale(merge("dxy_inv_1m"), 0.06),
         }
 
         g_level = _wmean(g_lvl, GROWTH_LEVEL_WEIGHTS)
-        g_mom_  = _wmean(g_mom, GROWTH_MOM_WEIGHTS)
+        g_mom_ = _wmean(g_mom, GROWTH_MOM_WEIGHTS)
         i_level = _wmean(i_lvl, INFLATION_LEVEL_WEIGHTS)
-        i_mom_  = _wmean(i_mom, INFLATION_MOM_WEIGHTS)
-        policy  = _nan(merge("policy_score"))
+        i_mom_ = _wmean(i_mom, INFLATION_MOM_WEIGHTS)
+        policy = _nan(merge("policy_score"))
         coverage= _coverage({**g_lvl, **g_mom, **i_lvl, **i_mom})
 
         struct_probs, struct_quad, struct_conf = _score_quad(
@@ -290,19 +306,21 @@ class GIPEngine:
             STRUCTURAL_WEIGHTS, POLICY_WEIGHT_STRUCTURAL)
 
         # Monthly — more responsive to recent market signals
-        oil1 = _ret(prices.get("CL=F"), 21); oil1 = oil1 if oil1 is not None else merge("oil_1m")
-        gld1 = _ret(prices.get("GLD"), 21)  or 0.0
-        spy1 = _ret(prices.get("SPY"), 21)  or 0.0
-        xli1 = _ret(prices.get("XLI"), 21)  or 0.0
+        oil1 = _ret(prices.get("CL=F"), 21)
+        oil1 = oil1 if (oil1 is not None and math.isfinite(oil1)) else merge("oil_1m")
+        gld1 = _first_finite(_ret(prices.get("GLD"), 21))
+        spy1 = _first_finite(_ret(prices.get("SPY"), 21))
+        xli1 = _first_finite(_ret(prices.get("XLI"), 21))
         be_d = merge("breakeven_delta")
 
         m_g_level = 0.40*g_level + 0.60*g_mom_
-        m_g_mom   = 0.30*g_mom_ + 0.70*float(np.tanh(0.40*(xli1 or 0)/0.05 + 0.60*(spy1 or 0)/0.05))
+        # FIXED: use _nan() instead of `or 0` so 0.0 is preserved and nan becomes 0
+        m_g_mom = 0.30*g_mom_ + 0.70*float(np.tanh(0.40*_nan(xli1)/0.05 + 0.60*_nan(spy1)/0.05))
         cpi_yoy = merge("cpi_yoy"); core_yoy = merge("core_cpi_yoy")
         hgap = cpi_yoy - core_yoy if (math.isfinite(cpi_yoy) and math.isfinite(core_yoy)) else 0.0
         m_i_level = 0.45*i_level + 0.35*i_mom_ + 0.20*_tanh_scale(hgap, 0.004)
-        m_i_mom   = 0.30*i_mom_  + 0.70*float(np.tanh(0.50*(oil1 or 0)/0.06 + 0.30*gld1/0.05 + 0.20*(be_d if math.isfinite(be_d) else 0)))
-        shock     = max(0.0, _tanh_scale(hgap, 0.004))
+        m_i_mom = 0.30*i_mom_ + 0.70*float(np.tanh(0.50*_nan(oil1)/0.06 + 0.30*gld1/0.05 + 0.20*_nan(be_d if math.isfinite(be_d) else 0.0)/1.0))
+        shock = max(0.0, _tanh_scale(hgap, 0.004))
 
         month_probs, month_quad, month_conf = _score_quad(
             m_g_level, m_g_mom, m_i_level, m_i_mom, policy,

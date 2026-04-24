@@ -1,6 +1,6 @@
 """orchestrator.py — Snapshot builder. Light & staged loading."""
 from __future__ import annotations
-import time, logging
+import time, logging, math
 from typing import Optional, Callable, Dict
 import numpy as np
 import pandas as pd
@@ -19,11 +19,9 @@ from config.settings import (
 
 logger = logging.getLogger(__name__)
 
-
 def _prog(cb, msg, frac):
     logger.info(f"[{frac:.0%}] {msg}")
     if cb: cb(msg, frac)
-
 
 def build_snapshot(
     progress_cb: Optional[Callable] = None,
@@ -173,7 +171,6 @@ def build_snapshot(
     logger.info(f"Built in {snap['build_time_s']}s. Prices: {snap['prices_loaded']}, RR: {snap['price_frames_count']}")
     return snap
 
-
 def _build_stress(prices, gip) -> dict:
     def last(t):
         s = prices.get(t)
@@ -188,16 +185,18 @@ def _build_stress(prices, gip) -> dict:
         if len(s) < 22: return 0.0
         return float(s.iloc[-1]/s.iloc[-22]-1)
 
-    vix = last("^VIX") or 18.0
+    # FIXED: explicit None/finite check instead of `or` on float
+    vix_raw = last("^VIX")
+    vix = vix_raw if (vix_raw is not None and math.isfinite(vix_raw)) else 18.0
+
     dxy_1m = ret1m("DX-Y.NYB")
-    vol_stress  = float(np.clip((vix-15.0)/25.0, 0.0, 1.0))
-    shock       = 0.5 if gip.structural_quad=="Q3" else 0.8 if gip.structural_quad=="Q4" else 0.2
-    crowding    = float(gip.features.get("proxy_share", 0.3))
+    vol_stress = float(np.clip((vix-15.0)/25.0, 0.0, 1.0))
+    shock = 0.5 if gip.structural_quad=="Q3" else 0.8 if gip.structural_quad=="Q4" else 0.2
+    crowding = float(gip.features.get("proxy_share", 0.3))
     dollar_pres = float(np.clip(0.5+dxy_1m/0.04, 0.0, 1.0))
-    tail_bid    = float(np.clip((vix-20.0)/30.0, 0.0, 1.0))
+    tail_bid = float(np.clip((vix-20.0)/30.0, 0.0, 1.0))
     return dict(vol_stress=vol_stress, shock_penalty=shock*0.5,
                 crowding=crowding, dollar_pressure=dollar_pres, tail_hedge_bid=tail_bid, vix=vix)
-
 
 def get_or_build(force=False, max_age_h=4.0, **kw) -> dict:
     if not force:

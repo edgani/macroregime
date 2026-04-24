@@ -1,11 +1,10 @@
-"""app.py — MacroRegime Pro v11 | Hedgeye GIP Framework
-10 pages: Dashboard · Regime · Risk Ranges · Global Quad · US Stocks · Forex · Commodities · Crypto · IHSG · Bottleneck · Scenarios
+"""app.py — MacroRegime Pro v12 | Hedgeye GIP Framework
 
-FIXES in this version:
+FIXES:
 - pandas 2.1+: applymap → map
-- Bottleneck: multi-asset long/short classification + EV ranking
-- EM recovery signals per quad transition
-- Brewing detection: pre-breakout setups
+- Bottleneck long/short/EV moved to respective market tabs
+- IHSG tab: auto bottleneck long-only EV ranking
+- Bottleneck tab: known plays + brewing + traps only
 """
 import streamlit as st
 import pandas as pd
@@ -70,6 +69,18 @@ def price_chart(prices_dict, tickers, title="", days=252):
         legend=dict(bgcolor="rgba(0,0,0,0)"))
     return fig
 
+# ── Helpers for bottleneck tables ───────────────────────────────────────────
+def _fmt_tp(tp):
+    if not tp: return "—"
+    t1=tp.get("t1"); t2=tp.get("t2"); rr=tp.get("rr_ratio")
+    return f"T1:{ff(t1,2)} T2:{ff(t2,2)} R:R={ff(rr,1)}"
+
+def _ev_color(v):
+    try:
+        vv=float(v.replace("+","").replace("—","0"))
+        return f"color:{'#10B981' if vv>0.3 else '#F59E0B' if vv>0 else '#EF4444'}"
+    except: return "color:#6B7280"
+
 # ── Session state ─────────────────────────────────────────────────────────────
 if "snap" not in st.session_state: st.session_state.snap=None
 if "loading" not in st.session_state: st.session_state.loading=False
@@ -77,7 +88,7 @@ if "loading" not in st.session_state: st.session_state.loading=False
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("## 📊 MacroRegime Pro")
-    st.markdown("*Hedgeye GIP · v11*")
+    st.markdown("*Hedgeye GIP · v12*")
     st.divider()
     page = st.radio("", [
         "🏠 Dashboard","📈 GIP Regime","🎯 Risk Ranges",
@@ -410,7 +421,7 @@ elif page=="🌍 Global Quad":
 # US STOCKS
 # ══════════════════════════════════════════════════════════════════════════════
 elif page=="📊 US Stocks":
-    st.markdown("# 📊 US Equities — Sectors · Factors · Signal")
+    st.markdown("# 📊 US Equities — Sectors · Factors · Signal · Bottleneck")
     from config.settings import US_SECTORS, US_FACTORS, QUAD_ASSET_PERFORMANCE
     ar=rr.get("asset_ranges",{})
 
@@ -443,11 +454,54 @@ elif page=="📊 US Stocks":
         st.markdown(f"**❌ Underweight**: {', '.join(pb.get('sectors_underweight',[]))}")
         st.markdown(f"**📉 Worst**: {', '.join(pb.get('worst',[])[:5])}")
 
+    # ── BOTTLENECK LONG / SHORT / EV ────────────────────────────────────────
+    st.markdown("---")
+    st.markdown("### 🔍 US Stocks Bottleneck — Long · Short · EV Ranked")
+    st.caption(f"Structural {sq} = {'SHORT bias' if sq in ('Q3','Q4') else 'LONG bias'}. Sorted by Expected Value (EV).")
+
+    usl=btk.get("us_long",[]); uss=btk.get("us_short",[]); usa=btk.get("us_avoid",[])
+    t1,t2,t3=st.tabs([f"🟢 LONG ({len(usl)})",f"🔴 SHORT ({len(uss)})",f"⚪ AVOID ({len(usa)})"])
+
+    with t1:
+        if usl:
+            rows=[]
+            for c in usl[:30]:
+                tp=c.get("tp",{})
+                rows.append({"Ticker":c["ticker"],"Sector":c["sector"].replace("_"," ").title(),
+                    "EV":f"{c['ev']:+.3f}","Score":c["score"],"Constraint":fp(c["constraint"]),
+                    "Regime":fp(c["regime_fit"]),"Trend":c["trend"].title(),"Accum":fp(c["acc"]),
+                    "RS 3M":fp(c.get("rs_3m")),"Range":c["range_label"],
+                    "TP":_fmt_tp(tp),"Thesis":c.get("known_thesis","")[:55]})
+            df=pd.DataFrame(rows)
+            st.dataframe(df.style.map(_ev_color,subset=["EV"]),hide_index=True,use_container_width=True,height=420)
+        else: st.info(f"No US long candidates in {sq}. Q3/Q4 = defensive only (GLD, XLV, XLP, XLU).")
+
+    with t2:
+        if uss:
+            rows=[]
+            for c in uss[:30]:
+                tp=c.get("tp",{})
+                rows.append({"Ticker":c["ticker"],"Sector":c["sector"].replace("_"," ").title(),
+                    "EV":f"{c['ev']:+.3f}","Score":c["score"],"Constraint":fp(c["constraint"]),
+                    "Regime":fp(c["regime_fit"]),"Trend":c["trend"].title(),"Accum":fp(c["acc"]),
+                    "RS 3M":fp(c.get("rs_3m")),"Range":c["range_label"],
+                    "TP":_fmt_tp(tp),"Thesis":c.get("known_thesis","")[:55]})
+            df=pd.DataFrame(rows)
+            st.dataframe(df.style.map(lambda v:f"color:{'#EF4444' if float(v.replace('+',''))<0 else '#F59E0B'}",subset=["EV"]),hide_index=True,use_container_width=True,height=420)
+        else: st.info(f"No US short candidates in {sq}. Q1/Q2 typically generate shorts (defensives under pressure).")
+
+    with t3:
+        if usa:
+            rows=[{"Ticker":c["ticker"],"Sector":c["sector"].replace("_"," ").title(),
+                "EV":f"{c['ev']:+.3f}","Trend":c["trend"].title(),"Reason":f"{c['direction'].replace('_',' ').title()} in {sq}"} for c in usa[:20]]
+            st.dataframe(pd.DataFrame(rows),hide_index=True,use_container_width=True,height=300)
+        else: st.info("No avoid candidates.")
+
 # ══════════════════════════════════════════════════════════════════════════════
 # FOREX
 # ══════════════════════════════════════════════════════════════════════════════
 elif page=="💱 Forex":
-    st.markdown("# 💱 Forex — Major · EM · Commodity FX")
+    st.markdown("# 💱 Forex — Major · EM · Commodity FX · Bottleneck")
     from config.settings import FOREX_PAIRS
     ar=rr.get("asset_ranges",{})
 
@@ -480,11 +534,37 @@ elif page=="💱 Forex":
     st.markdown("#### EM FX Context")
     st.markdown(f"In **{sq}** (Stagflation): USD {'bearish' if global_.get('usd_bias')=='bearish' else 'bullish'} → EM commodity exporters: **AUD/NOK/CAD/MXN** outperform. High-debt EM: **TRY/ZAR/IDR** under pressure.")
 
+    # ── FOREX BOTTLENECK LONG / SHORT ────────────────────────────────────────
+    st.markdown("---")
+    st.markdown("### 🔍 Forex Bottleneck — Long · Short · EV Ranked")
+    st.caption(f"Structural {sq} = {'SHORT USD' if sq in ('Q3','Q4') else 'LONG USD' if sq=='Q4' else 'MIXED'}. Sorted by EV.")
+
+    fxl=btk.get("forex_long",[]); fxs=btk.get("forex_short",[])
+    t1,t2=st.tabs([f"🟢 LONG ({len(fxl)})",f"🔴 SHORT ({len(fxs)})"])
+
+    with t1:
+        if fxl:
+            rows=[{"Pair":c["ticker"],"EV":f"{c['ev']:+.3f}","Trend":c["trend"].title(),
+                "RS 3M":fp(c.get("rs_3m")),"Range":c["range_label"],"TP":_fmt_tp(c.get("tp")),
+                "Thesis":c.get("known_thesis","")[:55]} for c in fxl[:25]]
+            df=pd.DataFrame(rows)
+            st.dataframe(df.style.map(_ev_color,subset=["EV"]),hide_index=True,use_container_width=True,height=350)
+        else: st.info(f"No FX long setups in {sq}.")
+
+    with t2:
+        if fxs:
+            rows=[{"Pair":c["ticker"],"EV":f"{c['ev']:+.3f}","Trend":c["trend"].title(),
+                "RS 3M":fp(c.get("rs_3m")),"Range":c["range_label"],"TP":_fmt_tp(c.get("tp")),
+                "Thesis":c.get("known_thesis","")[:55]} for c in fxs[:25]]
+            df=pd.DataFrame(rows)
+            st.dataframe(df.style.map(lambda v:f"color:{'#EF4444' if float(v.replace('+',''))<0 else '#F59E0B'}",subset=["EV"]),hide_index=True,use_container_width=True,height=350)
+        else: st.info(f"No FX short setups in {sq}.")
+
 # ══════════════════════════════════════════════════════════════════════════════
 # COMMODITIES
 # ══════════════════════════════════════════════════════════════════════════════
 elif page=="🛢 Commodities":
-    st.markdown("# 🛢 Commodities — Energy · Metals · Agri")
+    st.markdown("# 🛢 Commodities — Energy · Metals · Agri · Bottleneck")
     from config.settings import COMMODITIES
     ar=rr.get("asset_ranges",{})
 
@@ -521,11 +601,37 @@ elif page=="🛢 Commodities":
     elif sq=="Q3": st.info("⚠️ Q3 structural = selective. Gold/precious metals best. Energy mixed. Agri ok. Base metals headwind.")
     else: st.warning(f"⚠️ {sq} = commodity caution.")
 
+    # ── COMMODITY BOTTLENECK LONG / SHORT ────────────────────────────────────
+    st.markdown("---")
+    st.markdown("### 🔍 Commodity Bottleneck — Long · Short · EV Ranked")
+    st.caption(f"Structural {sq} = {'LONG selective' if sq in ('Q2','Q3') else 'SHORT' if sq=='Q4' else 'MIXED'}. Sorted by EV.")
+
+    cl=btk.get("commodity_long",[]); cs=btk.get("commodity_short",[])
+    t1,t2=st.tabs([f"🟢 LONG ({len(cl)})",f"🔴 SHORT ({len(cs)})"])
+
+    with t1:
+        if cl:
+            rows=[{"Ticker":c["ticker"],"EV":f"{c['ev']:+.3f}","Trend":c["trend"].title(),
+                "RS 3M":fp(c.get("rs_3m")),"Range":c["range_label"],"TP":_fmt_tp(c.get("tp")),
+                "Thesis":c.get("known_thesis","")[:55]} for c in cl[:25]]
+            df=pd.DataFrame(rows)
+            st.dataframe(df.style.map(_ev_color,subset=["EV"]),hide_index=True,use_container_width=True,height=350)
+        else: st.info(f"No commodity long setups in {sq}.")
+
+    with t2:
+        if cs:
+            rows=[{"Ticker":c["ticker"],"EV":f"{c['ev']:+.3f}","Trend":c["trend"].title(),
+                "RS 3M":fp(c.get("rs_3m")),"Range":c["range_label"],"TP":_fmt_tp(c.get("tp")),
+                "Thesis":c.get("known_thesis","")[:55]} for c in cs[:25]]
+            df=pd.DataFrame(rows)
+            st.dataframe(df.style.map(lambda v:f"color:{'#EF4444' if float(v.replace('+',''))<0 else '#F59E0B'}",subset=["EV"]),hide_index=True,use_container_width=True,height=350)
+        else: st.info(f"No commodity short setups in {sq}.")
+
 # ══════════════════════════════════════════════════════════════════════════════
 # CRYPTO
 # ══════════════════════════════════════════════════════════════════════════════
 elif page=="₿ Crypto":
-    st.markdown("# ₿ Crypto — Bitcoin · Altcoins · ETFs")
+    st.markdown("# ₿ Crypto — Bitcoin · Altcoins · ETFs · Bottleneck")
     from config.settings import CRYPTO
     ar=rr.get("asset_ranges",{})
 
@@ -558,11 +664,37 @@ elif page=="₿ Crypto":
         df=pd.DataFrame(rows)
         st.dataframe(df.style.map(lambda v:f"color:{SC.get(v,'#6B7280')}",subset=["Trade","Trend"]),hide_index=True,use_container_width=True,height=400)
 
+    # ── CRYPTO BOTTLENECK LONG / SHORT ──────────────────────────────────────
+    st.markdown("---")
+    st.markdown("### 🔍 Crypto Bottleneck — Long · Short · EV Ranked")
+    st.caption(f"Structural {sq} = {'SHORT' if sq in ('Q3','Q4') else 'LONG' if sq=='Q1' else 'SELECTIVE'}. Sorted by EV.")
+
+    crl=btk.get("crypto_long",[]); crs=btk.get("crypto_short",[])
+    t1,t2=st.tabs([f"🟢 LONG ({len(crl)})",f"🔴 SHORT ({len(crs)})"])
+
+    with t1:
+        if crl:
+            rows=[{"Token":c["ticker"],"EV":f"{c['ev']:+.3f}","Trend":c["trend"].title(),
+                "RS 3M":fp(c.get("rs_3m")),"Range":c["range_label"],"TP":_fmt_tp(c.get("tp")),
+                "Thesis":c.get("known_thesis","")[:55]} for c in crl[:25]]
+            df=pd.DataFrame(rows)
+            st.dataframe(df.style.map(_ev_color,subset=["EV"]),hide_index=True,use_container_width=True,height=350)
+        else: st.info(f"No crypto long setups in {sq}. Q3/Q4 = crypto headwind.")
+
+    with t2:
+        if crs:
+            rows=[{"Token":c["ticker"],"EV":f"{c['ev']:+.3f}","Trend":c["trend"].title(),
+                "RS 3M":fp(c.get("rs_3m")),"Range":c["range_label"],"TP":_fmt_tp(c.get("tp")),
+                "Thesis":c.get("known_thesis","")[:55]} for c in crs[:25]]
+            df=pd.DataFrame(rows)
+            st.dataframe(df.style.map(lambda v:f"color:{'#EF4444' if float(v.replace('+',''))<0 else '#F59E0B'}",subset=["EV"]),hide_index=True,use_container_width=True,height=350)
+        else: st.info(f"No crypto short setups in {sq}.")
+
 # ══════════════════════════════════════════════════════════════════════════════
 # IHSG
 # ══════════════════════════════════════════════════════════════════════════════
 elif page=="🇮🇩 IHSG":
-    st.markdown("# 🇮🇩 IHSG — Indonesia Context")
+    st.markdown("# 🇮🇩 IHSG — Indonesia Context · Bottleneck Long-Only")
     from config.settings import IHSG_UNIVERSE
     ar=rr.get("asset_ranges",{})
     indo=global_.get("countries",{}).get("Indonesia",{})
@@ -581,28 +713,6 @@ elif page=="🇮🇩 IHSG":
     if ihsg_tickers:
         st.plotly_chart(price_chart(prices,ihsg_tickers,"IHSG / EIDO (rebased=100)",252),use_container_width=True,config={"displayModeBar":False})
 
-    st.markdown("#### IHSG Stocks by Sector")
-    ihsg_groups={"Banks":["BBCA.JK","BBRI.JK","BMRI.JK"],"Coal":["ITMG.JK","ADRO.JK","PTBA.JK","HRUM.JK"],
-        "Nickel/Mining":["INCO.JK","MDKA.JK","ANTM.JK","NCKL.JK"],"CPO":["LSIP.JK","AALI.JK","SSMS.JK"],
-        "Consumer":["UNVR.JK","ICBP.JK","KLBF.JK","MYOR.JK"],"Property":["BSDE.JK","CTRA.JK","PWON.JK"]}
-    rows=[]
-    for grp,tickers in ihsg_groups.items():
-        for t in tickers:
-            s=prices.get(t)
-            if s is None: continue
-            s=pd.to_numeric(s,errors="coerce").dropna()
-            if s.empty: continue
-            px=float(s.iloc[-1])
-            r1m=float(s.iloc[-1]/s.iloc[-22]-1) if len(s)>22 else None
-            r3m=float(s.iloc[-1]/s.iloc[-63]-1) if len(s)>63 else None
-            v=ar.get(t,{})
-            rows.append({"Sector":grp,"Ticker":t,"Price":ff(px,0),"1M":fp(r1m),"3M":fp(r3m),
-                "Trade":v.get("trade_signal","—"),"Trend":v.get("trend_signal","—")})
-    if rows:
-        df=pd.DataFrame(rows)
-        st.dataframe(df.style.map(lambda v:f"color:{SC.get(v,'#6B7280')}",subset=["Trade","Trend"]),hide_index=True,use_container_width=True,height=400)
-    else: st.info("IHSG stocks not loaded. Enable IHSG in Universe settings and Refresh.")
-
     st.markdown("#### Indonesia in Hedgeye Context")
     st.markdown(f"""**Structural {sq}** = Indonesia headwinds:
 - 🔴 Commodity cycle peaked (coal/palm oil/nickel) — Q3 demand slowdown
@@ -619,34 +729,54 @@ elif page=="🇮🇩 IHSG":
             sig=data.get("signal","neutral"); sc2=SC.get(sig,"#6B7280")
             cc[i].markdown(f'<div style="background:#1F2B3D;border-radius:10px;padding:12px;text-align:center"><div style="font-size:11px;color:#9CA3AF">{dur}</div><div style="font-size:18px;font-weight:700;color:{sc2}">{sig.upper()}</div><div style="font-size:11px;color:#E8ECF0">LRR:{ff(data.get("lrr"),2)} TRR:{ff(data.get("trr"),2)}</div><div style="font-size:10px;color:#9CA3AF">H={data.get("hurst",0.5):.2f}</div></div>',unsafe_allow_html=True)
 
+    # ── IHSG BOTTLENECK LONG-ONLY ──────────────────────────────────────────
+    st.markdown("---")
+    st.markdown("### 🔍 IHSG Bottleneck — LONG ONLY · EV Ranked")
+    st.caption(f"IHSG cannot be shorted. Sorted by EV+ (highest expected value first). Structural {sq} = {'headwind' if sq in ('Q3','Q4') else 'tailwind'}.")
+
+    ih=btk.get("ihsg_long",[]); iha=btk.get("ihsg_avoid",[])
+    t1,t2=st.tabs([f"🟢 LONG ({len(ih)})",f"⚪ AVOID ({len(iha)})"])
+
+    with t1:
+        if ih:
+            rows=[]
+            for c in ih[:30]:
+                tp=c.get("tp",{})
+                rows.append({"Ticker":c["ticker"],"Sector":c["sector"].replace("_"," ").title(),
+                    "EV":f"{c['ev']:+.3f}","Score":c["score"],"Trend":c["trend"].title(),
+                    "Accum":fp(c["acc"]),"RS 3M":fp(c.get("rs_3m")),"Range":c["range_label"],
+                    "TP":_fmt_tp(tp),"Thesis":c.get("known_thesis","")[:60]})
+            df=pd.DataFrame(rows)
+            st.dataframe(df.style.map(_ev_color,subset=["EV"]),hide_index=True,use_container_width=True,height=420)
+        else:
+            st.info(f"No IHSG long candidates in {sq}. Q3/Q4 = IHSG headwind. Wait for regime flip to Q2/Q1.")
+            st.markdown("#### 🌍 When will IHSG recover?")
+            st.markdown("""**Q3→Q2 transition** = earliest EM recovery signal.
+- Trigger: Monthly Q2 inside Structural Q3 + commodity bid + USD bearish TREND
+- Best IHSG plays: BBCA.JK (defensive bank), TLKM.JK (telco dividend), INCO.JK (nickel structural)
+- Avoid: Coal plays (ITMG.JK, ADRO.JK) — commodity cycle peaked""")
+
+    with t2:
+        if iha:
+            rows=[{"Ticker":c["ticker"],"Sector":c["sector"].replace("_"," ").title(),
+                "EV":f"{c['ev']:+.3f}","Trend":c["trend"].title(),"Reason":"Trend down in Q3/Q4 — avoid"} for c in iha[:15]]
+            st.dataframe(pd.DataFrame(rows),hide_index=True,use_container_width=True,height=250)
+        else: st.info("No IHSG avoid candidates.")
+
 # ══════════════════════════════════════════════════════════════════════════════
-# BOTTLENECK (v2 — Multi-Asset)
+# BOTTLENECK (Simplified — Known Plays + Brewing + Traps)
 # ══════════════════════════════════════════════════════════════════════════════
 elif page=="🔍 Bottleneck":
-    st.markdown("# 🔍 Bottleneck Scanner — Multi-Asset · Long/Short · EV Ranked")
-    st.caption("Auto-discovers supply-constrained plays across ALL asset classes. Citrini + Hedgeye methodology.")
+    st.markdown("# 🔍 Bottleneck Research — Known Plays · Brewing · Traps")
+    st.caption("Deep-research bottleneck cases + pre-breakout brewing detection + regime traps.")
     if not btk: st.warning("No scanner data. Refresh."); st.stop()
 
     meta=btk.get("meta",{}); pb2=btk.get("playbook",{})
 
-    # Summary cards
-    s1,s2,s3,s4,s5=st.columns(5)
-    s1.markdown(f'<div style="background:#1F2B3D;border-radius:10px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:700;color:#F59E0B">{meta.get("us_long",0)}</div><div style="font-size:10px;color:#9CA3AF">🇺🇸 US Long</div></div>',unsafe_allow_html=True)
-    s2.markdown(f'<div style="background:#1F2B3D;border-radius:10px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:700;color:#EF4444">{meta.get("us_short",0)}</div><div style="font-size:10px;color:#9CA3AF">🇺🇸 US Short</div></div>',unsafe_allow_html=True)
-    s3.markdown(f'<div style="background:#1F2B3D;border-radius:10px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:700;color:#10B981">{meta.get("forex_long",0)}</div><div style="font-size:10px;color:#9CA3AF">💱 FX Long</div></div>',unsafe_allow_html=True)
-    s4.markdown(f'<div style="background:#1F2B3D;border-radius:10px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:700;color:#F59E0B">{meta.get("commodity_long",0)}</div><div style="font-size:10px;color:#9CA3AF">🛢 Commodity Long</div></div>',unsafe_allow_html=True)
-    s5.markdown(f'<div style="background:#1F2B3D;border-radius:10px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:700;color:#00D4AA">{meta.get("brewing_count",0)}</div><div style="font-size:10px;color:#9CA3AF">⚗️ Brewing</div></div>',unsafe_allow_html=True)
-
-    # EM Recovery Signal
-    em_sig = btk.get("em_recovery", {})
-    if em_sig:
-        conf = em_sig.get("confidence", 0)
-        ec = "#10B981" if conf > 0.6 else "#F59E0B" if conf > 0.4 else "#6B7280"
-        st.markdown(f"""<div style="background:#1F2B3D;border-radius:12px;padding:14px;margin:12px 0">
-<div style="font-size:13px;font-weight:700;color:{ec}">🌍 EM RECOVERY SIGNAL — {em_sig.get('trigger','')}</div>
-<div style="font-size:11px;color:#E8ECF0;margin:4px 0">{em_sig.get('rationale','')}</div>
-<div style="font-size:10px;color:#9CA3AF">Confidence: {conf:.0%} | Best: {', '.join(em_sig.get('best',[])[:6])}</div>
-</div>""",unsafe_allow_html=True)
+    s1,s2,s3=st.columns(3)
+    s1.markdown(f'<div style="background:#1F2B3D;border-radius:10px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:700;color:#F59E0B">{meta.get("brewing_count",0)}</div><div style="font-size:10px;color:#9CA3AF">⚗️ Brewing</div></div>',unsafe_allow_html=True)
+    s2.markdown(f'<div style="background:#1F2B3D;border-radius:10px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:700;color:#00D4AA">{len(btk.get("level_1",[]))}</div><div style="font-size:10px;color:#9CA3AF">⚡ Level 1</div></div>',unsafe_allow_html=True)
+    s3.markdown(f'<div style="background:#1F2B3D;border-radius:10px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:700;color:#EF4444">{len(btk.get("regime_traps",[]))}</div><div style="font-size:10px;color:#9CA3AF">⚠️ Traps</div></div>',unsafe_allow_html=True)
 
     # Playbook + TP Framework
     with st.expander("📋 Regime Playbook + TP Framework",expanded=True):
@@ -660,237 +790,67 @@ elif page=="🔍 Bottleneck":
             st.markdown(f"**📉 Worst**: {', '.join(pb2.get('worst',[])[:5])}")
             st.markdown(f"**🏦 Bonds**: {pb2.get('bonds','')}")
             st.markdown("---")
-            st.markdown("""**TP Framework by Type:**
-- **Structural**: T1=TRADE TRR (25% exit) → T2=TREND TRR (50%) → T3=ATH/resistance (trail 25%). EXIT on TREND LRR break.
-- **Float Squeeze**: T1=+30% (50%) → T2=+55% (40%). TIME STOP: 5 days. -12% hard stop.
-- **Commodity**: T1=+1σ (33%) → T2=curve flip/+2σ (33%) → T3=52w high (34%). -15% hard.
+            st.markdown("""**TP Framework:**
+- **Structural**: T1=TRADE TRR (25%) → T2=TREND TRR (50%) → T3=ATH (trail 25%). EXIT on TREND LRR break.
+- **Float Squeeze**: T1=+30% (50%) → T2=+55% (40%). TIME STOP: 5 days. -12% hard.
+- **Commodity**: T1=+1σ (33%) → T2=+2σ (33%) → T3=52w high (34%). -15% hard.
 - **IHSG**: T1=TRADE TRR/+12% → T2=TREND TRR. Exit 100% on 2x foreign net sell.
-- **Crypto**: T1=+40% (50%) → T2=+100% (40%). Exit 14 days BEFORE unlock cliff. -20% hard.
-- **Forex**: T1=+2σ 21d (40%) → T2=+4σ 63d (40%). EXIT on regime flip signal.""")
+- **Crypto**: T1=+40% (50%) → T2=+100% (40%). EXIT 14 days BEFORE unlock. -20% hard.
+- **Forex**: T1=+2σ 21d (40%) → T2=+4σ 63d (40%). EXIT on regime flip.""")
 
-    # Helper to render tables
-    def render_table(candidates, cols_def, title=""):
-        if not candidates:
-            st.info(f"No {title} candidates.")
-            return
-        rows=[]
-        for c in candidates:
-            tp=c.get("tp",{})
-            row={}
-            for cd in cols_def:
-                k=cd["key"]; fmt=cd.get("fmt","str")
-                v=c.get(k,"—")
-                if fmt=="fp": row[cd["label"]]=fp(v)
-                elif fmt=="ff2": row[cd["label"]]=ff(v,2)
-                elif fmt=="ff4": row[cd["label"]]=ff(v,4)
-                elif fmt=="ff5": row[cd["label"]]=ff(v,5)
-                elif fmt=="bool": row[cd["label"]]="✅" if v else "—"
-                elif fmt=="ev": row[cd["label"]]=f"{v:+.3f}" if v is not None else "—"
-                else: row[cd["label"]]=str(v) if v is not None else "—"
-            rows.append(row)
-        if rows:
-            df=pd.DataFrame(rows)
-            # Color EV column
-            def ev_color(v):
-                try:
-                    vv=float(v.replace("+","").replace("—","0"))
-                    return f"color:{'#10B981' if vv>0.3 else '#F59E0B' if vv>0 else '#EF4444'}"
-                except: return "color:#6B7280"
-            st.dataframe(df.style.map(ev_color,subset=[cd["label"] for cd in cols_def if cd.get("fmt")=="ev"]),
-                hide_index=True,use_container_width=True,height=350)
+    # ON Semi analysis
+    on_a=btk.get("on_analysis",{})
+    with st.expander("🔍 ON Semiconductor Case Study (Why It Surged)"):
+        st.markdown(f"**Status**: {on_a.get('current_status','')}")
+        st.markdown(f"**Type**: {on_a.get('type','')}")
+        st.markdown("**Why it surged:**")
+        for r in on_a.get("why_surged",[]): st.markdown(f" • {r}")
+        st.markdown("**Analogs now (similar setup):**")
+        for r in on_a.get("analogs_now",[]): st.markdown(f" • {r}")
 
-    # Column definitions
-    COLS_STD = [
-        {"key":"ticker","label":"Ticker","fmt":"str"},
-        {"key":"sector","label":"Sector","fmt":"str"},
-        {"key":"ev","label":"EV","fmt":"ev"},
-        {"key":"score","label":"Score","fmt":"ff2"},
-        {"key":"constraint","label":"Constraint","fmt":"fp"},
-        {"key":"regime_fit","label":"Regime Fit","fmt":"fp"},
-        {"key":"trend","label":"Trend","fmt":"str"},
-        {"key":"acc","label":"Accum","fmt":"fp"},
-        {"key":"rs_3m","label":"RS 3M","fmt":"fp"},
-        {"key":"range_label","label":"Range","fmt":"str"},
-        {"key":"tp","label":"T1","fmt":"str"},
-    ]
-    # Simplified T1 display
-    def _fmt_tp(tp):
-        if not tp: return "—"
-        t1=tp.get("t1"); t2=tp.get("t2"); rr=tp.get("rr_ratio")
-        return f"T1:{ff(t1,2)} T2:{ff(t2,2)} R:R={ff(rr,1)}"
+    # Photonics case
+    ph=btk.get("photonics",{})
+    with st.expander("🔆 Photonics / CPO Chain (NVIDIA $4B confirmed)"):
+        st.markdown(f"**{ph.get('thesis','')}**")
+        st.markdown("**Supply chain layers:**")
+        for l in ph.get("supply_chain",[]): st.markdown(f" • **{l['layer']}** — {l.get('note','')} → `{l.get('status','')}`")
+        st.markdown(f"**Next pre-breakout**: {', '.join(ph.get('next_layer',[]))}")
+        st.markdown(f"**Already run**: {', '.join(ph.get('already_run',[]))}")
 
-    # Tabs per market
-    tabs=st.tabs(["🇺🇸 US Long","🇺🇸 US Short","💱 Forex","🛢 Commodities","₿ Crypto","🇮🇩 IHSG Long","⚗️ Brewing","📌 Known Plays","❌ Avoid","⚠️ Traps"])
+    # Tabs: Brewing / Known / Avoid / Traps
+    tabs=st.tabs(["⚗️ Brewing","📌 Known Plays","❌ Avoid","⚠️ Regime Traps"])
 
     with tabs[0]:
-        st.markdown("### 🇺🇸 US Stocks — LONG (Sorted by EV+)")
-        usl=btk.get("us_long",[])
-        if usl:
-            rows=[]
-            for c in usl[:25]:
-                tp=c.get("tp",{})
-                rows.append({"Ticker":c["ticker"],"Sector":c["sector"].replace("_"," ").title(),
-                    "EV":f"{c['ev']:+.3f}","Score":c["score"],"Constraint":fp(c["constraint"]),
-                    "Regime":fp(c["regime_fit"]),"Trend":c["trend"].title(),"Accum":fp(c["acc"]),
-                    "RS 3M":fp(c.get("rs_3m")),"Range":c["range_label"],
-                    "TP":_fmt_tp(tp),"Thesis":c.get("known_thesis","")[:50]})
-            df=pd.DataFrame(rows)
-            st.dataframe(df.style.map(lambda v:f"color:{'#10B981' if float(v.replace('+',''))>0.3 else '#F59E0B' if float(v.replace('+',''))>0 else '#EF4444'}",subset=["EV"]),
-                hide_index=True,use_container_width=True,height=400)
-        else: st.info("No US long candidates in current regime.")
-
-    with tabs[1]:
-        st.markdown("### 🇺🇸 US Stocks — SHORT (Sorted by EV-)")
-        uss=btk.get("us_short",[])
-        if uss:
-            rows=[]
-            for c in uss[:25]:
-                tp=c.get("tp",{})
-                rows.append({"Ticker":c["ticker"],"Sector":c["sector"].replace("_"," ").title(),
-                    "EV":f"{c['ev']:+.3f}","Score":c["score"],"Constraint":fp(c["constraint"]),
-                    "Regime":fp(c["regime_fit"]),"Trend":c["trend"].title(),"Accum":fp(c["acc"]),
-                    "RS 3M":fp(c.get("rs_3m")),"Range":c["range_label"],
-                    "TP":_fmt_tp(tp),"Thesis":c.get("known_thesis","")[:50]})
-            df=pd.DataFrame(rows)
-            st.dataframe(df.style.map(lambda v:f"color:{'#EF4444' if float(v.replace('+',''))<0 else '#F59E0B'}",subset=["EV"]),
-                hide_index=True,use_container_width=True,height=400)
-        else: st.info("No US short candidates in current regime. Q3/Q4 typically generates shorts.")
-
-    with tabs[2]:
-        st.markdown("### 💱 Forex — Long / Short (Sorted by EV)")
-        c1,c2=st.columns(2)
-        with c1:
-            st.markdown("**LONG** (USD bearish pairs)")
-            fxl=btk.get("forex_long",[])
-            if fxl:
-                rows=[{"Pair":c["ticker"],"EV":f"{c['ev']:+.3f}","Trend":c["trend"].title(),
-                    "RS 3M":fp(c.get("rs_3m")),"Range":c["range_label"],"TP":_fmt_tp(c.get("tp"))} for c in fxl[:15]]
-                st.dataframe(pd.DataFrame(rows),hide_index=True,use_container_width=True,height=250)
-            else: st.info("No FX long setups.")
-        with c2:
-            st.markdown("**SHORT** (USD bullish pairs)")
-            fxs=btk.get("forex_short",[])
-            if fxs:
-                rows=[{"Pair":c["ticker"],"EV":f"{c['ev']:+.3f}","Trend":c["trend"].title(),
-                    "RS 3M":fp(c.get("rs_3m")),"Range":c["range_label"],"TP":_fmt_tp(c.get("tp"))} for c in fxs[:15]]
-                st.dataframe(pd.DataFrame(rows),hide_index=True,use_container_width=True,height=250)
-            else: st.info("No FX short setups.")
-
-    with tabs[3]:
-        st.markdown("### 🛢 Commodities — Long / Short (Sorted by EV)")
-        c1,c2=st.columns(2)
-        with c1:
-            st.markdown("**LONG**")
-            cl=btk.get("commodity_long",[])
-            if cl:
-                rows=[{"Ticker":c["ticker"],"EV":f"{c['ev']:+.3f}","Trend":c["trend"].title(),
-                    "RS 3M":fp(c.get("rs_3m")),"Range":c["range_label"],"TP":_fmt_tp(c.get("tp"))} for c in cl[:15]]
-                st.dataframe(pd.DataFrame(rows),hide_index=True,use_container_width=True,height=250)
-            else: st.info("No commodity long setups.")
-        with c2:
-            st.markdown("**SHORT**")
-            cs=btk.get("commodity_short",[])
-            if cs:
-                rows=[{"Ticker":c["ticker"],"EV":f"{c['ev']:+.3f}","Trend":c["trend"].title(),
-                    "RS 3M":fp(c.get("rs_3m")),"Range":c["range_label"],"TP":_fmt_tp(c.get("tp"))} for c in cs[:15]]
-                st.dataframe(pd.DataFrame(rows),hide_index=True,use_container_width=True,height=250)
-            else: st.info("No commodity short setups.")
-
-    with tabs[4]:
-        st.markdown("### ₿ Crypto — Long / Short (Sorted by EV)")
-        c1,c2=st.columns(2)
-        with c1:
-            st.markdown("**LONG**")
-            crl=btk.get("crypto_long",[])
-            if crl:
-                rows=[{"Token":c["ticker"],"EV":f"{c['ev']:+.3f}","Trend":c["trend"].title(),
-                    "RS 3M":fp(c.get("rs_3m")),"Range":c["range_label"],"TP":_fmt_tp(c.get("tp"))} for c in crl[:15]]
-                st.dataframe(pd.DataFrame(rows),hide_index=True,use_container_width=True,height=250)
-            else: st.info("No crypto long setups in current regime.")
-        with c2:
-            st.markdown("**SHORT**")
-            crs=btk.get("crypto_short",[])
-            if crs:
-                rows=[{"Token":c["ticker"],"EV":f"{c['ev']:+.3f}","Trend":c["trend"].title(),
-                    "RS 3M":fp(c.get("rs_3m")),"Range":c["range_label"],"TP":_fmt_tp(c.get("tp"))} for c in crs[:15]]
-                st.dataframe(pd.DataFrame(rows),hide_index=True,use_container_width=True,height=250)
-            else: st.info("No crypto short setups.")
-
-    with tabs[5]:
-        st.markdown("### 🇮🇩 IHSG — LONG ONLY (Sorted by EV+)")
-        st.caption("IHSG cannot be shorted. Sorted from highest EV+ to lowest.")
-        ih=btk.get("ihsg_long",[])
-        if ih:
-            rows=[]
-            for c in ih[:25]:
-                tp=c.get("tp",{})
-                rows.append({"Ticker":c["ticker"],"Sector":c["sector"].replace("_"," ").title(),
-                    "EV":f"{c['ev']:+.3f}","Score":c["score"],"Trend":c["trend"].title(),
-                    "Accum":fp(c["acc"]),"RS 3M":fp(c.get("rs_3m")),"Range":c["range_label"],
-                    "TP":_fmt_tp(tp),"Thesis":c.get("known_thesis","")[:60]})
-            df=pd.DataFrame(rows)
-            st.dataframe(df.style.map(lambda v:f"color:{'#10B981' if float(v.replace('+',''))>0.3 else '#F59E0B' if float(v.replace('+',''))>0 else '#EF4444'}",subset=["EV"]),
-                hide_index=True,use_container_width=True,height=400)
-        else: st.info("No IHSG long candidates. Q3/Q4 = IHSG headwind. Wait for regime flip.")
-
-        # IHSG avoid
-        iha=btk.get("ihsg_avoid",[])
-        if iha:
-            st.markdown("#### ⚠️ IHSG AVOID (Trend Down)")
-            rows=[{"Ticker":c["ticker"],"Sector":c["sector"].replace("_"," ").title(),
-                "EV":f"{c['ev']:+.3f}","Trend":c["trend"].title(),"Reason":"Trend down in Q3/Q4 — avoid"} for c in iha[:10]]
-            st.dataframe(pd.DataFrame(rows),hide_index=True,use_container_width=True,height=200)
-
-    with tabs[6]:
         st.markdown("### ⚗️ Brewing — Pre-Breakout Setups")
         st.caption("High constraint + regime fit + accumulation. Not yet level_1/2. Early entry.")
         br=btk.get("brewing",[])
         if br:
             rows=[]
-            for c in br[:20]:
+            for c in br[:25]:
                 rows.append({"Ticker":c["ticker"],"Market":c["market"].upper(),"Sector":c["sector"].replace("_"," ").title(),
                     "EV":f"{c['ev']:+.3f}","Constraint":fp(c["constraint"]),"Regime Fit":fp(c["regime_fit"]),
                     "Accum":fp(c["acc"]),"Trend":c["trend"].title(),"Range":c["range_label"],
                     "Thesis":c.get("known_thesis","")[:60]})
             df=pd.DataFrame(rows)
-            st.dataframe(df.style.map(lambda v:f"color:{'#10B981' if float(v.replace('+',''))>0.3 else '#F59E0B'}",subset=["EV"]),
-                hide_index=True,use_container_width=True,height=400)
-        else: st.info("No brewing setups detected. Check back after accumulation patterns form.")
+            st.dataframe(df.style.map(_ev_color,subset=["EV"]),hide_index=True,use_container_width=True,height=420)
+        else: st.info("No brewing setups. Check back after accumulation patterns form.")
 
-    with tabs[7]:
+    with tabs[1]:
         st.markdown("### 📌 Known Bottleneck Plays (Deep Research)")
-        on_a=btk.get("on_analysis",{})
-        with st.expander("🔍 ON Semiconductor Case Study"):
-            st.markdown(f"**Status**: {on_a.get('current_status','')}")
-            st.markdown(f"**Type**: {on_a.get('type','')}")
-            st.markdown("**Why it surged:**")
-            for r in on_a.get("why_surged",[]): st.markdown(f" • {r}")
-            st.markdown("**Analogs now:**")
-            for r in on_a.get("analogs_now",[]): st.markdown(f" • {r}")
-
-        ph=btk.get("photonics",{})
-        with st.expander("🔆 Photonics / CPO Chain (NVIDIA $4B confirmed)"):
-            st.markdown(f"**{ph.get('thesis','')}**")
-            st.markdown("**Supply chain layers:**")
-            for l in ph.get("supply_chain",[]): st.markdown(f" • **{l['layer']}** — {l.get('note','')} → `{l.get('status','')}`")
-            st.markdown(f"**Next pre-breakout**: {', '.join(ph.get('next_layer',[]))}")
-            st.markdown(f"**Already run**: {', '.join(ph.get('already_run',[]))}")
-
-        # Known plays table
         known=[c for c in btk.get("all_candidates",[]) if c.get("known")]
         if known:
             rows=[]
-            for c in known[:15]:
+            for c in known[:20]:
                 tp=c.get("tp",{})
                 rows.append({"Ticker":c["ticker"],"Sector":c["sector"].replace("_"," ").title(),
                     "Type":c.get("btn_type","—"),"Phase":c["level"].replace("_"," ").title(),
                     "EV":f"{c['ev']:+.3f}","Score":c["score"],
                     "TP":_fmt_tp(tp),"Catalyst":c.get("known_catalyst","")[:50]})
             df=pd.DataFrame(rows)
-            st.dataframe(df.style.map(lambda v:f"color:{'#10B981' if float(v.replace('+',''))>0.3 else '#F59E0B'}",subset=["EV"]),
-                hide_index=True,use_container_width=True,height=300)
+            st.dataframe(df.style.map(_ev_color,subset=["EV"]),hide_index=True,use_container_width=True,height=350)
+        else: st.info("No known plays detected.")
 
-    with tabs[8]:
+    with tabs[2]:
         st.markdown("### ❌ Avoid — Wrong Regime / Wrong Trend")
         av=btk.get("avoid",[])
         if av:
@@ -899,7 +859,7 @@ elif page=="🔍 Bottleneck":
             st.dataframe(pd.DataFrame(rows),hide_index=True,use_container_width=True,height=300)
         else: st.info("No avoid candidates.")
 
-    with tabs[9]:
+    with tabs[3]:
         st.markdown("### ⚠️ Regime Traps — Looks Like Bottleneck, But Wrong Quad")
         traps=btk.get("regime_traps",[])
         if traps:
@@ -961,7 +921,6 @@ elif page=="🔮 Scenarios":
                 for t in s.invalidators[:3]: st.markdown(f" • {t}")
             st.caption(f"Catalyst: {s.catalyst} | Conviction: {s.conviction}")
 
-            # EM recovery note for relevant transitions
             if s.name in ("Q3→Q2","Q4→Q1","Q3→Q1"):
                 em_note={"Q3→Q2":"EM commodity exporters early recovery. Monthly Q2 = commodity bid.",
                     "Q4→Q1":"MAX EM recovery. Historical +25-40% in first 6M of Q1.",

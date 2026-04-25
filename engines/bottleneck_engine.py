@@ -78,6 +78,56 @@ KNOWN_BOTTLENECKS: Dict[str, dict] = {
         "thesis":"Bittensor decentralized AI network. 21M max supply, ~8M circulating. March 2026 surge on subnet expansion. Tokenomics = structural supply constraint.",
         "catalyst":"New subnet launches, institutional discovery, AI narrative amplification","tp_type":"crypto",
         "risk":"High pump_risk=0.70. Binary: adoption or dump. Exit 14d before major unlock."},
+    # ── ASCHENBRUNNER THESIS: AI Physical Layer (power+hardware > code) ─────
+    # Leopold Aschenbrunner: "Owning power and hardware to run models is MORE VALUABLE than owning AI code"
+    # Fund: +51.3% since March 5, 2026. Thesis confirmed in market.
+    "BE": {"type":"structural","sub":"ai_power_infra","constraint":0.82,"phase":"level_2",
+        "thesis":"Bloom Energy = solid oxide fuel cells for AI DC baseload. No transmission bottleneck. On-site power = FASTEST to deploy for AI campuses. Aschenbrunner Fund core holding. 'Power infrastructure beats code ownership.'",
+        "catalyst":"AI DC power contract, hyperscaler fuel cell deal, PPA announcement","tp_type":"structural",
+        "risk":"Fuel cell cost vs grid, utility competition, execution at scale"},
+    "CORZ": {"type":"structural","sub":"ai_power_infra","constraint":0.80,"phase":"level_2",
+        "thesis":"Core Scientific: Bitcoin miner → AI compute hosting pivot. Already has large-scale power infra (miners need same: cheap power + cooling). Aschenbrunner Fund. Physical AI layer = where the value accretes.",
+        "catalyst":"HPC/AI hosting contract wins, BTC miner conversion","tp_type":"structural",
+        "risk":"BTC price sensitivity, pivot execution risk"},
+    "IREN": {"type":"structural","sub":"ai_power_infra","constraint":0.78,"phase":"level_1",
+        "thesis":"IREN Limited = AI data center operator on 100% renewable energy. Owns/operates its power + compute = vertically integrated AI physical layer. Aschenbrunner Fund. Fast-growing.",
+        "catalyst":"New AI DC capacity online, green power deal, hyperscaler contract","tp_type":"structural",
+        "risk":"Renewable intermittency, execution scale-up"},
+    "APLD": {"type":"structural","sub":"ai_power_infra","constraint":0.76,"phase":"level_1",
+        "thesis":"Applied Digital = purpose-built AI cloud infrastructure. Owns data centers designed from scratch for AI workloads (liquid-cooled, high-density). Aschenbrunner Fund holding.",
+        "catalyst":"Hyperscaler lease agreement, capacity expansion, AI workload wins","tp_type":"structural",
+        "risk":"Balance sheet risk, execution at scale"},
+    "SNDK": {"type":"structural","sub":"ai_storage","constraint":0.78,"phase":"level_2",
+        "thesis":"Sandisk = flash storage for AI inference. Every AI model needs fast local storage for weights + KV cache. Aschenbrunner Fund: flash is the next bottleneck after compute/power.",
+        "catalyst":"AI inference storage demand, datacenter SSD ramp","tp_type":"structural",
+        "risk":"Samsung/Micron competition, NAND price cycle"},
+    # ── DOJJUNN BOTTLENECK CHAIN NEXT FRONTIER ─────────────────────────────
+    # @dojjunn: "One bottleneck leads to another. Today: memory, photonics, CPUs.
+    # Tomorrow: GPUs, power, gas turbines, ABF substrates."
+    # ABF (Ajinomoto Build-up Film) substrates: THE packaging bottleneck nobody sees yet
+    "AJINY": {"type":"structural","sub":"ai_packaging","constraint":0.85,"phase":"level_1",
+        "thesis":"Ajinomoto (AJINY) = makes ABF substrate — the insulating layer between AI chip die and PCB. @dojjunn identified as NEXT bottleneck. Only 3 companies make ABF. Lead times 52+ weeks. AI chip explosion → ABF demand explosion. Supply cannot scale in <2 years.",
+        "catalyst":"TSMC CoWoS capacity expansion drives ABF demand, AI chip volume, foundry capex","tp_type":"structural",
+        "risk":"Private capacity expansion; geopolitical Taiwan risk; Japanese stock illiquidity"},
+    "AMKR": {"type":"structural","sub":"ai_packaging","constraint":0.82,"phase":"level_2",
+        "thesis":"Amkor Technology = advanced packaging (CoWoS, SoIC, FOPLP). TSMC overflow + new AI chip packaging demand. ABF substrate consumer. @dojjunn chain: after photonics bottleneck = packaging bottleneck.",
+        "catalyst":"TSMC CoWoS overflow, Blackwell packaging volume","tp_type":"structural",
+        "risk":"TSMC insources capacity"},
+    # Gas Turbines (dojjunn chain): GE Vernova, Siemens Energy
+    "GEV": {"type":"structural","sub":"ai_power_infra","constraint":0.85,"phase":"level_2",
+        "thesis":"GE Vernova gas turbines: AI DCs need 24/7 firm power → gas turbines = only scalable solution besides nuclear. @dojjunn: 'gas turbines' as next-layer bottleneck after power infrastructure. Lead time 3-4 years. Order book sold out through 2027.",
+        "catalyst":"AI DC power emergency forcing gas turbine orders, utility contracts, LNG","tp_type":"structural",
+        "risk":"Energy transition regulation, stranded asset risk"},
+    # Memory (dojjunn chain): MU already tracked, add HBM angle
+    "MU": {"type":"structural","sub":"ai_memory","constraint":0.83,"phase":"level_2",
+        "thesis":"Micron = HBM3E + LPDDR5X bottleneck. @dojjunn: 'today it's memory' = Micron IS the bottleneck. HBM4 in development. AI inference memory bandwidth the real constraint on model speed. Only Samsung/SK Hynix/Micron can make HBM at volume.",
+        "catalyst":"HBM3E ramp, NVDA Blackwell memory allocation, AI PC memory upgrade","tp_type":"structural",
+        "risk":"DRAM cycle, Samsung competitive response"},
+    # ARM (dojjunn screenshot: ARM +14.76%)  
+    "ARM": {"type":"structural","sub":"ai_compute","constraint":0.80,"phase":"level_2",
+        "thesis":"ARM Holdings = THE compute architecture for AI at edge + mobile + inference. EVERY AI chip uses ARM cores (Apple M, Qualcomm Oryon, NVDA Grace). Royalty model = infinite leverage. @dojjunn screenshot: ARM +14.76% on semis day confirms institutional conviction.",
+        "catalyst":"AI edge deployment, custom silicon wins (Apple, Qualcomm, NVDA Grace)","tp_type":"structural",
+        "risk":"RISC-V competition, China licensing risk"},
     "ACLS": {"type":"structural","sub":"ai_optics","constraint":0.72,"phase":"watch",
         "thesis":"Ion implant for SiPh fabs. Less-known picks-and-shovels for photonics expansion.",
         "catalyst":"Tower/GF SiPh expansion orders","tp_type":"structural","risk":"Limited SiPh-specific revenue"},

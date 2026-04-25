@@ -1061,6 +1061,220 @@ IHSG: coal/CPO exporters may have short window of outperformance before growth s
 
 ]
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# BATCH 3 — ASCHENBRUNNER + DOJJUNN BOTTLENECK CHAIN + MISSING RICKY THESES
+# ═══════════════════════════════════════════════════════════════════════════════
+_NARRATIVES_BATCH3: List[NarrativeTemplate] = [
+
+    NarrativeTemplate(
+        name="Aschenbrunner — AI Physical Layer (Power > Code)",
+        description="""Leopold Aschenbrunner's landmark thesis (2026): 
+"Owning the power and hardware to run models is MORE VALUABLE than owning the AI code itself."
+Fund: Aschenbrunner Hedge Fund Tracker, +51.3% since March 5 2026, $5M+ AUM via Autopilot.
+The bet: AI code (OpenAI, Anthropic, Mistral) will commoditize. 
+Physical infrastructure CANNOT commoditize — land, permits, power grids, cooling take YEARS.
+Picks: BE (fuel cells), CORZ (miner→AI pivot), SNDK (flash storage), IREN (green AI DC), APLD (purpose-built AI cloud).
+Generalization: anyone who OWNS the physical layer (power + hardware + land) for AI = pricing power forever.
+"One bottleneck leads to another" — after compute = power. After power = storage. After storage = networking.
+Indonesia angle: GOTO/Gojek/TLKM as future AI DC operators? Watch BEST/KIJA for AI DC land play.""",
+        category="technology",
+        catalyst_types=["ai_dc_power_contract","hyperscaler_lease","fuel_cell_deal",
+                         "miner_pivot_ai","renewable_power_ai","ai_storage_demand"],
+        activation_keywords=["aschenbrunner","ai physical layer","power beats code","ai infrastructure owns",
+                              "bloom energy ai","core scientific ai","applied digital","iren ai datacenter",
+                              "sandisk ai storage","ai power infra","data center power","ai campus power",
+                              "fuel cell ai dc","green ai datacenter","physical ai layer"],
+        invalidation_keywords=["ai dc overbuild","power demand overestimated","AI spending collapse",
+                                "hyperscaler capex cut","data center supply glut"],
+        beneficiaries={
+            "us":["BE","CORZ","IREN","APLD","SNDK","VST","GEV","ETN","CEG","VRT","WDFC"],
+            "global":["SMCI","NVDA"],  # physical AI compute
+        },
+        fades={"us":["MSFT","GOOGL","AMZN"]},  # code/model owners commoditize
+        regime_alignment={"Q1":1.60,"Q2":1.40,"Q3":0.80,"Q4":0.50},
+        typical_duration_weeks=104, conviction_ceiling=0.85, pump_risk=0.20,
+        confirmation_signals=["be_ai_dc_contract","corz_hpc_revenue","iren_new_capacity",
+                               "apld_hyperscaler_lease","aschenbrunner_fund_holdings_change",
+                               "ai_dc_power_waitlist_growing","interconnection_queue_record"],
+    ),
+
+    NarrativeTemplate(
+        name="Dojjunn — Sequential Bottleneck Chain Migration",
+        description="""@dojjunn's core investing framework (confirmed Apr 2026 screenshot):
+"One bottleneck leads to another. Today it's memory, photonics, and CPUs. 
+Tomorrow it could be GPUs, power, gas turbines, ABF substrates."
+The CHAIN: 
+Phase 1 (2023-2024): GPU shortage → NVDA monopoly → everyone scrambles
+Phase 2 (2024-2025): Memory/HBM bottleneck → MU/SKHynix → HBM3E sold out
+Phase 3 (2025-2026): Photonics/CPO → LITE/COHR → optical interconnect constraint
+Phase 4 (2026): Power/Infra → ETN/GEV/VST → transformer lead times 3yr
+Phase 5 (2026-2027 INCOMING): Gas Turbines → GEV/SIEGY → 24/7 firm power
+Phase 6 (2027+ WATCH): ABF Substrates → AJINY → packaging bottleneck nobody sees yet
+"A narrative is just a narrative. But when backed by strong cash flow, it's something special."
+Key: each bottleneck is investable for 12-24 months before supply catches up.
+The EDGE: identify the NEXT bottleneck 6-12 months before market consensus.""",
+        category="technology",
+        catalyst_types=["supply_constraint_new","lead_time_spike","capacity_announcement_insufficient",
+                         "bottleneck_phase_shift","next_layer_constraint"],
+        activation_keywords=["bottleneck chain","sequential bottleneck","next bottleneck",
+                              "abf substrate","ajinomoto build-up film","gas turbine ai",
+                              "bottleneck migration","ai supply chain next","packaging bottleneck",
+                              "hbm shortage","optical interconnect constraint","power grid bottleneck",
+                              "dojjunn","one bottleneck leads to another"],
+        invalidation_keywords=["supply normalization","capacity catch up","no new bottleneck",
+                                "AI demand plateau","capex cancelled"],
+        beneficiaries={
+            "us":["AJINY","AMKR","MU","GEV","ETN","BE","CORZ","ARM","QCOM","AMD","INTC"],
+            "next_watch":["GEV","SIEGY_DE","ABF_substrate_players"],
+        },
+        fades={"us":[]},
+        regime_alignment={"Q1":1.50,"Q2":1.30,"Q3":0.70,"Q4":0.45},
+        typical_duration_weeks=26, conviction_ceiling=0.80, pump_risk=0.25,
+        confirmation_signals=["abf_lead_time_surge","gas_turbine_backlog_record",
+                               "ajiny_order_acceleration","arm_qcom_amd_intc_all_up_same_day",
+                               "next_bottleneck_mentioned_by_hyperscalers"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — Crisis Entry Playbook (ATH-20%/30% Buy Zones)",
+        description="""Ricky2212's market behaviour framework — buy at puncak keburukan (peak of fear).
+ATH Correction Zones:
+• ATH-10% = Healthy correction → normal pullback, accumulate quality
+• ATH-20% = Bear market territory → "media berteriak krisis, tapi fundamental belum rusak"
+• ATH-30% = Big Crisis → MAXIMUM OPPORTUNITY untuk long-term investor
+
+Crisis Entry Protocol:
+Entry allocation: 60% di tranche pertama (paling pasti) + 20% + 20% sisanya.
+"Jangan langsung masuk 100% — sisakan amunisi untuk penurunan lebih lanjut."
+Crisis end signal (3 must confirm simultaneously):
+1. "Too Big To Fail" statement dari pejabat
+2. "We Will Do Whatever It Takes" dari central bank  
+3. "Joint Global Coordination" (G7/G20 statement)
+= TRIPLE SIGNAL = saatnya masuk maksimal.
+
+Portfolio survival rule: "Beli saham yang meski harganya terus turun, perusahaannya masih berjalan."
+= Quality + Cash flow + Dividend paying companies.""",
+        category="cycle",
+        catalyst_types=["market_crash","central_bank_intervention","government_bailout",
+                         "coordinated_response","fear_extreme","vix_spike"],
+        activation_keywords=["market crash","ath -20","ath -30","spy drawdown 20","crisis entry",
+                              "too big to fail","whatever it takes","coordinated central bank",
+                              "peak fear","maximum pessimism","buy the crash","ricky crisis",
+                              "bear market opportunity","systematic entry crash"],
+        invalidation_keywords=["no policy response","central bank credibility lost","hyperinflation",
+                                "structural breakdown","banking system failure"],
+        beneficiaries={"us":["SPY","QQQ","GLD","TLT","IWM","BBCA_JK"],
+                       "ihsg":["BBCA.JK","BBRI.JK","KLBF.JK","UNVR.JK"]},
+        fades={"us":[]},
+        regime_alignment={"Q4":1.90,"Q3":1.40,"Q1":0.60,"Q2":0.50},
+        typical_duration_weeks=13, conviction_ceiling=0.90, pump_risk=0.05,
+        confirmation_signals=["spy_drawdown_above_20pct","vix_above_40",
+                               "fed_emergency_statement","g7_coordination",
+                               "too_big_to_fail_statement","fear_greed_below_15"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — CAT+GLEN Global Bellwether Breakout",
+        description="""Ricky2212: "Caterpillar dan Glencore adalah dua perusahaan lama yang mencerminkan aktivitas ekonomi global."
+"Saat keduanya mulai bergerak naik bersama → Sesi 3 berjalan."
+Framework: "Old School Industrial" sebagai leading indicator.
+CAT = makes equipment for mining, construction, energy globally. Revenue = proxy for global capex.
+GLEN = Glencore = largest commodity trader + miner. Revenue = proxy for raw material demand.
+"Saat CAT dan GLEN ATH bareng → seluruh supply chain commodity sedang berjalan."
+DJ Transport confirmation: logistics/trucking naik = ekonomi gerak secara fisik.
+Indonesia signal: saat CAT/GLEN breakout → ITMG/ADRO/INCO akan segera follow.
+Ricky: "Perhatikan perusahaan-perusahaan ini. Mereka tidak bisa berbohong soal kondisi ekonomi." """,
+        category="cycle",
+        catalyst_types=["global_capex_recovery","china_infrastructure","commodity_demand",
+                         "mining_equipment_order","industrial_breakout"],
+        activation_keywords=["caterpillar ath","glencore breakout","cat glen signal",
+                              "dj transport rally","industrial bellwether","global capex",
+                              "mining equipment orders","old school industrial","copper demand",
+                              "cat revenue beat","glencore earnings","iron ore recovery"],
+        invalidation_keywords=["cat revenue miss","glencore loss","china infrastructure halt",
+                                "global capex cut","recession confirmed"],
+        beneficiaries={"us":["CAT","DE","GE","XLI","XME","FCX"],
+                       "global":["GLEN.L","RIO","BHP","VALE"],
+                       "ihsg":["ITMG.JK","ADRO.JK","INCO.JK","MDKA.JK","PTBA.JK"]},
+        fades={"us":[]},
+        regime_alignment={"Q2":1.70,"Q1":1.30,"Q3":0.70,"Q4":0.20},
+        typical_duration_weeks=26, conviction_ceiling=0.80, pump_risk=0.15,
+        confirmation_signals=["cat_ath","glencore_52w_high","dj_transport_breakout",
+                               "copper_above_4_50","bdi_above_2000","itmg_adro_foreign_buy"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — Seasonal / Sell in May + DM Sentiment Contrarian",
+        description="""Ricky2212 seasonal + sentiment framework:
+SEASONAL: "Sell in May and Go Away" = historical pattern. Market cenderung lemah Mei-Oktober.
+Counter: ini hanya pattern, bukan law. Jika fundamental kuat dan cycle mendukung → abaikan.
+"Jangan ikut sell in May kalau lu yakin dengan posisi lu."
+
+DM SENTIMENT INDICATOR: "Saat DM gw penuh dari orang yang nanya beli saham apa → WARNING.
+Saat DM sepi dan orang tidak tertarik saham sama sekali → BUY SIGNAL."
+= Retail participation as contrarian indicator.
+Inverse Cramer principle: "Saat Cramer teriak beli → pertimbangkan jual."
+Peak retail euphoria = institutional distribution zone.
+Peak retail fear = institutional accumulation zone.
+
+"Pasar itu forward looking. Saat kabar buruk keluar → harga sudah jatuh duluan.
+Saat kabar baik keluar → harga sudah naik duluan. Kita harus 1 langkah di depan news." """,
+        category="cycle",
+        catalyst_types=["sentiment_extreme","retail_capitulation","dm_volume_spike",
+                         "seasonal_pattern","media_euphoria"],
+        activation_keywords=["sell in may","seasonal pattern","retail euphoria","cramer buy signal",
+                              "fear and greed extreme","retail capitulation","dm flood questions",
+                              "inverse cramer","retail sentiment peak","market timing seasonal",
+                              "contrarian signal","retail panic","wsb euphoria"],
+        invalidation_keywords=["fundamental breakdown","no institutional buying","central bank tightening"],
+        beneficiaries={"us":["SPY","QQQ","IWM"],"ihsg":["EIDO"]},
+        fades={"us":[]},
+        regime_alignment={"Q4":1.50,"Q1":1.30,"Q2":0.70,"Q3":0.60},
+        typical_duration_weeks=8, conviction_ceiling=0.65, pump_risk=0.15,
+        confirmation_signals=["fear_greed_below_20_retail_panic","google_trends_stocks_peak",
+                               "reddit_wsb_euphoria_peak","institutional_net_buy_confirmed"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — Singa Tua vs Singa Muda (US/EU Decline, Asia Rise)",
+        description="""Ricky2212's multi-decade geopolitical framework:
+"Singa Tua" (Old Lions): US, Europe, Japan → peak power, declining relative dominance.
+"Singa Muda" (Young Lions): China, India, ASEAN, Gulf → rising share of global GDP/trade.
+"Amrik adalah singa tua yang mulai ompong. Dollar akan dikebiri oleh amrik sendiri."
+Investment implication: 
+→ Dollar structurally weak multi-decade (dedollarization)
+→ EM equities re-rate as global share of earnings rises
+→ Indonesia: beneficiary as ASEAN manufacturing + commodity hub
+→ India: world's fastest growing large economy (INDA, SMIN)
+→ Gulf: petrodollar recycling into local equity markets (Saudi, UAE)
+This is NOT a trade — it's a 10-20 year positioning framework.
+Short-term irrelevant. Medium-term: USD bear, EM bull. Long-term: ASEAN = new growth engine.""",
+        category="geopolitical",
+        catalyst_types=["dollar_reserve_decline","em_gdp_growth_outpace","asean_fdi",
+                         "china_india_trade_deal","brics_expansion","us_deficit"],
+        activation_keywords=["singa tua singa muda","dollar decline","em outperform",
+                              "asean growth","india growth","gulf sovereign wealth",
+                              "dedollarization","us deficit","EM re-rating",
+                              "china gdp share","emerging market dominant","global south"],
+        invalidation_keywords=["china hard landing","em crisis","dollar surge permanent",
+                                "asean political crisis","india slowdown"],
+        beneficiaries={"global":["EEM","VWO","INDA","EIDO","EWH","EWT","GXC","ARGT"],
+                       "ihsg":["BBCA.JK","BMRI.JK","TLKM.JK"],
+                       "commodities":["GC=F","CU=F"]},
+        fades={"us":["UUP","BIL","TIP"]},
+        regime_alignment={"Q1":1.20,"Q4":1.10,"Q3":0.80,"Q2":0.90},
+        typical_duration_weeks=520, conviction_ceiling=0.70, pump_risk=0.10,
+        confirmation_signals=["em_gdp_share_above_60","dollar_reserve_below_50",
+                               "asean_fdi_record","india_gdp_above_us_gdp_growth"],
+    ),
+]
+
+_NARRATIVES.extend(_NARRATIVES_BATCH3)
+NARRATIVE_BY_NAME.update({n.name: n for n in _NARRATIVES_BATCH3})
+for _n in _NARRATIVES_BATCH3:
+    NARRATIVES_BY_CATEGORY.setdefault(_n.category, []).append(_n)
+
+
 # Merge batch 2 into main list
 _NARRATIVES.extend(_NARRATIVES_BATCH2)
 # Rebuild lookup dicts

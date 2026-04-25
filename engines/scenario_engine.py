@@ -52,7 +52,7 @@ TRANSITION_IMPLICATIONS: Dict[str, dict] = {
         "worst": ["TLT","Defensive bonds","Low beta"],
         "catalyst": "ISM rebounds >52, retail sales surprise, PMI acceleration",
         "conviction": "MODERATE — monthly Q2 signal leads structural confirmation",
-        "em_note": "EM COMMODITY EXPORTERS RECOVER. EIDO, EWW, EWZ, NORW, EWA lead. Monthly Q2 = commodity bid + USD bearish TREND = EM FX relief.",
+        "em_note": "EM COMMODITY EXPORTERS RECOVER. EIDO, EWW, EWZ, NORW, EWA lead. Monthly Q2 = commodity bid + USD bearish TREND = EM FX relief. IHSG: Coal (ITMG/ADRO) + OSV (WINS/LEAD) re-ignite — RICKY SESI 2→3 TRANSITION SIGNAL.",
     },
     "Q3→Q3": {
         "headline": "Stagflation Persistence: Stay defensive",
@@ -76,6 +76,7 @@ TRANSITION_IMPLICATIONS: Dict[str, dict] = {
         "worst": ["GLD","Commodities","Defensive","TLT (rotate out)"],
         "catalyst": "Growth data accelerates, Fed cuts, liquidity injected, credit spreads tighten",
         "conviction": "VERY HIGH — Q4→Q1 is McCullough's highest conviction long setup",
+        "ricky_note": "RICKY SESI 3 TRIGGER ZONE: Q4→Q1 = ekonomi buat new base → banking/consumer first (Sesi 2), then watch for B-indicator buying coal/OSV (Sesi 3 = King is Back). BDI + ITMG foreign flow + OSV day rates = your leading signals.",
         "em_note": "MAX EM RECOVERY. Historical +25-40% in first 6M of Q1. Broad EM exposure viable: EEM, VWO, EIDO, INDA, EWW, EWZ. ALL EM benefits from USD bearish + growth re-acceleration.",
     },
     "Q2→Q3": {

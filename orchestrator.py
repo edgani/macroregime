@@ -13,6 +13,9 @@ from engines.scenario_engine import ScenarioEngine
 from engines.bottleneck_engine import BottleneckEngine
 from engines.narrative_engine import NarrativeEngine
 from engines.adaptive_discovery_engine import AdaptiveDiscoveryEngine
+from engines.regime_transition_engine import RegimeTransitionEngine
+from engines.market_health_engine import MarketHealthEngine
+from engines.historical_analog_engine import HistoricalAnalogEngine
 from config.settings import (
     MACRO_PROXIES, US_SECTORS, US_FACTORS, FOREX_PAIRS,
     COMMODITIES, CRYPTO, BONDS, IHSG_UNIVERSE, COUNTRY_UNIVERSE,
@@ -173,6 +176,39 @@ def build_snapshot(
         benchmark="SPY",
     )
     snap["narratives"] = narratives
+
+    # 14b. Regime Transition (timing + front-run window)
+    _prog(progress_cb, "Computing regime transition timing...", 0.91)
+    try:
+        macro_ctx = {k:v for k,v in gip.features.items() if isinstance(v,float)}
+        market_ctx = {
+            "oil_3m": float(prices.get("CL=F",pd.Series()).tail(1).iloc[-1]/prices.get("CL=F",pd.Series()).iloc[-64]-1) if len(prices.get("CL=F",pd.Series()))>64 else 0.0,
+            "gold_3m": float(prices.get("GLD",pd.Series()).tail(1).iloc[-1]/prices.get("GLD",pd.Series()).iloc[-64]-1) if len(prices.get("GLD",pd.Series()))>64 else 0.0,
+        }
+        transition = RegimeTransitionEngine().run(macro=macro_ctx, market=market_ctx, gip_result=gip)
+    except Exception as e:
+        logger.warning(f"Transition engine: {e}")
+        transition = None
+    snap["transition"] = transition
+
+    # 14c. Market Health (VIX bucket + crash meter + USD corr + checklists)
+    _prog(progress_cb, "Computing market health signals...", 0.92)
+    try:
+        health = MarketHealthEngine().run(prices=prices, gip_features=gip.features, quad=gip.structural_quad)
+    except Exception as e:
+        logger.warning(f"Health engine: {e}")
+        health = {}
+    snap["health"] = health
+
+    # 14d. Historical Analogs
+    _prog(progress_cb, "Matching historical analogs...", 0.925)
+    try:
+        prices_ctx = {"dxy_1m":stress.get("dollar_pressure",0.5)*0.04-0.02, "oil_3m":market_ctx.get("oil_3m",0), "vol_stress":stress.get("vol_stress",0)}
+        analogs = HistoricalAnalogEngine().run(gip_features=gip.features, prices_context=prices_ctx)
+    except Exception as e:
+        logger.warning(f"Analog engine: {e}")
+        analogs = {"top_analogs":[], "composite_note":""}
+    snap["analogs"] = analogs
 
     # 15. Adaptive Discovery (Claude API — non-blocking, cached 4h)
     _prog(progress_cb, "Running adaptive discovery (Claude API)...", 0.96)

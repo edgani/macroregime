@@ -257,58 +257,68 @@ BOTTLENECK_PROFILES: dict = {
 TICKER_SECTOR: dict = {
     # AI Compute
     "NVDA":"ai_compute","AMD":"ai_compute","AVGO":"ai_compute","TSM":"ai_compute","INTC":"ai_compute",
-    "MRVL":"ai_compute","QCOM":"ai_compute","MU":"ai_compute",
+    "MRVL":"ai_compute","QCOM":"ai_compute","MU":"ai_compute","ARM":"ai_compute","ASML":"ai_compute",
+    "AMAT":"ai_compute","KLAC":"ai_compute","LRCX":"ai_compute","TXN":"ai_compute",
     # AI Networking
-    "ALAB":"ai_networking","CRDO":"ai_networking","MRVL":"ai_networking","ANET":"ai_networking","SMCI":"ai_networking",
-    "APH":"ai_networking","MCHP":"ai_networking","ENTG":"ai_networking",
-    # AI Optics / Photonics
+    "ALAB":"ai_networking","CRDO":"ai_networking","ANET":"ai_networking","SMCI":"ai_networking",
+    # AI Optics
     "LITE":"ai_optics","COHR":"ai_optics","CIEN":"ai_optics","POET":"ai_optics","VIAV":"ai_optics","GLW":"ai_optics",
-    "MKSI":"ai_optics","ACLS":"ai_optics","AEHR":"ai_optics","FORM":"ai_optics","COHU":"ai_optics",
-    # SiC / GaN / Power
-    "ON":"sic_gan","WOLF":"sic_gan","STM":"sic_gan","IFNNY":"sic_gan",
-    "MPWR":"sic_gan","AEHR":"sic_gan","RMBS":"sic_gan",
+    # SiC/GaN Power
+    "ON":"sic_gan","WOLF":"sic_gan","STM":"sic_gan","AEHR":"sic_gan","FORM":"sic_gan",
     # AI Power Infrastructure
     "VST":"ai_power_infra","CEG":"ai_power_infra","ETN":"ai_power_infra","NRG":"ai_power_infra","GEV":"ai_power_infra","EMR":"ai_power_infra",
-    "PWR":"ai_power_infra","BE":"ai_power_infra","PLUG":"ai_power_infra","FSLR":"ai_power_infra","ENPH":"ai_power_infra",
-    # AI Packaging / Advanced Packaging
-    "AMKR":"ai_packaging","ASX":"ai_packaging","TSEM":"ai_packaging",
-    "KLIC":"ai_packaging","UCTT":"ai_packaging","CAMT":"ai_packaging",
-    # Healthcare Equipment
-    "ISRG":"healthcare_eq","ABT":"healthcare_eq","BSX":"healthcare_eq","MDT":"healthcare_eq","EW":"healthcare_eq","SYK":"healthcare_eq",
-    "ZBH":"healthcare_eq","DXCM":"healthcare_eq","PODD":"healthcare_eq","RMD":"healthcare_eq",
-    # Pharma
+    "VRT":"transformer_infra","HUBB":"transformer_infra","NVT":"transformer_infra","AYI":"transformer_infra","AMETEK":"transformer_infra","ROP":"transformer_infra",
+    # AI Packaging
+    "AMKR":"ai_packaging","TSEM":"ai_packaging",
+    # Mega Cap Tech
+    "AAPL":"generic","MSFT":"generic","GOOGL":"generic","META":"generic","AMZN":"generic",
+    "TSLA":"generic","NFLX":"generic","ORCL":"generic","ADBE":"generic","INTU":"generic",
+    # Software / Cloud
+    "CRM":"generic","NOW":"generic","PANW":"generic","PLTR":"generic","SNOW":"generic",
+    "SHOP":"generic","SQ":"generic","AFRM":"generic","TTD":"generic","RDDT":"generic",
+    "CDNS":"generic","SNPS":"generic",
+    # Financials
+    "JPM":"generic","BAC":"generic","WFC":"generic","GS":"generic","MS":"generic",
+    "BLK":"generic","KKR":"generic","BX":"generic","SCHW":"generic","HOOD":"generic",
+    "COIN":"generic","V":"generic","MA":"generic","PYPL":"generic",
+    # Healthcare
+    "ISRG":"healthcare_eq","ABT":"healthcare_eq","BSX":"healthcare_eq","MDT":"healthcare_eq",
+    "EW":"healthcare_eq","SYK":"healthcare_eq","TMO":"healthcare_eq",
     "LLY":"pharma","MRNA":"pharma","REGN":"pharma","BMY":"pharma","PFE":"pharma",
-    "JNJ":"pharma","ABBV":"pharma","MRK":"pharma","AZN":"pharma","NVO":"pharma",
+    "UNH":"generic","JNJ":"generic","MRK":"generic","ABBV":"generic",
+    # Energy
+    "XOM":"energy_infra","CVX":"energy_infra","COP":"energy_infra","SLB":"energy_infra",
+    "HAL":"energy_infra","BKR":"energy_infra","OXY":"energy_infra","DVN":"energy_infra","EOG":"energy_infra",
+    "KMI":"energy_infra","WMB":"energy_infra","OKE":"energy_infra","XLE":"energy_infra",
+    # Materials / Mining
+    "FCX":"generic","NEM":"precious_metals","GOLD":"precious_metals","CAT":"generic","DE":"generic",
+    "GE":"generic","BA":"generic","UNP":"generic","CSX":"generic","NSC":"generic",
     # Defense
-    "LMT":"defense","RTX":"defense","NOC":"defense","GD":"defense","KTOS":"defense","HII":"defense","LDOS":"defense","BAH":"defense",
-    "AXON":"defense","PLTR":"defense","SAIC":"defense","BWXT":"defense",
-    # Utilities
+    "LMT":"defense","NOC":"defense","RTX":"defense","GD":"defense","KTOS":"defense",
+    "HII":"defense","LDOS":"defense","BAH":"defense","CACI":"defense",
+    # Utilities & Water
     "NEE":"utilities","DUK":"utilities","D":"utilities","SO":"utilities","XLU":"utilities",
-    "AEP":"utilities","EXC":"utilities","SRE":"utilities","PEG":"utilities","ED":"utilities",
-    # Water
     "AWK":"water","WTRG":"water","CWT":"water",
-    # Precious Metals
-    "GLD":"precious_metals","GC=F":"precious_metals","SLV":"precious_metals","SI=F":"precious_metals","PPLT":"precious_metals","GFI":"precious_metals","NEM":"precious_metals",
-    "AEM":"precious_metals","WPM":"precious_metals","FNV":"precious_metals","RGLD":"precious_metals",
-    # Energy / Oil
-    "XLE":"energy_infra","CL=F":"energy_infra","BZ=F":"energy_infra","XOM":"energy_infra","CVX":"energy_infra","COP":"energy_infra","SLB":"energy_infra",
-    "OXY":"energy_infra","MPC":"energy_infra","VLO":"energy_infra","PSX":"energy_infra","KMI":"energy_infra",
     # Uranium
     "URA":"uranium","CCJ":"uranium","NXE":"uranium","UUUU":"uranium",
-    "LEU":"uranium","DNN":"uranium","URG":"uranium",
-    # Staples / Consumer Defensive
-    "XLP":"staples","PG":"staples","KO":"staples","PEP":"staples","WMT":"staples","COST":"staples",
-    "PM":"staples","MO":"staples","GIS":"staples","K":"staples","HSY":"staples","MDLZ":"staples",
-    # Transformer / Switchgear infrastructure (Screenshot 3 category)
-    "HUBB":"transformer_infra","NVT":"transformer_infra","AYI":"transformer_infra",
-    "AMETEK":"transformer_infra","ROP":"transformer_infra","ROPER":"transformer_infra",
-    "ACNB":"transformer_infra","VRT":"transformer_infra",  # Vertiv = data center power
-    # Crypto TAO and related
+    # Consumer Staples & Discretionary
+    "WMT":"staples","COST":"staples","PG":"staples","KO":"staples","PEP":"staples",
+    "MCD":"staples","MDLZ":"staples","PM":"staples","MO":"staples","GIS":"staples","K":"staples",
+    "UBER":"generic","BKNG":"generic","CMG":"generic","HD":"generic","LOW":"generic",
+    "TGT":"generic","NKE":"generic","DIS":"generic","ROST":"generic","TJX":"generic",
+    "LEN":"generic","DHI":"generic","PHM":"generic","ETSY":"generic",
+    # Precious Metals
+    "GLD":"precious_metals","GC=F":"precious_metals","SLV":"precious_metals","SI=F":"precious_metals",
+    # Energy Commodities
+    "CL=F":"energy_infra","BZ=F":"energy_infra","NG=F":"energy_infra","USO":"energy_infra",
+    # Benchmarks
+    "SPY":"generic","QQQ":"generic","IWM":"generic","TLT":"generic","DIA":"generic",
+    "VTV":"generic","VUG":"generic","RSP":"generic","MTUM":"generic","QUAL":"generic",
+    "USMV":"generic","HDV":"generic","EEM":"generic","HYG":"generic","LQD":"generic",
+    # Crypto instruments
     "TAO22974-USD":"depin_ai","RNDR-USD":"depin_ai","FET-USD":"depin_ai",
     "OCEAN-USD":"depin_ai","GRT6719-USD":"depin_ai","HNT-USD":"depin_ai",
-    # Indices / Generic
-    "SPY":"generic","QQQ":"generic","IWM":"generic","TLT":"generic","DIA":"generic","VTV":"generic","VUG":"generic",
-    "RSP":"generic","MTUM":"generic","QUAL":"generic","SIZE":"generic","USMV":"generic","HDV":"generic",
+    "MSTR":"generic","IBIT":"generic","FBTC":"generic","ETHA":"generic",
 }
 
 # ── Market Classification for Bottleneck Multi-Asset ─────────────────────────

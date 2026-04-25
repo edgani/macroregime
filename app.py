@@ -95,10 +95,10 @@ with st.sidebar:
     st.markdown("*Hedgeye GIP · v13*")
     st.divider()
     page = st.radio("", [
-        "🏠 Dashboard","📈 GIP Regime","🎯 Risk Ranges",
+        "🏠 Dashboard","📈 GIP Regime","⏱️ Timing","🎯 Risk Ranges",
         "🌍 Global Quad","📊 US Stocks",
         "💱 Forex","🛢 Commodities","₿ Crypto",
-        "🇮🇩 IHSG","🔍 Bottleneck","📖 Narratives","🔮 Scenarios",
+        "🇮🇩 IHSG","🔍 Bottleneck","📖 Narratives","🏥 Health","🔮 Scenarios",
     ], label_visibility="collapsed")
     st.divider()
     from data.loader import snapshot_age_str, load_snapshot
@@ -142,7 +142,10 @@ global_ = snap.get("global",{})
 rr = snap.get("risk_ranges",{})
 scen = snap.get("scenarios",{})
 narr = snap.get("narratives",{})
-disc = snap.get("discovery",{})
+disc       = snap.get("discovery",{})
+transition = snap.get("transition",None)
+health     = snap.get("health",{})
+analogs    = snap.get("analogs",{})
 btk = snap.get("bottleneck",{})
 pb_data = snap.get("playbook",{})
 prices = snap.get("prices",{})
@@ -172,6 +175,18 @@ if page=="🏠 Dashboard":
 <div style="font-size:12px;color:#E8ECF0">{gip.operating_regime}</div>
 <div style="font-size:11px;color:#9CA3AF;margin-top:8px">Flip Risk: {flip:.0%}</div>
 </div>""",unsafe_allow_html=True)
+
+    # ── Front-Run Banner ─────────────────────────────────────────────────
+    if transition:
+        fw = transition.front_run_window
+        fr = transition.front_run_rationale
+        fw_color = {"now":"#EF4444","1-2w":"#F59E0B","3-6w":"#6366F1","not yet":"#374151"}.get(fw,"#374151")
+        fw_icon  = {"now":"🚨","1-2w":"⚡","3-6w":"👀","not yet":"🛑"}.get(fw,"🛑")
+        if fw != "not yet":
+            st.markdown(f"""<div style="background:{fw_color}22;border:1.5px solid {fw_color};border-radius:8px;padding:12px 18px;margin:8px 0">
+<span style="font-weight:700;color:{fw_color}">{fw_icon} FRONT-RUN WINDOW: {fw.upper()}</span>
+<span style="font-size:12px;color:#E8ECF0;margin-left:12px">{fr}</span>
+</div>""", unsafe_allow_html=True)
 
     # ── Compact Quad Transition Probabilities (3-panel: Structural / Monthly / Global)
     if gip:
@@ -311,6 +326,94 @@ if page=="🏠 Dashboard":
 <span style="font-size:12px;color:#9CA3AF">🔮 Base: <b style="color:#10B981">{bc.name}</b> — {bc.headline[:60]}...</span>
 <span style="font-size:11px;color:#6B7280">→ See <b>Scenarios</b> tab for full action plan</span>
 </div>""", unsafe_allow_html=True)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TIMING
+# ══════════════════════════════════════════════════════════════════════════════
+elif page=="⏱️ Timing":
+    st.markdown("# ⏱️ Timing — Next Quad + Front-Run Window")
+    st.caption("When is the next regime shift? What early warning signals are firing? How to front-run before the market confirms.")
+
+    if not transition:
+        st.warning("Transition engine data not available. Refresh."); st.stop()
+
+    # Front-run status
+    fw = transition.front_run_window
+    fr = transition.front_run_rationale
+    fw_colors = {"now":"#EF4444","1-2w":"#F59E0B","3-6w":"#6366F1","not yet":"#374151"}
+    fw_labels = {"now":"🚨 ACT NOW","1-2w":"⚡ POSITION 1-2 WEEKS","3-6w":"👀 WATCH 3-6 WEEKS","not yet":"🛑 NO SIGNAL YET"}
+    fc = fw_colors.get(fw,"#374151")
+    st.markdown(f"""<div style="background:{fc}22;border:2px solid {fc};border-radius:10px;padding:16px 20px;margin-bottom:16px">
+<div style="font-size:18px;font-weight:700;color:{fc}">{fw_labels.get(fw,"")}</div>
+<div style="font-size:13px;color:#E8ECF0;margin-top:6px">{fr}</div>
+</div>""", unsafe_allow_html=True)
+
+    # Transition paths
+    st.markdown("### 📊 Transition Paths — Probability + Timing")
+    paths = transition.transition_paths
+    if paths:
+        rows = []
+        for p in paths:
+            ew_pct = f"{p.early_warning_score:.0%}"
+            rows.append({
+                "Path": p.from_quad+"→"+p.to_quad,
+                "P(transition)": f"{p.probability:.0%}",
+                "Timeframe": f"~{p.timeframe_weeks}w",
+                "EW Score": ew_pct,
+                "Confidence": f"{p.confidence:.0%}",
+                "Most likely asset": list(p.asset_implications.values())[0][:40] if p.asset_implications else "—",
+            })
+        import pandas as pd
+        st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
+
+    # Per-path early warning detail
+    for p in paths[:3]:
+        path_c = QC.get(p.to_quad,"#9CA3AF")
+        ew_frac = f"{int(p.early_warning_score*100)}%"
+        with st.expander(f"{p.from_quad}→{p.to_quad} — P={p.probability:.0%} · EW={ew_frac} · ~{p.timeframe_weeks}w", expanded=(p.probability==paths[0].probability)):
+            col_l,col_r = st.columns(2)
+            with col_l:
+                st.markdown(f"**Asset Implications:**")
+                for mkt, impl in p.asset_implications.items():
+                    mkt_c = "#10B981" if "bullish" in impl.lower() else "#EF4444" if "bearish" in impl.lower() else "#9CA3AF"
+                    st.markdown(f'<span style="color:#9CA3AF">{mkt.upper()}:</span> <span style="color:{mkt_c}">{impl}</span>', unsafe_allow_html=True)
+            with col_r:
+                st.markdown("**✅ Confirmation triggers:**")
+                for t in p.confirmation_needed: st.markdown(f"• {t}")
+                st.markdown("**🚫 Invalidators:**")
+                for t in p.invalidators: st.markdown(f"• {t}")
+
+    # Early Warning Signals checklist
+    ew_sigs = transition.early_warning_signals
+    if ew_sigs:
+        st.markdown("---")
+        st.markdown("### 🔔 Early Warning Signals")
+        st.caption("1.0 = signal firing, 0.0 = not yet. Watch for clusters turning ON.")
+        import pandas as pd
+        ew_rows = [{"Signal": k.replace("_"," ").title(), "Firing": "✅ YES" if v>=0.5 else "⬜ Not yet", "Score": f"{v:.0f}"} for k,v in sorted(ew_sigs.items(), key=lambda x: x[1], reverse=True)]
+        df_ew = pd.DataFrame(ew_rows)
+        st.dataframe(df_ew, hide_index=True, use_container_width=True, height=300)
+
+        firing_count = sum(1 for v in ew_sigs.values() if v >= 0.5)
+        total = len(ew_sigs)
+        pct = firing_count/total if total else 0
+        st.progress(pct, text=f"Early warning: {firing_count}/{total} signals firing ({pct:.0%})")
+
+    # Historical Analogs
+    if analogs and analogs.get("top_analogs"):
+        st.markdown("---")
+        st.markdown("### 📚 Historical Analogs")
+        st.caption(analogs.get("composite_note",""))
+        for a in analogs["top_analogs"]:
+            sim = a.get("similarity",0)
+            sim_c = "#10B981" if sim>0.6 else "#F59E0B" if sim>0.4 else "#6B7280"
+            with st.expander(f"**{a['label']}** — Similarity: {sim:.0%}", expanded=(analogs["top_analogs"].index(a)==0)):
+                cc = st.columns(3)
+                cc[0].markdown(f"**1M:** {a.get('path_1m','')}")
+                cc[1].markdown(f"**3M:** {a.get('path_3m','')}")
+                cc[2].markdown(f"**6M:** {a.get('path_6m','')}")
+                st.markdown(f"**Next bias:** {a.get('next_bias','')}")
+                st.markdown(f"**Impacts:** " + " | ".join([f"{k.upper()}={v}" for k,v in a.get("impacts",{}).items()]))
 
 # ══════════════════════════════════════════════════════════════════════════════
 # GIP REGIME
@@ -1215,6 +1318,110 @@ The system calls Claude API with current regime + top/bottom movers and asks:
                 )
             st.session_state.snap["discovery"] = new_disc
             st.rerun()
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MARKET HEALTH
+# ══════════════════════════════════════════════════════════════════════════════
+elif page=="🏥 Health":
+    st.markdown("# 🏥 Market Health — VIX · Crash Meter · USD Correlation · Checklists")
+    st.caption("Merged: VIX regime, crash risk, USD mythic variable, and per-market entry checklists.")
+    if not health: st.warning("Health data not available. Refresh."); st.stop()
+
+    vix_b = health.get("vix_bucket",{}); crash = health.get("crash",{}); roff = health.get("risk_off",{}); usd_c = health.get("usd_corr",{})
+
+    # Top status row
+    s1,s2,s3,s4 = st.columns(4)
+    bucket = vix_b.get("bucket","Unknown")
+    bc = {"Investable":"#10B981","Chop":"#F59E0B","Defensive":"#EF4444"}.get(bucket,"#6B7280")
+    s1.markdown(f'''<div style="background:#111827;border:1px solid {bc};border-radius:8px;padding:12px;text-align:center">
+<div style="font-size:10px;color:#9CA3AF">VIX BUCKET</div>
+<div style="font-size:22px;font-weight:700;color:{bc}">{bucket}</div>
+<div style="font-size:11px;color:#9CA3AF;margin-top:4px">VIX: {vix_b.get("vix_last",0):.0f}</div>
+</div>''', unsafe_allow_html=True)
+
+    crash_score = crash.get("score",0); crash_state = crash.get("state","calm")
+    cc2 = {"elevated":"#EF4444","watch":"#F59E0B","calm":"#10B981"}.get(crash_state,"#6B7280")
+    s2.markdown(f'''<div style="background:#111827;border:1px solid #1F2B3D;border-radius:8px;padding:12px;text-align:center">
+<div style="font-size:10px;color:#9CA3AF">CRASH METER</div>
+<div style="font-size:22px;font-weight:700;color:{cc2}">{crash_state.upper()}</div>
+<div style="font-size:11px;color:#9CA3AF;margin-top:4px">Score: {crash_score:.2f}</div>
+</div>''', unsafe_allow_html=True)
+
+    roff_state = roff.get("state","risk_on"); rsc = roff.get("score",0)
+    rc = {"risk_off":"#EF4444","caution":"#F59E0B","risk_on":"#10B981"}.get(roff_state,"#6B7280")
+    s3.markdown(f'''<div style="background:#111827;border:1px solid #1F2B3D;border-radius:8px;padding:12px;text-align:center">
+<div style="font-size:10px;color:#9CA3AF">RISK-OFF</div>
+<div style="font-size:22px;font-weight:700;color:{rc}">{roff_state.upper().replace("_","-")}</div>
+<div style="font-size:11px;color:#9CA3AF;margin-top:4px">Score: {rsc:.2f}</div>
+</div>''', unsafe_allow_html=True)
+
+    mythic = usd_c.get("mythic_active",False)
+    mc = "#EF4444" if mythic else "#6B7280"
+    s4.markdown(f'''<div style="background:#111827;border:1px solid {mc};border-radius:8px;padding:12px;text-align:center">
+<div style="font-size:10px;color:#9CA3AF">USD MYTHIC VAR</div>
+<div style="font-size:22px;font-weight:700;color:{mc}">{"ACTIVE" if mythic else "DORMANT"}</div>
+<div style="font-size:11px;color:#9CA3AF;margin-top:4px">{", ".join(usd_c.get("mythic_assets",[])) or "No convergence"}</div>
+</div>''', unsafe_allow_html=True)
+
+    if mythic and usd_c.get("note"):
+        st.markdown(f'''<div style="background:#2D1B00;border:1px solid #F59E0B;border-radius:8px;padding:10px 16px;margin:8px 0">
+⚡ <b style="color:#F59E0B">USD Mythic Variable:</b> <span style="color:#E8ECF0;font-size:12px">{usd_c["note"]}</span>
+</div>''', unsafe_allow_html=True)
+
+    if crash.get("reasons"):
+        st.markdown(f'''<div style="background:#1A0A0A;border-left:3px solid {cc2};border-radius:6px;padding:10px 14px;margin:6px 0">
+<b style="color:{cc2}">Risk factors:</b> {" · ".join(crash["reasons"][:4])}
+</div>''', unsafe_allow_html=True)
+
+    # USD Correlations heatmap
+    corrs = usd_c.get("correlations",{})
+    if corrs:
+        st.markdown("---")
+        st.markdown("### 📈 USD Correlation Matrix (15-day)")
+        import plotly.graph_objects as go
+        labels = list(corrs.keys()); values = list(corrs.values())
+        colors = ["#EF4444" if v<-0.80 else "#F59E0B" if v<-0.50 else "#10B981" if v>0.50 else "#6B7280" for v in values]
+        fig = go.Figure(go.Bar(x=labels, y=values, marker_color=colors,
+            text=[f"{v:.2f}" for v in values], textposition="outside", textfont=dict(size=11)))
+        fig.update_layout(height=240, margin=dict(t=20,b=10,l=0,r=0),
+            paper_bgcolor="#111827", plot_bgcolor="#111827",
+            font=dict(color="#E8ECF0", family="JetBrains Mono"),
+            yaxis=dict(range=[-1.1,1.1], showgrid=True, gridcolor="#1F2B3D"),
+            xaxis=dict(showgrid=False), showlegend=False,
+            shapes=[dict(type="line",x0=-0.5,x1=len(labels)-0.5,y0=-0.85,y1=-0.85,line=dict(color="#EF4444",width=1,dash="dash")),
+                    dict(type="line",x0=-0.5,x1=len(labels)-0.5,y0=0,y1=0,line=dict(color="#374151",width=1))])
+        fig.add_annotation(x=len(labels)-1, y=-0.85, text="-0.85 threshold", showarrow=False, font=dict(size=9,color="#EF4444"), yshift=8)
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar":False})
+
+    # Checklists
+    st.markdown("---")
+    st.markdown("### ✅ Market Entry Checklists")
+    st.caption("Green = supporting entry. Yellow = mixed. Red = wait.")
+    
+    def render_checklist(items, title, icon=""):
+        if not items: return
+        import pandas as pd
+        rows = []
+        for item in items:
+            tone_s = {"good":"🟢","warn":"🟡","bad":"🔴"}.get(item.get("tone","warn"),"🟡")
+            rows.append({"": tone_s, "Signal":item["label"], "State":item["state"], "Score":f"{item['score']:.0%}"})
+        good_count = sum(1 for x in items if x.get("tone")=="good")
+        total = len(items)
+        bar_c = "#10B981" if good_count/total>0.6 else "#F59E0B" if good_count/total>0.4 else "#EF4444"
+        with st.expander(f"{icon} **{title}** — {good_count}/{total} green", expanded=True):
+            st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True, height=min(280,35+35*len(items)))
+            st.progress(good_count/total, text=f"{good_count}/{total} signals green")
+
+    chk = health.get("checklists",{})
+    t1,t2,t3 = st.tabs(["🌍 Global","🇺🇸 US","🇮🇩 IHSG"])
+    with t1: render_checklist(chk.get("global_",[]), "Global Market Entry", "🌍")
+    with t2: render_checklist(chk.get("us",[]), "US Equities", "🇺🇸")
+    with t3: render_checklist(chk.get("ihsg",[]), "IHSG / Indonesia", "🇮🇩")
+    
+    t4,t5,t6 = st.tabs(["💱 Forex","🛢 Commodities","₿ Crypto"])
+    with t4: render_checklist(chk.get("fx",[]), "Forex", "💱")
+    with t5: render_checklist(chk.get("commodities",[]), "Commodities", "🛢")
+    with t6: render_checklist(chk.get("crypto",[]), "Crypto", "₿")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SCENARIOS

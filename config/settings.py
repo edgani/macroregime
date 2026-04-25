@@ -148,30 +148,59 @@ COMMODITIES: dict = {
 
 # ── Full Crypto Universe ──────────────────────────────────────────────────────
 CRYPTO: dict = {
+    # Majors
     "BTC-USD":"Bitcoin","ETH-USD":"Ethereum","BNB-USD":"BNB","SOL-USD":"Solana",
     "XRP-USD":"Ripple","ADA-USD":"Cardano","AVAX-USD":"Avalanche",
     "DOT-USD":"Polkadot","MATIC-USD":"Polygon","LINK-USD":"Chainlink",
+    # L1/L2 Ecosystems
     "DOGE-USD":"Dogecoin","LTC-USD":"Litecoin","ATOM-USD":"Cosmos",
-    "NEAR-USD":"NEAR Protocol","APT-USD":"Aptos","ARB-USD":"Arbitrum",
-    "OP-USD":"Optimism","SUI-USD":"Sui","INJ-USD":"Injective",
-    "IBIT":"iShares Bitcoin ETF","FBTC":"Fidelity Bitcoin ETF",
-    "ETHA":"iShares Ethereum ETF",
+    "NEAR-USD":"NEAR","APT-USD":"Aptos","ARB-USD":"Arbitrum",
+    "OP-USD":"Optimism","SUI20947-USD":"Sui","INJ-USD":"Injective","SEI-USD":"SEI",
+    # DeFi
+    "AAVE-USD":"Aave","UNI7083-USD":"Uniswap","MKR-USD":"Maker",
+    "LDO-USD":"Lido DAO","CRV-USD":"Curve","COMP5692-USD":"Compound",
+    # AI / Data / DePIN
+    "FET-USD":"Fetch.ai","TAO22974-USD":"TAO/Bittensor","RNDR-USD":"Render",
+    "GRT6719-USD":"The Graph","OCEAN-USD":"Ocean Protocol","HNT-USD":"Helium",
+    # RWA / Infrastructure
+    "ONDO-USD":"Ondo Finance","POLYX-USD":"Polymesh",
+    "TON11419-USD":"Toncoin","TIA22861-USD":"Celestia","PYTH-USD":"Pyth",
+    # High Beta / Meme
+    "WIF-USD":"dogwifhat","PEPE24478-USD":"Pepe","BONK-USD":"Bonk",
+    "FLOKI-USD":"Floki","BRETT-USD":"Brett",
+    # US-listed ETFs & Proxies
+    "IBIT":"iShares Bitcoin ETF","FBTC":"Fidelity Bitcoin ETF","ETHA":"iShares Ethereum ETF",
+    "MSTR":"MicroStrategy",
 }
 
 # ── IHSG / Indonesia ──────────────────────────────────────────────────────────
 IHSG_UNIVERSE: dict = {
-    "^JKSE":"IHSG Index","EIDO":"Indonesia ETF (USD listed)",
-    "BBCA.JK":"BCA Bank","BBRI.JK":"BRI Bank","BMRI.JK":"Mandiri Bank",
-    "TLKM.JK":"Telkom","ASII.JK":"Astra International",
-    "UNVR.JK":"Unilever Indonesia","ICBP.JK":"Indofood CBP",
-    "INDF.JK":"Indofood","KLBF.JK":"Kalbe Farma",
-    "ITMG.JK":"Indo Tambangraya Megah","ADRO.JK":"Adaro Energy",
-    "PTBA.JK":"Bukit Asam","HRUM.JK":"Harum Energy",
-    "INCO.JK":"Vale Indonesia","MDKA.JK":"Merdeka Copper Gold",
-    "ANTM.JK":"Aneka Tambang","NCKL.JK":"Trimegah Bangun Persada",
-    "LSIP.JK":"PP London Sumatra","AALI.JK":"Astra Agro","SSMS.JK":"Sawit Sumbermas",
-    "BSDE.JK":"BSD City","CTRA.JK":"Ciputra","PWON.JK":"Pakuwon Jati",
-    "MYOR.JK":"Mayora Indah","HMSP.JK":"HM Sampoerna",
+    "^JKSE":"IHSG Index","EIDO":"Indonesia ETF (USD)",
+    # Banks (heavyweights)
+    "BBCA.JK":"BCA","BBRI.JK":"BRI","BMRI.JK":"Mandiri","BBNI.JK":"BNI",
+    "BRIS.JK":"BSI","BBTN.JK":"BTN","BNGA.JK":"CIMB Niaga","MEGA.JK":"Bank Mega","NISP.JK":"OCBC",
+    # Coal / Energy
+    "ADRO.JK":"Adaro","PTBA.JK":"Bukit Asam","ITMG.JK":"ITMG","HRUM.JK":"Harum",
+    "INDY.JK":"Indika","AADI.JK":"Aadi","BUMI.JK":"Bumi Resources",
+    "MEDC.JK":"Medco","PGEO.JK":"Pertamina Geothermal","AKRA.JK":"AKR","UNTR.JK":"United Tractors",
+    # Metals / Mining
+    "INCO.JK":"Vale Indonesia","MDKA.JK":"Merdeka","ANTM.JK":"Antam",
+    "TINS.JK":"Timah","BRMS.JK":"Bumi Resources Min","NCKL.JK":"Trimegah Bangun",
+    # Telco / Infrastructure
+    "TLKM.JK":"Telkom","EXCL.JK":"XL Axiata","ISAT.JK":"Indosat",
+    "JSMR.JK":"Jasa Marga","PGAS.JK":"PGN","WIKA.JK":"Wijaya Karya","PTPP.JK":"PP Persero",
+    # Consumer Defensive
+    "ICBP.JK":"Indofood CBP","INDF.JK":"Indofood","MYOR.JK":"Mayora",
+    "KLBF.JK":"Kalbe","SIDO.JK":"Sido Muncul","ULTJ.JK":"Ultra Jaya","CMRY.JK":"Cisarua",
+    # Consumer Cyclical
+    "AMRT.JK":"Alfamart","ACES.JK":"Ace Hardware","MAPI.JK":"Mitra Adiperkasa",
+    "ERAA.JK":"Erajaya","ASII.JK":"Astra","CPIN.JK":"Charoen Pokphand","JPFA.JK":"Japfa",
+    # Property / Healthcare
+    "CTRA.JK":"Ciputra","BSDE.JK":"BSD City","PWON.JK":"Pakuwon","SMRA.JK":"Summarecon",
+    "HEAL.JK":"Hermina","MIKA.JK":"Mika","SILO.JK":"Siloam",
+    # CPO / Agri
+    "LSIP.JK":"London Sumatra","AALI.JK":"Astra Agro","SSMS.JK":"Sawit Sumbermas",
+    "INKP.JK":"Indah Kiat","TKIM.JK":"Tjiwi Kimia","ESSA.JK":"Surya Esa",
 }
 
 # ── Bonds ─────────────────────────────────────────────────────────────────────
@@ -432,3 +461,51 @@ EM_RECOVERY_SIGNALS: dict = {
         "confidence": 0.70,
     },
 }
+
+# ── Sector Buckets (for breadth scoring) ─────────────────────────────────────
+US_BUCKETS: dict = {
+    "Growth":        ["QQQ","VUG","AAPL","MSFT","NVDA","AMZN","META","GOOGL","NFLX","NOW","CRM","SNOW"],
+    "Quality":       ["QUAL","LLY","UNH","COST","WMT","PG","KO","PEP","V","MA"],
+    "Defensives":    ["XLP","XLU","XLV","WMT","KO","PEP","PG","JNJ","MRK","ABBV"],
+    "Semis":         ["NVDA","AMD","AVGO","AMAT","MU","QCOM","TXN","INTC","KLAC","LRCX"],
+    "Software_Cyber":["MSFT","ORCL","CRM","NOW","ADBE","PANW","SNOW","PLTR"],
+    "Energy":        ["XLE","XOM","CVX","COP","SLB","HAL","BKR","OXY","DVN","EOG"],
+    "Industrials":   ["XLI","CAT","DE","GE","LMT","NOC","RTX","UNP","CSX","NSC","BA"],
+    "Financials":    ["XLF","JPM","BAC","GS","MS","BLK","V","MA","SCHW"],
+    "AI_Infra":      ["NVDA","ETN","VST","VRT","GEV","LITE","COHR","ON"],
+    "Brokers_Alt":   ["HOOD","COIN","SCHW","MS","GS","BLK","KKR","BX"],
+}
+IHSG_BUCKETS: dict = {
+    "Banks":          ["BBCA.JK","BBRI.JK","BMRI.JK","BBNI.JK","BRIS.JK","BBTN.JK"],
+    "Coal_Energy":    ["AADI.JK","ADRO.JK","PTBA.JK","ITMG.JK","HRUM.JK","INDY.JK","BUMI.JK","MEDC.JK","PGEO.JK","AKRA.JK"],
+    "Metals":         ["ANTM.JK","INCO.JK","MDKA.JK","TINS.JK","BRMS.JK"],
+    "Telco_Infra":    ["TLKM.JK","EXCL.JK","ISAT.JK","JSMR.JK","PGAS.JK","UNTR.JK"],
+    "Consumer_Def":   ["ICBP.JK","INDF.JK","MYOR.JK","KLBF.JK","SIDO.JK","ULTJ.JK"],
+    "Consumer_Cyc":   ["AMRT.JK","ACES.JK","MAPI.JK","ERAA.JK","ASII.JK","CPIN.JK","JPFA.JK"],
+    "Property_Health":["CTRA.JK","BSDE.JK","PWON.JK","SMRA.JK","HEAL.JK","MIKA.JK","SILO.JK"],
+    "CPO_Agri":       ["AALI.JK","LSIP.JK","SSMS.JK","INKP.JK","TKIM.JK","ESSA.JK"],
+}
+FX_BUCKETS: dict = {
+    "Majors":    ["EURUSD=X","GBPUSD=X","AUDUSD=X","NZDUSD=X","USDJPY=X","USDCHF=X","USDCAD=X"],
+    "JPY_Cross": ["EURJPY=X","GBPJPY=X","AUDJPY=X"],
+    "EM_FX":     ["USDMXN=X","USDBRL=X","USDTRY=X","USDZAR=X","USDIDR=X","USDINR=X","USDSGD=X"],
+    "Commodity_FX": ["AUDUSD=X","USDCAD=X","USDNOK=X"],
+}
+COMMODITY_BUCKETS: dict = {
+    "Precious":    ["GC=F","SI=F","PL=F","PA=F","GLD","SLV"],
+    "Energy":      ["CL=F","BZ=F","NG=F","RB=F","HO=F","USO"],
+    "Industrial":  ["HG=F","ALI=F","CPER"],
+    "Agri_Softs":  ["ZC=F","ZW=F","ZS=F","KC=F","SB=F","CT=F","CC=F","DBA","WEAT","CORN"],
+    "Nuclear":     ["URA","CCJ","NXE"],
+}
+CRYPTO_BUCKETS: dict = {
+    "Majors":    ["BTC-USD","ETH-USD","SOL-USD","BNB-USD","XRP-USD"],
+    "L1_L2":     ["ADA-USD","AVAX-USD","ATOM-USD","NEAR-USD","APT-USD","ARB-USD","OP-USD","MATIC-USD","SUI20947-USD"],
+    "DeFi":      ["AAVE-USD","UNI7083-USD","MKR-USD","LDO-USD","CRV-USD","COMP5692-USD"],
+    "AI_Data":   ["FET-USD","TAO22974-USD","RNDR-USD","GRT6719-USD","OCEAN-USD"],
+    "RWA_Infra": ["ONDO-USD","POLYX-USD","LINK-USD","TON11419-USD","INJ-USD","SEI-USD","TIA22861-USD","PYTH-USD"],
+    "High_Beta": ["DOGE-USD","WIF-USD","PEPE24478-USD","BONK-USD","FLOKI-USD"],
+    "ETFs":      ["IBIT","FBTC","ETHA"],
+}
+# MAG7 for concentration risk
+MAG7 = ["AAPL","MSFT","NVDA","AMZN","META","GOOGL","TSLA"]

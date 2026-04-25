@@ -1328,7 +1328,70 @@ elif page=="🏥 Health":
     if not health: st.warning("Health data not available. Refresh."); st.stop()
 
     vix_b = health.get("vix_bucket",{}); crash = health.get("crash",{}); roff = health.get("risk_off",{}); usd_c = health.get("usd_corr",{})
+    mh = health.get("market_health",{})
 
+    # ── HEDGEYE MARKET HEALTH (Breadth Concept) ─────────────────────────────
+    st.markdown("### 🏥 Market Breadth — Hedgeye Healthy Market Definition")
+    verdict = mh.get("verdict","—"); vs = mh.get("score",0)
+    vc = {"Healthy":"#10B981","Improving":"#60A5FA","Narrow":"#F59E0B","Fragile":"#EF4444"}.get(verdict,"#6B7280")
+    st.markdown(f'''<div style="background:#111827;border:2px solid {vc};border-radius:10px;padding:14px 20px;margin-bottom:12px">
+<div style="display:flex;justify-content:space-between;align-items:center">
+  <div>
+    <span style="font-size:20px;font-weight:700;color:{vc}">{verdict}</span>
+    <span style="font-size:12px;color:#9CA3AF;margin-left:12px">Score: {vs:.2f}</span>
+  </div>
+  <div style="font-size:11px;color:#9CA3AF;text-align:right">{mh.get("notes",[""])[0]}</div>
+</div>
+<div style="margin-top:8px;font-size:11px;color:#6B7280">
+<b>✅ Confirm:</b> {mh.get("what_confirms","")} &nbsp;|&nbsp; <b>❌ Invalidate:</b> {mh.get("what_invalidates","")}
+</div>
+</div>''', unsafe_allow_html=True)
+    import plotly.graph_objects as go
+    mb1,mb2,mb3,mb4 = st.columns(4)
+    sectors_pos = mh.get("positive_sectors_1m",0); sectors_tot = mh.get("total_buckets",10)
+    sr = mh.get("sector_support_ratio",0); sec_c = "#10B981" if sr>=0.55 else "#F59E0B" if sr>=0.40 else "#EF4444"
+    mb1.markdown(f'''<div style="background:#111827;border:1px solid {sec_c};border-radius:8px;padding:10px;text-align:center">
+<div style="font-size:10px;color:#9CA3AF">SECTOR BREADTH</div>
+<div style="font-size:20px;font-weight:700;color:{sec_c}">{sectors_pos}/{sectors_tot}</div>
+<div style="font-size:10px;color:#9CA3AF">sectors positive 1M</div>
+</div>''', unsafe_allow_html=True)
+    eqw_h = mh.get("eqw_health",0.5); eqw_rel = mh.get("eqw_rel_1m",0)
+    ec = "#10B981" if eqw_h>=0.55 else "#F59E0B" if eqw_h>=0.45 else "#EF4444"
+    mb2.markdown(f'''<div style="background:#111827;border:1px solid #1F2B3D;border-radius:8px;padding:10px;text-align:center">
+<div style="font-size:10px;color:#9CA3AF">EQUAL-WEIGHT (RSP)</div>
+<div style="font-size:20px;font-weight:700;color:{ec}">{"✅" if eqw_h>=0.55 else "⚠️" if eqw_h>=0.45 else "❌"}</div>
+<div style="font-size:10px;color:#9CA3AF">RSP vs SPY: {eqw_rel:+.1%}</div>
+</div>''', unsafe_allow_html=True)
+    sc_h = mh.get("smallcap_health",0.5); sc_rel = mh.get("iwm_rel_1m",0)
+    scc = "#10B981" if sc_h>=0.55 else "#F59E0B" if sc_h>=0.45 else "#EF4444"
+    mb3.markdown(f'''<div style="background:#111827;border:1px solid #1F2B3D;border-radius:8px;padding:10px;text-align:center">
+<div style="font-size:10px;color:#9CA3AF">SMALL CAP (IWM)</div>
+<div style="font-size:20px;font-weight:700;color:{scc}">{"✅" if sc_h>=0.55 else "⚠️" if sc_h>=0.45 else "❌"}</div>
+<div style="font-size:10px;color:#9CA3AF">IWM vs SPY: {sc_rel:+.1%}</div>
+</div>''', unsafe_allow_html=True)
+    nl = mh.get("narrow_leadership",0.5); nlc = "#EF4444" if nl>=0.65 else "#F59E0B" if nl>=0.50 else "#10B981"
+    mb4.markdown(f'''<div style="background:#111827;border:1px solid #1F2B3D;border-radius:8px;padding:10px;text-align:center">
+<div style="font-size:10px;color:#9CA3AF">MAG7 CONCENTRATION</div>
+<div style="font-size:20px;font-weight:700;color:{nlc}">{"HIGH ⚠️" if nl>=0.65 else "MED" if nl>=0.50 else "LOW ✅"}</div>
+<div style="font-size:10px;color:#9CA3AF">Narrow={nl:.0%}</div>
+</div>''', unsafe_allow_html=True)
+
+    # Sector bar chart
+    sec_scores = mh.get("sector_scores",{})
+    if sec_scores:
+        labels = list(sec_scores.keys()); vals_1m = [v["1m"] for v in sec_scores.values()]
+        colors = ["#10B981" if v>0.001 else "#EF4444" for v in vals_1m]
+        fig = go.Figure(go.Bar(x=labels, y=[v*100 for v in vals_1m], marker_color=colors,
+            text=[f"{v:.1%}" for v in vals_1m], textposition="outside", textfont=dict(size=10)))
+        fig.update_layout(height=200, margin=dict(t=20,b=10,l=0,r=0),
+            paper_bgcolor="#111827", plot_bgcolor="#111827", font=dict(color="#E8ECF0",size=10),
+            yaxis=dict(showgrid=True,gridcolor="#1F2B3D",ticksuffix="%"),
+            xaxis=dict(showgrid=False), showlegend=False,
+            title=dict(text="Sector 1M Returns — Breadth View", font=dict(size=11,color="#9CA3AF")),
+            shapes=[dict(type="line",x0=-0.5,x1=len(labels)-0.5,y0=0,y1=0,line=dict(color="#374151",width=1))])
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar":False})
+
+    st.markdown("---")
     # Top status row
     s1,s2,s3,s4 = st.columns(4)
     bucket = vix_b.get("bucket","Unknown")

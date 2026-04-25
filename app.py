@@ -188,48 +188,106 @@ if page=="🏠 Dashboard":
 <span style="font-size:12px;color:#E8ECF0;margin-left:12px">{fr}</span>
 </div>""", unsafe_allow_html=True)
 
-    # ── Compact Quad Transition Probabilities (3-panel: Structural / Monthly / Global)
+    # ── Quad Transition Probability — REDESIGNED (much clearer) ─────────
     if gip:
         st.markdown("<br>",unsafe_allow_html=True)
         st.markdown("### 📊 Quad Transition Probabilities")
-        
-        def _transition_chart(probs: dict, current_q: str, label: str):
-            """Clear readable transition probability bar chart."""
+
+        QUAD_NAMES = {
+            "Q1":"Goldilocks (Growth↑ Inflation↓)",
+            "Q2":"Reflation (Growth↑ Inflation↑)",
+            "Q3":"Stagflation (Growth↓ Inflation↑)",
+            "Q4":"Deflation (Growth↓ Inflation↓)",
+        }
+        QUAD_WHAT_WINS = {
+            "Q1":"Cyclicals, Tech, Small Caps, Equal-weight",
+            "Q2":"Energy, Materials, Commodity FX, TIPS",
+            "Q3":"Gold, USD, Defensives, Short Duration",
+            "Q4":"Long Duration (TLT), Gold, Defensives",
+        }
+
+        def _transition_panel(probs: dict, current_q: str, horizon_label: str, horizon_desc: str):
+            """Full transition panel: chart + narrative + winner/loser implication."""
+            if not probs: return
+            sorted_p = sorted(probs.items(), key=lambda x: x[1], reverse=True)
+            top_q, top_p = sorted_p[0]
+            
+            # Color header by current quad
+            cur_c = QC.get(current_q,"#9CA3AF")
+            top_c = QC.get(top_q,"#9CA3AF")
+
+            # Header strip
+            st.markdown(f"""<div style="background:#0F172A;border:1px solid #1F2B3D;border-top:3px solid {cur_c};border-radius:8px;padding:10px 14px;margin-bottom:6px">
+<div style="display:flex;justify-content:space-between;align-items:center">
+  <div>
+    <span style="font-size:10px;color:#9CA3AF;letter-spacing:1px;text-transform:uppercase">{horizon_label} — {horizon_desc}</span>
+    <div style="font-size:13px;font-weight:700;color:{cur_c};margin-top:2px">Currently: {current_q} — {QUAD_NAMES.get(current_q,"")}</div>
+  </div>
+  <div style="text-align:right">
+    <span style="font-size:10px;color:#9CA3AF">Most likely → </span>
+    <span style="font-size:15px;font-weight:700;color:{top_c}">{top_q} ({top_p:.0%})</span>
+  </div>
+</div>
+</div>""", unsafe_allow_html=True)
+
+            # Bar chart
             fig = go.Figure()
-            s_sorted = sorted(probs.items(), key=lambda x: x[1], reverse=True)
-            for q,p in sorted(probs.items()):
-                is_top = (q == s_sorted[0][0])
+            for q, p in sorted(probs.items()):
+                is_top = (q == top_q)
                 fig.add_bar(
                     x=[q], y=[p],
                     marker_color=QC.get(q,"#9CA3AF"),
                     marker_line=dict(width=3 if is_top else 0, color="white"),
                     text=[f"<b>{p:.0%}</b>"], textposition="outside",
-                    textfont=dict(size=14, color=QC.get(q,"#E8ECF0")),
+                    textfont=dict(size=13, color=QC.get(q,"#E8ECF0")),
                     name=q,
                 )
             fig.update_layout(
-                showlegend=False, height=220,
-                margin=dict(t=40,b=8,l=4,r=4),
+                showlegend=False, height=180,
+                margin=dict(t=10,b=8,l=4,r=4),
                 paper_bgcolor="#111827", plot_bgcolor="#111827",
                 font=dict(color="#E8ECF0", family="JetBrains Mono"),
-                title=dict(text=f"<b>From {current_q} → Next</b>  <span style='color:#6B7280;font-size:11px'>{label}</span>",
-                    font=dict(size=13, color="#E8ECF0"), x=0),
-                yaxis=dict(range=[0,1.25], tickformat=".0%", showgrid=True,
-                    gridcolor="#1F2B3D", tickfont=dict(size=11), showticklabels=True),
-                xaxis=dict(showgrid=False, tickfont=dict(size=13, color="#E8ECF0")),
-                bargap=0.25,
+                yaxis=dict(range=[0,1.15], tickformat=".0%", showgrid=True,
+                    gridcolor="#1F2B3D", tickfont=dict(size=10), showticklabels=True),
+                xaxis=dict(showgrid=False, tickfont=dict(size=12, color="#E8ECF0")),
+                bargap=0.3,
             )
-            return fig
+            st.plotly_chart(fig, use_container_width=True, config={"displayModeBar":False})
+
+            # Narrative: what it means if top_q materializes
+            if top_q != current_q:
+                action_map = {
+                    ("Q3","Q4"):("Deflation rotation","Inflation cooling → add TLT/duration, gold; reduce energy"),
+                    ("Q3","Q2"):("False dawn / head-fake","Growth stabilizes but inflation stays hot → stay short duration"),
+                    ("Q3","Q1"):("Clean recovery","Both inflation cools AND growth rebounds → max risk-on"),
+                    ("Q4","Q1"):("Goldilocks restart","Fed easing + growth recovery → maximum long positioning"),
+                    ("Q4","Q3"):("Supply shock re-ignition","Oil spike before growth recovers → gold/defense only"),
+                    ("Q1","Q2"):("Reflation beginning","Inflation re-accelerates → add energy/materials, trim bonds"),
+                    ("Q1","Q4"):("Growth fatigue","Late-cycle slowdown → rotate to defensives/quality"),
+                    ("Q2","Q3"):("Stagflation threat","Growth decelerating, inflation sticky → reduce beta"),
+                    ("Q2","Q1"):("Soft landing","Growth holds, inflation cools → remain long cyclicals"),
+                }
+                key = (current_q, top_q)
+                action_title, action_note = action_map.get(key, (f"{current_q}→{top_q} transition", QUAD_WHAT_WINS.get(top_q,"")))
+                st.markdown(f"""<div style="background:#1F2B3D22;border-left:3px solid {top_c};border-radius:4px;padding:8px 12px;margin-top:2px">
+<span style="font-size:11px;font-weight:700;color:{top_c}">IF {top_q} materializes: {action_title}</span>
+<span style="font-size:11px;color:#9CA3AF;margin-left:8px">{action_note}</span>
+</div>""", unsafe_allow_html=True)
+            else:
+                st.markdown(f"""<div style="background:#1F2B3D22;border-left:3px solid {cur_c};border-radius:4px;padding:8px 12px;margin-top:2px">
+<span style="font-size:11px;color:#9CA3AF">📌 Most likely: {current_q} continuation — {QUAD_WHAT_WINS.get(current_q,"")}</span>
+</div>""", unsafe_allow_html=True)
 
         tp1,tp2,tp3 = st.columns(3)
         with tp1:
-            st.plotly_chart(_transition_chart(gip.structural_probs, sq, "Structural — Quarterly"), use_container_width=True, config={"displayModeBar":False})
+            _transition_panel(gip.structural_probs, sq, "STRUCTURAL", "Quarterly Cycle")
         with tp2:
-            st.plotly_chart(_transition_chart(gip.monthly_probs, mq, "Monthly — Weather"), use_container_width=True, config={"displayModeBar":False})
+            _transition_panel(gip.monthly_probs, mq, "MONTHLY", "Weather/Tactical")
         with tp3:
             gprobs = global_.get("global_probs",{})
+            gq_panel = global_.get("dominant_quad", gq)
             if gprobs:
-                st.plotly_chart(_transition_chart(gprobs, gq, "Global — 50 Countries"), use_container_width=True, config={"displayModeBar":False})
+                _transition_panel(gprobs, gq_panel, "GLOBAL", "50 Countries")
 
         # Scenario cards — 2×2 grid, readable size
         scenarios_list = scen.get("scenarios",[])
@@ -1424,6 +1482,44 @@ elif page=="🏥 Health":
 <div style="font-size:10px;color:#9CA3AF">USD MYTHIC VAR</div>
 <div style="font-size:22px;font-weight:700;color:{mc}">{"ACTIVE" if mythic else "DORMANT"}</div>
 <div style="font-size:11px;color:#9CA3AF;margin-top:4px">{", ".join(usd_c.get("mythic_assets",[])) or "No convergence"}</div>
+</div>''', unsafe_allow_html=True)
+
+    # Row 2: F&G + IWM ATH
+    st.markdown("<div style=\"margin-top:8px\"></div>", unsafe_allow_html=True)
+    r2a,r2b,r2c,r2d = st.columns(4)
+    fg = health.get("fear_greed",{})
+    fg_score = fg.get("score",50); fg_label = fg.get("label","?"); fg_src = fg.get("source","proxy")
+    fg_c = "#EF4444" if fg_score<25 else "#F97316" if fg_score<45 else "#9CA3AF" if fg_score<55 else "#60A5FA" if fg_score<75 else "#10B981"
+    r2a.markdown(f'''<div style="background:#111827;border:1px solid #1F2B3D;border-radius:8px;padding:10px;text-align:center">
+<div style="font-size:9px;color:#9CA3AF">CNN FEAR & GREED {"(live)" if fg_src=="cnn_live" else "(proxy)"}</div>
+<div style="font-size:22px;font-weight:700;color:{fg_c}">{fg_score:.0f}</div>
+<div style="font-size:10px;color:{fg_c}">{fg_label}</div>
+</div>''', unsafe_allow_html=True)
+    
+    mh = health.get("market_health",{})
+    iwm_dd = mh.get("iwm_ath_dd"); spy_dd = mh.get("spy_ath_dd")
+    iwm_spread = mh.get("iwm_ath_spread"); corr_level = mh.get("market_correction_level","normal")
+    corr_colors = {"normal":"#10B981","healthy_correction":"#F59E0B","bear_market":"#EF4444","big_crisis":"#DC2626"}
+    cc_label = {"normal":"Normal","healthy_correction":"Healthy Correction (-10%)","bear_market":"Bear Market (-20%)","big_crisis":"Big Crisis (-30%)"}
+    corr_c = corr_colors.get(corr_level,"#9CA3AF")
+    r2b.markdown(f'''<div style="background:#111827;border:1px solid #1F2B3D;border-radius:8px;padding:10px;text-align:center">
+<div style="font-size:9px;color:#9CA3AF">SPY CORRECTION ZONE</div>
+<div style="font-size:13px;font-weight:700;color:{corr_c}">{cc_label.get(corr_level,"Normal")}</div>
+<div style="font-size:10px;color:#9CA3AF">SPY: {spy_dd:.1%} from ATH</div>
+</div>''' if spy_dd else '''<div style="background:#111827;border-radius:8px;padding:10px;text-align:center"><div style="color:#6B7280">No ATH data</div></div>''', unsafe_allow_html=True)
+    
+    iwm_h = mh.get("iwm_ath_health",0.5)
+    iwm_c = "#10B981" if iwm_h>=0.55 else "#F59E0B" if iwm_h>=0.40 else "#EF4444"
+    r2c.markdown(f'''<div style="background:#111827;border:1px solid #1F2B3D;border-radius:8px;padding:10px;text-align:center">
+<div style="font-size:9px;color:#9CA3AF">IWM vs SPY ATH SPREAD</div>
+<div style="font-size:22px;font-weight:700;color:{iwm_c}">{"✅" if iwm_h>=0.55 else "⚠️" if iwm_h>=0.40 else "❌"}</div>
+<div style="font-size:10px;color:#9CA3AF">{f"{iwm_spread:.1%}" if iwm_spread else "—"} spread</div>
+</div>''', unsafe_allow_html=True)
+    
+    r2d.markdown(f'''<div style="background:#111827;border:1px solid #1F2B3D;border-radius:8px;padding:10px;text-align:center">
+<div style="font-size:9px;color:#9CA3AF">RISK-OFF STATE</div>
+<div style="font-size:13px;font-weight:700;color:{"#EF4444" if roff.get("state")=="risk_off" else "#F59E0B" if roff.get("state")=="caution" else "#10B981"}">{(roff.get("state","?") or "?").upper().replace("_","-")}</div>
+<div style="font-size:10px;color:#9CA3AF">Score: {roff.get("score",0):.2f}</div>
 </div>''', unsafe_allow_html=True)
 
     if mythic and usd_c.get("note"):

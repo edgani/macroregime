@@ -201,6 +201,14 @@ IHSG_UNIVERSE: dict = {
     # CPO / Agri
     "LSIP.JK":"London Sumatra","AALI.JK":"Astra Agro","SSMS.JK":"Sawit Sumbermas",
     "INKP.JK":"Indah Kiat","TKIM.JK":"Tjiwi Kimia","ESSA.JK":"Surya Esa",
+    # OSV / Offshore Support Vessel (Ricky2212 hulu thesis)
+    "WINS.JK":"Wintermar OSV","LEAD.JK":"Logindo OSV","SHIP.JK":"Sillo FPSO","ELSA.JK":"Elnusa hulu",
+    # Tanker / Shipping (Ricky2212 tanker cycle)
+    "SOCI.JK":"SOCI Mas tanker","BULL.JK":"Bull Armada","TMAS.JK":"Temas container","SMDR.JK":"Samudera Indo",
+    # CPO
+    "DSNG.JK":"Dharma Satya","TAPG.JK":"Triputra Agro","SGRO.JK":"Sampoerna Agro",
+    # Industrial Area
+    "BEST.JK":"Bekasi Fajar","KIJA.JK":"Jababeka","DMAS.JK":"Puradelta",
 }
 
 # ── Bonds ─────────────────────────────────────────────────────────────────────
@@ -483,7 +491,11 @@ IHSG_BUCKETS: dict = {
     "Consumer_Def":   ["ICBP.JK","INDF.JK","MYOR.JK","KLBF.JK","SIDO.JK","ULTJ.JK"],
     "Consumer_Cyc":   ["AMRT.JK","ACES.JK","MAPI.JK","ERAA.JK","ASII.JK","CPIN.JK","JPFA.JK"],
     "Property_Health":["CTRA.JK","BSDE.JK","PWON.JK","SMRA.JK","HEAL.JK","MIKA.JK","SILO.JK"],
-    "CPO_Agri":       ["AALI.JK","LSIP.JK","SSMS.JK","INKP.JK","TKIM.JK","ESSA.JK"],
+    "CPO_Agri":       ["AALI.JK","LSIP.JK","SSMS.JK","INKP.JK","TKIM.JK","ESSA.JK","DSNG.JK","TAPG.JK","SGRO.JK"],
+    # OSV / Offshore Support (Ricky2212 hulu thesis — supply shortage → rate spike)
+    "OSV_Hulu":       ["WINS.JK","LEAD.JK","SHIP.JK","ELSA.JK","MEDC.JK","ESSA.JK"],
+    # Tanker / Shipping (Ricky2212 — perang → rute memutar → tarif spike)
+    "Tanker_Ship":    ["SOCI.JK","BULL.JK","SMDR.JK","TMAS.JK","PSSI.JK"],
 }
 FX_BUCKETS: dict = {
     "Majors":    ["EURUSD=X","GBPUSD=X","AUDUSD=X","NZDUSD=X","USDJPY=X","USDCHF=X","USDCAD=X"],

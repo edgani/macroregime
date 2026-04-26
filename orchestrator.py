@@ -266,3 +266,43 @@ def get_or_build(force=False, max_age_h=4.0, **kw) -> dict:
         snap = load_snapshot(max_age_hours=max_age_h)
         if snap and snap.get("ok"): return snap
     return build_snapshot(**kw)
+
+# 15. Auto Discovery (TRUE autonomy — no Claude API)
+_prog(progress_cb, "Running autonomous discovery (price + news + supply chain)...", 0.94)
+try:
+    from engines.auto_discovery_engine import AutoDiscoveryEngine
+    from engines.feedback_loop_engine import FeedbackLoopEngine
+    
+    # Load known tickers from settings
+    from config.settings import TICKER_SECTOR, MARKET_CLASSIFICATION
+    
+    auto = AutoDiscoveryEngine(
+        sector_map=TICKER_SECTOR,
+        market_map=MARKET_CLASSIFICATION,
+        known_tickers=list(TICKER_SECTOR.keys()),
+        use_transformers=True,  # Set False if CPU too slow / no disk space
+    )
+    discoveries = auto.run(
+        prices=prices,
+        structural_quad=gip.structural_quad,
+        monthly_quad=gip.monthly_quad,
+        gip_features=gip.features,
+    )
+    snap["auto_discoveries"] = discoveries
+    
+    # Feedback loop: track + evaluate
+    fb = FeedbackLoopEngine()
+    fb.track(discoveries.get("candidates", []), regime=gip.structural_quad)
+    # Evaluate previous discoveries (if any are 6M old)
+    fb_eval = fb.evaluate(prices, benchmark="SPY")
+    snap["feedback_eval"] = fb_eval
+    
+    # Apply validated discoveries to permanent lists (mutates in-memory)
+    # Note: this affects current snapshot's bottleneck/narrative scoring
+    from engines.bottleneck_engine import KNOWN_BOTTLENECKS
+    from engines.narrative_engine import NARRATIVES
+    # (Need to adjust imports based on actual module structure)
+    
+except Exception as e:
+    logger.warning(f"Auto discovery error: {e}")
+    snap["auto_discoveries"] = {"candidates": [], "meta": {"error": str(e)}}

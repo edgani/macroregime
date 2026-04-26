@@ -19,407 +19,518 @@ Usage:
 """
 from __future__ import annotations
 
+
 NARRATIVES: dict = {
-    "energy_store_of_value_2026": {
-        "title": "Energy Sector will Outperform Market?",
-        "category": "macro_thesis",
-        "subcategory": "store_of_value",
-        "themes": ['energy', 'coal', 'oil', 'gas', 'commodities', 'usd_debasement', 'store_of_value'],
-        "tickers": ['ADRO.JK', 'PTBA.JK', 'ITMG.JK', 'HRUM.JK', 'INDY.JK', 'AADI.JK', 'BUMI.JK', 'MEDC.JK', 'PGEO.JK', 'AKRA.JK', 'UNTR.JK', 'ELSA.JK', 'WINS.JK', 'LEAD.JK'],
-        "quad_bias": 'Q2',
-        "regime_signal": "commodity_bid",
-        "priority": 10,
+    "angka_indah_free_float": {
+        "title": "Angka Yang Terlihat Indah — BUMI, DEWA, MSCI, dan Pelajaran Free Float",
+        "category": "market_regulation",
+        "subcategory": "transparency",
+        "themes": ["free_float", "bumi", "dewa", "msci", "nominee", "ubo", "transparency", "ksei", "ojk"],
+        "tickers": ["BUMI.JK", "DEWA.JK"],
+        "quad_bias": None,
+        "regime_signal": "transparency_risk",
+        "priority": 9,
         "author": "Ricky2212",
         "source": "mentorbaik",
-        "content": """Artikel: Energy Sector will Outperform Market?
+        "content": """Artikel: Angka Yang Terlihat Indah — Dan Pertanyaan Yang Tidak Bisa Dijawab 
 
-Will it be happened soon?
+Angka Yang Terlihat Indah — Dan Pertanyaan Yang Tidak Bisa Dijawab
+(BUMI , DEWA , MSCI , dan Pelajaran Tentang Free Float Yang Mungkin Tidak Seperti Yang Anda Kira)
 
-Dalam acara Live market update awal tahun yang mentorbaik lakukan kemarin , saya kebagian presentasi outlook saya buat 2026 ini.. Pas presentasi oleh Ko robert and Thomas mereka juga banyak memaparkan tentang Store of Value dengan jelas and comprehensive.
 
+Angka Yang Terlihat Indah — Dan Pertanyaan Yang Tidak Bisa Dijawab 
 
-Ada satu yang menarik yang saya ingin jabarkam dalam artikel ini tentang sebuah narrative Store of Value 
 
+(BUMI , DEWA , MSCI , dan Pelajaran Tentang Free Float Yang Mungkin Tidak Seperti Yang Anda Kira)
 
-Di luar sana sudah ramai sekali pembahasan tentang Store of Value di sektor Precious Metal. Di level ini diwakili oleh Gold , Silver , Platinum , Palladium 
 
 
-Saya ga akan bahas Store of Value di Precious Metal lagi , karena saya sudah bahas jauh hari sebelum keramaian ini terjadi. Detail lah penjelasannya , anda boleh cek semua artikel saya tentang Gold yang saya buat sejak 2023 lalu.
 
 
-Saya ga bahas Store of Value di Industrial Metal karena buat saya juga sudah mulai naik and ramai di perbincangkan di luar sana. Dan beberapa industrial metal , sulit untuk mencari PROXY saham nya di bursa IHSG
+Sebelum saya mulai artikelnya , saya mau menyampaikan satu hal terlebih dahulu karena yang mau kita bahas adalah ranah yang sifatnya abu2x 
 
 
-Tinggal apa ? Yap , seperti saya jelaskan pada Live mentorbaik market update kemarin bahwa saya lebih suka pada Store of Value yang related dengan Energy sector
+Karena sifatnya dunia abu2x maka tidak bisa dilihat dengan kasat mata . Semua itu penuh tipuan sihir dan intrik sulap tingkat tinggi 
 
 
+Karena sifatnya dunia abu2x maka tidak bisa menggunakan perhitungan sederhana. 1 + 1 itu belum tentu hasilnya 2. Jadi anda ga bisa memakai kalkulator warung yang menu nya sangat sederhana. Dibutuhkan bukan lagi kalkulator malah buat menghitung ini , tapi algoritma hitung yang kompleks 
 
-Dari awal saya sampaikan dulu bahwa saya ga akan bahas saham nya secara detail. Jadi silakan dicari PROXY saham nya sesuai dengan risk profile masing2x. 
-Saya bantu buat thesisnya , masa saya juga yang suruh pilihkan sahamnya. Lebih parah lagi , saya sudah buat thesis nya , bantu pilih saham nya dan minta juga bagus ga masuk sekarang ? Buat saya itu bukan pilihan Cerdas kalo anda mau maju sebagai investor.
 
-Oke , Di luar sana belum banyak yang memperbicangkan sektor energy. Masih banyak yang skeptis melihat pergerakan komoditas energy sehingga saham2x nya pun belum banyak dilirik.
+Kemarin saya sempat membahas ini di publik , tapi saya malas buka seutuhnya. Terlalu banyak di luar sana yang lagi desperate sehingga yang dipakai itu otot bukannya otak. 
 
-Good , justru hal tersebut yang bikin menarik. Saat belum banyak yang membicarakan maka saham nya pun belum banyak dilirik. Dari sana berarti pilihan saham nya pun masih banyak yang berada di level bawah. 
 
-Kalo saham masih di bawah dan underlying komoditas nya juga stabil di bawah maka ? Yap , terjadi asymetris soal risk and reward nya.
+Ini akan jadi pro kontra , jadi di awal saya tekankan bahwa saya malas berdebat kosong. Saya cuma shared saja apa yang saya bisa lihat dan kuasai 
 
-Buat saya sesuatu hal yang asymetrical adalah sesuatu yang menarik buat dijalankan. Tapi ingat yah , ini bukan sesuatu yang pasti tapi probabilitynya cukup besar. So , Energy Sector akan jadi Store of Value pilihan saya saat ini
 
-Berikut di bawah ini adalah Pertimbangan Energy Sector sebagai thesis saya 
+Saya mau kasih contoh kenapa ini ga bisa dilihat dengan kacamata sederhana dan kalkulator warung 
 
 
-1. Nyeleneh Trump soal PERANG
-Sudah bukan rahasia lagi bahwa Presiden dari Republikan itu doyan nya cari ribut and perang
-Hal itu juga ditambah dengan desakan bahwa Amrik itu sudah ga punya daya lagi dalan hal ekonomi dunia. Keberadaan Amrik perlahan mulai digeser oleh kekuatan ekonomi dunia lain seperti China , Rusia via BRICS. Kalo sudah gitu , Amrik tinggal bikin rusuh dunia via Perang. Cek aja , terhitung Iran vs Israel , Ukraina vs Rusia , Venezuela dan sebentar lagi Green Land 
+Pak , kalo cuma mau menggelapkan UBO 30% di market kan yang dibutuhkan hanya 30-35 nominee dengan batas maximal 0.99% . Kenapa pemegang saham sampai naik segitu banyak ? itu mah bandar memang lagi ngarungin retail 
 
-Ada lagi yang bisa dibikin perang ? Perang itu larinya akan ke energy , semua akan mempertahankan kebutuhan energy nya masing2x
 
-2. Nyeleneh Trump soal Monetart Policy 
-Sudah bukan rahasia lagi lah kalo Trump ngebet banget boos ekonomi nya lewat semua kebijakan yang diambil. Kebijakan nya termasuk menekan Central Bank buat menurunkan suku bunga acuan nya lebih jauh lagi and lagi. 
+Susah2x amat pecahin segitu banyak pemegang saham nya , kalo ada hal mudah kan ngapain susah toh kan ga sampai 1 % di UBO 
 
-100 bps CUT ? nanti lah habis hajatan Powell diganti. Mungkin baru akan dilakukan hal tersebut. Ada chance ? saya belum berani memastikan hal tersebut , tapi melihat semua aspek yang dipertimbangkan dalam hal pengambilan kebijakan monetary policy sudah mengarahkan kesana
 
+Andai semudah itu yah ? wkwkwkw 
 
-3. Kalo melihat 2 hal diatas maka semuanya akan bermuara pada ? 
-Yap Pelemahan USD yang tidak lagi bisa dielakkan. Trust terhadap FIAT terutama USD mulai meluntur.
-Bayangkan aksi nyeleneh Trump , belum lagi tumpukkan hutang US yang segitu besar. Apalagi yang diharapkan dari pegang USD
-Semua ini memang disengaja dilakukan untuk melemahkan USD koq
-Ini akan jadi wave pelemahan USD terakhir dan terbesar sebelum nanti nya USD pulkam kembali
 
-Cek saja Chart DxY diatas , kalo melihat pola gambarnya maka terlihat sebuah Trend penurunan yang luar biasa akan terjadi 
+Saya kasih coret2x an sederhana dulu aja yah buat menjelaskan ini semua 
 
 
-4. Pelemahan USD berarti akan membuat ? yap dunia akan mencari Store of Value 
-Semua store of value ? Dimulai dari Precious metal dulu lah yah ( which is sudah dan sedang berlangsung lama )
-Kalo precious metal sudah mahal , apakah Fund akan terus mengejar ?
+misal BUMI => Estimasi 400M lenbar saham 
 
-Industrial metal perlahan mengikuti dan mulai tuh uang ke spreading mencari Store of Value lainnya 
 
-Kalo kedua nya sudah kena PUMP ? apa yang tersisa ? Yap Store of Value nya akan mengalir ke komoditas Energy
+Kalo gitu biar mudah buang saham ke publik sebanyak 200 ribu orang dengan rata2x memegang 500.000 lembar saham per orang. Maka dari sana akan terdistribusi sekitar 100 milyard lembar saham atau 25% Free Float riil 
 
-Btw dari cycle ke cycle komoditas energy itu memang selalu menjadi penutup ( silakan di cek kembali )
 
-4 hal diatas adalah sebuah alasan kalau kita melihat dari sisi USD side dimana pelemahan USD akan membuat uang lari kemana-mana mencari perlindungan dan nanti Energy akan jadi salah satu yang dapat kecipratan uang
+Kalo gitu 75% an nya bikin aja 50% dipegang 2 tau 3 pemegang saham  25 % nya lagi cukup pakai 27 nominee dengan kepemilikan dibawah 1 % 
 
 
-Special case factor ( tapi dahsyat )
+simpelnya begitu bukan ? 
 
-===============================
 
+Saya coba sodorkan lagi , saya pernah di dunia abu yang kental dengan permainan intrik and sulap tingkat tinggi. Saya pernah terlibat di 1 circle maker yang legend dan saya pernah dekat dengan teman yang berada dekat di circle Om B. 
 
-Ada satu hal menarik yang lagi yang menurut saya bisa jdi factor yang sangat luar biasa and mempunya effect yany DAHSYAT.
 
+Dalam satu percakapan saat bicara tentang maker yang mau ada project gede menaikkan harga saham , beliau sempat mengatakan seperti ini 
 
-Sudah baca berita tentang JPY intervention ? ceritanya Jepang memang senang sekali melakukan intervensi buat pelemahan JPY nya agar barang2x mereka bisa bersaing di pasaran. 
 
+rumus nya adalah 
 
-Seperti kita tau Jepang adalah negara typical exportir yang memproduksi barang dan menjualnya ke negara2x dunia 
 
+sedot barang sebanyak mungkin sampai tidak tersisa 
 
-Masalahnya sekarang produk jepang sudah lagi tidak mampu bersaing di pasaran. China mulai mengambil alih pasar barang2x yang di produksi oleh Jepang ( ex : automotive )
 
+Angka ini keluar langsung dari mulut si boss kalo sedot market tuh sampai 92.5% barang di kita 
 
-Pelemahan JPY kebablasan dan terlalu lemah. Dalam hal ini justru tidak baik buat Jepang karena itu bisa bikin inflasi tak bisa dibendung
 
+Jangan terlalu banyak barang berceceran di retail. 
 
-Belum lagi masalah hutang yang menggunung. Sekarang Total Debt to GDP mereka sudah di level 230% an
 
+Cerita selanjutnya , saya pernah mewakilkan nominee UBO buat RUPS . Saya diberikam kuasa 50 nominee dalam RUPS tersebut dan tau berapa jumlah kepemilikan kalo di total ? kalo pake rumus kalkulator warung yang menyimpel kan sesuatu maka 50 nominee jadi 49%  dan saya bukan satu-satu nya orang yang datang untuk mewakilkan nominee. 
 
-Fiat makin tidak dipercaya termasuk JPY. Banyak lah yang short JPY. Belum lagi Spekulan yang pasang posisi short JPY dalam jumlah massive membuat pelemahan JPY makin ga tertahankan
 
+Busyet saya langsung mewakili PSP padahal saat itu saya mewakili ga sampai 2% suara 
 
-Dalam posisi ini BoJ saja sudah tidak mampu menahan pelemahan JPY tersebut. Kalo tidak dibereskan malah bikin bahaya satu dunia
 
+Pesannya tidak sesimple itu cara permainan mereka. Ga usah pusing , mereka tuh bisa sediakan nominee secara banyak banget 
 
-Kejatuhan JPY mendorong Yield obligasi mereka terus merangkak naik tak tertahankan. Kepercayaan yang luntur terhadap kemampuan jepang membayar hutang nya membuat yield obligasi naik. Investor meminta premium atas resiko yang dihadapi
 
+Semaikin banyak nominee maka semakin banyak kepemilikan dikaburkan secara kasat mata 
 
-Kalau sudah gini siapa yang dirugikan ? Yap , Amrik jadi pihak yang paling dirugikan dalam keadaan ini.
 
+semakin banyak layer nominee yanh dibuat maka semakin susah di trace ujung nya kemana . 
 
-Orang pada carry trade dalam JPY dan memindahkan uang nya dengan membeli surat hutang UST. Kalo yield hutang Jepang naik terus maka spread dengan UST makin mengecil , UST jadi ga menarik lagi
 
+Namanya lo mau umpetin sesuatu bau busuk  masa lo mau pake action standard and basic begitu. Hdeuhhhh come on lah 
 
-Makanya US langsung mengambil tindakan dengan membuat statement bahwa mereka akan ikut menstabilkan matau uang JPY yang sedang tertekan terus belakangan ini
 
+Itu dari cara ngumpetin nya , dari sudut pandang kalo maker mau sedot barang semua di pasar ? masa mau disedot pake beberapa nominee aja , lah jadi diatas 1% donk nanti. 
 
-Caranya gimana ? Treasury US akan membuanh stok USD nya ke pasar dan membelikan mata uang JPY. 
 
+Dah yah pengantarnya, sekarang kita langsung ke ceritanya. Agak njelimet ceritanya , ssmoga bisa dipahami 
 
-Kalo sudah begini maka ? Pembuangan stok USD yang Treasury miliki membuat supply USD banjir. USD dengan sendiri nya akan melemahkan mata uang uang nya dengan cukup significant. 
 
+Saya mau mulai artikel ini dengan sebuah pertanyaan sederhana. 
 
-Kalo sudah USD melemah makin dalam maka ? Dari sini dunia makin butuh Store of Value. Sudah tidak terelakakkan lagi bahwa ini benar2x butuh Store of Value. Jangan aneh nanti terjadi panic buying terhadap hard asset
 
+Kalau anda lihat sebuah saham dengan pemegang sahamnya naik dari 40 ribu ke 200 ribu dalam 5 bulan terus apa yang pertama kali ada di pikiran anda ? 
 
-Gila yah , satu dunia lagi ga ada kepercayaan terhadap Fiat. 
 
+Saham ini ramai. Saham ini diminati. Saham ini sedang dimasuki banyak investor baru yang genuine atau malah bandar lagi ngarungin retail di saham ini. 
 
-Uang dicetak tidak lagi di back up oleh emas . Uang dicetak hanya modal kepercayaan saja. Kepercayaang atas apa ? Cetak uang adalah BERHUTANG , setiap uang yang dicetak mengandung bunga yang dibayar. Makin besar Uang yang dicetak maka makin besar hutang mereka
 
+Wajar kalau itu yang pertama anda pikirkan. Data nya terlihat sangat meyakinkan. Angkanya nyata. Semua angka itu tercatat resmi di KSEI. 
 
-So , Uang dicetak atas dasar kepercayaan kalo negara mampu membayar hutang2x nya. 
 
+Tapi ini adalah pertanyaan yang jarang ada yang berani tanyakan dengan keras bahwa 
 
-Kalo kemampuan membayar hutang nya terus diragukan ? Uang itu ga punya harga lagi jadinya
 
+Siapa sebenarnya 200 ribu orang itu ? 
 
-Disini lah letak Store of Value dibutuhkan, semua akan kembali kepada hard asset dimana sesuatu tersebut memang mempunyai nilai.
 
+# Dua Emiten , Satu Pola , Satu Timing ( saya mau bahas permainan BUMi and DEWA yang menurut saya identikal banget flow permainannya ) 
 
 
+Mari kita mulai dengan saya menarik data yang paling konkret yang sudah disajikan ke publik 
 
-Ada 2 aspek lagi yang memungkinkan harga energy terdongkrak
 
-========================================
+BUMI  PT Bumi Resources Tbk. Pemegang saham September 2025 tercatat 157,747. Februari 2026  586,931. Terjadi kenaikan hampir 4x lipat dalam 5 bulan. 
 
 
-pertama adalah extreme weather yang sedang dunia hadapi. Dunia lagi mengalami musim dingin yang sangat extreme di luar kebiasaan 
+DEWA PT Darma Henwa Tbk. Pemegang saham September 2025 tercatat 40,784. Februari 2026 205,563. Terjadi kenaikan lebih dari 5x lipat dalam 5 bulan. 
 
 
-Dalam keadaan ini tentu akan membuat kenaikan permintaan dalan energy 
+Dua emiten berbeda. Dua ukuran berbeda. Dua basis investor awal yang berbeda.
 
+Tapi timing ledakannya persis sama yaitu di bulan Desember 2025 dan Januari 2026. 
 
-Liat saja harga Natural gas Seminggu lalu masih di kisaran $3/mmbtu dan sekarang sudah nangkring di kisaran $5.5/mmbtu
 
+Nah loh. 
 
-Nat gas naik tentu akan menyeret ke komoditas energy lainnya sebagai subsitusi
 
+Sekarang pertanyaan yang lebih dalam lagi 
 
-Tapi di level ini cuma temporary and situational push factor aja yah
 
+kenaikan ratusan ribu pemegang saham dalam waktu secepat itu apakah itu sifatnya organic ? 
 
-Kedua yang mungkin jadi pendorong nanti adalalah kebijakan pemangkasan produksi yang sudah disiapkan dalam RKAB 2026 ala om Bahlul 
 
+Apakah itu genuine investor ritel yang memang tertarik secara independen ? 
 
-Dalam RKAB tersebut om Bahlul akan memangkas produksi batubara dari 750 juta ton ke 600 juta ton
 
+Atau ada sesuatu yang jauh lebih terstruktur di baliknya ? 
 
-Hal ini tentu akan terjadi pengurangan supply atas thermal coal di pasar. 
 
+Mari kita bedah lebih dalam. 
 
-Pak, Thermal Coal kan supply nya melimpah sekai di pasar ? benar kawan , tapi pengurangan supplt itu bisa jdi gimmick pendongkrak harga
 
-Tidak percaya ? Cek saja harga nikel tuh sejak ada penertiban tambang ala om bahlul. Terdongkrak ga ? supply nikel tuh lebih parah akut nya dari thermal coal loh.
+# Anatomi kenaikan pemegang saham bukan sekadar angka 
 
-Nah itu lah semua dasar thesis saya kalo Store Of Value kita akan mengalir ke sektor energy
 
-Store of Value => Sektor energy => Price Up => asymetrical bet
+Dalam kondisi normal kenaikan pemegang saham sebuah emiten terjadi secara gradual. 
 
-Mana pilihan saham terbaik ? bukan saya yang milihin tapi silakan teman2x pilih sendiri lah yah
 
-Tapi gini , teman2x mungkin sudah banyak yang bosan tentang permainan narrative. Bahasnya narrative terus , bahasnya saham2x ga bener terus , bahas nya saham yang ga punya funda terus
+Ada yang masuk karena tertarik fundamental. Ada yang masuk karena rekomendasi. Ada yang masuk karena ikut tren. 
 
-Untuk thesis hal ini yaitu energy sector anda bisa bermain juga yang punya Fundamental yang bagus. Sepertinya kemungkinan semua nanti akan diajak bermain
-Tapi ingat , saham nya jangan dinikahi tapi cukup dikencani aja yah. Karena kita belum akan bermain di cycle baru yang dilandaskan tentang real supply demmand. Yang main narrative energy yang sudah dibahas terlebih dahulu yah anda juga tau harus berbuat apa yah.
 
-Nah itu saja yang saya bisa bahas , semoga thesis nya bisa berjalan sesuai skenario ( walau saya percaya besar chance lah ). Jangan lupa setiap thesis juga bisa tidak terjadi , jadi tetap siapkan kemungkinan jeleknya juga.
+Semua terjadi dengan sebuah prosesnya yang organik. Prosesnya tersebar dengan pola yang wajar dan semua prosesnya butuh waktu. 
 
-Btw sebelum saya tutup , Di luar sana lagi banyak gaduh tentang MSCI nya BUMI di February ini jadi masuk atau tidak yah. Yah , yang bikin rame gaduh itu tim nya yang dulu bilang: 
 
-* selama centong masih ada di BUMI , maka BUMI susag naik ( waktu harga 100 an )
-* zaman dulu pernah buat issue om B clash dengan om S
-* zaman dulu juga buat issue kalo BUMI susah diangkat karena pemegang saham publiknya besar
+Yang terjadi di BUMI dan DEWA bukan itu ( sejauh yang terlihat ) 
 
-Sekarang lagi bikin gaduh lagi bilang BUMI gagal MSCI karena ini itu bla bla bla.
-Yah ada baiknya kita tunggu saja tah 10 February 2026. Semoga saja semua berjalan sesuai rencana yang saya sempat utarakan saat live kemarin ( saya ga bisa memberikan garansi 100% , tapi beberapa berita yang saya dapat yah so far so good ) 
 
-Jangan kaget juga nanti akan ada aksi lanjutan nya menyusul. Kemungkinan saham CIC di BUMI juga bisa habis sebelum MSCI kalo melihat pace penjualan saat ini. Kalo sudah habis , eitttsss nanti dulu saya tahan dulu ceritanya. hehehehe
+BUMI dalam satu bulan saja di Januari 2026  bertambah 187,813 pemegang saham baru. Satu bulan. 187 ribu orang. Rata-rata 7,000 orang per hari masuk ke saham yang sama. 
+
+
+DEWA dalam satu bulan yang sama bertambah 71,016 pemegang saham baru. Lebih dari 2,800 orang per hari. 
+
+
+Ini bukan kenaikan yang keliatan biasa loh teman2x. Ini adalah lonjakan yang sangat tidak natural kalau kita bandingkan dengan baseline pertumbuhan investor ritel di emiten manapun secara normal. 
+
+
+Dan yang paling menggelitik lonjakan ini terjadi persis bersamaan dengan transaksi crossing jumbo Rp6.91 triliun di BUMI pada 19 Januari 2026. 
+
+
+Treasure Global Investment Limited — entitas Grup Salim melepas 18.19 miliar lembar saham dalam satu transaksi. Saham sebesar itu harus pergi ke suatu tempat. Pertanyaannya  pergi ke tangan siapa ? Itu entitas salim , terus dia mau melepas ke publik ? wkwkwkwk bercanda aja , yang ada dia masih nafsu sedot barang termasuk barang CIC. 
+
+
+Kalau pergi ke pasar reguler secara genuine  kita akan melihat distribusi yang tersebar ke banyak broker dan banyak akun independen. 
+
+
+Tapi kalau sebagian pergi ke akun-akun yang dikendalikan pihak yang sama lewat broker tertentu  maka angka 187 ribu pemegang saham baru itu mungkin tidak sepenuhnya mencerminkan investor independent yang genuine. 
+
+
+Next tuh sahan CIC yang 10 miliar sahamnya raib dalam satu bulan ke mana perginya ? Sampai hari ini tidak ada jawaban yang memuaskan. Saya sih sudah jabarkan hal ini tentang siapa yang sedot barang CIC 
+
+
+# Siapa Di Balik Dua Emiten Ini ? 
+
+
+Sebelum kita masuk lebih dalam  penting untuk memahami siapa yang ada di belakang dua saham ini. 
+
+
+BUMI  berdasarkan data KSEI terbaru per 27 Februari 2026 pemegang saham terbesarnya adalah Mach Energy Hongkong Limited dengan 45.78%. Ini adalah kendaraan investasi Grup Salim. 
+
+
+Di sampingnya ada Treasure Global Investments Limited 3.18% juga Grup Salim. 
+
+
+Dan Cris Developments Limited 3.98% yang setelah ditelusuri lebih dalam  juga terafiliasi Grup Salim. 
+
+
+Total kepemilikan Grup Salim yang teridentifikasi minimal 52.94%. 
+
+
+Dari sisi Bakrie PT Bakrie Capital Indonesia tercatat 1.18%. 
+
+
+Dan ada Glas Trust Singapore 2.08%  yang sampai sekarang beneficial owner sesungguhnya belum diketahui publik karena sifatnya sebagai trust company. Ini kemungkinan besar ntara nominee nya salim atau nominee nya bakrie. Saya bisa garansi hal itu
+
+
+
+DEWA  UBO nya satu orang saja yaitu Nirwan Dermawan Bakrie. 
+
+
+Orang yang sama yang ada di BUMI dan per Februari 2026 DEWA belum melakukan disclosure UBO resmi ke BEI. Padahal kewajiban itu sudah ada. 
+
+
+Satu orang. Dua emiten. Satu timing restrukturisasi yang bersamaan. 
+
+
+Saya melihat sebuah pola yang identical banget dan dikerjakan dengan timeline yang mirip 
+
+
+# Potensi Nominee UBO , Seberapa Dalam Lubang Kelincinya ? 
+
+
+Sekarang kita masuk ke bagian yang paling dalam dan paling jarang dibahas secara terbuka. 
+
+
+Nominee dalam konteks kepemilikan saham  adalah kondisi di mana sebuah saham tercatat atas nama seseorang atau entitas tertentu di data publik tapi beneficial owner sesungguhnya adalah pihak yang berbeda. 
+
+
+Secara legal selama nama yang tercatat itu berbeda tidak ada aturan yang dilanggar. Masalahnya nih secara substansi tuh pengendaliannya masih bermuara di tangan yang sama. 
+
+
+Dan inilah yang membuat kasus BUMI dan DEWA sangat menarik untuk ditelusuri. 
+
+
+Lihat struktur BUMI. Grup Salim menggunakan minimal tiga kendaraan berbeda — Mach Energy , Cris Developments , Treasure Global. 
+
+
+Ketiganya tercatat sebagai entitas yang berbeda di data publik. Tapi beneficial owner sesungguhnya satu yaitu Anthoni Salim. Kalau ketiganya dijumlahkan maka Grup Salim mengendalikan minimal 52.94% dari total saham BUMI. 
+
+
+Kita lihat lagi data free float BUMI yang tercatat 41.31%. 
+
+
+Logika sederhananya kalau pengendali pegang 52.94% sisanya 47.06%. Dan dari 47.06% itu  ada Bakrie Capital 1.18% dan Glas Trust 2.08% yang beneficial owner nya tidak diketahui  dan Bank of Singapore 1.04%. 
+
+
+Baru sisanya yang bisa disebut genuine publik. 
+
+
+Artinya  free float genuine BUMI mungkin jauh di bawah 41% yang terlihat di atas kertas. 
+
+
+Berapa persisnya ? Tidak ada yang bisa menjawab dengan pasti dari luar. 
+
+
+Lalu ada pertanyaan yang lebih dalam lagi dari 586 ribu pemegang saham yang tercatat berapa yang genuine investor independen dan berapa yang mungkin adalah nominee publik ? 
+
+
+Nominee publik berbeda dari nominee korporat. Ini bukan entitas perusahaan  ini akun-akun individu yang mungkin dibuka secara massal untuk menyerap saham dari restrukturisasi internal dan secara teknis tercatat sebagai "publik" di data KSEI. 
+
+
+Tapi siapa yang ada di balik akun-akun itu ? Apakah mereka benar-benar mengambil keputusan investasi secara independen  atau mereka adalah bagian dari mekanisme distribusi yang lebih besar ? 
+
+
+Ini adalah pertanyaan yang bahkan OJK sendiri tidak bisa jawab dengan pasti dari data yang ada sekarang. Dan itulah tepatnya kenapa mereka wajibkan disclosure UBO sampai level kepemilikan 1% ke bawah  karena mereka sadar blind spot ini ada dan sangat besar. 
+
+
+Untuk DEWA situasinya bahkan lebih gelap. Dengan UBO yang belum disclosure resmi ke BEI dan free float yang tercatat 56.9%  pertanyaan nominee publiknya jauh lebih sulit divalidasi. 
+
+
+Siapa yang ada di balik 56.9% itu ? Semua genuine independen  atau ada sebagian yang masih dikendalikan tangan yang sama ?
+
+Tidak ada yang bisa menjawab dari luar. Dan itulah justru intinya. 
+
+
+Karena kalau bisa dijawab dari luar dengan mudah itu namanya bukan nominee. 
+
+
+# Free Float - Angka Yang Terlihat vs Realita Yang Tersembunyi 
+
+
+Sekarang kita masuk ke inti dari seluruh diskusi ini. 
+
+
+Free float adalah persentase saham yang beredar bebas di publik tapi tidak dikunci oleh pengendali atau pemegang saham strategis. 
+
+
+Angka ini adalah salah satu syarat utama yang dievaluasi MSCI ketika menentukan apakah sebuah saham layak masuk ke indexing dan tetap ada di indeks Emerging Markets mereka. 
+
+
+Dan di sinilah masalah yang paling besar dimulai. 
+
+
+Ambil contoh yang sudah terbukti  bukan dari BUMI tapi dari emiten lain yang sudah terungkap datanya. 
+
+
+Sebuah emiten besar dari Grup Sinarmas tercatat free float 20.42% di data publik. Tapi setelah data kepemilikan 1% dibuka  free float genuine nya ternyata hanya 7.63%. Mayoritas 92.37% dikuasai pengendali dan entitas terafiliasi. Dari sana terlihat bahwa nominee itu menjurus ke 1 UBO. 
+
+
+Kalo pake kalkultor warung FF 20% maka cuma butuh 22 nominee dengan kepemilikan dibawah 1 % . Nyatanya berapa banyak pemegang ssham nya ? wkwkwkkw logika STUPID kalo menggampangkan penggunaan nominee . Tercatat ga kurang dari 9000 pemegang saham konglomerasi tersebut. 
+
+
+Jurang antara yang terlihat dan yang sesungguhnya hampir 13 persen poin 
+
+Ini bukan anomali. Ini adalah pola sistemik. 
+
+
+BUMI serta DEWA mungkin hanya dua contoh yang paling terekspos karena ukurannya yang besar dan timing restrukturisasinya yang sangat mencolok. 
+
+
+# MSCI ,  Mengapa Ini Semua Penting 
+
+
+Pada bulan Januari 2026 lalu  MSCI menghentikan rebalancing index Indonesia. Yang terjdi saat itu adalah IHSG anjlok 7.4% dalam satu hari. 
+
+
+Total kerugian market cap dua hari trading mencapai USD 80 miliar. 
+
+
+Inti masalah yang MSCI persoalkan ada dua hal 
+
+
+Pertama adalah minimnya transparansi klasifikasi pemegang saham khususnya penggunaan kategori yang mengaburkan identitas pengendali sebenarnya. 
+
+
+Kedua indikasi perdagangan terkoordinasi yang menciptakan likuiditas semu sehingga mekanisme pasar tidak mencerminkan permintaan dan penawaran yang wajar. 
+
+
+BUMI dan DEWA adalah dua contoh paling nyata dari dua defisiensi yang persis sama yang dipersoalkan MSCI itu. 
+
+
+Dan respons OJK dan BEI ? Disclosure kepemilikan diturunkan dari 5% ke 1%. Minimum free float ditingkatkan bertahap dari 7.5% ke 15%. Data granular beneficial owner diwajibkan lapor sebelum Deadline akhir April 2026 dan aebelum review MSCI di Mei 2026. 
+
+
+Langkahnya sudah ke arah yang benar. Tapi pertanyaannya apakah cukup waktu untuk implementasi yang benar-benar convincing bagi MSCI ? Atau ini masih akan terlihat seperti kosmetik di atas kertas ? 
+
+
+Yang bisa dipetik dari semua Ini adalah
+
+saya tidak akan kasih kesimpulan yang menghakimi. Bukan kapasitas saya untuk memvonis sebuah emiten atau kelompok usaha. 
+
+
+Tapi ada beberapa hal yang saya rasa penting untuk kamu renungkan sebagai investor 
+
+
+Pertama adalah angka yang terlihat di atas kertas belum tentu mencerminkan realita sesungguhnya. Free float yang tinggi belum tentu genuine. Pemegang saham yang ratusan ribu belum tentu semuanya independent. Kenaikan yang terlihat organic belum tentu benar-benar organic. 
+
+
+Kedua adalah kenaikan harga saham yang dipicu ekspektasi masuk indeks global adalah katalis yang sangat kuat tapi sangat rapuh. Kalau ekspektasinya meleset maka volatilitasnya bisa sangat brutal dan yang paling rentan adalah investor ritel yang masuk paling terakhir karena tertarik pergerakan harga tanpa memahami struktur kepemilikan di baliknya. 
+
+
+Ketiga adalah pasar modal Indonesia sedang dalam momen yang sangat penting. Reformasi transparansi yang sedang berjalan sekarang dan kalau berhasil diimplementasikan dengan serius maka bisa menjadi fondasi yang jauh lebih solid untuk jangka panjang. Tapi kalau hanya jadi kosmetik menjelang deadline maka kita akan menghadapi masalah yang sama lagi di masa depan. 
+
+
+Dari BUMI dan DEWA punya pelajaran yang sederhana tapi sangat dalam 
+
+
+Kenaikan pemegang saham yang terlihat sangat ramai  mungkin bukan berarti semua orang yang masuk adalah investor genuine yang mengambil keputusan secara independen. 
+
+
+Dan free float yang terlihat besar di atas kertas mungkin bukan berarti saham itu benar-benar bebas dari pengendalian pihak yang sama. 
+
+
+Jangan hanya lihat angkanya. Tanya juga siapa yang ada di balik angka itu dan mengapa mereka ada di sana tepat di waktu itu. 
+
+
+Sisanya anda yang simpulkan sendiri. 
+
+
+Ini bukan ajakan jual beli. Ini refleksi pribadi tentang transparansi dan struktur kepemilikan di pasar modal Indonesia.
+
+
+
+
 
 Ricky2212
 
 """,
     },
-    "disbelieve_psychology": {
-        "title": "Anda semua nanti ketemu dengan keadaan DISBELIEVED",
+    "ath_20_bottom_behaviour": {
+        "title": "ATH - 20% , near the bottom ?",
         "category": "market_psychology",
-        "subcategory": "sentiment",
-        "themes": ['disbelieve', 'lone_wolf', 'bottom', 'contrarian', 'sentiment'],
-        "tickers": [],
+        "subcategory": "technical_behaviour",
+        "themes": ["ath", "bottom", "correction", "behaviour", "20_percent", "slingshot"],
+        "tickers": ["^JKSE", "EIDO"],
         "quad_bias": None,
-        "regime_signal": "sentiment_extreme",
+        "regime_signal": "bottom_formation",
         "priority": 8,
         "author": "Ricky2212",
         "source": "mentorbaik",
-        "content": """
+        "content": """Artikel: ATH - 20% , near the bottom ?
 
-Anda semua nanti ketemu dengan keadaan DISBELIEVED
+ATH - 20% , near the bottom ?
+Yang perlu anda ingat bahwa tidak ada yang bisa menebak Bottom suatu pasar , tapi biasanya bottom itu terjadi saat sebuah keadaan itu SANGAT SAKIT , SANGAT PAINFULL SAMPAI MEMBUAT FRUSTASI
 
-Lone Wolf
+ATH - 20% , near the bottom ?
 
 
 
+Fiuhhhhh , akhirnya sampai juga kita di level yang sangat krusial dari sebuah behaviour market 
 
-Gimana kabarnya ? sehat2x aja ? 
 
+Masih ingat behaviournya ? Ini adalah sebuah non text book behaviour mengenai sebuah koreksi market. Sebuah kebiasaan yang akhirnya menjadi konsensus pasar dan dipercaya menjadi suatu hal yang dipakai. 
 
-Gimana mental ? 
 
+ATH - 20% , sebuah behaviour koreksi yang disebut bear market correction. Titik level dimana bear market koreksi terjadi , kalo jebol ? yah berarti kita akan masuk bear market dengan psikologi yang jauh lebih berat ( walau biasanya suka di lebih - lebih kan dikit ) 
 
-Gimana porto ? 
 
+Mari kita hitung , ATH Indeks kita terjadi di level 9174. 
 
-Saya mau sampaikan dulu di awal artikel ini bahwa tidak ada yang kebal dalam keadaan penurunan dahsyat kemarin yah. Jangan dipikir saya ga kena ? saya juga kena koq , tapi semua tergantung bagaimana menyikapi keadaan dan menyusun strategi nya
 
+9174 - 20% ketemu angka 7339 
 
-Buat yang kemarin sukses membeli banyak saham yang lagi hancur , saya ucapkan selamat dan anda adalah LUAR BIASA
 
+Berapa tutupan indeks hari ini ? Yap indeks ditutup di level 7337. Boleh dibilang bisa di pas - pas in lah level nya. 
 
-Penurunan market kemarin itu memang luar biasa hitungannya. Dalam hitungan 2 hari saja penurunan market hampir menyentuh 20% 
 
+Apakah pasti aman dan come back ? saya tidak bisa memastikan bilang IYA , tapi secercah harapan mulai muncul di level sekarang ini 
 
-Pernah belajar artikel behaviour tentang koreksi kan ? coba cek saja artikel lama saya tentang behaviour market ( tolong jangan tanya yang mana , saya suka orang yang punya eager and usaha buat mencari 
 
+Kenapa ? saya pribadi belum melihat keadaan sekarang itu adalah CRASH besar nya , tapi hanya sekedar tarikan KETAPEL yang akan mendorong jauh keatas nantinya. 
 
-Koreksi 20% itu adalah batas toleransi maksimal saya kemarin saat terjadi penurunan market. 20% adalah titik dimana koreksi bear market akan dicapai dan coba ditahan
 
+Nah , tarikan ketapel ini yang nantinya akan jadi sebuah perjalanan puncak pamungkas nya. 
 
-Benar adaanya ditahan dan malah market ditutup dengan penurunan ATH -10% di level 8200 an. Sebuah penurunan yang disebut healthy correction. 
 
+Keadaan ini saya coba menyamakan dengan keadaan yang terjadi di 2007 dimana global indeks koreksi sekitar 20% dari ketinggian sebelum memuncaki di awal 2008. 
 
-Saya senang sekali karena masih banyak teman2x yang sudah lama di mentor baik memahami behaviour ini. Bahkan beberapa menyampaikan thesis koreksi nya ke saya berikut hitungannya. 
 
+History akan selalu berulang , kalaupun tidak berulang minimal irama nya akan mempunyai kemiripan 
 
-terbukti ampuh ? sekali lagi terbukti ampuh sementara waktu bukan behaviour tersebut ? sebuah thesis yang ga pernah anda dapatkan di Buku loh hehehe
 
+Sejauh ini saya tetap berjalan pada Skenario Flow dibawah ini 
 
-Satu lagi behaviour market ditunjukkan kemarin loh. Ssbuah common behaviour yang selalu berulang tiap waktu. 
 
+Soon will deescalate >> each claim victory >> money moves to risk assets >> oil self correcting and finds new equilibrium >> US announces data to support cuts >> market resumes jack up >> from ATH to ATH >> entah apa, oil spikes gila2an >> crash 
 
-Apa itu ? kemarin baca berita kan kalo 2 Big Boyz yaitu Goldman Sachs and UBS memberikan downgrade rating untuk bursa Indonesia. Mereka memberikan rating tersebut dengan alasan resiko meningkat saat MSCI menurunkan Rating Indonesia
 
+Seperti kita ketahui bahwa penurunan global indeks yang cukup dalam ini ditenggarai akibat perang yang sedang berkecamuk. 
 
-Biasanya yah , Big boyz downgrade itu ga jauh dari ujung bottom nya . Sekali lagi nanti kita coba lihat apakah rumus ini valid apa tidak ( so far rebound dari low )
 
+Tensi perang nya sedan hot - hot nya banget. Saya bisa bilang kalo pakai skala 10 , perang sekarang ini sudah di titik mendidih skela 10 nya. Kita sedang berada di puncak eskalask perang tersebut. 
 
-Simpan lagi cerita ini sebagai bagian dari thesis tentang behaviour market. Thesis ini selalu dipakai berulang dalam keadaan koreksi
 
+Kita tidak butuh kesepakatan damai dengan saling berjabat tangan dan cengengesan lagi tuh pada habis perang. Kita hanya butuh gradual declining tone , itu sudah bisa bikin market global perlahan berputar haluan. 
 
-Next , saya juga mau sharing tentang keadaan di luar sana pasca penurunan tajam kemarin. 
 
+Satu hal lagi titik terang yang terlihat adalah tiba-tiba saja negara G7 langsung memberikan kesepakatan bahwa mereka akan melakukan JOINT CO-ORDINATION atas sebuah kebijakam untuk menahan laju kenaikan harga minyak dunia yang lagi mendidih. 
 
-Sudah pada bisa nebak ? yap sebuah keadaan chaos sampai pada titik desperate skala nya menuju AKUT. Ketakutan yang luar bisa tiba2x saja datang dan menyapu banyak orang di market
 
+Negara-negara yang tergabung dalam G7 tersebut katanya akan melepas SPR ( Strategic Petroleoum Reserve ) mereka sebanyak 400 juta barrel dari total 1.2 milyard barrel yang mereka miliki 
 
-Hal ini juga jadi pelajaran bahwa di market itu bukan cara cari uang yang mudah. Pelajaran bahwa di market itu butuh punya ilmu and mental yang terus diasah dari waktu ke waktu. 
 
+Saya pernah sampaikan kalo ada kalimat joint co-ordination biasanya itu adalah sebuah solving yang disepakat dan dibuat untuk menyelesaikan sebuah masalah besar 
 
-Ada teriakan gampangin bursa terlihat ? ada yang pamer SS porto ? 
 
+Ini menjadi penting karena kenaikan harga minyak yang terlalu cepat ini bisa jadi ancaman buat ekonomi dunia. Satu dunia takut akan hal ini. Dengan adannya kesepakatan G7 itu minimal untuk sementara bis menahan harga minyak 
 
-Jangan kaget juga ada banyak teman2x or orang2x di sekeliling anda yang tadinya bilang ke anda begini
 
+Yap , buat saya aksi itu cuma bisa calm down sementara waktu saja sebelun nantinya harga minyak mendidih kembali menuju PEAK. Sejatinya masih banyak masalah yang belum terselesaikan dalan wakti dekat ini. 
 
-"kalo main saham tuh enak , cari uang di saham tuh gampang "
 
+Kembali , ini baru secercah harapan yang mulai terlihat. Tapi dari secercah harapan ini kita bisa mulai bisa bertindak dengan bijak. 
 
-malah berganti bilang 
 
+Saya ga bilang bahwa anda bertindak secara membabi buta yah dengan langsung bombardir sana sini , bertindak lah secara bijak dengan memilih saham yang tepat dengah perhitungan alokasi yang matang dan sesuai dengan tema yang berlangsung 
 
-gila bro gw ga sanggup di bursa lagi , uang gw hilang semua ga bersisa. Kayanya gw ga cocok nih di bursa
 
+Yang perlu anda ingat bahwa tidak ada yang bisa menebak Bottom suatu pasar , tapi biasanya bottom itu terjadi saat sebuah keadaan itu SANGAT SAKIT , SANGAT PAINFULL SAMPAI MEMBUAT FRUSTASI 
 
-Semua itu lumrah koq , ini lah real yang kita hadapi di bursa saham. Jangankan retail koq , para fund aja juga ikut dalam hanyutan kepanikan saat penurunan kemarin. Saya dapat cerita kalo banyak fund yang berusaha mengurangi eksposure nya and alokasi saham nya. 
 
+Tidak ada bottom yang tercipta dengan enak bro , sakit nya bottom itu harus anda hadapi karena dari sana anda nanti bisa dapat daging nya. 
 
-So , buat teman2x yang punya mental kuat and tetap bertahan dalam sapuan badai kemarin berarti anda lebih top dari para Fund tadi loh.
 
+Rasa Sakit nya , Rasa painfull nya , rasa frustasi nya jangan dirasakan tapi dijalankan dengan happy saja sambil berjalan. Biarkan di luar sana yang merasakan itu semua. 
 
-Bangga ga ? 
 
+Tetap berjalan pada store of value energy , pilihan saham yang dapat aliran uang. Kelihatan koq yang mana yang dapat aliran uang nya. 
 
-Kami dari mentorbaik berusaha terus memberikan gambaran se objective mungkin tentang keadaan yang terjadi. Kami akan bilang buruk kalo itu memang buruk dan sebaliknya kami akan bilang baik saat keadaan memang baik. 
 
+Btw , lagi-lagi BTC buat saya jadi sinyal yang menarik saat ini. Di saat gonjang - ganjing perang yang luar biasa tapi tuh asset anteng mondar mandir di 65k ke 72k . Yah sepertinya lagi proses bikin base di bawah 
 
-Kami terus konsisten dengan apa yang sudah kami sampaikan sebelumnya. Selama tidak ada yang berubah , selama semua hanya temporary maka kami akan teruskan perjalanannya sampai finish. 
 
-
-Kami tau di luar sana mulai digandrungi suatu keadaan yang saya sebut DISBELIEVE. Suatu keadaan yang memang biasa terjadi pasca banyak pelaku pasar dipukul telak habis2x an
-
-
-Gimana tandanya ?
-
-
-Anda akan ketemu nanti banyak yang bicara begini
-
-
-apa iya yah ini bisa come back lagi
-
-
-apa iya yah kalo ini bisa diberesin
-
-
-apa iya yah ga ada hal buruk lagi
-
-
-apa iya yah ini ga akan turun lagi
-
-
-apa iya yah MSCI game play masih akan jalan
-
-
-apa iya yah konglo masih bisa main
-
-
-apa iya yah ......
-
-
-apa iya yah ......
-
-
-DISBELIEVE ini akan menciptakan sebuah SKEPTIS yang sangat besar terhadap semua yang terjadi. 
-
-
-Semua hal baik yang besar maupun yang remen temeh , semua hal baik yang punya esensi atau tidak , semua hal yang penting maupun tidak penting akan dipertanyakan sampai detail banget
-
-
-Semua seakan masih ga percaya akibat gebukan parah kemarin. 
-
-
-Saya yakin juga banyak thesis di mentorbaik juga akan dipertanyakan kembali validitasnya. Apakah masih on track ? apakah masih bisa ini itu ? Kami ga bilang thesis kami pasti jadi yang benar and terbaik , tapi kami tetap berjalan dalam kesunyian kembali
-
-
-Kami adalah pihak yang terbiasa jalan dalam kesunyian dan kesepian. Kami adalah pihak yang terbiasa selalu dipertanyakan dan diragukan thesisnya 
-
-
-Bahkan kami juga sudah terbiasa di posisi yang kena cibiran and nyinyiran . Kami tetap survive bukan ?
-
-
-Kami sadar kami akan balik jadi LONE WOLF kembali saat di luar sana sedang terjadi DISBELIEVE
-
-
-Saya suka banget satu kalimat terakhir dari mas Rizza saat kita nongki bareng
-
-
-" mas , kalo kita sudah dalam posisi cuma kita sendiri and kita berdiri sendiri atas thesis kita , kalo thesis kita banyak dipertanyakan , kalo di luar sana yang tadinya thesisnya sama dengan kita dan gugur semua maka tandanya itu kita lagi di jalan yang benar. Dan sudah saatnya kita jadi LONE WOLF lagi "
-
-
-Will see yah. Kita lihat perkembangan di depan
-
-
-Semua thesis yang kami berikan rasanya sudah cukup relevan buat jalan ke depan. Kejadian kemarin mah anggap aja kena lampu merah saat ada perempatan di jalan
-
-
-Biasa lah , Market merah adalah market hijau yang tertunda
-
-
-Saya tutup artikel ini dengani saya akan coba memberikan 2 quote yang bagus 
-
-
-YOU WON'T BELIEVE IT UNTIL YOU SEE IT
-
-
-and
-
-
-BULL MARKET are BORN on PESIMISM , GROWTH on SKEPTISM , MATURE on OPTIMISM and DIE on EUPHORIA
+FYI , yah saya juga sudah mulai melempar jala kas saya ke market 
 
 
 
 
 
 Ricky2212
-
 
 """,
     },
@@ -427,8 +538,8 @@ Ricky2212
         "title": "BERJIBAKU dengan MARKET",
         "category": "market_regulation",
         "subcategory": "policy",
-        "themes": ['ojk', 'bei', 'regulation', 'free_float', 'konglo', 'policy'],
-        "tickers": ['BUMI.JK'],
+        "themes": ["ojk", "bei", "regulation", "free_float", "konglo", "policy"],
+        "tickers": ["BUMI.JK"],
         "quad_bias": None,
         "regime_signal": "regulatory_uncertainty",
         "priority": 7,
@@ -619,732 +730,352 @@ Ricky2212
 
 """,
     },
-    "rkab_coal_journey": {
-        "title": "Perjalanan di mulai ? Point thesis RKAB menunggu ketok palu",
-        "category": "macro_thesis",
-        "subcategory": "coal_policy",
-        "themes": ['rkab', 'coal', 'bahlul', 'production_cut', 'supply_constraint'],
-        "tickers": ['AADI.JK', 'BUMI.JK', 'INDY.JK', 'ITMG.JK'],
-        "quad_bias": 'Q2',
-        "regime_signal": "supply_shock",
-        "priority": 9,
-        "author": "Ricky2212",
-        "source": "mentorbaik",
-        "content": """
-Perjalanan di mulai ? Point thesis RKAB menunggu ketok palu 
-
-Perjalanan di mulai ? 
-
-
-
-
-Masih ingat artikel yang saya angkat beberapa minggu lalu tentang store of value di sektor energi ? 
-
-
-Masih ingat thesis nya ? coba cek lagi dari thesis tersebut ada beberapa faktor kenapa saya menaikkan energy sebagai thesis store of value
-
-
-Cek yah , salah satu point dari thesis store of value energt tersebut adalah Om Bahlul berencana memotong produksi batubara nasional kita. Produksi tersebut rencananya akan Deeply CUT dari 750 juta ton akan disesuaikan ke 550-600 juta ton. 
-
-
-Apa efek nya ? dengan begitu supply di luar akan sedikit banyak berkurang lah yah. 
-
-
-Game play ini sebenernya mirip banget dengan apa yang om Bahlul lakukan di Komoditas Nickel beberapa waktu lalu. Sukses ga kebijakan ini di nickel ? saya boleh bilang kebijakan tersebut terbilang sukses. Lihat saja tuh sekarang harga nickel berapa. Harga nickel naik and mulai stabil 
-
-
-Kelihatannya kebijakan penyesuain RKAB di batubara inI kalo tidak ada masalah and aral melintang lagi harusnya akan segera efektif and diberlakukan. 
-
-
-Kenapa saya bisa bilang begitu ? saya coba melihat data saham2x batubara yang diperdagangkan di bursa china. Pada perdagangan kali ini saham2x batubara di china mengalami kenaikan yang cukup lumayan sih diatas 5% bahkan ada yang naik 10-12% juga
-
-
-Setelah saya cari berita di luar , kenaikan saham batubara di china tersebut alasannya karena Indonesia akan melakukan CUT produksi batubaranya ( sumber berita luar )
-
-
-Ternyata saya juga menemukan berita dari sekuritas Stockbit bahwa merujuk dari berita bloomberg katanya RKAB yang kemarin sempat berceceran tersebut kemungkinan besar benar akan di implementasikan
-
-
-Saya juga dapat kabar dari salah satu teman saya bilang bahwa dia dapat berita dari salah satu perusahaan batubara listed mengungkapkan hal yang sama
-
-
-YUUUUUUHHHHHUUUUUU
-
-
-Masih ingat RKAB nya ? siapa yang produksi batubara nya tetap dan tidak kena potong ? merujuk dari berita dari Bloomberg yang diterbitkan Stockbit katanya ada 3 perusahaan yang produksinya tetap
-
-
-Ketiga perusahaan itu adalah AADI , BUMI dan INDY
-
-
-Pak , koq enak yah ketiga perusahaan tersebut tidak dipotong ? masalah politik kedekatan yah pak ? tidak juga , kalo melihat ketiganya adalah pemegang izin konsesi IUPK. IUPK itu mengenakan royalty batubara 28% ( paling besar dari izin yang lain ). Makanya tidak dipotong agar pemasukan negara bukan pajak nya dari royalty batubara tetap terjaga. Alasan lainnya pemegang IUPK sudah dibebankan banyak biaya ini itu , yah anggap saja itu bagian dari kompensasinya lah dari negara.
-
-
-Perjalanan thesis kita dimulai ? 
-
-
-INDY ? 
-
-
-BUMI ?
-
-
-AADI ? 
-
-
-ketiganya diuntungkan dalam hal ini. Mereka sedikit banyak nantinya akan menikmati kenaikan harga batubata dengan produksi yang tetap
-
-
-Perusahaan batubara lainnya ? penurunan produksi batubara nya mungkin nantinya akan ke offset oleh kenaikan harga batubara. 
-
-
-BUMI ? Satu thesis MSCI di february 2026 mungkin sudah gugur , tapi thesis lainnya yaitu store of value energy datang menghampiri 
-
-
-We dont need MSCI lah yah , anggap aja bonus kalo memang nanti masuk MSCI . 
-
-
-Buat perusahaan batubara lainnya ? saya belum tau RKAB persisnya yang akan di sah kan. 
-
-
-Tapi gini , saya coba ambil satu contoh saja satu perusahaan batubata yang saya kenal lumayan mendalam. 
-
-
-Dalam RKAB nya setelah saya hitung produksi mereka dipotong dari hampir 50% jadi sekitat 13 juta ton per tahun
-
-
-ITMG juga suka membeli batubara dari pihak luar buat blending batubara yang ada
-
-
-Saya coba buat perbandingan penjualannya
-
-
-asumsi harga spot batubara RKAB lama $110 dan asumsi harga spot batubara RKAB baru $150
-
-
-RKAB lama produksi 20 juta ton dengan pembelian pihak luar 3 juta ton => 23 juta ton
-
-
-23 juta ton x $80 ( 70% spot ) => sales 1.85 bio saya ambil NPM 20% maka NP adalah $370 juta
-
-
-EPS sekitar 5000 - 5500 an
-
-
- 
-
-RKAB baru produksi 13 juta ton dengan pembelian pihak luar 2 juta ton => 15 juta ton
-
-
-15 juta ton x $110 ( 70% spot ) => sales 1.7 Bio
-
-saya ambil NPM pesimis 25% ( harga naik harusnya mungkin bisa 30% NPM ) maka NP adalah $425 juta
-
-
-EPS sekitar 6000 an
-
-
-Ini contoh coret2xan sederhana saya aja yah , saya coba bikin sedikit perbandingan aja dan gimana efeknya. Jangan terpaku oleh hitungan diatas
-
-
-Mari kita tunggu perjalanan di depan yah , kita lihat perjalanan store of value energy apakah sukses atau tidak ( saya sih kalo melihat semua data pendukung baik makro atau others yah kita mengarah kesana )
-
-
-Trump nyeleneh perang => sedang berlangsung
-
-
-Monetary nyeleneh => sedang berlangsung
-
-
-cuaca extreme => sedang berlangsung
-
-
-USD debasement => sudah berlangsung sejak lama
-
-
-Om bahlul ? ini kita tunggu efeknya kalo sampai diketok palu RKAB baru
-
-
-Tetap berjalan pada thesis store of value , itu narrative terkuat nya ( kalo bisa sekalian tambahin narrative 08 related )
-
-
-Jangan nanya saham di luar pembahasan ini , jangan suru saya milihin saham yah and jangan nanya price action
-
-
-
-
-
-
-Ricky2212
-
-""",
-    },
-    "hero_blame_08nomics": {
-        "title": "Saat semua baik , pahlawan dipuja. Saat semua buruk , harus ada yang disalahin",
-        "category": "macro_thesis",
-        "subcategory": "political_economy",
-        "themes": ['08-nomics', 'danantara', 'patriot_bond', 'fiscal', 'mbg', 'political_economy', 'indonesia'],
-        "tickers": ['BBCA.JK', 'BBRI.JK', 'BMRI.JK', 'TLKM.JK', 'ASII.JK'],
+    "bottom_anatomy_pain": {
+        "title": "BOTTOM ( Tempat yang Paling Menyiksa dan Paling Menguntungkan di Dunia Investasi )",
+        "category": "market_psychology",
+        "subcategory": "sentiment",
+        "themes": ["bottom", "pain", "capitulation", "denial", "anger", "contrarian", "psychology"],
+        "tickers": [],
         "quad_bias": None,
-        "regime_signal": "structural_reform",
-        "priority": 9,
+        "regime_signal": "capitulation",
+        "priority": 8,
         "author": "Ricky2212",
         "source": "mentorbaik",
-        "content": """
-Saat semua baik , pahlawan dipuja. Saat semua buruk , harus ada yang disalahin
+        "content": """Artikel: BOTTOM ( Tempat yang Paling Menyiksa dan Paling Menguntungkan di Dunia Investasi )
 
-Saat semua baik , pahlawan dipuja. Saat semua buruk , harus ada yang disalahin
+BOTTOM ( Tempat yang Paling Menyiksa dan Paling Menguntungkan di Dunia Investasi )
 
+BOTTOM ( Tempat yang Paling Menyiksa dan Paling Menguntungkan di Dunia Investasi )
 
 
 
 
+Sebelum saya mulai , saya lagi seneng banget sama quote yang saya buat ini. 
 
-Belakangan saya lagi rajin banget cek lini masa di bawah. Saya memang concern banget akan hal ini mengingat dari sini nanti saya bisa tau temperature market. Saya bisa tau seberapa desperate di bawah saya melihat keadaan yang sedang berjalan. 
 
+Saya tau banyak yang lagi nyari2x bottom pada saat kejatuhan market ini, karena pingin langsung mengambil action
 
-Saat semua keadaan lagi baik dan menguntungkan , seorang pahlawan akan dipuja mati2x an sampai kalo perlu disembah2x lah tuh. 
 
+"Tidak ada yang bisa menebak Bottom suatu pasar , tapi biasanya bottom itu terjadi saat sebuah keadaan itu SANGAT SAKIT , SANGAT PAINFULL SAMPAI MEMBUAT FRUSTASI. Tidak ada bottom yang tercipta dengan enak bro , sakit nya bottom itu harus anda hadapi karena dari sana anda nanti bisa dapat daging nya."
 
-sebaliknya
 
+= Ricky2212 =
 
-Saat semua keadaan berubah jadi buruk dan menguras uang kita , mereka jadi target pertama kena hujat habis2x an
 
+Nah tuh Quote nya
 
-Seperti biasa , kalo keadaan buruk maka harus ada yang dipersalahkan dan di kambing hitam kan.
 
+Saya coba tulis quote itu bukan untuk gagah-gagahan sih. Saya tulis quote itu memang karena itu adalah kenyataan paling jujur tentang bagaimana market bekerja yang jarang sekali ada yang mau bicara terus terang.
 
-Hasil yang saya tangkap beberapa hari ini adalah kita sedang pada tahap ke arah desperate. Mulai banyak yang mengeluh bahkan ada yang uang nya sampai tidak bersisa lagi. 
 
 
-Suatu keadaan yang berbalik , padahal beberapa waktu lalu semua lagi bersorak sorai kegirangan tanpa henti.
+Semua orang mau dagingnya. Tapi hampir tidak ada yang mau bayar harganya dan harganya bukan uang. Harganya adalah rasa sakit saat semua melihat sebuah kehancuran pasar. wkwkwkw
 
 
-Kita tidak sedang berbicara seorang influencer yah , karena bukan hal yang krusial and vital buat merubah sebuah keadaan. Mereka adalah partisipan yang datang sebagai AKIBAT bukan karena SEBAB nya. 
+Kenapa Bottom Selalu Menyiksa ?
 
 
-Saya bicara di level pemegang kepentingan and pemangku kebijakan yang nota bene punya pengaruh dalam perjalanan. Mereka adalah pembuat SEBAB nya sebuah perjalanan
+Sudah hafal quote Warren Buffett kan 
 
 
-Awal perjalan kita dimulai saat 08 mengambil alih tampuk pimpinan memimpin negara. Saat itu banyak yang negative terhadap dipilihnya 08 memimpin negeri ini ( rata2x inpluencer bicara indonesia suram )
+"be fearful when others are greedy , be greedy when others are fearful."
 
 
-Kalo teman2x sadar juga , 10 tahun belakangan tuh bursa kita tumbuh mediocre. Bahkan sangat sangat mediocre. Parah sih pertumbuhan indeks kita
+Semua orang hafal quote legend tersebut. Semua orang setuju dengan quote tersebut dan Semua orang angguk-angguk waktu dengar quote itu di seminar atau di YouTube.
 
 
-Pertumbuhan yang digadang2x 10 tahun 5% tuh ga tercermin di bursa ( katanya kan bagus tuh ). 
+Tapi kenapa setiap kali market crash yang beli di bottom itu tetap segelintir orang saja ? gayanya aja lah yah dibanyakin ( tapi semoga di MB ga begitu yah )
 
 
-Menkeu yang juga selama 10 tahun mengawal juga katanya kan salah satu yang terbaik di dunia , tapi sejatinya yang di lakukan sangat tidak pro growth
+Kenapa mayoritas justru jual di bawah dan beli lagi setelah harga sudah naik tinggi ? 
 
 
-Ditambah lagi saat itu 08 sering bicara "nyeleneh" dengan bilang Bursa adalah tempat judi lah , Bursa cuma buat orang kaya lah. bla bla bla hopla dan banyak lagi bahasa yang mendiskreditkan bursa
+Kenapa siklus yang sama terus berulang generasi demi generasi tanpa pernah belajar ?
 
 
-Saya sempat telurkan sebuah thesis dan Saat itu saya jabarkan apa yang saya namakan 08-Nomics ( Baca lagi artikel nya terdahulu, saya jelaskan semua hal sampai detail. )
+Karena ada jurang yang sangat dalam antara tau dan bisa melakukan.
 
 
-Dari penjelasan saya yang saya buat berdasarkan apa yang 08 coba rencanakan adalah memang sebuah kebijakan yang arah ekonomi nya adalah Pro Growth. Bahkan kalo memang bener itu dijalankan dengan baik , maka harusnya kita akan ker arah lebih baik
+Semua pada Tau itu kalo hal itu keliatan mudah. 
 
 
-Kita sudah puluhan tahun terjebak lingkaran setan middle income Trap. Indonesia sempat naik kelas ke middle income dan itu terlihat banget dari pola konsumsi kita
+Buku bisa mengajarkannya dalam satu malam.
 
 
-Indo jadi pusat penjualan ponsel terbesar dunia
+Seminar bisa menyampaikannya dalam dua jam.
 
 
-Indo jadi basis penjualan otomotif di asia
+Bisa melakukan itu butuh sesuatu yang jauh lebih mahal dari pengetahuan. Semua Itu butuh pengalaman , semua Itu butuh mental yang sudah ditempa. Gimana mau beli bottom , kalo turun sedikit aja langsunh DM saya buuaaanyaak banget
 
 
-Indo jadi negara konsumsi semua hal yang berbau sekunder
+Dan semua itu butuh kejujuran yang dalam terhadap diri sendiri tentang siapa kamu sebenarnya sebagai investor. 
 
 
-Nah sudah saatnya kita harus naik kelas setelah lama babak belur. Kita harus keluar dari zona nyaman middle income country.
+> Anatomi rasa sakit berlapis itu seperti kulit bawang
 
 
-Sejak saya telurkan thesis 08-nomics yang saya yakin 08 akan mengarahkan ekonomi ke pro growth saat itu perjalanan apa yang 08 canangkan terlihat bagus dan serasa di respon oleh market dengan baik
+Bottom tidak datang sekaligus. Dia tidak mengetuk pintu dan memperkenalkan diri. 
 
 
-Indeks kita yang tadinya mediocre di asia , pasca kejatuhan April Trump Liberation day malahan jadi salah satu perjalanan come back yang terbaik di dunia 
+Dia datang pelan-pelan dan mengupas kamu lapis demi lapis sampai kamu benar-benar di titik paling rapuh.
 
 
-Saat itu saya ingat indeks kita babak belur sampai jatuh ke 56xx an dan akhirnya come back ke 7xxx an dengab singkat dan cepat. 
+Lapis pertama adalah DENIAL
 
 
-Tidak ada yang menduga akan hal ini. Udah dinyinyirin banyak pihak di luar , ditambah trump liberation day tapi perlahan market merespon lain
+Pasar turun 10-15%. Masih enak. Masih ramai. Grup-grup investor masih penuh analisa dan semangat. Semua orang berlomba-lomba averaging down sambil bilang 
 
 
-Walau ini bukan real market ( tetap saya sih bilang ini bukan real economy ) , tapi gebrakaj di market berasa beda saat 10 tahun yang kemarin.
+ "ini kesempatan emas "
 
 
-Perjalanan sempat tertantang lagi saat salah satu posisi vital di negara yaitu Menkeu ternyata di Reshuffle oleh 08. 
+Analis di luar sana masih berasa pada titim optimis. 
 
 
-Saat itu menteri keuangan yang dikenal cerdas and flamboyan ( iya dulunya begitu , tapi 10 tahun terakhir buat saya malah ga terlihat ) harus digantikan oleh seorang yang baru dan belum dikenal oleh publik. Dia lah Purbaya Yudhi Sadewo yang akhirnya menerima tongkat estafet menjalanankan posisi vital dalam mengelola keuangan negara
+Berita masih campuran. Portofolio merah tapi masih terasa seperti koreksi biasa yang akan segera pulih.
 
 
-Seketika market jatuh dalam merespon hal tersebut. Mereka merasa kapabilitas Pak Pur ga sebanding dengan Ibu Srimul dan ini jadi berasa tidak baik buat negara Indo
+Di titik ini hampir tidak ada yang sakit. Semua masih merasa smart. Semua masih merasa sedang melakukan hal yang benar.
 
 
-Saat itu semua di luar sana lagi2x skpetis bahkan cenderung nyinyir lagi akan hal ini
+Itulah yang berbahaya dari lapis pertama ini. Dia terasa seperti peluang padahal bisa jadi awal dari perjalanan panjang yang jauh lebih dalam. 
 
 
-Saat semua keadaan lagi baik dan menguntungkan , seorang pahlawan akan dipuja mati2x an sampai kalo perlu disembah2x lah tuh. 
+Kalo belum berasa sakit maka belum datang itu bottom.
 
 
-sebaliknya
+Lapis kedua adalah ANGER.
 
 
-Saat semua keadaan berubah jadi buruk dan menguras uang kita , mereka jadi target pertama kena hujat habis2x an
+Turun 15-20%. Nah di sinilah mulai terasa.
 
+Mulai ada yang marah. Marah ke market maker yang dianggap manipulasi.
 
-Seperti biasa , kalo keadaan buruk maka harus ada yang dipersalahkan dan di kambing hitam kan.
 
+Marah ke pemerintah yang kebijakannya dianggap salah.
 
-Saat itu saya malah bilang ke beberapa teman2x saya bahwa ini lah yang Indonesia butuhkan ke depan. 08 itu pro growth tapi masalah nya masa harus bekerja sama dengan menkeu yang tidak pro growth ( isinya hanya hutang and pajak melulu ). Saya sampaikan bahwa ini akan jadi perjalanan yang baik buat bursa kita di depan ( apalagi pak Pur itu orang bursa juga )
 
+Marah ke analis yang rekomendasinya meleset jauh. 
 
-Dan dari situ saya melihat ada 3 komponen vital yang sedang dipersiapkan
 
+Marah ke influencer saham yang tiba-tiba menghilang. 
 
-Danantara => engine of growth yang akan jadi pusat pusaran utama semua nya
 
+Dan paling dalam adalah marah ke diri sendiri.
 
-Ketahanan energi => setelah sekian lama lifting minyak kita turun terus , 08 mau membuat industri ini jauh lebih baik
 
+Kenapa tidak jual dari dulu ? Kenapa tidak dengar tanda-tanda awalnya ? Kenapa terlalu serakah ?
 
-Ketahanan pangan => Pangan adalah kebutuhan basic yang paling utama dalam hal pemerataan ekonomi.
 
+Tapi perhatikan satu hal kalo marah itu masih punya energi. Orang yang marah masih percaya situasi akan berbalik. Mereka masih hold tapi dengan kepalan tangan dan rahang yang mengeras.
 
-Industrialisasi => menjalankan semua hilirisasi yang akan menopang ekonomi 
 
+Dan selama masih ada energi maka bottom belum terbentuk. 
 
-Semua ini adalah modal dasar yang dipegang agar pertumbuhan ekonomi lebih maju. Cek saja tuh negara maju , semua aspek diatas itu jadi concern
 
+Lalu datanglah titik yang paling brutal dari semua lapis ini yaitu
 
-Apakah ini jadi progran roro jonggrang ? Bukan , ini progran tuh bakal butuh banyak waktu buat dijalanakan. Bangun fondasinya aja butuh waktu agar bisa mendapatkan fondasi yang kuat.
 
+Capitulation.
 
-Perlu dicatat yah and digaris bawahi , ini program tuh ga bisa secara cepat di implementasikan
 
+Ini bukan sekedar titik di chart. Ini adalah momen psikologis yang paling dalam dan paling jarang dipahami orang.
 
-Satu hal lagi bahwa semua program ini jelas butuh biaya besar. Dari awal sudah terlihat bahwa kita akan sedikit kedodoran nanti di fiskal
 
+Capitulation terjadi ketika orang yang paling sabar akhirnya menyerah. Investor yang dari awal bilang
 
-Makanya dari sana agar Fiskal walau jebol tapi tetap di level aman , makanya Danantara dibentuk dan mengambil peran ini
 
+ "saya main jangka panjang koq dan saya tidak terpengaruh volatilitas" 
 
-Saya sampai bikin thesis khusus Danantara and Patriot Bond dalam beberapa artikel
 
+pada akhirnya jual juga karena tidak tahan melihat angka merah datang setiap hari. 
 
-Saya bilang dalam thesis saat itu konsepnya dari konglo untuk konglo dan hasilnya nanti untuk semua dinikmati mulai dari danantara , negara , sampai pertumbuhan ekonomi. 
 
+Mereka yang averaging down dari harga tinggi pun akhirnya harus cut loss besar karena takut tidak ada habisnya.
 
-Dari perjalanan tersebut , saya sempat katakan bahwa uang akan banjir di Indonesia. Uang asing ? bukan uang asing yang masuk , dari uang abu2x konglo aja yang dibawa masuk ke Indo tuh sudah cukup bikin licin uang di indo
 
+Dan ini tahap yang paling menyedihkan mereka yang jual di capitulation seringkali adalah investor yang paling paham fundamentalnya. 
 
-Gilanya saat itu saya juga sampaikan bahwa nanti uang itu juga yang akan mengalir sampai ke bursa. Sampai saya bilang kalo kita tuh sebenernya ga butuh2x banget uang asing nantinya
 
+Bukan karena mereka tidak tau nilainya. Tapi karena rasa sakit emosionalnya sudah melampaui batas yang bisa mereka tanggung.
 
-Betul adanya Uang itu masuk bursa. Transaksi bursa makin besar dari waktu ke waktu. 
 
+Volume jual meledak dalam waktu singkat yang nantinya membuat harga ambrol tajam. 
 
-Bursa naik ? Gilaa sih bursa kita naik tak tertahankan dan tanpa henti. Even berita buruk saja kaya perang venezuela , kenaikan yield obligasi jepang juga tidak bisa menyetop kenaikan significant IHSG
 
+Berita di mana-mana sangat buruk. Semua analis yang sebelumnya bullish sekarang kompak ganti haluan jadi bearish. 
 
-bayangkan IHSG naik sampai 9200 dari yang tadinya anteng2x aja di kisaran 7xxx an. Saat kenaikan tersebut investor asing terus mencatatkan nett sell luar biasa
 
+Media massa pasang headline tentang kehancuran ekonomi. 
 
-Bayangkan anda berpesta pora besar akibat kenaikan luar biasa indeks , tapi yang biasanya jadi koki ( uang asing ) malah ga diajak pesta even nyicipin masakannya. 
 
+Grup-grup investor yang tadinya ramai kini sunyi senyap seperti kota yang ditinggalkan.
 
-Uang asing tersebut cuma bengong melihat kenaikan bursa kita yang luar biasa. Mereka benar2x melongo loh melihat indeks kita
 
+Dan di puncak rasa sakit yang paling dalam itulah bottom terbentuk.
 
-Kenapa ? karena IHSG kita naik bukan karena sebuah permainan yang wajar. No big Bank , No Old School Funda company yang biasanya asing pada masuk kesini
 
+Bukan karena kondisi ekonomi tiba-tiba membaik. Bukan karena ada berita bagus yang muncul secara ajaib. Tapi semata-mata karena tidak ada lagi yang mau jual. 
 
-Ingat yah , semua kenaikan tersebut terjadi karena 08 - nomics yang membuat semua kebijakan ekonomi , 08 menaruh orang2x kepercayaan nya sampai pada purbaya effect
 
+Semua yang mau jual pada sudah jual tanpa lagi tersisa. Yang tersisa hanya mereka yang entah karena pemahaman yang sangat dalam atau karena sudah benar-benar pasrah memilih untuk diam.
 
-Di elu- elu kan ga tuh ? sekejap banyak yang memuja- muji 08 dan Pak Pur seakan jadi pahlawan buat para retail di bursa. 
 
+Dan saat tidak ada lagi penjual maka sedikit saja pembeli paling kecil pun sudah cukup untuk menggerakkan harga naik.
 
-Saat itu ingat ga kalo banyak yang mulai bilang kita ga butuh asing , selama ada pak Pur tenang aja , danantara + 08 + Pak Pur lagi memasak di ekonomi indonesia
 
+Itulah BOTTOM
 
-Fantastis banyak orang kaya baru dari bursa saham saat itu , banyaj milyuner dari bursa beemunculan dalam sekejap
 
+Lahir bukan dari optimisme tapi dari kepasrahan kolektif yang paling terdalam. 
 
-Influncer yang tadinya skeptis and nyinyir lalu bermunculan dengan mengelu-elukan pak Pur and 08 
 
+Secara teori semua orang tau beli saat orang lain takut. Tapi kenapa hampir tidak ada yang bisa eksekusi di momen yang paling kritis itu ?
 
-Bukan, bukan karena ekonomi yang bagus tapi baru melihat optimisme dari sebuah resep makanan doank loh
 
+Karena ada tiga musuh yang muncul bersamaan persis di titik yang paling menentukan 
 
-Kalo jadi asing bakal panas ga tuh melihat itu semua ? njirrrr , gw kaya LOSER. Gw kaya keledai yang dicocok hidung nya , Gw kaya banteng ga punya tanduk ( untuk hal ini saya tau karena beberapa teman saya bekerja di institusi foreign ) . Mereka kebingungan meracik portofolionya sendiri.
 
+Musuh pertama => Social proof yang terbalik.
 
-Apa yang mereka lakukan ? Sudah pasti lah tau bahwa Indo tuh negara punya potensi koq dari segala penjuru. Maka dari itu kita ga boleh ketinggalan pestanya
 
+Manusia adalah makhluk sosial. Sejak zaman purba bertahan bersama kelompok adalah strategi survival yang paling efektif. Mereka selalu mencoba membentuk koloni untuk mencari sebuah keyakinan dalam hidupnya
 
-Pake apa ? Pakai berita buruk aja ga bisa menahan laju pasar saham Indonesia , jadi harus pakai apa lagi ?
 
+Naluri itu tertanam sangat dalam di otak kita dan tidak bisa dihapus hanya dengan membaca buku investasi.
 
-MSCI jadi pasukan pertama mereka yang muncul dengan membuat sesuatu yang besar dengan memberikan thesis market Indonesia mau di Down grade ke Frontier market ( sesuatu yang menurut saya sifatnya terlalu HALU ). 
 
+Di area titik bottom seluruh kelompok di sekitar kita kompak bergerak ke satu arah. Mereka melakukan aksi Jual dan Keluar dari pasar sambil bilang Tunggu dulu karena Situasi makin memburuk. Makanya banyak yang nyebut ini sebgai Weak Hand
 
-Indonesia dengan size ekonomi 15 besar dunia masa mau dimasukkan Frontier market yang isinya negara2x yang ekonomi nya size nya kecil banget
 
+Melawan arus itu bukan cuma soal logika tapi itu melawan naluri paling primitif manusia. Dan naluri itu jauh lebih kuat dari analisa fundamental manapun saat tekanan emosionalnya sedang di puncak.
 
-Bla bla bla , market benar adanya seketika jatuh dalam akibat hal tersebut.
 
+Itulah kenapa beli di bottom itu terasa seperti melakukan sesuatu yang salah padahal secara rasional itu adalah hal yang paling benar. 
 
-Selanjutnya pasca MSCI memberikan thesis tersebut , big boyz melanjutkan memberikan down grade terhadap bursa kita 
 
+Contrarian dianggap sebagai action yang tabu. 
 
-Mulai dari Goldman Sachs , UBS , Nomura langsung memberikan downgrade dengan alasan Indo akan kena Effect dari kebijakan MSCI tersebut
 
+Musuh kedua => Availability bias.
 
-Masuk akal alasanya ? Lah kan dikasih batas sampai bulan Mei 2026 , belum tentu ke down grade loh masa alasannya kaya sudah di down grade aja negara Indonesia. 
 
+Otak manusia secara default memberikan bobot yang jauh lebih besar pada informasi yang paling mudah diakses dan paling vivid secara emosional.
 
-Saya pribadi mulai mencium nih ada udang di balik bakwan nih masalah MSCI. Ada invisible hand yang memang dari awal pngin iikutan pesta di Indonesia ( itu asing2x diatas lah )
 
+Dan di titik bottom itu informasi yang paling vivid adalah kerugian yang sudah terjadi di depan mata , berita buruk yang terus mengalir dari semua platform , dan memori pahit dari setiap keputusan beli yang terlihat salah.
 
-Makin kentara banget langsung tidak lama kemudian Moodys mengeluarkan thesis menurunkan Rating outlook Indonesia. 
 
+Otak kita secara otomatis ekstrapolasi semua itu ke masa depan. Kita pikir karena sudah turun 20% maka selanjutnya market masih bisa turun 20% lagi. Bahkan malah bisa turun 30%. bahkan malah bisa turun lebih jauh . 
 
-Dengabln berbagai alasannya baik dari kebijakan fiskal yang ga prudent , darI faktor MSCI lah yang juga dipakai sebagi thesis pada akhirnya moodys bersuara lewat down grade nya tersebut
 
+Kita tidak berpikir secara probabilitas tapi kita berpikir secara trauma.
 
-WTF , buat saya jelas ini ada kepentingan yah ( buat saya yah, tapi kita lihat saja ) . Makin diperjelas lagi saat moodys juga mendown grade beberapa saham di Indo
 
+Padahal data historis bicara hal yang sangat berbeda. Setiap crash dalam sejarah tanpa satu pun pengecualian pada akhirnya nanti akan diikuti recovery. 
 
-Saham apa yang di down grade ? 5 perbankan kita dan beberapa old school funda company kaya TLKM , ASIi 
 
+Pertanyaannya bukan apakah akan recover. Pertanyaannya hanya berapa lama akan recover nantinya
 
-Paham ? harusnya teman2x paham lah yah. Asing itu kalo masuk tuh ga bakal ke saham konglo tapi saham2x tersebut diatas.
 
+Musuh ketiga => Regret aversion.
 
-Njiirrrr Damn ini sih memang kita lagi kena obok2x di sektor keuangan bursa kita akibat ada koki yang biasanya diajak pesta tapi malah ditinggalin
 
+Ini yang paling jahat. Dan paling sering tidak disadari karena bersembunyi di balik kedok kehati-hatian.
 
-Saat saham jatuh kemarin ? mulai lah dibawah kasak kusuk dah tuh. 
 
+Bukan takut rugi tapi karena secara rasional kita tau market akan recover. Yang ditakuti adalah sesuatu yang jauh lebih personal dari itu.
 
-Saya melihat pola yang sama kembali. Saat semua mulai desperate maka mulai lah mencari siapa yang bisa disalahkan
 
+Kita jadi takut terlihat bodoh. Takut salah timing di depan orang-orang sekitar. Takut harus mengakui kepada diri sendiri dan orang lain bahwa kita beli terlalu cepat dan harga masih turun lagi setelahnya.
 
-Sampai pada pak pur dan 08 yang tadinya dipuja - puja saat indeks naik dari 7xxx an ke 9200 , sekarang mulai jadi sasaran tembak
 
+Ego kita bukan analisa kita yang menghalangi eksekusi di momen paling penting itu.
 
-Mengacu apa yang saya coba riset dari apa yang terjadi dibawah lini mas , mulai tuh bilang 
 
+Dan ironinya itu ego yang sama itulah yang kemudian membuat kita menyesal berbulan-bulan kemudian saat melihat harga sudah naik jauh dari titik yang tadinya kita ragu untuk masuk. 
 
-÷ bener juga kata moodys , kita tekor anggaran
 
+The Pain is The Point
 
-÷ bener juga kata moodys , kita ga bisa kelola anggaran
 
+Ini wisdom terdalam dari semua pembahasan ini dan saya ingin kamu benar-benar merenungkannya 
 
-÷ bener kata moodys kalo kita tidak ada transparansi atas kebijanan
 
+Rasa sakit bottom bukan hambatan menuju daging. Rasa sakit itu adalah dagingnya.
 
-÷ nih gara2x MBG nih jadi semua ga jelas gini
+Coba bayangkan sebuah dunia alternatif di mana bottom terbentuk dengan perasaan enak. Di mana semua berita positif. Di mana semua orang optimis. Di mana masuk ke market terasa menyenangkan dan tidak ada yang dipertanyakan.
 
 
-÷ nih menkeu nya juga sebenernya punya andil akan semua hal ini
+Di dunia itu semua orang sudah masuk duluan. Tidak ada lagi yang tersisa untuk anda. Karena kalau tidak sakit maka tidak ada barrier to entry. 
 
 
-Fix , dari sini saya mencium sebuah keadaan desperate. Semua sedang menyalahkan dan mempermasalahkan yang tadinya sama sekali tidak jadi masalah 
+Dan kalau tidak ada barrier to entry maka tidak ada premium yang bisa kamu dapatkan.
 
 
-Itu memang sudah jadi kebiasaan kalo lagi rugi dan dari sana harus ada yang dipersalahkan.
+Premium return selalu ada di premium discomfort. 
 
 
-Suara sumbang bahwa program2x 08 itu banyak KKN dll , banyak diambil si ini dan si itu banyak banget lah. 
+Selalu berulang anpa pengecualian dan tanpa bisa ditawar. 
 
 
-Semua hal yang tadinya baik2x saja , sekarang jasi terlihat buruk saat keadaan lagi buruk
+Sejak pasar modal pertama kali ada sampai hari ini Investor yang paling sukses sepanjang sejarah bukan mereka yang paling pintar secara analisa. Bukan yang punya akses informasi paling cepat. Bukan yang punya modal paling besar. Tapi mereka yang punya toleransi rasa sakit yang jauh di atas rata-rata.
 
 
-Buat saya mah simple bro , lo bicara politik and kekuasaan tuh ga jauh dari yang namanya KKN. 
+Mereka yang bisa duduk diam sambil portofolio merah 20% dan masih bisa berpikir jernih karena mereka tau persis apa yang mereka pegang , kenapa mereka memegangnya , dan berapa nilai sesungguhnya dari yang mereka pegang.
 
 
-Menurut ahli politik ternama , Politik itu tujuannya berkuasa and menguasai. Menguasai apa ? yah semuanya lah. 
+Lalu Apa yang Bisa Dilakukan ?
 
 
-Buat saya pribadi simple , yang penting seberapa persen dan seberapa besar efeknya nanti ke bawah. Yang bawah harus tetap kebagian and ngerasain juga
+Tidak ada rumus ajaib. Tidak ada indikator yang bisa kasih sinyal pasti bahwa ini bottomnya. Siapapun yang bilang bisa maka bisa dipastikan itu bohong.
 
 
-Jangan cuma dimakan diatas tapi di bawah di keringin tanpa kebagian ( kaya 10 tahun kemarin )
+Tapi ada hal-hal yang bisa mempersiapkan kamu jauh sebelum badai datang. 
 
 
-Dari sini saya ingin coba lagi menyampaikan apa yang saya pikirkan yah
+Bangun conviction sebelum crash. Pahami betul cerita besar yang kamu pegang. Kenapa kamu beli. Apa thesisnya. Kalau kamu tidak bisa jelaskan thesis kamu dalam kondisi tenang dan kepala dingin maka kamu tidak akan bisa pertahankan conviction kamu di tengah badai emosi yang paling kencang.
 
 
-Saya coba balik lagi dengan thesis awal saya mengenai 08-nomics and Danantara serta fondasi utama 08 nomics
+Siapkan cash sebelum crash dan bukan saat crash sudah terjadi. Karena saat crash berlangsung cash bukan cuma alat untuk beli di harga murah. Cash adalah ketenangan mental yang membuat kamu bisa berpikir jernih saat semua orang di sekitarmu sedang panik.
 
 
-=> Dari awal jelas ini semua program dari 08 bukan roro jongrang loh yah. Ini program memang disiapkan buat jangka panjang
+Batasi konsumsi noise. Saat market crash bisa saja semua orang tiba-tiba jadi analis. 
 
 
-=> Next , dari awal tuh 08 juga pahan koq kalo semua program nya tuh butuh ongkos gede bahkan gede banget. Makanya dari sini jelas akan ada korban dari fiskal . 
+Semua orang punya prediksi kapan bottom. Semakin banyak kamu konsumsi semua itu maka semakin sulit kamu berpikir dengan kepala sendiri dan semakin mudah kamu terbawa arus emosi kolektif.
 
 
-Fiskal akan dilonggarkan sedemikan rupa agar bisa dipakai
+Dan yang paling penting adalah ingat sejarah. Yang membedakan hanya seberapa dalam pemahamanmu dan seberapa kuat mentalmu untuk bertahan di tengah prosesnya. 
 
 
-Untuk itu juga 08 sampai bikin patriot bond dan Danantara buat kelola and bantu keuangan negara 
+Sebagai penutup artikel
 
 
-=> Ketahanan energi , bro ini jelas nanti akan jadi project yang akan banyak membantu fiskal indonesia
+Bottom itu bukan soal chart. Bukan soal indikator. Bukan soal analisa teknikal yang paling canggih sekalipun.
 
 
-Bapaknya 08 pernah melakukan hal ini di tahun 1968. Saat itu Indonesia invest besar2x an di hulu migas saat komoditas energy lagi off cycle
+Bottom itu soal mental.
 
 
-1974 saat itu Indonesia ketiban berkah saar minyak naik banyak
+Mental itu tidak dibangun di saat pasar naik dan semua orang senang dan portofolio semua orang hijau. Mental itu dibangun dari membaca , dari belajar , dari memahami sejarah siklus yang berulang , dari menerima dengan ikhlas bahwa rasa sakit adalah bagian yang tidak terpisahkan dari perjalanan seorang investor yang serius.
 
 
-Pertumbuhan ekonomi tumbuh sangat cepat dan fiskal Indonesia jadi gemuk akibat hal tersebut
+Yang tidak mau merasakan sakitnya bottom maka tidak berhak atas dagingnya.
 
 
-Bukankah ini lagi dilakukan ? 
+Market selalu kasih peluang. Tapi market tidak pernah nunggu yang tidak siap.
 
+Dan market memang bukan buat yang cengeng.
 
-energi tuh sangat strategis Kita tekor mulu karena kebanyakan impor minyak dan 08 mau membalikkan hal tersebut jadi bantalan fiskal nanti
 
+Saya juga bukan pihak yang bisa menebak BOTTOM market , tapi saya jadi pihak yang suka sekali mengukur tingkat desperate market. Sampai dimana titik desperate market , dari sana saya bisa berpikir kapan action nya. 
 
-=> ketahanan pangan , Banyak yang menghina MBG . Saya juga termasuk yang skeptis sebenernya akan program ini
 
+Ini bukan ajakan jual beli. Ini refleksi pribadi tentang psychology investasi yang bisa saja berbeda dengan pengalaman masing-masing dari kita
 
-Tapi gini , saya coba angkat issue baiknya yah. 
 
-
-Pangan adalah hal utama dalam kehidupan , kalo kebutuhan dasar ini mampu dipenuhi maka akan tercipta kestabilan sosial yang akan mendorong ekonomi tumbuh
-
-
-Masalah Indonesia ? Indo itu ekonominya ditopang oleh konsumsi ekonomi bawah yang lagi hancur
-
-
-MBG mau mencoba mengambil peran buat menggerakkan hal tersebut. 
-
-
-Bagaimana nanti MBG bisa memastikan kebutuhan pangan sebagai dasar kehidupan terpenuhi
-
-
-Dari sana ada uang yang tadinya jadi pengeluaran konsumen malah bisa disimpan atau bahkan di spending lagi
-
-
-kebutuah dari MBG akan banyak di supply dari bawah juga sehingga terjadi effect multiplier 
-
-
-Ekonomi bawah minimal akan terbantu and bergairah kembali. 
-
-
-Masalah penerapannya ? Program ga jelas ? bro , ini program tuh program baru . Anda semprot program yang kita saja lagi belajar ( kasih aja waktu dulu )
-
-
-Program ambil bagian APBN yang lain ? untuk sementara mungkin ambik bagian yang lain sampai fiskal kita terdongkrak nanti
-
-
-Anda jangan liat MBG nya saja juga , bahkan 08 tuh lagi siapin dari hulu ke hilir nya loh. Jadi nanti tuh cost nya bisa jauh ditekan karena rantai nya dari hulu ke hilir
-
-
-Tuh danantara juga bantu persiapkan semua dari pangan , peternakan sampai pengolahan nya malah sehingga bisa sampai ke tangan penerima manfaat
-
-
-Kalo anda lihat lagi , tuh project nantinya juga akan ciptakan lapangan kerja berapa banyak . multiplier effect ga ?
-
-
-Jadi jangan cuma teriak2x dulu nyalahin , kalo saya lebih memilih skeptis sambil melihat progress nya dulu saja. 
-
-
-Itu aja yang saya bisa bahas , sebagian jadi materi basecamp soalnya. wkwkwkwk
-
-
-Soalnya dari hal tersebut saya makin paham kenapa 08 melakukannya. Ada sesuatu yang memang dia siapkan dalam menghadapi agenda di depan
-
-
-Saya melihat apa yang di agendakan 08 itu akan membawa kita keluar dari jebakan middle income trap. 
-
-
-Dia persiapkan semua sebagai permainan jangka panjang dan ada ongkos yang memang harus dikeluarkan
-
-
-Jadi mau mempercayai Moodys dkk dan menyalahkan 08 dll ? 
-
-
-saya cerita sedikit lagi saja yah
-
-
-Moodys itu yang kasih rating AAA+ buat rating subprime mortgage ( tonton filmnya aja yah) . Bagaimana mereka memberikan rating tersebut atas dasar kepentingan yang diagendakan oleh pihak2x tertentu ( di film tersebut aja di ceritakan )
-
-
-Moodys juga yang kasih rating investment grade beberapa firma keuangan kaya salah satunya Lehman Brothers yang jadinya collapse saat tersebut 
-
-
-another prajurit kaya IMF , saat itu datang ke indonesia saat 1997 - 1999 saat Indoesia krisis. 
-
-
-Katanya mau bantu Indonesia keluar dari jurang krisis
-
-
-agendanya ?
-
-
-1. memperketat anggaran agar fiskal lebih baik. Dibutuhkan fiskal yang bagus agar bisa lolos dari krisis
-
-
-2. IMF memberikan pinjaman dan akan mensupervisi penggunaan pinjama tersebut
-
-
-apa jadinya ? malah tambah hancur tuh Indonesia saat itu di tangan IMF
-
-
-IMF kasih pinjaman sekian lah , sebagian buat intervensi pasar valuta. Uang pinjaman dipakai intervensi dan Rp malah terus hancur. Pinjaman pakai bunga tapi menguap ga berguna
-
-
-Anggaran dicekek agar fiskal lebih baik tuh ga memperbaiki ekonomi sama sekali. Yang ada saat itu malah hancur lebur
-
-
-Gimana beresnya ? anggaran and fiskal dijebolin sampe sejebol2x nya saat itu. Stabilitas sosial dijaga dengan semua diberikan kepastian buat kebutuan dasar ( semua yang berhak dapat jatah beras and beberapa sembako )
-
-
-Saat stabilitas sosial membaik , semua perlahan berjalan dengan baik
-
-
-Rp menguat significant saat itu setelah sempat hancur lebur babak belur. Bahkan saat itu Pres Habibie mampu membuat Rp perkasa sampai 8000 an dan ekonomi Indonesia keluar dari krisis 1998
-
-
-Kalo masih sama IMF ? ga kelar tuh bahkan gede banget ongkosnya
-
-
-Itu juga kenapa akhirnya Pres Habibie ga jadi terpilih lagi sebagai presiden saat habis masa jabatan. Kenapa ? konspirasinya karena mereka para koki di luar tuh ga pingin Indonesia jadi negara maju yang dipimpin oleh orang pintar 
-
-
-So ? sesimple itu saya melihat tuh keadaan di luar sana
-
-
-Saat semua keadaan lagi baik dan menguntungkan , seorang pahlawan akan dipuja mati2x an sampai kalo perlu disembah2x lah tuh. 
-
-
-sebaliknya
-
-
-Saat semua keadaan berubah jadi buruk dan menguras uang kita , mereka jadi target pertama kena hujat habis2x an
-
-
-Seperti biasa , kalo keadaan buruk maka harus ada yang dipersalahkan dan di kambing hitam kan.
-
-
-Saya lebih memilih mencerna kejadian setiap kejadian. menelaah setiap apa yang digerakkan sampai saya bisa dapat sesuatu 
-
-
-OOOOOHHH INI TOH maksud dari semua ini
-
-
-Saya ga perlu mencari siapa yang disalahkan atau bertanggung jawab
-
-
-Indeks naik dari 5600 ke 7xxx an tuh mungkin masih normal. Kenaikan indeks dari 7xxx an ke 9200 itu banyak bener excess nya. Excess dari sebuah keoptimisan yang luar biasa ( saya juga boleh dibilang ada disana )
-
-
-again yah , ini semua adalah buah pikiran saya pribadi yang belum tentu benar dan terealisasi
-
-
-Saya typical orang yang selalu mengamati dan mempelajari kejadian yang ada
-
-
-Kalo semua ini benar , tuh semua juga keburukan2x cerita baik downgrade , MSCI dll akan hilang lagi bak ditelan BUMI
-
-
-Seperti kita ketahui kalo satu dunia lagi dalam kondisi buruk , dah lah emang beneran buruk koq termasuk Indonesia
-
-
-Buat saya bukan melihat itunya tapi gimana dalam keadaan buruk tersebut kita menyiapkan bantalan2x dari semua aspek yang nanti diperlukan agar kita tidak terjeblos terlalu dalam. 
-
-
-08 lagi persiapkan hal tersebut
-
-
-ada 2 issue yang saya mau angkat lagi yang juga rama
-
-
-=> pertama adalah penempatan orang2x kepercayaan dari 08 pada posisi pentimg and krusial. 
-
-
-Bro , 08 itu jenderal prajurit yang pastinya pandai ber strategi dalam menempatkan prajuritnya . 
-
-
-Lihat tuh saat dia menempatkan Pak Pur untuk mengisi posisi menkeu. Tadinya banyak yang nyinyir and skeptis . Nyatanya ? 
-
-
-Kemarin sempat beredar lagi suara nyinyir dalam penempatan Thomas Djiwandono yang katanya naro orang ga kompeten dan bernuansa nepotisme karena masih ada hubungan family
-
-
-Oke , saya cuma pikir gini. 08 itu lagi beberes di semua aspek. Yang anda harus pahami adalah bahwa terlalu banyak sengkuni di luar sana yang masih ingin cawe2x grogotin jeroan negara. 
-
-
-Makanya 08 taro tuh orang2x kepercayaan dia dan kalo perlu sekalian pake orang militer buat mengisi posisi strategis
-
-
-Next , Thomas orang dengan latar belakang fiskal tapi kenapa di taro di moneter ? Awalnya saya juga sempat bertanya begitu , kenapa yah ? apa yang dicari yah
-
-
-Tapi belakangan terjawab kalo ada persilangan yang mungkin akan bikin sinergi. Kemarin ada pejabat yang dilantik di wamenkeu pengganti Thomas yang juga orang 08 tapi dia berlatat belakang moneter. Wamenkeu itu fiskal tapi di taro orang berlatar belakang moneter
-
-
-Fixed , ini memang mau naro orang jagain dan nanti ada pembaharuan dan sinergitas atar lembaga. Tunggu aja nanti , pasti ada sesuatu yang sedang dikerjakan
-
-
-=> masalah tambang martabe yang dicabut izinnya dan diambil alih negara
-
-
-ramai ga masalah ini ? masalah ini tuh sampai dibawa ke mahkamah internasional loh 
-
-
-Nih tambang lumayan gede yang dimiliki blekrok , vangguard and koki asing lainnya lewat Jardine. 
-
-
-Itu tambang ditenggarain bikin banjir di sumatera ( katanya karena itu ) , tapi menurut saya bukan karena itu tujuannya. Lah yang bikin banjir mah banyak koq tapi kenapa martabe ?
-
-
-Itu tambang diambil kaya di nasionalisasi loh . 08 berani melakukan itu tanpa takut sama sekali. Dia mau menunjukkan bahwa asing lo jangan pada macam2x yah ( ini kekuasaan Indo )
-
-
-Freeport pernah diambil ? bro , freeport tuh lo bayar and ga gratis. Lo bayar sekarang tapi lo baru dianggap pemilik nanti pas IUPK habis di 2042. Bercanda aja kalo itu sudah jadi milik
-
-
-08 ambil martabe gratis alias di nasionalisasi. Bukan cuma nunjukkin tajinya tapi juga Indo butuh emas nya tuh dari sana juga
-
-
-Makanya Moodys marah , S&P juga lanjutkan aksinya. Saya pikir juga ini jadi salah satu alasannya
-
-
-Kita tunggu saja , siapa tau ada martabe2x selanjutnya yang bakal di nasionalisasikan. Rasanya sih kalo liat kebutuhannya , yang paling make sense and punya urgency adalah oil industri 
-
-
-08 Mundur ? sejauh ini belum mundur koq. 
-
-
-Berani ? Pernah ada yang begini ? 
-
-
-Jadi point saya, santai aja melihat semua hal yang terjadi sekarang. Lihat gambaran besarnya jadi ga ikut2x an memuji bak pahlawan saat baik dan menghujat kaya sampah saat buruk
-
-
-Its a long game , and ini permainannya rasanya apik
-
-
-Tidak ada politic talk , saya aja ga milih 08 . Semua nya murni apa yang saya lihat saja yah
-
-
-
-
+Saya bisa salah yah , jadi pikirkan dan pertimbangkan dengan matang sebelum action
 
 
 
@@ -1353,434 +1084,302 @@ Ricky2212
 
 """,
     },
-    "fed_vs_data_reality": {
-        "title": "The Fed vs data vs realita , siapa yang bohong ?",
-        "category": "macro_thesis",
-        "subcategory": "monetary_policy",
-        "themes": ['fed', 'ust', 'yield_curve', 'cut', 'recession', 'liquidity', 'credit_event'],
-        "tickers": ['TLT', 'IEF', 'SHY', 'SPY', 'QQQ', 'GLD'],
-        "quad_bias": 'Q3→Q2',
-        "regime_signal": "easing_pressure",
-        "priority": 10,
-        "author": "Ricky2212",
-        "source": "mentorbaik",
-        "content": """ 
-The Fed vs data vs realita , siapa yang bohong ?
-
-
-The Fed vs data vs realita , siapa yang bohong ? 
-
-
-
-
-Teman-teman masih berasa ada disbelieved ?
-
-
-Pak , apa benar kita bakal WTFF² lagi ?
-
-
-Pak , apa benar perjalanan kita ke puncak masih in line ?
-
-
-Pak , apa ini semua biaa recover ? 
-
-
-Saya coba jelaskan dengan mengambil satu bagian yaitu dengan melihat sebuah asset yaitu Surat Hutang Negara Amrik atau UST 
-
-
-Kenapa ? karena dalam thesis sebelumnya saya sempat bicarakan kalau di depan sana tuh kita bakal masuk ke fase easing lewat beberapa CUT yang akan dilakukan oleh FED
-
-
-Seperti teman2x tau lah , masalah CUT ini jadi perdebatan alot sekarang ini di luar sana
-
-
-Trump dengan keras bilang kalo sudah saat nya CUT , bahkan CUT nya bisa lebih dalam dan jauh dari level saat ini
-
-
-tapi
-
-
-di saat yang sama Powell bilang kalo keadaan sekarang tuh susah banget buat melakukan CUT. Keadaan ekonomi masih bagus dan inflasi masih membandel
-
-
-Nanti kalo benar CUT terjadi ( most likely terjadi ) maka di luar sana akan membahas kalo seakan - akan ekonomi akan terbantu dan ini akan jadi jalan keluar yang baik
-
-
-Ingat , semua itu hanya narrative dan jadi story telling yang luar biasa yang akan memompa pasar saham 
-
-
-
-Sebelumnya saya ambil data yield dari UST yang ada
-
-
-UST 1M 3.71%
-
-
-UST 3M 3.67%
-
-
-UST 1Y 3.43%
-
-
-UST 2Y 3.41% 
-
-
-UST 10Y 4.06%
-
-
-UST 30Y 4.69%
-
-
-
-Dari data UST tersebut saya coba mengambil data UST 1Y dan UST 2Y
-
-
-UST ini menggambarkan ekspektasi tentang apa yang terlihat dalam 1 sampai 2 tahun ke depan. 
-
-
-Kalo Powell memang bersikeras banget bilang kalo kita akan menahan suku bunga lebih lama untuk menahan inflasi , aneh sih karena UST 1Y dan UST 2Y nya tuh sudah dibawah dari suku bunga berjalan
-
-
-Suku bunga Fed sekarang tuh ada di level 3.5% tapi UST 1Y dan UST 2Y ada di kisaran 3.4%. 
-
-
-Lah itu jauh dibawah level suku bunga FFR yang berjalan sekarang. Yang perlu diingat adalah yield bond itu adalah suku bunga bebas resiko + risk premium buat investasi bond
-
-
-Jadi kalo risk premium nya untuk UST 1Y dan UST 2Y adalah 0.25% - 0.5% maka FFR ada di kisaran 2.9% sampai 3.15%. Rasanya kalo melihat resiko dari surat hutang US sekarang maka risk premium 0.5% lebih cocok lah yah
-
-
-Powell masih bilang takut inflasi di depan ? inflasi bukan lagi hantu yang ditakutin. Kalau pasar takut inflasi naik lagi, yield UST 1 dan 2 tahun pasti melonjak, bukan malah jatuh dibawah begitu
-
-
-Next saya coba sambungkan dengan keadaan ekonomi di sana yang sedang terjadi yah. Dari sana nanti anda bisa melihat hubungannya. 
-
-
-Anda tau kan kalo ekonomi di Amrik sana lagi sakit parah dan harus di opname ? 
-
-
-Dalam artikel terdahulu saya pernah jelaskan kalo data2x ekonomi mereka tuh di manipulative luar biasa. Yang dilaporkan ke publik itu tidak seindah aslinya. 
-
-
-Di permukaan yang dilaporkan kaya data GDP , data Inflasi , data pengangguran mungkin kelihatan oke-oke saja. Tapi kalo anda jeli melihat "perut" ekonominya maka jelas anda akan melihat sesuatu yang bermasalah bahkan masalahnya luar biasa besar
-
-
-=> Orang mulai telat bayar cicilan (delinquency) atau terjadi bad debt dimana-mana. Mulai di KPR , KPM , CC dll 
-
-
-Apa yang terlihat 
-
-
-Konsumen belanja masih jalan, mal masih ramai, angka pengeluaran masih stabil.
-
-
-kenyataannya 
-
-
-Kelompok menengah-bawah mulai sesak nafas atas semua cicilan nya sehingga Delinquency (telat bayar) kartu kredit dan cicilan mobil melonjak.
-
-
-Yield Turun : Pasar tahu daya beli ini cuma sisa-sisa napas terakhir saja
-
-
-
-=> Properti komersial (kantor/mall) lagi megap-megap gara-gara harus refinancing pakai bunga mahal.
-
-
-Apa yang telihat
-
-
-Properti & Kredit Harga rumah/properti secara agregat masih bertahan atau turun tipis.
-
-
-kenyataannya
-
-
-Commercial Real Estate (CRE) disana lagi sekarat berdarah2x. Tekanan refinancing (bayar utang lama pakai bunga baru) bikin banyak gedung perkantoran jadi punya beban keuangan jauh lebih tinggi dari sebelumnya
-
-
-Yield Turun : Ada risiko sistemik (credit event) yang mengintai perbankan regional.
-
-
-=> Data tenaga kerja walau dilaporkan bagus and stabil tapi terlihat punya struktur yang kopong. 
-
-
-Apa yang terlihat
-
-
-Tenaga Kerja Angka pengangguran (Unemployment Rate) yang dilaporkan dari waktu ke waktu masih terlihat rendah secara historis.
-
-
-Kenyataannya
-
-
-Perusahaan mulai hiring freeze (stop rekrutmen) dan memotong jam lembur. Kerusakan terjadi di pasar tenaga kerja mulai dari jam kerja sebelum ke PHK.
-
-
-Yield Turun: Mengantisipasi Fed harus potong bunga saat pengangguran akhirnya meledak.
-
-
-Itu baru 3 data saja yang saya coba sampaikan , tapi dari sana terlihat banget kerusakan ekonomi itu kayak raya yang nggak kelihatan dari luar, tapi pas strukturnya goyang baru semua orang panik. 
-
-
-UST 1Y dan 2Y tuh sudah mencium bau "rayap" dan menggambarkan situasi real nya duluan. 
-
-
-Bemper Likuiditas Sudah Berubah
-
-
-Zaman dulu itu ada "bak penampungan besar " uang yang besar yang dinamakan RRP (Reverse Repo) yang bisa jadi bemper kalau ada guncangan. 
-
-
-Sekarang bak penampungan itu sudah terasa kering dan makin kesini makin kering lagi
-
-
-Dari sana kita dapat melihat kalo sekarang pemerintah AS mau nerbitin utang baru secara ugal-ugalan buat refinancing hutang lamanya maka dampaknya langsung kerasa ke cadangan kas bank. Likuiditas di luar akan ketarik luar biasa besar buat tambal sulam tersebut
-
-
-FYI , tahun ini dalan waktu dekat surat hutang yang akan jatuh tempo itu sekitar $9.6 Trilyun atau hampir 30% dari total hutang nya ( sama seperti tahun lalu )
-
-
-Yang Fed bisa lakukan sekarang cuma fokus jagain "garis depan" (bunga jangka pendek) biar pasar nggak macet, tapi mereka nggak bisa (atau nggak mau) nyelamatinn bunga jangka panjang (10-30 tahun).
-
-
-Akhir Ceritanya nanti gimana?
-
-
-Ini analisa yang saya coba sampaikan versi saya yah.
-
-
-Pertama adalah yield UST 1Y dan UST 2Y akan turun duluan secara bertahap. Dari sini nanti sinyal kalo pasar minta CUT dan rasanya CUT itu harus dipenuhi ( nanti pas Powell diganti lah sepertinya )
-
-
-Di saat yang sama , ekonomi juga akan memperlihatkan hal buruk terus menerus. Tidak ada lagi yang bisa disembunyikan dan dimanipulative lagi. Pertumbuhan ekonomi stall , konsumsi menurun dan perusahaan mulai ngerem rekrutmen atau potong jam kerja (belum PHK massal).
-
-
-Harus ada suatu kejadian yang besar yang bisa men trigger dan kejadian ini kaya bikin central bank terdesak seakan tidak punya pilihan lagi . Entah ada bank kolaps atau angka pengangguran tiba-tiba loncat tajam atau apa lah nanti yang besar 
-
-
-Dari sepaket kejadian tersebut nantinya baru deh bunga jangka panjang UST10Y dan UST 30Y ikut terjun bebas karena semua orang lari nyari safe heaven dan nyari aset yang aman.
-
-
-Yah itu coret-coret an saya aja yah. Tetap prudent aja dan jangan terlalu gegabah melihat keadaan.
-
-
-Buat saya tetap atur posisi cash teman2x dengan baik. Walau terlihat baik , tapi too early buat berpesta pora
-
-
-WTFF² is coming , tapi tetap waspada adalah piligan yang bijaksana. 
-
-
-
-Latest update
-
-=============
-
-
-Ada 2 hal lagi yang saya mau update tentang apa yang terjadi yang ada kaitannya dengan thesis yang saya sampaikan
-
-
-pertama adalah Pak Bersin mengatakan di depan kadin bahwa industri galangan kapal akan diberikan insentif 
-
-
-Well terlihat banget bahwa industri minyak dan gas kita akan digenjot habis2x an dan pick and shovel nya yaitu sektor kapal sebagai penunjang aktivitas tersebut baik hulu maupun hilir mendapatkan moat paling tinggi
-
-
-Kita sudah bahas jauh banget untuk thesis ini sejak patriot bond dan danantara
-
-
-saya tetap berjalan pada satu perusahaan kapal di hulu dan satu perusahaan kapal di hilir
-
-
-Kedua adalah mengenai BUMI resources. Pasca MSCI tragedy yang terjadi kemarin OJK mulai perlahan berbenah diri. Beberapa langkah mulai dilakukan dalam hal meminta transparansi terhadap perusahaan publik
-
-
-BUMi kemarin sudah melaporkan tentang UBO ( Ultimate Beneficiary Owner ) atau penerima manfaat akhir di perusahaan. 
-
-
-BUMi mengumumkan bahwa penerima manfaat akhir untuk perusahaannya adalah Pengusaha Nirwan Dermawan Bakrie dan Pengusaha Anthony Salim. Yap Om S dan Om B ada di dalam lingkaran tersebut. Ditambah om AP lah yah harusnya
-
-
-BUMi juga melaporkan kepemilikan saham publik nya dalak rangka transparasi kepemilikan publik di bawah 1%. 
-
-
-BUMI juga melaporkan bahwa ada kenaikan free float di publik. Terakhir data yang saya ambil dari sekuritas XL adalah sekitar 41%
-
-
-BUMi juga melaporkan bahwa ada kenaikan significant dalam jumlah pemegang saham publik. Terakhir pemegang sahamnya ada sekitar 551k an pemegang saham dan naik sekita 188k pemegang saham dari bulan sebelumnya
-
-
-Heboh di luar sana tuh langsung. Katanya 
-
-
-" emang enak dikarungin bandar " , tuh jumlah retail nya segitu banyak akibar dikarungin bandar kemarin
-
-
-Saya coba analisa apa yang saya lihat dari kenaikan jumlah pemegang saham tersebut
-
-
-Jumlah saham naik banyak itu bukan akibat dikarungin bandar , hal tersebut dilakukan oleh UBO buat comply UBO 1% nya. Dah lah mereka tuh punya nominee seberapa banyak pun bisa di buat. Mereka lihai dan pandai buat financial engineering soal dunia abu2x begitu. 
-
-
-DEWA aja pernah pemegang saham publik nya sekitar 60% an dan saham nya naik aja tuh dari 400 ke 800 an kemarin
-
-
-Saya ga bilang saya yang benar yah , tapi dunia abu2x begitu sulit dicerna oleh publik yang awam. Mereka hanya liat wahh pemegang saham makin banyak , retail dikarungin ( yang anda mainin kan sahamnya bukan blue chip , ini saham yang penuh banyak permainan di dalam )
-
-
-Gunanya buat apa ? pasti pada tau lah yah buat apa nya. Om S and Om Ap benar2x merapikan semuanya agar permainannya rapi and smooth
-
-
-selamat menunaikan ibadah puasa buat yang menjalani
-
-
-
-
-
-
-
-Ricky2212
-
-""",
-    },
-    "msci_greenlight_trump_tariff": {
-        "title": "MSCI beri lampu hijau and Trump tariff dibatalkan , terus ?",
+    "bukti_uang_mengalir_indexing": {
+        "title": "Bukti Uang Mengalir (lewat) Indexing — AMMN, BRMS, PANI, DEWA, BUMI",
         "category": "market_regulation",
-        "subcategory": "msci",
-        "themes": ['msci', 'ojk', 'trump_tariff', 'emerging_market', 'usd_weakness', 'store_of_value'],
-        "tickers": ['EIDO', 'BBCA.JK', 'BBRI.JK', 'BMRI.JK', 'TLKM.JK'],
-        "quad_bias": 'Q2',
-        "regime_signal": "em_recovery",
+        "subcategory": "indexing",
+        "themes": ["indexing", "ammn", "brms", "pani", "dewa", "bumi", "konglo", "liquidity", "passive_fund"],
+        "tickers": ["AMMN.JK", "BRMS.JK", "PANI.JK", "DEWA.JK", "BUMI.JK"],
+        "quad_bias": None,
+        "regime_signal": "indexing_play",
         "priority": 9,
         "author": "Ricky2212",
         "source": "mentorbaik",
-        "content": """Artikel: MSCI beri lampu hijau and Trump tariff dibatalkan , terus ?
+        "content": """Bukti Uang Mengalir ( lewat ) Indexing 
 
-MSCI beri lampu hijau and Trump tariff dibatalkan , terus ?
 
-MSCI beri lampu hijau and Trump tariff dibatalkan , terus ?
+Bukti Uang Mengalir ( lewat ) Indexing 
 
 
 
 
-Pada awal minggu ini Indonesia kebanjiran banyak sekali berita baik yang membuat IHSG naik. Pada perdagangan hari ini IHSG ditutup naik 124 pt di level 8396 di tengah ketidak pastian global yang terus meningkat
 
 
-Berita pertama datang nya dari MSCI . Menurut pernyataan OJK yang sempat diberitakan ( sebelum link nya dicabut ) bahwa MSCI pada prinsipnya sudah memberikan lampu hijau atas reformasi yang dilakukan oleh pihak2x pemangku kebijakan bursa.
+Kita flash back dulu agak ke belakang yah. 
 
 
-Sebetulnya saya tidak begitu kaget and surprised akan hal ini karena dari awal terjadi MSCI tragedy yang terjadi beberapa waktu lalu sata sudah sampaikan bahwa semua ini adalah masalah yang sifatnya administratif saja. Begitu semua diperbaiki juga nanti bisa kembali berjalan dengan normal bahkan lebih baik lagi.
+Dalam satu artikel Saya pernah sampaikan bahwa yang terjadi sekarang adalah sebuah permainan yang memang sudah disiapkan dari awal. Mereka merancang permainan ini dengan smooth and menurut saya sejauh ini sukses sih
 
 
-Tentunya kalau hal ini benar maka 1 kekhawatiran yang sangat krucial yaitu MSCI rules bisa tereliminasi
+Kenapa permainan ini bisa berjalan dengan smooth and mulus ? Kurang lebih karena keadaan ekonomi sedang tidak bagus , jadi market butuh sebuah mainan buat dijadikan ajang cari uang
 
 
-Sesungguhnya bursa kita itu secara overall yang boleh dibilang lagi naik daun , secara makro juga mendukung , hanya masalah MSCI ini yang sangat boleh dibilang jadi masalah berat. Bayangkan kalo Bursa kita di down grade ke Frontier hanya karena masalah ketidak transparanan publik
+Siapa yang bermain disini ? anda bisa lihat kan ? siapa2x yang terlihat bermain itu terlihat dalam sebuah pergerakkan saham nya. Biasanya saham mereka tuh "ATTRACT" pelaku pasar. Karena memang itu yang dibutuhkan
 
 
-Btw pas ga beritanya keluar saat 08 tuh beberapa waktu lalu kunjungan ke US menemui Trump dan sempat mengunjungi beberapa kantor pengelola dana besar. Cocoklogy aja yah. 
+Semua permainan ini lumrah ? Dalam satu cycle ekonomi , hal ini biasa dan lumrah koq. Kejadian sekarang ini akan selalu datang dan berulang. Anda akan merasa aneh , indek bisa naik padahal tidak ada dukungan di real economy sama sekali
 
 
-Sebagai tambahan lagi kalo Standard & Poor juga tetap melanjutkan proses indexing nya seperti biasa 
+Intinya ini sebuah PERMAINAN bukan INVESTASI yah
 
 
-Kita lihat perjalanan Indexing MSCI di bulan MEi 2026 yah . Semoga saja perjalanan nya lancar
+Terus saya harus ikut atau tidak ? semua itu pilihan . 
 
 
-OJK punya batas membereskan semua hal nya dengan tenggat waktu Maret 2026
+Buat yang ikut saya ucapkan selamat karena anda berani mengambil sebuah resiko untuk mencari extra GAIN
 
 
-Kenapa Maret 2026 ? karena saat itu hitungan argo masuk MSCI dimulai 
+Buat yang ga ikut dan komit pada pakem investasi nya , saya juga ucapkan selamat karena anda bisa konsisten menjalani apa yang anda percaya
 
 
-Sebagai bahan perhitungan MSCI buat Price Extreme nya maka hitung ulang saja 40 hari bursa dengan batas maximal 200% 
+Terus dimana semua ending ini ? kalua anda lihat penutupan BRMS kemarin yang lompat hampir saja ARA itu lah tujuan mereka dalam permainan ini. Yap itu lah namanya INDEXING , sebuah metode masuk dalam sebuah konstituen INDEX. Dari sana mereka tuh para konglo dapat uang banyak. Jadi bukan naik karena bakal ada bagus , itu conditional situation
 
 
-Msci is a bonus yah , jangan terlalu dipusingkan . Sejatinya saham itu tuh ga butuh MSCI juga koq
+Dari mana uang nya ? Para pengelola dana terutama passive fund yang port nya mengacu pada suatu index akan membeli saham tersebut untuk masuk dalam portfolionya
 
 
+Dari BRMS itu , hitingan saya yah konglo dapat sekitar 1-2 Trilyun fresh money. Mungkin bisa lebih nanti pakai Repo
 
-Berita kedua datang nya dari negeri Paman Sam dimana Mahkamah Agung mereka membatalkan semua kebijakan tarif yang diambil Trump sejauh ini.
 
+Koq mau ? sebenernya para pengelola dana passive fund tau koq akan hal itu hanya mereka ga punya pilihan
 
-Semua dibatalkan tanpa kecuali dan kebijakan itu berakhir gugur 
 
+Salah satu teman saya yang mengelola dana bilang begitu. Bro , gw ga punya pilihan. Kalo sudah masuk konstituen indeks yah gw harus masukkan dalam portfolio. Makanya buat ngakalin , saat gw tau ini saham memang tujuan nya kesana maka dari jauh hari minimal gw punya porsi dari bawah di saham itu . Supaya ga boncos amat nantinya.
 
-Kalo saya tidak salah , Amrik harus mengembalikan semua tariff yang sudah terkumpul sejauh ini dari kebijakan yang diambil pada April 2025 kemarin
 
+Mau contoh gimana pasca INDEXING, coba liat AMMN aja. Biasanya pergerakannya naik turun ga jauh dari harga indexing ( kalaupun naik sudah tidak jauh jaraknya ). 
 
-Berita bagusnya dimana ? karena kebijakan tariff itu gugur maka Indonesia yang tadinya kena tarif 19% maka kebijakan itu tidak berlaku
 
+Maintain harga ? bisa saja , konglo akan REPO in saham nya yang masuk indeks. Karena likuiditas tinggi , peminat repo juga akan tinggi
 
-Sebagai gantinya Trump saat itu juga langsung mengeluarkan kebijakan tariff baru dengan memakai dasar UU baru yaitu 10% dan akan di evaluasi 150 hari ke depan. 
 
+More to come , masih banyak yang belum masuk INDEXING dan semua pada kejar Indexing.
 
-Tidak lama berselang Trump langsung menaikkan lagi tariff nya menjadi 15% 
 
+Oke , dari sana saya mau bahas runut permainan indexing dari sebuah konglomerasi. Yah dari ceritanya nanti pada tau lah yah konglomerasinya siapa
 
-Kalau mengacu pada UU yang dipakai Trump sekarang dalam hal pengambilan kebijakan tariff yang baru itu maksimal tariff yang diberlakukan adalah 15%
 
+Kita mulai perjalanan pertama dari sebuah permainan Indexing konglomerasi tersebut
 
-Indonesia tadinya kena 19% dan sekarang kena 15 % tanpa harus capek2x bernegoisasi . 
 
+Perjalanan pertama permainan Indexing mereka dimulai dari sebuah perusahaan tambang emas. Dari saham ini sih mudah sekali permainannya mereka ciptakan. Perusahaan itu adalah AMMN atau Amman Mineral. Perusahaan yang memilik tambang emas Newmont di Nusa Tenggara
 
-Sontak kebijakan ini langsung direspon oleh negara2x besar seperti Uni Eropa dan India yang langsung men suspend negoisasi tariff yang sedang berlangsung
 
+Kapitalisasi Market nya dari awal sudah lumayan besar, sehingga bisa dengan mudah mereka giring untuk masuk konstituen indeks saham2x berkapitalisasi besar.
 
-Fiuhh it's good news karena USD bakal makin keok lagi. 
 
+Dengan cepat mereka ciptakan permainan dan akhirnya masuk lah ke Indeks konstituen dengan kapitalisasi besar
 
-Tariff itu sebenernya buat menopang USD yang sudah terlanjur babak belur and keok. Keuangan US sudah morat marit , tadinya Tariif tersebut bisa sedikit membantu keuangan mereka. 
 
+Apalagi narrative sangat mendukung yaitu emas . Emas adalah salah satu narrative paling kuat yang ada sampai sekarang
 
-Sontak USD langsung keok and Emas plus Silver langsung spike akibat kejadian tersebut
 
+Dari sana saya menduga bahwa konglomerasi mendapatkan minimal Rp 7 - 8 trilyun. Itu minimal yah , itu likuiditas yang didapat dari masuknya saham mereka di indeks fund
 
-USD keok maka uang jelas makin akan kabur dari US ( which is sudah makin keliatan )
 
+Rasanya Rp 7-8 Trilyun itu belum sampai disana saja , mereka bisa manfaatkan Repo sebagai lanjutan untuk mencari likuiditas. Mereka jaminkan saham nya dengan mudah karena likuiditas pasti tinggi akibat masuk indeks konstituen
 
-Liat Bovespa Brazil , liat Korea , mana lagi ? Nanti tuh uang akan kabur ke Emerging market 
 
+Maka dari sini AMMN sudah selesai permainannya. Hampir tidak ada agenda lanjutan lagi pasca masuk indexing. Paling hanya maintain harga saja agar tetap pada tempat nya yaitu big cap indexing
 
-Saya sempat posting gimana Bagusnya grafik ETf EEM yang baru saja break level terkuat nya sejak lama
 
+Itu contoh kalo indexing sudah selesai , sahamnya sudah less attractive. Bukan ga naik , tapi staminan nya sudah menurun karena tidak ada agenda besar lagi yang harus dikejar
 
-Belum lagi saya juga post gimana ETF energy juga baru saja break level terkuatnya 
 
+Dari permainan pertama di AMMN saat itu , siapa kandidat terkuat selanjutnya ? 
 
-Uang benar2x keluar dari US dan mengalir ke tempat2x yang memberikan hasil yang baik
 
+Nah tuh Konglo sudah punya likuiditas berlimpah dan yang pasti uang itu akan mengalir ke permainan lainnya. Tinggal pilih siapa kandidat selanjutnya yang akan mereka alirkan uang nya. 
 
-Still the thesis adalah Store of Value terutama di Energy ( paling kuat karena baru saja up dari base nya )
 
+Kalo uang sudah mengalir ke permainan selanjutnya , tujuannya apa ? yah sama lah , tujuannya akan bermuara lagi pada permainan indexing
 
 
-Berita ketiga adalah Pak Pur sebagai menteri keuangan kita memberitakan kalo Dia akan memperpanjang fasilitas penyimpanan Uang di Himbara yang kemarin sudah dilakukan. 
+Saat itu nominasi pilihan terkuat ada pada 2 saham yaitu PANI dan BRMS. Keduanya punya narrative kuat buat di jalankan agendanya. Saya coba bahas 1 per 1 yah. 
 
 
-Walau sempat ada wacana uang itu ga bisa digunakan buat alirin kredit dan akaj dicabut oleh Pak Pur , tapi akhirnya diperpanjang lagi
+Saya mulai dari BRMS dahulu yah yang kebetulan juga akhirnya sudah masuk indeks konstituen. 
 
 
-Berita ini jelas sedikit banyak membantu nafas Bank yang megap-megap . Simpanan tersebut sedikit banyak akan melonggarkan likuiditas perbankan 
+Saat itu BRMS jadi pilihan terkuat karena cerita narrative nya sudah terbentuk dengan sendirinya di market
 
 
-Yap segitu banyak berita baik yang datang buat bursa kita . Berita baik dan buruk datang silih berganti menghiasi perjalanan bursa dan Berita itu datang saat memang sudah saatnya dan sudah dibutuhkan
+Emas spike dari $1900 sampai sekarang sudah bertengger di level $3600 an. Thesis emas itu juga sudah saya sampaikan dalam beberapa artikel kenapa emas bisa spike jauh sampai level sekarang ini. Semua saya jelaskan berikut alasan yang mendasarinya
 
 
-Tetap bijak dalam mengambil keputusan investasi yah. 
+Dari thesis emas tersebut , saya mencomot BRMS sebagai top picks nya dalam permainan narrative emas tersebut. 
 
 
+Tidak ada keraguan terhadap BRMS saat itu , apalagi di belakanganya adalah sebuah konglomerasi besar dengan reputasi yang bagus. Ditambah BRMS itu punya otot yang kuat karena sejatinya BRMS punya aset tambang kelas dunia. 
 
-Strategi saya tetap sama , saya tetap berjalan dengan thesis yang sudah saya sampaikan sejauh ini
 
+Perjalanan demi perjalanan dilewati dan akhirnya jumat kemarin BRMS resmi masuk konstituen indeks yang isinya perusahaan2x emas dunia. 
 
-lone wolf yah tetap lone wolf yang akan terus berjalan walau harus berjalan sendiri.
 
+Dari awal thesis BRMS diangkat di mentorbaik, kami sudah mencium kalo BRMS akan di indexing. Bahkan kami sudah menghitung-hitung target harga indexingnya saat itu. 
 
 
+Tutupan BRMS di jumat kemarin itu bukan karena ada berita baik atau mau ada corp action sehingga saham dikerek loh. Tutupan kemarin itu lebih karena demmand dari indeks fund terhadap saham BRMS buat masukkan saham tersebut dalam portfolionya.
 
 
-Ricky2212
+Dari masuknya BRMS ke indeks fund kemarin , hitungan saya konglomerasi mendapatkan likuiditas minimal Rp 2 Trilyun. Itu saya belum memperhitungkan dari Repo sebagai aksi lanjutannya . Kalo buat cari another Rp 2 Trilyun dari repo BRMS sih harusnya ga sulit buat konglomerasi tersebut. 
+
+
+Nanti kalo BRMS sulit naik sementara waktu , jangan aneh lah yah. Beberapa agenda nya sudah terselesaikan
+
+
+Btw , saya lupa persisnya pokoknya sekitar 2 bulan lalu saya sampaikan kepada beberapa teman saya termasuk steve bahwa jangan kaget nanti sebelum oktober BRMS akan di kerek minimal 600. 
+
+
+and here we go. 
+
+
+2 permainan sudah mereka selesaikan dengan baik dan tujuan mereka sudah mereka tuntaskan.
+
+
+Siapa kandidat kuat selanjutnya ? 
+
+
+Kandidat kuat selanjutnya adalah PANI. Sebuah perusahaan properti yang mengelola PIK2
+
+
+Saya cerita singkat saja yah untuk perusahaan ini. 
+
+
+Kapitalisasi pasar PANI sudah tidak jauh lagi buat menembus indexing kapitalisa besar. Jadi rasanya hal itu akan mereka garap secepatnya
+
+
+Tau kan PANI mau right issue ? saya rasa Salim akan Chip ini full di right issue tersebut. Saya ga tau detail persisnya tapi kalo ga salah Salim butuh Rp 4 - 5 Trilyun buat hajatan right issue tersebut. Sisanya akan diambil kolega bisnisnya
+
+
+Right issue tersebut tujuannya adalah menambah kepemilikan di anak perusahaannya yaitu CBDK. Yang beli and jual sama lah itu Salim juga. 
+
+
+Tapi bukan itu inti permainannya , dari situ PANI makin punya reason buat masuk indexing kapitalisasi besar. 
+
+
+Dari sana hitungan saya , konglomerasi akan mendapatkan sekitat Rp 6 - 8 Trilyun dari masuk indeks tersebut. Itu saya belum memperhitungkan dari Repo sebagai aksi lanjutan nya. Kalo cuma mencari another Rp 2 - 4 trlyun sih harusnya ga susah bahkan bisa lebih lah. 
+
+
+Likuiditas gede bukan didapat dari 3 permainan diatas ? yang 2 sudah di tangan dan 1 lagi masalah waktu
+
+
+Siapa selanjutnya kandidat terkuatnya ? Cuma tinggal 2 perusahaan lagi nih yang tersisa. Masa mau ditinggal dalam permainan sih. Ga asyik dunk kalau sampai ditinggal , wong semesta semua mendukung permainannya. 
+
+
+2 perusahaan yang tersisa adalah DEWA dan BUMI
+
+
+siapa duluan ? entah lah , yang jelas bisa salah satu jalan duluan atau malah bisa berbarengan dengab likuiditas melimpah yang mereka miliki sekarang
+
+
+Mari kita lihat satu per satu dari kedua perusahaan tersebut yah. Saya mulai dari yang chance nya paling besar yaitu DEWA
+
+
+DEWA sebuah perusahaan kontraktor tambang batubara yang digenggam oleh mereka. Mereka ( Salim and AP ) mencaplok dari konglo kolega dia di BUMI yaitu konglomerasi Bakrie
+
+
+Tuh saham2x yang dulu waktu Right issue buat bayar hutang ke subkontraktor , saham nya perlahan "Dirapikan" ke pelukan mereka lewat transaksi di pasar negoisasi 
+
+
+Pada thesis tentang DEWA dalam salah satu artikel B indikator sudah saya jelaskan hal ini bahwa mereka ada di pihak di belakang sub kontraktor tersebut
+
+
+Perlahan diberesin usahanya , perlahan mereka tidak lagi jadi " CALO " dalam mengerjakan project nya , perlahan dia ekspansi dengan terus membeli heavy equipment buat langsung mengerjakan project
+
+
+katalis and narrative lanjutan yang disiapkan ? 
+
+
+a. Jangan kaget kalo nanti di kinerja kuartal di depan laba nya akan diatur sedemikian rupa agar bisa apa ? tebak lah yah
+
+
+b. narrative kalo DEWA diberitakan akan mengerjakan sejumlah project baru di lingkungan mereka sendiri ( saya sih sudah ada bayangang projectnya ) . Ga perlu saya kupas habis detail lah yah
+
+
+c. DEWA punya emas yang belum di tiupkan ke market , kalo memang mau sih bisa aja ditiupkan narrative emas nya
+
+
+d. Kalo Salim mau , dia bisa sinergikan dengan salah satu kontraktor tambang milik dia juga. Bahkam malah bisa diim inject sekalian ( ini versi halu agak jauh ) 
+
+
+So , apakah DEWA akan dijadikan permainan Indexing juga ?
+
+
+hmmmm , yah silakan anda resapi saja lah yah cerita nya dari atas 
+
+
+Next , yang terakhir adalah BUMI. Hidangan penutup kita dalam permainan Indexing ini. 
+
+
+BUMI , sebuah perusahaan penghasil batubara thermal terbesar di Indonesia. Salim masuk ke peruasahaan ini setelah mengambil bagian dalam rangka restrukturisasi hutang2x BUMI. 
+
+
+Pasca diberesin perlahan hutang2x nya , BUMI perlahan berbenah. Bahkan belakangan ini BUMI bukan cuma berbenah saja , malah BUMI juga bertransformasi sebagai sebuah perusahaan diversified mining company. Baca lagi artikel B - Indicator tentang BUMI , Rio Tinto Wannabe
+
+
+Perlahan kejadian apa yang saya bahas bukan ? satu per satu perusahaan masuk ke perut BUMI sebagai bagian dari portofolio tambang nya. 
+
+
+Apalagi BUMI sekarang punya postur keuangan yang baik dan KUASI mereka makin membuat mereka leluasa buat berekspansi 
+
+
+Masalahnya BUMI masih punya 1 agenda yang mengganjak dan itu yang bikin jalannya tersendat. Tapi tenang aja , itu semua nanti beres koq. Uang nya kan sudah ada jadi bukan ga mampu menyelesaikan , tapi lebih kepada menyesuaikan kepada environment permainan keseluruhan
+
+
+Katalis and Narrative yang disiapkan
+
+
+a. BUMI akuisisi sana sini . Anda bisa lihat dari penawaran umum berkelanjutan obligasi BUMI , sudah disiapkan tuh Rp 5 trilyun untuk total penerbitan obligasinya.
+
+
+Dari Rp 5 Trlyun yang disipakan , sudah terpakai kira2x Rp 1.3 Trilyun. Uang itu digunakam buat akuisisi Wolfram Australia.
+
+
+Lanjut ? sisa uang obligasi tersebut bisa saja buat melakukan akuisisi lanjutan lagi dan rasanya memang penerbitan obligasi berkelanjutan itu memang diagendakan buat akuisisi
+
+
+Jangan kaget nanti ada tambang emas lagi masuk ke BUMI dalam waktu dekat . Itu belum lagi akuisisi alumina and smelternya. 
+
+
+Kalo dapat lagi , nanti salah satu akuisisinya sih juga harusnya bikin BUMI tambah gemuk
+
+
+b. Narrative emas nanti bisa dinaikkan sebagai bagian dari perjalanan BUMI. 2 tambang emas harusnya bisa mereka miliki dalam waktu dekat
+
+
+c. Chengdong out dari permainan. Memang itu yang ditunggu. Ada atau ga ada 2 katalis diatas saja kalo ini kelar , nih saham dah ga tau tuh naik ke berapa nanti
+
+
+Tenang , negoisasinya sih alot tapi pasti selesai koq. Ga ada halangan lagi buat Chengdong out.
+
+
+Jadi ? BUMI bakal indexing juga ?
+
+
+coba aja hitung tuh andaikata BUMI dan DEWA mau indexing, bakal ke berapa harganya. Hmmmmm
+
+
+berandai - andai dulu sana yah supaya nanti kalo kejadian sudah ga kaget
+
+
+AMMN , BRMS sudah jadi Bukti Uang Mengalir ( lewat ) Indexing. Uang terus mengalir dalam sebuah pusaran permainan. Satu per satu permainan diselesaikan lewat aliran uang dari Indexing dan untuk indexing
+
+
+Berasa ga ? BRMS indexing hari jumat , hari ini tiba2x 2 saham sisanya transaksinya besar. hhhmmmm
+
+
+Happy ? saya sarankan tetap waspada terhadap semua keadaan dan kemungkinan
+
+
+Kenapa ? INDEXING , plus IPO yang massive buat raising Fund besar itu tanda dari ? liat IPO ADRO , lihat IPO MBMA , karena ini konglo selalu IPO dalam jumlah massive dan dalam rentang waktu tidak lama ( hitungan 1 tahun setelah itu adalah ..... )
+
+
+Nikmati sampai music nya berhenti , tapi anda harus pastikan bukan pihak yang berdiri terdiam saat music berhenti dan bingung mau apa
+
+
+
+notes : Perlakukan saham ini sebagai saham narrative yang punya resiko , perlakukan saham ini sebagai saham Dessert penutup cycle ( jangan smpe nanti kalo ga sesuai harapan jadinya merengek2x )
 
 
 """,
@@ -1789,9 +1388,9 @@ Ricky2212
         "title": "Certain feels like uncertain ( Sirewel and US vs Iran )",
         "category": "geopolitics",
         "subcategory": "middle_east",
-        "themes": ['iran', 'israel', 'war', 'oil', 'hormuz', 'geopolitics', 'uncertainty'],
-        "tickers": ['CL=F', 'BZ=F', 'NG=F', 'USO', 'UNG', 'XLE'],
-        "quad_bias": 'Q2',
+        "themes": ["iran", "israel", "war", "oil", "hormuz", "geopolitics", "uncertainty"],
+        "tickers": ["CL=F", "BZ=F", "NG=F", "USO", "UNG", "XLE"],
+        "quad_bias": """Q2""",
         "regime_signal": "geopolitical_premium",
         "priority": 10,
         "author": "Ricky2212",
@@ -1881,13 +1480,780 @@ Ricky2212
  
 """,
     },
+    "coal_war_cycle_2026": {
+        "title": "Batu Bara , Perang , dan Siklus yang Selalu Berulang",
+        "category": "macro_thesis",
+        "subcategory": "coal_cycle",
+        "themes": ["coal", "war", "iran", "hormuz", "supply_disruption", "substitution", "newcastle", "indonesia"],
+        "tickers": ["ADRO.JK", "PTBA.JK", "ITMG.JK", "HRUM.JK", "INDY.JK", "AADI.JK", "BUMI.JK", "UNTR.JK", "KKGI.JK"],
+        "quad_bias": """Q2""",
+        "regime_signal": "commodity_substitution",
+        "priority": 10,
+        "author": "Ricky2212",
+        "source": "mentorbaik",
+        "content": """Artikel: Batu Bara , Perang , dan Siklus yang Selalu Berulang
+
+Batu Bara , Perang , dan Siklus yang Selalu Berulang
+( Ketika Sejarah Berirama Sama — 1970an , 2008 , 2022 , dan Sekarang. )
+
+Batu Bara , Perang , dan Siklus yang Selalu Berulang
+
+
+
+ 
+
+( Ketika Sejarah Berirama Sama — 1970an , 2008 , 2022 , dan Sekarang. )
+
+
+Kita lanjut lagi cerita perang yang berkecamuk antara amrik and sirewel vs Iran 
+
+
+Bayangkan anda punya tetangga yang suka berantem.
+
+
+Setiap kali tetangga itu berantem sama orang lain entah kenapa harga sembako di pasar sekitar rumah anda langsung ikut naik gila2x an.
+
+
+Anehnya ini terjadi bukan sekali. Bukan dua kali. Tapi berkali-kali dengan pola yang sama persis.
+
+
+Pertama kali terjadi anda kaget dan tidak siap.
+
+Kedua kali terjadi anda mulai curiga.
+
+Ketiga kali terjadi anda mulai paham polanya.
+
+Dan keempat kali anda udah senyum duluan sebelum berantemannya beneran pecah.
+
+
+Nah , tetangga yang saya maksud itu adalah kawasan Timur Tengah. Dan sembako yang harganya selalu ikut naik itu adalah batubara.
+
+
+Perang kemarin jelas banget akan membuat dampak pada harga2x komoditas energy. Seperti kita ketahui bahwa negara2x yang terlibat perang adalah negara penghasil utama energi dunia. Tak kurang negara2x tersebut menyuplai sekitar 20-30% kebutuhan energi dunia 
+
+
+Sejak perang berkecamuk , harga minyak sudah naik sampai level $92 an dari sebelumnya sekitar $60 an 
+
+
+Yang membuat parah lagi adalah akibat dari perang tersebut membuat pasokan energi dunia tersendat 
+
+
+Eropa yang kebutuhan LNG nya di supply oleh Qatar , langsung pusing  keliling akibat perang tersebut. Dengan adanya perang tersebut maka Eropa akan kehilangan supply energy nya 
+
+
+Qatar sudah declare kalo mereka menutup komplek pengolahan LNG nya yang menyumbang 20% kebutuhan LNG dunia 
+
+
+Iraq pun juga sedah men non aktifkan sumur minyak nya yang menghasilkan sekitar 300k Bpd 
+
+
+Saya pribadi melihat ada chance buat structural supply disruption sehingga butuh waktu buat menyelesaikan permalasahan in 
+
+
+Ini bukan masalah yang saat perang "TOK" dinyatakan selesai semua berasa langsung baik2x saja 
+
+
+Ini juga bukan perang yang masalahnya bisa kelar dalam hitungan hari , hitungan minggu atau hitungan bulan. Tapi juga bukan perang yang bikin harga komoditas akan naik terus bertahun2x 
+
+
+Kenapa saya bilang ada chance buat structural supply disruption ? 
+
+
+=> perang ini sudah masalah gengsi dan satu middle east kaya berasa diajak semua. Iran all out melakukan serangan sana - sini 
+
+
+=> Selat Hormuz adalah selat yang paling penting dengan 20-30% kebutuhan minyak dunia tuh lewat sini. Semakin lama maka semakin kosong tuh supply di luar. 
+
+
+Bahkan negara penghasil minyak nya saja sampai berhentikan produksi dari sumur minyak nya karena sudah ga muat storage nya karena stok minyak yang dikirim masih belum bisa keluar 
+
+
+Saat dibuka selat hormuz , tuh negara2x bakal pada rush berebut minyak buat mengisi kekosongan storage and cadangan minyak mereka 
+
+
+=> Perang ini yang diserang itu bukan kota besar atau gedung , perang ini yang diserang tuh sendi and infrastruktur migas 
+
+
+mulai dari rigs , kilang and refinery 
+
+
+refinery aramco , Qatar LNG kompleks , Kuwait Storage , Bahrain storage . Itu semua adalah infrastruktur migas yang sangat vital. Selama itu ditutup , kelar dah tuh semua supply dunia 
+
+
+Kalo selesai perang ? tuh infra ga bisa langsung beroperasi begitu saja. Mereka butuh diperbaiki kerusakannya. Setelah diperbaiki, operasi pasti tidak langsung normal. Butuh 1 sampai 2 bulan buat menormalkan semua nya kembali 
+
+
+Nah dari cerita tersebut maka potensi harga energy lainnya sebagai substitusi untuk mengisi kekosongan kebutuhan energy ikut terkerek naik 
+
+
+Energy tersebut adalah energy yang bersumber dari batubara. 
+
+
+Dan seperti yang sudah terjadi berkali-kali sebelumnya kalo harga batubara langsung bergerak. Newcastle Coal dalam hitungan hari langsung melonjak lebih dari 26% ke level $133 per ton.
+
+
+Nah loh , familiar ga ? Koq kayak pernah kejadian yah ?
+
+
+Jas merah => jangan pernah melupakan sejarah. Sejarah nggak pernah berulang persis tapi sejarah seringkali berirama yang sama.
+
+Dan hari ini saya mau ceritain ke anda , irama yang sedang berlangsung itu.
+
+
+Kenapa Batubara Selalu Ikut Naik Saat Perang ?
+
+Sebelum masuk ke cerita sejarahnya , saya coba kasih satu pemahaman dulu yah.
+
+
+Batubara itu sebenernya bukan komoditas yang langsung kena dampak perang di Timur Tengah.
+
+
+Batubarai itu tidak seperti oil yang langsung berhubungan sama produksi OPEC , atau LNG yang langsung keluar dari Qatar.
+
+
+Tapi kenapa koq batubara selalu ikut naik. Koq bisa yah ?
+
+Jawabannya satu kata yaitu batubara adalah energy substitusi.
+
+
+Begini mekanismenya yang selalu berulang dari waktu ke waktu :
+
+
+Perang terjadi di Timur Tengah → supply oil dan gas langsung terganggu → harga oil dan gas meledak → pembangkit listrik dan industri di seluruh dunia butuh energi alternatif yang lebih murah → mereka beralih ke batubara → demand batubara melonjak tiba2x → DUAAAARRR harga batubara ikut meledak 
+
+
+Sesederhana itu. Tapi efeknya selalu dahsyat luar biasa.
+
+
+Ibarat warung nasi padang di sebelah tiba2x tutup , warung nasi warteg di sebelahnya langsung diserbu pembeli dan harganya langsung ikut naik.
+
+
+Batubara adalah warteg energi dunia. Selalu jadi pilihan saat yang lain mahal atau tidak tersedia.
+
+
+Dan inilah yang selalu terjadi setiap kali Timur Tengah memanas.
+
+
+# Kisah Pertama — Era 1970an
+
+(Ketika Perang Mengubah Dunia)
+
+
+Ini kisah paling legendaris yang pernah ada di dunia komoditas. Saya nggak hidup di jaman itu tapi saya bisa merasakan vibes nya saat membaca cerita sejarahnya. Serem tapi seru !
+
+
+Kemarin saya sudah banyak bercerita tentang perjalanan di cycle ini. Jadi saya singkat langsung saja yah
+
+
+Pada tahun Oktober 1973 saat itu OPEC mengumumkan embargo minyak ke AS dan sekutunya . 
+
+
+Pemicunya ? Perang Yom Kippur antara Israel vs koalisi Arab. AS dan Barat dukung Israel sehingga negara2x Arab marah besar dan langsung pakai minyak sebagai senjata.
+
+
+Hasilnya ?
+
+
+Harga minyak melonjak 400% hanya dalam 3 bulan . Harga minyak naik dari $3 per barel langsung ke $12 per barel 
+
+
+Nah disinilah batubara mulai dapat panggungnya.
+
+
+Efek domino langsung terasa kemana-mana. Pembangkit listrik dan industri di seluruh dunia langsung kalang kabut cari alternatif energi yang lebih murah. Mereka beralih massal ke batubara. 
+
+
+Dunia berpikir ini udah selesai. Harga oil sempat stabil di $12-$15 per barel. Orang mulai tenang dan erlena lagi.
+
+
+Lalu datanglah pukulan kedua yang lebih dahsyat lagi yaitu datang nya sebuah Revolusi Iran 1979 . Saat itu pihak yang berkuasa yaitu Shah Iran digulingkan oleh Ayatollah Khomeini. Ekspor minyak Iran terhenti total. 
+
+
+Dunia panik luar biasa tapi kali ini bukan embargo yang direncanakan. Ini adalah ketakutan nyata akan sebuah kelangkaan minyak. 
+
+
+Orang pada borong minyak. Spekulan ikut main. Harga makin nggak karuan. Harga oil meroket lagi dari $13 ke $40 per barel dalam setahun. Sebuah kenaikan lebih dari 200% 
+
+
+Batubara ? Ikut meledak lagi sebagai substitusi di seluruh dunia .
+
+
+Satu dekade penuh 1970an basket komoditas naik 586% . Sementara di saat yang sama saham biasa dalam nilai riil justru kehilangan hampir 50% nilainya. 
+
+
+Ini adalah Decade of commodities yang sesungguhnya.
+
+
+# Kisah Kedua — GFC 2007-2008
+
+(Pesta yang Tidak Pernah Terlupakan)
+
+
+Saya ada di sini. Saya masuk bursa 2003 dan merasakan semua ini langsung dari awal sampai akhir.
+
+
+Awal 2000an , China baru bangun tidur dan laper banget. Mereka butuh segalanya kaya baja buat gedung pencakar langit , batubara buat pembangkit listrik , tembaga buat kabel listrik , bijih besi buat industri otomotif.
+
+
+China is hungry for all raw material.
+
+
+China berasa kayak raksasa yang baru bangun tidur dan laper banget.
+
+
+Mereka impor komoditas dalam jumlah gila-gilaan. Ini masa keemasan yang disebut Super Cycle.
+
+
+Oil dari $20-$30 di 2003 mulai merangkak naik perlahan. Batubara Newcastle dari $60 per ton mulai bergerak. 
+
+
+Lalu di 2007 semuanya mulai aneh.
+
+Oil sudah di $60 , $70 , $80 , $90 per barel Batubara udah di $80-$90 per ton. 
+
+
+Media mulai ramai tapi belum panik. The Fed mulai turunkan suku bunga karena tanda2x krisis subprime mortgage mulai kelihatan. 
+
+
+USD melemah. Investor institusi besar mulai masuk ke komoditas sebagai lindung nilai.
+
+
+Dan di 2008 semua menjadi tidak karuan.
+
+Januari udah di atas $100. Maret tembus $110. 
+
+
+11 Juli 2008 saat itu harga minyak WTI menyentuh $147.27 per barel . Harga tersebut adalah harga rekor tertinggi sepanjang sejarah yang sampai sekarang pun belum terlampaui.
+
+
+Batubara Newcastle meledak dari $60 ke $190 per ton naik hampir tiga kali lipat dalam hitungan bulan DUAAAARRR !
+
+
+Yang aneh dan mengerikan adalah ini semua terjadi padahal ekonomi AS udah resesi sejak Desember 2007 Supply naik dan sebenernya demand turun . Tapi gilanya harga tetap meroket . 
+
+
+Ini bukan lagi soal fundamental. Ini udah soal spekulasi dan FOMO yang nggak terkendali.
+
+
+Kisah Ketiga — 2022
+
+(Rusia , Ukraina , dan Panen Raya yang Singkat)
+
+
+Ini yang masih segar di ingatan kita semua bukan ? Rasanya banyak yang merasakan fase perang ini. 
+
+
+Februari 2022 Rusia menyerang Ukraina. Dunia Barat langsung embargo Rusia sebagai salah satu eksportir energi terbesar dunia 
+
+
+Gas Rusia yang biasa mengalir ke Eropa via pipa Nord Stream tiba2x terhenti total.
+
+
+Saat itu negara Eropa panik luar biasa. Dan lagi-lagi batubara jadi substitusi darurat saat semua itu terjadi
+
+
+Mekanismenya sama persis kayak 1973. Gas nggak bisa masuk Eropa → semua pembangkit listrik dan industri Eropa beralih ke batubara → demand meledak → harga ikut meledak !
+
+
+Newcastle coal melonjak dari $150 ke $450 per ton di pertengahan 2022 naik hampir tiga kali lipat dalam hitungan bulan.
+
+
+Dan emiten batubara Indonesia panen raya luar biasa saat itu. Semua ikut naik dalam euforia yang luar biasa. Ini adalah WTFF² yang sesungguhnya di sektor batubara Indonesia 
+
+
+Nah loh , familiar kan polanya ?
+
+
+Dan Sekarang 2026 Deja Vu yang Lebih Dahsyat
+
+Nah sekarang kita masuk ke cerita yang sedang terjadi saat tulisan ini saya buat.
+
+
+Sabtu kemarin US dan Sirewel menyerang Iran. Khomaeni diberitakan tewas. Iran membalas. Selat Hormuz ditutup. Perusahaan asuransi angkat tangan sehingga kapal tanker nggak bisa jalan lewat selat tersebut. 
+
+
+Ingat 20-30% transportasi minyak dan gas dunia tuh lewat situ 
+
+
+Qatar sebagai supplier gas terbesar dunia langsung kocar-kacir. Fasilitas LNG terbesar Qatar terhenti. Harga gas Eropa langsung melonjak lebih dari 50% dalam semalam.
+
+
+Dan dari sana mekanisme yang sama persis seperti 1973 , 2008 , dan 2022 langsung bekerja kembali :
+
+
+Gas mahal dan nggak tersedia → dunia beralih ke batubara → Newcastle coal udah naik 26% dalam seminggu ke $133 per ton 
+
+
+Banyak yang udah mulai bicara and ngoceh kalo kemungkinan harga batubara bisa menyentuh $250 per ton kalau konflik berkepanjangan. 
+
+
+Wakkss , saya ga mau segila itu berpikirnya. Buat saya target saya hanya $150 an dan selebih nya adalah bonus. Harga segitu aja sudah cukup bisa mengerek semua emiten ke medan permainan.
+
+
+Tapi yang bikin 2026 ini beda dan lebih dahsyat dari semua kisah sebelumnya adalah semua faktor hadir sekaligus bersamaan .
+
+
+Di 1973 hanya ada 2 faktor pemicu.
+
+
+Di 2008 hanya ada 3 faktor pemicu.
+
+
+Di 2026 semuanya hadir sekaligus 
+
+
+Nah loh !
+
+
+→ Perang Timur Tengah yang sekarang lebih besar dari 1973 ? yap begitulah adanya
+
+
+→ Selat Hormuz tertutup dan itu terjadi pertama kali dalam sejarah modern
+
+
+→ USD melemah dan trust terhadap fiat luntur global ? Ini saya sudah cerita dari 1-2 tahun lalu malahan
+
+
+→ The Fed terdesak untuk CUT suku bunga . Tunggu saja, sepertinya kita ga akan menemui super spike inflation ( inflasi dikit2x wajar lah ) . Semua akan feels like Recession. Ekonomi yang tadinya sebelum perang aja sudah sempoyongan , masa habis perang ga tambah parah. Data tenaga kerja saja sudah negative parah. 
+
+
+2007 itu semua komoditas naik terus market jatuh sesaat sekitar 15-20%. Fed melakukan CUT 125 bps buat "seakan-akan " support ekonomi padahal cuma mengulur waktu saja. 
+
+
+Komoditas spike lagi dan indeks berjalan dari ATH ke ATH sebelum semua burst
+
+
+→ Hutang US $9.6 triliun jatuh tempo tahun ini saja 
+
+
+→ Fund besar mulai masuk ke Store of Value energy 
+
+
+→ RKAB batubara Indonesia tetap di 775 juta ton 
+
+
+Ini bukan lagi sekedar perang yang bikin harga naik. Ini adalah kombinasi semua faktor sekaligus yang belum pernah terjadi dalam sejarah .
+
+
+Ibarat artis yang datang tampil habis2x an di lagu terakhir sebelum konser nya selesai dan semua lampu dimatikan dan batubara sedang dalam momen paling dramatis dan paling dahsyat dalam sejarahnya.
+
+
+Nah , Terus di Bursa Kita Gimana ?
+
+
+Ini yang paling menarik buat kita sebagai investor di IHSG.
+
+
+Indonesia adalah salah satu produsen batubara terbesar di dunia. Dan di bursa kita ada banyak pilihan saham batubara yang bisa jadi proxy dari semua cerita sejarah di atas.
+
+
+Tapi ingat yah kalo tidak semua emiten batubara dapat upside yang sama. 
+
+
+Saya coba kelompokkan satu per satu.
+
+Dari awal saya sampaikan dulu bahwa saya ga akan bahas saham nya secara detail. 
+
+
+Jadi silakan dicari proxy saham nya sesuai dengan risk profile masing2x. Saya bantu buat thesisnya , masa saya juga yang suruh pilihkan sahamnya. Lebih parah lagi , saya udah buat thesis nya , bantu pilih saham nya dan minta juga bagus ga masuk sekarang ? 
+
+
+Buat saya itu bukan pilihan cerdas kalo anda mau maju sebagai investor.
+
+
+1. Pemain Utama
+
+
+BUMI — Bumi Resources
+
+
+Ini raja batubara Indonesia. Dua aset utamanya adalah Kaltim Prima Coal dan Arutmin Indonesia dengan total kuota produksi 74 juta ton di 2026.
+
+
+ Volume terbesar di antara semua peers-nya. Di 2024 BUMI adalah satu2x nya emiten batubara yang masih mencatat ekspansi top line positif saat produsen lain mulai terdampak penurunan harga. 
+
+
+Dari sisi korporasi UBO sudah dilaporkan , transparansi kepemilikan meningkat , proses merapikan struktur terus berjalan dari waktu ke waktu. 
+
+
+Jangan lupa juga BUMI adalah Rio Tinto wannabe yang punya banyak asset selain batubara
+
+
+ AADI — Adaro Andalan Indonesia
+
+
+AADI fokus murni di batubara thermal dengan kuota 60 juta ton di 2026 . Setau saya tidak kena pemangkasan berarti. 
+
+
+Oke lah bahwa group Tohir yang satu ini punya reputasi yang bagus dan terkenal dengan ke efisien an nya dalam produksi batubara
+
+
+DIviden nya pun tergolong ga pelit 
+
+
+ITMG — Indo Tambangraya Megah
+
+
+Kalau harga batubara naik tajam akibat perang Iran , ITMG adalah perusahaan tambang batubara yang paling sensitive terhadap spot mengingat ITMG punya batubara kalori tinggi. 
+
+
+Konsistensi dividennya tetap jadi daya tarik utama buat investor yang suka passive income.
+
+
+PTBA — Bukit Asam
+
+
+Satu-satunya BUMN murni di sektor batubara. Paling defensif dan paling terlindungi dari sisi kebijakan pemerintah. Kalau 08 mau dorong ketahanan energi lewat Danantara maka PTBA pasti dapat porsi kebijakan yang paling favorable. 
+
+
+Btw PTBA juga terkenal royal dalam hal pembagian dividen loh
+
+
+2. Mid Cap yang Menarik Dicermat
+
+
+INDY — Indika Energy
+
+
+Lewat tambang Kideco di Kalimantan Timur dengan fokus batubara bituminous berkadar sulfur rendah . Batubaranya persis jenis yang paling dicari saat substitusi LNG 
+
+
+INDY juga ada story transformasi ke energi terbarukan dan kendaraan listrik jangka panjang yang menarik buat dicermati.
+
+
+INDY juga punya story emas yang baru2x ini sedang digarap
+
+
+HRUM — Harum Energy
+
+
+Perusahaan batubara milik taipan kiki Barki ini juga punya potensi loh. Batubara yang dimilikinya termasuk batubara berkalori sedang dan tinggi
+
+
+HRUM juga sudah ekspansi ke sektor nikel dengan membeli saham perusahaan tambang nikel berikut smelternya
+
+
+3. Small Cap yang Patut Diperhatikan
+
+
+KKGI — Resource Alam Indonesia
+
+
+Nah ini yang menarik dan sering banget terlewat dari radar banyak investor 
+
+
+KKGI adalah perusahaan batubara yanh dimiliki oleh RAIN group. Spek batubaranya adalah low , mid and high rank kalori
+
+
+KKGi juga termasuk perusahaan batubara yang rutin bagi dividen 
+
+
+KKGI memang nggak ramai dibicarakan. Emiten kecil yang fundamentalnya sekuat ini biasanya bergerak lebih liar dari big cap saat momentum sektor sedang kuat.
+
+
+4. Pick and Shovel Batubara
+
+
+UNTR — United Tractors
+
+
+UNTR bukan emiten batubara murni. Tapi siapapun yang bermain di sektor batubara pasti butuh UNTR. 
+
+
+UNTR adalah distributor alat berat terbesar Indonesia dengan brand2x kelas dunia seperti Komatsu , UD Trucks , Scania , dan Bomag.
+
+
+Tambang batubara mana pun di Indonesia pasti pakek alat beratnya UNTR ( dulunya , sekarang sudah mulai tergerus )
+
+
+Ini yang saya sebut pick and shovel play. 
+
+
+Di era gold rush California dulu yang paling kaya bukan penambang emasnya , tapi yang jualan cangkul dan sekop ke para penambang 
+
+
+Nah UNTR adalah penjual cangkul di industri batubara Indonesia.
+
+
+UNTR bergerak di lima segmen sekaligus yaitu alat berat , kontraktor penambangan lewat PAMA , pertambangan batubara dan emas , konstruksi sipil , dan energi. 
+
+
+Diversifikasi yang luar biasa lengkap 
+
+
+Dan bonus yang sering dilupakan UNTR juga punya bisnis pertambangan emas lewat Agincourt Resources di Martabe. 
+
+
+Jadi UNTR ini adalah emiten yang nggak langsung main batubara tapi dapat kecipratan dari semua yang main batubara. Ibarat anda nggak ikut ke pestanya tapi anda yang jual baju , sepatu , dan transportasi ke semua orang yang mau datang ke pesta tersebut. 
+
+
+Terus , Mana yang Paling Menarik ?
+
+
+silakan anda pilih yang terbaik buat anda sendiri yah
+
+
+Tapi ingat yah kalo sahamnya jangan dinikahi. Cukup dikencani saja. 
+
+
+Kita lagi bermain di narrative cycle yang dipercepat oleh perang. Bukan cycle baru yang dilandasi real supply demand jangka panjang.
+
+
+Siapkan selalu exit strategy sebelum masuk 
+
+
+Kembali ke analogi tetangga yang suka berantem tadi.
+
+
+Sekarang tetangga kita udah berantem lagi. Bahkan berantemnya lebih besar dari sebelumnya.
+
+
+Harga sembako udah mulai naik. Batubara udah mulai bergerak. Dan dari sejarah yang udah kita pelajari bersama ini baru permulaan.
+
+
+Apakah ini akan seperti 1973 ? Seperti 2008 ? Seperti 2022 ?
+
+
+Buat saya mungkin kombinasi dari ketiganya. Dan itulah yang membuatnya jauh lebih dahsyat dari semua yang pernah terjadi sebelumnya.
+
+
+Yang pasti pesta ini sedang berlangsung. Musik masih bunyi kencang. Makanan masih berlimpah. 
+
+
+Sebagian orang masih asik joget. Sebagian udah mulai ambil jaket. Sebagian ada yang masih bengong. Dan sebagian ada yang udah pesan taxi duluan.
+
+
+Harga batubara di fase ini ibarat lilin yang menyala terang sebelum padam. Mereka naik , bikin semua orang terkesima tapi anda tau ini nggak akan bertahan selamanya. 
+
+
+Karena setelah lilin padam , yang ada cuma gelap.
+
+
+Apakah kita harus takut ? Nggak juga.
+
+Yang penting adalah sadar dan siap. Sadar bahwa kita di fase mana. 
+
+
+Siap buat kemungkinan terburuk tapi juga siap buat ambil peluang kalau ada.
+
+
+
+Terakhir saya coba sampaikan sedikit banyak strategi apa yang bisa dijalankan
+
+
+Saya bagi jadi beberapa layer strategi yah.
+
+
+Layer 1 => Jangan Panik , Tapi Jangan Juga Euphoria
+
+
+Ini yang paling susah dilakuin tapi paling penting.
+
+Saat perang pecah , dua reaksi ekstrem yang paling sering terjadi :
+
+
+Pertama adalah panik dan jual semua. Wakkss ini yang paling salah . Justru saat semua orang panik adalah saat peluang terbaik muncul.
+
+
+Kedua adalah euphoria dan beli semua karena takut ketinggalan. Ini juga bahaya FOMO adalah musuh terbesar investor.
+
+
+Yang bijak adalah duduk tenang , analisa situasinya , dan baru ambil keputusan dengan kepala dingin.
+
+
+Layer 2 => Ikuti Uang , Bukan Berita
+
+
+Berita perang itu memang bikin panik. Tapi investor cerdas tidak melihat dan terpengaruh oleh panasnya berita. 
+
+
+Investor cerdas melihat ke mana uang mengalir. Saya sudah sampaikan ini sejak akhir tahun lalu bahkan sejak pertengan tahun lalu kalo mau bahas store of value
+
+
+Dan sekarang uang sangat jelas mengalir ke :
+
+
+→ Store of Value energy — oil , gas , batubara
+
+
+→ Precious metal — emas , silver
+
+
+→ Emerging market — karena USD melemah uang kabur dari US
+
+
+Liat aja pergerakan ETF EEM yang baru saja break level terkuatnya. Liat grafik DXY yang terus melemah. Liat harga emas yang terus mencetak rekor.
+
+
+Uang udah bergerak duluan. Tugas kita adalah ikutin ke mana uang itu pergi dan bukan ikutin headline berita yang bikin deg-degan.
+
+
+Layer 3 => Pilih Proxy yang Tepat
+
+
+Nah ini yang paling teknikal.
+
+
+Kalau thesis kita adalah perang Iran → komoditas naik → saham komoditas ikut naik maka kita butuh proxy saham yang paling tepat.
+
+
+Ada tiga kategori proxy yang bisa dipertimbangkan :
+
+
+Direct play atau langsung ke sumbernya :
+
+
+Saham2x batubara seperti yang sudah kita bahas kaya BUMI , AADI , ITMG , PTBA , INDY , KKGI. Kalau harga komoditas naik , mereka yang paling langsung merasakan kenaikan revenue dan margin.
+
+
+Indirect play pick and shovel :
+
+
+Saham2x yang nggak langsung main komoditas tapi dapat kecipratan dari aktivitas komoditas yang meningkat. Contohnya UNTR distributor alat berat yang paling dibutuhin saat tambang lagi aktif-aktifnya. Lebih aman tapi tetap dapat upside.
+
+
+Defensive play lindung nilai :
+
+
+Kalau anda lebih konservatif dan nggak mau terlalu exposed ke volatilitas komoditas maka emas adalah jawabannya. 
+
+
+Baik emas fisik , reksa dana emas , maupun saham2x yang punya eksposur ke emas.
+
+
+Yang ini saya kurang favourable , soalnya sudah ga asymetris lagi
+
+
+Layer 4 Atur Posisi Cash dengan Bijak
+
+Ini yang sering dilupakan.
+
+
+Walau thesis kita bullish jangan masuk semua sekaligus Sisakan cash yang cukup
+
+
+Kenapa ? Karena situasi perang itu unpredictable. Bisa jadi besok ada kabar gencatan senjata dan harga komoditas langsung turun. 
+
+
+Bisa jadi ada eskalasi baru yang bikin pasar makin volatile.
+
+
+Cash itu bukan kekalahan. Cash itu amunisi.
+
+Kalau ada koreksi tiba2x akibat berita yang nggak terduga maka cash yang anda pegang adalah senjata untuk beli di harga yang lebih murah.
+
+
+Saya selalu bilang ke teman2x atur posisi cash anda dengan baik. Walau terlihat baik , tapi too early buat berpesta pora.
+
+
+Buat yang takut akan keadaan dan sudah tidak ingin lagi di market di sisa perjalanan ini , Cash adalah pilihan paling bijak. 
+
+
+Buat yang masih ingin berjalan dan mengikuti perjalanan perang ini ( pasti ada peluang ) maka anda bisa bermain di level
+
+
+50% asset + 50% cash buat yang konservative (si steve segini), dojjun (40% cash)
+
+70% asset + 30% cash buat yang masih terus mau menyerang
+
+
+No ALL IN and no syrup Marjan. 
+
+
+Tetap ingat berjalan di store of value energy. Jangan jauh2x yah
+
+
+Sebagai Satu Peringatan Keras
+
+
+Saya mau kasih satu peringatan keras sebelum artikel ini saya tutup.
+
+Di setiap situasi perang dan kenaikan komoditas akan selalu ada yang datang terlambat dan berakhir dengan kerugian besar.
+
+
+Di 2008 — yang beli oil di $140an langsung kehilangan 70% dalam 5 bulan.
+
+
+Di 2022 — yang beli batubara di $400an langsung kehilangan 60% saat harga normalize.
+
+
+Kenapa ini selalu berulang ? Karena di puncak euforia semua berita terasa bullish nanti.
+
+
+Nanti akan banyak yang kasih target harga yang makin tinggi. Media ramai-ramai bahas "supercycle" yang katanya nggak akan berakhir.
+
+Dan saat semua orang udah yakin harga akan terus naik selamanya dan itulah saat yang paling berbahaya.
+
+
+Jangan sampai anda jadi yang terakhir di pesta itu .
+
+
+Sekalian saya jawab pertanyaan yang nanti sering muncul
+
+
+Pak , kalo harga komoditas naik nanti inflasi juga naik donk ? satu dunia lagi sempoyongan ekonomi nya , kalo dihajar lagi dengan harga komoditas tinggi maka nanti akan makin sempoyongan. Yah inflasi dikit2x yah wajar lah yah , tapi paper asset inflation
+
+
+Pak , kalo inflasi naik jadi suku bunga juga bakal naik ? barusan saya jelasin diatas kalo ekonomi aja sudah sempoyongan , data tenaga kerja aja sudah 2x negative. 
+
+
+Nanti habis perang akan feels like Recession. Central bank yang tadinya belagu bilang ekonomi bla bla bla bagus akan berasa butuh nih support ekonomi
+
+
+Saya bicara data 2007 dimana terjadi CUT 125 Bps saat mau memuncaki semuanya. 
+
+
+Perang itu bagian dari jawaban buat menambah pressure CUT dan semuanya akan berpuncak habis ini. 
+
+
+Saya mau tambahkan flow biar lebih mudah mencerna ceritanya nanti
+
+
+Soon will deescalate >> each claim victory >> money moves to risk assets >> oil self correcting and finds new equilibrium >> US announces data to support cuts >> market resumes jack up >> from ATH to ATH >> entah apa, oil and commodities spikes gila2an >> crash
+
+
+Dah cukup semua ceritanya yah. 
+
+
+Rasanya sudah semua saya ceritakan dari artikel sebelumnya
+
+
+Dari contoh perjalanan komoditas di ujung cycle , perang and komoditas , batubara sebagai substitusi dan terakhir saya sampaikan strateginya
+
+
+saya ga mau denger lagi nanya 
+
+
+pak saya harus gimana
+
+
+pak koq ga naik2x yah
+
+
+pak koq store of value ga naik juga
+
+
+market bukan buat pihak yang cengeng dan minta dikasihani. Market butuh mental kuat dan berjalan terus dengan strateginya 
+
+
+Ingat yah , saya juga belum tentu benar. Saya bisa salah juga dalam analisa. Jadi pastikan anda juga menganalisa sendiri agar menghasilkan keputusan terbaik
+
+
+
+
+
+
+Ricky2212
+
+""",
+    },
     "commodity_late_cycle_history": {
         "title": "Drama Harga Komoditas di Akhir Siklus Ekonomi ( Ketika Pesta Hampir Bubar )",
         "category": "macro_thesis",
         "subcategory": "commodity_cycle",
-        "themes": ['late_cycle', 'commodity', 'oil', 'gold', 'copper', '1970s', '2008', 'supercycle', 'inflation'],
-        "tickers": ['CL=F', 'GC=F', 'SI=F', 'HG=F', 'GLD', 'SLV', 'USO', 'XLE', 'XLB'],
-        "quad_bias": 'Q2→Q3',
+        "themes": ["late_cycle", "commodity", "oil", "gold", "copper", "1970s", "2008", "supercycle", "inflation"],
+        "tickers": ["CL=F", "GC=F", "SI=F", "HG=F", "GLD", "SLV", "USO", "XLE", "XLB"],
+        "quad_bias": """Q2→Q3""",
         "regime_signal": "late_cycle_spike",
         "priority": 10,
         "author": "Ricky2212",
@@ -2650,763 +3016,381 @@ Ricky2212
 
 """,
     },
-    "coal_war_cycle_2026": {
-        "title": "Batu Bara , Perang , dan Siklus yang Selalu Berulang",
+    "dari_denial_ke_panik_fed": {
+        "title": "Dari Denial ke Panik: Pola The Fed yang Tak Pernah Berubah (2007-2008 vs 2026)",
         "category": "macro_thesis",
-        "subcategory": "coal_cycle",
-        "themes": ['coal', 'war', 'iran', 'hormuz', 'supply_disruption', 'substitution', 'newcastle', 'indonesia'],
-        "tickers": ['ADRO.JK', 'PTBA.JK', 'ITMG.JK', 'HRUM.JK', 'INDY.JK', 'AADI.JK', 'BUMI.JK', 'UNTR.JK', 'KKGI.JK'],
-        "quad_bias": 'Q2',
-        "regime_signal": "commodity_substitution",
+        "subcategory": "monetary_policy",
+        "themes": ["fed", "fomc", "cut", "private_credit", "crunch", "lehman", "bear_stearns", "liquidity", "recession"],
+        "tickers": ["XLF", "KRE", "TLT", "SPY", "QQQ"],
+        "quad_bias": """Q3→Q2""",
+        "regime_signal": "credit_crunch",
         "priority": 10,
         "author": "Ricky2212",
         "source": "mentorbaik",
-        "content": """Artikel: Batu Bara , Perang , dan Siklus yang Selalu Berulang
+        "content": """Dari Denial ke Panik: Pola The Fed yang Tak Pernah Beruba
 
-Batu Bara , Perang , dan Siklus yang Selalu Berulang
-( Ketika Sejarah Berirama Sama — 1970an , 2008 , 2022 , dan Sekarang. )
+Dari Denial ke Panik: Pola The Fed yang Tak Pernah Berubah
+(FOMC 2007–2008, Private Credit 2026, dan Siklus yang Akan Terulang)
 
-Batu Bara , Perang , dan Siklus yang Selalu Berulang
+Dari Denial ke Panik: Pola The Fed yang Tak Pernah Berubah
 
 
+(FOMC 2007–2008, Private Credit 2026, dan Siklus yang Akan Terulang)
 
- 
 
-( Ketika Sejarah Berirama Sama — 1970an , 2008 , 2022 , dan Sekarang. )
 
 
-Kita lanjut lagi cerita perang yang berkecamuk antara amrik and sirewel vs Iran 
+Lagi-lagi saya tuh suka banget mengulik sebuah pola and pattern dari sejarah yang berulang. Kali ini otak saya fokus ke satu hal yaituThe Fed dan siklus denialnya sehingga menjorokkan kita pada puncak kehancuran.
 
 
-Bayangkan anda punya tetangga yang suka berantem.
+Sebelum saya cerita, saya mau sampaikan terlebih dahulu sedikit cerita agar paham konteksnya.
 
 
-Setiap kali tetangga itu berantem sama orang lain entah kenapa harga sembako di pasar sekitar rumah anda langsung ikut naik gila2x an.
+Ini semua masalah HUTANG. Semua krisis yang terjadi dan berulang itu adalah sebuah perputaran atas sebuah debt cycle.
 
 
-Anehnya ini terjadi bukan sekali. Bukan dua kali. Tapi berkali-kali dengan pola yang sama persis.
+Debt cycle ini nanti akan dikombinasikan dengan tema lainnya sehingga semua cerita tentang hutang itu jadi BLUR. Dari sana terjadi lagi yang namanya sebuah MISKONSEPSI.
 
 
-Pertama kali terjadi anda kaget dan tidak siap.
+2008 GFC apa temanya ? subprime mortgage atau Hutang kredit perumahan. Boom komoditas adalah tema pendampingnya.
 
-Kedua kali terjadi anda mulai curiga.
 
-Ketiga kali terjadi anda mulai paham polanya.
+2028 nanti ? bayangan saya adalah consumer debt, private credit fund and global debt yang didampingin oleh AI boom sebagai tema pendampingnya.
 
-Dan keempat kali anda udah senyum duluan sebelum berantemannya beneran pecah.
 
+Artikel ini adalah miniatur dari materi base camp saya nanti. Yang namanya miniatur berarti punya skala perbandingan. Skala perbandingan ini 1 : 20 dari keseluruhan cerita nanti di base camp. Jangan komplen yah, setidaknya saya sudah kasih penjabaran sedikit tentang semua perjalanan ini.
 
-Nah , tetangga yang saya maksud itu adalah kawasan Timur Tengah. Dan sembako yang harganya selalu ikut naik itu adalah batubara.
 
+Mari kita mulai ceritanya.
 
-Perang kemarin jelas banget akan membuat dampak pada harga2x komoditas energy. Seperti kita ketahui bahwa negara2x yang terlibat perang adalah negara penghasil utama energi dunia. Tak kurang negara2x tersebut menyuplai sekitar 20-30% kebutuhan energi dunia 
 
 
-Sejak perang berkecamuk , harga minyak sudah naik sampai level $92 an dari sebelumnya sekitar $60 an 
+Pada tahun 2006 , mereka di luar sana mulai dari central bank dan big boyzz bilang subprime mortgage itu adalah "contained."
 
 
-Yang membuat parah lagi adalah akibat dari perang tersebut membuat pasokan energi dunia tersendat 
+Di 2026, Goldman pada sebuah risetnya tentang private credit fund bilang private credit "hanya 4%" dari total outstanding. Tapi 4% dari $50 triliun adalah sekitar $2 triliun atau lebih besar dari subprime mortgage di puncaknya.
 
 
-Eropa yang kebutuhan LNG nya di supply oleh Qatar , langsung pusing  keliling akibat perang tersebut. Dengan adanya perang tersebut maka Eropa akan kehilangan supply energy nya 
+Apakah angka ini bisa dibilang besar?
 
 
-Qatar sudah declare kalo mereka menutup komplek pengolahan LNG nya yang menyumbang 20% kebutuhan LNG dunia 
+Kita harus ingat bahwa $2 triliun di 2026 itu nilainya berbeda dengan $ 2 triliun di 2008. Jumlah uang beredarnya saja sudah jauh berbeda antara dahulu dengan yang sekarang.
 
 
-Iraq pun juga sedah men non aktifkan sumur minyak nya yang menghasilkan sekitar 300k Bpd 
+Tapi tetap semua ini nantinya jadi salah satu dari sekian penyakit yang akan menggerogoti jeroan yang berujung pada kerusakan.
 
 
-Saya pribadi melihat ada chance buat structural supply disruption sehingga butuh waktu buat menyelesaikan permalasahan in 
+Selanjutnya yang jadi pertanyaannya adalah => apakah The Fed akan mengulang pola yang sama dengan 2008 dan beberapa cycle sebelumnya?
 
 
-Ini bukan masalah yang saat perang "TOK" dinyatakan selesai semua berasa langsung baik2x saja 
+Pola perjalanan tersebut yang selalu berulang kira-kira seperti ini:
 
 
-Ini juga bukan perang yang masalahnya bisa kelar dalam hitungan hari , hitungan minggu atau hitungan bulan. Tapi juga bukan perang yang bikin harga komoditas akan naik terus bertahun2x 
+Denial dulu
 
 
-Kenapa saya bilang ada chance buat structural supply disruption ? 
+Bilang "contained"
 
 
-=> perang ini sudah masalah gengsi dan satu middle east kaya berasa diajak semua. Iran all out melakukan serangan sana - sini 
+Lalu panik
 
 
-=> Selat Hormuz adalah selat yang paling penting dengan 20-30% kebutuhan minyak dunia tuh lewat sini. Semakin lama maka semakin kosong tuh supply di luar. 
+Lalu potong bunga cepat
 
 
-Bahkan negara penghasil minyak nya saja sampai berhentikan produksi dari sumur minyak nya karena sudah ga muat storage nya karena stok minyak yang dikirim masih belum bisa keluar 
+Tapi tetap terlambat ?
 
 
-Saat dibuka selat hormuz , tuh negara2x bakal pada rush berebut minyak buat mengisi kekosongan storage and cadangan minyak mereka 
+Saya mau ambil contoh krisis berat yaitu krisis yang terjadi pada tahun 2008 atau GFC. Saya coba bedah timeline yang sudah terjadi di 2007–2008, lalu tarik garis ke kondisi yang sedang terjadi sekarang.
 
 
-=> Perang ini yang diserang itu bukan kota besar atau gedung , perang ini yang diserang tuh sendi and infrastruktur migas 
 
+Timeline 2007–2008 : Dari Denial ke Lehman
 
-mulai dari rigs , kilang and refinery 
 
+Fase 1 yaitu Denial (2006 – pertengahan 2007)
 
-refinery aramco , Qatar LNG kompleks , Kuwait Storage , Bahrain storage . Itu semua adalah infrastruktur migas yang sangat vital. Selama itu ditutup , kelar dah tuh semua supply dunia 
 
+Di awal 2006, subprime mortgage satu per satu berguguran dan mulai gagal bayar. Foreclosure meningkat di Ohio, Michigan, California. New Century Financial sebagai perusahaan subprime lender terbesar saat itu mencatat kerugian di Q3 2006.
 
-Kalo selesai perang ? tuh infra ga bisa langsung beroperasi begitu saja. Mereka butuh diperbaiki kerusakannya. Setelah diperbaiki, operasi pasti tidak langsung normal. Butuh 1 sampai 2 bulan buat menormalkan semua nya kembali 
 
+Saat itu semua mulai nampak ke permukaan tapi di saat yang sama The Fed masih santai dan tenang. Malah saat itu The Fed masih dalam fase menaikkan suku bunga acuan FFRnya. Pada bulan Juni 2006, suku bunga FFR berada di level 5,25%.
 
-Nah dari cerita tersebut maka potensi harga energy lainnya sebagai substitusi untuk mengisi kekosongan kebutuhan energy ikut terkerek naik 
 
+Saat itu Fed Chairman Ben Bernanke yang sebenarnya akademisi spesialis Great Depression masih bilang di Maret 2007 seperti ini :
 
-Energy tersebut adalah energy yang bersumber dari batubara. 
 
+"The impact on the broader economy and financial markets of the problems in the subprime market seems likely to be contained."
 
-Dan seperti yang sudah terjadi berkali-kali sebelumnya kalo harga batubara langsung bergerak. Newcastle Coal dalam hitungan hari langsung melonjak lebih dari 26% ke level $133 per ton.
 
+"Contained." Kata itu jadi mantra yang membuat semua orang tenang, padahal di bawah permukaan sudah mulai retak.
 
-Nah loh , familiar ga ? Koq kayak pernah kejadian yah ?
 
 
-Jas merah => jangan pernah melupakan sejarah. Sejarah nggak pernah berulang persis tapi sejarah seringkali berirama yang sama.
+Fase 2 yaitu Kredit Crunch (Agustus 2007)
 
-Dan hari ini saya mau ceritain ke anda , irama yang sedang berlangsung itu.
 
+Pada bulan Agustus tahun 2007, pasar uang antar bank tiba-tiba membeku. Bank-bank di dunia mulai tidak percaya satu sama lain.
 
-Kenapa Batubara Selalu Ikut Naik Saat Perang ?
 
-Sebelum masuk ke cerita sejarahnya , saya coba kasih satu pemahaman dulu yah.
+Northern Rock di Inggris bank yang tadinya sehat saja tidak bisa mendapat pendanaan dari pasar keuangan dan harus minta tolong ke Bank of England.
 
 
-Batubara itu sebenernya bukan komoditas yang langsung kena dampak perang di Timur Tengah.
+Perlahan waktu berjalan, The Fed mulai sadar dan pada tanggal 18 September 2007, mereka melakukan pemotongan suku bunga sebesar 50 bps. Pemotongan ini terjadi di luar ekspektasi pasar saat itu. Ini jadi alarm pertama bahwa sebenarnya keadaan tuh mulai ga bener.
 
 
-Batubarai itu tidak seperti oil yang langsung berhubungan sama produksi OPEC , atau LNG yang langsung keluar dari Qatar.
+Tapi masalahnya narasi di publik masih bilang
 
 
-Tapi kenapa koq batubara selalu ikut naik. Koq bisa yah ?
+"Ini cuma masalah subprime aja koq. Sektor keuangan utama sih masih dalam keadaan yang aman dan baik-baik saja."
 
-Jawabannya satu kata yaitu batubara adalah energy substitusi.
 
 
-Begini mekanismenya yang selalu berulang dari waktu ke waktu :
+Fase 3 yaitu Panik (Januari–Maret 2008)
 
 
-Perang terjadi di Timur Tengah → supply oil dan gas langsung terganggu → harga oil dan gas meledak → pembangkit listrik dan industri di seluruh dunia butuh energi alternatif yang lebih murah → mereka beralih ke batubara → demand batubara melonjak tiba2x → DUAAAARRR harga batubara ikut meledak 
+Pada bulan Januari 2008, keadaan terus mengarah ke keadaan yang jauh lebih buruk. Saat itu ekonomi AS sudah boleh dibilang sudah masuk resesi. Bursa saham mulai terjun bebas dan anjlok. Hal tersebut membuat The Fed kelimpungan dan panik.
 
 
-Sesederhana itu. Tapi efeknya selalu dahsyat luar biasa.
+22 Januari 2008, The Fed sampai melakukan emergency meeting dan melakukan emergency cut sebesar 75 bps. Pemotongan suku bunga tersebut menjadi pemotongan yang terbesar sejak 1980 an.
 
 
-Ibarat warung nasi padang di sebelah tiba2x tutup , warung nasi warteg di sebelahnya langsung diserbu pembeli dan harganya langsung ikut naik.
+30 Januari 2008, belum cukup juga menahan kejatuhan dan kepanikan pasar. The Fed lagi2x sampai harus melakukan emergency meeting dan melakukan emergency cut lagi sebesar 50 bps.
 
 
-Batubara adalah warteg energi dunia. Selalu jadi pilihan saat yang lain mahal atau tidak tersedia.
+Bayangkan di bulan Januari 2008 tersebut Fed sampai harus melakukan dua kali emergency cut dalam 8 hari. Belum pernah tuh terjadi dalam sejarah The Fed.
 
 
-Dan inilah yang selalu terjadi setiap kali Timur Tengah memanas.
+Pada bulan Maret 2008, Bear Stearns sebagai salah satu dari lima investment bank terbesar harus menerima kenyataan pahit bahwa mereka tidak bisa bertahan lagi alias kolaps.
 
 
-# Kisah Pertama — Era 1970an
+Tepat di minggu yang sama pada tanggal 18 Maret 2008, The Fed melakukan lagi pemotongan suku bunga sebesar 75 bps. 
 
-(Ketika Perang Mengubah Dunia)
 
+Tapi Bear Stearns tetap mati dan kolaps. Untuk tindakan penyelamatan saat itu, JPMorgan membelinya dengan harga $2 per saham dari sebelumnya harga saham Bear Stern berada di harga $170 an
 
-Ini kisah paling legendaris yang pernah ada di dunia komoditas. Saya nggak hidup di jaman itu tapi saya bisa merasakan vibes nya saat membaca cerita sejarahnya. Serem tapi seru !
 
+Sinyal besar kedua diperlihatkan dari sini.
 
-Kemarin saya sudah banyak bercerita tentang perjalanan di cycle ini. Jadi saya singkat langsung saja yah
 
 
-Pada tahun Oktober 1973 saat itu OPEC mengumumkan embargo minyak ke AS dan sekutunya . 
+Fase 4 yaitu Kehabisan Amunisi (September 2008)
 
 
-Pemicunya ? Perang Yom Kippur antara Israel vs koalisi Arab. AS dan Barat dukung Israel sehingga negara2x Arab marah besar dan langsung pakai minyak sebagai senjata.
+Pada bulan April 2008, The Fed melakukan pemotongan suku bunga yang terakhir 25 bps. Suku bunga turun jauh dari 5,25% jadi 2,00% dalam 8 bulan.
 
 
-Hasilnya ?
+Tapi masalahnya bukan suku bunga terlalu tinggi. Masalahnya saat itu adalah bank kehabisan modal karena aset beracun atau toxic asset. Suku bunga rendah tidak akan mengembalikan modal yang sudah hilang.
 
 
-Harga minyak melonjak 400% hanya dalam 3 bulan . Harga minyak naik dari $3 per barel langsung ke $12 per barel 
+September 2008, Lehman brother menyusul Bear Stearns bangkrut. Suku bunga sudah 2% dan nyaris nol.
 
 
-Nah disinilah batubara mulai dapat panggungnya.
+Tidak ada ruang untuk untuk melakukan pemotongan suku bunga lagi. Yang tersisa hanya lah Bank sentral harus melakukan penyelamatan dengan cara bailout darurat.
 
 
-Efek domino langsung terasa kemana-mana. Pembangkit listrik dan industri di seluruh dunia langsung kalang kabut cari alternatif energi yang lebih murah. Mereka beralih massal ke batubara. 
 
+Sekarang =< Timeline 2026 Apakah Kita Sedang Mengulang?
 
-Dunia berpikir ini udah selesai. Harga oil sempat stabil di $12-$15 per barel. Orang mulai tenang dan erlena lagi.
 
+Sekarang lihat apa yang terjadi di 2026.
 
-Lalu datanglah pukulan kedua yang lebih dahsyat lagi yaitu datang nya sebuah Revolusi Iran 1979 . Saat itu pihak yang berkuasa yaitu Shah Iran digulingkan oleh Ayatollah Khomeini. Ekspor minyak Iran terhenti total. 
 
+Fase Denial (2024–2025)
 
-Dunia panik luar biasa tapi kali ini bukan embargo yang direncanakan. Ini adalah ketakutan nyata akan sebuah kelangkaan minyak. 
 
 
-Orang pada borong minyak. Spekulan ikut main. Harga makin nggak karuan. Harga oil meroket lagi dari $13 ke $40 per barel dalam setahun. Sebuah kenaikan lebih dari 200% 
+Private credit tumbuh jadi $2,1 triliun. Default rate historis 2–2,5% tapi mulai 2025, default rate naik tembus 4%.
 
 
-Batubara ? Ikut meledak lagi sebagai substitusi di seluruh dunia .
+Bank exposure ke private credit melonjak dari $300 miliar di 2015 jadi $1,9 triliun sekarang.
 
 
-Satu dekade penuh 1970an basket komoditas naik 586% . Sementara di saat yang sama saham biasa dalam nilai riil justru kehilangan hampir 50% nilainya. 
+Tapi narasi yang beredar sekarang masih berkata 
 
 
-Ini adalah Decade of commodities yang sesungguhnya.
+"Private credit cuma 4% dari total credit dan Dampak ke GDP cuma 0,2–0,5%."
 
 
-# Kisah Kedua — GFC 2007-2008
+Sama persis dengan 2006 dengan kata "Contained."
 
-(Pesta yang Tidak Pernah Terlupakan)
 
 
-Saya ada di sini. Saya masuk bursa 2003 dan merasakan semua ini langsung dari awal sampai akhir.
+Fase Kredit Crunch (Februari–Maret 2026)
 
 
-Awal 2000an , China baru bangun tidur dan laper banget. Mereka butuh segalanya kaya baja buat gedung pencakar langit , batubara buat pembangkit listrik , tembaga buat kabel listrik , bijih besi buat industri otomotif.
+Pada bulan Februari 2026, redemption request mulai melonjak. Blackstone BCRED terima $6,5 miliar penarikan atau sebesar 7,9% dari total fund. Dari sana hanya 5% yang dibayar.
 
 
-China is hungry for all raw material.
+Dari sana menyusul BlackRock HPS kena 9,3%. Ares kena 11,6%. Total penarikan Q1 2026 lebih dari $10 miliar.
 
 
-China berasa kayak raksasa yang baru bangun tidur dan laper banget.
+Ini adalah versi modern dari kredit crunch. Bukan bank yang kena freeze, tapi private credit funds yang tidak bisa bayar penarikan.
 
 
-Mereka impor komoditas dalam jumlah gila-gilaan. Ini masa keemasan yang disebut Super Cycle.
+Investor retail mulai terlihat panik sehingga fund2x besar batasi penarikan.
 
 
-Oil dari $20-$30 di 2003 mulai merangkak naik perlahan. Batubara Newcastle dari $60 per ton mulai bergerak. 
+The Fed masih terlihat diam dan merasa tenang-tenang saja. Mereka belum melakukan apapun. Mereka masih fokus sama inflasi yang katanya masih tinggi versi mereka.
 
 
-Lalu di 2007 semuanya mulai aneh.
+Kredit Crunch Menyebar ke Eropa (Maret 2026)
 
-Oil sudah di $60 , $70 , $80 , $90 per barel Batubara udah di $80-$90 per ton. 
 
+Dan sekarang, baru-baru ini, ada berita yang keluar yaitu UBS sebagai bank terbesar di Swiss harus menutup pintu fund properti senilai €400 juta dan tidak mengizinkan investor menarik uangnya sampai 3 tahun ke depan.
 
-Media mulai ramai tapi belum panik. The Fed mulai turunkan suku bunga karena tanda2x krisis subprime mortgage mulai kelihatan. 
 
+Alasannya ? kata mereka begini
 
-USD melemah. Investor institusi besar mulai masuk ke komoditas sebagai lindung nilai.
 
+" Liquid assets in the Germany based fund were insufficient to meet rise in redemption requests."
 
-Dan di 2008 semua menjadi tidak karuan.
 
-Januari udah di atas $100. Maret tembus $110. 
+Artinya uang tunai di fund sudah pada posisi habis. Investor yang ramai-ramai mau tarik dana tapi masalahnya UBS nggak punya uang buat bayar penarikan tersebut. Jadi lah mereka tutup tuh pintu penarikan fund nya
 
 
-11 Juli 2008 saat itu harga minyak WTI menyentuh $147.27 per barel . Harga tersebut adalah harga rekor tertinggi sepanjang sejarah yang sampai sekarang pun belum terlampaui.
+Fund ini invest di commercial real estate di kota-kota besar Eropa seperti Prancis, Spanyol, Italia. Nilainya €400 juta cukup besar, tapi bukan yang terbesar. Tapi yang bikin ini penting adalah UBS adalah bank sistemik.
 
 
-Batubara Newcastle meledak dari $60 ke $190 per ton naik hampir tiga kali lipat dalam hitungan bulan DUAAAARRR !
+Di saat yang sama dengan redemption run private credit di AS, kita lihat pola yang sama terjadi di Eropa. Commercial real estate yang selama ini dianggap aman ternyata mulai terlihat retak. Investor sih ga mau pusing dan mereka mau keluar. Tapi masalahnya Fund tuh sudah tidak punya likuiditas.
 
 
-Yang aneh dan mengerikan adalah ini semua terjadi padahal ekonomi AS udah resesi sejak Desember 2007 Supply naik dan sebenernya demand turun . Tapi gilanya harga tetap meroket . 
+Ini adalah versi Eropa dari kredit crunch. Dan ini terjadi di sektor yang berbeda, tapi iramanya sama.
 
 
-Ini bukan lagi soal fundamental. Ini udah soal spekulasi dan FOMO yang nggak terkendali.
+Fase Panik ? (Maret 2026 – sekarang)
 
 
-Kisah Ketiga — 2022
+Saat ini kita sedang di titik antara kredit crunch dan panik. Kita lihat yang terjadi di 2007–2008:
 
-(Rusia , Ukraina , dan Panen Raya yang Singkat)
 
+Potongan pertama The Fed terjadi setelah pasar uang membeku.
 
-Ini yang masih segar di ingatan kita semua bukan ? Rasanya banyak yang merasakan fase perang ini. 
 
+Emergency cut terjadi setelah Bear Stearns mulai goyah.
 
-Februari 2022 Rusia menyerang Ukraina. Dunia Barat langsung embargo Rusia sebagai salah satu eksportir energi terbesar dunia 
 
+Tapi tetap tidak cukup menyelamatkan Lehman.
 
-Gas Rusia yang biasa mengalir ke Eropa via pipa Nord Stream tiba2x terhenti total.
 
+Sekarang, The Fed masih punya ruang buat melakukan pemotongan suku bunga. Tapi inflasi menurut mereka masih tinggi. Mereka tidak bisa melakukan pemotongan secepat 2007.
 
-Saat itu negara Eropa panik luar biasa. Dan lagi-lagi batubara jadi substitusi darurat saat semua itu terjadi
 
+Mereka terjebak dengan keadaan yang katanya DEADLOCK. Kalau suku bunga dipotong, inflasi bisa naik lagi. Kalau tidak dipotong, kredit crunch bisa memburuk.
 
-Mekanismenya sama persis kayak 1973. Gas nggak bisa masuk Eropa → semua pembangkit listrik dan industri Eropa beralih ke batubara → demand meledak → harga ikut meledak !
 
+Padahal menurut saya yah kalo Inflasi itu Lagging Indicator. Inflasi akan menukik tajam seiring dengan lemahnya aktivitas ekonomi yang terus memburuk.
 
-Newcastle coal melonjak dari $150 ke $450 per ton di pertengahan 2022 naik hampir tiga kali lipat dalam hitungan bulan.
 
+Liat aja nanti, tuh Fed bakal kelabakan sendiri dan akhirnya panik buat melakukan cut rate.
 
-Dan emiten batubara Indonesia panen raya luar biasa saat itu. Semua ikut naik dalam euforia yang luar biasa. Ini adalah WTFF² yang sesungguhnya di sektor batubara Indonesia 
 
 
-Nah loh , familiar kan polanya ?
+Pola yang Terus Berulang
 
 
-Dan Sekarang 2026 Deja Vu yang Lebih Dahsyat
+Dari timeline 2007–2008 dan yang sedang terjadi sekarang, polanya mulai terlihat makin kesini makin jelas
 
-Nah sekarang kita masuk ke cerita yang sedang terjadi saat tulisan ini saya buat.
 
+Fase 1 yaitu Denial dengan Masalah credit mulai terlihat, tapi narasi "contained" membuat semua orang tenang.
 
-Sabtu kemarin US dan Sirewel menyerang Iran. Khomaeni diberitakan tewas. Iran membalas. Selat Hormuz ditutup. Perusahaan asuransi angkat tangan sehingga kapal tanker nggak bisa jalan lewat selat tersebut. 
 
+Fase 2 yaitu Kredit Crunch dengan nanti makin terlihat kalo pasar keuangan mulai membeku dan di saat yang sama The Fed masih ragu.
 
-Ingat 20-30% transportasi minyak dan gas dunia tuh lewat situ 
 
+Fase 3 yaitu Panik dimana The Fed akan melakukan pemotongan suku bunga secara agresif tapi tindakan tersebut tetap terhitung terlambat.
 
-Qatar sebagai supplier gas terbesar dunia langsung kocar-kacir. Fasilitas LNG terbesar Qatar terhenti. Harga gas Eropa langsung melonjak lebih dari 50% dalam semalam.
 
+Fase 4 yaitu Terlambat dimana krisis mulai terjadi dan suku bunga sudah habis dipotong sampai dalam, yang ada adalah Fed sampai harus melakukan bailout darurat ( bisa jadi ada yang kolaps )
 
-Dan dari sana mekanisme yang sama persis seperti 1973 , 2008 , dan 2022 langsung bekerja kembali :
 
+Di tahun 2007–2008 , dari pemotongan suku bunga pertama (September 2007) sampai ke Lehman collapse (September 2008) butuh satu tahun.
 
-Gas mahal dan nggak tersedia → dunia beralih ke batubara → Newcastle coal udah naik 26% dalam seminggu ke $133 per ton 
 
+Tapi sekarang dengan kecepatan informasi dan interconnectedness yang jauh lebih tinggi, bisa saja fase-fase itu terjadi lebih cepat.
 
-Banyak yang udah mulai bicara and ngoceh kalo kemungkinan harga batubara bisa menyentuh $250 per ton kalau konflik berkepanjangan. 
 
+Yah ingat saja polanya, selama ada pola yang belum terlihat terjadi maka kita masih punya sedikit waktu.
 
-Wakkss , saya ga mau segila itu berpikirnya. Buat saya target saya hanya $150 an dan selebih nya adalah bonus. Harga segitu aja sudah cukup bisa mengerek semua emiten ke medan permainan.
 
+Yang Bisa Kita Pelajari
 
-Tapi yang bikin 2026 ini beda dan lebih dahsyat dari semua kisah sebelumnya adalah semua faktor hadir sekaligus bersamaan .
 
+Jangan percaya narasi "contained." Mereka selalu bilang begitu sampai krisis benar2x terjadi.
 
-Di 1973 hanya ada 2 faktor pemicu.
 
+Perhatikan tanda2x yang sama. Di 2006, subprime mortgage mulai gagal. Di 2026, redemption run dan default rate naik. Tandanya sudah mulai terlihat jelas ada.
 
-Di 2008 hanya ada 3 faktor pemicu.
 
+The Fed akan terlambat. Mereka akan selalu jadi pihak yang terlambat dari waktu ke waktu. Karena mereka tidak bisa panik sebelum pasar panik. Tapi ketika mereka panik, biasanya market sudah terlalu dalam.
 
-Di 2026 semuanya hadir sekaligus 
 
 
-Nah loh !
+sebagai penutup
 
 
-→ Perang Timur Tengah yang sekarang lebih besar dari 1973 ? yap begitulah adanya
+The Fed mengulang pola yang sama.
 
+Denial. Kredit crunch. Panik. Pemotongan. Terlambat.
 
-→ Selat Hormuz tertutup dan itu terjadi pertama kali dalam sejarah modern
 
+Timeline FOMC 2007–2008 adalah bukti kalo mereka melakukan pemotongan suku bunga sebesar 325 bps dalam 8 bulan, tapi tetap saja gagal menyelamatkan Lehman. Karena masalahnya bukan suku bunga tapi sistem yang membusuk.
 
-→ USD melemah dan trust terhadap fiat luntur global ? Ini saya sudah cerita dari 1-2 tahun lalu malahan
 
+Sekarang, dengan private credit $2,1 triliun, bank exposure $1,9 triliun, dan commercial real estate di Eropa mulai retak kita sedang melihat awal dari fase kredit crunch yang menyebar. The Fed masih tenang. Mereka belum melakukan action yaitu potong suku bunga.
 
-→ The Fed terdesak untuk CUT suku bunga . Tunggu saja, sepertinya kita ga akan menemui super spike inflation ( inflasi dikit2x wajar lah ) . Semua akan feels like Recession. Ekonomi yang tadinya sebelum perang aja sudah sempoyongan , masa habis perang ga tambah parah. Data tenaga kerja saja sudah negative parah. 
 
+Pertanyaannya bukan apakah mereka akan melakukan pemotongan suku bunga. Pertanyaan selanjutnya adalah kapan dan apakah masih cukup buat menyelesaikan semua masalah tersebut
 
-2007 itu semua komoditas naik terus market jatuh sesaat sekitar 15-20%. Fed melakukan CUT 125 bps buat "seakan-akan " support ekonomi padahal cuma mengulur waktu saja. 
 
+Seperti kata pepatah 
 
-Komoditas spike lagi dan indeks berjalan dari ATH ke ATH sebelum semua burst
 
+"History doesn't repeat itself, but it often rhymes."
 
-→ Hutang US $9.6 triliun jatuh tempo tahun ini saja 
 
+Kita sedang mendengar irama yang sama.
 
-→ Fund besar mulai masuk ke Store of Value energy 
 
+Pertanyaannya apakah kita akan jadi penonton atau pemain yang siap?
 
-→ RKAB batubara Indonesia tetap di 775 juta ton 
 
+Krisis likuiditas pasti akan terjadi dan itu akan selalu berulang. Apakah sekarang likuiditas sudah mengetat? Yap, tapi belum karena pencadangan bank untuk hal buruk. Likuiditas ketat karena uang dari luar ditarik buat refinancing global debt yang menggunung.
 
-Ini bukan lagi sekedar perang yang bikin harga naik. Ini adalah kombinasi semua faktor sekaligus yang belum pernah terjadi dalam sejarah .
 
+Nanti pada waktunya anda akan ketemu tight liquidity yang dikarenakan oleh pencadangan kredit-kredit yang memburuk dan macet.
 
-Ibarat artis yang datang tampil habis2x an di lagu terakhir sebelum konser nya selesai dan semua lampu dimatikan dan batubara sedang dalam momen paling dramatis dan paling dahsyat dalam sejarahnya.
 
+Dari sana lah fase selanjutnya akan dimulai (lihat diatas saja yah fase nya apa).
 
-Nah , Terus di Bursa Kita Gimana ?
 
+Sekian ceritanya, saya hanya bisa menceritakan sampai level ini saja mengingat nanti bersinggungan sama materi base camp saya.
 
-Ini yang paling menarik buat kita sebagai investor di IHSG.
 
+Semoga dari sini bisa sedikit memberikan pemahaman perjalanan kita nantinya sampai di ujung.
 
-Indonesia adalah salah satu produsen batubara terbesar di dunia. Dan di bursa kita ada banyak pilihan saham batubara yang bisa jadi proxy dari semua cerita sejarah di atas.
 
+Sebenernya di artikel ini saya sudah kasih sedikit banyak clue buat sinyal-sinyal kita di ujung nanti. Silakan perdalam lagi yah sendiri.
 
-Tapi ingat yah kalo tidak semua emiten batubara dapat upside yang sama. 
 
 
-Saya coba kelompokkan satu per satu.
 
-Dari awal saya sampaikan dulu bahwa saya ga akan bahas saham nya secara detail. 
+btw kalo teman2x ingat perjalanan panjang kita dahulu , ada yang masih ingat ? 
 
 
-Jadi silakan dicari proxy saham nya sesuai dengan risk profile masing2x. Saya bantu buat thesisnya , masa saya juga yang suruh pilihkan sahamnya. Lebih parah lagi , saya udah buat thesis nya , bantu pilih saham nya dan minta juga bagus ga masuk sekarang ? 
+Ini semua bagian dari cerita artikel saya yang berjudul
 
 
-Buat saya itu bukan pilihan cerdas kalo anda mau maju sebagai investor.
+From Cut to CUT until Ultimate CUT
 
 
-1. Pemain Utama
+dan ini juga jadi bagian dari artikel ultimate yang legend
 
 
-BUMI — Bumi Resources
+13 keypoint ( CUT bikin indeks berang-CUT atau kena Upper CUT )
 
 
-Ini raja batubara Indonesia. Dua aset utamanya adalah Kaltim Prima Coal dan Arutmin Indonesia dengan total kuota produksi 74 juta ton di 2026.
-
-
- Volume terbesar di antara semua peers-nya. Di 2024 BUMI adalah satu2x nya emiten batubara yang masih mencatat ekspansi top line positif saat produsen lain mulai terdampak penurunan harga. 
-
-
-Dari sisi korporasi UBO sudah dilaporkan , transparansi kepemilikan meningkat , proses merapikan struktur terus berjalan dari waktu ke waktu. 
-
-
-Jangan lupa juga BUMI adalah Rio Tinto wannabe yang punya banyak asset selain batubara
-
-
- AADI — Adaro Andalan Indonesia
-
-
-AADI fokus murni di batubara thermal dengan kuota 60 juta ton di 2026 . Setau saya tidak kena pemangkasan berarti. 
-
-
-Oke lah bahwa group Tohir yang satu ini punya reputasi yang bagus dan terkenal dengan ke efisien an nya dalam produksi batubara
-
-
-DIviden nya pun tergolong ga pelit 
-
-
-ITMG — Indo Tambangraya Megah
-
-
-Kalau harga batubara naik tajam akibat perang Iran , ITMG adalah perusahaan tambang batubara yang paling sensitive terhadap spot mengingat ITMG punya batubara kalori tinggi. 
-
-
-Konsistensi dividennya tetap jadi daya tarik utama buat investor yang suka passive income.
-
-
-PTBA — Bukit Asam
-
-
-Satu-satunya BUMN murni di sektor batubara. Paling defensif dan paling terlindungi dari sisi kebijakan pemerintah. Kalau 08 mau dorong ketahanan energi lewat Danantara maka PTBA pasti dapat porsi kebijakan yang paling favorable. 
-
-
-Btw PTBA juga terkenal royal dalam hal pembagian dividen loh
-
-
-2. Mid Cap yang Menarik Dicermat
-
-
-INDY — Indika Energy
-
-
-Lewat tambang Kideco di Kalimantan Timur dengan fokus batubara bituminous berkadar sulfur rendah . Batubaranya persis jenis yang paling dicari saat substitusi LNG 
-
-
-INDY juga ada story transformasi ke energi terbarukan dan kendaraan listrik jangka panjang yang menarik buat dicermati.
-
-
-INDY juga punya story emas yang baru2x ini sedang digarap
-
-
-HRUM — Harum Energy
-
-
-Perusahaan batubara milik taipan kiki Barki ini juga punya potensi loh. Batubara yang dimilikinya termasuk batubara berkalori sedang dan tinggi
-
-
-HRUM juga sudah ekspansi ke sektor nikel dengan membeli saham perusahaan tambang nikel berikut smelternya
-
-
-3. Small Cap yang Patut Diperhatikan
-
-
-KKGI — Resource Alam Indonesia
-
-
-Nah ini yang menarik dan sering banget terlewat dari radar banyak investor 
-
-
-KKGI adalah perusahaan batubara yanh dimiliki oleh RAIN group. Spek batubaranya adalah low , mid and high rank kalori
-
-
-KKGi juga termasuk perusahaan batubara yang rutin bagi dividen 
-
-
-KKGI memang nggak ramai dibicarakan. Emiten kecil yang fundamentalnya sekuat ini biasanya bergerak lebih liar dari big cap saat momentum sektor sedang kuat.
-
-
-4. Pick and Shovel Batubara
-
-
-UNTR — United Tractors
-
-
-UNTR bukan emiten batubara murni. Tapi siapapun yang bermain di sektor batubara pasti butuh UNTR. 
-
-
-UNTR adalah distributor alat berat terbesar Indonesia dengan brand2x kelas dunia seperti Komatsu , UD Trucks , Scania , dan Bomag.
-
-
-Tambang batubara mana pun di Indonesia pasti pakek alat beratnya UNTR ( dulunya , sekarang sudah mulai tergerus )
-
-
-Ini yang saya sebut pick and shovel play. 
-
-
-Di era gold rush California dulu yang paling kaya bukan penambang emasnya , tapi yang jualan cangkul dan sekop ke para penambang 
-
-
-Nah UNTR adalah penjual cangkul di industri batubara Indonesia.
-
-
-UNTR bergerak di lima segmen sekaligus yaitu alat berat , kontraktor penambangan lewat PAMA , pertambangan batubara dan emas , konstruksi sipil , dan energi. 
-
-
-Diversifikasi yang luar biasa lengkap 
-
-
-Dan bonus yang sering dilupakan UNTR juga punya bisnis pertambangan emas lewat Agincourt Resources di Martabe. 
-
-
-Jadi UNTR ini adalah emiten yang nggak langsung main batubara tapi dapat kecipratan dari semua yang main batubara. Ibarat anda nggak ikut ke pestanya tapi anda yang jual baju , sepatu , dan transportasi ke semua orang yang mau datang ke pesta tersebut. 
-
-
-Terus , Mana yang Paling Menarik ?
-
-
-silakan anda pilih yang terbaik buat anda sendiri yah
-
-
-Tapi ingat yah kalo sahamnya jangan dinikahi. Cukup dikencani saja. 
-
-
-Kita lagi bermain di narrative cycle yang dipercepat oleh perang. Bukan cycle baru yang dilandasi real supply demand jangka panjang.
-
-
-Siapkan selalu exit strategy sebelum masuk 
-
-
-Kembali ke analogi tetangga yang suka berantem tadi.
-
-
-Sekarang tetangga kita udah berantem lagi. Bahkan berantemnya lebih besar dari sebelumnya.
-
-
-Harga sembako udah mulai naik. Batubara udah mulai bergerak. Dan dari sejarah yang udah kita pelajari bersama ini baru permulaan.
-
-
-Apakah ini akan seperti 1973 ? Seperti 2008 ? Seperti 2022 ?
-
-
-Buat saya mungkin kombinasi dari ketiganya. Dan itulah yang membuatnya jauh lebih dahsyat dari semua yang pernah terjadi sebelumnya.
-
-
-Yang pasti pesta ini sedang berlangsung. Musik masih bunyi kencang. Makanan masih berlimpah. 
-
-
-Sebagian orang masih asik joget. Sebagian udah mulai ambil jaket. Sebagian ada yang masih bengong. Dan sebagian ada yang udah pesan taxi duluan.
-
-
-Harga batubara di fase ini ibarat lilin yang menyala terang sebelum padam. Mereka naik , bikin semua orang terkesima tapi anda tau ini nggak akan bertahan selamanya. 
-
-
-Karena setelah lilin padam , yang ada cuma gelap.
-
-
-Apakah kita harus takut ? Nggak juga.
-
-Yang penting adalah sadar dan siap. Sadar bahwa kita di fase mana. 
-
-
-Siap buat kemungkinan terburuk tapi juga siap buat ambil peluang kalau ada.
-
-
-
-Terakhir saya coba sampaikan sedikit banyak strategi apa yang bisa dijalankan
-
-
-Saya bagi jadi beberapa layer strategi yah.
-
-
-Layer 1 => Jangan Panik , Tapi Jangan Juga Euphoria
-
-
-Ini yang paling susah dilakuin tapi paling penting.
-
-Saat perang pecah , dua reaksi ekstrem yang paling sering terjadi :
-
-
-Pertama adalah panik dan jual semua. Wakkss ini yang paling salah . Justru saat semua orang panik adalah saat peluang terbaik muncul.
-
-
-Kedua adalah euphoria dan beli semua karena takut ketinggalan. Ini juga bahaya FOMO adalah musuh terbesar investor.
-
-
-Yang bijak adalah duduk tenang , analisa situasinya , dan baru ambil keputusan dengan kepala dingin.
-
-
-Layer 2 => Ikuti Uang , Bukan Berita
-
-
-Berita perang itu memang bikin panik. Tapi investor cerdas tidak melihat dan terpengaruh oleh panasnya berita. 
-
-
-Investor cerdas melihat ke mana uang mengalir. Saya sudah sampaikan ini sejak akhir tahun lalu bahkan sejak pertengan tahun lalu kalo mau bahas store of value
-
-
-Dan sekarang uang sangat jelas mengalir ke :
-
-
-→ Store of Value energy — oil , gas , batubara
-
-
-→ Precious metal — emas , silver
-
-
-→ Emerging market — karena USD melemah uang kabur dari US
-
-
-Liat aja pergerakan ETF EEM yang baru saja break level terkuatnya. Liat grafik DXY yang terus melemah. Liat harga emas yang terus mencetak rekor.
-
-
-Uang udah bergerak duluan. Tugas kita adalah ikutin ke mana uang itu pergi dan bukan ikutin headline berita yang bikin deg-degan.
-
-
-Layer 3 => Pilih Proxy yang Tepat
-
-
-Nah ini yang paling teknikal.
-
-
-Kalau thesis kita adalah perang Iran → komoditas naik → saham komoditas ikut naik maka kita butuh proxy saham yang paling tepat.
-
-
-Ada tiga kategori proxy yang bisa dipertimbangkan :
-
-
-Direct play atau langsung ke sumbernya :
-
-
-Saham2x batubara seperti yang sudah kita bahas kaya BUMI , AADI , ITMG , PTBA , INDY , KKGI. Kalau harga komoditas naik , mereka yang paling langsung merasakan kenaikan revenue dan margin.
-
-
-Indirect play pick and shovel :
-
-
-Saham2x yang nggak langsung main komoditas tapi dapat kecipratan dari aktivitas komoditas yang meningkat. Contohnya UNTR distributor alat berat yang paling dibutuhin saat tambang lagi aktif-aktifnya. Lebih aman tapi tetap dapat upside.
-
-
-Defensive play lindung nilai :
-
-
-Kalau anda lebih konservatif dan nggak mau terlalu exposed ke volatilitas komoditas maka emas adalah jawabannya. 
-
-
-Baik emas fisik , reksa dana emas , maupun saham2x yang punya eksposur ke emas.
-
-
-Yang ini saya kurang favourable , soalnya sudah ga asymetris lagi
-
-
-Layer 4 Atur Posisi Cash dengan Bijak
-
-Ini yang sering dilupakan.
-
-
-Walau thesis kita bullish jangan masuk semua sekaligus Sisakan cash yang cukup
-
-
-Kenapa ? Karena situasi perang itu unpredictable. Bisa jadi besok ada kabar gencatan senjata dan harga komoditas langsung turun. 
-
-
-Bisa jadi ada eskalasi baru yang bikin pasar makin volatile.
-
-
-Cash itu bukan kekalahan. Cash itu amunisi.
-
-Kalau ada koreksi tiba2x akibat berita yang nggak terduga maka cash yang anda pegang adalah senjata untuk beli di harga yang lebih murah.
-
-
-Saya selalu bilang ke teman2x atur posisi cash anda dengan baik. Walau terlihat baik , tapi too early buat berpesta pora.
-
-
-Buat yang takut akan keadaan dan sudah tidak ingin lagi di market di sisa perjalanan ini , Cash adalah pilihan paling bijak. 
-
-
-Buat yang masih ingin berjalan dan mengikuti perjalanan perang ini ( pasti ada peluang ) maka anda bisa bermain di level
-
-
-50% asset + 50% cash buat yang konservative (si steve segini), dojjun (40% cash)
-
-70% asset + 30% cash buat yang masih terus mau menyerang
-
-
-No ALL IN and no syrup Marjan. 
-
-
-Tetap ingat berjalan di store of value energy. Jangan jauh2x yah
-
-
-Sebagai Satu Peringatan Keras
-
-
-Saya mau kasih satu peringatan keras sebelum artikel ini saya tutup.
-
-Di setiap situasi perang dan kenaikan komoditas akan selalu ada yang datang terlambat dan berakhir dengan kerugian besar.
-
-
-Di 2008 — yang beli oil di $140an langsung kehilangan 70% dalam 5 bulan.
-
-
-Di 2022 — yang beli batubara di $400an langsung kehilangan 60% saat harga normalize.
-
-
-Kenapa ini selalu berulang ? Karena di puncak euforia semua berita terasa bullish nanti.
-
-
-Nanti akan banyak yang kasih target harga yang makin tinggi. Media ramai-ramai bahas "supercycle" yang katanya nggak akan berakhir.
-
-Dan saat semua orang udah yakin harga akan terus naik selamanya dan itulah saat yang paling berbahaya.
-
-
-Jangan sampai anda jadi yang terakhir di pesta itu .
-
-
-Sekalian saya jawab pertanyaan yang nanti sering muncul
-
-
-Pak , kalo harga komoditas naik nanti inflasi juga naik donk ? satu dunia lagi sempoyongan ekonomi nya , kalo dihajar lagi dengan harga komoditas tinggi maka nanti akan makin sempoyongan. Yah inflasi dikit2x yah wajar lah yah , tapi paper asset inflation
-
-
-Pak , kalo inflasi naik jadi suku bunga juga bakal naik ? barusan saya jelasin diatas kalo ekonomi aja sudah sempoyongan , data tenaga kerja aja sudah 2x negative. 
-
-
-Nanti habis perang akan feels like Recession. Central bank yang tadinya belagu bilang ekonomi bla bla bla bagus akan berasa butuh nih support ekonomi
-
-
-Saya bicara data 2007 dimana terjadi CUT 125 Bps saat mau memuncaki semuanya. 
-
-
-Perang itu bagian dari jawaban buat menambah pressure CUT dan semuanya akan berpuncak habis ini. 
-
-
-Saya mau tambahkan flow biar lebih mudah mencerna ceritanya nanti
-
-
-Soon will deescalate >> each claim victory >> money moves to risk assets >> oil self correcting and finds new equilibrium >> US announces data to support cuts >> market resumes jack up >> from ATH to ATH >> entah apa, oil and commodities spikes gila2an >> crash
-
-
-Dah cukup semua ceritanya yah. 
-
-
-Rasanya sudah semua saya ceritakan dari artikel sebelumnya
-
-
-Dari contoh perjalanan komoditas di ujung cycle , perang and komoditas , batubara sebagai substitusi dan terakhir saya sampaikan strateginya
-
-
-saya ga mau denger lagi nanya 
-
-
-pak saya harus gimana
-
-
-pak koq ga naik2x yah
-
-
-pak koq store of value ga naik juga
-
-
-market bukan buat pihak yang cengeng dan minta dikasihani. Market butuh mental kuat dan berjalan terus dengan strateginya 
-
-
-Ingat yah , saya juga belum tentu benar. Saya bisa salah juga dalam analisa. Jadi pastikan anda juga menganalisa sendiri agar menghasilkan keputusan terbaik
+13 key point masih sahih bukan ? teman2x coba refresh ulang semua hal tersebut
 
 
 
@@ -3417,469 +3401,2962 @@ Ricky2212
 
 """,
     },
-    "ath_20_bottom_behaviour": {
-        "title": "ATH - 20% , near the bottom ?",
-        "category": "market_psychology",
-        "subcategory": "technical_behaviour",
-        "themes": ['ath', 'bottom', 'correction', 'behaviour', '20_percent', 'slingshot'],
-        "tickers": ['^JKSE', 'EIDO'],
-        "quad_bias": None,
-        "regime_signal": "bottom_formation",
-        "priority": 8,
-        "author": "Ricky2212",
-        "source": "mentorbaik",
-        "content": """Artikel: ATH - 20% , near the bottom ?
-
-ATH - 20% , near the bottom ?
-Yang perlu anda ingat bahwa tidak ada yang bisa menebak Bottom suatu pasar , tapi biasanya bottom itu terjadi saat sebuah keadaan itu SANGAT SAKIT , SANGAT PAINFULL SAMPAI MEMBUAT FRUSTASI
-
-ATH - 20% , near the bottom ?
-
-
-
-Fiuhhhhh , akhirnya sampai juga kita di level yang sangat krusial dari sebuah behaviour market 
-
-
-Masih ingat behaviournya ? Ini adalah sebuah non text book behaviour mengenai sebuah koreksi market. Sebuah kebiasaan yang akhirnya menjadi konsensus pasar dan dipercaya menjadi suatu hal yang dipakai. 
-
-
-ATH - 20% , sebuah behaviour koreksi yang disebut bear market correction. Titik level dimana bear market koreksi terjadi , kalo jebol ? yah berarti kita akan masuk bear market dengan psikologi yang jauh lebih berat ( walau biasanya suka di lebih - lebih kan dikit ) 
-
-
-Mari kita hitung , ATH Indeks kita terjadi di level 9174. 
-
-
-9174 - 20% ketemu angka 7339 
-
-
-Berapa tutupan indeks hari ini ? Yap indeks ditutup di level 7337. Boleh dibilang bisa di pas - pas in lah level nya. 
-
-
-Apakah pasti aman dan come back ? saya tidak bisa memastikan bilang IYA , tapi secercah harapan mulai muncul di level sekarang ini 
-
-
-Kenapa ? saya pribadi belum melihat keadaan sekarang itu adalah CRASH besar nya , tapi hanya sekedar tarikan KETAPEL yang akan mendorong jauh keatas nantinya. 
-
-
-Nah , tarikan ketapel ini yang nantinya akan jadi sebuah perjalanan puncak pamungkas nya. 
-
-
-Keadaan ini saya coba menyamakan dengan keadaan yang terjadi di 2007 dimana global indeks koreksi sekitar 20% dari ketinggian sebelum memuncaki di awal 2008. 
-
-
-History akan selalu berulang , kalaupun tidak berulang minimal irama nya akan mempunyai kemiripan 
-
-
-Sejauh ini saya tetap berjalan pada Skenario Flow dibawah ini 
-
-
-Soon will deescalate >> each claim victory >> money moves to risk assets >> oil self correcting and finds new equilibrium >> US announces data to support cuts >> market resumes jack up >> from ATH to ATH >> entah apa, oil spikes gila2an >> crash 
-
-
-Seperti kita ketahui bahwa penurunan global indeks yang cukup dalam ini ditenggarai akibat perang yang sedang berkecamuk. 
-
-
-Tensi perang nya sedan hot - hot nya banget. Saya bisa bilang kalo pakai skala 10 , perang sekarang ini sudah di titik mendidih skela 10 nya. Kita sedang berada di puncak eskalask perang tersebut. 
-
-
-Kita tidak butuh kesepakatan damai dengan saling berjabat tangan dan cengengesan lagi tuh pada habis perang. Kita hanya butuh gradual declining tone , itu sudah bisa bikin market global perlahan berputar haluan. 
-
-
-Satu hal lagi titik terang yang terlihat adalah tiba-tiba saja negara G7 langsung memberikan kesepakatan bahwa mereka akan melakukan JOINT CO-ORDINATION atas sebuah kebijakam untuk menahan laju kenaikan harga minyak dunia yang lagi mendidih. 
-
-
-Negara-negara yang tergabung dalam G7 tersebut katanya akan melepas SPR ( Strategic Petroleoum Reserve ) mereka sebanyak 400 juta barrel dari total 1.2 milyard barrel yang mereka miliki 
-
-
-Saya pernah sampaikan kalo ada kalimat joint co-ordination biasanya itu adalah sebuah solving yang disepakat dan dibuat untuk menyelesaikan sebuah masalah besar 
-
-
-Ini menjadi penting karena kenaikan harga minyak yang terlalu cepat ini bisa jadi ancaman buat ekonomi dunia. Satu dunia takut akan hal ini. Dengan adannya kesepakatan G7 itu minimal untuk sementara bis menahan harga minyak 
-
-
-Yap , buat saya aksi itu cuma bisa calm down sementara waktu saja sebelun nantinya harga minyak mendidih kembali menuju PEAK. Sejatinya masih banyak masalah yang belum terselesaikan dalan wakti dekat ini. 
-
-
-Kembali , ini baru secercah harapan yang mulai terlihat. Tapi dari secercah harapan ini kita bisa mulai bisa bertindak dengan bijak. 
-
-
-Saya ga bilang bahwa anda bertindak secara membabi buta yah dengan langsung bombardir sana sini , bertindak lah secara bijak dengan memilih saham yang tepat dengah perhitungan alokasi yang matang dan sesuai dengan tema yang berlangsung 
-
-
-Yang perlu anda ingat bahwa tidak ada yang bisa menebak Bottom suatu pasar , tapi biasanya bottom itu terjadi saat sebuah keadaan itu SANGAT SAKIT , SANGAT PAINFULL SAMPAI MEMBUAT FRUSTASI 
-
-
-Tidak ada bottom yang tercipta dengan enak bro , sakit nya bottom itu harus anda hadapi karena dari sana anda nanti bisa dapat daging nya. 
-
-
-Rasa Sakit nya , Rasa painfull nya , rasa frustasi nya jangan dirasakan tapi dijalankan dengan happy saja sambil berjalan. Biarkan di luar sana yang merasakan itu semua. 
-
-
-Tetap berjalan pada store of value energy , pilihan saham yang dapat aliran uang. Kelihatan koq yang mana yang dapat aliran uang nya. 
-
-
-Btw , lagi-lagi BTC buat saya jadi sinyal yang menarik saat ini. Di saat gonjang - ganjing perang yang luar biasa tapi tuh asset anteng mondar mandir di 65k ke 72k . Yah sepertinya lagi proses bikin base di bawah 
-
-
-FYI , yah saya juga sudah mulai melempar jala kas saya ke market 
-
-
-
-
-
-Ricky2212
-
-""",
-    },
-    "bottom_anatomy_pain": {
-        "title": "BOTTOM ( Tempat yang Paling Menyiksa dan Paling Menguntungkan di Dunia Investasi )",
+    "disbelieve_psychology": {
+        "title": "Anda semua nanti ketemu dengan keadaan DISBELIEVED",
         "category": "market_psychology",
         "subcategory": "sentiment",
-        "themes": ['bottom', 'pain', 'capitulation', 'denial', 'anger', 'contrarian', 'psychology'],
+        "themes": ["disbelieve", "lone_wolf", "bottom", "contrarian", "sentiment"],
         "tickers": [],
         "quad_bias": None,
-        "regime_signal": "capitulation",
+        "regime_signal": "sentiment_extreme",
         "priority": 8,
         "author": "Ricky2212",
         "source": "mentorbaik",
-        "content": """Artikel: BOTTOM ( Tempat yang Paling Menyiksa dan Paling Menguntungkan di Dunia Investasi )
+        "content": """
 
-BOTTOM ( Tempat yang Paling Menyiksa dan Paling Menguntungkan di Dunia Investasi )
+Anda semua nanti ketemu dengan keadaan DISBELIEVED
 
-BOTTOM ( Tempat yang Paling Menyiksa dan Paling Menguntungkan di Dunia Investasi )
+Lone Wolf
 
 
 
 
-Sebelum saya mulai , saya lagi seneng banget sama quote yang saya buat ini. 
+Gimana kabarnya ? sehat2x aja ? 
 
 
-Saya tau banyak yang lagi nyari2x bottom pada saat kejatuhan market ini, karena pingin langsung mengambil action
+Gimana mental ? 
 
 
-"Tidak ada yang bisa menebak Bottom suatu pasar , tapi biasanya bottom itu terjadi saat sebuah keadaan itu SANGAT SAKIT , SANGAT PAINFULL SAMPAI MEMBUAT FRUSTASI. Tidak ada bottom yang tercipta dengan enak bro , sakit nya bottom itu harus anda hadapi karena dari sana anda nanti bisa dapat daging nya."
+Gimana porto ? 
 
 
-= Ricky2212 =
+Saya mau sampaikan dulu di awal artikel ini bahwa tidak ada yang kebal dalam keadaan penurunan dahsyat kemarin yah. Jangan dipikir saya ga kena ? saya juga kena koq , tapi semua tergantung bagaimana menyikapi keadaan dan menyusun strategi nya
 
 
-Nah tuh Quote nya
+Buat yang kemarin sukses membeli banyak saham yang lagi hancur , saya ucapkan selamat dan anda adalah LUAR BIASA
 
 
-Saya coba tulis quote itu bukan untuk gagah-gagahan sih. Saya tulis quote itu memang karena itu adalah kenyataan paling jujur tentang bagaimana market bekerja yang jarang sekali ada yang mau bicara terus terang.
+Penurunan market kemarin itu memang luar biasa hitungannya. Dalam hitungan 2 hari saja penurunan market hampir menyentuh 20% 
 
 
+Pernah belajar artikel behaviour tentang koreksi kan ? coba cek saja artikel lama saya tentang behaviour market ( tolong jangan tanya yang mana , saya suka orang yang punya eager and usaha buat mencari 
 
-Semua orang mau dagingnya. Tapi hampir tidak ada yang mau bayar harganya dan harganya bukan uang. Harganya adalah rasa sakit saat semua melihat sebuah kehancuran pasar. wkwkwkw
 
+Koreksi 20% itu adalah batas toleransi maksimal saya kemarin saat terjadi penurunan market. 20% adalah titik dimana koreksi bear market akan dicapai dan coba ditahan
 
-Kenapa Bottom Selalu Menyiksa ?
 
+Benar adaanya ditahan dan malah market ditutup dengan penurunan ATH -10% di level 8200 an. Sebuah penurunan yang disebut healthy correction. 
 
-Sudah hafal quote Warren Buffett kan 
 
+Saya senang sekali karena masih banyak teman2x yang sudah lama di mentor baik memahami behaviour ini. Bahkan beberapa menyampaikan thesis koreksi nya ke saya berikut hitungannya. 
 
-"be fearful when others are greedy , be greedy when others are fearful."
 
+terbukti ampuh ? sekali lagi terbukti ampuh sementara waktu bukan behaviour tersebut ? sebuah thesis yang ga pernah anda dapatkan di Buku loh hehehe
 
-Semua orang hafal quote legend tersebut. Semua orang setuju dengan quote tersebut dan Semua orang angguk-angguk waktu dengar quote itu di seminar atau di YouTube.
 
+Satu lagi behaviour market ditunjukkan kemarin loh. Ssbuah common behaviour yang selalu berulang tiap waktu. 
 
-Tapi kenapa setiap kali market crash yang beli di bottom itu tetap segelintir orang saja ? gayanya aja lah yah dibanyakin ( tapi semoga di MB ga begitu yah )
 
+Apa itu ? kemarin baca berita kan kalo 2 Big Boyz yaitu Goldman Sachs and UBS memberikan downgrade rating untuk bursa Indonesia. Mereka memberikan rating tersebut dengan alasan resiko meningkat saat MSCI menurunkan Rating Indonesia
 
-Kenapa mayoritas justru jual di bawah dan beli lagi setelah harga sudah naik tinggi ? 
 
+Biasanya yah , Big boyz downgrade itu ga jauh dari ujung bottom nya . Sekali lagi nanti kita coba lihat apakah rumus ini valid apa tidak ( so far rebound dari low )
 
-Kenapa siklus yang sama terus berulang generasi demi generasi tanpa pernah belajar ?
 
+Simpan lagi cerita ini sebagai bagian dari thesis tentang behaviour market. Thesis ini selalu dipakai berulang dalam keadaan koreksi
 
-Karena ada jurang yang sangat dalam antara tau dan bisa melakukan.
 
+Next , saya juga mau sharing tentang keadaan di luar sana pasca penurunan tajam kemarin. 
 
-Semua pada Tau itu kalo hal itu keliatan mudah. 
 
+Sudah pada bisa nebak ? yap sebuah keadaan chaos sampai pada titik desperate skala nya menuju AKUT. Ketakutan yang luar bisa tiba2x saja datang dan menyapu banyak orang di market
 
-Buku bisa mengajarkannya dalam satu malam.
 
+Hal ini juga jadi pelajaran bahwa di market itu bukan cara cari uang yang mudah. Pelajaran bahwa di market itu butuh punya ilmu and mental yang terus diasah dari waktu ke waktu. 
 
-Seminar bisa menyampaikannya dalam dua jam.
 
+Ada teriakan gampangin bursa terlihat ? ada yang pamer SS porto ? 
 
-Bisa melakukan itu butuh sesuatu yang jauh lebih mahal dari pengetahuan. Semua Itu butuh pengalaman , semua Itu butuh mental yang sudah ditempa. Gimana mau beli bottom , kalo turun sedikit aja langsunh DM saya buuaaanyaak banget
 
+Jangan kaget juga ada banyak teman2x or orang2x di sekeliling anda yang tadinya bilang ke anda begini
 
-Dan semua itu butuh kejujuran yang dalam terhadap diri sendiri tentang siapa kamu sebenarnya sebagai investor. 
 
+"kalo main saham tuh enak , cari uang di saham tuh gampang "
 
-> Anatomi rasa sakit berlapis itu seperti kulit bawang
 
+malah berganti bilang 
 
-Bottom tidak datang sekaligus. Dia tidak mengetuk pintu dan memperkenalkan diri. 
 
+gila bro gw ga sanggup di bursa lagi , uang gw hilang semua ga bersisa. Kayanya gw ga cocok nih di bursa
 
-Dia datang pelan-pelan dan mengupas kamu lapis demi lapis sampai kamu benar-benar di titik paling rapuh.
 
+Semua itu lumrah koq , ini lah real yang kita hadapi di bursa saham. Jangankan retail koq , para fund aja juga ikut dalam hanyutan kepanikan saat penurunan kemarin. Saya dapat cerita kalo banyak fund yang berusaha mengurangi eksposure nya and alokasi saham nya. 
 
-Lapis pertama adalah DENIAL
 
+So , buat teman2x yang punya mental kuat and tetap bertahan dalam sapuan badai kemarin berarti anda lebih top dari para Fund tadi loh.
 
-Pasar turun 10-15%. Masih enak. Masih ramai. Grup-grup investor masih penuh analisa dan semangat. Semua orang berlomba-lomba averaging down sambil bilang 
 
+Bangga ga ? 
 
- "ini kesempatan emas "
 
+Kami dari mentorbaik berusaha terus memberikan gambaran se objective mungkin tentang keadaan yang terjadi. Kami akan bilang buruk kalo itu memang buruk dan sebaliknya kami akan bilang baik saat keadaan memang baik. 
 
-Analis di luar sana masih berasa pada titim optimis. 
 
+Kami terus konsisten dengan apa yang sudah kami sampaikan sebelumnya. Selama tidak ada yang berubah , selama semua hanya temporary maka kami akan teruskan perjalanannya sampai finish. 
 
-Berita masih campuran. Portofolio merah tapi masih terasa seperti koreksi biasa yang akan segera pulih.
 
+Kami tau di luar sana mulai digandrungi suatu keadaan yang saya sebut DISBELIEVE. Suatu keadaan yang memang biasa terjadi pasca banyak pelaku pasar dipukul telak habis2x an
 
-Di titik ini hampir tidak ada yang sakit. Semua masih merasa smart. Semua masih merasa sedang melakukan hal yang benar.
 
+Gimana tandanya ?
 
-Itulah yang berbahaya dari lapis pertama ini. Dia terasa seperti peluang padahal bisa jadi awal dari perjalanan panjang yang jauh lebih dalam. 
 
+Anda akan ketemu nanti banyak yang bicara begini
 
-Kalo belum berasa sakit maka belum datang itu bottom.
 
+apa iya yah ini bisa come back lagi
 
-Lapis kedua adalah ANGER.
 
+apa iya yah kalo ini bisa diberesin
 
-Turun 15-20%. Nah di sinilah mulai terasa.
 
-Mulai ada yang marah. Marah ke market maker yang dianggap manipulasi.
+apa iya yah ga ada hal buruk lagi
 
 
-Marah ke pemerintah yang kebijakannya dianggap salah.
+apa iya yah ini ga akan turun lagi
 
 
-Marah ke analis yang rekomendasinya meleset jauh. 
+apa iya yah MSCI game play masih akan jalan
 
 
-Marah ke influencer saham yang tiba-tiba menghilang. 
+apa iya yah konglo masih bisa main
 
 
-Dan paling dalam adalah marah ke diri sendiri.
+apa iya yah ......
 
 
-Kenapa tidak jual dari dulu ? Kenapa tidak dengar tanda-tanda awalnya ? Kenapa terlalu serakah ?
+apa iya yah ......
 
 
-Tapi perhatikan satu hal kalo marah itu masih punya energi. Orang yang marah masih percaya situasi akan berbalik. Mereka masih hold tapi dengan kepalan tangan dan rahang yang mengeras.
+DISBELIEVE ini akan menciptakan sebuah SKEPTIS yang sangat besar terhadap semua yang terjadi. 
 
 
-Dan selama masih ada energi maka bottom belum terbentuk. 
+Semua hal baik yang besar maupun yang remen temeh , semua hal baik yang punya esensi atau tidak , semua hal yang penting maupun tidak penting akan dipertanyakan sampai detail banget
 
 
-Lalu datanglah titik yang paling brutal dari semua lapis ini yaitu
+Semua seakan masih ga percaya akibat gebukan parah kemarin. 
 
 
-Capitulation.
+Saya yakin juga banyak thesis di mentorbaik juga akan dipertanyakan kembali validitasnya. Apakah masih on track ? apakah masih bisa ini itu ? Kami ga bilang thesis kami pasti jadi yang benar and terbaik , tapi kami tetap berjalan dalam kesunyian kembali
 
 
-Ini bukan sekedar titik di chart. Ini adalah momen psikologis yang paling dalam dan paling jarang dipahami orang.
+Kami adalah pihak yang terbiasa jalan dalam kesunyian dan kesepian. Kami adalah pihak yang terbiasa selalu dipertanyakan dan diragukan thesisnya 
 
 
-Capitulation terjadi ketika orang yang paling sabar akhirnya menyerah. Investor yang dari awal bilang
+Bahkan kami juga sudah terbiasa di posisi yang kena cibiran and nyinyiran . Kami tetap survive bukan ?
 
 
- "saya main jangka panjang koq dan saya tidak terpengaruh volatilitas" 
+Kami sadar kami akan balik jadi LONE WOLF kembali saat di luar sana sedang terjadi DISBELIEVE
 
 
-pada akhirnya jual juga karena tidak tahan melihat angka merah datang setiap hari. 
+Saya suka banget satu kalimat terakhir dari mas Rizza saat kita nongki bareng
 
 
-Mereka yang averaging down dari harga tinggi pun akhirnya harus cut loss besar karena takut tidak ada habisnya.
+" mas , kalo kita sudah dalam posisi cuma kita sendiri and kita berdiri sendiri atas thesis kita , kalo thesis kita banyak dipertanyakan , kalo di luar sana yang tadinya thesisnya sama dengan kita dan gugur semua maka tandanya itu kita lagi di jalan yang benar. Dan sudah saatnya kita jadi LONE WOLF lagi "
 
 
-Dan ini tahap yang paling menyedihkan mereka yang jual di capitulation seringkali adalah investor yang paling paham fundamentalnya. 
+Will see yah. Kita lihat perkembangan di depan
 
 
-Bukan karena mereka tidak tau nilainya. Tapi karena rasa sakit emosionalnya sudah melampaui batas yang bisa mereka tanggung.
+Semua thesis yang kami berikan rasanya sudah cukup relevan buat jalan ke depan. Kejadian kemarin mah anggap aja kena lampu merah saat ada perempatan di jalan
 
 
-Volume jual meledak dalam waktu singkat yang nantinya membuat harga ambrol tajam. 
+Biasa lah , Market merah adalah market hijau yang tertunda
 
 
-Berita di mana-mana sangat buruk. Semua analis yang sebelumnya bullish sekarang kompak ganti haluan jadi bearish. 
+Saya tutup artikel ini dengani saya akan coba memberikan 2 quote yang bagus 
 
 
-Media massa pasang headline tentang kehancuran ekonomi. 
+YOU WON'T BELIEVE IT UNTIL YOU SEE IT
 
 
-Grup-grup investor yang tadinya ramai kini sunyi senyap seperti kota yang ditinggalkan.
+and
 
 
-Dan di puncak rasa sakit yang paling dalam itulah bottom terbentuk.
+BULL MARKET are BORN on PESIMISM , GROWTH on SKEPTISM , MATURE on OPTIMISM and DIE on EUPHORIA
 
 
-Bukan karena kondisi ekonomi tiba-tiba membaik. Bukan karena ada berita bagus yang muncul secara ajaib. Tapi semata-mata karena tidak ada lagi yang mau jual. 
 
 
-Semua yang mau jual pada sudah jual tanpa lagi tersisa. Yang tersisa hanya mereka yang entah karena pemahaman yang sangat dalam atau karena sudah benar-benar pasrah memilih untuk diam.
 
+Ricky2212
 
-Dan saat tidak ada lagi penjual maka sedikit saja pembeli paling kecil pun sudah cukup untuk menggerakkan harga naik.
 
+""",
+    },
+    "energy_store_of_value_2026": {
+        "title": "Energy Sector will Outperform Market?",
+        "category": "macro_thesis",
+        "subcategory": "store_of_value",
+        "themes": ["energy", "coal", "oil", "gas", "commodities", "usd_debasement", "store_of_value"],
+        "tickers": ["ADRO.JK", "PTBA.JK", "ITMG.JK", "HRUM.JK", "INDY.JK", "AADI.JK", "BUMI.JK", "MEDC.JK", "PGEO.JK", "AKRA.JK", "UNTR.JK", "ELSA.JK", "WINS.JK", "LEAD.JK"],
+        "quad_bias": """Q2""",
+        "regime_signal": "commodity_bid",
+        "priority": 10,
+        "author": "Ricky2212",
+        "source": "mentorbaik",
+        "content": """Artikel: Energy Sector will Outperform Market?
 
-Itulah BOTTOM
+Will it be happened soon?
 
+Dalam acara Live market update awal tahun yang mentorbaik lakukan kemarin , saya kebagian presentasi outlook saya buat 2026 ini.. Pas presentasi oleh Ko robert and Thomas mereka juga banyak memaparkan tentang Store of Value dengan jelas and comprehensive.
 
-Lahir bukan dari optimisme tapi dari kepasrahan kolektif yang paling terdalam. 
 
+Ada satu yang menarik yang saya ingin jabarkam dalam artikel ini tentang sebuah narrative Store of Value 
 
-Secara teori semua orang tau beli saat orang lain takut. Tapi kenapa hampir tidak ada yang bisa eksekusi di momen yang paling kritis itu ?
 
+Di luar sana sudah ramai sekali pembahasan tentang Store of Value di sektor Precious Metal. Di level ini diwakili oleh Gold , Silver , Platinum , Palladium 
 
-Karena ada tiga musuh yang muncul bersamaan persis di titik yang paling menentukan 
 
+Saya ga akan bahas Store of Value di Precious Metal lagi , karena saya sudah bahas jauh hari sebelum keramaian ini terjadi. Detail lah penjelasannya , anda boleh cek semua artikel saya tentang Gold yang saya buat sejak 2023 lalu.
 
-Musuh pertama => Social proof yang terbalik.
 
+Saya ga bahas Store of Value di Industrial Metal karena buat saya juga sudah mulai naik and ramai di perbincangkan di luar sana. Dan beberapa industrial metal , sulit untuk mencari PROXY saham nya di bursa IHSG
 
-Manusia adalah makhluk sosial. Sejak zaman purba bertahan bersama kelompok adalah strategi survival yang paling efektif. Mereka selalu mencoba membentuk koloni untuk mencari sebuah keyakinan dalam hidupnya
 
+Tinggal apa ? Yap , seperti saya jelaskan pada Live mentorbaik market update kemarin bahwa saya lebih suka pada Store of Value yang related dengan Energy sector
 
-Naluri itu tertanam sangat dalam di otak kita dan tidak bisa dihapus hanya dengan membaca buku investasi.
 
 
-Di area titik bottom seluruh kelompok di sekitar kita kompak bergerak ke satu arah. Mereka melakukan aksi Jual dan Keluar dari pasar sambil bilang Tunggu dulu karena Situasi makin memburuk. Makanya banyak yang nyebut ini sebgai Weak Hand
+Dari awal saya sampaikan dulu bahwa saya ga akan bahas saham nya secara detail. Jadi silakan dicari PROXY saham nya sesuai dengan risk profile masing2x. 
+Saya bantu buat thesisnya , masa saya juga yang suruh pilihkan sahamnya. Lebih parah lagi , saya sudah buat thesis nya , bantu pilih saham nya dan minta juga bagus ga masuk sekarang ? Buat saya itu bukan pilihan Cerdas kalo anda mau maju sebagai investor.
 
+Oke , Di luar sana belum banyak yang memperbicangkan sektor energy. Masih banyak yang skeptis melihat pergerakan komoditas energy sehingga saham2x nya pun belum banyak dilirik.
 
-Melawan arus itu bukan cuma soal logika tapi itu melawan naluri paling primitif manusia. Dan naluri itu jauh lebih kuat dari analisa fundamental manapun saat tekanan emosionalnya sedang di puncak.
+Good , justru hal tersebut yang bikin menarik. Saat belum banyak yang membicarakan maka saham nya pun belum banyak dilirik. Dari sana berarti pilihan saham nya pun masih banyak yang berada di level bawah. 
 
+Kalo saham masih di bawah dan underlying komoditas nya juga stabil di bawah maka ? Yap , terjadi asymetris soal risk and reward nya.
 
-Itulah kenapa beli di bottom itu terasa seperti melakukan sesuatu yang salah padahal secara rasional itu adalah hal yang paling benar. 
+Buat saya sesuatu hal yang asymetrical adalah sesuatu yang menarik buat dijalankan. Tapi ingat yah , ini bukan sesuatu yang pasti tapi probabilitynya cukup besar. So , Energy Sector akan jadi Store of Value pilihan saya saat ini
 
+Berikut di bawah ini adalah Pertimbangan Energy Sector sebagai thesis saya 
 
-Contrarian dianggap sebagai action yang tabu. 
 
+1. Nyeleneh Trump soal PERANG
+Sudah bukan rahasia lagi bahwa Presiden dari Republikan itu doyan nya cari ribut and perang
+Hal itu juga ditambah dengan desakan bahwa Amrik itu sudah ga punya daya lagi dalan hal ekonomi dunia. Keberadaan Amrik perlahan mulai digeser oleh kekuatan ekonomi dunia lain seperti China , Rusia via BRICS. Kalo sudah gitu , Amrik tinggal bikin rusuh dunia via Perang. Cek aja , terhitung Iran vs Israel , Ukraina vs Rusia , Venezuela dan sebentar lagi Green Land 
 
-Musuh kedua => Availability bias.
+Ada lagi yang bisa dibikin perang ? Perang itu larinya akan ke energy , semua akan mempertahankan kebutuhan energy nya masing2x
 
+2. Nyeleneh Trump soal Monetart Policy 
+Sudah bukan rahasia lagi lah kalo Trump ngebet banget boos ekonomi nya lewat semua kebijakan yang diambil. Kebijakan nya termasuk menekan Central Bank buat menurunkan suku bunga acuan nya lebih jauh lagi and lagi. 
 
-Otak manusia secara default memberikan bobot yang jauh lebih besar pada informasi yang paling mudah diakses dan paling vivid secara emosional.
+100 bps CUT ? nanti lah habis hajatan Powell diganti. Mungkin baru akan dilakukan hal tersebut. Ada chance ? saya belum berani memastikan hal tersebut , tapi melihat semua aspek yang dipertimbangkan dalam hal pengambilan kebijakan monetary policy sudah mengarahkan kesana
 
 
-Dan di titik bottom itu informasi yang paling vivid adalah kerugian yang sudah terjadi di depan mata , berita buruk yang terus mengalir dari semua platform , dan memori pahit dari setiap keputusan beli yang terlihat salah.
+3. Kalo melihat 2 hal diatas maka semuanya akan bermuara pada ? 
+Yap Pelemahan USD yang tidak lagi bisa dielakkan. Trust terhadap FIAT terutama USD mulai meluntur.
+Bayangkan aksi nyeleneh Trump , belum lagi tumpukkan hutang US yang segitu besar. Apalagi yang diharapkan dari pegang USD
+Semua ini memang disengaja dilakukan untuk melemahkan USD koq
+Ini akan jadi wave pelemahan USD terakhir dan terbesar sebelum nanti nya USD pulkam kembali
 
+Cek saja Chart DxY diatas , kalo melihat pola gambarnya maka terlihat sebuah Trend penurunan yang luar biasa akan terjadi 
 
-Otak kita secara otomatis ekstrapolasi semua itu ke masa depan. Kita pikir karena sudah turun 20% maka selanjutnya market masih bisa turun 20% lagi. Bahkan malah bisa turun 30%. bahkan malah bisa turun lebih jauh . 
 
+4. Pelemahan USD berarti akan membuat ? yap dunia akan mencari Store of Value 
+Semua store of value ? Dimulai dari Precious metal dulu lah yah ( which is sudah dan sedang berlangsung lama )
+Kalo precious metal sudah mahal , apakah Fund akan terus mengejar ?
 
-Kita tidak berpikir secara probabilitas tapi kita berpikir secara trauma.
+Industrial metal perlahan mengikuti dan mulai tuh uang ke spreading mencari Store of Value lainnya 
 
+Kalo kedua nya sudah kena PUMP ? apa yang tersisa ? Yap Store of Value nya akan mengalir ke komoditas Energy
 
-Padahal data historis bicara hal yang sangat berbeda. Setiap crash dalam sejarah tanpa satu pun pengecualian pada akhirnya nanti akan diikuti recovery. 
+Btw dari cycle ke cycle komoditas energy itu memang selalu menjadi penutup ( silakan di cek kembali )
 
+4 hal diatas adalah sebuah alasan kalau kita melihat dari sisi USD side dimana pelemahan USD akan membuat uang lari kemana-mana mencari perlindungan dan nanti Energy akan jadi salah satu yang dapat kecipratan uang
 
-Pertanyaannya bukan apakah akan recover. Pertanyaannya hanya berapa lama akan recover nantinya
 
+Special case factor ( tapi dahsyat )
 
-Musuh ketiga => Regret aversion.
+===============================
 
 
-Ini yang paling jahat. Dan paling sering tidak disadari karena bersembunyi di balik kedok kehati-hatian.
+Ada satu hal menarik yang lagi yang menurut saya bisa jdi factor yang sangat luar biasa and mempunya effect yany DAHSYAT.
 
 
-Bukan takut rugi tapi karena secara rasional kita tau market akan recover. Yang ditakuti adalah sesuatu yang jauh lebih personal dari itu.
+Sudah baca berita tentang JPY intervention ? ceritanya Jepang memang senang sekali melakukan intervensi buat pelemahan JPY nya agar barang2x mereka bisa bersaing di pasaran. 
 
 
-Kita jadi takut terlihat bodoh. Takut salah timing di depan orang-orang sekitar. Takut harus mengakui kepada diri sendiri dan orang lain bahwa kita beli terlalu cepat dan harga masih turun lagi setelahnya.
+Seperti kita tau Jepang adalah negara typical exportir yang memproduksi barang dan menjualnya ke negara2x dunia 
 
 
-Ego kita bukan analisa kita yang menghalangi eksekusi di momen paling penting itu.
+Masalahnya sekarang produk jepang sudah lagi tidak mampu bersaing di pasaran. China mulai mengambil alih pasar barang2x yang di produksi oleh Jepang ( ex : automotive )
 
 
-Dan ironinya itu ego yang sama itulah yang kemudian membuat kita menyesal berbulan-bulan kemudian saat melihat harga sudah naik jauh dari titik yang tadinya kita ragu untuk masuk. 
+Pelemahan JPY kebablasan dan terlalu lemah. Dalam hal ini justru tidak baik buat Jepang karena itu bisa bikin inflasi tak bisa dibendung
 
 
-The Pain is The Point
+Belum lagi masalah hutang yang menggunung. Sekarang Total Debt to GDP mereka sudah di level 230% an
 
 
-Ini wisdom terdalam dari semua pembahasan ini dan saya ingin kamu benar-benar merenungkannya 
+Fiat makin tidak dipercaya termasuk JPY. Banyak lah yang short JPY. Belum lagi Spekulan yang pasang posisi short JPY dalam jumlah massive membuat pelemahan JPY makin ga tertahankan
 
 
-Rasa sakit bottom bukan hambatan menuju daging. Rasa sakit itu adalah dagingnya.
+Dalam posisi ini BoJ saja sudah tidak mampu menahan pelemahan JPY tersebut. Kalo tidak dibereskan malah bikin bahaya satu dunia
 
-Coba bayangkan sebuah dunia alternatif di mana bottom terbentuk dengan perasaan enak. Di mana semua berita positif. Di mana semua orang optimis. Di mana masuk ke market terasa menyenangkan dan tidak ada yang dipertanyakan.
 
+Kejatuhan JPY mendorong Yield obligasi mereka terus merangkak naik tak tertahankan. Kepercayaan yang luntur terhadap kemampuan jepang membayar hutang nya membuat yield obligasi naik. Investor meminta premium atas resiko yang dihadapi
 
-Di dunia itu semua orang sudah masuk duluan. Tidak ada lagi yang tersisa untuk anda. Karena kalau tidak sakit maka tidak ada barrier to entry. 
 
+Kalau sudah gini siapa yang dirugikan ? Yap , Amrik jadi pihak yang paling dirugikan dalam keadaan ini.
 
-Dan kalau tidak ada barrier to entry maka tidak ada premium yang bisa kamu dapatkan.
 
+Orang pada carry trade dalam JPY dan memindahkan uang nya dengan membeli surat hutang UST. Kalo yield hutang Jepang naik terus maka spread dengan UST makin mengecil , UST jadi ga menarik lagi
 
-Premium return selalu ada di premium discomfort. 
 
+Makanya US langsung mengambil tindakan dengan membuat statement bahwa mereka akan ikut menstabilkan matau uang JPY yang sedang tertekan terus belakangan ini
 
-Selalu berulang anpa pengecualian dan tanpa bisa ditawar. 
 
+Caranya gimana ? Treasury US akan membuanh stok USD nya ke pasar dan membelikan mata uang JPY. 
 
-Sejak pasar modal pertama kali ada sampai hari ini Investor yang paling sukses sepanjang sejarah bukan mereka yang paling pintar secara analisa. Bukan yang punya akses informasi paling cepat. Bukan yang punya modal paling besar. Tapi mereka yang punya toleransi rasa sakit yang jauh di atas rata-rata.
 
+Kalo sudah begini maka ? Pembuangan stok USD yang Treasury miliki membuat supply USD banjir. USD dengan sendiri nya akan melemahkan mata uang uang nya dengan cukup significant. 
 
-Mereka yang bisa duduk diam sambil portofolio merah 20% dan masih bisa berpikir jernih karena mereka tau persis apa yang mereka pegang , kenapa mereka memegangnya , dan berapa nilai sesungguhnya dari yang mereka pegang.
 
+Kalo sudah USD melemah makin dalam maka ? Dari sini dunia makin butuh Store of Value. Sudah tidak terelakakkan lagi bahwa ini benar2x butuh Store of Value. Jangan aneh nanti terjadi panic buying terhadap hard asset
 
-Lalu Apa yang Bisa Dilakukan ?
 
+Gila yah , satu dunia lagi ga ada kepercayaan terhadap Fiat. 
 
-Tidak ada rumus ajaib. Tidak ada indikator yang bisa kasih sinyal pasti bahwa ini bottomnya. Siapapun yang bilang bisa maka bisa dipastikan itu bohong.
 
+Uang dicetak tidak lagi di back up oleh emas . Uang dicetak hanya modal kepercayaan saja. Kepercayaang atas apa ? Cetak uang adalah BERHUTANG , setiap uang yang dicetak mengandung bunga yang dibayar. Makin besar Uang yang dicetak maka makin besar hutang mereka
 
-Tapi ada hal-hal yang bisa mempersiapkan kamu jauh sebelum badai datang. 
 
+So , Uang dicetak atas dasar kepercayaan kalo negara mampu membayar hutang2x nya. 
 
-Bangun conviction sebelum crash. Pahami betul cerita besar yang kamu pegang. Kenapa kamu beli. Apa thesisnya. Kalau kamu tidak bisa jelaskan thesis kamu dalam kondisi tenang dan kepala dingin maka kamu tidak akan bisa pertahankan conviction kamu di tengah badai emosi yang paling kencang.
 
+Kalo kemampuan membayar hutang nya terus diragukan ? Uang itu ga punya harga lagi jadinya
 
-Siapkan cash sebelum crash dan bukan saat crash sudah terjadi. Karena saat crash berlangsung cash bukan cuma alat untuk beli di harga murah. Cash adalah ketenangan mental yang membuat kamu bisa berpikir jernih saat semua orang di sekitarmu sedang panik.
 
+Disini lah letak Store of Value dibutuhkan, semua akan kembali kepada hard asset dimana sesuatu tersebut memang mempunyai nilai.
 
-Batasi konsumsi noise. Saat market crash bisa saja semua orang tiba-tiba jadi analis. 
 
 
-Semua orang punya prediksi kapan bottom. Semakin banyak kamu konsumsi semua itu maka semakin sulit kamu berpikir dengan kepala sendiri dan semakin mudah kamu terbawa arus emosi kolektif.
 
+Ada 2 aspek lagi yang memungkinkan harga energy terdongkrak
 
-Dan yang paling penting adalah ingat sejarah. Yang membedakan hanya seberapa dalam pemahamanmu dan seberapa kuat mentalmu untuk bertahan di tengah prosesnya. 
+========================================
 
 
-Sebagai penutup artikel
+pertama adalah extreme weather yang sedang dunia hadapi. Dunia lagi mengalami musim dingin yang sangat extreme di luar kebiasaan 
 
 
-Bottom itu bukan soal chart. Bukan soal indikator. Bukan soal analisa teknikal yang paling canggih sekalipun.
+Dalam keadaan ini tentu akan membuat kenaikan permintaan dalan energy 
 
 
-Bottom itu soal mental.
+Liat saja harga Natural gas Seminggu lalu masih di kisaran $3/mmbtu dan sekarang sudah nangkring di kisaran $5.5/mmbtu
 
 
-Mental itu tidak dibangun di saat pasar naik dan semua orang senang dan portofolio semua orang hijau. Mental itu dibangun dari membaca , dari belajar , dari memahami sejarah siklus yang berulang , dari menerima dengan ikhlas bahwa rasa sakit adalah bagian yang tidak terpisahkan dari perjalanan seorang investor yang serius.
+Nat gas naik tentu akan menyeret ke komoditas energy lainnya sebagai subsitusi
 
 
-Yang tidak mau merasakan sakitnya bottom maka tidak berhak atas dagingnya.
+Tapi di level ini cuma temporary and situational push factor aja yah
 
 
-Market selalu kasih peluang. Tapi market tidak pernah nunggu yang tidak siap.
+Kedua yang mungkin jadi pendorong nanti adalalah kebijakan pemangkasan produksi yang sudah disiapkan dalam RKAB 2026 ala om Bahlul 
 
-Dan market memang bukan buat yang cengeng.
 
+Dalam RKAB tersebut om Bahlul akan memangkas produksi batubara dari 750 juta ton ke 600 juta ton
 
-Saya juga bukan pihak yang bisa menebak BOTTOM market , tapi saya jadi pihak yang suka sekali mengukur tingkat desperate market. Sampai dimana titik desperate market , dari sana saya bisa berpikir kapan action nya. 
 
+Hal ini tentu akan terjadi pengurangan supply atas thermal coal di pasar. 
 
-Ini bukan ajakan jual beli. Ini refleksi pribadi tentang psychology investasi yang bisa saja berbeda dengan pengalaman masing-masing dari kita
 
+Pak, Thermal Coal kan supply nya melimpah sekai di pasar ? benar kawan , tapi pengurangan supplt itu bisa jdi gimmick pendongkrak harga
 
-Saya bisa salah yah , jadi pikirkan dan pertimbangkan dengan matang sebelum action
+Tidak percaya ? Cek saja harga nikel tuh sejak ada penertiban tambang ala om bahlul. Terdongkrak ga ? supply nikel tuh lebih parah akut nya dari thermal coal loh.
 
+Nah itu lah semua dasar thesis saya kalo Store Of Value kita akan mengalir ke sektor energy
 
+Store of Value => Sektor energy => Price Up => asymetrical bet
 
+Mana pilihan saham terbaik ? bukan saya yang milihin tapi silakan teman2x pilih sendiri lah yah
+
+Tapi gini , teman2x mungkin sudah banyak yang bosan tentang permainan narrative. Bahasnya narrative terus , bahasnya saham2x ga bener terus , bahas nya saham yang ga punya funda terus
+
+Untuk thesis hal ini yaitu energy sector anda bisa bermain juga yang punya Fundamental yang bagus. Sepertinya kemungkinan semua nanti akan diajak bermain
+Tapi ingat , saham nya jangan dinikahi tapi cukup dikencani aja yah. Karena kita belum akan bermain di cycle baru yang dilandaskan tentang real supply demmand. Yang main narrative energy yang sudah dibahas terlebih dahulu yah anda juga tau harus berbuat apa yah.
+
+Nah itu saja yang saya bisa bahas , semoga thesis nya bisa berjalan sesuai skenario ( walau saya percaya besar chance lah ). Jangan lupa setiap thesis juga bisa tidak terjadi , jadi tetap siapkan kemungkinan jeleknya juga.
+
+Btw sebelum saya tutup , Di luar sana lagi banyak gaduh tentang MSCI nya BUMI di February ini jadi masuk atau tidak yah. Yah , yang bikin rame gaduh itu tim nya yang dulu bilang: 
+
+* selama centong masih ada di BUMI , maka BUMI susag naik ( waktu harga 100 an )
+* zaman dulu pernah buat issue om B clash dengan om S
+* zaman dulu juga buat issue kalo BUMI susah diangkat karena pemegang saham publiknya besar
+
+Sekarang lagi bikin gaduh lagi bilang BUMI gagal MSCI karena ini itu bla bla bla.
+Yah ada baiknya kita tunggu saja tah 10 February 2026. Semoga saja semua berjalan sesuai rencana yang saya sempat utarakan saat live kemarin ( saya ga bisa memberikan garansi 100% , tapi beberapa berita yang saya dapat yah so far so good ) 
+
+Jangan kaget juga nanti akan ada aksi lanjutan nya menyusul. Kemungkinan saham CIC di BUMI juga bisa habis sebelum MSCI kalo melihat pace penjualan saat ini. Kalo sudah habis , eitttsss nanti dulu saya tahan dulu ceritanya. hehehehe
+
+Ricky2212
+
+""",
+    },
+    "fed_vs_data_reality": {
+        "title": "The Fed vs data vs realita , siapa yang bohong ?",
+        "category": "macro_thesis",
+        "subcategory": "monetary_policy",
+        "themes": ["fed", "ust", "yield_curve", "cut", "recession", "liquidity", "credit_event"],
+        "tickers": ["TLT", "IEF", "SHY", "SPY", "QQQ", "GLD"],
+        "quad_bias": """Q3→Q2""",
+        "regime_signal": "easing_pressure",
+        "priority": 10,
+        "author": "Ricky2212",
+        "source": "mentorbaik",
+        "content": """ 
+The Fed vs data vs realita , siapa yang bohong ?
+
+
+The Fed vs data vs realita , siapa yang bohong ? 
+
+
+
+
+Teman-teman masih berasa ada disbelieved ?
+
+
+Pak , apa benar kita bakal WTFF² lagi ?
+
+
+Pak , apa benar perjalanan kita ke puncak masih in line ?
+
+
+Pak , apa ini semua biaa recover ? 
+
+
+Saya coba jelaskan dengan mengambil satu bagian yaitu dengan melihat sebuah asset yaitu Surat Hutang Negara Amrik atau UST 
+
+
+Kenapa ? karena dalam thesis sebelumnya saya sempat bicarakan kalau di depan sana tuh kita bakal masuk ke fase easing lewat beberapa CUT yang akan dilakukan oleh FED
+
+
+Seperti teman2x tau lah , masalah CUT ini jadi perdebatan alot sekarang ini di luar sana
+
+
+Trump dengan keras bilang kalo sudah saat nya CUT , bahkan CUT nya bisa lebih dalam dan jauh dari level saat ini
+
+
+tapi
+
+
+di saat yang sama Powell bilang kalo keadaan sekarang tuh susah banget buat melakukan CUT. Keadaan ekonomi masih bagus dan inflasi masih membandel
+
+
+Nanti kalo benar CUT terjadi ( most likely terjadi ) maka di luar sana akan membahas kalo seakan - akan ekonomi akan terbantu dan ini akan jadi jalan keluar yang baik
+
+
+Ingat , semua itu hanya narrative dan jadi story telling yang luar biasa yang akan memompa pasar saham 
+
+
+
+Sebelumnya saya ambil data yield dari UST yang ada
+
+
+UST 1M 3.71%
+
+
+UST 3M 3.67%
+
+
+UST 1Y 3.43%
+
+
+UST 2Y 3.41% 
+
+
+UST 10Y 4.06%
+
+
+UST 30Y 4.69%
+
+
+
+Dari data UST tersebut saya coba mengambil data UST 1Y dan UST 2Y
+
+
+UST ini menggambarkan ekspektasi tentang apa yang terlihat dalam 1 sampai 2 tahun ke depan. 
+
+
+Kalo Powell memang bersikeras banget bilang kalo kita akan menahan suku bunga lebih lama untuk menahan inflasi , aneh sih karena UST 1Y dan UST 2Y nya tuh sudah dibawah dari suku bunga berjalan
+
+
+Suku bunga Fed sekarang tuh ada di level 3.5% tapi UST 1Y dan UST 2Y ada di kisaran 3.4%. 
+
+
+Lah itu jauh dibawah level suku bunga FFR yang berjalan sekarang. Yang perlu diingat adalah yield bond itu adalah suku bunga bebas resiko + risk premium buat investasi bond
+
+
+Jadi kalo risk premium nya untuk UST 1Y dan UST 2Y adalah 0.25% - 0.5% maka FFR ada di kisaran 2.9% sampai 3.15%. Rasanya kalo melihat resiko dari surat hutang US sekarang maka risk premium 0.5% lebih cocok lah yah
+
+
+Powell masih bilang takut inflasi di depan ? inflasi bukan lagi hantu yang ditakutin. Kalau pasar takut inflasi naik lagi, yield UST 1 dan 2 tahun pasti melonjak, bukan malah jatuh dibawah begitu
+
+
+Next saya coba sambungkan dengan keadaan ekonomi di sana yang sedang terjadi yah. Dari sana nanti anda bisa melihat hubungannya. 
+
+
+Anda tau kan kalo ekonomi di Amrik sana lagi sakit parah dan harus di opname ? 
+
+
+Dalam artikel terdahulu saya pernah jelaskan kalo data2x ekonomi mereka tuh di manipulative luar biasa. Yang dilaporkan ke publik itu tidak seindah aslinya. 
+
+
+Di permukaan yang dilaporkan kaya data GDP , data Inflasi , data pengangguran mungkin kelihatan oke-oke saja. Tapi kalo anda jeli melihat "perut" ekonominya maka jelas anda akan melihat sesuatu yang bermasalah bahkan masalahnya luar biasa besar
+
+
+=> Orang mulai telat bayar cicilan (delinquency) atau terjadi bad debt dimana-mana. Mulai di KPR , KPM , CC dll 
+
+
+Apa yang terlihat 
+
+
+Konsumen belanja masih jalan, mal masih ramai, angka pengeluaran masih stabil.
+
+
+kenyataannya 
+
+
+Kelompok menengah-bawah mulai sesak nafas atas semua cicilan nya sehingga Delinquency (telat bayar) kartu kredit dan cicilan mobil melonjak.
+
+
+Yield Turun : Pasar tahu daya beli ini cuma sisa-sisa napas terakhir saja
+
+
+
+=> Properti komersial (kantor/mall) lagi megap-megap gara-gara harus refinancing pakai bunga mahal.
+
+
+Apa yang telihat
+
+
+Properti & Kredit Harga rumah/properti secara agregat masih bertahan atau turun tipis.
+
+
+kenyataannya
+
+
+Commercial Real Estate (CRE) disana lagi sekarat berdarah2x. Tekanan refinancing (bayar utang lama pakai bunga baru) bikin banyak gedung perkantoran jadi punya beban keuangan jauh lebih tinggi dari sebelumnya
+
+
+Yield Turun : Ada risiko sistemik (credit event) yang mengintai perbankan regional.
+
+
+=> Data tenaga kerja walau dilaporkan bagus and stabil tapi terlihat punya struktur yang kopong. 
+
+
+Apa yang terlihat
+
+
+Tenaga Kerja Angka pengangguran (Unemployment Rate) yang dilaporkan dari waktu ke waktu masih terlihat rendah secara historis.
+
+
+Kenyataannya
+
+
+Perusahaan mulai hiring freeze (stop rekrutmen) dan memotong jam lembur. Kerusakan terjadi di pasar tenaga kerja mulai dari jam kerja sebelum ke PHK.
+
+
+Yield Turun: Mengantisipasi Fed harus potong bunga saat pengangguran akhirnya meledak.
+
+
+Itu baru 3 data saja yang saya coba sampaikan , tapi dari sana terlihat banget kerusakan ekonomi itu kayak raya yang nggak kelihatan dari luar, tapi pas strukturnya goyang baru semua orang panik. 
+
+
+UST 1Y dan 2Y tuh sudah mencium bau "rayap" dan menggambarkan situasi real nya duluan. 
+
+
+Bemper Likuiditas Sudah Berubah
+
+
+Zaman dulu itu ada "bak penampungan besar " uang yang besar yang dinamakan RRP (Reverse Repo) yang bisa jadi bemper kalau ada guncangan. 
+
+
+Sekarang bak penampungan itu sudah terasa kering dan makin kesini makin kering lagi
+
+
+Dari sana kita dapat melihat kalo sekarang pemerintah AS mau nerbitin utang baru secara ugal-ugalan buat refinancing hutang lamanya maka dampaknya langsung kerasa ke cadangan kas bank. Likuiditas di luar akan ketarik luar biasa besar buat tambal sulam tersebut
+
+
+FYI , tahun ini dalan waktu dekat surat hutang yang akan jatuh tempo itu sekitar $9.6 Trilyun atau hampir 30% dari total hutang nya ( sama seperti tahun lalu )
+
+
+Yang Fed bisa lakukan sekarang cuma fokus jagain "garis depan" (bunga jangka pendek) biar pasar nggak macet, tapi mereka nggak bisa (atau nggak mau) nyelamatinn bunga jangka panjang (10-30 tahun).
+
+
+Akhir Ceritanya nanti gimana?
+
+
+Ini analisa yang saya coba sampaikan versi saya yah.
+
+
+Pertama adalah yield UST 1Y dan UST 2Y akan turun duluan secara bertahap. Dari sini nanti sinyal kalo pasar minta CUT dan rasanya CUT itu harus dipenuhi ( nanti pas Powell diganti lah sepertinya )
+
+
+Di saat yang sama , ekonomi juga akan memperlihatkan hal buruk terus menerus. Tidak ada lagi yang bisa disembunyikan dan dimanipulative lagi. Pertumbuhan ekonomi stall , konsumsi menurun dan perusahaan mulai ngerem rekrutmen atau potong jam kerja (belum PHK massal).
+
+
+Harus ada suatu kejadian yang besar yang bisa men trigger dan kejadian ini kaya bikin central bank terdesak seakan tidak punya pilihan lagi . Entah ada bank kolaps atau angka pengangguran tiba-tiba loncat tajam atau apa lah nanti yang besar 
+
+
+Dari sepaket kejadian tersebut nantinya baru deh bunga jangka panjang UST10Y dan UST 30Y ikut terjun bebas karena semua orang lari nyari safe heaven dan nyari aset yang aman.
+
+
+Yah itu coret-coret an saya aja yah. Tetap prudent aja dan jangan terlalu gegabah melihat keadaan.
+
+
+Buat saya tetap atur posisi cash teman2x dengan baik. Walau terlihat baik , tapi too early buat berpesta pora
+
+
+WTFF² is coming , tapi tetap waspada adalah piligan yang bijaksana. 
+
+
+
+Latest update
+
+=============
+
+
+Ada 2 hal lagi yang saya mau update tentang apa yang terjadi yang ada kaitannya dengan thesis yang saya sampaikan
+
+
+pertama adalah Pak Bersin mengatakan di depan kadin bahwa industri galangan kapal akan diberikan insentif 
+
+
+Well terlihat banget bahwa industri minyak dan gas kita akan digenjot habis2x an dan pick and shovel nya yaitu sektor kapal sebagai penunjang aktivitas tersebut baik hulu maupun hilir mendapatkan moat paling tinggi
+
+
+Kita sudah bahas jauh banget untuk thesis ini sejak patriot bond dan danantara
+
+
+saya tetap berjalan pada satu perusahaan kapal di hulu dan satu perusahaan kapal di hilir
+
+
+Kedua adalah mengenai BUMI resources. Pasca MSCI tragedy yang terjadi kemarin OJK mulai perlahan berbenah diri. Beberapa langkah mulai dilakukan dalam hal meminta transparansi terhadap perusahaan publik
+
+
+BUMi kemarin sudah melaporkan tentang UBO ( Ultimate Beneficiary Owner ) atau penerima manfaat akhir di perusahaan. 
+
+
+BUMi mengumumkan bahwa penerima manfaat akhir untuk perusahaannya adalah Pengusaha Nirwan Dermawan Bakrie dan Pengusaha Anthony Salim. Yap Om S dan Om B ada di dalam lingkaran tersebut. Ditambah om AP lah yah harusnya
+
+
+BUMi juga melaporkan kepemilikan saham publik nya dalak rangka transparasi kepemilikan publik di bawah 1%. 
+
+
+BUMI juga melaporkan bahwa ada kenaikan free float di publik. Terakhir data yang saya ambil dari sekuritas XL adalah sekitar 41%
+
+
+BUMi juga melaporkan bahwa ada kenaikan significant dalam jumlah pemegang saham publik. Terakhir pemegang sahamnya ada sekitar 551k an pemegang saham dan naik sekita 188k pemegang saham dari bulan sebelumnya
+
+
+Heboh di luar sana tuh langsung. Katanya 
+
+
+" emang enak dikarungin bandar " , tuh jumlah retail nya segitu banyak akibar dikarungin bandar kemarin
+
+
+Saya coba analisa apa yang saya lihat dari kenaikan jumlah pemegang saham tersebut
+
+
+Jumlah saham naik banyak itu bukan akibat dikarungin bandar , hal tersebut dilakukan oleh UBO buat comply UBO 1% nya. Dah lah mereka tuh punya nominee seberapa banyak pun bisa di buat. Mereka lihai dan pandai buat financial engineering soal dunia abu2x begitu. 
+
+
+DEWA aja pernah pemegang saham publik nya sekitar 60% an dan saham nya naik aja tuh dari 400 ke 800 an kemarin
+
+
+Saya ga bilang saya yang benar yah , tapi dunia abu2x begitu sulit dicerna oleh publik yang awam. Mereka hanya liat wahh pemegang saham makin banyak , retail dikarungin ( yang anda mainin kan sahamnya bukan blue chip , ini saham yang penuh banyak permainan di dalam )
+
+
+Gunanya buat apa ? pasti pada tau lah yah buat apa nya. Om S and Om Ap benar2x merapikan semuanya agar permainannya rapi and smooth
+
+
+selamat menunaikan ibadah puasa buat yang menjalani
+
+
+
+
+
+
+
+Ricky2212
+
+""",
+    },
+    "hero_blame_08nomics": {
+        "title": "Saat semua baik , pahlawan dipuja. Saat semua buruk , harus ada yang disalahin",
+        "category": "macro_thesis",
+        "subcategory": "political_economy",
+        "themes": ["08-nomics", "danantara", "patriot_bond", "fiscal", "mbg", "political_economy", "indonesia"],
+        "tickers": ["BBCA.JK", "BBRI.JK", "BMRI.JK", "TLKM.JK", "ASII.JK"],
+        "quad_bias": None,
+        "regime_signal": "structural_reform",
+        "priority": 9,
+        "author": "Ricky2212",
+        "source": "mentorbaik",
+        "content": """
+Saat semua baik , pahlawan dipuja. Saat semua buruk , harus ada yang disalahin
+
+Saat semua baik , pahlawan dipuja. Saat semua buruk , harus ada yang disalahin
+
+
+
+
+
+
+Belakangan saya lagi rajin banget cek lini masa di bawah. Saya memang concern banget akan hal ini mengingat dari sini nanti saya bisa tau temperature market. Saya bisa tau seberapa desperate di bawah saya melihat keadaan yang sedang berjalan. 
+
+
+Saat semua keadaan lagi baik dan menguntungkan , seorang pahlawan akan dipuja mati2x an sampai kalo perlu disembah2x lah tuh. 
+
+
+sebaliknya
+
+
+Saat semua keadaan berubah jadi buruk dan menguras uang kita , mereka jadi target pertama kena hujat habis2x an
+
+
+Seperti biasa , kalo keadaan buruk maka harus ada yang dipersalahkan dan di kambing hitam kan.
+
+
+Hasil yang saya tangkap beberapa hari ini adalah kita sedang pada tahap ke arah desperate. Mulai banyak yang mengeluh bahkan ada yang uang nya sampai tidak bersisa lagi. 
+
+
+Suatu keadaan yang berbalik , padahal beberapa waktu lalu semua lagi bersorak sorai kegirangan tanpa henti.
+
+
+Kita tidak sedang berbicara seorang influencer yah , karena bukan hal yang krusial and vital buat merubah sebuah keadaan. Mereka adalah partisipan yang datang sebagai AKIBAT bukan karena SEBAB nya. 
+
+
+Saya bicara di level pemegang kepentingan and pemangku kebijakan yang nota bene punya pengaruh dalam perjalanan. Mereka adalah pembuat SEBAB nya sebuah perjalanan
+
+
+Awal perjalan kita dimulai saat 08 mengambil alih tampuk pimpinan memimpin negara. Saat itu banyak yang negative terhadap dipilihnya 08 memimpin negeri ini ( rata2x inpluencer bicara indonesia suram )
+
+
+Kalo teman2x sadar juga , 10 tahun belakangan tuh bursa kita tumbuh mediocre. Bahkan sangat sangat mediocre. Parah sih pertumbuhan indeks kita
+
+
+Pertumbuhan yang digadang2x 10 tahun 5% tuh ga tercermin di bursa ( katanya kan bagus tuh ). 
+
+
+Menkeu yang juga selama 10 tahun mengawal juga katanya kan salah satu yang terbaik di dunia , tapi sejatinya yang di lakukan sangat tidak pro growth
+
+
+Ditambah lagi saat itu 08 sering bicara "nyeleneh" dengan bilang Bursa adalah tempat judi lah , Bursa cuma buat orang kaya lah. bla bla bla hopla dan banyak lagi bahasa yang mendiskreditkan bursa
+
+
+Saya sempat telurkan sebuah thesis dan Saat itu saya jabarkan apa yang saya namakan 08-Nomics ( Baca lagi artikel nya terdahulu, saya jelaskan semua hal sampai detail. )
+
+
+Dari penjelasan saya yang saya buat berdasarkan apa yang 08 coba rencanakan adalah memang sebuah kebijakan yang arah ekonomi nya adalah Pro Growth. Bahkan kalo memang bener itu dijalankan dengan baik , maka harusnya kita akan ker arah lebih baik
+
+
+Kita sudah puluhan tahun terjebak lingkaran setan middle income Trap. Indonesia sempat naik kelas ke middle income dan itu terlihat banget dari pola konsumsi kita
+
+
+Indo jadi pusat penjualan ponsel terbesar dunia
+
+
+Indo jadi basis penjualan otomotif di asia
+
+
+Indo jadi negara konsumsi semua hal yang berbau sekunder
+
+
+Nah sudah saatnya kita harus naik kelas setelah lama babak belur. Kita harus keluar dari zona nyaman middle income country.
+
+
+Sejak saya telurkan thesis 08-nomics yang saya yakin 08 akan mengarahkan ekonomi ke pro growth saat itu perjalanan apa yang 08 canangkan terlihat bagus dan serasa di respon oleh market dengan baik
+
+
+Indeks kita yang tadinya mediocre di asia , pasca kejatuhan April Trump Liberation day malahan jadi salah satu perjalanan come back yang terbaik di dunia 
+
+
+Saat itu saya ingat indeks kita babak belur sampai jatuh ke 56xx an dan akhirnya come back ke 7xxx an dengab singkat dan cepat. 
+
+
+Tidak ada yang menduga akan hal ini. Udah dinyinyirin banyak pihak di luar , ditambah trump liberation day tapi perlahan market merespon lain
+
+
+Walau ini bukan real market ( tetap saya sih bilang ini bukan real economy ) , tapi gebrakaj di market berasa beda saat 10 tahun yang kemarin.
+
+
+Perjalanan sempat tertantang lagi saat salah satu posisi vital di negara yaitu Menkeu ternyata di Reshuffle oleh 08. 
+
+
+Saat itu menteri keuangan yang dikenal cerdas and flamboyan ( iya dulunya begitu , tapi 10 tahun terakhir buat saya malah ga terlihat ) harus digantikan oleh seorang yang baru dan belum dikenal oleh publik. Dia lah Purbaya Yudhi Sadewo yang akhirnya menerima tongkat estafet menjalanankan posisi vital dalam mengelola keuangan negara
+
+
+Seketika market jatuh dalam merespon hal tersebut. Mereka merasa kapabilitas Pak Pur ga sebanding dengan Ibu Srimul dan ini jadi berasa tidak baik buat negara Indo
+
+
+Saat itu semua di luar sana lagi2x skpetis bahkan cenderung nyinyir lagi akan hal ini
+
+
+Saat semua keadaan lagi baik dan menguntungkan , seorang pahlawan akan dipuja mati2x an sampai kalo perlu disembah2x lah tuh. 
+
+
+sebaliknya
+
+
+Saat semua keadaan berubah jadi buruk dan menguras uang kita , mereka jadi target pertama kena hujat habis2x an
+
+
+Seperti biasa , kalo keadaan buruk maka harus ada yang dipersalahkan dan di kambing hitam kan.
+
+
+Saat itu saya malah bilang ke beberapa teman2x saya bahwa ini lah yang Indonesia butuhkan ke depan. 08 itu pro growth tapi masalah nya masa harus bekerja sama dengan menkeu yang tidak pro growth ( isinya hanya hutang and pajak melulu ). Saya sampaikan bahwa ini akan jadi perjalanan yang baik buat bursa kita di depan ( apalagi pak Pur itu orang bursa juga )
+
+
+Dan dari situ saya melihat ada 3 komponen vital yang sedang dipersiapkan
+
+
+Danantara => engine of growth yang akan jadi pusat pusaran utama semua nya
+
+
+Ketahanan energi => setelah sekian lama lifting minyak kita turun terus , 08 mau membuat industri ini jauh lebih baik
+
+
+Ketahanan pangan => Pangan adalah kebutuhan basic yang paling utama dalam hal pemerataan ekonomi.
+
+
+Industrialisasi => menjalankan semua hilirisasi yang akan menopang ekonomi 
+
+
+Semua ini adalah modal dasar yang dipegang agar pertumbuhan ekonomi lebih maju. Cek saja tuh negara maju , semua aspek diatas itu jadi concern
+
+
+Apakah ini jadi progran roro jonggrang ? Bukan , ini progran tuh bakal butuh banyak waktu buat dijalanakan. Bangun fondasinya aja butuh waktu agar bisa mendapatkan fondasi yang kuat.
+
+
+Perlu dicatat yah and digaris bawahi , ini program tuh ga bisa secara cepat di implementasikan
+
+
+Satu hal lagi bahwa semua program ini jelas butuh biaya besar. Dari awal sudah terlihat bahwa kita akan sedikit kedodoran nanti di fiskal
+
+
+Makanya dari sana agar Fiskal walau jebol tapi tetap di level aman , makanya Danantara dibentuk dan mengambil peran ini
+
+
+Saya sampai bikin thesis khusus Danantara and Patriot Bond dalam beberapa artikel
+
+
+Saya bilang dalam thesis saat itu konsepnya dari konglo untuk konglo dan hasilnya nanti untuk semua dinikmati mulai dari danantara , negara , sampai pertumbuhan ekonomi. 
+
+
+Dari perjalanan tersebut , saya sempat katakan bahwa uang akan banjir di Indonesia. Uang asing ? bukan uang asing yang masuk , dari uang abu2x konglo aja yang dibawa masuk ke Indo tuh sudah cukup bikin licin uang di indo
+
+
+Gilanya saat itu saya juga sampaikan bahwa nanti uang itu juga yang akan mengalir sampai ke bursa. Sampai saya bilang kalo kita tuh sebenernya ga butuh2x banget uang asing nantinya
+
+
+Betul adanya Uang itu masuk bursa. Transaksi bursa makin besar dari waktu ke waktu. 
+
+
+Bursa naik ? Gilaa sih bursa kita naik tak tertahankan dan tanpa henti. Even berita buruk saja kaya perang venezuela , kenaikan yield obligasi jepang juga tidak bisa menyetop kenaikan significant IHSG
+
+
+bayangkan IHSG naik sampai 9200 dari yang tadinya anteng2x aja di kisaran 7xxx an. Saat kenaikan tersebut investor asing terus mencatatkan nett sell luar biasa
+
+
+Bayangkan anda berpesta pora besar akibat kenaikan luar biasa indeks , tapi yang biasanya jadi koki ( uang asing ) malah ga diajak pesta even nyicipin masakannya. 
+
+
+Uang asing tersebut cuma bengong melihat kenaikan bursa kita yang luar biasa. Mereka benar2x melongo loh melihat indeks kita
+
+
+Kenapa ? karena IHSG kita naik bukan karena sebuah permainan yang wajar. No big Bank , No Old School Funda company yang biasanya asing pada masuk kesini
+
+
+Ingat yah , semua kenaikan tersebut terjadi karena 08 - nomics yang membuat semua kebijakan ekonomi , 08 menaruh orang2x kepercayaan nya sampai pada purbaya effect
+
+
+Di elu- elu kan ga tuh ? sekejap banyak yang memuja- muji 08 dan Pak Pur seakan jadi pahlawan buat para retail di bursa. 
+
+
+Saat itu ingat ga kalo banyak yang mulai bilang kita ga butuh asing , selama ada pak Pur tenang aja , danantara + 08 + Pak Pur lagi memasak di ekonomi indonesia
+
+
+Fantastis banyak orang kaya baru dari bursa saham saat itu , banyaj milyuner dari bursa beemunculan dalam sekejap
+
+
+Influncer yang tadinya skeptis and nyinyir lalu bermunculan dengan mengelu-elukan pak Pur and 08 
+
+
+Bukan, bukan karena ekonomi yang bagus tapi baru melihat optimisme dari sebuah resep makanan doank loh
+
+
+Kalo jadi asing bakal panas ga tuh melihat itu semua ? njirrrr , gw kaya LOSER. Gw kaya keledai yang dicocok hidung nya , Gw kaya banteng ga punya tanduk ( untuk hal ini saya tau karena beberapa teman saya bekerja di institusi foreign ) . Mereka kebingungan meracik portofolionya sendiri.
+
+
+Apa yang mereka lakukan ? Sudah pasti lah tau bahwa Indo tuh negara punya potensi koq dari segala penjuru. Maka dari itu kita ga boleh ketinggalan pestanya
+
+
+Pake apa ? Pakai berita buruk aja ga bisa menahan laju pasar saham Indonesia , jadi harus pakai apa lagi ?
+
+
+MSCI jadi pasukan pertama mereka yang muncul dengan membuat sesuatu yang besar dengan memberikan thesis market Indonesia mau di Down grade ke Frontier market ( sesuatu yang menurut saya sifatnya terlalu HALU ). 
+
+
+Indonesia dengan size ekonomi 15 besar dunia masa mau dimasukkan Frontier market yang isinya negara2x yang ekonomi nya size nya kecil banget
+
+
+Bla bla bla , market benar adanya seketika jatuh dalam akibat hal tersebut.
+
+
+Selanjutnya pasca MSCI memberikan thesis tersebut , big boyz melanjutkan memberikan down grade terhadap bursa kita 
+
+
+Mulai dari Goldman Sachs , UBS , Nomura langsung memberikan downgrade dengan alasan Indo akan kena Effect dari kebijakan MSCI tersebut
+
+
+Masuk akal alasanya ? Lah kan dikasih batas sampai bulan Mei 2026 , belum tentu ke down grade loh masa alasannya kaya sudah di down grade aja negara Indonesia. 
+
+
+Saya pribadi mulai mencium nih ada udang di balik bakwan nih masalah MSCI. Ada invisible hand yang memang dari awal pngin iikutan pesta di Indonesia ( itu asing2x diatas lah )
+
+
+Makin kentara banget langsung tidak lama kemudian Moodys mengeluarkan thesis menurunkan Rating outlook Indonesia. 
+
+
+Dengabln berbagai alasannya baik dari kebijakan fiskal yang ga prudent , darI faktor MSCI lah yang juga dipakai sebagi thesis pada akhirnya moodys bersuara lewat down grade nya tersebut
+
+
+WTF , buat saya jelas ini ada kepentingan yah ( buat saya yah, tapi kita lihat saja ) . Makin diperjelas lagi saat moodys juga mendown grade beberapa saham di Indo
+
+
+Saham apa yang di down grade ? 5 perbankan kita dan beberapa old school funda company kaya TLKM , ASIi 
+
+
+Paham ? harusnya teman2x paham lah yah. Asing itu kalo masuk tuh ga bakal ke saham konglo tapi saham2x tersebut diatas.
+
+
+Njiirrrr Damn ini sih memang kita lagi kena obok2x di sektor keuangan bursa kita akibat ada koki yang biasanya diajak pesta tapi malah ditinggalin
+
+
+Saat saham jatuh kemarin ? mulai lah dibawah kasak kusuk dah tuh. 
+
+
+Saya melihat pola yang sama kembali. Saat semua mulai desperate maka mulai lah mencari siapa yang bisa disalahkan
+
+
+Sampai pada pak pur dan 08 yang tadinya dipuja - puja saat indeks naik dari 7xxx an ke 9200 , sekarang mulai jadi sasaran tembak
+
+
+Mengacu apa yang saya coba riset dari apa yang terjadi dibawah lini mas , mulai tuh bilang 
+
+
+÷ bener juga kata moodys , kita tekor anggaran
+
+
+÷ bener juga kata moodys , kita ga bisa kelola anggaran
+
+
+÷ bener kata moodys kalo kita tidak ada transparansi atas kebijanan
+
+
+÷ nih gara2x MBG nih jadi semua ga jelas gini
+
+
+÷ nih menkeu nya juga sebenernya punya andil akan semua hal ini
+
+
+Fix , dari sini saya mencium sebuah keadaan desperate. Semua sedang menyalahkan dan mempermasalahkan yang tadinya sama sekali tidak jadi masalah 
+
+
+Itu memang sudah jadi kebiasaan kalo lagi rugi dan dari sana harus ada yang dipersalahkan.
+
+
+Suara sumbang bahwa program2x 08 itu banyak KKN dll , banyak diambil si ini dan si itu banyak banget lah. 
+
+
+Semua hal yang tadinya baik2x saja , sekarang jasi terlihat buruk saat keadaan lagi buruk
+
+
+Buat saya mah simple bro , lo bicara politik and kekuasaan tuh ga jauh dari yang namanya KKN. 
+
+
+Menurut ahli politik ternama , Politik itu tujuannya berkuasa and menguasai. Menguasai apa ? yah semuanya lah. 
+
+
+Buat saya pribadi simple , yang penting seberapa persen dan seberapa besar efeknya nanti ke bawah. Yang bawah harus tetap kebagian and ngerasain juga
+
+
+Jangan cuma dimakan diatas tapi di bawah di keringin tanpa kebagian ( kaya 10 tahun kemarin )
+
+
+Dari sini saya ingin coba lagi menyampaikan apa yang saya pikirkan yah
+
+
+Saya coba balik lagi dengan thesis awal saya mengenai 08-nomics and Danantara serta fondasi utama 08 nomics
+
+
+=> Dari awal jelas ini semua program dari 08 bukan roro jongrang loh yah. Ini program memang disiapkan buat jangka panjang
+
+
+=> Next , dari awal tuh 08 juga pahan koq kalo semua program nya tuh butuh ongkos gede bahkan gede banget. Makanya dari sini jelas akan ada korban dari fiskal . 
+
+
+Fiskal akan dilonggarkan sedemikan rupa agar bisa dipakai
+
+
+Untuk itu juga 08 sampai bikin patriot bond dan Danantara buat kelola and bantu keuangan negara 
+
+
+=> Ketahanan energi , bro ini jelas nanti akan jadi project yang akan banyak membantu fiskal indonesia
+
+
+Bapaknya 08 pernah melakukan hal ini di tahun 1968. Saat itu Indonesia invest besar2x an di hulu migas saat komoditas energy lagi off cycle
+
+
+1974 saat itu Indonesia ketiban berkah saar minyak naik banyak
+
+
+Pertumbuhan ekonomi tumbuh sangat cepat dan fiskal Indonesia jadi gemuk akibat hal tersebut
+
+
+Bukankah ini lagi dilakukan ? 
+
+
+energi tuh sangat strategis Kita tekor mulu karena kebanyakan impor minyak dan 08 mau membalikkan hal tersebut jadi bantalan fiskal nanti
+
+
+=> ketahanan pangan , Banyak yang menghina MBG . Saya juga termasuk yang skeptis sebenernya akan program ini
+
+
+Tapi gini , saya coba angkat issue baiknya yah. 
+
+
+Pangan adalah hal utama dalam kehidupan , kalo kebutuhan dasar ini mampu dipenuhi maka akan tercipta kestabilan sosial yang akan mendorong ekonomi tumbuh
+
+
+Masalah Indonesia ? Indo itu ekonominya ditopang oleh konsumsi ekonomi bawah yang lagi hancur
+
+
+MBG mau mencoba mengambil peran buat menggerakkan hal tersebut. 
+
+
+Bagaimana nanti MBG bisa memastikan kebutuhan pangan sebagai dasar kehidupan terpenuhi
+
+
+Dari sana ada uang yang tadinya jadi pengeluaran konsumen malah bisa disimpan atau bahkan di spending lagi
+
+
+kebutuah dari MBG akan banyak di supply dari bawah juga sehingga terjadi effect multiplier 
+
+
+Ekonomi bawah minimal akan terbantu and bergairah kembali. 
+
+
+Masalah penerapannya ? Program ga jelas ? bro , ini program tuh program baru . Anda semprot program yang kita saja lagi belajar ( kasih aja waktu dulu )
+
+
+Program ambil bagian APBN yang lain ? untuk sementara mungkin ambik bagian yang lain sampai fiskal kita terdongkrak nanti
+
+
+Anda jangan liat MBG nya saja juga , bahkan 08 tuh lagi siapin dari hulu ke hilir nya loh. Jadi nanti tuh cost nya bisa jauh ditekan karena rantai nya dari hulu ke hilir
+
+
+Tuh danantara juga bantu persiapkan semua dari pangan , peternakan sampai pengolahan nya malah sehingga bisa sampai ke tangan penerima manfaat
+
+
+Kalo anda lihat lagi , tuh project nantinya juga akan ciptakan lapangan kerja berapa banyak . multiplier effect ga ?
+
+
+Jadi jangan cuma teriak2x dulu nyalahin , kalo saya lebih memilih skeptis sambil melihat progress nya dulu saja. 
+
+
+Itu aja yang saya bisa bahas , sebagian jadi materi basecamp soalnya. wkwkwkwk
+
+
+Soalnya dari hal tersebut saya makin paham kenapa 08 melakukannya. Ada sesuatu yang memang dia siapkan dalam menghadapi agenda di depan
+
+
+Saya melihat apa yang di agendakan 08 itu akan membawa kita keluar dari jebakan middle income trap. 
+
+
+Dia persiapkan semua sebagai permainan jangka panjang dan ada ongkos yang memang harus dikeluarkan
+
+
+Jadi mau mempercayai Moodys dkk dan menyalahkan 08 dll ? 
+
+
+saya cerita sedikit lagi saja yah
+
+
+Moodys itu yang kasih rating AAA+ buat rating subprime mortgage ( tonton filmnya aja yah) . Bagaimana mereka memberikan rating tersebut atas dasar kepentingan yang diagendakan oleh pihak2x tertentu ( di film tersebut aja di ceritakan )
+
+
+Moodys juga yang kasih rating investment grade beberapa firma keuangan kaya salah satunya Lehman Brothers yang jadinya collapse saat tersebut 
+
+
+another prajurit kaya IMF , saat itu datang ke indonesia saat 1997 - 1999 saat Indoesia krisis. 
+
+
+Katanya mau bantu Indonesia keluar dari jurang krisis
+
+
+agendanya ?
+
+
+1. memperketat anggaran agar fiskal lebih baik. Dibutuhkan fiskal yang bagus agar bisa lolos dari krisis
+
+
+2. IMF memberikan pinjaman dan akan mensupervisi penggunaan pinjama tersebut
+
+
+apa jadinya ? malah tambah hancur tuh Indonesia saat itu di tangan IMF
+
+
+IMF kasih pinjaman sekian lah , sebagian buat intervensi pasar valuta. Uang pinjaman dipakai intervensi dan Rp malah terus hancur. Pinjaman pakai bunga tapi menguap ga berguna
+
+
+Anggaran dicekek agar fiskal lebih baik tuh ga memperbaiki ekonomi sama sekali. Yang ada saat itu malah hancur lebur
+
+
+Gimana beresnya ? anggaran and fiskal dijebolin sampe sejebol2x nya saat itu. Stabilitas sosial dijaga dengan semua diberikan kepastian buat kebutuan dasar ( semua yang berhak dapat jatah beras and beberapa sembako )
+
+
+Saat stabilitas sosial membaik , semua perlahan berjalan dengan baik
+
+
+Rp menguat significant saat itu setelah sempat hancur lebur babak belur. Bahkan saat itu Pres Habibie mampu membuat Rp perkasa sampai 8000 an dan ekonomi Indonesia keluar dari krisis 1998
+
+
+Kalo masih sama IMF ? ga kelar tuh bahkan gede banget ongkosnya
+
+
+Itu juga kenapa akhirnya Pres Habibie ga jadi terpilih lagi sebagai presiden saat habis masa jabatan. Kenapa ? konspirasinya karena mereka para koki di luar tuh ga pingin Indonesia jadi negara maju yang dipimpin oleh orang pintar 
+
+
+So ? sesimple itu saya melihat tuh keadaan di luar sana
+
+
+Saat semua keadaan lagi baik dan menguntungkan , seorang pahlawan akan dipuja mati2x an sampai kalo perlu disembah2x lah tuh. 
+
+
+sebaliknya
+
+
+Saat semua keadaan berubah jadi buruk dan menguras uang kita , mereka jadi target pertama kena hujat habis2x an
+
+
+Seperti biasa , kalo keadaan buruk maka harus ada yang dipersalahkan dan di kambing hitam kan.
+
+
+Saya lebih memilih mencerna kejadian setiap kejadian. menelaah setiap apa yang digerakkan sampai saya bisa dapat sesuatu 
+
+
+OOOOOHHH INI TOH maksud dari semua ini
+
+
+Saya ga perlu mencari siapa yang disalahkan atau bertanggung jawab
+
+
+Indeks naik dari 5600 ke 7xxx an tuh mungkin masih normal. Kenaikan indeks dari 7xxx an ke 9200 itu banyak bener excess nya. Excess dari sebuah keoptimisan yang luar biasa ( saya juga boleh dibilang ada disana )
+
+
+again yah , ini semua adalah buah pikiran saya pribadi yang belum tentu benar dan terealisasi
+
+
+Saya typical orang yang selalu mengamati dan mempelajari kejadian yang ada
+
+
+Kalo semua ini benar , tuh semua juga keburukan2x cerita baik downgrade , MSCI dll akan hilang lagi bak ditelan BUMI
+
+
+Seperti kita ketahui kalo satu dunia lagi dalam kondisi buruk , dah lah emang beneran buruk koq termasuk Indonesia
+
+
+Buat saya bukan melihat itunya tapi gimana dalam keadaan buruk tersebut kita menyiapkan bantalan2x dari semua aspek yang nanti diperlukan agar kita tidak terjeblos terlalu dalam. 
+
+
+08 lagi persiapkan hal tersebut
+
+
+ada 2 issue yang saya mau angkat lagi yang juga rama
+
+
+=> pertama adalah penempatan orang2x kepercayaan dari 08 pada posisi pentimg and krusial. 
+
+
+Bro , 08 itu jenderal prajurit yang pastinya pandai ber strategi dalam menempatkan prajuritnya . 
+
+
+Lihat tuh saat dia menempatkan Pak Pur untuk mengisi posisi menkeu. Tadinya banyak yang nyinyir and skeptis . Nyatanya ? 
+
+
+Kemarin sempat beredar lagi suara nyinyir dalam penempatan Thomas Djiwandono yang katanya naro orang ga kompeten dan bernuansa nepotisme karena masih ada hubungan family
+
+
+Oke , saya cuma pikir gini. 08 itu lagi beberes di semua aspek. Yang anda harus pahami adalah bahwa terlalu banyak sengkuni di luar sana yang masih ingin cawe2x grogotin jeroan negara. 
+
+
+Makanya 08 taro tuh orang2x kepercayaan dia dan kalo perlu sekalian pake orang militer buat mengisi posisi strategis
+
+
+Next , Thomas orang dengan latar belakang fiskal tapi kenapa di taro di moneter ? Awalnya saya juga sempat bertanya begitu , kenapa yah ? apa yang dicari yah
+
+
+Tapi belakangan terjawab kalo ada persilangan yang mungkin akan bikin sinergi. Kemarin ada pejabat yang dilantik di wamenkeu pengganti Thomas yang juga orang 08 tapi dia berlatat belakang moneter. Wamenkeu itu fiskal tapi di taro orang berlatar belakang moneter
+
+
+Fixed , ini memang mau naro orang jagain dan nanti ada pembaharuan dan sinergitas atar lembaga. Tunggu aja nanti , pasti ada sesuatu yang sedang dikerjakan
+
+
+=> masalah tambang martabe yang dicabut izinnya dan diambil alih negara
+
+
+ramai ga masalah ini ? masalah ini tuh sampai dibawa ke mahkamah internasional loh 
+
+
+Nih tambang lumayan gede yang dimiliki blekrok , vangguard and koki asing lainnya lewat Jardine. 
+
+
+Itu tambang ditenggarain bikin banjir di sumatera ( katanya karena itu ) , tapi menurut saya bukan karena itu tujuannya. Lah yang bikin banjir mah banyak koq tapi kenapa martabe ?
+
+
+Itu tambang diambil kaya di nasionalisasi loh . 08 berani melakukan itu tanpa takut sama sekali. Dia mau menunjukkan bahwa asing lo jangan pada macam2x yah ( ini kekuasaan Indo )
+
+
+Freeport pernah diambil ? bro , freeport tuh lo bayar and ga gratis. Lo bayar sekarang tapi lo baru dianggap pemilik nanti pas IUPK habis di 2042. Bercanda aja kalo itu sudah jadi milik
+
+
+08 ambil martabe gratis alias di nasionalisasi. Bukan cuma nunjukkin tajinya tapi juga Indo butuh emas nya tuh dari sana juga
+
+
+Makanya Moodys marah , S&P juga lanjutkan aksinya. Saya pikir juga ini jadi salah satu alasannya
+
+
+Kita tunggu saja , siapa tau ada martabe2x selanjutnya yang bakal di nasionalisasikan. Rasanya sih kalo liat kebutuhannya , yang paling make sense and punya urgency adalah oil industri 
+
+
+08 Mundur ? sejauh ini belum mundur koq. 
+
+
+Berani ? Pernah ada yang begini ? 
+
+
+Jadi point saya, santai aja melihat semua hal yang terjadi sekarang. Lihat gambaran besarnya jadi ga ikut2x an memuji bak pahlawan saat baik dan menghujat kaya sampah saat buruk
+
+
+Its a long game , and ini permainannya rasanya apik
+
+
+Tidak ada politic talk , saya aja ga milih 08 . Semua nya murni apa yang saya lihat saja yah
+
+
+
+
+
+
+
+
+Ricky2212
+
+""",
+    },
+    "high_shareholding_concentration": {
+        "title": "High Shareholding Concentration — OJK Buka Peta Kekuasaan Saham (BREN & DSSA)",
+        "category": "market_regulation",
+        "subcategory": "transparency",
+        "themes": ["hsc", "bren", "dssa", "free_float", "msci", "ojk", "bei", "concentration", "transparency"],
+        "tickers": ["BREN.JK", "DSSA.JK", "BUMI.JK"],
+        "quad_bias": None,
+        "regime_signal": "msci_risk",
+        "priority": 9,
+        "author": "Ricky2212",
+        "source": "mentorbaik",
+        "content": """Artikel: High Shareholding Concentration, Ketika OJK Buka Peta Kekuasaan Saham
+
+High Shareholding Concentration, Ketika OJK Buka Peta Kekuasaan Saham
+(BREN & DSSA di Sorot, Ancaman Didepak dari MSCI, dan Risiko di Balik Konsentrasi Tinggi)
+
+
+
+
+High Shareholding Concentration, Ketika OJK Buka Peta Kekuasaan Saham
+
+
+
+
+(BREN & DSSA di Sorot, Ancaman Didepak dari MSCI, dan Risiko di Balik Konsentrasi Tinggi)
+
+
+
+
+
+
+
+
+Fiuh , hari ini saya seharian banyak acara di luar. Jadi ga bisa update banyak.
+
+
+
+
+Tapi ada satu hal menarik yang ada di hari ini. Sore tadi pihak bursa mengeluarkan berita progress mengenai keberlanjutan proses perubahan di tubuh indeks kita yang berkorelasi terhadap peringatan MSCI yang dahulu.
+
+
+
+
+Pasar saham Indonesia tuh sedang menghadapi satu momen penting yang sangat krusial . Peristiwa itu bukan karena masalah ekonomi atau bukan karena masalah moneter yang ada hubungannya dengan suku bunga.
+
+
+
+
+Peristiwa ini jadi krusial dan penting karena satu hal yang lebih fundamental yaitu
+
+
+
+
+Apakah semua saham besar di bursa kita benar-benar “layak” untuk uang besar dunia?
+
+
+
+
+Kita bisa lihat dengan mata kepala sendiri tuh saham-saham mana saja yang sebenarnya cuma "mainan" segelintir orang.
+
+
+
+
+Ini semua bukan lagi sebuah isu dan bukan lagi jadi bahan rumor tapi Ini semua sudah jadi data resmi per 31 Maret 2026 yang dirilis setelah perdagangan ditutup kemarin.
+
+
+
+
+Pertanyaannya :
+
+
+
+
+Kenapa OJK berani buka-bukaan sekarang?
+
+
+
+
+Apa yang mereka lihat?
+
+
+
+
+Dan yang paling penting, apa artinya buat saham-saham seperti BREN dan DSSA apakah mereka bakal didepak dari MSCI?
+
+
+
+
+
+
+1. Kebijakan Baru => Sebuah transparansi atau early warning?
+
+
+
+
+Mulai hari ini OJK resmi membuka data High Shareholding Concentration (HSC). Istilah kerennya adalah saham dengan kepemilikan super terkonsentrasi pada segelintir pihak saja
+
+
+
+
+Direktur Utama BEI menjelaskan kebijakan ini mengadopsi praktik terbaik dari bursa Hong Kong. Dari sini artinya, Indonesia mulai serius mengikuti standar global dalam hal transparansi.
+
+
+
+
+Dari pihak OJK juga bilang ini bukan tuduhan pelanggaran. Tapi semua ini murni sebagai early warning buat investor.
+
+
+
+
+"Informasi untuk daftar saham-saham yang memang terkonfirmasi mengalami konsentrasi yang tinggi atau kepemilikan yang terbatas oleh hanya sedikit pihak"
+
+
+
+
+OJK dari awal sudah janji kalo ini bakal jadi kebijakan permanen bukan one-off event. Artinya dari sini setiap saat investor bisa lihat peta kepemilikan saham yang paling mengerucut.
+
+
+
+
+2. Daftar Hitam => BREN & DSSA jadi sorotan utama
+
+
+
+
+Siapa saja yang masuk ? Berdasarkan pengumuman resmi BEI hari ini ada 10 emiten yang terkonfirmasi memiliki HSC tertinggi per 31 Maret 2026.
+
+
+
+
+Dua nama yang langsung mencuri perhatian adalah BREN dan DSSA.
+
+
+
+
+Kenapa ? Karena ini bukan saham kecil. BREN adalah pemilik kapitalisasi pasar yang besar di BEI. DSSA adalah bagian dari Grup Sinar Mas yang juga raksasa.
+
+
+
+
+Mari kita bedah yah , dan kita akan lihat kalo datanya cukup mencengangkan
+
+
+
+
+PT Barito Renewables Energy Tbk (BREN)
+
+
+
+
+HSC => 97,31% dari total saham dalam bentuk warkat dan tanpa warkat.
+
+
+
+
+Artinya kalo free float BREN saat ini sekitar 2.69% masih di bawah ambang batas 15% yang mulai berlaku 31 Maret 2026.
+
+
+
+
+Pemegang saham mayoritas nya adalah PT Barito Pacific Tbk (BRPT) milik Prajogo Pangestu yang menguasai 64,66%.
+
+
+
+
+Coba bayangkan deh yah kalo perusahaan dengan kapitalisasi pasar Rp 640 Trilyun tapi hanya segelintir orang yang benar-benar mengendalikan pergerakannya.
+
+
+
+
+PT Dian Swastatika Sentosa Tbk (DSSA)
+
+
+
+
+HSC => 95,76%.
+
+
+
+
+Artinya porsi free float-nya hanya sekitar 4,24%.
+
+
+
+
+DSSA terafiliasi dengan Grup Sinar Mas.
+
+
+
+
+Dengan free float serendah itu, apa bedanya dengan perusahaan tertutup ? Siapa yang menentukan harga? Ya, ya itu tadi lah yang jadi biang masalahnya.
+
+
+
+
+Selain BREN dan DSSA, berikut emiten lain dengan HSC tertinggi:
+
+
+
+
+1. ROCK => 99,85%
+
+
+2. IFSH => 99,77%
+
+
+3. SOTS => 98,35%
+
+
+4. AGII => 97,75%
+
+
+5. BREN => 97,31%
+
+
+6. MGLV => 95,94%
+
+
+7. DSSA => 95,76%
+
+
+8. LUCY => 95,74%
+
+
+9. RLCO => 95,35%
+
+
+
+
+Bayangkan tuh saham ROCK dengan HSC 99,85%, artinya free float-nya cuma 0,15%. Itu seperti perusahaan keluarga yang kebetulan melantai di bursa
+
+
+
+
+3. Masalah Free Float : BREN gagal penuhi aturan baru
+
+
+
+
+Mulai 31 Maret 2026, OJK secara resmi menaikkan ambang batas free float untuk konstituen indeks LQ45 dan IDX30 menjadi 15%.
+
+
+
+
+BREN yang free floatnya cuma 12,29% otomatis gagal memenuhi syarat ini. Padahal yah BEI tuh sudah memberi waktu tiga tahun untuk penyesuaian hal tersebut.
+
+
+
+
+Namun dengan pengumuman HSC ini, tekanan terhadap BREN untuk memperbesar porsi publik semakin kuat.
+
+
+
+
+DSSA yah malah jauh lebih parah lagi. Free float nya hanya sebesar 4,24% jauh di bawah ambang batas. Ini tuh bukan hanya soal indeks LQ45 tapi ini soal kelayakan dasar sebagai perusahaan publik.
+
+
+
+
+
+
+4. Kronologi Masuknya BREN & DSSA ke MSCI
+
+
+
+
+Nah, ini yang saya sudah sempat jelaskan sebelumnya. Biar teman2x paham posisi mereka saat ini.
+
+
+
+
+PT Barito Renewables Energy Tbk (BREN)
+
+
+
+
+=> Mei 2025 BREN sempat gagal masuk MSCI karena free float tidak mencukupi. Ini sinyal awal bahwa masalah kepemilikan terkonsentrasi sudah jadi perhatian global fund sejak lama.
+
+
+
+
+=> November 2025 BREN akhirnya masuk dalam indeks MSCI Global Standard. Entah dengan cara apa, tapi tiba2x saja free floatnya dianggap memenuhi syarat.
+
+
+
+
+Tapi faktanya, data OJK per Maret 2026 menunjukkan free float efektif BREN cuma 12,29% atau masih di bawah ambang kenyamanan MSCI (15%). Jadi statusnya saat ini boleh dibilang rapuh.
+
+
+
+
+PT Dian Swastatika Sentosa Tbk (DSSA):
+
+
+
+
+=> Agustus 2025 DSSA masuk MSCI lebih awal. Saat itu dinilai memenuhi kriteria likuiditas dan struktur kepemilikan yang lebih tersebar.
+
+
+
+
+=> Tapi sekarang dengan free float hanya 4,24% (kategori "sangat rendah" versi MSCI) maka posisinya tuh malah jauh lebih berbahaya daripada BREN.
+
+
+
+
+Catatan penting => MSCI sudah memangkas bobot DSSA di indeks dan mengeluarkan peringatan resmi terkait masalah tata kelola dan kurangnya transparansi kepemilikan di Indonesia. Bahkan ada wacana untuk menurunkan status aksesibilitas pasar modal Indonesia jika tidak ada perbaikan berarti.
+
+
+
+
+( 2 ini emang dari awal yang jadi masalah besar MSCI )
+
+
+
+
+5. Aturan Main MSCI : Soal Free Float dan FIF
+
+
+
+
+MSCI menggunakan Foreign Inclusion Factor (FIF) untuk mengukur porsi saham yang benar2x bisa dibeli investor asing.
+
+
+
+
+Ambang batas kelayakannya tegas sebagai berikut
+
+
+
+
+* Saham dengan free float di bawah 15% pada umumnya tidak memenuhi syarat untuk masuk ke indeks utama MSCI.
+
+
+
+
+* MSCI bahkan memperkenalkan level free float 'rendah' (5%-25%) dan 'sangat rendah' (kurang dari 5%). Saham dengan free float di bawah 5% secara efektif akan sangat sulit diikutsertakan.
+
+
+
+
+BREN (free float 12,29%) masuk kategori 'rendah' tapi masih bisa ditoleransi walau terhitung tetap berisiko.
+
+
+
+
+DSSA (free float 4,24%) masuk kategori 'sangat rendah' ini sudah level yang sangat berbahaya untuk perhitungan MSCI
+
+
+
+
+MSCI bukannya tidak sadar loh dari awalnya. mereka sudah memangkas bobot DSSA dan memberi peringatan keras banget. Jika tidak ada perbaikan, maka langkah selanjutnya adalah pengeluaran total dari indeks.
+
+
+
+
+6. Ancaman Terbesar : BREN dan DSSA bisa didepak dari MSCI
+
+
+
+
+Nah, dari kronologi dan aturan di atas maka kita bisa lihat peta ancamannya.
+
+
+
+
+Skenario 1 (paling mungkin) adalah tetap mempertahankan kendali
+
+
+
+
+Pemilik BREN dan DSSA kemungkinan besar tidak mau memperbesar porsi saham publik karena akan mendilusi kendali mereka. Apalagi Prajogo Pangestu dan Grup Sinar Mas dikenal sebagai pemain yang sangat menjaga kepemilikan.
+
+
+
+
+Konsekuensinya => risiko dikeluarkan dari MSCI sangat tinggi. Tinggal masalah waktu saja dan menunggu review periodik MSCI berikutnya. Saat hal itu terjadi maka dana asing akan keluar dan harga saham bisa ambruk.
+
+
+
+
+Skenario 2 (kecil kemungkinan) adalah melepas saham ke publik
+
+
+
+
+Pemilik bisa melakukan aksi korporasi seperti private placement atau secondary offering untuk menambah free float. Ini akan menyelamatkan status MSCI mereka, tapi dengan konsekuensinya adalah kepemilikan keluarga terdilusi dan harga saham berpotensi turun karena suplai bertambah.
+
+
+
+
+Dari dua skenario ini, mana yang lebih masuk akal ?
+
+
+
+
+Coba anda bayangkan yah kalau anda punya perusahaan dengan free float cuma 4-12%, valuasi sudah melambung tinggi dan anda bisa mengendalikan harga dengan muda maka apa anda rela melepas kendali itu hanya demi mempertahankan "stempel" MSCI ?
+
+
+
+
+Rasanya sih yah sebagian besar pemilik akan pilih mempertahankan kendali.
+
+
+
+
+7. Risiko saham dengan konsentrasi tinggi
+
+
+
+
+OJK sendiri sudah memperingatkan kalo saham dengan kepemilikan super terkonsentrasi maka akan berpotensi memiliki likuiditas terbatas dan risiko volatilitas yang lebih tinggi.
+
+
+
+
+Apa artinya buat investor ?
+
+
+
+
+* Saham jadi sulit dijual saat dibutuhkan. Ketika pasar sedang bearish dan semua orang ingin keluar dari pasar, saham dengan free float kecil gampang banget ambruk karena minimnya pembeli.
+
+
+
+
+* Harga pasar mudah sekali buat dibentuk dan di manipulasi. Cukup satu atau dua pemain besar yang jual, harga bisa langsung anjlok seketika.
+
+
+
+
+Sebaliknya, kalau mereka beli harga bisa naik gila2x an dalam sekejap . Ini lingkungan yang subur untuk potensi manipulasi pasar.
+
+
+
+
+*Keputusan korporasi sangat tersentralisasi. Tidak ada mekanisme check and balances yang sehat dari pemegang saham publik.
+
+
+
+
+* Saham gampang di "mark" untuk kepentingan tertentu, bukan mencerminkan kinerja fundamental yang sesungguhnya
+
+
+
+
+Apakah ini berarti semua saham HSC itu buruk? Belum tentu juga sih , tapi OJK ingin kasih anda kaca mata buat lihat lebih jelas peta risikonya. Setelah itu yah anda sendiri yang putuskan mau ambil risiko itu atau enggak.
+
+
+
+
+Yang bisa kita pelajari dari kejadian ini adalah
+
+
+
+
+Dari pengumuman OJK dan ancaman MSCI ini, ada beberapa hal yang harus kita pahami yah :
+
+
+
+
+a. Transparansi ini adalah pedang bermata dua.
+
+
+
+
+Di satu sisi investor bisa lebih waspada tapi di sisi yang lain saham2x dengan HSC tinggi berisiko kehilangan minat investor institusi besaryang selama ini jadi penggerak utama likuiditas.
+
+
+
+
+b. BREN dan DSSA ada di persimpangan.
+
+
+
+
+Mereka harus memilih antara tetap nyaman dengan struktur kepemilikan super terkonsentrasi tapi terancam kehilangan status MSCI dan likuiditas global atau melepas lebih banyak saham ke publik demi memenuhi standar free float.
+
+
+
+
+Pilihan pertama membuat mereka makin mirip perusahaan tertutup. Pilihan kedua berisiko menggerus kendali dan harga saham.
+
+
+
+
+c. Kronologi masuk MSCI menunjukkan bahwa masalah ini sebenarnya sudah terlihat sejak lama.
+
+
+
+
+BREN sudah gagal di Mei 2025 dan baru masuk di November 2025. Artinya, ada "sesuatu" yang membuat MSCI melonggarkan standar ? Atau ada tekanan tertentu ? Ini pertanyaan yang tidak akan pernah terjawab.
+
+
+
+
+d. Free float adalah variabel kunci ke depan.
+
+
+
+
+Saham yang gagal memenuhi ambang batas 15% berisiko dikeluarkan dari indeks utama. Dan kalau sudah tidak likuid lagi maka valuasi setinggi langit susah dipertahankan.
+
+
+
+
+sebagai bahan penutup
+
+
+
+
+OJK dan BEI sudah membuka peta secara gamblang. Untuk pertama kalinya kita bisa melihat dengan jelas mana saham2x yang sebenarnya cuma "mainan" segelintir orang.
+
+
+
+
+BREN dengan HSC 97,31% dan free float 12,29%.
+
+
+
+
+DSSA dengan HSC 95,76% dan free float 4,24%.
+
+
+
+
+Angka2x ini bukan sekadar statistik. Ini adalah peta kekuasaan di pasar modal Indonesia.
+
+
+
+
+Dan ancaman terbesarnya adalah BREN dan DSSA berpotensi besar didepak dari MSCI. Jika itu terjadi maka dana asing akan keluar, likuiditas mengering, dan harga bisa ambruk.
+
+
+
+
+Sebagai Skenario terburuknya adalah saham2x ini kehilangan kedua kakinya yaitu keberadaan merska di indeks LQ45 dan MSCI sekaligus.
+
+
+
+
+Berita baiknya adalah ? eng ing eng
+
+
+
+
+BUMi ada masalah ga ?
+
+
+
+
+UBO nya clear
+
+
+
+
+Free float aman
+
+
+
+
+High concentrate lolos
+
+
+
+
+Waktu itu saya pernah bahas gimana rapih nya permainan om S , Om AP and om B bukan ? tuh ratusam ribu nominee disiapkan agar semua tuh bisa berjalan dengan baik
+
+
+
+
+Sekarang mulai pada paham kan ?
+
+
+
+
+Yah semoga saja perjalanan ke MSCI nya setelah semua inj clear bisa ada titik terang. Tapi ingat jangan diharap yah. Anggap aja bonus kalo memang masuk
+
+
+
+
+
+
+
+
+
+
+
+
+Ricky2212
+
+""",
+    },
+    "kharg_island_terbakar": {
+        "title": "Kharg Island Terbakar, Yield UST Membeku — TACO Segera Terulang",
+        "category": "geopolitics",
+        "subcategory": "middle_east",
+        "themes": ["iran", "kharg", "hormuz", "oil", "taco", "trump", "ust", "yield", "war"],
+        "tickers": ["CL=F", "BZ=F", "USO", "XLE"],
+        "quad_bias": None,
+        "regime_signal": "deescalation_imminent",
+        "priority": 9,
+        "author": "Ricky2212",
+        "source": "mentorbaik",
+        "content": """Artikel: Kharg Island Terbakar, Yield UST Membeku
+
+Kharg Island Terbakar, Yield UST Membeku
+( Tanda Paling Jelas bahwa Trump Siap Klaim Kemenangan dan TACO Segera Terulang )
+
+
+
+
+Kharg Island Terbakar, Yield UST Membeku
+
+
+
+
+( Tanda Paling Jelas bahwa Trump Siap Klaim Kemenangan dan TACO Segera Terulang )
+
+
+
+
+
+
+GLEGER , ultimatum 48 jam yang diberikan kepada Iran akhirnya diselesaikan oleh Amrik dengan serangan ke beberapa target militer and beberapa kawasan strategis minyak Iran
+
+
+
+
+Hmmm , tapi koq aneh yah di saat yang sama UST nya ga bergerak banyak ?
+
+
+
+
+Saya coba ceritakan apa yang saya lihat yah. 
+
+
+
+
+Seperti biasa saya awali dengan saya mau mulai dengan satu pertanyaan sederhana. 
+
+
+
+
+Kok AS bisa serang pusat ekspor minyak Iran, tapi imbal hasil obligasi pemerintah Amerika nyaris tidak bergerak? 
+
+
+
+
+Bukannya perang malah bikin ekspektasi inflasi akan meningkat parah banget sehinggal yield akan terus menanjak ga karuan ?
+
+
+
+
+Ini bukan karena pasar tidak peduli. Ini karena pasar sudah hafal alur ceritanya. Mereka tahu persis apa yang akan terjadi selanjutnya. 
+
+
+
+
+Alur itu punya nama yaitu TACO. Trump Always Chickens Out. Bukan karena dia pengecut, tapi karena dia selalu punya hitungan politik dan ekonomi yang rapi di balik setiap ancamannya.
+
+
+
+
+
+
+=> Ancaman dan Serangan
+
+
+
+
+Beberapa hari lalu tuh, Trump sudah memberi ultimatum 48 jam.
+
+
+
+
+Kalimat ancamannya tuh begini :
+
+
+
+
+Buka Selat Hormuz, atau Selasa akan menjadi hari penghancuran pembangkit listrik dan jembatan di Iran. Dia bahkan bilang Iran bisa dilenyapkan dalam satu malam jika tidak mau berdamai.
+
+
+
+
+Dia pake nulis Praise Allah , hmm Trump dah jadi mualaf kali yah makanya berdoa begitu. wkwkwk just kidding
+
+
+
+
+Tapi yang namanya Iran mah ga pernah takut buat diamcam dan secara tegas Iran menolak.
+
+
+
+
+Mereka punya 10 syarat yang intinya minta penghentian permanen, bukan sekadar gencatan senjata sementara. 
+
+
+
+
+Dan akhirnya batas waktu tersebut pun lewat. 
+
+
+
+
+Lalu AS dan Israel menyerang Pulau Kharg. Ini bukan pulau biasa. Kharg adalah jantung ekspor minyak Iran, tempat 90% minyak mereka dikirim ke dunia.
+
+
+
+
+Serangan itu juga menghantam jembatan, jalan kereta, gardu listrik, dan infrastruktur vital lainnya.
+
+
+
+
+Garda Revolusi Iran langsung mengancam akan membalas dengan menyerang infrastruktur energi Amerika dan sekutunya di kawasan Teluk.
+
+
+
+
+
+
+=> Reaksi Pasar yang Aneh
+
+
+
+
+Saat berita serangan itu keluar, harga minyak memang sempat naik. Tapi tidak eksplosif. Dan yang lebih aneh adalah pergerakkan imbal hasil obligasi pemerintah Amerika UST nyaris tidak bergerak. 
+
+
+
+
+Berdasarkan data pasar setelah serangan, yield obligasi UST 10Y hanya naik beberapa pips. Yield obligasi UST 2Y juga nyaris tidak berubah. Yield UST 30Y naik sangat tipis.
+
+
+
+
+Tidak ada kepanikan. Tidak ada lonjakan yield yang luar biasa karena takut inflasi membumbung tinggi
+
+
+
+
+Padahal biasanya setiap ada serangan besar dalam perang seharusnya membuat investor makin meminta yield tinggi atas obligasi AS. Ketakutan meminta premium lebih tinggi dan ketakutan atas inflasi membuat yield bergerak naik saat ada serangan
+
+
+
+
+Ini sinyal yang buat saya sangat jelas. Pasar sudah bosan dengan pola ancaman yang berulang. Mereka tidak percaya perang ini akan berlarut. Mereka justru sedang bersiap menyambut babak berikutnya, yaitu babak de-eskalasi.
+
+
+
+
+Pasar tahu persis bahwa setelah Trump menunjukkan kekuatan, dia akan segera mencari pintu keluar. Dan pintu keluar itu selalu dibungkus dengan narasi kemenangan.
+
+
+
+
+
+
+=> Trump Siap Klaim Kemenangan
+
+
+
+
+Lihat saja pernyataannya setelah serangan. Dia bilang, kita sedang menghancurkan negara mereka. Mereka hanya tidak mau mengaku kalah. Tapi mereka akan segera mengaku kalah koq
+
+
+
+
+Kata kuncinya adalah mereka akan mengaku kalah. Trump yakin Iran akan menyerah. Dan begitu dia merasa bahwa misi militer sudah cukup untuk disebut kemenangan, dia akan berdiri di depan mimbar dan mengumumkan bahwa tujuan militer telah tercapai.
+
+
+
+
+Ini pola yang sudah terjadi sebelumnya. Pada awal April, dia sudah mengklaim bahwa Iran meminta gencatan senjata. Gedung Putih bahkan mengatakan bahwa jika Trump sebagai panglima tertinggi merasa tujuan sudah tercapai, operasi bisa diakhiri tanpa perlu deklarasi menyerah dari Iran.
+
+
+
+
+Sekarang, setelah Kharg Island terbakar, dia punya alasan yang lebih kuat untuk mengklaim kemenangan. Dan begitu klaim itu keluar, pasar akan bergerak. Saham akan naik. Minyak akan turun. Investor akan kembali ke aset berisiko.
+
+
+
+
+
+
+=> TACO Akan Terulang Lagi
+
+
+
+
+TACO bukan sekadar lelucon. Ini adalah strategi yang sudah terbukti puluhan kali dalam empat belas bulan terakhir. Trump selalu memulai dengan ancaman paling keras, lalu pasar jatuh. Setelah tekanan domestik memburuk, dia mundur dan mengklaim kemenangan. Lalu pasar rally.
+
+
+
+
+Karena itu, para pelaku pasar sudah mulai perlahan terlihat memasang posisi untuk menyambut gencatan senjata. Mereka tidak ingin ketinggalan rally nantinya
+
+
+
+
+Sekarang dengan yield obligasi yang nyaris tidak bergerak setelah serangan ke Kharg, pasar semakin yakin bahwa babak terakhir sudah dekat.
+
+
+
+
+Kesimpulan
+
+
+
+
+Yield UST yang hampir tidak bergerak setelah serangan ke Kharg Island adalah bukti paling kuat bahwa pasar sudah membaca papan catur dengan sempurna. Mereka tahu ini bukan awal dari perang berkepanjangan, tapi justru puncak eskalasi sebelum de-eskalasi.
+
+
+
+
+Sekarang kita tinggal menunggu momen itu. Kapan Trump akan menulis tweet 
+
+
+
+
+"We have achieved our military goal. Mission accomplished." 
+
+
+
+
+Dan beberapa waktu kemudian, atau bahkan bersamaan, bisa saja dia akan menulis satu kalimat pendek yang legend yang dia lakukan di tahun lalu.
+
+
+
+
+ "Great time to buy."
+
+
+
+
+Begitu dua kalimat itu keluar, pasar akan bergerak cepat. Saham naik, minyak turun, dan siklus TACO kembali terulang.
+
+
+
+
+Pertanyaannya bukan lagi apakah dia akan mengumumkan kemenangan. Tapi kapan. Bisa dalam hitungan jam, bisa besok pagi. Dan begitu dia melakukannya, maka bersiaplah 
+
+
+
+
+Well , ini semua coretan saya saja yah. Saya bisa benar saya pun bisa salah. 
+
+
+
+
+Tapi saya pribadi dalam artikel sebelum ini sudah jelaskan semua tentang pattern kita yang akan kita hadapi di depan.
+
+
+
+
+Btw saya mau tambahkan sedikit , teman2x sudah cek Dow Jones ? 
+
+
+
+
+Coba teman2x cek berapa level ATH Dow kemarin , dan tarik memakai behaviour koreksi sehat market. Level itu sudah dikenakan dan memantul pasca kena levelnya. 
+
+
+
+
+Kita lihat , pattern nya berjalan dengan baik lagi. Tinggal lihat levelnya kuat bertahan atau tidak
+
+
+
+
+
+
+
+
+
+
+Ricky2212
+
+""",
+    },
+    "konspirasi_kekuasaan_uang": {
+        "title": "Konspirasi, Kekuasaan, dan Uang — Sejarah Tersembunyi Menjelaskan Pergerakan Market",
+        "category": "macro_thesis",
+        "subcategory": "geopolitics",
+        "themes": ["petrodollar", "911", "elite_global", "freemason", "illuminati", "bilderberg", "iran", "war", "dedollarization", "brics"],
+        "tickers": ["GLD", "SLV", "USO", "CL=F", "GC=F"],
+        "quad_bias": """Q2→Q3""",
+        "regime_signal": "systemic_shift",
+        "priority": 9,
+        "author": "Ricky2212",
+        "source": "mentorbaik",
+        "content": """Artikel: Konspirasi , Kekuasaan , dan Uang 
+
+Konspirasi , Kekuasaan , dan Uang
+(Ketika Sejarah yang Tersembunyi Menjelaskan Pergerakan Market)
+
+Konspirasi , Kekuasaan , dan Uang 
+
+
+(Ketika Sejarah yang Tersembunyi Menjelaskan Pergerakan Market) 
+
+
+
+
+Pernah merasakan kejadian Bom WTC tahun 2001 ?
+
+
+Saat peristiwa bom itu terjadi , saya masih ingat banget saat itu saya lagi mengirim ikan hias ke exportir saya ( saat itu bisnis saya adalah kirim ikas hias ke exportir )
+
+
+Saya waktu itu ga mengerti , yang saya tau cuma ada gedung di Amrik yang ditabrak oleh psawat dan gedung itu terus runtuh
+
+
+Makin kesini saya belajar banyak hal terutama tentang beberapa konspirasi dunia , saya menemukan banyak benang merah yang berujung pada 
+
+
+" sebuah peristiwa besar itu bukan begitu saja terjadi, tapi itu sengaja diciptakan dengan agenda tertentu "
+
+
+Covid 19 , Bom WTC , WW1 , WW2 dll mengandung banyak konspirasi di dalam nya yang kalo di telaah akan banyak sekali kejangggalan yang terjadi di dalamnya
+
+
+Di kasus bom WTC ini sedikit banyak saya akan bercerita bahwa kejadian ini bukan terjadi seperti yang terlihat. Kejadian ini memang sudah di Set - Up dan di agendakan oleh yang punya kepentingan dengan tujuan tertentu
+
+
+Beberapa kejanggalan nya adalah
+
+
+1. Pesawat komersial tuh punya jalur kaya mobil jalur di darat. Saat keluar jalur , pasti akan ditegor oleh pihak pengawas. Saat pesawat pertama keluar jalur ke New York , katanya sistem pelacaknya mati dan tidak terlihat
+
+
+Hello , sekelas Amrik bisa begitu ?
+
+
+2. Pesawat kedua keluar jalur le arah pentagon . Pentagon adalah pangkalan militer tingkat tinggi Amrik. Lah pesawat bisa nyangsang kesana gimana ga terlacak ?
+
+
+3. Sudah banyak sinyal tanda dalam beberapa film yang beredar jauh sebelum kejadian itu terjadi
+
+
+Bahkan saya pernah diajari , kalo kode pesawat nya dipindah pakai bahasa programer komputer akan menghasilkan gambar 2 gedung ditabrak pesawat dan logo tengkorak
+
+
+masa sebuah kebetulan ?
+
+
+Dah , saya coba cerita detailnya yah
+
+
+Sekali lagi, yang namanya konspirasi itu kebenarannya dipertanyakan. Tapi dalam kasus ini banyak sekali penelitian yang sudah dilakukan 
+
+
+Sebelum saya mulai dari sebuah pertanyaan sederhana yah.
+
+
+Pernahkah anda bertanya-tanya 
+
+
+kenapa setiap kali dunia kacau , yang paling kaya justru makin kaya ? 
+
+
+Kenapa setiap perang yang pecah selalu ada segelintir orang yang sudah siap duluan dan sudah tau duluan kemana uang akan mengalir ?
+
+
+Semua Ini bukan kebetulan loh
+
+
+Dalam artikel ini saya mau ajak anda masuk ke rabbit hole yang paling dalam yang belum pernah saya bahas
+
+
+Ini bukan artikel biasa. Ini adalah artikel yang menghubungkan titik-titik yang selama ini kelihatannya tidak berhubungan 
+
+
+Sebuah kejadian 9/11 , petrodollar , elite global , perang Iran , dan kondisi market kita hari ini.
+
+
+Ini bakal jadi cerita yang panjang tapi saya jamin worth it. 
+
+
+Saya juga mau bilang berulang kali buat
+
+
+Jas merah => Jangan lupa belajar dari sejarah. Sejarah nggak pernah berulang persis tapi sejarah seringkali berirama yang sama.
+
+
+
+1. 11 SEPTEMBER 2001
+
+
+(Hari yang Mengubah Dunia Selamanya)
+
+
+Pagi hari 11 September 2001. New York masih tenang. Saat itu Langit biru bersinar cerah seperti biasa. Angin juga bertiup sepoi-sepoi. Orang-orang masih antri kopi di bawah gedung. Banyak dari mereka yang sarapan pagi sambil ngobrol santai. 
+
+
+Hari biasa yang terasa seperti hari biasa
+
+
+Tapi pada jam 8.46 pagi dunia berubah selamanya.
+
+American Airlines Flight 11 menabrak WTC Tower Utara.
+
+
+Pada jam 9.03 United Airlines Flight 175 menabrak Tower Selatan. Disiarkan live ke seluruh dunia. Jutaan orang yang lagi sarapan sambil nonton TV pagi langsung membeku di kursinya.
+
+
+Pada jam 9.37 American Airlines Flight 77 menabrak Pentagon.
+
+
+Pada jam 10.03 United Airlines Flight 93 jatuh di Shanksville Pennsylvania setelah penumpang katanya melawan pembajak.
+
+
+Hampir 3.000 orang meninggal dan hari itu jadi Hari paling mematikan di tanah Amerika sejak Pearl Harbor 1941.
+
+
+Dalam hitungan jam saja pemerintah AS sudah tau siapa pelakunya.
+
+
+Mereka langsung mengumumkan kalp Al-Qaeda dan Osama bin Laden sebagai dalang pelakunya 
+
+
+Hebat bukan ? kaya langsung sudah siap adegannya
+
+
+Amerika dengan segala teknologi canggihnya , tidak mampu mendeteksi perubahan arah Pesawar terbang yang keluar dari jalur penerbangan nya
+
+
+Normal nya dalam dunia Aviasi , setiap pesawat yang terbang itu punya jalur tersenditi. Dari kejauahan pihak yanh punya otoritas terus menantau pergerakan pesawat tersebut.
+
+
+Apabila pesawat tersebut keluar dari jalur nya , semua akan terdeteksi oleh radar yang ada di pusat.
+
+
+Apalagi kalau sampai perubahan jalur sampai ke arah pentagon ? bayangkan sebuah pangkalan militer yang sudah pasti punya radar teknologi tinggi dan juga penjagaaan yang luar biasa dalam hal keamanan .
+
+
+Gimana semua itu bisa lolos dengan mudah ?
+
+
+Pasca serang tersebut , sebulan kemudian Afghanistan diinvasi. Merela lakukan dengan cepat dan tapi sekali. Bahkan terlihat terlalu cepat dan terlalu rapi.
+
+
+Dari situlah pertanyaan-pertanyaan mulai bermunculan satu per satu. Makin lama pertanyaan makin banyak dan sampai hari ini tidak semua terjawab dengan memuaskan.
+
+
+=> WTC Tower 7 : Misteri Terbesar 9/11
+
+Kalau kamu hanya boleh pilih satu hal yang paling aneh dari semua kejadian 9/11 ini dia yaitu WTC Tower 7.
+
+
+Sebuah gedung dengan 47 lantai. Gedung ini berdiri sekitar 100 meter dari Twin Towers. Gedung ini tidak ditabrak pesawat apapun. Tidak kena serpihan langsung yang signifikan.
+
+
+Tapi pada jam 17.20 sore hampir 7 jam setelah pesawat terakhir menabrak , gedung Tower 7 ini ikut runtuh.
+
+
+Kecepatan runtuhnya ? 6.9 detik. Hampir sama persis dengan kecepatan benda jatuh bebas tanpa hambatan apapun 
+
+
+Yang bikin makin aneh dari kejatuhan gedung tersebut adalah polanya simetris sempurna. Gedung itu runtuh ke bawah secara vertikal , tidak miring ke kiri atau ke kanan.
+
+
+Ini adalah karakteristik controlled demolition atau teknik meledakkan gedung secara terencana dari dalam supaya runtuh ke bawah tanpa menimpa gedung di sekitarnya.
+
+
+Nah loh 
+
+
+Ribuan arsitek dan insinyur yang tergabung dalam Architects & Engineers for 9/11 Truth sampai sekarang jumlahnya lebih dari 3.000 profesional secara resmi menyatakan bahwa tidak ada kebakaran biasa yang bisa meruntuhkan gedung baja sekokoh itu dengan pola seperti itu.
+
+
+Laporan resmi NIST sendiri mengakui bahwa Tower 7 adalah kasus pertama dalam sejarah dimana gedung baja bertingkat tinggi runtuh murni karena kebakaran.
+
+
+Pertama dalam sejarah . Wakkss 
+
+
+Dan satu hal lagi yang sangat terkenal adalah Larry Silverstein pemilik gedung dalam dokumenter PBS 2002 berkata dengan santai :
+
+
+"Kami berdiskusi dengan komandan pemadam kebakaran. Dan kami memutuskan untuk pull it. Dan mereka menonton gedung itu runtuh."
+
+
+Pull it dalam bahasa industri demolisi adalah istilah teknis untuk controlled demolition meledakkan gedung secara sengaja dan terencana 
+
+
+Kalau memang controlled demolition terus siapa yang memasang bahan peledaknya ? Kapan ? Pemasangan bahan peledak untuk gedung setinggi itu normalnya butuh waktu berminggu-minggu loh
+
+
+Nah loh konspirasi lagi nih
+
+
+=> Nanothermite : Bukti Ilmiah yang Tidak Bisa Dibantah
+
+
+Pada tahun 2009 , tim peneliti independen yang dipimpin Dr. Niels Harrit dari University of Copenhagen mempublikasikan paper ilmiah di jurnal Open Chemical Physics Journal.
+
+
+Mereka menganalisis sampel debu dari reruntuhan WTC yang dikumpulkan warga New York segera setelah kejadian.
+
+
+Hasilnya mengejutkan kalo ditemukan jejak nano-thermite dalam jumlah signifikan di seluruh sampel.
+
+
+Nano-thermite adalah bahan peledak militer tingkat sangat tinggi yang tidak bisa terbentuk secara alami dari kebakaran pesawat biasa . Hal tersebut hanya bisa diproduksi di fasilitas militer atau laboratorium canggih , dan digunakan untuk memotong baja struktural secara cepat persis jenis bahan yang dibutuhkan untuk controlled demolition gedung pencakar langit. 
+
+
+Paper ini sudah melalui proses peer review. Sampai hari ini tidak ada yang berhasil membantah temuan ilmiah ini secara akademis.
+
+
+Pertanyaannya selanjutnya darimana nano-thermite militer ini berasal ? Siapa yang memasangnya ? Kapan ?
+
+
+Tidak ada jawaban resmi sampai hari ini. 
+
+
+=> Put Options : Siapa yang Tau Duluan ?
+
+
+Beberapa hari sebelum kejadian 9/11 , terjadi lonjakan luar biasa dan mencurigakan pada pembelian put options saham dua maskapai yang pesawatnya dibajak.
+
+
+Volume put options American Airlines melonjak 285 kali lipat dari rata-rata hariannya 
+
+
+Volume put options United Airlines melonjak 600 kali lipat dari rata-rata hariannya 
+
+
+Put options artinya bertaruh harga saham akan turun. Dan memang setelah 9/11 saham kedua maskapai itu anjlok dramatis.
+
+
+CIA dan SEC menyelidiki. Hasilnya ? Kata mereka tidak ditemukan bukti keterlibatan orang dalam dan akhirnya kasus tersebut ditutup.
+
+
+Nah loh , siapa yang tau duluan ? 
+
+
+=> Pentagon : Gedung Paling Dijaga di Dunia yang Ditembus Tanpa Perlawanan
+
+
+Flight 77 keluar jalur di atas Kentucky. Transponder dimatikan. Pesawat berbelok balik ke arah Washington DC.
+
+
+45 menit pesawat itu terbang tanpa transponder menuju salah satu target paling dijaga di dunia.
+
+
+45 menit dan tidak ada satu pun jet tempur yang berhasil mencegat ? 
+
+
+Terungkap bahwa hari itu NORAD sedang menjalankan beberapa latihan militer sekaligus 
+
+
+Vigilant Guardian mereka namakan simulasinya. Simulasi pembajakan pesawat yang menabrak gedung-gedung di AS 
+
+
+Northern Vigilance memindahkan jet tempur ke utara Kanada jauh dari wilayah timur AS 
+
+
+Akibatnya jumlah jet tempur yang siap scramble di wilayah timur AS pada hari itu sangat sedikit. 
+
+
+Komando NORAD sempat bingung apakah laporan pembajakan yang masuk adalah bagian dari simulasi atau kejadian nyata 
+
+
+Wakkss terjadi latihan simulasi pembajakan pesawat tepat pada hari pesawat beneran dibajak ?
+
+
+Dan soal CCTV yang ada , Pentagon punya ratusan kamera. Hotel Sheraton di dekat Pentagon punya kamera yang menghadap ke Pentagon. Gas station di sekitar area punya rekaman.
+
+
+Semua bukti CCTV tersebut disita FBI dalam hitungan jam. 
+
+
+Yang dirilis ke publik ? Hanya beberapa frame dari satu kamera parkiran dengan resolusi sangat rendah.
+
+
+Kenapa ratusan rekaman lain tidak pernah dirilis sampai hari ini ?
+
+
+=> $2.3 Triliun dan Analis yang Tewas
+
+
+10 September 2001 sehari sebelum 9/11 , Donald Rumsfeld mengadakan konferensi pers.
+
+
+Isi pengumumannya adalah $2.3 triliun dolar dana Pentagon tidak bisa dipertanggungjawabkan dan Hilang dari pembukuan . 
+
+
+$2.3 triliun jumlah yang luar biasa besar. Bukan jumlah miliar tapi jumlah Triliun loh yah. 
+
+
+Ini harusnya jadi skandal finansial terbesar dalam sejarah militer Amerika. Seharusnya jadi berita terbesar berbulan-bulan.
+
+
+Tapi keesokan harinya saat 9/11 terjadi, Pengumuman tentang dana raib sebesar $2.3 triliun langsung tenggelam. Tidak pernah dibahas lagi. Hilang dari radar publik selamanya.
+
+
+Tim analis keuangan Pentagon yang sedang menginvestigasi dana yang hilang itu berkantor di Wedge 1 itu bagian Pentagon yang baru direnovasi.
+
+
+Bagian mana yang ditabrak oleh Flight 77 ? yap bagian gedung Wedge 1 . 
+
+
+Hampir semua analis yang sedang menginvestigasi tewas dalam serangan tersebut.
+
+
+Kebetulan ? Atau memang disengaja untuk menghilangkan jejak ? 
+
+
+=> Larry Silverstein : 6 Minggu dengan keuntungan $4.55 Miliar
+
+
+Pada bulan Juli 2001 atau tepatnya 6 minggu sebelum 9/11 seorang pengusaha bernama Larry Silverstein menandatangani kontrak sewa 99 tahun untuk seluruh kompleks WTC senilai $3.2 miliar.
+
+
+Larry juga sekaligus mengambil asuransi yang sangat spesifik untuk pengelolaan gedung tersebut mencakup serangan teroris.
+
+
+Setelah 9/11 dia memenangkan klaim dengan argumen bahwa dua serangan pesawat dihitung sebagai dua kejadian terpisah.
+
+
+Total klaim asuransi yang dia dapatkan dari kejadian tersebut adalah sebesar $4.55 miliar dolar 
+
+
+Satu hal lagi , Silverstein adalah seorang yang punya kebiasaan sarapan di restoran puncak Tower Utara setiap hari Selasa. 
+
+
+11 September 2001 adalah hari Selasa. Tapi pagi itu dia tidak datang. Katanya ada janji dokter kulit yang tidak bisa dibatalkan.
+
+
+Istrinya juga membatalkan janji anaknya yang seharusnya magang di WTC hari itu.
+
+
+Kebetulan ? 
+
+
+=> Dancing Israelis
+
+
+Tak lama setelah pesawat pertama menabrak gedung WTC , seorang warga New Jersey melaporkan melihat sekelompok orang di atap van di area parkiran merayakan dan berjoget sambil merekam kejadian WTC tersebut
+
+
+Setelah ditangkap FBI , ternyata 5 warga negara Israel yang bekerja untuk perusahaan moving bernama Urban Moving Systems.
+
+
+Setelah diinterogasi berbulan-bulan akhirmya dibebaskan dan dipulangkan ke Israel atas perintah dari atas.
+
+
+Salah satu kemudian muncul di TV Israel dan berkata 
+
+
+ "Kami ada di sana untuk mendokumentasikan kejadiannya."
+
+
+Mendokumentasikan ? Bagaimana mereka bisa tau akan ada sesuatu yang perlu didokumentasikan sebelum pesawat pertama menabrak ?
+
+
+Urban Moving Systems diduga kuat adalah front company untuk Mossad. FBI akhirnya menutup investigasi dan hasilnya tidak pernah dipublikasikan secara lengkap. 
+
+
+=> Film-Film yang Memprediksi Sebelum Kejadian
+
+
+Ini yang bikin bulu kuduk merinding loh
+
+
+The Simpsons 1997 , empat tahun sebelum 9/11 ada adegan brosur bertuliskan New York dengan gambar Twin Towers dan harga tiket $9 di depannya. Kalau digabungkan jadi Twin Towers dengan angka 9 akan terlihat seperti 9/11 
+
+
+The Matrix 1999 di adegan awal saat Neo ditangkap dan dokumennya dicek ada paspor Neo terlihat jelas dengan tanggal kadaluarsa 11 September 2001 . Film ini rilis 2 tahun sebelum 9/11.
+
+
+Terminator 2 1991 sepuluh tahun sebelum 9/11 di adegan terowongan ada tulisan 911 yang terlihat jelas di dinding.
+
+
+Fight Club 1999 di adegan terakhir gedung-gedung pencakar langit runtuh bersamaan. Dirilis 2 tahun sebelum 9/11.
+
+
+Kebetulan semua ? Atau ada sesuatu yang sengaja disisipkan oleh orang-orang yang tau duluan ? 
+
+
+=> Project Bojinka : Mereka Sudah Tau dari 1995
+
+
+Tahun 1995 atau enam tahun sebelum 9/11 , FBI dan CIA sebenarnya sudah mengetahui rencana yang hampir identik 
+
+
+Namanya Project Bojinka yang katanya rencana Al-Qaeda untuk menabrakkan pesawat ke gedung-gedung penting di AS termasuk Pentagon , CIA headquarters , dan gedung-gedung di Manhattan.
+
+
+Rencana ini ditemukan di laptop Ramzi Yousef di Manila. Informasinya diteruskan ke CIA dan FBI.
+
+
+Artinya selama 6 tahun sebelum 9/11 , US intelligence sudah tau rencana ini.
+
+
+Kalau memang sudah tau, tapi koq tidak ada tindakan pencegahan yang signifikan yang diambil.
+
+
+Apakah mereka lalai ? Atau memang membiarkannya terjadi ? 
+
+
+2. PETRODOLLAR
+
+(Senjata Paling Dahsyat yang Pernah Dibuat Manusia)
+
+
+Untuk memahami kenapa 9/11 terjadi , kita harus memahami tentang petrodollar dulu.
+
+
+Kembali ke 1971 saat itu terjadi Nixon Shock. Karena kejadian itu akhirnya USD dilepas dari back up emas. Seketika saja sistem Bretton Woods ambruk. 
+
+
+Seharusnya saat itu USD langsung kehilangan nilainya karena tidak ada lagi emas yang mem back up nya
+
+
+Tapi Amerika punya satu kartu truf yang luar biasa cerdas.
+
+
+Pada tahun1973 terjadi perjanjian rahasia AS dan Arab Saudi
+
+
+Isinya simpel tapi dahsyat. Arab Saudi wajib menjual minyaknya hanya dalam USD dan seluruh anggota OPEC harus ikut aturan yang sama. 
+
+
+Sebagai imbalannya maka AS akan menjamin keamanan rezim Arab Saudi dan menjual senjata ke mereka.
+
+
+Dari siniah lahirlah sistem yang namanya Petrodollar .
+
+
+Seluruh dunia butuh minyak dan minyak hanya bisa dibeli pakai USD. Maka pada akhirnya seluruh dunia wajib pegang USD .
+
+
+China , Jepang , India , Indonesia dan semua harus punya USD dulu sebelum bisa beli energi.
+
+
+Jadi AS bisa cetak USD dan beli barang dari seluruh dunia dan dunia terpaksa menerima kertas itu.
+
+
+Ini yang disebut exorbitant privilege. Sebuah privilege luar biasa yang tidak dimiliki negara lain manapun di dunia.
+
+
+=> Siapapun yang Berani Menantang dan Nasibnya Selalu Sama
+
+
+Saddam Hussein tahun 2000 mengumumkan akan jual minyak hasil produksi Irak dengan memakai Euro. 
+
+
+Tahun 2003 AS menginvasi Irak dengan alasan WMD yang ternyata tidak pernah ada. Saddam digulingkan dan digantung.
+
+
+Muammar Gaddafi merencanakan Gold Dinar sebagai mata uang emas Afrika untuk transaksi minyak pan-Afrika. Pada tahun 2011 , NATO menyerang Libya. Gaddafi dibunuh brutal di jalan.
+
+
+Iran sudah lama jual minyak ke China dan Rusia tanpa USD. Hasilnya ? Sanksi ekonomi puluhan tahun dan sekarang diserang langsung oleh Amrik
+
+
+Polanya sangat jelas. Follow the money — selalu. 
+
+
+3. IRAQ DAN 7 NEGARA
+
+
+(Rencana yang Sudah Ada Sebelum 9/11)
+
+
+Setahun sebelum 9/11 sekitat tahun 2000 an , lembaga think tank bernama Project for the New American Century atau PNAC menerbitkan dokumen yang menyebutkan bahwa dibutuhkan sebuah kejadian katastropik. 
+
+
+Kejadian itu mereka menyebutnya "a new Pearl Harbor."
+
+
+Di balik PNAC ada Dick Cheney , Donald Rumsfeld , Paul Wolfowitz yang kemudian masuk ke lingkaran kekuasaan Bush.
+
+
+Dan di dokumen yang sama , mereka secara eksplisit menulis bahwa Saddam Hussein harus digulingkan dan AS harus punya pangkalan militer permanen di Timur Tengah.
+
+
+Rencana invasi Irak itu sudah ada sebelum 9/11 terjadi dan 9/11 hanya jadi trigger yang mereka butuhkan.
+
+
+Jenderal Wesley Clark seorang mantan Supreme Commander NATO dalam wawancara 2007 mengungkapkan bahwa beberapa minggu setelah 9/11 seorang perwira senior Pentagon menunjukkan memo rahasia kepadanya.
+
+
+Isinya adalah rencana untuk menjatuhkan 7 negara dalam 5 tahun.
+
+
+Afghanistan. Iraq. Syria. Lebanon. Libya. Somalia dan Iran adalah negara yang mereka incar untuk dihancurkan
+
+
+Semuanya adalah negara Muslim. Semua punya posisi strategis. Semua punya sumber daya energi atau ancaman terhadap dominasi AS dan petrodollar
+
+
+Dick Cheney yang sebelumnya CEO Halliburton mendapat kontrak rekonstruksi Iraq senilai lebih dari $39 miliar dolar tanpa tender terbuka setelah invasi.
+
+
+Nah loh , siapa yang paling untung ? 
+
+
+4. ISLAM SEBAGAI FRAMING
+
+
+(Ketika Agama Dijadikan Alat Kekuasaan)
+
+
+Setelah 9/11 dalam hitungan jam saja semua framing media langsung mengarah ke satu kata. Bukan Al-Qaeda saja , nukan kelompok teroris spesifik , tapi Islam secara keseluruhan yang seolah dijadikan tersangka.
+
+
+Tidak ada yang bilang "Christian terrorism" waktu IRA bom di Irlandia. Tidak ada yang bilang "Buddhist terrorism" untuk kejadian lain.
+
+
+Tapi dari sini sebutan "Islamic terrorism" langsung masuk kosakata global dalam hitungan hari
+
+
+Dampak konkretnya sangat dahsyat. Dalam sekejap laporan kejahatan berbasis kebencian terhadap Muslim di AS naik 1.700% dalam beberapa bulan. 
+
+
+Pasca kejadian tersebut , sebuah kesepakatan bernama Patriot Act disahkan. FBI mengirim informan ke masjid-masjid. Ribuan Muslim masuk no-fly list tanpa tau alasannya.
+
+
+Kenapa Islam yang dijadikan target ?
+
+Karena konsep ekonomi Islam yang melarang riba dan mendorong mata uang berbasis emas adalah ancaman ideologis terbesar terhadap sistem petrodollar .
+
+
+Bayangkan kalau negara-negara Muslim yang menguasai sebagian besar cadangan energi dunia bersatu dan menerapkan sistem Gold Dinar seperti yang Gaddafi rencanakan. Sistem petrodollar langsung runtuh seketika.
+
+
+Makanya dengan menghancurkan kekuatan dunia Islam bukan hanya soal geopolitik. Ini adalah pertarungan sistem ekonomi dan keuangan global 
+
+
+ISIS , Al- QAEDA exist ? 
+
+
+semoga saya tidak salah yah , dalam sebuah wawancaranya saat itu Hillary Clinton berbicara yang pada intinya adalah ISIS dan Al Qaeda adalah buatan Amerika sendiri yang memang sengaja dipiara buat kepentingannya
+
+
+Dalam sebuah dokumentasi saya juga pernah melihat prajurit yang katanya dari Al Qaeda mati dengan jubahnya terbuka. Banyak tatto bersemat di tangan dan kaki prajurit tersebut
+
+
+Yakin itu Al - Qaeda muslim ?
+
+
+5. ELITE GLOBAL
+
+
+(Siapa yang Sebenarnya Menggerakkan Semua Ini ?)
+
+
+Freemason ini bukan mitos. Organisasi yang beneran ada dan tercatat dalam sejarah. Berdiri resmi di London 1717. Dan 14 dari 44 Presiden AS tercatat sebagai anggotanya termasuk George Washington dan Franklin D. Roosevelt.
+
+
+Illuminati didirikan 1 Mei 1776 di Bavaria oleh Adam Weishaupt. Dibubarkan resmi 1785. Tapi banyak peneliti berpendapat mereka tidak benar-benar bubar tapi mereka menyusup ke jaringan Freemason yang sudah tersebar global.
+
+
+Dan simbol mereka yaitu Eye of Providence , mata di atas piramida ada di uang kertas 1 Dollar AS sejak 1935 . Dengan tulisan latin "Novus Ordo Seclorum" yang artinya Tatanan Dunia Baru atau New World Order !
+
+
+Wakkss , simbol organisasi rahasia ada di mata uang yang menjadi fondasi sistem keuangan global .
+
+
+Di balik semua ini ada institusi-institusi yang beneran ada dan beneran berpengaruh.
+
+
+Bilderberg Group sebuah pertemuan tahunan rahasia yang mengumpulkan sekitar 130 orang paling berpengaruh di dunia. Pemimpin politik , CEO Fortune 500 , bankir sentral , media mogul. 
+
+
+Pertemuan ini tertutup total dan tidak ada media yang boleh masuk. Apa yang mereka bicarakan ? Tidak ada yang tau pasti.
+
+
+Council on Foreign Relations , pertemuan yang dihadiri oleh hampir semua Menteri Luar Negeri AS dalam 100 tahun terakhir adalah anggotanya.
+
+
+Trilateral Commission , sebuah organisasi yang didirikan oleh David Rockefeller menghubungkan elite dari Amerika , Eropa , dan Asia.
+
+
+Bank for International Settlements sebagai bank sentral nya bank sentral. Bank ini dikontrol segelintir bankir yang tidak dipilih siapapun tapi punya pengaruh luar biasa terhadap ekonomi global.
+
+
+Satu hal yang saya yakini , kekuasaan selalu cenderung terkonsentrasi dan yang punya kekuasaan selalu ingin mempertahankannya dengan cara apapun. 
+
+
+6. 2026 DAN SEMUA BENANG MERAH BERTEMU
+
+
+(Apa Artinya Buat Kita Sebagai Investor ?)
+
+
+Perang Iran sekarang bukan sekadar konflik biasa. Ini adalah babak terbaru dari permainan yang sama yang sudah berlangsung puluhan tahun.
+
+
+Iran adalah salah satu negara yang paling aktif mendorong de-dolarisasi energi. Mereka jual minyak ke China dan Rusia tanpa USD.
+
+
+Ancaman nyata terhadap sistem petrodollar yang sudah mulai retak dan sistem petrodollar memang sedang retak.
+
+
+China dan Rusia bangun sistem petroyuan. Arab Saudi mulai terima Yuan dari China. India beli minyak Rusia pakai Rupee. BRICS aktif bahas mata uang bersama. DXY terus melemah. Emas terus cetak rekor.
+
+
+Ini adalah tanda-tanda runtuhnya sistem petrodollar secara perlahan.
+
+
+Dan dari sini semua thesis Store of Value yang saya bangun dari 1-2 tahun lalu mulai dapat konteks yang jauh lebih dalam. 
+
+
+Bukan cuma soal perang yang bikin harga komoditas naik. Ini soal pergeseran kekuasaan ekonomi global yang terjadi di depan mata kita.
+
+
+Sebuah perpindahan dari era dominasi USD ke era baru yang belum jelas bentuknya.
+
+
+Di masa transisi inilah nantinya hard asset dan Store of Value adalah pelabuhan yang paling aman.
+
+
+STRATEGI INVESTOR DI TENGAH PERMAINAN ELITE GLOBAL
+
+
+Oke , setelah semua cerita panjang ini. Apa yang harus kita lakukan sebagai investor ?
+
+
+Layer 1 => Follow the Money , Bukan Narasi
+
+
+Elite global mengontrol media. Mereka mengontrol narasi. Tapi mereka tidak bisa menyembunyikan ke mana uang mengalir. 
+
+
+Liat pergerakan DXY. Liat harga emas. Liat ETF EEM. Uang lebih jujur dari kata-kata.
+
+
+Layer 2 => Pahami Bahwa Perang Selalu Punya Pemenang.
+
+
+Di setiap perang rakyat biasa selalu bayar harga tertinggi. Tapi investor yang paham permainannya bisa berada di sisi yang benar.
+
+
+Perang Iran sekarang yang menang adalah industri pertahanan , produsen energi , pemegang hard asset dan Store of Value.
+
+
+Layer 3 => Berjalan di Store of Value Energy
+
+Petrodollar retak → USD melemah → komoditas energy naik → Store of Value naik → emerging market dapat inflow. Tetap di jalur ini. Jangan jauh-jauh.
+
+
+Setelah semua yang kita bahas tentang
+
+9/11 yang penuh pertanyaan. Petrodollar sebagai fondasi kekuasaan. Iraq dan 7 negara yang sudah direncanakan duluan. Islam yang dijadikan kambing hitam. Elite global yang menggerakkan semuanya dari balik layar. Film-film yang memprediksi sebelum kejadian. Dan kondisi 2026 dimana semua benang merah itu bertemu.
+
+
+Saya tidak bilang semua ini pasti benar. Saya tidak punya akses ke ruang rapat Bilderberg. Saya tidak tau apa yang benar-benar dibicarakan di balik pintu tertutup itu.
+
+Tapi saya tau tentang satu hal yaitu
+
+Follow the money selalu mengantarkan ke jawaban yang lebih jujur dari semua narasi resmi yang disodorkan ke kita.
+
+
+Dan sebagai investor, tugas kita bukan membuktikan konspirasi. Tugas kita adalah memahami ke mana uang mengalir dan berada di sisi yang benar sebelum semua orang sadar.
+
+
+Karena pada akhirnya di balik semua konspirasi , semua perang , semua permainan elite global yang paling menderita selalu rakyat biasa yang tidak tau menahu.
+
+
+Dan yang paling diuntungkan selalu mereka yang sudah siap duluan.
+
+
+Jadilah yang sudah siap duluan. Privillege anda sebagai orang yang ada di pasar saham dan dunia keuangan adalah pihak yang harusnya selalu update akan keadaan. Jadi kan hal ini sebagai advantage anda. 
+
+
+Ingat yah lagi-lagi saya juga belum tentu benar. Saya bisa salah juga dalam analisa. Jadi pastikan anda juga menganalisa sendiri agar menghasilkan keputusan terbaik.
+
+
+
+
+
+Ricky2212
+
+""",
+    },
+    "mengapa_narrative_sebagai_narrative": {
+        "title": "Mengapa saya selalu bilang perlakukanlah saham narrative sebagai narrative (OKAS Story)",
+        "category": "market_psychology",
+        "subcategory": "risk_management",
+        "themes": ["narrative", "okas", "risk", "allocation", "greed", "psychology", "discipline"],
+        "tickers": ["OKAS.JK"],
+        "quad_bias": None,
+        "regime_signal": "narrative_caution",
+        "priority": 8,
+        "author": "Ricky2212",
+        "source": "mentorbaik",
+        "content": """Mengapa saya selalu bilang perlakukanlah saham narrative sebagai narrative? Kebetulan ini adalah contoh yang cocok..
+
+Cerita ini jadi cerita yang menarik sekali buat diangkat ke publik. Banyak sekali pelajaran yang bisa ditarik dalam perjalanan Narrative ini. Terlebih terjadi begitu singkat dari artikel saya yang terakhir muncul tentang emiten ini. Saya coba share untuk memperlihatkan bahwa semua permainan narrative tidak selalu berjalan dengan mulus.
+
+Saya ceritakan dari awal ceritanya perjalanan OKAS ini yah, karena berdiskusi dengan figur teman saya ini yang sebenernya banyak memberikan saya informasi tentang saham ini.
+
+Saat itu harga OKAS masih di harga 120 , dia yang mempromote saya untuk beli saham ini di harga tersebut. Berulang kali saya di promote untuk beli saham ini dengan segala thesis yang dia ceritakan.
+
+Menarik ga thesisnya ? menarik banget kalo mendengar jabarannya dan rasanya memang masuk akal semua untuk masuk ke permainan urut kacang. 
+
+Satu yang membuat saya tertarik saat itu adalah ada Emas nya dan ada GW disana lah. Buat saya itu cukup mewakili buat saya membeli dengan Thesis NARRATIVE.
+
+Saya putuskan buat membeli saat harga 120. Tapi saya tidak membeli seperti orang FOMO. Walau bagus , saya putuskan hanya mengalokasikan 3000 lot saat itu. 
+
+Teman saya bertanya , dah beli lo ? saya jawab sudah. Dia bertanya lagi beli berapa lot ? saya jawab kembali saya beli 3000 lot
+
+Lalu dia tertawa , "lah seorang 2212 yang punya kemampuan masa cuma beli 3000 lot . Ga salah tuh ? At least beli lah 15k - 20k lot buat ikut OKAS"
+
+Kenapa saya hanya beli 3000 lot saat awal tersebut ? karena keyakinan saya di saham tersebut hanya sampai level segitu lot nya , jadi sementara cukupkan buat beli segitu. 
+
+Waktu itu Spike dengan satu tarikan naik dan saya tetap ga bergeming dengan kepemilikan saya di saham itu. 
+
+Saya tetap komit dengan posisi awal saya di saham tersebut dengan lot awal 3000 lot.
+
+Seiring waktu saham tersebut naik diiringi dengan harga emas yang juga terus mendaki naik.
+
+Kebetulan saya lagi ada likuiditas setelah menjual salah satu saham permainan narrative saya yang sudah saya rilis dengan baik. Jadi saya punya pertimbangan untuk mencari sebuah peluang 
+
+Setelah saya pertimbangkan matang2x , akhirnya saya memutuskan untuk membeli kembali tambahan saham tersebut. Seperti teman2x tau kalau saya membeli di kisaran harga 208-210 dengan Lot tambahan secukupnya.
+
+Saya laporan ke teman saya , saya masuk lagi di saham OKAS tersebut. Dia kaget , lah lo masuk lagi ? saya jawab IYA dengan jumlah lot sekian. 
+
+Teman saya antusias sekali saat itu karena memang saham tersebut adalah hasil banyak cerita dari dia. 
+
+Dia bertanya kepada saya ? koq bisa beli lagi diatas ? kenapa waktu itu hanya beli sedikit di bawah ? 
+
+Saya jawab , pertama karena saat itu keyakinan saya hanya buat lot segitu jadi saya sesuaikan dengan keyakinan saya ( karena saya tau ini permainan narrative yang ada resiko , semua hal saya sesuaikan dengan keadaan )
+
+kedua , saya beli sekarang buat nambah posisi karena saya ada uang lebih dari hasil penjualan saham narrative saya yang lain. Jadi saya belikan saham OKAS dengan sebagian keuntungan nya saja . Saya atur resikonya dengan cara hanya membeli pakai uang untung dari permianan lain. Jadi kalau untung yang syukur , tapi kalau ga sesuai harapan saya hanya ilang sebagian uang untung dari saham lain saya saja
+
+Jadi paham yah ? cara permainan saya mengatur resiko permainan narrative
+
+Itu juga yang lagi ditanyakan oleh teman saya , kenapa kalo keyakinan lo tambah tinggi harusnya lo bisa ambil lebih banyak lagi . Saya bilang segitu aja cukup untuk menambah posisi saya. Keyakinan saya lagi2x cukup dengah jumlah lot segitu
+
+Dia bilang , "ga sayang lo saham segitu bagus ?" saya jawab andai saya taro uang 100 juta aja dan naik misal 2 bagger maka saya dapat 200 juta extra. Segitu sudah cukup buat kumpulin pundi2x nambah BUMi nanti di belakang. Saya ga kemaruk koq. Kan tugas saya hanya memutar uang buat BUMI nanti di belakang. Sambil nunggu , saya cari peluang lain dulu.
+
+Ga lama setelah itu saham nya Spike naik sampai ARA dan koreksi lagi di kisaran 268 - 280 an dalam rentang waktu yang cukup lama. Lagi2x saya merasa beruntung bisa ikut permainan OKAS dengan lot tambahan tadi. Saya merasa cukup lah dengan yang saya punya saat itu. 
+
+Saat sideways lama , saya dikasih rezeki tambahan dari salah satu saham bekdor saya dengan alokasi yang lumayan lah. Saya exit dan saya punya likuiditas tambahan lagi saat itu buat diputar. 
+
+Dari sana saya melihat OKAS sebagai peluang lagi dan saya menambah 1000 lot terakhir saja pake sebagian untung dari saham bekdor tersebut. Saya ambil di 274 hanya 1000 lot tambahan untuk yang terakhir kali. Yah lagi2x , saya hanya menikmati perjalanan permainan saja
+
+Itu jadi puncak pembelian saya terakhir saya di saham OKAS. Karena alokasinya saya sudah merasa cukup. Sebagian saya mau alokasikan lagi ke saham bekdor lain yang saya siapkan dan beberapa saham narrarite lain yang juga akan saya tambahkan bobotnya ( karena narrative nya kuat banget )
+
+Boooost , tiba2x sahamnya ARA pasca saya beli terakhir tersebut. Ya sudah lah , lagi2x rezeki menghampiri saya. Saya hepi dengan permainan tersebut karena sesuai dengan skenario saya.
+
+Saat ARA itu teman saya menelpon saya , Gila ARA dan tau gitu gw beli banyak bareng lo pas 274. Kebetulan saya habis nongki sama dia dan dia bilang mau menambahkan porsi OKAS lagi dalam jumlah cukup besar
+
+Pas lagi posisi 270 an dia bilang belum cukup banyak dan sesuai target dia. Jadi pas ARA dia ngedumel ga karuan pagi nya. "Alah naik ARA lagi bla bla bla" dia telp saya berkali - kali seakan2x kekurangan alokasi saham tersebut
+
+Seharian bolak balik telp saya , dia ngedumel hal yang sama . Tau gitu gw makan banyak tau gitu gw makan banyak, tau gitu gw makan banyak. Kuping saya sampai panas saat itu
+
+Padahal yah waktu 120 tuh saya tau banget dia makan dengan porsi besar lumayan. Tapi dari sana dia belum merasa puas dengan posisi terakhirnya, padahal sudah ditambah terus berkali-kali. Yah kalo sudah GREED sih ga akan pernah puas lah. Sampai kapan juga ga akan pernah merasa CUKUP
+
+Sore harinya keluar berita DUUUUAARR, sebuah berita restrukturisasi pinjaman nya yang sampai rela melepas tambang emasnya.
+
+Seketika tidak lama setelah berita keuar , teman saya telpon saya. Tau gimana bicara pertamanya ? bicaranya terdengar panik kaya orang penuh ketakutan. Dia cerita kalo dia habis masuk nambah lagi di saat perjalanan ARA tersebut. Jumlahnya sih yah lumayan lah pokoknya. Disana yang bikin dia stress dan mulai datang FEAR 
+
+Dia celoteh ini itu , dia bilang gw terlanjur beli lagi diatas bla bla bla bla. Telp berkali kali kaya cacing kepanasan untuk bercerita hal yang sama
+
+
+Respon pertama saya simple banget , "GILA lo yah pagi harinya lo kata cacing kepanasan ga dapat barang , kekurangan barang , lo kaya kesurupan kalo barang lo ga cukup banyak. Sore harinya lo telp gw dengan nada pesimis dan ketakutan , lo kaya ga terima berita yang ga sesuai harapan, lo stress mikirin, Gila sih lo turbulensi psikologi lo kaya roller coaster dalam hitungan jam. Lo ga cape ? lo ga berasa dipermainkan market ?" 
+
+Thats why gw selalu bilang kalo bermain harus siap sesuai alokasi. Jangan berpikir kalo semuanya harus sesuai harapan kita. 
+
+Gw bilang , gw bisa koq kaya yang lo lakuin. Tapi gw lakuin ga ? kemampuan beli gw bisa gw size kaya lo , tapi gw selaraskan dengan resiko gw sendiri.
+
+Dia bilang "iya , lagi2x lo benar dan ini kesekian kalinya lo bermain LUAR BIASA. Harus diakui jam terbang lo bisa membuat lo tenang dan bermain SAFETY tanpa takut kehilangan peluang besar. Sedikit pun lo ga bergeming atas spike nya saham itu , lo komit sama apa yang lo lakuin."
+
+Saya bilang , "Untung itu datang saat lo bisa bermain di level RISK nya dan gw tau sampai dimana gw harus bertarung".
+
+Ini permainan loh , investasi aja punya resiko apalagi bermain narrative tentunya resikonya lebih tinggi. 
+Sedikit saja missed , resiko di depan mata. 
+
+Pesan saya terakhir , jangan terus turutin EGO GREED anda . Rezeki itu pasti datang koq dengan sendirinya kalo anda bisa tenang dalam menghadapi situasi dan anda bisa kontrol semua EGO anda sendiri.
+
+So ? Apapun yang sekarang terjadi itu semua sudah saya siapkan dan ukur sebatas apa yang membuat saya nyaman. Saya bukan typical yang gila UNTUNG dan coba mengabaikan resiko
+
+Seperti saya bilang , tujuan saya URUT KACANG adalah hanya gimana muter uang dengan tidak mengabaikan resiko untuk nantinya saya pentokin ke pada menu DESSERT. Berapa pun untung rugi nya saya akan terima dengan lapang. 
+
+Bayangkan lagi di luar sana tuh masih banyak yang kesulitan untung karena salah strategi , lah saya pribadi harus bersyukur masih bisa menikmati permainan dan mendulang untung. 
+
+so , kenapa saya harus GREEDY ? 
+
+tidak semua permainan akan berjalan sesuai harapan, jadi 
+
+tidak semua permainan harus saya menangkan dalam satu waktu
 
 Ricky2212
 
@@ -3889,9 +6366,9 @@ Ricky2212
         "title": "MSCI freeze Feb'26 indexing — Broader Sell Off & Energy Thesis",
         "category": "market_regulation",
         "subcategory": "msci",
-        "themes": ['msci', 'freeze', 'free_float', 'ojk', 'ksei', 'downgrade_risk', 'emerging_market', 'indonesia', 'usd_weakness', 'store_of_value', 'energy'],
-        "tickers": ['EIDO', 'BBCA.JK', 'BBRI.JK', 'BMRI.JK', 'TLKM.JK', 'ASII.JK', 'ELSA.JK', 'WINS.JK', 'LEAD.JK'],
-        "quad_bias": 'Q2',
+        "themes": ["msci", "freeze", "free_float", "ojk", "ksei", "downgrade_risk", "emerging_market", "indonesia", "usd_weakness", "store_of_value", "energy"],
+        "tickers": ["EIDO", "BBCA.JK", "BBRI.JK", "BMRI.JK", "TLKM.JK", "ASII.JK", "ELSA.JK", "WINS.JK", "LEAD.JK"],
+        "quad_bias": """Q2""",
         "regime_signal": "msci_uncertainty",
         "priority": 10,
         "author": "Ricky2212",
@@ -4100,78 +6577,5332 @@ No price action , no investment advice
 
 Ricky2212""",
     },
+    "msci_greenlight_trump_tariff": {
+        "title": "MSCI beri lampu hijau and Trump tariff dibatalkan , terus ?",
+        "category": "market_regulation",
+        "subcategory": "msci",
+        "themes": ["msci", "ojk", "trump_tariff", "emerging_market", "usd_weakness", "store_of_value"],
+        "tickers": ["EIDO", "BBCA.JK", "BBRI.JK", "BMRI.JK", "TLKM.JK"],
+        "quad_bias": """Q2""",
+        "regime_signal": "em_recovery",
+        "priority": 9,
+        "author": "Ricky2212",
+        "source": "mentorbaik",
+        "content": """Artikel: MSCI beri lampu hijau and Trump tariff dibatalkan , terus ?
+
+MSCI beri lampu hijau and Trump tariff dibatalkan , terus ?
+
+MSCI beri lampu hijau and Trump tariff dibatalkan , terus ?
+
+
+
+
+Pada awal minggu ini Indonesia kebanjiran banyak sekali berita baik yang membuat IHSG naik. Pada perdagangan hari ini IHSG ditutup naik 124 pt di level 8396 di tengah ketidak pastian global yang terus meningkat
+
+
+Berita pertama datang nya dari MSCI . Menurut pernyataan OJK yang sempat diberitakan ( sebelum link nya dicabut ) bahwa MSCI pada prinsipnya sudah memberikan lampu hijau atas reformasi yang dilakukan oleh pihak2x pemangku kebijakan bursa.
+
+
+Sebetulnya saya tidak begitu kaget and surprised akan hal ini karena dari awal terjadi MSCI tragedy yang terjadi beberapa waktu lalu sata sudah sampaikan bahwa semua ini adalah masalah yang sifatnya administratif saja. Begitu semua diperbaiki juga nanti bisa kembali berjalan dengan normal bahkan lebih baik lagi.
+
+
+Tentunya kalau hal ini benar maka 1 kekhawatiran yang sangat krucial yaitu MSCI rules bisa tereliminasi
+
+
+Sesungguhnya bursa kita itu secara overall yang boleh dibilang lagi naik daun , secara makro juga mendukung , hanya masalah MSCI ini yang sangat boleh dibilang jadi masalah berat. Bayangkan kalo Bursa kita di down grade ke Frontier hanya karena masalah ketidak transparanan publik
+
+
+Btw pas ga beritanya keluar saat 08 tuh beberapa waktu lalu kunjungan ke US menemui Trump dan sempat mengunjungi beberapa kantor pengelola dana besar. Cocoklogy aja yah. 
+
+
+Sebagai tambahan lagi kalo Standard & Poor juga tetap melanjutkan proses indexing nya seperti biasa 
+
+
+Kita lihat perjalanan Indexing MSCI di bulan MEi 2026 yah . Semoga saja perjalanan nya lancar
+
+
+OJK punya batas membereskan semua hal nya dengan tenggat waktu Maret 2026
+
+
+Kenapa Maret 2026 ? karena saat itu hitungan argo masuk MSCI dimulai 
+
+
+Sebagai bahan perhitungan MSCI buat Price Extreme nya maka hitung ulang saja 40 hari bursa dengan batas maximal 200% 
+
+
+Msci is a bonus yah , jangan terlalu dipusingkan . Sejatinya saham itu tuh ga butuh MSCI juga koq
+
+
+
+Berita kedua datang nya dari negeri Paman Sam dimana Mahkamah Agung mereka membatalkan semua kebijakan tarif yang diambil Trump sejauh ini.
+
+
+Semua dibatalkan tanpa kecuali dan kebijakan itu berakhir gugur 
+
+
+Kalo saya tidak salah , Amrik harus mengembalikan semua tariff yang sudah terkumpul sejauh ini dari kebijakan yang diambil pada April 2025 kemarin
+
+
+Berita bagusnya dimana ? karena kebijakan tariff itu gugur maka Indonesia yang tadinya kena tarif 19% maka kebijakan itu tidak berlaku
+
+
+Sebagai gantinya Trump saat itu juga langsung mengeluarkan kebijakan tariff baru dengan memakai dasar UU baru yaitu 10% dan akan di evaluasi 150 hari ke depan. 
+
+
+Tidak lama berselang Trump langsung menaikkan lagi tariff nya menjadi 15% 
+
+
+Kalau mengacu pada UU yang dipakai Trump sekarang dalam hal pengambilan kebijakan tariff yang baru itu maksimal tariff yang diberlakukan adalah 15%
+
+
+Indonesia tadinya kena 19% dan sekarang kena 15 % tanpa harus capek2x bernegoisasi . 
+
+
+Sontak kebijakan ini langsung direspon oleh negara2x besar seperti Uni Eropa dan India yang langsung men suspend negoisasi tariff yang sedang berlangsung
+
+
+Fiuhh it's good news karena USD bakal makin keok lagi. 
+
+
+Tariff itu sebenernya buat menopang USD yang sudah terlanjur babak belur and keok. Keuangan US sudah morat marit , tadinya Tariif tersebut bisa sedikit membantu keuangan mereka. 
+
+
+Sontak USD langsung keok and Emas plus Silver langsung spike akibat kejadian tersebut
+
+
+USD keok maka uang jelas makin akan kabur dari US ( which is sudah makin keliatan )
+
+
+Liat Bovespa Brazil , liat Korea , mana lagi ? Nanti tuh uang akan kabur ke Emerging market 
+
+
+Saya sempat posting gimana Bagusnya grafik ETf EEM yang baru saja break level terkuat nya sejak lama
+
+
+Belum lagi saya juga post gimana ETF energy juga baru saja break level terkuatnya 
+
+
+Uang benar2x keluar dari US dan mengalir ke tempat2x yang memberikan hasil yang baik
+
+
+Still the thesis adalah Store of Value terutama di Energy ( paling kuat karena baru saja up dari base nya )
+
+
+
+Berita ketiga adalah Pak Pur sebagai menteri keuangan kita memberitakan kalo Dia akan memperpanjang fasilitas penyimpanan Uang di Himbara yang kemarin sudah dilakukan. 
+
+
+Walau sempat ada wacana uang itu ga bisa digunakan buat alirin kredit dan akaj dicabut oleh Pak Pur , tapi akhirnya diperpanjang lagi
+
+
+Berita ini jelas sedikit banyak membantu nafas Bank yang megap-megap . Simpanan tersebut sedikit banyak akan melonggarkan likuiditas perbankan 
+
+
+Yap segitu banyak berita baik yang datang buat bursa kita . Berita baik dan buruk datang silih berganti menghiasi perjalanan bursa dan Berita itu datang saat memang sudah saatnya dan sudah dibutuhkan
+
+
+Tetap bijak dalam mengambil keputusan investasi yah. 
+
+
+
+Strategi saya tetap sama , saya tetap berjalan dengan thesis yang sudah saya sampaikan sejauh ini
+
+
+lone wolf yah tetap lone wolf yang akan terus berjalan walau harus berjalan sendiri.
+
+
+
+
+
+Ricky2212
+
+
+""",
+    },
+    "okas_keterbukaan_restrukturisasi": {
+        "title": "Mengenai keterbukaan OKAS — Restrukturisasi dan Gold Play Gagal",
+        "category": "market_regulation",
+        "subcategory": "corporate_action",
+        "themes": ["okas", "restrukturisasi", "gold", "debt", "market_maker", "narrative", "risk"],
+        "tickers": ["OKAS.JK"],
+        "quad_bias": None,
+        "regime_signal": "narrative_risk",
+        "priority": 7,
+        "author": "Ricky2212",
+        "source": "mentorbaik",
+        "content": """Mengenai keterbukaan OKAS
+
+Mengenai keterbukaan OKAS
+
+
+
+
+
+Wahh , baru saja keluar artikel thesis OKAS mengenai Gold Play nya tetiba saja malam kemarin keluar keterbukaan informasi
+
+
+Apa isi keterbukaan informasinya ? Dalam laporannya , OKAS melakukan restrukturisasi hutang nya dengan melepas kepemilkan di PT Indotan Lombok Pte kepada satu entitas cangkang yang mengambil keseluruhan hutangnya di Bank Panin senilai USD 19juta 
+
+
+Dari USD 19 juta tersebut , USD 6.5 juta dihapus dengan merelakan kepemilikan di PT Indotam
+
+
+Buat saya memang transaksi nya agak resttukturisasi nya agak rumit karena permainan cangkang ke cangkang ( ini lumrah buat permainan seorang investment banker kaya pak GW )
+
+
+Jadi gimana ? thesis emas nya gagal ? 
+
+
+Dengan sedih hati saya katakan IYA thesis emasnya gagal. 
+
+
+Saya pribadi juga menyayangkan hal tersebut. Padahal awalnya saya berharal thesis Gold Play tersebut dapat saya jadikan narrative buat permainan OKAS
+
+
+Sampai sini selesai yah , Thesis emas OKAS selesai dengan dijualnnya PT Indotan tersebut
+
+
+Apakah jadi ga menarik ? saya terus terang tidak bisa beekomentar banyan akan hal tersebut. Biarlah market yang menilai hal tersebut dalam perdagangan pembukaan hari ini pasca pengumuman aksi korporasi tersebut
+
+
+Silakan teman2x melakukan action atas posisi permainannya. 
+
+
+Apakah saya ingin melepas posisi saya ? saya mau melihat kondisi hari ini dan sampai saat itu 1 lembar pun saya belum melepas posisi saya
+
+
+apa alasannya ? semoga saya tidak bias dalam hal memberikan pendangan mengingat saya punya posisi yah
+
+
+Mari kita lanjut lagi sedikit ceritanya , saya mencoba mencerna permainannya dari PoV lain yaitu bagaimana market maker bermain dan kebiasaan market maker mengolah berita dan efek ke marketnya
+
+
+Jauh sebelum perdagangan senin kemarin , saham OKAS sudah melonjak dari harga 210 sampai membuat high 330 ( di sekitar ini 208 saya mengambil posisi besar saya )
+
+
+Tidak ada penjelasan apa2x kenapa saham ini naik karena tetiba saja naik luar biasa. 
+
+
+NEXT
+
+
+Saat perdagangan hari senin kemarin , sebenernya sudah lama saham OKAS berkonsolidasi pasca kenaikan significant yang sata jelaskan
+
+
+Patternya adalah bikin TIANG terus konsol lama. Dan itu memang yang biasa OKAS lakukan
+
+
+Dalam fasa konsol tersebut terlihat bagaimana market maker membuat level posisi harga 280 sebagai target harga yang sulit banget ditembus
+
+
+Bolak balik mau ditembus , tapi rasanya seakan-akan harga tersebut sulit sekali ditembus pada pergerakan pasarnya
+
+
+Pada perdagangan senin setelah lama konsol , entah kenapa saya melihat koq rasanya ada yang beda dan saya melihat kayanya hari ini bisa nih ditembus harga 280 nya
+
+
+Saat itu saya mengambil lagi posisi tambahan ( tidak banyak dan tidak sifnificant ) , dan ternyata tutupnya di level harga 292
+
+
+Fixed secara analisa harga pasar , harga nya sudah menembus level kuat 280 nya. Saat itu juga ditambah volume perdagangan pasar nya meningkat. 
+
+
+Benar adanya pasca di tembus 280 nya , pada pembukaan perdagangan selasa pagi harga saham dibuka langsung melonjak di 304 
+
+
+Dalam perjalanan nya pasca dibuka 304 , saham tersebut sempat ARA di harga 364. Waahh luar biasa ini bisa sampai ARA
+
+
+Walau setelah ARA sempat ditekan kembali dan turun di 320 an ( karena market memang juga turun ) , OKAS berhasil melawan market dan tutup di level harga 352 
+
+
+Kalau kata mas Tom Hardi , ini namanya soft ARA ( harganya ga jauh dari ARA )
+
+
+Apalagi tutupan harga 352 ditunjang dengan volume dan perdagangan yang Sangar Sangat Sangat besar
+
+
+Sampe ini dasarnya PoV nya yah
+
+
+Next , saya coba lanjut dengan perjalanan permainan harga dengan kebiasaan market maker dalam menggerakkan harga yang hubungannya dengan sebuah NEWS 
+
+
+karena restruktursasinya RUMiT , jadi saya mengambil hal ini buat menilai bahwa market maker punya kepentingan apa terhadap NEWS tersebut ( ini base on pengalaman saya saat saya berkecimpung di dunia market maker yah )
+
+
+Berita mau keluar hari selasa malam, kebiasaan market maker itu adalah TAU DULUAN sehingga sebelum NEWS keluar biasanya harga sudah NAIk DULUAN buat menyambut news
+
+
+a. 
+
+perdagangan hari senin dia bikin break level kuat 280 nya dab tutup 292 ( seakan memperlihatkan bahwa mereka mempersiapkan sesuatu )
+
+
+b.
+
+perdagangan hari selasa pasca break level 280 , market punya dorongan kuat buat naik dan ARA ( sempat lepas dari ARA tapi tutup diatas )
+
+
+c.
+
+Tutup perdagangan kemarin itu di level 352 adalah level harga 332 yang nota bene adalah harga highest rally yang dibuat sebelumnya ( konfirmasi break highest rally sebelum)
+
+
+d.
+
+Volume dan value perdagangan pada hari selasa luar biasa besar banget banget banget. Transaksi harian normal OKAS adalah Rp 2 M dan kalo spike harga biasanya transaksi nya adalah di rentang Rp 10 M- Rp 15M
+
+
+e.
+
+Buat saya ke empat hal diatas dan hubungannya secara kebiasaan maker menyambut NEWS itu memperlihatkan bahwa berita baik akan datang. Kalo bukan berita baik kenapa harus dibuat ARA dengan volume kuat luar biasa
+
+
+Kalo mau menyambut berita burukn, harusnya perdagangan selasa kemarin dibuat turun aja sekalian agar pasar panik 
+
+
+kalo maker mau membuat turun sebagai penyambutan berita buruk akan keluar , dia biaa bikin 2 opsi perdagangan kemarin
+
+
+buka market gap up 304 , dan tutup dibikin dibawah 304 artinya kenaikan market daya belinya ga kuat dan kalah ( disini maker distribusi )
+
+
+atau
+
+
+ada level 332 highest rally sebelumnya sehingga maker bikin tutupan dibawah 332 ( misal 330 aja ) agar pasar menilai bahwa kenaikan kemarin ga cukuo solid buat menembus level tertinggi harga sebelumnya
+
+
+Dari dasar perdagangan itu maka PoV saya bahwa Market maker mungkin sudah menyiapkan bahwa NEWS yang keluar selasa malam adalah berita bagus
+
+
+Gimana maker mengemas jadi berita bagus ? dia bisa saja bilang bahwa daripada hutang Default ga bisa bayar, yah ini bagus sudah bisa di RESTRUK. Perusahaan terbebas dr Default dan bisa berjalan tenang lagi 
+
+
+btw sebenernya hutang ini sudah dari lama mau dilakukan Debt Equity Swap tapi gagal terus. Saat itu OKAS mau Right issue di harga 197 buat Swap hutang nya
+
+
+Dah yah, saya coba sampaikan apa yang ada di pikiran saya nengenai aksi korporasi OKAS semalam mengenai Restruk hutang yang melibatkan PT Indotan sebagai syarat restruknya ( karena ini yang berhubungan sama Gold Play nya )
+
+
+Saya juga coba sampaikan lewat another PoV dengan mengambil korelasi antara pergerakan harga market dengan NEWS yang mau keluar. Saya sampaikan kebiasaan market maker menggerakan harga sebelum NEWS keluar
+
+
+Again , saya ada posisi dan bisa saja semua yang saya jelaskan akan BIAS dan tidak objective. Saya punya kepentingan disana karena posisi saya
+
+
+Silakan teman2x cerna dan ambil action lanjutan . Pikirkan semua risk and reward nya
+
+
+""",
+    },
+    "operasi_penurunan_rating_agencies": {
+        "title": "Operasi Penurunan Indonesia — Ketika Rating Agencies Menjadi Senjata Geopolitik",
+        "category": "macro_thesis",
+        "subcategory": "geopolitics",
+        "themes": ["rating_agencies", "moodys", "fitch", "sp", "downgrade", "geopolitics", "indonesia", "fiscal", "danantara", "nickel", "mineral"],
+        "tickers": ["ANTM.JK", "INCO.JK", "HRUM.JK", "NCKL.JK"],
+        "quad_bias": None,
+        "regime_signal": "geopolitical_pressure",
+        "priority": 10,
+        "author": "Ricky2212",
+        "source": "mentorbaik",
+        "content": """Artikel: Operasi Penurunan Indonesia -- Ketika Rating Agencies Menjadi Senjata Geopolitik
+
+Operasi Penurunan Indonesia -- Ketika Rating Agencies Menjadi Senjata Geopolitik
+(Data Yang Tidak Bisa Dibantah , Agenda Yang Tidak Bisa Disangkal , Rekam Jejak Yang Tidak Bisa Dipungkiri , dan Perlawanan Yang Harus Dimulai Sekarang)
+
+
+Operasi Penurunan Indonesia -- Ketika Rating Agencies Menjadi Senjata Geopolitik
+
+
+(Data Yang Tidak Bisa Dibantah , Agenda Yang Tidak Bisa Disangkal , Rekam Jejak Yang Tidak Bisa Dipungkiri , dan Perlawanan Yang Harus Dimulai Sekarang)
+
+
+
+
+
+Oke , kita mulai artikelnya. 
+
+
+Dari beberapa waktu ini mulai datang DM yang bertanya
+
+
+Segitu buruk kan Indonesia ?
+
+
+Segitu parah kah ekonomi Indonesia ?
+
+
+Segitu hina kah Indonesia di mata dunia ?
+
+
+sampai pada pertanyaan 
+
+
+Pak , apakah Indonesia akan bernasib seperti Yunani ? karena saya mendengar operasi senyap yang akan menjatuhkan Indonesia seperti Yunani
+
+
+Btw , saya sarankan teman-teman buat baca lagi artikel lama saya yang isinya tentang Moodys , Fitch yang lakukan downgrade saat itu
+
+
+Sedikit banyak artikel tersebut saya membahas fondasi agar bisa melanjutkan cerita nya.
+
+
+Saya mau mulai dengan sebuah pertanyaan yang sangat sederhana.
+
+
+Kalau seorang hakim mengadili perkara lalu ternyata hakim itu punya saham di perusahaan yang sedang diadili maka boleh kita menyebutnya keadaan ini penuh conflict of interest. 
+
+
+Kalo sudah penuh conflict of interest maka bisa dipastikan putusannya yang diambil jadi tidak bisa dipercaya.
+
+
+Sekarang bayangkan tiga hakim terbesar di dunia keuangan global itu adalah Moody's , Fitch , S&P yang bergerak bersamaan dalam waktu kurang dari dua bulan. 
+
+
+Mereka bergerak bersama dengan narrative yang hampir identik kata per katanya. Daru sana lalu diikuti seluruh investment bank besar Wall Street seperti JPMorgan , Goldman Sachs , Morgan Stanley , UBS. 
+
+
+Apa yang mereka lakukan ? Menyerang satu negara yang defisitnya lebih kecil dari hampir semua negara yang mereka tidak serang.
+
+
+Apakah ini kebetulan ? Saya melihat nya Tidak 
+
+dan saya tidak akan berhenti di dugaan. Saya akan coba tunjukkan data. Saya akan coba tunjukkan rekam jejak. Saya akan coba tunjukkan siapa yang diuntungkan. 
+
+
+Saya buat artikel ini juga bermaksud untuk memperlihatkan bagaimana caranya memastikan tidak menjadi Yunani ( banyak DM yang masuk menpertanyakan hal ini )
+
+
+=> Baca Angka Ini Dengan Sangat Teliti
+
+
+Sebelum kita masuk ke bagian terdalam dk operasi ini maka biarkan data yang coba saya sampaikan berbicara dulu. Karena dari data ini adalah fondasi dari seluruh argumen yang akan saya bangun.
+
+
+Defisit fiskal Indonesia di 2025 mencapai 2.92% of GDP maka sebetulnya secara teknis masih di bawah ceiling 3%.
+
+
+Sekarang bandingkan dengan siapa yang tidak diserang : 
+
+
+Filipina => defisit 5.6% of GDP. Hutang berada dalam posisi all-time high. Debt-to-GDP ratio 63.2% dan menjadi yang tertinggi dalam dua dekade terakhit. 
+
+
+Respons Moody's dan Fitch ? Stable outlook. Dipertahankan. (Factually) 
+
+
+Malaysia => defisit 3.8% of GDP di 2025. Malaysia bahkan tidak pernah surplus sejak krisis tahun 1997 dan itu hampir tiga dekade berturut-turut defisit. Rata-rata defisit Malaysia sejak 1970 adalah 4.6% of GDP. 
+
+
+Respons IMF ? Mereka memuji Malaysia atas sound and prudent macroeconomic policies.
+
+
+China => defisit 4% of GDP. Tidak ada alarm terkoordinasi dari tiga agencies sekaligus.
+
+
+India => defisit 4.9% of GDP. Tidak ada cascade downgrade.
+
+
+Amerika Serikat => defisit mendekati 7% of GDP. Hutang 38 triliun dollar. Tidak hanya tidak di-downgrade dengan pertimbangan dollar masih reserve currency dunia. Defisit 7% dan sebagian uang nya lari ke negara lain buat biayain perang, lah Indo biayain ptogram sendiri
+
+
+Kita lihat dari negara Indonesia dengan defisit 2.92% tapi diserang 3 agencies + dibombardir semua investment bank dalam 2 bulan terakhir
+
+
+Satu negara dengan defisit terkecil kalo dibanding yang lain tapi yang diserang paling keras dan paling terkoordinasi.
+
+
+Kalau ada yang masih bilang ini murni soal fiskal sih saya sudah kehabisan kata. wkwkwkw 
+
+
+=> Mengenal Si Hakim dengan rekam jejak yang sangat memalukan
+
+
+Sebelum kita percaya vonis dari hakim ini maka kita harus tau rekam jejaknya dulu seperti apa.
+
+
+Rekam jejaknya mereka itu sangat buruk. Bukan pendapat saya yah tapi ini adalah sebuah fakta yang sudah dibuktikan di pengadilan.
+
+
+Kejahatan Pertama => rating AAA Untuk sebuah sampah bernama Subprime Mortgage
+
+
+Selama krisis keuangan 2008 banyak sekuritisasi mortgage yang tidak bernilai tapi malah diberikan rating AAA yang notabene adalah rating tertinggi dan paling aman. Gila sih ini parah and parah bener yang pada akhirnya hal Ini memicu serangkaian peristiwa yang berkontribusi langsung pada kehancuran ekonomi dan keuangan global. 
+
+
+Tujuan lembaga rating "Meant to provide investors with reliable information on the riskiness of various kinds of debt " tapi dalam hal ini rating agencies telah dituduh memanipulasi dan memperparah krisis keuangan dengan menipu investor dengan memberikan evaluasi yang terlalu favorable terhadap institusi keuangan yang insolvent dan menyetujui sekuritisasi berbasis mortgage yang padahal sangat berisiko. 
+
+
+Wakksss gila bener nih kelakuan mereka
+
+
+Pools of debt yang diberikan rating tertinggi oleh agencies ini mencakup lebih dari tiga triliun dollar pinjaman kepada pembeli rumah dengan kredit buruk dan pendapatan yang tidak terdokumentasi sampai 2007. 
+
+
+Ketika di 2007 saat harga properti mulai jatuh Moody's mendowngrade 83 persen dari 869 miliar dollar sekuritas mortgage yang telah diberi rating AAA di 2006 tersebut
+
+
+Delapan puluh tiga persen dari investasi berlabel AAA terbukti memang isinya dari awal adalah sampah.
+
+
+Apakah mereka tau ? yap mereka tau dan Ini bukan kesalahan model. Ini adalah pilihan yang sangat disengaja.
+
+
+Satu email internal di Standard & Poor's yang dikirim sebelum bubble pecah menyatakan dengan sangat jelas bahwa 
+
+
+"Rating agencies continue to create an even bigger monster in the CDO market. Let's hope we are all wealthy and retired by the time this house of cards falters."  
+
+
+Mereka tau ini adalah house of cards. Mereka tau ini akan runtuh. Tapi mereka terus memberikan AAA karena ada uang di sana. 
+
+
+F*ck Rating Agencies right ?
+
+
+Kejahatan Kedua => Issuer Pays Model Yang Tidak Pernah Berubah
+
+
+Conflict of interest yang paling fundamental adalah Moody's , Standard & Poor's , dan Fitch dibayar oleh issuers yang sekuritasnya mereka rate.
+
+
+Issuers ingin rating setinggi mungkin supaya bisa jual sekuritas dengan harga setinggi mungkin. 
+
+
+Investment banks besar seperti JPMorgan dan Goldman Sachs membayar sebanyak 150,000 dollar untuk rating satu mortgage bond offering. 
+
+
+Untuk memberikan sebuah Rating CDO bisa mencapai 750,000 dollar.  
+
+
+Dan kalau tidak dapat rating yang diinginkan ? Dalam satu kesempatan seorang Mantan executive dari Moody's team dan dia seorang managing director disana yaitu Gary Witt bersaksi kepada FCIC. Dia bilang seperti ini
+
+
+ "Oh God, are you kidding? All the time. I mean, that's routine. I mean, they would threaten you all of the time. It's like, 'Well, next time, we're just going to go with Fitch and S&P.'"  
+
+
+Investment banks yang bayar rating. Investment banks yang ancam rating agencies kalau tidak dapat nilai yang diinginkan. Rating agencies jadi pihak yang takut kehilangan revenue akibat ancaman tersebut. 
+
+
+Saat pihak yang mau meminta rating dari lembaga tersebut tinggal bilang , kalo anda ga bisa memberikan rating tertinggi maka kami akan datang ke tetangga sebelah yang mau memberikan kami rating tertinggi
+
+
+Ini bukan sistem penilaian yang independent. Ini adalah sebuah sistem pemeringkatan yang bisa dibeli. 
+
+
+Kejahatan Ketiga => Hukuman yang sangat besar tapi tidak mengubah keadaan
+
+
+Di sekitar bulan Januari 2017 Moody's setuju membayar hampir 864 juta dollar untuk menyelesaikan tuntutan dengan US Department of Justice , 21 negara bagian , dan DC dengan tuduhan berkontribusi pada krisis keuangan 2008 dengan memberikan rating yang di inflate pada sekuritisasi mortgage yang berisiko dari 2004 sampai 2007. 
+
+
+Standard & Poor's menyelesaikan tuntutan dengan US Department of Justice sebesar 1.375 miliar dollar dengan jumlah total 1.5 miliar dollar dengan settlements lainnya atas tuduhan terlibat dalam skema penipuan investor dengan menerbitkan rating yang di inflate.  
+
+
+USD 2.2 Bio dalam denda. Dari tiga lembaga yang sama dan dalam kasus yang sama. Amazing bukan ?
+
+
+Apa bukan sebuah kartel ? Kartel berkedok Rating Agencies. Anjinh yang siap diberikan tulang oleh pemilik nya dan siap disuruh menyerang siapa saja bila dibutuhkan
+
+
+Dan apa yang berubah ? None , beberapa investigasi menyimpulkan bahwa S&P dan Moody's menginginkan market share dan keuntungan sebanyak mungkin sehingga mereka memberikan AAA kepada investasi yang tidak layak .
+
+
+Dari sini tetap bisnis credit rating system tetap penuh dengan conflict of interest yang sama yang menyebabkan distorted ratings sebelum krisis keuangan.  
+
+
+Mereka dihukum USD 2.2 Bio dan mereka tetap mendominasi industri dengan conflict of interest yang sama tetap ada sampai hari ini 
+
+
+Kejahatan Keempat => Monopoli yang dijaga Dengan sangat ketat
+
+
+S&P , Moody's , dan Fitch menguasai sekitar 95 persen dari ratings market. 
+
+
+It's a cartel bussines. Bukan kartel narkoba tapi kartel lembaga pemeringkat yang tugasnya memberikan rating kepada siapapun yang meminta dan kepada siapapun yang lagi butuh. 
+
+
+Mereka dibayar buat memberikan rating sesuai dengan bayarannya
+
+
+Dalam satu kesempatan seorang Senator Al Franken mencoba mengeliminasi conflict of interest utama dengan menciptakan independent agency. 
+
+
+Seketika saat itu S&P , Moody's , dan Fitch melakukan lobby-lobby yang sangat agresif.
+
+
+Total biaya lobby tiga perusahaan ini mencapai gabungan 3.6 juta dollar untuk mempengaruhi lawmakers atau pembuat keputusan dan kebijakan
+
+
+Tiga perusahaan swasta yang dihukum karena kecurangan mereka sendiri yang menguasai 95% pasar rating dunia dan ketika ada yang mencoba mengurangi kekuatan mereka maka jalan yang mereka lakukan adalah dengan melakukan lobby ke pemerintah dengan uang yang sangat besar untuk memastikan tidak ada yang berhasil mengganggu and mengebiri bisnis mereka
+
+
+Dan ini adalah tiga perusahaan yang sekarang kita harapkan untuk menilai Indonesia secara fair ? 
+
+
+Mulai berasa cerita nya kaya dagelan ?
+
+
+=> Rekam Jejak Mereka Terhadap Negara Lain
+
+
+Ini bukan pertama kali rating agencies dipakai sebagai instrumen dalam permainan yang lebih besar.
+
+
+A. Kehancuran Yunani
+
+
+Masih ingat kasus Yunani sekitaran tahun 2010 ? ini jadi sebuah Blueprint yang sangat Brutal
+
+
+Saat itu Yunani punya masalah fiskal yang nyata. Itu fakta yang tidak bisa dibantah lagi.
+
+
+Tapi dari cara penanganannya itulah yang memperlihatkan siapa yang sesungguhnya dilayani oleh rating agencies.
+
+
+Pada bulan April 2010 rating agencies melakukan downgrade Greek bonds ke junk status. Capital markets beku. Yunani tidak bisa mengakses pasar pinjaman luar negeri
+
+
+Lalu Troika dan bala bantuan datang. Lah yang datang tau siapa ? 
+
+
+Kumpulan entitas keuangan yang "Bangsat" seperti IMF , ECB , European Commission yang datang dengan memberikan bailout sebesar 110 miliar euro.
+
+
+Diselamatkan katanya. Untuk siapa ?
+
+
+Lebih dari 80% dari rescue package itu justru dipakai untuk merefinance hutang yang jatuh tempo dari Greek government debt yang dipegang oleh private creditors yang sebagian besar adalah private banks di luar Yunani.
+
+
+Public debt Yunani ke foreign governments naik dari €47.8 miliar ke €180.5 miliar antara Januari 2010 dan September 2011 sementara exposure foreign banks terhadap Yunani turun dari €200 miliar ke €80 miliar. 
+
+
+Uang bailout yang katanya untuk menyelamatkan Yunani sekitar 80% dari uang tersebut mengalir ke bank-bank Perancis dan Jerman. 
+
+
+Risiko dipindahkan dari private banks ke rakyat Yunani dan taxpayers Eropa dan bank-bank yang tadinya exposed ke Yunani bisa selamat dan keluar bersih tanpa kena exposure Default
+
+
+Harga yang harus dibayar oleh Yunani untuk "diselamatkan" ? Privatisasi aset strategis dengan harga yang dalam kondisi normal tidak pernah bisa didapat. 
+
+
+Pelabuhan Piraeus dijual ke COSCO China.
+
+
+Bandara dijual ke Fraport Jerman.
+
+
+Real estate prime. Perusahaan utilitas. Satu per satu. 
+
+
+GDP per kapita Yunani pada 2013 sudah 25% di bawah level pre-crisis dengan hampir tidak ada tanda-tanda recovery. Penurunan output Yunani jauh lebih dalam dari episode sudden stop biasa. 
+
+
+Dua puluh lima persen GDP hilang. Hal tersebut bukan karena Yunani tiba-tiba menjadi negara yang tidak bisa berfungsi tapi karena syarat bailout yang sangat keras memaksa austeritas yang menghancurkan economic activity.
+
+
+Downgrade adalah senjata. Bailout adalah mekanisme transfer kekayaan. Privatisasi adalah tujuan final sesungguhnya.
+
+
+Dan siapa yang paling diuntungkan ? Bank-bank Barat yang keluar bersih, Perusahaan-perusahaan yang dapat aset strategis dengan harga murah dan rating agencies yang terus dibayar untuk setiap rating yang mereka keluarkan.
+
+
+B. Argentina, Krisis Yang Berulang Karena sistem Yang Sama
+
+
+Argentina sudah default sembilan kali dalam sejarahnya dan setiap kali terjadi default terlihat pola yang sama selalu berulang.
+
+
+Rating agencies memberikan investment grade. Dari sana nodal asing masuk dengan sangat agresif. Lalu tiba-tiba saja mereka melakukan downgrade ke junk. Capital outflow masif. Peso jatuh. Argentina tidak punya pilihan selain ke IMF. IMF masuk dengan syarat austeritas yang sangat keras. Ekonomi menyusut. Rakyat menderita. Dan hutang Argentina ke creditor asing tetap ada bahkan bertambah besar karena interest yang terus berjalan.
+
+
+Siklus yang tidak pernah diselesaikan. Hanya diulang dengan biaya yang selalu ditanggung oleh rakyat Argentina.
+
+
+Tapi ada satu detail yang paling menggelitik dari seluruh siklus Argentina ini adalah di setiap episode krisis Argentina ada sekelompok investor yang disebut vulture funds yang membeli hutang Argentina dengan harga sangat murah saat dalam kondisi distressed.
+
+
+Lalu menuntut pembayaran penuh di pengadilan internasional dan dari pengadilan tersebut mereka lalu dinyatakan menang.
+
+
+Paul Singer dan Elliott Management salah satu vulture fund yang paling terkenal membeli hutang Argentina dengan harga 10-20 sen per dollar. Lalu mendapat putusan pengadilan yang memaksa Argentina membayar 100 sen per dollar. Profit ratusan persen. Dari penderitaan rakyat Argentina.
+
+
+Rating agencies memberikan legitimasi kepada seluruh siklus ini. Tanpa downgrade yang mereka lakukan hampir bisa dipastikan kalo capital markets tidak akan beku. 
+
+
+Tanpa capital markets yang beku maka bailout tidak lagi diperlukan. Dan tanpa bailout dengan syarat austeritas yang keras maka aset strategis tidak bisa dibeli murah. 
+
+
+
+C. Thailand 1997 AFC  
+
+
+Krisis ini yang paling menggelitik dari rekam jejak mereka di krisis Asia 1997 , rating agencies justru terlambat melakukan rating
+
+
+Mereka memberikan investment grade kepada baht Thailand sampai sangat dekat dengan saat krisis. 
+
+
+Mereka tidak memperingatkan secara adequate tentang currency mismatch yang sangat berbahaya. 
+
+
+Mereka tidak memperingatkan tentang over-leveraged property sector. 
+
+
+Mereka tidak memperingatkan tentang foreign exchange reserve yang tidak cukup.
+
+
+Semua warning itu datang setelah krisis sudah datang and terjadi. Ketika baht sudah jatuh. Ketika rupiah sudah hancur. Ketika ekonomi Asia sudah terbakar.
+
+
+Rating agencies secara historis telah lambat dalam menyesuaikan ratings ketika negara mulai mengalami kesulitan seperti yang terlihat selama krisis keuangan Asia 1998.  
+
+
+Terlambat memperingatkan saat memang dibutuhkan ketika rakyat masih bisa melindungi diri.
+
+
+Tapi lucunya mereka sangat cepat bergerak saat ada kepentingan tertentu yang dilayani seperti yang mereka lakukan sekarang terhadap Indonesia.
+
+
+Pola yang sangat konsisten dengan lembaga yang tidak bekerja untuk kepentingan publik.
+
+
+=> Anatomy Operasi : Lima Langkah Yang Sangat Sistematis
+
+
+Sekarang kita bedah mekanisme bagaimana operasi ini bekerja terhadap Indonesia. Sangat sistematis. Tidak butuh pertemuan rahasia. Incentive structure yang bekerja sendiri.
+
+
+Langkah Pertama => Ciptakan Kondisi Yang Vulnerable
+
+
+Setiap operasi yang baik membutuhkan celah yang bisa dieksploitasi. Dan kondisi Indonesia di 2025 menyediakan celah yang sangat besar.
+
+
+Sri Mulyani yang selama hampir dua dekade menjadi anchor kredibilitas fiskal Indonesia di mata investor global diganti dalam cabinet reshuffle yang dilakukan 08 pada bulan September 2025.
+
+
+Financial markets sangat memonitor situasi fiskal Indonesia terutama setelah pemberhentian Finance Minister Sri Mulyani yang sangat dihormati dunia di bulan September tersebut
+
+
+Sri Mulyani bukan hanya menteri keuangan tapi dia adalah satu-satunya orang yang dipercaya oleh komunitas keuangan internasional untuk menjamin bahwa kebijakan fiskal Indonesia akan tetap dalam batas yang wajar dan dia tetap pada pendiriannya dengan tidak peduli tekanan politik yang datang.
+
+
+Begitu dia pergi sinyal yang diterima oleh rating agencies dan investment banks adalah sinyal yang paling berbahaya dan seketika anchor kredibilitas itu hilang.
+
+
+Dan di saat yang sama tiga kondisi lain bergerak bersamaan yang menyempurnakan vulnerability ini 
+
+
+MBG yang diproyeksikan menjadi program sosial tunggal terbesar dalam sejarah Indonesia dengan alokasi Rp 300-335 triliun per tahun yang menurut mereka program ini tanpa sumber pembiayaan yang jelas dan sustainable. 
+
+
+Danantara yang berencana invest 26 miliar dollar atau 1.7% of GDP di 2026 dengan transparansi yang sangat rendah dan risiko quasi-fiscal activities yang sangat mengkhawatirkan. 
+
+
+Revenue Indonesia yang diproyeksikan rata-rata hanya 13.3% of GDP jauh di bawah median BBB-rated countries sebesar 25.5%. 
+
+
+Ketiga hal ini jadi hal yang sangat sempurna untuk dieksploitasi oleh lembaga rating. Sri Mulyani pergi. Program baru yang sangat mahal. SWF baru yang tidak transparan. Revenue yang sudah sangat kecil. 
+
+
+Langkah Kedua => Moody's Tembak Duluan
+
+
+Satu lembaga bergerak duluan. Moody's. Dengan narrative yang sangat spesifik yaitu membahas program MBG , governance , dan risiko 3% threshold.
+
+
+Ini adalah langkah yang paling krusial dari seluruh operasi. Karena begitu Moody's bergerak maka seketika seluruh ekosistem terpaksa untuk mengikuti.
+
+
+Fitch dan S&P masuk dalam posisi yang sangat tidak nyaman. Kalau mereka tidak ikut dan Indonesia kemudian bermasalah maka mereka dianggap buruk dan akan dihujat habis-habisan karena terlambat. 
+
+
+Seperti yang terjadi di Krisis Asia 1997. Institutional self-preservation memaksa mereka bergerak searah.
+
+
+Investment banks masuk dalam posisi yang sama. Kalau Goldman Sachs tidak ikut cut recommendation sementara tiga agencies sudah downgrade maka fund managers akan tanya kenapa Goldman masih bullish.
+
+
+Reputational risk memaksa mereka bergerak searah.
+
+
+Fund managers yang kelola dana institutional terpaksa rebalance portfolio. Karena banyak mandate institutional investment yang mengharuskan minimum investment grade rating. 
+
+
+Begitu outlook berubah ke negative maka disitulah automatic rebalancing dipicu.
+
+
+Tidak ada pertemuan rahasia. Tidak ada konspirasi eksplisit. Hanya incentive structure yang mendorong semua bergerak ke arah yang sama secara bersamaan
+
+
+Langkah Ketiga => Narrative yang direplikasi dengan bahasa yang sangat identik
+
+
+Fitch mengikuti dengan concerns yang hampir identik dari kata per kata, dari kalimat per kalimat. 
+
+
+Selalu yang dibahas dan disorot adalah lagi-lagi soal MBG, soal Governance dan soal 3% threshold , soal Danantara dan soal Revenue yang rendah.
+
+
+Identik dan terkoordinasi dengan baik
+
+
+Kalau ini adalah penilaian independen dari tiga lembaga yang berbeda seharusnya ada variasi dalam thesis , dalam metodologi , dalam angle analisis. Tapi narrative nya hampir sama persis. Kata-kata yang dipakai hampir sama.
+
+
+Ini adalah ciri khas dari sesuatu yang lebih terkoordinasi dan jauh dari sekedar ketidaksengajaan
+
+
+Langkah Keempat => Self-Fulfilling Prophecy Diciptakan
+
+
+Sekarang yang paling jenius dari seluruh operasi yang dijalankan ini adalah ?
+
+
+Begitu narrative sudah keluar seketika langsung pasar mulai memberikan reaksi.
+
+
+Rupiah langsung diperdagangkan melemah lalu diikuti oleh IHSG yang mengalami penurunan dan dari sana tercipta sebuah Capital outflow 
+
+
+ Kondisi yang melemah itu kemudian menjadi bukti dan justifikasi bahwa kekhawatiran agencies itu bersifat valid.
+
+
+Lihat tuh rupiah sudah diperdagangkan melemah. 
+
+
+Lihat tuh IHSG sudah turun jauh dari level sebelumnya. 
+
+
+Lihat tuh capital outflow sudah terjadi bukan.
+
+
+Semua yang kita khawatirkan dalam Rating yang kita berikan dan yang menjadi concerns utama kita benar-benar terbukti.
+
+
+Mereka menciptakan kondisi yang kemudian memvalidasi narrative mereka sendiri. 
+
+
+Langkah Kelima => Tunggu Dan Lihat Apakah Indonesia Butuh "Bantuan"
+
+
+Dari semua hal diatas maka di sinilah seluruh operasi ini bermuara.
+
+
+Kalau tekanan terus , kalau capital outflow berlanjut , kalau rupiah makin lemah , kalau financing cost naik, dan kalau pemerintah mulai kesulitan bayar kewajiban dengan harga wajar maka nantinya bisa jadi Indonesia tidak punya pilihan selain mencari bantuan.
+
+
+"Kunyuk-kunyuk" kaya IMF , World Bank, atau bilateral deal dengan negara atau entitas yang punya kepentingan spesifik terhadap aset Indonesia akan datang menawarkan sebuah "BANTUAN" yang syarat dengan banyak kepentingan ( ingat kasus yunani )
+
+ 
+
+Dan siapa yang akan datang menawarkan bantuan itu dengan syarat apa adalah pertanyaan yang paling penting dan paling harus dijawab sebelum Indonesia sampai ke titik itu. 
+
+
+Bagian Kelima => Aset Yang Membuat Mata Mereka Bersinar
+
+
+Sekarang kita masuk ke pertanyaan yang paling fundamental 
+
+
+kalo Yunani punya Piraeus , bandara , real estate prime dan asset berharga lainnya maka pertanyaan selanjutnya adalah Indonesia punya apa yang membuat mereka tertarik ?
+
+
+Nikel sebagai aset berharga
+
+
+Indonesia dan China mendominasi produksi nikel global . Sekitar 75% nickel dunia mereka produksi di 2025 an dengan Indonesia naik 14% sementara produksi seluruh dunia turun 9%. 
+
+
+Sejak 2020 Indonesia telah memberlakukan larangan ekspor raw nickel ore , mewajibkan perusahaan asing untuk memproses mineral di dalam negeri. 
+
+
+Kebijakan downstreaming ini telah memicu boom produksi nikel senilai 34.8 miliar dollar pada 2023 dengan Indonesia sekarang menguasai 54% produksi nikel global. 
+
+
+Konsentrasi produksi nikel di Indonesia dan China telah mengangkat nikel menjadi strategic concern bagi pemerintah Barat. 
+
+
+Pemerintah Barat dan perusahaan-perusahaan mereka mencari supply nikel di luar poros Indonesia-China karena ketergantungan terhadap kedua negara ini untuk material sekritis nikel sudah sangat mengkhawatirkan dari perspektif security. 
+
+
+Dan ini yang paling kentara banget adalah
+
+Amerika Serikat secara eksplisit mencari akses ke mineral kritis Indonesia termasuk nikel , bauksit , dan rare earth elements untuk mendukung industri strategis termasuk automotive , aviation , dan defense manufacturing.  
+
+
+Sebuah lembaga IEA memperkirakan bahwa demand untuk nikel yang digunakan dalam baterai bisa naik hampir 100% pada 2030 dalam skenario net-zero.
+
+
+Untuk Washington sendiri yang terkunci dalam persaingan strategis dengan China dan sangat bergantung pada pasokan mineral asing.
+
+
+Indonesia bukan lagi hanya ekonomi terbesar Asia Tenggara tapi Indonesia sudah jadi pilar keamanan industri masa depan.  
+
+
+Dan ini yang paling tajam dari data yang ada adalah Danantara Indonesia telah masuk dalam pembicaraan dengan pihak Amerika dalam format business-to-business dengan membicarakan akses ke critical minerals Indonesia.
+
+
+Dari sini sinyal kuat bahwa kemitraan ini bisa membuka jalan bagi Ford dan Tesla untuk membeli mineral Indonesia untuk baterai mereka. 
+
+
+Sekarang coba kita sambungkan titik-titiknya yah. 
+
+
+Amerika sangat butuh nikel Indonesia untuk industri EV dan defense mereka. Indonesia mengunci akses itu dengan kebijakan downstreaming yang sangat ketat. Danantara adalah vehicle yang mengkonsolidasikan semua aset mineral strategis ini.
+
+
+Kalau Indonesia dalam tekanan fiskal yang sangat dalam dan butuh "bantuan" maka siapa yang posisinya paling baik untuk menawarkan bantuan itu ? Dan dengan syarat apa terhadap akses mineral yang sangat dibutuhkan mereka ?
+
+
+Rating agencies yang digerakan bersamaan bisa jadi adalah tekanan agar Indonesia lebih flexible dalam negotiation terms akses mineral ini. 
+
+
+Danantara yang menjadi aatu pintu untuk semua di Indonesia telah mengkonsolidasikan aset-aset mining negara di bawah satu holding company yaitu MIND ID.
+
+
+MIND ID di dalamnya mencakup Aneka Tambang , Bukit Asam , Inalum , PT Timah , dan Freeport.
+
+
+Entitas yang terkonsolidasi ini melaporkan aset sekitar 17.5 miliar dollar dan revenue sekitar kurang lebih 8.7 miliar dollar mencakup seluruh lanskap mineral kritis Indonesia dari upstream ke downstream. 
+
+
+Danantara ssbagai poros yang lebih besar dan lebih komprehensif dari MIND ID juga mengkonsolidasikan hampir semua BUMN strategis Indonesia.
+
+
+Satu vehicle. Satu pintu. Kalau bisa masuk ke sana berarti anda bisa akses semua sekaligus.
+
+
+Bagi siapapun yang punya kepentingan terhadap aset strategis Indonesia maka nama Danantara adalah sebuah grand prize.
+
+
+Bagian Keenam => Geopolitik yang tidak pernah dibahas jujur
+
+
+Sekarang kita masuk ke layer yang paling dalam dari seluruh cerita ini.
+
+
+Indonesia di bawah 08 sedang bergerak dalam arah yang sangat spesifik yang sangat tidak nyaman bagi beberapa pihak bagian barat. 
+
+
+China telah membangun kehadiran yang sangat dominan di sektor mineral Indonesia khususnya dalam pemrosesan nikel dan produksi bahan baterai. 
+
+
+Proyek battery senilai 6 miliar dollar yang ditandatangani antara Indonesia Battery Corporation dan raksasa baterai China CATL di 2022 adalah demonstrasi skala komitmen China di Indonesia.
+
+
+Pabrik baterai ini diharapkan beroperasi pada akhir 2026 yang nantinya akan menciptakan integrated supply chain dari nickel mining sampai produksi battery cell. 
+
+
+China mendapat integrated supply chain dari nikel Indonesia ke battery cell
+
+
+Negara Barat ? mereka yang sangat butuh nikel untuk EV transition mereka tidak punya akses yang setara dengan China
+
+
+Indonwsia menggunakan export ban dan local-content rules untuk memaksa downstream processing dengan membangun smelter dan battery plant di dalam negeri.
+
+
+Kebijakan yang menghasilkan investasi dan lapangan kerja tapi juga menarik legal challenges dan diplomatic pressure. 
+
+
+Legal challenges dan diplomatic pressure. Dari siapa ? Dari WTO atas dorongan negara-negara Barat yang menginginkan akses ke raw material murah dari Indonesia. Dari Uni Eropa yang mengajukan gugatan ke WTO atas larangan ekspor nikel Indonesia.
+
+
+Sekarang pressure itu berevolusi menjadi yang lebih sophisticate lewat sebuah lembaga Rating agencies. Investment bank downgrades. Narrative fiskal yang sangat terkoordinasi.
+
+Framework yang baru difinalisasi antara Indonesia dan Amerika menghubungkan pengurangan tariff exposure AS terhadap Indonesia yang turun ke 19% dari ancaman 32% dengan expanded American access ke critical minerals Indonesia. 
+
+
+Perjanjian ini juga mencakup digital trade , technology co-operation , dan rollback selected non-tariff barriers. 
+
+
+Tolong dibaca lagi hal diatas dengan sangat teliti.
+
+
+Amerika mengurangi tariff terhadap Indonesia dengan syarat expanded access ke critical minerals Indonesia.
+
+
+Tekanan tariff dari Amerika. Tekanan rating agencies. Tekanan investment banks. Semua dalam periode yang sangat berdekatan. Dan semua berujung pada satu tujuan yaitu akses ke mineral Indonesia dengan syarat yang lebih favorable bagi Amerika. 
+
+
+Ini bukan konspirasi dalam arti sempit. Ini adalah geopolitical pressure campaign yang sangat terkoordinasi menggunakan semua instrumen yang tersedia.
+
+
+Rating agencies adalah salah satu instrumen yang paling powerful dalam hal tersebut
+
+
+Bagian Ketujuh => Luka Dalam Yang Harus Diakui
+
+
+Tapi dari semua cerita tersebut , saya juga jarus mengakui bahwa memanh kita punya celah dan rongga yang sangat menganga. Rongga and celah itu yang pada akhirnya menciptakan sebuah luka yang bisa diexpose
+
+
+Ada luka dalam yang sangat nyata. Dan luka itu memberikan amunisi kepada mereka.
+
+
+Pertama => tax ratio Indonesia hanya 12% dari GDP. Terendah di Asia. VAT compliance gap 43.9% hampir separuh pajak yang seharusnya dibayar tapi tidak dibayar. Compliance gap setara Rp 944 triliun per tahun. 
+
+
+Estimasi Rp 944 triliun per tahun yang bocor dari pajak tersebut . Makanya 08 bilang BOCOR BOCOR
+
+
+Untuk konteks MBG yang menjadi sumber seluruh tekanan fiskal ini membutuhkan sekitar Rp 300-335 triliun per tahun. Artinya kalau compliance gap bisa dipotong sepertiga saja maka MBG bisa dibiayai penuh dari sana. Tanpa perlu mendekati batas defisit. Tanpa perlu kena serangan lembaga rating
+
+
+Kedua => hilangnya Sri Mulyani adalah luka yang sangat dalam yang tidak bisa diperbaiki dengan appointment satu orang baru. Yang dibutuhkan adalah institutional credibility yang tidak bergantung pada satu orang.
+
+
+Ketiga => Danantara yang tidak transparan adalah target yang sangat mudah diserang. Selama tidak ada audit independen yang kredibel dan selama laporan keuangannya tidak terbuka maka danantara akan terus menjadi amunisi gratis yanh bisa di eksploitasi
+
+
+Agenda mereka nyata. Tapi celah yang mereka eksploitasi itu Indonesia yang membiarkannya tetap terbuka.
+
+
+=> Tujuh Perlawanan Yang Harus Dimulai Sekarang.
+
+
+Sekarang kita bicara perlawanan yanh bisa Indonesia lakukan. Ini bukan saatnya Indonesia mengeluh lagi. Jangan ambil jalan yang defensif tapi lakukan perlawanan yang sangat strategis dan sangat terencana.
+
+
+Perlawanan Pertama => Tutup Celah Rp 944 Triliun Itu
+
+
+Ini adalah perlawanan yang paling fundamental dan paling langsung hasilnya yang bisa disegerakan
+
+
+Compliance gap rata-rata Rp 944 triliun per tahun. VAT compliance gap 43.9%. Uang yang sudah seharusnya masuk ke kas negara tapi tidak masuk karena sistem pajak yang bocor.  
+
+
+Kalau celah ini dipotong setengah saja maka akan ada sekitar Rp 470 triliun tambahan revenue per tahun. 
+
+
+MBG bisa dibiayai penuh dari sana. Defisit akan turun dengan drastis.
+
+
+Dari sana nantinya Rating agencies kehilangan narrative mereka sepenuhnya buat menyerang kita
+
+
+Implementasi core tax system yang terintegrasi penuh. Data rekening bank , transaksi properti , kepemilikan kendaraan dan semua dicocokkan real-time oleh DJP.
+
+
+Automatic exchange of information dengan lebih banyak negara untuk kejar kekayaan yang disembunyikan di luar negeri.
+
+
+Ini bukan uang baru yang harus dicari. Ini uang yang sudah seharusnya masuk ke kantong negara 
+
+
+Perlawanan Kedua => Fiscal Responsibility Act yang mengikat secara hukum
+
+
+Malaysia saja bisa punya Fiscal Responsibility Act yang bukan hanya political promise tapi legal obligation. 
+
+
+Indonesia harus segera buat undang-undang yang identik. Target penurunan defisit yang terukur per tahun. Mekanisme review independen. Konsekuensi hukum yang nyata kalau target tersebut tidak tercapai.
+
+
+Ini adalah tameng terbaik terhadap serangan narrative "tidak ada fiscal discipline." 
+
+
+Karena ini bukan janji menteri yang bisa berubah. Ini adalah legal obligation yang mengikat seluruh pemerintah masa depan.
+
+
+Perlawanan Ketiga => Buat Danantara sebersih mungkin
+
+
+Fitch sangat concerned tentang Danantara dan risiko quasi-fiscal activities yang bisa mengurangi fiscal transparency.  
+
+
+Selama Danantara tidak transparan maka dia adalah target yang sangat mudah diserang dan amunisi gratis untuk rating agencies.
+
+
+Hal tersebut bisa dilakukan dengan cara Audit oleh Big Four secara independen. Laporan keuangan yang sangat detail dan sangat terbuka. 
+
+
+Tidak ada quasi-fiscal activities yang tidak bisa dipertanggungjawabkan secara komersial. Zero tolerance terhadap investasi yang tidak jelas return calculation nya.
+
+
+Atau bisa juga dengan cara kembalikan sebagian dividen BUMN ke kas negara untuk memperkuat revenue. 
+
+
+Mungkin bisa kita pilih satu dari dua pilihan tersebut. Tapi jangan pertahankan status quo yang lemah. 
+
+
+Perlawanan Keempat => Bangun Basis Investor Domestik Yang Sangat Kuat
+
+
+Ini adalah perlawanan yang paling strategis.
+
+Selama SBN Indonesia terutama dipegang oleh investor asing maka konsekuensinya adalag Indonesia selalu vulnerable terhadap capital outflow yang dipicu oleh sentimen rating agencies. Investor asing bisa keluar dalam hitungan hari dan Investor domestik jauh lebih sticky.
+
+
+Dana pensiun , asuransi , BPJS , investor ritel Indonesia harus dijadikan backbone penyerap SBN. 
+
+
+Kalau 60-70% SBN dipegang investor domestik maka saat rating agencies bisa downgrade kapanpun yang mereka mau dari sana Capital outflow asing tidak akan mengguncang sistem pasar kita
+
+
+Perlawanan Kelima => Gunakan Nikel Sebagai Leverage Negosiasi
+
+
+Amerika secara eksplisit mengakui bahwa mereka butuh akses ke mineral kritis Indonesia seperti nickel , bauxite , rare earth untuk mendukung automotive , aviation , dan defense manufacturing mereka. 
+
+
+Indonesia punya monopoli de facto atas supply nikel dunia. Ini adalah leverage yang sangat powerful yang harus dimainkan dengan sangat cerdas.
+
+
+Framework deal Indonesia-Amerika sudah menunjukkan bahwa tariff treatment dan mineral access bisa di-linked. 
+
+
+Indonesia harus gunakan logika yang sama yaitu rating treatment yang fair sebagai bagian dari kerangka kemitraan strategis yang lebih luas. 
+
+
+Jadikan akses mineral sebagai leverage untuk mendapat pembiayaan dengan syarat yang mudah dan syarat lebih favorable. 
+
+
+Dari Nickel juga Indonesia bisa meminta Technology transfer yang genuine.
+
+
+Puncak yang paling penting adalah meminta perlakuan rating yang tidak menggunakan double standard.
+
+
+Perlawanan Keenam => Diversifikasi Dari Dollar Secara Terencana
+
+
+Ketergantungan Indonesia pada pembiayaan dollar adalah rantai yang membuat rating agencies begitu powerful.
+
+
+SBN dalam rupiah harus diperbesar proporsinya vs SBN dalam dollar. 
+
+
+Indonesia harus mulai menjajaki bond issuance ke pasar Timur Tengah , Jepang , China sebagai diversifikasi dari dominasi investor Barat.
+
+
+Indonesia juga harus segera melakukan explore currency swap agreements yang memperkuat posisi likuiditas rupiah.
+
+
+Kalau Indonesia tidak lagi tergantung sepenuhnya pada dollar financing maka nantinya kekuatan rating agencies Barat untuk menekan Indonesia berkurang secara signifikan. 
+
+
+Perlawanan Ketujuh => Bangun Koalisi Sesama Emerging Market
+
+
+Indonesia bukan satu-satunya yang pernah mengalami serangan double standard ini.
+
+
+Negara-negara seperti Yunani. Argentina. Brazil. Turkey pernah merasakan hal yang sama.
+
+
+Indonesia sebagai G20 country dan sebagai negara dengan ekonomi terbesar ASEAN tentu punya kapasitas untuk memimpin koalisi emerging markets yang menuntut reformasi governance rating agencies.
+
+
+Bukan mengeluh bilateral. Tapi membangun tekanan kolektif yang sangat terstruktur.
+
+
+Indonesia bisa tuntut transparency dalam metodologi. 
+
+
+Indonesia bisa tuntut accountability ketika terbukti ada double standard. 
+
+
+Indonesia bisa tuntut standar yang konsisten bukan standar yang berbeda untuk emerging market dan developed market. 
+
+
+Bagian Kesembilan => Skenario Yang Harus Dicegah Dengan Segala Cara
+
+
+Sekarang saya mau bilang tentang apa yang bisa terjadi kalau tidak ada perubahan ke depan nanti 
+
+
+Skenario Pertama => Downgrade Ke Junk
+
+Kalau defisit kita melampaui 3% atau kalau governance concerns tidak diselesaikan dengan cepat maka rating agencies bisa melakukan actual downgrade dari investment grade ke junk.
+
+
+Semua institutional investors dengan mandate investment-grade-only harus jual SBN dan saham Indonesia bersamaan. 
+
+
+Carry trade reversal juga akan terjadi secara massal. 
+
+
+Ga sampai disitu , nantinya Financing cost melonjak yang membuat Rupiah bisa ke level yang sangat menyakitkan.
+
+
+Skenario Kedua => Indonesia Butuh "Bantuan"
+
+Kalau tekanan terus dan pemerintah tidak bisa financing deficit dengan harga wajar pasti nantinya ada pihak yang akan datang menawarkan bantuan dengan syarat
+
+
+Amerika sudah secara eksplisit dalam pembicaraan dengan Danantara tentang akses ke critical minerals Indonesia dalam format business-to-business. 
+
+
+Dalam kondisi normal ini adalah negosiasi yang seimbang. Indonesia punya leverage. Amerika butuh. Semua terms bisa dinegosiasikan dalam kondisi sejajar
+
+
+Dalam kondisi tertekan fiskal maka bargaining position Indonesia melemah drastis. Terms yang bisa didapat dalam kondisi tidak tertekan tidak lagi tersedia. Dan syarat yang akan datang bersama bantuan itu akan jauh lebih menguntungkan si pemberi bantuan.
+
+
+Persis seperti Yunani yang menjual Piraeus dengan harga yang tidak pernah bisa dicapai dalam kondisi normal.
+
+
+Sebagai bahan penutup saya cuma mau bilang
+
+
+Jangan Jadi Yunani Berikutnya
+
+
+Indonesia punya semua yang dibutuhkan untuk tidak menjadi Yunani berikutnya. 
+
+
+Rating agencies yang menyerang Indonesia bukan lembaga yang netral. 
+
+
+Rekam jejaknya sudah membuktikan itu bahwa 2.2 miliar dollar denda karena kecurangan mereka sendiri di 2008. 
+
+
+Conflict of interest yang tidak pernah diselesaikan. 
+
+
+Monopoli 95% yang dijaga dengan sangat ketat.
+
+
+Gerakan yang selalu terlambat saat dibutuhkan dan sangat cepat saat ada kepentingan yang dilayani.
+
+Double standard yang sangat telanjang diperlihatkan
+
+
+Filipina 5.6% aja aman , Malaysia 3.8% tiga dekade malah dipuji , Amerika 7% jadi reserve currency sementara Indonesia yang cuma sekitar 2.92% tapi malah diserang habis-habisan.
+
+
+Dan di balik semua itu ada kepentingan yang sangat nyata terhadap aset strategis Indonesia.
+
+
+Nikel yang menguasai 54% produksi global. Sebuah Mineral kritis yang dibutuhkan untuk membangun EV transition dunia. 
+
+
+Danantara yang mengkonsolidasikan semua itu dalam satu vehicle.
+
+
+Tapi Indonesia 2026 bukan Yunani 2010. Indonesia punya sesuatu yang tidak dimiliki Yunani yaitu komoditas yang seluruh dunia sangat butuhkan untuk masa depan mereka.
+
+
+Itu adalah kartu truf yang sangat powerful buat bargaining position kita
+
+
+Yang dibutuhkan adalah tiga hal secara bersamaan :
+
+
+Pertama adalah tutup celah yang memberikan mereka amunisi. Soal Tax reform. Soal Fiscal Responsibility Act. Soal Danantara yang transparan.
+
+
+Kedua adalah perkuat fondasi yang membuat Indonesia tidak vulnerable. Basis investor domestik yang kuat. Diversifikasi pembiayaan dari dollar. Revenue base yang jauh lebih kuat.
+
+
+Ketiga adalah mainkan kartu truf dengan sangat cerdas. Nikel adalah leverage. Mineral kritis adalah leverage. Posisi strategis adalah leverage. Gunakan semua itu untuk mendapat perlakuan yang fair bukan sebagai negara yang pasrah menerima apapun yang datang.
+
+
+Karena dalam permainan seperti ini yang tidak tau bawah semuasedang bermain adalah selalu jadi pihak yang paling banyak kehilangan.
+
+
+Dan Indonesia harus sangat tau sedang bermain. Sangat sadar. Sangat siap. Dan sangat tidak mau menjadi Yunani berikutnya. 
+
+
+Kalo teman-teman ikutin dari awal artikel saya saat Indonesia di downgrade saat itu , saya sudah bilang kalo semua ini besar banget unsur politisnya
+
+
+Saat Moodys downgrade , saya pun sudah bilang jangan aneh nanti semua akan menyusul satu per satu.
+
+
+Dan yanh paling utama dan kentara banget , saat itu di artikel pertama saya tentamg down grade saya sudah bilang ini ANEH dan sangat ANEH
+
+
+Ini terlihar aneh , sistemik dan yang paling lucu adalah semua global rating agencies itu bahasnya cuma 1 yaitu MBG
+
+
+Buat saya simple , sekelas lembaga rating dunia itu bahas MBG demgan satu suara maka saya bisa bilang bahwa itu bukan masalah utama nya. Itu adalah program yang US itu takut , kalo sampe jalan tuh program dengan baik maka ketahanan sosial kita akan baik. 
+
+
+Ingat , dibutuhkan ketahanan sosial yang baik buat menciptakan pertumbuhan ekonomi yang baik. Yang penting perut terisi , kalo perut sudah terisi maka mulut akan pada diam
+
+
+Krisis 98 sudah mengajarkan hal tersebut. "Kunyuk- kunyuk " asing datang bukan malah beresin tapi malah merusak. Jalan keluar nya malah saat itu adalah menciptakan stabilitas sosial dengan memberikan jaring pengaman sosial yaitu ketersediaaan pangan.
+
+
+Anda harus ingat , apa yang sangat dibenci barat itu berarti anda harus berpikit bahwa itu adalah hal yang merugikan buat negara barat dan menguntungkan indonesia. 
+
+
+Saya bukan pemuja die hard 08 , tapi 08 adalah pemimpin kita saat ini. Saya percaya 08 adalah seorang nasionalis tulen yang luar biasa. Saya percaya 08 adalah seseorang yang punya visi militer luar biasa , saya percaya 08 punya pemikiran mazhab ekonomi yang bagus hanya sekarang 08 sedang diuji permainan tingkat tinggi elite dunia
+
+
+Anda pikir saja tuh
+
+
+Danantara sangat disegani sekarang.
+
+
+Liat tuh program energy yang dicanangkan buat ketahanan energy
+
+
+MBG ? kalo anda di suguhkan berita buruknya , anda lupa apa yang dibangun di hulu nya ( untuk hal ini , sorry saya nanti jelasin nya pas beskemp aja. Banyak hal yang ga bisa dipublikasi )
+
+
+Asing ? ingat , saya pernah bilang kalo kita nantinya ga butuh tuh asing. Kalo perlu Barat nanti ngemis-ngemis buat masuk investasi di Indonesia. 
+
+
+Pernah merasakan kan ? indeks dari 5800 ke 9000 tanpa bantuan asing. Malu ga tuh mereka ? 
+
+
+well , permainan ini seperti permainan catur dimana kuda nya adalah lembaga rating. Kuda sedand dijalankan dan dikorbankan buat memancing langkah skak mat Raja kita selanjutnya. Jangan terlalu fokus pada Kuda nya , fokus pada langkah mereka selanjutnya 
+
+
+Hati2x kalo di luar sana banyak penghasutan , banyak propaganda , banyak penggiringan opimi via media and social media buat memojokkkan 08 dan negara kita. 
+
+
+Yang harus diingat adalah kalo sampe 08 turun , masa anda mau di pimpin oleh ongol-ongol junior. Ongol-ongol senior nya sudah ngerasain kan ? wkwkwk
+
+
+
+Btw , banyak yang bilang program bocor ?
+
+
+bro , sebelum nya gw kasih dulu pengertian politik yang saya tau yah
+
+
+Dahulu saya masih ingat banget pelajaran politik di mata pelajaran tata negara ( saya hampir masuk fakultas hukum karena bea siswa ) , saya sampaikan apa arti politik menurut 2 orang 
+
+
+
+pertama adalah dari Machiavelli 
+
+
+menurut machiavrlli kekuasaan harus dipertahankan dengan segala cara, bahkan jika bertentangan dengan moral, demi kelangsungan negara 
+
+
+Kedua adalah dari Lasswell
+
+
+politik adalah tentang Who gets what , when and how .( siapa mendapat apa, kapan, dan bagaimana), yang inti dasarnya adalah kekuasaan 
+
+
+Semua akan dilakukan buat berkuasa and melanggengkan kekuasaan. Korupsi itu sudah mendarah daging di Indonesia , pada akhirnya saya berpikir bahwa seberapa besar sebuah program akhirnya uangnya bisa sampai ke bawah 
+
+
+10 tahun kemarin bukan kah lebih dashyat di maling nya ? sampe uangnya kebawah ? di maling diatas tapi dibejek di bawah.
+
+
+Program 08 via danantara itu banyak project strategies yang uang nya langsung sampai kebawah ( project ga lagi lewat kementerian yang bertele2x akhirnya ga jalan )
+
+
+Indonesia tetap menyimpan segudang peluang , makanya tuh pada mau ngobok-ngobok Indonesia. 
+
+
+Well semua itu hanya coretan dari saya saja. Saya bisa saja salah , saya tidak selalu benar. Bisa saja semua yang saya tuliskan itu cuma dongeng liar saja. 
+
+
+
+
+
+
+
+Ricky2212
+
+""",
+    },
+    "perundingan_iran_gagal": {
+        "title": "Perundingan Iran Gagal Lagi — Pola Liberation Day 2025 Terulang Sempurna",
+        "category": "geopolitics",
+        "subcategory": "middle_east",
+        "themes": ["iran", "negotiation", "taco", "trump", "vance", "oil", "pattern", "liberation_day"],
+        "tickers": ["CL=F", "BZ=F", "USO", "SPY", "QQQ"],
+        "quad_bias": None,
+        "regime_signal": "negotiation_cycle",
+        "priority": 9,
+        "author": "Ricky2212",
+        "source": "mentorbaik",
+        "content": """Artikel: Perundingan Iran Gagal Lagi , Gimana Reaksi Pasar ?
+
+Perundingan Iran Gagal Lagi , Gimana Reaksi Pasar ? 
+( Dari Free Fall ke Less Effect, Pola Liberation Day 2025 Terulang Sempurna)
+
+
+Perundingan Iran Gagal Lagi , Gimana Reaksi Pasar ? 
+
+
+
+
+( Dari Free Fall ke Less Effect, Pola Liberation Day 2025 Terulang Sempurna)
+
+
+
+
+Saya mau mulai dengan satu pertanyaan.
+
+
+
+
+Seminggu belakangan ini berita serangan dalam drama perang sebenarnya masih lumayan frekwensinya, tapi kenapa koq market berasa mulai skeptis ?
+
+
+
+
+Seminggu ini pasar keuangan global tuh rally lumayan loh dalam keadaan perang masih HOT
+
+
+
+
+Yap , perlaham tone perang tuh saya berasanya mulai turun perlahan. Pasar saham berasa bahwa semua babak drama perang ini sudah melewati puncak buruknya
+
+
+
+
+Drama perang akan dilanjutkan dengan banyak aksi perundingan di depan sana. Dari perundingan ke perundingan yang nanti akan membuat pasar makin berasa : 
+
+
+
+
+" Ahhh sudah lah , perang ini sudah begitu keliatan hasilnya koq "
+
+
+
+
+Perundingan pertama terjadi di wiken ini selama 21 jam antara Iran-AS yang diadakan di Pakistan.
+
+
+
+
+Hasil perundingannya gimana ?
+
+
+
+
+Mari kita bedah yah
+
+
+
+
+Babak 1 : Perundingan 21 Jam yang Berakhir dengan Kegagalan Total
+
+
+
+
+Bayangkan Wakil Presiden AS JD Vance memimpin delegasi Amerika di Islamabad. Di seberang meja, ada Ketua Parlemen Iran Mohammad Bagher Ghalibaf dan Menteri Luar Negeri Abbas Araqchi. 
+
+
+
+
+Ini adalah pertemuan langsung pertama antara AS dan Iran dalam lebih dari satu dekade lamanya. 
+
+
+
+
+Ini jadi dialog tingkat tertinggi sejak Revolusi Islam 1979. Mediator dalam perundingan ini adalah Pakistan, dengan Kepala Militer Marsekal Lapangan Asim Munir dan Perdana Menteri Shehbaz Sharif di meja yang sama.
+
+
+
+
+Taruhannya sangat besar yaitu nasib gencatan senjata dua pekan yang diumumkan Trump pada 8 April. Gagal atau berhasil, dunia sedang menonton drama perundingan tersebut.
+
+
+
+
+Pembicaraan dimulai Sabtu sore dan berlangsung terus sampai larut malam. Waktu berjalan lewat tengah malam dan melewati pagi lagi. Total 21 jam non-stop perundingan tersebut digelar. 
+
+
+
+
+Suasana perundingan yang ada sangat fluktuatif, kadang memanas, kadang mereda. Kedua tim saling tuding dan saling klaim serta saling lempar kesalahan.
+
+
+
+
+Pada Minggu pagi, semuanya berakhir tanpa kesepakatan. Vance langsung menggelar konferensi pers, menyebut kegagalan perundimgan ini dengan statement : 
+
+
+
+
+"kabar buruk bagi Iran, jauh lebih buruk daripada bagi AS," 
+
+
+
+
+dan pasca konferensi pera tersebut , Vance langsung terbang meninggalkan Islamabad.
+
+
+
+
+Tapi inilah yang menarik. Vance mengaku telah berbicara dengan Trump belasan kali selama 21 jam. Sementara di saat yang sama Iran menanggapi keadaan dengan santai. 
+
+
+
+
+Juru Bicara Iran, Esmaeil Baqaei dalam wawancaranya bilang
+
+
+
+
+"Sejak awal, kita tidak seharusnya mengharapkan tercapainya kesepakatan dalam satu sesi perundingan saja."
+
+
+
+
+Lihat perbedaannya yang sangat jelas and kentara banget. Amrik terlihat terburu-buru, panik, ngotot sementara Iran dengan sangatvtenang, tidak terburu-buru menikmati perundingan tersebut.
+
+
+
+
+Itu sudah sinyal awal buat keadaan selanjutnya ke depan
+
+
+
+
+Babak 2 : Dua Sisi yang Berbicara dalam Bahasa Berbeda
+
+
+
+
+Setelah 21 jam negosiasi, yang keluar dari mulut kedua belah pihak adalah dua cerita yang sama sekali berbeda.
+
+
+
+
+Dari pihak Amerika, Vance bilang bahwa Washington mengajukan tawaran terakhir dan terbaik buat Iran. 
+
+
+
+
+Dia menegaskan bahwa AS ingin komitmen mendasar dari Iran untuk tidak mengembangkan senjata nuklir. 
+
+
+
+
+"Kami belum melihat komitmen itu " kata vance 
+
+
+
+
+Inti dari perselisihan dalam perundingan tersebut adalah senjata nuklir yang dibangun Iran
+
+
+
+
+Tapi dari pihak Iran, ceritanya jauh lebih kompleks. Media Iran menuduh bahwa kegagalan ini disebabkan oleh tuntutan berlebihan dari pihak Amrik. 
+
+
+
+
+Mereka bahkan mengatakan Washington berusaha mendapatkan melalui negosiasi apa yang gagal mereka dapatkan melalui perang.
+
+
+
+
+Tuntutan AS mencakup upaya penguasaan isu Selat Hormuz hingga tuntutan pemindahan material nuklir ke luar dari wilayah Iran. 
+
+
+
+
+Dari pihak Iran menyebut ini tidak masuk akal sama sekali permintaan dari Amrik
+
+
+
+
+Kalo mau dirangkum setidaknya lima kendala utama keengganan Amrik memberikan komitmen yaitu
+
+
+
+
+a. menghentikan agresi Israel terhadap Lebanon
+
+
+
+
+b. syarat keamanan di Selat Hormuz yang dinilai tidak bisa diterima Iran
+
+
+
+
+c. perbedaan posisi soal program nuklir
+
+
+
+
+d. tuntutan ganti rugi perang dari Iran
+
+
+
+
+e. pencabutan sanksi.
+
+
+
+
+Ini persis pola yang sama dengan perundingan dagang AS-China dulu di Trump Tariff liberation day 2025 lalu.
+
+
+
+
+Sama2x saling klaim, sama2x saling tuding, sama2x tidak mau mengalah di depan publik. Tapi yang terjadi di balik layar sangat berbeda, diplomasi tidak pernah benar2x berhenti. 
+
+
+
+
+Babak 3 : Mengapa Ini Gagal dan Apa Artinya untuk Harga Minyak dan Pasar Saham
+
+
+
+
+Sekarang saya coba corat - coret analisis versi saya yah kenapa perundingan ini gagal, dan apa implikasinya untuk pasar.
+
+
+
+
+Pertama, Trump tidak mau terlihat lemah. Apalagi pemilu paruh waktu sudah dekat. Dia tidak bisa pulang dengan tangan kosong. Dia butuh narasi kemenangan. 
+
+
+
+
+Trump bahkan sudah bilang dari awal loh sebelum perundingan dilakukan
+
+
+
+
+"Apakah kita mencapai kesepakatan atau tidak, itu tidak membuat perbedaan bagi saya. Alasannya karena kita telah menang." 
+
+
+
+
+Kalau dari awal dia sudah merasa menang, apa lagi yang mau dinegosiasikan ?
+
+
+
+
+Kedua, Iran butuh menjaga harga diri. Iran sudah terluka parah dalam perang ini. Mereka kehilangan infrastruktur. Mereka kehilangan pemimpin. Mereka tidak bisa menyerah begitu saja di meja perundingan. Mereka butuh konsesi nyata. 
+
+
+
+
+Itu sebabnya mereka bilang tuntutan AS berlebihan dan sama sekali tidak masuk akal.
+
+
+
+
+Ketiga, ini sudah menjadi pola yang tertanam. Seperti perundingan dagang AS-China dulu, perundingan ini tidak akan selesai dalam satu putaran. Akan ada putaran kedua, ketiga, keempat. Masing-masing pihak akan saling menguji batas. Dan di tengah semua drama itu, pasar akan semakin tidak peduli nantinya
+
+
+
+
+Lalu, bagaimana respons harga minyak dan pasar saham ? Mari kita lihat data yang valid.
+
+
+
+
+Sebelum perundingan (Jumat, 10 April 2026) : 
+
+
+
+
+· Minyak mentah WTI : US$96,57 per barel
+
+
+· Minyak mentah Brent: US$95,20 per barel
+
+
+
+
+Harga sempat menyentuh level tertinggi tahunan di level $119,45 untuk Brent, dan WTI sempat di atas US$112 pada awal April. 
+
+
+
+
+Tapi setelah gencatan senjata dua pekan diumumkan pada 8 April, harga langsung koreksi tajam. Brent jatuh ke US$94,75 dan WTI ke US$94,41 dalam sehari. 
+
+
+
+
+Ini adalah efek TACO pasar rally saat dibikin kabar baik dan koreksi saat dibikin kabar buruk. Tapi perhatikan keadaan ini yah , koreksi tidak berlangsung mulus. 
+
+
+
+
+Pada tanggal 9-10 April, harga kembali menguat ke kisaran US$95-97 setelah investor menilai gencatan senjata masih rapuh. Lalu lintas kapal tanker belum pulih normal, premi asuransi pelayaran masih tinggi, dan operator kapal menunggu kepastian keamanan sebelum kembali melintas penuh di Hormuz.
+
+
+
+
+Ini intinya kalo kertas tanda tangan tanda perdamaian belum otomatis mengembalikan barel ke pasar.
+
+
+
+
+Mari kita lihat data di wiken ini pasca diumumkan gagalnya perjanjian damai yang diadakan di Pakistan.
+
+
+
+
+Saya coba mengambil data pasar wiken di ruang lingkup tokenized asset futures pasar saham yang ditransaksikan 24 jam 7 hari di pasar crypto.
+
+
+
+
+Pas semalam perjanjian damai berlamgsung , pasar futures minyak sempat diperdagangkan di level $86 dan langsung melonjak terakhir ke $96 an sejak diumunkan gagal. Naik sekitar 5 % an lah . Sepertinya besok ada kemungkinan harga minyak naik ke level $100 an lagi
+
+
+
+
+Pasar Dow futures juga langsung diperdagangkan anjlok -1% pasca diumumkan tersebut tanda besok juga pasar kurang lebih akan merespon serupa.
+
+
+
+
+Saya pribadi melihat yah , ini mah koreksi yang memang harus terjadi lagi seperti pola Yo-Yo , apalagi minggu ini pasara saham dunia menunjukkan best performance 
+
+
+
+
+Kita lihat besok yah
+
+
+
+
+Babak 4 : Pola Liberation Day 2025 yang Terulang Sempurna
+
+
+
+
+Saya sudah jabarkan pola ini berkali-kali. Tapi mari saya ulang sekali lagi karena ini kunci untuk memahami apa yang akan terjadi Senin nanti.
+
+
+
+
+Pada 2 April 2025, Trump mengumumkan Liberation Day tariff. Pasar saham dunia langsung free fall termasuk juga IHSG ikut jatuh. Saham global merah semua dan dampaknya sangat besar di awal kejadian Trump Tariff. Setiap kali Trump mengancam pakai tariff, pasar langsung memberikan respon jatuh dalam
+
+
+
+
+Tapi setelah beberapa minggu, Trump mengumumkan penundaan tariff. Pasar langsung rally besar-besaran. Itu pola permulaan TACO—Trump Always Chickens Out.
+
+
+
+
+Lalu dalam perjalanan mulai ada negosiasi yang berjalan. Tarif tidak jadi sepenuhnya, tapi juga tidak sepenuhnya batal. Perundingan berulang kali tarik ulur. China dan AS sama2x jaga muka. Dan yang menarik adalah setelah beberapa kali perundingan gagal, pasar mulai berasa skeptis. Efek tarif terhadap bursa mulai less effect. Koreksi tetap ada, tapi tidak separah awal.
+
+
+
+
+Polanya jelas.
+
+
+
+
+· Tarif diperkenalkan → free fall
+
+
+
+
+· Tarif diundur → TACO, rally besar
+
+
+
+
+· Negosiasi mulai → less effect
+
+
+
+
+· Perundingan gagal lagi → dampak ke bursa tidak separah awal
+
+
+
+
+Sekarang, pola yang sama terjadi di perang Iran.
+
+
+
+
+· Perang awal (28 Februari) → free fall. Harga minyak melonjak ke level tertinggi tahunan.
+
+
+
+
+· Drama TACO (gencatan senjata 8 April, Trump klaim kemenangan) → rally. Harga minyak langsung koreksi tajam 11-12% dalam seminggu.
+
+
+
+
+· Negosiasi mulai (perundingan Islamabad) → less effect. Harga minyak di kisaran US$95-100.
+
+
+
+
+· Perundingan gagal (hari ini) → kita lihat besok yah , kalo tidak ada kepanikan seperti 28 Februari maka mulai terlihat memudarnya efek perang
+
+
+
+
+Kalo memang benar besok yang terjadi maka tepat seperti yang saya bilang bahwa pola ini adalah pengulangan saja. 
+
+
+
+
+Karena pengulangan, pasar sudah mulai terus belajar. Mereka tidak akan panik sepanik awal perang terjadi pada Senin nanti. Pasar tetap akan koreksi tapi banyak yang akan wait and see. 
+
+
+
+
+Babak 5 : Catatan Penting — Pasar Hanya Skeptis Jika Tidak Ada Serangan Skala Besar
+
+
+
+
+Tapi saya harus tambahkan satu catatan penting di sini. Pasar akan merespon less effect hanya jika secara keseluruhan tidak ada lagi serangan perang skala besar.
+
+
+
+
+Ini kuncinya. Selama konflik masih dalam fase negosiasi, perundingan gagal, ancaman verbal, dan drama diplomatik, pasar akan semakin berasa skeptis dan efeknya akan memudar.
+
+
+
+
+Tapi kalau tiba2x terjadi serangan militer dengan skala massive and besar-besaran lagi misalnya Iran balas menyerang pangkalan AS di Qatar atau Israel, atau AS mengebom fasilitas nuklir Iran di kedalaman maka pasar akan langsung memberikan respon dengan skala shock yang cukup besar lagi. Premisnya bise sedikit berubah. 
+
+
+
+
+Pasar saat ini sudah belajar membaca pola TACO. Mereka tahu Trump selalu mencari pintu keluar. Tapi itu asumsi selama tidak ada kejutan besar. Iran juga punya kapasitas untuk melakukan eskalasi jika mereka merasa terpojok. 
+
+
+
+
+Jadi kesimpulannya selama perang masih dalam fase negosiasi dan ancaman tanpa aksi militer besar, pasar akan skeptis. Tapi satu serangan besar bisa mengembalikan kita ke titik dengan tone sedikit naik lagi
+
+
+
+
+Itu sebabnya, meskipun saya bilang pasar sudah skeptis, saya tetap menyimpan satu mata untuk memantau apakah ada eskalasi nyata di lapangan. 
+
+
+
+
+Sebagai penutup
+
+
+
+
+Perundingan Iran-Amerika di Islamabad gagal setelah 21 jam negosiasi penuh drama. Vance pulang dengan tawaran terakhir yang ditolak. Iran tetap menanggapi dengan santai dan tidak terburu-buru. 
+
+
+
+
+Senin pagi nanti, pasar akan membuka. Apakah akan terjadi free fall seperti 28 Februari karena gagalnya perundingan ? 
+
+
+
+
+Saya sih merasa tidak, selama tidak ada serangan skala besar. Pasar tetap akan bereaksi turun atas gagalnya perundingan tersebut tapi pasar sudah belajar dari pola Liberation Day 2025. 
+
+
+
+
+Efek perang terhadap bursa sudah mulai less effect. Koreksi mungkin ada, tapi tidak separah dulu. 
+
+
+
+
+Makin ke sini, negosiasi perang akan sering terjadi. Gagal, coba lagi. Gagal, coba lagi. Dan setiap kali gagal, dampaknya ke pasar akan semakin kecil, selama tidak disertai eskalasi militer. Tonenya memudar. Pasar jadi skeptis
+
+
+
+
+Ini berarti satu hal. Perang tidak lagi jadi faktor utama yang menggerakkan pasar selama tidak ada kejutan besar. 
+
+
+
+
+Jadi jangan terlalu fokus pada berita perundingan gagal atau berhasil. Itu hanya drama yang dirancang untuk berkepanjangan.
+
+
+
+
+Fokus pada arus likuiditas. Fokus pada siapa yang akan diuntungkan ketika The Fed mulai memotong suku bunga.
+
+
+
+
+Tapi tetap jaga satu mata ke papan catur. Karena satu serangan besar bisa sedikit merubah jalannya drama
+
+
+
+
+no investment advice and no price action question
+
+
+
+
+Ini cuma corat - coret saya saja yah , saya bisa salah dan saya juga bisa benar
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Ricky2212 
+
+""",
+    },
+    "pola_sama_2025_2026": {
+        "title": "Pola yang sama 2025 dan 2026 — Liberation Day, Perang Iran, Refinancing Utang",
+        "category": "macro_thesis",
+        "subcategory": "monetary_policy",
+        "themes": ["refinancing", "ust", "treasury", "liberation_day", "iran", "pattern", "debt", "yield"],
+        "tickers": ["TLT", "IEF", "SHY", "SPY", "DXY"],
+        "quad_bias": None,
+        "regime_signal": "debt_cycle",
+        "priority": 10,
+        "author": "Ricky2212",
+        "source": "mentorbaik",
+        "content": """Artikel: Pola yang sama 2025 dan 2026
+
+Pola yang sama 2025 dan 2026
+( Liberation Day, Perang Iran, dan Refinancing Utang yang "Kebetulan" Terjadi Tepat Waktu )
+
+Pola yang sama 2025 dan 2026
+
+
+( Liberation Day, Perang Iran, dan Refinancing Utang yang "Kebetulan" Terjadi Tepat Waktu )
+
+
+
+
+
+Entah memang ini konspirasi atau tidak , tapi saya suka sekali mengulik and mengamati suatu event dan pola yang dibetuk dari event tersebut dan berujung pada "apa sih " tujuan event tersebut
+
+
+Lagi2x, otak liar saya berputar saat melihat ada kesamaan pola yang terjadi pada event Trump Tariff liberation day dan Perang Iran israel yang bertujuan untuk mengamankan posisi hutang US itu sendiri
+
+
+Jadi lagi2x saya percaya kalo setiap event , kejadian , keadaan itu memang sengaja diciptakan untuk tujuan tertentu
+
+
+Oke , saya mulai artikel nya yah
+
+
+Saya mau mulai dengan satu pertanyaan yang sangat sederhana sekali
+
+
+Kenapa Liberation Day tariff diumumkan April 2025 tepat sebelum refinancing besar Juni–Juli 2025 ? Saat itu di 2025 tepatnya bulan Juni - Juli tuh ada hutang yang mau jatuh tempo sekitar USD 8 - 9 Trilyun dan harus di refinancing
+
+
+Kenapa perang Iran dimulai 28 Februari 2026 tepat sebelum refinancing besar Juni–Juli 2026? Saat ini di 2026 tepatnya bulan Juni - Juli tuh ada hutang yang mau jatuh tempo sekitar USD 10 T dan harus di refinancing
+
+
+Kenapa di kedua moment itu yield UST bergerak dengan pola yang sama yaitu naik di tengah risk-off? secara pattern normal tuh kalo lagi pada risk off dan lari ke USD maka yield UST harusnya turun katena obligasi diburu 
+
+
+Dan kenapa di kedua momen itu Treasury selalu merasa "well positioned" untuk refinancing ?
+
+
+Apakah ini kebetulan dua kali dalam dua tahun ?
+
+
+Atau ini pola yang sengaja dirancang? 
+
+
+well , kita bedah cerita nya satu per satu yah
+
+
+
+
+1. DUA AKTOR dengan SATU PEMENTASAN
+
+
+2025 : Liberation Day
+
+
+Februari–Maret 2025 saat itu Treasury mulai persiapan refinancing. Mereka jelas butuh demand untuk obligasi yang mau mereka terbitkan
+
+
+2 April 2025 Liberation Day tariff diumumkan. Tau kan akibatnya ? Risk-off satu dunia mulai dan yield mulai bergerak.
+
+
+3–9 April 2025 Tariff efektif diketok and diberlakukan. Universal Tariff 10% berlaku untuk semua negara dan Reciprocal tariffs untuk 86 negara. Indonesia kebetulan kena 32%. Dari sana terjadi Inflasi expectation yang naik ( ingat yah ekspektasi aja )
+
+
+April 2025 Yield UST 10Y bergerak dari 4,18% ke 4,47% dalam 9 hari. Sungguh itu jadi volatilitas yang ekstrem untuk sebuah pergerakan obligasi
+
+
+Juni–Juli 2025 Refinancing besar AS terjadi dengan bond issuance yang besar dan disertai demand yang tetap kuat.
+
+
+Juli 2025 Tariff ditunda. Market langsung calm down and tenang dan program refinancing selesai.
+
+
+2026: Perang Iran
+
+
+Februari 2026 Treasury refunding hutangnya dan butuh demand yang kuat untuk obligasi.
+
+
+28 Februari 2026 Perang Iran dimulai dengan strategi "Operation Epic Fury". Dari sana Risk-off satu dunia dimulai. 
+
+
+2–3 Maret 2026 Yield 10Y dari 4,09% ke 4,14% keliatan yield mulai merangkak naik.
+
+
+24–25 Maret 2026 Puncak eskalasi dengan Pentagon siapkan "final blow". Yield UST 10Y ke 4,38%. UST 1Y ke 3,808%. UST 2Y ke 3,932%.
+
+
+Juni - Juli 2026 Refinancing besar hutang US dengan demand yang akan diuji. Sebenarnya ga butuh Juni - Juli juga buat refinance. Mereka bisa lakukan saat ada demmand yang besar
+
+
+Setelah refinancing selesai nanti ? hanya masalah waktu saja terjadi Diplomasi perang secara intensif ? 
+
+
+Pola yang sama?
+
+
+Silakan anda pelajari dan ingat lagi apa yang terjadi pasca selesai refinancing liberation day 2025
+
+
+Cari sendiri yah 
+
+
+
+2. ANOMALI YIELD : BUKTI YANG TIDAK BISA DIBANTAH
+
+
+Cerita yang paling menarik dari kedua era ini adalah pergerakan yield UST yang tidak normal.
+
+
+=> 2025 Yield sempat turun lalu naik dengan cepat
+
+
+2 April 2025 (Liberation Day) Yield UST 10Y di level 4,18%
+
+
+2–4 April Yield UST 10Y turun ke level 4,01% (flight to safety)
+
+
+11 April Yield UST 10Y melesat ke level 4,47% dan menjadi pergerakan yield 5 hari tercepat dalam 20 tahun
+
+
+Kenapa naik setelah turun ? Karena market seakan - akan lagi mulai pricing in inflasi dari tariff. 
+
+
+Hasil akhirnya dari sana ? yield stabil di level optimal untuk menarik investor tapi tidak terlalu tinggi untuk membebani Treasury.
+
+
+=> 2026 Yield naik terus tapi tidak ada Flight to Safety
+
+
+28 Februari 2026 Perang Iran dimulai
+
+
+2–3 Maret Yield UST 10Y naik dari level 4,09% ke level 4,14%
+
+
+24–25 Maret Puncak eskalasi, UST 10Y menyentuh level 4,38%
+
+
+25 Maret UST 1Y di level 3,808% dan UST 2Y di level 3,932%
+
+
+" U.S. Treasurys have sold off in the wake of the conflict, exhibiting no signs of safe haven demand."
+
+
+Saya ambil kutipan ini dari DB punya riset
+
+
+Artinya adalah di tengah perang yang terjadi sekarang tuh malah bikin yield UST naik dan bukan turun. Ini jadi anomali yang sama persis dengan yang terjadi di liberation day pada 2025.
+
+
+Kenapa bisa terjadi ? Karena market lebih takut inflasi dari perang (lewat harga minyak) daripada perang itu sendiri. Dan inflasi expectation itu diciptakan bukan sebuah kebetulan belaka 
+
+
+Paham kan kesamaan polanya dengan 2025 ? 
+
+
+
+3. REFINANCING => KEBUTUHAN YANG SAMA
+
+
+Di kedua era yang terjadi tersebut Treasury AS punya kebutuhan yang sama yaitu refinancing hutang mereka yang besar dan terjadi di bulan Juni–Juli.
+
+
+2025 Refinancing 
+
+
+Juni 2025 Refinancing lewat TIPS
+
+
+Juli 2025 Refinancing besar dengan quarterly refunding.
+
+
+2026 Refinancing dengan Skala Lebih Besar
+
+
+Februari 2026 Treasury baru saja refunding $125 miliar.
+
+
+Juni–Juli 2026 Refinancing dengan skala besar berikutnya dan dengan skala yang kemungkinan lebih besar dari 2025.
+
+
+Treasury masih merasa "well positioned" dan butuh banget demand yang stabil buat bond issued tersebut
+
+
+Pertanyaan selanjutnya adalah
+
+
+Di 2025, tariff membantu menciptakan demand.
+
+
+Di 2026, perang membantu menciptakan demand. 
+
+
+Apakah 2027 akan ada event ketiga dengan pola yang sama? Karena disana juga ada jatuh tempo yang besar juga yang akan terjadi
+
+
+
+
+4. APA YANG DIKATAKAN PEMERINTAH
+
+
+Ada hal yang paling menarik buat saya dari seluruh cerita ini adalah apa yang dikatakan pemerintah AS sendiri.
+
+
+Dalam satu kesempatan Scott Bessent bilang 
+
+
+ "We're watching the 10-year, not the Dow"
+
+
+Di 2025, Menteri Keuangan AS Scott Bessent juga bilang 
+
+
+"This administration's goal isn't to juice the S&P 500 with feel-good headlines. Seemingly, it's to strategically depress long-term interest rates, which influence everything from mortgages to auto loans to small business credit lines."
+
+
+Dia bahkan secara eksplisit bilang: "We're watching the 10-year, not the Dow."
+
+
+Artinya memang pemerintah US secara sadar dan terbuka mengarahkan kebijakan untuk mengendalikan yield dari UST.
+
+
+Treasury dalam hal ini "Well positioned" dan "anticipates no changes"
+
+
+Di Februari 2026, Treasury bilang mereka "well positioned to address potential changes to the fiscal outlook" dan "anticipates maintaining nominal coupon and FRN auction sizes for at least the next several quarters."
+
+
+Gilanya yah pernyataan ini keluar sebelum perang Iran dimulai loh. 
+
+
+Artinya dari awal mereka tuh memang sudah punya rencana refinancing yang matang. 
+
+
+Ketika perang terjadi kemarin tuh mereka tidak perlu mengubah apa pun. Karena demand atas obligasi mereka sudah tercipta dengan sendirinya.
+
+
+Atau boleh saya bilang demand sebiah obligasi UST tuh diciptakan oleh sebuah event perang.
+
+
+
+5. TIGA DATA YANG HARUS ANDA MONITOR
+
+
+Kalau pola ini benar, anda harus monitor tiga hal di sisa 2026 nanti
+
+
+1. Yield UST 1Y dan 2Y setelah Juni 2026
+
+
+Kalau setelah refinancing besar selesai, yield turun drastis itu tanda bahwa kebutuhan recinancing mereka sudah selesai.
+
+
+Soalnya pada pola yang terjadi di 2025, yield UST turun setelah tariff ditunda.
+
+
+2. Rhetoric Perang Iran
+
+
+Kalau setelah Juni–Juli nanti tiba-tiba ada "breakthrough" damai maka anda sudah tahu lah pattern-nya. 
+
+
+Axios sendiri melaporkan bahwa Pentagon menyiapkan opsi untuk "declare victory" dan keluar dari perang.
+
+
+3. DXY setelah Q3 2026
+
+
+Kalau USD melemah setelah refinancing selesai maka jelas kalo artificial demand yang memang beneran sengaja dibuat tuh sudah mulai ditarik.
+
+
+
+6. APA ARTINYA UNTUK KITA
+
+
+Dari semua data di atas, ada beberapa hal yang harus anda pahami sebagai investor
+
+
+a. Jangan terjebak narasi "perang" atau "tariff" sebagai penyebab utama.
+
+
+Perang dan tariff adalah alat. Tujuan dari alat tersebut adalah menciptakan kondisi pasar yang optimal untuk refinancing utang AS.
+
+
+Kalau anda lihat headline dan langsung panik maka psikologis anda sedang dimainkan oleh pasar
+
+
+2. Perhatikan timing, bukan sekadar event.
+
+
+Kalau anda lihat eskalasi geopolitik terjadi di Q1 maka harusnya anda tahu ada kemungkinan refinancing besar di Q2 dan Itu pola yang sudah terbukti tahun lalu 
+
+
+3. USD dan UST akan tetap kuat sampai refinancing selesai.
+
+
+Setelah refinancing selesai, anda bisa lihat apakah ada perubahan arah. 
+
+
+Di kejadian liberatiok daya 2025, setelah refinancing selesai langsung ada pengumuman kalo tariff ditunda. 
+
+
+Di 2026, tunggu aja nanti akan ada pengumuman perang akan mereda.
+
+
+4. Ini bukan soal teori konspirasi tapi Ini soal membaca pola.
+
+
+Tidak ada dokumen yang membuktikan bahwa pemerintah AS sengaja menciptakan perang untuk refinancing. Tapi pola dua tahun berturut-turut dengan mekanisme yang sama maka bisa dibilang terlalu rapi untuk disebut kalo ini hanya sebuah kebetulan.
+
+
+
+
+DUA TAHUN, DUA EVENT, SATU POLA
+
+
+
+2025 Liberation Day tariff.
+
+
+2026 Perang Iran.
+
+
+Dua event yang berbeda tapi polanya sama persis 
+
+
+Terjadi tepat sebelum refinancing besar AS (Juni–Juli)
+
+
+Memicu risk-off yang mendorong investor ke USD dan UST
+
+
+Yield bergerak ke level optimal untuk menarik demand
+
+
+Treasury mendapatkan refinancing yang stabil
+
+
+Apakah ini kebetulan dua kali dalam dua tahun ?
+
+
+Di kalangan Floor Wall Street punya istilah untuk ini 
+
+
+"once is happenstance, twice is coincidence, three times is enemy action."
+
+
+Kita baru dua kali. Tapi polanya sudah terlalu rapi untuk disebut kebetulan.
+
+
+Di 2025, tariff jadi senjata.
+
+
+Di 2026, perang jadi senjata.
+
+
+Tapi tujuannya sama yaitu untuk memastikan Treasury AS bisa refinancing triliunan utang dengan demand yang cukup.
+
+
+Apakah ini kebetulan ? Atau ini skenario yang sengaja dirancang ?
+
+
+Tidak ada yang akan mengaku. Tidak ada dokumen yang akan membuktikan.
+
+
+Tapi seperti kata pepatah 
+
+
+"Don't look for the conspiracy. Look for who benefits."
+
+
+Dan kali ini yang diuntungkan adalah Treasury AS yang berhasil merefinancing utangnya dengan mulus. Dua kali dalam Dua tahun berturut-turut.
+
+
+No financial advice and dari sini saya ga usah jelasin lagi arah di depan nya apa yah. Saya sudah gamblang banget tuh jelasinya
+
+
+
+
+
+
+Ricky2212
+
+""",
+    },
+    "rkab_coal_journey": {
+        "title": "Perjalanan di mulai ? Point thesis RKAB menunggu ketok palu",
+        "category": "macro_thesis",
+        "subcategory": "coal_policy",
+        "themes": ["rkab", "coal", "bahlul", "production_cut", "supply_constraint"],
+        "tickers": ["AADI.JK", "BUMI.JK", "INDY.JK", "ITMG.JK"],
+        "quad_bias": """Q2""",
+        "regime_signal": "supply_shock",
+        "priority": 9,
+        "author": "Ricky2212",
+        "source": "mentorbaik",
+        "content": """
+Perjalanan di mulai ? Point thesis RKAB menunggu ketok palu 
+
+Perjalanan di mulai ? 
+
+
+
+
+Masih ingat artikel yang saya angkat beberapa minggu lalu tentang store of value di sektor energi ? 
+
+
+Masih ingat thesis nya ? coba cek lagi dari thesis tersebut ada beberapa faktor kenapa saya menaikkan energy sebagai thesis store of value
+
+
+Cek yah , salah satu point dari thesis store of value energt tersebut adalah Om Bahlul berencana memotong produksi batubara nasional kita. Produksi tersebut rencananya akan Deeply CUT dari 750 juta ton akan disesuaikan ke 550-600 juta ton. 
+
+
+Apa efek nya ? dengan begitu supply di luar akan sedikit banyak berkurang lah yah. 
+
+
+Game play ini sebenernya mirip banget dengan apa yang om Bahlul lakukan di Komoditas Nickel beberapa waktu lalu. Sukses ga kebijakan ini di nickel ? saya boleh bilang kebijakan tersebut terbilang sukses. Lihat saja tuh sekarang harga nickel berapa. Harga nickel naik and mulai stabil 
+
+
+Kelihatannya kebijakan penyesuain RKAB di batubara inI kalo tidak ada masalah and aral melintang lagi harusnya akan segera efektif and diberlakukan. 
+
+
+Kenapa saya bisa bilang begitu ? saya coba melihat data saham2x batubara yang diperdagangkan di bursa china. Pada perdagangan kali ini saham2x batubara di china mengalami kenaikan yang cukup lumayan sih diatas 5% bahkan ada yang naik 10-12% juga
+
+
+Setelah saya cari berita di luar , kenaikan saham batubara di china tersebut alasannya karena Indonesia akan melakukan CUT produksi batubaranya ( sumber berita luar )
+
+
+Ternyata saya juga menemukan berita dari sekuritas Stockbit bahwa merujuk dari berita bloomberg katanya RKAB yang kemarin sempat berceceran tersebut kemungkinan besar benar akan di implementasikan
+
+
+Saya juga dapat kabar dari salah satu teman saya bilang bahwa dia dapat berita dari salah satu perusahaan batubara listed mengungkapkan hal yang sama
+
+
+YUUUUUUHHHHHUUUUUU
+
+
+Masih ingat RKAB nya ? siapa yang produksi batubara nya tetap dan tidak kena potong ? merujuk dari berita dari Bloomberg yang diterbitkan Stockbit katanya ada 3 perusahaan yang produksinya tetap
+
+
+Ketiga perusahaan itu adalah AADI , BUMI dan INDY
+
+
+Pak , koq enak yah ketiga perusahaan tersebut tidak dipotong ? masalah politik kedekatan yah pak ? tidak juga , kalo melihat ketiganya adalah pemegang izin konsesi IUPK. IUPK itu mengenakan royalty batubara 28% ( paling besar dari izin yang lain ). Makanya tidak dipotong agar pemasukan negara bukan pajak nya dari royalty batubara tetap terjaga. Alasan lainnya pemegang IUPK sudah dibebankan banyak biaya ini itu , yah anggap saja itu bagian dari kompensasinya lah dari negara.
+
+
+Perjalanan thesis kita dimulai ? 
+
+
+INDY ? 
+
+
+BUMI ?
+
+
+AADI ? 
+
+
+ketiganya diuntungkan dalam hal ini. Mereka sedikit banyak nantinya akan menikmati kenaikan harga batubata dengan produksi yang tetap
+
+
+Perusahaan batubara lainnya ? penurunan produksi batubara nya mungkin nantinya akan ke offset oleh kenaikan harga batubara. 
+
+
+BUMI ? Satu thesis MSCI di february 2026 mungkin sudah gugur , tapi thesis lainnya yaitu store of value energy datang menghampiri 
+
+
+We dont need MSCI lah yah , anggap aja bonus kalo memang nanti masuk MSCI . 
+
+
+Buat perusahaan batubara lainnya ? saya belum tau RKAB persisnya yang akan di sah kan. 
+
+
+Tapi gini , saya coba ambil satu contoh saja satu perusahaan batubata yang saya kenal lumayan mendalam. 
+
+
+Dalam RKAB nya setelah saya hitung produksi mereka dipotong dari hampir 50% jadi sekitat 13 juta ton per tahun
+
+
+ITMG juga suka membeli batubara dari pihak luar buat blending batubara yang ada
+
+
+Saya coba buat perbandingan penjualannya
+
+
+asumsi harga spot batubara RKAB lama $110 dan asumsi harga spot batubara RKAB baru $150
+
+
+RKAB lama produksi 20 juta ton dengan pembelian pihak luar 3 juta ton => 23 juta ton
+
+
+23 juta ton x $80 ( 70% spot ) => sales 1.85 bio saya ambil NPM 20% maka NP adalah $370 juta
+
+
+EPS sekitar 5000 - 5500 an
+
+
+ 
+
+RKAB baru produksi 13 juta ton dengan pembelian pihak luar 2 juta ton => 15 juta ton
+
+
+15 juta ton x $110 ( 70% spot ) => sales 1.7 Bio
+
+saya ambil NPM pesimis 25% ( harga naik harusnya mungkin bisa 30% NPM ) maka NP adalah $425 juta
+
+
+EPS sekitar 6000 an
+
+
+Ini contoh coret2xan sederhana saya aja yah , saya coba bikin sedikit perbandingan aja dan gimana efeknya. Jangan terpaku oleh hitungan diatas
+
+
+Mari kita tunggu perjalanan di depan yah , kita lihat perjalanan store of value energy apakah sukses atau tidak ( saya sih kalo melihat semua data pendukung baik makro atau others yah kita mengarah kesana )
+
+
+Trump nyeleneh perang => sedang berlangsung
+
+
+Monetary nyeleneh => sedang berlangsung
+
+
+cuaca extreme => sedang berlangsung
+
+
+USD debasement => sudah berlangsung sejak lama
+
+
+Om bahlul ? ini kita tunggu efeknya kalo sampai diketok palu RKAB baru
+
+
+Tetap berjalan pada thesis store of value , itu narrative terkuat nya ( kalo bisa sekalian tambahin narrative 08 related )
+
+
+Jangan nanya saham di luar pembahasan ini , jangan suru saya milihin saham yah and jangan nanya price action
+
+
+
+
+
+
+Ricky2212
+
+""",
+    },
+    "siklus_perang_riskon": {
+        "title": "Siklus Perang, Risk-On, dan Kejutan dari Pasar Modal Kita (MSCI Clear & Bond Yield)",
+        "category": "macro_thesis",
+        "subcategory": "market_cycle",
+        "themes": ["iran", "war", "risk_on", "msci", "ojk", "yield", "bond", "inflated_rally", "bubble"],
+        "tickers": ["^JKSE", "EIDO", "SPY", "QQQ", "TLT", "GLD"],
+        "quad_bias": """Q2""",
+        "regime_signal": "risk_on_return",
+        "priority": 10,
+        "author": "Ricky2212",
+        "source": "mentorbaik",
+        "content": """Artikel: Siklus Perang, Risk-On, dan Kejutan dari Pasar Modal Kita
+
+Siklus Perang, Risk-On, dan Kejutan dari Pasar Modal Kita
+( Bond yield naik bukan tanda gagal tapi Itu sebuah strategi dan MSCI vlear di waktu yang sangat tidak kebetulan. )
+
+
+Siklus Perang, Risk-On, dan Kejutan dari Pasar Modal Kita
+
+
+
+
+( Bond yield naik bukan tanda gagal tapi Itu sebuah strategi dan MSCI vlear di waktu yang sangat tidak kebetulan. )
+
+
+
+
+
+
+
+
+
+
+Yap , seperti yang sudah saya duga kalo masalah HSC ini akan jadi momok di bursa kita hari ini. Saham2x yang terindikasi terkena HSC terkena tekanan jual yang cukup parah. Walau dari awal saya percaya sebenernya market sudah berasa Front Runner tapi yah tetap ada shock susulan. Next Shock adalah saat nanti kalo bener2x di dkeluarkan dari MSCI dan Passive fund akan menyesuaikan portofolio nya
+
+
+
+
+Tapi dari sana ? ada yang ketiban uang pindahan dari kejadian tersebut. Saya ga perlu sebut sahamnya lah yah
+
+
+
+
+Mari kita bahas semuanya yuk
+
+
+
+
+Semua kejadian ini tuh kaya dua papan catur sedang dimainkan secara bersamaan.
+
+
+
+
+Yang pertama ada di Washington, Tehran, dan Tel Aviv mengenai perang yang sedang berlangsung
+
+
+
+
+Yang kedua ada di Jakarta yang ada di lantai OJK dan ruang rapat BEI mengenai kelanjutan MSCI 
+
+
+
+
+Keduanya sedang menuju babak yang paling seru di waktu yang hampir sama persis.
+
+
+
+
+Kebetulan? Saya tidak percaya kalo itu semua kaya kebetulan 
+
+
+
+
+Saya coba flash back dikit lagi yah semua keadaannya.
+
+
+
+
+1. Perang Iran : Jangan salah baca sinyalnya
+
+
+
+
+Perang Iran resmi dimulai pada tanggal 28 Februari 2026.
+
+
+
+
+Efek klasiknya langsung terasa yaitu bikin Investor global pada panik. Dengan kepanikan maasal tersebut maka action nya langsung terjadi yaitu melakukan aksi jual pada aset berisiko . 
+
+
+
+
+Habis aset beresiko dijual , secara text book mereka akan memburu safe heaven yaitu dengan membeli USD dan US Treasury pun harusnya ikutan diburu. 
+
+
+
+
+Semua berlari ke safe haven seperti biasa. Risk-off textbook yang terjadi persis seperti yang diajarkan di buku teori.
+
+
+
+
+Tapi kemudian ada yang keanehan yang muncul ke permukaan yang jadi tidak biasa. 
+
+
+
+
+Yield US Treasury 10 tahun bukannya turun seperti yang harusnya terjadi kalau orang beneran lari ke obligasi AS. 
+
+
+
+
+UST Malah naik Ke kisaran level 4,30–4,37% di akhir Maret dan awal April.
+
+
+
+
+Banyak orang baca ini sebagai alarm. 
+
+
+
+
+"Waduh, bahkan obligasi AS sudah tidak dipercaya pasar." 
+
+
+
+
+atau 
+
+
+
+
+" Waduh ini bakal terjadi inflasi parah di depan sana "
+
+
+
+
+Tunggu dulu teman2x Ini bacaan yang terlalu tergesa-gesa. Saya sudah bahas dalam artikel sebelumnya bukan ?
+
+
+
+
+Justru dengan Yield naik tersebut adalah mekanisme pasar yang bekerja dengan benar.
+
+
+
+
+Di tengah ketidakpastian perang, investor tidak mau pegang obligasi dengan yield rendah. Mereka minta kompensasi lebih tinggi atas risiko yang mereka tanggung. 
+
+
+
+
+Jadi harga obligasi turun yang membuat yield naik sampai di titik dimana yield itu cukup menarik buat bikin investor mau masuk lagi membeli obligasi teraebut
+
+
+
+
+Ini bukan kegagalan tapi Ini proses penyesuaian harga yang wajar dan sehat.
+
+
+
+
+Analoginya simpel koq , bayangkan anda jual rumah di daerah yang lagi ada kerusuhan. Tidak ada yang mau beli di harga normal. Anda turunkan harga sampai ada yang tertarik. Itu bukan distress tapi itu sebuah mekanisme pasar.
+
+
+
+
+Harga minyak ikut melonjak ke $110–112 per barel. Ekspektasi inflasi naik ke 2,56%. Semua ini tambah memperkuat argumen bahwa yield lebih tinggi memang diperlukan bukan sebagai sinyal bahaya, tapi sebagai magnet menarik modal.
+
+
+
+
+2 . Lelang memang sepi tapi jangan remehkan amunisi treasury
+
+
+
+
+Memang berasa koq kalo ada yang tidak beres di pasar obligasi AS belakangan ini
+
+
+
+
+Beberapa lelang obligasi dengan tenor 2 tahun, 5 tahun dan 7 tahun berjalan dengan lesu. Bid-to-cover ratio turun yang menunjukkan peminat tidak sebanyak biasanya. 
+
+
+
+
+Ini fakta, dan saya tidak akan sembunyikan fakta bobrok kaya gini
+
+
+
+
+Pada tanggal 2 April 2026, Treasury AS melakukan sesuatu yang belum pernah dilakukan dalam skala sebesar ini. Mereka melakukan pembelian obligasi yang diterbitkan sendiri senilai $15 miliar.
+
+
+
+
+Ini bukan langkah panik. Ini manuver likuiditas yang sangat kalkulatif. Dengan pembelian ini, Treasury menyuntikkan likuiditas ke pasar dengan tujuan untuk menstabilkan harga dan sekaligus mengirimkan pesan ke pasar global bahwa "Kami masih pegang kendali."
+
+
+
+
+Dan dengan yield 30 tahun yang nyaris menyentuh 5%, obligasi AS sekarang menawarkan imbal hasil yang paling kompetitif dalam bertahun-tahun. 
+
+
+
+
+Investor yang tadinya wait and see saat risk off berlangsung harapannya mulai punya alasan kuat untuk masuk ke obligasi US tersebut
+
+
+
+
+Ya memang sih bantalan likuiditas The Fed yang dikenal sebagai ON RRP sudah menipis drastis. Dari puncaknya $2,3 triliun di 2022, sekarang tinggal sekitar $0,6 miliar saja.
+
+
+
+
+Likuiditas Fed mulai hampir habis.
+
+
+
+
+Tapi dari sni juga berarti ada satu hal di depan yang disiapkan terjadi yaitu The Fed punya ruang untuk melakukan pemotongan suku bunga. 
+
+
+
+
+3. Trump TACO dan rally yang anda tunggu
+
+
+
+
+Sekarang saya mau bicara lagi tentang sesuatu yang mungkin terdengar sinis. Tapi berdasarkan data historis yang pernah ada, ini adalah pola yang sudah terbukti berulang.
+
+
+
+
+Saya sebut ini TACO Framework atau Trump Always Chickens Out.
+
+
+
+
+Polanya selalu sama seperti yang sudah2x ( saya juga sudah tuliskan artikelnya ). Trump bikin masalah besar yang berasa kaya krisis. Lalu Trump akan naikkan tensi sampai pasar ketakutan. Tunggu sampai ada cukup kehancuran di pasar keuangan. Dan puncaknya adalah umumkan de-eskalasi dramatis, tampil ke publik sebagai pahlawan, dan akhirnya market akan panen rally.
+
+
+
+
+Ini persis yang terjadi dengan tarif liberation day April 2025. Tarif diumumkan dengan penuh drama, pasar keuangan jatuh, semua panik lalu tiba-tiba ada pause 90 hari, pasar lalu naik kencang, dan Trump dengan gagahnya mengklaim sebagai kemenangan.
+
+
+
+
+Sekarang, 2 April 2026, Trump mengklaim Presiden Iran meminta gencatan senjata. Pasar langsung merespons positif.
+
+
+
+
+Kenal polanya?
+
+
+
+
+Begitu de-eskalasi resmi diumumkan, skenario berikutnya sudah bisa diprediksi ?
+
+
+
+
+The Fed mungkin akan bersiap buat melakukan pemotongan suku bunga yang akan membuat likuiditas mengucur ke pasar. Dari sini investor keluar dari safe haven dan semua aset naik bersamaan.
+
+
+
+
+Tapi di sinilah saya minta anda berhenti sejenak dan berpikir lebih dalam.
+
+
+
+
+Rally yang nanti terjadi akan datang ini bukan rally yang sehat yah tapi Ini rally suntikan.
+
+
+
+
+Dan ini bukan fenomena baru. Ini punya nama dalam sejarah pasar modal yaitu inflated rally di ujung siklus bubble. 
+
+
+
+
+Dan setiap kali rally ini datang, rallynya selalu terasa sangat nyata, sangat meyakinkan dan sangat menggoda. Fiuhh rally ini berakdi persis sebelum dia runtuh.
+
+
+
+
+3B . Kita Sedang di Mana Dalam Siklus Ini?
+
+
+
+
+Izinkan saya tarik sejarah mundur sebentar ke sebuah gambaran besar.
+
+
+
+
+Siklus bubble punya anatomi yang konsisten sepanjang sejarah. 
+
+
+
+
+Dimulai dari inovasi atau ekspansi kredit yang genuinely menarik => Harga naik => Orang-orang dapat uang =>Berita bagus menyebar => Lebih banyak orang masuk => Harga naik lagi => Valuasi mulai tidak masuk akal
+
+
+
+
+Masalahnya semua orang masih merasa baik-baik saja karena rekening mereka masih hijau mentereng saat itu
+
+
+
+
+Lalu pada waktunya datang fase paling berbahaya yaitu the last inflated rally.
+
+
+
+
+Di ujung siklus, biasanya ada satu momen dimana semuanya naik bersamaan dengan kencang bukan karena fundamental, tapi karena stimulus, likuiditas murah, atau katalis berita besar yang memicu FOMO masif. 
+
+
+
+
+Semua kelas aset naik serentak seperti saham, komoditas, emas, kripto, properti.
+
+
+
+
+Ini yang disebut "everything rally" dan sejarah mencatat beberapa versi yang sangat menyakitkan.
+
+
+
+
+1999–2000 => The Fed potong suku bunga pasca krisis LTCM dan Asia. Likuiditas masuk. Nasdaq meledak naik hampir 80% dalam satu tahun. Semua orang merasa genius. Lalu dot-com bubble meledak, Nasdaq turun 78% dalam 2,5 tahun.
+
+
+
+
+2007 => The Fed mulai potong suku bunga setelah gejolak subprime awal. Pasar saham global rally ke level tertinggi sepanjang masa di Oktober 2007. Euforia di mana-mana. Tiga bulan kemudian, GFC dimulai. S&P 500 turun 57% dalam 17 bulan.
+
+
+
+
+2021 => Stimulus COVID triliunan dolar, suku bunga nol, semua orang dapat cek dari pemerintah. Everything naik seperti saham, NFT, kripto, SPAC, properti. Kemudian 2022 datang, dan saham teknologi global rata-rata turun 60–80%.
+
+
+
+
+Pola yang sama yang selalu akan berulang stimulus => rally => euforia => koreksi brutal.
+
+
+
+
+Sekarang perhatikan kondisi hari ini.
+
+
+
+
+Valuasi saham di AS dapat diukur dengan berbagai metrik mulai dari Shiller P/E sampai Market Cap to GDP yang sekarang sudah ada di level yang secara historis hanya terlampaui dua kali yaitu tahun 1929 sebelum Great Depression dan tahun 2000 sebelum dot-com crash.
+
+
+
+
+Utang pemerintah global juga ada di level tertinggi sepanjang sejarah di masa damai.
+
+
+
+
+Bantalan likuiditas The Fed hampir habis di ON RRP tinggal $0,6 miliar dari puncak $2,3 triliun.
+
+
+
+
+Dan sekarang The Fed akan dipaksa potong suku bunga bukan karena ekonomi sehat, tapi karena perang memaksa mereka. 
+
+
+
+
+Ini tuh bakal jadi pemotongan suku bunga yang bersifat defensif, bukan untuk ekspansif. 
+
+
+
+
+Ada bedanya yang besar dari sana :
+
+
+
+
+Dalam sejarahnya setiap kali The Fed potong suku bunga di tengah kondisi seperti ini tuh valuasi sudah tinggi, utang sudah menumpuk, sistem sudah fragile yang terjadi bukan soft landing tapi yang terjadi adalah rally terakhir sebelum crash.
+
+
+
+
+Bukan berarti crash pasti terjadi besok. Bukan berarti anda harus jual semua sekarang loh yah. Anda harus ingat tone yang saya sampaikan
+
+
+
+
+Tapi ini berarti rally yang akan datang pasca de-eskalasi Iran harus anda nikmati dengan satu tangan di pintu keluar.
+
+
+
+
+Mereka yang paham ini nanti akan naik di fase awal, ambil profit, dan keluar sebelum pesta berakhir.
+
+
+
+
+Mereka yang tidak paham nanti akan masuk di puncak euforia persis seperti yang dilakukan retail investor di setiap bubble dalam sejarah dan menjadi yang paling terpukul ketika koreksi datang.
+
+
+
+
+4. Kejutan Domestik : MSCI clear di hari yang sangat tidak biasa
+
+
+
+
+Sekarang kita pindah papan catur ke Jakarta dimana IHSG sedang bergulat dengan banyak berita buruk
+
+
+
+
+Tanggal 2 April 2026 hari yang sama dengan buyback bersejarah Treasury AS , saat iti OJK beserta BEI dan KSEI secara resmi mengumumkan daftar saham dengan High Shareholding Concentration (HSC).
+
+
+
+
+Satu hari ada dua kejadian besar. Dua sisi bumi yang berbeda dan ini tuh bukan kebetulan administrasi belaka yah. Ini berasa kaya sebuah irama choreography dalam sebuah pergelaran konser music
+
+
+
+
+Untuk anda yang belum tahu konteksnya saya coba sampaikan bahwa Indonesia sudah lama tersangkut masalah dengan MSCI (Morgan Stanley Capital International ) indeks acuan bagi triliunan dolar dana institusional global.
+
+
+
+
+Selama bertahun-tahun, MSCI memasang Indonesia di status Watch List yang artinya mereka menahan diri untuk menaikkan bobot Indonesia karena ada masalah transparansi pada kepemilikan saham.
+
+
+
+
+Masalah intinya adalah banyak saham besar di bursa kita yang kepemilikan sesungguhnya atau UBO (Ultimate Beneficial Owner ) tidak jelas. 
+
+
+
+
+Masalahnya adalah 
+
+
+
+
+Siapa yang benar-benar pegang sahamnya ?
+
+
+
+
+Berapa banyak yang beredar bebas di pasar (free float) ? 
+
+
+
+
+Investor institusional global tidak suka dengan data gelap seperti ini.
+
+
+
+
+Dengan pengumuman HSC ini, Indonesia akhirnya membuka kartunya dan menelanjangi sampe ke titik terdalam. Daftar saham-saham dengan konsentrasi kepemilikan tinggi kini sudah masuk ke fase transparan. Aturan free float minimum 15% untuk masuk indeks LQ45/IDX30 sudah ditetapkan.
+
+
+
+
+OJK juga sudah menjadwalkan pertemuan langsung dengan pimpinan MSCI di pekan ketiga April 2026.
+
+
+
+
+IMHO yah , kemungkinan indonesia diturunkan ke frontier market sih sepertinya kecil sekali chance nya
+
+
+
+
+Kemungkinan besar yang terjadi adalah Indonesia tetap akan di Emerging market tapi bobotnya saja disesuaikan alias agak turun
+
+
+
+
+Ketakutan luar biasa turun ke frontier market mungkin akan bisa jadi berita baik saat di reverse dengan berita ga turun ke frontier market
+
+
+
+
+Beuhh , saham yang clear dari semua hal ini apa ? yah itu lah yah.
+
+
+
+
+5. Dua Katalis Bersamaan : Ini Yang Harus Anda Pahami
+
+
+
+
+Sekarang hubungkan semua titiknya.
+
+
+
+
+De-eskalasi perang Iran akan memicu gelombang risk-on global. Dana institusional yang tadinya sembunyi di balik US Treasury dan emas akan mulai keluar mencari return. Emerging market yang punya fundamental kuat akan jadi sasaran pertama.
+
+
+
+
+Di saat yang hampir bersamaan, Indonesia menyelesaikan PR besarnya dengan MSCI. Transparansi kepemilikan saham mulai terbuka. Investor asing kini punya panduan yang lebih jelas tentang mana saham yang aman untuk dimasuki.
+
+
+
+
+Dua katalis ini bertabrakan di satu titik waktu yang sama.
+
+
+
+
+Kalau risk-on datang tanpa MSCI clear, kapital masuk tapi tidak tahu mau masuk ke mana.
+
+
+
+
+Ini kaya jadi perjalanan yang berasa setengah efektif.
+
+
+
+
+Kalau MSCI clear tanpa risk-on maka reformasi bagus, tapi tidak ada modal yang datang juga dan malah jadi sia-sia.
+
+
+
+
+Tapi keduanya datang bersamaan? Ini yang disebut perfect timing. Dan IHSG bisa jadi penerima manfaat terbesar.
+
+
+
+
+Saham-saham yang masuk daftar HSC, seperti BREN dan DSSA, masih punya risiko likuiditas tinggi. Investor asing besar tidak akan sembarangan masuk ke saham yang free float-nya mepet dan struktur kepemilikannya tidak jelas. 
+
+
+
+
+Mereka akan lebih selektif dalam memilih. Mereka akan cari saham dengan free float sehat, UBO transparan, dan fundamental yang bisa dipertanggungjawabkan.
+
+
+
+
+Rotasi dari saham HSC ke saham berkualitas sangat mungkin terjadi dan ini bisa jadi peluang maupun jebakan tergantung anda ada di sisi mana.
+
+
+
+
+6. Strategi : Pegang Narrative Yang Benar Dulu
+
+
+
+
+Di tengah semua ini, banyak investor langsung loncat ke pertanyaan : 
+
+
+
+
+" Saham apa yang harus dibeli ? "
+
+
+
+
+Itu pertanyaan yang terlalu terburu-buru. Pertanyaan yang lebih tepat adalah narrative apa yang sedang berjalan, dan anda ada di dalamnya atau tidak ?
+
+
+
+
+Dan narrative yang paling kuat sekarang adalah narrative yang didukung oleh perang, inflasi, ketidakpastian geopolitik, dan melemahnya kepercayaan pada sistem keuangan konvensional adalah narrative store of value terutama sektor energy yang masih menyisakan banyak masalah nanti pasca perang usai
+
+
+ 
+
+
+Ini bukan narrative baru. Ini narrative yang selalu muncul di setiap periode ketidakstabilan besar sepanjang sejarah manusia. Ketika sistem goyah, manusia lari ke sesuatu yang tidak bisa dicetak oleh pemerintah manapun, tidak bisa dimanipulasi oleh bank sentral manapun, dan nilainya tidak bergantung pada janji siapapun.
+
+
+
+
+Emas sudah membuktikan ini ribuan tahun. Tapi di siklus ini, store of value punya wajah yang lebih luas.
+
+
+
+
+Emas sifatnya klasik, terbukti, dan sudah bergerak duluan. Tapi belum terlambat, karena perang yang berkepanjangan dan ketidakpastian yang makin dalam biasanya mendorong emas jauh lebih tinggi dari yang kebanyakan orang ekspektasikan.
+
+
+
+
+Komoditas strategis seperti minyak, nikel, tembaga. Di tengah perang dan deglobalisasi, komoditas bukan cuma soal supply demand biasa. Mereka jadi senjata geopolitik. Siapa yang kontrol komoditas strategis berarti akan punya kontrol negosiasi.
+
+
+
+
+Intinya sederhana dalam siklus perang dan ketidakpastian, yang bertahan adalah yang pegang sesuatu yang nyata. Bukan kertas. Bukan janji. Bukan valuasi yang bergantung pada suku bunga rendah.
+
+
+
+
+Nah, nanti soal MSCI kalau memang berjalan lancar, pertemuan OJK dengan MSCI di pekan ketiga April menghasilkan progress nyata, dan inflow asing benar-benar masuk ke bursa kita anggap lah itu bonus. Katalis tambahan yang mempercepat, bukan fondasi utama thesis anda.
+
+
+
+
+Jangan bangun strategi anda di atas bonus tapi bangun di atas narrative yang sudah terbukti dari waktu ke waktu
+
+
+
+
+Store of value bukan findimintil. Ini bukan cerita yang dibuat-buat supaya saham naik. Ini adalah respons rasional manusia terhadap ketidakpastian yang sedang terjadi sekarang, secara nyata, di depan mata kita semua.
+
+
+
+
+Sebagai penutup 
+
+
+
+
+Dua papan catur di dua babak akhir dan terjadi pada satu waktu yang hampir bersamaan.
+
+
+
+
+Global => perang Iran menuju de-eskalasi yang sudah bisa diprediksi polanya. Risk-on akan kembali. Likuiditas akan masuk. Rally akan datang tapi ini bukan rally karena dunia membaik. Ini rally karena sistem dipaksa disuntik lagi, di ujung siklus yang valuasinya sudah sangat tinggi. Sejarah mencatat dengan konsisten: rally seperti ini indah di awal, dan sangat menyakitkan di akhir.
+
+
+
+
+Domestik => MSCI mulai clear, peta kepemilikan saham terbuka, investor asing punya kompas baru untuk masuk ke bursa kita. Ini katalis riil bukan hanya euforia. Tapi tetap perlakukan ini sebagai bonus, bukan fondasi.
+
+
+Fondasi anda tetap satu yaitu perang menciptakan ketidakpastian, ketidakpastian mendorong manusia ke store of value, dan store of value tidak butuh izin dari siapapun untuk naik.
+
+
+
+
+Nikmati pestanya. Tapi jangan lupa tahu di mana pintu keluarnya.
+
+
+
+
+no investment advice , no price action question.
+
+
+
+
+
+
+
+
+
+
+Ricky2212 
+
+
+
+""",
+    },
+    "taco_chapter2_fed_rally": {
+        "title": "TACO Chapter 2, Fed Berikutnya, dan Most Hated Inflated Rally",
+        "category": "macro_thesis",
+        "subcategory": "market_cycle",
+        "themes": ["taco", "trump", "iran", "fed", "warsh", "cut", "rally", "inflated_rally", "bubble", "liquidity"],
+        "tickers": ["SPY", "QQQ", "TLT", "GLD", "BTC"],
+        "quad_bias": """Q2→Q3""",
+        "regime_signal": "inflated_rally",
+        "priority": 10,
+        "author": "Ricky2212",
+        "source": "mentorbaik",
+        "content": """
+TACO Chapter 2, Fed Berikutnya, dan Most Hated Inflated Rally
+
+
+TACO Chapter 2, Fed Berikutnya, dan Most Hated Inflated Rally
+
+
+
+
+
+
+
+
+Irama yang satu ini sudah terlalu familiar di pasar saham. Dan justru karena terlalu familiar, jadi banyak banget orang yang ikutan ramai membahasnya dan berasa pasar sekarang sudah lebih pintar dari pemainnya sendiri. 
+
+
+
+
+Mari kita baca situasi terkini dengan kepala dingin yah
+
+
+
+
+1. TACO Sudah Terbukti. Lagi.
+
+
+
+
+Pada tanggal 8 April 2026 , Pakistan mengumumkan gencatan senjata dua minggu antara AS dan Iran. Ceasefire resmi berlaku. Persis seperti pola yang sudah kita hafal sejak 2025. 
+
+
+
+
+Trump memberikan ancaman besar yang membuat pasar jatuh. Trump mundur tepat sebelum deadline yang membuat pasar kembali rally. 
+
+
+
+
+Saat itu harga minyak WTI langsung ambruk 15% ke $95 dalam satu hari, penurunan terbesar sejak 2020. Futures S&P 500 naik 2% dalam hitungan menit. Bahkan sebelum pengumuman resmi, saat Trump masih mengancam bahwa
+
+
+
+
+"satu peradaban akan mati malam ini"
+
+
+
+
+S&P 500 dan Nasdaq sudah ditutup positif di sesi reguler. Pasar tidak percaya drama Trump lagi. Mereka sudah hafal alurnya dan format TACO terbukti lagi.
+
+
+
+
+2. Tapi Ini Belum Selesai. Ini TACO Chapter 2.
+
+
+
+
+Sekarang baca situasi hari ini 13 April 2026, yang saya sudah bahas di artikel yang saya post kemarin. 
+
+
+
+
+Perundingan yang terjadi di Islamabad yang berlangsung 21 jam maraton pada 11-12 April seperti kita ketahui berakhir gagal. Tidak ada deal yang terjadi diantara kedua belah pihak.
+
+
+
+
+JD Vance meninggalkan Pakistan dengan pernyataan 
+
+
+
+
+"Kami tidak mencapai kesepakatan. Dan saya pikir itu lebih buruk bagi Iran daripada bagi AS." 
+
+
+
+
+Ceasefire dua minggu masih berlaku secara teknis, tapi sudah retak di mana-mana. Israel terus melakukan serangan membabi huta ke wilayah Lebanon. 
+
+
+
+
+Padahal Iran klaimnya ceasefire termasuk cease fire ke Lebanon. Pihak Amrik dan Israel bilang kalo itu tidak termasuk loh.
+
+
+
+
+Selat Hormuz yang sempat dibuka kembali, langsung ditutup lagi oleh Iran setelah serangan Israel ke Lebanon. 
+
+
+
+
+Dan pagi ini, AS mengumumkan blockade penuh atas semua lalu lintas kapal dari pelabuhan Iran di Selat Hormuz mulai pukul 10 pagi ET hari ini. Minyak WTI langsung melonjak 8,6% ke $104 , Brent naik 7,3% k $102.
+
+
+
+
+Terdengar mengerikan? Memang sengaja dibuat terdengar mengerikan. Tapi seperti biasa kalo ini bukan akhir cerita. Ini adalah cikal bakal TACO Chapter 2, re-eskalasi sebelum de-eskalasi final. 
+
+
+
+
+Anda harus ingat kalo Trump butuh posisi bargaining yang lebih kuat sebelum dia bisa umumkan "kemenangan besar" yang sesungguhnya.
+
+
+
+
+Vance meninggalkan satu pintu terbuka 
+
+
+
+
+"Kami tinggalkan satu proposal sederhana, ini adalah tawaran final dan terbaik kami. Kita lihat apakah Iran menerimanya." 
+
+
+
+
+Pintu belum ditutup. Ini masih negosiasi dengan tekanan yang lebih tinggi. Dan kita akan berjalan dari negoisasi ke negoisasi ke depannya
+
+
+
+
+# Kenapa De-Eskalasi Final Tetap Harus Terjadi Sebelum bulan Juni ?
+
+
+
+
+Ini yang saya mau sampaikan lagi dan harus anda pahami, ini bukan soal apakah Trump mau damai atau tidak tapi ini soal kalender dan kepentingan yang memaksa.
+
+
+
+
+Pada tanggal 16 April 2026 nanti akan ada Sidang Konfirmasi terhadap calon ketua Fed yang baru yang digadangwx adalah Kevin Warsh. 
+
+
+
+
+Warsh menjalani sidang konfirmasi Senat sebagai calon Ketua The Fed pengganti Powell. Powell resmi selesai masa jabatannya sebagai Ketua Fed pada tanggal 15 Mei 2026.
+
+
+
+
+Secara eksplisit Warsh sudah berkomitmen secara terbuka bahwa suku bunga harus lebih rendah. Dari awal alasan Trump memilihnya persis karena alasan itu. 
+
+
+
+
+Pasar sudah pricing in pergantian ini dan begitu Warsh resmi dilantik nanti, siklus pemotongan suku bunga bisa saja dimulai.
+
+
+
+
+# Pada bulan Mei nanti tugas Powell sebagai Fed Chairman selesai dan Warsh masuk buat menggantikannya. 
+
+
+
+
+Warsh diperkirakan akan mempercepat laju pemotongan suku bunga dengan pendekatan front-loaded, berbeda total dari Powell yang selalu menunggu data dulu alias Mr too late
+
+
+
+
+Data tentang ON RRP juga sudah hampir habis, dari puncak $2,3 triliun di 2022, sekarang tinggal $0,6 miliar . 
+
+
+
+
+Secara sistem dan secara mekanisme dasar , dalam keadaan ini sistem keuangan membutuhkan inject likuiditas baru dan pemotongan suku bunga.
+
+
+
+
+Warsh punya justifikasi sempurna yaitu alasan perang bisa merusak pertumbuhan ekonomi ditambah dengan inflasi dari minyak akan mereda setelah konflik selesai dan hal itu yang akan membuat suku bunga harus turun.
+
+
+
+
+# Pada bulan Juni, dua deadline yang tidak bisa ditunda. 
+
+
+
+
+Pertama adalah Piala Dunia FIFA 2026. Amerika ditampuk sebagai tuan rumah. Seluruh mata dunia tertuju ke AS. Trump tidak mau panggung terbesar dalam 4 tahun kepresidenannya dirusak oleh perang yang berkepanjangan dan harga bensin yang mencekik rakyatnya sendiri.
+
+
+
+
+Ini bukan analisis ekonomi, ini membaca karakter dan motivasi politik seseorang. 
+
+
+
+
+Kedua adalah refinancing deadline utang AS yang sedang digarap sekarang lewat narasi perang. Kebanyakan deadline nya tuh di bulan Juni dan bisa dipercepat penyelesaian refinancingnya sebelum Juni
+
+
+
+
+Semua jalan mengarah ke titik yang sama yaitu resolusi harus terjadi sebelum bulan Juni.
+
+
+
+
+Trump butuh , Treasury butuh dan Warsh punya alat untuk mengeksekusinya.
+
+
+
+
+# Most Hated Inflated Rally , pahami Ini sebagai bagian perjalanan nanti
+
+
+
+
+Sekarang saya masuk ke bagian yang paling penting untuk anda sebagai investor. 
+
+
+
+
+Ketika de-eskalasi final terjadi dan berdasarkan semua kalender kepentingan di atas, saya bisa bilang bahwa hal tersebut diatas kemungkinan besar akan membuat pasar akan masuk ke fase yang saya sebut most hated inflated rally.
+
+
+
+
+Kalo melihat sejarah yang berulang dari setiap cycle , rasanya besar sih chance diatas terjadi
+
+
+
+
+Saya coba bedah dua kata diatas satu per satu.
+
+
+
+
+Inflated artinya kenaikan ini bukan karena fundamental ekonomi yang membaik. Laba perusahaan tidak melonjak. Pertumbuhan ekonomi tidak ekspansif. Pengangguran tidak turun drastis. 
+
+
+
+
+Yang membuat pasar naik adalah likuiditas yang tidak tahu harus kemana akibat uang yang disuntikkan The Fed lewat pemotongan suku bunga mengucur ke pasar dan harus pergi ke suatu tempat. 
+
+
+
+
+Saham, emas, komoditas, kripto, semua naik bukan karena dunia tiba2x lebih baik, tapi karena ada lebih banyak uang yang mengejar aset yang sama. 
+
+
+
+
+Ibarat pasien sakit parah tapi coba disuntik dengan adrenalin. Dia bisa berdiri dan jalan sebentar, tapi penyakitnya belum tersembuhkan. 
+
+
+
+
+Most hated, inilah yang paling unik dari rally ini.
+
+
+
+
+Setelah berbulan2x kita disuguhkan oleh hal tentang perang, berita buruk, trauma pasar, kehancuran portofolio maka keadaan tersebut akan membuat investor akan sangat skeptis tingkat akut ketika harga mulai naik. 
+
+
+
+
+Mereka akan bilang ini dead cat bounce. Mereka akan bilang ini perangkap. Mereka akan hold cash dan tunggu koreksi yang tidak kunjung datang. Setiap kali naik 3 persen, mereka bilang sebentar lagi turun. Tapi masalahnya turunnya tidak datang2x
+
+
+
+
+Dan justru karena masih banyak yang ragu dan belum masuk, rally ini bisa bertahan jauh lebih lama dari yang mereka perkirakan. 
+
+
+
+
+Sejarah mencatat pola ini berulang yaitu 1999 pasca krisis LTCM, 2009 pasca GFC, 2020 pasca COVID crash. 
+
+
+
+
+Setiap rally sebelum krisis besar selalu dimulai dengan sentimen yang mayoritas masih bearish. Pasar baru jatuh ketika semua orang sudah yakin dan ikut masuk, bukan sebelumnya. Ketika sentimen berubah dari benci menjadi cinta, itulah saatnya pintu keluar harus sudah disiapkan.
+
+
+
+
+# Empat sinyal yang harus anda pantau
+
+
+
+
+Ini bukan opini tapi ini checklist konkret.
+
+
+
+
+VIX harus turun di bawah 20. Sekarang masih di kisaran 22 an. Selama VIX di atas 20, pasar masih butuh "asuransi" karena masih takut, masih belum yakin badai sudah lewat. Di bawah 20 adalah konfirmasi volatilitas mereda.
+
+
+
+
+DXY harus turun di bawah 98. Sekarang di 98.75, sudah di tepi ambang batas. DXY di bawah 98 artinya modal global mulai kabur dari dolar ke aset lain. Emerging market seperti Indonesia adalah salah satu tujuannya.
+
+
+
+
+UST 2Y harus kembali di bawah 3,5 persen. Ini indikator ekspektasi pasar terhadap suku bunga. Kalau ini turun ke bawah 3,5 persen, pasar sudah pricing in pemotongan Warsh yang signifikan. Likuiditas perlahan akan masuk.
+
+
+
+
+BTC harus bertahan di atas $72k - $ 73k. . Bitcoin adalah barometer likuiditas global yang paling jujur. Tidak bisa dimanipulasi oleh siapapun. Kalau BTC stay above 72k dan tembus resistance 74-76k, itu konfirmasi risk-on parah sudah dimulai.
+
+
+
+
+Pantau keempat ini setiap hari. Ketika semuanya terpenuhi bersamaan, anda tidak perlu tanya siapa pun lagi.
+
+
+
+
+# Tapi Tetap Ingat Kalo Ini Rally Dengan Batas Waktu
+
+
+
+
+Saya tidak ingin anda terbawa euforia tanpa konteks. Rally ini punya fondasi yang rapuh. Valuasi saham AS sudah di level tertinggi sepanjang sejarah, hanya pernah terlampaui dua kali yaitu 1929 sebelum Great Depression dan 2000 sebelum dot-com crash. Utang pemerintah global ada di level tertinggi di masa damai. Sistem keuangan pun masih fragile.
+
+
+
+
+Pemotongan suku bunga Warsh bukan karena ekonomi sehat, ini pemotongan defensif karena perang memaksa.
+
+
+
+
+Ketika suntikan likuiditas ini mulai habis atau ketika inflasi naik lebih cepat dari perkiraan atau ketika pasar akhirnya sadar bahwa tidak ada yang benar-benar berubah secara fundamental maka yang terjadi adalah sebuah koreksinya yang brutal. Karena tidak ada fondasi nyata atas kenaikan pasar ini.
+
+
+
+
+Semuanya semua dan hanya karena Likuiditas
+
+
+
+
+Nikmati naiknya tapi satu tangan tetap di pintu keluar.
+
+
+
+
+Sebagai penutup
+
+
+
+
+Siklus terus berjalan persis seperti yang bisa kita prediksi. 
+
+
+
+
+TACO Chapter 1 sudah terbukti, ceasefire terjadi persis sebelum deadline. 
+
+
+
+
+TACO Chapter 2 sedang berlangsung, blockade, re-eskalasi, tekanan maksimum sebelum deal final. De-eskalasi final akan datang, karena kalender Juni tidak memberi pilihan lain.
+
+
+
+
+Lalu Warsh masuk dan mungkin suku bunga dipotong yang membuat Likuiditas akan mengucur. 
+
+
+
+
+Most hated inflated rally dimulai pasca semua ini terjadi
+
+
+
+
+Mereka yang paham polanya akan sudah ada di posisi yang benar sebelum semua orang lain tersadar. Mereka yang menunggu konfirmasi dari semua orang akan masuk tepat di puncak.
+
+
+
+
+Anda tahu anda ada di kelompok mana bukan ?
+
+
+
+
+Ini bukan ajakan jual beli. Lakukan riset anda sendiri sebelum mengambil keputusan investasi apapun.
+
+
+
+
+Ehh btw saya banyak dapat cerita dari teman di buyer side and seller side.
+
+
+
+
+Anda tau apa yang mereka katakan mengenai rally yang terjadi belakangan ini ? 
+
+
+
+
+Ahhh , ini mah rally palsu. Rally abal2x  
+
+
+
+
+Ga mungkin lah ini membaik. 
+
+
+
+
+Perang tuh bikin hancur semua fondasi ekonomi 
+
+
+
+
+Perang bisa berkepanjangan
+
+
+
+
+Belum lagi 08 tuh liat kelakuannya
+
+
+
+
+Belum lagi tuh program hambur2x uang
+
+
+
+
+Belum lagi APBN kita morat marit
+
+
+
+
+Belum lagi
+
+
+
+
+Belum lagi 
+
+
+
+
+Belum lagi
+
+
+
+
+Belum lagi
+
+
+
+
+Ratusan belum lagi bisa mereka keluarkan sebagai basi argumen lemah mereka
+
+
+
+
+Apa yang terdengar and terlihat ? Gilaa sih yah semua kaya berasa banget sempurna
+
+
+
+
+TACO Trump polanya sempurna hanya beda narasi saja , penontonnya pun sama pola kelakuannya
+
+
+
+
+Deja Vu
+
+
+
+
+Tahun lalu juga bilang saat Trump Tarif
+
+
+
+
+Ahhh dunia bisa kiamat karena tariff
+
+
+
+
+Ahhh dunia biaa resesi nih karena tarif
+
+
+
+
+Ahh malah dunia bisa depresi ini mah
+
+
+
+
+Ahh ini tarif bisa bikin stagflation
+
+
+
+
+ahhh ini bisa berkepanjangan and ga tau sampai kapan
+
+
+
+
+Ahhh 08 ga becus urus negara
+
+
+
+
+Ahhh 08 bilang saham itu judi
+
+
+
+
+ahhhh 08 ga berpihak sama bursa
+
+
+
+
+ratusan ahhh mereka bisa bikin buat menguatkan argumennya
+
+
+
+
+Dan pihak yang bicara sekarang adalah pihak yang bicara sama tahun lalu
+
+
+
+
+Pihak yang planga plongo melihat rally pasar dari 5800 ke 9100 an
+
+
+
+
+Well , silakan anda pahami saja yah
+
+
+
+
+No investment advice and no price action queation
+
+
+
+
+saya bisa benar dan saya bisa salah. namanya juga corat coret
+
+
+
+
+
+
+
+
+
+
+
+
+Ricky2212 
+
+""",
+    },
+    "taco_trump_chickens_out": {
+        "title": "TACO — Trump Always Chickens Out (Tariff War 2025, Perang Iran 2026)",
+        "category": "geopolitics",
+        "subcategory": "us_politics",
+        "themes": ["taco", "trump", "tariff", "iran", "war", "negotiation", "pattern", "wall_street"],
+        "tickers": ["SPY", "QQQ", "USO", "CL=F"],
+        "quad_bias": None,
+        "regime_signal": "taco_pattern",
+        "priority": 9,
+        "author": "Ricky2212",
+        "source": "mentorbaik",
+        "content": """Artikel: TACO — Trump Always Chickens Out
+
+TACO — Trump Always Chickens Out
+(Tariff War 2025 , Perang Iran 2026 , Review dari saya tentang TACO )
+
+
+TACO — Trump Always Chickens Out
+
+(Tariff War 2025 , Perang Iran 2026 , Review dari saya tentang TACO )
+
+
+
+
+Artikel ini saya buat terdorong dari banyak pembicaraan saya tentang Trump TACO yang beberapa kali berulang saat perang Iran ini
+
+
+Bukan hanya sekali Trump melakukan aksi TACO nya , tapi sudah berulang kali dilakukan dan sama sekali tidak berubah pattern nya
+
+
+Terakhir Trump TACO soal katanya kalo Selat Hormuz ga dibuka dalam 48 jam maka dia mengancam akan menghancurkan infastruktur listriknya Iran.
+
+
+Segera setelah itu beberapa teman saya langsung bertanya kepada saya akan hal ini. Gimana nih reaksinya ? bisa tambah parah nih keadaan kalo kaya begini
+
+
+Saya bilang TACO lah , habis ini IRAN akan balik mengancam dengan keras juga untuk memberikan respon akan ancaman tersebut dan Trump akan balik TACO
+
+
+Benar adanya Iran mengancam kalo memang dihancurkan infrastruktur listriknya , maka dia akan menutup total selat Hormuz dan akan balik menghancurkan infrastruktut listrik negara tetangga nya
+
+
+What a Drama , tapi saya ga pernah kaget akan hal tersebut. TACO tetap lah TACO dan ini adalah permainan Yo-Yo
+
+
+Banyak sekali yang sudah ketakutan akut sampai depresi karena kejadian perang ini
+
+
+Liat saja , satu waktu semua akan lupa kalo market pernah turun dan membuat banyak orang depresi
+
+
+Oke , saya mulai artikelnya.
+
+
+Saya mau mulai dengan satu kutipan yang lahir di Wall Street pada 2 Mei 2025 dari seorang kolumnis Financial Times bernama Robert Armstrong
+
+
+"Markets are realizing that the US administration does not have a very high tolerance for market and economic pressure and will be quick to back off when tariffs cause pain."
+
+
+Dia menyebutnya TACO atau singkatan dari Trump Always Chickens Out alias Trump Coward atau Trump pengecut
+
+
+Dalam sembilan bulan lamanya istilah itu mengubah cara seluruh analis Wall Street membaca setiap keputusan Trump.
+
+
+Malah bagian tersebut jadi mazhad analisa baru di pasar saham dunia. 
+
+
+gokz banget dah
+
+
+1. TACO TARIFF 2025 => LAHIR , BERKEMBANG , DAN MENJADI AGAMA WALL STREET
+
+
+Sebelum TACO muncul , dunia tuh masih percaya sama kredibilitas Trump
+
+
+Pada bulan Januari 2025. Trump kembali ke Gedung Putih. Saat itu pasar menyambut dengan nervous.
+
+
+Semua tau tariff akan datang. Tapi seberapa serius ?
+
+
+Jawaban pertama lamgsung datang sangat cepat.
+
+
+Tariff ke Canada dan Mexico. Tariff ke China. Tariff ke baja dan aluminium. Satu per satu. Pasar terguncang setiap kali announcement datang.
+
+
+Tapi setiap kali ada delay disana ada negosiasi dan ada saja pengecualian
+
+
+From Colombia's flight ban dispute ke reciprocal tariffs . Tariffs initially scheduled for April were pushed to July and later to August and deepening suspicions that volatility itself was part of the strategy.  
+
+
+saya ambil berita itu dari sebuah situs berita ekonomi ternama dunia 
+
+
+Dari san pasar mulai belajar dan mulai mengenali polanya. 
+
+
+2 April 2025 saat itu terjadi Liberation Day : Trigger Yang Melahirkan TACO
+
+
+Pada 2 April 2025 Trump menandatangani Executive Order yang mengumumkan tariff sweeping ke hampir semua negara. 
+
+
+Ini adalah "Liberation Day." Tariff rates yang diumumkan jauh lebih besar dari yang diperkirakan siapapun. 
+
+
+Ketika Trump mengumumkan "Liberation Day" tariffs pada 2 April , saat itu pasar saham dunia kehilangan sekitar $3.1 triliun nilai dalam satu hari .
+
+
+Itu jadi penurunan terbesar sejak COVID-19 pandemic. 
+
+
+Dow Jones turun hampir 4%. S&P 500 turun 4.8%.  
+
+
+Dalam empat hari kumulatif S&P 500 jatuh sekitar 12% dan Dow Jones Industrial Average kehilangan hampir 4.600 poin atau sekitar 11%.  
+
+
+Empat hari terjadi penurunan dua belas persen atau empat ribu enam ratus poin.
+
+
+Dan lalu apa yang selanjutnya terjadi ? persis seperti yang akan menjadi template TACO yang paling sempurna 
+
+
+9 April 2025 jadi TACO pertama yang paling legendary
+
+
+Trump posting di social media 
+
+
+ "THIS IS A GREAT TIME TO BUY !!! DJT." 
+
+
+Satu jam kemudian dia mengumumkan 90-day pause pada tariff untuk semua negara kecuali China.  
+
+
+Reaksi pasar pasca pengumuman tersebut ?
+
+
+S&P 500 surge 9.5% dengan hampir $4 triliun ditambahkan kembali ke market value dalam hitungan jam. 
+
+
+Hari itu jadi aalah satu hari rally terbesar dalam sejarah pasar saham. 
+
+
+Posting "great time to buy." dan beberapa jam kemudian dia bilang sendiri untuk pause dan seketika pasar rally $4 triliun.
+
+
+Ini adalah TACO dalam bentuknya yang paling murni dan paling menggelitik. 
+
+
+Dan persis setelah momen itu Robert Armstrong menulis kolom yang mengabadikan istilah TACO untuk selamanya.
+
+
+# TACO Tariff — Formula Yang Selalu Sama
+
+
+Seorang jurnalis dari Financial Times memberikan tiga contoh "TACO factor" di mana Trump membalik keputusannya sebagai respons terhadap reaksi pasar.  
+
+
+Formula yang sangat predictable 
+
+
+Step 1 — Trump announce tariff yang sangat besar. Pasar crash.
+
+
+Step 2 — Bond market mulai warning. Yield naik. Tekanan makin besar.
+
+
+Step 3 — Trump chicken out. Pause. Exemption. Delay. "Negosiasi."
+
+
+Step 4 — Pasar rally besar. Investor yang beli di dip untung besar.
+
+
+Step 5 — Ulangi dari awal.
+
+
+Investor tidak lagi panik sejak TACO terus di gaungkan di pasar saham
+
+
+TACO menjadi agama baru Wall Street. 
+
+
+# TACO Tariff menjadi mainstream dan berbahaya
+
+
+Setelah Liberation Day shock — investors assumed Trump would follow his familiar pattern : issue sweeping tariff threats , then pull back once markets started to wobble. That confidence helped stocks rebound to record highs. Exemptions reinforced that bet.  
+
+
+Tapi di sinilah paradox yang paling menggelikan mulai terjadi 
+
+
+Semakin viral TACO maka semakin Trump punya alasan untuk membuktikan TACO salah. 
+
+
+Data TACO Tariff Yang Paling Konkret
+
+
+pada tanggak 31 Juli 2025 , Trump sudah announce deals dengan delapan trading partners yaitu UK , Vietnam , Philippines , Indonesia , Japan , South Korea , EU , dan terakhir dengan China. 
+
+
+Tariff ke China dipotong dari 145% ke 30% untuk 90 hari. 
+
+
+Pada tanggal 13 Mei 2025 S&P 500 berbalik positive secara Ytd
+
+  
+
+Tariff TACO sebagai Final Score :
+
+
+Ancaman tariff : sangat besar.
+
+
+Fakta yang terjadi Tariff yang benar-benar berlaku jauh lebih kecil.
+
+
+Pasar yang belajar untuk tidak panik : benar.
+
+
+Investor yang buy the dip : untung besar. 
+
+
+Lihat semua pola yang terjsdi berulang kali , anda akan paham kalo melihat perlahan tanpa terganggu psikologinya
+
+
+2.TACO PERANG IRAN 2026 : KETIKA TACO BERTEMU REALITA YANG TIDAK BISA DI-TWEET
+
+
+28 Februari 2026 — Hari yang mengubah segalanya
+
+
+Amerika dan Israel melancarkan serangan besar-besaran ke Iran. Supreme Leader Khamenei gugur. Selat Hormuz efektif ditutup sebagai tanda kalo perang sudah dimulai.
+
+
+Wall Street yang sudah sangat terlatih dengan TACO langsung membaca ini dengan kacamata yang sama.
+
+
+"Ini pasti TACO versi perang. Trump akan chicken out dalam beberapa hari."
+
+
+Tapi kali ini ada sesuatu yang sangat berbeda dari tariff TACO. 
+
+
+Lima Momen TACO Iran 2026 Yang Paling Epic
+
+
+Momen Pertama tanggal 1 Maret : "Timetable Empat Minggu"
+
+
+Hanya tiga hari setelah serangan terbesar dalam sejarah Timur Tengah modern , Trump langsung sudah bicara timetable dan negosiasi.
+
+
+Dia bilang ke publik 
+
+
+"Operasi militer akan selesai dalam empat minggu."
+
+
+Pasar sedikit tenang tapi Iran langsung reject talks selama bom masih jatuh.
+
+
+TACO yang gagal di sisi pertama. 
+
+
+Momen Kedua tanggal 9 Maret : "Very Soon"
+
+
+Trump berkata Iran war akan berakhir "very soon" dan memprediksi harga minyak akan turun. 
+
+
+Pernyataan yang sangat familiar dan pernyataan persis seperti "great time to buy" di tariff TACO. 
+
+
+Pasar pricing in de-eskalasi. Oil sedikit turun dari peak.
+
+
+Tapi kemudian tidak lama kemudian Iran menyerang Diego Garcia. Hormuz tetap tertutup dan Trump tidak chicken out. 
+
+
+Momen Ketiga tanggal 14 Maret : "Iran Wants To Make A Deal"
+
+
+Trump dalam wawancaranya di NBC News 
+
+
+ "Iran wants to make a deal and I don't want to make it because the terms aren't good enough yet."
+
+
+Brilliant move dengan Trump membalikkan fakta script yang disampaikan. 
+
+
+Bukan dia yang mau de-eskalasi tapi Iran yang katanya minta deal.
+
+
+Di saat yang sama Iran langsung membantah pernyataan Trump tersebut
+
+
+"No , we never asked for a ceasefire. We are ready to defend ourselves as long as it takes."
+
+
+Trump claim Iran mau deal. Iran bilang tidak pernah minta deal. 
+
+
+Momen Keempat tanggal 20 Maret : TACO dan ANTI-TACO dalam satu hari yang sama
+
+
+Dan ini yang paling lucu dari seluruh perang ini. Dalam satu hari yang sama 
+
+
+Pagi nya Trump bilang
+
+
+ "I think we've won. All they're doing is blocking up the Strait. But from a military standpoint they're finished."  
+
+
+Siang di Truth Social Trump nge Tweet dengan menulis 
+
+
+ "Getting very close to meeting our objectives as we consider winding down our great Military efforts."
+
+
+Sore nya dia bilang lagi 
+
+
+"We could have dialogue , but I don't want to do a ceasefire. You don't do a ceasefire when you're literally obliterating the other side." 
+
+
+Malam harinya Amrik menerjunkan 2.500 marines tambahan dikirim ke kawasan.
+
+
+Kata-kata : TACO 
+
+
+tapi
+
+
+Tindakan : ANTI-TACO.
+
+
+Untuk pertama kalinya dalam sejarah TACO words dan actions bergerak ke arah yang berlawanan.
+
+
+Momen Kelima tanggal 22 Maret : 48 Jam Ultimatum Hormuz
+
+
+Trump di Truth Social dengan gagahnya menulis 
+
+
+"If Iran doesn't FULLY OPEN , WITHOUT THREAT , the Strait of Hormuz , within 48 HOURS - the United States will hit and obliterate their various POWER PLANTS , STARTING WITH THE BIGGEST ONE FIRST !"
+
+
+Setup TACO yang paling klasik. Ancaman dengan capslock. Dengan deadline yang sangat spesifik.
+
+
+Iran takut ?
+
+
+Iran langsung memberikan respon seketika sehingga Brent crude langsung naik ke $114 per barrel. 
+
+
+Iran bilang kita akan membalas dengan menutup total selat Hormuz dan akan menghancurkan seluruh infrastruktur listrik negara tetangga
+
+
+Iran tidak berkedip dan takut atas ancaman Trump 
+
+
+BAGIAN KETIGA — MENGAPA TACO IRAN SANGAT BERBEDA DARI TACO TARIFF
+
+
+Sekarang saya coba sampaikan inti dari seluruh artikel ini.
+
+
+Perbedaan Yang Paling Fundamental dari permainan TACO
+
+
+TACO Tariff :
+
+
+Tariff adalah kebijakan ekonomi. Bisa di-on dan di-off dengan satu executive order. Butuh satu tweet. Efeknya bisa dibalik dalam hitungan jam.
+
+
+Pihak lain seperti China , EU , Japan juga ingin de-eskalasi karena semua pihak rugi dari tariff war.
+
+
+TACO Iran :
+
+
+Perang adalah realita fisik di lapangan. Ranjau laut tidak bisa dicabut dengan tweet. Hormuz tidak bisa dibuka dengan executive order.
+
+
+Khamenei yang sudah gugur tidak bisa di-undo.
+
+
+Dan yang paling penting adalah Iran punya suara sendiri. 
+
+
+Berbeda dari China atau EU yang akhirnya mau negosiasi karena ekonomi mereka juga terdampak tapi Iran tidak punya insentif yang sama untuk berkedip.
+
+
+Variabel Yang Tidak Ada Di Tariff TACO adalah
+
+
+Pertama => Israel punya agenda sendiri. Netanyahu tidak bisa di-tweet oleh Trump untuk stop. 
+
+
+Kedua => NATO tidak mau ikut. Trump menyebut NATO "cowards" karena tidak bantu buka Hormuz.  
+
+
+Ketiga => Oil shock jauh lebih persistent dari tariff shock. 
+
+
+Keempat => US Counterterrorism Chief resign. Internal crack yang tidak pernah ada di tariff wars.
+
+
+Dan ini yang paling ironis dan memalukan dari seluruh situasi yang ada
+
+
+Trump administration langsung menghapus sanksi terhadap minyak Iran dengan mengizinkan 140 juta barel minyak Iran mengalir ke pasar dan di saat yang sama Amerika masih perang dengan Iran.  
+
+
+Amerika perang dengan Iran tapi beli minyak Iran untuk jaga harga tetap terkendali.
+
+
+Itu belum moment saat Amrik melepaskan sanksi minyak Rusia
+
+
+TACO yang dimakan sendiri dan akhirnya membuat malu sendiri
+
+
+Sumpah malu bener sih
+
+
+4. REVIEW : Score card TACO
+
+
+Sekarang kita review kedua episode TACO ini yah
+
+
+TACO Tariff 2025 Grade : A
+
+
+Terbukti bekerja lebih dari 10 kali sejak Trump kembali berkuasa.
+
+
+Setiap deadline akan terus di extend.
+
+
+Setiap tariff besar akan selalu dikurangi. 
+
+
+Setiap ancaman akan selalu berakhir dengan deal atau exemption.
+
+
+Investor yang disiplin buy the dip setiap kali Trump announce tariff menghasilkan return yang sangat besar.
+
+
+TACO Iran 2026 Grade : Incomplete 
+
+
+TACO Iran bisa terjadi tapi dengan cara yang sangat berbeda dan sangat lebih lambat dari tariff TACO.
+
+
+Kenapa mungkin tetap terjadi 
+
+
+Pertama yaitu akan ada Midterm election November 2026 adalah deadline natural yang sangat powerful. Bensin $4+ per gallon adalah political poison.
+
+
+Kedua yaitu Trump secara konsisten mengatakan perang akan selesai "soon" dan ini adalah sinyal pre-TACO yang familiar.
+
+
+Ketiga adalah Lifting Iran oil sanctions sudah dilakukan . Dari sini Trump aware dengan economic pain.
+
+
+Saya sudah cerita pada artikel sebelumnya akan hal ini
+
+
+Oil tidak akan langsung kembali ke $65-70 bahkan setelah ceasefire. 
+
+
+Infrastructure damage butuh beberapa bulan buat diperbaiki . 
+
+
+Hormuz butuh waktu untuk clear dari ranjau dan ancaman drone. 
+
+
+5. IMPLIKASI UNTUK INVESTOR : CARA MEMBACA TACO DENGAN BENAR
+
+
+Pelajaran Dari TACO Tariff 
+
+
+Untuk tariff TACO strategi yang terbukti adalah 
+
+
+Satu => Jangan panic saat Trump announce tariff besar.
+
+
+Dua => Buy the dip ketika pasar turun signifikan karena tariff announcement.
+
+
+Tiga => No FOMO saat Trump chicken out dan pasar rally.
+
+
+Empat => ulangi dari awal
+
+
+Simple tapi hanya bekerja kalau anda tau bahwa TACO akan terjadi. 
+
+
+Pelajaran Dari TACO Iran yang lebih kompleks
+
+
+TACO Iran juga pasti akan terjadi koq. Hampir pasti karena economic dan political pressure terlalu besar.
+
+
+Tapi 
+
+
+Untuk Iran TACO strategi yang lebih tepat adalah 
+
+
+Satu => Jangan expect V-shaped recovery seperti tariff TACO. Oil tidak akan langsung turun ke $65 saat ceasefire diumumkan.
+
+
+Dua => Posisikan di hard assets dan energy stocks selama konflik berlangsung. Oil di atas $100 menguntungkan produsen energi.
+
+
+Tiga => Watch untuk sinyal ceasefire yang genuine danbukan dari Trump tweet . Kalo bisa dari Oman atau mediator lain yang mengonfirmasi deal.
+
+
+Empat => Bond market adalah early warning system yang paling reliable. Kalau yield Treasury mulai naik sangat agresif itu adalah sinyal bahwa pasar sudah pricing in something much worse.
+
+
+Satu orang denga aatu keputusan yang menentukan harga minyak dunia , arah pasar global , dan economic outlook seluruh planet.
+
+
+Dalam era TACO perang ini , Trump tidak punya banyak pilihan lagi koq. 
+
+
+Yang dia lawan itu tidak bisa di negoisasi kaya Tariff , yang dia lawan itu kuat dan bisa menyerang balik
+
+
+TACO pasti akan berjalan dan akan menjadi permainan Yo-Yo seperti biasa
+
+
+Trump TACO 
+
+
+Bikin masalah 
+
+
+Ramein masalah nya 
+
+
+Bikin panas terus masalah nya 
+
+
+Capitulation
+
+
+and berujung pada TACO
+
+
+dan kali ini TACO nya akan mempermalukan Trump sendiri. 
+
+
+Kenapa saya bahas ini ? saya tidak tau dimana akan berakhir semua drama ini, tapi makin kesini makin teilihat pola TACO nya dan semakin parah pola TACO nya
+
+
+Saya sudah malas call or beri view detail saya ahhh . 
+
+
+Kapoooookkk , sedikit saja tidak sesuai time table tuh langsung ditagih sedunia bahkan kena nyinyir
+
+
+Hari ini sudah ada 2 nyinyir parah ( ehhh tapi itu bisa jadi tanda buat saya juga )
+
+
+No investment advice dan buat strategi investasi sendiri. 
+
+
+
+
+
+
+
+Ricky2212
+
+
+""",
+    },
+    "tiga_senjata_08nomics": {
+        "title": "Tiga Senjata Yang Sedang Mengubah Indonesia Dari Bawah — MBG, Kopdes, Gentengisasi",
+        "category": "macro_thesis",
+        "subcategory": "political_economy",
+        "themes": ["08-nomics", "mbg", "kopdes", "gentengisasi", "umkm", "fiscal", "social_program", "indonesia", "bottom_up"],
+        "tickers": [],
+        "quad_bias": None,
+        "regime_signal": "structural_reform",
+        "priority": 10,
+        "author": "Ricky2212",
+        "source": "mentorbaik",
+        "content": """Artikel: Tiga Senjata Yang Sedang Mengubah Indonesia Dari Bawah -- Mengapa Ada Yang Sangat Tidak Ingin Ini Berhasil ?
+
+Tiga Senjata Yang Sedang Mengubah Indonesia Dari Bawah -- Mengapa Ada Yang Sangat Tidak Ingin Ini Berhasil ?
+(MBG , Kopdes Merah Putih , Gentengisasi dan Impact Ke UMKM , Perputaran Ekonomi Rakyat Lapisan Bawah )
+
+
+Tiga Senjata Yang Sedang Mengubah Indonesia Dari Bawah -- Mengapa Ada Yang Sangat Tidak Ingin Ini Berhasil ?
+
+
+
+(MBG , Kopdes Merah Putih , Gentengisasi dan Impact Ke UMKM , Perputaran Ekonomi Rakyat )
+
+
+
+
+
+Oke , kemarin saya sudah buatkan artikel tentang lembaga rating yang nenjadi senjata geopolitik global. 
+
+
+Senjata ini dipergunakan buat menyerang salah satu nya adalah negara untuk mrmbuat keuntungan bagi yang punya kepentingan
+
+
+Kemarin saya cerita tentang 3 lembaga rating , 5 Investment banking yang tiba-tiba saja mengeluarkan rating buat Indonesia. Di artikel tersebut saya juga jelaskan mekanime permainan yang mereka lakukan untuk meloloskan hal tersebut
+
+
+3 lembaga rating , 5 investment banking dengan 1 tujuan yaitu menyorot sebuah program bernama MBG dan hubungannya sama pemborosan anggaran APBN yang berujung pada Threshold 3% defisit
+
+
+Again , saya itu orang yang sangat curious kalo sdh 8 lembaga tersebut melakukan downgrade secara TSM ( Terstruktur , Sistematis and Massive ) . Kaya bahasa buat kecurangan Pemilu yah ?
+
+
+Kenapa sampai mereka menyorot hal tersebut ? kenapa kaya jadi sesuatu mimpi buruk ?
+
+
+Di artikel ini saya akan komplit menjelaskan dengan segala data yang saya dapatkan yang bisa mendukung hal tersebut
+
+
+Di artikel ini saya juga coba menjelaskan gimana sebuah program mempunyai Direct Impact ke UMKM and perputaran uang di lapisan ekonomi paling bawah
+
+
+Yang harus anda semua ingat adalah Indonesia dulu disegani karena punya basis ekonomi yanh kuat karena punya kerangka ekonomi di lapisan ekonomi yang paling bawah yang sangat kuat ( Indo populasinya mayoritas disini )
+
+
+Ingat kata kuncinya DIRECT IMPACT dan PERPUTARAN UANG di BAWAH yah
+
+
+
+
+
+
+
+
+Seperti biasa buat mengawali artikel saya , saya mau mulai dengan satu pertanyaan yang sangat sederhana dahulu
+
+
+Pertanyaan nya adalah 
+
+
+Kenapa negara-negara maju seperti Amerika , Inggris , Jepang , dan hampir semua negara di Eropa lainnya 
+
+
+Punya program makan sekolah yang sudah berjalan puluhan bahkan ratusan tahun ?
+
+
+Punya koperasi desa yang kuat dan terstruktur ? 
+
+
+Punya program renovasi rumah rakyat yang konsisten setiap tahun ?
+
+
+Kenapa mereka lakukan itu ?
+
+
+Bukan, bukan karena mereka punya belas kasihan dan juga bukan karena pencitraan politik. Mereka lakukan semua itu karena mereka sudah sangat paham satu prinsip ekonomi yang paling fundamental yaitu 
+
+Uang yang berputar di ekonomi bawah nantinya akan menggerakkan seluruh ekonomi dari akar sampai ke puncak.
+
+
+Dan itulah tepatnya yang sedang dibangun oleh tiga program 08 yang akan saya bahas di artikel ini.
+
+
+Program MBG , Program Kopdes Merah Putih dan Program Gentengisasi.
+
+
+Tiga program. Tiga jalur masuk yang berbeda. Tapi satu filosofi yang sama yaitu dengan memastikan uang negara berputar di tangan rakyat yang paling bawah , bukan mengalir ke ekosistem keuangan yang sudah kaya.
+
+
+Dan di bagian akhir artikel ini saya juga akan bahas pertanyaan yang paling tidak nyaman.
+
+
+Mengapa program-program yang secara fundamental sangat benar ini malahan justru menjadi target serangan dari lembaga rating internasional yang paling powerful di dunia ?
+
+
+Ada udang di balik bakwan ? 
+
+
+Yukzzz kita mulai lebih dalam bahasannya yah
+
+
+1. MEMAHAMI LUKA YANG SESUNGGUHNYA
+
+=========================================
+
+
+Sebelum saya bicara tentang solusinya ada baiknya saya harus bicara dahulu tentang betapa dalam luka yang sedang dihadapi oleh Negara kita ini
+
+
+Luka Pertama adalah 26.9 Juta sudah dalam fase disebut Rumah Tidak Layak Huni
+
+
+Saat ini terdapat sekitar 9.9 juta penduduk Indonesia yang belum memiliki rumah sama sekali.
+
+
+Selain itu 26.9 juta lainnya menempati rumah yang kondisi nya sangat memptihatinkan dan tidak lagi layak huni. 
+
+
+Dua puluh enam koma sembilan juta rumah dengan atap yang bocor saat hujan , dengan dinding yang tidak melindungi dari angin malam, dengan lantai yang masih berupa tanah dan dengan ventilasi yang tidak ada sama sekali
+
+
+Di dalam rumah-rumah itu tinggal lah banyak anak-anak Indonesia yang seharusnya tumbuh sehat dan belajar dengan fokus tapi karena keadaan itu mereka harus tumbuh dalam kondisi yang secara langsung menghalangi potensi mereka.
+
+
+Luka Kedua adalah Tengkulak , Rentenir dan Pinjol Yang Mencekik Desa
+
+
+Petani menanam lalu petani menunggu sampai panen. Ironis nya saat petani masuk musim panen , harga untuk petani malah jatuh.
+
+
+Kenapa ? karena para petani kita uangnya sangat sedikit. Di saat yang sama anaknya harus sekolah dan biayanya tidak bisa menunggu panen. 
+
+
+Di desa tidak ada yang minjamkan uang kecuali rentenir yang bayarnya per hari bunganya. Ini sudah terjadi lama dan turun-temurun. Turun-temurun. Bukan satu generasi. Bukan dua generasi tapi turun-temurun sampai mendarah daging
+
+
+Petani jual ke tengkulak dengan harga sangat murah. Beras yang sama sampai ke konsumen di kota dengan harga tiga kali lipat lebih mahal.
+
+
+Selisih dari itu yang seharusnya masuk ke kantong untuk petani justru malah masuk ke kantong perantara yang tidak pernah menyentuh tanah dan tidak pernah merasakan terik matahari di sawah.
+
+
+Ketika petani butuh modal sebelum musim panen berikutnya , tidak ada bank yang mau kasih kredit. 
+
+
+Dari mana modalnya ? yang ada hanya rentenir dengan bunga harian lagi lah sebagai jawabannya. 
+
+
+Keadaan mulai makin canggih , datang lah pinjol ilegal yang masuk lewat smartphone dengan bunga yang bahkan lebih mencekik.
+
+
+Ini adalah sistem yang secara struktural dirancang untuk mengekstrak nilai dari orang yang paling tidak punya daya tawar. 
+
+
+Luka Ketiga adalah 37.2 Juta Anak Dengan Gizi Tidak Memadai
+
+
+Indonesia punya masalah stunting yang sangat serius. Anak-anak yang kurang gizi bukan hanya lebih pendek dari seharusnya tapi mereka juga lebih rentan sakit , lebih sulit belajar , dan ketika dewasa akan punya produktivitas yang lebih rendah.
+
+
+Ini adalah kerugian ekonomi yang sangat besar yang tidak kelihatan di permukaan tapi sangat terasa di level makro dalam jangka panjang.
+
+
+Tiga luka tersebut menjadi tiga akar kemiskinan yang saling terhubung dan saling memperkuat satu sama lain.
+
+
+Muncul lah tiga program dari 08 yang akan saya coba bahas sebisa saya yah. Ketiga program tersebut nantinya masing-masing menyerang satu luka secara langsung dan bersamaan
+
+
+2. MBG : Rp 10.000 Yang Berputar Menjadi Rp 4.510 Triliun
+
+==========================================
+
+
+Angka ini yang harus dibaca dengan sangat teliti dan sangat mendalam
+
+
+Program MBG resmi diluncurkan pada tanggal 6 Januari 2025 . Tujuan dari program ini adalah menyasar peserta didik dari PAUD hingga SMA/SMK , balita , ibu hamil , dan ibu menyusui.
+
+
+Target total penerima manfaat 82.9 juta orang dengan alokasi anggaran awal sekitar Rp 171 triliun secara keseluruhan. 
+
+
+Delapan puluh dua koma sembilan juta orang dan itu setara hampir sepertiga penduduk Indonesia yang ada. Luar biasa bukan ?
+
+
+Tapi angka yang paling mengejutkan bukan itu saja loh yah. Hal yang paling mengejutkan adalah apa yang terjadi ketika Rp 10.000 per anak per hari masuk ke sistem ekonomi dan keuangan secara massive dan berkesinambungan.
+
+
+INDEF menghitung dengan anggaran Rp 71 triliun di 2025 maka akan timbul efek berganda MBG ke PDB Indonesia yang angkanya bisa mencapai Rp 4.510 triliun.
+
+
+Dengan Investasi Rp 71 triliun masuk maka Rp 4.510 triliun berputar di ekonomi Rill . Itu adalah sebuah angka multiplier 63 kali lipat. 
+
+
+Tidak ada instrumen fiskal manapun yang punya multiplier effect setinggi ini. Karena uangnya tidak keluar ke impor, uangnya tidak membayar bunga hutang ke luar negeri dan uangnya tidak mengalir ke korporasi multinasional.
+
+
+Bayangkan kalo uangnya masuk ke komunitas lokal dan berputar di dalam secara terus menerus sehingga menciptakan gulungan ekonomi yang luar biasa
+
+
+=> Perputaran Uang Dari Satu Menu Makan Siang
+
+
+Dahulu saya pernah buat artikel yang berjudul 
+
+
+" perputaran uang dalam sistem ekonomi ". 
+
+
+Nah kali ini saya coba menjabarkan hal tersebut dari program - program yang ada.
+
+
+Gila sih , anda akan melihat gimana uang tersebut akan berdampak langsung ke rakyat lapisan bawah dan terjadi perputaran ekonomi yang luar biasa
+
+
+Mari kita ikuti perjalanan satu menu sederhana berupa nasi , ayam goreng , sayur bening , tempe , dan pisang.
+
+
+Beras dari petani lokal yang menjual langsung ke SPPG. Berasa tersebut dijual tidak lewat tengkulak dan tidak lewat distributor. Petani dapat harga lebih fair maka dari sana pendapatan petani akan naik.
+
+
+Ayam dari peternak lokal yang selama ini harga jualnya dikontrol tengkulak maka sekarang punya pembeli tetap dengan kontrak yang jelas.
+
+
+Sayur dari kelompok tani ibu-ibu desa yang selama ini hasil panennya sering tidak terserap pasar maka sekarang punya guaranteed demand setiap hari sekolah.
+
+
+Tempe dari pengrajin tempe lokal. Ada satu cerita dari pemilik pabrik tempe di Jawa Tengah. Dia mengungkapkan bahwa produktivitas pabrik miliknya meningkat usai menjadi supplier tempe di SPPG. 
+
+
+"Saya senang sekali , dulu mikirnya cuma laku di pasar ehh sekarang malah jadi bagian dari makanan bergizi untuk generasi penerus." 
+
+
+Pisang dari petani kebun lokal.
+
+
+Semua bahan baku dimasak oleh juru masak lokal yang digaji SPPG. Sudah jadi makanannya lalu diantar oleh driver distribusi lokal dan sesampainya di sekolah akan disajikan di sekolah oleh tenaga pendidikan setempat.
+
+
+Satu menu makan siang tersebut melibatkan petani padi , peternak ayam , ibu tani sayuran , pengrajin tempe , petani kebun , juru masak , driver , dan tenaga sekolah. Semua dalam satu komunitas yang sama.
+
+
+Uang berputar disana tapi tidak keluar dari lingkaran. Berputar dan setiap kali berputar maka akan menghasilkan nilai perputaran uang baru
+
+
+Itu saya belum bicara kalo petani beli traktor , petani beli motor , berapa tuh putaran uang yang mengalir lagi ? 
+
+
+Saya coba menjabarkan data konkret yang terjadi di lapangan yah. 
+
+
+Penelitian di Provinsi Bengkulu menunjukkan bahwa peningkatan nilai kontrak MBG berkorelasi positif dengan nilai tukar petani dan nilai tukar Nelayan.
+
+
+Pangsa kontrak MBG terhadap PDRB meningkat tajam antara Triwulan II dan III 2025 searah dengan kenaikan rata-rata NTP. 
+
+
+
+
+Ini adalah konfirmasi ilmiah loh yah dan juga bukan klaim dari pemerintah bahwa MBG benar-benar menaikkan pendapatan riil petani dan nelayan.
+
+
+Kalo kita lihat lagi perputaran uang dari program MBG di Kota Serang saja mencapai sekitar Rp 100 miliar per bulan. 
+
+
+Bayangkan perputaran uang Rp 100 miliar per bulan hanya dari satu kota saja loh yah.
+
+
+Sekarang bayangkan ini terjadi di setiap kota dan kabupaten di seluruh Indonesia dan itu terjadi serentak setiap bulan dan setiap hari sekolah.
+
+
+UMKM akan banyak yang naik kelas dan dampak yang paling jarang dibahas adalah
+
+keterlibatan UMKM dalam rantai pasok MBG bukan hanya memberikan mereka pasar tetap tapi juga membuat UMKM naik kelas karena harus memenuhi standar kebersihan , nutrisi , dan kapasitas produksi yang disyaratkan. Hal ini secara langsung meningkatkan daya saing UMKM tersebut
+
+
+UMKM yang mau jadi supplier SPPG harus memenuhi standar kebersihan. Harus punya kapasitas produksi yang konsisten. Harus punya dokumentasi. 
+
+
+Dari sana UMKM yang tadinya tidak terlihat oleh sistem keuangan formal tiba-tiba saja punya track record dengan punya kontrak pemerintah dan ujungnya nanti punya cash flow yang terdokumentasi.
+
+
+UMKM yang tadinya dari informal jadi UMKM formal. 
+
+
+UMKM yang tadinya tidak bankable akan jadi UMKM yang bankable. 
+
+
+UMKM yang tadinya tidak punya akses modal jadi UMKM yang bisa mengajukan kredit. 
+
+
+Dari apa yang saya baca kalo Per Agustus 2025 MBG sudah menciptakan 290.000 lapangan kerja baru. Kalau target 30.000 SPPG tercapai maka proyeksi lapangan kerja yang tercipta bisa mencapai 750.000 sampai 1 juta orang.
+
+
+Semua di desa, semua di kecamatan, semua di komunitas yang selama ini tidak pernah merasakan manfaat langsung dari APBN yang mereka ikut bayar lewat pajak.
+
+
+Jadi paham ?
+
+
+Jadi kalo ada yang bilang dan bertanya , berapa sih impact nya ? 
+
+
+
+3. KOPDES MERAH PUTIH : Perang total terhadap 3 musuh ekosistem yang memiskinkan desa
+
+
+Kopdes Merah Putih adalah program paling ambisius yang pernah dirancang untuk ekonomi desa Indonesia ala 08
+
+
+Masih ingat zaman Wapres kita M. Hatta ? Bapak koperasi Indonesia kita ini yang mencetuskan pendirian koperasi buat membangkitkan ekonomi di lapisan bawah. 
+
+
+Program ini menghilang tergilas yang namanya Kapitalis 
+
+
+Untuk memahami kenapa begitu penting maka kita harus pahami tiga musuh yang sedang diserang sekaligus dari program ini
+
+
+Musuh Pertama adalah Tengkulak yang membeli hasil petani dengan harga sangat murah lalu menjual ke konsumen dengan harga sangat tinggi. 
+
+
+Petani padi di Jawa Tengah jual gabah Rp 5.000 per kilogram. Beras yang sama sampai ke Jakarta dijual dengan harga Rp 18.000. Ada selisih Rp 13.000 yang seharusnya untuk petani . Semua itu hilang karena dimakan masuk ke rantai distribusi yang panjang dan tidak productive.
+
+
+Musuh Kedua adalah Rentenir dengan bunga harian yang dalam satu bulan mencapai 30-50% dari pokok pinjaman. Source yang selama puluhan tahun menjadi satu-satunya pilihan petani yang butuh modal darurat sebelum musim panen berikutnya.
+
+
+Musuh Ketiga adalah Pinjol ilegal yang menyerbu desa lewat smartphone. Pinjaman dengan bunga yang bahkan lebih mencekik , dengan penagihan yang mengintimidasi dan yang targetnya adalah masyarakat yang paling desperate yaitu masyarakat yang tidak punya akses ke keuangan formal apapun. 
+
+
+Sekurang-kurangnya ada tiga hal yang menjadi justifikasi Kopdes tersebut dijalankan. Tiga hal tersebut bertujuan mengatasi kemiskinan ekstrem , menumbuhkan ekonomi desa , serta memberantas jeratan tengkulak , rentenir , dan pinjaman online yang memiskinkan masyarakat desa. 
+
+
+Program ini punya skala yang belum pernah ada sebelumnya loh. Skala yang luar biasa besar dan kalo nanti berjalam dengan baik maka akan menciptakan pusaran ekonomi yang luar biasa
+
+
+Program ini mencakup pembentukan 80.000 koperasi desa di seluruh Indonesia dengan total target modal sebesae Rp 240 triliun atau Rp 3 miliar per unit koperasi. 
+
+
+Program ini akan melibatkan 16 kementerian dan lembaga serta seluruh pemerintah daerah nantinya. 
+
+
+Delapan puluh ribu koperasi dengan Rp 240 triliun modal bergulir di setiap desa di seluruh Indonesia.
+
+
+Ini bukan hibah yang habis begitu saja. Ini adalah pinjaman bergulir dengan dikenakan bunga 6% per tahun yang jauh lebih rendah dari pasar yang pinjamannya harus dikembalikan dan uang ini akan terus berputar.
+
+
+Nantinya ada tujuh unit usaha yang mengubah wajah desa
+
+
+Pemerintah menetapkan tujuh unit usaha inti 
+
+
+a. Gerai Sembako 
+
+
+b. Apotek Desa 
+
+
+c. Klinik Desa 
+
+
+d. Kantor Koperasi 
+
+
+e. Unit Simpan Pinjam 
+
+
+f. Gudang dan Logistik cold storage 
+
+
+g. Unit Tambahan Sesuai Potensi Desa. 
+
+
+Bayangkan sebuah desa yang punya semua itu dalam satu atap 
+
+
+Warga desa mau beli sembako murah tanpa harus ke kota lagi . 
+
+
+Warga desa mau dapat obat tanpa harus bayar mahal di apotek swasta. 
+
+
+Warga desa mau periksa kesehatan tanpa harus ke puskesmas yang jauh. 
+
+
+Warga desa mau simpan uang dan pinjam modal dengan bunga wajar tanpa harus ke rentenir. 
+
+
+Warga desa bisa simpan hasil panen di cold storage supaya tidak cepat rusak dan bisa menunggu harga yang lebih baik.
+
+
+Ini bukan hanya koperasi. Ini adalah ekosistem ekonomi lengkap dalam skala kecil di desa
+
+
+Cold Storage nanti akan jadi perubahan paling fundamental 
+
+
+Cold storage di setiap Kopdes mengubah dinamika pasar komoditas secara fundamental.
+
+Selama ini petani sayur dan buah sangat vulnerable terhadap price crash. Ketika semua petani panen bersamaan maka seketika harga jatuh karena supply membanjiri pasar sekaligus.
+
+
+Petani tidak lagi punya pilihan selain menjual murah hasil panennya daripada busuk.
+
+
+Dengan adanya cold storage di Kopdes maka petani bisa menyimpan hasil panen dan menunggu harga yang lebih baik.
+
+
+Stabilitas harga komoditas karena petani dan nelayan bisa langsung menjual produk ke koperasi dan produk bisa disimpan di cold storage sampai harga pasar membaik. 
+
+
+Dari sana petani yang tadinya price taker bisa menjadi price maker. Pergeseran kekuasaan pasar yang paling fundamental yang pernah dirancang untuk petani Indonesia. 
+
+
+Tiga Jalur Langsung Yang Menguntungkan UMKM
+
+
+Tiga jurus maut Kopdes Merah Putih 
+
+
+Pertama adalah dengan menjadi ujung tombak memutus rantai pasok yang bikin harga kebutuhan pokok naik tak karuan dengan sembako langsung dikirim dari produsen ke Kopdes. 
+
+
+Kedua adalah dengan menjadi jalur distribusi barang subsidi seperti pupuk dan gas LPG sehingga distribusi lebih tertib. 
+
+
+Ketiga adalah bansos pemerintah akan mampir ke Kopdes dulu sebelum sampai ke tangan warga. 
+
+
+Pupuk langsung dari distributor pusat ke Kopdes ke petani. Tidak ada oknum di tengah jadi dengan begitu nantinya tidak akan ada lagi markup ilegal. LPG 3 kg akan dijual dengan HET yang sesungguhnya.
+
+
+"Langsung dari pusat ke koperasi , dari koperasi ke rakyat. Tengkulak-tengkulak akan habis 
+
+
+Kalau ini berhasil maka ini adalah redistribusi pendapatan terbesar dari tengkulak ke petani yang pernah terjadi dalam sejarah Indonesia.
+
+
+Perputaran Uang Yang Tertahan Di Dalam Desa
+
+
+Setiap rupiah yang dibelanjakan di Kopdes nantinya akan berputar di dalam komunitas desa yang sama.
+
+
+Pembeli beli sembako di Kopdes => Kopdes bayar petani lokal => Petani belanjakan di warung desa => Warung beli dari UMKM lokal => UMKM bayar tenaga kerja lokal => Tenaga kerja belanjakan lagi di komunitas yang sama.
+
+
+Sirkuit ekonomi yang tertutup di dalam desa dan uang tidak keluar ke kota. Uang juga tidak ke distributor besar. Uang juga tidak ke korporasi asing. Semua uanh Berputar di dalam desa tersebut
+
+
+Kalau 80.000 Kopdes beroperasi penuh dengan rata-rata omzet Rp 50 juta per bulan per Kopdes maka total perputaran uang di tingkat desa mencapai Rp 48 triliun per tahun hanya dari transaksi Kopdes saja. 
+
+
+Perputaran itu semuanya sebelum multiplier effect dihitung yah
+
+
+Dari sama lapangan kerja yang tercipta ? Estimasi minimum 5-10 tenaga kerja per Kopdes berarti akan ada 400.000 sampai 800.000 lapangan kerja baru di tingkat desa. 
+
+
+Lapangan kerja yang tidak butuh ijazah universitas dan bisa diisi oleh lulusan SMA dari desa yang selama ini tidak punya pilihan selain merantau ke kota. 
+
+
+4. GENTENGISASI : Ketika Atap Rumah Rakyat Miskin Menjadi Mesin Ekonomi UMKM
+
+==========================================
+
+
+Dari 45.000 Ke 400.000 terjadi lompatan yang sangat dramatis
+
+
+08 menargetkan penerima manfaat Program BSPS mencapai 400.000 unit pada tahun 2026 ini . Jumlah ini meningkat tajam dibandingkan realisasi sebelumnya yang hanya sekitar 45.000 unit. 
+
+
+Dari 45.000 ke 400.000. Hampir sembilan kali lipat dalam satu tahun.
+
+
+Total anggaran Kementerian PKP tahun 2026 sekitar Rp 10.89 triliun dengan rincian Rp 8.1 triliun atau 80 persennya diarahkan khusus untuk perbaikan rumah tidak layak huni rakyat miskin. Anggaran bedah rumah ini naik delapan kali lipat dari tahun sebelumnya. 
+
+
+08 dalam pidatonya sangat tegas tentang prioritasnya bahwa 
+
+
+"Untuk rakyat miskin , 08 tidak bicara efisiensi. Beliau royal tapi royal dalam arti positif yaitu mengutamakan rakyat." 
+
+
+Ketika semua kementerian lain diminta efisiensi tapi anggaran bedah rumah justru naik delapan kali lipat. 
+
+
+Apa itu bukan hal bagus ? terus dimana yang mengolok - ngolok ? pakai data ?
+
+
+Menteri PKP Maruarar Sirait dalam pidatonya menegaskan bahwa
+
+
+ "Pembangunan perumahan rakyat harus menjadi mesin penggerak ekonomi bagi para pengrajin genteng kecil. Setiap rupiah yang dikeluarkan negara untuk pembangunan fisik rumah rakyat harus mampu memberikan efek domino ekonomi bagi masyarakat lapisan bawah." 
+
+
+Satu kebijakan tap bisa dua tujuan sekaligus yaitu perbaiki rumah rakyat miskin dan juga menggerakkan ekonomi UMKM lokal bersamaan.
+
+
+Itulah program Gentengisasi dan itu adalah pergeseran filosofi yang sangat fundamental.
+
+
+Pada tanggal 11 Maret 2026 kemarin , Menteri PKP secara simbolis melepas 14 truk berisi 75.000 buah genteng buatan UMKM Jatiwangi Kabupaten Majalengka. 
+
+
+Jatiwangi adalah sentra industri genteng terbesar dan tertua di Indonesia. Genteng tanah liat Jatiwangi sudah dikenal sejak zaman kolonial. Ratusan tahun tradisi pembuatan genteng turun-temurun. Ribuan keluarga yang hidupnya bergantung pada industri ini.
+
+
+Dalam beberapa tahun terakhir ini industri genteng Jatiwangi menghadapi tekanan sangat besar dari material atap modern. Satu per satu tungku pembakaran padam. Banyak pengrajin genteng disana akhirnya beralih pekerjaan. 
+
+
+Lalu Program Gentengisasi datang.
+
+
+"Dukungan pemerintah lewat program Gentengisasi ini membuat tungku pembakaran kami kembali mengepul. Ini bukan hanya soal pesanan tapi soal semangat baru bahwa produk kami masih dihargai dan dibutuhkan oleh negara." 
+
+
+Tungku yang padam tersebut akhirnya bjsa menyala kembali. 
+
+
+=> Perputaran Uang Di Setiap Truk Genteng
+
+
+Setiap truk genteng yang keluar dari Jatiwangi membawa serta perputaran ekonomi yang jauh lebih besar dari nilai gentengnya saja.
+
+
+Penambang tanah liat sebagai bahan baku utama akan membuat permintaan naik sehingga penambang tanah liat akan ketiban rezeki nomplok
+
+
+Pengrajin genteng yang mencetak , membakar , dan mengemas genteng nya akan membuat jam kerja karyawan bertambah. Bahkan dengan adanya program tersebut nantinya ada tenaga kerja baru direkrut.
+
+
+Pembuat kayu bakar untuk tungku pembakaran juga akan ketiban order tambahan
+
+
+Supir truk material yang mengangkut tanah liat dari lokasi penambangan juga akan terlihat sibuk lalu lalang
+
+
+Supir truk distribusi yang mengantarkan genteng ke proyek seluruh Indonesia juga akan dapat order pengiriman yang naik nantinya
+
+
+Warung makan di sekitar sentra produksi yang memberi makan ratusan pekerja setiap hari akan dapat durian runtuh
+
+
+Satu pabrik genteng yang kembali beroperasi itu akan menghidupkan beberapa keluarga di sekitarnya. Kalo itu dikalikan ribuan pengrajin di seluruh Indonesia maka dampaknya sangat luar biasa. 
+
+
+Angka Yang Paling Menggelitik adalah
+
+Untuk 400.000 rumah kebutuhan genteng senilai sekitar Rp 800 miliar. Kalau semuanya diserap dari UMKM lokal maka order akan mengalir langsung ke ribuan pengrajin yang selama ini terancam punah.
+
+
+Total program BSPS dengan anggaran Rp 8.1 triliun kalau 70% bahan bangunannya diserap dari UMKM lokal maka jumlah itu setara Rp 5.67 triliun yang mengalir ke pengrajin genteng , pembuat bata , tukang kayu , penambang pasir , dan UMKM bahan bangunan lokal di seluruh Indonesia dalam setahun
+
+
+Ditambah lapangan kerja dari konstruksi saja dengan 4-5 pekerja per unit untuk 400.000 rumah itu berarti 1.6 juta sampai 2 juta orang yang terlibat langsung. 
+
+
+Dan ini semua adalah model yang akan direplikasi . Program ini diharapkan menjadi model yang akan diduplikasi di sentra-sentra UMKM lainnya di seluruh Indonesia.
+
+
+Genteng hanya satu komponen. Itu belum efek ke yanh lainnya . Dari sana ada pesanan batu bata , ada kayu kusen, ada cat , ada keramik dan semua itu bisa diserap dari UMKM lokal dengan filosofi yang sama. 
+
+
+5. TIGA SENJATA YANG MENYATU : GRAND DESIGN YANG PALING TAJAM
+
+==========================================
+
+
+Sekarang kita lihat gambar besarnya karena dari hal inilah yang paling mengagumkan ketika ketiga program ini dibaca bersamaan.
+
+
+MBG =>memastikan 43 juta anak Indonesia punya gizi yang cukup untuk tumbuh dan belajar. 
+
+
+Setiap hari dengan uang yang berputar langsung ke petani , peternak , nelayan , dan UMKM kuliner lokal. Multiplier 63 kali lipat dari setiap rupiah yang dikeluarkan.
+
+
+Kopdes Merah Putih => memastikan petani , peternak , nelayan , dan UMKM yang memasok MBG itu sehingga nantinya punya ekosistem ekonomi yang tidak mengeksploitasi mereka.
+
+
+Mereka nantinya punya akses pasar yang fair, akses modal yang wajar , Cold storage yang mengubah mereka dari price taker menjadi price maker. 
+
+
+80.000 koperasi sebagai benteng melawan tengkulak , rentenir , dan pinjol.
+
+
+BSPS dan Gentengisasi => memastikan keluarga yang anak-anaknya makan MBG dan orangtuanya bermitra dengan Kopdes punya tempat tinggal yang layak untuk pulang. 
+
+
+Program ini memastikan uang untuk membangun tempat tinggal itu berputar ke pengrajin genteng , tukang batu bata , dan UMKM bahan bangunan lokal di seluruh Indonesia.
+
+
+Tiga program dengan Tiga luka yang bisa disembuhkan bersamaan.
+
+
+Gizi anak diselesaikan oleh MBG.
+
+
+Eksploitasi rantai distribusi diselesaikan oleh Kopdes.
+
+
+Rumah tidak layak huni diselesaikan oleh BSPS.
+
+
+Dari ketiganya tanpa kecuali dirancang untuk memastikan uang negara tidak keluar dari ekosistem rakyat yang paling bawah. Uang tidak mengalir keluar ke korporasi besar. Uang tidak mengalir keluar ke distributor nasional. Uang tidak mengalir keluar ke ekosistem keuangan yang sudah kaya.
+
+
+Ini adalah desentralisasi ekonomi yang paling genuine bukan yang ada di atas kertas kebijakan tapi yang terjadi di lapangan setiap hari.
+
+
+6. ADA UDANG DI BALIK BAKWAN ? MENGAPA PROGRAM BAGUS INI DISERANG ?
+
+==========================================
+
+
+Dan sekarang kita masuk ke pertanyaan yang paling tidak nyaman. 
+
+
+Setelah saya coba mencerutakan semua hal diatas , ehhhh tapi koq lucunya 
+
+Fitch downgrade outlook Indonesia. Moody's ikut. S&P menyusul. Goldman Sachs cut recommendation. JPMorgan menambahkan Indonesia dalam daftar risiko. UBS ikut.
+
+
+Semua terjadi dalam rentang waktu kurang dari dua bulan dan dengan narrative yang hampir identik dari kalimat per kalimat
+
+
+Dan narrative utamanya adalah ? MBG yang katanya terlalu mahal. 
+
+
+Program-program sosial yang akan membebani fiskal yang berujung pada defisit yang mendekati 3%.
+
+
+Coba deh yah sekarang bandingkan dengan negara-negara lain yang tidak diserang nih
+
+
+Amerika punya SNAP food stamps senilai $113 miliar per tahun. Tidak ada serangan rating agencies soal itu.
+
+
+Inggris punya school meals program yang sudah berjalan sejak 1944. Tidak ada Goldman Sachs yang cut recommendation karena itu.
+
+
+Jepang punya koperasi pertanian JA-Zenchu yang sangat kuat dan sangat terintegrasi dengan seluruh rantai pasok pertanian. Tidak ada Moody's yang downgrade karena itu.
+
+
+Program makan sekolah , koperasi desa , dan renovasi rumah rakyat adalah program yang dilakukan hampir semua negara maju selama puluhan bahkan ratusan tahun.
+
+
+Tapi kenapa ketika Indonesia melakukannya tiba-tiba menjadi beban fiskal yang mengancam stability ?
+
+
+Kenapa Indonesia ? Kenapa Sekarang ?
+
+
+Dan untuk menjawab pertanyaan ini maka kita harus ingat semua yang sudah kita bahas bersama dalam artikel-artikel sebelumnya.
+
+Indonesia di bawah 08 sedang bergerak ke arah yang sangat spesifik 
+
+
+Nikel yang dikunci tidak boleh diekspor mentah memotong akses Barat ke raw material murah.
+
+Kebijakan downstreaming yang memaksa pengolahan di dalam negeri akan memastikan value added tertahan di Indonesia.
+
+
+Danantara yang mengkonsolidasikan semua BUMN strategis menjadi vehicle yang bisa mengkapitalisasi kekayaan Indonesia dengan syarat yang lebih menguntungkan Indonesia.
+
+
+Dan sekarang ada 3 program sekaligus yaitu MBG , Kopdes , Gentengisasi yang menjadi tiga program yang kalau berhasil akan membangun economic self-sufficiency di tingkat paling bawah. Semua ini akan membuat Indonesia semakin tidak bergantung pada modal asing , sistem distribusi asing , dan ekosistem keuangan global.
+
+
+Negara yang rakyat bawahnya punya gizi baik , koperasi yang kuat , dan rumah yang layak adalah negara yang tidak mudah dipaksa menerima syarat-syarat dari luar yang tidak bakal menguntungkan kita
+
+
+Inilah yang sesungguhnya mengancam seperti saya bilang sebelumnya kalo Rating Agencies itu memang instrumen yang dipakai swbagai alat
+
+
+Seperti yang sudah kita buktikan dalam artikel sebelumnya rating agencies bukan wasit yang netral.
+
+
+Moody's dan S&P membayar denda lebih dari 2.2 miliar dollar karena memberikan rating AAA kepada sampah subprime mortgage di 2008.
+
+
+Mereka terbukti bisa dibeli dan bisa diarahkan.
+
+Filipina dengan defisit 5.6% of GDP mendapat stable outlook.
+
+
+Malaysia yang tidak pernah surplus sejak 1997 dipuji oleh IMF.
+
+
+Amerika dengan defisit 7% of GDP tetap menjadi reserve currency.
+
+
+Indonesia dengan defisit 2.92% yang paling kecil di antara semua nama itu tapi malahan diserang paling keras.
+
+
+Bukan karena defisitnya. Tapi karena model ekonominya yang bakal merugikan barat
+
+
+Model yng sesungguhnya ditakuti
+
+sekarang kita sampai ke inti yang paling fundamental.
+
+
+Tengkulak yang selama puluhan tahun mengambil margin dari hasil kerja petani akan kehilangan bisnis kalau Kopdes berhasil.
+
+
+Distributor besar yang selama ini mengontrol rantai pasok sembako ke desa-desa akan kehilangan dominasi kalau Kopdes berhasil.
+
+
+Pinjol dan rentenir yang selama ini menjadi satu-satunya sumber modal di desa akan kehilangan nasabah kalau unit simpan pinjam Kopdes berhasil.
+
+
+Produsen bahan bangunan skala besar yang selama ini mendominasi pasar akan kehilangan pangsa pasar kalau Gentengisasi berhasil memprioritaskan UMKM lokal.
+
+
+Ekosistem keuangan global yang selama ini hidup dari dependency Indonesia terhadap modal asing akan kehilangan leverage kalau Indonesia berhasil membangun fondasi ekonomi yang kuat dari bawah.
+
+
+Mereka semua tidak ingin semua program ini berhasil.
+
+
+Bukan karena program ini salah. Tapi karena malah jadi program benar.
+
+
+Cara paling efektif nntuk menggagalkan program yang benar adalah bukan dengan menyerang program nya secara langsung. Karena itu akan sangat mudah dipatahkan dengan data.
+
+
+Tapi mereka menyerang dengan menciptakan krisis kepercayaan fiskal yaitu dengan melakukan downgrade yang mengakibatkan capital outflow. 
+
+
+Dari sana akaj terjadi pelemahan rupiah yang menaikkan biaya impor dan inflasi, kenaikan yield SBN yang menambah beban bunga APBN dan menciptakan kondisi di mana pemerintah tidak punya pilihan selain memotong program-program yang "membebani fiskal."
+
+
+Bukan membunuh programnya secara langsung. Tapi menciptakan kondisi di mana pemerintah sendiri yang terpaksa membunuhnya. 
+
+
+Persis seperti Yunani. Persis seperti Argentina. Persis seperti Libya.
+
+
+Bedanya ? Indonesia punya 270 juta manusia yang kalau ekonomi bawahnya berhasil dibangun akan menjadi salah satu consumer market terbesar di dunia.
+
+
+Kartu truf yang sangat powerful. Kalau dimainkan dengan cerdas. 
+
+
+TIGA TUNGKU YANG HARUS DIJAGA TETAP MENYALA
+
+===============================÷========
+
+
+Sebagai penutup saya mau tutup dengan tiga gambaran yang sangat sederhana.
+
+
+Ada seorang ibu petani di yang untuk pertama kalinya dalam puluhan tahun menjual hasil sayurannya langsung ke SPPG tanpa harus lewat tengkulak. pendapatannya ibu itu naik tapi bukan karena dapat bantuan tunai tapi karena ada yang akhirnya mau membeli produknya dengan harga yang fair.
+
+
+Ada seorang pengrajin genteng di Jatiwangi yang tungku pembakarannya sudah lama padam yang hari ini kembali mengepul karena ada 75.000 pesanan genteng dari program pemerintah. Dia merekrut tetangganya untuk membantu produksi daan warung makan di depan pabriknya kembali ramai.
+
+
+Ada seorang anak di daerah 3T yang setiap hari sekolah mendapat makan bergizi yang mulai datang ke sekolah lebih rajin karena ada yang ditunggu. Mungkin 20 tahun dari sekarang akan menjadi bagian dari generasi yang mengubah Indonesia.
+
+
+Tiga gambaran. Tiga program dan satu filosofi yang menyatukan semuanya
+
+
+Uang negara yang berputar di tangan rakyat yang paling bawah adalah investasi yang paling menguntungkan yang pernah ada. Bukan karena sentimen. Tapi karena multiplier effect yang tidak bisa dikalahkan oleh instrumen finansial manapun.
+
+
+Program-program ini bukan beban fiskal. Program-program ini adalah fondasi dari kemandirian ekonomi yang sedang dibangun dari bawah ke atas.
+
+
+Dan itulah tepatnya yang membuat sebagian pihak sangat tidak nyaman. Karena negara yang mandiri tidak butuh "bantuan." 
+
+
+Negara yang mandiri tidak bisa didikte. 
+
+
+Negara yang mandiri tidak bisa dipaksa menjual aset strategisnya dengan harga yang tidak fair.
+
+
+Tiga tungku yang sedang menyala sekarang adalah
+
+
+Tungku SPPG yang memasak makan bergizi untuk 43 juta anak Indonesia.
+
+
+Tungku Kopdes yang menggerakkan ekonomi 120 juta penduduk desa.
+
+
+Tungku pengrajin genteng Jatiwangi yang kembali mengepul setelah lama padam.
+
+
+Jaga tiga tungku itu tetap menyala.
+
+Karena di situlah masa depan Indonesia yang sesungguhnya dibakar dan dibentuk.
+
+
+Ingat 10 tahun kemarin ? ekonomi dunia mandek dan kita hanya berpasrah saja. 
+
+
+10 tahun Kita bermain di lingkaran aman dimana semua terpaku pada menjaga fiskal
+
+
+Ekonomi suram ? Liat apa yang china lakukan buat mendorong ekonomi nya ? mereka lebarim fiskal nya agar ekonomi gerak
+
+
+Amrik ? koq zaman biden aja smape fiskal nya boncos ga karuan buat nahan ekonomi nya. Fiskal US dibocorin dan dilebarin buat memanipulasi ekonominya
+
+
+ada yang peduli ? kenapa di kala kita mau keluar dari zona nyaman dengan melebarkan fiskal agar pertumbuhan ekonomi terbantu koq langsung disemprit ? 
+
+
+nah ini yang namanya udang di balik bakwan , ada pihak yang ga mau melihat Indonesia jauh lebih baik and maju
+
+
+Buat melihat gambaran keseluruhan , liat aja program strategis danantara. Dari sana anda akan lihat visi 08 mau membawa kemana tuh Indonesia
+
+
+Pada sadar sekarang 08 mau majukan industri migas ? tuh liat keadaan sekarang saat harga minyak naik tinggi. 
+
+
+Fiskal kita jebol kan ? bukankah jadi terlihat itu program luar biasa ? 
+
+
+MBG , Kopdes , Gentengnisasi itu adalah ssbuah kekuatan pencipta sebuah DEMMAND besar. Bayangkan ada sebuah demmand besar yang siap menerima SUPPLY 
+
+
+sebuah ekonomi tercipta dari supply and demmand
+
+
+anda melihat itu ?
+
+
+kalo cuma teriakkan korupsi , itu teriakan sumbang yang aneh sih. Karena sudah 30 tahun lebih Indonesia punya budaya korupsi yang susah dihapus sampai detik ini.
+
+
+Uang projek masuk ke kantong beberapa pihak ? tuh Uang waktu swap covid , tuh uang negara bayar biaya swap ke siapa ? terpusat ke beberapa orang saja bukan ? dengan harga gila-gila an bukan ? wkwkww
+
+
+Kalo dibilang itu ide nya bagus , penerapan nya , lah itu data diatas putaran uang nya terlihat koq. 
+
+
+Lagian yang dimasalahin sama lembaga rating itu program nya apa penerapan sampai mikro nya ?
+
+
+Buat saya sih simplenya , yang penting uang sampe ke bawahnya berapa. Jangan sudah di korupsi tapi dibawah dibejek yah mati lah ekonomi kita ga jalan. Mau sampe ke bawah nya berapa pun , itu sampe ke bawah and beberapa daerah sudah menampilkan angka putaran nya ( bukan modal teriak karena liat cuitan dari X ) 
+
+
+Artikel ini pasti mengundang pro kontra dari segala aspek tapi ingat jangan berasa karena sebuah thesis dari lembaga kaya JPM , GS , DB , UBS dll maka itu jadi harga mati
+
+
+saya bukan die hard 08 , saya cuma tukang corat coret unyu-unyu yang coba melihat sebuah angle yang menurut saya angle main stream yang diciptakan oleh "kunyuk" asing itu menyesatkan
+
+
+Cukup belajar dari tahun 98 dimana "kunyuk" IMF , World Bank menawarkan bantuan FAKE yang malah menjerumuskan Indonesia ke jurang krisia lebih dalam lagi. Bukan bantu menyelesaikan , indonesia harus meminjam dengan bayar bunga tapi klausanya berujung pada jual asset perbankan kaya BBCA , BDMN dll di harga murah buat ongkos tersebut. 
+
+
+Dah cukup itu saja cerita nya yah , tidak ada tendensi politik apapun. Ini hanya murni penglihatan saya atas keadaan yang sedang terjadi. 
+
+
+saya bisa salah , saya juga bisa tidak benar. Buat saya yang penting kita jangan terus dibodohiin oleh pihak ( F ) ule yang selalu punya tanduk di kepalanya.
+
+
+
+
+
+
+
+
+Ricky2212
+
+""",
+    },
 }
 
 NARRATIVE_INDEX: dict = {
-    "08-nomics": ['hero_blame_08nomics'],
+    "08-nomics": ['hero_blame_08nomics', 'tiga_senjata_08nomics'],
     "1970s": ['commodity_late_cycle_history'],
     "2008": ['commodity_late_cycle_history'],
     "20_percent": ['ath_20_bottom_behaviour'],
+    "911": ['konspirasi_kekuasaan_uang'],
+    "allocation": ['mengapa_narrative_sebagai_narrative'],
+    "ammn": ['bukti_uang_mengalir_indexing'],
     "anger": ['bottom_anatomy_pain'],
     "ath": ['ath_20_bottom_behaviour'],
     "bahlul": ['rkab_coal_journey'],
+    "bear_stearns": ['dari_denial_ke_panik_fed'],
     "behaviour": ['ath_20_bottom_behaviour'],
-    "bei": ['berjibaku_market_regulation'],
+    "bei": ['berjibaku_market_regulation', 'high_shareholding_concentration'],
+    "bilderberg": ['konspirasi_kekuasaan_uang'],
+    "bond": ['siklus_perang_riskon'],
     "bottom": ['disbelieve_psychology', 'ath_20_bottom_behaviour', 'bottom_anatomy_pain'],
+    "bottom_up": ['tiga_senjata_08nomics'],
+    "bren": ['high_shareholding_concentration'],
+    "brics": ['konspirasi_kekuasaan_uang'],
+    "brms": ['bukti_uang_mengalir_indexing'],
+    "bubble": ['siklus_perang_riskon', 'taco_chapter2_fed_rally'],
+    "bumi": ['angka_indah_free_float', 'bukti_uang_mengalir_indexing'],
     "capitulation": ['bottom_anatomy_pain'],
     "coal": ['energy_store_of_value_2026', 'rkab_coal_journey', 'coal_war_cycle_2026'],
     "commodities": ['energy_store_of_value_2026'],
     "commodity": ['commodity_late_cycle_history'],
+    "concentration": ['high_shareholding_concentration'],
     "contrarian": ['disbelieve_psychology', 'bottom_anatomy_pain'],
     "copper": ['commodity_late_cycle_history'],
     "correction": ['ath_20_bottom_behaviour'],
     "credit_event": ['fed_vs_data_reality'],
-    "cut": ['fed_vs_data_reality'],
-    "danantara": ['hero_blame_08nomics'],
+    "crunch": ['dari_denial_ke_panik_fed'],
+    "cut": ['fed_vs_data_reality', 'dari_denial_ke_panik_fed', 'taco_chapter2_fed_rally'],
+    "danantara": ['hero_blame_08nomics', 'operasi_penurunan_rating_agencies'],
+    "debt": ['pola_sama_2025_2026', 'okas_keterbukaan_restrukturisasi'],
+    "dedollarization": ['konspirasi_kekuasaan_uang'],
     "denial": ['bottom_anatomy_pain'],
+    "dewa": ['angka_indah_free_float', 'bukti_uang_mengalir_indexing'],
     "disbelieve": ['disbelieve_psychology'],
+    "discipline": ['mengapa_narrative_sebagai_narrative'],
+    "downgrade": ['operasi_penurunan_rating_agencies'],
     "downgrade_risk": ['msci_freeze_feb2026'],
+    "dssa": ['high_shareholding_concentration'],
+    "elite_global": ['konspirasi_kekuasaan_uang'],
     "emerging_market": ['msci_greenlight_trump_tariff', 'msci_freeze_feb2026'],
     "energy": ['energy_store_of_value_2026', 'msci_freeze_feb2026'],
-    "fed": ['fed_vs_data_reality'],
-    "fiscal": ['hero_blame_08nomics'],
-    "free_float": ['berjibaku_market_regulation', 'msci_freeze_feb2026'],
+    "fed": ['fed_vs_data_reality', 'dari_denial_ke_panik_fed', 'taco_chapter2_fed_rally'],
+    "fiscal": ['hero_blame_08nomics', 'operasi_penurunan_rating_agencies', 'tiga_senjata_08nomics'],
+    "fitch": ['operasi_penurunan_rating_agencies'],
+    "fomc": ['dari_denial_ke_panik_fed'],
+    "free_float": ['berjibaku_market_regulation', 'msci_freeze_feb2026', 'angka_indah_free_float', 'high_shareholding_concentration'],
+    "freemason": ['konspirasi_kekuasaan_uang'],
     "freeze": ['msci_freeze_feb2026'],
     "gas": ['energy_store_of_value_2026'],
-    "geopolitics": ['certain_uncertain_iran_war'],
-    "gold": ['commodity_late_cycle_history'],
-    "hormuz": ['certain_uncertain_iran_war', 'coal_war_cycle_2026'],
-    "indonesia": ['hero_blame_08nomics', 'coal_war_cycle_2026', 'msci_freeze_feb2026'],
+    "gentengisasi": ['tiga_senjata_08nomics'],
+    "geopolitics": ['certain_uncertain_iran_war', 'operasi_penurunan_rating_agencies'],
+    "gold": ['commodity_late_cycle_history', 'okas_keterbukaan_restrukturisasi'],
+    "greed": ['mengapa_narrative_sebagai_narrative'],
+    "hormuz": ['certain_uncertain_iran_war', 'coal_war_cycle_2026', 'kharg_island_terbakar'],
+    "hsc": ['high_shareholding_concentration'],
+    "illuminati": ['konspirasi_kekuasaan_uang'],
+    "indexing": ['bukti_uang_mengalir_indexing'],
+    "indonesia": ['hero_blame_08nomics', 'coal_war_cycle_2026', 'msci_freeze_feb2026', 'operasi_penurunan_rating_agencies', 'tiga_senjata_08nomics'],
+    "inflated_rally": ['siklus_perang_riskon', 'taco_chapter2_fed_rally'],
     "inflation": ['commodity_late_cycle_history'],
-    "iran": ['certain_uncertain_iran_war', 'coal_war_cycle_2026'],
+    "iran": ['certain_uncertain_iran_war', 'coal_war_cycle_2026', 'konspirasi_kekuasaan_uang', 'taco_trump_chickens_out', 'pola_sama_2025_2026', 'siklus_perang_riskon', 'kharg_island_terbakar', 'perundingan_iran_gagal', 'taco_chapter2_fed_rally'],
     "israel": ['certain_uncertain_iran_war'],
-    "konglo": ['berjibaku_market_regulation'],
-    "ksei": ['msci_freeze_feb2026'],
+    "kharg": ['kharg_island_terbakar'],
+    "konglo": ['berjibaku_market_regulation', 'bukti_uang_mengalir_indexing'],
+    "kopdes": ['tiga_senjata_08nomics'],
+    "ksei": ['msci_freeze_feb2026', 'angka_indah_free_float'],
     "late_cycle": ['commodity_late_cycle_history'],
-    "liquidity": ['fed_vs_data_reality'],
+    "lehman": ['dari_denial_ke_panik_fed'],
+    "liberation_day": ['pola_sama_2025_2026', 'perundingan_iran_gagal'],
+    "liquidity": ['fed_vs_data_reality', 'dari_denial_ke_panik_fed', 'taco_chapter2_fed_rally', 'bukti_uang_mengalir_indexing'],
     "lone_wolf": ['disbelieve_psychology'],
-    "mbg": ['hero_blame_08nomics'],
-    "msci": ['msci_greenlight_trump_tariff', 'msci_freeze_feb2026'],
+    "market_maker": ['okas_keterbukaan_restrukturisasi'],
+    "mbg": ['hero_blame_08nomics', 'tiga_senjata_08nomics'],
+    "mineral": ['operasi_penurunan_rating_agencies'],
+    "moodys": ['operasi_penurunan_rating_agencies'],
+    "msci": ['msci_greenlight_trump_tariff', 'msci_freeze_feb2026', 'angka_indah_free_float', 'high_shareholding_concentration', 'siklus_perang_riskon'],
+    "narrative": ['okas_keterbukaan_restrukturisasi', 'mengapa_narrative_sebagai_narrative'],
+    "negotiation": ['taco_trump_chickens_out', 'perundingan_iran_gagal'],
     "newcastle": ['coal_war_cycle_2026'],
-    "oil": ['energy_store_of_value_2026', 'certain_uncertain_iran_war', 'commodity_late_cycle_history'],
-    "ojk": ['berjibaku_market_regulation', 'msci_greenlight_trump_tariff', 'msci_freeze_feb2026'],
+    "nickel": ['operasi_penurunan_rating_agencies'],
+    "nominee": ['angka_indah_free_float'],
+    "oil": ['energy_store_of_value_2026', 'certain_uncertain_iran_war', 'commodity_late_cycle_history', 'kharg_island_terbakar', 'perundingan_iran_gagal'],
+    "ojk": ['berjibaku_market_regulation', 'msci_greenlight_trump_tariff', 'msci_freeze_feb2026', 'angka_indah_free_float', 'high_shareholding_concentration', 'siklus_perang_riskon'],
+    "okas": ['okas_keterbukaan_restrukturisasi', 'mengapa_narrative_sebagai_narrative'],
     "pain": ['bottom_anatomy_pain'],
+    "pani": ['bukti_uang_mengalir_indexing'],
+    "passive_fund": ['bukti_uang_mengalir_indexing'],
     "patriot_bond": ['hero_blame_08nomics'],
+    "pattern": ['taco_trump_chickens_out', 'pola_sama_2025_2026', 'perundingan_iran_gagal'],
+    "petrodollar": ['konspirasi_kekuasaan_uang'],
     "policy": ['berjibaku_market_regulation'],
     "political_economy": ['hero_blame_08nomics'],
+    "private_credit": ['dari_denial_ke_panik_fed'],
     "production_cut": ['rkab_coal_journey'],
-    "psychology": ['bottom_anatomy_pain'],
-    "recession": ['fed_vs_data_reality'],
+    "psychology": ['bottom_anatomy_pain', 'mengapa_narrative_sebagai_narrative'],
+    "rally": ['taco_chapter2_fed_rally'],
+    "rating_agencies": ['operasi_penurunan_rating_agencies'],
+    "recession": ['fed_vs_data_reality', 'dari_denial_ke_panik_fed'],
+    "refinancing": ['pola_sama_2025_2026'],
     "regulation": ['berjibaku_market_regulation'],
+    "restrukturisasi": ['okas_keterbukaan_restrukturisasi'],
+    "risk": ['okas_keterbukaan_restrukturisasi', 'mengapa_narrative_sebagai_narrative'],
+    "risk_on": ['siklus_perang_riskon'],
     "rkab": ['rkab_coal_journey'],
     "sentiment": ['disbelieve_psychology'],
     "slingshot": ['ath_20_bottom_behaviour'],
+    "social_program": ['tiga_senjata_08nomics'],
+    "sp": ['operasi_penurunan_rating_agencies'],
     "store_of_value": ['energy_store_of_value_2026', 'msci_greenlight_trump_tariff', 'msci_freeze_feb2026'],
     "substitution": ['coal_war_cycle_2026'],
     "supercycle": ['commodity_late_cycle_history'],
     "supply_constraint": ['rkab_coal_journey'],
     "supply_disruption": ['coal_war_cycle_2026'],
+    "taco": ['taco_trump_chickens_out', 'kharg_island_terbakar', 'perundingan_iran_gagal', 'taco_chapter2_fed_rally'],
+    "tariff": ['taco_trump_chickens_out'],
+    "transparency": ['angka_indah_free_float', 'high_shareholding_concentration'],
+    "treasury": ['pola_sama_2025_2026'],
+    "trump": ['taco_trump_chickens_out', 'kharg_island_terbakar', 'perundingan_iran_gagal', 'taco_chapter2_fed_rally'],
     "trump_tariff": ['msci_greenlight_trump_tariff'],
+    "ubo": ['angka_indah_free_float'],
+    "umkm": ['tiga_senjata_08nomics'],
     "uncertainty": ['certain_uncertain_iran_war'],
     "usd_debasement": ['energy_store_of_value_2026'],
     "usd_weakness": ['msci_greenlight_trump_tariff', 'msci_freeze_feb2026'],
-    "ust": ['fed_vs_data_reality'],
-    "war": ['certain_uncertain_iran_war', 'coal_war_cycle_2026'],
+    "ust": ['fed_vs_data_reality', 'pola_sama_2025_2026', 'kharg_island_terbakar'],
+    "vance": ['perundingan_iran_gagal'],
+    "wall_street": ['taco_trump_chickens_out'],
+    "war": ['certain_uncertain_iran_war', 'coal_war_cycle_2026', 'konspirasi_kekuasaan_uang', 'taco_trump_chickens_out', 'siklus_perang_riskon', 'kharg_island_terbakar'],
+    "warsh": ['taco_chapter2_fed_rally'],
+    "yield": ['pola_sama_2025_2026', 'siklus_perang_riskon', 'kharg_island_terbakar'],
     "yield_curve": ['fed_vs_data_reality'],
 }
 
@@ -4179,67 +11910,100 @@ TICKER_NARRATIVES: dict = {
     "AADI.JK": ['energy_store_of_value_2026', 'rkab_coal_journey', 'coal_war_cycle_2026'],
     "ADRO.JK": ['energy_store_of_value_2026', 'coal_war_cycle_2026'],
     "AKRA.JK": ['energy_store_of_value_2026'],
+    "AMMN.JK": ['bukti_uang_mengalir_indexing'],
+    "ANTM.JK": ['operasi_penurunan_rating_agencies'],
     "ASII.JK": ['hero_blame_08nomics', 'msci_freeze_feb2026'],
     "BBCA.JK": ['hero_blame_08nomics', 'msci_greenlight_trump_tariff', 'msci_freeze_feb2026'],
     "BBRI.JK": ['hero_blame_08nomics', 'msci_greenlight_trump_tariff', 'msci_freeze_feb2026'],
     "BMRI.JK": ['hero_blame_08nomics', 'msci_greenlight_trump_tariff', 'msci_freeze_feb2026'],
-    "BUMI.JK": ['energy_store_of_value_2026', 'berjibaku_market_regulation', 'rkab_coal_journey', 'coal_war_cycle_2026'],
-    "BZ=F": ['certain_uncertain_iran_war'],
-    "CL=F": ['certain_uncertain_iran_war', 'commodity_late_cycle_history'],
-    "EIDO": ['msci_greenlight_trump_tariff', 'ath_20_bottom_behaviour', 'msci_freeze_feb2026'],
+    "BREN.JK": ['high_shareholding_concentration'],
+    "BRMS.JK": ['bukti_uang_mengalir_indexing'],
+    "BTC": ['taco_chapter2_fed_rally'],
+    "BUMI.JK": ['energy_store_of_value_2026', 'berjibaku_market_regulation', 'rkab_coal_journey', 'coal_war_cycle_2026', 'angka_indah_free_float', 'high_shareholding_concentration', 'bukti_uang_mengalir_indexing'],
+    "BZ=F": ['certain_uncertain_iran_war', 'kharg_island_terbakar', 'perundingan_iran_gagal'],
+    "CL=F": ['certain_uncertain_iran_war', 'commodity_late_cycle_history', 'konspirasi_kekuasaan_uang', 'taco_trump_chickens_out', 'kharg_island_terbakar', 'perundingan_iran_gagal'],
+    "DEWA.JK": ['angka_indah_free_float', 'bukti_uang_mengalir_indexing'],
+    "DSSA.JK": ['high_shareholding_concentration'],
+    "DXY": ['pola_sama_2025_2026'],
+    "EIDO": ['msci_greenlight_trump_tariff', 'ath_20_bottom_behaviour', 'msci_freeze_feb2026', 'siklus_perang_riskon'],
     "ELSA.JK": ['energy_store_of_value_2026', 'msci_freeze_feb2026'],
-    "GC=F": ['commodity_late_cycle_history'],
-    "GLD": ['fed_vs_data_reality', 'commodity_late_cycle_history'],
+    "GC=F": ['commodity_late_cycle_history', 'konspirasi_kekuasaan_uang'],
+    "GLD": ['fed_vs_data_reality', 'commodity_late_cycle_history', 'konspirasi_kekuasaan_uang', 'siklus_perang_riskon', 'taco_chapter2_fed_rally'],
     "HG=F": ['commodity_late_cycle_history'],
-    "HRUM.JK": ['energy_store_of_value_2026', 'coal_war_cycle_2026'],
-    "IEF": ['fed_vs_data_reality'],
+    "HRUM.JK": ['energy_store_of_value_2026', 'coal_war_cycle_2026', 'operasi_penurunan_rating_agencies'],
+    "IEF": ['fed_vs_data_reality', 'pola_sama_2025_2026'],
+    "INCO.JK": ['operasi_penurunan_rating_agencies'],
     "INDY.JK": ['energy_store_of_value_2026', 'rkab_coal_journey', 'coal_war_cycle_2026'],
     "ITMG.JK": ['energy_store_of_value_2026', 'rkab_coal_journey', 'coal_war_cycle_2026'],
     "KKGI.JK": ['coal_war_cycle_2026'],
+    "KRE": ['dari_denial_ke_panik_fed'],
     "LEAD.JK": ['energy_store_of_value_2026', 'msci_freeze_feb2026'],
     "MEDC.JK": ['energy_store_of_value_2026'],
+    "NCKL.JK": ['operasi_penurunan_rating_agencies'],
     "NG=F": ['certain_uncertain_iran_war'],
+    "OKAS.JK": ['okas_keterbukaan_restrukturisasi', 'mengapa_narrative_sebagai_narrative'],
+    "PANI.JK": ['bukti_uang_mengalir_indexing'],
     "PGEO.JK": ['energy_store_of_value_2026'],
     "PTBA.JK": ['energy_store_of_value_2026', 'coal_war_cycle_2026'],
-    "QQQ": ['fed_vs_data_reality'],
-    "SHY": ['fed_vs_data_reality'],
+    "QQQ": ['fed_vs_data_reality', 'taco_trump_chickens_out', 'dari_denial_ke_panik_fed', 'siklus_perang_riskon', 'perundingan_iran_gagal', 'taco_chapter2_fed_rally'],
+    "SHY": ['fed_vs_data_reality', 'pola_sama_2025_2026'],
     "SI=F": ['commodity_late_cycle_history'],
-    "SLV": ['commodity_late_cycle_history'],
-    "SPY": ['fed_vs_data_reality'],
+    "SLV": ['commodity_late_cycle_history', 'konspirasi_kekuasaan_uang'],
+    "SPY": ['fed_vs_data_reality', 'taco_trump_chickens_out', 'pola_sama_2025_2026', 'dari_denial_ke_panik_fed', 'siklus_perang_riskon', 'perundingan_iran_gagal', 'taco_chapter2_fed_rally'],
     "TLKM.JK": ['hero_blame_08nomics', 'msci_greenlight_trump_tariff', 'msci_freeze_feb2026'],
-    "TLT": ['fed_vs_data_reality'],
+    "TLT": ['fed_vs_data_reality', 'pola_sama_2025_2026', 'dari_denial_ke_panik_fed', 'siklus_perang_riskon', 'taco_chapter2_fed_rally'],
     "UNG": ['certain_uncertain_iran_war'],
     "UNTR.JK": ['energy_store_of_value_2026', 'coal_war_cycle_2026'],
-    "USO": ['certain_uncertain_iran_war', 'commodity_late_cycle_history'],
+    "USO": ['certain_uncertain_iran_war', 'commodity_late_cycle_history', 'konspirasi_kekuasaan_uang', 'taco_trump_chickens_out', 'kharg_island_terbakar', 'perundingan_iran_gagal'],
     "WINS.JK": ['energy_store_of_value_2026', 'msci_freeze_feb2026'],
     "XLB": ['commodity_late_cycle_history'],
-    "XLE": ['certain_uncertain_iran_war', 'commodity_late_cycle_history'],
-    "^JKSE": ['ath_20_bottom_behaviour'],
+    "XLE": ['certain_uncertain_iran_war', 'commodity_late_cycle_history', 'kharg_island_terbakar'],
+    "XLF": ['dari_denial_ke_panik_fed'],
+    "^JKSE": ['ath_20_bottom_behaviour', 'siklus_perang_riskon'],
 }
 
 NARRATIVE_QUAD_BIAS: dict = {
-    "energy_store_of_value_2026": "Q2",
-    "rkab_coal_journey": "Q2",
-    "fed_vs_data_reality": "Q3→Q2",
-    "msci_greenlight_trump_tariff": "Q2",
     "certain_uncertain_iran_war": "Q2",
-    "commodity_late_cycle_history": "Q2→Q3",
     "coal_war_cycle_2026": "Q2",
+    "commodity_late_cycle_history": "Q2→Q3",
+    "dari_denial_ke_panik_fed": "Q3→Q2",
+    "energy_store_of_value_2026": "Q2",
+    "fed_vs_data_reality": "Q3→Q2",
+    "konspirasi_kekuasaan_uang": "Q2→Q3",
     "msci_freeze_feb2026": "Q2",
+    "msci_greenlight_trump_tariff": "Q2",
+    "rkab_coal_journey": "Q2",
+    "siklus_perang_riskon": "Q2",
+    "taco_chapter2_fed_rally": "Q2→Q3",
 }
 
 NARRATIVE_PRIORITY: dict = {
-    "energy_store_of_value_2026": 10,
-    "disbelieve_psychology": 8,
-    "berjibaku_market_regulation": 7,
-    "rkab_coal_journey": 9,
-    "hero_blame_08nomics": 9,
-    "fed_vs_data_reality": 10,
-    "msci_greenlight_trump_tariff": 9,
-    "certain_uncertain_iran_war": 10,
-    "commodity_late_cycle_history": 10,
-    "coal_war_cycle_2026": 10,
+    "angka_indah_free_float": 9,
     "ath_20_bottom_behaviour": 8,
+    "berjibaku_market_regulation": 7,
     "bottom_anatomy_pain": 8,
+    "bukti_uang_mengalir_indexing": 9,
+    "certain_uncertain_iran_war": 10,
+    "coal_war_cycle_2026": 10,
+    "commodity_late_cycle_history": 10,
+    "dari_denial_ke_panik_fed": 10,
+    "disbelieve_psychology": 8,
+    "energy_store_of_value_2026": 10,
+    "fed_vs_data_reality": 10,
+    "hero_blame_08nomics": 9,
+    "high_shareholding_concentration": 9,
+    "kharg_island_terbakar": 9,
+    "konspirasi_kekuasaan_uang": 9,
+    "mengapa_narrative_sebagai_narrative": 8,
     "msci_freeze_feb2026": 10,
+    "msci_greenlight_trump_tariff": 9,
+    "okas_keterbukaan_restrukturisasi": 7,
+    "operasi_penurunan_rating_agencies": 10,
+    "perundingan_iran_gagal": 9,
+    "pola_sama_2025_2026": 10,
+    "rkab_coal_journey": 9,
+    "siklus_perang_riskon": 10,
+    "taco_chapter2_fed_rally": 10,
+    "taco_trump_chickens_out": 9,
+    "tiga_senjata_08nomics": 10,
 }

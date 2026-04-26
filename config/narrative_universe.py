@@ -1575,3 +1575,339 @@ _NARRATIVES.extend(_NARRATIVES_BATCH4)
 NARRATIVE_BY_NAME.update({n.name: n for n in _NARRATIVES_BATCH4})
 for _n in _NARRATIVES_BATCH4:
     NARRATIVES_BY_CATEGORY.setdefault(_n.category, []).append(_n)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BATCH 5 — ARTICLES 18-37 EXHAUSTIVE EXTRACTION
+# Rich new theses: crisis playbook, portfolio framework, China timing, maker analysis
+# ═══════════════════════════════════════════════════════════════════════════════
+_NARRATIVES_BATCH5: List[NarrativeTemplate] = [
+
+    NarrativeTemplate(
+        name="Ricky — Pivot 3-Phase Trade (Slowing→Halt→Cut)",
+        description="""Ricky2212's most precise monetary policy trading framework.
+PHASE 1 (Slowing Pace): Central bank reduces hike size (75→50→25bps). Trade: buy quality growth.
+PHASE 2 (Halt/Pause): Terminal rate reached, hold. Trade: buy duration (TLT), add defensives.
+PHASE 3 (Cut): Rate decreases begin. Trade: max risk-on, buy EM, small cap, long duration.
+"Thesis kami dari awal: slowing pace → halt → cut. Kami sudah kawal dari BOE dulu."
+Ricky's timeline: BOE pivot first → Fed → ECB (last, most inflation pain).
+UST signals each phase:
+- Phase 1: UST 2Y still above FFR, UST 10Y mlandai
+- Phase 2: UST 1Y,2Y fall below FFR = near halt
+- Phase 3: All tenors below FFR, yield curve steepening = CUT incoming
+"Saya hanya minta kasih waktu. Thesis kami berjalan on track."
+Key add-on: Fed target migration 2%→3% = LEBIH DAHSYAT dari pivot (Bill Gross confirmed).""",
+        category="policy",
+        catalyst_types=["fed_slowing_pace","fomc_halt","fed_rate_cut","inflation_declining",
+                         "ust_yield_signal","ecb_pivot","boe_pivot"],
+        activation_keywords=["fed pivot slowing pace halt cut","fomc pause halt","rate cut incoming",
+                              "terminal rate reached","ust 2y below ffr","yield curve steepening",
+                              "central bank pivot","inflation 2 percent target abandon",
+                              "fed target 3 percent","boe pivot first","ecb pivot last"],
+        invalidation_keywords=["inflation re-accelerates","terminal rate raised","stagflation entrenched"],
+        beneficiaries={
+            "us":["TLT","IEF","QQQ","IWM","SPY","GLD","EEM"],
+            "ihsg":["BBCA.JK","CTRA.JK","BEST.JK","BTPS.JK"],
+        },
+        fades={"us":["UUP","BIL","cash"]},
+        regime_alignment={"Q4":1.80,"Q1":1.60,"Q3":1.10,"Q2":0.80},
+        typical_duration_weeks=39, conviction_ceiling=0.90, pump_risk=0.05,
+        confirmation_signals=["ust_1y_below_ffr","fomc_halt_statement","inflation_3month_trend_down",
+                               "fed_minutes_hawkishness_fade","tlt_breakout_sustained"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — China Re-Open Timing Genius (3-6M Bunker Accumulation)",
+        description="""Ricky2212's insight on China's masterstroke timing of re-opening.
+China didn't open randomly — they opened EXACTLY when:
+1. Raw material prices were at lows (copper, coal, iron ore all depressed)
+2. Western economies were struggling (Amrik + Eropa morat-marit)
+3. China could position as global economic balancer
+"Satu kebetulan? China pasti happy banget dengan keadaan ini."
+KEY MECHANISM: China has 3-6 MONTH storage bunker capacity for raw materials.
+They don't buy when prices are high. They accumulate SILENTLY when prices are depressed.
+Evidence: China coal import +71% YoY in early 2023. Iron ore import surge. Dry bulk rates rally.
+"Masih mengalami peningkatan yang luar biasa." 
+"China banned Australian coal → buka banned → banjirin supply → harga turun → China beli murah."
+China oil: not buying from spot, buying from Russia at discount + Gulf area (Saudi mesra dengan China).
+Investing implication: China activity visible in BDI BEFORE commodity prices spike. BDI = real-time.""",
+        category="cycle",
+        catalyst_types=["china_reopen_demand","china_commodity_accumulation","china_pmi_recovery",
+                         "china_infrastructure_spend","pboc_stimulus","china_property_recovery"],
+        activation_keywords=["china reopen","china coal import","china iron ore","china accumulation",
+                              "china bunker storage","bdi rally china","china oil import record",
+                              "china austral coal","china silently buy","china raw material surge",
+                              "china gdp recovery","china economic take off","china pmi above 50"],
+        invalidation_keywords=["china hard landing","china property collapse","china pmi below 48 sustained",
+                                "china yuan crisis","xi covid lockdown return"],
+        beneficiaries={"ihsg":["ITMG.JK","ADRO.JK","PTBA.JK","INCO.JK","MDKA.JK","ANTM.JK","PSSI.JK"],
+                       "global":["FCX","VALE","RIO","BHP","GLEN.L","GOGL","SBLK"],
+                       "commodities":["CL=F","HG=F","iron_ore"]},
+        fades={"us":["TLT","XLU"]},
+        regime_alignment={"Q2":1.70,"Q1":1.30,"Q3":0.70,"Q4":0.30},
+        typical_duration_weeks=39, conviction_ceiling=0.80, pump_risk=0.20,
+        confirmation_signals=["bdi_above_2000","china_coal_import_surge","iron_ore_price_recover",
+                               "china_pmi_above_51","china_oil_import_record","dry_bulk_rate_rally_15days"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — Crisis End Signal (3 Keywords Must All Fire)",
+        description="""Ricky2212's most powerful crisis entry framework. 20 years of pattern recognition.
+THREE MANDATORY CONFIRMATION KEYWORDS (must ALL appear simultaneously):
+1. "TOO BIG TO FAIL" — government/authority acknowledges systemic risk
+2. "WE WILL DO WHATEVER IT TAKES" — central bank unlimited backstop
+3. "JOINT GLOBAL COORDINATION" — G7/G20/central banks coordinate
+When all 3 appear: CRISIS IS ENDING. Deploy capital aggressively.
+Entry protocol: 60% → 20% → 20% (if very confident: 70% → 30%).
+Cycle history: 2005 commodity shock → 2008 subprime → 2020 COVID = all resolved with same 3 keywords.
+"Setelah mendapat Stempel LULUS, wealth mencapai ATH baru."
+Ricky's observation: sehabis big crisis → medium crisis (not depression). 
+"Sehabis siklus kejatuhan parah, biasanya diikuti oleh mid crisis bukan depresi."
+"Krisis bukan kehancuran tapi peluang besar. Kalo market babak belur = time to prepare."
+Cash management: raise cash during uncertainty, attack at 5% minimum remaining cash.""",
+        category="cycle",
+        catalyst_types=["financial_crisis","market_crash","central_bank_emergency","systemic_risk",
+                         "coordinated_central_bank","government_bailout"],
+        activation_keywords=["too big to fail","whatever it takes","joint coordination",
+                              "crisis end signal","market crash entry","systemic risk",
+                              "fed emergency meeting","central bank bailout","ath -30",
+                              "market panic extreme","vix above 40","circuit breaker halt"],
+        invalidation_keywords=["depression confirmed","banking system collapse permanent",
+                                "no policy response","hyperinflation spiral"],
+        beneficiaries={"us":["SPY","QQQ","GLD","IWM","TLT"],"ihsg":["BBCA.JK","BBRI.JK","KLBF.JK"]},
+        fades={"us":[]},
+        regime_alignment={"Q4":1.90,"Q3":1.30,"Q2":0.60,"Q1":0.50},
+        typical_duration_weeks=8, conviction_ceiling=0.95, pump_risk=0.05,
+        confirmation_signals=["too_big_to_fail_statement","whatever_it_takes_statement",
+                               "g7_g20_coordinated_response","fed_emergency_rate_cut",
+                               "fear_greed_below_15","vix_above_40"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — Om Salim Smart Money Tracker (BRMS→BUMI→MEDC)",
+        description="""Ricky2212's institutional smart money framework: follow Om Salim (Anthony Salim).
+"Kemana Om S berlabuh, ikutin aja. Dia pasti mencium sesuatu. Uang akan menanti buat kamu."
+Track record: Every Salim investment leads to significant alpha.
+RECENT SALIM MOVES (chronological):
+1. DCII (Data Center) — masuk saat bisnis DC belum ramai → sekarang paling ramai
+2. META (Jalan Tol Filipina+Indonesia) — 2017, sekarang massive expand
+3. BBHI (Allo Bank digital) — sebelum digital banking boom
+4. MEGA + Bank Ina — bank accumulation cycle
+5. EMTK (SCTV+Indosiar+SCMA) — media konvergensi
+6. MEDC 21% — hulu migas cycle (via hutang pinjaman ke MEDC)
+7. BRMS 24% (via Agus Projo) — metals/minerals Om B's BRMS
+8. BUMI — PP 24T senilai Rp120/saham (mega jumbo, Salim+Bakrie = full partnership)
+Pattern: Om Salim goes WHERE THERE IS STRUCTURAL UNDERVALUATION + story besar di depan.
+"Om S dan Om B sepertinya mesra sekali. B indikator makin makin ehem ehem." """,
+        category="cycle",
+        catalyst_types=["salim_group_entry","anthony_salim_acquisition","smart_money_flow",
+                         "institutional_accumulation","conglomerate_strategic_move"],
+        activation_keywords=["om salim masuk","anthony salim","agus projo","salim group akuisisi",
+                              "om s om b mesra","brms salim","medc salim","bumi pp salim",
+                              "salim smart money","b indicator","om b buka toko lagi",
+                              "dcii salim","bbhi salim","emtk salim"],
+        invalidation_keywords=["salim exit","anthony salim jual semua","salim group masalah"],
+        beneficiaries={"ihsg":["BRMS.JK","BUMI.JK","MEDC.JK","DCII.JK","META.JK","BBHI.JK","MEGA.JK",
+                                "EMTK.JK","INDF.JK","ICBP.JK"]},
+        fades={"ihsg":[]},
+        regime_alignment={"Q2":1.50,"Q1":1.30,"Q3":0.80,"Q4":0.50},
+        typical_duration_weeks=78, conviction_ceiling=0.80, pump_risk=0.30,
+        confirmation_signals=["salim_new_acquisition_announcement","agus_projo_appointed_director",
+                               "salim_right_issue_participation","brms_bumi_salim_filing"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — Coal ITMG Valuation Floor ($200 ASP = 7x PE, 10%+ Yield)",
+        description="""Ricky2212's quantitative coal floor analysis:
+"Saya sudah memfaktorkan batubara sampai $200 sejak lama."
+ITMG Floor Math (at coal $200):
+ASP = $200 x 75% = $150 actual realized
+Production = 17M ton
+Revenue = $2.5B
+NPM = 25% (konservatif, actual >40% at peak) → Laba = $625M = Rp9.5T
+HEAVY DISKON 40% → Laba = Rp5.7T → EPS = Rp5,000
+At harga Rp33,000 → 7x PE (back to normal)
+Dividen (DPR 70%) = Rp3,500 → yield = 10%+
+"Masih menarik? Buat kondisi menunggu RESET sementara, harusnya menarik sih."
+KEY LESSON: Saat semua berteriak selesai, berteriak coal habis → itulah saat harga paling murah.
+"Sudah naik pasti ada waktunya turun (dulu). Sudah naik lupa turun."
+Valuation: dijual 2-3x laba → kalo laba turun 50% → dijual 4-6x. Kalo turun 70% → dijual 7x.
+= Downside terbatas, upside besar saat coal $300+ cycle returns.""",
+        category="commodity",
+        catalyst_types=["coal_bottom","itmg_dividend_yield","coal_sentiment_worst",
+                         "contrarian_entry","coal_valuation_floor"],
+        activation_keywords=["itmg valuasi murah","coal $200 normal","itmg deviden yield 10",
+                              "coal floor valuation","itmg 7x pe","coal reset bottom",
+                              "thermal coal cheap","itmg ptba 3x laba","coal contrarian",
+                              "batubara murah abnormal","coal back to normal"],
+        invalidation_keywords=["coal banned permanently","itmg dividend cut","coal $150 broken sustained",
+                                "china coal self-sufficient","india solar replaces coal"],
+        beneficiaries={"ihsg":["ITMG.JK","PTBA.JK","ADRO.JK","HRUM.JK","BYAN.JK"]},
+        fades={"ihsg":[]},
+        regime_alignment={"Q4":1.50,"Q3":1.20,"Q2":0.90,"Q1":0.60},
+        typical_duration_weeks=13, conviction_ceiling=0.80, pump_risk=0.30,
+        confirmation_signals=["itmg_div_yield_above_10","coal_spot_200_250_stable",
+                               "media_coal_doom_narrative_peak","itmg_pe_below_7",
+                               "foreign_net_buy_itmg_returning"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — Market Maker Cycle Detection (Accumulation→Pump→Distribution)",
+        description="""Ricky2212's 6-year insider market maker knowledge framework.
+"Saya pernah menjalani 4 tahapan tersebut satu per satu. Tapi tidak semua bisa saya ceritakan."
+4-PHASE MAKER CYCLE:
+PHASE 1 ACCUMULATION:
+- Offer tebal > Bid (create selling pressure perception)
+- Harga dibuat sideways lama (shake out impatient holders)
+- Nominee asing jualan heavy (retail panic) → actually same pool
+- Berita buruk dikeluarkan beruntun → buy at maximum fear
+SIGNAL: Berita buruk tapi harga stagnant. Volume menurun tapi tidak break support.
+
+PHASE 2 PRICE INCREASE:
+- Bid mulai tebal (demand perception)
+- Volume naik perlahan
+- Grafik mulai bagus (maker gambar sendiri)
+- Tape reading: order besar dipecah-pecah (beli 1000 lot → 500 transaksi kecil)
+SIGNAL: Bid tiba-tiba tebal, harga naik sedikit, volume mulai ada.
+
+PHASE 3 DISTRIBUTION:
+- Berita baik berlimpah tapi harga mulai stagnan
+- Volume BESAR + harga sideways = distribusi
+- Saham terlihat murah (trap) → turun perlahan tidak terasa
+SIGNAL: All good news tapi harga ga naik lagi. Volume besar + sideways.
+
+ANTI-BANDARMOLOGY: Broksum tidak bisa dipercaya. Semua nominee satu muara.
+"Kalo bandar bisa dibaca → semua menang → ga mungkin."
+Salim-style: follow the smart money (fundamental + conglomerate moves), not bandar.""",
+        category="cycle",
+        catalyst_types=["market_sentiment_extreme","retail_panic","institutional_accumulation",
+                         "maker_accumulation_signal","distribution_warning"],
+        activation_keywords=["maker accumulation","bandar akumulasi","harga sideways berita buruk",
+                              "volume besar sideways","berita baik harga stagnan","distribusi saham",
+                              "anti bandarmology","broksum semu","nominee maker","tape reading",
+                              "market maker cycle","pump dump ihsg","gorengan ihsg"],
+        invalidation_keywords=["fundamental breakdown permanent","company fraud"],
+        beneficiaries={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK"]},
+        fades={"ihsg":[]},
+        regime_alignment={"Q1":1.20,"Q4":1.20,"Q2":0.90,"Q3":0.80},
+        typical_duration_weeks=26, conviction_ceiling=0.70, pump_risk=0.15,
+        confirmation_signals=["accumulation_phase_confirmed","volume_dry_while_sideways",
+                               "bad_news_price_stable","maker_transition_to_bid_side"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — Portfolio Architecture: 69/9/4/18 Framework",
+        description="""Ricky2212's complete portfolio construction methodology.
+ALLOCATION FRAMEWORK:
+- 69% CORE THESIS (cyclical/story) = where alpha lives
+  - 58% big cap (liquidity + dividend + risk buffer)
+  - 42% small/mid cap (alpha generator, 10x potential)
+- 9% BALANCING (non-cyclical) = smooth out cycle volatility
+- 4% ETF (passive index exposure, low cost, catch all rallies)
+- 18% CASH (psychological insurance, attack reserve)
+
+KEY PRINCIPLES:
+Big cap = "likuiditas, deviden cash flow, risk reduction"
+Small cap = "big alpha dan alpha booster"
+Cash = NEVER 0%. Minimum 5% even at full attack.
+"Semakin turun harga saham, semakin tinggi posisi tawar kita."
+
+ENTRY PROTOCOL for crashes:
+60% first tranche → 20% → 20%. Or 70/30 at near-bottom.
+"Beli saham saat diskon dan diobral. Bukan saat harga naik kejar-kejaran."
+
+TIME FRAME HIERARCHY:
+Short (day/month) = high risk. Medium (1-3yr) = medium. Long (3yr+) = low risk.
+Legacy = TIDAK UNTUK DIJUAL (BTPS example: 5 years, 2 bear cycles, still hold).
+
+PSIKOLOGI TITIK 0 = prerequisite for best investment decisions.
+"Bayar diri anda. Nikmati perjalanan. Baru bisa berpikir jernih." """,
+        category="cycle",
+        catalyst_types=["portfolio_rebalancing","cycle_rotation","cash_deployment",
+                         "market_crash_opportunity","time_frame_discipline"],
+        activation_keywords=["portfolio allocation","diversifikasi portfolio","big cap small cap",
+                              "cash management investasi","etf passive","portfolio balancing",
+                              "ricky 69 9 4 18","core thesis allocation","alpha booster",
+                              "legacy saham tidak dijual","psikologi titik 0","buy the dip strategy"],
+        invalidation_keywords=["concentrated bet all-in","no cash reserve","panic sell all"],
+        beneficiaries={"ihsg":["BBCA.JK","ITMG.JK","BTPS.JK","BEST.JK","ELSA.JK","BBRI.JK"],
+                       "us":["SPY","QQQ","GLD"]},
+        fades={"ihsg":[]},
+        regime_alignment={"Q1":1.30,"Q4":1.40,"Q2":0.90,"Q3":0.70},
+        typical_duration_weeks=260, conviction_ceiling=0.90, pump_risk=0.05,
+        confirmation_signals=["portfolio_stress_test_passed","cycle_turn_confirmed",
+                               "cash_reserve_above_15pct","big_cap_dividend_flowing"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — ACES / Om Robert Buy-at-Worst Strategy",
+        description="""Om Robert's famous ACES trade and the principle behind it.
+"Beli saham itu saat keadaan sedang tidak berpihak. Bukan kejar-kejaran harga."
+ACES CASE STUDY:
+- Found ACES at 700 (good fundamental, retail king, cash rich, moat intact)
+- Freight naik, CPO naik (input cost pressure), daya beli hancur → ACES babak belur
+- But: moat unchanged, cash reserve huge, margin bersih above peers
+- Om Robert: "Beli dari 700, lanjut hajar besar di 450" (all-in at maximum pessimism)
+- Ke 900+ → well above 2-bagger
+KEY INSIGHT: "Saat keadaan sudah terlalu pesimis dan terlalu banyak hal buruk → yang tersisa apa?"
+= Nothing worse to price in = BUY SIGNAL.
+"Beli saat diskon → kasih waktu → return berlipat."
+BEST (Mas Rizza): asset play at 100-120 → turun ke 120-130 → tambah lagi → naik ke 170+ → tambah lagi
+Pattern: patience > timing. Entry saat diskon, hold saat naik, add saat turun lagi.""",
+        category="cycle",
+        catalyst_types=["extreme_pessimism","sector_out_of_favor","temporary_headwind",
+                         "moat_intact_beaten_down","consumer_recovery_incoming"],
+        activation_keywords=["aces hardware recovery","om robert aces","beli saat terburuk",
+                              "buy maximum pessimism","beaten down quality stock",
+                              "temporary headwind moat intact","consumer retail recovery",
+                              "aces hardware ricky","buy the worst performing sector",
+                              "contrarian value buy","best bekasi fajar asset play"],
+        invalidation_keywords=["moat permanently broken","ecommerce destroy aces",
+                                "fundamental structural decline","management fraud"],
+        beneficiaries={"ihsg":["ACES.JK","AMRT.JK","MAPI.JK","BEST.JK","KIJA.JK","BTPS.JK"]},
+        fades={"ihsg":[]},
+        regime_alignment={"Q4":1.70,"Q1":1.50,"Q2":0.70,"Q3":0.30},
+        typical_duration_weeks=52, conviction_ceiling=0.85, pump_risk=0.10,
+        confirmation_signals=["aces_same_store_sales_turning","aces_margin_expanding",
+                               "consumer_confidence_recovering","best_new_tenant_announcement",
+                               "freight_cost_normalize"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — El Erian Thesis: Fed Depression Bluff (Supply>Monetary)",
+        description="""Ricky2212's most contrarian thesis against Fed hawkishness.
+El Erian: "Kalau Amerika bersikeras mau menekan inflasi sampai 2%, mereka harus bikin DEPRESI."
+Ricky's counter: "Berani kah? Melihat sinyal oil dan copper, amrik takut melakukannya."
+TWO PROOFS that Fed is bluffing:
+1. Oil: hanya bergerak di range $72-80. Kalo mau depresi, oil seharusnya $40-50. Impossible to manipulate forever.
+2. Copper: sama seperti oil, bergerak dalam range. Kalo ekonomi mau dihancurkan, copper sudah hancur.
+3. BDI (dry bulk): rally 15 hari berturut. Kapal angkut copper/coal/iron ore. Kalau depresi → ga ada aktivitas.
+4. Capex investasi offshore melonjak di LATAM+Afrika. Siapa mau invest saat mau depresi?
+"Supply side is the real problem. Monetary policy only manages demand (temporary). Supply needs 3 years."
+"Kalo bikin depresi: demand hancur → price oil turun → nobody invests new supply → shortage WORSE."
+= Circular logic trap. Fed CANNOT go full hawkish without destroying themselves.
+Implication: higher-for-longer is BLUFF. Real rate cuts coming sooner than market expects.""",
+        category="policy",
+        catalyst_types=["fed_bluff_revealed","oil_price_floor_holds","copper_stabilizes",
+                         "bdi_rally_proves_economy_ok","supply_shortage_structural"],
+        activation_keywords=["el erian fed depression","fed bluff hawkish","oil range bound",
+                              "copper stabilizes","fed buying time supply","higher for longer bluff",
+                              "supply side inflation","fed cannot destroy economy","oil price floor",
+                              "bdi rally fed bluff","amrik takut depresi","inflasi supply driven"],
+        invalidation_keywords=["fed actually causes depression","oil breaks below 60","depresi confirmed",
+                                "copper crash below 3","bdi collapse long"],
+        beneficiaries={"us":["GLD","TLT","XLE","XOM","SLB"],
+                       "commodities":["CL=F","HG=F","GC=F"]},
+        fades={"us":["UUP","BIL"]},
+        regime_alignment={"Q2":1.40,"Q3":1.30,"Q4":1.20,"Q1":0.80},
+        typical_duration_weeks=26, conviction_ceiling=0.80, pump_risk=0.15,
+        confirmation_signals=["oil_hold_above_70","copper_stabilize_above_3_50",
+                               "bdi_sustained_above_1500","capex_announcements_continue",
+                               "fed_minutes_hawkishness_fade","ust_1y_below_ffr"],
+    ),
+
+]
+
+_NARRATIVES.extend(_NARRATIVES_BATCH5)
+NARRATIVE_BY_NAME.update({n.name: n for n in _NARRATIVES_BATCH5})
+for _n in _NARRATIVES_BATCH5:
+    NARRATIVES_BY_CATEGORY.setdefault(_n.category, []).append(_n)

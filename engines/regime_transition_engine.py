@@ -78,6 +78,7 @@ _TRANSITION_LIBRARY: Dict[str, Dict] = {
         "trigger_logic": "Supply shock fades or policy succeeds in crushing inflation. Growth still weak but inflation decelerating.",
         "early_warning_thresholds": {
             "inflation_momentum_falling":  lambda m: m.get("inflation_momentum", 0.0) < 0.0,
+            "crisis_keywords_firing":       lambda m: m.get("crisis_keyword_score", 0.0) > 0.5,  # too_big_fail + whatever_it_takes + joint_coord
             "oil_retreating":              lambda m: m.get("oil_3m", 0.0) < 0.0,
             "breakevens_falling":          lambda m: m.get("breakeven_1m_delta", 0.0) < -0.05,
             "growth_still_weak":           lambda m: m.get("growth_momentum", 0.0) < -0.10,
@@ -211,7 +212,7 @@ class RegimeTransitionEngine:
             fr = f"EARLY WARNING building for {top.from_quad}→{top.to_quad}. Not actionable yet — watch for {conf_1}."
         else:
             fw = "not yet"
-            fr = f"Current {current_quad} shows no clear transition signals. Stay positioned for regime continuation."
+            fr = f"Current {current_quad} — no clear transition signal. Watch for: TOO BIG TO FAIL + WHATEVER IT TAKES + JOINT COORDINATION (Ricky crisis entry). Stay positioned."
 
         return RegimeTransitionOutput(
             current_quad=current_quad, current_monthly_quad=monthly_quad,

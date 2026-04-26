@@ -1911,3 +1911,308 @@ _NARRATIVES.extend(_NARRATIVES_BATCH5)
 NARRATIVE_BY_NAME.update({n.name: n for n in _NARRATIVES_BATCH5})
 for _n in _NARRATIVES_BATCH5:
     NARRATIVES_BY_CATEGORY.setdefault(_n.category, []).append(_n)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BATCH 6 — ARTICLES 38-52 + CURRENT MARKET (APR 2026)
+# Key extractions: liquidity sequence, pivot phases, gold thesis, CKPN cascade
+# ═══════════════════════════════════════════════════════════════════════════════
+_NARRATIVES_BATCH6: List[NarrativeTemplate] = [
+
+    NarrativeTemplate(
+        name="Ricky — USD 8T Money Market Epic Cycle (Kerangkeng → Banjir)",
+        description="""Ricky2212's most epic liquidity thesis from 2023 that played out perfectly.
+"Uang sebesar USD 8-9 trilyun di kerangkeng money market (yield 5.5%, tenor pendek, zero risk)."
+"Sudah dari sana nya sifat uang adalah greedy — akan mengalir ke tempat yang kasih return tinggi."
+PHASE PROGRESSION (5 phases Ricky documented):
+Phase 1: Data bagus tapi UST short tenor tidak bergeming = Fed bluffing
+Phase 2: Crypto (dunia antah berantah) starts rally = risk-on appetitte returning
+Phase 3: HALT confirmed = crypto accelerates, UST 2Y starts falling
+Phase 4: CUT terendus = ALL 4 indicators confirm (BTC, Gold, Copper, UST)
+Phase 5: CUT confirmed Dec 2023 = UST 2Y rallied 6.43% in one day
+PHASE 5 CONFIRMATION CHECKPOINTS (all must hit):
+- BTC above 40k ✅
+- Gold above 2100 ✅
+- Copper above 3.90 ✅
+- UST 10Y below 4.2% ✅
+- DOW back to ATH ✅
+"JUST WAIT THE MONEY WILL SPREADING AND FLOODING AWAY."
+Epic Cycle = when kerangkeng opens, ALL asset classes flood simultaneously.
+Application to 2026: tariff shock → new kerangkeng forming? Watch same 4 indicators.""",
+        category="cycle",
+        catalyst_types=["fed_rate_cut","money_market_exodus","risk_on_return","pivot_confirmed",
+                         "btc_breakout","gold_ath","usd_weakening"],
+        activation_keywords=["money market exodus","epic cycle","usd 8 trillion","kerangkeng dibuka",
+                              "btc 40k gold 2100","risk on flooding","uang parkir money market",
+                              "just wait money spreading","greedy uang","likuiditas banjir",
+                              "pivot cut confirmed","money market fund outflow"],
+        invalidation_keywords=["rate hike resumes","usd strengthens sharply","risk off sustained",
+                                "btc crash","gold dump"],
+        beneficiaries={"us":["BTC-USD","GLD","HG=F","SPY","QQQ","EEM","IWM","TLT"],
+                       "ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","ITMG.JK","INCO.JK"]},
+        fades={"us":["UUP","BIL","money_market_funds"]},
+        regime_alignment={"Q1":1.90,"Q4":1.60,"Q2":0.80,"Q3":0.50},
+        typical_duration_weeks=52, conviction_ceiling=0.90, pump_risk=0.15,
+        confirmation_signals=["btc_above_40k","gold_above_2100","copper_above_3_90",
+                               "ust2y_rally_sustained","dow_ath","money_market_weekly_outflow"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — Pivot 5-Phase Leading Indicator Framework",
+        description="""Ricky2212's most sophisticated leading indicator framework — 4 assets that lead the Fed:
+LEADING INDICATOR HIERARCHY (most → least leading):
+1. DUNIA ANTAH BERANTAH (Crypto) = "mother of all risk-on/risk-off." Leads by 6-12 weeks.
+   "Dunia antah berantah adalah yang paling peka. Ini lebih ke risk appetitte signal."
+2. UST (US Treasury yields) = monetary policy signal. UST 2Y/1Y lead FFR decisions.
+   "UST tidak bisa berbohong. Kalo mau naik, tenor pendek naik duluan."
+3. COPPER = economic bellwether. Leads real economy by 4-8 weeks.
+   "Copper adalah proxy ekonomi terbaik. Kalo ekonomi mau recover, copper gerak duluan."
+4. GOLD = inflation/debt/trust hedge. Confirms direction.
+   "Gold bukan timing tool — gold is a confirming asset. Gold yang paling lambat bergerak."
+READING THE SIGNALS:
+All 4 up = MAX RISK ON (new cycle confirmed)
+Crypto+UST up, Copper+Gold flat = early recovery signal
+All 4 flat/down = max defensiveness
+Crypto up, others still down = early warning only, not yet actionable
+The framework PREDICTED the Dec 2023 FOMC dovish pivot 6 weeks in advance.""",
+        category="cycle",
+        catalyst_types=["btc_breakout","ust_rally","copper_recovery","gold_ath",
+                         "risk_on_appetitte","pivot_signal"],
+        activation_keywords=["pivot leading indicator","crypto ust copper gold","dunia antah berantah signal",
+                              "btc leading fed","ust leading indicator","copper economic bellwether",
+                              "4 leading indicators","pivot 5 phase","risk on signal",
+                              "btc 40k","copper 4","gold 2000","ust 2y falling"],
+        invalidation_keywords=["all 4 indicators down simultaneously","crypto crash broad",
+                                "copper collapse below 3","gold dump institutional"],
+        beneficiaries={"commodities":["GC=F","HG=F","BTC-USD"],
+                       "us":["SPY","QQQ","IWM","TLT","GLD"],
+                       "ihsg":["BBCA.JK","ITMG.JK"]},
+        fades={"us":["UUP"]},
+        regime_alignment={"Q4":1.80,"Q1":1.60,"Q2":0.90,"Q3":0.60},
+        typical_duration_weeks=13, conviction_ceiling=0.85, pump_risk=0.10,
+        confirmation_signals=["all_4_indicators_positive","btc_weekly_close_above_40k",
+                               "copper_above_3_80","gold_above_2000","ust2y_falling_trend"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — Gold: Inflation Debt Trust Hedge (Bretton Woods End Game)",
+        description="""Ricky2212's deepest gold thesis — based on monetary system structure, not price.
+"Semua akan kembali ke emas. Bukan thesis jangka pendek. Ini thesis ribuan tahun."
+ROOT CAUSE CHAIN:
+1944: Bretton Woods — USD backed by gold (1 oz = $35)
+1976: Nixon ends Bretton Woods — USD now backed only by TRUST
+Post-1976: Central banks print unlimited money. Uang dicetak berdasarkan TRUST saja.
+Now: US debt $33T. Interest expense = 19.5% of revenue (record). 25% within 10 years.
+Result: TRUST eroding → Gold as hedge.
+EVIDENCE:
+- Central banks buying gold at fastest pace in 55 years
+- Russia, China raising gold % of reserves continuously
+- JP Morgan research: gold allocation rising significantly
+- UNTR (Astra + gold), Salim (BRMS), INDY, Peter Sondakh all secretly accumulating
+- Call options + long positions in gold surging
+"Dari zaman kenabian: 3 dirham beli seekor kambing. Sekarang masih 3 dirham = 3 juta. Zero inflate."
+TRIGGER: Fed raises inflation target to 3% = berdamai dengan inflasi = hawkish selesai = gold structural bull.""",
+        category="commodity",
+        catalyst_types=["dollar_debasement","central_bank_gold_buying","fed_target_migration",
+                         "dedollarization","debt_crisis","trust_erosion","bretton_woods"],
+        activation_keywords=["gold central bank buying","dollar trust erode","bretton woods collapse",
+                              "uang tanpa back up emas","gold structural bull","inflation hedge gold",
+                              "gold ATH","untr gold","salim brms gold","dedollarization gold",
+                              "jp morgan gold allocation","gold 2000 2100 2500"],
+        invalidation_keywords=["dollar surges structurally","gold dump central bank","crypto replaces gold",
+                                "imf gold standard restored"],
+        beneficiaries={"us":["GLD","GC=F","NEM","GOLD","AEM","WPM","FNV"],
+                       "ihsg":["ANTM.JK","MDKA.JK","BRMS.JK","INDY.JK"],
+                       "commodities":["GC=F","SLV"]},
+        fades={"us":["UUP","TLT"]},
+        regime_alignment={"Q3":1.80,"Q4":1.70,"Q2":1.30,"Q1":0.70},
+        typical_duration_weeks=260, conviction_ceiling=0.90, pump_risk=0.05,
+        confirmation_signals=["central_bank_gold_buying_sustained","fed_target_3pct","gold_ath_new",
+                               "dollar_reserve_share_declining","untr_gold_acquisition_news"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — Ray Dalio Beautiful Deleveraging (China Property Cycle)",
+        description="""Ricky2212 applying Ray Dalio's Big Debt Crisis framework to China's property situation.
+"China harus melakukan beautiful deleveraging. Dan China mampu melakukannya dengan baik."
+WHY CHINA CAN DO IT (vs why US can't do it easily):
+1. Debt in OWN CURRENCY = can manage via PBOC printing without external default
+2. Debt held by OWN CITIZENS = no sudden foreign capital flight
+3. Capacity for QE without hyperinflation (Yuan not global reserve currency = less inflation risk)
+4. Fiscal + monetary flexibility both available (unlike US with debt ceiling)
+Beautiful Deleveraging = BALANCE between:
+a) Deflationary defaults/restructurings (Evergrande, Country Garden)
+b) Inflationary money printing/debt monetization (PBOC QE, RRR cuts)
+→ Spread burden over time without collapse
+China property = 20-30% GDP. Cannot be allowed to fail = backstop guaranteed.
+"China masih punya banyak bazooka buat ditembakkan. Mereka belum keluarkan yang besar."
+INVESTMENT ANGLE: China property crisis = priced in already when Evergrande news peak.
+When PBOC fires bazooka = recovery thesis. BDI + copper + iron ore will signal first.""",
+        category="geopolitical",
+        catalyst_types=["pboc_mega_stimulus","china_property_bailout","china_rrr_cut",
+                         "china_fiscal_stimulus","evergrande_resolved","country_garden_bailout"],
+        activation_keywords=["china beautiful deleveraging","evergrande resolution","ray dalio china",
+                              "china property recovery","pboc bazooka","china mega stimulus",
+                              "china rrr cut","country garden resolved","china property 30 pct gdp",
+                              "china deleveraging","pboc qe","china fiscal expansion"],
+        invalidation_keywords=["china hard landing confirmed","pboc refuses bailout",
+                                "china debt default foreign currency","xi property crackdown deepens"],
+        beneficiaries={"ihsg":["ITMG.JK","INCO.JK","MDKA.JK","PSSI.JK"],
+                       "global":["FXI","MCHI","FCX","RIO","VALE","GOGL"],
+                       "commodities":["HG=F","iron_ore","GC=F"]},
+        fades={"us":["TLT"]},
+        regime_alignment={"Q1":1.50,"Q2":1.40,"Q4":0.80,"Q3":0.60},
+        typical_duration_weeks=52, conviction_ceiling=0.75, pump_risk=0.25,
+        confirmation_signals=["pboc_rrr_cut","china_property_sales_stabilize",
+                               "bdi_above_2000_china_driven","iron_ore_recovery","copper_above_4"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — BREN/IHSG Pattern (Invisible Hand Index Management)",
+        description="""Ricky2212's IHSG structure insight — the INVISIBLE HAND that manages indeks.
+PATTERN: GOTO → BYAN → ARTO → BREN (each became index mover in its era)
+GOTO: Rugi 20T, valuasi setara Bank Mandiri. Dipakai jaga indeks ATH-10%. Sekarang turun 80%.
+BYAN: Backed by real earnings (coal). Still in top-5 market cap. Survived = EARNINGS matter.
+ARTO (Bank Jago): Hype digital, menggeser ASII. Now 30T only. Valuasi tanpa earnings = temporary.
+BREN: PE 543x, PBV 99x. Market cap 1000T vs BBCA 1100T. Laba BREN 1.3T vs BBRI 60T.
+"Saat indeks jatuh ke 6600 (ATH-10%), BREN di-ARA paksa jaga indeks."
+STRUCTURAL INSIGHT:
+- Free float sangat kecil = mudah dimainkan
+- Mining hype (EBT) = similar to digital banking hype 2021
+- Prajogo strategy: IPO sedikit → price discovery → block sale later at high price
+THESIS: Invisible hand gunakan BREN untuk jaga indeks di ATH-10%. Permainan selanjutnya = BANKING.
+"Banking sektor yang akan mengambil alih jadi penggerak nyata indeks saat new cycle berjalan."
+BREN will not collapse like GOTO (ada earnings) but will revert toward fundamental value (like BYAN).""",
+        category="cycle",
+        catalyst_types=["ihsg_rebalancing","bren_correction","banking_sector_rerating",
+                         "index_composition_change","prajogo_block_sale"],
+        activation_keywords=["bren ihsg","bren pe 543","bren correction","goto byan arto bren pattern",
+                              "invisible hand ihsg","index mover ihsg","bren arb","banking ihsg next",
+                              "prajogo pangestu bren","ihsg ath -10 defended","bren free float"],
+        invalidation_keywords=["bren earnings surge","bren new massive project","EBT mega expansion"],
+        beneficiaries={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","BBNI.JK"]},
+        fades={"ihsg":["BREN.JK"]},
+        regime_alignment={"Q1":1.40,"Q4":1.30,"Q2":0.90,"Q3":0.60},
+        typical_duration_weeks=26, conviction_ceiling=0.75, pump_risk=0.20,
+        confirmation_signals=["bren_correction_below_pe200","banking_foreign_net_buy",
+                               "ihsg_held_above_ath_minus_10","bbca_bbri_accumulation"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — CKPN Cascade (Ultra Mikro → Mikro → Middle Class → Big Bank)",
+        description="""Ricky2212's MOST CURRENT (2025-2026) thesis on Indonesia banking stress cascade.
+"Aliran dimulai dari bawah dan mengalir ke atas. Akan stop dimana alirannya?"
+CASCADE SEQUENCE:
+Stage 1 (DONE): Ultra mikro → BTPS. CKPN menggungung = akumulasi sampah COVID + judol + pinjol.
+Stage 2 (CURRENT): Mikro → BBRI. BBRI CKPN naik 2x lipat, stop lending mikro.
+  Signal: "BBRI sampai stop lending di segment mikro = kondisi sangat tidak kondusif."
+Stage 3 (NEXT): Middle class bawah (income 10-15jt). Watch: NPL leasing motor + BBTN CKPN.
+  "Motor adalah kendaraan utama mereka, KPR BTN adalah cicilan rumah mereka."
+Stage 4 (LATER): Middle class atas. Watch: BNGA, NISP consumer banking stress.
+IHSG IMPLICATION:
+- Big banks: BBCA ATH-12%, BBRI ATH-32%, BMRI ATH-23%, BBNI ATH-28% (Apr 2026 data)
+- VIX signal at low = bounce needed
+- IDR weakness = bank saham kena pertama
+ENTRY SIGNAL: "ATH-10% adalah pertahanan pertama indeks."
+RECOVERY SIGNAL: Watch BTPS turnaround first (earliest in cycle) + BBRI CKPN formation peak.
+"Saat CKPN sdh peak dan berangsur turun = bank saham mulai bisa dibeli."
+RICKY DIRECT QUOTE (Apr 2026): "Market bermain pakai NARASI tanpa valuasi. Cari saham yang punya NARASI kuat." """,
+        category="cycle",
+        catalyst_types=["ckpn_cascade","npl_rising","bank_lending_stop","idr_weakness",
+                         "credit_stress","consumer_balance_sheet_stress","pinjol_stress"],
+        activation_keywords=["ckpn cascade","bbri ckpn naik","bbri stop lending mikro",
+                              "btps ckpn peak","bank stress indonesia","npl leasing motor",
+                              "bbtn ckpn","middle class stress","kredit macet ihsg",
+                              "bank ihsg ath -30","bbca bbri dump","rupiah lemah bank",
+                              "ekonomi bawah tidak bergerak","judol pinjol drain liquidity"],
+        invalidation_keywords=["ckpn peak confirmed declining","economic recovery bottom",
+                                "bi rate cut aggressive","government stimulus effective"],
+        beneficiaries={"ihsg":["BTPS.JK","BBCA.JK"]},
+        fades={"ihsg":["BBRI.JK","BMRI.JK","BBNI.JK","BJTM.JK"]},
+        regime_alignment={"Q3":1.80,"Q4":1.50,"Q2":0.80,"Q1":0.50},
+        typical_duration_weeks=26, conviction_ceiling=0.85, pump_risk=0.10,
+        confirmation_signals=["bbri_ckpn_2x_lipat","bbri_stop_lending_mikro",
+                               "leasing_motor_npl_spike","bbtn_ckpn_rising",
+                               "btps_ckpn_declining_signal","vix_at_low_ihsg"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — End of Game Fed (Dovish Statement = New Cycle Start)",
+        description="""Ricky2212's landmark article Dec 2023: "For the first time, Fed gives DOVISH statement."
+"Ini untuk pertama kalinya dalam siklus pengetatan — pemangku kebijakan memberikan sinyal dovish."
+WHAT HAPPENED Dec 2023 FOMC:
+- Fed held rates (3rd consecutive HALT)
+- Projected 4x CUT in 2024 (from 2x projected previously)
+- Fed funds rate projection: 4.6% for 2024
+Market response within hours:
+- UST 1Y: rallied 4%
+- UST 2Y: rallied 6.43%
+- DOW and S&P500: closed at ATH
+- Gold: spiked 2%+
+- USD: immediate collapse vs all pairs
+RICKY's TRACKING (perjalanan panjang terkonfirmasi):
+2021: Year of inflation ✅
+2022: Year of transition (hawkish) ✅
+2023: Year of new base + HALT + PIVOT CUT ✅
+2024: Year of new cycle (INCOMING)
+"This is the END OF THE GAME (hawkish). Kita akan memasuki babak baru."
+APPLICATION 2026: Same framework. Watch for "first dovish statement" after current tightening.
+When it comes: UST 2Y will rally 4-6%, DOW ATH, gold spike, IDR strengthen.""",
+        category="policy",
+        catalyst_types=["fed_first_dovish","fomc_cut_projection","powell_pivot_confirmed",
+                         "new_cycle_start","rate_cut_cycle_begin"],
+        activation_keywords=["fed first dovish statement","fomc cut projection","end of game hawkish",
+                              "powell pivot","4 cuts projected","fed dot plot dovish",
+                              "monetary policy reversal confirmed","new cycle 2024","ust 2y rally",
+                              "first time dovish fed","fed berdamai","year of new cycle"],
+        invalidation_keywords=["fed resumes hiking","inflation re-accelerates sharply",
+                                "terminal rate raised again","stagflation confirmed"],
+        beneficiaries={"us":["SPY","QQQ","TLT","IWM","GLD","EEM"],
+                       "ihsg":["BBCA.JK","BBRI.JK","CTRA.JK","BEST.JK"],
+                       "commodities":["GC=F","HG=F"]},
+        fades={"us":["UUP","BIL"]},
+        regime_alignment={"Q4":1.90,"Q1":1.70,"Q2":0.80,"Q3":0.50},
+        typical_duration_weeks=52, conviction_ceiling=0.95, pump_risk=0.05,
+        confirmation_signals=["fed_dot_plot_below_current_rate","fomc_statement_dovish_first",
+                               "ust2y_rally_above_5pct","dow_sp500_ath_post_fomc",
+                               "gold_spike_2pct_fomc_day"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — Ber-Ber Period + October Fear Peak Pattern",
+        description="""Ricky2212's seasonal + crisis timing framework.
+"BER BER period = September Oktober November. Historis, market paling sering berkinerja buruk."
+Historical data: Black Monday 1987 = Oktober. Krisis 2008 puncak = Oktober. Covid low 2020 = Maret.
+DOW ATH-20% (2022) terjadi di Oktober = sama persis.
+THESIS: "BER BER bukan law, hanya statistik. Tapi persiapkan diri untuk kemungkinan itu."
+The MECHANISM:
+- Big funds want "karpet merah" = harga murah sebelum deploy
+- Terror market = force central bank to act faster
+- October = puncak fear → historically best entry point for 3-6 month trade
+ADDITIONAL PATTERN: "Saat semua yang terburuk sudah dimunculkan, apa yang tersisa? BUY."
+"Kalaupun terjadi, yah itu bonus — sudah siap. Kalo ga terjadi, juga bonus."
+2023 EXAMPLE: Bottomed Oktober 2023 → Fed went dovish December 2023 → ALL market ATH by Q1 2024.
+HOW TO USE: NOT a prediction tool — a PREPARATION tool.
+"Yang jelas uang yang punya sifat Greedy yang lagi di kerangkeng, kalo dilepas = buas banget.""",
+        category="cycle",
+        catalyst_types=["seasonal_october_fear","market_terror","big_fund_karpet_merah",
+                         "september_selloff","october_bottom","year_end_rally"],
+        activation_keywords=["ber ber period","sell in may","october fear","market bottom october",
+                              "seasonal pattern bad months","big fund terror market",
+                              "karpet merah harga murah","september oktober november",
+                              "black monday october","maximum fear signal","ber ber 2024"],
+        invalidation_keywords=["no seasonal pattern this year","structural bear market",
+                                "no policy response coming"],
+        beneficiaries={"us":["SPY","QQQ","IWM","GLD"],"ihsg":["BBCA.JK","ITMG.JK"]},
+        fades={"us":[]},
+        regime_alignment={"Q4":1.60,"Q3":1.20,"Q1":0.90,"Q2":0.80},
+        typical_duration_weeks=8, conviction_ceiling=0.65, pump_risk=0.10,
+        confirmation_signals=["vix_spike_above_30","october_drawdown_confirmed",
+                               "fear_greed_below_20","fund_money_market_peak"],
+    ),
+
+]
+
+_NARRATIVES.extend(_NARRATIVES_BATCH6)
+NARRATIVE_BY_NAME.update({n.name: n for n in _NARRATIVES_BATCH6})
+for _n in _NARRATIVES_BATCH6:
+    NARRATIVES_BY_CATEGORY.setdefault(_n.category, []).append(_n)

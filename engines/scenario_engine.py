@@ -53,6 +53,7 @@ TRANSITION_IMPLICATIONS: Dict[str, dict] = {
         "catalyst": "ISM rebounds >52, retail sales surprise, PMI acceleration",
         "conviction": "MODERATE — monthly Q2 signal leads structural confirmation",
         "em_note": "EM COMMODITY EXPORTERS RECOVER. EIDO, EWW, EWZ, NORW, EWA lead. Monthly Q2 = commodity bid + USD bearish TREND = EM FX relief. IHSG: Coal (ITMG/ADRO) + OSV (WINS/LEAD) re-ignite — RICKY SESI 2→3 TRANSITION SIGNAL.",
+        "ihsg_banking_note": "CURRENT (Apr 2026): BBCA -12%, BBRI -32%, BMRI -23%, BBNI -28% dari ATH. CKPN cascade: Ultra mikro DONE → Mikro CURRENT (BBRI 2x CKPN, stop lending mikro) → Middle class NEXT (watch leasing motor NPL + BBTN CKPN). ATH-10% = pertahanan pertama IHSG.",
     },
     "Q3→Q3": {
         "headline": "Stagflation Persistence: Stay defensive",

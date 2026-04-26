@@ -1,4 +1,4 @@
-"""engines/narrative_engine_v3.py — Multi-Market Adaptive · Reactive · Proactive Narrative Engine
+"""engines/narrative_engine.py — Multi-Market Adaptive · Reactive · Proactive Narrative Engine
 
 Narrative = the "story" market believes about why an asset/sector should move.
 Covers: US Equities, Forex, Commodities, Crypto, IHSG, Bonds, Global/Country.
@@ -8,7 +8,8 @@ Three modes:
   • REACTIVE : Detects narrative ignition from simultaneous sector spikes + volume clustering
   • PROACTIVE: Predicts dominant narrative 4-8 weeks forward from supply chain + macro signals
 
-Integrates with scenario_engine.py and bottleneck_discovery_v3.py.
+BACKWARD COMPATIBLE: class name = NarrativeEngine (matches orchestrator.py import).
+run() accepts both old signature (quad_mon, benchmark) and new signature (scenario_output, volumes).
 """
 from __future__ import annotations
 import math
@@ -176,17 +177,21 @@ class NarrativeScore:
     invalidators: List[str] = field(default_factory=list)
 
 
-class NarrativeEngineV3:
-    def __init__(self, settings_module):
+class NarrativeEngine:
+    """BACKWARD COMPATIBLE class name for orchestrator.py import.
+    Internal logic = v3 (multi-market adaptive/reactive/proactive).
+    """
+
+    def __init__(self, settings_module=None):
         self.cfg = settings_module
-        self.sector_map = getattr(settings_module, "TICKER_SECTOR", {})
-        self.market_map = getattr(settings_module, "MARKET_CLASSIFICATION", {})
-        self.us_buckets = getattr(settings_module, "US_BUCKETS", {})
-        self.ihsg_buckets = getattr(settings_module, "IHSG_BUCKETS", {})
-        self.fx_buckets = getattr(settings_module, "FX_BUCKETS", {})
-        self.comm_buckets = getattr(settings_module, "COMMODITY_BUCKETS", {})
-        self.crypto_buckets = getattr(settings_module, "CRYPTO_BUCKETS", {})
-        self.country_univ = getattr(settings_module, "COUNTRY_UNIVERSE", {})
+        self.sector_map = getattr(settings_module, "TICKER_SECTOR", {}) if settings_module else {}
+        self.market_map = getattr(settings_module, "MARKET_CLASSIFICATION", {}) if settings_module else {}
+        self.us_buckets = getattr(settings_module, "US_BUCKETS", {}) if settings_module else {}
+        self.ihsg_buckets = getattr(settings_module, "IHSG_BUCKETS", {}) if settings_module else {}
+        self.fx_buckets = getattr(settings_module, "FX_BUCKETS", {}) if settings_module else {}
+        self.comm_buckets = getattr(settings_module, "COMMODITY_BUCKETS", {}) if settings_module else {}
+        self.crypto_buckets = getattr(settings_module, "CRYPTO_BUCKETS", {}) if settings_module else {}
+        self.country_univ = getattr(settings_module, "COUNTRY_UNIVERSE", {}) if settings_module else {}
 
     # ── ADAPTIVE ──────────────────────────────────────────────────────────────
     def adaptive_weights(self, quad_str: str) -> Dict[str, float]:
@@ -292,14 +297,18 @@ class NarrativeEngineV3:
     def proactive_forecast(
         self,
         current_scores: Dict[str, NarrativeScore],
-        scenario_output: Dict,
+        scenario_output: Optional[Dict] = None,
         supply_chain_signals: Optional[Dict] = None,
         weeks: int = 8,
     ) -> Dict[str, NarrativeScore]:
         supply_chain_signals = supply_chain_signals or {}
-        base_case = scenario_output.get("base_case")
-        to_quad = base_case.to_quad if base_case else "Q3"
-        to_prob = base_case.probability if base_case else 0.25
+        to_quad = "Q3"
+        to_prob = 0.25
+        if scenario_output:
+            base_case = scenario_output.get("base_case")
+            if base_case:
+                to_quad = getattr(base_case, "to_quad", "Q3")
+                to_prob = getattr(base_case, "probability", 0.25)
         target_weights = self.adaptive_weights(to_quad)
         forecasts = {}
 
@@ -397,16 +406,21 @@ class NarrativeEngineV3:
         results.sort(key=lambda x: x["priced_in_score"], reverse=True)
         return results
 
-    # ── MAIN RUN ──────────────────────────────────────────────────────────────
+    # ── MAIN RUN (BACKWARD COMPATIBLE) ────────────────────────────────────────
     def run(
         self,
         prices: Dict[str, pd.Series],
         volumes: Optional[Dict[str, pd.Series]] = None,
         quad_str: str = "Q3",
+        # Old signature params (from orchestrator.py)
+        quad_mon: Optional[str] = None,
+        benchmark: Optional[str] = None,
+        # New signature params
         scenario_output: Optional[Dict] = None,
         supply_chain_signals: Optional[Dict] = None,
         target_asset_classes: Optional[List[str]] = None,
     ) -> Dict:
+        """Backward compatible: accepts both old (quad_mon, benchmark) and new (scenario_output) params."""
         target_asset_classes = target_asset_classes or ["crypto", "forex", "commodity", "ihsg", "bonds", "global"]
         adaptive = self.adaptive_weights(quad_str)
         ignition = self.reactive_ignition(prices, volumes)
@@ -458,6 +472,7 @@ class NarrativeEngineV3:
             "spillover": spillover,
             "meta": {
                 "quad": quad_str,
+                "monthly_quad": quad_mon or "",
                 "narratives_tracked": len(NARRATIVES),
                 "igniting_now": sum(1 for v in ignition.values() if v.ignition_detected),
                 "markets_covered": len(target_asset_classes),

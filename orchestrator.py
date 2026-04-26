@@ -1,5 +1,5 @@
 """orchestrator.py — Snapshot builder. Light & staged loading.
-INCLUDES: 10/10 Autonomy Stack (integrated inside build_snapshot)
+INCLUDES: 10/10 Autonomy Stack LIGHTWEIGHT (NO torch/transformers)
 """
 from __future__ import annotations
 import time, logging, math, os, json
@@ -38,9 +38,9 @@ try:
     from engines.auto_discovery_engine_v3 import AutoDiscoveryEngineV3
     from engines.feedback_loop_engine_v3 import FeedbackLoopEngineV3
     _AUTONOMY_AVAILABLE = True
-    logger.info("Autonomy stack v3 loaded successfully.")
+    logger.info("Autonomy stack v3 (lightweight) loaded successfully.")
 except Exception as e:
-    logger.warning(f"Autonomy stack not available (missing engine files?): {e}")
+    logger.warning(f"Autonomy stack not available: {e}")
     _AUTONOMY_AVAILABLE = False
 
 def _prog(cb, msg, frac):
@@ -117,7 +117,7 @@ def build_snapshot(
     global_quad = GlobalQuadEngine().run(prices=prices, us_gip_result=gip)
     snap["global"] = global_quad
 
-    # 11. Risk Ranges — build OHLCV frames
+    # 11. Risk Ranges
     _prog(progress_cb, "Fetching OHLCV for Hurst risk ranges...", 0.64)
     rr_tickers = (
         list(MACRO_PROXIES.keys()) + list(US_SECTORS.keys()) +
@@ -148,7 +148,6 @@ def build_snapshot(
     except Exception as e:
         logger.warning(f"OHLCV fetch partial: {e}")
 
-    # Fallback: synthetic frames from close
     for t in rr_tickers:
         if t not in price_frames and t in prices:
             c = pd.to_numeric(prices[t], errors="coerce").dropna()
@@ -195,7 +194,7 @@ def build_snapshot(
     )
     snap["narratives"] = narratives
 
-    # 14b. Regime Transition (timing + front-run window)
+    # 14b. Regime Transition
     _prog(progress_cb, "Computing regime transition timing...", 0.91)
     try:
         macro_ctx = {k:v for k,v in gip.features.items() if isinstance(v,float)}
@@ -209,7 +208,7 @@ def build_snapshot(
         transition = None
     snap["transition"] = transition
 
-    # 14c. Market Health (VIX bucket + crash meter + USD corr + checklists)
+    # 14c. Market Health
     _prog(progress_cb, "Computing market health signals...", 0.92)
     try:
         health = MarketHealthEngine().run(prices=prices, gip_features=gip.features, quad=gip.structural_quad)
@@ -228,15 +227,15 @@ def build_snapshot(
         analogs = {"top_analogs":[], "composite_note":""}
     snap["analogs"] = analogs
 
-    # ── 15. TRUE AUTONOMY v3 (replaces Claude API step) ──────────────
-    _prog(progress_cb, "Running 10/10 autonomous discovery...", 0.96)
+    # ── 15. TRUE AUTONOMY v3 LIGHTWEIGHT (NO torch/transformers) ──
+    _prog(progress_cb, "Running 10/10 autonomous discovery (lightweight)...", 0.96)
     if _AUTONOMY_AVAILABLE:
         try:
             auto = AutoDiscoveryEngineV3(
                 sector_map=TICKER_SECTOR,
                 market_map=MARKET_CLASSIFICATION,
                 known_tickers=list(TICKER_SECTOR.keys()),
-                use_transformers=True,
+                use_transformers=False,  # FORCE lightweight — no torch
             )
             discoveries = auto.run(
                 prices=prices,
@@ -248,13 +247,11 @@ def build_snapshot(
             )
             snap["auto_discoveries"] = discoveries
 
-            # Feedback loop
             fb = FeedbackLoopEngineV3()
             fb.track(discoveries.get("candidates", []), regime=gip.structural_quad)
             fb_eval = fb.evaluate(prices, benchmark="SPY")
             snap["feedback_eval"] = fb_eval
 
-            # Record transition for predictor learning
             predictor = RegimePredictorEngine()
             predictor.record_transition(gip.structural_quad, gip.monthly_quad, gip.features)
 
@@ -263,7 +260,6 @@ def build_snapshot(
             snap["auto_discoveries"] = {"candidates": [], "meta": {"error": str(e)}}
             snap["feedback_eval"] = {"evaluated": 0, "promoted": 0, "demoted": 0}
     else:
-        # Fallback: old Claude API discovery
         _prog(progress_cb, "Autonomy stack unavailable — falling back to Claude API...", 0.965)
         try:
             discovery = AdaptiveDiscoveryEngine().run(
@@ -278,7 +274,7 @@ def build_snapshot(
         snap["discovery"] = discovery
         snap["auto_discoveries"] = {"candidates": [], "meta": {"fallback": "claude_api", "autonomy_unavailable": True}}
 
-    # Store prices subset for UI charts (close prices only — light)
+    # Store prices subset for UI
     snap["prices"] = {k: v for k, v in prices.items() if isinstance(v, pd.Series) and len(v) > 10}
     snap["build_time_s"] = round(time.time() - t0, 1)
     snap["ok"] = True

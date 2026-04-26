@@ -1,38 +1,30 @@
-# MacroRegime Pro v10
-## Hedgeye GIP Framework — Full Clean Build
+# MacroRegime Autonomy Stack v10 — LIGHTWEIGHT
 
-### Setup
-```bash
-pip install -r requirements.txt
-```
+## Problem Solved
+Streamlit Cloud free tier stuck installing PyTorch (2GB+). This version removes ALL heavy ML dependencies.
 
-### FRED API Key
-Add to `.streamlit/secrets.toml`:
-```toml
-FRED_API_KEY = "your_key_here"
-```
+## What's Different
+- NO `torch`
+- NO `transformers`
+- NO 500MB model downloads
+- NLP is 100% regex/knowledge-based (still powerful for financial headlines)
+- Build time: <2 minutes on Streamlit Cloud
 
-### Run
-```bash
-streamlit run app.py
-```
+## Install
+1. Replace `requirements.txt` with the lightweight version
+2. Copy ALL `engines/*.py` and `config/autonomy_settings.py` to your repo
+3. Replace `orchestrator.py` with the lightweight version
+4. Push → redeploy
 
-### Architecture
-- `engines/gip_engine.py` — TRUE Hedgeye GIP model (Growth·Inflation·Policy)
-- `engines/hurst_rr_engine.py` — TRADE/TREND/TAIL Risk Ranges (Rescaled Range/Hurst)
-- `engines/global_quad_engine.py` — 50+ country quad classification
-- `engines/scenario_engine.py` — Adaptive scenario discovery
-- `engines/bottleneck_engine.py` — Full bottleneck scanner with TP logic
-- `config/settings.py` — ALL parameters (zero hardcoded thresholds in engines)
-- `data/loader.py` — FRED + yfinance with smart snapshot caching
-- `orchestrator.py` — Full snapshot builder
-- `app.py` — Streamlit UI
-
-### Pages
-1. Dashboard — Quad trinity + alerts + base scenario
-2. Regime (GIP) — 2D quad map + signal breakdown + data quality
-3. Risk Ranges — TRADE/TREND/TAIL per asset + Hurst + alerts
-4. Global Quad — 50 countries + USD bias + EM assessment
-5. Bottleneck Scanner — Citrini + Hedgeye + TP levels per bottleneck type
-6. Scenarios — Adaptive regime transition scenarios
-7. IHSG — Indonesia-specific context
+## Files
+- `requirements.txt` — lightweight deps
+- `engines/news_nlp_engine_v3.py` — regex NLP (no FinBERT)
+- `engines/price_cluster_engine_v3.py` — graph clustering
+- `engines/edgar_scraper_engine.py` — SEC 10-K parser
+- `engines/supply_chain_graph_engine.py` — NetworkX centrality
+- `engines/leading_indicator_engine.py` — GBM regression
+- `engines/regime_predictor_engine.py` — ensemble predictor
+- `engines/auto_discovery_engine_v3.py` — integration brain
+- `engines/feedback_loop_engine_v3.py` — learning loop
+- `config/autonomy_settings.py` — tunable params
+- `orchestrator.py` — full orchestrator with autonomy step 15

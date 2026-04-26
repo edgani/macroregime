@@ -5,6 +5,7 @@ ROOT CAUSE FIX (Structural Q3):
 - Now uses 6M vs 12M SPREAD (true 2nd derivative: accelerating/decelerating)
 - Structural weights: inflation-dominant (55%) for Q3 accuracy
 - Added ISMNO FRED series support
+- FIX: Added missing clamp01() helper (was called but never defined)
 """
 from __future__ import annotations
 import math
@@ -107,10 +108,16 @@ def _acc_spread(r6, r12):
     if not all(math.isfinite(x) for x in [r6, r12]): return 0.0
     return float(r6 * 2.0 - r12)
 
+# ── FIX: clamp01 was called but never defined ─────────────────────────────────
+def clamp01(x):
+    """Clamp value to [0, 1]."""
+    if not math.isfinite(x): return 0.0
+    return max(0.0, min(1.0, float(x)))
+
 # ── Price proxy v3 (6M/12M spread = true 2nd derivative) ─────────────────────
 
 def _price_proxy(prices: Dict) -> Dict[str, float]:
-    """Market-implied G+I proxy. 
+    """Market-implied G+I proxy.
 
     STRUCTURAL signals use 6M vs 12M spread (acceleration/deceleration).
     MONTHLY signals use 1M/3M (short-term momentum).
@@ -149,79 +156,68 @@ def _price_proxy(prices: Dict) -> Dict[str, float]:
     gld_acc = _acc_spread(gld6, gld12)
 
     # ── Credit/Quality signals: Q3 differentiators (6M horizon) ───────────
-    # Using 6M (126d) lookback: more reliable, needs only 127 data points
-    hyg6  = _first_finite(r("HYG", 126), r("LQD", 126))
-    tlt6  = _first_finite(r("TLT", 126))
-    xlp6  = _first_finite(r("XLP", 126))
-    xly6v = _first_finite(r("XLY", 126))  # renamed from xly6 to avoid conflict
-    spy6v = _first_finite(r("SPY", 126))  # 6M SPY return for comparison
-    iwm6v = _first_finite(r("IWM", 126))  # 6M IWM return
+    hyg6 = _first_finite(r("HYG", 126), r("LQD", 126))
+    tlt6 = _first_finite(r("TLT", 126))
+    xlp6 = _first_finite(r("XLP", 126))
+    xly6v = _first_finite(r("XLY", 126))
+    spy6v = _first_finite(r("SPY", 126))
+    iwm6v = _first_finite(r("IWM", 126))
 
-    # Credit spread: SPY 6M outpacing HYG 6M = credit stress = Q3 signal
-    credit_stress_6 = _nan(spy6v - hyg6)   # positive = Q3/Q4 signal
-    # Flight to quality: TLT positive while SPY flat/neg = Q3/Q4 signal
-    quality_bid_6   = _nan(tlt6 - spy6v*0.5)  # TLT outperforming = Q3
-    # Consumer bifurcation: XLP > XLY on 6M = defensive outperform = Q3
-    consumer_stress_6 = _nan(xlp6 - xly6v)  # positive = Q3 signal
-    # Breadth: SPY >> IWM on 6M = small cap lagging = Q3 breadth headwind
-    breadth_stress_6 = _nan(spy6v - iwm6v)   # positive = Q3 signal
+    credit_stress_6 = _nan(spy6v - hyg6)
+    quality_bid_6 = _nan(tlt6 - spy6v*0.5)
+    consumer_stress_6 = _nan(xlp6 - xly6v)
+    breadth_stress_6 = _nan(spy6v - iwm6v)
 
-    # Q3 confirmation modifier: sum of confirming signals
     q3_conf_raw = (
-        max(0.0, credit_stress_6) * 2.0 +    # credit stress (strongest signal)
-        max(0.0, quality_bid_6) * 1.5 +       # flight to quality
-        max(0.0, consumer_stress_6) * 2.0 +   # defensive outperform
-        max(0.0, breadth_stress_6) * 1.0      # small cap underperform
+        max(0.0, credit_stress_6) * 2.0 +
+        max(0.0, quality_bid_6) * 1.5 +
+        max(0.0, consumer_stress_6) * 2.0 +
+        max(0.0, breadth_stress_6) * 1.0
     )
-    q3_modifier = float(np.tanh(q3_conf_raw / 0.12) * 0.40)  # max ±0.40 boost
-    # Also store the raw values for debugging
+    q3_modifier = float(np.tanh(q3_conf_raw / 0.12) * 0.40)
     credit_stress_12 = credit_stress_6
-    quality_bid_12   = quality_bid_6
+    quality_bid_12 = quality_bid_6
     consumer_stress_12 = consumer_stress_6
-    breadth_stress_12  = breadth_stress_6
+    breadth_stress_12 = breadth_stress_6
 
     return {
-        # Growth level = 12M trend (long-term level)
-        "indpro_yoy":    _nan(0.55*xli12 + 0.45*spy12),
-        "retail_yoy":    _nan(0.60*xly12 + 0.40*spy12),
-        "payrolls_yoy":  _nan(0.50*iwm12 + 0.50*spy12),
-        "housing_yoy":   _nan(0.70*xhb12 + 0.30*iwm12),
-        "ism_norm":      _nan(10.0*xli3),          # ISM proxy dari 3M industrials
-        "unrate_inv":    _nan(-0.10*iwm12),        # unemployment inverse
-        "claims_inv":    _nan(-5.0*iwm3),
+        "indpro_yoy": _nan(0.55*xli12 + 0.45*spy12),
+        "retail_yoy": _nan(0.60*xly12 + 0.40*spy12),
+        "payrolls_yoy": _nan(0.50*iwm12 + 0.50*spy12),
+        "housing_yoy": _nan(0.70*xhb12 + 0.30*iwm12),
+        "ism_norm": _nan(10.0*xli3),
+        "unrate_inv": _nan(-0.10*iwm12),
+        "claims_inv": _nan(-5.0*iwm3),
 
-        # Inflation level = 12M commodity trend
-        "cpi_yoy":       _nan(0.025 + 0.35*oil12 + 0.05*gld12),
-        "core_cpi_yoy":  _nan(0.023 + 0.15*oil12 - 0.05*uup3),
-        "breakeven_5y":  _nan(0.6*oil12 + 0.2*gld12),
-        "ppi_yoy":       _nan(0.03 + 0.55*oil12),
-        "oil_3m":        _nan(oil6*2.0),            # annualized 6M
-        "gold_3m":       _nan(gld6*2.0),
+        "cpi_yoy": _nan(0.025 + 0.35*oil12 + 0.05*gld12),
+        "core_cpi_yoy": _nan(0.023 + 0.15*oil12 - 0.05*uup3),
+        "breakeven_5y": _nan(0.6*oil12 + 0.2*gld12),
+        "ppi_yoy": _nan(0.03 + 0.55*oil12),
+        "oil_3m": _nan(oil6*2.0),
+        "gold_3m": _nan(gld6*2.0),
 
-        # Growth momentum = 6M vs 12M SPREAD (deceleration = negative)
-        "indpro_roc":    _nan(0.60*xli_acc + 0.40*spy_acc),
-        "retail_roc":    _nan(0.60*xly_acc + 0.40*spy_acc),
-        "payrolls_roc":  _nan(0.50*iwm_acc + 0.50*spy_acc),
-        "ism_delta":     _nan(xli1*100),
-        "unrate_delta":  _nan(-iwm1),
-        "claims_delta":  0.0,
+        "indpro_roc": _nan(0.60*xli_acc + 0.40*spy_acc),
+        "retail_roc": _nan(0.60*xly_acc + 0.40*spy_acc),
+        "payrolls_roc": _nan(0.50*iwm_acc + 0.50*spy_acc),
+        "ism_delta": _nan(xli1*100),
+        "unrate_delta": _nan(-iwm1),
+        "claims_delta": 0.0,
 
-        # Inflation momentum = 6M vs 12M commodity SPREAD
-        "cpi_roc":       _nan(oil_acc*0.4 + gld_acc*0.1),
-        "core_cpi_roc":  _nan(oil_acc*0.2 - uup1*0.1),
+        "cpi_roc": _nan(oil_acc*0.4 + gld_acc*0.1),
+        "core_cpi_roc": _nan(oil_acc*0.2 - uup1*0.1),
         "breakeven_delta":_nan(oil_acc*0.3 + gld_acc*0.1),
-        "oil_1m":        oil1,
-        "dxy_inv_1m":    _nan(-uup1),
-        "tlt_1m":        tlt1,
-        "dxy_3m":        _nan(uup3),
-        "policy_score":  0.0,
+        "oil_1m": oil1,
+        "dxy_inv_1m": _nan(-uup1),
+        "tlt_1m": tlt1,
+        "dxy_3m": _nan(uup3),
+        "policy_score": 0.0,
         "liquidity_score":0.0,
-        # Q3 confirmation signals (credit + quality + breadth)
+
         "q3_credit_stress": _nan(credit_stress_12),
-        "q3_quality_bid":   _nan(quality_bid_12),
+        "q3_quality_bid": _nan(quality_bid_12),
         "q3_consumer_stress": _nan(consumer_stress_12),
-        "q3_breadth_stress":  _nan(breadth_stress_12),
-        "q3_modifier":      q3_modifier,
+        "q3_breadth_stress": _nan(breadth_stress_12),
+        "q3_modifier": q3_modifier,
     }
 
 # ── FRED feature extraction ───────────────────────────────────────────────────
@@ -230,11 +226,9 @@ def _extract_fred_features(fred: Dict) -> Dict[str, float]:
     """Extract features from FRED."""
     f: Dict[str, float] = {}
 
-    # Growth level
     f["indpro_yoy"] = _yoy(fred.get("INDPRO"))
     f["retail_yoy"] = _yoy(fred.get("RSAFS"))
     f["payrolls_yoy"] = _yoy(fred.get("PAYEMS"))
-    # FIXED: ISMNO now in FRED_GROWTH_SERIES and loaded
     ism_s = _fv(fred.get("ISMNO"), fred.get("MANEMP"))
     ism = _last(ism_s)
     f["ism_norm"] = (ism - ISM_NEUTRAL) / ISM_NEUTRAL if math.isfinite(ism) else float("nan")
@@ -244,7 +238,6 @@ def _extract_fred_features(fred: Dict) -> Dict[str, float]:
     f["unrate_inv"] = -float(np.tanh(unrate_3m / 0.2)) if math.isfinite(unrate_3m) else float("nan")
     f["claims_inv"] = -float(np.tanh(claims_d / 50000)) if math.isfinite(claims_d) else float("nan")
 
-    # Growth momentum (2nd derivative)
     f["indpro_roc"] = _roc(fred.get("INDPRO"), 12, 3)
     f["retail_roc"] = _roc(fred.get("RSAFS"), 12, 3)
     f["payrolls_roc"] = _roc(fred.get("PAYEMS"), 12, 3)
@@ -252,20 +245,17 @@ def _extract_fred_features(fred: Dict) -> Dict[str, float]:
     f["unrate_delta"] = -unrate_3m / 0.2 if math.isfinite(unrate_3m) else float("nan")
     f["claims_delta"] = -claims_d / 50000 if math.isfinite(claims_d) else float("nan")
 
-    # Inflation level
     f["cpi_yoy"] = _yoy(fred.get("CPIAUCSL"))
     f["core_cpi_yoy"] = _yoy(fred.get("CPILFESL"))
     f["ppi_yoy"] = _yoy(fred.get("PPIACO"))
     be5 = _last(fred.get("T5YIE"))
     f["breakeven_5y"] = (be5 - 2.2) / 2.0 if math.isfinite(be5) else float("nan")
 
-    # Inflation momentum
     f["cpi_roc"] = _roc(fred.get("CPIAUCSL"), 12, 3)
     f["core_cpi_roc"] = _roc(fred.get("CPILFESL"), 12, 3)
     be5_d = _delta(fred.get("T5YIE"), 1)
     f["breakeven_delta"] = _nan(be5_d / 0.3) if math.isfinite(be5_d) else float("nan")
 
-    # Policy
     ff_s = _fv(fred.get("FEDFUNDS"), fred.get("DFF"))
     ff_delta = _delta(ff_s, 3)
     f["policy_score"] = float(np.tanh(-_nan(ff_delta) / 0.5))
@@ -288,8 +278,7 @@ class GIPResult:
 
     @property
     def flip_hazard(self) -> float:
-        margin = self.structural_probs.get(self.structural_quad, 0.5) - \
-            sorted(self.structural_probs.values(), reverse=True)[1]
+        margin = self.structural_probs.get(self.structural_quad, 0.5) -                  sorted(self.structural_probs.values(), reverse=True)[1]
         return float(np.clip(0.5 - 0.8*margin + 0.2*(1.0-self.data_coverage), 0.0, 1.0))
 
 def _quad_name(q): return {"Q1":"Goldilocks","Q2":"Reflation","Q3":"Stagflation","Q4":"Deflation"}.get(q,q)
@@ -320,7 +309,6 @@ class GIPEngine:
         f_fred = _extract_fred_features(fred)
         f_proxy = _price_proxy(prices)
 
-        # Coverage
         fred_keys = ["indpro_yoy","retail_yoy","payrolls_yoy","cpi_yoy","core_cpi_yoy",
                      "ism_norm","housing_yoy","unrate_inv","claims_inv"]
         n_fred = sum(1 for k in fred_keys if math.isfinite(f_fred.get(k, float("nan"))))
@@ -330,38 +318,37 @@ class GIPEngine:
             v = f_fred.get(key, float("nan"))
             return v if math.isfinite(v) else f_proxy.get(key, float("nan"))
 
-        # Scale inputs to [-1,1]
         g_lvl = {
-            "indpro_yoy":   _tanh_scale(merge("indpro_yoy") - 0.02, 0.05),
-            "retail_yoy":   _tanh_scale(merge("retail_yoy") - 0.03, 0.06),
+            "indpro_yoy": _tanh_scale(merge("indpro_yoy") - 0.02, 0.05),
+            "retail_yoy": _tanh_scale(merge("retail_yoy") - 0.03, 0.06),
             "payrolls_yoy": _tanh_scale(merge("payrolls_yoy") - 0.015, 0.03),
-            "housing_yoy":  _tanh_scale(merge("housing_yoy"), 0.10),
-            "ism_norm":     _tanh_scale(merge("ism_norm"), 0.10),
-            "unrate_inv":   merge("unrate_inv"),
-            "claims_inv":   merge("claims_inv"),
+            "housing_yoy": _tanh_scale(merge("housing_yoy"), 0.10),
+            "ism_norm": _tanh_scale(merge("ism_norm"), 0.10),
+            "unrate_inv": merge("unrate_inv"),
+            "claims_inv": merge("claims_inv"),
         }
         g_mom = {
-            "indpro_roc":   _tanh_scale(merge("indpro_roc"), 0.025),
-            "retail_roc":   _tanh_scale(merge("retail_roc"), 0.030),
+            "indpro_roc": _tanh_scale(merge("indpro_roc"), 0.025),
+            "retail_roc": _tanh_scale(merge("retail_roc"), 0.030),
             "payrolls_roc": _tanh_scale(merge("payrolls_roc"), 0.015),
-            "ism_delta":    _tanh_scale(merge("ism_delta"), 0.05),
+            "ism_delta": _tanh_scale(merge("ism_delta"), 0.05),
             "unrate_delta": _tanh_scale(merge("unrate_delta"), 1.0),
             "claims_delta": _tanh_scale(merge("claims_delta"), 1.0),
         }
         i_lvl = {
-            "cpi_yoy":      _tanh_scale(merge("cpi_yoy") - 0.025, 0.020),
+            "cpi_yoy": _tanh_scale(merge("cpi_yoy") - 0.025, 0.020),
             "core_cpi_yoy": _tanh_scale(merge("core_cpi_yoy")- 0.025, 0.015),
             "breakeven_5y": merge("breakeven_5y"),
-            "ppi_yoy":      _tanh_scale(merge("ppi_yoy") - 0.025, 0.030),
-            "oil_3m":       _tanh_scale(merge("oil_3m"), 0.25),
-            "gold_3m":      _tanh_scale(merge("gold_3m"), 0.18),
+            "ppi_yoy": _tanh_scale(merge("ppi_yoy") - 0.025, 0.030),
+            "oil_3m": _tanh_scale(merge("oil_3m"), 0.25),
+            "gold_3m": _tanh_scale(merge("gold_3m"), 0.18),
         }
         i_mom = {
-            "cpi_roc":      _tanh_scale(merge("cpi_roc"), 0.012),
+            "cpi_roc": _tanh_scale(merge("cpi_roc"), 0.012),
             "core_cpi_roc": _tanh_scale(merge("core_cpi_roc"), 0.010),
             "breakeven_delta": _tanh_scale(merge("breakeven_delta"), 1.0),
-            "oil_1m":       _tanh_scale(merge("oil_1m"), 0.06),
-            "dxy_inv_1m":   _tanh_scale(merge("dxy_inv_1m"), 0.06),
+            "oil_1m": _tanh_scale(merge("oil_1m"), 0.06),
+            "dxy_inv_1m": _tanh_scale(merge("dxy_inv_1m"), 0.06),
         }
 
         g_level = _wmean(g_lvl, GROWTH_LEVEL_WEIGHTS)
@@ -371,22 +358,16 @@ class GIPEngine:
         policy = _nan(merge("policy_score"))
         coverage= _coverage({**g_lvl, **g_mom, **i_lvl, **i_mom})
 
-        # ── STRUCTURAL (Quarterly) ───────────────────────────────────────────
-        # Apply Q3 credit/quality confirmation from proxy signals
-        # Q3 credit/quality modifier from market prices (real-time, applies regardless of FRED coverage)
         q3_mod = float(_nan(merge("q3_modifier")))
         struct_modifiers = {}
         if q3_mod > 0.05:
-            # Scale by proxy_share: stronger in proxy mode, lighter with FRED (FRED captures it already)
-            scale = 0.8 + 0.2 * proxy_share  # 0.8x with full FRED, 1.0x in proxy mode
+            scale = 0.8 + 0.2 * proxy_share
             struct_modifiers = {"Q3": q3_mod * scale, "Q2": -q3_mod * scale * 0.4}
         struct_probs, struct_quad, struct_conf = _score_quad(
             g_level, g_mom_, i_level, i_mom_, policy,
             STRUCTURAL_WEIGHTS, POLICY_WEIGHT_STRUCTURAL,
             modifiers=struct_modifiers)
 
-        # ── MONTHLY (Weather Overlay) ────────────────────────────────────────
-        # More responsive to recent market signals (1M/3M)
         oil1 = _ret(prices.get("CL=F"), 21)
         oil1 = oil1 if (oil1 is not None and math.isfinite(oil1)) else merge("oil_1m")
         gld1 = _first_finite(_ret(prices.get("GLD"), 21))
@@ -410,9 +391,6 @@ class GIPEngine:
         div = "aligned" if struct_quad == month_quad else "divergent"
         regime = f"Aligned {struct_quad}" if div == "aligned" else f"Monthly {month_quad} inside Structural {struct_quad}"
 
-        # ── UST Yield Curve Forward-Looking Signals (Ricky2212 bond market framework) ──
-        # "Bond market doesn't lie. UST 2Y leads Fed by weeks/months."
-        # TLT rising = deflationary/recession signal = pivot coming
         _tlt = prices.get("TLT"); _ief = prices.get("IEF")
         tlt_1m = float(pd.to_numeric(_tlt, errors="coerce").pct_change(21).dropna().iloc[-1]) if _tlt is not None and len(_tlt)>22 else 0.0
         ief_1m = float(pd.to_numeric(_ief, errors="coerce").pct_change(21).dropna().iloc[-1]) if _ief is not None and len(_ief)>22 else 0.0

@@ -53,7 +53,9 @@ TRANSITION_IMPLICATIONS: Dict[str, dict] = {
         "catalyst": "ISM rebounds >52, retail sales surprise, PMI acceleration",
         "conviction": "MODERATE — monthly Q2 signal leads structural confirmation",
         "em_note": "EM COMMODITY EXPORTERS RECOVER. EIDO, EWW, EWZ, NORW, EWA lead. Monthly Q2 = commodity bid + USD bearish TREND = EM FX relief. IHSG: Coal (ITMG/ADRO) + OSV (WINS/LEAD) re-ignite — RICKY SESI 2→3 TRANSITION SIGNAL.",
-        "ihsg_banking_note": "CURRENT (Apr 2026): BBCA -12%, BBRI -32%, BMRI -23%, BBNI -28% dari ATH. CKPN cascade: Ultra mikro DONE → Mikro CURRENT (BBRI 2x CKPN, stop lending mikro) → Middle class NEXT (watch leasing motor NPL + BBTN CKPN). ATH-10% = pertahanan pertama IHSG.",
+        "ihsg_banking_note": "IHSG HIT ATH-10% (6714-6734). CKPN cascade: Ultra mikro DONE → Mikro CURRENT (BBRI 2x CKPN) → Stage 3 CONFIRMED: NPL leasing motor sudah naik. Watch BBTN KPR NPL = stage 3 complete signal. Bank besar: BBCA-12% BBRI-32% BMRI-23% BBNI-28% BRIS-25% dari ATH.",
+        "fed_cut_signal": "100% CUT INCOMING. NFP jelek, unemployment 4.1→4.3%. UST 2Y=3.95% (below 4%), UST 10Y=3.81%. CUT pertama estimasi Q4 2024 sebelum Pemilu Amrik.",
+        "blow_off_top": "Fund sedang de-risking equity. Bahasa fund: ADA RALLY KITA EXIT. Fund rotate ke Bond menunggu CUT. M2 supply mulai positif = awal aliran. Blow off top sedang berjalan.",
     },
     "Q3→Q3": {
         "headline": "Stagflation Persistence: Stay defensive",

@@ -79,6 +79,7 @@ _TRANSITION_LIBRARY: Dict[str, Dict] = {
         "early_warning_thresholds": {
             "inflation_momentum_falling":  lambda m: m.get("inflation_momentum", 0.0) < 0.0,
             "crisis_keywords_firing":       lambda m: m.get("crisis_keyword_score", 0.0) > 0.5,  # too_big_fail + whatever_it_takes + joint_coord
+            "fund_derisk_signal":           lambda m: m.get("fund_equity_outflow", 0.0) > 0.3,  # "Ada rally kita EXIT" behavior
             "oil_retreating":              lambda m: m.get("oil_3m", 0.0) < 0.0,
             "breakevens_falling":          lambda m: m.get("breakeven_1m_delta", 0.0) < -0.05,
             "growth_still_weak":           lambda m: m.get("growth_momentum", 0.0) < -0.10,

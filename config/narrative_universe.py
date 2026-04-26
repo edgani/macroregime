@@ -2216,3 +2216,257 @@ _NARRATIVES.extend(_NARRATIVES_BATCH6)
 NARRATIVE_BY_NAME.update({n.name: n for n in _NARRATIVES_BATCH6})
 for _n in _NARRATIVES_BATCH6:
     NARRATIVES_BY_CATEGORY.setdefault(_n.category, []).append(_n)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BATCH 7 — CURRENT MARKET ARTICLES (Ricky Aug-Sep 2024 + Apr 2026 CKPN update)
+# Real-time signal capture: IHSG ATH-10% hit, Fed 100% CUT, Blow-off-top, M2+
+# ═══════════════════════════════════════════════════════════════════════════════
+_NARRATIVES_BATCH7: List[NarrativeTemplate] = [
+
+    NarrativeTemplate(
+        name="Ricky — Soft vs Hard Landing Scorecard (GDP + Jobs = The Decisive Data)",
+        description="""Ricky2212's definitive framework for reading landing type — the most important macro bet.
+"Saya realistic dan objective bahwa besar kemungkinan kita akan menghadapi HARD landing."
+FRAMEWORK:
+Soft landing = no recession post-tightening. Last true soft landing in modern history: 1994 (Greenspan).
+Hard landing = recession follows. Historical base rate: 90%+ of aggressive tightening cycles.
+"Pengetatan paling cepat dalam 110 tahun. Chance soft landing less than 50%."
+THE DECISIVE DATA POINTS:
+1. Jobs data (NFP, unemployment rate) = #1 indicator
+   - Unemployment rising = more people with less income = less spending = GDP falls
+   - Powell specifically mentions jobs EVERY FOMC = watch for cracks HERE first
+2. GDP data = confirmation
+3. SINYAL CUT: Saat Powell berkali-kali bilang 'JOB NUMBER is VERY STRONG' = tunggu REVERSAL.
+   Saat job number cracks = CUT INCOMING.
+RICKY'S BET: Hard landing more likely, but either way CUT will come.
+"Bedanya: Soft landing = gradually CUT. Hard landing = dramatically CUT."
+KEY INSIGHT: "Jangan expect bank sentral CUT mendadak. Kalo mendadak = market crash (panic signal)."
+"Market berekspektasi CUT karena GOOD economy = wrong. CUT datang karena ECONOMY IS SICK."
+Warning: CUT followed by market ADJUSTMENT phase (normalized). Not immediately bullish.
+"Ekspektasi 7x CUT berlebihan → market crash corrects → ekspektasi 1x CUT → REVERSE PSYCHOLOGY." """,
+        category="policy",
+        catalyst_types=["nfp_weak","unemployment_rising","gdp_below_trend","soft_landing_risk",
+                         "hard_landing_confirmed","fed_cut_cycle","recession_signal"],
+        activation_keywords=["soft landing hard landing","nfp jelek","unemployment naik",
+                              "gdp revisi turun","resesi amrik","powell job number strong",
+                              "job cracks fed cut","hard landing fed cut","non farm payroll weak",
+                              "unemployment 4.3","gdp 1.3 pct","economic slowing",
+                              "consumer spending down","saving rate zero"],
+        invalidation_keywords=["jobs market remains tight","gdp above trend","no recession",
+                                "soft landing confirmed economists"],
+        beneficiaries={"us":["TLT","GLD","IEF","UUP reverse"],"ihsg":["BBCA.JK","BTPS.JK"]},
+        fades={"us":["SPY","QQQ","IWM"]},
+        regime_alignment={"Q3":1.70,"Q4":1.50,"Q2":0.80,"Q1":0.60},
+        typical_duration_weeks=26, conviction_ceiling=0.80, pump_risk=0.20,
+        confirmation_signals=["nfp_below_100k","unemployment_above_4_pct",
+                               "gdp_below_1_pct","ust2y_below_4pct","powell_softens_tone"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — Blow-Off-Top + Fund De-Risking (Ada Rally Kita EXIT)",
+        description="""Ricky2212's real-time signal: Fund sedang de-risking equity globally.
+"Beberapa berita seragam. Fund mulai mempersiapkan diri."
+CONFIRMED SIGNALS (per Ricky intel, Aug-Sep 2024):
+1. Fund sedang unloading China equity Q2 2024 — jumlah sangat besar
+2. Fund strategy: "Ada rally, kita EXIT. Ada rally, kita EXIT"
+3. Fund rotating from equity → Bond (menunggu CUT)
+4. M2 supply mulai positif untuk pertama kali = awal aliran uang ke sistem
+BLOW-OFF-TOP MECHANICS (Ricky framework):
+"Jack up → BUBBLE → BURST → reason untuk CUT → fase normalized"
+"CUT akan datang selepas BURST. CUT adalah sesuatu yang dilakukan karena keadaan sudah buruk."
+SMART MONEY BEHAVIOR:
+- Michael Burry: short 2006, berjalan dengan thesis sampai 2008. Sabar.
+- Howard Marks: Siram bensin ikuti bubble, TAPI pulang lebih awal.
+- Ricky: "Saya tidak ambil langkah significant di equity. Siram bensin di asset yang ada euforia."
+MARKET POSITIONING: Risk asset ditiup ke ATH untuk distribusi. Bukan real structural bullish.
+"BullshiIT ini bukan structural bullish — hanya segelintir saham yang jalan."
+WHAT TO WATCH: Fund de-risk equity seragam + M2 turning positive = karpet merah sedang digelar. """,
+        category="cycle",
+        catalyst_types=["fund_derisking","equity_outflow","smart_money_exit","m2_positive_turn",
+                         "blow_off_top","bubble_warning","rally_sell"],
+        activation_keywords=["fund de-risking","ada rally kita exit","blow off top",
+                              "fund unloading china equity","smart money sell rally",
+                              "fund rotate equity to bond","m2 supply positive",
+                              "equity bubble distribution","magnificent seven expensive",
+                              "disconnect market reality","fund seragam keluar"],
+        invalidation_keywords=["fund re-entering equity aggressively","m2 surge sustained bullish",
+                                "earnings support high valuations"],
+        beneficiaries={"us":["TLT","GLD","GC=F","BIL"],"ihsg":["ITMG.JK","BTPS.JK"]},
+        fades={"us":["SPY","QQQ","NVDA","MSFT"],"ihsg":["BREN.JK"]},
+        regime_alignment={"Q3":1.70,"Q4":1.40,"Q2":0.80,"Q1":0.60},
+        typical_duration_weeks=13, conviction_ceiling=0.75, pump_risk=0.15,
+        confirmation_signals=["fund_equity_outflow_data","m2_positive_first_time",
+                               "smart_money_short_positioning","options_put_call_ratio_elevated",
+                               "rally_sold_by_institutions"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — 100% CUT Confirmed (NFP Shock → UST Free Fall → Banjiran Dimulai)",
+        description="""The moment Ricky waited for: ALL indicators confirm Fed CUT is 100%.
+"Sudah lah. Seperti yang dahulu saya bilang, Amrik itu bobrok banget. Data di manipulasi."
+THE TRIGGER EVENT:
+NFP: Jauh di bawah ekspektasi. Unemployment 4.1% → 4.3%.
+UST RESPONSE (the real signal):
+UST 1Y: fell to 4.43% (from ~5.3%)
+UST 2Y: fell to 3.95% (BELOW 4% — VERY STRONG)
+UST 10Y: fell to 3.81%
+UST 30Y: fell to 4.15%
+"UST dari tenor 1Y ke atas yield nya semua FREE FALL alias terjun bebas."
+WHY THIS MATTERS:
+UST 2Y below FFR (5.25-5.5%) by 130bps = market pricing in 5+ cuts
+"100% CUT akan terjadi. Tidak ada keraguan lagi."
+TIMING ESTIMATE (Ricky): "CUT pertama di Ber Ber Ber period sebelum Pemilu Amrik (November 2024)"
+IMPORTANT CAVEAT:
+"CUT bukan proses akhirnya. CUT adalah AWAL dari sebuah proses menuju perbaikan."
+"Akan ada beberapa fase lagi yang kita lewati setelah CUT (NORMALIZED PHASE)."
+"Koreksi setelah CUT: 2 alasan: 1) ekspektasi terlalu tinggi sebelum CUT. 2) Fase normalized adjustment."
+WHAT HAPPENS NEXT: Market jatuh SAAT CUT diumumkan (ekspektasi sudah terlalu tinggi).
+Then → NORMALIZED → then → STRUCTURAL BULL begins.""",
+        category="policy",
+        catalyst_types=["fed_cut_100pct","nfp_shock","unemployment_spike","ust_free_fall",
+                         "monetary_policy_pivot_final","cut_cycle_start"],
+        activation_keywords=["100 pct cut confirmed","nfp shock","unemployment 4.3",
+                              "ust 2y below 4","ust free fall","fed cut before election",
+                              "powell cut September","cut ber ber period",
+                              "monetary policy pivot final","cut 2024"],
+        invalidation_keywords=["fed resumes hiking","inflation re-accelerates above 4",
+                                "nfp bounces strong","unemployment falls back below 4"],
+        beneficiaries={"us":["TLT","IEF","GLD","IWM","EEM","SPY"],
+                       "ihsg":["BBCA.JK","CTRA.JK","BEST.JK","BTPS.JK"],
+                       "commodities":["GC=F","HG=F"]},
+        fades={"us":["UUP","BIL"]},
+        regime_alignment={"Q4":1.90,"Q1":1.70,"Q2":0.80,"Q3":0.50},
+        typical_duration_weeks=26, conviction_ceiling=0.95, pump_risk=0.10,
+        confirmation_signals=["ust2y_below_4pct","unemployment_above_4pct",
+                               "fed_swap_100pct_cut","nfp_miss_large",
+                               "m2_positive_confirmed","ust1y_below_ffr"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — Stimulus 5-Phase Pattern (Skeptis → Basa Basi → Reaksi Awal → Hints → Bazooka)",
+        description="""Ricky2212's universal framework for reading stimulus cycles — applicable to ANY central bank.
+"Pattern ini berulang dari waktu ke waktu. 2020 sama. 2008 sama."
+5 PHASES OF STIMULUS:
+Phase 1 — BASA BASI:
+"Central bank kasih stimulus kecil buat perlihatkan bahwa mereka aware. Market skeptis."
+Signal: Small policy easing, market doesn't react sustainably.
+Phase 2 — MARKET PRESSURE:
+"Market menekan central bank dengan menjatuhkan equity agar policy makers bereaksi lebih cepat."
+Signal: Market turun terus berhari-hari. "Bursa adalah lambang negara — pemerintah pasti selamatkan."
+Phase 3 — STIMULUS AWAL:
+"Central bank luncurkan stimulus dosis awal. Market rebound beberapa hari. Lalu turun lagi."
+Signal: Rally 2-5 hari setelah announcement, then fades. Market minta lebih banyak.
+Phase 4 — HINTS UNTUK NEXT STIMULUS:
+"Pemangku kebijakan bilang: kita sudah siapkan stimulus selanjutnya."
+Signal: Volatile market, naik turun tinggi menunggu kepastian.
+Phase 5 — KETOK PALU MEGA BAZOOKA:
+"Final stimulus yang cukup buat menyelesaikan masalah. Market settled."
+Signal: Market stops testing lows. Sustained rally begins.
+APPLICATION RULE: "Jangan excited di Phase 1-3. REAL GAME baru di Phase 4-5."
+"Saya skeptis saat China luncurkan stimulus awal. Skeptis juga saat Amrik kasih hints mau longgarkan."
+China 2024 currently at: Phase 3 → Phase 4 transition.
+Fed/ECB/BOE: Entering Phase 3-4 with CUT confirmed. """,
+        category="policy",
+        catalyst_types=["china_stimulus_phase","fed_cut_phase","pboc_rrr_cut",
+                         "government_stimulus","policy_easing_cycle","central_bank_bazooka"],
+        activation_keywords=["stimulus basa basi","stimulus phase 1","china stimulus cynical",
+                              "pboc stimulus market skeptic","stimulus pattern","ketok palu bazooka",
+                              "policy stimulus 5 phase","central bank hint next stimulus",
+                              "market pressure central bank","china equity pressure pboc",
+                              "stimulus real game phase 5","2020 stimulus pattern"],
+        invalidation_keywords=["stimulus fired early no effect","hyperinflation prevents stimulus",
+                                "fiscal constraint blocks bazooka"],
+        beneficiaries={"us":["SPY","QQQ","GLD","EEM"],
+                       "ihsg":["BBCA.JK","ITMG.JK"],
+                       "global":["FXI","MCHI"]},
+        fades={"us":["UUP"]},
+        regime_alignment={"Q4":1.70,"Q1":1.60,"Q2":0.90,"Q3":0.70},
+        typical_duration_weeks=26, conviction_ceiling=0.80, pump_risk=0.20,
+        confirmation_signals=["stimulus_phase5_announcement","sustained_market_stabilization",
+                               "china_pboc_1trillion_cny","ecb_rate_cut_confirmed",
+                               "fed_125bps_cut_cycle"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — 7-Cut Expected → No-Cut Expected → ... Reverse Psychology",
+        description="""Ricky2212's most sophisticated market psychology framework — Fed digantung market.
+TIMELINE OF REVERSE PSYCHOLOGY:
+Dec 2023: Fed dovish. Market: "7x CUT in 2024!" → CUT in March expected!
+Jan-Mar 2024: CUT didn't happen. Market adjusts: "Maybe June..."
+Apr 2024: Data hot. Market: "September at earliest... maybe November..."
+Jul-Aug 2024: NFP shock. "NO CUT this year!" (extreme pessimism)
+→ THEN CUT ACTUALLY HAPPENS = maximum surprise = maximum rally
+"Optimistic 7x CUT → NULL realization. Pessimistic NO CUT → ...??? apa yang ada di bayangan anda?"
+MECHANISM:
+When market expects 7x CUT → price IN aggressively → rally → then disappoint when less CUT.
+When market expects NO CUT → price OUT defensively → sell → then rally when CUT happens.
+"Fed pintar sekali memainkan psikologis market."
+RICKY'S LESSON: "Warning saya di awal tahun: hati-hati over expectation. Market liar."
+"Ekspektasi CUT yang berlebihan yang akhirnya mendorong risk asset berlebihan → menghilang sekejap."
+INVESTMENT STRATEGY: "Saat pesimistis NO CUT adalah saat terbaik untuk BUY."
+"Saat optimistis 7x CUT = saat terbaik untuk EXIT."
+KEY QUOTE: "CUT adalah keniscayaan. Tenang saja. Semua central bank PASTI akan lakukan CUT." """,
+        category="policy",
+        catalyst_types=["fed_cut_expectation_swing","reverse_psychology","fomc_surprise",
+                         "market_expectation_reset","no_cut_pessimism","cut_surprise_rally"],
+        activation_keywords=["7 cut expected","no cut expected reverse","fed reverse psychology",
+                              "cut expectation swing","fomc surprise","market expectation reset",
+                              "cut optimism to pessimism","digantung fed","ekspektasi cut liar",
+                              "market overexpect cut","fed psychology game",
+                              "snb boc ecb cut first fed last"],
+        invalidation_keywords=["fed transparent no games","market correctly prices cut",
+                                "no cut and no cut rally"],
+        beneficiaries={"us":["TLT","GLD"],"ihsg":["BBCA.JK"]},
+        fades={"us":[]},
+        regime_alignment={"Q4":1.50,"Q3":1.30,"Q2":0.90,"Q1":0.80},
+        typical_duration_weeks=8, conviction_ceiling=0.70, pump_risk=0.10,
+        confirmation_signals=["market_no_cut_expectation_peak","pessimism_extreme_fed",
+                               "fed_swap_below_50pct","ust2y_extreme_fall"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — Magnificent 7 Bubble + Unsustainable Disconnect (12 Points)",
+        description="""Ricky2212's 12-point framework for identifying the current market bubble.
+"Market yang menyentuh ATH adalah negara yang sedang penyakitan. Masuk akal kah?"
+12 DISCONNECTS (Ricky's detailed analysis):
+1. Market ATH tapi negara penyakitan (DJIA, S&P, Nikkei, DAX)
+2. ATH hanya 7 saham (Magnificent 7). 70% Russell 2000 laporkan kinerja buruk.
+3. Mag-7 valuasi: NVDA 75x, AAPL 27x, MSFT 38x, GOOGL 24x, META 35x, AMZN 61x, TSLA 39x
+4. Saham beresiko kasih yield < 3%, money market 5.5% zero risk = irrasional
+5. $8-9T masih parkir money market meski market ATH = smart money ga percaya
+6. BoJ ultra easing, Nikkei ATH 35 tahun = bubble warisan
+7. Inverted yield curve = pakem rusak
+8. USD kuat tapi hutang $34T = trust illusion
+9. Layoff dimana-mana tapi NFP bagus = manipulated data
+10. GDP kuat tapi saving rate ~0%, konsumen kerja shift tambahan
+11. Ekonomi kuat tapi laba bank amrik anjlok = contradiction
+12. Crypto disconnect dari risk-off fundamentals
+"BullshiIT: bukan structural bullish. Jack up without earnings support."
+"Bidenomics = DISCONNECT yang paling sempurna. Cost of living +18%, real wages -2%."
+"Bubble akan meletus. Kapan? Tidak tau. Tapi asset2x akan di Jack up menuju puncak sebelum burst." """,
+        category="cycle",
+        catalyst_types=["market_bubble","magnificent_7_overvalued","disconnect_signal",
+                         "unsustainable_market","bubble_warning","smart_money_skeptical"],
+        activation_keywords=["magnificent 7 bubble","nvda 75x pe","market disconnect reality",
+                              "ihsg bubble","disconnect 12 points","bullishit not structural",
+                              "bidenomics disconnect","inverted yield curve crack",
+                              "layoff nfp contradiction","money market 9 trillion",
+                              "unsustainable disconnect","blow off top signal",
+                              "berkshire cash pile","market jack up distribute"],
+        invalidation_keywords=["earnings catch up to valuations","soft landing confirmed",
+                                "productivity surge supports pe"],
+        beneficiaries={"us":["TLT","GLD","VXX"],"ihsg":["ITMG.JK","BTPS.JK"]},
+        fades={"us":["NVDA","QQQ","SPY"]},
+        regime_alignment={"Q3":1.60,"Q4":1.40,"Q2":0.90,"Q1":0.70},
+        typical_duration_weeks=13, conviction_ceiling=0.75, pump_risk=0.20,
+        confirmation_signals=["fund_derisking_seragam","russell2000_divergence",
+                               "insider_selling_surge","vix_complacency_extreme",
+                               "mag7_pe_above_50_average"],
+    ),
+
+]
+
+_NARRATIVES.extend(_NARRATIVES_BATCH7)
+NARRATIVE_BY_NAME.update({n.name: n for n in _NARRATIVES_BATCH7})
+for _n in _NARRATIVES_BATCH7:
+    NARRATIVES_BY_CATEGORY.setdefault(_n.category, []).append(_n)

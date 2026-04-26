@@ -1282,3 +1282,296 @@ NARRATIVE_BY_NAME = {n.name: n for n in _NARRATIVES}
 NARRATIVES_BY_CATEGORY = {}
 for _n in _NARRATIVES:
     NARRATIVES_BY_CATEGORY.setdefault(_n.category, []).append(_n)
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BATCH 4 — ARTICLES 9-17 RICKY2212 EXHAUSTIVE EXTRACTION
+# ═══════════════════════════════════════════════════════════════════════════════
+_NARRATIVES_BATCH4: List[NarrativeTemplate] = [
+
+    NarrativeTemplate(
+        name="Ricky — Gantian Donk: Consumer Goods Double Margin Hit",
+        description="""Ricky2212's most actionable cycle rotation framework.
+Phase 1 (Naik Pasti Turun): Komoditas berjaya → input cost naik → consumer goods margin compress.
+ICBP, MYOR, ULTJ, UNVR terpukul: harga jual susah naik (daya beli lemah) tapi bahan baku naik.
+Phase 2 (Naik Lupa Turun): Komoditas turun → consumer goods get DOUBLE HIT positif:
+1. Harga jual TETAP tinggi (sudah dinaikkan, tidak akan diturunkan)
+2. Cost produksi TURUN (bahan baku CPO/gandum/plastik/energi turun)
+= ASP naik + cost turun + volume naik (daya beli membaik) = margin explosion.
+"Coba cek kinerja Q1 2023 ICBP, MYOR, ULTJ bahkan UNVR semua naik lumayan."
+"Jangan kaget nanti akan ketemu keadaan YANG NAIK DAN YANG TURUN, NANTI NAIK LAGI SEMUA BARENGAN."
+= Sesi 3 Ricky: komoditas + consumer goods naik bareng = full cycle recovery.""",
+        category="cycle",
+        catalyst_types=["commodity_price_decline","input_cost_deflation","consumer_recovery",
+                         "daya_beli_pulih","bbm_stable","pivot_monetary"],
+        activation_keywords=["gantian donk","consumer goods margin","sudah naik lupa turun",
+                              "icbp myor margin expand","ultj klbf recovery","consumer goods Q1 beat",
+                              "input cost turun","cpo wheat deflation","bahan baku murah",
+                              "margin expansion fmcg","asp stable cost down","consumer goods leverage"],
+        invalidation_keywords=["komoditas naik lagi","bbm naik","input cost surge","consumer recession"],
+        beneficiaries={"ihsg":["ICBP.JK","MYOR.JK","ULTJ.JK","KLBF.JK","SIDO.JK","UNVR.JK","CMRY.JK"]},
+        fades={"ihsg":["ITMG.JK","ADRO.JK","PTBA.JK"]},
+        regime_alignment={"Q1":1.70,"Q4":1.60,"Q2":0.60,"Q3":0.25},
+        typical_duration_weeks=26, conviction_ceiling=0.80, pump_risk=0.10,
+        confirmation_signals=["icbp_myor_gross_margin_beat","q1_consumer_goods_results",
+                               "cpo_wheat_below_peak","consumer_confidence_rising",
+                               "bbm_stable_3months"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — Big Fund Flow Sequence (USD→IDR→Bond→Equity→Banking)",
+        description="""Ricky2212's institutional money flow framework. The SEQUENCE matters:
+Step 1: IDR strengthens (USD sold → IDR bought). If IDR stable during equity selloff = NOT real outflow.
+Step 2: Bond market rallies (yield turun). Uang masih di Indonesia, cuma pindah ke obligasi.
+Step 3: Equity inflow starts. Big fund akumulasi di saham → IHSG forming base.
+Step 4: Perbankan dibeli duluan (BBCA, BBRI, BMRI). Bank = proxy recovery = first mover.
+Step 5: Consumer goods, retail, industrial estate follow.
+FAKE OUTFLOW DETECTOR: IDR + Bond cross-check. "Kalo IDR ga kemana-mana = uang masih stay di indo."
+Capital outflow headline ≠ IDR collapse → equity selloff = BUY not SELL.
+Ricky bought BTPS+consumer goods+bank during 'capital outflow' narrative while IDR was stable.""",
+        category="cycle",
+        catalyst_types=["idr_strengthen","bond_rally","foreign_buy_ihsg","asing_net_buy",
+                         "institutional_accumulation","big_fund_entry"],
+        activation_keywords=["big fund masuk","asing net buy","idr menguat","bond rally ihsg",
+                              "uang masuk ihsg","capital inflow indonesia","obligasi rally indonesia",
+                              "rupiah menguat signifikan","foreign flow ihsg","bbca bbri bbni akumulasi",
+                              "institutional accumulation banking","fr65 fr yield turun"],
+        invalidation_keywords=["idr collapse","bond yield spike","capital flight","banking npl surge"],
+        beneficiaries={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","BBNI.JK","BRIS.JK",
+                                "ICBP.JK","KLBF.JK","ACES.JK","BEST.JK","KIJA.JK"]},
+        fades={"ihsg":[]},
+        regime_alignment={"Q4":1.80,"Q1":1.60,"Q2":0.70,"Q3":0.30},
+        typical_duration_weeks=13, conviction_ceiling=0.85, pump_risk=0.10,
+        confirmation_signals=["idr_strengthen_while_equity_down","bond_yield_fr65_declining",
+                               "banking_foreign_net_buy_sustained","bbca_bbri_accumulation_pattern"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — Debt Ceiling Drama Pattern (Always Resolved = Buy the Dip)",
+        description="""Ricky2212's debt ceiling framework: "Sejarah selalu mencatat pagu hutang selalu dinaikkan."
+90x raised in 20th century. Never once permanently defaulted.
+Pattern: Lobi-lobi alot → drama headline → market dips → RESOLVED before deadline → RALLY.
+"Mereka hanya bikin hutang buat bayar hutang. Gali lubang tutup lubang. Mesin printer epson bunyi lagi."
+Implication: every debt ceiling scare = manufactured fear = BUY OPPORTUNITY not sell.
+Secondary thesis: Dollar long-term weakening every time they print more. Gold structural bid.
+Ricky: "Kalo dinaikkan debt ceiling → printer bunyi → uang makin ga ada harganya → GOLD bid."
+Apply to any recurring fiscal cliff/shutdown drama pattern - ALL resolve, ALL create dip to buy.""",
+        category="policy",
+        catalyst_types=["debt_ceiling_drama","government_shutdown_fear","fiscal_cliff",
+                         "us_default_headline","treasury_x_date"],
+        activation_keywords=["debt ceiling","pagu hutang amrik","us default fear","treasury x-date",
+                              "congress debt limit","government shutdown","debt ceiling raised",
+                              "us credit downgrade","fitch moody downgrade us"],
+        invalidation_keywords=["actual us default","constitutional crisis","dollar collapse extreme"],
+        beneficiaries={"us":["SPY","QQQ","GLD","TLT"],"commodities":["GC=F"]},
+        fades={"us":["BIL","cash_usd"]},
+        regime_alignment={"Q4":1.60,"Q1":1.40,"Q2":0.90,"Q3":0.80},
+        typical_duration_weeks=4, conviction_ceiling=0.85, pump_risk=0.05,
+        confirmation_signals=["debt_ceiling_vote_scheduled","bipartisan_deal_framework",
+                               "treasury_extraordinary_measures","white_house_congress_meeting"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — Oil Hulu ke Hilir: Complete Value Chain Play",
+        description="""Ricky2212's complete oil value chain breakdown — each layer is an investable opportunity:
+HULU (upstream): Pemetaan → ELSA (seismik, one player)
+Konstruksi Rig: RUIS, APEX, INDY (margins lumayan, pilihan terbatas)
+OSV Penunjang: WINS, LEAD, ELPI (kapal penunjang pengeboran offshore)
+Drilling Chemical (anti-slip): OBMD (SATU-SATUNYA player, monopoly positioning)
+FSO/FPSO Storage: SHIP (satu-satunya yang punya FSO/FPSO di bursa indo)
+HILIR (downstream):
+Crude Transport: SOCI, BULL, SMDR, HITS (dirty tanker)
+Refinery: TIDAK ADA yang go public di Indonesia
+Product Transport: BULL, SOCI, SMDR, HITS (clean/product tanker)
+Distribution/Storage: AKRA (market leader, distribusi sampai ke bawah)
+"Saya pilih HULU sebagai andalan saya. Disanalah muara investasi nya."
+Margin terbesar ada di high-tech OSV dan monopoly positions (OBMD, SHIP).""",
+        category="commodity",
+        catalyst_types=["oil_investment_ramp","offshore_drilling_surge","petronas_capex",
+                         "indonesia_1jt_bpd_target","oil_feasibility_price","opec_discipline"],
+        activation_keywords=["oil hulu hilir","elsa seismik","obmd drilling chemical","ship fpso fso",
+                              "wins lead osv kapal","akra fuel distribution","hulu migas value chain",
+                              "oil field construction","rig construction indonesia","offshore drilling ramp",
+                              "psc production sharing","konsesi minyak","exploration drilling"],
+        invalidation_keywords=["oil price below 60","offshore moratorium","esdm block rejection",
+                                "petronas capex cut","ruu migas stalled"],
+        beneficiaries={
+            "ihsg":["ELSA.JK","OBMD.JK","SHIP.JK","WINS.JK","LEAD.JK",
+                    "RUIS.JK","MEDC.JK","ENRG.JK","ESSA.JK","AKRA.JK",
+                    "SOCI.JK","BULL.JK","SMDR.JK"],
+            "global":["SLB","HAL","BKR","TDW","VAL"],
+        },
+        fades={"ihsg":[]},
+        regime_alignment={"Q2":1.70,"Q1":1.20,"Q3":0.80,"Q4":0.20},
+        typical_duration_weeks=78, conviction_ceiling=0.80, pump_risk=0.20,
+        confirmation_signals=["petronas_block_award","elsa_new_seismic_contract",
+                               "wins_lead_new_kontrak","obmd_revenue_surge",
+                               "ship_fpso_contract","indonesia_lifting_increase"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — Banking CKPN Provisioning Cycle (NPL Peak → Laba Explosion)",
+        description="""Ricky2212's banking investment thesis - the CKPN cycle is the key alpha signal.
+CKPN = Cadangan Kerugian Penurunan Nilai = bank's provisioning for bad loans.
+When economy deteriorates: Bank raises CKPN → LABA GEMBOS → stock price falls → BUY ZONE.
+When economy recovers: CKPN declines + Write-back from recovery of written-off loans → DOUBLE LABA.
+Key KPIs Ricky monitors:
+NIM (Net Interest Margin) = bank's main profit engine. Higher = better.
+CASA ratio = cheap funding (giro+tabungan). Higher CASA → lower cost of fund → wider NIM.
+NPL < 5% = healthy. CKPN direction = leading signal.
+BOPO = efficiency ratio. Lower = more efficient. BBCA = benchmark efficiency.
+CAR ≥ 8% minimum. BUKU 4 bank = strongest.
+"Ekonomi akan selalu bertumbuh dalam jangka panjang → bank akan selalu ikut bertumbuh."
+"Bank tidak mengenal siklus seperti komoditas."
+Peak CKPN → hold, then buy. Recovery confirmation = CKPN declining 2 quarters.""",
+        category="cycle",
+        catalyst_types=["ckpn_peak","npl_improving","nim_expansion","kredit_tumbuh",
+                         "bi_rate_cut","economic_recovery","provision_write_back"],
+        activation_keywords=["ckpn turun","npl membaik","bank provisioning peak","banking recovery",
+                              "bbca bbri nim","bank laba explosion","kredit tumbuh","ldr meningkat",
+                              "casa ratio tinggi","bopo turun","bank roe meningkat",
+                              "write-back provisi","npl formation rate turun"],
+        invalidation_keywords=["npl surge","ckpn naik lagi","credit crisis","bank gagal","recession deep"],
+        beneficiaries={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","BBNI.JK","BRIS.JK",
+                                "BTPS.JK","BBTN.JK","BNGA.JK","NISP.JK"]},
+        fades={"ihsg":[]},
+        regime_alignment={"Q1":1.70,"Q4":1.60,"Q2":0.80,"Q3":0.25},
+        typical_duration_weeks=52, conviction_ceiling=0.85, pump_risk=0.10,
+        confirmation_signals=["ckpn_declining_2quarters","npl_gross_below_3pct",
+                               "bbca_bbri_nim_expanding","kredit_growth_above_10pct",
+                               "banking_roa_roe_improving"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — China PMI Recovery + Dry Bulk Demand Confirmation",
+        description="""Ricky2212: "China PMI <50 = kontraksi. Watch 2 consecutive months for trend."
+"China haus akan resources. Data dry bulk tanker: demand iron ore + copper dari China sangat HOT."
+PMI Manufacturing China adalah leading indicator TERBAIK untuk dry bulk demand.
+PMI >52 sustained = commodities (iron ore, copper, coal) akan diangkut besar-besaran.
+"Permintaan oil China sdh menyentuh ATH. Diprediksi tahun depan akan tumbuh kembali."
+Framework: China PMI data → BDI (Baltic Dry Index) → commodity prices → IHSG coal/metal.
+Sequence: PMI improve → BDI naik → ITMG/ADRO/INCO/MDKA foreign buy → price discovery.
+Also: China property QE → construction recovery → iron ore + copper demand.
+"China punya segudang senjata untuk ditembakkan. China punya fleksibilitas monetary policy tertinggi." """,
+        category="cycle",
+        catalyst_types=["china_pmi_recovery","china_stimulus","china_property_qe",
+                         "china_iron_ore_demand","bdi_rally","china_coal_import"],
+        activation_keywords=["china pmi above 50","china pmi recovery","china manufacturing PMI",
+                              "china stimulus","pboc cut rrr","china property support",
+                              "china iron ore import","china coal import","bdi rally",
+                              "china demand recovery","china economic reopen"],
+        invalidation_keywords=["china hard landing","china pmi below 48 sustained",
+                                "china property crisis deepening","evergrande systemic"],
+        beneficiaries={"ihsg":["ITMG.JK","ADRO.JK","PTBA.JK","INCO.JK","MDKA.JK","ANTM.JK","PSSI.JK"],
+                       "global":["GOGL","SBLK","FCX","RIO","BHP","GLEN.L"],
+                       "commodities":["HG=F","CL=F","CNA.L"]},
+        fades={"us":["TLT","XLU"]},
+        regime_alignment={"Q2":1.70,"Q1":1.30,"Q3":0.60,"Q4":0.30},
+        typical_duration_weeks=26, conviction_ceiling=0.80, pump_risk=0.25,
+        confirmation_signals=["china_pmi_above_51_2months","bdi_above_1500","china_iron_ore_atw_high",
+                               "itmg_adro_foreign_net_buy","pboc_rrr_cut"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — Dow ATH Ranging Pattern + Buying Time Thesis",
+        description="""Ricky2212's Dow market structure insight (2023):
+"Pattern: Saat Dow mau menembus upper range → ada saja berita buruk yang dikeluarkan."
+"Saat Dow mendekati lower range → dikasih oksigen berita bagus → short-term rally."
+Thesis: pasar 'sengaja' di-ranging sambil economic data settles. 
+"Ada unsur kesengajaan. Mereka buying time sampai semua keadaan settled."
+Two signals he watches simultaneously:
+1. NASDAQ call option volume spike (risk-on approaching)
+2. Tech fund inflow besar = institutional positioning sebelum rally
+"Belakangan ada kenaikan volume call option di Nasdaq yang cukup besar."
+"Ada capital inflow cukup besar ke TECH FUND belakangan ini."
+Bellwether list (semua harus konfirmasi): CAT (52-week high) + GLEN ATH + Copper bid + BDI up + Gold up + UST 10Y mlandai = KONFIRMASI pivot incoming.""",
+        category="cycle",
+        catalyst_types=["nasdaq_call_option_spike","tech_fund_inflow","cat_52w_high",
+                         "pivot_signal_bellwether","dow_lower_range_bounce"],
+        activation_keywords=["nasdaq call option volume","tech fund inflow","caterpillar 52 week high",
+                              "dow ranging pattern","dow lower range","dow ATH -10 -20",
+                              "bellwether konfirmasi","copper bid caterpillar","dow relief rally",
+                              "dow range breakout","ust 10y mlandai pivot"],
+        invalidation_keywords=["tech fund outflow","nasdaq put spike","caterpillar miss","recession confirmed"],
+        beneficiaries={"us":["QQQ","NVDA","MSFT","AAPL","META","SPY","IWM"],
+                       "ihsg":["TLKM.JK","BBCA.JK"]},
+        fades={"us":[]},
+        regime_alignment={"Q1":1.50,"Q4":1.30,"Q2":0.90,"Q3":0.50},
+        typical_duration_weeks=8, conviction_ceiling=0.70, pump_risk=0.20,
+        confirmation_signals=["nasdaq_call_volume_spike","tech_fund_weekly_inflow_positive",
+                               "cat_52w_high_confirmed","ust10y_below_4","copper_3m_positive"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — CPO Best-in-Class OER Ranking System",
+        description="""Ricky2212's detailed CPO company ranking framework.
+THE KEY METRIC: OER (Oil Extraction Rate) = berapa % buah sawit jadi CPO.
+Average market OER: 20-21%. Best-in-class: 24-25%.
+Also critical: Profil umur tanaman (prime = 8-15 tahun). Komposisi lahan inti vs plasma.
+RANKING (Ricky's A+ to B- system):
+A+ (TERBAIK): DSNG (OER tertinggi, prime age, ekspansi organic, ESG funded), TAPG (A+: OER tinggi, 90% lahan inti, pabrik ke-18, umur prime), STAA (A+: produktivitas tertinggi, 73% prime age, 90% lahan inti)
+A: LSIP (sehat, diversified, tapi umur tua+no ekspansi), AALI (luas tapi tua, OER average)
+A-: AALI (hanya luas + Astra brand sebagai kelebihan)
+B: SGRO (OER terendah, hutang, plasma tinggi, margin buruk)
+B-: SIMP (profit negative, lahan luas tapi tua), BWPT (poor management Eagle High, sering rugi)
+Biodiesel angle: B40 → makin besar kebutuhan CPO. Malaysia RSPO=benchmark kualitas.
+"OER tinggi + profil tanaman prime = leverage terbesar saat CPO naik. Bukan hanya luas lahan." """,
+        category="commodity",
+        catalyst_types=["cpo_price_rise","biodiesel_mandate_increase","la_nina",
+                         "india_import_surge","sunflower_shortage","oer_beat"],
+        activation_keywords=["cpo oer ranking","dsng tapg staa oer","kelapa sawit oer tertinggi",
+                              "profil tanaman sawit prime","biodiesel B40 B50","dsng tapg best",
+                              "cpo hulu ke hilir","minyak goreng naik","cpo malaysia bursa",
+                              "palm oil inventory malaysia","india vegetable oil import"],
+        invalidation_keywords=["esg ban permanent","palm oil oversupply sustained","replanting peak all companies",
+                                "india import duty high","cpo below 3000 MYR"],
+        beneficiaries={"ihsg":["DSNG.JK","TAPG.JK","SSMS.JK","STAA.JK","LSIP.JK","AALI.JK"],
+                       "global":["KLK.KL","IOI.KL"]},
+        fades={"ihsg":["BWPT.JK","SIMP.JK","SGRO.JK"]},
+        regime_alignment={"Q2":1.80,"Q1":1.10,"Q3":0.70,"Q4":0.20},
+        typical_duration_weeks=26, conviction_ceiling=0.80, pump_risk=0.15,
+        confirmation_signals=["dsng_tapg_oer_beat_quarterly","cpo_bursa_above_4000",
+                               "biodiesel_mandate_increase","india_palm_oil_import_surge",
+                               "malaysia_inventory_low"],
+    ),
+
+    NarrativeTemplate(
+        name="Ricky — Shipping Sector Classification & Cycle Positioning",
+        description="""Ricky2212's complete shipping sector classification for IHSG:
+DRY BULK (komoditas curah kering: iron ore, coal, nickel, grain):
+Index: Baltic Dry Index (BDI). Mostly time chartered 80%+.
+PSSI (A+): most complete fleet, TnB to vessel, expansion agenda. TPMA, MBSS = TnB only.
+OIL TANKER (crude + product):
+Dirty tanker = crude oil dari sumur ke refinery. Index: Baltic Dirty Tanker.
+Clean/Product tanker = dari refinery ke end user. Index: Baltic Clean Tanker.
+SOCI (ONE AND ONLY VLCC in Indonesia) = highest leverage. BULL, HITS supporting.
+CONTAINER (manufactured goods):
+Cycle: 2020-2022 DONE. SMDR+TMAS = 10x+ already extracted. "Story sudah selesai."
+OSV (offshore support vessel - hulu migas):
+WINS (no.1, 42 kapal, high tier 28%, management transparent) rating A
+LEAD (no.2, 43 kapal, NPM 30%+ at peak, tapi hutang concern) rating A-
+OSV: most sensitive to oil price (hulu vs hilir). Kapal nganggur = fixed cost bleeding.
+New orders = 0. Supply shortage akut. WINS buying 6 kapal proactively = management signal.""",
+        category="commodity",
+        catalyst_types=["bdi_rally","osv_day_rate_spike","tanker_rate_spike","china_coal_import",
+                         "offshore_drilling_ramp","rerouting_war","opec_cut"],
+        activation_keywords=["pssi dry bulk","soci vlcc tanker","wins lead osv","smdr tmas container selesai",
+                              "bdi baltic dry","dirty tanker rate","clean tanker rate","shipping indonesia",
+                              "kapal nganggur","tanker rate spike","pssi fleet expansion",
+                              "aframax suezmax vlcc","chapter 11 shipping recovery"],
+        invalidation_keywords=["bdi collapse","osv oversupply new build","tanker rate crash",
+                                "dry bulk new vessel flood","shipping recession"],
+        beneficiaries={"ihsg":["PSSI.JK","SOCI.JK","BULL.JK","WINS.JK","LEAD.JK","TPMA.JK","MBSS.JK"],
+                       "global":["GOGL","SBLK","FRO","STNG","TDW"]},
+        fades={"ihsg":["SMDR.JK","TMAS.JK"]},  # container cycle already done
+        regime_alignment={"Q2":1.60,"Q3":1.20,"Q1":0.90,"Q4":0.20},
+        typical_duration_weeks=39, conviction_ceiling=0.75, pump_risk=0.30,
+        confirmation_signals=["bdi_above_2000","soci_vlcc_new_contract","wins_utilization_above_80",
+                               "tanker_dirty_above_50000","pssi_new_vessel_active"],
+    ),
+
+]
+
+_NARRATIVES.extend(_NARRATIVES_BATCH4)
+NARRATIVE_BY_NAME.update({n.name: n for n in _NARRATIVES_BATCH4})
+for _n in _NARRATIVES_BATCH4:
+    NARRATIVES_BY_CATEGORY.setdefault(_n.category, []).append(_n)

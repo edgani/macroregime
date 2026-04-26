@@ -410,6 +410,14 @@ class GIPEngine:
         div = "aligned" if struct_quad == month_quad else "divergent"
         regime = f"Aligned {struct_quad}" if div == "aligned" else f"Monthly {month_quad} inside Structural {struct_quad}"
 
+        # ── UST Yield Curve Forward-Looking Signals (Ricky2212 bond market framework) ──
+        # "Bond market doesn't lie. UST 2Y leads Fed by weeks/months."
+        # TLT rising = deflationary/recession signal = pivot coming
+        _tlt = prices.get("TLT"); _ief = prices.get("IEF")
+        tlt_1m = float(pd.to_numeric(_tlt, errors="coerce").pct_change(21).dropna().iloc[-1]) if _tlt is not None and len(_tlt)>22 else 0.0
+        ief_1m = float(pd.to_numeric(_ief, errors="coerce").pct_change(21).dropna().iloc[-1]) if _ief is not None and len(_ief)>22 else 0.0
+        bond_pivot_signal = clamp01(0.5 + tlt_1m*8 + ief_1m*4)
+
         features = dict(
             growth_level=g_level, growth_momentum=g_mom_,
             inflation_level=i_level, inflation_momentum=i_mom_,
@@ -420,6 +428,7 @@ class GIPEngine:
             monthly_i_level=m_i_level, monthly_i_mom=m_i_mom,
             headline_gap=hgap, inflation_shock=shock,
             leading_indicator_composite=_nan(0.40*g_mom_+0.30*(-i_mom_)+0.30*policy),
+            bond_pivot_signal=bond_pivot_signal, tlt_1m_trend=tlt_1m, ief_1m_trend=ief_1m,
             **{f"raw_{k}": v for k, v in f_fred.items() if math.isfinite(v)},
         )
 

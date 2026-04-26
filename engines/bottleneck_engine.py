@@ -147,6 +147,12 @@ KNOWN_BOTTLENECKS: Dict[str, dict] = {
         "thesis":"Semiconductor test handlers + vision inspection. AI chip volume = test handler demand.",
         "catalyst":"AI chip volume ramp, advanced packaging inspection","tp_type":"structural",
         "risk":"Cyclical; competition from Advantest/Teradyne"},
+    "OBMD": {"type":"structural","sub":"oil_services","constraint":0.88,"phase":"level_1","thesis":"ONLY drilling chemical supplier Indonesia. Anti-slip agent offshore drilling. Zero domestic competition. Ricky: satu-satunya penyedia kimia agar pengeboran ga slip.","catalyst":"Indonesia offshore drilling ramp 1jt BPD 2030","tp_type":"structural","risk":"Illiquid small cap, lumpy revenue"},
+    "SHIP": {"type":"structural","sub":"osv_hulu","constraint":0.82,"phase":"level_1","thesis":"ONLY listed Indonesia company with FSO/FPSO. Every offshore field needs FSO. Ricky: hanya SHIP yg punya. Monopoly niche.","catalyst":"New offshore field, FPSO contract win","tp_type":"structural","risk":"High debt, capex heavy"},
+    "PSSI": {"type":"structural","sub":"dry_bulk_shipping","constraint":0.80,"phase":"level_2","thesis":"ONLY complete dry bulk operator Indonesia with TnB + large vessel. APOL BLTA bankrupt. TPMA MBSS TnB only. Ricky rating A. Active expansion.","catalyst":"BDI rally, China coal iron ore surge","tp_type":"structural","risk":"BDI cyclicality"},
+    "LEAD": {"type":"structural","sub":"osv_hulu","constraint":0.82,"phase":"level_2","thesis":"Logindo = OSV no.2 Indonesia. 43 vessels. NPM 30%+ peak vs WINS 17% (transfer pricing suspect). Total ADNOC Husky clients. History champion.","catalyst":"Offshore drilling ramp, WINS overflow","tp_type":"structural","risk":"Debt maturity needs restrukturisasi"},
+    "AKRA": {"type":"structural","sub":"oil_distribution","constraint":0.75,"phase":"level_2","thesis":"AKR = MARKET LEADER fuel distribution Indonesia. Only private vs Pertamina. Storage+network moat. Bonus: JIIPE industrial estate FDI play.","catalyst":"Oil demand growth, JIIPE expansion","tp_type":"structural","risk":"Pertamina competition"},
+    "TPMA": {"type":"structural","sub":"dry_bulk_shipping","constraint":0.72,"phase":"level_1","thesis":"Trans Power Marine = TnB coal shipping Indonesia. BDI play. Smaller pure-play vs PSSI.","catalyst":"BDI rally, domestic coal demand","tp_type":"structural","risk":"BDI cyclicality, competition"},
 }
 
 IHSG_BOTTLENECKS = {

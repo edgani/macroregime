@@ -1,3686 +1,3293 @@
-"""config/narrative_universe.py — BATCH 14 + BATCH 15 + BATCH 16 + BATCH 17 + BATCH 18 (Apr 2026)
-Artikel Ricky2212 / MentorBaik extraction:
-
-BATCH 14:
-1. Gold ATH — historical parallels + Trump uncertainty + physical hoarding
-2. Banking CKPN cycle — structural bearish vs fake bullish
-3. M2 Bubble Indicator — market cap/M2 ratio
-4. IHSG Correction Depth — pyramid buying at 6500/6324
-5. Blow Off Top Setup — AI/DeepSeek/Copper/Gold/Crypto/Konglo Tech
-6. Danantara SWF — $900B AUM Indonesia sovereign wealth fund
-7. Bear Market Entry — IHSG -21%, MSCI rebalancing, banking rebound
-8. Market Come Back — 3 factors jack up (DXY, JPY carry, local fund cash)
-9. Trump Tariff Shock Therapy — not the main show
-
-BATCH 15:
-10. Market Cetar Bergetar — IHSG halt, margin call BREN/TPIA/PANI, force sell cascade
-11. Play Book IHSG — China playbook comparison, policy demand, -25% to -30% target
-12. Things happen when no one talk about it — recession calls fail, Trump pessimism, blow off top
-13. It's just a game — market manipulation thesis, 08 circle, Danantara timing, Himbara ex-date
-14. Different game play — big cap banking vs conglo play, asymmetrical risk reward
-15. Trump will Trim and reset US Economy — Reaganomics 1981-1982 comparison, mega tariff, reset
-16. Trump tariff Good or Bad — debt $36T, weak USD, negotiation tactic, Fed forced cut
-17. DxY hancur Rp lemah — DXY below 100, IDR 16800, inflow signal, BBRI ex-date smooth
-18. World need another Store of Value — Bretton Woods, BRICS commodities, US BTC reserve
-19. DxY sudah 98 time to shifting — USD trust decline, risk asset shift, LATAM outperform
-20. Market bakal jatuh dalam — buying opportunity, cash wins, bear market correction, CUT narrative
-
-BATCH 16:
-21. Next Conglo Narrative (Narasi 9 Haji) — Tohir, Bakrie, H Isam, 08 circle plays
-22. Next rally is not FINDIMINTIL rally — inflow rally, peaked market, CUT euphoria
-23. Market bakal RISK ON pake banget — JPY carry, BTC/ETH spike, small cap ATH, liquidity driven
-24. Trump doing a great job — Bidenomics cleanup, tax cut, tariff, fossil energy, recession base
-25. Blow off the top skenario — UST spike trap, foreign bond buying, CUT FOMO, market peaked
-26. Sun Tzu Art of War — Iran-Israel conflict as market driver, Hormuz, oil, WW3 theme
-27. Get Ready TFF — OJK changes, lot shrink, tax amnesty, liquidity flood Indonesia
-28. BER BER BER curse — Sep-Oct crash pattern, FOMC cut timing, TFF peak
-29. TFF part 3 Puncak Kegilaan — BTC strategic reserve, US debt payoff, crypto hegemony
-30. Perfect Classic Game Play — Big Fund rotation IDR→bonds→equity, weak hand shakeout
-
-BATCH 17:
-31. TFF part 4 — Saham Bekdor bakal come back and RUSH, M&A peaked signal
-32. God Save the King — Pepe/08/Danantara symbiosis, PGEO, CDIA, RATU/RAJA
-33. TFF => WTFF => Peaked — 28% comeback, DCII ARA, fund frustration, temperature exit
-34. Tiki Taka Barcelona — Siram bensin strategy, DEWA/BUMI/WIFI/TOBA, PGEO/RAJA
-35. OBBB + FOMC July — One Big Beautiful Bill, UST analysis, 2 CUT scenarios, Powell Yo-Yo
-36. FUNDA + FINDi — 30% Funda 70% Findi thesis, narrative filter, self-reliance
-37. Oil and Gas narrative — OSV, Soemitro Djojohadikusumo, Danantara, 08 deregulation
-38. Patriot Bond — Rp 50T Danantara bond, 2% coupon, tax amnesty barter, 08 genius
-39. Patriot Bond confirmation — 3 haram money flows, Konglo play, WTFF liquidity flood
-40. Belakangan situasi politik — Demo Indonesia, '98 fear, fund entry setup, cooling down
-41. Focus on Big Picture — Ray Dalio, don't focus on detail, piece by piece puzzle
-42. Keputusan investasi — Your money your responsibility, self-reliance, sense building
-
-BATCH 18:
-43. Fokus pada proses — Focus on process not speed, Gen Z impulsive, two stories
-44. History repeat itself — Historical cycles 00-01 and 07-08, 2027-2028 crisis prediction
-45. Classic problem Fear and Greed — Fear and greed psychology, flush period, PANI greed
-46. Bubble Before the Storm — George Soros strategy, reflexivity, Black Wednesday 1992
-47. One Great Moment — Personal story about mother, forgiveness, life changing moment
-48. Negara saya mengirim saya — Never give up, Derek Redmond, Akhwari, great moment
-49. Semua tergantung stasiun — Stock cycle entry/exit, HMSP, ASII, BBRI, INCO, BUMI
-50. Prepared not Predict — Prepare not predict philosophy, umbrella analogy, insurance
-51. Prepare not Predict part 2 — Top/bottom signals, 13 key point, IPO spike, euphoria signs
-52. Siklus ekonomi berputar — Investor cycle never rotates, MIP, royalty IUPK, coal plays
 """
-from __future__ import annotations
-from dataclasses import dataclass, field
-from typing import List, Dict
+config/narrative_universe.py
+============================
+Narrative Universe — Structured article database for MacroRegime engine.
 
-@dataclass
-class NarrativeTemplate:
-    name: str
-    description: str
-    category: str
-    catalyst_types: List[str]
-    activation_keywords: List[str]
-    invalidation_keywords: List[str]
-    beneficiaries: Dict[str, List[str]]
-    fades: Dict[str, List[str]]
-    regime_alignment: Dict[str, float]
-    typical_duration_weeks: int
-    conviction_ceiling: float
-    pump_risk: float
-    confirmation_signals: List[str]
+Contains all MentorBaik / Ricky2212 articles with metadata, tickers,
+key points, full text, and cross-references.
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# BATCH 14 — Artikel Ricky2212 (Apr 2026 extraction)
-# ═══════════════════════════════════════════════════════════════════════════════
+Generated: 2025-04-27
+"""
 
-_NARRATIVES_BATCH14: List[NarrativeTemplate] = [
+from typing import Dict, List, Any, Optional
 
-    # ── ARTICLE 1: Gold ATH Historical Framework ──────────────────────────────
-    NarrativeTemplate(
-        name="Gold ATH — Historical Parallels & Trump Uncertainty Hedge",
-        description="""Ricky2212 gold framework with historical cycle mapping:
-HISTORICAL GOLD SPIKES:
-- 1979-1980: Iranian Revolution → geopolitical fear → gold +300%
-- 2007-2011: GFC → $650/oz (mid-2007) → $1,900 (Sep 2011) = financial crisis hedge
-- 2019-2020: COVID → $1,500 (mid-2019) → $2,075 (Aug 2020) = pandemic panic hedge
-COMMON THEME: "KETAKUTAN" — fear of unknown → panic → sell risky assets → buy "safe" gold
-CURRENT CONTEXT (2024-2025):
-- Gold +40% in one year = unprecedented for safe-haven asset
-- Physical hoarding at record levels: Bank of England withdrawal wait 4-8 weeks (was days)
-- $82B stored in New York vaults
-- Identical to COVID 2020 panic hoarding pattern
-- Citadel 13F: massive GLD call/put spread (8M+ underlying shares on call side)
-- Hedge funds now paying attention
-TRUMP AS CATALYST:
-- Full Republican control (House, Senate, Supreme Court) = can change everything
-- Tax cuts, spending cuts, tariffs = massive uncertainty
-- "Memotong pajak akan meningkatkan defisit; memotong pengeluaran mungkin mengimbangi"
-- Pre-weekend tariff tweets on China/Mexico/Canada before official policy
-- Investors seeking protection from economic uncertainty → gold
-GOLD AS SIGNAL:
-- 13 key point: "Gold rallying while market also rallying = peak cycle signal"
-- "Market ATH + Gold ATH = something uncertain ahead"
-- Target: $3,000/oz "in a matter of weeks" per market consensus
-- "Prepare not Predict"
-Key data: Gold is sending massive message to the world. "Kalau memang baik keadaanya, kenapa harga emas harus SPIKE?"""",
-        category="cycle",
-        catalyst_types=["gold_ath","historical_gold_spike","trump_uncertainty","physical_gold_hoarding",
-            "hedge_fund_gold","geopolitical_fear","safe_haven_demand"],
-        activation_keywords=["gold ath","gold spike","gold 3000","gold historical","1979 gold","2008 gold",
-            "2020 gold","trump gold","physical gold hoarding","bank of england gold","gold withdrawal",
-            "citadel gld","hedge fund gold","gold safe haven","gold ketakutan","gold fear","gold panic",
-            "gold 40% ytd","gold record","gold demand","gold uncertainty hedge","trump tariff gold",
-            "gold message","gold signal peak","gold 13 key point","prepare not predict gold"],
-        invalidation_keywords=["gold_corrects_20pct","trump_dovish_pivot","peace_agreement",
-            "gold_hoarding_ends","hedge_funds_exit_gold"],
-        beneficiaries={"global":["GLD","IAU","PHYS","GC=F"],"ihsg":["ANTM.JK","MDKA.JK","BRMS.JK","AMMN.JK"],
-            "us":["NEM","GOLD","AEM"]},
-        fades={"us":["SPY","QQQ","IWM","high_beta"],"ihsg":["property","consumer_discretionary"],"crypto":["BTC-USD"]},
-        regime_alignment={"Q3":1.80,"Q4":1.70,"Q2":1.40,"Q1":1.00},
-        typical_duration_weeks=26,
-        conviction_ceiling=0.85,
-        pump_risk=0.15,
-        confirmation_signals=["gold_above_3000","physical_gold_premium_spike","gld_call_volume_surge",
-            "trump_tariff_announced","bank_of_england_withdrawal_delay","hedge_fund_13f_gold_increase",
-            "gold_ath_sustained_months"],
-    ),
-
-    # ── ARTICLE 2: Banking Sector CKPN Cycle & Structural Bearish ────────────
-    NarrativeTemplate(
-        name="Indonesia Banking CKPN Cycle — Structural Bearish Confirmation",
-        description="""Ricky2212 banking sector deep-dive: "Bullish or Bullish-it?"
-THE COLLAPSE:
-- BBRI: profit announcement → stock ambruk. UMKM sector hardest hit.
-- BBNI: profit announcement → stock ambruk. "Bobrok tata kelola."
-- BMRI: profit announcement → stock dropped nearly 10%. "Sekelas BMRI turun hampir 10% = kurang apa?"
-- BBCA: best positioned but also facing CKPN pressure
-- Banking sector dropped >2% in single day = majority of index decline
-WHY BANKING COLLAPSES:
-1. REAL ECONOMY IS BAD: "Bank adalah pusat sirkulasi uang. Saat ekonomi tidak baik, bank pasti terseret."
-2. CKPN CYCLE JUST STARTED: Post-COVID restructuring package ended Q1 2024. NPLs creeping up. Provisions must rise.
-    - "Siklus CKPN bank besar baru dimulai pertengahan 2024."
-    - BTPS started earlier; big banks just beginning now
-    - "Sampah2x di bank besar akan dibuka. Perlahan NPL merangkak naik."
-    - Duration: 6 months to 1 year+ depending on economy
-3. FUND FACTORING IN BAD NEWS: "Big fund sedang mengabsorb dan memfaktorkan keburukan ekonomi real."
-STRUCTURAL vs FAKE BULLISH:
-- Structural bullish = banking + old industrial leading
-- Fake bullish (Bullish-it) = konglo plays filling void while banking flat/weak
-- "Sekarang? Banking NOT leading = economy NOT truly growing"
-- "Mau dikemas kaya apa, keadaan Bank tetap tidak bisa dibohongi."
-Ricky's warning: "Stay away from big bank dulu, nanti aja buat next cycle."
-"Saya sudah berkali2x warning masalah perbankan dari tahun lalu."
-"PHK 52,993 (Sep 2024), up 25.3% YoY."
-"K-shape economy: rich richer, poor poorer."
-Key data: Banking is the lie detector of the real economy. When banking collapses, the economy is truly sick.""",
-        category="sector",
-        catalyst_types=["banking_ckpn_cycle","npl_rise","profit_disappointment","structural_bearish",
-            "fake_bullish","umkm_collapse","consumer_down_trading"],
-        activation_keywords=["banking collapse","bbri ambruk","bbni ambruk","bmri turun 10%","bbca drop",
-            "ckpn cycle","ckpn bank besar","npl naik","banking sector drop","structural bullish",
-            "bullish or bullish-it","fake bullish","banking not leading","bank lie detector",
-            "ekonomi buruk banking","bank pusat sirkulasi","fund factor bad news","umkm kena pukul",
-            "btps ckpn","bbri ckpn","bmri ckpn","bbni ckpn","phk naik 25%","k shape economy",
-            "stay away big bank","banking warning","ckpn siklus baru","restrukturisasi covid berakhir"],
-        invalidation_keywords=["banking_recovers","ckpn_cycle_ends","npl_stabilizes","profit_beat_banking",
-            "structural_bullish_confirmed"],
-        beneficiaries={"ihsg":["BBCA.JK"],"safe_haven":["IDR_cash","USD_cash","money_market","deposito"]},
-        fades={"ihsg":["BBRI.JK","BTPS.JK","BBNI.JK","BMRI.JK","banking_sector","financial_sector"]},
-        regime_alignment={"Q3":1.40,"Q4":1.20,"Q2":1.00,"Q1":0.80},
-        typical_duration_weeks=26,
-        conviction_ceiling=0.85,
-        pump_risk=0.10,
-        confirmation_signals=["bbri_profit_miss","bmri_drop_10pct","banking_index_drop_2pct",
-            "ckpn_provision_spike_q4","npl_above_3pct_banking","umkm_default_rate_rise",
-            "phk_above_50k_indonesia","consumer_loan_growth_negative"],
-    ),
-
-    # ── ARTICLE 3: M2 Bubble Indicator ────────────────────────────────────────
-    NarrativeTemplate(
-        name="M2 Money Supply vs Market Cap — Bubble Ratio Indicator",
-        description="""Ricky2212 M2 framework: "Banjir M2, market jadi bullish?"
-M2 DEFINITION: Broad money supply = cash + savings + money market + time deposits + liquid assets
-M2 MECHANICS:
-- M2 growth after tightening period = economy starting to move
-- M2 flood + low rates = banks aggressively lending → consumer spending up → economy grows → stock market rises
-- Extreme M2 flood + near-zero rates = speculation in paper assets (stocks, commodities, crypto)
-- "Contoh terdekat 2020: M2 banjir → spekulasi paper asset"
-THE RATIO: Total Market Cap / M2 Money Supply
-- Ratio rising = market cap driven far above M2 = irrational, expensive, bubble forming
-- Ratio peak = gray area/recession follows
-- Ratio crash = bubble burst → ratio falls back down
-HISTORICAL PATTERNS:
-- 2000 Dot-com (blue circle): Ratio spiked to extreme → bubble burst → ratio crashed
-- 2007-2008 (green circle): Pre-crisis ratio rose steadily with real growth → peaked → GFC → ratio crashed
-- 2020-now (red circle): "Lihat ujung paling kanan. Apa yang anda lihat?"
-- "Makin tinggi grafiknya makin ga rasional dan mahal kapitalisasi pasarnya."
-CURRENT STATE:
-- M2 growing but market cap growing FASTER = ratio at dangerous levels
-- "Dorongan M2 itu real mendorong ekonomi atau digunakan buat ajang jack up paper asset belaka?"
-- "Resiko menarik time frame terlalu pendek akan lebih besar dibanding melihat time frame lebih besar"
-Ricky's interpretation: Current ratio spike resembles 2000 and 2007 peaks. "Prepare not Predict."
-Key insight: Don't look at M2 in isolation. Look at Market Cap/M2 ratio + time frame.""",
-        category="cycle",
-        catalyst_types=["m2_bubble","market_cap_m2_ratio","liquidity_flood","speculation_indicator",
-            "paper_asset_bubble","monetary_easing_speculation"],
-        activation_keywords=["m2 money supply","banjir m2","market cap m2 ratio","m2 bubble indicator",
-            "liquidity flood","paper asset speculation","m2 vs market cap","broad money supply",
-            "m2 growth","m2 speculation","monetary easing speculation","2000 dotcom ratio","2008 gfc ratio",
-            "2020 m2 flood","ratio naik tinggi","kapitalisasi pasar mahal","time frame pendek resiko",
-            "prepare not predict m2","m2 mechanism","bank lending m2","consumer spending m2"],
-        invalidation_keywords=["m2_ratio_normalizes","fundamentals_drive_market","m2_growth_real_economy",
-            "ratio_declines_healthy"],
-        beneficiaries={"us":["SQQQ","VIX","TLT","GLD"],"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","TLKM.JK","UNVR.JK"],
-            "safe_haven":["USD_cash","IDR_cash","money_market"]},
-        fades={"us":["SPY","QQQ","IWM","high_beta","meme_stocks"],"ihsg":["high_flyer","property","narrative_play"]},
-        regime_alignment={"Q3":1.70,"Q4":1.60,"Q2":1.20,"Q1":0.90},
-        typical_duration_weeks=52,
-        conviction_ceiling=0.80,
-        pump_risk=0.15,
-        confirmation_signals=["market_cap_m2_ratio_all_time_high","m2_growth_accelerating","margin_debt_surge",
-            "retail_speculation_index_spike","crypto_volume_vs_m2_spike","2000_pattern_resemblance"],
-    ),
-
-    # ── ARTICLE 4+7: Correction Depth & Bear Market Entry Strategy ─────────────
-    NarrativeTemplate(
-        name="IHSG Correction Depth — Pyramid Buying at 6500/6324 Bear Territory",
-        description="""Ricky2212 correction framework & entry strategy:
-THE NUMBERS:
-- ATH: 7,910
-- Low: 6,500 (intraday near 6,500)
-- Correction: -17.8% (1,410 points)
-- ATH -10%: 7,119 (hit 7,122, closed 7,161) — June 2024 deja vu
-- ATH -20%: 6,324 = bear market territory
-- Beyond ATH-20% sustained = crisis territory
-- "Bisa tembus lebih jauh? kalo tembus lebih jauh = crisis correction"
-STRATEGY — PYRAMID BUYING:
-- "Saya ga tau dimana bottom. Yakin ga ada yang bisa menebak."
-- Risk/reward based entry:
-    * At 6,500 (-17.8%): Start entry. Risk to ATH-20% (6,324) = ~3% more downside
-    * At 6,324 (-20%): Add more. Risk to ATH-30% (~5,500) = prepared but not expected
-    * "Semakin dalam, semakin banyak saya membelinya"
-    * Example: 50 lot allocation = 3, 5, 10, 12, 20 lots at progressively lower levels
-    * "Panjangin nafas"
-WHAT RICKY BOUGHT:
-- JPY: "Kejatuhan JPY membuatnya cukup murah. Keyakinan USD akan keok."
-- Banking (4 banks): 3 state banks + 1 private bank (larger private allocation)
-    * "Saya ga tau mana yang come back terbaik. Daripada pusing, masukkan ke 4 bank sekaligus."
-    * "3 bank pelat merah seimbang + 1 bank swasta lebih besar"
-    * "Sistem piramid buying. Titip sendal buat entry pertama."
-- Konglo (saudara muda): "Story tidak selesai karena harga turun."
-    * BUMI/BRMS younger sibling plays
-    * "Kalau turun = bisa masuk lebih murah."
-- MPIX (Madura): "Dikasih turun lagi pasca spike."
-- Reserve cash: Max 10-15% from reserve deployed. "Belum pada posisi the worst."
-MSCI REBALANCING:
-- Morgan Stanley downgrade → index drop → foreign selling
-- "Nadahin barang FULE (Foreign Bule) di level bawah"
-- "Nanti di-upgrade lagi, saham anda yang dimakan FULE kembali"
-- Morgan Stanley then upgrades banking sector days later = "typical positioning"
-COME BACK CONFIRMATION:
-- +3.97% (249pt) to 6,519 with Rp 16T value
-- Banking-led: BBRI +9.23%, BMRI +6.52%, BBNI +5.71%, BBCA +4.45%
-- "Full Body Cover" candle pattern
-- 6,324 and 6,500 both reclaimed quickly
-- "Worstnya baru saja kita lewati Jumat."
-- Fund local still skeptical = "mereka yang akan dorong indeks ke atas nanti"
-- "Pungutin barang dari FULE di bawah, nanti mereka yang mengantarkan posisi anda ke atas."
-"One Great Moment can change your wealth."
-"Jack Up is for EXIT."""",
-        category="cycle",
-        catalyst_types=["correction_depth","bear_market_entry","pyramid_buying","msci_rebalancing",
-            "morgan_stanley_downgrade","banking_rebound","full_body_cover","foreign_bule_nadah"],
-        activation_keywords=["correction depth","ihsg 6500","ihsg 6324","ath minus 20","bear market territory",
-            "pyramid buying","piramid buying","entry bertahap","beli saham turun","jpy entry","jpy murah",
-            "banking entry","4 bank sekaligus","titip sendal","konglo saudara muda","mpix madura",
-            "msci rebalancing","morgan stanley downgrade","morgan oey","nadahin fule","foreign bule",
-            "full body cover","market come back","bbri naik 9%","bmri naik 6%","ihsg naik 3.97%",
-            "worst over","fund local skeptis","one great moment","jack up is for exit","reserve cash 10%",
-            "ath minus 30","crisis correction","ihsg rebound","banking rebound"],
-        invalidation_keywords=["ihsg_breaks_6000","msci_further_downgrade","foreign_exodus_accelerates",
-            "banking_continues_collapse","idr_above_17000"],
-        beneficiaries={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","BBNI.JK","BUMI.JK","BRMS.JK","MPIX.JK"],
-            "fx":["JPY=X","USDJPY"],"safe_haven":["IDR_cash","USD_cash"]},
-        fades={"ihsg":["high_flyer","property","consumer_discretionary"],"us":["high_beta"]},
-        regime_alignment={"Q3":1.20,"Q4":1.10,"Q2":0.90,"Q1":0.70},
-        typical_duration_weeks=16,
-        conviction_ceiling=0.80,
-        pump_risk=0.20,
-        confirmation_signals=["ihsg_reclaims_6500","ihsg_reclaims_6324","banking_index_leads_rebound",
-            "msci_rebalancing_complete","morgan_stanley_upgrade_banking","foreign_net_buy_returns",
-            "jpy_strengthens_from_low","idr_stabilizes_below_16500"],
-    ),
-
-    # ── ARTICLE 5: Blow Off Top Setup ─────────────────────────────────────────
-    NarrativeTemplate(
-        name="Blow Off Top Setup — AI/DeepSeek/Copper/Gold/Crypto/Konglo Tech Convergence",
-        description="""Ricky2212 blow-off-top catalyst convergence framework:
-1. AI NARRATIVE:
-- "Narasi AI dengan segala embel2xnya kembali digulirkan. Luar biasa kuat."
-- Chip stocks surging (NVDA, AMD, etc.)
-- Palantir: "terang2an busuk aja kebagian jack up. Perusahaan valuasi 50x sales."
-- Supporting AI stocks all jacked up
-2. CHINA TECH / DEEPSEEK:
-- DeepSeek effect: "menawarkan banyak opportunity buat tech China"
-- Alibaba, JD.com, Xiaomi, TSMC, and all China tech support stocks rallying
-- "Narasi tech and deepseek kuat banget sampai ke akarnya"
-- Hong Kong Tech Index broke 3-year high
-3. COPPER RALLY:
-- "Copper sih harusnya sudah masuk fase jack up"
-- Copper = signal of commodity revival = risk-on
-- "Sinyal kebangkitan komoditas"
-4. GOLD MONSTER RALLY:
-- "Untuk ukuran safe haven, rally 30% = luar biasa"
-- "Demmand emas naik luar biasa"
-- Gold ready to switch head to $3,000
-- "Gold rally dibarengi market rally = peak cycle signal" (13 key point)
-5. USD EASE:
-- "Pergerakan USD perlahan mulai melempem"
-- "Tanda menuju pelemahan USD perlahan mulai terlihat"
-- "Slow but sure"
-- Weak USD = risk-on trigger
-6. CRYPTO:
-- BTC in big consolidation phase
-- "If consol selesai and bullish trend continues = one more risk-on signal"
-- "BTC juga jadi salah satu sinyal penutup"
-- Flow: BTC → Mega Cap → Big Cap → Mid Cap → Shitcoins
-7. KONGLO TECH (Indonesia):
-- WIFI acquired by 08's circle → conglo tech play
-- DATA, DOOH, INET, ELIT all moving on tech optimism
-- "Conglo tech related. Risk on mulai nampak kembali."
-8. KONGLO PLAY (No PP):
-- PP/PANI cooling down post-indexing frustration
-- "Dejavu saat AMMN selesai panggungnya, uang langsung mengalir ke bawah konglo satu groupnya"
-- "Likuiditas group pak PP dan PANI mau lari kemana?"
-- BRMS/BUMI younger sibling: "Saudara Muda value transaksi menebal, saham merengsek naik"
-- "The ultimate? Jagoan selalu belakangan."
-Ricky's call: "Dengan segala sinyal risk on yang dikirim market, masa masih bertanya 'Pak kapan jack up?'"
-"Jack Up is for EXIT."
-"No price action question. Bawa thesis dahulu, baru diskusi."""",
-        category="cycle",
-        catalyst_types=["ai_narrative","deepseek_china","copper_rally","gold_rally","usd_weakness",
-            "crypto_consolidation","konglo_tech","konglo_play","risk_on_convergence"],
-        activation_keywords=["blow off top setup","ai narrative","deepseek effect","china tech rally",
-            "alibaba rally","jd rally","xiaomi rally","tsmc rally","copper rally","copper jack up",
-            "gold monster rally","gold 3000","gold safe heaven rally","usd ease","usd melemah",
-            "crypto consolidation","btc consol","btc bullish trend","konglo tech","wifi conglo",
-            "data dooh inet elit","risk on signal","blow off top ai","blow off top deepseek",
-            "blow off top copper","blow off top gold","blow off top crypto","blow off top konglo",
-            "pani cooling down","ammn dejavu","saudara muda konglo","brms bumi younger sibling",
-            "jagoan belakangan","jack up is for exit","no price action question"],
-        invalidation_keywords=["ai_narrative_collapses","deepseek_banned","copper_corrects_20pct",
-            "usd_strengthens","crypto_breaks_down","konglo_tech_fades"],
-        beneficiaries={"ihsg":["WIFI.JK","WIRG.JK","MPIX.JK","ELIT.JK","DOOH.JK","INET.JK","DATA.JK",
-            "BUMI.JK","BRMS.JK","ADII.JK"],"us":["NVDA","PLTR","AMD","TSM","BABA","JD"],
-            "commodities":["HG=F","GC=F"],"crypto":["BTC-USD","ETH-USD","MSTR","COIN"]},
-        fades={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK"],"us":["TLT","GLD","VIX"]},
-        regime_alignment={"Q3":1.60,"Q4":1.40,"Q2":1.00,"Q1":0.80},
-        typical_duration_weeks=12,
-        conviction_ceiling=0.80,
-        pump_risk=0.25,
-        confirmation_signals=["nvda_ath_sustained","deepseek_adoption_spike","copper_above_4_50",
-            "gold_above_3000","dxy_reverses_from_top","btc_breaks_consolidation","wifi_doubles",
-            "elit_volume_spike","brms_bumi_volume_bludak","china_tech_index_3y_high"],
-    ),
-
-    # ── ARTICLE 6: Danantara SWF ────────────────────────────────────────────────
-    NarrativeTemplate(
-        name="Danantara — Indonesia Sovereign Wealth Fund ($900B AUM Target)",
-        description="""Ricky2212 Danantara/Indonesia SWF framework:
-WHAT IS SWF:
-- Sovereign Wealth Fund = government-owned investment vehicle
-- Manages surplus national income (oil, gas, commodities, forex reserves)
-- Goals: economic stability, diversification, long-term returns, generational wealth
-GLOBAL SWF LANDSCAPE:
-1. Norway GPF Global: $1.4T (oil/gas) — top holdings: NVDA, MSFT, AAPL
-2. China CIC: $1.2T (forex) — holdings: Blackstone, Morgan Stanley, Alibaba, Tencent, BUMI
-3. Abu Dhabi ADIA: $850B (oil) — MSFT, GOOGL, AMZN, AAPL, JPM, GS, BLK
-4. Kuwait KIA: $750B (oil) — pioneer SWF (1953)
-5. Singapore GIC: $700B (forex)
-6. Hong Kong HKMA: $600B (forex)
-7. Saudi PIF: $700B (oil) — target $2T by 2030. SoftBank, Nintendo, Uber, Newcastle United
-8. Singapore Temasek: $490B — DBS, Alibaba, Mastercard, Telkomsel
-9. Qatar QIA: $450B — Volkswagen, Uber, SpaceX, PSG, F1, Tiffany
-10. Dubai ICD: $300B — Emirates, Emaar, DP World
-INDONESIA EXISTING:
-- INA (Indonesia Investment Authority): ~$20B AUM (2021), infrastructure + renewable energy
-DANANTARA (Dayā Anagata Nusantara):
-- Launched Feb 24, 2025 by President Prabowo
-- Consolidates INA + 7 BUMN:
-    * Bank Mandiri, Bank BRI, PLN, Pertamina, Bank BNI, Telkom Indonesia, MIND ID
-- Model: Similar to Temasek but broader (all state assets in one vessel)
-- Target AUM: $900B (evaluasi awal)
-- Initial funding: $20B
-- Mandate: renewable energy, manufacturing, downstreaming, food security
-- Target GDP contribution: 8% annual growth
-- Leadership: Rosan Roeslani (CEO), Burhanuddin Abdullah (controversial — past corruption case)
-RICKY'S ASSESSMENT:
-- "Kalau dijalankan dengan baik = mampu bersuara di kancah global"
-- "Saya selalu jadi pihak pesimis dulu untuk awal perjalanan"
-- Risks: corruption mentality ("orang atas suka kemaruk and aji mumpung"), Jiwasraya/ASABRI history, 1MDB Malaysia precedent
-- "Kalo salah urus, bukan jadi Temasek. Yang ada = kaya 1MDB."
-- "Tapi apapun itu kita sambut DANANTARA sebagai buah karya luar biasa dari 08."
-Key data: If $900B achieved = Indonesia becomes one of world's largest SWFs.""",
-        category="geopolitical",
-        catalyst_types=["danantara_launch","swf_indonesia","sovereign_wealth_fund","bumn_consolidation",
-            "prabowo_policy","state_asset_optimization","corruption_risk_swf"],
-        activation_keywords=["danantara","sovereign wealth fund","swf indonesia","ina swf","daya anagata nusantara",
-            "danantara launch","danantara 900 billion","danantara aum","danantara bumn","mandiri danantara",
-            "bri danantara","pln danantara","pertamina danantara","bni danantara","telkom danantara",
-            "mind id danantara","rosan roeslani","burhanuddin abdullah","temasek model","swf comparison",
-            "norway gpf","china cic","abudhabi adia","kuwait kia","singapore gic","saudi pif","qatar qia",
-            "dubai icd","hong kong hkma","swf global ranking","danantara corruption risk","1mdb precedent",
-            "jiwasraya asabri","prabowo swf","state asset consolidation","indonesia 8% gdp target"],
-        invalidation_keywords=["danantara_cancelled","corruption_scandal_danantara","bumn_resist_consolidation",
-            "danantara_aum_fails","prabowo_cabinet_no_danantara"],
-        beneficiaries={"ihsg":["BMRI.JK","BBRI.JK","BBNI.JK","TLKM.JK","PTBA.JK","ANTM.JK","MEDC.JK"],
-            "global":["EIDO","IDX"]},
-        fades={"ihsg":["private_sector_competing_with_danantara"],"us":["swf_underperformers"]},
-        regime_alignment={"Q1":1.40,"Q2":1.20,"Q3":1.00,"Q4":0.80},
-        typical_duration_weeks=52,
-        conviction_ceiling=0.75,
-        pump_risk=0.20,
-        confirmation_signals=["danantara_official_operations","900b_aum_roadmap","rosan_roeslani_appointment",
-            "bumn_transfer_to_danantara_complete","renewable_energy_project_funding","international_investor_interest"],
-    ),
-
-    # ── ARTICLE 8+9: Market Come Back + 3 Jack Up Factors ───────────────────────
-    NarrativeTemplate(
-        name="Market Come Back — 3 Factors Driving Jack Up",
-        description="""Ricky2212 market recovery & jack-up catalyst framework:
-MARKET COME BACK CONFIRMATION:
-- IHSG +3.97% (+249pt) to 6,519. Value: Rp 16T
-- Banking-led: BBRI +9.23%, BMRI +6.52%, BBNI +5.71%, BBCA +4.45%
-- 6,324 (ATH-20%) and 6,500 both reclaimed = "Full Body Cover" candle
-- "Worstnya baru saja kita lewati Jumat."
-- MSCI rebalancing complete = foreign selling pressure ends
-- Morgan Stanley downgrade then upgrade = "typical positioning, sekutuan mereka"
-- Fund local still skeptical = "mereka yang akan dorong indeks ke atas nanti"
-- "Pungutin barang dari FULE di bawah, nanti mereka yang mengantarkan posisi anda ke atas."
-- OJK called exchange members = "ada yang mau bergerak menjaga pasar"
-3 FACTORS FOR STRONG JACK UP:
-1. DXY WEAKNESS:
-    - "DXY pelemahan jelas jadi support paling kuat buat dorong global market"
-    - "USD kabur dari kandang, mencari tempat baru buat membenamkan uang"
-    - Weak USD = global indices can run faster
-2. JPY CARRY TRADE RESTART:
-    - "JPY menguat significant = JPY mahal, USD lemah"
-    - "Pinjam JPY (mahal), tukar ke USD (murah) = dapat USD lebih banyak"
-    - "Investasi ke paper asset = kedorong harga"
-    - "Carry trade sifatnya leverage = double shoot, kekuatan dorongan double"
-3. LOCAL FUND SKEPTICS WITH CASH:
-    - "Mayoritas Fund lokal masih sangat skeptis, menyimpan cash cukup lumayan"
-    - "Fund lokal akan jadi mesin pendorong saat perjalanan hampir setengah jalan"
-    - "Fund ga mau di out-perform satu sama lain. Pinter barengan atau Goblok barengan."
-    - "Begitu satu memulai, yang lain membebek."
-    - "Percaya? itulah kondisi fund lokal kita."
-Ricky's call: "3 faktor tersebut menentukan kencangnya jack up. Kalau seirama dan berbarengan = mungkin yah begitulah."
-"Data ekonomi mah nanti akan mengikuti dan menyelaraskan dengan aliran uang saja."
-"Berita kan memang dibuat saat memang dibutuhkan."
-"Ini Last Call super paling terakhir."
-"Jack Up is for EXIT."""",
-        category="cycle",
-        catalyst_types=["market_come_back","dxy_weakness","jpy_carry_restart","local_fund_cash",
-            "msci_rebalancing_end","banking_rebound","full_body_cover","foreign_inflow_return"],
-        activation_keywords=["market come back","ihsg naik 3.97%","banking rebound","bbri 9%","bmri 6%",
-            "full body cover","6324 reclaimed","6500 reclaimed","msci rebalancing complete","morgan stanley upgrade",
-            "fule nadah","foreign inflow","3 faktor jack up","dxy weakness","usd kabur","jpy carry trade",
-            "jpy menguat","carry trade restart","double shoot","fund lokal skeptis","fund cash",
-            "fund mesin pendorong","pinter barengan goblok barengan","fund membebek","last call terakhir",
-            "jack up factors","dxy support global","idr menguat","aliran uang masuk","ojk panggil bursa",
-            "worst over","market recovery indonesia"],
-        invalidation_keywords=["ihsg_breaks_6000","dxy_strengthens","jpy_weakens","fund_local_selling",
-            "foreign_exodus_accelerates","banking_reversal"],
-        beneficiaries={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","BBNI.JK","BUMI.JK","BRMS.JK","WIFI.JK","MPIX.JK"],
-            "fx":["USDIDR","JPY=X"],"us":["IWM","QQQ","BTC-USD"]},
-        fades={"ihsg":["property","consumer_discretionary"],"us":["TLT","GLD","VIX"]},
-        regime_alignment={"Q3":1.50,"Q4":1.30,"Q2":1.00,"Q1":0.80},
-        typical_duration_weeks=12,
-        conviction_ceiling=0.80,
-        pump_risk=0.20,
-        confirmation_signals=["ihsg_sustains_above_6500","dxy_reverses_down","jpy_strengthens_above_145",
-            "local_fund_net_buy_starts","foreign_net_buy_5days","banking_index_leads_3days",
-            "msci_rebalancing_complete","idr_strengthens_below_16000"],
-    ),
-
-    # ── ARTICLE 10: Trump Tariff Shock Therapy ────────────────────────────────
-    NarrativeTemplate(
-        name="Trump Tariff Shock Therapy — Not the Main Show",
-        description="""Ricky2212 Trump tariff framework: "It's not the main show."
-2016-2020 DEJA VU:
-1. Trump framed badly during campaign → Dow crashed on election night → Big Boyz: "Trump not as bad as thought" → massive come-back
-2. Trump loves surprise Twitter policy announcements (weekend bombshells)
-3. Trump loves tariff wars — 2016-2020 full of tariff policies
-CURRENT TARIFFS (Feb 2025):
-- Mexico: 25%
-- Canada: 25%
-- China: 10%
-- Canada retaliates: 25% on US goods. Trudeau warns "painful times ahead."
-- Mexico retaliates: 25% on US goods.
-- China: "Anteng2x sambil duduk and makan gorengan dengan segelas teh panas" — watching US & allies fight
-MARKET REACTION:
-- Weekend tariff war → Monday shock therapy
-- "Kena Flush secara massal. Ibarat closet, pencet tombol Flush = semua disapu bersih."
-- "Panik? kalau menghadapi keadaan seperti ini aja sudah panik = harus ikut Mbasecamp."
-- "Ini bukan real show penurunannya. Ini belum ada apa2x. Lebih ke short Shock Theraphy."
-- "Kebayang ga nanti real show penurunannya?"
-RICKY'S STANCE:
-- Defensive mode from the start
-- "Bermain cenderung lebih konservative dengan menaikkan porsi cash."
-- "Kalau ada apa2x, saya masih bisa tersenyum."
-- "Santai, tenang, main show nya belum datang."
-- "Trump minta nego tuh sama yang kena tariff. Nanti pasti pada negoisasi ujungnya."
-KONGLO PLAYS:
-- "Om Alim, Om Agus, Om Roti aja belum manggung."
-- "Ga kasian sama mereka yang on process siapin permainannya."
-- "Siapin gorengan dan teh panas."
-MBASECAMP:
-- "History repeat itself — basecamp selalu sold out."
-- "Daripada trade war, mendingan pikirin besok bakal tiket war."
-Ricky's call: "Perjalanan sekarang bisa jadi proses ke sesuatu yang lebih besar di depan."
-"Sudah siapkah anda?"
-"Yah jack up dulu dunk. Last leg. Jangan lupa kalo ada jack nanti jangan lupa pulangnya."
-Key insight: Trump tariff = negotiation tactic, not permanent war. Short-term flush, not the main crash.""",
-        category="geopolitical",
-        catalyst_types=["trump_tariff","trade_war","shock_therapy","mexico_tariff","canada_tariff",
-            "china_tariff","retaliation","negotiation_tactic","weekend_bombshell"],
-        activation_keywords=["trump tariff","trade war","shock therapy","not the main show","mexico 25%",
-            "canada 25%","china 10%","trump twitter","weekend tariff","flush massal","closet flush",
-            "trump dejavu","2016 2020 trump","trump campaign","dow crash election night","big boyz trump",
-            "trudeau painful","canada retaliation","mexico retaliation","china anteng","china teh panas",
-            "trade war negotiation","trump nego","defensive mode","main show belum datang","jack up dulu",
-            "last leg","mbasecamp","tiket war","om alim","om agus","om roti","gorengan teh panas"],
-        invalidation_keywords=["tariff_cancelled","trade_war_escalates","china_retaliates_hard",
-            "permanent_tariff","trump_impeached"],
-        beneficiaries={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","TLKM.JK","UNVR.JK","KLBF.JK"],
-            "us":["TLT","GLD","VIX"],"safe_haven":["USD_cash","IDR_cash"]},
-        fades={"ihsg":["export_oriented","auto_sector","consumer_discretionary"],"us":["IWM","high_beta"],
-            "global":["trade_sensitive_sectors"]},
-        regime_alignment={"Q3":1.30,"Q4":1.10,"Q2":0.90,"Q1":0.70},
-        typical_duration_weeks=8,
-        conviction_ceiling=0.75,
-        pump_risk=0.20,
-        confirmation_signals=["trump_tariff_announced","canada_retaliates_25","mexico_retaliates_25",
-            "china_watches_passive","market_flush_monday","vix_spike_above_25","defensive_positioning_spike",
-            "negotiation_signals_emerge"],
-    ),
-]
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# BATCH 15 — Artikel Ricky2212 (Apr 2026 extraction)
-# ═══════════════════════════════════════════════════════════════════════════════
-
-_NARRATIVES_BATCH15: List[NarrativeTemplate] = [
-
-    # ── ARTICLE 11: Market Cetar Bergetar — IHSG Halt & Force Sell Cascade ─────
-    NarrativeTemplate(
-        name="Market Cetar Bergetar — IHSG Halt, Margin Call & Force Sell Cascade",
-        description="""Ricky2212 market crash day analysis: IHSG -248pt to 6223, Halted at 11:09 WIB (-5%)
-THE CASCADE:
-- Group PP (BREN, TPIA) rontok barengan → indeks tertekan
-- Banking tadinya bertahan menyeimbangkan indeks
-- BREN & TPIA makin parah ditekan → MARGIN CALL di kedua saham tersebut
-- Margin Call = posisi dilikuidasi at any price at that time
-- Force Sell berlanjut → kepanikan merembet
-- PANI tadinya anteng langsung ambrol hampir ARB → margin call juga
-- Force Sell BREN + TPIA + PANI → posisi mengamankan semua saham lain (perbankan, big cap)
-- Keadaan makin tidak kondusif → HALT indeks 30 menit
-- Post-HALT: tambah kepanikan → sempat turun 7% → covering position → ditutup -3%
-KEY INSIGHTS:
-- "Market luar anteng2x aja bahkan menghijau dan hanya kita sendiri yang mengalami penurunan cukup dalam"
-- IDR tidak jatuh mengikuti indeks = "Uang masih tetap di dalam pasar kita"
-- "Market memang lagi merotasi uangnya dan coba menormalisasi saham2x ANEH yang gerakkin indeks"
-- "Mereka mau seimbangkan lagi bobot investasinya"
-- BI meeting minggu ini → possible BI Rate CUT
-- "Market memang sudah minta BI rate buat di CUT karena BI lagging"
-- "Happy? saya sih super tenang"
-- "Banyak teman2x DM: Gila ini toh rasanya pegang cash saat kejatuhan market. Mereka siap dan dalam posisi loading peluru."
-- "Yang nagih kapan jack up mulu, saya tau sudah tidak tenang dan tidak siap"
-Ricky's call: "Belum and bukan sekarang waktu kejatuhannya koq, di luar saja masih anteng2x aja."
-"Tunggu saja, nanti di luar akan datang narasi CUT akan keluar lebih banyak dan QT bakal dipercepat."
-"Kaya hari ini penurunan market, andai anda sedikit tenang dan berpikir jernih saja nantinya anda akan tau kenapa terjadi penurunan hari ini"
-"Buat yang pertama kali melihat market di HALT, selamat datang di real market."
-"Disinilah peluang buat menaikkan Wealth Anda""",
-        category="cycle",
-        catalyst_types=["ihsg_halt","margin_call","force_sell","cascade_selling","group_pp_collapse",
-            "bi_rate_cut_expectation","idr_stability","cash_is_king"],
-        activation_keywords=["market cetar bergetar","ihsg halt","halt indeks","margin call","force sell",
-            "bren margin call","tpia margin call","pani margin call","group pp rontok","bren tpia ambrol",
-            "ihsg turun 248","ihsg 6223","halt 11.09","cooling down bursa","covid dejavu","market luar hijau",
-            "idr tidak jatuh","uang masih di pasar","rotasi uang","normalisasi saham aneh","bi rate cut",
-            "bi meeting","suku bunga bi","loading peluru","pegang cash","real market","first time halt",
-            "wealth opportunity","panic selling indonesia","arb pani","force sell cascade"],
-        invalidation_keywords=["ihsg_recovers_same_day","bren_tpia_rebound","margin_call_resolved",
-            "bi_holds_rate"],
-        beneficiaries={"ihsg":["BBCA.JK","BMRI.JK","BBNI.JK","TLKM.JK","UNVR.JK"],"safe_haven":["IDR_cash","USD_cash"]},
-        fades={"ihsg":["BREN.JK","TPIA.JK","PANI.JK","high_margin_stocks","property"]},
-        regime_alignment={"Q3":1.30,"Q4":1.10,"Q2":0.90,"Q1":0.70},
-        typical_duration_weeks=4,
-        conviction_ceiling=0.85,
-        pump_risk=0.05,
-        confirmation_signals=["ihsg_halt_triggered","bren_tpia_limit_down","pani_arb","margin_call_widens",
-            "force_sell_spreads","bi_announces_emergency_meeting","idr_stable_during_crash"],
-    ),
-
-    # ── ARTICLE 12: Play Book IHSG — China Comparison & Policy Demand ─────────
-    NarrativeTemplate(
-        name="Play Book IHSG — China Playbook Comparison & Policy Demand",
-        description="""Ricky2212 IHSG playbook framework via China historical parallel:
-CHINA 2022-2024 PLAYBOOK:
-- Awful economic news daily, almost no good data
-- Stock market rontok ga tertahankan, index terkapar
-- Bond market diburu, yield rontok to worst since GFC 2008
-- Property market jatuh 80% from peak
-- Big Boyz: bad reports and downgrades non-stop
-- Big Boyz: massive outflow reports
-- RMB rontok
-- "Semua di paket di waktu yang sama. Diberondong dalam term waktu berbarengan."
-- Market demanded something from policymakers
-- "Market seakan-akan menginginkan sesuatu dan harus dipenuhi"
-CHINA SOLUTION (Gradual):
-- Policy packages launched from time to time
-- Bottlenecks broken slowly
-- "Bottle neck nya dipecah dengan baik dan perlahan sehingga apa yang buruk perlahan membaik"
-- Fiscal expansion: deficit raised to 4% = ~$800B-$1T new money into system
-INDONESIA NOW (Parallel):
-- Bad economic news everywhere, financial market jatuh, stock market rontok
-- FX market ga berdaya, bond market nyerah
-- Big Boyz: bad analysis and downgrades on Indonesia
-- "Saya melihat pola yang sama akan terjadi. Mereka menakan pemangku kebijakan untuk melakukan sesuatu."
-- "Market ga minta makan siang Gratis, market ga minta danantara."
-- "Market minta dosis yang lebih besar"
-WHAT MARKET WANTS:
-1. BI Rate CUT (Indonesia lagging on rate cuts)
-2. Government boost economy → money circulation → consumer purchasing power
-3. "Market ga minta makan siang Gratis, market ga minta danantara."
-4. "Rasanya ini yang paling vital dan penting dan sifatnya urgent"
-Ricky's target: "7900 ke 6000 mayan lah 25%, resiko selanjutnya ada di -30% plus."
-"Risk reward nya makin terlihat reasonable buat saya untuk perlahan bermain sedikit offensive"
-"LKH lahir dari kejatuhan market, Banyak Trilyuner lahir dari kejatuhan market"
-"Pasar turun itu biasa saja, yang ga bikin jadi ga biasa kan kita sendiri"
-"Pasar naik itu hanya masalah waktu saja setelah terjadi penurunan""",
-        category="cycle",
-        catalyst_types=["china_playbook","policy_demand","ihsg_bottoming","fiscal_expansion",
-            "bi_rate_cut","government_stimulus","trillionaire_opportunity"],
-        activation_keywords=["play book ihsg","china playbook","china comparison","policy demand",
-            "market minta sesuatu","market meminta kebijakan","big boyz downgrade indonesia","bond yield rontok",
-            "property jatuh 80%","rmb rontok","outflow massive","bottle neck dipecah","fiscal expansion",
-            "defisit 4% china","indonesia parallel china","bi rate cut indonesia","lagging rate cut",
-            "government boost economy","daya beli konsumen","danantara bukan solusi","makan siang gratis",
-            "risk reward reasonable","offensive strategy","trilyuner lahir","lkh lahir","ihsg 6000",
-            "ihsg 7900","minus 25%","minus 30%","bottom market","jack up is time"],
-        invalidation_keywords=["china_playbook_fails","policy_ignored","bi_holds","government_inaction",
-            "ihsg_breaks_5500"],
-        beneficiaries={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","BBNI.JK","TLKM.JK","UNVR.JK","BUMI.JK"],
-            "safe_haven":["IDR_cash","USD_cash","SBN"]},
-        fades={"ihsg":["property","consumer_discretionary","high_flyer"]},
-        regime_alignment={"Q3":1.20,"Q4":1.00,"Q2":0.80,"Q1":0.60},
-        typical_duration_weeks=26,
-        conviction_ceiling=0.80,
-        pump_risk=0.15,
-        confirmation_signals=["bi_announces_cut","government_stimulus_package","fiscal_expansion_indonesia",
-            "china_style_recovery","big_boyz_upgrade_indonesia","foreign_inflow_returns","idr_strengthens"],
-    ),
-
-    # ── ARTICLE 13: Things happen when no one talk about it ─────────────────────
-    NarrativeTemplate(
-        name="Things Happen When No One Talks About It — Recession Calls & Blow Off Top",
-        description="""Ricky2212 contrarian cycle framework:
-HISTORICAL PATTERN:
-- "If u want to see a Recession, no one talk about it"
-- 2022: ALL Big Boyz screamed STAGFLATION → RECESSION. Media + Socmed all same thesis. Result? NO RECESSION.
-- 2023: Same screams, even louder because rates went crazy high. Result? NO RECESSION.
-- "Things Happen when no one talk about it"
-TRUMP OPTIMISM TO PESSIMISM FLIP:
-- Trump elected: world celebrated with extraordinary optimistic cheers
-- "Banyak yang bilang Trump akan membawa perubahan"
-- Post-inauguration: Trump executes planned policies (tariffs, immigration, DOGE cuts)
-- "Seketika saja semua optimisme menghilang tanpa tersisa"
-- Market sees all Trump policies bringing US to recession cliff
-- Big Boyz: "this bakal RESESI nih kalo begini"
-- Media: hyperbolic headlines — "Pertama kali dalam sejarah", "Terburuk sejak..."
-- "Semua berlomba keluar dari pasar"
-- Influencers who were super bullish now say "Cash aja dulu", "ini mau crash"
-- "Katanya dulu zaman bullish, ini zamannya AI, Ga mungkin Crash"
-FUND CASHING OUT:
-- "Fund-fund sudah cashing out dengan kinerja YTD -40 - -50%"
-- "Anda ga sendiri kalo memang dalam posisi buruk, fund aja segitu parahnya"
-RICKY'S THESIS:
-- "Simple sih buat saya, semoga tidak ada halangan di depan sana bahwa BLOW OFF the TOP akan datang."
-- "Pesimisme berlebihan sudah datang dan mulai tidak ada optimisme yang tersisa lagi."
-- "Kita sudah dekat pada fase Hopeless to Flawless"
-- "Resesi and Deep Correction tuh ga akan datang saat semua sudah banyak yang bersiap."
-- "Kalo sudah bersiap, lah siapa yang mau dimakan?"
-BLOW OFF TOP SEQUENCE:
-1. Skeptics see rally but don't believe it's real bull
-2. Skeptics push market far toward euphoria
-3. "Puncaknya? si skeptis akan mendorong jauh pasar menuju euforia"
-4. At euphoria peak: deep correction arrives when no one expects it
-- "Di titik Euforia itu biasanya nanti deep correction akan datang."
-- "Semua lagi pada Euforia dan tidak siap menyambut hal tersebut"
-- Nov 2024: clowns bullish, forgot reality before being swept to now
-Ricky's call: "Things Happen when no one talk about it"
-"Danantara pengurus: mayoritas fund happy dengan kepengurusan. Satu kekhawatiran terkikis.""",
-        category="cycle",
-        catalyst_types=["recession_call_fail","contrarian_cycle","blow_off_top","hopeless_to_flawless",
-            "trump_pessimism_flip","fund_cash_out","euphoria_peak"],
-        activation_keywords=["things happen when no one talk","recession call","stagflation 2022","recession 2023",
-            "no recession","trump optimism","trump pessimism","blow off top","hopeless to flawless",
-            "pesimisme berlebihan","tidak ada optimisme","fund cashing out","ytd minus 40%","ytd minus 50%",
-            "cash aja dulu","mau crash","influencer flip","big boyz recession","media hyperbola",
-            "pertama kali dalam sejarah","terburuk sejak","semua keluar pasar","fund parah",
-            "blow off top sequence","skeptis dorong euforia","deep correction datang","nov 2024 dejavu",
-            "danantara pengurus","fund happy danantara"],
-        invalidation_keywords=["recession_confirmed","deep_correction_now","trump_dovish_pivot",
-            "optimism_returns","fund_redeploys"],
-        beneficiaries={"us":["SPY","QQQ","IWM"],"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","TLKM.JK"],
-            "safe_haven":["GLD","TLT"]},
-        fades={"us":["SQQQ","VIX"],"ihsg":["property","high_beta"]},
-        regime_alignment={"Q3":1.70,"Q4":1.50,"Q2":1.20,"Q1":0.90},
-        typical_duration_weeks=20,
-        conviction_ceiling=0.85,
-        pump_risk=0.20,
-        confirmation_signals=["recession_calls_peak","fund_cash_levels_high","vix_spike_then_calm",
-            "trump_policy_executed","media_fear_index_max","influencer_bullish_to_bearish","danantara_resolved"],
-    ),
-
-    # ── ARTICLE 14: It's just a game — Market Manipulation Thesis ──────────────
-    NarrativeTemplate(
-        name="It's Just a Game — Market Manipulation & 08 Circle Thesis",
-        description="""Ricky2212 market manipulation framework: "Permainan yang diciptakan"
-THE STRUCTURED COLLAPSE:
-- "Penurunan tambahan yang terjadi hanyalah sebuah dagelan and ada sebuah PERMAINAN yang diciptakan"
-- "Wong kalo mau fair mah, dunia tuh semua lagi ga baik2x saja dan kebetulan market luar juga lagi bagus koq."
-- "Cuma kita aja kayaagi 'Dikerjain' sendirian"
-PLAYERS:
-1. Big Boyz: "tiba2x saja terus barengan mendown grade pasar kita tanpa henti"
-2. Media: "memperkeruh berita nya dengan bahasa2x menakutkan"
-3. Sekuritas: "nyalahin Pemerintah — 'Tidak Peka', 'Tidak Care', 'Tidak ngerti pasar'"
-4. Influencers: "akhir tahun lalu sok pada bullish taunya kecele. Suaranya keras banget katanya 08 bla bla"
-- "Pahlawan kesiangan, AI nya mana? katanya ini zama AI"
-- "Bermuara dan berujung pada sangkutter saham di pucuk yang kepalanya sudah panas"
-08 IS A CAPITALIST:
-- "08 itu seorang kapitalis, kapitalis itu pasti menyangkut pasar bebas termasuk bursa saham"
-- Father of 08: "penganut super kapitalis, buka PKP2B, kontrak karya Freeport/Newmont/Inco, izin migas Exxon/Conoco — semua 1968"
-- Brother of 08 ("bersin2x"): "orang lama di bursa, pernah punya perusahaan Tbk sejak dulu"
-- Brother of 08: "baru saja menciptakan permainan di WIFI dan ikut Main di AADI"
-- Circle: Tohir, Bakrie, H Isam, Luhut — all capitalists with many Tbk companies
-- "Siapa yang datangin Dalio? rasanya itu andil 08 buat datangin Dalio ke Indonesia"
-DANANTARA TIMING:
-- "Danantara ? itu juga sepertinya ada andil agar danantara bisa masuk saat keadaan buruk"
-- "Danantara adalah pertaruhan 08 yang paling besar"
-- "Aneh nya sebagai SWF bukan mengambil dari kelebihan kas negara tapi SWF ini ngambil bagian asset dan anggaran negara"
-CHECKLIST PATTERN:
-- "Fund-fund akan dikumpulkan di istana" → CHECKLIST: done, invited to DEN
-- "Riset baik yang keluar pasca semua dikumpulkan" → CHECKLIST: done, research released
-- "Danantara Beres, mayoritas fund suka dan menerima tim di dalam nya"
-- "Moneter ? nanti juga BI akan melakukan CUT rate dan CUT GWM"
-- "Masalah pajak ? nanti juga keluar berita kalau penerimaan pajak di Maret juga akan improved"
-- "Politik ? habis ini mingkem semua karena sudah selesai agendanya"
-HIMBARA EX-DATE:
-- "Tinggal 1 hal yang mungkin bisa mengerek market yaitu Ex-Date Dividen nya Himbara"
-- BBRI DY 8%, BMRI DY 10%
-- "Harus ada yang gendong nanti pas Ex date"
-Ricky's call: "Its just a game, kalo bisa menebak arah permainannya terus kenapa harus khwatir?"
-"Penurunan market yang di Create justru mendatangkan peluang buat kita."
-"Jack up ? Jack down aja lah yah"
-"Tanda2x ujung penurunan: volatilitas makin tinggi, big boyz downgrade""",
-        category="geopolitical",
-        catalyst_types=["market_manipulation","08_circle","danantara_timing","capitalist_play",
-            "fund_istana_meeting","himbara_ex_date","checklist_pattern"],
-        activation_keywords=["its just a game","market manipulation","permainan diciptakan","dikerjain sendirian",
-            "big boyz downgrade","media menakutkan","sekuritas nyalahin pemerintah","influencer kecele",
-            "08 kapitalis","08 bursa","dalio indonesia","wifi permainan","aadi permainan",
-            "danantara pertaruhan 08","danantara masuk saat buruk","fund dikumpulkan istana",
-            "den dewan ekonomi nasional","riset baik keluar","bi cut rate","cut gwm","pajak maret improved",
-            "politik selesai","himbara ex date","bbri dividen 8%","bmri dividen 10%","gendong indeks",
-            "jack down","ujung penurunan","volatilitas tinggi","big boyz downgrade ujung",
-            "tanda bottom","market create peluang"],
-        invalidation_keywords=["08_not_capitalist","danantara_fails","fund_rejects_danantara",
-            "bi_no_cut","political_noise_returns"],
-        beneficiaries={"ihsg":["BBRI.JK","BMRI.JK","BBNI.JK","BBCA.JK","WIFI.JK","AADI.JK"],
-            "safe_haven":["IDR_cash"]},
-        fades={"ihsg":["property","consumer_discretionary"],"us":["high_beta"]},
-        regime_alignment={"Q3":1.40,"Q4":1.20,"Q2":1.00,"Q1":0.80},
-        typical_duration_weeks=12,
-        conviction_ceiling=0.80,
-        pump_risk=0.20,
-        confirmation_signals=["fund_istana_meeting_confirmed","danantara_team_accepted","bi_cut_announced",
-            "himbara_ex_date_smooth","tax_revenue_improved","political_silence","wifi_aadi_rally"],
-    ),
-
-    # ── ARTICLE 15: Different Game Play — Big Cap Banking vs Conglo Play ──────
-    NarrativeTemplate(
-        name="Different Game Play — Big Cap Banking vs Conglo Play",
-        description="""Ricky2212 strategy framework: "Different game play, different treatment"
-BIG CAP / BANKING GAME PLAY:
-- "Penggerak indeks. Saat ada kenaikan indeks, saham2x ini yang akan banyak diincar oleh Dana besar"
-- "Risiko yang melekat lebih rendah dibanding kita bermain Conglo Play"
-- "Jangan juga berharap return yang Waahhh"
-- "Bermain Big Cap seperti banking itu berharap perjalanan ekonomi membaik dan indeks ikut mengekor"
-- "Offering Dividen sebagai penambah waktu tunggu nya"
-- "Duduk manis dan Tidur tenang apalagi beli sahamnya saat kejatuhan kemarin"
-- "Game play nya dari beli Big Cap: duduk manis, tidur tenang"
-CONGLO PLAY GAME PLAY:
-- "Pattern dipenuhi aksi corp action, financial engineering. Akan banyak akrobat yang terjadi di depan"
-- "Tidak ada yang pasti semua corp action, akrobat and financial engineering nya akam berjalan 100% sesuai rencana"
-- "Resiko yang lebih besar melekat pada saham tersebut"
-- "Kalau perjalanannya sesuai rencana, tentunya ada reward yang besar menanti"
-- "Akrobat tersebut nantinya akan merubah fundamental perusahaan secara keseluruhan yang akan mengerek harga cukup mumpuni"
-- "Bermain Conglo play Karena banyak akrobat maka kita harus terus mencermati perkembangan yang terjadi"
-- "at the end selama risk reward nya masuk yah bermain conglo play juga enak koq"
-RICKY'S PORTFOLIO:
-- Banking: "Saya ga milih koq, saya beli tuh semua Himbara saking bingung nya mana yang akan outperform nanti"
-    * 3 state banks + 1 private bank (larger private allocation)
-    * "Kenapa ga BBCA? penurunan nya ga terlalu dashyat dibanding Himbara yang memang sedang ada PERMAINAN"
-- Conglo: "Beberapa Conglo Play saya masukkan ke dalam portdolio saya"
-    * "Saya sempat dapat kepala 7x an dengan volume yang cukup lumayan besar"
-    * "ada 1 konglo play lagi yang beda konglo, rasanya menarik karena faktor politik nya"
-    * "Saudara Muda value transaksi menebal, saham merengsek naik"
-- "Saya bermain di 2 Game play market. Market kedorong karena big cap yah saya ikutan, yah kalo conglo play sebagai Alpha bermain juga saya akan kebagian"
-Ricky's wisdom: "MARKET MERAH adalah MARKET HIJAU yang TERTUNDA"
-"Market kalau sudah jenuh dengan pesimisme, apa lagi yang tersisa? Market naik hanya masalah waktu saja."
-"Pasar turun itu biasa saja, yang ga bikin jadi ga biasa kan kita sendiri"
-"Bursa saham bukan tempat menjadi kaya secara cepat"
-"Pegang cash itu adalah level dasarnya, tapi level lanjutannya adalah berani menembakkan cash saat ketakutan luar biasa sedang terjadi""",
-        category="sector",
-        catalyst_types=["big_cap_banking","conglo_play","dividend_play","corp_action","financial_engineering",
-            "asymmetrical_risk_reward","dual_strategy"],
-        activation_keywords=["different game play","big cap banking","conglo play","banking vs conglo",
-            "penggerak indeks","dividend play","corp action","financial engineering","akrobat saham",
-            "risk reward asymetris","himbara beli semua","bbca tidak dashyat","konglo alpha",
-            "saudara muda konglo","market merah market hijau tertunda","pesimisme jenuh","market naik waktu",
-            "level dasar cash","level lanjut tembak cash","dual strategy","2 game play",
-            "duduk manis banking","tidur tenang banking","conglo monitoring","big cap low risk",
-            "conglo high reward","financial engineering reward"],
-        invalidation_keywords=["banking_leads_fails","conglo_corp_action_fails","dividend_cut",
-            "asymmetrical_risk_breaks"],
-        beneficiaries={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","BBNI.JK","BUMI.JK","BRMS.JK","WIFI.JK"],
-            "safe_haven":["IDR_cash"]},
-        fades={"ihsg":["property","consumer_discretionary"]},
-        regime_alignment={"Q3":1.30,"Q4":1.10,"Q2":0.90,"Q1":0.70},
-        typical_duration_weeks=26,
-        conviction_ceiling=0.80,
-        pump_risk=0.20,
-        confirmation_signals=["banking_index_leads","conglo_volume_spike","dividend_yield_attractive",
-            "corp_action_announced","financial_engineering_executed","himbara_all_rally"],
-    ),
-
-    # ── ARTICLE 16: Trump will Trim and Reset US Economy ──────────────────────
-    NarrativeTemplate(
-        name="Trump Will Trim and Reset US Economy — Reaganomics 1981-1982 Parallel",
-        description="""Ricky2212 Trump reset framework via Reaganomics historical parallel:
-REAGAN 1981-1982 RESET:
-- "Reset Ekonomi" created by Reagan → launched greatest bull market in history
-- Stagflation: inflation 13.5% (1980), unemployment 7.5% (1980)
-- Volcker: Fed Funds Rate to 20% (Jun 1981) to crush inflation
-- Reaganomics:
-    1. Economic Recovery Tax Act 1981: 25% income tax cut over 3 years
-    2. Corporate tax cut to stimulate private investment
-    3. Spending cuts (except defense +35% vs Soviet Union)
-    4. Deregulation: energy, transport, banking
-    5. Tight monetary policy maintained
-- RESULT: Deep recession Jul 1981-Nov 1982
-    * Unemployment 10.8% (Dec 1982) — highest since Great Depression
-    * GDP contracted 6 quarters straight
-    * Businesses collapsed due to high rates
-    * Inflation fell: 13.5% → 3.2% (1983)
-    * Deficit exploded: $74B (1980) → $208B (1983)
-- POST-1982: Explosion
-    * GDP growth 3.5%/year avg
-    * Bull market 1982-2000: Dow +1,400% over 18 years
-    * Unemployment down to 5.3% (1989)
-DOW JONES 1981-1982:
-- Opened 950-1,000 early 1981
-- Aug 12, 1982: low 776.92 (-23% from early 1981)
-- Dec 1982: closed 1,046 (+35% from Aug low)
-TRUMP 2025 PARALLEL:
-- "Tim Trump sengaja membiarkan ini terjadi. Mereka merancang reset ekonomi total"
-- Shift from Biden government spending to private sector economy
-- Bessent: "periode detoks" — detox period
-- "Trump benar2x ga mau cebokkin Bidenomics"
-- Trump focus: Treasury 10-year yield (not stock market like 2016-2020)
-- Bessent: "Ekonomi yang kami warisi mungkin mulai goyah" = let the house of cards collapse
-FISCAL REALITY:
-- Pre-COVID: government spending 21% of GDP
-- Now: 23% of GDP — highest outside COVID spike
-- CRITICAL DATES:
-    1. Aug 4: Congress recess → must pass laws
-    2. September: government funding deadline
-    * "Jika gagal? Pasar akan hancur lebur..."
-- Bessent: "Akan ada periode detoks saat ekonomi beralih dari belanja pemerintah."
-- "Gangguan" and "gejolak" expected during transition
-TRUMP CLEANUP:
-- DOGE: massive government employee cuts
-- Immigration: all illegal immigrants returned
-- Tariffs: Mega Reciprocal Tariff launched → weakens economy short-term
-- "Trump mau lowering rate → all policies point to economic weakness alias RESET"
-- "Ekonomi lemah → Disinflation → CUT rate → Weak USD"
-- GDP Q1: 0.2% (Goldman Sachs), negative (Fed Atlanta)
-Ricky's call: "Saat Base dari hancur tercipta dan sedikit saja ada improvement maka terasa ada perbaikkan"
-"at the end Trump akan terlihat sebagai pahlawan"
-"Trump ga mau cebokkin kerjaan biden. Sekalian gw bobrokin, nanti gw yang beresin tuh semua"
-Key insight: 1982-style engineered collapse → reset → new bull market.""",
-        category="geopolitical",
-        catalyst_types=["trump_reset","reaganomics_parallel","mega_tariff","economic_detox",
-            "government_spending_cut","deregulation","fiscal_crisis","weak_usd_intentional"],
-        activation_keywords=["trump trim reset","reaganomics 1981","reaganomics 1982","reset ekonomi",
-            "trump reset us economy","bessent detox","periode detoks","bidenomics cleanup",
-            "government spending 23% gdp","congress recess august","government funding september",
-            "house of cards collapse","doge cuts","immigration return","mega reciprocal tariff",
-            "trump lowering rate","disinflationary path","weak usd intentional","gdp 0.2%",
-            "fed atlanta negative","trump pahlawan","base hancur improvement","trump ga cebokkin",
-            "trump bobrokin biden","1982 collapse pattern","dow 776 1982","bull market 1982 2000",
-            "volcker reagan combo","defisit explode","reagan tax cut","supply side economics"],
-        invalidation_keywords=["trump_reverses_policy","congress_blocks","funding_passed_smoothly",
-            "economy_recovers_without_reset","tariff_cancelled"],
-        beneficiaries={"us":["TLT","GLD","VIX"],"ihsg":["BBCA.JK","TLKM.JK","UNVR.JK"],
-            "safe_haven":["USD_cash","IDR_cash"]},
-        fades={"us":["SPY","QQQ","IWM","high_beta"],"ihsg":["property","consumer_discretionary"]},
-        regime_alignment={"Q3":1.50,"Q4":1.30,"Q2":1.00,"Q1":0.80},
-        typical_duration_weeks=52,
-        conviction_ceiling=0.80,
-        pump_risk=0.20,
-        confirmation_signals=["trump_tariff_executed","doge_cuts_announced","congress_recess_aug4",
-            "funding_deadline_sep","treasury_yield_spike","gdp_negative_q1","unemployment_rises",
-            "detox_period_confirmed"],
-    ),
-
-    # ── ARTICLE 17: Trump Tariff Good or Bad ──────────────────────────────────
-    NarrativeTemplate(
-        name="Trump Tariff — Good or Bad? Debt, Weak USD & Negotiation Tactic",
-        description="""Ricky2212 tariff analysis framework:
-IMMEDIATE REACTION:
-- Stock market sell off
-- US Bond market diburu, yield jatuh dalam
-- Dollar jatuh melemah dalam
-- Commodities jatuh dalam
-- Big boyz: "this is bad, this is insane, Trump make a stupid decision"
-- Nasdaq hampir kena HALT
-US DEBT REALITY:
-- US debt: $36 Trillion
-- Interest payment: ~$1 Trillion/year
-- Deficit: ~$1 Trillion/year
-- Total annual deficit potential: $2T+/year
-- "4 tahun kemarin tuh ekonomi amrik di dorong oleh genjotam fiskal yang luar biasa"
-- "Negara harus merelakan fiskalnya jebol buat memompa ekonomi"
-- "Fiskal dijebolin, mereka harus terus gali hutang"
-- "FFR ga bisa turun karena mereka harus menggali hutang lewat UST dalam jumlah besar"
-- "Cost bunga gede? makin jebol tuh hutang mereka"
-TARIFF AS TOOL:
-- "Tariff yang dilucurkan oleh Trump itu adalah sebuah tools buat menambah pemasukkan negara"
-- "More Tariff means more income buat negara. More income, balance sheet terbantu."
-- Fairness argument: "Amrik aja masukkin barang ke negara lo pada dikenain tariff yang lebih tinggi dari lo pada masukkin barang ke kita"
-- "Fair bukan? itu kata amrik begitu"
-TRUMP'S HIDDEN AGENDA:
-1. Force Fed to CUT:
-    - "Tariff mempercepat pelemahan ekonomi terjadi dan itu yang memamg Trump mau"
-    - "Dengan pelemaham ekonomi yang terjadi maka Bank sentral harus melakukan sesuatu"
-    - "Many times Trump minta sama Fed buat turunin bunga and Fed insist"
-    - "Trump mau patokan refinancing nya UST 10 years notes"
-    - "Trump memaksa Fed juga menurunkan FFR nya dengan menekan ekonomi Amrik jatuh"
-    - $8-10T debt refinancing due mid-2025
-2. Weak USD:
-    - "We need Weak Dollar" — Trump repeated
-    - Lutnick: "if Dollar is Cheaper, it will be easier to export"
-    - Weak USD = US products look cheap internationally
-    - "Trump and US butuh weak USD"
-    - Post-tariff: DXY keok, EUR +2%
-3. Shift to Private Sector:
-    - "Trump mau memindahkan ekonomi yang tadinya dari Govt spending zaman biden ke private spending"
-    - "Dengan banyak melibatkan swasta, manufaktur akan berjalan kembali"
-    - "Pabrik bakal banyak dibangun dan tenaga kerja akan terserap banyak kembali"
-4. Negotiation Tactic:
-    - "Trump adalah negoisator ulung dan Tariff itu adalah salah satu cara dia untuk membuka negoisasi"
-    - "Trump CAPER pake tariff agar negara lain mau duduk bareng bicara"
-Ricky's view: "Saya bukan Trump Fans yah, saya hanya coba menarik apa yang Trump pikirkan"
-"Trump bilang dengan santai bahwa stock market will BOOM"
-Key data: Tariff = short-term pain for long-term structural fix + negotiation leverage.""",
-        category="geopolitical",
-        catalyst_types=["trump_tariff_analysis","us_debt_crisis","weak_usd_strategy","fed_forced_cut",
-            "negotiation_tactic","fiscal_restructuring","private_sector_shift"],
-        activation_keywords=["trump tariff good or bad","trump tariff analysis","us debt 36 trillion",
-            "bunga hutang 1 trilyun","fiskal jebol","tariff tools","tariff income","fairness tariff",
-            "trump force fed cut","trump weak dollar","lutnick dollar cheaper","dxy keok","eur menguat",
-            "private spending shift","manufacturing revival","trump negotiator","tariff negotiation",
-            "capper tariff","stock market will boom","ust refinancing 8 trilyun","ust 10 years",
-            "bessent refinancing","trump hidden agenda tariff","tariff short term pain","long term structural fix"],
-        invalidation_keywords=["tariff_reversed","fed_holds_rates","usd_strengthens_post_tariff",
-            "negotiation_fails","debt_default"],
-        beneficiaries={"us":["TLT","GLD","VIX"],"ihsg":["BBCA.JK","TLKM.JK","UNVR.JK"],
-            "fx":["EURUSD","USDJPY"],"safe_haven":["USD_cash","IDR_cash"]},
-        fades={"us":["SPY","QQQ","IWM","export_oriented"],"ihsg":["auto_sector","export_oriented"],
-            "global":["trade_sensitive"]},
-        regime_alignment={"Q3":1.40,"Q4":1.20,"Q2":1.00,"Q1":0.80},
-        typical_duration_weeks=16,
-        conviction_ceiling=0.80,
-        pump_risk=0.20,
-        confirmation_signals=["tariff_revenue_spike","dxy_falls_below_100","fed_signals_cut",
-            "negotiation_meetings_scheduled","manufacturing_orders_rise","ust_refinancing_successful"],
-    ),
-
-    # ── ARTICLE 18: DxY Hancur Rp Lemah — Inflow Signal & BBRI Ex-Date ────────
-    NarrativeTemplate(
-        name="DxY Hancur, Rp Lemah — Inflow Signal & BBRI Ex-Date Setup",
-        description="""Ricky2212 DXY/IDR framework: "DxY hancur, Rp koq lemah?"
-DXY COLLAPSE:
-- DXY below 100
-- EUR 1.13, JPY 142, CHF 0.84, GBP 1.30
-- "Dollar keok se keok keoknya. Thanks to Trump action"
-WHY IDR STILL WEAK:
-- "Satu dunia sudah tau semua lagi pada mengalami keadaan buruk"
-- "Kalo saya sih karena tau satu dunia lagi dihadapkan pada keadaan yang buruk, maka saya kan memilih untuk taro uang ke negara yang punya kekuatan lebih"
-- Developed markets (EUR, GBP, CHF, JPY) get inflow first = "pilihan terbaik dari yang terburuk"
-- "Dari waktu ke waktu kerasa koq shifting-an nya keluar dari US"
-- Indonesia not yet getting massive inflow = "Rupiah jadi mata uang yang lagging"
-- "Dengan Lagging nya Rupiah otomatis bursa kita juga masih tersendat2x naiknya"
-THE SHIFTING SIGNAL:
-- "Chance besar sih bakal ada aksi lanjutan dari Trump"
-- "Bond US habis dikerjain sehingga Yield nya sempat naik kembali"
-- "Kalo mau terus menekan Fed untuk menurunkan FFR nya, UST yield nya harus juga ditekan lagi"
-- "DxY makin keok dari sekarang, Penguatan Rupiah hanya masalah waktu saja"
-- "Psikologi pasar akan mengantarkan pada keadaan dimana pokoknya pegang apa saja asal jangan pegang USD"
-- IDR target: 16,300-16,400 (initial strengthening)
-- "Penguatan Rupiah sedikit saja akibat inflow tentu nantinya akan mendorong indeks saham kita untuk naik"
-- "IHSG butuh inflow dan penguatan Rupiah agar dapat tenaga baru"
-- "Indeks naik bukan karena ekonomi Indonesia membaik tapi indeks naik karena dapat aliran dana yang kabur dari US"
-BBRI EX-DATE SETUP:
-- "Hari ini ex date nya BBRI cukup smooth dengan sebuah Set Up dengan balancing saham pak PP"
-- "Beberapa hari lalu saham2x satpol PP dibikin jatuh tersungkur parah dulu agar pada waktunya dibutuhkan saham tersebut rally nya dari base bawah"
-- "Rally nya dari base bawah maka rallynya bisa dibikin dengan kenaikan yang cukup besar"
-- "Sinyal clear ke 2 makin memperlihatkan bahwa ada yang mencoba pertahanin indeks saat big bank melewati masa2x ex date nya"
-- BMRI ex-date Monday next = watch for smoothness
-Ricky's call: "Every Deep Is a Buying"
-"Saya akan berbelanja setiap penurunan dan kalaupun masih jatuh saya akan atur nafas saya sampai titik terburuk -35%"
-"Kayu api nya mas @tomhardi kayanya masih on track. Apalagi DxY kaya begini."
-Key data: DXY below 100 = first clear signal. IDR lagging = opportunity still open.""",
-        category="cycle",
-        catalyst_types=["dxy_collapse","idr_lagging","inflow_signal","bbri_ex_date","satpol_pp_balance",
-            "developed_market_rotation","trump_continued_pressure"],
-        activation_keywords=["dxy hancur","dxy below 100","rp lemah","idr 16800","dxy 98","dxy 99",
-            "euro 1.13","jpy 142","chf 0.84","gbp 1.30","shifting keluar us","pilihan terbaik terburuk",
-            "rupiah lagging","bursa tersendat","trump aksi lanjutan","ust yield ditekan","idr 16300",
-            "idr 16400","inflow indonesia","ihsg naik inflow","bbri ex date smooth","satpol pp jatuh dulu",
-            "rally base bawah","bmri ex date","every deep is buying","beli setiap turun","atur nafas",
-            "titik terburuk minus 35%","tomhardi kayu api","china balas tarif 125%","it wont go higher"],
-        invalidation_keywords=["dxy_reverses_above_100","idr_weakens_above_17000","bbri_ex_date_crash",
-            "trump_stops_tariff","inflow_fails"],
-        beneficiaries={"ihsg":["BBRI.JK","BMRI.JK","BBCA.JK","BREN.JK","TPIA.JK","PANI.JK"],
-            "fx":["USDIDR"],"safe_haven":["IDR_cash"]},
-        fades={"ihsg":["property","consumer_discretionary"],"us":["DXY","USD_cash"]},
-        regime_alignment={"Q3":1.40,"Q4":1.20,"Q2":1.00,"Q1":0.80},
-        typical_duration_weeks=12,
-        conviction_ceiling=0.80,
-        pump_risk=0.15,
-        confirmation_signals=["dxy_sustains_below_100","idr_strengthens_to_16400","bbri_ex_date_smooth",
-            "bmri_ex_date_smooth","foreign_net_buy_starts","satpol_pp_rebounds","china_tariff_settled"],
-    ),
-
-    # ── ARTICLE 19: World Need Another Store of Value ───────────────────────────
-    NarrativeTemplate(
-        name="World Needs Another Store of Value — BRICS Commodities vs US BTC",
-        description="""Ricky2212 Store of Value framework:
-BRETTON WOODS COLLAPSE:
-- Pre-1971: countries could only print money if backed by gold
-- "Negara maju yang dimulai oleh Amrik... mau cetak yang dalam jumlah massive, maka sistem bretton woods runtuh"
-- Since then: money printed based on TRUST (ability to pay debts)
-- "Setiap lembar uang yang dicetak itu mengandung hutang"
-CURRENT DEBT CRISIS:
-- Global debt now exceeds pre-Great Depression levels
-- US: $36T debt, $1T interest/year, $1T deficit/year = $2T+ annual deficit potential
-- EU, England, Japan, Swiss: same super-jumbo debt problem
-- "Makin tinggi jumlah hutang nya, makin dipertanyakan kemampuan membayat hutangnya"
-- "Level TRUST terhadap FIAT sudah terus menurun terutama USD"
-GOLD RALLY EXPLAINED:
-- "Bukan harga emas yang naik gila2x an sih tepatnya, tapi nilai mata uang nya yang terus menurun"
-- "Dari waktu ke waktu nilai uang terus turun karena terus dicetak secara massive"
-- "USD and mata uang negara kuat lainnya perlahan akan tergeser dominasinya"
-BRICS STRATEGY:
-- "China dan alinsi BRICS sadar akan hal tersebut"
-- "Mereka dengan segera bilang bahwa kita akan kembalikan sistem keuangan pada sistem lama Bretton Woods"
-- "Uang yang dicetak harus di back up oleh sesuatu yang bernilai"
-- Gold: primary backup for BRICS currencies
-- "Emas makin kesini makin shortage, karena new investment nya juga rendah sekali"
-- Other stores: silver, platinum, rare earth, copper, oil, industrial metals
-- "China and BRICS akan bermain di level komoditas sebagai Store of Value mereka"
-US STRATEGY:
-- "Amrik tau koq dia juga bakal kehilangan nilai mata uang nya secara massive"
-- "Amrik harus bikin mainan baru dan ciptakan hegemoni selanjutnya"
-- Trump & Bessent: "BTC sebagai Reserve mereka"
-- "Amrik akan ambil permainan lain buat Store of Value nya"
-- Steps:
-    1. Massive crypto regulation
-    2. Fiat USD on blockchain
-    3. US starts investing in BTC massively
-    4. "Dunia akan juga perlahan mengikuti langkah Amrik"
-    5. Free tax for US-made coins
-    6. "Amrik sudah menciptakan permainan dan hegemoni baru"
-BTC AS RESERVE LOGIC:
-- "BTC stay anteng2x saja" during massive risk-off = institutional support
-- "Harusnya kalo Risk off tingkat tinggi begitu, harga BTC juga free fall"
-- "Harusnya mungkin sudah di level $40k an"
-- Volatility declining over time:
-    * Regulation improving
-    * Market cap growing (mature market)
-    * If adopted by countries = even less volatile
-Ricky's call: "China and BRICS akan memanfaatkan Komoditas sebagai Store of Value mereka"
-"Amrik and cs akan memanfaatkan BTC sebagai store of value mereka"
-"Komoditas akan naik bukan karena real demand supply, tapi karena dunia butuh Store of Value"
-"Salim lapar komoditas? Kayanya Salim tau akan hal ini""",
-        category="geopolitical",
-        catalyst_types=["store_of_value","brics_commodities","btc_reserve","bretton_woods_2",
-            "fiat_distrust","gold_shortage","us_crypto_hegemony","debt_crisis_global"],
-        activation_keywords=["world need store of value","bretton woods collapse","brics commodities",
-            "btc strategic reserve","fiat distrust","trust terhadap fiat","us debt 36 trillion",
-            "global debt great depression","gold shortage","emas shortage","china brics store of value",
-            "silver platinum rare earth","copper oil industrial metal","trump btc reserve","bessent btc",
-            "us crypto hegemony","fiat usd blockchain","free tax crypto us","coinbase sp500",
-            "btc volatility decline","btc mature market","btc institutional","salim komoditas",
-            "salim lapar komoditas","emas naik bukan demand supply","store of value demand",
-            "usd kehilangan dominasi","mata uang tergeser","trust menurun"],
-        invalidation_keywords=["brics_abandons_gold","btc_banned_us","fiat_trust_restored",
-            "debt_crisis_resolved","gold_supply_surge"],
-        beneficiaries={"global":["GC=F","HG=F","SI=F","PL=F","BTC-USD","ETH-USD"],
-            "ihsg":["ANTM.JK","MDKA.JK","BRMS.JK","AMMN.JK","PTBA.JK","MEDC.JK"],
-            "us":["NEM","GOLD","AEM","MSTR","COIN","GLD"]},
-        fades={"us":["SPY","QQQ","high_beta"],"ihsg":["property","consumer_discretionary"]},
-        regime_alignment={"Q3":1.80,"Q4":1.70,"Q2":1.40,"Q1":1.00},
-        typical_duration_weeks=52,
-        conviction_ceiling=0.85,
-        pump_risk=0.15,
-        confirmation_signals=["brics_gold_backed_currency","us_btc_reserve_announced","btc_etf_volume_surge",
-            "gold_premium_spike","central_bank_gold_buying","crypto_regulation_us_passed"],
-    ),
-
-    # ── ARTICLE 20: DxY sudah 98 — Time to Shifting ───────────────────────────
-    NarrativeTemplate(
-        name="DxY Sudah 98 — Time to Shifting to Risk Assets",
-        description="""Ricky2212 DXY 98 framework: "Time to shifting?"
-DXY AT 98:
-- "DxY hancur memang sesuatu yang dari awal harusnya terjadi"
-- "Faktor Trump lewat tariff pingin banget USD nya lemah"
-- "Fiat itu about TRUST dan sekarang TRUST terhadap FIAT sudah terus menurun terutama USD"
-- "Trump butuh weak USD karena Trump tau bahwa Amrik sudah ga bisa berkompetisi dalam hal cost production"
-- "Agar barang mereka bisa tetap berkompetisi dan seakan-akan murah di pasaran, nah tuh USD nya dilemahkan"
-SHIFTING CONFIRMATION:
-1. CURRENCIES:
-    - EUR, CHF, GBP, JPY all strengthened vs USD
-    - "Pilihan terbaik dari yang terburuk"
-    - "At the end nanti mereka akan GELI buat pegang USD dan akhirnya tuh USD akan melanglang buana"
-    - "Nanti juga Rupiah kebagian koq. Rp gerak dikit aja ke 16300 an, tuh IHSG dah kaya apa ngacirnya"
-2. COMMODITIES:
-    - Gold: "asset ini adalah tempat paling utama buat mengamankan saat penurunan nilai mata uang"
-    - "Apakah yang lain akan menyusul? kemungkinan besar IYA"
-    - "Semua yang mempunyai nilai akan menyusul"
-    - "Komoditas bukan lagi permainan real supply demand, tapi nanti komoditas akan bermain pada level Store of Value"
-    - "Saham komoditas terlihat lebih solid, ada pergerakan yang positif"
-3. EQUITIES:
-    - "Dow mengalami penurunan tajam, bursa saham dunia terlihat ada sedikit perlawanan dan membentuk base yang solid"
-    - "IHSG ga jeblok dalam bahkan kadang naik saat Dow malah nyungsep"
-    - LATAM ETFs outperform and green vs Dow
-    - "Bukankah itu sinyal shifting?"
-4. CRYPTO / BTC:
-    - "Kejatuhan pasar saham akibat tariff kemarin, harusnya bisa membuat BTC hancur luluh lantah"
-    - "Harusnya kalo bener mau dihancurkan, BTC tuh sudah di level $40k an sekarang"
-    - "BTC cukup bertahan saat kehancuran kemarin"
-    - "BRICS akan bermain komoditas sebagai store of Value, Amrik? mana mau dia kalah"
-    - "Trump akan ciptakan permainan ala amrik di risk asset tersebut buat cover penurunan USD nya"
-    - "Trump bisa saja menggunakan BTC seakan-akan itu store of value buat mereka"
-CRISIS & BLOW OFF TOP:
-- "Crisis? belum sih, penurunan kemarin saya bisa bilang itu bukan main show crisisnya"
-- "Tapi itu adalah awal perjalanan menuju Main Show nya"
-- "Blow off the TOP? kalo pada shifting ke risk asset dan memompa risk asset, apa jadinya?"
-- "Apalagi kemungkinan UST akan terus coba dipaksa diturunkan agar nanti narasi CUT bisa akan terus digaungkan"
-Ricky's call: "Makanya lagi2x saya setuju nih sama konsep nya mas Tom tentang kayu api nya. Sepertinya keadaan berpihak kesana."
-"Paling enak taro dimana? saham yang related sama STORE of VALUE tapi ada tambahannya yaitu narasi konglo Circle 08"
-Key data: DXY 98 = shifting point. Risk assets will benefit from USD exodus.""",
-        category="cycle",
-        catalyst_types=["dxy_98","shifting_risk_assets","commodity_store_of_value","equity_base_forming",
-            "btc_resilience","latam_outperform","usd_trust_decline"],
-        activation_keywords=["dxy 98","dxy sudah 98","time to shifting","dxy hancur","usd trust decline",
-            "fiat trust decline","eur menguat","chf menguat","gbp menguat","jpy menguat","geli pegang usd",
-            "usd melanglang buana","rupiah 16300","ihsg ngacir","gold store of value","commodity shifting",
-            "saham komoditas solid","dow turun bursa dunia perlawanan","ihsg naik dow turun","latam etf outperform",
-            "btc bertahan","btc 40k harusnya","brics commodities","amrik btc store of value","trump btc play",
-            "crisis belum main show","blow off top shifting","ust dipaksa turun","narasi cut digaungkan",
-            "tomhardi kayu api","konglo circle 08","store of value saham"],
-        invalidation_keywords=["dxy_reverses_above_100","risk_assets_fall","commodity_corrects","btc_breaks_50k",
-            "usd_strengthens"],
-        beneficiaries={"ihsg":["ANTM.JK","MDKA.JK","BRMS.JK","BUMI.JK","BBCA.JK","BBRI.JK","WIFI.JK"],
-            "global":["GC=F","HG=F","BTC-USD","ETH-USD","EEM","ILF"],"fx":["EURUSD","USDJPY"]},
-        fades={"us":["DXY","USD_cash","TLT"],"ihsg":["property"]},
-        regime_alignment={"Q3":1.60,"Q4":1.40,"Q2":1.00,"Q1":0.80},
-        typical_duration_weeks=16,
-        conviction_ceiling=0.80,
-        pump_risk=0.20,
-        confirmation_signals=["dxy_sustains_below_98","gold_rally_broadens","copper_breaks_out",
-            "btc_holds_above_80k","latam_etf_sustained_outperform","ihsg_decouples_from_dow",
-            "idr_strengthens_toward_16300"],
-    ),
-
-    # ── ARTICLE 21: Market bakal jatuh dalam — Buying Opportunity ──────────────
-    NarrativeTemplate(
-        name="Market Bakal Jatuh Dalam — Buying Opportunity & Cash Wins",
-        description="""Ricky2212 crash-day buying framework:
-THE MINDSET FLIP:
-- "yihaaa, horaayyy teriakan2x menghiasi pasar saat bullish" → now silent
-- "gimana kalo saya yang berteriak paling keras? Yihhhhaaaaa, horaayyyyyyy, this is the time"
-- "Lo akan dapat daging dari segala dagingnya"
-- "Imagine di luar sana berserakan perusahaan bagus yang lo bisa beli kapan"
-- "Lo ditawarkan dengan harga yang terus berubah lebih rendah tiap hari"
-- "Pasar menawarkan harga diskon ke anda tiap hari tanpa henti"
-- "Selamat datang di real market"
-THE MACRO REALITY:
-- "Tenang, ini temporary saja koq. Market lagi minta sesuatu ama Fed"
-- "Tinggal nunggu aja Fed kasihnya kapan"
-- "Ekonomi tuh memang sudah lemah dan menuju RESESI sebelum Tariff itu datang"
-- "Powell benar2x jauh behind the Curve nya"
-- "Tariff mempercepat tuh semua prosesnya. Dimajuin semua prosesnya"
-- "Ga usah nebak2x kapan CUT nya, CUT akan terjadi dan akan dipaksa terjadi oleh Market"
-- "Ga usah nebak2x berapa kali CUT nya, karena butuh dosis yang cukup"
-THE STRATEGY:
-1. TETAP WARAS:
-    - "Bagi anda yang pegang cash sejatinya anda sudah selangkah menang di depan"
-    - "Tapi ingat itu baru langkah awal saja"
-    - "Langkah selanjutnya yang penting adalah keberanian anda menembakkan uang anda pada waktunya"
-    - "Kalo anda ga waras dan ketakutan terus, ga akan pernah tuh nanti anda menembak pelurunya"
-2. JANGAN GEGABAH:
-    - "Jangan terlalu gegabah berbelanja dengan menembakkan peluru secara langsung dan simultan"
-    - "Hari ini murah, besok bisa lebih murah lagi"
-    - "Dow and SPX akan dipaksa turun mengejar koreksi bear market nya"
-    - "Nasdaq and IWM sudah duluan dihukum koreksi bear market"
-    - "Market juga ada potensi terus ditekan untuk menekan central bank melakukan sesuatu dengan cepat"
-3. PILIH SAHAM BERCERITA:
-    - "Pilih saham yang punya cerita yang bisa menyokong nanti pas come back market"
-    - "Dalam kondisi begini akan banyak sekali pilihan di depan anda"
-THE ROADMAP:
-- "Kemungkinan come back nya nanti luar biasa tapi belum jadi next new cycle"
-- "Ini come back buat mengejar peaked market"
-- "Narasi CUT akan muncul dan akan digaungkan sebentar lagi"
-- "Nanti juga makin massive gaungan CUT nya"
-- "CUT fase ini akan mendorong indeks menuju peak, sebelum nanti ada gelombang market minta CUT selanjutnya"
-Ricky's call: "Selamat berburu saham pilihan anda"
-"Prepare not Predict""",
-        category="cycle",
-        catalyst_types=["market_crash_buying","cash_is_king","bear_market_correction","fed_forced_cut",
-            "dip_buying","fear_opportunity","peaked_market_comeback"],
-        activation_keywords=["market bakal jatuh dalam","buying opportunity","crash buying","real market",
-            "harga diskon tiap hari","berserakan perusahaan bagus","daging dari segala daging","temporary saja",
-            "market minta fed","powell behind the curve","tariff percepat proses","cut dipaksa market",
-            "dosis cukup cut","tetap waras","pegang cash menang","keberanian menembakkan uang",
-            "jangan gegabah","hari ini murah besok lebih murah","dow spx bear market correction",
-            "nasdaq iwm bear market","pilih saham bercerita","come back peaked market",
-            "narasi cut muncul","cut fase peak","selamat berburu saham","prepare not predict"],
-        invalidation_keywords=["market_recovers_immediately","no_fed_cut","crash_continues",
-            "liquidity_crisis"],
-        beneficiaries={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","BBNI.JK","BUMI.JK","BRMS.JK","TLKM.JK"],
-            "us":["SPY","QQQ","IWM"],"safe_haven":["IDR_cash","USD_cash"]},
-        fades={"ihsg":["property","high_flyer"],"us":["high_beta","meme_stocks"]},
-        regime_alignment={"Q3":1.40,"Q4":1.20,"Q2":1.00,"Q1":0.80},
-        typical_duration_weeks=12,
-        conviction_ceiling=0.80,
-        pump_risk=0.20,
-        confirmation_signals=["market_sustains_fear","cash_levels_high","fed_signals_emergency_cut",
-            "dip_buying_volume_spike","bear_market_technical","vix_above_30","ihsg_rebounds_from_low"],
-    ),
-]
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# BATCH 16 — Artikel Ricky2212 (Apr 2026 extraction)
-# ═══════════════════════════════════════════════════════════════════════════════
-
-_NARRATIVES_BATCH16: List[NarrativeTemplate] = [
-
-    # ── ARTICLE 22: Next Conglo Narrative (Narasi 9 Haji) ─────────────────────
-    NarrativeTemplate(
-        name="Next Conglo Narrative (Narasi 9 Haji) — Tohir, Bakrie, H Isam Circle",
-        description="""Ricky2212 conglo rotation framework: "Narasi 9 Haji"
-THE SHIFT:
-- Old conglo narratives fading:
-    * Satpol PP (BREN, TPIA): "narrative konglo dari group satpol PP perlahan sudah mulai memudar"
-    * "Beberapa Fund sudah KAPOK dan mulai meninggalkan Group Konglo satpol PP"
-    * AMMN: "keliatan banget sudah selesai agendanya"
-    * DCII: "mulai ga masuk akal banget, perusahaan dengan laba secuil bisa dihargai Rp 400-500 trilyun"
-    * PANI: "pasca dirundung masalah pagar bambu juga perlahan mulai memudar pamor nya"
-    * "Yang katanya kuncen nya juga sudah kabur dari permainan"
-- "Likuiditas nya juga akan mengikuti pergeseran ke conglo narrative yang baru"
-NEW SUPER STARS — 08 CIRCLE:
-1. TOHIR:
-    - "Keluarga Tohir ga dekat sama keluarga 08. Bahkan tambang ADRO tohir adalah tambang milik adik 08 yang dipaksa diambik saat adik 08 ketiban masalah saat krisis 1998"
-    - "Deal bussiness bernilai trilyunan" — AADI spin-off with 08 brother getting cheap shares
-    - AADI has IUPK license, benefited from royalty/PNBP changes
-    - ADRO/ADMR: "mau masuk bisnis nuklir (masih desas desus)"
-    - "Group konglo Tohir jadi salah satu yang dapat jatah bisnisnya"
-2. BAKRIE:
-    - "Jasa keluarga bakrie sangat besar buat 08. Saat pemilu 2014 dan 08 maju ikut kontestasi, keluarga bakrie jadi salah satu penyokong besar"
-    - "08 ga akan melupakan jasa dari keluarga bakrie"
-    - Salim collaboration with Bakrie (knowing Bakrie is close to 08)
-    - Coal royalty changes benefited Bakrie mines
-    - WSKT toll road concession acquisition = first step into economic arena
-    - Anin (Bakrie) leads KADIN = "mengkudeta keluarga Arsyad yang dekat dengan si merah"
-    - "Jangan kaget nanti akan banyak akusisi dari konglomerasi ini"
-3. H ISAM (Haji Andi Syamsudin Arsyad):
-    - Banjarmasin/Kalsel coal entrepreneur
-    - 2001: learned from Johan Maulana
-    - 2003: CV Jhonlin Baratama at PT Arutmin Indonesia (Bakrie's Bumi Resources)
-    - Now PT Jhonlin: 400k tons/month coal, Rp 40B/month revenue
-    - Diversified: Jhonlin Air Transport (2 Fokker, 2 helis), Jhonlin Marine (16 barges), Jhonlin Agromandiri (palm oil), Jhonlin Agri Raya (biodiesel Rp 2T)
-    - Collaboration with Bamsoet (Bambang Soesatyo) in PT Kodeco Timber (HTI + HPH)
-    - "Haji Isam jadi salah satu penyokong besar buat kampanye pilpres 08 kemarin"
-    - Family in government: Amran Sulaiman (minister)
-    - Just acquired TEBE (mining services company)
-    - "Kemudahan2x nantinya akan dinikmati oleh Haji Isam dalam berbisnis"
-WIFI CONTINUATION:
-- "Perhatikan juga gerak gerik adiknya 08. Sepertinya akan banyak WIFI-WiFI baru yang diambil oleh adiknya 08"
-- "WIFi sih buat saya belum selesai sampai disini"
-- "Kalo sudah diambil, mudah koq ke depannya. Tinggal dibikin perubahan regulasi agar perjalanan usahanya lancar"
-Ricky's call: "Conglo yang akan kebagian adalah conglo yang mempunyai kedekatan dengan pusaran 08"
-"Saham apa yang punya relasi dengan 3 konglo diatas? nah tinggal rajin2x mencari deh tuh"
-"Cari yang belum pernah ada masalah kena FCA atau kena masalah sempritan dari regulator"
-"Aliran uang kuat bakal lari kesana dengan kuat"
-"No price action question, no perusahaannya apa aja question""",
-        category="sector",
-        catalyst_types=["conglo_rotation","narasi_9_haji","08_circle","tohir_play","bakrie_play",
-            "h_isam_play","regulatory_favor","wifi_new","conglo_super_star"],
-        activation_keywords=["next conglo narrative","narasi 9 haji","tohir konglo","bakrie konglo",
-            "h isam konglo","08 circle","aadi tohir","adro nuklir","bakrie wskt","anin kadin",
-            "jhonlin baratama","tebe acquisition","amran sulaiman","bamsoet kodeco timber",
-            "wifi baru adik 08","regulasi lancar","konglo dekat 08","fund kapok satpol pp",
-            "ammn selesai","dcii tidak masuk akal","pani pagar bambu","kuncen kabur",
-            "likuiditas pergeseran","super star konglo","fcA clean","regulator semprit clean",
-            "aliran uang konglo","no price action question"],
-        invalidation_keywords=["08_distance_denied","tohir_bakrie_isam_fade","regulatory_crackdown",
-            "wifi_fails"],
-        beneficiaries={"ihsg":["AADI.JK","ADRO.JK","ADMR.JK","WSKT.JK","TEBE.JK","WIFI.JK","WIRG.JK"],
-            "conglo":["BUMI.JK","BRMS.JK","MPIX.JK"]},
-        fades={"ihsg":["BREN.JK","TPIA.JK","PANI.JK","DCII.JK","AMMN.JK"]},
-        regime_alignment={"Q1":1.50,"Q2":1.30,"Q3":1.10,"Q4":0.90},
-        typical_duration_weeks=52,
-        conviction_ceiling=0.75,
-        pump_risk=0.25,
-        confirmation_signals=["aadi_rally","adro_nuclear_news","wskt_toll_acquisition","tebe_takeover_complete",
-            "wifi_new_acquisition","regulatory_favor_signal","08_brother_active"],
-    ),
-
-    # ── ARTICLE 23: Next rally is not FINDIMINTIL rally ───────────────────────
-    NarrativeTemplate(
-        name="Next Rally is Not FINDIMINTIL Rally — Inflow Rally to Peaked Market",
-        description="""Ricky2212 rally classification framework:
-THE EXPERIENCE:
-- Apr 4, 2025: Trump "Liberation Day" → market crash
-- Fear index hit level 4 (Extremely Fear)
-- "Bullish akan dimulai dari fear indeks level ini"
-- "Semua hal buruk sedang berada pada puncak nya dan market memfaktorkan nya langsung dengan LEBAY"
-- "Sedikit saja berita baik itu muncul... market akan cepat come back"
-RALLY TYPE CLASSIFICATION:
-- STRUCTURAL BULLISH: "rally yang ditopang oleh keadaan ekonomi yang baik. Jadi antara rally dan real ekonomi berjalan in line"
-- FINDIMINTIL RALLY: "Rally yang bersifat structural bullish" — NOT what we're getting
-- INFLOW RALLY: "Its not Findimintil Rally, its a inflow Rally. Uang akan mengalir mencari tempat berlabuh yang menguntungkan"
-- "Uang sedang mencari Store of Value"
-THE NARRATIVE SEQUENCE:
-1. "Ternyata masalah Tariff ga seburuk yang dikira koq, Tuh Trump sudah melunak dan coba bernegoisasi sana sini"
-2. "Negoisasi nya menemukan titik terang"
-3. "Narasi CUT suku bunga digaungkan bahwa dengan suku bunga di CUT ada harapan buat perbaikan di ekonomi"
-    - "Seperti narasi CUT Agustus 2024 saat badut inflow bilang CUT bikin ekonomi membaik"
-4. "Hingar bingar narrative digaungkan luar biasa, dari sana Euphoria akan menyelimuti market"
-    - "Market lupa kalo 4 April kita diterjang badai kuat di pasar"
-THE REALITY CHECK:
-- "Rally tersebut apakah sudah memperhitungkan masalah penyelesaian ekonomi? not yet bro"
-- "CUT nanti walaupun bisa memberi sedikit nafas tapi buat saya rasanya dosis nya belum cukup"
-- "Ekonomi yang tadinya sudah sempoyongan harus dihantam tariff, yah harusnya butuh dosis gede CUT nya"
-- "Rally tersebut sudah menyelesaikan masalah hutang amrik yang segunung? masih jauh dari selesai bro"
-Ricky's strategy: "Saya masih pada strategi yang sama yaitu bermain Konglo Play"
-"Its not Findimintil Rally, its not structural rally, ini hanya inflow Rally and manfaatkan rally nya sebaik mungkin"
-"Enjoy kalo blow off the top datang"
-Key insight: Distinguish structural vs inflow rally. Inflow rally = tradeable but not investable long-term.""",
-        category="cycle",
-        catalyst_types=["inflow_rally","not_structural","findimintil_rally","peaked_market","cut_euphoria",
-            "tariff_negotiation","store_of_value_seek","liquidity_driven"],
-        activation_keywords=["next rally not findimintil","inflow rally","findimintil rally","structural bullish",
-            "fear index level 4","extremely fear","bullish dari fear","market lebay","berita baik muncul",
-            "come back cepat","trump melunak","negoisasi titik terang","narasi cut suku bunga",
-            "cut agustus 2024","euphoria menyelimuti","market lupa badai","not yet bro",
-            "dosis cut belum cukup","ekonomi sempoyongan","hutang amrik segunung","jauh dari selesai",
-            "konglo play strategy","manfaatkan rally","blow off top datang","inflow vs structural"],
-        invalidation_keywords=["structural_recovery_confirmed","fundamentals_improve","real_economy_grows",
-            "inflow_dries_up"],
-        beneficiaries={"ihsg":["BUMI.JK","BRMS.JK","WIFI.JK","MPIX.JK","ELIT.JK","DATA.JK"],
-            "us":["QQQ","IWM","BTC-USD"],"safe_haven":["GLD"]},
-        fades={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK"],"us":["TLT","VIX"]},
-        regime_alignment={"Q3":1.50,"Q4":1.30,"Q2":1.00,"Q1":0.80},
-        typical_duration_weeks=12,
-        conviction_ceiling=0.80,
-        pump_risk=0.25,
-        confirmation_signals=["fear_index_reverses","tariff_negotiation_progress","fed_cut_narrative_builds",
-            "euphoria_index_rises","inflow_surge","structural_data_still_weak"],
-    ),
-
-    # ── ARTICLE 24: Market bakal RISK ON pake banget ───────────────────────────
-    NarrativeTemplate(
-        name="Market Bakal RISK ON Pake Banget — JPY Carry, BTC Spike, Small Cap ATH",
-        description="""Ricky2212 extreme risk-on framework:
-POST-LIBERATION DAY SETUP:
-- Apr 4, 2025: Trump Liberation Day → Fear Greed Index level 4 (Extreme Fear)
-- "Bullish Phase dimulai saat itu. Tidak ada lagi ketakutan yang tersisa"
-BULLISH CATALYSTS:
-1. Extreme fear exhausted: "hanya masalah waktu saja ketakutan itu menghilang secara bertahap"
-2. Market justifies: "ehhh, sudah lewat lah masa itu. Market sudah justifikasi semua nya"
-3. Tariff negotiation progress: "Negoisasi antar negara akan settled satu per satu"
-    - UK deal with US done
-    - US-China negotiations opening (Geneva Swiss May 9-12, 2025)
-    - "Trump akan menurunan tarif nya buat China"
-4. USD weakness → risk asset global shift: "posisi US lewat USD makin berkurang sinar nya. Uang akan bergentayangan ke risk asset ke seluruh dunia"
-CURRENCY SHIFT:
-- EUR: strengthened significantly post-Liberation Day
-- CHF: strengthened despite Swiss deflation (0% inflation)
-- JPY: "mother of carry trade currency. pasca liberation day banyak yang balik dan me reverse posisi carry trade nya"
-    - JPY pulang kampung buat menutup posisi global Carry trade
-    - JPY menguat paling tajam diantara major hard currency
-- DXY: longsor below 100
-- IDR: "mulai terlihat berani tampil ke panggung. IDR mulai memperlihatkan arah penguatannya"
-CARRY TRADE RESTART:
-- "JPY mahal, USD murah, Risk asset banyak yang jatuh, perfect condition for Natural Carry Trade"
-- Warren Buffett: Berkshire issued JPY bonds = doing Carry Trade
-- "JPY dibuang dan terlihat mulai melemah dari 138 an menuju 144" = carry trade release
-- "Uang likuid dalam USD sudah siap banget. IT's ALL ABOUT LIQUIDITY DRIVEN"
-- "BULLISH MARKET terjadi bukan karena ekonomi membaik tapi karena Likuditas yang ga bisa tersalurkan ke ekonomi"
-RISK ON CONFIRMATION:
-- IHSG: "naik dari level terendah nya 5800 an dan sempat hampir sedikit lagi menyentuh 7000"
-- Small caps outperforming broader market: "Saham2x kapitalisasi kecil outperform broader market"
-- "Kalo bukan karena yakin akan ada risk on, mungkin kah saham2x kapitalisasi kecil yang bergerak?"
-- BTC: "fucking asset naik luar biasa dalam moment singkat"
-- ETH: "ETH dengan kapitalisasi no 2 terbesar... bisa naik bagger dalam hitungan singkat"
-- "Gooookkkzzzzz"
-- "Aliran uang lagu besar banget ke dunia antah berantah, bahkan inflow nya lebih besar dari inflow ke Gold"
-Ricky's call: "I'm in Risk on Mode"
-"When the music stops, in terms of liquidity, things will be complicated. But as long as the music is playing, you've got to get up and dance"
-"Saya akan berdansa saat music terus dikumandangkan atau likuiditas itu sedang mengalir dan saya akan pulang sebelum music nya selesai"
-"Pak mana jack up pak? hehehe hilang semua nanti suara itu dengan sendirinya"
-Key data: Liquidity-driven risk-on, not fundamentals-driven. Dance while music plays.""",
-        category="cycle",
-        catalyst_types=["extreme_risk_on","jpy_carry_restart","btc_spike","eth_spike","small_cap_outperform",
-            "liquidity_driven","usd_weakness_risk_on","currency_shift"],
-        activation_keywords=["risk on pake banget","fucking risk on","extreme risk on","liberation day setup",
-            "fear greed index 4","bullish phase dimulai","tariff negotiation settled","uk deal us",
-            "us china negoisasi","geneva swiss may 9-12","trump turun tarif china","usd berkurang sinar",
-            "uang gentayangan risk asset","eur menguat","chf menguat","jpy menguat tajam",
-            "jpy carry trade restart","jpy pulang kampung","natural carry trade","buffett jpy bond",
-            "jpy melemah 138 ke 144","liquidity driven","bullish bukan ekonomi","ihsg 5800 ke 7000",
-            "small cap outperform","btc spike","eth bagger","dunia antah berantah inflow",
-            "im in risk on mode","music playing dance","pulang sebelum music selesai","jack up hilang sendiri"],
-        invalidation_keywords=["risk_on_fails","jpy_carry_unwinds","btc_corrects_30pct","liquidity_dries",
-            "fed_hawkish_surprise"],
-        beneficiaries={"ihsg":["WIFI.JK","MPIX.JK","ELIT.JK","DATA.JK","DOOH.JK","INET.JK","BUMI.JK","BRMS.JK"],
-            "us":["IWM","QQQ","BTC-USD","ETH-USD","MSTR","COIN"],"fx":["USDJPY","EURUSD"]},
-        fades={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","TLKM.JK"],"us":["TLT","GLD","VIX"]},
-        regime_alignment={"Q3":1.70,"Q4":1.50,"Q2":1.20,"Q1":0.90},
-        typical_duration_weeks=12,
-        conviction_ceiling=0.80,
-        pump_risk=0.30,
-        confirmation_signals=["fear_greed_reverses_from_extreme","jpy_carry_trade_volume","btc_breaks_ath",
-            "eth_surges","small_cap_index_outperform","ihsg_approaches_7000","idr_strengthens_toward_16000",
-            "liquidity_injection_confirmed"],
-    ),
-
-    # ── ARTICLE 25: Trump doing a great job ────────────────────────────────────
-    NarrativeTemplate(
-        name="Trump Doing a Great Job — Bidenomics Cleanup & Recession Base",
-        description="""Ricky2212 Trump policy assessment framework:
-BIDENOMICS DAMAGE:
-- "Biden itu kaya nampar muka sendiri" — mocked Trump but left catastrophic economy
-- COVID: $9T spent ("bukan keadaan yang mengharuskan Amrik keluar $9T")
-- Post-COVID: Biden/Yellen pumped economy with fiscal spending
-- "Ekonomi terlihat bagus tapi Keuangan Amrik parah banget"
-- "Total hutang yang dibikin zaman Biden, Yellen itu mungkin 60-70% total hutang Amrik yang sekarang sebesar $37 Trilyun"
-- "Mau berapa lagi hutang amrik?"
-- Interest on $36T = $1T/year. Refinancing 2025 starting June.
-- "Fiskal jebol dan itu harus ditambal. Nambalnya pake apa? pakai hutang"
-- "US harus menambal fiskal sekitar another $1.5 - $2 trilyun"
-- Annual deficit potential: $2.5T+ = "massive catastrophic"
-- "Kalo sudah begitu berarti harus kasih extra yield lagi agar mau kasih hutang ke US"
-- "Makin tinggi bunga yang diberikan, makin tinggi defisit. Makin tinggi defisit maka makin banyak cetak uang"
-- "Ujungnya? Default and Hyperinflation"
-TRUMP'S TEAM:
-- Elon Musk: DOGE — efficiency in bloated government
-- Scott Bessent: Treasury — economic recovery program. "Otak Bessent itu Hedge Fund yang jenius banget" (Quantum Capital with Soros/Druckenmiller)
-TRUMP'S FOCUS:
-1. Efficiency: "Elon Musk ditugasin buat merancang efisensi di tubuh pemerintahan Amrik yang tambun di zaman Biden"
-2. Shift to Private Spending: "memindahkan ekonomi dari Government spending ke Private Spending"
-3. Fix Financial Structure: "memperbaiki struktur keuangan US"
-TARIFF:
-- "Fairness dalam perdagangan dunia"
-- "US itu dagang nya tekor mulu dengan partner dagangnya"
-- Bessent's hidden mission: negotiate lower rates, weaken USD for exports, prepare for "The One, Big, Beautiful Tax Bill"
-TAX BILL:
-- "THE ONE, BIG, BEAUTIFUL BILL" passed House
-- "MASSIVE Tax CUTS, No Tax on Tips, No Tax on Overtime, Tax Deductions for American Made Vehicle"
-- "Strong Border Security, Pay Raises for ICE, Funding for Golden Dome, TRUMP Savings Accounts for newborn babies"
-- Purpose: shift from Govt spending to private spending
-    * Consumers: extra money from no tax on tips/overtime → spending up
-    * Business: tax cuts → liquidity → expansion → hiring
-    * "Rekrut karyawan ga tuh pengusaha? rekrut karyawan pasti lah yah"
-    * GDP rises → tax revenue rises even at lower rate
-- Tariff fills gap until tax cut effects materialize
-INFLATION CONTROL:
-- "Trump akan lakukan dan mengambil apapun kebijakan nya untuk terus menjaga inflasi"
-- Green energy abandoned ("mahal, bikin inflasi") → back to fossil
-- "Drill baby Drill" — massive oil supply to keep prices down
-- OPEC raising production despite low prices = "salah satu cara jaga inflasi"
-- Trump: "dia akan membuat harga obat turun" — another inflation component
-- "Mr too late masih parno saja sama masalah INFLASI. How come?"
-THE BASE CASE:
-- "Semua hal diatas akan sangat terlihat bagus hasilnya kalau ekonomi Amrik bikin Base baru dulu di bawah"
-- "Ekonomi dilemahkan dibikin low. Inflasi turun ke level bawah. Suku bunga harus diturunkan ke level bawah. Pasar saham harus dijatuhkan ke level bawah"
-- "Semua itu tanda apa? itu syarat untuk sebuah QE dilakukan dan itu adalah RESESI"
-- "Makanya itu juga salah satu tujuan Trump and Bessent bikin Tariff. Mereka sudah siapin sampai kesini perjalanannya."
-Ricky's call: "Prepare not Predict"
-"Crash? kita lihat saja nanti, setiap ada masalah hutang maka penyelesaian nya adalah Crisis"
-"Tapi tenang, semua yang dilakukan Trump itu sebuah Fondasi ekonomi yang baik buat nanti setelah ekonomi bikin low base""",
-        category="geopolitical",
-        catalyst_types=["trump_great_job","bidenomics_cleanup","tax_bill","tariff_tool","inflation_control",
-            "fossil_revival","recession_base","qe_setup","debt_crisis_resolution"],
-        activation_keywords=["trump doing great job","bidenomics damage","biden nampar muka sendiri",
-            "hutang 37 trilyun","biden yellen 60-70% hutang","fiskal jebol","default hyperinflation",
-            "elon musk doge","scott bessent treasury","quantum capital bessent","efficiency pemerintahan",
-            "government spending ke private spending","the one big beautiful bill","massive tax cuts",
-            "no tax on tips","no tax on overtime","american made vehicle tax","trump savings account",
-            "golden dome","border security funding","tax bill purpose","tariff fills gap",
-            "inflation control trump","green energy abandoned","drill baby drill","opec raise production",
-            "harga obat turun","mr too late parno","base baru ekonomi","ekonomi low base",
-            "syarat qe","resesi syarat","trump bessent siapin perjalanan","crash penyelesaian hutang",
-            "crisis penyelesaian hutang","fondasi ekonomi baik","prepare not predict trump"],
-        invalidation_keywords=["trump_impeached","tax_bill_fails","tariff_war_escalates","inflation_spikes",
-            "recession_deeper_than_expected"],
-        beneficiaries={"us":["XLE","OIH","CVX","XOM","TLT"],"ihsg":["BBCA.JK","TLKM.JK","UNVR.JK"],
-            "crypto":["BTC-USD","MSTR","COIN"]},
-        fades={"us":["SPY","QQQ","high_beta"],"ihsg":["property","consumer_discretionary"]},
-        regime_alignment={"Q3":1.40,"Q4":1.20,"Q2":1.00,"Q1":0.80},
-        typical_duration_weeks=52,
-        conviction_ceiling=0.80,
-        pump_risk=0.20,
-        confirmation_signals=["tax_bill_passes_senate","tariff_revenue_spikes","doge_cuts_executed",
-            "inflation_stays_low","oil_supply_increases","gdp_base_formed","unemployment_rises_to_reset"],
-    ),
-
-    # ── ARTICLE 26: Blow off the top skenario ─────────────────────────────────
-    NarrativeTemplate(
-        name="Blow Off The Top Skenario — UST Spike Trap & CUT FOMO",
-        description="""Ricky2212 blow-off-top execution framework:
-UST SPIKE TRAP:
-- "UST yang bergerak konyooooll. Ga ada alasan UST harus spike segitu tingginya"
-- "Semua data mengarah pada disinflation. PCE indeks sudah berada di 2.1%"
-- "Data inflasi 2.1% sementara UST yield rata2x sudah diatas 4%"
-- "Market sampai meminta premium diatas 2.5% buat bond yang dikeluarkan US?"
-- "Bukan bro, itu narasi yang sengaja diciptakan oleh Amrik sendiri"
-- "Waktu mereka semakin pendek buat refinancing hutang mereka yang jumbo yang jatuh tempo di Juni ini"
-- "Perfect scenario banget permainan mereka"
-THE TRAP MECHANICS:
-- USD jatuh parah → USD keliatan murah → "Para pengelola dana pasti kepancing buat masuk ke pasar US"
-- Yield UST dibikin menarik → "memancing para pemegang dana membeli Bond USD"
-- "Amrik buat absorb dana dalam jumlah super jumbo buat mengamankan hutang2x yang jatuh temp tersebut"
-- "Damn mereka sukses tuh di permainan awal hutang jatuh tempo nya. Mereka bisa bernafas lega sesaat"
-THE FOMO SEQUENCE:
-- Post-debt-settled: "nyambung ke part yang bikin nanti ter FOMO FOMO"
-- "Mereka menyimpan skenario ini buat next level jack up nya. Perlu narasi lanjutan buat blow off puncak nanti"
-- Market come back with negotiation stories: "satu per satu bisa settled saat negoisasi terus berjalan"
-- Store of Value running well
-- "Next apa yang terjadi pasca US sudah men settled kan hutang nya?"
-- "Dia punya banyak alasan koq buat menaikkan narasi CUT nya ke publik"
-CUT NARRATIVE BUILD:
-- GDP US kontraksi negatif
-- Inflasi 2.1%
-- Home seller listings spike
-- CEO confidence jatuh luar biasa
-- Daya beli konsumen menukik tajam
-- "Masih belum cukup kah?"
-- "atau butuh data tenaga kerja nyungsep dulu agar semua bsia dijalankan?"
-- "Amrik bilang mau CUT soon"
-- "Gilaa ga tuh seluruh dunia juga bakal ikutin CUT dengab pace yang cukup cepat"
-- "Narasi CUT terjadi ke seluruh antero dunia dan USD bakal jadi pihak mata uang yang lemah"
-- "Store of value makin menjadi-jadi dan tak tertahankan lagi"
-COMMODITY FOMO:
-- "Liat pergerakan komoditas semalam saat Dxy Ambruk lagi dibawah level 99"
-- "Mulai dari emas, copper, natural gas even sampai oil pun juga diajak naik"
-- "Dunia akan ter FOMO - FOMO ga karuan"
-THE SKEPTICS:
-- "Sampai saat ini masih cukup banyak Fund yang masih di pinggir lapangan. Mereka masih skeptis"
-PEAK CONFIRMATION:
-- "Semua ga akan tersadar nanti, semua jatuh dalam ke euphoria an"
-- "Semua dimabuk oleh bullish nya market and itu salah satu syarat terjadinya Crisis"
-- "Crisis terjadi saat orang tidak ada yang menduga-duga, Crisis terjadi saat banyak yang tidak siap"
-Ricky's call: "Prepare not Predict, semoga anda semua tetap bersiap terhadap semua keadaan yang mungkin terjadi"
-"Kita semua sudah berjalan sejauh ini dan semua tetap pada jalur nya"
-Key data: UST spike = trap to absorb foreign capital for refinancing. Post-refinancing = CUT FOMO = blow off top.""",
-        category="cycle",
-        catalyst_types=["ust_spike_trap","blow_off_top","cut_fomo","debt_refinancing","foreign_bond_trap",
-            "commodity_fomo","euphoria_peak","crisis_setup"],
-        activation_keywords=["blow off the top skenario","ust spike trap","konyol ust","pce 2.1%","ust yield 4%",
-            "premium bond 2.5%","narasi sengaja diciptakan amrik","refinancing hutang jumbo","juni jatuh tempo",
-            "perfect scenario amrik","usd murah kepancing","yield menarik memancing","absorb dana super jumbo",
-            "bernapas lega sesaat","fomo sequence","negoisasi settled","store of value running",
-            "cut narrative build","gdp kontraksi negatif","home seller spike","ceo confidence jatuh",
-            "daya beli menukik","cut soon","seluruh dunia ikut cut","usd lemah massive",
-            "komoditas fomo","dxy ambruk 99","emas copper gas oil naik","fund skeptis pinggir lapangan",
-            "euphoria peak","crisis tidak siap","prepare not predict blow off"],
-        invalidation_keywords=["ust_spike_fundamental","fed_holds_no_cut","refinancing_fails",
-            "market_peaks_without_fomo"],
-        beneficiaries={"us":["SPY","QQQ","IWM","TLT"],"global":["GC=F","HG=F","CL=F","NG=F"],
-            "crypto":["BTC-USD","ETH-USD"]},
-        fades={"us":["SQQQ","VIX"],"ihsg":["property"]},
-        regime_alignment={"Q3":1.70,"Q4":1.50,"Q2":1.20,"Q1":0.90},
-        typical_duration_weeks=16,
-        conviction_ceiling=0.85,
-        pump_risk=0.25,
-        confirmation_signals=["ust_yield_spike_unjustified","foreign_bond_buying_bludak","pce_confirms_disinflation",
-            "refinancing_completed","cut_narrative_massive","commodity_rally_broadens","fund_still_skeptical",
-            "euphoria_index_spike"],
-    ),
-
-    # ── ARTICLE 27: Sun Tzu Art of War — Iran-Israel Conflict as Market Driver ──
-    NarrativeTemplate(
-        name="Sun Tzu Art of War — Iran-Israel Conflict as Market Theme",
-        description="""Ricky2212 war-as-market-theme framework:
-THE GOD FATHER'S WAR:
-- "Percaya ga percaya, market dunia tuh seakan-akan ada yang gerakkin. Dibutuhkan sebuah tema buat mereka agar bisa menggerakkkan financial market"
-- "War, God Father Art in financial market"
-- "So untuk beberapa waktu ke depan Tema market adalah WAR"
-THEME LIFECYCLE:
-- Tariff theme (Liberation Day): "Naik turun nya market sangat dipengaruhi naik turunnya negoisasi masalah tarif tersebut"
-- "Belakangan tema tersebut mulai BASI. Efek nya mulai tidak begitu kerasa"
-- Trump-Elon conflict: "Tema Colongan yang diluncurkan ke market"
-- Iran-Israel war: "Tema nya digaungkan dengan kencang sebagai awal mula WW3"
-- "Seketika financial market Shock saat tema tersebut diluncurkan"
-- "Ini akan jadi tema yang akan dipakai untuk mendrive and menggerakkan market"
-IRAN NUCLEAR HISTORY:
-- 1950s: Shah + US "Atom for Peace" program
-- 1979 Revolution: Khomeini halted program as "tidak Islami"
-- 1980-1988 Iran-Iraq War: "Serangan Irak yang didukung AS... memaksa Iran mencari keamanan"
-- "Pengalaman traumatis ini mendorong keinginan untuk melakukan pencegah strategis"
-- A.Q. Khan network supplied enrichment technology
-- 2002: Natanz + Arak facilities revealed
-- 2015: JCPOA deal (Obama + Rouhani)
-- 2018: Trump withdrew from JCPOA, "maximum pressure" sanctions
-- Oct 7, 2023: Hamas attack on Israel
-- "Iran menyatakan dukungan moral untuk Hamas tetapi menyangkal keterlibatan langsung"
-- "Hubungan panjang dan dukungan Iran membuat Israel and AS menuduh Iran sebagai dalang"
-HORMUZ THREAT:
-- 21% world energy (21M barrels/day) from countries bordering conflict zone
-- Hormuz bordering countries: Iran (3M), UAE (3.5M), Oman (1M)
-- Non-bordering but dependent: Saudi (9-9.5M), Iraq (4M), Kuwait (3.3M), Qatar (700k)
-- "Iran akan menutup selat Hormuz"
-- "Kalau sampai ini kejadian ditutup, tambah parah lah pasokan energi dunia"
-- "Sedikit saja perang tersebut meluas, efek nya akan merembet kemana-mana"
-MARKET IMPACT:
-- Oil prices spike instantly on war news
-- "Perang + Store of Value + Narasi konglo 9 haji + CA + EBT adalah kombinasi narasi yang sempurna"
-- "Ini bukan FINDIMINTIL play. Yang akan main adalah Liquidity Drive"
-- "Yang akan bermain adalah Narrative dan uang akan deras masuk ke saham yang punya narrative sangat kuat"
-FED IMPLICATION:
-- "Bank sentral dunia sudah banyak yang melakukan CUT, hanya US saja yang masih coba bertahan belum CUT"
-- "Fed masih bersikeras kalo mereka masih khawatir kalo inflasi US akan terus membandel"
-- "Perang ini bisa juga jadi alasan ketidak pastian sehingga FED tinggal bilang Perang akan bikin ketidak pastian terhadap inflasi"
-- "Cut hanya masalah waktu saja"
-- "Ga pernah tuh spread antara inflasi dan suku bunga sampai sejauh sekarang"
-    * Fed rate 4.5-4.75%, inflation ~2.4% = 2.25% spread (historical ~1%)
-- "Fed meeting Juni ini sepertinya Fed akan tetap menahan"
-- "Buat saya selama masih ada tema berjalan (kaya perang) yang masih bisa menggerakkan market, biar lah CUT nya nanti saja"
-NEXT THEME:
-- "Habis tema perang dan jadi BASI an, saya melihat tema CUT adalah tema selanjutnya yang akan menggerakkan market"
-- "CUT akan bikin jack up, jerk up, jack off sampe ter FOMO FOMO"
-Ricky's call: "no nanya saham apa yang paling baik, no nanya pilihin saham A atau B, no nanya semua yang berhubungan dengan price action""",
-        category="geopolitical",
-        catalyst_types=["iran_israel_war","hormuz_threat","oil_spike","ww3_theme","market_theme_rotation",
-            "fed_uncertainty_war","cut_next_theme"],
-        activation_keywords=["sun tzu art of war","god father war","market theme war","tema market war",
-            "iran israel conflict","iran sirewel","iran nuclear program","hormuz threat","selat hormuz",
-            "21% energi dunia","21 juta barrel per hari","hormuz ditutup","oil spike war","ww3 theme",
-            "tema tariff basi","tema colongan trump elon","hamas attack oct 7","jcpoa 2015","trump maximum pressure",
-            "fed cut uncertainty war","inflasi membandel","spread inflasi suku bunga 2.25%","fed meeting juni",
-            "tema cut selanjutnya","jack up jerk up jack off","fomo cut","liquidity drive narrative",
-            "findimintil play no","komoditas store of value war","oil pick and shovel","energy substitution",
-            "no price action question war"],
-        invalidation_keywords=["peace_agreement","hormuz_stays_open","oil_supply_unaffected",
-            "war_theme_fades_quickly"],
-        beneficiaries={"global":["CL=F","NG=F","GC=F","USO","UNG"],"ihsg":["MEDC.JK","PTBA.JK","ANTM.JK","MDKA.JK"],
-            "us":["XLE","OIH","CVX","XOM"]},
-        fades={"us":["SPY","QQQ","high_beta"],"ihsg":["property","consumer_discretionary"]},
-        regime_alignment={"Q3":1.50,"Q4":1.30,"Q2":1.00,"Q1":0.80},
-        typical_duration_weeks=12,
-        conviction_ceiling=0.80,
-        pump_risk=0.20,
-        confirmation_signals=["iran_missile_launched","israel_retaliates","hormuz_closure_threat",
-            "oil_spike_10pct","vix_spike","defense_stocks_rally","fed_cites_war_uncertainty"],
-    ),
-
-    # ── ARTICLE 28: Get Ready TFF — OJK Changes & Liquidity Flood Indonesia ───
-    NarrativeTemplate(
-        name="Get Ready TFF — OJK Changes, Lot Shrink & Tax Amnesty Liquidity Flood",
-        description="""Ricky2212 Indonesia liquidity preparation framework: "Ter FOMO FOMO"
-THE TFF JOKE:
-- "Mas beneran nih bakal TFF. Saya bingung apa itu TFF"
-- "Ter FOMO FOMO" / "Ter Fuck Fuck" / "Ter Frayogo Fangestu"
-- "Makin kesini makin terlihat set up game nya mengarah kesana"
-GLOBAL CUT RACE:
-- "Bank sentral dunia terus memotong suku bunga nya secara simultan"
-- BOE, ECB, BoC, RBA, RBNZ, SNB (cut to 0, even negative rates possible)
-- "Tinggal siapa yang belum? US melalui Fed nya belum action"
-- "CUT adalah keniscayaan buat FFR"
-- "Biarkan sementara market memainkan semua drama and narrative nya sebelum nantinya CUT akan datang"
-INDONESIA PREPARATION (5 POINTS):
-1. TRADING HOURS EXTENSION:
-    - "Jam perdagangan bursa kita akan ditambah masing2x 1 jam sebelum pembukaan dan 1 jam setelah penutupan"
-    - "Seumur2x saya di bursa, baru kali ini ada wacana penyesuaian dengan penambahan jam perdagangan bursa"
-    - "Bursa Indonesia mau menampung lebih banyak lagi likuiditas dari luar sana"
-    - "Bursa akan semakin ramai secara value transaksi perdagangan"
-2. LOT SHRINK:
-    - Current: 1 lot = 100 shares
-    - Proposed: 1 lot = 10 shares
-    - Example ITMG: 2.3M/lot → 230k/lot
-    - "Makin terjangkau bukan?"
-    - "harapan nya dengan hal ini akan makin ramai transaksi di bursa kita"
-    - "Bayangkan orang yang tadinya judi ga jelas pake judi selot, perputaran uang nya yang sangat besar bisa pindah ke bursa saham"
-    - "Partisipan yang dibawah, harapan nya sampai pada lapisan bawah bisa berpartisipasi di bursa saham"
-    - Last lot change: ~2004 (BEJ changed from 500 to 100 shares/lot)
-3. SECURITIES CONSOLIDATION:
-    - "Sekuritas akan ditertibkan secara MKBD dan permodalan nya"
-    - "Sekuritas akan banyak di merge dan sisa yang kuat2x dan tertib administrasi saja yang masih akan terus ada"
-4. JUDOL MONEY REPATRIATION:
-    - "Masih ingat judol yang marak kemarin? masih ingat uang nya dibawa kabur kemana?"
-    - "Konon katanya uang nya di parkir di negara lain dan salah satu nya di kamboja"
-    - "Sepertinya akan ditarik pulkam kesini lewat bursa dan itu jumlah nya cukup mumpuni"
-    - "Sekuritas ditertibkan tuh MKBD nya supaya bisa menampung uang2x tersebut"
-    - "Mencegah terjadinya settlement failure"
-5. TAX AMNESTY:
-    - "Beberapa taipan akan dikasih karpet merah buat uang nya masuk ke Indo lewat TA atau Tax Amnesty"
-    - "2018 salah satu group kertas lakukan hal tersebut dan lihat saja tuh saham kertasnya saat itu"
-    - "Ekonomi seret banget secara likuiditas nya, so dengan adanya Tax Amnesty maka likuiditas deres bisa masuk ke indo"
-    - "Sebagian akan digunakan taipan buat aksi korporasinya"
-    - "Indo butuh nambal fiskal sehingga Tax Amnesty bisa jadi jalan buat kumpulin fiskal nya"
-Ricky's call: "Indonesia ready ga tuh? ready dan get ready buat TFF alias Ter FOMO FOMO menampung banyak likuiditas nantinya"
-"Minggu depan saya sambung lagi yah skenario tema narrative global yang akan berjalan versi saya"
-Key data: Indonesia is preparing infrastructure to absorb massive liquidity inflow. TFF = liquidity-driven euphoria.""",
-        category="geopolitical",
-        catalyst_types=["ojk_reform","lot_shrink","trading_hours_extension","securities_consolidation",
-            "judol_money_repatriation","tax_amnesty","liquidity_flood_indonesia","tff_setup"],
-        activation_keywords=["get ready tff","ter fomo fomo","ter fuck fuck","ojk changes","ojk reform",
-            "jam perdagangan ditambah","trading hours extension","lot shrink","1 lot 10 lembar",
-            "itmg 230 ribu per lot","sekuritas merge","mkbd sekuritas","judol money repatriation",
-            "uang judol kamboja","tarik pulkam bursa","settlement failure prevention","tax amnesty",
-            "taipan karpet merah","tax amnesty 2018 kertas","likuiditas deres masuk","indonesia ready tff",
-            "bank sentral dunia cut simultan","snb negative rates","cut keniscayaan ffr","indonesia menampung likuiditas",
-            "tff liquidity flood","ramai transaksi bursa"],
-        invalidation_keywords=["ojk_reform_blocked","lot_shrink_cancelled","tax_amnesty_fails",
-            "liquidity_doesnt_arrive"],
-        beneficiaries={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","TLKM.JK","UNVR.JK","BUMI.JK","WIFI.JK"],
-            "broker":[" securities_sector"],"safe_haven":["IDR_cash"]},
-        fades={"ihsg":["property"]},
-        regime_alignment={"Q1":1.60,"Q2":1.40,"Q3":1.20,"Q4":1.00},
-        typical_duration_weeks=26,
-        conviction_ceiling=0.80,
-        pump_risk=0.20,
-        confirmation_signals=["ojk_announces_hours_extension","lot_shrink_approved","securities_merge_starts",
-            "tax_amnesty_program_launched","judol_money_returns","foreign_inflow_surge_indonesia",
-            "idr_strengthens_toward_16000"],
-    ),
-
-    # ── ARTICLE 29: BER BER BER curse ──────────────────────────────────────────
-    NarrativeTemplate(
-        name="BER BER BER Curse — Sep-Oct Crash Pattern & FOMC Cut Timing",
-        description="""Ricky2212 seasonal crash pattern framework: "The Curse"
-HISTORICAL BER BER BER (Sep-Oct):
-- 2022: Market drop from aggressive rate hikes
-- 2008: Global Financial Crisis
-- 1987: Black Monday
-- 1927-1928: Great Depression buildup
-- "Ber Ber Ber brrrrrrr, memang benar adanya kejadian2x buruk pasar banyak terjadi di periode tersebut"
-THE BEHAVIOR EXPLANATION:
-- "Sell in May and Go Away" → funds exit for summer vacation (happens in BER BER BER period)
-- "Puncak kenaikan market tuh terjadi di bulan Juli atau Agustus berbarengan dengan keluarnya laporan kinerja tengah tahunan"
-- "Kalo sudah keluar dari pasar berarti? butuh masuk lagi kan ke pasar?"
-- "Pasar butuh dibikin RUSUH dulu di ber ber ber agar mereka para fund dapat karpet merah buat masuk kembali ke pasar"
-2025 PATTERN:
-- 2022: Rate hike crash in BER BER BER
-- 2023: First HALT in BER BER BER
-- 2024: First CUT in BER BER BER
-- "Kebetulan kah semua itu? koq bisa yah pas begitu"
-- 2025 BER BER BER: "odds tertinggi pemotongan suku bunga terjadi di periode BER BER BER"
-- "Chance besar Bulan meeting FOMC buat CUT akan terjadi di periode bulan BER BER BER tersebut"
-- "Odds nya sudah sampai menyentuh 80% untuk CUT di periode bulan tersebut"
-THE MECHANICS:
-- "Kalo mau potong suku bunga maka? dibutuhkan reason agar FED punya urgency untuk memotong suku bunga nya"
-- "Makanya jangan kaget nanti misalkan di dekat2x sana kalo ada sedikit guncangan pasar"
-- "Yah turun2x pasar jadi hal yang wajar lah. Tapi ga usah terlalu jadi parno sendiri nantinya"
-- "Santai aja menghadapinya karena nanti dari sana tercipta TFF"
-THEME TIMING:
-- Tariff theme: April launch → lasted ~2 months → now BASI
-- War theme: June launch → "tema perang akan bisa bertahan sampai bulan agustus"
-- "Kebetulan kah? tema perang nantinya akan bertahan sampai Agustus yang dekat banget sama bulan BER BER BER"
-- "Trump bakal kasih liat Fed tuh, kalo kebijakan tarif kemarin aja ga ada inflasi yang menakutkan yang datang"
-- "Begitu juga efek dari perang, ga ada inflasi yang datang"
-- "Tidak ada lagi alasan yang tersisa buat tidak melakukan CUT"
-- Trump: "harusnya suku bunga US sudah 2% atau bahkan 1%"
-CUT PREDICTIONS:
-- Morgan Stanley: "2026 akan ada 7 rate CUT x 0.25"
-- Julius Baer: "5x CUT yang akan Fed lakukan"
-- Ricky's prediction: 2-phase CUT
-    * Phase 1: 2.75%-3.25% target. TFF, jerk up, jack up. "CUT to CUT yang membuat market peaked" (13 key point)
-    * Phase 2: Market realizes CUT not enough → disappointment → "ULTIMATE CUT" (13 key point)
-Ricky's call: "BER BER BER Brrrrrrr, ga usah parno sendiri. Kita akan melihat pasar TFF nantinya"
-"The cursenya akan menuntun kita buat CUT yang massive yang berujung pada keluarnya dana2x mengendap sehingga berujung pada TFF"
-"Berasa? sekarang aja sudah berasa auranya tuh, market di US aja terus merengsek dari ATH ke ATH"
-Key data: BER BER BER = seasonal crash window that creates entry for funds + forces Fed action.""",
-        category="cycle",
-        catalyst_types=["ber_ber_ber_curse","sep_oct_crash","fomc_cut_timing","seasonal_pattern",
-            "sell_in_may","fund_reentry","tff_peak","cut_phase_1","cut_phase_2"],
-        activation_keywords=["ber ber ber curse","ber ber ber brrrrr","sep oct crash","seasonal crash",
-            "sell in may","fund summer vacation","fund reentry","pasar rusuh ber ber ber","karpet merah fund",
-            "2022 rate hike ber","2023 halt ber","2024 cut ber","2025 ber ber ber","odds cut 80%",
-            "fomc meeting ber ber ber","guncangan pasar dekat","turun pasar wajar","tff dari ber ber ber",
-            "tema tariff 2 bulan","tema perang juni agustus","trump kasih liat fed","tariff ga ada inflasi",
-            "perang ga ada inflasi","tidak ada alasan tidak cut","suku bunga 2%","suku bunga 1%",
-            "morgan stanley 7 cut 2026","julius baer 5 cut","ricky 2 phase cut","cut to cut peaked",
-            "ultimate cut 13 key point","market merengsek ath ke ath","aura tff berasa"],
-        invalidation_keywords=["ber_ber_ber_fails_2025","fed_holds_through_sep","no_crash_occurs",
-            "cut_comes_early"],
-        beneficiaries={"us":["SPY","QQQ","IWM","TLT"],"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","BUMI.JK","WIFI.JK"],
-            "safe_haven":["IDR_cash","USD_cash"]},
-        fades={"us":["SQQQ","VIX"],"ihsg":["property","high_flyer"]},
-        regime_alignment={"Q3":1.60,"Q4":1.40,"Q2":1.00,"Q1":0.80},
-        typical_duration_weeks=8,
-        conviction_ceiling=0.80,
-        pump_risk=0.20,
-        confirmation_signals=["sep_oct_volatility_spike","vix_above_25","fund_cash_levels_peak",
-            "fomc_meeting_in_sep_oct","cut_odds_above_80%","market_drops_5pct","tff_signals_emerge"],
-    ),
-
-    # ── ARTICLE 30: TFF part 3 — Puncak Kegilaan Trump (BTC Strategic Reserve) ─
-    NarrativeTemplate(
-        name="TFF Part 3 — Puncak Kegilaan Trump (BTC Strategic Reserve & US Debt Payoff)",
-        description="""Ricky2212 ultimate Trump crypto hegemony framework:
-THE DESSERT CYCLE:
-- "Masih ingat Artikel tentang Dessert penutup Cycle? ada 2 menu dessert: saham Bxxx dan Digital Gold BTx"
-- "Kalo keduanya berjalan rally mbledug, yah jangan lupa untuk bersiap"
-THE SETUP:
-1. Bessent = hedge fund brain (Quantum Capital with Soros/Druckenmiller)
-2. USD collapsing → needs Store of Value
-3. BTC = US Store of Value (China loses on BTC setup)
-4. US wants to reduce $36T debt
-TRUMP'S CRYPTO JOURNEY:
-- Campaign: Trump crypto-friendly. "US akan jadi center utama Crypto"
-- "Kalo kita ga mulai dari sekarang, maka China akan memulai nya"
-- "China tuh sejauh ini belum crypto friendly karena mereka masih banned asset tsb"
-- Game plan: crypto in US tax-free for US-based projects
-THE EXECUTION:
-1. Crypto tax exemption for US-based projects
-2. Replace anti-crypto SEC chair (Biden era) with crypto-friendly one
-    - "Ketua SEC zaman biden tersebut terkenal sangat anti Crypto"
-    - "XRP tidak bisa beroperasi penuh di Amrik"
-    - New SEC chair → XRP and all crypto projects liberated
-3. USD on blockchain: "US akan meluncurkan koin USD di dunia Crypto sebagai penambah jangkauan USD"
-4. GENIUS Act stablecoin bill: "dollar dalam crypto dalam menjalanan ekonominya"
-5. Real world ↔ Crypto HUB: "likuiditas akan bertambah. Likuiditas di pasar crypto itu terus membesar"
-    - "Trump akan membuat HUB antara dunia crypto dengan real world"
-    - "Disana bisa beli surat hutang UST lewat Crypto"
-6. Coinbase in S&P 500: "Trump mau menunjukkan ke dunia agar dunia makin yakin kalo US benar2x serius di Crypto"
-7. Coinbase stablecoin for consumer payments
-8. XRP as primary US payment system: "koin XRP yang tadinya susah beroperasi juga akan jadi payment system utama"
-9. US banks opening to crypto: "Beberapa Bank di US juga sudah mulai membuka diri untuk memfasilitasi transaksi Crypto"
-    - Swiss bank adopts Ripple (XRP) network
-    - Freddie Mac & Fannie Mae: crypto as payment tool
-    - Jamie Dimon (JPM): "Ga suka sama Crypto, tapi narasi nya kuat sekali dan Trump support narasi tersebut"
-    - JPM ready to be primary crypto custody → other banks follow
-THE CLIMAX:
-- "Kalo semua set up HEGEMONI sudah makin membesar, Trump akan umumkan: US akan menjadikan BTC sebagai Strategic Reserve"
-- "Gilaaaa? yap, gila dan kalo sampe US lakukan itu maka lo tau kan BTC akan gimana?"
-- "Satu dunia juga akan ter FOMO FOMO tuh makan BTC ngekor US"
-- "Harga spike ga karuan, Govt of US sebagai salah satu pemegang BTC terbesar tinggal bayar hutang2x nya tuh pake kenaikan nilai BTC nya"
-BTC VOLATILITY ARGUMENT:
-- "BTC itu volatilitas nya tinggi karena: marcap masih rendah, regulasi belum ketat, pemegang belum super global"
-- "Makin besar nilai suatu Asset pastinya nanti membuat volatilitas menurun"
-- "Sama seperti BTC nantinya, saat makin mature dan makin diregulasi juga bakal less volatile"
-- "Kalo saham big cap kaya AMZN, MSFT, GOOG satu dunia jadi pemegang saham... jadi less volatile"
-- "ETF BTC mulai diperkenalkan = satu cara supaya BTC diregulasi dengan baik"
-- "Cycle ini adalah cycle terakhir crypto yang masih ada volatile nya"
-Ricky's call: "US akan ciptakan permainan store of value ala mereka sendiri"
-"Pesan utama: kalo thesis DESSERT nya akan berjalan dengan baik. Puncak Peaked market akan terlihat dari permainan yang diciptakan Trump ini"
-"Ini khayalan liar saya saja yah. Jangan ditelan mentah2x"
-"NB: anda akan melihat sebuah design dimana dunia koin akan dibikin HUB ke dunia real finance"
-"Satu kegilaan and manipulasi yang diciptakan oleh likuiditas""",
-        category="geopolitical",
-        catalyst_types=["btc_strategic_reserve","us_crypto_hegemony","trump_crypto_climax","debt_payoff_btc",
-            "xrp_liberation","coinbase_sp500","stablecoin_hub","crypto_regulation_us","dessert_cycle"],
-        activation_keywords=["tff part 3","puncak kegilaan trump","btc strategic reserve","us debt payoff btc",
-            "bessent hedge fund brain","quantum capital","usd collapsing store of value","china loses btc",
-            "trump crypto friendly","us center crypto","crypto tax exemption us","sec chair replaced",
-            "xrp liberated","usd blockchain","genius act stablecoin","real world crypto hub",
-            "ust via crypto","coinbase sp500","coinbase stablecoin payment","xrp payment system us",
-            "us banks crypto","swiss bank ripple","freddie mac fannie mae crypto","jamie dimon crypto",
-            "jpm custody crypto","hegemoni crypto","fomo btc strategic reserve","govt us bayar hutang btc",
-            "btc volatility decline","btc marcap besar","btc etf regulation","cycle terakhir crypto volatile",
-            "dessert cycle bxxx btx","puncak peaked market","design koin hub real finance",
-            "kegilaan manipulasi likuiditas"],
-        invalidation_keywords=["btc_reserve_denied","crypto_regulation_fails","xrp_still_blocked",
-            "coinbase_removed_sp500","trump_abandons_crypto"],
-        beneficiaries={"us":["BTC-USD","ETH-USD","MSTR","COIN","XRP-USD"],"global":["GLD","TLT"],
-            "ihsg":["BBCA.JK","TLKM.JK"]},
-        fades={"us":["SQQQ","VIX"],"ihsg":["property"]},
-        regime_alignment={"Q3":1.80,"Q4":1.70,"Q2":1.40,"Q1":1.00},
-        typical_duration_weeks=26,
-        conviction_ceiling=0.85,
-        pump_risk=0.25,
-        confirmation_signals=["trump_announces_btc_reserve","sec_approves_xrp","coinbase_sp500_sustained",
-            "genius_act_passed","stablecoin_volume_spike","jpm_crypto_custody_live","ust_crypto_trading_live"],
-    ),
-
-    # ── ARTICLE 31: Perfect Classic Game Play — Big Fund Rotation ────────────
-    NarrativeTemplate(
-        name="Perfect Classic Game Play — Big Fund IDR→Bonds→Equity Rotation",
-        description="""Ricky2212 Big Fund rotation framework: "Perputaran Uang Ala Big Fund"
-THE COMPLAINTS:
-- "Pak, jack up mana pak?"
-- "Pak, ini koq market kita merah sendiri?"
-- "Pak, kenapa nih market kita koq turun saat global naik?"
-- "Pak, kan perang nya sudah titik terang tapi kenapa belum disambut market?"
-- "Seharian saya terima DM yang isinya pertanyaan seperti itu. Ga hanya 1 atau 2 orang, tapi puluhan"
-THE PSYCHOLOGY:
-- "Selalu berharap market naik dan sesuai harapan yah? sekali nya tidak sesuai harapan jadi kaya terganggu psikologinya"
-- "Teman2x disini sih harusnya sudah paham semua pola nya yah"
-THE CLASSIC GAME PLAY (May 9, 2023 article reference):
-1. BUY IDR FIRST:
-    - "Fund memborong dulu mata uang Rp sebagai persiapan untuk masuk ke paper asset di suatu negara"
-    - "Rp nya sudah menguat lebih dari 200 point dan kembali ke bawah 16300"
-    - IDR strengthening = fund positioning
-2. BUY BONDS NEXT:
-    - "Fund akan memborong dulu surat Hutang nya"
-    - "Surat hutang kita, pasti pergerakannya arahnya menguat"
-    - Bond rally = second phase of fund positioning
-3. PRESSURE EQUITY FOR ENTRY:
-    - "Kalo sudah kenyang memborong surat hutang, tinggal apa? yap tinggal bersiap buat masuk equity lah yah"
-    - "Mereka pasti bikin skenario agar mereka bisa masuk ke equity dengan harga yang menguntungkan"
-    - "Karpet merah harus disiapkan, makanya market seakan-akan ditekan dulu dan menimbulkan kecemasan"
-    - "WEAK HAND yang penuh ketakutan dan kecemasan pasti akan termakan oleh market"
-    - "Padahal kondisinya adalah set up yang diciptakan oleh Fund"
-THE TIMING QUESTION:
-- "Berapa lama kira2x pasar saham akan dapat impact nya?"
-- "Buat saya jangan pernah bertanya tentang waktu, kapan, tepat nya karena di pasar saham tidak ada yang bisa memastikan waktunya"
-- "Prepare jauh lebih baik daripada predict"
-- "Yang jelas classic game play nya tuh terlihat koq"
-- "Selama kita tau game play nya, yah sudah tinggal action aja sesuai dengan risk profile masing2x"
-RISK ON SIGNALS:
-- "Bellwether asset tuh terus memperlihatkan sinyal RISK ON"
-- "Semua lagi mengarah pada keadaan TFF terFoMo FoMo and Ter Fuck Fuck"
-- "Selama tidak ada gejolak luar biasa lagi sih harusnya bisa berjalan dengan baik"
-- "Paling kalau ada sedikit riak2x yah dimaklumkan saja lah"
-- "Ini mah koreksi biasa aja, lebih parah koreksi APRIL kemarin kan?"
-Ricky's call: "Classic game play, Seperti biasa Fund memborong dulu mata uang Rp..."
-"Prepare not Predict"
-Key data: Big Fund classic 3-step: IDR → Bonds → Equity. Current phase = equity pressure before entry.""",
-        category="cycle",
-        catalyst_types=["big_fund_rotation","classic_gameplay","idr_positioning","bond_positioning",
-            "equity_pressure","weak_hand_shakeout","fund_entry_setup"],
-        activation_keywords=["perfect classic game play","perputaran uang big fund","big fund rotation",
-            "idr memborong dulu","rp menguat 200 point","rp bawah 16300","surat hutang memborong",
-            "bond rally indonesia","equity pressure","karpet merah equity","market ditekan dulu",
-            "weak hand shakeout","ketakutan kecemasan termakan","set up diciptakan fund",
-            "jangan tanya waktu","prepare better than predict","classic game play terlihat",
-            "action sesuai risk profile","bellwether risk on","tff terfomo fomo","ter fuck fuck",
-            "gejolak biasa","riak2x dimaklumkan","koreksi biasa","koreksi april lebih parah",
-            "fund 3 step","idr bonds equity","fund entry indonesia"],
-        invalidation_keywords=["idr_reverses_weak","bonds_sell_off","fund_exodus","gameplay_broken"],
-        beneficiaries={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","BBNI.JK","TLKM.JK","UNVR.JK","BUMI.JK","WIFI.JK"],
-            "safe_haven":["IDR_cash"],"bonds":["SBN","INDO_GOV_BONDS"]},
-        fades={"ihsg":["property","high_flyer","weak_hand_stocks"]},
-        regime_alignment={"Q3":1.40,"Q4":1.20,"Q2":1.00,"Q1":0.80},
-        typical_duration_weeks=8,
-        conviction_ceiling=0.80,
-        pump_risk=0.15,
-        confirmation_signals=["idr_strengthens_sustained","bond_yields_fall","foreign_bond_buying_surge",
-            "equity_pressure_intensifies","weak_hand_selling_spike","fund_cash_deployed","ihsg_rebounds_post_pressure"],
-    ),
-]
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# ═══════════════════════════════════════════════════════════════════════════════
-# BATCH 17 — Artikel Ricky2212 (Apr 2026 extraction)
-# ═══════════════════════════════════════════════════════════════════════════════
-
-_NARRATIVES_BATCH17: List[NarrativeTemplate] = [
-
-    # ── ARTICLE 31: TFF part 4 — Saham Bekdor RUSH ────────────────────────────
-    NarrativeTemplate(
-        name="TFF Part 4 — Saham Bekdor Bakal Come Back and RUSH",
-        description="""Ricky2212 bekdor (backdoor listing) framework:
-THE SIGNAL:
-- "Saya lupa tepat nya, tapi kalau saya tidak salah saya pernah menuliskan satu artikel tentang permainan bekdor"
-- "Sinyal sinyal yang biasa nya muncul saat market akan menuju puncak euforia nya: akan banyak Merger and Acquistion yang akan terjadi"
-- "Partisipan risk appetite nya akan naik luar biasa. Mereka akan mencari peluang yang akan memberikan return luar biasa dan cenderung mengabaikam Resiko"
-THE TIMING:
-- "Tik tok tik tok tik tok, waktu permainan juga semakin terbatas menjelang puncak market"
-- "Mereka juga tau bahwa permainan bekdor sedang luar biasa digemari"
-- "Mereka cari cangkang, mereka siapin asset nya, mereka inject asset nya and market bakal mengapresiasi gila2x an tuh saham"
-IB CONFIRMATION:
-- Ricky met an IB (Investment Banker) who is also a commissioner at a company
-- "Pak setau saya perusahaan bapak itu mau di bekdor yah? dia ketawa-tawa dan menjawab koq kamu bisa tau?"
-- "Mereka para konglo juga tau batasan waktu nya, dan waktunya sudah makin mepet. Maka mereka juga dengan segera akan mengeksekusi permainan mereka"
-- Pipeline: "banyak and banyak bidang usaha yang berbeda yang akan di bekdor. Bakalan rame tuh bekdor nanti sebentar lagi"
-Ricky's call: "Permainan bekdor akan berkembang sebentar lagi. Permainan bekdor akan ramai bahkan cenderung Rush."
-"Para konglo paham akan hal dan keadaan sekarang yang membuat mereka harus segera melakukannya."
-"Salah satu M&A nya adalah bekdor bekdor ini nantinya"
-"Uang judol yang mengendap di kamboja itu akan coba dibawa balik dan salah satu media nya adalah lewat saham2x bekdor"
-"Semua pengusaha yang bekdor juga mengatakan hal yang sama tentang time line nya"
-"Kalo perlu DEWA di inject asset sama Salim, diinject asset yang gede sehingga makin Rame tuh DEWA"
-"Please pikirkan kembali matang2x sebelum mengikuti permainan bekdor ini. Walau menawarkan potensi Return yang besar, tapi jangan lupa juga bahwa resiko yang melekat juga sangatlah besar"
-Key data: Bekdor rush = peak market signal. Time is running out for conglo players.""",
-        category="sector",
-        catalyst_types=["bekdor_rush","backdoor_listing","ma_peak_signal","konglo_exit_strategy",
-            "judol_money_bekdor","risk_appetite_spike"],
-        activation_keywords=["tff part 4","saham bekdor","bekdor come back","bekdor rush","merger acquisition peak",
-            "risk appetite naik","waktu permainan terbatas","batasan waktu mepet","konglo eksekusi bekdor",
-            "pipeline bekdor","ib commissioner bekdor","cangkang bekdor","inject asset bekdor",
-            "market apresiasi gila","judol money kamboja bekdor","salim inject dewa","dewa asset inject",
-            "ma peaked market","bekdor ramai","bekdor rame","time line konglo","resiko bekdor besar",
-            "return bekdor besar","matang2x bekdor"],
-        invalidation_keywords=["bekdor_fails","regulatory_crackdown_backdoor","ma_dries_up",
-            "konglo_abandons_bekdor"],
-        beneficiaries={"ihsg":["shell_companies","cangkang_tbk","BUMI.JK","BRMS.JK","WIFI.JK","MPIX.JK"],
-            "conglo":["DEWA.JK","TOBA.JK"]},
-        fades={"ihsg":["fundamental_stocks","blue_chip"]},
-        regime_alignment={"Q3":1.60,"Q4":1.40,"Q2":1.00,"Q1":0.80},
-        typical_duration_weeks=8,
-        conviction_ceiling=0.75,
-        pump_risk=0.30,
-        confirmation_signals=["bekdor_announcement_spike","shell_company_volume_surge","konglo_inject_asset",
-            "judol_money_repatriation","ma_activity_index_spike","risk_appetite_index_extreme"],
-    ),
-
-    # ── ARTICLE 32: God Save the King — Pepe/08/Danantara Symbiosis ───────────
-    NarrativeTemplate(
-        name="God Save the King — Pepe 08 Danantara Symbiosis & PGEO/CDIA/RAJA",
-        description="""Ricky2212 conglo-political symbiosis framework:
-THE SETUP:
-- "Uang deras masuk ke konglomerasi. Hegemoni konglomerasi mulai mencuat and hot lagi"
-- "Market di drive karena flooding liquidity. Dunia akan kebanjiran likuiditas"
-- "Bond indo sudah mulai diserbu dengan likuiditas yang tinggi. Hanya masalah waktu saja nanti masuk ke pasar saham"
-- "Karpet merah disiapkan dengan menurunkan market sementara waktu"
-PERFORMANCE TIERS:
-- a. Underperform: kenaikannya mediocre, dikalahkan oleh market
-- b. Marketperform: kenaikannya sesuai dengan kenaikan market
-- c. Outperform: kenaikannya akan melebihi kenaikan indeks
-RICKY'S STRATEGY:
-- "Saya akan bermain siram bensin dengan menitik beratkan pada narasi2x yang akan hype di publik"
-- "Narasi gabungan konglo dengan CA dan kedekatan dengan circle 08 dan danantara effect"
-- "Keadaan ekonomi itu lagi tidak baik2x saja. Kinerja banyak emiten akan tertekan oleh keadaan ekonomi"
-- "Kinerja itu adalah dasar dari pergerakan emiten terutama big cap. Kalo kinerja buruk terus alasan geraknya pakai apa?"
-GOD = BUMI:
-- "Saya sudah jelaskan di artikel B-Indicator tentang saham ini"
-- "Mereka akan lakukan sebuah skema permainan besar untuk memuncakkan sebuah siklus nantinya"
-- "Habis God nanti ciptaannya yaitu Earth juga akan nyusul koq"
-KING = PEPE GROUP:
-- "Om pepe juga lagi cari panggung lagi nih. Market bergerak oleh saham2x peper belakangan ini"
-- "BREN, TPIA, CUAN, BRPT gerak tuh bisa menggerakan naik turunnya indeks"
-- CDIA IPO: "luar biasa animo nya. Gila sih tuh IPO dibuat luar biasa dengan menaikkan satu group pepe agar IPO itu jadi bikin FOMO TFF"
-- "Om Pepe juga lumayan mulai mendekat ke 08 dan Danantara. Beberapa project om Pepe itu ada hubungan langsung dengan Danantara"
-- TPIA: "habis ambil alih kilang Shell di asia menurut saya sudah lewat masanya. Kenaikannya hanya naik sisa sisa an saja"
-- BREN: "narasi Green mencuat lagi dan 08 lewat danantaranya lagi mensupport narasi Green. Tapi kenaikannya juga sudah terbatas lah yah. Size nya juga sudah terlalu besar"
-- BRPT: "mendapatkan project KEK (Kawasan Ekonomi Khusus). Menarik tapi belum menemukan titik asymetrical bet nya"
-THE REAL PLAYS:
-1. PGEO:
-    - "CDIA tuh sudah dikasih lampu hijau untuk mengambil saham perusahaan geothermal pemerintah yaitu PGEO"
-    - "Danantara juga mengumumkan bahwa mereka memberikan financing ke PGEO sebesar 2 trilyun"
-    - "08 butuh cari panggung karena Danantara adalah pertaruhan besar. 08 meminang om Pepe buat eksekusi di level pasar saham nya. Simbiosis mutualisme tercipta"
-    - "Harusnya masih on going project nya. Butuh waktu buat menyelesaikan project nya"
-2. RATU/RAJA:
-    - "CDIA sudah mengambil alih sebuah perusahaan migas anak usaha dari RAJA"
-    - "Siapa yang bercokol di Raja? Hepi Hapsoro. Suami dari Puan Maharani"
-    - "Hepi lewat RATU nya mau menambah koleksi sumur migas nya dengan melakukan akuisisi organik. Blok migas yang cukup well known and besar yang dikelola oleh PetroChina"
-    - "Saya ga milih The Queen nya. KING nya yang akan berkuasa. Saya melihat level RAJA nya lebih menarik dibanding RATU nya"
-    - "Ending play nya apa? tau lah kalo konglomerasi main tuh ending nya apa"
-Ricky's call: "GOD Save the KING, itu narasi yang saya lihat punya potensi untuk jadi Narasi yang punya Moat"
-"Ini bukan ajakan untuk sebuah keputusan Permainan. Permainan ini jelas mengandung resiko yang besar. Semua nya digerakkan oleh narasi dan persepsi pasar"
-"Saya pribadi sampai berdoa supaya saya bisa tetap waras dan bisa menahan diri agar tidak terjangkit penyakit STANLEY DRUCK"
-Key data: Pepe group + 08/Danantara symbiosis = strongest narrative moat. PGEO and RAJA are the real plays.""",
-        category="sector",
-        catalyst_types=["pepe_08_symbiosis","danantara_pepe","pgeo_play","ratu_raja_play",
-            "cdia_ipo","god_save_king","conglo_moat","narrative_moat"],
-        activation_keywords=["god save the king","pepe 08 symbiosis","danantara pepe","danantara effect",
-            "pgeo play","pgeo danantara 2 trilyun","cdia pgeo","ratu raja play","hepi hapsoro",
-            "puan maharani raja","raja lebih menarik","ratu queen","petrochina blok migas",
-            "om pepe panggung","bren tpia cuan brpt","cdia ipo fomo","tpi shell asia",
-            "bren green danantara","brpt kek","simbiosis mutualisme","08 cari panggung",
-            "danantara pertaruhan 08","narasi moat","conglo moat","flooding liquidity",
-            "bond indo diserbu","karpet merah market","underperform marketperform outperform",
-            "siram bensin narasi","circle 08 danantara","stanley druck penyakit","waras tahan diri"],
-        invalidation_keywords=["pepe_08_conflict","danantara_withdraws_support","pgeo_project_fails",
-            "raja_fades"],
-        beneficiaries={"ihsg":["PGEO.JK","RAJA.JK","CDIA.JK","BREN.JK","TPIA.JK","CUAN.JK","BRPT.JK"],
-            "conglo":["BUMI.JK","BRMS.JK"]},
-        fades={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","fundamental_blue_chip"]},
-        regime_alignment={"Q1":1.60,"Q2":1.40,"Q3":1.20,"Q4":1.00},
-        typical_duration_weeks=26,
-        conviction_ceiling=0.80,
-        pump_risk=0.25,
-        confirmation_signals=["pgeo_financing_complete","cdia_takes_pgeo","danantara_pepe_project",
-            "raja_acquisition_announced","ratu_petrochina_deal","bren_green_danantara","brpt_kek_approved"],
-    ),
-
-    # ── ARTICLE 33: TFF => WTFF => Peaked ─────────────────────────────────────
-    NarrativeTemplate(
-        name="TFF => WTFF => Peaked — Market Euphoria Cycle & Exit Strategy",
-        description="""Ricky2212 market euphoria cycle framework:
-THE NUMBERS:
-- "Jack Up, Jack Up tak terasa indeks sudah naik belakangan ini dan terakhir bertengger diatas 7300 an malah sudah mau 7400"
-- "Kalo dihitung dari lowest yang tercipta pada bulan April pas liberation day maka Indeks sudah come back sekitar 1600 an point atau sekitar 28% an"
-- "28% come back dari low is a BULL right? secara hitungan teknis behaviour Low + 20% is a BULL come back"
-THE PHASES:
-1. TFF (Ter FOMO FOMO):
-    - "Kadar TFF nya aja belum parah koq"
-    - "Lah kalo terFOMO FOMO aja belum parah, berarti tahapan selanjutnya yaitu WTFF alias kenaikan lebih parah lagi yang lebih tanpa dasar lagi belum dimulai"
-    - "Semesta mendukung yah?"
-    - MSCI saham Pepe dibuka → kenaikan Pepe stocks
-    - Indonesia-US trade deal: tariff 32% → 19%
-    - BI cut 25 bps
-    - "Koq kaya sengaja? koq tetiba saja market Indonesia diberondong berita bagus tanpa henti?"
-    - "Thats why saya selalu bilang kalo market itu kalo mau naik yang naik aja, banyak berita akan disiapkan buat Fueling the Rally"
-    - "Mau apapun, mau gimanapun, mau dengan cara apapun, kalo mau naik yah sudah naik lah tanpa ada yg bisa menahan kenaikannya"
-    - DCII: "perusahaan dengan kapitalisasi pasar hampir 500T koq bisa dibuat naik dan ARA selama 3 hari ber turut-turut"
-    - "Super big cap ARA? itu namanya kegilaan pasar yang ga pake otak. Pokoknya pasar dibuat rally aja lah"
-2. WTFF (What The Fucked Fucked):
-    - "Kadar TFF makin terus membesar dan menggelembung"
-    - "Semua sudah tidak lagi memikirkan resiko yang ada. Semua tidak lagi memperhitungkan Resiko. Sudah pokoknya hajar lah, besok juga naik"
-    - "Fund yang tadinya skeptis kelakuannnya akan sama kaya retail, mereka takut tertinggal oleh Market"
-    - "Makin lah tuh market ga pake OTAK"
-    - "Semut akan terus berdatangan menggerumuti kue di meja"
-    - "Orang akan pamer keuntungan sana sini"
-    - "Jangan aneh juga nanti saat anda naik OJOL, drivernya sambil liatin apps crypto atau saham"
-    - "Jangan aneh juga saat anda makan di warteg, lagi bicarakan saham naik turun"
-    - "Anda akan bertemu sama orang yang ga pernah masuk pasar, tidak tahu pasar tapi bicara keuntungan dari pasar"
-3. PEAKED:
-    - "Waktunya indeks akan menemukan puncaknya nanti setelah semua kondisi itu tercapai"
-    - "Jangan selalu berharap semua akan berjalan dengan mulus. Di tengah jalan pasti lah ada namanya cekungan"
-    - "Cekungan itu nanti yang akan jadi transisi dari TFF ke WTFF => should be pas terjadi CUT RATES"
-THE MIXED FEELINGS:
-- "Saya merasakan feel mixed dalam kenaikan pasar belakangan ini"
-- "Ada yang menikmati bahkan sangat menikmati kenaikan pasarnya, bahkan ada yang manyun duduk di pojokkan karena tidak bisa menikmati kenaikan pasar nya"
-- Fund frustration: "sekelas Fund2x lokal banyak yang gigit jari juga koq bahkan bukan gigit jari lagi, mereka mungkin sampai mengumpat market"
-    - "Apa-apa an sih market Indo ini, shit and dibuang ke tong sampah aja"
-- Super performers: "DEWA, TOBA, WIFI, PGEO mengalami kenaikan luar biasa"
-    - TOBA: "bertengger di level 1100 an (kayanya langkah selanjutnya mau right issue diatas)"
-    - WIFI: "pasca selesai right issue langsung digenjot habis dan sudah diperdagangkan diatas 2900 an"
-        - "Fund belum banyak yang chip in disini, once mereka makin sadar and size kapitalisasi pasar serta likuiditas memadai buat masuk dengan size yang besar, hmmm yang mereka yang akan memuncaki harga saham ini"
-        - "Kalo sampai di indexing? hmmm, yah hitung lah sana target indexingnya"
-    - PGEO: "harusnya masih on going project nya. Butuh waktu buat menyelesaikan project nya"
-    - DEWA: "ngebut tanpa tertahankan. LK Q2 yang akan keluar harusnya bisa naik 10-15 fold kalau melihat dari kinerja Q1 nya"
-THE CHOICE:
-- "Ini soal pilihan, bukan soal keharusan"
-- "Anda bisa memilih untuk ikut serta atau tidak dalam kegilaan ini"
-- "Sisihkan uang yang semestinya dan sesuai dengan resiko anda"
-- "Kalo tidak? duduk lah dengan tenang dan jangan mudah goyah atas pilihan anda tersebut"
-EXIT STRATEGY:
-- "Ga ada rumus pasti untuk keluar dari permainan ini"
-- "Saya biasa memakai indikator temperature market buat saya EXIT"
-- "Kalau sudah semakin panas temperature market, saya pasti perlahan akan keluar dari market"
-- "Saya biasanya cek keramaian di sosmed"
-- "Saya bukan ahli nujum bisa menebak pucuk. Saya lebih suka keluar sebelum pertandingan usai sehingga pintu yang saya lewati masih lebar terbuka"
-- "Saya lebih suka mencukupkan diri untuk sebuah permainan tanpa dasar"
-Ricky's call: "TFF => WTFF => Peaked sempurna lah semua kegilaan yang terjadi di market"
-"Jangan aneh, ini bagian dari sebuah cycle. Cycle yang akan selalu berulang dan berputar pada poros yang sama"
-"Ingat selalu penyakit Stanley yah, jangan petantang petenteng dan jangan sampai terhanyut dalam kemeriahan pasar"
-"Badut2x akan semakin banyak berkeliaran di luar mengajak anda terus berpesta"
-Key data: TFF→WTFF→Peaked is the cycle. Temperature market = social media noise = exit signal.""",
-        category="cycle",
-        catalyst_types=["tff_wtff_peaked","market_euphoria","temperature_exit","dci_ara","fund_frustration",
-            "social_media_noise","cut_transition","choice_not_obligation"],
-        activation_keywords=["tff wtff peaked","ter fomo fomo","what the fucked fucked","28% comeback",
-            "low plus 20% bull","ihsg 7300","ihsg 7400","1600 point comeback","semesta mendukung",
-            "msci pepe","indonesia us trade deal","tariff 32% ke 19%","bi cut 25 bps","fueling the rally",
-            "dcii ara 3 hari","super big cap ara","kegilaan pasar","tff belum parah","wtff tanpa dasar",
-            "fund skeptis jadi retail","market ga pake otak","ojol liat crypto","warteg bicara saham",
-            "orang ga pernah pasar untung","cekungan transisi","cut rates transisi","feel mixed",
-            "fund gigit jari","fund mengumpat market","shit market indo","dewa toba wifi pgeo naik",
-            "toba 1100 right issue","wifi 2900 indexing","pgeo ongoing","dewa 10-15 fold","soal pilihan",
-            "bukan keharusan","temperature market exit","keramaian sosmed","keluar sebelum pertandingan usai",
-            "penyakit stanley","badut berkeliaran","cycle berulang"],
-        invalidation_keywords=["market_cools_early","tff_never_arrives","fund_stays_skeptical",
-            "temperature_never_peaks"],
-        beneficiaries={"ihsg":["DEWA.JK","TOBA.JK","WIFI.JK","PGEO.JK","BUMI.JK","BRMS.JK","MPIX.JK"],
-            "us":["BTC-USD","MSTR","COIN"]},
-        fades={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","fundamental_only"]},
-        regime_alignment={"Q3":1.80,"Q4":1.70,"Q2":1.40,"Q1":1.00},
-        typical_duration_weeks=12,
-        conviction_ceiling=0.85,
-        pump_risk=0.30,
-        confirmation_signals=["ihsg_above_7400","dci_ara_sustained","social_media_saham_trending",
-            "ojol_driver_trading","warteg_saham_discussion","fund_frustration_peaks","temperature_index_extreme"],
-    ),
-
-    # ── ARTICLE 34: Tiki Taka Barcelona — Siram Bensin Strategy ────────────────
-    NarrativeTemplate(
-        name="Tiki Taka Barcelona — Siram Bensin Strategy TFF to WTFF",
-        description="""Ricky2212 portfolio rotation framework: "Seni melipat uang"
-TIKI TAKA CONCEPT:
-- "Pep Guardiola bisa meramu bintang barca dan menyuguhkan permainan indah sepak bola"
-- "TIKI TAKA membuat bola mengalir dari kaki ke kaki pemain tanpa pernah berhenti"
-- "Ga banyak goreng, ga banyak dribble, ga ada yang egpis pemainnya"
-- "Bola terus mengalir dari belakang sampai ke jantung pertahanan lawan"
-- Strategy applied to portfolio: "Strategy TIKI TAKA ala Barcelona ini saya sedang praktik an dalam permainan edisi siram bensin saya"
-PORTFOLIO CONCENTRATION:
-- "Permainan saya di bursa terus mengerucut saham nya. Saya sudah tidak lagi mengexplore banyak saham lagi"
-- "Saya menjalanin perjalanan saya melalui TFF diteruskan nanti ke WTFF dan puncak nya nanti sampai PEAKED"
-TIKI TAKA ALIRAN PUTARAN UANG:
-1. DEWA:
-    - "Dari awal aliran uang saya disini sangat besar dan sepertinya aliran uang dalam permainan disini saya akan teruskan sampai permainan selesai"
-    - "Still long long way to go"
-    - "Tebakan saya laba 1H mereka akan keluar di kisaran 140 bio - 160 bio yah. lebih dari angka ini yah anggap aja bonus"
-    - "Narasi mereka masih panjang dan belum banyak di keluarin. Yah kira2x ada 5-6 project narasi yang dipersiapkan"
-    - "Salah satu nya jangan kaget kalo Q3 2025 keatas nantinya ada impairment karena memang dibutuhkan"
-    - "Avg saya jauh di bawah harga market sekarang bahkan saya sempat avg up di 17x an buat antisipasi LK Q2"
-2. TOBA:
-    - "Semua aksinya sudah dijelaskan di artikel mas tom dan 1 artikel saya. Danantara effect yang satu ini sudah berjalan thesis nya"
-    - "Dari mulai diversifikasi usaha ke sampah yang jadi salah satu usaha yang di dorong oleh 08"
-    - "Diversifikasi usaha sudah done, perpres nya juga sudah Done, hanya tinggal 1 CA lagi yaitu Right Issue"
-    - "Rasanya saya sudah mencukupkan diri di saham ini dengan torehan Superior RETURN"
-    - "Aliran uang dari sini sebagian sudah saya TIKI TAKA kan ke pemain lain"
-    - "Sisa uang penjualan sahamnya, saya lagi pikirkan nanti buat 4 kandidat pemain baru sambil menunggu kalo ada CEKUNGAN"
-3. WIFI:
-    - "Semua penjelasan tentang saham ini juga sudah dijelaskan dalam beberapa artikel mas Tom"
-    - "Saya ikut si edisi CA kedua perusahaan ini"
-    - "Menarik banget setelah salah satu teman lama saya menjelaskan blue print permainan ini sehingga saya masukkan saham ini ke edisi permainan TIKI TAKA"
-    - "Narasi nya kuat banget and tau lah si bersin bersin punya kerjaan disini"
-    - "Jangan kaget and terperangah nanti yah kalo memang semua blue print nya berjalan dengan baik"
-    - "Avg saya adalah harga CA edisi kedua. Saya masih berjalan di saham ini sampai satu per satu Narrative nya keluar and sampai ramai HOT di luar sana"
-4. BUMI:
-    - "Yang ini juga saya sudah bahas berkali-kali dalam artikel B-Indicator"
-    - "Buat yang sudah ga tahan di saham ini, mungkin anda bisa cari saham Blue Chip aja biar lebih tenang"
-    - CIC (Chongqing Investment Company): "nanti out koq. Makanya kemarin saya pergi ke Chongqing buat ketemu perwakilannya"
-    - "Laba diatur supaya bisa kuasi DONE. Kuasi berjalan dan disetujui DONE. Keluarin obligasi DONE. Akuisisi Green mining DONE"
-    - "Rio Tinto wannabe akan terus berjalan dan beberapa CA sudah disiapkan"
-    - "BUMI adalah striker pamungkas saya. Biarin aja ga naik, terus aja ga naik, kalo perlu bejek aja harganya sampai waktu yang cukup lama"
-    - "Puncak aliran uang dalam TIKI TAKA semua saham diatas adalah di saham ini"
-    - "Makin dikasih ulur waktu yang lama makin baik buat saya sehingga aliran TIKI TAKA dari penjaga gawang ke pemain belakang lalu ke pemain tengah puncaknya aliran nya bisa ke penyerang sebelum nanti nya terjadi GOL"
-    - "Malah kalo perlu dunia antah berantah saya juga biar jalan dulu sampe muncrat2x biar bisa dialokasikan lagi nanti di saham ini"
-KANDIDAT BARU:
-- PGEO, RAJA
-- "2 saham lagi saya ga sebutkan karena permainan nya agak lebih berbahaya. Sahamnya agak tidak preferable buat teman2x"
-Ricky's wisdom: "Your money your responsibility, tugas saya hanya memberikan gambaran dalam sebuah thesis dan saya menjalani apa yang sudah saya buat"
-"Kita ga akan pernah sama dalam hal menjalaninnya"
-"Jangan mencari2x valuasinya, karena ini permainan narrative. Nanti banyak yang bias kalo anda mencampur aduk kan strategy nya"
-Key data: Tiki Taka = rotate profits from early movers to late-stage striker (BUMI). Patience = key.""",
-        category="sector",
-        catalyst_types=["tiki_taka_strategy","siram_bensin","portfolio_rotation","dewa_play","toba_play",
-            "wifi_play","bumi_striker","pgeo_raja_candidate","profit_rotation"],
-        activation_keywords=["tiki taka barcelona","seni melipat uang","siram bensin tff","tiki taka strategy",
-            "portfolio rotation","dewa play","toba play","wifi play","bumi striker pamungkas",
-            "pgeo candidate","raja candidate","dewa laba 1h 140-160","dewa avg 17x","dewa impairment q3",
-            "toba danantara effect","toba diversifikasi sampah","toba perpres done","toba right issue",
-            "toba superior return","toba cekungan","wifi ca kedua","wifi blue print","wifi bersin bersin",
-            "wifi avg ca","wifi narrative keluar","bumi b indicator","bumi cic chongqing","bumi laba kuasi",
-            "bumi obligasi done","bumi green mining done","bumi rio tinto wannabe","bumi striker",
-            "bumi puncak aliran uang","bumi bejek harga","dunia antah berantah dialokasikan bumi",
-            "your money your responsibility","jangan cari valuasi","permainan narrative"],
-        invalidation_keywords=["tiki_taka_breaks","dewa_fails","toba_fades","wifi_crashes","bumi_abandoned"],
-        beneficiaries={"ihsg":["DEWA.JK","TOBA.JK","WIFI.JK","BUMI.JK","PGEO.JK","RAJA.JK"],
-            "crypto":["BTC-USD","ETH-USD"]},
-        fades={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","blue_chip_fundamental"]},
-        regime_alignment={"Q3":1.70,"Q4":1.50,"Q2":1.20,"Q1":0.90},
-        typical_duration_weeks=26,
-        conviction_ceiling=0.85,
-        pump_risk=0.25,
-        confirmation_signals=["dewa_lkq2_spike","toba_right_issue_announced","wifi_indexing_rumor",
-            "bumi_cic_exits","bumi_green_mining_complete","pgeo_project_progress","raja_acquisition_close"],
-    ),
-
-    # ── ARTICLE 35: OBBB + FOMC July — One Big Beautiful Bill & CUT Scenarios ─
-    NarrativeTemplate(
-        name="OBBB + FOMC July — One Big Beautiful Bill & 2 CUT Scenarios",
-        description="""Ricky2212 US fiscal/monetary framework:
-OBBB (ONE BIG BEAUTIFUL BILL):
-- Signed July 4, 2025 (Independence Day)
-- "Anggaran besar Presiden AS Donald Trump menjadi undang-undang"
-- CBO estimate: adds $3.3T federal deficit over 10 years
-- "Jutaan orang kehilangan cakupan kesehatan"
-- JD Vance tie-breaking vote in Senate
-- "Pemberontak Partai Republik akhirnya mendukungnya setelah berjam-jam perdebatan sengit"
-KEY PROVISIONS:
-1. Tax Cuts 2017 made permanent + standard deduction +$1K (individual) / +$2K (married) until 2028
-2. Medicaid cuts: work requirements, 6-month re-enrollment, provider tax cut 6%→3.5% by 2032
-    - "Hampir 12 juta warga Amerika bisa kehilangan cakupan kesehatan"
-3. Social Security: temporary standard deduction +$4K for 65+ (2025-2028)
-    - Senate version: $6K reduction for <$75K income
-4. SALT cap: $10K → $40K (reverts to $10K after 5 years)
-5. SNAP (food stamps): state contribution required, error rate <6% = full federal funding
-6. Defense +$150B: Golden Dome missile defense, ICE +$100B (annual was ~$8B)
-    - "ICE lembaga penegak hukum federal terbesar"
-7. No tax on tips/overtime (phases out at $150K individual / $300K joint, ends 2028)
-8. Child tax credit: permanently $2,200
-9. Debt ceiling: +$5T
-10. Clean energy incentives phased out: wind/solar 100%→60%→20%→0% by 2028
-RICKY'S INTERPRETATION:
-- "Ini seperti QE yang massive yang sedang digelontorkan dalam sebuah sistem ekonomi"
-- "Amrik akan terus mencetak defisit yang luar biasa sampai 2034 mendatang"
-- "Defisit tersebut tentunya digunakan untuk menopang jalannya pertumbuhan ekonomi mereka"
-- "massive spending => massive defisit => hutang and cetak uang yang banyak"
-- "massive M2 bakal berkeliaran di luar sana. Uang beredar akan makin melimpah"
-- "Likuiditas besar akan masuk ke sistem ekonomi"
-- "ga salah bukan kalo bakal ada pemotongan suku bunga di depan?"
-- "ga salah bukan kalo nanti TFF datang?"
-- "It's all about liquidiy dan ini adalah injeksi uang baru yang masuk ke sistem ekonomi and keuangan"
-FOMC JULY 2025:
-- Fed holds rates at 4.25-4.5% (5th consecutive hold since Dec 2024)
-- Dissenters: Christopher Waller + Michelle Bowman wanted 25bps cut
-    - "Pertama kalinya lebih dari satu Gubernur Fed berselisih pendapat sejak 1993"
-- Powell: "tarif Trump dan dampaknya masih berada pada tahap awal"
-- Market expects at least 1 cut this year, maybe 2. First cut possibly September.
-- "Powell mengatakan masih terlalu banyak hal yang belum pasti"
-- "Kami belum membuat keputusan apapun tentang Rapat FOMC September nanti"
-- GDP Q2: 3% annual (strong surface), but real final sales to private domestic purchasers: 1.2% (down from 1.9%)
-- "Indikator terbaru menunjukkan bahwa pertumbuhan aktivitas ekonomi melambat di paruh pertama tahun ini"
-UST ANALYSIS:
-- UST 1M: 4.36%, UST 3M: 4.26%, UST 1Y: 3.94%, UST 2Y: 3.73%, UST 10Y: 4.23%, UST 30Y: 4.79%
-2 CUT SCENARIOS:
-1. CUT in BER BER BER (September):
-    - "Odds market nya sudah 90% menunjukan bahwa FOMC September mereka akan melakukan CUT sebesar 25 Bps"
-    - "Sesuatu yang sudah di ekspektasi adalah barang BASIAN"
-    - "Mempercepat ending WTFF nya di sekitaran sebelum pertengahan tahun depan"
-    - "Market akan cepat membuat ekspektasi baru bahwa FED akan terus malakukan CUT berturut-turut sampai tahun depan"
-2. Gradual CUT (Powell-YoYo):
-    - "Mereka akan menahan gradually CUT nya dengan bermain Powell-YoYo"
-    - "Ending WTFF bisa diundur sampai ber ber tahun depan dan WTFF kita bisa makin lama and muncrat luar biasa"
-    - "Market ga butuh2x banget CUT. Market tuh full digerakkan Narrative luar biasa"
-    - "Trump doing great Job buat menjalankan program narrative ini"
-THE REALITY:
-- "Ekonomi sempoyongan, Perlu bantuan suku bunga di CUT. Tapi efek dari suku bunga tersebut itu ga langsung instant, butuh adjustment 1 tahun ke depan baru berasa ke real bisnis"
-- "Keadaan ekonomi sekarang tuh butuh suku bunga dibawah normal 2% bahkan kalo bisa suku bunga sampai 0% lagi"
-- "Kalo mereka lakuin itu sekarang, apa yang terjadi? market panik karena data yang mereka sembunyikan tuh kebongkar semua"
-- "Game nya sekarang adalah masih pada level men jack up market sedemikian rupa supaya semua terlihat bagus terlebih dahulu"
-- "Mereka sebenernya sudah siapin sampe next level game koq. Mereka sudah siapin kapan rate bisa ke 0% lagi"
-- "Tahun ini yang paling besar [debt maturity] dan itu terjadi di bulan juni and july 2025"
-- "Sudah mereka refinancing? sudah, dan thanks to Japan yang bantu sediakan likuiditas buat Amrik refinancing"
-- "Jepang nahan suku 0.5% nya padahal inflasi sudah 3% lebih. Kenapa? tuh pada carry trade buat belikan obligasi US yang jatuh tempo"
-- "US keluarin Bond dalam UST 2Y dan UST 5Y. Paling besar di UST 2Y dan itu sinyal tuh bahwa 0% nya mungkin akan di waktu jatuh tempo UST 2Y (2 tahun lagi)"
-- "2 tahun lagi yaitu 2027 dan itu adalah persilangan puncak siklus 10 tahun dan siklus 100 tahun ketemu disana"
-- "Skenario TFF to WTFF kalo tidak ada aral melintang akan berakhir dan memuncak di tahun depan 2026 sebelum semua borok2x nya kebuka"
-Ricky's call: "As long as u know the big picture and lo tau ujung nya dimana yah duduk manis aja"
-"Biarkan market bermain dengan banyak kelucuan yang mereka ciptakan sendiri"
-"So, saran saya kalo ber ber ini ada local top yah nikmati saja jangan terlalu panik"
-"Semua settingan TFF to WTFF sejauh ini masih berjalan dengan baik. Peaked nya belum akan disana koq harusnya"
-Key data: OBBB = massive fiscal injection. FOMC = narrative game. Real cut timing = 2026-2027. Peak = 2026.""",
-        category="geopolitical",
-        catalyst_types=["obbb","one_big_beautiful_bill","fiscal_injection","fomc_july","cut_scenarios",
-            "ust_analysis","powell_yoyo","debt_refinancing_2025","japan_carry_trade","peak_2026"],
-        activation_keywords=["obbb","one big beautiful bill","anggaran besar trump","3.3 trilyun defisit",
-            "jd vance tie breaking","tax cuts permanent","medicaid cuts","social security deduction",
-            "salt cap 40k","snap reform","defense 150 miliar","golden dome","ice 100 miliar",
-            "no tax on tips","child tax credit 2200","debt ceiling 5 trilyun","clean energy phased out",
-            "qe massive","fomc july 2025","waller bowman dissent","powell hold","fomc september cut",
-            "gdp q2 3%","real final sales 1.2%","ust 1m 4.36","ust 2y 3.73","ust 10y 4.23",
-            "cut scenario 1 ber ber ber","cut scenario 2 gradual","powell yoyo","market ga butuh cut",
-            "trump narrative drive","ekonomi sempoyongan","suku bunga 0%","data kebongkar",
-            "jack up market dulu","refinancing juni juli 2025","japan carry trade ust",
-            "jepang suku 0.5%","ust 2y jatuh tempo 2027","siklus 10 tahun 100 tahun",
-            "peak 2026","tff wtff berakhir 2026","borok kebuka","duduk manis big picture",
-            "local top nikmati","settingan tff wtff berjalan baik"],
-        invalidation_keywords=["obbb_repealed","fomc_hikes","ust_yields_crash","refinancing_fails",
-            "peak_comes_early"],
-        beneficiaries={"us":["SPY","QQQ","IWM","TLT"],"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","BUMI.JK","WIFI.JK"],
-            "crypto":["BTC-USD","ETH-USD"]},
-        fades={"us":["SQQQ","VIX"],"ihsg":["property"]},
-        regime_alignment={"Q3":1.60,"Q4":1.40,"Q2":1.00,"Q1":0.80},
-        typical_duration_weeks=52,
-        conviction_ceiling=0.85,
-        pump_risk=0.20,
-        confirmation_signals=["obbb_signed","fomc_dissenters_increase","ust_curve_flattening",
-            "refinancing_completed","japan_carry_trade_volume","gdp_real_sales_declines",
-            "ber_ber_ber_cut_odds_90%","peak_2026_signals"],
-    ),
-
-    # ── ARTICLE 36: FUNDA + FINDi — 30% Funda 70% Findi Thesis ─────────────────
-    NarrativeTemplate(
-        name="FUNDA + FINDi — 30% Funda 70% Findi Narrative Filter",
-        description="""Ricky2212 stock selection framework: "Funda + Findi"
-THE JOKE:
-- "Pilihan saham buat saat ini dari TFF sampai nanti puncak TFF itu kalo bisa mengandung Funda + Findi sekalian di kompormasi (bukan konfirmasi)"
-- "Lucu, lucu sampai mendengarnya saat kalimat tersebut dilempar dalam diskusi tersebut"
-DEFINITIONS:
-- Funda = Fundamental: "yah sedikit banyak saham tersebut ada aspek fundamental yang disodorkan"
-- Findi = Findimintil: "saham tersebut mengandung narrative yang cukup bisa mendongkrak harga nya"
-- Kompormasi = "plesitan konfirmasi" = being fanned/compelled by market narrative
-THE PROBLEM:
-- "Saham2x yang bergerak karena dorongan fundamental cukup sulit di apresiasi oleh pasar. Bukan tidak naik yah, tapi lagging and di underperform oleh market"
-- "Keadaan ekonomi di luar sana sedang cukup tidak bersahabat sehingga kalau mengharapkan kinerja memuaskan malah cuma jadi isapan jempol belaka"
-- "Pasar butuh mainan buat mencari sebuah keuntungan"
-THE NARRATIVE DOMINANCE:
-- "NEXT RALLY is FINDIMINTIL RALLY"
-- "Pergerakan pasar memang didominasi oleh permainan narrative dengan konglo sebagai narrative utama"
-- "Narrative kuat selanjutnya adalah INDEXing dan Corporate Action"
-- "Saham2x yang boleh dibilang saham Sampah pun juga ikut tergerak. Saham tersebut benar2x tidak ada aspek fundamental sama sekali"
-- "Pergerakan saham nya pure dorongan narrative dan dipoles dengan Issue Corporate Action"
-- "Corp Actionya bisa saja issue atau kalaupun benar ada corp action bisa saja cuma seadanya"
-- "Mereka tiupkan corp action ala kadar nya cuma hanya untuk mengerek harga saham nya"
-THE RISK:
-- "Partisipan yang mulai terdeteksi penyakit Stanley sehingga otak nya mulai ngeres mau cepat and instant dapat profit"
-- "Saham2x tersebut tuh jadi primadona"
-- "Tapi ada yang mereka lupa bahwa keadaan tersebut tentu mengandung resiko yang cukup besar sehingga missed saja sedikit maka ujung nya adalah petaka financial"
-THE SOLUTION:
-- "Thesis Funda and Findi itu adalah jawaban dari kami agar teman2x yang ingin ikut dalam peemainan ini tapi resiko yang dihadapi itu lebih terukur"
-- "Saham yang kami sampaikan sedikit banyak mengandung aspek fundamental yang nantinya akan berefek pada kinerja"
-- "Kalo sedikit ada dorongan kinerja kan pegang sahamnya lebih tenang"
-- "Narrative nya? kami filter saham nya yang punya kandungan narrative yang kuat dan disukai oleh pasar"
-- "Semakin kuat narrativenya maka nantinya saham tersebut dapat aliran uang besar dari pasar"
-- Mas Rizza formula: "30% Funda and 70% Findi"
-    - "Findi itu yang nantinya akan mendorong jauh harga saham nya"
-EXAMPLES:
-- DEWA, WIFI, BUMI, TOBA, RAJA, PGEO
-- "Funda + Findi sudah terpenuh, tinggal butuh 1 kompormasi alias dikomporin di market supaya pada FOMO"
-    - "Itu tugas manajemen nanti dengan cerita cerita dongeng masa depan dan tugas cheerleader membuat keramaian"
-ADVICE:
-- Fundamentalists staying on path: "teruskan dengan konsisten. Kuatkan mental anda, sedikit banyak juga saham fundamental anda kecipratan koq nantinya"
-- Fundamentalists crossing over: "plisssd tetap ingat: pertama, ini hanya permainan sementara. Jangan larut dengan euforia"
-    - "Kedua, setelah mencoba nyeberang permainan plisss jangan terbawa terus ke irama permainan narrative ke depan nya"
-    - "Mentang2x enak tanpa ngulik2x angka and aspek fundamental, terus anda terlena and meneruskan style ini buat long term (mati nanti anda kelibas)"
-    - "Shifiting lagi ke fundamental kalo memang sudah saat nya"
-Ricky's call: "Dah mau 17 Agustus, mau kemerdekaan and indeks sudah bergerak di 7700 an"
-"Waktunya Indonesia Riang Gembira lah tuh"
-"Tapi ingat jangan berlebihan, akan ada masa dimana cekungan2x akan datang"
-Key data: 30% Funda + 70% Findi = optimal risk/reward for narrative-driven market. Don't forget to shift back to fundamental when cycle ends.""",
-        category="sector",
-        catalyst_types=["funda_findi","30_70_formula","narrative_filter","fundamental_plus_narrative",
-            "risk_management","cheerleader_effect","kompormasi"],
-        activation_keywords=["funda findi","30% funda 70% findi","funda plus findi","narrative filter",
-            "kompormasi","plesitan konfirmasi","fundamental sulit diapresiasi","findimintil rally",
-            "narrative dominance","konglo narrative utama","indexing narrative","corporate action narrative",
-            "saham sampah tergerak","pure narrative","corp action ala kadar","penyakit stanley",
-            "resiko besar findimintil","petaka financial","thesis funda findi","resiko terukur",
-            "kinerja pegang tenang","narrative kuat aliran uang","mas rizza 30 70","dewa wifi bumi toba raja pgeo",
-            "funda findi terpenuh","cheerleader keramaian","manajemen dongeng","fundamentalis konsisten",
-            "fundamentalis nyeberang","jangan larut euforia","shift back fundamental","indonesia riang gembira",
-            "cekungan akan datang","17 agustus 7700"],
-        invalidation_keywords=["fundamentals_drive_market","narrative_fades","findimintil_crashes",
-            "funda_findi_fails"],
-        beneficiaries={"ihsg":["DEWA.JK","WIFI.JK","BUMI.JK","TOBA.JK","RAJA.JK","PGEO.JK"],
-            "safe_haven":["IDR_cash"]},
-        fades={"ihsg":["pure_fundamental_lagging","pure_findimintil_garbage"]},
-        regime_alignment={"Q3":1.50,"Q4":1.30,"Q2":1.00,"Q1":0.80},
-        typical_duration_weeks=16,
-        conviction_ceiling=0.80,
-        pump_risk=0.20,
-        confirmation_signals=["narrative_stock_outperforms_fundamental","funda_findi_stock_rally",
-            "corp_action_executed","indexing_inclusion","cheerleader_active","fundamental_anchors_price"],
-    ),
-
-    # ── ARTICLE 37: Oil and Gas — The Next Narrative ────────────────────────────
-    NarrativeTemplate(
-        name="Oil and Gas — The Next Narrative (Soemitro 08 Danantara Deregulation)",
-        description="""Ricky2212 oil & gas narrative framework:
-THE SIGNAL:
-- "Saya mencium sebuah permainan narrative yang sedang disiapkan"
-- "Saya ga mau jadi pihak yang membuat jempol anda bergerak cepat buat melakukan aksi mengikuti permainan"
-- "Saya hanya mau memberikan cerita kenapa belakangan saham2x yang berhubungan dengan oil kena cipratan uang dari market"
-OSV PLAY:
-- "Masih ingat saat saya bikin IG story yang mengangkat tema OSV bakal kena permainan?"
-- "i'm not kidding bro saat itu, mungkin pada kira saya bercanda. Apalagi lihat harga oil hanya $61 sampai $65 saja"
-- "Bukan, saat itu saya bukan melihat kesana tapi saya melihat konglomerasi sedang bersiap dan buat saya itu bukan persiapan yang kaleng2x"
-THE KONGLO PREPARATION:
-1. Pepe + Bahagia: "mengambil sebuah perusahaan OSV yang isinya kapal OSV dengan Type Pipe Laying"
-    - "Kapal high tier dari OSV tersebut adalah type kapal yang paling canggih di OSV"
-    - "Kapal itu hanya bisa dipakai buat membantu pengeboran minyak lepas pantai yang sangat sophisticated"
-    - "Kalo siklus minyak ga berpihak, kapal itu bakal dipastikan nganggur ga bisa dipakai sama sekali"
-2. Bahagia bekdor: "perusahaan lakukan Right Issue dan akan di inject asset"
-    - "Tau apa yang di inject? lagi2x pak Bahagia memasukkan kapal Pipe Laying ke perusahaan hasil bekdor tersebut"
-    - "Hmmmm, 2212 makin curious aja nih kalo sudah begini"
-3. Eneng (SEXY oil stock): "pergerakannya agak aneh. Oil turun terus tapi si Eneng malah jalan meliak-liuk tanpa peduli diganggu market"
-THE HISTORICAL PARALLEL:
-- "Mbasecamp lalu. Materi Mbasecamp yang saya buat, ada pembahasan cycle to cycle ekonomi Indonesia pasca kemerdekaan. Saya mulai pembahasan materi dari cycle 1968"
-- "Begawan ekonomi no 1 dan orang kepercayaan Presiden buat ekonomi melakukan aksi pembukaan investasi besar2x an di industri migas nasional"
-- "Siapa dia? dia adalah Soemitro Djojohadikusumo. Familiar dengan nama itu? dia adalah bapak nya 08"
-- "Saat itu dia deregulasi semua peraturan di industri migas agar investasi O n G di Indonesia jadi lebih menarik dan ramah buat investor"
-- "Pasca deregulasi tersebut investasi Migas kita naik luar biasa dan ekonomi Indonesia ketiban berkah saat harga oil naik di 1974 an"
-- "Fiskal kita terbantu banyak saat itu dan ekonomi kita tumbuh secara cepat karena terbantu harga minyak dunia"
-THE 08 CONNECTION:
-- "Danantara dibuat 08 karena itu cita2x bapaknya yang dulu tidak sempat kesanpaian. Jadi sekarang 08 meneruskan apa yang bapaknya cita2x kan"
-- "Bisakah 08 melakukan hal yang sama dengan bapaknya di industri migas? Saya jawab BISA dan itu akan dengan cepat 08 eksekusi"
-    - "Like Father Like Son"
-- "08 juga saya lihat akan melakukan deregulasi di industri oil and gas agar investasi besar2x an masuk"
-    - "Semua peraturan yang menghambat masuknya investasi akan di rubah"
-- "Ga percaya? tuh beberapa blok raksasa minyak di Indo yang lama mandek sekarang lagi pada bersiap melakukan pra produksi"
-    - "Semuanya adalah blok lepas pantai atau offshore yang butuh bantuan alat2x offshore nya"
-- "Mafia migas MRC dikejar2x sama KPK. Mafia migas mau diberesin dan nanti 08 akan centralisasi industrinya"
-Ricky's strategy: "Saya perlahan ikut arus market. Dimana uang mengalir, kalo kata soros harus disiram bensin nya"
-- "Saya putuskan masuk market dengan mengambil beberapa saham"
-- "Permainannya adalah Narrtive konglo, narrative 08 related sih yang paling highly prefer"
-- "Beta play merujuk pilihan selanjutnya (CA play)"
-- "Oil toh narrativenya, Oalah Kirain Apa Sih narrtivenya taunya OIL lagi toh"
-- "Saya suka kalo minyak makin licin. Apalagi kalo pengeboran nya and ngebornya dibuat makin licin dan dipermudah"
-Ricky's call: "Saya ga bicara saham per saham. Saya lagi coba bicara soal industrinya"
-"Jangan tanya saham yang bagus nya apa, jangan tanya masih boleh masuk ga, bagus mana saham ini atau saham itu, no price action question"
-"It's narrative play bukan funda play yah"
-Key data: Oil & Gas = next major narrative. 08 following Soemitro's footsteps. Deregulation incoming. OSV and offshore blocks preparing.""",
-        category="sector",
-        catalyst_types=["oil_gas_narrative","soemitro_08","danantara_oil","deregulation_oil_gas",
-            "osv_play","offshore_blocks","mafia_migas_cleanup","konglo_oil"],
-        activation_keywords=["oil and gas narrative","next narrative oil","osv play","osv kena permainan",
-            "oil 61 65","konglo bersiap oil","pepe bahagia osv","pipe laying kapal","kapal canggih osv",
-            "right issue inject pipe laying","eneng sexy oil","oil turun saham naik","soemitro djojohadikusumo",
-            "bapak 08 soemitro","1968 deregulasi migas","investasi migas naik","harga oil 1974",
-            "fiskal terbantu migas","danantara cita2x bapak","08 meneruskan bapak","like father like son",
-            "08 deregulasi oil gas","blok raksasa minyak mandek","pra produksi minyak","blok lepas pantai",
-            "offshore butuh alat","mafia migas mrc kpk","centralisasi industri migas","siram bensin oil",
-            "narrative konglo oil","narrative 08 oil","beta play oil","ca play oil","oil toh narrative",
-            "minyak makin licin","narrative play bukan funda play"],
-        invalidation_keywords=["oil_deregulation_fails","offshore_blocks_stall","mafia_migas_escapes",
-            "08_abandons_oil"],
-        beneficiaries={"ihsg":["MEDC.JK","PTBA.JK","ENRG.JK","RIGS.JK","IPCM.JK","BSML.JK"],
-            "global":["CL=F","XLE","OIH","CVX","XOM"]},
-        fades={"ihsg":["property","consumer_discretionary"]},
-        regime_alignment={"Q1":1.50,"Q2":1.30,"Q3":1.10,"Q4":0.90},
-        typical_duration_weeks=26,
-        conviction_ceiling=0.80,
-        pump_risk=0.20,
-        confirmation_signals=["osv_acquisition_complete","pipe_laying_injected","offshore_block_praproduction",
-            "oil_deregulation_announced","mafia_migas_arrested","08_oil_policy_speech","eneng_rally_continues"],
-    ),
-
-    # ── ARTICLE 38: Patriot Bond — Rp 50T Danantara Bond & Tax Amnesty Barter ─
-    NarrativeTemplate(
-        name="Patriot Bond — Rp 50T Danantara Bond, Tax Amnesty Barter & 08 Genius",
-        description="""Ricky2212 Patriot Bond framework:
-DANANTARA CONTEXT:
-- "Danantara memang baru lahir, tapi ibarat bayi yang baru lahir ini bayi yang lahirnya tambun"
-- "Danantara lahir dengan asset awal katanya sekitar $1Billion atau sekitar Rp 16 ribu Trilyun"
-- Assets: BBRI, BMRI, BBNI, Pertamina, PLN, etc.
-- "Cita2x yang awalnya dibuat oleh Bapaknya yaitu Soemitro Djojohadikusumo terlaksana sekarang ini"
-- "Danantara itu nanti jadi bantalan Fiskal Indonesia"
-- "Dengan asset Rp 16 ribu Trilyun dan ga usah muluk2x dapat yield per tahun 6% saja maka Rp 1000 Trilyun bisa dihasilkan"
-- "Rp 1000 Trilyun tersebut di salurkan dalam sistem keuangan dan ekonomi Indonesia. Gerak ga tuh ekonomi?"
-- "Danantara adalah sebuah pertaruhan besar 08 dan 08 tahu akan hal tersebut. Ga boleh gagal"
-THE KONGLO SUMMONS:
-- "Narrative apa yang ramai di luar sana? Yap konglo play bukan? Maka dipanggil lah semua tuh para Konglo ke Istana"
-- "Ehhh lo konglo gw dukung apa yang lo jalanin. Gw lewat danantara support lo dalam hal project and pendanaan"
-- "Good deal, 08 and Danantara butuh muter uangnya dan Konglo butuh project and pendanaannya. Simbiosis mutualisme terjadi"
-- Project distribution:
-    * Konglo A: sampah (waste management)
-    * Konglo B: internet
-    * Konglo C: bauksit
-    * Konglo D, E, F: various projects
-- "Semua konglo dibagi projectnya tanpa harus khawatir karena full support dari Danantara"
-DANANTARA SUPPORT EXAMPLE:
-- "Projek Energi terbarukan dari Sampah. Project ini adalah project strategis dimana Sampah akan diolah sehingga dapat menghasilkan energi (EBT)"
-- "Dari kebijakan saja 08 sudah support dengan cara mengeluarkan perpres dalam hal pengelolaan sampah. Daerah diwajibkan mengelola sedemikian rupa sehingga sampah tersebut bisa diolah. Sifatnya mandatory and wajib buat daerah"
-- "Jangan kaget kalo nanti Bantar Gebang akan jadi pusat pengolahan sampah jadi salah satu EBT terbesar di dunia"
-- "Danantara akan bantu pendanaan agar project tersebut terlaksana"
-- "Rasanya sejauh ini saya masih melihatnya dalam bentuk debt bukan ekuitas (takut konflik kepentingan)"
-PATRIOT BOND:
-- "Danantara akan mengeluarkan Obligasi. Nilai nya ga tanggung2x yaitu sekitar Rp 5 Trilyun"
-- "Obligasi Tersebut dibagi 2 Tranche dengan masing2x sebesar Rp 25 Trilyun. Jangka waktunya 5 dan 7 tahun"
-- "Patriot Bond menawarkan kupon sebesar 2% p.a"
-- "Siapa yang mau beli kalo cuma dikasih segitu? iya lah, lah bunga tabungan saya di salah satu bank aja 2.5% p.a"
-- "Radar 2212 lagi2x coba mencari tau dibalik ini tuh ada kemungkinan apa. Kalo cuma normal way saja sih rasanya ga bakal laku"
-THE BARTER SCHEME:
-- "Dahulu saya pernah cerita 2 hal tentang Uang yang bakal dibawa balik ke Indo: uang Judol and uang abu2x para konglo yang diparkir di luar negeri"
-- "Ketiga kalo mau ditambahin adalah uang dari shadow economy"
-- "Ketiga uang itu kalo dijumlahin jumlahnya sih fantastis, tapi masalah nya uang itu masih HARAM karena ga masuk sistem ekonomi dan keuangan kita"
-- "Uang bakal diampunin oleh 08 dan lo boleh bawa masuk kesini. Pake skema apa? yah bisa saja pakai Tax Amnesty"
-- "Uang mereka diampunin dan bawa balik masuk kesini"
-- "Barter dari 08: Konglo akan diberikan project yang disiapkan oleh negara berikut pendanaanya"
-- "Negara mengampuni dan sebagian uang yang diampunin lo harus makan Bond yang diterbitin Danantara"
-- "Danantara tidak perlu repot2x cari siapa pembelinya karena skemanya sudah disiapkan"
-- "Konglo pada beli tuh Patriot Bond walau kupon cuma 2%"
-    - "Mereka bisa muter uang nya dan dapat lebih dari segitu koq"
-THE 8 PRIORITY SECTORS:
-1. Minerals: Nickel, Bauxite
-2. Renewables, Energy: Oil upstream and renewables platform
-3. Digital infrastructure: Data center infrastructure
-4. Healthcare: Blood plasma factory, hospital chain
-5. Financial services: Asset and loan securitization
-6. Infrastructure, Utilities: Waste management, mining infra
-7. Industrial estate, Property: Strategic industrial estate
-8. Food & Agriculture: TBC
-Ricky's call: "08 is Really Genius dalam hal tersebut"
-"Patriot Bond akan kah jadi Pahlawan fiskal negara? Permainan nya buat saya sangat menarik buat diikuti"
-"Saya ga mau ditanya saham apa yah yang bagus or kena effect. Do your Own"
-Key data: Patriot Bond = tax amnesty barter. 08 genius scheme. 3 haram money flows → clean → projects → liquidity flood.""",
-        category="geopolitical",
-        catalyst_types=["patriot_bond","danantara_bond","tax_amnesty_barter","konglo_project",
-            "08_genius","haram_money_cleaning","liquidity_flood","simbiosis_mutualisme"],
-        activation_keywords=["patriot bond","danantara obligasi","rp 50 trilyun bond","rp 5 trilyun obligasi",
-            "2 tranche 5 7 tahun","kupon 2%","tax amnesty barter","konglo istana","konglo dipanggil",
-            "simbiosis mutualisme","08 genius","danantara bantalan fiskal","rp 16 ribu trilyun asset",
-            "soemitro cita2x terlaksana","rp 1000 trilyun yield","project konglo","sampah ebt",
-            "bantar gebang ebt","perpres pengelolaan sampah","wajib mandatory sampah","debt bukan ekuitas",
-            "uang haram masuk","uang judol","uang abu2x konglo","uang shadow economy","uang diampuni",
-            "skema tax amnesty","barter bond project","konglo makan bond","muter uang konglo",
-            "8 sektor prioritas","mineral nickel bauxite","renewables energy","digital infrastructure",
-            "healthcare plasma","financial securitization","infrastructure waste","industrial estate",
-            "food agriculture tbc","pahlawan fiskal","do your own"],
-        invalidation_keywords=["patriot_bond_fails","tax_amnesty_blocked","konglo_rejects_bond",
-            "danantara_corruption"],
-        beneficiaries={"ihsg":["TOBA.JK","BREN.JK","PGEO.JK","WIFI.JK","BUMI.JK","BRMS.JK"],
-            "sectors":["waste_management","mining_infra","data_center","healthcare","industrial_estate"]},
-        fades={"ihsg":["property","pure_fundamental"]},
-        regime_alignment={"Q1":1.70,"Q2":1.50,"Q3":1.30,"Q4":1.10},
-        typical_duration_weeks=52,
-        conviction_ceiling=0.85,
-        pump_risk=0.20,
-        confirmation_signals=["patriot_bond_launched","tax_amnesty_program_announced","konglo_bond_buying",
-            "project_distribution_complete","perpres_waste_management","bantar_gebang_ebt_project",
-            "haram_money_repatriation_starts"],
-    ),
-
-    # ── ARTICLE 39: Patriot Bond Confirmation — 3 Haram Money Flows ──────────
-    NarrativeTemplate(
-        name="Patriot Bond Confirmation — 3 Haram Money Flows & WTFF Liquidity Flood",
-        description="""Ricky2212 Patriot Bond confirmation & liquidity flood framework:
-THE SKEPTICS:
-- "Banyak di luar sana tidak sampai berpikir ke arah yang saya sampaikan tersebut. Banyak yang skeptis terhadap Patriot Bond"
-- "Di luar sana banyak suara sumbang dengan yield yang ditawarkan. Gimana mau narik uang dari luar kalo kupon yang ditawarkan hanya segitu?"
-- "Bahkan ada yang ekonom yang bilang ini bakal menarik likudiitas di bank. Bank nasional bisa seret likuiditas"
-THE REALITY:
-- "50 trilyun itu langsung ludes bukan? Konglo konglo pada beli tuh Patriot Bond walau kupon cuma 2%"
-- "Koq sampai konglo mau sih? mereka bisa muter uang nya dan dapat lebih dari segitu koq"
-3 ALIRAN UANG "HARAM":
-1. Uang Judol: "Uang judol yang mengendap di kamboja itu akan coba dibawa balik"
-2. Uang Abu2x Nominee Konglo: "Uang para konglo yang diparkir di luar negeri"
-3. Uang Shadow Banking/Economy: "Uang shadow ekonomi and banking"
-- "So this is really FRESH FUND dari luar. Bukan seperti yang ekonom tadi bilang bakal ambil likuiditas Bank"
-- "Arrrrggghhhh"
-THE SYARAT:
-- "Uang boleh masuk kesini tapi ada syarat nya: Bantu makan tuh Patriot Bond Danantara yang diterbitkan"
-- "Negara dapat bantuan fiskal dari sana, Danantara dapat cheap liquidity"
-- "Great pak 08, you are really Genius"
-KONGLO GETS:
-- "Uang konglo diampuni dan uang itu leluasa dipakai di sistem ekonomi dan keuangan negara kita"
-- "Barter dari 08: Konglo akan diberikan project yang disiapkan oleh negara berikut pendanaanya"
-- "Enak bukan konglo?"
-THE SPREAD:
-- "Danantara? Untung juga donk dari sana. Kasih kupon 2% dan lempar buat pendanaan project misal 8% maka ada spread bunga 6%"
-- "Jadi negara, Danantara, Konglo semua dapat berkah dari hal tersebut"
-THE NEXT BONDS:
-- "Akan ada Patriot Bond selanjutnya jilid berikutnya dan Konglo akan serap lagi tuh Bond nya"
-- "Putaran uangnya akan berjalan sama dengan yang Rp 50 trilyun"
-THE MASSIVE SCALE:
-- "Uang konglo yang diputihkan itu ga kaleng2x loh jumlah nya"
-- "Kalo kata ketua Geng Oslo dulu katanya: Saya sudah mengantongi nama2x yang punya 11 ribu Trilyun"
-- "Gitu dulu yah, tapi action nya OMDO"
-- "Bayangkan ga usah semua masuk lah yah. Sebagian dibelikan BOND dan sebagian di putar di saham"
-- "WTFF lah tuh Bursa kecipratan likuiditas segitu gede nanti"
-THE KATADATA CONFIRMATION:
-- "Badan Pengelola Investasi Daya Anagata Nusantara atau BPI Danantara akan menerbitkan Obligasi Patriot atau Patriot Bond untuk menyerap dana segar puluhan trilyun"
-- "Tujuan utama obligasi ini adalah menarik dana konglomerat nasional yang tersimpan di luar negeri, karena gagal dibawa masuk lewat program pengampunan pajak alias Tax Amnesty yang lalu"
-- "Obligasi ini dipertimbangkan menjadi syarat untuk bisa mengikuti program Tax Amnesty berikutnya"
-- "Tujuannya adalah repatriasi dana-dana yang masih parkir di luar negeri"
-- "Kalo benar hal ini akan dibawa ke beberapa pihak terkait mulai dari DPR, kemenkeu, BI untuk dimuluskan jalannya"
-- "Kalau benar lagi, kita selangkah di depan dari orang kebanyakan"
-Ricky's call: "Patriot Bond adalah sebuah Skema Genius buat saya dan semua akan happy dari perjalanan ini"
-"Next Cycle Indonesia akan bisa bicara banyak di pertumbuhan ekonomi nya karena guyuran likuiditas yang sangat besar"
-"08 adalah arsitek yang buat saya adalah seorang Genius"
-"Patriot Bond sebuah kapitalisme berbalut patriotisme"
-Key data: Patriot Bond confirmed by Katadata. 3 haram money flows = fresh fund. WTFF liquidity flood incoming.""",
-        category="geopolitical",
-        catalyst_types=["patriot_bond_confirmed","3_haram_money","fresh_fund","wtff_liquidity",
-            "konglo_repatriation","tax_amnesty_syarat","danantara_spread","indonesia_growth_cycle"],
-        activation_keywords=["patriot bond confirmation","3 haram money","uang haram masuk","fresh fund",
-            "wtff liquidity flood","konglo repatriation","tax amnesty syarat","danantara spread 6%",
-            "indonesia growth cycle","50 trilyun ludes","konglo beli bond","muter uang konglo",
-            "uang judol kamboja","uang abu2x nominee","uang shadow banking","katadata confirmation",
-            "bpi danantara obligasi","repatriasi dana parkir","tax amnesty berikutnya","dpr kemenkeu bi",
-            "selangkah di depan","skema genius","kapitalisme berbalut patriotisme","08 arsitek genius",
-            "likuiditas gede bursa","11 ribu trilyun","omdo action","bond jilid berikutnya",
-            "putaran uang sama","sebagian bond sebagian saham"],
-        invalidation_keywords=["patriot_bond_denied","tax_amnesty_fails","haram_money_stays_outside",
-            "dpr_blocks_bond"],
-        beneficiaries={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","BUMI.JK","WIFI.JK","TOBA.JK","PGEO.JK","DEWA.JK"],
-            "bonds":["Patriot_Bond","SBN"]},
-        fades={"ihsg":["property","consumer_discretionary"]},
-        regime_alignment={"Q1":1.70,"Q2":1.50,"Q3":1.30,"Q4":1.10},
-        typical_duration_weeks=52,
-        conviction_ceiling=0.85,
-        pump_risk=0.20,
-        confirmation_signals=["katadata_confirms_patriot_bond","tax_amnesty_linked_to_bond","konglo_names_revealed",
-            "repatriation_starts","bond_oversubscribed","project_funding_flows","liquidity_surge_indonesia"],
-    ),
-
-    # ── ARTICLE 40: Belakangan situasi politik — Demo Indonesia & Fund Entry ────
-    NarrativeTemplate(
-        name="Belakangan Situasi Politik — Demo Indonesia, '98 Fear & Fund Entry Setup",
-        description="""Ricky2212 political situation & market impact framework:
-THE SITUATION:
-- "Situasi politik dan keamanan di Indonesia mulai berasa panas and mencekam"
-- "Huru hara, bakar2xan mulai terjadi akibat emosi dari pihak pendemo yang mulai berasa naik dan panas"
-- "10 tahun terakhir rasanya menurut rakyat Indonesia dipertontonkan sesuatu pertunjukkan politik yang cukup memuakkan"
-- "Pelanggaran konstitusi untuk kepentingan kalangan tertentu, dagelan2x kebijakan politik sampai pada kehidupan hedonisme para penerima mandat"
-- "Rakyat Indonesia dikuliti habis oleh kenaikan harga, dikejar pajak sana sini serta apapun yang bentuknya menyusahkan hidup"
-- "K-Shape: Diatas foya2x menikmati pertumbuhan tapi dibawah dibejek2x habis sampai tak bersisa lagi"
-THE TRIGGER:
-- Tunjangan anggota legislatif dinaikkan (istri pak Bahagia)
-- Wakil ketua legislatif: tunjangan rumah tinggal
-- "GORENGAN issue ini tiba2x mencuat cepat sekali di segala pusat informasi"
-- Joget anggota legislatif saat 08 pidato
-- "Kerusakan yang dibawa 10 tahun ini memang parah. Ga ada seama sekali mental pemimpin, yang ada mental rusak"
-THE ESCALATION:
-- Demo 1: di depan kantor legislatif, chaos but controlled
-- Demo 2 (Buruh theme): driver OJOL ijo tertabrak polisi elit mobil → meninggal
-- "Puncak amarah diluapkan oleh semua tanpa kecuali"
-- "Aksi Bakar yang disasar adalah kantor parcok gara2x menabrak"
-- "Markas mereka di kwitang dan di depok terus dikepung masa"
-- "Rumah anggota legislatif si mulut sampah (roni, pelawak ga lucu, kuya ga jelas, nafas rubah)"
-- "Bisa lanjut? kalo ga dibendung tuh bisa saja nanti rumah si pelawak ga lucu, kuya ga jelas sama nafas rubah juga ikut jadi target"
-- Spread to Bandung, Makassar, other major cities
-RICKY'S POLITICAL ANALYSIS:
-- "Sejauh ini skala ini sih termasuk skala protes SEDANG. Asal jangan sampai ditunggangi dan digoreng lebih jauh aja"
-- "Kalo makin disulut takutnya skalanya bisa makin BESAR"
-- "Banyak yang bilang keadaan ini bisa seperti '98, benarkah?"
-- "Saya melihat ada beberapa pihak yang bermain dalam agenda demo ini"
-- 2 scenarios from source X:
-    1. "Nanti dalam kurun waktu 1 tahun ke depan ada yang akan coba menggoyang 08 dan ingin menurunkan legitimasi 08"
-        - "08 bisa ga selesai masa jabatannya"
-    2. "08 juga sudah siap dan dia akan jadikan pemerintahan ini adalah pemerintah versi dia"
-        - "08 ga akan tunduk sama geng oslo"
-        - "Jabatan2x di pemerintahan itu Dia cuma mau terima kasih aja dan dikasih waktu 1 tahun buat rasa terima kasihnya"
-08'S SILENT MOVES:
-- "Pengampunan si Remblong (mantan menteri perdagangan) dan si Sekjen merah"
-    - "Pesan buat geng Oslo"
-- "Melepas tahanan yang dulunya dipenjara karena menghina camat dari oslo"
-    - "Lepas dari bayang2x geng Oslo sekaligus menarik orang2x yang dia percaya"
-- "Wamen yang dulu bekas ketua mania kena OTT KPK. Kaki tangan oslo 24 karat"
-- "Pendiri gojek, men judol, minuman yakult juga berulang kali dipanggil KPK. Kaki tangan oslo 24 karat"
-- Agenda: "pergantian parcok 1 atau bahkan komdak 1, filterisasi politikus pencoreng, pembersihan geng OSLO"
-- "08 adalah ahli strategi terbaik. Dia taro orang kepercayaan dia dari militer buat jaga badan"
-    - "Cek saja Bulog siapa yang pimpin, cek lagi posisi strategis pajak"
-- "08 mau terkesan Smooth, bukan perang secara kasar"
-THE '98 FEAR:
-- "Sejauh ini saya belum melihat keadaannya menjurus ke '98. Masih terlalu dini buat menjustifikasi tersebut"
-- "Dalam keadaan kekosongan pemerintahan eksekutif apabilan presiden mengundurkan diri maka otomatis akan digantikan oleh Wapres"
-- "Kalau benar2x terjadi kekosongan pemerintahan, maka tampuk tertinggi pemerintahan akan dipegang oleh Panglima TNI"
-- "Mau dipimpin sama si iTU tuh? hmmmm, saya sih ga kebayang jadi apa nantinya"
-MARKET IMPACT:
-- "Pasca kejadian demo pertama, bursa kita masih kebal dengan cerita kerusuhan yang ada"
-- "Pas kejadian kedua muncul, bursa kita tidak mampu lagi menahan gempuran sentimen buruk tersebut"
-- "Koq bisa muncul semua hal tersebut pada saat indeks berada di 8000 an dan memang butuh koreksi"
-- "Kebetulan kah semua hal itu?"
-- Fund story: "Uang fund gw diperintahkan masuk ke ekuitas. Jangan sampai beat oleh indeks"
-- "Uang judol bakal banjir masuk surat hutang and bursa saham sini"
-- "Sudah banyak yang petantang petenteng kan kemarin? sudah mulai banyak yang pamer SS kan?"
-    - "Sudah banyak yang tadinya ga di bursa ehhh tiba2x gimana main saham?"
-    - "Sudah banyak dari yang baru masuk aja langsung untung dan berasa ini mudah kan?"
-    - "Sudah ga peduli isi artikel dan yang penting itu cuma cari singkatan kan?"
-    - "Nah itu tanda temperature harus di cooling down sementara waktu"
-- "Puncak semua cerita tersebut membuat indeks langsung terkulai lah itu"
-Ricky's call: "Apakah ini akan berlangsung lama? nunggu apa yang diminta pendemo dipenuhi. Kalo itu sudah terpenuhi sih harusnya sudah bisa segar lagi tuh indeks"
-- "Puluhan fund menunggu karpet merah dibentangkan buat masuk ke pasar saham"
-- "Kalo anda ga nyaman dengan keadaannya maka yang anda butuhkan adalah raising cash"
-- "Kalo anda melihat ini cepat berlalu dan cepat selesai, maka santai saja menghadapinya"
-- "Ga usah panikkan, ga usah gerasah gerusuh, ga usah kaya cacing kepanasan"
-- "Kepala dingin dan jernih akan membuat anda bisa memutuskan dengan baik"
-- "Gunakan sebaik2x nya sebuah penurunan pasar sebagai peluang apabila diberikan kepanikan yang luar biasa"
-- "Tetap waspada terhadap semua kemungkinan. Prepare not predict"
-- "Jangan sampe kegembiraan kemarin bikin lupa diri sehingga over allocation di porto"
-Key data: Political demo = cooling down mechanism for overheated market. Fund entry setup after demo resolution. Not '98 yet.""",
-        category="geopolitical",
-        catalyst_types=["indonesia_demo","political_cooling","98_fear","fund_entry_setup",
-            "08_strategy","oslo_cleanup","market_correction_trigger","temperature_cooling"],
-        activation_keywords=["belakangan situasi politik","demo indonesia","panas mencekam","huru hara bakar",
-            "10 tahun politik memuakkan","k shape indonesia","tunjangan legislatif naik","joget legislatif",
-            "demo ojol meninggal","kantor parcok dibakar","rumah legislatif dihabisin","roni pelawak kuya nafas rubah",
-            "demo bandung makassar","skala protes sedang","98 fear","goyang 08","legitimasi 08",
-            "08 siap pemerintah versi dia","geng oslo","remblong pengampunan","wamen kpk ott",
-            "gojek kpk","judol kpk","yakult kpk","parcok 1 komdak 1","filterisasi politikus",
-            "pembersihan oslo","bulog militer","posisi strategis pajak","wapres ganti presiden",
-            "panglima tni kekosongan","bursa kebal demo","fund masuk ekuitas","uang judol banjir",
-            "petantang petenteng","pamer ss saham","temperature cooling down","indeks terkulai",
-            "raising cash","santai demo","kepala dingin","penurunan pasar peluang","prepare not predict",
-            "over allocation lupa diri"],
-        invalidation_keywords=["demo_escalates_to_98","08_resigns","military_takeover","market_crash_panic"],
-        beneficiaries={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","TLKM.JK","UNVR.JK","BUMI.JK","WIFI.JK"],
-            "safe_haven":["IDR_cash","USD_cash"]},
-        fades={"ihsg":["property","high_flyer","demo_sensitive"]},
-        regime_alignment={"Q3":1.30,"Q4":1.10,"Q2":0.90,"Q1":0.70},
-        typical_duration_weeks=4,
-        conviction_ceiling=0.80,
-        pump_risk=0.10,
-        confirmation_signals=["demo_resolved","fund_entry_orders_placed","idr_stabilizes","index_rebounds",
-            "oslo_cleanup_progress","08_position_secured","political_silence_returns"],
-    ),
-
-    # ── ARTICLE 41: Focus on Big Picture ──────────────────────────────────────
-    NarrativeTemplate(
-        name="Focus on Big Picture — Ray Dalio Framework & Piece by Piece Puzzle",
-        description="""Ricky2212 big picture thinking framework:
-RAY DALIO QUOTE:
-- "To see the big Picture, you can't focus on the detail"
-- "Untuk melihat sebuah gambaran besar, anda ga bisa terlalu fokus pada detailnya"
-- "Bahasa istri saya: ga usah terlalu mikro sampai mikro banget atau terlalu perintilin"
-- "Nanti ujung nya karena terlalu fokus perintilan, anda malah bimbang sendiri yang berujung pada Disaster"
-EXAMPLE 1: FOMC MONTHLY OBSESSION:
-- "Masih banyak yang menanyakan kepada saya tentang gimana pak FOMC bulan XXXX, prediksi bapak Fed bakal potong berapa?"
-- "Saya sudah tidak lagi fokus pada rapat FOMC bulan ke bulan dan berapa akan dipotong suku bunga nya"
-- "Gambaran besar nya bukan disana lagi, jadi saya sudah tidak fokus detail bulan ini potong berapa"
-- "Saya fokus berapa puncak nya suku bunga nanti pasca di potong. Buat saya itu lebih penting, karena disitulah dosis yang mungkin tepat dan dibutuhkan buat ekonomi"
-- "Bukan kah itu point nya CUT? seberapa besar suku bunga yang diperlukan supaya ekonomi bisa gerak?"
-- "Jadi buat apa fokus mendetail tiap bulan berapa nih yang dipotong"
-- "Dalam perjalanan nya, semua cerita akan berkembang dengan sendirinya yang masih sejalur dengan gambaran besar"
-EXAMPLE 2: PERFECT EXIT STRATEGY (B-Indicator, Konglo Play):
-- "Saya sampaikan bahwa akan ada permainan besar yang diciptakan oleh Konglomerasi melihat dari akrobat yang dilakukan ADRO"
-- "Makanan empuk ini buat Om B, Om S, Om AP untuk melakukan hal yang sama"
-- "Point2x yang bisa mereka jadikan Narasi nya buat alasan permainannya"
-- "Ga usah pusing ditungguin, ga usah pusing diperintilin, ga usah ditanya kapan, nanti juga semua itu satu per satu akan keluar dengan sendirinya"
-- "Berita akan dicicil pelan2x untuk men support semua pergerakan nya"
-- "Dari mulai masuk MSCI, Produksi emas naik, semua keluar dengan sendirinya dan pada waktunya bukan?"
-- "Fokus saja pada bahwa mereka mau ciptakan Permainan Exit nya dan tidak perlu pusing pada kejadian2x di luar permainan"
-- "Mereka tuh bisa sesuaikan time line nya sama keadaan di luar. Konglomerasi punya link akses global yang kuat, informasi mereka super super jauh sehingga mereka bisa bikin time line nya"
-EXAMPLE 3: BTC PLAY:
-- "Tahun lalu saat Fed Call buat Halt, sebelum itu saya sempat sampaikan thesis bahwa ini aset antah berantah bakal main"
-- "Thesis nya adalah riskier asset bakal jalan karena confidence partisipan buat masuk ke riskier asset"
-- "Thesis awal nya seperti itu sebelum akhirnya thesis nya berkembang terus sampai pada BTC dimasukkan ETF"
-- "BTC di pump sampai maret dan sempat bikin ATH baru"
-- "Dari thesis big picture nya yang saya percaya bahwa Risk on akan terjadi karena Fed mulai easing, di perjalanannya muncul thesis tambahan ini itu"
-- "Pasca itu BTC turun koreksi cukup dalam. Selesai? belum donk"
-- "Thesis awal nya adalah Jack Up before Storm. Asset2x beresiko akan di jack up"
-- "Belakangan tiba2x muncul Narasi Trump menang dan Trump adalah crypto bros friendly"
-- "Ada narasi lain? saya sih yakin nanti ada lagi narasi lanjutannya"
-- "Saya fokus nya adalah big game dari jack up before storm"
-EXAMPLE 4: OIL:
-- "Banyak yg berharap2x perang akan jadi narasi utama pendorong harga oil"
-- "Awalnya sempat menggerakkan harga minyak tapi ternyata malah bikin ambrol saat PoV nya dirubah"
-- "Tapi tetap saya sih percaya permainan besar nya akan membawa oil pada medan permainan"
-- "Apa narasi nya? saya juga tidak tau nanti narasi apa yang dipakai. Bisa saja nanti perang dan rudalnya melenceng ga sengaja kena kilang"
-- "Apapun bisa jadi narasi dan saya ga perlu ubek2x sampe detail apa yang jadi narasi"
-- "Saya fokus saja sama permainan besar nya"
-THE FRAMEWORK:
-- "Buat saya untuk suatu hal yang tidak perlu diperintilin saya tidak akan buang waktu"
-- "Saya akan fokus pada Big Picture nya saja karena semua yang terjadi pada perjalanan ada piece by piece dari sebuah puzzle big picture"
-- "Satu per satu puzzle akan keluar pada waktunya dan dengan sendiri nya"
-- Visual: Cerita A/B/C/D/E/F ======> BIG PICTURE
-Ricky's call: "Focus on Big Picture"
-"Don't focus on the detail"
-Key data: Big picture = destination. Details = noise. Trust the framework, let pieces fall into place.""",
-        category="cycle",
-        catalyst_types=["big_picture","ray_dalio","dont_focus_detail","piece_by_piece","puzzle_framework",
-            "trust_process","narrative_evolution","jack_up_before_storm"],
-        activation_keywords=["focus on big picture","ray dalio","to see big picture","cant focus detail",
-            "jangan terlalu mikro","jangan perintilin","bimbang disaster","fomc monthly obsession",
-            "fokus puncak suku bunga","dosis tepat ekonomi","perfect exit strategy","b indicator exit",
-            "konglo play exit","adro akrobat","om b om s om ap","narasi keluar sendiri",
-            "berita dicicil pelan","time line sesuaikan","btc play big picture","jack up before storm",
-            "trump crypto friendly","oil narasi belum tau","rudal kena kilang","jangan ubek detail",
-            "piece by piece puzzle","puzzle big picture","cerita abcdef big picture","trust framework",
-            "pieces fall into place"],
-        invalidation_keywords=["big_picture_wrong","framework_breaks","details_matter_more",
-            "puzzle_doesnt_fit"],
-        beneficiaries={"ihsg":["BUMI.JK","BRMS.JK","WIFI.JK","DEWA.JK","TOBA.JK","PGEO.JK","RAJA.JK"],
-            "us":["BTC-USD","MSTR","COIN","GLD"]},
-        fades={"ihsg":["short_term_traders","detail_obsessors"]},
-        regime_alignment={"Q3":1.50,"Q4":1.30,"Q2":1.00,"Q1":0.80},
-        typical_duration_weeks=52,
-        conviction_ceiling=0.85,
-        pump_risk=0.15,
-        confirmation_signals=["big_picture_pieces_align","narrative_evolution_confirmed","exit_strategy_progress",
-            "time_line_adjusts_smoothly","global_access_info_flows","jack_up_before_storm_signals"],
-    ),
-
-    # ── ARTICLE 42: Keputusan investasi — Your Money Your Responsibility ───────
-    NarrativeTemplate(
-        name="Keputusan Investasi Terbaik — Your Money Your Responsibility",
-        description="""Ricky2212 self-reliance & learning framework:
-RICKY'S JOURNEY:
-- Started 2003, truly alone: "Belajar yah sendiri, cari informasi yah sendiri, analisa yah sendiri, bikin keputusan yah juga sendiri"
-- "Saya juga ga punya basic investasi yang hebat. Sudah uang nya terbatas terus ga punya basic investasi lagi yah"
-- "Uang terbatas, basic 0, ga ada yg bimbing, teknologi masih jadul, komunitas juga minim banget"
-- "Saham itu stigmanya investasi untuk kalangan terbatas yang punya uang banyak"
-THE FOUNDATION:
-1. SEMANGAT BESAR:
-    - "Saya punya semangat yang luar biasa dan saya percaya Bursa adalah tempat saya bisa kumpulkan kekayaan"
-2. POLA PIKIR + MINDSET + KARAKTER:
-    - "UANG SAYA BOLEH KECIL tapi POLA PIKIR, MINDSET dan KARAKTER SAYA HARUS SAMA SEPERTI BIG FUND"
-    - "Atau yang lebih gila lagi, tidak cuma sama kaya big fund tapi saya bisa selangkah lebih di depan dari big fund"
-    - "Itu saya katakan saat uang saya masih mini banget loh"
-3. BELAJAR TIDAK PERNAH HENTI:
-    - "Saya baca puluhan buku investasi, bahkan ga cuma 1x pengulangan saja. Saya bisa ulang berkali-kali sampai paham"
-    - "Baca and saya praktekan, baca and saya praktekan terus saja begitu"
-    - "Saya bisa baca 3-4 koran per hari. Zaman dulu zamannya masih media cetak"
-    - "Di rumah saya pasang TV kabel, tujuannya cuma 1: Saya mau nonton CNBC"
-    - "Saya rela nunggu rapat FOMC yang biasanya jam 2 malam waktu sini cuma buat tau apa sih isinya"
-    - "Jadi jangan pelit yah buat investasi ilmu"
-4. PERCAYA KEMAMPUAN SENDIRI:
-    - "Buat saya lebih baik saya salah tapi keputusan saya sendiri, daripada benar karena keputusan orang lain"
-    - "Keputusan terbaik datang nya dari saya sendiri"
-    - "Sense anda akan dibentuk dari sana. Sense akan timbul saat anda berani mengambil keputusan"
-    - "Keputusan anda Benar? simpan di memory, satu waktu saat anda ketemu lagi dengan hal tersebut nantinya anda tau harus berbuat apa"
-    - "Keputusan anda salah? ingat nature belajar manusia itu datang saat bikin kesalahan"
-    - "Anda belajar dari kesalahan demi kesalahan yang pernah anda lewati"
-5. PERJALANAN PANJANG:
-    - "Ini akan jadi perjalanan yang panjang dan melelahkan. Saya tau bahwa untuk mencapai semua apa yang saya mau, perjalanannya bukan 1 hari, 1 minggu, 1 bulan, 1 tahun"
-    - "Tidak ada yang instant bro. Yang instant itu cuma Mie Instant aja"
-    - "Ini mau masuk tahun ke 22 sejak saya memulainya"
-6. PANTANG MENYERAH:
-    - "Lakukan semua nya dengan konsisten dan jangan berhenti di tengah jalan"
-    - "Jangan kebanyakan mengeluh ini itu. Pemenang akan selalu menyelesaikan apa yang sudah dimulai nya"
-    - "Gimana kalo saya memilih berhenti saat itu padahal Tuhan menggariskan 1 langkah lagi saja itu adalah titik kemenangan saya terbesar dalam hidup?"
-    - "Saya pernah di posisi itu soalnya"
-THE RELATIONSHIP ADVICE:
-- "Anda ga perlu bayar advisor, anda ga perlu sewa penasihat keuangan, yang anda perlu adalah anda pintar sendiri"
-- "Ga ada salahnya kan jadi pintar? Uang nya kan uang anda sendiri, masa mau menggantungkan nasib uang anda pada orang lain?"
-- "Your Money Your Responsibility"
-- "Buka 1 relasi sama dengan buka 1 pintu rezeki. Semakin banyak relasi, semakin banyak rezeki yang datang nantinya"
-- "Informasi itu mahal bro, so anda harus bisa cari semua informasi itu sendiri dengan banyak membuka relasi"
-- "Saya beruntung bisa berteman dengan 5 orang lainnya di mentorbaik. Bahkan dari mentorbaik juga yang tadinya saya tidak kenal malah jadi teman baru dan bisa berbagi informasi"
-MENTORBAIK PHILOSOPHY:
-- "Mentorbaik ga jualan stockpick, ga jualan mau naik atau turun, ga jualan beli di berapa bagusnya"
-- "Mentorbaik itu diciptakan sebagai wadah untuk belajar dan berbagi pengalaman, wadah menuangkan pikiran, wadah memberikan gambaran"
-- "Keputusannya? balik ke anda sendiri"
-- "Kami ga menggerakkan jempol anda untuk buy or sell, kami menggerakkan alam bawah sadar anda untuk belajar dan menganalisa lanjutan"
-- "Sehingga apa? sehingga anda bisa buat keputusan sendiri"
-- "Karena kami percaya hal diatas, keputusan investasi terbaik adalah keputusan yang anda buat sendiri"
-Ricky's call: "KEPUTUSAN INVESTASI TERBAIK Itu DATANGnya dari DIRI ANDA SENDIRI"
-"Uang anda adalah tanggung jawab anda sendiri, jangan gantungkan nasib uang anda pada orang lain"
-Key data: Self-reliance = ultimate edge. Learning + experience + sense = best investment decision maker.""",
-        category="cycle",
-        catalyst_types=["self_reliance","your_money_your_responsibility","learning_framework",
-            "sense_building","decision_making","mentorbaik_philosophy","long_term_journey"],
-        activation_keywords=["keputusan investasi terbaik","your money your responsibility","self reliance",
-            "pola pikir mindset karakter","uang kecil pola pikir big fund","selangkah di depan big fund",
-            "belajar tidak pernah henti","baca puluhan buku","praktekan terus","3-4 koran per hari",
-            "cnbc tv kabel","fomc jam 2 malam","investasi ilmu","percaya kemampuan sendiri",
-            "sense dibentuk","benar simpan memory","salah belajar","nature belajar manusia",
-            "perjalanan panjang melelahkan","tahun ke 22","pantang menyerah","jangan berhenti tengah jalan",
-            "pemenang menyelesaikan","tuhan menggaris 1 langkah","buka relasi pintu rezeki",
-            "informasi mahal","mentorbaik wadah belajar","ga jualan stockpick","ga jualan naik turun",
-            "gerakkan alam bawah sadar","belajar menganalisa","buat keputusan sendiri",
-            "jangan gantungkan nasib orang lain"],
-        invalidation_keywords=["gives_up","outsources_all_decisions","stops_learning","no_self_belief"],
-        beneficiaries={"ihsg":["ALL"],"us":["ALL"],"safe_haven":["KNOWLEDGE","EXPERIENCE"]},
-        fades={"ihsg":["advice_dependents","stockpick_buyers"]},
-        regime_alignment={"Q1":1.00,"Q2":1.00,"Q3":1.00,"Q4":1.00},
-        typical_duration_weeks=999,
-        conviction_ceiling=1.00,
-        pump_risk=0.00,
-        confirmation_signals=["continuous_learning","self_decision_making","sense_development",
-            "relationship_building","information_gathering","mentorbaik_engagement"],
-    ),
-]
-
-
-# ═══════════════════════════════════════════════════════════════════════════════
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# BATCH 18 — Artikel Ricky2212 (Apr 2026 extraction)
-# ═══════════════════════════════════════════════════════════════════════════════
-
-_NARRATIVES_BATCH18: List[NarrativeTemplate] = [
-    # ── ARTICLE 43: Fokus pada Proses Menuju Hasil Akhir ──────────────────────
-    NarrativeTemplate(
-        name="Fokus pada Proses Menuju Hasil Akhir — Speed vs Process",
-        description="""Ricky2212 investment psychology framework: Focus on the process, not the speed.
-THE PROBLEM:
-- Gen Z post-COVID: "generasi Z banyak mengisi dunia investasi. Mendadak dunia investasi jadi nge trend"
-- "Iming2x bisa KAYA MENDADAK secara cepat membuat saham atau koin jadi investasi yang paling digandrungi"
-- "Gen Z sekarang cenderung impulsive dan pingin cepat kaya"
-- "Fokus nya sudah bukan lagi pada garis finish nya tapi fokus pada seberapa cepat saya bisa mencapainya"
-- "Semakin cepat semakin bagus and kalo perlu pakai mode super speed"
-STORY 1 — The Banker:
-- Goal: quit 8-to-17 routine ASAP
-- "Desakan untuk secepatnya keluar dari sana semakin besar"
-- "Otak Ngeres datang dan tekannanya sangat besar saat tujuan mau out dari daily routine juga besar"
-- Bought highly speculative stocks, thinking "gw bisa dapat ber bagger bagger dr sana"
-- Result: disaster. "Semua ini memang gw yg salah dari awal. Otak Ngeres datang"
-- Ricky's earlier warning: "Sudah siap menanggung resikonya? tanyakan pada diri mas WHAT IF"
-STORY 2 — The Industry Professional:
-- "Saya mau cepat sampai target punya uang sekian. Karena kalau sudah cepat sampai disana, saya merasa saya aman posisinya"
-- Problem 1: "Lo jangan berasa lo mau grab semua nya sampai seutuh-utuh nya tanpa tersisa. Lo selalu gelisah, selalu kusak kusuk mencari tau sampai dimana tuh nanti puncak titik tertinggi saham tersebut"
-- Problem 2: "Saat lo ambil posisi di suatu saham, terkadang lo kepikirannya cuma dari sini gw bisa untung berapa nih. Lo ga berpikir What if?"
-- "Kalo sudah ga sesuai rencana, yah gw hidup dari andelin gaji aja sampai saham nya naik. Gw ga ada bemper sama sekali"
-THE SOLUTION:
-- "Jangan fokuskan pada kecepatan sampai garis finishnya, cukup fokus saja pada garis finish nya"
-- "At the end percaya ga percaya, nanti juga sampai koq. Bahkan anda sendiri tidak percaya kalo bisa sampai garis finish nantinya"
-- "Kalo otak anda dari awal sudah ngeres maka bersiaplah dan jangan kaget kalo pelajaran buruk akan datang buat anda"
-Ricky's call: "FOKUS pada PROSES menuju GARIS AKHIR bukan pada KECEPATANNYA"
-"Semakin realistis anda tetapkan tujuan dan waktu untuk mencapainya, saya bisa pastikan anda akan semakin rasional nantinya"
-"Semakin tidak realistis anda tetapkan tujuan dan waktu untuk mencapainya, saya juga bisa pastikan otak anda akan semakin tidak rasional"
-Key data: Speed kills in investing. Process-oriented investors win long-term.""",
-        category="cycle",
-        catalyst_types=["process_over_speed","investment_psychology","gen_z_impulse","realistic_goals",
-            "what_if_framework"],
-        activation_keywords=["fokus pada proses","kecepatan vs proses","speed vs process","gen z investasi",
-            "kaya mendadak","impulsive gen z","otak ngeres","what if","daily routine quit",
-            "bagger thinking","grab semua untung","puncak titik tertinggi","over allocation",
-            "ga ada bemper","fokus garis finish","realistis tujuan","rasional investasi",
-            "process oriented","speed kills investing"],
-        invalidation_keywords=["impatience_wins","speed_works","no_lessons_learned"],
-        beneficiaries={"ihsg":["ALL"],"safe_haven":["IDR_cash","DISCIPLINE"]},
-        fades={"ihsg":["speculative_garbage","high_flyer"]},
-        regime_alignment={"Q1":1.00,"Q2":1.00,"Q3":1.00,"Q4":1.00},
-        typical_duration_weeks=999,
-        conviction_ceiling=1.00,
-        pump_risk=0.00,
-        confirmation_signals=["realistic_goal_setting","process_discipline","what_if_analysis",
-            "long_term_consistency","no_over_allocation"],
-    ),
-
-    # ── ARTICLE 44: History Repeat Itself — Historical Cycle Analysis ──────────
-    NarrativeTemplate(
-        name="History Repeat Itself — 07-08 Crisis Pattern & 2027-2028 Prediction",
-        description="""Ricky2212 historical cycle framework: "History doesn't repeat itself, but it does rhyme."
-THE QUOTE:
-- "Financial market cycles are primarily investor behaviour cycles. Human nature doesn't change and causes the recurrence of past patterns."
-- "History rhymes. Human nature that causes the market cycles, is also the cause of uncertainty in market movement."
-- "Investors who undermine history easily succumb to the error of 'this time it's different'."
-- "Investors who expect history to repeat precisely like the past, fall prey to another wrong assumption, 'Everything is always the same.'"
-CYCLE BASICS:
-- "Ekonomi itu punya pakem dasar, pakem yang tidak mungkin ditabrak"
-- Weak economy → stimulus → money circulates → economy grows → inflation → rate hikes
-- "Cycle pun terbagi lagi dalam besaran siklusnya yaitu Big Cycle, Medium Cycle dan Small Cycle"
-- "Cycle tersebut terbentuk karena sebuah behaviour dari manusia. Behaviour manusia tuh dari waktu ke waktu tidak akan berubah banyak."
-00-01 PATTERN (Crisis years ending in 0-1):
-- 2020-2021: COVID Crisis
-- 2011: Black Monday August, S&P downgrade US debt
-- 2000-2001: Dot-com bubble + WTC bombing → QE born
-- 1990-1991: Gulf War + early recession (8 months)
-- 1980-1981: Market peaked 1980, recession 1.2 years, Volcker 20% rates
-- 1970-1971: Great inflation start, market lost 50% over 20 months
-- 1960-1961: Kennedy Slide, Dow -23%
-- 1950-1951: Korean War, Truman, Dow -15%
-- 1940-1941: WWII, Pearl Harbor, Dow -23% in 8 days
-- 1930-1931: Phase 2 Great Depression, double dip, GDP -8.5%
-07-08 PATTERN (Crisis years ending in 7-8):
-- 2018: September crash from BTC fall, Dow/S&P -20%
-- 2007-2008: GFC, subprime mortgage, peak 2007 → -50%, Sep-Oct
-- 1997-1998: Asian Financial Crisis, Baht collapse → Indonesia, July-Oct peak
-- 1987: Black Monday, -20% in one day, October
-- 1977-1978: Oil supply shock, inflation skyrocketing, -27% cumulative
-- 1967-1968: Vietnam War bear market, -36% over 17 months
-- 1957: Bond yield spike, -22% over 14 months
-- 1947-1948: Recession 363 days, -20%, unemployment 7.9%
-- 1937-1938: Post-Great Depression sharp downturn, -58%, unemployment 19%
-- 1929: Great Depression, Black Tuesday, -89% (greatest correction in history)
-- 1907: Banking panic, October, -50%, birth of Fed via JP Morgan
-- 1914: WWI pre-crisis in Europe and US
-THE EXCEPTION:
-- 1974-1975: Dow -45% from 1973 peak. Oil crisis 1973, inflation, global stock crash. Quick recovery 1975+.
-THE PREDICTION:
-- "2027-2028 atau 2029 akan jadi siklus yang penting karena akan jadi siklus 10 tahunan dan siklus 100 tahunan. beririsan deh tuh"
-- "Penyebab krisisnya kemungkinan besar adalah Global Debt Crisis"
-- "Double Dip crisis di 2030 dan 2031 sesuai ritme selanjutnya"
-- "Ekonomi akan masuk fase L shape and very mediocre growth"
-- "Kerusakan karena besarnya hutang sangatlah parah. Jadi perlu waktu untuk membenahi semua keburukan tersebut"
-Ricky's call: "Jas merah, Jangan pernah melupakan sejarah. Karena sejarah akan selalu berulang."
-"Kalaupun tidak berulang, tapi punya kemiripan"
-Key data: 07-08 pattern = crisis window. 2027-2028 = 10-year + 100-year cycle intersection. Global Debt Crisis likely cause.""",
-        category="cycle",
-        catalyst_types=["historical_cycle","07_08_pattern","100_year_cycle","10_year_cycle",
-            "global_debt_crisis","double_dip_2030","history_rhymes"],
-        activation_keywords=["history repeat itself","history rhymes","07 08 pattern","crisis pattern",
-            "10 year cycle","100 year cycle","2027 2028 2029 crisis","global debt crisis","double dip 2030",
-            "korean war 1950","pearl harbor 1941","great depression 1929","black monday 1987",
-            "asian financial crisis 1997","gfc 2008","covid 2020","kennedy slide 1960",
-            "volcker 20% 1981","gulf war 1990","wtc bombing 2001","dot com bubble 2000",
-            "black wednesday 1992","1974 1975 oil crisis","l shape economy","mediocre growth",
-            "jas merah sejarah","human nature cycle","investor behaviour cycle","this time its different",
-            "everything always same"],
-        invalidation_keywords=["cycle_broken","no_crisis_2027","debt_resolved","soft_landing_achieved"],
-        beneficiaries={"us":["SQQQ","VIX","TLT","GLD"],"ihsg":["BBCA.JK","TLKM.JK","UNVR.JK"],
-            "safe_haven":["USD_cash","IDR_cash"]},
-        fades={"us":["SPY","QQQ","IWM","high_beta"],"ihsg":["property","high_flyer","consumer_discretionary"]},
-        regime_alignment={"Q3":1.80,"Q4":1.70,"Q2":1.40,"Q1":1.00},
-        typical_duration_weeks=52,
-        conviction_ceiling=0.85,
-        pump_risk=0.15,
-        confirmation_signals=["debt_levels_spike","yield_curve_inverts_deep","vix_spike_above_30",
-            "credit_conditions_tighten","global_recession_signals","historical_pattern_aligns_2027"],
-    ),
-
-    # ── ARTICLE 45: Classic Problem Fear and Greed ────────────────────────────
-    NarrativeTemplate(
-        name="Classic Problem — Fear and Greed in the Market",
-        description="""Ricky2212 fear & greed psychology framework:
-THE CLASSIC PROBLEM:
-- "Fear and Greed, sebuah classic problem yang akan selalu ada dan berulang dari waktu ke waktu"
-- "Saking basicnya, sampai susah sekali menjalankan hal itu. Rasanya hal ini banyak sekali yang menghadapi nya"
-FEAR EXAMPLE — Trump Tariff:
-- Weekend tariff announcement → Monday crash
-- "Dominasi Fear nya terlalu kuat sehingga dari psikologi menjalar ke logika"
-- "Logika meyuruh otak bekerja untuk memerintah jempol buat pencet tombol merah di apps saham nya"
-- "Panik berjamaah dan itu yang diinginkan oleh market"
-- "Periode FLUSH. Konsepnya adalah kaya Flush di Closet anda. Begitu anda pencet tombol Flush, langsung air deras bikin bersih tuh closet"
-- "Sama hal nya seperti di pasar, sekali periode flush datang and bersih dah tuh pada market dari orang weaker hand yang ketakutan"
-- Ricky's advice: "Kalo sudah tau Cerita besar nya, duduk manis aja sambil makan popcorn lihat adegan pada lewat. Jangan terlalu reaktif terhadap keadaan."
-GREED EXAMPLE — PANI Position:
-- "Portfolio mas nya itu sekitar 70% saham PANI dan posisinya sudah untung besar"
-- Classic Greed:
-    a. "Semua dari kita kebanyakan berpikir bahwa kita bisa merauk semua keuntungan tanpa tersisa. Kalau perlu semua kita ambil saat permainan berlangsung"
-    b. "Mayoritas berasa pingin banget keluar dari satu saham pas di puncak nya banget. Kalau perlu Top of the Topnya. Kalau perlu habis buang langsung jatuh tuh saham."
-- Ricky's approach: "PANI itu saya anggap saham buat MAIN. Jadi perlakukan lah sebagai permainan, jangan dibawa hati dan perasaan."
-- "Kalau sudah pada posisi permainannya terlalu WAHH, saya pasti melikuidasi posisinya"
-- "Target saya dari awal adalah sekian, yah kalo sudah ketemu hampir dipastikan saya EXIT"
-- "Paling enak itu buang posisi kita saat naik. Kita lebih rela saat kita melikuidasi saham pas lagi rally kencang"
-- "Kalau lagi turun? excuse and alasannya pasti nya banyak banget. Sayang lah, tunggu rebon dikit lah, tunggu membaik lah"
-- "Gredy kalo sudah berkuasa, jadilah logika juga ga bisa jalan dengan baik"
-Ricky's call: "Saham adalah bisnis mengelola Psikologi. Saham adalah bisnis mengelola Fear and Greed."
-"Tempatkan selalu psikologi anda di level 0"
-Key data: Fear = flush weaker hands. Greed = prevents exit at peak. Psychology level 0 = key to survival.""",
-        category="cycle",
-        catalyst_types=["fear_greed","market_psychology","flush_period","weak_hand_shakeout",
-            "greed_prevents_exit","fear_drives_panic"],
-        activation_keywords=["classic problem fear greed","fear and greed","flush period","weaker hand",
-            "panik berjamaah","tombol merah apps","dominasi fear","logika terintimidasi",
-            "flush closet","bersih market","duduk manis popcorn","jangan reaktif",
-            "greed puncak","top of the top","main saham","perlakukan permainan",
-            "target exit","likuidasi rally","buang saat naik","turun excuse banyak",
-            "sayang tunggu rebound","greed berkuasa","saham bisnis psikologi",
-            "psikologi level 0","manage fear greed"],
-        invalidation_keywords=["no_fear","no_greed","rational_market","psychology_irrelevant"],
-        beneficiaries={"ihsg":["ALL"],"safe_haven":["IDR_cash","DISCIPLINE"]},
-        fades={"ihsg":["panic_selling","greed_holdings"]},
-        regime_alignment={"Q1":1.00,"Q2":1.00,"Q3":1.00,"Q4":1.00},
-        typical_duration_weeks=999,
-        conviction_ceiling=1.00,
-        pump_risk=0.00,
-        confirmation_signals=["fear_index_extreme","greed_index_extreme","flush_volume_spike",
-            "weak_hand_selling","panic_selling","inability_to_exit"],
-    ),
-
-    # ── ARTICLE 46: Bubble Before the Storm — George Soros Strategy ───────────
-    NarrativeTemplate(
-        name="Bubble Before the Storm — Learning from George Soros Strategy",
-        description="""Ricky2212 Soros-inspired bubble framework: "Jack Up Before Storm"
-THE INSPIRATION:
-- "Saya jadi teringat akan the Legend George Soros. Style investasi Soros yang paling relevan buat saya dengan keadaan sekarang ini"
-- "Inti nya adalah 'Bubble after Storm dan Bubble will burst'"
-- Soros: "Dalam suatu bad economy itu justru bubble asset keuangan akan terjadi. Orang sudah tidak tau lagi harus memutar uang nya dimana. Jadi mereka akan gelembungkan paper asset dan itu pasti akan punya cerita akhir yang tidak baik nantinya"
-- "Soros siram bensin dan menunggangi keadaan tersebut. Saat ada api, dia siram apinya dengan bensin sebanyak2x nya"
-- "Bubble before Storm, Jack up before Storm itu bukan karangan saya yah dan bukan hal baru. Semua itu pernah terjadi dan akan selalu berulang pada keadaan tertentu."
-SOROS'S METHOD:
-a. Teori Refleksivitas: "Persepsi pasar dapat memengaruhi realitas ekonomi, dan sebaliknya. Ketika investor percaya bahwa harga aset akan naik, mereka membeli lebih banyak, yang mendorong harga lebih tinggi lagi. Ini menciptakan siklus yang memperkuat diri sendiri, tetapi pada akhirnya tidak berkelanjutan."
-b. Analisis Fundamental: "Soros selalu melakukan analisis mendalam terhadap kebijakan ekonomi, suku bunga, dan kondisi makroekonomi."
-c. Psikologi Pasar: "Soros memahami bahwa pasar sering digerakkan oleh emosi seperti ketakutan dan keserakahan. Ketika pasar terlalu optimis, itu adalah tanda peringatan bahwa gelembung mungkin sedang terbentuk."
-CURRENT APPLICATION:
-- "Persepsi yang sangat kuat bahwa ekonomi Amrik itu Seeeettrong. Ekonomi Amrik tumbuh luar biasa (semua itu secara data) sehingga keadaan ini dipercaya akan membuat asset saham and US akan terus menguat"
-- "Persepsi tersebut dari waktu ke waktu akan terus digaungkan agar semakin dinilai menjadi sebuah fakta. Makanya tuh sekarang paper aset terdorong ga karuan"
-- "Segitu besar and Jumbonya hutang US, mustahil buat mata uang USD menguat. Ini pasti ada sesuatu"
-- "Fed sebagai Bank Sentral terus ingin memperlihatkan bahwa USD masih punya kekuatan dan hal ini pasti punya ujung nya nanti"
-- "Pasar sudah dipengaruhi oleh Greeed yang luar biasa. Misal semua yang berbau AI atau Narasi AI pasti dikejar pasar. Even sampe saham Palantir bisa dihargai 50x Salesnya"
-- "Narasi konglo di Indo, Narasi Back Door, apa lagi? itu bukti kalau pasar memang sedang digerakkan oleh sifat Greed"
-HISTORICAL SOROS CASES:
-1. British Pound 1992 (Black Wednesday): "Soros bisa membuat Bank sentral suatu negara yaitu Bank of England nyaris bangkrut." Short £10B, profit $1B. "Siram bensin Soros ga tanggung2x, dia semburkan bensin nya sampai ga bersisa."
-2. Asian Financial Crisis 1997-1998: Short Baht, Thailand floated July 1997, crisis spread. "Soros menghasilkan keuntungan besar dari krisis ini."
-3. Dot-com Bubble 1999-2000: Reduced tech exposure late 1999. "Valuasi yang Tidak Realistis, Euforia Pasar." Nasdaq -75% from peak. "Yang lucu nya adalah kalau Soros berhasil keluar dari bencana tersebut dengan baik, koleganya Stanley malah jadi korban pada bubble tersebut."
-4. Subprime Mortgage 2007-2008: Short financial sector 2007. "Pinjaman Subprime, Leverage yang Tinggi, Ketidakberlanjutan." Lehman collapse 2008.
-5. Yen Bubble 2012-2013: Short JPY, long Nikkei. BoJ QE aggressive. "Yen melemah lebih jauh, dan Soros menghasilkan keuntungan besar sekali lagi."
-LESSONS:
-1. Identifikasi Ketidakseimbangan
-2. Refleksivitas
-3. Keberanian untuk Bertindak
-4. Manajemen Risiko
-Ricky's call: "Saya mungkin tidak segila Soros, tapi edisi siram bensin saya jalankan untuk Riding Kegilaan yang sedang terjadi. Saya memakai strategi soros tapi versi mininya"
-"Saya paham bahwa semua ini pasti ada ujung nya, semua ketidakrasionalan pasti punya akhir, semua kegilaan yang semu pastinya tidak punya fondasi yang baik."
-"That's why Storm pasti akan datang. Kapan? tidak ada yang tau pasti nya kapan, even Soros juga tidak tau."
-"Saat semua sudah lelah, Bubble will burst, Bubble after Storm."
-"Jack Up Before Storm buat saya masih terus berjalan dengan ending besar nya adalah sebuah STORM"
-"Sekarang STORM nya? bukan, sekarang bukan real show nya. Penurunan sekarang ini belum pada permainan sesungguhnya."
-Key data: Soros = ride the bubble, know it will burst, exit before storm. Current = bubble forming, storm coming but not yet.""",
-        category="geopolitical",
-        catalyst_types=["soros_bubble","reflexivity","jack_up_before_storm","bubble_before_storm",
-            "ride_the_bubble","storm_coming","irrational_exuberance"],
-        activation_keywords=["bubble before the storm","george soros strategy","soros bubble","jack up before storm",
-            "refleksivitas soros","teori refleksivitas","analisis fundamental soros","psikologi pasar soros",
-            "bad economy bubble","paper asset bubble","siram bensin soros","riding kegilaan",
-            "palantir 50x sales","ai bubble","narasi konglo greed","bank of england 1992",
-            "black wednesday soros","asian financial crisis 1997","baht thailand soros",
-            "dot com bubble 2000","subprime mortgage 2008","lehman brothers soros",
-            "yen bubble 2013","nikkei soros","short pound 1 miliar","quantum fund soros",
-            "ketidakseimbangan ekonomi","storm pasti datang","bubble will burst",
-            "real show belum","penurunan sekarang bukan storm"],
-        invalidation_keywords=["no_bubble","fundamentals_drive","soros_wrong","storm_never_comes"],
-        beneficiaries={"us":["SQQQ","VIX","TLT","GLD"],"ihsg":["BBCA.JK","TLKM.JK","UNVR.JK"],
-            "crypto":["BTC-USD"]},
-        fades={"us":["SPY","QQQ","IWM","high_beta","PLTR"],"ihsg":["high_flyer","narrative_play","backdoor"]},
-        regime_alignment={"Q3":1.70,"Q4":1.50,"Q2":1.20,"Q1":0.90},
-        typical_duration_weeks=52,
-        conviction_ceiling=0.85,
-        pump_risk=0.15,
-        confirmation_signals=["valuation_extreme","narrative_driven_rally","soros_style_signals",
-            "reflexivity_loop_active","bubble_metrics_spike","storm_preparation_indicators"],
-    ),
-
-    # ── ARTICLE 47: One Great Moment Can Change the Whole Condition ────────────
-    NarrativeTemplate(
-        name="One Great Moment Can Change the Whole Condition — Life & Market Lesson",
-        description="""Ricky2212 personal story framework: One moment changes everything.
-THE STORY:
-- Ricky's mother passed away recently. "Innalilahi wainalillahi rojiun. mama, terima kasih buat 68 tahun perjuangan mama"
-- "One Great Moment Can Change the Whole Condition. Satu Great Moment itu bisa mengubah keseluruhan keadaan buat anda"
-THE BACKGROUND:
-- Rocky relationship with mother: "Pencuri hidup and Impian saya", "No contribution buat hidup saya"
-- Strict upbringing: "Gagang sapu, sapu lidi, belt, raket yonex — semua pernah mendarat di tubuh saya"
-- Academic excellence but rejected by mother: PMDK Jogja rejected, D3 Depok rejected
-- "Ibu saya adalah ibu yang paling konsisten kalo soal disiplin"
-- 1997-1998: Father's factory bankrupt, family separated
-- "Saya sempat putus kan untuk menutup komunikasi dengan ibu saya"
-THE RECONCILIATION:
-- 10 years ago: started reopening communication. "FORGIVEN but not FORGOTTEN"
-- 3 months before passing: mother WA daily asking about Ricky's wellbeing
-- "Dia hanya mau memastikan sebelum dia pergi, dia melihat semua anaknya sehat and bahagia"
-- The last 3 hours: Ricky cared for his sick mother. "Dia membuka jalan buat saya berbakti walau hanya 3 jam saja"
-- "Dia mau memastikan dia bisa menghapus dosa saya yang saya tumpuk karena renggangnya hubungan sama saya bertahun tahun"
-- "Dia tutup usianya dengan hubungan yang baik dengan saya tanpa ada luka lagi yang muncul"
-- "Mama saya memang sudah siap pergi dan dia memang menciptakan semua keadaanya untuk pergi meninggalkan yang terbaik"
-THE MOMENT:
-- "One Great Moment can Change Whole Condition"
-- "Dia adalah ibu TERBAIK yang ada di dunia. Ga ada ibu seperti mama"
-- "Diperlukan ketulusan yang luar biasa untuk mengcreate semua jalan cerita tersebut"
-MARKET CONNECTION:
-- "Satu Great Moment itu bisa mengubah keseluruhan keadaan buat anda, apapun itu keadaannya mau karir, kerjaan, keuangan even porto anda di bursa dll"
-- "Saya percaya bahwa Tuhan memberikan kita semua di dunia ini tanpa kecuali kesempatan buat jadi orang yang berhasil"
-- "Dalam satu siklus hidup yang diberikan Tuhan sampai kita mati nanti, ada satu Kesempatan besar atau Great Moment yang akan datang dan akan merubah hidup kita keseluruhan"
-- "Masalah nya Tuhan memberinya masih berupa sebuah kesempatan dan Tuhan pasti tidak memberikannya secara Cuma-cuma"
-- 2008: "Titik Great Moment saya hanya 1 jengkal dari hadapan saya. Benar2x hanya 1 langkah saja buat saya mendapatkannya"
-    * Choice: quit market and stay in banking vs continue in stocks
-    * "Andai yang saya ambil adalah pilihan berhenti dari bursa apa yang terjadi?"
-    * Would have missed: 2008-2011 comeback, 2011 first $1M net worth at age 30, meeting market makers, bull markets 2008-2011, property cycle 2011+, commodity cycle 2016, super bullish 2020
-Ricky's call: "One Great Moment Can Change the Whole Condition"
-"Jangan sampai anda menyesal karena memasukkan pilihan kata Menyerah dalam menjalani keadaan sekarang ini"
-Key data: One moment = everything changes. In markets, in life. Don't quit before your moment arrives.""",
-        category="cycle",
-        catalyst_types=["one_great_moment","life_lesson","never_give_up","great_moment_market",
-            "2008_turning_point","mother_story","reconciliation"],
-        activation_keywords=["one great moment","change whole condition","great moment life",
-            "ibu terbaik","pencuri hidup","no contribution","gagang sapu","sapu lidi",
-            "belt raket yonex","disiplin keras","pmdk jogja rejected","d3 depok rejected",
-            "1997 1998 bangkrut","putus komunikasi","forgiven not forgotten",
-            "wa daily 3 bulan","3 jam berbakti","menghapus dosa","tutup usia tanpa luka",
-            "ketulusan luar biasa","tuhan kesempatan","2008 great moment","1 jengkal",
-            "quit bursa vs banking","2011 1m net worth","age 30","market maker meeting",
-            "bull market 2008 2011","property cycle 2011","commodity cycle 2016",
-            "super bullish 2020","jangan menyerah","menyesal menyerah"],
-        invalidation_keywords=["gives_up","misses_moment","quits_before_peak","no_great_moment"],
-        beneficiaries={"ihsg":["ALL"],"us":["ALL"],"safe_haven":["PATIENCE","PERSEVERANCE"]},
-        fades={"ihsg":["quitters","short_term_thinkers"]},
-        regime_alignment={"Q1":1.00,"Q2":1.00,"Q3":1.00,"Q4":1.00},
-        typical_duration_weeks=999,
-        conviction_ceiling=1.00,
-        pump_risk=0.00,
-        confirmation_signals=["great_moment_opportunity","perseverance_pays","long_term_compound",
-            "life_changing_decision","never_quit_moment"],
-    ),
-
-    # ── ARTICLE 48: Negara Saya Mengirim Saya — Never Give Up ──────────────────
-    NarrativeTemplate(
-        name="Negara Saya Mengirim Saya — Never Give Up & Find Your Great Moment",
-        description="""Ricky2212 perseverance framework: "Menyerah itu tidak ada dalam pilihan"
-THE FOUNDATION:
-- Father's advice: "Ricky, Kelak nanti saat kamu sudah menghadapi dunia kehidupan yang nyata jangan pernah memasukkan kata Menyerah dalam pilihan hidupmu"
-- "Puluhan kali bahkan ratusan kali kalimat tersebut diperdengarkan"
-- "Kalo kamu sampai memilih itu tolong jangan masukkan kata Hopmans di nama belakang kamu. Jaga kehormatan nama marga itu supaya tetap harum"
-- "Sampai hari ini Menyerah itu tidak pernah ada dalam pilihan apabila saya dihadapkan pada sesuatu yang sulit"
-THE BELIEF:
-- "Saya percaya banget hukum di dunia ini bahwa kalau mau mendapat sesuatu yang baik, pasti harus menghadapi hal buruk terlebih dahulu. Tidak ada hal luar biasa yang bisa didapat dengan cuma-cuma."
-- "Kupu2x akan jadi indah sayapnya ketika dia berjuang hebat keluar dari kepompongnya"
-- "LKH sampai di titik sekarang ini setelah dia mengalami kejatuhan hebat di 1998"
-THE GREAT MOMENT:
-- "Tuhan memberikan kita semua di dunia ini tanpa kecuali kesempatan buat jadi orang yang berhasil"
-- "Dalam satu siklus hidup yang diberikan Tuhan sampai kita mati nanti, ada satu Kesempatan besar atau Great Moment yang akan datang"
-- "Gimana kalau titik Great Moment itu baru akan anda dapat setelah anda melewati hal yang sulit terlebih dahulu?"
-- "Saat anda diberikan kesempatan tersebut dan anda harus melewati perjuangan besar buat mendapatkan hal tersebut tapi anda Mundur and Menyerah, berarti anda sudah melewati 1 moment terbaik dalam hidup anda"
-- "Gimana kalau titik Great Moment itu jaraknya hanya 1 jengkal saja dari hadapan anda saat anda memutuskan buat mundur?"
-- "Gilanya lagi dan anda akan menyesal seumur hidup anda"
-2008 STORY:
-- "Saya pernah di posisi itu bro dan titik Great Moment itu benar2x sejengkal dari hadapan saya. Benar2x hanya 1 langkah saja buat saya mendapatkannya."
-- "Fiuhhh, untung banget walau saya sempat kepikiran buat memasukkan kata Menyerah sebagai pilihan kala itu tapi akhirnya saya teringat banget kalimat yang Ayah saya selalu perdengarkan."
-- "Saya ga mau melepas kata Hopmans di nama saya cuma karena saya jadi pecundang dan menyerah sama keadaan."
-- 2008: choice between quitting stocks vs continuing
-    * If quit: miss 2008-2011 comeback, miss $1M at age 30, miss meeting market makers, miss all bull markets
-    * "Semua itu tercipta dan saya bisa lewati karena Great Moment saya di 2008. Gilaa sejengkal saja dari hadapan saya"
-THE ATHLETE STORIES:
-1. John Stephen Akhwari (Olympic Marathon):
-    - "Negara saya mengirim saya bukan untuk memulai lomba lari ini, tapi negara saya mengirim saya sejauh 5000 mil untuk menyelesaikan lomba lari ini"
-    - Km 19: leg cramp, fell, hit by another runner. Medical team advised withdrawal.
-    - Refused. Finished the race despite severe injury.
-2. Derek Redmond (Olympic 400M):
-    - 150m remaining: hamstring injury, fell. Disqualified if he took stretcher.
-    - "Saya tak akan naik tandu itu. Bagaimanapun juga, saya harus menyelesaikan perlombaan ini"
-    - Father Jim Redmond broke security barrier, helped son finish. "Kita akan finish bersama-sama"
-    - "Ayah saya adalah orang yang paling bangga sedunia! Saya lebih bangga kepadanya meski gagal mendapatkan medali emas"
-Ricky's call: "Ayah saya melahirkan saya ke dunia ini bukan sebagai pecundang melainkan untuk menyelesaikan semua apa yang Ia cita2x kan"
-"Anda gimana?"
-"NB: saya putuskan saya bermain dengan alokasi yang ada aja sekarang. Sudah makin merinding sense saya kayanya, jadi apapun nanti ada jack up jelas saya akan exit. Kalaupun worst sampai jack up ga datang, saya juga jauh lebih siap. Sometime diam itu adalah langkah pemenang."
-Key data: Never give up. Great moment is always closer than you think. Silence = winner's move.""",
-        category="cycle",
-        catalyst_types=["never_give_up","great_moment","perseverance","akhwari_marathon",
-            "derek_redmond","father_advice","2008_turning_point","exit_strategy"],
-        activation_keywords=["negara saya mengirim saya","menyerah tidak ada pilihan","never give up",
-            "jangan menyerah","hopmans nama harum","ayah saya pesan","hukum dunia baik buruk",
-            "kupu kupu kepompong","lkh 1998","great moment tuhan","1 jengkal dari hadapan",
-            "menyesal seumur hidup","2008 great moment","sejengkal dari hadapan","akhwari marathon",
-            "5000 mil menyelesaikan","km 19 cedera","derek redmond 400m","hamstring injury",
-            "jim redmond ayah","finish bersama","orang paling bangga","ayah melahirkan bukan pecundang",
-            "diam langkah pemenang","sense merinding","exit jack up","siap worst case"],
-        invalidation_keywords=["gives_up","quits","misses_great_moment","no_perseverance"],
-        beneficiaries={"ihsg":["ALL"],"us":["ALL"],"safe_haven":["PATIENCE","PERSEVERANCE"]},
-        fades={"ihsg":["quitters","weak_hands"]},
-        regime_alignment={"Q1":1.00,"Q2":1.00,"Q3":1.00,"Q4":1.00},
-        typical_duration_weeks=999,
-        conviction_ceiling=1.00,
-        pump_risk=0.00,
-        confirmation_signals=["perseverance_shown","great_moment_arrives","never_quit_mindset",
-            "father_wisdom_applied","athlete_spirit","exit_when_ready"],
-    ),
-
-    # ── ARTICLE 49: Semua Tergantung Stasiun Naik & Turun ─────────────────────
-    NarrativeTemplate(
-        name="Semua Tergantung Stasiun Naik & Turun — Entry-Exit Timing Framework",
-        description="""Ricky2212 stock journey framework: "All depends on which station you board and which station you alight."
-THE CONCEPT:
-- "Saham naik dipuja, saham turun di caci itu sudah rumus dari sana nya"
-- "Yang untung banyak dari saham tertentu pasti diam dan menikmati, sebaliknya yang rugi banyak dari saham tertentu biasanya teriak nya paling kencang"
-- "Itu lah balada perjalanan panjang satu saham"
-- "Semua tergantung di stasiun mana anda naik ke gerbong keretanya dan di stasiun mana anda turun dari gerbong"
-HMSP:
-- 2000s: Cigarette trend, Philip Morris acquisition
-- Peak 2018: ~6000. 7 years later: ~600 (-90% from peak)
-- "60 bagger di luar dividen" from 2000 to 2018
-- "Banyak yang kaya dari saham ini, banyak yg boncos dari saham ini juga"
-ASII:
-- 2003-2017: Indonesia economic growth, middle class rise, Honda motorcycle dominance, commodity super cycle
-- "ASII adalah sebuah perusahaan konglomerasi yang terdiversifikasi"
-- Peak 2017: ~9000. 8 years later: ~4500 (-50%)
-- "20 bagger belum termasuk dividen" from 2003 to 2017
-- "12 tahun sejak 2013 sampai 2025, saham ASII malah terhitung Flat"
-BBRI:
-- IPO 2003: 875. Peak 2024: ~6500 (adjusted: ~65K). "75 bagger selama 21 tahun"
-- "Aset BBRI 2003: 94T, laba 2.6T. 2025: Aset 2000T, laba 57T"
-- "Bank BUMN adalah lambang negara, bank adalah pusat putaran ekonomi"
-- Since peak 2024: 6500 → 3900 (-40% in less than 1 year)
-- Friend's story: wife works at BBRI, got IPO shares + annual bonus shares, held from 2003 to 2019
-INCO:
-- 2003-2008: China massive infrastructure build, commodity super cycle
-- "INCO sebagai penghasil salah satu penghasil raw material tersebut ketiban durian runtuh"
-- Bought at 8000, peak 2008: 11,700 (4:1 and 10:1 splits = ~470K pre-split)
-- "60 bagger dalam 5 tahun, belum termasuk dividen"
-- From peak 11,700 to now ~3K (-70%, never recovered)
-- "INCO perusahaan world class loh, tapi harga super performnya tidak pernah lagi ketemu"
-BUMI:
-- 2003-2008: "Saham ajaib yang pernah ada di bursa saham di Indonesia"
-- "Saya tumbuh dan belajar di lingkaran konglomerasi itu"
-- "Sekuritas Danat××× Makxxx — dipakai oleh konglomerasi mereka"
-- "Big Boss nya sekuritas tersebut harus mempertahan harga penutupan di level tertentu agar Repo nya ga bubar"
-- From 25 to peak 8000 = 320x return
-- From 8000 to 100 = -99%, never recovered to peak
-- "Kapitalisasi Rp 160 trilyun saat itu (20M lembar x 8000)"
-- "Sekarang di harga 100 cap nya saja sudah Rp 40 Trilyun"
-- "Saya menikmati perjalanan BUMI di 2003-2008, 2008-2011, 2016-2017, 2021-2022"
-- "Akan kah 2024 ini jadi perjalan ke 5 saya menikmati gurihnya keuntungan di group tersebut?"
-THE LESSON:
-- "Jadi ga perlu bilang saham xxxx ga asyik, bikin orang rugi, ga pernah kasih untung, down trend abadi, sektor nya sunset dll"
-- "Bisnis and ekonomi akan berputar dan suatu waktu mereka akan menemui masa jaya nya lagi"
-- "Tugas teman2x adalah mencari waktu yang pas, mencari stasiun yang pas buat ikut dalam perjalanan"
-- "Saat penurunan april kemarin jadi salah satu stasiun yang cocok buat menikmati perjalanan"
-- "Mau yang lebih cocok lagi? tunggu Crash besar di depan sana yang mungkin akan datang"
-- "Disana lah stasiun yang super cocok buat anda semua yang pingin menjalani perjalanan jauh investasi saham"
-- "Dengan catatan? anda bisa membeli tiket buat naik keretanya alias pegang cash saat kejatuhan terjadi"
-Ricky's call: "Semua tergantung di stasiun mana anda naik ke gerbong keretanya dan di stasiun mana anda turun dari gerbong"
-Key data: Entry/exit timing = everything. Same stock makes some rich and others broke. Crash = best boarding station.""",
-        category="cycle",
-        catalyst_types=["entry_exit_timing","station_framework","stock_journey","same_stock_rich_poor",
-            "crash_entry","superior_return_timing","long_term_compound"],
-        activation_keywords=["stasiun naik turun","gerbong kereta saham","entry exit timing",
-            "saham naik dipuja turun dicaci","hmsp 60 bagger","hmsp 6000 ke 600","asii 20 bagger",
-            "asii 9000 ke 4500","bbri 75 bagger","bbri 6500 ke 3900","inco 60 bagger",
-            "inco 11700 ke 3000","bumi 320x return","bumi 8000 ke 100","bumi ajaib",
-            "danat mak sekuritas","repo ga bubar","kapitalisasi 160 trilyun","crash besar stasiun",
-            "pegang cash kejatuhan","stasiun cocok","waktu pas masuk","bisnis berputar",
-            "masa jaya lagi","tugas cari stasiun","april penurunan stasiun","superior return timing"],
-        invalidation_keywords=["buy_and_hold_always_works","timing_irrelevant","crash_never_comes",
-            "same_stock_same_result"],
-        beneficiaries={"ihsg":["HMSP.JK","ASII.JK","BBRI.JK","INCO.JK","BUMI.JK","BRMS.JK"],
-            "safe_haven":["IDR_cash","PATIENCE"]},
-        fades={"ihsg":["wrong_station_entry","wrong_station_exit"]},
-        regime_alignment={"Q1":1.00,"Q2":1.00,"Q3":1.00,"Q4":1.00},
-        typical_duration_weeks=999,
-        conviction_ceiling=1.00,
-        pump_risk=0.00,
-        confirmation_signals=["good_entry_station","crash_opportunity","long_term_hold",
-            "exit_at_peak","compound_wealth","same_stock_different_outcome"],
-    ),
-
-    # ── ARTICLE 50: Prepared not Predict — Philosophy & Umbrella Analogy ───────
-    NarrativeTemplate(
-        name="Prepared not Predict — Philosophy & Umbrella Analogy",
-        description="""Ricky2212 preparation framework: "Better PREPARE not PREDICT"
-THE PROBLEM:
-- "Saya masih melihat kecenderungan banyak dari teman2x yang mencoba predict waktu dan time line nya"
-- "Kecenderungan nya saya melihat dengan mencoba predict waktu dan time line nya, teman2x mungkin mau mencoba memaksimalkan keadaan"
-- "Hati2x dengan hal tersebut, alih2x mencoba memprediksi apalagi mencoba mencari waktu yang presisi nanti malah berujung pada hal yang tidak diinginkan"
-THE FRAMEWORK:
-- "Saya coba tuliskan semua hal misal seperti 13 keypoint, blow of the top, bubble stage bukan untuk menebak atau mencari waktu pastinya"
-- "Semua itu saya tulis dengan tujuan menitik beratkan pada pola dan pettern yang biasa terjadi"
-- "Karena pola dan pattern nya berurutan, maka kejadian di phase selanjutnya akan sangat bergantung pada kejadian di phase sebelumnya"
-- "Apabila saya menyebutkan satu periode misalnya bulan apa, itu berarti saya mencoba melihat selama periode tersebut ada sinyal apa sih yang ekonomi dan market berikan"
-UMBRELLA ANALOGY:
-- Rainy season: October-April. "Chance buat hujan sangat tinggi. Jadi kapanpun biasa terjadi hujan"
-- "Sudah tau kan musim penghujan? apa yang akan anda lakukan saat anda melakukan perjalanan tanpa kendaraan? Sudah pasti anda akan mempersiapkan payung di tas anda"
-- "Anda tidak tau kapan hujan nya, tapi anda tau sekarang adalah musim penghujan and chance besar hujan kapan saja bisa terjadi"
-- Predicting exact time: "Saya prediksi hujannya akan terjadi di hari senin dan tepatnya hujan akan datang mulai pukul 10.00 a.m."
-    * Monday: no rain → missed business meeting for nothing
-    * Tuesday: no rain → carried umbrella for nothing
-    * Wednesday: no rain → carried umbrella for nothing
-    * Thursday: no umbrella → rain pours, soaked
-- "Dengan membawa payung di saat musim penghujan itu artinya anda sudah mempersiapkan diri anda untuk terhindar dari resiko basah kuyup"
-- "Saat anda bawa payung tapi tidak hujan? yah itu merupakan bagian dari prepare anda"
-INSURANCE ANALOGY:
-- "Kenapa anda beli asuransi? sejatinya orang beli asuransi karena ingin melindungi dirinya dari resiko ketidakpastian"
-- "RESIKO itu bisa datang kapan saja tanpa kita kehendaki"
-- Life insurance: average lifespan 60-70 years. But accident can happen anytime.
-    * "Amit2x jangan sampai terjadi. Misal anda baru saja keluar rumah... motor itu menabrak anda... anda harus cacat permanen atau bahkan meninggal saat itu"
-    * "Umur meninggal anda 60-70 tahun? secara ilmu medianya iya, tapi ketidakpastian itu bisa datang kapan saja"
-- Health insurance: metabolism changes at 42-45. But stress + bad lifestyle → stroke at 30.
-    * "Predict anda sakit di umur 42-45? saat anda ga ada persiapan karena mau coba mempredict kejadian pasti membuat anda harus menghadapi resiko yang lebih tinggi"
-THE MARKET APPLICATION:
-- "Kalo keadaan market sudah banyak sinyal buruk, besok pun bisa saja market berbalik arah dengan cepat tanpa ampun"
-- "Chance hujan besar akan terjadi saat memang lagi datang musim hujan. Hujan bisa terjadi kapan saja tanpa kita bisa perkirakan dengan pasti"
-- "Market juga kalo sudah banyak sinyal buruk yang datang, chance terjadi pembalikan arah juga menjadi besar dan bisa datang kapan saja"
-- "Bawa payung adalah prepare saat musim hujan. Kalo bawa payung tapi ga hujan? setidaknya masih lebih baik daripada coba2x memprediksi kapan hal buruknya datang"
-- "Di bursa gimana anda mempersiapkan diri anda saat anda tau bahwa chance besar buat hal buruk akan datang? nah itu tugas dan PR anda"
-- "Kalo sudah siap tapi ga datang hal buruk nya? setidaknya masih lebih baik daripada coba2x memprediksi"
-Ricky's call: "Prepare not Predict, cuma itu yang saya bisa lakukan sekarang ini"
-"Makin banyak sinyal kuat yang bergetar, makin saya mempersiapkan diri saya untuk sebuah hal buruk yang akan terjadi"
-"Crisis pasti akan datang dan kita tidak bisa menghindar. Jangan anggap itu sebagai hal buruk, justru anggap itu sebagai sebuah kesempatan terbaik buat anda untuk meningkatkan kekayaan anda"
-Key data: Prepare = umbrella in rainy season. Predict = guess exact rain time and get soaked. Market = rainy season now.""",
-        category="cycle",
-        catalyst_types=["prepare_not_predict","umbrella_analogy","insurance_analogy","rainy_season_market",
-            "preparation_over_prediction","crisis_opportunity"],
-        activation_keywords=["prepare not predict","better prepare not predict","umbrella analogy",
-            "musim penghujan","payung di tas","predict hujan senin 10am","basah kuyup",
-            "asuransi jiwa","asuransi kesehatan","resiko ketidakpastian","umur 60-70",
-            "kecelakaan kapan saja","stroke umur 30","predict umur 42-45","market sinyal buruk",
-            "pembalikan arah cepat","chance besar hal buruk","tugas pr prepare","siap tapi ga datang",
-            "crisis kesempatan terbaik","meningkatkan kekayaan","sinyal kuat bergetar",
-            "pola pattern berurutan","fase bergantung fase sebelumnya","13 keypoint prepare",
-            "blow off top prepare","bubble stage prepare"],
-        invalidation_keywords=["prediction_works","no_preparation_needed","timing_exact",
-            "crisis_avoided"],
-        beneficiaries={"ihsg":["ALL"],"us":["ALL"],"safe_haven":["IDR_cash","USD_cash","PREPARATION"]},
-        fades={"ihsg":["predictors","timers","reactive_traders"]},
-        regime_alignment={"Q1":1.00,"Q2":1.00,"Q3":1.00,"Q4":1.00},
-        typical_duration_weeks=999,
-        conviction_ceiling=1.00,
-        pump_risk=0.00,
-        confirmation_signals=["preparation_complete","umbrella_ready","crisis_signals_present",
-            "rainy_season_market","not_reactive","calm_during_storm"],
-    ),
-
-    # ── ARTICLE 51: Prepare not Predict Part 2 — Top & Bottom Signals ─────────
-    NarrativeTemplate(
-        name="Prepare not Predict Part 2 — Top & Bottom Market Signals",
-        description="""Ricky2212 market phase signals framework:
-THE PHILOSOPHY:
-- "Kilas balik ke belakang, saya juga sudah sempatkan untuk membuatkan artikel tentang perjalanan market kita menuju puncak nantinya"
-- "13 key point, artikel tentang dessert penutup cycle dan artikel tentang euphoric and Depressed cycle"
-- "Di artikel ini saya akan coba bedah lagi sinyal2x keadaan yang biasanya muncul pada saat market mau top and market mau bottoming out"
-- "Sinyal ini secara historical selalu berulang"
-7 SIGNALS AT MARKET TOP:
-1. IPO FLOOD: "Jumlah IPO meningkat pesat. Saat market menuju euphoria biasanya antrian perusahaan untuk IPO meningkat drastis."
-    - "Euphoria menciptakan permintaan risk asset sangat tinggi sehingga perusahaan yang IPO akan dengan mudah mencari dana di pasar"
-    - "Perusahaan yang IPO akan dapat menjual perusahaannya dengan valuasi yang tinggi"
-2. HIGH RISK ASSET SURGE: "High Risk Asset naik luar biasa tanpa kecuali. Psikologi risk on partisipan naik luar biasa."
-    - "Mereka akan memburu asset2x yang bisa memberikan return yang tinggi. Aliran uang akan deras masuk ke risk asset dengan tingkat confidence yang sangat tinggi"
-3. LEVERAGE EASING: "Pemberian leverage yang dipermudah. Saat semua dalam kondisi risk on dengan kecepatan sangat tinggi, perusahaan perantara perdagangan risk asset akan mempermudah anda dalam menjangkau pinjaman untuk me leverage posisi anda."
-    - "More risk means more credit available"
-4. STEEP RISE + HIGH VOLUME: "Kenaikan asset yang curam dengan Volume yang sangat tinggi. Banyak risk asset tanpa fundamental naik dengan curam dengan volume yang sangat tinggi. Aliran uang nanti ngumpul disana semua."
-5. HISTORIC VALUATIONS: "Valuasi akan berada di level yang tinggi Secara Historis. Kalo fundamental ekonomi real ketinggalan maka laba yang dihasillkan juga akan tumbuh melambat dan disaat yang sama pasar mengalami kenaikan cukup pesat."
-    - "Belum lagi kenaikan pasar juga didorong saham yang katanya high growth, makin parah lah tuh valuasi nantinya"
-6. NEW PARTICIPANT SURGE: "Makin Banyak dan pertumbuhan luar biasa untuk partisipan baru yang nimbrung di bursa. Ada Gula ada semut."
-    - "Banyak sebenernya yang tidak mengerti mengenai pasar saham. Mereka terdorong karena euphoria"
-7. MEDIA FRENZY: "Pemberitaan media dan sosial media yang makin ramai membicarakan pasar. Dimana-mana berbicara pasar dengan bahasa yang wah."
-    - "Indeks tembus record bla bla bla. Sosial media pun ga ketinggalan nanti banyak yang bahas saham"
-    - "Yang paling ultimate nanti banyak yang petantang petenteng kaya jagoan berbicara tentang market di sosial media (padahal ga ngerti apa2x)"
-    - "Even tukang sayur anda aja nanti bisa bicara tentang saham atau BTC saking gemerlapnya dunia investasi"
-13 KEY POINT PEAKED SIGNALS (from previous articles):
-1. Gold ATH → ATH while Market also ATH→ATH
-2. IWM (small cap) ATH and outperforming all indices
-3. High risk asset (crypto) hard jack up from ATH→ATH
-DESSERT CYCLE SIGNALS:
-1. B-Indicator (Om B stock) peaks to close cycle
-2. BTC ATH→ATH
-THE REALITY:
-- "Tidak ada yang tau kapan hal buruk atau Crisis akan datang. Tapi dalam perjalanannya banyak hal yang tidak semestinya akan terjadi dan itu adalah sinyal2x yang biasa diberikan oleh market"
-- "CRISIS terjadi saat tidak ada yang menyangka itu bakal terjadi"
-- "Orang akan dibuat terlelap oleh mimpi indah naiknya market dengan kekuatan yang luar biasa. Siapa yang terlarut berlebihan dalam euphoria tersebut, jangan heran kalo dia nanti yang menjadi bagian sejarah dilahap oleh kejatuhan market"
-THE TIMING:
-- "Saya ga bicara waktu persis nya dan jangan menanyakan hal tersebut"
-- "Kalau tidak ada aral melintang, Narasi CUT akan dimunculkan oleh market. Berkali-kali Trump sudah minta hal tersebut"
-- ECB, BOE, BoC, SNB, RBA, RBNZ, India (50bps surprise) all cutting
-- "SNB warning deflasi, ga menutup kemungkinan negative rates. 5yrs notes yield negative"
-- China: injecting liquidity, lowering rates
-- Fed FOMC mid-June (18-19 June): "Saya ga expect terjadi CUT, tapi bisa saja Fed kasih suprised CUT"
-- "Once Fed sudah beres urusin masalah hutang nya, tuh CUT akan membuat yield UST makin menciut secara cepat"
-- "Perjalanan kita menuju PEAKED akan berjalan sempurna (estimasi thesis saya market akan terjadi Jack Up dan mungkin akan sampai level Ter FOMO-FOMO)"
-THE STRATEGY:
-- "Tetap jaga ekspektasi anda dengan baik sehingga anda tidak terlelap dalam euphoria"
-- "Next cerita nya narasi apa yang bisa bikin gembos market saat mencapai PEAKED? market akan realized bahwa ekonomi tidak cukup kuat dengan CUT yang terjadi"
-- "Ekonomi butuh lower rate sampe rendah agar dosisnya cukup buat menggerakan kembali roda ekonomi yang sesungguhnya"
-- "Saya masih bermain SIRAM BENSIN dengan porsi terbesar di conglo narrative terutama 9 haji conglo narrative. Sebagian kecil lagi main lucu2x an ala bekdor dan lucu2x saham CA"
-Ricky's call: "Prepare not Predict, cuma itu yang saya bisa lakukan sekarang ini"
-"Makin banyak sinyal kuat yang bergetar, makin saya mempersiapkan diri saya untuk sebuah hal buruk yang akan terjadi"
-"Crisis pasti akan datang dan kita tidak bisa menghindar. Jangan anggap itu sebagai hal buruk, justru anggap itu sebagai sebuah kesempatan terbaik buat anda untuk meningkatkan kekayaan anda"
-Key data: 7 top signals = historical pattern. Peak = when all 7 align. Crisis = when no one expects it. Prepare now.""",
-        category="cycle",
-        catalyst_types=["top_signals","bottom_signals","ipo_flood","risk_asset_surge","leverage_ease",
-            "historic_valuations","new_participants","media_frenzy","13_key_point","dessert_cycle",
-            "cut_narrative","peaked_market"],
-        activation_keywords=["prepare not predict part 2","top bottom signals","sinyal market top",
-            "sinyal market bottom","ipo meningkat pesat","high risk asset surge","leverage dipermudah",
-            "kenaikan curam volume tinggi","valuasi tinggi historis","partisipan baru banyak",
-            "media sosial ramai","tukang sayur bicara saham","petantang petenteng jagoan",
-            "13 key point peaked","gold ath market ath","iwm ath outperform","crypto hard jack up",
-            "dessert cycle","b indicator peak","btc ath ath","crisis tidak menyangka",
-            "terlelap euphoria","dilahap kejatuhan","narasi cut trump","ecb boc snb rba rbnz cut",
-            "india 50 bps surprise","snb deflasi negative rates","china inject liquidity",
-            "fed fomc juni 18-19","surprised cut fed","ust yield menciut","ter fomo fomo peaked",
-            "siram bensin conglo","9 haji narrative","bekdor ca play","ekonomi gembos",
-            "lower rate dosis cukup","kesempatan terbaik krisis"],
-        invalidation_keywords=["no_peak_signals","market_never_peaks","crisis_avoided","signals_false"],
-        beneficiaries={"ihsg":["BUMI.JK","BRMS.JK","WIFI.JK","DEWA.JK","TOBA.JK","PGEO.JK","RAJA.JK"],
-            "us":["GLD","IWM","BTC-USD"],"safe_haven":["IDR_cash","USD_cash"]},
-        fades={"ihsg":["ipo_newbies","high_flyer_garbage","pure_fundamental_lagging"],"us":["SQQQ","VIX"]},
-        regime_alignment={"Q3":1.80,"Q4":1.70,"Q2":1.40,"Q1":1.00},
-        typical_duration_weeks=16,
-        conviction_ceiling=0.85,
-        pump_risk=0.20,
-        confirmation_signals=["ipo_surge","risk_asset_volume_spike","margin_debt_record",
-            "valuation_historic_high","new_brokerage_accounts_spike","social_media_saham_trending",
-            "tukang_sayur_trading","gold_ath_with_market","iwm_outperform","crypto_ath_spike"],
-    ),
-
-    # ── ARTICLE 52: Siklus Ekonomi Berputar — Apestor yang Ga Pernah Berputar ─
-    NarrativeTemplate(
-        name="Siklus Ekonomi Berputar — Apestor yang Ga Pernah Berputar",
-        description="""Ricky2212 market cycle & investor psychology framework:
-THE COMPLAINTS:
-- "Pak, kira2x saham x masih bisa naik ga?"
-- "Pak, kira2x thesis saham x masih berjalan ga?"
-- "Pak, koq saham nya turun ada apa yah?"
-- "Pak, kira2x apa katalis nya nanti naik lagi?"
-- "Pertanyaan yang menandakan ketidakpercayaan pada keputusan investasi yang sudah diputuskan"
-- "Pertanyaan yang menandakan ketidaksiapan menerima penurunan market"
-THE CYCLE:
-- "Seperti biasa siklusnya akan selalu berulang dan berputar-putar disitu saja"
-- "Saat dihadapkan pada penurunan harga maka basa diasumsikan berarti story and thesisnya selesai"
-- "Nanti kalo harganya naik berarti story dan thesis nya berjalan lagi. Sorak sorai akan datang lagi seakan-akan lupa pada penurunan yang terjadi"
-THE PSYCHOLOGY:
-- "Saya pribadi sih agak heran kenapa penurunan harga jadi justifikasi sesaat yah?"
-- "Segitu mudahnya terombang ambing keadaan? segitu melempem nya psiko seseorang?"
-- "Saat Fears datang, yang ga kuat pasti dengan sangat cepat logikanya terintimidasi"
-- "Dari sana kecemasan datang sehingga apapun yang terjadi dianggap tidak menguntungkan"
-- "Pikiran sudah langsung kemana-mana, perasaan kehilangan uang nya membesar"
-- "Dipikir market itu bodoh kali yah? dalam keadaan sentimen yang buruk begini terus ada penunggu saham yang mau jadi pahlawan kesiangan yang mau bikin saham ya hijau sendiri an?"
-THE WISDOM:
-- Om Robert: "Market turun, bisnis berjalan seperti biasa dan tidak ada yang berubah. Jadi apa yang harus ditakuti?"
-- Thomas: "Saham perusahaan bagus, naik itu masalah waktu saja. Semakin lama didiamkan di posisi bawah berarti semakin besar kesempatan anda"
-THE 3 THOUGHTS:
-1. "Kalau anda tidak sanggup melihat sebuah penurunan pasar, coba pikirkan kembali keberadaan anda di pasar saham"
-2. "Kalau anda tidak sanggup melihat sebuah penurunan pasar, berarti anda belum pantas mendapatkan superior return"
-3. "Pasar saham itu bukan tempat yang mudah, kalau mudah pasti sudah banyak yang kaya seperti WB, LKH dll"
-THE REALITY:
-- "Ini belum jadi sebuah penurunan yang dahsyat loh, baru dicoba penurunan segini aja masa langsung melempem?"
-- "Portofolio saya juga kena dampak koq. Sama hal nya dengan port nya mas rizza, thomas, mas tom, ko robert and si bontot"
-- "Memang saat begini, port kita hijau sendiri an? hebat bener kalo hijau sih, merah yang kena dampak juga pasti"
-- "Cuma perbedaan nya adalah gimana kita menyikapi keadaan nya aja"
-- "Akan jadi luar biasa saat terlalu reaktif terhadap satu keadaan"
-Ricky's call: "Market merah adalah market hijau yang tertunda, nikmati saja semua perjalanannya"
-"Nanti kalo sudah jack up juga ketawa2x lagi, lah wong Trump aja belum di inagurasi. Kasian loh masa kado inagurasi dikasih Black SWaN"
-Key data: Market cycles rotate; investor psychology doesn't. Fear makes weak hands question everything. Stay calm = win.""",
-        category="cycle",
-        catalyst_types=["market_cycle","investor_psychology","fear_cycle","weak_hand","temporary_downturn",
-            "business_as_usual"],
-        activation_keywords=["siklus ekonomi berputar","apestor ga pernah berputar","saham masih bisa naik",
-            "thesis masih berjalan","turun ada apa","katalis naik","ketidakpercayaan keputusan",
-            "ketidaksiapan penurunan","siklus berulang","story selesai turun","story berjalan naik",
-            "sorak sorai lupa penurunan","justifikasi sesaat","terombang ambing","melempem psiko",
-            "fear logika terintimidasi","kecemasan membesar","market bodoh","pahlawan kesiangan",
-            "om robert bisnis berjalan","thomas saham bagus naik waktu","sanggup liat penurunan",
-            "pantas superior return","pasar saham tidak mudah","wb lkh kaya","port kena dampak",
-            "hijau sendiri an","reaktif terhadap keadaan","market merah market hijau tertunda",
-            "nikmati perjalanan","trump inagurasi black swan"],
-        invalidation_keywords=["market_always_up","no_cycles","psychology_irrelevant","no_fear"],
-        beneficiaries={"ihsg":["ALL"],"safe_haven":["IDR_cash","CALMNESS"]},
-        fades={"ihsg":["weak_hands","panic_sellers"]},
-        regime_alignment={"Q1":1.00,"Q2":1.00,"Q3":1.00,"Q4":1.00},
-        typical_duration_weeks=999,
-        conviction_ceiling=1.00,
-        pump_risk=0.00,
-        confirmation_signals=["market_cycles_recognized","fear_managed","business_unchanged",
-            "calm_during_downturn","non_reactive_psychology"],
-    ),
-
-    # ── ARTICLE 53: Calm Down and Relax — Don't Panic During Downturns ────────
-    NarrativeTemplate(
-        name="Calm Down and Relax — Temporary Downturn & Playbook Execution",
-        description="""Ricky2212 calmness framework during market downturns:
-THE MANTRA:
-- "Calm Down and Relax. Yap itu hal terbaik yang perlu dilakukan saat melihat penurunan harga saham jangka pendek"
-- "Ingat penurunan itu hanya temporary, jadi ga perlu kasak kusuk dan terlihat gundah"
-THE FEAR INDICATOR:
-- "Yang gundah itu saya asumsikan tidak mengerti apa yang dibeli, apalagi sampe merintil hal2x yang sebenernya tidak perlu"
-- "Kenapa sampe merintil? karena psikologi fear nya sudah mulai mendominasi dan mempengaruhi logika anda sendiri"
-THE OPPORTUNITY:
-- "Selama semua Playbook masih berjalan dengan baik, penurunan harga saham itu jadi sebuah peluang untuk menambahkan posisi anda lebih banyak lagi"
-THE REGRET:
-- "Pak, tapi saya sudah ga bisa nambah posisi lagi? yah terima nasib saja yah"
-- "Saran saya yang sudah beberapa kali saya sampaikan bahwa kalo beli saham jangan makai otak ngeres sehingga yang terjadi adalah anda attack bombardir tanpa bersiap diri pas ada penurunan"
-THE CATALYSTS:
-- MIP (Mineral Industry Policy) and Royalty IUPK adjustment
-- "Agenda nya agenda besar koq, semoga saja satu per satu agenda nya bisa di checklist nantinya"
-- Verdhana simulation data:
-    * MIP Scenario: PTBA +59%, INDY +65%, BUMI +52%
-    * Royalty Scenario: INDY +135%, BUMI +44%, ADRO +20%
-    * MIP + Royalty: INDY +200%, BUMI +96%, PTBA +59%, ADRO +19%
-- "Dari 2 event ini ada 4 emiten yang diuntungkan: INDY >> BUMI >> PTBA >> AADI"
-Ricky's call: "Happy wiken. Calm Down and Relax"
-"Market merah adalah market hijau yang tertunda, nikmati saja semua perjalanannya"
-Key data: Downturn = temporary. Playbook intact = buying opportunity. MIP + Royalty = major coal catalysts.""",
-        category="cycle",
-        catalyst_types=["calm_down","temporary_downturn","playbook_intact","buying_opportunity",
-            "mip_policy","royalty_iupk","coal_catalyst"],
-        activation_keywords=["calm down relax","temporary downturn","penurunan temporary",
-            "ga perlu gundah","psikologi fear mendominasi","merintil hal tidak perlu",
-            "playbook berjalan baik","peluang tambah posisi","ga bisa nambah posisi",
-            "terima nasib","otak ngeres","attack bombardir","bersiap diri penurunan",
-            "mip mineral industry policy","royalty iupk adjust","verdhana simulation",
-            "ptba npat naik 59%","indy npat naik 65%","bumi npat naik 52%",
-            "indy royalty 135%","bumi royalty 44%","adro royalty 20%",
-            "indy mip royalty 200%","bumi mip royalty 96%","ptba mip royalty 59%",
-            "adro mip royalty 19%","4 emiten diuntungkan","indy bumi ptba aadi",
-            "agenda besar checklist","happy wiken"],
-        invalidation_keywords=["playbook_fails","mip_cancelled","royty_blocked","downturn_permanent"],
-        beneficiaries={"ihsg":["INDY.JK","BUMI.JK","PTBA.JK","AADI.JK","ADRO.JK"],
-            "safe_haven":["IDR_cash","CALMNESS"]},
-        fades={"ihsg":["panic_sellers","weak_hands"]},
-        regime_alignment={"Q1":1.20,"Q2":1.00,"Q3":0.80,"Q4":0.60},
-        typical_duration_weeks=4,
-        conviction_ceiling=0.80,
-        pump_risk=0.10,
-        confirmation_signals=["mip_announced","royalty_adjustment_confirmed","playbook_executing",
-            "coal_stocks_rally","verdhana_data_validated","agenda_checklist_progress"],
-    ),
-]
-
-# ═══════════════════════════════════════════════════════════════════════════════
-# MERGE ALL BATCHES INTO MASTER REGISTRY
-# ═══════════════════════════════════════════════════════════════════════════════
-
-_NARRATIVES: List[NarrativeTemplate] = []
-_NARRATIVES.extend(_NARRATIVES_BATCH14)
-_NARRATIVES.extend(_NARRATIVES_BATCH15)
-_NARRATIVES.extend(_NARRATIVES_BATCH16)
-_NARRATIVES.extend(_NARRATIVES_BATCH17)
-_NARRATIVES.extend(_NARRATIVES_BATCH18)
-
-NARRATIVE_BY_NAME: Dict[str, NarrativeTemplate] = {n.name: n for n in _NARRATIVES}
-
-NARRATIVES_BY_CATEGORY: Dict[str, List[NarrativeTemplate]] = {}
-for _n in _NARRATIVES:
-    NARRATIVES_BY_CATEGORY.setdefault(_n.category, []).append(_n)
-
-# Convenience exports
 __all__ = [
-    "NarrativeTemplate",
-    "_NARRATIVES",
-    "NARRATIVE_BY_NAME",
-    "NARRATIVES_BY_CATEGORY",
-    "_NARRATIVES_BATCH14",
-    "_NARRATIVES_BATCH15",
-    "_NARRATIVES_BATCH16",
-    "_NARRATIVES_BATCH17",
-    "_NARRATIVES_BATCH18",
+    "NARRATIVE_UNIVERSE",
+    "get_by_ticker",
+    "get_by_tag",
+    "search_narrative",
+    "list_all_keys",
+    "get_related",
 ]
+
+NARRATIVE_UNIVERSE = {
+    "narasi_hmmm_shifting_inflow_konglo_2025": {'author': 'Ricky2212 (MentorBaik)',
+     'date': '2025-04',
+     'full_text': 'Narasi ? hmmm Narasii apa yah\n'
+                  '\n'
+                  'Narasi ? hmmm Narasi apa yah\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  'artikel ini adalah semua opini yang saya punya dengan berbagai pertimbangan serta resiko. Lakukan riset '
+                  'lanjutan untuk mendapatkan keputusan investasi terbaik buat anda sendiri\n'
+                  '\n'
+                  '\n'
+                  'Gimana , berasa apa di market belakangan ini ? hmmm , pasti berasa banget ada shifting and inflow ke '
+                  'market kita\n'
+                  '\n'
+                  '\n'
+                  'Tenang , itu belum seberapa inflow nya. Uang besar asing nya belum maximal and memuncak masuknya. '
+                  'Sekarang baru sebagian kecil nya. \n'
+                  '\n'
+                  '\n'
+                  'Nanti jangan kaget kalo makin deres masuknya , Ter FOMO FOMO dah market sampe muncrat - muncrat tuh '
+                  'indeks.\n'
+                  '\n'
+                  '\n'
+                  'Menurut BI sih inflow ke Bond sudah mulai deres bahkan jumlahanya sudah melebihi tahun 2021 , just wait '
+                  'nanti giliran saham yang dapat giliran deresnya. Play book nya kan deras masuk bond dahulu sebelum '
+                  'masuk ke stock market ( baca artikel bagaimana big fund memutar uang nya )\n'
+                  '\n'
+                  '\n'
+                  'Tuh Rp saja sudah 16200-16300 , sesuai janji saya kalo Rp ke level segitu aja indeks pasti ngacir ga '
+                  'karuan. And sekarang indeks dah di 7200 an yah. Sampe ga berasa kalo sudah segitu aja\n'
+                  '\n'
+                  '\n'
+                  'sektor Bank tuh sudah lihat , sudah unjuk gigi buat nopang indeks. Tapi ingat jangan expect Bank akan '
+                  'jalan super spike yah. Dia ga begitu typical mainnya. Dia big cap penopang indeks , jadi selama dia '
+                  'bisa nopang indeks , aman lah perjalanan kita ke puncak Ter FOMO FOMO nanti.\n'
+                  '\n'
+                  '\n'
+                  'Buat yang style main nya lebih santai dengan memakai banking sektor di portfolionya , as long as Rp '
+                  'aman and aliran uang deras masuk terus ke pasar indo harusnya bisa santai2x dulu ga perlu terburu - '
+                  'buru. \n'
+                  '\n'
+                  '\n'
+                  'Next , berasa ga sebelum big bank and bIg cap gerak belakangan ini , siapa yang manggung duluan ?\n'
+                  '\n'
+                  '\n'
+                  'Yap , kita masuk lah ke ranah NARASI permainan siram bensin ala Soros . Siapa tau kita bisa '
+                  'memaksimalkan perjalannnya dengan cara ini. \n'
+                  '\n'
+                  '\n'
+                  'Narasi apa yang akan berkembang di market sekarang ini dan yang mungkin ada di depan nanti ?\n'
+                  '\n'
+                  '\n'
+                  'Konglo melalui konglo play curi start duluan mendahului market. Buat saya mereka juga know something '
+                  'karena baca thesis mentorbaik. just kidding. hhehehe\n'
+                  '\n'
+                  '\n'
+                  'So Konglo play tetal jadi pilhan utama. Tapi this time saya lebih banyak menitik beratkan di konglo 9 '
+                  'Haji. \n'
+                  '\n'
+                  '\n'
+                  'Kenapa 9 haji ? konglo yang dekat dengan circle penguasa 08 akan banyak ketiban hal positive effect \n'
+                  '\n'
+                  '\n'
+                  'Malah kalo mau lebih and lebih bagus lagi konglo play 9 haji yang punya potensi corporate action '
+                  'sebagai penguat katalis nya\n'
+                  '\n'
+                  '\n'
+                  'saya ga sebut saham nya , tapi kandidat kuat konglo play ada di Haji bakrie and H Salim ( wkwkwk ) and '
+                  'Haji Tohir\n'
+                  '\n'
+                  '\n'
+                  'Cukup penjelasan tentang konglo play , next nya apa ? sudah baca berita tentang deregulasi oil sector ? '
+                  'nah itu mungkin bisa jadi mext NARASI yang dibentuk market.\n'
+                  '\n'
+                  '\n'
+                  'Pasca deregulasi , katanya sudah ada yang antri buat investasi di sektor O&G di indonesia. If Narasi '
+                  'itu terus dihembuskan dan deregulasinya sampai benar2x bisa makin banyak mendatangkan investor , bisa '
+                  'jalan nih Narasi nya menjadi Narasi kuat\n'
+                  '\n'
+                  '\n'
+                  'Next narasi yang mungkin muncul dan bisa gerakkin market adalah DANANTARA EFFECT. \n'
+                  '\n'
+                  '\n'
+                  'Belakangan berita tentang aksi Danantara mau ngapain mulai mencuat. Danantara bakal merestrukturisasi '
+                  'dan menyuntik BUMN pesakitan. Yang pertama kemarin berita Garuda sudah mencuat akan diberesin. Ga '
+                  'menutup kemungkinan BUMN Karya juga akan kebagian \n'
+                  '\n'
+                  '\n'
+                  'Terakhir Narasi BEKDOR juga akan klimaks di pesta terakhir ini. Bekdor2x an bakal dikebut sebelum pesta '
+                  'dan dansanya selesai. Untuk Narasi Bekdor nanti saya buat lagi artikel pembahasannya. \n'
+                  '\n'
+                  '\n'
+                  'Kenapa Narasi masih jadi pilihan saya ? karena yang akan kita hadapi tetap sama yaitu Bullish Kopongan '
+                  'atau JACK UP . Kenapa dinamakan JAK UP ? karena naik nya pasar tanpa landasan yang jelas. \n'
+                  '\n'
+                  '\n'
+                  'Narasi mana yang saya pilih ? saya konsisten pakai narasi Konglo play plus OIl and Bekdor sebagai '
+                  'tambahan\n'
+                  '\n'
+                  '\n'
+                  'Kenapa ga main Danantara effect ? karena saya malas pegang BUMN. wkwkkwwk biarpun nanti naik , yah ini '
+                  'masalah kenyamanan aja. \n'
+                  '\n'
+                  '\n'
+                  'No prica action question , no saham nya punya potensi question',
+     'key_points': ['Inflow asing ke bond sudah melebihi 2021, giliran saham akan menyusul',
+                    'IDR 16200-16300 = indeks ngacir ke 7200an',
+                    'Banking sebagai penopang indeks, jangan expect super spike',
+                    'Konglo Play 9 Haji: Bakrie, Salim, Tohir sebagai katalis utama',
+                    'Narasi O&G deregulasi akan mendatangkan investor baru',
+                    'Danantara Effect: restrukturisasi BUMN pesakitan (Garuda, Karya)',
+                    'Bekdor akan dikebut sebelum pesta selesai',
+                    'Market dalam mode Bullish Kopongan / Jack Up'],
+     'related_articles': [],
+     'signals': {'catalyst_type': 'macro_narrative',
+                 'execution_phase': 'early',
+                 'expected_impact': 'high',
+                 'narrative_strength': 'high'},
+     'source': 'MentorBaik',
+     'summary': 'Uang asing mulai deres masuk ke Indonesia (bond dulu, stock menyusul). IDR 16200-16300. Sektor bank '
+                'menopang indeks. Konglo Play 9 Haji (Bakrie, Salim, Tohir) curi start. Narasi O&G deregulasi, Danantara '
+                'Effect, dan Bekdor akan klimaks. Pasar dalam mode Jack Up tanpa landasan jelas.',
+     'tags': ['narrative',
+              'konglo_play',
+              'inflow',
+              'jack_up',
+              'macro',
+              'idr',
+              'banking',
+              'oil_gas',
+              'danantara',
+              'bekdor',
+              'fomo'],
+     'tickers': ['BUMI', 'BRMS', 'DEWA'],
+     'title': 'Narasi — Shifting Inflow, Konglo Play, dan Jack Up'},
+
+    "pasar_tidak_akan_efisien_emh": {'author': 'Ricky2212 (MentorBaik)',
+     'date': '2025-04',
+     'full_text': 'Pernah mendengar teori pasar saham efisien ? buat saya teori ini tidak akan pernah berlaku sampai '
+                  'kapanpun dan dalam keadaan apapun. \n'
+                  '\n'
+                  '\n'
+                  'Kenapa pasar ga akan pernah efisien ? Banyak faktor yang tidak bisa dihilangkan dalam perjalanan pasar '
+                  'saham and pasar keuangan , apalagi ditambah dengan kecanggihan teknologi yang semakin luar biasa maju '
+                  'sekarang ini. \n'
+                  '\n'
+                  '\n'
+                  'Pasar Saham Selamanya Tidak Akan Efisien => Menguak Ilusi Efisiensi Pasar\n'
+                  '\n'
+                  '\n'
+                  'saya coba bahas lebih jauh lagi mengenai hal ini yah\n'
+                  '\n'
+                  '\n'
+                  'yuk kita mulai pembahasannya\n'
+                  '\n'
+                  '\n'
+                  'Teori Pasar Efisien (Efficient Market Hypothesis - EMH) ini sering banget dielu-elukan sebagai dasar , '
+                  'pilar , fondasi dalam ilmu keuangan modern.\n'
+                  '\n'
+                  '\n'
+                  'Teori ini menyatakan bahwa harga saham selalu mencerminkan semua informasi yang tersedia secara penuh '
+                  'dan akurat. Namun, kenyataan di lapangan seringkali menampilkan pemandangan yang sangat berbeda. \n'
+                  '\n'
+                  '\n'
+                  'Beberapa gelembung spekulatif, kepanikan massal, aset yang jelas-jelas salah harga, dan koreksi pasar '
+                  'yang brutal menyanggah hal tentang teori tersebut\n'
+                  '\n'
+                  '\n'
+                  'Thesis akan hal ini berargumen bahwa pasar saham secara inheren dan selamanya tidak akan mencapai '
+                  'efisiensi sempurna karena didukung oleh teori dan bukti yang kuat oleh banyak kejadian pasar \n'
+                  '\n'
+                  '\n'
+                  'Mengapa Efisiensi Sempurna Mustahil Dicapai?\n'
+                  '\n'
+                  '\n'
+                  '1. Manusia Bukan Robot Rasional (Behavioral Finance) \n'
+                  '\n'
+                  '\n'
+                  'a. Bias Emosional\n'
+                  '\n'
+                  '\n'
+                  'Sifat dasar manusia itu dipenuhi oleh Keyakinan dan ketakutan yang luar biasa . Maka dari itu Investor '
+                  'adalah manusia yang dibebani bias seperti \n'
+                  '\n'
+                  '\n'
+                  '"overconfidence" (terlalu percaya diri),\n'
+                  '\n'
+                  '\n'
+                  '"herd mentality" (mentalitas kawanan), \n'
+                  '\n'
+                  '\n'
+                  '"loss aversion" (takut rugi berlebihan),\n'
+                  '\n'
+                  '\n'
+                  '"anchoring" (terpaku pada harga tertentu), \n'
+                  '\n'
+                  '\n'
+                  '"confirmation bias " (hanya mencari informasi yang mendukung kepercayaannya). \n'
+                  '\n'
+                  '\n'
+                  'Emosi and psikologi seperti ketakutan dan keserakahan seringkali mengalahkan analisis rasional. \n'
+                  '\n'
+                  '\n'
+                  'Kalo emosi pasar sudah mempengaruhi sampai ke akar psikologi , bagaimana manusia bisa berpikiri '
+                  'rasional dan menciptakan keputusan yang terbaik buat dirinya\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  'b. Heuristik yang Menyesatkan\n'
+                  '\n'
+                  '\n'
+                  'Dalam hal ini Investor sering menggunakan jalan pintas mental *heuristics* untuk mengambil keputusan '
+                  'secara cepat dan bisa menghasilkan kesalahan penilaian *judgmental errors* sistematis dalam menilai '
+                  'informasi dan risiko.\n'
+                  '\n'
+                  '\n'
+                  'Begitu mendapatkan sebuah keadaan dan sebuah tanda , terkadang hipotesa langsung diambil secara cepat '
+                  'tanpa mengumpulkan lagi data2x pendukung yang lebih valid and solid\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  'Hal tersebut dapat dilihat dari contoh nyata yang terjadi pada Dotcom crisis dan GFC. Gelembung dot-com '
+                  '(akhir 1990-an) dan gelembung perumahan AS (2008) adalah bukti nyata bagaimana euforia irasional '
+                  '(*irrational exuberance*) mendorong harga jauh di atas nilai fundamental. Demikian pula, kepanikan '
+                  'massal saat krisis menjatuhkan harga aset berkualitas di bawah nilai wajar mereka.\n'
+                  '\n'
+                  '\n'
+                  '2. Informasi Tidak Pernah Benar-Benar Simetris atau Sempurna\n'
+                  '\n'
+                  '\n'
+                  'a. Asimetri Informasi\n'
+                  '\n'
+                  '\n'
+                  'Pelaku pasar besar (institusi, *insider*) hampir selalu memiliki akses informasi lebih cepat, lebih '
+                  'lengkap, dan lebih mendalam dibandingkan investor kecil (retail). \n'
+                  '\n'
+                  '\n'
+                  'Mereka memiliki sumber daya untuk analisis mendalam dan akses ke manajemen perusahaan.\n'
+                  '\n'
+                  '\n'
+                  'Semakin jauh jangkauan akses informasi , semakin mendapat keuntungan dalam menghadapi pasar.\n'
+                  '\n'
+                  '\n'
+                  'Jadi jangan aneh kalo pasar suka berjalan duluan dan sudah mengantisipasi suatu keadaan baik secara '
+                  'makro maupun mikro\n'
+                  '\n'
+                  '\n'
+                  'b. Biaya Informasi\n'
+                  '\n'
+                  '\n'
+                  'Mengumpulkan, memproses, dan menganalisis semua informasi yang relevan membutuhkan biaya yang sangat '
+                  'besar, baik waktu maupun uang. Tidak semua investor mampu atau mau menanggung biaya ini secara '
+                  'optimal.\n'
+                  '\n'
+                  '\n'
+                  'Bayangkan bagaimana tuh Big boyz menyiapkaj semua perangkat untuk menjangkau informasi nya\n'
+                  '\n'
+                  '\n'
+                  'Super komputer dengan berlangganan media2x informasi yang cukup mahal di hadapan mereka semua. \n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  'C. Kompleksitas Informasi\n'
+                  '\n'
+                  '\n'
+                  'Informasi seringkali ambigu, saling bertentangan, dan sulit diinterpretasikan. Bahkan dengan informasi '
+                  'yang sama, analis yang berbeda bisa menarik kesimpulan yang berbeda.\n'
+                  '\n'
+                  '\n'
+                  'Satu informasi bisa diartikan dalam sejuta bahasa dan media bisa mengatur ini semua tergantung '
+                  'kebutuhan saat itu.\n'
+                  '\n'
+                  '\n'
+                  '3. Pasar Adalah Sistem Kompleks yang akan selalu menyesuaikan keadaan dari waktu ke waktu.\n'
+                  '\n'
+                  '\n'
+                  'a. Dinamika yang Selalu Berubah\n'
+                  '\n'
+                  '\n'
+                  'Pasar bukan mesin statis. Pasar berevolusi seiring waktu, dipengaruhi oleh perubahan regulasi, '
+                  'teknologi baru, inovasi produk keuangan, dan perilaku peserta pasar yang terus beradaptasi. Strategi '
+                  'yang bekerja hari ini bisa menjadi usang besok\n'
+                  '\n'
+                  '\n'
+                  'Pernah kebayang ga keadaan Bursa kita di tahun-tahun 1990 an ? ga usah jauh2x sampai le belakang , saya '
+                  'yang datang di awal tahun 2000 an saja sangat merasakan feel pasar yang berbeda\n'
+                  '\n'
+                  '\n'
+                  'mau tau perbedaan yang paling kentara ? tuh aplikasi OLT yang jadi penyebab partisipan sekarang tuh '
+                  'jauh lebih agresif and beringas dalam hal mengeksekusi suatu investasi. \n'
+                  '\n'
+                  '\n'
+                  'Teknologi yang makin maju malah membuat orang semakin aggresive dalam berinvestasi dan saya merasa '
+                  'beruntung saya hidup di zaman old \n'
+                  '\n'
+                  '\n'
+                  'b.Interaksi Kompleks\n'
+                  '\n'
+                  '\n'
+                  'Harga muncul dari interaksi jutaan peserta dengan motif, informasi, dan strategi berbeda-beda. '
+                  'Interaksi kompleks ini menghasilkan perilaku emergent muncul yang sulit diprediksi, termasuk bubbles '
+                  'dan crashes yang terjadi.\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  'c. Seleksi Alam Keuangan \n'
+                  '\n'
+                  '\n'
+                  'teori ini memandang pasar sebagai ekosistem di mana berbagai strategi investasi (nilai, momentum, '
+                  'arbitrase) bersaing untuk bertahan hidup. Keberhasilan suatu strategi mengubah lingkungan pasar itu '
+                  'sendiri, sehingga menciptakan kondisi baru yang membutuhkan adaptasi terus-menerus. Efisiensi bukanlah '
+                  'keadaan statis, melainkan proses yang terus bergerak\n'
+                  '\n'
+                  '\n'
+                  'Teori terus bermunculan bahkan cenderung memudahkan sesuatu yang basic banget dalam berinvestasi yang '
+                  'cenderung mengabaikan sebuah RESIKO \n'
+                  '\n'
+                  '\n'
+                  'makanya kalo teman2x melihat , makin kesini makin banyak yang kena seleksi alam. Cek saja angkatan '
+                  'Corona , berapa yang bertahan ? \n'
+                  '\n'
+                  '\n'
+                  'Semoga teman2x jadi partisipan yang bisa terus bertahan\n'
+                  '\n'
+                  '\n'
+                  '5. Dampak Psikologi Massa dan Narasi\n'
+                  '\n'
+                  '\n'
+                  'a. Kekuatan Narasi \n'
+                  '\n'
+                  '\n'
+                  'Cerita dan narasi (tentang teknologi baru, tren sosial, atau tokoh karismatik) sering kali memiliki '
+                  'pengaruh yang lebih besar pada harga jangka pendek dan menengah daripada analisis fundamental yang '
+                  'dingin.\n'
+                  '\n'
+                  '\n'
+                  'Narasi ini bisa menciptakan umpan balik positif yang mendorong harga naik atau turun secara berlebihan\n'
+                  '\n'
+                  '\n'
+                  'Belakangan hal ini jadi hal yang luar biasa sekali. Kekuatan sebuah narasi melebihi segala aspek '
+                  'fundamental dari suatu keadaan perusahaan. \n'
+                  '\n'
+                  '\n'
+                  'Salah ? tidak salah, tapi ini bukan hal mendasar dalam perjalanan dunia keuangan. Diperlukan fondasi '
+                  'yang kuat dalam mengarungi hal ini\n'
+                  '\n'
+                  '\n'
+                  'b. Media Sosial dan Informasi Viral\n'
+                  '\n'
+                  '\n'
+                  'Kecepatan dan jangkauan media sosial memperkuat efek psikologi massa, memungkinkan sentimen dan '
+                  'informasi menyebar secara viral dan berdampak instan pada harga, terkadang terlepas dari dasar '
+                  'fundamental.\n'
+                  '\n'
+                  '\n'
+                  'Tuh Pom Pom dimana-mana datang untuk memanipulasi harga . Media sosial dijadikan corong dalam '
+                  'pembentukan harga dan itu dilakukan secara massive oleh pihak2x tertentu yang menginginkaj sebuah '
+                  'keuntungan dari fluktuatif nya harga saham.\n'
+                  '\n'
+                  '\n'
+                  'Semakin kesini saya makin menyadari bahwa kompleksitas pasar makin luar biasa. Banyak hal yang terjadi '
+                  'itu bukan lagi pakem dasar sebuah pasar \n'
+                  '\n'
+                  '\n'
+                  'Anda lihat bukan kalo pasar tidak akan pernah efisien sampai kapan pun ? Pasar akan terus men seleksi '
+                  'alam partisipannya dari waktu ke waktu\n'
+                  '\n'
+                  '\n'
+                  'Yang bertahan adalah yang punya modal sangat besar dan jangkauan informasi yang luas. \n'
+                  '\n'
+                  '\n'
+                  'Kami ber 6 dari Mentorbaik mencoba membawa teman2x berbeda dari kebanyakan di luar sana\n'
+                  '\n'
+                  '\n'
+                  'Kami coba hadirkan thesis suatu keadaan lebih awal , kami coba hadirkan informasi tentang sebuah saham '
+                  'sebelum ramai di luar sana\n'
+                  '\n'
+                  '\n'
+                  'Kita mau teman2x juga merasakan apa yang kami jalankan juga\n'
+                  '\n'
+                  '\n'
+                  'So , informasi itu sangat mahal and berharga sehingga jangan jual murah informasi yang anda miliki. '
+                  'Jangan dengan mudah anda bagikan sesuatu yang anda tau dan itu mahal.\n'
+                  '\n'
+                  '\n'
+                  'take itu as your advantage , jadikan semua informasi yang anda miliki dari sini sebagai sebuah '
+                  'keunggulan untuk anda sendiri.',
+     'key_points': ['Behavioral Finance: overconfidence, herd mentality, loss aversion, anchoring, confirmation bias',
+                    'Heuristik menyesatkan → Dotcom crisis & GFC sebagai bukti',
+                    'Asimetri informasi: institusi vs retail',
+                    'Biaya informasi tinggi → tidak semua investor mampu mengumpulkan data optimal',
+                    'Pasar berevolusi: strategi hari ini bisa usang besok',
+                    'Seleksi alam keuangan: makin banyak partisipan yang kena seleksi',
+                    'Kekuatan narasi > analisis fundamental dingin',
+                    'Media sosial memperkuat efek psikologi massa dan manipulasi harga'],
+     'related_articles': ['penyakit_stanley_fomo_druckenmiller'],
+     'signals': {'catalyst_type': 'macro_framework',
+                 'execution_phase': 'ongoing',
+                 'expected_impact': 'high',
+                 'narrative_strength': 'high'},
+     'source': 'MentorBaik',
+     'summary': 'Tesis bahwa Efficient Market Hypothesis (EMH) tidak akan pernah berlaku karena: (1) manusia bukan robot '
+                'rasional (behavioral bias), (2) informasi tidak simetris, (3) pasar adalah sistem kompleks yang '
+                'berevolusi, (4) seleksi alam keuangan, (5) kekuatan narasi dan media sosial.',
+     'tags': ['emh', 'behavioral_finance', 'market_inefficiency', 'psychology', 'bubble', 'crash', 'macro', 'narrative'],
+     'tickers': [],
+     'title': 'Pasar Saham Selamanya Tidak Akan Efisien — Menguak Ilusi EMH'},
+
+    "penyakit_stanley_fomo_druckenmiller": {'author': 'Ricky2212 (MentorBaik)',
+     'date': '2025-04',
+     'full_text': 'Penyakit Stanley\n'
+                  '\n'
+                  'Penyakit Stanley\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  'Hehehe, kalo anda cari di kamus kesehatan atau googling nantinya anda ga akan menemukan jenis penyakit '
+                  'apa ini. Anda datang ke dokter di RS juga anda akan ditertawakan oleh dokter karena dokter pun ga akan '
+                  'tahu ini penyakit apa\n'
+                  '\n'
+                  '\n'
+                  'Tapi saya akan coba membahas penyakit yang diketemukan oleh Dokter legend bernama Tom Hardi. Dalam '
+                  'berbagai riset nya , dia menyampaikan penyakit ini sangat lah berbahaya dan obat nya tidak ada kecuali '
+                  'immune anda sendiri. Penyakit ini akan menyerang wealth anda dan akan membuat kemisikan luar biasa kalo '
+                  'sampe anda ga mampu melawan nya. Just kidding\n'
+                  '\n'
+                  '\n'
+                  'Oke , sebelum nya saya akan bawa dulu dasar thesis penyakit ini yah\n'
+                  '\n'
+                  '\n'
+                  '=> Jack Up adalah suatu keadaan dimana pasar rally tapi tanpa alasan dan dorongan yang jelas akan '
+                  'keadaam ekonomi nya. Jadi kenaikan pasar ini benar2x hanya diciptakan oleh sebuah narrative , persepsi '
+                  'and liquidity\n'
+                  '\n'
+                  '\n'
+                  '=> TFF adalah keadaan dimana market akan dibuat kehilangan nalar and logika yang membuat dorongan nya '
+                  'makin ga karuan lagi\n'
+                  '\n'
+                  '\n'
+                  '=> Bubble adalah keadaan dimana asset keuangan terdorong jauh bahkan pake banget sehingga asset '
+                  'tersebut jauh dari nilai semestinya\n'
+                  '\n'
+                  '\n'
+                  'Ini yang akan menjadi dasar thesis bahwa wabah penyakit stanley itu nanti akan datang\n'
+                  '\n'
+                  '\n'
+                  'Market dibuat jack up luar biasa sehingga partisipan akan merasa TFF dan itu nanti yang buat asset '
+                  'keuangan akan bubble\n'
+                  '\n'
+                  '\n'
+                  'Setiap bubble pasti akan ? meletus dan kalo meletus itu ga kira2x dan mungkin anda ga akan menemui '
+                  'harga tersebut dalam waktu yang cukup lama\n'
+                  '\n'
+                  '\n'
+                  'bayangkan sebuah saham dengan laba misal 1M tapi dijual dengan nilai pasar 100M. Padahal value '
+                  'perusahaan harusnya hanya dihargai 10M.\n'
+                  '\n'
+                  '\n'
+                  'Apa yang terjadi saat ekonomi collapse dan pasar hancur ? dia kembali ke 10M saja sudah penurunan '
+                  'sebesar 90% dari harga nya. Gimana kalo labanya tinggal 5M karena ekonomi memburuk ? \n'
+                  '\n'
+                  '\n'
+                  'kapan kembali lagi ke harga pasar 10 M ? bisa jadi ga akan kembali lagi tuh ke nilai pasar tersebut\n'
+                  '\n'
+                  '\n'
+                  'Miskin ga anda ? \n'
+                  '\n'
+                  '\n'
+                  'Yap, Stanley Druckenmiller pernah mengalami hal tersebut\n'
+                  '\n'
+                  '\n'
+                  'pernah dengar stanley ? kalo kenal soros , nah stanley adalah tangan kanan Soros selain Scott Bessent ( '
+                  'treasury US ) yang bikin Bank Sentral Inggris bangkrut karena posisi mereka di mata uang poundsterling\n'
+                  '\n'
+                  '\n'
+                  'Genius ? Stanley loh yang bikin idea di posisi GBP tersebut dan Soros hanya mengeksekusinya saja. \n'
+                  '\n'
+                  '\n'
+                  'Yap Stanley is Genius Investor ga usah diragukan lagi. Kinerja Fund yang dia miliki saja selalu '
+                  'outperform market jauh diatas\n'
+                  '\n'
+                  '\n'
+                  'Tapi sekelas Stanley yang genius saja , dia pernah melakukan kesalahan fatal karena dia kena FOMO\n'
+                  '\n'
+                  '\n'
+                  'oke , gini cerita awalnya perjalanan FOMO tersebut. \n'
+                  '\n'
+                  '\n'
+                  'Saat internet Boom tahun 2000 an , si genius stanley sudah jauh lebih dahulu memprediksi akan hal ini\n'
+                  '\n'
+                  '\n'
+                  'Dia membangun posisi portofolionya dengan membeli saham2x internet dan teknologi seperti AOL , CISCO, '
+                  'Microsoft , Dell , Nokia , Qualcomm. Kinerja Fund dia di tahun 1998 mencetak return 35% p.a. Torehan '
+                  'prestasi gemilang juga dilanjutkan oleh stanley pada tahun 1999 dengan return sebesar 55% p.a\n'
+                  '\n'
+                  '\n'
+                  'Mungkin bagi teman2x akan bilang ? ahhh kalau return segitu mah ga gede atuh. Bro , yang dikelola tuh '
+                  'uangnya bukan 100juta , 1M tapi ratusan bahkan ribuan Trilyun. Sebuah size uang yang ga bisa membuat '
+                  'leluasa bergerak.\n'
+                  '\n'
+                  '\n'
+                  'Oke kita lanjutkan lagi. Dalam sebuah wawancaranya Stanley juga mengakui bahwa ini kegilaan pasar. '
+                  'Kegilaan pasar ini yang menciptakan harga saham2x internet dan teknologi terdorong jauh luar biasa\n'
+                  '\n'
+                  '\n'
+                  'Yes, saat itu memang demam internet. Apapun perusahaan internet apalagi yang ada dotcom nya itu pasti '
+                  'dibeli dan digandrungi. Even kantor nya di gudang pun tetap saja dburu ga karuan. Iya sudah kantor di '
+                  'gudang , karyawan cuma segelintir dan perusahaannya ga punya laba sama sekali. \n'
+                  '\n'
+                  '\n'
+                  'Dan gilanya keadaan tersebut ga membuat market sadar. Market makin menjadi2x saja karena euphoria yang '
+                  'terus ditiupkan oleh market\n'
+                  '\n'
+                  '\n'
+                  'Btw , Buat info tambahan saja saat itu Amrik lagi kebanjiran likuditas berlimpah luar biasa karena Asia '
+                  'sedang terjadi krisis 1998. Uang pada balik ke Amrik yang saat itu juga baru saja menaikan suku bunga '
+                  'nya .\n'
+                  '\n'
+                  '\n'
+                  'Jadi dunia sebenernya memang lagi tidak baik2x saja secara ekonomi\n'
+                  '\n'
+                  '\n'
+                  'So kenaikan saham internet itu yang kita sebut Jack up dan terus didorong oleh pasar karena sebuah '
+                  'narrative and persepsi dan didorong oleh likuiditas yang luar biasa. Makin TFF lah terjadi di luar '
+                  'sana.\n'
+                  '\n'
+                  '\n'
+                  'Kalo sudah TFF ? ujung nya bubble akan terjadi dan namanya Bubble pasti akan ada ujung nya dan akan '
+                  'meletus. \n'
+                  '\n'
+                  '\n'
+                  'Stanley sebagai seorang yang jenius juga tau akan hal tersebut. Bahkan berulang kali Stanley bilang '
+                  'dalam wawancaranya di publik bahwa Ini semua Bubble dan stanley mengingatkan bahwa ini akan berakhir '
+                  'dan meletus dan meletusnya luar biasa. \n'
+                  '\n'
+                  '\n'
+                  'Ingat yah, stanley tuh bilang begitu berkali-kali ke publik dan warning semuanya. \n'
+                  '\n'
+                  '\n'
+                  'Apa yang terjadi ? stanley sebenernya sudah mengurangi eksposur dia di saham2x bubble internet and '
+                  'teknologi. Dia lakukan apa yang dia suarakan. \n'
+                  '\n'
+                  '\n'
+                  'Tapi ? Gila nya Stanley kemakan euphoria market saat saham2x teknologi and internet masih terus rally. '
+                  'Dia malah masuk pasar lagi hanya karena trader karyawan dia yang kelola dana masih terus on fire '
+                  'performa nya. Trader tersebut beats stanley secara telak. \n'
+                  '\n'
+                  '\n'
+                  'Stanley merasa bahwa wahh ini sih keterlaluan , gw ditinggal market lagi kalo begini. Stanley build '
+                  'posisi lagi di saham internet and teknologi dan itu jadi posisi dia yang membuat kerugian luar biasa '
+                  'besar karena dia membangun posisi tidak jauh dari pucuk harga meletusnya.\n'
+                  '\n'
+                  '\n'
+                  'Saham kaya Cisco , microsoft , yahoo ,dell dll baru ketemu lagi 20 tahun lebih kemudian untuk kembali '
+                  'ke harga tersebut. Itu masih mending , 90% perusahan dotcom saat itu banyak yang bangkrut. \n'
+                  '\n'
+                  '\n'
+                  'Stanley yang genius FOMO karena alasan yang tidak masuk akal. Bayangkan sebuah euphoria market bisa '
+                  'menggoyang psikologi seorang genius yang bisa bikin Bank Sentral Inggris bangkrut kaya stanley \n'
+                  '\n'
+                  '\n'
+                  'Yap tapi itulah kegilaan pasar yang tidak mengenal siapapun and tidak mengenal ampun. \n'
+                  '\n'
+                  '\n'
+                  'Virus Penyakit Stanley sepertinya akan datang nih sebentar lagi. Bayangkan kalo virus itu datang ke '
+                  'anda ? bisa anda kontrol ? \n'
+                  '\n'
+                  '\n'
+                  'Market sekarang bukan kah mirip ? Jack up sedang terjadi saat ekonomi dari 5 tahun belakangan ini '
+                  'sedang tidak baik. Kenaikkan market tidak di support oleh keadaan ekonomi yang baik. ( baca lagi '
+                  'artikel dari Bidenomics , Jack up before storm )\n'
+                  '\n'
+                  '\n'
+                  'narrative and persepsi terus dibentuk untuk menggerakkan market dari waktu ke waktu dan gilanya '
+                  'belakangan ini makin dialirkan oleh likuiditas. TFF mulai tuh perlahan terjadi dan itu tidak bisa '
+                  'dihindarkan\n'
+                  '\n'
+                  '\n'
+                  'Ujung nya anda tahu kan ? peruaahan kaya Palantir , Microstrategy dan perusahaan AI lainnya yang dipush '
+                  'dengan aliran dana besar ( kalo di indo saham pepe ) membuat harga saham nya melambung luar biasa\n'
+                  '\n'
+                  '\n'
+                  'Hanya masalah waktu saja semua itu akan meletus nantinya\n'
+                  '\n'
+                  '\n'
+                  'Saya pun sudah berkali-kali me warning akan hal tersebut. Bahwa semua ini tuh tidak benar dan nanti '
+                  'akan ada masa meletus dan meletusnya itu ga enak banget\n'
+                  '\n'
+                  '\n'
+                  'Dan gilanya saya sampai detik ini bilang saya hanya bisa berdoa supaya saya tidak kena penyakit '
+                  'Stanley. Jujur saya takut koq , saya takut saya tidak bisa kontrol semua psikologis saya saat '
+                  'menghadapi hal tersebut nanti.\n'
+                  '\n'
+                  '\n'
+                  'Harusnya yah, sekarang ini itu belum ada apa2x nya. Kalo ga ada aral melintang nanti keadaannya akan '
+                  'lebih GILA banget euphorianya. Gila sampai logika anda pun tidak bisa menjawab kenapa hal tersebut '
+                  'terjadi. Ansa ga akan bisa menemukan alasan mendasarnya akan semua kejadian tersebut. \n'
+                  '\n'
+                  '\n'
+                  'Saya pernah kena penyakit stanley di 2008 dan itu murni kebodohan. Tapi saya masih wajarkan karena saat '
+                  'itu adalah fase saya belajar menghadapi krisis besar pertama saya. \n'
+                  '\n'
+                  '\n'
+                  'Saya kena euphoria komoditas saat itu. Walau saya tidak beli di pucuk ( saya beli saham INCO setelah '
+                  'jatuh 30% an ) tapi saya kebawa aroma euphoria nya\n'
+                  '\n'
+                  '\n'
+                  'Saya kena penyakit stanley , saya euphoria yang menyebabkan kerugian lumayan. Saya Cut loss 30% an ( '
+                  'untung saya CL saat itu ) karena turunnya masih jauh lebih dalam lagi. \n'
+                  '\n'
+                  '\n'
+                  'Saham INCO tidak pernah ketemu harga beli saya lagi sampi 16 tahun kemudian. Bayangkan, saya kalau '
+                  'menunggu kesembuhan penyakit stanley selama 16 tahun, saya ga bisa ketemu 1M pertama saya di 2011. \n'
+                  '\n'
+                  '\n'
+                  'Brrrr , euphoria yang mungkin akan datang ini luar biasa sekali. Kalau anda mau berpartisipasi , '
+                  'pastikan anda tidak kena penyakit Stanley. Pastikan anda ga lupa diri\n'
+                  '\n'
+                  '\n'
+                  'Stanley yang Genius luar biasa saja bisa diganggu oleh sebuah euphoria market. Apalagi saya ? apalagi '
+                  'anda ?\n'
+                  '\n'
+                  '\n'
+                  'Well , nikmati semua nya pada tahap sewajarnya aja ya. \n'
+                  '\n'
+                  '\n'
+                  'Kebayang ga nanti kalo semua ini meletus ? bisa jadi Zepression ( Gen-Z Depression ) yang parah yang '
+                  'menyebabkan harga saham terpuruk jatuh dalam',
+     'key_points': ['Jack Up = rally tanpa alasan dan dorongan ekonomi yang jelas',
+                    'TFF = market kehilangan nalar dan logika',
+                    'Bubble = asset terdorong jauh dari nilai semestinya',
+                    'Stanley Druckenmiller return 35% (1998) dan 55% (1999) tapi kena FOMO di pucuk',
+                    'Cisco, Microsoft, Yahoo, Dell baru ketemu harga 20 tahun kemudian',
+                    '90% dotcom bangkrut',
+                    'Market sekarang: Jack Up + narrative + likuiditas = TFF → Bubble',
+                    'Author pernah kena penyakit Stanley di 2008 (komoditas/INCO), CL 30%, belum ketemu harga 16 tahun',
+                    'Warning: Zepression akan datang saat bubble meletus'],
+     'related_articles': ['pasar_tidak_akan_efisien_emh', 'tidak_semua_permainan_harus_menang'],
+     'signals': {'catalyst_type': 'psychology_alert',
+                 'execution_phase': 'warning',
+                 'expected_impact': 'extreme',
+                 'narrative_strength': 'high'},
+     'source': 'MentorBaik',
+     'summary': "Konsep 'Penyakit Stanley' dari Tom Hardi: virus FOMO yang menyerang wealth. Stanley Druckenmiller (genius "
+                'yang bikin Bank Sentral Inggris bangkrut) kena FOMO di dot-com bubble 2000 meski sudah warning '
+                'berkali-kali. Market sekarang mirip: Jack Up + TFF + Bubble. Zepression (Gen-Z Depression) menanti saat '
+                'meletus.',
+     'tags': ['psychology', 'fomo', 'bubble', 'jack_up', 'tff', 'stanley_druckenmiller', 'dotcom', 'crash', 'warning'],
+     'tickers': ['PLTR', 'MSTR', 'INCO'],
+     'title': 'Penyakit Stanley — Virus FOMO ala Druckenmiller'},
+
+    "tidak_semua_permainan_harus_menang": {'author': 'Ricky2212 (MentorBaik)',
+     'date': '2025-04',
+     'full_text': 'Tidak semua permainan anda harus menangkan dalam satu waktu \n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  'Artikel ini adalah artikel lama saya. Sepertinya cocok dengan keadaan sekarang , jadi saya coba naikkan '
+                  'lagi artikel ini sebagai reminder .\n'
+                  '\n'
+                  '\n'
+                  'Tidak Semua Permainan Anda harus Menangkan Dalam Satu Waktu\n'
+                  '\n'
+                  '\n'
+                  'Kalimat tersebut masih terngiang sampai saat ini , saat psikologi greed saya tiba2x muncul. Kalimat '
+                  'tersebut adalah kalimat yang legend buat saya yang keluar dari seorang pengusaha and investor kawakan. '
+                  'Kalimat tersebut telak memukul saya saat di lontarkan kepada saya.\n'
+                  '\n'
+                  '\n'
+                  'Oke, saya cerita balik jauh ke sekitar tahun 2010-2011 an. Saat itu saya masih bekerja di sebuah Multi '
+                  'National Bank . Kalo masih pada ingat cerita saya , dulu saya menghandle nasabah super wealth di '
+                  'private banking bank tsb. Disana saya bertemu dengan nasabah super rich yang kekayaan nya luar biasa '
+                  'lah. \n'
+                  '\n'
+                  '\n'
+                  'Salah satu nasabah tersebut adalah seorang yang kalo boleh saya bilang adalah seorang yang sangat luar '
+                  'biasa. Sedikit bisa dibilang mentor hidup saya di bursa saham. \n'
+                  '\n'
+                  '\n'
+                  'Saat itu usia saya msh 28 tahunan dan usia beliau 40 tahunan. Saya taksir kekayaan dia seikitar 300 bio '
+                  'an saat itu. Beberapa kali pertemuan dengan beliau, saya bisa mengorek2x apa yang dia lakukan dengan '
+                  'kekayaan nya. \n'
+                  '\n'
+                  '\n'
+                  'Satu hal yang saya tau , dia juga menginvestasikan uang nya di pasar saham. Bukan cuma di pasar saham '
+                  'lokal tapi juga di pasar saham china dan hongkong.\n'
+                  '\n'
+                  '\n'
+                  'Dari sana saya banyak bertukar pikiran tentang prinsip2x berinvestasi nya yang dia pegang teguh. Dari '
+                  'beberapa kali pertemuan dengan beliau, kalau teman2x masih pada ingat cerita saya bahwa dia adalah '
+                  'orang yang tiba2x memanggil saya dan menawarkan sejumlah uang kepada saya sebagai dana kelolaannya. \n'
+                  '\n'
+                  '\n'
+                  'Saat itu saya diberikan full authority. Semua keputusan investasi full di tangan saya tanpa ikut '
+                  'campur.\n'
+                  '\n'
+                  '\n'
+                  'Dia bilang kepada saya , ini uang saya titip sama kamu, kamu kelola, no time limit, no risk limit. kamu '
+                  'datang lagi sama saya saat memang kamu sudah merasa cukup. \n'
+                  '\n'
+                  '\n'
+                  'Uang hilang and habis ? dia bilang itu saya lagi ongkosin kamu belajar mengarungi bursa\n'
+                  '\n'
+                  '\n'
+                  'Kaget ga ? kaget sekali saat itu. entah harus bangga atau saya hrs takut. Satu sisi saya bangga '
+                  'dipercaya oleh beliau 100% , satu sisi saya takut mengemban amanah tersebit.\n'
+                  '\n'
+                  '\n'
+                  'Yes , amanah sdh dikasih , satu pembuktian harus diberikan. Betul ? \n'
+                  '\n'
+                  '\n'
+                  'Saya terima amanah tsb. uang yang dititip ? lumayan loh jumlah nya menurut saya yah. Terus ada porsi '
+                  '20% dr keuntungan buat saya klo saya berhasil memberikan return atas hasil investasinya. itu janji '
+                  'beliau kepada saya\n'
+                  '\n'
+                  '\n'
+                  'Dalam perjalanan akhirnya saya kembali beberapa waktu kemudian dengan return profit yg menurut saya '
+                  'outstanding. Saya datang ke padepokannya lagi dan saya memberikan report.\n'
+                  '\n'
+                  '\n'
+                  'Dalam report tersebut terselip kan pembicaraan bahwa harusnya saya bisa lebih maximal return nya saat '
+                  'itu. Saya katakan ada sedikit lah missed keputusannya. \n'
+                  '\n'
+                  '\n'
+                  'Apa jawaban dari nya ? yap kalimat legend tersebut\n'
+                  '\n'
+                  '\n'
+                  ' " Ricky, tidak semua permainan harus kamu menangkan dalam watu waktu " \n'
+                  '\n'
+                  '\n'
+                  'yes saat kamu sudah putuskan satu hal dalam berinvestasi, saat kamu sudah putuskan saham apa yg kamu '
+                  'beli , jalankan aja dengan konsisten. \n'
+                  '\n'
+                  '\n'
+                  'Kamu ga perlu menoleh kiri kanan, kamu ga perlu lihat rumput tetangga yang hijau, kamu ga perlu terlalu '
+                  'membandingkan performa antar saham, jalankan semua apa yang sdh kamu rencanakan dari awal. Karena itu '
+                  'nanti yang nantinya justru akan merusak performa investasi kamu sendiri saat kamu berasa kamu harus '
+                  'memenang kan semua permainan. \n'
+                  '\n'
+                  '\n'
+                  'Luar biasa saat saya mendengar kalimat tersebut saat itu. Kalimat tersebut selalu saya simpan dan saya '
+                  'pakai sampai detik ini untuk menyeimbangkan psikologis saya\n'
+                  '\n'
+                  '\n'
+                  'Tau apa maksud dan tujuan dari kalimat tersebut ? kalo teman2x mencerna lebih dalam kalimat nya, pasti '
+                  'teman2x tau apa maksudnya.\n'
+                  '\n'
+                  '\n'
+                  'Gini, pernah berasa serakah kita muncul saat liat saham lain naik luar biasa ?\n'
+                  '\n'
+                  '\n'
+                  'Sementara saham yg ada di port kita lagi melempem ? kadang keadaan tersebut memancing kita untuk ikut '
+                  'permainan di saham yang lagi naik tersebut bukan ? kadang kita gatel pingin mencicipi permainan '
+                  'tersebut bukan ? \n'
+                  '\n'
+                  '\n'
+                  'Apa yg anda lakukan saat anda terpancing permainan tsb ? anda berasa mau ikut permainan tersebut, anda '
+                  'juga kepingin memenangkan permainan tersebut. \n'
+                  '\n'
+                  '\n'
+                  'Akhirnya saham yang sudah anda rencanakan dari awal, sudah anda riset dari awal dengan baik dan anda '
+                  'yakin dengan saham awal yang anda pegang, anda kepikiran melepas saham tersebit sebagian bahkan seluruh '
+                  'nya agar dapat ikut di permainan saham yang lagi naik. \n'
+                  '\n'
+                  '\n'
+                  'Anda ga mau kehilangan moment permainan tersebut. betul begitu bukan ? greed anda muncul di titik level '
+                  'tertinggi saat itu, ego anda muncul dan mendominasi pikiran anda saat itu, psikologis anda tergoyahkan '
+                  'melihat segar hijau nya saham tetangga. \n'
+                  '\n'
+                  '\n'
+                  'Apa yang terjadi pasca anda mencoba keluar dari rencana awal permainan anda dan ikut permainan lain yg '
+                  'blm tentu anda pahami ?\n'
+                  '\n'
+                  '\n'
+                  'yess , saat permainan tersebut berpihak pada anda sih mungkin anda happy, pertanyaan nya kalo pas anda '
+                  'ikut permainan tersebut dan ga tau nya ga sesuai harapan ? berantakan lah posisi awal anda. \n'
+                  '\n'
+                  '\n'
+                  'sudah merombak rencana awal padahal rencana awal tersebut sudah anda riset matang2x dan luar biasa, '
+                  'pindah ke permainan yg bahkan anda belum riset terlalu jauh dan dalam. Anda terpancing permainan silau '
+                  'hijaunya harga saja.\n'
+                  '\n'
+                  '\n'
+                  'sering mengalami begitu ga ? hayoooo ngaku\n'
+                  '\n'
+                  'hehehe. \n'
+                  '\n'
+                  '\n'
+                  'Saat market mencoba mamancing saya ikut sebuah permainan , saat market mencoba menggoda saya ke sebuah '
+                  'permainan , permainan yang akan membuat saya keluar jalur nantinya. kalimat apa yg saya ingat ? \n'
+                  '\n'
+                  '\n'
+                  'tidak semua permainan harus kamu menangkan dalam satu waktu.\n'
+                  '\n'
+                  '\n'
+                  'Jalankan aja semua perjalanan investasi sesuai dengan rencana awal kamu. rencana awal yang sudah kamu '
+                  'susun secara matang2x. Jalankan semua dengan konsisten. Selesaikan apa yg sudah kamu rencanakan '
+                  'tersebut sampai garis finish.\n'
+                  '\n'
+                  '\n'
+                  'Berasa di keadaan sekarang juga ? saya tidak bisa menyimpan kebohongan bahwa saya saja banyak digoda '
+                  'oleh peluang ini itu yang masuk ke telinga saya. \n'
+                  '\n'
+                  '\n'
+                  'Informasi saham A , B , C dan seterusnya datang menghampiri di beda waktu. Hari ini datang tawaran '
+                  'sebuah peluang sebuah peluang saham di perusahaan A dengan agenda ini itu , begini begitu , '
+                  'narrativenya ini itu , target harga bisa dikerek ke sekian. Menggiurkan ? tentunya saya menyambut '
+                  'apapun yang namanya peluang\n'
+                  '\n'
+                  '\n'
+                  'Belum selesai mencari tau saham A , datang lagi tawaran saham B di esok harinya dengan agenda ini itu , '
+                  'begini begitu , narrativenya ini itu , target harga bisa dikerek sekian. Menggiurkan ? lagi2x saya '
+                  'masukkan sebagai tawaran peluang dan coba menggali\n'
+                  '\n'
+                  '\n'
+                  'Belum selesai mencari tau saham A dan B, datang lagi tawaran saham C di kemudian harinya dengan agenda '
+                  'ini itu , begini begitu , narrativenya ini itu , target harga bisa dikerek sekian. Menggiurkan ? lagi2x '
+                  'saya masukkan sebagai tawaran peluang dan coba menggali\n'
+                  '\n'
+                  '\n'
+                  'Terus dan terus tanpa taunya endingnya sampai kapan. Kalau diikutin terus , ga pernah selesai tuh '
+                  'tawaran peluang\n'
+                  '\n'
+                  '\n'
+                  'Iya , kalo bener semua tuh tawaran. Yang namanya penawaran juga kan masih berupa peluang saja. Bukan '
+                  'sesuatu yang absolut loh yah\n'
+                  '\n'
+                  '\n'
+                  'Semua tawaran tersebut tentunya akan memancing greedy kita lebih jauh and parah. Apalagi Mr market '
+                  'benar2x lagi mengajak kita untuk terus ikut hingar bingar nya permainan mereka\n'
+                  '\n'
+                  '\n'
+                  'Mau tau dampak nya ? \n'
+                  '\n'
+                  '\n'
+                  '1. Kalau diikutin terus , greedy akan memuncak dan pikiran anda tidak akan pernah waras. Selalu '
+                  'berharap ada permainan berikutnya dan permainannya kalo perlu sesuai keinginan anda\n'
+                  '\n'
+                  '\n'
+                  '2. portfolio anda jadi wide spreading sehingga justru nantinya tidak akan maksimal hasilnya. Isi saham '
+                  'A , B , C dan seterusnya karena anda ga mau kehilangan 1 permainan pun\n'
+                  '\n'
+                  '\n'
+                  '3. Aliran uang anda dipancing masuk ke permainan. Tadinya alokasi dana nya sudah FIT dengan buat '
+                  'permainan narrative , ehhh malah ambil lagi dana di luar porsi tersebut\n'
+                  '\n'
+                  '\n'
+                  'Arrrrgghh terlihat terlalu greedy bukan ? Permainannya memang terlalu mengasyikkan buat dilewatkan , '
+                  'tapi ingat jangan lupa kalo anda sedang bermain dengan sebuah permainan dengan resiko yang tidak biasa\n'
+                  '\n'
+                  '\n'
+                  'Terakhir saya sudah mencukupkan buat membuka banyak peluang baru. Bahkan peluanh yang saya sudah saya '
+                  'siapkan dalam watchlist saja , beberapa belum saya eksekusi. \n'
+                  '\n'
+                  '\n'
+                  'Padahal saya tau itu peluang nya cukup solid , tapi karena saya komit dan saya tidak mau terlalu '
+                  'melebarkan permainan ( terpaksa harus menunggu ada yang bisaya saya eksekusi ) dan menambah alokasi '
+                  'baru jadilah saya tertinggal di permainan tersebut\n'
+                  '\n'
+                  '\n'
+                  'saya harus memilih permainan yang saya pilih karena saya yakin dahulu , saya selesaikan sampai pada '
+                  'tahap CUKUP barulah saya masuk ke tawaran peluang lain lagi \n'
+                  '\n'
+                  '\n'
+                  'komit yah komit ( saya tidak terbiasa keluat jalur ) , sekali saya mendeviasi diri saya atas sebuah '
+                  'keputusan berarti akan ada deviasi berikutnya dan berikutnya. Saya tidak mau membiasakan hal tersebut. '
+                  'Pasar saham butuh sebuah komitmen kuat buat berhasil and saya sudah jalankan itu puluhan tahun.\n'
+                  '\n'
+                  '\n'
+                  'Urut Kacang saya sudah saya atur sedemikian rupa sesuai risk profile saya , tinggal saya jalankan. Saya '
+                  'hanya perlu memutar sedikit sebelum saya masuk ke puncak DESSERT nya\n'
+                  '\n'
+                  '\n'
+                  'Semua bukan tentang Mega Profit , buat saya sekarang ini Investasi adalah sebuah komitmen dalam '
+                  'mengelola resiko dan menikmati semua perjalanan tersebut dengan baik. \n'
+                  '\n'
+                  '\n'
+                  'Pak, kalo memang anda potensi kenapa ga kita ambil saat itu ? terkadang potensi tersebut anda harus '
+                  'gali lagi lebih dalam terlebih dahulu , riset lagi, pelajari lebih dalam lagi , saat memang anda yakin '
+                  'dan anda mau jump in ke permainan lain, itu lbh karena anda sudah mencari tau lebih dalam sebelum '
+                  'memutuskan . Keputusan nya adalah keputusan terbaik , bukan dari faktor greed dan ego belaka\n'
+                  '\n'
+                  '\n'
+                  'kenapa saya menulis ulang artikel ini ? karena saya bisa merasakan banyak dari teman2x kusak kusuk '
+                  'terus and terus mencari peluang dan berasa harus memenangkan semua permainan tersebut. Ada rasa excited '
+                  'saat cari permainan baru kesana sini. Saya juga tau enaknya saat ego anda di berikan asupan kemenangan '
+                  'dari permainan tersebut\n'
+                  '\n'
+                  '\n'
+                  'Saya percaya banyak dari anda yang lagi kasak kusuk cari next CDIA , cari next PYFA , cari next '
+                  'narrative , cari next hype IPO. Pokoke cari ini itu yang menantang anda ikut permainan\n'
+                  '\n'
+                  '\n'
+                  'Bukan pahlawan kalo ga ikut permainan , begitu rasanya. Psikologi anda menjerit , meraung, meronta '
+                  'ingin ada dalam sebuah permainan\n'
+                  '\n'
+                  '\n'
+                  'Trust me , kalo anda tidak rem hal tersebut maka anda akan terhanyut lebih dalam di permainan tersebut. '
+                  'Satu waktu permaianan tersebut akan berakhir koq.  \n'
+                  '\n'
+                  '\n'
+                  'Sebagai penutup, satu kalimat ini anda harus ingat di perjalanan investasi anda, sebenernya sih ga cuma '
+                  'perjalanan investasi aja sih , kalimat tersebut juga masih related dengan perjalanan hidup anda \n'
+                  '\n'
+                  '\n'
+                  'Yes kalimat tersebut adalah kalimat yang keluar dari seorang yang sangat legend buat saya, kalimat itu '
+                  'adalah \n'
+                  '\n'
+                  '\n'
+                  '" tidak semua permainan harus kamu menangkan dalam satu waktu "',
+     'key_points': ["Kalimat legend: 'Tidak semua permainan harus kamu menangkan dalam satu waktu'",
+                    'Jangan menoleh kiri kanan, jangan lihat rumput tetangga',
+                    'Greed muncul saat lihat saham lain naik, ego mendominasi',
+                    'Dampak: greedy memuncak, portfolio wide spreading, alokasi dana berantakan',
+                    'Selesaikan rencana awal sampai garis finish',
+                    'Investasi = komitmen mengelola risiko dan menikmati perjalanan',
+                    'Author sengaja tidak lanjutkan B-Indicator sementara untuk tidak merangsang FOMO'],
+     'related_articles': ['penyakit_stanley_fomo_druckenmiller', 'perjalanan_2_dekade_psikologi'],
+     'signals': {'catalyst_type': 'psychology_framework',
+                 'execution_phase': 'ongoing',
+                 'expected_impact': 'medium',
+                 'narrative_strength': 'high'},
+     'source': 'MentorBaik',
+     'summary': 'Reminder dari mentor kaya 300M di tahun 2010: jangan coba menang di semua permainan. Fokus pada rencana '
+                'awal, jangan terpancing saham tetangga hijau. Greed → wide spreading → aliran uang dipancing → tidak '
+                'maksimal. Komitmen dan konsistensi > mega profit.',
+     'tags': ['psychology', 'greed', 'discipline', 'portfolio', 'commitment', 'risk_management', 'narrative_play'],
+     'tickers': [],
+     'title': 'Tidak Semua Permainan Harus Dimenangkan Dalam Satu Waktu'},
+
+    "b_indicator_part5_bumi_akan_dibrmskan": {'author': 'Ricky2212 (MentorBaik)',
+     'date': '2025-04',
+     'full_text': 'B - Indicator part 5 ( BUMI bakal di BRMS kan )\n'
+                  '\n'
+                  'B - Indicator part 5 ( BUMI bakal di BRMS kan )\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  'Sebelum saya mulai artikelnya , saya sampaikan dulu di awal bahwa tidak ada ajakan untuk membeli atau '
+                  'menjual Efek ekuitas yang dibahas. Saya punya konflik kepentngan atau conflict of interest yang sangat '
+                  'besar. \n'
+                  '\n'
+                  '\n'
+                  'Saya juga sampaikan saya tidak menerima pertanyaan diskusi mengenai price action untuk pembahasan ini. '
+                  'Tidak ada pertanyaan mau naik sampai berapa , baru mulai atau sdh sampai ditengah jalan, nanti keluar '
+                  'di berapa , target price berapa, dll. \n'
+                  '\n'
+                  '\n'
+                  'Oke , kemarin pasa live Jumat saya sempat sampaikan strategi saya yang saya anggap kita sudah semakin '
+                  'dekat pada hal yang kurang enak dan saya sampaikan bahwa siram bensin masih tetap berjalan dengan salah '
+                  'satu saham yang narasi paling kuat adalah saham besutan om AP , om S dan om B.\n'
+                  '\n'
+                  '\n'
+                  'Yap , saham tersebut adalah BUMI atau Bumi Resources. Pasti pada tau lah yah saham ini, saham fenomenal '
+                  'yang terkenal seantero bursa. saya sampaikan bahwa saham BUMi tersebut akan di BRMS . Tetiba saja pasca '
+                  'live kemarin dibahas koq tiba2x naik , ingat yah semua hanya kebetulan belaka loh. \n'
+                  '\n'
+                  '\n'
+                  'Jangan Ngeres dulu yah dengan kalimat BUMI bakal di BRMS kan. Takutnya salah persepsi dengan '
+                  'mengartikan bahwa harga BUMI bakal dibawa ke harga yang sama kaya BRMS. Saya tidak tau masalah harga '
+                  'mau dibawa kemana , saya tidak tau target harga nya berapa . Semua di luar kuasa saya yah\n'
+                  '\n'
+                  '\n'
+                  'Yang saya maksudkan bahwa BUMI akan di BRMS kan lebih kepada pola permainan nya kurang lebih sama '
+                  'seperti pola permainan yang dijalankan pada BRMS. \n'
+                  '\n'
+                  '\n'
+                  'Yok kita bahas BRMS nya dulu yah , sehingga nanti kita lihat kemiripan perjalananya dan dari sana kita '
+                  'bisa kira2x kesimpulannya yah\n'
+                  '\n'
+                  '\n'
+                  'BRMS\n'
+                  '\n'
+                  '\n'
+                  'Tetiba saja saham ini jadi primadona partisipan bursa. Saham ini jadi wakil pertama kebangkitan besar '
+                  'dari sebuah konglomerasi yang sebenernya sudah lama meredup . Dia lah konglomerasi Bakrie Group. \n'
+                  '\n'
+                  '\n'
+                  'Tapi kali ini konglomerasi ini sudah tidak lagi sendirian , om B sudah berkongsi dengan om S dan om AP. '
+                  'Buat saya kali ini besutan nya luar biasa dashyat dan itu terbukti dari pergerakan BRMS kemarin\n'
+                  '\n'
+                  '\n'
+                  'Masih ingat artikel B - Indicator part 3 ? itu kali pertama saya bilang bahwa konglomerasi ini akan '
+                  'bangkit dan BRMS adalah Dagangan pertama yang akan dibuka tokonya . Pasca selesai nya permainan di AMMN '
+                  ', Saya yakin sekali saat itu bahwa BRMS dapat giliran pertama dengan melihat semua story nya sudah '
+                  'tercipta dengan baik dan sempurna lewat harga Gold yang memang sedang On Fire. Uang nya dari AMMN bakal '
+                  'turun ke bawah. Hanya tinggal bumbu2x tambahan saja lah , ini saham bakal ketiup dan menciptakan FOMO '
+                  'di market\n'
+                  '\n'
+                  '\n'
+                  'Saya pernah sampaikan di artikel B-Indicator part 3 dan part 4 seperti apa nantinya cerita yang '
+                  'dipersiapkan buat BRMS\n'
+                  '\n'
+                  '\n'
+                  '1. BRMS akan dimasukkan dalam indeks konstituen => checklist , BRMS akan dikerjar masuk MSCI buat mid '
+                  'cap. Untuk itu dibutuhkan target market kapitalisasi dan likuiditas pasar yang masuk kriteria. \n'
+                  '\n'
+                  '\n'
+                  'Tadinya daily Transaction BRMS kisaran 10 - 30 bio per day , tiba2x saja volume dan value daily '
+                  'transaction BRMS spike ke kisaran diatas 300 bio - 500 bio bahkan pernah lebih dari itu\n'
+                  '\n'
+                  '\n'
+                  'Dimulai lah perjalanan dari sini untuk memulai attention dari market. Market kalo disuguhkan saham yang '
+                  'naik dengan transaksi yang besar tentunya akan mengundang semua partisipan pasar baik retail maupun '
+                  'institusi. \n'
+                  '\n'
+                  '\n'
+                  'Kalau sudah begitu , supporting story pastinya disiapkan pada tahap selanjutnya\n'
+                  '\n'
+                  '\n'
+                  'Cerita supporting juga sudah saya jelaskan di part 3 tentang cerita apa yang BRMS akan keluarkan , '
+                  'berikut cerita supprting nya\n'
+                  '\n'
+                  '\n'
+                  '2. Kinerja BRMS akan mentereng and kinclong. Q3 nya Masih diaudit yah ? tapi jelas kinerja mereka '
+                  'hampir bisa dipastikan akan mentereng luar biasa. Sebenernya ini mah hal biasa dan sudah bisa ditebak , '
+                  'tapi masalah nya nanti akan dibikin heboh supaya jadi sesuatu yang bombastis. Ga usah diragukan lagi '
+                  'lah , berita nya sudah ditiupkan koq serempak lewat media. \n'
+                  '\n'
+                  '\n'
+                  'on going checklist \n'
+                  '\n'
+                  '\n'
+                  '3. Produksi mereka naik , sebenernya ini juga berita biasa aja karena memang mereka sudah siapkan '
+                  'jauh2x hari pabrik baru yang akan beroperasi. Lagi - lagi jadi hal yang bombastis karena memang '
+                  'semuanya dikemas dan diluncurkan tepat pada waktunya\n'
+                  '\n'
+                  '\n'
+                  'Checklist\n'
+                  '\n'
+                  '\n'
+                  '4. Menemukan cadangan baru terutama Copper . Ini sih yang bakal jadi sesuatu yang WOW. Tambang Copper '
+                  'BRMS lagi di JORC kan untuk mengetahui berapa nilai cadangan Copper yang dimiliki oleh Salah satu '
+                  'tambang BRMS. Dari sana sebagai Junior Miner tentunya akan mengangkat valuasi perusahaan tambang\n'
+                  '\n'
+                  '\n'
+                  'on going checklist\n'
+                  '\n'
+                  '\n'
+                  '5. Saya ga tau ada hal baru apa tidak , tapi kalo mau tambah gila and Wow lagi ceritanya , bisa saja '
+                  'nanti ada akuisisi lanjutan oleh BRMS. Akusisi kecil saja bisa dijadikan bahan buat memuncakkan harga '
+                  'BRMS\n'
+                  '\n'
+                  '\n'
+                  'will see apakah akan di checklist atau tidak\n'
+                  '\n'
+                  '\n'
+                  'Jadi perjalanan besar Dimulai dari no 1 yaitu penciptaan kenaikan atau rally besar dalam harga dan '
+                  'diiringi kenaikan likuiditas dilanjutkan oleh supporting story yang disiapkan \n'
+                  '\n'
+                  '\n'
+                  'Game nya menarik bukan ? itu cerita perjalanan BRMS sejauh ini. Sejak thesis dinaikkan pertama kali '
+                  'oleh mentorbaik , harga saham sudah naik lebih dari bagger\n'
+                  '\n'
+                  '\n'
+                  'Dah , itu semua cerita perjalanan dari BRMS . Saatnya kita masuk ke cerita BUMI\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  'BUMI\n'
+                  '\n'
+                  '\n'
+                  'Saat perjalanan besar rally BRMS , saya makin yakin bahwa nantinya permainan akan mulai bergeser ke '
+                  'permainan selanjutnya yaitu BUMI. Saya yakin hanya masalah waktu saja Uang akan pindah ke BUMI '
+                  'resources. \n'
+                  '\n'
+                  '\n'
+                  'Di luar sana saya yakin banyak suara sumbang , banyak yang skeptis dan berkomentar BUMI lelet dan tidak '
+                  'segalak BRMS. Tapi malah buat saya , Saya merasa om B , om S , sama om AP baik sekali menciptakan '
+                  'permainannya tidak berbarengan dan ada jeda waktu. Dari jeda waktu tersebut jadi ada celah yang saya '
+                  'bisa manfaatkan agar saya bisa memaksimalkan keadaan.\n'
+                  '\n'
+                  '\n'
+                  'Yes pasca saya exit dari BRMS , sebagian dananya langsung saya pindahkan ke BUMI. Saya ga mau '
+                  'ketinggalan pesta nya yang saya yakinin jam nya akan segera dimulai. \n'
+                  '\n'
+                  '\n'
+                  'Uhuyy , strategi ga sia - sia. Tiba2x Bursa diguncang oleh BUMI yang tiba2x saja jadi raja kembali ( '
+                  'saya ingat saya pernah mengikuti perjalanan BUMI jadi raja bursa baik marcap maupun daily transaction '
+                  '). Belakangan keramaian mulai terjadi di BUMI \n'
+                  '\n'
+                  '\n'
+                  'Mari kita bedah BUMI bakal di BRMS kan , tahapannya gimana ?\n'
+                  '\n'
+                  '\n'
+                  '1. BUMI bakal masuk indeks konstituen => Buat saya BUMI sepertinya akan "dipaksa " masuk indeks '
+                  'konstituen MSCI level Big cap. Jadi dari sana tentunya akan dikejar tuh minimal market cap agar bisa '
+                  'masuk MSCI big cap ( jangan tanya saya , saya juga ga tau hitungan persisnya ) . Dari sana juga '
+                  'dibutuhkan kenaikan likuiditas harian agar masuk kriteria MSCI tsb\n'
+                  '\n'
+                  '\n'
+                  'Makanya ga heran kan tiba2x guncangan BUMI kuat sekali. BUMI mengalama rally harga dengan daily '
+                  'turnover yang besar bahkan luar biasa besar. Dari yang tadinya kisaran 30- 50 bio melonjak ke ratusan '
+                  'bio bahkan sampai 1.5 trilyun value transaksi hariannya. \n'
+                  '\n'
+                  '\n'
+                  'BUMI jadi raja bursa kembali 3 hari belakangan ini. Kode saham nya terpampamg di saham most active '
+                  'volume , most active value and top gainer. \n'
+                  '\n'
+                  '\n'
+                  'Kalau sudah begitu, siapa yang tidak tertarik ? semua mata tertuju pada BUMI sekarang.\n'
+                  '\n'
+                  '\n'
+                  'Ke depan BUMI masih akan jadi pusat perhatian dan akan selalu terpampang di most active and top gainer\n'
+                  '\n'
+                  '\n'
+                  'Sama kaya BRMS ? perjalanan awal nya sama kaya BRMS kan ? BUMI akan di BRMS kan lah tuh jadinya.\n'
+                  '\n'
+                  '\n'
+                  'Kalo mau kaya BRMS lagi berarti habis ini akan apa ? sebentar lagi juga akan keluar supporting story '
+                  'nya yang akan mendukung semua perjalanan besarnya.\n'
+                  '\n'
+                  '\n'
+                  'sedikit Bedanya antara BUMI dan BRMS adalah BRMS story nya sudah valid dan tersedia sedangkan BUMI '
+                  'harus diciptakan dari 0 \n'
+                  '\n'
+                  '\n'
+                  'Apa yang mungkin jadi cerita buat BUMI ? supporting story harus dibentuk untuk melanggengkan perjalanan '
+                  ', jadi saya berusaha menebak - nebak arahnya. Saya pernah ceritakan di part 4\n'
+                  '\n'
+                  '\n'
+                  '2. Yang paling kuat adalah Narasi Green , BUMI akan dibuat seakan - akan sedang shifting menuju '
+                  'perusahaan tambang yang akan Go Green. Segala daya dan upaya akan dikerahkan agar BUMI jadi perusahaan '
+                  'yang GREEN. \n'
+                  '\n'
+                  '\n'
+                  'Checklist ? belum sepenuhnya bisa di checklist tapi berita pemanasannya sudah dikeluarkan di media. '
+                  'Berita nya adalah BUMI akan menaikan porsi pendapatan non batubara nya.\n'
+                  '\n'
+                  '\n'
+                  'Hmmm , kebetulan kah ? itu baru berita pemanasannya aja sih dan saya yakin pasti akan ada aksi lanjutan '
+                  'nantinya\n'
+                  '\n'
+                  '\n'
+                  '3. Untuk mendukung aksi lanjutan Go Green, apa aksi lanjutannya yang memungkinkan ? Saya tidak melihat '
+                  'opsi ADRO style di BUMI jadi BUMi tidak akan di ADRO kan. Saya lebih melihat kemungkinan yang paling '
+                  'besar adalag BUMI melakukan suatu corp action berupa akuisisi. Yang paling make sense untuk ke arah Go '
+                  'Green adalah akuisisi komoditas yang terhitung masuk Green seperti mineral - mineral an atau kalaunpun '
+                  'masih di batubara harusnya bisa masuk ke batubara metalurgi atau kokas. Itu opsi yang paling make sense '
+                  'buat saya \n'
+                  '\n'
+                  '\n'
+                  'Kebetulan kan LK Q3 nya lagi mau di audit tuh , ada apa yah ? ada sesuatu yang dipersiapkan ? saya sih '
+                  'yakin iya ada yang dipersiapkan tapi saya tidak tau persis apa nya yah. Baiknya kita tunggu saja '
+                  'pengumunannya\n'
+                  '\n'
+                  '\n'
+                  '4. Saya yakin akan ada cerita lanjutannya yang akan keluar , tapi sampai saat ini saya belum bisa '
+                  'memastikan kevalidan berita tersebut. Ada 3 cerita lanjutan yang saya masih terus verifikasi agar '
+                  'kebenarannya bisa dipertanggung jawabkan. \n'
+                  '\n'
+                  '\n'
+                  'Itu sepenggal cerita supporting untuk BUMi sejauh ini\n'
+                  '\n'
+                  '\n'
+                  'Tapi kalo melihat dari pergerakan harga belakangan ini dari BUMi , sama seperti BRMS nantinya dalam '
+                  'perjalanan nya . Saya yakin ga lama lagu supporting story nya akan dimunculkan satu per satu agar '
+                  'perjalanannya makin mengasyikkan dan pestanya makin meriah\n'
+                  '\n'
+                  '\n'
+                  'Mirip kaya BRMS ? Jadi sudah tau donk sudah dmana fase perjalanannya tanpa harus bertanya lagi sudah '
+                  'sampai dimana ? \n'
+                  '\n'
+                  '\n'
+                  'Yes , semua permainan ini saya yakin diciptakan oleh seorang maestro , bukan orang sembarangan dan itu '
+                  'saya yakin semua ini diciptakan oleh Agus Projo . Salim sebagai pemimpin , Bakrie kasak kusuk di '
+                  'pemerintahan dan Agus Projo yang menciptakan dan mengeksekusi permainannya sampai selesai\n'
+                  '\n'
+                  '\n'
+                  'BUMI bakal di BRMS kan , kita lihat perjalanannya yah. \n'
+                  '\n'
+                  '\n'
+                  'Ini artikel terakhir mengenai perjalanan permainan Perfect Exit strategy dengan melihat pola permainan '
+                  'B - Indicator\n'
+                  '\n'
+                  '\n'
+                  'semoga berguna\n'
+                  '\n'
+                  '\n'
+                  'ehhhh satu lagi , di otak para fund mulai tercipta stigma " it\'s Bakrie , Salim and AP time ". Bahkan '
+                  'saya ga sangka DEWA saja sampai diajak , dan kalo lihat permainannya saya yakin akan diperlakukan yang '
+                  'sama kaya BUMI dan BRMS. Tapi berhubung saya hanya fokus di BUMI dan BRMS , saya ga ngulik2x jauh '
+                  'tentang DEWA\n'
+                  '\n'
+                  '\n'
+                  'Saking besar pusat perhatiannya , Jadi nantinya likuiditas akan terkonsentrasi disana pastinya. rezim '
+                  'om PP mulai memudar perlahan koq. \n'
+                  '\n'
+                  '\n'
+                  'Sampai bertemu di puncak keramaian',
+     'key_points': ['BRMS playbook: indeks konstituen → likuiditas spike → supporting story → FOMO',
+                    'BUMI akan dipaksa masuk MSCI big cap → butuh market cap & likuiditas tinggi',
+                    'Daily turnover BUMI melonjak dari 30-50B ke 1.5T',
+                    'BRMS checklist: indeks, kinerja Q3, produksi naik, cadangan copper JORC, akuisisi lanjutan',
+                    'BUMI supporting story: Narasi Green, akuisisi bauksit/alumunium, kuasi organisasi',
+                    "DEWA juga diajak ke pusaran (stigma 'It's Bakrie, Salim and AP time')",
+                    'Maestro: Agus Projo eksekutor, Salim pemimpin, Bakrie kasak-kusuk pemerintahan'],
+     'related_articles': ['b_indicator_part6_konsolidasi_dewa', 'b_indicator_part7_execution_time'],
+     'signals': {'catalyst_type': 'konglo_narrative',
+                 'execution_phase': 'early',
+                 'expected_impact': 'high',
+                 'narrative_strength': 'high'},
+     'source': 'MentorBaik',
+     'summary': 'BUMI akan mengikuti playbook BRMS: masuk indeks konstituen MSCI big cap, spike likuiditas harian dari '
+                '30-50B ke ratusan B/triliunan, lalu supporting story keluar satu per satu. BRMS sudah checklist: indeks '
+                'konstituen, kinerja mentereng, produksi naik, cadangan copper JORC. BUMI baru mulai create cerita dari '
+                'nol: narasi Green, akuisisi mineral, kuasi organisasi.',
+     'tags': ['b_indicator',
+              'konglo_play',
+              'bumi',
+              'brms',
+              'indexing',
+              'liquidity',
+              'bakrie',
+              'salim',
+              'agus_projo',
+              'narrative'],
+     'tickers': ['BUMI', 'BRMS', 'DEWA'],
+     'title': 'B-Indicator Part 5 — BUMI Bakal di-BRMS-kan'},
+
+    "b_indicator_part6_konsolidasi_dewa": {'author': 'Ricky2212 (MentorBaik)',
+     'date': '2025-04',
+     'full_text': 'B-Indicator part 6 ( Konsolidasi Besar sedang terjadi , DEWA dimasukkkan pusaran permainan and Make '
+                  'BUMI Great Again )\n'
+                  '\n'
+                  'B-Indicator part 6 ( Konsolidasi Besar sedang terjadi , DEWA dimasukkkan pusaran permainan and Make '
+                  'BUMI Great Again )\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  'Bosen yah dijejelin tentang hal buruk terus. Dikit2x artikel nya tentang hal buruk. \n'
+                  '\n'
+                  '\n'
+                  'Cussssss , yang jelas kita akan ada Fase Blow off the top yang bikin Ter FOMO FOMO dah tuh pada di luar '
+                  'sana. \n'
+                  '\n'
+                  '\n'
+                  'Nah sebagai bahan ikutan Blow Off the TOP , kita bahas salah satu konglomerasi yang harusnya READY\n'
+                  '\n'
+                  '\n'
+                  'Sudah lama ga bahas konglomerasi bakrie group beserta kongsi konglomerasi nya yaitu Agus Projo and Om '
+                  'Salim. \n'
+                  '\n'
+                  '\n'
+                  'Pertanyaan pertama yang muncul dari teman2x adalah , Pak kapan nih BUMI nya gerak ? Kapan nih BUMI di '
+                  'BRMS kan ? \n'
+                  '\n'
+                  '\n'
+                  'jawaban saya adalah kalau mau main yang cepat , main yang besok naik yah main saham ala back door - an '
+                  '. Banyak koq yang langsung naik.\n'
+                  '\n'
+                  '\n'
+                  'Persiapan BUMI seperti yang saya bilang di beberapa artikel terdahulu agak lebih memakan waktu. Tidak '
+                  'seperti BRMS yang sudah tersedia Story nya , BUMI itu perlu di Create dulu ceritanya. \n'
+                  '\n'
+                  '\n'
+                  'Kapan BUMI akan di BRMS - kan ? otak ngeres ini langsung melekat saat judul artikel ini diluncurkan. '
+                  'Pasti langsung pada ngiler dan merasa bahwa BUMi akan naik kaya BRMS dan langsung naik seketika. '
+                  'Padahal di artikel itu saja saya sudah sampaikan bahwa BUMI akan di BRMS-kan secara play book atau pola '
+                  'permainannya. \n'
+                  '\n'
+                  '\n'
+                  'Yuk kita bahas lanjutan yah\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  'BUMI resources \n'
+                  '\n'
+                  '===============\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  'Perlahan tapi pasti , berita baik dari BUMI dikeluarkan satu per satu. Ceritanya perlahan akan dibentuk '
+                  'untuk mensupport jalan nya SHOW - nya BUMI nanti\n'
+                  '\n'
+                  '\n'
+                  'ada beberapa hal yang mulai terkuak ke publik, diantaranya\n'
+                  '\n'
+                  '\n'
+                  'MIP , cerita lama yang masih digantung-gantung tapi semoga hal ini cepat diketok agar bisa dijalankan '
+                  'program nya . BUMI jadi salah satu yang diuntungkan dari MIP tersebut\n'
+                  '\n'
+                  '\n'
+                  'Penyesuaian royalty IUPK , saya sih sudah mendengar hal tersebut sebelum IPO nya AADI. IPO AADI santer '
+                  'terdengar ada pihak kuat pemerintah yang dapat jatah harga murah dari perhelatan tersebut. Sebagai '
+                  '"imbalan" maka akan dilakukan penyesuaian royalty IUPK yang sangat tinggi. Harga batubara sekarang '
+                  'sudah tidak kondusif memakai royalty IUPK. Ada 3 yang bakal terdampak baik akibat hal tersebut yaitu '
+                  'BUMI , AADI dan INDY\n'
+                  '\n'
+                  '\n'
+                  'Dua hal ini di luar kuasa manajemen yah , semua bergantung kepada Pemerintah sebagai pemangku kebijakan '
+                  'dan pengambil keputusan. Semoga bisa terlaksana\n'
+                  '\n'
+                  '\n'
+                  'Kuasi Organisasi , dalam setiap kesempatan manajemen selalu mempromosikak kuasi sebagai salah satu '
+                  'agenda BUMI ke depan. Bagi yang belum tau , Kuasi organisasi itu salah satu program penghapusan Defisit '
+                  'di posisi Retained Earning, dengan begitu ke depannya mereka bisa bagi Dividen. BUMI akan lakukan itu '
+                  'dalam waktu dekat dengan memakai LK FY2024. Ditolak ? proses nya pasti tidak akan langsung disetujui '
+                  'dan butuh berulang kali pengajuan dan rasanya ini akan berhasil nantinya\n'
+                  '\n'
+                  '\n'
+                  'Serangkaian Akusisi akan dijalankan , Yang sudah mulai ke published adalah akusisi BUMI untuk tambang '
+                  'bauksit. Dan juga BUMi nantinya akan membangun Smelter Alumina buat tambang bauksitnya. Green ? ini '
+                  'jalan BUMI masuk bisnis Green tanpa harus mendivestasi tambang batubara nya. Sure , ini sepertinya '
+                  'hanya masalah waktu saja dan berulang kali manajamen BUMI sudah gembar gembor akan hal ini\n'
+                  '\n'
+                  '\n'
+                  'Kenapa koq akuisisi ini duluan yang diumumin ? karena dengan begitu dana2x Green nanti nya mulai bisa '
+                  'masuk BUMI. Kan sudah bisa dibilang Green tuh kalo sdh begitu.\n'
+                  '\n'
+                  '\n'
+                  'another acquisition ? semoga dan ditunggu saja . More to come. Beberapa asset akan masuk ke dalam perut '
+                  'BUMi nantinya\n'
+                  '\n'
+                  '\n'
+                  'Indexing ? tenang, titah nya sudah dilempar buat indexing ke level lebih tinggi. Tunggu saja yah\n'
+                  '\n'
+                  '\n'
+                  'Agenda nya terus berjalan , jadi jangan nanya kapan naiknya yah. Malas saya jawab pertanyaan price '
+                  'action\n'
+                  '\n'
+                  '\n'
+                  'Jangan kaget nanti saham ini jadi rebutan orang banyak. Disemutin tuh saham sampai kering ga bersisa. '
+                  'Fund2x bisa mangap tuh saham kalo justifikasi nya satu per satu di checklist\n'
+                  '\n'
+                  '\n'
+                  'Semua Hal Green tersebut sudah pernah saya bahas dalam satu artikel B-indicator part 4 . Kalau mau '
+                  'cerita lengkap tentang Skenario2x yang dipersiapkan untuk bahan cerita BUMI , silakan dibaca lagi '
+                  'artikelnya yah\n'
+                  '\n'
+                  '\n'
+                  'Pak , tapi itu koq CIC buangan terus ? nanti tuh saham CIC kalo bisa disedot sama Salim semua nya. Nego '
+                  'aja dah tuh sana\n'
+                  '\n'
+                  '\n'
+                  "It's time to Make BUMI Great Again ( MBGA )\n"
+                  '\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  'BRMS\n'
+                  '\n'
+                  '======\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  'Selesai permainan BRMS ? buat saya sih belum selesai. Masih ada beberapa agenda yang akan diselesaikan '
+                  'nantinya. \n'
+                  '\n'
+                  '\n'
+                  'Apa itu ? \n'
+                  '\n'
+                  '\n'
+                  'indexing, fixed ini sih memang yang dikejar dan rasanya akan mulus perjalanannnya\n'
+                  '\n'
+                  '\n'
+                  'Kinerja juga sudah pasti muluss lah yah , produksi naik , pabrik baru terus berjalan plus harga '
+                  'underlying emas nya juga terus stabil naik. So dari part ini juga ga perlu diragukan lagi. \n'
+                  '\n'
+                  '\n'
+                  'another Acquisition ? semoga saja deal nya mulus jadi bisa ada 1 asset mineral lagi masuk ke BRMS\n'
+                  '\n'
+                  '\n'
+                  'Jadi ga perlu banyak dibahas lagi lah tentang BRMS toh saham nya juga sudah outperform kemarin yah. \n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  'DEWA\n'
+                  '\n'
+                  '======\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  'Kedua diatas baik BUMI maupun BRMS, saya sudah sering bahas berkali2x dalam artikel B-Indicator sebelum '
+                  'nya. Kali ini saya memberanikan diri menaikkan DEWA sebagai anggota baru yang bakal kena imbas dan '
+                  'diajak dalam permainan. DEWA akan ditarik ke pusaran permainan Besar konglo B , AP dan S\n'
+                  '\n'
+                  '\n'
+                  'Sekilas tentang DEWA. Dewa , Darna Henwa adalah penyedia layanan kontraktor pertambangan batubara yang '
+                  'dimiliki oleh Bakrie Group. Yang dilayanin ga jauh2x dari tambang batubara milik Bakrie Group juga '
+                  'yaitu KPC dan Arutmin.\n'
+                  '\n'
+                  '\n'
+                  'Sedikit cerita buruk , Darma Henwa dulu nya adalah milik keluarga "Otong" nya pemilik Danatama Makmur '
+                  'Sekuritas. Kedekatannya dengan Group Bakrie memang sangat kental \n'
+                  '\n'
+                  '\n'
+                  'Dalam sebuah persilatan "Culas" , Dewa diambil alih oleh BUMI di saat krisis 2008 selesai. BUMI membeli '
+                  'mahal DEWA saat itu jauh diatas harga pasar. Ditenggarai , BUMi membeli dari pihak Danatama and Bakrie '
+                  'yang membeli murah di harga pasar saat itu.\n'
+                  '\n'
+                  '\n'
+                  'Kinerja DEWA gimana ? kinerja DEWA yah gitu2x aja. Lagi2x buat saya ada "permainan" membejek NPM mereka '
+                  'lewat Transfer Pricing. Sama kasusnya kaya INDY ngebejek PTRO and MBSS sehingga laba mereka juga ga '
+                  'maksimal. \n'
+                  '\n'
+                  '\n'
+                  'Andai Dilepas aja tuu bejekan nya , kinerja Dewa bakal mentereng.\n'
+                  '\n'
+                  '\n'
+                  'Apa yang bikin DEWA menarik ? dulu saya pernah mendengar bahwa Group Salim and AP akan masuk ke DEWA. '
+                  'Masuknya lewat skema Right Issue , dan saat itu alot sekali negoisasi masalah harga masuk nya buat Om S '
+                  'and om AP\n'
+                  '\n'
+                  '\n'
+                  'Tapi melihat gelagat pergerakan harga belakangan ini , firm sih saya yakin kalo Om S and om AP sudah '
+                  'siap di dalam sana. \n'
+                  '\n'
+                  '\n'
+                  'Tinggal nunggu aksi lanjutannya aja dari Om S and Om AP buat memoles DEWA sebagai salah satu portfolio '
+                  'kesayangannya. \n'
+                  '\n'
+                  '\n'
+                  'Apa yang bisa digarap dari DEWA ?\n'
+                  '\n'
+                  '\n'
+                  '÷ bejekan LK dewa yang bikin NPM nya mungil banget mungkin bisa saja dibuka. Kalau dibuka aja dikit , '
+                  'laba nya mungkin akan jauh lebih baik dari sekarang\n'
+                  '\n'
+                  '\n'
+                  '÷ Tambang emas Gayo di Aceh yang dimiliki DEWA. \n'
+                  '\n'
+                  '\n'
+                  'skenario pertama , DEWA akan garap tambang emas itu sendiri dengan keluarkan CAPEX buat garap nya. '
+                  'Secara emas juga lagi sunshine kan skrg ? \n'
+                  '\n'
+                  '\n'
+                  'skenario kedua , konsolidasi emas nya ke BRMS. DEWA akan jual Gayo ke BRMS sehingga DEWA dapat cash '
+                  'dari penjualan tersebut\n'
+                  '\n'
+                  '\n'
+                  '÷ Om AP inject asset ke DEWA yang in line dengan bidang usaha nya DEWA. Entah inject kontraktor tambang '
+                  'nya atau tambang batubara nya \n'
+                  '\n'
+                  '\n'
+                  'Itu kira2x skenario yang ada di bayangan kepala saya. \n'
+                  '\n'
+                  '\n'
+                  'Pak itu Dewa mau PP di harga 65 , koq jauh banget yah dibawah ? Ada yang mau block BuY dibawah tuh , '
+                  'tau kan siapa ? \n'
+                  '\n'
+                  '\n'
+                  'Loh , itu bukan peruntukannya buat bayar hutang ke vendor pak ? lah mana ada kasih makan siang gratis '
+                  'ke vendor dengan memberikam saham harga diskon 50% ? \n'
+                  '\n'
+                  '\n'
+                  'Fiuhhh , kalo ini beneran jalan semua agenda nya sih Keren banget Om AP and Om S. Mereka '
+                  'menkonsolidasikan semua yang punya potensi ke dalam satu Permainan besar. \n'
+                  '\n'
+                  '\n'
+                  'Om S and Om AP tau koq timing bagus nya , rasanya mereka juga berhitung buat jalanin permainannya. \n'
+                  '\n'
+                  '\n'
+                  'Party ? tiupan terompet , letusan balon , Hisapan Cerutu bahkan Sobotol Vodka and Martini rasanya ga '
+                  "akan cukup nantinya buat merayakan kemeriahan pesta. It's a Big Party \n"
+                  '\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  'NB : tidak ada unsur rekomendasi beli jual . Jangan juga menanyakan yang bagus yang mana , jangan '
+                  'menanyakan price action , karena sudah pasti saya ga akan jawab.',
+     'key_points': ['BUMI: MIP, penyesuaian royalty IUPK (untung BUMI, AADI, INDY)',
+                    'BUMI kuasi organisasi pakai LK FY2024 → hapus defisit retained earning → bisa dividen',
+                    'BUMI akuisisi tambang bauksit + smelter alumina = jalan masuk Green tanpa divestasi batubara',
+                    'BUMI indexing ke level lebih tinggi sudah titah',
+                    'BRMS: indexing, kinerja mulus, produksi naik, pabrik baru, harga emas stabil',
+                    'DEWA: Salim masuk via Right Issue (deal alot selesai), BCA pinjam 2T',
+                    'DEWA: bejekan NPM via transfer pricing bisa dibuka → laba improve',
+                    'DEWA: tambang emas Gayo Aceh → skenario garap sendiri atau konsolidasi ke BRMS',
+                    'DEWA: potensi om AP inject asset (kontraktor/tambang batubara)',
+                    'Ekosistem: BUMI (induk), DEWA (kontraktor), BRMS (mineral)'],
+     'related_articles': ['b_indicator_part5_bumi_akan_dibrmskan',
+                          'b_indicator_part7_execution_time',
+                          'dewa_restoe_boemi_belanja_crash'],
+     'signals': {'catalyst_type': 'konglo_narrative',
+                 'execution_phase': 'active',
+                 'expected_impact': 'high',
+                 'narrative_strength': 'high'},
+     'source': 'MentorBaik',
+     'summary': 'Fase Blow Off the Top akan datang. BUMI perlahan keluarkan berita baik: MIP, penyesuaian royalty IUPK, '
+                'kuasi organisasi (hapus defisit retained earning → bisa dividen), serangkaian akuisisi (bauksit + smelter '
+                'alumina = Green). DEWA resmi masuk pusaran: pinjaman BCA 2T, RUPSLB PMA→PMDN, tambang emas Gayo Aceh, '
+                'potensi asset injection.',
+     'tags': ['b_indicator',
+              'konglo_play',
+              'bumi',
+              'brms',
+              'dewa',
+              'bakrie',
+              'salim',
+              'agus_projo',
+              'consolidation',
+              'narrative'],
+     'tickers': ['BUMI', 'BRMS', 'DEWA'],
+     'title': 'B-Indicator Part 6 — Konsolidasi Besar, DEWA Masuk Pusaran, Make BUMI Great Again'},
+
+    "dewa_restoe_boemi_belanja_crash": {'author': 'Ricky2212 (MentorBaik)',
+     'date': '2025-04',
+     'full_text': 'DEWA => Restoe Boemi \n'
+                  'Kalau tau story saham dengan baik, kejatuhan pasar adalah waktu yang tepat buat membeli saham '
+                  'tersebut.\n'
+                  '\n'
+                  'DEWA => Restoe Boemi \n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  'Lagu ini dirilis tahun 1995 dalam album terbaik terbaik dan jadi hits pada zaman tersebut dan mungkin '
+                  'sampai saat ini.\n'
+                  '\n'
+                  '\n'
+                  'Lagu tersebut jadi salah satu lagu yang saya suka saat itu. Anak SMP and anak muda saat itu sih memang '
+                  'menggandrungi lagu tersebut\n'
+                  '\n'
+                  '\n'
+                  'Sewangi bunga mawar tubuhmu\n'
+                  '\n'
+                  'Menghampar di permadani\n'
+                  '\n'
+                  "Mengetuk hasrat 'tuk menjamah\n"
+                  '\n'
+                  'Surgamu\n'
+                  '\n'
+                  '\n'
+                  'Kilaumu bagaikan mutiara\n'
+                  '\n'
+                  'Menghiasi muka bumi\n'
+                  '\n'
+                  'Warnamu yang kujilati\n'
+                  '\n'
+                  'Sendiri\n'
+                  '\n'
+                  '\n'
+                  'Kuyakinkan restu bumi\n'
+                  '\n'
+                  'Bangunkan jiwaku\n'
+                  '\n'
+                  'Basuhi raga kita\n'
+                  '\n'
+                  'Restu bumi leburkan hati\n'
+                  '\n'
+                  'Sucikan dari debu dunia\n'
+                  '\n'
+                  '\n'
+                  'Kuraba jiwamu yang bersahabat\n'
+                  '\n'
+                  'Tundukkan suasana hati\n'
+                  '\n'
+                  'Seiring sepi menjepit sukmaku\n'
+                  '\n'
+                  '\n'
+                  'Kuyakinkan restu bumi\n'
+                  '\n'
+                  'Bangunkan jiwaku\n'
+                  '\n'
+                  'Basuhi raga kita\n'
+                  '\n'
+                  'Restu bumi leburkan hati\n'
+                  '\n'
+                  'Sucikan dari debu dunia\n'
+                  '\n'
+                  '\n'
+                  "Seorang bijak 'kan memahami\n"
+                  '\n'
+                  'Cinta bukan dicari, diraih\n'
+                  '\n'
+                  'Cinta pun hadir sendiri\n'
+                  '\n'
+                  '\n'
+                  'Begitulah sebagian bait lagu tersebut. \n'
+                  '\n'
+                  '\n'
+                  'Kuyakinkan Restu Bumi , penggalan yang punya makna dan akan saya bahas di artikel ini. kwkwkwwk\n'
+                  '\n'
+                  '\n'
+                  'Cukup intermezzo nya yah. Di artikel B - Indicator terakhir ( yang diolok - olok di publik bahkan '
+                  'mungkin disini juga ada ) kalau teman-teman paham kenapa DEWA yang saya titik beratkan dalam pembahasan '
+                  'tersebut , karena DEWA cerita nya terbentuk duluan dengan sendiri nya dan punya potensi buat jadi '
+                  '"Permainan" selanjut nya. \n'
+                  '\n'
+                  '\n'
+                  'Next, pada waktu kejatuhan indeks yang mencapai puncak pesimis yang luar biasa saya juga sempat '
+                  'sampaikan bahwa saya lapar buat belanja. Saya juga sampaikan apa yang sata belanjakan diantaranya '
+                  'Banking ( yah pokoknya banking ) , dan saham konglomerasi yang saya sering bahas. Kedua nya saya beli '
+                  'dan saya menitik beratkan porsinya pada saudara muda nya ( ini pesan buat DEWA )\n'
+                  '\n'
+                  '\n'
+                  'Kenapa saya beli DEWA ? kenapa juga Restoe BUMI jadi intinya ? \n'
+                  '\n'
+                  '\n'
+                  'Beberapa waktu lalu DEWA melakukan pergelaran Right Issue. Ada yang menarik buat saya dalam pergelaran '
+                  'Right Issue ini. \n'
+                  '\n'
+                  '\n'
+                  'Saya coba berikan informasi lebih lanjut mengenai right issue ini :\n'
+                  '\n'
+                  '\n'
+                  'Rincian Kewajiban Perseroan\n'
+                  '\n'
+                  '\n'
+                  'Berdasarkan Laporan Keuangan Konsolidasian Interim per 30 September 2024 (Auditan),\n'
+                  '\n'
+                  '\n'
+                  'DEWA memiliki kewajiban sebagai berikut:\n'
+                  '\n'
+                  '\n'
+                  'MTN: Rp756.990.789.000\n'
+                  '\n'
+                  'ATP: Rp358.925.000.000\n'
+                  '\n'
+                  'AMM: Rp296.611.745.000\n'
+                  '\n'
+                  '\n'
+                  'Harga pelaksanaan right issue ditetapkan sebesar Rp75 per lembar saham, dan seluruh saham baru akan '
+                  'digunakan untuk penyelesaian kewajiban tersebut.\n'
+                  '\n'
+                  '\n'
+                  'Pinjamam tersebut akan dilunasi oleh DEWA melalui Private Placemet. Artinya tidak ada saham yang '
+                  'ditebus publik sama sekali. Saham tersebut adalah konversi hutang tersebut diatas atau istilah nya Debt '
+                  'to Equity Swap. \n'
+                  '\n'
+                  '\n'
+                  'Jauh ke belakang, saya pernah cerita singkat bahwa Om S sama Om AP mau masuk ke DEWA pasca pengambilan '
+                  'BUMI dan BRMS. Om S juga ngebet ambil DEWA untuk masuk ke portfolio investasinya. Saat itu terjadi deal '
+                  'yang alot antara Om S dan Om B. \n'
+                  '\n'
+                  '\n'
+                  'Sebenernya kalo teman2x ikutin perjalananya, DEWA sempat mau RI tapi gagal. Nah itu deal nya alot. Om S '
+                  'minta harga sekian dan Om B belum menyepakatinya. \n'
+                  '\n'
+                  '\n'
+                  'Nah Right Issue ini buat saya jawabannya. Mudah2x saya tidak salah thesisnya , Right Issue itu '
+                  'tujuannya buat bayar hutang para kontraktor sub nya DEWA. Tapi yang saya cium itu lain , Om B itu pelit '
+                  'bener aslinya. Mana mau dikasih harga Rp 75 kalau cuma buat bayar kontraktor. \n'
+                  '\n'
+                  '\n'
+                  'Dari situ saya bilang , sepertinya bayar kontraktornya sih bener dan Om S masuk sebagai pemegang saham '
+                  'kontraktornya. Jadi komplit lah pergelaran Om S masuk ke DEWA via Right Issue tersebut. \n'
+                  '\n'
+                  '\n'
+                  'Kenapa Restoe BUMI ? karena pemegang saham DEWA adalah BUM. Aksi Om B membeli DEWA dilakukan lewat BUMI '
+                  '. BUMIbmembeli DEWA secara "CULAS" karena BUMI membeli mahal saham DEWA yang ditenggarai ada hengki '
+                  'pengki lah saat itu. \n'
+                  '\n'
+                  '\n'
+                  'jadi Restoe BUMI by DEWA , jadilah kongsi om S , om AP and om B kembali. BUMI memberi restu agar Right '
+                  'Issue DEWA bisa berjalan dengan baik. \n'
+                  '\n'
+                  '\n'
+                  'Rasanya Right Issue ini baru cerita awal saja , saya duga akan ada cerita selanjutnya yang sedang '
+                  'mereka siapkan di depan.\n'
+                  '\n'
+                  '\n'
+                  'Itu ceritanya yah , tapi pesan utama saya di artikel bukan cetita diatas loh ya. \n'
+                  '\n'
+                  '\n'
+                  'Pesan utama saya , ada di cerita selanjutnya dibawah ini\n'
+                  '\n'
+                  '\n'
+                  'Setelah thesis tersebut saya buat , saya memang butuh banget masuk ke saham yang memang saya incar. \n'
+                  '\n'
+                  '\n'
+                  'Pergerakan Saham DEWA buat saya terlihat sebagai tanda ada sesuatu dan itu style permainan CA and '
+                  'konglo play\n'
+                  '\n'
+                  '\n'
+                  'Saham di maintain di harga yang cukup sempit rentang atas dan bawah. Dinaikkin yah ga dikasih , tapi '
+                  'koq diturunin juga ga dikasih terlalu dalam. \n'
+                  '\n'
+                  '\n'
+                  'Hmmm , oke lah ini pasti nunggu CA right issue nya jalan. Makanya saham nya di maintain dahulu '
+                  'sementara waktu\n'
+                  '\n'
+                  '\n'
+                  'Saya bilang saya siap , andai ada gejolak and buat saham itu turun lagi sedikit saja saya pastikan saya '
+                  'siap masuk. Apalagi saat tersebut indeks sedang dalam tekanan kuat dan hebat. Harusnya minimal ada satu '
+                  'moment Flush yang bikin panik and makin pesimis di market\n'
+                  '\n'
+                  '\n'
+                  'Itu juga jadi pesan lagi , kalau punya Cash itu enak. Sedia cash itu enak dan bisa mengambil kesempatan '
+                  'saat waktunya datang. Kalau ga punya cash saat itu , bisa saya masuk ? \n'
+                  '\n'
+                  '\n'
+                  'Market kena Flush, yap akhirnya datang juga moment itu. \n'
+                  '\n'
+                  '\n'
+                  'Saat semua nyinyiran datang, saat semua ngolok2x B - Indicator , saat saya diberondong dengab cibiran '
+                  'thesis abal2x , saya jadi pihak yang sibuk saat itu. Bukan sibuk ladenin semua hal negative tersebut , '
+                  'saya sibuk karena saya lapar untuk belanja saham2x yang saya incar\n'
+                  '\n'
+                  '\n'
+                  'heheeh, saya sudah pada posisi puluhan kali dihujat, dinyinyir oleh publik kebanyakan. Saya sadar saya '
+                  'akan selalu jadi pihak yang kontroversi karena posisi saya seringkali berlawanan dengan publik. Saya '
+                  'suka aneh , nyeleneh dan suka beda sendiri dari kebanyakan\n'
+                  '\n'
+                  '\n'
+                  'Pak , bapak enak ngomong pas naik ? \n'
+                  '\n'
+                  '\n'
+                  'lah saya mah ngajak dari pas kejatuhan dahsyat kemarin. \n'
+                  '\n'
+                  '\n'
+                  'patah trend dll ? yang saya pahan kalau ada kejatuhan artinya saat itu saya diberikan kesempatan buat '
+                  'membeli saham yang saya incar tersebut di harga murah. Nanti kalo naik kan , tinggal pada kejar-kejar '
+                  'an harga dan saya tidak mau jadi pihak yang ngejar harga waktu sudah naik banyak\n'
+                  '\n'
+                  '\n'
+                  'Saya juga berkali - kali sampaikan , market akan Jack up koq . Kalau turun yah itu kesempatan buat '
+                  'pungutin weaker hand. \n'
+                  '\n'
+                  '\n'
+                  'Jadi tim nyinyir sibuk komentar thesis orang sana sini , saya jadi pihak yang sibuk buat berbelanja ( '
+                  'pernah ingat WA saya dengan steve yang saya SS ? itu kami lagi sibuk belanja dengan strategi kita '
+                  'masing2x ) \n'
+                  '\n'
+                  '\n'
+                  'Ga ada ajakan beli saat saham nya sudah mulai naik yah. Itu juga kenapa saya mengurangi kasih thesis '
+                  'saham belakangan , karena mental weak nya masih dominan. Kalo naik horay2x , kalau turun aja pada kaya '
+                  'kebakaran jenggot apalagi kalau sampai mencari2x kambing hitam.\n'
+                  '\n'
+                  '\n'
+                  'Ga cuma saham konglo juga bukan ? indeks saham juga saya sempat sampaikan bahwa akan jack up dan sektor '
+                  'Banking yang akan jadi driver utama penggerak indeks. \n'
+                  '\n'
+                  '\n'
+                  'Banking bisa jadi pilihan kalo mau memanfaatkan kebangkitan indeks nantinya ( thesis saya belum sampai '
+                  'pada buat long term Investment ). Saya ga sampaikan banking nya apa , karena lagi2x saya enggan '
+                  'memberikan saham nya karena banyak mental yang ga siap. \n'
+                  '\n'
+                  '\n'
+                  'Saya ga mau nanti , pak koq ga naik2x , pak koq turun terus , pak koq lama amat sih keadaan ini. \n'
+                  '\n'
+                  '\n'
+                  'Belanja saat kejatuhan , belanja dari kepanikan Weaker Hand and nikmati saat terjadi rally nantinya. \n'
+                  '\n'
+                  '\n'
+                  'Saya tutup artikel nya , saya mau dengarkan lagu Restoe BUMI dari DEWA lagi yah\n'
+                  '\n'
+                  '\n'
+                  'Ingat, lagi2x ga ada ajakan beli jual saham . Point utama nya kejatuhan adalah sebuah kesempatan. Kalau '
+                  '? kalau punya uang cash. wkwkwk.\n'
+                  '\n'
+                  '\n'
+                  'Pungutin saham tuh lagi turun , bukan kejar2x harga pas lagi naik.',
+     'key_points': ['DEWA RI harga Rp75 = lunasi MTN+ATP+AMM via private placement (debt-to-equity swap)',
+                    'Dugaan: Salim masuk DEWA via RI (bukan murni bayar kontraktor)',
+                    "BUMI pemegang saham DEWA → 'Restoe BUMI'",
+                    'Saham di-maintain sempit → nunggu CA RI jalan',
+                    'Author belanja saat indeks dalam tekanan & flush',
+                    'Cash = obat paling ampuh saat kejatuhan',
+                    'Pungut saham saat turun, bukan kejar harga saat naik'],
+     'related_articles': ['b_indicator_part6_konsolidasi_dewa', 'b_indicator_part9_dewa_kirana'],
+     'signals': {'catalyst_type': 'corporate_action',
+                 'execution_phase': 'active',
+                 'expected_impact': 'high',
+                 'narrative_strength': 'high'},
+     'source': 'MentorBaik',
+     'summary': 'DEWA Right Issue Rp75/lembar = debt-to-equity swap untuk lunasi MTN 757M + ATP 359M + AMM 297M. Dugaan: '
+                'bukan murni bayar kontraktor tapi Salim masuk via RI. BUMI (Restoe BUMI) memberi restu. Author belanja '
+                'saat crash/flush karena punya cash. Pesan utama: kejatuhan = kesempatan kalau punya cash.',
+     'tags': ['dewa', 'konglo_play', 'right_issue', 'bakrie', 'salim', 'agus_projo', 'crash', 'opportunity', 'narrative'],
+     'tickers': ['BUMI', 'BRMS', 'DEWA', 'BBCA'],
+     'title': 'DEWA = Restoe Boemi — Belanja saat Kejatuhan'},
+
+    "b_indicator_part7_execution_time": {'author': 'Ricky2212 (MentorBaik)',
+     'date': '2025-04',
+     'full_text': 'B - Indikator part 7 ( execution time )\n'
+                  '\n'
+                  'B - Indikator part 7 ( execution time )\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  'Artikel ini saya tergerak untuk membuat nya karena ada satu hal menarik banget dari artikel yang Thomas '
+                  'tuliskan barusan saja tentang perubahan royalty and PNBP. \n'
+                  '\n'
+                  '\n'
+                  'Fiuhh , tapi apa hubungannya sama Bakrie ? Nanti saya bahas dibawah yah. \n'
+                  '\n'
+                  '\n'
+                  'Saya mulai bahas BUMi nya , saya tau sudah banyak banget yang frustasi bahkan mengarah ke nyinyir. '
+                  'Apalagi di luar sana , indikator ini dijadikan olok2x oleh pihak yang tidak mengerti alur ceritanya.\n'
+                  '\n'
+                  '\n'
+                  'Kenapa saya berikan judul execution time ? karena apa yang pernah saya bahas dalam artikel B - '
+                  'Indikator sebelumnya satu per satu mulai mumcul ke publik dan perlahan masuk tahap eksekusi.\n'
+                  '\n'
+                  '\n'
+                  'Saya coba bahas satu per satu yah\n'
+                  '\n'
+                  '\n'
+                  '1. Yang pertama ini sebelumnya tidak ada dalam pembahasan , tapi yang jelas tahap eksekusi nya bisa '
+                  'saja terjadi\n'
+                  '\n'
+                  '\n'
+                  'Kemarin pernah lihat CIC jualan bukan ? banyak yang ketar ketir saat CIC jualan terus dan sebenernya '
+                  'jualannya tidak besar koq jumlahnya dibanding transaksi hariannya. \n'
+                  '\n'
+                  '\n'
+                  'Saat penjualan di market tersebut , mungkin pihak dari om AP dan om S melihat sebuah peluang untuk '
+                  'menambah kepemilikannya di BUMI. Jelas , ini adalah langkah awal yang baik buat langkah berikutnya '
+                  'yaitu ? nanti saya bahas di no berikutnya\n'
+                  '\n'
+                  '\n'
+                  'Sejak CIC yang rajin jualan saham nya ke market , yang saya tau ada intensi dari pihak dari Om AP and '
+                  'om S mengajukan penawaran untuk membeli keseluruhan kepemilikan CIC tersebut daripada harus jual di '
+                  'market. \n'
+                  '\n'
+                  '\n'
+                  'Om S lapar koq , kalo disuruh nambah juga pasti dia lakukan \n'
+                  '\n'
+                  '\n'
+                  '2. Narasi Green yang dari awal saya sampaikan ke publik perlahan juga mulai terlihat arah nya. \n'
+                  '\n'
+                  '\n'
+                  'Yang pertama adalah niat BUMi untuk menghimpun dana entah lewat RI atau mengeluarin Obligasi dan kalau '
+                  'obligasi kemungikinan nya adalah Green Bond. \n'
+                  '\n'
+                  '\n'
+                  'Lagi2x kemungkinan memakai audit FY2024 karena buat aksi korporasi butuh LK yang sudah diaudit\n'
+                  '\n'
+                  '\n'
+                  'Penghimpunan dana tersebut nantinya digunakan untuk membiayai akuisisi yang akan mereka lakukan di '
+                  'tahun ini juga\n'
+                  '\n'
+                  '\n'
+                  'Akuisisi yang sudah terlihat dan muncul ke permukaan adalah akusisi tambang mineral alumunium. Akuisisi '
+                  'ini akan jadi start awal BUMi ke arah Green Company nantinya\n'
+                  '\n'
+                  '\n'
+                  'Harusnya penghimpunan dananya and akuisisi nya akan berjalan di tahun ini juga and ga hanya Alumunium '
+                  'saja koq , BUMI juga akan melanjutkan akuisisi - akuisisi lainnya nanti. \n'
+                  '\n'
+                  '\n'
+                  'Apa itu ? nanti saja yah ditunggu akuisisi lanjutannya\n'
+                  '\n'
+                  '\n'
+                  '3. Kuasi Organisasi. Hal ini juga akan di eksekusi dalam waktu dekat. Manajemen BUMI sudah '
+                  'mengisyaratkan akan hal ini. BUMI akan menggunakan LK FY2024 sebagai acuan untuk menjalankan aksi kuasi '
+                  'tersebut. \n'
+                  '\n'
+                  '\n'
+                  'Time line bayangan saya adalah LK FY 2024 keluar paling lambat di akhir Maret maka akan dilanjutkan '
+                  'dengan RUPS di bulam April atau Mei 2025. Keputusan Kuasi akan diambil di RUPS tersebut dan akan '
+                  'dijalankan di pertengahan tahun\n'
+                  '\n'
+                  '\n'
+                  'So , harusnya sudah tidak ada halangan lagi buat mengeksekusi kuasi organisasi ini.\n'
+                  '\n'
+                  '\n'
+                  'Buat yang tidak tau tentang kuasi organisasi , singkatnya adalah menghapus laba ditahan yang mengalami '
+                  'defisit atau negatif\n'
+                  '\n'
+                  '\n'
+                  '4. Hal ke empat ini jadi hal yang menarik dan menyambung dari artikel yang Thomas buat tentang '
+                  'perubahan royalty and PNBP. \n'
+                  '\n'
+                  '\n'
+                  'Hal masalah Royalty and PNBP ini sejatinya saya sudah lama mendengar selentingannya bahwa nantinya akan '
+                  'ada revisi and perubahan dan itu akan menguntungkan pihak perusahaan batubara yang memiliki izin '
+                  'tambang IUPK\n'
+                  '\n'
+                  '\n'
+                  'Kalo sampe kejadian , hmmm yah memang dari awal saya sudah memasukkan sebagai bonus dalam thesis awal '
+                  'BUMI\n'
+                  '\n'
+                  '\n'
+                  'Ceritanya saya coba tarik agak jauh sedikit yah ke belakang dan bersinggungan dengan aksi yang lain\n'
+                  '\n'
+                  '\n'
+                  'Masih ingat hajatan Spin Off AADI nya ADRO ? nyambung nih ceritanya dari sini\n'
+                  '\n'
+                  '\n'
+                  'Siapa pemilik ADRO zaman dahulu sebelum dimiliki oleh keluarga Tohir ? tebak hayooo , kalo tau siapa '
+                  'nya pasti tau kemana arahnya. \n'
+                  '\n'
+                  '\n'
+                  'Dahulu sebelum dimiliki oleh keluarga Tohir , ADRO dimiliki oleh Hashim Djojohadikusumo. \n'
+                  '\n'
+                  '\n'
+                  'Siapa dia ? yah pada tau lah yah dia adalah adik dari Presiden 08. Singkat cerita saat itu Hashim harus '
+                  'rela melepaskan sahamnya di tambanh ADRO untuk menyelamatkan usaha lainnya\n'
+                  '\n'
+                  '\n'
+                  'Apa hubungannya sama IPO AADI ? Semoga informasi selentingan yang saya dapatkan tidak salah yah , Saat '
+                  'melakukan hajatan PUPS AADI kemarin ada jatah saham yang bisa dibeli oleh Hashim. \n'
+                  '\n'
+                  '\n'
+                  'Keluarga Tohir memberikan karpet merah dan mempersilahkan Hashim membeli saham di perusahaan AADI '
+                  'tersebut. \n'
+                  '\n'
+                  '\n'
+                  'Mengurangi jatah saham keluarga Tohir ? tidak sama sekali , jatah Saham keluarga Tohir disana masih '
+                  'tetap sama. Terus jatah saham dari Hashim dari mana asalnya ? \n'
+                  '\n'
+                  '\n'
+                  'Sewaktu AADI masih dibawah ADRO , ADRO merupakan penghuni beberapa indeks konstituen yang ada mulai '
+                  'dari LQ45 , MSCI bahkan ADRO juga masuk dalam Green Company. Itu di level ADRO nya yah , mengingat AADI '
+                  'masih dibawah nya ADRO\n'
+                  '\n'
+                  '\n'
+                  'Saat AADI di spin off dengan klausa bahwa pemegang saham ADRO punya hak utama menebus saham AADI , maka '
+                  'apa yang terjadi ? beberapa Fund tidak bisa menebus saham AADI saat PUPS tersebut karena AADI bukan '
+                  'lagi termasuk indeka konstituen dan berdiri sendiri. Green Fund pun juga pada akhirnya tidak bisa '
+                  'menebus PUPS nya karena AADI bukan termasuk Green\n'
+                  '\n'
+                  '\n'
+                  'Nah menurut saya jatah itu yang akhirnya menjadi jatah Hashim untuk masuk ke dalam AADI. Hashim menebus '
+                  'saham2x yang tidak ditebus oleh beberapa institusi tersebut\n'
+                  '\n'
+                  '\n'
+                  'Tohir kasih karpet merah lah buat Hashim , karena Tohir tau pengaruh Hashim nantinya sangat kuat. Inget '
+                  'loh hubungan keluarga Tohir itu sebenernya juga kurang baik dengan keluarga 08 apalagi keluarga Tohir '
+                  'mengambil ADRO dari adik 08\n'
+                  '\n'
+                  '\n'
+                  'Next , hubungannya apa sama revisi Royalty and PNBP ? Kalau Hashim sudah di dalam AADI , keluarga Tohir '
+                  'secara halus mau minta tolong donk nih Royalty and PNBP tinggi banget buat IUPK apalagi bisnis batubara '
+                  'juga lesu banget. Kita ga bisa nafas kalau begini terus.\n'
+                  '\n'
+                  '\n'
+                  'Yah memang peraturan terakhir buat tambang yang punya izin IUPK memberikan royalty dan PNBP yang '
+                  'tinggi. Kalau saya tidak salah besaran nya sampai 28% sendiri. Artinya dari keseluruhan penjulan , 1/3 '
+                  'nya sendiri sudah kemakan oleh biaya royalty. \n'
+                  '\n'
+                  '\n'
+                  'Itu baru dari royalty , tambang IUPK juga tambang yang paling besar dalam menyalurkan batubaranya untuk '
+                  'kewajiban DMO\n'
+                  '\n'
+                  '\n'
+                  'Gilaa kan , sudah dikenakan Royalty and PNBP tinggi masih harus pula mengisi DMO dengan harga yang '
+                  'sudah ditetapkan \n'
+                  '\n'
+                  '\n'
+                  'Dari sana ceritanya dimulai bahwa nantinya bisa jadi ada revisi dalam Royalty and PNBP\n'
+                  '\n'
+                  '\n'
+                  'Tapi masalah muncul karena pendapatan Royalty and PNBP yang diterima negara dari tambang yang punya '
+                  'izin IUPK sangatlah besar. Kalau harus diturunkan , maka harus ada kompensasi lainnya untuk menutup '
+                  'kebolongan tersebut. Pemerintah ga mau dunk kalau sampai harus tekor saat menurunkan royalty and PNBP '
+                  'tersebut. \n'
+                  '\n'
+                  '\n'
+                  'Gimana caranya menutup kebolongan tersebut ? makanya muncul tuh wacana nya kenaikan royalty pada sektor '
+                  'tambang mineral yang Thomas sudah jelaskan di artikelnya. Tidak hanya tambang mineral saja yang akan '
+                  'dinaikkan royaltynya , tambang batubara yang non IUPK pun akan juga terkena imbas kenaikan royalty '
+                  'nantinya\n'
+                  '\n'
+                  '\n'
+                  'Pada akhirnya dari sana semua bisa menutup penurunan royalty and PNBP dari izin tambang IUPK. Kemarin '
+                  'wiken tiba2x saja ada publikasi masalah royalty and PNBP , dan langsung pada kasak kusuk tuh analyst2x '
+                  'buat menghitung.\n'
+                  '\n'
+                  '\n'
+                  'Terus apa hubungannya sama BUMI ? \n'
+                  '\n'
+                  '\n'
+                  'Siapa saja tambang yang memiliki izin IUPK ? coba cek deh siapa saja\n'
+                  '\n'
+                  '\n'
+                  'Yap ada AADI , ada Kideco nya INDY dan terakhir ada KPC and Arutmin nya BUMI\n'
+                  '\n'
+                  '\n'
+                  'uppsss ada BUMI nya disana toh \n'
+                  '\n'
+                  '\n'
+                  'perlu diingat juga loh , keluarga Bakrie terkenal sangat kental and erat hubungan nya dengan 08 sejak '
+                  'pilpres 2014. Keluarga Bakrie saat itu jadi motor penduking 08 maju pilpres.\n'
+                  '\n'
+                  '\n'
+                  'Kebetulan kah ? \n'
+                  '\n'
+                  '\n'
+                  'Jadi kalau usulan revisi perubahan royalty and PNBP tersebut lolos ( saya sih yakin lolos ) , BUMI '
+                  'ketiban durian runtuh ? besar efeknya ? rasanya sih cukup untuk bisa mendorong labanya pasca itu '
+                  'diberlakukan. Gimana perhitungannya ? kan baru wacana , belum tau sampai dimana nantinya. Baiknya kita '
+                  'tunggu terlebih dahulu , tapi Narasi yang tercipta rasanya sudah cukup koq. \n'
+                  '\n'
+                  '\n'
+                  'Jadi eksekusi revisi perubahan Royalty and PNBP akan jadi sesuatu yang ditunggu oleh BUMI. Semogq bisa '
+                  'terlaksana yah. Jadi untuk sementara anggap bonus aja dulu. \n'
+                  '\n'
+                  '\n'
+                  'Yap dari semua cerita itu lah kenapa artikel ini saya judul Execution time. Satu per satu cerita yang '
+                  'saya pernah sampaikan dalam artikel B indlkator sebelumnya mulai di eksekusi\n'
+                  '\n'
+                  '\n'
+                  'Jadi kalo dari kemarin liat penurunan saham tersebut , rasanya Cerita nya cukup kuat untuk tetap tenang '
+                  'menghadapi keadaan\n'
+                  '\n'
+                  '\n'
+                  'Yang nyinyir2x yah biar saja , mereka juga ga tau ceritanya koq. \n'
+                  '\n'
+                  '\n'
+                  'Lagi pula dari awal saya sudah sampaikan bahwa dari BRMS , DEWA dan BUMi hanya BUMI yang cukup butuh '
+                  'waktu buat meng create jalan ceritanya. BUMI harus satu per satu dibentuk ceritanya \n'
+                  '\n'
+                  '\n'
+                  'Abaikan noise and satukan perut anda kata adik saya steven rin. \n'
+                  '\n'
+                  '\n'
+                  'Super Last call buat kayu api kalau kata mas Tom hardi\n'
+                  '\n'
+                  '\n'
+                  'Saham kalau sudah waktunya naik , yah pasti juga akan naik dengan sendirinya itu kata Thomas\n'
+                  '\n'
+                  '\n'
+                  'Beli yang banyak dan Bertahan lah kalo memang punya keyakinan itu kata om Robert\n'
+                  '\n'
+                  '\n'
+                  'Kalau semua berita buruk sudah terakumulasi berbarengan , apalagi yang tersisa itu kata mas rizza\n'
+                  '\n'
+                  '\n'
+                  'Saya mah cuma merangkum ceritanya saja koq.\n'
+                  '\n'
+                  '\n'
+                  'No price action question, no masih boleh masuk question , no bagus mana question , no target berapa '
+                  'question.\n'
+                  '\n'
+                  '\n'
+                  'Tidak ada ajakan membeli and menjual efek tersebut karena saya punya benturan kepentingan di efek '
+                  'tersebut. Lakukan penelitian lanjutan agar mengahasilkan keputusan investasi terbaik buat anda sendiri\n'
+                  '\n'
+                  '\n'
+                  'otak juga jangan ngeres langsung tabrak tubruk , pikirkan segala bentuk resiko yang ada dan sesuaikan '
+                  'dengan risk profile masing2x.',
+     'key_points': ['CIC jualan → om AP & om S ambil kepemilikan BUMI',
+                    'Narasi Green: BUMI himpun dana (RI/obligasi/Green Bond) untuk akuisisi tambang mineral/alumunium',
+                    'Kuasi organisasi: hapus retained earning negatif → LK FY2024 → RUPS April/Mei 2025',
+                    'Revisi royalty & PNBP IUPK: turun untuk IUPK, naik untuk mineral non-IUPK',
+                    'Hashim Djojohadikusumo (adik Presiden 08) dapat jatah AADI via PUPS yang tidak ditebus institusi',
+                    'BUMI, AADI, INDY (Kideco) pemegang IUPK → untung besar dari revisi royalty',
+                    'Kelompok Bakrie kental dengan 08 sejak pilpres 2014',
+                    'Bonus: revisi royalty = durian runtuh untuk BUMI'],
+     'related_articles': ['b_indicator_part8_masuk_cerita_utama', 'b_indicator_part6_konsolidasi_dewa'],
+     'signals': {'catalyst_type': 'regulatory_narrative',
+                 'execution_phase': 'active',
+                 'expected_impact': 'high',
+                 'narrative_strength': 'high'},
+     'source': 'MentorBaik',
+     'summary': 'Satu per satu agenda BUMI mulai di-eksekusi: (1) CIC jualan → om AP/om S nambah kepemilikan, (2) Narasi '
+                'Green → RI/obligasi (mungkin Green Bond) untuk akuisisi alumunium, (3) Kuasi organisasi pakai LK FY2024 → '
+                'RUPS April/Mei 2025, (4) Revisi royalty & PNBP IUPK → untung BUMI/AADI/INDY, diduga ada karpet merah '
+                'Hashim Djojohadikusumo via AADI.',
+     'tags': ['b_indicator',
+              'bumi',
+              'execution',
+              'royalty',
+              'pnbp',
+              'kuasi',
+              'bond',
+              'hashim',
+              'aadi',
+              'tohir',
+              'bakrie',
+              'salim'],
+     'tickers': ['BUMI', 'AADI', 'INDY', 'BRMS', 'DEWA'],
+     'title': 'B-Indicator Part 7 — Execution Time'},
+
+    "b_indicator_part8_masuk_cerita_utama": {'author': 'Ricky2212 (MentorBaik)',
+     'date': '2025-04',
+     'full_text': 'B - Indicator part 8 ( Masuk ke Cerita Utama )\n'
+                  '\n'
+                  'B - Indicator part 8 ( Masuk ke Cerita Utama )\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  'Masih ingat cerita di artikel B - Indicator part 7 ? Judulmya aja saya bikin Execution Time artinya '
+                  'kita akan masuk ke fase dimana satu per satu agenda mereka akan di eksekusi.\n'
+                  '\n'
+                  '\n'
+                  'Apa saja agenda yang akan di eksekusi ? \n'
+                  '\n'
+                  '\n'
+                  'mari kita bedah satu per saru yah\n'
+                  '\n'
+                  '\n'
+                  '1. Perubahan Royalty => Beberapa waktu lalu desas desus perubahan tarif royalty mencuak ke permukaan. '
+                  'UU yang mengatur royalty mineral dan batubara akan direvisi dan dirubah. \n'
+                  '\n'
+                  '\n'
+                  'Salah satau bahasan yang menarik adalah UU itu akan mengubah aturan royalty buat IUPK dengan menurunkan '
+                  'royalty berjalan\n'
+                  '\n'
+                  '\n'
+                  'IUPK Itu gede lo efeknya ke penerimaan pajak negara , maka agar itu lolos harus di kompensasi ke '
+                  'mineral lain nya. Makanya royalty yang lain naik disaat IUPK turun\n'
+                  '\n'
+                  '\n'
+                  'Siapa yang diuntungkan ? tebak hayoo. Yap , BUMi , AADI dan INDY\n'
+                  '\n'
+                  '\n'
+                  'so, hari ini peraturan tersebut resmi diketok dan efektif berlaku\n'
+                  '\n'
+                  '\n'
+                  'Saya Checklist untuk hal ini yah\n'
+                  '\n'
+                  '\n'
+                  '2. Kuasi Organisasi => Agenda utama ini jelas adalah agenda yang sangat penting buat langkah BUMI '
+                  'selanjutnya. Mereka mau menghapus Retained Earning negative merema akibat tumpukan kerugian yang pernah '
+                  'mereka alami. \n'
+                  '\n'
+                  '\n'
+                  'Kalau Retained Earning mereka sudah positive , maka agenda bagi Dividen mereka bisa laksanakan.\n'
+                  '\n'
+                  '\n'
+                  'Bukan faktor dividen itu saja sih, kalo Retained Earning positive keliatan nya jadi menarik dan enak '
+                  'dilihat laporan keuangannya\n'
+                  '\n'
+                  '\n'
+                  'Eng ing eng , Kalo teman2x ingat lagi saat itu saya bilang jangan aneh kalo nanti LK BUMI jelek '
+                  'keluarnya. Hal itu dikarenakan laba BUMi akan diatur agar meet required nya OJK buat menjalankan Kuasi '
+                  'Organisasi.\n'
+                  '\n'
+                  '\n'
+                  'Kemarin Laba FY2024 BUMi gimana ? dibikin buruk dan angka nya benar2x dibikin pas agar sesuai dengan '
+                  'peraturan OJK \n'
+                  '\n'
+                  '\n'
+                  'Tinggal selangkah lagi Kuasi itu akan dieksekusi dan berjalan \n'
+                  '\n'
+                  '\n'
+                  'Balance Sheet BUMi akan rapih dan terlihat lebih enak. Buat apa ? Dividen \n'
+                  '\n'
+                  '\n'
+                  'Satu lagi apa ? next point akan saya jelaskan\n'
+                  '\n'
+                  '\n'
+                  '3. BUMI mau issued Bond => Dalan artikel terdahulu saya pernah sampaikan bahwa kemungkinan besar BUMI '
+                  'akan ekspansi dengan akuisisi beberapa perusahaan lain . Langkah itu akan mereka lakukan dengan cara '
+                  'menerbitkan Obligasi \n'
+                  '\n'
+                  '\n'
+                  'Makanya untuk menarik minat obligasi yang mereka akan terbitkan , tuh LK di rapihin dulu semuanya. '
+                  'Termasuk mempercantik Retained Earning nya \n'
+                  '\n'
+                  '\n'
+                  'Eng ing Eng , Berita ajaib selain dari terbitnya UU perubahan royalty , hari ini keluar berita Rating '
+                  'Hutang BUMI dari PEFINDO. PEFINDO adalah badan pemeringkat apabila sebuah perusahaan ingin mengeluarkan '
+                  'Obligasi \n'
+                  '\n'
+                  '\n'
+                  'PEFINDO mengeluarkan Rating AA+ buat Hutang BUMI.\n'
+                  '\n'
+                  '\n'
+                  'Artinya apa ? tuh peringkat dikeluarkan pasti ada tujuannya donk. Apa ? apa lagi kalo bukan BUMI mau '
+                  'issued BOND\n'
+                  '\n'
+                  '\n'
+                  'so , selangkah lagi BUMI akan issued BOND . Jadi kita tunggu saja yag\n'
+                  '\n'
+                  '\n'
+                  '4. Jadi UU royalty sudah di sah kan , Kuasi siap dijalankan , Bond juga diterbitin\n'
+                  '\n'
+                  '\n'
+                  'Buat apa semua itu ? its time buat BUMI ekspansi dengan melakukan akuisisi sana sini. Yang sudah mereka '
+                  'kasih Hint adalah mereka mau Go Green dengab akuisisi mineral yaitu tambang alumunium\n'
+                  '\n'
+                  '\n'
+                  'Hmmm , pokoknya agenda ekspansi nya akan jalan dan saya yakin bahwa alumunium itu bukan satu2x nya '
+                  'akuisisi yang akan mereka lakukan. Saya sih melihat nantinya ada yang lebih besar dari itu. Dan rasanya '
+                  'tetap akan tambang yang mengarah ke Go Green ( rasanya sih saya tau apa yang mereka tuju buat '
+                  'akuisisinya , tapi coba kita lihat yah bener aoa engga nya )\n'
+                  '\n'
+                  '\n'
+                  'Salim lagi persiapkan BUMi jadi perusahaan diversified mining company. \n'
+                  '\n'
+                  '\n'
+                  'Langkah ini nanti habis semua 3 diatas jalan baru akan di eksekusi \n'
+                  '\n'
+                  '\n'
+                  '5. Konsolidasi internal di ekosistem Bakrie and Salim\n'
+                  '\n'
+                  '\n'
+                  'Tidak hanya sampai level BUMi saja koq , saya menduga nanti akan ada konsolidasi internal di ekosistem '
+                  'mereka. \n'
+                  '\n'
+                  '\n'
+                  'BUMI , DEWA , BRMS akan dibuat sebagai ekosistem yang kuat di lingkaran mereka\n'
+                  '\n'
+                  '\n'
+                  'BUMI sebagai induk dari semuanya , DEWA sebagai kontraktor dari tambang2x nya ( malah saya duga DEWA '
+                  'juga akan ada akuisisi lanjutan buat memperkuat bisnisnya ) , BRMS dengan bisnis mineral nya ( saya '
+                  'juga melihat BRMS juga akan melakukan akusisi tambahan untuk terus melengkapi asset nya ) \n'
+                  '\n'
+                  '\n'
+                  'Itu DEWA kemarin habis RUPSLB dengan agenda merubah status PMA jadi PMDN ( saya kayanya tau arahnya '
+                  'kenapa mau jadi PMDN ) . Pasti ada tujuan lah kenapa mereka rubah status badan usahanya\n'
+                  '\n'
+                  '\n'
+                  'next , BCA yang notabene ga pernah mau memberikan pinjaman kepada perusahaan Group B tersebut , tuh '
+                  'DEWA sampai dapat pinjaman 2 Trilyun . Pasti ada deal yang menarik sehingga pinjaman bisa turun dan itu '
+                  'pasti om S yang maju. \n'
+                  '\n'
+                  '\n'
+                  'Dewa juga punya tambang emas yang belum digarap dan itu butuh Capex yang cukup besar. entah nanti sama '
+                  'BUMI atau BRMS yang bakal jadi partner buat kerjainnya. Kita tunggu saja lah yah\n'
+                  '\n'
+                  '\n'
+                  'Fiuhh , dah sampe B indikator part 8 saja. Panjang bener dongengnya yah. Tidak apa2x saya suka koq '
+                  'bikin dongeng tentang perjalanan saham. \n'
+                  '\n'
+                  '\n'
+                  'Yang jelas dongeng nya akan masuk ke cerita utama nya. Kalau kaya Film action , Cerita utama adalah '
+                  'cerita yang paling seru dan ditunggu2x oleh penontonnya\n'
+                  '\n'
+                  '\n'
+                  'No question tentang price action , no queation bagus yang mana , no question boleh beli sekarang apa '
+                  'tidak, lakukan riset lanjutan dan sesuaikan dengan gaya and profile investasi anda',
+     'key_points': ['UU royalty IUPK resmi → BUMI, AADI, INDY untung',
+                    'Kuasi organisasi: LK FY2024 BUMI sengaja dibikin pas-pasan untuk meet OJK',
+                    'Retained earning positive = balance sheet rapih → dividen',
+                    'Pefindo rating AA+ = BUMI mau terbitkan obligasi',
+                    'Obligasi untuk akuisisi: alumunium + target strategis lain (bukan hanya alumunium)',
+                    'Visi Salim: BUMI jadi diversified mining company (Rio Tinto Wannabe)',
+                    'Konsolidasi ekosistem: BUMI, DEWA, BRMS saling menguatkan',
+                    'DEWA: RUPSLB PMA→PMDN, pinjaman BCA 2T',
+                    'DEWA tambang emas Gayo → partner BUMI atau BRMS'],
+     'related_articles': ['b_indicator_part7_execution_time',
+                          'b_indicator_part9_dewa_kirana',
+                          'bumi_obligasi_350m_akuisisi_tembaga_emas'],
+     'signals': {'catalyst_type': 'corporate_action',
+                 'execution_phase': 'active',
+                 'expected_impact': 'high',
+                 'narrative_strength': 'high'},
+     'source': 'MentorBaik',
+     'summary': 'Empat agenda besar BUMI mulai di-eksekusi: (1) UU perubahan royalty IUPK resmi diketok, (2) Kuasi '
+                'organisasi siap dijalankan (LK FY2024 dibikin pas-pasan untuk meet OJK), (3) Pefindo rating AA+ = BUMI '
+                'mau issued bond, (4) Ekspansi akuisisi dimulai (alumunium + target strategis lain). Konsolidasi internal '
+                'ekosistem Bakrie-Salim: BUMI (induk), DEWA (kontraktor), BRMS (mineral).',
+     'tags': ['b_indicator',
+              'bumi',
+              'execution',
+              'royalty',
+              'kuasi',
+              'bond',
+              'pefindo',
+              'akuisisi',
+              'green',
+              'alumunium',
+              'bakrie',
+              'salim'],
+     'tickers': ['BUMI', 'BRMS', 'DEWA', 'BBCA'],
+     'title': 'B-Indicator Part 8 — Masuk ke Cerita Utama'},
+
+    "b_indicator_part9_dewa_kirana": {'author': 'Ricky2212 (MentorBaik)',
+     'date': '2025-04',
+     'full_text': 'B - Indikator part 9 ( DEWA , Kirana Jamah aku Jamah lah BUMI ku ) \n'
+                  '\n'
+                  'B - Indikator part 9 ( DEWA , Kirana Jamah aku Jamah lah BUMI ku ) \n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  'Fiuhh, tiupan angin rumor tentang DEWA di luar sana makin kencang berhembus. Berita berseliweran '
+                  'tentang keterkaitan Salim , BUMI and DEWA. Tapi buat saya tangggung sih kalo cuma Salim , BUMI , DEWA '
+                  'aja. Kenapa BRMS ga diajak sekalian ? \n'
+                  '\n'
+                  '\n'
+                  'Heehehe dalam satu cerita di B indikator juga yang khusus nya membahas tentang DEWA, saya sempat '
+                  'utarakan bahwa Salim sejatinya sudah masuk ke DEWA jauh-jau hari. \n'
+                  '\n'
+                  '\n'
+                  'Dahulu banget pasca Salim masuk ke BUMI and BRMS , saya sempat mendengar selentingan bahwa Salim juga '
+                  'akan masuk ke DEWA lewat skema Right Issue. Kala itu negoisasi harga nya cukup lumayan alot yang '
+                  'membuat masuknya Salim ke DEWA sempat tertunda.\n'
+                  '\n'
+                  '\n'
+                  'Tapi pas hajatan Right Issue kemarin yang katanya buat bayar hutang ke kontraktor , saya katakan '
+                  'rasanya sih bukan murni bukan untuk membayar hutang saja. Tapi disana juga ada hajatan lain bahwa Salim '
+                  'sudah siap masuk ke DEWA. \n'
+                  '\n'
+                  '\n'
+                  'Sinyal kuat lainnya adalah BCA sebagai bank yang paling anti menberikan pinjaman kepada Bakrie Group , '
+                  'tapi ini tiba2x memberikan pinjaman sebesar 2 Trilyun kepada DEWA\n'
+                  '\n'
+                  '\n'
+                  'ada apa ini ? pasti lah ada jaminan and skema yang kuat kenapa sampai pinjaman tersebut turun \n'
+                  '\n'
+                  '\n'
+                  'Firm , saya katakan SALIM sudah masuk ke dalam DEWA dan rasanya lagi2x om AP yang akan kebagian hajatan '
+                  'buat mengerjakan dan memoles permainan DEWA \n'
+                  '\n'
+                  '\n'
+                  'Makanya sejak saat itu saya katakan bahwa DEWA akan diajak ke pusaran permanain besar Om S , Om B dan '
+                  'Om AP\n'
+                  '\n'
+                  '\n'
+                  'Fiuh , permaianan apa yang mungkin disiapkan di DEWA nantinya ? \n'
+                  '\n'
+                  '\n'
+                  'Yang pertama , saat kemarin RUPSLB diadakan agendanya adalah DEWA mau merubah statusnya dari PMA ke '
+                  'PMDN. Tujuannya apa sih ? saya yakin pasti ada tujuannya dan mungkin adalah untuk mempermudah akses dan '
+                  'kegiatan usahanya di lingkup nasional. \n'
+                  '\n'
+                  '\n'
+                  'Yang kedua , Pinjalaman dari BCA kemarin sebeaar 2 Trilyun kemarin tujuannya apa ? Coba teman2x lihat '
+                  'kinerja lewat LK nya DEWA. Itu perusahaan kaya dapat ampas and tulang nya saja. Even margin laba bersih '
+                  'nya saja ga sampai 1% dari total sales nya ( padahal masih bisa lah dapat NPM 8-10% )\n'
+                  '\n'
+                  '\n'
+                  'Kenapa bisa begitu ? karena DEWA mengerjakan proyek2x kontraktor tambang nya lewat sub kontraktor lagi. '
+                  'DeWa cuma kaya Calo aja sehingga dapat uang sisaan saja\n'
+                  '\n'
+                  '\n'
+                  'Perlahan DEWA akan mengerjakan semua nya sendiri tuh kerjaan menambang di Arutmin and KPC yang notabene '
+                  'tambang batubara yang dimiliki BUMI dimana om S , om B and om AP juga disana\n'
+                  '\n'
+                  '\n'
+                  'Kalo sudah dikerjakan semua sendiri, saya sih melihat kinerja 2025 jelas akan improve jauh lebih '
+                  'baik. \n'
+                  '\n'
+                  '\n'
+                  'Saya coba ambil kinerja DEWA di 2024 yah. DEWA mencatatkan Sales sebesar 6 trilyun dengan catatan 16 '
+                  'milyard sebagai laba bersihnya. \n'
+                  '\n'
+                  '\n'
+                  'Andai DEWA mencatatkan Sales sebesar 6 trilyun ( sama dengan 2024 ) , tapi karena DEWA mulai '
+                  'mengerjakan sendiri semua maka :\n'
+                  '\n'
+                  '\n'
+                  'skenario \n'
+                  '\n'
+                  '\n'
+                  'NPM 5% => laba bersih 300M \n'
+                  '\n'
+                  '\n'
+                  'NPM 6% => laba bersih 360M\n'
+                  '\n'
+                  '\n'
+                  'NPM 7% => laba bersih 420M\n'
+                  '\n'
+                  '\n'
+                  'NPM 8% => laba bersih 480 M\n'
+                  '\n'
+                  '\n'
+                  'NPM 9% and 10% anggap saja jadi bonus kalau memang kejadian\n'
+                  '\n'
+                  '\n'
+                  'Masih mahal ? not bad lah buat memulai cerita permainan besar DEWA di pusaran ekosistem nya. \n'
+                  '\n'
+                  '\n'
+                  'Nah semua kegiatan menambang tersebut dijalankan dengan memakai pinjaman dari BCA sebesar 2 trilyun '
+                  'diatas\n'
+                  '\n'
+                  '\n'
+                  'Di depan DEWA bakal sibuk menambang tambang2x lainnya dalam satu ekosistem mereka. Jadi ditunggu saja \n'
+                  '\n'
+                  '\n'
+                  'Yang Ketiga , DeWA punya satu konsesi tambang emas di Aceh. Tambang tersebut memang belum beroperasi , '
+                  'tapi ? Narasi emas lagi dipakai buat cerita permainan di luar sana. \n'
+                  '\n'
+                  '\n'
+                  'Rasanya DEWA butuh Capex cukup lumayan buat mengembangkan emas nya. Darimana Capex nya nanti ? Saya '
+                  'melihat ada potensi DEWA akan mengerjakan nya bareng BUMI or BRMS agar tambang tersebut bisa jalan '
+                  'nantinya. \n'
+                  '\n'
+                  '\n'
+                  'emas akan jadi cerita tambahan permaian DEWA nantinya.\n'
+                  '\n'
+                  '\n'
+                  'Ketiga cerita diatas rasanya sih memang sudah mulai bisa tercium yah , tapi entah kenapa saya mencium '
+                  'ada 1 cerita lagi yang bisa jadi jackpot nya\n'
+                  '\n'
+                  '\n'
+                  'Ke empat , entah kenapa saya melihat ada potensi bahwa om S lewat om AP akan melakukan akrobat yang '
+                  'bukan ecek2x di DEWA yah. Saya berasa akan ada asset tambang yang akan dimasukkan ke DEWA nantinya. '
+                  'Entah itu another Kontraktor tambang atau tambang batubara skala kecil or sedang ( sesuai dengan bidang '
+                  'usahanya )\n'
+                  '\n'
+                  '\n'
+                  'Saya ga tau basic skema nya , tapi tuh asset pokoknya akan masuk ke DEWA nantinya. Dan ini nanti '
+                  'mungkin yang akan jadi cerita yang Wahhhhh banget. \n'
+                  '\n'
+                  '\n'
+                  'Soalnya buat saya akan jadi cerita yang nanggung ending nya kalau hanya memakai 3 cerita saja , cerita '
+                  'ke 4 harus dimunculkan buat puncak cerita besar nya ( alur cerita Konglo play biasanya begitu )\n'
+                  '\n'
+                  '\n'
+                  'Jadi 3 cerita saja sebenernya sudah bisa membuat DEWA diajak ke permainan Om S , Om B and Om AP tapi '
+                  'Big Bonus nya adalah cerita ke 4 dan itu menarik buat ditunggu ( kalo instink saya chance nya diatas '
+                  '50% terjadi )\n'
+                  '\n'
+                  '\n'
+                  'Yap seperti salah satu lirik lagu DEWA yang berjudul Kirana \n'
+                  '\n'
+                  '\n'
+                  'Kirana jamah aku , Jamah lah BUMi ku . Dewa akan menjamah tambang2x BUMI langsung tanpa melewati sub '
+                  'kontraktor lagi dan DEWA mungkin juga akan membawa BUMi ( atau BRMS ) buat menggarap tambang emas nya\n'
+                  '\n'
+                  '\n'
+                  'Saya cukupkan dulu dongeng nya yah , dongeng diatas adalah murni dongeng pemikiran saya saja. \n'
+                  '\n'
+                  '\n'
+                  'Still , saya masih bermain konglo play karena market belum bisa bermain full dengan Findimintil \n'
+                  '\n'
+                  '\n'
+                  'ehh btw DEWA jadi bagian dari tema 9 haji and circle 08 juga koq. Kuat posisinya disana.\n'
+                  '\n'
+                  '\n'
+                  'DYOR , artikel ini bukan untuk mempengaruhi keputusan investasi . \n'
+                  '\n'
+                  '\n'
+                  'No price action question , no bagus yang mana question , no masih bisa beli ga question.',
+     'key_points': ['Firm: Salim sudah masuk DEWA via RI (nego harga alot selesai)',
+                    'BCA pinjam 2T ke DEWA dengan bunga 8% (rate blue chip) → ada jaminan kuat',
+                    'DEWA RUPSLB: rubah status PMA → PMDN',
+                    'DEWA NPM saat ini <1% karena transfer pricing via subkontraktor',
+                    'Skenario: DEWA kerjakan sendiri tambang BUMI → NPM 5-10% = laba 300-600M',
+                    'Tambang emas Gayo Aceh: butuh Capex besar → partner BUMI atau BRMS',
+                    'Potensi cerita ke-4 (jackpot): om AP inject asset tambang/kontraktor ke DEWA',
+                    "DEWA akan 'jamah' tambang BUMI langsung tanpa subkontraktor",
+                    'DEWA bagian dari tema 9 Haji dan circle 08'],
+     'related_articles': ['b_indicator_part8_masuk_cerita_utama', 'dewa_restoe_boemi_belanja_crash'],
+     'signals': {'catalyst_type': 'konglo_narrative',
+                 'execution_phase': 'active',
+                 'expected_impact': 'high',
+                 'narrative_strength': 'high'},
+     'source': 'MentorBaik',
+     'summary': 'DEWA resmi dalam pusaran permainan besar Salim-Bakrie-AP. Bukti: BCA pinjam 2T (bunga 8% = rate blue '
+                'chip), RUPSLB PMA→PMDN, rumor Salim masuk RI selesai. Tiga cerita DEWA: (1) kerjakan sendiri proyek '
+                'tambang BUMI tanpa subkontraktor → NPM naik dari <1% ke 5-10%, (2) tambang emas Gayo Aceh bareng '
+                'BUMI/BRMS, (3) potensi asset injection besar dari om AP. DEWA = tema 9 Haji + circle 08.',
+     'tags': ['b_indicator',
+              'dewa',
+              'bumi',
+              'brms',
+              'konglo_play',
+              'salim',
+              'bakrie',
+              'agus_projo',
+              'narrative',
+              'asset_injection'],
+     'tickers': ['BUMI', 'BRMS', 'DEWA', 'BBCA'],
+     'title': 'B-Indicator Part 9 — DEWA, Kirana Jamah BUMI'},
+
+    "b_indicator_update_dewa_laba_bumi_obligasi": {'author': 'Ricky2212 (MentorBaik)',
+     'date': '2025-04',
+     'full_text': 'Banyak yang meminta saya menuliskan kembali B - Indicator series lagi. Sepertinya saya tetap urungkan '
+                  'buat melanjutkan sementara waktu.\n'
+                  '\n'
+                  '\n'
+                  'Bukan , bukan apa2x koq. Saya hanya ingin sementara waktu tidak merangsang jempol teman2x semua untuk '
+                  'hal tersebut\n'
+                  '\n'
+                  '\n'
+                  'Kemarin juga dalam artikel TIKI TAKA juga saya sudah sempat update kedua saham pilihan om Handshake\n'
+                  '\n'
+                  '\n'
+                  'Laba DEWA Rp140bio - Rp 160 bio Done lagi yah thesisnya \n'
+                  '\n'
+                  '\n'
+                  'Btw sudah tau DEWA dapat pinjaman ? DEWA dapat pinjaman lagi dari BBCA sejumlah Rp350 bio - Rp 500 bio '
+                  'dengan bunga 8% an\n'
+                  '\n'
+                  '\n'
+                  'Gila sih , itu bunga yang diberikan ke DEWA tuh kaya BCA kasih pinjaman ke perusahaam Blue chip . Jadi '
+                  'tau lah seberapa besar pengaruh om Hand shake disana\n'
+                  '\n'
+                  '\n'
+                  'Buat apa ? Pokoke ada kira kira 6 - 7 project yang setau saya sedang disiapkan buat DEWA. Pinjaman itu '
+                  'saya pikir buat urusan 1 dari project tersebut.\n'
+                  '\n'
+                  'Di artikel tersebut Saya juga sudah sampaikan strategi TIKI TAKA saya dalam menjalani perjalanan TFF '
+                  'dan WTFF\n'
+                  '\n'
+                  '\n'
+                  "Saya malah berharap BUMI bisa jadi Samuel Eto'o yang akan melengkapi strategi saya sempurna. Eto'o "
+                  'sebagai striker akan menutup dengan mencetak Gol kemenangan buat strategi TIKI TAKA saya setelah uang '
+                  'saya mengalir sana sini terlebih dahulu\n'
+                  '\n'
+                  '\n'
+                  'Kalo teman-teman ingat di artikel lama saya , saya tekankan sekali lagi yah bahwa BUMI memang akan jadi '
+                  'dessert dalam permainam besar keseluruhan ini. \n'
+                  '\n'
+                  '\n'
+                  'Ingat , dia adalah DESSERT atau hidangan penutup setelah semua nya sudah pada kelar permainannya.\n'
+                  '\n'
+                  '\n'
+                  'Kenapa BUMI hari ini turun ? kalo market sih mungkin memang 2 hari ini lagi ga berpihak aja ditambah '
+                  'lagi Market menganggap kinerja BUMI berdasarkan LK 1H nya itu ga bagus. Langsung ritel2x cunguk mungkin '
+                  'banyak yang panik\n'
+                  '\n'
+                  '\n'
+                  'Saya sudah sampaikan berkali - kali dalam beberapa kesempatan bahwa pisahkan yang namanya Narrative '
+                  'Play dengan Fundamental Play\n'
+                  '\n'
+                  '\n'
+                  'Kalo Narrative Play , anda beli berdasarkan FINDIMINTIL \n'
+                  '\n'
+                  '\n'
+                  'sedangkan Kalo Fundamental Play , anda beli berdasarkan Fundamental and kinerja perusahaan\n'
+                  '\n'
+                  '\n'
+                  'Mau liat ? tuh LK BREN , LK PANI dll. Masuk akal ga ? \n'
+                  '\n'
+                  '\n'
+                  'Berdasarkan data yang saya dapat saham PANI , Forecast laba mereka di 2027 tuh sekitar Rp 1.5T - Rp 2T. '
+                  'Berarti mereka mempresent value kan kinerja 2 tahun ke depan ke nilai sekarang dengan dijual 200x laba\n'
+                  '\n'
+                  '\n'
+                  'Naik ga saham nya ? \n'
+                  '\n'
+                  '\n'
+                  'Jadi jangan mencampur adukkan narrative play dengan Fundamental Play . Nanti jadinya malah pusing '
+                  'sendiri.\n'
+                  '\n'
+                  '\n'
+                  'Kalo masih pusing mikirin LK yang tidak baik , saran saya keluar saja dari saham BUMI dan beli saham '
+                  'yang untung besar dan LK nya bagus sehingga valuasinya masuk akal\n'
+                  '\n'
+                  '\n'
+                  'Mungkin bisa aja beli Saham rokok ( padahal nyungsep juga ) atau saham Bank ( padahal LK nya nyungsep '
+                  'juga )\n'
+                  '\n'
+                  '\n'
+                  'Next , please understanding yah untuk tidak memaksa saya dengan mengorek2x cerita yang belum '
+                  'terpublikasi. Karena takutnya bisa misleading dan membuat gosip yang terlalu berlebihan.\n'
+                  '\n'
+                  'Saya tuh sifatnya open koq kalo ada berita. Saya informasikan kalo memang menurut saya sudah clear '
+                  'arahnya, karena kalo tidak takutnya bisa misleading. Cek aja ke belakang , apa yang terjadi sekarang '
+                  'tuh semua sudah saya jelaskan dari beberapa bulan lalu. \n'
+                  '\n'
+                  'Saya rasa Teman2x masih yang terdepan loh dibanding di luar sana kalo soal informasi\n'
+                  '\n'
+                  '\n'
+                  'Sebagai cerita penutup , sudah baca berita kalo BUMI mau mengeluarkan Obligasi lagi dalam waktu dekat ? '
+                  'BUMI lagi proses Book Building obligasi berkelanjutan nya. Sebelumnya juga sudah diterbitkan untuk '
+                  'akusisi perusahaam Wolfram Limited Australia. Sebuah perusahaan penghasil Gold and Copper \n'
+                  '\n'
+                  '\n'
+                  'Sekarang BUMi mau keluarin Obligasi lanjutan lagi. Buat apa ? ditunggu aja lah yah , yang jelas ada '
+                  'berita bagus lanjutan juga lagi dari penerbitan obligasi tersebut. \n'
+                  '\n'
+                  '\n'
+                  'Saya juga sudah bilang dalam 1 artikel bahwa BUMI itu Rio Tinto Wannabe . Akan banyak hal yang akan '
+                  'dilakukan oleh BUMi\n'
+                  '\n'
+                  '\n'
+                  'Berita bagusnya ga usah ditanya2x lagi yah , harusnya tau koq buat apa dan lagi2x saya bisa bilang itu '
+                  'Good NEws\n'
+                  '\n'
+                  '\n'
+                  'Pak , ini itu bagus ini itu bagus percuma pak kalo saham nya ga naik ? yah saya mah gampang , kalo ga '
+                  'kuat dengan permainan nya yah out saja\n'
+                  '\n'
+                  '\n'
+                  'Saya tidak mau jadi pihak yang terus menina bobokan tim merengek2x dan tim ketakutan tiap saat\n'
+                  '\n'
+                  '\n'
+                  'Kalau anda tau dan ikutin dari awal penjelasannya tentang B indicator , pasti anda tenang dalam setiap '
+                  'perjalanan ( emang itu yang seharusnya ) . Bukan setiap turun dikit , ada apa nih ada apa nih update '
+                  'donk pak , bikin artikel donk pak. \n'
+                  '\n'
+                  '\n'
+                  'Begitu ada hal yang kurang mengenakkan sedikit , ada apa nih pak. Update donk pak bikin artikel \n'
+                  '\n'
+                  '\n'
+                  'Tugas saya bikin thesis dan thesis tersebut juga saya jalan kan dan eksekusi sendiri dan selama thesis '
+                  'nya masih berjalan , yah santai aja\n'
+                  '\n'
+                  '\n'
+                  'Thesis itu cerita Done dan sesuai dengan yang dibicarakan. Thesis itu bukam bicara harga besok , '
+                  'mingdep atau buldep naik. Harga naik itu kalo thesis nya jalan mah , hanya masalah waktu aja\n'
+                  '\n'
+                  '\n'
+                  'Seharusnya kalo paham and ngelotok thesisnya , setiap penurunan adalah sebuah kesempatan\n'
+                  '\n'
+                  '\n'
+                  'Finally Dont push me buat informasi yah, apalagi sampe DM DM Instagram, kalo sudah saatnya arahnya '
+                  'clear dan informasinya bisa dipertanggung jawabkan pastinya saya share. Kalo di push , malah nanti saya '
+                  'akan kurangi informasinya dengan memberikan informasi secukupnya.',
+     'key_points': ['DEWA laba Rp140-160B → thesis done',
+                    'DEWA pinjam Rp350-500B dari BCA bunga 8% → 6-7 project disiapkan',
+                    'BUMI = dessert / hidangan penutup setelah semua kelar',
+                    'Pisahkan Narrative Play (FINDIMINTIL) vs Fundamental Play',
+                    'BUMI turun karena market baca LK 1H jelek → retail panik',
+                    'BUMI proses book building obligasi berkelanjutan',
+                    'Obligasi sebelumnya untuk akuisisi Wolfram Limited Australia (gold & copper)',
+                    'BUMI = Rio Tinto Wannabe',
+                    'Author tidak mau menina-bobokan tim merengek & ketakutan',
+                    'Thesis = cerita done, bukan bicara harga besok/mingdep/buldep'],
+     'related_articles': ['b_indicator_part8_masuk_cerita_utama', 'bumi_obligasi_350m_akuisisi_tembaga_emas'],
+     'signals': {'catalyst_type': 'earnings_narrative',
+                 'execution_phase': 'active',
+                 'expected_impact': 'medium_to_high',
+                 'narrative_strength': 'high'},
+     'source': 'MentorBaik',
+     'summary': 'Update B-Indicator: DEWA laba Rp140-160B (thesis done), DEWA pinjam lagi dari BCA Rp350-500B bunga 8%, '
+                '6-7 project disiapkan. BUMI dessert dari permainan besar. BUMI turun karena market nilai LK 1H jelek, '
+                'tapi ini narrative play bukan fundamental play. BUMI proses book building obligasi lanjutan, sebelumnya '
+                'sudah terbit untuk akuisisi Wolfram Limited Australia (gold & copper).',
+     'tags': ['b_indicator',
+              'dewa',
+              'bumi',
+              'tiki_taka',
+              'strategy',
+              'narrative_play',
+              'fundamental_play',
+              'obligasi',
+              'wolfram'],
+     'tickers': ['BUMI', 'BRMS', 'DEWA', 'BBCA'],
+     'title': 'B-Indicator Update — DEWA Laba, BUMI Obligasi, Tiki-Taka Strategy'},
+
+    "perjalanan_2_dekade_psikologi": {'author': 'Ricky2212 (MentorBaik)',
+     'date': '2025-04',
+     'full_text': 'Perjalanan 2 dekade Ricky2212 ( buat saya setelah melewati 22 tahun pada akhirnya bermain di area '
+                  'psikologi menjadi hal yang sangat utama dalam berinvestasi )\n'
+                  '\n'
+                  'Perjalanan 2 dekade Ricky2212 ( buat saya setelah melewati 22 tahun pada akhirnya bermain di area '
+                  'psikologi menjadi hal yang sangat utama dalam berinvestasi )\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  'Tidak terasa tahun 2025 ini adalah 2 dekade saya mengarungi bursa saham. 20 tahun yang menurut saya '
+                  'luar biasa. Banyak hal yang saya lewati dan hadapi , baik hal yang menyenangkan maupun hal buruk yang '
+                  'mengharuskan saya untuk belajar terus and terus and belajar kembali tanpa henti\n'
+                  '\n'
+                  '\n'
+                  'Apa yg saya sdh dapatkan sejauh ini , antara percaya ga percaya saya koq saya bisa sampai sejauh ini. '
+                  'Bahkan boleh dibilang saya mendapatkan banyak hal yang di luar imajinasi saya. \n'
+                  '\n'
+                  '\n'
+                  'Buat saya apa yang saya dapat bukan hanya sekedar materi yah , tapi kesempatan2x yang saya dapat yang '
+                  'mungkin orang lain belum tentu bisa dapatkan. Pelajaran2x yang mungkin orang lain bisa temui selama '
+                  'perjalanan nya. \n'
+                  '\n'
+                  '\n'
+                  'Kalo banyak orang flexing2x cuan , flexing porto buat mengadu return , hayooo lah. heheeh just kidding. '
+                  'Saya bukan typical yang suka buka dapur saya ke publik. \n'
+                  '\n'
+                  '\n'
+                  'Ada satu hal yang mungkin saya bisa sampaikan sebagai bagian dari pengalaman saya. Selama 20 tahun '
+                  'tersebut boleh dibilang gaya saya berinvestasi saya banyak mengalami perubahan.\n'
+                  '\n'
+                  '\n'
+                  'Kenapa bisa berubah ? Karena saya menyaksikan beberapa kali perjalanan bull euforia dan saya juga jadi '
+                  'saksi betapa meyakitkannya kejatuhan pasar yang luar biasa yang menyapu banyak orang. \n'
+                  '\n'
+                  '\n'
+                  'Perjalanan investasi yang saya lewati mulai dari fase bertaruh ala kasino , fase All in full attack , '
+                  'fase spreading the stock sampai pada fase saya hanya menikmati apa yang saya jalankan yang saat ini '
+                  'saya jalankan. \n'
+                  '\n'
+                  '\n'
+                  'Yap dari setiap fase yang saya lewati tersebut, saya sangat merasakan perbedaan dari waktu ke waktu. '
+                  'Bahkan saya 5 tahun lalu dengan saya yang sekarang saja , saya pribadi merasakan hal yang berbeda. \n'
+                  '\n'
+                  '\n'
+                  'Apa yg berasa berbeda ? Ternyata makin kesini saya makin paham bahwa faktor terpenting dalam perjalanan '
+                  'sebuah investasi adalah area PSIKOLOGI. Whaatttt ? \n'
+                  '\n'
+                  '\n'
+                  'Buat saya teknis2x memilih saham menjadi terlalu teknis dan pada ujung nya akan menjadi tidak berguna '
+                  'saat anda tidak bisa menguasai ego dan mengontrol psikologi anda sendiri. \n'
+                  '\n'
+                  '\n'
+                  '# Contoh pertama yang bisa saya sampaikan.\n'
+                  '\n'
+                  '\n'
+                  'Mungkin di luar sana masih banyak yang berpikir bahwa saham itu adalah media naik turun nya harga. Anda '
+                  'bisa menikmati sekali yang namanya kenaikan harga saham , anda bisa tertawa terbahak dan senyum lebar '
+                  'saat harga saham anda naik.Sebaliknya anda bisa manyun atau bad mood saat saham anda sedang turun.\n'
+                  '\n'
+                  '\n'
+                  'Pada akhirnya harga saham itu bisa mempengaruhi mood and psikologi anda. \n'
+                  '\n'
+                  '\n'
+                  'Dahulu kala saya juga menikmati hal tersebut , terkadang saham masih saya anggap sebagai media turun '
+                  'naik nya harga. \n'
+                  '\n'
+                  '\n'
+                  'Psikologi saya kadang terpengaruhi oleh yang nama nya price action. so stupid right ?\n'
+                  '\n'
+                  '\n'
+                  'Buka Kamus Besar Bahasa Indonesia, apa artinya saham ? \n'
+                  '\n'
+                  '\n'
+                  'Saham itu adalah bukti kepemikan anda di suatu perusahaan. Yap itu lah saham saya perlakukan skrg. '
+                  'Saham saya perlakukan sebagai mana mestinya yaitu saya memiliki perusahaan. \n'
+                  '\n'
+                  '\n'
+                  'Selama perusahaan itu ada dan berdiri, selama perusahaan tsb masih bisa menghasilkan laba , Saya tidak '
+                  'pernah khawatir dengan naik turunnya harga\n'
+                  '\n'
+                  '\n'
+                  '#Contoh berikut nya ,\n'
+                  '\n'
+                  '\n'
+                  'Kalo saya tanya , saham seperti apa yang akan anda beli ? pastinya mayoritas akan menjawab saham yang '
+                  'akan memberi saya return ber bagger bagger , saham yang akan memberikan cuan luber2x. \n'
+                  '\n'
+                  '\n'
+                  'Pasti lah yah, semua orang juga mendambakan hal tsb. Tapi tahukah anda, dengan berpikir seperti itu '
+                  'akan membuat psikologi greed anda akan dipancing ke medan permainan ?\n'
+                  '\n'
+                  '\n'
+                  'Tahukan bhw dengan berpikir seperti itu pada akhirnya akan memancing agresivitas anda dalam '
+                  'berinvestasi ?\n'
+                  '\n'
+                  '\n'
+                  'Kalo sudah begitu adanya , kadang logika jadi ga jalan lagi.\n'
+                  '\n'
+                  '\n'
+                  'Dahulu saya juga berpikir seperti itu, pada saat saya memilih perusahaan yang ada di pikiran saya '
+                  'adalah berapa bagger bisa saya dapat disana. Dari situ memang saya jadi terpancing untuk lebih '
+                  'aggresive\n'
+                  '\n'
+                  '\n'
+                  'Sekarang yang saya pikirkan saat membeli saham adalah berapa besar resiko yang saya hadapi saat saya '
+                  'membeli saham tsb.\n'
+                  '\n'
+                  '\n'
+                  'Saat saya tahu apa resiko terburuk yang saya hadapi, psikologi saya akan selalu terjaga saat semua '
+                  'masih di area tersebut. Apalagi saat saya bisa membeli bisnis tersebut saat kejatuhan datang, Rasanya '
+                  'saya makin tenang. kenapa ? karena saat penurunan dan kejatuhan tersebut, resiko terburuk yang saya '
+                  'akan hadapi makin terukur. \n'
+                  '\n'
+                  '\n'
+                  'Masalah Gain ? kalo resiko yang dihadapi sudah makin mengecil, saya percaya dari sanalah superior '
+                  'return akan datang. Hanya masalah waktu saja semuanya terjadi\n'
+                  '\n'
+                  '\n'
+                  '#Contoh lainnya yang simple lagi, \n'
+                  '\n'
+                  '\n'
+                  'Misal aja antara saya dengan si X, kita memilih saham yang sama dengan asumsi memakai teknik yang sama. '
+                  'Apakah Return nya akan sama ? Belum tentu bukan ? Apa faktor utama yang membedakan nya ? Sudah barang '
+                  'pasti bagaimana kita bisa mengontrol psikologi saat kita memegang saham tersebut. \n'
+                  '\n'
+                  '\n'
+                  'Jadi Buat saya bukan gimana anda bisa menemukan saham yang akan jadi bagger , tapi yang paling luar '
+                  'biasa penting adalah gimana anda bisa mempertahankan posisi yang sdh anda miliki sehingga anda bisa '
+                  'sampai pada garis finish. \n'
+                  '\n'
+                  '\n'
+                  'Saya pernah melewati hal tsb , zaman dahulu buat saya 1 or 2 bagger mungkin saya sdh mulai memikirkan '
+                  'buat out di posisi saham yang saya miliki. 5 atau 6 bagger saya anggap jackpot.\n'
+                  '\n'
+                  '\n'
+                  'Sekarang ? selama perusahaan tersebut masih punya potensi dan perjalanan itu masih jauh di ujung sana, '
+                  'saya akan tetap bertahan di posisi saham tersebut. Saya ga ambisius memikirkan lagi yang namanya '
+                  'bagger2x an , biarkan berjalan aja sampai dimana nantinya\n'
+                  '\n'
+                  '\n'
+                  '#Saya coba kasih contoh ttg bagaimana psikologi itu jauh lebih penting diantara semua hal dasar '
+                  'berinvestasi. \n'
+                  '\n'
+                  '\n'
+                  'Contoh ini juga simple banget sebenernya, tapi contoh ini adah contoh gimana psikologi fear greed '
+                  'bermain dan menguasai diri anda. Contoh ini gimana anda mengalokasikan uang investasi anda dalam posisi '
+                  'cash. \n'
+                  '\n'
+                  '\n'
+                  'Saya sering banget dengar di luar sana masih banyak yg berpikir cash is trash. Sayang uang nya kalo ga '
+                  'di karyakan, sayang uang nya klo ga dibelanjakan . Soalnya kalo ga dibelikan saham nantinya ga '
+                  'menghasilkan. \n'
+                  '\n'
+                  '\n'
+                  'Saat pikiran anda di posisi tersebut, psikologi anda sedang dikuasai oleh yang namanya GREED . Anda ga '
+                  'mampu mengontrol psikologi GREED nya. Padahal cash itu adalah obat yang paling ampuh saat kejatuhan '
+                  'pasar datang. \n'
+                  '\n'
+                  '\n'
+                  'Saya pernah melewati hal tersebut. Saya pernah judi ala kasino, saya pernah all ini full attack tanpa '
+                  'punya cash sama sekali. Sama lah , saya juga pernah berpikir bhw cash is trash. \n'
+                  '\n'
+                  '\n'
+                  'Apa yg saya rasakan saat itu ? kadang rasa was2x bisa datang tiba2x. Ketidak nyamanan membuat '
+                  'gelisah. \n'
+                  '\n'
+                  '\n'
+                  'Sekarang pegang Cash adalah bagian paling penting buat saya, karena cash yang akan selalu menjaga '
+                  'psikologi saya. Apapun yang akan terjadi besok, saya ga perlu was2x dan pusing. Market mau naik yah '
+                  'saya happy, market harus turun yah saya juga happy\n'
+                  '\n'
+                  '\n'
+                  '#Contoh terakhir \n'
+                  '\n'
+                  '\n'
+                  'Pada satu waktu pernah berpikir takut ga kebagian saat di market ? Pasti permah dunk yah. Saya juga '
+                  'pernah di keadaan tersebut. Saya jadi orang yang takiut ga kebagian, saya takut ketinggalam kereta. '
+                  'Psikologi Greed sangat mendominasi.  \n'
+                  '\n'
+                  '\n'
+                  'Alhasil ? Yang ada malah nyantol dan modal kegerus dan menggangu psikologi yang ada\n'
+                  '\n'
+                  '\n'
+                  'Atau pernah kah di keadaan takut kehilangan uang yang luar biasa ? biasanya hal ini terjadi saat '
+                  'terjadi penurunan market yang cukup dalam. Psikologi Fear mendominasi otak dan psiko kita. Saya juga '
+                  'pernah disana koq. Saya juga mengalaminya\n'
+                  '\n'
+                  '\n'
+                  'Sekarang ? mending ga kebagian daripada kehilangan uang. Saya memilih buat ga kehilangan, karena dengan '
+                  'begitu saja saya sudah menang. \n'
+                  '\n'
+                  '\n'
+                  'Kehilangan uang efeknya akan merembet kemana2x. Mulai dari psikologi sampai pada hasil akhir '
+                  'investasi. \n'
+                  '\n'
+                  '\n'
+                  'Bayangkan saat saya punya 1 juta anda juga punya 1 juta. Anda takut ga kebagian yang membuat anda '
+                  'memaksakan diri apapun keadaannya. Saya hanya diam saja ga melakukan apa2x. \n'
+                  '\n'
+                  '\n'
+                  'Saat market jatuh dan salah langkah uang anda turun 20% dan tinggal 800 ribu, uang saya ? uang saya ga '
+                  'berubah. Menang siapa ? menang saya bukan ? padahal saya diam aja. \n'
+                  '\n'
+                  '\n'
+                  'Next, saat market come back anda sama2x bagger. Uang anda jadi 1.6juta. Uang saya jadi 2 juta. Makin '
+                  'banyakan saya bukan ?\n'
+                  '\n'
+                  '\n'
+                  'Btw media sosial jadi bahan saya analisa juga loh. Media sosial jadi bahan saya melihat psikologi '
+                  'keseluruhan di market. Makin pesimis, makin saya siap buat entry. makin bleeding di street, makin saya '
+                  'belanja agresive. Begitu pun sebaliknya, makin euforia di medsos, makin petantang petenteng di street , '
+                  'makin saya bermawas diri.\n'
+                  '\n'
+                  '\n'
+                  'Yes Itu semua hanya sebagian contoh saja bahwa buat saya sekarang, psikologi adalah sebuah elemen yang '
+                  'paling penting dalam berinvestasi\n'
+                  '\n'
+                  '\n'
+                  'Pasar Saham mengajarkan saya banyak hal. Pada akhir nya , buat saya investasi adalah perjalanan yang '
+                  'harus bisa dinikmati. investasi bukan hanya sekedar return belaka, tapi investasi harus bisa memberikan '
+                  'kenyamanan saat anda menjalaninya\n'
+                  '\n'
+                  '\n'
+                  'Renungkan tulisan ini sembari melihat keadaan market sekarang. Mungkin ada jawaban atas pertanyaan yang '
+                  'anda sedang cari.',
+     'key_points': ['22 tahun perjalanan: kasino → all-in → spreading → enjoy the journey',
+                    'Saham = bukti kepemilikan perusahaan, bukan media naik-turun harga',
+                    'Pikirkan risiko terburuk, bukan berapa bagger',
+                    'Cash is NOT trash → cash = obat paling ampuh saat crash',
+                    'Mending ga kebagian daripada kehilangan uang',
+                    'Media sosial = bahan analisa psikologi massa',
+                    'Makin pesimis → makin siap entry. Makin euforia → makin waspada',
+                    'Investasi = perjalanan yang harus dinikmati, bukan sekedar return'],
+     'related_articles': ['tidak_semua_permainan_harus_menang', 'penyakit_stanley_fomo_druckenmiller'],
+     'signals': {'catalyst_type': 'psychology_framework',
+                 'execution_phase': 'ongoing',
+                 'expected_impact': 'high',
+                 'narrative_strength': 'high'},
+     'source': 'MentorBaik',
+     'summary': 'Setelah 22 tahun di bursa, author menyimpulkan psikologi adalah elemen paling penting. Perjalanan dari '
+                'fase kasino, all-in, spreading, hingga menikmati perjalanan. Contoh: saham = bukti kepemilikan perusahaan '
+                '(bukan naik-turun harga), pikirkan risiko bukan bagger, cash adalah obat paling ampuh, mending ga '
+                'kebagian daripada kehilangan uang. Media sosial = bahan analisa psikologi massa.',
+     'tags': ['psychology', 'discipline', 'cash', 'greed', 'fear', 'long_term', 'experience', 'macro', 'narrative'],
+     'tickers': [],
+     'title': 'Perjalanan 2 Dekade Ricky2212 — Psikologi sebagai Elemen Utama'},
+
+    "oil_narrative_hulu_hilir_danantara": {'author': 'Ricky2212 (MentorBaik)',
+     'date': '2025-04',
+     'full_text': 'Menyambung artikel tentang oil narrative yang kemarin saya buat , saya coba sambung lagi ke artikel '
+                  'ini, belajar dari upstream ke downstream..\n'
+                  '\n'
+                  'Artikel ini sebenernya adalah artikel lama saya yang sudah pernah saya buat, tapi rasanya artikel ini '
+                  'bisa sangat berguna untuk melihat arena permainan oil narrative.\n'
+                  '\n'
+                  'Dalam tulisan ini saya coba menuliskan semua tentang minyak. Minyak dari mulai ga ada , terus minyak di '
+                  'bor , keluar minyak nya , diolah ke refinery , jadi crude product dan akhirnya minyak tersebut dipakai '
+                  'sebagai sumber energy.\n'
+                  '\n'
+                  'Pada akhir nya dari sana juga saya jabarkan bisnis nya dan siapa pemainnya. Setelah itu anda putuskan '
+                  'anda mau bermain dimana\n'
+                  '\n'
+                  '\n'
+                  'Oke, kita masuk dulu nature bisnis perminyakkan. bagaimana minyak itu dari tidak ada , sampai ada dan '
+                  'pada akhir nya minyak itu bisa digunakan.\n'
+                  '\n'
+                  '\n'
+                  'Bisnis minyak dimulai saat suatu perusahaan diberikan kewenangan oleh negara atas sebuah konsesi yang '
+                  'sudah terindikasi ada minyak.\n'
+                  '\n'
+                  '\n'
+                  'Perusahaan tersebut nantinya yang akan menjalankan explorasi untuk mendapatkan minyaknya, Setelah di '
+                  'explorasi ketemu minyak nya, perusahaan akan mengeksploitasi minyak nya untuk dijual. \n'
+                  '\n'
+                  '\n'
+                  'Perusahaan yang diberikan konsesi akan mendapatkan bagian dari minyak yg dihasilkan dari konsesi tsb. '
+                  'Kalo ga salah untuk minyak adalah sebesar 15% dari yg di produksi. \n'
+                  '\n'
+                  '\n'
+                  'Semua biaya yg dikeluarkan sampai menghasilkan minyak akan ditanggung negara. Kalo pada pernah dengar '
+                  'namanya cost recovery yah itu lah biaya yg dikeluarkan buat mengeluarkan minyak. \n'
+                  '\n'
+                  '\n'
+                  'Kontraknya dengan pemerintah namanya PSC atau Production Sharing Contract. Setelah minyak nya keluar, '
+                  'minyak itu bisa dijual sebagai minyak mentah dan diikirim ke refinery untuk diolah menjadi oil product\n'
+                  '\n'
+                  '\n'
+                  'Oke itu nature bisnis dari minyak yah, sekarang saya coba bahas dari hulu ke hilir nya sampai siapa aja '
+                  'yg bermain\n'
+                  '\n'
+                  '\n'
+                  'Di industri migas , ada 2 bagian yg dijalankan yaitu hulu yang mencakup semua kegiatan dari minyak ga '
+                  'ada sampai minyak itu di bor menjadi ada\n'
+                  '\n'
+                  '\n'
+                  'Kedua adalah hilir , yaitu yang mencakup semua kegiatan dari minyak itu ada dan nantinya sampai diolah '
+                  'sampai ke tangan end user\n'
+                  '\n'
+                  '\n'
+                  'Mari kita masuk cerita ke hulu nya yah\n'
+                  '\n'
+                  '\n'
+                  'Pintu pertama dalam usaha minyak adalah perusahaan yanh diberikan kewenangan untuk menggarap suatu blok '
+                  'minyak. Mereka diberikan sebuah luas wilayah untik digarap. Wilayah tersebut dinamakan konsesi dan '
+                  'blok. Untuk bidang usaha ini yang dijalankan oleh swasta ada MEDC , ENRG dan RATU . Pemain besarnya '
+                  'adalah Pertaminan ( tidak listed )\n'
+                  '\n'
+                  '\n'
+                  'Saat suatu perusahaan diberikan konsesi oleh negara, yang pertama mereka lakukan adalah pemetaan '
+                  'kembali konsesi tersebut. Konsesi di petakan supaya bisa dilihat lagi titik2x mana yg sumber minyak nya '
+                  'paling banyak dan potensial digarap duluan. Ittulah gunanya pemetaan. Di bagian bisnis ini cuma ada '
+                  'ELSA sebagai pemainnya dan memang tidak banyak pemainnya memang di bagian ini bahkan cenderung '
+                  'monopoly. ELSA adalah pintu dari bisnis hulu migas\n'
+                  '\n'
+                  '\n'
+                  'Setelah sebuah blok dipetakan, sumur2x tersebut disiapkan untuk di bor. Persiapam pertama adalah dengan '
+                  'disiapkan konstruksi untuk pengeborannya. Semua disiapkan agar sumur tersebut bisa di bor dengan baik.\n'
+                  '\n'
+                  '\n'
+                  'Disini akan dibagi 2 lagi yaitu sumur onshore atau sumur yang berada di darat dan sumur offshore untuk '
+                  'sumur yg berada di laut. \n'
+                  '\n'
+                  '\n'
+                  'Untuk konstruksi ini pemainnya ada RUIS, APEX dan INDY lewat anak usahanya. APEX dan INDY lebih '
+                  'dominant dan menguasai semua konstruksinya sampai pembuatan Rig nya. \n'
+                  '\n'
+                  '\n'
+                  'Di bisnis ini sebenernya menarik karena margin yang dihasilkan mulai menarik. tapi sayang nya di '
+                  'Indonesia lagi2x ga banyak pilihannya\n'
+                  '\n'
+                  '\n'
+                  'Lanjut kita masuk lagi and kita masih di hulu yah. Saya mau bahas adalah sumur yang ada di offshore. '
+                  'Pembangunan konstruksi di offshore lebih sulit kompleks, maka dari itu saat membangun konstruksi rig '
+                  'nya harus butuh bantuan. Bantuan tersebut di provide oleh perusahaan jasa penunjangnya. Jasa penunjang '
+                  'tersebut dipakai saat bangun rig yaitu untuk mengangkut material dan crew ke rig sampai membantu '
+                  'melancarkan mengebornya. Dari lini bisnis ini pemain besar nya adalah ELPI , WINS dan LEAD dan hampir '
+                  'semua pemain besar minyak memakai jasa mereka. Masih ada BOAT and BBRM di bawah nya mereka\n'
+                  '\n'
+                  '\n'
+                  'next, Setelah semua konstruksi selesai dan sumur tersebut siap di bor agar bisa mengeluarkan minyak '
+                  'dari perut bumi. Tingkat kedalaman dan tingkat kesulitan masing2x berbeda2x dan disinilah mulai besar '
+                  'resiko yg dihadapi. \n'
+                  '\n'
+                  '\n'
+                  'Sumur itu di bor terus di beberapa titik sampai keluar minyaknya. Biasanya pengeborannya ga sekali '
+                  'langsung berhasil yah. Bor nya harus berulang kali sampai bisa keluar minyak nya. Di lini ini untuk '
+                  'pemain di indonesia klo saya ga salah hanya APEX. Kalo di luar pemainnya bnyk kaya transocean, baker '
+                  'hughes. Di level ini sebenernya bagus, tapi sayang nya di indo lagi2x ga punya banyak pilihan.\n'
+                  '\n'
+                  'Untuk menunjang pengeboran sebenernya banyak sekali perintilan yang bisa disiapkan untuk membantu '
+                  'kelancaran pengeboran minyaknya. Misal untuk melicinkan Bor minyak nya, OBMD bisa mengambil bagian ini. '
+                  'Untuk meningkatkan safety saat ngebor , SICO bisa membantu dalam hal ini. \n'
+                  '\n'
+                  'Next, Setelah di bor sampai keluar minyak nya, terus minyaknya mau disimpan dimana ? Minyak kotor '
+                  'tersebut nantinya akan disimpan di kapal penunjang buat storage nya. Pernah mendengar tanker FPSO dan '
+                  'FSO ? yah itu lah kapal2x yg akan menampung minyak hasil pengeboran tersebut untuk sementara sebelum '
+                  'dipindahkan ke kapal tanker pengangkut nya. Pemain disini lagi2x ga banyak, padahal di lini bisnis ada '
+                  'margin nya lumayan gede. Setau saya di indo cuma ada SHIP yg punya kapal tersebut. Dulu BULL jg pernah '
+                  'punya type kapal tersebut , tapi belakangan saya liat sudah ga ada di fleet list nya\n'
+                  '\n'
+                  '\n'
+                  'Next , setelah di bor dan dapat minyak nya \n'
+                  '\n'
+                  ', untuk mengalirkan ke kapal tanker dibutuh kan saluran pipa untuk memindahkan nya. Dari sana '
+                  'dibutuhkan Pipa untuk membangun aliran tersebut. Pipanya dari mana ? SUNI bisa provide pipa2x tersebut\n'
+                  '\n'
+                  '\n'
+                  'Sampai disitu level hulu bermainnya. Level hulu adalah type yang sangat sensitive sekali terhadap '
+                  'pergerakan harga minyak. Harga minyak bener2x sangat mempengaruhi bisnisnya. kenapa bisa begitu ? yes , '
+                  'kalo harga minyak dalam keadaan tidak feasible, para pemegang konsesi juga enggan untuk berinvestasi '
+                  'untuk mengebor sumur baru. Mengebor sumur itu investasinya besar dan mengandung resiko tinggi. kalo '
+                  'zonk yah sdh hilang tuh investasinya. kalo harga minyak lg ga feasible, mereka akan mengandalkan '
+                  'sumur2x yang ada yang sdh beroperasi saja. Mereka akan memproduksi dari sumur existing So, kuncinya '
+                  'adalah hulu sangat sensitive terhadap harga minyak. Saat minyak lagi naik daun, hulu akan jadi sektor '
+                  'yang menarik terutama yang punya margin besar. \n'
+                  '\n'
+                  'Bagian yang mana aja yang punya margin besar ? yah di pelajari sendiri lagi ya.\n'
+                  '\n'
+                  'Oke kita lanjutkan, sekarang kita masuk ke bagian hilirnya. Di sektor hilir keadaan nya tidak terlalu '
+                  'kompleks dibanding di hulu. Aktivitas nya hanya mengangkut hasil minyak atau mengalirkan minyak nya '
+                  'sebagai kebutuhan energy.\n'
+                  '\n'
+                  '\n'
+                  'Minyak yang sudah ada dan di produksi dari sumur dibawa pakai oil tanker ( dirty tanker ) ke tempat '
+                  'pengolahan minyak atau refinery. Minyak tersebut harus diolah agar dapat dipakai. Karena minyak yang '
+                  'diproduksi adalah minyak mentah. Bisnis ini menggiurkan karena menawarkan margin bersih yang lumayan. '
+                  'Pemain di bisnis ini ada bebrapa pemainnya mulai dari SOCI , BULL , SMDR ( sebagian) , HUMI , GTSI dan '
+                  'SHIP\n'
+                  '\n'
+                  '\n'
+                  'Next adalah refinery atau tempat pengolahan minyak. Disinilah minyak mentah akan diolah dijadikan oil '
+                  'product. Bisa jadi bensin, solar dan segala bahan bakar lainnya. Tapi sayang nya di indonesia refinery '
+                  'nya ga ada yg go public. Lagipula bisnis ini sebenernya pada modal dan thin margin sehingga tidak '
+                  'banyak perusahaan indonesia yang mau menjalankan bisnis ini selain Pertamina\n'
+                  '\n'
+                  'nah selesai diolah dari refinery , minyak akan didistribusikan lagi ke end user. Minyak hasil olahan '
+                  'dikirim dari refinery ke end user menggunakan tanker yaitu product tanker ( clean tanker ). Pemain '
+                  'disini adalah BULL , SOCI , SMDR , HUMI , HITS , SHIP\n'
+                  '\n'
+                  'Dalam hal pendistribusian minyak dan gas yang sudah diolah , mereka juga bisa mendistribusikan langsung '
+                  'ke end user baik buat PLT maupun untuk pemaikan untuk korporasi. Minyak dan gas tersebut '
+                  'didistribusikan melalui pipa2x aliran yang sudah dibuat. Dari pipa tersebut , operator mengutip jasa '
+                  'mengalirkan minyak dan gas tersebut. Pemain di bisnis ini adalah PGAS dan RAJA. \n'
+                  '\n'
+                  '\n'
+                  'Terakhir setelah dikirim minyak tersebut akan disimpan dulu di storage sebelum didistribusikan ke '
+                  'pemakai langsung baik retail maupun industry. Perusahaan yang bermain disini akan menyediakan kilang2x '
+                  'penyimpanan atau storagenya. Disinilah AKRA adalah market leader nya. Bahkan AKRA juga yang akan '
+                  'mendistribusikan sampai ke bawah langsung dengan truk tangki pengangkutannya. Disamping AKRA , '
+                  'Pertaminan juga menjalankan bisnis ini dan ELSA adalah bagian mendistribusikan minyak nya ke pelosok '
+                  'bagian timur Indonesia. Nature bisnis ini adalah thin margin tapi bisnis ini less risk karena '
+                  'bagaimanapun mereka tetap akan mendistribusikan hasilnya\n'
+                  '\n'
+                  '\n'
+                  'Sebenernya ada satu bisnis lagi yang bisa kena dalam perjalanan dari hulu ke hilir nya minyak. Dalam '
+                  'perjalanan membuat minyak dari belom ada sampai pada pendistribusian nya pasti punya resiko yang '
+                  'dihadapai. Untuk itu setiap aktivitas tersebut harus dicover oleh asuransi agar kalau ada kecelakaan '
+                  'atau kejadian yang tidak diharapkan makan asuransi akan mengcover kerugiannya. Pemain disini hanya TUGU '
+                  'yang bisa saya pilihkan sebagai pilihan utamanya. \n'
+                  '\n'
+                  'Nah itu lah alur minyak dr hulu ke hilir. Dari minyak belum ada terus minya di bor , minyak diolah '
+                  'sampai dipakai sebagai sumber energy. Dari sana lah tercipta bisnis2x yg akan kecipratan. Bisnis mana '
+                  'yang paling menawarkan margin yang menggiurkan ?\n'
+                  '\n'
+                  '\n'
+                  'Jauh disana ada hal besar yg ditunggu kalo anda bisa mengolah data lanjutannya. Intinya Pengeboran oil '
+                  'sebagai bagian dari narasi Danantara Effect akan membawa industri ini mendapatkan aliran uang yang '
+                  'cukup besar. \n'
+                  '\n'
+                  'Danantara support banget industri ini , bahkan bukan hanya Danantara saja nantinya loh. Pak 08 saja '
+                  'akan melakukan Deregulasi industri ini sehingga investasi di industri ini jadi menarik. \n'
+                  '\n'
+                  '\n'
+                  'Tercatat data saya ada 4 blok migas raksasa yang sudah siap dan disiapkan untuk investor menanamkan '
+                  'modalnya. Coretan saya 1 blok migas itu butuh sekitar Rp 150T , jadi bayangkan Rp 600T akan masuk ke '
+                  'industri migas kita\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  '\n'
+                  '08 akan menghidupkan kembali bisnis migas seperti yang bapaknya lakukan di cycle ekonomi 1968 lalu '
+                  '(bisa lihat di gambar seberapa besar kenaikan produksi Migas Indonesia di tahun tersebut). Migas akan '
+                  'jadi sumber utama devisa Indonesia dan nanti yang akan bantu menambal fiskal kita.\n'
+                  '\n'
+                  'So, saya pribadi yakin bahwa ini akan berjalan dengan semestinya dan mari kita tunggu kelanjutannya '
+                  'yah. \n'
+                  '\n'
+                  'Konglo narrative , 08 related , Danantara effect tetap lah.. Saya ber-Findimintil disana\n'
+                  '\n'
+                  'Jangan minta saya pilihkan saham , usahakan cari tau sendiri untuk pemilihan sahamnya.',
+     'key_points': ['Hulu: konsesi (MEDC, ENRG, RATU, Pertamina) → pemetaan (ELSA) → konstruksi (RUIS, APEX, INDY)',
+                    'Offshore jasa penunjang: ELPI, WINS, LEAD, BOAT, BBRM',
+                    'Pengeboran: APEX (onshore), OBMD (pelicin), SICO (safety)',
+                    'Storage: SHIP (FPSO/FSO)',
+                    'Pipa: SUNI',
+                    'Hilir: tanker dirty/product (BULL, SOCI, SMDR, HUMI, GTSI, HITS, SHIP)',
+                    'Distribusi: PGAS, RAJA (pipa), AKRA, ELSA (storage & distribusi)',
+                    'Asuransi: TUGU',
+                    'Danantara support + deregulasi 08 → 4 blok migas raksasa butuh Rp600T',
+                    '08 menghidupkan kembali bisnis migas seperti cycle 1968',
+                    'Migas jadi sumber devisa utama untuk menambal fiskal'],
+     'related_articles': ['narasi_hmmm_shifting_inflow_konglo_2025'],
+     'signals': {'catalyst_type': 'macro_narrative',
+                 'execution_phase': 'early',
+                 'expected_impact': 'high',
+                 'narrative_strength': 'medium_to_high'},
+     'source': 'MentorBaik',
+     'summary': 'Mapping bisnis migas dari hulu ke hilir: konsesi → pemetaan (ELSA) → konstruksi onshore/offshore (RUIS, '
+                'APEX, INDY) → jasa penunjang (ELPI, WINS, LEAD) → pengeboran (APEX) → storage FPSO/FSO (SHIP) → pipa '
+                '(SUNI) → tanker (BULL, SOCI, SMDR, HUMI, SHIP) → refinery → distribusi (PGAS, RAJA) → storage (AKRA, '
+                'ELSA) → asuransi (TUGU). Danantara + deregulasi 08 akan hidupkan kembali migas. 4 blok raksasa butuh '
+                '~Rp600T investasi.',
+     'tags': ['oil',
+              'oil_gas',
+              'narrative',
+              'danantara',
+              'upstream',
+              'downstream',
+              'deregulasi',
+              '08',
+              'macro',
+              'infrastructure'],
+     'tickers': ['MEDC',
+                 'ENRG',
+                 'RATU',
+                 'ELSA',
+                 'RUIS',
+                 'APEX',
+                 'INDY',
+                 'MBSS',
+                 'PTRO',
+                 'AKRA',
+                 'PGAS',
+                 'TUGU',
+                 'SHIP',
+                 'BULL',
+                 'SOCI',
+                 'SMDR',
+                 'HUMI',
+                 'GTSI',
+                 'HITS',
+                 'SUNI',
+                 'BOAT',
+                 'BBRM',
+                 'OBMD',
+                 'SICO',
+                 'WINS',
+                 'LEAD'],
+     'title': 'Oil Narrative — Dari Hulu ke Hilir, Danantara Effect'},
+
+    "bumi_obligasi_350m_akuisisi_tembaga_emas": {'author': 'Ricky2212 (MentorBaik)',
+     'date': '2025-04-27',
+     'full_text': 'eng ing eng , pagi ini tiba2x ada pengumuman keterbukaan informai dari BUMI Resources.\n'
+                  '\n'
+                  'Isinya apa ? \n'
+                  '\n'
+                  'Dalam keterbukaan informasi yang dikeluarkan oleh BUMI , mereka akan mengeluarkan obligasi dengan '
+                  'jumlah Rp 350M. Obligasi yang dikeluarkan tujuannya adalah untuk pendanaan dalam rangka akuisisi '
+                  'perusahaam tembaga dan emas yang ada di Australia\n'
+                  '\n'
+                  'Berasa kaget ? \n'
+                  '\n'
+                  'Loh saya sudah ceritakan bukan ? bahwa BUMi akan melakukan serentetan akuisisi untuk memperkaya '
+                  'portfolio tambang mereka yang sekarang ini mayoritas isinya adalah tambang batubara. \n'
+                  '\n'
+                  'Dalam cerita sebelumnya saya sempat sampaikan rentetan proses perjalanannya. Cerita nya dimulai saat '
+                  'BUMi melakukan Kuasi Organisasi. Mereka ingin mempercantik Balance Sheet nya dari agenda tersebut. \n'
+                  '\n'
+                  'Tujuannya ? bagi dividen ? bukan ke arah sana tujuan terdekatnya. Tujuan terdekat nya adalah untuk '
+                  'menerbitkan obligasi. Pas pengumunan kuasi , masih ingat kan Pefindo ngapain ? Yap berbarengan dengan '
+                  'pengumuman kuasi tersebut , Pefindo mengeluarkan pengumuman rating surat hutang BUMI. Surat Hutang BUMI '
+                  'diganjar dengan rating A+.\n'
+                  '\n'
+                  'Yap , ini lah satu tapak perjalanan lagi yang BUMi lakukan. Keluarin Bond dan mereka lakukan aksi '
+                  'akuisisi perusahaan tambang. \n'
+                  '\n'
+                  'Bukan Coal , tapi Emas dan tembaga. Kenapa ? karena masa depan BUMi nantinya bukan hanya Coal. BUMI '
+                  'tidak akan bergantung lagi dengan batubaranya. BUMI akan menjadi perusahaan diversified mining yang '
+                  'berisi macam2x tambang strategis. \n'
+                  '\n'
+                  'Kenapa Tembaga dan emas ? karena di depan sana , tembaga dan emas adalah komoditas yang akan banyak '
+                  'dicari. \n'
+                  '\n'
+                  'Lihat saja Salim , gemar sekali mencari komoditas seperti kokas , tembaga , emas , alumunium. \n'
+                  '\n'
+                  'Buat saya akuisisi ini bukanlah yang terakhir dan utama. Salim masih akan getol melancarkan akuisisi ke '
+                  'depannya. Ini adalah langkah awalnya and More to come. \n'
+                  '\n'
+                  'Masih ingat BUMI sudah kasih ancar2x mau akuisisi perusahaan bauksit ? bisa jadi itu jadi salah satu '
+                  'target selanjutnya. \n'
+                  '\n'
+                  'Jadi salah satu target ? yap karena bukan itu saja nanti kayanya. Ada lagi yang diincar sih harusnya. '
+                  'Dan itu sangat strategis , karena kebutuhan lokalnya saja tidak mencukupi. Salim melihat hal tersebut '
+                  'jadi peluang besar.\n'
+                  '\n'
+                  'At the end buat saya BUMI akan dijadikan Rio Tinto Wannabe nantinya. \n'
+                  '\n'
+                  'Duduk manis saja , biarkan om Shakehand and om AP yang mengerjakan semuanya. \n'
+                  '\n'
+                  'please jangan pecicilan dengan semua skenario yang saya sampaikan. Di luar sana banyak yg ngoceh tapi '
+                  'sebetulnya belum tentu mengerti\n'
+                  '\n'
+                  'so far semua yang saya sampaikan sesuai skenario , jadikan nilai plus anda buat mengarungi perjalanan '
+                  'di depan\n'
+                  '\n'
+                  'NB => soal UBS saham yang kemarin dipindahkan , dugaan saya itu Bakrie yang melakukan aksinya. UBS '
+                  'nominee itu sering dipakai bakrie sebagai cangkang. \n'
+                  '\n'
+                  'Just wait, habis ini harusnya ada susulannya',
+     'key_points': ['BUMI terbitkan obligasi Rp 350M',
+                    'Tujuan: akuisisi perusahaan tembaga & emas di Australia',
+                    'Bagian dari rencana diversifikasi dari batubara ke green minerals',
+                    'Follow-up Kuasi Organisasi + rating A+ Pefindo',
+                    'Bukan akuisisi terakhir — more to come',
+                    'Target selanjutnya: bauksit + target strategis lain (kebutuhan lokal tidak mencukupi)',
+                    'Visi BUMI = Rio Tinto Wannabe (diversified mining)',
+                    'UBS nominee dipindahkan — diduga Bakrie via cangkang',
+                    'Susulan akan datang'],
+     'related_articles': ['b_indicator_part8_masuk_cerita_utama',
+                          'b_indicator_part7_execution_time',
+                          'b_indicator_update_dewa_laba_bumi_obligasi'],
+     'signals': {'catalyst_type': 'corporate_action',
+                 'execution_phase': 'active',
+                 'expected_impact': 'high',
+                 'narrative_strength': 'high'},
+     'source': 'MentorBaik',
+     'summary': 'Pengumuman keterbukaan informasi: BUMI akan terbitkan obligasi Rp 350M untuk pendanaan akuisisi '
+                'perusahaan tembaga dan emas di Australia. Ini langkah awal diversifikasi dari batubara ke green minerals. '
+                'Follow-up dari Kuasi Organisasi dan rating A+ Pefindo. Bukan akuisisi terakhir — more to come (bauksit '
+                'dan target strategis lain). Visi: BUMI sebagai Rio Tinto Wannabe. UBS nominee dipindahkan — diduga aksi '
+                'Bakrie via cangkang.',
+     'tags': ['bumi',
+              'brms',
+              'dewa',
+              'bond',
+              'obligasi',
+              'akuisisi',
+              'tembaga',
+              'emas',
+              'australia',
+              'green_transition',
+              'diversified_mining',
+              'rio_tinto_wannabe',
+              'konglo_play',
+              'bakrie',
+              'salim',
+              'agus_projo',
+              'corporate_action'],
+     'tickers': ['BUMI', 'BRMS', 'DEWA'],
+     'title': 'BUMI Resources — Obligasi Rp 350M untuk Akuisisi Tembaga & Emas Australia'},
+
+}
+
+def get_by_ticker(ticker: str) -> List[Dict[str, Any]]:
+    """Return all narrative entries that mention a given ticker."""
+    ticker = ticker.upper().strip()
+    return [v for v in NARRATIVE_UNIVERSE.values() if ticker in [t.upper() for t in v.get("tickers", [])]]
+
+
+def get_by_tag(tag: str) -> List[Dict[str, Any]]:
+    """Return all narrative entries that contain a given tag."""
+    tag = tag.lower().strip()
+    return [v for v in NARRATIVE_UNIVERSE.values() if tag in [t.lower() for t in v.get("tags", [])]]
+
+
+def search_narrative(query: str) -> List[Dict[str, Any]]:
+    """Fuzzy search across title, summary, key_points, and full_text."""
+    query = query.lower()
+    results = []
+    for v in NARRATIVE_UNIVERSE.values():
+        text_pool = " ".join([
+            v.get("title", ""),
+            v.get("summary", ""),
+            " ".join(v.get("key_points", [])),
+            v.get("full_text", "")[:2000],  # limit for speed
+        ]).lower()
+        if query in text_pool:
+            results.append(v)
+    return results
+
+
+def list_all_keys() -> List[str]:
+    """Return all narrative entry keys."""
+    return list(NARRATIVE_UNIVERSE.keys())
+
+
+def get_related(key: str) -> List[Dict[str, Any]]:
+    """Return related articles for a given entry key."""
+    entry = NARRATIVE_UNIVERSE.get(key)
+    if not entry:
+        return []
+    related_keys = entry.get("related_articles", [])
+    return [NARRATIVE_UNIVERSE[k] for k in related_keys if k in NARRATIVE_UNIVERSE]

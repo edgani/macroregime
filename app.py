@@ -68,23 +68,60 @@ def price_chart(prices_dict, tickers, title="", days=252):
   legend=dict(bgcolor="rgba(0,0,0,0)"))
  return fig
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
-def _fmt_tp(tp):
- if not tp: return "—"
- t1=tp.get("t1"); t2=tp.get("t2"); rr=tp.get("rr_ratio")
- return f"T1:{ff(t1,2)} T2:{ff(t2,2)} R:R={ff(rr,1)}"
+# ── MODULE-LEVEL RENDERERS (must be before page dispatch) ────────────────────
+def _btk_badge(ticker, btk_data):
+ for lvl in ["level_1","level_2","watch","avoid"]:
+  for x in btk_data.get(lvl,[]):
+   if x.get("ticker")==ticker:
+    colors={"level_1":"#10B981","level_2":"#F59E0B","watch":"#6366F1","avoid":"#EF4444"}
+    return f"<span style='background:{colors[lvl]};color:white;padding:1px 5px;border-radius:3px;font-size:9px'>{lvl.replace('_','').upper()}</span>"
+ return ""
 
-def _ev_color(v):
- try:
-  vv=float(v.replace("+","").replace("—","0"))
-  return f"color:{'#10B981' if vv>0.3 else '#F59E0B' if vv>0 else '#EF4444'}"
- except: return "color:#6B7280"
+def _render_universe(title, tickers_map, prices, btk_data, days=252):
+ st.markdown(f"### {title}")
+ rows=[]
+ for sym, info in tickers_map.items():
+  s=prices.get(sym)
+  if s is None: continue
+  s=pd.to_numeric(s,errors="coerce").dropna().tail(days)
+  if s.empty: continue
+  ret1m=float(s.iloc[-1]/s.iloc[-22]-1) if len(s)>=22 else 0
+  ret3m=float(s.iloc[-1]/s.iloc[-64]-1) if len(s)>=64 else 0
+  ret6m=float(s.iloc[-1]/s.iloc[-126]-1) if len(s)>=126 else 0
+  badge=_btk_badge(sym, btk_data)
+  rows.append({"Ticker":sym,"Name":info if isinstance(info,str) else info.get("name",sym),
+   "1M":f"{ret1m:+.1%}","3M":f"{ret3m:+.1%}","6M":f"{ret6m:+.1%}",
+   "Bottleneck":badge})
+ if rows:
+  df=pd.DataFrame(rows)
+  st.markdown(df.to_html(escape=False,index=False),unsafe_allow_html=True)
+  fig=price_chart(prices, list(tickers_map.keys())[:8], title=f"{title} — Normalized", days=days)
+  st.plotly_chart(fig,use_container_width=True,config={"displayModeBar":False})
+ else:
+  st.info("No data loaded for this universe.")
 
-def _ev_color_neg(v):
- try:
-  vv=float(v.replace("+","").replace("—","0"))
-  return f"color:{'#EF4444' if vv<0 else '#F59E0B' if vv<0.3 else '#10B981'}"
- except: return "color:#6B7280"
+def _render_scenario(sc, label, color, badge):
+ if not sc: return
+ # Handle both dict and object
+ if isinstance(sc, dict):
+  name=sc.get("name",""); prob=sc.get("probability",0); conf=sc.get("confirmation_score",0)
+  headline=sc.get("headline",""); catalyst=sc.get("catalyst",""); em_note=sc.get("em_note","")
+  best=sc.get("best_assets",[]); worst=sc.get("worst_assets",[])
+  conv=sc.get("conviction",""); triggers=sc.get("confirmation_triggers",[])
+  invalidators=sc.get("invalidators",[])
+ else:
+  name=sc.name; prob=sc.probability; conf=sc.confirmation_score
+  headline=sc.headline; catalyst=sc.catalyst; em_note=sc.em_note
+  best=sc.best_assets; worst=sc.worst_assets; conv=sc.conviction
+  triggers=sc.confirmation_triggers; invalidators=sc.invalidators
+ with st.expander(f"{badge} {label} — P={prob:.0%} · Conf={conf:.0%}", expanded=(label=="BASE")):
+  st.markdown(f"**Headline:** {headline}")
+  st.markdown(f"**Catalyst:** {catalyst}")
+  st.markdown(f"**Confirmation triggers:** {' · '.join(triggers) if triggers else 'Data-dependent'}")
+  st.markdown(f"**EM Note:** {em_note}")
+  st.markdown(f"**Invalidators:** {' · '.join(invalidators) if invalidators else 'None defined'}")
+  if best: st.markdown(f"**Best:** {' · '.join(best[:10])}")
+  if worst: st.markdown(f"**Worst:** {' · '.join(worst[:10])}")
 
 # ── Session state ─────────────────────────────────────────────────────────────
 if "snap" not in st.session_state: st.session_state.snap=None
@@ -179,7 +216,7 @@ if page=="🏠 Dashboard":
 <div style='font-size:10px;color:#9CA3AF;margin-top:6px'>Flip Risk: {flip:.0%}</div>
 </div>""",unsafe_allow_html=True)
 
- # ── Front-Run Banner ─────────────────────────────────────────────────
+ # Front-Run Banner
  if transition:
   fw = transition.front_run_window
   fr = transition.front_run_rationale
@@ -191,35 +228,24 @@ if page=="🏠 Dashboard":
 <span style='color:#E8ECF0;font-size:13px'>{fr}</span>
 </div>""", unsafe_allow_html=True)
 
- # ── NEW: Early Discovery Alert on Dashboard ────────────────────────────
+ # Early Discovery Alert on Dashboard
  if auto_disc:
   candidates = auto_disc.get("candidates",[])
   brewing = [c for c in candidates if c.get("stage")=="brewing"]
   if brewing:
    top_brew = max(brewing, key=lambda x:x.get("confidence",0))
-   st.markdown(f"""<div style='background:#F59E0B11;border-left:4px solid #F59E0B;padding:10px 14px;border-radius:6px;margin:12px 0;cursor:pointer' onclick="">
+   st.markdown(f"""<div style='background:#F59E0B11;border-left:4px solid #F59E0B;padding:10px 14px;border-radius:6px;margin:12px 0'>
 <span style='color:#F59E0B;font-weight:800'>🔮 EARLY DISCOVERY ALERT</span> — {len(brewing)} pre-consensus opportunity detected<br/>
 <span style='color:#E8ECF0;font-size:13px'>Top: <b>{top_brew.get('name','')}</b> — {top_brew.get('thesis','')[:80]}...</span>
 <span style='color:#9CA3AF;font-size:11px'> → Go to <b>🔮 Early Discovery</b> tab</span>
 </div>""", unsafe_allow_html=True)
 
- # ── Quad Transition Probability ────────────────────────────────────────
+ # Quad Transition Probability
  if gip:
   st.markdown("<br/>",unsafe_allow_html=True)
   st.markdown("### 📊 Quad Transition Probabilities")
-
-  QUAD_NAMES = {
-   "Q1":"Goldilocks (Growth↑ Inflation↓)",
-   "Q2":"Reflation (Growth↑ Inflation↑)",
-   "Q3":"Stagflation (Growth↓ Inflation↑)",
-   "Q4":"Deflation (Growth↓ Inflation↓)",
-  }
-  QUAD_WHAT_WINS = {
-   "Q1":"Cyclicals, Tech, Small Caps, Equal-weight",
-   "Q2":"Energy, Materials, Commodity FX, TIPS",
-   "Q3":"Gold, USD, Defensives, Short Duration",
-   "Q4":"Long Duration (TLT), Gold, Defensives",
-  }
+  QUAD_NAMES = {"Q1":"Goldilocks (Growth↑ Inflation↓)","Q2":"Reflation (Growth↑ Inflation↑)","Q3":"Stagflation (Growth↓ Inflation↑)","Q4":"Deflation (Growth↓ Inflation↓)"}
+  QUAD_WHAT_WINS = {"Q1":"Cyclicals, Tech, Small Caps, Equal-weight","Q2":"Energy, Materials, Commodity FX, TIPS","Q3":"Gold, USD, Defensives, Short Duration","Q4":"Long Duration (TLT), Gold, Defensives"}
 
   def _transition_panel(probs, current_q, horizon_label, horizon_desc):
    if not probs: return
@@ -253,7 +279,7 @@ if page=="🏠 Dashboard":
      ("Q4","Q3"):("Supply shock re-ignition","Oil spike before growth recovers → gold/defense only"),
      ("Q1","Q2"):("Reflation beginning","Inflation re-accelerates → add energy/materials, trim bonds"),
      ("Q1","Q4"):("Growth fatigue","Late-cycle slowdown → rotate to defensives/quality"),
-     ("Q2","Q3"):("Stagflation threat","Growth decelerating, inflation sticky → reduce beta"),
+     ("Q2","Q3"):("Stagflation pressure intensifying","Growth decelerating, inflation sticky → reduce beta"),
      ("Q2","Q1"):("Soft landing","Growth holds, inflation cools → remain long cyclicals"),
     }
     key = (current_q, top_q)
@@ -284,8 +310,8 @@ if page=="🏠 Dashboard":
   grids = [row1[0], row1[1], row2[0], row2[1]]
   for i, (sc_item, col) in enumerate(zip(scenarios_list[:4], grids)):
    pc = badge_colors[i]
+   em_short = sc_item.em_note[:70] + "..." if len(sc_item.em_note) > 70 else sc_item.em_note
    with col:
-    em_short = sc_item.em_note[:70] + "..." if len(sc_item.em_note) > 70 else sc_item.em_note
     st.markdown(f"""<div style='background:#1F2937;border-radius:8px;padding:10px;border-left:4px solid {pc};margin-bottom:8px'>
 <div style='font-size:10px;color:{pc};font-weight:800'>{badges[i]} P={sc_item.probability:.0%} · Conf={sc_item.confirmation_score:.0%}</div>
 <div style='font-size:13px;color:#E8ECF0;font-weight:700;margin-top:4px'>{sc_item.name}</div>
@@ -327,16 +353,14 @@ if page=="🏠 Dashboard":
  ar=rr.get("asset_ranges",{})
  crits=[(s,a) for s,v in ar.items() for a in v.get("alerts",[]) if a.get("priority")=="CRITICAL"][:5]
  if crits:
-  st.markdown("---")
-  st.markdown(r"### 🚨 Critical Alerts")
+  st.markdown("### 🚨 Critical Alerts")
   for sym,a in crits:
    st.markdown(f'<div style="background:#EF444411;border-left:3px solid #EF4444;padding:6px 10px;border-radius:4px;margin-bottom:4px">⚠️ <b>[{sym}]</b> {a["action"]} | {a.get("note","")}</div>',unsafe_allow_html=True)
 
  l1=btk.get("level_1",[]); l2=btk.get("level_2",[])
  top=l1[:2]+l2[:2]
  if top:
-  st.markdown("---")
-  st.markdown(r"### 🔍 Top Bottleneck Setups")
+  st.markdown("### 🔍 Top Bottleneck Setups")
   cols=st.columns(min(len(top),4))
   for i,c in enumerate(top[:4]):
    with cols[i]:
@@ -350,10 +374,9 @@ if page=="🏠 Dashboard":
 {('<div style="font-size:9px;color:#EF4444;margin-top:4px">⚠️ REGIME TRAP</div>') if c.get("regime_trap") else ''}
 </div>""",unsafe_allow_html=True)
 
- em_sig = btk.get("em_recovery", {})
+ em_sig = btk.get("em_recovery", {}) if btk else {}
  if em_sig:
-  st.markdown("---")
-  st.markdown(r"### 🌍 EM Recovery Signal")
+  st.markdown("### 🌍 EM Recovery Signal")
   conf = em_sig.get("confidence", 0)
   ec = "#10B981" if conf > 0.6 else "#F59E0B" if conf > 0.4 else "#6B7280"
   st.markdown(f"""<div style='background:#1F2937;border-radius:8px;padding:12px;border-left:4px solid {ec}'>
@@ -370,178 +393,55 @@ if page=="🏠 Dashboard":
 </div>""", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# EARLY DISCOVERY — Pre-Consensus Alpha (NEW v14)
+# GIP REGIME
 # ══════════════════════════════════════════════════════════════════════════════
-elif page=="🔮 Early Discovery":
- st.markdown("# 🔮 Early Discovery — Pre-Consensus Alpha")
- st.caption("Auto-discovered opportunities BEFORE they become consensus. Source: price clustering + news NLP + SEC EDGAR + supply chain graph. Updated every snapshot.")
+elif page=="📈 GIP Regime":
+ st.markdown("# 📈 GIP Model — Growth · Inflation · Policy")
+ st.caption("Hedgeye: YoY RoC second derivative. 'Heating up or cooling down?'")
+ if not gip: st.warning("No GIP data. Refresh."); st.stop()
 
- if not auto_disc or not auto_disc.get("candidates"):
-  st.info("🔍 No early discoveries yet. Run a fresh snapshot (⚡ Force) to trigger autonomous discovery.")
-  st.stop()
+ g=gip.structural_g; i=gip.structural_i
+ fig=go.Figure()
+ for q,(x0,y0,x1,y1) in {"Q1":(-0.1,-1,1,0),"Q2":(-0.1,0,1,1),"Q3":(-1,0,-0.1,1),"Q4":(-1,-1,-0.1,0)}.items():
+  fig.add_shape(type="rect",x0=x0,y0=y0,x1=x1,y1=y1,fillcolor=QC[q],opacity=0.08,line_width=0)
+  fig.add_annotation(x=(x0+x1)/2,y=(y0+y1)/2,text=f"<b>{q}</b><br>{qn(q)}",
+   font=dict(size=11,color=QC[q]),showarrow=False)
+ fig.add_hline(y=0,line_width=1,line_color="#333")
+ fig.add_vline(x=0,line_width=1,line_color="#333")
+ fig.add_scatter(x=[g],y=[i],mode="markers+text",
+  marker=dict(size=18,color=qc(sq),symbol="circle",line=dict(width=2,color="white")),
+  text=["CURRENT"],textposition="top center",textfont=dict(size=9,color="white"))
+ fig.update_layout(xaxis_title="Growth Signal",yaxis_title="Inflation Signal",
+  xaxis=dict(range=[-1,1],showgrid=True,gridcolor="#1F2B3D",zeroline=False),
+  yaxis=dict(range=[-1,1],showgrid=True,gridcolor="#1F2B3D",zeroline=False),
+  paper_bgcolor="#111827",plot_bgcolor="#111827",font=dict(color="#E8ECF0"),
+  height=360,margin=dict(t=20,b=40,l=40,r=20),showlegend=False)
 
- candidates = auto_disc.get("candidates",[])
- meta = auto_disc.get("meta",{})
+ c1,c2=st.columns([1.3,1])
+ with c1: st.plotly_chart(fig,use_container_width=True,config={"displayModeBar":False})
+ with c2:
+  st.markdown("#### Feature Breakdown")
+  f=gip.features
+  feat_rows=[]
+  for k in ["growth_level","growth_momentum","inflation_level","inflation_momentum","policy_score","data_coverage","proxy_share"]:
+   v=f.get(k,float("nan"))
+   if math.isfinite(v):
+    feat_rows.append({"Signal":k.replace("_"," ").title(),"Score":f"{v:+.4f}"})
+  if feat_rows: st.dataframe(pd.DataFrame(feat_rows),hide_index=True,height=220)
+  cov=f.get("data_coverage",0); prx=f.get("proxy_share",0)
+  st.progress(cov,text=f"FRED Coverage: {cov:.0%}")
+  if prx>0.5: st.warning(f"⚠️ {prx:.0%} proxy. Set FRED_API_KEY in secrets.toml for full accuracy.")
+  else: st.success(f"✅ {1-prx:.0%} from FRED macro data")
 
- # Summary cards
- s1,s2,s3,s4,s5 = st.columns(5)
- total = len(candidates)
- bottlenecks = len([c for c in candidates if c.get("category")=="bottleneck"])
- narratives = len([c for c in candidates if c.get("category")=="narrative"])
- transitions = len([c for c in candidates if c.get("category")=="transition"])
- brewing = len([c for c in candidates if c.get("stage")=="brewing"])
-
- s1.markdown(f"""<div style='background:#1F2937;border-radius:8px;padding:10px;text-align:center'>
-<div style='font-size:24px;font-weight:800;color:#E8ECF0'>{total}</div>
-<div style='font-size:10px;color:#9CA3AF'>TOTAL DISCOVERED</div>
-</div>""", unsafe_allow_html=True)
- s2.markdown(f"""<div style='background:#1F2937;border-radius:8px;padding:10px;text-align:center;border-top:3px solid #EF4444'>
-<div style='font-size:24px;font-weight:800;color:#EF4444'>{bottlenecks}</div>
-<div style='font-size:10px;color:#9CA3AF'>BOTTLENECKS</div>
-</div>""", unsafe_allow_html=True)
- s3.markdown(f"""<div style='background:#1F2937;border-radius:8px;padding:10px;text-align:center;border-top:3px solid #6366F1'>
-<div style='font-size:24px;font-weight:800;color:#6366F1'>{narratives}</div>
-<div style='font-size:10px;color:#9CA3AF'>NARRATIVES</div>
-</div>""", unsafe_allow_html=True)
- s4.markdown(f"""<div style='background:#1F2937;border-radius:8px;padding:10px;text-align:center;border-top:3px solid #F59E0B'>
-<div style='font-size:24px;font-weight:800;color:#F59E0B'>{transitions}</div>
-<div style='font-size:10px;color:#9CA3AF'>TRANSITIONS</div>
-</div>""", unsafe_allow_html=True)
- s5.markdown(f"""<div style='background:#1F2937;border-radius:8px;padding:10px;text-align:center;border-top:3px solid #6B7280'>
-<div style='font-size:24px;font-weight:800;color:#6B7280'>{brewing}</div>
-<div style='font-size:10px;color:#9CA3AF'>BREWING (EARLY)</div>
-</div>""", unsafe_allow_html=True)
-
- st.markdown(f"<div style='text-align:right;font-size:10px;color:#6B7280'>Build time: {meta.get('build_time_s',0)}s | Clusters: {meta.get('clusters_found',0)} | News: {meta.get('news_analyzed',0)} | Graph: {meta.get('graph_bottlenecks',0)}</div>", unsafe_allow_html=True)
-
- # Filters
  st.markdown("---")
- fc1, fc2, fc3 = st.columns(3)
- with fc1:
-  stage_filter = st.multiselect("Stage", ["brewing","building","active"], default=["brewing","building"])
- with fc2:
-  cat_filter = st.multiselect("Category", ["bottleneck","narrative","transition"], default=["bottleneck","narrative"])
- with fc3:
-  conf_min = st.slider("Min Confidence", 0.0, 1.0, 0.45, 0.05)
+ c1,c2=st.columns(2)
+ with c1: st.plotly_chart(prob_bar(gip.structural_probs,"Structural (Quarterly)"),use_container_width=True,config={"displayModeBar":False})
+ with c2: st.plotly_chart(prob_bar(gip.monthly_probs,"Monthly (Weather Overlay)"),use_container_width=True,config={"displayModeBar":False})
 
- filtered = [c for c in candidates
-  if c.get("stage") in stage_filter
-  and c.get("category") in cat_filter
-  and c.get("confidence",0) >= conf_min]
-
- # Sort: brewing first, then by confidence
- stage_order = {"brewing":0, "building":1, "active":2}
- filtered.sort(key=lambda x: (stage_order.get(x.get("stage"),3), -x.get("confidence",0)))
-
- # ── PRE-CONSENSIS HIGHLIGHT (top brewing) ──────────────────────────
- pre_con = [c for c in filtered if c.get("stage")=="brewing" and c.get("confidence",0) >= 0.5]
- if pre_con:
-  st.markdown("### ⚡ PRE-CONSENSIS ALERTS — Not yet mainstream")
-  for c in pre_con[:3]:
-   cat_color = {"bottleneck":"#EF4444","narrative":"#6366F1","transition":"#F59E0B"}.get(c.get("category"),"#6B7280")
-   st.markdown(f"""<div class='precon-card'>
-<div style='display:flex;justify-content:space-between;align-items:center'>
-<span style='font-size:14px;font-weight:700;color:#E8ECF0'>{c.get('name','')}</span>
-<span style='background:{cat_color};color:white;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:bold'>{c.get('category','').upper()}</span>
-</div>
-<div style='font-size:12px;color:#9CA3AF;margin-top:6px'>{c.get('thesis','')}</div>
-<div style='display:flex;gap:12px;margin-top:8px;font-size:11px;color:#6B7280'>
-<span>🔥 Confidence: <b style='color:#F59E0B'>{c.get('confidence',0):.0%}</b></span>
-<span>📈 Regime Fit: {c.get('regime_fit',0):.0%}</span>
-<span>🎯 Beneficiaries: {', '.join(c.get('beneficiary_tickers',[])[:5])}</span>
-</div>
-<div style='font-size:10px;color:#6B7280;margin-top:4px'>Source: {' · '.join(c.get('source_signals',[]))}</div>
-</div>""", unsafe_allow_html=True)
-
- # ── FULL TABLE ───────────────────────────────────────────────────────
- st.markdown("### 📋 All Discoveries")
- if filtered:
-  rows = []
-  for c in filtered:
-   stage = c.get("stage","—")
-   badge_class = {"brewing":"brewing-badge","building":"building-badge","active":"active-badge"}.get(stage,"brewing-badge")
-   cat_emoji = {"bottleneck":"🔴","narrative":"🔵","transition":"🟡"}.get(c.get("category"),"⚪")
-   rows.append({
-    "Name": c.get("name",""),
-    "Stage": f"<span class='{badge_class}'>{stage.upper()}</span>",
-    "Category": f"{cat_emoji} {c.get('category','').title()}",
-    "Confidence": f"{c.get('confidence',0):.0%}",
-    "Regime Fit": f"{c.get('regime_fit',0):.0%}",
-    "Beneficiaries": ", ".join(c.get("beneficiary_tickers",[])[:4]),
-    "Thesis (short)": c.get("thesis","")[:90] + "..." if len(c.get("thesis","")) > 90 else c.get("thesis",""),
-    "Confirmation": c.get("confirmation_signal","")[:60],
-    "Source": " · ".join(c.get("source_signals",[])),
-   })
-  df = pd.DataFrame(rows)
-  st.markdown(df.to_html(escape=False, index=False), unsafe_allow_html=True)
- else:
-  st.info("No discoveries match your filters. Try lowering confidence or adding stages.")
-
- # ── BOTTLENECK DEEP DIVE ─────────────────────────────────────────────
- st.markdown("---")
- st.markdown("### 🔴 Bottleneck Deep Dive")
- btk_cands = [c for c in candidates if c.get("category")=="bottleneck"]
- if btk_cands:
-  for c in btk_cands[:5]:
-   with st.expander(f"🔴 {c.get('name','')} — {c.get('stage','').upper()} | Conf: {c.get('confidence',0):.0%}", expanded=(c.get("stage")=="brewing")):
-    c1, c2 = st.columns([2,1])
-    with c1:
-     st.markdown(f"**Thesis:** {c.get('thesis','')}")
-     st.markdown(f"**Confirmation Signal:** {c.get('confirmation_signal','')}")
-     st.markdown(f"**Invalidators:** {' · '.join(c.get('invalidators',[]))}")
-    with c2:
-     st.markdown(f"**Confidence:** {c.get('confidence',0):.0%}")
-     st.markdown(f"**Regime Fit:** {c.get('regime_fit',0):.0%}")
-     st.markdown(f"**Pump Risk:** {c.get('pump_risk',0):.0%}")
-     if c.get("forward_return_expectation"):
-      fre = c["forward_return_expectation"]
-      st.markdown(f"**Expected 3M Return:** {fre.get('expected_3m','—')}")
-     if c.get("transition_forecast"):
-      tf = c["transition_forecast"]
-      st.markdown(f"**Predicted Quad:** {tf.get('predicted_quad','—')} ({tf.get('prediction_confidence','—')})")
- else:
-  st.info("No bottleneck discoveries yet. Run Force Refresh to scan.")
-
- # ── NARRATIVE DEEP DIVE ──────────────────────────────────────────────
- st.markdown("---")
- st.markdown("### 🔵 Narrative Deep Dive")
- narr_cands = [c for c in candidates if c.get("category")=="narrative"]
- if narr_cands:
-  for c in narr_cands[:5]:
-   with st.expander(f"🔵 {c.get('name','')} — {c.get('stage','').upper()} | Conf: {c.get('confidence',0):.0%}", expanded=(c.get("stage")=="brewing")):
-    st.markdown(f"**Thesis:** {c.get('thesis','')}")
-    st.markdown(f"**Beneficiaries:** {', '.join(c.get('beneficiary_tickers',[]))}")
-    st.markdown(f"**Confirmation:** {c.get('confirmation_signal','')}")
-    st.markdown(f"**Invalidators:** {' · '.join(c.get('invalidators',[]))}")
- else:
-  st.info("No narrative discoveries yet. Price clusters may not have crossed news validation threshold.")
-
- # ── TRANSITION FORECAST ──────────────────────────────────────────────
- st.markdown("---")
- st.markdown("### 🟡 Transition Forecast")
- trans_cands = [c for c in candidates if c.get("category")=="transition"]
- if trans_cands:
-  for c in trans_cands[:3]:
-   with st.expander(f"🟡 {c.get('name','')} — Conf: {c.get('confidence',0):.0%}", expanded=True):
-    st.markdown(f"**Thesis:** {c.get('thesis','')}")
-    if c.get("transition_forecast"):
-     tf = c["transition_forecast"]
-     st.markdown("**Probability Distribution:**")
-     for q, p in tf.get("probability_distribution",{}).items():
-      st.markdown(f"- {q}: {p:.0%}")
-    st.markdown(f"**Expected Return:** {c.get('forward_return_expectation',{})}")
- else:
-  st.info("No transition forecasts. Structural and monthly quads may be aligned.")
-
- # ── FEEDBACK LOOP STATUS ─────────────────────────────────────────────
- if fb_eval:
-  st.markdown("---")
-  st.markdown("### 🧠 Feedback Loop Status")
-  st.caption("System tracks discoveries for 6 months. Winners auto-promoted to permanent lists. Losers auto-demoted.")
-  c1, c2, c3 = st.columns(3)
-  c1.metric("Evaluated", fb_eval.get("evaluated",0))
-  c2.metric("Promoted ✅", fb_eval.get("promoted",0), "added to permanent")
-  c3.metric("Demoted ❌", fb_eval.get("demoted",0), "removed")
+ st.markdown("#### Raw FRED Data")
+ raw_rows=[{"Series":k[4:].upper(),"Value":f"{v:.4f}"} for k,v in sorted(f.items()) if k.startswith("raw_") and math.isfinite(v)]
+ if raw_rows: st.dataframe(pd.DataFrame(raw_rows),hide_index=True,height=250)
+ else: st.info("No FRED data loaded — running on market price proxies. Add FRED_API_KEY to secrets.toml.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TIMING
@@ -623,57 +523,6 @@ elif page=="⏱️ Timing":
     st.markdown(f"**Impacts:** " + " | ".join([f"{k.upper()}={v}" for k,v in a.get("impacts",{}).items()]))
 
 # ══════════════════════════════════════════════════════════════════════════════
-# GIP REGIME
-# ══════════════════════════════════════════════════════════════════════════════
-elif page=="📈 GIP Regime":
- st.markdown("# 📈 GIP Model — Growth · Inflation · Policy")
- st.caption("Hedgeye: YoY RoC second derivative. 'Heating up or cooling down?'")
- if not gip: st.warning("No GIP data. Refresh."); st.stop()
-
- g=gip.structural_g; i=gip.structural_i
- fig=go.Figure()
- for q,(x0,y0,x1,y1) in {"Q1":(-0.1,-1,1,0),"Q2":(-0.1,0,1,1),"Q3":(-1,0,-0.1,1),"Q4":(-1,-1,-0.1,0)}.items():
-  fig.add_shape(type="rect",x0=x0,y0=y0,x1=x1,y1=y1,fillcolor=QC[q],opacity=0.08,line_width=0)
-  fig.add_annotation(x=(x0+x1)/2,y=(y0+y1)/2,text=f"<b>{q}</b><br>{qn(q)}",
-   font=dict(size=11,color=QC[q]),showarrow=False)
- fig.add_hline(y=0,line_width=1,line_color="#333")
- fig.add_vline(x=0,line_width=1,line_color="#333")
- fig.add_scatter(x=[g],y=[i],mode="markers+text",
-  marker=dict(size=18,color=qc(sq),symbol="circle",line=dict(width=2,color="white")),
-  text=["CURRENT"],textposition="top center",textfont=dict(size=9,color="white"))
- fig.update_layout(xaxis_title="Growth Signal",yaxis_title="Inflation Signal",
-  xaxis=dict(range=[-1,1],showgrid=True,gridcolor="#1F2B3D",zeroline=False),
-  yaxis=dict(range=[-1,1],showgrid=True,gridcolor="#1F2B3D",zeroline=False),
-  paper_bgcolor="#111827",plot_bgcolor="#111827",font=dict(color="#E8ECF0"),
-  height=360,margin=dict(t=20,b=40,l=40,r=20),showlegend=False)
-
- c1,c2=st.columns([1.3,1])
- with c1: st.plotly_chart(fig,use_container_width=True,config={"displayModeBar":False})
- with c2:
-  st.markdown("#### Feature Breakdown")
-  f=gip.features
-  feat_rows=[]
-  for k in ["growth_level","growth_momentum","inflation_level","inflation_momentum","policy_score","data_coverage","proxy_share"]:
-   v=f.get(k,float("nan"))
-   if math.isfinite(v):
-    feat_rows.append({"Signal":k.replace("_"," ").title(),"Score":f"{v:+.4f}"})
-  if feat_rows: st.dataframe(pd.DataFrame(feat_rows),hide_index=True,height=220)
-  cov=f.get("data_coverage",0); prx=f.get("proxy_share",0)
-  st.progress(cov,text=f"FRED Coverage: {cov:.0%}")
-  if prx>0.5: st.warning(f"⚠️ {prx:.0%} proxy. Set FRED_API_KEY in secrets.toml for full accuracy.")
-  else: st.success(f"✅ {1-prx:.0%} from FRED macro data")
-
- st.markdown("---")
- c1,c2=st.columns(2)
- with c1: st.plotly_chart(prob_bar(gip.structural_probs,"Structural (Quarterly)"),use_container_width=True,config={"displayModeBar":False})
- with c2: st.plotly_chart(prob_bar(gip.monthly_probs,"Monthly (Weather Overlay)"),use_container_width=True,config={"displayModeBar":False})
-
- st.markdown("#### Raw FRED Data")
- raw_rows=[{"Series":k[4:].upper(),"Value":f"{v:.4f}"} for k,v in sorted(f.items()) if k.startswith("raw_") and math.isfinite(v)]
- if raw_rows: st.dataframe(pd.DataFrame(raw_rows),hide_index=True,height=250)
- else: st.info("No FRED data loaded — running on market price proxies. Add FRED_API_KEY to secrets.toml.")
-
-# ══════════════════════════════════════════════════════════════════════════════
 # RISK RANGES
 # ══════════════════════════════════════════════════════════════════════════════
 elif page=="🎯 Risk Ranges":
@@ -715,7 +564,7 @@ elif page=="🎯 Risk Ranges":
  all_a=sorted([(s,a) for s,v in ar.items() for a in v.get("alerts",[])],key=lambda x:{"CRITICAL":0,"HIGH":1,"MEDIUM":2}.get(x[1].get("priority"),3))
  if all_a:
   st.markdown("---")
-  st.markdown(r"### 🔔 Alerts")
+  st.markdown("### 🔔 Alerts")
   for sym,a in all_a[:20]:
    ic="🔴" if a["priority"]=="CRITICAL" else "🟡" if a["priority"]=="HIGH" else "🔵"
    st.markdown(f'<div style="background:#1F2937;border-left:3px solid {"#EF4444" if a["priority"]=="CRITICAL" else "#F59E0B"};padding:6px 10px;border-radius:4px;margin-bottom:4px">{ic} <b>[{sym}]</b> {a["action"]} {a["duration"]} — {a.get("note","")}</div>',unsafe_allow_html=True)
@@ -740,11 +589,19 @@ elif page=="🌍 Global Quad":
  with c2:
   st.markdown("### Country Heatmap")
   heat=[]
-  for country, (etf, quad, conf) in global_.get("country_quads",{}).items():
+  for country, data in global_.get("country_quads",{}).items():
+   if isinstance(data, (list, tuple)) and len(data) >= 3:
+    etf, quad, conf = data[0], data[1], data[2]
+   elif isinstance(data, dict):
+    etf, quad, conf = data.get("etf",""), data.get("quad",""), data.get("conf",0)
+   else:
+    etf, quad, conf = "", "", 0
    heat.append({"Country":country,"ETF":etf,"Quad":quad,"Conf":f"{conf:.0%}"})
   if heat:
    df=pd.DataFrame(heat)
    st.dataframe(df.style.map(lambda v: f"color:{QC.get(v,'#9CA3AF')}",subset=["Quad"]),hide_index=True,height=420,use_container_width=True)
+  else:
+   st.info("No country quad data available.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # US STOCKS
@@ -752,41 +609,9 @@ elif page=="🌍 Global Quad":
 elif page=="📊 US Stocks":
  st.markdown("# 📊 US Stocks — Sectors · Factors · Notable Tickers")
  st.caption("Regime playbook + TRR/LRR + bottleneck badge. Best EV+ first.")
-
- btk_data=btk if btk else {"level_1":[],"level_2":[],"watch":[],"avoid":[]}
- known_btk={k for lvl in ["level_1","level_2","watch","avoid"] for k in [x["ticker"] for x in btk_data.get(lvl,[])]}
-
- def _btk_badge(ticker):
-  for lvl in ["level_1","level_2","watch","avoid"]:
-   for x in btk_data.get(lvl,[]):
-    if x["ticker"]==ticker:
-     colors={"level_1":"#10B981","level_2":"#F59E0B","watch":"#6366F1","avoid":"#EF4444"}
-     return f"<span style='background:{colors[lvl]};color:white;padding:1px 5px;border-radius:3px;font-size:9px'>{lvl.replace('_','').upper()}</span>"
-  return ""
-
- def _render_universe(title, tickers_map, days=252, show_btk=True):
-  st.markdown(f"### {title}")
-  rows=[]
-  for sym, info in tickers_map.items():
-   s=prices.get(sym)
-   if s is None: continue
-   s=pd.to_numeric(s,errors="coerce").dropna().tail(days)
-   if s.empty: continue
-   ret1m=float(s.iloc[-1]/s.iloc[-22]-1) if len(s)>=22 else 0
-   ret3m=float(s.iloc[-1]/s.iloc[-64]-1) if len(s)>=64 else 0
-   ret6m=float(s.iloc[-1]/s.iloc[-126]-1) if len(s)>=126 else 0
-   rows.append({"Ticker":sym,"Name":info.get("name",sym),
-    "1M":f"{ret1m:+.1%}","3M":f"{ret3m:+.1%}","6M":f"{ret6m:+.1%}",
-    "Bottleneck":_btk_badge(sym) if show_btk else ""})
-  if rows:
-   df=pd.DataFrame(rows)
-   st.markdown(df.to_html(escape=False,index=False),unsafe_allow_html=True)
-   fig=price_chart(prices, list(tickers_map.keys())[:8], title=f"{title} — Normalized", days=days)
-   st.plotly_chart(fig,use_container_width=True,config={"displayModeBar":False})
-  else: st.info("No data loaded for this universe.")
-
- _render_universe("US Sectors", US_SECTORS)
- _render_universe("US Factors", US_FACTORS)
+ from config.settings import US_SECTORS, US_FACTORS, TICKER_SECTOR
+ _render_universe("US Sectors", US_SECTORS, prices, btk)
+ _render_universe("US Factors", US_FACTORS, prices, btk)
 
  st.markdown("### Notable Single Stocks (Bottleneck Plays)")
  notable={k:v for k,v in TICKER_SECTOR.items() if k not in ("generic",) and k in prices}
@@ -797,7 +622,7 @@ elif page=="📊 US Stocks":
   s=pd.to_numeric(s,errors="coerce").dropna().tail(252)
   if s.empty: continue
   ret3m=float(s.iloc[-1]/s.iloc[-64]-1) if len(s)>=64 else 0
-  badge=_btk_badge(sym)
+  badge=_btk_badge(sym, btk)
   rows.append({"Ticker":sym,"Sector":sector.replace("_"," ").title(),"3M":f"{ret3m:+.1%}","Bottleneck":badge})
  if rows:
   df=pd.DataFrame(rows)
@@ -809,22 +634,8 @@ elif page=="📊 US Stocks":
 elif page=="💱 Forex":
  st.markdown("# 💱 Forex — Regime + Carry + Divergence")
  st.caption("DXY regime + EM carry. DXY bearish = EM relief. DXY bullish = EM pain.")
-
- rows=[]
- for sym, info in FOREX_PAIRS.items():
-  s=prices.get(sym)
-  if s is None: continue
-  s=pd.to_numeric(s,errors="coerce").dropna().tail(252)
-  if s.empty: continue
-  ret1m=float(s.iloc[-1]/s.iloc[-22]-1) if len(s)>=22 else 0
-  ret3m=float(s.iloc[-1]/s.iloc[-64]-1) if len(s)>=64 else 0
-  rows.append({"Pair":sym,"Name":info.get("name",sym),"1M":f"{ret1m:+.1%}","3M":f"{ret3m:+.1%}","Regime":info.get("regime","neutral")})
- if rows:
-  df=pd.DataFrame(rows)
-  st.dataframe(df.style.map(lambda v: f"color:{'#10B981' if 'bullish' in str(v).lower() else '#EF4444' if 'bearish' in str(v).lower() else '#6B7280'}",subset=["Regime"]),hide_index=True,height=420,use_container_width=True)
-  fig=price_chart(prices, list(FOREX_PAIRS.keys())[:6], title="Major FX Pairs — Normalized", days=252)
-  st.plotly_chart(fig,use_container_width=True,config={"displayModeBar":False})
- else: st.info("No forex data loaded.")
+ from config.settings import FOREX_PAIRS
+ _render_universe("Forex Pairs", FOREX_PAIRS, prices, btk, days=252)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # COMMODITIES
@@ -832,22 +643,8 @@ elif page=="💱 Forex":
 elif page=="🛢 Commodities":
  st.markdown("# 🛢 Commodities — Energy · Metals · Agriculture")
  st.caption("Q2/Q3 commodity cycle. Oil = growth proxy. Gold = Q3/Q4 safety.")
-
- rows=[]
- for sym, info in COMMODITIES.items():
-  s=prices.get(sym)
-  if s is None: continue
-  s=pd.to_numeric(s,errors="coerce").dropna().tail(252)
-  if s.empty: continue
-  ret1m=float(s.iloc[-1]/s.iloc[-22]-1) if len(s)>=22 else 0
-  ret3m=float(s.iloc[-1]/s.iloc[-64]-1) if len(s)>=64 else 0
-  rows.append({"Ticker":sym,"Name":info.get("name",sym),"1M":f"{ret1m:+.1%}","3M":f"{ret3m:+.1%}","Type":info.get("type","commodity")})
- if rows:
-  df=pd.DataFrame(rows)
-  st.dataframe(df,hide_index=True,height=420,use_container_width=True)
-  fig=price_chart(prices, list(COMMODITIES.keys())[:8], title="Commodities — Normalized", days=252)
-  st.plotly_chart(fig,use_container_width=True,config={"displayModeBar":False})
- else: st.info("No commodity data loaded.")
+ from config.settings import COMMODITIES
+ _render_universe("Commodities", COMMODITIES, prices, btk, days=252)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # CRYPTO
@@ -855,22 +652,8 @@ elif page=="🛢 Commodities":
 elif page=="₿ Crypto":
  st.markdown("# ₿ Crypto — Macro + On-Chain + Narrative")
  st.caption("Q1/Q2 risk-on. Q3/Q4 risk-off. Watch BTC dominance + DXY correlation.")
-
- rows=[]
- for sym, info in CRYPTO.items():
-  s=prices.get(sym)
-  if s is None: continue
-  s=pd.to_numeric(s,errors="coerce").dropna().tail(252)
-  if s.empty: continue
-  ret1m=float(s.iloc[-1]/s.iloc[-22]-1) if len(s)>=22 else 0
-  ret3m=float(s.iloc[-1]/s.iloc[-64]-1) if len(s)>=64 else 0
-  rows.append({"Ticker":sym,"Name":info.get("name",sym),"1M":f"{ret1m:+.1%}","3M":f"{ret3m:+.1%}","Narrative":info.get("narrative","macro")})
- if rows:
-  df=pd.DataFrame(rows)
-  st.dataframe(df,hide_index=True,height=420,use_container_width=True)
-  fig=price_chart(prices, list(CRYPTO.keys())[:6], title="Crypto — Normalized", days=252)
-  st.plotly_chart(fig,use_container_width=True,config={"displayModeBar":False})
- else: st.info("No crypto data loaded.")
+ from config.settings import CRYPTO
+ _render_universe("Crypto", CRYPTO, prices, btk, days=252)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # IHSG
@@ -878,22 +661,8 @@ elif page=="₿ Crypto":
 elif page=="🇮🇩 IHSG":
  st.markdown("# 🇮🇩 IHSG — Indonesia Macro + Foreign Flow + JIIPE")
  st.caption("Indonesia-specific: CKPN cascade, offshore drilling, foreign flow, JIIPE.")
-
- rows=[]
- for sym, info in IHSG_UNIVERSE.items():
-  s=prices.get(sym)
-  if s is None: continue
-  s=pd.to_numeric(s,errors="coerce").dropna().tail(252)
-  if s.empty: continue
-  ret1m=float(s.iloc[-1]/s.iloc[-22]-1) if len(s)>=22 else 0
-  ret3m=float(s.iloc[-1]/s.iloc[-64]-1) if len(s)>=64 else 0
-  rows.append({"Ticker":sym,"Name":info.get("name",sym),"1M":f"{ret1m:+.1%}","3M":f"{ret3m:+.1%}","Sector":info.get("sector","unknown")})
- if rows:
-  df=pd.DataFrame(rows)
-  st.dataframe(df,hide_index=True,height=420,use_container_width=True)
-  fig=price_chart(prices, list(IHSG_UNIVERSE.keys())[:8], title="IHSG Universe — Normalized", days=252)
-  st.plotly_chart(fig,use_container_width=True,config={"displayModeBar":False})
- else: st.info("No IHSG data loaded.")
+ from config.settings import IHSG_UNIVERSE
+ _render_universe("IHSG Universe", IHSG_UNIVERSE, prices, btk, days=252)
 
  st.markdown("---")
  st.markdown("### 🌍 EM Recovery Signal")
@@ -1054,19 +823,6 @@ elif page=="🔮 Scenarios":
  risk=scen.get("risk_case")
  tail=scen.get("tail_case")
 
- def _render_scenario(sc, label, color, badge):
-  if not sc: return
-  with st.expander(f"{badge} {label} — P={sc.probability:.0%} · Conf={sc.confirmation_score:.0%}", expanded=(label=="BASE")):
-   st.markdown(f"**Headline:** {sc.headline}")
-   st.markdown(f"**Catalyst:** {sc.catalyst}")
-   st.markdown(f"**Confirmation:** {sc.confirmation}")
-   st.markdown(f"**EM Note:** {sc.em_note}")
-   st.markdown(f"**Invalidators:** {' · '.join(sc.invalidators)}")
-   if sc.asset_implications:
-    st.markdown("**Asset Implications:**")
-    for mkt, impl in sc.asset_implications.items():
-     st.markdown(f"- **{mkt}**: {impl}")
-
  _render_scenario(base, "BASE", "#10B981", "🎯")
  _render_scenario(alt, "ALT", "#F59E0B", "🔄")
  _render_scenario(risk, "RISK", "#EF4444", "⚠️")
@@ -1082,3 +838,177 @@ elif page=="🔮 Scenarios":
 4. **Data Coverage** quality determines the tail case
 5. **Confirmation Score** = how many macro signals align with the scenario
 """)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# EARLY DISCOVERY — Pre-Consensus Alpha (NEW v14)
+# ══════════════════════════════════════════════════════════════════════════════
+elif page=="🔮 Early Discovery":
+ st.markdown("# 🔮 Early Discovery — Pre-Consensus Alpha")
+ st.caption("Auto-discovered opportunities BEFORE they become consensus. Source: price clustering + news NLP + SEC EDGAR + supply chain graph. Updated every snapshot.")
+
+ if not auto_disc or not auto_disc.get("candidates"):
+  st.info("🔍 No early discoveries yet. Run a fresh snapshot (⚡ Force) to trigger autonomous discovery.")
+  st.stop()
+
+ candidates = auto_disc.get("candidates",[])
+ meta = auto_disc.get("meta",{})
+
+ # Summary cards
+ s1,s2,s3,s4,s5 = st.columns(5)
+ total = len(candidates)
+ bottlenecks = len([c for c in candidates if c.get("category")=="bottleneck"])
+ narratives = len([c for c in candidates if c.get("category")=="narrative"])
+ transitions = len([c for c in candidates if c.get("category")=="transition"])
+ brewing = len([c for c in candidates if c.get("stage")=="brewing"])
+
+ s1.markdown(f"""<div style='background:#1F2937;border-radius:8px;padding:10px;text-align:center'>
+<div style='font-size:24px;font-weight:800;color:#E8ECF0'>{total}</div>
+<div style='font-size:10px;color:#9CA3AF'>TOTAL DISCOVERED</div>
+</div>""", unsafe_allow_html=True)
+ s2.markdown(f"""<div style='background:#1F2937;border-radius:8px;padding:10px;text-align:center;border-top:3px solid #EF4444'>
+<div style='font-size:24px;font-weight:800;color:#EF4444'>{bottlenecks}</div>
+<div style='font-size:10px;color:#9CA3AF'>BOTTLENECKS</div>
+</div>""", unsafe_allow_html=True)
+ s3.markdown(f"""<div style='background:#1F2937;border-radius:8px;padding:10px;text-align:center;border-top:3px solid #6366F1'>
+<div style='font-size:24px;font-weight:800;color:#6366F1'>{narratives}</div>
+<div style='font-size:10px;color:#9CA3AF'>NARRATIVES</div>
+</div>""", unsafe_allow_html=True)
+ s4.markdown(f"""<div style='background:#1F2937;border-radius:8px;padding:10px;text-align:center;border-top:3px solid #F59E0B'>
+<div style='font-size:24px;font-weight:800;color:#F59E0B'>{transitions}</div>
+<div style='font-size:10px;color:#9CA3AF'>TRANSITIONS</div>
+</div>""", unsafe_allow_html=True)
+ s5.markdown(f"""<div style='background:#1F2937;border-radius:8px;padding:10px;text-align:center;border-top:3px solid #6B7280'>
+<div style='font-size:24px;font-weight:800;color:#6B7280'>{brewing}</div>
+<div style='font-size:10px;color:#9CA3AF'>BREWING (EARLY)</div>
+</div>""", unsafe_allow_html=True)
+
+ st.markdown(f"<div style='text-align:right;font-size:10px;color:#6B7280'>Build time: {meta.get('build_time_s',0)}s | Clusters: {meta.get('clusters_found',0)} | News: {meta.get('news_analyzed',0)} | Graph: {meta.get('graph_bottlenecks',0)}</div>", unsafe_allow_html=True)
+
+ # Filters
+ st.markdown("---")
+ fc1, fc2, fc3 = st.columns(3)
+ with fc1:
+  stage_filter = st.multiselect("Stage", ["brewing","building","active"], default=["brewing","building"])
+ with fc2:
+  cat_filter = st.multiselect("Category", ["bottleneck","narrative","transition"], default=["bottleneck","narrative"])
+ with fc3:
+  conf_min = st.slider("Min Confidence", 0.0, 1.0, 0.45, 0.05)
+
+ filtered = [c for c in candidates
+  if c.get("stage") in stage_filter
+  and c.get("category") in cat_filter
+  and c.get("confidence",0) >= conf_min]
+
+ # Sort: brewing first, then by confidence
+ stage_order = {"brewing":0, "building":1, "active":2}
+ filtered.sort(key=lambda x: (stage_order.get(x.get("stage"),3), -x.get("confidence",0)))
+
+ # PRE-CONSENSIS HIGHLIGHT
+ pre_con = [c for c in filtered if c.get("stage")=="brewing" and c.get("confidence",0) >= 0.5]
+ if pre_con:
+  st.markdown("### ⚡ PRE-CONSENSIS ALERTS — Not yet mainstream")
+  for c in pre_con[:3]:
+   cat_color = {"bottleneck":"#EF4444","narrative":"#6366F1","transition":"#F59E0B"}.get(c.get("category"),"#6B7280")
+   st.markdown(f"""<div class='precon-card'>
+<div style='display:flex;justify-content:space-between;align-items:center'>
+<span style='font-size:14px;font-weight:700;color:#E8ECF0'>{c.get('name','')}</span>
+<span style='background:{cat_color};color:white;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:bold'>{c.get('category','').upper()}</span>
+</div>
+<div style='font-size:12px;color:#9CA3AF;margin-top:6px'>{c.get('thesis','')}</div>
+<div style='display:flex;gap:12px;margin-top:8px;font-size:11px;color:#6B7280'>
+<span>🔥 Confidence: <b style='color:#F59E0B'>{c.get('confidence',0):.0%}</b></span>
+<span>📈 Regime Fit: {c.get('regime_fit',0):.0%}</span>
+<span>🎯 Beneficiaries: {', '.join(c.get('beneficiary_tickers',[])[:5])}</span>
+</div>
+<div style='font-size:10px;color:#6B7280;margin-top:4px'>Source: {' · '.join(c.get('source_signals',[]))}</div>
+</div>""", unsafe_allow_html=True)
+
+ # FULL TABLE
+ st.markdown("### 📋 All Discoveries")
+ if filtered:
+  rows = []
+  for c in filtered:
+   stage = c.get("stage","—")
+   badge_class = {"brewing":"brewing-badge","building":"building-badge","active":"active-badge"}.get(stage,"brewing-badge")
+   cat_emoji = {"bottleneck":"🔴","narrative":"🔵","transition":"🟡"}.get(c.get("category"),"⚪")
+   rows.append({
+    "Name": c.get("name",""),
+    "Stage": f"<span class='{badge_class}'>{stage.upper()}</span>",
+    "Category": f"{cat_emoji} {c.get('category','').title()}",
+    "Confidence": f"{c.get('confidence',0):.0%}",
+    "Regime Fit": f"{c.get('regime_fit',0):.0%}",
+    "Beneficiaries": ", ".join(c.get("beneficiary_tickers",[])[:4]),
+    "Thesis (short)": c.get("thesis","")[:90] + "..." if len(c.get("thesis","")) > 90 else c.get("thesis",""),
+    "Confirmation": c.get("confirmation_signal","")[:60],
+    "Source": " · ".join(c.get("source_signals",[])),
+   })
+  df = pd.DataFrame(rows)
+  st.markdown(df.to_html(escape=False, index=False), unsafe_allow_html=True)
+ else:
+  st.info("No discoveries match your filters. Try lowering confidence or adding stages.")
+
+ # BOTTLENECK DEEP DIVE
+ st.markdown("---")
+ st.markdown("### 🔴 Bottleneck Deep Dive")
+ btk_cands = [c for c in candidates if c.get("category")=="bottleneck"]
+ if btk_cands:
+  for c in btk_cands[:5]:
+   with st.expander(f"🔴 {c.get('name','')} — {c.get('stage','').upper()} | Conf: {c.get('confidence',0):.0%}", expanded=(c.get("stage")=="brewing")):
+    c1, c2 = st.columns([2,1])
+    with c1:
+     st.markdown(f"**Thesis:** {c.get('thesis','')}")
+     st.markdown(f"**Confirmation Signal:** {c.get('confirmation_signal','')}")
+     st.markdown(f"**Invalidators:** {' · '.join(c.get('invalidators',[]))}")
+    with c2:
+     st.markdown(f"**Confidence:** {c.get('confidence',0):.0%}")
+     st.markdown(f"**Regime Fit:** {c.get('regime_fit',0):.0%}")
+     st.markdown(f"**Pump Risk:** {c.get('pump_risk',0):.0%}")
+     if c.get("forward_return_expectation"):
+      fre = c["forward_return_expectation"]
+      st.markdown(f"**Expected 3M Return:** {fre.get('expected_3m','—')}")
+     if c.get("transition_forecast"):
+      tf = c["transition_forecast"]
+      st.markdown(f"**Predicted Quad:** {tf.get('predicted_quad','—')} ({tf.get('prediction_confidence','—')})")
+ else:
+  st.info("No bottleneck discoveries yet. Run Force Refresh to scan.")
+
+ # NARRATIVE DEEP DIVE
+ st.markdown("---")
+ st.markdown("### 🔵 Narrative Deep Dive")
+ narr_cands = [c for c in candidates if c.get("category")=="narrative"]
+ if narr_cands:
+  for c in narr_cands[:5]:
+   with st.expander(f"🔵 {c.get('name','')} — {c.get('stage','').upper()} | Conf: {c.get('confidence',0):.0%}", expanded=(c.get("stage")=="brewing")):
+    st.markdown(f"**Thesis:** {c.get('thesis','')}")
+    st.markdown(f"**Beneficiaries:** {', '.join(c.get('beneficiary_tickers',[]))}")
+    st.markdown(f"**Confirmation:** {c.get('confirmation_signal','')}")
+    st.markdown(f"**Invalidators:** {' · '.join(c.get('invalidators',[]))}")
+ else:
+  st.info("No narrative discoveries yet. Price clusters may not have crossed news validation threshold.")
+
+ # TRANSITION FORECAST
+ st.markdown("---")
+ st.markdown("### 🟡 Transition Forecast")
+ trans_cands = [c for c in candidates if c.get("category")=="transition"]
+ if trans_cands:
+  for c in trans_cands[:3]:
+   with st.expander(f"🟡 {c.get('name','')} — Conf: {c.get('confidence',0):.0%}", expanded=True):
+    st.markdown(f"**Thesis:** {c.get('thesis','')}")
+    if c.get("transition_forecast"):
+     tf = c["transition_forecast"]
+     st.markdown("**Probability Distribution:**")
+     for q, p in tf.get("probability_distribution",{}).items():
+      st.markdown(f"- {q}: {p:.0%}")
+    st.markdown(f"**Expected Return:** {c.get('forward_return_expectation',{})}")
+ else:
+  st.info("No transition forecasts. Structural and monthly quads may be aligned.")
+
+ # FEEDBACK LOOP STATUS
+ if fb_eval:
+  st.markdown("---")
+  st.markdown("### 🧠 Feedback Loop Status")
+  st.caption("System tracks discoveries for 6 months. Winners auto-promoted to permanent lists. Losers auto-demoted.")
+  c1, c2, c3 = st.columns(3)
+  c1.metric("Evaluated", fb_eval.get("evaluated",0))
+  c2.metric("Promoted ✅", fb_eval.get("promoted",0), "added to permanent")
+  c3.metric("Demoted ❌", fb_eval.get("demoted",0), "removed")

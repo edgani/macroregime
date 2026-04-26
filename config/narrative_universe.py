@@ -1,19 +1,10 @@
-"""config/narrative_universe.py — BATCH 9
+"""config/narrative_universe.py — BATCH 10
 Artikel baru Ricky2212 (Apr 2026 extraction):
-1.  Psikologi Sabar (Winning Series Part 3)
-2.  Tutup Apps OLT / Jauhi Keramaian (Winning Series Part 4)
-3.  B-Indikator Part 2 — Bakrie+Salim synergy (BUMI/BRMS/ENRG/DEWA/BIPI/MEDC)
-4.  B-Indikator Part 3 — BRMS gold/copper/nickel/silver + Salim/Bakrie/Agus Projo
-5.  B-Indikator Part 4 — Kemasan cerita siap dijalankan (MIP, Green ESG, China stimulus, end-cycle)
-6.  Logindo — Kisah barang yang tertinggal (OSV cycle, supply shortage, WINS/ELSA/BBRM/LEAD)
-7.  Logindo — Menanti restrukturisasi hutang (OCP Fund, debt restructuring)
-8.  Logindo — Logamnya Login Do-nk (restrukturisasi selesai, revaluasi asset, Eddy Logam repo)
-9.  Logindo — Kapalnya berlayar ke utara (Q1 2024 profit, go regional, spot charter)
-10. Key Takeaway Logindo management (Denny Heryanto interview, go regional, revaluasi, utilization 80%)
-11. Key Takeaway Logindo part 2 (Denny Heryanto/CFO, BP Berau spot, revaluasi, debt covenant)
-12. Logindo — Wangi Corp Action (DES scenario, OCP zero-coupon, distressed fund mechanics)
-13. Logindo — DES diumumin (harga 186, PT Jalan Terang Samudera, Oakshire Capital)
-14. Logindo — Restrukturisasi tiba + Jalan Terang DES (ringkasan restruk + LK Q2 DES)
+1.  Meneropong deviden ITMG / Bye SMDR / Update BTPS / Thanks BRMS / Edisi siram bensin / DEWA RUPSLB / Segudang cerita Solo ke Hambalang (Prabowo macro)
+2.  Kemana saja saya menaruh uang (full asset class allocation framework)
+3.  OMON OMON Pemilu dan IHSG (election cycle 2004-2024)
+4.  Semua tentang sektor transportasi kapal (container, drybulk, oil tanker, OSV)
+5.  Minyak, minyak — oil & gas hulu-hilir deep dive + IEA data
 
 Copy-paste block ini ke bawah file config/narrative_universe.py yang sudah ada,
 lalu append merge lines di bagian paling bawah file.
@@ -38,182 +29,256 @@ class NarrativeTemplate:
     pump_risk: float
     confirmation_signals: List[str]
 
-_NARRATIVES_BATCH9: List[NarrativeTemplate] = [
+_NARRATIVES_BATCH10: List[NarrativeTemplate] = [
 
-    # ── ARTICLE 1+2: Winning Series — Patience & Noise Immunity ───────────────
+    # ── ARTICLE 1: Indonesia Macro & Political Transition ─────────────────────
     NarrativeTemplate(
-        name="Retail Multibagger Psychology — Patience & Noise Immunity",
-        description="""Ricky2212 Winning Series framework for retail investors:
-PART 3 — PSIKOLOGI SABAR: patience is the ultimate determinant of return magnitude.
-- "Percuma riset dalam + beli diskon + time frame tepat kalau ga sabar."
-- Three failure modes of impatience:
-  (a) Sell too early at 1-2 bagger when champion stock just beginning its cycle
-  (b) Chase greener grass (rumput tetangga) → abandon super company before it runs
-  (c) Day-to-day noise shakes conviction → sell on temporary bad news during transformation
-- Case studies: BYAN (15x), TMAS (20x), ULTJ (slow then rally), BUMI (5x post-restrukturisasi)
-PART 4 — TUTUP APPS OLT: OLT apps destroy patience via tick-by-tick stimulation → thumb presses SELL.
-- "Apps OLT = sarana paling ampuh merusak psikologi sabar."
-- Pre-OLT era (phone dealer) forced distance from market noise → higher holding period.
-- Property investors calm because no OLT; stock investors should emulate.
-- Recommendation: use WA/call to dealer for execution; check price only occasionally.
-Key insight: multibagger = cheap entry + long time frame + patience + noise immunity.""",
+        name="Indonesia Political Transition & Macro Debt Overhang",
+        description="""Ricky2212 Indonesia macro framework: "Segudang cerita dari Solo ke Hambalang".
+10-year Jokowi (Mulyono) legacy assessment:
+- GDP growth mediocre ~5% (never hit 7% target); SBY era reached 6.9% in 2007
+- IHSG +52% in 10 years (Jokowi) vs +489% in 10 years (SBY)
+- Government debt exploded: Rp 2,601T → Rp 8,444T (+224%); interest cost +200%
+- K-shape economy: rich richer, poor poorer; middle class shrunk 57.3M→47.9M (2019→2024)
+- 5-month deflation in 2024 = collapsing consumer purchasing power
+- 2025 debt wall: ~Rp 800T principal + interest maturing; global refinancing scramble
+Prabowo (08) transition:
+- Campaign promises: 8% GDP growth, 3M houses, free lunch program
+- Cabinet "gemuk" = bloated, political accommodation, potential fiscal waste
+- Key economic team: Sri Mulyani, Airlangga, Bahlil, Zulkifli Hasan
+- "Melanjutkan" = risk of continuing same non-pro-growth policies
+- 08's advantage: patriotism, wide network, loyal capable circle, legacy motivation
+Election cycle history (Pilpres framework):
+- 2004: SBY-JK win → IHSG +18% (market darling correct)
+- 2009: SBY-Boediono win → IHSG +53.7% (commodity supercycle + China)
+- 2014: JKW-JK win → IHSG +17.6% (new leader euphoria)
+- 2019: JKW-Ma'ruf win → IHSG +4.6% (weaker, market already priced in)
+- 2024: Prabowo-Gibran = "keberlanjutan" = market priced in continuity
+Key risk: global Western economic weakness + Indonesia domestic demand collapse.
+Opportunity: if even slightly pro-growth policy emerges, foreign capital floods in.
+"Semoga 08 bukan Mulyono, semoga 08 adalah Modi buat Indonesia."""",
+        category="geopolitical",
+        catalyst_types=["political_transition","election_cycle","debt_maturity_wall","deflation","cabinet_formation",
+            "fiscal_policy_shift","middle_class_collapse","consumer_demand_collapse"],
+        activation_keywords=["pilpres","pemilu","prabowo","08","solo ke hambalang","jokowi","mulyono",
+            "debt indonesia","utang negara","k shape economy","kelas menengah","deflasi indonesia",
+            "apbn 2025","hutang jatuh tempo","kabinet gemuk","sri mulyani","airlangga","bahlil",
+            "pertumbuhan ekonomi 8%","3 juta rumah","market darling pilpres","ihsg pilpres",
+            "sbys era","modi indonesia","fiscal stimulus indonesia","rupiah","middle class shrink"],
+        invalidation_keywords=["prabowo reformasi","pro growth cabinet","debt restructured_smoothly",
+            "middle_class_recovers","deflation_ends","8% gdp_achieved"],
+        beneficiaries={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","TLKM.JK","UNVR.JK","KLBF.JK"],"us":["EIDO","IDX"],
+            "bonds":["INDO_gb","IDR_ust"],"fx":["USDIDR"]},
+        fades={"ihsg":["high_beta_konglo","property","consumer_discretionary"],"us":["EM_high_beta"]},
+        regime_alignment={"Q1":1.30,"Q2":1.10,"Q3":0.90,"Q4":0.70},
+        typical_duration_weeks=52,
+        conviction_ceiling=0.75,
+        pump_risk=0.15,
+        confirmation_signals=["cabinet_announcement_prabowo","apbn_2025_deficit_widens","deflation_6months",
+            "middle_class_data_shrink","debt_refinancing_spread_widens","ihsg_pilpres_reaction"],
+    ),
+
+    # ── ARTICLE 2: Portfolio Allocation & Asset Class Framework ─────────────────
+    NarrativeTemplate(
+        name="Ricky2212 Personal Portfolio — Multi-Asset Allocation Framework",
+        description="""Ricky2212 complete asset allocation philosophy (Kiyosaki Cashflow Quadrant inspired):
+A. STOCKS (majority): compounding wealth + dividend cashflow; local + foreign bursa
+B. BONDS: FR series fixed coupon + capital appreciation; cycle-driven entry
+C. MUTUAL FUNDS: money market (emergency fund) + equity ETF (low-cost big cap grab)
+D. OPTIONS: small allocation, leveraged call options on foreign stocks
+E. MARGIN FUTURES: oil & gold futures contracts when clear macro indicator (e.g., oil <$70)
+F. CRYPTO: "spekulasi terukur" — small cap coins, not majors; macro-policy-linked timing
+G. PROPERTY: 2 rental hunian; capital appreciation + monthly rental cashflow
+H. DEPOSITO: 5-year monthly expense equivalent = emergency fortress; "5 tahun cukup untuk cycle pasar membaik"
+I. REAL BUSINESS: 4 UMKM businesses; monthly cashflow to "dapur"
+J. DIGITAL GOLD: stored digitally, convertible to physical; yield-bearing deposit
+K. INSURANCE: 4 polis (life + health) = "investasi yang melindungi investasi"; bought young & healthy
+Philosophy:
+- "Melek financial" = explore all products from low-risk to high-risk, legal to money game
+- "Free debt" = only minimal operational debt
+- No CFA/certification; pure passion-driven self-education
+- As age increases: prioritize comfort and happiness over maximum return
+- Stocks remain best compounding instrument, but diversification protects the journey""",
         category="psychology",
-        catalyst_types=["retail_psychology","patience_breakdown","noise_immunity","multibagger_framework","long_term_hold"],
-        activation_keywords=["psikologi sabar","multibagger","winning series","tutup apps olt","jauhi keramaian",
-            "rumput tetangga lebih hijau","cacing kepanasan","tombol hijau","sabar investasi","noise immunity",
-            "holding period panjang","olt apps","investasi jangka panjang","super company","bagger"],
-        invalidation_keywords=["short_term_trading","scalping","day_trading","noise_chasing","impatient_selling"],
-        beneficiaries={"ihsg":["BYAN.JK","TMAS.JK","ULTJ.JK","BUMI.JK","long_term_champions"],"us":["BRK-B","long_term_quality"]},
-        fades={"ihsg":["high_beta_momentum","penny_stock_churn","day_trading_favorites"],"us":["meme_stocks","high_turnover"]},
+        catalyst_types=["asset_allocation","portfolio_diversification","financial_literacy","compound_wealth",
+            "emergency_fund","multi_asset","risk_management"],
+        activation_keywords=["portfolio allocation","asset class","cashflow quadrant","kiyosaki","melek financial",
+            "reksadana","obligasi","deposito","crypto","property","option","margin futures","digital gold",
+            "asuransi","bisnis riil","umkm","compounding wealth","free debt","dana darurat","multi asset",
+            "financial literacy","investasi jangka panjang","dividen cashflow"],
+        invalidation_keywords=["all_in_stocks","no_diversification","ignore_insurance","ignore_emergency_fund"],
+        beneficiaries={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","TLKM.JK","ITMG.JK","BYAN.JK","TMAS.JK"],
+            "us":["VTI","VOO","TLT","GLD"],"global":["EIDO","IDX","DBC"]},
+        fades={"ihsg":["penny_stock_gamble"],"us":["leveraged_etfs","0dte_options"]},
         regime_alignment={"Q1":1.00,"Q2":1.00,"Q3":1.00,"Q4":1.00},
-        typical_duration_weeks=156,
+        typical_duration_weeks=260,
         conviction_ceiling=0.95,
         pump_risk=0.05,
-        confirmation_signals=["retail_turnover_spike","average_holding_period_drop","fomo_selling_early",
-            "social_media_noise_spike","brokerage_app_downloads_surge"],
+        confirmation_signals=["portfolio_rebalancing","asset_class_rotation","emergency_fund_fully_funded",
+            "insurance_policies_active","real_business_cashflow_positive"],
     ),
 
-    # ── ARTICLE 3+4+5: B-Indikator — Bakrie-Salim Commodity Conglomerate Cycle ─
+    # ── ARTICLE 3: Indonesia Shipping Sector Comprehensive ────────────────────
     NarrativeTemplate(
-        name="B-Indikator — Bakrie-Salim Commodity Super Cycle & Exit Architecture",
-        description="""Ricky2212 B-Indicator framework: Om Bakrie (B) = pedagang ulung siklus ke siklus.
-B-Indicator tracks 3 core Bakrie commodity vehicles: ENRG (oil & gas), BRMS (mineral: gold/copper/nickel/silver), BUMI (thermal coal).
-PART 2 — Bakrie+Salim synergy forming "pusaran kuat" in commodities:
-- Salim entered BRMS via multiple right issues; Salim entered BUMI via mega right issue ~Rp 24T
-- DEWA (Bakrie contractor) → Salim entered via RI, targeting gold mine in Aceh
-- BIPI (Joesoef/Bakrie-linked contractor) → Salim rumored entry via debt swap or RI
-- MEDC (Panigoro) → Salim entered via debt-equity swap; Amman Mineral IPO stand-by buyer = BUMI
-- Circular flow: BUMI→MEDC (Newmont sale), BRMS→Amman (concentrate), Salim+Agus Projo orchestrating
-PART 3 — BRMS as "Bakrie Rusuhun Mainan Salim":
-- BRMS narratives: Gold (ATH momentum), Copper (AI hype), Nickel (supply), Silver (uncertainty)
-- Amman Mineral ARA 20% in one day = proof of Salim narrative engineering power
-- BRMS PER 372x, PBV 2.38x = pure narrative play, valuation skipped in bubble phase
-- "Om S, Om B, Om Agus manfaatkan NARASI sempurna untuk ciptakan permainan"
-PART 4 — End-cycle packaging:
-- BUMI/BRMS preparing exit stories: Green ESG (kokas/smelter acquisition), MIP (domestic market obligation) >90% chance before regime change
-- ADRO/INDY/BUMI/PTBA all moving on MIP + Green narrative simultaneously
-- China stimulus = macro cover for commodity rally
-- "BUMI dari nothing jadi raksasa" → free debt post mega RI → unprecedented clean balance sheet
-- Historical: Bakrie exit pattern = sell at peak cycle via placement/block sale (Nat Rothschild, Tata precedent)
-- Warning: "Pulang sebelum pesta bubar" — when konglo exit, retail must not be left holding bag
-Key signal: simultaneous Green + MIP + China stimulus + volume spike 5x = distribution phase loading.""",
-        category="cycle",
-        catalyst_types=["b_indicator","bakrie_salim_synergy","commodity_cycle_peak","mega_right_issue",
-            "green_esg_narrative","mip_policy","china_stimulus_commodity","placement_exit","narrative_engineering"],
-        activation_keywords=["b indicator","bakrie salim","om bakrie","om salim","om agus","brms","bumi resources",
-            "enrg","dewa","bipi","medc","amman mineral","commodity cycle","pusaran kuat","mainan salim",
-            "green energy","mip","domestic market obligation","thermal coal","kokas","smelter","placement",
-            "right issue jumbo","exit strategy bakrie","narrasi emas","narrasi copper","narrasi nickel",
-            "china stimulus komoditas","volume spike 5x","adro pattern","indy bumi ptba"],
-        invalidation_keywords=["commodity_cycle_end","bakrie_exit_completed","mip_cancelled","china_stimulus_fails",
-            "green_narrative_collapses","salim_sells_out"],
-        beneficiaries={"ihsg":["BUMI.JK","BRMS.JK","ENRG.JK","DEWA.JK","BIPI.JK","MEDC.JK","ADRO.JK","INDY.JK","PTBA.JK","ANTM.JK","TINS.JK"],
-            "commodities":["GC=F","HG=F","CL=F","iron_ore"],"global":["FXI","MCHI"]},
-        fades={"ihsg":["consumer_goods","property","high_flying_tech"],"us":["tech_growth","low_volatility"]},
-        regime_alignment={"Q1":1.60,"Q2":1.50,"Q3":1.20,"Q4":0.90},
-        typical_duration_weeks=52,
-        conviction_ceiling=0.85,
-        pump_risk=0.30,
-        confirmation_signals=["brms_volume_5x_avg","bumi_volume_5x_avg","mip_policy_draft_leak",
-            "green_esg_announcement_bumi","china_stimulus_commodity_rally","salim_placement_brms",
-            "amman_mineral_ara_20pct","adro_green_spin_off"],
-    ),
-
-    # ── ARTICLE 6+9+10+11: Indonesia OSV Offshore Vessel Supercycle ────────────
-    NarrativeTemplate(
-        name="Indonesia OSV Supercycle — Supply Shortage & Regional Rate Spike",
-        description="""Ricky2212 OSV (Offshore Support Vessel) sector thesis:
-Supply shortage: no new OSV building orders until 2026, existing fleet aging (avg 17.8 years low-tier).
-Demand surge: offshore oil & gas blocks Geng North-1 (ENI) and Layaran-1 (Mubadala) = 5 largest reserves globally, requiring massive OSV mobilization.
-Rate explosion: daily charter rate high-tier AHTS/PSV now USD 1.50-2.00 per HP (vs depressed local rates previously).
-Key players: WINS (PSV-focused, go regional first → jawara), ELSA (diversified, solid), BBRM (small cap turnaround), LEAD/Logindo (AHTS-heavy, lagging but catching up).
-Management guidance (Denny Heryanto/CFO Logindo):
-- Utilization Q1 2024: ~80% and rising
-- Revenue mix: 45% from outside Indonesia (regional spot charter)
-- New customers: BP Berau (spot), Premier, Saka, Medco E&P Natuna (contract extended)
-- Rates for overseas customers up to $2/HP
-- Reversal of impairment possible if market trend continues; routine revaluation per PSAK 16
-- Target: financial covenant net debt/EBITDA <2.4x by March 2025 via higher rates + utilization + cost control
-Sector mechanics: when WINS/BBRM go regional → local supply tightens → LEAD fills local gap at higher rates → all boats rise.
-Historical parallel: 2014-2015 cycle. WINS peaked 2013, Logindo peaked 2014 (lagging pattern repeating).
-"Logindo kisah barang yang tertinggal" — laggard play within supercycle.""",
+        name="Indonesia Shipping Sector — Subsector Moat & Supply-Demand Matrix",
+        description="""Ricky2212 shipping sector deep-dive with subsector ratings:
+NATURE: capital intensive, barrier to entry high, revenue = charter rates.
+CONTRACT TYPES: Time Charter (long-term, fixed, certainty) vs Spot Charter (short-term, volatile, upside).
+SUBSECTOR 1 — CONTAINER SHIPPING (SMDR, TMAS):
+- Post-COVID boom fading; orderbook delivery 2023 peak; supply-demand rebalancing
+- Red Sea = only normalized rates back from depressed levels, not supercycle
+- SMDR Rating B+ (regional exposure + tanker diversification); TMAS Rating B- (local dominant)
+- Ricky EXIT SMDR: "conditional situation, not structural; too many cheerleaders early"
+SUBSECTOR 2 — DRYBULK SHIPPING (TPMA, MBSS, HAIS, PSSI, NELY):
+- Supply tight until 2026; new orders minimal (shipyards busy with containers)
+- Capesize rates spiked post-Russia-Ukraine; fading but supply side still constrained
+- Red Sea impact moderate; demand forced down by central bank tightening
+- TPMA/HAIS Rating A/A- (aggressive expansion); MBSS/PSSI/NELY Rating A/A- (stable + dividend)
+SUBSECTOR 3 — OIL TANKER (BULL, SOCI, HUMI):
+- "SUPER SUPER AKUT" supply shortage; no new orders until 2026+; fleet aging
+- Russia-Europe route disruption → longer hauls; Red Sea → even longer hauls
+- OPEC cuts = temporary demand dampener; when demand returns = explosion
+- IMO 2024 + EEXI = more scrapping + slow steaming (20% speed reduction) = tighter supply
+- BULL Rating C (bad GCG); SOCI Rating B- (Pertamina offtaker = rate suppression); HUMI Rating B (GCG black spot)
+- Ricky prefers foreign tanker plays for spot sensitivity
+SUBSECTOR 4 — OSV (WINS, LEAD, ELPI, BBRM):
+- "Supply shortage paling parah"; zero new orders; high-tier AHTS/PSV rates $1.50-2.00/HP
+- Offshore discoveries (Geng North-1, Layaran-1) = massive OSV demand
+- WINS Rating A- (high+mid tier dominant, regional first-mover)
+- LEAD Rating B-→A (if restructuring + DES complete)
+- ELPI no rating (low tier, low margin); BBRM too small fleet
+- "Kapal mana yang berlayar? Container = lewat. Drybulk = better. Oil tanker = berjaya. OSV = no excuse berjaya."
+Key catalysts: Red Sea prolongation, OPEC production increase, offshore drilling ramp, IMO regulation enforcement.""",
         category="sector",
-        catalyst_types=["osv_shortage","offshore_rate_spike","regional_mobilization","new_oil_block","utilization_surge",
-            "ahts_demand","psv_demand","supply_constraint"],
-        activation_keywords=["osv shortage","offshore vessel","ahts","psv","daily charter rate","hulu migas",
-            "supply shortage kapal","go regional","geng north-1","layaran-1","utilization 80","bp berau",
-            "medco natuna","spot charter","wins","elsa","bbrm","logindo","lead","offshore supporting vessel",
-            "new building order kosong","kapal osv","tarif sewa kapal","oil block eni","mubadala energy"],
-        invalidation_keywords=["osv_orderbook_surge","oil_price_crash_below_60","offshore_project_cancelled",
-            "regional_rate_collapse","new_building_orders_return"],
-        beneficiaries={"ihsg":["WINS.JK","ELSA.JK","LEAD.JK","BBRM.JK","RIGS.JK","SSMS.JK"],"global":["TDW","CLB","OII"]},
-        fades={"ihsg":["land_drilling","onshore_oil_services","coal_contractors"]},
-        regime_alignment={"Q1":1.40,"Q2":1.40,"Q3":1.20,"Q4":1.00},
+        catalyst_types=["shipping_supply_shortage","red_sea_disruption","imo_2024","eexi_regulation",
+            "oil_tanker_shortage","osv_rate_spike","drybulk_tightness","container_orderbook_delivery"],
+        activation_keywords=["shipping sector","kapal container","drybulk shipping","oil tanker","osv",
+            "offshore vessel","red sea","suez canal","time charter","spot charter","daily charter rate",
+            "supply shortage kapal","imo 2024","eexi","slow steaming","shipyard orderbook","smdr","tmas",
+            "tpma","mbss","hais","pssi","nely","bull","soci","humi","wins","lead","elpi","bbrm",
+            "capesize","vlcc","ahts","psv","dirty tanker","clean tanker","tarif sewa kapal"],
+        invalidation_keywords=["shipyard_orderbook_surge","oil_price_crash_60","red_sea_resolved",
+            "container_rates_collapse","new_building_orders_return"],
+        beneficiaries={"ihsg":["WINS.JK","LEAD.JK","TPMA.JK","MBSS.JK","HAIS.JK","PSSI.JK","NELY.JK",
+            "SMDR.JK","TMAS.JK","BULL.JK","SOCI.JK","HUMI.JK","ELPI.JK","BBRM.JK"],
+            "global":["ZIM","TNP","FRO","STNG","TNK","TDW"]},
+        fades={"ihsg":["container_pure_play","low_tier_osv"],"us":["shipping_etfs_broad"]},
+        regime_alignment={"Q1":1.30,"Q2":1.20,"Q3":1.10,"Q4":0.90},
         typical_duration_weeks=78,
         conviction_ceiling=0.80,
         pump_risk=0.20,
-        confirmation_signals=["wins_utilization_above_85","lead_utilization_80pct_confirmed","daily_charter_rate_above_1_50",
-            "bp_berau_spot_contract","medco_natuna_extension","geng_north_1_drilling_start","osv_orderbook_stays_zero",
-            "regional_dayrate_spike_2usd"],
+        confirmation_signals=["smdr_volume_spike_cheerleader","wins_utilization_85","lead_des_complete",
+            "oil_tanker_rates_spike","red_sea_rerouting_sustained","imo_scrapping_accelerates",
+            "new_offshore_block_drilling","baltic_dry_index_above_2000"],
     ),
 
-    # ── ARTICLE 7+8+12+13+14: Logindo Distressed Turnaround & DES ─────────────
+    # ── ARTICLE 4: Oil & Gas Hulu-Hilir Value Chain ───────────────────────────
     NarrativeTemplate(
-        name="Logindo (LEAD) Distressed Deleveraging — Debt-to-Equity Swap Turnaround",
-        description="""Ricky2212 Logindo corporate restructuring & financial engineering deep-dive:
-PHASE 1 — RESTRUCTURING (Apr 2024):
-- Original debt: UOB + DBS ~Rp 1.2T, maturity Jun 2024
-- OCP Asia Fund IV & V (distressed fund) bought debt from UOB/DBS and refinanced:
-  * Facility A: ~$45M @ 12% cash + 3% PIK, quarterly from Jul 2025
-  * Facility B: ~$10M zero-coupon (bullet)
-  * Facility C: ~$39M zero-coupon (bullet)
-  * Tenor: 48 months
-- Zero-coupon facility = classic distressed fund setup for future Debt-to-Equity Swap (DES)
-PHASE 2 — REKOGNISI TURNAROUND (Q1-Q2 2024):
-- Q1 2024: first positive net profit (Rp 792M) since downturn, EBITDA highest since 2016
-- Revenue +53% YoY, go regional confirmed, spot charter with BP Berau/Premier/Saka
-- Eddy Kurniawan Logam repurchased 7% shares from HPAM repo (insider signal)
-- LK Q2 audited = prerequisite for corporate action
-PHASE 3 — DES EXECUTION (Sep-Nov 2024):
-- LK Q2 disclosed: "opsi membayar sebagian pinjaman via penerbitan saham baru atau mengubah hutang jadi ekuitas"
-- OCP transferred $15M rights to Oakshire Capital → PT Jalan Terang Samudera (Logam family nominee suspected)
-- RUPSLB announced Oct 2024, execution Nov 14 2024
-- DES price: Rp 186 (premium to market at announcement)
-- Amount swapped: USD 20M total = PT JTS $15M + OCP $5M
-- Post-DES share structure (approx): OCP ~27%, Alstonia/PacRad ~24%, Logam family ~26% (if JTS is Logam nominee)
-- "OCP bukan Sinterklas — mereka mau yield besar. Karpet merah untuk exit strategy harus disiapkan."
-PHASE 4 — WHAT COMES NEXT:
-- Further revaluation of vessel assets (impairment reversal) = one-time gain + equity boost + dividend eligibility (retained earnings must be positive)
-- Covenant relief: net debt/EBITDA target <2.4x by Mar 2025
-- Potential final exit narrative engineered by IB for OCP
-- "Logindo rating C → B+ post-restruk → A if DES + revaluasi complete"
-Risk: distressed fund timeline pressure; OCP will demand exit path.""",
-        category="corporate_action",
-        catalyst_types=["debt_restructuring","distressed_fund_entry","debt_to_equity_swap","zero_coupon_conversion",
-            "asset_revaluation","insider_repo","rupslb","deleveraging","financial_engineering"],
-        activation_keywords=["logindo restrukturisasi","logindo debt equity swap","lead des","ocp fund","ocp asia",
-            "distressed fund","zero coupon","debt to equity","rupslb","jalan terang samudera","oakshire capital",
-            "revaluasi asset logindo","impairment reversal","eddy logam","pacific radiance","alstonia","logindo login",
-            "deleveraging logindo","harga 186","pt jts","facility b","facility c","logindo turnaround",
-            "logindo q1 profit","logindo audited","logindo covenant"],
-        invalidation_keywords=["des_cancelled","rupslb_fails_quorum","ocp_demand_liquidation","revaluation_blocked",
-            "regulator_rejects_des","logindo_bankruptcy"],
-        beneficiaries={"ihsg":["LEAD.JK"],"distressed":["LEAD.JK"],"turnaround":["LEAD.JK"]},
-        fades={"ihsg":["WINS.JK","ELSA.JK"],"us":["high_leverage_sector"]},
-        regime_alignment={"Q1":1.20,"Q2":1.20,"Q3":1.00,"Q4":0.80},
-        typical_duration_weeks=52,
+        name="Oil & Gas Sector — Hulu-Hilir Value Chain & Supply Gap",
+        description="""Ricky2212 oil & gas comprehensive framework:
+MACRO BACKDROP:
+- Underinvestment since 2015 (Paris Climate Act → banks stop funding fossil → capex constrained)
+- Post-Russia-Ukraine: world woke up to structural supply shortage
+- IEA 2024: demand growth +1.2 mb/d (vs +2.3 in 2023); supply +1.5 mb/d to 103.5 mb/d record
+- China = 70-80% of demand growth; India overtaking China as largest demand growth driver through 2030
+- India diesel = half of demand rise; gasoline growth muted by EVs; petrochemicals = key
+- Current oil price ~$80 = still feasible for new investment; capex continues flowing
+- "Turunnya harga minyak sekarang adalah keadaan yang DIPAKSA oleh Central Bank dunia"
+- When monetary easing returns → demand jumps → supply gap explodes (no spare capacity)
+INDONESIA DISCOVERIES:
+- Geng North-1 (ENI) + Layaran-1 (Mubadala) = top 5 global discoveries 2023; 6 tcf gas-in-place
+- SKK Migas: "future gas luar biasa di Indonesia"
+- RUU Migas baru pending = regulatory catalyst
+HULU-HILIR VALUE CHAIN:
+1. PEMETAAN: ELSA (Rating A-; minus BUMN)
+2. KONSTRUKSI RIG: APEX (B-), RUIS (B), INDY (no rating, non-migas majority)
+3. OFFSHORE SUPPORT: WINS, LEAD, BBRM, ELPI (OSV supercycle)
+4. DRILLING: APEX (only local listed player)
+5. STORAGE FPSO/FSO: SHIP (Rating A; expensive valuation)
+6. DRILLING MUD: OBMD (B+)
+7. DIRTY TANKER (crude transport): BULL (C), SOCI (B-), HUMI (B)
+8. REFINERY: no public listed refinery in Indonesia
+9. PRODUCT TANKER/CLEAN: BULL, SOCI, SMDR, HITS, HUMI
+10. STORAGE & DISTRIBUTION: AKRA (A+), ELSA
+11. PIPELINE: PGAS (A), RAJA (B)
+12. CONCESSION HOLDERS: ENRG (B), MEDC (B+), Pertamina (state)
+SENSITIVITY: Hulu extremely sensitive to oil price; when price unfeasible = drilling stops.
+"Saya tetap berjalan di hulu bersama OSV dan si eneng geulis."
+Key data: OPEC+ voluntary cuts; non-OPEC+ (US, Brazil, Guyana, Canada) driving supply growth.
+Risk: Middle East escalation disrupting Red Sea/Suez (10% seaborne oil trade).""",
+        category="sector",
+        catalyst_types=["oil_supply_shortage","iea_demand_surge","india_oil_demand","china_petrochemical",
+            "offshore_discovery","ruu_migas","opec_cut","non_opec_supply","monetary_easing_oil_demand"],
+        activation_keywords=["minyak","oil and gas","hulu migas","hilir migas","iea report","oil demand",
+            "oil supply","opec","non opec","geng north-1","layaran-1","skk migas","ruu migas","underinvestment fossil",
+            "paris climate act","cost recovery","psc","production sharing contract","fpso","fso","drilling mud",
+            "oil tanker","dirty tanker","clean tanker","product tanker","refinery","akra","pgas","raja",
+            "apex","ruis","elsa","ship","obmd","enrg","medc","pertamina","oil price 80","brent","wti",
+            "india oil demand","china oil demand","petrochemical","gas discovery","offshore drilling"],
+        invalidation_keywords=["oil_price_crash_50","iea_demand_cut_forecast","ruu_migas_rejected",
+            "offshore_project_cancelled","renewable_replacement_accelerates","opec_flood_market"],
+        beneficiaries={"ihsg":["ELSA.JK","LEAD.JK","WINS.JK","BBRM.JK","OBMD.JK","SHIP.JK","AKRA.JK",
+            "PGAS.JK","RAJA.JK","ENRG.JK","MEDC.JK","BULL.JK","SOCI.JK","HUMI.JK"],"global":["XLE","OIH","USO","XOM","CVX"]},
+        fades={"ihsg":["renewable_energy_pure","coal_exit_plays"],"us":["clean_energy_etfs"]},
+        regime_alignment={"Q1":1.40,"Q2":1.30,"Q3":1.20,"Q4":1.00},
+        typical_duration_weeks=104,
         conviction_ceiling=0.85,
-        pump_risk=0.25,
-        confirmation_signals=["des_price_186_confirmed","rupslb_quorum_75pct","ocp_fund_transfer_oakshire_jts",
-            "logindo_q1_positive_profit","logindo_lk_audited_q2","eddy_logam_share_repo_7pct",
-            "revaluation_asset_announcement","net_debt_ebitda_below_2_4"],
+        pump_risk=0.15,
+        confirmation_signals=["iea_demand_revision_up","india_demand_6_6mbd_2030","geng_north_1_production_start",
+            "layaran_1_production_start","ruu_migas_passed","oil_tanker_orderbook_zero","brent_above_90_sustained",
+            "offshore_rig_count_global_rise"],
+    ),
+
+    # ── ARTICLE 5: Tactical Micro Plays & Exit Signals ──────────────────────────
+    NarrativeTemplate(
+        name="Indonesia Tactical Micro Plays — Exit Timing & Short-Term Narrative Rides",
+        description="""Ricky2212 tactical short-term framework ("siram bensin" / "mencopet" / "nyiram bensin"):
+PHILOSOPHY:
+- "Sekarang saya ga bisa bermain panjang. Yang bisa dilakukan = permainan pendek dengan narrative kuat."
+- "Semakin kuat reason & narrative, semakin pede menikmati permainan pendek."
+- "Saya ga berniat MERAMPOK, hanya MENCOPET."
+- "Pulang kalau pestanya sudah terlalu meriah, sudah banyak cheerleader, sudah ada yang mabuk-mabukan."
+- "Bukan untuk ditiru. Sesuaikan dengan risk profile masing-masing."
+EXIT SIGNALS:
+1. SMDR (container): "conditional situation, not structural; too many cheerleaders at early cycle; peace talks at peak rates = exit"
+2. BRMS (B-Indicator gold): "Thanks BRMS, saatnya pulang pesta. Saya tau kamu lagi kejar Perfect Exit Strategy."
+3. ITMG (coal dividend): DPR ~65% = total div ~Rp 4,450; interim Rp 2,660; final ~Rp 1,790; DY ~7% @ 26,000 = defensive hold
+4. BTPS (microfinance bank): QoQ progress smooth; CKPN cycle ending Oct 2024; DPR 50-60%; EPS FY24 ~150; DY 6.8-8% @ 1,140; "worst is over"
+5. DEWA (Bakrie-Salim gold): RUPSLB Jun 2025 = potential board change (Salim trusted person as commissioner) + "agenda besar" beyond imagination
+CURRENT "SIRAM BENSIN" PORTFOLIO:
+- BEST: asset play too cheap + IDR strengthening bet (performing well)
+- MCOR: post-CCB transformation, premium segment, Chinatown branches (performing well)
+- DYAN: agile small cap (performing well)
+- BRMS: gold narrative pure ride (exited)
+- LEAD: OSV narrative + DES catalyst (ultimate siram bensin)
+- SICO: healthy upstream oil, MC ~80B, PE ~4x, strong clients (new addition)
+Framework: "Enjoy while it lasts. Euphoria not yet peak but signs visible."
+Warning: "Jangan ikut-ikutan. Ini cara saya menikmatinya. Anda punya cara lain?"""",
+        category="cycle",
+        catalyst_types=["tactical_short_term","narrative_ride","exit_timing","cheerleader_peak","siram_bensin",
+            "dividend_play","microfinance_recovery","corporate_action_de_dewa"],
+        activation_keywords=["siram bensin","mencopet","permainan pendek","short term play","narrative ride",
+            "exit strategy","pulang pesta","cheerleader","mabuk dalam pesta","conditional situation",
+            "smdr exit","brms exit","itmg dividen","btps progress","dewa rupslb","best","mcor","dyan",
+            "sico","lead","enjoy while it lasts","euphoria signs","risk profile","tactical micro"],
+        invalidation_keywords=["narrative_collapses","exit_missed","holding_too_long","cheerleader_exodus",
+            "dividend_cut","corporate_action_cancelled"],
+        beneficiaries={"ihsg":["BEST.JK","MCOR.JK","DYAN.JK","SICO.JK","ITMG.JK","BTPS.JK","DEWA.JK"],"us":["short_term_momentum"]},
+        fades={"ihsg":["high_flyer_peak","overcrowded_trade","retail_favorite_at_top"],"us":["meme_stocks"]},
+        regime_alignment={"Q3":1.40,"Q4":1.20,"Q2":0.90,"Q1":0.70},
+        typical_duration_weeks=8,
+        conviction_ceiling=0.75,
+        pump_risk=0.35,
+        confirmation_signals=["brms_volume_peak_then_drop","smdr_cheerleader_spike","itmg_rups_dividend_1790",
+            "btps_ckpn_oct2024_end","dewa_rupslb_salim_board","best_mcor_dyan_price_momentum",
+            "sico_contract_award","euphoria_breadth_indicator_peak"],
     ),
 ]
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MERGE INSTRUCTIONS — copy-paste ke bawah narrative_universe.py yang sudah ada:
 # ═══════════════════════════════════════════════════════════════════════════════
-# _NARRATIVES.extend(_NARRATIVES_BATCH9)
-# NARRATIVE_BY_NAME.update({n.name: n for n in _NARRATIVES_BATCH9})
-# for _n in _NARRATIVES_BATCH9:
+# _NARRATIVES.extend(_NARRATIVES_BATCH10)
+# NARRATIVE_BY_NAME.update({n.name: n for n in _NARRATIVES_BATCH10})
+# for _n in _NARRATIVES_BATCH10:
 #     NARRATIVES_BY_CATEGORY.setdefault(_n.category, []).append(_n)

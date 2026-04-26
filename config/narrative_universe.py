@@ -1,4 +1,4 @@
-"""config/narrative_universe.py — BATCH 14 + BATCH 15 + BATCH 16 + BATCH 17 (Apr 2026)
+"""config/narrative_universe.py — BATCH 14 + BATCH 15 + BATCH 16 + BATCH 17 + BATCH 18 (Apr 2026)
 Artikel Ricky2212 / MentorBaik extraction:
 
 BATCH 14:
@@ -50,6 +50,18 @@ BATCH 17:
 40. Belakangan situasi politik — Demo Indonesia, '98 fear, fund entry setup, cooling down
 41. Focus on Big Picture — Ray Dalio, don't focus on detail, piece by piece puzzle
 42. Keputusan investasi — Your money your responsibility, self-reliance, sense building
+
+BATCH 18:
+43. Fokus pada proses — Focus on process not speed, Gen Z impulsive, two stories
+44. History repeat itself — Historical cycles 00-01 and 07-08, 2027-2028 crisis prediction
+45. Classic problem Fear and Greed — Fear and greed psychology, flush period, PANI greed
+46. Bubble Before the Storm — George Soros strategy, reflexivity, Black Wednesday 1992
+47. One Great Moment — Personal story about mother, forgiveness, life changing moment
+48. Negara saya mengirim saya — Never give up, Derek Redmond, Akhwari, great moment
+49. Semua tergantung stasiun — Stock cycle entry/exit, HMSP, ASII, BBRI, INCO, BUMI
+50. Prepared not Predict — Prepare not predict philosophy, umbrella analogy, insurance
+51. Prepare not Predict part 2 — Top/bottom signals, 13 key point, IPO spike, euphoria signs
+52. Siklus ekonomi berputar — Investor cycle never rotates, MIP, royalty IUPK, coal plays
 """
 from __future__ import annotations
 from dataclasses import dataclass, field
@@ -2941,32 +2953,708 @@ Key data: Self-reliance = ultimate edge. Learning + experience + sense = best in
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
-# MERGE ALL BATCHES INTO MASTER REGISTRY
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# BATCH 18 — Artikel Ricky2212 (Apr 2026 extraction)
 # ═══════════════════════════════════════════════════════════════════════════════
 
-_NARRATIVES: List[NarrativeTemplate] = []
-_NARRATIVES.extend(_NARRATIVES_BATCH14)
-_NARRATIVES.extend(_NARRATIVES_BATCH15)
-_NARRATIVES.extend(_NARRATIVES_BATCH16)
-_NARRATIVES.extend(_NARRATIVES_BATCH17)
+_NARRATIVES_BATCH18: List[NarrativeTemplate] = [
+    # ── ARTICLE 43: Fokus pada Proses Menuju Hasil Akhir ──────────────────────
+    NarrativeTemplate(
+        name="Fokus pada Proses Menuju Hasil Akhir — Speed vs Process",
+        description="""Ricky2212 investment psychology framework: Focus on the process, not the speed.
+THE PROBLEM:
+- Gen Z post-COVID: "generasi Z banyak mengisi dunia investasi. Mendadak dunia investasi jadi nge trend"
+- "Iming2x bisa KAYA MENDADAK secara cepat membuat saham atau koin jadi investasi yang paling digandrungi"
+- "Gen Z sekarang cenderung impulsive dan pingin cepat kaya"
+- "Fokus nya sudah bukan lagi pada garis finish nya tapi fokus pada seberapa cepat saya bisa mencapainya"
+- "Semakin cepat semakin bagus and kalo perlu pakai mode super speed"
+STORY 1 — The Banker:
+- Goal: quit 8-to-17 routine ASAP
+- "Desakan untuk secepatnya keluar dari sana semakin besar"
+- "Otak Ngeres datang dan tekannanya sangat besar saat tujuan mau out dari daily routine juga besar"
+- Bought highly speculative stocks, thinking "gw bisa dapat ber bagger bagger dr sana"
+- Result: disaster. "Semua ini memang gw yg salah dari awal. Otak Ngeres datang"
+- Ricky's earlier warning: "Sudah siap menanggung resikonya? tanyakan pada diri mas WHAT IF"
+STORY 2 — The Industry Professional:
+- "Saya mau cepat sampai target punya uang sekian. Karena kalau sudah cepat sampai disana, saya merasa saya aman posisinya"
+- Problem 1: "Lo jangan berasa lo mau grab semua nya sampai seutuh-utuh nya tanpa tersisa. Lo selalu gelisah, selalu kusak kusuk mencari tau sampai dimana tuh nanti puncak titik tertinggi saham tersebut"
+- Problem 2: "Saat lo ambil posisi di suatu saham, terkadang lo kepikirannya cuma dari sini gw bisa untung berapa nih. Lo ga berpikir What if?"
+- "Kalo sudah ga sesuai rencana, yah gw hidup dari andelin gaji aja sampai saham nya naik. Gw ga ada bemper sama sekali"
+THE SOLUTION:
+- "Jangan fokuskan pada kecepatan sampai garis finishnya, cukup fokus saja pada garis finish nya"
+- "At the end percaya ga percaya, nanti juga sampai koq. Bahkan anda sendiri tidak percaya kalo bisa sampai garis finish nantinya"
+- "Kalo otak anda dari awal sudah ngeres maka bersiaplah dan jangan kaget kalo pelajaran buruk akan datang buat anda"
+Ricky's call: "FOKUS pada PROSES menuju GARIS AKHIR bukan pada KECEPATANNYA"
+"Semakin realistis anda tetapkan tujuan dan waktu untuk mencapainya, saya bisa pastikan anda akan semakin rasional nantinya"
+"Semakin tidak realistis anda tetapkan tujuan dan waktu untuk mencapainya, saya juga bisa pastikan otak anda akan semakin tidak rasional"
+Key data: Speed kills in investing. Process-oriented investors win long-term.""",
+        category="cycle",
+        catalyst_types=["process_over_speed","investment_psychology","gen_z_impulse","realistic_goals",
+            "what_if_framework"],
+        activation_keywords=["fokus pada proses","kecepatan vs proses","speed vs process","gen z investasi",
+            "kaya mendadak","impulsive gen z","otak ngeres","what if","daily routine quit",
+            "bagger thinking","grab semua untung","puncak titik tertinggi","over allocation",
+            "ga ada bemper","fokus garis finish","realistis tujuan","rasional investasi",
+            "process oriented","speed kills investing"],
+        invalidation_keywords=["impatience_wins","speed_works","no_lessons_learned"],
+        beneficiaries={"ihsg":["ALL"],"safe_haven":["IDR_cash","DISCIPLINE"]},
+        fades={"ihsg":["speculative_garbage","high_flyer"]},
+        regime_alignment={"Q1":1.00,"Q2":1.00,"Q3":1.00,"Q4":1.00},
+        typical_duration_weeks=999,
+        conviction_ceiling=1.00,
+        pump_risk=0.00,
+        confirmation_signals=["realistic_goal_setting","process_discipline","what_if_analysis",
+            "long_term_consistency","no_over_allocation"],
+    ),
 
-NARRATIVE_BY_NAME: Dict[str, NarrativeTemplate] = {n.name: n for n in _NARRATIVES}
+    # ── ARTICLE 44: History Repeat Itself — Historical Cycle Analysis ──────────
+    NarrativeTemplate(
+        name="History Repeat Itself — 07-08 Crisis Pattern & 2027-2028 Prediction",
+        description="""Ricky2212 historical cycle framework: "History doesn't repeat itself, but it does rhyme."
+THE QUOTE:
+- "Financial market cycles are primarily investor behaviour cycles. Human nature doesn't change and causes the recurrence of past patterns."
+- "History rhymes. Human nature that causes the market cycles, is also the cause of uncertainty in market movement."
+- "Investors who undermine history easily succumb to the error of 'this time it's different'."
+- "Investors who expect history to repeat precisely like the past, fall prey to another wrong assumption, 'Everything is always the same.'"
+CYCLE BASICS:
+- "Ekonomi itu punya pakem dasar, pakem yang tidak mungkin ditabrak"
+- Weak economy → stimulus → money circulates → economy grows → inflation → rate hikes
+- "Cycle pun terbagi lagi dalam besaran siklusnya yaitu Big Cycle, Medium Cycle dan Small Cycle"
+- "Cycle tersebut terbentuk karena sebuah behaviour dari manusia. Behaviour manusia tuh dari waktu ke waktu tidak akan berubah banyak."
+00-01 PATTERN (Crisis years ending in 0-1):
+- 2020-2021: COVID Crisis
+- 2011: Black Monday August, S&P downgrade US debt
+- 2000-2001: Dot-com bubble + WTC bombing → QE born
+- 1990-1991: Gulf War + early recession (8 months)
+- 1980-1981: Market peaked 1980, recession 1.2 years, Volcker 20% rates
+- 1970-1971: Great inflation start, market lost 50% over 20 months
+- 1960-1961: Kennedy Slide, Dow -23%
+- 1950-1951: Korean War, Truman, Dow -15%
+- 1940-1941: WWII, Pearl Harbor, Dow -23% in 8 days
+- 1930-1931: Phase 2 Great Depression, double dip, GDP -8.5%
+07-08 PATTERN (Crisis years ending in 7-8):
+- 2018: September crash from BTC fall, Dow/S&P -20%
+- 2007-2008: GFC, subprime mortgage, peak 2007 → -50%, Sep-Oct
+- 1997-1998: Asian Financial Crisis, Baht collapse → Indonesia, July-Oct peak
+- 1987: Black Monday, -20% in one day, October
+- 1977-1978: Oil supply shock, inflation skyrocketing, -27% cumulative
+- 1967-1968: Vietnam War bear market, -36% over 17 months
+- 1957: Bond yield spike, -22% over 14 months
+- 1947-1948: Recession 363 days, -20%, unemployment 7.9%
+- 1937-1938: Post-Great Depression sharp downturn, -58%, unemployment 19%
+- 1929: Great Depression, Black Tuesday, -89% (greatest correction in history)
+- 1907: Banking panic, October, -50%, birth of Fed via JP Morgan
+- 1914: WWI pre-crisis in Europe and US
+THE EXCEPTION:
+- 1974-1975: Dow -45% from 1973 peak. Oil crisis 1973, inflation, global stock crash. Quick recovery 1975+.
+THE PREDICTION:
+- "2027-2028 atau 2029 akan jadi siklus yang penting karena akan jadi siklus 10 tahunan dan siklus 100 tahunan. beririsan deh tuh"
+- "Penyebab krisisnya kemungkinan besar adalah Global Debt Crisis"
+- "Double Dip crisis di 2030 dan 2031 sesuai ritme selanjutnya"
+- "Ekonomi akan masuk fase L shape and very mediocre growth"
+- "Kerusakan karena besarnya hutang sangatlah parah. Jadi perlu waktu untuk membenahi semua keburukan tersebut"
+Ricky's call: "Jas merah, Jangan pernah melupakan sejarah. Karena sejarah akan selalu berulang."
+"Kalaupun tidak berulang, tapi punya kemiripan"
+Key data: 07-08 pattern = crisis window. 2027-2028 = 10-year + 100-year cycle intersection. Global Debt Crisis likely cause.""",
+        category="cycle",
+        catalyst_types=["historical_cycle","07_08_pattern","100_year_cycle","10_year_cycle",
+            "global_debt_crisis","double_dip_2030","history_rhymes"],
+        activation_keywords=["history repeat itself","history rhymes","07 08 pattern","crisis pattern",
+            "10 year cycle","100 year cycle","2027 2028 2029 crisis","global debt crisis","double dip 2030",
+            "korean war 1950","pearl harbor 1941","great depression 1929","black monday 1987",
+            "asian financial crisis 1997","gfc 2008","covid 2020","kennedy slide 1960",
+            "volcker 20% 1981","gulf war 1990","wtc bombing 2001","dot com bubble 2000",
+            "black wednesday 1992","1974 1975 oil crisis","l shape economy","mediocre growth",
+            "jas merah sejarah","human nature cycle","investor behaviour cycle","this time its different",
+            "everything always same"],
+        invalidation_keywords=["cycle_broken","no_crisis_2027","debt_resolved","soft_landing_achieved"],
+        beneficiaries={"us":["SQQQ","VIX","TLT","GLD"],"ihsg":["BBCA.JK","TLKM.JK","UNVR.JK"],
+            "safe_haven":["USD_cash","IDR_cash"]},
+        fades={"us":["SPY","QQQ","IWM","high_beta"],"ihsg":["property","high_flyer","consumer_discretionary"]},
+        regime_alignment={"Q3":1.80,"Q4":1.70,"Q2":1.40,"Q1":1.00},
+        typical_duration_weeks=52,
+        conviction_ceiling=0.85,
+        pump_risk=0.15,
+        confirmation_signals=["debt_levels_spike","yield_curve_inverts_deep","vix_spike_above_30",
+            "credit_conditions_tighten","global_recession_signals","historical_pattern_aligns_2027"],
+    ),
 
-NARRATIVES_BY_CATEGORY: Dict[str, List[NarrativeTemplate]] = {}
-for _n in _NARRATIVES:
-    NARRATIVES_BY_CATEGORY.setdefault(_n.category, []).append(_n)
+    # ── ARTICLE 45: Classic Problem Fear and Greed ────────────────────────────
+    NarrativeTemplate(
+        name="Classic Problem — Fear and Greed in the Market",
+        description="""Ricky2212 fear & greed psychology framework:
+THE CLASSIC PROBLEM:
+- "Fear and Greed, sebuah classic problem yang akan selalu ada dan berulang dari waktu ke waktu"
+- "Saking basicnya, sampai susah sekali menjalankan hal itu. Rasanya hal ini banyak sekali yang menghadapi nya"
+FEAR EXAMPLE — Trump Tariff:
+- Weekend tariff announcement → Monday crash
+- "Dominasi Fear nya terlalu kuat sehingga dari psikologi menjalar ke logika"
+- "Logika meyuruh otak bekerja untuk memerintah jempol buat pencet tombol merah di apps saham nya"
+- "Panik berjamaah dan itu yang diinginkan oleh market"
+- "Periode FLUSH. Konsepnya adalah kaya Flush di Closet anda. Begitu anda pencet tombol Flush, langsung air deras bikin bersih tuh closet"
+- "Sama hal nya seperti di pasar, sekali periode flush datang and bersih dah tuh pada market dari orang weaker hand yang ketakutan"
+- Ricky's advice: "Kalo sudah tau Cerita besar nya, duduk manis aja sambil makan popcorn lihat adegan pada lewat. Jangan terlalu reaktif terhadap keadaan."
+GREED EXAMPLE — PANI Position:
+- "Portfolio mas nya itu sekitar 70% saham PANI dan posisinya sudah untung besar"
+- Classic Greed:
+    a. "Semua dari kita kebanyakan berpikir bahwa kita bisa merauk semua keuntungan tanpa tersisa. Kalau perlu semua kita ambil saat permainan berlangsung"
+    b. "Mayoritas berasa pingin banget keluar dari satu saham pas di puncak nya banget. Kalau perlu Top of the Topnya. Kalau perlu habis buang langsung jatuh tuh saham."
+- Ricky's approach: "PANI itu saya anggap saham buat MAIN. Jadi perlakukan lah sebagai permainan, jangan dibawa hati dan perasaan."
+- "Kalau sudah pada posisi permainannya terlalu WAHH, saya pasti melikuidasi posisinya"
+- "Target saya dari awal adalah sekian, yah kalo sudah ketemu hampir dipastikan saya EXIT"
+- "Paling enak itu buang posisi kita saat naik. Kita lebih rela saat kita melikuidasi saham pas lagi rally kencang"
+- "Kalau lagi turun? excuse and alasannya pasti nya banyak banget. Sayang lah, tunggu rebon dikit lah, tunggu membaik lah"
+- "Gredy kalo sudah berkuasa, jadilah logika juga ga bisa jalan dengan baik"
+Ricky's call: "Saham adalah bisnis mengelola Psikologi. Saham adalah bisnis mengelola Fear and Greed."
+"Tempatkan selalu psikologi anda di level 0"
+Key data: Fear = flush weaker hands. Greed = prevents exit at peak. Psychology level 0 = key to survival.""",
+        category="cycle",
+        catalyst_types=["fear_greed","market_psychology","flush_period","weak_hand_shakeout",
+            "greed_prevents_exit","fear_drives_panic"],
+        activation_keywords=["classic problem fear greed","fear and greed","flush period","weaker hand",
+            "panik berjamaah","tombol merah apps","dominasi fear","logika terintimidasi",
+            "flush closet","bersih market","duduk manis popcorn","jangan reaktif",
+            "greed puncak","top of the top","main saham","perlakukan permainan",
+            "target exit","likuidasi rally","buang saat naik","turun excuse banyak",
+            "sayang tunggu rebound","greed berkuasa","saham bisnis psikologi",
+            "psikologi level 0","manage fear greed"],
+        invalidation_keywords=["no_fear","no_greed","rational_market","psychology_irrelevant"],
+        beneficiaries={"ihsg":["ALL"],"safe_haven":["IDR_cash","DISCIPLINE"]},
+        fades={"ihsg":["panic_selling","greed_holdings"]},
+        regime_alignment={"Q1":1.00,"Q2":1.00,"Q3":1.00,"Q4":1.00},
+        typical_duration_weeks=999,
+        conviction_ceiling=1.00,
+        pump_risk=0.00,
+        confirmation_signals=["fear_index_extreme","greed_index_extreme","flush_volume_spike",
+            "weak_hand_selling","panic_selling","inability_to_exit"],
+    ),
 
-# Convenience exports
-__all__ = [
-    "NarrativeTemplate",
-    "_NARRATIVES",
-    "NARRATIVE_BY_NAME",
-    "NARRATIVES_BY_CATEGORY",
-    "_NARRATIVES_BATCH14",
-    "_NARRATIVES_BATCH15",
-    "_NARRATIVES_BATCH16",
-    "_NARRATIVES_BATCH17",
+    # ── ARTICLE 46: Bubble Before the Storm — George Soros Strategy ───────────
+    NarrativeTemplate(
+        name="Bubble Before the Storm — Learning from George Soros Strategy",
+        description="""Ricky2212 Soros-inspired bubble framework: "Jack Up Before Storm"
+THE INSPIRATION:
+- "Saya jadi teringat akan the Legend George Soros. Style investasi Soros yang paling relevan buat saya dengan keadaan sekarang ini"
+- "Inti nya adalah 'Bubble after Storm dan Bubble will burst'"
+- Soros: "Dalam suatu bad economy itu justru bubble asset keuangan akan terjadi. Orang sudah tidak tau lagi harus memutar uang nya dimana. Jadi mereka akan gelembungkan paper asset dan itu pasti akan punya cerita akhir yang tidak baik nantinya"
+- "Soros siram bensin dan menunggangi keadaan tersebut. Saat ada api, dia siram apinya dengan bensin sebanyak2x nya"
+- "Bubble before Storm, Jack up before Storm itu bukan karangan saya yah dan bukan hal baru. Semua itu pernah terjadi dan akan selalu berulang pada keadaan tertentu."
+SOROS'S METHOD:
+a. Teori Refleksivitas: "Persepsi pasar dapat memengaruhi realitas ekonomi, dan sebaliknya. Ketika investor percaya bahwa harga aset akan naik, mereka membeli lebih banyak, yang mendorong harga lebih tinggi lagi. Ini menciptakan siklus yang memperkuat diri sendiri, tetapi pada akhirnya tidak berkelanjutan."
+b. Analisis Fundamental: "Soros selalu melakukan analisis mendalam terhadap kebijakan ekonomi, suku bunga, dan kondisi makroekonomi."
+c. Psikologi Pasar: "Soros memahami bahwa pasar sering digerakkan oleh emosi seperti ketakutan dan keserakahan. Ketika pasar terlalu optimis, itu adalah tanda peringatan bahwa gelembung mungkin sedang terbentuk."
+CURRENT APPLICATION:
+- "Persepsi yang sangat kuat bahwa ekonomi Amrik itu Seeeettrong. Ekonomi Amrik tumbuh luar biasa (semua itu secara data) sehingga keadaan ini dipercaya akan membuat asset saham and US akan terus menguat"
+- "Persepsi tersebut dari waktu ke waktu akan terus digaungkan agar semakin dinilai menjadi sebuah fakta. Makanya tuh sekarang paper aset terdorong ga karuan"
+- "Segitu besar and Jumbonya hutang US, mustahil buat mata uang USD menguat. Ini pasti ada sesuatu"
+- "Fed sebagai Bank Sentral terus ingin memperlihatkan bahwa USD masih punya kekuatan dan hal ini pasti punya ujung nya nanti"
+- "Pasar sudah dipengaruhi oleh Greeed yang luar biasa. Misal semua yang berbau AI atau Narasi AI pasti dikejar pasar. Even sampe saham Palantir bisa dihargai 50x Salesnya"
+- "Narasi konglo di Indo, Narasi Back Door, apa lagi? itu bukti kalau pasar memang sedang digerakkan oleh sifat Greed"
+HISTORICAL SOROS CASES:
+1. British Pound 1992 (Black Wednesday): "Soros bisa membuat Bank sentral suatu negara yaitu Bank of England nyaris bangkrut." Short £10B, profit $1B. "Siram bensin Soros ga tanggung2x, dia semburkan bensin nya sampai ga bersisa."
+2. Asian Financial Crisis 1997-1998: Short Baht, Thailand floated July 1997, crisis spread. "Soros menghasilkan keuntungan besar dari krisis ini."
+3. Dot-com Bubble 1999-2000: Reduced tech exposure late 1999. "Valuasi yang Tidak Realistis, Euforia Pasar." Nasdaq -75% from peak. "Yang lucu nya adalah kalau Soros berhasil keluar dari bencana tersebut dengan baik, koleganya Stanley malah jadi korban pada bubble tersebut."
+4. Subprime Mortgage 2007-2008: Short financial sector 2007. "Pinjaman Subprime, Leverage yang Tinggi, Ketidakberlanjutan." Lehman collapse 2008.
+5. Yen Bubble 2012-2013: Short JPY, long Nikkei. BoJ QE aggressive. "Yen melemah lebih jauh, dan Soros menghasilkan keuntungan besar sekali lagi."
+LESSONS:
+1. Identifikasi Ketidakseimbangan
+2. Refleksivitas
+3. Keberanian untuk Bertindak
+4. Manajemen Risiko
+Ricky's call: "Saya mungkin tidak segila Soros, tapi edisi siram bensin saya jalankan untuk Riding Kegilaan yang sedang terjadi. Saya memakai strategi soros tapi versi mininya"
+"Saya paham bahwa semua ini pasti ada ujung nya, semua ketidakrasionalan pasti punya akhir, semua kegilaan yang semu pastinya tidak punya fondasi yang baik."
+"That's why Storm pasti akan datang. Kapan? tidak ada yang tau pasti nya kapan, even Soros juga tidak tau."
+"Saat semua sudah lelah, Bubble will burst, Bubble after Storm."
+"Jack Up Before Storm buat saya masih terus berjalan dengan ending besar nya adalah sebuah STORM"
+"Sekarang STORM nya? bukan, sekarang bukan real show nya. Penurunan sekarang ini belum pada permainan sesungguhnya."
+Key data: Soros = ride the bubble, know it will burst, exit before storm. Current = bubble forming, storm coming but not yet.""",
+        category="geopolitical",
+        catalyst_types=["soros_bubble","reflexivity","jack_up_before_storm","bubble_before_storm",
+            "ride_the_bubble","storm_coming","irrational_exuberance"],
+        activation_keywords=["bubble before the storm","george soros strategy","soros bubble","jack up before storm",
+            "refleksivitas soros","teori refleksivitas","analisis fundamental soros","psikologi pasar soros",
+            "bad economy bubble","paper asset bubble","siram bensin soros","riding kegilaan",
+            "palantir 50x sales","ai bubble","narasi konglo greed","bank of england 1992",
+            "black wednesday soros","asian financial crisis 1997","baht thailand soros",
+            "dot com bubble 2000","subprime mortgage 2008","lehman brothers soros",
+            "yen bubble 2013","nikkei soros","short pound 1 miliar","quantum fund soros",
+            "ketidakseimbangan ekonomi","storm pasti datang","bubble will burst",
+            "real show belum","penurunan sekarang bukan storm"],
+        invalidation_keywords=["no_bubble","fundamentals_drive","soros_wrong","storm_never_comes"],
+        beneficiaries={"us":["SQQQ","VIX","TLT","GLD"],"ihsg":["BBCA.JK","TLKM.JK","UNVR.JK"],
+            "crypto":["BTC-USD"]},
+        fades={"us":["SPY","QQQ","IWM","high_beta","PLTR"],"ihsg":["high_flyer","narrative_play","backdoor"]},
+        regime_alignment={"Q3":1.70,"Q4":1.50,"Q2":1.20,"Q1":0.90},
+        typical_duration_weeks=52,
+        conviction_ceiling=0.85,
+        pump_risk=0.15,
+        confirmation_signals=["valuation_extreme","narrative_driven_rally","soros_style_signals",
+            "reflexivity_loop_active","bubble_metrics_spike","storm_preparation_indicators"],
+    ),
+
+    # ── ARTICLE 47: One Great Moment Can Change the Whole Condition ────────────
+    NarrativeTemplate(
+        name="One Great Moment Can Change the Whole Condition — Life & Market Lesson",
+        description="""Ricky2212 personal story framework: One moment changes everything.
+THE STORY:
+- Ricky's mother passed away recently. "Innalilahi wainalillahi rojiun. mama, terima kasih buat 68 tahun perjuangan mama"
+- "One Great Moment Can Change the Whole Condition. Satu Great Moment itu bisa mengubah keseluruhan keadaan buat anda"
+THE BACKGROUND:
+- Rocky relationship with mother: "Pencuri hidup and Impian saya", "No contribution buat hidup saya"
+- Strict upbringing: "Gagang sapu, sapu lidi, belt, raket yonex — semua pernah mendarat di tubuh saya"
+- Academic excellence but rejected by mother: PMDK Jogja rejected, D3 Depok rejected
+- "Ibu saya adalah ibu yang paling konsisten kalo soal disiplin"
+- 1997-1998: Father's factory bankrupt, family separated
+- "Saya sempat putus kan untuk menutup komunikasi dengan ibu saya"
+THE RECONCILIATION:
+- 10 years ago: started reopening communication. "FORGIVEN but not FORGOTTEN"
+- 3 months before passing: mother WA daily asking about Ricky's wellbeing
+- "Dia hanya mau memastikan sebelum dia pergi, dia melihat semua anaknya sehat and bahagia"
+- The last 3 hours: Ricky cared for his sick mother. "Dia membuka jalan buat saya berbakti walau hanya 3 jam saja"
+- "Dia mau memastikan dia bisa menghapus dosa saya yang saya tumpuk karena renggangnya hubungan sama saya bertahun tahun"
+- "Dia tutup usianya dengan hubungan yang baik dengan saya tanpa ada luka lagi yang muncul"
+- "Mama saya memang sudah siap pergi dan dia memang menciptakan semua keadaanya untuk pergi meninggalkan yang terbaik"
+THE MOMENT:
+- "One Great Moment can Change Whole Condition"
+- "Dia adalah ibu TERBAIK yang ada di dunia. Ga ada ibu seperti mama"
+- "Diperlukan ketulusan yang luar biasa untuk mengcreate semua jalan cerita tersebut"
+MARKET CONNECTION:
+- "Satu Great Moment itu bisa mengubah keseluruhan keadaan buat anda, apapun itu keadaannya mau karir, kerjaan, keuangan even porto anda di bursa dll"
+- "Saya percaya bahwa Tuhan memberikan kita semua di dunia ini tanpa kecuali kesempatan buat jadi orang yang berhasil"
+- "Dalam satu siklus hidup yang diberikan Tuhan sampai kita mati nanti, ada satu Kesempatan besar atau Great Moment yang akan datang dan akan merubah hidup kita keseluruhan"
+- "Masalah nya Tuhan memberinya masih berupa sebuah kesempatan dan Tuhan pasti tidak memberikannya secara Cuma-cuma"
+- 2008: "Titik Great Moment saya hanya 1 jengkal dari hadapan saya. Benar2x hanya 1 langkah saja buat saya mendapatkannya"
+    * Choice: quit market and stay in banking vs continue in stocks
+    * "Andai yang saya ambil adalah pilihan berhenti dari bursa apa yang terjadi?"
+    * Would have missed: 2008-2011 comeback, 2011 first $1M net worth at age 30, meeting market makers, bull markets 2008-2011, property cycle 2011+, commodity cycle 2016, super bullish 2020
+Ricky's call: "One Great Moment Can Change the Whole Condition"
+"Jangan sampai anda menyesal karena memasukkan pilihan kata Menyerah dalam menjalani keadaan sekarang ini"
+Key data: One moment = everything changes. In markets, in life. Don't quit before your moment arrives.""",
+        category="cycle",
+        catalyst_types=["one_great_moment","life_lesson","never_give_up","great_moment_market",
+            "2008_turning_point","mother_story","reconciliation"],
+        activation_keywords=["one great moment","change whole condition","great moment life",
+            "ibu terbaik","pencuri hidup","no contribution","gagang sapu","sapu lidi",
+            "belt raket yonex","disiplin keras","pmdk jogja rejected","d3 depok rejected",
+            "1997 1998 bangkrut","putus komunikasi","forgiven not forgotten",
+            "wa daily 3 bulan","3 jam berbakti","menghapus dosa","tutup usia tanpa luka",
+            "ketulusan luar biasa","tuhan kesempatan","2008 great moment","1 jengkal",
+            "quit bursa vs banking","2011 1m net worth","age 30","market maker meeting",
+            "bull market 2008 2011","property cycle 2011","commodity cycle 2016",
+            "super bullish 2020","jangan menyerah","menyesal menyerah"],
+        invalidation_keywords=["gives_up","misses_moment","quits_before_peak","no_great_moment"],
+        beneficiaries={"ihsg":["ALL"],"us":["ALL"],"safe_haven":["PATIENCE","PERSEVERANCE"]},
+        fades={"ihsg":["quitters","short_term_thinkers"]},
+        regime_alignment={"Q1":1.00,"Q2":1.00,"Q3":1.00,"Q4":1.00},
+        typical_duration_weeks=999,
+        conviction_ceiling=1.00,
+        pump_risk=0.00,
+        confirmation_signals=["great_moment_opportunity","perseverance_pays","long_term_compound",
+            "life_changing_decision","never_quit_moment"],
+    ),
+
+    # ── ARTICLE 48: Negara Saya Mengirim Saya — Never Give Up ──────────────────
+    NarrativeTemplate(
+        name="Negara Saya Mengirim Saya — Never Give Up & Find Your Great Moment",
+        description="""Ricky2212 perseverance framework: "Menyerah itu tidak ada dalam pilihan"
+THE FOUNDATION:
+- Father's advice: "Ricky, Kelak nanti saat kamu sudah menghadapi dunia kehidupan yang nyata jangan pernah memasukkan kata Menyerah dalam pilihan hidupmu"
+- "Puluhan kali bahkan ratusan kali kalimat tersebut diperdengarkan"
+- "Kalo kamu sampai memilih itu tolong jangan masukkan kata Hopmans di nama belakang kamu. Jaga kehormatan nama marga itu supaya tetap harum"
+- "Sampai hari ini Menyerah itu tidak pernah ada dalam pilihan apabila saya dihadapkan pada sesuatu yang sulit"
+THE BELIEF:
+- "Saya percaya banget hukum di dunia ini bahwa kalau mau mendapat sesuatu yang baik, pasti harus menghadapi hal buruk terlebih dahulu. Tidak ada hal luar biasa yang bisa didapat dengan cuma-cuma."
+- "Kupu2x akan jadi indah sayapnya ketika dia berjuang hebat keluar dari kepompongnya"
+- "LKH sampai di titik sekarang ini setelah dia mengalami kejatuhan hebat di 1998"
+THE GREAT MOMENT:
+- "Tuhan memberikan kita semua di dunia ini tanpa kecuali kesempatan buat jadi orang yang berhasil"
+- "Dalam satu siklus hidup yang diberikan Tuhan sampai kita mati nanti, ada satu Kesempatan besar atau Great Moment yang akan datang"
+- "Gimana kalau titik Great Moment itu baru akan anda dapat setelah anda melewati hal yang sulit terlebih dahulu?"
+- "Saat anda diberikan kesempatan tersebut dan anda harus melewati perjuangan besar buat mendapatkan hal tersebut tapi anda Mundur and Menyerah, berarti anda sudah melewati 1 moment terbaik dalam hidup anda"
+- "Gimana kalau titik Great Moment itu jaraknya hanya 1 jengkal saja dari hadapan anda saat anda memutuskan buat mundur?"
+- "Gilanya lagi dan anda akan menyesal seumur hidup anda"
+2008 STORY:
+- "Saya pernah di posisi itu bro dan titik Great Moment itu benar2x sejengkal dari hadapan saya. Benar2x hanya 1 langkah saja buat saya mendapatkannya."
+- "Fiuhhh, untung banget walau saya sempat kepikiran buat memasukkan kata Menyerah sebagai pilihan kala itu tapi akhirnya saya teringat banget kalimat yang Ayah saya selalu perdengarkan."
+- "Saya ga mau melepas kata Hopmans di nama saya cuma karena saya jadi pecundang dan menyerah sama keadaan."
+- 2008: choice between quitting stocks vs continuing
+    * If quit: miss 2008-2011 comeback, miss $1M at age 30, miss meeting market makers, miss all bull markets
+    * "Semua itu tercipta dan saya bisa lewati karena Great Moment saya di 2008. Gilaa sejengkal saja dari hadapan saya"
+THE ATHLETE STORIES:
+1. John Stephen Akhwari (Olympic Marathon):
+    - "Negara saya mengirim saya bukan untuk memulai lomba lari ini, tapi negara saya mengirim saya sejauh 5000 mil untuk menyelesaikan lomba lari ini"
+    - Km 19: leg cramp, fell, hit by another runner. Medical team advised withdrawal.
+    - Refused. Finished the race despite severe injury.
+2. Derek Redmond (Olympic 400M):
+    - 150m remaining: hamstring injury, fell. Disqualified if he took stretcher.
+    - "Saya tak akan naik tandu itu. Bagaimanapun juga, saya harus menyelesaikan perlombaan ini"
+    - Father Jim Redmond broke security barrier, helped son finish. "Kita akan finish bersama-sama"
+    - "Ayah saya adalah orang yang paling bangga sedunia! Saya lebih bangga kepadanya meski gagal mendapatkan medali emas"
+Ricky's call: "Ayah saya melahirkan saya ke dunia ini bukan sebagai pecundang melainkan untuk menyelesaikan semua apa yang Ia cita2x kan"
+"Anda gimana?"
+"NB: saya putuskan saya bermain dengan alokasi yang ada aja sekarang. Sudah makin merinding sense saya kayanya, jadi apapun nanti ada jack up jelas saya akan exit. Kalaupun worst sampai jack up ga datang, saya juga jauh lebih siap. Sometime diam itu adalah langkah pemenang."
+Key data: Never give up. Great moment is always closer than you think. Silence = winner's move.""",
+        category="cycle",
+        catalyst_types=["never_give_up","great_moment","perseverance","akhwari_marathon",
+            "derek_redmond","father_advice","2008_turning_point","exit_strategy"],
+        activation_keywords=["negara saya mengirim saya","menyerah tidak ada pilihan","never give up",
+            "jangan menyerah","hopmans nama harum","ayah saya pesan","hukum dunia baik buruk",
+            "kupu kupu kepompong","lkh 1998","great moment tuhan","1 jengkal dari hadapan",
+            "menyesal seumur hidup","2008 great moment","sejengkal dari hadapan","akhwari marathon",
+            "5000 mil menyelesaikan","km 19 cedera","derek redmond 400m","hamstring injury",
+            "jim redmond ayah","finish bersama","orang paling bangga","ayah melahirkan bukan pecundang",
+            "diam langkah pemenang","sense merinding","exit jack up","siap worst case"],
+        invalidation_keywords=["gives_up","quits","misses_great_moment","no_perseverance"],
+        beneficiaries={"ihsg":["ALL"],"us":["ALL"],"safe_haven":["PATIENCE","PERSEVERANCE"]},
+        fades={"ihsg":["quitters","weak_hands"]},
+        regime_alignment={"Q1":1.00,"Q2":1.00,"Q3":1.00,"Q4":1.00},
+        typical_duration_weeks=999,
+        conviction_ceiling=1.00,
+        pump_risk=0.00,
+        confirmation_signals=["perseverance_shown","great_moment_arrives","never_quit_mindset",
+            "father_wisdom_applied","athlete_spirit","exit_when_ready"],
+    ),
+
+    # ── ARTICLE 49: Semua Tergantung Stasiun Naik & Turun ─────────────────────
+    NarrativeTemplate(
+        name="Semua Tergantung Stasiun Naik & Turun — Entry-Exit Timing Framework",
+        description="""Ricky2212 stock journey framework: "All depends on which station you board and which station you alight."
+THE CONCEPT:
+- "Saham naik dipuja, saham turun di caci itu sudah rumus dari sana nya"
+- "Yang untung banyak dari saham tertentu pasti diam dan menikmati, sebaliknya yang rugi banyak dari saham tertentu biasanya teriak nya paling kencang"
+- "Itu lah balada perjalanan panjang satu saham"
+- "Semua tergantung di stasiun mana anda naik ke gerbong keretanya dan di stasiun mana anda turun dari gerbong"
+HMSP:
+- 2000s: Cigarette trend, Philip Morris acquisition
+- Peak 2018: ~6000. 7 years later: ~600 (-90% from peak)
+- "60 bagger di luar dividen" from 2000 to 2018
+- "Banyak yang kaya dari saham ini, banyak yg boncos dari saham ini juga"
+ASII:
+- 2003-2017: Indonesia economic growth, middle class rise, Honda motorcycle dominance, commodity super cycle
+- "ASII adalah sebuah perusahaan konglomerasi yang terdiversifikasi"
+- Peak 2017: ~9000. 8 years later: ~4500 (-50%)
+- "20 bagger belum termasuk dividen" from 2003 to 2017
+- "12 tahun sejak 2013 sampai 2025, saham ASII malah terhitung Flat"
+BBRI:
+- IPO 2003: 875. Peak 2024: ~6500 (adjusted: ~65K). "75 bagger selama 21 tahun"
+- "Aset BBRI 2003: 94T, laba 2.6T. 2025: Aset 2000T, laba 57T"
+- "Bank BUMN adalah lambang negara, bank adalah pusat putaran ekonomi"
+- Since peak 2024: 6500 → 3900 (-40% in less than 1 year)
+- Friend's story: wife works at BBRI, got IPO shares + annual bonus shares, held from 2003 to 2019
+INCO:
+- 2003-2008: China massive infrastructure build, commodity super cycle
+- "INCO sebagai penghasil salah satu penghasil raw material tersebut ketiban durian runtuh"
+- Bought at 8000, peak 2008: 11,700 (4:1 and 10:1 splits = ~470K pre-split)
+- "60 bagger dalam 5 tahun, belum termasuk dividen"
+- From peak 11,700 to now ~3K (-70%, never recovered)
+- "INCO perusahaan world class loh, tapi harga super performnya tidak pernah lagi ketemu"
+BUMI:
+- 2003-2008: "Saham ajaib yang pernah ada di bursa saham di Indonesia"
+- "Saya tumbuh dan belajar di lingkaran konglomerasi itu"
+- "Sekuritas Danat××× Makxxx — dipakai oleh konglomerasi mereka"
+- "Big Boss nya sekuritas tersebut harus mempertahan harga penutupan di level tertentu agar Repo nya ga bubar"
+- From 25 to peak 8000 = 320x return
+- From 8000 to 100 = -99%, never recovered to peak
+- "Kapitalisasi Rp 160 trilyun saat itu (20M lembar x 8000)"
+- "Sekarang di harga 100 cap nya saja sudah Rp 40 Trilyun"
+- "Saya menikmati perjalanan BUMI di 2003-2008, 2008-2011, 2016-2017, 2021-2022"
+- "Akan kah 2024 ini jadi perjalan ke 5 saya menikmati gurihnya keuntungan di group tersebut?"
+THE LESSON:
+- "Jadi ga perlu bilang saham xxxx ga asyik, bikin orang rugi, ga pernah kasih untung, down trend abadi, sektor nya sunset dll"
+- "Bisnis and ekonomi akan berputar dan suatu waktu mereka akan menemui masa jaya nya lagi"
+- "Tugas teman2x adalah mencari waktu yang pas, mencari stasiun yang pas buat ikut dalam perjalanan"
+- "Saat penurunan april kemarin jadi salah satu stasiun yang cocok buat menikmati perjalanan"
+- "Mau yang lebih cocok lagi? tunggu Crash besar di depan sana yang mungkin akan datang"
+- "Disana lah stasiun yang super cocok buat anda semua yang pingin menjalani perjalanan jauh investasi saham"
+- "Dengan catatan? anda bisa membeli tiket buat naik keretanya alias pegang cash saat kejatuhan terjadi"
+Ricky's call: "Semua tergantung di stasiun mana anda naik ke gerbong keretanya dan di stasiun mana anda turun dari gerbong"
+Key data: Entry/exit timing = everything. Same stock makes some rich and others broke. Crash = best boarding station.""",
+        category="cycle",
+        catalyst_types=["entry_exit_timing","station_framework","stock_journey","same_stock_rich_poor",
+            "crash_entry","superior_return_timing","long_term_compound"],
+        activation_keywords=["stasiun naik turun","gerbong kereta saham","entry exit timing",
+            "saham naik dipuja turun dicaci","hmsp 60 bagger","hmsp 6000 ke 600","asii 20 bagger",
+            "asii 9000 ke 4500","bbri 75 bagger","bbri 6500 ke 3900","inco 60 bagger",
+            "inco 11700 ke 3000","bumi 320x return","bumi 8000 ke 100","bumi ajaib",
+            "danat mak sekuritas","repo ga bubar","kapitalisasi 160 trilyun","crash besar stasiun",
+            "pegang cash kejatuhan","stasiun cocok","waktu pas masuk","bisnis berputar",
+            "masa jaya lagi","tugas cari stasiun","april penurunan stasiun","superior return timing"],
+        invalidation_keywords=["buy_and_hold_always_works","timing_irrelevant","crash_never_comes",
+            "same_stock_same_result"],
+        beneficiaries={"ihsg":["HMSP.JK","ASII.JK","BBRI.JK","INCO.JK","BUMI.JK","BRMS.JK"],
+            "safe_haven":["IDR_cash","PATIENCE"]},
+        fades={"ihsg":["wrong_station_entry","wrong_station_exit"]},
+        regime_alignment={"Q1":1.00,"Q2":1.00,"Q3":1.00,"Q4":1.00},
+        typical_duration_weeks=999,
+        conviction_ceiling=1.00,
+        pump_risk=0.00,
+        confirmation_signals=["good_entry_station","crash_opportunity","long_term_hold",
+            "exit_at_peak","compound_wealth","same_stock_different_outcome"],
+    ),
+
+    # ── ARTICLE 50: Prepared not Predict — Philosophy & Umbrella Analogy ───────
+    NarrativeTemplate(
+        name="Prepared not Predict — Philosophy & Umbrella Analogy",
+        description="""Ricky2212 preparation framework: "Better PREPARE not PREDICT"
+THE PROBLEM:
+- "Saya masih melihat kecenderungan banyak dari teman2x yang mencoba predict waktu dan time line nya"
+- "Kecenderungan nya saya melihat dengan mencoba predict waktu dan time line nya, teman2x mungkin mau mencoba memaksimalkan keadaan"
+- "Hati2x dengan hal tersebut, alih2x mencoba memprediksi apalagi mencoba mencari waktu yang presisi nanti malah berujung pada hal yang tidak diinginkan"
+THE FRAMEWORK:
+- "Saya coba tuliskan semua hal misal seperti 13 keypoint, blow of the top, bubble stage bukan untuk menebak atau mencari waktu pastinya"
+- "Semua itu saya tulis dengan tujuan menitik beratkan pada pola dan pettern yang biasa terjadi"
+- "Karena pola dan pattern nya berurutan, maka kejadian di phase selanjutnya akan sangat bergantung pada kejadian di phase sebelumnya"
+- "Apabila saya menyebutkan satu periode misalnya bulan apa, itu berarti saya mencoba melihat selama periode tersebut ada sinyal apa sih yang ekonomi dan market berikan"
+UMBRELLA ANALOGY:
+- Rainy season: October-April. "Chance buat hujan sangat tinggi. Jadi kapanpun biasa terjadi hujan"
+- "Sudah tau kan musim penghujan? apa yang akan anda lakukan saat anda melakukan perjalanan tanpa kendaraan? Sudah pasti anda akan mempersiapkan payung di tas anda"
+- "Anda tidak tau kapan hujan nya, tapi anda tau sekarang adalah musim penghujan and chance besar hujan kapan saja bisa terjadi"
+- Predicting exact time: "Saya prediksi hujannya akan terjadi di hari senin dan tepatnya hujan akan datang mulai pukul 10.00 a.m."
+    * Monday: no rain → missed business meeting for nothing
+    * Tuesday: no rain → carried umbrella for nothing
+    * Wednesday: no rain → carried umbrella for nothing
+    * Thursday: no umbrella → rain pours, soaked
+- "Dengan membawa payung di saat musim penghujan itu artinya anda sudah mempersiapkan diri anda untuk terhindar dari resiko basah kuyup"
+- "Saat anda bawa payung tapi tidak hujan? yah itu merupakan bagian dari prepare anda"
+INSURANCE ANALOGY:
+- "Kenapa anda beli asuransi? sejatinya orang beli asuransi karena ingin melindungi dirinya dari resiko ketidakpastian"
+- "RESIKO itu bisa datang kapan saja tanpa kita kehendaki"
+- Life insurance: average lifespan 60-70 years. But accident can happen anytime.
+    * "Amit2x jangan sampai terjadi. Misal anda baru saja keluar rumah... motor itu menabrak anda... anda harus cacat permanen atau bahkan meninggal saat itu"
+    * "Umur meninggal anda 60-70 tahun? secara ilmu medianya iya, tapi ketidakpastian itu bisa datang kapan saja"
+- Health insurance: metabolism changes at 42-45. But stress + bad lifestyle → stroke at 30.
+    * "Predict anda sakit di umur 42-45? saat anda ga ada persiapan karena mau coba mempredict kejadian pasti membuat anda harus menghadapi resiko yang lebih tinggi"
+THE MARKET APPLICATION:
+- "Kalo keadaan market sudah banyak sinyal buruk, besok pun bisa saja market berbalik arah dengan cepat tanpa ampun"
+- "Chance hujan besar akan terjadi saat memang lagi datang musim hujan. Hujan bisa terjadi kapan saja tanpa kita bisa perkirakan dengan pasti"
+- "Market juga kalo sudah banyak sinyal buruk yang datang, chance terjadi pembalikan arah juga menjadi besar dan bisa datang kapan saja"
+- "Bawa payung adalah prepare saat musim hujan. Kalo bawa payung tapi ga hujan? setidaknya masih lebih baik daripada coba2x memprediksi kapan hal buruknya datang"
+- "Di bursa gimana anda mempersiapkan diri anda saat anda tau bahwa chance besar buat hal buruk akan datang? nah itu tugas dan PR anda"
+- "Kalo sudah siap tapi ga datang hal buruk nya? setidaknya masih lebih baik daripada coba2x memprediksi"
+Ricky's call: "Prepare not Predict, cuma itu yang saya bisa lakukan sekarang ini"
+"Makin banyak sinyal kuat yang bergetar, makin saya mempersiapkan diri saya untuk sebuah hal buruk yang akan terjadi"
+"Crisis pasti akan datang dan kita tidak bisa menghindar. Jangan anggap itu sebagai hal buruk, justru anggap itu sebagai sebuah kesempatan terbaik buat anda untuk meningkatkan kekayaan anda"
+Key data: Prepare = umbrella in rainy season. Predict = guess exact rain time and get soaked. Market = rainy season now.""",
+        category="cycle",
+        catalyst_types=["prepare_not_predict","umbrella_analogy","insurance_analogy","rainy_season_market",
+            "preparation_over_prediction","crisis_opportunity"],
+        activation_keywords=["prepare not predict","better prepare not predict","umbrella analogy",
+            "musim penghujan","payung di tas","predict hujan senin 10am","basah kuyup",
+            "asuransi jiwa","asuransi kesehatan","resiko ketidakpastian","umur 60-70",
+            "kecelakaan kapan saja","stroke umur 30","predict umur 42-45","market sinyal buruk",
+            "pembalikan arah cepat","chance besar hal buruk","tugas pr prepare","siap tapi ga datang",
+            "crisis kesempatan terbaik","meningkatkan kekayaan","sinyal kuat bergetar",
+            "pola pattern berurutan","fase bergantung fase sebelumnya","13 keypoint prepare",
+            "blow off top prepare","bubble stage prepare"],
+        invalidation_keywords=["prediction_works","no_preparation_needed","timing_exact",
+            "crisis_avoided"],
+        beneficiaries={"ihsg":["ALL"],"us":["ALL"],"safe_haven":["IDR_cash","USD_cash","PREPARATION"]},
+        fades={"ihsg":["predictors","timers","reactive_traders"]},
+        regime_alignment={"Q1":1.00,"Q2":1.00,"Q3":1.00,"Q4":1.00},
+        typical_duration_weeks=999,
+        conviction_ceiling=1.00,
+        pump_risk=0.00,
+        confirmation_signals=["preparation_complete","umbrella_ready","crisis_signals_present",
+            "rainy_season_market","not_reactive","calm_during_storm"],
+    ),
+
+    # ── ARTICLE 51: Prepare not Predict Part 2 — Top & Bottom Signals ─────────
+    NarrativeTemplate(
+        name="Prepare not Predict Part 2 — Top & Bottom Market Signals",
+        description="""Ricky2212 market phase signals framework:
+THE PHILOSOPHY:
+- "Kilas balik ke belakang, saya juga sudah sempatkan untuk membuatkan artikel tentang perjalanan market kita menuju puncak nantinya"
+- "13 key point, artikel tentang dessert penutup cycle dan artikel tentang euphoric and Depressed cycle"
+- "Di artikel ini saya akan coba bedah lagi sinyal2x keadaan yang biasanya muncul pada saat market mau top and market mau bottoming out"
+- "Sinyal ini secara historical selalu berulang"
+7 SIGNALS AT MARKET TOP:
+1. IPO FLOOD: "Jumlah IPO meningkat pesat. Saat market menuju euphoria biasanya antrian perusahaan untuk IPO meningkat drastis."
+    - "Euphoria menciptakan permintaan risk asset sangat tinggi sehingga perusahaan yang IPO akan dengan mudah mencari dana di pasar"
+    - "Perusahaan yang IPO akan dapat menjual perusahaannya dengan valuasi yang tinggi"
+2. HIGH RISK ASSET SURGE: "High Risk Asset naik luar biasa tanpa kecuali. Psikologi risk on partisipan naik luar biasa."
+    - "Mereka akan memburu asset2x yang bisa memberikan return yang tinggi. Aliran uang akan deras masuk ke risk asset dengan tingkat confidence yang sangat tinggi"
+3. LEVERAGE EASING: "Pemberian leverage yang dipermudah. Saat semua dalam kondisi risk on dengan kecepatan sangat tinggi, perusahaan perantara perdagangan risk asset akan mempermudah anda dalam menjangkau pinjaman untuk me leverage posisi anda."
+    - "More risk means more credit available"
+4. STEEP RISE + HIGH VOLUME: "Kenaikan asset yang curam dengan Volume yang sangat tinggi. Banyak risk asset tanpa fundamental naik dengan curam dengan volume yang sangat tinggi. Aliran uang nanti ngumpul disana semua."
+5. HISTORIC VALUATIONS: "Valuasi akan berada di level yang tinggi Secara Historis. Kalo fundamental ekonomi real ketinggalan maka laba yang dihasillkan juga akan tumbuh melambat dan disaat yang sama pasar mengalami kenaikan cukup pesat."
+    - "Belum lagi kenaikan pasar juga didorong saham yang katanya high growth, makin parah lah tuh valuasi nantinya"
+6. NEW PARTICIPANT SURGE: "Makin Banyak dan pertumbuhan luar biasa untuk partisipan baru yang nimbrung di bursa. Ada Gula ada semut."
+    - "Banyak sebenernya yang tidak mengerti mengenai pasar saham. Mereka terdorong karena euphoria"
+7. MEDIA FRENZY: "Pemberitaan media dan sosial media yang makin ramai membicarakan pasar. Dimana-mana berbicara pasar dengan bahasa yang wah."
+    - "Indeks tembus record bla bla bla. Sosial media pun ga ketinggalan nanti banyak yang bahas saham"
+    - "Yang paling ultimate nanti banyak yang petantang petenteng kaya jagoan berbicara tentang market di sosial media (padahal ga ngerti apa2x)"
+    - "Even tukang sayur anda aja nanti bisa bicara tentang saham atau BTC saking gemerlapnya dunia investasi"
+13 KEY POINT PEAKED SIGNALS (from previous articles):
+1. Gold ATH → ATH while Market also ATH→ATH
+2. IWM (small cap) ATH and outperforming all indices
+3. High risk asset (crypto) hard jack up from ATH→ATH
+DESSERT CYCLE SIGNALS:
+1. B-Indicator (Om B stock) peaks to close cycle
+2. BTC ATH→ATH
+THE REALITY:
+- "Tidak ada yang tau kapan hal buruk atau Crisis akan datang. Tapi dalam perjalanannya banyak hal yang tidak semestinya akan terjadi dan itu adalah sinyal2x yang biasa diberikan oleh market"
+- "CRISIS terjadi saat tidak ada yang menyangka itu bakal terjadi"
+- "Orang akan dibuat terlelap oleh mimpi indah naiknya market dengan kekuatan yang luar biasa. Siapa yang terlarut berlebihan dalam euphoria tersebut, jangan heran kalo dia nanti yang menjadi bagian sejarah dilahap oleh kejatuhan market"
+THE TIMING:
+- "Saya ga bicara waktu persis nya dan jangan menanyakan hal tersebut"
+- "Kalau tidak ada aral melintang, Narasi CUT akan dimunculkan oleh market. Berkali-kali Trump sudah minta hal tersebut"
+- ECB, BOE, BoC, SNB, RBA, RBNZ, India (50bps surprise) all cutting
+- "SNB warning deflasi, ga menutup kemungkinan negative rates. 5yrs notes yield negative"
+- China: injecting liquidity, lowering rates
+- Fed FOMC mid-June (18-19 June): "Saya ga expect terjadi CUT, tapi bisa saja Fed kasih suprised CUT"
+- "Once Fed sudah beres urusin masalah hutang nya, tuh CUT akan membuat yield UST makin menciut secara cepat"
+- "Perjalanan kita menuju PEAKED akan berjalan sempurna (estimasi thesis saya market akan terjadi Jack Up dan mungkin akan sampai level Ter FOMO-FOMO)"
+THE STRATEGY:
+- "Tetap jaga ekspektasi anda dengan baik sehingga anda tidak terlelap dalam euphoria"
+- "Next cerita nya narasi apa yang bisa bikin gembos market saat mencapai PEAKED? market akan realized bahwa ekonomi tidak cukup kuat dengan CUT yang terjadi"
+- "Ekonomi butuh lower rate sampe rendah agar dosisnya cukup buat menggerakan kembali roda ekonomi yang sesungguhnya"
+- "Saya masih bermain SIRAM BENSIN dengan porsi terbesar di conglo narrative terutama 9 haji conglo narrative. Sebagian kecil lagi main lucu2x an ala bekdor dan lucu2x saham CA"
+Ricky's call: "Prepare not Predict, cuma itu yang saya bisa lakukan sekarang ini"
+"Makin banyak sinyal kuat yang bergetar, makin saya mempersiapkan diri saya untuk sebuah hal buruk yang akan terjadi"
+"Crisis pasti akan datang dan kita tidak bisa menghindar. Jangan anggap itu sebagai hal buruk, justru anggap itu sebagai sebuah kesempatan terbaik buat anda untuk meningkatkan kekayaan anda"
+Key data: 7 top signals = historical pattern. Peak = when all 7 align. Crisis = when no one expects it. Prepare now.""",
+        category="cycle",
+        catalyst_types=["top_signals","bottom_signals","ipo_flood","risk_asset_surge","leverage_ease",
+            "historic_valuations","new_participants","media_frenzy","13_key_point","dessert_cycle",
+            "cut_narrative","peaked_market"],
+        activation_keywords=["prepare not predict part 2","top bottom signals","sinyal market top",
+            "sinyal market bottom","ipo meningkat pesat","high risk asset surge","leverage dipermudah",
+            "kenaikan curam volume tinggi","valuasi tinggi historis","partisipan baru banyak",
+            "media sosial ramai","tukang sayur bicara saham","petantang petenteng jagoan",
+            "13 key point peaked","gold ath market ath","iwm ath outperform","crypto hard jack up",
+            "dessert cycle","b indicator peak","btc ath ath","crisis tidak menyangka",
+            "terlelap euphoria","dilahap kejatuhan","narasi cut trump","ecb boc snb rba rbnz cut",
+            "india 50 bps surprise","snb deflasi negative rates","china inject liquidity",
+            "fed fomc juni 18-19","surprised cut fed","ust yield menciut","ter fomo fomo peaked",
+            "siram bensin conglo","9 haji narrative","bekdor ca play","ekonomi gembos",
+            "lower rate dosis cukup","kesempatan terbaik krisis"],
+        invalidation_keywords=["no_peak_signals","market_never_peaks","crisis_avoided","signals_false"],
+        beneficiaries={"ihsg":["BUMI.JK","BRMS.JK","WIFI.JK","DEWA.JK","TOBA.JK","PGEO.JK","RAJA.JK"],
+            "us":["GLD","IWM","BTC-USD"],"safe_haven":["IDR_cash","USD_cash"]},
+        fades={"ihsg":["ipo_newbies","high_flyer_garbage","pure_fundamental_lagging"],"us":["SQQQ","VIX"]},
+        regime_alignment={"Q3":1.80,"Q4":1.70,"Q2":1.40,"Q1":1.00},
+        typical_duration_weeks=16,
+        conviction_ceiling=0.85,
+        pump_risk=0.20,
+        confirmation_signals=["ipo_surge","risk_asset_volume_spike","margin_debt_record",
+            "valuation_historic_high","new_brokerage_accounts_spike","social_media_saham_trending",
+            "tukang_sayur_trading","gold_ath_with_market","iwm_outperform","crypto_ath_spike"],
+    ),
+
+    # ── ARTICLE 52: Siklus Ekonomi Berputar — Apestor yang Ga Pernah Berputar ─
+    NarrativeTemplate(
+        name="Siklus Ekonomi Berputar — Apestor yang Ga Pernah Berputar",
+        description="""Ricky2212 market cycle & investor psychology framework:
+THE COMPLAINTS:
+- "Pak, kira2x saham x masih bisa naik ga?"
+- "Pak, kira2x thesis saham x masih berjalan ga?"
+- "Pak, koq saham nya turun ada apa yah?"
+- "Pak, kira2x apa katalis nya nanti naik lagi?"
+- "Pertanyaan yang menandakan ketidakpercayaan pada keputusan investasi yang sudah diputuskan"
+- "Pertanyaan yang menandakan ketidaksiapan menerima penurunan market"
+THE CYCLE:
+- "Seperti biasa siklusnya akan selalu berulang dan berputar-putar disitu saja"
+- "Saat dihadapkan pada penurunan harga maka basa diasumsikan berarti story and thesisnya selesai"
+- "Nanti kalo harganya naik berarti story dan thesis nya berjalan lagi. Sorak sorai akan datang lagi seakan-akan lupa pada penurunan yang terjadi"
+THE PSYCHOLOGY:
+- "Saya pribadi sih agak heran kenapa penurunan harga jadi justifikasi sesaat yah?"
+- "Segitu mudahnya terombang ambing keadaan? segitu melempem nya psiko seseorang?"
+- "Saat Fears datang, yang ga kuat pasti dengan sangat cepat logikanya terintimidasi"
+- "Dari sana kecemasan datang sehingga apapun yang terjadi dianggap tidak menguntungkan"
+- "Pikiran sudah langsung kemana-mana, perasaan kehilangan uang nya membesar"
+- "Dipikir market itu bodoh kali yah? dalam keadaan sentimen yang buruk begini terus ada penunggu saham yang mau jadi pahlawan kesiangan yang mau bikin saham ya hijau sendiri an?"
+THE WISDOM:
+- Om Robert: "Market turun, bisnis berjalan seperti biasa dan tidak ada yang berubah. Jadi apa yang harus ditakuti?"
+- Thomas: "Saham perusahaan bagus, naik itu masalah waktu saja. Semakin lama didiamkan di posisi bawah berarti semakin besar kesempatan anda"
+THE 3 THOUGHTS:
+1. "Kalau anda tidak sanggup melihat sebuah penurunan pasar, coba pikirkan kembali keberadaan anda di pasar saham"
+2. "Kalau anda tidak sanggup melihat sebuah penurunan pasar, berarti anda belum pantas mendapatkan superior return"
+3. "Pasar saham itu bukan tempat yang mudah, kalau mudah pasti sudah banyak yang kaya seperti WB, LKH dll"
+THE REALITY:
+- "Ini belum jadi sebuah penurunan yang dahsyat loh, baru dicoba penurunan segini aja masa langsung melempem?"
+- "Portofolio saya juga kena dampak koq. Sama hal nya dengan port nya mas rizza, thomas, mas tom, ko robert and si bontot"
+- "Memang saat begini, port kita hijau sendiri an? hebat bener kalo hijau sih, merah yang kena dampak juga pasti"
+- "Cuma perbedaan nya adalah gimana kita menyikapi keadaan nya aja"
+- "Akan jadi luar biasa saat terlalu reaktif terhadap satu keadaan"
+Ricky's call: "Market merah adalah market hijau yang tertunda, nikmati saja semua perjalanannya"
+"Nanti kalo sudah jack up juga ketawa2x lagi, lah wong Trump aja belum di inagurasi. Kasian loh masa kado inagurasi dikasih Black SWaN"
+Key data: Market cycles rotate; investor psychology doesn't. Fear makes weak hands question everything. Stay calm = win.""",
+        category="cycle",
+        catalyst_types=["market_cycle","investor_psychology","fear_cycle","weak_hand","temporary_downturn",
+            "business_as_usual"],
+        activation_keywords=["siklus ekonomi berputar","apestor ga pernah berputar","saham masih bisa naik",
+            "thesis masih berjalan","turun ada apa","katalis naik","ketidakpercayaan keputusan",
+            "ketidaksiapan penurunan","siklus berulang","story selesai turun","story berjalan naik",
+            "sorak sorai lupa penurunan","justifikasi sesaat","terombang ambing","melempem psiko",
+            "fear logika terintimidasi","kecemasan membesar","market bodoh","pahlawan kesiangan",
+            "om robert bisnis berjalan","thomas saham bagus naik waktu","sanggup liat penurunan",
+            "pantas superior return","pasar saham tidak mudah","wb lkh kaya","port kena dampak",
+            "hijau sendiri an","reaktif terhadap keadaan","market merah market hijau tertunda",
+            "nikmati perjalanan","trump inagurasi black swan"],
+        invalidation_keywords=["market_always_up","no_cycles","psychology_irrelevant","no_fear"],
+        beneficiaries={"ihsg":["ALL"],"safe_haven":["IDR_cash","CALMNESS"]},
+        fades={"ihsg":["weak_hands","panic_sellers"]},
+        regime_alignment={"Q1":1.00,"Q2":1.00,"Q3":1.00,"Q4":1.00},
+        typical_duration_weeks=999,
+        conviction_ceiling=1.00,
+        pump_risk=0.00,
+        confirmation_signals=["market_cycles_recognized","fear_managed","business_unchanged",
+            "calm_during_downturn","non_reactive_psychology"],
+    ),
+
+    # ── ARTICLE 53: Calm Down and Relax — Don't Panic During Downturns ────────
+    NarrativeTemplate(
+        name="Calm Down and Relax — Temporary Downturn & Playbook Execution",
+        description="""Ricky2212 calmness framework during market downturns:
+THE MANTRA:
+- "Calm Down and Relax. Yap itu hal terbaik yang perlu dilakukan saat melihat penurunan harga saham jangka pendek"
+- "Ingat penurunan itu hanya temporary, jadi ga perlu kasak kusuk dan terlihat gundah"
+THE FEAR INDICATOR:
+- "Yang gundah itu saya asumsikan tidak mengerti apa yang dibeli, apalagi sampe merintil hal2x yang sebenernya tidak perlu"
+- "Kenapa sampe merintil? karena psikologi fear nya sudah mulai mendominasi dan mempengaruhi logika anda sendiri"
+THE OPPORTUNITY:
+- "Selama semua Playbook masih berjalan dengan baik, penurunan harga saham itu jadi sebuah peluang untuk menambahkan posisi anda lebih banyak lagi"
+THE REGRET:
+- "Pak, tapi saya sudah ga bisa nambah posisi lagi? yah terima nasib saja yah"
+- "Saran saya yang sudah beberapa kali saya sampaikan bahwa kalo beli saham jangan makai otak ngeres sehingga yang terjadi adalah anda attack bombardir tanpa bersiap diri pas ada penurunan"
+THE CATALYSTS:
+- MIP (Mineral Industry Policy) and Royalty IUPK adjustment
+- "Agenda nya agenda besar koq, semoga saja satu per satu agenda nya bisa di checklist nantinya"
+- Verdhana simulation data:
+    * MIP Scenario: PTBA +59%, INDY +65%, BUMI +52%
+    * Royalty Scenario: INDY +135%, BUMI +44%, ADRO +20%
+    * MIP + Royalty: INDY +200%, BUMI +96%, PTBA +59%, ADRO +19%
+- "Dari 2 event ini ada 4 emiten yang diuntungkan: INDY >> BUMI >> PTBA >> AADI"
+Ricky's call: "Happy wiken. Calm Down and Relax"
+"Market merah adalah market hijau yang tertunda, nikmati saja semua perjalanannya"
+Key data: Downturn = temporary. Playbook intact = buying opportunity. MIP + Royalty = major coal catalysts.""",
+        category="cycle",
+        catalyst_types=["calm_down","temporary_downturn","playbook_intact","buying_opportunity",
+            "mip_policy","royalty_iupk","coal_catalyst"],
+        activation_keywords=["calm down relax","temporary downturn","penurunan temporary",
+            "ga perlu gundah","psikologi fear mendominasi","merintil hal tidak perlu",
+            "playbook berjalan baik","peluang tambah posisi","ga bisa nambah posisi",
+            "terima nasib","otak ngeres","attack bombardir","bersiap diri penurunan",
+            "mip mineral industry policy","royalty iupk adjust","verdhana simulation",
+            "ptba npat naik 59%","indy npat naik 65%","bumi npat naik 52%",
+            "indy royalty 135%","bumi royalty 44%","adro royalty 20%",
+            "indy mip royalty 200%","bumi mip royalty 96%","ptba mip royalty 59%",
+            "adro mip royalty 19%","4 emiten diuntungkan","indy bumi ptba aadi",
+            "agenda besar checklist","happy wiken"],
+        invalidation_keywords=["playbook_fails","mip_cancelled","royty_blocked","downturn_permanent"],
+        beneficiaries={"ihsg":["INDY.JK","BUMI.JK","PTBA.JK","AADI.JK","ADRO.JK"],
+            "safe_haven":["IDR_cash","CALMNESS"]},
+        fades={"ihsg":["panic_sellers","weak_hands"]},
+        regime_alignment={"Q1":1.20,"Q2":1.00,"Q3":0.80,"Q4":0.60},
+        typical_duration_weeks=4,
+        conviction_ceiling=0.80,
+        pump_risk=0.10,
+        confirmation_signals=["mip_announced","royalty_adjustment_confirmed","playbook_executing",
+            "coal_stocks_rally","verdhana_data_validated","agenda_checklist_progress"],
+    ),
 ]
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # MERGE ALL BATCHES INTO MASTER REGISTRY
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -2976,6 +3664,7 @@ _NARRATIVES.extend(_NARRATIVES_BATCH14)
 _NARRATIVES.extend(_NARRATIVES_BATCH15)
 _NARRATIVES.extend(_NARRATIVES_BATCH16)
 _NARRATIVES.extend(_NARRATIVES_BATCH17)
+_NARRATIVES.extend(_NARRATIVES_BATCH18)
 
 NARRATIVE_BY_NAME: Dict[str, NarrativeTemplate] = {n.name: n for n in _NARRATIVES}
 
@@ -2993,4 +3682,5 @@ __all__ = [
     "_NARRATIVES_BATCH15",
     "_NARRATIVES_BATCH16",
     "_NARRATIVES_BATCH17",
+    "_NARRATIVES_BATCH18",
 ]

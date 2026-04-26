@@ -1,15 +1,14 @@
-"""config/narrative_universe.py — BATCH 12
+"""config/narrative_universe.py — BATCH 13
 Artikel baru Ricky2212 (Apr 2026 extraction):
-1.  Kalau memang baik keadaanya, kenapa harga emas harus SPIKE? (USD debt, stagflation, gold signal)
-2.  Kalau market memang Bullish, koq saya bermain defensive? (tricky market, structural vs fake bullish)
-3.  Jack up => perfect timing for EXIT (smart money distribution, Buffett cash, peaked market)
-4.  2 menu Dessert sebagai puncak penanda penutup Cycle (BUMI/BRMS, crypto 100-120k, Russell/Gold ATH)
-5.  Same Scenario / ATH -10% (IHSG 7119, June 2024 deja vu, retail fleeing, MSCI underweight)
-6.  Fresh Money, Fresh Money (China $1.4T debt swap ≠ stimulus, no fresh money, QE theory)
-7.  (Perfect Set and Jack) UP (FOMC Dec, DXY top, OPEC cut, war, crypto meme = final jack up setup)
-8.  Fundamental is Dead, hhmmm yeah but just for a while (no fundamentals, big funds avoid big cap)
-9.  From Bad to Worst. Setannya adalah Over leverage (leverage devil, MSTR, retail margin, JPY carry)
-10. ATH -10% for last jack up? (IHSG 7900→7300, siram bensin at pessimism, narrative+konglo play)
+1.  Main Stages in a Bubble — bubble lifecycle framework (smart money → fear)
+2.  Indonesia economic deep trouble — PMI 49.6, consumer down-trading, PPN 12%
+3.  Canada, Swiss and China Warning — global synchronized easing panic
+4.  Fed final cut in 2024 / Fed 1st meeting 2025 — dot plot, Trump disinflation
+5.  Fenomena Back door listing — shell company criteria, PANI/KARW/LABA/FUTR/PACK
+6.  Kilas Balik 2024 — personal journey, siram bensin plays, crypto, junior miner
+7.  Preserve and Protect Capital 2025 — 40:60 equity:cash, global macro pessimism
+8.  US DEBT COLLAPSE — $7T rollover, QE→debt→deleveraging, L/W shape
+9.  Derrreesss Bro / Last Signal — optimism returning, 5 bull reasons, 4 peak signals, Big Boyz reverse psychology
 
 Copy-paste block ini ke bawah file config/narrative_universe.py yang sudah ada,
 lalu append merge lines di bagian paling bawah file.
@@ -34,342 +33,382 @@ class NarrativeTemplate:
     pump_risk: float
     confirmation_signals: List[str]
 
-_NARRATIVES_BATCH12: List[NarrativeTemplate] = [
+_NARRATIVES_BATCH13: List[NarrativeTemplate] = [
 
-    # ── ARTICLE 1: Gold Spike = Macro Collapse Signal ─────────────────────────
+    # ── ARTICLE 1: Bubble Lifecycle Framework ─────────────────────────────────
     NarrativeTemplate(
-        name="Gold ATH Spike — USD Debt Crisis & Stagflation Warning",
-        description="""Ricky2212 gold framework: Gold spike is NOT a good sign — it signals something big is broken.
-GOLD AS INFLATION HEDGE? No — world is in DISINFLATION/DEFLATION, not inflation. Central banks cutting rates. So why gold +35% YTD and +50% since Sep 2023?
-GOLD AS UNCERTAINTY HEDGE? No — CBs already signaled certainty of CUTs. So what uncertainty?
-Ricky's thesis: Gold spike = signal of MASSIVE macro instability ahead.
-1. USD COLLAPSE / DEBT CRISIS:
-- US debt ~$38T (nearly doubled in 7 years)
-- Interest cost ~$1T/year + deficit spending = must print MORE
-- Debt-to-GDP surpassing 1930s-1940s levels → approaching 100-year debt cycle peak
-- "Cetak uang untuk bayar hutang + bunga = inflasi lebih parah nanti"
-- Stagflation ('70s style) = most feared period for nations and CBs
-- China & Russia hoarding gold = preparing for super bazooka stimulus without destroying currency value (gold-backed credibility)
-2. GEOPOLITICAL RESET VIA CONFLICT:
-- US doesn't want to collapse alone → drags world down
-- Wars force resource hoarding, drain budgets, destroy economies post-war
-- '40s style = WWII reset; Pearl Harbor → Hiroshima/Nagasaki pattern
-- "Cara terbaik reset ekonomi dunia = perang"
-- Gold = hedge against geopolitical uncertainty
-3. CENTRAL BANK STUPIDITY HEDGE:
-- CBs know they made massive mistakes; not ashamed to admit it
-- They know where this ends → buying gold as insurance against their own policy failures
-- "Gold = STUPIDITY HEDGE"
-Key data: Gold ATH while market ATH = classic pre-crash divergence. "Kalau memang baik keadaanya, kenapa harga emas harus SPIKE?"
-Historical styles: '40s (war reset), '70s (stagflation), or worst case 1929 (Great Depression).
-China needs massive gold reserves before launching $1T+ bazooka.""",
+        name="Bubble Lifecycle — Current Phase: Greed→Delusional→New Paradigm",
+        description="""Ricky2212 bubble stage framework (Elon Musk socmed meme adapted):
+STAGE 1 — SMART MONEY (2020-2022): CB bazooka stimulus → cheap money → asset bubble creation. Indices immune to bad news (COVID, war). "Even monkey can win." 2020-2022 pre-inflation = take-off.
+STAGE 2 — FIRST SELL OFF & BEAR TRAP (Sep-Oct 2022): Inflation explodes (US 9%), CB hikes fast & steep. Market sells off ~23%. Recession fears. Bear trap forms.
+STAGE 3 — MEDIA ATTENTION (Oct 2022-Sep 2023): Despite hikes, market comes back. "Heran: dicekek habis-habisan tapi indeks rally." Headlines everywhere. Fed pauses hikes.
+STAGE 4 — ENTHUSIASM (Sep 2023-Q2 2024): Powell signals 2024 CUTs. Market calculates timing/magnitude. ATH after ATH. "Wuzz, market buru-buru ngacir." NVIDIA, Palantir, SOFi, PP stocks surge.
+STAGE 5 — GREED (Q3 2024-now): First CUT 50bps. Trump victory. BTC $100k. Households pour savings into stocks. "Do or Die, CNI (Cacing Naga Investing)." Indices ATH while economy sempoyongan. "Jack Up Before Storm" thesis born here.
+STAGE 6 — DELUSIONAL (coming): CUT #3, Trump inauguration. Market ATH→ATH. Hope after hope, expectation after expectation. IWM (70% constituents unprofitable) hits ATH. BTC narratives become absurd. "This Time is Different" echoes. Buffett mocked by retail. No logic remains.
+STAGE 7 — NEW PARADIGM (coming): "AI economy, tech economy, low-cost economy" = new theories deviating from proven economics. Retail happiest. Narrative justifies absurd valuations.
+STAGE 8 — DENIAL (coming): Slow bleed begins. "Slowly then suddenly." Big Boyz media: "just normal correction, economy still good." CB: "under control, on track." Retail calmed by lullabies.
+STAGE 9 — BULL TRAP & RETURN TO NORMAL: Dead cat bounce. Justification: "economy adjusting, rates helping." CB still supportive. "All returning to normal."
+STAGE 10 — FEAR: Suddenly all bad news erupts. "Tiada hari tanpa berita buruk." Rationality returns. VIX spikes. Bonds rally (flight to safety). Ultimate CUT demanded.
+Key insight: "Prepare not Predict." We are currently in GREED transitioning to DELUSIONAL.""",
         category="cycle",
-        catalyst_types=["gold_ath_spike","usd_debt_crisis","stagflation","central_bank_gold_hoarding",
-            "100_year_debt_cycle","geopolitical_reset","china_bazooka_prep"],
-        activation_keywords=["gold spike","emas spike","gold ath","harga emas rekor","usd debt 38 trillion",
-            "debt to gdp","stagflation","70s style","40s style","1929 style","central bank gold buying",
-            "china gold hoarding","russia gold","dollar collapse","debt crisis","100 year debt cycle",
-            "cetak uang","bunga hutang 1 trilyun","inflasi parah","stupidity hedge","geopolitical uncertainty",
-            "perang dunia","pearl harbor","hiroshima","reset ekonomi","china bazooka gold"],
-        invalidation_keywords=["gold_corrects_20pct","usd_strengthens","debt_restructured_smoothly",
-            "peace_agreement","china_bazooka_cancelled"],
-        beneficiaries={"global":["GLD","IAU","PHYS","SGOL"],"ihsg":["ANTM.JK","MDKA.JK","BRMS.JK","AMMN.JK"],
-            "fx":["USDJPY","DXY"],"commodities":["GC=F"]},
-        fades={"us":["SPY","QQQ","IWM","high_beta"],"ihsg":["property","consumer_discretionary"],"crypto":["BTC-USD"]},
-        regime_alignment={"Q3":1.80,"Q4":1.70,"Q2":1.40,"Q1":1.00},
+        catalyst_types=["bubble_stage","smart_money","bear_trap","media_attention","enthusiasm","greed",
+            "delusional","new_paradigm","denial","bull_trap","fear","slowly_then_suddenly"],
+        activation_keywords=["bubble stage","smart money","bear trap","media attention","enthusiasm","greed",
+            "delusional","new paradigm","denial","bull trap","fear","slowly then suddenly",
+            "main stages bubble","even monkey can win","jack up before storm","cacing naga investing",
+            "cni","this time is different","buffett mocked","iwm ath unprofitable","btc 100k narrative",
+            "prepare not predict","bubble lifecycle","current phase bubble","where are we now bubble"],
+        invalidation_keywords=["bubble_cancelled","soft_landing_no_bubble","fundamentals_return",
+            "no_delusional_phase","early_fear_phase"],
+        beneficiaries={"us":["SQQQ","VIX","TLT","GLD"],"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","TLKM.JK","UNVR.JK","KLBF.JK"],
+            "safe_haven":["USD_cash","IDR_cash","money_market"]},
+        fades={"us":["IWM","QQQ","NVDA","PLTR","SOFI","high_beta_momentum","meme_stocks"],
+            "ihsg":["BUMI.JK","BRMS.JK","BREN.JK","high_flyer","narrative_play"],"crypto":["BTC-USD","ETH-USD"]},
+        regime_alignment={"Q3":1.90,"Q4":1.80,"Q2":1.40,"Q1":1.00},
+        typical_duration_weeks=78,
+        conviction_ceiling=0.90,
+        pump_risk=0.10,
+        confirmation_signals=["iwm_ath_with_unprofitable_constituents","btc_above_100k_sustained",
+            "nvda_ath_without_earnings_growth","retail_household_allocation_record","vix_below_15",
+            "buffett_cash_record_high","delusional_narratives_mainstream","new_paradigm_theories"],
+    ),
+
+    # ── ARTICLE 2+3+4+9: Global Synchronized Easing Panic & Macro Warning ─────────
+    NarrativeTemplate(
+        name="Global Synchronized Easing Panic — CBs Cutting into Weakness",
+        description="""Ricky2212 global macro warning framework: "Prepare not Predict."
+CANADA: BoC cut 50bps to 3.25% (5th consecutive cut). GDP growth 1% vs 1.5% target. Unemployment ticking up. "Sound panic?"
+SWISS: SNB jumbo 50bps cut to 0.5%. Inflation 0.7%, forecast 2025: 0.2%. Negative rates possible in 2025. "Negative rates = only during economic destruction."
+CHINA: 10T yuan ($1.4T) local debt swap over 5 years = NOT fresh money stimulus. Hidden debt 14.3T→2.3T by 2028. No new workflow created. China futures -5% post-announcement. Bond yield 10Y at lowest since GFC 2008. Property still crashing. Deflation persistent. "Still challenging and full of uncertainty."
+EUROZONE: ECB 4th cut 2024. Germany deindustrializing. Auto factories closing. Bundesbank guidance: contraction ahead. Italy, France, Greece, Spain all weak.
+BRAZIL: Chaos, riots, stomach-empty populace.
+FED DEC 2024: Cut 25bps to 4.25-4.5%. Dot plot: only 2 cuts in 2025 (halved from Sep). Neutral rate 3%. GDP 2024 revised up to 2.5% but long-term 1.8%. Core inflation 2.4-2.8% (above 2% target). Trump tariffs/deportation = inflationary risk per Powell.
+FED JAN 2025: Hold at 4.25-4.5%. Unanimous. Removed "progress" language on inflation. "Inflation remains somewhat elevated." Flexibility for March 17-18 meeting.
+TRUMP EXPORTING DISINFLATION:
+- Mass deportation = cheap labor gone → NFP data manipulation ends → NFP turns bad
+- Federal worker cuts = less spending → economic weakness
+- Cheap energy (Drill Baby Drill) = energy cost down → disinflationary
+- Tariffs = cost-push but no demand = prices must fall → disinflationary
+- DeepSeek = AI cost 1/20 → disinflationary
+- "Trump is exporting disinflation, not inflation"
+Ricky stance: "Weak USD? Big chance. Already slowly building long FX positions."
+Key signal: When all CBs cutting simultaneously while economies weak = synchronized global downturn.""",
+        category="policy",
+        catalyst_types=["global_synchronized_easing","boc_cut","snb_cut","ecb_cut","china_stimulus_fake",
+            "fed_dot_plot_hawkish","trump_disinflation","deportation_economic_impact","negative_rates_warning"],
+        activation_keywords=["global synchronized easing","boc 50bps","snb 50bps","snb negative rates",
+            "china 10 trillion","china debt swap","china bond yield lowest since 2008","ecb 4th cut",
+            "fed dot plot 2025","fed 2 cuts 2025","trump exporting disinflation","trump deportation",
+            "trump cheap energy","drill baby drill","deepseek disinflation","fed hold january 2025",
+            "inflation somewhat elevated","canada panic cut","swiss deflation","china deflation",
+            "germany deindustrialization","bundesbank contraction","brazil riots","weak usd",
+            "prepare not predict","cb cutting into weakness"],
+        invalidation_keywords=["global_growth_rebounds","china_fresh_money_1t","fed_4_cuts_2025",
+            "trump_inflation_confirmed","snb_positive_rates"],
+        beneficiaries={"us":["TLT","IEF","GLD","UUP"],"global":["EEM","VWO","FXI"],"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK"],
+            "fx":["USDJPY","DXY","EURUSD"]},
+        fades={"us":["IWM","high_beta","small_cap"],"ihsg":["high_flyer","property","consumer_discretionary"],
+            "europe":["auto_sector","industrial_germany"]},
+        regime_alignment={"Q4":1.80,"Q1":1.60,"Q3":1.20,"Q2":0.80},
         typical_duration_weeks=52,
         conviction_ceiling=0.85,
-        pump_risk=0.15,
-        confirmation_signals=["gold_ath_sustained_weeks","usd_debt_above_40t","dxy_weakening_trend",
-            "central_bank_gold_purchases_record","china_gold_reserves_surge","stagflation_data_emerging",
-            "us_10y_above_5pct","debt_service_cost_above_1t"],
+        pump_risk=0.10,
+        confirmation_signals=["boc_5th_consecutive_cut","snb_inflation_0_2_forecast","china_10y_below_1pct",
+            "ecb_4th_cut_confirmed","fed_dot_plot_2_cuts","trump_deportation_executed","deepseek_ai_cost_crash",
+            "german_auto_factory_closures","brazil_riot_spread"],
     ),
 
-    # ── ARTICLE 2: Tricky Market — Structural vs Fake Bullish ───────────────────
+    # ── ARTICLE 2: Indonesia Domestic Economic Trouble ──────────────────────────
     NarrativeTemplate(
-        name="Tricky Market — Fake Bullish vs Structural Bullish Divergence",
-        description="""Ricky2212 market structure framework: "Ini bukan market bullish yang sempurna."
-FAKE BULLISH (Current):
-- Market ATH but driven by konglo narrative plays, not fundamentals
-- Banking sector (BBRI, BBCA, BBNI, BMRI) NOT leading = economy not truly growing
-- Old industrial (ASII) NOT performing = consumer purchasing power weak
-- "Konglo plays filling void of 'mainan' in market" = distribution phase
-- "Market naik tapi lihat saham yang menopang kenaikan indeks"
-STRUCTURAL BULLISH (Historical benchmark 2003-2007):
-- BBRI profit: 2.58T→6T (2003-2008); stock price surged massively
-- ASII profit: 4.4T→9.2T (2003-2008); became largest market cap
-- All sectors performed; big cap, mid cap, small cap all rallied
-- Real economic growth reflected in corporate earnings
-- Credit from banks flowed abundantly to economy
-- "Beli saham apa aja, baik big cap, mid cap, apalagi small cap kesemuanya dapat return mumpuni"
-CURRENT SIGNS OF WEAKNESS:
-- Retail FOMO shifting from stocks to crypto ("retail frustasi pindah ke dunia antah berantah")
-- Super bullish voices fading; pessimism replacing euphoria
-- "Tricky Market = banyak tipu muslihat, tidak dalam pattern standard bullish"
-- Short seller turned public bull ("beli big cap US dan tutup mata") = smart money covering?
-Ricky's stance: defensive, not all-out; "siram bensin" only with prepared loss capital
-"It's a narrative play, it's a konglo play, it's a corp action play — itu tema yang saya mainkan."
-"Saya yang siramin bensin saat semua optimis menghilang."""",
-        category="cycle",
-        catalyst_types=["fake_bullish","structural_bearish","konglo_distribution","banking_not_leading",
-            "retail_to_crypto_flight","pessimism_spike","tricky_market"],
-        activation_keywords=["tricky market","fake bullish","structural bullish","market naik tapi","konglo play",
-            "narrative play","banking not leading","bbri baca bbni bmri","asii not performing",
-            "old industrial weak","consumer purchasing power","retail frustasi","retail pindah crypto",
-            "super bullish fading","pessimism market","short seller bull","defensive positioning",
-            "siram bensin","optimis menghilang","market tipu muslihat","2003 2007 bullish",
-            "beginner luck 2003","fundamental dead","big cap not leading"],
-        invalidation_keywords=["banking_sector_leads","asii_surges","retail_returns_to_stocks",
-            "structural_bullish_confirmed","fundamentals_return"],
-        beneficiaries={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","TLKM.JK","UNVR.JK","KLBF.JK"],"us":["BRK-B","JNJ","PG"]},
-        fades={"ihsg":["high_beta_konglo","property","consumer_discretionary","narrative_play"],"us":["IWM","high_beta_momentum"]},
-        regime_alignment={"Q3":1.50,"Q4":1.30,"Q2":1.00,"Q1":0.80},
+        name="Indonesia Domestic Collapse — PMI Contraction & Consumer Down-Trading",
+        description="""Ricky2212 Indonesia on-the-ground economic reality check:
+PMI: 49.6 (5th consecutive month below 50). Last time 5 months below 50 = COVID 2020.
+Ricky's assessment: "Kondisi sekarang bahkan jauh lebih buruk dari pandemic."
+ON-THE-GROUND EVIDENCE:
+1. Business revenue down vs COVID era (even in upper-class housing areas). Margin 40%→20%. Customers asking for tempo/credit.
+2. Cigarette down-trading: consumers switching to cheaper brands. "Rokok aja down trading."
+3. Ojol food orders dropping. People cooking at home to save money.
+4. Indomaret/Alfamart/Naga/Tip Top = primary shopping destinations (cheap). Traditional markets emptying.
+5. Used car showrooms closing (Pondok Bambu, Buaran, Jatinegara, Bekasi Kranji). "Orang ga mikirin beli mobil dulu. Sekarang mah pikirin bertahan dulu."
+POLICY FAILURES:
+- "Dimakan diatas, Dibejek dibawah" — policies not pro-growth
+- PPN 11%→12% (Jan 1, 2025) = multiplier effect drain on consumer spending
+- BI trapped: cut rates to help economy OR defend IDR? IDR at 15,100+ vs USD
+- Trump pressure on IDR
+BANKING SECTOR:
+- BBRI, BTPS most sempoyongan. CKPN still flowing.
+- BBNI, BMRI will follow with CKPN increases.
+- BBCA best positioned but will also face CKPN pressure.
+- "Pergerakan saham perbankan tidak akan pernah bohong."
+TIMELINE: "In line with global, especially US. Now bad, but worst hasn't arrived yet."
+"Deep Trouble Ahead? Merinding lah. Stay away from big bank dulu, nanti aja buat next cycle."
+"JACK UP is for EXIT."""",
+        category="geopolitical",
+        catalyst_types=["pmi_contraction","consumer_down_trading","ppn_increase","idr_weakness",
+            "ckpn_cycle","bi_rate_dilemma","traditional_market_collapse","retail_shift_discounter"],
+        activation_keywords=["indonesia pmi","pmi 49.6","indonesia economic trouble","consumer down trading",
+            "ppn 12%","ppn naik","idr 15100","bi rate dilemma","ckpn bank","bbri ckpn","btps ckpn",
+            "bbni ckpn","bmri ckpn","traditional market sepi","indomaret naga tiptop","ojol order drop",
+            "cigarette down trading","showroom mobil tutup","margin bisnis turun","tempo payment",
+            "indonesia deep trouble","dimakan diatas dibejek dibawah","kebijakan tidak pro growth",
+            "jack up is for exit indonesia","stay away big bank"],
+        invalidation_keywords=["pmi_above_50","consumer_spending_surge","ppn_cancelled","idr_strengthens",
+            "ckpn_cycle_ends","bi_cuts_rates"],
+        beneficiaries={"ihsg":["BBCA.JK","BMRI.JK","KLBF.JK","UNVR.JK","TLKM.JK"],"us":["EIDO"],
+            "safe_haven":["IDR_cash","USD_cash","money_market"]},
+        fades={"ihsg":["BBRI.JK","BTPS.JK","property","consumer_discretionary","auto_sector","high_beta"]},
+        regime_alignment={"Q3":1.30,"Q4":1.10,"Q2":0.90,"Q1":0.70},
         typical_duration_weeks=26,
         conviction_ceiling=0.80,
-        pump_risk=0.20,
-        confirmation_signals=["bbri_underperforms_index","asii_weak_relative","retail_turnover_to_crypto",
-            "konglo_volume_spike_distribution","banking_index_flat_while_ihsg_rises","pessimism_breadth_surge"],
-    ),
-
-    # ── ARTICLE 3+10: Jack Up = EXIT / Smart Money Distribution ───────────────
-    NarrativeTemplate(
-        name="Jack Up = Perfect EXIT — Smart Money Distribution Phase",
-        description="""Ricky2212 exit timing framework: "Jack Up is Perfect Timing for EXIT."
-SMART MONEY SELLING INTO STRENGTH:
-- Warren Buffett: sold 50% of Apple (favorite stock); continued selling; cash position $325B
-- Berkshire: selling Bank of America continuously
-- Stan Druckenmiller: sold NVDA and AMZN
-- George Soros: sold NVDA
-- Jensen Huang (NVDA CEO): selling own company shares at rapid pace
-- All increasing cash, not buying
-KONGLO EXIT STRATEGY:
-- "Konglo aja melakukan exit strategy; mereka punya jangkauan akses informasi cepat"
-- "Mereka mencium sesuatu hal yang tidak mengenakkan"
-- "Jack Up euphoria sangat mereka butuhkan untuk mengeluarkan posisi besar"
-PSYCHOLOGY OF EXIT:
-- Better to sell into rally than into crash
-- "Coba bayangkan kalau keadaan sebaliknya: bursa diiris pelan-pelan, ga berasa. Gimana psikologi anda?"
-- "Ah rebound biarin dulu, siapa tau ini awal rally" = trap psychology
-- "Jack Up membuat psikologi lebih rela menjual"
-ATH -10% AS LAST JACK UP:
-- IHSG ATH 7910; -10% = 7119 (hit 7122 intraday, closed 7161)
-- "Saya siramin bensin saat semua optimis menghilang"
-- "Nanti yang hilang tadi optimisnya akan muncul lagi saat pasar kita dapat inflow"
-- Risk more measured at 7300-7100 than FOMO at 7900
-- "Mainnya siram bensin and tetap pada narrative play, konglo play"
-TACTICAL FRAMEWORK:
-- "Nikmati blow off top sampai rentang waktu Pemilu US dan Inagurasi, tapi tetap waras dalam euphoria"
-- "Tujuan artikel: menggerakkan pola pikir agar bisa membuat keputusan terbaik"
-- "Jack Up bukan buat kusak-kusuk cari FOMO; Jack Up is Perfect Timing for EXIT"""",
-        category="cycle",
-        catalyst_types=["smart_money_exit","buffett_cash","distribution_phase","jack_up_exit",
-            "ath_minus_10","konglo_distribution","retail_fomo_trap"],
-        activation_keywords=["jack up exit","perfect timing for exit","smart money selling","buffett cash 325b",
-            "buffett sell apple","berkshire sell bank of america","druckenmiller sell nvda","soros sell nvda",
-            "jensen huang sell","nvda insider selling","distribution phase","konglo exit strategy",
-            "ath minus 10","ihsg 7119","ihsg 7122","siram bensin saat pesimis","optimis menghilang",
-            "retail frustasi","fomo trap","blow off top exit","sell into rally","jack up before storm",
-            "pemilu us inagurasi","narrative play exit","konglo play exit"],
-        invalidation_keywords=["smart_money_buying","buffett_stops_selling","retail_returns","fundamentals_return",
-            "structural_bullish_confirmed"],
-        beneficiaries={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","TLKM.JK","UNVR.JK","KLBF.JK","GLD"],
-            "us":["TLT","GLD","BIL","money_market"],"cash":["USD_cash","IDR_cash"]},
-        fades={"ihsg":["BUMI.JK","BRMS.JK","BREN.JK","high_beta_konglo"],"us":["NVDA","AAPL","QQQ","IWM"]},
-        regime_alignment={"Q3":1.80,"Q4":1.60,"Q2":1.20,"Q1":0.80},
-        typical_duration_weeks=12,
-        conviction_ceiling=0.85,
-        pump_risk=0.20,
-        confirmation_signals=["buffett_cash_325b_confirmed","nvda_insider_selling_accelerates",
-            "berkshire_bac_position_drop","druckenmiller_13f_exit_nvda","ihsg_ath_minus_10_hit",
-            "retail_pessimism_peak","konglo_block_sale_announcement","smart_money_cash_levels_rise"],
-    ),
-
-    # ── ARTICLE 4+5+6: Peak Cycle Dessert Menu & ATH-10% Pattern ────────────────
-    NarrativeTemplate(
-        name="Peak Cycle Dessert Menu — BUMI/BRMS + Crypto + ATH-10% Deja Vu",
-        description="""Ricky2212 peak cycle signal framework: "2 menu dessert sebagai puncak penanda penutup cycle."
-MENU 1 — BUMI & BRMS (Bakrie Cycle Closer):
-- ADRO pattern → BUMI/BRMS will follow same playbook
-- BUMI: Green ESG narrative (kokas, smelter, hilirisasi) + MIP policy + 2 secret stories
-- BRMS: Gold narrative (ATH momentum) + Copper (AI) + Nickel + Silver
-- "Bakrie adalah menu sinyal penutup cycle"
-- "BUMI Beneran Untung Mestinya Ini; semoga BUMI akan di-BRMS-kan"
-- Volume bludak, fund participation = distribution loading
-MENU 2 — CRYPTO / DUNIA ANTAH BERANTAH:
-- Both appetizer (pre-CUT signal) and dessert (post-CUT peak signal)
-- Post-CUT rally in crypto = massive capital rotation
-- Trump victory = crypto bro narrative exploited
-- BTC target: 100k-120k ±10%
-- "Kalau BTC berjalan dari ATH ke ATH, bersiap dan waspada"
-- Retail fleeing stocks to crypto = classic pre-bottom signal
-ATH -10% PATTERN:
-- IHSG ATH 7910; -10% = 7119 (hit 7122, closed 7161)
-- June 2024: same pattern at 6700 (ATH -10% then come-back rally to 7910)
-- Deja vu signals:
-  (a) Retail super bullish → sudden pessimism ("harus ada yang disalahkan")
-  (b) Retail fleeing to crypto/bursa global ("pindah ke dunia antah berantah yang on fire")
-  (c) Big Boyz downgrade at exact low (Morgan Stanley Jun 2024, MSCI underweight 2.5%→1.5%, JP Morgan downgrade Nov 2024)
-- "Makin frustasi makin bagus" = contrarian buy signal
-- "Cap cip cup, tetap B for B"
-CHINA STIMULUS REALITY CHECK:
-- $1.4T = local government hidden debt swap, NOT fresh money stimulus
-- "No Fresh Money = bukan stimulus"
-- Market disappointed: China futures -5% post-announcement
-- Real bazooka needs $1T+ FRESH money injected into financial system
-- "We want Fresh Money" = market chant
-- China waiting for right timing (Fed deep easing, market not at ATH)
-- When real bazooka comes = commodity explosion + inflation reacceleration""",
-        category="cycle",
-        catalyst_types=["peak_cycle_dessert","bumi_brms_peak","crypto_ath","ath_minus_10","china_stimulus_fake",
-            "retail_to_crypto_flight","big_boyz_downgrade","bakrie_cycle_closer"],
-        activation_keywords=["dessert menu","peak cycle signal","bumi brms dessert","bakrie cycle closer",
-            "crypto ath","btc 100k","btc 120k","dunia antah berantah","ath minus 10","ihsg 7119","ihsg 7122",
-            "june 2024 deja vu","retail pessimism","retail fleeing crypto","morgan stanley downgrade",
-            "msci underweight indonesia","jp morgan downgrade indonesia","big boyz downgrade","frustasi bagus",
-            "china stimulus fake","no fresh money","local debt swap","china bazooka we want fresh money",
-            "china futures minus 5","1.4 trillion not stimulus","fresh money chant","cap cip cup",
-            "b for b","bumi brms peak signal","adro pattern bumi"],
-        invalidation_keywords=["btc_below_80k","bumi_brms_collapse","china_fresh_money_1t","retail_returns_stocks",
-            "big_boyz_upgrade"],
-        beneficiaries={"ihsg":["BUMI.JK","BRMS.JK"],"crypto":["BTC-USD","ETH-USD"],"global":["MSTR","COIN","GLD"]},
-        fades={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK"],"us":["SPY","QQQ"],"crypto":["altcoins_low_cap"]},
-        regime_alignment={"Q3":1.70,"Q4":1.50,"Q2":1.00,"Q1":0.70},
-        typical_duration_weeks=16,
-        conviction_ceiling=0.80,
-        pump_risk=0.25,
-        confirmation_signals=["btc_above_100k","brms_volume_bludak","bumi_volume_5x_avg",
-            "ihsg_ath_minus_10_hit","msci_underweight_indonesia","jp_morgan_downgrade_ihsg",
-            "retail_crypto_rotation_spike","china_stimulus_disappointment","mip_policy_announcement"],
-    ),
-
-    # ── ARTICLE 7: Perfect Setup for Final Jack Up ────────────────────────────
-    NarrativeTemplate(
-        name="Perfect Setup for Final Jack Up — All Catalysts Aligning",
-        description="""Ricky2212 tactical setup framework: "Perfect Set Up for Jack Up."
-CATALYST ALIGNMENT (Dec 2024):
-1. FOMC MEETING (Dec 17-18):
-- Market pricing hawkish (no cut or hold) due to Trump policies (immigration, tariffs)
-- Best case: 25bps cut; hold = 40% probability
-- "Biasanya: semakin di-hawkishkan, kalau sedikit saja ga sesuai harapan = market rally"
-- Historical: when market expects hawkish and gets dovish surprise = explosive rally
-2. DXY AT RESISTANCE TOP:
-- DXY "mondar-mandir" 2 years = managed currency game by global CBs
-- "DXY kepentok atas, nanti ada berita buruk bikin USD keok"
-- When DXY falls: global markets rally, IDR strengthens, commodities jack up
-3. OPEC+ PRODUCTION CUT EXTENSION:
-- Originally planned normalization Dec 2024 → extended
-- Supply constraint maintained
-4. RUSSIA-UKRAINE ESCALATION:
-- Biden pushing war in final term
-- Ukraine advanced missiles → Russia brutal retaliation
-- Europe energy stocks empty → must refill
-- "Stok minyak dan gas Eropa kosong dan harus diisi"
-5. CRYPTO MEME MANIA:
-- "Typical Do or Die"
-- Meme coins surging = risk-on at peak
-- Institutions rushing to BTC ("cepek ceng sudah dekat")
-- "Ini awal dari puncak kegilaan"
-SYNTHESIS:
-- FOMC + DXY top + OPEC cut + war + crypto mania = "Damn I Love This Game"
-- "USD melemah, OPEC CUT, Perang, Rusia kosong stok energi, dunia antah berantah menggila"
-- All aligning for one final jack up before the storm
-- "Sabar dikit, jangan mengeluh terus. Semua sudah saya ceritakan perjalanannya."
-- "LK BRMS keluar mingdep and bakal bagus. Party selanjutnya bareng Om B akan dimulai."
-Risk: if FOMC truly hawkish + DXY breaks out = setup fails.""",
-        category="cycle",
-        catalyst_types=["fomc_surprise","dxy_top","opec_cut_extension","war_escalation","crypto_mania",
-            "perfect_setup","jack_up_catalyst","risk_on_peak"],
-        activation_keywords=["perfect set up","jack up catalyst","fomc december","dxy top","dxy kepentok atas",
-            "opec cut extension","opec perpanjang","russia ukraine escalation","biden war","ukraina rudal",
-            "europe energy stock empty","crypto meme mania","do or die","cepek ceng","btc institution rush",
-            "damn i love this game","usd melemah","komoditas jack up","idr kuat","banking driver indeks",
-            "brms q3 bagus","party om bakrie","fomc surprise cut","hawkish expectation dovish surprise",
-            "perfect set and jack up"],
-        invalidation_keywords=["fomc_hawkish_hold","dxy_breaks_out","opec_flood_market","peace_agreement",
-            "crypto_mania_ends"],
-        beneficiaries={"ihsg":["BUMI.JK","BRMS.JK","BEST.JK","MCOR.JK","DYAN.JK","LEAD.JK","WINS.JK","ELSA.JK"],
-            "us":["IWM","QQQ","BTC-USD","ETH-USD"],"commodities":["CL=F","GC=F","HG=F"]},
-        fades={"ihsg":["BBCA.JK","BBRI.JK"],"us":["TLT","GLD","VIX"]},
-        regime_alignment={"Q3":1.60,"Q4":1.40,"Q2":1.00,"Q1":0.80},
-        typical_duration_weeks=8,
-        conviction_ceiling=0.75,
-        pump_risk=0.30,
-        confirmation_signals=["fomc_25bps_cut_surprise","dxy_reverses_from_top","opec_cut_extension_confirmed",
-            "russia_ukraine_escalation_spike","crypto_meme_volume_surge","brms_q3_beat","ihsg_rally_post_fomc",
-            "commodity_jack_up_oil_gold"],
-    ),
-
-    # ── ARTICLE 8+9: Fundamental is Dead / Over Leverage Doom ────────────────────
-    NarrativeTemplate(
-        name="Fundamental is Dead & Over-Leverage — The Devil in the Details",
-        description="""Ricky2212 endgame framework: "From Bad to Worst. Setannya adalah Over leverage."
-FUNDAMENTAL IS DEAD (Temporary):
-- PAxx, BRxx, MLPT, KARx, PANI, AMMN moving without fundamentals
-- Two choices: (a) Idealist = hold quality, skip party, no envy; (b) Player = join narrative, manage risk
-- Soros interview: "Index rising while economy bad = signal of impending crash" (repeated phenomenon)
-- Nifty Fifty parallel (1960s)
-- WHY BIG FUNDS AVOID BIG CAP:
-  - Big cap performance = driven by actual earnings + earnings expectations
-  - If economy bad → big cap earnings will disappoint → funds avoid
-  - "KARENA FUND SUDAH TAHU BAHWA KEADAAN SEDANG TIDAK BAIK-BAIK SAJA"
-  - Funds think long-term, not 1 week/month/quarter
-  - They can access deep company information
-- "Fundamental is Dead, yeah but just for a while"
-- Asymmetrical bet strategy: small capital in narrative play vs large capital in big cap
-  - Big cap: 1M capital, 20-30% return = 200-300M; but 40% drop = 400M loss
-  - Narrative: 200M capital, 1 bagger = 200M profit; 50-60% drop = 100-120M loss
-  - "Cara defensive saya di masa Fundamental is Dead"
-OVER LEVERAGE = THE DEVIL:
-- Jack Up Before Storm + market disconnect = Soros crash signal
-- Household allocation to paper assets rising = Do or Die phase
-- LEVERAGE EXPLOSION:
-  - MSTR (MicroStrategy): bond → buy BTC → BTC up → MSTR up → sell MSTR → buy more BTC → infinite loop
-  - Retail margin: T+0, haircut adjustments, low-rate margin offers, konglo stocks marginable
-  - Crypto leverage: even shitcoins now leverageable
-  - Apps offering margin with low rates, konglo stocks as collateral
-- LEVERAGE MATH:
-  - 2x leverage: 30% drop = 60% loss
-  - 5x leverage: small drop = total wipeout
-  - "Makin tinggi leverage, makin parah kejatuhannya"
-- JPY CARRY TRADE UNWINDING:
-  - "2nd Unwinding Carry Trade" = additional leverage layer
-  - When panic hits: JPY repatriation → forced selling across all assets
-- DOMINO EFFECT:
-  - Leveraged players panic first → forced liquidation → accelerates crash
-  - "Dunia sekarang masuk gigi 3 dalam hal setan leverage"
-  - "Efek diatas akan membuat domino effect ke semua asset tanpa tersisa"
-- COMPARISON: Could be worse than 2008, 2000, 1987, 1974, or even 1929
-- ADVICE: "Jangan pernah terpikir buat mengambil leverage. Berjalan normal dan aman saja."""",
-        category="cycle",
-        catalyst_types=["fundamental_dead","over_leverage","margin_explosion","crypto_leverage",
-            "mstr_infinite_loop","retail_margin","jpy_carry_unwind","domino_effect","household_paper_assets"],
-        activation_keywords=["fundamental is dead","over leverage","setan leverage","margin explosion",
-            "mstr microstrategy","mstr bond btc loop","retail margin","t plus zero","haircut adjustment",
-            "crypto leverage","shitcoin leverage","apps margin","konglo stocks marginable",
-            "do or die","household paper assets","soros index up economy bad","nifty fifty",
-            "fund avoid big cap","fund know economy bad","asymmetrical bet","capital allocation risk",
-            "domino effect","jpy carry trade unwinding","leverage 2x","leverage 5x","leverage 10x",
-            "forced liquidation","panic selling leverage","gigi 3 leverage","1929 style","2008 style",
-            "no leverage advice","normal aman","fundamental dead temporary"],
-        invalidation_keywords=["fundamentals_return","leverage_collapses_cleanly","mstr_loop_breaks",
-            "retail_deleverages_early","jpy_carry_resolved"],
-        beneficiaries={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","TLKM.JK","UNVR.JK","KLBF.JK","GLD"],
-            "us":["TLT","GLD","BIL","VIX","SQQQ"],"cash":["USD_cash","IDR_cash"]},
-        fades={"ihsg":["high_beta_konglo","marginable_stocks","narrative_play"],"us":["MSTR","NVDA","high_beta","leveraged_etfs"],"crypto":["BTC-USD","high_leverage_coins"]},
-        regime_alignment={"Q3":1.80,"Q4":1.70,"Q2":1.40,"Q1":1.00},
-        typical_duration_weeks=16,
-        conviction_ceiling=0.85,
         pump_risk=0.15,
-        confirmation_signals=["mstr_btc_loop_accelerates","retail_margin_debt_surge","crypto_leverage_ratio_spike",
-            "household_paper_allocation_record","jpy_carry_unwinding_starts","margin_call_events",
-            "fund_big_cap_underweight_confirmed","vix_spike_above_30"],
+        confirmation_signals=["pmi_5months_below_50","ppn_12%_implemented","idr_above_15500",
+            "ckpn_spike_banking_sector","traditional_market_revenue_drop","ojol_order_volume_drop",
+            "cigarette_volume_shift_cheap","used_car_showroom_closures"],
+    ),
+
+    # ── ARTICLE 8: US Debt Collapse & De-leveraging ───────────────────────────
+    NarrativeTemplate(
+        name="US Debt Collapse — $7T Rollover & Global De-leveraging Cycle",
+        description="""Ricky2212 debt crisis framework: "The Storm is Coming."
+THE NUMBERS:
+- US debt: ~$37T (nearly doubled in 7 years)
+- 2025 rollover: $7T debt maturing = tipping point
+- Annual interest: ~$1T
+- Deficit spending continues
+- Debt-to-GDP surpassing WWII levels
+QE = THE DEVIL'S CANDY:
+- "Setan QE = candu narkotik." Easy now, destruction later.
+- 2008 GFC: QE launched to save economy
+- 2020 COVID: $4-5T bazooka (Fed alone)
+- Pattern: more QE → more debt → more interest → uncontrollable inflation
+- "Bom waktu yang mereka siapkan untuk mereka sendiri"
+THE TRAP:
+- Hikes to fight inflation → interest costs explode
+- Debt rolls over at higher rates → debt service unsustainable
+- "Jebakan hutang tutup hutang. Terbitin hutang lebih gede buat bayar pokok+bunga sebelumnya."
+DE-LEVERAGING (The Only Way Out):
+Mathematically 3 options to reduce Debt/GDP:
+1. Grow economy faster than debt (impossible now)
+2. Reduce debt massively (via austerity)
+3. Increase government revenue (taxes)
+AUSTERITY = ECONOMIC DEATH:
+- Y = C + G + I + (X-M); G (govt expenditure) gets cut
+- Euro zone already asked to tighten spending
+- US will be "forced" to cut spending
+- "Kombinasi pengetatan pengeluaran + digencarkannya pajak = ekonomi mediocre"
+TAX EXPLOSION:
+- Extensification + intensification of taxes
+- US/Canada investors facing higher capital gains tax
+- "Ciri negara lagi kere"
+THE OUTCOME:
+- De-leveraging → economic downturn + stubborn inflation (debt service costs remain)
+- "Ekonomi bertumbuh mediocre tapi inflasi tumbuh"
+- Loss of confidence → capital flight from developed markets
+- "Exodus besar-besaran: uang kabur dari sana"
+- Emerging markets = rising star (China = main beneficiary)
+HISTORICAL PARALLELS:
+- 1940s (WWII reset), 1970s (stagflation), or L-shape/W-shape recovery
+- "L-shape = downturn then flat for long; W-shape = bumpy over extended period"
+- "Minimal 1 year, bisa lebih dari 3 tahun"
+Ricky's call: "Nanti uang akan mengalir deras dari yang kemarin di kerangkeng. Emerging akan jadi rising star. Saya pilih China sebagai bintang utama."""",
+        category="cycle",
+        catalyst_types=["us_debt_crisis","de_leveraging","austerity","tax_explosion","capital_flight_developed",
+            "emerging_market_beneficiary","qe_devil","rollover_wall","interest_cost_spiral"],
+        activation_keywords=["us debt collapse","7 trillion rollover","us debt 37 trillion","debt crisis",
+            "de-leveraging","austerity","tax explosion","capital flight","emerging star","qe devil",
+            "setan qe","quantitative easing candu","bom waktu hutang","jebakan hutang","hutang tutup hutang",
+            "y equals c plus g plus i","government expenditure cut","tax extensification","tax intensifikasi",
+            "capital gains tax increase","euro zone austerity","us forced austerity","l shape recovery",
+            "w shape recovery","1940 style","1970 style","china bintang utama","exodus uang",
+            "loss of confidence","inflation stubborn","mediocre growth"],
+        invalidation_keywords=["debt_restructured_smoothly","growth_outpaces_debt","austerity_avoided",
+            "tax_cuts_instead","capital_returns_to_us","china_bazooka_fails"],
+        beneficiaries={"global":["EEM","VWO","FXI","MCHI","KWEB"],"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","TLKM.JK"],
+            "commodities":["GC=F","HG=F"],"safe_haven":["GLD","USD_cash"]},
+        fades={"us":["SPY","QQQ","IWM","TLT"],"europe":["auto_sector","industrial"],"developed":["high_beta"," leveraged"]},
+        regime_alignment={"Q4":1.80,"Q1":1.60,"Q3":1.20,"Q2":0.80},
+        typical_duration_weeks=104,
+        conviction_ceiling=0.85,
+        pump_risk=0.10,
+        confirmation_signals=["us_debt_above_40t","7t_rollover_spreads_widen","austerity_announcements_eu",
+            "us_spending_cuts_proposed","capital_gains_tax_hike","capital_flight_em_record","china_fxi_inflows",
+            "gold_demand_emerging_surge","dxy_weakening_trend"],
+    ),
+
+    # ── ARTICLE 5+6: Backdoor Listing Frenzy & 2024 Tactical Journey ──────────
+    NarrativeTemplate(
+        name="Indonesia Backdoor Listing Frenzy & 2024 Tactical Journey",
+        description="""Ricky2212 backdoor listing + personal 2024 performance framework:
+BACKDOOR LISTING PHENOMENON:
+- Definition: private company acquires majority of listed shell → changes business → no IPO needed
+- Trending 2024: PANI, KARW, LABA, FUTR, PACK, and more
+- Why trending: OJK tightening IPO scrutiny → backdoor faster/cheaper
+- Shell company prices rising: Rp 15M → Rp 30M base price
+- 6 criteria for shell target:
+  (1) Going concern questionable
+  (2) Majority PSP ownership (higher = better)
+  (3) Almost no debt, positive equity
+  (4) Market cap <Rp 50B (ideal), max Rp 70B
+  (5) Not under bursa surveillance
+  (6) No legal disputes
+- Risk: not all succeed (CMPP/AirAsia, SUGI oil field, DKFT history)
+- "Permainan liar sebelum transaksi; setelah transaksi = kembali ke fundamental"
+- "CNI (Cacing Naga Investing) — max Rp 10M, isi waktu cari yield"
+RICKY'S 2024 JOURNEY (Adaptive Investor):
+- Theme: "Siram Bensin" = narrative + konglo + CA plays with controlled capital
+- Phase 1 (moderate): SMDR (+40% + div), SMRA (+30% + div), DYAN/SICO/MCOR/BEST (+20-30%)
+- Phase 2 (aggressive): LEAD/Logindo (narrative→CA→exit strategy, avg up, partial exit 140-150, buyback lower), BRMS (2 bagger, gold narrative + konglo + indexing rumor, exit), DKFT (bagger, credit to Mas Rizza), BUMI (hold as cycle closer)
+- Phase 3 (mini/judi): Backdoor plays — GPSO (missed), AYLS (3 bagger), Nine (OTW 3 bagger), MENN (OTW), 4 others unpublished
+- Crypto: 2023 Sep entry $2K → 4-5 bagger exit Q1 2024; re-entry post-crash, still riding Trump crypto bro narrative
+- Junior miner crypto: BTC/ETH producer stocks (with Mas Rizza)
+- Core liquidations: partial ITMG, full INCO exit for cash raising
+- Cash deployment: Time Deposit, Money Market, Bond Fund
+- "2024 = tahun penuh tantangan, kegilaan, ketidakrasionalan. Saya memilih jadi investor yang adaptif."
+- "2025 = Preserve and Protect Capital"
+- "Tetap WARAS apapun keadaannya. Tetap jadi DIRI SENDIRI."
+Key principle: "Asymmetrical bet with measured capital. Never risk significant capital."""",
+        category="corporate_action",
+        catalyst_types=["backdoor_listing","shell_company","corporate_action","narrative_play","konglo_play",
+            "siram_bensin","adaptive_investing","asymmetrical_bet"],
+        activation_keywords=["backdoor listing","perusahaan cangkang","shell company","pani backdoor",
+            "karw backdoor","laba backdoor","futr backdoor","pack backdoor","ojk ipo scrutiny",
+            "backdoor criteria","going concern questionable","psp mayoritas","no debt positive equity",
+            "market cap dibawah 50 milyar","cacing naga investing","cni","siram bensin","ricky 2024 journey",
+            "kilas balik 2024","adaptive investor","logindo journey","brms 2 bagger","dkft bagger",
+            "bumi cycle closer","crypto 4 bagger","junior miner crypto","gpso missed","ayls 3 bagger",
+            "nine 3 bagger","menn otw","preserve capital 2025","asymmetrical bet"],
+        invalidation_keywords=["backdoor_banned","ojk_blocks_backdoor","shell_prices_crash",
+            "backdoor_failures_spike","fundamentals_return"],
+        beneficiaries={"ihsg":["PANI.JK","KARW.JK","LABA.JK","FUTR.JK","PACK.JK","shell_companies_under_50b"],
+            "strategy":["asymmetrical_bet","small_cap_narrative"]},
+        fades={"ihsg":["big_cap_fundamental","low_liquidity_micro"],"us":["large_cap_value"]},
+        regime_alignment={"Q3":1.40,"Q4":1.20,"Q2":1.00,"Q1":0.80},
+        typical_duration_weeks=26,
+        conviction_ceiling=0.75,
+        pump_risk=0.35,
+        confirmation_signals=["backdoor_announcement_spike","shell_volume_surge","pani_karw_pattern_repeat",
+            "ojk_backdoor_regulation","ricky_portfolio_exit_timing","narrative_volume_5x_avg"],
+    ),
+
+    # ── ARTICLE 7: 2025 Preserve & Protect Capital ──────────────────────────────
+    NarrativeTemplate(
+        name="2025 Strategy — Preserve and Protect Capital",
+        description="""Ricky2212 2025 strategic framework: "Preserve and Protect the Capital."
+RATIONALE:
+- "Gimana tahun 2025? Rasanya kaya saya membohongi diri sendiri kalau bilang tahun baik."
+- "Walau dibungkus apapun tetap terlihat buruk."
+- Capital risk = primary concern
+- "Daripada konyol, kadang diam jauh lebih baik. Menang dalam investasi bukan hanya nilai naik, tidak kehilangan modal pun sudah dianggap menang."
+ALLOCATION FRAMEWORK:
+- Aggressive max: 40% equity : 60% cash & equivalents
+- Example Rp 100M:
+  * 40M equity @ 20% return = 8M profit
+  * 60M cash @ 5% p.a. = 3M profit
+  * Total = 11M = 11% yield (above deposit/bond average)
+- "Masih diatas rata2 deposito and obligasi. Not bad."
+- "Kecil amat return segitu? Buset, otak masih ngeres cari return di kala keadaan kurang baik = SELAMAT."
+CAPITAL PROTECTION MATH:
+- 100M capital:
+  * -40% loss = 60M remaining → bagger to 120M
+  * -30% loss = 70M remaining → bagger to 140M
+  * -20% loss = 80M remaining → bagger to 160M
+  * -10% loss = 90M remaining → bagger to 180M
+- "Pahami perbedaannya. Dengan begitu paham kenapa saya concern preserve capital."
+GLOBAL 2025 ASSESSMENT:
+- US: $36T debt + $1T interest/year. Shutdown budget battles. Tariffs = more destruction. "Tidak ada satu hal baik pun."
+- EU: Most squeezed. Energy crisis + China competition + US tariffs. Deindustrialization. Germany contracting. "Urban area kaya Indo: pengangguran, pengemis, kriminal."
+- Japan: BoJ must hike rates. JPY weakness = nightmare. "Masa indah low rates berakhir."
+- China: Basa-basi stimulus continues. No fresh money yet. Wait-and-see. "Paling siap dengan bazooka."
+- Indonesia: PPN 12%, BI trapped, consumer collapsing. "Jangan banyak berharap."
+CONCERNS:
+1. Global debt-to-GDP highest ever (surpassing pre-WWII)
+2. No good data anywhere
+3. CBs ready for zero/negative rates
+4. China 10Y bond yield near 0% = GFC-level destruction
+5. Mega-cap concentration in indices = unhealthy
+6. Big Boyz stopped screaming recession = reverse signal
+"The best way to preserve capital = cash keras tanpa embel-embel cari yield."
+"2025 = PRESERVE and PROTECT the CAPITAL."""",
+        category="psychology",
+        catalyst_types=["preserve_capital","capital_protection","defensive_strategy","cash_positioning",
+            "2025_macro_pessimism","risk_reward_asymmetry"],
+        activation_keywords=["preserve capital","protect capital","2025 strategy","defensive mode",
+            "40 60 equity cash","capital risk","not losing money","diam lebih baik","cash keras",
+            "2025 preserve","ricky 2025 theme","global pessimism 2025","us 36 trillion debt",
+            "eu deindustrialization","japan boj hike","china wait and see","indonesia ppn 12",
+            "capital protection math","bagger recovery math","stay away big bank","no yield chasing",
+            "preserve and protect","sesuaikan dengan diri sendiri"],
+        invalidation_keywords=["global_growth_surprise","market_rally_sustained","fundamentals_return",
+            "recession_avoided","china_bazooka_early"],
+        beneficiaries={"safe_haven":["USD_cash","IDR_cash","money_market","deposito","TLT"],
+            "ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","TLKM.JK","UNVR.JK","KLBF.JK"],"us":["BRK-B","JNJ","PG"]},
+        fades={"ihsg":["high_beta","property","consumer_discretionary","narrative_play"],
+            "us":["IWM","high_beta_momentum","leveraged_etfs"],"crypto":["BTC-USD","high_leverage"]},
+        regime_alignment={"Q1":1.60,"Q2":1.40,"Q3":1.20,"Q4":1.00},
+        typical_duration_weeks=52,
+        conviction_ceiling=0.90,
+        pump_risk=0.05,
+        confirmation_signals=["cash_allocation_above_60pct","equity_reduction_executed","deposito_rates_stable",
+            "global_pmi_below_50","us_debt_spreads_widen","china_10y_below_1pct","big_boyz_stop_recession_calls"],
+    ),
+
+    # ── ARTICLE 9+10: Peak Signals & Big Boyz Reverse Psychology ──────────────
+    NarrativeTemplate(
+        name="Peak Euphoria Signals — Big Boyz Reverse Psychology & Final Dessert",
+        description="""Ricky2212 peak detection framework: 4 signals + reverse psychology.
+4 PEAK SIGNALS:
+1. IWM (Russell 2000) ATH→ATH repeatedly: "On going." Small caps with 70% unprofitable constituents hitting ATH = delusional.
+2. Gold rallying simultaneously with market rally: "Gold is uncertainty hedge; if market jacks up and Gold also ATH = something uncertain ahead." (from 13 key point)
+3. BTC / Dunia Antah Berantah ATH→ATH: "Milestone: BTC $100k breached." Flow: BTC → Mega Cap → Big Cap → Mid Cap → Shitcoins. "Typical Do or Die."
+4. BUMI as final dessert: "ADII aja lagi dipersiapkan, masa si itu tuh yang jadi puncak Dessert ga dihidangkan." BUMI = cycle closer signal. "BUMI akan di-BRMS-kan."
+BIG BOYZ REVERSE PSYCHOLOGY:
+- 2022-2023: UBS, GS, Citi, BoA, JPM all screaming RECESSION. Didn't happen.
+- 2024-2025: All stopped recession calls. Now upgrading Dow/SPX/IWM/QQQ targets every rally. "Naik = upgrade, naik = upgrade lagi."
+- "Ini BAKAL JADI BULL MARKET PANJANG dan LUAR BIASA. DIS TAIM is DIPPEREN."
+- Ricky's interpretation: "Typical Fund motto: 'Lebih baik Mati and Bego Bareng daripada Fund gw di beat sama fund lain.'"
+- "Saat mereka serempak teriak resesi = ga kejadian. Saat mereka serempak teriak ekonomi seeeetrong = harusnya yang terjadi berikutnya adalah?"
+- "Saya selalu jadi pihak yang reverse the psycho."
+5 REASONS BULL COMING (Short-term tactical):
+1. Crypto risk-on extreme: money flowing BTC→mega→big→mid→shitcoins
+2. DXY at top, IDR cheap, IHSG beaten = perfect setup for fund inflow
+3. Banking-led reversal pattern (common reversal start)
+4. IHSG back above ATH-10% = defense level holds
+5. Only 1 dessert served (BUMI/BRMS), ADII still preparing = party not over
+TACTICAL WARNING:
+- "Nikmati blow off top sampai muntah-muntah. Jangan sampai mabuk, jangan lupa pulang."
+- "Bull yang bakal bikin FOMO luar biasa."
+- "Saat sinyal diatas makin kuat datangnya = bersiap."
+- "For now, nikmati dulu."
+Key principle: Big Boyz consensus = contrarian signal. When they all agree = opposite happens.""",
+        category="cycle",
+        catalyst_types=["peak_signals","iwm_ath","gold_market_divergence","btc_ath","bumi_dessert",
+            "big_boyz_reverse","contrarian_psychology","euphoria_peak","bull_trap_setup"],
+        activation_keywords=["peak signal","iwm ath","russell 2000 ath","gold rally market rally",
+            "btc 100k","btc ath","dunia antah berantah ath","bumi dessert","adii preparing",
+            "big boyz reverse psychology","big boyz recession","ubs gs citi boa jpm recession",
+            "upgrade target dow","upgrade target spx","bull market panjang","dis taim is dipperen",
+            "reverse the psycho","fund motto mati bego bareng","5 reasons bull","dxy top idr cheap",
+            "banking led reversal","ath minus 10 defense","blow off top muntah","fomo luar biasa",
+            "sinyal puncak","4 sinyal puncak","last signal","derrreesss bro","optimisme kembali"],
+        invalidation_keywords=["iwm_corrects_20pct","gold_divergence_resolves","btc_below_80k",
+            "big_boyz_recession_returns","fundamentals_return","no_peak_formed"],
+        beneficiaries={"ihsg":["BUMI.JK","BRMS.JK","BEST.JK","MCOR.JK","DYAN.JK","LEAD.JK"],
+            "us":["IWM","BTC-USD","ETH-USD"],"crypto":["BTC-USD","ETH-USD","MSTR","COIN"]},
+        fades={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK"],"us":["TLT","GLD","VIX"]},
+        regime_alignment={"Q3":1.70,"Q4":1.50,"Q2":1.00,"Q1":0.80},
+        typical_duration_weeks=12,
+        conviction_ceiling=0.80,
+        pump_risk=0.30,
+        confirmation_signals=["iwm_ath_sustained","gold_ath_while_market_ath","btc_above_100k",
+            "bumi_volume_bludak","big_boyz_upgrade_spree","retail_fomo_extreme","cheerleader_peak",
+            "adii_movement_starts","crypto_shitcoin_volume_surge"],
     ),
 ]
 
 # ═══════════════════════════════════════════════════════════════════════════════
 # MERGE INSTRUCTIONS — copy-paste ke bawah narrative_universe.py yang sudah ada:
 # ═══════════════════════════════════════════════════════════════════════════════
-# _NARRATIVES.extend(_NARRATIVES_BATCH12)
-# NARRATIVE_BY_NAME.update({n.name: n for n in _NARRATIVES_BATCH12})
-# for _n in _NARRATIVES_BATCH12:
+# _NARRATIVES.extend(_NARRATIVES_BATCH13)
+# NARRATIVE_BY_NAME.update({n.name: n for n in _NARRATIVES_BATCH13})
+# for _n in _NARRATIVES_BATCH13:
 #     NARRATIVES_BY_CATEGORY.setdefault(_n.category, []).append(_n)

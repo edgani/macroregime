@@ -1,4 +1,4 @@
-"""config/narrative_universe.py — BATCH 14 + BATCH 15 + BATCH 16 (Apr 2026)
+"""config/narrative_universe.py — BATCH 14 + BATCH 15 + BATCH 16 + BATCH 17 (Apr 2026)
 Artikel Ricky2212 / MentorBaik extraction:
 
 BATCH 14:
@@ -36,6 +36,20 @@ BATCH 16:
 28. BER BER BER curse — Sep-Oct crash pattern, FOMC cut timing, TFF peak
 29. TFF part 3 Puncak Kegilaan — BTC strategic reserve, US debt payoff, crypto hegemony
 30. Perfect Classic Game Play — Big Fund rotation IDR→bonds→equity, weak hand shakeout
+
+BATCH 17:
+31. TFF part 4 — Saham Bekdor bakal come back and RUSH, M&A peaked signal
+32. God Save the King — Pepe/08/Danantara symbiosis, PGEO, CDIA, RATU/RAJA
+33. TFF => WTFF => Peaked — 28% comeback, DCII ARA, fund frustration, temperature exit
+34. Tiki Taka Barcelona — Siram bensin strategy, DEWA/BUMI/WIFI/TOBA, PGEO/RAJA
+35. OBBB + FOMC July — One Big Beautiful Bill, UST analysis, 2 CUT scenarios, Powell Yo-Yo
+36. FUNDA + FINDi — 30% Funda 70% Findi thesis, narrative filter, self-reliance
+37. Oil and Gas narrative — OSV, Soemitro Djojohadikusumo, Danantara, 08 deregulation
+38. Patriot Bond — Rp 50T Danantara bond, 2% coupon, tax amnesty barter, 08 genius
+39. Patriot Bond confirmation — 3 haram money flows, Konglo play, WTFF liquidity flood
+40. Belakangan situasi politik — Demo Indonesia, '98 fear, fund entry setup, cooling down
+41. Focus on Big Picture — Ray Dalio, don't focus on detail, piece by piece puzzle
+42. Keputusan investasi — Your money your responsibility, self-reliance, sense building
 """
 from __future__ import annotations
 from dataclasses import dataclass, field
@@ -1968,6 +1982,965 @@ Key data: Big Fund classic 3-step: IDR → Bonds → Equity. Current phase = equ
 ]
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# ═══════════════════════════════════════════════════════════════════════════════
+# BATCH 17 — Artikel Ricky2212 (Apr 2026 extraction)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+_NARRATIVES_BATCH17: List[NarrativeTemplate] = [
+
+    # ── ARTICLE 31: TFF part 4 — Saham Bekdor RUSH ────────────────────────────
+    NarrativeTemplate(
+        name="TFF Part 4 — Saham Bekdor Bakal Come Back and RUSH",
+        description="""Ricky2212 bekdor (backdoor listing) framework:
+THE SIGNAL:
+- "Saya lupa tepat nya, tapi kalau saya tidak salah saya pernah menuliskan satu artikel tentang permainan bekdor"
+- "Sinyal sinyal yang biasa nya muncul saat market akan menuju puncak euforia nya: akan banyak Merger and Acquistion yang akan terjadi"
+- "Partisipan risk appetite nya akan naik luar biasa. Mereka akan mencari peluang yang akan memberikan return luar biasa dan cenderung mengabaikam Resiko"
+THE TIMING:
+- "Tik tok tik tok tik tok, waktu permainan juga semakin terbatas menjelang puncak market"
+- "Mereka juga tau bahwa permainan bekdor sedang luar biasa digemari"
+- "Mereka cari cangkang, mereka siapin asset nya, mereka inject asset nya and market bakal mengapresiasi gila2x an tuh saham"
+IB CONFIRMATION:
+- Ricky met an IB (Investment Banker) who is also a commissioner at a company
+- "Pak setau saya perusahaan bapak itu mau di bekdor yah? dia ketawa-tawa dan menjawab koq kamu bisa tau?"
+- "Mereka para konglo juga tau batasan waktu nya, dan waktunya sudah makin mepet. Maka mereka juga dengan segera akan mengeksekusi permainan mereka"
+- Pipeline: "banyak and banyak bidang usaha yang berbeda yang akan di bekdor. Bakalan rame tuh bekdor nanti sebentar lagi"
+Ricky's call: "Permainan bekdor akan berkembang sebentar lagi. Permainan bekdor akan ramai bahkan cenderung Rush."
+"Para konglo paham akan hal dan keadaan sekarang yang membuat mereka harus segera melakukannya."
+"Salah satu M&A nya adalah bekdor bekdor ini nantinya"
+"Uang judol yang mengendap di kamboja itu akan coba dibawa balik dan salah satu media nya adalah lewat saham2x bekdor"
+"Semua pengusaha yang bekdor juga mengatakan hal yang sama tentang time line nya"
+"Kalo perlu DEWA di inject asset sama Salim, diinject asset yang gede sehingga makin Rame tuh DEWA"
+"Please pikirkan kembali matang2x sebelum mengikuti permainan bekdor ini. Walau menawarkan potensi Return yang besar, tapi jangan lupa juga bahwa resiko yang melekat juga sangatlah besar"
+Key data: Bekdor rush = peak market signal. Time is running out for conglo players.""",
+        category="sector",
+        catalyst_types=["bekdor_rush","backdoor_listing","ma_peak_signal","konglo_exit_strategy",
+            "judol_money_bekdor","risk_appetite_spike"],
+        activation_keywords=["tff part 4","saham bekdor","bekdor come back","bekdor rush","merger acquisition peak",
+            "risk appetite naik","waktu permainan terbatas","batasan waktu mepet","konglo eksekusi bekdor",
+            "pipeline bekdor","ib commissioner bekdor","cangkang bekdor","inject asset bekdor",
+            "market apresiasi gila","judol money kamboja bekdor","salim inject dewa","dewa asset inject",
+            "ma peaked market","bekdor ramai","bekdor rame","time line konglo","resiko bekdor besar",
+            "return bekdor besar","matang2x bekdor"],
+        invalidation_keywords=["bekdor_fails","regulatory_crackdown_backdoor","ma_dries_up",
+            "konglo_abandons_bekdor"],
+        beneficiaries={"ihsg":["shell_companies","cangkang_tbk","BUMI.JK","BRMS.JK","WIFI.JK","MPIX.JK"],
+            "conglo":["DEWA.JK","TOBA.JK"]},
+        fades={"ihsg":["fundamental_stocks","blue_chip"]},
+        regime_alignment={"Q3":1.60,"Q4":1.40,"Q2":1.00,"Q1":0.80},
+        typical_duration_weeks=8,
+        conviction_ceiling=0.75,
+        pump_risk=0.30,
+        confirmation_signals=["bekdor_announcement_spike","shell_company_volume_surge","konglo_inject_asset",
+            "judol_money_repatriation","ma_activity_index_spike","risk_appetite_index_extreme"],
+    ),
+
+    # ── ARTICLE 32: God Save the King — Pepe/08/Danantara Symbiosis ───────────
+    NarrativeTemplate(
+        name="God Save the King — Pepe 08 Danantara Symbiosis & PGEO/CDIA/RAJA",
+        description="""Ricky2212 conglo-political symbiosis framework:
+THE SETUP:
+- "Uang deras masuk ke konglomerasi. Hegemoni konglomerasi mulai mencuat and hot lagi"
+- "Market di drive karena flooding liquidity. Dunia akan kebanjiran likuiditas"
+- "Bond indo sudah mulai diserbu dengan likuiditas yang tinggi. Hanya masalah waktu saja nanti masuk ke pasar saham"
+- "Karpet merah disiapkan dengan menurunkan market sementara waktu"
+PERFORMANCE TIERS:
+- a. Underperform: kenaikannya mediocre, dikalahkan oleh market
+- b. Marketperform: kenaikannya sesuai dengan kenaikan market
+- c. Outperform: kenaikannya akan melebihi kenaikan indeks
+RICKY'S STRATEGY:
+- "Saya akan bermain siram bensin dengan menitik beratkan pada narasi2x yang akan hype di publik"
+- "Narasi gabungan konglo dengan CA dan kedekatan dengan circle 08 dan danantara effect"
+- "Keadaan ekonomi itu lagi tidak baik2x saja. Kinerja banyak emiten akan tertekan oleh keadaan ekonomi"
+- "Kinerja itu adalah dasar dari pergerakan emiten terutama big cap. Kalo kinerja buruk terus alasan geraknya pakai apa?"
+GOD = BUMI:
+- "Saya sudah jelaskan di artikel B-Indicator tentang saham ini"
+- "Mereka akan lakukan sebuah skema permainan besar untuk memuncakkan sebuah siklus nantinya"
+- "Habis God nanti ciptaannya yaitu Earth juga akan nyusul koq"
+KING = PEPE GROUP:
+- "Om pepe juga lagi cari panggung lagi nih. Market bergerak oleh saham2x peper belakangan ini"
+- "BREN, TPIA, CUAN, BRPT gerak tuh bisa menggerakan naik turunnya indeks"
+- CDIA IPO: "luar biasa animo nya. Gila sih tuh IPO dibuat luar biasa dengan menaikkan satu group pepe agar IPO itu jadi bikin FOMO TFF"
+- "Om Pepe juga lumayan mulai mendekat ke 08 dan Danantara. Beberapa project om Pepe itu ada hubungan langsung dengan Danantara"
+- TPIA: "habis ambil alih kilang Shell di asia menurut saya sudah lewat masanya. Kenaikannya hanya naik sisa sisa an saja"
+- BREN: "narasi Green mencuat lagi dan 08 lewat danantaranya lagi mensupport narasi Green. Tapi kenaikannya juga sudah terbatas lah yah. Size nya juga sudah terlalu besar"
+- BRPT: "mendapatkan project KEK (Kawasan Ekonomi Khusus). Menarik tapi belum menemukan titik asymetrical bet nya"
+THE REAL PLAYS:
+1. PGEO:
+    - "CDIA tuh sudah dikasih lampu hijau untuk mengambil saham perusahaan geothermal pemerintah yaitu PGEO"
+    - "Danantara juga mengumumkan bahwa mereka memberikan financing ke PGEO sebesar 2 trilyun"
+    - "08 butuh cari panggung karena Danantara adalah pertaruhan besar. 08 meminang om Pepe buat eksekusi di level pasar saham nya. Simbiosis mutualisme tercipta"
+    - "Harusnya masih on going project nya. Butuh waktu buat menyelesaikan project nya"
+2. RATU/RAJA:
+    - "CDIA sudah mengambil alih sebuah perusahaan migas anak usaha dari RAJA"
+    - "Siapa yang bercokol di Raja? Hepi Hapsoro. Suami dari Puan Maharani"
+    - "Hepi lewat RATU nya mau menambah koleksi sumur migas nya dengan melakukan akuisisi organik. Blok migas yang cukup well known and besar yang dikelola oleh PetroChina"
+    - "Saya ga milih The Queen nya. KING nya yang akan berkuasa. Saya melihat level RAJA nya lebih menarik dibanding RATU nya"
+    - "Ending play nya apa? tau lah kalo konglomerasi main tuh ending nya apa"
+Ricky's call: "GOD Save the KING, itu narasi yang saya lihat punya potensi untuk jadi Narasi yang punya Moat"
+"Ini bukan ajakan untuk sebuah keputusan Permainan. Permainan ini jelas mengandung resiko yang besar. Semua nya digerakkan oleh narasi dan persepsi pasar"
+"Saya pribadi sampai berdoa supaya saya bisa tetap waras dan bisa menahan diri agar tidak terjangkit penyakit STANLEY DRUCK"
+Key data: Pepe group + 08/Danantara symbiosis = strongest narrative moat. PGEO and RAJA are the real plays.""",
+        category="sector",
+        catalyst_types=["pepe_08_symbiosis","danantara_pepe","pgeo_play","ratu_raja_play",
+            "cdia_ipo","god_save_king","conglo_moat","narrative_moat"],
+        activation_keywords=["god save the king","pepe 08 symbiosis","danantara pepe","danantara effect",
+            "pgeo play","pgeo danantara 2 trilyun","cdia pgeo","ratu raja play","hepi hapsoro",
+            "puan maharani raja","raja lebih menarik","ratu queen","petrochina blok migas",
+            "om pepe panggung","bren tpia cuan brpt","cdia ipo fomo","tpi shell asia",
+            "bren green danantara","brpt kek","simbiosis mutualisme","08 cari panggung",
+            "danantara pertaruhan 08","narasi moat","conglo moat","flooding liquidity",
+            "bond indo diserbu","karpet merah market","underperform marketperform outperform",
+            "siram bensin narasi","circle 08 danantara","stanley druck penyakit","waras tahan diri"],
+        invalidation_keywords=["pepe_08_conflict","danantara_withdraws_support","pgeo_project_fails",
+            "raja_fades"],
+        beneficiaries={"ihsg":["PGEO.JK","RAJA.JK","CDIA.JK","BREN.JK","TPIA.JK","CUAN.JK","BRPT.JK"],
+            "conglo":["BUMI.JK","BRMS.JK"]},
+        fades={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","fundamental_blue_chip"]},
+        regime_alignment={"Q1":1.60,"Q2":1.40,"Q3":1.20,"Q4":1.00},
+        typical_duration_weeks=26,
+        conviction_ceiling=0.80,
+        pump_risk=0.25,
+        confirmation_signals=["pgeo_financing_complete","cdia_takes_pgeo","danantara_pepe_project",
+            "raja_acquisition_announced","ratu_petrochina_deal","bren_green_danantara","brpt_kek_approved"],
+    ),
+
+    # ── ARTICLE 33: TFF => WTFF => Peaked ─────────────────────────────────────
+    NarrativeTemplate(
+        name="TFF => WTFF => Peaked — Market Euphoria Cycle & Exit Strategy",
+        description="""Ricky2212 market euphoria cycle framework:
+THE NUMBERS:
+- "Jack Up, Jack Up tak terasa indeks sudah naik belakangan ini dan terakhir bertengger diatas 7300 an malah sudah mau 7400"
+- "Kalo dihitung dari lowest yang tercipta pada bulan April pas liberation day maka Indeks sudah come back sekitar 1600 an point atau sekitar 28% an"
+- "28% come back dari low is a BULL right? secara hitungan teknis behaviour Low + 20% is a BULL come back"
+THE PHASES:
+1. TFF (Ter FOMO FOMO):
+    - "Kadar TFF nya aja belum parah koq"
+    - "Lah kalo terFOMO FOMO aja belum parah, berarti tahapan selanjutnya yaitu WTFF alias kenaikan lebih parah lagi yang lebih tanpa dasar lagi belum dimulai"
+    - "Semesta mendukung yah?"
+    - MSCI saham Pepe dibuka → kenaikan Pepe stocks
+    - Indonesia-US trade deal: tariff 32% → 19%
+    - BI cut 25 bps
+    - "Koq kaya sengaja? koq tetiba saja market Indonesia diberondong berita bagus tanpa henti?"
+    - "Thats why saya selalu bilang kalo market itu kalo mau naik yang naik aja, banyak berita akan disiapkan buat Fueling the Rally"
+    - "Mau apapun, mau gimanapun, mau dengan cara apapun, kalo mau naik yah sudah naik lah tanpa ada yg bisa menahan kenaikannya"
+    - DCII: "perusahaan dengan kapitalisasi pasar hampir 500T koq bisa dibuat naik dan ARA selama 3 hari ber turut-turut"
+    - "Super big cap ARA? itu namanya kegilaan pasar yang ga pake otak. Pokoknya pasar dibuat rally aja lah"
+2. WTFF (What The Fucked Fucked):
+    - "Kadar TFF makin terus membesar dan menggelembung"
+    - "Semua sudah tidak lagi memikirkan resiko yang ada. Semua tidak lagi memperhitungkan Resiko. Sudah pokoknya hajar lah, besok juga naik"
+    - "Fund yang tadinya skeptis kelakuannnya akan sama kaya retail, mereka takut tertinggal oleh Market"
+    - "Makin lah tuh market ga pake OTAK"
+    - "Semut akan terus berdatangan menggerumuti kue di meja"
+    - "Orang akan pamer keuntungan sana sini"
+    - "Jangan aneh juga nanti saat anda naik OJOL, drivernya sambil liatin apps crypto atau saham"
+    - "Jangan aneh juga saat anda makan di warteg, lagi bicarakan saham naik turun"
+    - "Anda akan bertemu sama orang yang ga pernah masuk pasar, tidak tahu pasar tapi bicara keuntungan dari pasar"
+3. PEAKED:
+    - "Waktunya indeks akan menemukan puncaknya nanti setelah semua kondisi itu tercapai"
+    - "Jangan selalu berharap semua akan berjalan dengan mulus. Di tengah jalan pasti lah ada namanya cekungan"
+    - "Cekungan itu nanti yang akan jadi transisi dari TFF ke WTFF => should be pas terjadi CUT RATES"
+THE MIXED FEELINGS:
+- "Saya merasakan feel mixed dalam kenaikan pasar belakangan ini"
+- "Ada yang menikmati bahkan sangat menikmati kenaikan pasarnya, bahkan ada yang manyun duduk di pojokkan karena tidak bisa menikmati kenaikan pasar nya"
+- Fund frustration: "sekelas Fund2x lokal banyak yang gigit jari juga koq bahkan bukan gigit jari lagi, mereka mungkin sampai mengumpat market"
+    - "Apa-apa an sih market Indo ini, shit and dibuang ke tong sampah aja"
+- Super performers: "DEWA, TOBA, WIFI, PGEO mengalami kenaikan luar biasa"
+    - TOBA: "bertengger di level 1100 an (kayanya langkah selanjutnya mau right issue diatas)"
+    - WIFI: "pasca selesai right issue langsung digenjot habis dan sudah diperdagangkan diatas 2900 an"
+        - "Fund belum banyak yang chip in disini, once mereka makin sadar and size kapitalisasi pasar serta likuiditas memadai buat masuk dengan size yang besar, hmmm yang mereka yang akan memuncaki harga saham ini"
+        - "Kalo sampai di indexing? hmmm, yah hitung lah sana target indexingnya"
+    - PGEO: "harusnya masih on going project nya. Butuh waktu buat menyelesaikan project nya"
+    - DEWA: "ngebut tanpa tertahankan. LK Q2 yang akan keluar harusnya bisa naik 10-15 fold kalau melihat dari kinerja Q1 nya"
+THE CHOICE:
+- "Ini soal pilihan, bukan soal keharusan"
+- "Anda bisa memilih untuk ikut serta atau tidak dalam kegilaan ini"
+- "Sisihkan uang yang semestinya dan sesuai dengan resiko anda"
+- "Kalo tidak? duduk lah dengan tenang dan jangan mudah goyah atas pilihan anda tersebut"
+EXIT STRATEGY:
+- "Ga ada rumus pasti untuk keluar dari permainan ini"
+- "Saya biasa memakai indikator temperature market buat saya EXIT"
+- "Kalau sudah semakin panas temperature market, saya pasti perlahan akan keluar dari market"
+- "Saya biasanya cek keramaian di sosmed"
+- "Saya bukan ahli nujum bisa menebak pucuk. Saya lebih suka keluar sebelum pertandingan usai sehingga pintu yang saya lewati masih lebar terbuka"
+- "Saya lebih suka mencukupkan diri untuk sebuah permainan tanpa dasar"
+Ricky's call: "TFF => WTFF => Peaked sempurna lah semua kegilaan yang terjadi di market"
+"Jangan aneh, ini bagian dari sebuah cycle. Cycle yang akan selalu berulang dan berputar pada poros yang sama"
+"Ingat selalu penyakit Stanley yah, jangan petantang petenteng dan jangan sampai terhanyut dalam kemeriahan pasar"
+"Badut2x akan semakin banyak berkeliaran di luar mengajak anda terus berpesta"
+Key data: TFF→WTFF→Peaked is the cycle. Temperature market = social media noise = exit signal.""",
+        category="cycle",
+        catalyst_types=["tff_wtff_peaked","market_euphoria","temperature_exit","dci_ara","fund_frustration",
+            "social_media_noise","cut_transition","choice_not_obligation"],
+        activation_keywords=["tff wtff peaked","ter fomo fomo","what the fucked fucked","28% comeback",
+            "low plus 20% bull","ihsg 7300","ihsg 7400","1600 point comeback","semesta mendukung",
+            "msci pepe","indonesia us trade deal","tariff 32% ke 19%","bi cut 25 bps","fueling the rally",
+            "dcii ara 3 hari","super big cap ara","kegilaan pasar","tff belum parah","wtff tanpa dasar",
+            "fund skeptis jadi retail","market ga pake otak","ojol liat crypto","warteg bicara saham",
+            "orang ga pernah pasar untung","cekungan transisi","cut rates transisi","feel mixed",
+            "fund gigit jari","fund mengumpat market","shit market indo","dewa toba wifi pgeo naik",
+            "toba 1100 right issue","wifi 2900 indexing","pgeo ongoing","dewa 10-15 fold","soal pilihan",
+            "bukan keharusan","temperature market exit","keramaian sosmed","keluar sebelum pertandingan usai",
+            "penyakit stanley","badut berkeliaran","cycle berulang"],
+        invalidation_keywords=["market_cools_early","tff_never_arrives","fund_stays_skeptical",
+            "temperature_never_peaks"],
+        beneficiaries={"ihsg":["DEWA.JK","TOBA.JK","WIFI.JK","PGEO.JK","BUMI.JK","BRMS.JK","MPIX.JK"],
+            "us":["BTC-USD","MSTR","COIN"]},
+        fades={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","fundamental_only"]},
+        regime_alignment={"Q3":1.80,"Q4":1.70,"Q2":1.40,"Q1":1.00},
+        typical_duration_weeks=12,
+        conviction_ceiling=0.85,
+        pump_risk=0.30,
+        confirmation_signals=["ihsg_above_7400","dci_ara_sustained","social_media_saham_trending",
+            "ojol_driver_trading","warteg_saham_discussion","fund_frustration_peaks","temperature_index_extreme"],
+    ),
+
+    # ── ARTICLE 34: Tiki Taka Barcelona — Siram Bensin Strategy ────────────────
+    NarrativeTemplate(
+        name="Tiki Taka Barcelona — Siram Bensin Strategy TFF to WTFF",
+        description="""Ricky2212 portfolio rotation framework: "Seni melipat uang"
+TIKI TAKA CONCEPT:
+- "Pep Guardiola bisa meramu bintang barca dan menyuguhkan permainan indah sepak bola"
+- "TIKI TAKA membuat bola mengalir dari kaki ke kaki pemain tanpa pernah berhenti"
+- "Ga banyak goreng, ga banyak dribble, ga ada yang egpis pemainnya"
+- "Bola terus mengalir dari belakang sampai ke jantung pertahanan lawan"
+- Strategy applied to portfolio: "Strategy TIKI TAKA ala Barcelona ini saya sedang praktik an dalam permainan edisi siram bensin saya"
+PORTFOLIO CONCENTRATION:
+- "Permainan saya di bursa terus mengerucut saham nya. Saya sudah tidak lagi mengexplore banyak saham lagi"
+- "Saya menjalanin perjalanan saya melalui TFF diteruskan nanti ke WTFF dan puncak nya nanti sampai PEAKED"
+TIKI TAKA ALIRAN PUTARAN UANG:
+1. DEWA:
+    - "Dari awal aliran uang saya disini sangat besar dan sepertinya aliran uang dalam permainan disini saya akan teruskan sampai permainan selesai"
+    - "Still long long way to go"
+    - "Tebakan saya laba 1H mereka akan keluar di kisaran 140 bio - 160 bio yah. lebih dari angka ini yah anggap aja bonus"
+    - "Narasi mereka masih panjang dan belum banyak di keluarin. Yah kira2x ada 5-6 project narasi yang dipersiapkan"
+    - "Salah satu nya jangan kaget kalo Q3 2025 keatas nantinya ada impairment karena memang dibutuhkan"
+    - "Avg saya jauh di bawah harga market sekarang bahkan saya sempat avg up di 17x an buat antisipasi LK Q2"
+2. TOBA:
+    - "Semua aksinya sudah dijelaskan di artikel mas tom dan 1 artikel saya. Danantara effect yang satu ini sudah berjalan thesis nya"
+    - "Dari mulai diversifikasi usaha ke sampah yang jadi salah satu usaha yang di dorong oleh 08"
+    - "Diversifikasi usaha sudah done, perpres nya juga sudah Done, hanya tinggal 1 CA lagi yaitu Right Issue"
+    - "Rasanya saya sudah mencukupkan diri di saham ini dengan torehan Superior RETURN"
+    - "Aliran uang dari sini sebagian sudah saya TIKI TAKA kan ke pemain lain"
+    - "Sisa uang penjualan sahamnya, saya lagi pikirkan nanti buat 4 kandidat pemain baru sambil menunggu kalo ada CEKUNGAN"
+3. WIFI:
+    - "Semua penjelasan tentang saham ini juga sudah dijelaskan dalam beberapa artikel mas Tom"
+    - "Saya ikut si edisi CA kedua perusahaan ini"
+    - "Menarik banget setelah salah satu teman lama saya menjelaskan blue print permainan ini sehingga saya masukkan saham ini ke edisi permainan TIKI TAKA"
+    - "Narasi nya kuat banget and tau lah si bersin bersin punya kerjaan disini"
+    - "Jangan kaget and terperangah nanti yah kalo memang semua blue print nya berjalan dengan baik"
+    - "Avg saya adalah harga CA edisi kedua. Saya masih berjalan di saham ini sampai satu per satu Narrative nya keluar and sampai ramai HOT di luar sana"
+4. BUMI:
+    - "Yang ini juga saya sudah bahas berkali-kali dalam artikel B-Indicator"
+    - "Buat yang sudah ga tahan di saham ini, mungkin anda bisa cari saham Blue Chip aja biar lebih tenang"
+    - CIC (Chongqing Investment Company): "nanti out koq. Makanya kemarin saya pergi ke Chongqing buat ketemu perwakilannya"
+    - "Laba diatur supaya bisa kuasi DONE. Kuasi berjalan dan disetujui DONE. Keluarin obligasi DONE. Akuisisi Green mining DONE"
+    - "Rio Tinto wannabe akan terus berjalan dan beberapa CA sudah disiapkan"
+    - "BUMI adalah striker pamungkas saya. Biarin aja ga naik, terus aja ga naik, kalo perlu bejek aja harganya sampai waktu yang cukup lama"
+    - "Puncak aliran uang dalam TIKI TAKA semua saham diatas adalah di saham ini"
+    - "Makin dikasih ulur waktu yang lama makin baik buat saya sehingga aliran TIKI TAKA dari penjaga gawang ke pemain belakang lalu ke pemain tengah puncaknya aliran nya bisa ke penyerang sebelum nanti nya terjadi GOL"
+    - "Malah kalo perlu dunia antah berantah saya juga biar jalan dulu sampe muncrat2x biar bisa dialokasikan lagi nanti di saham ini"
+KANDIDAT BARU:
+- PGEO, RAJA
+- "2 saham lagi saya ga sebutkan karena permainan nya agak lebih berbahaya. Sahamnya agak tidak preferable buat teman2x"
+Ricky's wisdom: "Your money your responsibility, tugas saya hanya memberikan gambaran dalam sebuah thesis dan saya menjalani apa yang sudah saya buat"
+"Kita ga akan pernah sama dalam hal menjalaninnya"
+"Jangan mencari2x valuasinya, karena ini permainan narrative. Nanti banyak yang bias kalo anda mencampur aduk kan strategy nya"
+Key data: Tiki Taka = rotate profits from early movers to late-stage striker (BUMI). Patience = key.""",
+        category="sector",
+        catalyst_types=["tiki_taka_strategy","siram_bensin","portfolio_rotation","dewa_play","toba_play",
+            "wifi_play","bumi_striker","pgeo_raja_candidate","profit_rotation"],
+        activation_keywords=["tiki taka barcelona","seni melipat uang","siram bensin tff","tiki taka strategy",
+            "portfolio rotation","dewa play","toba play","wifi play","bumi striker pamungkas",
+            "pgeo candidate","raja candidate","dewa laba 1h 140-160","dewa avg 17x","dewa impairment q3",
+            "toba danantara effect","toba diversifikasi sampah","toba perpres done","toba right issue",
+            "toba superior return","toba cekungan","wifi ca kedua","wifi blue print","wifi bersin bersin",
+            "wifi avg ca","wifi narrative keluar","bumi b indicator","bumi cic chongqing","bumi laba kuasi",
+            "bumi obligasi done","bumi green mining done","bumi rio tinto wannabe","bumi striker",
+            "bumi puncak aliran uang","bumi bejek harga","dunia antah berantah dialokasikan bumi",
+            "your money your responsibility","jangan cari valuasi","permainan narrative"],
+        invalidation_keywords=["tiki_taka_breaks","dewa_fails","toba_fades","wifi_crashes","bumi_abandoned"],
+        beneficiaries={"ihsg":["DEWA.JK","TOBA.JK","WIFI.JK","BUMI.JK","PGEO.JK","RAJA.JK"],
+            "crypto":["BTC-USD","ETH-USD"]},
+        fades={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","blue_chip_fundamental"]},
+        regime_alignment={"Q3":1.70,"Q4":1.50,"Q2":1.20,"Q1":0.90},
+        typical_duration_weeks=26,
+        conviction_ceiling=0.85,
+        pump_risk=0.25,
+        confirmation_signals=["dewa_lkq2_spike","toba_right_issue_announced","wifi_indexing_rumor",
+            "bumi_cic_exits","bumi_green_mining_complete","pgeo_project_progress","raja_acquisition_close"],
+    ),
+
+    # ── ARTICLE 35: OBBB + FOMC July — One Big Beautiful Bill & CUT Scenarios ─
+    NarrativeTemplate(
+        name="OBBB + FOMC July — One Big Beautiful Bill & 2 CUT Scenarios",
+        description="""Ricky2212 US fiscal/monetary framework:
+OBBB (ONE BIG BEAUTIFUL BILL):
+- Signed July 4, 2025 (Independence Day)
+- "Anggaran besar Presiden AS Donald Trump menjadi undang-undang"
+- CBO estimate: adds $3.3T federal deficit over 10 years
+- "Jutaan orang kehilangan cakupan kesehatan"
+- JD Vance tie-breaking vote in Senate
+- "Pemberontak Partai Republik akhirnya mendukungnya setelah berjam-jam perdebatan sengit"
+KEY PROVISIONS:
+1. Tax Cuts 2017 made permanent + standard deduction +$1K (individual) / +$2K (married) until 2028
+2. Medicaid cuts: work requirements, 6-month re-enrollment, provider tax cut 6%→3.5% by 2032
+    - "Hampir 12 juta warga Amerika bisa kehilangan cakupan kesehatan"
+3. Social Security: temporary standard deduction +$4K for 65+ (2025-2028)
+    - Senate version: $6K reduction for <$75K income
+4. SALT cap: $10K → $40K (reverts to $10K after 5 years)
+5. SNAP (food stamps): state contribution required, error rate <6% = full federal funding
+6. Defense +$150B: Golden Dome missile defense, ICE +$100B (annual was ~$8B)
+    - "ICE lembaga penegak hukum federal terbesar"
+7. No tax on tips/overtime (phases out at $150K individual / $300K joint, ends 2028)
+8. Child tax credit: permanently $2,200
+9. Debt ceiling: +$5T
+10. Clean energy incentives phased out: wind/solar 100%→60%→20%→0% by 2028
+RICKY'S INTERPRETATION:
+- "Ini seperti QE yang massive yang sedang digelontorkan dalam sebuah sistem ekonomi"
+- "Amrik akan terus mencetak defisit yang luar biasa sampai 2034 mendatang"
+- "Defisit tersebut tentunya digunakan untuk menopang jalannya pertumbuhan ekonomi mereka"
+- "massive spending => massive defisit => hutang and cetak uang yang banyak"
+- "massive M2 bakal berkeliaran di luar sana. Uang beredar akan makin melimpah"
+- "Likuiditas besar akan masuk ke sistem ekonomi"
+- "ga salah bukan kalo bakal ada pemotongan suku bunga di depan?"
+- "ga salah bukan kalo nanti TFF datang?"
+- "It's all about liquidiy dan ini adalah injeksi uang baru yang masuk ke sistem ekonomi and keuangan"
+FOMC JULY 2025:
+- Fed holds rates at 4.25-4.5% (5th consecutive hold since Dec 2024)
+- Dissenters: Christopher Waller + Michelle Bowman wanted 25bps cut
+    - "Pertama kalinya lebih dari satu Gubernur Fed berselisih pendapat sejak 1993"
+- Powell: "tarif Trump dan dampaknya masih berada pada tahap awal"
+- Market expects at least 1 cut this year, maybe 2. First cut possibly September.
+- "Powell mengatakan masih terlalu banyak hal yang belum pasti"
+- "Kami belum membuat keputusan apapun tentang Rapat FOMC September nanti"
+- GDP Q2: 3% annual (strong surface), but real final sales to private domestic purchasers: 1.2% (down from 1.9%)
+- "Indikator terbaru menunjukkan bahwa pertumbuhan aktivitas ekonomi melambat di paruh pertama tahun ini"
+UST ANALYSIS:
+- UST 1M: 4.36%, UST 3M: 4.26%, UST 1Y: 3.94%, UST 2Y: 3.73%, UST 10Y: 4.23%, UST 30Y: 4.79%
+2 CUT SCENARIOS:
+1. CUT in BER BER BER (September):
+    - "Odds market nya sudah 90% menunjukan bahwa FOMC September mereka akan melakukan CUT sebesar 25 Bps"
+    - "Sesuatu yang sudah di ekspektasi adalah barang BASIAN"
+    - "Mempercepat ending WTFF nya di sekitaran sebelum pertengahan tahun depan"
+    - "Market akan cepat membuat ekspektasi baru bahwa FED akan terus malakukan CUT berturut-turut sampai tahun depan"
+2. Gradual CUT (Powell-YoYo):
+    - "Mereka akan menahan gradually CUT nya dengan bermain Powell-YoYo"
+    - "Ending WTFF bisa diundur sampai ber ber tahun depan dan WTFF kita bisa makin lama and muncrat luar biasa"
+    - "Market ga butuh2x banget CUT. Market tuh full digerakkan Narrative luar biasa"
+    - "Trump doing great Job buat menjalankan program narrative ini"
+THE REALITY:
+- "Ekonomi sempoyongan, Perlu bantuan suku bunga di CUT. Tapi efek dari suku bunga tersebut itu ga langsung instant, butuh adjustment 1 tahun ke depan baru berasa ke real bisnis"
+- "Keadaan ekonomi sekarang tuh butuh suku bunga dibawah normal 2% bahkan kalo bisa suku bunga sampai 0% lagi"
+- "Kalo mereka lakuin itu sekarang, apa yang terjadi? market panik karena data yang mereka sembunyikan tuh kebongkar semua"
+- "Game nya sekarang adalah masih pada level men jack up market sedemikian rupa supaya semua terlihat bagus terlebih dahulu"
+- "Mereka sebenernya sudah siapin sampe next level game koq. Mereka sudah siapin kapan rate bisa ke 0% lagi"
+- "Tahun ini yang paling besar [debt maturity] dan itu terjadi di bulan juni and july 2025"
+- "Sudah mereka refinancing? sudah, dan thanks to Japan yang bantu sediakan likuiditas buat Amrik refinancing"
+- "Jepang nahan suku 0.5% nya padahal inflasi sudah 3% lebih. Kenapa? tuh pada carry trade buat belikan obligasi US yang jatuh tempo"
+- "US keluarin Bond dalam UST 2Y dan UST 5Y. Paling besar di UST 2Y dan itu sinyal tuh bahwa 0% nya mungkin akan di waktu jatuh tempo UST 2Y (2 tahun lagi)"
+- "2 tahun lagi yaitu 2027 dan itu adalah persilangan puncak siklus 10 tahun dan siklus 100 tahun ketemu disana"
+- "Skenario TFF to WTFF kalo tidak ada aral melintang akan berakhir dan memuncak di tahun depan 2026 sebelum semua borok2x nya kebuka"
+Ricky's call: "As long as u know the big picture and lo tau ujung nya dimana yah duduk manis aja"
+"Biarkan market bermain dengan banyak kelucuan yang mereka ciptakan sendiri"
+"So, saran saya kalo ber ber ini ada local top yah nikmati saja jangan terlalu panik"
+"Semua settingan TFF to WTFF sejauh ini masih berjalan dengan baik. Peaked nya belum akan disana koq harusnya"
+Key data: OBBB = massive fiscal injection. FOMC = narrative game. Real cut timing = 2026-2027. Peak = 2026.""",
+        category="geopolitical",
+        catalyst_types=["obbb","one_big_beautiful_bill","fiscal_injection","fomc_july","cut_scenarios",
+            "ust_analysis","powell_yoyo","debt_refinancing_2025","japan_carry_trade","peak_2026"],
+        activation_keywords=["obbb","one big beautiful bill","anggaran besar trump","3.3 trilyun defisit",
+            "jd vance tie breaking","tax cuts permanent","medicaid cuts","social security deduction",
+            "salt cap 40k","snap reform","defense 150 miliar","golden dome","ice 100 miliar",
+            "no tax on tips","child tax credit 2200","debt ceiling 5 trilyun","clean energy phased out",
+            "qe massive","fomc july 2025","waller bowman dissent","powell hold","fomc september cut",
+            "gdp q2 3%","real final sales 1.2%","ust 1m 4.36","ust 2y 3.73","ust 10y 4.23",
+            "cut scenario 1 ber ber ber","cut scenario 2 gradual","powell yoyo","market ga butuh cut",
+            "trump narrative drive","ekonomi sempoyongan","suku bunga 0%","data kebongkar",
+            "jack up market dulu","refinancing juni juli 2025","japan carry trade ust",
+            "jepang suku 0.5%","ust 2y jatuh tempo 2027","siklus 10 tahun 100 tahun",
+            "peak 2026","tff wtff berakhir 2026","borok kebuka","duduk manis big picture",
+            "local top nikmati","settingan tff wtff berjalan baik"],
+        invalidation_keywords=["obbb_repealed","fomc_hikes","ust_yields_crash","refinancing_fails",
+            "peak_comes_early"],
+        beneficiaries={"us":["SPY","QQQ","IWM","TLT"],"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","BUMI.JK","WIFI.JK"],
+            "crypto":["BTC-USD","ETH-USD"]},
+        fades={"us":["SQQQ","VIX"],"ihsg":["property"]},
+        regime_alignment={"Q3":1.60,"Q4":1.40,"Q2":1.00,"Q1":0.80},
+        typical_duration_weeks=52,
+        conviction_ceiling=0.85,
+        pump_risk=0.20,
+        confirmation_signals=["obbb_signed","fomc_dissenters_increase","ust_curve_flattening",
+            "refinancing_completed","japan_carry_trade_volume","gdp_real_sales_declines",
+            "ber_ber_ber_cut_odds_90%","peak_2026_signals"],
+    ),
+
+    # ── ARTICLE 36: FUNDA + FINDi — 30% Funda 70% Findi Thesis ─────────────────
+    NarrativeTemplate(
+        name="FUNDA + FINDi — 30% Funda 70% Findi Narrative Filter",
+        description="""Ricky2212 stock selection framework: "Funda + Findi"
+THE JOKE:
+- "Pilihan saham buat saat ini dari TFF sampai nanti puncak TFF itu kalo bisa mengandung Funda + Findi sekalian di kompormasi (bukan konfirmasi)"
+- "Lucu, lucu sampai mendengarnya saat kalimat tersebut dilempar dalam diskusi tersebut"
+DEFINITIONS:
+- Funda = Fundamental: "yah sedikit banyak saham tersebut ada aspek fundamental yang disodorkan"
+- Findi = Findimintil: "saham tersebut mengandung narrative yang cukup bisa mendongkrak harga nya"
+- Kompormasi = "plesitan konfirmasi" = being fanned/compelled by market narrative
+THE PROBLEM:
+- "Saham2x yang bergerak karena dorongan fundamental cukup sulit di apresiasi oleh pasar. Bukan tidak naik yah, tapi lagging and di underperform oleh market"
+- "Keadaan ekonomi di luar sana sedang cukup tidak bersahabat sehingga kalau mengharapkan kinerja memuaskan malah cuma jadi isapan jempol belaka"
+- "Pasar butuh mainan buat mencari sebuah keuntungan"
+THE NARRATIVE DOMINANCE:
+- "NEXT RALLY is FINDIMINTIL RALLY"
+- "Pergerakan pasar memang didominasi oleh permainan narrative dengan konglo sebagai narrative utama"
+- "Narrative kuat selanjutnya adalah INDEXing dan Corporate Action"
+- "Saham2x yang boleh dibilang saham Sampah pun juga ikut tergerak. Saham tersebut benar2x tidak ada aspek fundamental sama sekali"
+- "Pergerakan saham nya pure dorongan narrative dan dipoles dengan Issue Corporate Action"
+- "Corp Actionya bisa saja issue atau kalaupun benar ada corp action bisa saja cuma seadanya"
+- "Mereka tiupkan corp action ala kadar nya cuma hanya untuk mengerek harga saham nya"
+THE RISK:
+- "Partisipan yang mulai terdeteksi penyakit Stanley sehingga otak nya mulai ngeres mau cepat and instant dapat profit"
+- "Saham2x tersebut tuh jadi primadona"
+- "Tapi ada yang mereka lupa bahwa keadaan tersebut tentu mengandung resiko yang cukup besar sehingga missed saja sedikit maka ujung nya adalah petaka financial"
+THE SOLUTION:
+- "Thesis Funda and Findi itu adalah jawaban dari kami agar teman2x yang ingin ikut dalam peemainan ini tapi resiko yang dihadapi itu lebih terukur"
+- "Saham yang kami sampaikan sedikit banyak mengandung aspek fundamental yang nantinya akan berefek pada kinerja"
+- "Kalo sedikit ada dorongan kinerja kan pegang sahamnya lebih tenang"
+- "Narrative nya? kami filter saham nya yang punya kandungan narrative yang kuat dan disukai oleh pasar"
+- "Semakin kuat narrativenya maka nantinya saham tersebut dapat aliran uang besar dari pasar"
+- Mas Rizza formula: "30% Funda and 70% Findi"
+    - "Findi itu yang nantinya akan mendorong jauh harga saham nya"
+EXAMPLES:
+- DEWA, WIFI, BUMI, TOBA, RAJA, PGEO
+- "Funda + Findi sudah terpenuh, tinggal butuh 1 kompormasi alias dikomporin di market supaya pada FOMO"
+    - "Itu tugas manajemen nanti dengan cerita cerita dongeng masa depan dan tugas cheerleader membuat keramaian"
+ADVICE:
+- Fundamentalists staying on path: "teruskan dengan konsisten. Kuatkan mental anda, sedikit banyak juga saham fundamental anda kecipratan koq nantinya"
+- Fundamentalists crossing over: "plisssd tetap ingat: pertama, ini hanya permainan sementara. Jangan larut dengan euforia"
+    - "Kedua, setelah mencoba nyeberang permainan plisss jangan terbawa terus ke irama permainan narrative ke depan nya"
+    - "Mentang2x enak tanpa ngulik2x angka and aspek fundamental, terus anda terlena and meneruskan style ini buat long term (mati nanti anda kelibas)"
+    - "Shifiting lagi ke fundamental kalo memang sudah saat nya"
+Ricky's call: "Dah mau 17 Agustus, mau kemerdekaan and indeks sudah bergerak di 7700 an"
+"Waktunya Indonesia Riang Gembira lah tuh"
+"Tapi ingat jangan berlebihan, akan ada masa dimana cekungan2x akan datang"
+Key data: 30% Funda + 70% Findi = optimal risk/reward for narrative-driven market. Don't forget to shift back to fundamental when cycle ends.""",
+        category="sector",
+        catalyst_types=["funda_findi","30_70_formula","narrative_filter","fundamental_plus_narrative",
+            "risk_management","cheerleader_effect","kompormasi"],
+        activation_keywords=["funda findi","30% funda 70% findi","funda plus findi","narrative filter",
+            "kompormasi","plesitan konfirmasi","fundamental sulit diapresiasi","findimintil rally",
+            "narrative dominance","konglo narrative utama","indexing narrative","corporate action narrative",
+            "saham sampah tergerak","pure narrative","corp action ala kadar","penyakit stanley",
+            "resiko besar findimintil","petaka financial","thesis funda findi","resiko terukur",
+            "kinerja pegang tenang","narrative kuat aliran uang","mas rizza 30 70","dewa wifi bumi toba raja pgeo",
+            "funda findi terpenuh","cheerleader keramaian","manajemen dongeng","fundamentalis konsisten",
+            "fundamentalis nyeberang","jangan larut euforia","shift back fundamental","indonesia riang gembira",
+            "cekungan akan datang","17 agustus 7700"],
+        invalidation_keywords=["fundamentals_drive_market","narrative_fades","findimintil_crashes",
+            "funda_findi_fails"],
+        beneficiaries={"ihsg":["DEWA.JK","WIFI.JK","BUMI.JK","TOBA.JK","RAJA.JK","PGEO.JK"],
+            "safe_haven":["IDR_cash"]},
+        fades={"ihsg":["pure_fundamental_lagging","pure_findimintil_garbage"]},
+        regime_alignment={"Q3":1.50,"Q4":1.30,"Q2":1.00,"Q1":0.80},
+        typical_duration_weeks=16,
+        conviction_ceiling=0.80,
+        pump_risk=0.20,
+        confirmation_signals=["narrative_stock_outperforms_fundamental","funda_findi_stock_rally",
+            "corp_action_executed","indexing_inclusion","cheerleader_active","fundamental_anchors_price"],
+    ),
+
+    # ── ARTICLE 37: Oil and Gas — The Next Narrative ────────────────────────────
+    NarrativeTemplate(
+        name="Oil and Gas — The Next Narrative (Soemitro 08 Danantara Deregulation)",
+        description="""Ricky2212 oil & gas narrative framework:
+THE SIGNAL:
+- "Saya mencium sebuah permainan narrative yang sedang disiapkan"
+- "Saya ga mau jadi pihak yang membuat jempol anda bergerak cepat buat melakukan aksi mengikuti permainan"
+- "Saya hanya mau memberikan cerita kenapa belakangan saham2x yang berhubungan dengan oil kena cipratan uang dari market"
+OSV PLAY:
+- "Masih ingat saat saya bikin IG story yang mengangkat tema OSV bakal kena permainan?"
+- "i'm not kidding bro saat itu, mungkin pada kira saya bercanda. Apalagi lihat harga oil hanya $61 sampai $65 saja"
+- "Bukan, saat itu saya bukan melihat kesana tapi saya melihat konglomerasi sedang bersiap dan buat saya itu bukan persiapan yang kaleng2x"
+THE KONGLO PREPARATION:
+1. Pepe + Bahagia: "mengambil sebuah perusahaan OSV yang isinya kapal OSV dengan Type Pipe Laying"
+    - "Kapal high tier dari OSV tersebut adalah type kapal yang paling canggih di OSV"
+    - "Kapal itu hanya bisa dipakai buat membantu pengeboran minyak lepas pantai yang sangat sophisticated"
+    - "Kalo siklus minyak ga berpihak, kapal itu bakal dipastikan nganggur ga bisa dipakai sama sekali"
+2. Bahagia bekdor: "perusahaan lakukan Right Issue dan akan di inject asset"
+    - "Tau apa yang di inject? lagi2x pak Bahagia memasukkan kapal Pipe Laying ke perusahaan hasil bekdor tersebut"
+    - "Hmmmm, 2212 makin curious aja nih kalo sudah begini"
+3. Eneng (SEXY oil stock): "pergerakannya agak aneh. Oil turun terus tapi si Eneng malah jalan meliak-liuk tanpa peduli diganggu market"
+THE HISTORICAL PARALLEL:
+- "Mbasecamp lalu. Materi Mbasecamp yang saya buat, ada pembahasan cycle to cycle ekonomi Indonesia pasca kemerdekaan. Saya mulai pembahasan materi dari cycle 1968"
+- "Begawan ekonomi no 1 dan orang kepercayaan Presiden buat ekonomi melakukan aksi pembukaan investasi besar2x an di industri migas nasional"
+- "Siapa dia? dia adalah Soemitro Djojohadikusumo. Familiar dengan nama itu? dia adalah bapak nya 08"
+- "Saat itu dia deregulasi semua peraturan di industri migas agar investasi O n G di Indonesia jadi lebih menarik dan ramah buat investor"
+- "Pasca deregulasi tersebut investasi Migas kita naik luar biasa dan ekonomi Indonesia ketiban berkah saat harga oil naik di 1974 an"
+- "Fiskal kita terbantu banyak saat itu dan ekonomi kita tumbuh secara cepat karena terbantu harga minyak dunia"
+THE 08 CONNECTION:
+- "Danantara dibuat 08 karena itu cita2x bapaknya yang dulu tidak sempat kesanpaian. Jadi sekarang 08 meneruskan apa yang bapaknya cita2x kan"
+- "Bisakah 08 melakukan hal yang sama dengan bapaknya di industri migas? Saya jawab BISA dan itu akan dengan cepat 08 eksekusi"
+    - "Like Father Like Son"
+- "08 juga saya lihat akan melakukan deregulasi di industri oil and gas agar investasi besar2x an masuk"
+    - "Semua peraturan yang menghambat masuknya investasi akan di rubah"
+- "Ga percaya? tuh beberapa blok raksasa minyak di Indo yang lama mandek sekarang lagi pada bersiap melakukan pra produksi"
+    - "Semuanya adalah blok lepas pantai atau offshore yang butuh bantuan alat2x offshore nya"
+- "Mafia migas MRC dikejar2x sama KPK. Mafia migas mau diberesin dan nanti 08 akan centralisasi industrinya"
+Ricky's strategy: "Saya perlahan ikut arus market. Dimana uang mengalir, kalo kata soros harus disiram bensin nya"
+- "Saya putuskan masuk market dengan mengambil beberapa saham"
+- "Permainannya adalah Narrtive konglo, narrative 08 related sih yang paling highly prefer"
+- "Beta play merujuk pilihan selanjutnya (CA play)"
+- "Oil toh narrativenya, Oalah Kirain Apa Sih narrtivenya taunya OIL lagi toh"
+- "Saya suka kalo minyak makin licin. Apalagi kalo pengeboran nya and ngebornya dibuat makin licin dan dipermudah"
+Ricky's call: "Saya ga bicara saham per saham. Saya lagi coba bicara soal industrinya"
+"Jangan tanya saham yang bagus nya apa, jangan tanya masih boleh masuk ga, bagus mana saham ini atau saham itu, no price action question"
+"It's narrative play bukan funda play yah"
+Key data: Oil & Gas = next major narrative. 08 following Soemitro's footsteps. Deregulation incoming. OSV and offshore blocks preparing.""",
+        category="sector",
+        catalyst_types=["oil_gas_narrative","soemitro_08","danantara_oil","deregulation_oil_gas",
+            "osv_play","offshore_blocks","mafia_migas_cleanup","konglo_oil"],
+        activation_keywords=["oil and gas narrative","next narrative oil","osv play","osv kena permainan",
+            "oil 61 65","konglo bersiap oil","pepe bahagia osv","pipe laying kapal","kapal canggih osv",
+            "right issue inject pipe laying","eneng sexy oil","oil turun saham naik","soemitro djojohadikusumo",
+            "bapak 08 soemitro","1968 deregulasi migas","investasi migas naik","harga oil 1974",
+            "fiskal terbantu migas","danantara cita2x bapak","08 meneruskan bapak","like father like son",
+            "08 deregulasi oil gas","blok raksasa minyak mandek","pra produksi minyak","blok lepas pantai",
+            "offshore butuh alat","mafia migas mrc kpk","centralisasi industri migas","siram bensin oil",
+            "narrative konglo oil","narrative 08 oil","beta play oil","ca play oil","oil toh narrative",
+            "minyak makin licin","narrative play bukan funda play"],
+        invalidation_keywords=["oil_deregulation_fails","offshore_blocks_stall","mafia_migas_escapes",
+            "08_abandons_oil"],
+        beneficiaries={"ihsg":["MEDC.JK","PTBA.JK","ENRG.JK","RIGS.JK","IPCM.JK","BSML.JK"],
+            "global":["CL=F","XLE","OIH","CVX","XOM"]},
+        fades={"ihsg":["property","consumer_discretionary"]},
+        regime_alignment={"Q1":1.50,"Q2":1.30,"Q3":1.10,"Q4":0.90},
+        typical_duration_weeks=26,
+        conviction_ceiling=0.80,
+        pump_risk=0.20,
+        confirmation_signals=["osv_acquisition_complete","pipe_laying_injected","offshore_block_praproduction",
+            "oil_deregulation_announced","mafia_migas_arrested","08_oil_policy_speech","eneng_rally_continues"],
+    ),
+
+    # ── ARTICLE 38: Patriot Bond — Rp 50T Danantara Bond & Tax Amnesty Barter ─
+    NarrativeTemplate(
+        name="Patriot Bond — Rp 50T Danantara Bond, Tax Amnesty Barter & 08 Genius",
+        description="""Ricky2212 Patriot Bond framework:
+DANANTARA CONTEXT:
+- "Danantara memang baru lahir, tapi ibarat bayi yang baru lahir ini bayi yang lahirnya tambun"
+- "Danantara lahir dengan asset awal katanya sekitar $1Billion atau sekitar Rp 16 ribu Trilyun"
+- Assets: BBRI, BMRI, BBNI, Pertamina, PLN, etc.
+- "Cita2x yang awalnya dibuat oleh Bapaknya yaitu Soemitro Djojohadikusumo terlaksana sekarang ini"
+- "Danantara itu nanti jadi bantalan Fiskal Indonesia"
+- "Dengan asset Rp 16 ribu Trilyun dan ga usah muluk2x dapat yield per tahun 6% saja maka Rp 1000 Trilyun bisa dihasilkan"
+- "Rp 1000 Trilyun tersebut di salurkan dalam sistem keuangan dan ekonomi Indonesia. Gerak ga tuh ekonomi?"
+- "Danantara adalah sebuah pertaruhan besar 08 dan 08 tahu akan hal tersebut. Ga boleh gagal"
+THE KONGLO SUMMONS:
+- "Narrative apa yang ramai di luar sana? Yap konglo play bukan? Maka dipanggil lah semua tuh para Konglo ke Istana"
+- "Ehhh lo konglo gw dukung apa yang lo jalanin. Gw lewat danantara support lo dalam hal project and pendanaan"
+- "Good deal, 08 and Danantara butuh muter uangnya dan Konglo butuh project and pendanaannya. Simbiosis mutualisme terjadi"
+- Project distribution:
+    * Konglo A: sampah (waste management)
+    * Konglo B: internet
+    * Konglo C: bauksit
+    * Konglo D, E, F: various projects
+- "Semua konglo dibagi projectnya tanpa harus khawatir karena full support dari Danantara"
+DANANTARA SUPPORT EXAMPLE:
+- "Projek Energi terbarukan dari Sampah. Project ini adalah project strategis dimana Sampah akan diolah sehingga dapat menghasilkan energi (EBT)"
+- "Dari kebijakan saja 08 sudah support dengan cara mengeluarkan perpres dalam hal pengelolaan sampah. Daerah diwajibkan mengelola sedemikian rupa sehingga sampah tersebut bisa diolah. Sifatnya mandatory and wajib buat daerah"
+- "Jangan kaget kalo nanti Bantar Gebang akan jadi pusat pengolahan sampah jadi salah satu EBT terbesar di dunia"
+- "Danantara akan bantu pendanaan agar project tersebut terlaksana"
+- "Rasanya sejauh ini saya masih melihatnya dalam bentuk debt bukan ekuitas (takut konflik kepentingan)"
+PATRIOT BOND:
+- "Danantara akan mengeluarkan Obligasi. Nilai nya ga tanggung2x yaitu sekitar Rp 5 Trilyun"
+- "Obligasi Tersebut dibagi 2 Tranche dengan masing2x sebesar Rp 25 Trilyun. Jangka waktunya 5 dan 7 tahun"
+- "Patriot Bond menawarkan kupon sebesar 2% p.a"
+- "Siapa yang mau beli kalo cuma dikasih segitu? iya lah, lah bunga tabungan saya di salah satu bank aja 2.5% p.a"
+- "Radar 2212 lagi2x coba mencari tau dibalik ini tuh ada kemungkinan apa. Kalo cuma normal way saja sih rasanya ga bakal laku"
+THE BARTER SCHEME:
+- "Dahulu saya pernah cerita 2 hal tentang Uang yang bakal dibawa balik ke Indo: uang Judol and uang abu2x para konglo yang diparkir di luar negeri"
+- "Ketiga kalo mau ditambahin adalah uang dari shadow economy"
+- "Ketiga uang itu kalo dijumlahin jumlahnya sih fantastis, tapi masalah nya uang itu masih HARAM karena ga masuk sistem ekonomi dan keuangan kita"
+- "Uang bakal diampunin oleh 08 dan lo boleh bawa masuk kesini. Pake skema apa? yah bisa saja pakai Tax Amnesty"
+- "Uang mereka diampunin dan bawa balik masuk kesini"
+- "Barter dari 08: Konglo akan diberikan project yang disiapkan oleh negara berikut pendanaanya"
+- "Negara mengampuni dan sebagian uang yang diampunin lo harus makan Bond yang diterbitin Danantara"
+- "Danantara tidak perlu repot2x cari siapa pembelinya karena skemanya sudah disiapkan"
+- "Konglo pada beli tuh Patriot Bond walau kupon cuma 2%"
+    - "Mereka bisa muter uang nya dan dapat lebih dari segitu koq"
+THE 8 PRIORITY SECTORS:
+1. Minerals: Nickel, Bauxite
+2. Renewables, Energy: Oil upstream and renewables platform
+3. Digital infrastructure: Data center infrastructure
+4. Healthcare: Blood plasma factory, hospital chain
+5. Financial services: Asset and loan securitization
+6. Infrastructure, Utilities: Waste management, mining infra
+7. Industrial estate, Property: Strategic industrial estate
+8. Food & Agriculture: TBC
+Ricky's call: "08 is Really Genius dalam hal tersebut"
+"Patriot Bond akan kah jadi Pahlawan fiskal negara? Permainan nya buat saya sangat menarik buat diikuti"
+"Saya ga mau ditanya saham apa yah yang bagus or kena effect. Do your Own"
+Key data: Patriot Bond = tax amnesty barter. 08 genius scheme. 3 haram money flows → clean → projects → liquidity flood.""",
+        category="geopolitical",
+        catalyst_types=["patriot_bond","danantara_bond","tax_amnesty_barter","konglo_project",
+            "08_genius","haram_money_cleaning","liquidity_flood","simbiosis_mutualisme"],
+        activation_keywords=["patriot bond","danantara obligasi","rp 50 trilyun bond","rp 5 trilyun obligasi",
+            "2 tranche 5 7 tahun","kupon 2%","tax amnesty barter","konglo istana","konglo dipanggil",
+            "simbiosis mutualisme","08 genius","danantara bantalan fiskal","rp 16 ribu trilyun asset",
+            "soemitro cita2x terlaksana","rp 1000 trilyun yield","project konglo","sampah ebt",
+            "bantar gebang ebt","perpres pengelolaan sampah","wajib mandatory sampah","debt bukan ekuitas",
+            "uang haram masuk","uang judol","uang abu2x konglo","uang shadow economy","uang diampuni",
+            "skema tax amnesty","barter bond project","konglo makan bond","muter uang konglo",
+            "8 sektor prioritas","mineral nickel bauxite","renewables energy","digital infrastructure",
+            "healthcare plasma","financial securitization","infrastructure waste","industrial estate",
+            "food agriculture tbc","pahlawan fiskal","do your own"],
+        invalidation_keywords=["patriot_bond_fails","tax_amnesty_blocked","konglo_rejects_bond",
+            "danantara_corruption"],
+        beneficiaries={"ihsg":["TOBA.JK","BREN.JK","PGEO.JK","WIFI.JK","BUMI.JK","BRMS.JK"],
+            "sectors":["waste_management","mining_infra","data_center","healthcare","industrial_estate"]},
+        fades={"ihsg":["property","pure_fundamental"]},
+        regime_alignment={"Q1":1.70,"Q2":1.50,"Q3":1.30,"Q4":1.10},
+        typical_duration_weeks=52,
+        conviction_ceiling=0.85,
+        pump_risk=0.20,
+        confirmation_signals=["patriot_bond_launched","tax_amnesty_program_announced","konglo_bond_buying",
+            "project_distribution_complete","perpres_waste_management","bantar_gebang_ebt_project",
+            "haram_money_repatriation_starts"],
+    ),
+
+    # ── ARTICLE 39: Patriot Bond Confirmation — 3 Haram Money Flows ──────────
+    NarrativeTemplate(
+        name="Patriot Bond Confirmation — 3 Haram Money Flows & WTFF Liquidity Flood",
+        description="""Ricky2212 Patriot Bond confirmation & liquidity flood framework:
+THE SKEPTICS:
+- "Banyak di luar sana tidak sampai berpikir ke arah yang saya sampaikan tersebut. Banyak yang skeptis terhadap Patriot Bond"
+- "Di luar sana banyak suara sumbang dengan yield yang ditawarkan. Gimana mau narik uang dari luar kalo kupon yang ditawarkan hanya segitu?"
+- "Bahkan ada yang ekonom yang bilang ini bakal menarik likudiitas di bank. Bank nasional bisa seret likuiditas"
+THE REALITY:
+- "50 trilyun itu langsung ludes bukan? Konglo konglo pada beli tuh Patriot Bond walau kupon cuma 2%"
+- "Koq sampai konglo mau sih? mereka bisa muter uang nya dan dapat lebih dari segitu koq"
+3 ALIRAN UANG "HARAM":
+1. Uang Judol: "Uang judol yang mengendap di kamboja itu akan coba dibawa balik"
+2. Uang Abu2x Nominee Konglo: "Uang para konglo yang diparkir di luar negeri"
+3. Uang Shadow Banking/Economy: "Uang shadow ekonomi and banking"
+- "So this is really FRESH FUND dari luar. Bukan seperti yang ekonom tadi bilang bakal ambil likuiditas Bank"
+- "Arrrrggghhhh"
+THE SYARAT:
+- "Uang boleh masuk kesini tapi ada syarat nya: Bantu makan tuh Patriot Bond Danantara yang diterbitkan"
+- "Negara dapat bantuan fiskal dari sana, Danantara dapat cheap liquidity"
+- "Great pak 08, you are really Genius"
+KONGLO GETS:
+- "Uang konglo diampuni dan uang itu leluasa dipakai di sistem ekonomi dan keuangan negara kita"
+- "Barter dari 08: Konglo akan diberikan project yang disiapkan oleh negara berikut pendanaanya"
+- "Enak bukan konglo?"
+THE SPREAD:
+- "Danantara? Untung juga donk dari sana. Kasih kupon 2% dan lempar buat pendanaan project misal 8% maka ada spread bunga 6%"
+- "Jadi negara, Danantara, Konglo semua dapat berkah dari hal tersebut"
+THE NEXT BONDS:
+- "Akan ada Patriot Bond selanjutnya jilid berikutnya dan Konglo akan serap lagi tuh Bond nya"
+- "Putaran uangnya akan berjalan sama dengan yang Rp 50 trilyun"
+THE MASSIVE SCALE:
+- "Uang konglo yang diputihkan itu ga kaleng2x loh jumlah nya"
+- "Kalo kata ketua Geng Oslo dulu katanya: Saya sudah mengantongi nama2x yang punya 11 ribu Trilyun"
+- "Gitu dulu yah, tapi action nya OMDO"
+- "Bayangkan ga usah semua masuk lah yah. Sebagian dibelikan BOND dan sebagian di putar di saham"
+- "WTFF lah tuh Bursa kecipratan likuiditas segitu gede nanti"
+THE KATADATA CONFIRMATION:
+- "Badan Pengelola Investasi Daya Anagata Nusantara atau BPI Danantara akan menerbitkan Obligasi Patriot atau Patriot Bond untuk menyerap dana segar puluhan trilyun"
+- "Tujuan utama obligasi ini adalah menarik dana konglomerat nasional yang tersimpan di luar negeri, karena gagal dibawa masuk lewat program pengampunan pajak alias Tax Amnesty yang lalu"
+- "Obligasi ini dipertimbangkan menjadi syarat untuk bisa mengikuti program Tax Amnesty berikutnya"
+- "Tujuannya adalah repatriasi dana-dana yang masih parkir di luar negeri"
+- "Kalo benar hal ini akan dibawa ke beberapa pihak terkait mulai dari DPR, kemenkeu, BI untuk dimuluskan jalannya"
+- "Kalau benar lagi, kita selangkah di depan dari orang kebanyakan"
+Ricky's call: "Patriot Bond adalah sebuah Skema Genius buat saya dan semua akan happy dari perjalanan ini"
+"Next Cycle Indonesia akan bisa bicara banyak di pertumbuhan ekonomi nya karena guyuran likuiditas yang sangat besar"
+"08 adalah arsitek yang buat saya adalah seorang Genius"
+"Patriot Bond sebuah kapitalisme berbalut patriotisme"
+Key data: Patriot Bond confirmed by Katadata. 3 haram money flows = fresh fund. WTFF liquidity flood incoming.""",
+        category="geopolitical",
+        catalyst_types=["patriot_bond_confirmed","3_haram_money","fresh_fund","wtff_liquidity",
+            "konglo_repatriation","tax_amnesty_syarat","danantara_spread","indonesia_growth_cycle"],
+        activation_keywords=["patriot bond confirmation","3 haram money","uang haram masuk","fresh fund",
+            "wtff liquidity flood","konglo repatriation","tax amnesty syarat","danantara spread 6%",
+            "indonesia growth cycle","50 trilyun ludes","konglo beli bond","muter uang konglo",
+            "uang judol kamboja","uang abu2x nominee","uang shadow banking","katadata confirmation",
+            "bpi danantara obligasi","repatriasi dana parkir","tax amnesty berikutnya","dpr kemenkeu bi",
+            "selangkah di depan","skema genius","kapitalisme berbalut patriotisme","08 arsitek genius",
+            "likuiditas gede bursa","11 ribu trilyun","omdo action","bond jilid berikutnya",
+            "putaran uang sama","sebagian bond sebagian saham"],
+        invalidation_keywords=["patriot_bond_denied","tax_amnesty_fails","haram_money_stays_outside",
+            "dpr_blocks_bond"],
+        beneficiaries={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","BUMI.JK","WIFI.JK","TOBA.JK","PGEO.JK","DEWA.JK"],
+            "bonds":["Patriot_Bond","SBN"]},
+        fades={"ihsg":["property","consumer_discretionary"]},
+        regime_alignment={"Q1":1.70,"Q2":1.50,"Q3":1.30,"Q4":1.10},
+        typical_duration_weeks=52,
+        conviction_ceiling=0.85,
+        pump_risk=0.20,
+        confirmation_signals=["katadata_confirms_patriot_bond","tax_amnesty_linked_to_bond","konglo_names_revealed",
+            "repatriation_starts","bond_oversubscribed","project_funding_flows","liquidity_surge_indonesia"],
+    ),
+
+    # ── ARTICLE 40: Belakangan situasi politik — Demo Indonesia & Fund Entry ────
+    NarrativeTemplate(
+        name="Belakangan Situasi Politik — Demo Indonesia, '98 Fear & Fund Entry Setup",
+        description="""Ricky2212 political situation & market impact framework:
+THE SITUATION:
+- "Situasi politik dan keamanan di Indonesia mulai berasa panas and mencekam"
+- "Huru hara, bakar2xan mulai terjadi akibat emosi dari pihak pendemo yang mulai berasa naik dan panas"
+- "10 tahun terakhir rasanya menurut rakyat Indonesia dipertontonkan sesuatu pertunjukkan politik yang cukup memuakkan"
+- "Pelanggaran konstitusi untuk kepentingan kalangan tertentu, dagelan2x kebijakan politik sampai pada kehidupan hedonisme para penerima mandat"
+- "Rakyat Indonesia dikuliti habis oleh kenaikan harga, dikejar pajak sana sini serta apapun yang bentuknya menyusahkan hidup"
+- "K-Shape: Diatas foya2x menikmati pertumbuhan tapi dibawah dibejek2x habis sampai tak bersisa lagi"
+THE TRIGGER:
+- Tunjangan anggota legislatif dinaikkan (istri pak Bahagia)
+- Wakil ketua legislatif: tunjangan rumah tinggal
+- "GORENGAN issue ini tiba2x mencuat cepat sekali di segala pusat informasi"
+- Joget anggota legislatif saat 08 pidato
+- "Kerusakan yang dibawa 10 tahun ini memang parah. Ga ada seama sekali mental pemimpin, yang ada mental rusak"
+THE ESCALATION:
+- Demo 1: di depan kantor legislatif, chaos but controlled
+- Demo 2 (Buruh theme): driver OJOL ijo tertabrak polisi elit mobil → meninggal
+- "Puncak amarah diluapkan oleh semua tanpa kecuali"
+- "Aksi Bakar yang disasar adalah kantor parcok gara2x menabrak"
+- "Markas mereka di kwitang dan di depok terus dikepung masa"
+- "Rumah anggota legislatif si mulut sampah (roni, pelawak ga lucu, kuya ga jelas, nafas rubah)"
+- "Bisa lanjut? kalo ga dibendung tuh bisa saja nanti rumah si pelawak ga lucu, kuya ga jelas sama nafas rubah juga ikut jadi target"
+- Spread to Bandung, Makassar, other major cities
+RICKY'S POLITICAL ANALYSIS:
+- "Sejauh ini skala ini sih termasuk skala protes SEDANG. Asal jangan sampai ditunggangi dan digoreng lebih jauh aja"
+- "Kalo makin disulut takutnya skalanya bisa makin BESAR"
+- "Banyak yang bilang keadaan ini bisa seperti '98, benarkah?"
+- "Saya melihat ada beberapa pihak yang bermain dalam agenda demo ini"
+- 2 scenarios from source X:
+    1. "Nanti dalam kurun waktu 1 tahun ke depan ada yang akan coba menggoyang 08 dan ingin menurunkan legitimasi 08"
+        - "08 bisa ga selesai masa jabatannya"
+    2. "08 juga sudah siap dan dia akan jadikan pemerintahan ini adalah pemerintah versi dia"
+        - "08 ga akan tunduk sama geng oslo"
+        - "Jabatan2x di pemerintahan itu Dia cuma mau terima kasih aja dan dikasih waktu 1 tahun buat rasa terima kasihnya"
+08'S SILENT MOVES:
+- "Pengampunan si Remblong (mantan menteri perdagangan) dan si Sekjen merah"
+    - "Pesan buat geng Oslo"
+- "Melepas tahanan yang dulunya dipenjara karena menghina camat dari oslo"
+    - "Lepas dari bayang2x geng Oslo sekaligus menarik orang2x yang dia percaya"
+- "Wamen yang dulu bekas ketua mania kena OTT KPK. Kaki tangan oslo 24 karat"
+- "Pendiri gojek, men judol, minuman yakult juga berulang kali dipanggil KPK. Kaki tangan oslo 24 karat"
+- Agenda: "pergantian parcok 1 atau bahkan komdak 1, filterisasi politikus pencoreng, pembersihan geng OSLO"
+- "08 adalah ahli strategi terbaik. Dia taro orang kepercayaan dia dari militer buat jaga badan"
+    - "Cek saja Bulog siapa yang pimpin, cek lagi posisi strategis pajak"
+- "08 mau terkesan Smooth, bukan perang secara kasar"
+THE '98 FEAR:
+- "Sejauh ini saya belum melihat keadaannya menjurus ke '98. Masih terlalu dini buat menjustifikasi tersebut"
+- "Dalam keadaan kekosongan pemerintahan eksekutif apabilan presiden mengundurkan diri maka otomatis akan digantikan oleh Wapres"
+- "Kalau benar2x terjadi kekosongan pemerintahan, maka tampuk tertinggi pemerintahan akan dipegang oleh Panglima TNI"
+- "Mau dipimpin sama si iTU tuh? hmmmm, saya sih ga kebayang jadi apa nantinya"
+MARKET IMPACT:
+- "Pasca kejadian demo pertama, bursa kita masih kebal dengan cerita kerusuhan yang ada"
+- "Pas kejadian kedua muncul, bursa kita tidak mampu lagi menahan gempuran sentimen buruk tersebut"
+- "Koq bisa muncul semua hal tersebut pada saat indeks berada di 8000 an dan memang butuh koreksi"
+- "Kebetulan kah semua hal itu?"
+- Fund story: "Uang fund gw diperintahkan masuk ke ekuitas. Jangan sampai beat oleh indeks"
+- "Uang judol bakal banjir masuk surat hutang and bursa saham sini"
+- "Sudah banyak yang petantang petenteng kan kemarin? sudah mulai banyak yang pamer SS kan?"
+    - "Sudah banyak yang tadinya ga di bursa ehhh tiba2x gimana main saham?"
+    - "Sudah banyak dari yang baru masuk aja langsung untung dan berasa ini mudah kan?"
+    - "Sudah ga peduli isi artikel dan yang penting itu cuma cari singkatan kan?"
+    - "Nah itu tanda temperature harus di cooling down sementara waktu"
+- "Puncak semua cerita tersebut membuat indeks langsung terkulai lah itu"
+Ricky's call: "Apakah ini akan berlangsung lama? nunggu apa yang diminta pendemo dipenuhi. Kalo itu sudah terpenuhi sih harusnya sudah bisa segar lagi tuh indeks"
+- "Puluhan fund menunggu karpet merah dibentangkan buat masuk ke pasar saham"
+- "Kalo anda ga nyaman dengan keadaannya maka yang anda butuhkan adalah raising cash"
+- "Kalo anda melihat ini cepat berlalu dan cepat selesai, maka santai saja menghadapinya"
+- "Ga usah panikkan, ga usah gerasah gerusuh, ga usah kaya cacing kepanasan"
+- "Kepala dingin dan jernih akan membuat anda bisa memutuskan dengan baik"
+- "Gunakan sebaik2x nya sebuah penurunan pasar sebagai peluang apabila diberikan kepanikan yang luar biasa"
+- "Tetap waspada terhadap semua kemungkinan. Prepare not predict"
+- "Jangan sampe kegembiraan kemarin bikin lupa diri sehingga over allocation di porto"
+Key data: Political demo = cooling down mechanism for overheated market. Fund entry setup after demo resolution. Not '98 yet.""",
+        category="geopolitical",
+        catalyst_types=["indonesia_demo","political_cooling","98_fear","fund_entry_setup",
+            "08_strategy","oslo_cleanup","market_correction_trigger","temperature_cooling"],
+        activation_keywords=["belakangan situasi politik","demo indonesia","panas mencekam","huru hara bakar",
+            "10 tahun politik memuakkan","k shape indonesia","tunjangan legislatif naik","joget legislatif",
+            "demo ojol meninggal","kantor parcok dibakar","rumah legislatif dihabisin","roni pelawak kuya nafas rubah",
+            "demo bandung makassar","skala protes sedang","98 fear","goyang 08","legitimasi 08",
+            "08 siap pemerintah versi dia","geng oslo","remblong pengampunan","wamen kpk ott",
+            "gojek kpk","judol kpk","yakult kpk","parcok 1 komdak 1","filterisasi politikus",
+            "pembersihan oslo","bulog militer","posisi strategis pajak","wapres ganti presiden",
+            "panglima tni kekosongan","bursa kebal demo","fund masuk ekuitas","uang judol banjir",
+            "petantang petenteng","pamer ss saham","temperature cooling down","indeks terkulai",
+            "raising cash","santai demo","kepala dingin","penurunan pasar peluang","prepare not predict",
+            "over allocation lupa diri"],
+        invalidation_keywords=["demo_escalates_to_98","08_resigns","military_takeover","market_crash_panic"],
+        beneficiaries={"ihsg":["BBCA.JK","BBRI.JK","BMRI.JK","TLKM.JK","UNVR.JK","BUMI.JK","WIFI.JK"],
+            "safe_haven":["IDR_cash","USD_cash"]},
+        fades={"ihsg":["property","high_flyer","demo_sensitive"]},
+        regime_alignment={"Q3":1.30,"Q4":1.10,"Q2":0.90,"Q1":0.70},
+        typical_duration_weeks=4,
+        conviction_ceiling=0.80,
+        pump_risk=0.10,
+        confirmation_signals=["demo_resolved","fund_entry_orders_placed","idr_stabilizes","index_rebounds",
+            "oslo_cleanup_progress","08_position_secured","political_silence_returns"],
+    ),
+
+    # ── ARTICLE 41: Focus on Big Picture ──────────────────────────────────────
+    NarrativeTemplate(
+        name="Focus on Big Picture — Ray Dalio Framework & Piece by Piece Puzzle",
+        description="""Ricky2212 big picture thinking framework:
+RAY DALIO QUOTE:
+- "To see the big Picture, you can't focus on the detail"
+- "Untuk melihat sebuah gambaran besar, anda ga bisa terlalu fokus pada detailnya"
+- "Bahasa istri saya: ga usah terlalu mikro sampai mikro banget atau terlalu perintilin"
+- "Nanti ujung nya karena terlalu fokus perintilan, anda malah bimbang sendiri yang berujung pada Disaster"
+EXAMPLE 1: FOMC MONTHLY OBSESSION:
+- "Masih banyak yang menanyakan kepada saya tentang gimana pak FOMC bulan XXXX, prediksi bapak Fed bakal potong berapa?"
+- "Saya sudah tidak lagi fokus pada rapat FOMC bulan ke bulan dan berapa akan dipotong suku bunga nya"
+- "Gambaran besar nya bukan disana lagi, jadi saya sudah tidak fokus detail bulan ini potong berapa"
+- "Saya fokus berapa puncak nya suku bunga nanti pasca di potong. Buat saya itu lebih penting, karena disitulah dosis yang mungkin tepat dan dibutuhkan buat ekonomi"
+- "Bukan kah itu point nya CUT? seberapa besar suku bunga yang diperlukan supaya ekonomi bisa gerak?"
+- "Jadi buat apa fokus mendetail tiap bulan berapa nih yang dipotong"
+- "Dalam perjalanan nya, semua cerita akan berkembang dengan sendirinya yang masih sejalur dengan gambaran besar"
+EXAMPLE 2: PERFECT EXIT STRATEGY (B-Indicator, Konglo Play):
+- "Saya sampaikan bahwa akan ada permainan besar yang diciptakan oleh Konglomerasi melihat dari akrobat yang dilakukan ADRO"
+- "Makanan empuk ini buat Om B, Om S, Om AP untuk melakukan hal yang sama"
+- "Point2x yang bisa mereka jadikan Narasi nya buat alasan permainannya"
+- "Ga usah pusing ditungguin, ga usah pusing diperintilin, ga usah ditanya kapan, nanti juga semua itu satu per satu akan keluar dengan sendirinya"
+- "Berita akan dicicil pelan2x untuk men support semua pergerakan nya"
+- "Dari mulai masuk MSCI, Produksi emas naik, semua keluar dengan sendirinya dan pada waktunya bukan?"
+- "Fokus saja pada bahwa mereka mau ciptakan Permainan Exit nya dan tidak perlu pusing pada kejadian2x di luar permainan"
+- "Mereka tuh bisa sesuaikan time line nya sama keadaan di luar. Konglomerasi punya link akses global yang kuat, informasi mereka super super jauh sehingga mereka bisa bikin time line nya"
+EXAMPLE 3: BTC PLAY:
+- "Tahun lalu saat Fed Call buat Halt, sebelum itu saya sempat sampaikan thesis bahwa ini aset antah berantah bakal main"
+- "Thesis nya adalah riskier asset bakal jalan karena confidence partisipan buat masuk ke riskier asset"
+- "Thesis awal nya seperti itu sebelum akhirnya thesis nya berkembang terus sampai pada BTC dimasukkan ETF"
+- "BTC di pump sampai maret dan sempat bikin ATH baru"
+- "Dari thesis big picture nya yang saya percaya bahwa Risk on akan terjadi karena Fed mulai easing, di perjalanannya muncul thesis tambahan ini itu"
+- "Pasca itu BTC turun koreksi cukup dalam. Selesai? belum donk"
+- "Thesis awal nya adalah Jack Up before Storm. Asset2x beresiko akan di jack up"
+- "Belakangan tiba2x muncul Narasi Trump menang dan Trump adalah crypto bros friendly"
+- "Ada narasi lain? saya sih yakin nanti ada lagi narasi lanjutannya"
+- "Saya fokus nya adalah big game dari jack up before storm"
+EXAMPLE 4: OIL:
+- "Banyak yg berharap2x perang akan jadi narasi utama pendorong harga oil"
+- "Awalnya sempat menggerakkan harga minyak tapi ternyata malah bikin ambrol saat PoV nya dirubah"
+- "Tapi tetap saya sih percaya permainan besar nya akan membawa oil pada medan permainan"
+- "Apa narasi nya? saya juga tidak tau nanti narasi apa yang dipakai. Bisa saja nanti perang dan rudalnya melenceng ga sengaja kena kilang"
+- "Apapun bisa jadi narasi dan saya ga perlu ubek2x sampe detail apa yang jadi narasi"
+- "Saya fokus saja sama permainan besar nya"
+THE FRAMEWORK:
+- "Buat saya untuk suatu hal yang tidak perlu diperintilin saya tidak akan buang waktu"
+- "Saya akan fokus pada Big Picture nya saja karena semua yang terjadi pada perjalanan ada piece by piece dari sebuah puzzle big picture"
+- "Satu per satu puzzle akan keluar pada waktunya dan dengan sendiri nya"
+- Visual: Cerita A/B/C/D/E/F ======> BIG PICTURE
+Ricky's call: "Focus on Big Picture"
+"Don't focus on the detail"
+Key data: Big picture = destination. Details = noise. Trust the framework, let pieces fall into place.""",
+        category="cycle",
+        catalyst_types=["big_picture","ray_dalio","dont_focus_detail","piece_by_piece","puzzle_framework",
+            "trust_process","narrative_evolution","jack_up_before_storm"],
+        activation_keywords=["focus on big picture","ray dalio","to see big picture","cant focus detail",
+            "jangan terlalu mikro","jangan perintilin","bimbang disaster","fomc monthly obsession",
+            "fokus puncak suku bunga","dosis tepat ekonomi","perfect exit strategy","b indicator exit",
+            "konglo play exit","adro akrobat","om b om s om ap","narasi keluar sendiri",
+            "berita dicicil pelan","time line sesuaikan","btc play big picture","jack up before storm",
+            "trump crypto friendly","oil narasi belum tau","rudal kena kilang","jangan ubek detail",
+            "piece by piece puzzle","puzzle big picture","cerita abcdef big picture","trust framework",
+            "pieces fall into place"],
+        invalidation_keywords=["big_picture_wrong","framework_breaks","details_matter_more",
+            "puzzle_doesnt_fit"],
+        beneficiaries={"ihsg":["BUMI.JK","BRMS.JK","WIFI.JK","DEWA.JK","TOBA.JK","PGEO.JK","RAJA.JK"],
+            "us":["BTC-USD","MSTR","COIN","GLD"]},
+        fades={"ihsg":["short_term_traders","detail_obsessors"]},
+        regime_alignment={"Q3":1.50,"Q4":1.30,"Q2":1.00,"Q1":0.80},
+        typical_duration_weeks=52,
+        conviction_ceiling=0.85,
+        pump_risk=0.15,
+        confirmation_signals=["big_picture_pieces_align","narrative_evolution_confirmed","exit_strategy_progress",
+            "time_line_adjusts_smoothly","global_access_info_flows","jack_up_before_storm_signals"],
+    ),
+
+    # ── ARTICLE 42: Keputusan investasi — Your Money Your Responsibility ───────
+    NarrativeTemplate(
+        name="Keputusan Investasi Terbaik — Your Money Your Responsibility",
+        description="""Ricky2212 self-reliance & learning framework:
+RICKY'S JOURNEY:
+- Started 2003, truly alone: "Belajar yah sendiri, cari informasi yah sendiri, analisa yah sendiri, bikin keputusan yah juga sendiri"
+- "Saya juga ga punya basic investasi yang hebat. Sudah uang nya terbatas terus ga punya basic investasi lagi yah"
+- "Uang terbatas, basic 0, ga ada yg bimbing, teknologi masih jadul, komunitas juga minim banget"
+- "Saham itu stigmanya investasi untuk kalangan terbatas yang punya uang banyak"
+THE FOUNDATION:
+1. SEMANGAT BESAR:
+    - "Saya punya semangat yang luar biasa dan saya percaya Bursa adalah tempat saya bisa kumpulkan kekayaan"
+2. POLA PIKIR + MINDSET + KARAKTER:
+    - "UANG SAYA BOLEH KECIL tapi POLA PIKIR, MINDSET dan KARAKTER SAYA HARUS SAMA SEPERTI BIG FUND"
+    - "Atau yang lebih gila lagi, tidak cuma sama kaya big fund tapi saya bisa selangkah lebih di depan dari big fund"
+    - "Itu saya katakan saat uang saya masih mini banget loh"
+3. BELAJAR TIDAK PERNAH HENTI:
+    - "Saya baca puluhan buku investasi, bahkan ga cuma 1x pengulangan saja. Saya bisa ulang berkali-kali sampai paham"
+    - "Baca and saya praktekan, baca and saya praktekan terus saja begitu"
+    - "Saya bisa baca 3-4 koran per hari. Zaman dulu zamannya masih media cetak"
+    - "Di rumah saya pasang TV kabel, tujuannya cuma 1: Saya mau nonton CNBC"
+    - "Saya rela nunggu rapat FOMC yang biasanya jam 2 malam waktu sini cuma buat tau apa sih isinya"
+    - "Jadi jangan pelit yah buat investasi ilmu"
+4. PERCAYA KEMAMPUAN SENDIRI:
+    - "Buat saya lebih baik saya salah tapi keputusan saya sendiri, daripada benar karena keputusan orang lain"
+    - "Keputusan terbaik datang nya dari saya sendiri"
+    - "Sense anda akan dibentuk dari sana. Sense akan timbul saat anda berani mengambil keputusan"
+    - "Keputusan anda Benar? simpan di memory, satu waktu saat anda ketemu lagi dengan hal tersebut nantinya anda tau harus berbuat apa"
+    - "Keputusan anda salah? ingat nature belajar manusia itu datang saat bikin kesalahan"
+    - "Anda belajar dari kesalahan demi kesalahan yang pernah anda lewati"
+5. PERJALANAN PANJANG:
+    - "Ini akan jadi perjalanan yang panjang dan melelahkan. Saya tau bahwa untuk mencapai semua apa yang saya mau, perjalanannya bukan 1 hari, 1 minggu, 1 bulan, 1 tahun"
+    - "Tidak ada yang instant bro. Yang instant itu cuma Mie Instant aja"
+    - "Ini mau masuk tahun ke 22 sejak saya memulainya"
+6. PANTANG MENYERAH:
+    - "Lakukan semua nya dengan konsisten dan jangan berhenti di tengah jalan"
+    - "Jangan kebanyakan mengeluh ini itu. Pemenang akan selalu menyelesaikan apa yang sudah dimulai nya"
+    - "Gimana kalo saya memilih berhenti saat itu padahal Tuhan menggariskan 1 langkah lagi saja itu adalah titik kemenangan saya terbesar dalam hidup?"
+    - "Saya pernah di posisi itu soalnya"
+THE RELATIONSHIP ADVICE:
+- "Anda ga perlu bayar advisor, anda ga perlu sewa penasihat keuangan, yang anda perlu adalah anda pintar sendiri"
+- "Ga ada salahnya kan jadi pintar? Uang nya kan uang anda sendiri, masa mau menggantungkan nasib uang anda pada orang lain?"
+- "Your Money Your Responsibility"
+- "Buka 1 relasi sama dengan buka 1 pintu rezeki. Semakin banyak relasi, semakin banyak rezeki yang datang nantinya"
+- "Informasi itu mahal bro, so anda harus bisa cari semua informasi itu sendiri dengan banyak membuka relasi"
+- "Saya beruntung bisa berteman dengan 5 orang lainnya di mentorbaik. Bahkan dari mentorbaik juga yang tadinya saya tidak kenal malah jadi teman baru dan bisa berbagi informasi"
+MENTORBAIK PHILOSOPHY:
+- "Mentorbaik ga jualan stockpick, ga jualan mau naik atau turun, ga jualan beli di berapa bagusnya"
+- "Mentorbaik itu diciptakan sebagai wadah untuk belajar dan berbagi pengalaman, wadah menuangkan pikiran, wadah memberikan gambaran"
+- "Keputusannya? balik ke anda sendiri"
+- "Kami ga menggerakkan jempol anda untuk buy or sell, kami menggerakkan alam bawah sadar anda untuk belajar dan menganalisa lanjutan"
+- "Sehingga apa? sehingga anda bisa buat keputusan sendiri"
+- "Karena kami percaya hal diatas, keputusan investasi terbaik adalah keputusan yang anda buat sendiri"
+Ricky's call: "KEPUTUSAN INVESTASI TERBAIK Itu DATANGnya dari DIRI ANDA SENDIRI"
+"Uang anda adalah tanggung jawab anda sendiri, jangan gantungkan nasib uang anda pada orang lain"
+Key data: Self-reliance = ultimate edge. Learning + experience + sense = best investment decision maker.""",
+        category="cycle",
+        catalyst_types=["self_reliance","your_money_your_responsibility","learning_framework",
+            "sense_building","decision_making","mentorbaik_philosophy","long_term_journey"],
+        activation_keywords=["keputusan investasi terbaik","your money your responsibility","self reliance",
+            "pola pikir mindset karakter","uang kecil pola pikir big fund","selangkah di depan big fund",
+            "belajar tidak pernah henti","baca puluhan buku","praktekan terus","3-4 koran per hari",
+            "cnbc tv kabel","fomc jam 2 malam","investasi ilmu","percaya kemampuan sendiri",
+            "sense dibentuk","benar simpan memory","salah belajar","nature belajar manusia",
+            "perjalanan panjang melelahkan","tahun ke 22","pantang menyerah","jangan berhenti tengah jalan",
+            "pemenang menyelesaikan","tuhan menggaris 1 langkah","buka relasi pintu rezeki",
+            "informasi mahal","mentorbaik wadah belajar","ga jualan stockpick","ga jualan naik turun",
+            "gerakkan alam bawah sadar","belajar menganalisa","buat keputusan sendiri",
+            "jangan gantungkan nasib orang lain"],
+        invalidation_keywords=["gives_up","outsources_all_decisions","stops_learning","no_self_belief"],
+        beneficiaries={"ihsg":["ALL"],"us":["ALL"],"safe_haven":["KNOWLEDGE","EXPERIENCE"]},
+        fades={"ihsg":["advice_dependents","stockpick_buyers"]},
+        regime_alignment={"Q1":1.00,"Q2":1.00,"Q3":1.00,"Q4":1.00},
+        typical_duration_weeks=999,
+        conviction_ceiling=1.00,
+        pump_risk=0.00,
+        confirmation_signals=["continuous_learning","self_decision_making","sense_development",
+            "relationship_building","information_gathering","mentorbaik_engagement"],
+    ),
+]
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # MERGE ALL BATCHES INTO MASTER REGISTRY
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -1975,6 +2948,7 @@ _NARRATIVES: List[NarrativeTemplate] = []
 _NARRATIVES.extend(_NARRATIVES_BATCH14)
 _NARRATIVES.extend(_NARRATIVES_BATCH15)
 _NARRATIVES.extend(_NARRATIVES_BATCH16)
+_NARRATIVES.extend(_NARRATIVES_BATCH17)
 
 NARRATIVE_BY_NAME: Dict[str, NarrativeTemplate] = {n.name: n for n in _NARRATIVES}
 
@@ -1991,4 +2965,32 @@ __all__ = [
     "_NARRATIVES_BATCH14",
     "_NARRATIVES_BATCH15",
     "_NARRATIVES_BATCH16",
+    "_NARRATIVES_BATCH17",
+]
+# ═══════════════════════════════════════════════════════════════════════════════
+# MERGE ALL BATCHES INTO MASTER REGISTRY
+# ═══════════════════════════════════════════════════════════════════════════════
+
+_NARRATIVES: List[NarrativeTemplate] = []
+_NARRATIVES.extend(_NARRATIVES_BATCH14)
+_NARRATIVES.extend(_NARRATIVES_BATCH15)
+_NARRATIVES.extend(_NARRATIVES_BATCH16)
+_NARRATIVES.extend(_NARRATIVES_BATCH17)
+
+NARRATIVE_BY_NAME: Dict[str, NarrativeTemplate] = {n.name: n for n in _NARRATIVES}
+
+NARRATIVES_BY_CATEGORY: Dict[str, List[NarrativeTemplate]] = {}
+for _n in _NARRATIVES:
+    NARRATIVES_BY_CATEGORY.setdefault(_n.category, []).append(_n)
+
+# Convenience exports
+__all__ = [
+    "NarrativeTemplate",
+    "_NARRATIVES",
+    "NARRATIVE_BY_NAME",
+    "NARRATIVES_BY_CATEGORY",
+    "_NARRATIVES_BATCH14",
+    "_NARRATIVES_BATCH15",
+    "_NARRATIVES_BATCH16",
+    "_NARRATIVES_BATCH17",
 ]

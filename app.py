@@ -327,16 +327,16 @@ if page=="🏠 Dashboard":
  ar=rr.get("asset_ranges",{})
  crits=[(s,a) for s,v in ar.items() for a in v.get("alerts",[]) if a.get("priority")=="CRITICAL"][:5]
  if crits:
-  st.markdown("---
-### 🚨 Critical Alerts")
+  st.markdown("---")
+  st.markdown(r"### 🚨 Critical Alerts")
   for sym,a in crits:
    st.markdown(f'<div style="background:#EF444411;border-left:3px solid #EF4444;padding:6px 10px;border-radius:4px;margin-bottom:4px">⚠️ <b>[{sym}]</b> {a["action"]} | {a.get("note","")}</div>',unsafe_allow_html=True)
 
  l1=btk.get("level_1",[]); l2=btk.get("level_2",[])
  top=l1[:2]+l2[:2]
  if top:
-  st.markdown("---
-### 🔍 Top Bottleneck Setups")
+  st.markdown("---")
+  st.markdown(r"### 🔍 Top Bottleneck Setups")
   cols=st.columns(min(len(top),4))
   for i,c in enumerate(top[:4]):
    with cols[i]:
@@ -352,8 +352,8 @@ if page=="🏠 Dashboard":
 
  em_sig = btk.get("em_recovery", {})
  if em_sig:
-  st.markdown("---
-### 🌍 EM Recovery Signal")
+  st.markdown("---")
+  st.markdown(r"### 🌍 EM Recovery Signal")
   conf = em_sig.get("confidence", 0)
   ec = "#10B981" if conf > 0.6 else "#F59E0B" if conf > 0.4 else "#6B7280"
   st.markdown(f"""<div style='background:#1F2937;border-radius:8px;padding:12px;border-left:4px solid {ec}'>
@@ -714,8 +714,8 @@ elif page=="🎯 Risk Ranges":
 
  all_a=sorted([(s,a) for s,v in ar.items() for a in v.get("alerts",[])],key=lambda x:{"CRITICAL":0,"HIGH":1,"MEDIUM":2}.get(x[1].get("priority"),3))
  if all_a:
-  st.markdown("---
-### 🔔 Alerts")
+  st.markdown("---")
+  st.markdown(r"### 🔔 Alerts")
   for sym,a in all_a[:20]:
    ic="🔴" if a["priority"]=="CRITICAL" else "🟡" if a["priority"]=="HIGH" else "🔵"
    st.markdown(f'<div style="background:#1F2937;border-left:3px solid {"#EF4444" if a["priority"]=="CRITICAL" else "#F59E0B"};padding:6px 10px;border-radius:4px;margin-bottom:4px">{ic} <b>[{sym}]</b> {a["action"]} {a["duration"]} — {a.get("note","")}</div>',unsafe_allow_html=True)

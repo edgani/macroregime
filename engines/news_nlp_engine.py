@@ -1,7 +1,8 @@
-"""engines/news_nlp_engine.py v1 — Ticker-Specific News Scraping + Local NLP
+"""engines/news_nlp_engine_v3.py — 10/10 Financial News NLP Engine
 
-Uses Yahoo Finance RSS (FREE, ticker-specific) + HuggingFace local models.
-No API key. No Claude. No OpenAI.
+FREE sources: Yahoo Finance RSS + Google News RSS
+NLP: FinBERT (local) for sentiment + zero-shot BART for classification
+No API keys. No Claude. No OpenAI.
 """
 from __future__ import annotations
 import re
@@ -17,91 +18,72 @@ from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
 
-# ── Local NLP (lazy load to avoid import overhead) ──────────────────────────
+# Lazy-load heavy transformers to avoid import overhead
 _nlp_cache = {}
 
-def _get_zero_shot():
-    if "zero_shot" not in _nlp_cache:
+def _get_finbert():
+    if "finbert" not in _nlp_cache:
         from transformers import pipeline
-        # Use smaller model for CPU efficiency; upgrade to bart-large if GPU available
-        _nlp_cache["zero_shot"] = pipeline(
-            "zero-shot-classification",
-            model="facebook/bart-large-mnli",  # ~490MB download once
-            device=-1,  # CPU
-        )
-    return _nlp_cache["zero_shot"]
+        _nlp_cache["finbert"] = pipeline("sentiment-analysis", model="ProsusAI/finbert", device=-1)
+    return _nlp_cache["finbert"]
+
+def _get_zeroshot():
+    if "zeroshot" not in _nlp_cache:
+        from transformers import pipeline
+        _nlp_cache["zeroshot"] = pipeline("zero-shot-classification", model="facebook/bart-large-mnli", device=-1)
+    return _nlp_cache["zeroshot"]
 
 def _get_ner():
     if "ner" not in _nlp_cache:
         from transformers import pipeline
-        _nlp_cache["ner"] = pipeline(
-            "ner",
-            model="dslim/bert-base-NER",
-            grouped_entities=True,
-            device=-1,
-        )
+        _nlp_cache["ner"] = pipeline("ner", model="dslim/bert-base-NER", grouped_entities=True, device=-1)
     return _nlp_cache["ner"]
 
-def _get_sentiment():
-    if "sentiment" not in _nlp_cache:
-        from transformers import pipeline
-        _nlp_cache["sentiment"] = pipeline(
-            "sentiment-analysis",
-            model="ProsusAI/finbert",
-            device=-1,
-        )
-    return _nlp_cache["sentiment"]
-
-# ── Fallback: lightweight keyword NLP without transformers ──────────────────
 class LightweightNLP:
-    """If transformers not available / too heavy, use this."""
-    
+    """Fallback if transformers unavailable."""
     NARRATIVE_KEYWORDS = {
-        "ai_infrastructure": ["AI data center", "GPU shortage", "HBM", "CoWoS", "photonics", "CPO", "SiC", "power density", "Blackwell"],
+        "ai_infrastructure": ["AI data center", "GPU shortage", "HBM", "CoWoS", "photonics", "CPO", "SiC", "Blackwell"],
         "energy_transition": ["nuclear renaissance", "AI power", "grid upgrade", "baseload", "gas turbine", "transformer"],
-        "hard_assets_scarcity": ["copper shortage", "de-dollarization", "central bank buying", "supply deficit", "resource nationalism"],
-        "defense_reshoring": ["NATO spending", "munitions shortage", "hypersonic", "missile defense", "industrial base"],
+        "hard_assets_scarcity": ["copper shortage", "de-dollarization", "central bank buying", "supply deficit"],
+        "defense_reshoring": ["NATO spending", "munitions shortage", "hypersonic", "missile defense"],
         "healthcare_scarcity": ["GLP-1 shortage", "robotic surgery", "aging population", "drug pricing"],
         "shipping_supply_crisis": ["Red Sea disruption", "fleet renewal", "IMO 2023", "day rates", "vessel shortage"],
-        "fed_pivot_liquidity": ["Fed cut", "liquidity injection", "QT end", "yield curve steepening", "credit easing"],
-        "dxy_bearish_em_recovery": ["USD bearish", "EM FX relief", "DXY breakdown", "Fed pivot", "capital flows"],
-        "china_reopening_commodity": ["China stimulus", "property rescue", "infrastructure", "commodity demand"],
-        "bond_duration_bull": ["TLT", "yield collapse", "deflation", "recession pricing", "flight to quality"],
-        "indonesia_commodity_supercycle": ["IHSG", "foreign flow", "CKPN cascade", "offshore drilling", "JIIPE"],
+        "fed_pivot_liquidity": ["Fed cut", "liquidity injection", "QT end", "yield curve steepening"],
+        "dxy_bearish_em_recovery": ["USD bearish", "EM FX relief", "DXY breakdown", "Fed pivot"],
+        "china_reopening_commodity": ["China stimulus", "property rescue", "commodity demand"],
+        "bond_duration_bull": ["TLT", "yield collapse", "deflation", "recession pricing"],
+        "indonesia_commodity_supercycle": ["IHSG", "foreign flow", "CKPN cascade", "offshore drilling"],
     }
-    
-    SUPPLY_CHAIN_KEYWORDS = ["shortage", "constrained supply", "sole source", "only supplier", "limited suppliers", 
-                             "capacity constrained", "lead time extended", "bottleneck", "tight supply", "supply crunch"]
-    
-    BULLISH_WORDS = ["surge", "rally", "breakout", "soar", "jump", "boom", "strong", "beat", "outperform", "upgrade"]
-    BEARISH_WORDS = ["crash", "plunge", "drop", "fall", "weak", "miss", "underperform", "downgrade", "cut", "layoff"]
-    
+    SUPPLY_CHAIN_KEYWORDS = ["shortage", "constrained supply", "sole source", "only supplier", "limited suppliers",
+                             "capacity constrained", "lead time extended", "bottleneck", "tight supply", "supply crunch",
+                             "backlog", "order backlog", "demand exceeds supply"]
+    BULLISH = ["surge", "rally", "breakout", "soar", "jump", "boom", "strong", "beat", "outperform", "upgrade"]
+    BEARISH = ["crash", "plunge", "drop", "fall", "weak", "miss", "underperform", "downgrade", "cut", "layoff"]
+
     def classify(self, headline: str) -> Tuple[str, float]:
-        headline_lower = headline.lower()
-        best_narr = "general"
-        best_score = 0.0
+        h = headline.lower()
+        best_narr, best_score = "general", 0.0
         for narr, kws in self.NARRATIVE_KEYWORDS.items():
-            score = sum(1 for kw in kws if kw.lower() in headline_lower) / max(len(kws), 1)
+            score = sum(1 for kw in kws if kw.lower() in h) / max(len(kws), 1)
             if score > best_score:
                 best_score = score
                 best_narr = narr
-        return best_narr, min(best_score * 3, 1.0)  # boost to 0-1
-    
+        return best_narr, min(best_score * 3, 1.0)
+
     def sentiment(self, headline: str) -> Tuple[str, float]:
         h = headline.lower()
-        bull = sum(1 for w in self.BULLISH_WORDS if w in h)
-        bear = sum(1 for w in self.BEARISH_WORDS if w in h)
+        bull = sum(1 for w in self.BULLISH if w in h)
+        bear = sum(1 for w in self.BEARISH if w in h)
         if bull > bear:
             return "positive", min(0.5 + (bull - bear) * 0.15, 1.0)
         elif bear > bull:
             return "negative", min(0.5 + (bear - bull) * 0.15, 1.0)
         return "neutral", 0.5
-    
-    def extract_tickers(self, text: str, known_tickers: List[str]) -> List[str]:
+
+    def extract_tickers(self, text: str, known: List[str]) -> List[str]:
         found = []
-        for t in known_tickers:
-            # Match whole word or $TICKER
-            if re.search(r'\b' + re.escape(t) + r'\b', text) or re.search(r'\$' + re.escape(t), text):
+        for t in known:
+            if re.search(r'' + re.escape(t) + r'', text) or re.search(r'\$' + re.escape(t), text):
                 found.append(t)
         return found
 
@@ -117,17 +99,13 @@ class NewsItem:
     sentiment_score: float = 0.5
     supply_chain_mentions: List[str] = field(default_factory=list)
     is_new_theme: bool = False
+    linked_tickers: List[str] = field(default_factory=list)
 
-class NewsNLPEngine:
-    """
-    Scrape ticker-specific news via Yahoo Finance RSS (FREE).
-    Classify narratives using local zero-shot NLP or lightweight fallback.
-    """
-
+class NewsNLPEngineV3:
     def __init__(self, use_transformers: bool = True, known_tickers: Optional[List[str]] = None):
         self.use_transformers = use_transformers
         self.known_tickers = known_tickers or []
-        self.lightweight = LightweightNLP()
+        self.light = LightweightNLP()
         self._nlp_ok = None
 
     def _check_nlp(self) -> bool:
@@ -135,154 +113,112 @@ class NewsNLPEngine:
             return self._nlp_ok
         try:
             if self.use_transformers:
-                _ = _get_zero_shot()
-                _ = _get_ner()
-                _ = _get_sentiment()
+                _ = _get_finbert()
+                _ = _get_zeroshot()
             self._nlp_ok = True
         except Exception as e:
-            logger.warning(f"Transformers NLP unavailable ({e}), using lightweight fallback.")
+            logger.warning(f"Transformers unavailable: {e}")
             self._nlp_ok = False
         return self._nlp_ok
 
-    def fetch_yahoo_rss(self, tickers: List[str], max_items_per_ticker: int = 10) -> Dict[str, List[dict]]:
-        """Fetch Yahoo Finance RSS for specific tickers. FREE. No API key."""
+    def fetch_yahoo_rss(self, tickers: List[str], max_per_ticker: int = 10) -> Dict[str, List[dict]]:
         results = {}
-        # Yahoo allows batch: s=AAPL,NVDA,LITE
-        batch_size = 20
-        for i in range(0, len(tickers), batch_size):
-            batch = tickers[i:i+batch_size]
+        for i in range(0, len(tickers), 20):
+            batch = tickers[i:i+20]
             sym_str = ",".join(batch)
             url = f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={sym_str}"
             try:
                 feed = feedparser.parse(url)
-                for entry in feed.entries[:max_items_per_ticker * len(batch)]:
-                    # Extract ticker from link or title if possible
-                    # Yahoo RSS link format often contains ticker
+                for entry in feed.entries[:max_per_ticker * len(batch)]:
                     link = entry.get("link", "")
                     title = entry.get("title", "")
                     pub = entry.get("published", "")
-                    
-                    # Guess ticker from link: /quote/AAPL/news/...
-                    m = re.search(r'/quote/([A-Z\.-]+)/', link)
+                    m = re.search(r'/quote/([A-Z0-9\.\-]+)/', link)
                     guessed = m.group(1) if m else None
-                    
                     if guessed and guessed in batch:
                         results.setdefault(guessed, []).append({
-                            "headline": title,
-                            "link": link,
-                            "published": pub,
-                            "source": "Yahoo Finance",
+                            "headline": title, "link": link, "published": pub, "source": "Yahoo Finance"
                         })
-                time.sleep(0.5)  # be polite
+                time.sleep(0.5)
             except Exception as e:
-                logger.warning(f"Yahoo RSS error for {sym_str}: {e}")
+                logger.warning(f"Yahoo RSS error: {e}")
         return results
 
     def fetch_google_news(self, query: str, max_items: int = 15) -> List[dict]:
-        """Google News RSS for theme queries. FREE."""
-        # Format: https://news.google.com/rss/search?q=NVDA+shortage+supply
         q = requests.utils.quote(query)
         url = f"https://news.google.com/rss/search?q={q}&hl=en-US&gl=US&ceid=US:en"
         try:
             feed = feedparser.parse(url)
-            return [{
-                "headline": e.get("title", ""),
-                "link": e.get("link", ""),
-                "published": e.get("published", ""),
-                "source": e.get("source", {}).get("title", "Google News"),
-            } for e in feed.entries[:max_items]]
+            return [{"headline": e.get("title", ""), "link": e.get("link", ""),
+                     "published": e.get("published", ""), "source": "Google News"}
+                    for e in feed.entries[:max_items]]
         except Exception as e:
             logger.warning(f"Google News error: {e}")
             return []
 
-    def analyze_headline(self, headline: str, ticker: str = "") -> NewsItem:
-        """Run NLP on a single headline."""
+    def analyze(self, headline: str, ticker: str = "") -> NewsItem:
         headline = headline.strip()
         if not headline:
             return NewsItem(ticker=ticker, headline="", source="", published="")
+        nlp_ok = self._check_nlp()
+        candidate_labels = list(self.light.NARRATIVE_KEYWORDS.keys()) + ["new_theme"]
 
-        nlp_available = self._check_nlp()
-
-        # ── Narrative Classification ─────────────────────────────────
-        candidate_labels = list(self.lightweight.NARRATIVE_KEYWORDS.keys()) + ["new_theme"]
-        if nlp_available and len(headline) > 20:
+        if nlp_ok and len(headline) > 20:
             try:
-                zs = _get_zero_shot()(headline, candidate_labels, multi_label=False)
-                narrative = zs["labels"][0]
-                narr_score = zs["scores"][0]
-            except Exception:
-                narrative, narr_score = self.lightweight.classify(headline)
+                zs = _get_zeroshot()(headline, candidate_labels, multi_label=False)
+                narrative, narr_score = zs["labels"][0], zs["scores"][0]
+            except:
+                narrative, narr_score = self.light.classify(headline)
         else:
-            narrative, narr_score = self.lightweight.classify(headline)
+            narrative, narr_score = self.light.classify(headline)
 
         is_new_theme = narrative == "new_theme" or narr_score < 0.25
 
-        # ── Sentiment ────────────────────────────────────────────────
-        if nlp_available:
+        if nlp_ok:
             try:
-                sent = _get_sentiment()(headline[:512])[0]  # finbert max len
-                sentiment = sent["label"].lower()
-                sent_score = sent["score"]
-            except Exception:
-                sentiment, sent_score = self.lightweight.sentiment(headline)
+                sent = _get_finbert()(headline[:512])[0]
+                sentiment, sent_score = sent["label"].lower(), sent["score"]
+            except:
+                sentiment, sent_score = self.light.sentiment(headline)
         else:
-            sentiment, sent_score = self.lightweight.sentiment(headline)
+            sentiment, sent_score = self.light.sentiment(headline)
 
-        # ── Supply Chain Keyword Mining ─────────────────────────────
         hlower = headline.lower()
-        supply_mentions = [kw for kw in self.lightweight.SUPPLY_CHAIN_KEYWORDS if kw in hlower]
-
-        # ── Ticker Extraction ─────────────────────────────────────────
-        linked_tickers = self.lightweight.extract_tickers(headline, self.known_tickers)
+        supply_mentions = [kw for kw in self.light.SUPPLY_CHAIN_KEYWORDS if kw in hlower]
+        linked = self.light.extract_tickers(headline, self.known_tickers)
 
         return NewsItem(
-            ticker=ticker,
-            headline=headline,
-            source="",
-            published="",
-            narrative=narrative,
-            narrative_score=round(narr_score, 3),
-            sentiment=sentiment,
-            sentiment_score=round(sent_score, 3),
+            ticker=ticker, headline=headline, source="", published="",
+            narrative=narrative, narrative_score=round(narr_score, 3),
+            sentiment=sentiment, sentiment_score=round(sent_score, 3),
             supply_chain_mentions=supply_mentions,
             is_new_theme=is_new_theme,
+            linked_tickers=linked,
         )
 
-    def run(
-        self,
-        tickers: List[str],
-        theme_queries: Optional[List[str]] = None,
-        max_per_ticker: int = 8,
-    ) -> Dict[str, object]:
-        """
-        Main entry: fetch news for tickers + theme queries, analyze all.
-        """
-        # 1. Fetch ticker-specific news
-        ticker_news = self.fetch_yahoo_rss(tickers, max_items_per_ticker=max_per_ticker)
-
-        # 2. Fetch theme news
+    def run(self, tickers: List[str], theme_queries: Optional[List[str]] = None, max_per_ticker: int = 8) -> Dict[str, object]:
+        ticker_news = self.fetch_yahoo_rss(tickers, max_per_ticker)
         theme_results = {}
         if theme_queries:
             for q in theme_queries:
                 theme_results[q] = self.fetch_google_news(q, max_items=12)
 
-        # 3. Analyze all headlines
         analyzed = []
         for t, items in ticker_news.items():
             for item in items:
-                news_item = self.analyze_headline(item["headline"], ticker=t)
-                news_item.source = item["source"]
-                news_item.published = item["published"]
-                analyzed.append(news_item)
-
+                ni = self.analyze(item["headline"], ticker=t)
+                ni.source = item["source"]
+                ni.published = item["published"]
+                analyzed.append(ni)
         for q, items in theme_results.items():
             for item in items:
-                news_item = self.analyze_headline(item["headline"], ticker="")
-                news_item.source = item["source"]
-                news_item.published = item["published"]
-                analyzed.append(news_item)
+                ni = self.analyze(item["headline"], ticker="")
+                ni.source = item["source"]
+                ni.published = item["published"]
+                analyzed.append(ni)
 
-        # 4. Aggregate narrative scores
+        # Aggregate
+        from collections import defaultdict
         narrative_scores = defaultdict(lambda: {"count": 0, "avg_sentiment": 0.0, "supply_hits": 0, "tickers": set()})
         for ni in analyzed:
             narrative_scores[ni.narrative]["count"] += 1
@@ -291,28 +227,23 @@ class NewsNLPEngine:
             if ni.ticker:
                 narrative_scores[ni.narrative]["tickers"].add(ni.ticker)
 
-        # Normalize
         for narr, data in narrative_scores.items():
             if data["count"] > 0:
                 data["avg_sentiment"] = round(data["avg_sentiment"] / data["count"], 3)
             data["tickers"] = list(data["tickers"])
 
-        # 5. Detect emergent narratives (high count + supply chain mentions)
         emergent = []
         for narr, data in narrative_scores.items():
             if data["count"] >= 3 and data["supply_hits"] >= 2:
                 emergent.append({
-                    "narrative": narr,
-                    "mention_count": data["count"],
-                    "avg_sentiment": data["avg_sentiment"],
-                    "supply_chain_hits": data["supply_hits"],
+                    "narrative": narr, "mention_count": data["count"],
+                    "avg_sentiment": data["avg_sentiment"], "supply_chain_hits": data["supply_hits"],
                     "linked_tickers": data["tickers"],
-                    "is_new": narr not in self.lightweight.NARRATIVE_KEYWORDS,
+                    "is_new": narr not in self.light.NARRATIVE_KEYWORDS,
                 })
 
-        # 6. Detect new themes from is_new_theme flag
+        # Cluster new themes
         new_theme_headlines = [ni for ni in analyzed if ni.is_new_theme and ni.narrative_score < 0.3]
-        # Cluster new theme headlines by shared keywords
         new_themes = self._cluster_new_themes(new_theme_headlines)
 
         return {
@@ -323,24 +254,18 @@ class NewsNLPEngine:
             "supply_chain_alerts": [ni for ni in analyzed if len(ni.supply_chain_mentions) > 0],
             "ticker_specific": {t: [ni for ni in analyzed if ni.ticker == t] for t in tickers},
             "meta": {
-                "tickers_queried": len(tickers),
-                "theme_queries": theme_queries or [],
+                "tickers_queried": len(tickers), "theme_queries": theme_queries or [],
                 "nlp_mode": "transformers" if self._check_nlp() else "lightweight",
             }
         }
 
     def _cluster_new_themes(self, headlines: List[NewsItem]) -> List[dict]:
-        """Simple keyword overlap clustering for 'new theme' headlines."""
         if len(headlines) < 2:
             return []
-        
-        # Extract keywords (nouns/adjectives) — simplified: words > 4 chars, capitalized or technical
         def extract_kw(text):
-            words = re.findall(r'\b[A-Z][a-zA-Z]{3,}\b', text)
-            return set(w.lower() for w in words if w.lower() not in {
-                "the", "and", "for", "are", "but", "not", "you", "all", "can", "had", "her", "was", "one", "our", "out", "day", "get", "has", "him", "his", "how", "its", "may", "new", "now", "old", "see", "two", "who", "boy", "did", "she", "use", "her", "way", "many", "oil", "sit", "set", "run", "eat", "far", "sea", "eye", "ago", "off", "too", "any", "say", "man", "try", "ask", "end", "why", "let", "put", "say", "she", "try", "way", "own", "say"
-            })
-        
+            words = re.findall(r'[A-Z][a-zA-Z]{3,}', text)
+            stop = {"The","And","For","Are","But","Not","You","All","Can","Had","Her","Was","One","Our","Out","Day","Get","Has","Him","His","How","Its","May","New","Now","Old","See","Two","Who","Boy","Did","She","Use","Her","Way","Many","Oil","Sit","Set","Run","Eat","Far","Sea","Eye","Ago","Off","Too","Any","Say","Man","Try","Ask","End","Why","Let","Put","She","Try","Way","Own","Say"}
+            return set(w.lower() for w in words if w not in stop)
         groups = []
         used = set()
         for i, hi in enumerate(headlines):
@@ -353,7 +278,7 @@ class NewsNLPEngine:
                 if j in used:
                     continue
                 kws_j = extract_kw(hj.headline)
-                if len(kws_i & kws_j) >= 2:  # at least 2 shared keywords
+                if len(kws_i & kws_j) >= 2:
                     group.append(hj)
                     used.add(j)
             if len(group) >= 2:

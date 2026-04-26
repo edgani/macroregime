@@ -1,7 +1,9 @@
-"""orchestrator.py — Snapshot builder. Light & staged loading."""
+"""orchestrator.py — Snapshot builder. Light & staged loading.
+INCLUDES: 10/10 Autonomy Stack (integrated inside build_snapshot)
+"""
 from __future__ import annotations
-import time, logging, math
-from typing import Optional, Callable, Dict
+import time, logging, math, os, json
+from typing import Optional, Callable, Dict, List
 import numpy as np
 import pandas as pd
 
@@ -19,10 +21,27 @@ from engines.historical_analog_engine import HistoricalAnalogEngine
 from config.settings import (
     MACRO_PROXIES, US_SECTORS, US_FACTORS, FOREX_PAIRS,
     COMMODITIES, CRYPTO, BONDS, IHSG_UNIVERSE, COUNTRY_UNIVERSE,
-    TICKER_SECTOR,
+    TICKER_SECTOR, MARKET_CLASSIFICATION, BOTTLENECK_PROFILES,
 )
 
 logger = logging.getLogger(__name__)
+
+# ── Autonomy engine imports (soft — graceful fallback if files missing) ──
+_AUTONOMY_AVAILABLE = False
+try:
+    from engines.price_cluster_engine_v3 import PriceClusterEngineV3
+    from engines.news_nlp_engine_v3 import NewsNLPEngineV3
+    from engines.edgar_scraper_engine import EDGARScraperEngine
+    from engines.supply_chain_graph_engine import SupplyChainGraphEngine
+    from engines.leading_indicator_engine import LeadingIndicatorEngine
+    from engines.regime_predictor_engine import RegimePredictorEngine
+    from engines.auto_discovery_engine_v3 import AutoDiscoveryEngineV3
+    from engines.feedback_loop_engine_v3 import FeedbackLoopEngineV3
+    _AUTONOMY_AVAILABLE = True
+    logger.info("Autonomy stack v3 loaded successfully.")
+except Exception as e:
+    logger.warning(f"Autonomy stack not available (missing engine files?): {e}")
+    _AUTONOMY_AVAILABLE = False
 
 def _prog(cb, msg, frac):
     logger.info(f"[{frac:.0%}] {msg}")
@@ -55,7 +74,6 @@ def build_snapshot(
         prices.update(load_prices(list(US_SECTORS.keys()) + list(US_FACTORS.keys()), days=756))
         _prog(progress_cb, "Loading notable single stocks...", 0.21)
         notable = [t for t in TICKER_SECTOR if t not in prices and t not in ("generic",)]
-        # FIXED: load ALL notable stocks (not just 60) so bottleneck tickers are always available
         prices.update(load_prices(notable, days=365))
 
     # 4. Forex
@@ -210,25 +228,61 @@ def build_snapshot(
         analogs = {"top_analogs":[], "composite_note":""}
     snap["analogs"] = analogs
 
-    # 15. Adaptive Discovery (Claude API — non-blocking, cached 4h)
-    _prog(progress_cb, "Running adaptive discovery (Claude API)...", 0.96)
-    try:
-        discovery = AdaptiveDiscoveryEngine().run(
-            prices=prices,
-            structural_quad=gip.structural_quad,
-            monthly_quad=gip.monthly_quad,
-            gip_features=gip.features,
-        )
-    except Exception as e:
-        logger.warning(f"Discovery engine failed: {e}")
-        discovery = {"discoveries": [], "status": "error", "message": str(e)}
-    snap["discovery"] = discovery
+    # ── 15. TRUE AUTONOMY v3 (replaces Claude API step) ──────────────
+    _prog(progress_cb, "Running 10/10 autonomous discovery...", 0.96)
+    if _AUTONOMY_AVAILABLE:
+        try:
+            auto = AutoDiscoveryEngineV3(
+                sector_map=TICKER_SECTOR,
+                market_map=MARKET_CLASSIFICATION,
+                known_tickers=list(TICKER_SECTOR.keys()),
+                use_transformers=True,
+            )
+            discoveries = auto.run(
+                prices=prices,
+                structural_quad=gip.structural_quad,
+                monthly_quad=gip.monthly_quad,
+                gip_features=gip.features,
+                theme_queries=None,
+                run_edgar=True,
+            )
+            snap["auto_discoveries"] = discoveries
+
+            # Feedback loop
+            fb = FeedbackLoopEngineV3()
+            fb.track(discoveries.get("candidates", []), regime=gip.structural_quad)
+            fb_eval = fb.evaluate(prices, benchmark="SPY")
+            snap["feedback_eval"] = fb_eval
+
+            # Record transition for predictor learning
+            predictor = RegimePredictorEngine()
+            predictor.record_transition(gip.structural_quad, gip.monthly_quad, gip.features)
+
+        except Exception as e:
+            logger.warning(f"Autonomy step error: {e}")
+            snap["auto_discoveries"] = {"candidates": [], "meta": {"error": str(e)}}
+            snap["feedback_eval"] = {"evaluated": 0, "promoted": 0, "demoted": 0}
+    else:
+        # Fallback: old Claude API discovery
+        _prog(progress_cb, "Autonomy stack unavailable — falling back to Claude API...", 0.965)
+        try:
+            discovery = AdaptiveDiscoveryEngine().run(
+                prices=prices,
+                structural_quad=gip.structural_quad,
+                monthly_quad=gip.monthly_quad,
+                gip_features=gip.features,
+            )
+        except Exception as e:
+            logger.warning(f"Discovery engine failed: {e}")
+            discovery = {"discoveries": [], "status": "error", "message": str(e)}
+        snap["discovery"] = discovery
+        snap["auto_discoveries"] = {"candidates": [], "meta": {"fallback": "claude_api", "autonomy_unavailable": True}}
 
     # Store prices subset for UI charts (close prices only — light)
     snap["prices"] = {k: v for k, v in prices.items() if isinstance(v, pd.Series) and len(v) > 10}
     snap["build_time_s"] = round(time.time() - t0, 1)
     snap["ok"] = True
-    _prog(progress_cb, "Saving snapshot...", 0.96)
+    _prog(progress_cb, "Saving snapshot...", 0.98)
     save_snapshot(snap)
     _prog(progress_cb, "Done!", 1.0)
     logger.info(f"Built in {snap['build_time_s']}s. Prices: {snap['prices_loaded']}, RR: {snap['price_frames_count']}")
@@ -248,7 +302,6 @@ def _build_stress(prices, gip) -> dict:
         if len(s) < 22: return 0.0
         return float(s.iloc[-1]/s.iloc[-22]-1)
 
-    # FIXED: explicit None/finite check instead of `or` on float
     vix_raw = last("^VIX")
     vix = vix_raw if (vix_raw is not None and math.isfinite(vix_raw)) else 18.0
 
@@ -266,43 +319,3 @@ def get_or_build(force=False, max_age_h=4.0, **kw) -> dict:
         snap = load_snapshot(max_age_hours=max_age_h)
         if snap and snap.get("ok"): return snap
     return build_snapshot(**kw)
-
-# 15. Auto Discovery (TRUE autonomy — no Claude API)
-_prog(progress_cb, "Running autonomous discovery (price + news + supply chain)...", 0.94)
-try:
-    from engines.auto_discovery_engine import AutoDiscoveryEngine
-    from engines.feedback_loop_engine import FeedbackLoopEngine
-    
-    # Load known tickers from settings
-    from config.settings import TICKER_SECTOR, MARKET_CLASSIFICATION
-    
-    auto = AutoDiscoveryEngine(
-        sector_map=TICKER_SECTOR,
-        market_map=MARKET_CLASSIFICATION,
-        known_tickers=list(TICKER_SECTOR.keys()),
-        use_transformers=True,  # Set False if CPU too slow / no disk space
-    )
-    discoveries = auto.run(
-        prices=prices,
-        structural_quad=gip.structural_quad,
-        monthly_quad=gip.monthly_quad,
-        gip_features=gip.features,
-    )
-    snap["auto_discoveries"] = discoveries
-    
-    # Feedback loop: track + evaluate
-    fb = FeedbackLoopEngine()
-    fb.track(discoveries.get("candidates", []), regime=gip.structural_quad)
-    # Evaluate previous discoveries (if any are 6M old)
-    fb_eval = fb.evaluate(prices, benchmark="SPY")
-    snap["feedback_eval"] = fb_eval
-    
-    # Apply validated discoveries to permanent lists (mutates in-memory)
-    # Note: this affects current snapshot's bottleneck/narrative scoring
-    from engines.bottleneck_engine import KNOWN_BOTTLENECKS
-    from engines.narrative_engine import NARRATIVES
-    # (Need to adjust imports based on actual module structure)
-    
-except Exception as e:
-    logger.warning(f"Auto discovery error: {e}")
-    snap["auto_discoveries"] = {"candidates": [], "meta": {"error": str(e)}}

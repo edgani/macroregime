@@ -788,11 +788,12 @@ elif page=="🏥 Health":
 
  if not health: st.warning("No health data. Refresh."); st.stop()
 
- vix_bucket = health.get("vix_bucket","unknown")
- vix_color = {"investable":"#10B981","chop":"#F59E0B","defensive":"#EF4444","unknown":"#6B7280"}.get(vix_bucket,"#6B7280")
+ vix_bucket = health.get("vix_bucket") or "unknown"
+ vix_bucket = str(vix_bucket).lower()
+ vix_color = {"investable":"#10B981","chop":"#F59E0B","defensive":"#EF4444"}.get(vix_bucket,"#6B7280")
  st.markdown(f"""<div style='background:{vix_color}22;border-left:4px solid {vix_color};padding:12px;border-radius:8px;margin-bottom:12px'>
 <div style='font-size:16px;font-weight:800;color:{vix_color}'>VIX BUCKET: {vix_bucket.upper()}</div>
-<div style='font-size:12px;color:#E8ECF0;margin-top:4px'>{health.get('vix_rationale','')}</div>
+<div style='font-size:12px;color:#E8ECF0;margin-top:4px'>{health.get('vix_rationale','No rationale available')}</div>
 </div>""",unsafe_allow_html=True)
 
  crash_meter = health.get("crash_meter",{})

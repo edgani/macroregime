@@ -67,10 +67,10 @@ class LightweightNLP:
 
     def extract_tickers(self, text: str, known: List[str]) -> List[str]:
         found = []
+        text_upper = text.upper()
         for t in known:
-            if re.search(r'\b' + re.escape(t) + r'\b', text) or re.search(r'\$' + re.escape(t), text):
+            if f"${t}" in text_upper or re.search(r'' + re.escape(t) + r'', text):
                 found.append(t)
-        return found
 
 @dataclass
 class NewsItem:
@@ -233,10 +233,14 @@ class NewsNLPEngineV3:
                 all_kws = set()
                 for g in group:
                     all_kws |= extract_kw(g.headline)
+                # Generate readable theme description from keywords
+                top_kws = sorted(list(all_kws), key=lambda w: sum(1 for g in group if w in g.headline.lower()), reverse=True)[:5]
+                theme_desc = " / ".join(top_kws) if top_kws else "emerging_theme"
                 groups.append({
                     "headline_count": len(group),
                     "shared_keywords": list(all_kws)[:10],
                     "sample_headlines": [g.headline for g in group[:3]],
-                    "suggested_theme_name": "_".join(sorted(list(all_kws))[:3]),
+                    "suggested_theme_name": f"Theme: {theme_desc}",
+                    "keyword_strength": len(all_kws),
                 })
         return groups

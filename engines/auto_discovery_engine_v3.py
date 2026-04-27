@@ -67,13 +67,40 @@ class AutoDiscoveryEngineV3:
         news_queries = theme_queries or self._auto_queries(structural_quad, monthly_quad)
         news_results = self.news_engine.run(query_tickers, theme_queries=news_queries)
 
-        # L3a: EDGAR (optional, slower)
+        # L3a: EDGAR (optional, slower) + yfinance fallback
         edgar_results = {"candidates": [], "strong_candidates": []}
+        yfinance_results = []
         if run_edgar and len(query_tickers) <= 20:
             try:
                 edgar_results = self.edgar_engine.run(query_tickers)
             except Exception as e:
                 logger.warning(f"EDGAR error: {e}")
+
+        # Fallback: yfinance business summary mining (fast, no SEC needed)
+        if not edgar_results.get("strong_candidates"):
+            try:
+                import yfinance as yf
+                for t in query_tickers[:15]:
+                    try:
+                        info = yf.Ticker(t).info or {}
+                        summary = (info.get("longBusinessSummary", "") or "").lower()
+                        if any(kw in summary for kw in ["sole source", "only supplier", "dominant", "market leader", "limited suppliers", "capacity constrained"]):
+                            yfinance_results.append({
+                                "ticker": t,
+                                "constraint_score": 0.6,
+                                "constraint_hits": ["yfinance_summary"],
+                                "thesis": f"{t}: Business summary indicates supply constraint language.",
+                                "is_bottleneck_candidate": True,
+                            })
+                    except:
+                        pass
+            except Exception as e:
+                logger.warning(f"yfinance fallback error: {e}")
+
+        # Merge EDGAR + yfinance results
+        merged_candidates = edgar_results.get("candidates", []) + yfinance_results
+        merged_strong = edgar_results.get("strong_candidates", []) + [r for r in yfinance_results if r.get("is_bottleneck_candidate")]
+        edgar_results = {"candidates": merged_candidates, "strong_candidates": merged_strong}
 
         # L3b: Supply Chain Graph
         graph_results = self.graph_engine.build_graph(edgar_results, news_results, clusters, prices)

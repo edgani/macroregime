@@ -609,7 +609,7 @@ elif page=="🌍 Global Quad":
 elif page=="📊 US Stocks":
  st.markdown("# 📊 US Stocks — Sectors · Factors · Notable Tickers")
  st.caption("Regime playbook + TRR/LRR + bottleneck badge. Best EV+ first.")
- from config.settings import US_SECTORS, US_FACTORS, TICKER_SECTOR
+ from config.settings import US_SECTORS, US_FACTORS, TICKER_SECTOR, COMMODITIES, CRYPTO, FOREX_PAIRS, IHSG_UNIVERSE, BONDS, MACRO_PROXIES
  _render_universe("US Sectors", US_SECTORS, prices, btk)
  _render_universe("US Factors", US_FACTORS, prices, btk)
 

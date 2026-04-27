@@ -614,7 +614,13 @@ elif page=="📊 US Stocks":
  _render_universe("US Factors", US_FACTORS, prices, btk)
 
  st.markdown("### Notable Single Stocks (Bottleneck Plays)")
- notable={k:v for k,v in TICKER_SECTOR.items() if k not in ("generic",) and k in prices}
+ # Filter: only true single stocks — exclude ETFs, commodities, crypto, forex, bonds, IHSG
+ excluded = set(list(US_SECTORS.keys()) + list(US_FACTORS.keys()) + 
+               list(COMMODITIES.keys()) + list(CRYPTO.keys()) + 
+               list(FOREX_PAIRS.keys()) + list(IHSG_UNIVERSE.keys()) +
+               list(BONDS.keys()) + list(MACRO_PROXIES.keys()) +
+               ["DX-Y.NYB", "^VIX", "EIDO", "^JKSE"])
+ notable={k:v for k,v in TICKER_SECTOR.items() if k not in excluded and k in prices and v != "generic"}
  rows=[]
  for sym, sector in notable.items():
   s=prices.get(sym)
@@ -627,6 +633,8 @@ elif page=="📊 US Stocks":
  if rows:
   df=pd.DataFrame(rows)
   st.markdown(df.to_html(escape=False,index=False),unsafe_allow_html=True)
+ else:
+  st.info("No notable single stocks loaded. Add tickers to TICKER_SECTOR in config/settings.py")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # FOREX

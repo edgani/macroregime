@@ -331,10 +331,9 @@ KNOWN_BOTTLENECKS: Dict[str, dict] = {
     # ── PRECIOUS METALS / SAFE HAVEN ─────────────────────────────────────────
     "GLD": {
         "type": "structural", "sub": "precious_metals", "constraint": 0.80, "phase": "level_2",
-        "thesis": "Q3 = BEST gold regime (stagflation + USD bearish = perfect gold setup). "
+        "thesis": "Best gold regime = Q3/Q4 (stagflation + USD bearish). "
                   "Central bank buying at record pace (de-dollarization structural bid). "
-                  "McCullough Apr 2026: USD TREND confirmed bearish. "
-                  "Gold is the Q3 hedge AND the structural macro trade.",
+                  "McCullough: USD TREND confirmed bearish. Gold = Q3 hedge AND structural macro trade.",
         "catalyst": "Fed pivot signal, USD breakdown continuation, EM central bank buying",
         "tp_type": "structural",
         "risk": "USD reversal (dollar crisis resolution); real yield spike if growth re-accelerates",

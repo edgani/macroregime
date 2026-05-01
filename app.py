@@ -180,7 +180,21 @@ with st.sidebar:
         inc_cryp = st.checkbox("Crypto", True)
         inc_ihsg = st.checkbox("IHSG", True)
     st.divider()
-    st.caption("Hedgeye: Q3 Structural · Q2 Monthly · Q3 Global")
+    # Dynamic quad caption — reads from snap, never hardcoded
+    _snap_peek = st.session_state.get("snap") or {}
+    _gip_peek  = _snap_peek.get("gip") if isinstance(_snap_peek, dict) else None
+    _sq_peek   = getattr(_gip_peek, "structural_quad", "—") if _gip_peek else "—"
+    _mq_peek   = getattr(_gip_peek, "monthly_quad",   "—") if _gip_peek else "—"
+    _gq_peek   = (_snap_peek.get("global") or {}).get("global_quad","—") if isinstance(_snap_peek, dict) else "—"
+    _qc_peek   = {"Q1":"#00D4AA","Q2":"#F59E0B","Q3":"#EF4444","Q4":"#6366F1"}
+    st.markdown(
+        f'<div style="font-size:11px;color:#6B7280;line-height:1.8;">'
+        f'S: <span style="color:{_qc_peek.get(_sq_peek,"#9CA3AF")};font-weight:700;">{_sq_peek}</span> · '
+        f'M: <span style="color:{_qc_peek.get(_mq_peek,"#9CA3AF")};font-weight:700;">{_mq_peek}</span> · '
+        f'G: <span style="color:{_qc_peek.get(_gq_peek,"#9CA3AF")};font-weight:700;">{_gq_peek}</span>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 
 # ── Load / build snapshot ─────────────────────────────────────────────────────
 snap = st.session_state.snap

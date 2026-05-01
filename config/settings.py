@@ -1,29 +1,29 @@
 """config/settings.py — v2 GIP Upgrade
 Changes vs previous:
-  + PCE & Core PCE added to FRED_INFLATION_SERIES (PCEPI, PCEPILFE)
-  + ISM sub-components added to FRED_GROWTH_SERIES (NAPMNO, NAPMII)
-  + Real Rates added to FRED_POLICY_SERIES (computed from DFII10 already fetched)
-  + INFLATION_LEVEL_WEIGHTS updated: PCE now carries 20% weight (CPI reduced)
-  + INFLATION_MOM_WEIGHTS updated: pce_roc + core_pce_roc added
-  + GROWTH_LEVEL_WEIGHTS updated: ism_orders_inv_spread added (most leading ISM signal)
-  + GROWTH_MOM_WEIGHTS updated: ism_oi_roc added
-  + fred_coverage_keys updated to include new series for proxy_share tracking
+ + PCE & Core PCE added to FRED_INFLATION_SERIES (PCEPI, PCEPILFE)
+ + ISM sub-components added to FRED_GROWTH_SERIES (NAPMNO, NAPMII)
+ + Real Rates added to FRED_POLICY_SERIES (computed from DFII10 already fetched)
+ + INFLATION_LEVEL_WEIGHTS updated: PCE now carries 20% weight (CPI reduced)
+ + INFLATION_MOM_WEIGHTS updated: pce_roc + core_pce_roc added
+ + GROWTH_LEVEL_WEIGHTS updated: ism_orders_inv_spread added (most leading ISM signal)
+ + GROWTH_MOM_WEIGHTS updated: ism_oi_roc added
+ + fred_coverage_keys updated to include new series for proxy_share tracking
 
 WHY PCE:
-  Fed targets Core PCE, not CPI. CPI runs ~0.2-0.5% ABOVE PCE structurally.
-  Hedgeye tracks both. Using only CPI = overestimating inflation signal by ~20-30bps.
-  This was causing Q2/Q3 inflation signal to be stickier than Hedgeye's own reading.
+ Fed targets Core PCE, not CPI. CPI runs ~0.2-0.5% ABOVE PCE structurally.
+ Hedgeye tracks both. Using only CPI = overestimating inflation signal by ~20-30bps.
+ This was causing Q2/Q3 inflation signal to be stickier than Hedgeye's own reading.
 
 WHY ISM New Orders - Inventories:
-  Orders-Inventories spread is the MOST LEADING sub-component of ISM (~6wks lead on headline).
-  McCullough references "ISM orders" specifically, not just headline ISM.
-  Positive spread (orders > inventories) = production acceleration coming = growth bullish.
-  Negative spread = destocking coming = growth bearish early warning.
+ Orders-Inventories spread is the MOST LEADING sub-component of ISM (~6wks lead on headline).
+ McCullough references "ISM orders" specifically, not just headline ISM.
+ Positive spread (orders > inventories) = production acceleration coming = growth bullish.
+ Negative spread = destocking coming = growth bearish early warning.
 
 WHY Real Rates (DFII10 level directly):
-  DFII10 IS the real rate (TIPS). Already fetched, just not used in policy scoring.
-  Rising real rates = tightening financial conditions = policy drag regardless of nominal Fed Funds.
-  This makes Q4 detection more accurate (real rates rise while Fed pauses = still tightening).
+ DFII10 IS the real rate (TIPS). Already fetched, just not used in policy scoring.
+ Rising real rates = tightening financial conditions = policy drag regardless of nominal Fed Funds.
+ This makes Q4 detection more accurate (real rates rise while Fed pauses = still tightening).
 """
 from __future__ import annotations
 import os
@@ -39,34 +39,34 @@ SNAPSHOT_PATH: str = ".cache/snapshot.pkl"
 
 # ── FRED series ───────────────────────────────────────────────────────────────
 FRED_GROWTH_SERIES = {
-    "INDPRO":  "Industrial Production",
-    "RSAFS":   "Retail Sales",
-    "PAYEMS":  "Nonfarm Payrolls",
-    "UNRATE":  "Unemployment",
-    "ICSA":    "Initial Claims",
-    "HOUST":   "Housing Starts",
-    "ISMNO":   "ISM Manufacturing",
+    "INDPRO": "Industrial Production",
+    "RSAFS": "Retail Sales",
+    "PAYEMS": "Nonfarm Payrolls",
+    "UNRATE": "Unemployment",
+    "ICSA": "Initial Claims",
+    "HOUST": "Housing Starts",
+    "ISMNO": "ISM Manufacturing",
     # v2: ISM sub-components — Orders-Inventories spread = most leading ISM signal
-    "NAPMNO":  "ISM New Orders Index",        # soft-fail if unavailable on FRED
-    "NAPMII":  "ISM Inventories Index",       # soft-fail if unavailable on FRED
+    "NAPMNO": "ISM New Orders Index",  # soft-fail if unavailable on FRED
+    "NAPMII": "ISM Inventories Index",  # soft-fail if unavailable on FRED
 }
 
 FRED_INFLATION_SERIES = {
     "CPIAUCSL": "CPI",
     "CPILFESL": "Core CPI",
-    "PPIACO":   "PPI",
-    "T5YIE":    "5yr Breakeven",
-    "T10YIE":   "10yr Breakeven",
-    "DFII10":   "10yr TIPS (Real Rate)",
+    "PPIACO": "PPI",
+    "T5YIE": "5yr Breakeven",
+    "T10YIE": "10yr Breakeven",
+    "DFII10": "10yr TIPS (Real Rate)",
     # v2: PCE — Fed's preferred inflation measure. Critical gap was here.
-    "PCEPI":    "PCE Price Index",            # Fed targets this, not CPI
+    "PCEPI": "PCE Price Index",  # Fed targets this, not CPI
     "PCEPILFE": "Core PCE (ex Food/Energy)",  # Most important for Fed reaction function
 }
 
 FRED_POLICY_SERIES = {
     "FEDFUNDS": "Fed Funds",
-    "DFF":      "Daily Fed Funds",
-    "M2SL":     "M2 Money Supply",
+    "DFF": "Daily Fed Funds",
+    "M2SL": "M2 Money Supply",
     # Note: Real Rates computed from DFII10 (already in inflation series)
     # No new series needed — computed in _extract_fred_features()
 }
@@ -77,26 +77,26 @@ FRED_POLICY_SERIES = {
 # Growth Level: added ism_orders_inv (ISM New Orders minus Inventories spread)
 # Most leading sub-component of ISM. Reduced housing_yoy slightly.
 GROWTH_LEVEL_WEIGHTS = {
-    "indpro_yoy":       0.22,   # unchanged — best hard data signal
-    "retail_yoy":       0.20,   # unchanged — consumption proxy
-    "payrolls_yoy":     0.18,   # unchanged — labor market
-    "ism_orders_inv":   0.10,   # NEW: orders-inventories spread (leading)
-    "ism_norm":         0.10,   # reduced from 0.15 (spread is more leading than headline)
-    "housing_yoy":      0.10,   # reduced from 0.12 (lagging indicator)
-    "unrate_inv":       0.06,   # reduced from 0.07
-    "claims_inv":       0.04,   # reduced from 0.06
+    "indpro_yoy": 0.22,  # unchanged — best hard data signal
+    "retail_yoy": 0.20,  # unchanged — consumption proxy
+    "payrolls_yoy": 0.18,  # unchanged — labor market
+    "ism_orders_inv": 0.10,  # NEW: orders-inventories spread (leading)
+    "ism_norm": 0.10,  # reduced from 0.15 (spread is more leading than headline)
+    "housing_yoy": 0.10,  # reduced from 0.12 (lagging indicator)
+    "unrate_inv": 0.06,  # reduced from 0.07
+    "claims_inv": 0.04,  # reduced from 0.06
 }
 # Sum check: 0.22+0.20+0.18+0.10+0.10+0.10+0.06+0.04 = 1.00 ✅
 
 # Growth Momentum: added ism_oi_roc (rate of change of orders-inventories)
 GROWTH_MOM_WEIGHTS = {
-    "indpro_roc":   0.26,   # reduced from 0.28
-    "retail_roc":   0.22,   # unchanged
-    "payrolls_roc": 0.18,   # unchanged
-    "ism_oi_roc":   0.10,   # NEW: ROC of orders-inventories spread
-    "ism_delta":    0.10,   # reduced from 0.14
-    "unrate_delta": 0.10,   # unchanged
-    "claims_delta": 0.04,   # reduced from 0.08
+    "indpro_roc": 0.26,  # reduced from 0.28
+    "retail_roc": 0.22,  # unchanged
+    "payrolls_roc": 0.18,  # unchanged
+    "ism_oi_roc": 0.10,  # NEW: ROC of orders-inventories spread
+    "ism_delta": 0.10,  # reduced from 0.14
+    "unrate_delta": 0.10,  # unchanged
+    "claims_delta": 0.04,  # reduced from 0.08
 }
 # Sum check: 0.26+0.22+0.18+0.10+0.10+0.10+0.04 = 1.00 ✅
 
@@ -104,47 +104,47 @@ GROWTH_MOM_WEIGHTS = {
 # Rationale: Fed watches PCE. PCE is structurally ~0.2-0.5% below CPI.
 # Using only CPI was overestimating inflation persistence → hurting Q3/Q4 accuracy.
 INFLATION_LEVEL_WEIGHTS = {
-    "pce_yoy":      0.20,   # NEW: PCE YoY — Fed's primary inflation target
-    "core_pce_yoy": 0.18,   # NEW: Core PCE — most important for Fed reaction
-    "cpi_yoy":      0.16,   # reduced from 0.28 (still relevant as CPI is market-watched)
-    "core_cpi_yoy": 0.14,   # reduced from 0.24
-    "breakeven_5y": 0.16,   # unchanged — market-implied inflation expectations
-    "ppi_yoy":      0.10,   # reduced from 0.14 (pipeline inflation)
-    "oil_3m":       0.04,   # reduced from 0.10 (subsumed in PPI/PCE)
-    "gold_3m":      0.02,   # reduced from 0.06 (tail hedge, not primary inflation signal)
+    "pce_yoy": 0.20,  # NEW: PCE YoY — Fed's primary inflation target
+    "core_pce_yoy": 0.18,  # NEW: Core PCE — most important for Fed reaction
+    "cpi_yoy": 0.16,  # reduced from 0.28 (still relevant as CPI is market-watched)
+    "core_cpi_yoy": 0.14,  # reduced from 0.24
+    "breakeven_5y": 0.16,  # unchanged — market-implied inflation expectations
+    "ppi_yoy": 0.10,  # reduced from 0.14 (pipeline inflation)
+    "oil_3m": 0.04,  # reduced from 0.10 (subsumed in PPI/PCE)
+    "gold_3m": 0.02,  # reduced from 0.06 (tail hedge, not primary inflation signal)
 }
 # Sum check: 0.20+0.18+0.16+0.14+0.16+0.10+0.04+0.02 = 1.00 ✅
 
 # Inflation Momentum: PCE ROC is faster and more accurate than CPI ROC
 INFLATION_MOM_WEIGHTS = {
-    "pce_roc":          0.14,   # NEW: PCE rate of change
-    "core_pce_roc":     0.12,   # NEW: Core PCE ROC — fastest Fed reaction signal
-    "cpi_roc":          0.20,   # reduced from 0.30
-    "core_cpi_roc":     0.18,   # reduced from 0.26
-    "breakeven_delta":  0.18,   # unchanged — market inflation expectations momentum
-    "oil_1m":           0.10,   # reduced from 0.14
-    "dxy_inv_1m":       0.08,   # reduced from 0.12
+    "pce_roc": 0.14,  # NEW: PCE rate of change
+    "core_pce_roc": 0.12,  # NEW: Core PCE ROC — fastest Fed reaction signal
+    "cpi_roc": 0.20,  # reduced from 0.30
+    "core_cpi_roc": 0.18,  # reduced from 0.26
+    "breakeven_delta": 0.18,  # unchanged — market inflation expectations momentum
+    "oil_1m": 0.10,  # reduced from 0.14
+    "dxy_inv_1m": 0.08,  # reduced from 0.12
 }
 # Sum check: 0.14+0.12+0.20+0.18+0.18+0.10+0.08 = 1.00 ✅
 
 # Structural quad weights: inflation-dominant (Hedgeye Q3 calibration)
 STRUCTURAL_WEIGHTS = {
-    "growth_level":      0.15,
-    "growth_momentum":   0.30,
-    "inflation_level":   0.20,
+    "growth_level": 0.15,
+    "growth_momentum": 0.30,
+    "inflation_level": 0.20,
     "inflation_momentum":0.35,
 }
 
 MONTHLY_WEIGHTS = {
-    "growth_level":      0.15,
-    "growth_momentum":   0.50,
-    "inflation_level":   0.10,
+    "growth_level": 0.15,
+    "growth_momentum": 0.50,
+    "inflation_level": 0.10,
     "inflation_momentum":0.50,
 }
 
 POLICY_WEIGHT_STRUCTURAL: float = 0.12
-POLICY_WEIGHT_MONTHLY:    float = 0.10
-ISM_NEUTRAL:              float = 50.0
+POLICY_WEIGHT_MONTHLY: float = 0.10
+ISM_NEUTRAL: float = 50.0
 
 # ── Keys tracked for proxy_share coverage calculation ────────────────────────
 # Extend from 9 to 13 keys (4 new: pce, core_pce, ism_orders_inv, real_rate)
@@ -156,9 +156,9 @@ FRED_COVERAGE_KEYS = [
 ]
 
 # ── Risk Range (Hurst Rescaled Range) ────────────────────────────────────────
-RR_TRADE_LOOKBACK  = 15;  RR_TREND_LOOKBACK = 63;  RR_TAIL_LOOKBACK = 252
-RR_TRADE_SIGMA     = 1.5; RR_TREND_SIGMA    = 2.0; RR_TAIL_SIGMA    = 2.8
-RR_HURST_SCALE     = 1.0
+RR_TRADE_LOOKBACK = 15; RR_TREND_LOOKBACK = 63; RR_TAIL_LOOKBACK = 252
+RR_TRADE_SIGMA = 1.5; RR_TREND_SIGMA = 2.0; RR_TAIL_SIGMA = 2.8
+RR_HURST_SCALE = 1.0
 
 # ── Macro proxies (benchmark tickers always loaded) ───────────────────────────
 MACRO_PROXIES: dict = {
@@ -249,6 +249,55 @@ IHSG_UNIVERSE: dict = {
     "AKRA.JK":"AKR Corporindo","TPMA.JK":"Trans Power Marine",
 }
 
+# ── Bonds / Fixed Income ──────────────────────────────────────────────────────
+BONDS: dict = {
+    "TLT": "20+ Year Treasury ETF",
+    "IEF": "7-10 Year Treasury ETF",
+    "SHY": "1-3 Year Treasury ETF",
+    "AGG": "US Aggregate Bond ETF",
+    "LQD": "Investment Grade Corporate",
+    "HYG": "High Yield Corporate",
+    "TLTW": "20+ Year Treasury & Write",
+    "GOVT": "US Treasury Bond ETF",
+    "SPTL": "SPDR Long Term Treasury",
+    "VGIT": "Vanguard Int-Term Treasury",
+    "VGSH": "Vanguard Short-Term Treasury",
+    "VGTL": "Vanguard Long-Term Treasury",
+    "BND": "Vanguard Total Bond",
+    "SCHZ": "Schwab US Aggregate",
+    "TIP": "TIPS Inflation-Protected",
+    "STIP": "Short-Term TIPS",
+    "VTIP": "Vanguard Short-Term TIPS",
+    "SPIP": "SPDR Portfolio TIPS",
+    "SPTI": "SPDR Int-Term Treasury",
+    "SPTS": "SPDR Short-Term Treasury",
+    "SHYG": "0-5 Year High Yield",
+    "SJNK": "0-5 Year High Yield",
+    "BKLN": "Senior Loan ETF",
+    "EMB": "USD Emerging Markets Bond",
+    "PCY": "Emerging Markets Sovereign",
+    "VWOB": "Vanguard EM Govt Bond",
+    "JNK": "Junk Bond ETF",
+    "USIG": "Broad USD Investment Grade",
+    "IGSB": "Short-Term Investment Grade",
+    "IGIB": "Int-Term Investment Grade",
+    "IGLB": "Long-Term Investment Grade",
+    "SLQD": "0-5 Year Inv Grade Corp",
+    "SRLN": "Senior Loan ETF",
+    "FALN": "Fallen Angel Bond ETF",
+    "ANGL": "VanEck Fallen Angel",
+    "PGHY": "Global Short-Term High Yield",
+    "USHY": "Broad USD High Yield",
+    "SPBO": "SPDR Corp Bond",
+    "CORP": "PIMCO Investment Grade Corp",
+    "LDUR": "PIMCO Low Duration",
+    "MINT": "PIMCO Enhanced Short Maturity",
+    "GSY": "Ultra-Short Bond",
+    "NEAR": "iShares Short Maturity Bond",
+    "ICSH": "Ultra-Short-Term Bond",
+    "JPST": "JPMorgan Ultra-Short Income",
+}
+
 # ── Quad playbook (backtested 27yr Hedgeye data) ─────────────────────────────
 QUAD_ASSET_PERFORMANCE: dict = {
     "Q1":{
@@ -273,7 +322,7 @@ QUAD_ASSET_PERFORMANCE: dict = {
         "best":["Gold","Precious Metals","Healthcare (XLV)","Utilities (XLU)",
                 "Consumer Staples (XLP)","Defense","Long USTs (selective)"],
         "worst":["Tech (XLK)","Consumer Disc (XLY)","Small Caps (IWM)",
-                 "Credit (HYG)","EM Equities (non-commodity)","Crypto"],
+                "Credit (HYG)","EM Equities (non-commodity)","Crypto"],
         "style":"Low Beta, Dividend Yield, Quality, Secular Growth (defensive), Min Volatility",
         "fx":"USD bearish TREND; commodity FX mixed; EM headwinds except commodity exporters",
         "bonds":"Long duration USTs bullish (flight to quality); watch breakevens",
@@ -292,34 +341,34 @@ QUAD_ASSET_PERFORMANCE: dict = {
 
 # ── Bottleneck profiles ───────────────────────────────────────────────────────
 BOTTLENECK_PROFILES: dict = {
-    "ai_compute":       {"constraint":0.90,"Q1":0.85,"Q2":0.70,"Q3":0.50,"Q4":0.30},
-    "ai_networking":    {"constraint":0.85,"Q1":0.80,"Q2":0.75,"Q3":0.55,"Q4":0.35},
-    "ai_optics":        {"constraint":0.92,"Q1":0.78,"Q2":0.72,"Q3":0.62,"Q4":0.40},
-    "ai_power":         {"constraint":0.87,"Q1":0.70,"Q2":0.75,"Q3":0.65,"Q4":0.50},
-    "ai_power_infra":   {"constraint":0.85,"Q1":0.65,"Q2":0.70,"Q3":0.70,"Q4":0.55},
-    "ai_packaging":     {"constraint":0.80,"Q1":0.75,"Q2":0.70,"Q3":0.55,"Q4":0.35},
-    "ai_memory":        {"constraint":0.83,"Q1":0.80,"Q2":0.72,"Q3":0.55,"Q4":0.35},
-    "healthcare_eq":    {"constraint":0.80,"Q1":0.65,"Q2":0.55,"Q3":0.85,"Q4":0.80},
-    "pharma":           {"constraint":0.82,"Q1":0.60,"Q2":0.50,"Q3":0.80,"Q4":0.75},
-    "defense":          {"constraint":0.82,"Q1":0.55,"Q2":0.65,"Q3":0.78,"Q4":0.62},
-    "utilities":        {"constraint":0.75,"Q1":0.50,"Q2":0.45,"Q3":0.82,"Q4":0.86},
-    "water":            {"constraint":0.80,"Q1":0.55,"Q2":0.50,"Q3":0.85,"Q4":0.86},
-    "precious_metals":  {"constraint":0.72,"Q1":0.70,"Q2":0.68,"Q3":0.88,"Q4":0.82},
-    "energy_infra":     {"constraint":0.75,"Q1":0.55,"Q2":0.88,"Q3":0.75,"Q4":0.30},
-    "uranium":          {"constraint":0.85,"Q1":0.70,"Q2":0.80,"Q3":0.65,"Q4":0.50},
+    "ai_compute": {"constraint":0.90,"Q1":0.85,"Q2":0.70,"Q3":0.50,"Q4":0.30},
+    "ai_networking": {"constraint":0.85,"Q1":0.80,"Q2":0.75,"Q3":0.55,"Q4":0.35},
+    "ai_optics": {"constraint":0.92,"Q1":0.78,"Q2":0.72,"Q3":0.62,"Q4":0.40},
+    "ai_power": {"constraint":0.87,"Q1":0.70,"Q2":0.75,"Q3":0.65,"Q4":0.50},
+    "ai_power_infra": {"constraint":0.85,"Q1":0.65,"Q2":0.70,"Q3":0.70,"Q4":0.55},
+    "ai_packaging": {"constraint":0.80,"Q1":0.75,"Q2":0.70,"Q3":0.55,"Q4":0.35},
+    "ai_memory": {"constraint":0.83,"Q1":0.80,"Q2":0.72,"Q3":0.55,"Q4":0.35},
+    "healthcare_eq": {"constraint":0.80,"Q1":0.65,"Q2":0.55,"Q3":0.85,"Q4":0.80},
+    "pharma": {"constraint":0.82,"Q1":0.60,"Q2":0.50,"Q3":0.80,"Q4":0.75},
+    "defense": {"constraint":0.82,"Q1":0.55,"Q2":0.65,"Q3":0.78,"Q4":0.62},
+    "utilities": {"constraint":0.75,"Q1":0.50,"Q2":0.45,"Q3":0.82,"Q4":0.86},
+    "water": {"constraint":0.80,"Q1":0.55,"Q2":0.50,"Q3":0.85,"Q4":0.86},
+    "precious_metals": {"constraint":0.72,"Q1":0.70,"Q2":0.68,"Q3":0.88,"Q4":0.82},
+    "energy_infra": {"constraint":0.75,"Q1":0.55,"Q2":0.88,"Q3":0.75,"Q4":0.30},
+    "uranium": {"constraint":0.85,"Q1":0.70,"Q2":0.80,"Q3":0.65,"Q4":0.50},
     "transformer_infra":{"constraint":0.88,"Q1":0.60,"Q2":0.70,"Q3":0.72,"Q4":0.50},
-    "sic_gan":          {"constraint":0.88,"Q1":0.70,"Q2":0.75,"Q3":0.65,"Q4":0.45},
-    "depin_ai":         {"constraint":0.75,"Q1":0.90,"Q2":0.70,"Q3":0.30,"Q4":0.40},
-    "staples":          {"constraint":0.55,"Q1":0.45,"Q2":0.40,"Q3":0.78,"Q4":0.82},
-    "coal":             {"constraint":0.60,"Q1":0.50,"Q2":0.80,"Q3":0.55,"Q4":0.25},
-    "nickel":           {"constraint":0.70,"Q1":0.60,"Q2":0.82,"Q3":0.55,"Q4":0.30},
-    "cpo_palm":         {"constraint":0.65,"Q1":0.55,"Q2":0.75,"Q3":0.60,"Q4":0.30},
-    "oil_services":     {"constraint":0.80,"Q1":0.55,"Q2":0.85,"Q3":0.70,"Q4":0.30},
-    "osv_hulu":         {"constraint":0.82,"Q1":0.50,"Q2":0.82,"Q3":0.68,"Q4":0.25},
+    "sic_gan": {"constraint":0.88,"Q1":0.70,"Q2":0.75,"Q3":0.65,"Q4":0.45},
+    "depin_ai": {"constraint":0.75,"Q1":0.90,"Q2":0.70,"Q3":0.30,"Q4":0.40},
+    "staples": {"constraint":0.55,"Q1":0.45,"Q2":0.40,"Q3":0.78,"Q4":0.82},
+    "coal": {"constraint":0.60,"Q1":0.50,"Q2":0.80,"Q3":0.55,"Q4":0.25},
+    "nickel": {"constraint":0.70,"Q1":0.60,"Q2":0.82,"Q3":0.55,"Q4":0.30},
+    "cpo_palm": {"constraint":0.65,"Q1":0.55,"Q2":0.75,"Q3":0.60,"Q4":0.30},
+    "oil_services": {"constraint":0.80,"Q1":0.55,"Q2":0.85,"Q3":0.70,"Q4":0.30},
+    "osv_hulu": {"constraint":0.82,"Q1":0.50,"Q2":0.82,"Q3":0.68,"Q4":0.25},
     "dry_bulk_shipping":{"constraint":0.78,"Q1":0.55,"Q2":0.80,"Q3":0.60,"Q4":0.25},
     "oil_distribution": {"constraint":0.72,"Q1":0.50,"Q2":0.78,"Q3":0.65,"Q4":0.30},
-    "banking_ihsg":     {"constraint":0.65,"Q1":0.75,"Q2":0.70,"Q3":0.40,"Q4":0.30},
-    "generic":          {"constraint":0.40,"Q1":0.50,"Q2":0.50,"Q3":0.50,"Q4":0.50},
+    "banking_ihsg": {"constraint":0.65,"Q1":0.75,"Q2":0.70,"Q3":0.40,"Q4":0.30},
+    "generic": {"constraint":0.40,"Q1":0.50,"Q2":0.50,"Q3":0.50,"Q4":0.50},
 }
 
 # ── Market Classification (ticker → asset class) ──────────────────────────────

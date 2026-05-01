@@ -1,39 +1,39 @@
 """engines/bottleneck_engine.py v3 — Multi-Asset Bottleneck Scanner (FIXED)
 
 Fixes vs v2:
-  1. DEDUPLICATED KNOWN_BOTTLENECKS — AMKR & GEV had silent dict overwrites. MERGED.
-  2. CONDITIONAL score boost — known bottleneck only gets +0.15 if trend+regime support it.
-     Downtrend known bottleneck gets PENALTY (0.70x) not boost. Preserves #process.
-  3. FORWARD QUAD MULTIPLIER in EV — EV now front-runs Quad transition probability,
-     not just current Quad. Uses BASE_TRANSITIONS from scenario_engine calibration.
-  4. RANGE POSITION injected into every item dict — "range_label", "range_action",
-     "pct_from_lo", "pct_from_hi" so UI can display BUY ZONE / TRIM ZONE / WAIT.
-  5. BREWING threshold raised from acc>=0.55 → acc>=0.65 (reduce false positives).
-  6. POD PROXY signal — uses price momentum ROC as proxy for Pod1 revenue acceleration.
-     Flags if Pod proxy is decelerating vs Trend signal (thesis risk).
-  7. DIRECTION logic: structural/defensive bottlenecks in Q3 remain LONG even if
-     market_dir=short, but ONLY if trend supports it (uptrend or range).
-  8. THESIS field unified — all items now carry "thesis" key (known_thesis fallback
-     to rationale) so UI never shows empty thesis.
-  9. Removed options flow proxy comment — labeled as "PROXY ONLY (no live gamma feed)".
+ 1. DEDUPLICATED KNOWN_BOTTLENECKS — AMKR & GEV had silent dict overwrites. MERGED.
+ 2. CONDITIONAL score boost — known bottleneck only gets +0.15 if trend+regime support it.
+    Downtrend known bottleneck gets PENALTY (0.70x) not boost. Preserves #process.
+ 3. FORWARD QUAD MULTIPLIER in EV — EV now front-runs Quad transition probability,
+    not just current Quad. Uses BASE_TRANSITIONS from scenario_engine calibration.
+ 4. RANGE POSITION injected into every item dict — "range_label", "range_action",
+    "pct_from_lo", "pct_from_hi" so UI can display BUY ZONE / TRIM ZONE / WAIT.
+ 5. BREWING threshold raised from acc>=0.55 → acc>=0.65 (reduce false positives).
+ 6. POD PROXY signal — uses price momentum ROC as proxy for Pod1 revenue acceleration.
+    Flags if Pod proxy is decelerating vs Trend signal (thesis risk).
+ 7. DIRECTION logic: structural/defensive bottlenecks in Q3 remain LONG even if
+    market_dir=short, but ONLY if trend supports it (uptrend or range).
+ 8. THESIS field unified — all items now carry "thesis" key (known_thesis fallback
+    to rationale) so UI never shows empty thesis.
+ 9. Removed options flow proxy comment — labeled as "PROXY ONLY (no live gamma feed)".
 
 Framework alignment:
-  - GIP Model: regime_fit per Quad from BOTTLENECK_PROFILES (27yr Hedgeye backtest)
-  - Risk Range™: EV uses range_pos to penalise at-resistance setups
-  - Citrini Bottleneck: KNOWN_BOTTLENECKS = curated second-order supply chain map
-  - Forward-run: EV × transition_mult front-runs Quad shift, not current state
-  - IHSG: long-only, foreign-flow gated (Ricky methodology)
-  - Options overlay: flow_scores accepted as PROXY input, labeled clearly
+ - GIP Model: regime_fit per Quad from BOTTLENECK_PROFILES (27yr Hedgeye backtest)
+ - Risk Range™: EV uses range_pos to penalise at-resistance setups
+ - Citrini Bottleneck: KNOWN_BOTTLENECKS = curated second-order supply chain map
+ - Forward-run: EV × transition_mult front-runs Quad shift, not current state
+ - IHSG: long-only, foreign-flow gated (Ricky methodology)
+ - Options overlay: flow_scores accepted as PROXY input, labeled clearly
 
 EV formula (v3):
-  EV = regime_fit × trend_score × constraint × (1 + rs_3m) × forward_mult × range_discount
-  where:
-    forward_mult   = 1.0 + 0.25 × max(0, next_quad_fit - regime_fit)   [front-run transition]
-    range_discount = 0.70 if at_resistance else 1.0                     [don't buy TRR]
+ EV = regime_fit × trend_score × constraint × (1 + rs_3m) × forward_mult × range_discount
+ where:
+ forward_mult = 1.0 + 0.25 × max(0, next_quad_fit - regime_fit) [front-run transition]
+ range_discount = 0.70 if at_resistance else 1.0 [don't buy TRR]
 """
 from __future__ import annotations
 import math
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Any
 import numpy as np
 import pandas as pd
 from config.settings import (
@@ -52,7 +52,6 @@ _FWD_TRANSITIONS: Dict[str, Dict[str, float]] = {
     "Q3": {"Q3": 0.22, "Q4": 0.38, "Q2": 0.20, "Q1": 0.20},
     "Q4": {"Q4": 0.18, "Q1": 0.48, "Q3": 0.20, "Q2": 0.14},
 }
-
 
 def _forward_quad_multiplier(sector: str, quad_str: str, profiles: dict) -> float:
     """
@@ -83,14 +82,13 @@ def _forward_quad_multiplier(sector: str, quad_str: str, profiles: dict) -> floa
     mult = 1.0 + 0.25 * max(0.0, delta)
     return float(np.clip(mult, 0.80, 1.30))
 
-
 # ─────────────────────────────────────────────────────────────────────────────
 # KNOWN BOTTLENECK DATABASE — research April/May 2026
 # RULES:
-#   - Each ticker appears EXACTLY ONCE (no silent dict overwrites)
-#   - Duplicates merged: higher constraint wins; more current phase wins
-#   - All entries validated against Citrini second-order methodology
-#   - IHSG bottlenecks in separate IHSG_BOTTLENECKS dict below
+# - Each ticker appears EXACTLY ONCE (no silent dict overwrites)
+# - Duplicates merged: higher constraint wins; more current phase wins
+# - All entries validated against Citrini second-order methodology
+# - IHSG bottlenecks in separate IHSG_BOTTLENECKS dict below
 # ─────────────────────────────────────────────────────────────────────────────
 KNOWN_BOTTLENECKS: Dict[str, dict] = {
 
@@ -331,9 +329,10 @@ KNOWN_BOTTLENECKS: Dict[str, dict] = {
     # ── PRECIOUS METALS / SAFE HAVEN ─────────────────────────────────────────
     "GLD": {
         "type": "structural", "sub": "precious_metals", "constraint": 0.80, "phase": "level_2",
-        "thesis": "Best gold regime = Q3/Q4 (stagflation + USD bearish). "
+        "thesis": "Q3 = BEST gold regime (stagflation + USD bearish = perfect gold setup). "
                   "Central bank buying at record pace (de-dollarization structural bid). "
-                  "McCullough: USD TREND confirmed bearish. Gold = Q3 hedge AND structural macro trade.",
+                  "McCullough Apr 2026: USD TREND confirmed bearish. "
+                  "Gold is the Q3 hedge AND the structural macro trade.",
         "catalyst": "Fed pivot signal, USD breakdown continuation, EM central bank buying",
         "tp_type": "structural",
         "risk": "USD reversal (dollar crisis resolution); real yield spike if growth re-accelerates",
@@ -445,7 +444,6 @@ IHSG_BOTTLENECKS: Dict[str, dict] = {
     },
 }
 
-
 # ─────────────────────────────────────────────────────────────────────────────
 # UTILITY FUNCTIONS
 # ─────────────────────────────────────────────────────────────────────────────
@@ -464,7 +462,6 @@ def _rs(close: pd.Series, bench: Optional[pd.Series], n: int = 63) -> Optional[f
     except Exception:
         return None
 
-
 def _trend(close: pd.Series, n: int = 63) -> Tuple[bool, bool, str]:
     c = pd.to_numeric(close, errors="coerce").dropna().tail(n).values
     if len(c) < 20:
@@ -479,7 +476,6 @@ def _trend(close: pd.Series, n: int = 63) -> Tuple[bool, bool, str]:
     if lh and ll:
         return False, False, "downtrend"
     return hh, hl, "range"
-
 
 def _range_pos(close: pd.Series, n: int = 63) -> Tuple[float, str]:
     c = pd.to_numeric(close, errors="coerce").dropna().tail(n)
@@ -503,7 +499,6 @@ def _range_pos(close: pd.Series, n: int = 63) -> Tuple[float, str]:
         label = "mid_range"
     return rp, label
 
-
 def _vol_acc(close: pd.Series, n: int = 63) -> float:
     """Volume accumulation proxy using price momentum consistency."""
     c = pd.to_numeric(close, errors="coerce").dropna().tail(n)
@@ -516,8 +511,7 @@ def _vol_acc(close: pd.Series, n: int = 63) -> float:
     pos_ratio = float((rets > 0).mean())
     return float(np.clip(pos_ratio, 0.0, 1.0))
 
-
-def _pod_proxy(close: pd.Series) -> Dict[str, float]:
+def _pod_proxy(close: pd.Series) -> Dict[str, Any]:
     """
     Pod 1 proxy: Rate of change of 1M return vs 3M return (momentum acceleration).
     Pod 2 proxy: Volatility-adjusted return (margin-of-safety signal).
@@ -526,7 +520,12 @@ def _pod_proxy(close: pd.Series) -> Dict[str, float]:
     """
     c = pd.to_numeric(close, errors="coerce").dropna()
     if len(c) < 65:
-        return {"pod1_proxy": 0.0, "pod2_proxy": 0.0, "pod_quality": "insufficient"}
+        return {
+            "pod1_proxy": 0.0,
+            "pod2_proxy": 0.0,
+            "pod_quality": "insufficient",
+            "pod_note": "PROXY ONLY — insufficient price history (<65 bars)",
+        }
 
     ret_1m = float(c.iloc[-1] / c.iloc[-22] - 1) if len(c) >= 22 else 0.0
     ret_3m = float(c.iloc[-1] / c.iloc[-63] - 1) if len(c) >= 63 else 0.0
@@ -548,7 +547,6 @@ def _pod_proxy(close: pd.Series) -> Dict[str, float]:
         "pod_quality": quality,
         "pod_note": "PROXY ONLY — price momentum ROC, not fundamental revenue/margin data",
     }
-
 
 def _compute_tp(
     close: pd.Series,
@@ -602,7 +600,6 @@ def _compute_tp(
         "tp_type": tp_type,
     }
 
-
 # ─────────────────────────────────────────────────────────────────────────────
 # MAIN ENGINE
 # ─────────────────────────────────────────────────────────────────────────────
@@ -612,8 +609,8 @@ class BottleneckEngine:
     Multi-asset bottleneck scanner.
 
     EV formula (v3):
-      EV = regime_fit × trend_score × constraint × (1 + rs_3m)
-              × forward_mult × range_discount
+        EV = regime_fit × trend_score × constraint × (1 + rs_3m)
+             × forward_mult × range_discount
 
     Signal rules (Hedgeye #process):
       - Known bottleneck in uptrend + good regime → BUY ZONE at LRR, NOT at TRR
@@ -754,7 +751,7 @@ class BottleneckEngine:
             regime_trap = regime_fit < 0.35
 
             # ── EV formula v3 (forward-looking, range-adjusted) ────────────
-            # EV = regime_fit × trend_score × constraint × (1 + rs_3m) × fwd_mult × range_discount
+            # EV = regime_fit × trend_score × constraint × (1+rs_3m) × fwd_mult × range_discount
             fwd_mult = _forward_quad_multiplier(sector, quad_str, BOTTLENECK_PROFILES)
             ev = regime_fit * trend_score * constraint * (1.0 + (rs3 or 0.0)) * fwd_mult * range_discount
             ev = float(np.clip(ev, -2.0, 2.0))
@@ -864,8 +861,8 @@ class BottleneckEngine:
         # ── Level buckets (for UI rendering) ──────────────────────────────────
         level_1 = sorted([s for s in all_scored if s["level"] == "level_1"], key=lambda x: x["ev"], reverse=True)
         level_2 = sorted([s for s in all_scored if s["level"] == "level_2"], key=lambda x: x["ev"], reverse=True)
-        watch   = sorted([s for s in all_scored if s["level"] == "watch"],   key=lambda x: x["ev"], reverse=True)
-        avoid   = sorted([s for s in all_scored if s["level"] == "avoid"],   key=lambda x: x["ev"], reverse=True)
+        watch = sorted([s for s in all_scored if s["level"] == "watch"], key=lambda x: x["ev"], reverse=True)
+        avoid = sorted([s for s in all_scored if s["level"] == "avoid"], key=lambda x: x["ev"], reverse=True)
 
         # ── Brewing detection (FIX: raised acc threshold 0.55 → 0.65) ─────────
         # High constraint + regime fit + accumulation but not yet Level 1/2
@@ -874,7 +871,7 @@ class BottleneckEngine:
             [s for s in watch
              if s["constraint"] >= 0.70
              and s["regime_fit"] >= 0.60
-             and s["acc"] >= 0.65   # FIX: was 0.55
+             and s["acc"] >= 0.65  # FIX: was 0.55
              and s["trend"] in ("uptrend", "range")],
             key=lambda x: x["ev"], reverse=True
         )

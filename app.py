@@ -885,48 +885,275 @@ elif page=="🇮🇩 IHSG":
 # ══════════════════════════════════════════════════════════════════════════════
 elif page=="🔍 Bottleneck":
     st.markdown("# 🔍 Bottleneck Scanner — Supply Chain + Regime Fit")
-    st.caption("Structural scarcity. Level 1 = best. Level 2 = building. Watch = brewing. Avoid = regime trap.")
+    st.caption(
+        "Structural scarcity mapped to GIP regime. "
+        "Level 1 = best setup. Level 2 = building. Watch = brewing. Avoid = regime trap. "
+        "**BUY at LRR (support). TRIM at TRR (resistance). EXIT on Trend breakdown.**"
+    )
 
-    if not btk: st.warning("No bottleneck data. Refresh."); st.stop()
+    if not btk:
+        st.warning("No bottleneck data. Click 🔄 Refresh."); st.stop()
 
-    l1=btk.get("level_1",[]); l2=btk.get("level_2",[]); wt=btk.get("watch",[]); av=btk.get("avoid",[])
+    # ── Framework notes ────────────────────────────────────────────────────
+    with st.expander("⚙️ Framework Notes — EV Formula + Signal Logic", expanded=False):
+        ev_formula = btk.get("ev_formula", "regime_fit × trend_score × constraint × (1+rs_3m) × fwd_mult × range_discount")
+        flow_note = btk.get("flow_proxy_note", "OPTIONS FLOW: proxy input only.")
+        pod_note_global = btk.get("pod_proxy_note", "POD PROXY: price momentum ROC only.")
+        st.markdown(f"""
+**EV Formula (v3):**
+```
+{ev_formula}
+```
+- `fwd_mult` = forward Quad transition multiplier — front-runs regime shift, not just current Quad
+- `range_discount` = 0.70 at resistance, 0.85 approaching resistance — **never buy at TRR**
+- `constraint` = structural scarcity score (Citrini research)
+- `regime_fit` = Hedgeye 27yr backtest per Quad (BOTTLENECK_PROFILES)
 
-    s1,s2,s3,s4=st.columns(4)
-    for col,lab,val,c in [(s1,"Level 1",len(l1),"#10B981"),(s2,"Level 2",len(l2),"#F59E0B"),
-        (s3,"Watch",len(wt),"#6366F1"),(s4,"Avoid",len(av),"#EF4444")]:
-        col.markdown(f'<div style="text-align:center;font-size:11px;color:#9CA3AF;">{lab}</div><div style="text-align:center;font-size:22px;font-weight:800;color:{c};">{val}</div>',unsafe_allow_html=True)
+**Known bottleneck boost is CONDITIONAL (v3 fix):**
+- Uptrend + regime_fit ≥ 0.50 → +0.05 constraint (signal confirms thesis)
+- Downtrend OR regime_fit < 0.40 → ×0.75 penalty (wrong side of range)
 
+⚠️ {flow_note}
+⚠️ {pod_note_global}
+        """)
+
+    # ── Summary row ────────────────────────────────────────────────────────
+    l1  = btk.get("level_1", [])
+    l2  = btk.get("level_2", [])
+    wt  = btk.get("watch",   [])
+    av  = btk.get("avoid",   [])
+    br  = btk.get("brewing", [])
+    known_ct = btk.get("known_count", 0)
+
+    s1, s2, s3, s4, s5, s6 = st.columns(6)
+    for col, lab, val, c in [
+        (s1, "Level 1",  len(l1),    "#10B981"),
+        (s2, "Level 2",  len(l2),    "#F59E0B"),
+        (s3, "Watch",    len(wt),    "#6366F1"),
+        (s4, "Avoid",    len(av),    "#EF4444"),
+        (s5, "Brewing",  len(br),    "#A78BFA"),
+        (s6, "Known",    known_ct,   "#00D4AA"),
+    ]:
+        col.markdown(
+            f'<div style="text-align:center;font-size:10px;color:#9CA3AF;">{lab}</div>'
+            f'<div style="text-align:center;font-size:20px;font-weight:800;color:{c};">{val}</div>',
+            unsafe_allow_html=True,
+        )
+
+    # ── Filter controls ────────────────────────────────────────────────────
+    st.markdown("---")
+    fc1, fc2, fc3 = st.columns(3)
+    with fc1:
+        show_known_only = st.checkbox("Known bottlenecks only", False)
+    with fc2:
+        filter_action = st.selectbox("Range Action Filter", [
+            "All", "✅ BUY ZONE", "⏳ WAIT — MID RANGE",
+            "⚠️ APPROACHING TRR", "🔴 TRIM ZONE",
+        ])
+    with fc3:
+        filter_direction = st.selectbox("Direction", ["All", "long", "short", "avoid_long", "neutral"])
+
+    def _apply_filters(data):
+        out = []
+        for item in data:
+            if show_known_only and not item.get("known"):
+                continue
+            if filter_action != "All" and item.get("range_action", "") != filter_action:
+                continue
+            if filter_direction != "All" and item.get("direction", "") != filter_direction:
+                continue
+            out.append(item)
+        return out
+
+    # ── Render level table ─────────────────────────────────────────────────
     def _render_level(level_data, title, color):
-        if not level_data: return
-        st.markdown(f"### {title}")
-        rows=[]
-        for c in level_data:
-            rows.append({"Ticker":c["ticker"],"Sector":c["sector"].replace("_"," ").title(),"Trend":c["trend"],
-                "Score":c["score"],"EV":c.get("ev","—"),"RS 3M":c.get("rs_3m","—"),
-                "Regime Fit":c.get("regime_fit","—"),"Constraint":c.get("constraint","—"),
-                "Thesis":c.get("thesis","")[:60],"Catalyst":c.get("catalyst","")[:40],
-                "Risk":c.get("risk","")[:40]})
-        if rows:
-            df=pd.DataFrame(rows)
-            st.dataframe(df.style.map(lambda v: f"color:{'#10B981' if v=='uptrend' else '#EF4444' if v=='downtrend' else '#F59E0B'}",subset=["Trend"]),hide_index=True,height=min(len(rows)*35+40,400),use_container_width=True)
+        filtered = _apply_filters(level_data)
+        if not filtered:
+            return
+        st.markdown(f"### {title} ({len(filtered)})")
+        rows = []
+        for c in filtered:
+            # FIX: unified thesis — works for ALL tickers (known + systematic)
+            thesis_display  = (c.get("thesis") or c.get("known_thesis") or c.get("rationale") or "—")[:85]
+            catalyst_display = (c.get("catalyst") or c.get("known_catalyst") or "—")[:55]
+            risk_display     = (c.get("risk") or c.get("known_risk") or "—")[:55]
+            pod_q  = c.get("pod_quality", "—")
+            pod_icon = "📈" if pod_q == "accelerating" else "📉" if pod_q == "decelerating" else "➡️"
+            rows.append({
+                "K":       "✅" if c.get("known") else "◻",
+                "Ticker":  c["ticker"],
+                "Market":  c.get("market","—").replace("_"," ").title()[:10],
+                "Sector":  c.get("sector","—").replace("_"," ").title()[:18],
+                "Trend":   c.get("trend","—"),
+                "Dir":     c.get("direction","—"),
+                "EV":      f'{c.get("ev",0):.3f}',
+                "Score":   f'{c.get("score",0):.2f}',
+                "RF":      f'{c.get("regime_fit",0):.0%}',
+                "Const":   f'{c.get("constraint",0):.2f}',
+                "FwdX":    f'{c.get("forward_mult",1):.2f}x',
+                # FIX: Range action column — KEY for Hedgeye process (never buy TRR)
+                "Action":  c.get("range_action", "—"),
+                "RS 3M":   f'{c.get("rs_3m",0):.1%}' if c.get("rs_3m") is not None else "—",
+                "Pod":     f'{pod_icon}{c.get("pod1_proxy",0):+.2f}',
+                "RR Sig":  c.get("rr_signal","—"),
+                "Thesis":  thesis_display,
+                "Catalyst":catalyst_display,
+                "Risk":    risk_display,
+            })
 
-    _render_level(l1,"⚡ Level 1 — Best Setups","#10B981")
-    _render_level(l2,"📈 Level 2 — Building","#F59E0B")
-    _render_level(wt,"👀 Watch — Brewing","#6366F1")
-    _render_level(av,"🚫 Avoid — Regime Trap","#EF4444")
+        if not rows:
+            st.info("No results after filter.")
+            return
 
+        df = pd.DataFrame(rows)
+
+        def _sc_trend(v):
+            return "color:#10B981" if v=="uptrend" else "color:#EF4444" if v=="downtrend" else "color:#F59E0B"
+        def _sc_action(v):
+            if "BUY" in str(v):   return "color:#10B981;font-weight:700"
+            if "TRIM" in str(v):  return "color:#EF4444;font-weight:700"
+            if "APPROACH" in str(v): return "color:#F59E0B"
+            return "color:#6B7280"
+        def _sc_dir(v):
+            return "color:#10B981" if v=="long" else "color:#EF4444" if v=="short" else "color:#F59E0B" if "avoid" in str(v) else "color:#6B7280"
+        def _sc_rr(v):
+            return "color:#10B981" if v=="bullish" else "color:#EF4444" if v=="bearish" else "color:#6B7280"
+        def _sc_fwd(v):
+            try:
+                val = float(str(v).replace("x",""))
+                return "color:#10B981;font-weight:700" if val>1.10 else "color:#F59E0B" if val>1.0 else "color:#6B7280"
+            except: return ""
+
+        styled = (
+            df.style
+            .map(_sc_trend,  subset=["Trend"])
+            .map(_sc_action, subset=["Action"])
+            .map(_sc_dir,    subset=["Dir"])
+            .map(_sc_rr,     subset=["RR Sig"])
+            .map(_sc_fwd,    subset=["FwdX"])
+        )
+        st.dataframe(styled, hide_index=True, height=min(len(rows)*38+50, 520), use_container_width=True)
+
+        # ── Expandable thesis cards ────────────────────────────────────────
+        with st.expander(f"📋 Thesis + TP Detail — {title}", expanded=False):
+            for c in filtered[:12]:
+                d_col  = "#10B981" if c.get("direction")=="long" else "#EF4444" if c.get("direction")=="short" else "#F59E0B"
+                rr_col = "#10B981" if c.get("rr_signal")=="bullish" else "#EF4444" if c.get("rr_signal")=="bearish" else "#6B7280"
+                pod_col= "#10B981" if c.get("pod_quality")=="accelerating" else "#EF4444" if c.get("pod_quality")=="decelerating" else "#9CA3AF"
+                tp     = c.get("tp", {})
+                tp_str = ""
+                if tp:
+                    t1 = tp.get("t1"); t2 = tp.get("t2"); t3 = tp.get("t3"); stp = tp.get("stop")
+                    tp_str = f"T1={t1:.2f} | T2={t2:.2f}" + (f" | T3={t3:.2f}" if t3 else "") + f" | Stop={stp:.2f}" if t1 and stp else ""
+
+                st.markdown(f"""
+<div style="background:#111827;border:1px solid #1F2B3D;border-radius:8px;padding:12px;margin-bottom:8px;">
+  <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:6px;">
+    <span style="font-size:14px;font-weight:800;color:#E8ECF0;">{c["ticker"]}</span>
+    <span style="font-size:11px;color:{d_col};font-weight:700;">{c.get("direction","—").upper()}</span>
+    <span style="font-size:11px;color:{rr_col};">RR: {c.get("rr_signal","—")}</span>
+    <span style="font-size:11px;color:#00D4AA;font-weight:700;">{c.get("range_action","—")}</span>
+    <span style="font-size:10px;color:#9CA3AF;">EV:{c.get("ev",0):.3f} | FwdX:{c.get("forward_mult",1):.2f}x | RF:{c.get("regime_fit",0):.0%}</span>
+  </div>
+  <div style="font-size:11px;color:#D1D5DB;margin-bottom:4px;"><b>Thesis:</b> {c.get("known_thesis") or c.get("thesis","—")}</div>
+  <div style="font-size:11px;color:#9CA3AF;margin-bottom:2px;"><b>Catalyst:</b> {c.get("catalyst","—")}</div>
+  <div style="font-size:11px;color:#EF4444;margin-bottom:4px;"><b>Risk:</b> {c.get("risk","—")}</div>
+  <div style="font-size:10px;color:#4B5563;margin-bottom:2px;">{tp_str}</div>
+  <div style="font-size:10px;color:{pod_col};">Pod Proxy: {c.get("pod_quality","—")} ({c.get("pod1_proxy",0):+.2f}) | {c.get("pod_note","proxy only")}</div>
+</div>
+""", unsafe_allow_html=True)
+
+    # ── Render all levels ──────────────────────────────────────────────────
+    _render_level(l1, "⚡ Level 1 — Best Setups",       "#10B981")
+    _render_level(l2, "📈 Level 2 — Building",          "#F59E0B")
+    _render_level(wt, "👀 Watch — Brewing (acc≥0.65)",  "#6366F1")
+    _render_level(av, "🚫 Avoid — Regime Trap",         "#EF4444")
+
+    # ── Pre-consensus brewing section ──────────────────────────────────────
+    if br:
+        st.markdown("---")
+        st.markdown("### 🔮 Pre-Consensus Brewing — Second-Order Citrini Plays")
+        st.caption(
+            "High constraint (≥0.70) + regime fit (≥0.60) + accumulation (≥0.65) "
+            "but not yet Level 1/2. These are Citrini second-order plays BEFORE consensus."
+        )
+        for c in br[:8]:
+            fwd_color = "#10B981" if c.get("forward_mult",1) > 1.10 else "#A78BFA"
+            st.markdown(f"""
+<div style="background:linear-gradient(90deg,#1e1b4b,#2d1b69);border-left:4px solid #A78BFA;
+     border-radius:6px;padding:10px;margin-bottom:6px;">
+  <div style="font-size:13px;font-weight:800;color:#E8ECF0;">
+    {c["ticker"]}
+    <span style="font-size:10px;color:#A78BFA;font-weight:400;margin-left:6px;">
+      {c.get("sector","").replace("_"," ").title()}
+    </span>
+    <span style="font-size:10px;color:#00D4AA;font-weight:700;margin-left:8px;">
+      {c.get("range_action","—")}
+    </span>
+  </div>
+  <div style="font-size:11px;color:#C4B5FD;margin-top:4px;">
+    {(c.get("thesis") or c.get("known_thesis") or "—")[:110]}
+  </div>
+  <div style="font-size:10px;color:#7C3AED;margin-top:3px;">
+    EV:{c.get("ev",0):.3f} |
+    <span style="color:{fwd_color}">FwdX:{c.get("forward_mult",1):.2f}x</span> |
+    RF:{c.get("regime_fit",0):.0%} |
+    Acc:{c.get("acc",0):.0%} |
+    Const:{c.get("constraint",0):.2f}
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
+    # ── EM Recovery signal ─────────────────────────────────────────────────
     st.markdown("---")
     st.markdown("### 🌍 EM Recovery Signal")
     em_sig = btk.get("em_recovery", {})
     if em_sig:
         conf = em_sig.get("confidence", 0)
         ec = "#10B981" if conf > 0.6 else "#F59E0B" if conf > 0.4 else "#6B7280"
-        st.markdown(f'''<div style="background:#111827;border:1px solid #1F2B3D;border-radius:8px;padding:10px;">
-        <div style="font-size:12px;font-weight:700;color:{ec};">{em_sig.get("trigger","")}</div>
-        <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">{em_sig.get("rationale","")}</div>
-        <div style="font-size:11px;color:#E8ECF0;margin-top:4px;">Confidence: {conf:.0%}</div>
-        <div style="font-size:11px;color:#9CA3AF;margin-top:2px;">🎯 Best: {', '.join(em_sig.get("best",[])[:6])}</div>
-        </div>''',unsafe_allow_html=True)
+        st.markdown(f"""
+<div style="background:#111827;border:1px solid #1F2B3D;border-radius:8px;padding:12px;">
+  <div style="font-size:13px;font-weight:700;color:{ec};">{em_sig.get("trigger","—")}</div>
+  <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">{em_sig.get("rationale","—")}</div>
+  <div style="font-size:12px;color:#E8ECF0;margin-top:6px;">Confidence: {conf:.0%}</div>
+  <div style="font-size:11px;color:#9CA3AF;margin-top:2px;">
+    🎯 Best: {", ".join(em_sig.get("best",[])[:6])}
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
+    # ── ON Semiconductor deep dive ─────────────────────────────────────────
+    on_a = btk.get("on_analysis", {})
+    if on_a and on_a.get("is_bottleneck"):
+        st.markdown("---")
+        st.markdown("### 🔌 ON Semiconductor — Deep Bottleneck Analysis")
+        st.caption("SiC/GaN structural — AI DC power thesis replacing EV narrative.")
+        oc1, oc2 = st.columns(2)
+        with oc1:
+            st.markdown("**Why it surged:**")
+            for reason in on_a.get("why_surged", []):
+                st.markdown(f"• {reason}")
+        with oc2:
+            st.markdown(f"**Status:** {on_a.get('current_status','—')}")
+            st.markdown(f"**Risk watch:** {on_a.get('risk_watch','—')}")
+
+    # ── Regime context footer ──────────────────────────────────────────────
+    st.markdown("---")
+    _qc = {"Q1":"#00D4AA","Q2":"#F59E0B","Q3":"#EF4444","Q4":"#6366F1"}.get(sq,"#9CA3AF")
+    _qn = {"Q1":"Goldilocks","Q2":"Reflation","Q3":"Stagflation","Q4":"Deflation"}.get(sq,"")
+    st.markdown(f"""
+<div style="background:#0F172A;border:1px solid #1E293B;border-radius:8px;padding:10px;">
+  <div style="font-size:11px;color:#9CA3AF;">Active Regime Context</div>
+  <div style="font-size:13px;font-weight:700;color:{_qc};">
+    Structural: {sq} ({_qn}) · Monthly: {mq}
+  </div>
+  <div style="font-size:10px;color:#6B7280;margin-top:4px;">
+    EV uses forward_mult to front-run Quad transition (pre-consensus edge). 
+    range_discount penalises at-resistance (never buy at TRR). 
+    Known bottleneck boost is conditional on trend+regime — not unconditional.
+  </div>
+</div>
+""", unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # NARRATIVES

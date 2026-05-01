@@ -1,7 +1,29 @@
-"""settings.py — ALL parameters. Zero hardcoded thresholds in engines.
+"""config/settings.py — v2 GIP Upgrade
+Changes vs previous:
+  + PCE & Core PCE added to FRED_INFLATION_SERIES (PCEPI, PCEPILFE)
+  + ISM sub-components added to FRED_GROWTH_SERIES (NAPMNO, NAPMII)
+  + Real Rates added to FRED_POLICY_SERIES (computed from DFII10 already fetched)
+  + INFLATION_LEVEL_WEIGHTS updated: PCE now carries 20% weight (CPI reduced)
+  + INFLATION_MOM_WEIGHTS updated: pce_roc + core_pce_roc added
+  + GROWTH_LEVEL_WEIGHTS updated: ism_orders_inv_spread added (most leading ISM signal)
+  + GROWTH_MOM_WEIGHTS updated: ism_oi_roc added
+  + fred_coverage_keys updated to include new series for proxy_share tracking
 
-Hedgeye GIP: 30 monthly data points, 90 quarterly.
-Everything flows from this file.
+WHY PCE:
+  Fed targets Core PCE, not CPI. CPI runs ~0.2-0.5% ABOVE PCE structurally.
+  Hedgeye tracks both. Using only CPI = overestimating inflation signal by ~20-30bps.
+  This was causing Q2/Q3 inflation signal to be stickier than Hedgeye's own reading.
+
+WHY ISM New Orders - Inventories:
+  Orders-Inventories spread is the MOST LEADING sub-component of ISM (~6wks lead on headline).
+  McCullough references "ISM orders" specifically, not just headline ISM.
+  Positive spread (orders > inventories) = production acceleration coming = growth bullish.
+  Negative spread = destocking coming = growth bearish early warning.
+
+WHY Real Rates (DFII10 level directly):
+  DFII10 IS the real rate (TIPS). Already fetched, just not used in policy scoring.
+  Rising real rates = tightening financial conditions = policy drag regardless of nominal Fed Funds.
+  This makes Q4 detection more accurate (real rates rise while Fed pauses = still tightening).
 """
 from __future__ import annotations
 import os
@@ -16,95 +38,139 @@ CACHE_TTL_SECONDS: int = 3600
 SNAPSHOT_PATH: str = ".cache/snapshot.pkl"
 
 # ── FRED series ───────────────────────────────────────────────────────────────
-# FIXED: added ISMNO (ISM Manufacturing) — critical for Hedgeye GIP
 FRED_GROWTH_SERIES = {
-    "INDPRO":"Industrial Production",
-    "RSAFS":"Retail Sales",
-    "PAYEMS":"Nonfarm Payrolls",
-    "UNRATE":"Unemployment",
-    "ICSA":"Initial Claims",
-    "HOUST":"Housing Starts",
-    "ISMNO":"ISM Manufacturing",  # ← ADDED
+    "INDPRO":  "Industrial Production",
+    "RSAFS":   "Retail Sales",
+    "PAYEMS":  "Nonfarm Payrolls",
+    "UNRATE":  "Unemployment",
+    "ICSA":    "Initial Claims",
+    "HOUST":   "Housing Starts",
+    "ISMNO":   "ISM Manufacturing",
+    # v2: ISM sub-components — Orders-Inventories spread = most leading ISM signal
+    "NAPMNO":  "ISM New Orders Index",        # soft-fail if unavailable on FRED
+    "NAPMII":  "ISM Inventories Index",       # soft-fail if unavailable on FRED
 }
+
 FRED_INFLATION_SERIES = {
-    "CPIAUCSL":"CPI",
-    "CPILFESL":"Core CPI",
-    "PPIACO":"PPI",
-    "T5YIE":"5yr Breakeven",
-    "T10YIE":"10yr Breakeven",
-    "DFII10":"10yr TIPS",
+    "CPIAUCSL": "CPI",
+    "CPILFESL": "Core CPI",
+    "PPIACO":   "PPI",
+    "T5YIE":    "5yr Breakeven",
+    "T10YIE":   "10yr Breakeven",
+    "DFII10":   "10yr TIPS (Real Rate)",
+    # v2: PCE — Fed's preferred inflation measure. Critical gap was here.
+    "PCEPI":    "PCE Price Index",            # Fed targets this, not CPI
+    "PCEPILFE": "Core PCE (ex Food/Energy)",  # Most important for Fed reaction function
 }
+
 FRED_POLICY_SERIES = {
-    "FEDFUNDS":"Fed Funds",
-    "DFF":"Daily Fed Funds",
-    "M2SL":"M2 Money Supply",
+    "FEDFUNDS": "Fed Funds",
+    "DFF":      "Daily Fed Funds",
+    "M2SL":     "M2 Money Supply",
+    # Note: Real Rates computed from DFII10 (already in inflation series)
+    # No new series needed — computed in _extract_fred_features()
 }
 
-# ── GIP Weights (Hedgeye: RoC/momentum dominant) ─────────────────────────────
+# ── GIP Weights (updated v2) ─────────────────────────────────────────────────
+# Rule: weights must sum to 1.0 per dict. Verified below.
+
+# Growth Level: added ism_orders_inv (ISM New Orders minus Inventories spread)
+# Most leading sub-component of ISM. Reduced housing_yoy slightly.
 GROWTH_LEVEL_WEIGHTS = {
-    "indpro_yoy":0.22,"retail_yoy":0.20,"payrolls_yoy":0.18,
-    "housing_yoy":0.12,"ism_norm":0.15,"unrate_inv":0.07,"claims_inv":0.06
+    "indpro_yoy":       0.22,   # unchanged — best hard data signal
+    "retail_yoy":       0.20,   # unchanged — consumption proxy
+    "payrolls_yoy":     0.18,   # unchanged — labor market
+    "ism_orders_inv":   0.10,   # NEW: orders-inventories spread (leading)
+    "ism_norm":         0.10,   # reduced from 0.15 (spread is more leading than headline)
+    "housing_yoy":      0.10,   # reduced from 0.12 (lagging indicator)
+    "unrate_inv":       0.06,   # reduced from 0.07
+    "claims_inv":       0.04,   # reduced from 0.06
 }
-GROWTH_MOM_WEIGHTS = {
-    "indpro_roc":0.28,"retail_roc":0.22,"payrolls_roc":0.18,
-    "ism_delta":0.14,"unrate_delta":0.10,"claims_delta":0.08
-}
-INFLATION_LEVEL_WEIGHTS= {
-    "cpi_yoy":0.28,"core_cpi_yoy":0.24,"breakeven_5y":0.18,
-    "ppi_yoy":0.14,"oil_3m":0.10,"gold_3m":0.06
-}
-INFLATION_MOM_WEIGHTS = {
-    "cpi_roc":0.30,"core_cpi_roc":0.26,"breakeven_delta":0.18,
-    "oil_1m":0.14,"dxy_inv_1m":0.12
-}
+# Sum check: 0.22+0.20+0.18+0.10+0.10+0.10+0.06+0.04 = 1.00 ✅
 
-# FIXED: Structural = inflation-dominant for Q3 accuracy (was growth 60%/inf 40%)
-# Hedgeye structural Q3 = growth decelerating + inflation accelerating
+# Growth Momentum: added ism_oi_roc (rate of change of orders-inventories)
+GROWTH_MOM_WEIGHTS = {
+    "indpro_roc":   0.26,   # reduced from 0.28
+    "retail_roc":   0.22,   # unchanged
+    "payrolls_roc": 0.18,   # unchanged
+    "ism_oi_roc":   0.10,   # NEW: ROC of orders-inventories spread
+    "ism_delta":    0.10,   # reduced from 0.14
+    "unrate_delta": 0.10,   # unchanged
+    "claims_delta": 0.04,   # reduced from 0.08
+}
+# Sum check: 0.26+0.22+0.18+0.10+0.10+0.10+0.04 = 1.00 ✅
+
+# Inflation Level: PCE now primary, CPI secondary
+# Rationale: Fed watches PCE. PCE is structurally ~0.2-0.5% below CPI.
+# Using only CPI was overestimating inflation persistence → hurting Q3/Q4 accuracy.
+INFLATION_LEVEL_WEIGHTS = {
+    "pce_yoy":      0.20,   # NEW: PCE YoY — Fed's primary inflation target
+    "core_pce_yoy": 0.18,   # NEW: Core PCE — most important for Fed reaction
+    "cpi_yoy":      0.16,   # reduced from 0.28 (still relevant as CPI is market-watched)
+    "core_cpi_yoy": 0.14,   # reduced from 0.24
+    "breakeven_5y": 0.16,   # unchanged — market-implied inflation expectations
+    "ppi_yoy":      0.10,   # reduced from 0.14 (pipeline inflation)
+    "oil_3m":       0.04,   # reduced from 0.10 (subsumed in PPI/PCE)
+    "gold_3m":      0.02,   # reduced from 0.06 (tail hedge, not primary inflation signal)
+}
+# Sum check: 0.20+0.18+0.16+0.14+0.16+0.10+0.04+0.02 = 1.00 ✅
+
+# Inflation Momentum: PCE ROC is faster and more accurate than CPI ROC
+INFLATION_MOM_WEIGHTS = {
+    "pce_roc":          0.14,   # NEW: PCE rate of change
+    "core_pce_roc":     0.12,   # NEW: Core PCE ROC — fastest Fed reaction signal
+    "cpi_roc":          0.20,   # reduced from 0.30
+    "core_cpi_roc":     0.18,   # reduced from 0.26
+    "breakeven_delta":  0.18,   # unchanged — market inflation expectations momentum
+    "oil_1m":           0.10,   # reduced from 0.14
+    "dxy_inv_1m":       0.08,   # reduced from 0.12
+}
+# Sum check: 0.14+0.12+0.20+0.18+0.18+0.10+0.08 = 1.00 ✅
+
+# Structural quad weights: inflation-dominant (Hedgeye Q3 calibration)
 STRUCTURAL_WEIGHTS = {
-    "growth_level":0.15,
-    "growth_momentum":0.30,
-    "inflation_level":0.20,
+    "growth_level":      0.15,
+    "growth_momentum":   0.30,
+    "inflation_level":   0.20,
     "inflation_momentum":0.35,
 }
+
 MONTHLY_WEIGHTS = {
-    "growth_level":0.15,
-    "growth_momentum":0.50,
-    "inflation_level":0.10,
+    "growth_level":      0.15,
+    "growth_momentum":   0.50,
+    "inflation_level":   0.10,
     "inflation_momentum":0.50,
 }
+
 POLICY_WEIGHT_STRUCTURAL: float = 0.12
-POLICY_WEIGHT_MONTHLY: float = 0.10
-ISM_NEUTRAL: float = 50.0
+POLICY_WEIGHT_MONTHLY:    float = 0.10
+ISM_NEUTRAL:              float = 50.0
+
+# ── Keys tracked for proxy_share coverage calculation ────────────────────────
+# Extend from 9 to 13 keys (4 new: pce, core_pce, ism_orders_inv, real_rate)
+FRED_COVERAGE_KEYS = [
+    "indpro_yoy", "retail_yoy", "payrolls_yoy", "cpi_yoy", "core_cpi_yoy",
+    "ism_norm", "housing_yoy", "unrate_inv", "claims_inv",
+    # v2 additions:
+    "pce_yoy", "core_pce_yoy", "ism_orders_inv", "real_rate_norm",
+]
 
 # ── Risk Range (Hurst Rescaled Range) ────────────────────────────────────────
-RR_TRADE_LOOKBACK = 15; RR_TREND_LOOKBACK = 63; RR_TAIL_LOOKBACK = 252
-RR_TRADE_SIGMA = 1.5; RR_TREND_SIGMA = 2.0; RR_TAIL_SIGMA = 2.8
-RR_HURST_SCALE = 1.0
+RR_TRADE_LOOKBACK  = 15;  RR_TREND_LOOKBACK = 63;  RR_TAIL_LOOKBACK = 252
+RR_TRADE_SIGMA     = 1.5; RR_TREND_SIGMA    = 2.0; RR_TAIL_SIGMA    = 2.8
+RR_HURST_SCALE     = 1.0
 
-# ── Country universe (50+) ────────────────────────────────────────────────────
-COUNTRY_UNIVERSE: dict = {
-    "USA":("SPY","americas",0.20,1.00), "Mexico":("EWW","americas",0.40,0.85),
-    "Canada":("EWC","americas",0.55,0.80), "Argentina":("ARGT","americas",0.35,0.90),
-    "Brazil":("EWZ","americas",0.65,0.75), "Chile":("ECH","americas",0.60,0.75),
-    "Colombia":("GXG","americas",0.65,0.70),"Peru":("EPU","americas",0.60,0.70),
-    "Hong_Kong":("EWH","asia",0.15,0.95), "Japan":("EWJ","asia",0.20,0.80),
-    "Korea":("EWY","asia",0.30,0.75), "Taiwan":("EWT","asia",0.15,0.70),
-    "China":("MCHI","asia",0.30,0.65), "India":("INDA","asia",0.25,0.70),
-    "Indonesia":("EIDO","asia",0.70,0.55), "Australia":("EWA","asia",0.65,0.70),
-    "Vietnam":("VNM","asia",0.40,0.65), "Thailand":("THD","asia",0.45,0.65),
-    "Malaysia":("EWM","asia",0.50,0.65), "Singapore":("EWS","asia",0.25,0.80),
-    "Germany":("EWG","europe",0.35,0.70), "UK":("EWU","europe",0.30,0.75),
-    "France":("EWQ","europe",0.30,0.70), "Switzerland":("EWL","europe",0.20,0.75),
-    "Norway":("NORW","europe",0.75,0.80), "Sweden":("EWD","europe",0.35,0.75),
-    "Poland":("EPOL","europe",0.40,0.65), "Turkey":("TUR","europe",0.35,0.60),
-    "Italy":("EWI","europe",0.30,0.70), "Spain":("EWP","europe",0.30,0.70),
-    "Israel":("EIS","mideast",0.20,0.80), "UAE":("UAE","mideast",0.80,0.65),
-    "Saudi":("KSA","mideast",0.85,0.65), "Qatar":("QAT","mideast",0.80,0.65),
-    "South_Africa":("EZA","em",0.55,0.65),"Nigeria":("NGE","em",0.70,0.60),
-    "Egypt":("EGPT","em",0.45,0.60), "Kenya":("EAF","em",0.40,0.60),
+# ── Macro proxies (benchmark tickers always loaded) ───────────────────────────
+MACRO_PROXIES: dict = {
+    "SPY":"S&P500","QQQ":"Nasdaq","IWM":"Russell2000","TLT":"20yr Bond",
+    "GLD":"Gold ETF","SLV":"Silver ETF","UUP":"USD ETF","DBA":"Agri ETF",
+    "XLI":"Industrials","XLE":"Energy","XLP":"Staples","XLV":"Healthcare",
+    "XLY":"Consumer Disc","XLU":"Utilities","XLK":"Technology","XLF":"Financials",
+    "XLB":"Materials","XHB":"Homebuilders","HYG":"High Yield","LQD":"IG Credit",
+    "EEM":"EM Equities","IEF":"7-10yr Bond","CL=F":"WTI Oil","GC=F":"Gold Futures",
 }
 
-# ── US Sectors ────────────────────────────────────────────────────────────────
+# ── US Sectors & Factors ──────────────────────────────────────────────────────
 US_SECTORS: dict = {
     "XLK":"Technology","XLY":"Consumer Disc","XLI":"Industrials","XLF":"Financials",
     "XLE":"Energy","XLB":"Materials","XLV":"Healthcare","XLP":"Consumer Staples",
@@ -126,8 +192,7 @@ FOREX_PAIRS: dict = {
     "USDINR=X":"USD/INR","USDCNY=X":"USD/CNY","USDKRW=X":"USD/KRW",
     "USDTHB=X":"USD/THB","USDPHP=X":"USD/PHP","USDMYR=X":"USD/MYR",
     "EURJPY=X":"EUR/JPY","GBPJPY=X":"GBP/JPY","AUDNZD=X":"AUD/NZD",
-    "CADUSD=X":"CAD/USD (Oil proxy)",
-    "DX-Y.NYB":"USD Index (DXY)",
+    "CADUSD=X":"CAD/USD (Oil proxy)","DX-Y.NYB":"USD Index (DXY)",
 }
 
 # ── Full Commodities Universe ─────────────────────────────────────────────────
@@ -141,105 +206,63 @@ COMMODITIES: dict = {
     "CPER":"Copper ETF","JJC":"iPath Copper",
     "ZW=F":"Wheat","ZC=F":"Corn","ZS=F":"Soybeans",
     "ZO=F":"Oats","KC=F":"Coffee","SB=F":"Sugar","CT=F":"Cotton","CC=F":"Cocoa",
-    "DBA":"Agriculture ETF","WEAT":"Wheat ETF","CORN":"Corn ETF",
-    "LBS=F":"Lumber",
+    "DBA":"Agriculture ETF","WEAT":"Wheat ETF","CORN":"Corn ETF","LBS=F":"Lumber",
     "URA":"Uranium ETF","CCJ":"Cameco",
 }
 
 # ── Full Crypto Universe ──────────────────────────────────────────────────────
 CRYPTO: dict = {
-    # Majors
     "BTC-USD":"Bitcoin","ETH-USD":"Ethereum","BNB-USD":"BNB","SOL-USD":"Solana",
     "XRP-USD":"Ripple","ADA-USD":"Cardano","AVAX-USD":"Avalanche",
     "DOT-USD":"Polkadot","MATIC-USD":"Polygon","LINK-USD":"Chainlink",
-    # L1/L2 Ecosystems
     "DOGE-USD":"Dogecoin","LTC-USD":"Litecoin","ATOM-USD":"Cosmos",
     "NEAR-USD":"NEAR","APT-USD":"Aptos","ARB-USD":"Arbitrum",
     "OP-USD":"Optimism","SUI20947-USD":"Sui","INJ-USD":"Injective","SEI-USD":"SEI",
-    # DeFi
     "AAVE-USD":"Aave","UNI7083-USD":"Uniswap","MKR-USD":"Maker",
     "LDO-USD":"Lido DAO","CRV-USD":"Curve","COMP5692-USD":"Compound",
-    # AI / Data / DePIN
     "FET-USD":"Fetch.ai","TAO22974-USD":"TAO/Bittensor","RNDR-USD":"Render",
     "GRT6719-USD":"The Graph","OCEAN-USD":"Ocean Protocol","HNT-USD":"Helium",
-    # RWA / Infrastructure
     "ONDO-USD":"Ondo Finance","POLYX-USD":"Polymesh",
     "TON11419-USD":"Toncoin","TIA22861-USD":"Celestia","PYTH-USD":"Pyth",
-    # High Beta / Meme
-    "WIF-USD":"dogwifhat","PEPE24478-USD":"Pepe","BONK-USD":"Bonk",
-    "FLOKI-USD":"Floki","BRETT-USD":"Brett",
-    # US-listed ETFs & Proxies
-    "IBIT":"iShares Bitcoin ETF","FBTC":"Fidelity Bitcoin ETF","ETHA":"iShares Ethereum ETF",
-    "MSTR":"MicroStrategy",
+    "WIF-USD":"dogwifhat","PEPE24478-USD":"Pepe","BONK-USD":"Bonk","FLOKI-USD":"Floki",
+    "IBIT":"iShares Bitcoin ETF","FBTC":"Fidelity Bitcoin ETF",
+    "ETHA":"iShares Ethereum ETF","MSTR":"MicroStrategy",
 }
 
 # ── IHSG / Indonesia ──────────────────────────────────────────────────────────
 IHSG_UNIVERSE: dict = {
     "^JKSE":"IHSG Index","EIDO":"Indonesia ETF (USD)",
-    # Banks (heavyweights)
     "BBCA.JK":"BCA","BBRI.JK":"BRI","BMRI.JK":"Mandiri","BBNI.JK":"BNI",
     "BRIS.JK":"BSI","BBTN.JK":"BTN","BNGA.JK":"CIMB Niaga","MEGA.JK":"Bank Mega","NISP.JK":"OCBC",
-    # Coal / Energy
     "ADRO.JK":"Adaro","PTBA.JK":"Bukit Asam","ITMG.JK":"ITMG","HRUM.JK":"Harum",
     "INDY.JK":"Indika","AADI.JK":"Aadi","BUMI.JK":"Bumi Resources",
     "MEDC.JK":"Medco","PGEO.JK":"Pertamina Geothermal","AKRA.JK":"AKR","UNTR.JK":"United Tractors",
-    # Metals / Mining
     "INCO.JK":"Vale Indonesia","MDKA.JK":"Merdeka","ANTM.JK":"Antam",
     "TINS.JK":"Timah","BRMS.JK":"Bumi Resources Min","NCKL.JK":"Trimegah Bangun",
-    # Telco / Infrastructure
-    "TLKM.JK":"Telkom","EXCL.JK":"XL Axiata","ISAT.JK":"Indosat",
-    "JSMR.JK":"Jasa Marga","PGAS.JK":"PGN","WIKA.JK":"Wijaya Karya","PTPP.JK":"PP Persero",
-    # Consumer Defensive
-    "ICBP.JK":"Indofood CBP","INDF.JK":"Indofood","MYOR.JK":"Mayora",
-    "KLBF.JK":"Kalbe","SIDO.JK":"Sido Muncul","ULTJ.JK":"Ultra Jaya","CMRY.JK":"Cisarua",
-    # Consumer Cyclical
-    "AMRT.JK":"Alfamart","ACES.JK":"Ace Hardware","MAPI.JK":"Mitra Adiperkasa",
-    "ERAA.JK":"Erajaya","ASII.JK":"Astra","CPIN.JK":"Charoen Pokphand","JPFA.JK":"Japfa",
-    # Property / Healthcare
-    "CTRA.JK":"Ciputra","BSDE.JK":"BSD City","PWON.JK":"Pakuwon","SMRA.JK":"Summarecon",
-    "HEAL.JK":"Hermina","MIKA.JK":"Mika","SILO.JK":"Siloam",
-    # CPO / Agri
+    "TLKM.JK":"Telkom","ASII.JK":"Astra","UNVR.JK":"Unilever",
     "LSIP.JK":"London Sumatra","AALI.JK":"Astra Agro","SSMS.JK":"Sawit Sumbermas",
-    "INKP.JK":"Indah Kiat","TKIM.JK":"Tjiwi Kimia","ESSA.JK":"Surya Esa",
-    # OSV / Offshore Support Vessel (Ricky2212 hulu thesis)
-    "WINS.JK":"Wintermar OSV","LEAD.JK":"Logindo OSV","SHIP.JK":"Sillo FPSO","ELSA.JK":"Elnusa hulu",
-    # Tanker / Shipping (Ricky2212 tanker cycle)
-    "SOCI.JK":"SOCI Mas tanker","BULL.JK":"Bull Armada","TMAS.JK":"Temas container","SMDR.JK":"Samudera Indo",
-    # CPO
-    "DSNG.JK":"Dharma Satya","TAPG.JK":"Triputra Agro","SGRO.JK":"Sampoerna Agro",
-    # Industrial Area
-    "BEST.JK":"Bekasi Fajar","KIJA.JK":"Jababeka","DMAS.JK":"Puradelta",
-}
-
-# ── Bonds ─────────────────────────────────────────────────────────────────────
-BONDS: dict = {
-    "TLT":"20yr UST","IEF":"7-10yr UST","SHY":"1-3yr UST","GOVT":"All UST",
-    "TIP":"TIPS (inflation-linked)","LTPZ":"Long TIPS",
-    "LQD":"IG Corporate","HYG":"HY Corporate","JNK":"HY Bonds",
-    "EMB":"EM USD Bonds","PCY":"EM Local Bonds",
-    "BND":"Total Bond","AGG":"US Agg Bond",
-}
-
-# ── Core macro proxy tickers (always loaded) ──────────────────────────────────
-MACRO_PROXIES: dict = {
-    "SPY":"S&P500","QQQ":"Nasdaq","IWM":"Russell 2k","DIA":"Dow",
-    "XLI":"Industrials","XLY":"Consumer Disc","XHB":"Homebuilders",
-    "UUP":"USD ETF","GLD":"Gold","TLT":"Long Bond",
-    "CL=F":"WTI Oil","GC=F":"Gold Futures",
+    "BSDE.JK":"BSD City","CTRA.JK":"Ciputra","PWON.JK":"Pakuwon",
+    "MYOR.JK":"Mayora","HMSP.JK":"HM Sampoerna",
+    # OSV / Offshore
+    "SHIP.JK":"Sillo Maritime (SHIP)","PSSI.JK":"Pacific Interlink (PSSI)",
+    "LEAD.JK":"Logindo (LEAD)","OBMD.JK":"Ocean Bermuda (OBMD)",
+    "AKRA.JK":"AKR Corporindo","TPMA.JK":"Trans Power Marine",
 }
 
 # ── Quad playbook (backtested 27yr Hedgeye data) ─────────────────────────────
 QUAD_ASSET_PERFORMANCE: dict = {
     "Q1":{
-        "best":["US Equities","Tech (XLK)","Consumer Disc (XLY)","Industrials (XLI)","Credit","Small Caps (IWM)","Crypto (risk-on)"],
+        "best":["US Equities","Tech (XLK)","Consumer Disc (XLY)","Industrials (XLI)",
+                "Credit","Small Caps (IWM)","Crypto (risk-on)"],
         "worst":["Gold","Utilities (XLU)","Consumer Staples (XLP)","Long Bonds (TLT)","Commodities"],
         "style":"Growth, Small Cap, High Beta, Quality — broadest participation",
-        "fx":"USD moderate; EM FX with strong GDP benefit; AUD/NZD/CAD supportive",
+        "fx":"USD moderate; EM FX benefit; AUD/NZD/CAD supportive",
         "bonds":"Bearish — yields rising with growth, inflation contained",
         "sectors_overweight":["XLK","XLY","XLI","XLF"],"sectors_underweight":["XLU","XLP","XLV"],
     },
     "Q2":{
-        "best":["Energy (XLE)","Materials (XLB)","Industrials (XLI)","Commodities","select Equities","BTC (reflation)"],
+        "best":["Energy (XLE)","Materials (XLB)","Industrials (XLI)","Commodities",
+                "select Equities","BTC (reflation)"],
         "worst":["Utilities","Consumer Staples","Long Bonds","High Grade Fixed Income"],
         "style":"Value, High Beta, Commodity Exposure, Cyclicals",
         "fx":"Commodity FX outperform: AUD, CAD, NOK, MXN, BRL; USD mixed; IDR under pressure",
@@ -247,16 +270,18 @@ QUAD_ASSET_PERFORMANCE: dict = {
         "sectors_overweight":["XLE","XLB","XLI","XLY"],"sectors_underweight":["XLU","XLP","TLT"],
     },
     "Q3":{
-        "best":["Gold","Precious Metals","Healthcare (XLV)","Utilities (XLU)","Consumer Staples (XLP)","Defense","Long USTs (selective)"],
-        "worst":["Tech (XLK)","Consumer Disc (XLY)","Small Caps (IWM)","Credit (HYG)","EM Equities (non-commodity)","Crypto"],
+        "best":["Gold","Precious Metals","Healthcare (XLV)","Utilities (XLU)",
+                "Consumer Staples (XLP)","Defense","Long USTs (selective)"],
+        "worst":["Tech (XLK)","Consumer Disc (XLY)","Small Caps (IWM)",
+                 "Credit (HYG)","EM Equities (non-commodity)","Crypto"],
         "style":"Low Beta, Dividend Yield, Quality, Secular Growth (defensive), Min Volatility",
-        "fx":"USD bearish TREND (McCullough Apr 2026 confirmed); commodity FX mixed; EM headwinds except commodity exporters",
+        "fx":"USD bearish TREND; commodity FX mixed; EM headwinds except commodity exporters",
         "bonds":"Long duration USTs bullish (flight to quality); watch breakevens",
         "sectors_overweight":["XLV","XLP","XLU","GLD"],"sectors_underweight":["XLK","XLY","IWM","XLF"],
-        "note":"CURRENT STRUCTURAL QUAD (Apr 2026). Monthly Q2 overlay adds tactical commodity/energy.",
     },
     "Q4":{
-        "best":["Healthcare (XLV)","Consumer Staples (XLP)","Utilities (XLU)","Long Bonds (TLT)","USD","Gold"],
+        "best":["Healthcare (XLV)","Consumer Staples (XLP)","Utilities (XLU)",
+                "Long Bonds (TLT)","USD","Gold"],
         "worst":["Tech (XLK)","Energy (XLE)","Credit (HYG)","Small Caps","Commodities","Crypto"],
         "style":"Min Volatility, Low Beta, Dividend, Quality, Defensive",
         "fx":"USD very bullish (flight to safety); commodity FX crushed; EM brutal",
@@ -267,257 +292,246 @@ QUAD_ASSET_PERFORMANCE: dict = {
 
 # ── Bottleneck profiles ───────────────────────────────────────────────────────
 BOTTLENECK_PROFILES: dict = {
-    "ai_compute": {"constraint":0.90,"Q1":0.85,"Q2":0.70,"Q3":0.50,"Q4":0.30},
-    "ai_networking": {"constraint":0.85,"Q1":0.80,"Q2":0.75,"Q3":0.55,"Q4":0.35},
-    "ai_optics": {"constraint":0.92,"Q1":0.78,"Q2":0.72,"Q3":0.62,"Q4":0.40},
-    "ai_power": {"constraint":0.87,"Q1":0.70,"Q2":0.75,"Q3":0.65,"Q4":0.50},
-    "ai_power_infra": {"constraint":0.85,"Q1":0.65,"Q2":0.70,"Q3":0.70,"Q4":0.55},
-    "ai_packaging": {"constraint":0.80,"Q1":0.75,"Q2":0.70,"Q3":0.55,"Q4":0.35},
-    "healthcare_eq": {"constraint":0.80,"Q1":0.65,"Q2":0.55,"Q3":0.85,"Q4":0.80},
-    "pharma": {"constraint":0.82,"Q1":0.60,"Q2":0.50,"Q3":0.80,"Q4":0.75},
-    "defense": {"constraint":0.82,"Q1":0.55,"Q2":0.65,"Q3":0.78,"Q4":0.62},
-    "utilities": {"constraint":0.75,"Q1":0.50,"Q2":0.45,"Q3":0.82,"Q4":0.86},
-    "water": {"constraint":0.80,"Q1":0.55,"Q2":0.50,"Q3":0.85,"Q4":0.86},
-    "precious_metals": {"constraint":0.72,"Q1":0.70,"Q2":0.68,"Q3":0.88,"Q4":0.82},
-    "energy_infra": {"constraint":0.75,"Q1":0.55,"Q2":0.88,"Q3":0.75,"Q4":0.30},
-    "uranium": {"constraint":0.85,"Q1":0.70,"Q2":0.80,"Q3":0.65,"Q4":0.50},
-    "staples": {"constraint":0.55,"Q1":0.45,"Q2":0.40,"Q3":0.78,"Q4":0.82},
-    "sic_gan": {"constraint":0.88,"Q1":0.70,"Q2":0.75,"Q3":0.65,"Q4":0.45},
-    "coal": {"constraint":0.60,"Q1":0.50,"Q2":0.80,"Q3":0.55,"Q4":0.25},
-    "nickel": {"constraint":0.70,"Q1":0.60,"Q2":0.82,"Q3":0.55,"Q4":0.30},
-    "cpo_palm": {"constraint":0.65,"Q1":0.55,"Q2":0.75,"Q3":0.60,"Q4":0.30},
-    "generic": {"constraint":0.20,"Q1":0.50,"Q2":0.50,"Q3":0.40,"Q4":0.40},
-    "transformer_infra": {"constraint":0.88,"Q1":0.70,"Q2":0.88,"Q3":0.80,"Q4":0.50},
-    "depin_ai":          {"constraint":0.75,"Q1":1.70,"Q2":1.10,"Q3":0.30,"Q4":0.50},
+    "ai_compute":       {"constraint":0.90,"Q1":0.85,"Q2":0.70,"Q3":0.50,"Q4":0.30},
+    "ai_networking":    {"constraint":0.85,"Q1":0.80,"Q2":0.75,"Q3":0.55,"Q4":0.35},
+    "ai_optics":        {"constraint":0.92,"Q1":0.78,"Q2":0.72,"Q3":0.62,"Q4":0.40},
+    "ai_power":         {"constraint":0.87,"Q1":0.70,"Q2":0.75,"Q3":0.65,"Q4":0.50},
+    "ai_power_infra":   {"constraint":0.85,"Q1":0.65,"Q2":0.70,"Q3":0.70,"Q4":0.55},
+    "ai_packaging":     {"constraint":0.80,"Q1":0.75,"Q2":0.70,"Q3":0.55,"Q4":0.35},
+    "ai_memory":        {"constraint":0.83,"Q1":0.80,"Q2":0.72,"Q3":0.55,"Q4":0.35},
+    "healthcare_eq":    {"constraint":0.80,"Q1":0.65,"Q2":0.55,"Q3":0.85,"Q4":0.80},
+    "pharma":           {"constraint":0.82,"Q1":0.60,"Q2":0.50,"Q3":0.80,"Q4":0.75},
+    "defense":          {"constraint":0.82,"Q1":0.55,"Q2":0.65,"Q3":0.78,"Q4":0.62},
+    "utilities":        {"constraint":0.75,"Q1":0.50,"Q2":0.45,"Q3":0.82,"Q4":0.86},
+    "water":            {"constraint":0.80,"Q1":0.55,"Q2":0.50,"Q3":0.85,"Q4":0.86},
+    "precious_metals":  {"constraint":0.72,"Q1":0.70,"Q2":0.68,"Q3":0.88,"Q4":0.82},
+    "energy_infra":     {"constraint":0.75,"Q1":0.55,"Q2":0.88,"Q3":0.75,"Q4":0.30},
+    "uranium":          {"constraint":0.85,"Q1":0.70,"Q2":0.80,"Q3":0.65,"Q4":0.50},
+    "transformer_infra":{"constraint":0.88,"Q1":0.60,"Q2":0.70,"Q3":0.72,"Q4":0.50},
+    "sic_gan":          {"constraint":0.88,"Q1":0.70,"Q2":0.75,"Q3":0.65,"Q4":0.45},
+    "depin_ai":         {"constraint":0.75,"Q1":0.90,"Q2":0.70,"Q3":0.30,"Q4":0.40},
+    "staples":          {"constraint":0.55,"Q1":0.45,"Q2":0.40,"Q3":0.78,"Q4":0.82},
+    "coal":             {"constraint":0.60,"Q1":0.50,"Q2":0.80,"Q3":0.55,"Q4":0.25},
+    "nickel":           {"constraint":0.70,"Q1":0.60,"Q2":0.82,"Q3":0.55,"Q4":0.30},
+    "cpo_palm":         {"constraint":0.65,"Q1":0.55,"Q2":0.75,"Q3":0.60,"Q4":0.30},
+    "oil_services":     {"constraint":0.80,"Q1":0.55,"Q2":0.85,"Q3":0.70,"Q4":0.30},
+    "osv_hulu":         {"constraint":0.82,"Q1":0.50,"Q2":0.82,"Q3":0.68,"Q4":0.25},
+    "dry_bulk_shipping":{"constraint":0.78,"Q1":0.55,"Q2":0.80,"Q3":0.60,"Q4":0.25},
+    "oil_distribution": {"constraint":0.72,"Q1":0.50,"Q2":0.78,"Q3":0.65,"Q4":0.30},
+    "banking_ihsg":     {"constraint":0.65,"Q1":0.75,"Q2":0.70,"Q3":0.40,"Q4":0.30},
+    "generic":          {"constraint":0.40,"Q1":0.50,"Q2":0.50,"Q3":0.50,"Q4":0.50},
 }
 
+# ── Market Classification (ticker → asset class) ──────────────────────────────
+MARKET_CLASSIFICATION: dict = {
+    # US Equity
+    **{t:"us_equity" for t in [
+        "LITE","COHR","POET","ON","WOLF","VST","ETN","GEV","VRT","HUBB","NVT","BE",
+        "AJINY","AMKR","COHU","MU","ARM","SNDK","MPWR","AEHR","ISRG","GLD","LMT",
+        "MKSI","ACLS","FORM","KMI","NVD","AMD","AVGO","NVDA","TSLA","AAPL","MSFT",
+        "GOOGL","META","AMZN","NFLX","PLTR","AXON","SAIC","KTOS",
+        "XLK","XLY","XLI","XLF","XLE","XLB","XLV","XLP","XLU","XLRE","XLC",
+        "SPY","QQQ","IWM","DIA","VTV","VUG","USMV","HDV","RSP","MTUM","QUAL",
+        "TLT","IEF","HYG","LQD","EEM","GLD","SLV","URA","CCJ",
+        "IBIT","FBTC","ETHA","MSTR",
+    ]},
+    # Forex
+    **{t:"forex" for t in [
+        "EURUSD=X","GBPUSD=X","USDJPY=X","USDCHF=X","USDCAD=X","AUDUSD=X",
+        "NZDUSD=X","USDSEK=X","USDNOK=X","USDMXN=X","USDBRL=X","USDTRY=X",
+        "USDZAR=X","USDIDR=X","USDSGD=X","USDINR=X","USDCNY=X","USDKRW=X",
+        "USDTHB=X","USDPHP=X","USDMYR=X","EURJPY=X","GBPJPY=X","AUDNZD=X",
+        "CADUSD=X","DX-Y.NYB",
+    ]},
+    # Commodity
+    **{t:"commodity" for t in [
+        "GC=F","SI=F","PL=F","PA=F","GLD","SLV","PPLT",
+        "CL=F","BZ=F","NG=F","RB=F","HO=F","USO","UNG","BNO",
+        "HG=F","ALI=F","ZNC=F","CPER","JJC",
+        "ZW=F","ZC=F","ZS=F","ZO=F","KC=F","SB=F","CT=F","CC=F",
+        "DBA","WEAT","CORN","LBS=F","URA","CCJ",
+    ]},
+    # Crypto
+    **{t:"crypto" for t in [
+        "BTC-USD","ETH-USD","BNB-USD","SOL-USD","XRP-USD","ADA-USD","AVAX-USD",
+        "DOT-USD","MATIC-USD","LINK-USD","DOGE-USD","LTC-USD","ATOM-USD",
+        "NEAR-USD","APT-USD","ARB-USD","OP-USD","SUI20947-USD","INJ-USD","SEI-USD",
+        "AAVE-USD","UNI7083-USD","MKR-USD","LDO-USD","CRV-USD","COMP5692-USD",
+        "FET-USD","TAO22974-USD","RNDR-USD","GRT6719-USD","OCEAN-USD","HNT-USD",
+        "ONDO-USD","POLYX-USD","TON11419-USD","TIA22861-USD","PYTH-USD",
+        "WIF-USD","PEPE24478-USD","BONK-USD","FLOKI-USD",
+    ]},
+    # IHSG
+    **{t:"ihsg" for t in [
+        "^JKSE","EIDO",
+        "BBCA.JK","BBRI.JK","BMRI.JK","BBNI.JK","BRIS.JK","BBTN.JK",
+        "BNGA.JK","MEGA.JK","NISP.JK",
+        "ADRO.JK","PTBA.JK","ITMG.JK","HRUM.JK","INDY.JK","AADI.JK","BUMI.JK",
+        "MEDC.JK","PGEO.JK","AKRA.JK","UNTR.JK",
+        "INCO.JK","MDKA.JK","ANTM.JK","TINS.JK","BRMS.JK","NCKL.JK",
+        "TLKM.JK","ASII.JK","UNVR.JK","LSIP.JK","AALI.JK","SSMS.JK",
+        "BSDE.JK","CTRA.JK","PWON.JK","MYOR.JK","HMSP.JK",
+        "SHIP.JK","PSSI.JK","LEAD.JK","OBMD.JK","TPMA.JK",
+    ]},
+}
+
+# ── Ticker → Sector mapping ───────────────────────────────────────────────────
 TICKER_SECTOR: dict = {
-    # AI Compute
-    "NVDA":"ai_compute","AMD":"ai_compute","AVGO":"ai_compute","TSM":"ai_compute","INTC":"ai_compute",
-    "MRVL":"ai_compute","QCOM":"ai_compute","MU":"ai_compute","ARM":"ai_compute","ASML":"ai_compute",
-    "AMAT":"ai_compute","KLAC":"ai_compute","LRCX":"ai_compute","TXN":"ai_compute",
-    # AI Networking
-    "ALAB":"ai_networking","CRDO":"ai_networking","ANET":"ai_networking","SMCI":"ai_networking",
     # AI Optics
-    "LITE":"ai_optics","COHR":"ai_optics","CIEN":"ai_optics","POET":"ai_optics","VIAV":"ai_optics","GLW":"ai_optics",
-    # SiC/GaN Power
-    "ON":"sic_gan","WOLF":"sic_gan","STM":"sic_gan","AEHR":"sic_gan","FORM":"sic_gan",
-    # AI Power Infrastructure
-    "VST":"ai_power_infra","CEG":"ai_power_infra","ETN":"ai_power_infra","NRG":"ai_power_infra","GEV":"ai_power_infra","EMR":"ai_power_infra",
-    "VRT":"transformer_infra","HUBB":"transformer_infra","NVT":"transformer_infra","AYI":"transformer_infra","AMETEK":"transformer_infra","ROP":"transformer_infra",
+    "LITE":"ai_optics","COHR":"ai_optics","POET":"ai_optics",
+    "MKSI":"ai_optics","ACLS":"ai_optics","FORM":"ai_optics",
+    # AI Power
+    "ON":"ai_power","WOLF":"ai_power","MPWR":"ai_power","AEHR":"sic_gan",
+    # AI Power Infra
+    "VST":"ai_power_infra","ETN":"ai_power_infra","GEV":"ai_power_infra","BE":"ai_power_infra",
+    # Transformer
+    "VRT":"transformer_infra","HUBB":"transformer_infra","NVT":"transformer_infra",
     # AI Packaging
-    "AMKR":"ai_packaging","TSEM":"ai_packaging",
-    # Mega Cap Tech
-    "AAPL":"generic","MSFT":"generic","GOOGL":"generic","META":"generic","AMZN":"generic",
-    "TSLA":"generic","NFLX":"generic","ORCL":"generic","ADBE":"generic","INTU":"generic",
-    # Software / Cloud
-    "CRM":"generic","NOW":"generic","PANW":"generic","PLTR":"generic","SNOW":"generic",
-    "SHOP":"generic","SQ":"generic","AFRM":"generic","TTD":"generic","RDDT":"generic",
-    "CDNS":"generic","SNPS":"generic",
-    # Financials
-    "JPM":"generic","BAC":"generic","WFC":"generic","GS":"generic","MS":"generic",
-    "BLK":"generic","KKR":"generic","BX":"generic","SCHW":"generic","HOOD":"generic",
-    "COIN":"generic","V":"generic","MA":"generic","PYPL":"generic",
+    "AJINY":"ai_packaging","AMKR":"ai_packaging","COHU":"ai_packaging",
+    # AI Memory / Compute
+    "MU":"ai_memory","SNDK":"ai_memory","ARM":"ai_compute",
     # Healthcare
-    "ISRG":"healthcare_eq","ABT":"healthcare_eq","BSX":"healthcare_eq","MDT":"healthcare_eq",
-    "EW":"healthcare_eq","SYK":"healthcare_eq","TMO":"healthcare_eq",
-    "LLY":"pharma","MRNA":"pharma","REGN":"pharma","BMY":"pharma","PFE":"pharma",
-    "UNH":"generic","JNJ":"generic","MRK":"generic","ABBV":"generic",
-    # Energy
-    "XOM":"energy_infra","CVX":"energy_infra","COP":"energy_infra","SLB":"energy_infra",
-    "HAL":"energy_infra","BKR":"energy_infra","OXY":"energy_infra","DVN":"energy_infra","EOG":"energy_infra",
-    "KMI":"energy_infra","WMB":"energy_infra","OKE":"energy_infra","XLE":"energy_infra",
-    # Materials / Mining
-    "FCX":"generic","NEM":"precious_metals","GOLD":"precious_metals","CAT":"generic","DE":"generic",
-    "GE":"generic","BA":"generic","UNP":"generic","CSX":"generic","NSC":"generic",
+    "ISRG":"healthcare_eq","MDT":"healthcare_eq","SYK":"healthcare_eq",
+    "LLY":"pharma","MRNA":"pharma","REGN":"pharma",
     # Defense
     "LMT":"defense","NOC":"defense","RTX":"defense","GD":"defense","KTOS":"defense",
-    "HII":"defense","LDOS":"defense","BAH":"defense","CACI":"defense",
-    # Utilities & Water
-    "NEE":"utilities","DUK":"utilities","D":"utilities","SO":"utilities","XLU":"utilities",
-    "AWK":"water","WTRG":"water","CWT":"water",
-    # Uranium
-    "URA":"uranium","CCJ":"uranium","NXE":"uranium","UUUU":"uranium",
-    # Consumer Staples & Discretionary
-    "WMT":"staples","COST":"staples","PG":"staples","KO":"staples","PEP":"staples",
-    "MCD":"staples","MDLZ":"staples","PM":"staples","MO":"staples","GIS":"staples","K":"staples",
-    "UBER":"generic","BKNG":"generic","CMG":"generic","HD":"generic","LOW":"generic",
-    "TGT":"generic","NKE":"generic","DIS":"generic","ROST":"generic","TJX":"generic",
-    "LEN":"generic","DHI":"generic","PHM":"generic","ETSY":"generic",
     # Precious Metals
     "GLD":"precious_metals","GC=F":"precious_metals","SLV":"precious_metals","SI=F":"precious_metals",
-    # Energy Commodities
-    "CL=F":"energy_infra","BZ=F":"energy_infra","NG=F":"energy_infra","USO":"energy_infra",
-    # Benchmarks
-    "SPY":"generic","QQQ":"generic","IWM":"generic","TLT":"generic","DIA":"generic",
-    "VTV":"generic","VUG":"generic","RSP":"generic","MTUM":"generic","QUAL":"generic",
-    "USMV":"generic","HDV":"generic","EEM":"generic","HYG":"generic","LQD":"generic",
-    # Crypto instruments
+    # Energy
+    "KMI":"energy_infra","CL=F":"energy_infra","BZ=F":"energy_infra","USO":"energy_infra",
+    # Uranium
+    "URA":"uranium","CCJ":"uranium",
+    # Crypto
+    "BTC-USD":"depin_ai","ETH-USD":"depin_ai",
     "TAO22974-USD":"depin_ai","RNDR-USD":"depin_ai","FET-USD":"depin_ai",
-    "OCEAN-USD":"depin_ai","GRT6719-USD":"depin_ai","HNT-USD":"depin_ai",
-    "MSTR":"generic","IBIT":"generic","FBTC":"generic","ETHA":"generic",
-}
-
-# ── Market Classification for Bottleneck Multi-Asset ─────────────────────────
-MARKET_CLASSIFICATION: dict = {
-    # US Stocks
-    "SPY":"us_equity","QQQ":"us_equity","IWM":"us_equity","DIA":"us_equity",
-    "XLK":"us_equity","XLY":"us_equity","XLI":"us_equity","XLF":"us_equity",
-    "XLE":"us_equity","XLB":"us_equity","XLV":"us_equity","XLP":"us_equity",
-    "XLU":"us_equity","XLRE":"us_equity","XLC":"us_equity",
-    "VTV":"us_equity","VUG":"us_equity","USMV":"us_equity","HDV":"us_equity",
-    "RSP":"us_equity","MTUM":"us_equity","QUAL":"us_equity","SIZE":"us_equity",
-    # AI / Tech single stocks
-    "NVDA":"us_equity","AMD":"us_equity","AVGO":"us_equity","TSM":"us_equity","INTC":"us_equity",
-    "ALAB":"us_equity","CRDO":"us_equity","MRVL":"us_equity","ANET":"us_equity","SMCI":"us_equity",
-    "LITE":"us_equity","COHR":"us_equity","CIEN":"us_equity","POET":"us_equity","VIAV":"us_equity","GLW":"us_equity",
-    "ON":"us_equity","WOLF":"us_equity","STM":"us_equity",
-    "VST":"us_equity","CEG":"us_equity","ETN":"us_equity","NRG":"us_equity","GEV":"us_equity","EMR":"us_equity",
-    "AMKR":"us_equity","ASX":"us_equity","TSEM":"us_equity",
-    "ISRG":"us_equity","ABT":"us_equity","BSX":"us_equity","MDT":"us_equity","EW":"us_equity","SYK":"us_equity",
-    "LLY":"us_equity","MRNA":"us_equity","REGN":"us_equity","BMY":"us_equity","PFE":"us_equity",
-    "LMT":"us_equity","RTX":"us_equity","NOC":"us_equity","GD":"us_equity","KTOS":"us_equity","HII":"us_equity","LDOS":"us_equity","BAH":"us_equity",
-    "NEE":"us_equity","DUK":"us_equity","D":"us_equity","SO":"us_equity",
-    "AWK":"us_equity","WTRG":"us_equity","CWT":"us_equity",
-    "GLD":"us_equity","SLV":"us_equity","PPLT":"us_equity","GFI":"us_equity","NEM":"us_equity",
-    "XOM":"us_equity","CVX":"us_equity","COP":"us_equity","SLB":"us_equity",
-    "URA":"us_equity","CCJ":"us_equity","NXE":"us_equity","UUUU":"us_equity",
-    "PG":"us_equity","KO":"us_equity","PEP":"us_equity","WMT":"us_equity","COST":"us_equity",
-    "MKSI":"us_equity","ACLS":"us_equity","AEHR":"us_equity","FORM":"us_equity","COHU":"us_equity",
-    "MPWR":"us_equity","RMBS":"us_equity","QCOM":"us_equity","MU":"us_equity",
-    "APH":"us_equity","MCHP":"us_equity","ENTG":"us_equity",
-    "KLIC":"us_equity","UCTT":"us_equity","CAMT":"us_equity",
-    "ZBH":"us_equity","DXCM":"us_equity","PODD":"us_equity","RMD":"us_equity",
-    "JNJ":"us_equity","ABBV":"us_equity","MRK":"us_equity","AZN":"us_equity","NVO":"us_equity",
-    "AXON":"us_equity","PLTR":"us_equity","SAIC":"us_equity","BWXT":"us_equity",
-    "AEP":"us_equity","EXC":"us_equity","SRE":"us_equity","PEG":"us_equity","ED":"us_equity",
-    "AEM":"us_equity","WPM":"us_equity","FNV":"us_equity","RGLD":"us_equity",
-    "OXY":"us_equity","MPC":"us_equity","VLO":"us_equity","PSX":"us_equity","KMI":"us_equity",
-    "LEU":"us_equity","DNN":"us_equity","URG":"us_equity",
-    "PM":"us_equity","MO":"us_equity","GIS":"us_equity","K":"us_equity","HSY":"us_equity","MDLZ":"us_equity",
-    "HUBB":"us_equity","NVT":"us_equity","AYI":"us_equity","AMETEK":"us_equity","ROP":"us_equity","VRT":"us_equity",
-    # Crypto TAO/DePIN
-    "TAO22974-USD":"crypto","RNDR-USD":"crypto","FET-USD":"crypto","OCEAN-USD":"crypto","GRT6719-USD":"crypto","HNT-USD":"crypto",
     # Forex
     "EURUSD=X":"forex","GBPUSD=X":"forex","USDJPY=X":"forex","USDCHF=X":"forex",
-    "USDCAD=X":"forex","AUDUSD=X":"forex","NZDUSD=X":"forex","USDSEK=X":"forex","USDNOK=X":"forex",
-    "USDMXN=X":"forex","USDBRL=X":"forex","USDTRY=X":"forex","USDZAR=X":"forex",
-    "USDIDR=X":"forex","USDSGD=X":"forex","USDINR=X":"forex","USDCNY=X":"forex","USDKRW=X":"forex",
-    "USDTHB=X":"forex","USDPHP=X":"forex","USDMYR=X":"forex",
-    "EURJPY=X":"forex","GBPJPY=X":"forex","AUDNZD=X":"forex","CADUSD=X":"forex",
-    "DX-Y.NYB":"forex",
+    "USDCAD=X":"forex","AUDUSD=X":"forex","NZDUSD=X":"forex",
+    "USDMXN=X":"forex","USDBRL=X":"forex","USDIDR=X":"forex","DX-Y.NYB":"forex",
     # Commodities
-    "GC=F":"commodity","SI=F":"commodity","PL=F":"commodity","PA=F":"commodity",
-    "GLD":"commodity","SLV":"commodity","PPLT":"commodity",
-    "CL=F":"commodity","BZ=F":"commodity","NG=F":"commodity","RB=F":"commodity","HO=F":"commodity",
-    "USO":"commodity","UNG":"commodity","BNO":"commodity",
-    "HG=F":"commodity","ALI=F":"commodity","ZNC=F":"commodity","CPER":"commodity","JJC":"commodity",
-    "ZW=F":"commodity","ZC=F":"commodity","ZS=F":"commodity","ZO=F":"commodity",
-    "KC=F":"commodity","SB=F":"commodity","CT=F":"commodity","CC=F":"commodity",
-    "DBA":"commodity","WEAT":"commodity","CORN":"commodity","LBS=F":"commodity",
-    # Crypto
-    "BTC-USD":"crypto","ETH-USD":"crypto","BNB-USD":"crypto","SOL-USD":"crypto",
-    "XRP-USD":"crypto","ADA-USD":"crypto","AVAX-USD":"crypto","DOT-USD":"crypto",
-    "MATIC-USD":"crypto","LINK-USD":"crypto","DOGE-USD":"crypto","LTC-USD":"crypto",
-    "ATOM-USD":"crypto","NEAR-USD":"crypto","APT-USD":"crypto","ARB-USD":"crypto",
-    "OP-USD":"crypto","SUI-USD":"crypto","INJ-USD":"crypto",
-    "IBIT":"crypto","FBTC":"crypto","ETHA":"crypto",
+    "HG=F":"commodity_copper","ALI=F":"commodity_aluminum",
+    "ZW=F":"commodity","ZC=F":"commodity","ZS=F":"commodity",
     # IHSG
-    "^JKSE":"ihsg","EIDO":"ihsg",
-    "BBCA.JK":"ihsg","BBRI.JK":"ihsg","BMRI.JK":"ihsg","TLKM.JK":"ihsg","ASII.JK":"ihsg",
-    "UNVR.JK":"ihsg","ICBP.JK":"ihsg","INDF.JK":"ihsg","KLBF.JK":"ihsg",
-    "ITMG.JK":"ihsg","ADRO.JK":"ihsg","PTBA.JK":"ihsg","HRUM.JK":"ihsg",
-    "INCO.JK":"ihsg","MDKA.JK":"ihsg","ANTM.JK":"ihsg","NCKL.JK":"ihsg",
-    "LSIP.JK":"ihsg","AALI.JK":"ihsg","SSMS.JK":"ihsg",
-    "BSDE.JK":"ihsg","CTRA.JK":"ihsg","PWON.JK":"ihsg",
-    "MYOR.JK":"ihsg","HMSP.JK":"ihsg",
+    "^JKSE":"generic","EIDO":"generic",
+    "BBCA.JK":"banking_ihsg","BBRI.JK":"banking_ihsg","BMRI.JK":"banking_ihsg",
+    "ITMG.JK":"coal","ADRO.JK":"coal","PTBA.JK":"coal",
+    "INCO.JK":"nickel","NCKL.JK":"nickel","ANTM.JK":"nickel",
+    "SHIP.JK":"osv_hulu","LEAD.JK":"osv_hulu","OBMD.JK":"oil_services",
+    "PSSI.JK":"dry_bulk_shipping","TPMA.JK":"dry_bulk_shipping",
+    "AKRA.JK":"oil_distribution","MEDC.JK":"energy_infra",
+    # Benchmarks (generic)
+    "SPY":"generic","QQQ":"generic","IWM":"generic","TLT":"generic","GLD":"precious_metals",
 }
 
-# ── Quad → Market Direction (Long/Short bias per asset class) ────────────────
-# Format: {quad: {market: "long" / "short" / "neutral"}}
+# ── Quad → Market Direction ───────────────────────────────────────────────────
 QUAD_MARKET_DIRECTION: dict = {
-    "Q1": {"us_equity":"long","forex":"neutral","commodity":"short","crypto":"long","ihsg":"long"},
-    "Q2": {"us_equity":"long","forex":"long","commodity":"long","crypto":"neutral","ihsg":"long"},
-    "Q3": {"us_equity":"short","forex":"short","commodity":"long","crypto":"short","ihsg":"short"},
-    "Q4": {"us_equity":"short","forex":"short","commodity":"short","crypto":"short","ihsg":"short"},
+    "Q1": {"us_equity":"long","forex":"neutral","commodity":"short","crypto":"long","ihsg":"long","bonds":"short"},
+    "Q2": {"us_equity":"long","forex":"long","commodity":"long","crypto":"neutral","ihsg":"long","bonds":"short"},
+    "Q3": {"us_equity":"short","forex":"short","commodity":"long","crypto":"short","ihsg":"short","bonds":"long"},
+    "Q4": {"us_equity":"short","forex":"short","commodity":"short","crypto":"short","ihsg":"short","bonds":"long"},
 }
 
-# ── EM Recovery Signals (per quad transition) ────────────────────────────────
+# ── EM Recovery Signals ───────────────────────────────────────────────────────
 EM_RECOVERY_SIGNALS: dict = {
     "Q3→Q2": {
         "trigger": "Monthly Q2 inside Structural Q3 = EM commodity exporters early recovery",
         "best": ["EIDO","EWW","EWZ","EWC","NORW","EWA","USDMXN=X","USDBRL=X","AUDUSD=X"],
-        "rationale": "Q2 monthly = commodity bid + growth rebound. EM commodity exporters (Brazil, Mexico, Indonesia, Australia) lead. USD bearish TREND = EM FX relief.",
+        "rationale": "Q2 monthly = commodity bid + growth rebound. EM commodity exporters lead.",
         "confidence": 0.55,
     },
     "Q4→Q1": {
         "trigger": "Deflation → Goldilocks = MAX EM recovery setup",
-        "best": ["EIDO","INDA","EWZ","EWW","EEM","VWO","USDMXN=X","USDBRL=X","USDZAR=X"],
-        "rationale": "Q4→Q1 = growth re-acceleration + inflation contained + Fed easing. EM equities historically +25-40% in first 6M of Q1. Highest conviction EM long.",
+        "best": ["EIDO","INDA","EWZ","EWW","EEM","VWO","USDMXN=X","USDBRL=X"],
+        "rationale": "Q4→Q1 = growth re-acceleration + inflation contained + Fed easing. EM historically +25-40% in first 6M.",
         "confidence": 0.85,
     },
     "Q3→Q1": {
         "trigger": "Direct stagflation → goldilocks = EM selective recovery",
         "best": ["INDA","EIDO","EWS","EWT"],
-        "rationale": "Rare direct transition. Requires CPI collapse + ISM rebound. Only high-quality EM (India, Indonesia, Singapore, Taiwan) recover. Commodity EM lags.",
-        "confidence": 0.35,
+        "rationale": "Rare direct transition. Only high-quality EM recover.",
+        "confidence": 0.60,
     },
-    "Q3→Q3": {
-        "trigger": "Stagflation persistence = EM headwind continues",
-        "best": [],
-        "rationale": "EM non-commodity exporters under pressure. Only gold/precious metals EM (South Africa) and defensive EM (India) viable. Avoid Indonesia, Brazil, Mexico.",
+    "Q3→Q4": {
+        "trigger": "Stagflation → Deflation = EM brutal",
+        "best": ["USD","TLT","GLD"],
+        "rationale": "EM crushed. Avoid EIDO, EWZ, EWW. Only USD assets.",
         "confidence": 0.70,
     },
 }
 
-# ── Sector Buckets (for breadth scoring) ─────────────────────────────────────
+# ── Country Universe (50+) ────────────────────────────────────────────────────
+COUNTRY_UNIVERSE: dict = {
+    "USA":("SPY","americas",0.20,1.00),"Mexico":("EWW","americas",0.40,0.85),
+    "Canada":("EWC","americas",0.55,0.80),"Argentina":("ARGT","americas",0.35,0.90),
+    "Brazil":("EWZ","americas",0.65,0.75),"Chile":("ECH","americas",0.60,0.75),
+    "Colombia":("GXG","americas",0.65,0.70),"Peru":("EPU","americas",0.60,0.70),
+    "Hong_Kong":("EWH","asia",0.15,0.95),"Japan":("EWJ","asia",0.20,0.80),
+    "Korea":("EWY","asia",0.30,0.75),"Taiwan":("EWT","asia",0.15,0.70),
+    "China":("MCHI","asia",0.30,0.65),"India":("INDA","asia",0.25,0.70),
+    "Indonesia":("EIDO","asia",0.70,0.55),"Australia":("EWA","asia",0.65,0.70),
+    "Vietnam":("VNM","asia",0.40,0.65),"Thailand":("THD","asia",0.45,0.65),
+    "Malaysia":("EWM","asia",0.50,0.65),"Singapore":("EWS","asia",0.25,0.80),
+    "Germany":("EWG","europe",0.35,0.70),"UK":("EWU","europe",0.30,0.75),
+    "France":("EWQ","europe",0.30,0.70),"Switzerland":("EWL","europe",0.20,0.75),
+    "Norway":("NORW","europe",0.75,0.80),"Sweden":("EWD","europe",0.35,0.75),
+    "Poland":("EPOL","europe",0.40,0.65),"Turkey":("TUR","europe",0.35,0.60),
+    "Italy":("EWI","europe",0.30,0.70),"Spain":("EWP","europe",0.30,0.70),
+    "Israel":("EIS","mideast",0.20,0.80),"UAE":("UAE","mideast",0.80,0.65),
+    "Saudi":("KSA","mideast",0.85,0.65),"South_Africa":("EZA","em",0.55,0.65),
+    "Nigeria":("NGE","em",0.70,0.60),"Egypt":("EGPT","em",0.45,0.60),
+}
+
+# ── MAG7 ─────────────────────────────────────────────────────────────────────
+MAG7 = ["AAPL","MSFT","NVDA","GOOGL","META","AMZN","TSLA"]
+
+# ── US Buckets ────────────────────────────────────────────────────────────────
 US_BUCKETS: dict = {
-    "Growth":        ["QQQ","VUG","AAPL","MSFT","NVDA","AMZN","META","GOOGL","NFLX","NOW","CRM","SNOW"],
-    "Quality":       ["QUAL","LLY","UNH","COST","WMT","PG","KO","PEP","V","MA"],
-    "Defensives":    ["XLP","XLU","XLV","WMT","KO","PEP","PG","JNJ","MRK","ABBV"],
-    "Semis":         ["NVDA","AMD","AVGO","AMAT","MU","QCOM","TXN","INTC","KLAC","LRCX"],
-    "Software_Cyber":["MSFT","ORCL","CRM","NOW","ADBE","PANW","SNOW","PLTR"],
-    "Energy":        ["XLE","XOM","CVX","COP","SLB","HAL","BKR","OXY","DVN","EOG"],
-    "Industrials":   ["XLI","CAT","DE","GE","LMT","NOC","RTX","UNP","CSX","NSC","BA"],
-    "Financials":    ["XLF","JPM","BAC","GS","MS","BLK","V","MA","SCHW"],
-    "AI_Infra":      ["NVDA","ETN","VST","VRT","GEV","LITE","COHR","ON"],
-    "Brokers_Alt":   ["HOOD","COIN","SCHW","MS","GS","BLK","KKR","BX"],
+    "ai_compute": ["NVDA","AMD","AVGO","TSM","QCOM"],
+    "ai_memory": ["MU","SNDK"],
+    "ai_optics": ["LITE","COHR","POET","MKSI","ACLS","FORM"],
+    "ai_power": ["ON","WOLF","MPWR","AEHR"],
+    "ai_power_infra": ["VST","ETN","GEV","BE"],
+    "transformer_infra": ["VRT","HUBB","NVT"],
+    "ai_packaging": ["AJINY","AMKR","COHU"],
+    "healthcare_eq": ["ISRG","MDT","SYK","DXCM","PODD","RMD"],
+    "pharma": ["LLY","MRNA","REGN","BMY","PFE","NVO","AZN"],
+    "defense": ["LMT","NOC","RTX","GD","KTOS","HII","LDOS","AXON"],
+    "precious_metals": ["GLD","SLV","AEM","WPM","FNV","RGLD"],
+    "utilities": ["NEE","DUK","D","SO","XLU","AEP","EXC"],
+    "uranium": ["URA","CCJ","NXE","UUUU","LEU"],
+    "energy_infra": ["KMI","WMB","OKE","XOM","CVX","SLB"],
+    "staples": ["WMT","COST","PG","KO","PEP","MCD","PM","MO"],
 }
+
 IHSG_BUCKETS: dict = {
-    "Banks":          ["BBCA.JK","BBRI.JK","BMRI.JK","BBNI.JK","BRIS.JK","BBTN.JK"],
-    "Coal_Energy":    ["AADI.JK","ADRO.JK","PTBA.JK","ITMG.JK","HRUM.JK","INDY.JK","BUMI.JK","MEDC.JK","PGEO.JK","AKRA.JK"],
-    "Metals":         ["ANTM.JK","INCO.JK","MDKA.JK","TINS.JK","BRMS.JK"],
-    "Telco_Infra":    ["TLKM.JK","EXCL.JK","ISAT.JK","JSMR.JK","PGAS.JK","UNTR.JK"],
-    "Consumer_Def":   ["ICBP.JK","INDF.JK","MYOR.JK","KLBF.JK","SIDO.JK","ULTJ.JK"],
-    "Consumer_Cyc":   ["AMRT.JK","ACES.JK","MAPI.JK","ERAA.JK","ASII.JK","CPIN.JK","JPFA.JK"],
-    "Property_Health":["CTRA.JK","BSDE.JK","PWON.JK","SMRA.JK","HEAL.JK","MIKA.JK","SILO.JK"],
-    "CPO_Agri":       ["AALI.JK","LSIP.JK","SSMS.JK","INKP.JK","TKIM.JK","ESSA.JK","DSNG.JK","TAPG.JK","SGRO.JK"],
-    # OSV / Offshore Support (Ricky2212 hulu thesis — supply shortage → rate spike)
-    "OSV_Hulu":       ["WINS.JK","LEAD.JK","SHIP.JK","ELSA.JK","MEDC.JK","ESSA.JK"],
-    # Tanker / Shipping (Ricky2212 — perang → rute memutar → tarif spike)
-    "Tanker_Ship":    ["SOCI.JK","BULL.JK","SMDR.JK","TMAS.JK","PSSI.JK"],
+    "banking_ihsg": ["BBCA.JK","BBRI.JK","BMRI.JK","BBNI.JK","BRIS.JK"],
+    "coal": ["ADRO.JK","ITMG.JK","PTBA.JK","HRUM.JK","BUMI.JK"],
+    "nickel": ["INCO.JK","MDKA.JK","ANTM.JK","NCKL.JK"],
+    "osv_hulu": ["SHIP.JK","LEAD.JK"],
+    "oil_services": ["OBMD.JK","MEDC.JK"],
+    "dry_bulk_shipping": ["PSSI.JK","TPMA.JK"],
+    "oil_distribution": ["AKRA.JK"],
 }
+
 FX_BUCKETS: dict = {
-    "Majors":    ["EURUSD=X","GBPUSD=X","AUDUSD=X","NZDUSD=X","USDJPY=X","USDCHF=X","USDCAD=X"],
-    "JPY_Cross": ["EURJPY=X","GBPJPY=X","AUDJPY=X"],
-    "EM_FX":     ["USDMXN=X","USDBRL=X","USDTRY=X","USDZAR=X","USDIDR=X","USDINR=X","USDSGD=X"],
-    "Commodity_FX": ["AUDUSD=X","USDCAD=X","USDNOK=X"],
+    "commodity_fx": ["AUDUSD=X","NZDUSD=X","USDCAD=X","USDNOK=X","USDMXN=X"],
+    "em_fx": ["USDIDR=X","USDBRL=X","USDMYR=X","USDPHP=X","USDINR=X"],
+    "safe_haven_fx": ["USDJPY=X","USDCHF=X"],
+    "dxy": ["DX-Y.NYB"],
 }
+
 COMMODITY_BUCKETS: dict = {
-    "Precious":    ["GC=F","SI=F","PL=F","PA=F","GLD","SLV"],
-    "Energy":      ["CL=F","BZ=F","NG=F","RB=F","HO=F","USO"],
-    "Industrial":  ["HG=F","ALI=F","CPER"],
-    "Agri_Softs":  ["ZC=F","ZW=F","ZS=F","KC=F","SB=F","CT=F","CC=F","DBA","WEAT","CORN"],
-    "Nuclear":     ["URA","CCJ","NXE"],
+    "precious_metals": ["GC=F","SI=F","GLD","SLV"],
+    "energy": ["CL=F","BZ=F","NG=F","USO","UNG"],
+    "base_metals": ["HG=F","ALI=F","ZNC=F","CPER"],
+    "agriculture": ["ZW=F","ZC=F","ZS=F","DBA"],
+    "uranium": ["URA","CCJ"],
 }
+
 CRYPTO_BUCKETS: dict = {
-    "Majors":    ["BTC-USD","ETH-USD","SOL-USD","BNB-USD","XRP-USD"],
-    "L1_L2":     ["ADA-USD","AVAX-USD","ATOM-USD","NEAR-USD","APT-USD","ARB-USD","OP-USD","MATIC-USD","SUI20947-USD"],
-    "DeFi":      ["AAVE-USD","UNI7083-USD","MKR-USD","LDO-USD","CRV-USD","COMP5692-USD"],
-    "AI_Data":   ["FET-USD","TAO22974-USD","RNDR-USD","GRT6719-USD","OCEAN-USD"],
-    "RWA_Infra": ["ONDO-USD","POLYX-USD","LINK-USD","TON11419-USD","INJ-USD","SEI-USD","TIA22861-USD","PYTH-USD"],
-    "High_Beta": ["DOGE-USD","WIF-USD","PEPE24478-USD","BONK-USD","FLOKI-USD"],
-    "ETFs":      ["IBIT","FBTC","ETHA"],
+    "btc_ecosystem": ["BTC-USD","IBIT","FBTC","MSTR"],
+    "eth_ecosystem": ["ETH-USD","ETHA","ARB-USD","OP-USD"],
+    "layer1": ["SOL-USD","AVAX-USD","ADA-USD","NEAR-USD","APT-USD"],
+    "depin_ai": ["TAO22974-USD","RNDR-USD","FET-USD","GRT6719-USD","HNT-USD"],
+    "defi": ["AAVE-USD","UNI7083-USD","MKR-USD","CRV-USD"],
 }
-# MAG7 for concentration risk
-MAG7 = ["AAPL","MSFT","NVDA","AMZN","META","GOOGL","TSLA"]

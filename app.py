@@ -153,14 +153,16 @@ if "loading" not in st.session_state: st.session_state.loading = False
 # ── Sidebar ───────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("## 📊 MacroRegime Pro")
-    st.markdown("*Hedgeye GIP · v16 · Full Pipeline*")
+    st.markdown("*Hedgeye GIP · v17 · Front-Run*")
     st.divider()
     page = st.radio("", [
+        "✈️ Front-Run",
         "🏠 Dashboard","📈 GIP Regime","⏱️ Timing","🎯 Risk Ranges",
         "🌍 Global Quad","📊 US Stocks",
         "💱 Forex","🛢 Commodities","₿ Crypto",
         "🇮🇩 IHSG","🔍 Bottleneck","📖 Narratives","🔮 Early Discovery",
         "🏥 Health","🔮 Scenarios","⚡ Signal Strength",
+        "📋 Paper Trader",
     ], label_visibility="collapsed")
     st.divider()
     from data.loader import snapshot_age_str, load_snapshot
@@ -219,6 +221,8 @@ auto_disc  = snap.get("auto_discoveries", {})
 fb_eval    = snap.get("feedback_eval", {})
 dv3        = snap.get("discovery_v3", {})        # v16: DiscoveryOrchestrator output
 sec_mom    = snap.get("sector_momentum", {})     # v16: sector RS vs SPY
+frontrun   = snap.get("frontrun", {})            # v17: unified front-run watchlist
+paper_tr   = snap.get("paper_trader", {})        # v17: paper trader state
 
 sq = gip.structural_quad if gip else "Q3"
 mq = gip.monthly_quad if gip else "Q2"
@@ -248,6 +252,26 @@ if page == "🏠 Dashboard":
     else:
         vix_html=f'<div style="background:#111827;border:1px solid #1F2B3D;border-radius:8px;padding:12px;"><div style="font-size:14px;color:#9CA3AF;">VIX: {vix_last:.1f}</div></div>'
     st.markdown(vix_html, unsafe_allow_html=True)
+
+    # ── FRONT-RUN STATUS BANNER ───────────────────────────────────────────────
+    fw = frontrun.get("timing_window", getattr(transition,"front_run_window","not yet") if transition else "not yet")
+    fr_rat = frontrun.get("timing_rationale", getattr(transition,"front_run_rationale","") if transition else "")
+    boarding_ct = len(frontrun.get("boarding_now",[]))
+    gate_ct     = len(frontrun.get("gate_soon",[]))
+    fw_cfg = {
+        "now":   ("#EF4444","🚨","FRONT-RUN NOW"),
+        "1-2w":  ("#F59E0B","⚡","GATE OPENS SOON — 1-2 WEEKS"),
+        "3-6w":  ("#6366F1","👀","EARLY WARNING — 3-6 WEEKS"),
+        "not yet":("#374151","🛑","NO TRANSITION SIGNAL"),
+    }
+    fc,fi,fl = fw_cfg.get(fw, fw_cfg["not yet"])
+    boarding_badge = f' <span style="background:#EF444433;border-radius:4px;padding:2px 8px;font-size:11px;color:#EF4444;margin-left:8px;">🚨 {boarding_ct} BOARDING</span>' if boarding_ct else ""
+    gate_badge = f' <span style="background:#F59E0B33;border-radius:4px;padding:2px 8px;font-size:11px;color:#F59E0B;margin-left:4px;">⚡ {gate_ct} GATE</span>' if gate_ct else ""
+    st.markdown(f'''<div style="background:{fc}18;border-left:5px solid {fc};padding:14px 18px;border-radius:8px;margin:12px 0;">
+    <div style="font-size:17px;font-weight:900;color:{fc};">{fi} {fl}{boarding_badge}{gate_badge}</div>
+    <div style="font-size:12px;color:#D1D5DB;margin-top:6px;">{fr_rat[:140] if fr_rat else "—"}</div>
+    <div style="font-size:10px;color:#6B7280;margin-top:4px;">→ Go to <b>✈️ Front-Run</b> for full watchlist with entry levels, stops, and TP targets.</div>
+    </div>''', unsafe_allow_html=True)
     st.markdown("---")
 
     # Quad cards
@@ -1003,3 +1027,353 @@ elif page == "⚡ Signal Strength":
         def _sc_side(v): return "color:#10B981;font-weight:700" if v=="LONG" else "color:#EF4444;font-weight:700"
         st.dataframe(df.style.map(_sc_side,subset=["Side"]),hide_index=True,use_container_width=True)
     else: st.info("No signal strength data.")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ✈️ FRONT-RUN WATCHLIST — The actionable command center
+# ══════════════════════════════════════════════════════════════════════════════
+elif page == "✈️ Front-Run":
+    st.markdown("# ✈️ Front-Run Watchlist")
+    st.caption("One page. Everything you need. Take position BEFORE the plane takes off.")
+
+    if not frontrun or not frontrun.get("watchlist"):
+        st.warning("Front-run data empty. Run ⚡ Force rebuild to generate.")
+        st.markdown("""
+**Why empty?** `FrontRunEngine` requires `engines/frontrun_engine.py` + updated `orchestrator.py`.
+Deploy both files then Force rebuild.
+        """); st.stop()
+
+    # ── Regime + Timing Header ────────────────────────────────────────────────
+    fw = frontrun.get("timing_window", "not yet")
+    fr = frontrun.get("timing_rationale", "")
+    tp = frontrun.get("timing_path", "")
+    reg = frontrun.get("regime", sq)
+    fw_cfg = {
+        "now":    ("#EF4444", "🚨", "ACT NOW — HIGH CONVICTION"),
+        "1-2w":   ("#F59E0B", "⚡", "POSITION — 1-2 WEEKS"),
+        "3-6w":   ("#6366F1", "👀", "EARLY WARNING — 3-6 WEEKS"),
+        "not yet":("#374151", "🛑", "NO SIGNAL — STAY POSITIONED"),
+    }
+    fc, fi, fl = fw_cfg.get(fw, fw_cfg["not yet"])
+    st.markdown(f'''<div style="background:{fc}22;border-left:6px solid {fc};padding:16px;border-radius:8px;margin-bottom:16px;">
+<div style="font-size:20px;font-weight:900;color:{fc};">{fi} {fl}</div>
+<div style="font-size:13px;color:#E8ECF0;margin-top:8px;">{fr}</div>
+<div style="font-size:11px;color:#9CA3AF;margin-top:6px;">Regime: <b style="color:{QC.get(reg,"#9CA3AF")};">{reg} {QN.get(reg,"")}</b> · Monthly: {frontrun.get("monthly_quad","—")} · Transition: {tp or "—"}</div>
+</div>''', unsafe_allow_html=True)
+
+    # ── Metrics row ───────────────────────────────────────────────────────────
+    m1,m2,m3,m4,m5 = st.columns(5)
+    m1.metric("🚨 Boarding Now", len(frontrun.get("boarding_now",[])))
+    m2.metric("⚡ Gate Soon",    len(frontrun.get("gate_soon",[])))
+    m3.metric("👀 Check-In",    len(frontrun.get("check_in",[])))
+    m4.metric("📈 Total Longs", len(frontrun.get("longs",[])))
+    m5.metric("📉 Total Shorts",len(frontrun.get("shorts",[])))
+
+    # ── Filter controls ───────────────────────────────────────────────────────
+    st.markdown("---")
+    fa,fb,fc2,fd = st.columns(4)
+    with fa:
+        status_filter = st.multiselect("Status", ["BOARDING NOW","GATE OPENS SOON","CHECK-IN","WAIT"],
+                                        default=["BOARDING NOW","GATE OPENS SOON"])
+    with fb:
+        dir_filter = st.selectbox("Direction", ["All","long","short"])
+    with fc2:
+        mkt_filter = st.multiselect("Market", ["All","us_equity","ihsg","forex","commodity","crypto","bonds"],
+                                     default=["All"])
+    with fd:
+        min_conf = st.slider("Min Confidence %", 0, 100, 40, 5)
+
+    def _filter_candidates(cands):
+        out = []
+        for c in cands:
+            if c.status not in status_filter and status_filter: continue
+            if dir_filter != "All" and c.direction != dir_filter: continue
+            if "All" not in mkt_filter and mkt_filter and c.market not in mkt_filter: continue
+            if c.confidence_pct < min_conf: continue
+            out.append(c)
+        return out
+
+    all_cands = frontrun.get("watchlist", [])
+    # Rebuild as dataclass-like dicts if stored as dicts
+    filtered = _filter_candidates([
+        type('C', (), {k: v for k, v in c.items()})()
+        if isinstance(c, dict) else c
+        for c in all_cands
+    ])
+
+    if not filtered:
+        st.info("No candidates match filters. Widen status/market/confidence filters.")
+        st.stop()
+
+    # ── BOARDING NOW — Priority cards ─────────────────────────────────────────
+    boarding = [c for c in filtered if c.status == "BOARDING NOW"]
+    if boarding:
+        st.markdown(f"## 🚨 BOARDING NOW ({len(boarding)})")
+        st.caption("All signals converge. Entry zone active. Act within 1-3 days.")
+        for c in boarding[:8]:
+            d_col = "#10B981" if c.direction == "long" else "#EF4444"
+            px_str = f"${c.current_px:.2f}" if c.current_px else "—"
+            entry_str = f"${c.entry_zone:.2f}" if c.entry_zone else "—"
+            stop_str = f"${c.stop_loss:.2f}" if c.stop_loss else "—"
+            tp1_str = f"${c.tp1:.2f}" if c.tp1 else "—"
+            tp2_str = f"${c.tp2:.2f}" if c.tp2 else "—"
+            t_str = f"${c.tp3:.2f}" if c.tp3 else "—"
+            src_str = " · ".join(c.source_signals)
+            st.markdown(f'''<div style="background:linear-gradient(135deg,#1a0000,#2d0000);border:2px solid #EF4444;border-radius:10px;padding:16px;margin-bottom:10px;">
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
+  <div>
+    <span style="font-size:20px;font-weight:900;color:#E8ECF0;">{c.ticker}</span>
+    <span style="font-size:12px;color:{d_col};font-weight:700;margin-left:10px;">{c.direction.upper()}</span>
+    <span style="font-size:11px;color:#9CA3AF;margin-left:8px;">{c.market.replace("_"," ").title()} · {c.sector.replace("_"," ").title()}</span>
+  </div>
+  <div style="text-align:right;">
+    <span style="background:#EF444433;border-radius:6px;padding:4px 12px;font-size:13px;font-weight:800;color:#EF4444;">🚨 {c.confidence_pct}%</span>
+  </div>
+</div>
+<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-top:12px;">
+  <div style="background:#0F172A;border-radius:6px;padding:8px;text-align:center;"><div style="font-size:9px;color:#6B7280;">NOW</div><div style="font-size:13px;font-weight:700;color:#9CA3AF;">{px_str}</div></div>
+  <div style="background:#064e3b;border-radius:6px;padding:8px;text-align:center;"><div style="font-size:9px;color:#6B7280;">ENTRY</div><div style="font-size:13px;font-weight:700;color:#10B981;">{entry_str}</div></div>
+  <div style="background:#450a0a;border-radius:6px;padding:8px;text-align:center;"><div style="font-size:9px;color:#6B7280;">STOP</div><div style="font-size:13px;font-weight:700;color:#EF4444;">{stop_str}</div></div>
+  <div style="background:#1a1a2e;border-radius:6px;padding:8px;text-align:center;"><div style="font-size:9px;color:#6B7280;">T1</div><div style="font-size:13px;font-weight:700;color:#6366F1;">{tp1_str}</div></div>
+  <div style="background:#1a1a2e;border-radius:6px;padding:8px;text-align:center;"><div style="font-size:9px;color:#6B7280;">T2</div><div style="font-size:13px;font-weight:700;color:#818CF8;">{tp2_str}</div></div>
+  <div style="background:#1a1a2e;border-radius:6px;padding:8px;text-align:center;"><div style="font-size:9px;color:#6B7280;">T3</div><div style="font-size:13px;font-weight:700;color:#A5B4FC;">{t_str}</div></div>
+</div>
+<div style="margin-top:10px;font-size:11px;color:#D1D5DB;">{c.thesis[:110]}</div>
+<div style="margin-top:6px;display:flex;gap:12px;font-size:10px;flex-wrap:wrap;">
+  <span style="color:#9CA3AF;">⏱ {c.duration}</span>
+  <span style="color:#9CA3AF;">📡 {src_str}</span>
+  <span style="color:#F59E0B;">⚡ Score: {c.composite_score:.3f}</span>
+  <span style="color:#9CA3AF;">{c.range_action}</span>
+</div>
+<div style="margin-top:4px;font-size:10px;color:#6B7280;">⚠️ Risk: {c.risk[:70]}</div>
+</div>''', unsafe_allow_html=True)
+
+    # ── Full Watchlist Table ──────────────────────────────────────────────────
+    st.markdown("---")
+    st.markdown(f"### 📋 Full Watchlist ({len(filtered)} candidates)")
+
+    rows = []
+    for c in filtered:
+        rows.append({
+            "Status":  c.status_emoji + " " + c.status[:12],
+            "Ticker":  c.ticker,
+            "Mkt":     c.market.replace("_"," ").title()[:8],
+            "Dir":     c.direction.upper(),
+            "Score":   f"{c.composite_score:.3f}",
+            "Conf":    f"{c.confidence_pct}%",
+            "Px":      f"${c.current_px:.2f}" if c.current_px else "—",
+            "Entry":   f"${c.entry_zone:.2f}" if c.entry_zone else "—",
+            "Stop":    f"${c.stop_loss:.2f}" if c.stop_loss else "—",
+            "T1":      f"${c.tp1:.2f}" if c.tp1 else "—",
+            "T2":      f"${c.tp2:.2f}" if c.tp2 else "—",
+            "Duration":c.duration[:12],
+            "Timing":  f"{c.timing_score:.2f}",
+            "BTK":     f"{c.btk_score:.2f}",
+            "RR":      f"{c.rr_score:.2f}",
+            "Signals": " · ".join(c.source_signals)[:30],
+            "Thesis":  c.thesis[:60],
+        })
+
+    if rows:
+        df = pd.DataFrame(rows)
+        def _sc_dir(v): return "color:#10B981;font-weight:700" if "LONG" in str(v) else "color:#EF4444;font-weight:700" if "SHORT" in str(v) else ""
+        def _sc_status(v):
+            if "BOARDING" in str(v): return "color:#EF4444;font-weight:800"
+            if "GATE" in str(v): return "color:#F59E0B;font-weight:700"
+            if "CHECK" in str(v): return "color:#6366F1"
+            return "color:#6B7280"
+        def _sc_score(v):
+            try:
+                fv = float(str(v))
+                return "color:#10B981;font-weight:700" if fv >= 0.65 else "color:#F59E0B" if fv >= 0.45 else "color:#9CA3AF"
+            except: return ""
+        styled = df.style.map(_sc_dir, subset=["Dir"]).map(_sc_status, subset=["Status"]).map(_sc_score, subset=["Score"])
+        st.dataframe(styled, hide_index=True, height=500, use_container_width=True)
+
+    # ── By Market breakdown ───────────────────────────────────────────────────
+    st.markdown("---")
+    st.markdown("### 🌍 By Market")
+    by_mkt = frontrun.get("by_market", {})
+    mkt_cols = st.columns(min(len(by_mkt), 3))
+    for i, (mkt, cands) in enumerate(by_mkt.items()):
+        col = mkt_cols[i % 3]
+        with col:
+            st.markdown(f"**{mkt.replace('_',' ').title()}** ({len(cands)})")
+            for c in cands[:4]:
+                if isinstance(c, dict):
+                    ticker = c.get("ticker","—"); conf = c.get("confidence_pct",0); status = c.get("status","—"); score = c.get("composite_score",0)
+                else:
+                    ticker = c.ticker; conf = c.confidence_pct; status = c.status; score = c.composite_score
+                emoji = "🚨" if "BOARDING" in status else "⚡" if "GATE" in status else "👀"
+                col.markdown(f'`{ticker}` {emoji} {conf}%', unsafe_allow_html=False)
+
+    # ── Composite score legend ────────────────────────────────────────────────
+    st.markdown("---")
+    with st.expander("📖 How Composite Score Works", expanded=False):
+        wts = frontrun.get("meta", {}).get("weights", {})
+        st.markdown(f"""
+**Composite Score** = weighted average of 5 signal layers:
+
+| Signal | Weight | Source |
+|--------|--------|--------|
+| Timing | {wts.get('timing',0.30):.0%} | RegimeTransitionEngine `front_run_window` |
+| Bottleneck | {wts.get('btk',0.25):.0%} | BottleneckEngine Level + EV + Range Action |
+| Risk Range | {wts.get('rr',0.25):.0%} | HurstRR Quality A/B + Stretch + Volume |
+| Discovery | {wts.get('disc',0.10):.0%} | DiscoveryOrchestrator reactive/proactive |
+| Narrative | {wts.get('narr',0.10):.0%} | NarrativeEngine ignition strength |
+
+**Status:**
+- 🚨 **BOARDING NOW** = score ≥ 0.65 AND price in entry zone (LRR)
+- ⚡ **GATE OPENS SOON** = score ≥ 0.45
+- 👀 **CHECK-IN** = score ≥ 0.30
+- ⏳ **WAIT** = score < 0.30
+
+**Entry geometry:** LRR (Trade Low Risk Range) = buy zone.
+Stop = Trend LRR break → EXIT, not trim.
+        """)
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 📋 PAPER TRADER — Track your positions, audit win rate by regime
+# ══════════════════════════════════════════════════════════════════════════════
+elif page == "📋 Paper Trader":
+    st.markdown("# 📋 Paper Trader — Position Tracker + Regime Audit")
+    st.caption("Track signal-driven paper trades. Audit PnL by Quad regime. Close trades at TP or Stop.")
+
+    # Session-state persistence
+    if "pt_trades" not in st.session_state: st.session_state.pt_trades = []
+    if "pt_closed" not in st.session_state: st.session_state.pt_closed = []
+
+    # ── Manual entry ──────────────────────────────────────────────────────────
+    st.markdown("### ➕ Add Paper Trade")
+    with st.form("new_trade"):
+        c1,c2,c3,c4 = st.columns(4)
+        with c1: new_ticker = st.text_input("Ticker", placeholder="e.g. GLD")
+        with c2: new_dir = st.selectbox("Direction", ["long","short"])
+        with c3: new_entry = st.number_input("Entry Price", min_value=0.01, value=100.0, format="%.2f")
+        with c4: new_stop = st.number_input("Stop Loss", min_value=0.01, value=92.0, format="%.2f")
+        c5,c6,c7,c8 = st.columns(4)
+        with c5: new_tp1 = st.number_input("T1", min_value=0.01, value=110.0, format="%.2f")
+        with c6: new_tp2 = st.number_input("T2", min_value=0.01, value=120.0, format="%.2f")
+        with c7: new_src = st.selectbox("Signal Source", ["frontrun_engine","bottleneck","rr_quality_a","discovery_v3","manual"])
+        with c8: new_regime = st.selectbox("Regime", ["Q1","Q2","Q3","Q4"], index=["Q1","Q2","Q3","Q4"].index(sq) if sq in ["Q1","Q2","Q3","Q4"] else 2)
+        submitted = st.form_submit_button("Add Trade ✅", use_container_width=True)
+        if submitted and new_ticker:
+            from datetime import datetime
+            trade = {
+                "trade_id": f"{new_ticker}_{datetime.now().strftime('%Y%m%d_%H%M')}",
+                "ticker": new_ticker.upper(), "direction": new_dir,
+                "entry_price": new_entry, "stop_loss": new_stop,
+                "tp1": new_tp1, "tp2": new_tp2, "tp3": None,
+                "entry_date": datetime.now().strftime("%Y-%m-%d"),
+                "signal_source": new_src, "regime": new_regime,
+                "status": "open", "pnl_pct": None, "exit_price": None,
+            }
+            st.session_state.pt_trades.append(trade)
+            st.success(f"✅ Trade added: {new_ticker.upper()} {new_dir.upper()} @ ${new_entry:.2f}")
+            st.rerun()
+
+    # ── Auto-fill from Frontrun Watchlist ─────────────────────────────────────
+    if frontrun.get("boarding_now"):
+        st.markdown("### 🚨 Auto-fill from Boarding Now Signals")
+        boarding = frontrun.get("boarding_now", [])
+        for c in boarding[:5]:
+            if isinstance(c, dict):
+                t=c.get("ticker","—"); e=c.get("entry_zone"); s=c.get("stop_loss"); t1=c.get("tp1"); t2=c.get("tp2"); conf=c.get("confidence_pct",0)
+            else:
+                t=c.ticker; e=c.entry_zone; s=c.stop_loss; t1=c.tp1; t2=c.tp2; conf=c.confidence_pct
+            if st.button(f"➕ {t} | Entry: ${e:.2f} | Stop: ${s:.2f} | Conf: {conf}%" if e and s else f"➕ {t} | Conf: {conf}%", key=f"auto_{t}"):
+                from datetime import datetime
+                trade = {"trade_id":f"{t}_{datetime.now().strftime('%Y%m%d_%H%M')}", "ticker":t, "direction":"long",
+                    "entry_price":e or 0, "stop_loss":s or 0, "tp1":t1, "tp2":t2, "tp3":None,
+                    "entry_date":datetime.now().strftime("%Y-%m-%d"), "signal_source":"frontrun_engine",
+                    "regime":sq, "status":"open", "pnl_pct":None, "exit_price":None}
+                st.session_state.pt_trades.append(trade)
+                st.success(f"✅ {t} added from Boarding Now"); st.rerun()
+
+    # ── Open Positions ─────────────────────────────────────────────────────────
+    st.markdown("---")
+    open_trades = [t for t in st.session_state.pt_trades if t.get("status")=="open"]
+    st.markdown(f"### 📂 Open Positions ({len(open_trades)})")
+
+    if open_trades:
+        for trade in open_trades:
+            ticker = trade["ticker"]
+            entry = trade["entry_price"]
+            stop  = trade.get("stop_loss",0)
+            tp1   = trade.get("tp1")
+            direction = trade.get("direction","long")
+
+            # Live P&L
+            s = prices.get(ticker)
+            current_px = float(pd.to_numeric(s, errors="coerce").dropna().iloc[-1]) if s is not None and len(pd.to_numeric(s, errors="coerce").dropna()) > 0 else entry
+            pnl = (current_px - entry) / entry if direction == "long" else (entry - current_px) / entry
+            pnl_c = "#10B981" if pnl >= 0 else "#EF4444"
+            tp1_pct = (tp1 - entry) / entry if tp1 else None
+
+            col_a, col_b, col_c, col_d, col_e = st.columns([2,1,1,1,1])
+            with col_a:
+                st.markdown(f'<div style="font-size:13px;font-weight:700;color:#E8ECF0;">{ticker} <span style="color:{"#10B981" if direction=="long" else "#EF4444"};font-size:11px;">{direction.upper()}</span></div><div style="font-size:10px;color:#9CA3AF;">Entry: ${entry:.2f} | Stop: ${stop:.2f}{" | T1: $"+str(round(tp1,2)) if tp1 else ""}</div>',unsafe_allow_html=True)
+            with col_b:
+                st.markdown(f'<div style="font-size:14px;font-weight:700;color:#9CA3AF;">${current_px:.2f}</div><div style="font-size:10px;color:#6B7280;">Current</div>',unsafe_allow_html=True)
+            with col_c:
+                st.markdown(f'<div style="font-size:14px;font-weight:700;color:{pnl_c};">{pnl:+.1%}</div><div style="font-size:10px;color:#6B7280;">P&L</div>',unsafe_allow_html=True)
+            with col_d:
+                st.markdown(f'<div style="font-size:11px;color:#9CA3AF;">{trade.get("regime","—")}</div><div style="font-size:10px;color:#6B7280;">{trade.get("signal_source","")[:12]}</div>',unsafe_allow_html=True)
+            with col_e:
+                if st.button("Close ✖", key=f"close_{trade['trade_id']}"):
+                    trade["status"] = "closed"
+                    trade["exit_price"] = current_px
+                    trade["pnl_pct"] = round(pnl, 4)
+                    st.session_state.pt_closed.append(trade)
+                    st.session_state.pt_trades = [t for t in st.session_state.pt_trades if t["trade_id"] != trade["trade_id"]]
+                    st.success(f"Closed {ticker} at ${current_px:.2f} | PnL: {pnl:+.1%}"); st.rerun()
+
+            # Auto-TP / Stop alert
+            if stop and current_px <= stop and direction == "long":
+                st.error(f"🔴 {ticker} — STOP HIT at ${current_px:.2f}. Exit per process.")
+            elif tp1 and current_px >= tp1 and direction == "long":
+                st.success(f"✅ {ticker} — T1 HIT at ${current_px:.2f}. Trim 25% per process.")
+            st.divider()
+    else:
+        st.info("No open positions. Add trades above or auto-fill from Front-Run Watchlist.")
+
+    # ── Closed Trades + Performance Audit ─────────────────────────────────────
+    closed_trades = st.session_state.pt_closed
+    if closed_trades:
+        st.markdown(f"### 📊 Closed Trades ({len(closed_trades)}) — Regime Audit")
+        rows = []
+        for t in closed_trades:
+            rows.append({
+                "Ticker": t["ticker"], "Dir": t.get("direction","—").upper(),
+                "Entry": f"${t['entry_price']:.2f}", "Exit": f"${t.get('exit_price',0):.2f}",
+                "PnL": f"{t.get('pnl_pct',0):+.1%}" if t.get('pnl_pct') else "—",
+                "Regime": t.get("regime","—"), "Source": t.get("signal_source","—"),
+                "Date": t.get("entry_date","—"),
+            })
+        df = pd.DataFrame(rows)
+        def _sc_pnl(v):
+            try:
+                fv = float(str(v).replace("%","").replace("+",""))
+                return "color:#10B981;font-weight:700" if fv > 0 else "color:#EF4444;font-weight:700"
+            except: return ""
+        st.dataframe(df.style.map(_sc_pnl, subset=["PnL"]), hide_index=True, use_container_width=True)
+
+        # Win rate by regime
+        by_regime: dict = {}
+        for t in closed_trades:
+            r = t.get("regime","—"); p = t.get("pnl_pct",0) or 0
+            by_regime.setdefault(r, []).append(p)
+        st.markdown("#### 🏆 Win Rate by Quad Regime")
+        wr_cols = st.columns(len(by_regime))
+        for i, (regime, pnls) in enumerate(by_regime.items()):
+            wr = sum(1 for p in pnls if p > 0) / len(pnls) if pnls else 0
+            avg = np.mean(pnls) if pnls else 0
+            rc = QC.get(regime, "#9CA3AF")
+            wr_cols[i].markdown(f'<div style="background:#111827;border:1px solid {rc};border-radius:8px;padding:10px;text-align:center;"><div style="font-size:14px;font-weight:800;color:{rc};">{regime}</div><div style="font-size:20px;font-weight:900;color:{"#10B981" if wr>=0.5 else "#EF4444"};">{wr:.0%}</div><div style="font-size:11px;color:#9CA3AF;">Win Rate</div><div style="font-size:12px;color:{"#10B981" if avg>=0 else "#EF4444"};margin-top:4px;">{avg:+.1%} avg</div></div>', unsafe_allow_html=True)
+
+        # Overall stats
+        all_pnls = [t.get("pnl_pct",0) or 0 for t in closed_trades]
+        if all_pnls:
+            st.markdown(f"**Overall:** {sum(1 for p in all_pnls if p>0)}/{len(all_pnls)} wins ({sum(1 for p in all_pnls if p>0)/len(all_pnls):.0%}) · Avg: {np.mean(all_pnls):+.1%} · Best: {max(all_pnls):+.1%} · Worst: {min(all_pnls):+.1%}")
+
+    if st.button("🗑️ Clear All Closed Trades"):
+        st.session_state.pt_closed = []; st.rerun()

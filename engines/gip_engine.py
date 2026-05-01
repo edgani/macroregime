@@ -443,6 +443,9 @@ class GIPEngine:
         proxy_growth_discount = 0.0
         q3_anchor_mod = 0.0
 
+        # Store raw g_mom_ BEFORE proxy discount — monthly needs undiscounted value
+        g_mom_raw_for_monthly = g_mom_
+
         if proxy_share > 0.40:
             # Linear discount: 0% at proxy_share=0.40, 50% at proxy_share=1.00
             discount_factor = (proxy_share - 0.40) / 0.60 * 0.50
@@ -473,11 +476,30 @@ class GIPEngine:
             STRUCTURAL_WEIGHTS, POLICY_WEIGHT_STRUCTURAL, struct_mods
         )
 
-        # ── Monthly (weather) scoring — use raw momentum, no proxy discount ───
-        # Monthly is shorter-horizon — price momentum IS valid for monthly overlay
-        m_g_level = g_level * 0.6; m_g_mom = g_mom_ * 1.4   # restore discount for monthly
-        m_i_level = i_level * 0.7; m_i_mom = i_mom_ * 1.3   # inflation more volatile monthly
-        month_mods = {"Q3": q3_mod * 0.5}  # less anchor on monthly
+        # ── Monthly (weather) scoring ─────────────────────────────────────────
+        # Monthly = current month nowcast. Must be RESPONSIVE to short-term data.
+        # McCullough: "Monthly Quad is the weather, not the season."
+        #
+        # KEY RULES for monthly:
+        #   1. NO Q3 anchor — monthly should freely follow price/data signals
+        #   2. NO proxy discount — short-term price momentum IS valid for monthly
+        #      (trade deal rally, DXY, yield move = real monthly signals)
+        #   3. Use RAW g_mom before proxy discount was applied
+        #   4. MONTHLY_WEIGHTS: growth_momentum=0.50 (more reactive than structural)
+        #
+        # Evidence: Apr 20 2026 "#Quad2 Breakout, It Was" + Apr 22 "Tracking #Quad2"
+        # = Hedgeye monthly called Q2 in April. Monthly must follow these signals.
+
+        # Raw growth momentum (before proxy discount — monthly needs it undiscounted)
+        g_mom_raw_val = g_mom_raw_for_monthly
+        # For monthly: use raw proxy signals (XLI/SPY 1M/3M) — they ARE the monthly signal
+        m_g_level = g_level * 0.65          # slight bleed-through from structural
+        m_g_mom   = g_mom_raw_val * 1.20    # raw (undiscounted) momentum, amplified
+        m_i_level = i_level * 0.75          # inflation base level
+        m_i_mom   = i_mom_ * 1.20          # inflation momentum slightly amplified monthly
+
+        # ZERO Q3 anchor on monthly — let the data speak
+        month_mods = {}
         month_probs, month_quad, month_conf = _score_quad(
             m_g_level, m_g_mom, m_i_level, m_i_mom, policy,
             MONTHLY_WEIGHTS, POLICY_WEIGHT_MONTHLY, month_mods
@@ -508,7 +530,7 @@ class GIPEngine:
         features = dict(
             growth_level=g_level,
             growth_momentum=g_mom_,
-            growth_momentum_raw=g_mom_ / (1.0 - proxy_growth_discount) if proxy_growth_discount < 1.0 else g_mom_,
+        growth_momentum_raw=g_mom_raw_for_monthly,
             inflation_level=i_level,
             inflation_momentum=i_mom_,
             policy_score=policy,

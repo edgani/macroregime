@@ -819,29 +819,112 @@ elif page == "🔍 Research":
 
     # ── Narratives ────────────────────────────────────────────────────────────
     with res_tabs[1]:
-        if not narr: st.warning("No narrative data.")
+        if not narr:
+            st.warning("No narrative data. Refresh.")
         else:
-            nd=narr.get("narrative_dashboard",[])
-            dom=narr.get("dominant_narrative")
+            nd = narr.get("narrative_dashboard", [])
+            forecasts_raw = narr.get("forecasts", {})
+
+            # NarrativeUniverseConnector — Ricky article signals
+            universe_active = {}; universe_sesi = None; uni_articles = []
+            try:
+                from engines.narrative_universe_connector import NarrativeUniverseConnector
+                uni_result = NarrativeUniverseConnector().score(prices, sq)
+                universe_active = uni_result.get("active_themes", {})
+                universe_sesi   = uni_result.get("ihsg_cycle_stage")
+                uni_articles    = uni_result.get("top_signals", [])
+            except Exception: pass
+
+            # Boost scores from Ricky universe
+            for item in nd:
+                boost = universe_active.get(item.get("narrative",""), 0) * 0.20
+                if boost > 0.01:
+                    item["current_strength"] = min(1.0, item.get("current_strength",0) + boost)
+                    item["universe_boost"] = round(boost, 3)
+            nd.sort(key=lambda x: x.get("current_strength",0), reverse=True)
+
+            # Ricky Sesi banner
+            if universe_sesi:
+                sesi_cfg = {
+                    "sesi_1":("#EF4444","🩸 SESI 1 — PAIN/BOTTOM","Foreign exit. Wait for banking stabilization."),
+                    "sesi_2":("#F59E0B","🌱 SESI 2 — BANKING STABILIZE","BBCA/BBRI net buy. Start positioning."),
+                    "sesi_3":("#10B981","👑 SESI 3 — KING IS BACK","Coal/OSV/Konglo firing. Full position."),
+                }
+                sc,sl,sd = sesi_cfg.get(universe_sesi,("#6B7280","",""))
+                st.markdown(f'''<div style="background:{sc}22;border-left:5px solid {sc};padding:10px;border-radius:6px;margin-bottom:10px;"><div style="font-size:14px;font-weight:800;color:{sc};">RICKY {sl}</div><div style="font-size:11px;color:#D1D5DB;margin-top:3px;">{sd}</div></div>''',unsafe_allow_html=True)
+
+            # Dominant
+            dom = narr.get("dominant_narrative")
             if dom:
                 ds=narr.get("dominant_strength",0); dm=narr.get("dominant_lead_market","")
-                st.success(f"🔥 **Dominant:** `{dom}` — Strength: {ds:.0%} | Lead: {dm}")
-            if nd:
-                igniting=[n for n in nd if n.get("ignition")]
-                strong=[n for n in nd if not n.get("ignition") and n.get("current_strength",0)>=0.45]
-                building=[n for n in nd if 0.25<=n.get("current_strength",0)<0.45]
-                na1,na2,na3=st.columns(3)
-                na1.metric("🔥 Igniting",len(igniting)); na2.metric("💪 Strong",len(strong)); na3.metric("🔨 Building",len(building))
-                for title,items,exp in [("🔥 Igniting",igniting,True),("💪 Strong",strong[:5],False),("🔨 Building",building[:5],False)]:
-                    if items:
-                        st.markdown(f"**{title}**")
-                        for n in items:
-                            name=n.get("narrative","").replace("_"," ").title()
-                            ign_b="🔥" if n.get("ignition") else ""
-                            with st.expander(f"{ign_b} {name} — Strength:{n.get('current_strength',0):.0%} RF:{n.get('regime_weight',0):.0%} 4W:{n.get('forecast_4w',0):.0%}",expanded=exp):
-                                c1,c2=st.columns(2)
-                                c1.markdown(f"Lead: {n.get('lead_market','').replace('_',' ').title()} / {n.get('lead_sector','').replace('_',' ').title()}")
-                                c2.markdown(f"Spillover: {' → '.join(n.get('top_spillover',[])[:3])}")
+                st.success(f"🔥 **Dominant:** `{dom.replace(chr(95),' ').title()}` — Strength:{ds:.0%} | Lead:{dm.replace(chr(95),' ').title()}")
+
+            # Metrics
+            igniting=[n for n in nd if n.get("ignition") or n.get("current_strength",0)>=0.55]
+            strong=[n for n in nd if 0.35<=n.get("current_strength",0)<0.55]
+            building=[n for n in nd if 0.15<=n.get("current_strength",0)<0.35]
+            c1,c2,c3=st.columns(3)
+            c1.metric("🔥 Igniting",len(igniting)); c2.metric("💪 Active",len(strong)); c3.metric("🔨 Building",len(building))
+
+            # ── FORWARD-LOOKING (market always forward-looking) ────────────────
+            st.markdown("---")
+            st.markdown("### 🔭 Forward Forecast — What Market Will Price In (4-8W)")
+            st.caption("Market discounts 4-12 weeks ahead. Focus on 4W/8W, not current strength.")
+            fwd_ranked = sorted(nd, key=lambda x: max(x.get("forecast_4w",0),x.get("forecast_8w",0)), reverse=True)
+            top_fwd = [n for n in fwd_ranked if max(n.get("forecast_4w",0),n.get("forecast_8w",0))>0.05][:6]
+            if top_fwd:
+                for n in top_fwd:
+                    name_d=n.get("narrative","").replace("_"," ").title()
+                    cur=n.get("current_strength",0); fw4=n.get("forecast_4w",0); fw8=n.get("forecast_8w",0); rf=n.get("regime_weight",0.5)
+                    lead=n.get("lead_market","").replace("_"," ").title()
+                    ub=f" +{n.get('universe_boost',0):.0%} Ricky" if n.get("universe_boost",0)>0.02 else ""
+                    arrow="📈 ACCELERATING" if fw4>cur*1.2 else "📉 FADING" if fw4<cur*0.8 else "➡️ STABLE"
+                    ac="#10B981" if "ACC" in arrow else "#EF4444" if "FAD" in arrow else "#F59E0B"
+                    st.markdown(f'''<div style="background:#111827;border:1px solid #1F2B3D;border-radius:6px;padding:10px;margin-bottom:6px;">
+<div style="display:flex;justify-content:space-between;"><span style="font-size:13px;font-weight:700;color:#E8ECF0;">{name_d}</span><span style="font-size:11px;color:{ac};font-weight:700;">{arrow}</span></div>
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin-top:7px;">
+<div style="text-align:center;background:#0F172A;border-radius:4px;padding:5px;"><div style="font-size:8px;color:#6B7280;">NOW</div><div style="font-size:12px;font-weight:700;color:#9CA3AF;">{cur:.0%}</div></div>
+<div style="text-align:center;background:#064e3b;border-radius:4px;padding:5px;"><div style="font-size:8px;color:#6B7280;">4W</div><div style="font-size:12px;font-weight:700;color:#10B981;">{fw4:.0%}</div></div>
+<div style="text-align:center;background:#1e1b4b;border-radius:4px;padding:5px;"><div style="font-size:8px;color:#6B7280;">8W</div><div style="font-size:12px;font-weight:700;color:#6366F1;">{fw8:.0%}</div></div>
+<div style="text-align:center;background:#111827;border-radius:4px;padding:5px;"><div style="font-size:8px;color:#6B7280;">RF</div><div style="font-size:12px;font-weight:700;color:#F59E0B;">{rf:.0%}</div></div>
+</div>
+<div style="font-size:10px;color:#6B7280;margin-top:3px;">Lead: {lead}{ub}</div>
+</div>''',unsafe_allow_html=True)
+            else:
+                st.info("Proactive forecasts empty — ensure scenario_output passed to NarrativeEngine in orchestrator.py")
+
+            # ── Current strength table ──────────────────────────────────────
+            st.markdown("---"); st.markdown("### 📡 Current Narrative Strength (All)")
+            rows=[]
+            for n in nd:
+                cur=n.get("current_strength",0); fw4=n.get("forecast_4w",0); rf=n.get("regime_weight",0)
+                ign="🔥" if n.get("ignition") else ("📈" if cur>0.35 else ("🔨" if cur>0.15 else "💤"))
+                ub=f"+{n.get('universe_boost',0):.0%}" if n.get("universe_boost",0)>0.01 else ""
+                rows.append({"S":ign,"Narrative":n.get("narrative","").replace("_"," ").title()[:32],
+                    "Strength":f"{cur:.0%}","4W":f"{fw4:.0%}","RF":f"{rf:.0%}",
+                    "Lead":n.get("lead_market","").replace("_"," ").title()[:12],
+                    "Spillover":" → ".join(n.get("top_spillover",[])[:2])[:20],"Ricky":ub})
+            if rows:
+                df=pd.DataFrame(rows)
+                def _ss(v):
+                    try: fv=float(str(v).replace("%",""))/100; return "color:#10B981;font-weight:700" if fv>=0.45 else "color:#F59E0B" if fv>=0.25 else "color:#6B7280"
+                    except: return ""
+                st.dataframe(df.style.map(_ss,subset=["Strength","4W"]),hide_index=True,height=420,use_container_width=True)
+
+            # Ricky article signals
+            if uni_articles:
+                st.markdown("---"); st.markdown("### 📚 Ricky Live Article Signals")
+                for art_id, score, dtickers in uni_articles[:8]:
+                    sc2="#10B981" if score>0.5 else "#F59E0B" if score>0.3 else "#9CA3AF"
+                    st.markdown(f'''<div style="border-left:3px solid {sc2};padding:5px 10px;background:#111827;border-radius:4px;margin-bottom:3px;"><span style="font-size:11px;font-weight:700;color:#E8ECF0;">{art_id.replace(chr(95)," ").title()[:48]}</span><span style="font-size:11px;color:{sc2};font-weight:700;margin-left:8px;">{score:.0%}</span><div style="font-size:10px;color:#6B7280;">{" · ".join(dtickers[:5])}</div></div>''',unsafe_allow_html=True)
+
+            # Spillover map
+            spillover=narr.get("spillover",{})
+            if any(spillover.values()):
+                st.markdown("---"); st.markdown("### 🌊 Cross-Market Spillover")
+                for mkt,spill in spillover.items():
+                    if spill: st.markdown(f"**{mkt.replace('_',' ').title()}:** {spill}")
+
 
     # ── Discovery ─────────────────────────────────────────────────────────────
     with res_tabs[2]:

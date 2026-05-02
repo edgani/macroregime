@@ -1,480 +1,253 @@
-"""engines/narrative_engine.py — Multi-Market Adaptive · Reactive · Proactive Narrative Engine
+"""engines/narrative_engine_ricky_patch.py
 
-Narrative = the "story" market believes about why an asset/sector should move.
-Covers: US Equities, Forex, Commodities, Crypto, IHSG, Bonds, Global/Country.
+PATCH INSTRUCTIONS for engines/narrative_engine.py
 
-Three modes:
-  • ADAPTIVE : Narrative weights auto-adjust per macro regime (Q1-Q4)
-  • REACTIVE : Detects narrative ignition from simultaneous sector spikes + volume clustering
-  • PROACTIVE: Predicts dominant narrative 4-8 weeks forward from supply chain + macro signals
+This file shows exactly WHAT to add to narrative_engine.py to complete Ricky's framework.
+Apply these changes by adding to the NARRATIVES dict and the reactive_ignition() method.
 
-BACKWARD COMPATIBLE: class name = NarrativeEngine (matches orchestrator.py import).
-run() accepts both old signature (quad_mon, benchmark) and new signature (scenario_output, volumes).
+CHANGES:
+  1. Add 5 missing Ricky narratives to NARRATIVES dict
+  2. Connect config.narrative_universe (TICKER_NARRATIVES + NARRATIVE_QUAD_BIAS)
+  3. Use narrative_universe in reactive_ignition() to boost signals from known Ricky tickers
 """
-from __future__ import annotations
-import math
-from typing import Dict, List, Optional, Tuple
-import numpy as np
-import pandas as pd
-from dataclasses import dataclass, field
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# NARRATIVE TAXONOMY — Cross-market, cross-asset
-# ═══════════════════════════════════════════════════════════════════════════════
-NARRATIVES: Dict[str, Dict] = {
-    # US / Global Tech
-    "ai_infrastructure": {
-        "sectors": ["ai_compute", "ai_memory", "ai_optics", "ai_power", "ai_power_infra",
-                    "ai_packaging", "transformer_infra", "ai_networking", "semis_taiwan", "semis_korea"],
-        "keywords": ["AI data center", "GPU shortage", "HBM", "CoWoS", "photonics", "CPO", "SiC", "power density"],
-        "quad_boost": {"Q1": 0.85, "Q2": 0.75, "Q3": 0.55, "Q4": 0.35},
-        "markets": ["us_equity", "crypto", "global"],
-    },
-    "decentralized_ai": {
-        "sectors": ["depin_ai"],
-        "keywords": ["decentralized compute", "DePIN", "Bittensor", "Render", "AI agent", "on-chain AI"],
-        "quad_boost": {"Q1": 0.90, "Q2": 0.70, "Q3": 0.30, "Q4": 0.40},
-        "markets": ["crypto"],
-    },
-    # Energy & Hard Assets
-    "energy_transition": {
-        "sectors": ["uranium", "ai_power_infra", "utilities", "energy_infra", "transformer_infra"],
-        "keywords": ["nuclear renaissance", "AI power", "grid upgrade", "baseload", "gas turbine"],
-        "quad_boost": {"Q1": 0.60, "Q2": 0.80, "Q3": 0.75, "Q4": 0.50},
-        "markets": ["us_equity", "commodity", "ihsg", "global"],
-    },
-    "hard_assets_scarcity": {
-        "sectors": ["precious_metals", "commodity_copper", "commodity_aluminum", "nickel", "coal", "uranium"],
-        "keywords": ["copper shortage", "de-dollarization", "central bank buying", "supply deficit", "resource nationalism"],
-        "quad_boost": {"Q1": 0.65, "Q2": 0.85, "Q3": 0.90, "Q4": 0.85},
-        "markets": ["commodity", "us_equity", "ihsg", "forex"],
-    },
-    # Defense & Geopolitics
-    "defense_reshoring": {
-        "sectors": ["defense"],
-        "keywords": ["NATO spending", "munitions shortage", "hypersonic", "missile defense", "industrial base"],
-        "quad_boost": {"Q1": 0.55, "Q2": 0.70, "Q3": 0.80, "Q4": 0.65},
-        "markets": ["us_equity", "commodity"],
-    },
-    # Healthcare
-    "healthcare_scarcity": {
-        "sectors": ["healthcare_eq", "pharma"],
-        "keywords": ["GLP-1 shortage", "robotic surgery", "aging population", "drug pricing", "obesity epidemic"],
-        "quad_boost": {"Q1": 0.60, "Q2": 0.55, "Q3": 0.85, "Q4": 0.80},
-        "markets": ["us_equity"],
-    },
-    # Shipping & Logistics
-    "shipping_supply_crisis": {
-        "sectors": ["dry_bulk_shipping", "osv_hulu", "tanker_ship", "indonesia_shipping", "indonesia_osv"],
-        "keywords": ["Red Sea disruption", "fleet renewal", "IMO 2023", "day rates", "vessel shortage", "offshore drilling ramp"],
-        "quad_boost": {"Q1": 0.60, "Q2": 0.80, "Q3": 0.65, "Q4": 0.45},
-        "markets": ["ihsg", "us_equity", "commodity"],
-    },
-    # Indonesia-specific
-    "indonesia_commodity_supercycle": {
-        "sectors": ["coal", "nickel", "cpo_palm", "osv_hulu", "oil_distribution", "indonesia_mining", "indonesia_energy"],
-        "keywords": ["IHSG", "foreign flow", "CKPN cascade", "offshore drilling", "1 juta BPD", "JIIPE", "tanker cycle", "OSV day rates"],
-        "quad_boost": {"Q1": 0.70, "Q2": 0.85, "Q3": 0.60, "Q4": 0.40},
+# ══════════════════════════════════════════════════════════════════════════════
+# CHANGE 1: ADD THESE 5 ENTRIES TO THE NARRATIVES DICT
+# In narrative_engine.py, find:
+#     "bond_duration_bull": {...},
+# Add AFTER that entry:
+# ══════════════════════════════════════════════════════════════════════════════
+
+MISSING_RICKY_NARRATIVES = {
+
+    # ── RICKY #1: Bakrie/Konglo Cycle ─────────────────────────────────────────
+    # Ricky's most consistent IHSG thesis — konglomerasi end-of-cycle play
+    # Articles: Bakrie King is Back Part 1/2/3, Bocil Indicator, Bakrie coal
+    # Triggers: Quad Q2, global liquidity flowing to EM, Bakrie group moves
+    "konglo_bakrie_cycle": {
+        "sectors": ["coal", "oil_gas", "indonesia_mining", "energy_infra", "dry_bulk_shipping"],
+        "keywords": [
+            "Bakrie", "konglomerat", "BUMI", "DEWA", "BRMS", "BNBR", "ENRG", "ELTY",
+            "bocil indicator", "B-indicator", "anak perusahaan naik dulu",
+            "kong lo", "konglo cycle", "siklus konglomerat", "aliran uang deras",
+            "legend market maker", "store of value", "global liquidity EM",
+        ],
+        "quad_boost": {"Q1": 0.60, "Q2": 0.90, "Q3": 0.45, "Q4": 0.25},
         "markets": ["ihsg"],
+        "ricky_note": "Bakrie cycle = konglomerasi terbesar IHSG. Bocil indicator: anak dulu (DEWA/BRMS/ENRG), baru induk (BUMI/BNBR). End-of-cycle play. Satu tangan di pintu keluar.",
+        "tickers": ["BUMI.JK","DEWA.JK","BRMS.JK","BNBR.JK","ENRG.JK","ELTY.JK","LOGI.JK","SHIP.JK"],
+        "invalidators": ["Quad Q3/Q4", "USD rally", "global risk-off", "Bakrie debt news"],
     },
-    "indonesia_banking_recovery": {
-        "sectors": ["banking"],
-        "keywords": ["BBCA", "BBRI", "foreign net buy", "CKPN", "NPL", "BI rate", "rupiah stability"],
-        "quad_boost": {"Q1": 0.80, "Q2": 0.75, "Q3": 0.50, "Q4": 0.35},
+
+    # ── RICKY #2: RKAB Coal Quota Cycle ──────────────────────────────────────
+    # Indonesian coal production quota restriction = supply bottleneck
+    # Ricky: RKAB revisi terbuka tapi pemerintah hati-hati → harga terjaga
+    # Tickers: ITMG, ADRO, PTBA, AADI, HRUM, BUMI
+    "rkab_coal_quota_cycle": {
+        "sectors": ["coal", "indonesia_mining"],
+        "keywords": [
+            "RKAB", "coal quota", "revisi RKAB", "produksi batubara", "Dirjen Minerba",
+            "kuota batubara", "coal production limit", "RKAB dibuka", "coal war",
+            "war premium", "geopolitics coal", "energy security",
+        ],
+        "quad_boost": {"Q1": 0.55, "Q2": 0.85, "Q3": 0.65, "Q4": 0.35},
+        "markets": ["ihsg", "commodity"],
+        "ricky_note": "RKAB revisi terbuka tapi pemerintah hati-hati → supply terkontrol = harga terjaga. War premium on top. ITMG, AADI, ADRO beneficiary.",
+        "tickers": ["ITMG.JK","AADI.JK","ADRO.JK","PTBA.JK","HRUM.JK","BUMI.JK"],
+        "invalidators": ["China coal demand collapse", "coal price sub-$100", "RKAB dikasih bebas"],
+    },
+
+    # ── RICKY #3: Indonesia Offshore Drilling Ramp ────────────────────────────
+    # Prabowo's 1 juta BPD 2030 target = decade-long OSV/offshore demand
+    # Separate from commodity supercycle — this is STRUCTURAL capex
+    # Ricky: OBMD monopoly, SHIP FSO monopoly, LEAD OSV no.2
+    "indonesia_offshore_drilling_ramp": {
+        "sectors": ["osv_hulu", "oil_services", "oil_distribution"],
+        "keywords": [
+            "1 juta BPD", "satu juta barel", "SKK Migas", "KKKS drilling",
+            "offshore Indonesia", "hulu migas", "IPA convention", "investasi migas",
+            "Prabowo energy target", "pertamina offshore", "blok migas", "wilayah kerja",
+            "day rates OSV", "FSO FPSO Indonesia", "anti-slip drilling",
+        ],
+        "quad_boost": {"Q1": 0.65, "Q2": 0.85, "Q3": 0.70, "Q4": 0.45},
         "markets": ["ihsg"],
+        "ricky_note": "Target 1 juta BPD = pipeline proyek drilling decade. OBMD: satu-satunya kimia anti-slip (monopoly). SHIP: satu-satunya FSO/FPSO listed. LEAD: OSV no.2 recovery. Foreign entry = signal.",
+        "tickers": ["OBMD.JK","SHIP.JK","LEAD.JK","WINS.JK","MEDC.JK","AKRA.JK"],
+        "invalidators": ["Oil price <$50", "pemerintah kurangi target drilling", "IKN capex redirect"],
     },
-    # Macro / FX
-    "dxy_bearish_em_recovery": {
-        "sectors": ["em_fx", "ihsg_banks", "ihsg_consumer", "commodity_gold"],
-        "keywords": ["USD bearish TREND", "EM FX relief", "DXY breakdown", "Fed pivot", "capital flows"],
-        "quad_boost": {"Q1": 0.85, "Q2": 0.70, "Q3": 0.75, "Q4": 0.40},
-        "markets": ["forex", "ihsg", "commodity", "global"],
+
+    # ── RICKY #4: Rating Agencies Geopolitical Pressure ──────────────────────
+    # Ricky's thesis: Moodys/Fitch/S&P as geopolitical weapon against Indonesia
+    # Operasi Penurunan Indonesia — nickel processing, Danantara, fiscal
+    # Creates buying opportunities when downgrade causes panic selling
+    "rating_agencies_geopolitical_pressure": {
+        "sectors": ["nickel", "indonesia_mining", "banking"],
+        "keywords": [
+            "Moodys downgrade", "Fitch downgrade", "S&P", "rating agencies",
+            "operasi penurunan", "nickel processing ban", "Danantara", "fiscal",
+            "Indonesia sovereign", "APBN", "geopolitical downgrade", "credit outlook",
+            "foreign debt", "capital flight narrative", "rating pressure",
+        ],
+        "quad_boost": {"Q1": 0.40, "Q2": 0.50, "Q3": 0.75, "Q4": 0.70},
+        "markets": ["ihsg", "forex"],
+        "ricky_note": "Downgrade bisa jadi senjata geopolitik. Moodys/Fitch bergerak saat Indonesia tegas soal nikel. Panic selling = BUY opportunity untuk yang paham. ANTM, INCO, HRUM beneficiary dari narasi perlawanan.",
+        "tickers": ["ANTM.JK","INCO.JK","HRUM.JK","NCKL.JK","MDKA.JK"],
+        "invalidators": ["Actual fiscal deterioration", "current account crisis", "IDR freefall >17000"],
     },
-    "fed_pivot_liquidity": {
-        "sectors": ["bonds", "us_equity", "em_fx", "crypto"],
-        "keywords": ["Fed cut", "liquidity injection", "QT end", "yield curve steepening", "credit easing"],
-        "quad_boost": {"Q1": 0.90, "Q2": 0.60, "Q3": 0.50, "Q4": 0.85},
-        "markets": ["bonds", "us_equity", "crypto", "global"],
-    },
-    # China / Asia
-    "china_reopening_commodity": {
-        "sectors": ["commodity_copper", "commodity_aluminum", "energy_infra", "coal", "cpo_palm"],
-        "keywords": ["China stimulus", "property rescue", "infrastructure", "commodity demand", "Australian export"],
-        "quad_boost": {"Q1": 0.75, "Q2": 0.85, "Q3": 0.60, "Q4": 0.30},
-        "markets": ["commodity", "global", "ihsg"],
-    },
-    # Bonds / Rates
-    "bond_duration_bull": {
-        "sectors": ["bonds"],
-        "keywords": ["TLT", "yield collapse", "deflation", "recession pricing", "flight to quality"],
-        "quad_boost": {"Q1": 0.40, "Q2": 0.30, "Q3": 0.80, "Q4": 0.95},
-        "markets": ["bonds"],
+
+    # ── RICKY #5: Ricky Sesi Recovery Framework ───────────────────────────────
+    # Ricky's 3-stage market recovery cycle for IHSG
+    # Sesi 1: Pain/bottom (nobody believes, foreign exit done)
+    # Sesi 2: Banking/consumer recovery (BBCA, BBRI stabilize)
+    # Sesi 3: King is Back (coal/OSV/commodity re-ignite, B-indicator fires)
+    # Signal: BDI + ITMG foreign flow + OSV day rates = Sesi 3 confirmation
+    "ihsg_sesi_recovery_cycle": {
+        "sectors": ["banking_ihsg", "coal", "osv_hulu", "dry_bulk_shipping"],
+        "keywords": [
+            "CKPN selesai", "stage 3 NPL", "BBRI net buy", "foreign net buy banking",
+            "BDI naik", "OSV day rates", "ITMG foreign flow", "coal foreign buy",
+            "sesi recovery", "king is back", "B indicator", "bocil indicator coal",
+            "disbelieve rally", "pain is over", "IHSG bottom", "banking NPL peak",
+            "ultra mikro done", "mikro selesai",
+        ],
+        "quad_boost": {"Q1": 0.85, "Q2": 0.80, "Q3": 0.45, "Q4": 0.35},
+        "markets": ["ihsg"],
+        "ricky_note": "Sesi 1=Pain done. Sesi 2=Banking stabilize (BBCA/BBRI foreign net buy 2+ days). Sesi 3=King is Back (BDI up, ITMG foreign buy, OSV day rates rise). Q4→Q1 = maximum Sesi 3 probability.",
+        "tickers": ["BBCA.JK","BBRI.JK","BMRI.JK","ITMG.JK","ADRO.JK","SHIP.JK","LEAD.JK","PSSI.JK"],
+        "invalidators": ["CKPN stage 3 not complete", "foreign net sell 3+ days", "BDI <1200"],
     },
 }
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# CROSS-MARKET NARRATIVE SPILLOVER
-# ═══════════════════════════════════════════════════════════════════════════════
-NARRATIVE_SPILLOVER: Dict[str, List[Tuple[str, float]]] = {
-    "ai_infrastructure": [
-        ("decentralized_ai", 0.80), ("hard_assets_scarcity", 0.40),
-        ("energy_transition", 0.60), ("china_reopening_commodity", 0.30),
+# ══════════════════════════════════════════════════════════════════════════════
+# CHANGE 2: NARRATIVE SPILLOVER ADDITIONS
+# Add to NARRATIVE_SPILLOVER dict in narrative_engine.py:
+# ══════════════════════════════════════════════════════════════════════════════
+
+MISSING_RICKY_SPILLOVER = {
+    "konglo_bakrie_cycle": [
+        ("rkab_coal_quota_cycle", 0.70),          # Bakrie = BUMI = coal = RKAB
+        ("indonesia_commodity_supercycle", 0.60),   # broader commodity bid
+        ("indonesia_offshore_drilling_ramp", 0.40), # Bakrie has SHIP exposure
     ],
-    "decentralized_ai": [
-        ("ai_infrastructure", 0.50),
-    ],
-    "energy_transition": [
-        ("hard_assets_scarcity", 0.70), ("ai_infrastructure", 0.50),
-        ("indonesia_commodity_supercycle", 0.40),
-    ],
-    "hard_assets_scarcity": [
-        ("energy_transition", 0.50), ("shipping_supply_crisis", 0.40),
-        ("indonesia_commodity_supercycle", 0.60),
-    ],
-    "defense_reshoring": [
-        ("hard_assets_scarcity", 0.60), ("indonesia_commodity_supercycle", 0.20),
-    ],
-    "shipping_supply_crisis": [
-        ("indonesia_commodity_supercycle", 0.60), ("hard_assets_scarcity", 0.40),
-        ("energy_transition", 0.30),
-    ],
-    "indonesia_commodity_supercycle": [
-        ("shipping_supply_crisis", 0.60), ("hard_assets_scarcity", 0.50),
+    "rkab_coal_quota_cycle": [
+        ("konglo_bakrie_cycle", 0.65),
+        ("indonesia_commodity_supercycle", 0.55),
         ("china_reopening_commodity", 0.45),
     ],
-    "dxy_bearish_em_recovery": [
-        ("indonesia_banking_recovery", 0.70), ("indonesia_commodity_supercycle", 0.55),
-        ("fed_pivot_liquidity", 0.60), ("hard_assets_scarcity", 0.50),
+    "indonesia_offshore_drilling_ramp": [
+        ("indonesia_commodity_supercycle", 0.55),
+        ("shipping_supply_crisis", 0.60),           # OSV = shipping sector
+        ("energy_transition", 0.30),
     ],
-    "fed_pivot_liquidity": [
-        ("dxy_bearish_em_recovery", 0.70), ("ai_infrastructure", 0.50),
-        ("indonesia_banking_recovery", 0.40), ("bond_duration_bull", 0.80),
+    "rating_agencies_geopolitical_pressure": [
+        ("dxy_bearish_em_recovery", 0.50),           # downgrade → IDR pressure → recovery play
+        ("indonesia_commodity_supercycle", 0.40),    # nickel/mineral focus
+        ("indonesia_banking_recovery", 0.45),        # banking affected by sovereign rating
     ],
-    "china_reopening_commodity": [
-        ("hard_assets_scarcity", 0.60), ("indonesia_commodity_supercycle", 0.50),
-        ("shipping_supply_crisis", 0.30),
-    ],
-    "bond_duration_bull": [
-        ("fed_pivot_liquidity", 0.80), ("dxy_bearish_em_recovery", 0.50),
+    "ihsg_sesi_recovery_cycle": [
+        ("indonesia_banking_recovery", 0.80),         # Sesi 2 = banking
+        ("indonesia_commodity_supercycle", 0.70),     # Sesi 3 = commodity
+        ("konglo_bakrie_cycle", 0.60),               # Sesi 3 = konglo
+        ("shipping_supply_crisis", 0.55),            # OSV/BDI = Sesi 3 signal
+        ("dxy_bearish_em_recovery", 0.65),           # foreign flow = EM recovery
     ],
 }
 
+# ══════════════════════════════════════════════════════════════════════════════
+# CHANGE 3: NARRATIVE UNIVERSE CONNECTOR
+# Add this function to NarrativeEngine class in narrative_engine.py
+# Call it from reactive_ignition() to boost scores for Ricky-mapped tickers
+# ══════════════════════════════════════════════════════════════════════════════
 
-@dataclass
-class NarrativeScore:
-    name: str
-    strength: float
-    ignition_detected: bool
-    regime_weight: float
-    sector_breadth: int
-    volume_intensity: float
-    lead_sector: str
-    lead_market: str
-    forecast_weeks_4: float
-    forecast_weeks_8: float
-    spillover_to: List[Tuple[str, float]] = field(default_factory=list)
-    catalyst_triggers: List[str] = field(default_factory=list)
-    invalidators: List[str] = field(default_factory=list)
-
-
-class NarrativeEngine:
-    """BACKWARD COMPATIBLE class name for orchestrator.py import.
-    Internal logic = v3 (multi-market adaptive/reactive/proactive).
-    """
-
-    def __init__(self, settings_module=None):
-        self.cfg = settings_module
-        self.sector_map = getattr(settings_module, "TICKER_SECTOR", {}) if settings_module else {}
-        self.market_map = getattr(settings_module, "MARKET_CLASSIFICATION", {}) if settings_module else {}
-        self.us_buckets = getattr(settings_module, "US_BUCKETS", {}) if settings_module else {}
-        self.ihsg_buckets = getattr(settings_module, "IHSG_BUCKETS", {}) if settings_module else {}
-        self.fx_buckets = getattr(settings_module, "FX_BUCKETS", {}) if settings_module else {}
-        self.comm_buckets = getattr(settings_module, "COMMODITY_BUCKETS", {}) if settings_module else {}
-        self.crypto_buckets = getattr(settings_module, "CRYPTO_BUCKETS", {}) if settings_module else {}
-        self.country_univ = getattr(settings_module, "COUNTRY_UNIVERSE", {}) if settings_module else {}
-
-    # ── ADAPTIVE ──────────────────────────────────────────────────────────────
-    def adaptive_weights(self, quad_str: str) -> Dict[str, float]:
-        qk = quad_str.upper()
-        return {name: meta["quad_boost"].get(qk, 0.5) for name, meta in NARRATIVES.items()}
-
-    # ── REACTIVE: Multi-market ignition ───────────────────────────────────────
-    def reactive_ignition(
+NARRATIVE_UNIVERSE_CONNECTOR_CODE = '''
+    def _boost_from_ricky_universe(
         self,
-        prices: Dict[str, pd.Series],
-        volumes: Optional[Dict[str, pd.Series]] = None,
-        lookback: int = 21,
-        breadth_threshold: float = 0.35,
-        volume_z_threshold: float = 1.5,
-        return_threshold: float = 0.06,
-    ) -> Dict[str, NarrativeScore]:
-        scores: Dict[str, NarrativeScore] = {}
-
-        for name, meta in NARRATIVES.items():
-            sectors = meta["sectors"]
-            participating = []
-
-            for sector in sectors:
-                tickers = [t for t, s in self.sector_map.items() if s == sector]
-                if not tickers:
-                    tickers = (self.us_buckets.get(sector, []) +
-                               self.ihsg_buckets.get(sector, []) +
-                               self.fx_buckets.get(sector, []) +
-                               self.comm_buckets.get(sector, []) +
-                               self.crypto_buckets.get(sector, []))
-
-                spiked = 0
-                sector_returns = []
-                vol_intensities = []
-                for t in tickers:
-                    close = prices.get(t)
-                    if close is None or len(close) < lookback + 5:
-                        continue
-                    close = pd.to_numeric(close, errors="coerce").dropna()
-                    ret = float(close.iloc[-1] / close.iloc[-lookback] - 1)
-                    sector_returns.append(ret)
-                    if ret > return_threshold:
-                        spiked += 1
-                        if volumes and t in volumes:
-                            vol = pd.to_numeric(volumes[t], errors="coerce").dropna()
-                            if len(vol) >= lookback + 20:
-                                rv = float(vol.tail(lookback).mean())
-                                hv = float(vol.tail(lookback + 60).head(60).mean())
-                                hs = float(vol.tail(lookback + 60).head(60).std())
-                                if hs > 0:
-                                    vol_intensities.append(max((rv - hv) / hs, 0.0))
-
-                breadth = spiked / max(len(tickers), 1)
-                if sector_returns:
-                    avg_ret = np.mean(sector_returns)
-                    max_ret = max(sector_returns) if sector_returns else 0
-                else:
-                    avg_ret = 0
-                    max_ret = 0
-
-                if breadth >= breadth_threshold or max_ret > 0.12:
-                    participating.append({
-                        "sector": sector, "breadth": breadth, "avg_ret": avg_ret,
-                        "max_ret": max_ret, "tickers_spiked": spiked, "total_tickers": len(tickers),
-                        "market": self._sector_market(sector),
-                    })
-
-            if participating:
-                avg_breadth = np.mean([p["breadth"] for p in participating])
-                avg_ret = np.mean([p["avg_ret"] for p in participating])
-                max_ret = max([p["max_ret"] for p in participating])
-                vol_int = np.mean(vol_intensities) if vol_intensities else 0.0
-
-                strength = float(np.clip(
-                    (avg_breadth * 0.35) +
-                    (min(avg_ret / 0.20, 1.0) * 0.30) +
-                    (min(max_ret / 0.30, 1.0) * 0.20) +
-                    (min(vol_int / 2.0, 1.0) * 0.15),
-                    0.0, 1.0
-                ))
-                ignition = strength >= 0.55 and avg_breadth >= breadth_threshold
-                lead = max(participating, key=lambda x: x["max_ret"])
-
-                scores[name] = NarrativeScore(
-                    name=name, strength=round(strength, 3), ignition_detected=ignition,
-                    regime_weight=0.0, sector_breadth=len(participating),
-                    volume_intensity=round(vol_int, 3), lead_sector=lead["sector"],
-                    lead_market=lead.get("market", "us_equity"),
-                    forecast_weeks_4=0.0, forecast_weeks_8=0.0,
-                    spillover_to=NARRATIVE_SPILLOVER.get(name, []),
-                    catalyst_triggers=[f"{p['sector']} ({p['market']}) breadth {p['breadth']:.0%}" for p in participating],
-                    invalidators=["Breadth drops below 20%", "Volume intensity normalizes", "Lead sector breaks TREND LRR"],
-                )
-        return scores
-
-    def _sector_market(self, sector: str) -> str:
-        for t, s in self.sector_map.items():
-            if s == sector:
-                return self.market_map.get(t, "us_equity")
-        return "us_equity"
-
-    # ── PROACTIVE ─────────────────────────────────────────────────────────────
-    def proactive_forecast(
-        self,
-        current_scores: Dict[str, NarrativeScore],
-        scenario_output: Optional[Dict] = None,
-        supply_chain_signals: Optional[Dict] = None,
-        weeks: int = 8,
-    ) -> Dict[str, NarrativeScore]:
-        supply_chain_signals = supply_chain_signals or {}
-        to_quad = "Q3"
-        to_prob = 0.25
-        if scenario_output:
-            base_case = scenario_output.get("base_case")
-            if base_case:
-                to_quad = getattr(base_case, "to_quad", "Q3")
-                to_prob = getattr(base_case, "probability", 0.25)
-        target_weights = self.adaptive_weights(to_quad)
-        forecasts = {}
-
-        for name, current in current_scores.items():
-            decay = 0.85 ** (weeks / 4)
-            base_forecast = current.strength * decay
-            scenario_boost = target_weights.get(name, 0.5) * to_prob * 0.30
-            supply_boost = 0.0
-            sig = supply_chain_signals.get(name, {})
-            if sig.get("order_backlog_growth", 0) > 0.30:
-                supply_boost += 0.15
-            if sig.get("lead_time_extension", 0) > 12:
-                supply_boost += 0.12
-            if sig.get("capex_surge", False):
-                supply_boost += 0.10
-            if sig.get("inventory_days_compression", 0) > 20:
-                supply_boost += 0.08
-            if sig.get("foreign_flow_acceleration", False):
-                supply_boost += 0.10
-
-            spillover_boost = 0.0
-            for source_name, spill_list in NARRATIVE_SPILLOVER.items():
-                source_score = current_scores.get(source_name)
-                if source_score and source_score.strength > 0.60:
-                    for target_narr, spill_w in spill_list:
-                        if target_narr == name:
-                            spillover_boost += source_score.strength * spill_w * 0.25
-
-            forecast = float(np.clip(base_forecast + scenario_boost + supply_boost + spillover_boost, 0.0, 1.0))
-            forecast_4 = float(np.clip(current.strength * (0.90 if weeks >= 4 else 1.0) + scenario_boost * 0.5 + supply_boost * 0.3, 0.0, 1.0))
-
-            forecasts[name] = NarrativeScore(
-                name=name, strength=current.strength, ignition_detected=current.ignition_detected,
-                regime_weight=round(target_weights.get(name, 0.5), 3), sector_breadth=current.sector_breadth,
-                volume_intensity=current.volume_intensity, lead_sector=current.lead_sector,
-                lead_market=current.lead_market, forecast_weeks_4=round(forecast_4, 3),
-                forecast_weeks_8=round(forecast, 3), spillover_to=current.spillover_to,
-                catalyst_triggers=current.catalyst_triggers + [f"Scenario {to_quad} prob {to_prob:.0%}"],
-                invalidators=current.invalidators,
-            )
-        return forecasts
-
-    # ── SPILLOVER: Cross-market narrative translation ─────────────────────────
-    def spillover_translation(
-        self,
-        dominant_narrative: str,
-        target_asset_class: str,
-        prices: Dict[str, pd.Series],
-    ) -> List[Dict]:
-        spill = NARRATIVE_SPILLOVER.get(dominant_narrative, [])
-        results = []
-        for spill_name, spill_w in spill:
-            meta = NARRATIVES.get(spill_name)
-            if not meta:
-                continue
-            sectors = meta["sectors"]
-            for sector in sectors:
-                tickers = [t for t, s in self.sector_map.items() if s == sector]
-                if target_asset_class == "crypto":
-                    tickers = [t for t in tickers if self.market_map.get(t) == "crypto"]
-                elif target_asset_class == "ihsg":
-                    tickers = [t for t in tickers if t.endswith(".JK")]
-                elif target_asset_class == "commodity":
-                    tickers = [t for t in tickers if self.market_map.get(t) == "commodity"]
-                elif target_asset_class == "forex":
-                    tickers = [t for t in tickers if self.market_map.get(t) == "forex"]
-                elif target_asset_class == "bonds":
-                    tickers = [t for t in tickers if self.market_map.get(t) == "bonds"]
-                elif target_asset_class == "global":
-                    tickers = [t for t in tickers if t in self.country_univ]
-
-                for t in tickers:
-                    close = prices.get(t)
-                    if close is None or len(close) < 30:
-                        continue
-                    close = pd.to_numeric(close, errors="coerce").dropna()
-                    ret_21d = float(close.iloc[-1] / close.iloc[-22] - 1) if len(close) > 22 else 0
-                    ret_63d = float(close.iloc[-1] / close.iloc[-64] - 1) if len(close) > 64 else 0
-                    hi52 = float(close.tail(252).max()) if len(close) >= 252 else float(close.max())
-                    px = float(close.iloc[-1])
-                    pct_from_hi = (px - hi52) / max(hi52, 1e-9)
-                    results.append({
-                        "narrative_source": dominant_narrative,
-                        "narrative_target": spill_name,
-                        "ticker": t, "asset_class": target_asset_class,
-                        "spillover_weight": round(spill_w, 2),
-                        "ret_21d": round(ret_21d, 3), "ret_63d": round(ret_63d, 3),
-                        "pct_from_hi": round(pct_from_hi, 3),
-                        "priced_in_score": round(
-                            (1.0 if pct_from_hi > -0.05 else 0.5 if pct_from_hi > -0.15 else 0.0) * spill_w, 3
-                        ),
-                        "verdict": "fully_priced" if pct_from_hi > -0.05 else
-                                   "partially_priced" if pct_from_hi > -0.20 else "not_priced_in",
-                    })
-        results.sort(key=lambda x: x["priced_in_score"], reverse=True)
-        return results
-
-    # ── MAIN RUN (BACKWARD COMPATIBLE) ────────────────────────────────────────
-    def run(
-        self,
-        prices: Dict[str, pd.Series],
-        volumes: Optional[Dict[str, pd.Series]] = None,
-        quad_str: str = "Q3",
-        # Old signature params (from orchestrator.py)
-        quad_mon: Optional[str] = None,
-        benchmark: Optional[str] = None,
-        # New signature params
-        scenario_output: Optional[Dict] = None,
-        supply_chain_signals: Optional[Dict] = None,
-        target_asset_classes: Optional[List[str]] = None,
-    ) -> Dict:
-        """Backward compatible: accepts both old (quad_mon, benchmark) and new (scenario_output) params."""
-        target_asset_classes = target_asset_classes or ["crypto", "forex", "commodity", "ihsg", "bonds", "global"]
-        adaptive = self.adaptive_weights(quad_str)
-        ignition = self.reactive_ignition(prices, volumes)
-        forecasts = {}
-        if scenario_output:
-            forecasts = self.proactive_forecast(ignition, scenario_output, supply_chain_signals, 8)
-
-        spillover = {}
-        if ignition:
-            dominant = max(ignition.items(), key=lambda x: x[1].strength)
-            d_name, d_score = dominant
-            if d_score.strength >= 0.50:
-                for ac in target_asset_classes:
-                    spillover[ac] = self.spillover_translation(d_name, ac, prices)
-
-        narrative_dashboard = []
-        for name in NARRATIVES:
-            cur = ignition.get(name)
-            fore = forecasts.get(name)
-            narrative_dashboard.append({
-                "narrative": name,
-                "current_strength": round(cur.strength, 3) if cur else 0.0,
-                "ignition": cur.ignition_detected if cur else False,
-                "regime_weight": round(adaptive.get(name, 0.5), 3),
-                "forecast_4w": round(fore.forecast_weeks_4, 3) if fore else 0.0,
-                "forecast_8w": round(fore.forecast_weeks_8, 3) if fore else 0.0,
-                "lead_sector": cur.lead_sector if cur else "",
-                "lead_market": cur.lead_market if cur else "",
-                "sector_breadth": cur.sector_breadth if cur else 0,
-                "top_spillover": [s[0] for s in (cur.spillover_to if cur else [])][:3],
-            })
-        narrative_dashboard.sort(key=lambda x: x["current_strength"], reverse=True)
-
-        return {
-            "narrative_dashboard": narrative_dashboard,
-            "dominant_narrative": d_name if ignition else None,
-            "dominant_strength": round(d_score.strength, 3) if ignition else 0.0,
-            "dominant_lead_market": d_score.lead_market if ignition else "",
-            "adaptive_weights": {k: round(v, 3) for k, v in adaptive.items()},
-            "ignition_details": {k: {
-                "strength": v.strength, "ignition": v.ignition_detected,
-                "lead_sector": v.lead_sector, "lead_market": v.lead_market,
-                "volume_intensity": v.volume_intensity, "catalysts": v.catalyst_triggers,
-            } for k, v in ignition.items()},
-            "forecasts": {k: {
-                "fw_4w": v.forecast_weeks_4, "fw_8w": v.forecast_weeks_8,
-                "regime_weight": v.regime_weight,
-            } for k, v in forecasts.items()},
-            "spillover": spillover,
-            "meta": {
-                "quad": quad_str,
-                "monthly_quad": quad_mon or "",
-                "narratives_tracked": len(NARRATIVES),
-                "igniting_now": sum(1 for v in ignition.values() if v.ignition_detected),
-                "markets_covered": len(target_asset_classes),
-            },
+        ignition_scores: dict,
+        prices: dict,
+    ) -> dict:
+        """
+        Cross-reference reactive ignition with Ricky's narrative_universe.py.
+        If tickers mapped to a Ricky narrative are moving, boost that narrative score.
+        
+        This connects config/narrative_universe.TICKER_NARRATIVES to live scores.
+        """
+        try:
+            from config.narrative_universe import TICKER_NARRATIVES, NARRATIVE_QUAD_BIAS
+        except ImportError:
+            return ignition_scores
+        
+        # For each Ricky article, check if its tickers are moving
+        article_signals = {}
+        for ticker, articles in TICKER_NARRATIVES.items():
+            s = prices.get(ticker)
+            if s is None: continue
+            s = pd.to_numeric(s, errors="coerce").dropna()
+            if len(s) < 22: continue
+            ret_1m = float(s.iloc[-1]/s.iloc[-22]-1) if len(s)>=22 else 0.0
+            ret_5d = float(s.iloc[-1]/s.iloc[-6]-1) if len(s)>=6 else 0.0
+            # Signal: short-term momentum on Ricky-mapped tickers
+            if abs(ret_5d) > 0.03 or abs(ret_1m) > 0.08:
+                for article in articles:
+                    article_signals[article] = article_signals.get(article, 0) + abs(ret_5d)*2 + abs(ret_1m)
+        
+        # Map article signals back to engine narrative names
+        article_to_narrative = {
+            # Bakrie articles → konglo_bakrie_cycle
+            "bakrie___the_king_is_back": "konglo_bakrie_cycle",
+            "bakrie___the_king_is_back__part_2": "konglo_bakrie_cycle",
+            "bakrie___the_king_is_back__part_3___bocil_indicato": "konglo_bakrie_cycle",
+            "all_eyes_on_bumi_now": "konglo_bakrie_cycle",
+            "bumi___pemanasan_sebelum_ada___ledakan": "konglo_bakrie_cycle",
+            # RKAB articles → rkab_coal_quota_cycle
+            "rkab_coal_journey": "rkab_coal_quota_cycle",
+            "coal_war_cycle_2026": "rkab_coal_quota_cycle",
+            "energy_store_of_value_2026": "indonesia_commodity_supercycle",
+            # Rating agencies
+            "operasi_penurunan_rating_agencies": "rating_agencies_geopolitical_pressure",
+            # OSV/offshore
+            "logindo___the_desset_of_oil_narrative": "indonesia_offshore_drilling_ramp",
+            "soci___sekoci_terakhir_menuju_hilir": "indonesia_offshore_drilling_ramp",
+            # Banking/recovery
+            "dari_denial_ke_panik_fed": "ihsg_sesi_recovery_cycle",
+            "ath_20_bottom_behaviour": "ihsg_sesi_recovery_cycle",
+            "disbelieve_psychology": "ihsg_sesi_recovery_cycle",
         }
+        
+        for article, strength in article_signals.items():
+            narr_name = article_to_narrative.get(article)
+            if narr_name and narr_name in ignition_scores:
+                # Boost existing score
+                ignition_scores[narr_name] = min(
+                    1.0,
+                    ignition_scores[narr_name] + float(np.tanh(strength * 2)) * 0.20
+                )
+        
+        return ignition_scores
+'''
+
+# ══════════════════════════════════════════════════════════════════════════════
+# HOW TO APPLY THIS PATCH TO narrative_engine.py:
+#
+# STEP 1: Add MISSING_RICKY_NARRATIVES entries to the NARRATIVES dict
+#   Find: "bond_duration_bull": {...},
+#   After that, add all entries from MISSING_RICKY_NARRATIVES
+#
+# STEP 2: Add MISSING_RICKY_SPILLOVER entries to NARRATIVE_SPILLOVER dict
+#   Find: "bond_duration_bull": [...],
+#   After that, add all entries from MISSING_RICKY_SPILLOVER
+#
+# STEP 3: Add _boost_from_ricky_universe() method to NarrativeEngine class
+#   Copy the method from NARRATIVE_UNIVERSE_CONNECTOR_CODE
+#
+# STEP 4: In reactive_ignition() method, before returning, add:
+#   scores = self._boost_from_ricky_universe(scores, prices)
+#   (where scores is the dict of narrative → strength values)
+#
+# STEP 5: Do the same for narrative_engine_v3.py (same changes, same location)
+# ══════════════════════════════════════════════════════════════════════════════
+
+print("Ricky narrative patch ready.")
+print("Add 5 narratives: konglo_bakrie_cycle, rkab_coal_quota_cycle,")
+print("  indonesia_offshore_drilling_ramp, rating_agencies_geopolitical_pressure,")
+print("  ihsg_sesi_recovery_cycle")
+print("Connect narrative_universe.py via _boost_from_ricky_universe()")

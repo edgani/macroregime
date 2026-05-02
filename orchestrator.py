@@ -1,32 +1,32 @@
 """orchestrator.py v17 — Full Pipeline · All Engines Wired
 
 FIXES vs repo v15/v16:
-  1. DiscoveryOrchestrator NOW CALLED (was completely orphaned)
-  2. NarrativeEngine gets scenario_output → proactive forecasts WORK
-  3. BottleneckEngine gets flow_scores → EV formula correct
-  4. sector_momentum computed before all downstream engines
-  5. flow_scores_proxy computed from RS momentum
-  6. FrontRunEngine added (new file — aggregates all signals)
-  7. Price downloads batched (was 6 separate calls → 2 batches)
-  8. RR tickers prioritized (max 250 to prevent timeout)
-  9. All engines wrapped in _safe() — one failure never kills snapshot
+ 1. DiscoveryOrchestrator NOW CALLED (was completely orphaned)
+ 2. NarrativeEngine gets scenario_output → proactive forecasts WORK
+ 3. BottleneckEngine gets flow_scores → EV formula correct
+ 4. sector_momentum computed before all downstream engines
+ 5. flow_scores_proxy computed from RS momentum
+ 6. FrontRunEngine added (new file — aggregates all signals)
+ 7. Price downloads batched (was 6 separate calls → 2 batches)
+ 8. RR tickers prioritized (max 250 to prevent timeout)
+ 9. All engines wrapped in _safe() — one failure never kills snapshot
 
 Pipeline order (dependency-aware):
-  1.  FRED data
-  2.  Prices (2 batches: core + extended)
-  3.  GIP (needs FRED + prices)
-  4.  Global Quad (needs prices + GIP)
-  5.  Stress overlay (needs prices + GIP)
-  6.  Sector Momentum (needs prices → feeds bottleneck + narrative)
-  7.  Flow Scores proxy (needs prices → feeds bottleneck)
-  8.  Risk Range™ (needs prices, prioritized 250 tickers)
-  9.  Scenario Engine (needs GIP)
-  10. Bottleneck Engine (needs prices + GIP + scenario + flow_scores)
-  11. Narrative Engine (needs prices + scenario + bottleneck signals)
-  12. Discovery Orchestrator v3 (needs all of above)
-  13. Adaptive Discovery / Autonomy Stack
-  14. FrontRunEngine (aggregates ALL signals → watchlist)
-  15. Regime Transition + Health + Historical Analogs
+ 1. FRED data
+ 2. Prices (2 batches: core + extended)
+ 3. GIP (needs FRED + prices)
+ 4. Global Quad (needs prices + GIP)
+ 5. Stress overlay (needs prices + GIP)
+ 6. Sector Momentum (needs prices → feeds bottleneck + narrative)
+ 7. Flow Scores proxy (needs prices → feeds bottleneck)
+ 8. Risk Range™ (needs prices, prioritized 250 tickers)
+ 9. Scenario Engine (needs GIP)
+ 10. Bottleneck Engine (needs prices + GIP + scenario + flow_scores)
+ 11. Narrative Engine (needs prices + scenario + bottleneck signals)
+ 12. Discovery Orchestrator v3 (needs all of above)
+ 13. Adaptive Discovery / Autonomy Stack
+ 14. FrontRunEngine (aggregates ALL signals → watchlist)
+ 15. Regime Transition + Health + Historical Analogs
 """
 from __future__ import annotations
 import time, logging, math, os
@@ -35,6 +35,11 @@ import numpy as np
 import pandas as pd
 
 from data.loader import load_fred, load_prices, save_snapshot, load_snapshot, snapshot_age_str
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# FIX: logger MUST be defined BEFORE all try/except blocks that reference it
+# ═══════════════════════════════════════════════════════════════════════════════
+logger = logging.getLogger(__name__)
 
 # ── Core engine imports — each wrapped so one failure never kills the app ─────
 try:
@@ -102,8 +107,6 @@ from config.settings import (
     TICKER_SECTOR, MARKET_CLASSIFICATION, BOTTLENECK_PROFILES,
 )
 
-logger = logging.getLogger(__name__)
-
 # ── Soft imports — graceful fallback ─────────────────────────────────────────
 _AUTONOMY_AVAILABLE = False
 try:
@@ -133,7 +136,8 @@ except Exception as e:
 # ── Helpers ───────────────────────────────────────────────────────────────────
 def _prog(cb: Optional[Callable], msg: str, frac: float) -> None:
     logger.info(f"[{frac:.0%}] {msg}")
-    if cb: cb(msg, min(frac, 1.0))
+    if cb:
+        cb(msg, min(frac, 1.0))
 
 def _safe(fn, fallback, label="engine"):
     try:
@@ -150,21 +154,26 @@ def _compute_sector_momentum(
 ) -> Dict[str, float]:
     """Sector RS vs benchmark. Fed to bottleneck + narrative + discovery engines."""
     bench = prices.get(benchmark)
-    if bench is None: return {}
+    if bench is None:
+        return {}
     bench_n = pd.to_numeric(bench, errors="coerce").dropna()
-    if len(bench_n) < lookback + 1: return {}
+    if len(bench_n) < lookback + 1:
+        return {}
     bench_ret = float(bench_n.iloc[-1] / bench_n.iloc[-lookback-1] - 1)
 
     sector_rs: Dict[str, List[float]] = {}
     for ticker, sector in sector_map.items():
         s = prices.get(ticker)
-        if s is None: continue
+        if s is None:
+            continue
         s = pd.to_numeric(s, errors="coerce").dropna()
-        if len(s) < lookback + 1: continue
+        if len(s) < lookback + 1:
+            continue
         try:
             rs = float(s.iloc[-1] / s.iloc[-lookback-1] - 1) - bench_ret
             sector_rs.setdefault(sector, []).append(rs)
-        except Exception: pass
+        except Exception:
+            pass
     return {sec: float(np.median(vals)) for sec, vals in sector_rs.items() if vals}
 
 def _compute_flow_scores_proxy(
@@ -177,51 +186,58 @@ def _compute_flow_scores_proxy(
     NOTE: Not true dealer gamma. Labeled clearly. Max impact ±0.08 on EV.
     """
     bench = prices.get(benchmark)
-    if bench is None: return {}
+    if bench is None:
+        return {}
     bench_n = pd.to_numeric(bench, errors="coerce").dropna()
-    if len(bench_n) < 22: return {}
-    bench_s = float(bench_n.iloc[-1]/bench_n.iloc[-6]-1)  if len(bench_n)>=6 else 0.0
-    bench_l = float(bench_n.iloc[-1]/bench_n.iloc[-22]-1) if len(bench_n)>=22 else 0.0
+    if len(bench_n) < 22:
+        return {}
+    bench_s = float(bench_n.iloc[-1]/bench_n.iloc[-6]-1) if len(bench_n) >= 6 else 0.0
+    bench_l = float(bench_n.iloc[-1]/bench_n.iloc[-22]-1) if len(bench_n) >= 22 else 0.0
 
     scores: Dict[str, float] = {}
     for ticker, series in prices.items():
         s = pd.to_numeric(series, errors="coerce").dropna()
-        if len(s) < 22: continue
+        if len(s) < 22:
+            continue
         try:
             rs_s = float(s.iloc[-1]/s.iloc[-6]-1) - bench_s
             rs_l = float(s.iloc[-1]/s.iloc[-22]-1) - bench_l
             scores[ticker] = float(np.clip((rs_s - rs_l) / 0.05, -1.0, 1.0))
-        except Exception: pass
+        except Exception:
+            pass
     return scores
 
 def _prioritize_rr_tickers(prices: Dict[str, pd.Series], max_tickers: int = 250) -> List[str]:
     """Prioritize tickers for expensive Hurst R/S computation."""
     priority = set(MACRO_PROXIES.keys()) | set(BONDS.keys()) | \
-               set(US_SECTORS.keys()) | set(US_FACTORS.keys()) | \
-               {"SPY","QQQ","IWM","GLD","DX-Y.NYB","^VIX","BTC-USD","GC=F","CL=F"}
+        set(US_SECTORS.keys()) | set(US_FACTORS.keys()) | \
+        {"SPY","QQQ","IWM","GLD","DX-Y.NYB","^VIX","BTC-USD","GC=F","CL=F"}
     try:
         from engines.bottleneck_engine import KNOWN_BOTTLENECKS
         priority |= set(KNOWN_BOTTLENECKS.keys())
-    except Exception: pass
+    except Exception:
+        pass
 
     bench = prices.get("SPY")
     bench_n = pd.to_numeric(bench, errors="coerce").dropna() if bench is not None else None
-    bench_ret = float(bench_n.iloc[-1]/bench_n.iloc[-64]-1) if bench_n is not None and len(bench_n)>=64 else 0.0
+    bench_ret = float(bench_n.iloc[-1]/bench_n.iloc[-64]-1) if bench_n is not None and len(bench_n) >= 64 else 0.0
 
     ranked: List[Tuple[float, str]] = []
     for ticker, series in prices.items():
-        if ticker in priority: continue
+        if ticker in priority:
+            continue
         s = pd.to_numeric(series, errors="coerce").dropna()
-        if len(s) < 64: continue
+        if len(s) < 64:
+            continue
         try:
             rs = abs(float(s.iloc[-1]/s.iloc[-64]-1) - bench_ret)
             ranked.append((rs, ticker))
-        except Exception: pass
+        except Exception:
+            pass
     ranked.sort(reverse=True)
     extended = [t for _, t in ranked[:max_tickers - len(priority)]]
     final = sorted(priority & set(prices.keys())) + extended
     return final[:max_tickers]
-
 
 # ── Main build ────────────────────────────────────────────────────────────────
 def build_snapshot(
@@ -251,10 +267,14 @@ def build_snapshot(
     if include_us_stocks:
         ext += list(US_SECTORS.keys()) + list(US_FACTORS.keys())
         ext += [t for t in TICKER_SECTOR if t not in prices]
-    if include_forex:   ext += list(FOREX_PAIRS.keys())
-    if include_commodities: ext += list(COMMODITIES.keys())
-    if include_crypto:  ext += list(CRYPTO.keys())
-    if include_ihsg:    ext += list(IHSG_UNIVERSE.keys())
+    if include_forex:
+        ext += list(FOREX_PAIRS.keys())
+    if include_commodities:
+        ext += list(COMMODITIES.keys())
+    if include_crypto:
+        ext += list(CRYPTO.keys())
+    if include_ihsg:
+        ext += list(IHSG_UNIVERSE.keys())
     ext += list({v[0] for v in COUNTRY_UNIVERSE.values() if isinstance(v,(list,tuple)) and len(v)>0})
     ext = list(dict.fromkeys(t for t in ext if t not in prices))
 
@@ -271,11 +291,13 @@ def build_snapshot(
     _prog(progress_cb, "Running GIP model (Growth·Inflation·Policy RoC)...", 0.34)
     gip = _safe(lambda: GIPEngine().run(fred=fred, prices=prices), None, "GIP")
     if gip is None:
-        snap["error"] = "GIP engine failed"; return snap
+        snap["error"] = "GIP engine failed"
+        return snap
     snap["gip"] = gip
     snap["playbook"] = get_playbook(gip.structural_quad, gip.monthly_quad)
 
-    sq = gip.structural_quad; mq = gip.monthly_quad
+    sq = gip.structural_quad
+    mq = gip.monthly_quad
 
     # 4. GLOBAL QUAD ───────────────────────────────────────────────────────────
     _prog(progress_cb, "Running Global Quad (50 countries)...", 0.40)
@@ -290,13 +312,17 @@ def build_snapshot(
         vix = prices.get("^VIX")
         vix_last = float(pd.to_numeric(vix, errors="coerce").dropna().iloc[-1]) if vix is not None else 18.0
         dxy = prices.get("DX-Y.NYB")
-        dxy_1m = float(pd.to_numeric(dxy, errors="coerce").dropna().pct_change(21).dropna().iloc[-1]) if dxy is not None and len(dxy)>22 else 0.0
+        dxy_1m = float(pd.to_numeric(dxy, errors="coerce").dropna().pct_change(21).dropna().iloc[-1]) if dxy is not None and len(dxy) > 22 else 0.0
         vol_stress = float(np.clip((vix_last-15.0)/25.0, 0.0, 1.0))
-        return dict(vol_stress=vol_stress, vix=vix_last, dxy_1m=dxy_1m,
-                    shock_penalty=0.5 if sq in ("Q3","Q4") else 0.2,
-                    crowding=float(gip.features.get("proxy_share",0.3)),
-                    dollar_pressure=float(np.clip(0.5+dxy_1m/0.04,0.0,1.0)),
-                    tail_hedge_bid=float(np.clip((vix_last-20.0)/30.0,0.0,1.0)))
+        return dict(
+            vol_stress=vol_stress,
+            vix=vix_last,
+            dxy_1m=dxy_1m,
+            shock_penalty=0.5 if sq in ("Q3","Q4") else 0.2,
+            crowding=float(gip.features.get("proxy_share",0.3)),
+            dollar_pressure=float(np.clip(0.5+dxy_1m/0.04,0.0,1.0)),
+            tail_hedge_bid=float(np.clip((vix_last-20.0)/30.0,0.0,1.0))
+        )
     stress = _safe(_stress, {"vix":18.0,"vol_stress":0.3}, "Stress")
     snap["stress"] = stress
 
@@ -318,11 +344,12 @@ def build_snapshot(
     price_frames: Dict[str, pd.DataFrame] = {}
     for sym in rr_tickers:
         s = prices.get(sym)
-        if s is None or len(s) < 30: continue
+        if s is None or len(s) < 30:
+            continue
         s = pd.to_numeric(s, errors="coerce").dropna()
         df = pd.DataFrame({"Close": s})
-        df["High"]   = s.rolling(5, min_periods=1).max()
-        df["Low"]    = s.rolling(5, min_periods=1).min()
+        df["High"] = s.rolling(5, min_periods=1).max()
+        df["Low"] = s.rolling(5, min_periods=1).min()
         df["Volume"] = 1.0
         price_frames[sym] = df
     snap["price_frames_count"] = len(price_frames)
@@ -437,7 +464,7 @@ def build_snapshot(
         )
     else:
         snap["auto_discoveries"] = {"candidates":[],"meta":{"autonomy":"unavailable"}}
-        snap["feedback_eval"]    = {"evaluated":0,"promoted":0,"demoted":0}
+        snap["feedback_eval"] = {"evaluated":0,"promoted":0,"demoted":0}
 
     # 14. FRONT-RUN ENGINE — aggregates ALL signals into one watchlist ─────────
     _prog(progress_cb, "Building front-run watchlist (all signals aggregated)...", 0.85)
@@ -456,7 +483,7 @@ def build_snapshot(
             "FrontRunEngine (pre-transition)"
         )
     else:
-        snap["frontrun"] = {"watchlist":[],"boarding_now":[],"timing_window":"not yet",
+        snap["frontrun"] = {"watchlist":[],"boarding_now":[],"gate_soon":[],"timing_window":"not yet",
                             "meta":{"error":"frontrun_engine.py not found in repo"}}
 
     # 15. REGIME TRANSITION + HEALTH + ANALOGS ────────────────────────────────
@@ -464,9 +491,10 @@ def build_snapshot(
     macro_ctx = {k: v for k,v in gip.features.items() if isinstance(v, float)}
     def _p(t, n):
         s = prices.get(t)
-        if s is None: return 0.0
+        if s is None:
+            return 0.0
         s = pd.to_numeric(s, errors="coerce").dropna()
-        return float(s.iloc[-1]/s.iloc[-n]-1) if len(s)>n else 0.0
+        return float(s.iloc[-1]/s.iloc[-n]-1) if len(s) > n else 0.0
     market_ctx = {"oil_3m":_p("CL=F",64),"gold_3m":_p("GLD",64),"dxy_1m":_p("DX-Y.NYB",22)}
 
     transition = _safe(
@@ -519,16 +547,15 @@ def build_snapshot(
     )
     return snap
 
-
 def _run_feedback(auto_disc: dict, prices: dict, quad: str) -> dict:
     fb = FeedbackLoopEngineV3()
     fb.track(auto_disc.get("candidates",[]), regime=quad)
     return fb.evaluate(prices, benchmark="SPY")
 
-
 def get_or_build(force: bool = False, max_age_h: float = 4.0, **kw) -> dict:
     """Primary entry point for app.py."""
     if not force:
         snap = load_snapshot(max_age_hours=max_age_h)
-        if snap and snap.get("ok"): return snap
+        if snap and snap.get("ok"):
+            return snap
     return build_snapshot(**kw)

@@ -35,16 +35,67 @@ import numpy as np
 import pandas as pd
 
 from data.loader import load_fred, load_prices, save_snapshot, load_snapshot, snapshot_age_str
-from engines.gip_engine import GIPEngine, get_playbook
-from engines.global_quad_engine import GlobalQuadEngine
-from engines.hurst_rr_engine import HurstRREngine
-from engines.scenario_engine import ScenarioEngine
-from engines.bottleneck_engine import BottleneckEngine
-from engines.narrative_engine import NarrativeEngine
-from engines.adaptive_discovery_engine import AdaptiveDiscoveryEngine
-from engines.regime_transition_engine import RegimeTransitionEngine
-from engines.market_health_engine import MarketHealthEngine
-from engines.historical_analog_engine import HistoricalAnalogEngine
+
+# ── Core engine imports — each wrapped so one failure never kills the app ─────
+try:
+    from engines.gip_engine import GIPEngine, get_playbook
+except Exception as _e:
+    logger.error(f"gip_engine import failed: {_e}"); raise  # GIP is required
+
+try:
+    from engines.global_quad_engine import GlobalQuadEngine
+    _HAS_GLOBAL_QUAD = True
+except Exception as _e:
+    logger.warning(f"global_quad_engine: {_e}"); _HAS_GLOBAL_QUAD = False; GlobalQuadEngine = None
+
+try:
+    from engines.hurst_rr_engine import HurstRREngine
+    _HAS_RR = True
+except Exception as _e:
+    logger.warning(f"hurst_rr_engine: {_e}"); _HAS_RR = False; HurstRREngine = None
+
+try:
+    from engines.scenario_engine import ScenarioEngine
+    _HAS_SCENARIO = True
+except Exception as _e:
+    logger.warning(f"scenario_engine: {_e}"); _HAS_SCENARIO = False; ScenarioEngine = None
+
+try:
+    from engines.bottleneck_engine import BottleneckEngine
+    _HAS_BTK = True
+except Exception as _e:
+    logger.warning(f"bottleneck_engine: {_e}"); _HAS_BTK = False; BottleneckEngine = None
+
+try:
+    from engines.narrative_engine import NarrativeEngine
+    _HAS_NARRATIVE = True
+except Exception as _e:
+    logger.warning(f"narrative_engine: {_e}"); _HAS_NARRATIVE = False; NarrativeEngine = None
+
+try:
+    from engines.adaptive_discovery_engine import AdaptiveDiscoveryEngine
+    _HAS_ADAPTIVE = True
+except Exception as _e:
+    logger.warning(f"adaptive_discovery_engine: {_e}"); _HAS_ADAPTIVE = False; AdaptiveDiscoveryEngine = None
+
+try:
+    from engines.regime_transition_engine import RegimeTransitionEngine
+    _HAS_TRANSITION = True
+except Exception as _e:
+    logger.warning(f"regime_transition_engine: {_e}"); _HAS_TRANSITION = False; RegimeTransitionEngine = None
+
+try:
+    from engines.market_health_engine import MarketHealthEngine
+    _HAS_HEALTH = True
+except Exception as _e:
+    logger.warning(f"market_health_engine: {_e}"); _HAS_HEALTH = False; MarketHealthEngine = None
+
+try:
+    from engines.historical_analog_engine import HistoricalAnalogEngine
+    _HAS_ANALOGS = True
+except Exception as _e:
+    logger.warning(f"historical_analog_engine: {_e}"); _HAS_ANALOGS = False; HistoricalAnalogEngine = None
+
 from config.settings import (
     MACRO_PROXIES, US_SECTORS, US_FACTORS, FOREX_PAIRS,
     COMMODITIES, CRYPTO, BONDS, IHSG_UNIVERSE, COUNTRY_UNIVERSE,
@@ -231,7 +282,7 @@ def build_snapshot(
     snap["global"] = _safe(
         lambda: GlobalQuadEngine().run(prices=prices, us_gip_result=gip),
         {"global_quad": sq, "country_quads": {}}, "GlobalQuad"
-    )
+    ) if _HAS_GLOBAL_QUAD else {"global_quad": sq, "country_quads": {}}
 
     # 5. STRESS ────────────────────────────────────────────────────────────────
     _prog(progress_cb, "Computing stress overlay...", 0.44)
@@ -280,7 +331,7 @@ def build_snapshot(
     rr_result = _safe(
         lambda: HurstRREngine().run(price_frames=price_frames, stress=stress, symbols=rr_tickers),
         {"asset_ranges":{}, "summary":{}}, "HurstRR"
-    )
+    ) if _HAS_RR else {"asset_ranges":{}, "summary":{}}
     snap["risk_ranges"] = rr_result
     asset_ranges = rr_result.get("asset_ranges", {})
 
@@ -293,10 +344,10 @@ def build_snapshot(
             flip_hazard=gip.flip_hazard,
             data_coverage=gip.data_coverage,
         ), {}, "ScenarioEngine"
-    )
+    ) if _HAS_SCENARIO else {}
     snap["scenarios"] = scenarios
 
-    # 10. BOTTLENECK ENGINE — gets flow_scores + asset_ranges (FIX) ────────────
+    # 10. BOTTLENECK ENGINE ─────────────────────────────────────────────────────
     _prog(progress_cb, "Scanning bottlenecks (all asset classes)...", 0.66)
     btk = _safe(
         lambda: BottleneckEngine().run(
@@ -304,30 +355,27 @@ def build_snapshot(
             quad_str=sq, quad_mon=mq,
             benchmark="SPY",
             asset_ranges=asset_ranges,
-            flow_scores=flow_scores,          # ← FIX: was always None
+            flow_scores=flow_scores,
         ),
         {"level_1":[],"level_2":[],"watch":[],"avoid":[],"brewing":[],"all_scored":[]},
         "BottleneckEngine"
-    )
+    ) if _HAS_BTK else {"level_1":[],"level_2":[],"watch":[],"avoid":[],"brewing":[],"all_scored":[]}
     snap["bottleneck"] = btk
 
-    # 11. NARRATIVE ENGINE — gets scenario_output + supply_chain (FIX) ─────────
-    # FIX: Was called without scenario_output → proactive_forecast() returned {}
+    # 11. NARRATIVE ENGINE ──────────────────────────────────────────────────────
     _prog(progress_cb, "Scoring narratives (adaptive·reactive·proactive)...", 0.71)
     narratives = _safe(
         lambda: NarrativeEngine().run(
             prices=prices,
             quad_str=sq, quad_mon=mq,
             benchmark="SPY",
-            scenario_output=scenarios,                  # ← FIX: now passed
-            supply_chain_signals=btk.get("all_scored"), # ← FIX: bottleneck feeds narrative
-            target_asset_classes=[                      # all 6 markets
-                "us_equity","ihsg","forex","commodity","crypto","bonds",
-            ],
+            scenario_output=scenarios,
+            supply_chain_signals=btk.get("all_scored"),
+            target_asset_classes=["us_equity","ihsg","forex","commodity","crypto","bonds"],
         ),
         {"narrative_dashboard":[],"dominant_narrative":None,"meta":{}},
         "NarrativeEngine"
-    )
+    ) if _HAS_NARRATIVE else {"narrative_dashboard":[],"dominant_narrative":None,"meta":{"error":"narrative_engine unavailable"}}
     snap["narratives"] = narratives
 
     # 12. DISCOVERY ORCHESTRATOR v3 — ADAPTIVE · REACTIVE · PROACTIVE ──────────

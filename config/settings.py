@@ -368,20 +368,62 @@ BOTTLENECK_PROFILES: dict = {
     "dry_bulk_shipping":{"constraint":0.78,"Q1":0.55,"Q2":0.80,"Q3":0.60,"Q4":0.25},
     "oil_distribution": {"constraint":0.72,"Q1":0.50,"Q2":0.78,"Q3":0.65,"Q4":0.30},
     "banking_ihsg": {"constraint":0.65,"Q1":0.75,"Q2":0.70,"Q3":0.40,"Q4":0.30},
-    "generic": {"constraint":0.40,"Q1":0.50,"Q2":0.50,"Q3":0.50,"Q4":0.50},
+    "copper":            {"constraint":0.78,"Q1":0.65,"Q2":0.88,"Q3":0.72,"Q4":0.35},
+    "commodity_aluminum":{"constraint":0.65,"Q1":0.55,"Q2":0.82,"Q3":0.65,"Q4":0.30},
+    "commodity":         {"constraint":0.60,"Q1":0.55,"Q2":0.80,"Q3":0.65,"Q4":0.30},
+    "commodity_copper":  {"constraint":0.78,"Q1":0.65,"Q2":0.88,"Q3":0.72,"Q4":0.35},
+    "forex":             {"constraint":0.30,"Q1":0.50,"Q2":0.55,"Q3":0.50,"Q4":0.60},
+    "generic":           {"constraint":0.40,"Q1":0.50,"Q2":0.50,"Q3":0.50,"Q4":0.50},
 }
 
 # ── Market Classification (ticker → asset class) ──────────────────────────────
 MARKET_CLASSIFICATION: dict = {
     # US Equity
     **{t:"us_equity" for t in [
-        "LITE","COHR","POET","ON","WOLF","VST","ETN","GEV","VRT","HUBB","NVT","BE",
-        "AJINY","AMKR","COHU","MU","ARM","SNDK","MPWR","AEHR","ISRG","GLD","LMT",
-        "MKSI","ACLS","FORM","KMI","NVD","AMD","AVGO","NVDA","TSLA","AAPL","MSFT",
-        "GOOGL","META","AMZN","NFLX","PLTR","AXON","SAIC","KTOS",
+        # AI Optics
+        "LITE","COHR","POET","CIEN","VIAV","GLW","MKSI","ACLS",
+        "FN","MTSI","IPAR",
+        # AI Power
+        "ON","WOLF","MPWR","AEHR","FORM",
+        # AI Power Infra
+        "VST","ETN","GEV","BE","CEG","NRG","EMR","OKLO",
+        # Transformer Infra
+        "VRT","HUBB","NVT","POWL","AYI","AMETEK","ROP",
+        # AI Packaging
+        "AJINY","AMKR","COHU","TSEM","KLIC","ONTO",
+        # AI Compute
+        "NVDA","AMD","AVGO","TSM","QCOM","ARM","INTC","ASML",
+        "AMAT","KLAC","LRCX","TXN","ENTG","MCHP","MU","SNDK",
+        # AI Networking
+        "ALAB","CRDO","ANET","SMCI","CSCO","CLS","APH",
+        # Healthcare
+        "ISRG","MDT","SYK","ABT","BSX","EW","TMO",
+        "DXCM","PODD","RMD",
+        "LLY","MRNA","REGN","BMY","PFE","NVO","AZN","VRTX","GILD",
+        # Defense
+        "LMT","NOC","RTX","GD","KTOS","HII","LDOS","BAH","CACI",
+        "SAIC","BWXT","AXON",
+        # Precious Metals
+        "GLD","SLV","NEM","GOLD","GFI","AEM","WPM","FNV","RGLD",
+        # Utilities
+        "NEE","DUK","D","SO","AEP","EXC","SRE","PEG","ED",
+        # Uranium
+        "URA","CCJ","NXE","UUUU","LEU","DNN",
+        # Energy
+        "KMI","WMB","OKE","XOM","CVX","COP","SLB",
+        "HAL","BKR","OXY","DVN","EOG","MPC","VLO","PSX",
+        # Copper
+        "FCX","SCCO","CPER",
+        # Staples
+        "WMT","COST","PG","KO","PEP","MCD","PM","MO","HSY","MDLZ",
+        # Generic / Mega Cap / Software
+        "AAPL","MSFT","GOOGL","META","AMZN","TSLA","NFLX","PLTR",
+        "SHOP","CRM","NOW","PANW","SNOW",
+        # Legacy / Benchmarks
+        "GLD","LMT","KMI","NVD","KTOS",
         "XLK","XLY","XLI","XLF","XLE","XLB","XLV","XLP","XLU","XLRE","XLC",
         "SPY","QQQ","IWM","DIA","VTV","VUG","USMV","HDV","RSP","MTUM","QUAL",
-        "TLT","IEF","HYG","LQD","EEM","GLD","SLV","URA","CCJ",
+        "TLT","IEF","HYG","LQD","EEM",
         "IBIT","FBTC","ETHA","MSTR",
     ]},
     # Forex
@@ -426,41 +468,122 @@ MARKET_CLASSIFICATION: dict = {
 
 # ── Ticker → Sector mapping ───────────────────────────────────────────────────
 TICKER_SECTOR: dict = {
-    # AI Optics
-    "LITE":"ai_optics","COHR":"ai_optics","POET":"ai_optics",
-    "MKSI":"ai_optics","ACLS":"ai_optics","FORM":"ai_optics",
-    # AI Power
-    "ON":"ai_power","WOLF":"ai_power","MPWR":"ai_power","AEHR":"sic_gan",
-    # AI Power Infra
+    # ── AI Compute ────────────────────────────────────────────────────────────
+    "NVDA":"ai_compute","AMD":"ai_compute","AVGO":"ai_compute","TSM":"ai_compute",
+    "INTC":"ai_compute","QCOM":"ai_compute","ARM":"ai_compute","ASML":"ai_compute",
+    "AMAT":"ai_compute","KLAC":"ai_compute","LRCX":"ai_compute","TXN":"ai_compute",
+    "ENTG":"ai_compute",   # Entegris — specialty fab materials, semi supply chain
+    "MCHP":"ai_compute",   # Microchip — mixed-signal/embedded, AI edge
+
+    # ── AI Networking ─────────────────────────────────────────────────────────
+    "ALAB":"ai_networking","CRDO":"ai_networking","ANET":"ai_networking","SMCI":"ai_networking",
+    "CSCO":"ai_networking",  # Cisco — 400G/800G AI switching/routing
+    "CLS":"ai_networking",   # Celestica — AI rack + CPO integration, contract mfg
+    "APH":"ai_networking",   # Amphenol — connectors, data center cable, structural supplier
+
+    # ── AI Optics (CPO Supply Chain) ──────────────────────────────────────────
+    "LITE":"ai_optics","COHR":"ai_optics","POET":"ai_optics","CIEN":"ai_optics",
+    "VIAV":"ai_optics","GLW":"ai_optics","MKSI":"ai_optics","ACLS":"ai_optics",
+    "FN":"ai_optics",    # Fabrinet — contract mfg for LITE/COHR, CPO assembly
+    "MTSI":"ai_optics",  # MACOM — InP/GaAs laser drivers upstream of LITE
+    "IPAR":"ai_optics",  # IPG Photonics — high-power laser, upstream EML/CW
+
+    # ── AI Memory ─────────────────────────────────────────────────────────────
+    "MU":"ai_memory","SNDK":"ai_memory",
+
+    # ── SiC / GaN Power Devices ───────────────────────────────────────────────
+    "AEHR":"sic_gan","FORM":"sic_gan",
+
+    # ── AI Power (ICs & Devices) ──────────────────────────────────────────────
+    "ON":"ai_power","WOLF":"ai_power","MPWR":"ai_power",   # MPWR = AI server power ICs
+
+    # ── AI Power Infrastructure ───────────────────────────────────────────────
     "VST":"ai_power_infra","ETN":"ai_power_infra","GEV":"ai_power_infra","BE":"ai_power_infra",
-    # Transformer
+    "CEG":"ai_power_infra",   # Constellation Energy — nuclear baseload for AI DCs
+    "NRG":"ai_power_infra",   # NRG Energy — generation capacity, AI power purchase
+    "EMR":"ai_power_infra",   # Emerson — process automation + AI DC thermal mgmt
+    "OKLO":"ai_power_infra",  # Oklo — SMR micro-reactor, Sam Altman backed, AI baseload
+
+    # ── Transformer / Switchgear ──────────────────────────────────────────────
     "VRT":"transformer_infra","HUBB":"transformer_infra","NVT":"transformer_infra",
-    # AI Packaging
+    "POWL":"transformer_infra",   # Powell Industries — switchgear specialist, AI DC
+    "AYI":"transformer_infra",    # Acuity Brands — grid lighting/control
+    "AMETEK":"transformer_infra", # Ametek — electronic instruments + power
+    "ROP":"transformer_infra",    # Roper Tech — niche industrial tech
+
+    # ── AI Packaging / Advanced Semi Assembly ─────────────────────────────────
     "AJINY":"ai_packaging","AMKR":"ai_packaging","COHU":"ai_packaging",
-    # AI Memory / Compute
-    "MU":"ai_memory","SNDK":"ai_memory","ARM":"ai_compute",
-    # Healthcare
+    "TSEM":"ai_packaging",  # Tower Semi — SiPh foundry for CPO
+    "KLIC":"ai_packaging",  # Kulicke & Soffa — wire bonding, advanced packaging
+    "ONTO":"ai_packaging",  # Onto Innovation — metrology/inspection for packaging
+
+    # ── Healthcare Equipment ──────────────────────────────────────────────────
     "ISRG":"healthcare_eq","MDT":"healthcare_eq","SYK":"healthcare_eq",
-    "LLY":"pharma","MRNA":"pharma","REGN":"pharma",
-    # Defense
+    "ABT":"healthcare_eq","BSX":"healthcare_eq","EW":"healthcare_eq","TMO":"healthcare_eq",
+    "DXCM":"healthcare_eq",  # DexCom — CGM, GLP-1 patient monitoring demand
+    "PODD":"healthcare_eq",  # Insulet — OmniPod insulin pump, GLP-1 adjacent
+    "RMD":"healthcare_eq",   # ResMed — sleep apnea; watch GLP-1 displacement thesis
+
+    # ── Pharma / GLP-1 ───────────────────────────────────────────────────────
+    "LLY":"pharma","MRNA":"pharma","REGN":"pharma","BMY":"pharma","PFE":"pharma",
+    "NVO":"pharma",   # Novo Nordisk — GLP-1 originator (Ozempic/Wegovy), secular
+    "AZN":"pharma",   # AstraZeneca — oncology + GLP-1 pipeline
+    "VRTX":"pharma",  # Vertex — CFTR monopoly + non-opioid pain program
+    "GILD":"pharma",  # Gilead — HIV/oncology, pipeline optionality
+
+    # ── Defense / Aerospace ───────────────────────────────────────────────────
     "LMT":"defense","NOC":"defense","RTX":"defense","GD":"defense","KTOS":"defense",
-    # Precious Metals
+    "HII":"defense","LDOS":"defense","BAH":"defense","CACI":"defense",
+    "SAIC":"defense",  # SAIC — defense IT/cloud, NATO ramp beneficiary
+    "BWXT":"defense",  # BWX Tech — nuclear reactors for subs + defense AI power
+    "AXON":"defense",  # Axon Enterprise — AI body cam/Taser, law enforcement tech
+
+    # ── Utilities / Power Grid ────────────────────────────────────────────────
+    "NEE":"utilities","DUK":"utilities","D":"utilities","SO":"utilities",
+    "AEP":"utilities",  # American Electric Power — AI grid corridor
+    "EXC":"utilities",  # Exelon — nuclear utility, AI clean power
+    "SRE":"utilities",  # Sempra — LNG + grid, AI-linked power demand
+    "PEG":"utilities",  # Public Service Enterprise — nuclear+grid NJ/NE
+    "ED":"utilities",   # Consolidated Edison — NY grid, regulated
+
+    # ── Water ─────────────────────────────────────────────────────────────────
+    "AWK":"water","WTRG":"water","CWT":"water",
+
+    # ── Uranium / Nuclear ─────────────────────────────────────────────────────
+    "URA":"uranium","CCJ":"uranium","NXE":"uranium","UUUU":"uranium",
+    "LEU":"uranium",   # Centrus Energy — US uranium enrichment, strategic CHIPS-equivalent
+    "DNN":"uranium",   # Denison Mines — explorer/developer, high leverage to uranium price
+
+    # ── Precious Metals (Miners + Streamers + ETFs) ───────────────────────────
     "GLD":"precious_metals","GC=F":"precious_metals","SLV":"precious_metals","SI=F":"precious_metals",
-    # Energy
+    "NEM":"precious_metals","GOLD":"precious_metals","GFI":"precious_metals",
+    "AEM":"precious_metals",   # Agnico Eagle — senior miner, low AISC, Q3/Q4 beast
+    "WPM":"precious_metals",   # Wheaton Precious Metals — streamer, max leverage to gold/silver
+    "FNV":"precious_metals",   # Franco-Nevada — royalty model, zero capex exposure
+    "RGLD":"precious_metals",  # Royal Gold — royalty, defensive in Q4
+
+    # ── Energy Infra / E&P / Oilfield Services ────────────────────────────────
     "KMI":"energy_infra","CL=F":"energy_infra","BZ=F":"energy_infra","USO":"energy_infra",
-    # Uranium
-    "URA":"uranium","CCJ":"uranium",
-    # Crypto
-    "BTC-USD":"depin_ai","ETH-USD":"depin_ai",
-    "TAO22974-USD":"depin_ai","RNDR-USD":"depin_ai","FET-USD":"depin_ai",
-    # Forex
-    "EURUSD=X":"forex","GBPUSD=X":"forex","USDJPY=X":"forex","USDCHF=X":"forex",
-    "USDCAD=X":"forex","AUDUSD=X":"forex","NZDUSD=X":"forex",
-    "USDMXN=X":"forex","USDBRL=X":"forex","USDIDR=X":"forex","DX-Y.NYB":"forex",
-    # Commodities
-    "HG=F":"commodity_copper","ALI=F":"commodity_aluminum",
+    "XOM":"energy_infra","CVX":"energy_infra","COP":"energy_infra","SLB":"energy_infra",
+    "HAL":"energy_infra","BKR":"energy_infra","OXY":"energy_infra","DVN":"energy_infra",
+    "EOG":"energy_infra","WMB":"energy_infra","OKE":"energy_infra",
+    "MPC":"energy_infra","VLO":"energy_infra","PSX":"energy_infra",  # refining/downstream
+
+    # ── Copper / Base Metals ──────────────────────────────────────────────────
+    "FCX":"copper",   # Freeport-McMoRan — copper king, direct AI transformer chain
+    "SCCO":"copper",  # Southern Copper — pure-play copper, LatAm production
+    "HG=F":"copper",  # Copper futures
+    "CPER":"copper",  # Copper ETF
+
+    # ── Consumer Staples ──────────────────────────────────────────────────────
+    "WMT":"staples","COST":"staples","PG":"staples","KO":"staples","PEP":"staples",
+    "MCD":"staples","PM":"staples","MO":"staples","HSY":"staples","MDLZ":"staples",
+
+    # ── Commodities (other) ───────────────────────────────────────────────────
+    "ALI=F":"commodity_aluminum",
     "ZW=F":"commodity","ZC=F":"commodity","ZS=F":"commodity",
-    # IHSG
+
+    # ── IHSG ──────────────────────────────────────────────────────────────────
     "^JKSE":"generic","EIDO":"generic",
     "BBCA.JK":"banking_ihsg","BBRI.JK":"banking_ihsg","BMRI.JK":"banking_ihsg",
     "ITMG.JK":"coal","ADRO.JK":"coal","PTBA.JK":"coal",
@@ -468,8 +591,21 @@ TICKER_SECTOR: dict = {
     "SHIP.JK":"osv_hulu","LEAD.JK":"osv_hulu","OBMD.JK":"oil_services",
     "PSSI.JK":"dry_bulk_shipping","TPMA.JK":"dry_bulk_shipping",
     "AKRA.JK":"oil_distribution","MEDC.JK":"energy_infra",
-    # Benchmarks (generic)
-    "SPY":"generic","QQQ":"generic","IWM":"generic","TLT":"generic","GLD":"precious_metals",
+
+    # ── Crypto ────────────────────────────────────────────────────────────────
+    "BTC-USD":"depin_ai","ETH-USD":"depin_ai",
+    "TAO22974-USD":"depin_ai","RNDR-USD":"depin_ai","FET-USD":"depin_ai",
+
+    # ── Forex ─────────────────────────────────────────────────────────────────
+    "EURUSD=X":"forex","GBPUSD=X":"forex","USDJPY=X":"forex","USDCHF=X":"forex",
+    "USDCAD=X":"forex","AUDUSD=X":"forex","NZDUSD=X":"forex",
+    "USDMXN=X":"forex","USDBRL=X":"forex","USDIDR=X":"forex","DX-Y.NYB":"forex",
+
+    # ── Generic (Benchmarks + Mega Cap) ──────────────────────────────────────
+    "SPY":"generic","QQQ":"generic","IWM":"generic","TLT":"generic",
+    "AAPL":"generic","MSFT":"generic","GOOGL":"generic","META":"generic","AMZN":"generic",
+    "TSLA":"generic","NFLX":"generic","PLTR":"generic","SHOP":"generic",
+    "CRM":"generic","NOW":"generic","PANW":"generic","SNOW":"generic",
 }
 
 # ── Quad → Market Direction ───────────────────────────────────────────────────
@@ -535,21 +671,94 @@ MAG7 = ["AAPL","MSFT","NVDA","GOOGL","META","AMZN","TSLA"]
 
 # ── US Buckets ────────────────────────────────────────────────────────────────
 US_BUCKETS: dict = {
-    "ai_compute": ["NVDA","AMD","AVGO","TSM","QCOM"],
+    "ai_compute": [
+        "NVDA","AMD","AVGO","TSM","QCOM","ARM","INTC","ASML",
+        "AMAT","KLAC","LRCX","TXN","ENTG","MCHP",
+    ],
+    "ai_networking": [
+        "ALAB","CRDO","ANET","SMCI",
+        "CSCO",   # Cisco — 400G/800G AI switching
+        "CLS",    # Celestica — AI rack + CPO assembly
+        "APH",    # Amphenol — connectors, DC cable
+    ],
     "ai_memory": ["MU","SNDK"],
-    "ai_optics": ["LITE","COHR","POET","MKSI","ACLS","FORM"],
-    "ai_power": ["ON","WOLF","MPWR","AEHR"],
-    "ai_power_infra": ["VST","ETN","GEV","BE"],
-    "transformer_infra": ["VRT","HUBB","NVT"],
-    "ai_packaging": ["AJINY","AMKR","COHU"],
-    "healthcare_eq": ["ISRG","MDT","SYK","DXCM","PODD","RMD"],
-    "pharma": ["LLY","MRNA","REGN","BMY","PFE","NVO","AZN"],
-    "defense": ["LMT","NOC","RTX","GD","KTOS","HII","LDOS","AXON"],
-    "precious_metals": ["GLD","SLV","AEM","WPM","FNV","RGLD"],
-    "utilities": ["NEE","DUK","D","SO","XLU","AEP","EXC"],
-    "uranium": ["URA","CCJ","NXE","UUUU","LEU"],
-    "energy_infra": ["KMI","WMB","OKE","XOM","CVX","SLB"],
-    "staples": ["WMT","COST","PG","KO","PEP","MCD","PM","MO"],
+    "ai_optics": [
+        "LITE","COHR","POET","MKSI","ACLS","CIEN","VIAV","GLW",
+        "FN",     # Fabrinet — CPO contract manufacturing
+        "MTSI",   # MACOM — InP/GaAs laser drivers
+        "IPAR",   # IPG Photonics — high-power laser upstream
+    ],
+    "ai_power": ["ON","WOLF","MPWR","AEHR","FORM"],
+    "sic_gan":  ["AEHR","FORM"],
+    "ai_power_infra": [
+        "VST","ETN","GEV","BE",
+        "CEG",    # Constellation Energy — nuclear baseload
+        "NRG",    # NRG Energy — generation capacity
+        "EMR",    # Emerson — process automation/thermal
+        "OKLO",   # Oklo — SMR micro-reactor
+    ],
+    "transformer_infra": [
+        "VRT","HUBB","NVT",
+        "POWL",   # Powell Industries — switchgear specialist
+        "AYI","AMETEK","ROP",
+    ],
+    "ai_packaging": [
+        "AJINY","AMKR","COHU","TSEM",
+        "KLIC",   # Kulicke & Soffa — wire bonding
+        "ONTO",   # Onto Innovation — metrology/inspection
+    ],
+    "healthcare_eq": [
+        "ISRG","MDT","SYK","ABT","BSX","EW","TMO",
+        "DXCM",   # DexCom — CGM, GLP-1 monitoring demand
+        "PODD",   # Insulet — OmniPod insulin pump
+        "RMD",    # ResMed — sleep apnea (GLP-1 displacement watch)
+    ],
+    "pharma": [
+        "LLY","MRNA","REGN","BMY","PFE",
+        "NVO",    # Novo Nordisk — GLP-1 originator (Ozempic/Wegovy)
+        "AZN",    # AstraZeneca — oncology + GLP-1 pipeline
+        "VRTX",   # Vertex — CFTR monopoly + non-opioid pain
+        "GILD",   # Gilead — HIV/oncology
+    ],
+    "defense": [
+        "LMT","NOC","RTX","GD","KTOS","HII","LDOS","BAH","CACI",
+        "AXON",   # Axon Enterprise — AI public safety/law enforcement
+        "SAIC",   # SAIC — defense IT/cloud
+        "BWXT",   # BWX Tech — nuclear reactors for defense + AI power
+    ],
+    "precious_metals": [
+        "GLD","SLV","NEM","GOLD","GFI",
+        "AEM",    # Agnico Eagle — senior miner, low AISC
+        "WPM",    # Wheaton Precious Metals — streamer, max gold/silver leverage
+        "FNV",    # Franco-Nevada — royalty, zero capex model
+        "RGLD",   # Royal Gold — royalty, Q4 defensive
+    ],
+    "utilities": [
+        "NEE","DUK","D","SO","XLU",
+        "AEP",    # American Electric Power — AI grid corridor
+        "EXC",    # Exelon — nuclear utility
+        "SRE",    # Sempra — LNG + grid
+        "PEG",    # PSEG — nuclear + grid NJ
+        "ED",     # Consolidated Edison — regulated NY
+    ],
+    "uranium": [
+        "URA","CCJ","NXE","UUUU",
+        "LEU",    # Centrus Energy — US enrichment, strategic
+        "DNN",    # Denison Mines — explorer/developer
+    ],
+    "energy_infra": [
+        "KMI","WMB","OKE","XOM","CVX","COP","SLB",
+        "HAL","BKR","OXY","DVN","EOG",
+        "MPC","VLO","PSX",   # downstream/refining
+    ],
+    "copper": [
+        "FCX",    # Freeport-McMoRan — copper king
+        "SCCO",   # Southern Copper — pure-play
+        "HG=F","CPER",
+    ],
+    "staples": [
+        "WMT","COST","PG","KO","PEP","MCD","PM","MO","HSY","MDLZ",
+    ],
 }
 
 IHSG_BUCKETS: dict = {

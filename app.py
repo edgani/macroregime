@@ -817,6 +817,84 @@ elif page == "🔍 Research":
                              f'<div style="font-size:10px;color:#C4B5FD;margin-top:3px;">{(c.get("thesis") or c.get("known_thesis",""))[:90]}</div>'
                              f'</div>', unsafe_allow_html=True)
 
+        st.markdown("---")
+        st.markdown("### 🔭 Untracked Bottleneck Hints")
+        st.caption("Tickers below have confirmed/emerging bottleneck thesis tapi belum ada di universe. "
+                   "Add ke settings.py → TICKER_SECTOR + IHSG_UNIVERSE jika ingin di-track.")
+
+        from config.settings import BOTTLENECK_HINTS
+
+        # Determine loaded tickers
+        loaded = set(prices.keys()) if prices else set()
+
+        # Current quad untuk filter quad_fit
+        active_quad = sq  # structural quad dari snap
+
+        hints_shown = 0
+        for sector, hint_list in BOTTLENECK_HINTS.items():
+            # Filter: only show hints where ticker NOT loaded
+            missing = [h for h in hint_list if h["ticker"] not in loaded]
+            if not missing:
+                continue
+
+            # Optionally filter by quad fit
+            # (show all if no quad match — don't hide potentially useful hints)
+            quad_matched = [h for h in missing if active_quad in h.get("quad_fit", [])]
+            other = [h for h in missing if active_quad not in h.get("quad_fit", [])]
+            # Quad-matched first
+            ordered = quad_matched + other
+
+            # Get bottleneck profile constraint for this sector
+            profile = BOTTLENECK_PROFILES.get(sector, {})
+            constraint = profile.get("constraint", 0.0)
+            regime_fit = profile.get(active_quad, 0.5)
+            sector_label = sector.replace("_", " ").title()
+
+            # Color by constraint level
+            if constraint >= 0.85:
+                border_color = "#EF4444"
+                badge = "🔴 CRITICAL"
+            elif constraint >= 0.75:
+                border_color = "#F59E0B"
+                badge = "🟡 HIGH"
+            else:
+                border_color = "#6366F1"
+                badge = "🔵 MODERATE"
+
+            with st.expander(
+                f"{badge} **{sector_label}** — Constraint {constraint:.0%} | "
+                f"Regime Fit ({active_quad}): {regime_fit:.0%} | "
+                f"{len(ordered)} untracked",
+                expanded=(constraint >= 0.85)  # auto-expand critical sectors
+            ):
+                for h in ordered:
+                    in_quad = active_quad in h.get("quad_fit", [])
+                    quad_tag = f"✅ {active_quad} fit" if in_quad else f"⚠️ better in {'/'.join(h.get('quad_fit', []))}"
+                    source_tag = h.get("source", "")
+
+                    st.markdown(
+                        f"""<div style="background:#111827;border-left:3px solid {border_color};
+                        padding:10px 14px;border-radius:4px;margin-bottom:8px;">
+                        <div style="display:flex;justify-content:space-between;align-items:center;">
+                            <span style="font-size:14px;font-weight:700;color:#E8ECF0;">
+                                <code style="background:#1F2937;padding:2px 6px;border-radius:3px;
+                                font-size:13px;color:#60A5FA;">{h['ticker']}</code>
+                                &nbsp;{h['name']}
+                            </span>
+                            <span style="font-size:10px;color:#6B7280;">{quad_tag} · {source_tag}</span>
+                        </div>
+                        <div style="font-size:11px;color:#9CA3AF;margin-top:6px;">{h['why']}</div>
+                        </div>""",
+                        unsafe_allow_html=True,
+                    )
+                hints_shown += len(ordered)
+
+        if hints_shown == 0:
+            st.success("✅ All known bottleneck candidates are already tracked in universe.")
+        else:
+            st.caption(f"💡 {hints_shown} untracked hints across {len(BOTTLENECK_HINTS)} sectors. "
+                       "Add tickers ke `config/settings.py → TICKER_SECTOR` untuk mulai track.")
+
     # ── Narratives ────────────────────────────────────────────────────────────
     with res_tabs[1]:
         if not narr:

@@ -793,3 +793,196 @@ CRYPTO_BUCKETS: dict = {
     "depin_ai": ["TAO22974-USD","RNDR-USD","FET-USD","GRT6719-USD","HNT-USD"],
     "defi": ["AAVE-USD","UNI7083-USD","MKR-USD","CRV-USD"],
 }
+
+# ── Bottleneck Hints ──────────────────────────────────────────────────────────
+# Tickers NOT yet in main universe but have confirmed/emerging bottleneck thesis.
+# Displayed on Bottleneck page when ticker is absent from loaded prices.
+# Format: sector → list of {ticker, name, why, quad_fit, source}
+BOTTLENECK_HINTS: dict = {
+
+    # ── AI Compute / Semi Equipment ───────────────────────────────────────────
+    "ai_compute": [
+        {"ticker":"ONTO","name":"Onto Innovation",
+         "why":"Metrology/inspection for advanced packaging — every CoWoS chip needs ONTO's tools. Capacity constrained.",
+         "quad_fit":["Q1","Q2"],"source":"Citrini CPO chain"},
+        {"ticker":"ICHR","name":"Ichor Holdings",
+         "why":"Gas delivery systems for semiconductor fabs. AMAT/LRCX cannot ship tools without ICHR's subsystems.",
+         "quad_fit":["Q1","Q2"],"source":"Semi supply chain"},
+        {"ticker":"COHU","name":"Cohu",
+         "why":"Semiconductor test handlers. AI chip volume ramp = test capacity bottleneck. Underfollowed.",
+         "quad_fit":["Q1","Q2"],"source":"AI packaging chain"},
+        {"ticker":"ACMR","name":"ACM Research",
+         "why":"Wet cleaning equipment for advanced nodes. China + global fab expansion. AMAT competitor in cleaning.",
+         "quad_fit":["Q1","Q2"],"source":"Semi equipment"},
+    ],
+
+    # ── AI Optics / CPO Extended ──────────────────────────────────────────────
+    "ai_optics": [
+        {"ticker":"AAOI","name":"Applied Optoelectronics",
+         "why":"Transceiver modules for hyperscale DC. Small cap, high leverage to 800G/1.6T data center buildout.",
+         "quad_fit":["Q1","Q2"],"source":"CPO chain"},
+        {"ticker":"FNSR","name":"Finisar (now COHR)",
+         "why":"Fully absorbed into COHR. Track COHR for this exposure.",
+         "quad_fit":["Q1","Q2"],"source":"Reference only"},
+        {"ticker":"NPKI","name":"NeoPhotonics (acquired)",
+         "why":"Absorbed by II-VI → COHR. Track COHR. But signals the CPO M&A wave continues.",
+         "quad_fit":["Q1","Q2"],"source":"M&A reference"},
+        {"ticker":"SIOL","name":"Sievert Optical / Sivers Semi (OTC)",
+         "why":"Swedish InP laser maker — competing with LITE in EML space. Not US-listed, track via LITE.",
+         "quad_fit":["Q1","Q2"],"source":"CPO bottleneck research"},
+    ],
+
+    # ── AI Networking ─────────────────────────────────────────────────────────
+    "ai_networking": [
+        {"ticker":"INFN","name":"Infinera",
+         "why":"Optical networking for hyperscale backhaul. 800G coherent optics — acquired by Nokia 2024.",
+         "quad_fit":["Q1","Q2"],"source":"Networking chain"},
+        {"ticker":"VIAV","name":"Viavi Solutions",
+         "why":"Network test/measurement for AI data centers. 800G testing bottleneck. Low profile, high leverage.",
+         "quad_fit":["Q1","Q2"],"source":"AI networking"},
+        {"ticker":"KEYS","name":"Keysight Technologies",
+         "why":"T&M for AI chip validation + 800G/1.6T optical testing. Invisible picks-and-shovels.",
+         "quad_fit":["Q1","Q2"],"source":"AI infra"},
+    ],
+
+    # ── AI Packaging ──────────────────────────────────────────────────────────
+    "ai_packaging": [
+        {"ticker":"UCTT","name":"Ultra Clean Holdings",
+         "why":"Chemical delivery + precision cleaning for advanced fabs. CoWoS expansion = UCTT demand.",
+         "quad_fit":["Q1","Q2"],"source":"Packaging chain"},
+        {"ticker":"CAMT","name":"Camtek",
+         "why":"Israeli inspection/metrology for advanced packaging. TSMC CoWoS = CAMT tools at every step.",
+         "quad_fit":["Q1","Q2"],"source":"@dojjunn packaging chain"},
+        {"ticker":"KLIC","name":"Kulicke & Soffa",
+         "why":"Wire bonding + advanced packaging tools. 2.5D/3D packaging ramp = KLIC unit growth.",
+         "quad_fit":["Q1","Q2"],"source":"Packaging bottleneck"},
+    ],
+
+    # ── AI Power Infrastructure ───────────────────────────────────────────────
+    "ai_power_infra": [
+        {"ticker":"CORZ","name":"Core Scientific",
+         "why":"Bitcoin miner → AI compute hosting pivot. Already has large-scale power infra (miners need same inputs as AI DC).",
+         "quad_fit":["Q1","Q2"],"source":"Aschenbrunner thesis"},
+        {"ticker":"IREN","name":"IREN Limited",
+         "why":"AI data center on 100% renewable. Owns power + compute = vertically integrated AI physical layer.",
+         "quad_fit":["Q1","Q2"],"source":"Aschenbrunner thesis"},
+        {"ticker":"APLD","name":"Applied Digital",
+         "why":"Purpose-built AI cloud infra. Liquid-cooled high-density DCs designed from scratch for AI workloads.",
+         "quad_fit":["Q1","Q2"],"source":"Aschenbrunner thesis"},
+        {"ticker":"SMR","name":"NuScale Power",
+         "why":"Small Modular Reactor — nuclear for AI DC baseload. Binary risk but structural thesis if SMR gets NRC approval.",
+         "quad_fit":["Q1","Q2","Q3"],"source":"Nuclear AI power chain"},
+    ],
+
+    # ── Transformer / Switchgear ──────────────────────────────────────────────
+    "transformer_infra": [
+        {"ticker":"ABB","name":"ABB Ltd (ADR: ABBNY)",
+         "why":"Swiss industrial giant — transformers, grid automation, EV charging. US ADR available. ETN's main global competitor.",
+         "quad_fit":["Q2","Q3"],"source":"Grid bottleneck"},
+        {"ticker":"SIEGY","name":"Siemens Energy (ADR)",
+         "why":"Gas turbines + transformers. @dojjunn: gas turbines = next bottleneck after power infra. Siemens has 3-4yr order backlog.",
+         "quad_fit":["Q2","Q3"],"source":"@dojjunn bottleneck chain"},
+        {"ticker":"WLDN","name":"Willdan Group",
+         "why":"Grid engineering services. Every transformer/switchgear install needs engineering firm. Small cap, high leverage.",
+         "quad_fit":["Q2","Q3"],"source":"Grid services"},
+    ],
+
+    # ── Uranium / Nuclear ─────────────────────────────────────────────────────
+    "uranium": [
+        {"ticker":"BWXT","name":"BWX Technologies",
+         "why":"Nuclear reactors for US Navy submarines + defense. CHIPS Act equivalent for nuclear. Also AI DC SMR candidate.",
+         "quad_fit":["Q1","Q2","Q3"],"source":"Nuclear chain"},
+        {"ticker":"SMR","name":"NuScale Power (NASDAQ: SMR)",
+         "why":"Only NRC-approved SMR design in US. Binary: approved = 10x, delayed = dead. High risk/reward.",
+         "quad_fit":["Q1","Q2"],"source":"SMR bottleneck"},
+        {"ticker":"PALAF","name":"Paladin Energy (OTC)",
+         "why":"Australian uranium miner. Langer Heinrich restart. Physical uranium supply bottleneck play.",
+         "quad_fit":["Q2","Q3"],"source":"Uranium supply chain"},
+        {"ticker":"UEC","name":"Uranium Energy Corp",
+         "why":"US domestic uranium miner. In-situ recovery = fastest to ramp. Strategic US supply.",
+         "quad_fit":["Q2","Q3"],"source":"Uranium supply"},
+    ],
+
+    # ── Precious Metals ───────────────────────────────────────────────────────
+    "precious_metals": [
+        {"ticker":"SILV","name":"SilverCrest Metals",
+         "why":"High-grade silver-gold developer in Mexico. Acquisition target. Silver supply deficit structural.",
+         "quad_fit":["Q3","Q4"],"source":"Silver bottleneck"},
+        {"ticker":"MAG","name":"MAG Silver",
+         "why":"High-grade silver producer. Juanicipio mine ramping. Pure silver play for Q3 defensive rotation.",
+         "quad_fit":["Q3","Q4"],"source":"Silver supply chain"},
+        {"ticker":"WPM","name":"Wheaton Precious Metals",
+         "why":"Streaming model — zero mining risk, pure metal price leverage. Best vehicle for Q3/Q4 gold thesis.",
+         "quad_fit":["Q3","Q4"],"source":"Hedgeye Q3 playbook"},
+    ],
+
+    # ── Copper ────────────────────────────────────────────────────────────────
+    "copper": [
+        {"ticker":"TECK","name":"Teck Resources",
+         "why":"Canadian copper + metallurgical coal. QB2 copper mine ramping. M&A target (Glencore bid). Q2 commodity play.",
+         "quad_fit":["Q2"],"source":"Copper supply chain"},
+        {"ticker":"LUNMF","name":"Lundin Mining (OTC)",
+         "why":"Pure-play copper/zinc miner. Cobre Panama restart catalyst. Underfollowed.",
+         "quad_fit":["Q2"],"source":"Copper bottleneck"},
+        {"ticker":"CMCL","name":"Caledonia Mining (AIM/NYSE)",
+         "why":"Zimbabwe gold/copper miner. Small cap, high leverage to metal prices.",
+         "quad_fit":["Q2","Q3"],"source":"EM commodity"},
+    ],
+
+    # ── Defense ───────────────────────────────────────────────────────────────
+    "defense": [
+        {"ticker":"RCAT","name":"Red Cat Holdings",
+         "why":"Drone defense — Black Widow drones. US Army contract. Sub-$1B market cap with NATO drone demand.",
+         "quad_fit":["Q2","Q3"],"source":"Defense drone chain"},
+        {"ticker":"JOBY","name":"Joby Aviation",
+         "why":"eVTOL air taxi — also US DoD contract for military transport. Dual-use aerospace bottleneck.",
+         "quad_fit":["Q1","Q2"],"source":"Defense tech"},
+        {"ticker":"PLTR","name":"Palantir Technologies",
+         "why":"AI for defense/intelligence. Maven Smart System = US Army AI. Should not be labeled generic.",
+         "quad_fit":["Q1","Q2","Q3"],"source":"Defense AI"},
+    ],
+
+    # ── Healthcare / GLP-1 Adjacent ───────────────────────────────────────────
+    "healthcare_eq": [
+        {"ticker":"HIMS","name":"Hims & Hers Health",
+         "why":"GLP-1 compounding/telehealth. High risk (FDA compounding policy risk) but massive GLP-1 TAM exposure.",
+         "quad_fit":["Q1","Q2"],"source":"GLP-1 chain"},
+        {"ticker":"INVA","name":"Innoviva",
+         "why":"Royalty on respiratory drugs + GLP-1 adjacent pipeline. Low-profile compounder.",
+         "quad_fit":["Q3","Q4"],"source":"Pharma royalty"},
+        {"ticker":"NTRA","name":"Natera",
+         "why":"Liquid biopsy / cell-free DNA testing. Cancer early detection bottleneck. Pod 1 accelerating.",
+         "quad_fit":["Q1","Q2","Q3"],"source":"Genomics bottleneck"},
+    ],
+
+    # ── Energy Infra ──────────────────────────────────────────────────────────
+    "energy_infra": [
+        {"ticker":"DINO","name":"HF Sinclair (née HollyFrontier)",
+         "why":"Independent refiner. Crack spread leverage. Q2 stagflation = refining margin expansion.",
+         "quad_fit":["Q2","Q3"],"source":"Energy refining"},
+        {"ticker":"AM","name":"Antero Midstream",
+         "why":"Appalachian natural gas gathering. LNG export demand = nat gas infrastructure bottleneck.",
+         "quad_fit":["Q2","Q3"],"source":"Nat gas infrastructure"},
+        {"ticker":"TRGP","name":"Targa Resources",
+         "why":"Permian NGL gathering/processing. NGL demand from petrochemicals + LNG export. Q2 commodity play.",
+         "quad_fit":["Q2"],"source":"NGL bottleneck"},
+    ],
+
+    # ── IHSG / Indonesia Specific ─────────────────────────────────────────────
+    "banking_ihsg": [
+        {"ticker":"BBNI.JK","name":"Bank BNI",
+         "why":"State bank, underweight vs BBCA/BBRI. MSCI rebalance + foreign flow recovery = catch-up trade.",
+         "quad_fit":["Q1","Q2"],"source":"IHSG banking rotation"},
+        {"ticker":"BRIS.JK","name":"Bank BSI (Syariah)",
+         "why":"Sharia banking growth. OJK incentives + halal economy narrative. Underfollowed by foreign funds.",
+         "quad_fit":["Q1","Q2"],"source":"IHSG narrative"},
+    ],
+    "osv_hulu": [
+        {"ticker":"WINS.JK","name":"Wintermar Offshore",
+         "why":"OSV operator. Pertamina hulu spending = WINS revenue. Ricky2212 thesis core name.",
+         "quad_fit":["Q2","Q3"],"source":"Ricky2212 hulu thesis"},
+        {"ticker":"ELSA.JK","name":"Elnusa",
+         "why":"Pertamina subsidiary for seismic/hulu services. Direct beneficiary of oil production target 1M bbl/day by 2030.",
+         "quad_fit":["Q2","Q3"],"source":"Ricky2212 hulu thesis"},
+    ],
+}

@@ -46,6 +46,7 @@ from engines.gamma_regime_engine import GammaRegimeEngine
 from engines.leading_indicator_engine import LeadingIndicatorEngine
 from engines.leveraged_etf_engine import LeveragedETFEngine
 from engines.adaptive_discovery_engine import AdaptiveDiscoveryEngine
+from engines.auto_discovery_engine_v4 import AutoDiscoveryEngineV4
 from engines.auto_discovery_engine_v3 import AutoDiscoveryEngineV3
 
 class SnapshotBuilder:
@@ -146,12 +147,16 @@ class SnapshotBuilder:
 
             self._prog("Discovery engine...")
             try:
-                disc_engine = AdaptiveDiscoveryEngine()
+                disc_engine = AutoDiscoveryEngineV4()
                 auto_disc = disc_engine.run(prices, gip, risk_ranges)
             except Exception as e:
-                logger.warning(f"AdaptiveDiscoveryEngine failed ({e}), falling back to V3")
-                disc_engine = AutoDiscoveryEngineV3()
-                auto_disc = disc_engine.run(prices, gip, risk_ranges)
+                logger.warning(f"AutoDiscoveryV4 failed ({e}), falling back to V3")
+                try:
+                    disc_engine = AutoDiscoveryEngineV3()
+                    auto_disc = disc_engine.run(prices, gip, risk_ranges)
+                except Exception as e2:
+                    logger.warning(f"AutoDiscoveryV3 also failed ({e2}), using empty")
+                    auto_disc = {"ok": False, "candidates": [], "note": "Discovery engines failed"}
             snapshot["auto_discoveries"] = auto_disc
 
             snapshot["playbook"] = get_playbook(sq, mq)

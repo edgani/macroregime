@@ -659,23 +659,43 @@ elif page == "Narratives":
 # DISCOVERY
 elif page == "Discovery":
     st.markdown("# Early Discovery - Pre-Consensus")
-    st.caption("Autonomy engine: regime fit + price cluster + supply chain graph + news NLP.")
-    cands=(auto_disc.get("candidates",[]) if auto_disc else [])+ (disc.get("discoveries",[]) if disc else [])
-    if not cands: st.info("No discoveries yet. Run Force build."); st.stop()
-    for stage,sc in [("active","#10B981"),("building","#F59E0B"),("brewing","#6366F1")]:
+    st.caption("Autonomy engine: regime fit + price cluster + supply chain graph + commodity spikes + theme detection.")
+
+    # V4 format support
+    cands = []
+    if auto_disc and auto_disc.get("ok"):
+        cands = auto_disc.get("candidates", [])
+    elif disc:
+        cands = disc.get("discoveries", [])
+
+    if not cands:
+        st.info("No discoveries yet. Run Force build.")
+        if auto_disc and not auto_disc.get("ok"):
+            st.caption(f"Engine note: {auto_disc.get('note','')}")
+        st.stop()
+
+    # Show engine stats
+    if auto_disc and auto_disc.get("ok"):
+        st.caption(f"Engine: AutoDiscoveryV4 | Total: {auto_disc.get('total',0)} | New: {auto_disc.get('new_this_run',0)} | Signals: {auto_disc.get('signals_harvested',0)}")
+
+    for stage,sc in [("active","#10B981"),("building","#F59E0B"),("brewing","#6366F1"),("pre_consensus","#9CA3AF"),("early","#60A5FA")]:
         items=[c for c in cands if c.get("stage")==stage]
         if not items: continue
-        st.markdown(f"### {stage.upper()} ({len(items)})")
+        st.markdown(f"### {stage.upper().replace('_',' ')} ({len(items)})")
         for c in items:
-            conf=c.get("confidence",c.get("conviction",0)); pump=c.get("pump_risk",0)
-            with st.expander(f"**{c.get('name','')}** - Conf: {conf:.0%} · Pump: {pump:.0%}"):
+            conf=c.get("confidence",0)
+            sig_types = ", ".join(c.get("signals", {}).keys())[:40]
+            with st.expander(f"**{c.get('name','')}** - Conf: {conf:.0%} [{sig_types}]"):
                 st.markdown(f"**Thesis:** {c.get('thesis','')}")
                 st.markdown(f"**Category:** {c.get('category','')}")
-                ben=c.get("beneficiary_tickers",[]); fade=c.get("fade_tickers",[])
-                if ben: st.markdown(f"**Beneficiaries:** {' · '.join(ben[:8])}")
-                if fade: st.markdown(f"**Fade:** {' · '.join(fade[:5])}")
-                cs=c.get("confirmation_signal",""); inv=c.get("invalidators",[])
-                if cs: st.markdown(f"**Confirmation:** {cs}")
+                if c.get("tickers"): st.markdown(f"**Tickers:** {' · '.join(c['tickers'][:8])}")
+                if c.get("signals"): 
+                    st.markdown("**Signals:**")
+                    for sig_type, strength in c["signals"].items():
+                        st.progress(min(strength, 1.0), text=f"{sig_type}: {strength:.0%}")
+                if c.get("first_detected"): st.markdown(f"**First seen:** {c['first_detected']}")
+                if c.get("last_updated"): st.markdown(f"**Updated:** {c['last_updated']}")
+                inv=c.get("invalidators",[])
                 if inv: st.markdown(f"**Invalidators:** {', '.join(inv) if isinstance(inv,list) else inv}")
 
 # HEALTH

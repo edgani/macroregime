@@ -1,38 +1,7 @@
-"""engines/gip_engine.py v6 — Hedgeye GIP Model
+"""engines/gip_engine.py v7 — Hedgeye GIP Model
 
-SURGICAL FIX — Only monthly scoring changed vs repo v3. Structural is identical.
-
-PROBLEM HISTORY:
-  v3 (repo): Structural Q3 ✅  Monthly Q3 ❌ (bug: shock modifier forced Q3)
-  v4:        Structural Q3 ✅  Monthly Q3 ❌ (fix not deployed)
-  v5:        Structural Q2 ❌  Monthly Q2 ✅ (over-engineered structural, broke it)
-  v6:        Structural Q3 ✅  Monthly Q2 ✅ (surgical: only monthly changed)
-
-WHAT CHANGED FROM REPO v3 (one section only):
-  BEFORE (repo v3 monthly):
-    m_g_level = 0.40*g_level + 0.60*g_mom_   ← structural FRED bleeds in
-    m_g_mom   = 0.30*g_mom_ + 0.70*tanh(price)
-    shock     = tanh((CPI-Core)/0.004)        ← always positive in Q3
-    modifiers = {"Q3": 0.05*shock, "Q2": -0.03*shock}  ← permanent Q3 bias
-
-  AFTER (v6 monthly):
-    m_g_mom = tanh(0.40*xli1/0.05 + 0.60*spy1/0.05)  ← pure 1M price, no bleed
-    m_g_level = 0.20*g_level + 0.80*m_g_mom          ← mostly price-driven
-    modifiers = {}  ← no regime-inherited bias
-
-WHAT IS IDENTICAL TO REPO v3 (untouched):
-  - All structural scoring (g_lvl, g_mom, i_lvl, i_mom weights)
-  - q3_mod calculation (NOT multiplied by proxy_share)
-  - struct_modifiers with Q3 anchor
-  - GROWTH/INFLATION_LEVEL/MOM_WEIGHTS (no PCE changes to structural)
-  - proxy_share calculation (9 keys — repo original)
-  - All FRED feature extraction
-  - Price proxy structural signals
-
-Evidence for monthly Q2 fix:
-  Apr 20 2026: McCullough "#Quad2 Breakout, It Was"
-  Apr 22 2026: "Tracking #Quad2, Then 1-1!"
-  Monthly = weather, not season. Must follow 1M price signals.
+SURGICAL FIX v7: Monthly inflation level = 90% price-driven (was 55% structural).
+This fixes the "monthly stuck in Q3" bug when 1M oil/gold signals show reflation.
 """
 from __future__ import annotations
 import math, os, logging
@@ -50,7 +19,6 @@ from config.settings import (
 
 logger = logging.getLogger(__name__)
 
-# ── Helpers (identical to repo v3) ───────────────────────────────────────────
 def _fv(*series_list):
     for s in series_list:
         if s is not None:
@@ -79,7 +47,7 @@ def _roc(s, n=12, offset=3) -> float:
     s = _safe(s)
     if len(s) < n + offset + 2: return float("nan")
     try:
-        r_now  = float(s.iloc[-1]       / s.iloc[-n-1]        - 1)
+        r_now = float(s.iloc[-1] / s.iloc[-n-1] - 1)
         r_prev = float(s.iloc[-offset-1]/ s.iloc[-n-offset-1] - 1)
         if not (math.isfinite(r_now) and math.isfinite(r_prev)): return float("nan")
         return r_now - r_prev
@@ -135,8 +103,6 @@ def clamp01(x) -> float:
     if not math.isfinite(x): return 0.5
     return float(np.clip(x, 0.0, 1.0))
 
-
-# ── Price proxy (identical to repo v3 + monthly_g_price / monthly_i_price) ───
 def _price_proxy(prices: Dict) -> Dict[str, float]:
     def r(t, n):
         s = _safe(prices.get(t))
@@ -144,130 +110,114 @@ def _price_proxy(prices: Dict) -> Dict[str, float]:
         b = float(s.iloc[-n-1])
         return float(s.iloc[-1]/b - 1) if abs(b) > 1e-9 else float("nan")
 
-    # ── Structural: 6M/12M spread (true 2nd derivative) ──────────────────────
-    spy6  = _first_finite(r("SPY",126)); spy12  = _first_finite(r("SPY",252))
-    xli6  = _first_finite(r("XLI",126)); xli12  = _first_finite(r("XLI",252))
-    xly6  = _first_finite(r("XLY",126)); xly12  = _first_finite(r("XLY",252))
-    iwm6  = _first_finite(r("IWM",126)); iwm12  = _first_finite(r("IWM",252))
-    xhb6  = _first_finite(r("XHB",126)); xhb12  = _first_finite(r("XHB",252))
-    oil6  = _first_finite(r("CL=F",126),r("USO",126))
+    spy6 = _first_finite(r("SPY",126)); spy12 = _first_finite(r("SPY",252))
+    xli6 = _first_finite(r("XLI",126)); xli12 = _first_finite(r("XLI",252))
+    xly6 = _first_finite(r("XLY",126)); xly12 = _first_finite(r("XLY",252))
+    iwm6 = _first_finite(r("IWM",126)); iwm12 = _first_finite(r("IWM",252))
+    xhb6 = _first_finite(r("XHB",126)); xhb12 = _first_finite(r("XHB",252))
+    oil6 = _first_finite(r("CL=F",126),r("USO",126))
     oil12 = _first_finite(r("CL=F",252),r("USO",252))
-    gld6  = _first_finite(r("GLD",126)); gld12  = _first_finite(r("GLD",252))
-    uup3  = _first_finite(r("UUP",63))
+    gld6 = _first_finite(r("GLD",126)); gld12 = _first_finite(r("GLD",252))
+    uup3 = _first_finite(r("UUP",63))
 
     spy_acc = _acc_spread(spy6,spy12); xli_acc = _acc_spread(xli6,xli12)
     xly_acc = _acc_spread(xly6,xly12); iwm_acc = _acc_spread(iwm6,iwm12)
     oil_acc = _acc_spread(oil6,oil12); gld_acc = _acc_spread(gld6,gld12)
 
-    # ── Monthly: raw 1M signals (NEW — not in repo v3, key fix) ──────────────
-    xli1 = _first_finite(r("XLI",21));  spy1 = _first_finite(r("SPY",21))
+    xli1 = _first_finite(r("XLI",21)); spy1 = _first_finite(r("SPY",21))
     oil1 = _first_finite(r("CL=F",21),r("USO",21))
-    gld1 = _first_finite(r("GLD",21));  uup1 = _first_finite(r("UUP",21))
+    gld1 = _first_finite(r("GLD",21)); uup1 = _first_finite(r("UUP",21))
     tlt1 = _first_finite(r("TLT",21))
 
-    # Pure 1M growth signal (XLI/SPY momentum — what McCullough watches daily)
     monthly_g_price = float(np.tanh(0.40*xli1/0.05 + 0.60*spy1/0.05))
-    # Pure 1M inflation signal (Oil/Gold/DXY — what drives monthly inflation weather)
     monthly_i_price = float(np.tanh(0.50*oil1/0.06 + 0.30*gld1/0.05 - 0.20*uup1/0.04))
 
-    # Q3 structural divergence signals (identical to repo v3)
-    hyg6  = _first_finite(r("HYG",126),r("LQD",126))
-    tlt6  = _first_finite(r("TLT",126))
-    xlp6  = _first_finite(r("XLP",126))
-    credit_stress_6   = _nan(spy6 - hyg6)
-    quality_bid_6     = _nan(tlt6 - spy6*0.5)
+    hyg6 = _first_finite(r("HYG",126),r("LQD",126))
+    tlt6 = _first_finite(r("TLT",126))
+    xlp6 = _first_finite(r("XLP",126))
+    credit_stress_6 = _nan(spy6 - hyg6)
+    quality_bid_6 = _nan(tlt6 - spy6*0.5)
     consumer_stress_6 = _nan(xlp6 - xly6)
-    breadth_stress_6  = _nan(spy6 - iwm6)
+    breadth_stress_6 = _nan(spy6 - iwm6)
 
     q3_conf_raw = (
-        max(0.0, credit_stress_6)   * 2.0 +
-        max(0.0, quality_bid_6)     * 1.5 +
+        max(0.0, credit_stress_6) * 2.0 +
+        max(0.0, quality_bid_6) * 1.5 +
         max(0.0, consumer_stress_6) * 2.0 +
-        max(0.0, breadth_stress_6)  * 1.0
+        max(0.0, breadth_stress_6) * 1.0
     )
     q3_modifier = float(np.tanh(q3_conf_raw / 0.12) * 0.40)
 
     return {
-        # Structural growth proxies (identical to repo v3)
-        "indpro_yoy":   _nan(0.55*xli12 + 0.45*spy12),
-        "retail_yoy":   _nan(0.60*xly12 + 0.40*spy12),
+        "indpro_yoy": _nan(0.55*xli12 + 0.45*spy12),
+        "retail_yoy": _nan(0.60*xly12 + 0.40*spy12),
         "payrolls_yoy": _nan(0.50*iwm12 + 0.50*spy12),
-        "housing_yoy":  _nan(0.70*xhb12 + 0.30*iwm12),
-        "ism_norm":     _nan(10.0*xli_acc),
-        "unrate_inv":   _nan(-0.10*iwm12),
-        "claims_inv":   _nan(-5.0*_first_finite(r("IWM",21))),
-        # Structural inflation proxies (identical to repo v3)
-        "cpi_yoy":      _nan(0.025 + 0.35*oil12 + 0.05*gld12),
+        "housing_yoy": _nan(0.70*xhb12 + 0.30*iwm12),
+        "ism_norm": _nan(10.0*xli_acc),
+        "unrate_inv": _nan(-0.10*iwm12),
+        "claims_inv": _nan(-5.0*_first_finite(r("IWM",21))),
+        "cpi_yoy": _nan(0.025 + 0.35*oil12 + 0.05*gld12),
         "core_cpi_yoy": _nan(0.023 + 0.15*oil12 - 0.05*uup3),
         "breakeven_5y": _nan(0.6*oil12 + 0.2*gld12),
-        "ppi_yoy":      _nan(0.03 + 0.55*oil12),
-        "oil_3m":       _nan(oil6*2.0),
-        "gold_3m":      _nan(gld6*2.0),
-        # Structural momentum proxies (identical to repo v3)
-        "indpro_roc":   _nan(0.60*xli_acc + 0.40*spy_acc),
-        "retail_roc":   _nan(0.60*xly_acc + 0.40*spy_acc),
+        "ppi_yoy": _nan(0.03 + 0.55*oil12),
+        "oil_3m": _nan(oil6*2.0),
+        "gold_3m": _nan(gld6*2.0),
+        "indpro_roc": _nan(0.60*xli_acc + 0.40*spy_acc),
+        "retail_roc": _nan(0.60*xly_acc + 0.40*spy_acc),
         "payrolls_roc": _nan(0.50*iwm_acc + 0.50*spy_acc),
-        "ism_delta":    _nan(xli1*100),
+        "ism_delta": _nan(xli1*100),
         "unrate_delta": _nan(-_first_finite(r("IWM",21))),
         "claims_delta": 0.0,
-        "cpi_roc":      _nan(oil_acc*0.4 + gld_acc*0.1),
+        "cpi_roc": _nan(oil_acc*0.4 + gld_acc*0.1),
         "core_cpi_roc": _nan(oil_acc*0.2 - uup1*0.1),
         "breakeven_delta": _nan(oil_acc*0.3 + gld_acc*0.1),
-        "oil_1m":       oil1,
-        "dxy_inv_1m":   _nan(-uup1),
-        # Q3 structural signals (identical to repo v3)
-        "q3_modifier":        q3_modifier,
-        "q3_credit_stress":   _nan(credit_stress_6),
+        "oil_1m": oil1,
+        "dxy_inv_1m": _nan(-uup1),
+        "q3_modifier": q3_modifier,
+        "q3_credit_stress": _nan(credit_stress_6),
         "q3_consumer_stress": _nan(consumer_stress_6),
-        "policy_score":       0.0,
-        "liquidity_score":    0.0,
-        # ── NEW (not in repo v3) — monthly pure price signals ─────────────
-        # Used ONLY in monthly scoring section.
-        # NOT mixed into structural signals.
+        "policy_score": 0.0,
+        "liquidity_score": 0.0,
         "monthly_g_price": monthly_g_price,
         "monthly_i_price": monthly_i_price,
     }
 
-
-# ── FRED feature extraction (identical to repo v3) ────────────────────────────
 def _extract_fred_features(fred: Dict) -> Dict[str, float]:
     f: Dict[str, float] = {}
-    f["indpro_yoy"]   = _yoy(fred.get("INDPRO"))
-    f["retail_yoy"]   = _yoy(fred.get("RSAFS"))
+    f["indpro_yoy"] = _yoy(fred.get("INDPRO"))
+    f["retail_yoy"] = _yoy(fred.get("RSAFS"))
     f["payrolls_yoy"] = _yoy(fred.get("PAYEMS"))
     ism_s = _fv(fred.get("ISMNO"), fred.get("MANEMP"))
-    ism   = _last(ism_s)
-    f["ism_norm"]    = (ism - ISM_NEUTRAL)/ISM_NEUTRAL if math.isfinite(ism) else float("nan")
+    ism = _last(ism_s)
+    f["ism_norm"] = (ism - ISM_NEUTRAL)/ISM_NEUTRAL if math.isfinite(ism) else float("nan")
     f["housing_yoy"] = _yoy(fred.get("HOUST"))
     unrate_3m = _delta(fred.get("UNRATE"), 3)
-    claims_d  = _delta(fred.get("ICSA"), 13)
-    f["unrate_inv"]   = -float(np.tanh(unrate_3m/0.2)) if math.isfinite(unrate_3m) else float("nan")
-    f["claims_inv"]   = -float(np.tanh(claims_d/50000)) if math.isfinite(claims_d) else float("nan")
-    f["indpro_roc"]   = _roc(fred.get("INDPRO"),12,3)
-    f["retail_roc"]   = _roc(fred.get("RSAFS"),12,3)
+    claims_d = _delta(fred.get("ICSA"), 13)
+    f["unrate_inv"] = -float(np.tanh(unrate_3m/0.2)) if math.isfinite(unrate_3m) else float("nan")
+    f["claims_inv"] = -float(np.tanh(claims_d/50000)) if math.isfinite(claims_d) else float("nan")
+    f["indpro_roc"] = _roc(fred.get("INDPRO"),12,3)
+    f["retail_roc"] = _roc(fred.get("RSAFS"),12,3)
     f["payrolls_roc"] = _roc(fred.get("PAYEMS"),12,3)
     ism_d = _delta(ism_s, 3) if ism_s is not None else float("nan")
-    f["ism_delta"]    = ism_d/ISM_NEUTRAL if math.isfinite(ism_d) else float("nan")
+    f["ism_delta"] = ism_d/ISM_NEUTRAL if math.isfinite(ism_d) else float("nan")
     f["unrate_delta"] = -unrate_3m/0.2 if math.isfinite(unrate_3m) else float("nan")
     f["claims_delta"] = -claims_d/50000 if math.isfinite(claims_d) else float("nan")
-    f["cpi_yoy"]      = _yoy(fred.get("CPIAUCSL"))
+    f["cpi_yoy"] = _yoy(fred.get("CPIAUCSL"))
     f["core_cpi_yoy"] = _yoy(fred.get("CPILFESL"))
-    f["ppi_yoy"]      = _yoy(fred.get("PPIACO"))
+    f["ppi_yoy"] = _yoy(fred.get("PPIACO"))
     be5 = _last(fred.get("T5YIE"))
     f["breakeven_5y"] = (be5 - 2.2)/2.0 if math.isfinite(be5) else float("nan")
-    f["cpi_roc"]      = _roc(fred.get("CPIAUCSL"),12,3)
+    f["cpi_roc"] = _roc(fred.get("CPIAUCSL"),12,3)
     f["core_cpi_roc"] = _roc(fred.get("CPILFESL"),12,3)
     be5_d = _delta(fred.get("T5YIE"), 1)
     f["breakeven_delta"] = be5_d/0.3 if math.isfinite(be5_d) else float("nan")
-    ff_s     = _fv(fred.get("FEDFUNDS"), fred.get("DFF"))
+    ff_s = _fv(fred.get("FEDFUNDS"), fred.get("DFF"))
     ff_delta = _delta(ff_s, 3)
-    f["policy_score"]    = float(np.tanh(-_nan(ff_delta)/0.5))
+    f["policy_score"] = float(np.tanh(-_nan(ff_delta)/0.5))
     m2_roc = _roc(fred.get("M2SL"),12,3)
     f["liquidity_score"] = float(np.tanh(_nan(m2_roc)/0.05))
     return f
 
-
-# ── Quad scoring (identical to repo v3) ──────────────────────────────────────
 def _score_quad(g_level, g_mom, i_level, i_mom, policy, sw, pw, modifiers=None):
     modifiers = modifiers or {}
     g = sw["growth_level"]*g_level + sw["growth_momentum"]*g_mom
@@ -282,21 +232,19 @@ def _score_quad(g_level, g_mom, i_level, i_mom, policy, sw, pw, modifiers=None):
     for q, delta in modifiers.items():
         if q in raw: raw[q] += delta
     probs = _softmax(raw)
-    top   = max(probs, key=probs.get)
+    top = max(probs, key=probs.get)
     margin = probs[top] - sorted(probs.values(), reverse=True)[1]
-    conf   = float(np.clip(probs[top]*(0.65+0.35*margin/0.5), 0.0, 1.0))
+    conf = float(np.clip(probs[top]*(0.65+0.35*margin/0.5), 0.0, 1.0))
     return probs, top, conf
 
-
-# ── GIP Result (identical to repo v3) ────────────────────────────────────────
 @dataclass
 class GIPResult:
     structural_quad: str; structural_probs: Dict[str,float]; structural_conf: float
-    structural_g: float;  structural_i: float
-    monthly_quad: str;    monthly_probs: Dict[str,float];    monthly_conf: float
-    monthly_g: float;     monthly_i: float
-    divergence: str;      operating_regime: str
-    policy_score: float;  data_coverage: float; proxy_share: float
+    structural_g: float; structural_i: float
+    monthly_quad: str; monthly_probs: Dict[str,float]; monthly_conf: float
+    monthly_g: float; monthly_i: float
+    divergence: str; operating_regime: str
+    policy_score: float; data_coverage: float; proxy_share: float
     features: Dict[str,float] = field(default_factory=dict)
 
     @property
@@ -305,67 +253,62 @@ class GIPResult:
                  sorted(self.structural_probs.values(), reverse=True)[1]
         return float(np.clip(0.5 - 0.8*margin + 0.2*(1.0-self.data_coverage), 0.0, 1.0))
 
-
-# ── Main Engine ───────────────────────────────────────────────────────────────
 class GIPEngine:
     def run(self, fred: Dict, prices: Dict) -> GIPResult:
-        f_fred  = _extract_fred_features(fred)
+        f_fred = _extract_fred_features(fred)
         f_proxy = _price_proxy(prices)
 
-        # ── Coverage (identical to repo v3 — 9 keys) ──────────────────────────
         fred_keys = ["indpro_yoy","retail_yoy","payrolls_yoy","cpi_yoy","core_cpi_yoy",
                      "ism_norm","housing_yoy","unrate_inv","claims_inv"]
-        n_fred      = sum(1 for k in fred_keys if math.isfinite(f_fred.get(k, float("nan"))))
+        n_fred = sum(1 for k in fred_keys if math.isfinite(f_fred.get(k, float("nan"))))
         proxy_share = 1.0 - n_fred / len(fred_keys)
-        coverage    = 1.0 - proxy_share
+        coverage = 1.0 - proxy_share
 
         def merge(key):
             v = f_fred.get(key, float("nan"))
             return v if math.isfinite(v) else f_proxy.get(key, float("nan"))
 
-        # ── STRUCTURAL growth/inflation (IDENTICAL to repo v3) ─────────────────
+        # STRUCTURAL (identical to v6)
         g_lvl = {
-            "indpro_yoy":   _tanh_scale(merge("indpro_yoy") - 0.02, 0.05),
-            "retail_yoy":   _tanh_scale(merge("retail_yoy") - 0.03, 0.06),
+            "indpro_yoy": _tanh_scale(merge("indpro_yoy") - 0.02, 0.05),
+            "retail_yoy": _tanh_scale(merge("retail_yoy") - 0.03, 0.06),
             "payrolls_yoy": _tanh_scale(merge("payrolls_yoy") - 0.015, 0.03),
-            "housing_yoy":  _tanh_scale(merge("housing_yoy"), 0.10),
-            "ism_norm":     _tanh_scale(merge("ism_norm"), 0.10),
-            "unrate_inv":   merge("unrate_inv"),
-            "claims_inv":   merge("claims_inv"),
+            "housing_yoy": _tanh_scale(merge("housing_yoy"), 0.10),
+            "ism_norm": _tanh_scale(merge("ism_norm"), 0.10),
+            "unrate_inv": merge("unrate_inv"),
+            "claims_inv": merge("claims_inv"),
         }
         g_mom_d = {
-            "indpro_roc":   _tanh_scale(merge("indpro_roc"), 0.025),
-            "retail_roc":   _tanh_scale(merge("retail_roc"), 0.030),
+            "indpro_roc": _tanh_scale(merge("indpro_roc"), 0.025),
+            "retail_roc": _tanh_scale(merge("retail_roc"), 0.030),
             "payrolls_roc": _tanh_scale(merge("payrolls_roc"), 0.015),
-            "ism_delta":    _tanh_scale(merge("ism_delta"), 0.05),
+            "ism_delta": _tanh_scale(merge("ism_delta"), 0.05),
             "unrate_delta": _tanh_scale(merge("unrate_delta"), 1.0),
             "claims_delta": _tanh_scale(merge("claims_delta"), 1.0),
         }
         i_lvl = {
-            "cpi_yoy":      _tanh_scale(merge("cpi_yoy") - 0.025, 0.020),
+            "cpi_yoy": _tanh_scale(merge("cpi_yoy") - 0.025, 0.020),
             "core_cpi_yoy": _tanh_scale(merge("core_cpi_yoy") - 0.025, 0.015),
             "breakeven_5y": merge("breakeven_5y"),
-            "ppi_yoy":      _tanh_scale(merge("ppi_yoy") - 0.025, 0.030),
-            "oil_3m":       _tanh_scale(merge("oil_3m"), 0.25),
-            "gold_3m":      _tanh_scale(merge("gold_3m"), 0.18),
+            "ppi_yoy": _tanh_scale(merge("ppi_yoy") - 0.025, 0.030),
+            "oil_3m": _tanh_scale(merge("oil_3m"), 0.25),
+            "gold_3m": _tanh_scale(merge("gold_3m"), 0.18),
         }
         i_mom_d = {
-            "cpi_roc":         _tanh_scale(merge("cpi_roc"), 0.012),
-            "core_cpi_roc":    _tanh_scale(merge("core_cpi_roc"), 0.010),
+            "cpi_roc": _tanh_scale(merge("cpi_roc"), 0.012),
+            "core_cpi_roc": _tanh_scale(merge("core_cpi_roc"), 0.010),
             "breakeven_delta": _tanh_scale(merge("breakeven_delta"), 1.0),
-            "oil_1m":          _tanh_scale(merge("oil_1m"), 0.06),
-            "dxy_inv_1m":      _tanh_scale(merge("dxy_inv_1m"), 0.06),
+            "oil_1m": _tanh_scale(merge("oil_1m"), 0.06),
+            "dxy_inv_1m": _tanh_scale(merge("dxy_inv_1m"), 0.06),
         }
 
-        g_level = _wmean(g_lvl,   GROWTH_LEVEL_WEIGHTS)
-        g_mom_  = _wmean(g_mom_d, GROWTH_MOM_WEIGHTS)
-        i_level = _wmean(i_lvl,   INFLATION_LEVEL_WEIGHTS)
-        i_mom_  = _wmean(i_mom_d, INFLATION_MOM_WEIGHTS)
-        policy  = _nan(merge("policy_score"))
+        g_level = _wmean(g_lvl, GROWTH_LEVEL_WEIGHTS)
+        g_mom_ = _wmean(g_mom_d, GROWTH_MOM_WEIGHTS)
+        i_level = _wmean(i_lvl, INFLATION_LEVEL_WEIGHTS)
+        i_mom_ = _wmean(i_mom_d, INFLATION_MOM_WEIGHTS)
+        policy = _nan(merge("policy_score"))
         cov_frac= _coverage({**g_lvl, **g_mom_d, **i_lvl, **i_mom_d})
 
-        # ── STRUCTURAL Q3 modifier (IDENTICAL to repo v3) ─────────────────────
-        # q3_mod is NOT multiplied by proxy_share — identical to repo
         q3_mod = float(_nan(merge("q3_modifier")))
         struct_modifiers = {}
         if q3_mod > 0.05:
@@ -378,69 +321,40 @@ class GIPEngine:
             modifiers=struct_modifiers
         )
 
-        # ══════════════════════════════════════════════════════════════════════
-        # MONTHLY SCORING — ONLY SECTION CHANGED FROM REPO v3
-        #
-        # BEFORE (repo v3 bug):
-        #   m_g_mom = 0.30*g_mom_ + 0.70*tanh(price)    ← 30% structural FRED bleed
-        #   shock = tanh((CPI-Core)/0.004)               ← always positive in Q3
-        #   modifiers = {Q3:+0.05*shock, Q2:-0.03*shock} ← permanent Q3 bias
-        #   Result: Monthly stuck at Q3 even when price signals say Q2
-        #
-        # AFTER (v6 fix):
-        #   m_g_mom = tanh(XLI/SPY 1M)     ← pure price, zero structural bleed
-        #   modifiers = {}                  ← no regime-inherited bias
-        #   Result: Monthly follows 1M price freely → Q2 when rally is real
-        # ══════════════════════════════════════════════════════════════════════
-
-        # 1M price signals (these are ALREADY in f_proxy, computed in _price_proxy)
-        oil1 = _first_finite(
-            _ret(_safe(prices.get("CL=F")), 21) if prices.get("CL=F") is not None else None,
-            merge("oil_1m"), 0.0
-        )
-        gld1  = _first_finite(_ret(_safe(prices.get("GLD")), 21) if prices.get("GLD") is not None else None, 0.0)
-
-        # Pure price-driven monthly growth (no structural FRED bleed)
+        # MONTHLY SCORING — v7 FIX: 90% price-driven inflation
         monthly_g_price = _nan(f_proxy.get("monthly_g_price", 0.0))
         monthly_i_price = _nan(f_proxy.get("monthly_i_price", 0.0))
 
-        # Monthly g_level: 80% price-driven, 20% structural level (not momentum)
+        # Growth: 80% price, 20% structural level (not momentum)
         m_g_level = 0.20 * g_level + 0.80 * monthly_g_price
-        # Monthly g_mom: 100% pure price (no g_mom_ structural bleed)
-        m_g_mom   = monthly_g_price
-        # Monthly i_level: blend structural inflation level with 1M price signal
-        m_i_level = 0.55 * i_level + 0.25 * i_mom_ + 0.20 * monthly_i_price
-        # Monthly i_mom: 1M oil/gold/DXY (what McCullough tracks daily for inflation weather)
-        m_i_mom   = monthly_i_price
+        m_g_mom = monthly_g_price
 
-        # NO SHOCK MODIFIER — removes the permanent Q3 structural bias on monthly
-        # Monthly must be regime-agnostic and follow fresh signals
+        # INFLATION: 90% pure 1M price signal, 10% structural level emergency fallback
+        m_i_level = 0.10 * i_level + 0.90 * monthly_i_price
+        m_i_mom = monthly_i_price
+
         month_probs, month_quad, month_conf = _score_quad(
             m_g_level, m_g_mom, m_i_level, m_i_mom, policy,
             MONTHLY_WEIGHTS, POLICY_WEIGHT_MONTHLY,
-            modifiers={}  # ← KEY FIX: empty modifiers, no Q3 bias
+            modifiers={}
         )
 
-        # ── Divergence / regime (identical to repo v3) ─────────────────────────
         if struct_quad == month_quad:
-            div    = "aligned"
-            regime = f"Aligned {struct_quad}"
+            div = "aligned"; regime = f"Aligned {struct_quad}"
         else:
-            div    = "divergent"
-            regime = f"Monthly {month_quad} inside Structural {struct_quad}"
+            div = "divergent"; regime = f"Monthly {month_quad} inside Structural {struct_quad}"
 
-        # ── Bond signals (identical to repo v3) ──────────────────────────────
         _tlt = prices.get("TLT"); _ief = prices.get("IEF")
         tlt_1m = float(pd.to_numeric(_tlt, errors="coerce").pct_change(21).dropna().iloc[-1]) \
-                 if _tlt is not None and len(_tlt) > 22 else 0.0
+            if _tlt is not None and len(_tlt) > 22 else 0.0
         ief_1m = float(pd.to_numeric(_ief, errors="coerce").pct_change(21).dropna().iloc[-1]) \
-                 if _ief is not None and len(_ief) > 22 else 0.0
+            if _ief is not None and len(_ief) > 22 else 0.0
         bond_pivot_signal = clamp01(0.5 + tlt_1m*8 + ief_1m*4)
 
-        cpi_yoy  = _nan(merge("cpi_yoy"))
+        cpi_yoy = _nan(merge("cpi_yoy"))
         core_yoy = _nan(merge("core_cpi_yoy"))
-        hgap     = cpi_yoy - core_yoy
-        shock    = max(0.0, _tanh_scale(hgap, 0.004))
+        hgap = cpi_yoy - core_yoy
+        shock = max(0.0, _tanh_scale(hgap, 0.004))
 
         features = dict(
             growth_level=g_level, growth_momentum=g_mom_,
@@ -470,7 +384,6 @@ class GIPEngine:
             policy_score=policy, data_coverage=coverage,
             proxy_share=proxy_share, features=features,
         )
-
 
 def get_playbook(sq: str, mq: str) -> dict:
     s = QUAD_ASSET_PERFORMANCE.get(sq, {})

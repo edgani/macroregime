@@ -1,248 +1,103 @@
-"""engines/gamma_regime_engine.py — Gamma Regime Approximation
+"""engines/gamma_regime_engine.py — Gamma Regime Detection v3
 
-Tier 1 Alpha's Gamma Throttle adalah proprietary.
-Kita compute approximation yang secara statistik sangat berkorelasi:
-
-Core Formula:
-  Gamma Throttle ≈ f(VIX_implied, rVol_realized, vol_premium, skew, put_call_ratio)
-
-Logika:
-  - VIX = implied vol (forward-looking dealer hedging cost)
-  - rVol = realized vol (apa yang benar-benar terjadi)
-  - Vol Premium = VIX - rVol → tinggi = dealer hedging mahal = cenderung long gamma
-  - Gamma Throttle tinggi (+) = dealer long gamma = suppression mode
-  - Gamma Throttle rendah (-) = dealer short gamma = amplification mode
-
-Dari scatter chart Tier 1 Alpha:
-  - Throttle +26 → rVol ~12 (sekarang)
-  - Throttle 0   → rVol ~20 (transition zone)
-  - Throttle -50 → rVol ~60+ (bear market / crash)
-
-Engine ini menghasilkan:
-  throttle_approx: float  (scale -105 to +35, sama dengan Tier 1 Alpha)
-  rvol_10d: float
-  rvol_30d: float
-  vol_premium: float
-  regime: str  (DEEP_POSITIVE / POSITIVE / TRANSITION / NEGATIVE / DEEP_NEGATIVE)
-  dip_buy: bool
-  regime_color: str
-  regime_note: str
+FIX v3: Defensive against DataFrame->Series contamination from yfinance multi-ticker.
 """
 from __future__ import annotations
-
 import math
+from typing import Dict, Optional
 import numpy as np
 import pandas as pd
-from typing import Dict, Optional
-
-
-# ── Constants (dari calibrasi scatter Tier 1 Alpha chart) ────────────────────
-# rVol vs Throttle relationship (approximate inverse curve)
-# Throttle = A - B * rVol^C  (fitted from scatter)
-# Best fit dari data yang visible di chart:
-THROTTLE_A = 35.0    # max throttle (rVol → 0)
-THROTTLE_B = 2.8     # scaling coefficient
-THROTTLE_C = 1.35    # exponent (curvature)
-THROTTLE_MIN = -105.0
-
-# Vol premium thresholds
-VOL_PREMIUM_BOOST = 2.0  # setiap 1 point vol premium → +2 throttle points (approx)
-
-
-def _compute_rvol(prices: pd.Series, n: int) -> Optional[float]:
-    """Annualized realized vol dari n-day log returns."""
-    s = pd.to_numeric(prices, errors="coerce").dropna()
-    if len(s) < n + 1:
-        return None
-    lr = np.log(s.iloc[-n:] / s.iloc[-n:].shift(1)).dropna()
-    if len(lr) < 2:
-        return None
-    rvol = float(np.std(lr)) * np.sqrt(252) * 100  # annualized %, sama unit dengan VIX
-    return round(rvol, 2) if math.isfinite(rvol) else None
-
-
-def _throttle_from_rvol(rvol: float, vol_premium: float) -> float:
-    """
-    Core approximation: Gamma Throttle dari rVol + vol premium.
-    
-    Fitted dari Tier 1 Alpha scatter (rVol vs Throttle):
-    - rVol ~12 → Throttle ~+26
-    - rVol ~20 → Throttle ~+5
-    - rVol ~30 → Throttle ~-15
-    - rVol ~50 → Throttle ~-55
-    - rVol ~80 → Throttle ~-95
-    
-    Vol premium adjustment: dealer lebih likely long gamma kalau VIX >> rVol
-    (mereka jual options mahal → net long gamma dari hedging perspective)
-    """
-    if rvol <= 0:
-        return THROTTLE_A
-
-    # Base throttle dari rVol curve
-    base = THROTTLE_A - THROTTLE_B * (rvol ** THROTTLE_C)
-    base = max(THROTTLE_MIN, min(THROTTLE_A, base))
-
-    # Vol premium adjustment (VIX - rVol > 0 = implied > realized = more likely long gamma)
-    premium_adj = np.clip(vol_premium * VOL_PREMIUM_BOOST, -15, 15)
-
-    throttle = base + premium_adj
-    return round(np.clip(throttle, THROTTLE_MIN, THROTTLE_A), 2)
-
-
-def _classify_regime(throttle: float) -> Dict[str, str]:
-    """Classify gamma regime dari throttle value."""
-    if throttle >= 15:
-        return {
-            "regime": "DEEP_POSITIVE",
-            "label": "Deep Positive",
-            "color": "#10B981",
-            "bg": "#052e16",
-            "border": "#16a34a",
-            "impl": "Dealer long gamma → jual saat rally, beli saat dip. rVol ditekan mekanik.",
-            "action": "DIP BUY",
-            "dip_buy": True,
-        }
-    elif throttle >= 3:
-        return {
-            "regime": "POSITIVE",
-            "label": "Positive",
-            "color": "#34d399",
-            "bg": "#052e16",
-            "border": "#059669",
-            "impl": "Range-bound. Buy dip di low Trade range, sell rip di high.",
-            "action": "RANGE TRADE",
-            "dip_buy": True,
-        }
-    elif throttle >= -5:
-        return {
-            "regime": "TRANSITION",
-            "label": "Transition Zone",
-            "color": "#F59E0B",
-            "bg": "#451a03",
-            "border": "#d97706",
-            "impl": "Gamma transition — volatility bisa expand ke mana saja. Sizing lebih kecil.",
-            "action": "CAUTIOUS",
-            "dip_buy": False,
-        }
-    elif throttle >= -30:
-        return {
-            "regime": "NEGATIVE",
-            "label": "Negative Gamma",
-            "color": "#f87171",
-            "bg": "#450a0a",
-            "border": "#dc2626",
-            "impl": "Dealer short gamma → beli saat naik, jual saat turun. Vol MELEBAR. Trend amplification.",
-            "action": "TREND MODE",
-            "dip_buy": False,
-        }
-    else:
-        return {
-            "regime": "DEEP_NEGATIVE",
-            "label": "Deep Negative",
-            "color": "#EF4444",
-            "bg": "#3b0000",
-            "border": "#b91c1c",
-            "impl": "EXTREME negative gamma. Crash acceleration risk. Dealer selling into decline.",
-            "action": "DEFENSIVE",
-            "dip_buy": False,
-        }
-
 
 class GammaRegimeEngine:
     """
-    Compute gamma regime approximation dari market prices.
-    
-    Inputs yang dibutuhkan dari snap["prices"]:
-      - "SPY" atau "^GSPC"  → untuk rVol
-      - "^VIX"              → untuk implied vol
-    
-    Output: dict yang masuk ke snap["gamma"]
+    Detect gamma regime from realized vol + VIX proxy + price structure.
     """
 
-    def run(self, prices: Dict[str, pd.Series]) -> Dict:
-        """
-        Main compute.
-        Returns dict dengan semua gamma regime metrics.
-        """
-        # ── 1. Get SPY prices ─────────────────────────────────────────────
-        spy = prices.get("SPY") or prices.get("^GSPC")
-        vix_series = prices.get("^VIX")
+    def _compute_rvol(self, prices, n: int = 21) -> Optional[float]:
+        """Annualized realized volatility (%). DEFENSIVE against DataFrame input."""
+        if prices is None: return None
 
-        if spy is None or len(spy) < 11:
-            return self._fallback()
+        # DEFENSIVE: squeeze DataFrame -> Series
+        s = prices
+        if isinstance(s, pd.DataFrame):
+            if s.shape[1] == 1:
+                s = s.iloc[:, 0]
+            else:
+                s = s.squeeze()
+        if not isinstance(s, pd.Series):
+            return None
 
-        spy = pd.to_numeric(spy, errors="coerce").dropna()
+        s = pd.to_numeric(s, errors="coerce").dropna()
+        if len(s) < n + 2:
+            return None
+        lr = np.log(s.iloc[-n:] / s.iloc[-n:].shift(1)).dropna()
+        if len(lr) < 2:
+            return None
+        std_val = float(np.std(lr))
+        if not math.isfinite(std_val):
+            return None
+        rvol = std_val * np.sqrt(252) * 100
+        return round(rvol, 2) if math.isfinite(rvol) else None
 
-        # ── 2. Realized Vol (10d, 21d, 63d) ──────────────────────────────
-        rvol_10 = _compute_rvol(spy, 10)
-        rvol_21 = _compute_rvol(spy, 21)
-        rvol_63 = _compute_rvol(spy, 63)
+    def run(self, prices: Dict[str, object], vix_proxy: Optional[float] = None) -> Dict:
+        # DEFENSIVE: extract SPY with DataFrame guard
+        spy_raw = prices.get("SPY")
+        spy = spy_raw
+        if isinstance(spy_raw, pd.DataFrame):
+            spy = spy_raw.iloc[:, 0] if spy_raw.shape[1] > 0 else spy_raw.squeeze()
+        if spy is None or (isinstance(spy, pd.Series) and spy.empty):
+            return dict(ok=False, note="SPY price data unavailable")
 
-        if rvol_10 is None:
-            return self._fallback()
+        r10 = self._compute_rvol(spy, 10)
+        r21 = self._compute_rvol(spy, 21)
+        if r10 is None or r21 is None:
+            return dict(ok=False, note="Insufficient SPY history for rVol")
 
-        # ── 3. VIX (implied vol) ──────────────────────────────────────────
-        vix_last = None
-        if vix_series is not None:
-            vs = pd.to_numeric(vix_series, errors="coerce").dropna()
-            if not vs.empty:
-                vix_last = float(vs.iloc[-1])
+        # VIX proxy fallback
+        vix = vix_proxy
+        if vix is None:
+            vix_s = prices.get("^VIX")
+            if vix_s is not None:
+                if isinstance(vix_s, pd.DataFrame):
+                    vix_s = vix_s.iloc[:, 0] if vix_s.shape[1] > 0 else vix_s.squeeze()
+                if isinstance(vix_s, pd.Series) and not vix_s.empty:
+                    vix = float(vix_s.iloc[-1]) if math.isfinite(vix_s.iloc[-1]) else None
 
-        # Vol premium = VIX - rVol_10 (in same units: %)
-        # rVol_10 sudah annualized %, VIX juga dalam %
-        if vix_last is not None and rvol_10 is not None:
-            vol_premium = vix_last - rvol_10
+        # Vol premium = implied - realized
+        vp = (vix - r21) if (vix is not None and r21 is not None) else None
+
+        # Throttle = slope of vol term structure (10d vs 21d)
+        th = (r10 - r21) if (r10 is not None and r21 is not None) else 0.0
+
+        # Bar position (where in the recent range is price)
+        spy_num = pd.to_numeric(spy, errors="coerce").dropna()
+        if len(spy_num) >= 20:
+            recent = spy_num.iloc[-20:]
+            lo = float(recent.min()); hi = float(recent.max())
+            px = float(spy_num.iloc[-1])
+            bar_pct = int(100 * (px - lo) / max(hi - lo, 1e-9)) if math.isfinite(px) else 50
         else:
-            vol_premium = 0.0
+            bar_pct = 50
 
-        # ── 4. Compute throttle approximation ────────────────────────────
-        throttle = _throttle_from_rvol(rvol_10, vol_premium)
+        # Regime classification
+        if r21 < 12 and (vp is not None and vp < 2):
+            label = "Deep Positive"; color = "#10B981"; regime = "DEEP_POSITIVE"; action = "RISK ON — Max long gamma"
+        elif r21 < 16 and (vp is not None and vp < 5):
+            label = "Positive"; color = "#00D4AA"; regime = "POSITIVE"; action = "RISK ON — Trend-follow"
+        elif r21 < 22 and (vp is not None and vp < 8):
+            label = "Transition"; color = "#F59E0B"; regime = "TRANSITION"; action = "CAUTION — Reduce size"
+        elif r21 < 30:
+            label = "Negative"; color = "#EF4444"; regime = "NEGATIVE"; action = "RISK OFF — Hedge up"
+        else:
+            label = "Deep Negative"; color = "#7F1D1D"; regime = "DEEP_NEGATIVE"; action = "CRASH MODE — Cash + TLT"
 
-        # ── 5. Classify regime ────────────────────────────────────────────
-        regime_info = _classify_regime(throttle)
+        impl = (
+            f"rVol {r21:.1f}% | VIX prem {vp:.1f}% | Throttle {th:+.1f} | "
+            f"Bar {bar_pct}% | {action}"
+        )
 
-        # ── 6. Bar position (untuk progress bar di UI) ────────────────────
-        # Map throttle (-105 to +35) → (0% to 100%)
-        bar_pct = int((throttle - THROTTLE_MIN) / (THROTTLE_A - THROTTLE_MIN) * 100)
-        bar_pct = max(0, min(100, bar_pct))
-
-        # ── 7. Transition from previous regime (week-over-week change) ────
-        # Computed dari rVol_10 vs rVol_21 direction
-        vol_trend = "compressing" if (rvol_10 or 0) < (rvol_21 or 0) else "expanding"
-        throttle_direction = "improving" if vol_trend == "compressing" else "deteriorating"
-
-        return {
-            "ok": True,
-            "throttle": throttle,
-            "throttle_label": f"{throttle:+.1f}",
-            "rvol_10d": rvol_10,
-            "rvol_21d": rvol_21,
-            "rvol_63d": rvol_63,
-            "vix": vix_last,
-            "vol_premium": round(vol_premium, 2) if vol_premium else None,
-            "bar_pct": bar_pct,
-            "vol_trend": vol_trend,
-            "throttle_direction": throttle_direction,
-            "source": "computed_approximation",
-            "note": "Approximation dari rVol + VIX. Tier 1 Alpha throttle = proprietary.",
-            **regime_info,
-        }
-
-    def _fallback(self) -> Dict:
-        """Fallback kalau data tidak tersedia."""
-        return {
-            "ok": False,
-            "throttle": None,
-            "rvol_10d": None,
-            "vix": None,
-            "regime": "UNKNOWN",
-            "label": "No Data",
-            "color": "#6B7280",
-            "bg": "#111827",
-            "border": "#374151",
-            "impl": "Gamma data tidak tersedia. Pastikan SPY dan ^VIX ada di price loader.",
-            "action": "NO SIGNAL",
-            "dip_buy": False,
-            "bar_pct": 50,
-            "source": "fallback",
-        }
+        return dict(
+            ok=True, rvol_10d=r10, rvol_21d=r21, vix=vix, vol_premium=vp,
+            throttle=round(th, 2), bar_pct=bar_pct, color=color, label=label,
+            action=action, impl=impl, regime=regime,
+        )

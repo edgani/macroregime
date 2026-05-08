@@ -11,16 +11,59 @@ import numpy as np
 import pandas as pd
 
 from data.loader import load_fred, load_prices, save_snapshot, load_snapshot, snapshot_age_str
+
+# ── Core engines (hard import — app cannot run without these) ─────────────────
 from engines.gip_engine import GIPEngine, get_playbook
-from engines.global_quad_engine import GlobalQuadEngine
 from engines.hurst_rr_engine import HurstRREngine
-from engines.scenario_engine import ScenarioEngine
-from engines.bottleneck_engine import BottleneckEngine
-from engines.narrative_engine import NarrativeEngine
-from engines.adaptive_discovery_engine import AdaptiveDiscoveryEngine
-from engines.regime_transition_engine import RegimeTransitionEngine
-from engines.market_health_engine import MarketHealthEngine
-from engines.historical_analog_engine import HistoricalAnalogEngine
+
+# ── Secondary engines (soft import — graceful degradation if missing) ─────────
+_GLOBAL_QUAD_OK = False
+try:
+    from engines.global_quad_engine import GlobalQuadEngine
+    _GLOBAL_QUAD_OK = True
+except Exception as _e: logger.warning(f"GlobalQuadEngine unavailable: {_e}")
+
+_SCENARIO_OK = False
+try:
+    from engines.scenario_engine import ScenarioEngine
+    _SCENARIO_OK = True
+except Exception as _e: logger.warning(f"ScenarioEngine unavailable: {_e}")
+
+_BOTTLENECK_OK = False
+try:
+    from engines.bottleneck_engine import BottleneckEngine
+    _BOTTLENECK_OK = True
+except Exception as _e: logger.warning(f"BottleneckEngine unavailable: {_e}")
+
+_NARRATIVE_OK = False
+try:
+    from engines.narrative_engine import NarrativeEngine
+    _NARRATIVE_OK = True
+except Exception as _e: logger.warning(f"NarrativeEngine unavailable: {_e}")
+
+_DISCOVERY_OK = False
+try:
+    from engines.adaptive_discovery_engine import AdaptiveDiscoveryEngine
+    _DISCOVERY_OK = True
+except Exception as _e: logger.warning(f"AdaptiveDiscoveryEngine unavailable: {_e}")
+
+_TRANSITION_OK = False
+try:
+    from engines.regime_transition_engine import RegimeTransitionEngine
+    _TRANSITION_OK = True
+except Exception as _e: logger.warning(f"RegimeTransitionEngine unavailable: {_e}")
+
+_HEALTH_OK = False
+try:
+    from engines.market_health_engine import MarketHealthEngine
+    _HEALTH_OK = True
+except Exception as _e: logger.warning(f"MarketHealthEngine unavailable: {_e}")
+
+_ANALOG_OK = False
+try:
+    from engines.historical_analog_engine import HistoricalAnalogEngine
+    _ANALOG_OK = True
+except Exception as _e: logger.warning(f"HistoricalAnalogEngine unavailable: {_e}")
 from config.settings import (
     MACRO_PROXIES, US_SECTORS, US_FACTORS, FOREX_PAIRS,
     COMMODITIES, CRYPTO, BONDS, IHSG_UNIVERSE, COUNTRY_UNIVERSE,
@@ -137,7 +180,10 @@ def build_snapshot(
 
     # 10. Global Quad
     _prog(progress_cb, "Running Global Quad (50 countries)...", 0.58)
-    global_quad = GlobalQuadEngine().run(prices=prices, us_gip_result=gip)
+    if _GLOBAL_QUAD_OK:
+        global_quad = GlobalQuadEngine().run(prices=prices, us_gip_result=gip)
+    else:
+        global_quad = {"global_quad":"—","global_conf":0,"global_probs":{},"country_quads":{}}
     snap["global"] = global_quad
 
     # 11. Risk Ranges — INCLUDES Hedgeye ETF Pro Plus tickers
@@ -210,71 +256,78 @@ def build_snapshot(
 
     # 12. Scenarios
     _prog(progress_cb, "Discovering adaptive scenarios...", 0.80)
-    scenarios = ScenarioEngine().run(
-        structural_quad=gip.structural_quad,
-        monthly_quad=gip.monthly_quad,
-        features=gip.features,
-        flip_hazard=gip.flip_hazard,
-        data_coverage=gip.data_coverage,
-    )
+    if _SCENARIO_OK:
+        scenarios = ScenarioEngine().run(
+            structural_quad=gip.structural_quad, monthly_quad=gip.monthly_quad,
+            features=gip.features, flip_hazard=gip.flip_hazard, data_coverage=gip.data_coverage,
+        )
+    else:
+        scenarios = {}
     snap["scenarios"] = scenarios
 
     # 13. Bottleneck Scanner
     _prog(progress_cb, "Scanning bottlenecks (all asset classes)...", 0.88)
-    asset_ranges = rr_result.get("asset_ranges", {})
-    btk = BottleneckEngine().run(
-        prices=prices,
-        quad_str=gip.structural_quad,
-        quad_mon=gip.monthly_quad,
-        benchmark="SPY",
-        asset_ranges=asset_ranges,
-    )
+    if _BOTTLENECK_OK:
+        try:
+            btk = BottleneckEngine().run(
+                prices=prices, quad_str=gip.structural_quad, quad_mon=gip.monthly_quad,
+                benchmark="SPY", asset_ranges=rr_result.get("asset_ranges",{}),
+            )
+        except Exception as e:
+            logger.warning(f"Bottleneck run error: {e}"); btk = {}
+    else:
+        btk = {}
     snap["bottleneck"] = btk
 
     # 14. Narrative Engine
     _prog(progress_cb, "Scoring active narratives...", 0.93)
-    narratives = NarrativeEngine().run(
-        prices=prices,
-        quad_str=gip.structural_quad,
-        quad_mon=gip.monthly_quad,
-        benchmark="SPY",
-    )
+    if _NARRATIVE_OK:
+        try:
+            narratives = NarrativeEngine().run(
+                prices=prices, quad_str=gip.structural_quad, quad_mon=gip.monthly_quad, benchmark="SPY",
+            )
+        except Exception as e:
+            logger.warning(f"Narrative run error: {e}"); narratives = {}
+    else:
+        narratives = {}
     snap["narratives"] = narratives
 
     # 14b. Regime Transition
     _prog(progress_cb, "Computing regime transition timing...", 0.91)
-    try:
-        macro_ctx = {k:v for k,v in gip.features.items() if isinstance(v,float)}
-        market_ctx = {
-            "oil_3m": float(prices.get("CL=F",pd.Series()).tail(1).iloc[-1]/prices.get("CL=F",pd.Series()).iloc[-64]-1) if len(prices.get("CL=F",pd.Series()))>64 else 0.0,
-            "gold_3m": float(prices.get("GLD",pd.Series()).tail(1).iloc[-1]/prices.get("GLD",pd.Series()).iloc[-64]-1) if len(prices.get("GLD",pd.Series()))>64 else 0.0,
-        }
-        transition = RegimeTransitionEngine().run(macro=macro_ctx, market=market_ctx, gip_result=gip)
-    except Exception as e:
-        logger.warning(f"Transition engine: {e}")
+    if _TRANSITION_OK:
+        try:
+            macro_ctx = {k:v for k,v in gip.features.items() if isinstance(v,float)}
+            market_ctx = {
+                "oil_3m":  float(prices.get("CL=F",pd.Series()).tail(1).iloc[-1]/prices.get("CL=F",pd.Series()).iloc[-64]-1) if len(prices.get("CL=F",pd.Series()))>64 else 0.0,
+                "gold_3m": float(prices.get("GLD",pd.Series()).tail(1).iloc[-1]/prices.get("GLD",pd.Series()).iloc[-64]-1) if len(prices.get("GLD",pd.Series()))>64 else 0.0,
+            }
+            transition = RegimeTransitionEngine().run(macro=macro_ctx, market=market_ctx, gip_result=gip)
+        except Exception as e:
+            logger.warning(f"Transition engine: {e}"); transition = None
+    else:
         transition = None
     snap["transition"] = transition
 
     # 14c. Market Health
     _prog(progress_cb, "Computing market health signals...", 0.92)
-    try:
-        health = MarketHealthEngine().run(prices=prices, gip_features=gip.features, quad=gip.structural_quad)
-    except Exception as e:
-        logger.warning(f"Health engine: {e}")
+    if _HEALTH_OK:
+        try:
+            health = MarketHealthEngine().run(prices=prices, gip_features=gip.features, quad=gip.structural_quad)
+        except Exception as e:
+            logger.warning(f"Health engine: {e}"); health = {}
+    else:
         health = {}
     snap["health"] = health
 
     # 14d. Historical Analogs
     _prog(progress_cb, "Matching historical analogs...", 0.925)
-    try:
-        prices_ctx = {
-            "dxy_1m": stress.get("dollar_pressure",0.5)*0.04-0.02,
-            "oil_3m": market_ctx.get("oil_3m",0),
-            "vol_stress": stress.get("vol_stress",0),
-        }
-        analogs = HistoricalAnalogEngine().run(gip_features=gip.features, prices_context=prices_ctx)
-    except Exception as e:
-        logger.warning(f"Analog engine: {e}")
+    if _ANALOG_OK:
+        try:
+            prices_ctx = {"oil_3m": market_ctx.get("oil_3m",0) if _TRANSITION_OK else 0, "vol_stress": stress.get("vol_stress",0)}
+            analogs = HistoricalAnalogEngine().run(gip_features=gip.features, prices_context=prices_ctx)
+        except Exception as e:
+            logger.warning(f"Analog engine: {e}"); analogs = {"top_analogs":[], "composite_note":""}
+    else:
         analogs = {"top_analogs":[], "composite_note":""}
     snap["analogs"] = analogs
 
@@ -317,51 +370,44 @@ def build_snapshot(
     snap["leveraged_etf"] = lev_result
 
     # 15. TRUE AUTONOMY v3 LIGHTWEIGHT
-    _prog(progress_cb, "Running 10/10 autonomous discovery (lightweight)...", 0.96)
+    _prog(progress_cb, "Running autonomous discovery (lightweight)...", 0.96)
     if _AUTONOMY_AVAILABLE:
         try:
             auto = AutoDiscoveryEngineV3(
-                sector_map=TICKER_SECTOR,
-                market_map=MARKET_CLASSIFICATION,
-                known_tickers=list(TICKER_SECTOR.keys()),
-                use_transformers=False,
+                sector_map=TICKER_SECTOR, market_map=MARKET_CLASSIFICATION,
+                known_tickers=list(TICKER_SECTOR.keys()), use_transformers=False,
             )
             discoveries = auto.run(
-                prices=prices,
-                structural_quad=gip.structural_quad,
-                monthly_quad=gip.monthly_quad,
-                gip_features=gip.features,
-                theme_queries=None,
-                run_edgar=True,
+                prices=prices, structural_quad=gip.structural_quad,
+                monthly_quad=gip.monthly_quad, gip_features=gip.features,
+                theme_queries=None, run_edgar=True,
             )
             snap["auto_discoveries"] = discoveries
-
             fb = FeedbackLoopEngineV3()
-            fb.track(discoveries.get("candidates", []), regime=gip.structural_quad)
+            fb.track(discoveries.get("candidates",[]), regime=gip.structural_quad)
             fb_eval = fb.evaluate(prices, benchmark="SPY")
             snap["feedback_eval"] = fb_eval
-
             predictor = RegimePredictorEngine()
             predictor.record_transition(gip.structural_quad, gip.monthly_quad, gip.features)
-
         except Exception as e:
             logger.warning(f"Autonomy step error: {e}")
             snap["auto_discoveries"] = {"candidates":[], "meta":{"error":str(e)}}
             snap["feedback_eval"] = {"evaluated":0,"promoted":0,"demoted":0}
-    else:
-        _prog(progress_cb, "Autonomy stack unavailable — falling back to Claude API...", 0.965)
+    elif _DISCOVERY_OK:
+        _prog(progress_cb, "Running Claude API discovery fallback...", 0.965)
         try:
             discovery = AdaptiveDiscoveryEngine().run(
-                prices=prices,
-                structural_quad=gip.structural_quad,
-                monthly_quad=gip.monthly_quad,
-                gip_features=gip.features,
+                prices=prices, structural_quad=gip.structural_quad,
+                monthly_quad=gip.monthly_quad, gip_features=gip.features,
             )
         except Exception as e:
             logger.warning(f"Discovery engine failed: {e}")
             discovery = {"discoveries":[], "status":"error","message":str(e)}
         snap["discovery"] = discovery
-        snap["auto_discoveries"] = {"candidates":[],"meta":{"fallback":"claude_api","autonomy_unavailable":True}}
+        snap["auto_discoveries"] = {"candidates":[], "meta":{"fallback":"claude_api"}}
+        snap["feedback_eval"] = {"evaluated":0,"promoted":0,"demoted":0}
+    else:
+        snap["auto_discoveries"] = {"candidates":[], "meta":{"fallback":"unavailable"}}
         snap["feedback_eval"] = {"evaluated":0,"promoted":0,"demoted":0}
 
     # Store prices subset for UI

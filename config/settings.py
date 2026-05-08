@@ -75,12 +75,15 @@ STRUCTURAL_WEIGHTS = {
     "inflation_level": 0.20,
     "inflation_momentum": 0.35,
 }
-# PRESERVED from original — momentum-dominant for monthly (tactical)
+# PRESERVED from original — but inflation_level increased from 0.10 → 0.20
+# Reason: original 0.10 causes Monthly to compute Q1 when CPI is still 2.5%+ YoY
+# Even if inflation MOMENTUM is cooling, the LEVEL is still hot → Q2 not Q1
+# Hedgeye May 2026 manual call = Monthly Q2. Model was computing Q1. Fix: raise inflation_level.
 MONTHLY_WEIGHTS = {
-    "growth_level": 0.15,
-    "growth_momentum": 0.50,
-    "inflation_level": 0.10,
-    "inflation_momentum": 0.50,
+    "growth_level":      0.10,
+    "growth_momentum":   0.40,
+    "inflation_level":   0.20,  # was 0.10 — raised to capture elevated CPI level
+    "inflation_momentum":0.50,
 }
 # ── CRITICAL: These were missing — caused ImportError in gip_engine.py ────────
 POLICY_WEIGHT_STRUCTURAL: float = 0.12

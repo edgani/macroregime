@@ -272,13 +272,19 @@ if snap is None:
     if snap and snap.get("ok"): st.session_state.snap=snap
 
 if st.session_state.loading or snap is None:
-    from orchestrator import build_snapshot
-    pb=st.progress(0.0); pt=st.empty()
-    def prog(m,f): pb.progress(f); pt.caption(m)
-    snap=build_snapshot(progress_cb=prog, include_us_stocks=inc_us, include_forex=inc_fx,
-                        include_commodities=inc_comm, include_crypto=inc_cryp, include_ihsg=inc_ihsg)
+    try:
+        from orchestrator import build_snapshot
+        pb=st.progress(0.0); pt=st.empty()
+        def prog(m,f): pb.progress(f); pt.caption(m)
+        snap=build_snapshot(progress_cb=prog, include_us_stocks=inc_us, include_forex=inc_fx,
+                            include_commodities=inc_comm, include_crypto=inc_cryp, include_ihsg=inc_ihsg)
+    except Exception as e:
+        st.error(f"Orchestrator import/build failed: {e}")
+        snap = {"ok": False, "error": str(e), "prices": {}}
     st.session_state.snap=snap; st.session_state.loading=False
-    pb.empty(); pt.empty(); st.rerun()
+    if 'pb' in locals() and 'pt' in locals():
+        pb.empty(); pt.empty()
+    st.rerun()
 
 if not snap or not snap.get("ok"):
     st.error("No snapshot. Click Refresh to rebuild."); st.stop()

@@ -1,368 +1,411 @@
+"""orchestrator.py — MacroRegime Pro v16 | Snapshot builder
+INCLUDES: 10/10 Autonomy Stack LIGHTWEIGHT (NO torch/transformers)
++ Gamma Regime Engine (soft import)
++ Leveraged ETF Flow Engine (soft import)
++ Hedgeye ETF Pro Plus tickers in Risk Range universe
 """
-PATCH FINAL — orchestrator.py + app.py (v3.1)
-Zero hardcode. Semua by data.
+from __future__ import annotations
+import time, logging, math, os, json
+from typing import Optional, Callable, Dict, List
+import numpy as np
+import pandas as pd
 
-=============================================================================
-BAGIAN 1 — orchestrator.py
-=============================================================================
-"""
+from data.loader import load_fred, load_prices, save_snapshot, load_snapshot, snapshot_age_str
+from engines.gip_engine import GIPEngine, get_playbook
+from engines.global_quad_engine import GlobalQuadEngine
+from engines.hurst_rr_engine import HurstRREngine
+from engines.scenario_engine import ScenarioEngine
+from engines.bottleneck_engine import BottleneckEngine
+from engines.narrative_engine import NarrativeEngine
+from engines.adaptive_discovery_engine import AdaptiveDiscoveryEngine
+from engines.regime_transition_engine import RegimeTransitionEngine
+from engines.market_health_engine import MarketHealthEngine
+from engines.historical_analog_engine import HistoricalAnalogEngine
+from config.settings import (
+    MACRO_PROXIES, US_SECTORS, US_FACTORS, FOREX_PAIRS,
+    COMMODITIES, CRYPTO, BONDS, IHSG_UNIVERSE, COUNTRY_UNIVERSE,
+    TICKER_SECTOR, MARKET_CLASSIFICATION, BOTTLENECK_PROFILES,
+)
 
-# ── STEP 1: Tambahkan imports di bagian atas orchestrator.py ──────────────────
+logger = logging.getLogger(__name__)
 
-ORCHESTRATOR_IMPORTS_ADD = """
-from engines.gamma_regime_engine import GammaRegimeEngine
-from engines.leveraged_etf_engine import LeveragedETFEngine
-"""
-# Letakkan setelah: from engines.historical_analog_engine import HistoricalAnalogEngine
+# ── Autonomy engine imports (soft — graceful fallback if files missing) ───────
+_AUTONOMY_AVAILABLE = False
+try:
+    from engines.price_cluster_engine_v3 import PriceClusterEngineV3
+    from engines.news_nlp_engine_v3 import NewsNLPEngineV3
+    from engines.edgar_scraper_engine import EDGARScraperEngine
+    from engines.supply_chain_graph_engine import SupplyChainGraphEngine
+    from engines.leading_indicator_engine import LeadingIndicatorEngine
+    from engines.regime_predictor_engine import RegimePredictorEngine
+    from engines.auto_discovery_engine_v3 import AutoDiscoveryEngineV3
+    from engines.feedback_loop_engine_v3 import FeedbackLoopEngineV3
+    _AUTONOMY_AVAILABLE = True
+    logger.info("Autonomy stack v3 (lightweight) loaded successfully.")
+except Exception as e:
+    logger.warning(f"Autonomy stack not available: {e}")
+    _AUTONOMY_AVAILABLE = False
+
+# ── Gamma Regime Engine (soft — file may not exist yet) ───────────────────────
+_GAMMA_AVAILABLE = False
+try:
+    from engines.gamma_regime_engine import GammaRegimeEngine
+    _GAMMA_AVAILABLE = True
+    logger.info("GammaRegimeEngine loaded.")
+except Exception as e:
+    logger.warning(f"GammaRegimeEngine not available: {e}")
+
+# ── Leveraged ETF Engine (soft — file may not exist yet) ─────────────────────
+_LEV_ETF_AVAILABLE = False
+try:
+    from engines.leveraged_etf_engine import LeveragedETFEngine
+    _LEV_ETF_AVAILABLE = True
+    logger.info("LeveragedETFEngine loaded.")
+except Exception as e:
+    logger.warning(f"LeveragedETFEngine not available: {e}")
 
 
-# ── STEP 2: Tambahkan dua step baru di build_snapshot() ──────────────────────
-# Letakkan SETELAH blok "# 14d. Historical Analogs" dan SEBELUM "# ── 15. TRUE AUTONOMY"
+def _prog(cb, msg, frac):
+    logger.info(f"[{frac:.0%}] {msg}")
+    if cb: cb(msg, frac)
 
-ORCHESTRATOR_NEW_STEPS = """
-    # 14e. Gamma Regime (computed dari SPY + VIX — no hardcode)
-    _prog(progress_cb, "Computing gamma regime approximation...", 0.935)
+
+def build_snapshot(
+    progress_cb: Optional[Callable] = None,
+    include_crypto: bool = True,
+    include_us_stocks: bool = True,
+    include_forex: bool = True,
+    include_commodities: bool = True,
+    include_ihsg: bool = True,
+) -> dict:
+    t0 = time.time()
+    snap: dict = {"ts": t0, "ok": False}
+
+    # 1. FRED
+    _prog(progress_cb, "Loading FRED macro data...", 0.04)
+    fred = load_fred(months=36)
+    snap["fred_coverage"] = len(fred)
+
+    # 2. Core prices (always)
+    _prog(progress_cb, "Loading core market prices...", 0.10)
+    prices: Dict[str, pd.Series] = {}
+    prices.update(load_prices(list(MACRO_PROXIES.keys()) + list(BONDS.keys()) + ["DX-Y.NYB","^VIX"], days=756))
+
+    # 3. US equities
+    if include_us_stocks:
+        _prog(progress_cb, "Loading US sectors + factors...", 0.16)
+        prices.update(load_prices(list(US_SECTORS.keys()) + list(US_FACTORS.keys()), days=756))
+        _prog(progress_cb, "Loading notable single stocks...", 0.21)
+        notable = [t for t in TICKER_SECTOR if t not in prices and t not in ("generic",)]
+        prices.update(load_prices(notable, days=365))
+
+    # 4. Forex
+    if include_forex:
+        _prog(progress_cb, "Loading forex pairs (major + EM)...", 0.26)
+        prices.update(load_prices(list(FOREX_PAIRS.keys()), days=756))
+
+    # 5. Commodities
+    if include_commodities:
+        _prog(progress_cb, "Loading commodities (energy, metals, agri)...", 0.31)
+        prices.update(load_prices(list(COMMODITIES.keys()), days=756))
+
+    # 6. Crypto
+    if include_crypto:
+        _prog(progress_cb, "Loading crypto universe...", 0.36)
+        prices.update(load_prices(list(CRYPTO.keys()), days=365))
+
+    # 7. IHSG
+    if include_ihsg:
+        _prog(progress_cb, "Loading IHSG + Indonesia stocks...", 0.40)
+        prices.update(load_prices(list(IHSG_UNIVERSE.keys()), days=756))
+
+    # 8. Country ETFs for global quad
+    _prog(progress_cb, "Loading country ETFs (50 countries)...", 0.44)
+    country_etfs = list({v[0] for v in COUNTRY_UNIVERSE.values()})
+    prices.update(load_prices(country_etfs, days=756))
+    snap["prices_loaded"] = len(prices)
+
+    # 9. GIP
+    _prog(progress_cb, "Running GIP model (G·I·P second derivative)...", 0.50)
     try:
-        gamma_result = GammaRegimeEngine().run(prices=prices)
+        gip = GIPEngine().run(fred=fred, prices=prices)
     except Exception as e:
-        logger.warning(f"Gamma regime engine: {e}")
-        gamma_result = {"ok": False, "throttle": None, "regime": "UNKNOWN",
-                        "source": "error", "note": str(e)}
+        logger.error(f"GIP error: {e}")
+        raise
+    snap["gip"] = gip
+    snap["playbook"] = get_playbook(gip.structural_quad, gip.monthly_quad)
+
+    # 10. Global Quad
+    _prog(progress_cb, "Running Global Quad (50 countries)...", 0.58)
+    global_quad = GlobalQuadEngine().run(prices=prices, us_gip_result=gip)
+    snap["global"] = global_quad
+
+    # 11. Risk Ranges — INCLUDES Hedgeye ETF Pro Plus tickers
+    _prog(progress_cb, "Fetching OHLCV for Hurst risk ranges...", 0.64)
+    rr_tickers = (
+        list(MACRO_PROXIES.keys()) + list(US_SECTORS.keys()) +
+        list(BONDS.keys()) + list(COMMODITIES.keys())[:15] +
+        (list(CRYPTO.keys())[:6] if include_crypto else []) +
+        ["DX-Y.NYB","EIDO","^JKSE"] +
+        [t for t in TICKER_SECTOR if TICKER_SECTOR.get(t) in (
+            "ai_optics","ai_power","ai_power_infra","precious_metals","precious_metals_miners",
+            "defense","oil_services","housing","steel","infrastructure"
+        )][:25]
+    )
+
+    # ── Hedgeye ETF Pro Plus actual tickers — MUST be in Risk Range ──────────
+    hedgeye_etf_pro_tickers = [
+        # Q2 LONG (ETF Pro Plus confirmed)
+        "XLI","XLE","OIH","BNO","XOP","ITB","TLT","LQD",
+        "JPXN","EIS","TUR","NORW","EWZ","EWW","EIDO","GLIN",
+        "DAR","MTDR","SLX","CPER",
+        # Precious Metals (monster performers)
+        "SLV","GLD","PPLT","GDX","GDXJ","SIL","SILJ",
+        # Defense / Secular
+        "ITA","GRID",
+        # Q2/Q3 SHORT targets
+        "MSTY","BITS","BLOK","WGMI","MAGS",
+        # Anti-beta hedge
+        "BTAL","DUST",
+        # Signal Strength Stocks
+        "ULS","BRBR",
+        # Standard
+        "QQQ","SPY","IWM","RSP","GLD","SLV",
+    ]
+    rr_tickers = rr_tickers + hedgeye_etf_pro_tickers
+    rr_tickers = list(dict.fromkeys(rr_tickers))  # dedupe, preserve order
+
+    price_frames: Dict[str, pd.DataFrame] = {}
+    try:
+        import yfinance as yf
+        raw = yf.download(rr_tickers, period="2y", progress=False, auto_adjust=True, timeout=30, threads=True)
+        if not raw.empty:
+            for t in rr_tickers:
+                try:
+                    if len(rr_tickers) == 1:
+                        df = raw
+                    else:
+                        df = raw.xs(t, level=1, axis=1) if t in raw.columns.get_level_values(1) else pd.DataFrame()
+                    if not df.empty and "Close" in df.columns:
+                        cols = [c for c in ["Open","High","Low","Close","Volume"] if c in df.columns]
+                        df = df[cols].apply(pd.to_numeric, errors="coerce").dropna(subset=["Close"])
+                        price_frames[t] = df
+                except Exception:
+                    pass
+    except Exception as e:
+        logger.warning(f"OHLCV fetch partial: {e}")
+
+    for t in rr_tickers:
+        if t not in price_frames and t in prices:
+            c = pd.to_numeric(prices[t], errors="coerce").dropna()
+            if len(c) > 20:
+                df = pd.DataFrame({"Open":c,"High":c*1.003,"Low":c*0.997,"Close":c,"Volume":np.nan})
+                price_frames[t] = df
+
+    snap["price_frames_count"] = len(price_frames)
+    stress = _build_stress(prices, gip)
+    rr_result = HurstRREngine().run(price_frames=price_frames, stress=stress)
+    snap["risk_ranges"] = rr_result
+    snap["stress"] = stress
+
+    # 12. Scenarios
+    _prog(progress_cb, "Discovering adaptive scenarios...", 0.80)
+    scenarios = ScenarioEngine().run(
+        structural_quad=gip.structural_quad,
+        monthly_quad=gip.monthly_quad,
+        features=gip.features,
+        flip_hazard=gip.flip_hazard,
+        data_coverage=gip.data_coverage,
+    )
+    snap["scenarios"] = scenarios
+
+    # 13. Bottleneck Scanner
+    _prog(progress_cb, "Scanning bottlenecks (all asset classes)...", 0.88)
+    asset_ranges = rr_result.get("asset_ranges", {})
+    btk = BottleneckEngine().run(
+        prices=prices,
+        quad_str=gip.structural_quad,
+        quad_mon=gip.monthly_quad,
+        benchmark="SPY",
+        asset_ranges=asset_ranges,
+    )
+    snap["bottleneck"] = btk
+
+    # 14. Narrative Engine
+    _prog(progress_cb, "Scoring active narratives...", 0.93)
+    narratives = NarrativeEngine().run(
+        prices=prices,
+        quad_str=gip.structural_quad,
+        quad_mon=gip.monthly_quad,
+        benchmark="SPY",
+    )
+    snap["narratives"] = narratives
+
+    # 14b. Regime Transition
+    _prog(progress_cb, "Computing regime transition timing...", 0.91)
+    try:
+        macro_ctx = {k:v for k,v in gip.features.items() if isinstance(v,float)}
+        market_ctx = {
+            "oil_3m": float(prices.get("CL=F",pd.Series()).tail(1).iloc[-1]/prices.get("CL=F",pd.Series()).iloc[-64]-1) if len(prices.get("CL=F",pd.Series()))>64 else 0.0,
+            "gold_3m": float(prices.get("GLD",pd.Series()).tail(1).iloc[-1]/prices.get("GLD",pd.Series()).iloc[-64]-1) if len(prices.get("GLD",pd.Series()))>64 else 0.0,
+        }
+        transition = RegimeTransitionEngine().run(macro=macro_ctx, market=market_ctx, gip_result=gip)
+    except Exception as e:
+        logger.warning(f"Transition engine: {e}")
+        transition = None
+    snap["transition"] = transition
+
+    # 14c. Market Health
+    _prog(progress_cb, "Computing market health signals...", 0.92)
+    try:
+        health = MarketHealthEngine().run(prices=prices, gip_features=gip.features, quad=gip.structural_quad)
+    except Exception as e:
+        logger.warning(f"Health engine: {e}")
+        health = {}
+    snap["health"] = health
+
+    # 14d. Historical Analogs
+    _prog(progress_cb, "Matching historical analogs...", 0.925)
+    try:
+        prices_ctx = {
+            "dxy_1m": stress.get("dollar_pressure",0.5)*0.04-0.02,
+            "oil_3m": market_ctx.get("oil_3m",0),
+            "vol_stress": stress.get("vol_stress",0),
+        }
+        analogs = HistoricalAnalogEngine().run(gip_features=gip.features, prices_context=prices_ctx)
+    except Exception as e:
+        logger.warning(f"Analog engine: {e}")
+        analogs = {"top_analogs":[], "composite_note":""}
+    snap["analogs"] = analogs
+
+    # 14e. Gamma Regime (computed dari SPY rVol + VIX — zero hardcode)
+    _prog(progress_cb, "Computing gamma regime approximation...", 0.935)
+    if _GAMMA_AVAILABLE:
+        try:
+            gamma_result = GammaRegimeEngine().run(prices=prices)
+        except Exception as e:
+            logger.warning(f"Gamma regime engine error: {e}")
+            gamma_result = {
+                "ok": False, "throttle": None, "regime": "UNKNOWN",
+                "source": "error", "note": str(e),
+            }
+    else:
+        gamma_result = {
+            "ok": False, "throttle": None, "regime": "UNKNOWN",
+            "source": "unavailable",
+            "note": "GammaRegimeEngine not found. Copy engines/gamma_regime_engine.py to repo.",
+        }
     snap["gamma"] = gamma_result
 
-    # 14f. Leveraged ETF Flow (fetch AUM dari yfinance — no hardcode)
+    # 14f. Leveraged ETF Flow (yfinance AUM — zero hardcode)
     _prog(progress_cb, "Fetching leveraged ETF AUM data...", 0.940)
-    try:
-        lev_result = LeveragedETFEngine().run(prices=prices)
-    except Exception as e:
-        logger.warning(f"Leveraged ETF engine: {e}")
-        lev_result = {"ok": False, "total_mcap_b": None, "source": "error", "note": str(e)}
-    snap["leveraged_etf"] = lev_result
-"""
-
-
-# =============================================================================
-# BAGIAN 2 — app.py RENDER (by data, zero hardcode)
-# =============================================================================
-
-# ── CSS TAMBAHAN (masuk ke st.markdown(<style>)) ──────────────────────────────
-
-APP_CSS_ADD = """
-.gamma-deep-pos  {background:#052e16;border-left:4px solid #16a34a;padding:14px;border-radius:8px;margin-bottom:12px;}
-.gamma-pos       {background:#064e3b;border-left:4px solid #059669;padding:14px;border-radius:8px;margin-bottom:12px;}
-.gamma-trans     {background:#451a03;border-left:4px solid #d97706;padding:14px;border-radius:8px;margin-bottom:12px;}
-.gamma-neg       {background:#450a0a;border-left:4px solid #dc2626;padding:14px;border-radius:8px;margin-bottom:12px;}
-.gamma-deep-neg  {background:#3b0000;border-left:4px solid #b91c1c;padding:14px;border-radius:8px;margin-bottom:12px;}
-.lev-panel       {background:#1e1b4b;border-left:4px solid #7c3aed;padding:14px;border-radius:8px;margin-bottom:12px;}
-.seq-row         {display:flex;align-items:center;gap:8px;margin-top:10px;padding:10px;
-                  background:#111827;border-radius:6px;font-family:monospace;font-size:12px;}
-.pair-long       {background:#052e16;border:1px solid #16a34a;border-radius:6px;padding:10px;}
-.pair-short      {background:#450a0a;border:1px solid #dc2626;border-radius:6px;padding:10px;}
-"""
-
-
-# ── GAMMA REGIME RENDER (letakkan setelah st.markdown(vix_html, ...)) ─────────
-
-def render_gamma_panel(gamma: dict) -> str:
-    """
-    Generate HTML untuk Gamma Regime panel.
-    Semua nilai dari gamma dict (computed by engine, no hardcode).
-    """
-    if not gamma or not gamma.get("ok"):
-        note = gamma.get("note", "Data tidak tersedia") if gamma else "Engine tidak berjalan"
-        return f'''
-        <div class="gamma-trans">
-          <div style="font-size:13px;font-weight:700;color:#F59E0B;">⚡ GAMMA REGIME — Tier 1 Alpha Approx</div>
-          <div style="font-size:12px;color:#9CA3AF;margin-top:6px;">
-            {note}<br>
-            <em>Pastikan SPY dan ^VIX ada di price loader, dan orchestrator step 14e berjalan.</em>
-          </div>
-        </div>'''
-
-    throttle   = gamma.get("throttle", 0)
-    rvol_10    = gamma.get("rvol_10d")
-    rvol_21    = gamma.get("rvol_21d")
-    vix        = gamma.get("vix")
-    vol_prem   = gamma.get("vol_premium")
-    bar_pct    = gamma.get("bar_pct", 50)
-    color      = gamma.get("color", "#9CA3AF")
-    label      = gamma.get("label", "Unknown")
-    action     = gamma.get("action", "—")
-    impl       = gamma.get("impl", "")
-    regime     = gamma.get("regime", "UNKNOWN")
-    direction  = gamma.get("throttle_direction", "—")
-
-    # CSS class berdasarkan regime
-    css_class = {
-        "DEEP_POSITIVE": "gamma-deep-pos",
-        "POSITIVE": "gamma-pos",
-        "TRANSITION": "gamma-trans",
-        "NEGATIVE": "gamma-neg",
-        "DEEP_NEGATIVE": "gamma-deep-neg",
-    }.get(regime, "gamma-trans")
-
-    rvol_str   = f"{rvol_10:.1f}%" if rvol_10 else "—"
-    rvol21_str = f"{rvol_21:.1f}%" if rvol_21 else "—"
-    vix_str    = f"{vix:.1f}" if vix else "—"
-    vprem_str  = f"{vol_prem:+.1f}%" if vol_prem is not None else "—"
-
-    return f'''
-    <div class="{css_class}">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <span style="font-size:13px;font-weight:700;color:{color};">
-          ⚡ GAMMA REGIME — Tier 1 Alpha Approx
-        </span>
-        <div style="display:flex;gap:6px;align-items:center;">
-          <span style="background:{color};color:#000;font-size:11px;font-weight:700;
-                       padding:3px 10px;border-radius:4px;">{label.upper()}</span>
-          <span style="font-size:10px;color:#6B7280;">{direction}</span>
-        </div>
-      </div>
-
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:10px;">
-        <div style="background:#111827;border-radius:6px;padding:8px;text-align:center;">
-          <div style="font-size:9px;color:#6B7280;margin-bottom:2px;">Throttle (approx)</div>
-          <div style="font-size:20px;font-weight:800;color:{color};">{throttle:+.1f}</div>
-        </div>
-        <div style="background:#111827;border-radius:6px;padding:8px;text-align:center;">
-          <div style="font-size:9px;color:#6B7280;margin-bottom:2px;">rVol 10d (ann.)</div>
-          <div style="font-size:18px;font-weight:700;color:#E8ECF0;">{rvol_str}</div>
-        </div>
-        <div style="background:#111827;border-radius:6px;padding:8px;text-align:center;">
-          <div style="font-size:9px;color:#6B7280;margin-bottom:2px;">rVol 21d</div>
-          <div style="font-size:18px;font-weight:700;color:#E8ECF0;">{rvol21_str}</div>
-        </div>
-        <div style="background:#111827;border-radius:6px;padding:8px;text-align:center;">
-          <div style="font-size:9px;color:#6B7280;margin-bottom:2px;">VIX (implied)</div>
-          <div style="font-size:18px;font-weight:700;color:#E8ECF0;">{vix_str}</div>
-        </div>
-        <div style="background:#111827;border-radius:6px;padding:8px;text-align:center;">
-          <div style="font-size:9px;color:#6B7280;margin-bottom:2px;">Vol Premium</div>
-          <div style="font-size:18px;font-weight:700;color:{"#10B981" if (vol_prem or 0) > 0 else "#EF4444"};">{vprem_str}</div>
-        </div>
-      </div>
-
-      <div style="background:#111827;border-radius:4px;height:8px;overflow:hidden;margin-bottom:6px;display:flex;gap:1px;">
-        <div style="width:14%;background:#b91c1c;border-radius:3px 0 0 3px;" title="Deep Negative"></div>
-        <div style="width:15%;background:#dc2626;" title="Negative"></div>
-        <div style="width:14%;background:#d97706;" title="Transition"></div>
-        <div style="width:57%;background:#111827;position:relative;">
-          <div style="position:absolute;left:0;top:0;height:100%;width:{min(100,max(0,bar_pct-43))}%;
-                      background:#10B981;border-radius:0 3px 3px 0;"></div>
-        </div>
-      </div>
-      <div style="display:flex;justify-content:space-between;font-size:9px;color:#4B5563;margin-bottom:6px;">
-        <span>−105 DEEP NEG</span><span>TRANSITION</span><span>+35 DEEP POS ↑ NOW</span>
-      </div>
-
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div style="font-size:11px;color:#9CA3AF;flex:1;">{impl}</div>
-        <div style="background:#111827;border-radius:4px;padding:4px 12px;margin-left:12px;">
-          <span style="font-size:13px;font-weight:800;color:{color};">{action}</span>
-        </div>
-      </div>
-      <div style="font-size:9px;color:#4B5563;margin-top:4px;">
-        Source: computed approx dari rVol(SPY) + VIX. Tier 1 Alpha throttle = proprietary data.
-      </div>
-    </div>'''
-
-
-# ── LEV ETF RENDER (letakkan setelah Gamma panel) ────────────────────────────
-
-def render_lev_etf_panel(lev: dict) -> str:
-    """
-    Generate HTML untuk Leveraged ETF panel.
-    Semua values dari lev dict (yfinance AUM, no hardcode).
-    """
-    if not lev or not lev.get("ok"):
-        note = lev.get("note", "Data tidak tersedia") if lev else "Engine tidak berjalan"
-        return f'''
-        <div class="lev-panel">
-          <div style="font-size:13px;font-weight:700;color:#a78bfa;">📊 LEVERAGED ETF FLOW</div>
-          <div style="font-size:12px;color:#9CA3AF;margin-top:6px;">{note}</div>
-        </div>'''
-
-    total   = lev.get("total_mcap_b", 0)
-    long_b  = lev.get("long_exposure_b", 0)
-    short_b = lev.get("short_exposure_b", 0)
-    single_b = lev.get("single_crypto_b", 0)
-    long_pct  = lev.get("long_pct", 0)
-    short_pct = lev.get("short_pct", 0)
-    is_ath    = lev.get("is_ath", False)
-    rebal     = lev.get("rebalancing_pressure", "UNKNOWN")
-    top_longs = lev.get("top_longs", [])
-    top_shorts = lev.get("top_shorts", [])
-
-    rebal_color = {"HIGH": "#EF4444", "MEDIUM": "#F59E0B", "LOW": "#10B981"}.get(rebal, "#6B7280")
-    ath_badge = '<span style="background:#dc2626;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:3px;margin-left:6px;">ATH</span>' if is_ath else ""
-
-    top_longs_html  = " · ".join(f'<b>{e["ticker"]}</b> ${e["aum_b"]}B' for e in top_longs[:3])
-    top_shorts_html = " · ".join(f'<b>{e["ticker"]}</b> ${e["aum_b"]}B' for e in top_shorts[:3])
-
-    long_pct_bar  = int(long_pct)
-    short_pct_bar = int(short_pct)
-    other_pct_bar = max(0, 100 - long_pct_bar - short_pct_bar)
-
-    return f'''
-    <div class="lev-panel">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <span style="font-size:13px;font-weight:700;color:#a78bfa;">
-          📊 LEVERAGED ETF FLOW — yfinance AUM{ath_badge}
-        </span>
-        <span style="background:{rebal_color}33;color:{rebal_color};font-size:11px;
-                     padding:3px 10px;border-radius:4px;">Rebal Pressure: {rebal}</span>
-      </div>
-
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px;">
-        <div style="background:#111827;border-radius:6px;padding:8px;text-align:center;">
-          <div style="font-size:9px;color:#6B7280;margin-bottom:2px;">Total AUM</div>
-          <div style="font-size:20px;font-weight:800;color:#E8ECF0;">${total}B</div>
-        </div>
-        <div style="background:#111827;border-radius:6px;padding:8px;text-align:center;">
-          <div style="font-size:9px;color:#6B7280;margin-bottom:2px;">Long Exposure</div>
-          <div style="font-size:20px;font-weight:800;color:#10B981;">${long_b}B</div>
-          <div style="font-size:9px;color:#6B7280;">{long_pct}%</div>
-        </div>
-        <div style="background:#111827;border-radius:6px;padding:8px;text-align:center;">
-          <div style="font-size:9px;color:#6B7280;margin-bottom:2px;">Short Exposure</div>
-          <div style="font-size:20px;font-weight:800;color:#EF4444;">${short_b}B</div>
-          <div style="font-size:9px;color:#6B7280;">{short_pct}%</div>
-        </div>
-        <div style="background:#111827;border-radius:6px;padding:8px;text-align:center;">
-          <div style="font-size:9px;color:#6B7280;margin-bottom:2px;">Single/Crypto</div>
-          <div style="font-size:20px;font-weight:800;color:#F59E0B;">${single_b}B</div>
-        </div>
-      </div>
-
-      <div style="background:#111827;border-radius:4px;height:8px;overflow:hidden;margin-bottom:6px;display:flex;gap:1px;">
-        <div style="width:{long_pct_bar}%;background:#10B981;border-radius:3px 0 0 3px;"></div>
-        <div style="width:{short_pct_bar}%;background:#EF4444;"></div>
-        <div style="width:{other_pct_bar}%;background:#F59E0B;border-radius:0 3px 3px 0;"></div>
-      </div>
-
-      <div style="font-size:10px;color:#9CA3AF;">
-        Top Longs: {top_longs_html or "—"}<br>
-        Top Shorts: {top_shorts_html or "—"}<br>
-        <span style="color:#4B5563;">Source: yfinance totalAssets · Cache 6h · {lev.get("long_etf_count",0)}L + {lev.get("short_etf_count",0)}S ETFs tracked</span>
-      </div>
-    </div>'''
-
-
-# =============================================================================
-# BAGIAN 3 — app.py: cara pakai render functions (drop-in replacement)
-# =============================================================================
-
-APP_DASHBOARD_SNIPPET = """
-# ── Di dalam: if page=="🏠 Dashboard": ──────────────────────────────────────
-
-    # 1. VIX Bucket (sudah ada)
-    st.markdown(vix_html, unsafe_allow_html=True)
-
-    # 2. [NEW] Gamma Regime — by data
-    gamma = snap.get("gamma", {})
-    from app import render_gamma_panel   # atau paste function langsung
-    st.markdown(render_gamma_panel(gamma), unsafe_allow_html=True)
-
-    # 3. [NEW] Leveraged ETF — by data
-    lev = snap.get("leveraged_etf", {})
-    from app import render_lev_etf_panel  # atau paste function langsung
-    st.markdown(render_lev_etf_panel(lev), unsafe_allow_html=True)
-
-    # 4. Front-Run (sudah ada) + sequencing pills
-    if transition:
-        fw = transition.front_run_window
-        fr = transition.front_run_rationale
-        fw_color = {...}.get(fw, "#374151")
-        fw_icon  = {...}.get(fw, "🛑")
-        if fw != "not yet":
-            st.markdown(f'...existing front-run html...', unsafe_allow_html=True)
-
-        # [NEW] Sequencing pills — computed dari sq/mq variables
-        seq_steps = _build_sequence_pills(sq, mq, QC)
-        st.markdown(seq_steps, unsafe_allow_html=True)
-
-    # 5. Quad panels (fixed labels)
-    # Monthly label — from dict, not hardcoded "Weather"
-    mq_desc = {"Q1":"Goldilocks","Q2":"Knife Fights","Q3":"Stagflation","Q4":"Deflation"}.get(mq, mq)
-    sq_desc = {"Q1":"Goldilocks","Q2":"Reflation","Q3":"Stagflation","Q4":"Deflation"}.get(sq, sq)
-    # Add Q2 probability check for dual-label on Structural
-    sq_q2_prob = (gip.structural_probs or {}).get("Q2", 0) if gip else 0
-    if sq == "Q3" and sq_q2_prob > 0.25:
-        sq_desc = f"Q3/Q2 Transisi ({sq_q2_prob:.0%} Q2)"
-
-    with tp1: _transition_panel(gip.structural_probs, sq, "STRUCTURAL", sq_desc)
-    with tp2: _transition_panel(gip.monthly_probs,    mq, "MONTHLY",    mq_desc)
-    with tp3: _transition_panel(gq_probs, gq, "GLOBAL", "50 Countries")
-"""
-
-
-def _build_sequence_pills(sq: str, mq: str, QC: dict) -> str:
-    """
-    Build sequencing pills HTML dari actual sq/mq data.
-    Tidak ada hardcode string — semua computed dari state.
-    """
-    sq_c = QC.get(sq, "#6B7280")
-    mq_c = QC.get(mq, "#6B7280")
-
-    if sq == "Q3" and mq == "Q2":
-        # Transisi aktif: Stag → Flation → Goldilocks
-        return f'''<div class="seq-row">
-          <span style="color:#9CA3AF;">Sequencing:</span>
-          <span style="background:#dc2626;color:#fff;padding:3px 11px;border-radius:4px;font-weight:700;">{sq} STRUKTURAL</span>
-          <span style="color:#6B7280;font-size:16px;">→</span>
-          <span style="background:{mq_c};color:#000;padding:3px 11px;border-radius:4px;font-weight:700;">{mq} MONTHLY (NOW)</span>
-          <span style="color:#6B7280;font-size:16px;">→</span>
-          <span style="background:#14532d;color:#4ade80;padding:3px 11px;border-radius:4px;font-weight:700;border:1px solid #16a34a;">Q1 TARGET</span>
-          <span style="color:#4B5563;font-size:10px;margin-left:4px;">~6wk est. · watch CPI -50bps</span>
-        </div>'''
-    elif sq == mq:
-        # Same quad structural + monthly = high conviction staying
-        return f'''<div class="seq-row">
-          <span style="color:#9CA3AF;">Regime:</span>
-          <span style="background:{sq_c};color:#000;padding:3px 11px;border-radius:4px;font-weight:700;">{sq} CONFIRMED</span>
-          <span style="color:#9CA3AF;font-size:11px;margin-left:4px;">Structural & Monthly aligned — high conviction</span>
-        </div>'''
+    if _LEV_ETF_AVAILABLE:
+        try:
+            lev_result = LeveragedETFEngine().run(prices=prices)
+        except Exception as e:
+            logger.warning(f"Leveraged ETF engine error: {e}")
+            lev_result = {
+                "ok": False, "total_mcap_b": None,
+                "source": "error", "note": str(e),
+            }
     else:
-        # Generic: show both
-        return f'''<div class="seq-row">
-          <span style="color:#9CA3AF;">Struktural:</span>
-          <span style="background:{sq_c};color:#000;padding:3px 11px;border-radius:4px;font-weight:700;">{sq}</span>
-          <span style="color:#6B7280;font-size:16px;">→</span>
-          <span style="color:#9CA3AF;">Monthly:</span>
-          <span style="background:{mq_c};color:#000;padding:3px 11px;border-radius:4px;font-weight:700;">{mq}</span>
-          <span style="color:#4B5563;font-size:10px;margin-left:4px;">Leading → lagging sequencing</span>
-        </div>'''
+        lev_result = {
+            "ok": False, "total_mcap_b": None,
+            "source": "unavailable",
+            "note": "LeveragedETFEngine not found. Copy engines/leveraged_etf_engine.py to repo.",
+        }
+    snap["leveraged_etf"] = lev_result
+
+    # 15. TRUE AUTONOMY v3 LIGHTWEIGHT
+    _prog(progress_cb, "Running 10/10 autonomous discovery (lightweight)...", 0.96)
+    if _AUTONOMY_AVAILABLE:
+        try:
+            auto = AutoDiscoveryEngineV3(
+                sector_map=TICKER_SECTOR,
+                market_map=MARKET_CLASSIFICATION,
+                known_tickers=list(TICKER_SECTOR.keys()),
+                use_transformers=False,
+            )
+            discoveries = auto.run(
+                prices=prices,
+                structural_quad=gip.structural_quad,
+                monthly_quad=gip.monthly_quad,
+                gip_features=gip.features,
+                theme_queries=None,
+                run_edgar=True,
+            )
+            snap["auto_discoveries"] = discoveries
+
+            fb = FeedbackLoopEngineV3()
+            fb.track(discoveries.get("candidates", []), regime=gip.structural_quad)
+            fb_eval = fb.evaluate(prices, benchmark="SPY")
+            snap["feedback_eval"] = fb_eval
+
+            predictor = RegimePredictorEngine()
+            predictor.record_transition(gip.structural_quad, gip.monthly_quad, gip.features)
+
+        except Exception as e:
+            logger.warning(f"Autonomy step error: {e}")
+            snap["auto_discoveries"] = {"candidates":[], "meta":{"error":str(e)}}
+            snap["feedback_eval"] = {"evaluated":0,"promoted":0,"demoted":0}
+    else:
+        _prog(progress_cb, "Autonomy stack unavailable — falling back to Claude API...", 0.965)
+        try:
+            discovery = AdaptiveDiscoveryEngine().run(
+                prices=prices,
+                structural_quad=gip.structural_quad,
+                monthly_quad=gip.monthly_quad,
+                gip_features=gip.features,
+            )
+        except Exception as e:
+            logger.warning(f"Discovery engine failed: {e}")
+            discovery = {"discoveries":[], "status":"error","message":str(e)}
+        snap["discovery"] = discovery
+        snap["auto_discoveries"] = {"candidates":[],"meta":{"fallback":"claude_api","autonomy_unavailable":True}}
+        snap["feedback_eval"] = {"evaluated":0,"promoted":0,"demoted":0}
+
+    # Store prices subset for UI
+    snap["prices"] = {k:v for k,v in prices.items() if isinstance(v,pd.Series) and len(v)>10}
+    snap["build_time_s"] = round(time.time()-t0, 1)
+    snap["ok"] = True
+    _prog(progress_cb, "Saving snapshot...", 0.98)
+    save_snapshot(snap)
+    _prog(progress_cb, "Done!", 1.0)
+    logger.info(f"Built in {snap['build_time_s']}s. Prices: {snap['prices_loaded']}, RR: {snap['price_frames_count']}")
+    return snap
 
 
-# =============================================================================
-# SUMMARY CHECKLIST
-# =============================================================================
-print("""
-CHECKLIST IMPLEMENTASI:
+def _build_stress(prices, gip) -> dict:
+    def last(t):
+        s = prices.get(t)
+        if s is None: return None
+        s = pd.to_numeric(s, errors="coerce").dropna()
+        return float(s.iloc[-1]) if not s.empty else None
 
-engines/ (2 files baru):
-  ✅ gamma_regime_engine.py   → computed dari SPY rVol + VIX
-  ✅ leveraged_etf_engine.py  → AUM dari yfinance totalAssets
+    def ret1m(t):
+        s = prices.get(t)
+        if s is None: return 0.0
+        s = pd.to_numeric(s, errors="coerce").dropna()
+        if len(s) < 22: return 0.0
+        return float(s.iloc[-1]/s.iloc[-22]-1)
 
-orchestrator.py (3 changes):
-  ✅ Add import GammaRegimeEngine, LeveragedETFEngine
-  ✅ Add step 14e: gamma = GammaRegimeEngine().run(prices=prices)
-  ✅ Add step 14f: lev = LeveragedETFEngine().run(prices=prices)
+    vix_raw = last("^VIX")
+    vix = vix_raw if (vix_raw is not None and math.isfinite(vix_raw)) else 18.0
+    dxy_1m = ret1m("DX-Y.NYB")
+    vol_stress    = float(np.clip((vix-15.0)/25.0, 0.0, 1.0))
+    shock         = 0.5 if gip.structural_quad=="Q3" else 0.8 if gip.structural_quad=="Q4" else 0.2
+    crowding      = float(gip.features.get("proxy_share", 0.3))
+    dollar_pres   = float(np.clip(0.5+dxy_1m/0.04, 0.0, 1.0))
+    tail_bid      = float(np.clip((vix-20.0)/30.0, 0.0, 1.0))
+    return dict(
+        vol_stress=vol_stress, shock_penalty=shock*0.5,
+        crowding=crowding, dollar_pressure=dollar_pres,
+        tail_hedge_bid=tail_bid, vix=vix,
+    )
 
-app.py (4 changes):
-  ✅ Add CSS (gamma + lev classes)
-  ✅ Paste render_gamma_panel() function
-  ✅ Paste render_lev_etf_panel() function
-  ✅ Paste _build_sequence_pills() function
-  ✅ Replace Dashboard render calls dengan new functions
-  ✅ Fix Monthly label "Weather" → dict lookup dari mq
-  ✅ Fix Structural label + dual-label kalau Q2 prob >25%
-  ✅ Sidebar caption → dinamis dari sq/mq/gq
 
-ZERO HARDCODE:
-  - Gamma Throttle → computed dari rVol(SPY) + VIX vol premium
-  - rVol → np.std(log_returns) * sqrt(252) * 100
-  - Lev ETF AUM → yfinance.Ticker(t).info["totalAssets"]
-  - Sequencing pills → dari actual sq/mq state variables
-  - Quad labels → dict lookup, bukan string literal
-""")
+def get_or_build(force=False, max_age_h=4.0, **kw) -> dict:
+    if not force:
+        snap = load_snapshot(max_age_hours=max_age_h)
+        if snap and snap.get("ok"): return snap
+    return build_snapshot(**kw)

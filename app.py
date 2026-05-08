@@ -1,28 +1,28 @@
 """app.py — MacroRegime Pro v17
 
 Fixes from v16:
-  - Gamma: Series ambiguity error → explicit float() conversion
-  - DXY panel: HTML rendering → use st.dataframe + st.metric (no raw HTML)
-  - ETF Pro: removed (merged into Alpha Center + Risk Ranges)
-  - Monthly Q1 bug: display note when model diverges from Hedgeye manual call
-  - Alpha Center: NEW — merged Front-Run + Bottleneck + Options entry/TP/stop
-  - Options Engine: integrated across Alpha Center, Risk Ranges™
-  - Country Quad: fixed empty display
-  - Narratives: added fallback message + retry hint
-  - Bottleneck Watch/Avoid: filtered low-constraint items (agri/staples)
+ - Gamma: Series ambiguity error → explicit float() conversion
+ - DXY panel: HTML rendering → use st.dataframe + st.metric (no raw HTML)
+ - ETF Pro: removed (merged into Alpha Center + Risk Ranges)
+ - Monthly Q1 bug: display note when model diverges from Hedgeye manual call
+ - Alpha Center: NEW — merged Front-Run + Bottleneck + Options entry/TP/stop
+ - Options Engine: integrated across Alpha Center, Risk Ranges™
+ - Country Quad: fixed empty display
+ - Narratives: added fallback message + retry hint
+ - Bottleneck Watch/Avoid: filtered low-constraint items (agri/staples)
 
 Tab structure (11 tabs, no duplication):
-  🏠 Dashboard      — Status, Gamma, DXY Corr, LevETF, Quads, Quick Action
-  📈 GIP Model      — Climate/Weather, G/I signals, Transition charts, Analogs
-  🎯 Risk Ranges™   — LRR/TRR alerts + full table + options overlay
-  ⚡ Alpha Center   — Front-Run timing + Bottleneck + Options entry/TP/stop [NEW]
-  📊 Leaderboard    — Quality A stock picks
-  🌍 Global Quad    — 50 countries + EM recovery
-  🇮🇩 IHSG          — Indonesia local stocks + sectors
-  📖 Narratives     — Thematic scoring
-  🔮 Discovery      — Pre-consensus AI discoveries
-  🏥 Health         — VIX, Crash meter, Breadth, Fear & Greed
-  📋 Playbook       — Full regime action plan + scenarios
+ 🏠 Dashboard — Status, Gamma, DXY Corr, LevETF, Quads, Quick Action
+ 📈 GIP Model — Climate/Weather, G/I signals, Transition charts, Analogs
+ 🎯 Risk Ranges™ — LRR/TRR alerts + full table + options overlay
+ ⚡ Alpha Center — Front-Run timing + Bottleneck + Options entry/TP/stop [NEW]
+ 📊 Leaderboard — Quality A stock picks
+ 🌍 Global Quad — 50 countries + EM recovery
+ 🇮🇩 IHSG — Indonesia local stocks + sectors
+ 📖 Narratives — Thematic scoring
+ 🔮 Discovery — Pre-consensus AI discoveries
+ 🏥 Health — VIX, Crash meter, Breadth, Fear & Greed
+ 📋 Playbook — Full regime action plan + scenarios
 """
 import streamlit as st
 import pandas as pd
@@ -36,26 +36,14 @@ st.set_page_config(
 )
 
 st.markdown("""<style>
-.vix-investable {background:linear-gradient(90deg,#064e3b,#065f46);border-left:6px solid #10B981;padding:16px;border-radius:8px;}
-.vix-chop       {background:linear-gradient(90deg,#451a03,#78350f);border-left:6px solid #F59E0B;padding:16px;border-radius:8px;}
-.vix-defensive  {background:linear-gradient(90deg,#450a0a,#7f1d1d);border-left:6px solid #EF4444;padding:16px;border-radius:8px;}
-.winrate-card   {background:#111827;border:1px solid #1F2B3D;border-radius:8px;padding:12px;}
-.signal-A       {background:linear-gradient(90deg,#064e3b,#065f46);border-left:4px solid #10B981;padding:12px;border-radius:6px;margin-bottom:8px;}
-.signal-shortA  {background:linear-gradient(90deg,#450a0a,#7f1d1d);border-left:4px solid #EF4444;padding:12px;border-radius:6px;margin-bottom:8px;}
-.gamma-deep-pos {background:#052e16;border-left:4px solid #16a34a;padding:14px;border-radius:8px;margin-bottom:10px;}
-.gamma-pos      {background:#064e3b;border-left:4px solid #059669;padding:14px;border-radius:8px;margin-bottom:10px;}
-.gamma-trans    {background:#451a03;border-left:4px solid #d97706;padding:14px;border-radius:8px;margin-bottom:10px;}
-.gamma-neg      {background:#450a0a;border-left:4px solid #dc2626;padding:14px;border-radius:8px;margin-bottom:10px;}
-.gamma-deep-neg {background:#3b0000;border-left:4px solid #b91c1c;padding:14px;border-radius:8px;margin-bottom:10px;}
-.lev-panel      {background:#1e1b4b;border-left:4px solid #7c3aed;padding:14px;border-radius:8px;margin-bottom:10px;}
-.dxy-panel      {background:#0f172a;border-left:4px solid #0ea5e9;padding:14px;border-radius:8px;margin-bottom:10px;}
-.seq-row        {display:flex;align-items:center;gap:8px;padding:10px;background:#111827;border-radius:6px;flex-wrap:wrap;margin-top:8px;margin-bottom:10px;}
-.alpha-long     {background:#052e16;border:1px solid #16a34a;border-radius:8px;padding:14px;margin-bottom:8px;}
-.alpha-short    {background:#3b0000;border:1px solid #dc2626;border-radius:8px;padding:14px;margin-bottom:8px;}
-.alpha-watch    {background:#1c1917;border:1px solid #d97706;border-radius:8px;padding:14px;margin-bottom:8px;}
-.opt-badge-long  {background:#16a34a;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:3px;}
-.opt-badge-short {background:#dc2626;color:#fff;font-size:10px;font-weight:700;padding:2px 8px;border-radius:3px;}
-.opt-badge-wait  {background:#374151;color:#9CA3AF;font-size:10px;padding:2px 8px;border-radius:3px;}
+.gamma-deep-pos{color:#10B981;font-weight:700;}
+.gamma-pos{color:#34D399;font-weight:600;}
+.gamma-trans{color:#F59E0B;font-weight:600;}
+.gamma-neg{color:#EF4444;font-weight:600;}
+.gamma-deep-neg{color:#B91C1C;font-weight:700;}
+.alpha-long{border-left:4px solid #10B981;padding-left:12px;}
+.alpha-short{border-left:4px solid #EF4444;padding-left:12px;}
+.alpha-watch{border-left:4px solid #F59E0B;padding-left:12px;}
 </style>""", unsafe_allow_html=True)
 
 # ── Constants ─────────────────────────────────────────────────────────────────
@@ -64,8 +52,8 @@ QN = {"Q1":"Goldilocks","Q2":"Reflation","Q3":"Stagflation","Q4":"Deflation"}
 QNC = {"Q1":"Goldilocks — Growth↑ Infl↓","Q2":"Reflation — Growth↑ Infl↑",
        "Q3":"Stagflation — Growth↓ Infl↑","Q4":"Deflation — Growth↓ Infl↓"}
 
-def qc(q):  return QC.get(q,"#9CA3AF")
-def qn(q):  return QN.get(q,q)
+def qc(q): return QC.get(q,"#9CA3AF")
+def qn(q): return QN.get(q,q)
 def qnc(q): return QNC.get(q,q)
 def fp(v):
     try: return f"{float(v):.1%}" if v is not None and math.isfinite(float(v)) else "—"
@@ -84,106 +72,81 @@ def _safe_float(v):
 
 def qcard(label, q, conf, sub=""):
     c = qc(q)
-    s = f'<div style="font-size:10px;color:#6B7280;margin-top:4px;">{sub}</div>' if sub else ""
-    return f'''<div style="background:#111827;border:1px solid {c}44;border-radius:8px;padding:14px;text-align:center;height:100%;">
-    <div style="font-size:10px;color:#9CA3AF;margin-bottom:4px;">{label}</div>
-    <div style="font-size:28px;font-weight:800;color:{c};">{q}</div>
-    <div style="font-size:12px;color:{c};margin-top:2px;">{qn(q)}</div>
-    <div style="font-size:11px;color:#E8ECF0;margin-top:6px;">Conf: {conf:.0%}</div>
-    {s}</div>'''
+    s = f'<div style="font-size:11px;color:#9CA3AF;margin-top:4px;">{sub}</div>' if sub else ""
+    return f'''
+<div style="background:#1F2B3D;border-radius:8px;padding:14px;text-align:center;">
+  <div style="font-size:10px;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;">{label}</div>
+  <div style="font-size:28px;font-weight:800;color:{c};margin:6px 0;">{q}</div>
+  <div style="font-size:12px;color:#E8ECF0;">{qn(q)}</div>
+  <div style="font-size:10px;color:#6B7280;margin-top:4px;">Conf: {conf:.0%}</div>
+  {s}
+</div>'''
 
 def prob_bar(probs, title=""):
     fig = go.Figure()
     for q,p in sorted((probs or {}).items()):
         fig.add_bar(x=[q],y=[p],marker_color=qc(q),text=[f"<b>{p:.0%}</b>"],textposition="outside",name=q)
     fig.update_layout(showlegend=False,height=200,margin=dict(t=25,b=5,l=0,r=0),
-        paper_bgcolor="#111827",plot_bgcolor="#111827",
-        font=dict(color="#E8ECF0",family="JetBrains Mono"),
-        title=dict(text=title,font=dict(size=11,color="#9CA3AF")),
-        yaxis=dict(range=[0,1.1],tickformat=".0%",showgrid=True,gridcolor="#1F2B3D"),
-        xaxis=dict(showgrid=False),bargap=0.35)
+                      paper_bgcolor="#111827",plot_bgcolor="#111827",
+                      font=dict(color="#E8ECF0",family="JetBrains Mono"),
+                      title=dict(text=title,font=dict(size=11,color="#9CA3AF")),
+                      yaxis=dict(range=[0,1.1],tickformat=".0%",showgrid=True,gridcolor="#1F2B3D"),
+                      xaxis=dict(showgrid=False),bargap=0.35)
     return fig
 
 def _sequence_pills(sq, mq):
     sqc=qc(sq); mqc=qc(mq)
     p="padding:3px 11px;border-radius:4px;font-weight:700;font-size:12px;"
-    arr='<span style="color:#6B7280;font-size:18px;">→</span>'
+    arr='→'
     if sq==mq:
-        return f'<div class="seq-row"><span style="color:#9CA3AF;font-size:12px;">Regime:</span><span style="background:{sqc};color:#000;{p}">{sq} CONFIRMED</span><span style="color:#9CA3AF;font-size:11px;margin-left:4px;">Structural & Monthly aligned</span></div>'
+        return f'<div style="display:flex;gap:8px;align-items:center;margin:8px 0;"><span style="{p}background:{sqc};color:#fff;">{sq}</span>{arr}<span style="{p}background:{mqc};color:#fff;">{mq}</span><span style="font-size:11px;color:#10B981;">Regime:{sq} CONFIRMED</span><span style="font-size:10px;color:#6B7280;">Structural & Monthly aligned</span></div>'
     if sq=="Q3" and mq=="Q2":
-        return f'<div class="seq-row"><span style="color:#9CA3AF;font-size:12px;">Sequencing:</span><span style="background:#dc2626;color:#fff;{p}">{sq} STRUCT</span>{arr}<span style="background:{mqc};color:#000;{p}">{mq} MONTHLY</span>{arr}<span style="background:#14532d;color:#4ade80;{p}border:1px solid #16a34a;">Q1 TARGET</span><span style="color:#4B5563;font-size:10px;margin-left:4px;">~6wk · watch CPI -50bps</span></div>'
-    return f'<div class="seq-row"><span style="color:#9CA3AF;font-size:12px;">Struct:</span><span style="background:{sqc};color:#000;{p}">{sq}</span>{arr}<span style="color:#9CA3AF;font-size:12px;">Monthly:</span><span style="background:{mqc};color:#000;{p}">{mq}</span><span style="color:#4B5563;font-size:10px;margin-left:4px;">leading → lagging</span></div>'
-
+        return f'<div style="display:flex;gap:8px;align-items:center;margin:8px 0;"><span style="{p}background:{sqc};color:#fff;">{sq}</span>{arr}<span style="{p}background:{mqc};color:#fff;">{mq}</span><span style="font-size:11px;color:#F59E0B;">Sequencing:{sq} STRUCT{arr}{mq} MONTHLY{arr}Q1 TARGET</span><span style="font-size:10px;color:#6B7280;">~6wk · watch CPI -50bps</span></div>'
+    return f'<div style="display:flex;gap:8px;align-items:center;margin:8px 0;"><span style="{p}background:{sqc};color:#fff;">{sq}</span>{arr}<span style="{p}background:{mqc};color:#fff;">{mq}</span><span style="font-size:11px;color:#6366F1;">Struct:{sq}{arr}Monthly:{mq}</span><span style="font-size:10px;color:#6B7280;">leading → lagging</span></div>'
 
 # ── Gamma panel (FIX: explicit float conversion to prevent Series ambiguity) ──
 def _render_gamma(gamma: dict) -> str:
     if not gamma or not gamma.get("ok"):
         note=(gamma or {}).get("note","GammaRegimeEngine belum berjalan — tambahkan ke orchestrator step 14e.")
-        return f'<div class="gamma-trans"><b style="color:#F59E0B;">⚡ GAMMA REGIME</b><div style="font-size:11px;color:#9CA3AF;margin-top:4px;">{note}</div></div>'
+        return f'<div style="background:#1F2B3D;border-radius:8px;padding:12px;"><b>⚡ GAMMA REGIME</b><br/><span style="color:#9CA3AF;font-size:12px;">{note}</span></div>'
     # FIX: explicit safe float conversion for all values
-    th    = _safe_float(gamma.get("throttle")) or 0.0
-    r10   = _safe_float(gamma.get("rvol_10d"))
-    r21   = _safe_float(gamma.get("rvol_21d"))
-    vix   = _safe_float(gamma.get("vix"))
-    vp    = _safe_float(gamma.get("vol_premium"))  # FIX: was causing Series ambiguity
-    bp    = int(_safe_float(gamma.get("bar_pct")) or 50)
-    color  = str(gamma.get("color","#9CA3AF"))
-    label  = str(gamma.get("label","Unknown"))
+    th = _safe_float(gamma.get("throttle")) or 0.0
+    r10 = _safe_float(gamma.get("rvol_10d"))
+    r21 = _safe_float(gamma.get("rvol_21d"))
+    vix = _safe_float(gamma.get("vix"))
+    vp = _safe_float(gamma.get("vol_premium")) # FIX: was causing Series ambiguity
+    bp = int(_safe_float(gamma.get("bar_pct")) or 50)
+    color = str(gamma.get("color","#9CA3AF"))
+    label = str(gamma.get("label","Unknown"))
     action = str(gamma.get("action","—"))
-    impl   = str(gamma.get("impl",""))
+    impl = str(gamma.get("impl",""))
     regime = str(gamma.get("regime","UNKNOWN"))
-    css    = {"DEEP_POSITIVE":"gamma-deep-pos","POSITIVE":"gamma-pos","TRANSITION":"gamma-trans",
-              "NEGATIVE":"gamma-neg","DEEP_NEGATIVE":"gamma-deep-neg"}.get(regime,"gamma-trans")
+    css = {"DEEP_POSITIVE":"gamma-deep-pos","POSITIVE":"gamma-pos","TRANSITION":"gamma-trans",
+           "NEGATIVE":"gamma-neg","DEEP_NEGATIVE":"gamma-deep-neg"}.get(regime,"gamma-trans")
     def f(v,fmt=".1f",s=""): return f"{v:{fmt}}{s}" if v is not None else "—"
     # FIX: use _safe_float result (float) not original (possibly Series)
     vpc = "#10B981" if (vp is not None and vp > 0) else "#EF4444"
-    pw  = max(0, min(100, bp-43))
-    return f'''<div class="{css}">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <span style="font-size:13px;font-weight:700;color:{color};">⚡ GAMMA REGIME — Tier 1 Alpha Approx</span>
-        <div style="background:{color};color:#000;font-size:11px;font-weight:700;padding:3px 10px;border-radius:4px;">{label.upper()}</div>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:10px;">
-        <div style="background:#111827;border-radius:6px;padding:8px;text-align:center;">
-          <div style="font-size:9px;color:#6B7280;margin-bottom:2px;">Throttle (approx)</div>
-          <div style="font-size:20px;font-weight:800;color:{color};">{f(th,"+.1f")}</div>
-        </div>
-        <div style="background:#111827;border-radius:6px;padding:8px;text-align:center;">
-          <div style="font-size:9px;color:#6B7280;margin-bottom:2px;">rVol 10d</div>
-          <div style="font-size:18px;font-weight:700;color:#E8ECF0;">{f(r10,".1f","%")}</div>
-        </div>
-        <div style="background:#111827;border-radius:6px;padding:8px;text-align:center;">
-          <div style="font-size:9px;color:#6B7280;margin-bottom:2px;">rVol 21d</div>
-          <div style="font-size:18px;font-weight:700;color:#E8ECF0;">{f(r21,".1f","%")}</div>
-        </div>
-        <div style="background:#111827;border-radius:6px;padding:8px;text-align:center;">
-          <div style="font-size:9px;color:#6B7280;margin-bottom:2px;">VIX</div>
-          <div style="font-size:18px;font-weight:700;color:#E8ECF0;">{f(vix,".1f")}</div>
-        </div>
-        <div style="background:#111827;border-radius:6px;padding:8px;text-align:center;">
-          <div style="font-size:9px;color:#6B7280;margin-bottom:2px;">Vol Premium</div>
-          <div style="font-size:18px;font-weight:700;color:{vpc};">{f(vp,"+.1f","%")}</div>
-        </div>
-      </div>
-      <div style="display:flex;height:8px;border-radius:4px;overflow:hidden;margin-bottom:4px;">
-        <div style="width:14%;background:#b91c1c;border-radius:3px 0 0 3px;"></div>
-        <div style="width:15%;background:#dc2626;"></div>
-        <div style="width:14%;background:#d97706;"></div>
-        <div style="width:{100-pw}%;background:#1f2937;"></div>
-        <div style="width:{pw}%;background:#10B981;border-radius:0 3px 3px 0;"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <div style="font-size:11px;color:#9CA3AF;flex:1;">{impl}</div>
-        <div style="background:#111827;padding:4px 12px;border-radius:4px;margin-left:10px;">
-          <span style="font-size:13px;font-weight:800;color:{color};">{action}</span>
-        </div>
-      </div>
-    </div>'''
+    pw = max(0, min(100, bp-43))
+    return f'''
+<div style="background:#1F2B3D;border-radius:8px;padding:14px;">
+  <div style="font-size:10px;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;">⚡ GAMMA REGIME — Tier 1 Alpha Approx</div>
+  <div style="font-size:22px;font-weight:800;color:{color};margin:6px 0;">{label.upper()}</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;font-size:12px;">
+    <div>Throttle (approx)<br/><b style="color:{color};">{f(th,"+.1f")}</b></div>
+    <div>rVol 10d<br/><b>{f(r10,".1f","%")}</b></div>
+    <div>rVol 21d<br/><b>{f(r21,".1f","%")}</b></div>
+    <div>Vol Premium<br/><b style="color:{vpc};">{f(vp,"+.1f","%")}</b></div>
+  </div>
+  <div style="margin-top:10px;font-size:11px;color:#6B7280;">{impl}</div>
+  <div style="margin-top:6px;width:100%;background:#374151;height:6px;border-radius:3px;">
+    <div style="width:{pw}%;background:{color};height:6px;border-radius:3px;"></div>
+  </div>
+</div>'''
 
 def _render_lev(lev: dict) -> str:
     if not lev or not lev.get("ok"):
         note=(lev or {}).get("note","LeveragedETFEngine belum berjalan.")
-        return f'<div class="lev-panel"><b style="color:#a78bfa;">📊 LEVERAGED ETF FLOW</b><div style="font-size:11px;color:#9CA3AF;margin-top:6px;">{note}</div></div>'
+        return f'<div style="background:#1F2B3D;border-radius:8px;padding:12px;"><b>📊 LEVERAGED ETF FLOW</b><br/><span style="color:#9CA3AF;font-size:12px;">{note}</span></div>'
     tot=_safe_float(lev.get("total_mcap_b")); lo=_safe_float(lev.get("long_exposure_b"))
     sh=_safe_float(lev.get("short_exposure_b")); si=_safe_float(lev.get("single_crypto_b"))
     lp=float(lev.get("long_pct") or 0); sp=float(lev.get("short_pct") or 0)
@@ -192,28 +155,22 @@ def _render_lev(lev: dict) -> str:
     tl=lev.get("top_longs",[]); ts=lev.get("top_shorts",[])
     def b(v): return f"${v}B" if v is not None else "—"
     rc={"HIGH":"#EF4444","MEDIUM":"#F59E0B","LOW":"#10B981"}.get(rb,"#6B7280")
-    ath_b='<span style="background:#dc2626;color:#fff;font-size:10px;padding:2px 7px;border-radius:3px;margin-left:6px;">ATH</span>' if ath else ""
+    ath_b=' <span style="color:#F59E0B;">ATH</span>' if ath else ""
     tls=" · ".join(f'<b>{e["ticker"]}</b> ${e["aum_b"]}B' for e in tl[:3]) or "—"
     tss=" · ".join(f'<b>{e["ticker"]}</b> ${e["aum_b"]}B' for e in ts[:3]) or "—"
-    return f'''<div class="lev-panel">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <span style="font-size:13px;font-weight:700;color:#a78bfa;">📊 LEVERAGED ETF FLOW{ath_b}</span>
-        <span style="background:{rc}33;color:{rc};font-size:11px;padding:3px 10px;border-radius:4px;">Rebal: {rb}</span>
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px;">
-        <div style="background:#111827;border-radius:6px;padding:8px;text-align:center;"><div style="font-size:9px;color:#6B7280;margin-bottom:2px;">Total AUM</div><div style="font-size:20px;font-weight:800;color:#E8ECF0;">{b(tot)}</div></div>
-        <div style="background:#111827;border-radius:6px;padding:8px;text-align:center;"><div style="font-size:9px;color:#6B7280;margin-bottom:2px;">Long</div><div style="font-size:20px;font-weight:800;color:#10B981;">{b(lo)}</div><div style="font-size:9px;color:#6B7280;">{lp:.0f}%</div></div>
-        <div style="background:#111827;border-radius:6px;padding:8px;text-align:center;"><div style="font-size:9px;color:#6B7280;margin-bottom:2px;">Short</div><div style="font-size:20px;font-weight:800;color:#EF4444;">{b(sh)}</div><div style="font-size:9px;color:#6B7280;">{sp:.0f}%</div></div>
-        <div style="background:#111827;border-radius:6px;padding:8px;text-align:center;"><div style="font-size:9px;color:#6B7280;margin-bottom:2px;">Single/Crypto</div><div style="font-size:20px;font-weight:800;color:#F59E0B;">{b(si)}</div></div>
-      </div>
-      <div style="display:flex;height:7px;border-radius:4px;overflow:hidden;margin-bottom:5px;gap:1px;">
-        <div style="width:{lp:.0f}%;background:#10B981;border-radius:3px 0 0 3px;"></div>
-        <div style="width:{sp:.0f}%;background:#EF4444;"></div>
-        <div style="width:{op:.0f}%;background:#F59E0B;border-radius:0 3px 3px 0;"></div>
-      </div>
-      <div style="font-size:10px;color:#9CA3AF;">Longs: {tls}<br>Shorts: {tss}<span style="color:#4B5563;"> · yfinance AUM · cache 6h</span></div>
-    </div>'''
-
+    return f'''
+<div style="background:#1F2B3D;border-radius:8px;padding:14px;">
+  <div style="font-size:10px;color:#9CA3AF;text-transform:uppercase;letter-spacing:1px;">📊 LEVERAGED ETF FLOW{ath_b}</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-top:10px;font-size:11px;">
+    <div>Total<br/><b>{b(tot)}</b></div>
+    <div>Long<br/><b style="color:#10B981;">{b(lo)} ({lp:.0f}%)</b></div>
+    <div>Short<br/><b style="color:#EF4444;">{b(sh)} ({sp:.0f}%)</b></div>
+    <div>Other<br/><b>{op:.0f}%</b></div>
+  </div>
+  <div style="margin-top:8px;font-size:11px;">Rebal: <b style="color:{rc};">{rb}</b></div>
+  <div style="margin-top:6px;font-size:10px;color:#6B7280;">Longs: {tls}</div>
+  <div style="margin-top:2px;font-size:10px;color:#6B7280;">Shorts: {tss} · yfinance AUM · cache 6h</div>
+</div>'''
 
 # ── DXY Correlations (FIX: use Streamlit native components, not raw HTML bars) ─
 def _compute_dxy_corr(prices: dict, window: int = 15) -> dict:
@@ -258,7 +215,7 @@ def _render_dxy_section(prices: dict, dxy_corr: dict, sq: str):
             dxy_trend = "BEARISH 📉" if r21 < -0.005 else "BULLISH 📈" if r21 > 0.005 else "NEUTRAL ↔"
 
     st.markdown(f"**💱 KEY $USD CORRELATIONS (15D)** — Keith McCullough | DXY Trend: `{dxy_trend}`")
-    st.caption("← Negative = benefits from USD weakness  |  Positive = benefits from USD strength →")
+    st.caption("← Negative = benefits from USD weakness | Positive = benefits from USD strength →")
 
     # Build dataframe for display
     rows = []
@@ -281,8 +238,7 @@ def _render_dxy_section(prices: dict, dxy_corr: dict, sq: str):
             btc_msg = f"₿ BTC: DXY Bullish TREND (corr {btc_corr:+.2f}) → **BTC headwind**. Scale back."
         else:
             btc_msg = f"₿ BTC: DXY neutral (corr {btc_corr:+.2f}) → Watch TREND signal before sizing."
-        st.markdown(f'<div style="background:#111827;border-left:3px solid {btc_c};padding:8px;border-radius:4px;margin-top:6px;font-size:12px;">{btc_msg}</div>', unsafe_allow_html=True)
-
+        st.markdown(f'<div style="background:#1F2B3D;border-radius:6px;padding:10px;margin-top:8px;font-size:12px;color:{btc_c};">{btc_msg}</div>', unsafe_allow_html=True)
 
 # ── Options card renderer ─────────────────────────────────────────────────────
 def _render_options_card(opt: dict, trend: str = "neutral"):
@@ -314,20 +270,22 @@ def _render_options_card(opt: dict, trend: str = "neutral"):
         gc1,gc2 = st.columns(2)
         with gc1:
             if ll and ll.get("ev_ok"):
-                st.markdown(f'''<div class="alpha-long" style="padding:10px;">
-                <div style="font-size:11px;color:#10B981;font-weight:700;margin-bottom:6px;">✅ LONG SETUP</div>
-                <div style="font-size:11px;color:#E8ECF0;">Entry: <b>${ll["entry"]:.2f}</b> | TP1: <b>${ll["tp1"]:.2f}</b> | TP2: <b>${ll["tp2"]:.2f}</b></div>
-                <div style="font-size:11px;color:#E8ECF0;margin-top:3px;">Stop: ${ll["stop"]:.2f} | R/R: {ll["rr"]:.1f}x | {ll["holding"]}</div>
-                <div style="font-size:10px;color:#9CA3AF;margin-top:3px;">Put support: {" · ".join(f"${k:.1f}" for k in key_puts[:2])}</div>
-                </div>''', unsafe_allow_html=True)
+                st.markdown(f'''
+<div class="alpha-long" style="background:#111827;border-radius:6px;padding:10px;">
+  <div style="font-size:10px;color:#10B981;text-transform:uppercase;">✅ LONG SETUP</div>
+  <div style="font-size:12px;margin-top:4px;">Entry: <b>${ll["entry"]:.2f}</b> | TP1: <b>${ll["tp1"]:.2f}</b> | TP2: <b>${ll["tp2"]:.2f}</b></div>
+  <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Stop: ${ll["stop"]:.2f} | R/R: {ll["rr"]:.1f}x | {ll["holding"]}</div>
+  <div style="font-size:10px;color:#6B7280;margin-top:4px;">Put support: {" · ".join(f"${k:.1f}" for k in key_puts[:2])}</div>
+</div>''', unsafe_allow_html=True)
         with gc2:
             if sl_data and sl_data.get("ev_ok"):
-                st.markdown(f'''<div class="alpha-short" style="padding:10px;">
-                <div style="font-size:11px;color:#EF4444;font-weight:700;margin-bottom:6px;">🔴 SHORT SETUP</div>
-                <div style="font-size:11px;color:#E8ECF0;">Entry: <b>${sl_data["entry"]:.2f}</b> | TP1: <b>${sl_data["tp1"]:.2f}</b> | TP2: <b>${sl_data["tp2"]:.2f}</b></div>
-                <div style="font-size:11px;color:#E8ECF0;margin-top:3px;">Stop: ${sl_data["stop"]:.2f} | R/R: {sl_data["rr"]:.1f}x | {sl_data["holding"]}</div>
-                <div style="font-size:10px;color:#9CA3AF;margin-top:3px;">Call resist: {" · ".join(f"${k:.1f}" for k in key_calls[:2])}</div>
-                </div>''', unsafe_allow_html=True)
+                st.markdown(f'''
+<div class="alpha-short" style="background:#111827;border-radius:6px;padding:10px;">
+  <div style="font-size:10px;color:#EF4444;text-transform:uppercase;">🔴 SHORT SETUP</div>
+  <div style="font-size:12px;margin-top:4px;">Entry: <b>${sl_data["entry"]:.2f}</b> | TP1: <b>${sl_data["tp1"]:.2f}</b> | TP2: <b>${sl_data["tp2"]:.2f}</b></div>
+  <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Stop: ${sl_data["stop"]:.2f} | R/R: {sl_data["rr"]:.1f}x | {sl_data["holding"]}</div>
+  <div style="font-size:10px;color:#6B7280;margin-top:4px;">Call resist: {" · ".join(f"${k:.1f}" for k in key_calls[:2])}</div>
+</div>''', unsafe_allow_html=True)
 
         if g_call:
             with st.expander("📊 Greeks (ATM Call)"):
@@ -336,51 +294,49 @@ def _render_options_card(opt: dict, trend: str = "neutral"):
                 g2.metric("Gamma", f"{g_call.get('gamma','—'):.5f}" if g_call.get('gamma') else "—")
                 g3.metric("Theta/day", f"{g_call.get('theta','—'):.3f}" if g_call.get('theta') else "—")
                 g4.metric("Vega/1%", f"{g_call.get('vega','—'):.3f}" if g_call.get('vega') else "—")
-                if opt.get("oi_heatmap"):
-                    oi_df = pd.DataFrame(opt["oi_heatmap"][:12])
-                    oi_df = oi_df.rename(columns={"strike":"Strike","call_oi":"Call OI","put_oi":"Put OI","net":"Net (C-P)"})
-                    st.dataframe(oi_df[["Strike","Call OI","Put OI","Net (C-P)"]].style.background_gradient(subset=["Net (C-P)"],cmap="RdYlGn"),
-                                 hide_index=True, use_container_width=True, height=180)
-
+        if opt.get("oi_heatmap"):
+            oi_df = pd.DataFrame(opt["oi_heatmap"][:12])
+            oi_df = oi_df.rename(columns={"strike":"Strike","call_oi":"Call OI","put_oi":"Put OI","net":"Net (C-P)"})
+            st.dataframe(oi_df[["Strike","Call OI","Put OI","Net (C-P)"]].style.background_gradient(subset=["Net (C-P)"],cmap="RdYlGn"),
+                         hide_index=True, use_container_width=True, height=180)
 
 # ── Alpha Center card (Bottleneck item + Options overlay) ────────────────────
 def _render_alpha_card(item: dict, opt_result: dict, v: dict, tr: dict, idx: int):
     """One alpha card showing bottleneck + RR + options."""
-    ticker  = item.get("ticker","")
-    sector  = item.get("sector","").replace("_"," ").title()
-    trend   = item.get("trend","")
-    score   = item.get("score",0)
-    ev      = item.get("ev",0)
-    rf      = item.get("regime_fit",0)
-    constr  = item.get("constraint",0)
-    thesis  = item.get("known_thesis","")[:80]
+    ticker = item.get("ticker","")
+    sector = item.get("sector","").replace("_"," ").title()
+    trend = item.get("trend","")
+    score = item.get("score",0)
+    ev = item.get("ev",0)
+    rf = item.get("regime_fit",0)
+    constr = item.get("constraint",0)
+    thesis = item.get("known_thesis","")[:80]
     direction = item.get("direction","long")
-    trap    = item.get("regime_trap",False)
-    px      = _safe_float(v.get("px"))
-    lrr     = _safe_float(tr.get("lrr"))
-    trr     = _safe_float(tr.get("trr"))
+    trap = item.get("regime_trap",False)
+    px = _safe_float(v.get("px"))
+    lrr = _safe_float(tr.get("lrr"))
+    trr = _safe_float(tr.get("trr"))
     stretch = tr.get("stretch","—")
     opt_sig = opt_result.get("options_signal","") if opt_result else ""
 
     css = "alpha-short" if direction=="short" else "alpha-long" if not trap else "alpha-watch"
-    tc  = "#EF4444" if direction=="short" else "#10B981" if not trap else "#F59E0B"
+    tc = "#EF4444" if direction=="short" else "#10B981" if not trap else "#F59E0B"
 
-    trap_warn = ' <span style="color:#F59E0B;font-size:10px;">⚠️ REGIME TRAP</span>' if trap else ""
+    trap_warn = ' ⚠️ REGIME TRAP' if trap else ""
 
     with st.expander(f"{'🔴' if direction=='short' else '🟢'} **{ticker}** — {sector} | EV: {ev:.2f} | Score: {score:.2f}{trap_warn}", expanded=(idx < 3)):
         c1, c2 = st.columns([1, 1.5])
         with c1:
-            st.markdown(f'''<div class="{css}" style="padding:10px;">
-            <div style="font-size:11px;color:#9CA3AF;margin-bottom:6px;">{'SHORT' if direction=="short" else 'LONG'} · {sector} · Constraint {constr:.0%}</div>
-            <div style="font-size:12px;color:#E8ECF0;margin-bottom:4px;">{thesis}</div>
-            <div style="font-size:11px;color:#9CA3AF;">Trend: {trend} · RF: {rf:.0%} · Stretch: {stretch}</div>
-            <div style="font-size:11px;color:#E8ECF0;margin-top:6px;">
-              Px: ${px:.2f if px else "—"} | LRR: <b>{ff(lrr)}</b> | TRR: {ff(trr)}
-            </div>
-            </div>''', unsafe_allow_html=True)
+            st.markdown(f'''
+<div class="{css}">
+  <div style="font-size:10px;color:{tc};text-transform:uppercase;">{'SHORT' if direction=="short" else 'LONG'} · {sector} · Constraint {constr:.0%}</div>
+  <div style="font-size:11px;color:#E8ECF0;margin-top:4px;">{thesis}</div>
+  <div style="font-size:10px;color:#9CA3AF;margin-top:6px;">Trend: {trend} · RF: {rf:.0%} · Stretch: {stretch}</div>
+  <div style="font-size:10px;color:#6B7280;margin-top:4px;">Px: ${px:.2f if px else "—"} | LRR: <b>{ff(lrr)}</b> | TRR: {ff(trr)}</div>
+  <div style="font-size:10px;color:#6B7280;margin-top:2px;">Opt: {opt_sig}</div>
+</div>''', unsafe_allow_html=True)
         with c2:
             _render_options_card(opt_result, trend)
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SIDEBAR
@@ -415,12 +371,12 @@ with st.sidebar:
         if st.button("⚡ Force", use_container_width=True):
             st.session_state.loading=True; st.session_state.snap=None
     with st.expander("⚙️ Universe"):
-        inc_us   = st.checkbox("US Stocks",True)
-        inc_fx   = st.checkbox("Forex",True)
+        inc_us = st.checkbox("US Stocks",True)
+        inc_fx = st.checkbox("Forex",True)
         inc_comm = st.checkbox("Commodities",True)
         inc_cryp = st.checkbox("Crypto",True)
         inc_ihsg = st.checkbox("IHSG",True)
-        inc_opt  = st.checkbox("Options Data",True)
+        inc_opt = st.checkbox("Options Data",True)
     st.divider()
     _s = st.session_state.snap
     if _s and _s.get("ok"):
@@ -431,7 +387,6 @@ with st.sidebar:
         st.caption(f"Hedgeye: {_sq} Struct · {_mq} Monthly · {_gq} Global")
     else:
         st.caption("Hedgeye: — Struct · — Monthly · — Global")
-
 
 # ── Load snapshot ─────────────────────────────────────────────────────────────
 snap = st.session_state.snap
@@ -452,63 +407,62 @@ if not snap or not snap.get("ok"):
     st.error("❌ No snapshot. Click 🔄 Refresh to rebuild."); st.stop()
 
 # ── Extract ───────────────────────────────────────────────────────────────────
-gip        = snap.get("gip")
-global_    = snap.get("global",{})
-rr         = snap.get("risk_ranges",{})
-scen       = snap.get("scenarios",{})
-narr       = snap.get("narratives",{})
-disc       = snap.get("discovery",{})
+gip = snap.get("gip")
+global_ = snap.get("global",{})
+rr = snap.get("risk_ranges",{})
+scen = snap.get("scenarios",{})
+narr = snap.get("narratives",{})
+disc = snap.get("discovery",{})
 transition = snap.get("transition",None)
-health     = snap.get("health",{})
-analogs    = snap.get("analogs",{})
-btk        = snap.get("bottleneck",{})
-pb_data    = snap.get("playbook",{})
-prices     = snap.get("prices",{})
-auto_disc  = snap.get("auto_discoveries",{})
-fb_eval    = snap.get("feedback_eval",{})
+health = snap.get("health",{})
+analogs = snap.get("analogs",{})
+btk = snap.get("bottleneck",{})
+pb_data = snap.get("playbook",{})
+prices = snap.get("prices",{})
+auto_disc = snap.get("auto_discoveries",{})
+fb_eval = snap.get("feedback_eval",{})
 gamma_data = snap.get("gamma",{})
-lev_data   = snap.get("leveraged_etf",{})
+lev_data = snap.get("leveraged_etf",{})
 
 sq = gip.structural_quad if gip else "Q3"
-mq = gip.monthly_quad    if gip else "Q2"
+mq = gip.monthly_quad if gip else "Q2"
 gq = global_.get("global_quad","Q3") if global_ else "Q3"
 
 # Pre-compute DXY correlations
 dxy_corr = _compute_dxy_corr(prices)
 
-
 # ══════════════════════════════════════════════════════════════════════════════
 # 🏠 DASHBOARD
 # ══════════════════════════════════════════════════════════════════════════════
 if page == "🏠 Dashboard":
-    st.markdown(f'<div style="font-size:11px;color:#6B7280;">v17 · Built {snap.get("build_time_s",0)}s · Prices: {snap.get("prices_loaded",0)} · FRED: {snap.get("fred_coverage",0)} · RR: {snap.get("price_frames_count",0)}</div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="font-size:10px;color:#6B7280;text-align:right;">v17 · Built {snap.get("build_time_s",0)}s · Prices: {snap.get("prices_loaded",0)} · FRED: {snap.get("fred_coverage",0)} · RR: {snap.get("price_frames_count",0)}</div>', unsafe_allow_html=True)
     st.markdown("# MacroRegime Pro — Dashboard")
 
     # VIX Bucket
     vbd=health.get("vix_bucket",{}) if health else {}
     vb=vbd.get("bucket","—"); vl=_safe_float(vbd.get("vix_last")) or 0
     vn=vbd.get("note",""); vr=vbd.get("risk_mode","—")
-    if vb=="Investable":   vh=f'<div class="vix-investable"><div style="font-size:20px;font-weight:800;color:#10B981;">🟢 INVESTABLE BUCKET</div><div style="font-size:13px;color:#A7F3D0;margin-top:4px;">VIX {vl:.1f} · {vn}</div><div style="font-size:11px;color:#6B7280;margin-top:4px;">Risk Mode: {vr}</div></div>'
-    elif vb=="Chop":       vh=f'<div class="vix-chop"><div style="font-size:20px;font-weight:800;color:#F59E0B;">🟡 CHOP BUCKET</div><div style="font-size:13px;color:#FDE68A;margin-top:4px;">VIX {vl:.1f} · {vn}</div><div style="font-size:11px;color:#6B7280;margin-top:4px;">Risk Mode: {vr}</div></div>'
-    elif vb=="Defensive":  vh=f'<div class="vix-defensive"><div style="font-size:20px;font-weight:800;color:#EF4444;">🔴 DEFENSIVE BUCKET</div><div style="font-size:13px;color:#FECACA;margin-top:4px;">VIX {vl:.1f} · {vn}</div><div style="font-size:11px;color:#6B7280;margin-top:4px;">Risk Mode: {vr}</div></div>'
+    if vb=="Investable": vh=f'<div style="background:#064E3B;border-radius:8px;padding:12px;"><div style="font-size:10px;color:#10B981;text-transform:uppercase;">🟢 INVESTABLE BUCKET</div><div style="font-size:14px;color:#E8ECF0;margin-top:4px;">VIX {vl:.1f} · {vn}</div><div style="font-size:10px;color:#6B7280;">Risk Mode: {vr}</div></div>'
+    elif vb=="Chop": vh=f'<div style="background:#451A03;border-radius:8px;padding:12px;"><div style="font-size:10px;color:#F59E0B;text-transform:uppercase;">🟡 CHOP BUCKET</div><div style="font-size:14px;color:#E8ECF0;margin-top:4px;">VIX {vl:.1f} · {vn}</div><div style="font-size:10px;color:#6B7280;">Risk Mode: {vr}</div></div>'
+    elif vb=="Defensive": vh=f'<div style="background:#450A0A;border-radius:8px;padding:12px;"><div style="font-size:10px;color:#EF4444;text-transform:uppercase;">🔴 DEFENSIVE BUCKET</div><div style="font-size:14px;color:#E8ECF0;margin-top:4px;">VIX {vl:.1f} · {vn}</div><div style="font-size:10px;color:#6B7280;">Risk Mode: {vr}</div></div>'
     else: vh=""
     if vh: st.markdown(vh, unsafe_allow_html=True)
-    st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
+    st.markdown("", unsafe_allow_html=True)
 
     # Gamma + DXY in 2 columns
     ga_col, dxy_col = st.columns([1.2,1])
     with ga_col: st.markdown(_render_gamma(gamma_data), unsafe_allow_html=True)
     with dxy_col:
-        st.markdown('<div class="dxy-panel">', unsafe_allow_html=True)
-        _render_dxy_section(prices, dxy_corr, sq)  # FIX: native Streamlit components
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('<div style="height:4px;"></div>', unsafe_allow_html=True)
+        _render_dxy_section(prices, dxy_corr, sq) # FIX: native Streamlit components
+        st.markdown('<div style="height:4px;"></div>', unsafe_allow_html=True)
 
     # LevETF
     st.markdown(_render_lev(lev_data), unsafe_allow_html=True)
 
     # Quad Cards
     _sq_q2p = (_safe_float((gip.structural_probs or {}).get("Q2",0)) or 0) if gip else 0
-    _sq_sub  = f"Q2↑ {_sq_q2p:.0%}" if (sq=="Q3" and _sq_q2p>0.25) else ""
+    _sq_sub = f"Q2↑ {_sq_q2p:.0%}" if (sq=="Q3" and _sq_q2p>0.25) else ""
     c1,c2,c3,c4 = st.columns(4)
     with c1: st.markdown(qcard("STRUCTURAL — Climate",sq,gip.structural_conf if gip else 0,_sq_sub),unsafe_allow_html=True)
     with c2:
@@ -519,23 +473,24 @@ if page == "🏠 Dashboard":
     with c3: st.markdown(qcard("GLOBAL — 50 Countries",gq,(_safe_float(global_.get("global_conf")) or 0) if global_ else 0,"GDP-weighted"),unsafe_allow_html=True)
     with c4:
         if gip:
-            st.markdown(f'''<div style="background:#111827;border:1px solid #1F2B3D;border-radius:8px;padding:14px;text-align:center;height:100%;">
-            <div style="font-size:10px;color:#9CA3AF;margin-bottom:4px;">ALIGNMENT</div>
-            <div style="font-size:22px;font-weight:800;color:{qc(sq)};">{gip.divergence.upper()}</div>
-            <div style="font-size:12px;color:#9CA3AF;margin-top:4px;">{gip.operating_regime}</div>
-            <div style="font-size:11px;color:#E8ECF0;margin-top:8px;">Flip Risk: {gip.flip_hazard:.0%}</div>
-            </div>''', unsafe_allow_html=True)
+            st.markdown(f'''
+<div style="background:#1F2B3D;border-radius:8px;padding:14px;text-align:center;">
+  <div style="font-size:10px;color:#9CA3AF;text-transform:uppercase;">ALIGNMENT</div>
+  <div style="font-size:18px;font-weight:700;color:#E8ECF0;margin:6px 0;">{gip.divergence.upper()}</div>
+  <div style="font-size:11px;color:#6B7280;">{gip.operating_regime}</div>
+  <div style="font-size:10px;color:#6B7280;margin-top:4px;">Flip Risk: {gip.flip_hazard:.0%}</div>
+</div>''', unsafe_allow_html=True)
 
     # Win Rate
     if fb_eval and fb_eval.get("evaluated",0):
         ev=fb_eval.get("evaluated",0); pr=fb_eval.get("promoted",0)
         dm=fb_eval.get("demoted",0); wr=(pr/max(ev,1))*100
-        st.markdown("<div style='height:8px;'></div>",unsafe_allow_html=True)
+        st.markdown("",unsafe_allow_html=True)
         w1,w2,w3,w4=st.columns(4)
-        w1.markdown(f'<div class="winrate-card" style="text-align:center;"><div style="font-size:11px;color:#9CA3AF;">Evaluated</div><div style="font-size:22px;font-weight:800;color:#E8ECF0;">{ev}</div></div>',unsafe_allow_html=True)
-        w2.markdown(f'<div class="winrate-card" style="text-align:center;"><div style="font-size:11px;color:#9CA3AF;">Promoted ✅</div><div style="font-size:22px;font-weight:800;color:#10B981;">{pr}</div></div>',unsafe_allow_html=True)
-        w3.markdown(f'<div class="winrate-card" style="text-align:center;"><div style="font-size:11px;color:#9CA3AF;">Demoted ❌</div><div style="font-size:22px;font-weight:800;color:#EF4444;">{dm}</div></div>',unsafe_allow_html=True)
-        w4.markdown(f'<div class="winrate-card" style="text-align:center;"><div style="font-size:11px;color:#9CA3AF;">Win Rate</div><div style="font-size:22px;font-weight:800;color:#00D4AA;">{wr:.1f}%</div></div>',unsafe_allow_html=True)
+        w1.markdown(f'<div style="background:#1F2B3D;border-radius:6px;padding:8px;text-align:center;font-size:11px;">Evaluated<br/><b>{ev}</b></div>',unsafe_allow_html=True)
+        w2.markdown(f'<div style="background:#1F2B3D;border-radius:6px;padding:8px;text-align:center;font-size:11px;">Promoted<br/><b style="color:#10B981;">{pr}</b></div>',unsafe_allow_html=True)
+        w3.markdown(f'<div style="background:#1F2B3D;border-radius:6px;padding:8px;text-align:center;font-size:11px;">Demoted<br/><b style="color:#EF4444;">{dm}</b></div>',unsafe_allow_html=True)
+        w4.markdown(f'<div style="background:#1F2B3D;border-radius:6px;padding:8px;text-align:center;font-size:11px;">Win Rate<br/><b>{wr:.0f}%</b></div>',unsafe_allow_html=True)
 
     # Front-Run + Sequencing pills (summary only on Dashboard)
     if transition:
@@ -543,27 +498,27 @@ if page == "🏠 Dashboard":
         fwc={"now":"#EF4444","1-2w":"#F59E0B","3-6w":"#6366F1","not yet":"#374151"}.get(fw,"#374151")
         fwi={"now":"🚨","1-2w":"⚡","3-6w":"👀","not yet":"🛑"}.get(fw,"🛑")
         if fw!="not yet":
-            st.markdown(f'<div style="background:{fwc}22;border-left:4px solid {fwc};padding:12px;border-radius:6px;margin-top:10px;"><div style="font-size:14px;font-weight:700;color:{fwc};">{fwi} FRONT-RUN: {fw.upper()}</div><div style="font-size:12px;color:#E8ECF0;margin-top:4px;">{fr}</div></div>',unsafe_allow_html=True)
-        st.markdown(_sequence_pills(sq,mq),unsafe_allow_html=True)
+            st.markdown(f'<div style="background:{fwc}20;border-left:4px solid {fwc};border-radius:4px;padding:10px;margin:8px 0;"><div style="font-size:12px;color:{fwc};font-weight:700;">{fwi} FRONT-RUN: {fw.upper()}</div><div style="font-size:11px;color:#E8ECF0;margin-top:4px;">{fr}</div></div>',unsafe_allow_html=True)
+    st.markdown(_sequence_pills(sq,mq),unsafe_allow_html=True)
 
     # Quick Action
     if pb_data:
         best5=" · ".join(pb_data.get("best_assets",[])[:6])
         worst5=" · ".join(pb_data.get("worst_assets",[])[:5])
-        st.markdown(f'''<div style="background:#0f172a;border:1px solid #1e40af;border-radius:8px;padding:14px;margin-top:10px;">
-        <div style="font-size:12px;font-weight:700;color:#58a6ff;margin-bottom:6px;">🎯 QUICK ACTION — {sq} Structural · {mq} Monthly</div>
-        <div style="font-size:12px;color:#E8ECF0;">✅ <b>LONG:</b> {best5}</div>
-        <div style="font-size:12px;color:#E8ECF0;margin-top:4px;">❌ <b>AVOID:</b> {worst5}</div>
-        <div style="font-size:11px;color:#9CA3AF;margin-top:6px;">Full detail → <b>📈 GIP Model</b> · <b>⚡ Alpha Center</b> · <b>📋 Playbook</b></div>
-        </div>''', unsafe_allow_html=True)
+        st.markdown(f'''
+<div style="background:#1F2B3D;border-radius:8px;padding:14px;margin-top:10px;">
+  <div style="font-size:10px;color:#9CA3AF;text-transform:uppercase;margin-bottom:8px;">🎯 QUICK ACTION — {sq} Structural · {mq} Monthly</div>
+  <div style="font-size:12px;color:#E8ECF0;">✅ <b>LONG:</b> {best5}</div>
+  <div style="font-size:12px;color:#E8ECF0;margin-top:6px;">❌ <b>AVOID:</b> {worst5}</div>
+  <div style="font-size:10px;color:#6B7280;margin-top:8px;">Full detail → <b>📈 GIP Model</b> · <b>⚡ Alpha Center</b> · <b>📋 Playbook</b></div>
+</div>''', unsafe_allow_html=True)
 
     # Discovery summary (1-liner)
     if auto_disc:
         brewing=[c for c in auto_disc.get("candidates",[]) if c.get("stage")=="brewing"]
         if brewing:
             tb=max(brewing,key=lambda x:x.get("confidence",0))
-            st.markdown(f'<div style="background:#6366F122;border-left:4px solid #6366F1;padding:10px;border-radius:6px;margin-top:10px;"><span style="font-size:12px;font-weight:700;color:#818CF8;">🔮 {len(brewing)} pre-consensus</span><span style="font-size:11px;color:#E8ECF0;"> — Top: <b>{tb.get("name","")}</b> → <b>🔮 Discovery</b></span></div>',unsafe_allow_html=True)
-
+            st.markdown(f'<div style="font-size:11px;color:#6366F1;margin-top:8px;">🔮 {len(brewing)} pre-consensus — Top: <b>{tb.get("name","")}</b> → <b>🔮 Discovery</b></div>',unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # 📈 GIP MODEL
@@ -576,33 +531,35 @@ elif page == "📈 GIP Model":
     st.markdown("### 🌤 Climate vs. Weather")
     cc,cw=st.columns(2)
     with cc:
-        st.markdown(f'''<div style="background:#111827;border:1px solid {qc(sq)}44;border-radius:8px;padding:16px;">
-        <div style="font-size:11px;color:#9CA3AF;margin-bottom:4px;">STRUCTURAL — CLIMATE (Quarterly)</div>
-        <div style="font-size:32px;font-weight:800;color:{qc(sq)};">{sq}</div>
-        <div style="font-size:13px;color:{qc(sq)};margin-top:4px;">{qnc(sq)}</div>
-        <div style="font-size:11px;color:#9CA3AF;margin-top:8px;">Conf: {gip.structural_conf:.0%} · Flip Risk: {gip.flip_hazard:.0%} · Coverage: {gip.data_coverage:.0%}</div>
-        </div>''', unsafe_allow_html=True)
+        st.markdown(f'''
+<div style="background:#1F2B3D;border-radius:8px;padding:14px;">
+  <div style="font-size:10px;color:#9CA3AF;text-transform:uppercase;">STRUCTURAL — CLIMATE (Quarterly)</div>
+  <div style="font-size:24px;font-weight:800;color:{qc(sq)};margin:6px 0;">{sq}</div>
+  <div style="font-size:12px;color:#E8ECF0;">{qnc(sq)}</div>
+  <div style="font-size:10px;color:#6B7280;margin-top:8px;">Conf: {gip.structural_conf:.0%} · Flip Risk: {gip.flip_hazard:.0%} · Coverage: {gip.data_coverage:.0%}</div>
+</div>''', unsafe_allow_html=True)
     with cw:
         mq_note = ""
         if mq=="Q1" and sq=="Q3":
             mq_note = "⚠ Model computing Q1. Hedgeye manual call = Q2. Check inflation_level weight."
-        st.markdown(f'''<div style="background:#111827;border:1px solid {qc(mq)}44;border-radius:8px;padding:16px;">
-        <div style="font-size:11px;color:#9CA3AF;margin-bottom:4px;">MONTHLY — WEATHER (3-6 Week Overlay)</div>
-        <div style="font-size:32px;font-weight:800;color:{qc(mq)};">{mq}</div>
-        <div style="font-size:13px;color:{qc(mq)};margin-top:4px;">{qnc(mq)}</div>
-        <div style="font-size:11px;color:#9CA3AF;margin-top:8px;">Conf: {gip.monthly_conf:.0%} · {gip.divergence} · {gip.operating_regime}</div>
-        {f'<div style="font-size:10px;color:#F59E0B;margin-top:4px;">{mq_note}</div>' if mq_note else ""}
-        </div>''', unsafe_allow_html=True)
+        st.markdown(f'''
+<div style="background:#1F2B3D;border-radius:8px;padding:14px;">
+  <div style="font-size:10px;color:#9CA3AF;text-transform:uppercase;">MONTHLY — WEATHER (3-6 Week Overlay)</div>
+  <div style="font-size:24px;font-weight:800;color:{qc(mq)};margin:6px 0;">{mq}</div>
+  <div style="font-size:12px;color:#E8ECF0;">{qnc(mq)}</div>
+  <div style="font-size:10px;color:#6B7280;margin-top:8px;">Conf: {gip.monthly_conf:.0%} · {gip.divergence} · {gip.operating_regime}</div>
+  {f'<div style="font-size:11px;color:#F59E0B;margin-top:6px;">{mq_note}</div>' if mq_note else ""}
+</div>''', unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("### 📊 Growth & Inflation Signals")
     f=gip.features; gm=_safe_float(f.get("growth_momentum")) or 0; im=_safe_float(f.get("inflation_momentum")) or 0
     gc2="#10B981" if gm>0 else "#EF4444"; ic2="#10B981" if im<0 else "#EF4444"
     m1,m2,m3,m4=st.columns(4)
-    m1.markdown(f'<div class="winrate-card" style="text-align:center;"><div style="font-size:11px;color:#9CA3AF;">Growth Momentum</div><div style="font-size:24px;font-weight:800;color:{gc2};">{fp(gm)}</div><div style="font-size:10px;color:#6B7280;">{"Accel ↑" if gm>0 else "Decel ↓"}</div></div>',unsafe_allow_html=True)
-    m2.markdown(f'<div class="winrate-card" style="text-align:center;"><div style="font-size:11px;color:#9CA3AF;">Inflation Momentum</div><div style="font-size:24px;font-weight:800;color:{ic2};">{fp(im)}</div><div style="font-size:10px;color:#6B7280;">{"Rising ↑" if im>0 else "Cooling ↓"}</div></div>',unsafe_allow_html=True)
-    m3.markdown(f'<div class="winrate-card" style="text-align:center;"><div style="font-size:11px;color:#9CA3AF;">Policy Score</div><div style="font-size:24px;font-weight:800;color:#E8ECF0;">{fp(f.get("policy_score"))}</div><div style="font-size:10px;color:#6B7280;">{"Dovish" if (_safe_float(f.get("policy_score")) or 0)>0.1 else "Hawkish" if (_safe_float(f.get("policy_score")) or 0)<-0.1 else "Neutral"}</div></div>',unsafe_allow_html=True)
-    m4.markdown(f'<div class="winrate-card" style="text-align:center;"><div style="font-size:11px;color:#9CA3AF;">Leading Indicator</div><div style="font-size:24px;font-weight:800;color:#E8ECF0;">{fp(f.get("leading_indicator_composite"))}</div><div style="font-size:10px;color:#6B7280;">FRED: {fp(f.get("data_coverage"))}</div></div>',unsafe_allow_html=True)
+    m1.markdown(f'<div style="background:#1F2B3D;border-radius:6px;padding:10px;text-align:center;"><div style="font-size:10px;color:#9CA3AF;">Growth Momentum</div><div style="font-size:18px;font-weight:700;color:{gc2};margin:4px 0;">{fp(gm)}</div><div style="font-size:10px;color:#6B7280;">{"Accel ↑" if gm>0 else "Decel ↓"}</div></div>',unsafe_allow_html=True)
+    m2.markdown(f'<div style="background:#1F2B3D;border-radius:6px;padding:10px;text-align:center;"><div style="font-size:10px;color:#9CA3AF;">Inflation Momentum</div><div style="font-size:18px;font-weight:700;color:{ic2};margin:4px 0;">{fp(im)}</div><div style="font-size:10px;color:#6B7280;">{"Rising ↑" if im>0 else "Cooling ↓"}</div></div>',unsafe_allow_html=True)
+    m3.markdown(f'<div style="background:#1F2B3D;border-radius:6px;padding:10px;text-align:center;"><div style="font-size:10px;color:#9CA3AF;">Policy Score</div><div style="font-size:18px;font-weight:700;margin:4px 0;">{fp(f.get("policy_score"))}</div><div style="font-size:10px;color:#6B7280;">{"Dovish" if (_safe_float(f.get("policy_score")) or 0)>0.1 else "Hawkish" if (_safe_float(f.get("policy_score")) or 0)<-0.1 else "Neutral"}</div></div>',unsafe_allow_html=True)
+    m4.markdown(f'<div style="background:#1F2B3D;border-radius:6px;padding:10px;text-align:center;"><div style="font-size:10px;color:#9CA3AF;">Leading Indicator</div><div style="font-size:18px;font-weight:700;margin:4px 0;">{fp(f.get("leading_indicator_composite"))}</div><div style="font-size:10px;color:#6B7280;">FRED: {fp(f.get("data_coverage"))}</div></div>',unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("### 📊 Quad Transition Probabilities")
@@ -611,14 +568,15 @@ elif page == "📈 GIP Model":
     def _tp(probs, cur_q, label, desc):
         if not probs: return
         sp=sorted(probs.items(),key=lambda x:x[1],reverse=True); top_q,top_p=sp[0]
-        st.markdown(f'''<div style="background:#111827;border:1px solid #1F2B3D;border-radius:8px;padding:12px;margin-bottom:8px;">
-        <div style="font-size:11px;color:#9CA3AF;">{label} — {desc}</div>
-        <div style="font-size:13px;color:#E8ECF0;margin-top:4px;">Currently: <b style="color:{qc(cur_q)};">{cur_q}</b></div>
-        <div style="font-size:12px;color:#9CA3AF;margin-top:2px;">Most likely → <b style="color:{qc(top_q)};">{top_q}</b> ({top_p:.0%})</div>
-        </div>''', unsafe_allow_html=True)
+        st.markdown(f'''
+<div style="background:#1F2B3D;border-radius:6px;padding:10px;margin-bottom:8px;">
+  <div style="font-size:10px;color:#9CA3AF;text-transform:uppercase;">{label} — {desc}</div>
+  <div style="font-size:12px;color:#E8ECF0;margin-top:4px;">Currently: <b>{cur_q}</b></div>
+  <div style="font-size:11px;color:#6B7280;">Most likely → <b style="color:{qc(top_q)};">{top_q}</b> ({top_p:.0%})</div>
+</div>''', unsafe_allow_html=True)
         st.plotly_chart(prob_bar(probs), use_container_width=True, config={"displayModeBar":False})
         if top_q!=cur_q:
-            st.markdown(f'<div style="background:#1F2B3D;border-radius:6px;padding:8px;font-size:11px;color:#F59E0B;">If {top_q}: <b>{QWINS.get(top_q,"")}</b></div>',unsafe_allow_html=True)
+            st.markdown(f'<div style="font-size:11px;color:#6366F1;margin-top:4px;">If {top_q}: <b>{QWINS.get(top_q,"")}</b></div>',unsafe_allow_html=True)
 
     sq_q2p=_safe_float((gip.structural_probs or {}).get("Q2",0)) or 0
     sq_desc=qnc(sq)+(f" · Q2↑ {sq_q2p:.0%}" if sq=="Q3" and sq_q2p>0.25 else "")
@@ -636,7 +594,7 @@ elif page == "📈 GIP Model":
         fw=transition.front_run_window; fr=transition.front_run_rationale
         fwc={"now":"#EF4444","1-2w":"#F59E0B","3-6w":"#6366F1","not yet":"#374151"}.get(fw,"#374151")
         fwi={"now":"🚨","1-2w":"⚡","3-6w":"👀","not yet":"🛑"}.get(fw,"🛑")
-        st.markdown(f'<div style="background:{fwc}22;border-left:4px solid {fwc};padding:12px;border-radius:6px;"><div style="font-size:14px;font-weight:700;color:{fwc};">{fwi} FRONT-RUN: {fw.upper()}</div><div style="font-size:12px;color:#E8ECF0;margin-top:4px;">{fr}</div></div>',unsafe_allow_html=True)
+        st.markdown(f'<div style="background:{fwc}20;border-left:4px solid {fwc};border-radius:4px;padding:10px;margin:8px 0;"><div style="font-size:12px;color:{fwc};font-weight:700;">{fwi} FRONT-RUN: {fw.upper()}</div><div style="font-size:11px;color:#E8ECF0;margin-top:4px;">{fr}</div></div>',unsafe_allow_html=True)
         ew=getattr(transition,"early_warning_signals",{})
         if ew:
             st.markdown("#### Early Warning Signals")
@@ -656,7 +614,6 @@ elif page == "📈 GIP Model":
                 cc2[2].markdown(f"**6M:** {a.get('path_6m','')}")
                 st.markdown(f"**Next bias:** {a.get('next_bias','')}")
 
-
 # ══════════════════════════════════════════════════════════════════════════════
 # 🎯 RISK RANGES™
 # ══════════════════════════════════════════════════════════════════════════════
@@ -673,7 +630,7 @@ elif page == "🎯 Risk Ranges™":
         for sym,a in all_a[:20]:
             ic="🔴" if a["priority"]=="CRITICAL" else "🟡" if a["priority"]=="HIGH" else "🔵"
             bdr="#EF4444" if a["priority"]=="CRITICAL" else "#F59E0B"
-            st.markdown(f'<div style="background:#1F2B3D;border-left:3px solid {bdr};padding:8px;border-radius:4px;margin-bottom:4px;">{ic} <b>[{sym}]</b> {a["action"]} {a["duration"]} — {a.get("note","")}</div>',unsafe_allow_html=True)
+            st.markdown(f'<div style="border-left:3px solid {bdr};padding-left:8px;margin:4px 0;"><div style="font-size:12px;">{ic} <b>[{sym}]</b> {a["action"]} {a["duration"]} — {a.get("note","")}</div></div>',unsafe_allow_html=True)
 
     st.markdown("---")
     cl1,cl2,cl3=st.columns([1,2,1])
@@ -707,7 +664,6 @@ elif page == "🎯 Risk Ranges™":
     else:
         st.info("No data matches filter. Click 🔄 Refresh to load all tickers.")
 
-
 # ══════════════════════════════════════════════════════════════════════════════
 # ⚡ ALPHA CENTER — Front-Run + Bottleneck + Options (MERGED)
 # ══════════════════════════════════════════════════════════════════════════════
@@ -720,8 +676,8 @@ elif page == "⚡ Alpha Center":
         fw=transition.front_run_window; fr=transition.front_run_rationale
         fwc={"now":"#EF4444","1-2w":"#F59E0B","3-6w":"#6366F1","not yet":"#374151"}.get(fw,"#374151")
         fwi={"now":"🚨","1-2w":"⚡","3-6w":"👀","not yet":"🛑"}.get(fw,"🛑")
-        st.markdown(f'<div style="background:{fwc}22;border-left:4px solid {fwc};padding:12px;border-radius:6px;margin-bottom:10px;"><div style="font-size:14px;font-weight:700;color:{fwc};">{fwi} FRONT-RUN WINDOW: {fw.upper()}</div><div style="font-size:12px;color:#E8ECF0;margin-top:4px;">{fr}</div></div>',unsafe_allow_html=True)
-        st.markdown(_sequence_pills(sq,mq),unsafe_allow_html=True)
+        st.markdown(f'<div style="background:{fwc}20;border-left:4px solid {fwc};border-radius:4px;padding:10px;margin:8px 0;"><div style="font-size:12px;color:{fwc};font-weight:700;">{fwi} FRONT-RUN WINDOW: {fw.upper()}</div><div style="font-size:11px;color:#E8ECF0;margin-top:4px;">{fr}</div></div>',unsafe_allow_html=True)
+    st.markdown(_sequence_pills(sq,mq),unsafe_allow_html=True)
 
     if not btk:
         st.warning("No bottleneck data. Click 🔄 Refresh.")
@@ -733,7 +689,7 @@ elif page == "⚡ Alpha Center":
     ar = rr.get("asset_ranges",{})
 
     # Filter: only high-constraint items (exclude low-constraint staples/agri)
-    MIN_CONSTRAINT = 0.65  # Hedgeye-quality bottleneck threshold
+    MIN_CONSTRAINT = 0.65 # Hedgeye-quality bottleneck threshold
     from config.settings import BOTTLENECK_PROFILES
 
     def _filter_btk(items):
@@ -757,10 +713,10 @@ elif page == "⚡ Alpha Center":
 
     # Stats
     s1,s2,s3,s4=st.columns(4)
-    s1.markdown(f'<div class="winrate-card" style="text-align:center;"><div style="font-size:11px;color:#9CA3AF;">Level 1 (High EV)</div><div style="font-size:28px;font-weight:800;color:#10B981;">{len(l1_filtered)}</div></div>',unsafe_allow_html=True)
-    s2.markdown(f'<div class="winrate-card" style="text-align:center;"><div style="font-size:11px;color:#9CA3AF;">Level 2 (Building)</div><div style="font-size:28px;font-weight:800;color:#F59E0B;">{len(l2_filtered)}</div></div>',unsafe_allow_html=True)
-    s3.markdown(f'<div class="winrate-card" style="text-align:center;"><div style="font-size:11px;color:#9CA3AF;">Watch (Brewing)</div><div style="font-size:28px;font-weight:800;color:#6366F1;">{len(btk.get("watch",[]))}</div></div>',unsafe_allow_html=True)
-    s4.markdown(f'<div class="winrate-card" style="text-align:center;"><div style="font-size:11px;color:#9CA3AF;">Avoid (Trap)</div><div style="font-size:28px;font-weight:800;color:#EF4444;">{len(btk.get("avoid",[]))}</div></div>',unsafe_allow_html=True)
+    s1.markdown(f'<div style="background:#1F2B3D;border-radius:6px;padding:10px;text-align:center;font-size:11px;">Level 1 (High EV)<br/><b>{len(l1_filtered)}</b></div>',unsafe_allow_html=True)
+    s2.markdown(f'<div style="background:#1F2B3D;border-radius:6px;padding:10px;text-align:center;font-size:11px;">Level 2 (Building)<br/><b>{len(l2_filtered)}</b></div>',unsafe_allow_html=True)
+    s3.markdown(f'<div style="background:#1F2B3D;border-radius:6px;padding:10px;text-align:center;font-size:11px;">Watch (Brewing)<br/><b>{len(btk.get("watch",[]))}</b></div>',unsafe_allow_html=True)
+    s4.markdown(f'<div style="background:#1F2B3D;border-radius:6px;padding:10px;text-align:center;font-size:11px;">Avoid (Trap)<br/><b>{len(btk.get("avoid",[]))}</b></div>',unsafe_allow_html=True)
 
     st.markdown("---")
 
@@ -805,7 +761,6 @@ elif page == "⚡ Alpha Center":
         avoid_rows=[{"Ticker":a["ticker"],"Sector":a["sector"].replace("_"," ").title(),"Trend":a["trend"],"Score":f'{a.get("score",0):.2f}'} for a in (btk.get("avoid",[]) or [])[:20]]
         if avoid_rows: st.dataframe(pd.DataFrame(avoid_rows),hide_index=True,use_container_width=True)
 
-
 # ══════════════════════════════════════════════════════════════════════════════
 # 📊 LEADERBOARD
 # ══════════════════════════════════════════════════════════════════════════════
@@ -829,28 +784,28 @@ elif page == "📊 Leaderboard":
             nlrr=stretch in ("oversold","reset_zone")
             if px and lrr and trr and (trr-lrr)>1e-9:
                 pos=(px-lrr)/(trr-lrr); nlrr=pos<=0.35 or nlrr
-            # Skip if near target
-            if stretch in ("overbought","extended"): continue
-            rf=sym in best_set; ra=sym in worst_set
-            sc=(50 if qual=="A" else 30)+(25 if nlrr else 0)+(15 if vol_c>0.6 else 0)+(10 if rf else 0)+(-20 if ra else 0)+(5 if hurst>0.5 else 0)
-            long_picks.append({"ticker":sym,"quality":qual,"px":px,"lrr":lrr,"trr":trr,"stretch":stretch,"vol_c":vol_c,"hurst":hurst,"regime_fit":rf,"score":sc,"note":"Near LRR" if nlrr else f"Stretch: {stretch}","sector":sector})
+                # Skip if near target
+                if stretch in ("overbought","extended"): continue
+                rf=sym in best_set; ra=sym in worst_set
+                sc=(50 if qual=="A" else 30)+(25 if nlrr else 0)+(15 if vol_c>0.6 else 0)+(10 if rf else 0)+(-20 if ra else 0)+(5 if hurst>0.5 else 0)
+                long_picks.append({"ticker":sym,"quality":qual,"px":px,"lrr":lrr,"trr":trr,"stretch":stretch,"vol_c":vol_c,"hurst":hurst,"regime_fit":rf,"score":sc,"note":"Near LRR" if nlrr else f"Stretch: {stretch}","sector":sector})
         if qual in ("short_A","short_B") and comp=="bearish":
             lrr=_safe_float(tr.get("lrr")); trr=_safe_float(tr.get("trr"))
             ntrr=stretch in ("overbought","extended")
             if px and lrr and trr and (trr-lrr)>1e-9:
                 pos=(px-lrr)/(trr-lrr); ntrr=pos>=0.65 or ntrr
-            if stretch in ("oversold","reset_zone"): continue  # Skip if near target
-            rf=sym in worst_set
-            sc=(50 if qual=="short_A" else 30)+(25 if ntrr else 0)+(15 if vol_c>0.6 else 0)+(10 if rf else 0)+(5 if hurst>0.5 else 0)
-            short_picks.append({"ticker":sym,"quality":qual,"px":px,"lrr":lrr,"trr":trr,"stretch":stretch,"vol_c":vol_c,"hurst":hurst,"regime_fit":rf,"score":sc,"note":"Near TRR" if ntrr else f"Stretch: {stretch}","sector":sector})
+                if stretch in ("oversold","reset_zone"): continue # Skip if near target
+                rf=sym in worst_set
+                sc=(50 if qual=="short_A" else 30)+(25 if ntrr else 0)+(15 if vol_c>0.6 else 0)+(10 if rf else 0)+(5 if hurst>0.5 else 0)
+                short_picks.append({"ticker":sym,"quality":qual,"px":px,"lrr":lrr,"trr":trr,"stretch":stretch,"vol_c":vol_c,"hurst":hurst,"regime_fit":rf,"score":sc,"note":"Near TRR" if ntrr else f"Stretch: {stretch}","sector":sector})
 
     long_picks.sort(key=lambda x:-x["score"]); short_picks.sort(key=lambda x:-x["score"])
 
     s1,s2,s3,s4=st.columns(4)
-    s1.markdown(f'<div class="winrate-card" style="text-align:center;"><div style="font-size:11px;color:#9CA3AF;">Bullish Names</div><div style="font-size:28px;font-weight:800;color:#10B981;">{len(long_picks)}</div></div>',unsafe_allow_html=True)
-    s2.markdown(f'<div class="winrate-card" style="text-align:center;"><div style="font-size:11px;color:#9CA3AF;">Quality A Longs</div><div style="font-size:28px;font-weight:800;color:#00D4AA;">{sum(1 for p in long_picks if p["quality"]=="A")}</div></div>',unsafe_allow_html=True)
-    s3.markdown(f'<div class="winrate-card" style="text-align:center;"><div style="font-size:11px;color:#9CA3AF;">Quality A Shorts</div><div style="font-size:28px;font-weight:800;color:#EF4444;">{sum(1 for p in short_picks if p["quality"]=="short_A")}</div></div>',unsafe_allow_html=True)
-    s4.markdown(f'<div class="winrate-card" style="text-align:center;"><div style="font-size:11px;color:#9CA3AF;">Regime Traps</div><div style="font-size:28px;font-weight:800;color:#F59E0B;">{sum(1 for v in ar.values() if v.get("regime_trap"))}</div></div>',unsafe_allow_html=True)
+    s1.markdown(f'<div style="background:#1F2B3D;border-radius:6px;padding:10px;text-align:center;font-size:11px;">Bullish Names<br/><b>{len(long_picks)}</b></div>',unsafe_allow_html=True)
+    s2.markdown(f'<div style="background:#1F2B3D;border-radius:6px;padding:10px;text-align:center;font-size:11px;">Quality A Longs<br/><b>{sum(1 for p in long_picks if p["quality"]=="A")}</b></div>',unsafe_allow_html=True)
+    s3.markdown(f'<div style="background:#1F2B3D;border-radius:6px;padding:10px;text-align:center;font-size:11px;">Quality A Shorts<br/><b>{sum(1 for p in short_picks if p["quality"]=="short_A")}</b></div>',unsafe_allow_html=True)
+    s4.markdown(f'<div style="background:#1F2B3D;border-radius:6px;padding:10px;text-align:center;font-size:11px;">Regime Traps<br/><b>{sum(1 for v in ar.values() if v.get("regime_trap"))}</b></div>',unsafe_allow_html=True)
 
     # Options on selected ticker
     st.markdown("---")
@@ -865,33 +820,28 @@ elif page == "📊 Leaderboard":
 
     st.markdown("---"); st.markdown("### 🟢 TOP 21 LONG IDEAS")
     for p in long_picks[:21]:
-        st.markdown(f'''<div class="signal-A">
-        <div style="display:flex;justify-content:space-between;">
-          <span style="font-size:15px;font-weight:800;color:#10B981;">{p["ticker"]} <span style="font-size:11px;color:#A7F3D0;">({p["quality"]})</span></span>
-          <span style="font-size:11px;color:#9CA3AF;">{"✅" if p["regime_fit"] else "⚠️"} Score {p["score"]:.0f} · {p["sector"].replace("_"," ").title()}</span>
-        </div>
-        <div style="font-size:12px;color:#E8ECF0;margin-top:4px;">Px: {ff(p["px"])} · LRR: <b>{ff(p["lrr"])}</b> · TRR: {ff(p["trr"])} · {p["note"]}</div>
-        <div style="font-size:11px;color:#9CA3AF;margin-top:2px;">Vol: {fp(p["vol_c"])} · Hurst: {ff(p["hurst"])}</div>
-        </div>''', unsafe_allow_html=True)
+        st.markdown(f'''
+<div style="background:#1F2B3D;border-radius:6px;padding:10px;margin:4px 0;">
+  <div style="font-size:12px;font-weight:700;color:#10B981;">{p["ticker"]} ({p["quality"]}){"✅" if p["regime_fit"] else "⚠️"} Score {p["score"]:.0f} · {p["sector"].replace("_"," ").title()}</div>
+  <div style="font-size:11px;color:#E8ECF0;margin-top:4px;">Px: {ff(p["px"])} · LRR: <b>{ff(p["lrr"])}</b> · TRR: {ff(p["trr"])} · {p["note"]}</div>
+  <div style="font-size:10px;color:#6B7280;">Vol: {fp(p["vol_c"])} · Hurst: {ff(p["hurst"])}</div>
+</div>''', unsafe_allow_html=True)
     if not long_picks: st.info("No Quality A/B longs near LRR. Market extended — wait for pullback.")
 
     st.markdown("---"); st.markdown("### 🔴 SHORT IDEAS")
     for p in short_picks[:15]:
-        st.markdown(f'''<div class="signal-shortA">
-        <div style="display:flex;justify-content:space-between;">
-          <span style="font-size:15px;font-weight:800;color:#EF4444;">{p["ticker"]} <span style="font-size:11px;color:#FECACA;">({p["quality"]})</span></span>
-          <span style="font-size:11px;color:#9CA3AF;">{"✅" if p["regime_fit"] else "⚠️"} Score {p["score"]:.0f} · {p["sector"].replace("_"," ").title()}</span>
-        </div>
-        <div style="font-size:12px;color:#E8ECF0;margin-top:4px;">Px: {ff(p["px"])} · TRR: <b>{ff(p["trr"])}</b> · LRR: {ff(p["lrr"])} · {p["note"]}</div>
-        <div style="font-size:11px;color:#9CA3AF;margin-top:2px;">Vol: {fp(p["vol_c"])} · Hurst: {ff(p["hurst"])}</div>
-        </div>''', unsafe_allow_html=True)
+        st.markdown(f'''
+<div style="background:#1F2B3D;border-radius:6px;padding:10px;margin:4px 0;">
+  <div style="font-size:12px;font-weight:700;color:#EF4444;">{p["ticker"]} ({p["quality"]}){"✅" if p["regime_fit"] else "⚠️"} Score {p["score"]:.0f} · {p["sector"].replace("_"," ").title()}</div>
+  <div style="font-size:11px;color:#E8ECF0;margin-top:4px;">Px: {ff(p["px"])} · TRR: <b>{ff(p["trr"])}</b> · LRR: {ff(p["lrr"])} · {p["note"]}</div>
+  <div style="font-size:10px;color:#6B7280;">Vol: {fp(p["vol_c"])} · Hurst: {ff(p["hurst"])}</div>
+</div>''', unsafe_allow_html=True)
     if not short_picks: st.info("No Quality Short setups.")
 
     with st.expander("📋 Full Signal Table"):
         all_rows=([{"T":p["ticker"],"Side":"LONG","Q":p["quality"],"Sc":f'{p["score"]:.0f}',"Px":ff(p["px"]),"LRR":ff(p["lrr"]),"TRR":ff(p["trr"]),"Stretch":p["stretch"],"RF":"✅" if p["regime_fit"] else "—"} for p in long_picks]+
                   [{"T":p["ticker"],"Side":"SHORT","Q":p["quality"],"Sc":f'{p["score"]:.0f}',"Px":ff(p["px"]),"LRR":ff(p["lrr"]),"TRR":ff(p["trr"]),"Stretch":p["stretch"],"RF":"✅" if p["regime_fit"] else "—"} for p in short_picks])
         if all_rows: st.dataframe(pd.DataFrame(all_rows),hide_index=True,use_container_width=True)
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # 🌍 GLOBAL QUAD
@@ -929,13 +879,13 @@ elif page == "🌍 Global Quad":
     if em_sig:
         conf=_safe_float(em_sig.get("confidence")) or 0
         ec="#10B981" if conf>0.6 else "#F59E0B" if conf>0.4 else "#6B7280"
-        st.markdown(f'''<div style="background:#111827;border:1px solid #1F2B3D;border-radius:8px;padding:12px;">
-        <div style="font-size:13px;font-weight:700;color:{ec};">{em_sig.get("trigger","")}</div>
-        <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">{em_sig.get("rationale","")}</div>
-        <div style="font-size:11px;color:#E8ECF0;margin-top:4px;">Confidence: {conf:.0%} · Best: {", ".join(em_sig.get("best",[])[:6])}</div>
-        </div>''', unsafe_allow_html=True)
+        st.markdown(f'''
+<div style="background:{ec}20;border-left:4px solid {ec};border-radius:4px;padding:10px;">
+  <div style="font-size:12px;color:{ec};font-weight:700;">{em_sig.get("trigger","")}</div>
+  <div style="font-size:11px;color:#E8ECF0;margin-top:4px;">{em_sig.get("rationale","")}</div>
+  <div style="font-size:10px;color:#6B7280;margin-top:4px;">Confidence: {conf:.0%} · Best: {", ".join(em_sig.get("best",[])[:6])}</div>
+</div>''', unsafe_allow_html=True)
     else: st.info("EM recovery signal belum tersedia.")
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # 🇮🇩 IHSG
@@ -970,7 +920,6 @@ elif page == "🇮🇩 IHSG":
                 b_rows.append({"Ticker":t,"1M":f"{r1:+.1%}","3M":f"{r3:+.1%}"})
             if b_rows: st.dataframe(pd.DataFrame(b_rows),hide_index=True,use_container_width=True)
 
-
 # ══════════════════════════════════════════════════════════════════════════════
 # 📖 NARRATIVES
 # ══════════════════════════════════════════════════════════════════════════════
@@ -990,10 +939,9 @@ elif page == "📖 Narratives":
             st.markdown(f"**Thesis:** {n.get('thesis','')}")
             st.markdown(f"**Tickers:** {' · '.join(n.get('tickers',[])[:8])}")
             inv=n.get("invalidators",[]); best=n.get("best",[]); worst=n.get("worst",[])
-            if inv:  st.markdown(f"**Invalidators:** {', '.join(inv[:3])}")
+            if inv: st.markdown(f"**Invalidators:** {', '.join(inv[:3])}")
             if best: st.markdown(f"**Best:** {' · '.join(best[:10])}")
             if worst:st.markdown(f"**Worst:** {' · '.join(worst[:10])}")
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # 🔮 DISCOVERY
@@ -1001,7 +949,7 @@ elif page == "📖 Narratives":
 elif page == "🔮 Discovery":
     st.markdown("# 🔮 Early Discovery — Pre-Consensus")
     st.caption("Autonomy engine: regime fit + price cluster + supply chain graph + news NLP.")
-    cands=(auto_disc.get("candidates",[]) if auto_disc else [])+(disc.get("discoveries",[]) if disc else [])
+    cands=(auto_disc.get("candidates",[]) if auto_disc else [])+ (disc.get("discoveries",[]) if disc else [])
     if not cands:
         st.info("No discoveries yet. Click **⚡ Force** untuk rebuild dengan Autonomy Stack.")
         st.stop()
@@ -1014,12 +962,11 @@ elif page == "🔮 Discovery":
             with st.expander(f"**{c.get('name','')}** — Conf: {conf:.0%} · Pump: {pump:.0%}"):
                 st.markdown(f"**Thesis:** {c.get('thesis','')}")
                 ben=c.get("beneficiary_tickers",[]); fade=c.get("fade_tickers",[])
-                if ben:  st.markdown(f"**Beneficiaries:** {' · '.join(ben[:8])}")
+                if ben: st.markdown(f"**Beneficiaries:** {' · '.join(ben[:8])}")
                 if fade: st.markdown(f"**Fade:** {' · '.join(fade[:5])}")
                 cs=c.get("confirmation_signal",""); inv=c.get("invalidators",[])
-                if cs:  st.markdown(f"**Confirmation:** {cs}")
+                if cs: st.markdown(f"**Confirmation:** {cs}")
                 if inv: st.markdown(f"**Invalidators:** {', '.join(inv) if isinstance(inv,list) else inv}")
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # 🏥 HEALTH
@@ -1029,7 +976,7 @@ elif page == "🏥 Health":
     if not health: st.warning("No health data. Refresh."); st.stop()
     vb_d=health.get("vix_bucket",{}); vb_b=vb_d.get("bucket","—")
     vb_c={"Investable":"#10B981","Chop":"#F59E0B","Defensive":"#EF4444"}.get(vb_b,"#6B7280")
-    st.markdown(f'<div style="background:{vb_c}22;border-left:4px solid {vb_c};padding:12px;border-radius:6px;"><div style="font-size:16px;font-weight:800;color:{vb_c};">VIX BUCKET: {vb_b.upper()}</div><div style="font-size:12px;color:#E8ECF0;margin-top:4px;">{vb_d.get("note","")}</div></div>',unsafe_allow_html=True)
+    st.markdown(f'<div style="background:{vb_c}20;border-left:4px solid {vb_c};border-radius:4px;padding:10px;"><div style="font-size:14px;color:{vb_c};font-weight:700;">VIX BUCKET: {vb_b.upper()}</div><div style="font-size:11px;color:#E8ECF0;margin-top:4px;">{vb_d.get("note","")}</div></div>',unsafe_allow_html=True)
 
     crash=health.get("crash",{}) or {}
     if crash:
@@ -1053,9 +1000,8 @@ elif page == "🏥 Health":
         st.markdown("---"); st.markdown("### Fear & Greed")
         fgs=_safe_float(fg.get("score")) or 50
         fgc="#10B981" if fgs<25 else "#F59E0B" if fgs<55 else "#EF4444"
-        st.markdown(f"**Score:** <span style='color:{fgc};font-size:18px;font-weight:700;'>{fgs:.0f}/100</span> — {fg.get('label','Neutral')}",unsafe_allow_html=True)
+        st.markdown(f"**Score:** {fgs:.0f}/100 — {fg.get('label','Neutral')}",unsafe_allow_html=True)
         st.progress(fgs/100)
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # 📋 PLAYBOOK
@@ -1068,70 +1014,73 @@ elif page == "📋 Playbook":
         st.markdown("### 🎯 Regime Positioning")
         col1,col2=st.columns(2)
         with col1:
-            st.markdown(f'''<div class="alpha-long" style="padding:14px;">
-            <div style="font-size:13px;font-weight:700;color:#10B981;margin-bottom:8px;">✅ LONG — {sq}</div>
-            <div style="font-size:13px;color:#E8ECF0;">{" · ".join(pb_data.get("best_assets",[]))}</div>
-            <div style="font-size:11px;color:#9CA3AF;margin-top:8px;">Style: {pb_data.get("style","")}</div>
-            <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">FX: {pb_data.get("fx","")}</div>
-            <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Bonds: {pb_data.get("bonds","")}</div>
-            {('<div style="font-size:11px;color:#F59E0B;margin-top:4px;">Monthly adds: ' + " · ".join(pb_data.get("monthly_adds",[])) + '</div>') if pb_data.get("monthly_adds") else ""}
-            </div>''', unsafe_allow_html=True)
+            st.markdown(f'''
+<div style="background:#064E3B20;border-left:4px solid #10B981;border-radius:4px;padding:10px;">
+  <div style="font-size:12px;color:#10B981;font-weight:700;">✅ LONG — {sq}</div>
+  <div style="font-size:11px;color:#E8ECF0;margin-top:4px;">{" · ".join(pb_data.get("best_assets",[]))}</div>
+  <div style="font-size:10px;color:#6B7280;margin-top:6px;">Style: {pb_data.get("style","")}</div>
+  <div style="font-size:10px;color:#6B7280;">FX: {pb_data.get("fx","")}</div>
+  <div style="font-size:10px;color:#6B7280;">Bonds: {pb_data.get("bonds","")}</div>
+  {('<div style="font-size:10px;color:#F59E0B;margin-top:4px;">Monthly adds: ' + " · ".join(pb_data.get("monthly_adds",[])) + '</div>') if pb_data.get("monthly_adds") else ""}
+</div>''', unsafe_allow_html=True)
         with col2:
-            st.markdown(f'''<div class="alpha-short" style="padding:14px;">
-            <div style="font-size:13px;font-weight:700;color:#EF4444;margin-bottom:8px;">❌ AVOID — {sq}</div>
-            <div style="font-size:13px;color:#E8ECF0;">{" · ".join(pb_data.get("worst_assets",[]))}</div>
-            <div style="font-size:11px;color:#9CA3AF;margin-top:8px;">Hedge: {pb_data.get("hedge","BTAL")}</div>
-            <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">{pb_data.get("sizing_note","Min 1% · Max 3%")}</div>
-            </div>''', unsafe_allow_html=True)
+            st.markdown(f'''
+<div style="background:#450A0A20;border-left:4px solid #EF4444;border-radius:4px;padding:10px;">
+  <div style="font-size:12px;color:#EF4444;font-weight:700;">❌ AVOID — {sq}</div>
+  <div style="font-size:11px;color:#E8ECF0;margin-top:4px;">{" · ".join(pb_data.get("worst_assets",[]))}</div>
+  <div style="font-size:10px;color:#6B7280;margin-top:6px;">Hedge: {pb_data.get("hedge","BTAL")}</div>
+  <div style="font-size:10px;color:#6B7280;">{pb_data.get("sizing_note","Min 1% · Max 3%")}</div>
+</div>''', unsafe_allow_html=True)
 
-    # Bitcoin
-    btc_rr=rr.get("asset_ranges",{}).get("IBIT",rr.get("asset_ranges",{}).get("BTC-USD",{}))
-    btc_sig=btc_rr.get("composite","—")
-    btc_c="#10B981" if btc_sig=="bullish" else "#EF4444" if btc_sig=="bearish" else "#6B7280"
-    btc_corr_val=dxy_corr.get("Bitcoin","—")
-    q4_note=" (Q4 EXCEPTION — Exit BTC)" if sq=="Q4" else ""
-    st.markdown(f'''<div style="background:#111827;border-left:4px solid {btc_c};padding:10px;border-radius:6px;margin-top:10px;">
-    <span style="font-size:12px;font-weight:700;color:{btc_c};">₿ BITCOIN (IBIT): {btc_sig.upper()}{q4_note}</span>
-    <span style="font-size:11px;color:#9CA3AF;"> — DXY/BTC 15D corr: {btc_corr_val} · "Any quad other than Q4 = biggest digital asset position."</span>
-    </div>''', unsafe_allow_html=True)
+        # Bitcoin
+        btc_rr=rr.get("asset_ranges",{}).get("IBIT",rr.get("asset_ranges",{}).get("BTC-USD",{}))
+        btc_sig=btc_rr.get("composite","—")
+        btc_c="#10B981" if btc_sig=="bullish" else "#EF4444" if btc_sig=="bearish" else "#6B7280"
+        btc_corr_val=dxy_corr.get("Bitcoin","—")
+        q4_note=" (Q4 EXCEPTION — Exit BTC)" if sq=="Q4" else ""
+        st.markdown(f'''
+<div style="background:#1F2B3D;border-radius:6px;padding:10px;margin-top:10px;">
+  <div style="font-size:12px;color:{btc_c};font-weight:700;">₿ BITCOIN (IBIT): {btc_sig.upper()}{q4_note} — DXY/BTC 15D corr: {btc_corr_val} · "Any quad other than Q4 = biggest digital asset position."</div>
+</div>''', unsafe_allow_html=True)
 
-    # Scenarios
-    scenarios_list=scen.get("scenarios",[]) if scen else []
-    if scenarios_list:
-        st.markdown("---"); st.markdown("### 🔮 Scenario Probability Map")
-        badges=["🎯 BASE","🔄 ALT","⚠️ RISK","📌 TAIL"]; badge_colors=["#10B981","#F59E0B","#EF4444","#6366F1"]
-        row1=st.columns(2); row2=st.columns(2); grids=[row1[0],row1[1],row2[0],row2[1]]
-        for i,(sc_item,col) in enumerate(zip(scenarios_list[:4],grids)):
-            pc=badge_colors[i]; em=sc_item.em_note[:60]+"..." if len(sc_item.em_note)>60 else sc_item.em_note
-            with col:
-                st.markdown(f'''<div style="background:#111827;border:1px solid #1F2B3D;border-radius:8px;padding:12px;">
-                <div style="font-size:11px;color:{pc};font-weight:700;">{badges[i]} P={sc_item.probability:.0%} · Conf={sc_item.confirmation_score:.0%}</div>
-                <div style="font-size:13px;color:#E8ECF0;margin-top:6px;font-weight:600;">{sc_item.name}</div>
-                <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">{sc_item.headline}</div>
-                <div style="font-size:11px;color:#10B981;margin-top:4px;">Best: {" · ".join(sc_item.best_assets[:4])}</div>
-                <div style="font-size:11px;color:#EF4444;margin-top:2px;">Avoid: {" · ".join(sc_item.worst_assets[:4])}</div>
-                <div style="font-size:10px;color:#6B7280;margin-top:4px;">🌍 {em}</div>
-                </div>''', unsafe_allow_html=True)
+        # Scenarios
+        scenarios_list=scen.get("scenarios",[]) if scen else []
+        if scenarios_list:
+            st.markdown("---"); st.markdown("### 🔮 Scenario Probability Map")
+            badges=["🎯 BASE","🔄 ALT","⚠️ RISK","📌 TAIL"]; badge_colors=["#10B981","#F59E0B","#EF4444","#6366F1"]
+            row1=st.columns(2); row2=st.columns(2); grids=[row1[0],row1[1],row2[0],row2[1]]
+            for i,(sc_item,col) in enumerate(zip(scenarios_list[:4],grids)):
+                pc=badge_colors[i]; em=sc_item.em_note[:60]+"..." if len(sc_item.em_note)>60 else sc_item.em_note
+                with col:
+                    st.markdown(f'''
+<div style="background:{pc}15;border-left:4px solid {pc};border-radius:4px;padding:10px;margin:4px 0;">
+  <div style="font-size:11px;color:{pc};font-weight:700;">{badges[i]} P={sc_item.probability:.0%} · Conf={sc_item.confirmation_score:.0%}</div>
+  <div style="font-size:12px;color:#E8ECF0;margin-top:4px;">{sc_item.name}</div>
+  <div style="font-size:11px;color:#9CA3AF;margin-top:2px;">{sc_item.headline}</div>
+  <div style="font-size:10px;color:#6B7280;margin-top:4px;">Best: {" · ".join(sc_item.best_assets[:4])}</div>
+  <div style="font-size:10px;color:#6B7280;">Avoid: {" · ".join(sc_item.worst_assets[:4])}</div>
+  <div style="font-size:10px;color:#6366F1;margin-top:4px;">🌍 {em}</div>
+</div>''', unsafe_allow_html=True)
 
-    bc=scen.get("base_case") if scen else None
-    if bc and hasattr(bc,"confirmation_triggers"):
-        st.markdown("---"); ct,ci=st.columns(2)
-        with ct:
-            st.markdown(f"### ✅ Confirmation Triggers ({bc.name})")
-            for t in getattr(bc,"confirmation_triggers",[]): st.markdown(f"• {t}")
-        with ci:
-            st.markdown("### ❌ Invalidators")
-            for inv in getattr(bc,"invalidators",[]): st.markdown(f"• {inv}")
+            bc=scen.get("base_case") if scen else None
+            if bc and hasattr(bc,"confirmation_triggers"):
+                st.markdown("---"); ct,ci=st.columns(2)
+                with ct:
+                    st.markdown(f"### ✅ Confirmation Triggers ({bc.name})")
+                    for t in getattr(bc,"confirmation_triggers",[]): st.markdown(f"• {t}")
+                with ci:
+                    st.markdown("### ❌ Invalidators")
+                    for inv in getattr(bc,"invalidators",[]): st.markdown(f"• {inv}")
 
-    if gip:
-        st.markdown("---"); st.markdown("### 📡 GIP Feature Data")
-        f=gip.features
-        rows=[["Growth Momentum",fp(f.get("growth_momentum")),"↑" if (_safe_float(f.get("growth_momentum")) or 0)>0 else "↓"],
-              ["Inflation Momentum",fp(f.get("inflation_momentum")),"↑" if (_safe_float(f.get("inflation_momentum")) or 0)>0 else "↓"],
-              ["Policy Score",fp(f.get("policy_score")),""],
-              ["Leading Indicator",fp(f.get("leading_indicator_composite")),""],
-              ["Data Coverage",fp(f.get("data_coverage")),""],
-              ["Flip Hazard",f"{gip.flip_hazard:.0%}",""],
-              ["Structural Conf",f"{gip.structural_conf:.0%}",""],
-              ["Monthly Conf",f"{gip.monthly_conf:.0%}",""]]
-        st.dataframe(pd.DataFrame(rows,columns=["Signal","Value","Dir"]),hide_index=True,use_container_width=True)
+        if gip:
+            st.markdown("---"); st.markdown("### 📡 GIP Feature Data")
+            f=gip.features
+            rows=[["Growth Momentum",fp(f.get("growth_momentum")),"↑" if (_safe_float(f.get("growth_momentum")) or 0)>0 else "↓"],
+                  ["Inflation Momentum",fp(f.get("inflation_momentum")),"↑" if (_safe_float(f.get("inflation_momentum")) or 0)>0 else "↓"],
+                  ["Policy Score",fp(f.get("policy_score")),""],
+                  ["Leading Indicator",fp(f.get("leading_indicator_composite")),""],
+                  ["Data Coverage",fp(f.get("data_coverage")),""],
+                  ["Flip Hazard",f"{gip.flip_hazard:.0%}",""],
+                  ["Structural Conf",f"{gip.structural_conf:.0%}",""],
+                  ["Monthly Conf",f"{gip.monthly_conf:.0%}",""]]
+            st.dataframe(pd.DataFrame(rows,columns=["Signal","Value","Dir"]),hide_index=True,use_container_width=True)

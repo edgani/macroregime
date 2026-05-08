@@ -1,8 +1,10 @@
-"""engines/gip_engine.py v8 — Hedgeye GIP Model
+"""engines/gip_engine.py v9 — Hedgeye GIP Model
 
-SURGICAL FIX v8: Monthly inflation = 50% structural level + 50% price signal.
-v7 was 90% price-driven, causing Q1 when CPI level still 2.5%+ YoY.
-Hedgeye May 2026 manual call = Q2. Structural CPI level must be respected.
+CRITICAL FIX v9: Monthly inflation anchored 70% to structural CPI level.
+v8 was 50/50 — still too sensitive to 1M oil volatility.
+v7 was 90/10 — why monthly stayed Q1 despite hot CPI.
+
+Hedgeye May 2026: Structural Q3 · Monthly Q2 (Reflation inside Stagflation)
 """
 from __future__ import annotations
 import math, os, logging
@@ -269,7 +271,7 @@ class GIPEngine:
             v = f_fred.get(key, float("nan"))
             return v if math.isfinite(v) else f_proxy.get(key, float("nan"))
 
-        # STRUCTURAL
+        # ── STRUCTURAL ─────────────────────────────────────────────────────────
         g_lvl = {
             "indpro_yoy": _tanh_scale(merge("indpro_yoy") - 0.02, 0.05),
             "retail_yoy": _tanh_scale(merge("retail_yoy") - 0.03, 0.06),
@@ -322,25 +324,34 @@ class GIPEngine:
             modifiers=struct_modifiers
         )
 
-        # MONTHLY SCORING — v8 FIX: 50% structural level + 50% price signal for inflation
-        # Reason: v7 monthly was 90% price-driven, causing Q1 when CPI level still 2.5%+
-        # Hedgeye May 2026 manual call = Q2. Structural inflation level must be respected.
+        # ── MONTHLY — v9 FIX: 70% structural anchor for inflation ───────────────
+        # v7 hardcoded 90% price → Q1 when oil down despite hot CPI
+        # v8 tried 50/50 → still not enough
+        # v9: 70% structural level (CPI sticky) + 30% 1M price signal
         monthly_g_price = _nan(f_proxy.get("monthly_g_price", 0.0))
         monthly_i_price = _nan(f_proxy.get("monthly_i_price", 0.0))
 
-        # Growth: 80% price, 20% structural level (unchanged — growth is price-driven)
+        # Growth: 80% price (volatile, mean-reverting) — unchanged
         m_g_level = 0.20 * g_level + 0.80 * monthly_g_price
         m_g_mom = monthly_g_price
 
-        # INFLATION: 50% structural level (CPI YoY still hot) + 50% 1M price signal
-        # Was 10% structural / 90% price — now 50/50 to respect CPI level in monthly
-        m_i_level = 0.50 * i_level + 0.50 * monthly_i_price
+        # INFLATION: 70% structural level (sticky) + 30% 1M price (transient)
+        m_i_level = 0.70 * i_level + 0.30 * monthly_i_price
         m_i_mom = monthly_i_price
+
+        # Structural bias: when structural is Q3 (hot inflation), monthly Q1 is
+        # economically inconsistent — CPI doesn't vanish in 1 month. Penalize Q1.
+        month_modifiers = {}
+        if struct_quad == "Q3" and i_level > 0.15:
+            # Hot structural inflation → monthly can't be Goldilocks (low infl)
+            month_modifiers["Q1"] = -0.35
+            month_modifiers["Q2"] = +0.20
+            month_modifiers["Q3"] = +0.10
 
         month_probs, month_quad, month_conf = _score_quad(
             m_g_level, m_g_mom, m_i_level, m_i_mom, policy,
             MONTHLY_WEIGHTS, POLICY_WEIGHT_MONTHLY,
-            modifiers={}
+            modifiers=month_modifiers
         )
 
         if struct_quad == month_quad:

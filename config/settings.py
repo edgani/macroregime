@@ -82,8 +82,8 @@ STRUCTURAL_WEIGHTS = {
 MONTHLY_WEIGHTS = {
     "growth_level": 0.10,
     "growth_momentum": 0.40,
-    "inflation_level": 0.30,   # v8: 0.20 → 0.30. CPI level must drive monthly.
-    "inflation_momentum": 0.20, # v8: 0.50 → 0.20. Momentum overrode level.
+    "inflation_level": 0.35,   # v9: naik dari 0.30 → level lebih dominan
+    "inflation_momentum": 0.15, # v9: turun dari 0.20 → momentum lebih kecil
 }
 # ── CRITICAL: These were missing — caused ImportError in gip_engine.py ────────
 POLICY_WEIGHT_STRUCTURAL: float = 0.12

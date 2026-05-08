@@ -984,14 +984,6 @@ elif page == "⚡ Alpha Center":
     st.markdown("# ⚡ Alpha Center — Front-Run · Bottleneck · Options")
     st.caption("Hedgeye: Front-run the Machine. Buy the best EV+ setups near LRR with options confirmation. No near-target entries.")
 
-    if transition:
-        fw = transition.front_run_window
-        fr = transition.front_run_rationale
-        fwc = {"now":"#EF4444","1-2w":"#F59E0B","3-6w":"#6366F1","not yet":"#374151"}.get(fw,"#374151")
-        fwi = {"now":"🚨","1-2w":"⚡","3-6w":"👀","not yet":"🛑"}.get(fw,"🛑")
-        st.markdown(f'<div class="mr-frontrun" style="background:{fwc}12;border:1px solid {fwc}33;color:{fwc};"><div style="font-weight:700;margin-bottom:2px;">{fwi} FRONT-RUN WINDOW: {fw.upper()}</div><div style="font-size:12px;">{fr}</div></div>', unsafe_allow_html=True)
-    st.markdown(_sequence_pills(sq,mq), unsafe_allow_html=True)
-
     if not btk:
         st.warning("No bottleneck data. Click 🔄 Refresh.")
         st.stop()
@@ -1168,12 +1160,17 @@ elif page == "🌍 Global Quad":
 
     gconf = _safe_float(global_.get("global_conf")) or 0
     gprobs = global_.get("global_probs",{}) or {}
-    c1,c2 = st.columns([1,1.5])
+
+    # Top row: Global Quad card + Country Heatmap table
+    c1,c2 = st.columns([1, 2])
     with c1:
         st.markdown(qcard("GLOBAL QUAD", gq, gconf, "50 Country ETFs"), unsafe_allow_html=True)
-        if gprobs: st.plotly_chart(prob_bar(gprobs,"Global Probabilities"), use_container_width=True, config={"displayModeBar":False})
+        if gprobs:
+            st.markdown("<div style='margin-top:8px;'></div>", unsafe_allow_html=True)
+            st.plotly_chart(prob_bar(gprobs,"Global Probabilities"), use_container_width=True, config={"displayModeBar":False})
+
     with c2:
-        st.markdown("### Country Heatmap")
+        st.markdown("<div class='mr-card-header' style='margin-bottom:10px;'>🗺️ COUNTRY HEATMAP</div>", unsafe_allow_html=True)
         cq = global_.get("country_quads",{}) or {}
         heat = []
         if cq:
@@ -1186,13 +1183,25 @@ elif page == "🌍 Global Quad":
                 if quad: heat.append({"Country":country,"ETF":etf,"Quad":quad,"Conf":f"{conf:.0%}"})
         if heat:
             df = pd.DataFrame(heat)
-            st.dataframe(df.style.map(lambda v:f"color:{QC.get(v,'#9CA3AF')}", subset=["Quad"]),
-                         hide_index=True, height=400, use_container_width=True)
+            st.dataframe(
+                df.style.map(lambda v:f"color:{QC.get(v,'#9CA3AF')};font-weight:700;", subset=["Quad"])
+                      .set_properties(**{"font-size": "12px", "text-align": "left"})
+                      .set_table_styles([
+                          {"selector": "th", "props": [("font-size", "10px"), ("text-transform", "uppercase"), ("letter-spacing", "1px"), ("background-color", "#1a2332"), ("color", "#9CA3AF")]},
+                          {"selector": "td", "props": [("border-bottom", "1px solid #1f2b3d")]},
+                          {"selector": "tbody tr:nth-child(even)", "props": [("background-color", "#141c2b")]},
+                      ]),
+                hide_index=True, height=420, use_container_width=True
+            )
         else:
-            st.info("Country Quad data belum tersedia. Click 🔄 Refresh untuk load country ETFs. Pastikan GlobalQuadEngine berjalan di orchestrator.")
+            st.markdown("""
+            <div class="mr-card" style="justify-content:center;min-height:200px;">
+                <div class="mr-card-sub" style="text-align:center;">Country Quad data belum tersedia.<br>Click 🔄 Refresh untuk load country ETFs.<br>Pastikan GlobalQuadEngine berjalan di orchestrator.</div>
+            </div>
+            """, unsafe_allow_html=True)
 
-    st.markdown("---")
-    st.markdown("### 🌏 EM Recovery Signal")
+    st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div class='mr-card-header'>🌏 EM RECOVERY SIGNAL</div>", unsafe_allow_html=True)
     em_sig = (btk.get("em_recovery",{}) or {}) if btk else {}
     if em_sig:
         conf = _safe_float(em_sig.get("confidence")) or 0
@@ -1205,7 +1214,11 @@ elif page == "🌍 Global Quad":
         </div>
         """, unsafe_allow_html=True)
     else:
-        st.info("EM recovery signal belum tersedia.")
+        st.markdown("""
+        <div class="mr-card" style="justify-content:center;min-height:120px;">
+            <div class="mr-card-sub" style="text-align:center;color:#6B7280;">EM recovery signal belum tersedia.<br>Data akan muncul setelah bottleneck scan berjalan.</div>
+        </div>
+        """, unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # 🇮🇩 IHSG

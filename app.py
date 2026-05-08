@@ -533,9 +533,15 @@ elif page == "Leaderboard":
         st.markdown(f'<div style="border-left:3px solid #EF4444;padding-left:10px;margin-bottom:8px;"><div style="font-size:14px;font-weight:700;">{p["ticker"]} ({p["quality"]}) {"YES" if p["regime_fit"] else "NO"} Score {p["score"]:.0f} · {p["sector"].replace("_"," ").title()}</div><div style="font-size:12px;color:#E8ECF0;">Px: {ff(p["px"])} · TRR: <b>{ff(p["trr"])}</b> · LRR: {ff(p["lrr"])} · {p["note"]}</div><div style="font-size:11px;color:#9CA3AF;">Vol: {fp(p["vol_c"])} · Hurst: {ff(p["hurst"])}</div></div>', unsafe_allow_html=True)
     if not short_picks: st.info("No Quality Short-A/B setups.")
     with st.expander("Full Signal Table"):
-        all_rows=([{"Ticker":p["ticker"],"Side":"LONG","Quality":p["quality"],"Score":f\'{p["score"]:.0f}\',"Px":ff(p["px"]),"LRR":ff(p["lrr"]),"TRR":ff(p["trr"]),"Stretch":p["stretch"],"Regime":"YES" if p["regime_fit"] else "-"} for p in long_picks]+
-                  [{"Ticker":p["ticker"],"Side":"SHORT","Quality":p["quality"],"Score":f\'{p["score"]:.0f}\',"Px":ff(p["px"]),"LRR":ff(p["lrr"]),"TRR":ff(p["trr"]),"Stretch":p["stretch"],"Regime":"YES" if p["regime_fit"] else "-"} for p in short_picks])
-        if all_rows: st.dataframe(pd.DataFrame(all_rows),hide_index=True,use_container_width=True)
+        all_rows = []
+        for p in long_picks:
+            sc = str(int(p["score"]))
+            all_rows.append({"Ticker": p["ticker"], "Side": "LONG", "Quality": p["quality"], "Score": sc, "Px": ff(p["px"]), "LRR": ff(p["lrr"]), "TRR": ff(p["trr"]), "Stretch": p["stretch"], "Regime": "YES" if p["regime_fit"] else "-"})
+        for p in short_picks:
+            sc = str(int(p["score"]))
+            all_rows.append({"Ticker": p["ticker"], "Side": "SHORT", "Quality": p["quality"], "Score": sc, "Px": ff(p["px"]), "LRR": ff(p["lrr"]), "TRR": ff(p["trr"]), "Stretch": p["stretch"], "Regime": "YES" if p["regime_fit"] else "-"})
+        if all_rows:
+            st.dataframe(pd.DataFrame(all_rows), hide_index=True, use_container_width=True)
 
 # GLOBAL QUAD
 elif page == "Global Quad":
@@ -607,11 +613,24 @@ elif page == "Bottleneck":
         col.markdown(f'<div class="card" style="text-align:center;border-top:3px solid {c};"><div style="font-size:11px;color:#9CA3AF;">{lab}</div><div style="font-size:28px;font-weight:700;color:{c};">{val}</div></div>',unsafe_allow_html=True)
     if btk.get("futures_excluded"):
         st.caption(f"{btk.get('futures_excluded',0)} futures tickers excluded from equity scan (see Commodity tab)")
-    def _rl(data,title):
-        if not data: return
-        with st.expander(f"**{title}** ({len(data)})",expanded=title.startswith("Level 1")):
-            rows=[{"Ticker":c["ticker"],"Sector":c["sector"].replace("_"," ").title(),"Trend":c["trend"],"Score":f\'{c["score"]:.2f}\',"EV":f\'{c.get("ev",0):.2f}\',"RF":f\'{c.get("regime_fit",0):.0%}\',"Constraint":f\'{c.get("constraint",0):.0%}\',"Thesis":c.get("known_thesis","")[:60]} for c in data]
-            if rows: st.dataframe(pd.DataFrame(rows),hide_index=True,use_container_width=True,height=min(len(rows)*35+40,400))
+    def _rl(data, title):
+        if not data:
+            return
+        with st.expander("**" + title + "** (" + str(len(data)) + ")", expanded=title.startswith("Level 1")):
+            rows = []
+            for c in data:
+                rows.append({
+                    "Ticker": c["ticker"],
+                    "Sector": c["sector"].replace("_", " ").title(),
+                    "Trend": c["trend"],
+                    "Score": str(round(c["score"], 2)),
+                    "EV": str(round(c.get("ev", 0), 2)),
+                    "RF": str(round(c.get("regime_fit", 0), 2)),
+                    "Constraint": str(round(c.get("constraint", 0), 2)),
+                    "Thesis": c.get("known_thesis", "")[:60]
+                })
+            if rows:
+                st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True, height=min(len(rows) * 35 + 40, 400))
     _rl(l1,"Level 1 - Best"); _rl(l2,"Level 2 - Building")
     _rl(wt,"Watch - Brewing"); _rl(av,"Avoid - Regime Trap")
     st.markdown("---")

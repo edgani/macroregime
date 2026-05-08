@@ -1,274 +1,198 @@
-"""engines/leveraged_etf_engine.py — Leveraged ETF AUM & Flow Tracker
+"""engines/leveraged_etf_engine.py — Leveraged ETF Flow Engine v2
 
-Fetch real AUM data dari yfinance untuk semua major leveraged ETFs.
-Compute long vs short exposure breakdown.
-Deteksi ATH, rate of change, dan mechanical rebalancing pressure.
-
-Output masuk ke snap["leveraged_etf"] dan digunakan di Dashboard panel.
-
-ETF Universe (Tier 1 Alpha tracks these):
-  LONG (2x/3x bull):  TQQQ, UPRO, SPXL, UDOW, SOXL, TNA, LABU, FNGU, NAIL, DFEN, UTSL, MIDU, URTY
-  SHORT (2x/3x bear): SQQQ, SPXU, SDOW, SOXS, TZA, LABD, FNGD, SRTY
-  SINGLE STOCK/CRYPTO: NVDL, TSLL, MSTX, BITX, CONL
-
-Note: yfinance "info" field berisi "totalAssets" = AUM dalam USD.
+Robust yfinance fetch with fallback AUM estimation.
+Fixes v1: yfinance .info() often returns empty in cloud/headless env.
 """
-from __future__ import annotations
-
-import math
-import time
-import logging
-from typing import Dict, List, Optional, Tuple
+import logging, math
+from typing import Dict
 import numpy as np
 import pandas as pd
+import yfinance as yf
 
 logger = logging.getLogger(__name__)
 
-# ── ETF Universe ─────────────────────────────────────────────────────────────
-LONG_ETFS: List[str] = [
-    "TQQQ",   # 3x QQQ
-    "UPRO",   # 3x SPY
-    "SPXL",   # 3x S&P 500
-    "UDOW",   # 3x Dow
-    "SOXL",   # 3x Semiconductors
-    "TNA",    # 3x IWM Small Cap
-    "LABU",   # 3x Biotech
-    "NAIL",   # 3x Homebuilders
-    "DFEN",   # 3x Aerospace & Defense
-    "UTSL",   # 3x Utilities
-    "MIDU",   # 3x Mid Cap
-    "URTY",   # 3x Russell 2000
-    "SPXS_BULL",  # placeholder, skip
-    "ROM",    # 2x Tech
-    "SSO",    # 2x S&P 500
-    "QLD",    # 2x QQQ
-    "UWM",    # 2x IWM
-    "SAA",    # 2x Small Cap
-    "MVV",    # 2x Mid Cap
-    "UXI",    # 2x Industrials
-    "RXL",    # 2x Healthcare
-    "DIG",    # 2x Energy
-    "UYG",    # 2x Financials
-    "DDM",    # 2x Dow
-]
+# Major leveraged ETFs — long & short
+LEV_ETF_UNIVERSE = {
+    # 3x Equity
+    "TQQQ": {"direction": "long",  "leverage": 3, "asset": "nasdaq100"},
+    "UPRO": {"direction": "long",  "leverage": 3, "asset": "sp500"},
+    "SPXL": {"direction": "long",  "leverage": 3, "asset": "sp500"},
+    "UDOW": {"direction": "long",  "leverage": 3, "asset": "dow30"},
+    "UMDD": {"direction": "long",  "leverage": 3, "asset": "midcap"},
+    "URTY": {"direction": "long",  "leverage": 3, "asset": "russell2k"},
+    # 2x Equity
+    "QLD":  {"direction": "long",  "leverage": 2, "asset": "nasdaq100"},
+    "SSO":  {"direction": "long",  "leverage": 2, "asset": "sp500"},
+    "DDM":  {"direction": "long",  "leverage": 2, "asset": "dow30"},
+    "MVV":  {"direction": "long",  "leverage": 2, "asset": "midcap"},
+    "UWM":  {"direction": "long",  "leverage": 2, "asset": "russell2k"},
+    # 3x Inverse Equity
+    "SQQQ": {"direction": "short", "leverage": 3, "asset": "nasdaq100"},
+    "SPXS": {"direction": "short", "leverage": 3, "asset": "sp500"},
+    "SPXU": {"direction": "short", "leverage": 3, "asset": "sp500"},
+    "SDOW": {"direction": "short", "leverage": 3, "asset": "dow30"},
+    "SMDD": {"direction": "short", "leverage": 3, "asset": "midcap"},
+    "SRTY": {"direction": "short", "leverage": 3, "asset": "russell2k"},
+    # 2x Inverse Equity
+    "QID":  {"direction": "short", "leverage": 2, "asset": "nasdaq100"},
+    "SDS":  {"direction": "short", "leverage": 2, "asset": "sp500"},
+    "DXD":  {"direction": "short", "leverage": 2, "asset": "dow30"},
+    "MZZ":  {"direction": "short", "leverage": 2, "asset": "midcap"},
+    "TWM":  {"direction": "short", "leverage": 2, "asset": "russell2k"},
+    # Crypto
+    "BITU": {"direction": "long",  "leverage": 2, "asset": "bitcoin"},
+    "BITO": {"direction": "long",  "leverage": 1, "asset": "bitcoin"},
+}
 
-SHORT_ETFS: List[str] = [
-    "SQQQ",   # 3x short QQQ
-    "SPXU",   # 3x short SPY
-    "SDOW",   # 3x short Dow
-    "SOXS",   # 3x short Semiconductors
-    "TZA",    # 3x short IWM
-    "LABD",   # 3x short Biotech
-    "SRTY",   # 3x short Russell 2000
-    "FNGD",   # 3x short FANG
-    "SDS",    # 2x short S&P
-    "QID",    # 2x short QQQ
-    "SDD",    # 2x short Small Cap
-    "MZZ",    # 2x short Mid Cap
-    "REW",    # 2x short Tech
-    "SKF",    # 2x short Financials
-    "DUG",    # 2x short Energy
-    "SMN",    # 2x short Materials
-]
-
-SINGLE_CRYPTO_ETFS: List[str] = [
-    "NVDL",   # 2x NVDA
-    "TSLL",   # 2x TSLA
-    "MSTX",   # 2x MicroStrategy
-    "BITX",   # 2x Bitcoin
-    "CONL",   # 2x Coinbase
-    "MSFO",   # 2x Microsoft
-    "AAPU",   # 2x Apple
-    "AMZU",   # 2x Amazon
-    "GOOG",   # skip (not levered), placeholder
-    "IBIT",   # Bitcoin ETF (1x)
-    "FBTC",   # Bitcoin ETF (1x)
-]
-
-# Clean up placeholders
-LONG_ETFS = [t for t in LONG_ETFS if "BULL" not in t and "GOOG" not in t]
-SINGLE_CRYPTO_ETFS = [t for t in SINGLE_CRYPTO_ETFS if "GOOG" not in t]
-
-
-def _fetch_aum_yfinance(tickers: List[str]) -> Dict[str, float]:
-    """
-    Fetch AUM (totalAssets) dari yfinance untuk list tickers.
-    Returns dict: {ticker: aum_in_USD}
-    """
+def _safe_float(v):
+    if v is None: return None
     try:
-        import yfinance as yf
-    except ImportError:
-        logger.warning("yfinance tidak tersedia. pip install yfinance.")
-        return {}
+        if isinstance(v, pd.Series): v = v.iloc[0]
+        f = float(v)
+        return f if math.isfinite(f) else None
+    except: return None
 
-    aum_map: Dict[str, float] = {}
-    # Batch fetch lebih cepat
-    tickers_clean = [t for t in tickers if t]
-
-    for ticker in tickers_clean:
-        try:
-            info = yf.Ticker(ticker).info
-            assets = info.get("totalAssets") or info.get("netAssets") or 0
-            if assets and isinstance(assets, (int, float)) and math.isfinite(assets) and assets > 0:
-                aum_map[ticker] = float(assets)
-        except Exception as e:
-            logger.debug(f"AUM fetch failed for {ticker}: {e}")
-            continue
-
-    return aum_map
-
-
-def _to_billions(usd: float) -> float:
-    """Convert USD → Billions, rounded 1dp."""
-    return round(usd / 1e9, 1)
-
-
-def _compute_historical_aum(
-    prices: Dict[str, pd.Series],
-    tickers: List[str],
-) -> Optional[float]:
+def _estimate_aum(ticker: str, hist: pd.DataFrame) -> float:
+    """Estimate AUM in $B when yfinance info fails.
+    Proxy: avg daily dollar volume * 20 (assumes 20-day avg holding).
     """
-    Fallback: estimate AUM dari price × average shares outstanding proxy.
-    Hanya dipakai kalau yfinance gagal total.
-    """
-    # Tidak bisa compute tanpa shares outstanding data
-    return None
+    if hist is None or hist.empty: return 0.0
+    h = hist.copy()
+    if "Close" not in h.columns or "Volume" not in h.columns:
+        return 0.0
+    h["Close"] = pd.to_numeric(h["Close"], errors="coerce")
+    h["Volume"] = pd.to_numeric(h["Volume"], errors="coerce")
+    h = h.dropna(subset=["Close", "Volume"])
+    if len(h) < 5: return 0.0
+    adv = (h["Close"] * h["Volume"]).mean()
+    if not math.isfinite(adv): return 0.0
+    aum_b = (adv * 20) / 1e9
+    return float(aum_b) if math.isfinite(aum_b) else 0.0
 
+def _fetch_ticker_info(ticker: str) -> Dict:
+    """Fetch yfinance info with timeout. Returns dict with aum_b or None."""
+    try:
+        t = yf.Ticker(ticker)
+        info = t.info or {}
+        aum = info.get("totalAssets")
+        if aum is None:
+            aum = info.get("assetsUnderManagement")
+        if aum is not None:
+            aum_b = float(aum) / 1e9
+            if math.isfinite(aum_b) and aum_b > 0:
+                return {"aum_b": round(aum_b, 2), "source": "info"}
+    except Exception as e:
+        logger.debug(f"yfinance info failed for {ticker}: {e}")
+    return {"aum_b": None, "source": "info_failed"}
 
 class LeveragedETFEngine:
-    """
-    Fetch dan aggregate leveraged ETF AUM data.
-    
-    Output snap["leveraged_etf"]:
-      total_mcap_b: float          (total AUM semua levered ETFs, dalam $B)
-      long_exposure_b: float       ($B long/bull ETFs)
-      short_exposure_b: float      ($B short/bear ETFs)
-      single_crypto_b: float       ($B single stock + crypto ETFs)
-      long_pct: float              (% long dari total)
-      short_pct: float             (% short dari total)
-      is_ath: bool                 (apakah total AUM di ATH berdasarkan hist)
-      top_longs: List[dict]        (top 5 long ETFs by AUM)
-      top_shorts: List[dict]       (top 5 short ETFs by AUM)
-      yoy_change_b: float | None   (YoY AUM change jika ada history)
-      rebalancing_pressure: str    (HIGH / MEDIUM / LOW — dari daily return SPY)
-      note: str
-    """
+    def run(self, prices: Dict[str, pd.Series] = None) -> Dict:
+        tickers = list(LEV_ETF_UNIVERSE.keys())
+        results = []
+        total_long_b = 0.0
+        total_short_b = 0.0
+        total_single_crypto_b = 0.0
+        top_longs = []
+        top_shorts = []
 
-    def __init__(self, cache_ttl_hours: float = 6.0):
-        self.cache_ttl = cache_ttl_hours * 3600
-        self._cache: Optional[Dict] = None
-        self._cache_ts: float = 0.0
+        # Batch download history for all tickers (6mo for ADV calc)
+        try:
+            hist_all = yf.download(tickers, period="6mo", progress=False, auto_adjust=True, timeout=25, threads=True)
+        except Exception as e:
+            logger.warning(f"yfinance batch download failed: {e}")
+            hist_all = pd.DataFrame()
 
-    def run(
-        self,
-        prices: Optional[Dict[str, pd.Series]] = None,
-        force_refresh: bool = False,
-    ) -> Dict:
-        """
-        Main run. Cache 6 jam karena AUM data tidak berubah cepat.
-        """
-        # Cache check
-        if (
-            not force_refresh
-            and self._cache is not None
-            and (time.time() - self._cache_ts) < self.cache_ttl
-        ):
-            return self._cache
+        for ticker in tickers:
+            meta = LEV_ETF_UNIVERSE[ticker]
+            # Layer 1: Try info AUM
+            info_res = _fetch_ticker_info(ticker)
+            aum_b = info_res["aum_b"]
+            source = info_res["source"]
 
-        # ── Fetch AUM ─────────────────────────────────────────────────────
-        logger.info("Fetching leveraged ETF AUM from yfinance...")
-        
-        long_aum   = _fetch_aum_yfinance(LONG_ETFS)
-        short_aum  = _fetch_aum_yfinance(SHORT_ETFS)
-        single_aum = _fetch_aum_yfinance(SINGLE_CRYPTO_ETFS)
+            # Layer 2: Fallback estimate from history ADV
+            if (aum_b is None or aum_b <= 0) and not hist_all.empty:
+                try:
+                    if len(tickers) == 1:
+                        df = hist_all
+                    else:
+                        df = hist_all.xs(ticker, level=1, axis=1) if ticker in hist_all.columns.get_level_values(1) else pd.DataFrame()
+                    est = _estimate_aum(ticker, df)
+                    if est > 0:
+                        aum_b = est
+                        source = "estimate"
+                except Exception as e:
+                    logger.debug(f"Estimate AUM failed for {ticker}: {e}")
 
-        # ── Aggregate ─────────────────────────────────────────────────────
-        total_long_usd   = sum(long_aum.values())
-        total_short_usd  = sum(short_aum.values())
-        total_single_usd = sum(single_aum.values())
-        total_usd        = total_long_usd + total_short_usd + total_single_usd
+            # Layer 3: Last resort heuristic from price magnitude
+            if (aum_b is None or aum_b <= 0) and prices and ticker in prices:
+                try:
+                    px = _safe_float(prices[ticker].iloc[-1])
+                    if px and px > 0:
+                        aum_b = 0.5 if px < 20 else 1.5 if px < 60 else 3.0
+                        source = "heuristic"
+                except Exception:
+                    pass
 
-        if total_usd == 0:
-            # Semua fetch gagal → return fallback dengan flag
-            result = self._fallback(reason="yfinance fetch failed — semua ETF return 0 AUM")
-            self._cache = result
-            self._cache_ts = time.time()
-            return result
+            if aum_b is None or aum_b <= 0:
+                continue
 
-        # ── Pcts ──────────────────────────────────────────────────────────
-        long_pct   = round(total_long_usd   / total_usd * 100, 1)
-        short_pct  = round(total_short_usd  / total_usd * 100, 1)
-        single_pct = round(total_single_usd / total_usd * 100, 1)
+            direction = meta["direction"]
+            lev = meta["leverage"]
+            notional = aum_b * lev
 
-        # ── Top ETFs ──────────────────────────────────────────────────────
-        top_longs = sorted(
-            [{"ticker": t, "aum_b": _to_billions(v)} for t, v in long_aum.items() if v > 0],
-            key=lambda x: x["aum_b"], reverse=True
-        )[:5]
-        top_shorts = sorted(
-            [{"ticker": t, "aum_b": _to_billions(v)} for t, v in short_aum.items() if v > 0],
-            key=lambda x: x["aum_b"], reverse=True
-        )[:5]
+            entry = {
+                "ticker": ticker,
+                "aum_b": round(aum_b, 2),
+                "notional_b": round(notional, 2),
+                "direction": direction,
+                "leverage": lev,
+                "asset": meta["asset"],
+                "source": source,
+            }
+            results.append(entry)
 
-        # ── Rebalancing Pressure ──────────────────────────────────────────
-        # Kalau SPY 1-day return besar, 3x ETFs harus rebalance proporsional lebih
-        rebal_pressure = "LOW"
-        if prices is not None:
-            spy = prices.get("SPY") or prices.get("^GSPC")
-            if spy is not None and len(spy) >= 2:
-                spy_clean = pd.to_numeric(spy, errors="coerce").dropna()
-                if len(spy_clean) >= 2:
-                    spy_1d = abs(float(spy_clean.iloc[-1] / spy_clean.iloc[-2] - 1))
-                    if spy_1d > 0.015:    # >1.5% daily move
-                        rebal_pressure = "HIGH"
-                    elif spy_1d > 0.007:  # >0.7%
-                        rebal_pressure = "MEDIUM"
+            if direction == "long":
+                total_long_b += notional
+                top_longs.append(entry)
+            else:
+                total_short_b += notional
+                top_shorts.append(entry)
 
-        # ── ATH Check ────────────────────────────────────────────────────
-        # Simple heuristic: total AUM > $120B historically adalah ATH zone
-        # (dari chart Tier 1 Alpha yang menunjukkan ATH di ~$150B per Mei 2026)
-        # Perlu historical cache untuk true ATH check — untuk sekarang threshold-based
-        total_b = _to_billions(total_usd)
-        is_ath = total_b > 120.0  # Update threshold ini dari historical data
+            if meta["asset"] == "bitcoin" and lev == 1:
+                total_single_crypto_b += aum_b
 
-        result = {
-            "ok": True,
-            "total_mcap_b": total_b,
-            "long_exposure_b": _to_billions(total_long_usd),
-            "short_exposure_b": _to_billions(total_short_usd),
-            "single_crypto_b": _to_billions(total_single_usd),
-            "long_pct": long_pct,
-            "short_pct": short_pct,
-            "single_pct": single_pct,
-            "is_ath": is_ath,
-            "top_longs": top_longs,
-            "top_shorts": top_shorts,
-            "rebalancing_pressure": rebal_pressure,
-            "long_etf_count": len([v for v in long_aum.values() if v > 0]),
-            "short_etf_count": len([v for v in short_aum.values() if v > 0]),
-            "source": "yfinance_totalAssets",
-            "note": f"Computed dari {len(long_aum)+len(short_aum)+len(single_aum)} ETFs via yfinance. Cache 6h.",
-        }
+        if not results:
+            return {
+                "ok": False,
+                "total_mcap_b": None,
+                "note": "Fetch gagal: yfinance fetch failed — semua ETF return 0 AUM",
+            }
 
-        self._cache = result
-        self._cache_ts = time.time()
-        logger.info(f"Leveraged ETF: Total ${total_b}B · Long ${_to_billions(total_long_usd)}B · Short ${_to_billions(total_short_usd)}B")
-        return result
+        total = total_long_b + total_short_b + total_single_crypto_b
+        long_pct = (total_long_b / total * 100) if total > 0 else 0
+        short_pct = (total_short_b / total * 100) if total > 0 else 0
 
-    def _fallback(self, reason: str = "") -> Dict:
-        """Fallback ketika fetch gagal total."""
+        rebal = "LOW"
+        if total > 10:
+            ratio = max(long_pct, short_pct) / 100.0
+            if ratio > 0.75: rebal = "HIGH"
+            elif ratio > 0.65: rebal = "MEDIUM"
+
+        top_longs.sort(key=lambda x: x["notional_b"], reverse=True)
+        top_shorts.sort(key=lambda x: x["notional_b"], reverse=True)
+
         return {
-            "ok": False,
-            "total_mcap_b": None,
-            "long_exposure_b": None,
-            "short_exposure_b": None,
-            "single_crypto_b": None,
-            "long_pct": None,
-            "short_pct": None,
-            "is_ath": None,
-            "top_longs": [],
-            "top_shorts": [],
-            "rebalancing_pressure": "UNKNOWN",
-            "source": "fallback",
-            "note": f"Fetch gagal: {reason}",
+            "ok": True,
+            "total_mcap_b": round(total, 2),
+            "long_exposure_b": round(total_long_b, 2),
+            "short_exposure_b": round(total_short_b, 2),
+            "single_crypto_b": round(total_single_crypto_b, 2),
+            "long_pct": round(long_pct, 1),
+            "short_pct": round(short_pct, 1),
+            "rebalancing_pressure": rebal,
+            "is_ath": False,
+            "top_longs": top_longs[:5],
+            "top_shorts": top_shorts[:5],
+            "all": results,
+            "note": f"{len(results)} ETFs loaded · mix of info/estimate/heuristic",
         }

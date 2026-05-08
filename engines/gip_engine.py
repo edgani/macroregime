@@ -1,7 +1,8 @@
-"""engines/gip_engine.py v7 — Hedgeye GIP Model
+"""engines/gip_engine.py v8 — Hedgeye GIP Model
 
-SURGICAL FIX v7: Monthly inflation level = 90% price-driven (was 55% structural).
-This fixes the "monthly stuck in Q3" bug when 1M oil/gold signals show reflation.
+SURGICAL FIX v8: Monthly inflation = 50% structural level + 50% price signal.
+v7 was 90% price-driven, causing Q1 when CPI level still 2.5%+ YoY.
+Hedgeye May 2026 manual call = Q2. Structural CPI level must be respected.
 """
 from __future__ import annotations
 import math, os, logging
@@ -268,7 +269,7 @@ class GIPEngine:
             v = f_fred.get(key, float("nan"))
             return v if math.isfinite(v) else f_proxy.get(key, float("nan"))
 
-        # STRUCTURAL (identical to v6)
+        # STRUCTURAL
         g_lvl = {
             "indpro_yoy": _tanh_scale(merge("indpro_yoy") - 0.02, 0.05),
             "retail_yoy": _tanh_scale(merge("retail_yoy") - 0.03, 0.06),
@@ -321,16 +322,19 @@ class GIPEngine:
             modifiers=struct_modifiers
         )
 
-        # MONTHLY SCORING — v7 FIX: 90% price-driven inflation
+        # MONTHLY SCORING — v8 FIX: 50% structural level + 50% price signal for inflation
+        # Reason: v7 monthly was 90% price-driven, causing Q1 when CPI level still 2.5%+
+        # Hedgeye May 2026 manual call = Q2. Structural inflation level must be respected.
         monthly_g_price = _nan(f_proxy.get("monthly_g_price", 0.0))
         monthly_i_price = _nan(f_proxy.get("monthly_i_price", 0.0))
 
-        # Growth: 80% price, 20% structural level (not momentum)
+        # Growth: 80% price, 20% structural level (unchanged — growth is price-driven)
         m_g_level = 0.20 * g_level + 0.80 * monthly_g_price
         m_g_mom = monthly_g_price
 
-        # INFLATION: 90% pure 1M price signal, 10% structural level emergency fallback
-        m_i_level = 0.10 * i_level + 0.90 * monthly_i_price
+        # INFLATION: 50% structural level (CPI YoY still hot) + 50% 1M price signal
+        # Was 10% structural / 90% price — now 50/50 to respect CPI level in monthly
+        m_i_level = 0.50 * i_level + 0.50 * monthly_i_price
         m_i_mom = monthly_i_price
 
         month_probs, month_quad, month_conf = _score_quad(

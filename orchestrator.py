@@ -36,10 +36,12 @@ except Exception as _e:
             ns.structural_quad = "Q1"
             ns.monthly_quad = "Q1"
             ns.structural_probs = {"Q1": 0.25, "Q2": 0.25, "Q3": 0.25, "Q4": 0.25}
-            ns.structural_conf = "low"
+            # FIX: harus float biar bisa diformat :.0% di app.py
+            ns.structural_conf = 0.5
+            ns.monthly_conf = 0.5
             ns.divergence = "aligned"
             ns.flip_hazard = 0.0
-            ns.data_coverage = {}
+            ns.data_coverage = 0.5
             return ns
     def get_playbook(sq, mq):
         return {"best_assets": [], "worst_assets": [], "strategy": "neutral"}
@@ -519,7 +521,8 @@ def _build_crypto_setups(prices):
             "hold_for": "1-3 months", "signal": direction,
             "grade": "A" if abs(r1m or 0) > 0.1 else "B",
             "direction": direction,
-            "thesis": f"Crypto momentum {r1m:+.1% if r1m else 0:.0%}" if r1m else "Crypto neutral",
+            # FIX: typo rlm -> r1m + f-string syntax error
+            "thesis": (f"Crypto momentum {r1m:+.1%}" if r1m is not None else "Crypto neutral"),
         })
     return setups
 
@@ -537,7 +540,8 @@ def _build_ihsg_setups(prices):
             "stop_loss": round(p * 0.94, 2), "rr": 2.0,
             "hold_for": "1-3 months", "signal": "BUY" if (r1m and r1m > 0) else "HOLD",
             "grade": "B", "direction": "LONG" if (r1m and r1m > 0) else "NEUTRAL",
-            "thesis": f"IHSG play: {t} momentum {r1m:+.1% if r1m else 0:.0%}" if r1m else f"IHSG play: {t}",
+            # FIX: f-string syntax error
+            "thesis": (f"IHSG play: {t} momentum {r1m:+.1%}" if r1m is not None else f"IHSG play: {t}"),
         })
     return setups
 
@@ -621,7 +625,7 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
                        "Industrials", "Financials", "AI_Infra", "PreciousMetals",
                        "International", "Housing", "Bitcoin"]:
             all_tickers += US_BUCKETS.get(bucket, [])
-    all_tickers += list(BONDS.keys())
+        all_tickers += list(BONDS.keys())
     if include_commodities:
         all_tickers += list(COMMODITIES.keys())[:25]
     if include_forex:

@@ -560,6 +560,7 @@ mq    = st.session_state.mq_override if st.session_state.mq_override != "Auto" e
 gq    = (global_.get("global_quad","Q3") if global_ else "Q3")
 ar    = rr.get("asset_ranges",{})
 dxy_corr = _compute_dxy_corr(prices)
+ai_data  = snap.get("ai_analysis",{}) or {}  # Claude API autonomous analysis
 
 # Fallback narratives and discoveries
 FALLBACK_NARRATIVES = [
@@ -587,6 +588,24 @@ FALLBACK_DISCOVERY = [
 if page == "🏠 Dashboard":
     # Header
     st.markdown('<div style="font-size:28px;font-weight:800;color:#E6EDF3;margin-bottom:4px;">MacroRegime Pro Dashboard</div>', unsafe_allow_html=True)
+
+    # AI status badge
+    ai_ok = ai_data.get("ok", False)
+    ai_ts = ai_data.get("generated_at")
+    ai_cnt_narr = len(ai_data.get("narratives",[]))
+    ai_cnt_alpha = len(ai_data.get("alpha_ideas",[]))
+    ai_cnt_btk = len(ai_data.get("bottlenecks",[]))
+    if ai_ok:
+        import datetime
+        ts_str = datetime.datetime.fromtimestamp(ai_ts).strftime("%H:%M") if ai_ts else "—"
+        st.markdown(f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="background:#16a34a;color:#fff;font-size:10px;font-weight:700;padding:2px 10px;border-radius:20px;">🤖 AI ACTIVE</span><span style="font-size:11px;color:#8B949E;">Claude generated {ai_cnt_narr} narratives · {ai_cnt_alpha} alpha ideas · {ai_cnt_btk} bottlenecks · Updated {ts_str} · Auto-refreshes every 6h</span></div>', unsafe_allow_html=True)
+    else:
+        ai_reason = ai_data.get("reason","")
+        if "ANTHROPIC_API_KEY" in ai_reason:
+            st.markdown('<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="background:#BB8009;color:#fff;font-size:10px;font-weight:700;padding:2px 10px;border-radius:20px;">⚠ AI OFFLINE</span><span style="font-size:11px;color:#8B949E;">Add ANTHROPIC_API_KEY to Streamlit Secrets to enable autonomous discovery</span></div>', unsafe_allow_html=True)
+        else:
+            st.markdown('<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;"><span style="background:#21262D;color:#8B949E;font-size:10px;padding:2px 10px;border-radius:20px;">🤖 AI: Fallback</span><span style="font-size:11px;color:#8B949E;">Using pre-defined content. AI analysis will auto-run when API is available.</span></div>', unsafe_allow_html=True)
+
     st.markdown(f'<div style="font-size:12px;color:#8B949E;margin-bottom:16px;">Built {snap.get("build_time_s",0):.0f}s ago · {snap.get("prices_loaded",0)} assets tracked · {snap.get("fred_coverage",0)} macro indicators</div>', unsafe_allow_html=True)
 
     # VIX Bucket — plain English
@@ -1182,6 +1201,10 @@ elif page == "📖 Narratives":
     fallback = [n for n in FALLBACK_NARRATIVES if sq in n.get("regime","ALL") or mq in n.get("regime","ALL") or "ALL" in n.get("regime","ALL")]
     all_n = active if active else fallback
 
+    # Show AI status
+    if ai_data.get("ok") and ai_data.get("narratives"):
+        st.success(f"🤖 **{len(ai_data.get('narratives',[]))} AI-generated narratives** from latest news · Auto-updated every 6 hours")
+
     for n in sorted(all_n, key=lambda x: x.get("score",0), reverse=True):
         score=n.get("score",0)
         sc="#3FB950" if score>0.6 else "#D29922" if score>0.4 else "#8B949E"
@@ -1206,6 +1229,33 @@ elif page == "🔮 Discovery":
 
     cands = ((auto_disc.get("candidates",[]) or []) if auto_disc else []) + ((disc.get("discoveries",[]) or []) if disc else [])
     all_disc = cands if cands else FALLBACK_DISCOVERY
+
+    # Show AI-generated scenario update if available
+    if ai_data.get("ok"):
+        su = ai_data.get("scenario_update",{}) or {}
+        ai_ideas = ai_data.get("alpha_ideas",[])
+        if su or ai_ideas:
+            st.markdown("### 🤖 AI Analysis — Updated from Latest News")
+            if su:
+                col1,col2 = st.columns(2)
+                with col1:
+                    if su.get("opportunity"):
+                        st.success(f"**Opportunity**: {su['opportunity']}")
+                with col2:
+                    if su.get("headline_risk"):
+                        st.error(f"**Risk**: {su['headline_risk']}")
+                if su.get("regime_change_signal"):
+                    st.info(f"**Watch for regime shift**: {su['regime_change_signal']}")
+            if ai_ideas:
+                st.markdown(f"#### 🎯 AI-Generated Alpha Ideas ({len(ai_ideas)})")
+                for idea in ai_ideas:
+                    conf = idea.get("confidence",0.7)
+                    with st.expander(f"**{idea.get('ticker','')}** — {idea.get('name','')} · Confidence {conf:.0%}"):
+                        st.markdown(f"**Direction:** {'🟢 LONG' if idea.get('direction')=='long' else '🔴 SHORT'}")
+                        st.markdown(f"**Thesis:** {idea.get('thesis','')}")
+                        st.markdown(f"**Why now:** {idea.get('regime_fit','')}")
+                        if idea.get("invalidators"): st.warning(f"**Breaks if:** {', '.join(idea['invalidators'])}")
+            st.divider()
 
     for stage,label,color in [("active","✅ Active — Strong Signal","#3FB950"),("building","📈 Building — Gaining Traction","#D29922"),("brewing","👀 Brewing — Early Stage","#1F6FEB")]:
         items=[c for c in all_disc if c.get("stage")==stage]

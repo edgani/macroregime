@@ -108,6 +108,12 @@ try:
     _OPTIONS_AVAILABLE = True
 except Exception as _e: logger.warning(f"OptionsEngine unavailable: {_e}")
 
+_AI_ENGINE_OK = False
+try:
+    from engines.ai_engine import AIEngine
+    _AI_ENGINE_OK = True
+except Exception as _e: logger.warning(f"AIEngine unavailable: {_e}")
+
 
 def _prog(cb, msg, frac):
     logger.info(f"[{frac:.0%}] {msg}")
@@ -426,6 +432,67 @@ def build_snapshot(
 
     # Store prices subset for UI
     snap["prices"] = {k:v for k,v in prices.items() if isinstance(v,pd.Series) and len(v)>10}
+
+    # ── 16. AI ENGINE — Autonomous narrative/bottleneck/alpha discovery ────────
+    # Runs AFTER all data is collected so Claude has full context.
+    # Cached 6h. Fails gracefully if API key not set or call fails.
+    _prog(progress_cb, "Running AI analysis (narratives, bottlenecks, alpha)...", 0.96)
+    if _AI_ENGINE_OK:
+        try:
+            ai_result = AIEngine().run(
+                sq=gip.structural_quad,
+                mq=gip.monthly_quad,
+                gq=(snap.get("global",{}) or {}).get("global_quad","Q3"),
+                gip_features=gip.features,
+                prices=prices,
+            )
+            snap["ai_analysis"] = ai_result
+            # Merge AI narratives into narratives snap (supplementary, not replacing)
+            if ai_result.get("ok") and ai_result.get("narratives"):
+                existing_narr = snap.get("narratives",{}) or {}
+                existing_active = existing_narr.get("active_narratives",[]) or []
+                # Add AI narratives (de-duplicate by name)
+                existing_names = {n.get("name","") for n in existing_active}
+                ai_narr_merged = existing_active[:]
+                for n in ai_result.get("narratives",[]):
+                    if n.get("name","") not in existing_names:
+                        # Convert to format expected by app.py
+                        ai_narr_merged.append({
+                            "name": n["name"],
+                            "score": n["score"],
+                            "thesis": n["thesis"],
+                            "tickers": n.get("tickers",[]),
+                            "best": n.get("best",[]),
+                            "worst": n.get("worst",[]),
+                            "invalidators": n.get("invalidators",[]),
+                            "ai_generated": True,
+                            "news_catalyst": n.get("news_catalyst",""),
+                        })
+                snap["narratives"] = {**existing_narr, "active_narratives": ai_narr_merged}
+            # Merge AI alpha ideas into auto_discoveries
+            if ai_result.get("ok") and ai_result.get("alpha_ideas"):
+                existing_disc = snap.get("auto_discoveries",{}) or {}
+                existing_cands = existing_disc.get("candidates",[]) or []
+                for idea in ai_result.get("alpha_ideas",[]):
+                    existing_cands.append({
+                        "name": idea.get("name",idea.get("ticker","")),
+                        "stage": idea.get("stage","brewing"),
+                        "confidence": idea.get("confidence",0.7),
+                        "thesis": idea.get("thesis",""),
+                        "category": idea.get("category","AI Discovery"),
+                        "beneficiary_tickers": [idea.get("ticker","")],
+                        "fade_tickers": [],
+                        "confirmation_signal": idea.get("regime_fit",""),
+                        "invalidators": idea.get("invalidators",[]),
+                        "ai_generated": True,
+                    })
+                snap["auto_discoveries"] = {**existing_disc, "candidates": existing_cands}
+        except Exception as e:
+            logger.warning(f"AIEngine step error: {e}")
+            snap["ai_analysis"] = {"ok": False, "reason": str(e)}
+    else:
+        snap["ai_analysis"] = {"ok": False, "reason": "AIEngine not available"}
+
     snap["build_time_s"] = round(time.time()-t0, 1)
     snap["ok"] = True
     _prog(progress_cb, "Saving snapshot...", 0.98)

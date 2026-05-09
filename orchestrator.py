@@ -1,5 +1,6 @@
-"""orchestrator.py — MacroRegime Pro Orchestrator v2.2
+"""orchestrator.py — MacroRegime Pro Orchestrator v2.3
 Fixes: dummy global country quads, gamma data completeness, crypto tokens robust
+Adds: DAILY SIGNALS (Hedgeye-style) + ALPHA CENTER bottleneck scanner
 """
 from __future__ import annotations
 import os, sys, json, math, logging, time
@@ -94,6 +95,87 @@ QUAD_MAP = {
     "Q4": {"name": "Deflation", "assets": ["TLT", "IEF", "GLD", "SLV", "XLV", "XLP", "XLU", "UUP", "BTAL"], "bias": "bearish"},
 }
 
+# ── Ticker metadata for regime fit ────────────────────────────────────────
+TICKER_QUAD_FIT = {
+    # Q1 Goldilocks — Growth, Tech, Consumer, Small Caps
+    "XLK": {"Q1": 0.95, "Q2": 0.70, "Q3": 0.30, "Q4": 0.20},
+    "XLY": {"Q1": 0.90, "Q2": 0.75, "Q3": 0.40, "Q4": 0.25},
+    "XLI": {"Q1": 0.80, "Q2": 0.85, "Q3": 0.50, "Q4": 0.30},
+    "IWM": {"Q1": 0.90, "Q2": 0.70, "Q3": 0.30, "Q4": 0.20},
+    "QQQ": {"Q1": 0.95, "Q2": 0.70, "Q3": 0.25, "Q4": 0.15},
+    "RSP": {"Q1": 0.85, "Q2": 0.65, "Q3": 0.35, "Q4": 0.25},
+    "IBIT": {"Q1": 0.80, "Q2": 0.75, "Q3": 0.40, "Q4": 0.30},
+    "VGT": {"Q1": 0.95, "Q2": 0.70, "Q3": 0.30, "Q4": 0.20},
+    "SMH": {"Q1": 0.90, "Q2": 0.80, "Q3": 0.35, "Q4": 0.20},
+    "SOXX": {"Q1": 0.90, "Q2": 0.80, "Q3": 0.35, "Q4": 0.20},
+    # Q2 Reflation — Commodities, Energy, Materials, Industrials
+    "XLE": {"Q1": 0.60, "Q2": 0.95, "Q3": 0.70, "Q4": 0.30},
+    "OIH": {"Q1": 0.55, "Q2": 0.95, "Q3": 0.65, "Q4": 0.25},
+    "XLB": {"Q1": 0.60, "Q2": 0.90, "Q3": 0.70, "Q4": 0.35},
+    "GDX": {"Q1": 0.50, "Q2": 0.85, "Q3": 0.80, "Q4": 0.60},
+    "GDXJ": {"Q1": 0.45, "Q2": 0.85, "Q3": 0.75, "Q4": 0.55},
+    "ITB": {"Q1": 0.70, "Q2": 0.80, "Q3": 0.50, "Q4": 0.30},
+    "USO": {"Q1": 0.50, "Q2": 0.90, "Q3": 0.70, "Q4": 0.30},
+    "UCO": {"Q1": 0.45, "Q2": 0.90, "Q3": 0.65, "Q4": 0.25},
+    "DBA": {"Q1": 0.55, "Q2": 0.85, "Q3": 0.75, "Q4": 0.40},
+    # Q3 Stagflation — Gold, Silver, Platinum, Defensive
+    "SLV": {"Q1": 0.50, "Q2": 0.75, "Q3": 0.95, "Q4": 0.70},
+    "GLD": {"Q1": 0.55, "Q2": 0.80, "Q3": 0.95, "Q4": 0.85},
+    "PPLT": {"Q1": 0.45, "Q2": 0.70, "Q3": 0.90, "Q4": 0.65},
+    "XLV": {"Q1": 0.65, "Q2": 0.55, "Q3": 0.85, "Q4": 0.80},
+    "XLP": {"Q1": 0.60, "Q2": 0.50, "Q3": 0.90, "Q4": 0.85},
+    "XLU": {"Q1": 0.55, "Q2": 0.45, "Q3": 0.85, "Q4": 0.90},
+    "ITA": {"Q1": 0.60, "Q2": 0.70, "Q3": 0.80, "Q4": 0.75},
+    "NEM": {"Q1": 0.50, "Q2": 0.80, "Q3": 0.90, "Q4": 0.70},
+    "GC=F": {"Q1": 0.55, "Q2": 0.80, "Q3": 0.95, "Q4": 0.85},
+    "SI=F": {"Q1": 0.50, "Q2": 0.75, "Q3": 0.95, "Q4": 0.70},
+    # Q4 Deflation — Treasuries, Defensive, USD
+    "TLT": {"Q1": 0.30, "Q2": 0.50, "Q3": 0.75, "Q4": 0.95},
+    "IEF": {"Q1": 0.35, "Q2": 0.55, "Q3": 0.70, "Q4": 0.90},
+    "UUP": {"Q1": 0.40, "Q2": 0.50, "Q3": 0.70, "Q4": 0.90},
+    "BTAL": {"Q1": 0.30, "Q2": 0.45, "Q3": 0.75, "Q4": 0.85},
+    "SHY": {"Q1": 0.40, "Q2": 0.50, "Q3": 0.65, "Q4": 0.85},
+    "AGG": {"Q1": 0.45, "Q2": 0.55, "Q3": 0.65, "Q4": 0.80},
+    # Broad market
+    "SPY": {"Q1": 0.90, "Q2": 0.75, "Q3": 0.50, "Q4": 0.35},
+    "DIA": {"Q1": 0.85, "Q2": 0.70, "Q3": 0.55, "Q4": 0.40},
+    "XLF": {"Q1": 0.80, "Q2": 0.75, "Q3": 0.45, "Q4": 0.30},
+    "XLC": {"Q1": 0.85, "Q2": 0.65, "Q3": 0.40, "Q4": 0.25},
+    "XLRE": {"Q1": 0.70, "Q2": 0.60, "Q3": 0.60, "Q4": 0.50},
+}
+
+# Generic sector fits for tickers not explicitly mapped
+SECTOR_QUAD_FIT = {
+    "Technology": {"Q1": 0.90, "Q2": 0.65, "Q3": 0.30, "Q4": 0.20},
+    "Consumer Discretionary": {"Q1": 0.85, "Q2": 0.70, "Q3": 0.40, "Q4": 0.25},
+    "Industrials": {"Q1": 0.80, "Q2": 0.85, "Q3": 0.50, "Q4": 0.30},
+    "Energy": {"Q1": 0.55, "Q2": 0.95, "Q3": 0.70, "Q4": 0.30},
+    "Materials": {"Q1": 0.60, "Q2": 0.90, "Q3": 0.70, "Q4": 0.35},
+    "Financials": {"Q1": 0.80, "Q2": 0.75, "Q3": 0.45, "Q4": 0.30},
+    "Health Care": {"Q1": 0.65, "Q2": 0.55, "Q3": 0.85, "Q4": 0.80},
+    "Consumer Staples": {"Q1": 0.60, "Q2": 0.50, "Q3": 0.90, "Q4": 0.85},
+    "Utilities": {"Q1": 0.55, "Q2": 0.45, "Q3": 0.85, "Q4": 0.90},
+    "Real Estate": {"Q1": 0.70, "Q2": 0.60, "Q3": 0.60, "Q4": 0.50},
+    "Communication Services": {"Q1": 0.85, "Q2": 0.65, "Q3": 0.40, "Q4": 0.25},
+    "Gold": {"Q1": 0.55, "Q2": 0.80, "Q3": 0.95, "Q4": 0.85},
+    "Silver": {"Q1": 0.50, "Q2": 0.75, "Q3": 0.95, "Q4": 0.70},
+    "Treasuries": {"Q1": 0.30, "Q2": 0.50, "Q3": 0.75, "Q4": 0.95},
+    "USD": {"Q1": 0.40, "Q2": 0.50, "Q3": 0.70, "Q4": 0.90},
+    "Crypto": {"Q1": 0.80, "Q2": 0.75, "Q3": 0.40, "Q4": 0.30},
+    "Indonesia": {"Q1": 0.75, "Q2": 0.65, "Q3": 0.45, "Q4": 0.35},
+    "EM": {"Q1": 0.75, "Q2": 0.70, "Q3": 0.50, "Q4": 0.35},
+    "generic": {"Q1": 0.60, "Q2": 0.60, "Q3": 0.50, "Q4": 0.50},
+}
+
+def _get_regime_fit(ticker: str, quad: str) -> float:
+    """Return 0-1 regime fit score for ticker in given quad."""
+    if ticker in TICKER_QUAD_FIT:
+        return TICKER_QUAD_FIT[ticker].get(quad, 0.50)
+    # Fallback to sector map
+    sector = TICKER_SECTOR.get(ticker, "generic")
+    return SECTOR_QUAD_FIT.get(sector, SECTOR_QUAD_FIT["generic"]).get(quad, 0.50)
+
+
 def _calc_risk_range(s: pd.Series, ticker: str = "", market: str = "us_equity") -> dict:
     if s is None or s.empty: return {"ok": False}
     s = pd.to_numeric(s, errors="coerce").dropna()
@@ -120,6 +202,13 @@ def _safe_ret(s, n):
         r = float(s.iloc[-1] / s.iloc[-n - 1] - 1)
         return r if math.isfinite(r) else None
     except: return None
+
+def _safe_ret_series(s, n):
+    """Return rolling n-day return as series."""
+    if s is None or s.empty: return None
+    s = pd.to_numeric(s, errors="coerce").dropna()
+    if len(s) < n + 1: return None
+    return s.iloc[-1] / s.iloc[-n - 1] - 1
 
 def _last_price(s):
     if s is None or s.empty: return None
@@ -157,41 +246,401 @@ def _build_alpha_ideas(prices, sq, mq):
         rr = _calc_risk_range(prices.get(ticker))
         entry = round(p * 0.98, 2) if rr.get("ok") else round(p, 2)
         target1 = round(p * 1.05, 2); target2 = round(p * 1.10, 2); stop = round(p * 0.95, 2)
+        fit = _get_regime_fit(ticker, sq)
         longs.append({
             "ticker": ticker, "price": round(p, 2), "entry": entry,
             "target_1": target1, "target_2": target2, "stop_loss": stop,
             "rr": round((target1 - entry) / (entry - stop), 1) if entry != stop else 0,
             "hold_for": "2-4 weeks", "signal": "BUY", "grade": "A", "direction": "LONG",
-            "thesis": f"{ticker} in {sq} playbook — {playbook.get('strategy', 'tactical')}",
+            "thesis": f"{ticker} in {sq} playbook (fit {fit:.0%}) — {playbook.get('strategy', 'tactical')}",
+            "regime_fit": fit,
         })
     for ticker in playbook.get("worst_assets", [])[:6]:
         p = _last_price(prices.get(ticker))
         if p is None: continue
         entry = round(p * 1.02, 2); target = round(p * 0.95, 2); stop = round(p * 1.05, 2)
+        fit = _get_regime_fit(ticker, sq)
         shorts.append({
             "ticker": ticker, "price": round(p, 2), "entry": entry,
             "target_1": target, "target_2": round(p * 0.90, 2), "stop_loss": stop,
             "rr": round((entry - target) / (stop - entry), 1) if stop != entry else 0,
             "hold_for": "2-4 weeks", "signal": "SELL", "grade": "A", "direction": "SHORT",
-            "thesis": f"{ticker} avoid in {sq} playbook",
+            "thesis": f"{ticker} avoid in {sq} playbook (fit {fit:.0%})",
+            "regime_fit": fit,
         })
     if not longs and not shorts:
         for t in ["SPY", "QQQ", "IWM", "XLK", "XLE", "GLD", "SLV", "TLT", "IBIT", "UUP"]:
             p = _last_price(prices.get(t)); r1m = _safe_ret(prices.get(t), 21)
             if p is None or r1m is None: continue
+            fit = _get_regime_fit(t, sq)
             if bias == "bullish" and r1m > 0.02:
                 longs.append({"ticker": t, "price": round(p, 2), "entry": round(p * 0.98, 2),
                     "target_1": round(p * 1.05, 2), "target_2": round(p * 1.10, 2),
                     "stop_loss": round(p * 0.95, 2), "rr": 2.0, "hold_for": "2-4 weeks",
                     "signal": "BUY", "grade": "B", "direction": "LONG",
-                    "thesis": f"Momentum +{r1m:.1%} in {sq} regime"})
+                    "thesis": f"Momentum +{r1m:.1%} in {sq} regime (fit {fit:.0%})", "regime_fit": fit})
             elif bias == "bearish" and r1m < -0.02:
                 shorts.append({"ticker": t, "price": round(p, 2), "entry": round(p * 1.02, 2),
                     "target_1": round(p * 0.95, 2), "target_2": round(p * 0.90, 2),
                     "stop_loss": round(p * 1.05, 2), "rr": 2.0, "hold_for": "2-4 weeks",
                     "signal": "SELL", "grade": "B", "direction": "SHORT",
-                    "thesis": f"Momentum {r1m:.1%} in {sq} regime"})
+                    "thesis": f"Momentum {r1m:.1%} in {sq} regime (fit {fit:.0%})", "regime_fit": fit})
     return {"longs": longs, "shorts": shorts, "playbook": playbook}
+
+
+def _build_daily_signals(prices, sq, mq, asset_ranges, health):
+    """
+    Hedgeye-style daily directional signals for ALL tickers.
+    Returns: list of dict with signal, grade, entry, targets, stop, thesis.
+    """
+    regime = QUAD_MAP.get(sq, {}); bias = regime.get("bias", "neutral")
+    vix = health.get("vix_bucket", {}).get("vix_last", 18)
+    crash = health.get("crash", {}).get("state", "calm")
+    signals = []
+
+    # Priority tickers: all loaded prices
+    all_tickers = sorted(prices.keys())
+
+    for ticker in all_tickers:
+        s = prices.get(ticker)
+        if s is None or s.empty: continue
+        p = _last_price(s)
+        if p is None: continue
+
+        r1m = _safe_ret(s, 21)
+        r3m = _safe_ret(s, 63)
+        r5d = _safe_ret(s, 5)
+        rr = asset_ranges.get(ticker, {})
+        composite = rr.get("composite", "neutral") if rr.get("ok") else "neutral"
+        fit = _get_regime_fit(ticker, sq)
+
+        # Determine market context adjustments
+        vol_adj = 1.0
+        if vix > 30: vol_adj = 0.7
+        elif vix > 25: vol_adj = 0.85
+
+        # Crash override
+        if crash == "elevated" and composite != "bullish":
+            sig = {
+                "ticker": ticker, "price": round(p, 2),
+                "signal": "KEEP BEARISH" if r1m and r1m < 0 else "NEUTRAL",
+                "direction": "DEFENSIVE", "grade": "A",
+                "entry": round(p, 2), "target_1": round(p * 1.02, 2), "target_2": round(p * 1.05, 2),
+                "stop_loss": round(p * 0.95, 2), "rr": 0.5,
+                "hold_for": "1-2 weeks", "regime_fit": fit,
+                "thesis": f"Crash elevated — defensive posture. Price {p:.2f} vs LRR {rr.get('trade',{}).get('lrr','N/A')}.",
+                "quality": "A", "momentum_1m": r1m, "momentum_3m": r3m,
+                "composite": composite, "vix": vix,
+            }
+            signals.append(sig)
+            continue
+
+        # Signal logic
+        direction = "NEUTRAL"
+        signal_label = "NEUTRAL"
+        grade = "C"
+        quality = "C"
+        thesis_parts = []
+
+        # Score components
+        fit_score = fit
+        momentum_score = 0.0
+        if r1m is not None:
+            momentum_score = max(-1.0, min(1.0, r1m * 10))  # scale: 10% = 1.0
+
+        rr_score = 0.0
+        if composite == "bullish": rr_score = 0.6
+        elif composite == "bearish": rr_score = -0.6
+
+        trend_score = 0.0
+        if r3m is not None:
+            trend_score = max(-1.0, min(1.0, r3m * 5))
+
+        # Composite score -1.0 to +1.0
+        total_score = (fit_score * 0.35 + momentum_score * 0.30 + rr_score * 0.20 + trend_score * 0.15)
+        # Adjust for regime bias
+        if bias == "bullish": total_score += 0.10
+        elif bias == "bearish": total_score -= 0.10
+
+        total_score = max(-1.0, min(1.0, total_score))
+
+        # Map to signal
+        if total_score >= 0.70:
+            direction = "LONG"; signal_label = "STRONG LONG"; grade = "A+"; quality = "A"
+            thesis_parts.append(f"Strong regime fit ({fit:.0%}) + momentum + oversold bounce")
+        elif total_score >= 0.40:
+            direction = "LONG"; signal_label = "LONG"; grade = "A"; quality = "A"
+            thesis_parts.append(f"Regime-aligned ({fit:.0%}) with positive momentum")
+        elif total_score >= 0.15:
+            direction = "LONG"; signal_label = "KEEP BULLISH"; grade = "B"; quality = "B"
+            thesis_parts.append(f"Bullish bias intact, regime fit {fit:.0%}")
+        elif total_score > -0.15:
+            direction = "NEUTRAL"; signal_label = "NEUTRAL"; grade = "C"; quality = "C"
+            thesis_parts.append(f"Mixed signals — wait for clarity (fit {fit:.0%})")
+        elif total_score >= -0.40:
+            direction = "SHORT"; signal_label = "KEEP BEARISH"; grade = "B"; quality = "B"
+            thesis_parts.append(f"Bearish bias intact, regime fit {fit:.0%}")
+        elif total_score >= -0.70:
+            direction = "SHORT"; signal_label = "SHORT"; grade = "A"; quality = "A"
+            thesis_parts.append(f"Regime headwind ({fit:.0%}) with negative momentum")
+        else:
+            direction = "SHORT"; signal_label = "STRONG SHORT"; grade = "A+"; quality = "A"
+            thesis_parts.append(f"Strong regime mismatch ({fit:.0%}) + breakdown momentum")
+
+        # Override: if composite bullish but score negative, downgrade
+        if composite == "bullish" and total_score < -0.30:
+            signal_label = "SHORT (OVERSOLD TRAP?)"; grade = "B"; quality = "B"
+            thesis_parts.append("Oversold but macro headwind — potential value trap")
+        elif composite == "bearish" and total_score > 0.30:
+            signal_label = "LONG (OVERBOUGHT FADE?)"; grade = "B"; quality = "B"
+            thesis_parts.append("Overbought but macro tailwind — potential momentum squeeze")
+
+        # Calculate levels
+        if direction == "LONG":
+            entry = round(p * 0.985, 2)
+            target1 = round(p * (1 + 0.05 * vol_adj), 2)
+            target2 = round(p * (1 + 0.10 * vol_adj), 2)
+            stop = round(p * 0.95, 2)
+            rr_val = round((target1 - entry) / (entry - stop), 1) if entry != stop else 0
+        elif direction == "SHORT":
+            entry = round(p * 1.015, 2)
+            target1 = round(p * (1 - 0.05 * vol_adj), 2)
+            target2 = round(p * (1 - 0.10 * vol_adj), 2)
+            stop = round(p * 1.05, 2)
+            rr_val = round((entry - target1) / (stop - entry), 1) if stop != entry else 0
+        else:
+            entry = round(p, 2)
+            target1 = round(p * 1.03, 2)
+            target2 = round(p * 0.97, 2)
+            stop = round(p * 0.95, 2)
+            rr_val = 0.0
+
+        # Hold period based on signal strength
+        if "STRONG" in signal_label: hold = "1-2 weeks"
+        elif signal_label in ["LONG", "SHORT"]: hold = "2-4 weeks"
+        elif "KEEP" in signal_label: hold = "3-6 weeks"
+        else: hold = "Wait"
+
+        sig = {
+            "ticker": ticker,
+            "price": round(p, 2),
+            "signal": signal_label,
+            "direction": direction,
+            "grade": grade,
+            "quality": quality,
+            "entry": entry,
+            "target_1": target1,
+            "target_2": target2,
+            "stop_loss": stop,
+            "rr": rr_val,
+            "hold_for": hold,
+            "regime_fit": fit,
+            "thesis": " | ".join(thesis_parts) + f" | 1M: {r1m:+.1%}" if r1m is not None else " | ".join(thesis_parts),
+            "momentum_1m": r1m,
+            "momentum_3m": r3m,
+            "momentum_5d": r5d,
+            "composite": composite,
+            "score": round(total_score, 2),
+            "vix": vix,
+            "lrr": rr.get("trade", {}).get("lrr") if rr.get("ok") else None,
+            "trr": rr.get("trade", {}).get("trr") if rr.get("ok") else None,
+        }
+        signals.append(sig)
+
+    # Sort by absolute score descending
+    signals.sort(key=lambda x: abs(x.get("score", 0)), reverse=True)
+    return signals
+
+
+def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks, auto_discoveries, daily_signals):
+    """
+    Unified Alpha Center + Bottleneck Scanner.
+    Merges: bottlenecks, alpha ideas, auto discoveries, top daily signals.
+    Returns: dict with tabs for level_1, level_2, watch, alpha_long, alpha_short, discovery, all.
+    """
+    regime = QUAD_MAP.get(sq, {})
+    bias = regime.get("bias", "neutral")
+    vix = health.get("vix_bucket", {}).get("vix_last", 18)
+
+    center_items = []
+
+    # 1. Bottleneck Level 1 (urgent)
+    for b in bottlenecks.get("level_1", []):
+        center_items.append({
+            "ticker": b.get("ticker", "UNKNOWN"),
+            "scanner_type": "BOTTLENECK L1",
+            "priority_score": b.get("score", 0) * 100,
+            "direction": b.get("direction", "HOLD"),
+            "signal": b.get("direction", "HOLD"),
+            "grade": b.get("quality", "A"),
+            "sector": b.get("sector", "Macro"),
+            "thesis": b.get("known_thesis", ""),
+            "setup": b.get("setup", ""),
+            "invalidators": [],
+            "hold_for": "Immediate",
+            "source": "bottleneck",
+        })
+
+    # 2. Bottleneck Level 2 (building)
+    for b in bottlenecks.get("level_2", []):
+        center_items.append({
+            "ticker": b.get("ticker", "UNKNOWN"),
+            "scanner_type": "BOTTLENECK L2",
+            "priority_score": b.get("score", 0) * 80,
+            "direction": b.get("direction", "HOLD"),
+            "signal": b.get("direction", "HOLD"),
+            "grade": b.get("quality", "B"),
+            "sector": b.get("sector", "Macro"),
+            "thesis": b.get("known_thesis", ""),
+            "setup": b.get("setup", ""),
+            "invalidators": [],
+            "hold_for": "1-2 weeks",
+            "source": "bottleneck",
+        })
+
+    # 3. Watch list
+    for b in bottlenecks.get("watch", []):
+        center_items.append({
+            "ticker": b.get("ticker", "UNKNOWN"),
+            "scanner_type": "WATCH",
+            "priority_score": b.get("score", 0) * 60,
+            "direction": "HOLD",
+            "signal": "WATCH",
+            "grade": b.get("quality", "B"),
+            "sector": b.get("sector", "Macro"),
+            "thesis": b.get("known_thesis", ""),
+            "setup": b.get("setup", ""),
+            "invalidators": [],
+            "hold_for": "Monitor",
+            "source": "bottleneck",
+        })
+
+    # 4. Alpha Longs
+    for a in alpha.get("longs", []):
+        center_items.append({
+            "ticker": a.get("ticker"),
+            "scanner_type": "ALPHA LONG",
+            "priority_score": 75 if a.get("grade") == "A" else 60,
+            "direction": "LONG",
+            "signal": a.get("signal", "BUY"),
+            "grade": a.get("grade", "B"),
+            "sector": TICKER_SECTOR.get(a.get("ticker"), "Unknown"),
+            "thesis": a.get("thesis", ""),
+            "setup": f"Entry {a.get('entry')} → T1 {a.get('target_1')} → T2 {a.get('target_2')} | Stop {a.get('stop_loss')} | RR {a.get('rr')}",
+            "invalidators": ["Stop loss hit", "Regime flip", "Momentum reversal"],
+            "hold_for": a.get("hold_for", "2-4 weeks"),
+            "price": a.get("price"),
+            "entry": a.get("entry"),
+            "target_1": a.get("target_1"),
+            "target_2": a.get("target_2"),
+            "stop_loss": a.get("stop_loss"),
+            "rr": a.get("rr"),
+            "source": "alpha",
+        })
+
+    # 5. Alpha Shorts
+    for a in alpha.get("shorts", []):
+        center_items.append({
+            "ticker": a.get("ticker"),
+            "scanner_type": "ALPHA SHORT",
+            "priority_score": 75 if a.get("grade") == "A" else 60,
+            "direction": "SHORT",
+            "signal": a.get("signal", "SELL"),
+            "grade": a.get("grade", "B"),
+            "sector": TICKER_SECTOR.get(a.get("ticker"), "Unknown"),
+            "thesis": a.get("thesis", ""),
+            "setup": f"Entry {a.get('entry')} → T1 {a.get('target_1')} → T2 {a.get('target_2')} | Stop {a.get('stop_loss')} | RR {a.get('rr')}",
+            "invalidators": ["Stop loss hit", "Regime flip", "Momentum reversal"],
+            "hold_for": a.get("hold_for", "2-4 weeks"),
+            "price": a.get("price"),
+            "entry": a.get("entry"),
+            "target_1": a.get("target_1"),
+            "target_2": a.get("target_2"),
+            "stop_loss": a.get("stop_loss"),
+            "rr": a.get("rr"),
+            "source": "alpha",
+        })
+
+    # 6. Auto Discoveries
+    for d in auto_discoveries.get("bottlenecks", []):
+        center_items.append({
+            "ticker": d.get("ticker", "UNKNOWN"),
+            "scanner_type": "DISCOVERY",
+            "priority_score": d.get("score", 0) * 90,
+            "direction": d.get("direction", "HOLD"),
+            "signal": d.get("direction", "HOLD"),
+            "grade": d.get("quality", "B"),
+            "sector": d.get("sector", "Macro"),
+            "thesis": d.get("known_thesis", ""),
+            "setup": d.get("setup", ""),
+            "invalidators": ["Signal invalidates", "Macro reversal"],
+            "hold_for": "2-4 weeks",
+            "source": "auto_discovery",
+        })
+
+    # 7. Top daily signals (STRONG only, avoid duplicating alpha)
+    alpha_tickers = {a.get("ticker") for a in alpha.get("longs", []) + alpha.get("shorts", [])}
+    for s in daily_signals[:30]:
+        if s.get("ticker") in alpha_tickers: continue
+        if "STRONG" not in s.get("signal", ""): continue
+        center_items.append({
+            "ticker": s.get("ticker"),
+            "scanner_type": f"DAILY {s.get('signal')}",
+            "priority_score": abs(s.get("score", 0)) * 85,
+            "direction": s.get("direction"),
+            "signal": s.get("signal"),
+            "grade": s.get("grade", "A"),
+            "sector": TICKER_SECTOR.get(s.get("ticker"), "Unknown"),
+            "thesis": s.get("thesis", ""),
+            "setup": f"Entry {s.get('entry')} → T1 {s.get('target_1')} → T2 {s.get('target_2')} | Stop {s.get('stop_loss')} | RR {s.get('rr')}",
+            "invalidators": ["Score drops below threshold", "Regime shift", "VIX spike >30"],
+            "hold_for": s.get("hold_for", "2-4 weeks"),
+            "price": s.get("price"),
+            "entry": s.get("entry"),
+            "target_1": s.get("target_1"),
+            "target_2": s.get("target_2"),
+            "stop_loss": s.get("stop_loss"),
+            "rr": s.get("rr"),
+            "source": "daily_signal",
+        })
+
+    # Sort by priority score descending
+    center_items.sort(key=lambda x: x.get("priority_score", 0), reverse=True)
+
+    # Build tabbed views
+    level_1 = [x for x in center_items if x.get("scanner_type") == "BOTTLENECK L1"]
+    level_2 = [x for x in center_items if x.get("scanner_type") == "BOTTLENECK L2"]
+    watch = [x for x in center_items if x.get("scanner_type") == "WATCH"]
+    alpha_long = [x for x in center_items if x.get("scanner_type") == "ALPHA LONG"]
+    alpha_short = [x for x in center_items if x.get("scanner_type") == "ALPHA SHORT"]
+    discovery = [x for x in center_items if x.get("scanner_type") == "DISCOVERY"]
+    daily_strong = [x for x in center_items if "DAILY" in x.get("scanner_type", "")]
+
+    return {
+        "all": center_items,
+        "level_1": level_1,
+        "level_2": level_2,
+        "watch": watch,
+        "alpha_long": alpha_long,
+        "alpha_short": alpha_short,
+        "discovery": discovery,
+        "daily_strong": daily_strong,
+        "meta": {
+            "total_items": len(center_items),
+            "level_1_count": len(level_1),
+            "level_2_count": len(level_2),
+            "watch_count": len(watch),
+            "alpha_long_count": len(alpha_long),
+            "alpha_short_count": len(alpha_short),
+            "discovery_count": len(discovery),
+            "daily_strong_count": len(daily_strong),
+            "regime": sq,
+            "bias": bias,
+            "vix": vix,
+            "last_updated": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC"),
+        }
+    }
+
 
 def _build_narratives(gip, health, sq, mq):
     regime = QUAD_MAP.get(sq, {"name": "Unknown"})
@@ -308,7 +757,7 @@ def _build_global(gip, sq, mq, prices):
     probs = gip.structural_probs; conf = gip.structural_conf
     country_quads = {}
     major_countries = {
-        "USA": "SPY", "China": "MCHI", "Japan": "EWJ", "Germany": "EWG", 
+        "USA": "SPY", "China": "MCHI", "Japan": "EWJ", "Germany": "EWG",
         "UK": "EWU", "India": "INDA", "Brazil": "EWZ", "Canada": "EWC",
         "Australia": "EWA", "South Korea": "EWY", "Taiwan": "EWT", "France": "EWQ",
         "Indonesia": "EIDO", "Mexico": "EWW", "South Africa": "EZA", "Russia": "RSX",
@@ -332,7 +781,7 @@ def _build_global(gip, sq, mq, prices):
             "Q1": ["USA","Japan","India","Taiwan","South Korea","Vietnam","Mexico"],
             "Q2": ["China","Brazil","Australia","Canada","South Africa","Saudi"],
             "Q3": ["UK","Germany","France","Italy","Russia","Turkey","Thailand"],
-            "Q4": ["Indonesia","UK","Germany"],  # overlap ok
+            "Q4": ["Indonesia","UK","Germany"], # overlap ok
         }
         for q, countries in base_map.items():
             for c in countries:
@@ -492,8 +941,8 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
     if include_us_stocks:
         all_tickers += list(US_SECTORS.keys())
         for bucket in ["Growth", "Quality", "Defensives", "Semis", "Energy",
-                       "Industrials", "Financials", "AI_Infra", "PreciousMetals",
-                       "International", "Housing", "Bitcoin"]:
+                         "Industrials", "Financials", "AI_Infra", "PreciousMetals",
+                         "International", "Housing", "Bitcoin"]:
             all_tickers += US_BUCKETS.get(bucket, [])
         all_tickers += list(BONDS.keys())
     if include_commodities: all_tickers += list(COMMODITIES.keys())[:25]
@@ -551,6 +1000,17 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
     crypto_onchain = _build_crypto_onchain(prices) if include_crypto else {}
     auto_discoveries = _build_auto_discoveries(prices, gip, sq)
 
+    # ── NEW: Daily Signals (Hedgeye-style) ───────────────────────────────
+    if progress_cb: progress_cb("Building daily signals...", 0.82)
+    daily_signals = _build_daily_signals(prices, sq, mq, asset_ranges, health)
+    if progress_cb: progress_cb(f"Daily signals: {len(daily_signals)} tickers", 0.85)
+
+    # ── NEW: Alpha Center unified scanner ────────────────────────────────
+    if progress_cb: progress_cb("Building Alpha Center...", 0.87)
+    alpha_center = _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks,
+                                       {"ok": True, "bottlenecks": auto_discoveries}, daily_signals)
+    if progress_cb: progress_cb(f"Alpha Center: {alpha_center['meta']['total_items']} items", 0.90)
+
     ai_analysis = {
         "ok": True,
         "model": "rule-based-v1",
@@ -604,9 +1064,12 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
         "crypto_onchain": crypto_onchain,
         "crypto_aggregate": crypto_onchain.get("aggregate", {}) if isinstance(crypto_onchain, dict) else {},
         "crypto_tokens": crypto_onchain.get("tokens", {}) if isinstance(crypto_onchain, dict) else {},
+        # ── NEW KEYS ─────────────────────────────────────────────────────
+        "daily_signals": daily_signals,
+        "alpha_center": alpha_center,
     }
 
-    logger.info(f"Snapshot built in {snapshot['build_time_s']}s | Prices: {len(prices)} | Ranges: {len(asset_ranges)} | Longs: {len(alpha.get('longs', []))} | Shorts: {len(alpha.get('shorts', []))}")
+    logger.info(f"Snapshot built in {snapshot['build_time_s']}s | Prices: {len(prices)} | Ranges: {len(asset_ranges)} | Longs: {len(alpha.get('longs', []))} | Shorts: {len(alpha.get('shorts', []))} | Daily Signals: {len(daily_signals)} | Alpha Center: {alpha_center['meta']['total_items']}")
     if progress_cb: progress_cb("Done!", 1.0)
     return snapshot
 
@@ -622,5 +1085,7 @@ if __name__ == "__main__":
         "shorts": len(snap["alpha"].get("shorts", [])),
         "narratives": len(snap["narratives"]["narratives"]),
         "auto_discoveries": len(snap["auto_discoveries"]["bottlenecks"]),
+        "daily_signals": len(snap.get("daily_signals", [])),
+        "alpha_center_items": snap.get("alpha_center", {}).get("meta", {}).get("total_items", 0),
         "build_time": snap["build_time_s"],
     }, indent=2))

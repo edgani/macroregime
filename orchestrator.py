@@ -23,16 +23,21 @@ logger = logging.getLogger(__name__)
 # ------------------------------------------------------------------
 from config.settings import (
     MACRO_PROXIES, US_SECTORS, BONDS, COMMODITIES, CRYPTO, FOREX_PAIRS,
-    TICKER_SECTOR, QUAD_MAP, MAG7, US_BUCKETS,
+    TICKER_SECTOR, MAG7, US_BUCKETS,
 )
-from config.autonomy_settings import AUTONOMY_LEVEL
+# QUAD_MAP is NOT in config.settings — it lives in engines/quad_engine.py
+from engines.quad_engine import QuadEngine, QUAD_MAP
+
+try:
+    from config.autonomy_settings import AUTONOMY_LEVEL
+except Exception:
+    AUTONOMY_LEVEL = "semi"
 
 # ------------------------------------------------------------------
 # Engines
 # ------------------------------------------------------------------
 from data.loader import load_prices, load_fred_macro
 from engines.gip_engine import GIPEngine
-from engines.quad_engine import QuadEngine
 from engines.market_health_engine import MarketHealthEngine
 from engines.hurst_risk_ranges import HurstRiskRangeEngine
 from engines.cme_cot import CMECOTProxy

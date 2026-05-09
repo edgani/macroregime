@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
-"""app.py — MacroRegime Pro v18.2 | Client-Ready Dashboard
-OVERHAUL: Universal table, 3-tier Action Centre, IHSG auto-RR, clean UI.
+"""app.py — MacroRegime Pro v18.3 | Client-Ready Dashboard
+FIXES: Gamma render, sidebar icons, Alpha Centre table overhaul, ATH scanner, option prominence.
 """
 from __future__ import annotations
 import math, logging
@@ -38,6 +38,7 @@ st.markdown("""
     .tier-building { background: #2386360d; border-color: #238636; }
     .tier-chase { background: #9e6a030d; border-color: #9e6a03; }
     .tier-wait { background: #30363d40; border-color: #484f58; }
+    .tier-ath { background: #1f6feb0d; border-color: #1f6feb; }
     .tier-title { font-size: 0.85rem; font-weight: 700; margin-bottom: 2px; }
     .tier-desc { font-size: 0.78rem; color: #8b949e; }
 
@@ -48,6 +49,7 @@ st.markdown("""
     .badge-yellow { background: #9e6a0320; color: #d29922; border: 1px solid #9e6a0340; }
     .badge-blue { background: #1f6feb20; color: #58a6ff; border: 1px solid #1f6feb40; }
     .badge-gray { background: #30363d; color: #8b949e; border: 1px solid #484f58; }
+    .badge-purple { background: #8957e520; color: #a371f7; border: 1px solid #8957e540; }
 
     /* Tables */
     .stDataFrame { font-size: 0.82rem !important; }
@@ -76,6 +78,10 @@ st.markdown("""
     .error-box { background: #da363310; border: 1px solid #da363330; border-radius: 10px; padding: 12px 16px; margin: 10px 0; font-size: 0.85rem; }
 
     hr { border-color: #30363d; margin: 1.5rem 0; opacity: 0.5; }
+
+    /* Sidebar */
+    [data-testid="stSidebar"] .stRadio label { font-size: 0.88rem !important; font-weight: 500 !important; padding: 6px 0 !important; }
+    [data-testid="stSidebar"] h2 { font-size: 1.1rem !important; border-bottom: none !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -117,7 +123,7 @@ def _sequence_pills(sq, mq):
     for q in seq:
         active=(q==sq or q==mq)
         c={"Q1":"#3fb950","Q2":"#d29922","Q3":"#f85149","Q4":"#58a6ff"}.get(q,"#8b949e")
-        out.append(f'<span style="display:inline-block;padding:4px 12px;border-radius:16px;background:{c}20;color:{c};border:1px solid {c}40;font-size:0.78rem;font-weight:600;margin-right:6px">{q}{" [ACTIVE]" if active else ""}</span>')
+        out.append(f'<span style="display:inline-block;padding:4px 12px;border-radius:16px;background:{c}20;color:{c};border:1px solid {c}40;font-size:0.78rem;font-weight:600;margin-right:6px">{q}{" ACTIVE" if active else ""}</span>')
     return " ".join(out)
 
 def _rr_levels(px, lrr, trr, direction="long"):
@@ -129,13 +135,13 @@ def _rr_levels(px, lrr, trr, direction="long"):
         entry=round(lrr,2); tp1=round(lrr+band*0.55,2); tp2=round(trr,2); stop=round(lrr*0.985,2)
         rr=(tp1-entry)/(entry-stop) if (entry-stop)>0.001 else 0
         can_enter=pos<=0.55; near_target=pos>=0.75; near_entry=pos<=0.35
-        action="[ENTER NOW]" if near_entry else ("[CHASE OK]" if can_enter else "[TAKE PROFIT]" if near_target else "[WAIT]")
+        action="ENTER NOW" if near_entry else ("CHASE OK" if can_enter else "TAKE PROFIT" if near_target else "WAIT")
         hold="TRADE (1-3w)" if rr<2.5 else "TREND (3M+)"
     else:
         entry=round(trr,2); tp1=round(trr-band*0.55,2); tp2=round(lrr,2); stop=round(trr*1.015,2)
         rr=(entry-tp1)/(stop-entry) if (stop-entry)>0.001 else 0
         can_enter=pos>=0.45; near_target=pos<=0.25; near_entry=pos>=0.65
-        action="[ENTER NOW]" if near_entry else ("[CHASE OK]" if can_enter else "[COVER SHORT]" if near_target else "[WAIT]")
+        action="ENTER NOW" if near_entry else ("CHASE OK" if can_enter else "COVER SHORT" if near_target else "WAIT")
         hold="TRADE (1-3w)"
     return dict(entry=entry,tp1=tp1,tp2=tp2,stop=stop,rr=round(rr,2),pos=round(pos,2),can_enter=can_enter,near_target=near_target,near_entry=near_entry,action=action,hold=hold,extended=pos>0.75)
 
@@ -149,21 +155,6 @@ def _merge_with_options(rl, opt, direction="long"):
         if lv.get("rr"): rl["rr"]=lv["rr"]
         rl["max_pain_note"]=lv.get("max_pain_note","")
     return rl
-
-def _render_levels(rl, direction, opt_data=None):
-    if not rl: return
-    tc="#3fb950" if direction=="long" else "#f85149"
-    lbl="LONG" if direction=="long" else "SHORT"
-    st.markdown(f"<div style='border-left:3px solid {tc};padding-left:12px;margin:8px 0;background:#161b22;padding:10px 12px;border-radius:0 8px 8px 0'>", unsafe_allow_html=True)
-    c1,c2,c3,c4,c5=st.columns(5)
-    c1.metric("Entry", f"${rl['entry']:.2f}"); c2.metric("TP1", f"${rl['tp1']:.2f}"); c3.metric("TP2", f"${rl['tp2']:.2f}")
-    c4.metric("Stop", f"${rl['stop']:.2f}"); c5.metric("R/R [Hold]", f"{rl['rr']:.1f}x [{rl['hold']}]")
-    st.markdown("</div>", unsafe_allow_html=True)
-    if opt_data and opt_data.get("ok"):
-        vs=opt_data.get("vanna_signal","—"); cs=opt_data.get("charm_signal","—")
-        im=opt_data.get("implied_move_pct"); iv_p=opt_data.get("iv_percentile"); mp=opt_data.get("max_pain"); pc=opt_data.get("pc_ratio")
-        st.caption(f"IV: {fp(opt_data.get('atm_iv'))} | IV%: {fp(iv_p)} | +/-Move: {fp(im)} | MaxPain: {'$'+ff(mp) if mp else '—'} | PC: {pc} | Vanna: {vs} | Charm: {cs}")
-        if rl.get("max_pain_note"): st.caption(rl["max_pain_note"])
 
 def _compute_dxy_corr(prices):
     result={}; dxy=prices.get("DX-Y.NYB")
@@ -185,7 +176,7 @@ def _render_dxy_section(prices,dxy_corr,sq):
         if len(dxy)>=22:
             r21=float(dxy.iloc[-1]/dxy.iloc[-22]-1)
             dxy_trend="BEARISH" if r21<-0.005 else ("BULLISH" if r21>0.005 else "NEUTRAL")
-    st.markdown(f"**[KEY $USD CORRELATIONS (15D)]** | DXY Trend: `{dxy_trend}`")
+    st.markdown(f"**KEY $USD CORRELATIONS (15D)** | DXY Trend: `{dxy_trend}`")
     st.caption("<-- Negative = benefits from USD weakness | Positive = benefits from USD strength -->")
     rows=[{"Asset":l,"15D Corr":c,"Direction":"<- USD bearish" if c<-0.2 else ("-> USD bullish" if c>0.2 else "~neutral")} for l,c in dxy_corr.items()]
     st.dataframe(pd.DataFrame(rows).style.background_gradient(subset=["15D Corr"],cmap="RdYlGn",vmin=-1,vmax=1), hide_index=True, use_container_width=True, height=195)
@@ -199,65 +190,103 @@ def _render_dxy_section(prices,dxy_corr,sq):
             msg=f"BTC: DXY neutral (corr {btc_corr:+.2f}) -> Watch TREND signal."
         st.markdown(f'<div class="info-box">{msg}</div>',unsafe_allow_html=True)
 
+# ══════════════════════════════════════════════════════════════════════════════
+# GAMMA REGIME RENDER — FIXED v18.3
+# ══════════════════════════════════════════════════════════════════════════════
 def _render_gamma(gd):
-    if not gd or not gd.get("ok"): return "<div style='display:none'></div>"
-    r=gd.get("regime","UNKNOWN"); th=gd.get("throttle")
-    c="#3fb950" if r=="LONG_GAMMA" else "#f85149" if r=="SHORT_GAMMA" else "#d29922" if r=="FLIP_ZONE" else "#8b949e"
-    return f"""<div class="metric-card"><h4>GAMMA REGIME</h4><div class="big" style="color:{c}">{r}</div><div class="sub">{gd.get("note","")}</div></div>"""
+    """Render gamma regime card. Robust parsing for various data shapes."""
+    if not gd:
+        return '<div class="metric-card"><h4>GAMMA REGIME</h4><div class="big" style="color:#8b949e">UNAVAILABLE</div><div class="sub">Gamma engine not loaded</div></div>'
+
+    # Try multiple key patterns
+    regime = gd.get("regime") or gd.get("gamma_regime") or gd.get("status") or "UNKNOWN"
+    note = gd.get("note") or gd.get("message") or gd.get("rationale") or ""
+    throttle = gd.get("throttle")
+
+    # Normalize regime string
+    regime = str(regime).upper().replace(" ", "_")
+    if regime in ("", "NONE", "NAN", "NULL"): regime = "UNKNOWN"
+
+    c = "#3fb950" if "LONG" in regime else "#f85149" if "SHORT" in regime else "#d29922" if "FLIP" in regime else "#8b949e"
+
+    # Build sub text
+    sub_parts = []
+    if throttle: sub_parts.append(f"Throttle: {throttle}")
+    if note: sub_parts.append(note[:60])
+    sub = " | ".join(sub_parts) if sub_parts else "Gamma exposure approximation"
+
+    return f'<div class="metric-card"><h4>GAMMA REGIME</h4><div class="big" style="color:{c}">{regime.replace("_", " ")}</div><div class="sub">{sub}</div></div>'
 
 def _render_lev(ld):
     if not ld or not ld.get("ok"): return ""
     m=ld.get("total_mcap_b")
-    return f"""<div class="metric-card"><h4>LEVERAGED ETF AUM</h4><div class="big">${m:.1f}B</div><div class="sub">{ld.get("note","")}</div></div>""" if m else ""
+    return f'<div class="metric-card"><h4>LEVERAGED ETF AUM</h4><div class="big">${m:.1f}B</div><div class="sub">{ld.get("note","")}</div></div>' if m else ""
 
 # ══════════════════════════════════════════════════════════════════════════════
-# UNIVERSAL TICKER TABLE
+# UNIVERSAL TICKER TABLE — v18.3 with Option + Gamma integration
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _build_ticker_table(items: List[dict], side: str, opt_engine=None) -> pd.DataFrame:
+def _build_alpha_table(items: List[dict], side: str, opt_engine=None, gamma_dict=None) -> pd.DataFrame:
+    """Build Alpha Centre table with full option/gamma integration."""
     rows = []
     for item in items:
         ticker = item.get("ticker", "")
         px = _sf(item.get("px"))
         lrr = _sf(item.get("lrr"))
         trr = _sf(item.get("trr"))
+        ev = _sf(item.get("ev")) or 0
         rl = _rr_levels(px, lrr, trr, side)
 
-        # Option data fetch
+        # Option data
         opt_data = None
+        opt_level = "—"; opt_signal = "—"; opt_dte = "—"; opt_iv = "—"
         if opt_engine and px and px > 0 and not ticker.endswith(".JK") and not ticker.startswith("^") and "=F" not in ticker:
             try:
                 opt_data = opt_engine.analyze(ticker, px, lrr, trr, item.get("composite", "neutral"))
             except Exception:
                 pass
 
-        if rl and opt_data and opt_data.get("ok"):
-            rl = _merge_with_options(rl, opt_data, side)
+        if opt_data and opt_data.get("ok"):
+            opt_level = f"MP:{ff(opt_data.get('max_pain'))}"
+            opt_signal = opt_data.get("options_signal", "—")
+            dte = opt_data.get("days_to_exp", 0)
+            opt_dte = f"{dte}d" if dte else "—"
+            opt_iv = fp(opt_data.get("atm_iv"))
+            if rl: rl = _merge_with_options(rl, opt_data, side)
 
-        # Status category
+        # Gamma data
+        gamma_lvl = "—"; gamma_signal = "—"
+        if gamma_dict and ticker in gamma_dict:
+            gd = gamma_dict[ticker]
+            if isinstance(gd, dict):
+                gamma_lvl = gd.get("key_level", "—")
+                gamma_signal = gd.get("signal", "—")
+
+        # Determine status
         if rl:
-            if rl["near_target"]:
-                status = "[TAKE PROFIT]"; status_cat = "basi"
-            elif rl["near_entry"]:
-                status = "[ENTER NOW]"; status_cat = "building"
-            elif rl["can_enter"]:
-                status = "[CHASE OK]"; status_cat = "chase"
-            else:
-                status = "[WAIT]"; status_cat = "wait"
+            if rl["near_target"]: status = "TAKE PROFIT"; status_cat = "basi"
+            elif rl["near_entry"]: status = "ENTER NOW"; status_cat = "building"
+            elif rl["can_enter"]: status = "CHASE OK"; status_cat = "chase"
+            else: status = "WAIT"; status_cat = "wait"
         else:
             status = "—"; status_cat = "wait"
 
-        # Expiry buckets
-        exp_short = "—"; exp_med = "—"; exp_long = "—"
+        # Direction & Rec
+        direction = "LONG" if side == "long" else "SHORT"
+        rec = f"{direction} {status}"
+        if opt_signal != "—": rec += f" | Opt:{opt_signal}"
+        if gamma_signal != "—": rec += f" | Gam:{gamma_signal}"
+
+        # Hold duration from option if available
+        hold = rl.get("hold", "—") if rl else "—"
         if opt_data and opt_data.get("ok"):
             dte = opt_data.get("days_to_exp", 0)
-            if dte <= 14: exp_short = f"{dte}d"
-            elif dte <= 45: exp_med = f"{dte}d"
-            else: exp_long = f"{dte}d"
+            if dte <= 14: hold = "SWING (1-2w)"
+            elif dte <= 45: hold = "TRADE (1-3w)"
+            else: hold = "TREND (2M+)"
 
         rows.append({
             "Ticker": ticker,
-            "Sector": item.get("sector", "generic").replace("_", " ").title()[:18],
             "Px": ff(px),
             "LRR": ff(lrr),
             "TRR": ff(trr),
@@ -266,18 +295,26 @@ def _build_ticker_table(items: List[dict], side: str, opt_engine=None) -> pd.Dat
             "TP2": ff(rl["tp2"]) if rl else "—",
             "Stop": ff(rl["stop"]) if rl else "—",
             "R/R": ff(rl["rr"]) if rl else "—",
-            "Hold": (rl.get("hold", "—")[:12] if rl else "—"),
+            "Hold": hold[:14],
             "Status": status,
             "StatusCat": status_cat,
+            "Opt Level": opt_level,
+            "Opt Signal": opt_signal,
+            "Gam Level": gamma_lvl,
+            "Gam Sig": gamma_signal,
+            "Direction": direction,
+            "Rec": rec,
+            "EV": round(ev, 2),
             "Quality": item.get("quality", "—"),
-            "Short Exp": exp_short,
-            "Med Exp": exp_med,
-            "Long Exp": exp_long,
-            "Opt Signal": (opt_data.get("options_signal", "—") if opt_data and opt_data.get("ok") else "—"),
             "Stretch": item.get("stretch", "—"),
             "Regime": "OK" if item.get("regime_fit") else "WARN",
         })
-    return pd.DataFrame(rows)
+
+    df = pd.DataFrame(rows)
+    # Sort by EV descending
+    if not df.empty and "EV" in df.columns:
+        df = df.sort_values("EV", ascending=False)
+    return df
 
 # ══════════════════════════════════════════════════════════════════════════════
 # HEDGEYE FALLBACK NARRATIVES
@@ -304,35 +341,35 @@ HEDGEYE_FALLBACK_DISCOVERY = [
 ]
 
 # ══════════════════════════════════════════════════════════════════════════════
-# SIDEBAR
+# SIDEBAR — v18.3 with icons
 # ══════════════════════════════════════════════════════════════════════════════
 if "snap" not in st.session_state: st.session_state.snap = None
 if "loading" not in st.session_state: st.session_state.loading = False
 if "mq_override" not in st.session_state: st.session_state.mq_override = "Auto"
 
 with st.sidebar:
-    st.markdown("## [MacroRegime Pro]")
-    st.markdown("<div style='font-size:0.75rem;color:#8b949e'>Hedgeye GIP | v18.2 | Options + Greeks</div>", unsafe_allow_html=True)
+    st.markdown("## MacroRegime Pro")
+    st.markdown("<div style='font-size:0.75rem;color:#8b949e'>Hedgeye GIP | v18.3 | Options + Greeks</div>", unsafe_allow_html=True)
     st.divider()
     page = st.radio("", [
-        "[Dashboard]","[GIP Model]","[Risk Ranges]","[Alpha Center]",
-        "[Leaderboard]","[Global Quad]","[IHSG]",
-        "[Narratives]","[Discovery]","[Health]","[Playbook]",
+        "Dashboard","GIP Model","Risk Ranges","Alpha Center",
+        "Leaderboard","Global Quad","IHSG",
+        "Narratives","Discovery","Health","Playbook",
     ], label_visibility="collapsed")
     st.divider()
     from data.loader import snapshot_age_str, load_snapshot
     st.caption(f"Snapshot: {snapshot_age_str()}")
     c1,c2=st.columns(2)
     with c1:
-        if st.button("[Refresh]", use_container_width=True): st.session_state.loading=True
+        if st.button("Refresh", use_container_width=True): st.session_state.loading=True
     with c2:
-        if st.button("[Force Rebuild]", use_container_width=True):
+        if st.button("Force Rebuild", use_container_width=True):
             st.session_state.loading=True; st.session_state.snap=None
-    with st.expander("[Universe]"):
+    with st.expander("Universe"):
         inc_us = st.checkbox("US Stocks",True); inc_fx = st.checkbox("Forex",True)
         inc_comm = st.checkbox("Commodities",True); inc_cryp = st.checkbox("Crypto",True)
         inc_ihsg = st.checkbox("IHSG",True)
-    with st.expander("[Quad Override]"):
+    with st.expander("Quad Override"):
         mq_ov = st.selectbox("Monthly Quad:",["Auto","Q1","Q2","Q3","Q4"], index=["Auto","Q1","Q2","Q3","Q4"].index(st.session_state.mq_override))
         if mq_ov != st.session_state.mq_override: st.session_state.mq_override = mq_ov
         st.caption("Hedgeye May 2026 = Q2 Monthly")
@@ -399,18 +436,30 @@ try:
 except Exception as _e:
     pass
 
+# Build gamma dict by ticker if available
+_gamma_by_ticker = {}
+if gamma_data and isinstance(gamma_data, dict):
+    # Try extract per-ticker gamma data
+    for k, v in gamma_data.items():
+        if isinstance(v, dict) and "ticker" in v:
+            _gamma_by_ticker[v["ticker"]] = v
+        elif k not in ("ok", "regime", "throttle", "note", "source", "message", "rationale"):
+            # Maybe k is ticker
+            if isinstance(v, dict):
+                _gamma_by_ticker[k] = v
+
 # ══════════════════════════════════════════════════════════════════════════════
-# [DASHBOARD]
+# DASHBOARD
 # ══════════════════════════════════════════════════════════════════════════════
-if page == "[Dashboard]":
-    st.markdown(f'<div style="text-align:right;font-size:0.75rem;color:#8b949e;margin-bottom:4px">v18.2 | {snap.get("build_time_s",0)}s | Prices: {snap.get("prices_loaded",0)} | FRED: {snap.get("fred_coverage",0)} | RR: {snap.get("price_frames_count",0)}</div>', unsafe_allow_html=True)
+if page == "Dashboard":
+    st.markdown(f'<div style="text-align:right;font-size:0.75rem;color:#8b949e;margin-bottom:4px">v18.3 | {snap.get("build_time_s",0)}s | Prices: {snap.get("prices_loaded",0)} | FRED: {snap.get("fred_coverage",0)} | RR: {snap.get("price_frames_count",0)}</div>', unsafe_allow_html=True)
     st.markdown("# MacroRegime Pro Dashboard")
 
     vbd=health.get("vix_bucket",{}) if health else {}; vb=vbd.get("bucket","—")
     vl=_sf(vbd.get("vix_last")) or 0; vn=vbd.get("note",""); vr=vbd.get("risk_mode","—")
-    if vb=="Investable": vh=f'<div class="badge badge-green">[INVESTABLE] BUCKET</div> VIX {vl:.1f} | {vn}<br>Risk Mode: {vr}'
-    elif vb=="Chop": vh=f'<div class="badge badge-yellow">[CHOP] BUCKET</div> VIX {vl:.1f} | {vn}<br>Risk Mode: {vr}'
-    elif vb=="Defensive": vh=f'<div class="badge badge-red">[DEFENSIVE] BUCKET</div> VIX {vl:.1f} | {vn}<br>Risk Mode: {vr}'
+    if vb=="Investable": vh=f'<div class="badge badge-green">INVESTABLE BUCKET</div> VIX {vl:.1f} | {vn}<br>Risk Mode: {vr}'
+    elif vb=="Chop": vh=f'<div class="badge badge-yellow">CHOP BUCKET</div> VIX {vl:.1f} | {vn}<br>Risk Mode: {vr}'
+    elif vb=="Defensive": vh=f'<div class="badge badge-red">DEFENSIVE BUCKET</div> VIX {vl:.1f} | {vn}<br>Risk Mode: {vr}'
     else: vh=""
     if vh: st.markdown(vh,unsafe_allow_html=True); st.markdown("",unsafe_allow_html=True)
 
@@ -447,24 +496,24 @@ if page == "[Dashboard]":
     if transition:
         fw=transition.front_run_window; fr=transition.front_run_rationale
         fwc={"now":"#f85149","1-2w":"#d29922","3-6w":"#58a6ff","not yet":"#484f58"}.get(fw,"#484f58")
-        fwi={"now":"[NOW]","1-2w":"[SOON]","3-6w":"[WATCH]","not yet":"[HOLD]"}.get(fw,"[HOLD]")
+        fwi={"now":"NOW","1-2w":"SOON","3-6w":"WATCH","not yet":"HOLD"}.get(fw,"HOLD")
         if fw!="not yet":
             st.markdown(f'<div style="background:{fwc}15;border:1px solid {fwc};border-radius:10px;padding:12px 16px;margin:12px 0"><div style="font-weight:700;color:{fwc};font-size:1rem">{fwi} FRONT-RUN: {fw.upper()}</div><div style="font-size:0.9rem;color:#c9d1d9;margin-top:4px">{fr}</div></div>',unsafe_allow_html=True)
     st.markdown(_sequence_pills(sq,mq),unsafe_allow_html=True)
 
     if pb_data:
         best5=" | ".join(pb_data.get("best_assets",[])[:6]); worst5=" | ".join(pb_data.get("worst_assets",[])[:5])
-        st.markdown(f'<div class="action-box"><div style="font-weight:700;font-size:1.05rem;margin-bottom:8px">[QUICK ACTION] {sq} Structural | {mq} Monthly</div><div style="color:#3fb950;margin-bottom:4px">[LONG]: {best5}</div><div style="color:#f85149">[AVOID]: {worst5}</div><div style="font-size:0.8rem;color:#8b949e;margin-top:6px">Full detail -> [Alpha Center] | [Playbook]</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="action-box"><div style="font-weight:700;font-size:1.05rem;margin-bottom:8px">QUICK ACTION {sq} Structural | {mq} Monthly</div><div style="color:#3fb950;margin-bottom:4px">LONG: {best5}</div><div style="color:#f85149">AVOID: {worst5}</div><div style="font-size:0.8rem;color:#8b949e;margin-top:6px">Full detail -> Alpha Center | Playbook</div></div>', unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# [GIP MODEL]
+# GIP MODEL
 # ══════════════════════════════════════════════════════════════════════════════
-elif page == "[GIP Model]":
-    st.markdown("# [GIP Model] Growth | Inflation | Policy")
+elif page == "GIP Model":
+    st.markdown("# GIP Model Growth | Inflation | Policy")
     st.caption("Hedgeye: YoY rate of change, second derivative. 'Heating up or cooling down?'")
     if not gip: st.warning("No GIP data."); st.stop()
 
-    st.markdown("### [Climate vs. Weather]")
+    st.markdown("### Climate vs. Weather")
     cc,cw=st.columns(2)
     with cc:
         st.markdown(f'<div class="metric-card"><h4>STRUCTURAL -- CLIMATE</h4><div class="big" style="color:{ {"Q1":"#3fb950","Q2":"#d29922","Q3":"#f85149","Q4":"#58a6ff"}.get(sq,"#8b949e") }">{sq}</div><div class="sub">{qnc(sq)}<br>Conf: {gip.structural_conf:.0%} | Flip: {gip.flip_hazard:.0%} | Coverage: {gip.data_coverage:.0%}</div></div>', unsafe_allow_html=True)
@@ -473,7 +522,7 @@ elif page == "[GIP Model]":
     if mq_raw == "Q1":
         st.warning(f"Model={mq_raw} | Override={mq} (Hedgeye manual=Q2). Set via sidebar Quad Override.")
 
-    st.markdown("---"); st.markdown("### [G & I Signals]")
+    st.markdown("---"); st.markdown("### G & I Signals")
     f=gip.features; gm=_sf(f.get("growth_momentum")) or 0; im=_sf(f.get("inflation_momentum")) or 0
     gc2="#3fb950" if gm>0 else "#f85149"; ic2="#3fb950" if im<0 else "#f85149"
     m1,m2,m3,m4=st.columns(4)
@@ -482,7 +531,7 @@ elif page == "[GIP Model]":
     m3.markdown(f'<div class="metric-card"><h4>Policy Score</h4><div class="big">{fp(f.get("policy_score"))}</div></div>',unsafe_allow_html=True)
     m4.markdown(f'<div class="metric-card"><h4>Leading Indicator</h4><div class="big">{fp(f.get("leading_indicator_composite"))}</div></div>',unsafe_allow_html=True)
 
-    st.markdown("---"); st.markdown("### [Transition Probabilities]")
+    st.markdown("---"); st.markdown("### Transition Probabilities")
     QWINS={"Q1":"Tech, Small Caps, IBIT","Q2":"Energy, Materials, Commodity FX, IBIT","Q3":"Gold, Silver, Defensives","Q4":"TLT, Gold, Utilities, Cash"}
     def _tp(probs,cur_q,label,desc):
         if not probs: return
@@ -497,12 +546,12 @@ elif page == "[GIP Model]":
         gprobs=(global_.get("global_probs",{}) or {}) if global_ else {}
         if gprobs: _tp(gprobs,global_.get("dominant_quad",gq),"GLOBAL","50 Countries")
 
-    st.markdown("---"); st.markdown("### [Regime Timing]")
+    st.markdown("---"); st.markdown("### Regime Timing")
     st.markdown(_sequence_pills(sq,mq),unsafe_allow_html=True)
     if transition:
         fw=transition.front_run_window; fr=transition.front_run_rationale
         fwc={"now":"#f85149","1-2w":"#d29922","3-6w":"#58a6ff","not yet":"#484f58"}.get(fw,"#484f58")
-        fwi={"now":"[NOW]","1-2w":"[SOON]","3-6w":"[WATCH]","not yet":"[HOLD]"}.get(fw,"[HOLD]")
+        fwi={"now":"NOW","1-2w":"SOON","3-6w":"WATCH","not yet":"HOLD"}.get(fw,"HOLD")
         st.markdown(f'<div style="background:{fwc}15;border:1px solid {fwc};border-radius:10px;padding:10px 14px;margin-top:10px"><b style="color:{fwc}">{fwi} FRONT-RUN: {fw.upper()}</b><div style="font-size:0.85rem;color:#c9d1d9;margin-top:4px">{fr}</div></div>',unsafe_allow_html=True)
         ew=getattr(transition,"early_warning_signals",{})
         if ew:
@@ -510,24 +559,24 @@ elif page == "[GIP Model]":
             st.dataframe(pd.DataFrame(ew_rows),hide_index=True,use_container_width=True,height=250)
 
     if analogs and analogs.get("top_analogs"):
-        st.markdown("---"); st.markdown("### [Historical Analogs]")
+        st.markdown("---"); st.markdown("### Historical Analogs")
         for i,a in enumerate(analogs["top_analogs"]):
             with st.expander(f"**{a['label']}** -- {a.get('similarity',0):.0%}",expanded=(i==0)):
                 cc2=st.columns(3); cc2[0].markdown(f"**1M:** {a.get('path_1m','')}"); cc2[1].markdown(f"**3M:** {a.get('path_3m','')}"); cc2[2].markdown(f"**6M:** {a.get('path_6m','')}")
                 st.markdown(f"**Next bias:** {a.get('next_bias','')}")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# [RISK RANGES]
+# RISK RANGES
 # ══════════════════════════════════════════════════════════════════════════════
-elif page == "[Risk Ranges]":
-    st.markdown("# [Risk Range] TRADE | TREND | TAIL")
+elif page == "Risk Ranges":
+    st.markdown("# Risk Range TRADE | TREND | TAIL")
     st.caption("LRR = buy zone. TRR = trim zone. TREND break = exit.")
     ar=rr.get("asset_ranges",{})
     if not ar: st.warning("No RR data. Refresh."); st.stop()
 
     all_a=sorted([(s,a) for s,v in ar.items() for a in v.get("alerts",[])],key=lambda x:{"CRITICAL":0,"HIGH":1,"MEDIUM":2}.get(x[1].get("priority"),3))
     if all_a:
-        st.markdown("### [Alerts]")
+        st.markdown("### Alerts")
         for sym,a in all_a[:20]:
             ic="[!]" if a["priority"]=="CRITICAL" else "[?]"; bdr="#f85149" if a["priority"]=="CRITICAL" else "#d29922"
             st.markdown(f'<div style="border-left:3px solid {bdr};padding-left:10px;margin:4px 0;font-size:0.9rem">{ic} <b>[{sym}]</b> {a["action"]} {a["duration"]}<br><span style="font-size:0.8rem;color:#8b949e">{a.get("note","")}</span></div>',unsafe_allow_html=True)
@@ -557,16 +606,16 @@ elif page == "[Risk Ranges]":
     else: st.info("No data. Refresh.")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# [ALPHA CENTER] — 3-Tier + Universal Table + Option Data
+# ALPHA CENTER — v18.3 OVERHAUL
 # ══════════════════════════════════════════════════════════════════════════════
-elif page == "[Alpha Center]":
-    st.markdown("# [Alpha Center] Front-Run | Bottleneck | Options")
-    st.caption("Every setup shows Entry | TP1 | TP2 | Stop | R/R. Options-confirmed when available. Sorted by actionable priority.")
+elif page == "Alpha Center":
+    st.markdown("# Alpha Center Front-Run | Bottleneck | Options | Gamma")
+    st.caption("Every setup shows Entry | TP1 | TP2 | Stop | R/R. Options + Gamma confirmed when available. Sorted by EV (highest first).")
 
     if transition:
         fw=transition.front_run_window; fr=transition.front_run_rationale
         fwc={"now":"#f85149","1-2w":"#d29922","3-6w":"#58a6ff","not yet":"#484f58"}.get(fw,"#484f58")
-        fwi={"now":"[NOW]","1-2w":"[SOON]","3-6w":"[WATCH]","not yet":"[HOLD]"}.get(fw,"[HOLD]")
+        fwi={"now":"NOW","1-2w":"SOON","3-6w":"WATCH","not yet":"HOLD"}.get(fw,"HOLD")
         st.markdown(f'<div style="background:{fwc}15;border:1px solid {fwc};border-radius:10px;padding:12px 16px;margin-bottom:12px"><b style="color:{fwc};font-size:1rem">{fwi} FRONT-RUN: {fw.upper()}</b><div style="font-size:0.9rem;color:#c9d1d9;margin-top:4px">{fr}</div></div>',unsafe_allow_html=True)
     st.markdown(_sequence_pills(sq,mq),unsafe_allow_html=True)
 
@@ -592,6 +641,7 @@ elif page == "[Alpha Center]":
                 "stretch": tr.get("stretch","neutral"),
                 "regime_fit": item.get("regime_fit",False),
                 "direction": item.get("direction","long"),
+                "ev": item.get("ev", 0),
                 "source": "bottleneck",
             })
 
@@ -599,94 +649,137 @@ elif page == "[Alpha Center]":
     btk_tickers = {i["ticker"] for i in all_items}
     for sym, v in ar.items():
         if sym in btk_tickers: continue
-        qual = v.get("quality","none")
+        qual=v.get("quality","none")
         if qual in ("A","B","short_A","short_B"):
-            tr = v.get("trade", {})
+            tr=v.get("trade",{}); px=_sf(v.get("px")); lrr=_sf(tr.get("lrr")); trr=_sf(tr.get("trr"))
+            # Estimate EV from RR quality + position
+            pos=0.5
+            if all(math.isfinite(x) for x in [px,lrr,trr]) and (trr-lrr)>1e-9: pos=(px-lrr)/(trr-lrr)
+            ev=0.6 if qual in ("A","short_A") else 0.4
+            if pos>0.8: ev-=0.2  # extended penalty
             all_items.append({
-                "ticker": sym,
-                "sector": v.get("sector","generic"),
-                "px": _sf(v.get("px")),
-                "lrr": _sf(tr.get("lrr")),
-                "trr": _sf(tr.get("trr")),
-                "composite": v.get("composite","neutral"),
-                "quality": qual,
-                "stretch": tr.get("stretch","neutral"),
-                "regime_fit": False,
-                "direction": "long" if v.get("composite")=="bullish" else "short",
-                "source": "rr_quality",
+                "ticker":sym,"sector":v.get("sector","generic"),"px":px,"lrr":lrr,"trr":trr,
+                "composite":v.get("composite","neutral"),"quality":qual,"stretch":tr.get("stretch","neutral"),
+                "regime_fit":False,"direction":"long" if v.get("composite")=="bullish" else "short",
+                "ev":ev,"source":"rr_quality",
             })
 
     # Split by direction
-    long_items = [i for i in all_items if i["direction"] in ("long","neutral") and i["composite"] in ("bullish","mixed","neutral")]
-    short_items = [i for i in all_items if i["direction"] in ("short","avoid") or i["composite"]=="bearish"]
+    long_items=[i for i in all_items if i["direction"] in ("long","neutral") and i["composite"] in ("bullish","mixed","neutral")]
+    short_items=[i for i in all_items if i["direction"] in ("short","avoid") or i["composite"]=="bearish"]
 
-    # Build tables
-    df_longs = _build_ticker_table(long_items, "long", _opt_eng)
-    df_shorts = _build_ticker_table(short_items, "short", _opt_eng)
+    # Build tables with new format
+    df_longs=_build_alpha_table(long_items,"long",_opt_eng,_gamma_by_ticker)
+    df_shorts=_build_alpha_table(short_items,"short",_opt_eng,_gamma_by_ticker)
 
     # ── 3-TIER ALPHA CENTRE ──────────────────────────────────────────────────
     st.markdown("---")
-    st.markdown("### [LONG SETUPS]")
+    st.markdown("### LONG SETUPS")
 
     if not df_longs.empty:
-        # Tier 1: Basi / Take Profit
-        basi = df_longs[df_longs["StatusCat"] == "basi"]
+        basi=df_longs[df_longs["StatusCat"]=="basi"]
         if not basi.empty:
-            st.markdown('<div class="tier-card tier-basi"><div class="tier-title" style="color:#f85149">[BASI] TAKE PROFIT</div><div class="tier-desc">Sudah dekat target, jangan chase. Consider partial exit.</div></div>', unsafe_allow_html=True)
-            st.dataframe(basi.drop(columns=["StatusCat"]), hide_index=True, use_container_width=True, height=180)
+            st.markdown('<div class="tier-card tier-basi"><div class="tier-title" style="color:#f85149">BASI | TAKE PROFIT</div><div class="tier-desc">Sudah dekat target, jangan chase. Consider partial exit.</div></div>',unsafe_allow_html=True)
+            st.dataframe(basi.drop(columns=["StatusCat"]),hide_index=True,use_container_width=True,height=180)
 
-        # Tier 2: Building
-        building = df_longs[df_longs["StatusCat"] == "building"]
+        building=df_longs[df_longs["StatusCat"]=="building"]
         if not building.empty:
-            st.markdown('<div class="tier-card tier-building"><div class="tier-title" style="color:#3fb950">[BUILDING] ENTER NOW</div><div class="tier-desc">Mendekati entry level, target masih jauh. Best risk/reward.</div></div>', unsafe_allow_html=True)
-            st.dataframe(building.drop(columns=["StatusCat"]), hide_index=True, use_container_width=True, height=280)
+            st.markdown('<div class="tier-card tier-building"><div class="tier-title" style="color:#3fb950">BUILDING | ENTER NOW</div><div class="tier-desc">Mendekati entry level, target masih jauh. Best risk/reward.</div></div>',unsafe_allow_html=True)
+            st.dataframe(building.drop(columns=["StatusCat"]),hide_index=True,use_container_width=True,height=280)
 
-        # Tier 3: Chase
-        chase = df_longs[df_longs["StatusCat"] == "chase"]
+        chase=df_longs[df_longs["StatusCat"]=="chase"]
         if not chase.empty:
-            st.markdown('<div class="tier-card tier-chase"><div class="tier-title" style="color:#d29922">[CHASE OK]</div><div class="tier-desc">Di tengah range tapi target masih worth it. Tight stop.</div></div>', unsafe_allow_html=True)
-            st.dataframe(chase.drop(columns=["StatusCat"]), hide_index=True, use_container_width=True, height=280)
+            st.markdown('<div class="tier-card tier-chase"><div class="tier-title" style="color:#d29922">CHASE OK</div><div class="tier-desc">Di tengah range tapi target masih worth it. Tight stop.</div></div>',unsafe_allow_html=True)
+            st.dataframe(chase.drop(columns=["StatusCat"]),hide_index=True,use_container_width=True,height=280)
 
-        # Wait
-        wait = df_longs[df_longs["StatusCat"] == "wait"]
+        wait=df_longs[df_longs["StatusCat"]=="wait"]
         if not wait.empty:
-            with st.expander(f"[WAIT] -- {len(wait)} items (extended or no setup)"):
-                st.dataframe(wait.drop(columns=["StatusCat"]), hide_index=True, use_container_width=True, height=240)
+            with st.expander(f"WAIT -- {len(wait)} items (extended or no setup)"):
+                st.dataframe(wait.drop(columns=["StatusCat"]),hide_index=True,use_container_width=True,height=240)
     else:
         st.info("No long setups available. Market may be extended or bottleneck data empty.")
 
     st.markdown("---")
-    st.markdown("### [SHORT SETUPS]")
+    st.markdown("### SHORT SETUPS")
     if not df_shorts.empty:
-        basi_s = df_shorts[df_shorts["StatusCat"] == "basi"]
+        basi_s=df_shorts[df_shorts["StatusCat"]=="basi"]
         if not basi_s.empty:
-            st.markdown('<div class="tier-card tier-basi"><div class="tier-title" style="color:#3fb950">[COVER SHORT]</div><div class="tier-desc">Sudah dekat target cover. Consider closing position.</div></div>', unsafe_allow_html=True)
-            st.dataframe(basi_s.drop(columns=["StatusCat"]), hide_index=True, use_container_width=True, height=180)
-        building_s = df_shorts[df_shorts["StatusCat"] == "building"]
+            st.markdown('<div class="tier-card tier-basi"><div class="tier-title" style="color:#3fb950">COVER SHORT</div><div class="tier-desc">Sudah dekat target cover. Consider closing position.</div></div>',unsafe_allow_html=True)
+            st.dataframe(basi_s.drop(columns=["StatusCat"]),hide_index=True,use_container_width=True,height=180)
+        building_s=df_shorts[df_shorts["StatusCat"]=="building"]
         if not building_s.empty:
-            st.markdown('<div class="tier-card tier-building"><div class="tier-title" style="color:#f85149">[ENTER SHORT]</div><div class="tier-desc">Mendekati entry zone untuk short. Target ke bawah.</div></div>', unsafe_allow_html=True)
-            st.dataframe(building_s.drop(columns=["StatusCat"]), hide_index=True, use_container_width=True, height=200)
-        chase_s = df_shorts[df_shorts["StatusCat"] == "chase"]
+            st.markdown('<div class="tier-card tier-building"><div class="tier-title" style="color:#f85149">ENTER SHORT</div><div class="tier-desc">Mendekati entry zone untuk short. Target ke bawah.</div></div>',unsafe_allow_html=True)
+            st.dataframe(building_s.drop(columns=["StatusCat"]),hide_index=True,use_container_width=True,height=200)
+        chase_s=df_shorts[df_shorts["StatusCat"]=="chase"]
         if not chase_s.empty:
-            st.markdown('<div class="tier-card tier-chase"><div class="tier-title" style="color:#d29922">[CHASE SHORT]</div><div class="tier-desc">Masih bisa dikejar. Tight stop above resistance.</div></div>', unsafe_allow_html=True)
-            st.dataframe(chase_s.drop(columns=["StatusCat"]), hide_index=True, use_container_width=True, height=200)
+            st.markdown('<div class="tier-card tier-chase"><div class="tier-title" style="color:#d29922">CHASE SHORT</div><div class="tier-desc">Masih bisa dikejar. Tight stop above resistance.</div></div>',unsafe_allow_html=True)
+            st.dataframe(chase_s.drop(columns=["StatusCat"]),hide_index=True,use_container_width=True,height=200)
     else:
         st.info("No short setups available.")
 
+    # ── ATH MOMENTUM SCANNER (SNDK-like) ─────────────────────────────────────
+    st.markdown("---")
+    st.markdown("### ATH Momentum Scanner")
+    st.caption("Tickers approaching or breaking All-Time-High with bottleneck + option confirmation. Like SNDK pattern: ATH to ATH.")
+
+    ath_candidates = []
+    for sym, v in ar.items():
+        s = prices.get(sym)
+        if s is None: continue
+        s = pd.to_numeric(s, errors="coerce").dropna()
+        if len(s) < 252: continue
+        px = float(s.iloc[-1])
+        ath = float(s.max())
+        if ath <= 0: continue
+        dist_to_ath = (ath - px) / ath
+        # Within 5% of ATH and bullish
+        if dist_to_ath < 0.05 and v.get("composite") == "bullish":
+            tr = v.get("trade", {})
+            lrr = _sf(tr.get("lrr")); trr = _sf(tr.get("trr"))
+            rl = _rr_levels(px, lrr, trr, "long")
+            ev = 0
+            # Find bottleneck EV if exists
+            for item in all_items:
+                if item["ticker"] == sym:
+                    ev = item.get("ev", 0)
+                    break
+            ath_candidates.append({
+                "ticker": sym,
+                "px": px,
+                "ATH": ath,
+                "Dist to ATH": f"{dist_to_ath:+.1%}",
+                "LRR": ff(lrr),
+                "TRR": ff(trr),
+                "Entry": ff(rl["entry"]) if rl else "—",
+                "TP1": ff(rl["tp1"]) if rl else "—",
+                "TP2": ff(rl["tp2"]) if rl else "—",
+                "R/R": ff(rl["rr"]) if rl else "—",
+                "EV": round(ev, 2),
+                "Quality": v.get("quality", "—"),
+            })
+
+    if ath_candidates:
+        df_ath = pd.DataFrame(ath_candidates).sort_values("EV", ascending=False)
+        st.markdown(f'<div class="tier-card tier-ath"><div class="tier-title" style="color:#58a6ff">ATH BREAKOUT CANDIDATES ({len(ath_candidates)})</div><div class="tier-desc">Within 5% of ATH + bullish composite. Sorted by EV.</div></div>', unsafe_allow_html=True)
+        st.dataframe(df_ath, hide_index=True, use_container_width=True, height=280)
+    else:
+        st.info("No ATH breakout candidates. Market may be below recent highs.")
+
     # Summary metrics
     st.markdown("---")
-    s1,s2,s3,s4=st.columns(4)
+    s1,s2,s3,s4,s5=st.columns(5)
     s1.markdown(f'<div class="metric-card"><h4>Longs</h4><div class="big">{len(df_longs)}</div></div>',unsafe_allow_html=True)
     s2.markdown(f'<div class="metric-card"><h4>Shorts</h4><div class="big">{len(df_shorts)}</div></div>',unsafe_allow_html=True)
     s3.markdown(f'<div class="metric-card"><h4>Building</h4><div class="big" style="color:#3fb950">{len(df_longs[df_longs["StatusCat"]=="building"])}</div></div>',unsafe_allow_html=True)
     s4.markdown(f'<div class="metric-card"><h4>Basi</h4><div class="big" style="color:#f85149">{len(df_longs[df_longs["StatusCat"]=="basi"])}</div></div>',unsafe_allow_html=True)
+    s5.markdown(f'<div class="metric-card"><h4>ATH Scan</h4><div class="big" style="color:#58a6ff">{len(ath_candidates)}</div></div>',unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# [LEADERBOARD] — Same universal table format
+# LEADERBOARD — Same format as Alpha Center
 # ══════════════════════════════════════════════════════════════════════════════
-elif page == "[Leaderboard]":
-    st.markdown("# [Leaderboard] Signal Strength Stocks")
-    st.caption("Quality A near LRR + volume confirm. Same table format as Alpha Centre for consistency.")
+elif page == "Leaderboard":
+    st.markdown("# Leaderboard Signal Strength Stocks")
+    st.caption("Quality A near LRR + volume confirm. Same table format as Alpha Centre.")
     ar=rr.get("asset_ranges",{})
     if not ar: st.warning("No RR data. Refresh."); st.stop()
 
@@ -699,13 +792,14 @@ elif page == "[Leaderboard]":
         try: from config.settings import TICKER_SECTOR; sector=TICKER_SECTOR.get(sym,"generic")
         except: sector="generic"
 
+        ev=0.6 if qual=="A" else 0.4 if qual=="B" else 0.3
         if qual in ("A","B") and comp=="bullish":
-            long_picks.append({"ticker":sym,"quality":qual,"px":px,"lrr":lrr,"trr":trr,"composite":comp,"sector":sector,"stretch":tr.get("stretch","neutral"),"regime_fit":sym in best_set})
+            long_picks.append({"ticker":sym,"quality":qual,"px":px,"lrr":lrr,"trr":trr,"composite":comp,"sector":sector,"stretch":tr.get("stretch","neutral"),"regime_fit":sym in best_set,"ev":ev})
         if qual in ("short_A","short_B") and comp=="bearish":
-            short_picks.append({"ticker":sym,"quality":qual,"px":px,"lrr":lrr,"trr":trr,"composite":comp,"sector":sector,"stretch":tr.get("stretch","neutral"),"regime_fit":sym in worst_set})
+            short_picks.append({"ticker":sym,"quality":qual,"px":px,"lrr":lrr,"trr":trr,"composite":comp,"sector":sector,"stretch":tr.get("stretch","neutral"),"regime_fit":sym in worst_set,"ev":ev})
 
-    df_longs = _build_ticker_table(long_picks, "long", _opt_eng)
-    df_shorts = _build_ticker_table(short_picks, "short", _opt_eng)
+    df_longs=_build_alpha_table(long_picks,"long",_opt_eng,_gamma_by_ticker)
+    df_shorts=_build_alpha_table(short_picks,"short",_opt_eng,_gamma_by_ticker)
 
     s1,s2,s3,s4=st.columns(4)
     s1.markdown(f'<div class="metric-card"><h4>Bullish Names</h4><div class="big">{len(long_picks)}</div></div>',unsafe_allow_html=True)
@@ -714,35 +808,34 @@ elif page == "[Leaderboard]":
     s4.markdown(f'<div class="metric-card"><h4>Regime Traps</h4><div class="big">{sum(1 for v in ar.values() if v.get("regime_trap"))}</div></div>',unsafe_allow_html=True)
 
     st.markdown("---")
-    st.markdown("### [TOP 21 LONG IDEAS]")
+    st.markdown("### TOP 21 LONG IDEAS")
     st.caption("Entry = LRR zone. TP1 = midpoint. TP2 = TRR. Stop = below LRR. R/R target >= 1.5x.")
     if not df_longs.empty:
-        display_df = df_longs.drop(columns=["StatusCat"]) if "StatusCat" in df_longs.columns else df_longs
-        st.dataframe(display_df.head(21), hide_index=True, use_container_width=True,
-                     column_config={"Status": st.column_config.TextColumn("Status", width="medium"),
-                                    "Sector": st.column_config.TextColumn("Sector", width="small"),
-                                    "Short Exp": st.column_config.TextColumn("Short", width="small"),
-                                    "Med Exp": st.column_config.TextColumn("Med", width="small"),
-                                    "Long Exp": st.column_config.TextColumn("Long", width="small")})
+        display_df=df_longs.drop(columns=["StatusCat"]) if "StatusCat" in df_longs.columns else df_longs
+        st.dataframe(display_df.head(21),hide_index=True,use_container_width=True,
+                     column_config={"Status": st.column_config.TextColumn("Status",width="medium"),
+                                    "Sector": st.column_config.TextColumn("Sector",width="small"),
+                                    "Opt Level": st.column_config.TextColumn("Opt Lvl",width="small"),
+                                    "Gam Level": st.column_config.TextColumn("Gam Lvl",width="small")})
     else:
         st.info("No Quality A/B longs. Market extended -- wait for pullback to LRR.")
 
     st.markdown("---")
-    st.markdown("### [SHORT IDEAS]")
+    st.markdown("### SHORT IDEAS")
     st.caption("Entry = TRR zone (sell the rip). TP1 = midpoint. TP2 = LRR. Stop = above TRR.")
     if not df_shorts.empty:
-        display_df_s = df_shorts.drop(columns=["StatusCat"]) if "StatusCat" in df_shorts.columns else df_shorts
-        st.dataframe(display_df_s.head(15), hide_index=True, use_container_width=True,
-                     column_config={"Status": st.column_config.TextColumn("Status", width="medium"),
-                                    "Sector": st.column_config.TextColumn("Sector", width="small")})
+        display_df_s=df_shorts.drop(columns=["StatusCat"]) if "StatusCat" in df_shorts.columns else df_shorts
+        st.dataframe(display_df_s.head(15),hide_index=True,use_container_width=True,
+                     column_config={"Status": st.column_config.TextColumn("Status",width="medium"),
+                                    "Sector": st.column_config.TextColumn("Sector",width="small")})
     else:
         st.info("No Quality Short setups.")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# [GLOBAL QUAD]
+# GLOBAL QUAD
 # ══════════════════════════════════════════════════════════════════════════════
-elif page == "[Global Quad]":
-    st.markdown("# [Global Quad] 50 Countries")
+elif page == "Global Quad":
+    st.markdown("# Global Quad 50 Countries")
     if not global_: st.warning("No global data. Refresh."); st.stop()
     gconf=_sf(global_.get("global_conf")) or 0; gprobs=global_.get("global_probs",{}) or {}
     c1,c2=st.columns([1,1.5])
@@ -759,8 +852,8 @@ elif page == "[Global Quad]":
         if heat:
             st.dataframe(pd.DataFrame(heat).style.map(lambda v:f"color:{ {'Q1':'#3fb950','Q2':'#d29922','Q3':'#f85149','Q4':'#58a6ff'}.get(v,'#8b949e') }",subset=["Quad"]), hide_index=True, height=420, use_container_width=True)
         else:
-            st.info("Country Quad data kosong. Pastikan GlobalQuadEngine berjalan dan click [Refresh].")
-    st.markdown("---"); st.markdown("### [EM Recovery Signal]")
+            st.info("Country Quad data kosong. Pastikan GlobalQuadEngine berjalan dan click Refresh.")
+    st.markdown("---"); st.markdown("### EM Recovery Signal")
     em_sig=(btk.get("em_recovery",{}) or {}) if btk else {}
     if em_sig:
         conf=_sf(em_sig.get("confidence")) or 0; ec="#3fb950" if conf>0.6 else "#d29922" if conf>0.4 else "#8b949e"
@@ -768,36 +861,28 @@ elif page == "[Global Quad]":
     else: st.info("EM recovery signal belum tersedia.")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# [IHSG] — Auto RR + universal table
+# IHSG — Auto RR + universal table
 # ══════════════════════════════════════════════════════════════════════════════
-elif page == "[IHSG]":
-    st.markdown("# [IHSG] Indonesia Market")
+elif page == "IHSG":
+    st.markdown("# IHSG Indonesia Market")
     st.caption("Local signal. No options data (IHSG options market tidak liquid). Risk Range dihitung otomatis via per-ticker fallback.")
     from config.settings import IHSG_UNIVERSE, IHSG_BUCKETS
     ar=rr.get("asset_ranges",{}); ihsg_rr={sym:v for sym,v in ar.items() if v.get("market","")=="ihsg"}
 
     if ihsg_rr:
-        ihsg_items = []
+        ihsg_items=[]
         for sym, v in ihsg_rr.items():
-            tr = v.get("trade", {})
+            tr=v.get("trade",{})
             ihsg_items.append({
-                "ticker": sym,
-                "sector": "ihsg",
-                "px": _sf(v.get("px")),
-                "lrr": _sf(tr.get("lrr")),
-                "trr": _sf(tr.get("trr")),
-                "composite": v.get("composite", "neutral"),
-                "quality": v.get("quality", "none"),
-                "stretch": tr.get("stretch", "neutral"),
-                "regime_fit": False,
-                "direction": "long" if v.get("composite") == "bullish" else "short",
+                "ticker":sym,"sector":"ihsg","px":_sf(v.get("px")),"lrr":_sf(tr.get("lrr")),"trr":_sf(tr.get("trr")),
+                "composite":v.get("composite","neutral"),"quality":v.get("quality","none"),"stretch":tr.get("stretch","neutral"),
+                "regime_fit":False,"direction":"long" if v.get("composite")=="bullish" else "short","ev":0,
             })
-        df_ihsg = _build_ticker_table(ihsg_items, "long", None)
-        st.markdown("### [IHSG Risk Range Universe]")
-        st.dataframe(df_ihsg.drop(columns=["StatusCat"]) if "StatusCat" in df_ihsg.columns else df_ihsg, hide_index=True, use_container_width=True, height=420)
+        df_ihsg=_build_alpha_table(ihsg_items,"long",None,None)
+        st.markdown("### IHSG Risk Range Universe")
+        st.dataframe(df_ihsg.drop(columns=["StatusCat"]) if "StatusCat" in df_ihsg.columns else df_ihsg,hide_index=True,use_container_width=True,height=420)
     else:
-        st.markdown('<div class="warn-box"><b>[INFO]</b> Risk Range data untuk IHSG sedang dihitung. Ini biasanya terjadi karena yfinance bulk download gagal untuk .JK tickers. Fix sudah di-deploy: per-ticker fallback aktif. Click <b>[Force Rebuild]</b> di sidebar untuk rebuild snapshot.</div>', unsafe_allow_html=True)
-        # Show raw price fallback
+        st.markdown('<div class="warn-box"><b>INFO</b> Risk Range data untuk IHSG sedang dihitung. Fix sudah di-deploy: per-ticker fallback aktif. Click <b>Force Rebuild</b> di sidebar untuk rebuild snapshot.</div>', unsafe_allow_html=True)
         rows=[]
         for sym in IHSG_UNIVERSE:
             s=prices.get(sym)
@@ -809,10 +894,10 @@ elif page == "[IHSG]":
             r3=float(s.iloc[-1]/s.iloc[-64]-1) if len(s)>=64 else None
             rows.append({"Ticker":sym,"Px":f"{px:.0f}","1M":f"{r1:+.1%}" if r1 else "—","3M":f"{r3:+.1%}" if r3 else "—","Name":IHSG_UNIVERSE.get(sym,sym)})
         if rows:
-            st.markdown("### [Price Snapshot Fallback]")
+            st.markdown("### Price Snapshot Fallback")
             st.dataframe(pd.DataFrame(rows),hide_index=True,use_container_width=True,height=400)
 
-    st.markdown("---"); st.markdown("### [Sector Buckets]")
+    st.markdown("---"); st.markdown("### Sector Buckets")
     for bucket,tickers in IHSG_BUCKETS.items():
         with st.expander(f"**{bucket.replace('_',' ')}** ({len(tickers)})"):
             b_rows=[]
@@ -827,18 +912,18 @@ elif page == "[IHSG]":
             else: st.info("Data tidak tersedia. Refresh.")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# [NARRATIVES]
+# NARRATIVES
 # ══════════════════════════════════════════════════════════════════════════════
-elif page == "[Narratives]":
-    st.markdown("# [Narratives] Thematic Scoring")
+elif page == "Narratives":
+    st.markdown("# Narratives Thematic Scoring")
     st.caption("Active = confirmed. Building = traction. Brewing = pre-consensus.")
-    active = (narr.get("active_narratives",[]) or []) if narr else []
-    fallback = [n for n in HEDGEYE_FALLBACK_NARRATIVES if sq in n.get("regime","") or mq in n.get("regime","") or n.get("regime","")=="ALL"]
-    all_narr = active if active else fallback
+    active=(narr.get("active_narratives",[]) or []) if narr else []
+    fallback=[n for n in HEDGEYE_FALLBACK_NARRATIVES if sq in n.get("regime","") or mq in n.get("regime","") or n.get("regime","")=="ALL"]
+    all_narr=active if active else fallback
     for n in sorted(all_narr, key=lambda x: x.get("score",0), reverse=True):
         score=n.get("score",0); sc="#3fb950" if score>0.6 else "#d29922" if score>0.4 else "#8b949e"
-        is_fallback = "quad_bias" in n
-        tag = " | Hedgeye aligned" if is_fallback else ""
+        is_fallback="quad_bias" in n
+        tag=" | Hedgeye aligned" if is_fallback else ""
         with st.expander(f"**{n.get('name','')}** -- {score:.0%}{tag}"):
             st.markdown(f"**Thesis:** {n.get('thesis','')}")
             st.markdown(f"**Tickers:** {' | '.join(n.get('tickers',[])[:8])}")
@@ -848,14 +933,14 @@ elif page == "[Narratives]":
             if is_fallback and n.get("quad_bias"): st.caption(f"Quad bias: {n['quad_bias']}")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# [DISCOVERY]
+# DISCOVERY
 # ══════════════════════════════════════════════════════════════════════════════
-elif page == "[Discovery]":
-    st.markdown("# [Early Discovery] Pre-Consensus")
+elif page == "Discovery":
+    st.markdown("# Early Discovery Pre-Consensus")
     st.caption("Autonomy: regime fit + price cluster + supply chain graph + news NLP.")
     cands=(auto_disc.get("candidates",[]) or []) if auto_disc else []
     cands += (disc.get("discoveries",[]) or []) if disc else []
-    cands_display = cands if cands else HEDGEYE_FALLBACK_DISCOVERY
+    cands_display=cands if cands else HEDGEYE_FALLBACK_DISCOVERY
     for stage,sc_c in [("active","#3fb950"),("building","#d29922"),("brewing","#58a6ff")]:
         items=[c for c in cands_display if c.get("stage")==stage]
         if not items: continue
@@ -872,22 +957,22 @@ elif page == "[Discovery]":
                 if inv: st.markdown(f"**Invalidators:** {', '.join(inv) if isinstance(inv,list) else inv}")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# [HEALTH]
+# HEALTH
 # ══════════════════════════════════════════════════════════════════════════════
-elif page == "[Health]":
-    st.markdown("# [Market Health] VIX | Breadth | Crash Meter")
+elif page == "Health":
+    st.markdown("# Market Health VIX | Breadth | Crash Meter")
     if not health: st.warning("No health data."); st.stop()
     vb_d=health.get("vix_bucket",{}); vb_b=vb_d.get("bucket","—")
     vb_c={"Investable":"#3fb950","Chop":"#d29922","Defensive":"#f85149"}.get(vb_b,"#8b949e")
     st.markdown(f'<div style="background:{vb_c}15;border:1px solid {vb_c};border-radius:10px;padding:12px 16px;margin-bottom:12px"><div style="font-weight:700;color:{vb_c};font-size:1.1rem">VIX BUCKET: {vb_b.upper()}</div><div style="font-size:0.9rem;color:#c9d1d9;margin-top:4px">{vb_d.get("note","")}</div></div>',unsafe_allow_html=True)
     crash=health.get("crash",{}) or {}
     if crash:
-        st.markdown("### [Crash Meter]")
+        st.markdown("### Crash Meter")
         for k,v in crash.get("signals",{}).items(): st.progress(float(v) if v else 0,text=f"{k.replace('_',' ').title()}: {v:.0%}" if v else k)
         st.markdown(f"**State:** {crash.get('state','')} | Score: {_sf(crash.get('score',0)):.0%}")
     breadth=health.get("market_health",{}) or {}
     if breadth:
-        st.markdown("### [Breadth]")
+        st.markdown("### Breadth")
         b1,b2,b3,b4=st.columns(4)
         b1.metric("Score",f"{_sf(breadth.get('score')) or 0:.2f}"); b2.metric("Verdict",breadth.get("verdict","—"))
         b3.metric("Sector Support",f"{breadth.get('positive_sectors_1m',0)}/{breadth.get('total_buckets',0)}")
@@ -900,25 +985,25 @@ elif page == "[Health]":
         st.progress(fgs/100)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# [PLAYBOOK]
+# PLAYBOOK
 # ══════════════════════════════════════════════════════════════════════════════
-elif page == "[Playbook]":
-    st.markdown("# [Regime Playbook]")
+elif page == "Playbook":
+    st.markdown("# Regime Playbook")
     st.caption(f"**{sq}** Structural | **{mq}** Monthly (override: {st.session_state.mq_override})")
     if pb_data:
         col1,col2=st.columns(2)
         with col1:
-            adds = " | ".join(pb_data.get("monthly_adds",[])) if pb_data.get("monthly_adds") else ""
-            st.markdown(f'<div style="background:#3fb95015;border:1px solid #3fb950;border-radius:10px;padding:14px 18px"><div style="font-weight:700;color:#3fb950;font-size:1.1rem;margin-bottom:8px">[LONG] -- {sq}</div><div style="font-size:0.9rem;color:#c9d1d9;line-height:1.5">{" | ".join(pb_data.get("best_assets",[]))}<br><br><b>Style:</b> {pb_data.get("style","")}<br><b>FX:</b> {pb_data.get("fx","")}<br><b>Bonds:</b> {pb_data.get("bonds","")}<br>{("<b>Adds:</b> " + adds + "<br>") if adds else ""}</div></div>', unsafe_allow_html=True)
+            adds=" | ".join(pb_data.get("monthly_adds",[])) if pb_data.get("monthly_adds") else ""
+            st.markdown(f'<div style="background:#3fb95015;border:1px solid #3fb950;border-radius:10px;padding:14px 18px"><div style="font-weight:700;color:#3fb950;font-size:1.1rem;margin-bottom:8px">LONG -- {sq}</div><div style="font-size:0.9rem;color:#c9d1d9;line-height:1.5">{" | ".join(pb_data.get("best_assets",[]))}<br><br><b>Style:</b> {pb_data.get("style","")}<br><b>FX:</b> {pb_data.get("fx","")}<br><b>Bonds:</b> {pb_data.get("bonds","")}<br>{("<b>Adds:</b> " + adds + "<br>") if adds else ""}</div></div>', unsafe_allow_html=True)
         with col2:
-            st.markdown(f'<div style="background:#f8514915;border:1px solid #f85149;border-radius:10px;padding:14px 18px"><div style="font-weight:700;color:#f85149;font-size:1.1rem;margin-bottom:8px">[AVOID] -- {sq}</div><div style="font-size:0.9rem;color:#c9d1d9;line-height:1.5">{" | ".join(pb_data.get("worst_assets",[]))}<br><br><b>Hedge:</b> {pb_data.get("hedge","BTAL")}<br>{pb_data.get("sizing_note","Min 1% | Max 3%")}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="background:#f8514915;border:1px solid #f85149;border-radius:10px;padding:14px 18px"><div style="font-weight:700;color:#f85149;font-size:1.1rem;margin-bottom:8px">AVOID -- {sq}</div><div style="font-size:0.9rem;color:#c9d1d9;line-height:1.5">{" | ".join(pb_data.get("worst_assets",[]))}<br><br><b>Hedge:</b> {pb_data.get("hedge","BTAL")}<br>{pb_data.get("sizing_note","Min 1% | Max 3%")}</div></div>', unsafe_allow_html=True)
     btc_rr=rr.get("asset_ranges",{}).get("IBIT",rr.get("asset_ranges",{}).get("BTC-USD",{}))
     btc_sig=btc_rr.get("composite","—")
     btc_c="#3fb950" if btc_sig=="bullish" else "#f85149" if btc_sig=="bearish" else "#8b949e"
     st.markdown(f'<div class="action-box">BTC (IBIT): <span style="color:{btc_c}">{btc_sig.upper()}</span> -- {"Exit (Q4)" if sq=="Q4" else "Signal-dependent via DXY correlation"} | DXY/BTC 15D: {dxy_corr.get("Bitcoin","—")} | "Any quad other than Q4 = long IBIT."</div>', unsafe_allow_html=True)
     scenarios_list=(scen.get("scenarios",[]) or []) if scen else []
     if scenarios_list:
-        st.markdown("---"); st.markdown("### [Scenarios]")
+        st.markdown("---"); st.markdown("### Scenarios")
         badges=["[BASE]","[ALT]","[RISK]","[TAIL]"]; badge_colors=["#3fb950","#d29922","#f85149","#58a6ff"]
         row1=st.columns(2); row2=st.columns(2); grids=[row1[0],row1[1],row2[0],row2[1]]
         for i,(sc_item,col) in enumerate(zip(scenarios_list[:4],grids)):
@@ -926,7 +1011,7 @@ elif page == "[Playbook]":
             with col:
                 st.markdown(f'<div style="background:{pc}15;border:1px solid {pc};border-radius:10px;padding:10px 14px;margin-bottom:8px;height:100%"><div style="font-weight:700;color:{pc};font-size:0.85rem">{badges[i]} P={sc_item.probability:.0%}</div><div style="font-weight:600;color:#c9d1d9;margin:4px 0">{sc_item.name}</div><div style="font-size:0.8rem;color:#8b949e">{sc_item.headline}</div><div style="font-size:0.78rem;color:#c9d1d9;margin-top:4px">Best: {" | ".join(sc_item.best_assets[:3])}<br>Avoid: {" | ".join(sc_item.worst_assets[:3])}</div><div style="font-size:0.75rem;color:#8b949e;margin-top:4px">{em}</div></div>',unsafe_allow_html=True)
     if gip:
-        st.markdown("---"); st.markdown("### [GIP Signals]")
+        st.markdown("---"); st.markdown("### GIP Signals")
         f=gip.features
         rows=[["Growth Momentum",fp(f.get("growth_momentum")),"up" if (_sf(f.get("growth_momentum")) or 0)>0 else "down"],
               ["Inflation Momentum",fp(f.get("inflation_momentum")),"up" if (_sf(f.get("inflation_momentum")) or 0)>0 else "down"],

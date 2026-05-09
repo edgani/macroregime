@@ -25,8 +25,6 @@ from config.settings import (
     MACRO_PROXIES, US_SECTORS, BONDS, COMMODITIES, CRYPTO, FOREX_PAIRS,
     TICKER_SECTOR, MAG7, US_BUCKETS,
 )
-# QUAD_MAP is NOT in config.settings — it lives in engines/quad_engine.py
-from engines.quad_engine import QuadEngine, QUAD_MAP
 
 try:
     from config.autonomy_settings import AUTONOMY_LEVEL
@@ -38,12 +36,28 @@ except Exception:
 # ------------------------------------------------------------------
 from data.loader import load_prices, load_fred_macro
 from engines.gip_engine import GIPEngine
+from engines.quad_engine import QuadEngine
 from engines.market_health_engine import MarketHealthEngine
 from engines.hurst_risk_ranges import HurstRiskRangeEngine
 from engines.cme_cot import CMECOTProxy
 from engines.cme_oi import CMEOpenInterestProxy
 from engines.defillama_helper import DeFiLlamaHelper
 from engines.auto_discovery_engine_v3 import AutoDiscoveryEngineV3
+
+# ------------------------------------------------------------------
+# QUAD_MAP fallback — if engines.quad_engine doesn't export it
+# ------------------------------------------------------------------
+try:
+    from engines.quad_engine import QUAD_MAP
+except Exception:
+    # Fallback QUAD_MAP matching Hedgeye framework
+    QUAD_MAP = {
+        "Q1": {"name": "Goldilocks", "assets": ["XLK", "XLY", "XLI", "IWM", "QQQ", "RSP", "SLV", "GLD", "IBIT"], "bias": "bullish"},
+        "Q2": {"name": "Reflation / Knife Fights", "assets": ["XLE", "OIH", "XLI", "XLB", "SLV", "GLD", "GDX", "ITB", "TLT", "IBIT"], "bias": "bullish"},
+        "Q3": {"name": "Stagflation", "assets": ["SLV", "GLD", "PPLT", "GDX", "GDXJ", "XLV", "XLP", "XLU", "TLT", "ITA"], "bias": "bearish"},
+        "Q4": {"name": "Deflation", "assets": ["TLT", "IEF", "GLD", "SLV", "XLV", "XLP", "XLU", "UUP", "BTAL"], "bias": "bearish"},
+    }
+    logger.info("Using fallback QUAD_MAP (engines.quad_engine.QUAD_MAP not exported)")
 
 # ------------------------------------------------------------------
 # Orchestrator

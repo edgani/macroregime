@@ -168,34 +168,33 @@ def _merge_with_options(rl: dict, opt: dict, side: str = "long") -> dict:
     return rl
 
 def _render_levels(rl: dict, side: str = "long", opt: dict = None):
-    """Render entry/TP/stop row on any ticker card."""
-    if not rl:
-        return
+    """Render entry/TP/stop row. Uses st.columns to avoid HTML nesting issues."""
+    if not rl: return
     tc  = "#10B981" if side == "long" else "#EF4444"
-    ext_warn = ' <span style="color:#F59E0B;font-size:10px;">⚠ EXTENDED</span>' if rl.get("extended") else ""
-    opt_tag  = ' <span style="color:#0ea5e9;font-size:10px;">✦ OPT</span>' if rl.get("opt_confirm") else ""
-    hold     = rl.get("holding","TRADE")
-    mp_note  = f' | {rl["max_pain_note"]}' if rl.get("max_pain_note") else ""
+    ext = " ⚠ EXTENDED" if rl.get("extended") else ""
+    opt_tag = " ✦ OPT-CONFIRMED" if rl.get("opt_confirm") else ""
+    hold = rl.get("holding","TRADE")[:10]
 
-    # Options second-order Greeks summary
-    greeks_txt = ""
-    if opt and opt.get("ok") and opt.get("atm_greeks_call"):
-        g = opt["atm_greeks_call"]
+    # Use columns instead of raw HTML to avoid Streamlit parsing div issues
+    lbl = f"**LEVELS — {side.upper()}**{opt_tag}{ext}"
+    st.markdown(f'<div class="lvl-box">', unsafe_allow_html=True)
+    st.markdown(f'<div style="font-size:10px;color:{tc};font-weight:700;margin-bottom:6px;">{lbl}</div>', unsafe_allow_html=True)
+    c1,c2,c3,c4,c5 = st.columns(5)
+    c1.metric("Entry",    f"${rl['entry']:.2f}")
+    c2.metric("TP1",      f"${rl['tp1']:.2f}")
+    c3.metric("TP2",      f"${rl['tp2']:.2f}")
+    c4.metric("Stop",     f"${rl['stop']:.2f}")
+    c5.metric("R/R·Hold", f"{rl['rr']:.1f}x · {hold}")
+
+    # Options overlay metrics (only when available)
+    if opt and opt.get("ok"):
         vs = opt.get("vanna_signal","—"); cs = opt.get("charm_signal","—")
-        greeks_txt = f'<div style="font-size:10px;color:#4B5563;margin-top:3px;">IV: {fp(opt.get("atm_iv"))} · IV%: {fp(opt.get("iv_percentile"))} · Move: ±{fp(opt.get("implied_move_pct"))} · Vanna: {vs} · Charm: {cs}</div>'
-
-    st.markdown(f'''<div class="lvl-box">
-    <div style="font-size:10px;color:{tc};font-weight:700;margin-bottom:5px;">LEVELS — {side.upper()}{opt_tag}{ext_warn}</div>
-    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;text-align:center;">
-      <div><div style="font-size:9px;color:#6B7280;">Entry</div><div style="font-size:13px;font-weight:700;color:{tc};">${rl["entry"]:.2f}</div></div>
-      <div><div style="font-size:9px;color:#6B7280;">TP1</div><div style="font-size:13px;font-weight:700;color:#10B981;">${rl["tp1"]:.2f}</div></div>
-      <div><div style="font-size:9px;color:#6B7280;">TP2</div><div style="font-size:13px;font-weight:700;color:#00D4AA;">${rl["tp2"]:.2f}</div></div>
-      <div><div style="font-size:9px;color:#6B7280;">Stop</div><div style="font-size:13px;font-weight:700;color:#EF4444;">${rl["stop"]:.2f}</div></div>
-      <div><div style="font-size:9px;color:#6B7280;">R/R · Hold</div><div style="font-size:12px;font-weight:700;color:#E8ECF0;">{rl["rr"]:.1f}x · <span style="font-size:9px;">{hold[:5]}</span></div></div>
-    </div>
-    {greeks_txt}
-    <div style="font-size:9px;color:#374151;margin-top:2px;">{mp_note}</div>
-    </div>''', unsafe_allow_html=True)
+        im = opt.get("implied_move_pct"); iv_p = opt.get("iv_percentile")
+        mp = opt.get("max_pain"); pc = opt.get("pc_ratio")
+        st.caption(f"IV: {fp(opt.get('atm_iv'))} · IV%: {fp(iv_p)} · ±Move: {fp(im)} · MaxPain: {'$'+ff(mp) if mp else '—'} · PC: {pc} · Vanna: {vs} · Charm: {cs}")
+    if rl.get("max_pain_note"):
+        st.caption(rl["max_pain_note"])
+    st.markdown('</div>', unsafe_allow_html=True)
 
 
 # ── Gamma panel (with Series fix) ─────────────────────────────────────────────
@@ -575,15 +574,14 @@ elif page == "📈 GIP Model":
         <div style="font-size:11px;color:#9CA3AF;margin-top:8px;">Conf: {gip.structural_conf:.0%} · Flip: {gip.flip_hazard:.0%} · Coverage: {gip.data_coverage:.0%}</div>
         </div>''', unsafe_allow_html=True)
     with cw:
-        _mq_note2=""
-        if mq_raw=="Q1": _mq_note2=f'<div style="font-size:10px;color:#F59E0B;margin-top:4px;">⚠ Model={mq_raw} · Override={mq} (Hedgeye manual=Q2). Set via sidebar.</div>'
         st.markdown(f'''<div style="background:#111827;border:1px solid {qc(mq)}44;border-radius:8px;padding:16px;">
         <div style="font-size:11px;color:#9CA3AF;margin-bottom:4px;">MONTHLY — WEATHER</div>
         <div style="font-size:32px;font-weight:800;color:{qc(mq)};">{mq}</div>
         <div style="font-size:13px;color:{qc(mq)};margin-top:4px;">{qnc(mq)}</div>
         <div style="font-size:11px;color:#9CA3AF;margin-top:8px;">Conf: {gip.monthly_conf:.0%} · {gip.divergence} · {gip.operating_regime}</div>
-        {_mq_note2}
         </div>''', unsafe_allow_html=True)
+        if mq_raw == "Q1":
+            st.warning(f"⚠ Model={mq_raw} · Override={mq} (Hedgeye manual=Q2). Set via sidebar Quad Override.")
 
     st.markdown("---"); st.markdown("### 📊 G & I Signals")
     f=gip.features; gm=_sf(f.get("growth_momentum")) or 0; im=_sf(f.get("inflation_momentum")) or 0
@@ -684,22 +682,14 @@ elif page == "⚡ Alpha Center":
 
     ar=rr.get("asset_ranges",{})
 
-    # FIX: no strict constraint filter. Show ALL items from Level 1/2.
-    # The bottleneck engine already classified them. Trust it.
-    # Only filter "near target" items (extended/overbought).
-    def _btk_filter(items, side="long"):
-        out=[]
-        for item in (items or []):
-            ticker=item.get("ticker",""); v=ar.get(ticker,{}); tr=v.get("trade",{})
-            stretch=tr.get("stretch","")
-            # Skip if already near target (no EV)
-            if side=="long" and stretch in ("overbought","extended"): continue
-            if side=="short" and stretch in ("oversold","reset_zone"): continue
-            out.append(item)
-        return out
+    # FIX: NO FILTER — show ALL items from bottleneck engine.
+    # Don't filter by stretch — show stretch status in the card as a warning instead.
+    # User decides whether to act; dashboard's job is to inform, not to hide.
+    def _btk_no_filter(items):
+        return list(items or [])
 
-    l1_items = _btk_filter(btk.get("level_1",[]) if btk else [], "long")
-    l2_items = _btk_filter(btk.get("level_2",[]) if btk else [], "long")
+    l1_items = _btk_no_filter(btk.get("level_1",[]) if btk else [])
+    l2_items = _btk_no_filter(btk.get("level_2",[]) if btk else [])
     wt_items = (btk.get("watch",[]) or [])[:20] if btk else []
     av_items = (btk.get("avoid",[]) or [])[:15] if btk else []
 
@@ -726,9 +716,19 @@ elif page == "⚡ Alpha Center":
         trap=item.get("regime_trap",False)
         v=ar.get(ticker,{}); tr=v.get("trade",{}); comp=v.get("composite","neutral")
         px=_sf(v.get("px")); lrr=_sf(tr.get("lrr")); trr=_sf(tr.get("trr"))
+        stretch=tr.get("stretch","")
         rl=_rr_levels(px,lrr,trr)
         tc="#10B981" if direction=="long" else "#EF4444"
         trap_tag=' ⚠️' if trap else ""
+
+        # Position assessment
+        if rl:
+            pos = rl.get("pos",0.5)
+            if pos <= 0.35:   position_advice = "✅ NEAR LRR — Good entry zone"
+            elif pos <= 0.65: position_advice = "⏳ MID-RANGE — Wait for pullback to LRR"
+            else:             position_advice = "⚠ NEAR TRR — Extended, wait for pullback"
+        else:
+            position_advice = "⏳ No RR data"
 
         # Get options
         opt_data = None
@@ -738,45 +738,32 @@ elif page == "⚡ Alpha Center":
 
         if rl: rl = _merge_with_options(rl, opt_data, direction)
 
-        with st.expander(f"{'🟢' if direction=='long' else '🔴'} **{ticker}** — {sector} | EV {ev:.2f} | Score {score:.0f}{trap_tag}", expanded=expanded):
+        with st.expander(f"{'🟢' if direction=='long' else '🔴'} **{ticker}** — {sector} | EV {ev:.2f} | {position_advice}{trap_tag}", expanded=expanded):
             ci1,ci2=st.columns([1.2,1])
             with ci1:
                 st.markdown(f'''<div class="{'alpha-long' if direction=='long' else 'alpha-short'}" style="padding:10px;">
-                <div style="font-size:11px;color:{tc};font-weight:700;margin-bottom:4px;">{direction.upper()} · {sector} · RF {rf:.0%}</div>
-                <div style="font-size:11px;color:#E8ECF0;margin-bottom:4px;">{thesis}</div>
-                <div style="font-size:11px;color:#9CA3AF;">Trend: {trend} · Score: {score:.2f} · EV: {ev:.2f} · Px: ${px:.2f if px else "—"}</div>
+                <div style="font-size:11px;color:{tc};font-weight:700;">{direction.upper()} · {sector} · RF {rf:.0%} · Trend: {trend}</div>
+                <div style="font-size:11px;color:#E8ECF0;margin-top:4px;">{thesis}</div>
+                <div style="font-size:11px;color:#9CA3AF;margin-top:4px;">Score: {score:.2f} · EV: {ev:.2f} · Px: {ff(px,2) if px else "—"} · Stretch: {stretch}</div>
                 </div>''', unsafe_allow_html=True)
                 if rl: _render_levels(rl, direction, opt_data)
             with ci2:
-                # Options second-order Greeks summary
                 if opt_data and opt_data.get("ok"):
                     g=opt_data.get("atm_greeks_call",{}) or {}
-                    oi_hm=opt_data.get("oi_heatmap",[])
-                    mp=opt_data.get("max_pain"); im=opt_data.get("implied_move_pct")
-                    vs=opt_data.get("vanna_signal","—"); cs=opt_data.get("charm_signal","—")
-                    sig=opt_data.get("options_signal","")
-                    sig_c="#10B981" if "LONG" in sig else "#EF4444" if "SHORT" in sig else "#6B7280"
-                    st.markdown(f'''<div style="background:#111827;border-radius:6px;padding:10px;">
-                    <div style="font-size:11px;font-weight:700;color:{sig_c};">{sig}</div>
-                    <div style="font-size:10px;color:#9CA3AF;margin-top:4px;">
-                      IV: {fp(opt_data.get("atm_iv"))} · ±Move: {fp(im)} · Max Pain: ${mp:.1f if mp else "—"}
-                    </div>
-                    <div style="font-size:10px;color:#9CA3AF;margin-top:2px;">
-                      Vanna: {vs} · Charm: {cs} · PC Ratio: {opt_data.get("pc_ratio","—")}
-                    </div>''', unsafe_allow_html=True)
+                    oi_hm=opt_data.get("oi_heatmap",[]); mp=opt_data.get("max_pain")
+                    sig=opt_data.get("options_signal",""); sig_c="#10B981" if "LONG" in sig else "#EF4444" if "SHORT" in sig else "#6B7280"
+                    st.markdown(f'<div style="background:#111827;border-radius:6px;padding:10px;"><div style="font-size:11px;font-weight:700;color:{sig_c};">{sig}</div></div>', unsafe_allow_html=True)
                     if g:
-                        cols_g=st.columns(4)
-                        cols_g[0].metric("Δ",f"{_sf(g.get('delta')) or 0:.3f}")
-                        cols_g[1].metric("Γ",f"{_sf(g.get('gamma')) or 0:.5f}")
-                        cols_g[2].metric("θ/day",f"{_sf(g.get('theta')) or 0:.3f}")
-                        cols_g[3].metric("Vega",f"{_sf(g.get('vega')) or 0:.3f}")
+                        gc1,gc2,gc3,gc4=st.columns(4)
+                        gc1.metric("Δ",f"{_sf(g.get('delta')) or 0:.3f}")
+                        gc2.metric("Γ",f"{_sf(g.get('gamma')) or 0:.5f}")
+                        gc3.metric("θ/d",f"{_sf(g.get('theta')) or 0:.3f}")
+                        gc4.metric("Vega",f"{_sf(g.get('vega')) or 0:.3f}")
                     if oi_hm:
-                        oi_df=pd.DataFrame(oi_hm[:10]).rename(columns={"strike":"Strike","call_oi":"C OI","put_oi":"P OI","net_oi":"Net"})
-                        st.dataframe(oi_df[["Strike","C OI","P OI","Net"]].style.background_gradient(subset=["Net"],cmap="RdYlGn"),
-                                     hide_index=True,use_container_width=True,height=180)
-                    st.markdown("</div>",unsafe_allow_html=True)
+                        oi_df=pd.DataFrame(oi_hm[:8]).rename(columns={"strike":"K","call_oi":"C","put_oi":"P","net_oi":"Net"})
+                        st.dataframe(oi_df[["K","C","P","Net"]],hide_index=True,use_container_width=True,height=160)
                 else:
-                    st.caption("Options: N/A (futures/FX/IHSG)" if not _opt_ok else "Options: fetching or unavailable")
+                    st.caption("Options: N/A" if not _opt_ok else "Options: fetching")
 
     st.markdown("---"); st.markdown("### ⚡ Level 1 — Act Now")
     if not l1_items:
@@ -854,10 +841,12 @@ elif page == "📊 Leaderboard":
             try: opt_r=_opt_e.analyze(p["ticker"],p["px"],p["lrr"],p["trr"],p["comp"])
             except: pass
         if rl and opt_r: rl=_merge_with_options(rl,opt_r,"long")
+        # Position assessment
+        pos_advice="✅ Near LRR" if (rl and rl.get("near_lrr")) else ("⏳ Mid-range" if rl else "—")
         st.markdown(f'''<div class="signal-A">
         <div style="display:flex;justify-content:space-between;">
           <span style="font-size:15px;font-weight:800;color:#10B981;">{p["ticker"]} <span style="font-size:11px;color:#A7F3D0;">({p["quality"]})</span></span>
-          <span style="font-size:11px;color:#9CA3AF;">{"✅" if p["regime_fit"] else "⚠️"} Sc:{p["score"]:.0f} · {p["sector"].replace("_"," ").title()}</span>
+          <span style="font-size:11px;color:#9CA3AF;">{"✅" if p["regime_fit"] else "⚠️"} Sc:{p["score"]:.0f} · {p["sector"].replace("_"," ").title()} · {pos_advice}</span>
         </div>
         <div style="font-size:12px;color:#E8ECF0;margin-top:4px;">Px: {ff(p["px"])} · Stretch: {p["stretch"]} · Vol: {fp(p["vol_c"])} · H: {ff(p["hurst"])}</div>
         </div>''', unsafe_allow_html=True)
@@ -871,10 +860,11 @@ elif page == "📊 Leaderboard":
             try: opt_r=_opt_e.analyze(p["ticker"],p["px"],p["lrr"],p["trr"],p["comp"])
             except: pass
         if rl and opt_r: rl=_merge_with_options(rl,opt_r,"short")
+        pos_advice="✅ Near TRR" if (rl and rl.get("extended")) else ("⏳ Mid-range" if rl else "—")
         st.markdown(f'''<div class="signal-shortA">
         <div style="display:flex;justify-content:space-between;">
           <span style="font-size:15px;font-weight:800;color:#EF4444;">{p["ticker"]} <span style="font-size:11px;color:#FECACA;">({p["quality"]})</span></span>
-          <span style="font-size:11px;color:#9CA3AF;">{"✅" if p["regime_fit"] else "⚠️"} Sc:{p["score"]:.0f} · {p["sector"].replace("_"," ").title()}</span>
+          <span style="font-size:11px;color:#9CA3AF;">{"✅" if p["regime_fit"] else "⚠️"} Sc:{p["score"]:.0f} · {p["sector"].replace("_"," ").title()} · {pos_advice}</span>
         </div>
         <div style="font-size:12px;color:#E8ECF0;margin-top:4px;">Px: {ff(p["px"])} · Stretch: {p["stretch"]} · Vol: {fp(p["vol_c"])}</div>
         </div>''', unsafe_allow_html=True)

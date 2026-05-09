@@ -247,15 +247,15 @@ def _compute_gamma_structures(
       gamma_wall  — net gamma by strike (+ = dealer long gamma / vol suppressor)
       vanna_wall  — net vanna by strike
       charm_wall  — net charm by strike (delta decay)
-      net_gamma_$ — total net gamma in $ (Gamma Level — Tier 1 Alpha concept)
+      net_gamma_usd — total net gamma in $ (Gamma Level — Tier 1 Alpha concept)
     """
     gamma_wall: Dict[float, float] = {}
     vanna_wall:  Dict[float, float] = {}
     charm_wall:  Dict[float, float] = {}
-    net_gamma_$ = 0.0
+    net_gamma_usd = 0.0
 
     if calls is None or puts is None:
-        return gamma_wall, vanna_wall, charm_wall, net_gamma_$
+        return gamma_wall, vanna_wall, charm_wall, net_gamma_usd
 
     try:
         for _, row in calls.iterrows():
@@ -268,7 +268,7 @@ def _compute_gamma_structures(
                 gamma_wall[row["strike"]] = gamma_wall.get(row["strike"], 0) + g["gamma"] * oi
                 vanna_wall[row["strike"]]  = vanna_wall.get(row["strike"], 0)  + g["vanna"]  * oi
                 charm_wall[row["strike"]]  = charm_wall.get(row["strike"], 0)  + g["charm"]  * oi
-                net_gamma_$ += g["gamma"] * oi * spot * spot * 0.01  # Gamma $ exposure
+                net_gamma_usd += g["gamma"] * oi * spot * spot * 0.01  # Gamma $ exposure
 
         for _, row in puts.iterrows():
             iv = float(row.get("impliedVolatility", 0))
@@ -280,12 +280,12 @@ def _compute_gamma_structures(
                 gamma_wall[row["strike"]] = gamma_wall.get(row["strike"], 0) - g["gamma"] * oi
                 vanna_wall[row["strike"]]  = vanna_wall.get(row["strike"], 0)  - g["vanna"]  * oi
                 charm_wall[row["strike"]]  = charm_wall.get(row["strike"], 0)  - g["charm"]  * oi
-                net_gamma_$ -= g["gamma"] * oi * spot * spot * 0.01
+                net_gamma_usd -= g["gamma"] * oi * spot * spot * 0.01
 
     except Exception as e:
         logger.debug(f"Gamma structure error: {e}")
 
-    return gamma_wall, vanna_wall, charm_wall, round(net_gamma_$, 2)
+    return gamma_wall, vanna_wall, charm_wall, round(net_gamma_usd, 2)
 
 def _implied_move(calls: pd.DataFrame, puts: pd.DataFrame, spot: float) -> Optional[float]:
     """Expected ±% from ATM straddle price."""
@@ -493,7 +493,7 @@ class OptionsEngine:
 
             # ── Market structure ───────────────────────────────────────────
             max_pain = _compute_max_pain(calls, puts)
-            gamma_wall, vanna_wall, charm_wall, net_gamma_$ = _compute_gamma_structures(calls, puts, spot, self.r, T)
+            gamma_wall, vanna_wall, charm_wall, net_gamma_usd = _compute_gamma_structures(calls, puts, spot, self.r, T)
             key_puts  = _find_key_oi_levels(puts,  spot, "put",  4)
             key_calls = _find_key_oi_levels(calls, spot, "call", 4)
             impl_move = _implied_move(calls, puts, spot)
@@ -578,7 +578,7 @@ class OptionsEngine:
                 "pc_ratio": pc_ratio,
                 "vanna_signal": vanna_signal,
                 "charm_signal": charm_signal,
-                "net_gamma_usd": round(net_gamma_$, 0),
+                "net_gamma_usd": round(net_gamma_usd, 0),
 
                 # Structure
                 "max_pain": max_pain,

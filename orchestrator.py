@@ -39,27 +39,82 @@ load_fred_macro = load_fred  # backward compatibility alias
 # ------------------------------------------------------------------
 # Engines
 # ------------------------------------------------------------------
-from engines.gip_engine import GIPEngine, get_playbook
-from engines.market_health_engine import MarketHealthEngine
-from engines.cme_cot import CMECOTProxy
-from engines.cme_oi import CMEOIProxy
-from engines.defillama_helper import DeFiLlamaHelper
+# ── Engine imports with full fallback stubs ─────────────────────
+# Each engine wrapped individually so one missing file doesn't break everything
 
-# HurstRiskRangeEngine — optional fallback if file missing/corrupt
+try:
+    from engines.gip_engine import GIPEngine, get_playbook
+except Exception as _e:
+    logger.warning(f"gip_engine import failed: {_e}")
+    class GIPEngine:
+        def run(self, fred_data, prices):
+            ns = type("GIP", (), {})()
+            ns.features = {"growth_momentum": 0, "inflation_momentum": 0, "policy_score": 0, "q3_modifier": 0}
+            ns.structural_quad = "Q1"
+            ns.monthly_quad = "Q1"
+            ns.structural_probs = {"Q1": 0.25, "Q2": 0.25, "Q3": 0.25, "Q4": 0.25}
+            ns.structural_conf = "low"
+            ns.divergence = "aligned"
+            ns.flip_hazard = 0.0
+            ns.data_coverage = {}
+            return ns
+    def get_playbook(sq, mq):
+        return {"best_assets": [], "worst_assets": [], "strategy": "neutral"}
+
+try:
+    from engines.market_health_engine import MarketHealthEngine
+except Exception as _e:
+    logger.warning(f"market_health_engine import failed: {_e}")
+    class MarketHealthEngine:
+        def run(self, prices, features, quad):
+            return {
+                "market_health": {"score": 0.5, "verdict": "Unknown"},
+                "vix_bucket": {"bucket": "Chop", "vix_last": 20},
+                "fear_greed": {"score": 50, "label": "Neutral"},
+                "crash": {"score": 0, "state": "calm"},
+                "risk_off": {"score": 0, "state": "risk_on"},
+                "checklists": {},
+                "signals": {},
+                "sources": {"Status": "Engine import failed — using fallback"},
+            }
+
+try:
+    from engines.cme_cot import CMECOTProxy
+except Exception as _e:
+    logger.warning(f"cme_cot import failed: {_e}")
+    class CMECOTProxy:
+        def analyze(self, ticker, prices, vix=20):
+            return {"ok": False}
+
+try:
+    from engines.cme_oi import CMEOIProxy
+except Exception as _e:
+    logger.warning(f"cme_oi import failed: {_e}")
+    class CMEOIProxy:
+        def analyze(self, ticker, prices):
+            return {"ok": False}
+
+try:
+    from engines.defillama_helper import DeFiLlamaHelper
+except Exception as _e:
+    logger.warning(f"defillama_helper import failed: {_e}")
+    class DeFiLlamaHelper:
+        def get_tvl(self): return None
+        def get_stablecoin_mcap(self): return None
+        def get_dex_volume_24h(self): return None
+
 try:
     from engines.hurst_risk_ranges import HurstRiskRangeEngine
-except Exception as e:
-    logger.warning(f"HurstRiskRangeEngine import failed: {e}")
+except Exception as _e:
+    logger.warning(f"hurst_risk_ranges import failed: {_e}")
     class HurstRiskRangeEngine:
-        """Fallback risk range engine."""
         def analyze(self, s):
             return {"ok": False, "reason": "HurstRiskRangeEngine unavailable"}
 
-# AutoDiscoveryEngineV3 — optional fallback
 try:
     from engines.auto_discovery_engine_v3 import AutoDiscoveryEngineV3
-except Exception as e:
-    logger.warning(f"AutoDiscoveryEngineV3 import failed: {e}")
+except Exception as _e:
+    logger.warning(f"auto_discovery_engine_v3 import failed: {_e}")
     class AutoDiscoveryEngineV3:
         def run(self, prices, gip=None, risk_ranges=None):
             return {"discoveries": []}

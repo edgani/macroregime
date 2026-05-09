@@ -21,49 +21,59 @@ _GLOBAL_QUAD_OK = False
 try:
     from engines.global_quad_engine import GlobalQuadEngine
     _GLOBAL_QUAD_OK = True
-except Exception as _e: logger.warning(f"GlobalQuadEngine unavailable: {_e}")
+except Exception as _e:
+    logger = logging.getLogger(__name__)
+    logger.warning(f"GlobalQuadEngine unavailable: {_e}")
 
 _SCENARIO_OK = False
 try:
     from engines.scenario_engine import ScenarioEngine
     _SCENARIO_OK = True
-except Exception as _e: logger.warning(f"ScenarioEngine unavailable: {_e}")
+except Exception as _e:
+    logger.warning(f"ScenarioEngine unavailable: {_e}")
 
 _BOTTLENECK_OK = False
 try:
     from engines.bottleneck_engine import BottleneckEngine
     _BOTTLENECK_OK = True
-except Exception as _e: logger.warning(f"BottleneckEngine unavailable: {_e}")
+except Exception as _e:
+    logger.warning(f"BottleneckEngine unavailable: {_e}")
 
 _NARRATIVE_OK = False
 try:
     from engines.narrative_engine import NarrativeEngine
     _NARRATIVE_OK = True
-except Exception as _e: logger.warning(f"NarrativeEngine unavailable: {_e}")
+except Exception as _e:
+    logger.warning(f"NarrativeEngine unavailable: {_e}")
 
 _DISCOVERY_OK = False
 try:
     from engines.adaptive_discovery_engine import AdaptiveDiscoveryEngine
     _DISCOVERY_OK = True
-except Exception as _e: logger.warning(f"AdaptiveDiscoveryEngine unavailable: {_e}")
+except Exception as _e:
+    logger.warning(f"AdaptiveDiscoveryEngine unavailable: {_e}")
 
 _TRANSITION_OK = False
 try:
     from engines.regime_transition_engine import RegimeTransitionEngine
     _TRANSITION_OK = True
-except Exception as _e: logger.warning(f"RegimeTransitionEngine unavailable: {_e}")
+except Exception as _e:
+    logger.warning(f"RegimeTransitionEngine unavailable: {_e}")
 
 _HEALTH_OK = False
 try:
     from engines.market_health_engine import MarketHealthEngine
     _HEALTH_OK = True
-except Exception as _e: logger.warning(f"MarketHealthEngine unavailable: {_e}")
+except Exception as _e:
+    logger.warning(f"MarketHealthEngine unavailable: {_e}")
 
 _ANALOG_OK = False
 try:
     from engines.historical_analog_engine import HistoricalAnalogEngine
     _ANALOG_OK = True
-except Exception as _e: logger.warning(f"HistoricalAnalogEngine unavailable: {_e}")
+except Exception as _e:
+    logger.warning(f"HistoricalAnalogEngine unavailable: {_e}")
+
 from config.settings import (
     MACRO_PROXIES, US_SECTORS, US_FACTORS, FOREX_PAIRS,
     COMMODITIES, CRYPTO, BONDS, IHSG_UNIVERSE, COUNTRY_UNIVERSE,
@@ -94,31 +104,34 @@ _GAMMA_AVAILABLE = False
 try:
     from engines.gamma_regime_engine import GammaRegimeEngine
     _GAMMA_AVAILABLE = True
-except Exception as _e: logger.warning(f"GammaRegimeEngine unavailable: {_e}")
+except Exception as _e:
+    logger.warning(f"GammaRegimeEngine unavailable: {_e}")
 
 _LEV_ETF_AVAILABLE = False
 try:
     from engines.leveraged_etf_engine import LeveragedETFEngine
     _LEV_ETF_AVAILABLE = True
-except Exception as _e: logger.warning(f"LeveragedETFEngine unavailable: {_e}")
+except Exception as _e:
+    logger.warning(f"LeveragedETFEngine unavailable: {_e}")
 
 _OPTIONS_AVAILABLE = False
 try:
     from engines.options_engine import OptionsEngine
     _OPTIONS_AVAILABLE = True
-except Exception as _e: logger.warning(f"OptionsEngine unavailable: {_e}")
+except Exception as _e:
+    logger.warning(f"OptionsEngine unavailable: {_e}")
 
 _AI_ENGINE_OK = False
 try:
     from engines.ai_engine import AIEngine
     _AI_ENGINE_OK = True
-except Exception as _e: logger.warning(f"AIEngine unavailable: {_e}")
-
+except Exception as _e:
+    logger.warning(f"AIEngine unavailable: {_e}")
 
 def _prog(cb, msg, frac):
     logger.info(f"[{frac:.0%}] {msg}")
-    if cb: cb(msg, frac)
-
+    if cb:
+        cb(msg, frac)
 
 def build_snapshot(
     progress_cb: Optional[Callable] = None,
@@ -206,27 +219,18 @@ def build_snapshot(
         )][:25]
     )
 
-    # ── Hedgeye ETF Pro Plus actual tickers — MUST be in Risk Range ──────────
     hedgeye_etf_pro_tickers = [
-        # Q2 LONG (ETF Pro Plus confirmed)
         "XLI","XLE","OIH","BNO","XOP","ITB","TLT","LQD",
         "JPXN","EIS","TUR","NORW","EWZ","EWW","EIDO","GLIN",
         "DAR","MTDR","SLX","CPER",
-        # Precious Metals (monster performers)
         "SLV","GLD","PPLT","GDX","GDXJ","SIL","SILJ",
-        # Defense / Secular
         "ITA","GRID",
-        # Q2/Q3 SHORT targets
         "MSTY","BITS","BLOK","WGMI","MAGS",
-        # Anti-beta hedge
         "BTAL","DUST",
-        # Signal Strength Stocks
         "ULS","BRBR",
-        # Standard
         "QQQ","SPY","IWM","RSP","GLD","SLV",
     ]
     rr_tickers = rr_tickers + hedgeye_etf_pro_tickers
-    # IHSG stocks — ensure IHSG tab has RR data without needing separate refresh
     if include_ihsg:
         ihsg_rr = [
             "^JKSE","EIDO",
@@ -239,7 +243,7 @@ def build_snapshot(
             "CTRA.JK","BSDE.JK","HEAL.JK","MIKA.JK",
         ]
         rr_tickers = rr_tickers + ihsg_rr
-    rr_tickers = list(dict.fromkeys(rr_tickers))  # dedupe, preserve order
+    rr_tickers = list(dict.fromkeys(rr_tickers))
 
     price_frames: Dict[str, pd.DataFrame] = {}
     try:
@@ -290,11 +294,14 @@ def build_snapshot(
     if _BOTTLENECK_OK:
         try:
             btk = BottleneckEngine().run(
-                prices=prices, quad_str=gip.structural_quad, quad_mon=gip.monthly_quad,
-                benchmark="SPY", asset_ranges=rr_result.get("asset_ranges",{}),
+                prices=prices,
+                structural_quad=gip.structural_quad,
+                monthly_quad=gip.monthly_quad,
+                risk_ranges=rr_result.get("asset_ranges", {}),  # ✅ FIX: risk_ranges (bukan asset_ranges)
             )
         except Exception as e:
-            logger.warning(f"Bottleneck run error: {e}"); btk = {}
+            logger.warning(f"Bottleneck run error: {e}")
+            btk = {}
     else:
         btk = {}
     snap["bottleneck"] = btk
@@ -307,7 +314,8 @@ def build_snapshot(
                 prices=prices, quad_str=gip.structural_quad, quad_mon=gip.monthly_quad, benchmark="SPY",
             )
         except Exception as e:
-            logger.warning(f"Narrative run error: {e}"); narratives = {}
+            logger.warning(f"Narrative run error: {e}")
+            narratives = {}
     else:
         narratives = {}
     snap["narratives"] = narratives
@@ -318,12 +326,13 @@ def build_snapshot(
         try:
             macro_ctx = {k:v for k,v in gip.features.items() if isinstance(v,float)}
             market_ctx = {
-                "oil_3m":  float(prices.get("CL=F",pd.Series()).tail(1).iloc[-1]/prices.get("CL=F",pd.Series()).iloc[-64]-1) if len(prices.get("CL=F",pd.Series()))>64 else 0.0,
+                "oil_3m": float(prices.get("CL=F",pd.Series()).tail(1).iloc[-1]/prices.get("CL=F",pd.Series()).iloc[-64]-1) if len(prices.get("CL=F",pd.Series()))>64 else 0.0,
                 "gold_3m": float(prices.get("GLD",pd.Series()).tail(1).iloc[-1]/prices.get("GLD",pd.Series()).iloc[-64]-1) if len(prices.get("GLD",pd.Series()))>64 else 0.0,
             }
             transition = RegimeTransitionEngine().run(macro=macro_ctx, market=market_ctx, gip_result=gip)
         except Exception as e:
-            logger.warning(f"Transition engine: {e}"); transition = None
+            logger.warning(f"Transition engine: {e}")
+            transition = None
     else:
         transition = None
     snap["transition"] = transition
@@ -334,7 +343,8 @@ def build_snapshot(
         try:
             health = MarketHealthEngine().run(prices=prices, gip_features=gip.features, quad=gip.structural_quad)
         except Exception as e:
-            logger.warning(f"Health engine: {e}"); health = {}
+            logger.warning(f"Health engine: {e}")
+            health = {}
     else:
         health = {}
     snap["health"] = health
@@ -346,47 +356,34 @@ def build_snapshot(
             prices_ctx = {"oil_3m": market_ctx.get("oil_3m",0) if _TRANSITION_OK else 0, "vol_stress": stress.get("vol_stress",0)}
             analogs = HistoricalAnalogEngine().run(gip_features=gip.features, prices_context=prices_ctx)
         except Exception as e:
-            logger.warning(f"Analog engine: {e}"); analogs = {"top_analogs":[], "composite_note":""}
+            logger.warning(f"Analog engine: {e}")
+            analogs = {"top_analogs":[], "composite_note":""}
     else:
         analogs = {"top_analogs":[], "composite_note":""}
     snap["analogs"] = analogs
 
-    # 14e. Gamma Regime (computed dari SPY rVol + VIX — zero hardcode)
+    # 14e. Gamma Regime
     _prog(progress_cb, "Computing gamma regime approximation...", 0.935)
     if _GAMMA_AVAILABLE:
         try:
             gamma_result = GammaRegimeEngine().run(prices=prices)
         except Exception as e:
             logger.warning(f"Gamma regime engine error: {e}")
-            gamma_result = {
-                "ok": False, "throttle": None, "regime": "UNKNOWN",
-                "source": "error", "note": str(e),
-            }
+            gamma_result = {"ok": False, "throttle": None, "regime": "UNKNOWN", "source": "error", "note": str(e)}
     else:
-        gamma_result = {
-            "ok": False, "throttle": None, "regime": "UNKNOWN",
-            "source": "unavailable",
-            "note": "GammaRegimeEngine not found. Copy engines/gamma_regime_engine.py to repo.",
-        }
+        gamma_result = {"ok": False, "throttle": None, "regime": "UNKNOWN", "source": "unavailable", "note": "GammaRegimeEngine not found."}
     snap["gamma"] = gamma_result
 
-    # 14f. Leveraged ETF Flow (yfinance AUM — zero hardcode)
+    # 14f. Leveraged ETF Flow
     _prog(progress_cb, "Fetching leveraged ETF AUM data...", 0.940)
     if _LEV_ETF_AVAILABLE:
         try:
             lev_result = LeveragedETFEngine().run(prices=prices)
         except Exception as e:
             logger.warning(f"Leveraged ETF engine error: {e}")
-            lev_result = {
-                "ok": False, "total_mcap_b": None,
-                "source": "error", "note": str(e),
-            }
+            lev_result = {"ok": False, "total_mcap_b": None, "source": "error", "note": str(e)}
     else:
-        lev_result = {
-            "ok": False, "total_mcap_b": None,
-            "source": "unavailable",
-            "note": "LeveragedETFEngine not found. Copy engines/leveraged_etf_engine.py to repo.",
-        }
+        lev_result = {"ok": False, "total_mcap_b": None, "source": "unavailable", "note": "LeveragedETFEngine not found."}
     snap["leveraged_etf"] = lev_result
 
     # 15. TRUE AUTONOMY v3 LIGHTWEIGHT
@@ -430,12 +427,9 @@ def build_snapshot(
         snap["auto_discoveries"] = {"candidates":[], "meta":{"fallback":"unavailable"}}
         snap["feedback_eval"] = {"evaluated":0,"promoted":0,"demoted":0}
 
-    # Store prices subset for UI
     snap["prices"] = {k:v for k,v in prices.items() if isinstance(v,pd.Series) and len(v)>10}
 
     # ── 16. AI ENGINE — Autonomous narrative/bottleneck/alpha discovery ────────
-    # Runs AFTER all data is collected so Claude has full context.
-    # Cached 6h. Fails gracefully if API key not set or call fails.
     _prog(progress_cb, "Running AI analysis (narratives, bottlenecks, alpha)...", 0.96)
     if _AI_ENGINE_OK:
         try:
@@ -447,16 +441,13 @@ def build_snapshot(
                 prices=prices,
             )
             snap["ai_analysis"] = ai_result
-            # Merge AI narratives into narratives snap (supplementary, not replacing)
             if ai_result.get("ok") and ai_result.get("narratives"):
                 existing_narr = snap.get("narratives",{}) or {}
                 existing_active = existing_narr.get("active_narratives",[]) or []
-                # Add AI narratives (de-duplicate by name)
                 existing_names = {n.get("name","") for n in existing_active}
                 ai_narr_merged = existing_active[:]
                 for n in ai_result.get("narratives",[]):
                     if n.get("name","") not in existing_names:
-                        # Convert to format expected by app.py
                         ai_narr_merged.append({
                             "name": n["name"],
                             "score": n["score"],
@@ -469,7 +460,6 @@ def build_snapshot(
                             "news_catalyst": n.get("news_catalyst",""),
                         })
                 snap["narratives"] = {**existing_narr, "active_narratives": ai_narr_merged}
-            # Merge AI alpha ideas into auto_discoveries
             if ai_result.get("ok") and ai_result.get("alpha_ideas"):
                 existing_disc = snap.get("auto_discoveries",{}) or {}
                 existing_cands = existing_disc.get("candidates",[]) or []
@@ -501,38 +491,40 @@ def build_snapshot(
     logger.info(f"Built in {snap['build_time_s']}s. Prices: {snap['prices_loaded']}, RR: {snap['price_frames_count']}")
     return snap
 
-
 def _build_stress(prices, gip) -> dict:
     def last(t):
         s = prices.get(t)
-        if s is None: return None
+        if s is None:
+            return None
         s = pd.to_numeric(s, errors="coerce").dropna()
         return float(s.iloc[-1]) if not s.empty else None
 
     def ret1m(t):
         s = prices.get(t)
-        if s is None: return 0.0
+        if s is None:
+            return 0.0
         s = pd.to_numeric(s, errors="coerce").dropna()
-        if len(s) < 22: return 0.0
+        if len(s) < 22:
+            return 0.0
         return float(s.iloc[-1]/s.iloc[-22]-1)
 
     vix_raw = last("^VIX")
     vix = vix_raw if (vix_raw is not None and math.isfinite(vix_raw)) else 18.0
     dxy_1m = ret1m("DX-Y.NYB")
-    vol_stress    = float(np.clip((vix-15.0)/25.0, 0.0, 1.0))
-    shock         = 0.5 if gip.structural_quad=="Q3" else 0.8 if gip.structural_quad=="Q4" else 0.2
-    crowding      = float(gip.features.get("proxy_share", 0.3))
-    dollar_pres   = float(np.clip(0.5+dxy_1m/0.04, 0.0, 1.0))
-    tail_bid      = float(np.clip((vix-20.0)/30.0, 0.0, 1.0))
+    vol_stress = float(np.clip((vix-15.0)/25.0, 0.0, 1.0))
+    shock = 0.5 if gip.structural_quad=="Q3" else 0.8 if gip.structural_quad=="Q4" else 0.2
+    crowding = float(gip.features.get("proxy_share", 0.3))
+    dollar_pres = float(np.clip(0.5+dxy_1m/0.04, 0.0, 1.0))
+    tail_bid = float(np.clip((vix-20.0)/30.0, 0.0, 1.0))
     return dict(
         vol_stress=vol_stress, shock_penalty=shock*0.5,
         crowding=crowding, dollar_pressure=dollar_pres,
         tail_hedge_bid=tail_bid, vix=vix,
     )
 
-
 def get_or_build(force=False, max_age_h=4.0, **kw) -> dict:
     if not force:
         snap = load_snapshot(max_age_hours=max_age_h)
-        if snap and snap.get("ok"): return snap
+        if snap and snap.get("ok"):
+            return snap
     return build_snapshot(**kw)

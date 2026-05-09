@@ -547,13 +547,17 @@ if page == "🏠 Dashboard":
     if ai_ok:
         import datetime
         ts_str = datetime.datetime.fromtimestamp(ai_ts).strftime("%H:%M") if ai_ts else "—"
-        st.markdown(f'<div class="info-box">🤖 AI ACTIVE — Gemini 2.5 Pro generated {ai_cnt_narr} narratives · {ai_cnt_alpha} alpha ideas · {ai_cnt_btk} bottlenecks · Updated {ts_str} · Auto-refreshes every 6h</div>', unsafe_allow_html=True)
-    else:
-        ai_reason = ai_data.get("reason","")
-        if "GEMINI_API_KEY" in ai_reason:
-            st.markdown('<div class="warning-box">⚠ AI OFFLINE — Add GEMINI_API_KEY to Streamlit Secrets to enable autonomous discovery</div>', unsafe_allow_html=True)
+        model_name = ai_data.get("model", "unknown")
+        if "rule-based" in str(model_name):
+            st.markdown(f'<div class="success-box">🧠 AI RULE-BASED ACTIVE — Auto-generated from live data · {ai_cnt_narr} narratives · {ai_cnt_alpha} alpha ideas · {ai_cnt_btk} bottlenecks · Updated {ts_str} · Auto-refreshes every 6h</div>', unsafe_allow_html=True)
         else:
-            st.markdown('<div class="info-box">🤖 AI: Fallback — Using pre-defined content. AI analysis will auto-run when API is available.</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="info-box">🤖 AI ACTIVE — {model_name} · {ai_cnt_narr} narratives · {ai_cnt_alpha} alpha ideas · {ai_cnt_btk} bottlenecks · Updated {ts_str}</div>', unsafe_allow_html=True)
+    else:
+        ai_reason = ai_data.get("reason", "")
+        if "GEMINI_API_KEY" in ai_reason:
+            st.markdown(f'<div class="warning-box">⚠ AI OFFLINE — Add GEMINI_API_KEY to Streamlit Secrets to enable autonomous discovery</div>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="warning-box">🤖 AI: Fallback — {ai_reason}</div>', unsafe_allow_html=True)
 
     st.markdown(f'<div style="color:#8B949E;font-size:12px;margin-bottom:16px;">Built {snap.get("build_time_s",0):.0f}s ago · {snap.get("prices_loaded",0)} assets tracked · {snap.get("fred_coverage",0)} macro indicators</div>', unsafe_allow_html=True)
 
@@ -812,7 +816,6 @@ elif page == "⚡ Alpha Center":
                 if v.get("market") not in ("us_equity","commodity"): continue
                 comp=v.get("composite",""); qual=v.get("quality","")
                 tr=v.get("trade",{}); px=_sf(v.get("px")); lrr=_sf(tr.get("lrr")); trr=_sf(tr.get("trr"))
-                # ✅ FIX: Turunin threshold ke A/B/C
                 if comp=="bullish" and qual in ("A","B","C"):
                     rl=_rr_levels(px,lrr,trr,"long")
                     if rl:
@@ -828,7 +831,7 @@ elif page == "⚡ Alpha Center":
                             "sector":TICKER_SECTOR.get(sym,"generic").replace("_"," ").title()[:14],
                             "quality":qual,"comp":comp,"ev":0.5,"known_thesis":"Signal Strength Short A/B/C"})
 
-        # ✅ FIX: AI fallback injection kalau masih kosong
+        # AI fallback injection kalau masih kosong
         if not all_longs and ai_data.get("ok"):
             for idea in ai_data.get("alpha_ideas", []):
                 if idea.get("direction") == "long":
@@ -994,7 +997,6 @@ elif page == "📊 Leaderboard":
         try: from config.settings import TICKER_SECTOR; sector=TICKER_SECTOR.get(sym,"generic").replace("_"," ").title()
         except: sector="Generic"
 
-        # ✅ FIX: Turunin threshold ke A/B/C
         if qual in ("A","B","C") and comp=="bullish":
             rl=_rr_levels(px,lrr,trr,"long"); pos=rl.get("pos",0.5) if rl else 0.5
             rf=sym in best_set; ra=sym in worst_set
@@ -1169,7 +1171,7 @@ elif page == "📖 Narratives":
     all_n = active if active else fallback
 
     if ai_data.get("ok") and ai_data.get("narratives"):
-        st.success(f"🤖 **{len(ai_data.get('narratives',[]))} AI-generated narratives** from latest news · Auto-updated every 6 hours")
+        st.success(f"🧠 **{len(ai_data.get('narratives',[]))} rule-based narratives** from live data · Auto-updated every 6 hours")
 
     for n in sorted(all_n, key=lambda x: x.get("score",0), reverse=True):
         score=n.get("score",0)
@@ -1199,7 +1201,7 @@ elif page == "🔮 Discovery":
         su = ai_data.get("scenario_update",{}) or {}
         ai_ideas = ai_data.get("alpha_ideas",[])
         if su or ai_ideas:
-            st.markdown("### 🤖 AI Analysis — Updated from Latest News")
+            st.markdown("### 🧠 Rule-Based Analysis — Updated from Live Data")
             if su:
                 col1,col2 = st.columns(2)
                 with col1:
@@ -1211,7 +1213,7 @@ elif page == "🔮 Discovery":
                 if su.get("regime_change_signal"):
                     st.info(f"**Watch for regime shift**: {su['regime_change_signal']}")
             if ai_ideas:
-                st.markdown(f"#### 🎯 AI-Generated Alpha Ideas ({len(ai_ideas)})")
+                st.markdown(f"#### 🎯 Rule-Based Alpha Ideas ({len(ai_ideas)})")
                 for idea in ai_ideas:
                     conf = idea.get("confidence",0.7)
                     with st.expander(f"**{idea.get('ticker','')}** — {idea.get('name','')} · Confidence {conf:.0%}"):

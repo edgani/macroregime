@@ -297,7 +297,7 @@ def build_snapshot(
                 prices=prices,
                 structural_quad=gip.structural_quad,
                 monthly_quad=gip.monthly_quad,
-                risk_ranges=rr_result.get("asset_ranges", {}),  # ✅ FIX: risk_ranges (bukan asset_ranges)
+                risk_ranges=rr_result.get("asset_ranges", {}),
             )
         except Exception as e:
             logger.warning(f"Bottleneck run error: {e}")
@@ -429,8 +429,8 @@ def build_snapshot(
 
     snap["prices"] = {k:v for k,v in prices.items() if isinstance(v,pd.Series) and len(v)>10}
 
-    # ── 16. AI ENGINE — Autonomous narrative/bottleneck/alpha discovery ────────
-    _prog(progress_cb, "Running AI analysis (narratives, bottlenecks, alpha)...", 0.96)
+    # ── 16. AI ENGINE — Rule-based autonomous analysis ───────────────────────
+    _prog(progress_cb, "Running AI analysis (rule-based)...", 0.96)
     if _AI_ENGINE_OK:
         try:
             ai_result = AIEngine().run(
@@ -439,6 +439,10 @@ def build_snapshot(
                 gq=(snap.get("global",{}) or {}).get("global_quad","Q3"),
                 gip_features=gip.features,
                 prices=prices,
+                asset_ranges=rr_result.get("asset_ranges", {}),
+                sector_map=TICKER_SECTOR,
+                health=health,
+                transition=transition,
             )
             snap["ai_analysis"] = ai_result
             if ai_result.get("ok") and ai_result.get("narratives"):
@@ -456,7 +460,8 @@ def build_snapshot(
                             "best": n.get("best",[]),
                             "worst": n.get("worst",[]),
                             "invalidators": n.get("invalidators",[]),
-                            "ai_generated": True,
+                            "ai_generated": False,
+                            "source": "rule-based",
                             "news_catalyst": n.get("news_catalyst",""),
                         })
                 snap["narratives"] = {**existing_narr, "active_narratives": ai_narr_merged}
@@ -469,12 +474,13 @@ def build_snapshot(
                         "stage": idea.get("stage","brewing"),
                         "confidence": idea.get("confidence",0.7),
                         "thesis": idea.get("thesis",""),
-                        "category": idea.get("category","AI Discovery"),
+                        "category": idea.get("category","Rule-Based Discovery"),
                         "beneficiary_tickers": [idea.get("ticker","")],
                         "fade_tickers": [],
                         "confirmation_signal": idea.get("regime_fit",""),
                         "invalidators": idea.get("invalidators",[]),
-                        "ai_generated": True,
+                        "ai_generated": False,
+                        "source": "rule-based",
                     })
                 snap["auto_discoveries"] = {**existing_disc, "candidates": existing_cands}
         except Exception as e:

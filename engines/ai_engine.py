@@ -1,13 +1,15 @@
-"""engines/ai_engine.py — Autonomous Intelligence Layer (GEMINI VERSION)"""
+"""engines/ai_engine.py — Autonomous Intelligence Layer (RULE-BASED, NO API)
+
+Generates narratives, bottlenecks, alpha ideas, and scenario updates
+purely from snapshot data. Zero external API calls. Self-contained.
+"""
 from __future__ import annotations
 
-import json
-import math
 import logging
-import os
 import time
 from typing import Dict, List, Optional
 
+import numpy as np
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -16,379 +18,510 @@ _AI_CACHE: Dict = {}
 _AI_CACHE_TS: float = 0.0
 _AI_CACHE_TTL: float = 6 * 3600
 
-MODEL = "gemini-2.5-pro-preview-03-25"
-MAX_TOKENS = 8192
-TIMEOUT_SEC = 60
+# ── Regime-driven narrative templates ──────────────────────────────────────────
+NARRATIVE_TEMPLATES = {
+    "Q1": [
+        {
+            "name": "Tech & Crypto Momentum",
+            "score": 0.85,
+            "stage": "active",
+            "thesis": "Goldilocks regime supports growth assets. Easing inflation + accelerating growth = ideal for tech and crypto. Dips are buying opportunities.",
+            "regime_bias": "Q1",
+            "tickers": ["QQQ","IBIT","MAGS","XLK","IWM"],
+            "best": ["QQQ","IBIT","MAGS"],
+            "worst": ["TLT","XLU"],
+            "invalidators": ["Inflation re-accelerates above 3.5%","GDP growth turns negative"],
+            "news_catalyst": "Fed dovish pivot + strong earnings",
+        },
+        {
+            "name": "Small Cap Breakout",
+            "score": 0.72,
+            "stage": "building",
+            "thesis": "Rate cut expectations favor smaller companies with floating-rate debt. Russell 2000 showing relative strength.",
+            "regime_bias": "Q1",
+            "tickers": ["IWM","RSP","VTI"],
+            "best": ["IWM","RSP"],
+            "worst": ["QQQ","XLK"],
+            "invalidators": ["Credit spreads widen >200bps","Recession signal triggers"],
+            "news_catalyst": "CPI cooling + credit expansion",
+        },
+    ],
+    "Q2": [
+        {
+            "name": "Energy Offense",
+            "score": 0.88,
+            "stage": "active",
+            "thesis": "Reflation regime = energy and commodities win. Oil services have operating leverage. Inflation hedges outperform.",
+            "regime_bias": "Q2",
+            "tickers": ["XLE","OIH","BNO","XOP","DAR","MTDR"],
+            "best": ["OIH","BNO","XOP"],
+            "worst": ["XLU","XLP","TLT"],
+            "invalidators": ["Oil demand collapse","Q4 deflation signal"],
+            "news_catalyst": "OPEC cuts + industrial demand rebound",
+        },
+        {
+            "name": "International Rotation",
+            "score": 0.80,
+            "stage": "active",
+            "thesis": "USD bearish trend supports EM and international equities. Diversify away from US concentration risk.",
+            "regime_bias": "Q2",
+            "tickers": ["JPXN","EIS","TUR","NORW","EWZ","GLIN"],
+            "best": ["JPXN","EIS","TUR"],
+            "worst": ["SPY","IWM"],
+            "invalidators": ["DXY bullish reversal","Global recession"],
+            "news_catalyst": "Yen weakness + EM capital inflows",
+        },
+        {
+            "name": "Commodity Supercycle",
+            "score": 0.78,
+            "stage": "building",
+            "thesis": "Industrial metals and energy bid by reflation. Supply constraints + rising demand = structural tailwind.",
+            "regime_bias": "Q2",
+            "tickers": ["SLV","GDX","GDXJ","CPER","SLX"],
+            "best": ["SLV","GDXJ","CPER"],
+            "worst": ["XLK","MAGS"],
+            "invalidators": ["China hard landing","Q4 deflation"],
+            "news_catalyst": "China stimulus + green energy demand",
+        },
+        {
+            "name": "Bitcoin Reflation",
+            "score": 0.75,
+            "stage": "active",
+            "thesis": "Every quad except Q4 = long Bitcoin. DXY bearish correlation supports crypto bid. Institutional adoption accelerates.",
+            "regime_bias": "Q2",
+            "tickers": ["IBIT","FBTC","BTC-USD"],
+            "best": ["IBIT"],
+            "worst": ["MSTY","BLOK"],
+            "invalidators": ["Q4 signal","DXY bullish reversal"],
+            "news_catalyst": "ETF inflows + halving supply shock",
+        },
+    ],
+    "Q3": [
+        {
+            "name": "Gold & Silver Defense",
+            "score": 0.92,
+            "stage": "active",
+            "thesis": "Stagflation = most dangerous regime. Gold and silver are the single best assets. Central bank buying at record pace.",
+            "regime_bias": "Q3",
+            "tickers": ["GLD","SLV","GDX","GDXJ","SILJ"],
+            "best": ["GLD","SLV","GDX"],
+            "worst": ["XLK","MAGS","QQQ"],
+            "invalidators": ["Q4→Q1 direct transition","DXY strong bullish reversal"],
+            "news_catalyst": "De-dollarization + geopolitical hedging",
+        },
+        {
+            "name": "Defense Reshoring",
+            "score": 0.85,
+            "stage": "active",
+            "thesis": "NATO commitments + geopolitical premium = defense secular bid. ITA/LMT/KTOS work in ALL quads but especially Q3.",
+            "regime_bias": "Q3",
+            "tickers": ["ITA","LMT","RTX","KTOS","PLTR"],
+            "best": ["ITA","KTOS"],
+            "worst": ["XLU"],
+            "invalidators": ["Global peace agreement","Defense budget cuts"],
+            "news_catalyst": "NATO 2% GDP + Indo-Pacific tension",
+        },
+        {
+            "name": "AI Power Infrastructure",
+            "score": 0.78,
+            "stage": "building",
+            "thesis": "AI data centers need 24/7 firm power. Nuclear + gas = only scalable solution. Long-term contracts secured.",
+            "regime_bias": "Q3",
+            "tickers": ["VST","CEG","GEV","ETN","VRT"],
+            "best": ["VST","CEG"],
+            "worst": ["INTC","SMCI"],
+            "invalidators": ["AI capex cycle pause","Regulatory block on nuclear"],
+            "news_catalyst": "NVIDIA $2B photonics commitment + data center buildout",
+        },
+        {
+            "name": "Indonesia Commodity Play",
+            "score": 0.65,
+            "stage": "brewing",
+            "thesis": "EIDO = coal + nickel + CPO + geothermal. Q3 stagflation = commodity bid. PGEO geothermal = renewable hybrid.",
+            "regime_bias": "Q3",
+            "tickers": ["EIDO","PGEO.JK","ADRO.JK","NCKL.JK"],
+            "best": ["EIDO","PGEO.JK"],
+            "worst": ["TLKM.JK"],
+            "invalidators": ["China demand collapse","Q4 deflation"],
+            "news_catalyst": "Pertamina hulu expansion + nickel EV demand",
+        },
+    ],
+    "Q4": [
+        {
+            "name": "Bond & Gold Safety",
+            "score": 0.90,
+            "stage": "active",
+            "thesis": "Deflation = both growth and inflation falling. Government bonds and gold win. Cash is king. Avoid risk.",
+            "regime_bias": "Q4",
+            "tickers": ["TLT","GLD","XLU","VZ"],
+            "best": ["TLT","GLD","XLU"],
+            "worst": ["QQQ","IWM","XLE"],
+            "invalidators": ["Fed emergency cut ends","Q1 signal triggers"],
+            "news_catalyst": "Recession confirmation + credit event",
+        },
+        {
+            "name": "Dollar Strength Play",
+            "score": 0.75,
+            "stage": "active",
+            "thesis": "Deflationary collapse drives flight to USD. DXY bullish = short EM and commodities. Long dollar proxies.",
+            "regime_bias": "Q4",
+            "tickers": ["UUP","DX-Y.NYB"],
+            "best": ["UUP"],
+            "worst": ["EEM","EIDO","BNO"],
+            "invalidators": ["Fed prints money","Q1 signal"],
+            "news_catalyst": "Credit crunch + global deleveraging",
+        },
+    ],
+}
 
-NEWS_TICKERS = [
-    "SPY","QQQ","TLT","GLD","SLV","DX-Y.NYB","^VIX",
-    "XLE","OIH","GDX","GDXJ","SLV","IBIT","JPXN","EIS",
-    "LITE","COHR","WOLF","ON","VST","CEG","ETN","VRT",
-    "EIDO","ITA","LMT","KTOS","BNO","CL=F","BZ=F",
-    "IWM","HYG","EEM",
-]
-MAX_HEADLINES = 40
+# ── Bottleneck templates ──────────────────────────────────────────────────────
+BOTTLENECK_TEMPLATES = {
+    "ai_optics": {
+        "name": "AI Photonics Bottleneck",
+        "constraint": 0.97,
+        "sector": "ai_optics",
+        "thesis": "200G EML lasers supply-constrained. NVIDIA committed $2B to photonics. POET co-packaged optics removes thermal limits. Only LITE, COHR, CIEN scale.",
+        "beneficiary_tickers": ["LITE","COHR","CIEN","VIAV"],
+        "fade_tickers": ["INTC","SMCI"],
+        "time_horizon": "months",
+        "confidence": 0.88,
+        "stage": "active",
+    },
+    "ai_power": {
+        "name": "AI Power Infrastructure Bottleneck",
+        "constraint": 0.85,
+        "sector": "ai_power",
+        "thesis": "AI data centers need 24/7 firm power. Nuclear + gas only scalable. VST, CEG, GEV winning long-term contracts. Grid capacity limited.",
+        "beneficiary_tickers": ["VST","CEG","GEV","ETN","VRT"],
+        "fade_tickers": ["INTC"],
+        "time_horizon": "months",
+        "confidence": 0.83,
+        "stage": "active",
+    },
+    "precious_metals": {
+        "name": "Silver Supply Squeeze",
+        "constraint": 0.92,
+        "sector": "precious_metals",
+        "thesis": "Solar + AI chip silver demand accelerating. Mine supply flat. LBMA vault declining. Dual industrial + monetary demand.",
+        "beneficiary_tickers": ["SLV","SILJ","SIL","GDXJ"],
+        "fade_tickers": ["MSTY","BLOK"],
+        "time_horizon": "months",
+        "confidence": 0.85,
+        "stage": "active",
+    },
+    "defense": {
+        "name": "Defense Reshoring",
+        "constraint": 0.78,
+        "sector": "defense",
+        "thesis": "NATO 2%+ GDP commitment. Geopolitical premium structural. ITA/LMT/KTOS secular long. Supply chain reshoring = bottleneck.",
+        "beneficiary_tickers": ["ITA","LMT","RTX","KTOS","PLTR"],
+        "fade_tickers": ["XLU"],
+        "time_horizon": "months",
+        "confidence": 0.82,
+        "stage": "active",
+    },
+    "energy_infra": {
+        "name": "Oil Services Capacity",
+        "constraint": 0.72,
+        "sector": "energy_infra",
+        "thesis": "OPEC discipline + shale plateau = oil services bottleneck. Day rates rising. OIH/XOP operating leverage extreme.",
+        "beneficiary_tickers": ["OIH","XOP","SLB","HAL"],
+        "fade_tickers": ["XLE"],
+        "time_horizon": "months",
+        "confidence": 0.75,
+        "stage": "building",
+    },
+}
 
-def _get_api_key() -> Optional[str]:
-    try:
-        import streamlit as st
-        key = st.secrets.get("GEMINI_API_KEY") or st.secrets.get("gemini_api_key")
-        if key:
-            logger.info(f"AIEngine: GEMINI_API_KEY found in Streamlit secrets (len={len(str(key))})")
-            return str(key)
-    except Exception as e:
-        logger.warning(f"AIEngine: Streamlit secrets error: {e}")
-    env_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("gemini_api_key")
-    if env_key:
-        logger.info(f"AIEngine: GEMINI_API_KEY found in env (len={len(str(env_key))})")
-    else:
-        logger.warning("AIEngine: GEMINI_API_KEY NOT found in secrets or env")
-    return env_key
-
-def _fetch_news_headlines(tickers: List[str], max_per_ticker: int = 3) -> List[str]:
-    headlines = []
-    try:
-        import yfinance as yf
-        for ticker in tickers:
-            try:
-                yt = yf.Ticker(ticker)
-                news = yt.news or []
-                for item in news[:max_per_ticker]:
-                    title = item.get("title", "") or item.get("headline", "")
-                    if title and len(title) > 10:
-                        headlines.append(f"[{ticker}] {title}")
-                    if len(headlines) >= MAX_HEADLINES:
-                        break
-            except Exception:
-                continue
-    except Exception as e:
-        logger.warning(f"News fetch failed: {e}")
-    logger.info(f"AIEngine: fetched {len(headlines)} headlines")
-    return headlines[:MAX_HEADLINES]
-
-def _price_performance(prices: Dict[str, pd.Series], tickers: List[str]) -> Dict[str, Dict]:
-    result = {}
-    for ticker in tickers:
-        s = prices.get(ticker)
-        if s is None:
-            continue
-        s = pd.to_numeric(s, errors="coerce").dropna()
-        if len(s) < 5:
-            continue
-        try:
-            r5 = float(s.iloc[-1] / s.iloc[-6] - 1) if len(s) >= 6 else None
-            r21 = float(s.iloc[-1] / s.iloc[-22] - 1) if len(s) >= 22 else None
-            r63 = float(s.iloc[-1] / s.iloc[-64] - 1) if len(s) >= 64 else None
-            result[ticker] = {
-                "5d": f"{r5:+.1%}" if r5 is not None else "—",
-                "1m": f"{r21:+.1%}" if r21 is not None else "—",
-                "3m": f"{r63:+.1%}" if r63 is not None else "—",
-                "px": f"{float(s.iloc[-1]):.2f}",
-            }
-        except Exception:
-            continue
-    return result
-
-def _build_prompt(sq: str, mq: str, gq: str, gip_features: Dict, headlines: List[str], perf: Dict) -> str:
-    QUAD_CONTEXT = {
-        "Q1": "Goldilocks (Growth↑ Inflation↓) — Tech, Small Caps, Crypto win",
-        "Q2": "Reflation (Growth↑ Inflation↑) — Energy, Commodities, International win",
-        "Q3": "Stagflation (Growth↓ Inflation↑) — Gold, Silver, Defensives win. Tech loses.",
-        "Q4": "Deflation (Growth↓ Inflation↓) — Bonds, Gold, Utilities win. Everything else loses.",
-    }
-    gm = gip_features.get("growth_momentum", 0)
-    im = gip_features.get("inflation_momentum", 0)
-    ps = gip_features.get("policy_score", 0)
-
-    perf_lines = []
-    for t, d in sorted(perf.items(), key=lambda x: x[0]):
-        perf_lines.append(f" {t}: 5d={d.get('5d','—')} 1m={d.get('1m','—')} 3m={d.get('3m','—')}")
-    perf_str = "\n".join(perf_lines[:25]) if perf_lines else " No price data"
-
-    news_str = "\n".join(f" {h}" for h in headlines) if headlines else " No recent news"
-
-    prompt = f"""You are a Hedgeye-style quantitative macro research analyst. Analyze the current environment and identify actionable investment opportunities.
-
-CURRENT MACRO REGIME:
- Structural (Quarterly): {sq} — {QUAD_CONTEXT.get(sq,sq)}
- Monthly (3-6 weeks): {mq} — {QUAD_CONTEXT.get(mq,mq)}
- Global (50 countries): {gq} — {QUAD_CONTEXT.get(gq,gq)}
-
-KEY ECONOMIC SIGNALS:
- Growth momentum: {gm:+.2%} ({'accelerating' if gm>0 else 'decelerating'})
- Inflation momentum: {im:+.2%} ({'rising' if im>0 else 'cooling'})
- Central bank stance: {'Dovish' if (ps or 0)>0.05 else 'Hawkish' if (ps or 0)<-0.05 else 'Neutral'}
-
-RECENT PRICE PERFORMANCE (key assets):
-{perf_str}
-
-RECENT NEWS HEADLINES (last 24-48 hours):
-{news_str}
-
-TASK: Based on the regime, price action, and latest news, generate a JSON analysis with FOUR sections.
-
-RULES:
-1. Only recommend assets that make sense in the current Quad ({sq} structural, {mq} monthly).
-2. In Q3: Tech/XLK/MAGS are WORST. Gold/Silver/Defensives are BEST.
-3. In Q2 monthly overlay: Energy offense (OIH/BNO/XOP), International (JPXN/EIS/TUR), Commodities OK.
-4. Bitcoin: Long in Q1/Q2/Q3. Exit ONLY in Q4.
-5. Every narrative must have a clear invalidation condition.
-6. Bottlenecks = supply constraint + rising demand. Must have real scarcity.
-7. Alpha ideas = specific, actionable, with clear thesis tied to regime.
-8. Confidence scores must be realistic (0.5-0.95 range).
-
-OUTPUT: Return ONLY valid JSON in this exact format:
-
-{{
-  "narratives": [
-    {{
-      "name": "Theme name (4-6 words)",
-      "score": 0.0,
-      "stage": "active|building|brewing",
-      "thesis": "2 sentences max. What is happening and why does it matter?",
-      "regime_bias": "Q1|Q2|Q3|Q4|ALL",
-      "tickers": ["TICK1","TICK2","TICK3"],
-      "best": ["TICK1","TICK2"],
-      "worst": ["TICK3"],
-      "invalidators": ["Condition that breaks this thesis"],
-      "news_catalyst": "Specific recent headline driving this"
-    }}
-  ],
-  "bottlenecks": [
-    {{
-      "name": "Bottleneck name",
-      "constraint": 0.0,
-      "sector": "ai_optics|energy_infra|precious_metals|defense|etc",
-      "thesis": "What is scarce and why?",
-      "beneficiary_tickers": ["TICK1","TICK2"],
-      "fade_tickers": ["TICK3"],
-      "time_horizon": "months",
-      "confidence": 0.0,
-      "stage": "active|building|brewing"
-    }}
-  ],
-  "alpha_ideas": [
-    {{
-      "ticker": "TICK",
-      "name": "Company/ETF name",
-      "direction": "long|short",
-      "confidence": 0.0,
-      "stage": "active|building|brewing",
-      "thesis": "2 sentences. Why now, why this regime?",
-      "regime_fit": "Explain why this works in current {sq}/{mq} regime",
-      "category": "Bottleneck|Macro Rotation|Options Flow|Narrative|Technical",
-      "invalidators": ["What breaks the thesis"]
-    }}
-  ],
-  "scenario_update": {{
-    "headline_risk": "Describe the biggest near-term risk from recent news in 1 sentence",
-    "opportunity": "Describe the biggest near-term opportunity in 1 sentence",
-    "regime_change_signal": "What data point would trigger a regime shift?",
-    "base_case_intact": true
-  }}
-}}
-
-Generate 3-5 narratives, 2-4 bottlenecks, 3-5 alpha ideas. Make them specific and actionable.
-Prioritize ideas that are directly driven by recent news headlines above."""
-
-    return prompt
-
-def _call_gemini(prompt: str, api_key: str) -> Optional[Dict]:
-    try:
-        import google.generativeai as genai
-        logger.info("AIEngine: google-generativeai imported successfully")
-        genai.configure(api_key=api_key)
-
-        model = genai.GenerativeModel(
-            MODEL,
-            generation_config=genai.types.GenerationConfig(
-                temperature=0.3,
-                max_output_tokens=MAX_TOKENS,
-                response_mime_type="application/json",
-            ),
-        )
-
-        logger.info(f"AIEngine: calling Gemini model={MODEL}...")
-        response = model.generate_content(prompt)
-        raw = response.text.strip()
-        logger.info(f"AIEngine: Gemini raw response length={len(raw)}")
-
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-        if raw.startswith("json"):
-            raw = raw[4:]
-        raw = raw.strip()
-
-        return json.loads(raw)
-
-    except ImportError as e:
-        logger.error(f"AIEngine: FAILED to import google-generativeai: {e}")
+# ── Helpers ───────────────────────────────────────────────────────────────────
+def _safe_float(v):
+    if v is None:
         return None
-    except json.JSONDecodeError as e:
-        logger.warning(f"AIEngine: Gemini JSON parse error: {e}")
-        return None
-    except Exception as e:
-        logger.warning(f"AIEngine: Gemini API call failed: {e}")
+    try:
+        import math
+        f = float(v)
+        return f if math.isfinite(f) else None
+    except:
         return None
 
-def _validate_output(data: Dict) -> Dict:
-    clean = {}
-    narr = []
-    for n in (data.get("narratives") or []):
-        if not isinstance(n, dict):
+def _price_perf(s, days: int):
+    if s is None or len(s) < days + 1:
+        return None
+    s = pd.to_numeric(s, errors="coerce").dropna()
+    if len(s) < days + 1:
+        return None
+    try:
+        return float(s.iloc[-1] / s.iloc[-(days + 1)] - 1)
+    except:
+        return None
+
+def _detect_sector_momentum(prices, sector_map):
+    sector_returns = {}
+    for ticker, s in prices.items():
+        sector = sector_map.get(ticker)
+        if not sector:
             continue
-        if not n.get("name") or not n.get("thesis"):
-            continue
-        narr.append({
-            "name": str(n.get("name", ""))[:60],
-            "score": max(0.0, min(1.0, float(n.get("score", 0.7)))),
-            "stage": str(n.get("stage", "brewing")) if n.get("stage") in ("active", "building", "brewing") else "brewing",
-            "thesis": str(n.get("thesis", ""))[:300],
-            "regime_bias": str(n.get("regime_bias", "ALL")),
-            "tickers": [str(t) for t in (n.get("tickers") or [])[:10]],
-            "best": [str(t) for t in (n.get("best") or [])[:6]],
-            "worst": [str(t) for t in (n.get("worst") or [])[:4]],
-            "invalidators": [str(i) for i in (n.get("invalidators") or [])[:3]],
-            "news_catalyst": str(n.get("news_catalyst", ""))[:200],
-            "ai_generated": True,
-        })
-    clean["narratives"] = narr[:6]
+        r = _price_perf(s, 21)
+        if r is not None:
+            sector_returns.setdefault(sector, []).append(r)
+    return {sec: float(np.mean(rets)) for sec, rets in sector_returns.items() if rets}
+
+def _build_narratives(sq, mq, gq, prices, sector_map, gip_features):
+    base = []
+    if sq in NARRATIVE_TEMPLATES:
+        base.extend([{**n, "regime_bias": sq} for n in NARRATIVE_TEMPLATES[sq]])
+    if mq != sq and mq in NARRATIVE_TEMPLATES:
+        for n in NARRATIVE_TEMPLATES[mq]:
+            if not any(b["name"] == n["name"] for b in base):
+                base.append({**n, "regime_bias": mq, "score": n["score"] * 0.9})
+
+    for narr in base:
+        tickers = narr.get("tickers", [])
+        returns = []
+        for t in tickers:
+            r = _price_perf(prices.get(t), 21)
+            if r is not None:
+                returns.append(r)
+        if returns:
+            avg_ret = float(np.mean(returns))
+            if avg_ret > 0.05:
+                narr["score"] = min(0.98, narr["score"] + 0.05)
+                narr["stage"] = "active"
+            elif avg_ret < -0.05:
+                narr["score"] = max(0.3, narr["score"] - 0.10)
+                narr["stage"] = "brewing"
+        narr["ai_generated"] = False
+        narr["source"] = "rule-based"
+
+    return sorted(base, key=lambda x: x["score"], reverse=True)
+
+def _build_bottlenecks(sq, mq, prices, sector_map):
+    relevant_sectors = []
+    if sq in ("Q2", "Q3"):
+        relevant_sectors = ["precious_metals", "ai_optics", "ai_power", "defense", "energy_infra"]
+    elif sq == "Q1":
+        relevant_sectors = ["ai_optics", "ai_power", "energy_infra"]
+    elif sq == "Q4":
+        relevant_sectors = ["precious_metals", "defense"]
 
     btks = []
-    for b in (data.get("bottlenecks") or []):
-        if not isinstance(b, dict):
+    for sector in relevant_sectors:
+        tmpl = BOTTLENECK_TEMPLATES.get(sector)
+        if not tmpl:
             continue
-        if not b.get("name"):
-            continue
+        ben_rets = []
+        for t in tmpl["beneficiary_tickers"]:
+            r = _price_perf(prices.get(t), 21)
+            if r is not None:
+                ben_rets.append(r)
+        if ben_rets and np.mean(ben_rets) > 0.03:
+            confidence = min(0.95, tmpl["confidence"] + 0.05)
+            stage = "active"
+        else:
+            confidence = tmpl["confidence"]
+            stage = tmpl["stage"]
+
         btks.append({
-            "name": str(b.get("name", ""))[:60],
-            "constraint": max(0.0, min(1.0, float(b.get("constraint", 0.7)))),
-            "sector": str(b.get("sector", "generic")),
-            "thesis": str(b.get("thesis", ""))[:300],
-            "beneficiary_tickers": [str(t) for t in (b.get("beneficiary_tickers") or [])[:8]],
-            "fade_tickers": [str(t) for t in (b.get("fade_tickers") or [])[:4]],
-            "time_horizon": str(b.get("time_horizon", "weeks")),
-            "confidence": max(0.0, min(1.0, float(b.get("confidence", 0.7)))),
-            "stage": str(b.get("stage", "brewing")) if b.get("stage") in ("active", "building", "brewing") else "brewing",
-            "ai_generated": True,
+            **tmpl,
+            "confidence": confidence,
+            "stage": stage,
+            "ai_generated": False,
+            "source": "rule-based",
+            "beneficiary_1m_avg": float(np.mean(ben_rets)) if ben_rets else None,
         })
-    clean["bottlenecks"] = btks[:5]
 
-    ideas = []
-    for a in (data.get("alpha_ideas") or []):
-        if not isinstance(a, dict):
+    # Price-detected outliers
+    sector_mom = _detect_sector_momentum(prices, sector_map)
+    for ticker, s in prices.items():
+        sector = sector_map.get(ticker)
+        if not sector:
             continue
-        if not a.get("ticker") or not a.get("thesis"):
+        sec_ret = sector_mom.get(sector, 0)
+        tick_ret = _price_perf(s, 21)
+        if tick_ret is None:
             continue
-        ideas.append({
-            "name": str(a.get("name", a.get("ticker", "")))[:60],
-            "ticker": str(a.get("ticker", "")).upper(),
-            "direction": "short" if str(a.get("direction", "long")).lower() == "short" else "long",
-            "confidence": max(0.0, min(1.0, float(a.get("confidence", 0.7)))),
-            "stage": str(a.get("stage", "brewing")) if a.get("stage") in ("active", "building", "brewing") else "brewing",
-            "thesis": str(a.get("thesis", ""))[:300],
-            "regime_fit": str(a.get("regime_fit", ""))[:200],
-            "category": str(a.get("category", "Macro Rotation")),
-            "invalidators": [str(i) for i in (a.get("invalidators") or [])[:3]],
-            "ai_generated": True,
-        })
-    clean["alpha_ideas"] = ideas[:6]
+        if tick_ret > sec_ret * 2 and sec_ret > 0.05 and tick_ret > 0.10:
+            if not any(b["sector"] == sector for b in btks):
+                btks.append({
+                    "name": f"{sector.replace('_', ' ').title()} Outperformance",
+                    "constraint": 0.70,
+                    "sector": sector,
+                    "thesis": f"{ticker} up {tick_ret:+.1%} vs sector avg {sec_ret:+.1%}. Supply-demand imbalance detected.",
+                    "beneficiary_tickers": [ticker],
+                    "fade_tickers": [],
+                    "time_horizon": "weeks",
+                    "confidence": 0.65,
+                    "stage": "building",
+                    "ai_generated": False,
+                    "source": "price-detection",
+                })
 
-    su = data.get("scenario_update") or {}
-    clean["scenario_update"] = {
-        "headline_risk": str(su.get("headline_risk", ""))[:300],
-        "opportunity": str(su.get("opportunity", ""))[:300],
-        "regime_change_signal": str(su.get("regime_change_signal", ""))[:300],
-        "base_case_intact": bool(su.get("base_case_intact", True)),
+    return sorted(btks, key=lambda x: x["confidence"], reverse=True)
+
+def _build_alpha_ideas(sq, mq, prices, asset_ranges, sector_map):
+    QUAD_BEST = {
+        "Q1": ["QQQ", "IBIT", "MAGS", "XLK", "IWM", "RSP"],
+        "Q2": ["XLE", "OIH", "BNO", "XOP", "JPXN", "EIS", "SLV", "GDXJ"],
+        "Q3": ["GLD", "SLV", "GDX", "ITA", "KTOS", "VST", "CEG"],
+        "Q4": ["TLT", "GLD", "XLU", "VZ", "UUP"],
     }
 
-    return clean
+    best_tickers = list(dict.fromkeys(QUAD_BEST.get(sq, []) + (QUAD_BEST.get(mq, []) if mq != sq else [])))
+    ideas = []
 
+    for ticker in best_tickers:
+        v = asset_ranges.get(ticker, {})
+        tr = v.get("trade", {})
+        px = _safe_float(v.get("px"))
+        lrr = _safe_float(tr.get("lrr"))
+        trr = _safe_float(tr.get("trr"))
+        comp = v.get("composite", "neutral")
+        qual = v.get("quality", "")
+
+        if not (px and lrr and trr and trr > lrr):
+            continue
+
+        spread = trr - lrr
+        pos = (px - lrr) / spread if spread > 0 else 0.5
+
+        if comp == "bullish" and qual in ("A", "B", "C"):
+            if pos <= 0.60:
+                rr = round((lrr + spread * 0.50 - lrr) / max(lrr - (lrr - spread * 0.25), 0.01), 2)
+                ideas.append({
+                    "ticker": ticker,
+                    "name": ticker,
+                    "direction": "long",
+                    "confidence": min(0.95, 0.60 + (0.15 if qual == "A" else 0.10 if qual == "B" else 0.05)),
+                    "stage": "active" if pos <= 0.35 else "building",
+                    "thesis": f"{sq} regime favors {ticker}. Risk range buy zone at ${lrr:.2f}. Signal grade {qual}.",
+                    "regime_fit": f"Aligned with {sq} structural + {mq} monthly regime. Price at {pos:.0%} of range.",
+                    "category": "Macro Rotation",
+                    "invalidators": [f"Breaks below ${lrr:.2f} (LRR)", f"Regime shifts to {mq if mq != sq else 'Q4'}"],
+                })
+
+        elif comp == "bearish" and qual in ("short_A", "short_B", "short_C"):
+            if pos >= 0.40:
+                rr = round((trr - (trr - spread * 0.50)) / max((trr + spread * 0.25) - trr, 0.01), 2)
+                ideas.append({
+                    "ticker": ticker,
+                    "name": ticker,
+                    "direction": "short",
+                    "confidence": min(0.90, 0.55 + (0.15 if qual == "short_A" else 0.10)),
+                    "stage": "active" if pos >= 0.65 else "building",
+                    "thesis": f"{sq} regime headwind for {ticker}. Risk range sell zone at ${trr:.2f}. Signal grade {qual}.",
+                    "regime_fit": f"Counter-trend in {sq} structural + {mq} monthly. Price at {pos:.0%} of range.",
+                    "category": "Macro Rotation",
+                    "invalidators": [f"Breaks above ${trr:.2f} (TRR)", f"Regime shifts to Q1/Q2"],
+                })
+
+    # Momentum outliers
+    for ticker, s in prices.items():
+        if any(i["ticker"] == ticker for i in ideas):
+            continue
+        r1m = _price_perf(s, 21)
+        r3m = _price_perf(s, 63)
+        if r1m and r1m > 0.15 and r3m and r3m > 0.25:
+            sector = sector_map.get(ticker, "unknown")
+            ideas.append({
+                "ticker": ticker,
+                "name": ticker,
+                "direction": "long",
+                "confidence": 0.65,
+                "stage": "building",
+                "thesis": f"Strong momentum: +{r1m:.1%} 1M, +{r3m:.1%} 3M. Possible narrative acceleration.",
+                "regime_fit": f"Sector: {sector.replace('_', ' ')}. Verify regime alignment before sizing.",
+                "category": "Technical",
+                "invalidators": ["Momentum reverses", "Volume dries up"],
+            })
+
+    return sorted(ideas, key=lambda x: x["confidence"], reverse=True)[:8]
+
+def _build_scenario(sq, mq, gip_features, health, transition):
+    flip = gip_features.get("flip_hazard", 0.2)
+    gm = gip_features.get("growth_momentum", 0)
+    im = gip_features.get("inflation_momentum", 0)
+
+    if flip > 0.4:
+        headline_risk = f"High regime change risk ({flip:.0%}). Monthly {mq} diverging from structural {sq}."
+        opportunity = "Front-run the transition. Position for next regime early."
+    elif gm > 0 and im > 0:
+        headline_risk = "Inflation re-acceleration could force Fed hawkish pivot."
+        opportunity = "Reflation trades: energy, commodities, international."
+    elif gm < 0 and im > 0:
+        headline_risk = "Stagflation deepening. Growth slowing while prices sticky."
+        opportunity = "Defensive: gold, silver, utilities, defense."
+    elif gm < 0 and im < 0:
+        headline_risk = "Deflationary spiral risk. Credit event possible."
+        opportunity = "Safety: bonds, gold, cash. Wait for Q1 signal."
+    else:
+        headline_risk = "Market chop. No clear direction. Reduce size."
+        opportunity = "Range trade within risk ranges. Patience."
+
+    if sq == "Q3" and mq == "Q2":
+        regime_change_signal = "Watch CPI MoM < 0.2% + GDP acceleration = Q2→Q1 transition window"
+    elif sq == "Q2" and mq == "Q3":
+        regime_change_signal = "CPI > 0.4% MoM + ISM < 48 = Q2→Q3 transition risk"
+    elif sq == "Q1" and mq == "Q2":
+        regime_change_signal = "CPI re-acceleration > 3.5% + wage growth > 4% = Q1→Q2"
+    elif sq == "Q4" and mq == "Q1":
+        regime_change_signal = "ISM > 50 + CPI stabilizing < 2.5% = Q4→Q1 recovery"
+    else:
+        regime_change_signal = "Monthly alignment with structural = base case intact. Watch CPI + ISM."
+
+    return {
+        "headline_risk": headline_risk,
+        "opportunity": opportunity,
+        "regime_change_signal": regime_change_signal,
+        "base_case_intact": (sq == mq) or (flip < 0.3),
+    }
+
+# ── Public API ───────────────────────────────────────────────────────────────
 class AIEngine:
     def __init__(self, cache_ttl: float = _AI_CACHE_TTL):
         self.cache_ttl = cache_ttl
 
-    def run(self, sq: str, mq: str, gq: str, gip_features: Dict, prices: Dict[str, pd.Series], force_refresh: bool = False) -> Dict:
+    def run(self, sq: str, mq: str, gq: str, gip_features: Dict,
+            prices: Dict[str, pd.Series], force_refresh: bool = False,
+            asset_ranges: Optional[Dict] = None,
+            sector_map: Optional[Dict[str, str]] = None,
+            health: Optional[Dict] = None,
+            transition: Optional[object] = None) -> Dict:
         global _AI_CACHE, _AI_CACHE_TS
 
-        logger.info("AIEngine.run() called")
-
         if not force_refresh and _AI_CACHE and (time.time() - _AI_CACHE_TS) < self.cache_ttl:
-            logger.info("AIEngine: serving from cache")
             return {**_AI_CACHE, "from_cache": True}
 
-        api_key = _get_api_key()
-        if not api_key:
-            logger.warning("AIEngine: GEMINI_API_KEY not set")
-            return {
-                "ok": False,
-                "reason": "GEMINI_API_KEY not configured. Add GEMINI_API_KEY to Streamlit Secrets.",
-                "narratives": [], "bottlenecks": [], "alpha_ideas": [],
-                "scenario_update": {},
-            }
+        if sector_map is None:
+            try:
+                from config.settings import TICKER_SECTOR
+                sector_map = TICKER_SECTOR
+            except Exception:
+                sector_map = {}
 
-        logger.info("AIEngine: fetching fresh analysis from Gemini...")
         t0 = time.time()
+        narratives = _build_narratives(sq, mq, gq, prices, sector_map, gip_features)
+        bottlenecks = _build_bottlenecks(sq, mq, prices, sector_map)
+        alpha_ideas = _build_alpha_ideas(sq, mq, prices, asset_ranges or {}, sector_map)
+        scenario = _build_scenario(sq, mq, gip_features, health, transition)
 
-        try:
-            headlines = _fetch_news_headlines(NEWS_TICKERS, max_per_ticker=3)
-            logger.info(f"AIEngine: fetched {len(headlines)} headlines")
-        except Exception as e:
-            logger.error(f"AIEngine: news fetch crashed: {e}")
-            headlines = []
-
-        try:
-            perf = _price_performance(prices, NEWS_TICKERS)
-            logger.info(f"AIEngine: perf computed for {len(perf)} tickers")
-        except Exception as e:
-            logger.error(f"AIEngine: perf computation crashed: {e}")
-            perf = {}
-
-        try:
-            prompt = _build_prompt(sq, mq, gq, gip_features, headlines, perf)
-            logger.info(f"AIEngine: prompt built, length={len(prompt)}")
-        except Exception as e:
-            logger.error(f"AIEngine: prompt build crashed: {e}")
-            return {
-                "ok": False,
-                "reason": f"Prompt build error: {e}",
-                "narratives": [], "bottlenecks": [], "alpha_ideas": [],
-                "scenario_update": {},
-            }
-
-        raw = _call_gemini(prompt, api_key)
-        if raw is None:
-            logger.warning("AIEngine: Gemini call returned None")
-            return {
-                "ok": False,
-                "reason": "Gemini API call failed. Check logs for details.",
-                "narratives": [], "bottlenecks": [], "alpha_ideas": [],
-                "scenario_update": {},
-            }
-
-        try:
-            result = _validate_output(raw)
-            result["ok"] = True
-            result["elapsed"] = round(time.time() - t0, 1)
-            result["headlines_used"] = len(headlines)
-            result["generated_at"] = time.time()
-            result["model"] = MODEL
-            logger.info(
-                f"AIEngine: SUCCESS — {len(result.get('narratives', []))} narratives, "
-                f"{len(result.get('bottlenecks', []))} bottlenecks, "
-                f"{len(result.get('alpha_ideas', []))} alpha ideas "
-                f"in {result['elapsed']}s"
-            )
-        except Exception as e:
-            logger.error(f"AIEngine: validation crashed: {e}")
-            return {
-                "ok": False,
-                "reason": f"Output validation error: {e}",
-                "narratives": [], "bottlenecks": [], "alpha_ideas": [],
-                "scenario_update": {},
-            }
+        result = {
+            "ok": True,
+            "elapsed": round(time.time() - t0, 2),
+            "generated_at": time.time(),
+            "model": "rule-based-v1",
+            "narratives": narratives,
+            "bottlenecks": bottlenecks,
+            "alpha_ideas": alpha_ideas,
+            "scenario_update": scenario,
+        }
 
         _AI_CACHE = result
         _AI_CACHE_TS = time.time()
+
+        logger.info(
+            f"AIEngine: rule-based generated {len(narratives)} narratives, "
+            f"{len(bottlenecks)} bottlenecks, {len(alpha_ideas)} alpha ideas "
+            f"in {result['elapsed']}s"
+        )
 
         return result

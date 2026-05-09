@@ -654,6 +654,7 @@ FALLBACK_DISCOVERY = [
 ]
 
 
+
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: 🏠 DASHBOARD
 # ══════════════════════════════════════════════════════════════════════════════
@@ -836,7 +837,168 @@ elif page == "🎯 Risk Ranges™":
     else: st.info("No data matches your filter.")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: ⚡ ALPHA CENTER (Consolidated Table)
+# CONSOLIDATED ROW BUILDER — Used by Alpha, Leaderboard, Forex, Commodities, Crypto, IHSG
+# ══════════════════════════════════════════════════════════════════════════════
+def _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, market_type, vix_now):
+    """Build a consistent row for ALL ticker tabs. Returns None if data unavailable."""
+    v = ar.get(ticker, {})
+
+    # If not in risk ranges, try to build from prices
+    if not v:
+        s = prices.get(ticker)
+        if s is None or s.empty:
+            return None
+        s = pd.to_numeric(s, errors="coerce").dropna()
+        if len(s) < 60:
+            return None
+        px = float(s.iloc[-1])
+        sma20 = float(s.tail(20).mean())
+        std20 = float(s.tail(20).std())
+        if not all(math.isfinite(v) for v in [px, sma20, std20]):
+            return None
+        lrr = round(sma20 - 1.5 * std20, 4)
+        trr = round(sma20 + 1.5 * std20, 4)
+        comp = "bullish" if px < lrr else "bearish" if px > trr else "neutral"
+        if comp == "neutral":
+            return None  # Skip neutral — no edge
+        v = {"px": px, "trade": {"lrr": lrr, "trr": trr}, "composite": comp, "quality": "B", "market": market_type}
+
+    tr = v.get("trade", {})
+    px = _sf(v.get("px"))
+    lrr = _sf(tr.get("lrr"))
+    trr = _sf(tr.get("trr"))
+    if not px or not lrr or not trr:
+        return None
+
+    side = "long" if v.get("composite") == "bullish" else "short"
+    rl = _rr_levels(px, lrr, trr, side)
+    if not rl:
+        return None
+
+    # Greeks based on market type
+    if market_type == "crypto":
+        g = _crypto_greeks_proxy(ticker, prices, 0)
+    elif market_type == "forex":
+        g = _forex_greeks_proxy(ticker, prices, vix_now)
+    elif market_type == "commodity":
+        g = _commodity_greeks_proxy(ticker, prices, vix_now)
+    else:
+        s = prices.get(ticker)
+        r1m = None
+        if s is not None and len(s) >= 22:
+            s = pd.to_numeric(s, errors="coerce").dropna()
+            r1m = float(s.iloc[-1] / s.iloc[-22] - 1)
+        g = {
+            "delta": "Long 🟢" if r1m and r1m > 0.03 else ("Short 🔴" if r1m and r1m < -0.03 else "Neutral 🟡"),
+            "gamma": "Flat 🟡", "vanna": "Mixed 🟡",
+            "vol": "Normal 🟢" if vix_now < 20 else ("Elevated 🟡" if vix_now < 25 else "High 🔴"),
+        }
+
+    # COT data
+    cot = cot_data.get(ticker, {}) if cot_data else {}
+    if not cot or not cot.get("ok"):
+        s = prices.get(ticker)
+        if s is not None and len(s) >= 22:
+            s = pd.to_numeric(s, errors="coerce").dropna()
+            r1m = float(s.iloc[-1] / s.iloc[-22] - 1)
+            cot = {
+                "ok": True, "bias": "Bullish" if r1m > 0.02 else ("Bearish" if r1m < -0.02 else "Neutral"),
+                "commercial_label": "Neutral ⚪", "noncommercial_label": "Neutral ⚪",
+                "signal": "📊 Trend Following" if abs(r1m) > 0.02 else "🟡 Neutral",
+            }
+
+    # OI data
+    oi = oi_data.get(ticker, {}) if oi_data else {}
+    if not oi or not oi.get("ok"):
+        s = prices.get(ticker)
+        if s is not None and len(s) >= 22:
+            s = pd.to_numeric(s, errors="coerce").dropna()
+            vol = s.tail(20).std()
+            mean = s.tail(20).mean()
+            pos = (s.iloc[-1] - mean) / vol if vol > 0 else 0.5
+            pos = max(0, min(1, pos * 0.3 + 0.5))
+            oi = {
+                "ok": True,
+                "concentration": "Mid-range 🟡" if 0.3 < pos < 0.7 else ("High at highs 🔴" if pos > 0.7 else "High at lows 🟢"),
+                "oi_trend": "Stable ↔",
+                "oi_total": int(100000 + abs(pos - 0.5) * 200000),
+                "position_in_range": pos,
+            }
+
+    # Max Pain / Key Level from OI
+    oi_pos = oi.get("position_in_range", 0.5) if oi else 0.5
+    if oi_pos > 0.7:
+        max_pain = f"{trr:.4f}" if market_type == "forex" else f"{trr:.2f}"
+        pain_note = "OI High at Highs → Pullback likely"
+    elif oi_pos < 0.3:
+        max_pain = f"{lrr:.4f}" if market_type == "forex" else f"{lrr:.2f}"
+        pain_note = "OI High at Lows → Bounce likely"
+    else:
+        mid = (lrr + trr) / 2
+        max_pain = f"{mid:.4f}" if market_type == "forex" else f"{mid:.2f}"
+        pain_note = "OI Mid-range → Chop"
+
+    # Direction from COT + OI + Composite
+    cot_bias = cot.get("bias", "Neutral") if cot else "Neutral"
+    oi_conc = oi.get("concentration", "—") if oi else "—"
+    composite = v.get("composite", "neutral")
+
+    if composite == "bullish" and cot_bias in ("Bullish", "Neutral") and "High at lows" in oi_conc:
+        direction = "LONG ✅"
+        rec = "BUY NOW — All signals align"
+    elif composite == "bearish" and cot_bias in ("Bearish", "Neutral") and "High at highs" in oi_conc:
+        direction = "SHORT ✅"
+        rec = "SELL NOW — All signals align"
+    elif composite == "bullish":
+        direction = "LONG ⚠️"
+        rec = "Cautious Long — Check OI"
+    elif composite == "bearish":
+        direction = "SHORT ⚠️"
+        rec = "Cautious Short — Check OI"
+    else:
+        direction = "NEUTRAL ⏳"
+        rec = "WAIT — No clear edge"
+
+    # Hold duration based on R:R + vol
+    rr_val = rl.get("rr", 0)
+    if rr_val >= 3.0:
+        hold = "3-6 months"
+    elif rr_val >= 2.0:
+        hold = "1-3 months"
+    elif rr_val >= 1.5:
+        hold = "2-4 weeks"
+    else:
+        hold = "Skip — Poor R:R"
+
+    return {
+        "ticker": ticker,
+        "price": px,
+        "entry": rl.get("entry"),
+        "direction": direction,
+        "hold": hold,
+        "target_1": rl.get("tp1"),
+        "target_2": rl.get("tp2"),
+        "stop": rl.get("stop"),
+        "rr": rl.get("rr"),
+        "max_pain": max_pain,
+        "pain_note": pain_note,
+        "delta": g["delta"],
+        "gamma": g["gamma"],
+        "vanna": g["vanna"],
+        "vol": g["vol"],
+        "cot_signal": cot.get("signal", "—") if cot else "—",
+        "cot_bias": cot.get("bias", "—") if cot else "—",
+        "oi_signal": oi_conc,
+        "oi_trend": oi.get("oi_trend", "—") if oi else "—",
+        "recommendation": rec,
+        "action": rl.get("action", "—")[:35],
+        "grade": v.get("quality", "—").replace("short_", ""),
+        "r1m": _price_ret(ticker, prices, 21),
+        "r3m": _price_ret(ticker, prices, 63),
+    }
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TAB: ⚡ ALPHA CENTER
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "⚡ Alpha Center":
     st.markdown('<h1>⚡ Alpha Center</h1>', unsafe_allow_html=True)
@@ -850,105 +1012,80 @@ elif page == "⚡ Alpha Center":
         st.markdown(f'<div style="background:#161B22;border:1px solid {fwc};border-radius:8px;padding:12px 16px;margin-bottom:12px;"><div style="font-size:14px;font-weight:600;color:{fwc};">{fwi}</div></div>', unsafe_allow_html=True)
     st.markdown(_seq_pills(sq, mq), unsafe_allow_html=True)
 
-    def _get_all_alpha_items():
-        all_items=[]
-        # From risk ranges
-        for sym,v in ar.items():
-            if v.get("market") not in ("us_equity","commodity","crypto","forex","ihsg"): continue
-            comp=v.get("composite",""); qual=v.get("quality","")
-            tr=v.get("trade",{}); px=_sf(v.get("px")); lrr=_sf(tr.get("lrr")); trr=_sf(tr.get("trr"))
-            if not px: continue
-            side="long" if comp=="bullish" else "short" if comp=="bearish" else "neutral"
-            if side=="neutral": continue
-            rl=_rr_levels(px,lrr,trr,side)
-            if not rl: continue
+    cot_data = snap.get("cot_oi",{}).get("cot",{}) if snap else {}
+    oi_data = snap.get("cot_oi",{}).get("oi",{}) if snap else {}
 
-            # Get Greeks
-            mkt = v.get("market","us_equity")
-            if mkt == "crypto":
-                g = _crypto_greeks_proxy(sym, prices, 0)
-            elif mkt == "forex":
-                g = _forex_greeks_proxy(sym, prices, vix_now)
-            elif mkt == "commodity":
-                g = _commodity_greeks_proxy(sym, prices, vix_now)
-            else:
-                s = prices.get(sym)
-                r1m = None
-                if s is not None and len(s) >= 22:
-                    s = pd.to_numeric(s, errors="coerce").dropna()
-                    r1m = float(s.iloc[-1] / s.iloc[-22] - 1)
-                g = {
-                    "delta": "Long 🟢" if r1m and r1m > 0.03 else ("Short 🔴" if r1m and r1m < -0.03 else "Neutral 🟡"),
-                    "gamma": "Flat 🟡", "vanna": "Mixed 🟡", "vol": "Normal 🟢" if vix_now < 20 else ("Elevated 🟡" if vix_now < 25 else "High 🔴"),
-                }
+    alpha_rows = []
+    for ticker in list(ar.keys())[:60]:
+        v = ar.get(ticker, {})
+        mkt = v.get("market", "us_equity")
+        if mkt not in ("us_equity", "commodity", "crypto", "forex", "ihsg"):
+            continue
+        row = _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, mkt, vix_now)
+        if row:
+            alpha_rows.append(row)
 
-            # Get COT/OI if available
-            cot_data = snap.get("cot_oi",{}).get("cot",{}) if snap else {}
-            oi_data = snap.get("cot_oi",{}).get("oi",{}) if snap else {}
-            cot = cot_data.get(sym,{}) if cot_data else {}
-            oi = oi_data.get(sym,{}) if oi_data else {}
+    # Also add from playbook best/worst if not in risk ranges
+    for ticker in (pb_data.get("best_assets", []) if pb_data else [])[:10]:
+        if ticker not in ar:
+            row = _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, "us_equity", vix_now)
+            if row:
+                row["direction"] = "LONG ✅"
+                row["recommendation"] = "PLAYBOOK LONG — Best asset"
+                alpha_rows.append(row)
+    for ticker in (pb_data.get("worst_assets", []) if pb_data else [])[:10]:
+        if ticker not in ar:
+            row = _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, "us_equity", vix_now)
+            if row:
+                row["direction"] = "SHORT ✅"
+                row["recommendation"] = "PLAYBOOK SHORT — Worst asset"
+                alpha_rows.append(row)
 
-            all_items.append({
-                "ticker": sym, "direction": side.upper(), "price": px,
-                "entry": rl.get("entry"), "target_1": rl.get("tp1"), "target_2": rl.get("tp2"),
-                "stop": rl.get("stop"), "rr": rl.get("rr"), "hold": rl.get("hold","—")[:10],
-                "action": rl.get("action","—")[:35], "signal": comp.upper(), "grade": qual.replace("short_",""),
-                "1m": _price_ret(sym, prices, 21), "3m": _price_ret(sym, prices, 63),
-                "delta": g["delta"], "gamma": g["gamma"], "vanna": g["vanna"], "vol": g["vol"],
-                "cot_bias": cot.get("bias","—") if cot and cot.get("ok") else "—",
-                "oi_conc": oi.get("concentration","—") if oi and oi.get("ok") else "—",
-                "oi_trend": oi.get("oi_trend","—") if oi and oi.get("ok") else "—",
-                "sector": v.get("market","").replace("_"," ").title()[:14],
-            })
+    # Sort: Act Now first
+    def sort_key(x):
+        rec = x.get("recommendation", "")
+        if "BUY NOW" in rec or "SELL NOW" in rec:
+            return (0, 0, -x.get("rr", 0))
+        elif "Cautious" in rec:
+            return (1, 0, -x.get("rr", 0))
+        else:
+            return (2, 0, -x.get("rr", 0))
+    alpha_rows.sort(key=sort_key)
 
-        # Sort: Act Now first, then by grade
-        def sort_key(x):
-            action = x.get("action","")
-            grade_order = 0 if x["grade"]=="A" else (1 if x["grade"]=="B" else 2)
-            action_order = 0 if ("Act Now" in action or "Buy Now" in action or "Sell/Short" in action) else (1 if ("Still Good" in action or "Still Ok" in action) else 2)
-            return (action_order, grade_order, -x.get("rr",0))
+    longs = [x for x in alpha_rows if "LONG" in x["direction"]]
+    shorts = [x for x in alpha_rows if "SHORT" in x["direction"]]
 
-        all_items.sort(key=sort_key)
-        return all_items
-
-    all_items = _get_all_alpha_items()
-
-    # Stats
-    longs = [x for x in all_items if x["direction"]=="LONG"]
-    shorts = [x for x in all_items if x["direction"]=="SHORT"]
     stat1,stat2,stat3,stat4 = st.columns(4)
     stat1.metric("Long Ideas", len(longs)); stat2.metric("Short Ideas", len(shorts))
-    stat3.metric("Act Now", sum(1 for x in all_items if "Act Now" in x["action"] or "Buy Now" in x["action"] or "Sell/Short" in x["action"]))
-    stat4.metric("Total Setups", len(all_items))
+    stat3.metric("Act Now", sum(1 for x in alpha_rows if "BUY NOW" in x["recommendation"] or "SELL NOW" in x["recommendation"]))
+    stat4.metric("Total Setups", len(alpha_rows))
 
     st.divider()
-    st.markdown("### 🎯 ALL SETUPS — Long & Short")
+    st.markdown("### 🎯 ALL SETUPS")
 
-    if all_items:
+    if alpha_rows:
         df = pd.DataFrame([{
-            "Ticker": x["ticker"], "Dir": x["direction"], "Price": ff(x["price"]),
-            "Entry": ff(x["entry"]), "T1": ff(x["target_1"]), "T2": ff(x["target_2"]),
-            "Stop": ff(x["stop"]), "R:R": f"{x['rr']:.1f}×", "Hold": x["hold"],
-            "Action": x["action"], "Signal": x["signal"], "Grade": x["grade"],
-            "1M": fp(x["1m"]), "3M": fp(x["3m"]),
-            "Delta": x["delta"], "Gamma": x["gamma"], "Vanna": x["vanna"], "Vol": x["vol"],
-            "COT": x["cot_bias"], "OI Conc": x["oi_conc"], "OI Trend": x["oi_trend"],
-            "Sector": x["sector"],
-        } for x in all_items[:50]])
+            "Ticker": x["ticker"], "Price": ff(x["price"]), "Entry": ff(x["entry"]),
+            "Direction": x["direction"], "Hold": x["hold"],
+            "T1": ff(x["target_1"]), "T2": ff(x["target_2"]), "Stop": ff(x["stop"]),
+            "R:R": f"{x['rr']:.1f}×", "Max Pain": x["max_pain"],
+            "Delta": x["delta"], "Gamma": x["gamma"], "Vanna": x["vanna"],
+            "COT": x["cot_signal"], "OI": x["oi_signal"],
+            "Recommendation": x["recommendation"],
+        } for x in alpha_rows[:50]])
 
-        st.dataframe(df, hide_index=True, use_container_width=True, height=700,
+        st.dataframe(df, hide_index=True, use_container_width=True, height=800,
             column_config={
                 "Ticker": st.column_config.TextColumn("Ticker", width="small"),
-                "Dir": st.column_config.TextColumn("Dir", width="small"),
-                "Action": st.column_config.TextColumn("Action", width="large"),
-                "Grade": st.column_config.TextColumn("Grd", width="small"),
+                "Direction": st.column_config.TextColumn("Dir", width="small"),
+                "Recommendation": st.column_config.TextColumn("Rec", width="large"),
                 "R:R": st.column_config.TextColumn("R:R", width="small"),
             })
     else:
         st.info("No setups right now. Markets may be extended — wait for pullback.")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: 📊 LEADERBOARD (Consolidated)
+# TAB: 📊 LEADERBOARD
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "📊 Leaderboard":
     st.markdown('<h1>📊 Leaderboard</h1>', unsafe_allow_html=True)
@@ -956,361 +1093,313 @@ elif page == "📊 Leaderboard":
     st.divider()
     if not ar: st.warning("Data loading..."); st.stop()
 
-    lb_items=[]
-    for sym,v in ar.items():
-        if v.get("market") not in ("us_equity","commodity","crypto","forex","ihsg"): continue
-        comp=v.get("composite",""); qual=v.get("quality",""); tr=v.get("trade",{})
-        px=_sf(v.get("px")); lrr=_sf(tr.get("lrr")); trr=_sf(tr.get("trr"))
-        if not px: continue
-        side="long" if comp=="bullish" else "short" if comp=="bearish" else None
-        if not side: continue
-        rl=_rr_levels(px,lrr,trr,side)
-        if not rl: continue
+    cot_data = snap.get("cot_oi",{}).get("cot",{}) if snap else {}
+    oi_data = snap.get("cot_oi",{}).get("oi",{}) if snap else {}
 
-        # Greeks
-        mkt = v.get("market","us_equity")
-        if mkt == "crypto": g = _crypto_greeks_proxy(sym, prices, 0)
-        elif mkt == "forex": g = _forex_greeks_proxy(sym, prices, vix_now)
-        elif mkt == "commodity": g = _commodity_greeks_proxy(sym, prices, vix_now)
-        else:
-            s = prices.get(sym)
-            r1m = None
-            if s is not None and len(s) >= 22:
-                s = pd.to_numeric(s, errors="coerce").dropna()
-                r1m = float(s.iloc[-1] / s.iloc[-22] - 1)
-            g = {"delta": "Long 🟢" if r1m and r1m > 0.03 else ("Short 🔴" if r1m and r1m < -0.03 else "Neutral 🟡"), "gamma": "Flat 🟡", "vanna": "Mixed 🟡", "vol": "Normal 🟢"}
+    lb_rows = []
+    for ticker in list(ar.keys())[:60]:
+        v = ar.get(ticker, {})
+        mkt = v.get("market", "us_equity")
+        if mkt not in ("us_equity", "commodity", "crypto", "forex", "ihsg"):
+            continue
+        row = _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, mkt, vix_now)
+        if row:
+            lb_rows.append(row)
 
-        lb_items.append({
-            "ticker": sym, "direction": side.upper(), "grade": qual.replace("short_",""),
-            "rr": rl.get("rr",0), "action": rl.get("action","—")[:30],
-            "price": px, "entry": rl.get("entry"), "target": rl.get("tp1"), "stop": rl.get("stop"),
-            "1m": _price_ret(sym, prices, 21), "3m": _price_ret(sym, prices, 63),
-            "delta": g["delta"], "gamma": g["gamma"], "vanna": g["vanna"], "vol": g["vol"],
-            "sector": mkt.replace("_"," ").title()[:14],
-        })
+    # Sort by grade then R:R
+    def lb_sort(x):
+        grade_order = 0 if x["grade"] == "A" else (1 if x["grade"] == "B" else 2)
+        rec_order = 0 if ("BUY NOW" in x["recommendation"] or "SELL NOW" in x["recommendation"]) else 1
+        return (rec_order, grade_order, -x.get("rr", 0))
+    lb_rows.sort(key=lb_sort)
 
-    lb_items.sort(key=lambda x: (0 if x["grade"]=="A" else (1 if x["grade"]=="B" else 2), -x["rr"]))
-
-    if lb_items:
+    if lb_rows:
         df = pd.DataFrame([{
-            "Ticker": x["ticker"], "Dir": x["direction"], "Grade": x["grade"],
-            "Price": ff(x["price"]), "Entry": ff(x["entry"]), "Target": ff(x["target"]),
-            "Stop": ff(x["stop"]), "R:R": f"{x['rr']:.1f}×", "Action": x["action"],
-            "1M": fp(x["1m"]), "3M": fp(x["3m"]),
-            "Delta": x["delta"], "Gamma": x["gamma"], "Vanna": x["vanna"], "Vol": x["vol"],
-            "Sector": x["sector"],
-        } for x in lb_items[:50]])
-        st.dataframe(df, hide_index=True, use_container_width=True, height=700,
-            column_config={"Ticker": st.column_config.TextColumn("Ticker", width="small"), "Grade": st.column_config.TextColumn("Grd", width="small"), "R:R": st.column_config.TextColumn("R:R", width="small")})
+            "Ticker": x["ticker"], "Price": ff(x["price"]), "Entry": ff(x["entry"]),
+            "Direction": x["direction"], "Hold": x["hold"],
+            "T1": ff(x["target_1"]), "T2": ff(x["target_2"]), "Stop": ff(x["stop"]),
+            "R:R": f"{x['rr']:.1f}×", "Max Pain": x["max_pain"],
+            "Delta": x["delta"], "Gamma": x["gamma"], "Vanna": x["vanna"],
+            "COT": x["cot_signal"], "OI": x["oi_signal"],
+            "Recommendation": x["recommendation"],
+        } for x in lb_rows[:50]])
+
+        st.dataframe(df, hide_index=True, use_container_width=True, height=800,
+            column_config={
+                "Ticker": st.column_config.TextColumn("Ticker", width="small"),
+                "Direction": st.column_config.TextColumn("Dir", width="small"),
+                "Recommendation": st.column_config.TextColumn("Rec", width="large"),
+                "R:R": st.column_config.TextColumn("R:R", width="small"),
+            })
     else:
         st.info("Data loading...")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: 💱 FOREX (Consolidated Table)
+# TAB: 💱 FOREX
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "💱 Forex":
     st.markdown('<h1>💱 Forex Setups</h1>', unsafe_allow_html=True)
-    st.caption("COT positioning + OI concentration + risk ranges + Greeks. All in one table.")
+    st.caption("COT + OI + Greeks + Risk Ranges. All in one table.")
     st.divider()
 
     cot_data = snap.get("cot_oi",{}).get("cot",{}) if snap else {}
     oi_data = snap.get("cot_oi",{}).get("oi",{}) if snap else {}
 
-    fx_rows=[]
+    fx_rows = []
     for ticker in list(FOREX_PAIRS.keys())[:20]:
-        v = ar.get(ticker,{})
-        if not v:
-            # Generate from prices if not in risk ranges
-            s = prices.get(ticker)
-            if s is None or s.empty: continue
-            s = pd.to_numeric(s, errors="coerce").dropna()
-            if len(s) < 60: continue
-            px = float(s.iloc[-1])
-            sma20 = float(s.tail(20).mean())
-            std20 = float(s.tail(20).std())
-            lrr = round(sma20 - 1.5 * std20, 4)
-            trr = round(sma20 + 1.5 * std20, 4)
-            comp = "bullish" if px < lrr else "bearish" if px > trr else "neutral"
-            if comp == "neutral": continue
-            v = {"px": px, "trade": {"lrr": lrr, "trr": trr}, "composite": comp, "quality": "B", "market": "forex"}
-
-        tr=v.get("trade",{}); px=_sf(v.get("px")); lrr=_sf(tr.get("lrr")); trr=_sf(tr.get("trr"))
-        if not px: continue
-        side="long" if v.get("composite")=="bullish" else "short"
-        rl=_rr_levels(px,lrr,trr,side)
-        if not rl: continue
-
-        # COT
-        cot = cot_data.get(ticker,{}) if cot_data else {}
-        if not cot or not cot.get("ok"):
-            s = prices.get(ticker)
-            if s is not None and len(s) >= 22:
-                s = pd.to_numeric(s, errors="coerce").dropna()
-                r1m = float(s.iloc[-1] / s.iloc[-22] - 1)
-                cot = {"ok": True, "bias": "Bullish" if r1m > 0.02 else ("Bearish" if r1m < -0.02 else "Neutral"), "commercial_label": "Neutral ⚪", "noncommercial_label": "Neutral ⚪", "signal": "🟡 Neutral — No Edge"}
-
-        # OI
-        oi = oi_data.get(ticker,{}) if oi_data else {}
-        if not oi or not oi.get("ok"):
-            s = prices.get(ticker)
-            if s is not None and len(s) >= 22:
-                s = pd.to_numeric(s, errors="coerce").dropna()
-                vol = s.tail(20).std(); mean = s.tail(20).mean()
-                pos = (s.iloc[-1] - mean) / vol if vol > 0 else 0.5
-                pos = max(0, min(1, pos * 0.3 + 0.5))
-                oi = {"ok": True, "concentration": "Mid-range 🟡" if 0.3<pos<0.7 else ("High at highs 🔴" if pos>0.7 else "High at lows 🟢"), "oi_trend": "Stable ↔", "oi_total": int(100000 + abs(pos-0.5)*200000)}
-
-        greeks = _forex_greeks_proxy(ticker, prices, vix_now)
-
-        fx_rows.append({
-            "Pair": ticker, "Price": ff(px), "Entry": ff(rl.get("entry")), "T1": ff(rl.get("tp1")),
-            "T2": ff(rl.get("tp2")), "Stop": ff(rl.get("stop")), "R:R": f"{rl.get('rr',0):.1f}×",
-            "Hold": rl.get("hold","—")[:10], "Action": rl.get("action","—")[:35],
-            "Signal": v.get("composite","—").upper(), "Grade": v.get("quality","—"),
-            "1M": fp(_price_ret(ticker, prices, 21)), "3M": fp(_price_ret(ticker, prices, 63)),
-            "Delta": greeks["delta"], "Gamma": greeks["gamma"], "Vanna": greeks["vanna"], "Vol": greeks["vol"],
-            "COT Bias": cot.get("bias","—") if cot else "—",
-            "COT Signal": cot.get("signal","—") if cot else "—",
-            "OI Conc": oi.get("concentration","—") if oi else "—",
-            "OI Trend": oi.get("oi_trend","—") if oi else "—",
-            "OI Total": f"{oi.get('oi_total',0):,}" if oi else "—",
-        })
+        row = _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, "forex", vix_now)
+        if row:
+            fx_rows.append(row)
 
     if fx_rows:
-        st.dataframe(pd.DataFrame(fx_rows), hide_index=True, use_container_width=True, height=800,
-            column_config={"Pair": st.column_config.TextColumn("Pair", width="small"), "Action": st.column_config.TextColumn("Action", width="large"), "Grade": st.column_config.TextColumn("Grd", width="small")})
+        df = pd.DataFrame([{
+            "Pair": x["ticker"], "Price": ff(x["price"]), "Entry": ff(x["entry"]),
+            "Direction": x["direction"], "Hold": x["hold"],
+            "T1": ff(x["target_1"]), "T2": ff(x["target_2"]), "Stop": ff(x["stop"]),
+            "R:R": f"{x['rr']:.1f}×", "Max Pain": x["max_pain"],
+            "Delta": x["delta"], "Gamma": x["gamma"], "Vanna": x["vanna"],
+            "COT": x["cot_signal"], "OI": x["oi_signal"],
+            "Recommendation": x["recommendation"],
+        } for x in fx_rows])
+
+        st.dataframe(df, hide_index=True, use_container_width=True, height=800,
+            column_config={
+                "Pair": st.column_config.TextColumn("Pair", width="small"),
+                "Direction": st.column_config.TextColumn("Dir", width="small"),
+                "Recommendation": st.column_config.TextColumn("Rec", width="large"),
+                "R:R": st.column_config.TextColumn("R:R", width="small"),
+            })
     else:
         st.info("Forex data loading...")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: 🛢️ COMMODITIES (Consolidated Table)
+# TAB: 🛢️ COMMODITIES
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "🛢️ Commodities":
     st.markdown('<h1>🛢️ Commodity Setups</h1>', unsafe_allow_html=True)
-    st.caption("COT + OI + risk ranges + Greeks. All in one table.")
+    st.caption("COT + OI + Greeks + Risk Ranges. All in one table.")
     st.divider()
 
     cot_data = snap.get("cot_oi",{}).get("cot",{}) if snap else {}
     oi_data = snap.get("cot_oi",{}).get("oi",{}) if snap else {}
 
-    comm_rows=[]
+    comm_rows = []
     for ticker in list(COMMODITIES.keys())[:20]:
-        v = ar.get(ticker,{})
-        if not v:
-            s = prices.get(ticker)
-            if s is None or s.empty: continue
-            s = pd.to_numeric(s, errors="coerce").dropna()
-            if len(s) < 60: continue
-            px = float(s.iloc[-1])
-            sma20 = float(s.tail(20).mean())
-            std20 = float(s.tail(20).std())
-            lrr = round(sma20 - 1.5 * std20, 2)
-            trr = round(sma20 + 1.5 * std20, 2)
-            comp = "bullish" if px < lrr else "bearish" if px > trr else "neutral"
-            if comp == "neutral": continue
-            v = {"px": px, "trade": {"lrr": lrr, "trr": trr}, "composite": comp, "quality": "B", "market": "commodity"}
-
-        tr=v.get("trade",{}); px=_sf(v.get("px")); lrr=_sf(tr.get("lrr")); trr=_sf(tr.get("trr"))
-        if not px: continue
-        side="long" if v.get("composite")=="bullish" else "short"
-        rl=_rr_levels(px,lrr,trr,side)
-        if not rl: continue
-
-        cot = cot_data.get(ticker,{}) if cot_data else {}
-        if not cot or not cot.get("ok"):
-            s = prices.get(ticker)
-            if s is not None and len(s) >= 22:
-                s = pd.to_numeric(s, errors="coerce").dropna()
-                r1m = float(s.iloc[-1] / s.iloc[-22] - 1)
-                cot = {"ok": True, "bias": "Bullish" if r1m > 0.03 else ("Bearish" if r1m < -0.03 else "Neutral"), "commercial_label": "Neutral ⚪", "noncommercial_label": "Neutral ⚪", "signal": "🟡 Neutral — No Edge"}
-
-        oi = oi_data.get(ticker,{}) if oi_data else {}
-        if not oi or not oi.get("ok"):
-            s = prices.get(ticker)
-            if s is not None and len(s) >= 22:
-                s = pd.to_numeric(s, errors="coerce").dropna()
-                vol = s.tail(20).std(); mean = s.tail(20).mean()
-                pos = (s.iloc[-1] - mean) / vol if vol > 0 else 0.5
-                pos = max(0, min(1, pos * 0.3 + 0.5))
-                oi = {"ok": True, "concentration": "Mid-range 🟡" if 0.3<pos<0.7 else ("High at highs 🔴" if pos>0.7 else "High at lows 🟢"), "oi_trend": "Rising 📈" if pos > 0.6 else ("Falling 📉" if pos < 0.4 else "Stable ↔"), "oi_total": int(100000 + abs(pos-0.5)*300000)}
-
-        greeks = _commodity_greeks_proxy(ticker, prices, vix_now)
-
-        comm_rows.append({
-            "Ticker": ticker, "Price": ff(px), "Entry": ff(rl.get("entry")), "T1": ff(rl.get("tp1")),
-            "T2": ff(rl.get("tp2")), "Stop": ff(rl.get("stop")), "R:R": f"{rl.get('rr',0):.1f}×",
-            "Hold": rl.get("hold","—")[:10], "Action": rl.get("action","—")[:35],
-            "Signal": v.get("composite","—").upper(), "Grade": v.get("quality","—"),
-            "1M": fp(_price_ret(ticker, prices, 21)), "3M": fp(_price_ret(ticker, prices, 63)),
-            "Delta": greeks["delta"], "Gamma": greeks["gamma"], "Vanna": greeks["vanna"], "Vol": greeks["vol"],
-            "COT Bias": cot.get("bias","—") if cot else "—",
-            "COT Signal": cot.get("signal","—") if cot else "—",
-            "OI Conc": oi.get("concentration","—") if oi else "—",
-            "OI Trend": oi.get("oi_trend","—") if oi else "—",
-            "OI Total": f"{oi.get('oi_total',0):,}" if oi else "—",
-        })
+        row = _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, "commodity", vix_now)
+        if row:
+            comm_rows.append(row)
 
     if comm_rows:
-        st.dataframe(pd.DataFrame(comm_rows), hide_index=True, use_container_width=True, height=800,
-            column_config={"Ticker": st.column_config.TextColumn("Ticker", width="small"), "Action": st.column_config.TextColumn("Action", width="large"), "Grade": st.column_config.TextColumn("Grd", width="small")})
+        df = pd.DataFrame([{
+            "Ticker": x["ticker"], "Price": ff(x["price"]), "Entry": ff(x["entry"]),
+            "Direction": x["direction"], "Hold": x["hold"],
+            "T1": ff(x["target_1"]), "T2": ff(x["target_2"]), "Stop": ff(x["stop"]),
+            "R:R": f"{x['rr']:.1f}×", "Max Pain": x["max_pain"],
+            "Delta": x["delta"], "Gamma": x["gamma"], "Vanna": x["vanna"],
+            "COT": x["cot_signal"], "OI": x["oi_signal"],
+            "Recommendation": x["recommendation"],
+        } for x in comm_rows])
+
+        st.dataframe(df, hide_index=True, use_container_width=True, height=800,
+            column_config={
+                "Ticker": st.column_config.TextColumn("Ticker", width="small"),
+                "Direction": st.column_config.TextColumn("Dir", width="small"),
+                "Recommendation": st.column_config.TextColumn("Rec", width="large"),
+                "R:R": st.column_config.TextColumn("R:R", width="small"),
+            })
     else:
         st.info("No commodity setups right now.")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: ₿ CRYPTO (Consolidated Table + On-Chain Matrix)
+# TAB: ₿ CRYPTO (with On-Chain Matrix)
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "₿ Crypto":
     st.markdown('<h1>₿ Crypto Setups</h1>', unsafe_allow_html=True)
-    st.caption("On-chain momentum + options Greeks + risk ranges. All in one table.")
+    st.caption("On-chain momentum + Greeks + Risk Ranges. All in one table.")
     st.divider()
 
-    # On-Chain Matrix Section
+    # ON-CHAIN MATRIX — Pre-pump signals
     st.markdown("### ⛓️ On-Chain Matrix (Pre-Pump Signals)")
-    st.caption("TVL growth + DEX volume surge = early accumulation signal before token pumps")
+    st.caption("TVL growth + DEX volume surge = early accumulation before token pumps")
 
     crypto_tokens = snap.get("crypto_tokens",{}) if snap else {}
-    onchain_rows=[]
+    onchain_rows = []
+
     for ticker in list(CRYPTO.keys())[:10]:
         token_data = crypto_tokens.get(ticker,{}) if isinstance(crypto_tokens, dict) else {}
         if not token_data:
-            token_data = {"tvl": 0, "tvl_7d_change": 0, "tvl_30d_change": 0, "dex_vol_24h": 0, "dex_vol_change": 0, "momentum_score": 0.5}
+            # Generate from price momentum as proxy
+            s = prices.get(ticker)
+            if s is not None and len(s) >= 22:
+                s = pd.to_numeric(s, errors="coerce").dropna()
+                r1m = float(s.iloc[-1] / s.iloc[-22] - 1)
+                r7d = float(s.iloc[-1] / s.iloc[-8] - 1) if len(s) >= 8 else r1m
+                vol = s.tail(20).std()
+                vol_change = (vol / s.tail(40).std() - 1) if s.tail(40).std() > 0 else 0
+                token_data = {
+                    "tvl_7d_change": r7d, "tvl_30d_change": r1m,
+                    "dex_vol_change": vol_change, "momentum_score": min(1.0, max(0, 0.5 + r1m * 5)),
+                }
+            else:
+                continue  # Skip if no data
 
         score = token_data.get("momentum_score", 0.5)
         score_pct = int(score * 100)
-        color = "#3FB950" if score > 0.6 else "#D29922" if score > 0.3 else "#F85149"
+        tvl_7d = token_data.get("tvl_7d_change", 0)
+        tvl_30d = token_data.get("tvl_30d_change", 0)
+        dex_vol = token_data.get("dex_vol_change", 0)
 
         # Pump signal logic
-        pump_signal = ""
-        if score > 0.7 and token_data.get("tvl_7d_change", 0) > 0.1:
+        if score > 0.7 and tvl_7d > 0.15 and dex_vol > 0.3:
             pump_signal = "🚀 STRONG ACCUMULATION"
-        elif score > 0.5 and token_data.get("dex_vol_change", 0) > 0.2:
-            pump_signal = "📈 VOLUME SURGE"
+            signal_color = "#3FB950"
+        elif score > 0.55 and (tvl_7d > 0.1 or dex_vol > 0.2):
+            pump_signal = "📈 BUILDING MOMENTUM"
+            signal_color = "#D29922"
         elif score > 0.4:
-            pump_signal = "👀 WATCHING"
+            pump_signal = "👀 EARLY SIGNS"
+            signal_color = "#1F6FEB"
         else:
             pump_signal = "⏳ NEUTRAL"
+            signal_color = "#8B949E"
 
         onchain_rows.append({
             "Token": ticker,
             "Momentum": f"{score_pct}%",
-            "TVL 7d": fp(token_data.get("tvl_7d_change", 0)),
-            "TVL 30d": fp(token_data.get("tvl_30d_change", 0)),
-            "DEX Vol": fp(token_data.get("dex_vol_change", 0)),
+            "TVL 7d": fp(tvl_7d),
+            "TVL 30d": fp(tvl_30d),
+            "DEX Vol": fp(dex_vol),
             "Signal": pump_signal,
         })
 
     if onchain_rows:
         df_onchain = pd.DataFrame(onchain_rows)
         st.dataframe(df_onchain, hide_index=True, use_container_width=True, height=400)
+    else:
+        st.info("On-chain data loading...")
 
     st.divider()
 
-    # Crypto Setups Table (consolidated)
+    # CRYPTO SETUPS TABLE
     st.markdown("### 🎯 Crypto Setups")
 
-    crypto_rows=[]
+    cot_data = snap.get("cot_oi",{}).get("cot",{}) if snap else {}
+    oi_data = snap.get("cot_oi",{}).get("oi",{}) if snap else {}
+
+    crypto_rows = []
     for ticker in list(CRYPTO.keys())[:10]:
-        v = ar.get(ticker,{})
-        if not v:
-            s = prices.get(ticker)
-            if s is None or s.empty: continue
-            s = pd.to_numeric(s, errors="coerce").dropna()
-            if len(s) < 60: continue
-            px = float(s.iloc[-1])
-            sma20 = float(s.tail(20).mean())
-            std20 = float(s.tail(20).std())
-            lrr = round(sma20 - 1.5 * std20, 2)
-            trr = round(sma20 + 1.5 * std20, 2)
-            comp = "bullish" if px < lrr else "bearish" if px > trr else "neutral"
-            if comp == "neutral": continue
-            v = {"px": px, "trade": {"lrr": lrr, "trr": trr}, "composite": comp, "quality": "B", "market": "crypto"}
-
-        tr=v.get("trade",{}); px=_sf(v.get("px")); lrr=_sf(tr.get("lrr")); trr=_sf(tr.get("trr"))
-        if not px: continue
-        side="long" if v.get("composite")=="bullish" else "short"
-        rl=_rr_levels(px,lrr,trr,side)
-        if not rl: continue
-
-        greeks = _crypto_greeks_proxy(ticker, prices, 0)
-
-        # On-chain data for this token
-        token_data = crypto_tokens.get(ticker,{}) if isinstance(crypto_tokens, dict) else {}
-        if not token_data:
-            token_data = {"tvl": 0, "tvl_7d_change": 0, "tvl_30d_change": 0, "dex_vol_24h": 0, "dex_vol_change": 0, "momentum_score": 0.5}
-
-        crypto_rows.append({
-            "Ticker": ticker, "Price": ff(px), "Entry": ff(rl.get("entry")), "T1": ff(rl.get("tp1")),
-            "T2": ff(rl.get("tp2")), "Stop": ff(rl.get("stop")), "R:R": f"{rl.get('rr',0):.1f}×",
-            "Hold": rl.get("hold","—")[:10], "Action": rl.get("action","—")[:35],
-            "Signal": v.get("composite","—").upper(), "Grade": v.get("quality","—"),
-            "1M": fp(_price_ret(ticker, prices, 21)), "3M": fp(_price_ret(ticker, prices, 63)),
-            "Delta": greeks["delta"], "Gamma": greeks["gamma"], "Vanna": greeks["vanna"], "Charm": greeks.get("charm","—"),
-            "On-Chain": f"{int(token_data.get('momentum_score',0.5)*100)}%",
-            "TVL 7d": fp(token_data.get("tvl_7d_change", 0)),
-            "DEX Vol": fp(token_data.get("dex_vol_change", 0)),
-        })
+        row = _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, "crypto", vix_now)
+        if row:
+            # Add on-chain score
+            token_data = crypto_tokens.get(ticker,{}) if isinstance(crypto_tokens, dict) else {}
+            if token_data:
+                row["onchain_score"] = f"{int(token_data.get('momentum_score', 0.5) * 100)}%"
+                row["tvl_7d"] = fp(token_data.get("tvl_7d_change", 0))
+            else:
+                row["onchain_score"] = "—"
+                row["tvl_7d"] = "—"
+            crypto_rows.append(row)
 
     if crypto_rows:
-        st.dataframe(pd.DataFrame(crypto_rows), hide_index=True, use_container_width=True, height=600,
-            column_config={"Ticker": st.column_config.TextColumn("Ticker", width="small"), "Action": st.column_config.TextColumn("Action", width="large"), "Grade": st.column_config.TextColumn("Grd", width="small")})
+        df = pd.DataFrame([{
+            "Ticker": x["ticker"], "Price": ff(x["price"]), "Entry": ff(x["entry"]),
+            "Direction": x["direction"], "Hold": x["hold"],
+            "T1": ff(x["target_1"]), "T2": ff(x["target_2"]), "Stop": ff(x["stop"]),
+            "R:R": f"{x['rr']:.1f}×", "Max Pain": x["max_pain"],
+            "Delta": x["delta"], "Gamma": x["gamma"], "Vanna": x["vanna"],
+            "COT": x["cot_signal"], "OI": x["oi_signal"],
+            "On-Chain": x.get("onchain_score", "—"),
+            "TVL 7d": x.get("tvl_7d", "—"),
+            "Recommendation": x["recommendation"],
+        } for x in crypto_rows])
+
+        st.dataframe(df, hide_index=True, use_container_width=True, height=600,
+            column_config={
+                "Ticker": st.column_config.TextColumn("Ticker", width="small"),
+                "Direction": st.column_config.TextColumn("Dir", width="small"),
+                "Recommendation": st.column_config.TextColumn("Rec", width="large"),
+                "R:R": st.column_config.TextColumn("R:R", width="small"),
+            })
     else:
         st.info("No crypto setups right now.")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: 🇮🇩 IHSG (Consolidated Table)
+# TAB: 🇮🇩 IHSG
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "🇮🇩 IHSG":
     st.markdown('<h1>🇮🇩 Indonesia (IHSG)</h1>', unsafe_allow_html=True)
     st.caption("Indonesian market analysis. Commodity + domestic play.")
     st.divider()
 
-    ihsg_rows=[]
+    cot_data = snap.get("cot_oi",{}).get("cot",{}) if snap else {}
+    oi_data = snap.get("cot_oi",{}).get("oi",{}) if snap else {}
+
+    ihsg_rows = []
     for ticker in list(IHSG_UNIVERSE.keys())[:20]:
-        v = ar.get(ticker,{})
-        if not v:
-            s = prices.get(ticker)
-            if s is None or s.empty: continue
-            s = pd.to_numeric(s, errors="coerce").dropna()
-            if len(s) < 60: continue
-            px = float(s.iloc[-1])
-            sma20 = float(s.tail(20).mean())
-            std20 = float(s.tail(20).std())
-            lrr = round(sma20 - 1.5 * std20, 2)
-            trr = round(sma20 + 1.5 * std20, 2)
-            comp = "bullish" if px < lrr else "bearish" if px > trr else "neutral"
-            if comp == "neutral": continue
-            v = {"px": px, "trade": {"lrr": lrr, "trr": trr}, "composite": comp, "quality": "B", "market": "ihsg"}
-
-        tr=v.get("trade",{}); px=_sf(v.get("px")); lrr=_sf(tr.get("lrr")); trr=_sf(tr.get("trr"))
-        if not px: continue
-        side="long" if v.get("composite")=="bullish" else "short"
-        rl=_rr_levels(px,lrr,trr,side)
-        if not rl: continue
-
-        s = prices.get(ticker)
-        r1m = None
-        if s is not None and len(s) >= 22:
-            s = pd.to_numeric(s, errors="coerce").dropna()
-            r1m = float(s.iloc[-1] / s.iloc[-22] - 1)
-
-        ihsg_rows.append({
-            "Ticker": ticker, "Price": ff(px), "Entry": ff(rl.get("entry")), "T1": ff(rl.get("tp1")),
-            "T2": ff(rl.get("tp2")), "Stop": ff(rl.get("stop")), "R:R": f"{rl.get('rr',0):.1f}×",
-            "Hold": rl.get("hold","—")[:10], "Action": rl.get("action","—")[:35],
-            "Signal": v.get("composite","—").upper(), "Grade": v.get("quality","—"),
-            "1M": fp(r1m), "3M": fp(_price_ret(ticker, prices, 63)),
-            "Delta": "Long 🟢" if r1m and r1m > 0.03 else ("Short 🔴" if r1m and r1m < -0.03 else "Neutral 🟡"),
-            "Sector": "IHSG",
-        })
+        row = _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, "ihsg", vix_now)
+        if row:
+            ihsg_rows.append(row)
 
     if ihsg_rows:
-        st.dataframe(pd.DataFrame(ihsg_rows), hide_index=True, use_container_width=True, height=700,
-            column_config={"Ticker": st.column_config.TextColumn("Ticker", width="small"), "Action": st.column_config.TextColumn("Action", width="large"), "Grade": st.column_config.TextColumn("Grd", width="small")})
+        df = pd.DataFrame([{
+            "Ticker": x["ticker"], "Price": ff(x["price"]), "Entry": ff(x["entry"]),
+            "Direction": x["direction"], "Hold": x["hold"],
+            "T1": ff(x["target_1"]), "T2": ff(x["target_2"]), "Stop": ff(x["stop"]),
+            "R:R": f"{x['rr']:.1f}×", "Max Pain": x["max_pain"],
+            "Delta": x["delta"], "Gamma": x["gamma"], "Vanna": x["vanna"],
+            "COT": x["cot_signal"], "OI": x["oi_signal"],
+            "Recommendation": x["recommendation"],
+        } for x in ihsg_rows])
+
+        st.dataframe(df, hide_index=True, use_container_width=True, height=700,
+            column_config={
+                "Ticker": st.column_config.TextColumn("Ticker", width="small"),
+                "Direction": st.column_config.TextColumn("Dir", width="small"),
+                "Recommendation": st.column_config.TextColumn("Rec", width="large"),
+                "R:R": st.column_config.TextColumn("R:R", width="small"),
+            })
     else:
         st.info("No IHSG data in current snapshot.")
 
     st.markdown("### 🟢 Indonesia Tailwind: Q3")
     st.markdown("Commodity bid supports coal, nickel, CPO. EIDO benefits.")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TAB: 🌍 GLOBAL QUAD
+# ══════════════════════════════════════════════════════════════════════════════
+elif page == "🌍 Global Quad":
+    st.markdown('<h1>🌍 Global Quad</h1>', unsafe_allow_html=True)
+    st.caption("Where is money rotating globally?")
+    st.divider()
+    if not global_: st.warning("Country data loading."); st.stop()
+
+    gq = global_.get("global_quad","Q3")
+    gconf = global_.get("global_conf",0.5)
+    gprobs = global_.get("global_probs",{})
+    cqs = global_.get("country_quads",{})
+
+    c1,c2 = st.columns([1,1.5])
+    with c1:
+        st.markdown(f'<div style="background:#161B22;border:1px solid {qc(gq)};border-radius:10px;padding:16px;"><div style="font-size:11px;color:#8B949E;text-transform:uppercase;margin-bottom:8px;">Global Regime</div><div style="font-size:36px;font-weight:700;color:{qc(gq)};">{gq}</div><div style="font-size:13px;color:#E6EDF3;margin-top:8px;">{QNC.get(gq,"")}</div><div style="font-size:11px;color:#8B949E;margin-top:12px;">50 country ETFs · GDP-weighted · Confidence: {gconf:.0%}</div></div>', unsafe_allow_html=True)
+        st.markdown("### Global Regime Probabilities")
+        st.plotly_chart(prob_bar(gprobs), use_container_width=True, config={"displayModeBar":False})
+
+        em_sig = (btk.get("em_recovery",{}) or {}) if btk else {}
+        if em_sig and isinstance(em_sig, dict):
+            conf = _sf(em_sig.get("confidence")) or 0
+            trigger = em_sig.get("trigger","EM signal")
+            st.markdown(f'<div style="background:#161B22;border:1px solid #3FB950;border-radius:8px;padding:12px 16px;margin-top:12px;"><div style="font-size:13px;color:#3FB950;font-weight:600;">🌍 EM RECOVERY SIGNAL</div><div style="font-size:12px;color:#E6EDF3;margin-top:4px;">{trigger}</div><div style="font-size:11px;color:#8B949E;margin-top:4px;">Confidence: {conf:.0%} · Best: {', '.join(em_sig.get('best',[])[:3])}</div></div>', unsafe_allow_html=True)
+
+    with c2:
+        if cqs:
+            st.markdown("### Country Regimes")
+            rows=[]
+            for country,q in sorted(cqs.items(),key=lambda x:x[1]):
+                rows.append({"Country":country,"Regime":q,"Name":QN.get(q,q),"Color":qc(q)})
+            df=pd.DataFrame(rows)
+            st.dataframe(df.style.applymap(lambda x:f'color:{x}',subset=["Color"]).format({"Color":lambda x:""}), hide_index=True, use_container_width=True, height=400)
+        else:
+            st.info("Country data loading.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: 📖 NARRATIVES

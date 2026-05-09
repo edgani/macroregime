@@ -1,11 +1,10 @@
-"""app.py — MacroRegime Pro v21.6 | Final Fix Release
-1. AI label rule-based (defensive)
-2. Error line 755 defensive
-3. Gamma & Lev ETF dummy fallback
-4. Remove Delta/Gamma/Vanna/COT/OI/Max Pain dari tabel utama
-5. Global Quad dummy country data
-6. Crypto on-chain fallback + merge ke 1 tabel
-7. IHSG cuma LONG/BUY
+"""app.py — MacroRegime Pro v21.7 | Final Fix + 3-Way Split
+1. Dashboard fb_eval try/except
+2. Global Quad df.style.map (applymap deprecated)
+3. IHSG signal key fix
+4. Alpha Center: Long / Neutral / Short sections
+5. Leaderboard, Forex, Commodities, Crypto: same 3-way split
+6. Sort: Act Now first, then R:R desc, then grade
 """
 import streamlit as st
 import pandas as pd
@@ -124,7 +123,6 @@ def _seq_pills(sq, mq):
     elif sq == "Q3" and mq == "Q1": target = '→ WATCH Q2→Q1'
     return f'<div style="background:#F8514915;border:1px solid #F8514940;border-radius:8px;padding:12px;margin:12px 0"><div style="color:#F85149;font-weight:700">🔴 Structural: {sq} → 🟡 Monthly: {mq} {target}</div><div style="font-size:12px;color:#8B949E;margin-top:4px">Monthly diverges from structural — tactical caution</div></div>'
 
-# ── Gamma Card (dummy fallback) ───────────────────────────────────────────────
 def _gamma_card(gamma):
     if not gamma or not gamma.get("ok") or gamma.get("throttle") is None:
         gamma = {
@@ -153,7 +151,6 @@ def _gamma_card(gamma):
             f'<div style="margin-top:10px;font-size:12px;color:#8B949E"><b>Action:</b> {action}</div>'
             f'</div>')
 
-# ── Lev ETF Card (dummy fallback) ────────────────────────────────────────────
 def _lev_card(lev):
     if not lev or not lev.get("ok") or not lev.get("total_mcap_b"):
         lev = {
@@ -237,7 +234,6 @@ def _render_dxy(prices, dxy_corr, sq):
                 hide_index=True, use_container_width=True, height=220,
             )
 
-# ── Greeks Proxies ───────────────────────────────────────────────────────────
 def _forex_greeks_proxy(ticker, prices, vix=None):
     greeks = {"delta":"—","gamma":"—","vanna":"—","vol":"—"}
     if vix is None:
@@ -332,9 +328,6 @@ def _crypto_greeks_proxy(ticker, prices, basis_pct=0):
         for k in greeks: greeks[k] = "N/A ⚪"
     return greeks
 
-# ══════════════════════════════════════════════════════════════════════════════
-# CONSOLIDATED ROW BUILDER (untuk US, Forex, Commodities, Crypto)
-# ══════════════════════════════════════════════════════════════════════════════
 def _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, market_type, vix_now):
     v = ar.get(ticker, {})
     if not v:
@@ -463,9 +456,6 @@ def _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, market_type, 
         "r3m": _price_ret(ticker, prices, 63),
     }
 
-# ══════════════════════════════════════════════════════════════════════════════
-# IHSG CUSTOM ROW BUILDER (SS5: no Greeks/COT/OI)
-# ══════════════════════════════════════════════════════════════════════════════
 def _build_ihsg_row(ticker, prices, ar):
     v = ar.get(ticker, {})
     if not v:
@@ -528,7 +518,43 @@ def _build_ihsg_row(ticker, prices, ar):
         "r1m": r1m, "r3m": r3m, "sector": sector, "theme": theme,
         "recommendation": rec, "action": rl.get("action", "—")[:35],
         "grade": v.get("quality", "—").replace("short_", ""),
+        "signal": "BUY" if side == "long" else "SELL",
     }
+
+# ══════════════════════════════════════════════════════════════════════════════
+# SORT HELPERS
+# ══════════════════════════════════════════════════════════════════════════════
+def _sort_ev_plus(rows):
+    """Sort by: Act Now first, then R:R desc, then grade."""
+    def key(x):
+        rec = x.get("recommendation", "")
+        rr = x.get("rr", 0) or 0
+        grade = x.get("grade", "C")
+        # Priority: STRONG > CAUTIOUS/CONFLICTED > MODERATE > NO EDGE
+        if "STRONG" in rec:
+            prio = 0
+        elif "CAUTIOUS" in rec or "CONFLICTED" in rec:
+            prio = 1
+        elif "MODERATE" in rec:
+            prio = 2
+        else:
+            prio = 3
+        grade_order = 0 if grade == "A" else (1 if grade == "B" else 2)
+        return (prio, grade_order, -rr)
+    return sorted(rows, key=key)
+
+def _split_long_neutral_short(rows):
+    longs = [r for r in rows if "LONG" in r.get("direction", "")]
+    shorts = [r for r in rows if "SHORT" in r.get("direction", "")]
+    neutrals = [r for r in rows if "NEUTRAL" in r.get("direction", "")]
+    return _sort_ev_plus(longs), neutrals, _sort_ev_plus(shorts)
+
+def _render_table(rows, cols, height=600):
+    if not rows:
+        st.info("No setups in this category.")
+        return
+    df = pd.DataFrame([{k: x.get(k, "—") for k in cols} for x in rows])
+    st.dataframe(df, hide_index=True, use_container_width=True, height=height)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SIDEBAR
@@ -604,48 +630,11 @@ gq = (global_.get("global_quad","Q3") if global_ else "Q3")
 ar = rr.get("asset_ranges",{})
 dxy_corr = _compute_dxy_corr(prices)
 
-# FIX SS1: AI label defensive
 ai_data = snap.get("ai_analysis") or {}
 ai_ok = bool(ai_data.get("ok"))
 model_name = ai_data.get("model") or "rule-based-v1"
 
 vix_now = _sf(prices.get("^VIX", pd.Series()).tail(1)) if prices.get("^VIX") is not None else 20.0
-
-_oe = None; _oe_ok = False
-try:
-    from engines.options_engine import OptionsEngine
-    _oe = OptionsEngine(); _oe_ok = True
-except Exception: pass
-
-_deribit = None; _deribit_ok = False
-try:
-    from engines.deribit_options import DeribitOptionsAPI
-    _deribit = DeribitOptionsAPI(); _deribit_ok = True
-except Exception as e: logger.warning(f"Deribit engine unavailable: {e}")
-
-_barchart = None; _barchart_ok = False
-try:
-    from engines.barchart_options import BarchartOptionsScraper
-    _barchart = BarchartOptionsScraper(); _barchart_ok = True
-except Exception as e: logger.warning(f"Barchart engine unavailable: {e}")
-
-_cme = None; _cme_ok = False
-try:
-    from engines.cme_options import CMEOptionsScraper
-    _cme = CMEOptionsScraper(); _cme_ok = True
-except Exception as e: logger.warning(f"CME engine unavailable: {e}")
-
-_cot = None; _cot_ok = False
-try:
-    from engines.cme_cot import CMECOTProxy
-    _cot = CMECOTProxy(); _cot_ok = True
-except Exception as e: logger.warning(f"COT engine unavailable: {e}")
-
-_oi = None; _oi_ok = False
-try:
-    from engines.cme_oi import CMEOIProxy
-    _oi = CMEOIProxy(); _oi_ok = True
-except Exception as e: logger.warning(f"OI engine unavailable: {e}")
 
 FALLBACK_NARRATIVES = [
     {"name":"Silver Supercycle","score":0.92,"thesis":"SLV +143% since May 2025. Industrial demand (solar, AI chips) + safe haven. Mine supply flat.","tickers":["SLV","SILJ","GDXJ","GDX","GLD"],"best":["SLV","SILJ","GDXJ"],"worst":["XLK","MAGS"],"invalidators":["Q4 deflation signal","DXY sustained bullish"]},
@@ -734,14 +723,17 @@ if page == "🏠 Dashboard":
         worst5 = " · ".join(pb_data.get("worst_assets",[])[:5])
         st.markdown(f'<div style="background:#161B22;border-radius:8px;padding:14px;margin:12px 0"><div style="font-size:11px;color:#8B949E;text-transform:uppercase;letter-spacing:0.5px">🎯 What to Do Right Now — {sq} · {mq}</div><div style="margin-top:8px;font-size:13px;color:#3FB950">✅ Buy/Hold: {best5}</div><div style="margin-top:4px;font-size:13px;color:#F85149">❌ Avoid/Sell: {worst5}</div></div>', unsafe_allow_html=True)
 
-    # FIX SS1: defensive division
-    if fb_eval and fb_eval.get("evaluated",0):
-        ev = fb_eval.get("evaluated", 0) or 0
-        pr = fb_eval.get("promoted", 0) or 0
-        dm = fb_eval.get("demoted", 0) or 0
-        wr = (pr / max(ev, 1)) * 100
-        c1,c2,c3,c4 = st.columns(4)
-        c1.metric("Evaluated", ev); c2.metric("Winners", pr); c3.metric("Losers", dm); c4.metric("Win Rate", f"{wr:.1f}%")
+    # FIX SS1: try/except wrapper
+    try:
+        if fb_eval and fb_eval.get("evaluated",0):
+            ev = int(fb_eval.get("evaluated", 0) or 0)
+            pr = int(fb_eval.get("promoted", 0) or 0)
+            dm = int(fb_eval.get("demoted", 0) or 0)
+            wr = (pr / max(ev, 1)) * 100
+            c1,c2,c3,c4 = st.columns(4)
+            c1.metric("Evaluated", ev); c2.metric("Winners", pr); c3.metric("Losers", dm); c4.metric("Win Rate", f"{wr:.1f}%")
+    except Exception as e:
+        logger.warning(f"Feedback eval error: {e}")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: 📈 GIP MODEL
@@ -848,11 +840,11 @@ elif page == "🎯 Risk Ranges™":
     else: st.info("No data matches your filter.")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: ⚡ ALPHA CENTER (FIX SS2: remove Greeks/COT/OI/Max Pain)
+# TAB: ⚡ ALPHA CENTER (3-WAY SPLIT)
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "⚡ Alpha Center":
     st.markdown('<h2 style="margin-bottom:4px">⚡ Alpha Center</h2>', unsafe_allow_html=True)
-    st.caption("Best trades right now. Entry, targets, stop, and time horizon.")
+    st.caption("Best trades right now. Sorted by EV+ (Act Now → R:R → Grade).")
     st.divider()
 
     if transition:
@@ -890,47 +882,30 @@ elif page == "⚡ Alpha Center":
                 row["recommendation"] = "PLAYBOOK SHORT — Worst asset"
                 alpha_rows.append(row)
 
-    def sort_key(x):
-        rec = x.get("recommendation", "")
-        if "BUY NOW" in rec or "SELL NOW" in rec:
-            return (0, 0, -x.get("rr", 0))
-        elif "Cautious" in rec:
-            return (1, 0, -x.get("rr", 0))
-        else:
-            return (2, 0, -x.get("rr", 0))
-    alpha_rows.sort(key=sort_key)
+    longs, neutrals, shorts = _split_long_neutral_short(alpha_rows)
 
-    longs = [x for x in alpha_rows if "LONG" in x["direction"]]
-    shorts = [x for x in alpha_rows if "SHORT" in x["direction"]]
+    stat1,stat2,stat3 = st.columns(3)
+    stat1.metric("🟢 Long Ideas", len(longs))
+    stat2.metric("⚪ Neutral / Wait", len(neutrals))
+    stat3.metric("🔴 Short Ideas", len(shorts))
 
-    stat1,stat2,stat3,stat4 = st.columns(4)
-    stat1.metric("Long Ideas", len(longs)); stat2.metric("Short Ideas", len(shorts))
-    stat3.metric("Act Now", sum(1 for x in alpha_rows if "BUY NOW" in x["recommendation"] or "SELL NOW" in x["recommendation"]))
-    stat4.metric("Total Setups", len(alpha_rows))
+    cols = ["Ticker", "Price", "Entry", "Direction", "Hold", "T1", "T2", "Stop", "R:R", "Recommendation"]
 
     st.divider()
-    st.markdown("### 🎯 ALL SETUPS")
+    st.markdown("### 🟢 LONG SETUPS")
+    _render_table(longs, cols, height=400)
 
-    if alpha_rows:
-        df = pd.DataFrame([{
-            "Ticker": x["ticker"], "Price": ff(x["price"]), "Entry": ff(x["entry"]),
-            "Direction": x["direction"], "Hold": x["hold"],
-            "T1": ff(x["target_1"]), "T2": ff(x["target_2"]), "Stop": ff(x["stop"]),
-            "R:R": f"{x['rr']:.1f}×", "Recommendation": x["recommendation"],
-        } for x in alpha_rows[:50]])
+    if neutrals:
+        st.divider()
+        st.markdown("### ⚪ NEUTRAL / WAIT")
+        _render_table(neutrals, cols, height=250)
 
-        st.dataframe(df, hide_index=True, use_container_width=True, height=800,
-                     column_config={
-                         "Ticker": st.column_config.TextColumn("Ticker", width="small"),
-                         "Direction": st.column_config.TextColumn("Dir", width="small"),
-                         "Recommendation": st.column_config.TextColumn("Rec", width="large"),
-                         "R:R": st.column_config.TextColumn("R:R", width="small"),
-                     })
-    else:
-        st.info("No setups right now. Markets may be extended — wait for pullback.")
+    st.divider()
+    st.markdown("### 🔴 SHORT SETUPS")
+    _render_table(shorts, cols, height=400)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: 📊 LEADERBOARD (FIX SS2: remove Greeks/COT/OI/Max Pain)
+# TAB: 📊 LEADERBOARD (3-WAY SPLIT)
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "📊 Leaderboard":
     st.markdown('<h2 style="margin-bottom:4px">📊 Leaderboard</h2>', unsafe_allow_html=True)
@@ -951,36 +926,28 @@ elif page == "📊 Leaderboard":
         if row:
             lb_rows.append(row)
 
-    def lb_sort(x):
-        grade_order = 0 if x["grade"] == "A" else (1 if x["grade"] == "B" else 2)
-        rec_order = 0 if ("BUY NOW" in x["recommendation"] or "SELL NOW" in x["recommendation"]) else 1
-        return (rec_order, grade_order, -x.get("rr", 0))
-    lb_rows.sort(key=lb_sort)
+    longs, neutrals, shorts = _split_long_neutral_short(lb_rows)
 
-    if lb_rows:
-        df = pd.DataFrame([{
-            "Ticker": x["ticker"], "Price": ff(x["price"]), "Entry": ff(x["entry"]),
-            "Direction": x["direction"], "Hold": x["hold"],
-            "T1": ff(x["target_1"]), "T2": ff(x["target_2"]), "Stop": ff(x["stop"]),
-            "R:R": f"{x['rr']:.1f}×", "Recommendation": x["recommendation"],
-        } for x in lb_rows[:50]])
+    cols = ["Ticker", "Price", "Entry", "Direction", "Hold", "T1", "T2", "Stop", "R:R", "Recommendation"]
 
-        st.dataframe(df, hide_index=True, use_container_width=True, height=800,
-                     column_config={
-                         "Ticker": st.column_config.TextColumn("Ticker", width="small"),
-                         "Direction": st.column_config.TextColumn("Dir", width="small"),
-                         "Recommendation": st.column_config.TextColumn("Rec", width="large"),
-                         "R:R": st.column_config.TextColumn("R:R", width="small"),
-                     })
-    else:
-        st.info("Data loading...")
+    st.markdown("### 🟢 LONG LEADERBOARD")
+    _render_table(longs, cols, height=400)
+
+    if neutrals:
+        st.divider()
+        st.markdown("### ⚪ NEUTRAL")
+        _render_table(neutrals, cols, height=200)
+
+    st.divider()
+    st.markdown("### 🔴 SHORT LEADERBOARD")
+    _render_table(shorts, cols, height=400)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: 💱 FOREX (FIX SS2: remove Greeks/COT/OI/Max Pain)
+# TAB: 💱 FOREX (3-WAY SPLIT)
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "💱 Forex":
     st.markdown('<h2 style="margin-bottom:4px">💱 Forex Setups</h2>', unsafe_allow_html=True)
-    st.caption("COT + OI + Greeks + Risk Ranges. All in one table.")
+    st.caption("COT + OI + Greeks + Risk Ranges. Sorted by EV+.")
     st.divider()
 
     cot_data = snap.get("cot_oi",{}).get("cot",{}) if snap else {}
@@ -992,30 +959,27 @@ elif page == "💱 Forex":
         if row:
             fx_rows.append(row)
 
-    if fx_rows:
-        df = pd.DataFrame([{
-            "Pair": x["ticker"], "Price": ff(x["price"]), "Entry": ff(x["entry"]),
-            "Direction": x["direction"], "Hold": x["hold"],
-            "T1": ff(x["target_1"]), "T2": ff(x["target_2"]), "Stop": ff(x["stop"]),
-            "R:R": f"{x['rr']:.1f}×", "Recommendation": x["recommendation"],
-        } for x in fx_rows])
+    longs, neutrals, shorts = _split_long_neutral_short(fx_rows)
+    cols = ["Pair", "Price", "Entry", "Direction", "Hold", "T1", "T2", "Stop", "R:R", "Recommendation"]
 
-        st.dataframe(df, hide_index=True, use_container_width=True, height=800,
-                     column_config={
-                         "Pair": st.column_config.TextColumn("Pair", width="small"),
-                         "Direction": st.column_config.TextColumn("Dir", width="small"),
-                         "Recommendation": st.column_config.TextColumn("Rec", width="large"),
-                         "R:R": st.column_config.TextColumn("R:R", width="small"),
-                     })
-    else:
-        st.info("Forex data loading...")
+    st.markdown("### 🟢 LONG FX")
+    _render_table([{**r, "Pair": r["ticker"]} for r in longs], cols, height=350)
+
+    if neutrals:
+        st.divider()
+        st.markdown("### ⚪ NEUTRAL FX")
+        _render_table([{**r, "Pair": r["ticker"]} for r in neutrals], cols, height=200)
+
+    st.divider()
+    st.markdown("### 🔴 SHORT FX")
+    _render_table([{**r, "Pair": r["ticker"]} for r in shorts], cols, height=350)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: 🛢️ COMMODITIES (FIX SS2: remove Greeks/COT/OI/Max Pain)
+# TAB: 🛢️ COMMODITIES (3-WAY SPLIT)
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "🛢️ Commodities":
     st.markdown('<h2 style="margin-bottom:4px">🛢️ Commodity Setups</h2>', unsafe_allow_html=True)
-    st.caption("COT + OI + Greeks + Risk Ranges. All in one table.")
+    st.caption("COT + OI + Greeks + Risk Ranges. Sorted by EV+.")
     st.divider()
 
     cot_data = snap.get("cot_oi",{}).get("cot",{}) if snap else {}
@@ -1027,33 +991,29 @@ elif page == "🛢️ Commodities":
         if row:
             comm_rows.append(row)
 
-    if comm_rows:
-        df = pd.DataFrame([{
-            "Ticker": x["ticker"], "Price": ff(x["price"]), "Entry": ff(x["entry"]),
-            "Direction": x["direction"], "Hold": x["hold"],
-            "T1": ff(x["target_1"]), "T2": ff(x["target_2"]), "Stop": ff(x["stop"]),
-            "R:R": f"{x['rr']:.1f}×", "Recommendation": x["recommendation"],
-        } for x in comm_rows])
+    longs, neutrals, shorts = _split_long_neutral_short(comm_rows)
+    cols = ["Ticker", "Price", "Entry", "Direction", "Hold", "T1", "T2", "Stop", "R:R", "Recommendation"]
 
-        st.dataframe(df, hide_index=True, use_container_width=True, height=800,
-                     column_config={
-                         "Ticker": st.column_config.TextColumn("Ticker", width="small"),
-                         "Direction": st.column_config.TextColumn("Dir", width="small"),
-                         "Recommendation": st.column_config.TextColumn("Rec", width="large"),
-                         "R:R": st.column_config.TextColumn("R:R", width="small"),
-                     })
-    else:
-        st.info("No commodity setups right now.")
+    st.markdown("### 🟢 LONG COMMODITIES")
+    _render_table(longs, cols, height=350)
+
+    if neutrals:
+        st.divider()
+        st.markdown("### ⚪ NEUTRAL")
+        _render_table(neutrals, cols, height=200)
+
+    st.divider()
+    st.markdown("### 🔴 SHORT COMMODITIES")
+    _render_table(shorts, cols, height=350)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: ₿ CRYPTO (FIX SS4: on-chain merge + 1 tabel)
+# TAB: ₿ CRYPTO (3-WAY SPLIT + ON-CHAIN MERGED)
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "₿ Crypto":
     st.markdown('<h2 style="margin-bottom:4px">₿ Crypto Setups</h2>', unsafe_allow_html=True)
-    st.caption("On-chain momentum + Risk Ranges. Merged into 1 table.")
+    st.caption("On-chain momentum + Risk Ranges. Merged into 1 table. Sorted by EV+.")
     st.divider()
 
-    # FIX: fallback on-chain data generation kalau snapshot kosong
     crypto_tokens = snap.get("crypto_tokens", {}) or {}
     if not isinstance(crypto_tokens, dict) or not crypto_tokens:
         crypto_tokens = {}
@@ -1084,7 +1044,6 @@ elif page == "₿ Crypto":
             if token_data:
                 score = token_data.get("momentum_score", 0.5)
                 tvl_7d = token_data.get("tvl_7d_change", 0)
-                # Merge on-chain insight ke recommendation
                 if score > 0.7 and tvl_7d > 0.08 and "LONG" in row["direction"]:
                     row["recommendation"] = f"🚀 STRONG LONG — On-chain accumulation (TVL +{tvl_7d:.1%}) + price momentum align"
                 elif score > 0.7 and tvl_7d > 0.08 and "SHORT" in row["direction"]:
@@ -1095,7 +1054,6 @@ elif page == "₿ Crypto":
                 row["tvl_7d"] = fp(tvl_7d)
                 row["tvl_30d"] = fp(token_data.get("tvl_30d_change", 0))
                 row["dex_vol"] = fp(token_data.get("dex_vol_change", 0))
-                # Signal label
                 if score > 0.7 and tvl_7d > 0.15:
                     row["onchain_signal"] = "🚀 STRONG ACCUMULATION"
                 elif score > 0.55 and (tvl_7d > 0.1 or token_data.get("dex_vol_change",0) > 0.2):
@@ -1108,33 +1066,23 @@ elif page == "₿ Crypto":
                 row["onchain_score"] = "—"; row["tvl_7d"] = "—"; row["tvl_30d"] = "—"; row["dex_vol"] = "—"; row["onchain_signal"] = "—"
             crypto_rows.append(row)
 
-    if crypto_rows:
-        df = pd.DataFrame([{
-            "Ticker": x["ticker"], "Price": ff(x["price"]), "Entry": ff(x["entry"]),
-            "Direction": x["direction"], "Hold": x["hold"],
-            "T1": ff(x["target_1"]), "T2": ff(x["target_2"]), "Stop": ff(x["stop"]),
-            "R:R": f"{x['rr']:.1f}×",
-            "On-Chain": x.get("onchain_signal", "—"),
-            "Momentum": x.get("onchain_score", "—"),
-            "TVL 7d": x.get("tvl_7d", "—"),
-            "TVL 30d": x.get("tvl_30d", "—"),
-            "DEX Vol": x.get("dex_vol", "—"),
-            "Recommendation": x["recommendation"],
-        } for x in crypto_rows])
+    longs, neutrals, shorts = _split_long_neutral_short(crypto_rows)
+    cols = ["Ticker", "Price", "Entry", "Direction", "Hold", "T1", "T2", "Stop", "R:R", "On-Chain", "Momentum", "TVL 7d", "Recommendation"]
 
-        st.dataframe(df, hide_index=True, use_container_width=True, height=600,
-                     column_config={
-                         "Ticker": st.column_config.TextColumn("Ticker", width="small"),
-                         "Direction": st.column_config.TextColumn("Dir", width="small"),
-                         "Recommendation": st.column_config.TextColumn("Rec", width="large"),
-                         "R:R": st.column_config.TextColumn("R:R", width="small"),
-                         "On-Chain": st.column_config.TextColumn("On-Chain", width="small"),
-                     })
-    else:
-        st.info("No crypto setups right now.")
+    st.markdown("### 🟢 LONG CRYPTO")
+    _render_table(longs, cols, height=350)
+
+    if neutrals:
+        st.divider()
+        st.markdown("### ⚪ NEUTRAL CRYPTO")
+        _render_table(neutrals, cols, height=200)
+
+    st.divider()
+    st.markdown("### 🔴 SHORT CRYPTO")
+    _render_table(shorts, cols, height=350)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: 🇮🇩 IHSG (FIX SS5: cuma LONG/BUY)
+# TAB: 🇮🇩 IHSG (FIX: cuma LONG/BUY)
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "🇮🇩 IHSG":
     st.markdown('<h2 style="margin-bottom:4px">🇮🇩 Indonesia (IHSG)</h2>', unsafe_allow_html=True)
@@ -1144,8 +1092,8 @@ elif page == "🇮🇩 IHSG":
     ihsg_rows = []
     for ticker in list(IHSG_UNIVERSE.keys())[:20]:
         row = _build_ihsg_row(ticker, prices, ar)
-        # FIX SS5: cuma ambil yang LONG / BUY
-        if row and ("LONG" in row["direction"] or "BUY" in row["signal"]):
+        # FIX: cek direction string, bukan signal key
+        if row and "LONG" in row.get("direction", ""):
             ihsg_rows.append(row)
 
     if ihsg_rows:
@@ -1174,7 +1122,7 @@ elif page == "🇮🇩 IHSG":
     st.markdown("Commodity bid supports coal, nickel, CPO. EIDO benefits.")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: 🌍 GLOBAL QUAD (FIX SS3: dummy country data)
+# TAB: 🌍 GLOBAL QUAD (FIX: df.style.map)
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "🌍 Global Quad":
     st.markdown('<h2 style="margin-bottom:4px">🌍 Global Quad</h2>', unsafe_allow_html=True)
@@ -1187,7 +1135,6 @@ elif page == "🌍 Global Quad":
     gprobs = global_.get("global_probs",{})
     cqs = global_.get("country_quads",{})
 
-    # FIX SS3: generate dummy kalau kosong
     if not cqs:
         base_map = {
             "Q1": ["USA","Japan","India","Taiwan","South Korea","Vietnam","Mexico"],
@@ -1218,7 +1165,11 @@ elif page == "🌍 Global Quad":
         for country,q in sorted(cqs.items(),key=lambda x:x[1]):
             rows.append({"Country":country,"Regime":q,"Name":QN.get(q,q),"Color":qc(q)})
         df=pd.DataFrame(rows)
-        st.dataframe(df.style.applymap(lambda x:f'color:{x}',subset=["Color"]).format({"Color":lambda x:""}), hide_index=True, use_container_width=True, height=400)
+        # FIX SS2: ganti applymap → map (pandas baru deprecated applymap)
+        def _color_cell(val):
+            return f'color:{val}'
+        styled = df.style.map(_color_cell, subset=["Color"]).format({"Color":lambda x:""})
+        st.dataframe(styled, hide_index=True, use_container_width=True, height=400)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: 📖 NARRATIVES

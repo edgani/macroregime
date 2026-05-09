@@ -104,8 +104,8 @@ QUAD_MAP = {
 # ═══════════════════════════════════════════════════════════════════
 # FALLBACK RISK RANGE CALCULATOR (when Hurst engine missing)
 # ═══════════════════════════════════════════════════════════════════
-def _calc_risk_range(s: pd.Series) -> dict:
-    """Calculate TRR/LRR from price series using simple volatility bands."""
+def _calc_risk_range(s: pd.Series, ticker: str = "", market: str = "us_equity") -> dict:
+    """Calculate TRR/LRR from price series — returns FULL structure app.py expects."""
     if s is None or s.empty:
         return {"ok": False}
     s = pd.to_numeric(s, errors="coerce").dropna()
@@ -120,25 +120,42 @@ def _calc_risk_range(s: pd.Series) -> dict:
     if not all(math.isfinite(v) for v in [last, sma20, sma50, std20]):
         return {"ok": False}
 
-    # Simple Hurst-like ranges
-    lrr = round(sma20 - 1.5 * std20, 2)  # Lower Risk Range (buy zone)
-    trr = round(sma20 + 1.5 * std20, 2)  # Upper Risk Range (sell zone)
+    lrr = round(sma20 - 1.5 * std20, 2)
+    trr = round(sma20 + 1.5 * std20, 2)
 
-    # Signal
+    # Determine signal and quality
     if last < lrr:
+        composite = "bullish"
         signal = "OVERSOLD 🔵"
+        quality = "A"
     elif last > trr:
+        composite = "bearish"
         signal = "OVERBOUGHT 🔴"
+        quality = "short_A"
     else:
+        composite = "neutral"
         signal = "NEUTRAL ⚪"
+        quality = "C"
 
+    # Full structure matching app.py expectations
     return {
         "ok": True,
-        "last": round(last, 2),
-        "lrr": lrr,
-        "trr": trr,
+        "px": round(last, 2),
+        "market": market,
+        "composite": composite,
+        "quality": quality,
+        "trade": {
+            "lrr": lrr,
+            "trr": trr,
+            "volume_confirm": 0.5,
+            "stretch": "normal",
+        },
+        "trend": {
+            "hurst": 0.5,
+            "direction": "up" if last > sma50 else "down",
+        },
+        "alerts": [],
         "signal": signal,
-        "trend": "UP 📈" if last > sma50 else "DOWN 📉" if last < sma50 else "FLAT ➡️",
         "note": f"Price {last:.2f} vs LRR {lrr:.2f} / TRR {trr:.2f}",
     }
 
@@ -175,15 +192,28 @@ def _build_risk_ranges(prices, all_tickers):
         s = prices.get(t)
         if s is None or s.empty:
             continue
+        # Determine market category
+        mkt = "us_equity"
+        if t in FOREX_PAIRS or any(x in t for x in ["USD=","EUR=","GBP=","JPY=","CAD","AUD","CHF","NZD","MXN","SEK","BRL"]):
+            mkt = "forex"
+        elif t in COMMODITIES or any(x in t for x in ["GC=","SI=","CL=","BZ=","NG=","HG=","PL=","PA=","RB=","HO=","ALI=","ZW=","ZC=","ZS=","ZW","ZC","ZS"]):
+            mkt = "commodity"
+        elif t in CRYPTO or any(x in t for x in ["BTC","ETH","SOL","TON","ADA","AVAX","DOT","LINK","DOGE","LTC","XRP","BNB"]):
+            mkt = "crypto"
+        elif t in IHSG_UNIVERSE or any(x in t for x in [".JK","EIDO","PGEO","ADRO","NCKL","BBRI","BMRI","ICBP","KLBF","AALI","UNTR","TLKM","WINS","LEAD","SHIP","ELSA","BUMI"]):
+            mkt = "ihsg"
+
         try:
             rr = risk_engine.analyze(s)
             if rr and rr.get("ok"):
+                # Ensure market field exists
+                rr["market"] = rr.get("market", mkt)
                 asset_ranges[t] = rr
                 continue
         except Exception:
             pass
         # Fallback calculator
-        rr = _calc_risk_range(s)
+        rr = _calc_risk_range(s, ticker=t, market=mkt)
         if rr.get("ok"):
             asset_ranges[t] = rr
 
@@ -722,6 +752,8 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
         "fred_coverage": gip.data_coverage,
         "cot_oi": cot_oi,
         "crypto_onchain": crypto_onchain,
+        "crypto_aggregate": crypto_onchain.get("aggregate", {}) if isinstance(crypto_onchain, dict) else {},
+        "crypto_tokens": crypto_onchain.get("tokens", {}) if isinstance(crypto_onchain, dict) else {},
     }
 
     logger.info(f"Snapshot built in {snapshot['build_time_s']}s | Prices: {len(prices)} | Ranges: {len(asset_ranges)} | Longs: {len(alpha.get('longs', []))} | Shorts: {len(alpha.get('shorts', []))}")

@@ -110,31 +110,57 @@ def _sequence_pills(sq, mq):
 # UNIVERSAL ENTRY / TP / STOP (works for ALL tickers — no options required)
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _rr_levels(px, lrr, trr):
+def _rr_levels(px, lrr, trr, side="long"):
     """
-    Compute entry/TP/stop from LRR/TRR alone.
-    This is shown on EVERY ticker card regardless of options availability.
-    Options layer enhances these levels when available.
+    Direction-aware entry/TP/Stop from LRR/TRR.
+    LONG:  Entry = LRR (buy the dip), TP = toward TRR, Stop = below LRR
+    SHORT: Entry = TRR (sell the rip), TP = toward LRR, Stop = above TRR
     """
     px  = _sf(px)  or 0
     lrr = _sf(lrr) or 0
     trr = _sf(trr) or 0
-    if not (lrr > 0 and trr > 0 and trr > lrr):
-        return None
+    if not (lrr > 0 and trr > 0 and trr > lrr): return None
     spread = trr - lrr
-    entry  = round(lrr, 2)
-    tp1    = round(lrr + spread * 0.50, 2)
-    tp2    = round(trr, 2)
-    stop   = round(lrr - spread * 0.25, 2)
-    rr_r   = round((tp1 - entry) / max(entry - stop, 0.01), 2)
-    # Position within range (0=LRR, 1=TRR)
-    pos = (px - lrr) / spread if spread > 0 else 0.5
-    extended = pos > 0.65
-    near_lrr = pos <= 0.35
+    pos = max(0.0, min(1.0, (px - lrr) / spread)) if spread > 0 else 0.5
+
+    if side == "long":
+        entry = round(lrr, 2)
+        tp1   = round(lrr + spread * 0.50, 2)  # midpoint
+        tp2   = round(trr, 2)                    # TRR = full target
+        stop  = round(lrr - spread * 0.25, 2)   # below LRR
+        near_entry  = pos <= 0.35
+        can_enter   = pos <= 0.55               # still ok to enter
+        near_target = pos >= 0.75               # near TRR, take profit
+        if near_entry:    action = "✅ BUY — At/near entry zone"
+        elif can_enter:   action = "📈 CONSIDER — Still EV+ (chase ok if thesis strong)"
+        elif near_target: action = "🔴 TAKE PROFIT — Near TRR. Do NOT chase."
+        else:             action = "⏳ WAIT — Mid-range. Wait for pullback to LRR."
+    else:  # short: sell at TRR, target = LRR
+        entry = round(trr, 2)                    # SHORT at TRR (the top)
+        tp1   = round(trr - spread * 0.50, 2)   # midpoint going DOWN
+        tp2   = round(lrr, 2)                    # LRR = full short target
+        stop  = round(trr + spread * 0.25, 2)   # stop ABOVE TRR
+        near_entry  = pos >= 0.65               # near TRR = short entry zone
+        can_enter   = pos >= 0.45              # still ok to short
+        near_target = pos <= 0.25              # near LRR = cover short
+        if near_entry:    action = "✅ SHORT — At/near entry zone (sell the rip)"
+        elif can_enter:   action = "📉 CONSIDER — Still EV+ (partial short ok)"
+        elif near_target: action = "🔴 COVER — Near LRR target. Take profit."
+        else:             action = "⏳ WAIT — Mid-range. Wait for rally to TRR."
+
+    rr_r = round(abs(tp1 - entry) / max(abs(entry - stop), 0.01), 2)
+
+    # Hold duration based on R/R
+    if rr_r >= 2.5:   hold = "TREND (3mo+)"
+    elif rr_r >= 1.5: hold = "TRADE (1-3wk)"
+    else:             hold = "Skip (R/R<1.5)"
+
     return {
         "entry": entry, "tp1": tp1, "tp2": tp2, "stop": stop,
-        "rr": rr_r, "pos": round(pos, 2),
-        "extended": extended, "near_lrr": near_lrr,
+        "rr": rr_r, "pos": round(pos, 2), "side": side, "hold": hold,
+        "near_entry": near_entry, "near_target": near_target,
+        "can_enter": can_enter, "action": action,
+        "extended": near_target,
     }
 
 def _merge_with_options(rl: dict, opt: dict, side: str = "long") -> dict:
@@ -717,18 +743,11 @@ elif page == "⚡ Alpha Center":
         v=ar.get(ticker,{}); tr=v.get("trade",{}); comp=v.get("composite","neutral")
         px=_sf(v.get("px")); lrr=_sf(tr.get("lrr")); trr=_sf(tr.get("trr"))
         stretch=tr.get("stretch","")
-        rl=_rr_levels(px,lrr,trr)
+        rl=_rr_levels(px,lrr,trr,direction)  # direction-aware
         tc="#10B981" if direction=="long" else "#EF4444"
         trap_tag=' ⚠️' if trap else ""
 
-        # Position assessment
-        if rl:
-            pos = rl.get("pos",0.5)
-            if pos <= 0.35:   position_advice = "✅ NEAR LRR — Good entry zone"
-            elif pos <= 0.65: position_advice = "⏳ MID-RANGE — Wait for pullback to LRR"
-            else:             position_advice = "⚠ NEAR TRR — Extended, wait for pullback"
-        else:
-            position_advice = "⏳ No RR data"
+        position_advice = rl.get("action","⏳ No RR data") if rl else "⏳ No RR data"
 
         # Get options
         opt_data = None
@@ -766,10 +785,30 @@ elif page == "⚡ Alpha Center":
                     st.caption("Options: N/A" if not _opt_ok else "Options: fetching")
 
     st.markdown("---"); st.markdown("### ⚡ Level 1 — Act Now")
-    if not l1_items:
-        st.info("No Level 1 setups (all may be extended near TRR). Check Level 2 below.")
-    for i,item in enumerate(l1_items[:8]):
-        _render_btk_card(item, expanded=(i<2))
+    if not l1_items and not l2_items:
+        # Fallback: build from RR data directly
+        st.info("Bottleneck engine data kosong. Menampilkan dari Risk Range signal quality.")
+        _fallback_longs = [(sym,v) for sym,v in ar.items()
+                           if v.get("composite")=="bullish" and v.get("quality") in ("A","B")
+                           and v.get("market") in ("us_equity","commodity")]
+        _fallback_shorts = [(sym,v) for sym,v in ar.items()
+                            if v.get("composite")=="bearish" and v.get("quality") in ("short_A","short_B")
+                            and v.get("market") in ("us_equity","commodity")]
+        _rows = []
+        for sym,v in (_fallback_longs[:12] + _fallback_shorts[:8]):
+            tr2=v.get("trade",{}); px2=_sf(v.get("px")); lrr2=_sf(tr2.get("lrr")); trr2=_sf(tr2.get("trr"))
+            side2="long" if v.get("composite")=="bullish" else "short"
+            rl2=_rr_levels(px2,lrr2,trr2,side2)
+            if not rl2: continue
+            _rows.append({"Ticker":sym,"Side":side2.upper(),"Px":ff(px2),"LRR":ff(lrr2),"TRR":ff(trr2),
+                           "Entry":ff(rl2["entry"]),"TP1":ff(rl2["tp1"]),"TP2":ff(rl2["tp2"]),
+                           "Stop":ff(rl2["stop"]),"R/R":ff(rl2["rr"]),"Hold":rl2.get("hold","—")[:10],
+                           "Status":rl2.get("action","—")[:30],"Quality":v.get("quality","—")})
+        if _rows:
+            st.dataframe(pd.DataFrame(_rows), hide_index=True, use_container_width=True, height=400)
+    else:
+        for i,item in enumerate(l1_items[:8]):
+            _render_btk_card(item, expanded=(i<2))
 
     st.markdown("---")
     with st.expander(f"📈 Level 2 — Building ({len(l2_items)})", expanded=False):
@@ -812,18 +851,14 @@ elif page == "📊 Leaderboard":
         try: from config.settings import TICKER_SECTOR; sector=TICKER_SECTOR.get(sym,"generic")
         except: sector="generic"
         if qual in ("A","B") and comp=="bullish":
-            if stretch in ("overbought","extended"): continue  # Skip near-target
-            rl=_rr_levels(px,lrr,trr); pos=rl.get("pos",0.5) if rl else 0.5
-            nlrr=pos<=0.35 or stretch in ("oversold","reset_zone")
+            rl=_rr_levels(px,lrr,trr,"long"); pos=rl.get("pos",0.5) if rl else 0.5
             rf=sym in best_set; ra=sym in worst_set
-            sc=(50 if qual=="A" else 30)+(25 if nlrr else 0)+(15 if vol_c>0.6 else 0)+(10 if rf else 0)+(-20 if ra else 0)+(5 if hurst>0.5 else 0)
+            sc=(50 if qual=="A" else 30)+(25 if (rl and rl.get("near_entry")) else 0)+(15 if vol_c>0.6 else 0)+(10 if rf else 0)+(-20 if ra else 0)+(5 if hurst>0.5 else 0)
             long_picks.append({"ticker":sym,"quality":qual,"px":px,"lrr":lrr,"trr":trr,"rl":rl,"stretch":stretch,"vol_c":vol_c,"hurst":hurst,"regime_fit":rf,"score":sc,"sector":sector,"comp":comp})
         if qual in ("short_A","short_B") and comp=="bearish":
-            if stretch in ("oversold","reset_zone"): continue  # Skip near-target
-            rl=_rr_levels(px,lrr,trr); pos=rl.get("pos",0.5) if rl else 0.5
-            ntrr=pos>=0.65 or stretch in ("overbought","extended")
+            rl=_rr_levels(px,lrr,trr,"short"); pos=rl.get("pos",0.5) if rl else 0.5
             rf=sym in worst_set
-            sc=(50 if qual=="short_A" else 30)+(25 if ntrr else 0)+(15 if vol_c>0.6 else 0)+(10 if rf else 0)+(5 if hurst>0.5 else 0)
+            sc=(50 if qual=="short_A" else 30)+(25 if (rl and rl.get("near_entry")) else 0)+(15 if vol_c>0.6 else 0)+(10 if rf else 0)+(5 if hurst>0.5 else 0)
             short_picks.append({"ticker":sym,"quality":qual,"px":px,"lrr":lrr,"trr":trr,"rl":rl,"stretch":stretch,"vol_c":vol_c,"hurst":hurst,"regime_fit":rf,"score":sc,"sector":sector,"comp":comp})
 
     long_picks.sort(key=lambda x:-x["score"]); short_picks.sort(key=lambda x:-x["score"])
@@ -834,42 +869,73 @@ elif page == "📊 Leaderboard":
     s3.markdown(f'<div class="winrate-card" style="text-align:center;"><div style="font-size:11px;color:#9CA3AF;">Quality A Shorts</div><div style="font-size:28px;font-weight:800;color:#EF4444;">{sum(1 for p in short_picks if p["quality"]=="short_A")}</div></div>',unsafe_allow_html=True)
     s4.markdown(f'<div class="winrate-card" style="text-align:center;"><div style="font-size:11px;color:#9CA3AF;">Regime Traps</div><div style="font-size:28px;font-weight:800;color:#F59E0B;">{sum(1 for v in ar.values() if v.get("regime_trap"))}</div></div>',unsafe_allow_html=True)
 
-    st.markdown("---"); st.markdown("### 🟢 TOP 21 LONG IDEAS")
-    for p in long_picks[:21]:
-        rl=p.get("rl"); opt_r=None
-        if _opt_ok2 and _opt_e and p["px"] and p["px"]>0:
-            try: opt_r=_opt_e.analyze(p["ticker"],p["px"],p["lrr"],p["trr"],p["comp"])
-            except: pass
-        if rl and opt_r: rl=_merge_with_options(rl,opt_r,"long")
-        # Position assessment
-        pos_advice="✅ Near LRR" if (rl and rl.get("near_lrr")) else ("⏳ Mid-range" if rl else "—")
-        st.markdown(f'''<div class="signal-A">
-        <div style="display:flex;justify-content:space-between;">
-          <span style="font-size:15px;font-weight:800;color:#10B981;">{p["ticker"]} <span style="font-size:11px;color:#A7F3D0;">({p["quality"]})</span></span>
-          <span style="font-size:11px;color:#9CA3AF;">{"✅" if p["regime_fit"] else "⚠️"} Sc:{p["score"]:.0f} · {p["sector"].replace("_"," ").title()} · {pos_advice}</span>
-        </div>
-        <div style="font-size:12px;color:#E8ECF0;margin-top:4px;">Px: {ff(p["px"])} · Stretch: {p["stretch"]} · Vol: {fp(p["vol_c"])} · H: {ff(p["hurst"])}</div>
-        </div>''', unsafe_allow_html=True)
-        if rl: _render_levels(rl,"long",opt_r)
-    if not long_picks: st.info("No Quality A/B longs near LRR. Wait for pullback.")
+    # ── Universal Ticker Table ────────────────────────────────────────────────
+    def _make_table(picks, side):
+        rows = []
+        for p in picks:
+            rl = p.get("rl")
+            action = rl.get("action","—") if rl else "—"
+            can_enter = rl.get("can_enter",False) if rl else False
+            near_target = rl.get("near_target",False) if rl else False
+            status = "✅ Enter Now" if (rl and rl.get("near_entry")) else ("📈 Chase OK" if can_enter else ("🔴 Take Profit" if near_target else "⏳ Wait"))
+            rows.append({
+                "Ticker": p["ticker"],
+                "Quality": p["quality"],
+                "Sector": p["sector"].replace("_"," ").title()[:15],
+                "Px": ff(p["px"]),
+                "LRR": ff(p["lrr"]),
+                "TRR": ff(p["trr"]),
+                "Entry": ff(rl["entry"]) if rl else "—",
+                "TP1": ff(rl["tp1"]) if rl else "—",
+                "TP2": ff(rl["tp2"]) if rl else "—",
+                "Stop": ff(rl["stop"]) if rl else "—",
+                "R/R": ff(rl["rr"]) if rl else "—",
+                "Hold": (rl.get("hold","—")[:10] if rl else "—"),
+                "Status": status,
+                "Regime": "✅" if p["regime_fit"] else "⚠️",
+            })
+        return pd.DataFrame(rows)
 
-    st.markdown("---"); st.markdown("### 🔴 SHORT IDEAS")
-    for p in short_picks[:15]:
-        rl=p.get("rl"); opt_r=None
-        if _opt_ok2 and _opt_e and p["px"] and p["px"]>0:
-            try: opt_r=_opt_e.analyze(p["ticker"],p["px"],p["lrr"],p["trr"],p["comp"])
-            except: pass
-        if rl and opt_r: rl=_merge_with_options(rl,opt_r,"short")
-        pos_advice="✅ Near TRR" if (rl and rl.get("extended")) else ("⏳ Mid-range" if rl else "—")
-        st.markdown(f'''<div class="signal-shortA">
-        <div style="display:flex;justify-content:space-between;">
-          <span style="font-size:15px;font-weight:800;color:#EF4444;">{p["ticker"]} <span style="font-size:11px;color:#FECACA;">({p["quality"]})</span></span>
-          <span style="font-size:11px;color:#9CA3AF;">{"✅" if p["regime_fit"] else "⚠️"} Sc:{p["score"]:.0f} · {p["sector"].replace("_"," ").title()} · {pos_advice}</span>
-        </div>
-        <div style="font-size:12px;color:#E8ECF0;margin-top:4px;">Px: {ff(p["px"])} · Stretch: {p["stretch"]} · Vol: {fp(p["vol_c"])}</div>
-        </div>''', unsafe_allow_html=True)
-        if rl: _render_levels(rl,"short",opt_r)
-    if not short_picks: st.info("No Quality Short setups.")
+    st.markdown("---")
+    st.markdown("### 🟢 TOP 21 LONG IDEAS")
+    st.caption("Entry = LRR zone. TP1 = midpoint. TP2 = TRR. Stop = below LRR. R/R target ≥ 1.5x.")
+    if long_picks:
+        df_longs = _make_table(long_picks[:21], "long")
+        st.dataframe(df_longs, hide_index=True, use_container_width=True,
+                     column_config={"Status": st.column_config.TextColumn("Status", width="medium"),
+                                    "Sector": st.column_config.TextColumn("Sector", width="small")})
+        # Detail cards for top 5
+        with st.expander("📋 Detail Level View — Top 5 Longs"):
+            for p in long_picks[:5]:
+                rl = p.get("rl"); opt_r = None
+                if _opt_ok2 and _opt_e and p["px"] and p["px"]>0:
+                    try: opt_r=_opt_e.analyze(p["ticker"],p["px"],p["lrr"],p["trr"],p["comp"])
+                    except: pass
+                if rl and opt_r: rl=_merge_with_options(rl,opt_r,"long")
+                st.markdown(f"**{p['ticker']}** ({p['quality']}) · {rl.get('action','') if rl else ''}")
+                if rl: _render_levels(rl,"long",opt_r)
+    else:
+        st.info("No Quality A/B longs. Market extended — wait for pullback to LRR.")
+
+    st.markdown("---")
+    st.markdown("### 🔴 SHORT IDEAS")
+    st.caption("Entry = TRR zone (sell the rip). TP1 = midpoint. TP2 = LRR. Stop = above TRR.")
+    if short_picks:
+        df_shorts = _make_table(short_picks[:15], "short")
+        st.dataframe(df_shorts, hide_index=True, use_container_width=True,
+                     column_config={"Status": st.column_config.TextColumn("Status", width="medium"),
+                                    "Sector": st.column_config.TextColumn("Sector", width="small")})
+        with st.expander("📋 Detail Level View — Top 5 Shorts"):
+            for p in short_picks[:5]:
+                rl = p.get("rl"); opt_r = None
+                if _opt_ok2 and _opt_e and p["px"] and p["px"]>0:
+                    try: opt_r=_opt_e.analyze(p["ticker"],p["px"],p["lrr"],p["trr"],p["comp"])
+                    except: pass
+                if rl and opt_r: rl=_merge_with_options(rl,opt_r,"short")
+                st.markdown(f"**{p['ticker']}** ({p['quality']}) · {rl.get('action','') if rl else ''}")
+                if rl: _render_levels(rl,"short",opt_r)
+    else:
+        st.info("No Quality Short setups.")
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -964,17 +1030,10 @@ elif page == "📖 Narratives":
     st.markdown("# 📖 Narratives — Thematic Scoring")
     st.caption("Active = confirmed. Building = traction. Brewing = pre-consensus.")
 
-    # Get engine narratives
+    # Get engine narratives, merge with fallback — always show content
     active = (narr.get("active_narratives",[]) or []) if narr else []
-
-    # Always show — merge engine + fallback
-    if not active:
-        st.info("NarrativeEngine belum berjalan. Menampilkan Hedgeye-aligned fallback narratives.")
-
-    # Filter fallback by current Quad
     fallback = [n for n in HEDGEYE_FALLBACK_NARRATIVES
                 if sq in n.get("regime","") or mq in n.get("regime","") or n.get("regime","")=="ALL"]
-
     all_narr = active if active else fallback
 
     for n in sorted(all_narr, key=lambda x: x.get("score",0), reverse=True):
@@ -997,15 +1056,10 @@ elif page == "🔮 Discovery":
     st.markdown("# 🔮 Early Discovery — Pre-Consensus")
     st.caption("Autonomy: regime fit + price cluster + supply chain graph + news NLP.")
 
-    # Get engine discoveries
+    # Get engine discoveries, merge with fallback
     cands=(auto_disc.get("candidates",[]) or []) if auto_disc else []
     cands += (disc.get("discoveries",[]) or []) if disc else []
-
-    if not cands:
-        st.info("Autonomy Stack belum berjalan. Menampilkan pre-defined pre-consensus ideas.")
-        cands_display = HEDGEYE_FALLBACK_DISCOVERY
-    else:
-        cands_display = cands
+    cands_display = cands if cands else HEDGEYE_FALLBACK_DISCOVERY
 
     for stage,sc_c in [("active","#10B981"),("building","#F59E0B"),("brewing","#6366F1")]:
         items=[c for c in cands_display if c.get("stage")==stage]

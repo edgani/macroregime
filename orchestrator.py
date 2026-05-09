@@ -220,6 +220,19 @@ def build_snapshot(
         "QQQ","SPY","IWM","RSP","GLD","SLV",
     ]
     rr_tickers = rr_tickers + hedgeye_etf_pro_tickers
+    # IHSG stocks — ensure IHSG tab has RR data without needing separate refresh
+    if include_ihsg:
+        ihsg_rr = [
+            "^JKSE","EIDO",
+            "BBCA.JK","BBRI.JK","BMRI.JK","BBNI.JK","BRIS.JK","BBTN.JK",
+            "ADRO.JK","PTBA.JK","ITMG.JK","AADI.JK","BUMI.JK",
+            "INCO.JK","MDKA.JK","ANTM.JK","TINS.JK","NCKL.JK",
+            "TLKM.JK","EXCL.JK","ISAT.JK","UNTR.JK","PGAS.JK",
+            "MEDC.JK","PGEO.JK","WINS.JK","LEAD.JK","SOCI.JK",
+            "ICBP.JK","INDF.JK","KLBF.JK","ASII.JK",
+            "CTRA.JK","BSDE.JK","HEAL.JK","MIKA.JK",
+        ]
+        rr_tickers = rr_tickers + ihsg_rr
     rr_tickers = list(dict.fromkeys(rr_tickers))  # dedupe, preserve order
 
     price_frames: Dict[str, pd.DataFrame] = {}

@@ -232,12 +232,14 @@ def _build_bottlenecks(prices, health, features, sq, mq):
     # EM recovery signals
     trans = f"{sq}→{mq}"
     em_sig = EM_RECOVERY_SIGNALS.get(trans)
-    if em_sig:
+    if em_sig and isinstance(em_sig, dict):
+        direction = em_sig.get("direction", "neutral")
+        trigger = em_sig.get("trigger", "EM transition signal")
         b["em_recovery"].append({
             "ticker": "EEM",
-            "direction": "LONG" if em_sig["direction"] == "bullish" else "SHORT",
+            "direction": "LONG" if direction == "bullish" else "SHORT" if direction == "bearish" else "HOLD",
             "sector": "EM",
-            "known_thesis": em_sig["trigger"],
+            "known_thesis": trigger,
             "score": 0.70, "quality": "B",
             "setup": f"EM recovery on {trans} transition",
         })

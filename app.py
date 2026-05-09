@@ -1,10 +1,8 @@
-"""app.py — MacroRegime Pro v21.7 | Final Fix + 3-Way Split
-1. Dashboard fb_eval try/except
-2. Global Quad df.style.map (applymap deprecated)
-3. IHSG signal key fix
-4. Alpha Center: Long / Neutral / Short sections
-5. Leaderboard, Forex, Commodities, Crypto: same 3-way split
-6. Sort: Act Now first, then R:R desc, then grade
+"""app.py — MacroRegime Pro v21.8 | Key Mapping Fix + Neutral Removed
+Fixes:
+- All tables: proper key mapping (price→Price, target_1→T1, etc.)
+- Neutral section removed from Alpha, Leaderboard, Forex, Commodities, Crypto
+- Fallback: show raw data even if some fields missing
 """
 import streamlit as st
 import pandas as pd
@@ -525,12 +523,10 @@ def _build_ihsg_row(ticker, prices, ar):
 # SORT HELPERS
 # ══════════════════════════════════════════════════════════════════════════════
 def _sort_ev_plus(rows):
-    """Sort by: Act Now first, then R:R desc, then grade."""
     def key(x):
         rec = x.get("recommendation", "")
         rr = x.get("rr", 0) or 0
         grade = x.get("grade", "C")
-        # Priority: STRONG > CAUTIOUS/CONFLICTED > MODERATE > NO EDGE
         if "STRONG" in rec:
             prio = 0
         elif "CAUTIOUS" in rec or "CONFLICTED" in rec:
@@ -543,18 +539,38 @@ def _sort_ev_plus(rows):
         return (prio, grade_order, -rr)
     return sorted(rows, key=key)
 
-def _split_long_neutral_short(rows):
+def _split_long_short(rows):
     longs = [r for r in rows if "LONG" in r.get("direction", "")]
     shorts = [r for r in rows if "SHORT" in r.get("direction", "")]
-    neutrals = [r for r in rows if "NEUTRAL" in r.get("direction", "")]
-    return _sort_ev_plus(longs), neutrals, _sort_ev_plus(shorts)
+    return _sort_ev_plus(longs), _sort_ev_plus(shorts)
 
-def _render_table(rows, cols, height=600):
+# ══════════════════════════════════════════════════════════════════════════════
+# TABLE RENDER HELPERS (proper key mapping)
+# ══════════════════════════════════════════════════════════════════════════════
+def _df_from_rows(rows, mapping):
+    """mapping: {display_col: row_key}"""
     if not rows:
-        st.info("No setups in this category.")
-        return
-    df = pd.DataFrame([{k: x.get(k, "—") for k in cols} for x in rows])
-    st.dataframe(df, hide_index=True, use_container_width=True, height=height)
+        return pd.DataFrame()
+    out = []
+    for r in rows:
+        row = {}
+        for disp, key in mapping.items():
+            val = r.get(key)
+            if val is None:
+                row[disp] = "—"
+            elif isinstance(val, (int, float)) and not isinstance(val, bool):
+                if disp in ["Price","Entry","T1","T2","Stop","Max Pain"]:
+                    row[disp] = ff(val)
+                elif disp in ["R:R"]:
+                    row[disp] = f"{val:.1f}×"
+                elif disp in ["1M Ret","3M Ret","TVL 7d","TVL 30d","DEX Vol"]:
+                    row[disp] = fp(val)
+                else:
+                    row[disp] = val
+            else:
+                row[disp] = val
+        out.append(row)
+    return pd.DataFrame(out)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SIDEBAR
@@ -723,7 +739,6 @@ if page == "🏠 Dashboard":
         worst5 = " · ".join(pb_data.get("worst_assets",[])[:5])
         st.markdown(f'<div style="background:#161B22;border-radius:8px;padding:14px;margin:12px 0"><div style="font-size:11px;color:#8B949E;text-transform:uppercase;letter-spacing:0.5px">🎯 What to Do Right Now — {sq} · {mq}</div><div style="margin-top:8px;font-size:13px;color:#3FB950">✅ Buy/Hold: {best5}</div><div style="margin-top:4px;font-size:13px;color:#F85149">❌ Avoid/Sell: {worst5}</div></div>', unsafe_allow_html=True)
 
-    # FIX SS1: try/except wrapper
     try:
         if fb_eval and fb_eval.get("evaluated",0):
             ev = int(fb_eval.get("evaluated", 0) or 0)
@@ -840,7 +855,7 @@ elif page == "🎯 Risk Ranges™":
     else: st.info("No data matches your filter.")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: ⚡ ALPHA CENTER (3-WAY SPLIT)
+# TAB: ⚡ ALPHA CENTER (Long / Short only)
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "⚡ Alpha Center":
     st.markdown('<h2 style="margin-bottom:4px">⚡ Alpha Center</h2>', unsafe_allow_html=True)
@@ -882,30 +897,38 @@ elif page == "⚡ Alpha Center":
                 row["recommendation"] = "PLAYBOOK SHORT — Worst asset"
                 alpha_rows.append(row)
 
-    longs, neutrals, shorts = _split_long_neutral_short(alpha_rows)
+    longs, shorts = _split_long_short(alpha_rows)
 
     stat1,stat2,stat3 = st.columns(3)
     stat1.metric("🟢 Long Ideas", len(longs))
-    stat2.metric("⚪ Neutral / Wait", len(neutrals))
-    stat3.metric("🔴 Short Ideas", len(shorts))
+    stat2.metric("🔴 Short Ideas", len(shorts))
+    stat3.metric("Act Now", sum(1 for x in alpha_rows if "BUY NOW" in x["recommendation"] or "SELL NOW" in x["recommendation"]))
 
-    cols = ["Ticker", "Price", "Entry", "Direction", "Hold", "T1", "T2", "Stop", "R:R", "Recommendation"]
+    mapping = {
+        "Ticker": "ticker", "Price": "price", "Entry": "entry",
+        "Direction": "direction", "Hold": "hold",
+        "T1": "target_1", "T2": "target_2", "Stop": "stop",
+        "R:R": "rr", "Recommendation": "recommendation"
+    }
 
     st.divider()
     st.markdown("### 🟢 LONG SETUPS")
-    _render_table(longs, cols, height=400)
-
-    if neutrals:
-        st.divider()
-        st.markdown("### ⚪ NEUTRAL / WAIT")
-        _render_table(neutrals, cols, height=250)
+    df_long = _df_from_rows(longs, mapping)
+    if not df_long.empty:
+        st.dataframe(df_long, hide_index=True, use_container_width=True, height=400)
+    else:
+        st.info("No long setups right now. Wait for pullback.")
 
     st.divider()
     st.markdown("### 🔴 SHORT SETUPS")
-    _render_table(shorts, cols, height=400)
+    df_short = _df_from_rows(shorts, mapping)
+    if not df_short.empty:
+        st.dataframe(df_short, hide_index=True, use_container_width=True, height=400)
+    else:
+        st.info("No short setups right now. Markets not extended.")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: 📊 LEADERBOARD (3-WAY SPLIT)
+# TAB: 📊 LEADERBOARD (Long / Short only)
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "📊 Leaderboard":
     st.markdown('<h2 style="margin-bottom:4px">📊 Leaderboard</h2>', unsafe_allow_html=True)
@@ -926,24 +949,32 @@ elif page == "📊 Leaderboard":
         if row:
             lb_rows.append(row)
 
-    longs, neutrals, shorts = _split_long_neutral_short(lb_rows)
+    longs, shorts = _split_long_short(lb_rows)
 
-    cols = ["Ticker", "Price", "Entry", "Direction", "Hold", "T1", "T2", "Stop", "R:R", "Recommendation"]
+    mapping = {
+        "Ticker": "ticker", "Price": "price", "Entry": "entry",
+        "Direction": "direction", "Hold": "hold",
+        "T1": "target_1", "T2": "target_2", "Stop": "stop",
+        "R:R": "rr", "Recommendation": "recommendation"
+    }
 
     st.markdown("### 🟢 LONG LEADERBOARD")
-    _render_table(longs, cols, height=400)
-
-    if neutrals:
-        st.divider()
-        st.markdown("### ⚪ NEUTRAL")
-        _render_table(neutrals, cols, height=200)
+    df_long = _df_from_rows(longs, mapping)
+    if not df_long.empty:
+        st.dataframe(df_long, hide_index=True, use_container_width=True, height=400)
+    else:
+        st.info("No long leaderboard entries.")
 
     st.divider()
     st.markdown("### 🔴 SHORT LEADERBOARD")
-    _render_table(shorts, cols, height=400)
+    df_short = _df_from_rows(shorts, mapping)
+    if not df_short.empty:
+        st.dataframe(df_short, hide_index=True, use_container_width=True, height=400)
+    else:
+        st.info("No short leaderboard entries.")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: 💱 FOREX (3-WAY SPLIT)
+# TAB: 💱 FOREX (Long / Short only)
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "💱 Forex":
     st.markdown('<h2 style="margin-bottom:4px">💱 Forex Setups</h2>', unsafe_allow_html=True)
@@ -959,23 +990,32 @@ elif page == "💱 Forex":
         if row:
             fx_rows.append(row)
 
-    longs, neutrals, shorts = _split_long_neutral_short(fx_rows)
-    cols = ["Pair", "Price", "Entry", "Direction", "Hold", "T1", "T2", "Stop", "R:R", "Recommendation"]
+    longs, shorts = _split_long_short(fx_rows)
+
+    mapping = {
+        "Pair": "ticker", "Price": "price", "Entry": "entry",
+        "Direction": "direction", "Hold": "hold",
+        "T1": "target_1", "T2": "target_2", "Stop": "stop",
+        "R:R": "rr", "Recommendation": "recommendation"
+    }
 
     st.markdown("### 🟢 LONG FX")
-    _render_table([{**r, "Pair": r["ticker"]} for r in longs], cols, height=350)
-
-    if neutrals:
-        st.divider()
-        st.markdown("### ⚪ NEUTRAL FX")
-        _render_table([{**r, "Pair": r["ticker"]} for r in neutrals], cols, height=200)
+    df_long = _df_from_rows(longs, mapping)
+    if not df_long.empty:
+        st.dataframe(df_long, hide_index=True, use_container_width=True, height=350)
+    else:
+        st.info("No long FX setups.")
 
     st.divider()
     st.markdown("### 🔴 SHORT FX")
-    _render_table([{**r, "Pair": r["ticker"]} for r in shorts], cols, height=350)
+    df_short = _df_from_rows(shorts, mapping)
+    if not df_short.empty:
+        st.dataframe(df_short, hide_index=True, use_container_width=True, height=350)
+    else:
+        st.info("No short FX setups.")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: 🛢️ COMMODITIES (3-WAY SPLIT)
+# TAB: 🛢️ COMMODITIES (Long / Short only)
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "🛢️ Commodities":
     st.markdown('<h2 style="margin-bottom:4px">🛢️ Commodity Setups</h2>', unsafe_allow_html=True)
@@ -991,23 +1031,32 @@ elif page == "🛢️ Commodities":
         if row:
             comm_rows.append(row)
 
-    longs, neutrals, shorts = _split_long_neutral_short(comm_rows)
-    cols = ["Ticker", "Price", "Entry", "Direction", "Hold", "T1", "T2", "Stop", "R:R", "Recommendation"]
+    longs, shorts = _split_long_short(comm_rows)
+
+    mapping = {
+        "Ticker": "ticker", "Price": "price", "Entry": "entry",
+        "Direction": "direction", "Hold": "hold",
+        "T1": "target_1", "T2": "target_2", "Stop": "stop",
+        "R:R": "rr", "Recommendation": "recommendation"
+    }
 
     st.markdown("### 🟢 LONG COMMODITIES")
-    _render_table(longs, cols, height=350)
-
-    if neutrals:
-        st.divider()
-        st.markdown("### ⚪ NEUTRAL")
-        _render_table(neutrals, cols, height=200)
+    df_long = _df_from_rows(longs, mapping)
+    if not df_long.empty:
+        st.dataframe(df_long, hide_index=True, use_container_width=True, height=350)
+    else:
+        st.info("No long commodity setups.")
 
     st.divider()
     st.markdown("### 🔴 SHORT COMMODITIES")
-    _render_table(shorts, cols, height=350)
+    df_short = _df_from_rows(shorts, mapping)
+    if not df_short.empty:
+        st.dataframe(df_short, hide_index=True, use_container_width=True, height=350)
+    else:
+        st.info("No short commodity setups.")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: ₿ CRYPTO (3-WAY SPLIT + ON-CHAIN MERGED)
+# TAB: ₿ CRYPTO (Long / Short only + on-chain merged)
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "₿ Crypto":
     st.markdown('<h2 style="margin-bottom:4px">₿ Crypto Setups</h2>', unsafe_allow_html=True)
@@ -1051,9 +1100,9 @@ elif page == "₿ Crypto":
                 elif score < 0.3 and "LONG" in row["direction"]:
                     row["recommendation"] = f"🟡 WEAK LONG — Price bullish but on-chain fading (TVL {tvl_7d:.1%}), reduce size"
                 row["onchain_score"] = f"{int(score*100)}%"
-                row["tvl_7d"] = fp(tvl_7d)
-                row["tvl_30d"] = fp(token_data.get("tvl_30d_change", 0))
-                row["dex_vol"] = fp(token_data.get("dex_vol_change", 0))
+                row["tvl_7d"] = tvl_7d
+                row["tvl_30d"] = token_data.get("tvl_30d_change", 0)
+                row["dex_vol"] = token_data.get("dex_vol_change", 0)
                 if score > 0.7 and tvl_7d > 0.15:
                     row["onchain_signal"] = "🚀 STRONG ACCUMULATION"
                 elif score > 0.55 and (tvl_7d > 0.1 or token_data.get("dex_vol_change",0) > 0.2):
@@ -1063,26 +1112,37 @@ elif page == "₿ Crypto":
                 else:
                     row["onchain_signal"] = "⏳ NEUTRAL"
             else:
-                row["onchain_score"] = "—"; row["tvl_7d"] = "—"; row["tvl_30d"] = "—"; row["dex_vol"] = "—"; row["onchain_signal"] = "—"
+                row["onchain_score"] = "—"; row["tvl_7d"] = None; row["tvl_30d"] = None; row["dex_vol"] = None; row["onchain_signal"] = "—"
             crypto_rows.append(row)
 
-    longs, neutrals, shorts = _split_long_neutral_short(crypto_rows)
-    cols = ["Ticker", "Price", "Entry", "Direction", "Hold", "T1", "T2", "Stop", "R:R", "On-Chain", "Momentum", "TVL 7d", "Recommendation"]
+    longs, shorts = _split_long_short(crypto_rows)
+
+    mapping = {
+        "Ticker": "ticker", "Price": "price", "Entry": "entry",
+        "Direction": "direction", "Hold": "hold",
+        "T1": "target_1", "T2": "target_2", "Stop": "stop",
+        "R:R": "rr", "On-Chain": "onchain_signal",
+        "Momentum": "onchain_score", "TVL 7d": "tvl_7d",
+        "Recommendation": "recommendation"
+    }
 
     st.markdown("### 🟢 LONG CRYPTO")
-    _render_table(longs, cols, height=350)
-
-    if neutrals:
-        st.divider()
-        st.markdown("### ⚪ NEUTRAL CRYPTO")
-        _render_table(neutrals, cols, height=200)
+    df_long = _df_from_rows(longs, mapping)
+    if not df_long.empty:
+        st.dataframe(df_long, hide_index=True, use_container_width=True, height=350)
+    else:
+        st.info("No long crypto setups.")
 
     st.divider()
     st.markdown("### 🔴 SHORT CRYPTO")
-    _render_table(shorts, cols, height=350)
+    df_short = _df_from_rows(shorts, mapping)
+    if not df_short.empty:
+        st.dataframe(df_short, hide_index=True, use_container_width=True, height=350)
+    else:
+        st.info("No short crypto setups.")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: 🇮🇩 IHSG (FIX: cuma LONG/BUY)
+# TAB: 🇮🇩 IHSG (LONG only)
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "🇮🇩 IHSG":
     st.markdown('<h2 style="margin-bottom:4px">🇮🇩 Indonesia (IHSG)</h2>', unsafe_allow_html=True)
@@ -1092,20 +1152,20 @@ elif page == "🇮🇩 IHSG":
     ihsg_rows = []
     for ticker in list(IHSG_UNIVERSE.keys())[:20]:
         row = _build_ihsg_row(ticker, prices, ar)
-        # FIX: cek direction string, bukan signal key
         if row and "LONG" in row.get("direction", ""):
             ihsg_rows.append(row)
 
-    if ihsg_rows:
-        df = pd.DataFrame([{
-            "Ticker": x["ticker"], "Price": ff(x["price"]), "Entry": ff(x["entry"]),
-            "Direction": x["direction"], "Hold": x["hold"],
-            "T1": ff(x["target_1"]), "T2": ff(x["target_2"]), "Stop": ff(x["stop"]),
-            "R:R": f"{x['rr']:.1f}×", "1M Ret": fp(x["r1m"]), "3M Ret": fp(x["r3m"]),
-            "Sector": x["sector"], "Theme": x["theme"],
-            "Recommendation": x["recommendation"],
-        } for x in ihsg_rows])
+    mapping = {
+        "Ticker": "ticker", "Price": "price", "Entry": "entry",
+        "Direction": "direction", "Hold": "hold",
+        "T1": "target_1", "T2": "target_2", "Stop": "stop",
+        "R:R": "rr", "1M Ret": "r1m", "3M Ret": "r3m",
+        "Sector": "sector", "Theme": "theme",
+        "Recommendation": "recommendation"
+    }
 
+    df = _df_from_rows(ihsg_rows, mapping)
+    if not df.empty:
         st.dataframe(df, hide_index=True, use_container_width=True, height=700,
                      column_config={
                          "Ticker": st.column_config.TextColumn("Ticker", width="small"),
@@ -1122,7 +1182,7 @@ elif page == "🇮🇩 IHSG":
     st.markdown("Commodity bid supports coal, nickel, CPO. EIDO benefits.")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: 🌍 GLOBAL QUAD (FIX: df.style.map)
+# TAB: 🌍 GLOBAL QUAD
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "🌍 Global Quad":
     st.markdown('<h2 style="margin-bottom:4px">🌍 Global Quad</h2>', unsafe_allow_html=True)
@@ -1165,7 +1225,6 @@ elif page == "🌍 Global Quad":
         for country,q in sorted(cqs.items(),key=lambda x:x[1]):
             rows.append({"Country":country,"Regime":q,"Name":QN.get(q,q),"Color":qc(q)})
         df=pd.DataFrame(rows)
-        # FIX SS2: ganti applymap → map (pandas baru deprecated applymap)
         def _color_cell(val):
             return f'color:{val}'
         styled = df.style.map(_color_cell, subset=["Color"]).format({"Color":lambda x:""})

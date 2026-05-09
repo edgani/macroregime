@@ -1,4 +1,4 @@
-"""app.py — MacroRegime Pro v20 | Professional Client Dashboard
+"""app.py — MacroRegime Pro v21 | Professional Client Dashboard
 
 14 Tabs:
  🏠 Dashboard      📈 GIP Model      🎯 Risk Ranges™   ⚡ Alpha Center
@@ -12,6 +12,9 @@ import numpy as np
 import plotly.graph_objects as go
 import math
 import time
+import logging
+
+logger = logging.getLogger(__name__)
 
 st.set_page_config(
     page_title="MacroRegime Pro", page_icon="📊",
@@ -154,7 +157,7 @@ def _rr_levels(px, lrr, trr, side="long"):
     px = _sf(px) or 0; lrr = _sf(lrr) or 0; trr = _sf(trr) or 0
     if not (lrr > 0 and trr > 0 and trr > lrr): return None
     spread = trr - lrr
-    pos = max(0.0, min(1.0, (px - lrr) / spread)) if spread > 0 else 0.5
+    pos = (px - lrr) / spread if spread > 0 else 0.5
 
     if side == "long":
         entry, tp1, tp2, stop = round(lrr,2), round(lrr+spread*0.50,2), round(trr,2), round(lrr-spread*0.25,2)
@@ -226,17 +229,9 @@ def _quad_badge(q, size=28):
     pill = {"Q1":"pill-green","Q2":"pill-yellow","Q3":"pill-red","Q4":"pill-purple"}.get(q,"pill-gray")
     return f'<span class="pill {pill}" style="font-size:{size}px;">{q}</span>'
 
-def _status_pill(status, text):
-    css = {"buy":"pill-green","sell":"pill-red","wait":"pill-yellow","watch":"pill-blue"}.get(status,"pill-gray")
-    return f'<span class="pill {css}">{text}</span>'
-
 def _metric_box(label, value, sub="", color="#E6EDF3"):
     sub_html = f'<div class="metric-sub">{sub}</div>' if sub else ""
     return f'<div class="metric-box"><div class="metric-label">{label}</div><div class="metric-value" style="color:{color};">{value}</div>{sub_html}</div>'
-
-def _card(title, content, color="#30363D", border_color=None):
-    bc = border_color or color
-    return f'<div class="card" style="border-left-color:{bc};"><div style="font-weight:700;color:#E6EDF3;margin-bottom:10px;">{title}</div><div style="color:#8B949E;">{content}</div></div>'
 
 def prob_bar(probs, title=""):
     fig = go.Figure()
@@ -347,6 +342,150 @@ def _render_levels(rl, side="long", opt=None):
     st.markdown('<div style="height:1px;background:#30363D;margin:16px 0;"></div>', unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
+# ON-CHAIN HELPERS (DeFiLlama)
+# ══════════════════════════════════════════════════════════════════════════════
+@st.cache_data(ttl=3600)
+def _fetch_chain_tvl(chain="Ton", days=30):
+    try:
+        import requests
+        url = f"https://api.llama.fi/v2/historicalChainTvl/{chain}"
+        r = requests.get(url, timeout=8)
+        data = r.json()
+        if not data or not isinstance(data, list): return []
+        return data[-days:] if len(data) > days else data
+    except Exception as e:
+        logger.warning(f"DeFiLlama TVL fetch failed for {chain}: {e}")
+        return []
+
+@st.cache_data(ttl=3600)
+def _fetch_dex_volume(chain="Ton"):
+    try:
+        import requests
+        url = f"https://api.llama.fi/overview/dexs/{chain}"
+        r = requests.get(url, timeout=8)
+        return r.json()
+    except Exception as e:
+        logger.warning(f"DeFiLlama DEX fetch failed for {chain}: {e}")
+        return {}
+
+@st.cache_data(ttl=3600)
+def _fetch_protocol_tvl(protocol="bitcoin"):
+    try:
+        import requests
+        url = f"https://api.llama.fi/tvl/{protocol}"
+        r = requests.get(url, timeout=8)
+        return r.json()
+    except Exception as e:
+        logger.warning(f"DeFiLlama protocol TVL fetch failed: {e}")
+        return None
+
+def _compute_onchain_momentum(tvl_data, dex_data):
+    if not tvl_data or not isinstance(tvl_data, list): return 0.0, {}
+    metrics = {}
+    if len(tvl_data) >= 8:
+        tvl_now = float(tvl_data[-1].get("tvl", 0))
+        tvl_7d = float(tvl_data[-8].get("tvl", 1))
+        tvl_30d = float(tvl_data[0].get("tvl", 1)) if len(tvl_data) >= 30 else float(tvl_data[0].get("tvl", 1))
+        metrics["tvl_7d_change"] = (tvl_now / max(tvl_7d, 1)) - 1
+        metrics["tvl_30d_change"] = (tvl_now / max(tvl_30d, 1)) - 1
+        metrics["tvl_now"] = tvl_now
+    else:
+        metrics["tvl_7d_change"] = 0; metrics["tvl_30d_change"] = 0; metrics["tvl_now"] = 0
+
+    if isinstance(dex_data, dict):
+        vol_24h = float(dex_data.get("totalVolume24h", 0) or 0)
+        vol_7d = float(dex_data.get("totalVolume7d", 0) or 0)
+        metrics["vol_24h"] = vol_24h
+        metrics["vol_7d"] = vol_7d
+        metrics["vol_change"] = (vol_24h * 7 / max(vol_7d, 1)) - 1 if vol_7d > 0 else 0
+    else:
+        metrics["vol_24h"] = 0; metrics["vol_7d"] = 0; metrics["vol_change"] = 0
+
+    score = min(1.0, max(0.0, 0.4 * max(0, metrics["tvl_7d_change"]) + 0.3 * max(0, metrics["tvl_30d_change"]) + 0.3 * max(0, metrics["vol_change"])))
+    return score, metrics
+
+def _forex_greeks_proxy(ticker, prices, vix=None):
+    """Generate Greeks proxy for forex using VIX and DXY."""
+    greeks = {"delta":"—","gamma":"—","vanna":"—","vol":"—"}
+    if vix is None:
+        vix_s = prices.get("^VIX")
+        vix = _sf(vix_s.tail(1)) if vix_s is not None else 20.0
+    
+    # Vol regime
+    if vix > 25: greeks["vol"] = "High 🔴"
+    elif vix > 20: greeks["vol"] = "Elevated 🟡"
+    else: greeks["vol"] = "Normal 🟢"
+    
+    # Delta proxy: DXY trend correlation
+    dxy_s = prices.get("DX-Y.NYB")
+    if dxy_s is not None and len(dxy_s) >= 22:
+        dxy_ret = float(dxy_s.iloc[-1] / dxy_s.iloc[-22] - 1)
+        if "USD" in ticker and ticker.startswith("USD"):
+            greeks["delta"] = f"Bullish 📈" if dxy_ret > 0 else "Bearish 📉"
+        elif "USD" in ticker and not ticker.startswith("USD"):
+            greeks["delta"] = f"Bearish 📉" if dxy_ret > 0 else "Bullish 📈"
+        else:
+            greeks["delta"] = "Neutral ↔"
+    else:
+        greeks["delta"] = "Neutral ↔"
+    
+    # Gamma proxy: price acceleration (2nd derivative)
+    s = prices.get(ticker)
+    if s is not None and len(s) >= 10:
+        s = pd.to_numeric(s, errors="coerce").dropna()
+        r5 = float(s.iloc[-1] / s.iloc[-6] - 1) if len(s) >= 6 else 0
+        r10 = float(s.iloc[-1] / s.iloc[-11] - 1) if len(s) >= 11 else 0
+        accel = r5 - (r10 / 2)
+        if accel > 0.02: greeks["gamma"] = "Long 🟢"
+        elif accel < -0.02: greeks["gamma"] = "Short 🔴"
+        else: greeks["gamma"] = "Flat 🟡"
+    else:
+        greeks["gamma"] = "Flat 🟡"
+    
+    # Vanna proxy: vol-price correlation
+    if vix > 22 and dxy_ret > 0.01:
+        greeks["vanna"] = "Negative ⚠️"  # vol up + dollar up = EM pain
+    elif vix < 18 and dxy_ret < -0.01:
+        greeks["vanna"] = "Positive ✅"  # vol down + dollar down = risk-on
+    else:
+        greeks["vanna"] = "Mixed 🟡"
+    
+    return greeks
+
+def _crypto_greeks_proxy(ticker, prices, basis_pct=0):
+    """Generate Greeks proxy for crypto using price action + ETF basis."""
+    greeks = {"delta":"—","gamma":"—","vanna":"—","charm":"—"}
+    
+    s = prices.get(ticker)
+    if s is not None and len(s) >= 22:
+        s = pd.to_numeric(s, errors="coerce").dropna()
+        r1m = float(s.iloc[-1] / s.iloc[-22] - 1)
+        r3m = float(s.iloc[-1] / s.iloc[-64] - 1) if len(s) >= 64 else r1m
+        
+        # Delta: trend direction
+        greeks["delta"] = "Long 🟢" if r1m > 0.05 else ("Short 🔴" if r1m < -0.05 else "Neutral 🟡")
+        
+        # Gamma: acceleration
+        r5d = float(s.iloc[-1] / s.iloc[-6] - 1) if len(s) >= 6 else 0
+        r10d = float(s.iloc[-1] / s.iloc[-11] - 1) if len(s) >= 11 else 0
+        accel = r5d - (r10d / 2)
+        greeks["gamma"] = "Long 🟢" if accel > 0.03 else ("Short 🔴" if accel < -0.03 else "Flat 🟡")
+        
+        # Vanna: correlation between price and ETF basis
+        if abs(basis_pct) > 1:
+            greeks["vanna"] = "Positive ✅" if basis_pct > 1 else "Negative ⚠️"
+        else:
+            greeks["vanna"] = "Neutral 🟡"
+        
+        # Charm: time decay proxy (momentum fading)
+        charm = r1m - (r3m / 3)
+        greeks["charm"] = "Fading 🔴" if charm < -0.05 else ("Building 🟢" if charm > 0.05 else "Stable 🟡")
+    else:
+        for k in greeks: greeks[k] = "N/A ⚪"
+    
+    return greeks
+
+# ══════════════════════════════════════════════════════════════════════════════
 # SIDEBAR
 # ══════════════════════════════════════════════════════════════════════════════
 if "snap" not in st.session_state: st.session_state.snap = None
@@ -423,6 +562,9 @@ ar = rr.get("asset_ranges",{})
 dxy_corr = _compute_dxy_corr(prices)
 ai_data = snap.get("ai_analysis",{}) or {}
 
+# VIX for Greeks proxy
+vix_now = _sf(prices.get("^VIX", pd.Series()).tail(1)) if prices.get("^VIX") is not None else 20.0
+
 # Fallbacks
 FALLBACK_NARRATIVES = [
     {"name":"Silver Supercycle","score":0.92,"thesis":"SLV +143% since May 2025. Industrial demand (solar, AI chips) + safe haven. Mine supply flat.","tickers":["SLV","SILJ","GDXJ","GDX","GLD"],"best":["SLV","SILJ","GDXJ"],"worst":["XLK","MAGS"],"invalidators":["Q4 deflation signal","DXY sustained bullish"]},
@@ -450,7 +592,6 @@ if page == "🏠 Dashboard":
     st.caption("Command center. 30-second read.")
     st.divider()
 
-    # AI Badge
     ai_ok = ai_data.get("ok", False)
     ai_ts = ai_data.get("generated_at")
     ai_cnt_narr = len(ai_data.get("narratives",[]))
@@ -470,7 +611,6 @@ if page == "🏠 Dashboard":
 
     st.caption(f"Built {snap.get('build_time_s',0):.0f}s ago · {snap.get('prices_loaded',0)} assets · {snap.get('fred_coverage',0)} macro indicators")
 
-    # Market Condition
     vbd = health.get("vix_bucket",{}) if health else {}
     vb = vbd.get("bucket","—"); vl = _sf(vbd.get("vix_last")) or 0
     if vb=="Investable":
@@ -480,13 +620,11 @@ if page == "🏠 Dashboard":
     elif vb=="Defensive":
         st.markdown(f'<div class="danger-box"><b>🔴 DEFENSIVE CONDITIONS · VIX {vl:.1f}</b><br/>{vbd.get("note","")}<br/>Risk mode: {vbd.get("risk_mode","Normal")}</div>', unsafe_allow_html=True)
 
-    # Gamma + DXY + Lev
     g_col, dxy_col = st.columns([1.1, 1])
     with g_col: st.markdown(_gamma_card(gamma_data), unsafe_allow_html=True)
     with dxy_col: _render_dxy(prices, dxy_corr, sq)
     st.markdown(_lev_card(lev_data), unsafe_allow_html=True)
 
-    # Regime Metrics
     sq_q2p = (_sf((gip.structural_probs or {}).get("Q2",0)) or 0) if gip else 0
     sq_sub = f"Q2 probability: {sq_q2p:.0%}" if (sq=="Q3" and sq_q2p>0.25) else ""
     mq_sub = "⚠ Model Q1 · Hedgeye Q2" if mq_raw=="Q1" else ""
@@ -512,7 +650,6 @@ if page == "🏠 Dashboard":
         if fw != "not yet":
             st.markdown(f'<div class="danger-box" style="border-color:{fwc};"><b>{fwi}</b><br/>{fr}</div>', unsafe_allow_html=True)
 
-    # Playbook Summary
     if pb_data:
         best5 = " · ".join(pb_data.get("best_assets",[])[:6])
         worst5 = " · ".join(pb_data.get("worst_assets",[])[:5])
@@ -699,9 +836,9 @@ elif page == "⚡ Alpha Center":
     all_longs, all_shorts = _get_all_items()
 
     stat1,stat2,stat3,stat4 = st.columns(4)
-    stat1.metric("Long Ideas", len(all_longs)); stat2.metric("Short Ideas", len(all_shorts))
-    stat3.metric("Act Now", sum(1 for x in all_longs+all_shorts if x.get("rl",{}) and ("Act Now" in x["rl"].get("action","") or "Buy Now" in x["rl"].get("action","") or "Sell/Short" in x["rl"].get("action",""))))
-    stat4.metric("Options Enhanced", sum(1 for x in all_longs+all_shorts if x.get("opt",{}) and x.get("opt",{}).get("ok")))
+    stat1.metric("Long Ideas",len(all_longs)); stat2.metric("Short Ideas",len(all_shorts))
+    stat3.metric("Act Now",sum(1 for x in all_longs+all_shorts if x.get("rl",{}) and ("Act Now" in x["rl"].get("action","") or "Buy Now" in x["rl"].get("action","") or "Sell/Short" in x["rl"].get("action",""))))
+    stat4.metric("Options Enhanced",sum(1 for x in all_longs+all_shorts if x.get("opt",{}) and x.get("opt",{}).get("ok")))
 
     st.divider()
     st.markdown("### 🟢 LONG IDEAS — Buy These")
@@ -842,14 +979,14 @@ elif page == "🌍 Global Quad":
         st.markdown(f'<div class="card card-green" style="border-left-color:{ec};"><b>{em_sig.get("trigger","")}</b><br/>{em_sig.get("rationale","")}<br/>Best plays: {", ".join(em_sig.get("best",[])[:6])}</div>', unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: 💱 FOREX (NEW)
+# TAB: 💱 FOREX (ALPHA CENTER FORMAT + GREEKS)
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "💱 Forex":
     st.markdown('<h1 style="margin-bottom:4px;">💱 Forex</h1>', unsafe_allow_html=True)
-    st.caption("Major pairs + emerging market currencies. DXY drives everything.")
+    st.caption("Major + EM pairs. DXY drives everything. Greeks proxy via VIX + DXY.")
     st.divider()
 
-    # DXY Context
+    # DXY Context Card
     dxy = prices.get("DX-Y.NYB")
     if dxy is not None:
         dxy = pd.to_numeric(dxy, errors="coerce").dropna()
@@ -859,26 +996,39 @@ elif page == "💱 Forex":
             tc = "#F85149" if "Bearish" in trend else "#3FB950" if "Bullish" in trend else "#8B949E"
             st.markdown(f'<div class="card"><div style="font-weight:700;color:#E6EDF3;margin-bottom:6px;">💱 US DOLLAR INDEX (DXY)</div><div style="font-size:28px;font-weight:700;color:{tc};">${float(dxy.iloc[-1]):.2f}</div><div style="color:#8B949E;">15-day trend: <span style="color:{tc};font-weight:600;">{trend}</span> · When DXY falls, EM and commodities rise</div></div>', unsafe_allow_html=True)
 
-    # Forex Risk Ranges
-    forex_rr = {sym:v for sym,v in ar.items() if v.get("market","")=="forex"}
-    if forex_rr:
+    # Forex Alpha Center Table
+    forex_pairs = {sym:v for sym,v in ar.items() if v.get("market","")=="forex"}
+    if forex_pairs:
         rows=[]
-        for sym,v in forex_rr.items():
+        for sym,v in forex_pairs.items():
             tr=v.get("trade",{}); px=_sf(v.get("px")); lrr=_sf(tr.get("lrr")); trr=_sf(tr.get("trr"))
             sig=v.get("composite","—").upper(); qual=v.get("quality","—")
             rl=_rr_levels(px,lrr,trr,"long" if sig=="BULLISH" else "short")
             r1m=_price_ret(sym,prices,21); r3m=_price_ret(sym,prices,63)
             action = rl.get("action","—")[:35] if rl else "—"
+            
+            # Greeks Proxy
+            greeks = _forex_greeks_proxy(sym, prices, vix_now)
+            
             rows.append({
-                "Pair":sym,"Price":ff(px,4),"Buy Zone":ff(lrr,4),"Sell Zone":ff(trr,4),
-                "Action":action,"Signal":sig,"Grade":qual,
-                "1M Return":fp(r1m) if r1m is not None else "—",
-                "3M Return":fp(r3m) if r3m is not None else "—",
+                "Pair":sym,"Price":ff(px,4),"Entry":ff(_sf(rl.get("entry"))) if rl else "—",
+                "Target 1":ff(_sf(rl.get("tp1"))) if rl else "—","Target 2":ff(_sf(rl.get("tp2"))) if rl else "—",
+                "Stop Loss":ff(_sf(rl.get("stop"))) if rl else "—",
+                "R:R":f"{_sf(rl.get('rr')):.1f}×" if rl else "—","Hold For":rl.get("hold","—")[:10] if rl else "—",
+                "Status":action,"Signal":sig,"Grade":qual,
+                "1M":fp(r1m) if r1m is not None else "—","3M":fp(r3m) if r3m is not None else "—",
+                "Δ Delta":greeks["delta"],"Γ Gamma":greeks["gamma"],"Vanna":greeks["vanna"],"Vol Regime":greeks["vol"],
             })
-        st.markdown("### All Forex Pairs")
+        st.markdown("### 🎯 Forex Setups")
         df=pd.DataFrame(rows)
         st.dataframe(df, hide_index=True, use_container_width=True, height=500,
-            column_config={"Action":st.column_config.TextColumn("What to Do",width="large"),"Pair":st.column_config.TextColumn("Pair",width="small")})
+            column_config={
+                "Pair":st.column_config.TextColumn("Pair",width="small"),
+                "Status":st.column_config.TextColumn("What to Do",width="medium"),
+                "Δ Delta":st.column_config.TextColumn("Δ",width="small"),
+                "Γ Gamma":st.column_config.TextColumn("Γ",width="small"),
+                "Vanna":st.column_config.TextColumn("Vanna",width="small"),
+            })
     else:
         st.info("Forex data loading. Ensure Forex checkbox is active in Settings.")
 
@@ -896,14 +1046,13 @@ elif page == "💱 Forex":
         st.dataframe(df.style.format({"Correlation":"{:+.2f}"}).background_gradient(subset=["Correlation"],cmap="RdYlGn",vmin=-1,vmax=1), hide_index=True, use_container_width=True, height=200)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: 🛢️ COMMODITIES (NEW)
+# TAB: 🛢️ COMMODITIES
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "🛢️ Commodities":
     st.markdown('<h1 style="margin-bottom:4px;">🛢️ Commodities</h1>', unsafe_allow_html=True)
     st.caption("Energy, precious metals, industrial metals, agriculture.")
     st.divider()
 
-    # Commodity categories from config
     COMM_CATS = {
         "Energy": ["CL=F","BZ=F","NG=F","XLE","OIH","BNO","XOP"],
         "Precious Metals": ["GLD","SLV","PPLT","GDX","GDXJ","SIL","SILJ"],
@@ -934,7 +1083,6 @@ elif page == "🛢️ Commodities":
                 column_config={"Action":st.column_config.TextColumn("What to Do",width="large")})
         st.markdown('<div style="height:8px;"></div>', unsafe_allow_html=True)
 
-    # Regime context for commodities
     st.divider()
     if sq in ("Q2","Q3"):
         st.markdown(f'<div class="card card-green"><b>🟢 Commodity-Friendly Regime: {sq}</b><br/>{QUAD_EXPLAIN[sq][:80]}<br/>Energy and metals tend to outperform in {sq}.</div>', unsafe_allow_html=True)
@@ -944,22 +1092,23 @@ elif page == "🛢️ Commodities":
         st.markdown(f'<div class="card card-yellow"><b>🟡 Mixed Commodity Signals: {sq}</b><br/>Selective opportunities. Watch individual supply-demand.</div>', unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: ₿ CRYPTO (NEW)
+# TAB: ₿ CRYPTO (ALPHA CENTER + ON-CHAIN + BASIS)
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "₿ Crypto":
     st.markdown('<h1 style="margin-bottom:4px;">₿ Crypto</h1>', unsafe_allow_html=True)
-    st.caption("Bitcoin, Ethereum, and crypto ETFs. Regime-aware positioning.")
+    st.caption("Bitcoin, Ethereum, altcoins. Regime + on-chain + ETF basis + Greeks.")
     st.divider()
 
-    # Regime-based guidance
+    # Regime guidance
     if sq == "Q4":
-        st.markdown(f'<div class="card card-red"><div style="font-size:18px;font-weight:700;color:#F85149;">⚠️ EXIT CRYPTO — Q4 Deflation</div><div style="color:#8B949E;">Q4 = deflationary collapse. Risk assets get destroyed. Cash, bonds, gold win. Bitcoin is NOT immune in Q4.</div></div>', unsafe_allow_html=True)
+        st.markdown('<div class="card card-red"><div style="font-size:18px;font-weight:700;color:#F85149;">⚠️ EXIT CRYPTO — Q4 Deflation</div><div style="color:#8B949E;">Deflationary collapse destroys risk assets. Cash, bonds, gold win. Bitcoin is NOT immune in Q4.</div></div>', unsafe_allow_html=True)
     else:
-        st.markdown(f'<div class="card card-green"><div style="font-size:18px;font-weight:700;color:#3FB950;">✅ CRYPTO OK — {sq} Regime</div><div style="color:#8B949E;">{sq} = {"Goldilocks" if sq=="Q1" else "Reflation" if sq=="Q2" else "Stagflation"}. Bitcoin and crypto tend to work. DXY bearish = tailwind.</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="card card-green"><div style="font-size:18px;font-weight:700;color:#3FB950;">✅ CRYPTO OK — {sq} Regime</div><div style="color:#8B949E;">{QUAD_EXPLAIN[sq][:80]}</div></div>', unsafe_allow_html=True)
 
-    # Crypto Risk Ranges
-    CRYPTO_TICKERS = ["BTC-USD","ETH-USD","IBIT","FBTC","MSTY","BLOK","WGMI","BITS"]
+    # Crypto Alpha Center Table
+    CRYPTO_TICKERS = ["BTC-USD","ETH-USD","IBIT","FBTC","MSTY","BLOK","WGMI","BITS","SOL-USD","ADA-USD","TON-USD","XRP-USD","DOGE-USD"]
     crypto_rr = {sym:v for sym,v in ar.items() if sym in CRYPTO_TICKERS or v.get("market","")=="crypto"}
+    
     if crypto_rr:
         rows=[]
         for sym,v in crypto_rr.items():
@@ -968,35 +1117,127 @@ elif page == "₿ Crypto":
             rl=_rr_levels(px,lrr,trr,"long" if sig=="BULLISH" else "short")
             r1m=_price_ret(sym,prices,21); r3m=_price_ret(sym,prices,63)
             action = rl.get("action","—")[:35] if rl else "—"
+            
+            # Crypto Greeks proxy
+            basis_pct = 0
+            if sym in ["IBIT","FBTC","MSTY"]:
+                spot_sym = "BTC-USD"
+                etf_px = px; spot_px = _sf(prices.get(spot_sym, pd.Series()).tail(1)) if prices.get(spot_sym) is not None else None
+                if etf_px and spot_px: basis_pct = (etf_px / spot_px - 1) * 100
+            greeks = _crypto_greeks_proxy(sym, prices, basis_pct)
+            
             rows.append({
-                "Ticker":sym,"Price":ff(px),"Buy Zone":ff(lrr),"Sell Zone":ff(trr),
-                "Action":action,"Signal":sig,"Grade":qual,
-                "1M":fp(r1m) if r1m is not None else "—",
-                "3M":fp(r3m) if r3m is not None else "—",
+                "Ticker":sym,"Price":ff(px),"Entry":ff(_sf(rl.get("entry"))) if rl else "—",
+                "Target 1":ff(_sf(rl.get("tp1"))) if rl else "—","Target 2":ff(_sf(rl.get("tp2"))) if rl else "—",
+                "Stop Loss":ff(_sf(rl.get("stop"))) if rl else "—",
+                "R:R":f"{_sf(rl.get('rr')):.1f}×" if rl else "—","Hold For":rl.get("hold","—")[:10] if rl else "—",
+                "Status":action,"Signal":sig,"Grade":qual,
+                "1M":fp(r1m) if r1m is not None else "—","3M":fp(r3m) if r3m is not None else "—",
+                "Δ Delta":greeks["delta"],"Γ Gamma":greeks["gamma"],"Vanna":greeks["vanna"],"Charm":greeks["charm"],
             })
-        st.markdown("### Crypto Assets")
+        st.markdown("### 🎯 Crypto Setups")
         df=pd.DataFrame(rows)
-        st.dataframe(df, hide_index=True, use_container_width=True, height=min(len(df)*37+40,350),
-            column_config={"Action":st.column_config.TextColumn("What to Do",width="large")})
+        st.dataframe(df, hide_index=True, use_container_width=True, height=min(len(df)*37+40,400),
+            column_config={
+                "Ticker":st.column_config.TextColumn("Ticker",width="small"),
+                "Status":st.column_config.TextColumn("What to Do",width="medium"),
+                "Δ Delta":st.column_config.TextColumn("Δ",width="small"),
+                "Γ Gamma":st.column_config.TextColumn("Γ",width="small"),
+                "Vanna":st.column_config.TextColumn("Vanna",width="small"),
+                "Charm":st.column_config.TextColumn("Charm",width="small"),
+            })
     else:
         st.info("Crypto data loading. Ensure Crypto checkbox is active in Settings.")
 
-    # Bitcoin-specific context
-    btc_rr=ar.get("IBIT",ar.get("BTC-USD",{})); btc_sig=btc_rr.get("composite","—")
-    btc_c="#3FB950" if btc_sig=="bullish" else "#F85149" if btc_sig=="bearish" else "#8B949E"
-    dxy_btc = dxy_corr.get("Bitcoin","—")
-    st.markdown(f'<div class="card" style="border-left-color:{btc_c};"><div style="font-weight:700;color:#E6EDF3;">₿ Bitcoin Signal</div><div style="color:#8B949E;">Composite: <span style="color:{btc_c};font-weight:600;">{btc_sig.upper()}</span> · DXY/BTC correlation: {dxy_btc} · Rule: Any regime except Q4 = long Bitcoin</div></div>', unsafe_allow_html=True)
-
+    # On-Chain Activity Section
     st.divider()
-    st.markdown("### Crypto Basis (Spot vs ETF)")
-    st.caption("ETF premium/discount to spot = basis. Positive = ETF trades premium (bullish demand).")
+    st.markdown("### 🔗 On-Chain Activity (DeFiLlama)")
+    st.caption("TVL, DEX volume, and momentum by chain. Leading indicator before price moves.")
+
+    chains = ["Ethereum","Bitcoin","Solana","Ton","Arbitrum","Base"]
+    onchain_data = []
+    for chain in chains:
+        with st.spinner(f"Fetching {chain} on-chain data..."):
+            tvl_data = _fetch_chain_tvl(chain, days=30)
+            dex_data = _fetch_dex_volume(chain)
+        score, metrics = _compute_onchain_momentum(tvl_data, dex_data)
+        tvl_now = metrics.get("tvl_now", 0)
+        
+        onchain_data.append({
+            "Chain": chain,
+            "TVL ($B)": f"${tvl_now/1e9:.2f}B" if tvl_now else "—",
+            "TVL 7d": fp(metrics.get("tvl_7d_change", 0)),
+            "DEX Vol 24h": f"${metrics.get('vol_24h',0)/1e6:.1f}M" if metrics.get('vol_24h') else "—",
+            "On-Chain Score": f"{score:.0%}",
+            "Signal": "🔥 Strong" if score > 0.6 else ("📈 Building" if score > 0.3 else "👀 Quiet"),
+        })
+    
+    if onchain_data:
+        df_on = pd.DataFrame(onchain_data)
+        st.dataframe(df_on, hide_index=True, use_container_width=True, height=280,
+            column_config={"Signal":st.column_config.TextColumn("Signal",width="small")})
+        
+        # TON Spotlight
+        ton_row = [d for d in onchain_data if d["Chain"] == "Ton"]
+        if ton_row:
+            st.markdown("### 🚀 TON Spotlight")
+            st.markdown(f'<div class="card card-green"><b>Toncoin (TON) On-Chain Surge</b><br/>TVL: {ton_row[0]["TVL ($B)"]} · {ton_row[0]["TVL 7d"]} change · DEX Vol: {ton_row[0]["DEX Vol 24h"]}<br/><span style="color:#8B949E;">TON daily active addresses hit 500K-900K. Telegram integration = 800M+ users. On-chain activity often leads price by 1-2 weeks. <b>Pattern: addresses spike → price follows 7-14 days later.</b></span></div>', unsafe_allow_html=True)
+            
+            st.caption("💡 How to catch the next TON move: Watch for TVL + active address acceleration on DeFiLlama before price breaks out.")
+
+    # On-Chain Filter
+    st.divider()
+    st.markdown("### 🔍 On-Chain Momentum Filter")
+    st.caption("Show only crypto with strong on-chain tailwinds.")
+    
+    filter_onchain = st.toggle("Filter: Strong On-Chain Only", value=False)
+    if filter_onchain and onchain_data:
+        strong_chains = [d["Chain"] for d in onchain_data if d["Signal"] in ("🔥 Strong","📈 Building")]
+        st.success(f"Chains with on-chain momentum: {', '.join(strong_chains) if strong_chains else 'None detected'}")
+        
+        # Filter crypto table to only those in strong chains
+        chain_map = {"BTC-USD":"Bitcoin","ETH-USD":"Ethereum","SOL-USD":"Solana","TON-USD":"Ton","IBIT":"Bitcoin","FBTC":"Bitcoin","MSTY":"Bitcoin"}
+        if crypto_rr:
+            filtered_rows = []
+            for sym,v in crypto_rr.items():
+                mapped_chain = chain_map.get(sym)
+                if mapped_chain and mapped_chain in strong_chains:
+                    tr=v.get("trade",{}); px=_sf(v.get("px")); lrr=_sf(tr.get("lrr")); trr=_sf(tr.get("trr"))
+                    sig=v.get("composite","—").upper(); qual=v.get("quality","—")
+                    rl=_rr_levels(px,lrr,trr,"long" if sig=="BULLISH" else "short")
+                    r1m=_price_ret(sym,prices,21)
+                    action = rl.get("action","—")[:35] if rl else "—"
+                    filtered_rows.append({
+                        "Ticker":sym,"Price":ff(px),"Entry":ff(_sf(rl.get("entry"))) if rl else "—",
+                        "Target 1":ff(_sf(rl.get("tp1"))) if rl else "—","Target 2":ff(_sf(rl.get("tp2"))) if rl else "—",
+                        "Stop Loss":ff(_sf(rl.get("stop"))) if rl else "—",
+                        "R:R":f"{_sf(rl.get('rr')):.1f}×" if rl else "—","Status":action,"Signal":sig,"Grade":qual,
+                        "1M":fp(r1m) if r1m is not None else "—",
+                    })
+            if filtered_rows:
+                st.markdown("#### Filtered Crypto Setups (On-Chain Confirmed)")
+                st.dataframe(pd.DataFrame(filtered_rows), hide_index=True, use_container_width=True)
+            else:
+                st.info("No crypto setups match current on-chain momentum.")
+
+    # Crypto Basis + Greeks
+    st.divider()
+    st.markdown("### ⚖️ Crypto Basis (Spot vs ETF) + Greeks Proxy")
     basis_data = []
-    for etf, spot in [("IBIT","BTC-USD"),("FBTC","BTC-USD")]:
+    for etf, spot in [("IBIT","BTC-USD"),("FBTC","BTC-USD"),("MSTY","BTC-USD")]:
         etf_px = _sf(prices.get(etf, pd.Series()).tail(1)) if prices.get(etf) is not None else None
         spot_px = _sf(prices.get(spot, pd.Series()).tail(1)) if prices.get(spot) is not None else None
         if etf_px and spot_px:
             basis = (etf_px / spot_px - 1) * 100
-            basis_data.append({"ETF":etf,"Spot":spot,"ETF Price":ff(etf_px),"Spot Price":ff(spot_px),"Basis":f"{basis:+.2f}%","Signal":"Premium demand" if basis>0.5 else ("Discount" if basis<-0.5 else "Fair value")})
+            greeks = _crypto_greeks_proxy(etf, prices, basis)
+            basis_data.append({
+                "ETF": etf, "Spot": spot,
+                "ETF Price": ff(etf_px), "Spot Price": ff(spot_px),
+                "Basis": f"{basis:+.2f}%",
+                "Signal": "Premium demand" if basis > 0.5 else ("Discount" if basis < -0.5 else "Fair value"),
+                "Vanna": greeks["vanna"],
+                "Charm": greeks["charm"],
+            })
     if basis_data:
         st.dataframe(pd.DataFrame(basis_data), hide_index=True, use_container_width=True)
     else:

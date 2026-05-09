@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """engines/bottleneck_engine.py — Supply Chain Alpha Scanner v4.1
 FIXES:
 - Lower EV thresholds so Level 1/2 actually populates (was too strict: EV>=1.0)

@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """orchestrator.py — MacroRegime Pro v16.1 | Snapshot builder
 PATCHES:
 - Fix BottleneckEngine parameter mismatch (asset_ranges -> risk_ranges)

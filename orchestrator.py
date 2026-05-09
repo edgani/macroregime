@@ -386,7 +386,7 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
     t0 = time.time()
     logger.info("Building macro snapshot...")
     if progress_cb:
-        progress_cb(0.05, "Building ticker list...")
+        progress_cb("Building ticker list...", 0.05)
 
     # ── 1. Build ticker list ──────────────────────────────────────
     all_tickers = list(MACRO_PROXIES.keys())
@@ -412,23 +412,23 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
 
     # ── 2. Load data — FIX #2: pass tickers explicitly ────────────
     if progress_cb:
-        progress_cb(0.10, "Loading prices...")
+        progress_cb("Loading prices...", 0.10)
     prices = load_prices(tickers=all_tickers, days=756)
 
     if progress_cb:
-        progress_cb(0.30, f"Loaded {len(prices)} price series")
+        progress_cb(f"Loaded {len(prices)} price series", 0.30)
     fred = load_fred_macro()
 
     # ── 3. GIP Engine — FIX #5: call .run(fred, prices), not .analyze() ──
     if progress_cb:
-        progress_cb(0.40, "Running GIP engine...")
+        progress_cb("Running GIP engine...", 0.40)
     gip_engine = GIPEngine()
     gip = gip_engine.run(fred, prices)
     sq = gip.structural_quad
     mq = gip.monthly_quad
 
     if progress_cb:
-        progress_cb(0.50, f"GIP: Structural {sq} | Monthly {mq}")
+        progress_cb(f"GIP: Structural {sq} | Monthly {mq}", 0.50)
 
     # ── 4. Risk Ranges (TRR/LRR) ──────────────────────────────────
     risk_engine = HurstRiskRangeEngine()
@@ -445,16 +445,16 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
             logger.debug(f"Risk range error for {t}: {e}")
 
     if progress_cb:
-        progress_cb(0.65, f"Risk ranges: {len(asset_ranges)} assets")
+        progress_cb(f"Risk ranges: {len(asset_ranges)} assets", 0.65)
 
     # ── 5. Market Health ──────────────────────────────────────────
     if progress_cb:
-        progress_cb(0.70, "Running health engine...")
+        progress_cb("Running health engine...", 0.70)
     health_engine = MarketHealthEngine()
     health = health_engine.run(prices, gip.features, sq)
 
     if progress_cb:
-        progress_cb(0.80, "Health check complete")
+        progress_cb("Health check complete", 0.80)
 
     # ── 6. Discovery ──────────────────────────────────────────────
     try:
@@ -528,7 +528,7 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
     logger.info(f"Snapshot built in {snapshot['build_time_s']}s | "
                 f"Prices: {len(prices)} | Ranges: {len(asset_ranges)}")
     if progress_cb:
-        progress_cb(1.0, "Done!")
+        progress_cb("Done!", 1.0)
     return snapshot
 
 

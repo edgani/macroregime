@@ -1,8 +1,4 @@
-"""engines/ai_engine.py — Autonomous Intelligence Layer (GEMINI VERSION)
-
-Uses Gemini 2.5 Pro via Google AI Studio API.
-Free tier: 2.5 Pro & 2.5 Flash available with rate limits.
-"""
+"""engines/ai_engine.py — Autonomous Intelligence Layer (GEMINI VERSION)"""
 from __future__ import annotations
 
 import json
@@ -38,10 +34,16 @@ def _get_api_key() -> Optional[str]:
         import streamlit as st
         key = st.secrets.get("GEMINI_API_KEY") or st.secrets.get("gemini_api_key")
         if key:
+            logger.info(f"AIEngine: GEMINI_API_KEY found in Streamlit secrets (len={len(str(key))})")
             return str(key)
-    except Exception:
-        pass
-    return os.environ.get("GEMINI_API_KEY") or os.environ.get("gemini_api_key")
+    except Exception as e:
+        logger.warning(f"AIEngine: Streamlit secrets error: {e}")
+    env_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("gemini_api_key")
+    if env_key:
+        logger.info(f"AIEngine: GEMINI_API_KEY found in env (len={len(str(env_key))})")
+    else:
+        logger.warning("AIEngine: GEMINI_API_KEY NOT found in secrets or env")
+    return env_key
 
 def _fetch_news_headlines(tickers: List[str], max_per_ticker: int = 3) -> List[str]:
     headlines = []
@@ -61,6 +63,7 @@ def _fetch_news_headlines(tickers: List[str], max_per_ticker: int = 3) -> List[s
                 continue
     except Exception as e:
         logger.warning(f"News fetch failed: {e}")
+    logger.info(f"AIEngine: fetched {len(headlines)} headlines")
     return headlines[:MAX_HEADLINES]
 
 def _price_performance(prices: Dict[str, pd.Series], tickers: List[str]) -> Dict[str, Dict]:
@@ -193,6 +196,7 @@ Prioritize ideas that are directly driven by recent news headlines above."""
 def _call_gemini(prompt: str, api_key: str) -> Optional[Dict]:
     try:
         import google.generativeai as genai
+        logger.info("AIEngine: google-generativeai imported successfully")
         genai.configure(api_key=api_key)
 
         model = genai.GenerativeModel(
@@ -204,8 +208,10 @@ def _call_gemini(prompt: str, api_key: str) -> Optional[Dict]:
             ),
         )
 
+        logger.info(f"AIEngine: calling Gemini model={MODEL}...")
         response = model.generate_content(prompt)
         raw = response.text.strip()
+        logger.info(f"AIEngine: Gemini raw response length={len(raw)}")
 
         if raw.startswith("```"):
             raw = raw.split("```")[1]
@@ -215,11 +221,14 @@ def _call_gemini(prompt: str, api_key: str) -> Optional[Dict]:
 
         return json.loads(raw)
 
+    except ImportError as e:
+        logger.error(f"AIEngine: FAILED to import google-generativeai: {e}")
+        return None
     except json.JSONDecodeError as e:
-        logger.warning(f"Gemini JSON parse error: {e}")
+        logger.warning(f"AIEngine: Gemini JSON parse error: {e}")
         return None
     except Exception as e:
-        logger.warning(f"Gemini API call failed: {e}")
+        logger.warning(f"AIEngine: Gemini API call failed: {e}")
         return None
 
 def _validate_output(data: Dict) -> Dict:
@@ -302,13 +311,15 @@ class AIEngine:
     def run(self, sq: str, mq: str, gq: str, gip_features: Dict, prices: Dict[str, pd.Series], force_refresh: bool = False) -> Dict:
         global _AI_CACHE, _AI_CACHE_TS
 
+        logger.info("AIEngine.run() called")
+
         if not force_refresh and _AI_CACHE and (time.time() - _AI_CACHE_TS) < self.cache_ttl:
             logger.info("AIEngine: serving from cache")
             return {**_AI_CACHE, "from_cache": True}
 
         api_key = _get_api_key()
         if not api_key:
-            logger.warning("AIEngine: GEMINI_API_KEY not set. Add to Streamlit Secrets.")
+            logger.warning("AIEngine: GEMINI_API_KEY not set")
             return {
                 "ok": False,
                 "reason": "GEMINI_API_KEY not configured. Add GEMINI_API_KEY to Streamlit Secrets.",
@@ -319,37 +330,65 @@ class AIEngine:
         logger.info("AIEngine: fetching fresh analysis from Gemini...")
         t0 = time.time()
 
-        headlines = _fetch_news_headlines(NEWS_TICKERS, max_per_ticker=3)
-        logger.info(f"AIEngine: fetched {len(headlines)} headlines")
+        try:
+            headlines = _fetch_news_headlines(NEWS_TICKERS, max_per_ticker=3)
+            logger.info(f"AIEngine: fetched {len(headlines)} headlines")
+        except Exception as e:
+            logger.error(f"AIEngine: news fetch crashed: {e}")
+            headlines = []
 
-        perf = _price_performance(prices, NEWS_TICKERS)
-        prompt = _build_prompt(sq, mq, gq, gip_features, headlines, perf)
+        try:
+            perf = _price_performance(prices, NEWS_TICKERS)
+            logger.info(f"AIEngine: perf computed for {len(perf)} tickers")
+        except Exception as e:
+            logger.error(f"AIEngine: perf computation crashed: {e}")
+            perf = {}
 
-        raw = _call_gemini(prompt, api_key)
-        if raw is None:
-            logger.warning("AIEngine: Gemini call failed or returned unparseable response")
+        try:
+            prompt = _build_prompt(sq, mq, gq, gip_features, headlines, perf)
+            logger.info(f"AIEngine: prompt built, length={len(prompt)}")
+        except Exception as e:
+            logger.error(f"AIEngine: prompt build crashed: {e}")
             return {
                 "ok": False,
-                "reason": "Gemini API call failed. Check logs.",
+                "reason": f"Prompt build error: {e}",
                 "narratives": [], "bottlenecks": [], "alpha_ideas": [],
                 "scenario_update": {},
             }
 
-        result = _validate_output(raw)
-        result["ok"] = True
-        result["elapsed"] = round(time.time() - t0, 1)
-        result["headlines_used"] = len(headlines)
-        result["generated_at"] = time.time()
-        result["model"] = MODEL
+        raw = _call_gemini(prompt, api_key)
+        if raw is None:
+            logger.warning("AIEngine: Gemini call returned None")
+            return {
+                "ok": False,
+                "reason": "Gemini API call failed. Check logs for details.",
+                "narratives": [], "bottlenecks": [], "alpha_ideas": [],
+                "scenario_update": {},
+            }
+
+        try:
+            result = _validate_output(raw)
+            result["ok"] = True
+            result["elapsed"] = round(time.time() - t0, 1)
+            result["headlines_used"] = len(headlines)
+            result["generated_at"] = time.time()
+            result["model"] = MODEL
+            logger.info(
+                f"AIEngine: SUCCESS — {len(result.get('narratives', []))} narratives, "
+                f"{len(result.get('bottlenecks', []))} bottlenecks, "
+                f"{len(result.get('alpha_ideas', []))} alpha ideas "
+                f"in {result['elapsed']}s"
+            )
+        except Exception as e:
+            logger.error(f"AIEngine: validation crashed: {e}")
+            return {
+                "ok": False,
+                "reason": f"Output validation error: {e}",
+                "narratives": [], "bottlenecks": [], "alpha_ideas": [],
+                "scenario_update": {},
+            }
 
         _AI_CACHE = result
         _AI_CACHE_TS = time.time()
-
-        logger.info(
-            f"AIEngine: generated {len(result.get('narratives', []))} narratives, "
-            f"{len(result.get('bottlenecks', []))} bottlenecks, "
-            f"{len(result.get('alpha_ideas', []))} alpha ideas "
-            f"in {result['elapsed']}s"
-        )
 
         return result

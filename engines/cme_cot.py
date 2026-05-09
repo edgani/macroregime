@@ -7,6 +7,7 @@ import requests
 import logging
 from typing import Dict, Optional, List
 import re
+import pandas as pd  # FIX: added missing import
 
 logger = logging.getLogger(__name__)
 
@@ -49,8 +50,6 @@ class CMECOTScraper:
             r = self.session.get(url, timeout=self.timeout)
             if r.status_code != 200:
                 return None
-            # Parse HTML table for the CFTC code
-            # This is fragile — fallback to synthetic data
             return None
         except Exception as e:
             logger.warning(f"CFTC fetch error: {e}")
@@ -64,14 +63,11 @@ class CMECOTScraper:
         if not cftc_code:
             return {"ok": False, "reason": f"No CFTC mapping for {ticker}"}
 
-        # Try to fetch real data
         data = self._fetch_cftc_legacy(cftc_code)
         if data:
             return {**data, "ok": True, "source": "CFTC"}
 
-        # Fallback: synthetic COT proxy from price action
         return {"ok": False, "reason": "CFTC data unavailable — use proxy"}
-
 
 class CMECOTProxy:
     """
@@ -91,18 +87,13 @@ class CMECOTProxy:
         if len(s) < 22:
             return {"ok": False, "reason": "Insufficient price history"}
 
-        # 1M return = proxy for non-commercial positioning
         r1m = float(s.iloc[-1] / s.iloc[-22] - 1)
         r3m = float(s.iloc[-1] / s.iloc[-64] - 1) if len(s) >= 64 else r1m
 
-        # Commercial positioning: inverse of trend (hedgers sell rallies, buy dips)
-        commercial_net = -r1m * 100  # negative correlation proxy
-        noncomm_net = r1m * 100      # speculators follow trend
-
-        # OI proxy: volume + volatility
+        commercial_net = -r1m * 100
+        noncomm_net = r1m * 100
         oi_proxy = 100 + abs(r1m) * 500 + (vix - 20) * 10
 
-        # Determine positioning regime
         if noncomm_net > 30:
             noncomm_label = "Extreme Long 🔴"
         elif noncomm_net > 10:
@@ -125,7 +116,6 @@ class CMECOTProxy:
         else:
             comm_label = "Neutral ⚪"
 
-        # COT signal
         if noncomm_net > 20 and commercial_net < -20:
             signal = "⚠️ Crowded Long — Reversal Risk"
             bias = "Bearish"

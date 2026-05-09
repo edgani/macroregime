@@ -1,536 +1,366 @@
-"""orchestrator.py — MacroRegime Pro v16 | Snapshot builder
-INCLUDES: 10/10 Autonomy Stack LIGHTWEIGHT (NO torch/transformers)
-+ Gamma Regime Engine (soft import)
-+ Leveraged ETF Flow Engine (soft import)
-+ Hedgeye ETF Pro Plus tickers in Risk Range universe
+"""orchestrator.py — MacroRegime Pro Orchestrator
+Single entry point: build_snapshot() → returns full macro snapshot dict.
 """
 from __future__ import annotations
-import time, logging, math, os, json
-from typing import Optional, Callable, Dict, List
-import numpy as np
+import os, sys, json, math, logging, time
+from typing import Dict, List, Optional
+from datetime import datetime, timezone
 import pandas as pd
+import numpy as np
 
-from data.loader import load_fred, load_prices, save_snapshot, load_snapshot, snapshot_age_str
-
-# ── Core engines (hard import — app cannot run without these) ─────────────────
-from engines.gip_engine import GIPEngine, get_playbook
-from engines.hurst_rr_engine import HurstRREngine
-
-# ── Secondary engines (soft import — graceful degradation if missing) ─────────
-_GLOBAL_QUAD_OK = False
-try:
-    from engines.global_quad_engine import GlobalQuadEngine
-    _GLOBAL_QUAD_OK = True
-except Exception as _e:
-    logger = logging.getLogger(__name__)
-    logger.warning(f"GlobalQuadEngine unavailable: {_e}")
-
-_SCENARIO_OK = False
-try:
-    from engines.scenario_engine import ScenarioEngine
-    _SCENARIO_OK = True
-except Exception as _e:
-    logger.warning(f"ScenarioEngine unavailable: {_e}")
-
-_BOTTLENECK_OK = False
-try:
-    from engines.bottleneck_engine import BottleneckEngine
-    _BOTTLENECK_OK = True
-except Exception as _e:
-    logger.warning(f"BottleneckEngine unavailable: {_e}")
-
-_NARRATIVE_OK = False
-try:
-    from engines.narrative_engine import NarrativeEngine
-    _NARRATIVE_OK = True
-except Exception as _e:
-    logger.warning(f"NarrativeEngine unavailable: {_e}")
-
-_DISCOVERY_OK = False
-try:
-    from engines.adaptive_discovery_engine import AdaptiveDiscoveryEngine
-    _DISCOVERY_OK = True
-except Exception as _e:
-    logger.warning(f"AdaptiveDiscoveryEngine unavailable: {_e}")
-
-_TRANSITION_OK = False
-try:
-    from engines.regime_transition_engine import RegimeTransitionEngine
-    _TRANSITION_OK = True
-except Exception as _e:
-    logger.warning(f"RegimeTransitionEngine unavailable: {_e}")
-
-_HEALTH_OK = False
-try:
-    from engines.market_health_engine import MarketHealthEngine
-    _HEALTH_OK = True
-except Exception as _e:
-    logger.warning(f"MarketHealthEngine unavailable: {_e}")
-
-_ANALOG_OK = False
-try:
-    from engines.historical_analog_engine import HistoricalAnalogEngine
-    _ANALOG_OK = True
-except Exception as _e:
-    logger.warning(f"HistoricalAnalogEngine unavailable: {_e}")
-
-from config.settings import (
-    MACRO_PROXIES, US_SECTORS, US_FACTORS, FOREX_PAIRS,
-    COMMODITIES, CRYPTO, BONDS, IHSG_UNIVERSE, COUNTRY_UNIVERSE,
-    TICKER_SECTOR, MARKET_CLASSIFICATION, BOTTLENECK_PROFILES,
+# ------------------------------------------------------------------
+# Logging
+# ------------------------------------------------------------------
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s | %(levelname)s | %(message)s",
+    datefmt="%H:%M:%S",
 )
-
 logger = logging.getLogger(__name__)
 
-# ── Autonomy engine imports (soft — graceful fallback if files missing) ───────
-_AUTONOMY_AVAILABLE = False
-try:
-    from engines.price_cluster_engine_v3 import PriceClusterEngineV3
-    from engines.news_nlp_engine_v3 import NewsNLPEngineV3
-    from engines.edgar_scraper_engine import EDGARScraperEngine
-    from engines.supply_chain_graph_engine import SupplyChainGraphEngine
-    from engines.leading_indicator_engine import LeadingIndicatorEngine
-    from engines.regime_predictor_engine import RegimePredictorEngine
-    from engines.auto_discovery_engine_v3 import AutoDiscoveryEngineV3
-    from engines.feedback_loop_engine_v3 import FeedbackLoopEngineV3
-    _AUTONOMY_AVAILABLE = True
-    logger.info("Autonomy stack v3 (lightweight) loaded successfully.")
-except Exception as e:
-    logger.warning(f"Autonomy stack not available: {e}")
-    _AUTONOMY_AVAILABLE = False
+# ------------------------------------------------------------------
+# Settings
+# ------------------------------------------------------------------
+from config.settings import (
+    MACRO_PROXIES, US_SECTORS, BONDS, COMMODITIES, CRYPTO, FOREX_PAIRS,
+    TICKER_SECTOR, QUAD_MAP, MAG7, US_BUCKETS,
+)
+from config.autonomy_settings import AUTONOMY_LEVEL
 
-# ── Gamma Regime Engine (soft — file may not exist yet) ───────────────────────
-_GAMMA_AVAILABLE = False
-try:
-    from engines.gamma_regime_engine import GammaRegimeEngine
-    _GAMMA_AVAILABLE = True
-except Exception as _e:
-    logger.warning(f"GammaRegimeEngine unavailable: {_e}")
+# ------------------------------------------------------------------
+# Engines
+# ------------------------------------------------------------------
+from data.loader import load_prices, load_fred_macro
+from engines.gip_engine import GIPEngine
+from engines.quad_engine import QuadEngine
+from engines.market_health_engine import MarketHealthEngine
+from engines.hurst_risk_ranges import HurstRiskRangeEngine
+from engines.cme_cot import CMECOTProxy
+from engines.cme_oi import CMEOpenInterestProxy
+from engines.defillama_helper import DeFiLlamaHelper
+from engines.auto_discovery_engine_v3 import AutoDiscoveryEngineV3
 
-_LEV_ETF_AVAILABLE = False
-try:
-    from engines.leveraged_etf_engine import LeveragedETFEngine
-    _LEV_ETF_AVAILABLE = True
-except Exception as _e:
-    logger.warning(f"LeveragedETFEngine unavailable: {_e}")
+# ------------------------------------------------------------------
+# Orchestrator
+# ------------------------------------------------------------------
+class Orchestrator:
+    def __init__(self, lookback: int = 252):
+        self.lookback = lookback
+        self.gip = GIPEngine()
+        self.quad = QuadEngine()
+        self.health = MarketHealthEngine()
+        self.risk = HurstRiskRangeEngine()
+        self.cot_proxy = CMECOTProxy()
+        self.oi_proxy = CMEOpenInterestProxy()
+        self.defi = DeFiLlamaHelper()
+        self.discovery = AutoDiscoveryEngineV3()
 
-_OPTIONS_AVAILABLE = False
-try:
-    from engines.options_engine import OptionsEngine
-    _OPTIONS_AVAILABLE = True
-except Exception as _e:
-    logger.warning(f"OptionsEngine unavailable: {_e}")
-
-_AI_ENGINE_OK = False
-try:
-    from engines.ai_engine import AIEngine
-    _AI_ENGINE_OK = True
-except Exception as _e:
-    logger.warning(f"AIEngine unavailable: {_e}")
-
-def _prog(cb, msg, frac):
-    logger.info(f"[{frac:.0%}] {msg}")
-    if cb:
-        cb(msg, frac)
-
-def build_snapshot(
-    progress_cb: Optional[Callable] = None,
-    include_crypto: bool = True,
-    include_us_stocks: bool = True,
-    include_forex: bool = True,
-    include_commodities: bool = True,
-    include_ihsg: bool = True,
-) -> dict:
-    t0 = time.time()
-    snap: dict = {"ts": t0, "ok": False}
-
-    # 1. FRED
-    _prog(progress_cb, "Loading FRED macro data...", 0.04)
-    fred = load_fred(months=36)
-    snap["fred_coverage"] = len(fred)
-
-    # 2. Core prices (always)
-    _prog(progress_cb, "Loading core market prices...", 0.10)
-    prices: Dict[str, pd.Series] = {}
-    prices.update(load_prices(list(MACRO_PROXIES.keys()) + list(BONDS.keys()) + ["DX-Y.NYB","^VIX"], days=756))
-
-    # 3. US equities
-    if include_us_stocks:
-        _prog(progress_cb, "Loading US sectors + factors...", 0.16)
-        prices.update(load_prices(list(US_SECTORS.keys()) + list(US_FACTORS.keys()), days=756))
-        _prog(progress_cb, "Loading notable single stocks...", 0.21)
-        notable = [t for t in TICKER_SECTOR if t not in prices and t not in ("generic",)]
-        prices.update(load_prices(notable, days=365))
-
-    # 4. Forex
-    if include_forex:
-        _prog(progress_cb, "Loading forex pairs (major + EM)...", 0.26)
-        prices.update(load_prices(list(FOREX_PAIRS.keys()), days=756))
-
-    # 5. Commodities
-    if include_commodities:
-        _prog(progress_cb, "Loading commodities (energy, metals, agri)...", 0.31)
-        prices.update(load_prices(list(COMMODITIES.keys()), days=756))
-
-    # 6. Crypto
-    if include_crypto:
-        _prog(progress_cb, "Loading crypto universe...", 0.36)
-        prices.update(load_prices(list(CRYPTO.keys()), days=365))
-
-    # 7. IHSG
-    if include_ihsg:
-        _prog(progress_cb, "Loading IHSG + Indonesia stocks...", 0.40)
-        prices.update(load_prices(list(IHSG_UNIVERSE.keys()), days=756))
-
-    # 8. Country ETFs for global quad
-    _prog(progress_cb, "Loading country ETFs (50 countries)...", 0.44)
-    country_etfs = list({v[0] for v in COUNTRY_UNIVERSE.values()})
-    prices.update(load_prices(country_etfs, days=756))
-    snap["prices_loaded"] = len(prices)
-
-    # 9. GIP
-    _prog(progress_cb, "Running GIP model (G·I·P second derivative)...", 0.50)
-    try:
-        gip = GIPEngine().run(fred=fred, prices=prices)
-    except Exception as e:
-        logger.error(f"GIP error: {e}")
-        raise
-    snap["gip"] = gip
-    snap["playbook"] = get_playbook(gip.structural_quad, gip.monthly_quad)
-
-    # 10. Global Quad
-    _prog(progress_cb, "Running Global Quad (50 countries)...", 0.58)
-    if _GLOBAL_QUAD_OK:
-        global_quad = GlobalQuadEngine().run(prices=prices, us_gip_result=gip)
-    else:
-        global_quad = {"global_quad":"—","global_conf":0,"global_probs":{},"country_quads":{}}
-    snap["global"] = global_quad
-
-    # 11. Risk Ranges — INCLUDES Hedgeye ETF Pro Plus tickers
-    _prog(progress_cb, "Fetching OHLCV for Hurst risk ranges...", 0.64)
-    rr_tickers = (
-        list(MACRO_PROXIES.keys()) + list(US_SECTORS.keys()) +
-        list(BONDS.keys()) + list(COMMODITIES.keys())[:15] +
-        (list(CRYPTO.keys())[:6] if include_crypto else []) +
-        ["DX-Y.NYB","EIDO","^JKSE"] +
-        [t for t in TICKER_SECTOR if TICKER_SECTOR.get(t) in (
-            "ai_optics","ai_power","ai_power_infra","precious_metals","precious_metals_miners",
-            "defense","oil_services","housing","steel","infrastructure"
-        )][:25]
-    )
-
-    hedgeye_etf_pro_tickers = [
-        "XLI","XLE","OIH","BNO","XOP","ITB","TLT","LQD",
-        "JPXN","EIS","TUR","NORW","EWZ","EWW","EIDO","GLIN",
-        "DAR","MTDR","SLX","CPER",
-        "SLV","GLD","PPLT","GDX","GDXJ","SIL","SILJ",
-        "ITA","GRID",
-        "MSTY","BITS","BLOK","WGMI","MAGS",
-        "BTAL","DUST",
-        "ULS","BRBR",
-        "QQQ","SPY","IWM","RSP","GLD","SLV",
-    ]
-    rr_tickers = rr_tickers + hedgeye_etf_pro_tickers
-    if include_ihsg:
-        ihsg_rr = [
-            "^JKSE","EIDO",
-            "BBCA.JK","BBRI.JK","BMRI.JK","BBNI.JK","BRIS.JK","BBTN.JK",
-            "ADRO.JK","PTBA.JK","ITMG.JK","AADI.JK","BUMI.JK",
-            "INCO.JK","MDKA.JK","ANTM.JK","TINS.JK","NCKL.JK",
-            "TLKM.JK","EXCL.JK","ISAT.JK","UNTR.JK","PGAS.JK",
-            "MEDC.JK","PGEO.JK","WINS.JK","LEAD.JK","SOCI.JK",
-            "ICBP.JK","INDF.JK","KLBF.JK","ASII.JK",
-            "CTRA.JK","BSDE.JK","HEAL.JK","MIKA.JK",
-        ]
-        rr_tickers = rr_tickers + ihsg_rr
-    rr_tickers = list(dict.fromkeys(rr_tickers))
-
-    price_frames: Dict[str, pd.DataFrame] = {}
-    try:
-        import yfinance as yf
-        raw = yf.download(rr_tickers, period="2y", progress=False, auto_adjust=True, timeout=30, threads=True)
-        if not raw.empty:
-            for t in rr_tickers:
-                try:
-                    if len(rr_tickers) == 1:
-                        df = raw
-                    else:
-                        df = raw.xs(t, level=1, axis=1) if t in raw.columns.get_level_values(1) else pd.DataFrame()
-                    if not df.empty and "Close" in df.columns:
-                        cols = [c for c in ["Open","High","Low","Close","Volume"] if c in df.columns]
-                        df = df[cols].apply(pd.to_numeric, errors="coerce").dropna(subset=["Close"])
-                        price_frames[t] = df
-                except Exception:
-                    pass
-    except Exception as e:
-        logger.warning(f"OHLCV fetch partial: {e}")
-
-    for t in rr_tickers:
-        if t not in price_frames and t in prices:
-            c = pd.to_numeric(prices[t], errors="coerce").dropna()
-            if len(c) > 20:
-                df = pd.DataFrame({"Open":c,"High":c*1.003,"Low":c*0.997,"Close":c,"Volume":np.nan})
-                price_frames[t] = df
-
-    snap["price_frames_count"] = len(price_frames)
-    stress = _build_stress(prices, gip)
-    rr_result = HurstRREngine().run(price_frames=price_frames, stress=stress)
-    snap["risk_ranges"] = rr_result
-    snap["stress"] = stress
-
-    # 12. Scenarios
-    _prog(progress_cb, "Discovering adaptive scenarios...", 0.80)
-    if _SCENARIO_OK:
-        scenarios = ScenarioEngine().run(
-            structural_quad=gip.structural_quad, monthly_quad=gip.monthly_quad,
-            features=gip.features, flip_hazard=gip.flip_hazard, data_coverage=gip.data_coverage,
-        )
-    else:
-        scenarios = {}
-    snap["scenarios"] = scenarios
-
-    # 13. Bottleneck Scanner
-    _prog(progress_cb, "Scanning bottlenecks (all asset classes)...", 0.88)
-    if _BOTTLENECK_OK:
-        try:
-            btk = BottleneckEngine().run(
-                prices=prices,
-                structural_quad=gip.structural_quad,
-                monthly_quad=gip.monthly_quad,
-                risk_ranges=rr_result.get("asset_ranges", {}),
-            )
-        except Exception as e:
-            logger.warning(f"Bottleneck run error: {e}")
-            btk = {}
-    else:
-        btk = {}
-    snap["bottleneck"] = btk
-
-    # 14. Narrative Engine
-    _prog(progress_cb, "Scoring active narratives...", 0.93)
-    if _NARRATIVE_OK:
-        try:
-            narratives = NarrativeEngine().run(
-                prices=prices, quad_str=gip.structural_quad, quad_mon=gip.monthly_quad, benchmark="SPY",
-            )
-        except Exception as e:
-            logger.warning(f"Narrative run error: {e}")
-            narratives = {}
-    else:
-        narratives = {}
-    snap["narratives"] = narratives
-
-    # 14b. Regime Transition
-    _prog(progress_cb, "Computing regime transition timing...", 0.91)
-    if _TRANSITION_OK:
-        try:
-            macro_ctx = {k:v for k,v in gip.features.items() if isinstance(v,float)}
-            market_ctx = {
-                "oil_3m": float(prices.get("CL=F",pd.Series()).tail(1).iloc[-1]/prices.get("CL=F",pd.Series()).iloc[-64]-1) if len(prices.get("CL=F",pd.Series()))>64 else 0.0,
-                "gold_3m": float(prices.get("GLD",pd.Series()).tail(1).iloc[-1]/prices.get("GLD",pd.Series()).iloc[-64]-1) if len(prices.get("GLD",pd.Series()))>64 else 0.0,
-            }
-            transition = RegimeTransitionEngine().run(macro=macro_ctx, market=market_ctx, gip_result=gip)
-        except Exception as e:
-            logger.warning(f"Transition engine: {e}")
-            transition = None
-    else:
-        transition = None
-    snap["transition"] = transition
-
-    # 14c. Market Health
-    _prog(progress_cb, "Computing market health signals...", 0.92)
-    if _HEALTH_OK:
-        try:
-            health = MarketHealthEngine().run(prices=prices, gip_features=gip.features, quad=gip.structural_quad)
-        except Exception as e:
-            logger.warning(f"Health engine: {e}")
-            health = {}
-    else:
-        health = {}
-    snap["health"] = health
-
-    # 14d. Historical Analogs
-    _prog(progress_cb, "Matching historical analogs...", 0.925)
-    if _ANALOG_OK:
-        try:
-            prices_ctx = {"oil_3m": market_ctx.get("oil_3m",0) if _TRANSITION_OK else 0, "vol_stress": stress.get("vol_stress",0)}
-            analogs = HistoricalAnalogEngine().run(gip_features=gip.features, prices_context=prices_ctx)
-        except Exception as e:
-            logger.warning(f"Analog engine: {e}")
-            analogs = {"top_analogs":[], "composite_note":""}
-    else:
-        analogs = {"top_analogs":[], "composite_note":""}
-    snap["analogs"] = analogs
-
-    # 14e. Gamma Regime
-    _prog(progress_cb, "Computing gamma regime approximation...", 0.935)
-    if _GAMMA_AVAILABLE:
-        try:
-            gamma_result = GammaRegimeEngine().run(prices=prices)
-        except Exception as e:
-            logger.warning(f"Gamma regime engine error: {e}")
-            gamma_result = {"ok": False, "throttle": None, "regime": "UNKNOWN", "source": "error", "note": str(e)}
-    else:
-        gamma_result = {"ok": False, "throttle": None, "regime": "UNKNOWN", "source": "unavailable", "note": "GammaRegimeEngine not found."}
-    snap["gamma"] = gamma_result
-
-    # 14f. Leveraged ETF Flow
-    _prog(progress_cb, "Fetching leveraged ETF AUM data...", 0.940)
-    if _LEV_ETF_AVAILABLE:
-        try:
-            lev_result = LeveragedETFEngine().run(prices=prices)
-        except Exception as e:
-            logger.warning(f"Leveraged ETF engine error: {e}")
-            lev_result = {"ok": False, "total_mcap_b": None, "source": "error", "note": str(e)}
-    else:
-        lev_result = {"ok": False, "total_mcap_b": None, "source": "unavailable", "note": "LeveragedETFEngine not found."}
-    snap["leveraged_etf"] = lev_result
-
-    # 15. TRUE AUTONOMY v3 LIGHTWEIGHT
-    _prog(progress_cb, "Running autonomous discovery (lightweight)...", 0.96)
-    if _AUTONOMY_AVAILABLE:
-        try:
-            auto = AutoDiscoveryEngineV3(
-                sector_map=TICKER_SECTOR, market_map=MARKET_CLASSIFICATION,
-                known_tickers=list(TICKER_SECTOR.keys()), use_transformers=False,
-            )
-            discoveries = auto.run(
-                prices=prices, structural_quad=gip.structural_quad,
-                monthly_quad=gip.monthly_quad, gip_features=gip.features,
-                theme_queries=None, run_edgar=True,
-            )
-            snap["auto_discoveries"] = discoveries
-            fb = FeedbackLoopEngineV3()
-            fb.track(discoveries.get("candidates",[]), regime=gip.structural_quad)
-            fb_eval = fb.evaluate(prices, benchmark="SPY")
-            snap["feedback_eval"] = fb_eval
-            predictor = RegimePredictorEngine()
-            predictor.record_transition(gip.structural_quad, gip.monthly_quad, gip.features)
-        except Exception as e:
-            logger.warning(f"Autonomy step error: {e}")
-            snap["auto_discoveries"] = {"candidates":[], "meta":{"error":str(e)}}
-            snap["feedback_eval"] = {"evaluated":0,"promoted":0,"demoted":0}
-    elif _DISCOVERY_OK:
-        _prog(progress_cb, "Running Claude API discovery fallback...", 0.965)
-        try:
-            discovery = AdaptiveDiscoveryEngine().run(
-                prices=prices, structural_quad=gip.structural_quad,
-                monthly_quad=gip.monthly_quad, gip_features=gip.features,
-            )
-        except Exception as e:
-            logger.warning(f"Discovery engine failed: {e}")
-            discovery = {"discoveries":[], "status":"error","message":str(e)}
-        snap["discovery"] = discovery
-        snap["auto_discoveries"] = {"candidates":[], "meta":{"fallback":"claude_api"}}
-        snap["feedback_eval"] = {"evaluated":0,"promoted":0,"demoted":0}
-    else:
-        snap["auto_discoveries"] = {"candidates":[], "meta":{"fallback":"unavailable"}}
-        snap["feedback_eval"] = {"evaluated":0,"promoted":0,"demoted":0}
-
-    snap["prices"] = {k:v for k,v in prices.items() if isinstance(v,pd.Series) and len(v)>10}
-
-    # ── 16. AI ENGINE — Rule-based autonomous analysis ───────────────────────
-    _prog(progress_cb, "Running AI analysis (rule-based)...", 0.96)
-    if _AI_ENGINE_OK:
-        try:
-            ai_result = AIEngine().run(
-                sq=gip.structural_quad,
-                mq=gip.monthly_quad,
-                gq=(snap.get("global",{}) or {}).get("global_quad","Q3"),
-                gip_features=gip.features,
-                prices=prices,
-                asset_ranges=rr_result.get("asset_ranges", {}),
-                sector_map=TICKER_SECTOR,
-                health=health,
-                transition=transition,
-            )
-            snap["ai_analysis"] = ai_result
-            if ai_result.get("ok") and ai_result.get("narratives"):
-                existing_narr = snap.get("narratives",{}) or {}
-                existing_active = existing_narr.get("active_narratives",[]) or []
-                existing_names = {n.get("name","") for n in existing_active}
-                ai_narr_merged = existing_active[:]
-                for n in ai_result.get("narratives",[]):
-                    if n.get("name","") not in existing_names:
-                        ai_narr_merged.append({
-                            "name": n["name"],
-                            "score": n["score"],
-                            "thesis": n["thesis"],
-                            "tickers": n.get("tickers",[]),
-                            "best": n.get("best",[]),
-                            "worst": n.get("worst",[]),
-                            "invalidators": n.get("invalidators",[]),
-                            "ai_generated": False,
-                            "source": "rule-based",
-                            "news_catalyst": n.get("news_catalyst",""),
-                        })
-                snap["narratives"] = {**existing_narr, "active_narratives": ai_narr_merged}
-            if ai_result.get("ok") and ai_result.get("alpha_ideas"):
-                existing_disc = snap.get("auto_discoveries",{}) or {}
-                existing_cands = existing_disc.get("candidates",[]) or []
-                for idea in ai_result.get("alpha_ideas",[]):
-                    existing_cands.append({
-                        "name": idea.get("name",idea.get("ticker","")),
-                        "stage": idea.get("stage","brewing"),
-                        "confidence": idea.get("confidence",0.7),
-                        "thesis": idea.get("thesis",""),
-                        "category": idea.get("category","Rule-Based Discovery"),
-                        "beneficiary_tickers": [idea.get("ticker","")],
-                        "fade_tickers": [],
-                        "confirmation_signal": idea.get("regime_fit",""),
-                        "invalidators": idea.get("invalidators",[]),
-                        "ai_generated": False,
-                        "source": "rule-based",
-                    })
-                snap["auto_discoveries"] = {**existing_disc, "candidates": existing_cands}
-        except Exception as e:
-            logger.warning(f"AIEngine step error: {e}")
-            snap["ai_analysis"] = {"ok": False, "reason": str(e)}
-    else:
-        snap["ai_analysis"] = {"ok": False, "reason": "AIEngine not available"}
-
-    snap["build_time_s"] = round(time.time()-t0, 1)
-    snap["ok"] = True
-    _prog(progress_cb, "Saving snapshot...", 0.98)
-    save_snapshot(snap)
-    _prog(progress_cb, "Done!", 1.0)
-    logger.info(f"Built in {snap['build_time_s']}s. Prices: {snap['prices_loaded']}, RR: {snap['price_frames_count']}")
-    return snap
-
-def _build_stress(prices, gip) -> dict:
-    def last(t):
-        s = prices.get(t)
-        if s is None:
+    # ── helpers ──────────────────────────────────────────────────────
+    def _safe_ret(self, s: Optional[pd.Series], n: int) -> Optional[float]:
+        if s is None or s.empty:
             return None
         s = pd.to_numeric(s, errors="coerce").dropna()
-        return float(s.iloc[-1]) if not s.empty else None
+        if len(s) < n + 1:
+            return None
+        try:
+            r = float(s.iloc[-1] / s.iloc[-n - 1] - 1)
+            return r if math.isfinite(r) else None
+        except Exception:
+            return None
 
-    def ret1m(t):
-        s = prices.get(t)
-        if s is None:
-            return 0.0
-        s = pd.to_numeric(s, errors="coerce").dropna()
-        if len(s) < 22:
-            return 0.0
-        return float(s.iloc[-1]/s.iloc[-22]-1)
+    def _last_price(self, s: Optional[pd.Series]) -> Optional[float]:
+        if s is None or s.empty:
+            return None
+        try:
+            v = float(pd.to_numeric(s, errors="coerce").dropna().iloc[-1])
+            return v if math.isfinite(v) else None
+        except Exception:
+            return None
 
-    vix_raw = last("^VIX")
-    vix = vix_raw if (vix_raw is not None and math.isfinite(vix_raw)) else 18.0
-    dxy_1m = ret1m("DX-Y.NYB")
-    vol_stress = float(np.clip((vix-15.0)/25.0, 0.0, 1.0))
-    shock = 0.5 if gip.structural_quad=="Q3" else 0.8 if gip.structural_quad=="Q4" else 0.2
-    crowding = float(gip.features.get("proxy_share", 0.3))
-    dollar_pres = float(np.clip(0.5+dxy_1m/0.04, 0.0, 1.0))
-    tail_bid = float(np.clip((vix-20.0)/30.0, 0.0, 1.0))
-    return dict(
-        vol_stress=vol_stress, shock_penalty=shock*0.5,
-        crowding=crowding, dollar_pressure=dollar_pres,
-        tail_hedge_bid=tail_bid, vix=vix,
-    )
+    def _build_macro_summary(self, gip_features: Dict, quad: str) -> Dict:
+        g = gip_features.get("growth_momentum", 0)
+        i = gip_features.get("inflation_momentum", 0)
+        p = gip_features.get("policy_score", 0)
+        q3 = gip_features.get("q3_modifier", 0)
 
-def get_or_build(force=False, max_age_h=4.0, **kw) -> dict:
-    if not force:
-        snap = load_snapshot(max_age_hours=max_age_h)
-        if snap and snap.get("ok"):
-            return snap
-    return build_snapshot(**kw)
+        growth_label = "Accelerating 📈" if g > 0.08 else "Decelerating 📉" if g < -0.08 else "Stable ➡️"
+        inflation_label = "Rising 🔥" if i > 0.05 else "Falling ❄️" if i < -0.05 else "Stable ➡️"
+        policy_label = "Hawkish 🦅" if p < -0.3 else "Dovish 🕊️" if p > 0.3 else "Neutral ⚖️"
+
+        regime = QUAD_MAP.get(quad, {"name": "Unknown", "assets": [], "bias": "neutral"})
+        bias = regime.get("bias", "neutral")
+        assets = regime.get("assets", [])
+
+        summary = {
+            "quad": quad,
+            "regime_name": regime.get("name", "Unknown"),
+            "bias": bias,
+            "recommended_assets": assets,
+            "growth": {"momentum": round(g, 4), "label": growth_label},
+            "inflation": {"momentum": round(i, 4), "label": inflation_label},
+            "policy": {"score": round(p, 4), "label": policy_label},
+            "q3_modifier": round(q3, 4),
+            "note": (
+                f"Regime {regime.get('name', 'Unknown')} ({quad}). "
+                f"Growth {growth_label}, Inflation {inflation_label}, Policy {policy_label}. "
+                f"Focus: {', '.join(assets[:4]) if assets else 'TBD'}."
+            ),
+        }
+        return summary
+
+    def _build_sector_table(self, prices: Dict[str, pd.Series]) -> List[Dict]:
+        rows = []
+        for name, tickers in US_SECTORS.items():
+            rets = [self._safe_ret(prices.get(t), 21) for t in tickers if prices.get(t) is not None]
+            valid = [r for r in rets if r is not None]
+            if not valid:
+                continue
+            avg_ret = float(np.mean(valid))
+            med_ret = float(np.median(valid))
+            rows.append({
+                "sector": name,
+                "avg_1m": round(avg_ret, 4),
+                "median_1m": round(med_ret, 4),
+                "breadth": f"{sum(1 for r in valid if r > 0)}/{len(valid)}",
+                "tone": "good" if avg_ret > 0.03 else "warn" if avg_ret > -0.03 else "bad",
+            })
+        rows.sort(key=lambda x: x["avg_1m"], reverse=True)
+        return rows
+
+    def _build_narrative(self, gip_features: Dict, quad: str, health: Dict) -> str:
+        g = gip_features.get("growth_momentum", 0)
+        i = gip_features.get("inflation_momentum", 0)
+        p = gip_features.get("policy_score", 0)
+        q3 = gip_features.get("q3_modifier", 0)
+        regime = QUAD_MAP.get(quad, {"name": "Unknown"})
+        vix = health.get("vix_bucket", {}).get("vix_last", 18)
+        crash = health.get("crash", {}).get("state", "calm")
+
+        parts = []
+        parts.append(f"🌍 MacroRegime: **{regime.get('name', 'Unknown')}** ({quad})")
+        parts.append(f"📊 Growth {g:+.2%} | Inflation {i:+.2%} | Policy {p:+.2f} | Q3 {q3:+.2f}")
+        if vix > 25:
+            parts.append(f"⚠️ VIX {vix:.0f} — defensive posture")
+        if crash in ("elevated", "watch"):
+            parts.append(f"🚨 Crash meter: {crash.upper()}")
+        if q3 > 0.3:
+            parts.append("🔥 Q3 modifier positive — risk-on tailwind")
+        elif q3 < -0.3:
+            parts.append("❄️ Q3 modifier negative — risk-off headwind")
+
+        return "\n".join(parts)
+
+    def _build_alpha_ideas(self, prices: Dict, health: Dict, gip: Dict, quad: str) -> List[Dict]:
+        ideas = []
+        regime = QUAD_MAP.get(quad, {})
+        bias = regime.get("bias", "neutral")
+        assets = regime.get("assets", [])
+
+        for asset in assets[:6]:
+            ticker = None
+            for t, s in TICKER_SECTOR.items():
+                if s == asset:
+                    ticker = t
+                    break
+            if ticker is None:
+                continue
+            p = self._last_price(prices.get(ticker))
+            r1m = self._safe_ret(prices.get(ticker), 21)
+            if p is None or r1m is None:
+                continue
+            direction = "Long" if bias in ("bullish", "risk_on") else "Short" if bias == "bearish" else "Neutral"
+            ideas.append({
+                "ticker": ticker,
+                "theme": asset.replace("_", " ").title(),
+                "direction": direction,
+                "price": round(p, 2),
+                "momentum_1m": round(r1m, 4),
+                "setup": f"{direction} {ticker} @ {p:.2f} — {asset.replace('_', ' ').title()} theme in {regime.get('name', 'Unknown')}",
+            })
+        return ideas
+
+    def _build_bottlenecks(self, prices: Dict, health: Dict, gip: Dict) -> List[Dict]:
+        b = []
+        vix = health.get("vix_bucket", {}).get("vix_last", 18)
+        crash = health.get("crash", {}).get("state", "calm")
+        crash_score = health.get("crash", {}).get("score", 0)
+        risk_off = health.get("risk_off", {}).get("state", "risk_on")
+        g = gip.get("growth_momentum", 0)
+        i = gip.get("inflation_momentum", 0)
+
+        if vix > 25:
+            b.append({"type": "volatility", "severity": "high" if vix > 30 else "medium", "description": f"VIX {vix:.0f} — elevated volatility regime"})
+        if crash == "elevated":
+            b.append({"type": "crash_risk", "severity": "high", "description": f"Crash score {crash_score:.2f} — multiple stress signals active"})
+        elif crash == "watch":
+            b.append({"type": "crash_risk", "severity": "medium", "description": f"Crash score {crash_score:.2f} — watch mode"})
+        if risk_off == "risk_off":
+            b.append({"type": "risk_off", "severity": "high", "description": "Risk-off regime — reduce beta, increase cash/Treasuries"})
+        elif risk_off == "caution":
+            b.append({"type": "risk_off", "severity": "medium", "description": "Risk-off caution — tighten stops, reduce sizing"})
+        if g < -0.05:
+            b.append({"type": "growth", "severity": "high" if g < -0.10 else "medium", "description": f"Growth decelerating ({g:+.2%}) — earnings risk"})
+        if i > 0.04:
+            b.append({"type": "inflation", "severity": "high" if i > 0.06 else "medium", "description": f"Inflation persistent ({i:+.2%}) — Fed hawkish risk"})
+
+        # Check MAG7 concentration as bottleneck
+        mag7_rets = [self._safe_ret(prices.get(t), 21) for t in MAG7 if prices.get(t) is not None]
+        mag7_valid = [r for r in mag7_rets if r is not None]
+        spy_ret = self._safe_ret(prices.get("SPY"), 21)
+        if mag7_valid and spy_ret is not None:
+            mag7_avg = float(np.mean(mag7_valid))
+            if mag7_avg > spy_ret + 0.03:
+                b.append({"type": "concentration", "severity": "medium", "description": "MAG7 outperforming SPY by >3% — narrow leadership bottleneck"})
+
+        return b
+
+    def _build_risk_ranges(self, prices: Dict) -> Dict[str, Dict]:
+        """Build TRR/LRR for all tracked tickers."""
+        rr_tickers = (
+            list(MACRO_PROXIES.keys()) + list(US_SECTORS.keys()) +
+            list(BONDS.keys()) + list(COMMODITIES.keys())[:15] +
+            list(FOREX_PAIRS.keys()) +  # <-- FIX: added FOREX_PAIRS
+            (list(CRYPTO.keys())[:6] if True else []) +
+            ["DX-Y.NYB","EIDO","^JKSE"] +
+            [t for t in TICKER_SECTOR if TICKER_SECTOR.get(t) in (
+                "ai_optics","ai_power","ai_power_infra","precious_metals","precious_metals_miners",
+                "defense","oil_services","housing","steel","infrastructure"
+            )][:25]
+        )
+
+        asset_ranges: Dict[str, Dict] = {}
+        for t in rr_tickers:
+            s = prices.get(t)
+            if s is None or s.empty:
+                continue
+            try:
+                rr = self.risk.analyze(s)
+                if rr and rr.get("ok"):
+                    asset_ranges[t] = rr
+            except Exception as e:
+                logger.debug(f"Risk range error for {t}: {e}")
+                continue
+
+        return asset_ranges
+
+    def _build_cot_oi(self, prices: Dict) -> Dict[str, Dict]:
+        """Build COT + OI proxy for CME futures."""
+        cot_results: Dict[str, Dict] = {}
+        oi_results: Dict[str, Dict] = {}
+
+        # CME futures tickers that have COT data
+        cme_tickers = list(COMMODITIES.keys())[:10] + ["DX-Y.NYB"] + list(FOREX_PAIRS.keys())[:6]
+        vix_last = self._last_price(prices.get("^VIX")) or 18.0
+
+        for t in cme_tickers:
+            try:
+                cot = self.cot_proxy.analyze(t, prices, vix=vix_last)
+                if cot and cot.get("ok"):
+                    cot_results[t] = cot
+            except Exception as e:
+                logger.debug(f"COT error for {t}: {e}")
+
+            try:
+                oi = self.oi_proxy.analyze(t, prices)
+                if oi and oi.get("ok"):
+                    oi_results[t] = oi
+            except Exception as e:
+                logger.debug(f"OI error for {t}: {e}")
+
+        return {"cot": cot_results, "oi": oi_results}
+
+    def _build_crypto_onchain(self) -> Dict:
+        """Fetch DeFiLlama on-chain metrics."""
+        try:
+            tvl = self.defi.get_tvl()
+            stable = self.defi.get_stablecoin_mcap()
+            dex = self.defi.get_dex_volume_24h()
+            return {
+                "tvl_b": round(tvl, 2) if tvl else None,
+                "stable_mcap_b": round(stable, 2) if stable else None,
+                "dex_vol_24h_b": round(dex, 2) if dex else None,
+                "source": "defillama",
+            }
+        except Exception as e:
+            logger.warning(f"DeFiLlama error: {e}")
+            return {"tvl_b": None, "stable_mcap_b": None, "dex_vol_24h_b": None, "source": "defillama", "error": str(e)}
+
+    # ── main build ─────────────────────────────────────────────────
+    def build_snapshot(self, include_crypto: bool = True) -> Dict:
+        t0 = time.time()
+        logger.info("Building macro snapshot...")
+
+        # 1. Load data
+        prices = load_prices(lookback=self.lookback)
+        fred_data = load_fred_macro()
+
+        # 2. GIP + Quad
+        gip_features = self.gip.analyze(fred_data)
+        quad = self.quad.classify(gip_features)
+
+        # 3. Market Health
+        health = self.health.run(prices, gip_features, quad)
+
+        # 4. Risk Ranges
+        asset_ranges = self._build_risk_ranges(prices)
+
+        # 5. COT + OI
+        cot_oi = self._build_cot_oi(prices)
+
+        # 6. Crypto on-chain
+        crypto_onchain = self._build_crypto_onchain() if include_crypto else {}
+
+        # 7. Discovery
+        discovery = self.discovery.run(prices, gip_features, quad)
+
+        # 8. Macro summary
+        macro_summary = self._build_macro_summary(gip_features, quad)
+
+        # 9. Narrative
+        narrative = self._build_narrative(gip_features, quad, health)
+
+        # 10. Alpha ideas
+        alpha_ideas = self._build_alpha_ideas(prices, health, gip_features, quad)
+
+        # 11. Bottlenecks
+        bottlenecks = self._build_bottlenecks(prices, health, gip_features)
+
+        # 12. Sector table
+        sector_table = self._build_sector_table(prices)
+
+        # 13. Timestamp
+        timestamp = datetime.now(timezone.utc).isoformat()
+
+        snapshot = {
+            "timestamp": timestamp,
+            "macro_summary": macro_summary,
+            "gip_features": gip_features,
+            "quad": quad,
+            "market_health": health,
+            "asset_ranges": asset_ranges,
+            "cot_oi": cot_oi,
+            "crypto_onchain": crypto_onchain,
+            "discovery": discovery,
+            "narrative": narrative,
+            "alpha_ideas": alpha_ideas,
+            "bottlenecks": bottlenecks,
+            "sector_table": sector_table,
+            "prices_loaded": len(prices),
+            "assets_in_snapshot": len(asset_ranges),
+            "build_time_sec": round(time.time() - t0, 1),
+        }
+
+        logger.info(f"Snapshot built in {snapshot['build_time_sec']}s | "
+                    f"Prices: {snapshot['prices_loaded']} | "
+                    f"Ranges: {snapshot['assets_in_snapshot']}")
+        return snapshot
+
+
+# ------------------------------------------------------------------
+# CLI / direct run
+# ------------------------------------------------------------------
+if __name__ == "__main__":
+    orch = Orchestrator()
+    snap = orch.build_snapshot(include_crypto=True)
+    print(json.dumps(snap["macro_summary"], indent=2))
+    print(f"\nBuilt in {snap['build_time_sec']}s")

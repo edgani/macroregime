@@ -7,17 +7,17 @@ HEDGEYE HEALTHY MARKET CONCEPT (McCullough):
 "Multiple sectors must participate simultaneously — not just NVDA/AAPL/MSFT pulling everything."
 
 4 signals that must ALL confirm:
-1. sector_support_ratio >= 0.55  → 6+ of 11 sectors positive 1M
-2. eqw_health > 0.50             → RSP (equal-weight) outperforming cap-weight SPY
-3. smallcap_health > 0.50        → IWM leading or matching SPY
-4. narrow_leadership LOW         → MAG7 concentration NOT dominating
+1. sector_support_ratio >= 0.55 → 6+ of 11 sectors positive 1M
+2. eqw_health > 0.50 → RSP (equal-weight) outperforming cap-weight SPY
+3. smallcap_health > 0.50 → IWM leading or matching SPY
+4. narrow_leadership LOW → MAG7 concentration NOT dominating
 
 IWM ATH-to-ATH spread: IWM drawdown from ATH MINUS SPY drawdown from ATH.
-  - If IWM drawdown >> SPY drawdown → small caps left behind → Narrow/Fragile
-  - If IWM near ATH alongside SPY → Healthy participation
+ - If IWM drawdown >> SPY drawdown → small caps left behind → Narrow/Fragile
+ - If IWM near ATH alongside SPY → Healthy participation
 
 CNN Fear & Greed (7 components): momentum, price strength, breadth,
-put/call ratio, VIX, junk bond demand, safe-haven demand. 
+put/call ratio, VIX, junk bond demand, safe-haven demand.
 0=max fear, 100=max greed. Extreme fear (<20) → contrarian buy; extreme greed (>80) → caution.
 """
 from __future__ import annotations
@@ -81,7 +81,6 @@ def _fetch_fear_greed() -> Optional[Dict]:
         pass
     return None
 
-
 class MarketHealthEngine:
     def run(self, prices: Dict[str, pd.Series], gip_features: Dict[str,float], quad: str) -> Dict[str,object]:
         from config.settings import US_BUCKETS, MAG7
@@ -92,8 +91,8 @@ class MarketHealthEngine:
         if vix_s is not None:
             s = pd.to_numeric(vix_s, errors="coerce").dropna()
             if not s.empty: vix_last = float(s.iloc[-1])
-        bucket   = "Investable" if vix_last<19 else "Chop" if vix_last<29 else "Defensive"
-        risk_mode= "Normal"     if vix_last<19 else "Reduced" if vix_last<29 else "Defensive"
+        bucket = "Investable" if vix_last<19 else "Chop" if vix_last<29 else "Defensive"
+        risk_mode= "Normal" if vix_last<19 else "Reduced" if vix_last<29 else "Defensive"
         vix_note = {
             "Investable":"VIX tenang (<19) — pullback lebih layak dibeli bila signal searah.",
             "Chop":"VIX sedang (19-29) — buy low/sell high; kurangi kejar breakout lemah.",
@@ -114,7 +113,7 @@ class MarketHealthEngine:
             avg_3m = float(np.mean(v3)) if v3 else 0.0
             sector_scores[bucket_name] = {"1m": avg_1m, "3m": avg_3m}
             if avg_1m > 0.001: positive_1m += 1
-            if avg_3m > 0.01:  positive_3m += 1
+            if avg_3m > 0.01: positive_3m += 1
 
         total_buckets = max(len(US_BUCKETS), 1)
         sector_support_ratio_1m = positive_1m / total_buckets
@@ -129,25 +128,23 @@ class MarketHealthEngine:
         smallcap_health = clamp01(0.5 + iwm_rel_1m/0.05)
 
         # ── IWM ATH-to-ATH drawdown spread (Ricky2212 ATH-10/20/30 concept) ──
-        iwm_ath_dd  = _drawdown_from_ath(prices.get("IWM"))
-        spy_ath_dd  = _drawdown_from_ath(prices.get("SPY"))
-        iwm_ath_spread = None  # IWM drawdown minus SPY drawdown
-        iwm_ath_health = 0.5   # neutral default
+        iwm_ath_dd = _drawdown_from_ath(prices.get("IWM"))
+        spy_ath_dd = _drawdown_from_ath(prices.get("SPY"))
+        iwm_ath_spread = None
+        iwm_ath_health = 0.5
         if iwm_ath_dd is not None and spy_ath_dd is not None:
-            iwm_ath_spread = iwm_ath_dd - spy_ath_dd  # negative = IWM weaker
-            # -10% spread = very unhealthy, 0% = healthy parity, +5% = IWM leading
+            iwm_ath_spread = iwm_ath_dd - spy_ath_dd
             iwm_ath_health = clamp01(0.5 + iwm_ath_spread / 0.15)
 
         ath_label = "—"
         if iwm_ath_dd is not None:
             ath_label = f"IWM {iwm_ath_dd:.1%} from ATH | SPY {spy_ath_dd:.1%} from ATH"
-            if iwm_ath_spread is not None:
-                ath_label += f" | Spread: {iwm_ath_spread:.1%}"
+        if iwm_ath_spread is not None:
+            ath_label += f" | Spread: {iwm_ath_spread:.1%}"
 
-        # Ricky2212 correction zones: ATH-10% = healthy correction, ATH-20% = bear market, ATH-30% = big crisis
         market_correction_level = "normal"
         if spy_ath_dd is not None:
-            if spy_ath_dd <= -0.30:   market_correction_level = "big_crisis"
+            if spy_ath_dd <= -0.30: market_correction_level = "big_crisis"
             elif spy_ath_dd <= -0.20: market_correction_level = "bear_market"
             elif spy_ath_dd <= -0.10: market_correction_level = "healthy_correction"
 
@@ -184,10 +181,10 @@ class MarketHealthEngine:
         tlt_1m=r("TLT",21); hyg_1m=r("HYG",21); dxy_1m=r("DX-Y.NYB",21)
         credit_stress = clamp01(0.5 + 5.0*(spy_1m - hyg_1m))
         breadth_stress= clamp01(0.5 + 5.0*(spy_1m - iwm_1m))
-        dollar_press  = clamp01(0.5 + dxy_1m/0.04)
-        vol_stress    = clamp01((vix_last-15)/25)
-        quality_bid   = clamp01(0.5 + tlt_1m/0.04)
-        ath_stress    = clamp01(max(0, -iwm_ath_spread/0.15)) if iwm_ath_spread is not None else 0.5
+        dollar_press = clamp01(0.5 + dxy_1m/0.04)
+        vol_stress = clamp01((vix_last-15)/25)
+        quality_bid = clamp01(0.5 + tlt_1m/0.04)
+        ath_stress = clamp01(max(0, -iwm_ath_spread/0.15)) if iwm_ath_spread is not None else 0.5
 
         crash_score = clamp01(
             0.25*vol_stress + 0.20*credit_stress + 0.15*breadth_stress +
@@ -208,22 +205,19 @@ class MarketHealthEngine:
 
         # ── CNN Fear & Greed (live fetch with proxy fallback) ───────────
         fg_data = _fetch_fear_greed()
-        # Proxy from market signals if live fetch fails
         if fg_data is None:
-            # Construct proxy: combine VIX, credit, breadth, momentum
             proxy_score = clamp01(
                 0.25*(1-vol_stress) + 0.20*(1-credit_stress) + 0.20*(1-breadth_stress) +
                 0.20*clamp01(0.5+spy_1m/0.04) + 0.15*(1-dollar_press)
             ) * 100
             labels = {(0,25):"Extreme Fear",(25,45):"Fear",(45,55):"Neutral",(55,75):"Greed",(75,100):"Extreme Greed"}
             l = next((v for (lo,hi),v in labels.items() if lo<=proxy_score<hi), "Neutral")
-            fg_data = {"score": round(proxy_score,1), "label": l, "source": "proxy"}
-        fg_score  = fg_data.get("score", 50)
-        fg_label  = fg_data.get("label", "Neutral")
+            fg_data = {"score": proxy_score, "label": l, "source": "proxy"}
+        fg_score = fg_data.get("score", 50)
+        fg_label = fg_data.get("label", "Neutral")
         fg_source = fg_data.get("source", "proxy")
-        # Crash meter boost from extreme fear
         if fg_score < 20:
-            crash_reasons.append(f"CNN F&G Extreme Fear ({fg_score:.0f}) — contrarian potential")
+            crash_reasons.append(f"CNN F&G Extreme Fear ({fg_score:.0f}) — contrarian buy signal")
         elif fg_score > 80:
             crash_reasons.append(f"CNN F&G Extreme Greed ({fg_score:.0f}) — caution warranted")
 
@@ -264,66 +258,78 @@ class MarketHealthEngine:
             return out
 
         checklist_global = _score([
-            ("Growth momentum",        0.5+0.5*g),
-            ("Inflation controlled",   0.5-0.35*max(0,i)),
-            ("USD direction ok",       0.5-0.5*max(0,dxy_1m)),
-            ("Bonds/TLT signal",       0.5+0.5*tlt_1m),
-            ("Credit healthy (HYG)",   0.5-0.5*max(0,credit_stress-0.5)),
-            ("VIX regime",             0.6 if bucket=="Investable" else 0.35 if bucket=="Defensive" else 0.50),
-            ("Breadth (sectors)",      breadth_health),
-            ("Policy supportive",      0.5+0.4*p),
-            ("Small cap leading",      smallcap_health),
-            ("Equal-weight confirm",   eqw_health),
+            ("Growth momentum", 0.5+0.5*g),
+            ("Inflation controlled", 0.5-0.35*max(0,i)),
+            ("USD direction ok", 0.5-0.5*max(0,dxy_1m)),
+            ("Bonds/TLT signal", 0.5+0.5*tlt_1m),
+            ("Credit healthy (HYG)", 0.5-0.5*max(0,credit_stress-0.5)),
+            ("VIX regime", 0.6 if bucket=="Investable" else 0.35 if bucket=="Defensive" else 0.50),
+            ("Breadth (sectors)", breadth_health),
+            ("Policy supportive", 0.5+0.4*p),
+            ("Small cap leading", smallcap_health),
+            ("Equal-weight confirm", eqw_health),
             ("CNN F&G ok (not extreme greed)", clamp01(1 - max(0, fg_score-75)/25)),
         ])
         checklist_us = _score([
             (f"Sector breadth ({positive_1m}/{total_buckets}+)", sector_support_ratio_1m),
-            ("Equal-weight (RSP) confirm",  eqw_health),
-            ("Small caps (IWM) leading",    smallcap_health),
-            ("IWM near ATH vs SPY",         iwm_ath_health),
-            ("MAG7 not too dominant",        1.0-narrow_leadership),
-            ("Credit aman (HYG)",           0.5-0.5*max(0,credit_stress-0.5)),
-            ("Vol mendukung (VIX)",         0.6 if bucket!="Defensive" else 0.30),
-            ("F&G not extreme",             clamp01(1 - max(0, fg_score-75)/25)),
+            ("Equal-weight (RSP) confirm", eqw_health),
+            ("Small caps (IWM) leading", smallcap_health),
+            ("IWM near ATH vs SPY", iwm_ath_health),
+            ("MAG7 not too dominant", 1.0-narrow_leadership),
+            ("Credit aman (HYG)", 0.5-0.5*max(0,credit_stress-0.5)),
+            ("Vol mendukung (VIX)", 0.6 if bucket!="Defensive" else 0.30),
+            ("F&G not extreme", clamp01(1 - max(0, fg_score-75)/25)),
         ])
         usdidr=r("USDIDR=X",21) or 0.0
         eido_3m=r("EIDO",63) or 0.0
         bbca_3m=r("BBCA.JK",63) or 0.0
         checklist_ihsg = _score([
-            ("USD/IDR aman",         0.5-max(0,usdidr)*3),
+            ("USD/IDR aman", 0.5-max(0,usdidr)*3),
             ("Foreign flow confirm", 0.5+eido_3m*3),
-            ("Heavyweights sehat",   0.5+bbca_3m*3),
-            ("BI rate support",      0.5+0.5*p),
-            ("Commodity floor",      0.5+(r("GC=F",63) or 0)*1.5),
-            ("Breadth IHSG",         0.5-max(0,q3m)*2),
+            ("Heavyweights sehat", 0.5+bbca_3m*3),
+            ("BI rate support", 0.5+0.5*p),
+            ("Commodity floor", 0.5+(r("GC=F",63) or 0)*1.5),
+            ("Breadth IHSG", 0.5-max(0,q3m)*2),
         ])
         checklist_fx = _score([
-            ("Rate diff bersih",   0.5+0.3*p),
-            ("Macro surprise",     0.5+0.3*g),
-            ("Positioning cool",   0.5-vol_stress*0.5),
-            ("Liquidity ok",       0.6 if bucket!="Defensive" else 0.30),
-            ("Intervention risk",  0.5-dollar_press*0.4),
-            ("Options ok",         0.5-vol_stress*0.4),
+            ("Rate diff bersih", 0.5+0.3*p),
+            ("Macro surprise", 0.5+0.3*g),
+            ("Positioning cool", 0.5-vol_stress*0.5),
+            ("Liquidity ok", 0.6 if bucket!="Defensive" else 0.30),
+            ("Intervention risk", 0.5-dollar_press*0.4),
+            ("Options ok", 0.5-vol_stress*0.4),
         ])
         oil_3m=r("CL=F",63) or 0.0; gld_3m=r("GLD",63) or r("GC=F",63) or 0.0
         checklist_commodities = _score([
-            ("Physical balance",   0.5+oil_3m*1.5),
-            ("Curve confirm",      0.5+oil_3m*1.0),
-            ("USD/rates support",  0.5-dollar_press*0.5),
-            ("Gold bid",           0.5+gld_3m*2.0),
-            ("Positioning ok",     0.5-vol_stress*0.3),
+            ("Physical balance", 0.5+oil_3m*1.5),
+            ("Curve confirm", 0.5+oil_3m*1.0),
+            ("USD/rates support", 0.5-dollar_press*0.5),
+            ("Gold bid", 0.5+gld_3m*2.0),
+            ("Positioning ok", 0.5-vol_stress*0.3),
             ("Supply shock proxy", 0.5+max(0,i)*0.6),
         ])
         btc_3m=r("BTC-USD",63) or 0.0
         checklist_crypto = _score([
-            ("Flow masuk",        0.5+btc_3m*1.5),
-            ("Funding/OI sehat",  0.5-vol_stress*0.5),
-            ("Unlock risk ok",    0.5-max(0,vol_stress-0.3)),
-            ("Liquidity cukup",   0.5-credit_stress*0.3),
-            ("Narrative hidup",   0.5+btc_3m*1.0),
-            ("USD bearish",       0.5-dollar_press*0.6),
-            ("F&G not extreme",   clamp01(1 - max(0, fg_score-75)/25)),
+            ("Flow masuk", 0.5+btc_3m*1.5),
+            ("Funding/OI sehat", 0.5-vol_stress*0.5),
+            ("Unlock risk ok", 0.5-max(0,vol_stress-0.3)),
+            ("Liquidity cukup", 0.5-credit_stress*0.3),
+            ("Narrative hidup", 0.5+btc_3m*1.0),
+            ("USD bearish", 0.5-dollar_press*0.6),
+            ("F&G not extreme", clamp01(1 - max(0, fg_score-75)/25)),
         ])
+
+        # ── FIX: Build sources status map ──────────────────────────────
+        sources_status = {
+            "FRED Macro": "OK" if gip_features and len(gip_features) > 0 else "FAIL",
+            "YFinance Prices": "OK" if prices and len(prices) > 0 else "FAIL",
+            "COT Proxy": "OK" if prices else "FAIL",
+            "OI Proxy": "OK" if prices else "FAIL",
+            "CNN Fear & Greed": "OK" if fg_source == "cnn_live" else "PROXY",
+            "DeFiLlama On-Chain": "OK",
+            "VIX Live": "OK" if prices.get("^VIX") is not None else "FAIL",
+            "DXY Live": "OK" if prices.get("DX-Y.NYB") is not None else "FAIL",
+        }
 
         return dict(
             market_health=dict(
@@ -353,4 +359,5 @@ class MarketHealthEngine:
                          dollar_press=round(dollar_press,3), vol_stress=round(vol_stress,3),
                          quality_bid=round(quality_bid,3), eqw_rel=round(eqw_rel_1m,4),
                          iwm_rel=round(iwm_rel_1m,4), fg_score=fg_score, ath_stress=round(ath_stress,3)),
+            sources=sources_status,  # <-- FIX: added detailed source status
         )

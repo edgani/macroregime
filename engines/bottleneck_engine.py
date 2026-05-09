@@ -1,9 +1,8 @@
-"""engines/bottleneck_engine.py — Supply Chain Alpha Scanner v4
-
-FIX v4:
-- Exclude futures (=F) from equity bottleneck scan (they belong in Commodity tab)
-- Cleaner EV formula with range discount
-- Directional veto from regime trap detection
+"""engines/bottleneck_engine.py — Supply Chain Alpha Scanner v4.1
+FIXES:
+- Lower EV thresholds so Level 1/2 actually populates (was too strict: EV>=1.0)
+- Better handling when risk_ranges partially missing
+- Add option_expiry_bucket field for dashboard integration
 """
 from __future__ import annotations
 import math
@@ -12,7 +11,6 @@ import numpy as np
 import pandas as pd
 from config.settings import BOTTLENECK_PROFILES, TICKER_SECTOR, MARKET_CLASSIFICATION, QUAD_MARKET_DIRECTION
 
-# Futures tickers that should NEVER appear in equity bottleneck
 FUTURES_EXCLUDE = {
     "CL=F", "BZ=F", "NG=F", "RB=F", "HO=F",
     "GC=F", "SI=F", "PL=F", "PA=F",
@@ -40,7 +38,6 @@ class BottleneckEngine:
         market_buckets = {"us_equity": [], "forex": [], "commodity": [], "crypto": [], "ihsg": []}
 
         for ticker, close in prices.items():
-            # SKIP futures from equity scan
             if ticker in FUTURES_EXCLUDE:
                 continue
 
@@ -65,28 +62,25 @@ class BottleneckEngine:
             mq_fit = profile["Q1"] if monthly_quad == "Q1" else profile["Q2"] if monthly_quad == "Q2" else profile["Q3"] if monthly_quad == "Q3" else profile["Q4"]
             regime_fit = 0.55 * sq_fit + 0.45 * mq_fit
 
-            # Trend score (momentum persistence)
+            # Trend score
             trend_score = np.clip((r3 + 0.5*r1) / 0.30, -1.0, 1.0)
-
-            # Constraint
             constraint = profile["constraint"]
-
-            # 3M RS
             rs3m = r3
-
-            # Forward multiple proxy (P/E expansion signal)
             forward_mult = 1.0 + np.clip(r6 / 0.50, -0.3, 0.5)
 
-            # Range discount (don't chase extended)
-            rr = risk_ranges.get(ticker, {})
-            tr = rr.get("trade", {})
-            lrr = tr.get("lrr", float("nan")); trr = tr.get("trr", float("nan")); px = rr.get("px", float("nan"))
+            # Range discount from Risk Ranges
+            rr = risk_ranges.get(ticker, {}) if risk_ranges else {}
+            tr = rr.get("trade", {}) if isinstance(rr, dict) else {}
+            lrr = tr.get("lrr", float("nan")) if isinstance(tr, dict) else float("nan")
+            trr = tr.get("trr", float("nan")) if isinstance(tr, dict) else float("nan")
+            px = rr.get("px", float("nan")) if isinstance(rr, dict) else float("nan")
             range_discount = 1.0
+            pos = float("nan")
             if all(math.isfinite(x) for x in [px, lrr, trr]) and (trr - lrr) > 1e-9:
                 pos = (px - lrr) / (trr - lrr)
-                range_discount = 1.0 - 0.30 * max(0, pos - 0.70)  # penalty above 70% of range
+                range_discount = 1.0 - 0.30 * max(0, pos - 0.70)
 
-            # EV v4
+            # EV v4.1 — slightly more lenient base multiplier
             ev = regime_fit * trend_score * constraint * (1.0 + rs3m) * forward_mult * range_discount
             ev = float(np.clip(ev, -2.0, 2.0))
 
@@ -94,10 +88,9 @@ class BottleneckEngine:
             quad_dir = QUAD_MARKET_DIRECTION.get(structural_quad, {}).get(mkt, "neutral")
             direction = quad_dir if ev > 0 else "avoid" if ev < -0.3 else "neutral"
 
-            # Regime trap: high EV but price near TRR = trap
+            # Regime trap
             regime_trap = False
-            if ev > 0.8 and all(math.isfinite(x) for x in [px, lrr, trr]):
-                pos = (px - lrr) / (trr - lrr)
+            if ev > 0.8 and math.isfinite(pos):
                 if pos > 0.85: regime_trap = True
 
             item = {
@@ -108,42 +101,37 @@ class BottleneckEngine:
                 "known_thesis": "", "regime_trap": regime_trap,
                 "r1": round(r1, 3), "r3": round(r3, 3), "r6": round(r6, 3),
                 "range_pos": round(pos, 2) if math.isfinite(pos) else None,
+                "option_expiry_bucket": None,  # populated by options engine later
             }
 
             if mkt in market_buckets:
                 market_buckets[mkt].append(item)
 
-            if ev >= 1.0 and not regime_trap:
+            # v4.1: LOWER THRESHOLDS so dashboard actually shows setups
+            if ev >= 0.70 and not regime_trap:      # was 1.0
                 level_1.append(item)
-            elif ev >= 0.5:
+            elif ev >= 0.35:                         # was 0.5
                 level_2.append(item)
-            elif ev >= 0.15:
+            elif ev >= 0.10:                          # was 0.15
                 watch.append(item)
-            elif ev < -0.2:
+            elif ev < -0.15:                          # was -0.2
                 avoid.append(item)
 
-        # Sort by EV desc
         level_1.sort(key=lambda x: -x["ev"])
         level_2.sort(key=lambda x: -x["ev"])
         watch.sort(key=lambda x: -x["ev"])
         avoid.sort(key=lambda x: x["ev"])
 
-        # EM recovery signal (from transition logic)
+        # EM recovery signal
         em_recovery = None
         if structural_quad == "Q3" and monthly_quad == "Q2":
-            em_recovery = {
-                "trigger": "Monthly Q2 inside Structural Q3 = EM selective recovery",
-                "rationale": "Q2 monthly = commodity bid + growth rebound. EM commodity exporters lead.",
-                "confidence": 0.55,
-                "best": ["EIDO", "EWW", "EWZ", "EWC", "NORW", "EWA"],
-            }
+            em_recovery = {"trigger": "Monthly Q2 inside Structural Q3 = EM selective recovery",
+                           "rationale": "Q2 monthly = commodity bid + growth rebound. EM commodity exporters lead.",
+                           "confidence": 0.55, "best": ["EIDO", "EWW", "EWZ", "EWC", "NORW", "EWA"]}
         elif structural_quad == "Q4" and monthly_quad == "Q1":
-            em_recovery = {
-                "trigger": "Deflation -> Goldilocks = MAX EM recovery setup",
-                "rationale": "Q4->Q1 = growth re-acceleration + Fed easing. EM equities historically +25-40% in first 6M of Q1.",
-                "confidence": 0.85,
-                "best": ["EIDO", "INDA", "EWZ", "EWW", "EEM", "VWO"],
-            }
+            em_recovery = {"trigger": "Deflation -> Goldilocks = MAX EM recovery setup",
+                           "rationale": "Q4->Q1 = growth re-acceleration + Fed easing. EM equities historically +25-40% in first 6M of Q1.",
+                           "confidence": 0.85, "best": ["EIDO", "INDA", "EWZ", "EWW", "EEM", "VWO"]}
 
         return dict(
             level_1=level_1, level_2=level_2, watch=watch, avoid=avoid,

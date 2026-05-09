@@ -1,8 +1,7 @@
-"""orchestrator.py — MacroRegime Pro v16 | Snapshot builder
-INCLUDES: 10/10 Autonomy Stack LIGHTWEIGHT (NO torch/transformers)
-+ Gamma Regime Engine (soft import)
-+ Leveraged ETF Flow Engine (soft import)
-+ Hedgeye ETF Pro Plus tickers in Risk Range universe
+"""orchestrator.py — MacroRegime Pro v16.1 | Snapshot builder
+PATCHES:
+- Fix BottleneckEngine parameter mismatch (asset_ranges -> risk_ranges)
+- Add IHSG per-ticker yfinance fallback (bulk download fails for .JK)
 """
 from __future__ import annotations
 import time, logging, math, os, json
@@ -12,11 +11,11 @@ import pandas as pd
 
 from data.loader import load_fred, load_prices, save_snapshot, load_snapshot, snapshot_age_str
 
-# ── Core engines (hard import — app cannot run without these) ─────────────────
+# ── Core engines (hard import) ─────────────────────────────────
 from engines.gip_engine import GIPEngine, get_playbook
 from engines.hurst_rr_engine import HurstRREngine
 
-# ── Secondary engines (soft import — graceful degradation if missing) ─────────
+# ── Secondary engines (soft import) ────────────────────────────
 _GLOBAL_QUAD_OK = False
 try:
     from engines.global_quad_engine import GlobalQuadEngine
@@ -64,6 +63,7 @@ try:
     from engines.historical_analog_engine import HistoricalAnalogEngine
     _ANALOG_OK = True
 except Exception as _e: logger.warning(f"HistoricalAnalogEngine unavailable: {_e}")
+
 from config.settings import (
     MACRO_PROXIES, US_SECTORS, US_FACTORS, FOREX_PAIRS,
     COMMODITIES, CRYPTO, BONDS, IHSG_UNIVERSE, COUNTRY_UNIVERSE,
@@ -72,7 +72,7 @@ from config.settings import (
 
 logger = logging.getLogger(__name__)
 
-# ── Autonomy engine imports (soft — graceful fallback if files missing) ───────
+# ── Autonomy engine imports (soft) ───────────────────────────────
 _AUTONOMY_AVAILABLE = False
 try:
     from engines.price_cluster_engine_v3 import PriceClusterEngineV3
@@ -89,7 +89,7 @@ except Exception as e:
     logger.warning(f"Autonomy stack not available: {e}")
     _AUTONOMY_AVAILABLE = False
 
-# ── Gamma Regime Engine (soft — file may not exist yet) ───────────────────────
+# ── Gamma / Leveraged ETF / Options (soft) ──────────────────────
 _GAMMA_AVAILABLE = False
 try:
     from engines.gamma_regime_engine import GammaRegimeEngine
@@ -108,11 +108,9 @@ try:
     _OPTIONS_AVAILABLE = True
 except Exception as _e: logger.warning(f"OptionsEngine unavailable: {_e}")
 
-
 def _prog(cb, msg, frac):
     logger.info(f"[{frac:.0%}] {msg}")
     if cb: cb(msg, frac)
-
 
 def build_snapshot(
     progress_cb: Optional[Callable] = None,
@@ -130,7 +128,7 @@ def build_snapshot(
     fred = load_fred(months=36)
     snap["fred_coverage"] = len(fred)
 
-    # 2. Core prices (always)
+    # 2. Core prices
     _prog(progress_cb, "Loading core market prices...", 0.10)
     prices: Dict[str, pd.Series] = {}
     prices.update(load_prices(list(MACRO_PROXIES.keys()) + list(BONDS.keys()) + ["DX-Y.NYB","^VIX"], days=756))
@@ -163,19 +161,18 @@ def build_snapshot(
         _prog(progress_cb, "Loading IHSG + Indonesia stocks...", 0.40)
         prices.update(load_prices(list(IHSG_UNIVERSE.keys()), days=756))
 
-    # 8. Country ETFs for global quad
+    # 8. Country ETFs
     _prog(progress_cb, "Loading country ETFs (50 countries)...", 0.44)
     country_etfs = list({v[0] for v in COUNTRY_UNIVERSE.values()})
     prices.update(load_prices(country_etfs, days=756))
     snap["prices_loaded"] = len(prices)
 
     # 9. GIP
-    _prog(progress_cb, "Running GIP model (G·I·P second derivative)...", 0.50)
+    _prog(progress_cb, "Running GIP model...", 0.50)
     try:
         gip = GIPEngine().run(fred=fred, prices=prices)
     except Exception as e:
-        logger.error(f"GIP error: {e}")
-        raise
+        logger.error(f"GIP error: {e}"); raise
     snap["gip"] = gip
     snap["playbook"] = get_playbook(gip.structural_quad, gip.monthly_quad)
 
@@ -187,7 +184,7 @@ def build_snapshot(
         global_quad = {"global_quad":"—","global_conf":0,"global_probs":{},"country_quads":{}}
     snap["global"] = global_quad
 
-    # 11. Risk Ranges — INCLUDES Hedgeye ETF Pro Plus tickers
+    # 11. Risk Ranges
     _prog(progress_cb, "Fetching OHLCV for Hurst risk ranges...", 0.64)
     rr_tickers = (
         list(MACRO_PROXIES.keys()) + list(US_SECTORS.keys()) +
@@ -199,28 +196,15 @@ def build_snapshot(
             "defense","oil_services","housing","steel","infrastructure"
         )][:25]
     )
-
-    # ── Hedgeye ETF Pro Plus actual tickers — MUST be in Risk Range ──────────
     hedgeye_etf_pro_tickers = [
-        # Q2 LONG (ETF Pro Plus confirmed)
         "XLI","XLE","OIH","BNO","XOP","ITB","TLT","LQD",
         "JPXN","EIS","TUR","NORW","EWZ","EWW","EIDO","GLIN",
         "DAR","MTDR","SLX","CPER",
-        # Precious Metals (monster performers)
         "SLV","GLD","PPLT","GDX","GDXJ","SIL","SILJ",
-        # Defense / Secular
-        "ITA","GRID",
-        # Q2/Q3 SHORT targets
-        "MSTY","BITS","BLOK","WGMI","MAGS",
-        # Anti-beta hedge
-        "BTAL","DUST",
-        # Signal Strength Stocks
-        "ULS","BRBR",
-        # Standard
-        "QQQ","SPY","IWM","RSP","GLD","SLV",
+        "ITA","GRID","MSTY","BITS","BLOK","WGMI","MAGS",
+        "BTAL","DUST","ULS","BRBR","QQQ","SPY","IWM","RSP","GLD","SLV",
     ]
     rr_tickers = rr_tickers + hedgeye_etf_pro_tickers
-    # IHSG stocks — ensure IHSG tab has RR data without needing separate refresh
     if include_ihsg:
         ihsg_rr = [
             "^JKSE","EIDO",
@@ -233,7 +217,7 @@ def build_snapshot(
             "CTRA.JK","BSDE.JK","HEAL.JK","MIKA.JK",
         ]
         rr_tickers = rr_tickers + ihsg_rr
-    rr_tickers = list(dict.fromkeys(rr_tickers))  # dedupe, preserve order
+    rr_tickers = list(dict.fromkeys(rr_tickers))
 
     price_frames: Dict[str, pd.DataFrame] = {}
     try:
@@ -254,6 +238,32 @@ def build_snapshot(
                     pass
     except Exception as e:
         logger.warning(f"OHLCV fetch partial: {e}")
+
+    # ── CRITICAL FIX: IHSG per-ticker fallback ──────────────────────────────
+    # Bulk yf.download often fails for .JK tickers. Fallback: fetch one by one.
+    if include_ihsg:
+        ihsg_fallback = [
+            "^JKSE","EIDO","BBCA.JK","BBRI.JK","BMRI.JK","BBNI.JK","BRIS.JK","BBTN.JK",
+            "ADRO.JK","PTBA.JK","ITMG.JK","AADI.JK","BUMI.JK",
+            "INCO.JK","MDKA.JK","ANTM.JK","TINS.JK","NCKL.JK",
+            "TLKM.JK","EXCL.JK","ISAT.JK","UNTR.JK","PGAS.JK",
+            "MEDC.JK","PGEO.JK","WINS.JK","LEAD.JK","SOCI.JK",
+            "ICBP.JK","INDF.JK","KLBF.JK","ASII.JK",
+            "CTRA.JK","BSDE.JK","HEAL.JK","MIKA.JK",
+        ]
+        for t in ihsg_fallback:
+            if t not in price_frames:
+                try:
+                    df_single = yf.download(t, period="2y", progress=False, auto_adjust=True, timeout=15)
+                    if df_single is not None and not df_single.empty:
+                        cols = [c for c in ["Open","High","Low","Close","Volume"] if c in df_single.columns]
+                        df_single = df_single[cols].apply(pd.to_numeric, errors="coerce").dropna(subset=["Close"])
+                        if not df_single.empty:
+                            price_frames[t] = df_single
+                            logger.info(f"IHSG fallback fetch success: {t}")
+                except Exception as e2:
+                    logger.debug(f"IHSG fallback fail {t}: {e2}")
+    # ── End IHSG fallback ─────────────────────────────────────────────────────
 
     for t in rr_tickers:
         if t not in price_frames and t in prices:
@@ -279,13 +289,13 @@ def build_snapshot(
         scenarios = {}
     snap["scenarios"] = scenarios
 
-    # 13. Bottleneck Scanner
+    # 13. Bottleneck Scanner — FIX: parameter name = risk_ranges (not asset_ranges)
     _prog(progress_cb, "Scanning bottlenecks (all asset classes)...", 0.88)
     if _BOTTLENECK_OK:
         try:
             btk = BottleneckEngine().run(
-                prices=prices, quad_str=gip.structural_quad, quad_mon=gip.monthly_quad,
-                benchmark="SPY", asset_ranges=rr_result.get("asset_ranges",{}),
+                prices=prices, structural_quad=gip.structural_quad, monthly_quad=gip.monthly_quad,
+                risk_ranges=rr_result.get("asset_ranges",{}),
             )
         except Exception as e:
             logger.warning(f"Bottleneck run error: {e}"); btk = {}
@@ -293,7 +303,7 @@ def build_snapshot(
         btk = {}
     snap["bottleneck"] = btk
 
-    # 14. Narrative Engine
+    # 14. Narrative
     _prog(progress_cb, "Scoring active narratives...", 0.93)
     if _NARRATIVE_OK:
         try:
@@ -312,7 +322,7 @@ def build_snapshot(
         try:
             macro_ctx = {k:v for k,v in gip.features.items() if isinstance(v,float)}
             market_ctx = {
-                "oil_3m":  float(prices.get("CL=F",pd.Series()).tail(1).iloc[-1]/prices.get("CL=F",pd.Series()).iloc[-64]-1) if len(prices.get("CL=F",pd.Series()))>64 else 0.0,
+                "oil_3m": float(prices.get("CL=F",pd.Series()).tail(1).iloc[-1]/prices.get("CL=F",pd.Series()).iloc[-64]-1) if len(prices.get("CL=F",pd.Series()))>64 else 0.0,
                 "gold_3m": float(prices.get("GLD",pd.Series()).tail(1).iloc[-1]/prices.get("GLD",pd.Series()).iloc[-64]-1) if len(prices.get("GLD",pd.Series()))>64 else 0.0,
             }
             transition = RegimeTransitionEngine().run(macro=macro_ctx, market=market_ctx, gip_result=gip)
@@ -345,45 +355,31 @@ def build_snapshot(
         analogs = {"top_analogs":[], "composite_note":""}
     snap["analogs"] = analogs
 
-    # 14e. Gamma Regime (computed dari SPY rVol + VIX — zero hardcode)
+    # 14e. Gamma Regime
     _prog(progress_cb, "Computing gamma regime approximation...", 0.935)
     if _GAMMA_AVAILABLE:
         try:
             gamma_result = GammaRegimeEngine().run(prices=prices)
         except Exception as e:
             logger.warning(f"Gamma regime engine error: {e}")
-            gamma_result = {
-                "ok": False, "throttle": None, "regime": "UNKNOWN",
-                "source": "error", "note": str(e),
-            }
+            gamma_result = {"ok": False, "throttle": None, "regime": "UNKNOWN", "source": "error", "note": str(e)}
     else:
-        gamma_result = {
-            "ok": False, "throttle": None, "regime": "UNKNOWN",
-            "source": "unavailable",
-            "note": "GammaRegimeEngine not found. Copy engines/gamma_regime_engine.py to repo.",
-        }
+        gamma_result = {"ok": False, "throttle": None, "regime": "UNKNOWN", "source": "unavailable", "note": "GammaRegimeEngine not found."}
     snap["gamma"] = gamma_result
 
-    # 14f. Leveraged ETF Flow (yfinance AUM — zero hardcode)
+    # 14f. Leveraged ETF
     _prog(progress_cb, "Fetching leveraged ETF AUM data...", 0.940)
     if _LEV_ETF_AVAILABLE:
         try:
             lev_result = LeveragedETFEngine().run(prices=prices)
         except Exception as e:
             logger.warning(f"Leveraged ETF engine error: {e}")
-            lev_result = {
-                "ok": False, "total_mcap_b": None,
-                "source": "error", "note": str(e),
-            }
+            lev_result = {"ok": False, "total_mcap_b": None, "source": "error", "note": str(e)}
     else:
-        lev_result = {
-            "ok": False, "total_mcap_b": None,
-            "source": "unavailable",
-            "note": "LeveragedETFEngine not found. Copy engines/leveraged_etf_engine.py to repo.",
-        }
+        lev_result = {"ok": False, "total_mcap_b": None, "source": "unavailable", "note": "LeveragedETFEngine not found."}
     snap["leveraged_etf"] = lev_result
 
-    # 15. TRUE AUTONOMY v3 LIGHTWEIGHT
+    # 15. TRUE AUTONOMY v3
     _prog(progress_cb, "Running autonomous discovery (lightweight)...", 0.96)
     if _AUTONOMY_AVAILABLE:
         try:
@@ -424,7 +420,6 @@ def build_snapshot(
         snap["auto_discoveries"] = {"candidates":[], "meta":{"fallback":"unavailable"}}
         snap["feedback_eval"] = {"evaluated":0,"promoted":0,"demoted":0}
 
-    # Store prices subset for UI
     snap["prices"] = {k:v for k,v in prices.items() if isinstance(v,pd.Series) and len(v)>10}
     snap["build_time_s"] = round(time.time()-t0, 1)
     snap["ok"] = True
@@ -434,35 +429,31 @@ def build_snapshot(
     logger.info(f"Built in {snap['build_time_s']}s. Prices: {snap['prices_loaded']}, RR: {snap['price_frames_count']}")
     return snap
 
-
 def _build_stress(prices, gip) -> dict:
     def last(t):
         s = prices.get(t)
         if s is None: return None
         s = pd.to_numeric(s, errors="coerce").dropna()
         return float(s.iloc[-1]) if not s.empty else None
-
     def ret1m(t):
         s = prices.get(t)
         if s is None: return 0.0
         s = pd.to_numeric(s, errors="coerce").dropna()
         if len(s) < 22: return 0.0
         return float(s.iloc[-1]/s.iloc[-22]-1)
-
     vix_raw = last("^VIX")
     vix = vix_raw if (vix_raw is not None and math.isfinite(vix_raw)) else 18.0
     dxy_1m = ret1m("DX-Y.NYB")
-    vol_stress    = float(np.clip((vix-15.0)/25.0, 0.0, 1.0))
-    shock         = 0.5 if gip.structural_quad=="Q3" else 0.8 if gip.structural_quad=="Q4" else 0.2
-    crowding      = float(gip.features.get("proxy_share", 0.3))
-    dollar_pres   = float(np.clip(0.5+dxy_1m/0.04, 0.0, 1.0))
-    tail_bid      = float(np.clip((vix-20.0)/30.0, 0.0, 1.0))
+    vol_stress = float(np.clip((vix-15.0)/25.0, 0.0, 1.0))
+    shock = 0.5 if gip.structural_quad=="Q3" else 0.8 if gip.structural_quad=="Q4" else 0.2
+    crowding = float(gip.features.get("proxy_share", 0.3))
+    dollar_pres = float(np.clip(0.5+dxy_1m/0.04, 0.0, 1.0))
+    tail_bid = float(np.clip((vix-20.0)/30.0, 0.0, 1.0))
     return dict(
         vol_stress=vol_stress, shock_penalty=shock*0.5,
         crowding=crowding, dollar_pressure=dollar_pres,
         tail_hedge_bid=tail_bid, vix=vix,
     )
-
 
 def get_or_build(force=False, max_age_h=4.0, **kw) -> dict:
     if not force:

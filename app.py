@@ -693,8 +693,9 @@ elif page == "📈 GIP Model":
         <div style="font-size:15px;color:{qc(mq)};font-weight:600;margin-bottom:8px;">{QNC.get(mq,"")}</div>
         <div style="font-size:12px;color:#8B949E;line-height:1.6;">{QUAD_EXPLAIN[mq]}</div>
         <div style="margin-top:12px;font-size:11px;color:#8B949E;">Confidence: {gip.monthly_conf:.0%} · Divergence: {gip.divergence} · {gip.operating_regime}</div>
-        {f'<div style="margin-top:6px;font-size:11px;color:#D29922;">⚠ Model says Q1, Hedgeye says Q2. Use Override in sidebar.</div>' if mq_raw=="Q1" else ""}
         </div>''', unsafe_allow_html=True)
+        if mq_raw == "Q1":
+            st.warning("⚠ Model computed Q1, Hedgeye manual call = Q2. Use Quad Override in sidebar to set Q2.")
 
     # Key signals
     st.markdown("---")
@@ -1138,18 +1139,23 @@ elif page == "🇮🇩 IHSG":
                      column_config={"Action": st.column_config.TextColumn("What to Do", width="large"),
                                     "Name": st.column_config.TextColumn("Company", width="medium")})
     else:
-        st.info("Computing Risk Range for IHSG stocks... Data will appear after rebuild.")
+        # Always show price data from snapshot — no rebuild required
         rows=[]
-        for sym in list(IHSG_UNIVERSE.keys())[:40]:
+        for sym in list(IHSG_UNIVERSE.keys()):
             s=prices.get(sym)
             if s is None: continue
             s=pd.to_numeric(s,errors="coerce").dropna()
             if s.empty: continue
+            px=float(s.iloc[-1])
             r1=float(s.iloc[-1]/s.iloc[-22]-1) if len(s)>=22 else None
             r3=float(s.iloc[-1]/s.iloc[-64]-1) if len(s)>=64 else None
-            rows.append({"Ticker":sym,"Company":IHSG_UNIVERSE.get(sym,sym),"Price":f"{float(s.iloc[-1]):,.0f}",
-                         "1 Month":f"{r1:+.1%}" if r1 else "—","3 Months":f"{r3:+.1%}" if r3 else "—"})
-        if rows: st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True, height=400)
+            rows.append({"Ticker":sym,"Company":IHSG_UNIVERSE.get(sym,sym),"Price":f"{px:,.0f}",
+                         "1 Month":f"{r1:+.1%}" if r1 is not None else "—",
+                         "3 Months":f"{r3:+.1%}" if r3 is not None else "—"})
+        if rows:
+            st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True, height=420)
+        else:
+            st.warning("IHSG data tidak tersedia. Pastikan IHSG checkbox aktif lalu click 🔄 Update.")
 
     st.markdown("---"); st.markdown("### Sector Performance")
     for bucket,tickers in IHSG_BUCKETS.items():

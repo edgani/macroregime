@@ -753,11 +753,13 @@ elif page == "📈 GIP Model":
     st.divider()
     st.markdown("### Where Are We Going Next?")
     def _tp(probs, cur_q, label):
-        if not probs: return
-        sp=sorted(probs.items(),key=lambda x:x[1],reverse=True); top_q,top_p=sp[0]
-        st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:8px;padding:12px;margin-bottom:8px;"><div style="color:#8B949E;font-size:11px;">{label}</div><div style="color:#E6EDF3;font-size:14px;margin-top:4px;">Most likely next: <strong style="color:{qc(top_q)}">{top_q} {QN.get(top_q,"")}</strong> ({top_p:.0%})</div></div>', unsafe_allow_html=True)
-        st.plotly_chart(prob_bar(probs), use_container_width=True, config={"displayModeBar":False})
-        if top_q!=cur_q: st.info(f"If regime shifts to {top_q}: **{QWINS.get(top_q,'')}** are the winners")
+    if not probs: return
+    sp=sorted(probs.items(),key=lambda x:x[1],reverse=True); top_q,top_p=sp[0]
+    st.markdown(f'<div style="background:#161B22;padding:12px 16px;border-radius:8px;margin-bottom:12px;"><div style="font-size:11px;color:#8B949E;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">{label}</div><div style="font-size:14px;color:#E6EDF3;">Most likely next: <strong>{top_q} {QN.get(top_q,"")}</strong> ({top_p:.0%})</div></div>', unsafe_allow_html=True)
+    # FIX: Add unique key to prevent StreamlitDuplicateElementId
+    key_id = f"prob_{label.replace(' ', '_').replace('/', '_')}"
+    st.plotly_chart(prob_bar(probs), use_container_width=True, config={"displayModeBar":False}, key=key_id)
+    if top_q!=cur_q: st.info(f"If regime shifts to {top_q}: **{QWINS.get(top_q,'')}** are the winners")
     c1,c2,c3 = st.columns(3)
     with c1: _tp(gip.structural_probs, sq, "Quarterly Probabilities")
     with c2: _tp(gip.monthly_probs, mq, "Monthly Probabilities")

@@ -269,13 +269,13 @@ def _render_levels(rl, side="long", opt=None):
     opt_tag = " ✦ Options confirmed" if rl.get("opt_confirm") else ""
     st.markdown(f'<div style="color:{tc};font-weight:600;font-size:14px;">{rl.get("action")}{opt_tag}{ext_tag}</div>', unsafe_allow_html=True)
     c1,c2,c3,c4,c5 = st.columns(5)
-    c1.metric("Buy/Sell at", f"${rl[\'entry\']:.2f}")
-    c2.metric("Target 1", f"${rl[\'tp1\']:.2f}")
-    c3.metric("Target 2", f"${rl[\'tp2\']:.2f}")
-    c4.metric("Stop Loss", f"${rl[\'stop\']:.2f}")
-    c5.metric("Reward:Risk", f"{rl[\'rr\']:.1f}× · {rl.get(\'hold\',\'—\')[:10]}")
+    c1.metric("Buy/Sell at", f"${rl['entry']:.2f}")
+    c2.metric("Target 1", f"${rl['tp1']:.2f}")
+    c3.metric("Target 2", f"${rl['tp2']:.2f}")
+    c4.metric("Stop Loss", f"${rl['stop']:.2f}")
+    c5.metric("Reward:Risk", f"{rl['rr']:.1f}× · {rl.get('hold','—')[:10]}")
     if opt and opt.get("ok"):
-        st.caption(f"📊 Options: Implied move ±{fp(opt.get(\'implied_move_pct\'))} · IV rank {fp(opt.get(\'iv_percentile\'))} · Max pain ${ff(opt.get(\'max_pain\'))}")
+        st.caption(f"📊 Options: Implied move ±{fp(opt.get('implied_move_pct'))} · IV rank {fp(opt.get('iv_percentile'))} · Max pain ${ff(opt.get('max_pain'))}")
     st.markdown('<div style="height:8px"></div>', unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════

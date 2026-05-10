@@ -429,194 +429,81 @@ def _render_alpha_card(item, idx):
             st.caption(f"Source: {item.get('source', 'unknown')} | Hold: {item.get('hold_for', '—')}")
 
 def _alpha_to_df(items):
-    """Alpha Center table: current condition + option-based levels + basis."""
+    """SIMPLE readable table: conclusions, not raw Greeks."""
     if not items:
         return pd.DataFrame()
     rows = []
     for item in items:
-        ticker = item.get("ticker", "UNKNOWN")
-        price = item.get("price")
-        entry = item.get("entry")
-        direction = item.get("direction", "HOLD")
+        # Handle missing conclusion fields (for bottleneck items that don't have them)
+        worth = item.get("worth_entering")
+        if not worth:
+            direction = item.get("direction", "HOLD")
+            if direction == "LONG": worth = "✅ YES — Playbook long"
+            elif direction == "SHORT": worth = "✅ YES — Playbook short"
+            elif direction == "HOLD": worth = "⏳ WATCH"
+            else: worth = "—"
 
-        # WORTH? = current condition based on price vs entry
-        worth = item.get("worth_entering", "—")
-        if not worth or worth == "—":
-            if direction == "LONG":
-                if price and entry:
-                    dist = (price - entry) / entry
-                    if dist <= 0.02:
-                        worth = "✅ BUY NOW"
-                    elif dist <= 0.05:
-                        worth = "⏳ WAIT — Slightly above entry"
-                    else:
-                        worth = "❌ SKIP — Too extended"
-                else:
-                    worth = "✅ LONG"
-            elif direction == "SHORT":
-                if price and entry:
-                    dist = (entry - price) / entry
-                    if dist <= 0.02:
-                        worth = "✅ SELL NOW"
-                    elif dist <= 0.05:
-                        worth = "⏳ WAIT — Slightly below entry"
-                    else:
-                        worth = "❌ SKIP — Too extended"
-                else:
-                    worth = "✅ SHORT"
-            else:
-                worth = "⏳ WATCH"
-
-        entry_basis = item.get("entry_advice", "—") or "—"
-        tp1_basis = item.get("tp1_basis", "—") or "—"
-        stop_basis = item.get("stop_basis", "—") or "—"
         path = item.get("path_smoothness", "—") or "—"
         time_est = item.get("time_estimate", "—") or "—"
         breakout = item.get("breakout_chance", "—") or "—"
-        gamma_reg = item.get("gamma_regime", "—") or "—"
-        greek_comp = item.get("greek_composite", "—") or "—"
-        max_pain = item.get("max_pain", "—") or "—"
-
-        scanner = item.get("scanner_type", "")
-        if "BOTTLENECK L1" in scanner: tag = "🚨 L1"
-        elif "BOTTLENECK L2" in scanner: tag = "⚠️ L2"
-        elif "DAILY" in scanner: tag = "📈 Daily"
-        elif "ALPHA" in scanner: tag = "🎯 Alpha"
-        elif "DISCOVERY" in scanner: tag = "💡 Discovery"
-        else: tag = scanner
 
         rows.append({
-            "Ticker": ticker,
-            "Tag": tag,
-            "Price": _fmt_num(price),
-            "Entry": _fmt_num(entry),
-            "Entry Basis": entry_basis[:55] + "..." if len(str(entry_basis)) > 55 else entry_basis,
-            "T1": _fmt_num(item.get("target_1")),
-            "T1 Basis": tp1_basis[:55] + "..." if len(str(tp1_basis)) > 55 else tp1_basis,
-            "T2": _fmt_num(item.get("target_2")),
-            "Stop": _fmt_num(item.get("stop_loss")),
-            "Stop Basis": stop_basis[:55] + "..." if len(str(stop_basis)) > 55 else stop_basis,
-            "RR": _fmt_rr(item.get("rr")),
+            "Ticker": item.get("ticker"),
+            "Type": item.get("scanner_type", "").replace("BOTTLENECK ", "🚨 ").replace("ALPHA ", "").replace("DISCOVERY", "💡").replace("DAILY ", ""),
             "Worth?": worth,
+            "Price": item.get("price") if item.get("price") else "—",
+            "Entry": item.get("entry") if item.get("entry") else "—",
+            "T1": item.get("target_1") if item.get("target_1") else "—",
+            "T2": item.get("target_2") if item.get("target_2") else "—",
+            "Stop": item.get("stop_loss") if item.get("stop_loss") else "—",
+            "RR": item.get("rr") if item.get("rr") else "—",
             "Path": path,
             "Time": time_est,
             "Breakout": breakout,
-            "Gamma": gamma_reg,
-            "Greek": greek_comp,
-            "Max Pain": max_pain,
         })
     return pd.DataFrame(rows)
 
 def _daily_to_df(signals):
-    """Daily Signals table: current condition + option-based levels + basis."""
+    """SIMPLE readable table: conclusions, not raw Greeks."""
     if not signals:
         return pd.DataFrame()
     rows = []
     for s in signals:
-        price = s.get("price")
-        entry = s.get("entry")
-        direction = s.get("direction", "NEUTRAL")
-
-        worth = s.get("worth_entering", "—")
-        if not worth or worth == "—":
-            if direction == "LONG":
-                if price and entry:
-                    dist = (price - entry) / entry
-                    if dist <= 0.02: worth = "✅ BUY NOW"
-                    elif dist <= 0.05: worth = "⏳ WAIT — Slightly above entry"
-                    else: worth = "❌ SKIP — Too extended"
-                else: worth = "✅ LONG"
-            elif direction == "SHORT":
-                if price and entry:
-                    dist = (entry - price) / entry
-                    if dist <= 0.02: worth = "✅ SELL NOW"
-                    elif dist <= 0.05: worth = "⏳ WAIT — Slightly below entry"
-                    else: worth = "❌ SKIP — Too extended"
-                else: worth = "✅ SHORT"
-            else:
-                worth = "⚪ NEUTRAL"
-
         rows.append({
             "Ticker": s.get("ticker"),
             "Signal": s.get("signal"),
-            "Dir": direction,
-            "Grade": s.get("grade"),
-            "Price": _fmt_num(price),
-            "Entry": _fmt_num(entry),
-            "Entry Basis": (s.get("entry_advice", "—") or "—")[:55],
-            "T1": _fmt_num(s.get("target_1")),
-            "T1 Basis": (s.get("tp1_basis", "—") or "—")[:55],
-            "T2": _fmt_num(s.get("target_2")),
-            "Stop": _fmt_num(s.get("stop_loss")),
-            "Stop Basis": (s.get("stop_basis", "—") or "—")[:55],
-            "RR": _fmt_rr(s.get("rr")),
-            "Worth?": worth,
+            "Worth?": s.get("worth_entering", "—"),
+            "Price": s.get("price"),
+            "Entry": s.get("entry"),
+            "T1": s.get("target_1"),
+            "T2": s.get("target_2"),
+            "Stop": s.get("stop_loss"),
+            "RR": s.get("rr"),
             "Path": s.get("path_smoothness", "—"),
             "Time": s.get("time_estimate", "—"),
             "Breakout": s.get("breakout_chance", "—"),
-            "Gamma": s.get("gamma_regime", "—"),
-            "Greek": s.get("greek_composite", "—"),
-            "Max Pain": s.get("max_pain", "—"),
-            "Score": s.get("score"),
         })
     return pd.DataFrame(rows)
 
-def _consolidated_to_df(rows, market_type="generic"):
-    """Consolidated table: current condition + option data + COT/OI + on-chain."""
+def _consolidated_to_df(rows):
+    """SIMPLE readable table: conclusions, not raw Greeks."""
     if not rows:
         return pd.DataFrame()
     out = []
     for r in rows:
-        price = r.get("price")
-        entry = r.get("entry")
-        direction = r.get("direction", "NEUTRAL")
-
-        worth = r.get("worth_entering", "—")
-        if not worth or worth == "—":
-            if "LONG" in direction:
-                if price and entry:
-                    dist = (price - entry) / entry
-                    if dist <= 0.02: worth = "✅ BUY NOW"
-                    elif dist <= 0.05: worth = "⏳ WAIT — Slightly above entry"
-                    else: worth = "❌ SKIP — Too extended"
-                else: worth = "✅ LONG"
-            elif "SHORT" in direction:
-                if price and entry:
-                    dist = (entry - price) / entry
-                    if dist <= 0.02: worth = "✅ SELL NOW"
-                    elif dist <= 0.05: worth = "⏳ WAIT — Slightly below entry"
-                    else: worth = "❌ SKIP — Too extended"
-                else: worth = "✅ SHORT"
-            else:
-                worth = "⚪ NEUTRAL"
-
-        onchain = "—"
-        if market_type == "crypto":
-            onchain = r.get("onchain_signal", "—") or "—"
-
         out.append({
             "Ticker": r.get("ticker"),
-            "Price": _fmt_num(price),
-            "Entry": _fmt_num(entry),
-            "Entry Basis": (r.get("entry_advice", "—") or "—")[:55],
-            "T1": _fmt_num(r.get("target_1")),
-            "T1 Basis": (r.get("tp1_basis", "—") or "—")[:55],
-            "T2": _fmt_num(r.get("target_2")),
-            "Stop": _fmt_num(r.get("stop")),
-            "Stop Basis": (r.get("stop_basis", "—") or "—")[:55],
-            "RR": _fmt_rr(r.get("rr")),
-            "Worth?": worth,
+            "Price": r.get("price"),
+            "Entry": r.get("entry"),
+            "T1": r.get("target_1"),
+            "T2": r.get("target_2"),
+            "Stop": r.get("stop"),
+            "RR": r.get("rr"),
+            "Worth?": r.get("worth_entering", "—"),
+            "Entry Advice": r.get("entry_advice", "—"),
             "Path": r.get("path_smoothness", "—"),
             "Time": r.get("time_estimate", "—"),
             "Breakout": r.get("breakout_chance", "—"),
-            "Gamma": r.get("gamma_regime", "—"),
-            "Greek": r.get("greek_composite", "—"),
-            "Delta": r.get("delta", "—"),
-            "Vanna": r.get("vanna", "—"),
-            "COT": r.get("cot_signal", "—"),
-            "OI": r.get("oi_signal", "—"),
-            "Max Pain": r.get("max_pain", "—"),
-            "On-Chain": onchain,
         })
     return pd.DataFrame(out)
 

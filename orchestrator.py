@@ -275,7 +275,7 @@ def _build_alpha_ideas(prices, sq, mq, gamma_data=None, greeks_data=None):
         # Add conclusions
         gamma = gamma_data.get(ticker, {})
         greek = greeks_data.get(ticker, {})
-        item = _enrich_signal_with_conclusions(item, gamma, greek, rr, market_type=mkt)
+        item = _enrich_signal_with_conclusions(item, gamma, greek, rr)
         longs.append(item)
     for ticker in playbook.get("worst_assets", [])[:6]:
         p = _last_price(prices.get(ticker))
@@ -293,7 +293,7 @@ def _build_alpha_ideas(prices, sq, mq, gamma_data=None, greeks_data=None):
         }
         gamma = gamma_data.get(ticker, {})
         greek = greeks_data.get(ticker, {})
-        item = _enrich_signal_with_conclusions(item, gamma, greek, rr, market_type=mkt)
+        item = _enrich_signal_with_conclusions(item, gamma, greek, rr)
         shorts.append(item)
     if not longs and not shorts:
         for t in ["SPY", "QQQ", "IWM", "XLK", "XLE", "GLD", "SLV", "TLT", "IBIT", "UUP"]:
@@ -821,7 +821,7 @@ def _build_daily_signals(prices, sq, mq, asset_ranges, health, gamma_data=None, 
             mkt = "commodity"
 
         # Enrich with readable conclusions
-        sig = _enrich_signal_with_conclusions(sig, gamma, greek, rr, market_type=mkt)
+        sig = _enrich_signal_with_conclusions(sig, gamma, greek, rr)
         signals.append(sig)
 
     # Sort by absolute score descending

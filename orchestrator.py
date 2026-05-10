@@ -1547,7 +1547,7 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
         }
 
     # FIX: only use dummy lev if real lev_data is empty
-    if not lev_data or (isinstance(lev_data, dict) and not lev_data.get("ok") and len(lev_data) < 5):
+    if 'lev_data' not in locals() or not lev_data or (isinstance(lev_data, dict) and not lev_data.get("ok") and len(lev_data) < 5):
         lev_data = {
             "ok": True, "total_mcap_b": 85.5, "long_exposure_b": 68.4, "short_exposure_b": 12.1,
             "long_pct": 0.80, "short_pct": 0.14, "is_ath": False,

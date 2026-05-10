@@ -362,71 +362,117 @@ def _render_dataframe(df, height=400, key=None):
 
     st.dataframe(styled, use_container_width=True, hide_index=True, height=height, key=key)
 
-def _render_alpha_card(item, idx):
-    """Render a single alpha center item as a readable conclusion card."""
-    scanner = item.get("scanner_type", "ITEM")
-    ticker = item.get("ticker", "UNKNOWN")
-    direction = item.get("direction", "HOLD")
-    grade = item.get("grade", "C")
-    score = item.get("priority_score", 0)
+def _render_ticker_card(row, idx=0, market_type="generic"):
+    """Full ticker report card — like NVTS analysis but automated."""
+    ticker = row.get("ticker", "UNKNOWN")
+    price = row.get("price")
+    entry = row.get("entry") or row.get("entry")
+    t1 = row.get("target_1") or row.get("tp1")
+    t2 = row.get("target_2") or row.get("tp2")
+    stop = row.get("stop_loss") or row.get("stop")
+    direction = row.get("direction", "NEUTRAL")
+    worth = row.get("worth_entering", "—")
+    rr = row.get("rr", 0)
+    grade = row.get("grade", "C")
+    scanner = row.get("scanner_type", "")
 
-    dir_color = "#3FB950" if "LONG" in direction else "#F85149" if "SHORT" in direction else "#D29922" if "WATCH" in direction else "#8B949E"
-    scanner_color = "#F85149" if "L1" in scanner else "#D29922" if "L2" in scanner else "#1F6FEB" if "WATCH" in scanner else "#3FB950" if "LONG" in scanner else "#F85149" if "SHORT" in scanner else "#8B949E"
+    # Direction color
+    dir_emoji = "🟢" if "LONG" in direction else "🔴" if "SHORT" in direction else "⚪"
+    worth_emoji = "✅" if "BUY NOW" in worth or "SELL NOW" in worth else "⏳" if "WAIT" in worth else "❌" if "SKIP" in worth else "⚪"
 
-    with st.container():
-        st.markdown(f"""
-        <div style="background:#161B22;border:1px solid #30363D;border-radius:8px;padding:10px 14px;margin:4px 0;">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-                <div>
-                    <span style="color:{dir_color};font-size:16px;font-weight:700;">{ticker}</span>
-                    <span style="color:{scanner_color};font-size:11px;margin-left:8px;padding:2px 6px;border-radius:4px;background:{scanner_color}22;">{scanner}</span>
-                    <span style="color:#8B949E;font-size:11px;margin-left:8px;">Grade {grade}</span>
-                </div>
-                <div style="color:#8B949E;font-size:12px;">Score: <b>{score:.1f}</b></div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+    # Expander header
+    header = f"{dir_emoji} {ticker}  |  Price {_fmt_num(price)}  |  {direction}  |  {worth_emoji} {worth}  |  RR {_fmt_rr(rr)}"
+    if scanner:
+        header += f"  |  {scanner}"
 
-        with st.expander("📋 Details", expanded=False):
-            # Core trade plan
-            st.markdown(f"**Trade Plan:** {item.get('thesis', 'N/A')}")
+    with st.expander(header, expanded=False):
+        # ── SNAPSHOT ──
+        st.markdown("**📊 SNAPSHOT**")
+        c1, c2, c3, c4, c5, c6 = st.columns(6)
+        c1.metric("Price", _fmt_num(price))
+        c2.metric("Entry", _fmt_num(entry))
+        c3.metric("T1", _fmt_num(t1))
+        c4.metric("T2", _fmt_num(t2))
+        c5.metric("Stop", _fmt_num(stop))
+        c6.metric("RR", _fmt_rr(rr))
 
-            if item.get("entry"):
-                st.markdown(f"🎯 **Entry:** `{item.get('entry')}` → **T1:** `{item.get('target_1')}` → **T2:** `{item.get('target_2')}` | 🛑 **Stop:** `{item.get('stop_loss')}` | **RR:** `{item.get('rr')}`")
+        st.divider()
 
-            # Entry guidance with explicit level
-            worth = item.get("worth_entering", "—")
-            entry = item.get("entry")
-            price = item.get("price")
+        # ── LEVEL BASIS ──
+        st.markdown("**📐 LEVEL BASIS**")
+        b1, b2, b3 = st.columns(3)
+        entry_basis = row.get("entry_advice") or row.get("entry_basis", "—")
+        tp1_basis = row.get("tp1_basis", "—")
+        stop_basis = row.get("stop_basis", "—")
+        tp2_basis = row.get("tp2_basis", "—")
+        b1.markdown(f"🎯 **Entry:** {entry_basis}")
+        b2.markdown(f"📈 **T1:** {tp1_basis}")
+        b3.markdown(f"🛑 **Stop:** {stop_basis}")
+        if tp2_basis and tp2_basis != "—":
+            st.caption(f"📈 **T2 Basis:** {tp2_basis}")
 
-            if "CHASE" in worth and entry:
-                st.warning(f"🏃 **CHASE GUIDANCE:** Price is extended from ideal entry. If you must enter, use **small size** near `{entry}` or wait for retrace below `{entry}`.")
-            elif "WAIT" in worth and entry:
-                st.info(f"⏳ **WAIT GUIDANCE:** Ideal entry is `{entry}`. Current price too far. Wait for price to come back to `{entry}` or below.")
-            elif "YES" in worth and entry:
-                st.success(f"✅ **ENTER NOW:** Price at or near ideal entry `{entry}`. Normal sizing ok.")
-            elif "SMALL" in worth and entry:
-                st.warning(f"⚠️ **SMALL SIZE:** Price near `{entry}` but mixed signals. Use 50% normal size.")
+        st.divider()
 
-            # Readable conclusions
-            c1, c2, c3, c4 = st.columns(4)
-            c1.metric("Worth Entering?", worth)
-            c2.metric("Path to Target", item.get("path_smoothness", "—"))
-            c3.metric("Time Estimate", item.get("time_estimate", "—"))
-            c4.metric("Breakout Chance", item.get("breakout_chance", "—"))
+        # ── PATH & TIMING ──
+        st.markdown("**⏱️ PATH & TIMING**")
+        p1, p2, p3 = st.columns(3)
+        p1.metric("Path", row.get("path_smoothness", "—"))
+        p2.metric("Time", row.get("time_estimate", "—"))
+        p3.metric("Breakout", row.get("breakout_chance", "—"))
 
-            # Basis explanations
-            st.markdown("**📐 Level Basis:**")
-            basis_cols = st.columns(3)
-            if item.get("entry_advice"): basis_cols[0].markdown(f"🎯 **Entry:** {item.get('entry_advice')}")
-            if item.get("tp1_basis"): basis_cols[1].markdown(f"📈 **T1:** {item.get('tp1_basis')}")
-            if item.get("stop_basis"): basis_cols[2].markdown(f"🛑 **Stop:** {item.get('stop_basis')}")
-            if item.get("tp2_basis"): st.caption(f"📈 **T2 Basis:** {item.get('tp2_basis')}")
+        st.divider()
 
-            if item.get("invalidators"):
-                st.caption(f"❌ **Invalidators:** {', '.join(item.get('invalidators'))}")
+        # ── OPTION DATA (skip for IHSG) ──
+        has_options = any(row.get(k) for k in ["gamma_regime", "greek_composite", "max_pain", "delta", "vanna", "put_wall", "call_wall"])
+        if has_options and market_type != "ihsg":
+            st.markdown("**📊 OPTION DATA**")
+            o1, o2, o3, o4 = st.columns(4)
+            o1.metric("Gamma", row.get("gamma_regime", "—"))
+            o2.metric("Greek", row.get("greek_composite", "—"))
+            o3.metric("Max Pain", row.get("max_pain", "—"))
+            o4.metric("Delta", row.get("delta", "—"))
 
-            st.caption(f"Source: {item.get('source', 'unknown')} | Hold: {item.get('hold_for', '—')}")
+            o5, o6, o7, o8 = st.columns(4)
+            o5.metric("Vanna", row.get("vanna", "—"))
+            o6.metric("Put Wall", row.get("put_wall", "—"))
+            o7.metric("Call Wall", row.get("call_wall", "—"))
+            flip_up = row.get("gamma_flip_up")
+            flip_down = row.get("gamma_flip_down")
+            flip_str = f"↑{_fmt_num(flip_up)} ↓{_fmt_num(flip_down)}" if flip_up or flip_down else "—"
+            o8.metric("Flip", flip_str)
+
+            st.divider()
+
+        # ── FLOW DATA (COT / OI / ON-CHAIN) ──
+        has_flow = any(row.get(k) for k in ["cot_signal", "oi_signal", "onchain_signal", "skew"])
+        if has_flow and market_type != "ihsg":
+            st.markdown("**📈 FLOW DATA**")
+            f1, f2, f3 = st.columns(3)
+            f1.metric("COT", row.get("cot_signal", "—"))
+            f2.metric("OI", row.get("oi_signal", "—"))
+            if market_type == "crypto":
+                f3.metric("On-Chain", row.get("onchain_signal", "—"))
+            else:
+                f3.metric("Skew", row.get("skew", "—"))
+
+            st.divider()
+
+        # ── THESIS & ACTION ──
+        st.markdown("**🎯 THESIS & ACTION**")
+        thesis = row.get("thesis") or row.get("recommendation", "N/A")
+        st.write(f"**Thesis:** {thesis}")
+        if row.get("action"):
+            st.write(f"**Action:** {row.get('action')}")
+        if row.get("hold") or row.get("hold_for"):
+            st.caption(f"⏱️ Hold: {row.get('hold') or row.get('hold_for')}")
+
+        # Invalidators
+        if row.get("invalidators"):
+            st.markdown(f"❌ **Invalidators:** {', '.join(row.get('invalidators'))}")
+
+        # Grade / Score
+        if row.get("score") or grade:
+            st.caption(f"Grade: {grade} | Score: {row.get('score', '—')} | Regime: {sq} — {QN.get(sq, sq)}")
 
 def _alpha_to_df(items):
     """SIMPLE readable table: conclusions, not raw Greeks."""
@@ -1334,14 +1380,9 @@ elif page == "⚡ Alpha Center":
         if not items:
             st.info(f"No {tab_name} items.")
             return
-        df = _alpha_to_df(items)
-        _render_dataframe(df, height=500, key=f"alpha_{tab_name}")
-
-        # Detail cards below table
-        st.divider()
-        st.markdown(f"**{tab_name} — Detail Cards**")
-        for i, item in enumerate(items[:5]):
-            _render_alpha_card(item, i)
+        st.markdown(f"**{tab_name} — {len(items)} items**")
+        for i, item in enumerate(items):
+            _render_ticker_card(item, i, market_type="us_equity")
 
     with sub_tab_l1: _render_alpha_subtab(ac.get("level_1", []), "Level 1")
     with sub_tab_l2: _render_alpha_subtab(ac.get("level_2", []), "Level 2")
@@ -1353,13 +1394,8 @@ elif page == "⚡ Alpha Center":
         items = ac.get("all", [])
         if not items: st.info("Alpha Center empty.")
         st.caption(f"Showing all {len(items)} items. Use sub-tabs for filtered views.")
-        df = _alpha_to_df(items)
-        _render_dataframe(df, height=700, key="alpha_all")
-
-        st.divider()
-        st.markdown("**Top 10 Detail Cards**")
-        for i, item in enumerate(items[:10]):
-            _render_alpha_card(item, i)
+        for i, item in enumerate(items):
+            _render_ticker_card(item, i, market_type="us_equity")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: 📈 DAILY SIGNALS (NEW — All tickers, Hedgeye-style)
@@ -1409,45 +1445,9 @@ elif page == "📈 Daily Signals":
 
     st.write(f"Showing {len(filtered)} signals out of {total} total")
 
-    # Dataframe view
-    df_data = []
-    for s in filtered[:200]:  # cap 200 for perf
-        df_data.append({
-            "Ticker": s.get("ticker"),
-            "Signal": s.get("signal"),
-            "Dir": s.get("direction"),
-            "Grade": s.get("grade"),
-            "Price": s.get("price"),
-            "Entry": s.get("entry"),
-            "T1": s.get("target_1"),
-            "T2": s.get("target_2"),
-            "Stop": s.get("stop_loss"),
-            "RR": s.get("rr"),
-            "1M": f"{s.get('momentum_1m'):+.1%}" if s.get("momentum_1m") is not None else "—",
-            "Fit": f"{s.get('regime_fit'):.0%}" if s.get("regime_fit") else "—",
-            "Score": s.get("score"),
-            "Hold": s.get("hold_for"),
-        })
-
-    if df_data:
-        df = pd.DataFrame(df_data)
-        st.dataframe(df, use_container_width=True, hide_index=True, height=600)
-    else:
-        st.info("No signals match your filters. Try lowering Min Score or expanding Grade.")
-
-    # Detail expanders for top 15
-    st.divider()
-    st.markdown("### Top 15 Detail")
-    for s in filtered[:15]:
-        dir_emoji = "🟢" if s.get("direction") == "LONG" else "🔴" if s.get("direction") == "SHORT" else "⚪"
-        with st.expander(f"{dir_emoji} {s.get('ticker')} — {s.get('signal')} (score: {s.get('score', 0):.2f})"):
-            st.write(f"**Thesis:** {s.get('thesis', 'N/A')}")
-            st.write(f"🎯 Entry: `{s.get('entry')}` → T1: `{s.get('target_1')}` → T2: `{s.get('target_2')}` | 🛑 Stop: `{s.get('stop_loss')}` | RR: `{s.get('rr')}`")
-            c1, c2, c3 = st.columns(3)
-            c1.metric("1M Mo", f"{s.get('momentum_1m'):+.1%}" if s.get('momentum_1m') is not None else "—")
-            c2.metric("3M Mo", f"{s.get('momentum_3m'):+.1%}" if s.get('momentum_3m') is not None else "—")
-            c3.metric("Regime Fit", f"{s.get('regime_fit'):.0%}" if s.get('regime_fit') else "—")
-            st.caption(f"LRR: `{s.get('lrr')}` | TRR: `{s.get('trr')}` | VIX: {s.get('vix')} | Composite: {s.get('composite')}")
+    st.markdown(f"**Showing {len(filtered)} signals**")
+    for i, s in enumerate(filtered[:200]):  # cap 200 for perf
+        _render_ticker_card(s, i, market_type="us_equity")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: 📊 LEADERBOARD — Highest Conviction (Option-Integrated)
@@ -1476,13 +1476,13 @@ elif page == "📊 Leaderboard":
     longs, shorts = _split_long_short(lb_rows)
 
     st.markdown("### 🟢 LONG LEADERBOARD")
-    df_long = _consolidated_to_df(longs)
-    _render_dataframe(df_long, height=400, key="lb_long")
+    for i, row in enumerate(longs):
+        _render_ticker_card(row, i, market_type="us_equity")
 
     st.divider()
     st.markdown("### 🔴 SHORT LEADERBOARD")
-    df_short = _consolidated_to_df(shorts)
-    _render_dataframe(df_short, height=400, key="lb_short")
+    for i, row in enumerate(shorts):
+        _render_ticker_card(row, i, market_type="us_equity")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: 💱 FOREX — COT + OI + Greeks + Risk Ranges
@@ -1506,13 +1506,13 @@ elif page == "💱 Forex":
     longs, shorts = _split_long_short(fx_rows)
 
     st.markdown("### 🟢 LONG FX")
-    df_long = _consolidated_to_df(longs)
-    _render_dataframe(df_long, height=350, key="fx_long")
+    for i, row in enumerate(longs):
+        _render_ticker_card(row, i, market_type="forex")
 
     st.divider()
     st.markdown("### 🔴 SHORT FX")
-    df_short = _consolidated_to_df(shorts)
-    _render_dataframe(df_short, height=350, key="fx_short")
+    for i, row in enumerate(shorts):
+        _render_ticker_card(row, i, market_type="forex")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: 🛢️ COMMODITIES — COT + OI + Greeks + Risk Ranges
@@ -1536,13 +1536,13 @@ elif page == "🛢️ Commodities":
     longs, shorts = _split_long_short(comm_rows)
 
     st.markdown("### 🟢 LONG COMMODITIES")
-    df_long = _consolidated_to_df(longs)
-    _render_dataframe(df_long, height=350, key="comm_long")
+    for i, row in enumerate(longs):
+        _render_ticker_card(row, i, market_type="commodity")
 
     st.divider()
     st.markdown("### 🔴 SHORT COMMODITIES")
-    df_short = _consolidated_to_df(shorts)
-    _render_dataframe(df_short, height=350, key="comm_short")
+    for i, row in enumerate(shorts):
+        _render_ticker_card(row, i, market_type="commodity")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: ₿ CRYPTO (Long / Short only + on-chain merged)
@@ -1617,18 +1617,16 @@ elif page == "₿ Crypto":
     }
 
     st.markdown("### 🟢 LONG CRYPTO")
-    df_long = _consolidated_to_df(longs)
-    if not df_long.empty:
-        st.dataframe(df_long, hide_index=True, use_container_width=True, height=350)
-    else:
+    for i, row in enumerate(longs):
+        _render_ticker_card(row, i, market_type="crypto")
+    if not longs:
         st.info("No long crypto setups.")
 
     st.divider()
     st.markdown("### 🔴 SHORT CRYPTO")
-    df_short = _consolidated_to_df(shorts)
-    if not df_short.empty:
-        st.dataframe(df_short, hide_index=True, use_container_width=True, height=350)
-    else:
+    for i, row in enumerate(shorts):
+        _render_ticker_card(row, i, market_type="crypto")
+    if not shorts:
         st.info("No short crypto setups.")
 
 # ══════════════════════════════════════════════════════════════════════════════

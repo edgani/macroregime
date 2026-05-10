@@ -83,6 +83,22 @@ except Exception as _e:
         def analyze(self, s): return {"ok": False}
 
 try:
+    from engines.gamma_engine import GammaEngine
+except Exception as _e:
+    logger.warning(f"gamma_engine import failed: {_e}")
+    class GammaEngine:
+        def analyze(self, ticker, prices, vix=20, dxy_ret=0): return {"ok": False}
+        def analyze_multi(self, tickers, prices, vix=20, dxy_ret=0): return {}
+
+try:
+    from engines.greeks_proxy import GreeksProxy
+except Exception as _e:
+    logger.warning(f"greeks_proxy import failed: {_e}")
+    class GreeksProxy:
+        def analyze(self, ticker, prices, vix=20, dxy_ret=0, regime="Q3"): return {"ok": False}
+        def analyze_multi(self, tickers, prices, vix=20, dxy_ret=0, regime="Q3"): return {}
+
+try:
     from engines.auto_discovery_engine_v3 import AutoDiscoveryEngineV3
 except Exception as _e:
     class AutoDiscoveryEngineV3:
@@ -288,14 +304,17 @@ def _build_alpha_ideas(prices, sq, mq):
     return {"longs": longs, "shorts": shorts, "playbook": playbook}
 
 
-def _build_daily_signals(prices, sq, mq, asset_ranges, health):
+def _build_daily_signals(prices, sq, mq, asset_ranges, health, gamma_data=None, greeks_data=None):
     """
     Hedgeye-style daily directional signals for ALL tickers.
+    INTEGRATED: gamma regime + greeks proxy for option-aware scoring.
     Returns: list of dict with signal, grade, entry, targets, stop, thesis.
     """
     regime = QUAD_MAP.get(sq, {}); bias = regime.get("bias", "neutral")
     vix = health.get("vix_bucket", {}).get("vix_last", 18)
     crash = health.get("crash", {}).get("state", "calm")
+    gamma_data = gamma_data or {}
+    greeks_data = greeks_data or {}
     signals = []
 
     # Priority tickers: all loaded prices
@@ -356,8 +375,55 @@ def _build_daily_signals(prices, sq, mq, asset_ranges, health):
         if r3m is not None:
             trend_score = max(-1.0, min(1.0, r3m * 5))
 
+        # ── OPTION/GAMMA SCORING ──────────────────────────────────────
+        option_score = 0.0
+        greek = greeks_data.get(ticker, {})
+        gamma = gamma_data.get(ticker, {})
+
+        if greek.get("ok"):
+            # Greeks composite score (-1 to +1)
+            greek_score = greek.get("composite_score", 0)
+            option_score += greek_score * 0.15  # 15% weight
+
+            # Vanna adjustment
+            if greek.get("vanna_val", 0) > 0.3 and direction == "LONG":
+                option_score += 0.05  # positive vanna supports longs
+            elif greek.get("vanna_val", 0) < -0.3 and direction == "SHORT":
+                option_score -= 0.05  # negative vanna supports shorts
+
+            # Charm adjustment
+            if greek.get("charm_val", 0) > 0.2:
+                option_score += 0.03  # building momentum
+            elif greek.get("charm_val", 0) < -0.2:
+                option_score -= 0.03  # fading momentum
+
+        if gamma.get("ok"):
+            # Gamma regime adjustment
+            g_regime = gamma.get("regime", "TRANSITION")
+            if g_regime in ("DEEP_POSITIVE", "POSITIVE"):
+                option_score += 0.05  # gamma supportive
+            elif g_regime in ("DEEP_NEGATIVE", "NEGATIVE"):
+                option_score -= 0.05  # gamma headwind
+
+            # Max pain distance
+            dist_mp = gamma.get("dist_max_pain_pct", 0)
+            if abs(dist_mp) < 2:
+                option_score *= 0.8  # near max pain = chop, reduce conviction
+            elif dist_mp > 5 and direction == "LONG":
+                option_score -= 0.05  # far above max pain = overextended
+            elif dist_mp < -5 and direction == "SHORT":
+                option_score += 0.05  # far below max pain = oversold
+
+            # Gamma exposure
+            g_exp = gamma.get("gamma_exposure", "")
+            if "POSITIVE" in g_exp and direction == "LONG":
+                option_score += 0.04  # dealers long gamma = buy dips
+            elif "NEGATIVE" in g_exp and direction == "SHORT":
+                option_score -= 0.04  # dealers short gamma = sell rallies
+
         # Composite score -1.0 to +1.0
-        total_score = (fit_score * 0.35 + momentum_score * 0.30 + rr_score * 0.20 + trend_score * 0.15)
+        total_score = (fit_score * 0.30 + momentum_score * 0.25 + rr_score * 0.15 + 
+                       trend_score * 0.10 + option_score * 0.20)
         # Adjust for regime bias
         if bias == "bullish": total_score += 0.10
         elif bias == "bearish": total_score -= 0.10
@@ -421,6 +487,20 @@ def _build_daily_signals(prices, sq, mq, asset_ranges, health):
         elif "KEEP" in signal_label: hold = "3-6 weeks"
         else: hold = "Wait"
 
+        # Build thesis with option context
+        opt_parts = []
+        if greek.get("ok"):
+            opt_parts.append(f"Greeks: {greek.get('composite', 'N/A')}")
+        if gamma.get("ok"):
+            opt_parts.append(f"Gamma: {gamma.get('regime', 'N/A')}")
+            opt_parts.append(f"MaxPain {gamma.get('max_pain')} ({gamma.get('dist_max_pain_pct'):+.1f}%)")
+
+        thesis_full = " | ".join(thesis_parts)
+        if opt_parts:
+            thesis_full += " | 📊 " + " · ".join(opt_parts)
+        if r1m is not None:
+            thesis_full += f" | 1M: {r1m:+.1%}"
+
         sig = {
             "ticker": ticker,
             "price": round(p, 2),
@@ -435,7 +515,7 @@ def _build_daily_signals(prices, sq, mq, asset_ranges, health):
             "rr": rr_val,
             "hold_for": hold,
             "regime_fit": fit,
-            "thesis": " | ".join(thesis_parts) + f" | 1M: {r1m:+.1%}" if r1m is not None else " | ".join(thesis_parts),
+            "thesis": thesis_full,
             "momentum_1m": r1m,
             "momentum_3m": r3m,
             "momentum_5d": r5d,
@@ -444,6 +524,24 @@ def _build_daily_signals(prices, sq, mq, asset_ranges, health):
             "vix": vix,
             "lrr": rr.get("trade", {}).get("lrr") if rr.get("ok") else None,
             "trr": rr.get("trade", {}).get("trr") if rr.get("ok") else None,
+            # Option data
+            "gamma_regime": gamma.get("regime") if gamma.get("ok") else None,
+            "gamma_throttle": gamma.get("throttle") if gamma.get("ok") else None,
+            "max_pain": gamma.get("max_pain") if gamma.get("ok") else None,
+            "gamma_flip_up": gamma.get("gamma_flip_up") if gamma.get("ok") else None,
+            "gamma_flip_down": gamma.get("gamma_flip_down") if gamma.get("ok") else None,
+            "put_wall": gamma.get("put_wall") if gamma.get("ok") else None,
+            "call_wall": gamma.get("call_wall") if gamma.get("ok") else None,
+            "gamma_exposure": gamma.get("gamma_exposure") if gamma.get("ok") else None,
+            "skew": gamma.get("skew") if gamma.get("ok") else None,
+            "greek_delta": greek.get("delta") if greek.get("ok") else None,
+            "greek_gamma": greek.get("gamma") if greek.get("ok") else None,
+            "greek_vanna": greek.get("vanna") if greek.get("ok") else None,
+            "greek_charm": greek.get("charm") if greek.get("ok") else None,
+            "greek_composite": greek.get("composite") if greek.get("ok") else None,
+            "greek_score": greek.get("composite_score") if greek.get("ok") else None,
+            "vol_premium": greek.get("vol_premium") if greek.get("ok") else None,
+            "rvol_20d": greek.get("rvol_20d") if greek.get("ok") else None,
         }
         signals.append(sig)
 
@@ -452,15 +550,18 @@ def _build_daily_signals(prices, sq, mq, asset_ranges, health):
     return signals
 
 
-def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks, auto_discoveries, daily_signals):
+def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks, auto_discoveries, daily_signals, gamma_data=None, greeks_data=None):
     """
     Unified Alpha Center + Bottleneck Scanner.
+    INTEGRATED: gamma levels + greeks proxy for option-aware priority scoring.
     Merges: bottlenecks, alpha ideas, auto discoveries, top daily signals.
     Returns: dict with tabs for level_1, level_2, watch, alpha_long, alpha_short, discovery, all.
     """
     regime = QUAD_MAP.get(sq, {})
     bias = regime.get("bias", "neutral")
     vix = health.get("vix_bucket", {}).get("vix_last", 18)
+    gamma_data = gamma_data or {}
+    greeks_data = greeks_data or {}
 
     center_items = []
 
@@ -583,14 +684,32 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
     for s in daily_signals[:30]:
         if s.get("ticker") in alpha_tickers: continue
         if "STRONG" not in s.get("signal", ""): continue
-        center_items.append({
-            "ticker": s.get("ticker"),
+
+        ticker = s.get("ticker")
+        gamma = gamma_data.get(ticker, {})
+        greek = greeks_data.get(ticker, {})
+
+        # Boost priority if option data confirms signal
+        base_score = abs(s.get("score", 0)) * 85
+        if greek.get("ok"):
+            if "BULLISH" in greek.get("composite", "") and s.get("direction") == "LONG":
+                base_score *= 1.15
+            elif "BEARISH" in greek.get("composite", "") and s.get("direction") == "SHORT":
+                base_score *= 1.15
+        if gamma.get("ok"):
+            if gamma.get("regime") in ("DEEP_POSITIVE", "POSITIVE") and s.get("direction") == "LONG":
+                base_score *= 1.10
+            elif gamma.get("regime") in ("DEEP_NEGATIVE", "NEGATIVE") and s.get("direction") == "SHORT":
+                base_score *= 1.10
+
+        item = {
+            "ticker": ticker,
             "scanner_type": f"DAILY {s.get('signal')}",
-            "priority_score": abs(s.get("score", 0)) * 85,
+            "priority_score": base_score,
             "direction": s.get("direction"),
             "signal": s.get("signal"),
             "grade": s.get("grade", "A"),
-            "sector": TICKER_SECTOR.get(s.get("ticker"), "Unknown"),
+            "sector": TICKER_SECTOR.get(ticker, "Unknown"),
             "thesis": s.get("thesis", ""),
             "setup": f"Entry {s.get('entry')} → T1 {s.get('target_1')} → T2 {s.get('target_2')} | Stop {s.get('stop_loss')} | RR {s.get('rr')}",
             "invalidators": ["Score drops below threshold", "Regime shift", "VIX spike >30"],
@@ -602,7 +721,19 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
             "stop_loss": s.get("stop_loss"),
             "rr": s.get("rr"),
             "source": "daily_signal",
-        })
+            # Option data for display
+            "gamma_regime": gamma.get("regime") if gamma.get("ok") else None,
+            "max_pain": gamma.get("max_pain") if gamma.get("ok") else None,
+            "gamma_flip_up": gamma.get("gamma_flip_up") if gamma.get("ok") else None,
+            "gamma_flip_down": gamma.get("gamma_flip_down") if gamma.get("ok") else None,
+            "put_wall": gamma.get("put_wall") if gamma.get("ok") else None,
+            "call_wall": gamma.get("call_wall") if gamma.get("ok") else None,
+            "greek_composite": greek.get("composite") if greek.get("ok") else None,
+            "greek_delta": greek.get("delta") if greek.get("ok") else None,
+            "greek_vanna": greek.get("vanna") if greek.get("ok") else None,
+            "greek_charm": greek.get("charm") if greek.get("ok") else None,
+        }
+        center_items.append(item)
 
     # Sort by priority score descending
     center_items.sort(key=lambda x: x.get("priority_score", 0), reverse=True)
@@ -1001,14 +1132,26 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
     auto_discoveries = _build_auto_discoveries(prices, gip, sq)
 
     # ── NEW: Daily Signals (Hedgeye-style) ───────────────────────────────
+    # ── OPTION DATA: Gamma + Greeks ────────────────────────────────────
+    if progress_cb: progress_cb("Running option analytics...", 0.78)
+    gamma_engine = GammaEngine()
+    greeks_engine = GreeksProxy()
+    dxy_ret = _safe_ret(prices.get("DX-Y.NYB"), 21) or 0.0
+
+    # Run on all tickers that have price data
+    gamma_data = gamma_engine.analyze_multi(all_tickers, prices, vix=vix_now, dxy_ret=dxy_ret)
+    greeks_data = greeks_engine.analyze_multi(all_tickers, prices, vix=vix_now, dxy_ret=dxy_ret, regime=sq)
+    if progress_cb: progress_cb(f"Gamma: {len(gamma_data)} | Greeks: {len(greeks_data)}", 0.80)
+
     if progress_cb: progress_cb("Building daily signals...", 0.82)
-    daily_signals = _build_daily_signals(prices, sq, mq, asset_ranges, health)
+    daily_signals = _build_daily_signals(prices, sq, mq, asset_ranges, health, gamma_data, greeks_data)
     if progress_cb: progress_cb(f"Daily signals: {len(daily_signals)} tickers", 0.85)
 
     # ── NEW: Alpha Center unified scanner ────────────────────────────────
     if progress_cb: progress_cb("Building Alpha Center...", 0.87)
     alpha_center = _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks,
-                                       {"ok": True, "bottlenecks": auto_discoveries}, daily_signals)
+                                       {"ok": True, "bottlenecks": auto_discoveries}, daily_signals,
+                                       gamma_data, greeks_data)
     if progress_cb: progress_cb(f"Alpha Center: {alpha_center['meta']['total_items']} items", 0.90)
 
     ai_analysis = {
@@ -1067,6 +1210,8 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
         # ── NEW KEYS ─────────────────────────────────────────────────────
         "daily_signals": daily_signals,
         "alpha_center": alpha_center,
+        "gamma_data": gamma_data,
+        "greeks_data": greeks_data,
     }
 
     logger.info(f"Snapshot built in {snapshot['build_time_s']}s | Prices: {len(prices)} | Ranges: {len(asset_ranges)} | Longs: {len(alpha.get('longs', []))} | Shorts: {len(alpha.get('shorts', []))} | Daily Signals: {len(daily_signals)} | Alpha Center: {alpha_center['meta']['total_items']}")
@@ -1087,5 +1232,7 @@ if __name__ == "__main__":
         "auto_discoveries": len(snap["auto_discoveries"]["bottlenecks"]),
         "daily_signals": len(snap.get("daily_signals", [])),
         "alpha_center_items": snap.get("alpha_center", {}).get("meta", {}).get("total_items", 0),
+        "gamma_analyzed": len(snap.get("gamma_data", {})),
+        "greeks_analyzed": len(snap.get("greeks_data", {})),
         "build_time": snap["build_time_s"],
     }, indent=2))

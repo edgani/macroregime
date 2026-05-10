@@ -602,12 +602,17 @@ def _render_alpha_center_item(item, idx):
     score = item.get("priority_score", 0)
     thesis = item.get("thesis", "N/A")
     setup = item.get("setup", "N/A")
-    badge = _badge_class(grade, direction)
 
     dir_emoji = "🟢" if "LONG" in direction else "🔴" if "SHORT" in direction else "⚪" if "NEUTRAL" in direction else "👁️"
-    scanner_color = "#F85149" if "L1" in scanner else "#D29922" if "L2" in scanner else "#1F6FEB" if "WATCH" in scanner else "#3FB950" if "LONG" in scanner else "#F85149" if "SHORT" in scanner else "#8B949E"
 
-    with st.expander(f"{dir_emoji} **{ticker}** | <span style='color:{scanner_color};font-size:12px;'>{scanner}</span> | <span class='badge {badge}'>{grade}</span> | Score: {score:.1f}", expanded=(idx < 3)):
+    # Plain text title — st.expander does NOT render HTML in titles
+    title = f"{dir_emoji} {ticker}  |  {scanner}  |  Grade {grade}  |  Score: {score:.1f}"
+
+    with st.expander(title, expanded=(idx < 3)):
+        # Color-coded header inside the expander
+        scanner_color = "#F85149" if "L1" in scanner else "#D29922" if "L2" in scanner else "#1F6FEB" if "WATCH" in scanner else "#3FB950" if "LONG" in scanner else "#F85149" if "SHORT" in scanner else "#8B949E"
+        st.markdown(f"<div style='color:{scanner_color};font-size:13px;font-weight:600;'>{scanner}</div>", unsafe_allow_html=True)
+
         c1, c2 = st.columns([2, 2])
         c1.markdown(f"**Thesis:** {thesis}")
         c2.markdown(f"**Setup:** {setup}")
@@ -616,6 +621,32 @@ def _render_alpha_center_item(item, idx):
         if item.get("invalidators"):
             st.caption(f"❌ Invalidators: {', '.join(item.get('invalidators'))}")
         st.caption(f"Source: {item.get('source', 'unknown')} | Hold: {item.get('hold_for', '—')}")
+
+        # Option / Gamma data inside Alpha Center items
+        has_gamma = item.get("gamma_regime") is not None
+        has_greek = item.get("greek_composite") is not None
+
+        if has_gamma or has_greek:
+            st.divider()
+            st.markdown("**📊 Option Analytics**")
+
+            if has_gamma:
+                g_reg = item.get("gamma_regime", "N/A")
+                g_color = "#3FB950" if g_reg in ("DEEP_POSITIVE", "POSITIVE") else "#F85149" if g_reg in ("DEEP_NEGATIVE", "NEGATIVE") else "#D29922"
+                st.markdown(f"<div style='color:{g_color};font-size:12px;font-weight:600;'>Gamma: {g_reg}</div>", unsafe_allow_html=True)
+
+                gc1, gc2, gc3 = st.columns(3)
+                gc1.metric("Max Pain", item.get("max_pain"))
+                gc2.metric("Flip ↑", item.get("gamma_flip_up"))
+                gc3.metric("Flip ↓", item.get("gamma_flip_down"))
+                st.caption(f"Put Wall: `{item.get('put_wall')}` | Call Wall: `{item.get('call_wall')}`")
+
+            if has_greek:
+                st.markdown(f"**Greeks: {item.get('greek_composite')}**")
+                gc1, gc2, gc3 = st.columns(3)
+                gc1.metric("Delta", item.get("greek_delta"))
+                gc2.metric("Vanna", item.get("greek_vanna"))
+                gc3.metric("Charm", item.get("greek_charm"))
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SIDEBAR
@@ -1445,10 +1476,22 @@ elif page == "🏥 Health":
     if daily_signals:
         st.divider()
         st.markdown("### Daily Signal Coverage")
-        c1, c2, c3 = st.columns(3)
+        c1, c2, c3, c4 = st.columns(4)
         c1.metric("Tickers Rated", len(daily_signals))
         c2.metric("Alpha Center Items", alpha_center.get("meta", {}).get("total_items", 0) if alpha_center else 0)
         c3.metric("Strong Signals", sum(1 for s in daily_signals if "STRONG" in s.get("signal", "")))
+        c4.metric("Option-Analyzed", len(snap.get("gamma_data", {})))
+
+    # Option data coverage
+    gamma_data = snap.get("gamma_data", {})
+    greeks_data = snap.get("greeks_data", {})
+    if gamma_data or greeks_data:
+        st.divider()
+        st.markdown("### Option Data Coverage")
+        c1, c2, c3 = st.columns(3)
+        c1.metric("Gamma Engine", len(gamma_data))
+        c2.metric("Greeks Proxy", len(greeks_data))
+        c3.metric("Combined", len(set(gamma_data.keys()) & set(greeks_data.keys())))
 
     st.divider()
     st.markdown("### Data Sources")

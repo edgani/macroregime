@@ -362,9 +362,23 @@ def _render_alpha_card(item, idx):
             if item.get("entry"):
                 st.markdown(f"🎯 **Entry:** `{item.get('entry')}` → **T1:** `{item.get('target_1')}` → **T2:** `{item.get('target_2')}` | 🛑 **Stop:** `{item.get('stop_loss')}` | **RR:** `{item.get('rr')}`")
 
+            # Entry guidance with explicit level
+            worth = item.get("worth_entering", "—")
+            entry = item.get("entry")
+            price = item.get("price")
+
+            if "CHASE" in worth and entry:
+                st.warning(f"🏃 **CHASE GUIDANCE:** Price is extended from ideal entry. If you must enter, use **small size** near `{entry}` or wait for retrace below `{entry}`.")
+            elif "WAIT" in worth and entry:
+                st.info(f"⏳ **WAIT GUIDANCE:** Ideal entry is `{entry}`. Current price too far. Wait for price to come back to `{entry}` or below.")
+            elif "YES" in worth and entry:
+                st.success(f"✅ **ENTER NOW:** Price at or near ideal entry `{entry}`. Normal sizing ok.")
+            elif "SMALL" in worth and entry:
+                st.warning(f"⚠️ **SMALL SIZE:** Price near `{entry}` but mixed signals. Use 50% normal size.")
+
             # Readable conclusions
             c1, c2, c3, c4 = st.columns(4)
-            c1.metric("Worth Entering?", item.get("worth_entering", "—"))
+            c1.metric("Worth Entering?", worth)
             c2.metric("Path to Target", item.get("path_smoothness", "—"))
             c3.metric("Time Estimate", item.get("time_estimate", "—"))
             c4.metric("Breakout Chance", item.get("breakout_chance", "—"))
@@ -388,19 +402,32 @@ def _alpha_to_df(items):
         return pd.DataFrame()
     rows = []
     for item in items:
+        # Handle missing conclusion fields (for bottleneck items that don't have them)
+        worth = item.get("worth_entering")
+        if not worth:
+            direction = item.get("direction", "HOLD")
+            if direction == "LONG": worth = "✅ YES — Playbook long"
+            elif direction == "SHORT": worth = "✅ YES — Playbook short"
+            elif direction == "HOLD": worth = "⏳ WATCH"
+            else: worth = "—"
+
+        path = item.get("path_smoothness", "—") or "—"
+        time_est = item.get("time_estimate", "—") or "—"
+        breakout = item.get("breakout_chance", "—") or "—"
+
         rows.append({
             "Ticker": item.get("ticker"),
             "Type": item.get("scanner_type", "").replace("BOTTLENECK ", "🚨 ").replace("ALPHA ", "").replace("DISCOVERY", "💡").replace("DAILY ", ""),
-            "Worth?": item.get("worth_entering", "—") if item.get("worth_entering") else "—",
-            "Price": item.get("price"),
-            "Entry": item.get("entry"),
-            "T1": item.get("target_1"),
-            "T2": item.get("target_2"),
-            "Stop": item.get("stop_loss"),
-            "RR": item.get("rr"),
-            "Path": item.get("path_smoothness", "—") if item.get("path_smoothness") else "—",
-            "Time": item.get("time_estimate", "—") if item.get("time_estimate") else "—",
-            "Breakout": item.get("breakout_chance", "—") if item.get("breakout_chance") else "—",
+            "Worth?": worth,
+            "Price": item.get("price") if item.get("price") else "—",
+            "Entry": item.get("entry") if item.get("entry") else "—",
+            "T1": item.get("target_1") if item.get("target_1") else "—",
+            "T2": item.get("target_2") if item.get("target_2") else "—",
+            "Stop": item.get("stop_loss") if item.get("stop_loss") else "—",
+            "RR": item.get("rr") if item.get("rr") else "—",
+            "Path": path,
+            "Time": time_est,
+            "Breakout": breakout,
         })
     return pd.DataFrame(rows)
 
@@ -1399,6 +1426,8 @@ elif page == "📊 Leaderboard":
     st.divider()
     if not ar: st.warning("Data loading..."); st.stop()
 
+    gamma_data = snap.get("gamma_data", {}) or {}
+    greeks_data = snap.get("greeks_data", {}) or {}
     cot_data = snap.get("cot_oi",{}).get("cot",{}) if snap else {}
     oi_data = snap.get("cot_oi",{}).get("oi",{}) if snap else {}
 
@@ -1431,6 +1460,8 @@ elif page == "💱 Forex":
     st.caption("COT + OI + Greeks + Risk Ranges. Sorted by EV+. Option data integrated.")
     st.divider()
 
+    gamma_data = snap.get("gamma_data", {}) or {}
+    greeks_data = snap.get("greeks_data", {}) or {}
     cot_data = snap.get("cot_oi",{}).get("cot",{}) if snap else {}
     oi_data = snap.get("cot_oi",{}).get("oi",{}) if snap else {}
 
@@ -1459,6 +1490,8 @@ elif page == "🛢️ Commodities":
     st.caption("COT + OI + Greeks + Risk Ranges. Sorted by EV+. Option data integrated.")
     st.divider()
 
+    gamma_data = snap.get("gamma_data", {}) or {}
+    greeks_data = snap.get("greeks_data", {}) or {}
     cot_data = snap.get("cot_oi",{}).get("cot",{}) if snap else {}
     oi_data = snap.get("cot_oi",{}).get("oi",{}) if snap else {}
 
@@ -1567,11 +1600,11 @@ elif page == "₿ Crypto":
         st.info("No short crypto setups.")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: 🇮🇩 IHSG — Indonesia Market (LONG only)
+# TAB: 🇮🇩 IHSG — Indonesia Market (BUY only)
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "🇮🇩 IHSG":
     st.markdown('<div style="font-size:28px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">🇮🇩 Indonesia (IHSG)</div>', unsafe_allow_html=True)
-    st.caption("Indonesian market analysis. Commodity + domestic play. LONG opportunities only.")
+    st.caption("Indonesian market analysis. Commodity + domestic play. BUY opportunities only (no short).")
     st.divider()
 
     ihsg_rows = []
@@ -1580,26 +1613,84 @@ elif page == "🇮🇩 IHSG":
         if row and "LONG" in row.get("direction", ""):
             ihsg_rows.append(row)
 
-    df = _consolidated_to_df(ihsg_rows)
-    if not df.empty:
-        # Add sector/theme columns
-        for i, row in df.iterrows():
-            t = row["Ticker"]
-            sector_map = {
-                "ADRO.JK": "Coal", "ITMG.JK": "Coal", "PTBA.JK": "Coal",
-                "NCKL.JK": "Nickel", "ANTM.JK": "Nickel", "INCO.JK": "Nickel",
-                "AALI.JK": "CPO", "LSIP.JK": "CPO", "SMAR.JK": "CPO",
-                "BBRI.JK": "Banking", "BMRI.JK": "Banking", "BBCA.JK": "Banking",
-                "TLKM.JK": "Telco", "EXCL.JK": "Telco",
-                "UNTR.JK": "Mining", "BYAN.JK": "Mining",
-                "ICBP.JK": "Consumer", "INDF.JK": "Consumer", "KLBF.JK": "Pharma",
-                "PGEO.JK": "Geothermal", "WINS.JK": "Shipping",
-                "EIDO": "ETF", "^JKSE": "Index",
-            }
-            df.at[i, "Sector"] = sector_map.get(t, "Indonesia")
+    # IHSG-specific simple table (no option data)
+    if ihsg_rows:
+        ihsg_df = []
+        sector_map = {
+            "ADRO.JK": "Coal", "ITMG.JK": "Coal", "PTBA.JK": "Coal",
+            "NCKL.JK": "Nickel", "ANTM.JK": "Nickel", "INCO.JK": "Nickel",
+            "AALI.JK": "CPO", "LSIP.JK": "CPO", "SMAR.JK": "CPO",
+            "BBRI.JK": "Banking", "BMRI.JK": "Banking", "BBCA.JK": "Banking", "BBNI.JK": "Banking", "BRIS.JK": "Banking",
+            "TLKM.JK": "Telco", "EXCL.JK": "Telco",
+            "UNTR.JK": "Mining Contractor", "BYAN.JK": "Mining",
+            "ICBP.JK": "Consumer", "INDF.JK": "Consumer", "KLBF.JK": "Pharma",
+            "PGEO.JK": "Geothermal", "WINS.JK": "Shipping",
+            "EIDO": "ETF", "^JKSE": "Index",
+        }
+        for r in ihsg_rows:
+            t = r.get("ticker")
+            sector = sector_map.get(t, "Indonesia")
+
+            # Simple worth entering logic for IHSG
+            price = r.get("price")
+            entry = r.get("entry")
+            if price and entry:
+                if price <= entry * 1.02:
+                    worth = "✅ BUY NOW"
+                    advice = f"At buy zone {entry}"
+                elif price <= entry * 1.05:
+                    worth = "⏳ WAIT"
+                    advice = f"Wait for retrace to {entry}"
+                else:
+                    worth = "🏃 CHASE"
+                    advice = f"Extended, chase small size near {entry}"
+            else:
+                worth = "—"; advice = "—"
+
+            ihsg_df.append({
+                "Ticker": t,
+                "Sector": sector,
+                "Worth?": worth,
+                "Price": price,
+                "Entry": entry,
+                "T1": r.get("target_1"),
+                "T2": r.get("target_2"),
+                "Stop": r.get("stop"),
+                "RR": r.get("rr"),
+                "1M": r.get("r1m"),
+                "3M": r.get("r3m"),
+                "Advice": advice,
+                "Path": "Normal" if r.get("rr", 0) and r.get("rr") >= 2 else "Bumpy",
+                "Time": "1-3 months" if r.get("rr", 0) and r.get("rr") >= 2 else "2-4 weeks",
+            })
+
+        df = pd.DataFrame(ihsg_df)
         _render_dataframe(df, height=700, key="ihsg")
+
+        # Detail cards
+        st.divider()
+        st.markdown("### Detail Cards")
+        for r in ihsg_rows[:10]:
+            t = r.get("ticker")
+            with st.expander(f"🟢 {t} — {sector_map.get(t, 'Indonesia')}"):
+                st.write(f"**Thesis:** {r.get('recommendation', 'N/A')}")
+                st.write(f"🎯 **Entry:** `{r.get('entry')}` → **T1:** `{r.get('target_1')}` → **T2:** `{r.get('target_2')}` | 🛑 **Stop:** `{r.get('stop')}`")
+
+                price = r.get("price"); entry = r.get("entry")
+                if price and entry:
+                    if price <= entry * 1.02:
+                        st.success(f"✅ **BUY NOW** — Price {price} at buy zone {entry}")
+                    elif price <= entry * 1.05:
+                        st.info(f"⏳ **WAIT** — Price {price} slightly above entry {entry}. Wait for retrace to {entry} or below.")
+                    else:
+                        st.warning(f"🏃 **CHASE** — Price {price} extended from entry {entry}. Use small size if entering.")
+
+                c1, c2, c3 = st.columns(3)
+                c1.metric("1M Return", f"{r.get('r1m'):+.1%}" if r.get('r1m') else "—")
+                c2.metric("3M Return", f"{r.get('r3m'):+.1%}" if r.get('r3m') else "—")
+                c3.metric("RR", r.get("rr"))
     else:
-        st.info("No IHSG long opportunities. Wait for pullback.")
+        st.info("No IHSG buy opportunities. Wait for pullback.")
 
     st.markdown("### 🟢 Indonesia Tailwind: Q3")
     st.markdown("Commodity bid supports coal, nickel, CPO. EIDO benefits.")
@@ -1714,7 +1805,7 @@ elif page == "🔮 Discovery":
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "📊 Greeks":
     st.markdown('<div style="font-size:28px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">📊 Option Summary</div>', unsafe_allow_html=True)
-    st.caption("What the options market is saying — in plain English. No raw Greeks numbers.")
+    st.caption("What the options market is saying — in plain English.")
     st.divider()
 
     gamma_data = snap.get("gamma_data", {}) or {}
@@ -1725,15 +1816,19 @@ elif page == "📊 Greeks":
         st.stop()
 
     # Summary stats
-    total = len(set(list(gamma_data.keys()) + list(greeks_data.keys())))
+    all_opt_tickers = sorted(set(list(gamma_data.keys()) + list(greeks_data.keys())))
+    total = len(all_opt_tickers)
     c1, c2 = st.columns(2)
     c1.metric("Tickers Analyzed", total)
 
     # Count readable regimes
-    if gamma_data:
-        supportive = sum(1 for g in gamma_data.values() if g.get("regime") in ("DEEP_POSITIVE", "POSITIVE"))
-        headwind = sum(1 for g in gamma_data.values() if g.get("regime") in ("DEEP_NEGATIVE", "NEGATIVE"))
-        c2.metric("Gamma Supportive / Headwind", f"{supportive} / {headwind}")
+    try:
+        if gamma_data:
+            supportive = sum(1 for g in gamma_data.values() if g and isinstance(g, dict) and g.get("regime") in ("DEEP_POSITIVE", "POSITIVE"))
+            headwind = sum(1 for g in gamma_data.values() if g and isinstance(g, dict) and g.get("regime") in ("DEEP_NEGATIVE", "NEGATIVE"))
+            c2.metric("Supportive / Headwind", f"{supportive} / {headwind}")
+    except Exception as e:
+        c2.metric("Supportive / Headwind", "Error")
 
     st.divider()
 
@@ -1746,30 +1841,29 @@ elif page == "📊 Greeks":
 
     # Build SIMPLE readable table
     rows = []
-    all_tickers = sorted(set(list(gamma_data.keys()) + list(greeks_data.keys())))
 
-    for t in all_tickers:
+    for t in all_opt_tickers:
         if filter_ticker and filter_ticker.upper() not in t.upper(): continue
 
-        g = gamma_data.get(t, {})
-        k = greeks_data.get(t, {})
+        g = gamma_data.get(t, {}) or {}
+        k = greeks_data.get(t, {}) or {}
 
-        g_reg = g.get("regime", "") if g.get("ok") else ""
+        g_reg = g.get("regime", "") if isinstance(g, dict) and g.get("ok") else ""
         if g_reg and g_reg not in filter_gamma: continue
-        if not g.get("ok") and not k.get("ok"): continue
+        if not (isinstance(g, dict) and g.get("ok")) and not (isinstance(k, dict) and k.get("ok")): continue
 
         # Readable summary
-        gamma_summary = g.get("label", g_reg.replace("_", " ").title()) if g.get("ok") else "—"
-        action = g.get("action", "—") if g.get("ok") else "—"
-        max_pain = g.get("max_pain", "—") if g.get("ok") else "—"
-        flip_up = g.get("gamma_flip_up", "—") if g.get("ok") else "—"
-        flip_down = g.get("gamma_flip_down", "—") if g.get("ok") else "—"
+        gamma_summary = g.get("label", g_reg.replace("_", " ").title()) if isinstance(g, dict) and g.get("ok") else "—"
+        action = g.get("action", "—") if isinstance(g, dict) and g.get("ok") else "—"
+        max_pain = g.get("max_pain", "—") if isinstance(g, dict) and g.get("ok") else "—"
+        flip_up = g.get("gamma_flip_up", "—") if isinstance(g, dict) and g.get("ok") else "—"
+        flip_down = g.get("gamma_flip_down", "—") if isinstance(g, dict) and g.get("ok") else "—"
 
-        greek_summary = k.get("composite", "—").replace("🟢", "").replace("🔴", "").replace("🟡", "").replace("⚪", "").strip() if k.get("ok") else "—"
+        greek_summary = k.get("composite", "—").replace("🟢", "").replace("🔴", "").replace("🟡", "").replace("⚪", "").strip() if isinstance(k, dict) and k.get("ok") else "—"
 
         rows.append({
             "Ticker": t,
-            "Price": g.get("price") if g.get("ok") else (k.get("price") if k.get("ok") else None),
+            "Price": g.get("price") if isinstance(g, dict) and g.get("ok") else (k.get("price") if isinstance(k, dict) and k.get("ok") else None),
             "Market Says": gamma_summary,
             "What To Do": action,
             "Max Pain": max_pain,
@@ -1785,32 +1879,6 @@ elif page == "📊 Greeks":
         _render_dataframe(df, height=700, key="greeks_main")
     else:
         st.info("No tickers match your filters.")
-
-    # Detail cards with readable explanations
-    st.divider()
-    st.markdown("### Top 10 Detail — What This Means")
-    for r in rows[:10]:
-        t = r["Ticker"]
-        g = gamma_data.get(t, {})
-        k = greeks_data.get(t, {})
-
-        with st.expander(f"{t} — {r['Market Says']}"):
-            if g.get("ok"):
-                st.markdown(f"**What the options market says:** {g.get('label', g.get('regime'))}")
-                st.markdown(f"**What you should do:** {g.get('action')}")
-
-                c1, c2, c3 = st.columns(3)
-                c1.metric("Price", g.get("price"))
-                c2.metric("Max Pain", g.get("max_pain"), f"{g.get('dist_max_pain_pct', 0):+.1f}% from price")
-                c3.metric("Throttle", f"{g.get('throttle', 0):.0%}", "How much gamma is pinning price")
-
-                st.caption(f"📐 **Levels:** Flip up at `{g.get('gamma_flip_up')}` | Flip down at `{g.get('gamma_flip_down')}` | Put wall `{g.get('put_wall')}` | Call wall `{g.get('call_wall')}`")
-                st.caption(f"📊 **Skew:** {g.get('skew')} | **Gamma Exposure:** {g.get('gamma_exposure')}")
-
-            if k.get("ok"):
-                st.markdown(f"**Greeks say:** {k.get('composite')} — {k.get('composite_note')}")
-                st.caption(f"Delta: {k.get('delta_note')} | Gamma: {k.get('gamma_note')} | Vanna: {k.get('vanna_note')} | Charm: {k.get('charm_note')}")
-                st.caption(f"Vol environment: {k.get('vol')} — {k.get('vol_note')}")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: 🏥 HEALTH

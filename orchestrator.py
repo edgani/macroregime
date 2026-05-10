@@ -253,8 +253,9 @@ def _build_risk_ranges(prices, all_tickers):
         if rr.get("ok"): asset_ranges[t] = rr
     return asset_ranges
 
-def _build_alpha_ideas(prices, sq, mq):
+def _build_alpha_ideas(prices, sq, mq, gamma_data=None, greeks_data=None):
     playbook = get_playbook(sq, mq); regime = QUAD_MAP.get(sq, {}); bias = regime.get("bias", "neutral")
+    gamma_data = gamma_data or {}; greeks_data = greeks_data or {}
     longs = []; shorts = []
     for ticker in playbook.get("best_assets", [])[:6]:
         p = _last_price(prices.get(ticker))
@@ -263,46 +264,299 @@ def _build_alpha_ideas(prices, sq, mq):
         entry = round(p * 0.98, 2) if rr.get("ok") else round(p, 2)
         target1 = round(p * 1.05, 2); target2 = round(p * 1.10, 2); stop = round(p * 0.95, 2)
         fit = _get_regime_fit(ticker, sq)
-        longs.append({
+        item = {
             "ticker": ticker, "price": round(p, 2), "entry": entry,
             "target_1": target1, "target_2": target2, "stop_loss": stop,
             "rr": round((target1 - entry) / (entry - stop), 1) if entry != stop else 0,
             "hold_for": "2-4 weeks", "signal": "BUY", "grade": "A", "direction": "LONG",
             "thesis": f"{ticker} in {sq} playbook (fit {fit:.0%}) — {playbook.get('strategy', 'tactical')}",
             "regime_fit": fit,
-        })
+        }
+        # Add conclusions
+        gamma = gamma_data.get(ticker, {})
+        greek = greeks_data.get(ticker, {})
+        item = _enrich_signal_with_conclusions(item, gamma, greek, rr)
+        longs.append(item)
     for ticker in playbook.get("worst_assets", [])[:6]:
         p = _last_price(prices.get(ticker))
         if p is None: continue
         entry = round(p * 1.02, 2); target = round(p * 0.95, 2); stop = round(p * 1.05, 2)
         fit = _get_regime_fit(ticker, sq)
-        shorts.append({
+        rr = _calc_risk_range(prices.get(ticker))
+        item = {
             "ticker": ticker, "price": round(p, 2), "entry": entry,
             "target_1": target, "target_2": round(p * 0.90, 2), "stop_loss": stop,
             "rr": round((entry - target) / (stop - entry), 1) if stop != entry else 0,
             "hold_for": "2-4 weeks", "signal": "SELL", "grade": "A", "direction": "SHORT",
             "thesis": f"{ticker} avoid in {sq} playbook (fit {fit:.0%})",
             "regime_fit": fit,
-        })
+        }
+        gamma = gamma_data.get(ticker, {})
+        greek = greeks_data.get(ticker, {})
+        item = _enrich_signal_with_conclusions(item, gamma, greek, rr)
+        shorts.append(item)
     if not longs and not shorts:
         for t in ["SPY", "QQQ", "IWM", "XLK", "XLE", "GLD", "SLV", "TLT", "IBIT", "UUP"]:
             p = _last_price(prices.get(t)); r1m = _safe_ret(prices.get(t), 21)
             if p is None or r1m is None: continue
             fit = _get_regime_fit(t, sq)
+            rr = _calc_risk_range(prices.get(t))
             if bias == "bullish" and r1m > 0.02:
-                longs.append({"ticker": t, "price": round(p, 2), "entry": round(p * 0.98, 2),
+                item = {"ticker": t, "price": round(p, 2), "entry": round(p * 0.98, 2),
                     "target_1": round(p * 1.05, 2), "target_2": round(p * 1.10, 2),
                     "stop_loss": round(p * 0.95, 2), "rr": 2.0, "hold_for": "2-4 weeks",
                     "signal": "BUY", "grade": "B", "direction": "LONG",
-                    "thesis": f"Momentum +{r1m:.1%} in {sq} regime (fit {fit:.0%})", "regime_fit": fit})
+                    "thesis": f"Momentum +{r1m:.1%} in {sq} regime (fit {fit:.0%})", "regime_fit": fit}
+                item = _enrich_signal_with_conclusions(item, gamma_data.get(t, {}), greeks_data.get(t, {}), rr)
+                longs.append(item)
             elif bias == "bearish" and r1m < -0.02:
-                shorts.append({"ticker": t, "price": round(p, 2), "entry": round(p * 1.02, 2),
+                item = {"ticker": t, "price": round(p, 2), "entry": round(p * 1.02, 2),
                     "target_1": round(p * 0.95, 2), "target_2": round(p * 0.90, 2),
                     "stop_loss": round(p * 1.05, 2), "rr": 2.0, "hold_for": "2-4 weeks",
                     "signal": "SELL", "grade": "B", "direction": "SHORT",
-                    "thesis": f"Momentum {r1m:.1%} in {sq} regime (fit {fit:.0%})", "regime_fit": fit})
+                    "thesis": f"Momentum {r1m:.1%} in {sq} regime (fit {fit:.0%})", "regime_fit": fit}
+                item = _enrich_signal_with_conclusions(item, gamma_data.get(t, {}), greeks_data.get(t, {}), rr)
+                shorts.append(item)
     return {"longs": longs, "shorts": shorts, "playbook": playbook}
 
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# READABLE CONCLUSION HELPERS — Translate raw data into trader-friendly language
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _entry_advice(price, entry, lrr, trr, gamma, greek, momentum_1m, composite, direction):
+    """Generate entry advice: BUY NOW / WAIT / CHASE / SMALL SIZE"""
+    if direction != "LONG" and direction != "SHORT":
+        return "WAIT — No clear edge"
+
+    dist_to_entry = abs(price - entry) / price if price else 0
+
+    if direction == "LONG":
+        if price <= entry * 1.01:
+            if composite == "bullish" and gamma.get("ok") and gamma.get("regime") in ("DEEP_POSITIVE", "POSITIVE"):
+                return "✅ BUY NOW — At buy zone + gamma supportive"
+            elif composite == "bullish":
+                return "✅ BUY NOW — At buy zone"
+            else:
+                return "⚠️ SMALL SIZE — At buy zone but mixed signals"
+        elif price <= lrr * 1.03 if lrr else False:
+            return "⏳ WAIT — Slightly above best entry, wait for retrace to LRR"
+        else:
+            if momentum_1m and momentum_1m > 0.05:
+                return "🏃 CHASE — Extended but momentum strong, use small size"
+            else:
+                return "❌ SKIP — Too far from buy zone, wait for pullback"
+    else:  # SHORT
+        if price >= entry * 0.99:
+            if composite == "bearish" and gamma.get("ok") and gamma.get("regime") in ("DEEP_NEGATIVE", "NEGATIVE"):
+                return "✅ SELL NOW — At sell zone + gamma headwind"
+            elif composite == "bearish":
+                return "✅ SELL NOW — At sell zone"
+            else:
+                return "⚠️ SMALL SIZE — At sell zone but mixed signals"
+        elif price >= trr * 0.97 if trr else False:
+            return "⏳ WAIT — Slightly below best entry, wait for bounce to TRR"
+        else:
+            if momentum_1m and momentum_1m < -0.05:
+                return "🏃 CHASE SHORT — Extended but momentum strong, use small size"
+            else:
+                return "❌ SKIP — Too far from sell zone, wait for bounce"
+
+def _target_basis(target, trr, lrr, gamma, direction):
+    """Explain what the target is based on"""
+    if not gamma.get("ok"):
+        if direction == "LONG":
+            return f"TRR resistance at {trr}" if trr else "1.5x risk reward target"
+        else:
+            return f"LRR support at {lrr}" if lrr else "1.5x risk reward target"
+
+    call_wall = gamma.get("call_wall")
+    put_wall = gamma.get("put_wall")
+    flip_up = gamma.get("gamma_flip_up")
+    flip_down = gamma.get("gamma_flip_down")
+    max_pain = gamma.get("max_pain")
+
+    if direction == "LONG":
+        if call_wall and abs(target - call_wall) / max(target, 1) < 0.03:
+            return f"Call wall resistance at {call_wall}"
+        elif flip_up and abs(target - flip_up) / max(target, 1) < 0.03:
+            return f"Gamma flip up at {flip_up}"
+        elif trr and abs(target - trr) / max(target, 1) < 0.03:
+            return f"TRR resistance at {trr}"
+        else:
+            return f"1.5x RR target (max pain at {max_pain})"
+    else:
+        if put_wall and abs(target - put_wall) / max(target, 1) < 0.03:
+            return f"Put wall support at {put_wall}"
+        elif flip_down and abs(target - flip_down) / max(target, 1) < 0.03:
+            return f"Gamma flip down at {flip_down}"
+        elif lrr and abs(target - lrr) / max(target, 1) < 0.03:
+            return f"LRR support at {lrr}"
+        else:
+            return f"1.5x RR target (max pain at {max_pain})"
+
+def _stop_basis(stop, lrr, trr, gamma, direction):
+    """Explain what the stop is based on"""
+    if not gamma.get("ok"):
+        if direction == "LONG":
+            return f"Below LRR at {lrr}" if lrr else "2% below entry"
+        else:
+            return f"Above TRR at {trr}" if trr else "2% above entry"
+
+    flip_down = gamma.get("gamma_flip_down")
+    flip_up = gamma.get("gamma_flip_up")
+    put_wall = gamma.get("put_wall")
+    call_wall = gamma.get("call_wall")
+
+    if direction == "LONG":
+        if flip_down and abs(stop - flip_down) / max(stop, 1) < 0.03:
+            return f"Below gamma flip down at {flip_down}"
+        elif put_wall and abs(stop - put_wall) / max(stop, 1) < 0.03:
+            return f"Below put wall at {put_wall}"
+        elif lrr and abs(stop - lrr) / max(stop, 1) < 0.03:
+            return f"Below LRR at {lrr}"
+        else:
+            return f"2% below entry"
+    else:
+        if flip_up and abs(stop - flip_up) / max(stop, 1) < 0.03:
+            return f"Above gamma flip up at {flip_up}"
+        elif call_wall and abs(stop - call_wall) / max(stop, 1) < 0.03:
+            return f"Above call wall at {call_wall}"
+        elif trr and abs(stop - trr) / max(stop, 1) < 0.03:
+            return f"Above TRR at {trr}"
+        else:
+            return f"2% above entry"
+
+def _path_smoothness(gamma, greek, momentum_1m, vix):
+    """Describe the path to target: smooth, rough, fast, slow"""
+    if not gamma.get("ok") and not greek.get("ok"):
+        if vix > 25: return "Rough — High volatility, expect chop"
+        elif vix > 20: return "Bumpy — Elevated volatility, patience needed"
+        else: return "Normal — Standard volatility"
+
+    gamma_regime = gamma.get("regime", "TRANSITION") if gamma.get("ok") else "TRANSITION"
+    throttle = gamma.get("throttle", 0.5) if gamma.get("ok") else 0.5
+    greek_comp = greek.get("composite", "NEUTRAL") if greek.get("ok") else "NEUTRAL"
+
+    if gamma_regime in ("DEEP_POSITIVE", "POSITIVE") and "BULLISH" in greek_comp:
+        if momentum_1m and momentum_1m > 0.03:
+            return "🚀 Fast & Smooth — Gamma supportive + momentum strong"
+        else:
+            return "🟢 Smooth — Gamma supportive, dips get bought"
+    elif gamma_regime in ("DEEP_NEGATIVE", "NEGATIVE") and "BEARISH" in greek_comp:
+        if momentum_1m and momentum_1m < -0.03:
+            return "🚀 Fast & Smooth — Gamma headwind + momentum strong"
+        else:
+            return "🟢 Smooth — Gamma headwind, rallies get sold"
+    elif throttle > 0.6:
+        return "🟡 Slow — High gamma pin, expect chop near max pain"
+    elif vix > 25:
+        return "🔴 Rough — Vol expansion, wide swings expected"
+    elif vix > 20:
+        return "🟡 Bumpy — Elevated vol, patience needed"
+    else:
+        return "🟢 Normal — Standard path to target"
+
+def _time_estimate(rr, gamma, greek, momentum_1m):
+    """Estimate how long to reach target"""
+    if not rr: return "Unknown"
+
+    if rr >= 3.0:
+        base = "2-4 months"
+    elif rr >= 2.0:
+        base = "1-2 months"
+    elif rr >= 1.5:
+        base = "2-4 weeks"
+    else:
+        base = "1-2 weeks"
+
+    if gamma.get("ok"):
+        if gamma.get("regime") in ("DEEP_POSITIVE", "POSITIVE") and momentum_1m and momentum_1m > 0.03:
+            return f"{base} (likely faster — momentum + gamma aligned)"
+        elif gamma.get("regime") in ("DEEP_NEGATIVE", "NEGATIVE") and momentum_1m and momentum_1m < -0.03:
+            return f"{base} (likely faster — momentum + gamma aligned)"
+        elif gamma.get("throttle", 0) > 0.6:
+            return f"{base} (likely slower — gamma pin, chop expected)"
+
+    return base
+
+def _breakout_chance(price, target_2, gamma, greek, momentum_3m, direction):
+    """Estimate chance of breaking above T2"""
+    if not gamma.get("ok") and not greek.get("ok"):
+        if momentum_3m and abs(momentum_3m) > 0.10:
+            return "Medium — Strong 3M trend"
+        else:
+            return "Low — No strong trend"
+
+    greek_comp = greek.get("composite", "NEUTRAL") if greek.get("ok") else "NEUTRAL"
+    gamma_regime = gamma.get("regime", "TRANSITION") if gamma.get("ok") else "TRANSITION"
+    call_wall = gamma.get("call_wall")
+    put_wall = gamma.get("put_wall")
+
+    if direction == "LONG":
+        if "BULLISH" in greek_comp and gamma_regime in ("DEEP_POSITIVE", "POSITIVE"):
+            if call_wall and target_2 > call_wall:
+                return f"High — Above call wall at {call_wall}, gamma squeeze possible"
+            else:
+                return "High — Greeks bullish + gamma supportive"
+        elif "BULLISH" in greek_comp:
+            return "Medium-High — Greeks bullish but gamma mixed"
+        elif gamma_regime in ("DEEP_POSITIVE", "POSITIVE"):
+            return "Medium — Gamma supportive but momentum fading"
+        else:
+            return "Low — Mixed signals, T2 is stretch target"
+    else:
+        if "BEARISH" in greek_comp and gamma_regime in ("DEEP_NEGATIVE", "NEGATIVE"):
+            if put_wall and target_2 < put_wall:
+                return f"High — Below put wall at {put_wall}, gamma dump possible"
+            else:
+                return "High — Greeks bearish + gamma headwind"
+        elif "BEARISH" in greek_comp:
+            return "Medium-High — Greeks bearish but gamma mixed"
+        elif gamma_regime in ("DEEP_NEGATIVE", "NEGATIVE"):
+            return "Medium — Gamma headwind but momentum slowing"
+        else:
+            return "Low — Mixed signals, T2 is stretch target"
+
+def _enrich_signal_with_conclusions(sig, gamma, greek, rr_data):
+    """Add readable conclusion fields to a signal dict."""
+    price = sig.get("price")
+    entry = sig.get("entry")
+    target1 = sig.get("target_1")
+    target2 = sig.get("target_2")
+    stop = sig.get("stop_loss")
+    direction = sig.get("direction")
+    composite = sig.get("composite", "neutral")
+    momentum_1m = sig.get("momentum_1m")
+    momentum_3m = sig.get("momentum_3m")
+    vix = sig.get("vix", 20)
+    rr = sig.get("rr")
+
+    lrr = rr_data.get("trade", {}).get("lrr") if rr_data and rr_data.get("ok") else None
+    trr = rr_data.get("trade", {}).get("trr") if rr_data and rr_data.get("ok") else None
+
+    sig["entry_advice"] = _entry_advice(price, entry, lrr, trr, gamma, greek, momentum_1m, composite, direction)
+    sig["tp1_basis"] = _target_basis(target1, trr, lrr, gamma, direction)
+    sig["tp2_basis"] = _target_basis(target2, trr, lrr, gamma, direction)
+    sig["stop_basis"] = _stop_basis(stop, lrr, trr, gamma, direction)
+    sig["path_smoothness"] = _path_smoothness(gamma, greek, momentum_1m, vix)
+    sig["time_estimate"] = _time_estimate(rr, gamma, greek, momentum_1m)
+    sig["breakout_chance"] = _breakout_chance(price, target2, gamma, greek, momentum_3m, direction)
+
+    # Simple worth_entering derived from entry_advice
+    if "BUY NOW" in sig["entry_advice"] or "SELL NOW" in sig["entry_advice"]:
+        sig["worth_entering"] = "✅ YES — " + sig["entry_advice"].split("—")[-1].strip()
+    elif "WAIT" in sig["entry_advice"]:
+        sig["worth_entering"] = "⏳ " + sig["entry_advice"]
+    elif "CHASE" in sig["entry_advice"]:
+        sig["worth_entering"] = "🏃 " + sig["entry_advice"]
+    elif "SMALL SIZE" in sig["entry_advice"]:
+        sig["worth_entering"] = "⚠️ " + sig["entry_advice"]
+    else:
+        sig["worth_entering"] = "❌ " + sig["entry_advice"]
+
+    return sig
 
 def _build_daily_signals(prices, sq, mq, asset_ranges, health, gamma_data=None, greeks_data=None):
     """
@@ -524,25 +778,17 @@ def _build_daily_signals(prices, sq, mq, asset_ranges, health, gamma_data=None, 
             "vix": vix,
             "lrr": rr.get("trade", {}).get("lrr") if rr.get("ok") else None,
             "trr": rr.get("trade", {}).get("trr") if rr.get("ok") else None,
-            # Option data
+            # Option data (raw, for internal use)
             "gamma_regime": gamma.get("regime") if gamma.get("ok") else None,
-            "gamma_throttle": gamma.get("throttle") if gamma.get("ok") else None,
             "max_pain": gamma.get("max_pain") if gamma.get("ok") else None,
             "gamma_flip_up": gamma.get("gamma_flip_up") if gamma.get("ok") else None,
             "gamma_flip_down": gamma.get("gamma_flip_down") if gamma.get("ok") else None,
             "put_wall": gamma.get("put_wall") if gamma.get("ok") else None,
             "call_wall": gamma.get("call_wall") if gamma.get("ok") else None,
-            "gamma_exposure": gamma.get("gamma_exposure") if gamma.get("ok") else None,
-            "skew": gamma.get("skew") if gamma.get("ok") else None,
-            "greek_delta": greek.get("delta") if greek.get("ok") else None,
-            "greek_gamma": greek.get("gamma") if greek.get("ok") else None,
-            "greek_vanna": greek.get("vanna") if greek.get("ok") else None,
-            "greek_charm": greek.get("charm") if greek.get("ok") else None,
             "greek_composite": greek.get("composite") if greek.get("ok") else None,
-            "greek_score": greek.get("composite_score") if greek.get("ok") else None,
-            "vol_premium": greek.get("vol_premium") if greek.get("ok") else None,
-            "rvol_20d": greek.get("rvol_20d") if greek.get("ok") else None,
         }
+        # Enrich with readable conclusions
+        sig = _enrich_signal_with_conclusions(sig, gamma, greek, rr)
         signals.append(sig)
 
     # Sort by absolute score descending
@@ -1167,7 +1413,7 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
         discovery = {"discoveries": []}
 
     playbook = get_playbook(sq, mq)
-    alpha = _build_alpha_ideas(prices, sq, mq)
+    alpha = _build_alpha_ideas(prices, sq, mq, gamma_data, greeks_data)
 
     flip = gip.flip_hazard
     transition = SimpleNamespace(

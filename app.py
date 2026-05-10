@@ -111,7 +111,148 @@ def _metric_box(label, value, sub="", color="#E6EDF3"):
     return f'<div style="background:#161B22;border:1px solid #30363D;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:11px;color:#8B949E;text-transform:uppercase;letter-spacing:0.5px;">{label}</div><div style="font-size:20px;font-weight:700;color:{color};margin:4px 0;">{value}</div>{sub_html}</div>'
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TABLE DESIGN HELPERS — Color-coded, readable, trader-friendly
+# READABLE CONCLUSION HELPERS (duplicated from orchestrator for app.py use)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _entry_advice(price, entry, lrr, trr, gamma, greek, momentum_1m, composite, direction):
+    if direction not in ("LONG", "SHORT"): return "WAIT — No clear edge"
+    if direction == "LONG":
+        if price <= entry * 1.01:
+            if composite == "bullish" and gamma.get("ok") and gamma.get("regime") in ("DEEP_POSITIVE", "POSITIVE"):
+                return "✅ BUY NOW — At buy zone + gamma supportive"
+            elif composite == "bullish": return "✅ BUY NOW — At buy zone"
+            else: return "⚠️ SMALL SIZE — At buy zone but mixed signals"
+        elif lrr and price <= lrr * 1.03: return f"⏳ WAIT — Slightly above best entry, wait for retrace to {lrr}"
+        else:
+            if momentum_1m and momentum_1m > 0.05: return "🏃 CHASE — Extended but momentum strong, small size"
+            else: return "❌ SKIP — Too far from buy zone, wait for pullback"
+    else:
+        if price >= entry * 0.99:
+            if composite == "bearish" and gamma.get("ok") and gamma.get("regime") in ("DEEP_NEGATIVE", "NEGATIVE"):
+                return "✅ SELL NOW — At sell zone + gamma headwind"
+            elif composite == "bearish": return "✅ SELL NOW — At sell zone"
+            else: return "⚠️ SMALL SIZE — At sell zone but mixed signals"
+        elif trr and price >= trr * 0.97: return f"⏳ WAIT — Slightly below best entry, wait for bounce to {trr}"
+        else:
+            if momentum_1m and momentum_1m < -0.05: return "🏃 CHASE SHORT — Extended but momentum strong, small size"
+            else: return "❌ SKIP — Too far from sell zone, wait for bounce"
+
+def _target_basis(target, trr, lrr, gamma, direction):
+    if not gamma.get("ok"):
+        return f"TRR resistance at {trr}" if direction == "LONG" and trr else (f"LRR support at {lrr}" if direction == "SHORT" and lrr else "1.5x RR target")
+    call_wall = gamma.get("call_wall"); put_wall = gamma.get("put_wall")
+    flip_up = gamma.get("gamma_flip_up"); flip_down = gamma.get("gamma_flip_down")
+    max_pain = gamma.get("max_pain")
+    if direction == "LONG":
+        if call_wall and abs(target - call_wall) / max(target, 1) < 0.03: return f"Call wall at {call_wall}"
+        elif flip_up and abs(target - flip_up) / max(target, 1) < 0.03: return f"Gamma flip up at {flip_up}"
+        elif trr and abs(target - trr) / max(target, 1) < 0.03: return f"TRR at {trr}"
+        else: return f"1.5x RR target (max pain {max_pain})"
+    else:
+        if put_wall and abs(target - put_wall) / max(target, 1) < 0.03: return f"Put wall at {put_wall}"
+        elif flip_down and abs(target - flip_down) / max(target, 1) < 0.03: return f"Gamma flip down at {flip_down}"
+        elif lrr and abs(target - lrr) / max(target, 1) < 0.03: return f"LRR at {lrr}"
+        else: return f"1.5x RR target (max pain {max_pain})"
+
+def _stop_basis(stop, lrr, trr, gamma, direction):
+    if not gamma.get("ok"):
+        return f"Below LRR at {lrr}" if direction == "LONG" and lrr else (f"Above TRR at {trr}" if direction == "SHORT" and trr else "2% from entry")
+    flip_down = gamma.get("gamma_flip_down"); flip_up = gamma.get("gamma_flip_up")
+    put_wall = gamma.get("put_wall"); call_wall = gamma.get("call_wall")
+    if direction == "LONG":
+        if flip_down and abs(stop - flip_down) / max(stop, 1) < 0.03: return f"Below gamma flip {flip_down}"
+        elif put_wall and abs(stop - put_wall) / max(stop, 1) < 0.03: return f"Below put wall {put_wall}"
+        elif lrr and abs(stop - lrr) / max(stop, 1) < 0.03: return f"Below LRR {lrr}"
+        else: return "2% below entry"
+    else:
+        if flip_up and abs(stop - flip_up) / max(stop, 1) < 0.03: return f"Above gamma flip {flip_up}"
+        elif call_wall and abs(stop - call_wall) / max(stop, 1) < 0.03: return f"Above call wall {call_wall}"
+        elif trr and abs(stop - trr) / max(stop, 1) < 0.03: return f"Above TRR {trr}"
+        else: return "2% above entry"
+
+def _path_smoothness(gamma, greek, momentum_1m, vix):
+    if not gamma.get("ok") and not greek.get("ok"):
+        return "Rough — High vol" if vix > 25 else ("Bumpy — Elevated vol" if vix > 20 else "Normal")
+    gamma_regime = gamma.get("regime", "TRANSITION") if gamma.get("ok") else "TRANSITION"
+    throttle = gamma.get("throttle", 0.5) if gamma.get("ok") else 0.5
+    greek_comp = greek.get("composite", "NEUTRAL") if greek.get("ok") else "NEUTRAL"
+    if gamma_regime in ("DEEP_POSITIVE", "POSITIVE") and "BULLISH" in greek_comp:
+        return "🚀 Fast & Smooth" if momentum_1m and momentum_1m > 0.03 else "🟢 Smooth — dips bought"
+    elif gamma_regime in ("DEEP_NEGATIVE", "NEGATIVE") and "BEARISH" in greek_comp:
+        return "🚀 Fast & Smooth" if momentum_1m and momentum_1m < -0.03 else "🟢 Smooth — rallies sold"
+    elif throttle > 0.6: return "🟡 Slow — gamma pin, chop"
+    elif vix > 25: return "🔴 Rough — vol expansion"
+    elif vix > 20: return "🟡 Bumpy — elevated vol"
+    else: return "🟢 Normal"
+
+def _time_estimate(rr, gamma, greek, momentum_1m):
+    if not rr: return "Unknown"
+    base = "2-4 months" if rr >= 3.0 else ("1-2 months" if rr >= 2.0 else ("2-4 weeks" if rr >= 1.5 else "1-2 weeks"))
+    if gamma.get("ok"):
+        if gamma.get("regime") in ("DEEP_POSITIVE", "POSITIVE") and momentum_1m and momentum_1m > 0.03: return f"{base} (faster)"
+        elif gamma.get("regime") in ("DEEP_NEGATIVE", "NEGATIVE") and momentum_1m and momentum_1m < -0.03: return f"{base} (faster)"
+        elif gamma.get("throttle", 0) > 0.6: return f"{base} (slower — chop)"
+    return base
+
+def _breakout_chance(price, target_2, gamma, greek, momentum_3m, direction):
+    if not gamma.get("ok") and not greek.get("ok"):
+        return "Medium" if momentum_3m and abs(momentum_3m) > 0.10 else "Low"
+    greek_comp = greek.get("composite", "NEUTRAL") if greek.get("ok") else "NEUTRAL"
+    gamma_regime = gamma.get("regime", "TRANSITION") if gamma.get("ok") else "TRANSITION"
+    call_wall = gamma.get("call_wall"); put_wall = gamma.get("put_wall")
+    if direction == "LONG":
+        if "BULLISH" in greek_comp and gamma_regime in ("DEEP_POSITIVE", "POSITIVE"):
+            return f"High — above call wall {call_wall}" if call_wall and target_2 > call_wall else "High"
+        elif "BULLISH" in greek_comp: return "Medium-High"
+        elif gamma_regime in ("DEEP_POSITIVE", "POSITIVE"): return "Medium"
+        else: return "Low — T2 is stretch"
+    else:
+        if "BEARISH" in greek_comp and gamma_regime in ("DEEP_NEGATIVE", "NEGATIVE"):
+            return f"High — below put wall {put_wall}" if put_wall and target_2 < put_wall else "High"
+        elif "BEARISH" in greek_comp: return "Medium-High"
+        elif gamma_regime in ("DEEP_NEGATIVE", "NEGATIVE"): return "Medium"
+        else: return "Low — T2 is stretch"
+
+def _enrich_row_with_conclusions(row, gamma, greek):
+    """Add readable conclusion fields to a consolidated row."""
+    price = row.get("price")
+    entry = row.get("entry")
+    target1 = row.get("target_1")
+    target2 = row.get("target_2")
+    stop = row.get("stop")
+    direction = "LONG" if "LONG" in row.get("direction", "") else ("SHORT" if "SHORT" in row.get("direction", "") else "NEUTRAL")
+    composite = row.get("composite", "neutral")
+    momentum_1m = row.get("r1m")
+    momentum_3m = row.get("r3m")
+    vix = 20
+    rr = row.get("rr")
+    lrr = row.get("lrr") if row.get("lrr") else None
+    trr = row.get("trr") if row.get("trr") else None
+
+    row["entry_advice"] = _entry_advice(price, entry, lrr, trr, gamma, greek, momentum_1m, composite, direction)
+    row["tp1_basis"] = _target_basis(target1, trr, lrr, gamma, direction)
+    row["tp2_basis"] = _target_basis(target2, trr, lrr, gamma, direction)
+    row["stop_basis"] = _stop_basis(stop, lrr, trr, gamma, direction)
+    row["path_smoothness"] = _path_smoothness(gamma, greek, momentum_1m, vix)
+    row["time_estimate"] = _time_estimate(rr, gamma, greek, momentum_1m)
+    row["breakout_chance"] = _breakout_chance(price, target2, gamma, greek, momentum_3m, direction)
+
+    if "BUY NOW" in row["entry_advice"] or "SELL NOW" in row["entry_advice"]: row["worth_entering"] = "✅ YES"
+    elif "WAIT" in row["entry_advice"]: row["worth_entering"] = "⏳ WAIT"
+    elif "CHASE" in row["entry_advice"]: row["worth_entering"] = "🏃 CHASE"
+    elif "SMALL SIZE" in row["entry_advice"]: row["worth_entering"] = "⚠️ SMALL"
+    else: row["worth_entering"] = "❌ NO"
+
+    # Also add simple gamma/greek summary (not raw numbers)
+    if gamma.get("ok"):
+        row["gamma_summary"] = gamma.get("regime", "—").replace("_", " ").title()
+    if greek.get("ok"):
+        row["greek_summary"] = greek.get("composite", "—").replace("🟢", "").replace("🔴", "").replace("🟡", "").replace("⚪", "").strip()
+
+    return row
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TABLE DESIGN HELPERS — Simple, readable, conclusion-based
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _style_signal(val):
@@ -190,7 +331,7 @@ def _render_dataframe(df, height=400, key=None):
     st.dataframe(styled, use_container_width=True, hide_index=True, height=height, key=key)
 
 def _render_alpha_card(item, idx):
-    """Render a single alpha center item as a clean card."""
+    """Render a single alpha center item as a readable conclusion card."""
     scanner = item.get("scanner_type", "ITEM")
     ticker = item.get("ticker", "UNKNOWN")
     direction = item.get("direction", "HOLD")
@@ -215,67 +356,56 @@ def _render_alpha_card(item, idx):
         """, unsafe_allow_html=True)
 
         with st.expander("📋 Details", expanded=False):
-            c1, c2 = st.columns([2, 2])
-            c1.markdown(f"**Thesis:** {item.get('thesis', 'N/A')}")
-            c2.markdown(f"**Setup:** {item.get('setup', 'N/A')}")
+            # Core trade plan
+            st.markdown(f"**Trade Plan:** {item.get('thesis', 'N/A')}")
 
             if item.get("entry"):
                 st.markdown(f"🎯 **Entry:** `{item.get('entry')}` → **T1:** `{item.get('target_1')}` → **T2:** `{item.get('target_2')}` | 🛑 **Stop:** `{item.get('stop_loss')}` | **RR:** `{item.get('rr')}`")
 
+            # Readable conclusions
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("Worth Entering?", item.get("worth_entering", "—"))
+            c2.metric("Path to Target", item.get("path_smoothness", "—"))
+            c3.metric("Time Estimate", item.get("time_estimate", "—"))
+            c4.metric("Breakout Chance", item.get("breakout_chance", "—"))
+
+            # Basis explanations
+            st.markdown("**📐 Level Basis:**")
+            basis_cols = st.columns(3)
+            if item.get("entry_advice"): basis_cols[0].markdown(f"🎯 **Entry:** {item.get('entry_advice')}")
+            if item.get("tp1_basis"): basis_cols[1].markdown(f"📈 **T1:** {item.get('tp1_basis')}")
+            if item.get("stop_basis"): basis_cols[2].markdown(f"🛑 **Stop:** {item.get('stop_basis')}")
+            if item.get("tp2_basis"): st.caption(f"📈 **T2 Basis:** {item.get('tp2_basis')}")
+
             if item.get("invalidators"):
                 st.caption(f"❌ **Invalidators:** {', '.join(item.get('invalidators'))}")
-
-            # Option data
-            has_gamma = item.get("gamma_regime") is not None
-            has_greek = item.get("greek_composite") is not None
-
-            if has_gamma or has_greek:
-                st.divider()
-                st.markdown("**📊 Option Analytics**")
-
-                cols = st.columns(4)
-                if has_gamma:
-                    cols[0].metric("Gamma", item.get("gamma_regime"))
-                    cols[1].metric("Max Pain", item.get("max_pain"))
-                    cols[2].metric("Flip ↑", item.get("gamma_flip_up"))
-                    cols[3].metric("Flip ↓", item.get("gamma_flip_down"))
-                    st.caption(f"Put Wall: `{item.get('put_wall')}` | Call Wall: `{item.get('call_wall')}` | Skew: {item.get('skew')}")
-
-                if has_greek:
-                    gc = st.columns(4)
-                    gc[0].metric("Greeks", item.get("greek_composite"))
-                    gc[1].metric("Delta", item.get("greek_delta"))
-                    gc[2].metric("Vanna", item.get("greek_vanna"))
-                    gc[3].metric("Charm", item.get("greek_charm"))
 
             st.caption(f"Source: {item.get('source', 'unknown')} | Hold: {item.get('hold_for', '—')}")
 
 def _alpha_to_df(items):
-    """Convert alpha center items to a clean dataframe."""
+    """SIMPLE readable table: conclusions, not raw Greeks."""
     if not items:
         return pd.DataFrame()
     rows = []
     for item in items:
         rows.append({
             "Ticker": item.get("ticker"),
-            "Signal": item.get("scanner_type", "").replace("BOTTLENECK ", "🚨 ").replace("ALPHA ", "").replace("DISCOVERY", "💡").replace("DAILY ", ""),
-            "Direction": item.get("direction", "HOLD"),
-            "Grade": item.get("grade", "C"),
+            "Type": item.get("scanner_type", "").replace("BOTTLENECK ", "🚨 ").replace("ALPHA ", "").replace("DISCOVERY", "💡").replace("DAILY ", ""),
+            "Worth?": item.get("worth_entering", "—") if item.get("worth_entering") else "—",
             "Price": item.get("price"),
             "Entry": item.get("entry"),
             "T1": item.get("target_1"),
             "T2": item.get("target_2"),
             "Stop": item.get("stop_loss"),
             "RR": item.get("rr"),
-            "Gamma": item.get("gamma_regime", "—"),
-            "Greeks": item.get("greek_composite", "—"),
-            "Score": round(item.get("priority_score", 0), 1),
-            "Thesis": item.get("thesis", "")[:60] + "..." if len(item.get("thesis", "")) > 60 else item.get("thesis", ""),
+            "Path": item.get("path_smoothness", "—") if item.get("path_smoothness") else "—",
+            "Time": item.get("time_estimate", "—") if item.get("time_estimate") else "—",
+            "Breakout": item.get("breakout_chance", "—") if item.get("breakout_chance") else "—",
         })
     return pd.DataFrame(rows)
 
 def _daily_to_df(signals):
-    """Convert daily signals to a clean dataframe."""
+    """SIMPLE readable table: conclusions, not raw Greeks."""
     if not signals:
         return pd.DataFrame()
     rows = []
@@ -283,26 +413,21 @@ def _daily_to_df(signals):
         rows.append({
             "Ticker": s.get("ticker"),
             "Signal": s.get("signal"),
-            "Direction": s.get("direction"),
-            "Grade": s.get("grade"),
+            "Worth?": s.get("worth_entering", "—"),
             "Price": s.get("price"),
             "Entry": s.get("entry"),
             "T1": s.get("target_1"),
             "T2": s.get("target_2"),
             "Stop": s.get("stop_loss"),
             "RR": s.get("rr"),
-            "1M": s.get("momentum_1m"),
-            "Fit": s.get("regime_fit"),
-            "Score": s.get("score"),
-            "Gamma": s.get("gamma_regime", "—"),
-            "Greeks": s.get("greek_composite", "—"),
-            "Max Pain": s.get("max_pain", "—"),
-            "Hold": s.get("hold_for"),
+            "Path": s.get("path_smoothness", "—"),
+            "Time": s.get("time_estimate", "—"),
+            "Breakout": s.get("breakout_chance", "—"),
         })
     return pd.DataFrame(rows)
 
 def _consolidated_to_df(rows):
-    """Convert consolidated rows (leaderboard/forex/comm/crypto) to clean dataframe."""
+    """SIMPLE readable table: conclusions, not raw Greeks."""
     if not rows:
         return pd.DataFrame()
     out = []
@@ -315,16 +440,11 @@ def _consolidated_to_df(rows):
             "T2": r.get("target_2"),
             "Stop": r.get("stop"),
             "RR": r.get("rr"),
-            "Direction": r.get("direction", "").replace(" ✅", "").replace(" ⚠️", "").replace(" ⏳", ""),
-            "Grade": r.get("grade", "C"),
-            "Gamma": r.get("gamma_regime", "—"),
-            "Greeks": r.get("greek_composite", "—"),
-            "Max Pain": r.get("max_pain_gamma", "—"),
-            "COT": r.get("cot_bias", "—"),
-            "OI": r.get("oi_signal", "—"),
-            "1M": r.get("r1m"),
-            "3M": r.get("r3m"),
-            "Recommendation": r.get("recommendation", "")[:50] + "..." if len(r.get("recommendation", "")) > 50 else r.get("recommendation", ""),
+            "Worth?": r.get("worth_entering", "—"),
+            "Entry Advice": r.get("entry_advice", "—"),
+            "Path": r.get("path_smoothness", "—"),
+            "Time": r.get("time_estimate", "—"),
+            "Breakout": r.get("breakout_chance", "—"),
         })
     return pd.DataFrame(out)
 
@@ -680,7 +800,7 @@ def _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, market_type, 
     elif rr_val >= 1.5: hold = "2-4 weeks"
     else: hold = "Skip — Poor R:R"
 
-    return {
+    row = {
         "ticker": ticker, "price": px, "entry": rl.get("entry"),
         "direction": direction, "hold": hold,
         "target_1": rl.get("tp1"), "target_2": rl.get("tp2"),
@@ -696,23 +816,19 @@ def _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, market_type, 
         "grade": v.get("quality", "—").replace("short_", ""),
         "r1m": _price_ret(ticker, prices, 21),
         "r3m": _price_ret(ticker, prices, 63),
-        # Option data
+        "lrr": lrr, "trr": trr, "composite": composite,
+        # Raw option data (for enrichment)
         "gamma_regime": gamma.get("regime") if gamma.get("ok") else None,
         "max_pain_gamma": gamma.get("max_pain") if gamma.get("ok") else None,
         "gamma_flip_up": gamma.get("gamma_flip_up") if gamma.get("ok") else None,
         "gamma_flip_down": gamma.get("gamma_flip_down") if gamma.get("ok") else None,
         "put_wall": gamma.get("put_wall") if gamma.get("ok") else None,
         "call_wall": gamma.get("call_wall") if gamma.get("ok") else None,
-        "gamma_exposure": gamma.get("gamma_exposure") if gamma.get("ok") else None,
-        "skew": gamma.get("skew") if gamma.get("ok") else None,
         "greek_composite": greek.get("composite") if greek.get("ok") else None,
-        "greek_delta": greek.get("delta") if greek.get("ok") else None,
-        "greek_vanna": greek.get("vanna") if greek.get("ok") else None,
-        "greek_charm": greek.get("charm") if greek.get("ok") else None,
-        "greek_score": greek.get("composite_score") if greek.get("ok") else None,
-        "vol_premium": greek.get("vol_premium") if greek.get("ok") else None,
-        "rvol_20d": greek.get("rvol_20d") if greek.get("ok") else None,
     }
+    # Enrich with readable conclusions
+    row = _enrich_row_with_conclusions(row, gamma, greek)
+    return row
 
 def _build_ihsg_row(ticker, prices, ar):
     v = ar.get(ticker, {})
@@ -1594,51 +1710,41 @@ elif page == "🔮 Discovery":
         st.info("No auto-discovered bottlenecks yet.")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: 📊 GREEKS (Option Analytics)
+# TAB: 📊 GREEKS — Simple Option Summary
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "📊 Greeks":
-    st.markdown('<div style="font-size:28px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">📊 Greeks & Option Analytics</div>', unsafe_allow_html=True)
-    st.caption("Gamma levels, Greeks composite, and option-aware signals for all tickers.")
+    st.markdown('<div style="font-size:28px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">📊 Option Summary</div>', unsafe_allow_html=True)
+    st.caption("What the options market is saying — in plain English. No raw Greeks numbers.")
     st.divider()
 
     gamma_data = snap.get("gamma_data", {}) or {}
     greeks_data = snap.get("greeks_data", {}) or {}
 
     if not gamma_data and not greeks_data:
-        st.warning("Option data not available. Run Full Rebuild with the new orchestrator.")
+        st.warning("Option data not available. Run Full Rebuild.")
         st.stop()
 
     # Summary stats
-    total_gamma = len(gamma_data)
-    total_greeks = len(greeks_data)
+    total = len(set(list(gamma_data.keys()) + list(greeks_data.keys())))
+    c1, c2 = st.columns(2)
+    c1.metric("Tickers Analyzed", total)
 
-    c1, c2, c3, c4, c5 = st.columns(5)
-    c1.metric("Gamma Analyzed", total_gamma)
-    c2.metric("Greeks Analyzed", total_greeks)
-
-    # Count regimes
+    # Count readable regimes
     if gamma_data:
-        regimes = {}
-        for g in gamma_data.values():
-            r = g.get("regime", "UNKNOWN")
-            regimes[r] = regimes.get(r, 0) + 1
-        c3.metric("Deep Pos", regimes.get("DEEP_POSITIVE", 0))
-        c4.metric("Positive", regimes.get("POSITIVE", 0))
-        c5.metric("Negative", regimes.get("NEGATIVE", 0) + regimes.get("DEEP_NEGATIVE", 0))
+        supportive = sum(1 for g in gamma_data.values() if g.get("regime") in ("DEEP_POSITIVE", "POSITIVE"))
+        headwind = sum(1 for g in gamma_data.values() if g.get("regime") in ("DEEP_NEGATIVE", "NEGATIVE"))
+        c2.metric("Gamma Supportive / Headwind", f"{supportive} / {headwind}")
 
     st.divider()
 
     # Filters
-    col_f1, col_f2, col_f3 = st.columns(3)
-    filter_gamma = col_f1.multiselect("Gamma Regime", 
+    col_f1, col_f2 = st.columns(2)
+    filter_gamma = col_f1.multiselect("Market Structure", 
         ["DEEP_POSITIVE", "POSITIVE", "TRANSITION", "NEGATIVE", "DEEP_NEGATIVE"],
         default=["DEEP_POSITIVE", "POSITIVE", "NEGATIVE", "DEEP_NEGATIVE"])
-    filter_greek = col_f2.multiselect("Greeks Composite",
-        ["BULLISH 🟢", "MOD BULLISH 🟡", "NEUTRAL ⚪", "MOD BEARISH 🟡", "BEARISH 🔴"],
-        default=["BULLISH 🟢", "MOD BULLISH 🟡", "BEARISH 🔴", "MOD BEARISH 🟡"])
-    filter_ticker = col_f3.text_input("Search Ticker", placeholder="e.g. SPY, GLD, EURUSD")
+    filter_ticker = col_f2.text_input("Search Ticker", placeholder="e.g. SPY, GLD")
 
-    # Build table
+    # Build SIMPLE readable table
     rows = []
     all_tickers = sorted(set(list(gamma_data.keys()) + list(greeks_data.keys())))
 
@@ -1649,71 +1755,62 @@ elif page == "📊 Greeks":
         k = greeks_data.get(t, {})
 
         g_reg = g.get("regime", "") if g.get("ok") else ""
-        k_comp = k.get("composite", "") if k.get("ok") else ""
-
-        if g_reg not in filter_gamma and g.get("ok"): continue
-        if k_comp not in filter_greek and k.get("ok"): continue
+        if g_reg and g_reg not in filter_gamma: continue
         if not g.get("ok") and not k.get("ok"): continue
+
+        # Readable summary
+        gamma_summary = g.get("label", g_reg.replace("_", " ").title()) if g.get("ok") else "—"
+        action = g.get("action", "—") if g.get("ok") else "—"
+        max_pain = g.get("max_pain", "—") if g.get("ok") else "—"
+        flip_up = g.get("gamma_flip_up", "—") if g.get("ok") else "—"
+        flip_down = g.get("gamma_flip_down", "—") if g.get("ok") else "—"
+
+        greek_summary = k.get("composite", "—").replace("🟢", "").replace("🔴", "").replace("🟡", "").replace("⚪", "").strip() if k.get("ok") else "—"
 
         rows.append({
             "Ticker": t,
             "Price": g.get("price") if g.get("ok") else (k.get("price") if k.get("ok") else None),
-            "Gamma": g_reg if g.get("ok") else "—",
-            "Throttle": f"{g.get('throttle', 0):.0%}" if g.get("ok") else "—",
-            "Max Pain": g.get("max_pain") if g.get("ok") else "—",
-            "Flip ↑": g.get("gamma_flip_up") if g.get("ok") else "—",
-            "Flip ↓": g.get("gamma_flip_down") if g.get("ok") else "—",
-            "Put Wall": g.get("put_wall") if g.get("ok") else "—",
-            "Call Wall": g.get("call_wall") if g.get("ok") else "—",
-            "Greeks": k_comp if k.get("ok") else "—",
-            "Delta": k.get("delta") if k.get("ok") else "—",
-            "Vanna": k.get("vanna") if k.get("ok") else "—",
-            "Charm": k.get("charm") if k.get("ok") else "—",
-            "Volga": k.get("volga") if k.get("ok") else "—",
-            "RVOL": f"{k.get('rvol_20d', 0):.1f}%" if k.get("ok") else "—",
-            "Vol Prem": f"{k.get('vol_premium', 0):+.1f}%" if k.get("ok") else "—",
-            "Skew": g.get("skew") if g.get("ok") else "—",
-            "Gamma Exp": g.get("gamma_exposure") if g.get("ok") else "—",
+            "Market Says": gamma_summary,
+            "What To Do": action,
+            "Max Pain": max_pain,
+            "Flip Up": flip_up,
+            "Flip Down": flip_down,
+            "Direction": greek_summary,
         })
 
-    st.write(f"Showing {len(rows)} tickers")
+    st.write(f"Showing **{len(rows)}** tickers")
 
     if rows:
         df = pd.DataFrame(rows)
-        st.dataframe(df, use_container_width=True, hide_index=True, height=700)
+        _render_dataframe(df, height=700, key="greeks_main")
     else:
         st.info("No tickers match your filters.")
 
-    # Detail expanders for top 10
+    # Detail cards with readable explanations
     st.divider()
-    st.markdown("### Top 10 Detail")
+    st.markdown("### Top 10 Detail — What This Means")
     for r in rows[:10]:
         t = r["Ticker"]
         g = gamma_data.get(t, {})
         k = greeks_data.get(t, {})
 
-        with st.expander(f"{t} — Gamma: {r['Gamma']} | Greeks: {r['Greeks']}"):
+        with st.expander(f"{t} — {r['Market Says']}"):
             if g.get("ok"):
-                st.markdown(f"**Gamma Regime:** {g.get('label', g.get('regime'))}")
-                st.markdown(f"**Action:** {g.get('action')}")
-                c1, c2, c3, c4 = st.columns(4)
+                st.markdown(f"**What the options market says:** {g.get('label', g.get('regime'))}")
+                st.markdown(f"**What you should do:** {g.get('action')}")
+
+                c1, c2, c3 = st.columns(3)
                 c1.metric("Price", g.get("price"))
-                c2.metric("Max Pain", g.get("max_pain"), f"{g.get('dist_max_pain_pct', 0):+.1f}%")
-                c3.metric("Throttle", f"{g.get('throttle', 0):.0%}")
-                c4.metric("RVOL 10d", f"{g.get('rvol_10d', 0):.1f}%")
-                st.caption(f"Flip ↑: `{g.get('gamma_flip_up')}` | Flip ↓: `{g.get('gamma_flip_down')}` | Put: `{g.get('put_wall')}` | Call: `{g.get('call_wall')}`")
-                st.caption(f"Skew: {g.get('skew')} | Gamma Exposure: {g.get('gamma_exposure')}")
+                c2.metric("Max Pain", g.get("max_pain"), f"{g.get('dist_max_pain_pct', 0):+.1f}% from price")
+                c3.metric("Throttle", f"{g.get('throttle', 0):.0%}", "How much gamma is pinning price")
+
+                st.caption(f"📐 **Levels:** Flip up at `{g.get('gamma_flip_up')}` | Flip down at `{g.get('gamma_flip_down')}` | Put wall `{g.get('put_wall')}` | Call wall `{g.get('call_wall')}`")
+                st.caption(f"📊 **Skew:** {g.get('skew')} | **Gamma Exposure:** {g.get('gamma_exposure')}")
 
             if k.get("ok"):
-                st.markdown(f"**Greeks Composite:** {k.get('composite')} (score: {k.get('composite_score', 0):.2f})")
-                gc1, gc2, gc3, gc4, gc5 = st.columns(5)
-                gc1.metric("Delta", k.get("delta"))
-                gc2.metric("Gamma", k.get("gamma"))
-                gc3.metric("Vanna", k.get("vanna"))
-                gc4.metric("Charm", k.get("charm"))
-                gc5.metric("Volga", k.get("volga"))
-                st.caption(f"RVOL 20d: {k.get('rvol_20d', 0):.1f}% | Vol Premium: {k.get('vol_premium', 0):+.1f}% | Vol: {k.get('vol')}")
-                st.caption(f"Delta note: {k.get('delta_note')} | Gamma note: {k.get('gamma_note')} | Vanna note: {k.get('vanna_note')}")
+                st.markdown(f"**Greeks say:** {k.get('composite')} — {k.get('composite_note')}")
+                st.caption(f"Delta: {k.get('delta_note')} | Gamma: {k.get('gamma_note')} | Vanna: {k.get('vanna_note')} | Charm: {k.get('charm_note')}")
+                st.caption(f"Vol environment: {k.get('vol')} — {k.get('vol_note')}")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: 🏥 HEALTH

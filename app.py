@@ -283,6 +283,51 @@ def _fmt_rr(val):
     except:
         return "—"
 
+
+def _get_regime_fit(ticker, quad):
+    """Fallback regime fit. Move to config/settings.py later for single source of truth."""
+    FIT_MAP = {
+        "XLK": {"Q1":0.95,"Q2":0.70,"Q3":0.30,"Q4":0.20},
+        "XLY": {"Q1":0.90,"Q2":0.75,"Q3":0.40,"Q4":0.25},
+        "XLI": {"Q1":0.80,"Q2":0.85,"Q3":0.50,"Q4":0.30},
+        "IWM": {"Q1":0.90,"Q2":0.70,"Q3":0.30,"Q4":0.20},
+        "QQQ": {"Q1":0.95,"Q2":0.70,"Q3":0.25,"Q4":0.15},
+        "XLE": {"Q1":0.60,"Q2":0.95,"Q3":0.70,"Q4":0.30},
+        "OIH": {"Q1":0.55,"Q2":0.95,"Q3":0.65,"Q4":0.25},
+        "XLB": {"Q1":0.60,"Q2":0.90,"Q3":0.70,"Q4":0.35},
+        "GDX": {"Q1":0.50,"Q2":0.85,"Q3":0.80,"Q4":0.60},
+        "SLV": {"Q1":0.50,"Q2":0.75,"Q3":0.95,"Q4":0.70},
+        "GLD": {"Q1":0.55,"Q2":0.80,"Q3":0.95,"Q4":0.85},
+        "PPLT": {"Q1":0.45,"Q2":0.70,"Q3":0.90,"Q4":0.65},
+        "XLV": {"Q1":0.65,"Q2":0.55,"Q3":0.85,"Q4":0.80},
+        "XLP": {"Q1":0.60,"Q2":0.50,"Q3":0.90,"Q4":0.85},
+        "XLU": {"Q1":0.55,"Q2":0.45,"Q3":0.85,"Q4":0.90},
+        "TLT": {"Q1":0.30,"Q2":0.50,"Q3":0.75,"Q4":0.95},
+        "SPY": {"Q1":0.90,"Q2":0.75,"Q3":0.50,"Q4":0.35},
+        "IBIT": {"Q1":0.80,"Q2":0.75,"Q3":0.40,"Q4":0.30},
+        "GC=F": {"Q1":0.55,"Q2":0.80,"Q3":0.95,"Q4":0.85},
+        "SI=F": {"Q1":0.50,"Q2":0.75,"Q3":0.95,"Q4":0.70},
+        "CL=F": {"Q1":0.55,"Q2":0.90,"Q3":0.65,"Q4":0.30},
+        "BTC-USD": {"Q1":0.80,"Q2":0.75,"Q3":0.40,"Q4":0.30},
+        "ETH-USD": {"Q1":0.75,"Q2":0.70,"Q3":0.35,"Q4":0.25},
+        "EIDO": {"Q1":0.75,"Q2":0.65,"Q3":0.45,"Q4":0.35},
+    }
+    if ticker in FIT_MAP:
+        return FIT_MAP[ticker].get(quad, 0.50)
+    if any(x in ticker for x in ["BTC","ETH","SOL","ADA","DOT","LINK","DOGE","XRP","BNB"]):
+        return {"Q1":0.80,"Q2":0.75,"Q3":0.40,"Q4":0.30}.get(quad, 0.50)
+    if any(x in ticker for x in ["GC=","GLD","GDX","NEM"]):
+        return {"Q1":0.55,"Q2":0.80,"Q3":0.95,"Q4":0.85}.get(quad, 0.50)
+    if any(x in ticker for x in ["SI=","SLV","SIL"]):
+        return {"Q1":0.50,"Q2":0.75,"Q3":0.95,"Q4":0.70}.get(quad, 0.50)
+    if any(x in ticker for x in ["XLE","OIH","USO","CL=","BZ="]):
+        return {"Q1":0.55,"Q2":0.95,"Q3":0.70,"Q4":0.30}.get(quad, 0.50)
+    if any(x in ticker for x in ["TLT","IEF","SHY","AGG"]):
+        return {"Q1":0.30,"Q2":0.50,"Q3":0.75,"Q4":0.95}.get(quad, 0.50)
+    if ".JK" in ticker or ticker in ["EIDO","^JKSE"]:
+        return {"Q1":0.75,"Q2":0.65,"Q3":0.45,"Q4":0.35}.get(quad, 0.50)
+    return 0.50
+
 # ══════════════════════════════════════════════════════════════════════════════
 # TABLE DESIGN HELPERS — Simple, readable, conclusion-based
 # ══════════════════════════════════════════════════════════════════════════════
@@ -429,42 +474,59 @@ def _render_alpha_card(item, idx):
             st.caption(f"Source: {item.get('source', 'unknown')} | Hold: {item.get('hold_for', '—')}")
 
 def _alpha_to_df(items):
-    """SIMPLE readable table: conclusions, not raw Greeks."""
+    """FULL Alpha Center table: conclusions + basis + option data + regime fit."""
     if not items:
         return pd.DataFrame()
     rows = []
     for item in items:
-        # Handle missing conclusion fields (for bottleneck items that don't have them)
-        worth = item.get("worth_entering")
-        if not worth:
-            direction = item.get("direction", "HOLD")
+        ticker = item.get("ticker", "UNKNOWN")
+        direction = item.get("direction", "HOLD")
+        worth = item.get("worth_entering", "—")
+        if not worth or worth == "—":
             if direction == "LONG": worth = "✅ YES — Playbook long"
             elif direction == "SHORT": worth = "✅ YES — Playbook short"
             elif direction == "HOLD": worth = "⏳ WATCH"
             else: worth = "—"
-
+        entry_basis = item.get("entry_advice", "—") or "—"
+        tp1_basis = item.get("tp1_basis", "—") or "—"
+        stop_basis = item.get("stop_basis", "—") or "—"
         path = item.get("path_smoothness", "—") or "—"
         time_est = item.get("time_estimate", "—") or "—"
         breakout = item.get("breakout_chance", "—") or "—"
-
+        gamma_reg = item.get("gamma_regime", "—") or "—"
+        greek_comp = item.get("greek_composite", "—") or "—"
+        max_pain = item.get("max_pain", "—") or "—"
+        scanner = item.get("scanner_type", "")
+        if "BOTTLENECK L1" in scanner: regime_tag = "🚨 L1 Bottleneck"
+        elif "BOTTLENECK L2" in scanner: regime_tag = "⚠️ L2 Bottleneck"
+        elif "DAILY" in scanner: regime_tag = "📈 Daily Signal"
+        elif "ALPHA" in scanner: regime_tag = "🎯 Alpha"
+        elif "DISCOVERY" in scanner: regime_tag = "💡 Discovery"
+        else: regime_tag = scanner
         rows.append({
-            "Ticker": item.get("ticker"),
-            "Type": item.get("scanner_type", "").replace("BOTTLENECK ", "🚨 ").replace("ALPHA ", "").replace("DISCOVERY", "💡").replace("DAILY ", ""),
+            "Ticker": ticker,
+            "Type": regime_tag,
             "Worth?": worth,
-            "Price": item.get("price") if item.get("price") else "—",
-            "Entry": item.get("entry") if item.get("entry") else "—",
-            "T1": item.get("target_1") if item.get("target_1") else "—",
-            "T2": item.get("target_2") if item.get("target_2") else "—",
-            "Stop": item.get("stop_loss") if item.get("stop_loss") else "—",
-            "RR": item.get("rr") if item.get("rr") else "—",
+            "Price": _fmt_num(item.get("price")),
+            "Entry": _fmt_num(item.get("entry")),
+            "T1": _fmt_num(item.get("target_1")),
+            "T2": _fmt_num(item.get("target_2")),
+            "Stop": _fmt_num(item.get("stop_loss")),
+            "RR": _fmt_rr(item.get("rr")),
+            "Entry Basis": entry_basis[:60] + "..." if len(str(entry_basis)) > 60 else entry_basis,
+            "T1 Basis": tp1_basis[:60] + "..." if len(str(tp1_basis)) > 60 else tp1_basis,
+            "Stop Basis": stop_basis[:60] + "..." if len(str(stop_basis)) > 60 else stop_basis,
             "Path": path,
             "Time": time_est,
             "Breakout": breakout,
+            "Gamma": gamma_reg,
+            "Greek": greek_comp,
+            "Max Pain": max_pain,
         })
     return pd.DataFrame(rows)
 
 def _daily_to_df(signals):
-    """SIMPLE readable table: conclusions, not raw Greeks."""
+    """FULL Daily Signals table: conclusions + basis + option data + regime fit."""
     if not signals:
         return pd.DataFrame()
     rows = []
@@ -472,38 +534,62 @@ def _daily_to_df(signals):
         rows.append({
             "Ticker": s.get("ticker"),
             "Signal": s.get("signal"),
+            "Dir": s.get("direction"),
+            "Grade": s.get("grade"),
             "Worth?": s.get("worth_entering", "—"),
-            "Price": s.get("price"),
-            "Entry": s.get("entry"),
-            "T1": s.get("target_1"),
-            "T2": s.get("target_2"),
-            "Stop": s.get("stop_loss"),
-            "RR": s.get("rr"),
+            "Price": _fmt_num(s.get("price")),
+            "Entry": _fmt_num(s.get("entry")),
+            "T1": _fmt_num(s.get("target_1")),
+            "T2": _fmt_num(s.get("target_2")),
+            "Stop": _fmt_num(s.get("stop_loss")),
+            "RR": _fmt_rr(s.get("rr")),
+            "Entry Basis": (s.get("entry_advice", "—") or "—")[:60],
+            "T1 Basis": (s.get("tp1_basis", "—") or "—")[:60],
+            "Stop Basis": (s.get("stop_basis", "—") or "—")[:60],
             "Path": s.get("path_smoothness", "—"),
             "Time": s.get("time_estimate", "—"),
             "Breakout": s.get("breakout_chance", "—"),
+            "Regime Fit": f"{s.get('regime_fit'):.0%}" if s.get("regime_fit") else "—",
+            "Gamma": s.get("gamma_regime", "—"),
+            "Greek": s.get("greek_composite", "—"),
+            "Max Pain": s.get("max_pain", "—"),
+            "Score": s.get("score"),
         })
     return pd.DataFrame(rows)
 
-def _consolidated_to_df(rows):
-    """SIMPLE readable table: conclusions, not raw Greeks."""
+def _consolidated_to_df(rows, market_type="generic"):
+    """FULL consolidated table: conclusions + basis + option data + COT + OI + on-chain."""
     if not rows:
         return pd.DataFrame()
     out = []
     for r in rows:
+        onchain = "—"
+        if market_type == "crypto":
+            onchain = r.get("onchain_signal", "—") or "—"
         out.append({
             "Ticker": r.get("ticker"),
-            "Price": r.get("price"),
-            "Entry": r.get("entry"),
-            "T1": r.get("target_1"),
-            "T2": r.get("target_2"),
-            "Stop": r.get("stop"),
-            "RR": r.get("rr"),
+            "Price": _fmt_num(r.get("price")),
+            "Entry": _fmt_num(r.get("entry")),
+            "T1": _fmt_num(r.get("target_1")),
+            "T2": _fmt_num(r.get("target_2")),
+            "Stop": _fmt_num(r.get("stop")),
+            "RR": _fmt_rr(r.get("rr")),
             "Worth?": r.get("worth_entering", "—"),
-            "Entry Advice": r.get("entry_advice", "—"),
+            "Entry Basis": (r.get("entry_advice", "—") or "—")[:60],
+            "T1 Basis": (r.get("tp1_basis", "—") or "—")[:60],
+            "Stop Basis": (r.get("stop_basis", "—") or "—")[:60],
             "Path": r.get("path_smoothness", "—"),
             "Time": r.get("time_estimate", "—"),
             "Breakout": r.get("breakout_chance", "—"),
+            "Regime Fit": f"{r.get('regime_fit'):.0%}" if r.get("regime_fit") else "—",
+            "Gamma": r.get("gamma_regime", "—"),
+            "Greek": r.get("greek_composite", "—"),
+            "Delta": r.get("delta", "—"),
+            "Vanna": r.get("vanna", "—"),
+            "COT": r.get("cot_signal", "—"),
+            "OI": r.get("oi_signal", "—"),
+            "Max Pain": r.get("max_pain", "—"),
+            "On-Chain": onchain,
         })
     return pd.DataFrame(out)
 
@@ -887,6 +973,7 @@ def _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, market_type, 
     }
     # Enrich with readable conclusions
     row = _enrich_row_with_conclusions(row, gamma, greek)
+    row["regime_fit"] = _get_regime_fit(ticker, sq)
     return row
 
 def _build_ihsg_row(ticker, prices, ar):
@@ -1476,12 +1563,12 @@ elif page == "📊 Leaderboard":
     longs, shorts = _split_long_short(lb_rows)
 
     st.markdown("### 🟢 LONG LEADERBOARD")
-    df_long = _consolidated_to_df(longs)
+    df_long = _consolidated_to_df(longs, market_type="crypto")
     _render_dataframe(df_long, height=400, key="lb_long")
 
     st.divider()
     st.markdown("### 🔴 SHORT LEADERBOARD")
-    df_short = _consolidated_to_df(shorts)
+    df_short = _consolidated_to_df(shorts, market_type="crypto")
     _render_dataframe(df_short, height=400, key="lb_short")
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1506,12 +1593,12 @@ elif page == "💱 Forex":
     longs, shorts = _split_long_short(fx_rows)
 
     st.markdown("### 🟢 LONG FX")
-    df_long = _consolidated_to_df(longs)
+    df_long = _consolidated_to_df(longs, market_type="crypto")
     _render_dataframe(df_long, height=350, key="fx_long")
 
     st.divider()
     st.markdown("### 🔴 SHORT FX")
-    df_short = _consolidated_to_df(shorts)
+    df_short = _consolidated_to_df(shorts, market_type="crypto")
     _render_dataframe(df_short, height=350, key="fx_short")
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1536,12 +1623,12 @@ elif page == "🛢️ Commodities":
     longs, shorts = _split_long_short(comm_rows)
 
     st.markdown("### 🟢 LONG COMMODITIES")
-    df_long = _consolidated_to_df(longs)
+    df_long = _consolidated_to_df(longs, market_type="crypto")
     _render_dataframe(df_long, height=350, key="comm_long")
 
     st.divider()
     st.markdown("### 🔴 SHORT COMMODITIES")
-    df_short = _consolidated_to_df(shorts)
+    df_short = _consolidated_to_df(shorts, market_type="crypto")
     _render_dataframe(df_short, height=350, key="comm_short")
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -1617,7 +1704,7 @@ elif page == "₿ Crypto":
     }
 
     st.markdown("### 🟢 LONG CRYPTO")
-    df_long = _consolidated_to_df(longs)
+    df_long = _consolidated_to_df(longs, market_type="crypto")
     if not df_long.empty:
         st.dataframe(df_long, hide_index=True, use_container_width=True, height=350)
     else:
@@ -1625,7 +1712,7 @@ elif page == "₿ Crypto":
 
     st.divider()
     st.markdown("### 🔴 SHORT CRYPTO")
-    df_short = _consolidated_to_df(shorts)
+    df_short = _consolidated_to_df(shorts, market_type="crypto")
     if not df_short.empty:
         st.dataframe(df_short, hide_index=True, use_container_width=True, height=350)
     else:
@@ -1636,7 +1723,7 @@ elif page == "₿ Crypto":
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "🇮🇩 IHSG":
     st.markdown('<div style="font-size:28px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">🇮🇩 Indonesia (IHSG)</div>', unsafe_allow_html=True)
-    st.caption("Indonesian market analysis. Commodity + domestic play. BUY opportunities only (no short).")
+    st.caption("Indonesian market — Commodity + Domestic play. BUY only. No options = no time estimate.")
     st.divider()
 
     ihsg_rows = []
@@ -1645,107 +1732,115 @@ elif page == "🇮🇩 IHSG":
         if row and "LONG" in row.get("direction", ""):
             ihsg_rows.append(row)
 
-    # IHSG-specific simple table (no option data)
     if ihsg_rows:
         ihsg_df = []
-        sector_map = {
-            "ADRO.JK": "Coal", "ITMG.JK": "Coal", "PTBA.JK": "Coal",
+        SECTOR_MAP = {
+            "ADRO.JK": "Coal", "ITMG.JK": "Coal", "PTBA.JK": "Coal", "HRUM.JK": "Coal", "BUMI.JK": "Coal",
             "NCKL.JK": "Nickel", "ANTM.JK": "Nickel", "INCO.JK": "Nickel",
             "AALI.JK": "CPO", "LSIP.JK": "CPO", "SMAR.JK": "CPO",
             "BBRI.JK": "Banking", "BMRI.JK": "Banking", "BBCA.JK": "Banking", "BBNI.JK": "Banking", "BRIS.JK": "Banking",
             "TLKM.JK": "Telco", "EXCL.JK": "Telco",
-            "UNTR.JK": "Mining", "BYAN.JK": "Mining",
+            "UNTR.JK": "Mining Contractor", "BYAN.JK": "Mining",
             "ICBP.JK": "Consumer", "INDF.JK": "Consumer", "KLBF.JK": "Pharma",
             "PGEO.JK": "Geothermal", "WINS.JK": "Shipping",
             "EIDO": "ETF", "^JKSE": "Index",
-            "MEGA.JK": "Indonesia", "HRUM.JK": "Coal", "INDY.JK": "Indonesia",
-            "AADI.JK": "Indonesia", "BUMI.JK": "Coal", "MEDC.JK": "Energy",
+            "MEGA.JK": "Indonesia", "INDY.JK": "Indonesia", "AADI.JK": "Indonesia",
+            "MEDC.JK": "Energy",
         }
-
-        # Regime info for IHSG
+        REGIME_TAILWIND = {
+            "Q1": "Growth bid — Banking + Consumer + Telco",
+            "Q2": "Commodity bid — Coal + Nickel + CPO + Energy",
+            "Q3": "Stagflation bid — Commodity export + Defensive rotation",
+            "Q4": "Defensive bid — Banking + Consumer staples + Telco",
+        }
         regime_name = QN.get(sq, sq)
+        tailwind = REGIME_TAILWIND.get(sq, "Indonesia macro")
 
         for r in ihsg_rows:
             t = r.get("ticker")
-            sector = sector_map.get(t, "Indonesia")
-
-            # Simple worth entering logic for IHSG
+            sector = SECTOR_MAP.get(t, "Indonesia")
             price = r.get("price")
             entry = r.get("entry")
-            rr_val = r.get("rr", 0)
+            rr_val = r.get("rr", 0) or 0
+            r1m = r.get("r1m")
+            r3m = r.get("r3m")
 
             if price and entry:
                 dist = (price - entry) / entry if entry else 0
                 if dist <= 0.02:
                     worth = "✅ BUY"
-                    advice = f"At/above buy zone {_fmt_num(entry)}"
+                    advice = f"Price at buy zone {entry:.0f} — normal size"
+                    quality = "A"
                 elif dist <= 0.05:
                     worth = "⏳ WAIT"
-                    advice = f"Wait retrace to {_fmt_num(entry)}"
+                    advice = f"Wait retrace to entry {entry:.0f} or below"
+                    quality = "B"
                 else:
                     worth = "🏃 CHASE"
-                    advice = f"Extended, small size near {_fmt_num(entry)}"
+                    advice = f"Extended {dist:.1%} from entry — 50% size only"
+                    quality = "C"
             else:
-                worth = "—"; advice = "—"
+                worth = "—"; advice = "—"; quality = "C"
 
-            # Time based on RR
-            if rr_val >= 3: time_est = "2-4 months"
-            elif rr_val >= 2: time_est = "1-2 months"
-            elif rr_val >= 1.5: time_est = "2-4 weeks"
-            else: time_est = "1-2 weeks"
+            if any(s in sector for s in ["Coal", "Nickel", "CPO", "Mining"]):
+                path = "🟡 Bumpy — Commodity vol"
+            elif sector in ["Banking", "Telco", "Consumer"]:
+                path = "🟢 Smooth — Defensive flow"
+            else:
+                path = "🟢 Normal — Standard path"
 
             ihsg_df.append({
                 "Ticker": t,
                 "Sector": sector,
                 "Regime": regime_name,
+                "Tailwind": tailwind,
                 "Worth?": worth,
+                "Quality": quality,
                 "Price": _fmt_num(price),
                 "Entry": _fmt_num(entry),
                 "T1": _fmt_num(r.get("target_1")),
                 "T2": _fmt_num(r.get("target_2")),
                 "Stop": _fmt_num(r.get("stop")),
                 "RR": _fmt_rr(rr_val),
-                "1M": _fmt_pct(r.get("r1m")),
-                "3M": _fmt_pct(r.get("r3m")),
-                "Advice": advice,
-                "Path": "Smooth" if rr_val >= 2 else "Bumpy",
-                "Time": time_est,
+                "1M": _fmt_pct(r1m),
+                "3M": _fmt_pct(r3m),
+                "Entry Advice": advice,
+                "Path": path,
             })
 
         df = pd.DataFrame(ihsg_df)
         _render_dataframe(df, height=700, key="ihsg")
 
-        # Detail cards
         st.divider()
         st.markdown("### Detail Cards")
         for r in ihsg_rows[:10]:
             t = r.get("ticker")
-            sector = sector_map.get(t, "Indonesia")
+            sector = SECTOR_MAP.get(t, "Indonesia")
             with st.expander(f"🟢 {t} — {sector}"):
                 st.write(f"**Thesis:** {r.get('recommendation', 'N/A')}")
                 st.write(f"🎯 **Entry:** `{_fmt_num(r.get('entry'))}` → **T1:** `{_fmt_num(r.get('target_1'))}` → **T2:** `{_fmt_num(r.get('target_2'))}` | 🛑 **Stop:** `{_fmt_num(r.get('stop'))}`")
-
                 price = r.get("price"); entry = r.get("entry")
                 if price and entry:
                     dist = (price - entry) / entry
                     if dist <= 0.02:
                         st.success(f"✅ **BUY NOW** — Price {_fmt_num(price)} at buy zone {_fmt_num(entry)}")
                     elif dist <= 0.05:
-                        st.info(f"⏳ **WAIT** — Price {_fmt_num(price)} above entry {_fmt_num(entry)}. Wait for retrace to {_fmt_num(entry)} or below.")
+                        st.info(f"⏳ **WAIT** — Price {_fmt_num(price)} above entry {_fmt_num(entry)}. Wait for retrace.")
                     else:
-                        st.warning(f"🏃 **CHASE** — Price {_fmt_num(price)} extended from entry {_fmt_num(entry)}. Use small size.")
-
-                c1, c2, c3 = st.columns(3)
+                        st.warning(f"🏃 **CHASE** — Price {_fmt_num(price)} extended from entry {_fmt_num(entry)}. Small size.")
+                c1, c2, c3, c4 = st.columns(4)
                 c1.metric("1M Return", _fmt_pct(r.get('r1m')))
                 c2.metric("3M Return", _fmt_pct(r.get('r3m')))
                 c3.metric("RR", _fmt_rr(r.get("rr")))
-
-                st.caption(f"Sector: {sector} | Regime: {regime_name} | Q3 = commodity bid for Indo")
+                c4.metric("Sector", sector)
+                st.caption(f"Tailwind: {tailwind} | Regime: {regime_name} | Q3 = commodity bid for Indo")
     else:
-        st.info("No IHSG buy opportunities. Wait for pullback.")
+        st.info("No IHSG buy opportunities. Wait for pullback to LRR levels.")
 
-    st.markdown("### 🟢 Indonesia Tailwind: Q3")
-    st.markdown("Q3 Stagflation = commodity bid supports coal, nickel, CPO. Defensive sectors (banking, telco) also work.")
+    st.markdown("### 🟢 Indonesia Macro Context")
+    st.markdown(f"**Current Regime:** {sq} — {QN.get(sq, sq)}")
+    st.markdown(f"**Tailwind:** {tailwind}")
+    st.markdown("**Key Drivers:** Fed policy (rate cuts = IDR strength), China stimulus (commodity demand), domestic consumption (banking/telco).")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: 🌍 GLOBAL QUAD

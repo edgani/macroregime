@@ -76,9 +76,9 @@ except Exception as _e:
         def get_dex_volume_24h(self): return None
 
 try:
-    from engines.hurst_risk_ranges import HurstRiskRangeEngine
+    from engines.hurst_rr_engine import HurstRiskRangeEngine
 except Exception as _e:
-    logger.warning(f"hurst_risk_ranges import failed: {_e}")
+    logger.warning(f"hurst_rr_engine import failed: {_e}")
     class HurstRiskRangeEngine:
         def analyze(self, s): return {"ok": False}
 
@@ -668,6 +668,13 @@ def _build_daily_signals(prices, sq, mq, asset_ranges, health, gamma_data=None, 
         if r3m is not None:
             trend_score = max(-1.0, min(1.0, r3m * 5))
 
+        # ── PRELIMINARY DIRECTION (for option scoring) ─────────────────
+        prelim_score = (fit_score * 0.30 + momentum_score * 0.25 + rr_score * 0.15 +
+                        trend_score * 0.10)
+        if bias == "bullish": prelim_score += 0.10
+        elif bias == "bearish": prelim_score -= 0.10
+        prelim_dir = "LONG" if prelim_score >= 0.15 else ("SHORT" if prelim_score <= -0.15 else "NEUTRAL")
+
         # ── OPTION/GAMMA SCORING ──────────────────────────────────────
         option_score = 0.0
         greek = greeks_data.get(ticker, {})
@@ -678,10 +685,10 @@ def _build_daily_signals(prices, sq, mq, asset_ranges, health, gamma_data=None, 
             greek_score = greek.get("composite_score", 0)
             option_score += greek_score * 0.15  # 15% weight
 
-            # Vanna adjustment
-            if greek.get("vanna_val", 0) > 0.3 and direction == "LONG":
+            # Vanna adjustment (uses preliminary direction)
+            if greek.get("vanna_val", 0) > 0.3 and prelim_dir == "LONG":
                 option_score += 0.05  # positive vanna supports longs
-            elif greek.get("vanna_val", 0) < -0.3 and direction == "SHORT":
+            elif greek.get("vanna_val", 0) < -0.3 and prelim_dir == "SHORT":
                 option_score -= 0.05  # negative vanna supports shorts
 
             # Charm adjustment
@@ -698,20 +705,20 @@ def _build_daily_signals(prices, sq, mq, asset_ranges, health, gamma_data=None, 
             elif g_regime in ("DEEP_NEGATIVE", "NEGATIVE"):
                 option_score -= 0.05  # gamma headwind
 
-            # Max pain distance
+            # Max pain distance (uses preliminary direction)
             dist_mp = gamma.get("dist_max_pain_pct", 0)
             if abs(dist_mp) < 2:
                 option_score *= 0.8  # near max pain = chop, reduce conviction
-            elif dist_mp > 5 and direction == "LONG":
+            elif dist_mp > 5 and prelim_dir == "LONG":
                 option_score -= 0.05  # far above max pain = overextended
-            elif dist_mp < -5 and direction == "SHORT":
+            elif dist_mp < -5 and prelim_dir == "SHORT":
                 option_score += 0.05  # far below max pain = oversold
 
-            # Gamma exposure
+            # Gamma exposure (uses preliminary direction)
             g_exp = gamma.get("gamma_exposure", "")
-            if "POSITIVE" in g_exp and direction == "LONG":
+            if "POSITIVE" in g_exp and prelim_dir == "LONG":
                 option_score += 0.04  # dealers long gamma = buy dips
-            elif "NEGATIVE" in g_exp and direction == "SHORT":
+            elif "NEGATIVE" in g_exp and prelim_dir == "SHORT":
                 option_score -= 0.04  # dealers short gamma = sell rallies
 
         # Composite score -1.0 to +1.0
@@ -984,7 +991,8 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
     # 4. Alpha Longs
     for a in alpha.get("longs", []):
         t = a.get("ticker")
-        item = {
+        item = dict(a)  # preserve all conclusion fields from _build_alpha_ideas
+        item.update({
             "ticker": t,
             "scanner_type": "ALPHA LONG",
             "priority_score": _boost_priority(75 if a.get("grade") == "A" else 60, t, "LONG"),
@@ -996,20 +1004,15 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
             "setup": f"Entry {a.get('entry')} → T1 {a.get('target_1')} → T2 {a.get('target_2')} | Stop {a.get('stop_loss')} | RR {a.get('rr')}",
             "invalidators": ["Stop loss hit", "Regime flip", "Momentum reversal"],
             "hold_for": a.get("hold_for", "2-4 weeks"),
-            "price": a.get("price"),
-            "entry": a.get("entry"),
-            "target_1": a.get("target_1"),
-            "target_2": a.get("target_2"),
-            "stop_loss": a.get("stop_loss"),
-            "rr": a.get("rr"),
             "source": "alpha",
-        }
+        })
         center_items.append(_enrich_item(item, t))
 
     # 5. Alpha Shorts
     for a in alpha.get("shorts", []):
         t = a.get("ticker")
-        item = {
+        item = dict(a)  # preserve all conclusion fields from _build_alpha_ideas
+        item.update({
             "ticker": t,
             "scanner_type": "ALPHA SHORT",
             "priority_score": _boost_priority(75 if a.get("grade") == "A" else 60, t, "SHORT"),
@@ -1021,14 +1024,8 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
             "setup": f"Entry {a.get('entry')} → T1 {a.get('target_1')} → T2 {a.get('target_2')} | Stop {a.get('stop_loss')} | RR {a.get('rr')}",
             "invalidators": ["Stop loss hit", "Regime flip", "Momentum reversal"],
             "hold_for": a.get("hold_for", "2-4 weeks"),
-            "price": a.get("price"),
-            "entry": a.get("entry"),
-            "target_1": a.get("target_1"),
-            "target_2": a.get("target_2"),
-            "stop_loss": a.get("stop_loss"),
-            "rr": a.get("rr"),
             "source": "alpha",
-        }
+        })
         center_items.append(_enrich_item(item, t))
 
     # 6. Auto Discoveries
@@ -1541,21 +1538,23 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
         "risk_flags": [b["known_thesis"] for b in bottlenecks.get("level_1", [])[:3]],
     }
 
-    # FIX: dummy gamma data kalau kosong
-    gamma_data = {
-        "ok": True, "regime": "POSITIVE", "label": "Positive", "color": "#3FB950",
-        "throttle": 0.5, "rvol_10d": 15.0, "vol_premium": -2.0,
-        "action": "Buy dips, normal sizing",
-    }
+    # FIX: only use dummy gamma if real gamma_data is empty
+    if not gamma_data or (isinstance(gamma_data, dict) and not gamma_data.get("ok") and len(gamma_data) < 5):
+        gamma_data = {
+            "ok": True, "regime": "POSITIVE", "label": "Positive", "color": "#3FB950",
+            "throttle": 0.5, "rvol_10d": 15.0, "vol_premium": -2.0,
+            "action": "Buy dips, normal sizing",
+        }
 
-    # FIX: dummy lev ETF data kalau kosong
-    lev_data = {
-        "ok": True, "total_mcap_b": 85.5, "long_exposure_b": 68.4, "short_exposure_b": 12.1,
-        "long_pct": 0.80, "short_pct": 0.14, "is_ath": False,
-        "rebalancing_pressure": "LOW",
-        "top_longs": [{"ticker":"TQQQ","aum_b":15.2},{"ticker":"UPRO","aum_b":8.1},{"ticker":"SOXL","aum_b":6.5}],
-        "top_shorts": [{"ticker":"SQQQ","aum_b":4.2},{"ticker":"SPXU","aum_b":2.1}],
-    }
+    # FIX: only use dummy lev if real lev_data is empty
+    if not lev_data or (isinstance(lev_data, dict) and not lev_data.get("ok") and len(lev_data) < 5):
+        lev_data = {
+            "ok": True, "total_mcap_b": 85.5, "long_exposure_b": 68.4, "short_exposure_b": 12.1,
+            "long_pct": 0.80, "short_pct": 0.14, "is_ath": False,
+            "rebalancing_pressure": "LOW",
+            "top_longs": [{"ticker":"TQQQ","aum_b":15.2},{"ticker":"UPRO","aum_b":8.1},{"ticker":"SOXL","aum_b":6.5}],
+            "top_shorts": [{"ticker":"SQQQ","aum_b":4.2},{"ticker":"SPXU","aum_b":2.1}],
+        }
 
     snapshot = {
         "ok": True,

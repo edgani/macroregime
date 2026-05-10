@@ -275,7 +275,7 @@ def _build_alpha_ideas(prices, sq, mq, gamma_data=None, greeks_data=None):
         # Add conclusions
         gamma = gamma_data.get(ticker, {})
         greek = greeks_data.get(ticker, {})
-        item = _enrich_signal_with_conclusions(item, gamma, greek, rr)
+        item = _enrich_signal_with_conclusions(item, gamma, greek, rr, market_type=mkt)
         longs.append(item)
     for ticker in playbook.get("worst_assets", [])[:6]:
         p = _last_price(prices.get(ticker))
@@ -293,7 +293,7 @@ def _build_alpha_ideas(prices, sq, mq, gamma_data=None, greeks_data=None):
         }
         gamma = gamma_data.get(ticker, {})
         greek = greeks_data.get(ticker, {})
-        item = _enrich_signal_with_conclusions(item, gamma, greek, rr)
+        item = _enrich_signal_with_conclusions(item, gamma, greek, rr, market_type=mkt)
         shorts.append(item)
     if not longs and not shorts:
         for t in ["SPY", "QQQ", "IWM", "XLK", "XLE", "GLD", "SLV", "TLT", "IBIT", "UUP"]:
@@ -458,18 +458,41 @@ def _path_smoothness(gamma, greek, momentum_1m, vix):
     else:
         return "🟢 Normal — Standard path to target"
 
-def _time_estimate(rr, gamma, greek, momentum_1m):
-    """Estimate how long to reach target"""
+def _time_estimate(rr, gamma, greek, momentum_1m, market_type="us_equity", rvol_20d=None):
+    """Estimate how long to reach target. Crypto = much faster due to high vol."""
     if not rr: return "Unknown"
 
-    if rr >= 3.0:
-        base = "2-4 months"
-    elif rr >= 2.0:
-        base = "1-2 months"
-    elif rr >= 1.5:
-        base = "2-4 weeks"
+    # Crypto moves 5-10x faster than stocks due to 24/7 + high vol
+    is_crypto = market_type == "crypto"
+    is_forex = market_type == "forex"
+
+    if is_crypto:
+        # Crypto: targets hit in days, not weeks
+        if rr >= 3.0: base = "2-4 weeks"
+        elif rr >= 2.0: base = "1-2 weeks"
+        elif rr >= 1.5: base = "3-7 days"
+        else: base = "1-3 days"
+    elif is_forex:
+        # Forex: moderate speed
+        if rr >= 3.0: base = "1-2 months"
+        elif rr >= 2.0: base = "2-4 weeks"
+        elif rr >= 1.5: base = "1-2 weeks"
+        else: base = "3-7 days"
     else:
-        base = "1-2 weeks"
+        # Stocks/commodities: standard
+        if rr >= 3.0: base = "2-4 months"
+        elif rr >= 2.0: base = "1-2 months"
+        elif rr >= 1.5: base = "2-4 weeks"
+        else: base = "1-2 weeks"
+
+    # Volatility adjustment: high realized vol = faster moves
+    if rvol_20d and rvol_20d > 50:
+        base = base.replace("months", "weeks").replace("weeks", "days")
+        if "days" not in base:
+            base = "3-7 days"
+    elif rvol_20d and rvol_20d > 30:
+        if "months" in base:
+            base = base.replace("months", "weeks")
 
     if gamma.get("ok"):
         if gamma.get("regime") in ("DEEP_POSITIVE", "POSITIVE") and momentum_1m and momentum_1m > 0.03:
@@ -519,7 +542,7 @@ def _breakout_chance(price, target_2, gamma, greek, momentum_3m, direction):
         else:
             return "Low — Mixed signals, T2 is stretch target"
 
-def _enrich_signal_with_conclusions(sig, gamma, greek, rr_data):
+def _enrich_signal_with_conclusions(sig, gamma, greek, rr_data, market_type="us_equity"):
     """Add readable conclusion fields to a signal dict."""
     price = sig.get("price")
     entry = sig.get("entry")
@@ -535,13 +558,14 @@ def _enrich_signal_with_conclusions(sig, gamma, greek, rr_data):
 
     lrr = rr_data.get("trade", {}).get("lrr") if rr_data and rr_data.get("ok") else None
     trr = rr_data.get("trade", {}).get("trr") if rr_data and rr_data.get("ok") else None
+    rvol_20d = greek.get("rvol_20d") if greek and greek.get("ok") else None
 
     sig["entry_advice"] = _entry_advice(price, entry, lrr, trr, gamma, greek, momentum_1m, composite, direction)
     sig["tp1_basis"] = _target_basis(target1, trr, lrr, gamma, direction)
     sig["tp2_basis"] = _target_basis(target2, trr, lrr, gamma, direction)
     sig["stop_basis"] = _stop_basis(stop, lrr, trr, gamma, direction)
     sig["path_smoothness"] = _path_smoothness(gamma, greek, momentum_1m, vix)
-    sig["time_estimate"] = _time_estimate(rr, gamma, greek, momentum_1m)
+    sig["time_estimate"] = _time_estimate(rr, gamma, greek, momentum_1m, market_type, rvol_20d)
     sig["breakout_chance"] = _breakout_chance(price, target2, gamma, greek, momentum_3m, direction)
 
     # Simple worth_entering derived from entry_advice
@@ -787,8 +811,17 @@ def _build_daily_signals(prices, sq, mq, asset_ranges, health, gamma_data=None, 
             "call_wall": gamma.get("call_wall") if gamma.get("ok") else None,
             "greek_composite": greek.get("composite") if greek.get("ok") else None,
         }
+        # Detect market type for time estimate
+        mkt = "us_equity"
+        if ticker in CRYPTO or any(x in ticker for x in ["BTC","ETH","SOL","TON","ADA","AVAX","DOT","LINK","DOGE","LTC","XRP","BNB"]):
+            mkt = "crypto"
+        elif ticker in FOREX_PAIRS or any(x in ticker for x in ["USD=","EUR=","GBP=","JPY=","CAD","AUD","CHF","NZD","MXN","SEK","BRL"]):
+            mkt = "forex"
+        elif ticker in COMMODITIES or any(x in ticker for x in ["GC=","SI=","CL=","BZ=","NG=","HG=","PL=","PA=","RB=","HO=","ALI=","ZW=","ZC=","ZS=","ZW","ZC","ZS"]):
+            mkt = "commodity"
+
         # Enrich with readable conclusions
-        sig = _enrich_signal_with_conclusions(sig, gamma, greek, rr)
+        sig = _enrich_signal_with_conclusions(sig, gamma, greek, rr, market_type=mkt)
         signals.append(sig)
 
     # Sort by absolute score descending
@@ -1413,7 +1446,6 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
         discovery = {"discoveries": []}
 
     playbook = get_playbook(sq, mq)
-    alpha = _build_alpha_ideas(prices, sq, mq, gamma_data, greeks_data)
 
     flip = gip.flip_hazard
     transition = SimpleNamespace(
@@ -1432,7 +1464,6 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
     crypto_onchain = _build_crypto_onchain(prices) if include_crypto else {}
     auto_discoveries = _build_auto_discoveries(prices, gip, sq)
 
-    # ── NEW: Daily Signals (Hedgeye-style) ───────────────────────────────
     # ── OPTION DATA: Gamma + Greeks ────────────────────────────────────
     gamma_data = {}
     greeks_data = {}
@@ -1450,6 +1481,10 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
         logger.warning(f"Option analytics failed: {e}")
         if progress_cb: progress_cb("Option analytics failed — using fallback", 0.80)
 
+    # ── ALPHA IDEAS (after gamma/greeks available) ─────────────────────
+    alpha = _build_alpha_ideas(prices, sq, mq, gamma_data, greeks_data)
+
+    # ── NEW: Daily Signals (Hedgeye-style) ───────────────────────────────
     if progress_cb: progress_cb("Building daily signals...", 0.82)
     daily_signals = _build_daily_signals(prices, sq, mq, asset_ranges, health, gamma_data, greeks_data)
     if progress_cb: progress_cb(f"Daily signals: {len(daily_signals)} tickers", 0.85)

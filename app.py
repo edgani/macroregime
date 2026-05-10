@@ -335,7 +335,7 @@ def _crypto_greeks_proxy(ticker, prices, basis_pct=0):
         for k in greeks: greeks[k] = "N/A ⚪"
     return greeks
 
-def _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, market_type, vix_now):
+def _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, market_type, vix_now, gamma_data=None, greeks_data=None):
     v = ar.get(ticker, {})
     if not v:
         s = prices.get(ticker)
@@ -354,6 +354,12 @@ def _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, market_type, 
     side = "long" if v.get("composite") == "bullish" else "short"
     rl = _rr_levels(px, lrr, trr, side)
     if not rl: return None
+
+    # ── OPTION DATA: Gamma + Greeks ─────────────────────────────────────
+    gamma_data = gamma_data or {}
+    greeks_data = greeks_data or {}
+    gamma = gamma_data.get(ticker, {})
+    greek = greeks_data.get(ticker, {})
 
     if market_type == "crypto":
         g = _crypto_greeks_proxy(ticker, prices, 0)
@@ -420,22 +426,33 @@ def _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, market_type, 
     delta_bullish = any(x in delta_dir for x in ["Long", "Bullish", "Positive"])
     delta_bearish = any(x in delta_dir for x in ["Short", "Bearish", "Negative"])
 
-    if composite == "bullish" and cot_bias in ("Bullish", "Neutral") and "High at lows" in oi_conc and delta_bullish:
-        direction = "LONG ✅"; rec = "🟢 STRONG LONG — Oversold + COT bullish + OI accumulation at lows + Delta confirms"
-    elif composite == "bearish" and cot_bias in ("Bearish", "Neutral") and "High at highs" in oi_conc and delta_bearish:
-        direction = "SHORT ✅"; rec = "🔴 STRONG SHORT — Overbought + COT bearish + OI distribution at highs + Delta confirms"
+    # ── OPTION-ENHANCED DIRECTION LOGIC ────────────────────────────────
+    greek_comp = greek.get("composite", "") if greek.get("ok") else ""
+    gamma_reg = gamma.get("regime", "") if gamma.get("ok") else ""
+
+    # Boost/penalize based on option alignment
+    option_boost = 0
+    if "BULLISH" in greek_comp and composite == "bullish": option_boost += 1
+    if "BEARISH" in greek_comp and composite == "bearish": option_boost += 1
+    if gamma_reg in ("DEEP_POSITIVE", "POSITIVE") and composite == "bullish": option_boost += 1
+    if gamma_reg in ("DEEP_NEGATIVE", "NEGATIVE") and composite == "bearish": option_boost += 1
+
+    if composite == "bullish" and cot_bias in ("Bullish", "Neutral") and "High at lows" in oi_conc and (delta_bullish or option_boost >= 2):
+        direction = "LONG ✅"; rec = "🟢 STRONG LONG — Oversold + COT bullish + OI accumulation + Delta/Greeks confirm"
+    elif composite == "bearish" and cot_bias in ("Bearish", "Neutral") and "High at highs" in oi_conc and (delta_bearish or option_boost >= 2):
+        direction = "SHORT ✅"; rec = "🔴 STRONG SHORT — Overbought + COT bearish + OI distribution + Delta/Greeks confirm"
     elif composite == "bullish" and "High at highs" in oi_conc:
-        direction = "LONG ⚠️"; rec = "🟡 CAUTIOUS LONG — Setup bullish but OI shows profit-taking at resistance, wait pullback"
+        direction = "LONG ⚠️"; rec = "🟡 CAUTIOUS LONG — Setup bullish but OI shows profit-taking at resistance"
     elif composite == "bearish" and "High at lows" in oi_conc:
-        direction = "SHORT ⚠️"; rec = "🟡 CAUTIOUS SHORT — Bearish signal but OI shows accumulation at lows, could bounce"
+        direction = "SHORT ⚠️"; rec = "🟡 CAUTIOUS SHORT — Bearish signal but OI shows accumulation at lows"
     elif composite == "bullish" and cot_bias == "Bearish":
-        direction = "LONG ⚠️"; rec = "🟡 CONFLICTED — Price oversold but COT bearish, smart money disagrees, reduce size"
+        direction = "LONG ⚠️"; rec = "🟡 CONFLICTED — Price oversold but COT bearish, smart money disagrees"
     elif composite == "bearish" and cot_bias == "Bullish":
-        direction = "SHORT ⚠️"; rec = "🟡 CONFLICTED — Price extended but COT bullish, smart money buying dip, avoid short"
+        direction = "SHORT ⚠️"; rec = "🟡 CONFLICTED — Price extended but COT bullish, smart money buying dip"
     elif composite == "bullish":
-        direction = "LONG ⚠️"; rec = "🟡 MODERATE LONG — Price oversold but COT/OI mixed, use tight stop"
+        direction = "LONG ⚠️"; rec = "🟡 MODERATE LONG — Price oversold but mixed signals"
     elif composite == "bearish":
-        direction = "SHORT ⚠️"; rec = "🟡 MODERATE SHORT — Price extended but COT/OI mixed, use tight stop"
+        direction = "SHORT ⚠️"; rec = "🟡 MODERATE SHORT — Price extended but mixed signals"
     else:
         direction = "NEUTRAL ⏳"; rec = "⚪ NO EDGE — Mixed signals, wait for clarity"
 
@@ -461,6 +478,22 @@ def _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, market_type, 
         "grade": v.get("quality", "—").replace("short_", ""),
         "r1m": _price_ret(ticker, prices, 21),
         "r3m": _price_ret(ticker, prices, 63),
+        # Option data
+        "gamma_regime": gamma.get("regime") if gamma.get("ok") else None,
+        "max_pain_gamma": gamma.get("max_pain") if gamma.get("ok") else None,
+        "gamma_flip_up": gamma.get("gamma_flip_up") if gamma.get("ok") else None,
+        "gamma_flip_down": gamma.get("gamma_flip_down") if gamma.get("ok") else None,
+        "put_wall": gamma.get("put_wall") if gamma.get("ok") else None,
+        "call_wall": gamma.get("call_wall") if gamma.get("ok") else None,
+        "gamma_exposure": gamma.get("gamma_exposure") if gamma.get("ok") else None,
+        "skew": gamma.get("skew") if gamma.get("ok") else None,
+        "greek_composite": greek.get("composite") if greek.get("ok") else None,
+        "greek_delta": greek.get("delta") if greek.get("ok") else None,
+        "greek_vanna": greek.get("vanna") if greek.get("ok") else None,
+        "greek_charm": greek.get("charm") if greek.get("ok") else None,
+        "greek_score": greek.get("composite_score") if greek.get("ok") else None,
+        "vol_premium": greek.get("vol_premium") if greek.get("ok") else None,
+        "rvol_20d": greek.get("rvol_20d") if greek.get("ok") else None,
     }
 
 def _build_ihsg_row(ticker, prices, ar):
@@ -661,9 +694,10 @@ with st.sidebar:
     st.divider()
     page = st.radio("Navigation", [
         "🏠 Dashboard","📈 GIP Model","🎯 Risk Ranges™","⚡ Alpha Center",
-        "📈 Daily Signals",  # <-- NEW TAB
+        "📈 Daily Signals",
         "📊 Leaderboard","🌍 Global Quad","💱 Forex","🛢️ Commodities","₿ Crypto",
-        "🇮🇩 IHSG","📖 Narratives","🔮 Discovery","🏥 Health","📋 Playbook",
+        "🇮🇩 IHSG","📖 Narratives","🔮 Discovery","📊 Greeks",  # <-- NEW TAB
+        "🏥 Health","📋 Playbook",
     ], label_visibility="collapsed")
     st.divider()
     from data.loader import snapshot_age_str, load_snapshot
@@ -1117,7 +1151,7 @@ elif page == "📊 Leaderboard":
         mkt = v.get("market", "us_equity")
         if mkt not in ("us_equity", "commodity", "crypto", "forex", "ihsg"):
             continue
-        row = _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, mkt, vix_now)
+        row = _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, mkt, vix_now, gamma_data, greeks_data)
         if row:
             lb_rows.append(row)
 
@@ -1127,7 +1161,8 @@ elif page == "📊 Leaderboard":
         "Ticker": "ticker", "Price": "price", "Entry": "entry",
         "Direction": "direction", "Hold": "hold",
         "T1": "target_1", "T2": "target_2", "Stop": "stop",
-        "R:R": "rr", "Recommendation": "recommendation"
+        "R:R": "rr", "Greek": "greek_composite", "Gamma": "gamma_regime",
+        "Max Pain": "max_pain_gamma", "Recommendation": "recommendation"
     }
 
     st.markdown("### 🟢 LONG LEADERBOARD")
@@ -1158,7 +1193,7 @@ elif page == "💱 Forex":
 
     fx_rows = []
     for ticker in list(FOREX_PAIRS.keys()):
-        row = _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, "forex", vix_now)
+        row = _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, "forex", vix_now, gamma_data, greeks_data)
         if row:
             fx_rows.append(row)
 
@@ -1168,7 +1203,8 @@ elif page == "💱 Forex":
         "Pair": "ticker", "Price": "price", "Entry": "entry",
         "Direction": "direction", "Hold": "hold",
         "T1": "target_1", "T2": "target_2", "Stop": "stop",
-        "R:R": "rr", "Recommendation": "recommendation"
+        "R:R": "rr", "Greek": "greek_composite", "Gamma": "gamma_regime",
+        "Max Pain": "max_pain_gamma", "Recommendation": "recommendation"
     }
 
     st.markdown("### 🟢 LONG FX")
@@ -1199,7 +1235,7 @@ elif page == "🛢️ Commodities":
 
     comm_rows = []
     for ticker in list(COMMODITIES.keys()):
-        row = _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, "commodity", vix_now)
+        row = _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, "commodity", vix_now, gamma_data, greeks_data)
         if row:
             comm_rows.append(row)
 
@@ -1209,7 +1245,8 @@ elif page == "🛢️ Commodities":
         "Ticker": "ticker", "Price": "price", "Entry": "entry",
         "Direction": "direction", "Hold": "hold",
         "T1": "target_1", "T2": "target_2", "Stop": "stop",
-        "R:R": "rr", "Recommendation": "recommendation"
+        "R:R": "rr", "Greek": "greek_composite", "Gamma": "gamma_regime",
+        "Max Pain": "max_pain_gamma", "Recommendation": "recommendation"
     }
 
     st.markdown("### 🟢 LONG COMMODITIES")
@@ -1295,7 +1332,8 @@ elif page == "₿ Crypto":
         "T1": "target_1", "T2": "target_2", "Stop": "stop",
         "R:R": "rr", "On-Chain": "onchain_signal",
         "Momentum": "onchain_score", "TVL 7d": "tvl_7d",
-        "Recommendation": "recommendation"
+        "Greek": "greek_composite", "Gamma": "gamma_regime",
+        "Max Pain": "max_pain_gamma", "Recommendation": "recommendation"
     }
 
     st.markdown("### 🟢 LONG CRYPTO")
@@ -1457,6 +1495,128 @@ elif page == "🔮 Discovery":
             st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:6px;padding:8px 12px;margin:4px 0;"><b>{b.get("ticker","")}</b> · {b.get("direction","")} · {b.get("known_thesis","")[:60]}</div>', unsafe_allow_html=True)
     else:
         st.info("No auto-discovered bottlenecks yet.")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TAB: 📊 GREEKS (Option Analytics)
+# ══════════════════════════════════════════════════════════════════════════════
+elif page == "📊 Greeks":
+    st.markdown('<div style="font-size:28px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">📊 Greeks & Option Analytics</div>', unsafe_allow_html=True)
+    st.caption("Gamma levels, Greeks composite, and option-aware signals for all tickers.")
+    st.divider()
+
+    gamma_data = snap.get("gamma_data", {}) or {}
+    greeks_data = snap.get("greeks_data", {}) or {}
+
+    if not gamma_data and not greeks_data:
+        st.warning("Option data not available. Run Full Rebuild with the new orchestrator.")
+        st.stop()
+
+    # Summary stats
+    total_gamma = len(gamma_data)
+    total_greeks = len(greeks_data)
+
+    c1, c2, c3, c4, c5 = st.columns(5)
+    c1.metric("Gamma Analyzed", total_gamma)
+    c2.metric("Greeks Analyzed", total_greeks)
+
+    # Count regimes
+    if gamma_data:
+        regimes = {}
+        for g in gamma_data.values():
+            r = g.get("regime", "UNKNOWN")
+            regimes[r] = regimes.get(r, 0) + 1
+        c3.metric("Deep Pos", regimes.get("DEEP_POSITIVE", 0))
+        c4.metric("Positive", regimes.get("POSITIVE", 0))
+        c5.metric("Negative", regimes.get("NEGATIVE", 0) + regimes.get("DEEP_NEGATIVE", 0))
+
+    st.divider()
+
+    # Filters
+    col_f1, col_f2, col_f3 = st.columns(3)
+    filter_gamma = col_f1.multiselect("Gamma Regime", 
+        ["DEEP_POSITIVE", "POSITIVE", "TRANSITION", "NEGATIVE", "DEEP_NEGATIVE"],
+        default=["DEEP_POSITIVE", "POSITIVE", "NEGATIVE", "DEEP_NEGATIVE"])
+    filter_greek = col_f2.multiselect("Greeks Composite",
+        ["BULLISH 🟢", "MOD BULLISH 🟡", "NEUTRAL ⚪", "MOD BEARISH 🟡", "BEARISH 🔴"],
+        default=["BULLISH 🟢", "MOD BULLISH 🟡", "BEARISH 🔴", "MOD BEARISH 🟡"])
+    filter_ticker = col_f3.text_input("Search Ticker", placeholder="e.g. SPY, GLD, EURUSD")
+
+    # Build table
+    rows = []
+    all_tickers = sorted(set(list(gamma_data.keys()) + list(greeks_data.keys())))
+
+    for t in all_tickers:
+        if filter_ticker and filter_ticker.upper() not in t.upper(): continue
+
+        g = gamma_data.get(t, {})
+        k = greeks_data.get(t, {})
+
+        g_reg = g.get("regime", "") if g.get("ok") else ""
+        k_comp = k.get("composite", "") if k.get("ok") else ""
+
+        if g_reg not in filter_gamma and g.get("ok"): continue
+        if k_comp not in filter_greek and k.get("ok"): continue
+        if not g.get("ok") and not k.get("ok"): continue
+
+        rows.append({
+            "Ticker": t,
+            "Price": g.get("price") if g.get("ok") else (k.get("price") if k.get("ok") else None),
+            "Gamma": g_reg if g.get("ok") else "—",
+            "Throttle": f"{g.get('throttle', 0):.0%}" if g.get("ok") else "—",
+            "Max Pain": g.get("max_pain") if g.get("ok") else "—",
+            "Flip ↑": g.get("gamma_flip_up") if g.get("ok") else "—",
+            "Flip ↓": g.get("gamma_flip_down") if g.get("ok") else "—",
+            "Put Wall": g.get("put_wall") if g.get("ok") else "—",
+            "Call Wall": g.get("call_wall") if g.get("ok") else "—",
+            "Greeks": k_comp if k.get("ok") else "—",
+            "Delta": k.get("delta") if k.get("ok") else "—",
+            "Vanna": k.get("vanna") if k.get("ok") else "—",
+            "Charm": k.get("charm") if k.get("ok") else "—",
+            "Volga": k.get("volga") if k.get("ok") else "—",
+            "RVOL": f"{k.get('rvol_20d', 0):.1f}%" if k.get("ok") else "—",
+            "Vol Prem": f"{k.get('vol_premium', 0):+.1f}%" if k.get("ok") else "—",
+            "Skew": g.get("skew") if g.get("ok") else "—",
+            "Gamma Exp": g.get("gamma_exposure") if g.get("ok") else "—",
+        })
+
+    st.write(f"Showing {len(rows)} tickers")
+
+    if rows:
+        df = pd.DataFrame(rows)
+        st.dataframe(df, use_container_width=True, hide_index=True, height=700)
+    else:
+        st.info("No tickers match your filters.")
+
+    # Detail expanders for top 10
+    st.divider()
+    st.markdown("### Top 10 Detail")
+    for r in rows[:10]:
+        t = r["Ticker"]
+        g = gamma_data.get(t, {})
+        k = greeks_data.get(t, {})
+
+        with st.expander(f"{t} — Gamma: {r['Gamma']} | Greeks: {r['Greeks']}"):
+            if g.get("ok"):
+                st.markdown(f"**Gamma Regime:** {g.get('label', g.get('regime'))}")
+                st.markdown(f"**Action:** {g.get('action')}")
+                c1, c2, c3, c4 = st.columns(4)
+                c1.metric("Price", g.get("price"))
+                c2.metric("Max Pain", g.get("max_pain"), f"{g.get('dist_max_pain_pct', 0):+.1f}%")
+                c3.metric("Throttle", f"{g.get('throttle', 0):.0%}")
+                c4.metric("RVOL 10d", f"{g.get('rvol_10d', 0):.1f}%")
+                st.caption(f"Flip ↑: `{g.get('gamma_flip_up')}` | Flip ↓: `{g.get('gamma_flip_down')}` | Put: `{g.get('put_wall')}` | Call: `{g.get('call_wall')}`")
+                st.caption(f"Skew: {g.get('skew')} | Gamma Exposure: {g.get('gamma_exposure')}")
+
+            if k.get("ok"):
+                st.markdown(f"**Greeks Composite:** {k.get('composite')} (score: {k.get('composite_score', 0):.2f})")
+                gc1, gc2, gc3, gc4, gc5 = st.columns(5)
+                gc1.metric("Delta", k.get("delta"))
+                gc2.metric("Gamma", k.get("gamma"))
+                gc3.metric("Vanna", k.get("vanna"))
+                gc4.metric("Charm", k.get("charm"))
+                gc5.metric("Volga", k.get("volga"))
+                st.caption(f"RVOL 20d: {k.get('rvol_20d', 0):.1f}% | Vol Premium: {k.get('vol_premium', 0):+.1f}% | Vol: {k.get('vol')}")
+                st.caption(f"Delta note: {k.get('delta_note')} | Gamma note: {k.get('gamma_note')} | Vanna note: {k.get('vanna_note')}")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: 🏥 HEALTH

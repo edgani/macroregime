@@ -565,12 +565,56 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
 
     center_items = []
 
+    # Helper: enrich item with option data
+    def _enrich_item(item, ticker):
+        gamma = gamma_data.get(ticker, {})
+        greek = greeks_data.get(ticker, {})
+        if gamma.get("ok"):
+            item["gamma_regime"] = gamma.get("regime")
+            item["gamma_throttle"] = gamma.get("throttle")
+            item["max_pain"] = gamma.get("max_pain")
+            item["gamma_flip_up"] = gamma.get("gamma_flip_up")
+            item["gamma_flip_down"] = gamma.get("gamma_flip_down")
+            item["put_wall"] = gamma.get("put_wall")
+            item["call_wall"] = gamma.get("call_wall")
+            item["gamma_exposure"] = gamma.get("gamma_exposure")
+            item["skew"] = gamma.get("skew")
+            item["dist_max_pain_pct"] = gamma.get("dist_max_pain_pct")
+        if greek.get("ok"):
+            item["greek_delta"] = greek.get("delta")
+            item["greek_gamma"] = greek.get("gamma")
+            item["greek_vanna"] = greek.get("vanna")
+            item["greek_charm"] = greek.get("charm")
+            item["greek_composite"] = greek.get("composite")
+            item["greek_score"] = greek.get("composite_score")
+            item["vol_premium"] = greek.get("vol_premium")
+            item["rvol_20d"] = greek.get("rvol_20d")
+        return item
+
+    # Helper: boost priority with option confirmation
+    def _boost_priority(base_score, ticker, direction):
+        gamma = gamma_data.get(ticker, {})
+        greek = greeks_data.get(ticker, {})
+        score = base_score
+        if greek.get("ok"):
+            if "BULLISH" in greek.get("composite", "") and direction == "LONG":
+                score *= 1.15
+            elif "BEARISH" in greek.get("composite", "") and direction == "SHORT":
+                score *= 1.15
+        if gamma.get("ok"):
+            if gamma.get("regime") in ("DEEP_POSITIVE", "POSITIVE") and direction == "LONG":
+                score *= 1.10
+            elif gamma.get("regime") in ("DEEP_NEGATIVE", "NEGATIVE") and direction == "SHORT":
+                score *= 1.10
+        return score
+
     # 1. Bottleneck Level 1 (urgent)
     for b in bottlenecks.get("level_1", []):
-        center_items.append({
-            "ticker": b.get("ticker", "UNKNOWN"),
+        t = b.get("ticker", "UNKNOWN")
+        item = {
+            "ticker": t,
             "scanner_type": "BOTTLENECK L1",
-            "priority_score": b.get("score", 0) * 100,
+            "priority_score": _boost_priority(b.get("score", 0) * 100, t, b.get("direction", "HOLD")),
             "direction": b.get("direction", "HOLD"),
             "signal": b.get("direction", "HOLD"),
             "grade": b.get("quality", "A"),
@@ -580,14 +624,16 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
             "invalidators": [],
             "hold_for": "Immediate",
             "source": "bottleneck",
-        })
+        }
+        center_items.append(_enrich_item(item, t))
 
     # 2. Bottleneck Level 2 (building)
     for b in bottlenecks.get("level_2", []):
-        center_items.append({
-            "ticker": b.get("ticker", "UNKNOWN"),
+        t = b.get("ticker", "UNKNOWN")
+        item = {
+            "ticker": t,
             "scanner_type": "BOTTLENECK L2",
-            "priority_score": b.get("score", 0) * 80,
+            "priority_score": _boost_priority(b.get("score", 0) * 80, t, b.get("direction", "HOLD")),
             "direction": b.get("direction", "HOLD"),
             "signal": b.get("direction", "HOLD"),
             "grade": b.get("quality", "B"),
@@ -597,14 +643,16 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
             "invalidators": [],
             "hold_for": "1-2 weeks",
             "source": "bottleneck",
-        })
+        }
+        center_items.append(_enrich_item(item, t))
 
     # 3. Watch list
     for b in bottlenecks.get("watch", []):
-        center_items.append({
-            "ticker": b.get("ticker", "UNKNOWN"),
+        t = b.get("ticker", "UNKNOWN")
+        item = {
+            "ticker": t,
             "scanner_type": "WATCH",
-            "priority_score": b.get("score", 0) * 60,
+            "priority_score": _boost_priority(b.get("score", 0) * 60, t, "HOLD"),
             "direction": "HOLD",
             "signal": "WATCH",
             "grade": b.get("quality", "B"),
@@ -614,18 +662,20 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
             "invalidators": [],
             "hold_for": "Monitor",
             "source": "bottleneck",
-        })
+        }
+        center_items.append(_enrich_item(item, t))
 
     # 4. Alpha Longs
     for a in alpha.get("longs", []):
-        center_items.append({
-            "ticker": a.get("ticker"),
+        t = a.get("ticker")
+        item = {
+            "ticker": t,
             "scanner_type": "ALPHA LONG",
-            "priority_score": 75 if a.get("grade") == "A" else 60,
+            "priority_score": _boost_priority(75 if a.get("grade") == "A" else 60, t, "LONG"),
             "direction": "LONG",
             "signal": a.get("signal", "BUY"),
             "grade": a.get("grade", "B"),
-            "sector": TICKER_SECTOR.get(a.get("ticker"), "Unknown"),
+            "sector": TICKER_SECTOR.get(t, "Unknown"),
             "thesis": a.get("thesis", ""),
             "setup": f"Entry {a.get('entry')} → T1 {a.get('target_1')} → T2 {a.get('target_2')} | Stop {a.get('stop_loss')} | RR {a.get('rr')}",
             "invalidators": ["Stop loss hit", "Regime flip", "Momentum reversal"],
@@ -637,18 +687,20 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
             "stop_loss": a.get("stop_loss"),
             "rr": a.get("rr"),
             "source": "alpha",
-        })
+        }
+        center_items.append(_enrich_item(item, t))
 
     # 5. Alpha Shorts
     for a in alpha.get("shorts", []):
-        center_items.append({
-            "ticker": a.get("ticker"),
+        t = a.get("ticker")
+        item = {
+            "ticker": t,
             "scanner_type": "ALPHA SHORT",
-            "priority_score": 75 if a.get("grade") == "A" else 60,
+            "priority_score": _boost_priority(75 if a.get("grade") == "A" else 60, t, "SHORT"),
             "direction": "SHORT",
             "signal": a.get("signal", "SELL"),
             "grade": a.get("grade", "B"),
-            "sector": TICKER_SECTOR.get(a.get("ticker"), "Unknown"),
+            "sector": TICKER_SECTOR.get(t, "Unknown"),
             "thesis": a.get("thesis", ""),
             "setup": f"Entry {a.get('entry')} → T1 {a.get('target_1')} → T2 {a.get('target_2')} | Stop {a.get('stop_loss')} | RR {a.get('rr')}",
             "invalidators": ["Stop loss hit", "Regime flip", "Momentum reversal"],
@@ -660,14 +712,16 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
             "stop_loss": a.get("stop_loss"),
             "rr": a.get("rr"),
             "source": "alpha",
-        })
+        }
+        center_items.append(_enrich_item(item, t))
 
     # 6. Auto Discoveries
     for d in auto_discoveries.get("bottlenecks", []):
-        center_items.append({
-            "ticker": d.get("ticker", "UNKNOWN"),
+        t = d.get("ticker", "UNKNOWN")
+        item = {
+            "ticker": t,
             "scanner_type": "DISCOVERY",
-            "priority_score": d.get("score", 0) * 90,
+            "priority_score": _boost_priority(d.get("score", 0) * 90, t, d.get("direction", "HOLD")),
             "direction": d.get("direction", "HOLD"),
             "signal": d.get("direction", "HOLD"),
             "grade": d.get("quality", "B"),
@@ -677,7 +731,8 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
             "invalidators": ["Signal invalidates", "Macro reversal"],
             "hold_for": "2-4 weeks",
             "source": "auto_discovery",
-        })
+        }
+        center_items.append(_enrich_item(item, t))
 
     # 7. Top daily signals (STRONG only, avoid duplicating alpha)
     alpha_tickers = {a.get("ticker") for a in alpha.get("longs", []) + alpha.get("shorts", [])}

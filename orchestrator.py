@@ -1188,15 +1188,21 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
 
     # ── NEW: Daily Signals (Hedgeye-style) ───────────────────────────────
     # ── OPTION DATA: Gamma + Greeks ────────────────────────────────────
-    if progress_cb: progress_cb("Running option analytics...", 0.78)
-    gamma_engine = GammaEngine()
-    greeks_engine = GreeksProxy()
-    dxy_ret = _safe_ret(prices.get("DX-Y.NYB"), 21) or 0.0
+    gamma_data = {}
+    greeks_data = {}
+    try:
+        if progress_cb: progress_cb("Running option analytics...", 0.78)
+        gamma_engine = GammaEngine()
+        greeks_engine = GreeksProxy()
+        dxy_ret = _safe_ret(prices.get("DX-Y.NYB"), 21) or 0.0
 
-    # Run on all tickers that have price data
-    gamma_data = gamma_engine.analyze_multi(all_tickers, prices, vix=vix_now, dxy_ret=dxy_ret)
-    greeks_data = greeks_engine.analyze_multi(all_tickers, prices, vix=vix_now, dxy_ret=dxy_ret, regime=sq)
-    if progress_cb: progress_cb(f"Gamma: {len(gamma_data)} | Greeks: {len(greeks_data)}", 0.80)
+        # Run on all tickers that have price data
+        gamma_data = gamma_engine.analyze_multi(all_tickers, prices, vix=vix_now, dxy_ret=dxy_ret)
+        greeks_data = greeks_engine.analyze_multi(all_tickers, prices, vix=vix_now, dxy_ret=dxy_ret, regime=sq)
+        if progress_cb: progress_cb(f"Gamma: {len(gamma_data)} | Greeks: {len(greeks_data)}", 0.80)
+    except Exception as e:
+        logger.warning(f"Option analytics failed: {e}")
+        if progress_cb: progress_cb("Option analytics failed — using fallback", 0.80)
 
     if progress_cb: progress_cb("Building daily signals...", 0.82)
     daily_signals = _build_daily_signals(prices, sq, mq, asset_ranges, health, gamma_data, greeks_data)

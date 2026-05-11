@@ -1124,36 +1124,27 @@ if page == "🏠 Dashboard":
     elif vb=="Defensive":
         st.error(f"🔴 DEFENSIVE · VIX {vl:.1f} · {vbd.get('risk_mode','Normal')}")
 
-       # ── Top 5 Ideas (Hedgeye Morning Brief) ──
-    top5 = snap.get("top_5_ideas", [])
-    if top5:
-        st.markdown("### 🎯 Top 5 Ideas — Morning Brief")
-        for idea in top5:
-            dir_emoji = "🟢" if idea.get("direction") == "LONG" else "🔴" if idea.get("direction") == "SHORT" else "⚪"
-            fr_emoji = {"BOARDING NOW":"🚨","GATE OPENS SOON":"⚡","CHECK-IN":"👀","WAIT":"⏳"}.get(idea.get("frontrun"), "⏳")
-            with st.expander(f"{dir_emoji} {idea.get('ticker')} | {idea.get('direction')} | Grade {idea.get('grade')} | {fr_emoji} {idea.get('frontrun')}", expanded=False):
-                c1, c2, c3 = st.columns(3)
-                c1.metric("Entry", f"{idea.get('entry', '—')}")
-                c2.metric("Target 1", f"{idea.get('target_1', '—')}")
-                c3.metric("Stop", f"{idea.get('stop', '—')}")
-                st.info(f"**Thesis:** {idea.get('thesis', '—')}")
-                st.caption(f"**Worth Entering:** {idea.get('worth', '—')} | Source: {idea.get('source', '—')}")
-    else:
-        st.info("Top 5 Ideas loading... Run ⚡ Full Rebuild.")
 
- # ── Regime + Playbook (2-col) ──
-    c1, c2 = st.columns([1, 1.2])
-    with c1:
-        st.markdown(f'<div style="background:#161B22;border:1px solid {qc(sq)};border-radius:6px;padding:8px;text-align:center;margin-bottom:6px;"><div style="font-size:10px;color:#8B949E;">QUARTERLY</div><div style="font-size:18px;font-weight:700;color:{qc(sq)};">{sq}</div><div style="font-size:11px;color:#E6EDF3;">{QN.get(sq,sq)}</div></div>', unsafe_allow_html=True)
-        st.markdown(f'<div style="background:#161B22;border:1px solid {qc(mq)};border-radius:6px;padding:8px;text-align:center;"><div style="font-size:10px;color:#8B949E;">MONTHLY</div><div style="font-size:18px;font-weight:700;color:{qc(mq)};">{mq}</div><div style="font-size:11px;color:#E6EDF3;">{QN.get(mq,mq)}</div></div>', unsafe_allow_html=True)
-    with c2:
+    # ── Regime Snapshot (3-col: Detail | Playbook | Forward) ──
+    rs1, rs2, rs3 = st.columns([1.2, 1, 1])
+    with rs1:
+        st.markdown(f'<div style="background:#161B22;border:1px solid {qc(sq)};border-radius:6px;padding:8px;margin-bottom:6px;"><div style="font-size:10px;color:#8B949E;">QUARTERLY · {sq}</div><div style="font-size:14px;font-weight:700;color:{qc(sq)};margin:2px 0;">{QN.get(sq,sq)}</div><div style="font-size:11px;color:#E6EDF3;">{QUAD_EXPLAIN.get(sq,"")[:80]}...</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="background:#161B22;border:1px solid {qc(mq)};border-radius:6px;padding:8px;"><div style="font-size:10px;color:#8B949E;">MONTHLY · {mq}</div><div style="font-size:14px;font-weight:700;color:{qc(mq)};margin:2px 0;">{QN.get(mq,mq)}</div><div style="font-size:11px;color:#E6EDF3;">{QUAD_EXPLAIN.get(mq,"")[:80]}...</div></div>', unsafe_allow_html=True)
+    with rs2:
         if pb_data:
-            best = " · ".join(pb_data.get("best_assets",[])[:6])
-            worst = " · ".join(pb_data.get("worst_assets",[])[:5])
-            st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:6px;padding:8px;margin-bottom:6px;"><div style="font-size:11px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">🎯 Playbook — {sq}</div><div style="font-size:11px;color:#3FB950;margin-bottom:3px;">🟢 {best}</div><div style="font-size:11px;color:#F85149;">🔴 {worst}</div></div>', unsafe_allow_html=True)
+            best = " · ".join(pb_data.get("best_assets",[])[:5])
+            worst = " · ".join(pb_data.get("worst_assets",[])[:4])
+            st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:6px;padding:8px;"><div style="font-size:10px;color:#8B949E;margin-bottom:4px;">🎯 Playbook — {sq}</div><div style="font-size:11px;color:#3FB950;margin-bottom:3px;">🟢 {best}</div><div style="font-size:11px;color:#F85149;">🔴 {worst}</div></div>', unsafe_allow_html=True)
+    with rs3:
         if regime_forecast and regime_forecast.get("1m"):
             rf1 = regime_forecast["1m"]; rf3 = regime_forecast["3m"]
-            st.markdown(f'<div style="background:#0D1B2A;border:1px solid #1F6FEB;border-radius:6px;padding:6px;font-size:11px;color:#E6EDF3;">🔮 Forward: 1M→{rf1.get("predicted_quad","—")} ({rf1.get("prediction_confidence",0):.0%}) · 3M→{rf3.get("predicted_quad","—")} ({rf3.get("prediction_confidence",0):.0%})</div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:6px;padding:8px;margin-bottom:6px;"><div style="font-size:10px;color:#8B949E;">🔮 Forward</div><div style="font-size:12px;color:#E6EDF3;">1M→{rf1.get("predicted_quad","—")} ({rf1.get("prediction_confidence",0):.0%})</div><div style="font-size:12px;color:#E6EDF3;">3M→{rf3.get("predicted_quad","—")} ({rf3.get("prediction_confidence",0):.0%})</div></div>', unsafe_allow_html=True)
+        if transition:
+            fw = transition.front_run_window
+            fwc = {"now":"#F85149","1-2w":"#D29922","3-6w":"#1F6FEB","not yet":"#21262D"}.get(fw,"#21262D")
+            fwi = {"now":"🚨 ACT NOW","1-2w":"⚡ 1-2w","3-6w":"👀 Watch","not yet":"🛑 Wait"}.get(fw,"🛑 Wait")
+            st.markdown(f'<div style="background:{fwc};color:#fff;padding:6px 10px;border-radius:6px;font-weight:600;text-align:center;font-size:11px;">{fwi}</div>', unsafe_allow_html=True)
+
 
     # ── Early Warning ──
     st.markdown("### 🚨 Early Warning")
@@ -1167,13 +1158,22 @@ if page == "🏠 Dashboard":
     risk_off_state = health.get("risk_off", {}).get("state", "risk_on")
     risk_color = "#3FB950" if risk_off_state == "risk_on" else "#D29922" if risk_off_state == "caution" else "#F85149"
     ew3.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">RISK OFF</div><div style="font-size:16px;font-weight:700;color:{risk_color};">{risk_off_state.upper()}</div></div>', unsafe_allow_html=True)
-    breadth = health.get("breadth", {})
-    if breadth and breadth.get("score") is not None:
-        b_score = breadth.get("score", 0)
-        b_color = "#3FB950" if b_score > 0.6 else "#D29922" if b_score > 0.4 else "#F85149"
-        ew4.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">BREADTH</div><div style="font-size:16px;font-weight:700;color:{b_color};">{b_score:.0%}</div></div>', unsafe_allow_html=True)
-    else:
-        ew4.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">BREADTH</div><div style="font-size:16px;font-weight:700;">—</div></div>', unsafe_allow_html=True)
+    # ── Breadth (computed from prices, not health engine) ──
+    breadth_tickers = list(US_SECTORS.keys())
+    for bucket in ["Growth", "Quality", "Defensives", "Semis", "Energy", "Industrials", "Financials", "AI_Infra", "PreciousMetals"]:
+        breadth_tickers += US_BUCKETS.get(bucket, [])
+    breadth_tickers = list(dict.fromkeys(breadth_tickers))
+    advancers = 0; decliners = 0; unchanged = 0
+    for t in breadth_tickers:
+        ret = _price_ret(t, prices, 21)
+        if ret is not None:
+            if ret > 0.005: advancers += 1
+            elif ret < -0.005: decliners += 1
+            else: unchanged += 1
+    total_b = advancers + decliners + unchanged
+    b_score = advancers / total_b if total_b > 0 else 0.5
+    b_color = "#3FB950" if b_score > 0.6 else "#D29922" if b_score > 0.4 else "#F85149"
+    ew4.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">BREADTH</div><div style="font-size:16px;font-weight:700;color:{b_color};">{b_score:.0%}</div><div style="font-size:9px;color:#8B949E;">{advancers}↑ {decliners}↓</div></div>', unsafe_allow_html=True)
 
     st.caption(f"Built {snap.get('build_time_s',0):.0f}s ago · {snap.get('prices_loaded',0)} assets · {snap.get('fred_coverage',0)} indicators")
 

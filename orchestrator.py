@@ -76,12 +76,6 @@ except Exception as _e:
         def get_stablecoin_mcap(self): return None
         def get_dex_volume_24h(self): return None
 
-try:
-    from engines.hurst_risk_ranges import HurstRiskRangeEngine
-except Exception as _e:
-    logger.warning(f"hurst_risk_ranges import failed: {_e}")
-    class HurstRiskRangeEngine:
-        def analyze(self, s): return {"ok": False}
 
 try:
     from engines.gamma_engine import GammaEngine
@@ -304,7 +298,7 @@ def _last_price(s):
     except: return None
 
 def _build_risk_ranges(prices, all_tickers):
-    risk_engine = HurstRiskRangeEngine(); asset_ranges = {}
+    asset_ranges = {}
     for t in all_tickers:
         s = prices.get(t)
         if s is None or s.empty: continue
@@ -313,12 +307,6 @@ def _build_risk_ranges(prices, all_tickers):
         elif t in COMMODITIES or any(x in t for x in ["GC=","SI=","CL=","BZ=","NG=","HG=","PL=","PA=","RB=","HO=","ALI=","ZW=","ZC=","ZS=","ZW","ZC","ZS"]): mkt = "commodity"
         elif t in CRYPTO or any(x in t for x in ["BTC","ETH","SOL","TON","ADA","AVAX","DOT","LINK","DOGE","LTC","XRP","BNB"]): mkt = "crypto"
         elif t in IHSG_UNIVERSE or any(x in t for x in [".JK","EIDO","PGEO","ADRO","NCKL","BBRI","BMRI","ICBP","KLBF","AALI","UNTR","TLKM","WINS","LEAD","SHIP","ELSA","BUMI"]): mkt = "ihsg"
-        try:
-            rr = risk_engine.analyze(s)
-            if rr and rr.get("ok"):
-                rr["market"] = rr.get("market", mkt)
-                asset_ranges[t] = rr; continue
-        except Exception: pass
         rr = _calc_risk_range(s, ticker=t, market=mkt)
         if rr.get("ok"): asset_ranges[t] = rr
     return asset_ranges
@@ -373,45 +361,6 @@ def _build_vol_forecast(prices, sq, lookback=20, long_window=50):
             "expected_weekly_move_pct": round(forecast_vol / math.sqrt(52), 3),
         }
     return forecasts
-
-
-def _build_hurst_proxy(prices, lookback=100):
-    """Hurst exponent proxy via Efficiency Ratio (Kaufman-style)."""
-    hurst_data = {}
-    for ticker, s in prices.items():
-        if s is None or len(s) < lookback: 
-            continue
-        s = pd.to_numeric(s, errors="coerce").dropna()
-        if len(s) < lookback: 
-            continue
-
-        price_change = abs(s.iloc[-1] - s.iloc[-lookback])
-        sum_changes = sum(abs(s.iloc[i] - s.iloc[i-1]) for i in range(-lookback+1, 1))
-
-        if sum_changes == 0: 
-            continue
-
-        er = price_change / sum_changes
-        hurst_approx = 0.5 + (er - 0.5) * 0.4
-
-        if hurst_approx > 0.55:
-            regime = "TRENDING"
-            color = "#3FB950"
-        elif hurst_approx < 0.45:
-            regime = "MEAN-REVERTING"
-            color = "#F85149"
-        else:
-            regime = "RANDOM WALK"
-            color = "#D29922"
-
-        hurst_data[ticker] = {
-            "hurst_approx": round(hurst_approx, 3),
-            "efficiency_ratio": round(er, 3),
-            "regime": regime,
-            "color": color,
-            "lookback": lookback,
-        }
-    return hurst_data
 
 
 def _build_risk_adjusted_metrics(prices, risk_free_rate=0.04):
@@ -1619,8 +1568,6 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
 
     if progress_cb: progress_cb("Calculating vol forecast...", 0.56)
     vol_forecasts = _build_vol_forecast(prices, sq, lookback=20, long_window=50)
-    if progress_cb: progress_cb("Calculating Hurst proxy...", 0.57)
-    hurst_proxy = _build_hurst_proxy(prices, lookback=100)
     if progress_cb: progress_cb("Calculating risk-adjusted metrics...", 0.58)
     risk_adj = _build_risk_adjusted_metrics(prices, risk_free_rate=0.04)
     if progress_cb: progress_cb("Running stress tests...", 0.59)
@@ -1841,7 +1788,6 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
         "ihsg_foreign_flow": ihsg_foreign_flow,
         "ihsg_macro_overlay": ihsg_macro_overlay,
         "vol_forecast": vol_forecasts,
-        "hurst_proxy": hurst_proxy,
         "risk_adjusted": risk_adj,
         "stress_test": stress_test,
         # ── LIVE DATA KEYS ─────────────────────────────────────────────
@@ -1876,7 +1822,6 @@ if __name__ == "__main__":
         "ihsg_sectors": len(snap.get("ihsg_sector_momentum", {})),
         "build_time": snap["build_time_s"],
         "vol_forecast_count": len(snap.get("vol_forecast", {})),
-        "hurst_proxy_count": len(snap.get("hurst_proxy", {})),
         "risk_adjusted_count": len(snap.get("risk_adjusted", {})),
         "stress_test_scenarios": len(snap.get("stress_test", [])),
     }, indent=2))

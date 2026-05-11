@@ -2044,6 +2044,9 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
         "total_correlated": len(dxy_corr),
     }
 
+    ihsg_sector_momentum = _build_ihsg_sector_momentum(prices)
+    ihsg_commodity_overlay = _build_ihsg_commodity_overlay(prices)
+    ihsg_rupiah_regime = _build_ihsg_rupiah_regime(prices)
     ihsg_foreign_flow = _build_ihsg_foreign_flow(prices)
     ihsg_macro_overlay = _build_ihsg_macro_overlay(gip, prices)
     ihsg_setups = _build_ihsg_setups(prices, ihsg_sector_momentum, ihsg_commodity_overlay, ihsg_rupiah_regime, ihsg_foreign_flow, ihsg_macro_overlay)

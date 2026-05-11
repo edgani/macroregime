@@ -844,7 +844,7 @@ def _render_narrative_card_native(row, idx=0, market_type="generic"):
             r2.metric("Sortino", f"{sortino:.2f}" if sortino is not None else "—")
             r3.metric("Max DD", f"{max_dd:.1%}" if max_dd is not None else "—")
 
-st.divider()
+        st.divider()
         st.markdown("**📐 Level Basis**")
         b1, b2, b3 = st.columns(3)
         b1.write(f"🎯 **Entry:** {row.get('entry_advice', row.get('entry_basis', '—'))}")
@@ -1278,14 +1278,14 @@ elif page == "⚡ Alpha & Scanner":
             )
             st.caption("Sharpe ≥2.0 = excellent risk-adjusted. Sortino > Sharpe = downside-skewed favorable.")
 
-sub1, sub2, sub3, sub4, sub5, sub6, sub7 = st.tabs([
-        f"🚨 Bottlenecks L1 ({meta.get('level_1_count', 0)})",
-        f"⚠️ Bottlenecks L2 ({meta.get('level_2_count', 0)})",
-        f"👁️ Watch ({meta.get('watch_count', 0)})",
-        f"🟢 Alpha Long ({meta.get('alpha_long_count', 0)})",
-        f"🔴 Alpha Short ({meta.get('alpha_short_count', 0)})",
-        f"💡 Discovery ({meta.get('discovery_count', 0)})",
-        f"📋 All Rated ({len(daily_signals)})",
+    sub1, sub2, sub3, sub4, sub5, sub6, sub7 = st.tabs([
+    f"🚨 Bottlenecks L1 ({meta.get('level_1_count', 0)})",
+    f"⚠️ Bottlenecks L2 ({meta.get('level_2_count', 0)})",
+    f"👁️ Watch ({meta.get('watch_count', 0)})",
+    f"🟢 Alpha Long ({meta.get('alpha_long_count', 0)})",
+    f"🔴 Alpha Short ({meta.get('alpha_short_count', 0)})",
+    f"💡 Discovery ({meta.get('discovery_count', 0)})",
+    f"📋 All Rated ({len(daily_signals)})",
     ])
 
     with sub1:
@@ -1344,7 +1344,7 @@ sub1, sub2, sub3, sub4, sub5, sub6, sub7 = st.tabs([
                 s["max_dd_63d"] = risk_adj[t].get("max_dd_63d")
                 s["ann_vol"] = risk_adj[t].get("ann_vol")
 
-for i, s in enumerate(filtered[:300]): _render_narrative_card_native(s, i, "us_equity")
+        for i, s in enumerate(filtered[:300]): _render_narrative_card_native(s, i, "us_equity")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: 💱🛢️ MACRO PROXIES

@@ -1095,6 +1095,9 @@ alpha_center = snap.get("alpha_center", {}) or {}
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: 🏠 DASHBOARD — COMPACT v2
 # ══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
+# TAB: 🏠 DASHBOARD — COMPACT v2
+# ══════════════════════════════════════════════════════════════════════════════
 if page == "🏠 Dashboard":
     st.markdown("## 🏠 Dashboard")
     st.caption("Macro regime command center — 30-second read")
@@ -1159,153 +1162,132 @@ if page == "🏠 Dashboard":
     st.caption(f"Built {snap.get('build_time_s',0):.0f}s ago · {snap.get('prices_loaded',0)} assets · {snap.get('fred_coverage',0)} indicators")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: 📈 GIP MODEL
+# TAB: 📈 GIP MODEL — COMPACT v2
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "📈 GIP Model":
     st.markdown("## 📈 GIP Model")
     st.caption("Growth · Inflation · Policy — The Macro Map")
 
-    # ── Regime Cards ──
+    if not gip:
+        st.warning("Data loading..."); st.stop()
+
+    # ── Regime Summary Bar (4 metrics in 1 row) ──
+    r1, r2, r3, r4 = st.columns(4)
+    with r1: st.metric("Quarterly", f"{sq} · {qn(sq)}", f"Conf: {gip.structural_conf:.0%}", delta_color="off")
+    with r2: st.metric("Monthly", f"{mq} · {qn(mq)}", f"Conf: {gip.monthly_conf:.0%}", delta_color="off")
+    with r3:
+        flip = gip.flip_hazard
+        st.metric("Flip Risk", f"{flip:.0%}", f"{gip.divergence.title()}", delta_color="off")
+    with r4: st.metric("Data Coverage", f"{gip.data_coverage:.0%}")
+
+    # ── Regime Explanation Cards (2-col) ──
     c1, c2 = st.columns(2)
     with c1:
-        st.metric("Quarterly (Climate)", f"{sq} — {qn(sq)}", f"Confidence: {gip.structural_conf:.0%}" if gip else "—", delta_color="off")
-        st.caption(QUAD_EXPLAIN.get(sq, ""))
+        st.markdown(f'<div style="background:#161B22;border:1px solid {qc(sq)};border-radius:6px;padding:8px;"><div style="font-size:10px;color:#8B949E;">QUARTERLY · {sq}</div><div style="font-size:12px;color:#E6EDF3;margin-top:4px;">{QUAD_EXPLAIN.get(sq,"")}</div></div>', unsafe_allow_html=True)
     with c2:
-        st.metric("Monthly (Weather)", f"{mq} — {qn(mq)}", f"Confidence: {gip.monthly_conf:.0%}" if gip else "—", delta_color="off")
-        st.caption(QUAD_EXPLAIN.get(mq, ""))
+        st.markdown(f'<div style="background:#161B22;border:1px solid {qc(mq)};border-radius:6px;padding:8px;"><div style="font-size:10px;color:#8B949E;">MONTHLY · {mq}</div><div style="font-size:12px;color:#E6EDF3;margin-top:4px;">{QUAD_EXPLAIN.get(mq,"")}</div></div>', unsafe_allow_html=True)
 
-    st.divider()
-    if not gip: st.warning("Data loading..."); st.stop()
-
-    cc,cw = st.columns(2)
-    with cc:
-        st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:8px;padding:12px;"><div style="font-size:11px;color:#8B949E;text-transform:uppercase;letter-spacing:0.5px;">Quarterly Regime (Climate)</div><div style="font-size:22px;font-weight:700;color:{qc(sq)};margin:6px 0;">{sq}</div><div style="font-size:12px;color:#E6EDF3;margin-bottom:8px;">{QNC.get(sq,"")}</div><div style="font-size:12px;color:#8B949E;">{QUAD_EXPLAIN[sq]}</div><div style="margin-top:10px;font-size:11px;color:#8B949E;border-top:1px solid #30363D;padding-top:6px;">Confidence: {gip.structural_conf:.0%} · Flip risk: {gip.flip_hazard:.0%}</div></div>', unsafe_allow_html=True)
-    with cw:
-        st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:8px;padding:12px;"><div style="font-size:11px;color:#8B949E;text-transform:uppercase;letter-spacing:0.5px;">Monthly Regime (Weather — 3-6 Weeks)</div><div style="font-size:22px;font-weight:700;color:{qc(mq)};margin:6px 0;">{mq}</div><div style="font-size:12px;color:#E6EDF3;margin-bottom:8px;">{QNC.get(mq,"")}</div><div style="font-size:12px;color:#8B949E;">{QUAD_EXPLAIN[mq]}</div><div style="margin-top:10px;font-size:11px;color:#8B949E;border-top:1px solid #30363D;padding-top:6px;">Confidence: {gip.monthly_conf:.0%} · Divergence: {gip.divergence}</div></div>', unsafe_allow_html=True)
     if mq_raw == "Q1":
         st.warning("⚠ Model computed Q1, Hedgeye manual call = Q2. Use Quad Override in sidebar.")
 
-    st.divider()
-    st.markdown('<div style="font-size:16px;font-weight:700;color:#E6EDF3;margin-bottom:8px;">What the Data Is Saying</div>', unsafe_allow_html=True)
-    f = gip.features; gm = _sf(f.get("growth_momentum")) or 0; im = _sf(f.get("inflation_momentum")) or 0
-    s1,s2,s3,s4 = st.columns(4)
-    s1.metric("Growth Direction", "📈 Accelerating" if gm>0 else "📉 Decelerating", f"{gm:+.1%}")
-    s2.metric("Inflation Direction", "📈 Rising" if im>0 else "📉 Cooling", f"{im:+.1%}")
-    s3.metric("Central Bank", "Dovish" if (_sf(f.get("policy_score")) or 0)>0.1 else "Hawkish" if (_sf(f.get("policy_score")) or 0)<-0.1 else "Neutral")
-    s4.metric("Data Coverage", f"{gip.data_coverage:.0%}")
+    # ── Feature Readings (1 row) ──
+    f = gip.features
+    gm = _sf(f.get("growth_momentum")) or 0; im = _sf(f.get("inflation_momentum")) or 0
+    s1, s2, s3 = st.columns(3)
+    s1.metric("Growth", "📈 Accel" if gm>0 else "📉 Decel", f"{gm:+.1%}")
+    s2.metric("Inflation", "📈 Rising" if im>0 else "📉 Cooling", f"{im:+.1%}")
+    s3.metric("Policy", "Dovish" if (_sf(f.get("policy_score")) or 0)>0.1 else "Hawkish" if (_sf(f.get("policy_score")) or 0)<-0.1 else "Neutral")
 
-    # ── FORWARD PROJECTION (REAL DATA) ────────────────────────────────
-    st.divider()
-    st.markdown('<div style="font-size:16px;font-weight:700;color:#E6EDF3;margin-bottom:8px;">🔮 Forward Projection</div>', unsafe_allow_html=True)
-    st.caption("Regime predictor ensemble: ARIMA trajectory + GBM classifier + Bayesian prior")
-
+    # ── Forward Projection (compact) ──
+    st.markdown("### 🔮 Forward Projection")
     if regime_forecast and regime_forecast.get("1m") and regime_forecast["1m"].get("predicted_quad"):
-        rf1 = regime_forecast["1m"]
-        rf3 = regime_forecast["3m"]
-        rf6 = regime_forecast["6m"]
-
+        rf1 = regime_forecast["1m"]; rf3 = regime_forecast["3m"]; rf6 = regime_forecast["6m"]
         fp1, fp2, fp3 = st.columns(3)
         with fp1:
-            st.markdown(f'<div class="metric-box"><div class="metric-label">1 MONTH FORWARD</div><div class="metric-value" style="color:{qc(rf1.get("predicted_quad","Q3"))};">{rf1.get("predicted_quad","—")}</div><div class="metric-sub">Confidence: {rf1.get("prediction_confidence",0):.0%} · {rf1.get("expected_transition_weeks",8)} weeks typical</div></div>', unsafe_allow_html=True)
-            if rf1.get("probability_distribution"):
-                st.plotly_chart(prob_bar(rf1["probability_distribution"], "1M Probabilities"), use_container_width=True, config={"displayModeBar":False}, key="gip_prob_1m")
+            st.markdown(f'<div style="text-align:center;background:#161B22;border:1px solid #30363D;border-radius:6px;padding:8px;"><div style="font-size:10px;color:#8B949E;">1 MONTH</div><div style="font-size:18px;font-weight:700;color:{qc(rf1.get("predicted_quad","Q3"))};">{rf1.get("predicted_quad","—")}</div><div style="font-size:10px;color:#8B949E;">Conf {rf1.get("prediction_confidence",0):.0%}</div></div>', unsafe_allow_html=True)
         with fp2:
-            st.markdown(f'<div class="metric-box"><div class="metric-label">3 MONTHS FORWARD</div><div class="metric-value" style="color:{qc(rf3.get("predicted_quad","Q3"))};">{rf3.get("predicted_quad","—")}</div><div class="metric-sub">Confidence: {rf3.get("prediction_confidence",0):.0%} · {rf3.get("expected_transition_weeks",8)} weeks typical</div></div>', unsafe_allow_html=True)
-            if rf3.get("probability_distribution"):
-                st.plotly_chart(prob_bar(rf3["probability_distribution"], "3M Probabilities"), use_container_width=True, config={"displayModeBar":False}, key="gip_prob_3m")
+            st.markdown(f'<div style="text-align:center;background:#161B22;border:1px solid #30363D;border-radius:6px;padding:8px;"><div style="font-size:10px;color:#8B949E;">3 MONTHS</div><div style="font-size:18px;font-weight:700;color:{qc(rf3.get("predicted_quad","Q3"))};">{rf3.get("predicted_quad","—")}</div><div style="font-size:10px;color:#8B949E;">Conf {rf3.get("prediction_confidence",0):.0%}</div></div>', unsafe_allow_html=True)
         with fp3:
-            st.markdown(f'<div class="metric-box"><div class="metric-label">6 MONTHS FORWARD</div><div class="metric-value" style="color:{qc(rf6.get("predicted_quad","Q3"))};">{rf6.get("predicted_quad","—")}</div><div class="metric-sub">Confidence: {rf6.get("prediction_confidence",0):.0%} · {rf6.get("expected_transition_weeks",8)} weeks typical</div></div>', unsafe_allow_html=True)
-            if rf6.get("probability_distribution"):
-                st.plotly_chart(prob_bar(rf6["probability_distribution"], "6M Probabilities"), use_container_width=True, config={"displayModeBar":False}, key="gip_prob_6m")
-
-        # Leading indicator expected returns
+            st.markdown(f'<div style="text-align:center;background:#161B22;border:1px solid #30363D;border-radius:6px;padding:8px;"><div style="font-size:10px;color:#8B949E;">6 MONTHS</div><div style="font-size:18px;font-weight:700;color:{qc(rf6.get("predicted_quad","Q3"))};">{rf6.get("predicted_quad","—")}</div><div style="font-size:10px;color:#8B949E;">Conf {rf6.get("prediction_confidence",0):.0%}</div></div>', unsafe_allow_html=True)
+        # 3M probability chart (most important)
+        if rf3.get("probability_distribution"):
+            st.plotly_chart(prob_bar(rf3["probability_distribution"], "3M Forward Probabilities"), use_container_width=True, config={"displayModeBar":False}, key="gip_prob_3m")
+        # Leading indicator
         if forward_returns:
-            st.markdown("**📈 Leading Indicator Expected Returns**")
-            lr1, lr2, lr3, lr4 = st.columns(4)
+            lr1, lr2, lr3 = st.columns(3)
             lr1.metric("1M Expected", fp(forward_returns.get("expected_1m")))
             lr2.metric("3M Expected", fp(forward_returns.get("expected_3m")))
-            lr3.metric("6M Expected", fp(forward_returns.get("expected_6m")))
-            lr4.metric("Transition Prob", f"{forward_returns.get('transition_prob',0):.0%}")
-            st.caption(f"Confidence: {forward_returns.get('confidence',0.5):.0%} · Based on regime-specific feature weights")
-
-        # Feature importance
+            lr3.metric("Transition Prob", f"{forward_returns.get('transition_prob',0):.0%}")
+            st.caption(f"Confidence: {forward_returns.get('confidence',0.5):.0%}")
         if leading_signals and leading_signals.get("feature_importance"):
-            st.markdown("**🔬 Leading Indicator Feature Importance**")
             fi = leading_signals["feature_importance"]
-            fi_rows = [{"Feature": k, "Importance": v} for k, v in sorted(fi.items(), key=lambda x: x[1], reverse=True)[:8]]
+            fi_rows = [{"Feature": k, "Importance": v} for k, v in sorted(fi.items(), key=lambda x: x[1], reverse=True)[:6]]
             df_fi = pd.DataFrame(fi_rows)
-            st.dataframe(df_fi.style.bar(subset=["Importance"], color="#1F6FEB"), hide_index=True, use_container_width=True, height=250)
+            st.dataframe(df_fi.style.bar(subset=["Importance"], color="#1F6FEB"), hide_index=True, use_container_width=True, height=200)
     else:
-        st.info("🔮 Forward projection data not available. Ensure `scikit-learn` is installed and run **⚡ Full Rebuild**.")
+        st.info("🔮 Forward projection initializing... Run **⚡ Full Rebuild**.")
 
-    st.divider()
-    st.markdown('<div style="font-size:16px;font-weight:700;color:#E6EDF3;margin-bottom:8px;">Where Are We Going Next?</div>', unsafe_allow_html=True)
-    def _tp(probs, cur_q, label):
-        if not probs: return
-        sp=sorted(probs.items(),key=lambda x:x[1],reverse=True); top_q,top_p=sp[0]
-        st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:8px;padding:10px;text-align:center;margin:6px 0;"><div style="font-size:11px;color:#8B949E;text-transform:uppercase;">{label}</div><div style="font-size:14px;font-weight:700;color:#E6EDF3;margin:4px 0;">Most likely next: <b>{top_q} {QN.get(top_q,"")}</b> ({top_p:.0%})</div></div>', unsafe_allow_html=True)
-        key_id = f"prob_{label.replace(' ', '_').replace('/', '_')}"
-        st.plotly_chart(prob_bar(probs), use_container_width=True, config={"displayModeBar":False}, key=key_id)
-        if top_q!=cur_q: st.info(f"If regime shifts to {top_q}: **{QWINS.get(top_q,'')}** are the winners")
-    c1,c2,c3 = st.columns(3)
-    with c1: _tp(gip.structural_probs, sq, "Quarterly Probabilities")
-    with c2: _tp(gip.monthly_probs, mq, "Monthly Probabilities")
-    with c3:
+    # ── Regime Probabilities (1 chart + 1 row) ──
+    st.markdown("### 📊 Regime Probabilities")
+    p1, p2, p3 = st.columns(3)
+    with p1:
+        st.markdown("**Quarterly**")
+        st.plotly_chart(prob_bar(gip.structural_probs, ""), use_container_width=True, config={"displayModeBar":False}, key="gip_prob_q")
+    with p2:
+        st.markdown("**Monthly**")
+        st.plotly_chart(prob_bar(gip.monthly_probs, ""), use_container_width=True, config={"displayModeBar":False}, key="gip_prob_m")
+    with p3:
         gprobs = (global_.get("global_probs",{}) or {}) if global_ else {}
-        if gprobs: _tp(gprobs, gq, "Global Probabilities")
+        if gprobs:
+            st.markdown("**Global**")
+            st.plotly_chart(prob_bar(gprobs, ""), use_container_width=True, config={"displayModeBar":False}, key="gip_prob_g")
 
-    st.divider()
-    st.markdown('<div style="font-size:16px;font-weight:700;color:#E6EDF3;margin-bottom:8px;">Timing Signal</div>', unsafe_allow_html=True)
+    # ── Timing Signal ──
+    st.markdown("### ⏱️ Timing Signal")
     st.markdown(_seq_pills(sq, mq), unsafe_allow_html=True)
     if transition:
-        fw=transition.front_run_window; fr=transition.front_run_rationale
-        fwc={"now":"#F85149","1-2w":"#D29922","3-6w":"#1F6FEB","not yet":"#21262D"}.get(fw,"#21262D")
-        fwi={"now":"🚨 ACT NOW","1-2w":"⚡ ACT SOON","3-6w":"👀 WATCH","not yet":"🛑 NOT YET"}.get(fw,"🛑 NOT YET")
+        fw = transition.front_run_window
+        fwc = {"now":"#F85149","1-2w":"#D29922","3-6w":"#1F6FEB","not yet":"#21262D"}.get(fw,"#21262D")
+        fwi = {"now":"🚨 ACT NOW","1-2w":"⚡ Act within 1-2 weeks","3-6w":"👀 Watch","not yet":"🛑 Not yet"}.get(fw,"🛑 Not yet")
         if fw != "not yet":
-            st.markdown(f'<div style="background:{fwc}22;border:1px solid {fwc};border-radius:8px;padding:10px;text-align:center;margin:8px 0;"><span style="color:{fwc};font-weight:700;">{fwi}</span><br><span style="font-size:12px;color:#8B949E;">{fr}</span></div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="background:{fwc};color:#fff;padding:8px 16px;border-radius:6px;font-weight:600;text-align:center;font-size:13px;">{fwi}</div>', unsafe_allow_html=True)
 
-    # ── VOL FORECAST + STRESS TEST ──
-    st.divider()
-    st.markdown('<div style="font-size:16px;font-weight:700;color:#E6EDF3;margin-bottom:8px;">📊 Volatility Forecast & Regime Probability</div>', unsafe_allow_html=True)
+    # ── Vol Forecast (compact table) ──
     vol_f = snap.get("vol_forecast", {})
-    stress = snap.get("stress_test", [])
     if vol_f:
+        st.markdown("### 📊 Vol Forecast")
         proxy_tickers = ["SPY", "QQQ", "GLD", "TLT", "DX-Y.NYB"]
         vol_rows = []
         for t in proxy_tickers:
             if t in vol_f:
                 v = vol_f[t]
-                vol_rows.append({"Asset": t, "Current Vol": f"{v['current_ann_vol']}%", "Forecast": f"{v['forecast_ann_vol']}%", "Regime": v['vol_regime'], "Daily Move": f"±{v['expected_daily_move_pct']:.1%}", "Weekly Move": f"±{v['expected_weekly_move_pct']:.1%}"})
+                vol_rows.append({"Asset": t, "Current": f"{v['current_ann_vol']}%", "Forecast": f"{v['forecast_ann_vol']}%", "Regime": v['vol_regime'], "Daily": f"±{v['expected_daily_move_pct']:.1%}"})
         if vol_rows:
             df_vol = pd.DataFrame(vol_rows)
             st.dataframe(df_vol.style.map(lambda x: 'color:#3FB950;font-weight:600;' if x == "LOW" else ('color:#D29922;font-weight:600;' if x == "NORMAL" else ('color:#F85149;font-weight:600;' if x in ["ELEVATED","EXTREME"] else '')), subset=["Regime"]), hide_index=True, use_container_width=True, height=180)
-            st.caption("Forecast = EWMA adaptive × regime multiplier. Higher vol expected in Q3/Q4.")
+
+    # ── Stress Test (compact expanders) ──
+    stress = snap.get("stress_test", [])
     if stress:
-        st.divider()
-        st.markdown('<div style="font-size:16px;font-weight:700;color:#E6EDF3;margin-bottom:8px;">🧪 Stress Test Scenarios</div>', unsafe_allow_html=True)
-        st.caption("Historical shock magnitudes applied to current regime portfolio proxy.")
+        st.markdown("### 🧪 Stress Test")
         for sc in stress:
             sev_color = "#F85149" if sc['severity'] == "EXTREME" else "#D29922" if sc['severity'] == "HIGH" else "#8B949E"
-            with st.expander(f"⚠️ **{sc['scenario']}** | Portfolio DD: {sc['portfolio_dd']:.0%} | Severity: {sc['severity']}", expanded=(sc['severity'] in ["EXTREME","HIGH"])):
+            with st.expander(f"⚠️ {sc['scenario']} | DD: {sc['portfolio_dd']:.0%} | {sc['severity']}", expanded=(sc['severity'] in ["EXTREME","HIGH"])):
                 c1, c2, c3 = st.columns(3)
                 c1.metric("Portfolio DD", f"{sc['portfolio_dd']:.0%}")
-                c2.metric("Worst Asset", sc['worst_asset'], f"{sc['worst_dd']:.0%}")
-                c3.metric("Best Asset", sc['best_asset'], f"{sc['best_dd']:.0%}")
-                st.info(f"🛡️ **Hedge suggestion:** {sc['hedge']}")
-    if analogs and analogs.get("top_analogs"):
-        st.divider()
-        st.markdown('<div style="font-size:16px;font-weight:700;color:#E6EDF3;margin-bottom:8px;">Historical Comparisons</div>', unsafe_allow_html=True)
-        for i,a in enumerate(analogs["top_analogs"][:3]):
-            with st.expander(f"📚 **{a['label']}** — {a.get('similarity',0):.0%} similar", expanded=(i==0)):
-                c1,c2,c3=st.columns(3)
-                c1.metric("Next 1M", a.get("path_1m","—")); c2.metric("Next 3M", a.get("path_3m","—")); c3.metric("Next 6M", a.get("path_6m","—"))
-                st.info(f"📊 {a.get('next_bias','')}")
+                c2.metric("Worst", sc['worst_asset'], f"{sc['worst_dd']:.0%}")
+                c3.metric("Best", sc['best_asset'], f"{sc['best_dd']:.0%}")
+                st.info(f"🛡️ Hedge: {sc['hedge']}")
 
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB: ⚡ ALPHA & SCANNER
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB: 📋 PLAYBOOK
-# ══════════════════════════════════════════════════════════════════════════════
+    # ── Historical Analogs (compact) ──
+    if analogs and analogs.get("top_analogs"):
+        st.markdown("### 📚 Historical Analogs")
+        for i, a in enumerate(analogs["top_analogs"][:3]):
+            with st.expander(f"📚 {a['label']} — {a.get('similarity',0):.0%} similar", expanded=(i==0)):
+                c1, c2, c3 = st.columns(3)
+                c1.metric("1M", a.get("path_1m","—")); c2.metric("3M", a.get("path_3m","—")); c3.metric("6M", a.get("path_6m","—"))
+                st.caption(f"📊 {a.get('next_bias','')}")
+
 elif page == "📋 Playbook":
     st.markdown("## 📋 Playbook")
     st.caption(f"What to buy & avoid in {sq} · {qn(sq)}")
@@ -1597,6 +1579,9 @@ elif page == "₿ Crypto":
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: 🌍 GLOBAL & EM — COMPACT
 # ══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
+# TAB: 🌍 GLOBAL & EM — COMPACT v2
+# ══════════════════════════════════════════════════════════════════════════════
 elif page == "🌍 Global & EM":
     st.markdown("## 🌍 Global & EM")
     st.caption("50-country regime map + Indonesia IHSG")
@@ -1616,25 +1601,25 @@ elif page == "🌍 Global & EM":
                 for c in countries: cqs[c] = q
         c1,c2 = st.columns([1,1.5])
         with c1:
-            st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:8px;padding:12px;text-align:center;"><div style="font-size:10px;color:#8B949E;">GLOBAL REGIME</div><div style="font-size:28px;font-weight:700;color:{qc(gq)};">{gq}</div><div style="font-size:11px;color:#E6EDF3;">{QN.get(gq,gq)}</div><div style="font-size:10px;color:#8B949E;margin-top:4px;">Confidence: {gconf:.0%}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:6px;padding:10px;text-align:center;"><div style="font-size:10px;color:#8B949E;">GLOBAL REGIME</div><div style="font-size:24px;font-weight:700;color:{qc(gq)};">{gq}</div><div style="font-size:11px;color:#E6EDF3;">{QN.get(gq,gq)}</div><div style="font-size:10px;color:#8B949E;margin-top:4px;">Conf: {gconf:.0%}</div></div>', unsafe_allow_html=True)
             st.plotly_chart(prob_bar(gprobs), use_container_width=True, config={"displayModeBar":False})
             em_sig = (btk.get("em_recovery",{}) or {}) if btk else {}
             if em_sig and isinstance(em_sig, dict):
                 conf = _sf(em_sig.get("confidence")) or 0
                 trigger = em_sig.get("trigger","EM signal")
-                st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:8px;padding:8px;margin-top:6px;font-size:11px;"><b style="color:#E6EDF3;">EM Signal:</b> <span style="color:#8B949E;">{trigger} (conf: {conf:.0%})</span></div>', unsafe_allow_html=True)
+                st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:6px;padding:6px;margin-top:6px;font-size:11px;"><b>EM Signal:</b> <span style="color:#8B949E;">{trigger} (conf: {conf:.0%})</span></div>', unsafe_allow_html=True)
         with c2:
             rows=[]
             for country,q in sorted(cqs.items(),key=lambda x:x[1]):
                 rows.append({"Country":country,"Regime":q,"Name":QN.get(q,q)})
             df=pd.DataFrame(rows)
-            st.dataframe(df.style.map(lambda x: f'color:{qc(x)}', subset=["Regime"]).format({"Regime":lambda x:""}), hide_index=True, use_container_width=True, height=350)
+            st.dataframe(df.style.map(lambda x: f'color:{qc(x)}', subset=["Regime"]).format({"Regime":lambda x:""}), hide_index=True, use_container_width=True, height=320)
 
     with ihsg_tab:
         st.markdown("### 🇮🇩 IHSG Macro Report")
-        st.caption("Indonesia equity analysis — Table + Top 5")
+        st.caption("Indonesia equity — Table + Top 5 cards")
 
-        # ── Executive Summary ──
+        # ── Executive Summary (1 bar) ──
         macro = ihsg_macro_overlay or {}
         ihsg_bias = "DEFENSIVE"; ihsg_color = "#F85149"; top_sectors = []; avoid_sectors = []
         if macro.get("commodity_bias") == "Bullish":
@@ -1645,21 +1630,20 @@ elif page == "🌍 Global & EM":
             top_sectors = ["Banking", "Telco"] if macro.get("banking_bias") == "Bullish" else ["Telco"]
         rupiah_sig = ihsg_rupiah_regime.get("flow_signal", "—") if ihsg_rupiah_regime else "—"
         rupiah_color = "#3FB950" if "Positive" in rupiah_sig else "#F85149" if "Risk" in rupiah_sig else "#D29922"
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            st.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">IHSG BIAS</div><div style="font-size:16px;font-weight:700;color:{ihsg_color};">{ihsg_bias}</div></div>', unsafe_allow_html=True)
-        with c2:
-            st.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">RUPIAH</div><div style="font-size:14px;font-weight:700;color:{rupiah_color};">{rupiah_sig[:20] if rupiah_sig else "—"}</div></div>', unsafe_allow_html=True)
-        with c3:
-            bi_sig = macro.get("bi_signal", "—")[:25] if macro else "—"
-            st.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">BI REGIME</div><div style="font-size:13px;font-weight:700;color:#E6EDF3;">{bi_sig}</div></div>', unsafe_allow_html=True)
+        bi_sig = macro.get("bi_signal", "—")[:20] if macro else "—"
+
+        e1, e2, e3, e4 = st.columns(4)
+        e1.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">IHSG BIAS</div><div style="font-size:14px;font-weight:700;color:{ihsg_color};">{ihsg_bias}</div></div>', unsafe_allow_html=True)
+        e2.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">RUPIAH</div><div style="font-size:13px;font-weight:700;color:{rupiah_color};">{rupiah_sig[:18] if rupiah_sig else "—"}</div></div>', unsafe_allow_html=True)
+        e3.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">BI REGIME</div><div style="font-size:12px;font-weight:700;color:#E6EDF3;">{bi_sig}</div></div>', unsafe_allow_html=True)
+        e4.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">POLICY</div><div style="font-size:14px;font-weight:700;">{macro.get("policy_score",0):+.2f}</div></div>', unsafe_allow_html=True)
         if top_sectors or avoid_sectors:
             pills = []
             for s in top_sectors: pills.append(f'<span class="badge badge-long">{s}</span>')
             for s in avoid_sectors: pills.append(f'<span class="badge badge-short">{s}</span>')
-            st.markdown(f'<div style="margin:8px 0;">{ " ".join(pills)}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="margin:6px 0;">{ " ".join(pills)}</div>', unsafe_allow_html=True)
 
-        # ── Macro Context ──
+        # ── Macro Context (1 bar) ──
         mc1, mc2, mc3, mc4 = st.columns(4)
         dxy_val = None; dxy_trend = "—"
         if prices.get("DX-Y.NYB") is not None:
@@ -1694,7 +1678,7 @@ elif page == "🌍 Global & EM":
                 "T1": r.get("target_1"), "T2": r.get("target_2"), "Stop": r.get("stop"),
                 "RR": r.get("rr",0), "1M": fp(r.get("r1m")), "3M": fp(r.get("r3m")),
                 "Signal": r.get("signal","—"), "Grade": r.get("grade","C"),
-                "Thesis": r.get("recommendation","—")[:55],
+                "Thesis": r.get("recommendation","—")[:50],
             } for r in ihsg_rows])
             st.dataframe(
                 df_ihsg.style
@@ -1702,7 +1686,7 @@ elif page == "🌍 Global & EM":
                     .map(lambda x: 'color:#3FB950;font-weight:700;' if x in ["A","A+"] else ('color:#D29922;font-weight:600;' if x=="B" else ''), subset=["Grade"])
                     .map(lambda x: 'color:#3FB950;font-weight:700;' if isinstance(x,(int,float)) and x>=2.0 else ('color:#D29922;font-weight:600;' if isinstance(x,(int,float)) and x>=1.5 else ''), subset=["RR"])
                     .format({"Price": "{:.2f}", "Entry": "{:.2f}", "T1": "{:.2f}", "T2": "{:.2f}", "Stop": "{:.2f}", "RR": "{:.1f}"}),
-                use_container_width=True, hide_index=True, height=300
+                use_container_width=True, hide_index=True, height=280
             )
             ihsg_rows.sort(key=lambda x: abs(x.get("r1m") or 0), reverse=True)
             st.markdown("### 🎯 Top 5 IHSG (by momentum)")
@@ -1711,37 +1695,34 @@ elif page == "🌍 Global & EM":
         else:
             st.info("No IHSG setups.")
 
-        # ── Structural Diagnostics ──
+        # ── Structural Diagnostics (1 bar) ──
         st.markdown("### 🔬 Structural Diagnostics")
         d1, d2, d3, d4, d5 = st.columns(5)
         with d1:
             if ihsg_sector_momentum:
                 top_sec = max(ihsg_sector_momentum.items(), key=lambda x: x[1].get("strength", 0))
-                st.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">SECTOR MOM</div><div style="font-size:14px;font-weight:700;">{top_sec[0]}</div><div style="font-size:10px;color:#8B949E;">{fp(top_sec[1].get("avg_1m"))}</div></div>', unsafe_allow_html=True)
+                st.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">SECTOR MOM</div><div style="font-size:13px;font-weight:700;">{top_sec[0]}</div><div style="font-size:10px;color:#8B949E;">{fp(top_sec[1].get("avg_1m"))}</div></div>', unsafe_allow_html=True)
             else: st.caption("No data")
         with d2:
             if ihsg_commodity_overlay:
                 top_comm = max(ihsg_commodity_overlay.items(), key=lambda x: x[1].get("r1m") or -999)
-                st.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">COMMODITY</div><div style="font-size:14px;font-weight:700;">{top_comm[0]}</div><div style="font-size:10px;color:#8B949E;">{fp(top_comm[1].get("r1m"))}</div></div>', unsafe_allow_html=True)
+                st.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">COMMODITY</div><div style="font-size:13px;font-weight:700;">{top_comm[0]}</div><div style="font-size:10px;color:#8B949E;">{fp(top_comm[1].get("r1m"))}</div></div>', unsafe_allow_html=True)
             else: st.caption("No data")
         with d3:
             if ihsg_rupiah_regime:
-                st.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">RUPIAH</div><div style="font-size:14px;font-weight:700;">{ihsg_rupiah_regime.get("dxy_trend","—")}</div></div>', unsafe_allow_html=True)
+                st.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">RUPIAH</div><div style="font-size:13px;font-weight:700;">{ihsg_rupiah_regime.get("dxy_trend","—")}</div></div>', unsafe_allow_html=True)
             else: st.caption("No data")
         with d4:
             if ihsg_foreign_flow:
                 acc = sum(1 for v in ihsg_foreign_flow.values() if "Accumulation" in v.get("signal", ""))
                 dist = sum(1 for v in ihsg_foreign_flow.values() if "Distribution" in v.get("signal", ""))
-                st.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">FLOW</div><div style="font-size:14px;font-weight:700;color:#3FB950;">{acc} Acc</div><div style="font-size:10px;color:#F85149;">{dist} Dist</div></div>', unsafe_allow_html=True)
+                st.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">FLOW</div><div style="font-size:13px;font-weight:700;color:#3FB950;">{acc} Acc</div><div style="font-size:10px;color:#F85149;">{dist} Dist</div></div>', unsafe_allow_html=True)
             else: st.caption("No data")
         with d5:
             if ihsg_macro_overlay:
-                st.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">BI MACRO</div><div style="font-size:14px;font-weight:700;">{ihsg_macro_overlay.get("banking_bias","—")}</div></div>', unsafe_allow_html=True)
+                st.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">BI MACRO</div><div style="font-size:13px;font-weight:700;">{ihsg_macro_overlay.get("banking_bias","—")}</div></div>', unsafe_allow_html=True)
             else: st.caption("No data")
 
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB: 📖 THEMES — COMPACT
-# ══════════════════════════════════════════════════════════════════════════════
 elif page == "📖 Themes":
     st.markdown("## 📖 Themes")
     st.caption("Top-down narratives + price clusters + news NLP")

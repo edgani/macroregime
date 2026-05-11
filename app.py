@@ -831,7 +831,20 @@ def _render_narrative_card_native(row, idx=0, market_type="generic"):
         if em_pct or em_val:
             st.caption(f"📊 **Expected Move (weekly):** ±{_fmt_num(em_val)} ({fp(em_pct)}) · Daily vol: {fp(row.get('daily_vol'))}")
 
-        st.divider()
+        
+        # Risk-Adjusted Metrics
+        sharpe = row.get("sharpe_63d")
+        sortino = row.get("sortino_63d")
+        max_dd = row.get("max_dd_63d")
+        if sharpe is not None or sortino is not None:
+            st.divider()
+            st.markdown("**📊 Risk-Adjusted (63D)**")
+            r1, r2, r3 = st.columns(3)
+            r1.metric("Sharpe", f"{sharpe:.2f}" if sharpe is not None else "—")
+            r2.metric("Sortino", f"{sortino:.2f}" if sortino is not None else "—")
+            r3.metric("Max DD", f"{max_dd:.1%}" if max_dd is not None else "—")
+
+st.divider()
         st.markdown("**📐 Level Basis**")
         b1, b2, b3 = st.columns(3)
         b1.write(f"🎯 **Entry:** {row.get('entry_advice', row.get('entry_basis', '—'))}")
@@ -1133,7 +1146,69 @@ elif page == "📈 GIP Model":
         if fw != "not yet":
             st.markdown(f'<div style="background:{fwc}22;border:1px solid {fwc};border-radius:8px;padding:10px;text-align:center;margin:8px 0;"><span style="color:{fwc};font-weight:700;">{fwi}</span><br><span style="font-size:12px;color:#8B949E;">{fr}</span></div>', unsafe_allow_html=True)
 
-    if analogs and analogs.get("top_analogs"):
+    
+    # ── VOL FORECAST + HURST + STRESS TEST ──
+    st.divider()
+    st.markdown('<div class="subsection-header">📊 Volatility Forecast & Regime Probability</div>', unsafe_allow_html=True)
+
+    vol_f = snap.get("vol_forecast", {})
+    hurst = snap.get("hurst_proxy", {})
+    stress = snap.get("stress_test", [])
+
+    if vol_f:
+        proxy_tickers = ["SPY", "QQQ", "GLD", "TLT", "DX-Y.NYB"]
+        vol_rows = []
+        for t in proxy_tickers:
+            if t in vol_f:
+                v = vol_f[t]
+                vol_rows.append({
+                    "Asset": t,
+                    "Current Vol": f"{v['current_ann_vol']}%",
+                    "Forecast": f"{v['forecast_ann_vol']}%",
+                    "Regime": v['vol_regime'],
+                    "Daily Move": f"±{v['expected_daily_move_pct']:.1%}",
+                    "Weekly Move": f"±{v['expected_weekly_move_pct']:.1%}",
+                })
+        if vol_rows:
+            df_vol = pd.DataFrame(vol_rows)
+            st.dataframe(df_vol.style.map(lambda x: 
+                'color:#3FB950;font-weight:600;' if x == "LOW" else 
+                ('color:#D29922;font-weight:600;' if x == "NORMAL" else 
+                ('color:#F85149;font-weight:600;' if x in ["ELEVATED","EXTREME"] else '')), 
+                subset=["Regime"]), hide_index=True, use_container_width=True, height=180)
+            st.caption("Forecast = EWMA adaptive × regime multiplier. Higher vol expected in Q3/Q4.")
+
+    if hurst:
+        h_rows = []
+        for t, h in list(hurst.items())[:10]:
+            h_rows.append({
+                "Ticker": t,
+                "Hurst (Proxy)": h['hurst_approx'],
+                "Efficiency Ratio": h['efficiency_ratio'],
+                "Regime": h['regime'],
+            })
+        if h_rows:
+            df_h = pd.DataFrame(h_rows)
+            st.dataframe(df_h.style.map(lambda x: 
+                'color:#3FB950;' if "TRENDING" in x else 
+                ('color:#F85149;' if "MEAN-REVERTING" in x else 'color:#D29922;'), 
+                subset=["Regime"]), hide_index=True, use_container_width=True, height=250)
+            st.caption("Hurst ≈0.5 = random walk. >0.55 = trending (chase breakout). <0.45 = mean reverting (fade breakout).")
+
+    if stress:
+        st.divider()
+        st.markdown('<div class="subsection-header">🧪 Stress Test Scenarios</div>', unsafe_allow_html=True)
+        st.caption("Historical shock magnitudes applied to current regime portfolio proxy.")
+        for sc in stress:
+            sev_color = "#F85149" if sc['severity'] == "EXTREME" else "#D29922" if sc['severity'] == "HIGH" else "#8B949E"
+            with st.expander(f"⚠️ **{sc['scenario']}** | Portfolio DD: {sc['portfolio_dd']:.0%} | Severity: {sc['severity']}", expanded=(sc['severity'] in ["EXTREME","HIGH"])):
+                c1, c2, c3 = st.columns(3)
+                c1.metric("Portfolio DD", f"{sc['portfolio_dd']:.0%}")
+                c2.metric("Worst Asset", sc['worst_asset'], f"{sc['worst_dd']:.0%}")
+                c3.metric("Best Asset", sc['best_asset'], f"{sc['best_dd']:.0%}")
+                st.info(f"🛡️ **Hedge suggestion:** {sc['hedge']}")
+
+if analogs and analogs.get("top_analogs"):
         st.divider()
         st.markdown('<div class="subsection-header">Historical Comparisons</div>', unsafe_allow_html=True)
         for i,a in enumerate(analogs["top_analogs"][:3]):
@@ -1173,7 +1248,37 @@ elif page == "⚡ Alpha & Scanner":
 
     st.markdown("**Filter Logic:** Level 1 = score≥0.80 + RR≥2.0 + near entry | Level 2 = score≥0.60 + RR≥1.5 | Watch = score≥0.40 | Alpha Long/Short = direction confirmed + score≥0.50 | Daily = |score|≥0.10, grade A-C, all directions")
 
-    sub1, sub2, sub3, sub4, sub5, sub6, sub7 = st.tabs([
+        # ── RISK-ADJUSTED SUMMARY ──
+    risk_adj_all = snap.get("risk_adjusted", {})
+    if risk_adj_all:
+        st.divider()
+        st.markdown('<div class="subsection-header">📊 Risk-Adjusted Performance (63D)</div>', unsafe_allow_html=True)
+
+        # Top Sharpe
+        sharpe_sorted = sorted(
+            [(t, m) for t, m in risk_adj_all.items() if m.get("sharpe_63d") is not None],
+            key=lambda x: x[1]["sharpe_63d"], reverse=True
+        )[:10]
+
+        if sharpe_sorted:
+            sharpe_rows = []
+            for t, m in sharpe_sorted:
+                sharpe_rows.append({
+                    "Ticker": t,
+                    "Sharpe": m["sharpe_63d"],
+                    "Sortino": m.get("sortino_63d", "—"),
+                    "Ann Return": f"{m.get('ann_return', 0):.1f}%",
+                    "Ann Vol": f"{m.get('ann_vol', 0):.1f}%",
+                    "Max DD": f"{m.get('max_dd_63d', 0):.1%}",
+                })
+            df_ra = pd.DataFrame(sharpe_rows)
+            st.dataframe(
+                df_ra.style.map(lambda x: 'color:#3FB950;font-weight:700;' if isinstance(x, (int, float)) and x >= 2.0 else ('color:#D29922;font-weight:600;' if isinstance(x, (int, float)) and x >= 1.0 else ''), subset=["Sharpe", "Sortino"]),
+                hide_index=True, use_container_width=True, height=280
+            )
+            st.caption("Sharpe ≥2.0 = excellent risk-adjusted. Sortino > Sharpe = downside-skewed favorable.")
+
+sub1, sub2, sub3, sub4, sub5, sub6, sub7 = st.tabs([
         f"🚨 Bottlenecks L1 ({meta.get('level_1_count', 0)})",
         f"⚠️ Bottlenecks L2 ({meta.get('level_2_count', 0)})",
         f"👁️ Watch ({meta.get('watch_count', 0)})",
@@ -1229,7 +1334,17 @@ elif page == "⚡ Alpha & Scanner":
         filtered = [s for s in daily_signals if s.get("direction") in filter_dir and s.get("grade", "C") in filter_grade]
         filtered = [s for s in filtered if abs(s.get("score", 0)) >= filter_min_score]
         st.write(f"Showing **{len(filtered)}** signals out of {len(daily_signals)} total")
-        for i, s in enumerate(filtered[:300]): _render_narrative_card_native(s, i, "us_equity")
+                # Enrich with risk-adjusted metrics
+        risk_adj = snap.get("risk_adjusted", {})
+        for s in filtered:
+            t = s.get("ticker")
+            if t in risk_adj:
+                s["sharpe_63d"] = risk_adj[t].get("sharpe_63d")
+                s["sortino_63d"] = risk_adj[t].get("sortino_63d")
+                s["max_dd_63d"] = risk_adj[t].get("max_dd_63d")
+                s["ann_vol"] = risk_adj[t].get("ann_vol")
+
+for i, s in enumerate(filtered[:300]): _render_narrative_card_native(s, i, "us_equity")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: 💱🛢️ MACRO PROXIES

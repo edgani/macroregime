@@ -275,7 +275,211 @@ def _build_risk_ranges(prices, all_tickers):
         except Exception: pass
         rr = _calc_risk_range(s, ticker=t, market=mkt)
         if rr.get("ok"): asset_ranges[t] = rr
-    return asset_ranges
+    
+
+
+def _build_vol_forecast(prices, sq, lookback=20, long_window=50):
+    """Lightweight vol forecast: EWMA-style + regime adjustment. No external lib needed."""
+    forecasts = {}
+    regime_mult = {"Q1": 0.90, "Q2": 1.05, "Q3": 1.20, "Q4": 1.15}
+
+    for ticker, s in prices.items():
+        if s is None or len(s) < lookback + 5: 
+            continue
+        s = pd.to_numeric(s, errors="coerce").dropna()
+        if len(s) < lookback + 5: 
+            continue
+
+        rets = s.pct_change().dropna()
+        if len(rets) < lookback: 
+            continue
+
+        recent_vol = rets.tail(lookback).std()
+        longer_vol = rets.tail(long_window).std() if len(rets) >= long_window else recent_vol
+
+        vol_ratio = recent_vol / longer_vol if longer_vol > 0 else 1.0
+        lam = 0.85 if vol_ratio > 1.3 else (0.94 if vol_ratio < 0.8 else 0.90)
+
+        ewma_var = 0.0
+        for i, r in enumerate(rets.tail(lookback)):
+            weight = (1 - lam) * (lam ** i)
+            ewma_var += weight * (r ** 2)
+
+        ewma_vol = math.sqrt(ewma_var) * math.sqrt(252)
+        mult = regime_mult.get(sq, 1.0)
+        forecast_vol = ewma_vol * mult
+
+        if forecast_vol < 15: 
+            vol_regime = "LOW"
+        elif forecast_vol < 25: 
+            vol_regime = "NORMAL"
+        elif forecast_vol < 35: 
+            vol_regime = "ELEVATED"
+        else: 
+            vol_regime = "EXTREME"
+
+        forecasts[ticker] = {
+            "current_ann_vol": round(ewma_vol, 1),
+            "forecast_ann_vol": round(forecast_vol, 1),
+            "vol_regime": vol_regime,
+            "vol_ratio": round(vol_ratio, 2),
+            "lambda_used": lam,
+            "expected_daily_move_pct": round(forecast_vol / math.sqrt(252), 3),
+            "expected_weekly_move_pct": round(forecast_vol / math.sqrt(52), 3),
+        }
+    return forecasts
+
+
+def _build_hurst_proxy(prices, lookback=100):
+    """Hurst exponent proxy via Efficiency Ratio (Kaufman-style)."""
+    hurst_data = {}
+    for ticker, s in prices.items():
+        if s is None or len(s) < lookback: 
+            continue
+        s = pd.to_numeric(s, errors="coerce").dropna()
+        if len(s) < lookback: 
+            continue
+
+        price_change = abs(s.iloc[-1] - s.iloc[-lookback])
+        sum_changes = sum(abs(s.iloc[i] - s.iloc[i-1]) for i in range(-lookback+1, 1))
+
+        if sum_changes == 0: 
+            continue
+
+        er = price_change / sum_changes
+        hurst_approx = 0.5 + (er - 0.5) * 0.4
+
+        if hurst_approx > 0.55:
+            regime = "TRENDING"
+            color = "#3FB950"
+        elif hurst_approx < 0.45:
+            regime = "MEAN-REVERTING"
+            color = "#F85149"
+        else:
+            regime = "RANDOM WALK"
+            color = "#D29922"
+
+        hurst_data[ticker] = {
+            "hurst_approx": round(hurst_approx, 3),
+            "efficiency_ratio": round(er, 3),
+            "regime": regime,
+            "color": color,
+            "lookback": lookback,
+        }
+    return hurst_data
+
+
+def _build_risk_adjusted_metrics(prices, risk_free_rate=0.04):
+    """Rolling 63-day Sharpe & Sortino per ticker."""
+    metrics = {}
+    for ticker, s in prices.items():
+        if s is None or len(s) < 65: 
+            continue
+        s = pd.to_numeric(s, errors="coerce").dropna()
+        if len(s) < 65: 
+            continue
+
+        rets = s.pct_change().dropna()
+        if len(rets) < 63: 
+            continue
+
+        window = rets.tail(63)
+        mean_ret = window.mean() * 252
+        std_dev = window.std() * math.sqrt(252)
+
+        sharpe = (mean_ret - risk_free_rate) / std_dev if std_dev > 0 else 0
+
+        downside_rets = [r for r in window if r < 0]
+        downside_std = (pd.Series(downside_rets).std() * math.sqrt(252)) if downside_rets else 0.001
+        sortino = (mean_ret - risk_free_rate) / downside_std if downside_std > 0 else 0
+
+        running_max = window.cummax()
+        drawdown = (window - running_max) / running_max
+        max_dd = drawdown.min()
+
+        metrics[ticker] = {
+            "sharpe_63d": round(sharpe, 2),
+            "sortino_63d": round(sortino, 2),
+            "ann_return": round(mean_ret, 1),
+            "ann_vol": round(std_dev, 1),
+            "max_dd_63d": round(max_dd, 3),
+        }
+    return metrics
+
+
+def _build_stress_test(prices, sq, alpha):
+    """Lightweight stress test: apply historical shock magnitudes to current regime portfolio."""
+    SHOCKS = {
+        "2008_GFC": {
+            "Q1": {"SPY": -0.45, "QQQ": -0.50, "IWM": -0.55, "XLK": -0.55, "XLY": -0.50, "XLI": -0.45, "XLE": -0.35, "XLB": -0.40, "XLF": -0.60, "XLV": -0.25, "XLP": -0.15, "XLU": -0.10, "TLT": +0.25, "GLD": +0.20, "SLV": -0.30, "UUP": +0.10, "IBIT": -0.40, "IEF": +0.15},
+            "Q2": {"SPY": -0.35, "QQQ": -0.40, "IWM": -0.45, "XLK": -0.40, "XLY": -0.35, "XLI": -0.35, "XLE": -0.30, "XLB": -0.35, "XLF": -0.50, "XLV": -0.20, "XLP": -0.10, "XLU": -0.05, "TLT": +0.20, "GLD": +0.15, "SLV": -0.25, "UUP": +0.08, "IBIT": -0.30, "IEF": +0.12},
+            "Q3": {"SPY": -0.20, "QQQ": -0.25, "IWM": -0.25, "XLK": -0.20, "XLY": -0.20, "XLI": -0.20, "XLE": -0.15, "XLB": -0.20, "XLF": -0.25, "XLV": -0.10, "XLP": -0.05, "XLU": 0.00, "TLT": +0.10, "GLD": +0.10, "SLV": -0.15, "UUP": +0.05, "IBIT": -0.15, "IEF": +0.08},
+            "Q4": {"SPY": -0.15, "QQQ": -0.20, "IWM": -0.20, "XLK": -0.15, "XLY": -0.15, "XLI": -0.15, "XLE": -0.10, "XLB": -0.15, "XLF": -0.20, "XLV": -0.05, "XLP": 0.00, "XLU": +0.05, "TLT": +0.08, "GLD": +0.08, "SLV": -0.10, "UUP": +0.03, "IBIT": -0.10, "IEF": +0.05},
+        },
+        "2020_COVID": {
+            "Q1": {"SPY": -0.35, "QQQ": -0.30, "IWM": -0.45, "XLK": -0.25, "XLY": -0.40, "XLI": -0.40, "XLE": -0.50, "XLB": -0.35, "XLF": -0.45, "XLV": -0.20, "XLP": -0.15, "XLU": -0.15, "TLT": +0.15, "GLD": +0.05, "SLV": -0.35, "UUP": +0.05, "IBIT": -0.25, "IEF": +0.10},
+            "Q2": {"SPY": -0.30, "QQQ": -0.25, "IWM": -0.40, "XLK": -0.20, "XLY": -0.35, "XLI": -0.35, "XLE": -0.45, "XLB": -0.30, "XLF": -0.40, "XLV": -0.15, "XLP": -0.10, "XLU": -0.10, "TLT": +0.12, "GLD": +0.05, "SLV": -0.30, "UUP": +0.04, "IBIT": -0.20, "IEF": +0.08},
+            "Q3": {"SPY": -0.25, "QQQ": -0.20, "IWM": -0.35, "XLK": -0.15, "XLY": -0.30, "XLI": -0.30, "XLE": -0.40, "XLB": -0.25, "XLF": -0.35, "XLV": -0.10, "XLP": -0.08, "XLU": -0.08, "TLT": +0.10, "GLD": +0.03, "SLV": -0.25, "UUP": +0.03, "IBIT": -0.15, "IEF": +0.06},
+            "Q4": {"SPY": -0.20, "QQQ": -0.15, "IWM": -0.30, "XLK": -0.10, "XLY": -0.25, "XLI": -0.25, "XLE": -0.35, "XLB": -0.20, "XLF": -0.30, "XLV": -0.08, "XLP": -0.05, "XLU": -0.05, "TLT": +0.08, "GLD": +0.02, "SLV": -0.20, "UUP": +0.02, "IBIT": -0.10, "IEF": +0.05},
+        },
+        "2022_FED_HIKES": {
+            "Q1": {"SPY": -0.25, "QQQ": -0.35, "IWM": -0.30, "XLK": -0.40, "XLY": -0.25, "XLI": -0.20, "XLE": +0.20, "XLB": -0.15, "XLF": -0.20, "XLV": -0.10, "XLP": -0.05, "XLU": +0.05, "TLT": -0.20, "GLD": -0.10, "SLV": -0.20, "UUP": +0.10, "IBIT": -0.50, "IEF": -0.15},
+            "Q2": {"SPY": -0.20, "QQQ": -0.30, "IWM": -0.25, "XLK": -0.35, "XLY": -0.20, "XLI": -0.15, "XLE": +0.15, "XLB": -0.10, "XLF": -0.15, "XLV": -0.08, "XLP": -0.03, "XLU": +0.08, "TLT": -0.15, "GLD": -0.08, "SLV": -0.15, "UUP": +0.08, "IBIT": -0.40, "IEF": -0.12},
+            "Q3": {"SPY": -0.15, "QQQ": -0.25, "IWM": -0.20, "XLK": -0.30, "XLY": -0.15, "XLI": -0.10, "XLE": +0.10, "XLB": -0.08, "XLF": -0.10, "XLV": -0.05, "XLP": 0.00, "XLU": +0.10, "TLT": -0.10, "GLD": -0.05, "SLV": -0.10, "UUP": +0.05, "IBIT": -0.30, "IEF": -0.08},
+            "Q4": {"SPY": -0.10, "QQQ": -0.20, "IWM": -0.15, "XLK": -0.25, "XLY": -0.10, "XLI": -0.08, "XLE": +0.08, "XLB": -0.05, "XLF": -0.08, "XLV": -0.03, "XLP": +0.03, "XLU": +0.12, "TLT": -0.08, "GLD": -0.03, "SLV": -0.08, "UUP": +0.03, "IBIT": -0.20, "IEF": -0.05},
+        },
+    }
+
+    longs = alpha.get("longs", []) if alpha else []
+    if not longs:
+        longs = [{"ticker": t} for t in QUAD_MAP.get(sq, {}).get("assets", [])[:5]]
+
+    portfolio = []
+    for item in longs:
+        t = item.get("ticker")
+        p = _last_price(prices.get(t))
+        if p: 
+            portfolio.append({"ticker": t, "price": p, "weight": 1.0/len(longs)})
+
+    results = []
+    for shock_name, shock_data in SHOCKS.items():
+        regime_shock = shock_data.get(sq, {})
+        if not regime_shock: 
+            continue
+
+        portfolio_return = 0.0
+        worst_ticker = None
+        worst_return = 0.0
+        best_ticker = None
+        best_return = 0.0
+
+        for pos in portfolio:
+            t = pos["ticker"]
+            w = pos["weight"]
+            ret = regime_shock.get(t, regime_shock.get("SPY", -0.20))
+            weighted = w * ret
+            portfolio_return += weighted
+
+            if ret < worst_return:
+                worst_return = ret
+                worst_ticker = t
+            if ret > best_return:
+                best_return = ret
+                best_ticker = t
+
+        results.append({
+            "scenario": shock_name,
+            "portfolio_dd": round(portfolio_return, 1),
+            "worst_asset": worst_ticker,
+            "worst_dd": round(worst_return, 1),
+            "best_asset": best_ticker,
+            "best_dd": round(best_return, 1),
+            "severity": "EXTREME" if portfolio_return < -0.30 else "HIGH" if portfolio_return < -0.20 else "MODERATE" if portfolio_return < -0.10 else "MILD",
+            "hedge": "TLT/GLD/UUP" if portfolio_return < -0.20 else "XLP/XLU",
+        })
+
+    return results
+return asset_ranges
 
 def _detect_market_type(ticker):
     if any(x in ticker for x in ["BTC","ETH","SOL","TON","ADA","AVAX","DOT","LINK","DOGE","LTC","XRP","BNB","-USD","-USDT"]):
@@ -1368,6 +1572,16 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
     asset_ranges = _build_risk_ranges(prices, all_tickers)
     if progress_cb: progress_cb(f"Risk ranges: {len(asset_ranges)} assets", 0.65)
 
+
+    if progress_cb: progress_cb("Calculating vol forecast...", 0.56)
+    vol_forecasts = _build_vol_forecast(prices, sq, lookback=20, long_window=50)
+    if progress_cb: progress_cb("Calculating Hurst proxy...", 0.57)
+    hurst_proxy = _build_hurst_proxy(prices, lookback=100)
+    if progress_cb: progress_cb("Calculating risk-adjusted metrics...", 0.58)
+    risk_adj = _build_risk_adjusted_metrics(prices, risk_free_rate=0.04)
+    if progress_cb: progress_cb("Running stress tests...", 0.59)
+    stress_test = _build_stress_test(prices, sq, alpha)
+
     if progress_cb: progress_cb("Running health engine...", 0.70)
     health_engine = MarketHealthEngine()
     health = health_engine.run(prices, gip.features, sq)
@@ -1502,6 +1716,10 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
         "ihsg_rupiah_regime": ihsg_rupiah_regime,
         "ihsg_foreign_flow": ihsg_foreign_flow,
         "ihsg_macro_overlay": ihsg_macro_overlay,
+        "vol_forecast": vol_forecasts,
+        "hurst_proxy": hurst_proxy,
+        "risk_adjusted": risk_adj,
+        "stress_test": stress_test,
     }
 
     logger.info(f"Snapshot built in {snapshot['build_time_s']}s | Prices: {len(prices)} | Ranges: {len(asset_ranges)} | Longs: {len(alpha.get('longs', []))} | Shorts: {len(alpha.get('shorts', []))} | Daily Signals: {len(daily_signals)} | Alpha Center: {alpha_center['meta']['total_items']} | IHSG Layers: {len(ihsg_sector_momentum)} sectors")
@@ -1526,4 +1744,8 @@ if __name__ == "__main__":
         "greeks_analyzed": len(snap.get("greeks_data", {})),
         "ihsg_sectors": len(snap.get("ihsg_sector_momentum", {})),
         "build_time": snap["build_time_s"],
+        "vol_forecast_count": len(snap.get("vol_forecast", {})),
+        "hurst_proxy_count": len(snap.get("hurst_proxy", {})),
+        "risk_adjusted_count": len(snap.get("risk_adjusted", {})),
+        "stress_test_scenarios": len(snap.get("stress_test", [])),
     }, indent=2))

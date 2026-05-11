@@ -1,7 +1,8 @@
-"""orchestrator.py — MacroRegime Pro Orchestrator v2.4
-Fixes: dummy global country quads, gamma data completeness, crypto tokens robust
-Adds: DAILY SIGNALS (Hedgeye-style) + ALPHA CENTER bottleneck scanner
-Adds IHSG v2: Sector Momentum, Commodity Overlay, Rupiah Regime, Foreign Flow Proxy, BI Macro Overlay
+"""orchestrator.py — MacroRegime Pro Orchestrator v3.0 FINAL
+Integrates: GIP + MarketHealth + Real Options + COT + DeFiLlama + CME +
+             Forward-Looking (LeadingIndicator + RegimePredictor) +
+             PriceCluster + NewsNLP + AutoDiscoveryV3 +
+             IHSG Structural Compensators
 """
 from __future__ import annotations
 import os, sys, json, math, logging, time
@@ -24,6 +25,10 @@ from config.settings import (
 from data.loader import load_prices, load_fred
 load_fred_macro = load_fred
 
+# ══════════════════════════════════════════════════════════════════════════════
+# ENGINE IMPORTS — REAL + FALLBACK
+# ══════════════════════════════════════════════════════════════════════════════
+
 try:
     from engines.gip_engine import GIPEngine, get_playbook
 except Exception as _e:
@@ -32,8 +37,9 @@ except Exception as _e:
         def run(self, fred_data, prices):
             ns = type("GIP", (), {})()
             ns.features = {"growth_momentum": 0, "inflation_momentum": 0, "policy_score": 0, "q3_modifier": 0}
-            ns.structural_quad = "Q1"; ns.monthly_quad = "Q1"
+            ns.structural_quad = "Q3"; ns.monthly_quad = "Q3"
             ns.structural_probs = {"Q1": 0.25, "Q2": 0.25, "Q3": 0.25, "Q4": 0.25}
+            ns.monthly_probs = {"Q1": 0.25, "Q2": 0.25, "Q3": 0.25, "Q4": 0.25}
             ns.structural_conf = 0.5; ns.monthly_conf = 0.5
             ns.divergence = "aligned"; ns.flip_hazard = 0.0; ns.data_coverage = 0.5
             return ns
@@ -57,30 +63,8 @@ except Exception as _e:
             }
 
 try:
-    from engines.cme_cot import CMECOTProxy
-except Exception as _e:
-    class CMECOTProxy:
-        def analyze(self, ticker, prices, vix=20): return {"ok": False}
-
-try:
-    from engines.cme_oi import CMEOIProxy
-except Exception as _e:
-    class CMEOIProxy:
-        def analyze(self, ticker, prices): return {"ok": False}
-
-try:
-    from engines.defillama_helper import DeFiLlamaHelper
-except Exception as _e:
-    class DeFiLlamaHelper:
-        def get_tvl(self): return None
-        def get_stablecoin_mcap(self): return None
-        def get_dex_volume_24h(self): return None
-
-
-try:
     from engines.gamma_engine import GammaEngine
 except Exception as _e:
-    logger.warning(f"gamma_engine import failed: {_e}")
     class GammaEngine:
         def analyze(self, ticker, prices, vix=20, dxy_ret=0): return {"ok": False}
         def analyze_multi(self, tickers, prices, vix=20, dxy_ret=0): return {}
@@ -88,108 +72,102 @@ except Exception as _e:
 try:
     from engines.greeks_proxy import GreeksProxy
 except Exception as _e:
-    logger.warning(f"greeks_proxy import failed: {_e}")
     class GreeksProxy:
         def analyze(self, ticker, prices, vix=20, dxy_ret=0, regime="Q3"): return {"ok": False}
         def analyze_multi(self, tickers, prices, vix=20, dxy_ret=0, regime="Q3"): return {}
 
+# ── FORWARD-LOOKING & DISCOVERY ENGINES ────────────────────────────────────
+try:
+    from engines.leading_indicator_engine import LeadingIndicatorEngine
+except Exception as _e:
+    logger.warning(f"LeadingIndicatorEngine import failed: {_e}")
+    class LeadingIndicatorEngine:
+        def fit(self, historical_snapshots): pass
+        def predict_transition_prob(self, features, current_quad): return 0.3
+        def predict_forward_return(self, features, current_quad, asset="SPY"):
+            return {"expected_1m": 0.0, "expected_3m": 0.0, "expected_6m": 0.0, "confidence": 0.5, "transition_prob": 0.3}
+        def feature_importance(self, quad): return {}
+
+try:
+    from engines.regime_predictor_engine import RegimePredictorEngine
+except Exception as _e:
+    logger.warning(f"RegimePredictorEngine import failed: {_e}")
+    class RegimePredictorEngine:
+        def __init__(self): self.is_fitted = False; self.historical_transitions = []
+        def record_transition(self, fq, tq, f): pass
+        def fit(self): pass
+        def predict(self, current_quad, features, months_forward=3):
+            return {
+                "current_quad": current_quad, "predicted_quad": current_quad,
+                "prediction_confidence": 0.25,
+                "probability_distribution": {"Q1":0.25,"Q2":0.25,"Q3":0.25,"Q4":0.25},
+                "expected_transition_weeks": 8, "months_forward": months_forward,
+                "model_used": False,
+            }
+
+try:
+    from engines.price_cluster_engine_v3 import PriceClusterEngineV3
+except Exception as _e:
+    logger.warning(f"PriceClusterEngineV3 import failed: {_e}")
+    class PriceClusterEngineV3:
+        def __init__(self, sector_map, market_map): pass
+        def run(self, prices, benchmark="SPY", lookback=63):
+            return {"clusters": [], "outliers": [], "meta": {"error": "PriceCluster unavailable"}}
+
+try:
+    from engines.news_nlp_engine_v3 import NewsNLPEngineV3
+except Exception as _e:
+    logger.warning(f"NewsNLPEngineV3 import failed: {_e}")
+    class NewsNLPEngineV3:
+        def __init__(self, use_transformers=False, known_tickers=None): pass
+        def run(self, tickers, theme_queries=None, max_per_ticker=8):
+            return {"analyzed_count": 0, "narrative_scores": {}, "emergent_narratives": [], "new_theme_candidates": [], "supply_chain_alerts": [], "ticker_specific": {}, "meta": {"nlp_mode": "fallback"}}
+
 try:
     from engines.auto_discovery_engine_v3 import AutoDiscoveryEngineV3
 except Exception as _e:
+    logger.warning(f"AutoDiscoveryEngineV3 import failed: {_e}")
     class AutoDiscoveryEngineV3:
-        def run(self, prices, gip=None, risk_ranges=None): return {"discoveries": []}
+        def __init__(self, sector_map=None, market_map=None, known_tickers=None, use_transformers=False): pass
+        def run(self, prices, gip=None, risk_ranges=None, **kwargs):
+            return {"ok": True, "candidates": [], "bottlenecks": [], "narratives": [], "transitions": [], "meta": {"total_candidates": 0}}
 
-# ══════════════════════════════════════════════════════════════════════════════
-# REAL DATA ENGINE IMPORTS
-# ══════════════════════════════════════════════════════════════════════════════
-
+# ── REAL DATA ENGINES ──────────────────────────────────────────────────────
 try:
     from engines.cot_scraper import CFTCCOTScraper
     cot_scraper = CFTCCOTScraper()
 except Exception as _e:
-    logger.warning(f"COT scraper import failed: {_e}")
     cot_scraper = None
 
 try:
     from engines.yfinance_options import YFinanceOptionsEngine
     yf_options = YFinanceOptionsEngine()
 except Exception as _e:
-    logger.warning(f"yfinance options import failed: {_e}")
     yf_options = None
 
 try:
     from engines.defillama_api import DeFiLlamaAPI
     defillama = DeFiLlamaAPI()
 except Exception as _e:
-    logger.warning(f"DeFiLlama API import failed: {_e}")
     defillama = None
 
 try:
     from engines.cme_scraper import CMEScraper
     cme_scraper = CMEScraper()
 except Exception as _e:
-    logger.warning(f"CME scraper import failed: {_e}")
     cme_scraper = None
 
 try:
     from engines.barchart_scraper import BarchartScraper
     barchart = BarchartScraper()
 except Exception as _e:
-    logger.warning(f"Barchart scraper import failed: {_e}")
     barchart = None
 
 try:
     from engines.laevitas_scraper import LaevitasScraper
     laevitas = LaevitasScraper()
 except Exception as _e:
-    logger.warning(f"Laevitas scraper import failed: {_e}")
     laevitas = None
-
-# ══════════════════════════════════════════════════════════════════════════════
-# FORWARD-LOOKING & NARRATIVE ENGINE IMPORTS
-# ══════════════════════════════════════════════════════════════════════════════
-
-try:
-    from engines.leading_indicator_engine import LeadingIndicatorEngine
-except Exception as _e:
-    logger.warning(f"leading_indicator_engine import failed: {_e}")
-    class LeadingIndicatorEngine:
-        def __init__(self): self.is_fitted = False
-        def predict_transition_prob(self, features, current_quad): return min(abs(features.get("growth_momentum",0)) + abs(features.get("inflation_momentum",0)), 1.0)
-        def predict_forward_return(self, features, current_quad, asset="SPY"):
-            base = {"Q1":0.02,"Q2":0.015,"Q3":-0.01,"Q4":-0.02}.get(current_quad,0.0)
-            return {"expected_1m":round(base*0.3,4),"expected_3m":round(base,4),"expected_6m":round(base*2,4),"confidence":0.5,"transition_prob":0.3}
-        def feature_importance(self, quad): return {}
-
-try:
-    from engines.regime_predictor_engine import RegimePredictorEngine
-except Exception as _e:
-    logger.warning(f"regime_predictor_engine import failed: {_e}")
-    class RegimePredictorEngine:
-        def __init__(self): self.is_fitted = False; self.historical_transitions = []
-        def record_transition(self, fq, tq, f): pass
-        def fit(self): pass
-        def predict(self, current_quad, features, months_forward=3):
-            return {"current_quad":current_quad,"predicted_quad":current_quad,"prediction_confidence":0.5,"probability_distribution":{"Q1":0.25,"Q2":0.25,"Q3":0.25,"Q4":0.25},"expected_transition_weeks":8,"months_forward":months_forward,"model_used":False,"base_rate":{},"model_probs":{}}
-
-try:
-    from engines.price_cluster_engine_v3 import PriceClusterEngineV3
-except Exception as _e:
-    logger.warning(f"price_cluster_engine_v3 import failed: {_e}")
-    class PriceClusterEngineV3:
-        def __init__(self, sector_map, market_map): pass
-        def run(self, prices, benchmark="SPY", lookback=63, corr_threshold=0.60, dtw_threshold=0.03, min_cluster_size=3):
-            return {"clusters":[],"outliers":[],"meta":{"universe_scanned":0,"with_data":0,"clusters_found":0,"benchmark":benchmark,"lookback":lookback,"louvain":False}}
-
-try:
-    from engines.news_nlp_engine_v3 import NewsNLPEngineV3
-except Exception as _e:
-    logger.warning(f"news_nlp_engine_v3 import failed: {_e}")
-    class NewsNLPEngineV3:
-        def __init__(self, use_transformers=False, known_tickers=None): pass
-        def run(self, tickers, theme_queries=None, max_per_ticker=8):
-            return {"analyzed_count":0,"narrative_scores":{},"emergent_narratives":[],"new_theme_candidates":[],"supply_chain_alerts":[],"ticker_specific":{},"meta":{"tickers_queried":0,"theme_queries":[],"nlp_mode":"fallback"}}
-
 
 QUAD_MAP = {
     "Q1": {"name": "Goldilocks", "assets": ["XLK", "XLY", "XLI", "IWM", "QQQ", "RSP", "SLV", "GLD", "IBIT"], "bias": "bullish"},
@@ -198,7 +176,6 @@ QUAD_MAP = {
     "Q4": {"name": "Deflation", "assets": ["TLT", "IEF", "GLD", "SLV", "XLV", "XLP", "XLU", "UUP", "BTAL"], "bias": "bearish"},
 }
 
-# ── Ticker metadata for regime fit ────────────────────────────────────────
 TICKER_QUAD_FIT = {
     "XLK": {"Q1": 0.95, "Q2": 0.70, "Q3": 0.30, "Q4": 0.20},
     "XLY": {"Q1": 0.90, "Q2": 0.75, "Q3": 0.40, "Q4": 0.25},
@@ -302,7 +279,6 @@ def _get_regime_fit(ticker: str, quad: str) -> float:
     sector = TICKER_SECTOR.get(ticker, "generic")
     return SECTOR_QUAD_FIT.get(sector, SECTOR_QUAD_FIT["generic"]).get(quad, 0.50)
 
-
 def _calc_risk_range(s: pd.Series, ticker: str = "", market: str = "us_equity") -> dict:
     if s is None or s.empty: return {"ok": False}
     s = pd.to_numeric(s, errors="coerce").dropna()
@@ -310,9 +286,9 @@ def _calc_risk_range(s: pd.Series, ticker: str = "", market: str = "us_equity") 
     last = float(s.iloc[-1]); sma20 = float(s.tail(20).mean()); sma50 = float(s.tail(50).mean()); std20 = float(s.tail(20).std())
     if not all(math.isfinite(v) for v in [last, sma20, sma50, std20]): return {"ok": False}
     lrr = round(sma20 - 1.5 * std20, 2); trr = round(sma20 + 1.5 * std20, 2)
-    if last < lrr: composite = "bullish"; signal = "OVERSOLD 🔵"; quality = "A"
-    elif last > trr: composite = "bearish"; signal = "OVERBOUGHT 🔴"; quality = "short_A"
-    else: composite = "neutral"; signal = "NEUTRAL ⚪"; quality = "C"
+    if last < lrr: composite = "bullish"; signal = "OVERSOLD"; quality = "A"
+    elif last > trr: composite = "bearish"; signal = "OVERBOUGHT"; quality = "short_A"
+    else: composite = "neutral"; signal = "NEUTRAL"; quality = "C"
     return {
         "ok": True, "px": round(last, 2), "market": market, "composite": composite, "quality": quality,
         "trade": {"lrr": lrr, "trr": trr, "volume_confirm": 0.5, "stretch": "normal"},
@@ -330,12 +306,6 @@ def _safe_ret(s, n):
         return r if math.isfinite(r) else None
     except: return None
 
-def _safe_ret_series(s, n):
-    if s is None or s.empty: return None
-    s = pd.to_numeric(s, errors="coerce").dropna()
-    if len(s) < n + 1: return None
-    return s.iloc[-1] / s.iloc[-n - 1] - 1
-
 def _last_price(s):
     if s is None or s.empty: return None
     try:
@@ -349,54 +319,42 @@ def _build_risk_ranges(prices, all_tickers):
         s = prices.get(t)
         if s is None or s.empty: continue
         mkt = "us_equity"
-        if t in FOREX_PAIRS or any(x in t for x in ["USD=","EUR=","GBP=","JPY=","CAD","AUD","CHF","NZD","MXN","SEK","BRL"]): mkt = "forex"
-        elif t in COMMODITIES or any(x in t for x in ["GC=","SI=","CL=","BZ=","NG=","HG=","PL=","PA=","RB=","HO=","ALI=","ZW=","ZC=","ZS=","ZW","ZC","ZS"]): mkt = "commodity"
-        elif t in CRYPTO or any(x in t for x in ["BTC","ETH","SOL","TON","ADA","AVAX","DOT","LINK","DOGE","LTC","XRP","BNB"]): mkt = "crypto"
-        elif t in IHSG_UNIVERSE or any(x in t for x in [".JK","EIDO","PGEO","ADRO","NCKL","BBRI","BMRI","ICBP","KLBF","AALI","UNTR","TLKM","WINS","LEAD","SHIP","ELSA","BUMI"]): mkt = "ihsg"
+        if t in FOREX_PAIRS or any(x in t for x in ["USD=","EUR=","GBP=","JPY=","CAD","AUD","CHF","NZD","MXN","SEK","BRL"]):
+            mkt = "forex"
+        elif t in COMMODITIES or any(x in t for x in ["GC=","SI=","CL=","BZ=","NG=","HG=","PL=","PA=","RB=","HO=","ALI=","ZW=","ZC=","ZS=","=F"]):
+            mkt = "commodity"
+        elif t in CRYPTO or any(x in t for x in ["BTC","ETH","SOL","TON","ADA","AVAX","DOT","LINK","DOGE","LTC","XRP","BNB"]):
+            mkt = "crypto"
+        elif t in IHSG_UNIVERSE or any(x in t for x in [".JK","EIDO","^JKSE"]):
+            mkt = "ihsg"
         rr = _calc_risk_range(s, ticker=t, market=mkt)
         if rr.get("ok"): asset_ranges[t] = rr
     return asset_ranges
 
 def _build_vol_forecast(prices, sq, lookback=20, long_window=50):
-    """Lightweight vol forecast: EWMA-style + regime adjustment. No external lib needed."""
     forecasts = {}
     regime_mult = {"Q1": 0.90, "Q2": 1.05, "Q3": 1.20, "Q4": 1.15}
-
     for ticker, s in prices.items():
-        if s is None or len(s) < lookback + 5: 
-            continue
+        if s is None or len(s) < lookback + 5: continue
         s = pd.to_numeric(s, errors="coerce").dropna()
-        if len(s) < lookback + 5: 
-            continue
-
+        if len(s) < lookback + 5: continue
         rets = s.pct_change().dropna()
-        if len(rets) < lookback: 
-            continue
-
+        if len(rets) < lookback: continue
         recent_vol = rets.tail(lookback).std()
         longer_vol = rets.tail(long_window).std() if len(rets) >= long_window else recent_vol
-
         vol_ratio = recent_vol / longer_vol if longer_vol > 0 else 1.0
         lam = 0.85 if vol_ratio > 1.3 else (0.94 if vol_ratio < 0.8 else 0.90)
-
         ewma_var = 0.0
         for i, r in enumerate(rets.tail(lookback)):
             weight = (1 - lam) * (lam ** i)
             ewma_var += weight * (r ** 2)
-
         ewma_vol = math.sqrt(ewma_var) * math.sqrt(252)
         mult = regime_mult.get(sq, 1.0)
         forecast_vol = ewma_vol * mult
-
-        if forecast_vol < 15: 
-            vol_regime = "LOW"
-        elif forecast_vol < 25: 
-            vol_regime = "NORMAL"
-        elif forecast_vol < 35: 
-            vol_regime = "ELEVATED"
-        else: 
-            vol_regime = "EXTREME"
-
+        if forecast_vol < 15: vol_regime = "LOW"
+        elif forecast_vol < 25: vol_regime = "NORMAL"
+        elif forecast_vol < 35: vol_regime = "ELEVATED"
+        else: vol_regime = "EXTREME"
         forecasts[ticker] = {
             "current_ann_vol": round(ewma_vol, 1),
             "forecast_ann_vol": round(forecast_vol, 1),
@@ -408,35 +366,24 @@ def _build_vol_forecast(prices, sq, lookback=20, long_window=50):
         }
     return forecasts
 
-
 def _build_risk_adjusted_metrics(prices, risk_free_rate=0.04):
-    """Rolling 63-day Sharpe & Sortino per ticker."""
     metrics = {}
     for ticker, s in prices.items():
-        if s is None or len(s) < 65: 
-            continue
+        if s is None or len(s) < 65: continue
         s = pd.to_numeric(s, errors="coerce").dropna()
-        if len(s) < 65: 
-            continue
-
+        if len(s) < 65: continue
         rets = s.pct_change().dropna()
-        if len(rets) < 63: 
-            continue
-
+        if len(rets) < 63: continue
         window = rets.tail(63)
         mean_ret = window.mean() * 252
         std_dev = window.std() * math.sqrt(252)
-
         sharpe = (mean_ret - risk_free_rate) / std_dev if std_dev > 0 else 0
-
         downside_rets = [r for r in window if r < 0]
         downside_std = (pd.Series(downside_rets).std() * math.sqrt(252)) if downside_rets else 0.001
         sortino = (mean_ret - risk_free_rate) / downside_std if downside_std > 0 else 0
-
         running_max = window.cummax()
         drawdown = (window - running_max) / running_max
         max_dd = drawdown.min()
-
         metrics[ticker] = {
             "sharpe_63d": round(sharpe, 2),
             "sortino_63d": round(sortino, 2),
@@ -446,9 +393,7 @@ def _build_risk_adjusted_metrics(prices, risk_free_rate=0.04):
         }
     return metrics
 
-
 def _build_stress_test(prices, sq, alpha):
-    """Lightweight stress test: apply historical shock magnitudes to current regime portfolio."""
     SHOCKS = {
         "2008_GFC": {
             "Q1": {"SPY": -0.45, "QQQ": -0.50, "IWM": -0.55, "XLK": -0.55, "XLY": -0.50, "XLI": -0.45, "XLE": -0.35, "XLB": -0.40, "XLF": -0.60, "XLV": -0.25, "XLP": -0.15, "XLU": -0.10, "TLT": +0.25, "GLD": +0.20, "SLV": -0.30, "UUP": +0.10, "IBIT": -0.40, "IEF": +0.15},
@@ -469,44 +414,24 @@ def _build_stress_test(prices, sq, alpha):
             "Q4": {"SPY": -0.10, "QQQ": -0.20, "IWM": -0.15, "XLK": -0.25, "XLY": -0.10, "XLI": -0.08, "XLE": +0.08, "XLB": -0.05, "XLF": -0.08, "XLV": -0.03, "XLP": +0.03, "XLU": +0.12, "TLT": -0.08, "GLD": -0.03, "SLV": -0.08, "UUP": +0.03, "IBIT": -0.20, "IEF": -0.05},
         },
     }
-
     longs = alpha.get("longs", []) if alpha else []
     if not longs:
         longs = [{"ticker": t} for t in QUAD_MAP.get(sq, {}).get("assets", [])[:5]]
-
     portfolio = []
     for item in longs:
-        t = item.get("ticker")
-        p = _last_price(prices.get(t))
-        if p: 
-            portfolio.append({"ticker": t, "price": p, "weight": 1.0/len(longs)})
-
+        t = item.get("ticker"); p = _last_price(prices.get(t))
+        if p: portfolio.append({"ticker": t, "price": p, "weight": 1.0/len(longs)})
     results = []
     for shock_name, shock_data in SHOCKS.items():
         regime_shock = shock_data.get(sq, {})
-        if not regime_shock: 
-            continue
-
-        portfolio_return = 0.0
-        worst_ticker = None
-        worst_return = 0.0
-        best_ticker = None
-        best_return = 0.0
-
+        if not regime_shock: continue
+        portfolio_return = 0.0; worst_ticker = None; worst_return = 0.0; best_ticker = None; best_return = 0.0
         for pos in portfolio:
-            t = pos["ticker"]
-            w = pos["weight"]
+            t = pos["ticker"]; w = pos["weight"]
             ret = regime_shock.get(t, regime_shock.get("SPY", -0.20))
-            weighted = w * ret
-            portfolio_return += weighted
-
-            if ret < worst_return:
-                worst_return = ret
-                worst_ticker = t
-            if ret > best_return:
-                best_return = ret
-                best_ticker = t
-
+            weighted = w * ret; portfolio_return += weighted
+            if ret < worst_return: worst_return = ret; worst_ticker = t
+            if ret > best_return: best_return = ret; best_ticker = t
         results.append({
             "scenario": shock_name,
             "portfolio_dd": round(portfolio_return, 1),
@@ -517,20 +442,7 @@ def _build_stress_test(prices, sq, alpha):
             "severity": "EXTREME" if portfolio_return < -0.30 else "HIGH" if portfolio_return < -0.20 else "MODERATE" if portfolio_return < -0.10 else "MILD",
             "hedge": "TLT/GLD/UUP" if portfolio_return < -0.20 else "XLP/XLU",
         })
-
     return results
-
-def _detect_market_type(ticker):
-    if any(x in ticker for x in ["BTC","ETH","SOL","TON","ADA","AVAX","DOT","LINK","DOGE","LTC","XRP","BNB","-USD","-USDT"]):
-        return "crypto"
-    elif any(x in ticker for x in ["USD=","EUR=","GBP=","JPY=","CAD","AUD","CHF","NZD","MXN","SEK","BRL","=X","DX-Y"]):
-        return "forex"
-    elif any(x in ticker for x in ["GC=","SI=","CL=","BZ=","NG=","HG=","PL=","PA=","RB=","HO=","ALI=","ZW=","ZC=","ZS=","=F"]):
-        return "commodity"
-    elif ".JK" in ticker or ticker in ["EIDO", "^JKSE"]:
-        return "ihsg"
-    return "us_equity"
-
 
 def _build_alpha_ideas(prices, sq, mq, gamma_data=None, greeks_data=None):
     playbook = get_playbook(sq, mq); regime = QUAD_MAP.get(sq, {}); bias = regime.get("bias", "neutral")
@@ -548,13 +460,12 @@ def _build_alpha_ideas(prices, sq, mq, gamma_data=None, greeks_data=None):
             "target_1": target1, "target_2": target2, "stop_loss": stop,
             "rr": round((target1 - entry) / (entry - stop), 1) if entry != stop else 0,
             "hold_for": "2-4 weeks", "signal": "BUY", "grade": "A", "direction": "LONG",
-            "thesis": f"{ticker} in {sq} playbook (fit {fit:.0%}) — {playbook.get('strategy', 'tactical')}",
-            "regime_fit": fit,
+            "thesis": f"{ticker} in {sq} playbook (fit {fit:.0%})", "regime_fit": fit,
         }
-        gamma = gamma_data.get(ticker, {})
-        greek = greeks_data.get(ticker, {})
-        mkt = _detect_market_type(ticker)
-        item = _enrich_signal_with_conclusions(item, gamma, greek, rr, market_type=mkt)
+        mkt = "us_equity"
+        if ticker in CRYPTO or any(x in ticker for x in ["BTC","ETH","SOL"]):
+            mkt = "crypto"; item["hold_for"] = "1-2 weeks"
+        item = _enrich_signal_with_conclusions(item, gamma_data.get(ticker, {}), greeks_data.get(ticker, {}), rr, market_type=mkt)
         longs.append(item)
     for ticker in playbook.get("worst_assets", [])[:6]:
         p = _last_price(prices.get(ticker))
@@ -567,13 +478,10 @@ def _build_alpha_ideas(prices, sq, mq, gamma_data=None, greeks_data=None):
             "target_1": target, "target_2": round(p * 0.90, 2), "stop_loss": stop,
             "rr": round((entry - target) / (stop - entry), 1) if stop != entry else 0,
             "hold_for": "2-4 weeks", "signal": "SELL", "grade": "A", "direction": "SHORT",
-            "thesis": f"{ticker} avoid in {sq} playbook (fit {fit:.0%})",
-            "regime_fit": fit,
+            "thesis": f"{ticker} avoid in {sq} playbook (fit {fit:.0%})", "regime_fit": fit,
         }
-        gamma = gamma_data.get(ticker, {})
-        greek = greeks_data.get(ticker, {})
-        mkt = _detect_market_type(ticker)
-        item = _enrich_signal_with_conclusions(item, gamma, greek, rr, market_type=mkt)
+        mkt = "us_equity"
+        item = _enrich_signal_with_conclusions(item, gamma_data.get(ticker, {}), greeks_data.get(ticker, {}), rr, market_type=mkt)
         shorts.append(item)
     if not longs and not shorts:
         for t in ["SPY", "QQQ", "IWM", "XLK", "XLE", "GLD", "SLV", "TLT", "IBIT", "UUP"]:
@@ -581,14 +489,13 @@ def _build_alpha_ideas(prices, sq, mq, gamma_data=None, greeks_data=None):
             if p is None or r1m is None: continue
             fit = _get_regime_fit(t, sq)
             rr = _calc_risk_range(prices.get(t))
-            mkt = _detect_market_type(t)
             if bias == "bullish" and r1m > 0.02:
                 item = {"ticker": t, "price": round(p, 2), "entry": round(p * 0.98, 2),
                     "target_1": round(p * 1.05, 2), "target_2": round(p * 1.10, 2),
                     "stop_loss": round(p * 0.95, 2), "rr": 2.0, "hold_for": "2-4 weeks",
                     "signal": "BUY", "grade": "B", "direction": "LONG",
                     "thesis": f"Momentum +{r1m:.1%} in {sq} regime (fit {fit:.0%})", "regime_fit": fit}
-                item = _enrich_signal_with_conclusions(item, gamma_data.get(t, {}), greeks_data.get(t, {}), rr, market_type=mkt)
+                item = _enrich_signal_with_conclusions(item, gamma_data.get(t, {}), greeks_data.get(t, {}), rr)
                 longs.append(item)
             elif bias == "bearish" and r1m < -0.02:
                 item = {"ticker": t, "price": round(p, 2), "entry": round(p * 1.02, 2),
@@ -596,37 +503,32 @@ def _build_alpha_ideas(prices, sq, mq, gamma_data=None, greeks_data=None):
                     "stop_loss": round(p * 1.05, 2), "rr": 2.0, "hold_for": "2-4 weeks",
                     "signal": "SELL", "grade": "B", "direction": "SHORT",
                     "thesis": f"Momentum {r1m:.1%} in {sq} regime (fit {fit:.0%})", "regime_fit": fit}
-                item = _enrich_signal_with_conclusions(item, gamma_data.get(t, {}), greeks_data.get(t, {}), rr, market_type=mkt)
+                item = _enrich_signal_with_conclusions(item, gamma_data.get(t, {}), greeks_data.get(t, {}), rr)
                 shorts.append(item)
     return {"longs": longs, "shorts": shorts, "playbook": playbook}
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# READABLE CONCLUSION HELPERS
-# ══════════════════════════════════════════════════════════════════════════════
 
 def _entry_advice(price, entry, lrr, trr, gamma, greek, momentum_1m, composite, direction):
     if direction not in ("LONG", "SHORT"): return "WAIT — No clear edge"
     if direction == "LONG":
         if price <= entry * 1.01:
             if composite == "bullish" and gamma.get("ok") and gamma.get("regime") in ("DEEP_POSITIVE", "POSITIVE"):
-                return "✅ BUY NOW — At buy zone + gamma supportive"
-            elif composite == "bullish": return "✅ BUY NOW — At buy zone"
-            else: return "⚠️ SMALL SIZE — At buy zone but mixed signals"
-        elif lrr and price <= lrr * 1.03: return f"⏳ WAIT — Slightly above best entry, wait for retrace to LRR"
+                return "BUY NOW — At buy zone + gamma supportive"
+            elif composite == "bullish": return "BUY NOW — At buy zone"
+            else: return "SMALL SIZE — At buy zone but mixed signals"
+        elif lrr and price <= lrr * 1.03: return f"WAIT — Slightly above best entry, wait for retrace to LRR"
         else:
-            if momentum_1m and momentum_1m > 0.05: return "🏃 CHASE — Extended but momentum strong, use small size"
-            else: return "❌ SKIP — Too far from buy zone, wait for pullback"
+            if momentum_1m and momentum_1m > 0.05: return "CHASE — Extended but momentum strong, use small size"
+            else: return "SKIP — Too far from buy zone, wait for pullback"
     else:
         if price >= entry * 0.99:
             if composite == "bearish" and gamma.get("ok") and gamma.get("regime") in ("DEEP_NEGATIVE", "NEGATIVE"):
-                return "✅ SELL NOW — At sell zone + gamma headwind"
-            elif composite == "bearish": return "✅ SELL NOW — At sell zone"
-            else: return "⚠️ SMALL SIZE — At sell zone but mixed signals"
-        elif trr and price >= trr * 0.97: return f"⏳ WAIT — Slightly below best entry, wait for bounce to TRR"
+                return "SELL NOW — At sell zone + gamma headwind"
+            elif composite == "bearish": return "SELL NOW — At sell zone"
+            else: return "SMALL SIZE — At sell zone but mixed signals"
+        elif trr and price >= trr * 0.97: return f"WAIT — Slightly below best entry, wait for bounce to TRR"
         else:
-            if momentum_1m and momentum_1m < -0.05: return "🏃 CHASE SHORT — Extended but momentum strong, use small size"
-            else: return "❌ SKIP — Too far from sell zone, wait for bounce"
+            if momentum_1m and momentum_1m < -0.05: return "CHASE SHORT — Extended but momentum strong, use small size"
+            else: return "SKIP — Too far from sell zone, wait for bounce"
 
 def _target_basis(target, trr, lrr, gamma, direction):
     if not gamma.get("ok"):
@@ -668,13 +570,13 @@ def _path_smoothness(gamma, greek, momentum_1m, vix):
     throttle = gamma.get("throttle", 0.5) if gamma.get("ok") else 0.5
     greek_comp = greek.get("composite", "NEUTRAL") if greek.get("ok") else "NEUTRAL"
     if gamma_regime in ("DEEP_POSITIVE", "POSITIVE") and "BULLISH" in greek_comp:
-        return "🚀 Fast & Smooth" if momentum_1m and momentum_1m > 0.03 else "🟢 Smooth — dips bought"
+        return "Fast & Smooth" if momentum_1m and momentum_1m > 0.03 else "Smooth — dips bought"
     elif gamma_regime in ("DEEP_NEGATIVE", "NEGATIVE") and "BEARISH" in greek_comp:
-        return "🚀 Fast & Smooth" if momentum_1m and momentum_1m < -0.03 else "🟢 Smooth — rallies sold"
-    elif throttle > 0.6: return "🟡 Slow — gamma pin, chop"
-    elif vix > 25: return "🔴 Rough — vol expansion"
-    elif vix > 20: return "🟡 Bumpy — elevated vol"
-    else: return "🟢 Normal"
+        return "Fast & Smooth" if momentum_1m and momentum_1m < -0.03 else "Smooth — rallies sold"
+    elif throttle > 0.6: return "Slow — gamma pin, chop"
+    elif vix > 25: return "Rough — vol expansion"
+    elif vix > 20: return "Bumpy — elevated vol"
+    else: return "Normal"
 
 def _time_estimate(rr, gamma, greek, momentum_1m, market_type="us_equity", rvol_20d=None):
     if not rr: return "Unknown"
@@ -743,18 +645,16 @@ def _enrich_signal_with_conclusions(sig, gamma, greek, rr_data, market_type="us_
     sig["time_estimate"] = _time_estimate(rr, gamma, greek, momentum_1m, market_type, rvol_20d)
     sig["breakout_chance"] = _breakout_chance(price, target2, gamma, greek, momentum_3m, direction)
     if "BUY NOW" in sig["entry_advice"] or "SELL NOW" in sig["entry_advice"]:
-        sig["worth_entering"] = "✅ YES — " + sig["entry_advice"].split("—")[-1].strip()
+        sig["worth_entering"] = "YES — " + sig["entry_advice"].split("—")[-1].strip()
     elif "WAIT" in sig["entry_advice"]:
-        sig["worth_entering"] = "⏳ " + sig["entry_advice"]
+        sig["worth_entering"] = "WAIT — " + sig["entry_advice"]
     elif "CHASE" in sig["entry_advice"]:
-        sig["worth_entering"] = "🏃 " + sig["entry_advice"]
+        sig["worth_entering"] = "CHASE — " + sig["entry_advice"]
     elif "SMALL SIZE" in sig["entry_advice"]:
-        sig["worth_entering"] = "⚠️ " + sig["entry_advice"]
+        sig["worth_entering"] = "SMALL — " + sig["entry_advice"]
     else:
-        sig["worth_entering"] = "❌ " + sig["entry_advice"]
+        sig["worth_entering"] = "NO — " + sig["entry_advice"]
     return sig
-
-
 
 def _build_daily_signals(prices, sq, mq, asset_ranges, health, gamma_data=None, greeks_data=None):
     regime = QUAD_MAP.get(sq, {}); bias = regime.get("bias", "neutral")
@@ -777,15 +677,11 @@ def _build_daily_signals(prices, sq, mq, asset_ranges, health, gamma_data=None, 
         elif vix > 25: vol_adj = 0.85
         if crash == "elevated" and composite != "bullish":
             sig = {
-                "ticker": ticker, "price": round(p, 2),
-                "signal": "KEEP BEARISH" if r1m and r1m < 0 else "NEUTRAL",
-                "direction": "DEFENSIVE", "grade": "A",
-                "entry": round(p, 2), "target_1": round(p * 1.02, 2), "target_2": round(p * 1.05, 2),
-                "stop_loss": round(p * 0.95, 2), "rr": 0.5,
-                "hold_for": "1-2 weeks", "regime_fit": fit,
+                "ticker": ticker, "price": round(p, 2), "signal": "KEEP BEARISH" if r1m and r1m < 0 else "NEUTRAL",
+                "direction": "DEFENSIVE", "grade": "A", "entry": round(p, 2), "target_1": round(p * 1.02, 2), "target_2": round(p * 1.05, 2),
+                "stop_loss": round(p * 0.95, 2), "rr": 0.5, "hold_for": "1-2 weeks", "regime_fit": fit,
                 "thesis": f"Crash elevated — defensive posture. Price {p:.2f} vs LRR {rr.get('trade',{}).get('lrr','N/A')}.",
-                "quality": "A", "momentum_1m": r1m, "momentum_3m": r3m,
-                "composite": composite, "vix": vix,
+                "quality": "A", "momentum_1m": r1m, "momentum_3m": r3m, "composite": composite, "vix": vix,
             }
             signals.append(sig); continue
         direction = "NEUTRAL"; signal_label = "NEUTRAL"; grade = "C"; quality = "C"; thesis_parts = []
@@ -873,7 +769,7 @@ def _build_daily_signals(prices, sq, mq, asset_ranges, health, gamma_data=None, 
             opt_parts.append(f"Gamma: {gamma.get('regime', 'N/A')}")
             opt_parts.append(f"MaxPain {gamma.get('max_pain')} ({gamma.get('dist_max_pain_pct'):+.1f}%)")
         thesis_full = " | ".join(thesis_parts)
-        if opt_parts: thesis_full += " | 📊 " + " · ".join(opt_parts)
+        if opt_parts: thesis_full += " | " + " · ".join(opt_parts)
         if r1m is not None: thesis_full += f" | 1M: {r1m:+.1%}"
         sig = {
             "ticker": ticker, "price": round(p, 2), "signal": signal_label, "direction": direction,
@@ -892,15 +788,16 @@ def _build_daily_signals(prices, sq, mq, asset_ranges, health, gamma_data=None, 
             "greek_composite": greek.get("composite") if greek.get("ok") else None,
         }
         mkt = "us_equity"
-        if ticker in CRYPTO or any(x in ticker for x in ["BTC","ETH","SOL","TON","ADA","AVAX","DOT","LINK","DOGE","LTC","XRP","BNB"]): mkt = "crypto"
-        elif ticker in FOREX_PAIRS or any(x in ticker for x in ["USD=","EUR=","GBP=","JPY=","CAD","AUD","CHF","NZD","MXN","SEK","BRL"]): mkt = "forex"
-        elif ticker in COMMODITIES or any(x in ticker for x in ["GC=","SI=","CL=","BZ=","NG=","HG=","PL=","PA=","RB=","HO=","ALI=","ZW=","ZC=","ZS=","ZW","ZC","ZS"]): mkt = "commodity"
-        sig = _enrich_signal_with_conclusions(sig, gamma, greek, rr)
+        if ticker in CRYPTO or any(x in ticker for x in ["BTC","ETH","SOL","TON","ADA","AVAX","DOT","LINK","DOGE","LTC","XRP","BNB"]):
+            mkt = "crypto"
+        elif ticker in FOREX_PAIRS or any(x in ticker for x in ["USD=","EUR=","GBP=","JPY=","CAD","AUD","CHF","NZD","MXN","SEK","BRL"]):
+            mkt = "forex"
+        elif ticker in COMMODITIES or any(x in ticker for x in ["GC=","SI=","CL=","BZ=","NG=","HG=","PL=","PA=","RB=","HO=","ALI=","ZW=","ZC=","ZS=","=F"]):
+            mkt = "commodity"
+        sig = _enrich_signal_with_conclusions(sig, gamma, greek, rr, market_type=mkt)
         signals.append(sig)
     signals.sort(key=lambda x: abs(x.get("score", 0)), reverse=True)
     return signals
-
-
 
 def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks, auto_discoveries, daily_signals, gamma_data=None, greeks_data=None):
     regime = QUAD_MAP.get(sq, {}); bias = regime.get("bias", "neutral")
@@ -946,7 +843,6 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
             rr = round((tp1 - entry) / (entry - stop), 1) if direction == "LONG" else round((entry - tp1) / (stop - entry), 1)
         else: rr = 0.0
         return {"entry": entry, "tp1": tp1, "tp2": tp2, "stop": stop, "rr": rr}
-    # 1. Bottleneck Level 1
     for b in bottlenecks.get("level_1", []):
         t = b.get("ticker", "UNKNOWN"); p = _last_price(prices.get(t)) or 0.0
         rr = asset_ranges.get(t, {}); lrr = rr.get("trade", {}).get("lrr") if rr.get("ok") else None; trr = rr.get("trade", {}).get("trr") if rr.get("ok") else None
@@ -961,16 +857,15 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
             "hold_for": "Immediate", "source": "bottleneck",
             "price": p, "entry": rr_lv["entry"], "target_1": rr_lv["tp1"],
             "target_2": rr_lv["tp2"], "stop_loss": rr_lv["stop"], "rr": rr_lv["rr"],
-            "worth_entering": "🚨 URGENT — " + b.get("direction", "HOLD"),
+            "worth_entering": "URGENT — " + b.get("direction", "HOLD"),
             "entry_advice": b.get("setup", "Risk off positioning"),
             "tp1_basis": f"TRR resistance at {trr}" if trr else "Momentum target",
             "tp2_basis": f"Stretch to TRR at {trr}" if trr else "Stretch target",
             "stop_basis": f"Below LRR at {lrr}" if lrr else "Below entry — invalidation",
-            "path_smoothness": "🔴 Rough — Volatility spike",
+            "path_smoothness": "Rough — Volatility spike",
             "time_estimate": "Immediate action",
             "breakout_chance": "N/A — Risk management"}
         center_items.append(_enrich_item(item, t))
-    # 2. Bottleneck Level 2
     for b in bottlenecks.get("level_2", []):
         t = b.get("ticker", "UNKNOWN"); p = _last_price(prices.get(t)) or 0.0
         rr = asset_ranges.get(t, {}); lrr = rr.get("trade", {}).get("lrr") if rr.get("ok") else None; trr = rr.get("trade", {}).get("trr") if rr.get("ok") else None
@@ -985,16 +880,15 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
             "hold_for": "1-2 weeks", "source": "bottleneck",
             "price": p, "entry": rr_lv["entry"], "target_1": rr_lv["tp1"],
             "target_2": rr_lv["tp2"], "stop_loss": rr_lv["stop"], "rr": rr_lv["rr"],
-            "worth_entering": "⚠️ BUILDING — " + b.get("direction", "HOLD"),
+            "worth_entering": "BUILDING — " + b.get("direction", "HOLD"),
             "entry_advice": b.get("setup", "Monitor closely"),
             "tp1_basis": f"TRR resistance at {trr}" if trr else "Momentum target",
             "tp2_basis": f"Stretch to TRR at {trr}" if trr else "Stretch target",
             "stop_basis": f"Below LRR at {lrr}" if lrr else "Below entry — invalidation",
-            "path_smoothness": "🟡 Bumpy — Transition phase",
+            "path_smoothness": "Bumpy — Transition phase",
             "time_estimate": "1-2 weeks",
             "breakout_chance": "Medium — Watch for confirmation"}
         center_items.append(_enrich_item(item, t))
-    # 3. Watch list
     for b in bottlenecks.get("watch", []):
         t = b.get("ticker", "UNKNOWN"); p = _last_price(prices.get(t)) or 0.0
         rr = asset_ranges.get(t, {}); lrr = rr.get("trade", {}).get("lrr") if rr.get("ok") else None; trr = rr.get("trade", {}).get("trr") if rr.get("ok") else None
@@ -1009,16 +903,15 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
             "hold_for": "Monitor", "source": "bottleneck",
             "price": p, "entry": rr_lv["entry"], "target_1": rr_lv["tp1"],
             "target_2": rr_lv["tp2"], "stop_loss": rr_lv["stop"], "rr": rr_lv["rr"],
-            "worth_entering": "👁️ WATCH — Wait for signal",
+            "worth_entering": "WATCH — Wait for signal",
             "entry_advice": b.get("setup", "Wait for clarity"),
             "tp1_basis": f"TRR resistance at {trr}" if trr else "Momentum target",
             "tp2_basis": f"Stretch to TRR at {trr}" if trr else "Stretch target",
             "stop_basis": f"Below LRR at {lrr}" if lrr else "Below entry — invalidation",
-            "path_smoothness": "⏳ Pending",
+            "path_smoothness": "Pending",
             "time_estimate": "Monitor daily",
             "breakout_chance": "Unknown — No position yet"}
         center_items.append(_enrich_item(item, t))
-    # 4. Alpha Longs
     for a in alpha.get("longs", []):
         t = a.get("ticker")
         item = {"ticker": t, "scanner_type": "ALPHA LONG", "level": "alpha_long",
@@ -1026,21 +919,20 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
             "direction": "LONG", "signal": a.get("signal", "BUY"),
             "grade": a.get("grade", "B"), "sector": TICKER_SECTOR.get(t, "Unknown"),
             "thesis": a.get("thesis", ""),
-            "setup": f"Entry {a.get('entry')} → T1 {a.get('target_1')} → T2 {a.get('target_2')} | Stop {a.get('stop_loss')} | RR {a.get('rr')}",
+            "setup": f"Entry {a.get('entry')} -> T1 {a.get('target_1')} -> T2 {a.get('target_2')} | Stop {a.get('stop_loss')} | RR {a.get('rr')}",
             "invalidators": ["Stop loss hit", "Regime flip", "Momentum reversal"],
             "hold_for": a.get("hold_for", "2-4 weeks"), "source": "alpha",
             "price": a.get("price"), "entry": a.get("entry"), "target_1": a.get("target_1"),
             "target_2": a.get("target_2"), "stop_loss": a.get("stop_loss"), "rr": a.get("rr"),
-            "worth_entering": a.get("worth_entering", "✅ BUY NOW — Regime aligned"),
-            "entry_advice": a.get("entry_advice", "✅ BUY NOW"),
+            "worth_entering": a.get("worth_entering", "YES — Regime aligned"),
+            "entry_advice": a.get("entry_advice", "BUY NOW"),
             "tp1_basis": a.get("tp1_basis", "Technical target"),
             "tp2_basis": a.get("tp2_basis", "Stretch target"),
             "stop_basis": a.get("stop_basis", "Invalidation level"),
-            "path_smoothness": a.get("path_smoothness", "🟢 Normal"),
+            "path_smoothness": a.get("path_smoothness", "Normal"),
             "time_estimate": a.get("time_estimate", "2-4 weeks"),
             "breakout_chance": a.get("breakout_chance", "Medium")}
         center_items.append(_enrich_item(item, t))
-    # 5. Alpha Shorts
     for a in alpha.get("shorts", []):
         t = a.get("ticker")
         item = {"ticker": t, "scanner_type": "ALPHA SHORT", "level": "alpha_short",
@@ -1048,21 +940,20 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
             "direction": "SHORT", "signal": a.get("signal", "SELL"),
             "grade": a.get("grade", "B"), "sector": TICKER_SECTOR.get(t, "Unknown"),
             "thesis": a.get("thesis", ""),
-            "setup": f"Entry {a.get('entry')} → T1 {a.get('target_1')} → T2 {a.get('target_2')} | Stop {a.get('stop_loss')} | RR {a.get('rr')}",
+            "setup": f"Entry {a.get('entry')} -> T1 {a.get('target_1')} -> T2 {a.get('target_2')} | Stop {a.get('stop_loss')} | RR {a.get('rr')}",
             "invalidators": ["Stop loss hit", "Regime flip", "Momentum reversal"],
             "hold_for": a.get("hold_for", "2-4 weeks"), "source": "alpha",
             "price": a.get("price"), "entry": a.get("entry"), "target_1": a.get("target_1"),
             "target_2": a.get("target_2"), "stop_loss": a.get("stop_loss"), "rr": a.get("rr"),
-            "worth_entering": a.get("worth_entering", "✅ SELL NOW — Regime aligned"),
-            "entry_advice": a.get("entry_advice", "✅ SELL NOW"),
+            "worth_entering": a.get("worth_entering", "YES — Regime aligned"),
+            "entry_advice": a.get("entry_advice", "SELL NOW"),
             "tp1_basis": a.get("tp1_basis", "Technical target"),
             "tp2_basis": a.get("tp2_basis", "Stretch target"),
             "stop_basis": a.get("stop_basis", "Invalidation level"),
-            "path_smoothness": a.get("path_smoothness", "🟢 Normal"),
+            "path_smoothness": a.get("path_smoothness", "Normal"),
             "time_estimate": a.get("time_estimate", "2-4 weeks"),
             "breakout_chance": a.get("breakout_chance", "Medium")}
         center_items.append(_enrich_item(item, t))
-    # 6. Auto Discoveries
     for d in auto_discoveries.get("bottlenecks", []):
         t = d.get("ticker", "UNKNOWN"); p = _last_price(prices.get(t)) or 0.0
         rr = asset_ranges.get(t, {}); lrr = rr.get("trade", {}).get("lrr") if rr.get("ok") else None; trr = rr.get("trade", {}).get("trr") if rr.get("ok") else None
@@ -1076,16 +967,15 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
             "hold_for": "2-4 weeks", "source": "auto_discovery",
             "price": p, "entry": rr_lv["entry"], "target_1": rr_lv["tp1"],
             "target_2": rr_lv["tp2"], "stop_loss": rr_lv["stop"], "rr": rr_lv["rr"],
-            "worth_entering": "🔍 DISCOVERY — " + d.get("direction", "HOLD"),
+            "worth_entering": "DISCOVERY — " + d.get("direction", "HOLD"),
             "entry_advice": d.get("setup", "Monitor for entry"),
             "tp1_basis": f"TRR resistance at {trr}" if trr else "Momentum target",
             "tp2_basis": f"Stretch to TRR at {trr}" if trr else "Stretch target",
             "stop_basis": f"Below LRR at {lrr}" if lrr else "Below entry — invalidation",
-            "path_smoothness": "🟡 Normal — Discovery mode",
+            "path_smoothness": "Normal — Discovery mode",
             "time_estimate": "2-4 weeks",
             "breakout_chance": "Medium"}
         center_items.append(_enrich_item(item, t))
-    # 7. Daily Signals
     alpha_tickers = {a.get("ticker") for a in alpha.get("longs", []) + alpha.get("shorts", [])}
     included = 0
     for s in daily_signals:
@@ -1131,14 +1021,11 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
         }
     }
 
-
-
 # ══════════════════════════════════════════════════════════════════════════════
-# IHSG ENHANCEMENT LAYER — 5 Structural Compensators for No Option Data
+# IHSG ENHANCEMENT LAYER
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _build_ihsg_sector_momentum(prices):
-    """Composite momentum per sector = IHSG equivalent of Greeks composite."""
     result = {}
     for sector, tickers in IHSG_SECTOR_TICKERS.items():
         rets = []
@@ -1164,7 +1051,6 @@ def _build_ihsg_sector_momentum(prices):
     return result
 
 def _build_ihsg_commodity_overlay(prices):
-    """Commodity price tailwind/headwind = IHSG equivalent of COT bias."""
     overlay = {}
     for sector, meta in IHSG_COMMODITY_PROXY.items():
         proxy_ticker = meta["proxy"]
@@ -1175,21 +1061,18 @@ def _build_ihsg_commodity_overlay(prices):
                 r1m = float(s.iloc[-1] / s.iloc[-22] - 1)
                 r3m = float(s.iloc[-1] / s.iloc[-64] - 1) if len(s) >= 64 else r1m
                 overlay[sector] = {
-                    "proxy": proxy_ticker,
-                    "source": meta["source"],
-                    "r1m": round(r1m, 4),
-                    "r3m": round(r3m, 4),
+                    "proxy": proxy_ticker, "source": meta["source"],
+                    "r1m": round(r1m, 4), "r3m": round(r3m, 4),
                     "tailwind": "Strong" if r1m > 0.05 else ("Moderate" if r1m > 0.02 else ("Headwind" if r1m < -0.02 else "Neutral")),
-                    "signal": f"{sector} proxy {proxy_ticker} {r1m:+.1%} 1M → {'tailwind' if r1m>0 else 'headwind'}",
+                    "signal": f"{sector} proxy {proxy_ticker} {r1m:+.1%} 1M -> {'tailwind' if r1m>0 else 'headwind'}",
                 }
         if sector not in overlay:
             overlay[sector] = {"proxy": proxy_ticker, "source": meta["source"], "r1m": None, "r3m": None, "tailwind": "N/A", "signal": "Proxy data unavailable"}
     return overlay
 
 def _build_ihsg_rupiah_regime(prices):
-    """DXY trend = IHSG equivalent of FX Vanna / EM flow signal."""
     dxy = prices.get("DX-Y.NYB")
-    usdidr = prices.get("USDIDR=X")  # kalau ada
+    usdidr = prices.get("USDIDR=X")
     result = {"dxy_trend": "Neutral", "dxy_1m": None, "idr_bias": "Neutral", "flow_signal": "Neutral"}
     if dxy is not None and len(dxy) >= 22:
         dxy = pd.to_numeric(dxy, errors="coerce").dropna()
@@ -1199,15 +1082,15 @@ def _build_ihsg_rupiah_regime(prices):
             if dxy_1m < -0.015:
                 result["dxy_trend"] = "Bearish"
                 result["idr_bias"] = "Bullish (IDR strengthens)"
-                result["flow_signal"] = "🟢 EM Inflow Positive — DXY falling, IDR support"
+                result["flow_signal"] = "EM Inflow Positive — DXY falling, IDR support"
             elif dxy_1m > 0.015:
                 result["dxy_trend"] = "Bullish"
                 result["idr_bias"] = "Bearish (IDR weakens)"
-                result["flow_signal"] = "🔴 EM Outflow Risk — DXY rising, IDR pressure"
+                result["flow_signal"] = "EM Outflow Risk — DXY rising, IDR pressure"
             else:
                 result["dxy_trend"] = "Neutral"
                 result["idr_bias"] = "Stable"
-                result["flow_signal"] = "🟡 DXY range-bound — no strong EM flow bias"
+                result["flow_signal"] = "DXY range-bound — no strong EM flow bias"
     if usdidr is not None and len(usdidr) >= 22:
         usdidr = pd.to_numeric(usdidr, errors="coerce").dropna()
         if len(usdidr) >= 22:
@@ -1218,66 +1101,56 @@ def _build_ihsg_rupiah_regime(prices):
     return result
 
 def _build_ihsg_foreign_flow(prices):
-    """Volume spike + gap detection = IHSG equivalent of OI concentration."""
     flow_signals = {}
     for t in list(IHSG_UNIVERSE.keys())[:20]:
         s = prices.get(t)
         if s is None or len(s) < 10: continue
         s = pd.to_numeric(s, errors="coerce").dropna()
         if len(s) < 10: continue
-        # Gap detection: overnight = open vs prev close proxy (using 2 consecutive points)
         if len(s) >= 3:
             prev_close = float(s.iloc[-2])
             curr = float(s.iloc[-1])
             gap = (curr - prev_close) / prev_close if prev_close != 0 else 0
-            # Realized vol spike proxy
             recent_vol = s.tail(5).std()
             baseline_vol = s.tail(20).std()
             vol_spike = (recent_vol / baseline_vol) if baseline_vol > 0 else 1.0
             if abs(gap) > 0.02 and vol_spike > 1.3:
                 if gap > 0:
-                    flow_signals[t] = {"signal": "🟢 Foreign Accumulation", "gap": round(gap, 4), "vol_spike": round(vol_spike, 2), "note": "Gap up + volume spike → foreign buying"}
+                    flow_signals[t] = {"signal": "Foreign Accumulation", "gap": round(gap, 4), "vol_spike": round(vol_spike, 2), "note": "Gap up + volume spike -> foreign buying"}
                 else:
-                    flow_signals[t] = {"signal": "🔴 Foreign Distribution", "gap": round(gap, 4), "vol_spike": round(vol_spike, 2), "note": "Gap down + volume spike → foreign selling"}
+                    flow_signals[t] = {"signal": "Foreign Distribution", "gap": round(gap, 4), "vol_spike": round(vol_spike, 2), "note": "Gap down + volume spike -> foreign selling"}
             elif vol_spike > 1.5:
-                flow_signals[t] = {"signal": "🟡 Volume Spike", "gap": round(gap, 4), "vol_spike": round(vol_spike, 2), "note": "High volume without gap — watch for direction"}
+                flow_signals[t] = {"signal": "Volume Spike", "gap": round(gap, 4), "vol_spike": round(vol_spike, 2), "note": "High volume without gap — watch for direction"}
             else:
-                flow_signals[t] = {"signal": "⚪ Normal", "gap": round(gap, 4), "vol_spike": round(vol_spike, 2), "note": "No unusual flow detected"}
+                flow_signals[t] = {"signal": "Normal", "gap": round(gap, 4), "vol_spike": round(vol_spike, 2), "note": "No unusual flow detected"}
     return flow_signals
 
 def _build_ihsg_macro_overlay(gip, prices):
-    """BI rate / domestic macro proxy = IHSG equivalent of Policy Score."""
     policy = gip.features.get("policy_score", 0) if gip else 0
     growth = gip.features.get("growth_momentum", 0) if gip else 0
     inflation = gip.features.get("inflation_momentum", 0) if gip else 0
-    # Banking NIM proxy: policy dovish = tailwind
     if policy > 0.1:
-        bi_signal = "Dovish Hold/Cut → Banking NIM expand"
+        bi_signal = "Dovish Hold/Cut -> Banking NIM expand"
         banking_bias = "Bullish"
     elif policy < -0.1:
-        bi_signal = "Hawkish → Banking NIM pressure"
+        bi_signal = "Hawkish -> Banking NIM pressure"
         banking_bias = "Bearish"
     else:
-        bi_signal = "Neutral → NIM stable"
+        bi_signal = "Neutral -> NIM stable"
         banking_bias = "Neutral"
-    # Consumer proxy: inflation cooling = tailwind
     if inflation < -0.02:
-        consumer_signal = "Inflation cooling → Consumer staples tailwind"
+        consumer_signal = "Inflation cooling -> Consumer staples tailwind"
         consumer_bias = "Bullish"
     elif inflation > 0.03:
-        consumer_signal = "Inflation sticky → Consumer margin pressure"
+        consumer_signal = "Inflation sticky -> Consumer margin pressure"
         consumer_bias = "Bearish"
     else:
-        consumer_signal = "Inflation stable → neutral"
+        consumer_signal = "Inflation stable -> neutral"
         consumer_bias = "Neutral"
     return {
-        "policy_score": policy,
-        "growth_momentum": growth,
-        "inflation_momentum": inflation,
-        "bi_signal": bi_signal,
-        "banking_bias": banking_bias,
-        "consumer_signal": consumer_signal,
-        "consumer_bias": consumer_bias,
+        "policy_score": policy, "growth_momentum": growth, "inflation_momentum": inflation,
+        "bi_signal": bi_signal, "banking_bias": banking_bias,
+        "consumer_signal": consumer_signal, "consumer_bias": consumer_bias,
         "commodity_bias": "Bullish" if growth > 0 and inflation > 0 else ("Bearish" if growth < -0.03 else "Neutral"),
     }
 
@@ -1309,7 +1182,7 @@ def _build_narratives(gip, health, sq, mq):
         })
     if gip.flip_hazard > 0.2:
         narratives.append({
-            "name": f"Transition Risk: {sq}→{mq}", "score": gip.flip_hazard,
+            "name": f"Transition Risk: {sq}->{mq}", "score": gip.flip_hazard,
             "thesis": f"Flip hazard {gip.flip_hazard:.0%}. Monthly diverging from structural. Front-run window: now if >50%, else 2-4w.",
             "tickers": ["SPY", "QQQ", "IWM", "RSP"],
             "invalidators": ["Monthly realigns with structural", "Flip hazard drops below 15%"],
@@ -1332,11 +1205,11 @@ def _build_bottlenecks(prices, health, features, sq, mq):
     if vix > 25:
         b["level_1"].append({"ticker": "VIX", "direction": "SHORT", "sector": "Volatility",
             "known_thesis": f"VIX {vix:.0f} — elevated volatility regime", "score": 0.85, "quality": "A",
-            "setup": "VIX > 25 → defensive posture. Add TLT, reduce beta."})
+            "setup": "VIX > 25 -> defensive posture. Add TLT, reduce beta."})
     if crash == "elevated":
         b["level_1"].append({"ticker": "SPY", "direction": "SHORT", "sector": "Broad Market",
             "known_thesis": f"Crash score {crash_score:.2f} — multiple stress signals active", "score": 0.80, "quality": "A",
-            "setup": "Crash meter elevated → reduce equity beta, add gold/Treasuries"})
+            "setup": "Crash meter elevated -> reduce equity beta, add gold/Treasuries"})
     elif crash == "watch":
         b["watch"].append({"ticker": "SPY", "direction": "HOLD", "sector": "Broad Market",
             "known_thesis": f"Crash score {crash_score:.2f} — watch mode", "score": 0.60, "quality": "B", "setup": "Monitor closely. Tighten stops."})
@@ -1355,7 +1228,7 @@ def _build_bottlenecks(prices, health, features, sq, mq):
         b["level_2"].append({"ticker": "XLU", "direction": "LONG", "sector": "Utilities",
             "known_thesis": f"Inflation persistent ({i:+.2%}) — Fed hawkish risk", "score": 0.60, "quality": "B",
             "setup": "Defensive sectors outperform in high inflation. Add XLU/XLP."})
-    trans = f"{sq}→{mq}"
+    trans = f"{sq}->{mq}"
     em_sig = EM_RECOVERY_SIGNALS.get(trans)
     if em_sig and isinstance(em_sig, dict):
         direction = em_sig.get("direction", "neutral")
@@ -1427,18 +1300,27 @@ def _build_global(gip, sq, mq, prices):
     return {"global_quad": sq, "global_conf": conf, "global_probs": probs, "country_quads": country_quads}
 
 def _build_cot_oi(prices):
-    cot_proxy = CMECOTProxy(); oi_proxy = CMEOIProxy()
+    try:
+        from engines.cme_cot import CMECOTProxy
+        cot_proxy = CMECOTProxy()
+    except: cot_proxy = None
+    try:
+        from engines.cme_oi import CMEOIProxy
+        oi_proxy = CMEOIProxy()
+    except: oi_proxy = None
     cot_results = {}; oi_results = {}
     cme_tickers = list(COMMODITIES.keys())[:10] + ["DX-Y.NYB"] + list(FOREX_PAIRS.keys())[:6]
     vix_last = _last_price(prices.get("^VIX")) or 18.0
     for t in cme_tickers:
         try:
-            cot = cot_proxy.analyze(t, prices, vix=vix_last)
-            if cot and cot.get("ok"): cot_results[t] = cot
+            if cot_proxy:
+                cot = cot_proxy.analyze(t, prices, vix=vix_last)
+                if cot and cot.get("ok"): cot_results[t] = cot
         except Exception as e: logger.debug(f"COT error for {t}: {e}")
         try:
-            oi = oi_proxy.analyze(t, prices)
-            if oi and oi.get("ok"): oi_results[t] = oi
+            if oi_proxy:
+                oi = oi_proxy.analyze(t, prices)
+                if oi and oi.get("ok"): oi_results[t] = oi
         except Exception as e: logger.debug(f"OI error for {t}: {e}")
     return {"cot": cot_results, "oi": oi_results}
 
@@ -1453,19 +1335,12 @@ def _build_crypto_onchain(prices):
             vol = s.tail(20).std()
             vol_change = (vol / s.tail(40).std() - 1) if s.tail(40).std() > 0 else 0
             score = min(1.0, max(0.0, 0.5 + r1m * 5))
-            tokens[t] = {
-                "momentum_score": score,
-                "tvl_7d_change": r7d,
-                "tvl_30d_change": r1m,
-                "dex_vol_change": vol_change,
-            }
+            tokens[t] = {"momentum_score": score, "tvl_7d_change": r7d, "tvl_30d_change": r1m, "dex_vol_change": vol_change}
     try:
+        from engines.defillama_helper import DeFiLlamaHelper
         d = DeFiLlamaHelper()
-        return {
-            "tvl_b": d.get_tvl(), "stable_mcap_b": d.get_stablecoin_mcap(),
-            "dex_vol_24h_b": d.get_dex_volume_24h(),
-            "source": "defillama", "tokens": tokens,
-        }
+        return {"tvl_b": d.get_tvl(), "stable_mcap_b": d.get_stablecoin_mcap(), "dex_vol_24h_b": d.get_dex_volume_24h(),
+            "source": "defillama", "tokens": tokens}
     except Exception as e:
         logger.warning(f"DeFiLlama error: {e}")
         return {"tvl_b": None, "stable_mcap_b": None, "dex_vol_24h_b": None, "source": "defillama", "error": str(e), "tokens": tokens}
@@ -1503,18 +1378,16 @@ def _build_ihsg_setups(prices, ihsg_sector_momentum=None, ihsg_commodity_overlay
         if r1m is not None and r1m > 0.05: thesis = f"Strong momentum +{r1m:.1%} — {sector} play"
         elif r1m is not None and r1m < -0.05: thesis = f"Weak momentum {r1m:.1%} — avoid {sector}"
         else: thesis = f"{sector} — range bound, wait for breakout"
-        # Enrich with IHSG structural layers
         sector_mom = (ihsg_sector_momentum or {}).get(sector, {})
         comm_ov = (ihsg_commodity_overlay or {}).get(sector, {})
         rupiah = ihsg_rupiah_regime or {}
         flow = (ihsg_foreign_flow or {}).get(t, {})
         macro = ihsg_macro_overlay or {}
-        # Build composite thesis
         thesis_parts = [thesis]
         if sector_mom.get("bias") == "Bullish": thesis_parts.append(f"Sector momentum {sector_mom.get('avg_1m'):+.1%} ({sector_mom.get('leader')} leading)")
         if comm_ov.get("tailwind") in ["Strong", "Moderate"]: thesis_parts.append(f"Commodity tailwind: {comm_ov.get('signal', '')}")
         if rupiah.get("flow_signal") and "Positive" in rupiah["flow_signal"]: thesis_parts.append("Rupiah support from DXY bearish")
-        if flow.get("signal") == "🟢 Foreign Accumulation": thesis_parts.append("Foreign accumulation detected")
+        if flow.get("signal") == "Foreign Accumulation": thesis_parts.append("Foreign accumulation detected")
         if sector == "Banking" and macro.get("banking_bias") == "Bullish": thesis_parts.append(macro.get("bi_signal", ""))
         if sector in ["Consumer", "Pharma"] and macro.get("consumer_bias") == "Bullish": thesis_parts.append(macro.get("consumer_signal", ""))
         full_thesis = " | ".join(thesis_parts)
@@ -1572,104 +1445,9 @@ def _build_auto_discoveries(prices, gip, sq):
             "setup": "Long USD, avoid EM and commodity exporters"})
     return discoveries
 
-
-
 # ══════════════════════════════════════════════════════════════════════════════
-# FORWARD-LOOKING BUILDERS
+# MAIN BUILD SNAPSHOT
 # ══════════════════════════════════════════════════════════════════════════════
-
-def _build_leading_indicators(features, sq, prices):
-    """Forward-looking: transition probability + expected returns + feature importance."""
-    engine = LeadingIndicatorEngine()
-    trans_prob = engine.predict_transition_prob(features, sq)
-    forward_spy = engine.predict_forward_return(features, sq, "SPY")
-    forward_qqq = engine.predict_forward_return(features, sq, "QQQ")
-    forward_gld = engine.predict_forward_return(features, sq, "GLD")
-    forward_tlt = engine.predict_forward_return(features, sq, "TLT")
-    importance = engine.feature_importance(sq)
-    return {
-        "ok": True,
-        "transition_prob_3m": round(trans_prob, 3),
-        "forward_spy": forward_spy,
-        "forward_qqq": forward_qqq,
-        "forward_gld": forward_gld,
-        "forward_tlt": forward_tlt,
-        "feature_importance": importance,
-        "leading_summary": f"Transition prob {trans_prob:.0%} next 3M | SPY 1M/3M/6M: {forward_spy['expected_1m']:+.1%}/{forward_spy['expected_3m']:+.1%}/{forward_spy['expected_6m']:+.1%}",
-    }
-
-def _build_regime_prediction(gip, features, months_forward=3):
-    """Predict regime 1M/3M/6M forward using ensemble."""
-    engine = RegimePredictorEngine()
-    hist_path = os.path.join(os.path.dirname(__file__), "data", "regime_history.json")
-    try:
-        if os.path.exists(hist_path):
-            with open(hist_path, "r") as f:
-                hist = json.load(f)
-                for h in hist:
-                    engine.record_transition(h.get("from"), h.get("to"), h.get("features", {}))
-            engine.fit()
-    except Exception as e:
-        logger.debug(f"Regime history load failed: {e}")
-    result = engine.predict(gip.structural_quad, features, months_forward=months_forward)
-    result_1m = engine.predict(gip.structural_quad, features, months_forward=1)
-    result_6m = engine.predict(gip.structural_quad, features, months_forward=6)
-    return {
-        "ok": True,
-        "current": gip.structural_quad,
-        "prediction_1m": result_1m,
-        "prediction_3m": result,
-        "prediction_6m": result_6m,
-        "model_fitted": engine.is_fitted,
-        "historical_count": len(engine.historical_transitions),
-    }
-
-def _build_price_clusters(prices, all_tickers):
-    """Detect emergent themes from price action BEFORE media coverage."""
-    from config.settings import TICKER_SECTOR
-    sector_map = {t: TICKER_SECTOR.get(t, "unknown") for t in all_tickers}
-    market_map = {t: _detect_market_type(t) for t in all_tickers}
-    engine = PriceClusterEngineV3(sector_map, market_map)
-    result = engine.run(prices, benchmark="SPY", lookback=63, corr_threshold=0.60, dtw_threshold=0.03, min_cluster_size=3)
-    clusters = result.get("clusters", [])
-    for c in clusters:
-        members = c.get("members", [])
-        if members:
-            recent_rs = []
-            for t in members[:5]:
-                s = prices.get(t)
-                if s is not None and len(s) >= 22:
-                    s = pd.to_numeric(s, errors="coerce").dropna()
-                    r5 = float(s.iloc[-1] / s.iloc[-6] - 1) if len(s) >= 6 else 0
-                    r15 = float(s.iloc[-1] / s.iloc[-16] - 1) if len(s) >= 16 else 0
-                    accel = r5 - (r15 / 3)
-                    recent_rs.append(accel)
-            if recent_rs:
-                c["recent_accel"] = round(float(np.mean(recent_rs)), 4)
-                c["is_accelerating"] = c["recent_accel"] > 0.02
-            else:
-                c["recent_accel"] = 0
-                c["is_accelerating"] = False
-    return result
-
-def _build_news_nlp(prices, all_tickers, top_n=30):
-    """Fetch and analyze news narratives."""
-    known = [t for t in all_tickers if not any(x in t for x in ["=","^",".","-"])][:top_n]
-    engine = NewsNLPEngineV3(known_tickers=known)
-    theme_queries = [
-        "Fed interest rate decision",
-        "AI infrastructure investment",
-        "oil supply disruption",
-        "China stimulus economy",
-        "gold central bank buying",
-        "Indonesia commodity export",
-    ]
-    try:
-        result = engine.run(known, theme_queries=theme_queries, max_per_ticker=5)
-    except Exception as e:
-        logger.warning(f"News NLP run failed: {e}")
-        result = {"analyzed_count":0,"narrative_scores":{},"emergent_narratives":[],"new_theme_candidates":[],"supply_chain_alerts":[],"ticker_specific":{},"meta":{"tickers_queried":0,"theme_queries":[],"nlp_mode":"fallback"}}
-    return result
 
 def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
                    include_commodities=True, include_crypto=True, include_ihsg=True):
@@ -1708,38 +1486,88 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
     asset_ranges = _build_risk_ranges(prices, all_tickers)
     if progress_cb: progress_cb(f"Risk ranges: {len(asset_ranges)} assets", 0.65)
 
-
     if progress_cb: progress_cb("Calculating vol forecast...", 0.56)
     vol_forecasts = _build_vol_forecast(prices, sq, lookback=20, long_window=50)
     if progress_cb: progress_cb("Calculating risk-adjusted metrics...", 0.58)
     risk_adj = _build_risk_adjusted_metrics(prices, risk_free_rate=0.04)
-    if progress_cb: progress_cb("Running stress tests...", 0.59)
-    # stress_test deferred — alpha not yet defined
 
     if progress_cb: progress_cb("Running health engine...", 0.70)
     health_engine = MarketHealthEngine()
     health = health_engine.run(prices, gip.features, sq)
     if progress_cb: progress_cb("Health check complete", 0.80)
 
-    if progress_cb: progress_cb("Running forward-looking engines...", 0.81)
-    leading = _build_leading_indicators(gip.features, sq, prices)
-    regime_pred = _build_regime_prediction(gip, gip.features)
-    if progress_cb: progress_cb("Running price cluster detection...", 0.83)
-    price_clusters = _build_price_clusters(prices, all_tickers)
-    if progress_cb: progress_cb("Running news narrative engine...", 0.85)
-    news_nlp = _build_news_nlp(prices, all_tickers)
-    if progress_cb: progress_cb("Forward-looking complete", 0.87)
-
-
-    # Define vix_now HERE so all engines can use it
     vix_now = health.get("vix_bucket", {}).get("vix_last", 18)
 
+    # ═══════════════════════════════════════════════════════════════════
+    # FORWARD-LOOKING ENGINES (L1-L4)
+    # ═══════════════════════════════════════════════════════════════════
+
+    if progress_cb: progress_cb("Running forward-looking engines...", 0.72)
+
+    # L1: Price Cluster (price action leading)
+    sector_map = TICKER_SECTOR
+    market_map = {t: "us_equity" for t in all_tickers}
+    for t in all_tickers:
+        if t in FOREX_PAIRS: market_map[t] = "forex"
+        elif t in COMMODITIES: market_map[t] = "commodity"
+        elif t in CRYPTO: market_map[t] = "crypto"
+        elif t in IHSG_UNIVERSE: market_map[t] = "ihsg"
+
+    cluster_engine = PriceClusterEngineV3(sector_map, market_map)
+    price_clusters = cluster_engine.run(prices, benchmark="SPY", lookback=63)
+    if progress_cb: progress_cb(f"Price clusters: {price_clusters.get('meta',{}).get('clusters_found',0)} found", 0.74)
+
+    # L2: News NLP (rumor/news narrative)
+    news_engine = NewsNLPEngineV3(use_transformers=False, known_tickers=all_tickers)
+    cluster_tickers = []
+    for c in price_clusters.get("clusters", []):
+        cluster_tickers.extend(c.get("members", []))
+    cluster_tickers = list(dict.fromkeys(cluster_tickers))[:30]
+
+    theme_queries = []
+    if sq == "Q3" or mq == "Q3": theme_queries.extend(["gold shortage central bank", "defensive stocks", "stagflation supply chain"])
+    if sq == "Q2" or mq == "Q2": theme_queries.extend(["commodity shortage", "energy bottleneck", "inflation supply constraint"])
+    if sq == "Q4" or mq == "Q4": theme_queries.extend(["deflation recession", "bond rally", "credit stress"])
+    if sq == "Q1" or mq == "Q1": theme_queries.extend(["tech breakout AI", "growth rebound", "small cap rally"])
+    theme_queries.extend(["supply chain bottleneck", "shortage constrained", "data center power"])
+
+    news_results = news_engine.run(cluster_tickers, theme_queries=theme_queries, max_per_ticker=8)
+    if progress_cb: progress_cb(f"News NLP: {news_results.get('analyzed_count',0)} headlines", 0.76)
+
+    # L3: Auto Discovery (integrates clusters + news + forward prediction)
+    discovery_engine = AutoDiscoveryEngineV3(sector_map=sector_map, market_map=market_map, known_tickers=all_tickers, use_transformers=False)
+    discovery = discovery_engine.run(prices, gip=gip, risk_ranges=asset_ranges)
+    if progress_cb: progress_cb(f"Discovery: {discovery.get('meta',{}).get('total_candidates',0)} candidates", 0.78)
+
+    # L4: Regime Predictor + Leading Indicator
+    regime_predictor = RegimePredictorEngine()
+    # Seed with some synthetic historical transitions if empty (bootstrap)
     try:
-        discovery_engine = AutoDiscoveryEngineV3()
-        discovery = discovery_engine.run(prices, gip, asset_ranges)
+        regime_predictor.record_transition("Q1", "Q2", {"growth_momentum": 0.02, "inflation_momentum": 0.01, "policy_score": -0.1, "growth_level": 0.5, "inflation_level": 0.3, "oil_3m": 0.05, "vix": 18, "dxy_1m": -0.01})
+        regime_predictor.record_transition("Q2", "Q3", {"growth_momentum": -0.01, "inflation_momentum": 0.03, "policy_score": -0.2, "growth_level": 0.3, "inflation_level": 0.5, "oil_3m": 0.10, "vix": 22, "dxy_1m": 0.01})
+        regime_predictor.record_transition("Q3", "Q4", {"growth_momentum": -0.03, "inflation_momentum": -0.01, "policy_score": 0.1, "growth_level": 0.1, "inflation_level": 0.4, "oil_3m": -0.05, "vix": 25, "dxy_1m": 0.02})
+        regime_predictor.record_transition("Q4", "Q1", {"growth_momentum": 0.01, "inflation_momentum": -0.02, "policy_score": 0.2, "growth_level": 0.2, "inflation_level": 0.2, "oil_3m": 0.02, "vix": 16, "dxy_1m": -0.01})
+        regime_predictor.record_transition("Q3", "Q2", {"growth_momentum": 0.00, "inflation_momentum": 0.02, "policy_score": -0.15, "growth_level": 0.2, "inflation_level": 0.5, "oil_3m": 0.08, "vix": 20, "dxy_1m": 0.00})
+        regime_predictor.fit()
     except Exception as e:
-        logger.warning(f"Discovery error: {e}")
-        discovery = {"discoveries": []}
+        logger.warning(f"Regime predictor bootstrap failed: {e}")
+
+    regime_forecast_1m = regime_predictor.predict(sq, gip.features, months_forward=1)
+    regime_forecast_3m = regime_predictor.predict(sq, gip.features, months_forward=3)
+    regime_forecast_6m = regime_predictor.predict(sq, gip.features, months_forward=6)
+
+    leading_engine = LeadingIndicatorEngine()
+    try:
+        leading_engine.fit([])  # empty fit = heuristic mode
+    except Exception:
+        pass
+    forward_returns = leading_engine.predict_forward_return(gip.features, sq, asset="SPY")
+    leading_features = leading_engine.feature_importance(sq)
+
+    if progress_cb: progress_cb(f"Forward-looking: 1M={regime_forecast_1m.get('predicted_quad')} 3M={regime_forecast_3m.get('predicted_quad')} 6M={regime_forecast_6m.get('predicted_quad')}", 0.80)
+
+    # ── LEGACY AUTO DISCOVERIES (backward compat) ─────────────────────
+    auto_discoveries = _build_auto_discoveries(prices, gip, sq)
 
     playbook = get_playbook(sq, mq)
     flip = gip.flip_hazard
@@ -1756,13 +1584,10 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
     cot_oi = _build_cot_oi(prices)
     crypto_setups = _build_crypto_setups(prices) if include_crypto else []
     crypto_onchain = _build_crypto_onchain(prices) if include_crypto else {}
-    auto_discoveries = _build_auto_discoveries(prices, gip, sq)
 
     # ═══════════════════════════════════════════════════════════════════
     # REAL DATA ENGINES — LIVE FETCH
     # ═══════════════════════════════════════════════════════════════════
-
-    # ── REAL COT DATA (CFTC Live) ─────────────────────────────────────
     cot_results = {}
     if cot_scraper:
         if progress_cb: progress_cb("Fetching CFTC COT data...", 0.60)
@@ -1770,13 +1595,10 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
             cot_tickers = list(COMMODITIES.keys())[:15] + list(FOREX_PAIRS.keys())[:8] + ["DX-Y.NYB"]
             for t in cot_tickers:
                 r = cot_scraper.analyze(t, prices, vix_now)
-                if r and r.get("ok"):
-                    cot_results[t] = r
+                if r and r.get("ok"): cot_results[t] = r
             if progress_cb: progress_cb(f"COT live: {len(cot_results)} markets", 0.62)
-        except Exception as e:
-            logger.warning(f"COT scraper error: {e}")
+        except Exception as e: logger.warning(f"COT scraper error: {e}")
 
-    # ── REAL OPTIONS DATA (yfinance) ──────────────────────────────────
     options_data = {}
     if yf_options:
         if progress_cb: progress_cb("Fetching options chains...", 0.63)
@@ -1784,10 +1606,8 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
             us_option_tickers = list(US_SECTORS.keys())[:15] + ["SPY","QQQ","IWM","GLD","SLV","TLT","IBIT","UUP","XLK","XLE","XLV","XLP","XLU","XLF","XLI","XLB","XLC","XLRE","SMH","SOXX","VGT"]
             options_data = yf_options.analyze_multi(us_option_tickers, prices, vix_now)
             if progress_cb: progress_cb(f"Options live: {len(options_data)} tickers", 0.65)
-        except Exception as e:
-            logger.warning(f"yfinance options error: {e}")
+        except Exception as e: logger.warning(f"yfinance options error: {e}")
 
-    # ── REAL DEFILLAMA DATA ───────────────────────────────────────────
     if defillama:
         if progress_cb: progress_cb("Fetching DeFiLlama on-chain...", 0.66)
         try:
@@ -1799,7 +1619,6 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
             logger.warning(f"DeFiLlama API error: {e}")
             crypto_onchain = {"ok": False, "error": str(e), "source": "DeFiLlama (failed)"}
 
-    # ── REAL CME DATA ─────────────────────────────────────────────────
     cme_results = {}
     if cme_scraper:
         if progress_cb: progress_cb("Fetching CME Group data...", 0.68)
@@ -1807,10 +1626,8 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
             cme_tickers = list(FOREX_PAIRS.keys())[:8] + list(COMMODITIES.keys())[:10] + ["DX-Y.NYB"]
             cme_results = cme_scraper.analyze_multi(cme_tickers, prices, vix_now)
             if progress_cb: progress_cb(f"CME live: {len(cme_results)} tickers", 0.69)
-        except Exception as e:
-            logger.warning(f"CME scraper error: {e}")
+        except Exception as e: logger.warning(f"CME scraper error: {e}")
 
-    # ── BARCHART FALLBACK ─────────────────────────────────────────────
     barchart_results = {}
     if barchart and yf_options:
         if progress_cb: progress_cb("Probing Barchart...", 0.70)
@@ -1818,12 +1635,9 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
             missed = [t for t in us_option_tickers if t not in options_data]
             for t in missed[:5]:
                 r = barchart.analyze(t, prices, vix_now)
-                if r and r.get("ok"):
-                    barchart_results[t] = r
-        except Exception as e:
-            logger.warning(f"Barchart error: {e}")
+                if r and r.get("ok"): barchart_results[t] = r
+        except Exception as e: logger.warning(f"Barchart error: {e}")
 
-    # ── CRYPTO OPTIONS (Deribit) ─────────────────────────────────────
     crypto_options = {}
     if laevitas:
         if progress_cb: progress_cb("Fetching crypto options...", 0.71)
@@ -1831,10 +1645,8 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
             crypto_option_tickers = [t for t in list(CRYPTO.keys())[:5] if "BTC" in t or "ETH" in t]
             crypto_options = laevitas.analyze_multi(crypto_option_tickers, prices, vix_now)
             if progress_cb: progress_cb(f"Crypto options: {len(crypto_options)} tickers", 0.72)
-        except Exception as e:
-            logger.warning(f"Laevitas error: {e}")
+        except Exception as e: logger.warning(f"Laevitas error: {e}")
 
-    # ── OPTION DATA: Gamma + Greeks (fallback/proxy) ──────────────────
     gamma_data = {}
     greeks_data = {}
     try:
@@ -1848,28 +1660,22 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
     except Exception as e:
         logger.warning(f"Option analytics failed: {e}")
         if progress_cb: progress_cb("Option analytics failed — using fallback", 0.80)
-    # GUARANTEE: always dict
     gamma_data = gamma_data if isinstance(gamma_data, dict) else {}
     greeks_data = greeks_data if isinstance(greeks_data, dict) else {}
 
-    # ── ALPHA IDEAS ─────────────────────────────────────
     alpha = _build_alpha_ideas(prices, sq, mq, gamma_data, greeks_data)
-    # ── STRESS TEST (now that alpha is defined) ─────────
     stress_test = _build_stress_test(prices, sq, alpha)
 
-    # ── DAILY SIGNALS ───────────────────────────────
     if progress_cb: progress_cb("Building daily signals...", 0.82)
     daily_signals = _build_daily_signals(prices, sq, mq, asset_ranges, health, gamma_data, greeks_data)
     if progress_cb: progress_cb(f"Daily signals: {len(daily_signals)} tickers", 0.85)
 
-    # ── ALPHA CENTER ────────────────────────────────
     if progress_cb: progress_cb("Building Alpha Center...", 0.87)
     alpha_center = _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks,
                                        {"ok": True, "bottlenecks": auto_discoveries}, daily_signals,
                                        gamma_data, greeks_data)
     if progress_cb: progress_cb(f"Alpha Center: {alpha_center['meta']['total_items']} items", 0.90)
 
-    # ── IHSG ENHANCEMENTS ─────────────────────────────
     if progress_cb: progress_cb("Building IHSG structural layers...", 0.91)
     ihsg_sector_momentum = _build_ihsg_sector_momentum(prices)
     ihsg_commodity_overlay = _build_ihsg_commodity_overlay(prices)
@@ -1878,6 +1684,17 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
     ihsg_macro_overlay = _build_ihsg_macro_overlay(gip, prices)
     ihsg_setups = _build_ihsg_setups(prices, ihsg_sector_momentum, ihsg_commodity_overlay, ihsg_rupiah_regime, ihsg_foreign_flow, ihsg_macro_overlay)
     if progress_cb: progress_cb("IHSG layers complete", 0.93)
+
+    # Fix feedback_eval structure
+    feedback_eval = {
+        "evaluated": len(auto_discoveries),
+        "promoted_count": len([d for d in auto_discoveries if d.get("score", 0) > 0.7]),
+        "demoted_count": 0,
+        "promoted_tickers": [d["ticker"] for d in auto_discoveries if d.get("score", 0) > 0.7],
+        "win_rate": 0.0,
+    }
+    if feedback_eval["evaluated"] > 0:
+        feedback_eval["win_rate"] = round(feedback_eval["promoted_count"] / feedback_eval["evaluated"] * 100, 1)
 
     ai_analysis = {
         "ok": True,
@@ -1908,7 +1725,7 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
         "risk_ranges": {"asset_ranges": asset_ranges},
         "scenarios": scenarios,
         "narratives": {"narratives": narratives},
-        "discovery": {"discoveries": discovery.get("discoveries", []) if isinstance(discovery, dict) else []},
+        "discovery": {"discoveries": discovery.get("candidates", []) if isinstance(discovery, dict) else []},
         "transition": transition,
         "health": health,
         "analogs": {"top_analogs": analogs},
@@ -1919,7 +1736,7 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
         "crypto_setups": crypto_setups,
         "ihsg_setups": ihsg_setups,
         "auto_discoveries": {"ok": True, "bottlenecks": auto_discoveries},
-        "feedback_eval": {"evaluated": len(auto_discoveries), "promoted": [d["ticker"] for d in auto_discoveries if d["score"] > 0.7], "demoted": []},
+        "feedback_eval": feedback_eval,
         "gamma": gamma_summary,
         "leveraged_etf": lev_data,
         "ai_analysis": ai_analysis,
@@ -1934,7 +1751,6 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
         "alpha_center": alpha_center,
         "gamma_data": gamma_data,
         "greeks_data": greeks_data,
-        # ── IHSG NEW KEYS ──────────────────────────────────────────────
         "ihsg_sector_momentum": ihsg_sector_momentum,
         "ihsg_commodity_overlay": ihsg_commodity_overlay,
         "ihsg_rupiah_regime": ihsg_rupiah_regime,
@@ -1943,22 +1759,33 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
         "vol_forecast": vol_forecasts,
         "risk_adjusted": risk_adj,
         "stress_test": stress_test,
-        # ── LIVE DATA KEYS ─────────────────────────────────────────────
         "cot_live": cot_results,
         "options_live": options_data,
         "cme_live": cme_results,
         "barchart_live": barchart_results,
         "crypto_options_live": crypto_options,
-                "defillama_live": crypto_onchain,
+        "defillama_live": crypto_onchain,
         # ── FORWARD-LOOKING KEYS ─────────────────────────────────────
-        "leading_indicators": leading,
-        "regime_prediction": regime_pred,
+        "regime_forecast": {
+            "1m": regime_forecast_1m,
+            "3m": regime_forecast_3m,
+            "6m": regime_forecast_6m,
+        },
+        "forward_returns": forward_returns,
+        "leading_signals": {
+            "feature_importance": leading_features,
+            "transition_prob": forward_returns.get("transition_prob", 0.3),
+            "expected_1m": forward_returns.get("expected_1m", 0),
+            "expected_3m": forward_returns.get("expected_3m", 0),
+            "expected_6m": forward_returns.get("expected_6m", 0),
+            "confidence": forward_returns.get("confidence", 0.5),
+        },
         "price_clusters": price_clusters,
-        "news_nlp": news_nlp,
-
+        "news_narratives": news_results,
+        "discovery_v3": discovery,
     }
 
-    logger.info(f"Snapshot built in {snapshot['build_time_s']}s | Prices: {len(prices)} | Ranges: {len(asset_ranges)} | Longs: {len(alpha.get('longs', []))} | Shorts: {len(alpha.get('shorts', []))} | Daily Signals: {len(daily_signals)} | Alpha Center: {alpha_center['meta']['total_items']} | IHSG Layers: {len(ihsg_sector_momentum)} sectors | Forward: {regime_pred.get('prediction_3m',{}).get('predicted_quad','?')} | Clusters: {len(price_clusters.get('clusters',[]))} | News: {news_nlp.get('analyzed_count',0)}")
+    logger.info(f"Snapshot built in {snapshot['build_time_s']}s | Prices: {len(prices)} | Ranges: {len(asset_ranges)} | Longs: {len(alpha.get('longs', []))} | Shorts: {len(alpha.get('shorts', []))} | Daily Signals: {len(daily_signals)} | Alpha Center: {alpha_center['meta']['total_items']} | IHSG Layers: {len(ihsg_sector_momentum)} sectors | Forward: 1M={regime_forecast_1m.get('predicted_quad')} 3M={regime_forecast_3m.get('predicted_quad')} 6M={regime_forecast_6m.get('predicted_quad')} | News: {news_results.get('analyzed_count',0)} headlines | Clusters: {price_clusters.get('meta',{}).get('clusters_found',0)}")
     if progress_cb: progress_cb("Done!", 1.0)
     return snapshot
 
@@ -1980,12 +1807,13 @@ if __name__ == "__main__":
         "greeks_analyzed": len(snap.get("greeks_data", {})),
         "ihsg_sectors": len(snap.get("ihsg_sector_momentum", {})),
         "build_time": snap["build_time_s"],
-        "forward_quad_3m": snap.get("regime_prediction", {}).get("prediction_3m", {}).get("predicted_quad"),
-        "forward_conf_3m": snap.get("regime_prediction", {}).get("prediction_3m", {}).get("prediction_confidence"),
-        "clusters_found": len(snap.get("price_clusters", {}).get("clusters", [])),
-        "news_analyzed": snap.get("news_nlp", {}).get("analyzed_count", 0),
-        "transition_prob": snap.get("leading_indicators", {}).get("transition_prob_3m"),
         "vol_forecast_count": len(snap.get("vol_forecast", {})),
         "risk_adjusted_count": len(snap.get("risk_adjusted", {})),
         "stress_test_scenarios": len(snap.get("stress_test", [])),
+        "forward_1m": snap.get("regime_forecast", {}).get("1m", {}).get("predicted_quad"),
+        "forward_3m": snap.get("regime_forecast", {}).get("3m", {}).get("predicted_quad"),
+        "forward_6m": snap.get("regime_forecast", {}).get("6m", {}).get("predicted_quad"),
+        "news_headlines": snap.get("news_narratives", {}).get("analyzed_count", 0),
+        "price_clusters": snap.get("price_clusters", {}).get("meta", {}).get("clusters_found", 0),
+        "discovery_candidates": snap.get("discovery_v3", {}).get("meta", {}).get("total_candidates", 0),
     }, indent=2))

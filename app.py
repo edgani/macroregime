@@ -20,9 +20,9 @@ logger = logging.getLogger(__name__)
 st.set_page_config(page_title="MacroRegime Pro", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
 
 try:
-    from config.settings import FOREX_PAIRS, COMMODITIES, CRYPTO, IHSG_UNIVERSE, IHSG_SECTOR_MAP, TICKER_SECTOR
+    from config.settings import FOREX_PAIRS, COMMODITIES, CRYPTO, IHSG_UNIVERSE, IHSG_SECTOR_MAP, TICKER_SECTOR, US_SECTORS, US_BUCKETS
 except ImportError:
-    from config.settings import FOREX_PAIRS, COMMODITIES, CRYPTO, IHSG_UNIVERSE, TICKER_SECTOR
+    from config.settings import FOREX_PAIRS, COMMODITIES, CRYPTO, IHSG_UNIVERSE, TICKER_SECTOR, US_SECTORS, US_BUCKETS
     # Fallback IHSG sector map if not exported from config
     IHSG_SECTOR_MAP = {
         "ADRO.JK": "Coal", "ITMG.JK": "Coal", "PTBA.JK": "Coal",
@@ -725,7 +725,7 @@ def _build_ihsg_row(ticker, prices, ar, ihsg_sector_momentum=None, ihsg_commodit
     sector_mom = (ihsg_sector_momentum or {}).get(sector, {})
     comm_ov = (ihsg_commodity_overlay or {}).get(sector, {})
     rupiah = ihsg_rupiah_regime or {}
-    flow = (ihsg_foreign_flow or {}).get(t, {})
+    flow = (ihsg_foreign_flow or {}).get(ticker, {})
     macro = ihsg_macro_overlay or {}
     thesis_parts = [thesis]
     if sector_mom.get("bias") == "Bullish": thesis_parts.append(f"Sector momentum {sector_mom.get('avg_1m'):+.1%} ({sector_mom.get('leader')} leading)")
@@ -988,6 +988,7 @@ with st.sidebar:
         "📈 GIP Model",
         "📋 Playbook",
         "⚡ Alpha Center",
+        "🇺🇸 US Stocks",
         "💱🛢️ Macro Proxies",
         "₿ Crypto",
         "🌍 Global & EM",
@@ -1284,7 +1285,8 @@ if page == "🏠 Dashboard":
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: 📈 GIP MODEL — WITH REAL FORWARD PROJECTION
-# ══════════════════════════════════════════════════════════════════════════════elif page == "📈 GIP Model":
+# ══════════════════════════════════════════════════════════════════════════════
+elif page == "📈 GIP Model":
     st.markdown("## 📈 GIP Model")
     st.caption("Growth · Inflation · Policy — The Macro Map")
 
@@ -1426,7 +1428,8 @@ if page == "🏠 Dashboard":
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: ⚡ ALPHA & SCANNER
-# ══════════════════════════════════════════════════════════════════════════════elif page == "📋 Playbook":
+# ══════════════════════════════════════════════════════════════════════════════
+elif page == "📋 Playbook":
     st.markdown("## 📋 Playbook")
     st.caption(f"What to buy & avoid in {sq} · {qn(sq)}")
     st.divider()
@@ -1537,8 +1540,39 @@ elif page == "⚡ Alpha Center":
         for i, s in enumerate(filtered[:300]): _render_narrative_card_native(s, i, "us_equity")
 
 # ══════════════════════════════════════════════════════════════════════════════
+# TAB: 🇺🇸 US STOCKS
+# ══════════════════════════════════════════════════════════════════════════════
+elif page == "🇺🇸 US Stocks":
+    st.markdown("## 🇺🇸 US Stocks")
+    st.caption("US Equities — Options · Greeks · COT · OI · Risk Ranges · Forward-Looking · News")
+    st.divider()
+    gamma_data = snap.get("gamma_data", {}) or {}
+    greeks_data = snap.get("greeks_data", {}) or {}
+    cot_data = snap.get("cot_oi",{}).get("cot",{}) if snap else {}
+    oi_data = snap.get("cot_oi",{}).get("oi",{}) if snap else {}
+
+    us_tickers = list(US_SECTORS.keys())
+    for bucket in ["Growth", "Quality", "Defensives", "Semis", "Energy", "Industrials", "Financials", "AI_Infra", "PreciousMetals", "International", "Housing", "Bitcoin"]:
+        us_tickers += US_BUCKETS.get(bucket, [])
+    us_tickers = list(dict.fromkeys(us_tickers))
+
+    us_rows = []
+    for ticker in us_tickers:
+        row = _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, "us_equity", vix_now, gamma_data, greeks_data, forward_returns, news_narratives)
+        if row: us_rows.append(row)
+    longs, shorts = _split_long_short(us_rows)
+    st.markdown(f"**🟢 LONG US STOCKS ({len(longs)} setups)**")
+    for i, row in enumerate(longs): _render_narrative_card_native(row, i, "us_equity")
+    if not longs: st.info("No long US stock setups.")
+    st.divider()
+    st.markdown(f"**🔴 SHORT US STOCKS ({len(shorts)} setups)**")
+    for i, row in enumerate(shorts): _render_narrative_card_native(row, i, "us_equity")
+    if not shorts: st.info("No short US stock setups.")
+
+# ══════════════════════════════════════════════════════════════════════════════
 # TAB: 💱🛢️ MACRO PROXIES
-# ══════════════════════════════════════════════════════════════════════════════elif page == "💱🛢️ Macro Proxies":
+# ══════════════════════════════════════════════════════════════════════════════
+elif page == "💱🛢️ Macro Proxies":
     st.markdown("## 💱🛢️ Macro Proxies")
     st.caption("Forex + Commodities — COT · OI · Greeks · Risk Ranges · Forward · News")
     st.divider()
@@ -1580,7 +1614,8 @@ elif page == "⚡ Alpha Center":
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: ₿ CRYPTO
-# ══════════════════════════════════════════════════════════════════════════════elif page == "₿ Crypto":
+# ══════════════════════════════════════════════════════════════════════════════
+elif page == "₿ Crypto":
     st.markdown("## ₿ Crypto Setups")
     st.caption("On-chain momentum + Risk Ranges + Forward-Looking + News")
     st.divider()
@@ -1636,7 +1671,8 @@ elif page == "⚡ Alpha Center":
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: 🌍 GLOBAL & EM
-# ══════════════════════════════════════════════════════════════════════════════elif page == "🌍 Global & EM":
+# ══════════════════════════════════════════════════════════════════════════════
+elif page == "🌍 Global & EM":
     st.markdown("## 🌍 Global & EM")
     st.caption("50-country regime map + Indonesia IHSG + Forward · News")
     st.divider()
@@ -1880,7 +1916,8 @@ elif page == "⚡ Alpha Center":
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: 📖 Themes — WITH REAL DISCOVERY DATA
-# ══════════════════════════════════════════════════════════════════════════════elif page == "📖 Themes":
+# ══════════════════════════════════════════════════════════════════════════════
+elif page == "📖 Themes":
     st.markdown("## 📖 Themes")
     st.caption("Top-down narratives + price clusters + news NLP")
     st.divider()
@@ -1971,7 +2008,3 @@ elif page == "🏥 Health":
             color = "#3FB950" if status == "OK" else "#F85149" if status == "FAIL" else "#D29922"
             st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:6px;padding:6px 12px;margin:3px 0;display:flex;justify-content:space-between;"><span>{src}</span><span style="color:{color};font-weight:700;">{status}</span></div>', unsafe_allow_html=True)
     else: st.info("No detailed source status available.")
-
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB: 📋 PLAYBOOK
-# ══════════════════════════════════════════════════════════════════════════════

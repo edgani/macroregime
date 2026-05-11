@@ -525,7 +525,6 @@ def _build_stress_test(prices, sq, alpha):
         })
 
     return results
-return asset_ranges
 
 def _detect_market_type(ticker):
     if any(x in ticker for x in ["BTC","ETH","SOL","TON","ADA","AVAX","DOT","LINK","DOGE","LTC","XRP","BNB","-USD","-USDT"]):

@@ -236,8 +236,11 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
     config_vars = {}
     try:
         from config import settings as cfg
-        for name in ["FOREX_PAIRS","COMMODITIES","CRYPTO","IHSG_UNIVERSE","MACRO_TICKERS","FRED_SERIES","US_STOCKS"]:
-            config_vars[name] = getattr(cfg, name, {} if any(x in name for x in ["PAIRS","TICKERS","STOCKS","UNIVERSE"]) else [])
+        for name in ["FOREX_PAIRS","COMMODITIES","CRYPTO","IHSG_UNIVERSE","US_STOCKS"]:
+            config_vars[name] = getattr(cfg, name, {})
+        # These MUST be lists (for concatenation)
+        config_vars["MACRO_TICKERS"] = getattr(cfg, "MACRO_TICKERS", [])
+        config_vars["FRED_SERIES"] = getattr(cfg, "FRED_SERIES", [])
     except Exception as e:
         logger.error(f"Config import failed: {e}")
         snap["error"] = str(e); return snap

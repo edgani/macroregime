@@ -1631,6 +1631,9 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
     health = health_engine.run(prices, gip.features, sq)
     if progress_cb: progress_cb("Health check complete", 0.80)
 
+    # Define vix_now HERE so all engines can use it
+    vix_now = health.get("vix_bucket", {}).get("vix_last", 18)
+
     try:
         discovery_engine = AutoDiscoveryEngineV3()
         discovery = discovery_engine.run(prices, gip, asset_ranges)
@@ -1685,7 +1688,6 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
             logger.warning(f"yfinance options error: {e}")
 
     # ── REAL DEFILLAMA DATA ───────────────────────────────────────────
-    crypto_onchain = {}
     if defillama:
         if progress_cb: progress_cb("Fetching DeFiLlama on-chain...", 0.66)
         try:
@@ -1735,7 +1737,6 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
     # ── OPTION DATA: Gamma + Greeks (fallback/proxy) ──────────────────
     gamma_data = {}
     greeks_data = {}
-    vix_now = health.get("vix_bucket", {}).get("vix_last", 18)
     try:
         if progress_cb: progress_cb("Running option analytics...", 0.78)
         gamma_engine = GammaEngine()

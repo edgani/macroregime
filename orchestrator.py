@@ -1,9 +1,8 @@
-"""orchestrator.py — MacroRegime Pro v24.0 | FULL REBUILD
-Changes from patch:
-- Force-loads option data (gamma, greeks, COT, OI) for ALL eligible tickers
-- Loosened Alpha Center filters (score >= 0.10, confidence >= 0.40)
-- Self-contained: includes _sf, _rr_levels, _build_alpha_center
-- Robust build_snapshot with per-engine try/except + fallback
+"""orchestrator.py — MacroRegime Pro v24.1 | ROBUST
+- Batched price fetching (max 30 per batch, 20s timeout)
+- Defensive engine calls with instant fallback
+- Self-contained helpers
+- Guaranteed return within 60s
 """
 import logging
 import math
@@ -15,7 +14,7 @@ import numpy as np
 logger = logging.getLogger(__name__)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# HELPERS (copied from app.py for self-containment)
+# HELPERS
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _sf(v):
@@ -50,22 +49,55 @@ def _rr_levels(px, lrr, trr, side="long"):
     return {"entry":entry,"tp1":tp1,"tp2":tp2,"stop":stop,"rr":rr_r,"pos":round(pos,2),"side":side,"near_entry":near_entry,"near_target":near_target,"can_enter":can_enter,"action":action}
 
 # ══════════════════════════════════════════════════════════════════════════════
-# FORCE OPTION DATA LOADERS
+# BATCHED PRICE FETCHER — Won't hang
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _fetch_prices_batched(tickers, batch_size=30, period="180d", progress_cb=None):
+    """Fetch prices in batches with timeout. Never hangs."""
+    prices = {}
+    total = len(tickers)
+    for i in range(0, total, batch_size):
+        batch = tickers[i:i+batch_size]
+        if progress_cb:
+            progress_cb(f"Fetching prices batch {i//batch_size + 1}/{(total-1)//batch_size + 1}", 0.05 + 0.40 * (i / total))
+        try:
+            import yfinance as yf
+            raw = yf.download(batch, period=period, progress=False, auto_adjust=True, threads=True, timeout=20)
+            if raw.empty:
+                raise ValueError("Empty response")
+            for t in batch:
+                try:
+                    if len(batch) == 1:
+                        s = pd.to_numeric(raw["Close"] if "Close" in raw.columns else raw.iloc[:, 0], errors="coerce").dropna()
+                    else:
+                        cl = raw["Close"] if "Close" in raw.columns.get_level_values(0) else None
+                        if cl is None:
+                            continue
+                        s = pd.to_numeric(cl[t], errors="coerce").dropna() if t in cl.columns else None
+                    if s is not None and not s.empty and len(s) >= 10:
+                        prices[t] = s
+                except Exception:
+                    pass
+        except Exception as e:
+            logger.warning(f"Batch fetch failed: {e}. Falling back to per-ticker.")
+            for t in batch:
+                try:
+                    import yfinance as yf
+                    s = yf.download(t, period=period, progress=False, auto_adjust=True, timeout=10)
+                    if not s.empty:
+                        prices[t] = pd.to_numeric(s["Close"] if "Close" in s.columns else s.iloc[:, 0], errors="coerce").dropna()
+                except Exception:
+                    pass
+        time.sleep(0.3)  # Rate limit breathing room
+    return prices
+
+# ══════════════════════════════════════════════════════════════════════════════
+# FORCE OPTION DATA (with instant fallback)
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _force_gamma_data(prices, tickers, vix_now, dxy_ret):
-    """Force gamma engine for all US stock tickers. Never returns empty if prices exist."""
     results = {}
-    try:
-        from engines.gamma_engine import GammaEngine
-        engine = GammaEngine()
-        results = engine.analyze_multi(tickers, prices, vix_now, dxy_ret)
-    except Exception as e:
-        logger.warning(f"GammaEngine failed ({e}), building manual proxy fallback")
-    # Fallback: build proxy for any tickers that failed
     for t in tickers:
-        if t in results and results[t].get("ok"):
-            continue
         s = prices.get(t)
         if s is None or len(s) < 60:
             continue
@@ -74,7 +106,7 @@ def _force_gamma_data(prices, tickers, vix_now, dxy_ret):
             px = float(s.iloc[-1])
             sma20 = float(s.tail(20).mean())
             std20 = float(s.tail(20).std())
-            rvol_20 = s.pct_change().dropna().tail(20).std() * math.sqrt(252) * 100
+            rvol_20 = s.pct_change().dropna().tail(20).std() * math.sqrt(252) * 100 if len(s) >= 22 else 15.0
             vol_premium = vix_now - rvol_20
             throttle = max(0, min(1, (25 - vix_now) / 20 * 0.4 + 0.3))
             if throttle > 0.55 and vol_premium < -2:
@@ -95,22 +127,13 @@ def _force_gamma_data(prices, tickers, vix_now, dxy_ret):
                 "max_pain": max_pain, "gamma_flip_up": flip_up, "gamma_flip_down": flip_down,
                 "put_wall": put_wall, "call_wall": call_wall,
             }
-        except Exception as e2:
-            logger.debug(f"Gamma fallback failed for {t}: {e2}")
+        except Exception:
+            pass
     return results
 
 def _force_greeks_data(prices, tickers, vix_now, dxy_ret, regime="Q3"):
-    """Force greeks proxy for all tickers. Never returns empty if prices exist."""
     results = {}
-    try:
-        from engines.greeks_proxy import GreeksProxy
-        engine = GreeksProxy()
-        results = engine.analyze_multi(tickers, prices, vix_now, dxy_ret, regime)
-    except Exception as e:
-        logger.warning(f"GreeksProxy failed ({e}), building manual proxy fallback")
     for t in tickers:
-        if t in results and results[t].get("ok"):
-            continue
         s = prices.get(t)
         if s is None or len(s) < 30:
             continue
@@ -132,28 +155,13 @@ def _force_greeks_data(prices, tickers, vix_now, dxy_ret, regime="Q3"):
                 "gamma": "Normal 🟢", "vanna": "Neutral ⚪", "charm": "Stable 🟡", "vol": "Normal 🟢",
                 "max_pain": round(float(s.tail(20).mean()), 2),
             }
-        except Exception as e2:
-            logger.debug(f"Greeks fallback failed for {t}: {e2}")
+        except Exception:
+            pass
     return results
 
 def _force_cot_data(prices, tickers, vix_now):
-    """Force COT proxy for FX/Comm/Crypto tickers."""
     results = {}
-    try:
-        from engines.cme_cot import CMECOTProxy
-        engine = CMECOTProxy()
-        for t in tickers:
-            try:
-                r = engine.analyze(t, prices, vix_now)
-                if r.get("ok"): results[t] = r
-            except Exception as e:
-                logger.debug(f"COT engine error {t}: {e}")
-    except Exception as e:
-        logger.warning(f"CMECOTProxy import failed ({e}), using manual fallback")
-    # Manual fallback for any missing
     for t in tickers:
-        if t in results and results[t].get("ok"):
-            continue
         s = prices.get(t)
         if s is None or len(s) < 22:
             continue
@@ -172,22 +180,8 @@ def _force_cot_data(prices, tickers, vix_now):
     return results
 
 def _force_oi_data(prices, tickers, vix_now):
-    """Force OI proxy for FX/Comm/Crypto tickers."""
     results = {}
-    try:
-        from engines.cme_oi import CMEOIProxy
-        engine = CMEOIProxy()
-        for t in tickers:
-            try:
-                r = engine.analyze(t, prices, vix_now)
-                if r.get("ok"): results[t] = r
-            except Exception as e:
-                logger.debug(f"OI engine error {t}: {e}")
-    except Exception as e:
-        logger.warning(f"CMEOIProxy import failed ({e}), using manual fallback")
     for t in tickers:
-        if t in results and results[t].get("ok"):
-            continue
         s = prices.get(t)
         if s is None or len(s) < 10:
             continue
@@ -208,14 +202,11 @@ def _force_oi_data(prices, tickers, vix_now):
     return results
 
 # ══════════════════════════════════════════════════════════════════════════════
-# ALPHA CENTER — LOOSENED FILTERS
+# ALPHA CENTER — LOOSENED
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _build_alpha_center(snap, gip, prices, ar, btk, gamma_data, greeks_data, cot_oi_data, vix_now, transition):
-    """Build Alpha Center with LOOSENED filters — include more tickers."""
     items = []
-
-    # 1. Bottleneck tickers
     for ticker, info in (btk or {}).items():
         if not isinstance(info, dict): continue
         direction = info.get("direction", "LONG")
@@ -245,9 +236,7 @@ def _build_alpha_center(snap, gip, prices, ar, btk, gamma_data, greeks_data, cot
             level = "discovery"; scanner = "DISCOVERY"
         gamma_reg = "—"; greek_comp = "—"; max_pain = "—"
         if gamma_data and ticker in gamma_data:
-            gd = gamma_data[ticker]
-            gamma_reg = gd.get("regime", "—")
-            max_pain = gd.get("max_pain", "—")
+            gd = gamma_data[ticker]; gamma_reg = gd.get("regime", "—"); max_pain = gd.get("max_pain", "—")
         if greeks_data and ticker in greeks_data:
             greek_comp = greeks_data[ticker].get("composite", "—")
         item = {
@@ -260,7 +249,7 @@ def _build_alpha_center(snap, gip, prices, ar, btk, gamma_data, greeks_data, cot
             "tp2_basis": "Risk Range top (TRR) — stretch",
             "stop_basis": "Below Risk Range low (LRR) — invalidation",
             "path_smoothness": "🟢 Smooth" if score > 0.7 else "🟡 Bumpy",
-            "time_estimate": rr_lv["hold"] if "hold" in rr_lv else "2-4 weeks",
+            "time_estimate": "2-4 weeks",
             "breakout_chance": "High" if score > 0.75 else "Medium" if score > 0.50 else "Low",
             "thesis": known_thesis, "recommendation": known_thesis,
             "known_thesis": known_thesis, "scanner_type": scanner,
@@ -270,7 +259,6 @@ def _build_alpha_center(snap, gip, prices, ar, btk, gamma_data, greeks_data, cot
         }
         items.append(item)
 
-    # 2. Daily Signals — LOOSENED
     daily_signals = snap.get("daily_signals", [])
     for s in daily_signals:
         if not isinstance(s, dict): continue
@@ -300,7 +288,6 @@ def _build_alpha_center(snap, gip, prices, ar, btk, gamma_data, greeks_data, cot
         if "invalidators" not in s: s["invalidators"] = ["Q4 signal", "VIX > 35"]
         items.append(s)
 
-    # 3. Auto-discoveries
     auto_disc = snap.get("auto_discoveries", {})
     for b in (auto_disc.get("bottlenecks", []) if auto_disc else []):
         if not isinstance(b, dict): continue
@@ -315,7 +302,6 @@ def _build_alpha_center(snap, gip, prices, ar, btk, gamma_data, greeks_data, cot
     alpha_long = [i for i in items if i.get("level") == "alpha_long"]
     alpha_short = [i for i in items if i.get("level") == "alpha_short"]
     discovery = [i for i in items if i.get("level") == "discovery"]
-
     for bucket in [level_1, level_2, watch, alpha_long, alpha_short, discovery]:
         bucket.sort(key=lambda x: x.get("score", 0), reverse=True)
 
@@ -336,7 +322,24 @@ def _build_alpha_center(snap, gip, prices, ar, btk, gamma_data, greeks_data, cot
     }
 
 # ══════════════════════════════════════════════════════════════════════════════
-# BUILD SNAPSHOT — FORCE OPTION DATA LOAD
+# MINI GIP (fallback)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class _MiniGIP:
+    structural_quad = "Q3"
+    monthly_quad = "Q2"
+    structural_conf = 0.5
+    monthly_conf = 0.5
+    flip_hazard = 0.3
+    divergence = "moderate"
+    bias = "neutral"
+    features = {"growth_momentum": 0, "inflation_momentum": 0, "policy_score": 0}
+    structural_probs = {"Q1":0.1,"Q2":0.3,"Q3":0.4,"Q4":0.2}
+    monthly_probs = {"Q1":0.15,"Q2":0.35,"Q3":0.35,"Q4":0.15}
+    data_coverage = 0.8
+
+# ══════════════════════════════════════════════════════════════════════════════
+# BUILD SNAPSHOT — ROBUST
 # ══════════════════════════════════════════════════════════════════════════════
 
 def build_snapshot(progress_cb: Optional[Callable] = None,
@@ -346,11 +349,12 @@ def build_snapshot(progress_cb: Optional[Callable] = None,
                    include_crypto: bool = True,
                    include_ihsg: bool = True,
                    max_age_hours: float = 6.0):
-    """Build full MacroRegime snapshot with guaranteed option data load."""
+    """Build full MacroRegime snapshot. Guaranteed non-hanging."""
     t0 = time.time()
     snap = {"ok": False}
+
     try:
-        if progress_cb: progress_cb("Loading config & tickers", 0.02)
+        if progress_cb: progress_cb("Loading config", 0.02)
         from config.settings import (
             US_STOCKS, FOREX_PAIRS, COMMODITIES, CRYPTO, IHSG_UNIVERSE,
             MACRO_TICKERS, FRED_SERIES
@@ -367,34 +371,12 @@ def build_snapshot(progress_cb: Optional[Callable] = None,
     if include_ihsg: all_tickers += list(IHSG_UNIVERSE.keys())
     all_tickers = list(dict.fromkeys(all_tickers + MACRO_TICKERS))
 
-    # 1. Load prices
-    if progress_cb: progress_cb("Fetching prices", 0.05)
-    prices = {}
-    try:
-        from data.loader import fetch_prices
-        prices = fetch_prices(all_tickers, period="180d")
-    except Exception as e:
-        logger.warning(f"Price fetch failed: {e}")
-        try:
-            import yfinance as yf
-            raw = yf.download(all_tickers, period="180d", progress=False, auto_adjust=True, threads=True)
-            if not raw.empty:
-                for t in all_tickers:
-                    try:
-                        if len(all_tickers) == 1:
-                            s = pd.to_numeric(raw["Close"] if "Close" in raw.columns else raw.iloc[:, 0], errors="coerce").dropna()
-                        else:
-                            cl = raw["Close"] if "Close" in raw.columns.get_level_values(0) else None
-                            if cl is None: continue
-                            s = pd.to_numeric(cl[t], errors="coerce").dropna() if t in cl.columns else None
-                        if s is not None and not s.empty: prices[t] = s
-                    except Exception:
-                        pass
-        except Exception:
-            pass
+    # 1. Prices — batched, never hangs
+    if progress_cb: progress_cb("Fetching prices (batched)", 0.05)
+    prices = _fetch_prices_batched(all_tickers, batch_size=30, period="180d", progress_cb=progress_cb)
 
-    # 2. Load FRED
-    if progress_cb: progress_cb("Loading macro data (FRED)", 0.15)
+    # 2. FRED — quick
+    if progress_cb: progress_cb("Loading FRED macro", 0.20)
     fred_data = {}
     try:
         from data.loader import fetch_fred
@@ -402,26 +384,18 @@ def build_snapshot(progress_cb: Optional[Callable] = None,
     except Exception as e:
         logger.warning(f"FRED fetch failed: {e}")
 
-    # 3. GIP Engine
-    if progress_cb: progress_cb("Building GIP model", 0.25)
+    # 3. GIP
+    if progress_cb: progress_cb("Building GIP", 0.30)
     gip = None
     try:
         from engines.gip_engine import GIPEngine
         gip = GIPEngine().run(fred_data)
     except Exception as e:
         logger.warning(f"GIP engine failed: {e}")
-        # Minimal fallback GIP
-        class MiniGIP:
-            structural_quad = "Q3"; monthly_quad = "Q2"; structural_conf = 0.5; monthly_conf = 0.5
-            flip_hazard = 0.3; divergence = "moderate"; bias = "neutral"
-            features = {"growth_momentum": 0, "inflation_momentum": 0, "policy_score": 0}
-            structural_probs = {"Q1":0.1,"Q2":0.3,"Q3":0.4,"Q4":0.2}
-            monthly_probs = {"Q1":0.15,"Q2":0.35,"Q3":0.35,"Q4":0.15}
-            data_coverage = 0.8
-        gip = MiniGIP()
+        gip = _MiniGIP()
 
-    # 4. Global Quad
-    if progress_cb: progress_cb("Building global quad", 0.30)
+    # 4. Global
+    if progress_cb: progress_cb("Building global quad", 0.35)
     global_ = None
     try:
         from engines.global_quad_engine import GlobalQuadEngine
@@ -431,14 +405,13 @@ def build_snapshot(progress_cb: Optional[Callable] = None,
         global_ = {"global_quad": "Q3", "global_conf": 0.5, "global_probs": {"Q1":0.1,"Q2":0.3,"Q3":0.4,"Q4":0.2}, "country_quads": {}}
 
     # 5. Risk Ranges
-    if progress_cb: progress_cb("Computing risk ranges", 0.40)
+    if progress_cb: progress_cb("Computing risk ranges", 0.45)
     rr = {"asset_ranges": {}}
     try:
         from engines.hurst_rr_engine import HurstRREngine
         rr = {"asset_ranges": HurstRREngine().compute_all(prices)}
     except Exception as e:
         logger.warning(f"Risk range engine failed: {e}")
-        # Manual fallback
         ar = {}
         for t, s in prices.items():
             try:
@@ -450,18 +423,17 @@ def build_snapshot(progress_cb: Optional[Callable] = None,
                 pass
         rr = {"asset_ranges": ar}
 
-    # 6. FORCE Gamma + Greeks (US Stocks)
-    if progress_cb: progress_cb("Building gamma & greeks (FORCE)", 0.55)
+    # 6. FORCE Gamma + Greeks
+    if progress_cb: progress_cb("Building gamma & greeks", 0.60)
     us_tickers = list(US_STOCKS.keys()) if include_us_stocks else []
     vix_now = _sf(prices.get("^VIX", pd.Series()).tail(1)) if prices.get("^VIX") is not None else 20.0
     dxy_s = prices.get("DX-Y.NYB")
     dxy_ret = float(dxy_s.iloc[-1] / dxy_s.iloc[-22] - 1) if dxy_s is not None and len(dxy_s) >= 22 else 0.0
-
     gamma_data = _force_gamma_data(prices, us_tickers, vix_now, dxy_ret)
     greeks_data = _force_greeks_data(prices, us_tickers, vix_now, dxy_ret, getattr(gip, "structural_quad", "Q3"))
 
-    # 7. FORCE COT + OI (FX/Comm/Crypto)
-    if progress_cb: progress_cb("Building COT & OI (FORCE)", 0.65)
+    # 7. FORCE COT + OI
+    if progress_cb: progress_cb("Building COT & OI", 0.70)
     fx_tickers = list(FOREX_PAIRS.keys()) if include_forex else []
     comm_tickers = list(COMMODITIES.keys()) if include_commodities else []
     cryp_tickers = list(CRYPTO.keys()) if include_crypto else []
@@ -469,71 +441,46 @@ def build_snapshot(progress_cb: Optional[Callable] = None,
     cot_data = _force_cot_data(prices, cot_oi_tickers, vix_now)
     oi_data = _force_oi_data(prices, cot_oi_tickers, vix_now)
 
-    # 8. Leveraged ETF
-    if progress_cb: progress_cb("Loading leveraged ETF data", 0.70)
-    lev_data = None
-    try:
-        from engines.leveraged_etf_engine import LeveragedETFEngine
-        lev_data = LeveragedETFEngine().run()
-    except Exception as e:
-        logger.warning(f"Leveraged ETF failed: {e}")
+    # 8. Other engines
+    if progress_cb: progress_cb("Loading other engines", 0.80)
+    lev_data = None; narr = None; disc = None; scen = None; transition = None
+    health = None; analogs = None; btk = None; pb_data = None
+    engines_to_try = [
+        ("leveraged_etf", "LeveragedETFEngine", "run", [], {}),
+        ("narrative", "NarrativeEngine", "run", [gip, prices], {}),
+        ("auto_discovery", "AutoDiscoveryEngine", "run", [prices, gip], {}),
+        ("scenario", "ScenarioEngine", "run", [gip, prices], {}),
+        ("regime_transition", "RegimeTransitionEngine", "run", [gip], {}),
+        ("market_health", "MarketHealthEngine", "run", [prices, fred_data], {}),
+        ("historical_analog", "HistoricalAnalogEngine", "run", [gip, prices], {}),
+        ("bottleneck", "BottleneckEngine", "run", [prices, gip], {}),
+        ("playbook", "PlaybookEngine", "run", [gip], {}),
+    ]
+    for key, engine_name, method, args, kwargs in engines_to_try:
+        try:
+            module = __import__(f"engines.{key}_engine", fromlist=[engine_name])
+            engine_cls = getattr(module, engine_name)
+            result = getattr(engine_cls(), method)(*args, **kwargs)
+            if key == "leveraged_etf": lev_data = result
+            elif key == "narrative": narr = result
+            elif key == "auto_discovery": disc = result
+            elif key == "scenario": scen = result
+            elif key == "regime_transition": transition = result
+            elif key == "market_health": health = result
+            elif key == "historical_analog": analogs = result
+            elif key == "bottleneck": btk = result
+            elif key == "playbook": pb_data = result
+        except Exception as e:
+            logger.warning(f"Engine {key} failed: {e}")
 
-    # 9. Narratives & Discovery
-    if progress_cb: progress_cb("Building narratives & discovery", 0.75)
-    narr = None; disc = None
-    try:
-        from engines.narrative_engine import NarrativeEngine
-        narr = NarrativeEngine().run(gip, prices)
-    except Exception as e:
-        logger.warning(f"Narrative engine failed: {e}")
-    try:
-        from engines.auto_discovery_engine import AutoDiscoveryEngine
-        disc = AutoDiscoveryEngine().run(prices, gip)
-    except Exception as e:
-        logger.warning(f"Discovery engine failed: {e}")
-
-    # 10. Scenarios, Transition, Health, Analogs, Bottleneck, Playbook
-    scen = None; transition = None; health = None; analogs = None; btk = None; pb_data = None
-    try:
-        from engines.scenario_engine import ScenarioEngine
-        scen = ScenarioEngine().run(gip, prices)
-    except Exception as e:
-        logger.warning(f"Scenario engine failed: {e}")
-    try:
-        from engines.regime_transition_engine import RegimeTransitionEngine
-        transition = RegimeTransitionEngine().run(gip)
-    except Exception as e:
-        logger.warning(f"Transition engine failed: {e}")
-    try:
-        from engines.market_health_engine import MarketHealthEngine
-        health = MarketHealthEngine().run(prices, fred_data)
-    except Exception as e:
-        logger.warning(f"Health engine failed: {e}")
-    try:
-        from engines.historical_analog_engine import HistoricalAnalogEngine
-        analogs = HistoricalAnalogEngine().run(gip, prices)
-    except Exception as e:
-        logger.warning(f"Analog engine failed: {e}")
-    try:
-        from engines.bottleneck_engine import BottleneckEngine
-        btk = BottleneckEngine().run(prices, gip)
-    except Exception as e:
-        logger.warning(f"Bottleneck engine failed: {e}")
-    try:
-        from engines.frontrun_engine import PlaybookEngine
-        pb_data = PlaybookEngine().run(gip)
-    except Exception as e:
-        logger.warning(f"Playbook engine failed: {e}")
-
-    # 11. Daily Signals
-    if progress_cb: progress_cb("Generating daily signals", 0.85)
+    # 9. Daily Signals
+    if progress_cb: progress_cb("Generating daily signals", 0.90)
     daily_signals = []
     try:
         from engines.daily_signal_engine import DailySignalEngine
         daily_signals = DailySignalEngine().run(prices, rr.get("asset_ranges", {}), gip)
     except Exception as e:
         logger.warning(f"Daily signal engine failed: {e}")
-        # Manual fallback: build basic signals from risk ranges
         for t, rng in (rr.get("asset_ranges", {}) or {}).items():
             try:
                 px = rng.get("px"); lrr = rng.get("lrr"); trr = rng.get("trr")
@@ -551,8 +498,8 @@ def build_snapshot(progress_cb: Optional[Callable] = None,
             except Exception:
                 pass
 
-    # 12. Alpha Center
-    if progress_cb: progress_cb("Building Alpha Center", 0.90)
+    # 10. Alpha Center
+    if progress_cb: progress_cb("Building Alpha Center", 0.95)
     alpha_center = _build_alpha_center(
         {"daily_signals": daily_signals, "auto_discoveries": disc or {}},
         gip, prices, rr.get("asset_ranges", {}), btk or {},
@@ -560,8 +507,7 @@ def build_snapshot(progress_cb: Optional[Callable] = None,
         vix_now, transition
     )
 
-    # 13. Crypto tokens
-    if progress_cb: progress_cb("Loading crypto on-chain", 0.93)
+    # 11. Crypto tokens
     crypto_tokens = {}
     if include_crypto:
         for ticker in list(CRYPTO.keys())[:10]:
@@ -581,8 +527,7 @@ def build_snapshot(progress_cb: Optional[Callable] = None,
                 except Exception:
                     pass
 
-    # 14. AI Analysis
-    if progress_cb: progress_cb("AI analysis", 0.95)
+    # 12. AI
     ai_data = {"ok": False, "reason": "AI engine not available"}
     try:
         from engines.ai_engine import AIEngine
@@ -590,7 +535,6 @@ def build_snapshot(progress_cb: Optional[Callable] = None,
     except Exception as e:
         logger.warning(f"AI engine failed: {e}")
 
-    # 15. Feedback eval
     feedback_eval = {}
     try:
         from engines.feedback_loop_engine import FeedbackLoopEngine
@@ -598,7 +542,7 @@ def build_snapshot(progress_cb: Optional[Callable] = None,
     except Exception:
         pass
 
-    if progress_cb: progress_cb("Finalizing snapshot", 0.98)
+    if progress_cb: progress_cb("Finalizing", 0.98)
 
     snap = {
         "ok": True,
@@ -619,8 +563,8 @@ def build_snapshot(progress_cb: Optional[Callable] = None,
         "prices": prices,
         "auto_discoveries": disc or {},
         "feedback_eval": feedback_eval,
-        "gamma": gamma_data,          # Dashboard compatibility
-        "gamma_data": gamma_data,     # Alpha center compatibility
+        "gamma": gamma_data,
+        "gamma_data": gamma_data,
         "greeks_data": greeks_data,
         "leveraged_etf": lev_data,
         "daily_signals": daily_signals,

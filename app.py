@@ -1125,7 +1125,24 @@ if page == "🏠 Dashboard":
     elif vb=="Defensive":
         st.error(f"🔴 DEFENSIVE · VIX {vl:.1f} · {vbd.get('risk_mode','Normal')}")
 
-    # ── Regime + Playbook (2-col) ──
+       # ── Top 5 Ideas (Hedgeye Morning Brief) ──
+    top5 = snap.get("top_5_ideas", [])
+    if top5:
+        st.markdown("### 🎯 Top 5 Ideas — Morning Brief")
+        for idea in top5:
+            dir_emoji = "🟢" if idea.get("direction") == "LONG" else "🔴" if idea.get("direction") == "SHORT" else "⚪"
+            fr_emoji = {"BOARDING NOW":"🚨","GATE OPENS SOON":"⚡","CHECK-IN":"👀","WAIT":"⏳"}.get(idea.get("frontrun"), "⏳")
+            with st.expander(f"{dir_emoji} {idea.get('ticker')} | {idea.get('direction')} | Grade {idea.get('grade')} | {fr_emoji} {idea.get('frontrun')}", expanded=False):
+                c1, c2, c3 = st.columns(3)
+                c1.metric("Entry", f"{idea.get('entry', '—')}")
+                c2.metric("Target 1", f"{idea.get('target_1', '—')}")
+                c3.metric("Stop", f"{idea.get('stop', '—')}")
+                st.info(f"**Thesis:** {idea.get('thesis', '—')}")
+                st.caption(f"**Worth Entering:** {idea.get('worth', '—')} | Source: {idea.get('source', '—')}")
+    else:
+        st.info("Top 5 Ideas loading... Run ⚡ Full Rebuild.")
+
+ # ── Regime + Playbook (2-col) ──
     c1, c2 = st.columns([1, 1.2])
     with c1:
         st.markdown(f'<div style="background:#161B22;border:1px solid {qc(sq)};border-radius:6px;padding:8px;text-align:center;margin-bottom:6px;"><div style="font-size:10px;color:#8B949E;">QUARTERLY</div><div style="font-size:18px;font-weight:700;color:{qc(sq)};">{sq}</div><div style="font-size:11px;color:#E6EDF3;">{QN.get(sq,sq)}</div></div>', unsafe_allow_html=True)
@@ -1386,6 +1403,40 @@ elif page == "⚡ Alpha Center":
     )
 
     # ── Top 5 Priority Cards ──
+    # ── Daily Signals Summary ──
+    ds_summary = snap.get("daily_signals_summary", {})
+    if ds_summary:
+        st.markdown("### 📈 Daily Signals Overview")
+        c1, c2, c3, c4, c5, c6 = st.columns(6)
+        c1.metric("Total", ds_summary.get("total", 0))
+        c2.metric("Strong Longs", ds_summary.get("strong_longs", 0), delta="LONG")
+        c3.metric("Longs", ds_summary.get("longs", 0))
+        c4.metric("Strong Shorts", ds_summary.get("strong_shorts", 0), delta="SHORT")
+        c5.metric("Shorts", ds_summary.get("shorts", 0))
+        c6.metric("Neutrals", ds_summary.get("neutrals", 0))
+        top5_signals = ds_summary.get("top_5_by_score", [])
+        if top5_signals:
+            st.markdown("**Top 5 by Score:**")
+            sig_rows = []
+            for s in top5_signals:
+                sig_rows.append({
+                    "Ticker": s.get("ticker", "—"), "Signal": s.get("signal", "—"),
+                    "Direction": s.get("direction", "—"), "Grade": s.get("grade", "—"),
+                    "Score": round(s.get("score", 0), 2), "Price": s.get("price"),
+                    "Entry": s.get("entry"), "T1": s.get("target_1"),
+                    "Stop": s.get("stop_loss"), "RR": s.get("rr", 0),
+                    "Thesis": (s.get("thesis") or "")[:60],
+                })
+            df_sig = pd.DataFrame(sig_rows)
+            st.dataframe(
+                df_sig.style
+                .map(lambda x: 'color:#3FB950;font-weight:700;' if isinstance(x,str) and any(y in x.upper() for y in ["LONG","BUY","YES"]) else ('color:#F85149;font-weight:700;' if isinstance(x,str) and any(y in x.upper() for y in ["SHORT","SELL","NO"]) else ''), subset=["Signal","Direction"])
+                .map(lambda x: 'color:#3FB950;font-weight:700;' if x in ["A+","A"] else ('color:#D29922;font-weight:600;' if x=="B" else ''), subset=["Grade"])
+                .map(lambda x: 'color:#3FB950;font-weight:700;' if isinstance(x,(int,float)) and x>=2.0 else ('color:#D29922;font-weight:600;' if isinstance(x,(int,float)) and x>=1.5 else ''), subset=["RR"])
+                .format({"Score": "{:.2f}", "Price": "{:.2f}", "Entry": "{:.2f}", "T1": "{:.2f}", "Stop": "{:.2f}", "RR": "{:.1f}"}),
+                use_container_width=True, hide_index=True, height=220
+            )
+
     st.markdown("### 🎯 Top 5 Priority Setups")
     top5 = sorted(all_items, key=lambda x: x.get("priority_score", 0), reverse=True)[:5]
     for i, item in enumerate(top5):
@@ -1512,6 +1563,35 @@ elif page == "💱🛢️ Macro Proxies":
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: ₿ CRYPTO — COMPACT
 # ══════════════════════════════════════════════════════════════════════════════
+    # ── DXY Correlation Widget ──
+    dxy_summary = snap.get("dxy_correlation", {})
+    if dxy_summary:
+        st.markdown("### 💵 DXY Correlation")
+        c1, c2, c3 = st.columns(3)
+        dxy_trend = dxy_summary.get("dxy_trend", "Neutral")
+        dxy_color = "#3FB950" if "Bullish" in dxy_trend else "#F85149" if "Bearish" in dxy_trend else "#D29922"
+        c1.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:8px;padding:12px"><div style="font-size:11px;color:#8B949E;margin-bottom:4px">DXY TREND</div><div style="font-size:16px;font-weight:700;color:{dxy_color}">{dxy_trend}</div></div>', unsafe_allow_html=True)
+        c2.metric("DXY 1M", fp(dxy_summary.get("dxy_1m")))
+        c3.metric("Correlated Assets", dxy_summary.get("total_correlated", 0))
+        pos_corr = dxy_summary.get("strongest_positive_corr", [])
+        neg_corr = dxy_summary.get("strongest_negative_corr", [])
+        if pos_corr or neg_corr:
+            corr_cols = st.columns(2)
+            with corr_cols[0]:
+                if pos_corr:
+                    st.markdown("**📈 Positive Correlation** (rises with DXY)")
+                    pos_rows = [{"Asset": k, "Correlation": v.get("correlation", 0), "Meaning": v.get("meaning", "")} for k, v in pos_corr]
+                    df_pos = pd.DataFrame(pos_rows)
+                    st.dataframe(df_pos.style.format({"Correlation": "{:+.2f}"}).background_gradient(subset=["Correlation"], cmap="RdYlGn", vmin=-1, vmax=1), hide_index=True, use_container_width=True, height=180)
+            with corr_cols[1]:
+                if neg_corr:
+                    st.markdown("**📉 Negative Correlation** (falls when DXY rises)")
+                    neg_rows = [{"Asset": k, "Correlation": v.get("correlation", 0), "Meaning": v.get("meaning", "")} for k, v in neg_corr]
+                    df_neg = pd.DataFrame(neg_rows)
+                    st.dataframe(df_neg.style.format({"Correlation": "{:+.2f}"}).background_gradient(subset=["Correlation"], cmap="RdYlGn_r", vmin=-1, vmax=1), hide_index=True, use_container_width=True, height=180)
+    else:
+        st.info("DXY correlation data loading...")
+
 elif page == "₿ Crypto":
     st.markdown("## ₿ Crypto Setups")
     st.caption("On-chain momentum + Risk Ranges + Greeks")

@@ -22,6 +22,38 @@ from config.settings import (
     BOTTLENECK_PROFILES, EM_RECOVERY_SIGNALS, COUNTRY_UNIVERSE,
 )
 
+# ── NARRATIVE UNIVERSE (orphan integration) ──
+try:
+    from config.narrative_universe import NARRATIVE_UNIVERSE
+except Exception:
+    NARRATIVE_UNIVERSE = {}
+
+# ── AUTONOMY SETTINGS (orphan integration) ──
+try:
+    import config.autonomy_settings as AUTONOMY
+except Exception:
+    AUTONOMY = None
+
+# ── AI ENGINE (orphan integration) ──
+try:
+    from engines.ai_engine import AIEngine
+except Exception as _e:
+    logger.warning(f"ai_engine import failed: {_e}")
+    class AIEngine:
+        def run(self, sq, mq, gq, gip_features, prices, **kwargs):
+            return {"ok": False, "narratives": [], "bottlenecks": [], "alpha_ideas": [], "scenario_update": {}}
+
+# ── BOTTLENECK DISCOVERY V3 (orphan integration) ──
+try:
+    from engines.bottleneck_discovery_v3 import BottleneckDiscoveryV3
+except Exception as _e:
+    logger.warning(f"bottleneck_discovery_v3 import failed: {_e}")
+    class BottleneckDiscoveryV3:
+        def __init__(self, settings_module): pass
+        def run(self, prices, **kwargs):
+            return {"reactive": [], "proactive": [], "spillover": [], "meta": {}}
+
+
 from data.loader import load_prices, load_fred
 load_fred_macro = load_fred
 
@@ -799,6 +831,57 @@ def _build_daily_signals(prices, sq, mq, asset_ranges, health, gamma_data=None, 
     signals.sort(key=lambda x: abs(x.get("score", 0)), reverse=True)
     return signals
 
+def _frontrun_status(composite_score, near_entry, direction="LONG"):
+    """Extracted from frontrun_engine.py — flight board status labels."""
+    if composite_score >= 0.65 and near_entry:
+        return "🚨 BOARDING NOW", "BOARDING NOW", "Act within 1-3 days — all signals converge + entry zone active"
+    elif composite_score >= 0.65 and not near_entry:
+        return "⚡ GATE OPENS SOON", "GATE OPENS SOON", "Entry imminent 1-2 weeks — 2-3 signals align"
+    elif composite_score >= 0.45:
+        return "⚡ GATE OPENS SOON" if near_entry else "👀 CHECK-IN", "GATE OPENS SOON" if near_entry else "CHECK-IN", "Watch for confirmation — 1 strong signal"
+    elif composite_score >= 0.30:
+        return "👀 CHECK-IN", "CHECK-IN", "Monitor only — 3-6 weeks horizon"
+    else:
+        return "⏳ WAIT", "WAIT", "Not ready — reduce size or skip"
+
+
+def _frontrun_score(item, gamma_data, greeks_data, rr_data, vix=20):
+    """Composite scoring extracted from frontrun_engine.py weights."""
+    score = 0.0
+    # Regime fit (30%)
+    fit = item.get("regime_fit", 0.5)
+    score += fit * 0.30
+    # Risk range quality (25%)
+    qual = rr_data.get("quality", "C") if rr_data and rr_data.get("ok") else "C"
+    qual_map = {"A": 1.0, "B": 0.70, "C": 0.35, "short_A": 1.0, "short_B": 0.70}
+    score += qual_map.get(qual, 0.35) * 0.25
+    # Gamma/Greek alignment (25%)
+    gamma = gamma_data.get(item.get("ticker"), {}) if gamma_data else {}
+    greek = greeks_data.get(item.get("ticker"), {}) if greeks_data else {}
+    align = 0.5
+    if gamma.get("ok") and greek.get("ok"):
+        g_reg = gamma.get("regime", "TRANSITION")
+        g_comp = greek.get("composite", "NEUTRAL")
+        if item.get("direction") == "LONG" and g_reg in ("DEEP_POSITIVE", "POSITIVE") and "BULLISH" in g_comp:
+            align = 1.0
+        elif item.get("direction") == "SHORT" and g_reg in ("DEEP_NEGATIVE", "NEGATIVE") and "BEARISH" in g_comp:
+            align = 1.0
+        elif g_reg == "TRANSITION":
+            align = 0.5
+        else:
+            align = 0.3
+    elif gamma.get("ok"):
+        align = 0.6 if gamma.get("regime") in ("DEEP_POSITIVE", "POSITIVE", "DEEP_NEGATIVE", "NEGATIVE") else 0.4
+    score += align * 0.25
+    # Discovery / narrative (10%)
+    disc = item.get("discovery_score", 0.0)
+    score += min(disc, 1.0) * 0.10
+    # Timing / VIX filter (10%)
+    vix_mult = 1.0 if vix < 25 else (0.85 if vix < 30 else 0.70)
+    score *= vix_mult
+    return min(1.0, max(0.0, score))
+
+
 def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks, auto_discoveries, daily_signals, gamma_data=None, greeks_data=None):
     regime = QUAD_MAP.get(sq, {}); bias = regime.get("bias", "neutral")
     vix = health.get("vix_bucket", {}).get("vix_last", 18)
@@ -997,6 +1080,33 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
             if gamma.get("regime") in ("DEEP_POSITIVE", "POSITIVE") and s.get("direction") == "LONG": s["priority_score"] *= 1.10
             elif gamma.get("regime") in ("DEEP_NEGATIVE", "NEGATIVE") and s.get("direction") == "SHORT": s["priority_score"] *= 1.10
         center_items.append(s)
+    # ── FRONTRUN STATUS (extracted from frontrun_engine.py) ──
+    for item in center_items:
+        t = item.get("ticker", "")
+        rr = asset_ranges.get(t, {})
+        gamma = gamma_data.get(t, {})
+        greek = greeks_data.get(t, {})
+        composite = _frontrun_score(item, gamma_data, greeks_data, rr, vix=vix)
+        px = item.get("price", 0)
+        lrr = rr.get("trade", {}).get("lrr") if rr.get("ok") else None
+        trr = rr.get("trade", {}).get("trr") if rr.get("ok") else None
+        near_entry = False
+        if item.get("direction") == "LONG" and lrr and px <= lrr * 1.03:
+            near_entry = True
+        elif item.get("direction") == "SHORT" and trr and px >= trr * 0.97:
+            near_entry = True
+        elif item.get("direction") == "LONG" and item.get("entry_advice", "").startswith("BUY"):
+            near_entry = True
+        elif item.get("direction") == "SHORT" and item.get("entry_advice", "").startswith("SELL"):
+            near_entry = True
+        emoji, status, rationale = _frontrun_status(composite, near_entry, item.get("direction", "LONG"))
+        item["frontrun_emoji"] = emoji
+        item["frontrun_status"] = status
+        item["frontrun_rationale"] = rationale
+        item["frontrun_score"] = round(composite, 3)
+        # Boost priority score by frontrun composite
+        item["priority_score"] = item.get("priority_score", 0) * (1.0 + composite * 0.2)
+
     center_items.sort(key=lambda x: x.get("priority_score", 0), reverse=True)
     level_1 = [x for x in center_items if x.get("level") == "level_1"]
     level_2 = [x for x in center_items if x.get("level") == "level_2"]
@@ -1153,6 +1263,36 @@ def _build_ihsg_macro_overlay(gip, prices):
         "consumer_signal": consumer_signal, "consumer_bias": consumer_bias,
         "commodity_bias": "Bullish" if growth > 0 and inflation > 0 else ("Bearish" if growth < -0.03 else "Neutral"),
     }
+
+
+
+def _enrich_narrative_from_universe(narratives, sq):
+    """Merge orphan narrative_universe.py into live narrative generation."""
+    if not NARRATIVE_UNIVERSE:
+        return narratives
+    nu = NARRATIVE_UNIVERSE
+    if not isinstance(nu, dict) and isinstance(nu, (list, tuple)) and len(nu) > 0:
+        nu = nu[0] if isinstance(nu[0], dict) else {}
+    for nar_name, nar_data in nu.items():
+        if not isinstance(nar_data, dict):
+            continue
+        quad_fit = nar_data.get("quad_fit", {})
+        score = quad_fit.get(sq, 0.5) if quad_fit else 0.5
+        if score < 0.2:
+            continue
+        existing_names = {n.get("name", "").lower() for n in narratives}
+        if str(nar_name).lower() in existing_names:
+            continue
+        narratives.append({
+            "name": str(nar_name),
+            "score": min(float(score), 0.95),
+            "thesis": nar_data.get("thesis", f"{nar_name} active in {sq}"),
+            "tickers": nar_data.get("tickers", [])[:5],
+            "best": nar_data.get("best", nar_data.get("tickers", []))[:5],
+            "worst": nar_data.get("worst", [])[:5],
+            "invalidators": nar_data.get("invalidators", ["Regime flip"]),
+        })
+    return narratives
 
 def _build_narratives(gip, health, sq, mq):
     regime = QUAD_MAP.get(sq, {"name": "Unknown"})
@@ -1336,15 +1476,6 @@ def _build_crypto_onchain(prices):
             vol_change = (vol / s.tail(40).std() - 1) if s.tail(40).std() > 0 else 0
             score = min(1.0, max(0.0, 0.5 + r1m * 5))
             tokens[t] = {"momentum_score": score, "tvl_7d_change": r7d, "tvl_30d_change": r1m, "dex_vol_change": vol_change}
-    try:
-        from engines.defillama_helper import DeFiLlamaHelper
-        d = DeFiLlamaHelper()
-        return {"tvl_b": d.get_tvl(), "stable_mcap_b": d.get_stablecoin_mcap(), "dex_vol_24h_b": d.get_dex_volume_24h(),
-            "source": "defillama", "tokens": tokens}
-    except Exception as e:
-        logger.warning(f"DeFiLlama error: {e}")
-        return {"tvl_b": None, "stable_mcap_b": None, "dex_vol_24h_b": None, "source": "defillama", "error": str(e), "tokens": tokens}
-
 def _build_crypto_setups(prices):
     setups = []
     for t in list(CRYPTO.keys())[:10]:
@@ -1577,6 +1708,56 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
     # ── LEGACY AUTO DISCOVERIES (backward compat) ─────────────────────
     auto_discoveries = _build_auto_discoveries(prices, gip, sq)
 
+    # ── BOTTLENECK DISCOVERY V3 (orphan integration) ──
+    discovery_v3_result = {"reactive": [], "proactive": [], "spillover": [], "meta": {}}
+    try:
+        disc_engine = BottleneckDiscoveryV3(settings_module=config.settings)
+        discovery_v3_result = disc_engine.run(
+            prices=prices,
+            quad_str=sq,
+            quad_mon=mq,
+            asset_ranges=asset_ranges,
+            top_n=50,
+        )
+        # Merge reactive candidates into auto_discoveries bottlenecks
+        for c in discovery_v3_result.get("reactive", []):
+            if c.get("level") in ("level_1", "level_2", "watch"):
+                mapped = {
+                    "ticker": c.get("ticker", "UNKNOWN"),
+                    "direction": "LONG" if c.get("trend_score", 0) > 0.5 else "SHORT",
+                    "sector": c.get("sector", "Macro"),
+                    "known_thesis": c.get("narrative", ""),
+                    "score": c.get("brewing_score", 0),
+                    "quality": "A" if c.get("level") == "level_1" else ("B" if c.get("level") == "level_2" else "C"),
+                    "setup": f"{c.get('range_label', 'mid_range')} | constraint {c.get('constraint', 0):.0%} | EV {c.get('ev', 0):.2f}",
+                    "discovery_mode": c.get("discovery_mode", "reactive"),
+                    "constraint": c.get("constraint"),
+                    "ev": c.get("ev"),
+                    "brewing_score": c.get("brewing_score"),
+                    "rs_3m": c.get("rs_3m"),
+                    "range_pos": c.get("range_pos"),
+                }
+                auto_discoveries.setdefault("bottlenecks", []).append(mapped)
+        # Merge proactive predictions
+        for c in discovery_v3_result.get("proactive", []):
+            mapped = {
+                "ticker": c.get("ticker", "UNKNOWN"),
+                "direction": "LONG",
+                "sector": c.get("sector", "Macro"),
+                "known_thesis": f"PROACTIVE: {c.get('catalyst_proxy', '')}",
+                "score": c.get("proactive_probability", 0),
+                "quality": "B",
+                "setup": f"ETA {c.get('proactive_eta_weeks', '?')}w | prob {c.get('proactive_probability', 0):.0%}",
+                "discovery_mode": "proactive",
+                "proactive_eta_weeks": c.get("proactive_eta_weeks"),
+                "proactive_probability": c.get("proactive_probability"),
+            }
+            auto_discoveries.setdefault("bottlenecks", []).append(mapped)
+        if progress_cb: progress_cb(f"Discovery V3: {discovery_v3_result['meta'].get('reactive_found', 0)} reactive, {discovery_v3_result['meta'].get('proactive_predicted', 0)} proactive, {discovery_v3_result['meta'].get('spillover_links', 0)} spillover", 0.82)
+    except Exception as _disc_err:
+        logger.warning(f"BottleneckDiscoveryV3 integration error: {_disc_err}")
+
+
     playbook = get_playbook(sq, mq)
     flip = gip.flip_hazard
     transition = SimpleNamespace(
@@ -1586,6 +1767,69 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
 
     bottlenecks = _build_bottlenecks(prices, health, gip.features, sq, mq)
     narratives = _build_narratives(gip, health, sq, mq)
+    narratives = _enrich_narrative_from_universe(narratives, sq)
+
+    # ── AI ENGINE (orphan integration) ──
+    ai_result = {"ok": False}
+    try:
+        ai_engine = AIEngine()
+        ai_result = ai_engine.run(
+            sq=sq, mq=mq, gq=gip.structural_quad,
+            gip_features=gip.features,
+            prices=prices,
+            asset_ranges=asset_ranges,
+            sector_map=TICKER_SECTOR,
+            health=health,
+            transition=transition,
+        )
+        # Merge AI narratives (avoid duplicates)
+        if ai_result.get("narratives"):
+            existing_names = {n.get("name", "").lower() for n in narratives}
+            for n in ai_result["narratives"]:
+                if n.get("name", "").lower() not in existing_names:
+                    narratives.append(n)
+        # Merge AI bottlenecks into level_2/watch
+        if ai_result.get("bottlenecks"):
+            for b in ai_result["bottlenecks"]:
+                b.setdefault("ticker", b.get("beneficiary_tickers", ["UNKNOWN"])[0])
+                b.setdefault("direction", "LONG")
+                b.setdefault("quality", "B")
+                b.setdefault("score", b.get("confidence", 0.6))
+                b.setdefault("sector", b.get("sector", "Macro"))
+                b.setdefault("known_thesis", b.get("thesis", ""))
+                b.setdefault("setup", f"{b.get('stage', 'building')} — {b.get('time_horizon', 'weeks')}")
+                if b.get("confidence", 0) >= 0.75:
+                    bottlenecks.setdefault("level_2", []).append(b)
+                else:
+                    bottlenecks.setdefault("watch", []).append(b)
+        # Merge AI alpha ideas
+        if ai_result.get("alpha_ideas"):
+            for idea in ai_result["alpha_ideas"]:
+                t = idea.get("ticker")
+                if not t: continue
+                mapped = {
+                    "ticker": t, "price": idea.get("price"),
+                    "entry": idea.get("entry_zone"), "target_1": idea.get("tp1"),
+                    "target_2": idea.get("tp2"), "stop_loss": idea.get("stop_loss"),
+                    "rr": idea.get("rr", 0), "hold_for": "2-4 weeks",
+                    "signal": "BUY" if idea.get("direction") == "long" else "SELL",
+                    "grade": "A" if idea.get("confidence", 0) > 0.75 else "B",
+                    "direction": "LONG" if idea.get("direction") == "long" else "SHORT",
+                    "thesis": idea.get("thesis", ""), "regime_fit": idea.get("regime_fit", 0.5),
+                }
+                if idea.get("direction") == "long":
+                    if not any(a.get("ticker") == t for a in alpha.get("longs", [])):
+                        alpha.setdefault("longs", []).append(mapped)
+                else:
+                    if not any(a.get("ticker") == t for a in alpha.get("shorts", [])):
+                        alpha.setdefault("shorts", []).append(mapped)
+        # Merge AI scenario
+        if ai_result.get("scenario_update"):
+            scenarios.update(ai_result["scenario_update"])
+        if progress_cb: progress_cb(f"AI Engine: {len(ai_result.get('narratives', []))} narratives, {len(ai_result.get('bottlenecks', []))} bottlenecks, {len(ai_result.get('alpha_ideas', []))} ideas", 0.81)
+    except Exception as _ai_err:
+        logger.warning(f"AIEngine integration error: {_ai_err}")
+
     scenarios = _build_scenarios(gip, sq, mq)
     analogs = _build_analogs(gip, sq, mq)
     global_data = _build_global(gip, sq, mq, prices)
@@ -1682,12 +1926,124 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
     alpha_center = _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks,
                                        {"ok": True, "bottlenecks": auto_discoveries}, daily_signals,
                                        gamma_data, greeks_data)
-    if progress_cb: progress_cb(f"Alpha Center: {alpha_center['meta']['total_items']} items", 0.90)
+    # ═══════════════════════════════════════════════════════════════════
+    # HEDGEYE-STYLE SUMMARIES
+    # ═══════════════════════════════════════════════════════════════════
 
-    if progress_cb: progress_cb("Building IHSG structural layers...", 0.91)
-    ihsg_sector_momentum = _build_ihsg_sector_momentum(prices)
-    ihsg_commodity_overlay = _build_ihsg_commodity_overlay(prices)
-    ihsg_rupiah_regime = _build_ihsg_rupiah_regime(prices)
+    # ── DAILY SIGNALS SUMMARY ──
+    daily_signals_summary = {
+        "total": len(daily_signals),
+        "strong_longs": len([s for s in daily_signals if "STRONG LONG" in s.get("signal", "")]),
+        "longs": len([s for s in daily_signals if s.get("signal", "") == "LONG"]),
+        "strong_shorts": len([s for s in daily_signals if "STRONG SHORT" in s.get("signal", "")]),
+        "shorts": len([s for s in daily_signals if s.get("signal", "") == "SHORT"]),
+        "neutrals": len([s for s in daily_signals if s.get("signal", "") == "NEUTRAL"]),
+        "grade_a_plus": len([s for s in daily_signals if s.get("grade", "") == "A+"]),
+        "grade_a": len([s for s in daily_signals if s.get("grade", "") == "A"]),
+        "top_5_by_score": sorted(daily_signals, key=lambda x: abs(x.get("score", 0)), reverse=True)[:5],
+        "top_bullish": sorted([s for s in daily_signals if s.get("direction") == "LONG"], key=lambda x: x.get("score", 0), reverse=True)[:3],
+        "top_bearish": sorted([s for s in daily_signals if s.get("direction") == "SHORT"], key=lambda x: x.get("score", 0))[:3],
+        "avg_score": round(sum(s.get("score", 0) for s in daily_signals) / len(daily_signals), 3) if daily_signals else 0,
+        "vix_filter": vix_now,
+    }
+
+    # ── TOP 5 IDEAS (Hedgeye Morning Brief style) ──
+    all_ideas = []
+    for a in alpha.get("longs", [])[:3]:
+        all_ideas.append({
+            "ticker": a.get("ticker"),
+            "direction": "LONG",
+            "grade": a.get("grade", "B"),
+            "thesis": a.get("thesis", "")[:120],
+            "entry": a.get("entry"),
+            "target_1": a.get("target_1"),
+            "stop": a.get("stop_loss"),
+            "rr": a.get("rr"),
+            "worth": a.get("worth_entering", "YES"),
+            "frontrun": a.get("frontrun_status", "WAIT"),
+            "source": "alpha_playbook",
+        })
+    for a in alpha.get("shorts", [])[:2]:
+        all_ideas.append({
+            "ticker": a.get("ticker"),
+            "direction": "SHORT",
+            "grade": a.get("grade", "B"),
+            "thesis": a.get("thesis", "")[:120],
+            "entry": a.get("entry"),
+            "target_1": a.get("target_1"),
+            "stop": a.get("stop_loss"),
+            "rr": a.get("rr"),
+            "worth": a.get("worth_entering", "YES"),
+            "frontrun": a.get("frontrun_status", "WAIT"),
+            "source": "alpha_playbook",
+        })
+    # Fill from alpha_center if needed
+    if len(all_ideas) < 5:
+        for item in alpha_center.get("all", [])[:10]:
+            if not any(i.get("ticker") == item.get("ticker") for i in all_ideas):
+                all_ideas.append({
+                    "ticker": item.get("ticker"),
+                    "direction": item.get("direction", "NEUTRAL"),
+                    "grade": item.get("grade", "C"),
+                    "thesis": item.get("thesis", "")[:120],
+                    "entry": item.get("entry"),
+                    "target_1": item.get("target_1"),
+                    "stop": item.get("stop_loss"),
+                    "rr": item.get("rr"),
+                    "worth": item.get("worth_entering", "WAIT"),
+                    "frontrun": item.get("frontrun_status", "WAIT"),
+                    "source": item.get("scanner_type", "scanner"),
+                })
+            if len(all_ideas) >= 5:
+                break
+    top_5_ideas = all_ideas[:5]
+
+    # ── VOL FORECAST SUMMARY ──
+    vol_summary = {
+        "regime": sq,
+        "vix_current": vix_now,
+        "avg_forecast_vol": round(sum(v.get("forecast_ann_vol", 0) for v in vol_forecasts.values()) / len(vol_forecasts), 1) if vol_forecasts else 0,
+        "extreme_count": len([v for v in vol_forecasts.values() if v.get("vol_regime") == "EXTREME"]),
+        "elevated_count": len([v for v in vol_forecasts.values() if v.get("vol_regime") == "ELEVATED"]),
+        "top_vol_tickers": sorted(vol_forecasts.items(), key=lambda x: x[1].get("forecast_ann_vol", 0), reverse=True)[:5],
+        "lowest_vol_tickers": sorted(vol_forecasts.items(), key=lambda x: x[1].get("forecast_ann_vol", 0))[:5],
+        "expected_daily_move_avg_pct": round(sum(v.get("expected_daily_move_pct", 0) for v in vol_forecasts.values()) / len(vol_forecasts), 3) if vol_forecasts else 0,
+    }
+
+    # ── DXY CORRELATION ──
+    dxy_corr = {}
+    dxy_s = prices.get("DX-Y.NYB")
+    if dxy_s is not None and len(dxy_s) >= 22:
+        dxy_s = pd.to_numeric(dxy_s, errors="coerce").dropna()
+        dxy_ret = dxy_s.pct_change().dropna().tail(63).values
+        for ticker, s in prices.items():
+            if s is None or len(s) < 22 or ticker == "DX-Y.NYB":
+                continue
+            s = pd.to_numeric(s, errors="coerce").dropna()
+            if len(s) < 22:
+                continue
+            ticker_ret = s.pct_change().dropna().tail(63).values
+            min_len = min(len(dxy_ret), len(ticker_ret))
+            if min_len >= 20:
+                try:
+                    corr = float(np.corrcoef(dxy_ret[-min_len:], ticker_ret[-min_len:])[0, 1])
+                    if math.isfinite(corr):
+                        dxy_corr[ticker] = {
+                            "correlation": round(corr, 3),
+                            "direction": "POSITIVE" if corr > 0.3 else ("NEGATIVE" if corr < -0.3 else "NEUTRAL"),
+                            "strength": "STRONG" if abs(corr) > 0.6 else ("MODERATE" if abs(corr) > 0.3 else "WEAK"),
+                            "hedge": "DXY hedge" if abs(corr) > 0.5 else "No hedge needed",
+                        }
+                except Exception:
+                    pass
+    dxy_summary = {
+        "dxy_1m": _safe_ret(prices.get("DX-Y.NYB"), 21),
+        "dxy_trend": "Bullish" if (_safe_ret(prices.get("DX-Y.NYB"), 21) or 0) > 0.02 else ("Bearish" if (_safe_ret(prices.get("DX-Y.NYB"), 21) or 0) < -0.02 else "Neutral"),
+        "strongest_positive_corr": sorted(dxy_corr.items(), key=lambda x: x[1]["correlation"], reverse=True)[:5] if dxy_corr else [],
+        "strongest_negative_corr": sorted(dxy_corr.items(), key=lambda x: x[1]["correlation"])[:5] if dxy_corr else [],
+        "total_correlated": len(dxy_corr),
+    }
+
     ihsg_foreign_flow = _build_ihsg_foreign_flow(prices)
     ihsg_macro_overlay = _build_ihsg_macro_overlay(gip, prices)
     ihsg_setups = _build_ihsg_setups(prices, ihsg_sector_momentum, ihsg_commodity_overlay, ihsg_rupiah_regime, ihsg_foreign_flow, ihsg_macro_overlay)
@@ -1748,6 +2104,14 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
         "gamma": gamma_summary,
         "leveraged_etf": lev_data,
         "ai_analysis": ai_analysis,
+        "ai_engine": ai_result if ai_result.get("ok") else {"ok": False},
+        "discovery_v3": discovery_v3_result,
+        "frontrun_summary": {
+            "boarding_now": [x for x in alpha_center.get("all", []) if x.get("frontrun_status") == "BOARDING NOW"][:10],
+            "gate_opens_soon": [x for x in alpha_center.get("all", []) if x.get("frontrun_status") == "GATE OPENS SOON"][:15],
+            "check_in": [x for x in alpha_center.get("all", []) if x.get("frontrun_status") == "CHECK-IN"][:15],
+            "wait": [x for x in alpha_center.get("all", []) if x.get("frontrun_status") == "WAIT"][:10],
+        },
         "build_time_s": round(time.time() - t0, 1),
         "prices_loaded": len(prices),
         "fred_coverage": gip.data_coverage,
@@ -1766,6 +2130,10 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
         "ihsg_macro_overlay": ihsg_macro_overlay,
         "vol_forecast": vol_forecasts,
         "risk_adjusted": risk_adj,
+        "daily_signals_summary": daily_signals_summary,
+        "top_5_ideas": top_5_ideas,
+        "vol_forecast_summary": vol_summary,
+        "dxy_correlation": dxy_summary,
         "stress_test": stress_test,
         "cot_live": cot_results,
         "options_live": options_data,
@@ -1824,4 +2192,19 @@ if __name__ == "__main__":
         "news_headlines": snap.get("news_narratives", {}).get("analyzed_count", 0),
         "price_clusters": snap.get("price_clusters", {}).get("meta", {}).get("clusters_found", 0),
         "discovery_candidates": snap.get("discovery_v3", {}).get("meta", {}).get("total_candidates", 0),
+        "ai_engine_narratives": len(snap.get("ai_engine", {}).get("narratives", [])),
+        "ai_engine_bottlenecks": len(snap.get("ai_engine", {}).get("bottlenecks", [])),
+        "ai_engine_alpha_ideas": len(snap.get("ai_engine", {}).get("alpha_ideas", [])),
+        "discovery_v3_reactive": snap.get("discovery_v3", {}).get("meta", {}).get("reactive_found", 0),
+        "discovery_v3_proactive": snap.get("discovery_v3", {}).get("meta", {}).get("proactive_predicted", 0),
+        "discovery_v3_spillover": snap.get("discovery_v3", {}).get("meta", {}).get("spillover_links", 0),
+        "frontrun_boarding": len(snap.get("frontrun_summary", {}).get("boarding_now", [])),
+        "frontrun_gate": len(snap.get("frontrun_summary", {}).get("gate_opens_soon", [])),
+        "frontrun_checkin": len(snap.get("frontrun_summary", {}).get("check_in", [])),
+        "daily_signals_strong_longs": snap.get("daily_signals_summary", {}).get("strong_longs", 0),
+        "daily_signals_strong_shorts": snap.get("daily_signals_summary", {}).get("strong_shorts", 0),
+        "top_5_ideas_count": len(snap.get("top_5_ideas", [])),
+        "vol_forecast_avg": snap.get("vol_forecast_summary", {}).get("avg_forecast_vol", 0),
+        "dxy_trend": snap.get("dxy_correlation", {}).get("dxy_trend", "Neutral"),
+        "dxy_correlated_count": snap.get("dxy_correlation", {}).get("total_correlated", 0),
     }, indent=2))

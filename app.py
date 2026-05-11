@@ -20,9 +20,9 @@ logger = logging.getLogger(__name__)
 st.set_page_config(page_title="MacroRegime Pro", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
 
 try:
-    from config.settings import FOREX_PAIRS, COMMODITIES, CRYPTO, IHSG_UNIVERSE, IHSG_SECTOR_MAP, TICKER_SECTOR
+    from config.settings import FOREX_PAIRS, COMMODITIES, CRYPTO, IHSG_UNIVERSE, IHSG_SECTOR_MAP, TICKER_SECTOR, US_SECTORS, US_BUCKETS
 except ImportError:
-    from config.settings import FOREX_PAIRS, COMMODITIES, CRYPTO, IHSG_UNIVERSE, TICKER_SECTOR
+    from config.settings import FOREX_PAIRS, COMMODITIES, CRYPTO, IHSG_UNIVERSE, TICKER_SECTOR, US_SECTORS, US_BUCKETS
     # Fallback IHSG sector map if not exported from config
     IHSG_SECTOR_MAP = {
         "ADRO.JK": "Coal", "ITMG.JK": "Coal", "PTBA.JK": "Coal",
@@ -725,7 +725,7 @@ def _build_ihsg_row(ticker, prices, ar, ihsg_sector_momentum=None, ihsg_commodit
     sector_mom = (ihsg_sector_momentum or {}).get(sector, {})
     comm_ov = (ihsg_commodity_overlay or {}).get(sector, {})
     rupiah = ihsg_rupiah_regime or {}
-    flow = (ihsg_foreign_flow or {}).get(t, {})
+    flow = (ihsg_foreign_flow or {}).get(ticker, {})
     macro = ihsg_macro_overlay or {}
     thesis_parts = [thesis]
     if sector_mom.get("bias") == "Bullish": thesis_parts.append(f"Sector momentum {sector_mom.get('avg_1m'):+.1%} ({sector_mom.get('leader')} leading)")
@@ -988,6 +988,7 @@ with st.sidebar:
         "📈 GIP Model",
         "📋 Playbook",
         "⚡ Alpha Center",
+        "🇺🇸 US Stocks",
         "💱🛢️ Macro Proxies",
         "₿ Crypto",
         "🌍 Global & EM",
@@ -1092,16 +1093,16 @@ alpha_center = snap.get("alpha_center", {}) or {}
 # TAB: 🏠 DASHBOARD — WITH FORWARD-LOOKING + NEWS + CLUSTERS
 # ══════════════════════════════════════════════════════════════════════════════
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: 🏠 DASHBOARD — COMPACT COMMAND CENTER
+# TAB: 🏠 DASHBOARD — COMPACT v2
 # ══════════════════════════════════════════════════════════════════════════════
 if page == "🏠 Dashboard":
     st.markdown("## 🏠 Dashboard")
     st.caption("Macro regime command center — 30-second read")
 
-    # ── Top KPI Bar ──
+    # ── KPI Row ──
     k1, k2, k3, k4, k5 = st.columns(5)
-    with k1: st.metric("Quarterly Regime", sq, qn(sq), delta_color="off")
-    with k2: st.metric("Monthly Regime", mq, qn(mq), delta_color="off")
+    with k1: st.metric("Quarterly", sq, qn(sq), delta_color="off")
+    with k2: st.metric("Monthly", mq, qn(mq), delta_color="off")
     with k3:
         flip = gip.flip_hazard if gip else 0
         st.metric("Flip Risk", f"{flip:.0%}", f"{gip.divergence if gip else '—'}" if flip > 0.2 else None)
@@ -1109,75 +1110,56 @@ if page == "🏠 Dashboard":
         vix_val = health.get("vix_bucket", {}).get("vix_last", 18)
         vix_label = health.get("vix_bucket", {}).get("bucket", "—")
         st.metric("VIX", f"{vix_val:.1f}", vix_label)
-    with k5: st.metric("Assets Loaded", f"{snap.get('prices_loaded',0)}", f"{len(ar)} risk ranges")
+    with k5: st.metric("Assets", f"{snap.get('prices_loaded',0)}", f"{len(ar)} ranges")
 
-    st.divider()
-
-    # ── Market Status ──
+    # ── Market Status Banner ──
     vbd = health.get("vix_bucket",{}) if health else {}
     vb = vbd.get("bucket","—"); vl = _sf(vbd.get("vix_last")) or 0
     if vb=="Investable":
-        st.markdown(f'<div class="card-green"><span style="color:#3FB950;font-weight:700;">🟢 GOOD MARKET CONDITIONS · VIX {vl:.1f}</span><br><span style="font-size:12px;color:#8B949E;">{vbd.get("note","")} · Risk mode: {vbd.get("risk_mode","Normal")}</span></div>', unsafe_allow_html=True)
+        st.success(f"🟢 GOOD CONDITIONS · VIX {vl:.1f} · {vbd.get('risk_mode','Normal')}")
     elif vb=="Chop":
-        st.markdown(f'<div class="card-yellow"><span style="color:#D29922;font-weight:700;">🟡 CHOPPY CONDITIONS · VIX {vl:.1f}</span><br><span style="font-size:12px;color:#8B949E;">{vbd.get("note","")} · Risk mode: {vbd.get("risk_mode","Normal")}</span></div>', unsafe_allow_html=True)
+        st.warning(f"🟡 CHOPPY · VIX {vl:.1f} · {vbd.get('risk_mode','Normal')}")
     elif vb=="Defensive":
-        st.markdown(f'<div class="card-red"><span style="color:#F85149;font-weight:700;">🔴 DEFENSIVE CONDITIONS · VIX {vl:.1f}</span><br><span style="font-size:12px;color:#8B949E;">{vbd.get("note","")} · Risk mode: {vbd.get("risk_mode","Normal")}</span></div>', unsafe_allow_html=True)
+        st.error(f"🔴 DEFENSIVE · VIX {vl:.1f} · {vbd.get('risk_mode','Normal')}")
 
-    # ── Regime Summary ──
-    r1,r2,r3,r4 = st.columns(4)
-    with r1: st.markdown(_metric_box("Quarterly Regime", sq, QUAD_EXPLAIN[sq][:50]+"...", qc(sq)), unsafe_allow_html=True)
-    with r2: st.markdown(_metric_box("Monthly Regime", mq, "3-6 week tactical", qc(mq)), unsafe_allow_html=True)
-    with r3:
-        gconf = _sf(global_.get("global_conf",0)) if global_ else 0
-        st.markdown(_metric_box("Global (50 Countries)", gq, f"Confidence: {gconf:.0%}", qc(gq)), unsafe_allow_html=True)
-    with r4:
-        if gip:
-            flip_c = "#F85149" if flip > 0.4 else "#D29922" if flip > 0.25 else "#3FB950"
-            st.markdown(_metric_box("Regime Change Risk", f"{flip:.0%}", f"{gip.divergence.title()}", flip_c), unsafe_allow_html=True)
+    # ── Regime + Playbook (2-col) ──
+    c1, c2 = st.columns([1, 1.2])
+    with c1:
+        st.markdown(f'<div style="background:#161B22;border:1px solid {qc(sq)};border-radius:6px;padding:8px;text-align:center;margin-bottom:6px;"><div style="font-size:10px;color:#8B949E;">QUARTERLY</div><div style="font-size:18px;font-weight:700;color:{qc(sq)};">{sq}</div><div style="font-size:11px;color:#E6EDF3;">{QN.get(sq,sq)}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="background:#161B22;border:1px solid {qc(mq)};border-radius:6px;padding:8px;text-align:center;"><div style="font-size:10px;color:#8B949E;">MONTHLY</div><div style="font-size:18px;font-weight:700;color:{qc(mq)};">{mq}</div><div style="font-size:11px;color:#E6EDF3;">{QN.get(mq,mq)}</div></div>', unsafe_allow_html=True)
+    with c2:
+        if pb_data:
+            best = " · ".join(pb_data.get("best_assets",[])[:6])
+            worst = " · ".join(pb_data.get("worst_assets",[])[:5])
+            st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:6px;padding:8px;margin-bottom:6px;"><div style="font-size:11px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">🎯 Playbook — {sq}</div><div style="font-size:11px;color:#3FB950;margin-bottom:3px;">🟢 {best}</div><div style="font-size:11px;color:#F85149;">🔴 {worst}</div></div>', unsafe_allow_html=True)
+        if regime_forecast and regime_forecast.get("1m"):
+            rf1 = regime_forecast["1m"]; rf3 = regime_forecast["3m"]
+            st.markdown(f'<div style="background:#0D1B2A;border:1px solid #1F6FEB;border-radius:6px;padding:6px;font-size:11px;color:#E6EDF3;">🔮 Forward: 1M→{rf1.get("predicted_quad","—")} ({rf1.get("prediction_confidence",0):.0%}) · 3M→{rf3.get("predicted_quad","—")} ({rf3.get("prediction_confidence",0):.0%})</div>', unsafe_allow_html=True)
 
-    # ── Playbook Quick Ref ──
-    if pb_data:
-        best5 = " · ".join(pb_data.get("best_assets",[])[:6])
-        worst5 = " · ".join(pb_data.get("worst_assets",[])[:5])
-        st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:8px;padding:12px;margin:8px 0;"><div style="font-size:13px;font-weight:700;color:#E6EDF3;margin-bottom:6px;">🎯 What to Do Right Now — {sq} · {mq}</div><div style="font-size:12px;color:#3FB950;margin-bottom:4px;">Buy/Hold: {best5}</div><div style="font-size:12px;color:#F85149;">Avoid/Sell: {worst5}</div></div>', unsafe_allow_html=True)
-
-    # ── Forward Snapshot (compact) ──
-    if regime_forecast and regime_forecast.get("1m"):
-        rf1 = regime_forecast["1m"]; rf3 = regime_forecast["3m"]
-        fwd_line = f"🔮 Forward: 1M→**{rf1.get('predicted_quad','—')}** ({rf1.get('prediction_confidence',0):.0%}) · 3M→**{rf3.get('predicted_quad','—')}** ({rf3.get('prediction_confidence',0):.0%}) · Flip: **{flip:.0%}**"
-        st.markdown(f'<div style="background:#0D1B2A;border:1px solid #1F6FEB;border-radius:8px;padding:10px;margin:8px 0;font-size:13px;color:#E6EDF3;">{fwd_line} &nbsp;|&nbsp; <a href="#" style="color:#1F6FEB;">Details in GIP Model →</a></div>', unsafe_allow_html=True)
-
-    # ── Emergent Snapshot (compact) ──
-    em_count = 0
-    if price_clusters and price_clusters.get("clusters"): em_count += len(price_clusters["clusters"])
-    if news_narratives and news_narratives.get("emergent_narratives"): em_count += len(news_narratives["emergent_narratives"])
-    if em_count > 0:
-        st.markdown(f'<div style="background:#0D2818;border:1px solid #3FB950;border-radius:8px;padding:10px;margin:8px 0;font-size:13px;color:#E6EDF3;">📰 {em_count} emergent narrative(s) detected. &nbsp;|&nbsp; <a href="#" style="color:#3FB950;">Details in Themes →</a></div>', unsafe_allow_html=True)
-
-    # ── Early Warning Signals ──
-    st.divider()
-    st.markdown('<div style="font-size:16px;font-weight:700;color:#E6EDF3;margin-bottom:8px;">🚨 Early Warning Signals</div>', unsafe_allow_html=True)
+    # ── Early Warning ──
+    st.markdown("### 🚨 Early Warning")
     ew1, ew2, ew3, ew4 = st.columns(4)
     vix_regime = health.get("vix_bucket", {}).get("bucket", "—")
     vix_color = "#3FB950" if vix_regime == "Investable" else "#D29922" if vix_regime == "Chop" else "#F85149"
-    ew1.markdown(f'<div class="metric-box"><div class="metric-label">VIX REGIME</div><div class="metric-value" style="color:{vix_color};">{vl:.1f}</div><div class="metric-sub">{vix_regime}</div></div>', unsafe_allow_html=True)
+    ew1.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">VIX</div><div style="font-size:16px;font-weight:700;color:{vix_color};">{vl:.1f}</div><div style="font-size:10px;color:#8B949E;">{vix_regime}</div></div>', unsafe_allow_html=True)
     crash_state = health.get("crash", {}).get("state", "calm")
     crash_color = "#3FB950" if crash_state == "calm" else "#D29922" if crash_state == "watch" else "#F85149"
-    ew2.markdown(f'<div class="metric-box"><div class="metric-label">CRASH METER</div><div class="metric-value" style="color:{crash_color};">{crash_state.upper()}</div><div class="metric-sub">Systemic stress</div></div>', unsafe_allow_html=True)
+    ew2.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">CRASH</div><div style="font-size:16px;font-weight:700;color:{crash_color};">{crash_state.upper()}</div></div>', unsafe_allow_html=True)
     risk_off_state = health.get("risk_off", {}).get("state", "risk_on")
     risk_color = "#3FB950" if risk_off_state == "risk_on" else "#D29922" if risk_off_state == "caution" else "#F85149"
-    ew3.markdown(f'<div class="metric-box"><div class="metric-label">RISK OFF</div><div class="metric-value" style="color:{risk_color};">{risk_off_state.upper()}</div><div class="metric-sub">Flight to quality</div></div>', unsafe_allow_html=True)
+    ew3.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">RISK OFF</div><div style="font-size:16px;font-weight:700;color:{risk_color};">{risk_off_state.upper()}</div></div>', unsafe_allow_html=True)
     breadth = health.get("breadth", {})
     if breadth and breadth.get("score") is not None:
         b_score = breadth.get("score", 0)
         b_color = "#3FB950" if b_score > 0.6 else "#D29922" if b_score > 0.4 else "#F85149"
-        ew4.markdown(f'<div class="metric-box"><div class="metric-label">BREADTH</div><div class="metric-value" style="color:{b_color};">{b_score:.0%}</div><div class="metric-sub">{breadth.get("verdict", "—")}</div></div>', unsafe_allow_html=True)
+        ew4.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">BREADTH</div><div style="font-size:16px;font-weight:700;color:{b_color};">{b_score:.0%}</div></div>', unsafe_allow_html=True)
     else:
-        ew4.markdown(f'<div class="metric-box"><div class="metric-label">BREADTH</div><div class="metric-value">—</div><div class="metric-sub">Data loading</div></div>', unsafe_allow_html=True)
+        ew4.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">BREADTH</div><div style="font-size:16px;font-weight:700;">—</div></div>', unsafe_allow_html=True)
 
-    st.caption(f"Built {snap.get('build_time_s',0):.0f}s ago · {snap.get('prices_loaded',0)} assets · {snap.get('fred_coverage',0)} macro indicators")
+    st.caption(f"Built {snap.get('build_time_s',0):.0f}s ago · {snap.get('prices_loaded',0)} assets · {snap.get('fred_coverage',0)} indicators")
 
-
+# ══════════════════════════════════════════════════════════════════════════════
+# TAB: 📈 GIP MODEL
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "📈 GIP Model":
     st.markdown("## 📈 GIP Model")
@@ -1322,6 +1304,8 @@ elif page == "📈 GIP Model":
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: ⚡ ALPHA & SCANNER
 # ══════════════════════════════════════════════════════════════════════════════
+# TAB: 📋 PLAYBOOK
+# ══════════════════════════════════════════════════════════════════════════════
 elif page == "📋 Playbook":
     st.markdown("## 📋 Playbook")
     st.caption(f"What to buy & avoid in {sq} · {qn(sq)}")
@@ -1345,42 +1329,37 @@ elif page == "📋 Playbook":
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "⚡ Alpha Center":
     st.markdown("## ⚡ Alpha Center")
-    st.caption("Bottlenecks · Alpha · Discovery · Daily Signals — Table + Top 5 Cards")
-    st.divider()
+    st.caption("Bottlenecks · Alpha · Discovery · Daily Signals")
+
     ac = alpha_center
     meta = ac.get("meta", {}) if ac else {}
     if not ac or not meta:
         st.warning("Alpha Center data not available. Run Full Rebuild."); st.stop()
 
     # ── Meta Bar ──
-    c1, c2, c3, c4, c5 = st.columns(5)
+    c1, c2, c3, c4 = st.columns(4)
     c1.metric("Regime", meta.get("regime", "?"))
     c2.metric("Bias", meta.get("bias", "?"))
     c3.metric("VIX", meta.get("vix", "?"))
-    c4.metric("Total Items", meta.get("total_items", 0))
-    c5.metric("Option-Ready", len(set((snap.get("gamma_data") or {}).keys()) & set((snap.get("greeks_data") or {}).keys())))
-    st.caption(f"Last updated: {meta.get('last_updated', 'N/A')}")
+    c4.metric("Total", meta.get("total_items", 0))
 
     if transition:
         fw = transition.front_run_window
         fwc = {"now":"#F85149","1-2w":"#D29922","3-6w":"#1F6FEB","not yet":"#21262D"}.get(fw,"#21262D")
         fwi = {"now":"🚨 Window OPEN","1-2w":"⚡ Act within 1-2 weeks","3-6w":"👀 Watch for entry","not yet":"🛑 Not yet"}.get(fw,"🛑 Not yet")
-        st.markdown(f'<div style="background:{fwc};color:#fff;padding:8px 16px;border-radius:8px;font-weight:600;text-align:center;margin:10px 0;font-size:13px;">{fwi}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div style="background:{fwc};color:#fff;padding:6px 12px;border-radius:6px;font-weight:600;text-align:center;margin:8px 0;font-size:12px;">{fwi}</div>', unsafe_allow_html=True)
 
-    # ── Combine all items into 1 table ──
+    # ── Master Table ──
     all_items = ac.get("all", [])
     if not all_items:
         st.info("No Alpha Center items available."); st.stop()
 
-    # Build dataframe
     df_rows = []
     for item in all_items:
         df_rows.append({
             "Ticker": item.get("ticker", "—"),
             "Scanner": item.get("scanner_type", "—"),
-            "Level": item.get("level", "—"),
             "Direction": item.get("direction", "—"),
-            "Signal": item.get("signal", "—"),
             "Grade": item.get("grade", "—"),
             "Score": round(item.get("priority_score", 0), 1),
             "Price": item.get("price"),
@@ -1391,27 +1370,29 @@ elif page == "⚡ Alpha Center":
             "RR": item.get("rr", 0),
             "Worth?": item.get("worth_entering", "—"),
             "Time": item.get("time_estimate", "—"),
-            "Thesis": (item.get("thesis") or item.get("recommendation") or "")[:80],
+            "Thesis": (item.get("thesis") or item.get("recommendation") or "")[:60],
         })
     df_alpha = pd.DataFrame(df_rows)
 
-    # ── Filters ──
-    st.divider()
+    # Safe defaults for multiselect
+    dir_opts = sorted([x for x in df_alpha["Direction"].unique().tolist() if x and str(x) != "nan"])
+    grade_opts = sorted([x for x in df_alpha["Grade"].unique().tolist() if x and str(x) != "nan"])
+    level_opts = sorted([x for x in df_alpha["Scanner"].unique().tolist() if x and str(x) != "nan"])
+
     f1, f2, f3, f4 = st.columns(4)
-    filter_levels = f1.multiselect("Level", df_alpha["Level"].unique().tolist(), default=df_alpha["Level"].unique().tolist())
-    filter_dirs = f2.multiselect("Direction", df_alpha["Direction"].unique().tolist(), default=["LONG", "SHORT"])
-    filter_grades = f3.multiselect("Grade", sorted(df_alpha["Grade"].unique().tolist()), default=["A+", "A", "B"])
-    min_score = f4.slider("Min Priority Score", 0.0, float(df_alpha["Score"].max() or 100), 0.0, 1.0)
+    filter_dirs = f1.multiselect("Direction", dir_opts, default=dir_opts[:3] if len(dir_opts) >= 3 else dir_opts)
+    filter_grades = f2.multiselect("Grade", grade_opts, default=[g for g in ["A+","A","B"] if g in grade_opts])
+    filter_levels = f3.multiselect("Scanner", level_opts, default=level_opts)
+    min_score = f4.slider("Min Score", 0.0, float(df_alpha["Score"].max() or 100), 0.0, 1.0)
 
     df_filtered = df_alpha[
-        df_alpha["Level"].isin(filter_levels) &
         df_alpha["Direction"].isin(filter_dirs) &
         df_alpha["Grade"].isin(filter_grades) &
+        df_alpha["Scanner"].isin(filter_levels) &
         (df_alpha["Score"] >= min_score)
     ]
-    st.write(f"Showing **{len(df_filtered)}** of **{len(df_alpha)}** items")
+    st.write(f"**{len(df_filtered)}** of **{len(df_alpha)}** items")
 
-    # ── Table ──
     st.dataframe(
         df_filtered.style
             .map(lambda x: 'color:#3FB950;font-weight:700;' if isinstance(x,str) and any(y in x.upper() for y in ["LONG","BUY","YES"]) else ('color:#F85149;font-weight:700;' if isinstance(x,str) and any(y in x.upper() for y in ["SHORT","SELL","NO"]) else ''), subset=["Direction","Worth?"])
@@ -1419,24 +1400,22 @@ elif page == "⚡ Alpha Center":
             .map(lambda x: 'color:#3FB950;font-weight:700;' if isinstance(x,(int,float)) and x>=2.0 else ('color:#D29922;font-weight:600;' if isinstance(x,(int,float)) and x>=1.5 else ''), subset=["RR"])
             .format({"Score": "{:.1f}", "Price": "{:.2f}", "Entry": "{:.2f}", "T1": "{:.2f}", "T2": "{:.2f}", "Stop": "{:.2f}", "RR": "{:.1f}"})
             .background_gradient(subset=["Score"], cmap="RdYlGn", vmin=0, vmax=100),
-        use_container_width=True, hide_index=True, height=400
+        use_container_width=True, hide_index=True, height=380
     )
 
     # ── Top 5 Priority Cards ──
-    st.divider()
-    st.markdown('<div style="font-size:16px;font-weight:700;color:#E6EDF3;margin-bottom:8px;">🎯 Top 5 Priority Setups</div>', unsafe_allow_html=True)
+    st.markdown("### 🎯 Top 5 Priority Setups")
     top5 = sorted(all_items, key=lambda x: x.get("priority_score", 0), reverse=True)[:5]
     for i, item in enumerate(top5):
         _render_narrative_card_native(item, i, "us_equity")
-
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: 🇺🇸 US STOCKS — COMPACT
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "🇺🇸 US Stocks":
     st.markdown("## 🇺🇸 US Stocks")
-    st.caption("US Equities — Table view + Top 5 narrative cards")
-    st.divider()
+    st.caption("US Equities — Options · Greeks · COT · OI · Risk Ranges")
+
     gamma_data = snap.get("gamma_data", {}) or {}
     greeks_data = snap.get("greeks_data", {}) or {}
     cot_data = snap.get("cot_oi",{}).get("cot",{}) if snap else {}
@@ -1462,37 +1441,36 @@ elif page == "🇺🇸 US Stocks":
                 .map(lambda x: 'color:#3FB950;font-weight:700;' if isinstance(x,str) and any(y in x.upper() for y in ["YES","BUY NOW"]) else ('color:#F85149;font-weight:700;' if isinstance(x,str) and any(y in x.upper() for y in ["NO","SKIP"]) else ('color:#D29922;font-weight:600;' if isinstance(x,str) and any(y in x.upper() for y in ["WAIT","CHASE","SMALL"]) else '')), subset=["Worth?"])
                 .map(lambda x: 'color:#3FB950;font-weight:700;' if isinstance(x,(int,float)) and x>=2.0 else ('color:#D29922;font-weight:600;' if isinstance(x,(int,float)) and x>=1.5 else ''), subset=["RR"])
                 .format({"Price": "{:.2f}", "Entry": "{:.2f}", "T1": "{:.2f}", "T2": "{:.2f}", "Stop": "{:.2f}", "RR": "{:.1f}"}),
-            use_container_width=True, hide_index=True, height=350
+            use_container_width=True, hide_index=True, height=320
         )
     else:
-        st.info("No US stock setups available.")
+        st.info("No US stock setups.")
 
-    # ── Top 5 Longs ──
-    if longs:
-        st.divider()
-        st.markdown(f'<div style="font-size:16px;font-weight:700;color:#3FB950;margin-bottom:8px;">🟢 Top 5 Longs ({len(longs)} total)</div>', unsafe_allow_html=True)
-        for i, row in enumerate(longs[:5]): _render_narrative_card_native(row, i, "us_equity")
-
-    # ── Top 5 Shorts ──
-    if shorts:
-        st.divider()
-        st.markdown(f'<div style="font-size:16px;font-weight:700;color:#F85149;margin-bottom:8px;">🔴 Top 5 Shorts ({len(shorts)} total)</div>', unsafe_allow_html=True)
-        for i, row in enumerate(shorts[:5]): _render_narrative_card_native(row, i, "us_equity")
-
+    # ── Top 5 ──
+    c1, c2 = st.columns(2)
+    with c1:
+        if longs:
+            st.markdown(f'<div style="font-size:14px;font-weight:700;color:#3FB950;margin:8px 0;">🟢 Top 5 Longs ({len(longs)} total)</div>', unsafe_allow_html=True)
+            for i, row in enumerate(longs[:5]): _render_narrative_card_native(row, i, "us_equity")
+    with c2:
+        if shorts:
+            st.markdown(f'<div style="font-size:14px;font-weight:700;color:#F85149;margin:8px 0;">🔴 Top 5 Shorts ({len(shorts)} total)</div>', unsafe_allow_html=True)
+            for i, row in enumerate(shorts[:5]): _render_narrative_card_native(row, i, "us_equity")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: 💱🛢️ Macro Proxies — COMPACT
+# TAB: 💱🛢️ MACRO PROXIES — COMPACT
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "💱🛢️ Macro Proxies":
     st.markdown("## 💱🛢️ Macro Proxies")
-    st.caption("Forex + Commodities — Table view + Top 5 narrative cards")
-    st.divider()
+    st.caption("Forex + Commodities — COT · OI · Greeks · Risk Ranges")
+
     gamma_data = snap.get("gamma_data", {}) or {}
     greeks_data = snap.get("greeks_data", {}) or {}
     cot_data = snap.get("cot_oi",{}).get("cot",{}) if snap else {}
     oi_data = snap.get("cot_oi",{}).get("oi",{}) if snap else {}
 
     fx_tab, comm_tab = st.tabs(["💱 Forex", "🛢️ Commodities"])
+
     with fx_tab:
         fx_rows = []
         for ticker in list(FOREX_PAIRS.keys()):
@@ -1506,17 +1484,20 @@ elif page == "💱🛢️ Macro Proxies":
                 df_fx.style
                     .map(lambda x: 'color:#3FB950;font-weight:700;' if isinstance(x,str) and any(y in x.upper() for y in ["YES","BUY NOW"]) else ('color:#F85149;font-weight:700;' if isinstance(x,str) and any(y in x.upper() for y in ["NO","SKIP"]) else ('color:#D29922;font-weight:600;' if isinstance(x,str) and any(y in x.upper() for y in ["WAIT","CHASE","SMALL"]) else '')), subset=["Worth?"])
                     .map(lambda x: 'color:#3FB950;font-weight:700;' if isinstance(x,(int,float)) and x>=2.0 else ('color:#D29922;font-weight:600;' if isinstance(x,(int,float)) and x>=1.5 else ''), subset=["RR"])
-                    .format({"Price": "{:.4f}" if any(x in str(df_fx.get("Ticker","")) for x in ["JPY","=X"]) else "{:.2f}", "Entry": "{:.4f}", "T1": "{:.4f}", "T2": "{:.4f}", "Stop": "{:.4f}", "RR": "{:.1f}"}),
-                use_container_width=True, hide_index=True, height=300
+                    .format({"Price": "{:.4f}", "Entry": "{:.4f}", "T1": "{:.4f}", "T2": "{:.4f}", "Stop": "{:.4f}", "RR": "{:.1f}"}),
+                use_container_width=True, hide_index=True, height=260
             )
         else:
             st.info("No forex setups.")
-        if longs:
-            st.markdown(f'<div style="font-size:14px;font-weight:700;color:#3FB950;margin:10px 0 6px;">🟢 Top 5 Longs ({len(longs)} total)</div>', unsafe_allow_html=True)
-            for i, row in enumerate(longs[:5]): _render_narrative_card_native(row, i, "forex")
-        if shorts:
-            st.markdown(f'<div style="font-size:14px;font-weight:700;color:#F85149;margin:10px 0 6px;">🔴 Top 5 Shorts ({len(shorts)} total)</div>', unsafe_allow_html=True)
-            for i, row in enumerate(shorts[:5]): _render_narrative_card_native(row, i, "forex")
+        c1, c2 = st.columns(2)
+        with c1:
+            if longs:
+                st.markdown(f'<div style="font-size:13px;font-weight:700;color:#3FB950;margin:6px 0;">🟢 Top 5 ({len(longs)} total)</div>', unsafe_allow_html=True)
+                for i, row in enumerate(longs[:5]): _render_narrative_card_native(row, i, "forex")
+        with c2:
+            if shorts:
+                st.markdown(f'<div style="font-size:13px;font-weight:700;color:#F85149;margin:6px 0;">🔴 Top 5 ({len(shorts)} total)</div>', unsafe_allow_html=True)
+                for i, row in enumerate(shorts[:5]): _render_narrative_card_native(row, i, "forex")
 
     with comm_tab:
         comm_rows = []
@@ -1532,25 +1513,27 @@ elif page == "💱🛢️ Macro Proxies":
                     .map(lambda x: 'color:#3FB950;font-weight:700;' if isinstance(x,str) and any(y in x.upper() for y in ["YES","BUY NOW"]) else ('color:#F85149;font-weight:700;' if isinstance(x,str) and any(y in x.upper() for y in ["NO","SKIP"]) else ('color:#D29922;font-weight:600;' if isinstance(x,str) and any(y in x.upper() for y in ["WAIT","CHASE","SMALL"]) else '')), subset=["Worth?"])
                     .map(lambda x: 'color:#3FB950;font-weight:700;' if isinstance(x,(int,float)) and x>=2.0 else ('color:#D29922;font-weight:600;' if isinstance(x,(int,float)) and x>=1.5 else ''), subset=["RR"])
                     .format({"Price": "{:.2f}", "Entry": "{:.2f}", "T1": "{:.2f}", "T2": "{:.2f}", "Stop": "{:.2f}", "RR": "{:.1f}"}),
-                use_container_width=True, hide_index=True, height=300
+                use_container_width=True, hide_index=True, height=260
             )
         else:
             st.info("No commodity setups.")
-        if longs:
-            st.markdown(f'<div style="font-size:14px;font-weight:700;color:#3FB950;margin:10px 0 6px;">🟢 Top 5 Longs ({len(longs)} total)</div>', unsafe_allow_html=True)
-            for i, row in enumerate(longs[:5]): _render_narrative_card_native(row, i, "commodity")
-        if shorts:
-            st.markdown(f'<div style="font-size:14px;font-weight:700;color:#F85149;margin:10px 0 6px;">🔴 Top 5 Shorts ({len(shorts)} total)</div>', unsafe_allow_html=True)
-            for i, row in enumerate(shorts[:5]): _render_narrative_card_native(row, i, "commodity")
-
+        c1, c2 = st.columns(2)
+        with c1:
+            if longs:
+                st.markdown(f'<div style="font-size:13px;font-weight:700;color:#3FB950;margin:6px 0;">🟢 Top 5 ({len(longs)} total)</div>', unsafe_allow_html=True)
+                for i, row in enumerate(longs[:5]): _render_narrative_card_native(row, i, "commodity")
+        with c2:
+            if shorts:
+                st.markdown(f'<div style="font-size:13px;font-weight:700;color:#F85149;margin:6px 0;">🔴 Top 5 ({len(shorts)} total)</div>', unsafe_allow_html=True)
+                for i, row in enumerate(shorts[:5]): _render_narrative_card_native(row, i, "commodity")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: ₿ Crypto — COMPACT
+# TAB: ₿ CRYPTO — COMPACT
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "₿ Crypto":
     st.markdown("## ₿ Crypto Setups")
-    st.caption("On-chain momentum + Risk Ranges — Table view + Top 5 narrative cards")
-    st.divider()
+    st.caption("On-chain momentum + Risk Ranges + Greeks")
+
     crypto_tokens = snap.get("crypto_tokens", {}) or {}
     if not isinstance(crypto_tokens, dict) or not crypto_tokens:
         crypto_tokens = {}
@@ -1577,21 +1560,18 @@ elif page == "₿ Crypto":
                 tvl_7d = token_data.get("tvl_7d_change", 0)
                 row["onchain_score"] = f"{int(score*100)}%"
                 row["tvl_7d"] = tvl_7d
-                row["tvl_30d"] = token_data.get("tvl_30d_change", 0)
-                row["dex_vol"] = token_data.get("dex_vol_change", 0)
-                if score > 0.7 and tvl_7d > 0.15: row["onchain_signal"] = "🚀 STRONG ACCUMULATION"
-                elif score > 0.55 and (tvl_7d > 0.1 or token_data.get("dex_vol_change",0) > 0.2): row["onchain_signal"] = "📈 BUILDING MOMENTUM"
-                elif score > 0.4: row["onchain_signal"] = "👀 EARLY SIGNS"
+                if score > 0.7 and tvl_7d > 0.15: row["onchain_signal"] = "🚀 STRONG"
+                elif score > 0.55: row["onchain_signal"] = "📈 BUILDING"
+                elif score > 0.4: row["onchain_signal"] = "👀 EARLY"
                 else: row["onchain_signal"] = "⏳ NEUTRAL"
             else:
-                row["onchain_score"] = "—"; row["tvl_7d"] = None; row["tvl_30d"] = None; row["dex_vol"] = None; row["onchain_signal"] = "—"
+                row["onchain_score"] = "—"; row["tvl_7d"] = None; row["onchain_signal"] = "—"
             crypto_rows.append(row)
     longs, shorts = _split_long_short(crypto_rows)
 
     all_crypto = longs + shorts
     if all_crypto:
         df_crypto = _consolidated_to_df(all_crypto)
-        # Add on-chain columns
         df_crypto["On-Chain"] = [r.get("onchain_signal","—") for r in all_crypto]
         df_crypto["TVL 7D"] = [f"{r.get('tvl_7d',0):+.1%}" if r.get('tvl_7d') is not None else "—" for r in all_crypto]
         st.dataframe(
@@ -1599,28 +1579,28 @@ elif page == "₿ Crypto":
                 .map(lambda x: 'color:#3FB950;font-weight:700;' if isinstance(x,str) and any(y in x.upper() for y in ["YES","BUY NOW"]) else ('color:#F85149;font-weight:700;' if isinstance(x,str) and any(y in x.upper() for y in ["NO","SKIP"]) else ('color:#D29922;font-weight:600;' if isinstance(x,str) and any(y in x.upper() for y in ["WAIT","CHASE","SMALL"]) else '')), subset=["Worth?"])
                 .map(lambda x: 'color:#3FB950;font-weight:700;' if isinstance(x,(int,float)) and x>=2.0 else ('color:#D29922;font-weight:600;' if isinstance(x,(int,float)) and x>=1.5 else ''), subset=["RR"])
                 .format({"Price": "{:.2f}", "Entry": "{:.2f}", "T1": "{:.2f}", "T2": "{:.2f}", "Stop": "{:.2f}", "RR": "{:.1f}"}),
-            use_container_width=True, hide_index=True, height=300
+            use_container_width=True, hide_index=True, height=260
         )
     else:
         st.info("No crypto setups.")
 
-    if longs:
-        st.divider()
-        st.markdown(f'<div style="font-size:16px;font-weight:700;color:#3FB950;margin-bottom:8px;">🟢 Top 5 Longs ({len(longs)} total)</div>', unsafe_allow_html=True)
-        for i, row in enumerate(longs[:5]): _render_narrative_card_native(row, i, "crypto")
-    if shorts:
-        st.divider()
-        st.markdown(f'<div style="font-size:16px;font-weight:700;color:#F85149;margin-bottom:8px;">🔴 Top 5 Shorts ({len(shorts)} total)</div>', unsafe_allow_html=True)
-        for i, row in enumerate(shorts[:5]): _render_narrative_card_native(row, i, "crypto")
-
+    c1, c2 = st.columns(2)
+    with c1:
+        if longs:
+            st.markdown(f'<div style="font-size:14px;font-weight:700;color:#3FB950;margin:8px 0;">🟢 Top 5 Longs ({len(longs)} total)</div>', unsafe_allow_html=True)
+            for i, row in enumerate(longs[:5]): _render_narrative_card_native(row, i, "crypto")
+    with c2:
+        if shorts:
+            st.markdown(f'<div style="font-size:14px;font-weight:700;color:#F85149;margin:8px 0;">🔴 Top 5 Shorts ({len(shorts)} total)</div>', unsafe_allow_html=True)
+            for i, row in enumerate(shorts[:5]): _render_narrative_card_native(row, i, "crypto")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: 🌍 GLOBAL & EM — COMPACT
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "🌍 Global & EM":
     st.markdown("## 🌍 Global & EM")
-    st.caption("50-country regime map + Indonesia IHSG — Compact view")
-    st.divider()
+    st.caption("50-country regime map + Indonesia IHSG")
+
     global_tab, ihsg_tab = st.tabs(["🌍 Global Quad", "🇮🇩 IHSG"])
 
     with global_tab:
@@ -1636,56 +1616,50 @@ elif page == "🌍 Global & EM":
                 for c in countries: cqs[c] = q
         c1,c2 = st.columns([1,1.5])
         with c1:
-            st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:10px;padding:16px;"><div style="font-size:12px;color:#8B949E;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Global Regime</div><div style="font-size:32px;font-weight:700;color:{qc(gq)};">{gq}</div><div style="font-size:13px;color:#8B949E;margin-top:6px;">{QNC.get(gq,"")}</div><div style="font-size:12px;color:#8B949E;margin-top:8px;">50 country ETFs · GDP-weighted · Confidence: {gconf:.0%}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:8px;padding:12px;text-align:center;"><div style="font-size:10px;color:#8B949E;">GLOBAL REGIME</div><div style="font-size:28px;font-weight:700;color:{qc(gq)};">{gq}</div><div style="font-size:11px;color:#E6EDF3;">{QN.get(gq,gq)}</div><div style="font-size:10px;color:#8B949E;margin-top:4px;">Confidence: {gconf:.0%}</div></div>', unsafe_allow_html=True)
             st.plotly_chart(prob_bar(gprobs), use_container_width=True, config={"displayModeBar":False})
             em_sig = (btk.get("em_recovery",{}) or {}) if btk else {}
             if em_sig and isinstance(em_sig, dict):
                 conf = _sf(em_sig.get("confidence")) or 0
                 trigger = em_sig.get("trigger","EM signal")
-                st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:10px;padding:12px;margin-top:10px;"><div style="font-size:12px;color:#8B949E;">🌍 EM RECOVERY SIGNAL</div><div style="font-size:14px;font-weight:600;color:#E6EDF3;margin-top:4px;">{trigger}</div><div style="font-size:12px;color:#8B949E;margin-top:4px;">Confidence: {conf:.0%}</div></div>', unsafe_allow_html=True)
+                st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:8px;padding:8px;margin-top:6px;font-size:11px;"><b style="color:#E6EDF3;">EM Signal:</b> <span style="color:#8B949E;">{trigger} (conf: {conf:.0%})</span></div>', unsafe_allow_html=True)
         with c2:
-            st.markdown("### Country Regimes")
             rows=[]
             for country,q in sorted(cqs.items(),key=lambda x:x[1]):
                 rows.append({"Country":country,"Regime":q,"Name":QN.get(q,q)})
             df=pd.DataFrame(rows)
-            st.dataframe(df.style.map(lambda x: f'color:{qc(x)}', subset=["Regime"]).format({"Regime":lambda x:""}), hide_index=True, use_container_width=True, height=400)
+            st.dataframe(df.style.map(lambda x: f'color:{qc(x)}', subset=["Regime"]).format({"Regime":lambda x:""}), hide_index=True, use_container_width=True, height=350)
 
     with ihsg_tab:
-        st.markdown('<div style="font-size:22px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">🇮🇩 IHSG Macro Report</div>', unsafe_allow_html=True)
-        st.caption("Comprehensive Indonesia equity analysis — Compact table + Top 5 cards")
-        st.divider()
+        st.markdown("### 🇮🇩 IHSG Macro Report")
+        st.caption("Indonesia equity analysis — Table + Top 5")
 
         # ── Executive Summary ──
         macro = ihsg_macro_overlay or {}
         ihsg_bias = "DEFENSIVE"; ihsg_color = "#F85149"; top_sectors = []; avoid_sectors = []
         if macro.get("commodity_bias") == "Bullish":
             ihsg_bias = "COMMODITY OFFENSE"; ihsg_color = "#3FB950"; top_sectors = ["Coal", "Nickel", "CPO"]
-            avoid_sectors = ["Banking"] if macro.get("banking_bias") == "Bearish" else []
         elif macro.get("consumer_bias") == "Bullish":
             ihsg_bias = "DOMESTIC DEMAND"; ihsg_color = "#D29922"; top_sectors = ["Consumer", "Pharma", "Telco"]
         else:
             top_sectors = ["Banking", "Telco"] if macro.get("banking_bias") == "Bullish" else ["Telco"]
-            avoid_sectors = ["Coal"] if macro.get("commodity_bias") == "Bearish" else []
         rupiah_sig = ihsg_rupiah_regime.get("flow_signal", "—") if ihsg_rupiah_regime else "—"
         rupiah_color = "#3FB950" if "Positive" in rupiah_sig else "#F85149" if "Risk" in rupiah_sig else "#D29922"
         c1, c2, c3 = st.columns(3)
         with c1:
-            st.markdown(f'<div class="metric-box"><div class="metric-label">IHSG BIAS</div><div class="metric-value" style="color:{ihsg_color};font-size:16px;">{ihsg_bias}</div><div class="metric-sub">Regime: {sq}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">IHSG BIAS</div><div style="font-size:16px;font-weight:700;color:{ihsg_color};">{ihsg_bias}</div></div>', unsafe_allow_html=True)
         with c2:
-            st.markdown(f'<div class="metric-box"><div class="metric-label">💱 RUPIAH FLOW</div><div class="metric-value" style="color:{rupiah_color};font-size:14px;">{rupiah_sig[:25] if rupiah_sig else "—"}</div><div class="metric-sub">DXY: {ihsg_rupiah_regime.get("dxy_trend","—") if ihsg_rupiah_regime else "—"}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">RUPIAH</div><div style="font-size:14px;font-weight:700;color:{rupiah_color};">{rupiah_sig[:20] if rupiah_sig else "—"}</div></div>', unsafe_allow_html=True)
         with c3:
-            bi_sig = macro.get("bi_signal", "—")[:30] if macro else "—"
-            st.markdown(f'<div class="metric-box"><div class="metric-label">🏦 BI REGIME</div><div class="metric-value" style="font-size:13px;">{bi_sig}</div><div class="metric-sub">Policy: {macro.get("policy_score",0):+.2f}</div></div>', unsafe_allow_html=True)
+            bi_sig = macro.get("bi_signal", "—")[:25] if macro else "—"
+            st.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">BI REGIME</div><div style="font-size:13px;font-weight:700;color:#E6EDF3;">{bi_sig}</div></div>', unsafe_allow_html=True)
         if top_sectors or avoid_sectors:
             pills = []
-            for s in top_sectors: pills.append(f'<span class="badge badge-long">🟢 {s}</span>')
-            for s in avoid_sectors: pills.append(f'<span class="badge badge-short">🔴 {s}</span>')
-            st.markdown(f'<div style="margin:10px 0;">{ " ".join(pills)}</div>', unsafe_allow_html=True)
+            for s in top_sectors: pills.append(f'<span class="badge badge-long">{s}</span>')
+            for s in avoid_sectors: pills.append(f'<span class="badge badge-short">{s}</span>')
+            st.markdown(f'<div style="margin:8px 0;">{ " ".join(pills)}</div>', unsafe_allow_html=True)
 
         # ── Macro Context ──
-        st.divider()
-        st.markdown('<div style="font-size:14px;font-weight:700;color:#E6EDF3;margin-bottom:8px;">🌏 Macro Context</div>', unsafe_allow_html=True)
         mc1, mc2, mc3, mc4 = st.columns(4)
         dxy_val = None; dxy_trend = "—"
         if prices.get("DX-Y.NYB") is not None:
@@ -1708,23 +1682,19 @@ elif page == "🌍 Global & EM":
         mc3.metric("Coal (KOL)", fp(comm_proxies.get("KOL")), "1M")
         mc4.metric("Agri (DBA)", fp(comm_proxies.get("DBA")), "1M")
 
-        # ── IHSG Ticker Table ──
-        st.divider()
-        st.markdown('<div style="font-size:14px;font-weight:700;color:#E6EDF3;margin-bottom:8px;">📈 Ticker Report Cards — Table</div>', unsafe_allow_html=True)
-        st.caption("Click column headers to sort. Top 5 by momentum shown as cards below.")
+        # ── IHSG Table ──
         ihsg_rows = []
         for ticker in list(IHSG_UNIVERSE.keys()):
             row = _build_ihsg_row(ticker, prices, ar, ihsg_sector_momentum, ihsg_commodity_overlay, ihsg_rupiah_regime, ihsg_foreign_flow, ihsg_macro_overlay, forward_returns, news_narratives)
             if row: ihsg_rows.append(row)
 
         if ihsg_rows:
-            # Build compact dataframe
             df_ihsg = pd.DataFrame([{
                 "Ticker": r["ticker"], "Sector": r.get("sector","—"), "Price": r["price"], "Entry": r.get("entry"),
                 "T1": r.get("target_1"), "T2": r.get("target_2"), "Stop": r.get("stop"),
                 "RR": r.get("rr",0), "1M": fp(r.get("r1m")), "3M": fp(r.get("r3m")),
                 "Signal": r.get("signal","—"), "Grade": r.get("grade","C"),
-                "Thesis": r.get("recommendation","—")[:60],
+                "Thesis": r.get("recommendation","—")[:55],
             } for r in ihsg_rows])
             st.dataframe(
                 df_ihsg.style
@@ -1732,97 +1702,89 @@ elif page == "🌍 Global & EM":
                     .map(lambda x: 'color:#3FB950;font-weight:700;' if x in ["A","A+"] else ('color:#D29922;font-weight:600;' if x=="B" else ''), subset=["Grade"])
                     .map(lambda x: 'color:#3FB950;font-weight:700;' if isinstance(x,(int,float)) and x>=2.0 else ('color:#D29922;font-weight:600;' if isinstance(x,(int,float)) and x>=1.5 else ''), subset=["RR"])
                     .format({"Price": "{:.2f}", "Entry": "{:.2f}", "T1": "{:.2f}", "T2": "{:.2f}", "Stop": "{:.2f}", "RR": "{:.1f}"}),
-                use_container_width=True, hide_index=True, height=350
+                use_container_width=True, hide_index=True, height=300
             )
-
-            # ── Top 5 by momentum ──
             ihsg_rows.sort(key=lambda x: abs(x.get("r1m") or 0), reverse=True)
-            st.divider()
-            st.markdown('<div style="font-size:14px;font-weight:700;color:#E6EDF3;margin-bottom:8px;">🎯 Top 5 IHSG Setups (by momentum)</div>', unsafe_allow_html=True)
+            st.markdown("### 🎯 Top 5 IHSG (by momentum)")
             for i, row in enumerate(ihsg_rows[:5]):
                 _render_narrative_card_native(row, i, "ihsg")
         else:
-            st.info("No IHSG setups available.")
+            st.info("No IHSG setups.")
 
         # ── Structural Diagnostics ──
-        st.divider()
-        st.markdown('<div style="font-size:14px;font-weight:700;color:#E6EDF3;margin-bottom:8px;">🔬 Market-Wide Structural Diagnostics</div>', unsafe_allow_html=True)
-        diag1, diag2, diag3, diag4, diag5 = st.columns(5)
-        with diag1:
+        st.markdown("### 🔬 Structural Diagnostics")
+        d1, d2, d3, d4, d5 = st.columns(5)
+        with d1:
             if ihsg_sector_momentum:
                 top_sec = max(ihsg_sector_momentum.items(), key=lambda x: x[1].get("strength", 0))
-                st.markdown(f'<div class="metric-box"><div class="metric-label">📊 SECTOR MOM</div><div class="metric-value" style="font-size:14px;">{top_sec[0]}</div><div class="metric-sub">{fp(top_sec[1].get("avg_1m"))} 1M</div></div>', unsafe_allow_html=True)
-            else: st.markdown(f'<div class="metric-box"><div class="metric-label">📊 SECTOR MOM</div><div class="metric-sub">No data</div></div>', unsafe_allow_html=True)
-        with diag2:
+                st.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">SECTOR MOM</div><div style="font-size:14px;font-weight:700;">{top_sec[0]}</div><div style="font-size:10px;color:#8B949E;">{fp(top_sec[1].get("avg_1m"))}</div></div>', unsafe_allow_html=True)
+            else: st.caption("No data")
+        with d2:
             if ihsg_commodity_overlay:
                 top_comm = max(ihsg_commodity_overlay.items(), key=lambda x: x[1].get("r1m") or -999)
-                st.markdown(f'<div class="metric-box"><div class="metric-label">🛢️ COMMODITY</div><div class="metric-value" style="font-size:14px;">{top_comm[0]}</div><div class="metric-sub">{fp(top_comm[1].get("r1m"))} 1M</div></div>', unsafe_allow_html=True)
-            else: st.markdown(f'<div class="metric-box"><div class="metric-label">🛢️ COMMODITY</div><div class="metric-sub">No data</div></div>', unsafe_allow_html=True)
-        with diag3:
+                st.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">COMMODITY</div><div style="font-size:14px;font-weight:700;">{top_comm[0]}</div><div style="font-size:10px;color:#8B949E;">{fp(top_comm[1].get("r1m"))}</div></div>', unsafe_allow_html=True)
+            else: st.caption("No data")
+        with d3:
             if ihsg_rupiah_regime:
-                st.markdown(f'<div class="metric-box"><div class="metric-label">💱 RUPIAH</div><div class="metric-value" style="font-size:14px;">{ihsg_rupiah_regime.get("dxy_trend","—")}</div><div class="metric-sub">DXY {fp(ihsg_rupiah_regime.get("dxy_1m"))}</div></div>', unsafe_allow_html=True)
-            else: st.markdown(f'<div class="metric-box"><div class="metric-label">💱 RUPIAH</div><div class="metric-sub">No data</div></div>', unsafe_allow_html=True)
-        with diag4:
+                st.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">RUPIAH</div><div style="font-size:14px;font-weight:700;">{ihsg_rupiah_regime.get("dxy_trend","—")}</div></div>', unsafe_allow_html=True)
+            else: st.caption("No data")
+        with d4:
             if ihsg_foreign_flow:
                 acc = sum(1 for v in ihsg_foreign_flow.values() if "Accumulation" in v.get("signal", ""))
                 dist = sum(1 for v in ihsg_foreign_flow.values() if "Distribution" in v.get("signal", ""))
-                st.markdown(f'<div class="metric-box"><div class="metric-label">🌊 FLOW</div><div class="metric-value" style="font-size:14px;color:#3FB950;">{acc} Acc</div><div class="metric-sub" style="color:#F85149;">{dist} Dist</div></div>', unsafe_allow_html=True)
-            else: st.markdown(f'<div class="metric-box"><div class="metric-label">🌊 FLOW</div><div class="metric-sub">No data</div></div>', unsafe_allow_html=True)
-        with diag5:
+                st.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">FLOW</div><div style="font-size:14px;font-weight:700;color:#3FB950;">{acc} Acc</div><div style="font-size:10px;color:#F85149;">{dist} Dist</div></div>', unsafe_allow_html=True)
+            else: st.caption("No data")
+        with d5:
             if ihsg_macro_overlay:
-                st.markdown(f'<div class="metric-box"><div class="metric-label">🏦 BI MACRO</div><div class="metric-value" style="font-size:14px;">{ihsg_macro_overlay.get("banking_bias","—")}</div><div class="metric-sub">Policy {ihsg_macro_overlay.get("policy_score",0):+.2f}</div></div>', unsafe_allow_html=True)
-            else: st.markdown(f'<div class="metric-box"><div class="metric-label">🏦 BI MACRO</div><div class="metric-sub">No data</div></div>', unsafe_allow_html=True)
+                st.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">BI MACRO</div><div style="font-size:14px;font-weight:700;">{ihsg_macro_overlay.get("banking_bias","—")}</div></div>', unsafe_allow_html=True)
+            else: st.caption("No data")
 
-
+# ══════════════════════════════════════════════════════════════════════════════
+# TAB: 📖 THEMES — COMPACT
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "📖 Themes":
     st.markdown("## 📖 Themes")
     st.caption("Top-down narratives + price clusters + news NLP")
-    st.divider()
-    themes_tab = st.tabs(["📖 Macro Themes"])
-    with themes_tab[0]:
-        # Use real narratives from discovery_v3 if available, else fallback
-        narratives_list = narr.get("narratives",[]) if narr else []
-        # Also add price cluster themes as narratives
-        if price_clusters and price_clusters.get("clusters"):
-            for c in price_clusters["clusters"]:
-                if c.get("is_novel_theme") or c.get("confidence", 0) > 0.6:
-                    narratives_list.append({
-                        "name": c.get("theme_hypothesis", "Unknown Theme"),
-                        "score": c.get("confidence", 0.5),
-                        "thesis": f"Cross-sector cluster of {c.get('member_count')} tickers. Dominant sector: {c.get('dominant_sector')}. Avg RS 3M: {c.get('avg_rs_3m',0):+.1%}.",
-                        "tickers": c.get("members", [])[:5],
-                        "best": c.get("members", [])[:5],
-                        "worst": [],
-                        "invalidators": ["Cluster correlation breaks", "Lead ticker breaks trend"],
-                    })
-        # Add news emergent narratives
-        if news_narratives and news_narratives.get("emergent_narratives"):
-            for en in news_narratives["emergent_narratives"]:
+
+    narratives_list = narr.get("narratives",[]) if narr else []
+    if price_clusters and price_clusters.get("clusters"):
+        for c in price_clusters["clusters"]:
+            if c.get("is_novel_theme") or c.get("confidence", 0) > 0.6:
                 narratives_list.append({
-                    "name": f"News: {en.get('narrative', 'Unknown')}",
-                    "score": min(en.get("avg_sentiment", 0.5) + en.get("supply_chain_hits", 0) * 0.1, 1.0),
-                    "thesis": f"Emergent narrative from news: {en.get('mention_count')} mentions, {en.get('supply_chain_hits',0)} supply chain hits. Linked: {', '.join(en.get('linked_tickers',[])[:5])}.",
-                    "tickers": en.get("linked_tickers", [])[:5],
-                    "best": en.get("linked_tickers", [])[:5],
+                    "name": c.get("theme_hypothesis", "Unknown Theme"),
+                    "score": c.get("confidence", 0.5),
+                    "thesis": f"Cross-sector cluster of {c.get('member_count')} tickers. Dominant: {c.get('dominant_sector')}. Avg RS 3M: {c.get('avg_rs_3m',0):+.1%}.",
+                    "tickers": c.get("members", [])[:5],
+                    "best": c.get("members", [])[:5],
                     "worst": [],
-                    "invalidators": ["News volume drops", "No price confirmation"],
+                    "invalidators": ["Cluster correlation breaks"],
                 })
-        if not narratives_list:
-            # Ultimate fallback
-            narratives_list = [
-                {"name":"Silver Supercycle","score":0.92,"thesis":"SLV +143% since May 2025. Industrial demand + safe haven.","tickers":["SLV","SILJ","GDXJ"],"best":["SLV","SILJ"],"worst":["XLK"],"invalidators":["Q4 deflation","DXY bullish"]},
-                {"name":"Gold Secular Bull","score":0.88,"thesis":"Central banks buying at record pace. De-dollarization structural.","tickers":["GLD","GDX","GDXJ"],"best":["GLD","GDX"],"worst":["HYG"],"invalidators":["Q4->Q1 direct","DXY reversal"]},
-            ]
-        for n in narratives_list:
-            if not isinstance(n, dict): continue
-            score = n.get("score",0)
-            with st.expander(f"📚 **{n.get('name','')}** — Score: {score:.0%}", expanded=False):
-                st.markdown(f"**Thesis:** {n.get('thesis','')}")
-                st.markdown(f"**Best tickers:** {', '.join(n.get('best', n.get('tickers',[]))[:5])}")
-                st.markdown(f"**Avoid:** {', '.join(n.get('worst',[])[:5])}")
-                st.markdown(f"**Invalidators:** {', '.join(n.get('invalidators',[])[:3])}")
-    st.caption("💡 Discovery / Bottleneck data moved to ⚡ Alpha Center tab to avoid duplication.")
+    if news_narratives and news_narratives.get("emergent_narratives"):
+        for en in news_narratives["emergent_narratives"]:
+            narratives_list.append({
+                "name": f"News: {en.get('narrative', 'Unknown')}",
+                "score": min(en.get("avg_sentiment", 0.5) + en.get("supply_chain_hits", 0) * 0.1, 1.0),
+                "thesis": f"News-driven: {en.get('mention_count')} mentions, {en.get('supply_chain_hits',0)} supply hits. Linked: {', '.join(en.get('linked_tickers',[])[:5])}.",
+                "tickers": en.get("linked_tickers", [])[:5],
+                "best": en.get("linked_tickers", [])[:5],
+                "worst": [],
+                "invalidators": ["News volume drops"],
+            })
+    if not narratives_list:
+        narratives_list = [
+            {"name":"Silver Supercycle","score":0.92,"thesis":"SLV +143% since May 2025. Industrial demand + safe haven.","tickers":["SLV","SILJ","GDXJ"],"best":["SLV","SILJ"],"worst":["XLK"],"invalidators":["Q4 deflation","DXY bullish"]},
+            {"name":"Gold Secular Bull","score":0.88,"thesis":"Central banks buying at record pace. De-dollarization structural.","tickers":["GLD","GDX","GDXJ"],"best":["GLD","GDX"],"worst":["HYG"],"invalidators":["Q4->Q1 direct","DXY reversal"]},
+        ]
+
+    for n in narratives_list:
+        if not isinstance(n, dict): continue
+        score = n.get("score",0)
+        with st.expander(f"📚 {n.get('name','')} — Score: {score:.0%}", expanded=False):
+            st.markdown(f"**Thesis:** {n.get('thesis','')}")
+            st.markdown(f"**Best:** {', '.join(n.get('best', n.get('tickers',[]))[:5])}")
+            st.markdown(f"**Avoid:** {', '.join(n.get('worst',[])[:5])}")
+            st.caption(f"Invalidators: {', '.join(n.get('invalidators',[])[:3])}")
+
 elif page == "🏥 Health":
     st.markdown("## 🏥 System Health")
     st.caption("Data pipeline status, coverage & diagnostics")

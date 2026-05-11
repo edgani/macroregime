@@ -1532,11 +1532,19 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
     theme_queries.extend(["supply chain bottleneck", "shortage constrained", "data center power"])
 
     news_results = news_engine.run(cluster_tickers, theme_queries=theme_queries, max_per_ticker=8)
+    # ── FIX: Sanitize supply_chain_alerts to prevent NoneType crash in graph engine ──
+    for _alert in news_results.get("supply_chain_alerts", []):
+        if hasattr(_alert, "linked_tickers") and _alert.linked_tickers is None:
+            _alert.linked_tickers = []
     if progress_cb: progress_cb(f"News NLP: {news_results.get('analyzed_count',0)} headlines", 0.76)
 
     # L3: Auto Discovery (integrates clusters + news + forward prediction)
     discovery_engine = AutoDiscoveryEngineV3(sector_map=sector_map, market_map=market_map, known_tickers=all_tickers, use_transformers=False)
-    discovery = discovery_engine.run(prices, gip=gip, risk_ranges=asset_ranges)
+    try:
+        discovery = discovery_engine.run(prices, gip=gip, risk_ranges=asset_ranges)
+    except Exception as _disc_err:
+        logger.warning(f"AutoDiscoveryEngineV3 failed: {_disc_err}")
+        discovery = {"ok": True, "candidates": [], "bottlenecks": [], "narratives": [], "transitions": [], "meta": {"total_candidates": 0, "error": str(_disc_err)}}
     if progress_cb: progress_cb(f"Discovery: {discovery.get('meta',{}).get('total_candidates',0)} candidates", 0.78)
 
     # L4: Regime Predictor + Leading Indicator

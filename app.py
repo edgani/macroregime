@@ -806,6 +806,20 @@ def _render_narrative_card_native(row, idx=0, market_type="generic"):
         em_val = row.get("expected_move_weekly")
         if em_pct or em_val:
             st.caption(f"📊 **Expected Move (weekly):** ±{_fmt_num(em_val)} ({fp(em_pct)}) · Daily vol: {fp(row.get('daily_vol'))}")
+        # ── TRR / LRR Toggle (uniform for all tickers) ──
+        if row.get("lrr") and row.get("trr"):
+            with st.expander("📐 TRR / LRR Levels", expanded=False):
+                t1, t2, t3, t4 = st.columns(4)
+                t1.metric("LRR", _fmt_num(row.get("lrr")))
+                t2.metric("TRR", _fmt_num(row.get("trr")))
+                price = row.get("price")
+                lrr = row.get("lrr")
+                trr = row.get("trr")
+                pos_pct = ((price - lrr) / (trr - lrr) * 100) if (trr and lrr and trr > lrr) else 0
+                t3.metric("Position %", f"{pos_pct:.0f}%")
+                comp_color = "#3FB950" if row.get("composite") == "bullish" else "#F85149" if row.get("composite") == "bearish" else "#D29922"
+                t4.markdown(f"**Composite:** <span style='color:{comp_color};font-weight:700;'>{row.get('composite','—').upper()}</span>", unsafe_allow_html=True)
+                st.caption(f"Range: {lrr} -> {trr} | Spread: {trr - lrr:.2f}")
         # Forward-looking
         if row.get("expected_1m") is not None or row.get("expected_3m") is not None:
             st.divider()
@@ -893,6 +907,21 @@ def _render_narrative_card_native(row, idx=0, market_type="generic"):
                     st.divider()
                     st.markdown("**📊 Expected Move (Options-Based)**")
                     st.caption(f"ATM Straddle: {em.get('straddle')} | Expected: ±{em.get('expected_move')} ({fp(em.get('expected_pct'))}) | ATM Strike: {em.get('atm_strike')}")
+        # ── Forward-Looking Toggle ──
+        if row.get("expected_1m") is not None or row.get("expected_3m") is not None:
+            with st.expander("🔮 Forward-Looking", expanded=False):
+                f1, f2, f3, f4 = st.columns(4)
+                f1.metric("1M Expected", fp(row.get("expected_1m")))
+                f2.metric("3M Expected", fp(row.get("expected_3m")))
+                f3.metric("6M Expected", fp(row.get("expected_6m")))
+                f4.metric("Confidence", f"{row.get('forward_confidence', 0):.0%}")
+        # ── News / Narrative Toggle ──
+        if row.get("news_narrative") or row.get("news_headline"):
+            with st.expander("📰 News / Narrative", expanded=False):
+                news_color = "#3FB950" if row.get("news_sentiment") == "positive" else "#F85149" if row.get("news_sentiment") == "negative" else "#D29922"
+                st.markdown(f"<span style='color:{news_color};font-weight:600;'>{row.get('news_narrative', row.get('news_headline', '—'))}</span>", unsafe_allow_html=True)
+                if row.get("news_headline") and row.get("news_narrative"):
+                    st.caption(f"Headline: {row.get('news_headline')}")
         has_flow = any(row.get(k) for k in ["cot_signal","oi_signal","onchain_signal","skew","oi_trend","cot_bias"])
         if has_flow and market_type not in ["ihsg"]:
             st.divider()
@@ -934,7 +963,7 @@ with st.sidebar:
     page = st.radio("Navigation", [
         "🏠 Dashboard",
         "📈 GIP Model",
-        "⚡ Alpha & Scanner",
+        "⚡ Alpha Center",
         "💱🛢️ Macro Proxies",
         "₿ Crypto",
         "🌍 Global & EM",
@@ -1349,7 +1378,7 @@ elif page == "📈 GIP Model":
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: ⚡ ALPHA & SCANNER
 # ══════════════════════════════════════════════════════════════════════════════
-elif page == "⚡ Alpha & Scanner":
+elif page == "⚡ Alpha Center":
     st.markdown('<div style="font-size:24px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">⚡ Alpha & Scanner</div>', unsafe_allow_html=True)
     st.caption("Bottlenecks · Alpha Ideas · Discovery · Daily Signals — All unified.")
     st.divider()
@@ -1664,9 +1693,32 @@ elif page == "🌍 Global & EM":
                     f1.metric("1M Expected", fp(row.get("expected_1m")))
                     f2.metric("3M Expected", fp(row.get("expected_3m")))
                     f3.metric("Confidence", f"{row.get('forward_confidence',0):.0%}")
+                # ── TOGGLE SECTIONS per ticker ──
+                with st.expander("📐 TRR / LRR Levels", expanded=False):
+                    t1, t2, t3, t4 = st.columns(4)
+                    t1.metric("LRR", _fmt_num(row.get("lrr")))
+                    t2.metric("TRR", _fmt_num(row.get("trr")))
+                    pos_pct = ((row.get("price") - row.get("lrr")) / (row.get("trr") - row.get("lrr"))) * 100 if (row.get("trr") and row.get("lrr") and row.get("trr") > row.get("lrr")) else 0
+                    t3.metric("Position %", f"{pos_pct:.0f}%")
+                    comp_color = "#3FB950" if row.get("composite") == "bullish" else "#F85149" if row.get("composite") == "bearish" else "#D29922"
+                    t4.markdown(f"**Composite:** <span style='color:{comp_color};font-weight:700;'>{row.get('composite','—').upper()}</span>", unsafe_allow_html=True)
+                    if row.get("lrr") and row.get("trr"):
+                        st.caption(f"Range: {row.get('lrr')} -> {row.get('trr')} | Spread: {row.get('trr') - row.get('lrr'):.2f}")
+
+                if row.get("expected_1m") is not None:
+                    with st.expander("🔮 Forward-Looking", expanded=False):
+                        f1, f2, f3 = st.columns(3)
+                        f1.metric("1M Expected", fp(row.get("expected_1m")))
+                        f2.metric("3M Expected", fp(row.get("expected_3m")))
+                        f3.metric("Confidence", f"{row.get('forward_confidence', 0):.0%}")
+
                 if row.get("news_narrative"):
-                    st.divider()
-                    st.markdown(f"**📰 News:** {row.get('news_narrative')}")
+                    with st.expander("📰 News / Narrative", expanded=False):
+                        news_color = "#3FB950" if row.get("news_sentiment") == "positive" else "#F85149" if row.get("news_sentiment") == "negative" else "#D29922"
+                        st.markdown(f"<span style='color:{news_color};font-weight:600;'>{row.get('news_narrative')}</span>", unsafe_allow_html=True)
+                        if row.get("news_headline"):
+                            st.caption(f"Headline: {row.get('news_headline')}")
+
                 st.divider()
                 st.markdown(f'<div style="font-size:14px;font-weight:700;color:#E6EDF3;margin-bottom:8px;">📊 {sector} Sector Scorecard</div>', unsafe_allow_html=True)
                 sc1, sc2, sc3, sc4 = st.columns(4)
@@ -1770,8 +1822,8 @@ elif page == "📖 Themes & Bottlenecks":
     st.markdown('<div style="font-size:24px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">📖 Themes & Bottlenecks</div>', unsafe_allow_html=True)
     st.caption("Top-down narratives + structural discovery engine. Real data from price clusters + news NLP.")
     st.divider()
-    themes_tab, disc_tab = st.tabs(["📖 Macro Themes", "🔮 Discovery Engine"])
-    with themes_tab:
+    themes_tab = st.tabs(["📖 Macro Themes"])
+    with themes_tab[0]:
         # Use real narratives from discovery_v3 if available, else fallback
         narratives_list = narr.get("narratives",[]) if narr else []
         # Also add price cluster themes as narratives
@@ -1779,7 +1831,7 @@ elif page == "📖 Themes & Bottlenecks":
             for c in price_clusters["clusters"]:
                 if c.get("is_novel_theme") or c.get("confidence", 0) > 0.6:
                     narratives_list.append({
-                        "name": c.get("theme_hypothesis", "Price Cluster Theme"),
+                        "name": c.get("theme_hypothesis", "Unknown Theme"),
                         "score": c.get("confidence", 0.5),
                         "thesis": f"Cross-sector cluster of {c.get('member_count')} tickers. Dominant sector: {c.get('dominant_sector')}. Avg RS 3M: {c.get('avg_rs_3m',0):+.1%}.",
                         "tickers": c.get("members", [])[:5],
@@ -1813,50 +1865,8 @@ elif page == "📖 Themes & Bottlenecks":
                 st.markdown(f"**Best tickers:** {', '.join(n.get('best', n.get('tickers',[]))[:5])}")
                 st.markdown(f"**Avoid:** {', '.join(n.get('worst',[])[:5])}")
                 st.markdown(f"**Invalidators:** {', '.join(n.get('invalidators',[])[:3])}")
-    with disc_tab:
-        # Use real discovery_v3 data
-        discoveries_list = disc.get("discoveries",[]) if disc else []
-        if discovery_v3 and discovery_v3.get("candidates"):
-            for c in discovery_v3["candidates"]:
-                discoveries_list.append({
-                    "name": c.get("name", "Unknown"),
-                    "category": c.get("category", "Unknown"),
-                    "stage": c.get("stage", "unknown"),
-                    "confidence": c.get("confidence", 0),
-                    "thesis": c.get("thesis", ""),
-                    "beneficiary_tickers": c.get("beneficiary_tickers", []),
-                    "fade_tickers": c.get("fade_tickers", []),
-                    "confirmation_signal": c.get("confirmation_signal", ""),
-                    "invalidators": c.get("invalidators", []),
-                })
-        if not discoveries_list:
-            discoveries_list = [
-                {"name":"AI Photonics Bottleneck","category":"Structural Constraint","stage":"active","confidence":0.88,"thesis":"LITE sole supplier 200G EML lasers. NVIDIA $2B photonics.","beneficiary_tickers":["LITE","POET","COHR"],"fade_tickers":["INTC"],"confirmation_signal":"LITE earnings + NVIDIA capex","invalidators":["China photonics scaling"]},
-                {"name":"SiC Power Monopoly","category":"Structural Constraint","stage":"active","confidence":0.84,"thesis":"WOLF = ONLY US large-scale SiC substrate. CHIPS Act strategic.","beneficiary_tickers":["WOLF","ON","STM"],"fade_tickers":["Legacy Si"],"confirmation_signal":"EV OEM adoption + DOD qual","invalidators":["China SiC subsidies"]},
-            ]
-        for d in discoveries_list:
-            if not isinstance(d, dict): continue
-            conf = d.get("confidence",0)
-            with st.expander(f"🔍 **{d.get('name','')}** — {d.get('category','')} · Confidence: {conf:.0%}", expanded=False):
-                st.markdown(f"**Stage:** {d.get('stage','')}")
-                st.markdown(f"**Thesis:** {d.get('thesis','')}")
-                st.markdown(f"**Beneficiaries:** {', '.join(d.get('beneficiary_tickers',[])[:5])}")
-                st.markdown(f"**Fade:** {', '.join(d.get('fade_tickers',[])[:5])}")
-                st.markdown(f"**Confirmation:** {d.get('confirmation_signal','')}")
-                st.markdown(f"**Invalidators:** {', '.join(d.get('invalidators',[])[:3])}")
-        st.markdown("### 🔍 Auto-Discovered Bottlenecks")
-        auto_bottlenecks = auto_disc.get("bottlenecks",[]) if auto_disc else []
-        if discovery_v3 and discovery_v3.get("bottlenecks"):
-            auto_bottlenecks.extend(discovery_v3["bottlenecks"])
-        if auto_bottlenecks:
-            for b in auto_bottlenecks:
-                if not isinstance(b, dict): continue
-                st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:8px;padding:10px;margin-bottom:8px;"><b>{b.get("ticker","")}</b> · {b.get("direction","")} · {b.get("known_thesis","")[:60]}</div>', unsafe_allow_html=True)
-        else: st.info("No auto-discovered bottlenecks yet.")
+    st.caption("💡 Discovery / Bottleneck data moved to ⚡ Alpha Center tab to avoid duplication.")
 
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB: 🏥 HEALTH
-# ══════════════════════════════════════════════════════════════════════════════
 elif page == "🏥 Health":
     st.markdown('<div style="font-size:24px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">🏥 System Health</div>', unsafe_allow_html=True)
     st.caption("Data pipeline status, coverage, and diagnostics.")

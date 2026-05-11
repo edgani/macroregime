@@ -321,8 +321,7 @@ def _build_risk_ranges(prices, all_tickers):
         except Exception: pass
         rr = _calc_risk_range(s, ticker=t, market=mkt)
         if rr.get("ok"): asset_ranges[t] = rr
-    
-
+    return asset_ranges
 
 def _build_vol_forecast(prices, sq, lookback=20, long_window=50):
     """Lightweight vol forecast: EWMA-style + regime adjustment. No external lib needed."""

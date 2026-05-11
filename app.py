@@ -985,7 +985,6 @@ with st.sidebar:
     st.divider()
     page = st.radio("Navigation", [
         "🏠 Dashboard",
-        "📈 GIP Model",
         "📋 Playbook",
         "⚡ Alpha Center",
         "🇺🇸 US Stocks",
@@ -1178,46 +1177,22 @@ if page == "🏠 Dashboard":
 
     st.caption(f"Built {snap.get('build_time_s',0):.0f}s ago · {snap.get('prices_loaded',0)} assets · {snap.get('fred_coverage',0)} indicators")
 
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB: 📈 GIP MODEL — COMPACT v2
-# ══════════════════════════════════════════════════════════════════════════════
-elif page == "📈 GIP Model":
-    st.markdown("## 📈 GIP Model")
-    st.caption("Growth · Inflation · Policy — The Macro Map")
 
-    if not gip:
-        st.warning("Data loading..."); st.stop()
+    # ── Forward Outlook (merged from GIP Model) ──
+    st.markdown("### 🔮 Forward Outlook")
 
-    # ── Regime Summary Bar (4 metrics in 1 row) ──
-    r1, r2, r3, r4 = st.columns(4)
-    with r1: st.metric("Quarterly", f"{sq} · {qn(sq)}", f"Conf: {gip.structural_conf:.0%}", delta_color="off")
-    with r2: st.metric("Monthly", f"{mq} · {qn(mq)}", f"Conf: {gip.monthly_conf:.0%}", delta_color="off")
-    with r3:
-        flip = gip.flip_hazard
-        st.metric("Flip Risk", f"{flip:.0%}", f"{gip.divergence.title()}", delta_color="off")
-    with r4: st.metric("Data Coverage", f"{gip.data_coverage:.0%}")
+    # Regime Probabilities compact
+    if gip:
+        rp1, rp2 = st.columns(2)
+        with rp1:
+            st.markdown("**Quarterly Probabilities**")
+            st.plotly_chart(prob_bar(gip.structural_probs, ""), use_container_width=True, config={"displayModeBar":False}, key="dash_prob_q")
+        with rp2:
+            st.markdown("**Monthly Probabilities**")
+            st.plotly_chart(prob_bar(gip.monthly_probs, ""), use_container_width=True, config={"displayModeBar":False}, key="dash_prob_m")
 
-    # ── Regime Explanation Cards (2-col) ──
-    c1, c2 = st.columns(2)
-    with c1:
-        st.markdown(f'<div style="background:#161B22;border:1px solid {qc(sq)};border-radius:6px;padding:8px;"><div style="font-size:10px;color:#8B949E;">QUARTERLY · {sq}</div><div style="font-size:12px;color:#E6EDF3;margin-top:4px;">{QUAD_EXPLAIN.get(sq,"")}</div></div>', unsafe_allow_html=True)
-    with c2:
-        st.markdown(f'<div style="background:#161B22;border:1px solid {qc(mq)};border-radius:6px;padding:8px;"><div style="font-size:10px;color:#8B949E;">MONTHLY · {mq}</div><div style="font-size:12px;color:#E6EDF3;margin-top:4px;">{QUAD_EXPLAIN.get(mq,"")}</div></div>', unsafe_allow_html=True)
-
-    if mq_raw == "Q1":
-        st.warning("⚠ Model computed Q1, Hedgeye manual call = Q2. Use Quad Override in sidebar.")
-
-    # ── Feature Readings (1 row) ──
-    f = gip.features
-    gm = _sf(f.get("growth_momentum")) or 0; im = _sf(f.get("inflation_momentum")) or 0
-    s1, s2, s3 = st.columns(3)
-    s1.metric("Growth", "📈 Accel" if gm>0 else "📉 Decel", f"{gm:+.1%}")
-    s2.metric("Inflation", "📈 Rising" if im>0 else "📉 Cooling", f"{im:+.1%}")
-    s3.metric("Policy", "Dovish" if (_sf(f.get("policy_score")) or 0)>0.1 else "Hawkish" if (_sf(f.get("policy_score")) or 0)<-0.1 else "Neutral")
-
-    # ── Forward Projection (compact) ──
-    st.markdown("### 🔮 Forward Projection")
-    if regime_forecast and regime_forecast.get("1m") and regime_forecast["1m"].get("predicted_quad"):
+    # Forward Projection
+    if regime_forecast and regime_forecast.get("1m"):
         rf1 = regime_forecast["1m"]; rf3 = regime_forecast["3m"]; rf6 = regime_forecast["6m"]
         fp1, fp2, fp3 = st.columns(3)
         with fp1:
@@ -1226,53 +1201,19 @@ elif page == "📈 GIP Model":
             st.markdown(f'<div style="text-align:center;background:#161B22;border:1px solid #30363D;border-radius:6px;padding:8px;"><div style="font-size:10px;color:#8B949E;">3 MONTHS</div><div style="font-size:18px;font-weight:700;color:{qc(rf3.get("predicted_quad","Q3"))};">{rf3.get("predicted_quad","—")}</div><div style="font-size:10px;color:#8B949E;">Conf {rf3.get("prediction_confidence",0):.0%}</div></div>', unsafe_allow_html=True)
         with fp3:
             st.markdown(f'<div style="text-align:center;background:#161B22;border:1px solid #30363D;border-radius:6px;padding:8px;"><div style="font-size:10px;color:#8B949E;">6 MONTHS</div><div style="font-size:18px;font-weight:700;color:{qc(rf6.get("predicted_quad","Q3"))};">{rf6.get("predicted_quad","—")}</div><div style="font-size:10px;color:#8B949E;">Conf {rf6.get("prediction_confidence",0):.0%}</div></div>', unsafe_allow_html=True)
-        # 3M probability chart (most important)
-        if rf3.get("probability_distribution"):
-            st.plotly_chart(prob_bar(rf3["probability_distribution"], "3M Forward Probabilities"), use_container_width=True, config={"displayModeBar":False}, key="gip_prob_3m")
-        # Leading indicator
-        if forward_returns:
-            lr1, lr2, lr3 = st.columns(3)
-            lr1.metric("1M Expected", fp(forward_returns.get("expected_1m")))
-            lr2.metric("3M Expected", fp(forward_returns.get("expected_3m")))
-            lr3.metric("Transition Prob", f"{forward_returns.get('transition_prob',0):.0%}")
-            st.caption(f"Confidence: {forward_returns.get('confidence',0.5):.0%}")
-        if leading_signals and leading_signals.get("feature_importance"):
-            fi = leading_signals["feature_importance"]
-            fi_rows = [{"Feature": k, "Importance": v} for k, v in sorted(fi.items(), key=lambda x: x[1], reverse=True)[:6]]
-            df_fi = pd.DataFrame(fi_rows)
-            st.dataframe(df_fi.style.bar(subset=["Importance"], color="#1F6FEB"), hide_index=True, use_container_width=True, height=200)
-    else:
-        st.info("🔮 Forward projection initializing... Run **⚡ Full Rebuild**.")
 
-    # ── Regime Probabilities (1 chart + 1 row) ──
-    st.markdown("### 📊 Regime Probabilities")
-    p1, p2, p3 = st.columns(3)
-    with p1:
-        st.markdown("**Quarterly**")
-        st.plotly_chart(prob_bar(gip.structural_probs, ""), use_container_width=True, config={"displayModeBar":False}, key="gip_prob_q")
-    with p2:
-        st.markdown("**Monthly**")
-        st.plotly_chart(prob_bar(gip.monthly_probs, ""), use_container_width=True, config={"displayModeBar":False}, key="gip_prob_m")
-    with p3:
-        gprobs = (global_.get("global_probs",{}) or {}) if global_ else {}
-        if gprobs:
-            st.markdown("**Global**")
-            st.plotly_chart(prob_bar(gprobs, ""), use_container_width=True, config={"displayModeBar":False}, key="gip_prob_g")
-
-    # ── Timing Signal ──
-    st.markdown("### ⏱️ Timing Signal")
-    st.markdown(_seq_pills(sq, mq), unsafe_allow_html=True)
+    # Timing Signal
     if transition:
         fw = transition.front_run_window
         fwc = {"now":"#F85149","1-2w":"#D29922","3-6w":"#1F6FEB","not yet":"#21262D"}.get(fw,"#21262D")
         fwi = {"now":"🚨 ACT NOW","1-2w":"⚡ Act within 1-2 weeks","3-6w":"👀 Watch","not yet":"🛑 Not yet"}.get(fw,"🛑 Not yet")
         if fw != "not yet":
-            st.markdown(f'<div style="background:{fwc};color:#fff;padding:8px 16px;border-radius:6px;font-weight:600;text-align:center;font-size:13px;">{fwi}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div style="background:{fwc};color:#fff;padding:8px 16px;border-radius:6px;font-weight:600;text-align:center;font-size:13px;margin:8px 0;">{fwi}</div>', unsafe_allow_html=True)
 
-    # ── Vol Forecast (compact table) ──
+    # Vol Forecast compact
     vol_f = snap.get("vol_forecast", {})
     if vol_f:
-        st.markdown("### 📊 Vol Forecast")
+        st.markdown("**Vol Forecast**")
         proxy_tickers = ["SPY", "QQQ", "GLD", "TLT", "DX-Y.NYB"]
         vol_rows = []
         for t in proxy_tickers:
@@ -1281,12 +1222,12 @@ elif page == "📈 GIP Model":
                 vol_rows.append({"Asset": t, "Current": f"{v['current_ann_vol']}%", "Forecast": f"{v['forecast_ann_vol']}%", "Regime": v['vol_regime'], "Daily": f"±{v['expected_daily_move_pct']:.1%}"})
         if vol_rows:
             df_vol = pd.DataFrame(vol_rows)
-            st.dataframe(df_vol.style.map(lambda x: 'color:#3FB950;font-weight:600;' if x == "LOW" else ('color:#D29922;font-weight:600;' if x == "NORMAL" else ('color:#F85149;font-weight:600;' if x in ["ELEVATED","EXTREME"] else '')), subset=["Regime"]), hide_index=True, use_container_width=True, height=180)
+            st.dataframe(df_vol.style.map(lambda x: 'color:#3FB950;font-weight:600;' if x == "LOW" else ('color:#D29922;font-weight:600;' if x == "NORMAL" else ('color:#F85149;font-weight:600;' if x in ["ELEVATED","EXTREME"] else '')), subset=["Regime"]), hide_index=True, use_container_width=True, height=160)
 
-    # ── Stress Test (compact expanders) ──
+    # Stress Test compact
     stress = snap.get("stress_test", [])
     if stress:
-        st.markdown("### 🧪 Stress Test")
+        st.markdown("**Stress Test**")
         for sc in stress:
             sev_color = "#F85149" if sc['severity'] == "EXTREME" else "#D29922" if sc['severity'] == "HIGH" else "#8B949E"
             with st.expander(f"⚠️ {sc['scenario']} | DD: {sc['portfolio_dd']:.0%} | {sc['severity']}", expanded=(sc['severity'] in ["EXTREME","HIGH"])):
@@ -1296,15 +1237,18 @@ elif page == "📈 GIP Model":
                 c3.metric("Best", sc['best_asset'], f"{sc['best_dd']:.0%}")
                 st.info(f"🛡️ Hedge: {sc['hedge']}")
 
-    # ── Historical Analogs (compact) ──
+    # Historical Analogs compact
     if analogs and analogs.get("top_analogs"):
-        st.markdown("### 📚 Historical Analogs")
+        st.markdown("**Historical Analogs**")
         for i, a in enumerate(analogs["top_analogs"][:3]):
             with st.expander(f"📚 {a['label']} — {a.get('similarity',0):.0%} similar", expanded=(i==0)):
                 c1, c2, c3 = st.columns(3)
                 c1.metric("1M", a.get("path_1m","—")); c2.metric("3M", a.get("path_3m","—")); c3.metric("6M", a.get("path_6m","—"))
                 st.caption(f"📊 {a.get('next_bias','')}")
 
+# ══════════════════════════════════════════════════════════════════════════════
+# TAB: 📈 GIP MODEL — COMPACT v2
+# ══════════════════════════════════════════════════════════════════════════════
 elif page == "📋 Playbook":
     st.markdown("## 📋 Playbook")
     st.caption(f"What to buy & avoid in {sq} · {qn(sq)}")

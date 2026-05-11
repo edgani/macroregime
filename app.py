@@ -587,6 +587,426 @@ def _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, market_type, 
     composite = v.get("composite", "neutral")
 
     # ── CRYPTO OVERRIDE: use momentum instead of risk range composite ──
+# IHSG 5-LAYER OVERLAY — Helper Functions
+# ══════════════════════════════════════════════════════════════════════════════
+
+IHSG_SECTOR_PEERS = {
+    "Coal": ["ADRO.JK", "ITMG.JK", "PTBA.JK", "HRUM.JK", "INDY.JK", "AADI.JK", "BUMI.JK"],
+    "Nickel": ["NCKL.JK", "ANTM.JK", "INCO.JK", "MDKA.JK", "TINS.JK", "BRMS.JK"],
+    "CPO": ["AALI.JK", "LSIP.JK", "SSMS.JK", "DSNG.JK", "TAPG.JK", "SGRO.JK"],
+    "Banking": ["BBCA.JK", "BBRI.JK", "BMRI.JK", "BBNI.JK", "BRIS.JK", "BBTN.JK", "BNGA.JK", "MEGA.JK", "NISP.JK"],
+    "Telco": ["TLKM.JK", "EXCL.JK", "ISAT.JK"],
+    "Consumer": ["ICBP.JK", "INDF.JK", "MYOR.JK", "KLBF.JK", "SIDO.JK", "ULTJ.JK", "CMRY.JK", "AMRT.JK", "ACES.JK", "MAPI.JK", "ERAA.JK"],
+    "Property": ["CTRA.JK", "BSDE.JK", "PWON.JK", "SMRA.JK", "BEST.JK", "KIJA.JK", "DMAS.JK"],
+    "Infrastructure": ["JSMR.JK", "PGAS.JK", "WIKA.JK", "PTPP.JK"],
+    "Shipping": ["WINS.JK", "LEAD.JK", "SHIP.JK", "ELSA.JK", "SOCI.JK", "SMDR.JK", "TMAS.JK", "BULL.JK"],
+    "Energy": ["PGEO.JK", "AKRA.JK", "MEDC.JK"],
+    "Mining Contractor": ["UNTR.JK", "BYAN.JK"],
+    "Pharma": ["KLBF.JK", "SIDO.JK"],
+    "Paper": ["INKP.JK", "TKIM.JK", "ESSA.JK"],
+    "Auto": ["ASII.JK", "CPIN.JK", "JPFA.JK"],
+    "Healthcare": ["HEAL.JK", "MIKA.JK", "SILO.JK"],
+    "ETF": ["EIDO"],
+    "Index": ["^JKSE"],
+}
+
+IHSG_COMMODITY_PROXY = {
+    "Coal": {"ticker": "CL=F", "name": "WTI Oil (Energy Proxy)"},
+    "Nickel": {"ticker": "HG=F", "name": "Copper (Base Metals Proxy)"},
+    "CPO": {"ticker": "DBA", "name": "Agriculture Basket (CPO Proxy)"},
+    "Mining Contractor": {"ticker": "CL=F", "name": "WTI Oil (Energy Proxy)"},
+    "Energy": {"ticker": "CL=F", "name": "WTI Oil (Energy Proxy)"},
+}
+
+def _get_ihsg_sector(ticker):
+    sector_map = {
+        "ADRO.JK": "Coal", "ITMG.JK": "Coal", "PTBA.JK": "Coal", "HRUM.JK": "Coal", "INDY.JK": "Coal", "AADI.JK": "Coal", "BUMI.JK": "Coal",
+        "NCKL.JK": "Nickel", "ANTM.JK": "Nickel", "INCO.JK": "Nickel", "MDKA.JK": "Nickel", "TINS.JK": "Nickel", "BRMS.JK": "Nickel",
+        "AALI.JK": "CPO", "LSIP.JK": "CPO", "SSMS.JK": "CPO", "DSNG.JK": "CPO", "TAPG.JK": "CPO", "SGRO.JK": "CPO",
+        "BBCA.JK": "Banking", "BBRI.JK": "Banking", "BMRI.JK": "Banking", "BBNI.JK": "Banking", "BRIS.JK": "Banking",
+        "BBTN.JK": "Banking", "BNGA.JK": "Banking", "MEGA.JK": "Banking", "NISP.JK": "Banking",
+        "TLKM.JK": "Telco", "EXCL.JK": "Telco", "ISAT.JK": "Telco",
+        "ICBP.JK": "Consumer", "INDF.JK": "Consumer", "MYOR.JK": "Consumer", "KLBF.JK": "Consumer",
+        "SIDO.JK": "Consumer", "ULTJ.JK": "Consumer", "CMRY.JK": "Consumer",
+        "AMRT.JK": "Consumer", "ACES.JK": "Consumer", "MAPI.JK": "Consumer", "ERAA.JK": "Consumer",
+        "ASII.JK": "Auto", "CPIN.JK": "Auto", "JPFA.JK": "Auto",
+        "CTRA.JK": "Property", "BSDE.JK": "Property", "PWON.JK": "Property", "SMRA.JK": "Property",
+        "BEST.JK": "Property", "KIJA.JK": "Property", "DMAS.JK": "Property",
+        "JSMR.JK": "Infrastructure", "PGAS.JK": "Infrastructure", "WIKA.JK": "Infrastructure", "PTPP.JK": "Infrastructure",
+        "WINS.JK": "Shipping", "LEAD.JK": "Shipping", "SHIP.JK": "Shipping", "ELSA.JK": "Shipping",
+        "SOCI.JK": "Shipping", "SMDR.JK": "Shipping", "TMAS.JK": "Shipping", "BULL.JK": "Shipping",
+        "PGEO.JK": "Energy", "AKRA.JK": "Energy", "MEDC.JK": "Energy", "UNTR.JK": "Mining Contractor", "BYAN.JK": "Mining Contractor",
+        "HEAL.JK": "Healthcare", "MIKA.JK": "Healthcare", "SILO.JK": "Healthcare",
+        "INKP.JK": "Paper", "TKIM.JK": "Paper", "ESSA.JK": "Paper",
+        "EIDO": "ETF", "^JKSE": "Index",
+    }
+    return sector_map.get(ticker, "Indonesia")
+
+def _ensure_ihsg_macros(prices):
+    """Auto-fetch DXY, USDIDR, CL=F, HG=F, DBA if missing from snapshot."""
+    needed = ["DX-Y.NYB", "USDIDR=X", "CL=F", "HG=F", "DBA"]
+    missing = [t for t in needed if t not in prices or prices.get(t) is None]
+    if not missing:
+        return prices
+    try:
+        import yfinance as yf
+        raw = yf.download(missing, period="90d", progress=False, auto_adjust=True, threads=True, timeout=15)
+        if raw.empty:
+            return prices
+        for t in missing:
+            try:
+                if len(missing) == 1:
+                    s = pd.to_numeric(raw["Close"] if "Close" in raw.columns else raw.iloc[:, 0], errors="coerce").dropna()
+                else:
+                    cl = raw["Close"] if "Close" in raw.columns.get_level_values(0) else None
+                    if cl is None:
+                        continue
+                    s = pd.to_numeric(cl[t], errors="coerce").dropna() if t in cl.columns else None
+                if s is not None and not s.empty:
+                    prices[t] = s
+            except Exception:
+                pass
+    except Exception as e:
+        logger.warning(f"IHSG macro fetch: {e}")
+    return prices
+
+def _sector_momentum(sector_tickers, prices):
+    """Compute composite 1M/3M momentum for a sector."""
+    rets_1m = []
+    rets_3m = []
+    for t in sector_tickers:
+        r1 = _price_ret(t, prices, 21)
+        r3 = _price_ret(t, prices, 63)
+        if r1 is not None:
+            rets_1m.append(r1)
+        if r3 is not None:
+            rets_3m.append(r3)
+    if not rets_1m:
+        return {"sector_1m": None, "sector_3m": None, "leader": None, "strength": "N/A"}
+    avg_1m = sum(rets_1m) / len(rets_1m)
+    avg_3m = sum(rets_3m) / len(rets_3m) if rets_3m else 0
+    leader = None
+    best_r = -999
+    for t in sector_tickers:
+        r = _price_ret(t, prices, 21)
+        if r is not None and r > best_r:
+            best_r = r
+            leader = t
+    if avg_1m > 0.08:
+        strength = "Strong 🟢"
+    elif avg_1m > 0.03:
+        strength = "Moderate 🟡"
+    elif avg_1m > 0:
+        strength = "Weak ⚪"
+    else:
+        strength = "Negative 🔴"
+    return {"sector_1m": avg_1m, "sector_3m": avg_3m, "leader": leader, "strength": strength}
+
+def _commodity_overlay(sector, prices):
+    """Global commodity price proxy overlay."""
+    proxy = IHSG_COMMODITY_PROXY.get(sector)
+    if not proxy:
+        return {"proxy_name": None, "proxy_1m": None, "regime": "N/A"}
+    pt = proxy["ticker"]
+    s = prices.get(pt)
+    if s is None or len(s) < 22:
+        return {"proxy_name": proxy["name"], "proxy_1m": None, "regime": "Data unavailable"}
+    s = pd.to_numeric(s, errors="coerce").dropna()
+    if len(s) < 22:
+        return {"proxy_name": proxy["name"], "proxy_1m": None, "regime": "Data unavailable"}
+    r1m = float(s.iloc[-1] / s.iloc[-22] - 1)
+    if r1m > 0.05:
+        regime = "Tailwind 🟢"
+    elif r1m < -0.05:
+        regime = "Headwind 🔴"
+    else:
+        regime = "Neutral ⚪"
+    return {"proxy_name": proxy["name"], "proxy_1m": r1m, "regime": regime}
+
+def _rupiah_regime_overlay(prices):
+    """DXY + USDIDR regime for IHSG context."""
+    dxy = prices.get("DX-Y.NYB")
+    usdidr = prices.get("USDIDR=X")
+    if dxy is not None and len(dxy) >= 22:
+        dxy = pd.to_numeric(dxy, errors="coerce").dropna()
+        dxy_1m = float(dxy.iloc[-1] / dxy.iloc[-22] - 1) if len(dxy) >= 22 else 0
+    else:
+        dxy_1m = 0
+    if usdidr is not None and len(usdidr) >= 22:
+        usdidr = pd.to_numeric(usdidr, errors="coerce").dropna()
+        idr_1m = float(usdidr.iloc[-1] / usdidr.iloc[-22] - 1) if len(usdidr) >= 22 else 0
+    else:
+        idr_1m = 0
+    tailwind = (-dxy_1m * 0.5) + (-idr_1m * 0.5)
+    if dxy_1m < -0.02 and idr_1m < -0.02:
+        regime = "🟢 Strong Support"
+    elif dxy_1m < -0.01 and idr_1m < 0.01:
+        regime = "🟢 Moderate Support"
+    elif dxy_1m > 0.02 and idr_1m > 0.02:
+        regime = "🔴 Headwind"
+    elif dxy_1m > 0.01:
+        regime = "🟡 Mild Headwind"
+    else:
+        regime = "⚪ Neutral"
+    return {"regime": regime, "dxy_1m": dxy_1m, "idr_1m": idr_1m, "idr_tailwind": tailwind}
+
+def _foreign_flow_proxy(ticker, prices):
+    """Price-action based foreign flow proxy (gap + vol expansion + streak)."""
+    s = prices.get(ticker)
+    if s is None or len(s) < 10:
+        return {"signal": "NEUTRAL ⚪", "detail": "Insufficient data"}
+    s = pd.to_numeric(s, errors="coerce").dropna()
+    if len(s) < 10:
+        return {"signal": "NEUTRAL ⚪", "detail": "Insufficient data"}
+    daily_rets = s.pct_change().dropna()
+    if len(daily_rets) < 5:
+        return {"signal": "NEUTRAL ⚪", "detail": "Insufficient data"}
+    recent = daily_rets.tail(5)
+    avg_vol = daily_rets.tail(20).std() if len(daily_rets) >= 20 else daily_rets.std()
+    recent_vol = recent.std()
+    vol_expansion = (recent_vol > avg_vol * 1.3) if avg_vol and avg_vol > 0 else False
+    consecutive_up = 0
+    consecutive_down = 0
+    for r in reversed(recent):
+        if r > 0:
+            consecutive_up += 1
+            consecutive_down = 0
+        elif r < 0:
+            consecutive_down += 1
+            consecutive_up = 0
+        else:
+            break
+    gap_up = daily_rets.iloc[-1] > 0.02 if len(daily_rets) > 0 else False
+    gap_down = daily_rets.iloc[-1] < -0.02 if len(daily_rets) > 0 else False
+    if gap_up and vol_expansion and consecutive_up >= 2:
+        return {"signal": "📈 ACCUMULATION", "detail": f"Gap +{daily_rets.iloc[-1]:.1%}, vol expansion, {consecutive_up}d up"}
+    elif gap_down and vol_expansion and consecutive_down >= 2:
+        return {"signal": "📉 DISTRIBUTION", "detail": f"Gap {daily_rets.iloc[-1]:.1%}, vol expansion, {consecutive_down}d down"}
+    elif consecutive_up >= 3:
+        return {"signal": "📈 BUILDING", "detail": f"{consecutive_up} consecutive up days"}
+    elif consecutive_down >= 3:
+        return {"signal": "📉 FADING", "detail": f"{consecutive_down} consecutive down days"}
+    else:
+        return {"signal": "NEUTRAL ⚪", "detail": "No clear flow signature"}
+
+def _domestic_macro_proxy(ticker, sector, prices):
+    """Domestic macro proxy using USDIDR + banking sector as rate/credit cycle indicator."""
+    usdidr = prices.get("USDIDR=X")
+    if usdidr is not None and len(usdidr) >= 63:
+        usdidr = pd.to_numeric(usdidr, errors="coerce").dropna()
+        idr_3m = float(usdidr.iloc[-1] / usdidr.iloc[-63] - 1) if len(usdidr) >= 63 else 0
+    else:
+        idr_3m = 0
+    banks = ["BBCA.JK", "BBRI.JK", "BMRI.JK", "BBNI.JK", "BRIS.JK"]
+    bank_momentum = _sector_momentum(banks, prices)
+    bank_1m = bank_momentum.get("sector_1m", 0) or 0
+    tailwind = 0
+    if "Banking" in sector:
+        if abs(idr_3m) < 0.05:
+            tailwind += 5
+        if bank_1m > 0.03:
+            tailwind += 10
+        regime = "NIM Expansion Proxy" if bank_1m > 0.03 else "NIM Stable"
+    elif any(x in sector for x in ["Consumer", "Pharma", "Healthcare"]):
+        if abs(idr_3m) < 0.03:
+            tailwind += 8
+        regime = "Domestic Demand Stable" if abs(idr_3m) < 0.03 else "Purchasing Power Pressure"
+    elif any(x in sector for x in ["Coal", "Nickel", "CPO", "Mining", "Energy"]):
+        if idr_3m > 0.03:
+            tailwind += 10
+        regime = "Exporter Tailwind (IDR weak)" if idr_3m > 0.03 else "Exporter Neutral"
+    else:
+        regime = "Macro Neutral"
+        if abs(idr_3m) < 0.03:
+            tailwind += 3
+    return {"regime": regime, "tailwind_score": tailwind, "idr_3m": idr_3m, "bank_1m": bank_1m}
+
+def _build_ihsg_row_enhanced(ticker, prices, ar):
+    """Build IHSG row with 5-Layer Overlay: Sector Momentum, Commodity, Rupiah, Flow, Domestic Macro."""
+    v = ar.get(ticker, {})
+    s = prices.get(ticker)
+    if not v:
+        if s is None or s.empty:
+            return None
+        s_clean = pd.to_numeric(s, errors="coerce").dropna()
+        if len(s_clean) < 60:
+            return None
+        px = float(s_clean.iloc[-1])
+        sma20 = float(s_clean.tail(20).mean())
+        std20 = float(s_clean.tail(20).std())
+        if not all(math.isfinite(v) for v in [px, sma20, std20]):
+            return None
+        lrr = round(sma20 - 1.5 * std20, 2)
+        trr = round(sma20 + 1.5 * std20, 2)
+        comp = "bullish" if px < lrr else "bearish" if px > trr else "neutral"
+        if comp == "neutral":
+            return None
+        v = {"px": px, "trade": {"lrr": lrr, "trr": trr}, "composite": comp, "quality": "B", "market": "ihsg"}
+    tr = v.get("trade", {})
+    px = _sf(v.get("px"))
+    lrr = _sf(tr.get("lrr"))
+    trr = _sf(tr.get("trr"))
+    if not px or not lrr or not trr:
+        return None
+    side = "long" if v.get("composite") == "bullish" else "short"
+    rl = _rr_levels(px, lrr, trr, side)
+    if not rl:
+        return None
+    r1m = _price_ret(ticker, prices, 21)
+    r3m = _price_ret(ticker, prices, 63)
+    sector = _get_ihsg_sector(ticker)
+    # 5-LAYER OVERLAY
+    peers = IHSG_SECTOR_PEERS.get(sector, [ticker])
+    if ticker not in peers:
+        peers.append(ticker)
+    sec_mom = _sector_momentum(peers, prices)
+    comm = _commodity_overlay(sector, prices)
+    rup = _rupiah_regime_overlay(prices)
+    flow = _foreign_flow_proxy(ticker, prices)
+    dom = _domestic_macro_proxy(ticker, sector, prices)
+    # Composite Score (0-100)
+    score = 50.0
+    if side == "long":
+        score += min(20, (sec_mom.get("sector_1m") or 0) * 200)
+        score += min(15, (comm.get("proxy_1m") or 0) * 150)
+        score += min(15, rup.get("idr_tailwind", 0) * 100)
+        score += min(10, dom.get("tailwind_score", 0))
+        if "ACCUMULATION" in flow.get("signal", ""):
+            score += 10
+        elif "DISTRIBUTION" in flow.get("signal", ""):
+            score -= 10
+    else:
+        score -= min(20, abs(sec_mom.get("sector_1m") or 0) * 200)
+        score -= min(15, abs(comm.get("proxy_1m") or 0) * 150)
+        score -= min(15, abs(rup.get("idr_tailwind", 0)) * 100)
+        score -= min(10, abs(dom.get("tailwind_score", 0)))
+        if "DISTRIBUTION" in flow.get("signal", ""):
+            score -= 10
+        elif "ACCUMULATION" in flow.get("signal", ""):
+            score += 10
+    score = max(0, min(100, score))
+    # Grade
+    if score >= 75:
+        grade = "A"
+    elif score >= 60:
+        grade = "B"
+    elif score >= 45:
+        grade = "C"
+    else:
+        grade = "D"
+    # Recommendation
+    sec_1m_str = f"{sec_mom.get('sector_1m'):+.1%}" if sec_mom.get("sector_1m") is not None else "N/A"
+    comm_str = f"{comm.get('proxy_1m'):+.1%}" if comm.get("proxy_1m") is not None else "N/A"
+    if side == "long":
+        if score >= 75:
+            rec = f"🟢 STRONG LONG {sector} — Score {score:.0f}/100 | Sector {sec_1m_str} | Commodity {comm_str} | Flow: {flow['signal']}"
+        elif score >= 60:
+            rec = f"🟢 LONG {sector} — Score {score:.0f}/100 | Positive overlays"
+        else:
+            rec = f"🟡 CAUTIOUS LONG {sector} — Score {score:.0f}/100 | Weak overlay confirmation"
+    else:
+        if score <= 25:
+            rec = f"🔴 STRONG SHORT {sector} — Score {score:.0f}/100 | All overlays negative"
+        elif score <= 40:
+            rec = f"🔴 SHORT {sector} — Score {score:.0f}/100 | Weak macro support"
+        else:
+            rec = f"🟡 CAUTIOUS SHORT {sector} — Score {score:.0f}/100 | Some overlay support remains"
+    return {
+        "ticker": ticker, "price": px, "entry": rl.get("entry"),
+        "direction": "LONG" if side == "long" else "SHORT",
+        "market_type": "ihsg",
+        "target_1": rl.get("tp1"), "target_2": rl.get("tp2"),
+        "stop": rl.get("stop"), "rr": rl.get("rr"),
+        "r1m": r1m, "r3m": r3m, "sector": sector,
+        "sector_momentum_1m": sec_mom.get("sector_1m"),
+        "sector_momentum_3m": sec_mom.get("sector_3m"),
+        "sector_leader": sec_mom.get("leader"),
+        "sector_strength": sec_mom.get("strength"),
+        "commodity_proxy": comm.get("proxy_name"),
+        "commodity_proxy_1m": comm.get("proxy_1m"),
+        "commodity_regime": comm.get("regime"),
+        "rupiah_regime": rup.get("regime"),
+        "dxy_1m": rup.get("dxy_1m"),
+        "idr_1m": rup.get("idr_1m"),
+        "idr_tailwind": rup.get("idr_tailwind"),
+        "foreign_flow": flow.get("signal"),
+        "flow_detail": flow.get("detail"),
+        "domestic_macro": dom.get("regime"),
+        "macro_tailwind": dom.get("tailwind_score"),
+        "composite_score": round(score, 1),
+        "recommendation": rec,
+        "action": rl.get("action", "—")[:35],
+        "grade": grade,
+        "signal": "BUY" if side == "long" else "SELL",
+        "lrr": lrr, "trr": trr,
+    }
+
+def _render_ihsg_card(row, idx=0):
+    """Custom narrative card for IHSG with 5-layer overlay display."""
+    ticker = row.get("ticker", "UNKNOWN")
+    price = row.get("price")
+    entry = row.get("entry")
+    t1 = row.get("target_1")
+    t2 = row.get("target_2")
+    stop = row.get("stop")
+    direction = row.get("direction", "NEUTRAL")
+    score = row.get("composite_score", 0)
+    grade = row.get("grade", "C")
+    dir_emoji = "🟢" if "LONG" in direction else "🔴" if "SHORT" in direction else "⚪"
+    header = f"{dir_emoji} {ticker} | {direction.replace(' ✅', '')} | Score {score:.0f}/100 | Grade {grade}"
+    with st.expander(header, expanded=False):
+        c1, c2, c3 = st.columns([2, 2, 2])
+        c1.markdown(f"**Direction:** {direction}", unsafe_allow_html=True)
+        c2.markdown(f"**Score:** {score:.0f}/100", unsafe_allow_html=True)
+        c3.markdown(f"**Grade:** {grade}", unsafe_allow_html=True)
+        st.divider()
+        m1, m2, m3, m4, m5, m6 = st.columns(6)
+        m1.metric("Price", _fmt_num(price))
+        m2.metric("Entry", _fmt_num(entry))
+        m3.metric("Target 1", _fmt_num(t1))
+        m4.metric("Target 2", _fmt_num(t2))
+        m5.metric("Stop Loss", _fmt_num(stop))
+        m6.metric("R:R", f"{_fmt_num(row.get('rr'))}x")
+        st.divider()
+        st.markdown("**📊 5-Layer IHSG Overlay**")
+        o1, o2 = st.columns(2)
+        with o1:
+            st.markdown("🏭 **Sector Momentum**")
+            st.caption(f"1M: {row.get('sector_momentum_1m'):+.1%}" if row.get("sector_momentum_1m") is not None else "1M: N/A")
+            st.caption(f"Leader: {row.get('sector_leader') or '—'}")
+            st.caption(f"Strength: {row.get('sector_strength') or '—'}")
+        with o2:
+            st.markdown("🛢️ **Commodity Proxy**")
+            st.caption(f"{row.get('commodity_proxy') or '—'}")
+            st.caption(f"1M: {row.get('commodity_proxy_1m'):+.1%}" if row.get("commodity_proxy_1m") is not None else "1M: N/A")
+            st.caption(f"Regime: {row.get('commodity_regime') or '—'}")
+        o3, o4 = st.columns(2)
+        with o3:
+            st.markdown("💱 **Rupiah Regime**")
+            st.caption(f"{row.get('rupiah_regime') or '—'}")
+            st.caption(f"DXY 1M: {row.get('dxy_1m'):+.1%}" if row.get("dxy_1m") is not None else "DXY: N/A")
+            st.caption(f"IDR 1M: {row.get('idr_1m'):+.1%}" if row.get("idr_1m") is not None else "IDR: N/A")
+        with o4:
+            st.markdown("🌊 **Foreign Flow Proxy**")
+            st.caption(f"{row.get('foreign_flow') or '—'}")
+            st.caption(f"{row.get('flow_detail') or '—'}")
+        st.markdown(f"🏛️ **Domestic Macro:** {row.get('domestic_macro') or '—'} | Tailwind: +{row.get('macro_tailwind', 0)} pts")
+        st.divider()
+        st.markdown("**⏱️ Path & Timing**")
+        p1, p2, p3 = st.columns(3)
+        p1.write(f"🛤️ **Path:** {row.get('path_smoothness', '—')}")
+        p2.write(f"⏳ **To T1:** {row.get('time_estimate', '—')}")
+        p3.write(f"🚀 **Breakout:** {row.get('breakout_chance', '—')}")
+        st.divider()
+        st.markdown("**🎯 Thesis & Actionable Strategy**")
+        st.info(row.get("recommendation", "N/A"))
+        if row.get("action"):
+            st.caption(f"🎬 **Action:** {row.get('action')}")
+        st.caption(f"📐 **T1 Basis:** {row.get('tp1_basis', 'TRR momentum target')}")
+        st.caption(f"🛑 **Stop Basis:** {row.get('stop_basis', 'Below LRR support')}")
+
+
+# ══════════════════════════════════════════════════════════════════════════════
     if market_type == "crypto" and s is not None:
         r1m = _price_ret(ticker, prices, 21)
         if r1m is not None:
@@ -1348,426 +1768,6 @@ elif page == "₿ Crypto":
     st.markdown(f"**🔴 SHORT CRYPTO ({len(shorts)} setups)**")
     for i, row in enumerate(shorts): _render_narrative_card_native(row, i, "crypto")
     if not shorts: st.info("No short crypto setups.")
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# IHSG 5-LAYER OVERLAY — Helper Functions
-# ══════════════════════════════════════════════════════════════════════════════
-
-IHSG_SECTOR_PEERS = {
-    "Coal": ["ADRO.JK", "ITMG.JK", "PTBA.JK", "HRUM.JK", "INDY.JK", "AADI.JK", "BUMI.JK"],
-    "Nickel": ["NCKL.JK", "ANTM.JK", "INCO.JK", "MDKA.JK", "TINS.JK", "BRMS.JK"],
-    "CPO": ["AALI.JK", "LSIP.JK", "SSMS.JK", "DSNG.JK", "TAPG.JK", "SGRO.JK"],
-    "Banking": ["BBCA.JK", "BBRI.JK", "BMRI.JK", "BBNI.JK", "BRIS.JK", "BBTN.JK", "BNGA.JK", "MEGA.JK", "NISP.JK"],
-    "Telco": ["TLKM.JK", "EXCL.JK", "ISAT.JK"],
-    "Consumer": ["ICBP.JK", "INDF.JK", "MYOR.JK", "KLBF.JK", "SIDO.JK", "ULTJ.JK", "CMRY.JK", "AMRT.JK", "ACES.JK", "MAPI.JK", "ERAA.JK"],
-    "Property": ["CTRA.JK", "BSDE.JK", "PWON.JK", "SMRA.JK", "BEST.JK", "KIJA.JK", "DMAS.JK"],
-    "Infrastructure": ["JSMR.JK", "PGAS.JK", "WIKA.JK", "PTPP.JK"],
-    "Shipping": ["WINS.JK", "LEAD.JK", "SHIP.JK", "ELSA.JK", "SOCI.JK", "SMDR.JK", "TMAS.JK", "BULL.JK"],
-    "Energy": ["PGEO.JK", "AKRA.JK", "MEDC.JK"],
-    "Mining Contractor": ["UNTR.JK", "BYAN.JK"],
-    "Pharma": ["KLBF.JK", "SIDO.JK"],
-    "Paper": ["INKP.JK", "TKIM.JK", "ESSA.JK"],
-    "Auto": ["ASII.JK", "CPIN.JK", "JPFA.JK"],
-    "Healthcare": ["HEAL.JK", "MIKA.JK", "SILO.JK"],
-    "ETF": ["EIDO"],
-    "Index": ["^JKSE"],
-}
-
-IHSG_COMMODITY_PROXY = {
-    "Coal": {"ticker": "CL=F", "name": "WTI Oil (Energy Proxy)"},
-    "Nickel": {"ticker": "HG=F", "name": "Copper (Base Metals Proxy)"},
-    "CPO": {"ticker": "DBA", "name": "Agriculture Basket (CPO Proxy)"},
-    "Mining Contractor": {"ticker": "CL=F", "name": "WTI Oil (Energy Proxy)"},
-    "Energy": {"ticker": "CL=F", "name": "WTI Oil (Energy Proxy)"},
-}
-
-def _get_ihsg_sector(ticker):
-    sector_map = {
-        "ADRO.JK": "Coal", "ITMG.JK": "Coal", "PTBA.JK": "Coal", "HRUM.JK": "Coal", "INDY.JK": "Coal", "AADI.JK": "Coal", "BUMI.JK": "Coal",
-        "NCKL.JK": "Nickel", "ANTM.JK": "Nickel", "INCO.JK": "Nickel", "MDKA.JK": "Nickel", "TINS.JK": "Nickel", "BRMS.JK": "Nickel",
-        "AALI.JK": "CPO", "LSIP.JK": "CPO", "SSMS.JK": "CPO", "DSNG.JK": "CPO", "TAPG.JK": "CPO", "SGRO.JK": "CPO",
-        "BBCA.JK": "Banking", "BBRI.JK": "Banking", "BMRI.JK": "Banking", "BBNI.JK": "Banking", "BRIS.JK": "Banking",
-        "BBTN.JK": "Banking", "BNGA.JK": "Banking", "MEGA.JK": "Banking", "NISP.JK": "Banking",
-        "TLKM.JK": "Telco", "EXCL.JK": "Telco", "ISAT.JK": "Telco",
-        "ICBP.JK": "Consumer", "INDF.JK": "Consumer", "MYOR.JK": "Consumer", "KLBF.JK": "Consumer",
-        "SIDO.JK": "Consumer", "ULTJ.JK": "Consumer", "CMRY.JK": "Consumer",
-        "AMRT.JK": "Consumer", "ACES.JK": "Consumer", "MAPI.JK": "Consumer", "ERAA.JK": "Consumer",
-        "ASII.JK": "Auto", "CPIN.JK": "Auto", "JPFA.JK": "Auto",
-        "CTRA.JK": "Property", "BSDE.JK": "Property", "PWON.JK": "Property", "SMRA.JK": "Property",
-        "BEST.JK": "Property", "KIJA.JK": "Property", "DMAS.JK": "Property",
-        "JSMR.JK": "Infrastructure", "PGAS.JK": "Infrastructure", "WIKA.JK": "Infrastructure", "PTPP.JK": "Infrastructure",
-        "WINS.JK": "Shipping", "LEAD.JK": "Shipping", "SHIP.JK": "Shipping", "ELSA.JK": "Shipping",
-        "SOCI.JK": "Shipping", "SMDR.JK": "Shipping", "TMAS.JK": "Shipping", "BULL.JK": "Shipping",
-        "PGEO.JK": "Energy", "AKRA.JK": "Energy", "MEDC.JK": "Energy", "UNTR.JK": "Mining Contractor", "BYAN.JK": "Mining Contractor",
-        "HEAL.JK": "Healthcare", "MIKA.JK": "Healthcare", "SILO.JK": "Healthcare",
-        "INKP.JK": "Paper", "TKIM.JK": "Paper", "ESSA.JK": "Paper",
-        "EIDO": "ETF", "^JKSE": "Index",
-    }
-    return sector_map.get(ticker, "Indonesia")
-
-def _ensure_ihsg_macros(prices):
-    """Auto-fetch DXY, USDIDR, CL=F, HG=F, DBA if missing from snapshot."""
-    needed = ["DX-Y.NYB", "USDIDR=X", "CL=F", "HG=F", "DBA"]
-    missing = [t for t in needed if t not in prices or prices.get(t) is None]
-    if not missing:
-        return prices
-    try:
-        import yfinance as yf
-        raw = yf.download(missing, period="90d", progress=False, auto_adjust=True, threads=True, timeout=15)
-        if raw.empty:
-            return prices
-        for t in missing:
-            try:
-                if len(missing) == 1:
-                    s = pd.to_numeric(raw["Close"] if "Close" in raw.columns else raw.iloc[:, 0], errors="coerce").dropna()
-                else:
-                    cl = raw["Close"] if "Close" in raw.columns.get_level_values(0) else None
-                    if cl is None:
-                        continue
-                    s = pd.to_numeric(cl[t], errors="coerce").dropna() if t in cl.columns else None
-                if s is not None and not s.empty:
-                    prices[t] = s
-            except Exception:
-                pass
-    except Exception as e:
-        logger.warning(f"IHSG macro fetch: {e}")
-    return prices
-
-def _sector_momentum(sector_tickers, prices):
-    """Compute composite 1M/3M momentum for a sector."""
-    rets_1m = []
-    rets_3m = []
-    for t in sector_tickers:
-        r1 = _price_ret(t, prices, 21)
-        r3 = _price_ret(t, prices, 63)
-        if r1 is not None:
-            rets_1m.append(r1)
-        if r3 is not None:
-            rets_3m.append(r3)
-    if not rets_1m:
-        return {"sector_1m": None, "sector_3m": None, "leader": None, "strength": "N/A"}
-    avg_1m = sum(rets_1m) / len(rets_1m)
-    avg_3m = sum(rets_3m) / len(rets_3m) if rets_3m else 0
-    leader = None
-    best_r = -999
-    for t in sector_tickers:
-        r = _price_ret(t, prices, 21)
-        if r is not None and r > best_r:
-            best_r = r
-            leader = t
-    if avg_1m > 0.08:
-        strength = "Strong 🟢"
-    elif avg_1m > 0.03:
-        strength = "Moderate 🟡"
-    elif avg_1m > 0:
-        strength = "Weak ⚪"
-    else:
-        strength = "Negative 🔴"
-    return {"sector_1m": avg_1m, "sector_3m": avg_3m, "leader": leader, "strength": strength}
-
-def _commodity_overlay(sector, prices):
-    """Global commodity price proxy overlay."""
-    proxy = IHSG_COMMODITY_PROXY.get(sector)
-    if not proxy:
-        return {"proxy_name": None, "proxy_1m": None, "regime": "N/A"}
-    pt = proxy["ticker"]
-    s = prices.get(pt)
-    if s is None or len(s) < 22:
-        return {"proxy_name": proxy["name"], "proxy_1m": None, "regime": "Data unavailable"}
-    s = pd.to_numeric(s, errors="coerce").dropna()
-    if len(s) < 22:
-        return {"proxy_name": proxy["name"], "proxy_1m": None, "regime": "Data unavailable"}
-    r1m = float(s.iloc[-1] / s.iloc[-22] - 1)
-    if r1m > 0.05:
-        regime = "Tailwind 🟢"
-    elif r1m < -0.05:
-        regime = "Headwind 🔴"
-    else:
-        regime = "Neutral ⚪"
-    return {"proxy_name": proxy["name"], "proxy_1m": r1m, "regime": regime}
-
-def _rupiah_regime_overlay(prices):
-    """DXY + USDIDR regime for IHSG context."""
-    dxy = prices.get("DX-Y.NYB")
-    usdidr = prices.get("USDIDR=X")
-    if dxy is not None and len(dxy) >= 22:
-        dxy = pd.to_numeric(dxy, errors="coerce").dropna()
-        dxy_1m = float(dxy.iloc[-1] / dxy.iloc[-22] - 1) if len(dxy) >= 22 else 0
-    else:
-        dxy_1m = 0
-    if usdidr is not None and len(usdidr) >= 22:
-        usdidr = pd.to_numeric(usdidr, errors="coerce").dropna()
-        idr_1m = float(usdidr.iloc[-1] / usdidr.iloc[-22] - 1) if len(usdidr) >= 22 else 0
-    else:
-        idr_1m = 0
-    tailwind = (-dxy_1m * 0.5) + (-idr_1m * 0.5)
-    if dxy_1m < -0.02 and idr_1m < -0.02:
-        regime = "🟢 Strong Support"
-    elif dxy_1m < -0.01 and idr_1m < 0.01:
-        regime = "🟢 Moderate Support"
-    elif dxy_1m > 0.02 and idr_1m > 0.02:
-        regime = "🔴 Headwind"
-    elif dxy_1m > 0.01:
-        regime = "🟡 Mild Headwind"
-    else:
-        regime = "⚪ Neutral"
-    return {"regime": regime, "dxy_1m": dxy_1m, "idr_1m": idr_1m, "idr_tailwind": tailwind}
-
-def _foreign_flow_proxy(ticker, prices):
-    """Price-action based foreign flow proxy (gap + vol expansion + streak)."""
-    s = prices.get(ticker)
-    if s is None or len(s) < 10:
-        return {"signal": "NEUTRAL ⚪", "detail": "Insufficient data"}
-    s = pd.to_numeric(s, errors="coerce").dropna()
-    if len(s) < 10:
-        return {"signal": "NEUTRAL ⚪", "detail": "Insufficient data"}
-    daily_rets = s.pct_change().dropna()
-    if len(daily_rets) < 5:
-        return {"signal": "NEUTRAL ⚪", "detail": "Insufficient data"}
-    recent = daily_rets.tail(5)
-    avg_vol = daily_rets.tail(20).std() if len(daily_rets) >= 20 else daily_rets.std()
-    recent_vol = recent.std()
-    vol_expansion = (recent_vol > avg_vol * 1.3) if avg_vol and avg_vol > 0 else False
-    consecutive_up = 0
-    consecutive_down = 0
-    for r in reversed(recent):
-        if r > 0:
-            consecutive_up += 1
-            consecutive_down = 0
-        elif r < 0:
-            consecutive_down += 1
-            consecutive_up = 0
-        else:
-            break
-    gap_up = daily_rets.iloc[-1] > 0.02 if len(daily_rets) > 0 else False
-    gap_down = daily_rets.iloc[-1] < -0.02 if len(daily_rets) > 0 else False
-    if gap_up and vol_expansion and consecutive_up >= 2:
-        return {"signal": "📈 ACCUMULATION", "detail": f"Gap +{daily_rets.iloc[-1]:.1%}, vol expansion, {consecutive_up}d up"}
-    elif gap_down and vol_expansion and consecutive_down >= 2:
-        return {"signal": "📉 DISTRIBUTION", "detail": f"Gap {daily_rets.iloc[-1]:.1%}, vol expansion, {consecutive_down}d down"}
-    elif consecutive_up >= 3:
-        return {"signal": "📈 BUILDING", "detail": f"{consecutive_up} consecutive up days"}
-    elif consecutive_down >= 3:
-        return {"signal": "📉 FADING", "detail": f"{consecutive_down} consecutive down days"}
-    else:
-        return {"signal": "NEUTRAL ⚪", "detail": "No clear flow signature"}
-
-def _domestic_macro_proxy(ticker, sector, prices):
-    """Domestic macro proxy using USDIDR + banking sector as rate/credit cycle indicator."""
-    usdidr = prices.get("USDIDR=X")
-    if usdidr is not None and len(usdidr) >= 63:
-        usdidr = pd.to_numeric(usdidr, errors="coerce").dropna()
-        idr_3m = float(usdidr.iloc[-1] / usdidr.iloc[-63] - 1) if len(usdidr) >= 63 else 0
-    else:
-        idr_3m = 0
-    banks = ["BBCA.JK", "BBRI.JK", "BMRI.JK", "BBNI.JK", "BRIS.JK"]
-    bank_momentum = _sector_momentum(banks, prices)
-    bank_1m = bank_momentum.get("sector_1m", 0) or 0
-    tailwind = 0
-    if "Banking" in sector:
-        if abs(idr_3m) < 0.05:
-            tailwind += 5
-        if bank_1m > 0.03:
-            tailwind += 10
-        regime = "NIM Expansion Proxy" if bank_1m > 0.03 else "NIM Stable"
-    elif any(x in sector for x in ["Consumer", "Pharma", "Healthcare"]):
-        if abs(idr_3m) < 0.03:
-            tailwind += 8
-        regime = "Domestic Demand Stable" if abs(idr_3m) < 0.03 else "Purchasing Power Pressure"
-    elif any(x in sector for x in ["Coal", "Nickel", "CPO", "Mining", "Energy"]):
-        if idr_3m > 0.03:
-            tailwind += 10
-        regime = "Exporter Tailwind (IDR weak)" if idr_3m > 0.03 else "Exporter Neutral"
-    else:
-        regime = "Macro Neutral"
-        if abs(idr_3m) < 0.03:
-            tailwind += 3
-    return {"regime": regime, "tailwind_score": tailwind, "idr_3m": idr_3m, "bank_1m": bank_1m}
-
-def _build_ihsg_row_enhanced(ticker, prices, ar):
-    """Build IHSG row with 5-Layer Overlay: Sector Momentum, Commodity, Rupiah, Flow, Domestic Macro."""
-    v = ar.get(ticker, {})
-    s = prices.get(ticker)
-    if not v:
-        if s is None or s.empty:
-            return None
-        s_clean = pd.to_numeric(s, errors="coerce").dropna()
-        if len(s_clean) < 60:
-            return None
-        px = float(s_clean.iloc[-1])
-        sma20 = float(s_clean.tail(20).mean())
-        std20 = float(s_clean.tail(20).std())
-        if not all(math.isfinite(v) for v in [px, sma20, std20]):
-            return None
-        lrr = round(sma20 - 1.5 * std20, 2)
-        trr = round(sma20 + 1.5 * std20, 2)
-        comp = "bullish" if px < lrr else "bearish" if px > trr else "neutral"
-        if comp == "neutral":
-            return None
-        v = {"px": px, "trade": {"lrr": lrr, "trr": trr}, "composite": comp, "quality": "B", "market": "ihsg"}
-    tr = v.get("trade", {})
-    px = _sf(v.get("px"))
-    lrr = _sf(tr.get("lrr"))
-    trr = _sf(tr.get("trr"))
-    if not px or not lrr or not trr:
-        return None
-    side = "long" if v.get("composite") == "bullish" else "short"
-    rl = _rr_levels(px, lrr, trr, side)
-    if not rl:
-        return None
-    r1m = _price_ret(ticker, prices, 21)
-    r3m = _price_ret(ticker, prices, 63)
-    sector = _get_ihsg_sector(ticker)
-    # 5-LAYER OVERLAY
-    peers = IHSG_SECTOR_PEERS.get(sector, [ticker])
-    if ticker not in peers:
-        peers.append(ticker)
-    sec_mom = _sector_momentum(peers, prices)
-    comm = _commodity_overlay(sector, prices)
-    rup = _rupiah_regime_overlay(prices)
-    flow = _foreign_flow_proxy(ticker, prices)
-    dom = _domestic_macro_proxy(ticker, sector, prices)
-    # Composite Score (0-100)
-    score = 50.0
-    if side == "long":
-        score += min(20, (sec_mom.get("sector_1m") or 0) * 200)
-        score += min(15, (comm.get("proxy_1m") or 0) * 150)
-        score += min(15, rup.get("idr_tailwind", 0) * 100)
-        score += min(10, dom.get("tailwind_score", 0))
-        if "ACCUMULATION" in flow.get("signal", ""):
-            score += 10
-        elif "DISTRIBUTION" in flow.get("signal", ""):
-            score -= 10
-    else:
-        score -= min(20, abs(sec_mom.get("sector_1m") or 0) * 200)
-        score -= min(15, abs(comm.get("proxy_1m") or 0) * 150)
-        score -= min(15, abs(rup.get("idr_tailwind", 0)) * 100)
-        score -= min(10, abs(dom.get("tailwind_score", 0)))
-        if "DISTRIBUTION" in flow.get("signal", ""):
-            score -= 10
-        elif "ACCUMULATION" in flow.get("signal", ""):
-            score += 10
-    score = max(0, min(100, score))
-    # Grade
-    if score >= 75:
-        grade = "A"
-    elif score >= 60:
-        grade = "B"
-    elif score >= 45:
-        grade = "C"
-    else:
-        grade = "D"
-    # Recommendation
-    sec_1m_str = f"{sec_mom.get('sector_1m'):+.1%}" if sec_mom.get("sector_1m") is not None else "N/A"
-    comm_str = f"{comm.get('proxy_1m'):+.1%}" if comm.get("proxy_1m") is not None else "N/A"
-    if side == "long":
-        if score >= 75:
-            rec = f"🟢 STRONG LONG {sector} — Score {score:.0f}/100 | Sector {sec_1m_str} | Commodity {comm_str} | Flow: {flow['signal']}"
-        elif score >= 60:
-            rec = f"🟢 LONG {sector} — Score {score:.0f}/100 | Positive overlays"
-        else:
-            rec = f"🟡 CAUTIOUS LONG {sector} — Score {score:.0f}/100 | Weak overlay confirmation"
-    else:
-        if score <= 25:
-            rec = f"🔴 STRONG SHORT {sector} — Score {score:.0f}/100 | All overlays negative"
-        elif score <= 40:
-            rec = f"🔴 SHORT {sector} — Score {score:.0f}/100 | Weak macro support"
-        else:
-            rec = f"🟡 CAUTIOUS SHORT {sector} — Score {score:.0f}/100 | Some overlay support remains"
-    return {
-        "ticker": ticker, "price": px, "entry": rl.get("entry"),
-        "direction": "LONG" if side == "long" else "SHORT",
-        "market_type": "ihsg",
-        "target_1": rl.get("tp1"), "target_2": rl.get("tp2"),
-        "stop": rl.get("stop"), "rr": rl.get("rr"),
-        "r1m": r1m, "r3m": r3m, "sector": sector,
-        "sector_momentum_1m": sec_mom.get("sector_1m"),
-        "sector_momentum_3m": sec_mom.get("sector_3m"),
-        "sector_leader": sec_mom.get("leader"),
-        "sector_strength": sec_mom.get("strength"),
-        "commodity_proxy": comm.get("proxy_name"),
-        "commodity_proxy_1m": comm.get("proxy_1m"),
-        "commodity_regime": comm.get("regime"),
-        "rupiah_regime": rup.get("regime"),
-        "dxy_1m": rup.get("dxy_1m"),
-        "idr_1m": rup.get("idr_1m"),
-        "idr_tailwind": rup.get("idr_tailwind"),
-        "foreign_flow": flow.get("signal"),
-        "flow_detail": flow.get("detail"),
-        "domestic_macro": dom.get("regime"),
-        "macro_tailwind": dom.get("tailwind_score"),
-        "composite_score": round(score, 1),
-        "recommendation": rec,
-        "action": rl.get("action", "—")[:35],
-        "grade": grade,
-        "signal": "BUY" if side == "long" else "SELL",
-        "lrr": lrr, "trr": trr,
-    }
-
-def _render_ihsg_card(row, idx=0):
-    """Custom narrative card for IHSG with 5-layer overlay display."""
-    ticker = row.get("ticker", "UNKNOWN")
-    price = row.get("price")
-    entry = row.get("entry")
-    t1 = row.get("target_1")
-    t2 = row.get("target_2")
-    stop = row.get("stop")
-    direction = row.get("direction", "NEUTRAL")
-    score = row.get("composite_score", 0)
-    grade = row.get("grade", "C")
-    dir_emoji = "🟢" if "LONG" in direction else "🔴" if "SHORT" in direction else "⚪"
-    header = f"{dir_emoji} {ticker} | {direction.replace(' ✅', '')} | Score {score:.0f}/100 | Grade {grade}"
-    with st.expander(header, expanded=False):
-        c1, c2, c3 = st.columns([2, 2, 2])
-        c1.markdown(f"**Direction:** {direction}", unsafe_allow_html=True)
-        c2.markdown(f"**Score:** {score:.0f}/100", unsafe_allow_html=True)
-        c3.markdown(f"**Grade:** {grade}", unsafe_allow_html=True)
-        st.divider()
-        m1, m2, m3, m4, m5, m6 = st.columns(6)
-        m1.metric("Price", _fmt_num(price))
-        m2.metric("Entry", _fmt_num(entry))
-        m3.metric("Target 1", _fmt_num(t1))
-        m4.metric("Target 2", _fmt_num(t2))
-        m5.metric("Stop Loss", _fmt_num(stop))
-        m6.metric("R:R", f"{_fmt_num(row.get('rr'))}x")
-        st.divider()
-        st.markdown("**📊 5-Layer IHSG Overlay**")
-        o1, o2 = st.columns(2)
-        with o1:
-            st.markdown("🏭 **Sector Momentum**")
-            st.caption(f"1M: {row.get('sector_momentum_1m'):+.1%}" if row.get("sector_momentum_1m") is not None else "1M: N/A")
-            st.caption(f"Leader: {row.get('sector_leader') or '—'}")
-            st.caption(f"Strength: {row.get('sector_strength') or '—'}")
-        with o2:
-            st.markdown("🛢️ **Commodity Proxy**")
-            st.caption(f"{row.get('commodity_proxy') or '—'}")
-            st.caption(f"1M: {row.get('commodity_proxy_1m'):+.1%}" if row.get("commodity_proxy_1m") is not None else "1M: N/A")
-            st.caption(f"Regime: {row.get('commodity_regime') or '—'}")
-        o3, o4 = st.columns(2)
-        with o3:
-            st.markdown("💱 **Rupiah Regime**")
-            st.caption(f"{row.get('rupiah_regime') or '—'}")
-            st.caption(f"DXY 1M: {row.get('dxy_1m'):+.1%}" if row.get("dxy_1m") is not None else "DXY: N/A")
-            st.caption(f"IDR 1M: {row.get('idr_1m'):+.1%}" if row.get("idr_1m") is not None else "IDR: N/A")
-        with o4:
-            st.markdown("🌊 **Foreign Flow Proxy**")
-            st.caption(f"{row.get('foreign_flow') or '—'}")
-            st.caption(f"{row.get('flow_detail') or '—'}")
-        st.markdown(f"🏛️ **Domestic Macro:** {row.get('domestic_macro') or '—'} | Tailwind: +{row.get('macro_tailwind', 0)} pts")
-        st.divider()
-        st.markdown("**⏱️ Path & Timing**")
-        p1, p2, p3 = st.columns(3)
-        p1.write(f"🛤️ **Path:** {row.get('path_smoothness', '—')}")
-        p2.write(f"⏳ **To T1:** {row.get('time_estimate', '—')}")
-        p3.write(f"🚀 **Breakout:** {row.get('breakout_chance', '—')}")
-        st.divider()
-        st.markdown("**🎯 Thesis & Actionable Strategy**")
-        st.info(row.get("recommendation", "N/A"))
-        if row.get("action"):
-            st.caption(f"🎬 **Action:** {row.get('action')}")
-        st.caption(f"📐 **T1 Basis:** {row.get('tp1_basis', 'TRR momentum target')}")
-        st.caption(f"🛑 **Stop Basis:** {row.get('stop_basis', 'Below LRR support')}")
 
 
 # ══════════════════════════════════════════════════════════════════════════════

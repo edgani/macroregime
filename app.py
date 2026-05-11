@@ -1465,69 +1465,9 @@ elif page == "🌍 Global & EM":
 
             st.divider()
 
-            # SECTOR SCORECARD
-            st.markdown('<div class="subsection-header">📊 Sector Scorecard</div>', unsafe_allow_html=True)
-
-            scorecard_rows = []
-            sector_tickers_map = {
-                "Coal": ["ADRO.JK", "ITMG.JK", "PTBA.JK"],
-                "Nickel": ["NCKL.JK", "ANTM.JK", "INCO.JK"],
-                "CPO": ["AALI.JK", "LSIP.JK", "SMAR.JK"],
-                "Banking": ["BBRI.JK", "BMRI.JK", "BBCA.JK", "BBNI.JK", "BRIS.JK"],
-                "Telco": ["TLKM.JK", "EXCL.JK"],
-                "Consumer": ["ICBP.JK", "INDF.JK"],
-                "Pharma": ["KLBF.JK"],
-                "Mining": ["UNTR.JK", "BYAN.JK"],
-                "Geothermal": ["PGEO.JK"],
-                "Shipping": ["WINS.JK"],
-            }
-
-            for sector, tickers in sector_tickers_map.items():
-                sec_mom = (ihsg_sector_momentum or {}).get(sector, {})
-                mom_1m = sec_mom.get("avg_1m")
-                mom_leader = sec_mom.get("leader", "—")
-
-                comm_ov = (ihsg_commodity_overlay or {}).get(sector, {})
-                comm_tail = comm_ov.get("tailwind", "—")
-
-                macro_bias = "—"
-                if sector == "Banking": macro_bias = macro.get("banking_bias", "—") if macro else "—"
-                elif sector in ["Consumer", "Pharma"]: macro_bias = macro.get("consumer_bias", "—") if macro else "—"
-                elif sector in ["Coal", "Nickel", "CPO", "Mining"]: macro_bias = macro.get("commodity_bias", "—") if macro else "—"
-
-                signals = []
-                if mom_1m and mom_1m > 0.03: signals.append("Momentum+")
-                if mom_1m and mom_1m < -0.03: signals.append("Momentum-")
-                if comm_tail in ["Strong", "Moderate"]: signals.append("Commodity+")
-                if macro_bias == "Bullish": signals.append("Macro+")
-                if macro_bias == "Bearish": signals.append("Macro-")
-
-                if "Macro+" in signals and "Momentum+" in signals: composite = "🟢 STRONG LONG"; grade = "A"
-                elif "Macro+" in signals or "Momentum+" in signals: composite = "🟡 LONG"; grade = "B"
-                elif "Macro-" in signals and "Momentum-" in signals: composite = "🔴 AVOID"; grade = "C"
-                elif "Macro-" in signals or "Momentum-" in signals: composite = "🟠 CAUTIOUS"; grade = "C"
-                else: composite = "⚪ NEUTRAL"; grade = "C"
-
-                scorecard_rows.append({
-                    "Sector": sector,
-                    "Leader": mom_leader,
-                    "Momentum": fp(mom_1m),
-                    "Commodity": comm_tail,
-                    "Macro": macro_bias,
-                    "Composite": composite,
-                    "Grade": grade,
-                })
-
-            if scorecard_rows:
-                df_sc = pd.DataFrame(scorecard_rows)
-                styled_sc = df_sc.style.map(lambda x: "color:#3FB950;font-weight:700;" if "STRONG" in x else ("color:#F85149;font-weight:700;" if "AVOID" in x else ("color:#D29922;font-weight:600;" if "LONG" in x or "CAUTIOUS" in x else "color:#8B949E;")), subset=["Composite"])
-                styled_sc = styled_sc.map(lambda x: "color:#3FB950;font-weight:700;" if x=="A" else ("color:#D29922;font-weight:600;" if x=="B" else "color:#8B949E;"), subset=["Grade"])
-                st.dataframe(styled_sc, hide_index=True, use_container_width=True, height=380)
-
-            st.divider()
-
-            # TICKER REPORT CARDS
+            # TICKER REPORT CARDS — EXPANDABLE WITH SECTOR SCORECARD INSIDE
             st.markdown('<div class="subsection-header">📈 Ticker Report Cards</div>', unsafe_allow_html=True)
+            st.caption("Click any ticker to expand → see price levels + sector scorecard + structural layers")
 
             ihsg_rows = []
             for ticker in list(IHSG_UNIVERSE.keys()):
@@ -1556,17 +1496,23 @@ elif page == "🌍 Global & EM":
                 stop = row.get("stop")
                 rr = row.get("rr", 0)
                 rec = row.get("recommendation", "—")
+                r1m = row.get("r1m")
 
+                # Get sector data for this ticker
+                sec_mom = row.get("sector_momentum", {})
+                comm_ov = row.get("commodity_overlay", {})
+                flow = row.get("foreign_flow", {})
+                rup = row.get("rupiah_regime", {})
+
+                # Determine expander color/icon
                 card_border = "#3FB950" if "LONG" in rec else "#F85149" if "avoid" in rec.lower() or "short" in rec.lower() else "#D29922"
+                dir_emoji = "🟢" if "LONG" in rec else "🔴" if "avoid" in rec.lower() or "short" in rec.lower() else "🟡"
 
-                with st.container():
-                    st.markdown(f'<div style="background:#161B22;border:1px solid {card_border};border-radius:8px;padding:12px;margin:8px 0;">', unsafe_allow_html=True)
+                # Build header with key info visible even when collapsed
+                header = f"{dir_emoji} {ticker} | {sector} · {theme} | RR {rr:.1f}x | {fp(r1m)} 1M"
 
-                    h1, h2, h3 = st.columns([2, 2, 1])
-                    h1.markdown(f"<span style='font-size:16px;font-weight:700;color:#E6EDF3;'>{ticker}</span> <span style='font-size:11px;color:#8B949E;'>| {sector} · {theme}</span>", unsafe_allow_html=True)
-                    h2.markdown(f"<span style='font-size:13px;color:{card_border};font-weight:600;'>{rec[:50]}</span>", unsafe_allow_html=True)
-                    h3.markdown(f"<span style='font-size:13px;font-weight:700;color:#E6EDF3;'>RR: {rr:.1f}x</span>", unsafe_allow_html=True)
-
+                with st.expander(header, expanded=False):
+                    # Price levels
                     m1, m2, m3, m4, m5 = st.columns(5)
                     m1.metric("Price", _fmt_num(price))
                     m2.metric("Entry", _fmt_num(entry))
@@ -1574,28 +1520,103 @@ elif page == "🌍 Global & EM":
                     m4.metric("T2", _fmt_num(t2))
                     m5.metric("Stop", _fmt_num(stop))
 
-                    thesis_parts = []
-                    sec_mom = row.get("sector_momentum", {})
-                    if sec_mom.get("bias") == "Bullish": thesis_parts.append(f"📊 Sector +{fp(sec_mom.get('avg_1m'))} ({sec_mom.get('leader')} leading)")
-                    comm_ov = row.get("commodity_overlay", {})
-                    if comm_ov.get("tailwind") in ["Strong", "Moderate"]: thesis_parts.append(f"🛢️ Commodity tailwind")
-                    flow = row.get("foreign_flow", {})
-                    if flow.get("signal") == "🟢 Foreign Accumulation": thesis_parts.append(f"🌊 Foreign accumulation")
-                    rup = row.get("rupiah_regime", {})
-                    if rup.get("flow_signal") and "Positive" in rup["flow_signal"]: thesis_parts.append(f"💱 Rupiah support")
+                    st.divider()
 
-                    if thesis_parts:
-                        st.caption(" · ".join(thesis_parts))
+                    # ═══════════════════════════════════════════════════════════
+                    # SECTOR SCORECARD — MERGED INTO TICKER
+                    # ═══════════════════════════════════════════════════════════
+                    st.markdown(f'<div class="subsection-header">📊 {sector} Sector Scorecard</div>', unsafe_allow_html=True)
 
-                    st.markdown('</div>', unsafe_allow_html=True)
+                    sc1, sc2, sc3, sc4 = st.columns(4)
+
+                    with sc1:
+                        st.markdown('<div class="metric-box">', unsafe_allow_html=True)
+                        st.markdown(f'<div class="metric-label">SECTOR MOMENTUM</div>', unsafe_allow_html=True)
+                        if sec_mom.get("avg_1m") is not None:
+                            mom_color = "#3FB950" if sec_mom.get("avg_1m", 0) > 0 else "#F85149"
+                            st.markdown(f'<div class="metric-value" style="color:{mom_color};">{fp(sec_mom.get("avg_1m"))}</div>', unsafe_allow_html=True)
+                            st.markdown(f'<div class="metric-sub">Leader: {sec_mom.get("leader", "—")}</div>', unsafe_allow_html=True)
+                        else:
+                            st.markdown('<div class="metric-value">—</div>', unsafe_allow_html=True)
+                        st.markdown('</div>', unsafe_allow_html=True)
+
+                    with sc2:
+                        st.markdown('<div class="metric-box">', unsafe_allow_html=True)
+                        st.markdown(f'<div class="metric-label">COMMODITY</div>', unsafe_allow_html=True)
+                        if comm_ov.get("tailwind"):
+                            tail_color = "#3FB950" if comm_ov.get("tailwind") in ["Strong", "Moderate"] else "#F85149" if comm_ov.get("tailwind") == "Headwind" else "#D29922"
+                            st.markdown(f'<div class="metric-value" style="color:{tail_color};">{comm_ov.get("tailwind", "—")}</div>', unsafe_allow_html=True)
+                            st.markdown(f'<div class="metric-sub">{comm_ov.get("proxy", "—")} {fp(comm_ov.get("r1m"))}</div>', unsafe_allow_html=True)
+                        else:
+                            st.markdown('<div class="metric-value">—</div>', unsafe_allow_html=True)
+                        st.markdown('</div>', unsafe_allow_html=True)
+
+                    with sc3:
+                        st.markdown('<div class="metric-box">', unsafe_allow_html=True)
+                        st.markdown(f'<div class="metric-label">MACRO BIAS</div>', unsafe_allow_html=True)
+                        macro_bias = "—"
+                        if sector == "Banking": macro_bias = macro.get("banking_bias", "—") if macro else "—"
+                        elif sector in ["Consumer", "Pharma"]: macro_bias = macro.get("consumer_bias", "—") if macro else "—"
+                        elif sector in ["Coal", "Nickel", "CPO", "Mining"]: macro_bias = macro.get("commodity_bias", "—") if macro else "—"
+                        bias_color = "#3FB950" if macro_bias == "Bullish" else "#F85149" if macro_bias == "Bearish" else "#8B949E"
+                        st.markdown(f'<div class="metric-value" style="color:{bias_color};">{macro_bias}</div>', unsafe_allow_html=True)
+                        st.markdown(f'<div class="metric-sub">{macro.get("bi_signal","—")[:25] if macro else "—"}</div>', unsafe_allow_html=True)
+                        st.markdown('</div>', unsafe_allow_html=True)
+
+                    with sc4:
+                        st.markdown('<div class="metric-box">', unsafe_allow_html=True)
+                        st.markdown(f'<div class="metric-label">FOREIGN FLOW</div>', unsafe_allow_html=True)
+                        if flow.get("signal"):
+                            flow_color = "#3FB950" if "Accumulation" in flow.get("signal", "") else "#F85149" if "Distribution" in flow.get("signal", "") else "#D29922"
+                            st.markdown(f'<div class="metric-value" style="color:{flow_color};font-size:14px;">{flow.get("signal", "—")}</div>', unsafe_allow_html=True)
+                            st.markdown(f'<div class="metric-sub">Gap {fp(flow.get("gap"))} · Vol {flow.get("vol_spike", 0):.1f}x</div>', unsafe_allow_html=True)
+                        else:
+                            st.markdown('<div class="metric-value">—</div>', unsafe_allow_html=True)
+                        st.markdown('</div>', unsafe_allow_html=True)
+
+                    st.divider()
+
+                    # ═══════════════════════════════════════════════════════════
+                    # STRUCTURAL LAYERS FOR THIS TICKER
+                    # ═══════════════════════════════════════════════════════════
+                    st.markdown('<div class="subsection-header">🔬 Structural Layers</div>', unsafe_allow_html=True)
+
+                    layer_parts = []
+                    if sec_mom.get("bias") == "Bullish":
+                        layer_parts.append(f"📊 **Sector Momentum:** {sector} +{fp(sec_mom.get('avg_1m'))} (leader {sec_mom.get('leader')})")
+                    if comm_ov.get("tailwind") in ["Strong", "Moderate"]:
+                        layer_parts.append(f"🛢️ **Commodity Tailwind:** {comm_ov.get('signal', '')}")
+                    if rup.get("flow_signal") and "Positive" in rup["flow_signal"]:
+                        layer_parts.append(f"💱 **Rupiah Support:** {rup.get('flow_signal', '')}")
+                    if flow.get("signal") == "🟢 Foreign Accumulation":
+                        layer_parts.append(f"🌊 **Foreign Flow:** {flow.get('note', '')}")
+                    if sector == "Banking" and macro.get("banking_bias") == "Bullish":
+                        layer_parts.append(f"🏦 **BI Macro:** {macro.get('bi_signal', '')}")
+                    if sector in ["Consumer", "Pharma"] and macro.get("consumer_bias") == "Bullish":
+                        layer_parts.append(f"🛒 **Consumer Macro:** {macro.get('consumer_signal', '')}")
+
+                    if layer_parts:
+                        for part in layer_parts:
+                            st.markdown(part)
+                    else:
+                        st.caption("No structural layer signals for this ticker.")
+
+                    st.divider()
+
+                    # Thesis & Action
+                    st.markdown(f"**🎯 Thesis:** {rec}")
+                    st.markdown(f"**⏱️ Time Estimate:** {row.get('time_estimate', '—')} | **Path:** {row.get('path_smoothness', '—')}")
+
+                    if row.get("action"):
+                        st.caption(f"🎬 **Action:** {row.get('action')}")
 
             if not ihsg_rows:
                 st.info("No IHSG setups available.")
 
             st.divider()
 
-            # STRUCTURAL DIAGNOSTICS
-            st.markdown('<div class="subsection-header">🔬 Structural Diagnostics</div>', unsafe_allow_html=True)
+            # STRUCTURAL DIAGNOSTICS (bottom summary)
+            st.markdown('<div class="subsection-header">🔬 Market-Wide Structural Diagnostics</div>', unsafe_allow_html=True)
 
             diag1, diag2, diag3, diag4, diag5 = st.columns(5)
 

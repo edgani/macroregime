@@ -1,10 +1,9 @@
-"""app.py — MacroRegime Pro v23.2 | FINAL FIX
+"""app.py — MacroRegime Pro v24.0 | IHSG Enhanced + Visual Surgical Structure
 Changes:
-- Realistic timing: based on expected move/week + distance + vol + market type + gamma
-- Dashboard: removed duplicate _seq_pills (keep only in GIP Model)
-- Crypto filter: momentum-based override, shows both longs and shorts
-- Expected move added to all narrative cards
-- Clear filter logic per tab
+- IHSG: 5 structural compensator layers (sector momentum, commodity overlay, rupiah regime, foreign flow, macro overlay)
+- TP Basis explanation banner per market tab
+- Deep surgical visual structure: consistent spacing, font hierarchy, readable cards
+- Option data guarantee: gamma/greeks fallback always renders
 """
 import streamlit as st
 import pandas as pd
@@ -20,13 +19,18 @@ st.set_page_config(page_title="MacroRegime Pro", page_icon="📊", layout="wide"
 
 from config.settings import FOREX_PAIRS, COMMODITIES, CRYPTO, IHSG_UNIVERSE
 
+# ══════════════════════════════════════════════════════════════════════════════
+# GLOBAL CSS — Surgical Typography & Spacing
+# ══════════════════════════════════════════════════════════════════════════════
 st.markdown("""
 <style>
 .stApp { background-color: #0d1117; }
-.card-green {background:#0D2818;border:1px solid #3FB950;border-radius:8px;padding:12px;margin:6px 0;}
-.card-yellow {background:#2D2305;border:1px solid #D29922;border-radius:8px;padding:12px;margin:6px 0;}
-.card-red {background:#2D0D0D;border:1px solid #F85149;border-radius:8px;padding:12px;margin:6px 0;}
-.badge {display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;margin-right:4px;}
+.card-green {background:#0D2818;border:1px solid #3FB950;border-radius:8px;padding:14px;margin:8px 0;}
+.card-yellow {background:#2D2305;border:1px solid #D29922;border-radius:8px;padding:14px;margin:8px 0;}
+.card-red {background:#2D0D0D;border:1px solid #F85149;border-radius:8px;padding:14px;margin:8px 0;}
+.card-blue {background:#0D1F3C;border:1px solid #1F6FEB;border-radius:8px;padding:14px;margin:8px 0;}
+.card-gray {background:#161B22;border:1px solid #30363D;border-radius:8px;padding:14px;margin:8px 0;}
+.badge {display:inline-block;padding:3px 10px;border-radius:4px;font-size:12px;font-weight:600;margin-right:6px;}
 .badge-a {background:#3FB95022;color:#3FB950;border:1px solid #3FB950;}
 .badge-ap {background:#3FB95044;color:#3FB950;border:1px solid #3FB950;}
 .badge-b {background:#D2992222;color:#D29922;border:1px solid #D29922;}
@@ -35,6 +39,19 @@ st.markdown("""
 .badge-short {background:#F8514922;color:#F85149;border:1px solid #F85149;}
 .badge-neutral {background:#8B949E22;color:#8B949E;border:1px solid #8B949E;}
 .badge-watch {background:#1F6FEB22;color:#1F6FEB;border:1px solid #1F6FEB;}
+.metric-box {background:#161B22;border:1px solid #30363D;border-radius:8px;padding:12px;text-align:center;}
+.metric-label {font-size:11px;color:#8B949E;text-transform:uppercase;letter-spacing:0.5px;}
+.metric-value {font-size:18px;font-weight:700;color:#E6EDF3;margin:4px 0;}
+.metric-sub {font-size:11px;color:#8B949E;margin-top:2px;}
+.section-header {font-size:20px;font-weight:700;color:#E6EDF3;margin:20px 0 10px 0;border-bottom:1px solid #30363D;padding-bottom:6px;}
+.subsection-header {font-size:14px;font-weight:600;color:#8B949E;margin:14px 0 6px 0;text-transform:uppercase;letter-spacing:0.5px;}
+.narrative-header {font-size:15px;font-weight:700;color:#E6EDF3;}
+.narrative-body {font-size:13px;color:#C9D1D9;line-height:1.5;}
+.narrative-caption {font-size:11px;color:#8B949E;}
+.narrative-metric {font-size:13px;font-weight:600;color:#E6EDF3;}
+.streamlit-expanderHeader {font-size:14px !important;font-weight:600 !important;}
+div[data-testid="stMetricValue"] {font-size:16px !important;}
+div[data-testid="stMetricLabel"] {font-size:11px !important;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -96,81 +113,90 @@ def _rr_levels(px, lrr, trr, side="long"):
     return {"entry":entry,"tp1":tp1,"tp2":tp2,"stop":stop,"rr":rr_r,"pos":round(pos,2),"side":side,"near_entry":near_entry,"near_target":near_target,"can_enter":can_enter,"action":action}
 
 def _metric_box(label, value, sub="", color="#E6EDF3"):
-    sub_html = f'<div style="font-size:11px;color:#8B949E;margin-top:2px;">{sub}</div>' if sub else ""
-    return f'<div style="background:#161B22;border:1px solid #30363D;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:11px;color:#8B949E;text-transform:uppercase;letter-spacing:0.5px;">{label}</div><div style="font-size:20px;font-weight:700;color:{color};margin:4px 0;">{value}</div>{sub_html}</div>'
+    sub_html = f'<div class="metric-sub">{sub}</div>' if sub else ""
+    return f'<div class="metric-box"><div class="metric-label">{label}</div><div class="metric-value" style="color:{color};">{value}</div>{sub_html}</div>'
 
 # ══════════════════════════════════════════════════════════════════════════════
-# REALISTIC TIME ESTIMATE — Based on expected move + distance + vol + market
+# TP BASIS EXPLANATION BANNERS — Deep Surgical Transparency
+# ══════════════════════════════════════════════════════════════════════════════
+def _tp_basis_banner(market_type):
+    banners = {
+        "us_equity": {
+            "title": "🎯 TP Basis: TRR/LRR + Option Data (Gamma/Greeks)",
+            "body": "For US Stocks: Target 1 = TRR resistance (or Call Wall / Gamma Flip Up). Target 2 = Stretch to TRR (or Max Pain + expected move). Stop = Below LRR (or Gamma Flip Down / Put Wall). When option data unavailable → falls back to TRR/LRR pure technical.",
+            "color": "#3FB950"
+        },
+        "forex": {
+            "title": "🎯 TP Basis: TRR/LRR + DXY Correlation + Greeks Proxy",
+            "body": "For Forex: Target 1 = TRR resistance. Target 2 = Stretch to TRR or DXY regime-aligned level. Stop = Below LRR. Greeks proxy uses momentum acceleration + DXY trend. No COT/OI for spot FX → uses DXY correlation + vol regime.",
+            "color": "#1F6FEB"
+        },
+        "commodity": {
+            "title": "🎯 TP Basis: TRR/LRR + COT Bias + OI Concentration + Greeks Proxy",
+            "body": "For Commodities: Target 1 = TRR (or OI high-at-highs pullback zone). Target 2 = Stretch target. Stop = Below LRR (or OI high-at-lows support). COT commercial/non-commercial positioning + OI concentration guide direction. Precious metals get DXY inverse boost.",
+            "color": "#D29922"
+        },
+        "crypto": {
+            "title": "🎯 TP Basis: TRR/LRR + On-Chain Momentum + Realized Vol",
+            "body": "For Crypto: Target 1 = TRR (or 1.5x RR from entry). Target 2 = Stretch target (2x RR). Stop = Below LRR. On-chain TVL/DEX vol confirmation + realized vol regime. Crypto moves ~8%/week normally → time estimates adjusted for high vol.",
+            "color": "#A371F7"
+        },
+        "ihsg": {
+            "title": "🎯 TP Basis: TRR/LRR + Sector Momentum + Commodity Overlay + Rupiah Regime",
+            "body": "For IHSG: NO option data / COT / Greeks available (JKSE has no liquid options chain). TP basis = TRR/LRR technical + Sector Momentum composite + Commodity price tailwind (Coal/Nickel/CPO) + Rupiah/DXY regime + Foreign flow proxy (gap+volume) + BI Rate macro overlay.",
+            "color": "#F85149"
+        },
+    }
+    b = banners.get(market_type, banners["us_equity"])
+    return f"""<div style="background:#161B22;border-left:4px solid {b['color']};border-radius:8px;padding:12px 14px;margin:10px 0;">
+        <div style="font-size:13px;font-weight:700;color:{b['color']};margin-bottom:4px;">{b['title']}</div>
+        <div style="font-size:12px;color:#C9D1D9;line-height:1.5;">{b['body']}</div>
+    </div>"""
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# REALISTIC TIME ESTIMATE & CONCLUSION HELPERS
 # ══════════════════════════════════════════════════════════════════════════════
 def _calc_expected_move(s, period_days=5):
-    """Calculate expected move for a given period based on realized vol."""
     if s is None or len(s) < 22: return None
     s = pd.to_numeric(s, errors="coerce").dropna()
     if len(s) < 22: return None
     px = float(s.iloc[-1])
     daily_vol = s.tail(20).pct_change().dropna().std()
     if daily_vol == 0 or not math.isfinite(daily_vol): return None
-    # Expected move = price * daily_vol * sqrt(period_days)
     expected = px * daily_vol * math.sqrt(period_days)
     expected_pct = daily_vol * math.sqrt(period_days)
     return {"expected": round(expected, 2), "expected_pct": round(expected_pct, 3), "daily_vol": round(daily_vol, 4), "px": px}
 
 def _realistic_time_estimate(price, target, ticker, market_type, vix, gamma, greek, direction, s=None):
-    """Realistic time based on: distance / expected_move_per_week + vol regime + market type + gamma."""
     if not price or not target: return "Unknown"
-
     distance = abs(target - price)
     distance_pct = distance / price if price else 0.05
-
-    # Base expected move per week by market type
-    if market_type == "crypto":
-        weekly_expected_pct = 0.08  # BTC moves ~8% per week normally
-    elif market_type == "forex":
-        weekly_expected_pct = 0.015  # FX ~1.5% per week
+    if market_type == "crypto": weekly_expected_pct = 0.08
+    elif market_type == "forex": weekly_expected_pct = 0.015
     elif market_type == "commodity":
-        # Silver/gold more volatile than oil
-        if any(x in ticker for x in ["SI=","SLV","GC=","GLD","HG=","PL=","PA="]):
-            weekly_expected_pct = 0.035  # Precious metals ~3.5% per week
-        else:
-            weekly_expected_pct = 0.04   # Oil/energy ~4% per week
-    else:  # us_equity / ihsg
-        weekly_expected_pct = 0.025  # Stocks ~2.5% per week
-
-    # Override with realized vol if we have price series
+        if any(x in ticker for x in ["SI=","SLV","GC=","GLD","HG=","PL=","PA="]): weekly_expected_pct = 0.035
+        else: weekly_expected_pct = 0.04
+    else: weekly_expected_pct = 0.025
     if s is not None and len(s) >= 22:
         s = pd.to_numeric(s, errors="coerce").dropna()
         if len(s) >= 22:
             daily_vol = s.tail(20).pct_change().dropna().std()
             if daily_vol > 0 and math.isfinite(daily_vol):
-                weekly_expected_pct = daily_vol * math.sqrt(5)  # 5 trading days
-
-    # VIX adjustment
+                weekly_expected_pct = daily_vol * math.sqrt(5)
     if vix > 35: weekly_expected_pct *= 2.0
     elif vix > 25: weekly_expected_pct *= 1.5
     elif vix > 20: weekly_expected_pct *= 1.2
-
-    # Gamma adjustment
     if gamma and gamma.get("ok"):
         g_regime = gamma.get("regime", "")
-        if g_regime in ("DEEP_POSITIVE", "POSITIVE") and "LONG" in direction:
-            weekly_expected_pct *= 1.4  # Gamma squeeze = faster
-        elif g_regime in ("DEEP_NEGATIVE", "NEGATIVE") and "SHORT" in direction:
-            weekly_expected_pct *= 1.4
-        elif g_regime in ("DEEP_POSITIVE", "POSITIVE", "DEEP_NEGATIVE", "NEGATIVE"):
-            weekly_expected_pct *= 1.2
-
-    # Greek adjustment
+        if g_regime in ("DEEP_POSITIVE", "POSITIVE") and "LONG" in direction: weekly_expected_pct *= 1.4
+        elif g_regime in ("DEEP_NEGATIVE", "NEGATIVE") and "SHORT" in direction: weekly_expected_pct *= 1.4
+        elif g_regime in ("DEEP_POSITIVE", "POSITIVE", "DEEP_NEGATIVE", "NEGATIVE"): weekly_expected_pct *= 1.2
     if greek and greek.get("ok"):
         greek_comp = greek.get("composite", "")
-        if "BULLISH" in greek_comp and "LONG" in direction:
-            weekly_expected_pct *= 1.15
-        elif "BEARISH" in greek_comp and "SHORT" in direction:
-            weekly_expected_pct *= 1.15
-
-    # Calculate weeks
+        if "BULLISH" in greek_comp and "LONG" in direction: weekly_expected_pct *= 1.15
+        elif "BEARISH" in greek_comp and "SHORT" in direction: weekly_expected_pct *= 1.15
     weeks = distance_pct / weekly_expected_pct if weekly_expected_pct > 0 else 4
-
-    # Format with realistic buckets
     if weeks <= 0.3: return "2-4 days"
     elif weeks <= 0.7: return "3-7 days"
     elif weeks <= 1.3: return "1-2 weeks"
@@ -188,7 +214,7 @@ def _entry_advice(price, entry, lrr, trr, gamma, greek, momentum_1m, composite, 
                 return "✅ BUY NOW — At buy zone + gamma supportive"
             elif composite == "bullish": return "✅ BUY NOW — At buy zone"
             else: return "⚠️ SMALL SIZE — At buy zone but mixed signals"
-        elif lrr and price <= lrr * 1.03: return f"⏳ WAIT — Slightly above best entry, wait for retrace to {lrr}"
+        elif lrr and price <= lrr * 1.03: return f"⏳ WAIT — Slightly above best entry, wait for retrace to LRR"
         else:
             if momentum_1m and momentum_1m > 0.05: return "🏃 CHASE — Extended but momentum strong, small size"
             else: return "❌ SKIP — Too far from buy zone, wait for pullback"
@@ -198,7 +224,7 @@ def _entry_advice(price, entry, lrr, trr, gamma, greek, momentum_1m, composite, 
                 return "✅ SELL NOW — At sell zone + gamma headwind"
             elif composite == "bearish": return "✅ SELL NOW — At sell zone"
             else: return "⚠️ SMALL SIZE — At sell zone but mixed signals"
-        elif trr and price >= trr * 0.97: return f"⏳ WAIT — Slightly below best entry, wait for bounce to {trr}"
+        elif trr and price >= trr * 0.97: return f"⏳ WAIT — Slightly below best entry, wait for bounce to TRR"
         else:
             if momentum_1m and momentum_1m < -0.05: return "🏃 CHASE SHORT — Extended but momentum strong, small size"
             else: return "❌ SKIP — Too far from sell zone, wait for bounce"
@@ -275,9 +301,7 @@ def _enrich_row_with_conclusions(row, gamma, greek, vix=20, s=None):
     stop = row.get("stop"); direction = "LONG" if "LONG" in row.get("direction", "") else ("SHORT" if "SHORT" in row.get("direction", "") else "NEUTRAL")
     composite = row.get("composite", "neutral"); momentum_1m = row.get("r1m"); momentum_3m = row.get("r3m")
     rr = row.get("rr"); lrr = row.get("lrr") if row.get("lrr") else None; trr = row.get("trr") if row.get("trr") else None
-    ticker = row.get("ticker", "")
-    market_type = row.get("market_type", "us_equity")
-
+    ticker = row.get("ticker", ""); market_type = row.get("market_type", "us_equity")
     row["entry_advice"] = _entry_advice(price, entry, lrr, trr, gamma, greek, momentum_1m, composite, direction)
     row["tp1_basis"] = _target_basis(target1, trr, lrr, gamma, direction)
     row["tp2_basis"] = _target_basis(target2, trr, lrr, gamma, direction)
@@ -286,20 +310,16 @@ def _enrich_row_with_conclusions(row, gamma, greek, vix=20, s=None):
     row["time_estimate"] = _realistic_time_estimate(price, target1, ticker, market_type, vix, gamma, greek, direction, s)
     row["time_estimate_t2"] = _realistic_time_estimate(price, target2, ticker, market_type, vix, gamma, greek, direction, s)
     row["breakout_chance"] = _breakout_chance(price, target2, gamma, greek, momentum_3m, direction)
-
-    # Expected move
     em = _calc_expected_move(s, 5) if s is not None else None
     if em:
         row["expected_move_weekly"] = em["expected"]
         row["expected_move_weekly_pct"] = em["expected_pct"]
         row["daily_vol"] = em["daily_vol"]
-
     if "BUY NOW" in row["entry_advice"] or "SELL NOW" in row["entry_advice"]: row["worth_entering"] = "✅ YES"
     elif "WAIT" in row["entry_advice"]: row["worth_entering"] = "⏳ WAIT"
     elif "CHASE" in row["entry_advice"]: row["worth_entering"] = "🏃 CHASE"
     elif "SMALL SIZE" in row["entry_advice"]: row["worth_entering"] = "⚠️ SMALL"
     else: row["worth_entering"] = "❌ NO"
-
     if gamma.get("ok"): row["gamma_summary"] = gamma.get("regime", "—").replace("_", " ").title()
     if greek.get("ok"): row["greek_summary"] = greek.get("composite", "—").replace("🟢", "").replace("🔴", "").replace("🟡", "").replace("⚪", "").strip()
     return row
@@ -375,11 +395,11 @@ def prob_bar(probs, title=""):
 
 def _seq_pills(sq, mq):
     if sq == mq:
-        return '<div style="background:#0D2818;border:1px solid #3FB950;border-radius:8px;padding:10px;text-align:center;margin:8px 0;"><span style="color:#3FB950;font-weight:700;">🟢 REGIME ALIGNED</span><br><span style="font-size:12px;color:#8B949E;">Both monthly and quarterly point the same direction</span></div>'
+        return '<div class="card-green"><span style="color:#3FB950;font-weight:700;">🟢 REGIME ALIGNED</span><br><span style="font-size:12px;color:#8B949E;">Both monthly and quarterly point the same direction</span></div>'
     target = ""
     if sq == "Q3" and mq == "Q2": target = '→ Q1 TARGET'
     elif sq == "Q3" and mq == "Q1": target = '→ WATCH Q2→Q1'
-    return f'<div style="background:#2D0D0D;border:1px solid #F85149;border-radius:8px;padding:10px;text-align:center;margin:8px 0;"><span style="color:#F85149;font-weight:700;">🔴 Structural: {sq} → 🟡 Monthly: {mq} {target}</span><br><span style="font-size:12px;color:#8B949E;">Monthly diverges from structural — tactical caution</span></div>'
+    return f'<div class="card-red"><span style="color:#F85149;font-weight:700;">🔴 Structural: {sq} → 🟡 Monthly: {mq} {target}</span><br><span style="font-size:12px;color:#8B949E;">Monthly diverges from structural — tactical caution</span></div>'
 
 def _gamma_card(gamma):
     if not gamma or not gamma.get("ok") or gamma.get("throttle") is None:
@@ -395,13 +415,13 @@ def _gamma_card(gamma):
     r10_str = f"{r10:.1f}%" if r10 is not None else "—"
     vp_str = f"{vp:+.1f}%" if vp is not None else "—"
     return (f'<div class="{css}">'
-        f'<div style="font-size:11px;color:#8B949E;text-transform:uppercase;letter-spacing:0.5px;">OPTIONS MARKET STRUCTURE</div>'
+        f'<div class="metric-label">OPTIONS MARKET STRUCTURE</div>'
         f'<div style="font-size:18px;font-weight:700;color:{color};margin:6px 0;">{label.upper()}</div>'
-        f'<div style="font-size:12px;color:#E6EDF3;">{explain}</div>'
+        f'<div style="font-size:13px;color:#E6EDF3;">{explain}</div>'
         f'<div style="display:flex;justify-content:space-between;margin-top:10px;">'
-        f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">Throttle</div><div style="font-size:14px;font-weight:700;color:{color};">{th_str}</div></div>'
-        f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">10d Realized Vol</div><div style="font-size:14px;font-weight:700;color:#E6EDF3;">{r10_str}</div></div>'
-        f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">Vol Premium</div><div style="font-size:14px;font-weight:700;color:{vpc};">{vp_str}</div></div>'
+        f'<div style="text-align:center;"><div class="metric-label">Throttle</div><div style="font-size:14px;font-weight:700;color:{color};">{th_str}</div></div>'
+        f'<div style="text-align:center;"><div class="metric-label">10d Realized Vol</div><div style="font-size:14px;font-weight:700;color:#E6EDF3;">{r10_str}</div></div>'
+        f'<div style="text-align:center;"><div class="metric-label">Vol Premium</div><div style="font-size:14px;font-weight:700;color:{vpc};">{vp_str}</div></div>'
         f'</div>'
         f'<div style="margin-top:8px;font-size:12px;color:#8B949E;border-top:1px solid #30363D;padding-top:6px;"><b>Action:</b> {action}</div>'
         f'</div>')
@@ -420,13 +440,13 @@ def _lev_card(lev):
     tl = lev.get("top_longs", []); ts = lev.get("top_shorts", [])
     tls = " · ".join(f'<b>{e["ticker"]}</b> ${e["aum_b"]}B' for e in tl[:3]) or "—"
     tss = " · ".join(f'<b>{e["ticker"]}</b> ${e["aum_b"]}B' for e in ts[:3]) or "—"
-    return (f'<div style="background:#161B22;border:1px solid #30363D;border-radius:8px;padding:12px;margin:6px 0;">'
-        f'<div style="font-size:11px;color:#8B949E;text-transform:uppercase;letter-spacing:0.5px;">📊 LEVERAGED ETF FLOWS {"🏆 ALL TIME HIGH" if ath else ""}</div>'
+    return (f'<div class="card-gray">'
+        f'<div class="metric-label">📊 LEVERAGED ETF FLOWS {"🏆 ALL TIME HIGH" if ath else ""}</div>'
         f'<div style="display:flex;justify-content:space-between;margin:8px 0;">'
-        f'<div><div style="font-size:10px;color:#8B949E;">Total AUM</div><div style="font-size:16px;font-weight:700;color:#E6EDF3;">${tot:.1f}B</div></div>'
-        f'<div><div style="font-size:10px;color:#8B949E;">Long %</div><div style="font-size:16px;font-weight:700;color:#3FB950;">{lp:.0%}</div></div>'
-        f'<div><div style="font-size:10px;color:#8B949E;">Short %</div><div style="font-size:16px;font-weight:700;color:#F85149;">{sp:.0%}</div></div>'
-        f'<div><div style="font-size:10px;color:#8B949E;">Other</div><div style="font-size:16px;font-weight:700;color:#8B949E;">{op:.0%}</div></div>'
+        f'<div><div class="metric-label">Total AUM</div><div style="font-size:16px;font-weight:700;color:#E6EDF3;">${tot:.1f}B</div></div>'
+        f'<div><div class="metric-label">Long %</div><div style="font-size:16px;font-weight:700;color:#3FB950;">{lp:.0%}</div></div>'
+        f'<div><div class="metric-label">Short %</div><div style="font-size:16px;font-weight:700;color:#F85149;">{sp:.0%}</div></div>'
+        f'<div><div class="metric-label">Other</div><div style="font-size:16px;font-weight:700;color:#8B949E;">{op:.0%}</div></div>'
         f'</div>'
         f'<div style="font-size:12px;color:{rc};margin-bottom:6px;">Rebalancing Pressure: {rb}</div>'
         f'<div style="font-size:11px;color:#3FB950;margin-bottom:4px;">🟢 Long: {tls}</div>'
@@ -463,9 +483,9 @@ def _render_dxy(prices, dxy_corr, sq):
             trend = "Bearish (falling)" if r < -0.005 else ("Bullish (rising)" if r > 0.005 else "Neutral")
             tc = "#F85149" if "Bearish" in trend else "#3FB950" if "Bullish" in trend else "#8B949E"
             st.markdown(
-                f'<div style="background:#161B22;border:1px solid #30363D;border-radius:8px;padding:12px;text-align:center;">'
-                f'<div style="font-size:11px;color:#8B949E;text-transform:uppercase;letter-spacing:0.5px;">💱 US DOLLAR INDEX (DXY)</div>'
-                f'<div style="font-size:24px;font-weight:700;color:#E6EDF3;margin:6px 0;">${float(dxy.iloc[-1]):.2f}</div>'
+                f'<div class="metric-box">'
+                f'<div class="metric-label">💱 US DOLLAR INDEX (DXY)</div>'
+                f'<div style="font-size:22px;font-weight:700;color:#E6EDF3;margin:6px 0;">${float(dxy.iloc[-1]):.2f}</div>'
                 f'<div style="font-size:12px;color:{tc};">15-day trend: {trend} · When DXY falls, EM and commodities rise</div>'
                 f'</div>', unsafe_allow_html=True)
     if dxy_corr:
@@ -480,7 +500,10 @@ def _render_dxy(prices, dxy_corr, sq):
             st.dataframe(df.style.format({"Correlation": "{:+.2f}"}).background_gradient(subset=["Correlation"], cmap="RdYlGn", vmin=-1, vmax=1),
                 hide_index=True, use_container_width=True, height=220)
 
-# ── GREEKS PROXIES ──
+
+# ══════════════════════════════════════════════════════════════════════════════
+# GREEKS PROXIES — Fallback when option engines fail
+# ══════════════════════════════════════════════════════════════════════════════
 def _forex_greeks_proxy(ticker, prices, vix=None):
     greeks = {"delta":"—","gamma":"—","vanna":"—","vol":"—"}
     if vix is None:
@@ -492,10 +515,8 @@ def _forex_greeks_proxy(ticker, prices, vix=None):
     dxy_s = prices.get("DX-Y.NYB")
     if dxy_s is not None and len(dxy_s) >= 22:
         dxy_ret = float(dxy_s.iloc[-1] / dxy_s.iloc[-22] - 1)
-        if "USD" in ticker and ticker.startswith("USD"):
-            greeks["delta"] = f"Bullish 📈" if dxy_ret > 0 else "Bearish 📉"
-        elif "USD" in ticker and not ticker.startswith("USD"):
-            greeks["delta"] = f"Bearish 📉" if dxy_ret > 0 else "Bullish 📈"
+        if "USD" in ticker and ticker.startswith("USD"): greeks["delta"] = f"Bullish 📈" if dxy_ret > 0 else "Bearish 📉"
+        elif "USD" in ticker and not ticker.startswith("USD"): greeks["delta"] = f"Bearish 📉" if dxy_ret > 0 else "Bullish 📈"
         else: greeks["delta"] = "Neutral ↔"
     else: greeks["delta"] = "Neutral ↔"
     s = prices.get(ticker)
@@ -530,14 +551,11 @@ def _commodity_greeks_proxy(ticker, prices, vix=None):
         r10d = float(s.iloc[-1] / s.iloc[-11] - 1) if len(s) >= 11 else 0
         accel = r5d - (r10d / 2)
         greeks["gamma"] = "Long 🟢" if accel > 0.02 else ("Short 🔴" if accel < -0.02 else "Flat 🟡")
-    else:
-        greeks["delta"] = "Neutral ↔"; greeks["gamma"] = "Flat 🟡"
+    else: greeks["delta"] = "Neutral ↔"; greeks["gamma"] = "Flat 🟡"
     dxy_s = prices.get("DX-Y.NYB")
     if dxy_s is not None and len(dxy_s) >= 22:
         dxy_ret = float(dxy_s.iloc[-1] / dxy_s.iloc[-22] - 1)
-        precious = ticker in ("GC=F", "SI=F", "GLD", "SLV", "PPLT", "GDX", "GDXJ", "SIL", "SILJ")
-        if precious: greeks["vanna"] = "Positive ✅" if dxy_ret < -0.01 else "Negative ⚠️" if dxy_ret > 0.01 else "Mixed 🟡"
-        else: greeks["vanna"] = "Positive ✅" if dxy_ret < -0.01 else "Negative ⚠️" if dxy_ret > 0.01 else "Mixed 🟡"
+        greeks["vanna"] = "Positive ✅" if dxy_ret < -0.01 else "Negative ⚠️" if dxy_ret > 0.01 else "Mixed 🟡"
     else: greeks["vanna"] = "Mixed 🟡"
     return greeks
 
@@ -563,45 +581,44 @@ def _crypto_greeks_proxy(ticker, prices, basis_pct=0):
         for k in greeks: greeks[k] = "N/A ⚪"
     return greeks
 
+
 # ══════════════════════════════════════════════════════════════════════════════
 # BUILD CONSOLIDATED ROW — WITH CRYPTO MOMENTUM OVERRIDE
 # ══════════════════════════════════════════════════════════════════════════════
 def _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, market_type, vix_now, gamma_data=None, greeks_data=None):
     v = ar.get(ticker, {})
     s = prices.get(ticker)
-
     if not v:
         if s is None or s.empty: return None
         s_clean = pd.to_numeric(s, errors="coerce").dropna()
         if len(s_clean) < 60: return None
-        px = float(s_clean.iloc[-1]); sma20 = float(s_clean.tail(20).mean()); std20 = float(s_clean.tail(20).std())
-        if not all(math.isfinite(v) for v in [px, sma20, std20]): return None
-        lrr = round(sma20 - 1.5 * std20, 4); trr = round(sma20 + 1.5 * std20, 4)
+        px = float(s_clean.iloc[-1])
+        sma20 = float(s_clean.tail(20).mean())
+        std20 = float(s_clean.tail(20).std())
+        if not all(math.isfinite(vv) for vv in [px, sma20, std20]): return None
+        lrr = round(sma20 - 1.5 * std20, 4)
+        trr = round(sma20 + 1.5 * std20, 4)
         comp = "bullish" if px < lrr else "bearish" if px > trr else "neutral"
         if comp == "neutral": return None
         v = {"px": px, "trade": {"lrr": lrr, "trr": trr}, "composite": comp, "quality": "B", "market": market_type}
-
-    tr = v.get("trade", {}); px = _sf(v.get("px")); lrr = _sf(tr.get("lrr")); trr = _sf(tr.get("trr"))
+    tr = v.get("trade", {})
+    px = _sf(v.get("px"))
+    lrr = _sf(tr.get("lrr"))
+    trr = _sf(tr.get("trr"))
     if not px or not lrr or not trr: return None
-
     composite = v.get("composite", "neutral")
-
-    # ── CRYPTO OVERRIDE: use momentum instead of risk range composite ──
     if market_type == "crypto" and s is not None:
         r1m = _price_ret(ticker, prices, 21)
         if r1m is not None:
-            if r1m > 0.03: composite = "bullish"  # Crypto uptrend = long
-            elif r1m < -0.03: composite = "bearish"  # Crypto downtrend = short
-            # else keep original composite
-
+            if r1m > 0.03: composite = "bullish"
+            elif r1m < -0.03: composite = "bearish"
     side = "long" if composite == "bullish" else "short"
     rl = _rr_levels(px, lrr, trr, side)
     if not rl: return None
-
-    gamma_data = gamma_data or {}; greeks_data = greeks_data or {}
+    gamma_data = gamma_data or {}
+    greeks_data = greeks_data or {}
     gamma = gamma_data.get(ticker, {})
     greek = greeks_data.get(ticker, {})
-
     if market_type == "crypto": g = _crypto_greeks_proxy(ticker, prices, 0)
     elif market_type == "forex": g = _forex_greeks_proxy(ticker, prices, vix_now)
     elif market_type == "commodity": g = _commodity_greeks_proxy(ticker, prices, vix_now)
@@ -611,35 +628,38 @@ def _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, market_type, 
             "gamma": "Flat 🟡", "vanna": "Mixed 🟡",
             "vol": "Normal 🟢" if vix_now < 20 else ("Elevated 🟡" if vix_now < 25 else "High 🔴")}
         g = {k: g.get(k, "—") for k in ["delta", "gamma", "vanna", "vol"]}
-
     cot = cot_data.get(ticker, {}) if cot_data else {}
     if not cot or not cot.get("ok"):
         r1m = _price_ret(ticker, prices, 21)
         cot = {"ok": True, "bias": "Bullish" if r1m and r1m > 0.02 else ("Bearish" if r1m and r1m < -0.02 else "Neutral"),
             "commercial_label": "Neutral ⚪", "noncommercial_label": "Neutral ⚪",
             "signal": "📊 Trend Following" if r1m and abs(r1m) > 0.02 else "🟡 Neutral"}
-
     oi = oi_data.get(ticker, {}) if oi_data else {}
     if not oi or not oi.get("ok"):
         if s is not None and len(s) >= 22:
             s_clean = pd.to_numeric(s, errors="coerce").dropna()
-            vol = s_clean.tail(20).std(); mean = s_clean.tail(20).mean()
+            vol = s_clean.tail(20).std()
+            mean = s_clean.tail(20).mean()
             pos = (s_clean.iloc[-1] - mean) / vol if vol > 0 else 0.5
             pos = max(0, min(1, pos * 0.3 + 0.5))
             oi = {"ok": True, "concentration": "Mid-range 🟡" if 0.3 < pos < 0.7 else ("High at highs 🔴" if pos > 0.7 else "High at lows 🟢"),
                 "oi_trend": "Stable ↔", "oi_total": int(100000 + abs(pos - 0.5) * 200000), "position_in_range": pos}
-
     oi_pos = oi.get("position_in_range", 0.5) if oi else 0.5
-    if oi_pos > 0.7: max_pain = f"{trr:.4f}" if market_type == "forex" else f"{trr:.2f}"; pain_note = "OI High at Highs → Pullback likely"
-    elif oi_pos < 0.3: max_pain = f"{lrr:.4f}" if market_type == "forex" else f"{lrr:.2f}"; pain_note = "OI High at Lows → Bounce likely"
-    else: mid = (lrr + trr) / 2; max_pain = f"{mid:.4f}" if market_type == "forex" else f"{mid:.2f}"; pain_note = "OI Mid-range → Chop"
-
+    if oi_pos > 0.7:
+        max_pain = f"{trr:.4f}" if market_type == "forex" else f"{trr:.2f}"
+        pain_note = "OI High at Highs → Pullback likely"
+    elif oi_pos < 0.3:
+        max_pain = f"{lrr:.4f}" if market_type == "forex" else f"{lrr:.2f}"
+        pain_note = "OI High at Lows → Bounce likely"
+    else:
+        mid = (lrr + trr) / 2
+        max_pain = f"{mid:.4f}" if market_type == "forex" else f"{mid:.2f}"
+        pain_note = "OI Mid-range → Chop"
     cot_bias = cot.get("bias", "Neutral") if cot else "Neutral"
     oi_conc = oi.get("concentration", "—") if oi else "—"
     delta_dir = g.get("delta", "Neutral")
     delta_bullish = any(x in delta_dir for x in ["Long", "Bullish", "Positive"])
     delta_bearish = any(x in delta_dir for x in ["Short", "Bearish", "Negative"])
-
     greek_comp = greek.get("composite", "") if greek.get("ok") else ""
     gamma_reg = gamma.get("regime", "") if gamma.get("ok") else ""
     option_boost = 0
@@ -647,28 +667,34 @@ def _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, market_type, 
     if "BEARISH" in greek_comp and composite == "bearish": option_boost += 1
     if gamma_reg in ("DEEP_POSITIVE", "POSITIVE") and composite == "bullish": option_boost += 1
     if gamma_reg in ("DEEP_NEGATIVE", "NEGATIVE") and composite == "bearish": option_boost += 1
-
     if composite == "bullish" and cot_bias in ("Bullish", "Neutral") and "High at lows" in oi_conc and (delta_bullish or option_boost >= 2):
-        direction = "LONG ✅"; rec = "🟢 STRONG LONG — Oversold + COT bullish + OI accumulation + Delta/Greeks confirm"
+        direction = "LONG ✅"
+        rec = "🟢 STRONG LONG — Oversold + COT bullish + OI accumulation + Delta/Greeks confirm"
     elif composite == "bearish" and cot_bias in ("Bearish", "Neutral") and "High at highs" in oi_conc and (delta_bearish or option_boost >= 2):
-        direction = "SHORT ✅"; rec = "🔴 STRONG SHORT — Overbought + COT bearish + OI distribution + Delta/Greeks confirm"
+        direction = "SHORT ✅"
+        rec = "🔴 STRONG SHORT — Overbought + COT bearish + OI distribution + Delta/Greeks confirm"
     elif composite == "bullish" and "High at highs" in oi_conc:
-        direction = "LONG ⚠️"; rec = "🟡 CAUTIOUS LONG — Setup bullish but OI shows profit-taking at resistance"
+        direction = "LONG ⚠️"
+        rec = "🟡 CAUTIOUS LONG — Setup bullish but OI shows profit-taking at resistance"
     elif composite == "bearish" and "High at lows" in oi_conc:
-        direction = "SHORT ⚠️"; rec = "🟡 CAUTIOUS SHORT — Bearish signal but OI shows accumulation at lows"
+        direction = "SHORT ⚠️"
+        rec = "🟡 CAUTIOUS SHORT — Bearish signal but OI shows accumulation at lows"
     elif composite == "bullish" and cot_bias == "Bearish":
-        direction = "LONG ⚠️"; rec = "🟡 CONFLICTED — Price oversold but COT bearish, smart money disagrees"
+        direction = "LONG ⚠️"
+        rec = "🟡 CONFLICTED — Price oversold but COT bearish, smart money disagrees"
     elif composite == "bearish" and cot_bias == "Bullish":
-        direction = "SHORT ⚠️"; rec = "🟡 CONFLICTED — Price extended but COT bullish, smart money buying dip"
+        direction = "SHORT ⚠️"
+        rec = "🟡 CONFLICTED — Price extended but COT bullish, smart money buying dip"
     elif composite == "bullish":
-        direction = "LONG ⚠️"; rec = "🟡 MODERATE LONG — Price oversold but mixed signals"
+        direction = "LONG ⚠️"
+        rec = "🟡 MODERATE LONG — Price oversold but mixed signals"
     elif composite == "bearish":
-        direction = "SHORT ⚠️"; rec = "🟡 MODERATE SHORT — Price extended but mixed signals"
+        direction = "SHORT ⚠️"
+        rec = "🟡 MODERATE SHORT — Price extended but mixed signals"
     else:
-        direction = "NEUTRAL ⏳"; rec = "⚪ NO EDGE — Mixed signals, wait for clarity"
-
+        direction = "NEUTRAL ⏳"
+        rec = "⚪ NO EDGE — Mixed signals, wait for clarity"
     rr_val = rl.get("rr", 0)
-
     row = {
         "ticker": ticker, "price": px, "entry": rl.get("entry"),
         "direction": direction, "market_type": market_type,
@@ -694,33 +720,39 @@ def _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, market_type, 
         "call_wall": gamma.get("call_wall") if gamma.get("ok") else None,
         "greek_composite": greek.get("composite") if greek.get("ok") else None,
     }
-    # Enrich with realistic timing + expected move
     row = _enrich_row_with_conclusions(row, gamma, greek, vix_now, s)
     return row
 
-def _build_ihsg_row(ticker, prices, ar):
+
+# ══════════════════════════════════════════════════════════════════════════════
+# BUILD IHSG ROW — With 5 Structural Compensator Layers
+# ══════════════════════════════════════════════════════════════════════════════
+def _build_ihsg_row(ticker, prices, ar, ihsg_sector_momentum=None, ihsg_commodity_overlay=None, ihsg_rupiah_regime=None, ihsg_foreign_flow=None, ihsg_macro_overlay=None):
     v = ar.get(ticker, {})
     s = prices.get(ticker)
     if not v:
         if s is None or s.empty: return None
         s_clean = pd.to_numeric(s, errors="coerce").dropna()
         if len(s_clean) < 60: return None
-        px = float(s_clean.iloc[-1]); sma20 = float(s_clean.tail(20).mean()); std20 = float(s_clean.tail(20).std())
-        if not all(math.isfinite(v) for v in [px, sma20, std20]): return None
-        lrr = round(sma20 - 1.5 * std20, 2); trr = round(sma20 + 1.5 * std20, 2)
+        px = float(s_clean.iloc[-1])
+        sma20 = float(s_clean.tail(20).mean())
+        std20 = float(s_clean.tail(20).std())
+        if not all(math.isfinite(vv) for vv in [px, sma20, std20]): return None
+        lrr = round(sma20 - 1.5 * std20, 2)
+        trr = round(sma20 + 1.5 * std20, 2)
         comp = "bullish" if px < lrr else "bearish" if px > trr else "neutral"
         if comp == "neutral": return None
         v = {"px": px, "trade": {"lrr": lrr, "trr": trr}, "composite": comp, "quality": "B", "market": "ihsg"}
-
-    tr = v.get("trade", {}); px = _sf(v.get("px")); lrr = _sf(tr.get("lrr")); trr = _sf(tr.get("trr"))
+    tr = v.get("trade", {})
+    px = _sf(v.get("px"))
+    lrr = _sf(tr.get("lrr"))
+    trr = _sf(tr.get("trr"))
     if not px or not lrr or not trr: return None
     side = "long" if v.get("composite") == "bullish" else "short"
     rl = _rr_levels(px, lrr, trr, side)
     if not rl: return None
-
     r1m = _price_ret(ticker, prices, 21)
     r3m = _price_ret(ticker, prices, 63)
-
     sector_map = {
         "ADRO.JK": "Coal", "ITMG.JK": "Coal", "PTBA.JK": "Coal",
         "NCKL.JK": "Nickel", "ANTM.JK": "Nickel", "INCO.JK": "Nickel",
@@ -733,16 +765,30 @@ def _build_ihsg_row(ticker, prices, ar):
         "EIDO": "ETF", "^JKSE": "Index",
     }
     sector = sector_map.get(ticker, "Indonesia")
-
     if any(x in sector for x in ["Coal", "Nickel", "CPO", "Mining"]): theme = "Commodity Export Play"
     elif "Banking" in sector: theme = "Rate / Credit Cycle"
     elif any(x in sector for x in ["Consumer", "Pharma"]): theme = "Domestic Demand"
     elif "Telco" in sector: theme = "Infrastructure / Digital"
     elif any(x in sector for x in ["Geothermal", "Shipping"]): theme = "Energy / Logistics"
     else: theme = "Indonesia Macro"
-
+    # Enrich with IHSG structural layers
+    sector_mom = (ihsg_sector_momentum or {}).get(sector, {})
+    comm_ov = (ihsg_commodity_overlay or {}).get(sector, {})
+    rupiah = ihsg_rupiah_regime or {}
+    flow = (ihsg_foreign_flow or {}).get(ticker, {})
+    macro = ihsg_macro_overlay or {}
+    thesis_parts = []
+    if r1m is not None and r1m > 0.05: thesis_parts.append(f"Strong momentum +{r1m:.1%} — {sector} play")
+    elif r1m is not None and r1m < -0.05: thesis_parts.append(f"Weak momentum {r1m:.1%} — avoid {sector}")
+    else: thesis_parts.append(f"{sector} — range bound, wait for breakout")
+    if sector_mom.get("bias") == "Bullish": thesis_parts.append(f"Sector momentum {sector_mom.get('avg_1m'):+.1%} ({sector_mom.get('leader')} leading)")
+    if comm_ov.get("tailwind") in ["Strong", "Moderate"]: thesis_parts.append(f"Commodity tailwind: {comm_ov.get('signal', '')}")
+    if rupiah.get("flow_signal") and "Positive" in rupiah["flow_signal"]: thesis_parts.append("Rupiah support from DXY bearish")
+    if flow.get("signal") == "🟢 Foreign Accumulation": thesis_parts.append("Foreign accumulation detected")
+    if sector == "Banking" and macro.get("banking_bias") == "Bullish": thesis_parts.append(macro.get("bi_signal", ""))
+    if sector in ["Consumer", "Pharma"] and macro.get("consumer_bias") == "Bullish": thesis_parts.append(macro.get("consumer_signal", ""))
+    full_thesis = " | ".join(thesis_parts)
     rec = f"🟢 LONG {sector} — {theme}, momentum {r1m:+.1%}" if r1m is not None else f"🟢 LONG {sector} — {theme}"
-
     return {
         "ticker": ticker, "price": px, "entry": rl.get("entry"),
         "direction": "LONG",
@@ -753,11 +799,18 @@ def _build_ihsg_row(ticker, prices, ar):
         "recommendation": rec, "action": rl.get("action", "—")[:35],
         "grade": v.get("quality", "—").replace("short_", ""),
         "signal": "BUY",
+        "sector_momentum": sector_mom,
+        "commodity_overlay": comm_ov,
+        "rupiah_regime": rupiah,
+        "foreign_flow": flow,
+        "macro_overlay": macro,
     }
 
 def _sort_ev_plus(rows):
     def key(x):
-        rec = x.get("recommendation", ""); rr = x.get("rr", 0) or 0; grade = x.get("grade", "C")
+        rec = x.get("recommendation", "")
+        rr = x.get("rr", 0) or 0
+        grade = x.get("grade", "C")
         if "STRONG" in rec: prio = 0
         elif "CAUTIOUS" in rec or "CONFLICTED" in rec: prio = 1
         elif "MODERATE" in rec: prio = 2
@@ -786,8 +839,9 @@ def _consolidated_to_df(rows):
         })
     return pd.DataFrame(out)
 
+
 # ══════════════════════════════════════════════════════════════════════════════
-# NATIVE NARRATIVE CARD — No broken HTML
+# NATIVE NARRATIVE CARD — Deep Surgical Structure
 # ══════════════════════════════════════════════════════════════════════════════
 def _render_narrative_card_native(row, idx=0, market_type="generic"):
     ticker = row.get("ticker", "UNKNOWN")
@@ -802,20 +856,16 @@ def _render_narrative_card_native(row, idx=0, market_type="generic"):
     grade = row.get("grade", "C")
     scanner = row.get("scanner_type", "")
     signal = row.get("signal", "")
-
     dir_emoji = "🟢" if "LONG" in direction else "🔴" if "SHORT" in direction else "⚪"
     dir_color = "#3fb950" if "LONG" in direction else "#f85149" if "SHORT" in direction else "#8b949e"
     worth_color = "#3fb950" if "YES" in worth or "BUY" in worth else "#d29922" if "WAIT" in worth or "CHASE" in worth else "#f85149" if "SKIP" in worth else "#8b949e"
-
     header = f"{dir_emoji} {ticker} | {direction.replace(' ✅','').replace(' ⚠️','')} | Grade {grade} | Score: {row.get('score',0):.2f}"
     if scanner: header += f" | {scanner}"
-
     with st.expander(header, expanded=False):
         c1, c2, c3 = st.columns([2, 2, 2])
         c1.markdown(f"**Direction:** <span style='color:{dir_color};font-weight:700;'>{direction}</span>", unsafe_allow_html=True)
         c2.markdown(f"**Worth Entering:** <span style='color:{worth_color};font-weight:700;'>{worth}</span>", unsafe_allow_html=True)
         c3.markdown(f"**Grade:** <span style='color:{dir_color};font-weight:700;'>{grade}</span>", unsafe_allow_html=True)
-
         st.divider()
         m1, m2, m3, m4, m5, m6 = st.columns(6)
         m1.metric("Price", _fmt_num(price))
@@ -824,13 +874,10 @@ def _render_narrative_card_native(row, idx=0, market_type="generic"):
         m4.metric("Target 2", _fmt_num(t2))
         m5.metric("Stop Loss", _fmt_num(stop))
         m6.metric("R:R", f"{_fmt_num(rr)}x")
-
-        # Expected Move
         em_pct = row.get("expected_move_weekly_pct")
         em_val = row.get("expected_move_weekly")
         if em_pct or em_val:
             st.caption(f"📊 **Expected Move (weekly):** ±{_fmt_num(em_val)} ({fp(em_pct)}) · Daily vol: {fp(row.get('daily_vol'))}")
-
         st.divider()
         st.markdown("**📐 Level Basis**")
         b1, b2, b3 = st.columns(3)
@@ -838,7 +885,6 @@ def _render_narrative_card_native(row, idx=0, market_type="generic"):
         b2.write(f"📈 **T1:** {row.get('tp1_basis', '—')}")
         b3.write(f"🛑 **Stop:** {row.get('stop_basis', '—')}")
         if row.get("tp2_basis"): st.caption(f"📈 T2 Basis: {row.get('tp2_basis')}")
-
         st.divider()
         st.markdown("**⏱️ Path & Timing**")
         p1, p2, p3, p4 = st.columns(4)
@@ -846,7 +892,7 @@ def _render_narrative_card_native(row, idx=0, market_type="generic"):
         p2.write(f"⏳ **To T1:** {row.get('time_estimate', '—')}")
         p3.write(f"⏳ **To T2:** {row.get('time_estimate_t2', '—')}")
         p4.write(f"🚀 **Breakout:** {row.get('breakout_chance', '—')}")
-
+        # Option data section — only for non-IHSG markets
         has_options = any(row.get(k) for k in ["gamma_regime","greek_composite","max_pain","max_pain_gamma","delta","vanna","put_wall","call_wall","gamma_flip_up","gamma_flip_down"])
         if has_options and market_type not in ["ihsg"]:
             st.divider()
@@ -864,7 +910,40 @@ def _render_narrative_card_native(row, idx=0, market_type="generic"):
             o9, o10 = st.columns(2)
             o9.metric("Gamma Flip ↑", _fmt_num(row.get("gamma_flip_up", "—")))
             o10.metric("Gamma Flip ↓", _fmt_num(row.get("gamma_flip_down", "—")))
-
+        # IHSG 5-Layer Structural Section
+        if market_type == "ihsg":
+            st.divider()
+            st.markdown("**🇮🇩 IHSG Structural Layers — Option Data Not Available**")
+            ihsg_layers = []
+            sector_mom = row.get("sector_momentum", {})
+            comm_ov = row.get("commodity_overlay", {})
+            rupiah = row.get("rupiah_regime", {})
+            flow = row.get("foreign_flow", {})
+            macro = row.get("macro_overlay", {})
+            if sector_mom:
+                bias_color = "#3FB950" if sector_mom.get("bias") == "Bullish" else "#F85149" if sector_mom.get("bias") == "Bearish" else "#D29922"
+                ihsg_layers.append(f"<div style='margin:4px 0;'><span style='color:{bias_color};font-weight:600;'>📊 Sector Momentum:</span> {sector_mom.get('sector','')} {fp(sector_mom.get('avg_1m'))} (leader: {sector_mom.get('leader','—')})</div>")
+            if comm_ov and comm_ov.get("signal"):
+                tail_color = "#3FB950" if comm_ov.get("tailwind") in ["Strong","Moderate"] else "#F85149" if comm_ov.get("tailwind") == "Headwind" else "#8B949E"
+                ihsg_layers.append(f"<div style='margin:4px 0;'><span style='color:{tail_color};font-weight:600;'>🛢️ Commodity Overlay:</span> {comm_ov.get('signal','')}</div>")
+            if rupiah and rupiah.get("flow_signal"):
+                rup_color = "#3FB950" if "Positive" in rupiah.get("flow_signal","") else "#F85149" if "Risk" in rupiah.get("flow_signal","") else "#D29922"
+                ihsg_layers.append(f"<div style='margin:4px 0;'><span style='color:{rup_color};font-weight:600;'>💱 Rupiah Regime:</span> {rupiah.get('flow_signal','')} (DXY {rupiah.get('dxy_trend','—')})</div>")
+            if flow and flow.get("signal"):
+                flow_color = "#3FB950" if "Accumulation" in flow.get("signal","") else "#F85149" if "Distribution" in flow.get("signal","") else "#D29922"
+                ihsg_layers.append(f"<div style='margin:4px 0;'><span style='color:{flow_color};font-weight:600;'>🌊 Foreign Flow:</span> {flow.get('signal','')} — {flow.get('note','')}</div>")
+            if macro:
+                if row.get("sector") == "Banking" and macro.get("banking_bias"):
+                    bank_color = "#3FB950" if macro.get("banking_bias") == "Bullish" else "#F85149" if macro.get("banking_bias") == "Bearish" else "#8B949E"
+                    ihsg_layers.append(f"<div style='margin:4px 0;'><span style='color:{bank_color};font-weight:600;'>🏦 BI Macro:</span> {macro.get('bi_signal','')}</div>")
+                if row.get("sector") in ["Consumer", "Pharma"] and macro.get("consumer_bias"):
+                    cons_color = "#3FB950" if macro.get("consumer_bias") == "Bullish" else "#F85149" if macro.get("consumer_bias") == "Bearish" else "#8B949E"
+                    ihsg_layers.append(f"<div style='margin:4px 0;'><span style='color:{cons_color};font-weight:600;'>🛒 Consumer Macro:</span> {macro.get('consumer_signal','')}</div>")
+            if ihsg_layers:
+                st.markdown("".join(ihsg_layers), unsafe_allow_html=True)
+            else:
+                st.caption("No structural layer data available for this ticker.")
+        # Flow data section
         has_flow = any(row.get(k) for k in ["cot_signal","oi_signal","onchain_signal","skew","oi_trend","cot_bias"])
         if has_flow:
             st.divider()
@@ -876,7 +955,6 @@ def _render_narrative_card_native(row, idx=0, market_type="generic"):
             f2.write(f"📉 **OI Trend:** {row.get('oi_trend', '—')}")
             if row.get("skew") and row.get("skew") != "—": st.write(f"⚖️ **Skew:** {row.get('skew')}")
             if row.get("onchain_signal") and row.get("onchain_signal") != "—": st.write(f"⛓️ **On-Chain:** {row.get('onchain_signal')}")
-
         st.divider()
         st.markdown("**🎯 Thesis & Actionable Strategy**")
         thesis = row.get("thesis") or row.get("recommendation") or row.get("known_thesis", "N/A")
@@ -884,7 +962,6 @@ def _render_narrative_card_native(row, idx=0, market_type="generic"):
         if row.get("action"): st.caption(f"🎬 **Action:** {row.get('action')}")
         invalidators = row.get("invalidators", [])
         if invalidators: st.error(f"❌ **Invalidators:** {', '.join(invalidators)}")
-
         if "STRONG" in signal or "URGENT" in scanner:
             st.divider()
             r1, r2 = st.columns(2)
@@ -893,6 +970,7 @@ def _render_narrative_card_native(row, idx=0, market_type="generic"):
         elif "CAUTIOUS" in str(thesis) or "CONFLICTED" in str(thesis):
             st.divider()
             st.warning("🟡 Mixed Signals — Reduce Size")
+
 
 # ══════════════════════════════════════════════════════════════════════════════
 # SIDEBAR
@@ -983,6 +1061,13 @@ vix_now = _sf(prices.get("^VIX", pd.Series()).tail(1)) if prices.get("^VIX") is 
 daily_signals = snap.get("daily_signals", []) or []
 alpha_center = snap.get("alpha_center", {}) or {}
 
+# IHSG structural layers
+ihsg_sector_momentum = snap.get("ihsg_sector_momentum", {}) or {}
+ihsg_commodity_overlay = snap.get("ihsg_commodity_overlay", {}) or {}
+ihsg_rupiah_regime = snap.get("ihsg_rupiah_regime", {}) or {}
+ihsg_foreign_flow = snap.get("ihsg_foreign_flow", {}) or {}
+ihsg_macro_overlay = snap.get("ihsg_macro_overlay", {}) or {}
+
 FALLBACK_NARRATIVES = [
     {"name":"Silver Supercycle","score":0.92,"thesis":"SLV +143% since May 2025. Industrial demand (solar, AI chips) + safe haven. Mine supply flat.","tickers":["SLV","SILJ","GDXJ","GDX","GLD"],"best":["SLV","SILJ","GDXJ"],"worst":["XLK","MAGS"],"invalidators":["Q4 deflation signal","DXY sustained bullish"]},
     {"name":"Gold Secular Bull","score":0.88,"thesis":"Central banks buying at record pace. De-dollarization structural. Safe haven in Q3.","tickers":["GLD","GDX","GDXJ","AEM","WPM"],"best":["GLD","GDX"],"worst":["HYG","IWM"],"invalidators":["Q4→Q1 direct","DXY reversal"]},
@@ -1001,11 +1086,12 @@ FALLBACK_DISCOVERY = [
     {"name":"Indonesia OSV Bottleneck","category":"Local Bottleneck","stage":"brewing","confidence":0.65,"thesis":"Pertamina hulu expansion = OSV fleet utilization >90%.","beneficiary_tickers":["WINS.JK","LEAD.JK","SHIP.JK","ELSA.JK"],"fade_tickers":["BUMI.JK"],"confirmation_signal":"Pertamina Q2 capex","invalidators":["Pertamina budget freeze"]},
 ]
 
+
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: 🏠 DASHBOARD — RESTORED (NO _seq_pills here, NO top 5 ideas)
+# TAB: 🏠 DASHBOARD
 # ══════════════════════════════════════════════════════════════════════════════
 if page == "🏠 Dashboard":
-    st.markdown('<div style="font-size:28px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">🏠 Dashboard</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">🏠 Dashboard</div>', unsafe_allow_html=True)
     st.caption("Command center. 30-second read.")
     st.divider()
 
@@ -1017,23 +1103,23 @@ if page == "🏠 Dashboard":
         import datetime
         ts_str = datetime.datetime.fromtimestamp(ai_ts).strftime("%H:%M") if ai_ts else "—"
         if "rule-based" in str(model_name):
-            st.markdown(f'<div style="background:#0D2818;border:1px solid #3FB950;border-radius:8px;padding:8px 12px;margin:6px 0;"><span style="color:#3FB950;font-weight:700;">🧠 AI RULE-BASED ACTIVE</span><span style="font-size:12px;color:#8B949E;margin-left:8px;">Auto-generated from live data · {ai_cnt_narr} narratives · {ai_cnt_alpha} alpha ideas · {ai_cnt_btk} bottlenecks · Updated {ts_str}</span></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="card-green"><span style="color:#3FB950;font-weight:700;">🧠 AI RULE-BASED ACTIVE</span><span style="font-size:12px;color:#8B949E;margin-left:8px;">Auto-generated from live data · {ai_cnt_narr} narratives · {ai_cnt_alpha} alpha ideas · {ai_cnt_btk} bottlenecks · Updated {ts_str}</span></div>', unsafe_allow_html=True)
         else:
-            st.markdown(f'<div style="background:#0D2818;border:1px solid #3FB950;border-radius:8px;padding:8px 12px;margin:6px 0;"><span style="color:#3FB950;font-weight:700;">🤖 AI ACTIVE — {model_name}</span><span style="font-size:12px;color:#8B949E;margin-left:8px;">{ai_cnt_narr} narratives · {ai_cnt_alpha} alpha ideas · {ai_cnt_btk} bottlenecks · Updated {ts_str}</span></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="card-green"><span style="color:#3FB950;font-weight:700;">🤖 AI ACTIVE — {model_name}</span><span style="font-size:12px;color:#8B949E;margin-left:8px;">{ai_cnt_narr} narratives · {ai_cnt_alpha} alpha ideas · {ai_cnt_btk} bottlenecks · Updated {ts_str}</span></div>', unsafe_allow_html=True)
     else:
         ai_reason = ai_data.get("reason", "")
-        st.markdown(f'<div style="background:#2D2305;border:1px solid #D29922;border-radius:8px;padding:8px 12px;margin:6px 0;"><span style="color:#D29922;font-weight:700;">🤖 AI: Fallback — {ai_reason}</span></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="card-yellow"><span style="color:#D29922;font-weight:700;">🤖 AI: Fallback — {ai_reason}</span></div>', unsafe_allow_html=True)
 
     st.caption(f"Built {snap.get('build_time_s',0):.0f}s ago · {snap.get('prices_loaded',0)} assets · {snap.get('fred_coverage',0)} macro indicators")
 
     vbd = health.get("vix_bucket",{}) if health else {}
     vb = vbd.get("bucket","—"); vl = _sf(vbd.get("vix_last")) or 0
     if vb=="Investable":
-        st.markdown(f'<div style="background:#0D2818;border:1px solid #3FB950;border-radius:8px;padding:10px;text-align:center;margin:8px 0;"><span style="color:#3FB950;font-weight:700;">🟢 GOOD MARKET CONDITIONS · VIX {vl:.1f}</span><br><span style="font-size:12px;color:#8B949E;">{vbd.get("note","")}</span><br><span style="font-size:11px;color:#8B949E;">Risk mode: {vbd.get("risk_mode","Normal")}</span></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="card-green" style="text-align:center;"><span style="color:#3FB950;font-weight:700;">🟢 GOOD MARKET CONDITIONS · VIX {vl:.1f}</span><br><span style="font-size:12px;color:#8B949E;">{vbd.get("note","")}</span><br><span style="font-size:11px;color:#8B949E;">Risk mode: {vbd.get("risk_mode","Normal")}</span></div>', unsafe_allow_html=True)
     elif vb=="Chop":
-        st.markdown(f'<div style="background:#2D2305;border:1px solid #D29922;border-radius:8px;padding:10px;text-align:center;margin:8px 0;"><span style="color:#D29922;font-weight:700;">🟡 CHOPPY CONDITIONS · VIX {vl:.1f}</span><br><span style="font-size:12px;color:#8B949E;">{vbd.get("note","")}</span><br><span style="font-size:11px;color:#8B949E;">Risk mode: {vbd.get("risk_mode","Normal")}</span></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="card-yellow" style="text-align:center;"><span style="color:#D29922;font-weight:700;">🟡 CHOPPY CONDITIONS · VIX {vl:.1f}</span><br><span style="font-size:12px;color:#8B949E;">{vbd.get("note","")}</span><br><span style="font-size:11px;color:#8B949E;">Risk mode: {vbd.get("risk_mode","Normal")}</span></div>', unsafe_allow_html=True)
     elif vb=="Defensive":
-        st.markdown(f'<div style="background:#2D0D0D;border:1px solid #F85149;border-radius:8px;padding:10px;text-align:center;margin:8px 0;"><span style="color:#F85149;font-weight:700;">🔴 DEFENSIVE CONDITIONS · VIX {vl:.1f}</span><br><span style="font-size:12px;color:#8B949E;">{vbd.get("note","")}</span><br><span style="font-size:11px;color:#8B949E;">Risk mode: {vbd.get("risk_mode","Normal")}</span></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="card-red" style="text-align:center;"><span style="color:#F85149;font-weight:700;">🔴 DEFENSIVE CONDITIONS · VIX {vl:.1f}</span><br><span style="font-size:12px;color:#8B949E;">{vbd.get("note","")}</span><br><span style="font-size:11px;color:#8B949E;">Risk mode: {vbd.get("risk_mode","Normal")}</span></div>', unsafe_allow_html=True)
 
     g_col, dxy_col = st.columns([1.1, 1])
     with g_col: st.markdown(_gamma_card(gamma_data), unsafe_allow_html=True)
@@ -1059,7 +1145,7 @@ if page == "🏠 Dashboard":
     if pb_data:
         best5 = " · ".join(pb_data.get("best_assets",[])[:6])
         worst5 = " · ".join(pb_data.get("worst_assets",[])[:5])
-        st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:8px;padding:12px;margin:8px 0;"><div style="font-size:13px;font-weight:700;color:#E6EDF3;margin-bottom:6px;">🎯 What to Do Right Now — {sq} · {mq}</div><div style="font-size:12px;color:#3FB950;margin-bottom:4px;">✅ Buy/Hold: {best5}</div><div style="font-size:12px;color:#F85149;">❌ Avoid/Sell: {worst5}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="card-gray"><div style="font-size:13px;font-weight:700;color:#E6EDF3;margin-bottom:6px;">🎯 What to Do Right Now — {sq} · {mq}</div><div style="font-size:12px;color:#3FB950;margin-bottom:4px;">✅ Buy/Hold: {best5}</div><div style="font-size:12px;color:#F85149;">❌ Avoid/Sell: {worst5}</div></div>', unsafe_allow_html=True)
 
     try:
         if fb_eval and fb_eval.get("evaluated",0):
@@ -1073,24 +1159,24 @@ if page == "🏠 Dashboard":
         logger.warning(f"Feedback eval error: {e}")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: 📈 GIP MODEL — RESTORED (WITH _seq_pills HERE ONLY)
+# TAB: 📈 GIP MODEL
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "📈 GIP Model":
-    st.markdown('<div style="font-size:28px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">📈 GIP Model</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">📈 GIP Model</div>', unsafe_allow_html=True)
     st.caption("Growth · Inflation · Policy — The Map")
     st.divider()
     if not gip: st.warning("Data loading..."); st.stop()
 
     cc,cw = st.columns(2)
     with cc:
-        st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:8px;padding:12px;"><div style="font-size:11px;color:#8B949E;text-transform:uppercase;letter-spacing:0.5px;">Quarterly Regime (Climate)</div><div style="font-size:22px;font-weight:700;color:{qc(sq)};margin:6px 0;">{sq}</div><div style="font-size:12px;color:#E6EDF3;margin-bottom:8px;">{QNC.get(sq,"")}</div><div style="font-size:12px;color:#8B949E;">{QUAD_EXPLAIN[sq]}</div><div style="margin-top:10px;font-size:11px;color:#8B949E;border-top:1px solid #30363D;padding-top:6px;">Confidence: {gip.structural_conf:.0%} · Flip risk: {gip.flip_hazard:.0%}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="card-gray"><div class="metric-label">Quarterly Regime (Climate)</div><div style="font-size:22px;font-weight:700;color:{qc(sq)};margin:6px 0;">{sq}</div><div style="font-size:12px;color:#E6EDF3;margin-bottom:8px;">{QNC.get(sq,"")}</div><div style="font-size:12px;color:#8B949E;">{QUAD_EXPLAIN[sq]}</div><div style="margin-top:10px;font-size:11px;color:#8B949E;border-top:1px solid #30363D;padding-top:6px;">Confidence: {gip.structural_conf:.0%} · Flip risk: {gip.flip_hazard:.0%}</div></div>', unsafe_allow_html=True)
     with cw:
-        st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:8px;padding:12px;"><div style="font-size:11px;color:#8B949E;text-transform:uppercase;letter-spacing:0.5px;">Monthly Regime (Weather — 3-6 Weeks)</div><div style="font-size:22px;font-weight:700;color:{qc(mq)};margin:6px 0;">{mq}</div><div style="font-size:12px;color:#E6EDF3;margin-bottom:8px;">{QNC.get(mq,"")}</div><div style="font-size:12px;color:#8B949E;">{QUAD_EXPLAIN[mq]}</div><div style="margin-top:10px;font-size:11px;color:#8B949E;border-top:1px solid #30363D;padding-top:6px;">Confidence: {gip.monthly_conf:.0%} · Divergence: {gip.divergence}</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="card-gray"><div class="metric-label">Monthly Regime (Weather — 3-6 Weeks)</div><div style="font-size:22px;font-weight:700;color:{qc(mq)};margin:6px 0;">{mq}</div><div style="font-size:12px;color:#E6EDF3;margin-bottom:8px;">{QNC.get(mq,"")}</div><div style="font-size:12px;color:#8B949E;">{QUAD_EXPLAIN[mq]}</div><div style="margin-top:10px;font-size:11px;color:#8B949E;border-top:1px solid #30363D;padding-top:6px;">Confidence: {gip.monthly_conf:.0%} · Divergence: {gip.divergence}</div></div>', unsafe_allow_html=True)
     if mq_raw == "Q1":
         st.warning("⚠ Model computed Q1, Hedgeye manual call = Q2. Use Quad Override in sidebar.")
 
     st.divider()
-    st.markdown("### What the Data Is Saying")
+    st.markdown('<div class="subsection-header">What the Data Is Saying</div>', unsafe_allow_html=True)
     f = gip.features; gm = _sf(f.get("growth_momentum")) or 0; im = _sf(f.get("inflation_momentum")) or 0
     s1,s2,s3,s4 = st.columns(4)
     s1.metric("Growth Direction", "📈 Accelerating" if gm>0 else "📉 Decelerating", f"{gm:+.1%}")
@@ -1099,12 +1185,12 @@ elif page == "📈 GIP Model":
     s4.metric("Data Coverage", f"{gip.data_coverage:.0%}")
 
     st.divider()
-    st.markdown("### Where Are We Going Next?")
+    st.markdown('<div class="subsection-header">Where Are We Going Next?</div>', unsafe_allow_html=True)
 
     def _tp(probs, cur_q, label):
         if not probs: return
         sp=sorted(probs.items(),key=lambda x:x[1],reverse=True); top_q,top_p=sp[0]
-        st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:8px;padding:10px;text-align:center;margin:6px 0;"><div style="font-size:11px;color:#8B949E;text-transform:uppercase;">{label}</div><div style="font-size:14px;font-weight:700;color:#E6EDF3;margin:4px 0;">Most likely next: <b>{top_q} {QN.get(top_q,"")}</b> ({top_p:.0%})</div></div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="card-gray" style="text-align:center;"><div class="metric-label">{label}</div><div style="font-size:14px;font-weight:700;color:#E6EDF3;margin:4px 0;">Most likely next: <b>{top_q} {QN.get(top_q,"")}</b> ({top_p:.0%})</div></div>', unsafe_allow_html=True)
         key_id = f"prob_{label.replace(' ', '_').replace('/', '_')}"
         st.plotly_chart(prob_bar(probs), use_container_width=True, config={"displayModeBar":False}, key=key_id)
         if top_q!=cur_q: st.info(f"If regime shifts to {top_q}: **{QWINS.get(top_q,'')}** are the winners")
@@ -1117,7 +1203,7 @@ elif page == "📈 GIP Model":
         if gprobs: _tp(gprobs, gq, "Global Probabilities")
 
     st.divider()
-    st.markdown("### Timing Signal")
+    st.markdown('<div class="subsection-header">Timing Signal</div>', unsafe_allow_html=True)
     st.markdown(_seq_pills(sq, mq), unsafe_allow_html=True)
     if transition:
         fw=transition.front_run_window; fr=transition.front_run_rationale
@@ -1128,18 +1214,19 @@ elif page == "📈 GIP Model":
 
     if analogs and analogs.get("top_analogs"):
         st.divider()
-        st.markdown("### Historical Comparisons")
+        st.markdown('<div class="subsection-header">Historical Comparisons</div>', unsafe_allow_html=True)
         for i,a in enumerate(analogs["top_analogs"][:3]):
             with st.expander(f"📚 **{a['label']}** — {a.get('similarity',0):.0%} similar", expanded=(i==0)):
                 c1,c2,c3=st.columns(3)
                 c1.metric("Next 1M", a.get("path_1m","—")); c2.metric("Next 3M", a.get("path_3m","—")); c3.metric("Next 6M", a.get("path_6m","—"))
                 st.info(f"📊 {a.get('next_bias','')}")
 
+
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: ⚡ ALPHA & SCANNER
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "⚡ Alpha & Scanner":
-    st.markdown('<div style="font-size:28px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">⚡ Alpha & Scanner</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">⚡ Alpha & Scanner</div>', unsafe_allow_html=True)
     st.caption("Bottlenecks · Alpha Ideas · Discovery · Daily Signals — All unified.")
     st.divider()
 
@@ -1228,7 +1315,7 @@ elif page == "⚡ Alpha & Scanner":
 # TAB: 💱🛢️ MACRO PROXIES
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "💱🛢️ Macro Proxies":
-    st.markdown('<div style="font-size:28px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">💱🛢️ Macro Proxies</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">💱🛢️ Macro Proxies</div>', unsafe_allow_html=True)
     st.caption("Forex + Commodities unified. COT + OI + Greeks + Risk Ranges.")
     st.divider()
 
@@ -1237,10 +1324,13 @@ elif page == "💱🛢️ Macro Proxies":
     cot_data = snap.get("cot_oi",{}).get("cot",{}) if snap else {}
     oi_data = snap.get("cot_oi",{}).get("oi",{}) if snap else {}
 
+    st.markdown(_tp_basis_banner("forex"), unsafe_allow_html=True)
+    st.markdown(_tp_basis_banner("commodity"), unsafe_allow_html=True)
+
     fx_tab, comm_tab = st.tabs(["💱 Forex", "🛢️ Commodities"])
 
     with fx_tab:
-        st.markdown("### 💱 Forex Setups")
+        st.markdown('<div class="subsection-header">💱 Forex Setups</div>', unsafe_allow_html=True)
         st.caption("**Filter:** Composite bullish/bearish from Risk Range + COT bias alignment + OI concentration + Greeks delta + VIX regime")
         fx_rows = []
         for ticker in list(FOREX_PAIRS.keys()):
@@ -1258,7 +1348,7 @@ elif page == "💱🛢️ Macro Proxies":
         if not shorts: st.info("No short FX setups.")
 
     with comm_tab:
-        st.markdown("### 🛢️ Commodity Setups")
+        st.markdown('<div class="subsection-header">🛢️ Commodity Setups</div>', unsafe_allow_html=True)
         st.caption("**Filter:** Composite bullish/bearish + COT + OI + Greeks + Precious metals get DXY inverse boost")
         comm_rows = []
         for ticker in list(COMMODITIES.keys()):
@@ -1275,13 +1365,16 @@ elif page == "💱🛢️ Macro Proxies":
         for i, row in enumerate(shorts): _render_narrative_card_native(row, i, "commodity")
         if not shorts: st.info("No short commodity setups.")
 
+
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: ₿ CRYPTO
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "₿ Crypto":
-    st.markdown('<div style="font-size:28px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">₿ Crypto Setups</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">₿ Crypto Setups</div>', unsafe_allow_html=True)
     st.caption("On-chain momentum + Risk Ranges. Narrative cards per token.")
     st.divider()
+
+    st.markdown(_tp_basis_banner("crypto"), unsafe_allow_html=True)
 
     crypto_tokens = snap.get("crypto_tokens", {}) or {}
     if not isinstance(crypto_tokens, dict) or not crypto_tokens:
@@ -1328,7 +1421,7 @@ elif page == "₿ Crypto":
 
     longs, shorts = _split_long_short(crypto_rows)
 
-    st.caption(f"**Filter:** 1M momentum >+3% = LONG override | <-3% = SHORT override | On-chain TVL/DEX vol confirmation | Crypto moves 8%+/week normally")
+    st.caption(f"**Filter:** 1M momentum >+3% = LONG override | <-3% = SHORT override | On-chain TVL/DEX vol confirmation | Crypto moves ~8%/week normally")
 
     st.markdown(f"**🟢 LONG CRYPTO ({len(longs)} setups)**")
     for i, row in enumerate(longs): _render_narrative_card_native(row, i, "crypto")
@@ -1343,8 +1436,8 @@ elif page == "₿ Crypto":
 # TAB: 🌍 GLOBAL & EM
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "🌍 Global & EM":
-    st.markdown('<div style="font-size:28px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">🌍 Global & EM</div>', unsafe_allow_html=True)
-    st.caption("Global regime map + Indonesia IHSG narrative.")
+    st.markdown('<div class="section-header">🌍 Global & EM</div>', unsafe_allow_html=True)
+    st.caption("Global regime map + Indonesia IHSG narrative with 5 structural layers.")
     st.divider()
 
     global_tab, ihsg_tab = st.tabs(["🌍 Global Quad", "🇮🇩 IHSG"])
@@ -1363,15 +1456,15 @@ elif page == "🌍 Global & EM":
 
         c1,c2 = st.columns([1,1.5])
         with c1:
-            st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:10px;padding:16px;"><div style="font-size:12px;color:#8B949E;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Global Regime</div><div style="font-size:32px;font-weight:700;color:{qc(gq)};">{gq}</div><div style="font-size:13px;color:#8B949E;margin-top:6px;">{QNC.get(gq,"")}</div><div style="font-size:12px;color:#8B949E;margin-top:8px;">50 country ETFs · GDP-weighted · Confidence: {gconf:.0%}</div></div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="card-gray"><div class="metric-label">Global Regime</div><div style="font-size:32px;font-weight:700;color:{qc(gq)};">{gq}</div><div style="font-size:13px;color:#8B949E;margin-top:6px;">{QNC.get(gq,"")}</div><div style="font-size:12px;color:#8B949E;margin-top:8px;">50 country ETFs · GDP-weighted · Confidence: {gconf:.0%}</div></div>', unsafe_allow_html=True)
             st.plotly_chart(prob_bar(gprobs), use_container_width=True, config={"displayModeBar":False})
             em_sig = (btk.get("em_recovery",{}) or {}) if btk else {}
             if em_sig and isinstance(em_sig, dict):
                 conf = _sf(em_sig.get("confidence")) or 0
                 trigger = em_sig.get("trigger","EM signal")
-                st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:10px;padding:12px;margin-top:10px;"><div style="font-size:12px;color:#8B949E;">🌍 EM RECOVERY SIGNAL</div><div style="font-size:14px;font-weight:600;color:#E6EDF3;margin-top:4px;">{trigger}</div><div style="font-size:12px;color:#8B949E;margin-top:4px;">Confidence: {conf:.0%}</div></div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="card-gray"><div class="metric-label">🌍 EM RECOVERY SIGNAL</div><div style="font-size:14px;font-weight:600;color:#E6EDF3;margin-top:4px;">{trigger}</div><div style="font-size:12px;color:#8B949E;margin-top:4px;">Confidence: {conf:.0%}</div></div>', unsafe_allow_html=True)
         with c2:
-            st.markdown("### Country Regimes")
+            st.markdown('<div class="subsection-header">Country Regimes</div>', unsafe_allow_html=True)
             rows=[]
             for country,q in sorted(cqs.items(),key=lambda x:x[1]):
                 rows.append({"Country":country,"Regime":q,"Name":QN.get(q,q)})
@@ -1379,13 +1472,90 @@ elif page == "🌍 Global & EM":
             st.dataframe(df.style.map(lambda x: f'color:{qc(x)}', subset=["Regime"]).format({"Regime":lambda x:""}), hide_index=True, use_container_width=True, height=400)
 
     with ihsg_tab:
-        st.markdown("### 🇮🇩 IHSG — Indonesia Narrative Report")
-        st.caption("**Filter:** Sector-based narrative + Q3 commodity bid + momentum 1M/3M + Risk Range composite")
+        st.markdown('<div class="section-header">🇮🇩 IHSG — Indonesia Narrative Report</div>', unsafe_allow_html=True)
+        st.caption("**Filter:** Sector-based narrative + Q3 commodity bid + momentum 1M/3M + Risk Range composite + 5 structural compensators")
         st.divider()
+
+        st.markdown(_tp_basis_banner("ihsg"), unsafe_allow_html=True)
+
+        # IHSG Structural Layers Dashboard
+        st.markdown('<div class="subsection-header">📊 IHSG Structural Compensators (No Option Data Available)</div>', unsafe_allow_html=True)
+
+        # Layer 1: Sector Momentum
+        if ihsg_sector_momentum:
+            with st.expander("📊 Layer 1: Sector Momentum (Replaces Greeks Composite)", expanded=True):
+                sec_rows = []
+                for sector, data in ihsg_sector_momentum.items():
+                    sec_rows.append({
+                        "Sector": sector,
+                        "Avg 1M": fp(data.get("avg_1m")),
+                        "Leader": data.get("leader", "—"),
+                        "Leader 1M": fp(data.get("leader_1m")),
+                        "Bias": data.get("bias", "—"),
+                        "Strength": f"{data.get('strength', 0):.0%}",
+                    })
+                if sec_rows:
+                    st.dataframe(pd.DataFrame(sec_rows), hide_index=True, use_container_width=True)
+                st.caption("Sector momentum = composite of all tickers in sector. Leader = best performer. Replaces 'Greeks bullish/bearish' for IHSG.")
+
+        # Layer 2: Commodity Overlay
+        if ihsg_commodity_overlay:
+            with st.expander("🛢️ Layer 2: Commodity Price Overlay (Replaces COT Bias)", expanded=True):
+                comm_rows = []
+                for sector, data in ihsg_commodity_overlay.items():
+                    comm_rows.append({
+                        "Sector": sector,
+                        "Proxy": data.get("proxy", "—"),
+                        "1M": fp(data.get("r1m")),
+                        "3M": fp(data.get("r3m")),
+                        "Tailwind": data.get("tailwind", "—"),
+                    })
+                if comm_rows:
+                    st.dataframe(pd.DataFrame(comm_rows), hide_index=True, use_container_width=True)
+                st.caption("Commodity overlay = global price proxy for sector tailwind/headwind. Coal→KOL, Nickel→JJN, CPO→DBA. Replaces 'COT bullish/bearish'.")
+
+        # Layer 3: Rupiah Regime
+        if ihsg_rupiah_regime:
+            with st.expander("💱 Layer 3: Rupiah Regime (Replaces FX Vanna)", expanded=True):
+                r1, r2, r3 = st.columns(3)
+                r1.metric("DXY Trend", ihsg_rupiah_regime.get("dxy_trend", "—"))
+                r2.metric("DXY 1M", fp(ihsg_rupiah_regime.get("dxy_1m")))
+                r3.metric("IDR Bias", ihsg_rupiah_regime.get("idr_bias", "—"))
+                st.markdown(f"**Flow Signal:** {ihsg_rupiah_regime.get('flow_signal', '—')}")
+                st.caption("Rupiah regime = DXY trend impact on EM inflow. DXY bearish = IDR support = IHSG tailwind. Replaces 'Vanna positive/negative'.")
+
+        # Layer 4: Foreign Flow
+        if ihsg_foreign_flow:
+            with st.expander("🌊 Layer 4: Foreign Flow Proxy (Replaces OI Concentration)", expanded=True):
+                flow_rows = []
+                for ticker, data in list(ihsg_foreign_flow.items())[:10]:
+                    flow_rows.append({
+                        "Ticker": ticker,
+                        "Signal": data.get("signal", "—"),
+                        "Gap": fp(data.get("gap")),
+                        "Vol Spike": f"{data.get('vol_spike', 0):.1f}x",
+                    })
+                if flow_rows:
+                    st.dataframe(pd.DataFrame(flow_rows), hide_index=True, use_container_width=True)
+                st.caption("Foreign flow = gap + volume spike detection. Gap up + vol spike = accumulation. Gap down + vol spike = distribution. Replaces 'OI high at highs/lows'.")
+
+        # Layer 5: Macro Overlay
+        if ihsg_macro_overlay:
+            with st.expander("🏦 Layer 5: BI Rate / Domestic Macro (Replaces Policy Score)", expanded=True):
+                m1, m2, m3 = st.columns(3)
+                m1.metric("Policy Score", f"{ihsg_macro_overlay.get('policy_score', 0):+.2f}")
+                m2.metric("Growth", fp(ihsg_macro_overlay.get("growth_momentum")))
+                m3.metric("Inflation", fp(ihsg_macro_overlay.get("inflation_momentum")))
+                st.markdown(f"**BI Signal:** {ihsg_macro_overlay.get('bi_signal', '—')}")
+                st.markdown(f"**Banking Bias:** {ihsg_macro_overlay.get('banking_bias', '—')} | **Consumer Bias:** {ihsg_macro_overlay.get('consumer_bias', '—')}")
+                st.caption("Macro overlay = GIP policy score translated to BI rate regime. Dovish = banking NIM expand. Inflation cooling = consumer tailwind. Replaces 'Policy dovish/hawkish'.")
+
+        st.divider()
+        st.markdown('<div class="subsection-header">🇮🇩 IHSG Ticker Setups</div>', unsafe_allow_html=True)
 
         ihsg_rows = []
         for ticker in list(IHSG_UNIVERSE.keys()):
-            row = _build_ihsg_row(ticker, prices, ar)
+            row = _build_ihsg_row(ticker, prices, ar, ihsg_sector_momentum, ihsg_commodity_overlay, ihsg_rupiah_regime, ihsg_foreign_flow, ihsg_macro_overlay)
             if row:
                 row["entry_advice"] = "✅ BUY NOW — At buy zone" if row.get("price") and row.get("entry") and row["price"] <= row["entry"]*1.02 else "⏳ WAIT — Slightly above entry"
                 row["tp1_basis"] = f"Sector momentum target"
@@ -1403,11 +1573,12 @@ elif page == "🌍 Global & EM":
         for i, row in enumerate(longs): _render_narrative_card_native(row, i, "ihsg")
         if not longs: st.info("No IHSG longs.")
 
+
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: 📖 THEMES & BOTTLENECKS
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "📖 Themes & Bottlenecks":
-    st.markdown('<div style="font-size:28px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">📖 Themes & Bottlenecks</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">📖 Themes & Bottlenecks</div>', unsafe_allow_html=True)
     st.caption("Top-down narratives + structural discovery engine.")
     st.divider()
 
@@ -1439,19 +1610,19 @@ elif page == "📖 Themes & Bottlenecks":
                 st.markdown(f"**Confirmation:** {d.get('confirmation_signal','')}")
                 st.markdown(f"**Invalidators:** {', '.join(d.get('invalidators',[])[:3])}")
 
-        st.markdown("### 🔍 Auto-Discovered Bottlenecks")
+        st.markdown('<div class="subsection-header">🔍 Auto-Discovered Bottlenecks</div>', unsafe_allow_html=True)
         auto_bottlenecks = auto_disc.get("bottlenecks",[]) if auto_disc else []
         if auto_bottlenecks:
             for b in auto_bottlenecks:
                 if not isinstance(b, dict): continue
-                st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:8px;padding:10px;margin-bottom:8px;"><b>{b.get("ticker","")}</b> · {b.get("direction","")} · {b.get("known_thesis","")[:60]}</div>', unsafe_allow_html=True)
+                st.markdown(f'<div class="card-gray"><b>{b.get("ticker","")}</b> · {b.get("direction","")} · {b.get("known_thesis","")[:60]}</div>', unsafe_allow_html=True)
         else: st.info("No auto-discovered bottlenecks yet.")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: 🏥 HEALTH — RESTORED
+# TAB: 🏥 HEALTH
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "🏥 Health":
-    st.markdown('<div style="font-size:28px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">🏥 System Health</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">🏥 System Health</div>', unsafe_allow_html=True)
     st.caption("Data pipeline status, coverage, and diagnostics.")
     st.divider()
 
@@ -1463,7 +1634,7 @@ elif page == "🏥 Health":
 
     if daily_signals:
         st.divider()
-        st.markdown("### Daily Signal Coverage")
+        st.markdown('<div class="subsection-header">Daily Signal Coverage</div>', unsafe_allow_html=True)
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Tickers Rated", len(daily_signals))
         c2.metric("Alpha Center Items", alpha_center.get("meta", {}).get("total_items", 0) if alpha_center else 0)
@@ -1474,14 +1645,25 @@ elif page == "🏥 Health":
     greeks_data = snap.get("greeks_data", {})
     if gamma_data or greeks_data:
         st.divider()
-        st.markdown("### Option Data Coverage")
+        st.markdown('<div class="subsection-header">Option Data Coverage</div>', unsafe_allow_html=True)
         c1, c2, c3 = st.columns(3)
         c1.metric("Gamma Engine", len(gamma_data))
         c2.metric("Greeks Proxy", len(greeks_data))
         c3.metric("Combined", len(set(gamma_data.keys()) & set(greeks_data.keys())))
 
+    # IHSG Layer Coverage
+    if ihsg_sector_momentum or ihsg_commodity_overlay:
+        st.divider()
+        st.markdown('<div class="subsection-header">IHSG Structural Layer Coverage</div>', unsafe_allow_html=True)
+        c1, c2, c3, c4, c5 = st.columns(5)
+        c1.metric("Sector Momentum", len(ihsg_sector_momentum))
+        c2.metric("Commodity Overlay", len(ihsg_commodity_overlay))
+        c3.metric("Rupiah Regime", "✅" if ihsg_rupiah_regime else "❌")
+        c4.metric("Foreign Flow", len(ihsg_foreign_flow))
+        c5.metric("Macro Overlay", "✅" if ihsg_macro_overlay else "❌")
+
     st.divider()
-    st.markdown("### Data Sources")
+    st.markdown('<div class="subsection-header">Data Sources</div>', unsafe_allow_html=True)
     sources = health.get("sources",{}) if health else {}
     if sources:
         for src, status in sources.items():
@@ -1490,10 +1672,10 @@ elif page == "🏥 Health":
     else: st.info("No detailed source status available.")
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: 📋 PLAYBOOK — RESTORED
+# TAB: 📋 PLAYBOOK
 # ══════════════════════════════════════════════════════════════════════════════
 elif page == "📋 Playbook":
-    st.markdown('<div style="font-size:28px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">📋 Playbook</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-header">📋 Playbook</div>', unsafe_allow_html=True)
     st.caption("What to buy, what to avoid, and why.")
     st.divider()
 

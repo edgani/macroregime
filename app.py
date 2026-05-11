@@ -714,7 +714,7 @@ def _build_ihsg_row(ticker, prices, ar, ihsg_sector_momentum=None, ihsg_commodit
 
     tr = v.get("trade", {}); px = _sf(v.get("px")); lrr = _sf(tr.get("lrr")); trr = _sf(tr.get("trr"))
     if not px or not lrr or not trr: return None
-    side = "long" if v.get("composite") == "bullish" else "short"
+    side = "long" if v.get("composite") == "bullish" else "neutral"
     rl = _rr_levels(px, lrr, trr, side)
     if not rl: return None
 
@@ -860,26 +860,64 @@ def _render_narrative_card_native(row, idx=0, market_type="generic"):
         p3.write(f"⏳ **To T2:** {row.get('time_estimate_t2', '—')}")
         p4.write(f"🚀 **Breakout:** {row.get('breakout_chance', '—')}")
 
+        # ── TRR / LRR Toggle ─────────────────────────────────────────
+        if row.get("lrr") and row.get("trr"):
+            with st.expander("📐 TRR / LRR Levels", expanded=False):
+                t1, t2, t3, t4 = st.columns(4)
+                t1.metric("LRR", _fmt_num(row["lrr"]))
+                t2.metric("TRR", _fmt_num(row["trr"]))
+                pos_pct = ((price - row['lrr']) / (row['trr'] - row['lrr']) * 100) if row.get("trr") > row.get("lrr") else 0
+                t3.metric("Position %", f"{pos_pct:.0f}%")
+                comp_color = "#3FB950" if row.get("composite") == "bullish" else "#F85149" if row.get("composite") == "bearish" else "#D29922"
+                t4.markdown(f"**Composite:** <span style='color:{comp_color};font-weight:700;'>{row.get('composite','—').upper()}</span>", unsafe_allow_html=True)
+                st.caption(f"Range: {row['lrr']} → {row['trr']} | Spread: {row['trr'] - row['lrr']:.2f}")
+
+        # ── Options & Greeks Toggle ────────────────────────────────────
         has_options = any(row.get(k) for k in ["gamma_regime","greek_composite","max_pain","max_pain_gamma","delta","vanna","put_wall","call_wall","gamma_flip_up","gamma_flip_down"])
         if has_options and market_type not in ["ihsg"]:
-            st.divider()
-            st.markdown("**📊 Option Market Structure**")
-            o1, o2, o3, o4 = st.columns(4)
-            o1.metric("Gamma Regime", row.get("gamma_regime") or row.get("gamma_summary", "—"))
-            o2.metric("Greek Composite", row.get("greek_composite") or row.get("greek_summary", "—"))
-            o3.metric("Max Pain", _fmt_num(row.get("max_pain") or row.get("max_pain_gamma", "—")))
-            o4.metric("Delta", row.get("delta") or row.get("greek_delta", "—"))
-            o5, o6, o7, o8 = st.columns(4)
-            o5.metric("Vanna", row.get("vanna") or row.get("greek_vanna", "—"))
-            o6.metric("Charm", row.get("charm") or row.get("greek_charm", "—"))
-            o7.metric("Put Wall", _fmt_num(row.get("put_wall", "—")))
-            o8.metric("Call Wall", _fmt_num(row.get("call_wall", "—")))
-            o9, o10 = st.columns(2)
-            o9.metric("Gamma Flip ↑", _fmt_num(row.get("gamma_flip_up", "—")))
-            o10.metric("Gamma Flip ↓", _fmt_num(row.get("gamma_flip_down", "—")))
+            with st.expander("📊 Options & Greeks", expanded=False):
+                # Source badge
+                source = row.get("options_source", row.get("source", "PROXY"))
+                if "LIVE" in str(source):
+                    st.success(f"🟢 {source}")
+                else:
+                    st.warning("🟡 PROXY DATA — Calculated from price action, not live exchange")
+                o1, o2, o3, o4 = st.columns(4)
+                o1.metric("Gamma Regime", row.get("gamma_regime") or row.get("gamma_summary", "—"))
+                o2.metric("Greek Composite", row.get("greek_composite") or row.get("greek_summary", "—"))
+                o3.metric("Max Pain", _fmt_num(row.get("max_pain") or row.get("max_pain_gamma", "—")))
+                o4.metric("Delta", row.get("delta") or row.get("greek_delta", "—"))
+                o5, o6, o7, o8 = st.columns(4)
+                o5.metric("Vanna", row.get("vanna") or row.get("greek_vanna", "—"))
+                o6.metric("Charm", row.get("charm") or row.get("greek_charm", "—"))
+                o7.metric("Put Wall", _fmt_num(row.get("put_wall", "—")))
+                o8.metric("Call Wall", _fmt_num(row.get("call_wall", "—")))
+                o9, o10 = st.columns(2)
+                o9.metric("Gamma Flip ↑", _fmt_num(row.get("gamma_flip_up", "—")))
+                o10.metric("Gamma Flip ↓", _fmt_num(row.get("gamma_flip_down", "—")))
+                # Put/Call Ratio if available
+                if row.get("pc_volume") or row.get("pc_oi"):
+                    st.divider()
+                    st.markdown("**📊 Put/Call Ratio**")
+                    pc1, pc2 = st.columns(2)
+                    pc1.metric("P/C Volume", row.get("pc_volume", "—"))
+                    pc2.metric("P/C OI", row.get("pc_oi", "—"))
+                # Unusual Activity if available
+                if row.get("unusual_activity"):
+                    st.divider()
+                    st.markdown("**🚨 Unusual Activity**")
+                    for ua in row.get("unusual_activity", [])[:3]:
+                        st.caption(f"{ua.get('type')} {ua.get('strike')}: Vol/OI = {ua.get('vol_oi_ratio')}x | IV: {ua.get('iv')}")
+                # Expected Move from options if available
+                if row.get("expected_move"):
+                    em = row.get("expected_move")
+                    st.divider()
+                    st.markdown("**📊 Expected Move (Options-Based)**")
+                    st.caption(f"ATM Straddle: {em.get('straddle')} | Expected: ±{em.get('expected_move')} ({fp(em.get('expected_pct'))}) | ATM Strike: {em.get('atm_strike')}")
 
+        # ── Flow & Positioning (skip for IHSG) ─────────────────────────
         has_flow = any(row.get(k) for k in ["cot_signal","oi_signal","onchain_signal","skew","oi_trend","cot_bias"])
-        if has_flow:
+        if has_flow and market_type not in ["ihsg"]:
             st.divider()
             st.markdown("**📈 Flow & Positioning Data**")
             f1, f2 = st.columns(2)
@@ -953,6 +991,17 @@ with st.sidebar:
         _g=_s.get("gip"); _gl=_s.get("global",{})
         _sq=_g.structural_quad if _g else "—"; _mq=_g.monthly_quad if _g else "—"
         st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:10px;color:#8B949E;text-transform:uppercase;">CURRENT REGIME</div><div style="font-size:18px;font-weight:700;color:{qc(_sq)};margin:4px 0;">{_sq} / {_mq}</div><div style="font-size:11px;color:#8B949E;">{QN.get(_sq,"")} · {QN.get(_mq,"")}</div></div>', unsafe_allow_html=True)
+        # Data source badges
+        st.divider()
+        st.markdown("**📡 Data Sources**")
+        sources = []
+        if _s.get("cot_live"): sources.append("🟢 COT")
+        if _s.get("options_live"): sources.append("🟢 Options")
+        if _s.get("cme_live"): sources.append("🟢 CME")
+        if (_s.get("defillama_live") or {}).get("ok"): sources.append("🟢 DeFiLlama")
+        if _s.get("crypto_options_live"): sources.append("🟢 Crypto Opts")
+        if not sources: sources.append("🟡 Proxy Only")
+        st.caption(" · ".join(sources))
 
 snap = st.session_state.snap
 if snap is None:

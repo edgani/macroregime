@@ -105,6 +105,52 @@ except Exception as _e:
     class AutoDiscoveryEngineV3:
         def run(self, prices, gip=None, risk_ranges=None): return {"discoveries": []}
 
+# ══════════════════════════════════════════════════════════════════════════════
+# REAL DATA ENGINE IMPORTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+try:
+    from engines.cot_scraper import CFTCCOTScraper
+    cot_scraper = CFTCCOTScraper()
+except Exception as _e:
+    logger.warning(f"COT scraper import failed: {_e}")
+    cot_scraper = None
+
+try:
+    from engines.yfinance_options import YFinanceOptionsEngine
+    yf_options = YFinanceOptionsEngine()
+except Exception as _e:
+    logger.warning(f"yfinance options import failed: {_e}")
+    yf_options = None
+
+try:
+    from engines.defillama_api import DeFiLlamaAPI
+    defillama = DeFiLlamaAPI()
+except Exception as _e:
+    logger.warning(f"DeFiLlama API import failed: {_e}")
+    defillama = None
+
+try:
+    from engines.cme_scraper import CMEScraper
+    cme_scraper = CMEScraper()
+except Exception as _e:
+    logger.warning(f"CME scraper import failed: {_e}")
+    cme_scraper = None
+
+try:
+    from engines.barchart_scraper import BarchartScraper
+    barchart = BarchartScraper()
+except Exception as _e:
+    logger.warning(f"Barchart scraper import failed: {_e}")
+    barchart = None
+
+try:
+    from engines.laevitas_scraper import LaevitasScraper
+    laevitas = LaevitasScraper()
+except Exception as _e:
+    logger.warning(f"Laevitas scraper import failed: {_e}")
+    laevitas = None
+
 QUAD_MAP = {
     "Q1": {"name": "Goldilocks", "assets": ["XLK", "XLY", "XLI", "IWM", "QQQ", "RSP", "SLV", "GLD", "IBIT"], "bias": "bullish"},
     "Q2": {"name": "Reflation / Knife Fights", "assets": ["XLE", "OIH", "XLI", "XLB", "SLV", "GLD", "GDX", "ITB", "TLT", "IBIT"], "bias": "bullish"},
@@ -1611,7 +1657,84 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
     crypto_onchain = _build_crypto_onchain(prices) if include_crypto else {}
     auto_discoveries = _build_auto_discoveries(prices, gip, sq)
 
-    # ── OPTION DATA: Gamma + Greeks ────────────────────────────────────
+    # ═══════════════════════════════════════════════════════════════════
+    # REAL DATA ENGINES — LIVE FETCH
+    # ═══════════════════════════════════════════════════════════════════
+
+    # ── REAL COT DATA (CFTC Live) ─────────────────────────────────────
+    cot_results = {}
+    if cot_scraper:
+        if progress_cb: progress_cb("Fetching CFTC COT data...", 0.60)
+        try:
+            cot_tickers = list(COMMODITIES.keys())[:15] + list(FOREX_PAIRS.keys())[:8] + ["DX-Y.NYB"]
+            for t in cot_tickers:
+                r = cot_scraper.analyze(t, prices, vix_now)
+                if r and r.get("ok"):
+                    cot_results[t] = r
+            if progress_cb: progress_cb(f"COT live: {len(cot_results)} markets", 0.62)
+        except Exception as e:
+            logger.warning(f"COT scraper error: {e}")
+
+    # ── REAL OPTIONS DATA (yfinance) ──────────────────────────────────
+    options_data = {}
+    if yf_options:
+        if progress_cb: progress_cb("Fetching options chains...", 0.63)
+        try:
+            us_option_tickers = list(US_SECTORS.keys())[:15] + ["SPY","QQQ","IWM","GLD","SLV","TLT","IBIT","UUP","XLK","XLE","XLV","XLP","XLU","XLF","XLI","XLB","XLC","XLRE","SMH","SOXX","VGT"]
+            options_data = yf_options.analyze_multi(us_option_tickers, prices, vix_now)
+            if progress_cb: progress_cb(f"Options live: {len(options_data)} tickers", 0.65)
+        except Exception as e:
+            logger.warning(f"yfinance options error: {e}")
+
+    # ── REAL DEFILLAMA DATA ───────────────────────────────────────────
+    crypto_onchain = {}
+    if defillama:
+        if progress_cb: progress_cb("Fetching DeFiLlama on-chain...", 0.66)
+        try:
+            crypto_onchain = defillama.get_full_snapshot()
+            token_data = defillama.get_crypto_tokens_summary(list(CRYPTO.keys())[:10])
+            crypto_onchain["tokens"] = token_data
+            if progress_cb: progress_cb(f"DeFiLlama: TVL={crypto_onchain.get('tvl_b')}B", 0.67)
+        except Exception as e:
+            logger.warning(f"DeFiLlama API error: {e}")
+            crypto_onchain = {"ok": False, "error": str(e), "source": "DeFiLlama (failed)"}
+
+    # ── REAL CME DATA ─────────────────────────────────────────────────
+    cme_results = {}
+    if cme_scraper:
+        if progress_cb: progress_cb("Fetching CME Group data...", 0.68)
+        try:
+            cme_tickers = list(FOREX_PAIRS.keys())[:8] + list(COMMODITIES.keys())[:10] + ["DX-Y.NYB"]
+            cme_results = cme_scraper.analyze_multi(cme_tickers, prices, vix_now)
+            if progress_cb: progress_cb(f"CME live: {len(cme_results)} tickers", 0.69)
+        except Exception as e:
+            logger.warning(f"CME scraper error: {e}")
+
+    # ── BARCHART FALLBACK ─────────────────────────────────────────────
+    barchart_results = {}
+    if barchart and yf_options:
+        if progress_cb: progress_cb("Probing Barchart...", 0.70)
+        try:
+            missed = [t for t in us_option_tickers if t not in options_data]
+            for t in missed[:5]:
+                r = barchart.analyze(t, prices, vix_now)
+                if r and r.get("ok"):
+                    barchart_results[t] = r
+        except Exception as e:
+            logger.warning(f"Barchart error: {e}")
+
+    # ── CRYPTO OPTIONS (Deribit) ─────────────────────────────────────
+    crypto_options = {}
+    if laevitas:
+        if progress_cb: progress_cb("Fetching crypto options...", 0.71)
+        try:
+            crypto_option_tickers = [t for t in list(CRYPTO.keys())[:5] if "BTC" in t or "ETH" in t]
+            crypto_options = laevitas.analyze_multi(crypto_option_tickers, prices, vix_now)
+            if progress_cb: progress_cb(f"Crypto options: {len(crypto_options)} tickers", 0.72)
+        except Exception as e:
+            logger.warning(f"Laevitas error: {e}")
+
+    # ── OPTION DATA: Gamma + Greeks (fallback/proxy) ──────────────────
     gamma_data = {}
     greeks_data = {}
     vix_now = health.get("vix_bucket", {}).get("vix_last", 18)
@@ -1720,6 +1843,13 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
         "hurst_proxy": hurst_proxy,
         "risk_adjusted": risk_adj,
         "stress_test": stress_test,
+        # ── LIVE DATA KEYS ─────────────────────────────────────────────
+        "cot_live": cot_results,
+        "options_live": options_data,
+        "cme_live": cme_results,
+        "barchart_live": barchart_results,
+        "crypto_options_live": crypto_options,
+        "defillama_live": crypto_onchain,
     }
 
     logger.info(f"Snapshot built in {snapshot['build_time_s']}s | Prices: {len(prices)} | Ranges: {len(asset_ranges)} | Longs: {len(alpha.get('longs', []))} | Shorts: {len(alpha.get('shorts', []))} | Daily Signals: {len(daily_signals)} | Alpha Center: {alpha_center['meta']['total_items']} | IHSG Layers: {len(ihsg_sector_momentum)} sectors")

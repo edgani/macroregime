@@ -1624,7 +1624,7 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
     if progress_cb: progress_cb("Calculating risk-adjusted metrics...", 0.58)
     risk_adj = _build_risk_adjusted_metrics(prices, risk_free_rate=0.04)
     if progress_cb: progress_cb("Running stress tests...", 0.59)
-    stress_test = _build_stress_test(prices, sq, alpha)
+    # stress_test deferred — alpha not yet defined
 
     if progress_cb: progress_cb("Running health engine...", 0.70)
     health_engine = MarketHealthEngine()
@@ -1753,6 +1753,8 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
 
     # ── ALPHA IDEAS ─────────────────────────────────────
     alpha = _build_alpha_ideas(prices, sq, mq, gamma_data, greeks_data)
+    # ── STRESS TEST (now that alpha is defined) ─────────
+    stress_test = _build_stress_test(prices, sq, alpha)
 
     # ── DAILY SIGNALS ───────────────────────────────
     if progress_cb: progress_cb("Building daily signals...", 0.82)

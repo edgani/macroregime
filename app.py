@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 st.set_page_config(page_title="MacroRegime Pro", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
 
-from config.settings import FOREX_PAIRS, COMMODITIES, CRYPTO, IHSG_UNIVERSE
+from config.settings import FOREX_PAIRS, COMMODITIES, CRYPTO, IHSG_UNIVERSE, IHSG_SECTOR_MAP, TICKER_SECTOR
 
 st.markdown("""
 <style>
@@ -28,6 +28,7 @@ st.markdown("""
 .card-yellow {background:#2D2305;border:1px solid #D29922;border-radius:8px;padding:12px;margin:6px 0;}
 .card-red {background:#2D0D0D;border:1px solid #F85149;border-radius:8px;padding:12px;margin:6px 0;}
 .card-blue {background:#0D1B2A;border:1px solid #1F6FEB;border-radius:8px;padding:12px;margin:6px 0;}
+.card {background:#161B22;border:1px solid #30363D;border-radius:8px;padding:12px;margin:6px 0;}
 .badge {display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600;margin-right:4px;}
 .badge-a {background:#3FB95022;color:#3FB950;border:1px solid #3FB950;}
 .badge-ap {background:#3FB95044;color:#3FB950;border:1px solid #3FB950;}
@@ -41,6 +42,12 @@ st.markdown("""
 .metric-label {font-size:10px;color:#8B949E;text-transform:uppercase;letter-spacing:0.5px;}
 .metric-value {font-size:18px;font-weight:700;color:#E6EDF3;margin:4px 0;}
 .metric-sub {font-size:11px;color:#8B949E;}
+.section-title {font-size:22px;font-weight:700;color:#E6EDF3;margin-bottom:4px;}
+.section-sub {font-size:12px;color:#8B949E;margin-bottom:12px;}
+.kpi-row {display:flex;gap:8px;flex-wrap:wrap;margin:8px 0;}
+.kpi-box {background:#161B22;border:1px solid #30363D;border-radius:6px;padding:8px 12px;min-width:120px;text-align:center;}
+.kpi-label {font-size:10px;color:#8B949E;text-transform:uppercase;letter-spacing:0.3px;}
+.kpi-value {font-size:16px;font-weight:700;color:#E6EDF3;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -100,6 +107,16 @@ def _rr_levels(px, lrr, trr, side="long"):
         action = "Sell Now" if near_entry else ("Can Short" if can_enter else ("Near Target" if near_target else "Wait"))
     rr_r = round(abs(tp1-entry)/max(abs(entry-stop),0.01), 2)
     return {"entry":entry,"tp1":tp1,"tp2":tp2,"stop":stop,"rr":rr_r,"pos":round(pos,2),"side":side,"near_entry":near_entry,"near_target":near_target,"can_enter":can_enter,"action":action}
+
+def _section_header(title, subtitle=""):
+    sub = f'<div class="section-sub">{subtitle}</div>' if subtitle else ""
+    return f'<div class="section-title">{title}</div>{sub}'
+
+def _kpi_box(label, value, color="#E6EDF3"):
+    return f'<div class="kpi-box"><div class="kpi-label">{label}</div><div class="kpi-value" style="color:{color};">{value}</div></div>'
+
+def _card(title, content, border_color="#30363D"):
+    return f'<div style="background:#161B22;border:1px solid {border_color};border-radius:8px;padding:12px;margin:6px 0;"><div style="font-size:13px;font-weight:700;color:#E6EDF3;margin-bottom:8px;">{title}</div><div style="font-size:12px;color:#8B949E;">{content}</div></div>'
 
 def _metric_box(label, value, sub="", color="#E6EDF3"):
     sub_html = f'<div style="font-size:11px;color:#8B949E;margin-top:2px;">{sub}</div>' if sub else ""
@@ -963,13 +980,13 @@ with st.sidebar:
     page = st.radio("Navigation", [
         "🏠 Dashboard",
         "📈 GIP Model",
+        "📋 Playbook",
         "⚡ Alpha Center",
         "💱🛢️ Macro Proxies",
         "₿ Crypto",
         "🌍 Global & EM",
-        "📖 Themes & Bottlenecks",
+        "📖 Themes",
         "🏥 Health",
-        "📋 Playbook",
     ], label_visibility="collapsed")
     st.divider()
     from data.loader import snapshot_age_str, load_snapshot
@@ -1244,8 +1261,7 @@ if page == "🏠 Dashboard":
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: 📈 GIP MODEL — WITH REAL FORWARD PROJECTION
-# ══════════════════════════════════════════════════════════════════════════════
-elif page == "📈 GIP Model":
+# ══════════════════════════════════════════════════════════════════════════════elif page == "📈 GIP Model":
     st.markdown('<div style="font-size:24px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">📈 GIP Model</div>', unsafe_allow_html=True)
     st.caption("Growth · Inflation · Policy — The Map + Forward Projection")
     st.divider()
@@ -1377,9 +1393,26 @@ elif page == "📈 GIP Model":
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: ⚡ ALPHA & SCANNER
-# ══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════elif page == "📋 Playbook":
+    st.markdown('<div style="font-size:24px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">📋 Playbook</div>', unsafe_allow_html=True)
+    st.caption("What to buy, what to avoid, and why.")
+    st.divider()
+    if pb_data:
+        st.markdown(f"### Regime: {sq} · {QN.get(sq,'')}")
+        st.markdown(f"**Strategy:** {pb_data.get('strategy','')}")
+        st.markdown("#### Buy/Hold")
+        for asset in pb_data.get("best_assets",[])[:10]: st.markdown(f'- {asset}')
+        st.markdown("#### Avoid/Sell")
+        for asset in pb_data.get("worst_assets",[])[:10]: st.markdown(f'- {asset}')
+        # Add forward-looking playbook adjustment
+        if regime_forecast and regime_forecast.get("3m"):
+            rf3 = regime_forecast["3m"]
+            if rf3.get("predicted_quad") != sq:
+                st.divider()
+                st.warning(f"⚠️ **Forward-Looking Alert:** 3M forecast predicts shift to **{rf3.get('predicted_quad')}** (confidence {rf3.get('prediction_confidence',0):.0%}). Consider gradually rotating toward {QWINS.get(rf3.get('predicted_quad'),'defensive')} assets.")
+    else: st.info("Playbook data loading...")
 elif page == "⚡ Alpha Center":
-    st.markdown('<div style="font-size:24px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">⚡ Alpha & Scanner</div>', unsafe_allow_html=True)
+    st.markdown('<div style="font-size:24px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">⚡ Alpha Center</div>', unsafe_allow_html=True)
     st.caption("Bottlenecks · Alpha Ideas · Discovery · Daily Signals — All unified.")
     st.divider()
     ac = alpha_center
@@ -1472,8 +1505,7 @@ elif page == "⚡ Alpha Center":
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: 💱🛢️ MACRO PROXIES
-# ══════════════════════════════════════════════════════════════════════════════
-elif page == "💱🛢️ Macro Proxies":
+# ══════════════════════════════════════════════════════════════════════════════elif page == "💱🛢️ Macro Proxies":
     st.markdown('<div style="font-size:24px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">💱🛢️ Macro Proxies</div>', unsafe_allow_html=True)
     st.caption("Forex + Commodities unified. COT + OI + Greeks + Risk Ranges + Forward-Looking + News.")
     st.divider()
@@ -1515,8 +1547,7 @@ elif page == "💱🛢️ Macro Proxies":
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: ₿ CRYPTO
-# ══════════════════════════════════════════════════════════════════════════════
-elif page == "₿ Crypto":
+# ══════════════════════════════════════════════════════════════════════════════elif page == "₿ Crypto":
     st.markdown('<div style="font-size:24px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">₿ Crypto Setups</div>', unsafe_allow_html=True)
     st.caption("On-chain momentum + Risk Ranges + Forward-Looking + News narrative per token.")
     st.divider()
@@ -1572,8 +1603,7 @@ elif page == "₿ Crypto":
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: 🌍 GLOBAL & EM
-# ══════════════════════════════════════════════════════════════════════════════
-elif page == "🌍 Global & EM":
+# ══════════════════════════════════════════════════════════════════════════════elif page == "🌍 Global & EM":
     st.markdown('<div style="font-size:24px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">🌍 Global & EM</div>', unsafe_allow_html=True)
     st.caption("Global regime map + Indonesia IHSG narrative + Forward-looking + News.")
     st.divider()
@@ -1816,10 +1846,9 @@ elif page == "🌍 Global & EM":
             st.markdown('</div>', unsafe_allow_html=True)
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: 📖 Themes & Bottlenecks — WITH REAL DISCOVERY DATA
-# ══════════════════════════════════════════════════════════════════════════════
-elif page == "📖 Themes & Bottlenecks":
-    st.markdown('<div style="font-size:24px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">📖 Themes & Bottlenecks</div>', unsafe_allow_html=True)
+# TAB: 📖 Themes — WITH REAL DISCOVERY DATA
+# ══════════════════════════════════════════════════════════════════════════════elif page == "📖 Themes":
+    st.markdown('<div style="font-size:24px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">📖 Themes</div>', unsafe_allow_html=True)
     st.caption("Top-down narratives + structural discovery engine. Real data from price clusters + news NLP.")
     st.divider()
     themes_tab = st.tabs(["📖 Macro Themes"])
@@ -1866,7 +1895,6 @@ elif page == "📖 Themes & Bottlenecks":
                 st.markdown(f"**Avoid:** {', '.join(n.get('worst',[])[:5])}")
                 st.markdown(f"**Invalidators:** {', '.join(n.get('invalidators',[])[:3])}")
     st.caption("💡 Discovery / Bottleneck data moved to ⚡ Alpha Center tab to avoid duplication.")
-
 elif page == "🏥 Health":
     st.markdown('<div style="font-size:24px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">🏥 System Health</div>', unsafe_allow_html=True)
     st.caption("Data pipeline status, coverage, and diagnostics.")
@@ -1914,21 +1942,3 @@ elif page == "🏥 Health":
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: 📋 PLAYBOOK
 # ══════════════════════════════════════════════════════════════════════════════
-elif page == "📋 Playbook":
-    st.markdown('<div style="font-size:24px;font-weight:700;color:#E6EDF3;margin-bottom:4px;">📋 Playbook</div>', unsafe_allow_html=True)
-    st.caption("What to buy, what to avoid, and why.")
-    st.divider()
-    if pb_data:
-        st.markdown(f"### Regime: {sq} · {QN.get(sq,'')}")
-        st.markdown(f"**Strategy:** {pb_data.get('strategy','')}")
-        st.markdown("#### Buy/Hold")
-        for asset in pb_data.get("best_assets",[])[:10]: st.markdown(f'- {asset}')
-        st.markdown("#### Avoid/Sell")
-        for asset in pb_data.get("worst_assets",[])[:10]: st.markdown(f'- {asset}')
-        # Add forward-looking playbook adjustment
-        if regime_forecast and regime_forecast.get("3m"):
-            rf3 = regime_forecast["3m"]
-            if rf3.get("predicted_quad") != sq:
-                st.divider()
-                st.warning(f"⚠️ **Forward-Looking Alert:** 3M forecast predicts shift to **{rf3.get('predicted_quad')}** (confidence {rf3.get('prediction_confidence',0):.0%}). Consider gradually rotating toward {QWINS.get(rf3.get('predicted_quad'),'defensive')} assets.")
-    else: st.info("Playbook data loading...")

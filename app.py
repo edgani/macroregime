@@ -698,7 +698,7 @@ def _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, market_type, 
     row = _enrich_row_with_conclusions(row, gamma, greek, vix_now, s)
     return row
 
-def _build_ihsg_row(ticker, prices, ar):
+def _build_ihsg_row(ticker, prices, ar, ihsg_sector_momentum=None, ihsg_commodity_overlay=None, ihsg_rupiah_regime=None, ihsg_foreign_flow=None, ihsg_macro_overlay=None):
     v = ar.get(ticker, {})
     s = prices.get(ticker)
     if not v:

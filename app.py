@@ -741,21 +741,18 @@ def _build_ihsg_row(ticker, prices, ar):
     elif any(x in sector for x in ["Geothermal", "Shipping"]): theme = "Energy / Logistics"
     else: theme = "Indonesia Macro"
 
-    if side == "long":
-        rec = f"🟢 LONG {sector} — {theme}, momentum {r1m:+.1%}" if r1m is not None else f"🟢 LONG {sector} — {theme}"
-    else:
-        rec = f"🔴 SHORT {sector} — {theme}, momentum {r1m:+.1%}" if r1m is not None else f"🔴 SHORT {sector} — {theme}"
+    rec = f"🟢 LONG {sector} — {theme}, momentum {r1m:+.1%}" if r1m is not None else f"🟢 LONG {sector} — {theme}"
 
     return {
         "ticker": ticker, "price": px, "entry": rl.get("entry"),
-        "direction": "LONG" if side == "long" else "SHORT",
+        "direction": "LONG",
         "market_type": "ihsg",
         "target_1": rl.get("tp1"), "target_2": rl.get("tp2"),
         "stop": rl.get("stop"), "rr": rl.get("rr"),
         "r1m": r1m, "r3m": r3m, "sector": sector, "theme": theme,
         "recommendation": rec, "action": rl.get("action", "—")[:35],
         "grade": v.get("quality", "—").replace("short_", ""),
-        "signal": "BUY" if side == "long" else "SELL",
+        "signal": "BUY",
     }
 
 def _sort_ev_plus(rows):
@@ -1058,13 +1055,6 @@ if page == "🏠 Dashboard":
             flip = gip.flip_hazard
             flip_c = "#F85149" if flip > 0.4 else "#D29922" if flip > 0.25 else "#3FB950"
             st.markdown(_metric_box("Regime Change Risk", f"{flip:.0%}", f"{gip.divergence.title()}", flip_c), unsafe_allow_html=True)
-
-    if transition:
-        fw = transition.front_run_window; fr = transition.front_run_rationale
-        fwc={"now":"#F85149","1-2w":"#D29922","3-6w":"#1F6FEB","not yet":"#21262D"}.get(fw,"#21262D")
-        fwi={"now":"🚨 ACT NOW","1-2w":"⚡ ACT SOON","3-6w":"👀 WATCH","not yet":"🛑 NOT YET"}.get(fw,"🛑 NOT YET")
-        if fw != "not yet":
-            st.markdown(f'<div style="background:{fwc}22;border:1px solid {fwc};border-radius:8px;padding:10px;text-align:center;margin:8px 0;"><span style="color:{fwc};font-weight:700;">{fwi}</span><br><span style="font-size:12px;color:#8B949E;">{fr}</span></div>', unsafe_allow_html=True)
 
     if pb_data:
         best5 = " · ".join(pb_data.get("best_assets",[])[:6])
@@ -1404,20 +1394,14 @@ elif page == "🌍 Global & EM":
                 row["path_smoothness"] = "🟢 Smooth — domestic demand sticky" if any(x in ticker for x in ["BBCA","BBRI","TLKM"]) else "🟡 Bumpy — commodity vol"
                 row["time_estimate"] = "2-4 months"
                 row["breakout_chance"] = "Medium"
-                row["worth_entering"] = "✅ YES" if "LONG" in row.get("direction","") else "⏳ WATCH"
+                row["worth_entering"] = "✅ YES"
                 ihsg_rows.append(row)
 
         longs = [r for r in ihsg_rows if "LONG" in r.get("direction","")]
-        shorts = [r for r in ihsg_rows if "SHORT" in r.get("direction","")]
 
         st.markdown(f"**🟢 INDONESIA LONGS ({len(longs)} setups)**")
         for i, row in enumerate(longs): _render_narrative_card_native(row, i, "ihsg")
         if not longs: st.info("No IHSG longs.")
-
-        if shorts:
-            st.divider()
-            st.markdown(f"**🔴 INDONESIA SHORTS ({len(shorts)} setups)**")
-            for i, row in enumerate(shorts): _render_narrative_card_native(row, i, "ihsg")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # TAB: 📖 THEMES & BOTTLENECKS

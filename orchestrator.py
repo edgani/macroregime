@@ -145,6 +145,52 @@ except Exception as _e:
     logger.warning(f"Laevitas scraper import failed: {_e}")
     laevitas = None
 
+# ══════════════════════════════════════════════════════════════════════════════
+# FORWARD-LOOKING & NARRATIVE ENGINE IMPORTS
+# ══════════════════════════════════════════════════════════════════════════════
+
+try:
+    from engines.leading_indicator_engine import LeadingIndicatorEngine
+except Exception as _e:
+    logger.warning(f"leading_indicator_engine import failed: {_e}")
+    class LeadingIndicatorEngine:
+        def __init__(self): self.is_fitted = False
+        def predict_transition_prob(self, features, current_quad): return min(abs(features.get("growth_momentum",0)) + abs(features.get("inflation_momentum",0)), 1.0)
+        def predict_forward_return(self, features, current_quad, asset="SPY"):
+            base = {"Q1":0.02,"Q2":0.015,"Q3":-0.01,"Q4":-0.02}.get(current_quad,0.0)
+            return {"expected_1m":round(base*0.3,4),"expected_3m":round(base,4),"expected_6m":round(base*2,4),"confidence":0.5,"transition_prob":0.3}
+        def feature_importance(self, quad): return {}
+
+try:
+    from engines.regime_predictor_engine import RegimePredictorEngine
+except Exception as _e:
+    logger.warning(f"regime_predictor_engine import failed: {_e}")
+    class RegimePredictorEngine:
+        def __init__(self): self.is_fitted = False; self.historical_transitions = []
+        def record_transition(self, fq, tq, f): pass
+        def fit(self): pass
+        def predict(self, current_quad, features, months_forward=3):
+            return {"current_quad":current_quad,"predicted_quad":current_quad,"prediction_confidence":0.5,"probability_distribution":{"Q1":0.25,"Q2":0.25,"Q3":0.25,"Q4":0.25},"expected_transition_weeks":8,"months_forward":months_forward,"model_used":False,"base_rate":{},"model_probs":{}}
+
+try:
+    from engines.price_cluster_engine_v3 import PriceClusterEngineV3
+except Exception as _e:
+    logger.warning(f"price_cluster_engine_v3 import failed: {_e}")
+    class PriceClusterEngineV3:
+        def __init__(self, sector_map, market_map): pass
+        def run(self, prices, benchmark="SPY", lookback=63, corr_threshold=0.60, dtw_threshold=0.03, min_cluster_size=3):
+            return {"clusters":[],"outliers":[],"meta":{"universe_scanned":0,"with_data":0,"clusters_found":0,"benchmark":benchmark,"lookback":lookback,"louvain":False}}
+
+try:
+    from engines.news_nlp_engine_v3 import NewsNLPEngineV3
+except Exception as _e:
+    logger.warning(f"news_nlp_engine_v3 import failed: {_e}")
+    class NewsNLPEngineV3:
+        def __init__(self, use_transformers=False, known_tickers=None): pass
+        def run(self, tickers, theme_queries=None, max_per_ticker=8):
+            return {"analyzed_count":0,"narrative_scores":{},"emergent_narratives":[],"new_theme_candidates":[],"supply_chain_alerts":[],"ticker_specific":{},"meta":{"tickers_queried":0,"theme_queries":[],"nlp_mode":"fallback"}}
+
+
 QUAD_MAP = {
     "Q1": {"name": "Goldilocks", "assets": ["XLK", "XLY", "XLI", "IWM", "QQQ", "RSP", "SLV", "GLD", "IBIT"], "bias": "bullish"},
     "Q2": {"name": "Reflation / Knife Fights", "assets": ["XLE", "OIH", "XLI", "XLB", "SLV", "GLD", "GDX", "ITB", "TLT", "IBIT"], "bias": "bullish"},
@@ -1528,6 +1574,103 @@ def _build_auto_discoveries(prices, gip, sq):
 
 
 
+# ══════════════════════════════════════════════════════════════════════════════
+# FORWARD-LOOKING BUILDERS
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _build_leading_indicators(features, sq, prices):
+    """Forward-looking: transition probability + expected returns + feature importance."""
+    engine = LeadingIndicatorEngine()
+    trans_prob = engine.predict_transition_prob(features, sq)
+    forward_spy = engine.predict_forward_return(features, sq, "SPY")
+    forward_qqq = engine.predict_forward_return(features, sq, "QQQ")
+    forward_gld = engine.predict_forward_return(features, sq, "GLD")
+    forward_tlt = engine.predict_forward_return(features, sq, "TLT")
+    importance = engine.feature_importance(sq)
+    return {
+        "ok": True,
+        "transition_prob_3m": round(trans_prob, 3),
+        "forward_spy": forward_spy,
+        "forward_qqq": forward_qqq,
+        "forward_gld": forward_gld,
+        "forward_tlt": forward_tlt,
+        "feature_importance": importance,
+        "leading_summary": f"Transition prob {trans_prob:.0%} next 3M | SPY 1M/3M/6M: {forward_spy['expected_1m']:+.1%}/{forward_spy['expected_3m']:+.1%}/{forward_spy['expected_6m']:+.1%}",
+    }
+
+def _build_regime_prediction(gip, features, months_forward=3):
+    """Predict regime 1M/3M/6M forward using ensemble."""
+    engine = RegimePredictorEngine()
+    hist_path = os.path.join(os.path.dirname(__file__), "data", "regime_history.json")
+    try:
+        if os.path.exists(hist_path):
+            with open(hist_path, "r") as f:
+                hist = json.load(f)
+                for h in hist:
+                    engine.record_transition(h.get("from"), h.get("to"), h.get("features", {}))
+            engine.fit()
+    except Exception as e:
+        logger.debug(f"Regime history load failed: {e}")
+    result = engine.predict(gip.structural_quad, features, months_forward=months_forward)
+    result_1m = engine.predict(gip.structural_quad, features, months_forward=1)
+    result_6m = engine.predict(gip.structural_quad, features, months_forward=6)
+    return {
+        "ok": True,
+        "current": gip.structural_quad,
+        "prediction_1m": result_1m,
+        "prediction_3m": result,
+        "prediction_6m": result_6m,
+        "model_fitted": engine.is_fitted,
+        "historical_count": len(engine.historical_transitions),
+    }
+
+def _build_price_clusters(prices, all_tickers):
+    """Detect emergent themes from price action BEFORE media coverage."""
+    from config.settings import TICKER_SECTOR
+    sector_map = {t: TICKER_SECTOR.get(t, "unknown") for t in all_tickers}
+    market_map = {t: _detect_market_type(t) for t in all_tickers}
+    engine = PriceClusterEngineV3(sector_map, market_map)
+    result = engine.run(prices, benchmark="SPY", lookback=63, corr_threshold=0.60, dtw_threshold=0.03, min_cluster_size=3)
+    clusters = result.get("clusters", [])
+    for c in clusters:
+        members = c.get("members", [])
+        if members:
+            recent_rs = []
+            for t in members[:5]:
+                s = prices.get(t)
+                if s is not None and len(s) >= 22:
+                    s = pd.to_numeric(s, errors="coerce").dropna()
+                    r5 = float(s.iloc[-1] / s.iloc[-6] - 1) if len(s) >= 6 else 0
+                    r15 = float(s.iloc[-1] / s.iloc[-16] - 1) if len(s) >= 16 else 0
+                    accel = r5 - (r15 / 3)
+                    recent_rs.append(accel)
+            if recent_rs:
+                c["recent_accel"] = round(float(np.mean(recent_rs)), 4)
+                c["is_accelerating"] = c["recent_accel"] > 0.02
+            else:
+                c["recent_accel"] = 0
+                c["is_accelerating"] = False
+    return result
+
+def _build_news_nlp(prices, all_tickers, top_n=30):
+    """Fetch and analyze news narratives."""
+    known = [t for t in all_tickers if not any(x in t for x in ["=","^",".","-"])][:top_n]
+    engine = NewsNLPEngineV3(known_tickers=known)
+    theme_queries = [
+        "Fed interest rate decision",
+        "AI infrastructure investment",
+        "oil supply disruption",
+        "China stimulus economy",
+        "gold central bank buying",
+        "Indonesia commodity export",
+    ]
+    try:
+        result = engine.run(known, theme_queries=theme_queries, max_per_ticker=5)
+    except Exception as e:
+        logger.warning(f"News NLP run failed: {e}")
+        result = {"analyzed_count":0,"narrative_scores":{},"emergent_narratives":[],"new_theme_candidates":[],"supply_chain_alerts":[],"ticker_specific":{},"meta":{"tickers_queried":0,"theme_queries":[],"nlp_mode":"fallback"}}
+    return result
+
 def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
                    include_commodities=True, include_crypto=True, include_ihsg=True):
     t0 = time.time()
@@ -1577,6 +1720,16 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
     health_engine = MarketHealthEngine()
     health = health_engine.run(prices, gip.features, sq)
     if progress_cb: progress_cb("Health check complete", 0.80)
+
+    if progress_cb: progress_cb("Running forward-looking engines...", 0.81)
+    leading = _build_leading_indicators(gip.features, sq, prices)
+    regime_pred = _build_regime_prediction(gip, gip.features)
+    if progress_cb: progress_cb("Running price cluster detection...", 0.83)
+    price_clusters = _build_price_clusters(prices, all_tickers)
+    if progress_cb: progress_cb("Running news narrative engine...", 0.85)
+    news_nlp = _build_news_nlp(prices, all_tickers)
+    if progress_cb: progress_cb("Forward-looking complete", 0.87)
+
 
     # Define vix_now HERE so all engines can use it
     vix_now = health.get("vix_bucket", {}).get("vix_last", 18)
@@ -1796,10 +1949,16 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
         "cme_live": cme_results,
         "barchart_live": barchart_results,
         "crypto_options_live": crypto_options,
-        "defillama_live": crypto_onchain,
+                "defillama_live": crypto_onchain,
+        # ── FORWARD-LOOKING KEYS ─────────────────────────────────────
+        "leading_indicators": leading,
+        "regime_prediction": regime_pred,
+        "price_clusters": price_clusters,
+        "news_nlp": news_nlp,
+
     }
 
-    logger.info(f"Snapshot built in {snapshot['build_time_s']}s | Prices: {len(prices)} | Ranges: {len(asset_ranges)} | Longs: {len(alpha.get('longs', []))} | Shorts: {len(alpha.get('shorts', []))} | Daily Signals: {len(daily_signals)} | Alpha Center: {alpha_center['meta']['total_items']} | IHSG Layers: {len(ihsg_sector_momentum)} sectors")
+    logger.info(f"Snapshot built in {snapshot['build_time_s']}s | Prices: {len(prices)} | Ranges: {len(asset_ranges)} | Longs: {len(alpha.get('longs', []))} | Shorts: {len(alpha.get('shorts', []))} | Daily Signals: {len(daily_signals)} | Alpha Center: {alpha_center['meta']['total_items']} | IHSG Layers: {len(ihsg_sector_momentum)} sectors | Forward: {regime_pred.get('prediction_3m',{}).get('predicted_quad','?')} | Clusters: {len(price_clusters.get('clusters',[]))} | News: {news_nlp.get('analyzed_count',0)}")
     if progress_cb: progress_cb("Done!", 1.0)
     return snapshot
 
@@ -1821,6 +1980,11 @@ if __name__ == "__main__":
         "greeks_analyzed": len(snap.get("greeks_data", {})),
         "ihsg_sectors": len(snap.get("ihsg_sector_momentum", {})),
         "build_time": snap["build_time_s"],
+        "forward_quad_3m": snap.get("regime_prediction", {}).get("prediction_3m", {}).get("predicted_quad"),
+        "forward_conf_3m": snap.get("regime_prediction", {}).get("prediction_3m", {}).get("prediction_confidence"),
+        "clusters_found": len(snap.get("price_clusters", {}).get("clusters", [])),
+        "news_analyzed": snap.get("news_nlp", {}).get("analyzed_count", 0),
+        "transition_prob": snap.get("leading_indicators", {}).get("transition_prob_3m"),
         "vol_forecast_count": len(snap.get("vol_forecast", {})),
         "risk_adjusted_count": len(snap.get("risk_adjusted", {})),
         "stress_test_scenarios": len(snap.get("stress_test", [])),

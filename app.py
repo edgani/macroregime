@@ -1071,13 +1071,14 @@ FALLBACK_DISCOVERY = [
 ]
 
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: 🏠 DASHBOARD — RESTORED (NO _seq_pills here, NO top 5 ideas)
+# TAB: 🏠 DASHBOARD — v24 FORWARD-LOOKING COMMAND CENTER
 # ══════════════════════════════════════════════════════════════════════════════
 if page == "🏠 Dashboard":
-    st.markdown('<div class="section-header">🏠 Dashboard</div>', unsafe_allow_html=True)
-    st.caption("Command center. 30-second read.")
+    st.markdown('<div class="section-header">🏠 MacroRegime Command Center</div>', unsafe_allow_html=True)
+    st.caption("Forward-looking radar. Price action leads news. 30-second read.")
     st.divider()
 
+    # ── META HEADER ──
     ai_ts = ai_data.get("generated_at")
     ai_cnt_narr = len(ai_data.get("narratives",[]))
     ai_cnt_alpha = len(ai_data.get("alpha_ideas",[]))
@@ -1093,43 +1094,192 @@ if page == "🏠 Dashboard":
         ai_reason = ai_data.get("reason", "")
         st.markdown(f'<div style="background:#2D2305;border:1px solid #D29922;border-radius:8px;padding:8px 12px;margin:6px 0;"><span style="color:#D29922;font-weight:700;">🤖 AI: Fallback — {ai_reason}</span></div>', unsafe_allow_html=True)
 
-    st.caption(f"Built {snap.get('build_time_s',0):.0f}s ago · {snap.get('prices_loaded',0)} assets · {snap.get('fred_coverage',0)} macro indicators")
+    st.caption(f"Built {snap.get('build_time_s',0):.0f}s ago · {snap.get('prices_loaded',0)} assets · Forward engines: Leading + RegimePred + PriceCluster + NewsNLP")
 
-    vbd = health.get("vix_bucket",{}) if health else {}
-    vb = vbd.get("bucket","—"); vl = _sf(vbd.get("vix_last")) or 0
-    if vb=="Investable":
-        st.markdown(f'<div style="background:#0D2818;border:1px solid #3FB950;border-radius:8px;padding:10px;text-align:center;margin:8px 0;"><span style="color:#3FB950;font-weight:700;">🟢 GOOD MARKET CONDITIONS · VIX {vl:.1f}</span><br><span style="font-size:12px;color:#8B949E;">{vbd.get("note","")}</span><br><span style="font-size:11px;color:#8B949E;">Risk mode: {vbd.get("risk_mode","Normal")}</span></div>', unsafe_allow_html=True)
-    elif vb=="Chop":
-        st.markdown(f'<div style="background:#2D2305;border:1px solid #D29922;border-radius:8px;padding:10px;text-align:center;margin:8px 0;"><span style="color:#D29922;font-weight:700;">🟡 CHOPPY CONDITIONS · VIX {vl:.1f}</span><br><span style="font-size:12px;color:#8B949E;">{vbd.get("note","")}</span><br><span style="font-size:11px;color:#8B949E;">Risk mode: {vbd.get("risk_mode","Normal")}</span></div>', unsafe_allow_html=True)
-    elif vb=="Defensive":
-        st.markdown(f'<div style="background:#2D0D0D;border:1px solid #F85149;border-radius:8px;padding:10px;text-align:center;margin:8px 0;"><span style="color:#F85149;font-weight:700;">🔴 DEFENSIVE CONDITIONS · VIX {vl:.1f}</span><br><span style="font-size:12px;color:#8B949E;">{vbd.get("note","")}</span><br><span style="font-size:11px;color:#8B949E;">Risk mode: {vbd.get("risk_mode","Normal")}</span></div>', unsafe_allow_html=True)
+    # ══════════════════════════════════════════════════════════════════════════════
+    # SECTION 1: REGIME STATUS + FORWARD PREDICTION
+    # ══════════════════════════════════════════════════════════════════════════════
+    st.markdown('<div class="subsection-header">🎯 Regime Status & Forward Projection</div>', unsafe_allow_html=True)
 
-    g_col, dxy_col = st.columns([1.1, 1])
-    with g_col: st.markdown(_gamma_card(gamma_data), unsafe_allow_html=True)
-    with dxy_col: _render_dxy(prices, dxy_corr, sq)
-    st.markdown(_lev_card(lev_data), unsafe_allow_html=True)
+    rp = snap.get("regime_prediction", {}) or {}
+    pred_1m = rp.get("prediction_1m", {}) if rp else {}
+    pred_3m = rp.get("prediction_3m", {}) if rp else {}
+    pred_6m = rp.get("prediction_6m", {}) if rp else {}
 
-    sq_q2p = (_sf((gip.structural_probs or {}).get("Q2",0)) or 0) if gip else 0
-    sq_sub = f"Q2 probability: {sq_q2p:.0%}" if (sq=="Q3" and sq_q2p>0.25) else ""
-    mq_sub = "⚠ Model Q1 · Hedgeye Q2" if mq_raw=="Q1" else ""
-
-    r1,r2,r3,r4 = st.columns(4)
-    with r1: st.markdown(_metric_box("Quarterly Regime", sq, QUAD_EXPLAIN[sq][:60]+"...", qc(sq)), unsafe_allow_html=True)
-    with r2: st.markdown(_metric_box("Monthly Regime", mq, mq_sub or "3-6 week tactical", qc(mq)), unsafe_allow_html=True)
+    r1,r2,r3,r4,r5 = st.columns(5)
+    with r1: st.markdown(_metric_box("Current Regime", sq, QNC.get(sq,"")[:40], qc(sq)), unsafe_allow_html=True)
+    with r2:
+        p1q = pred_1m.get("predicted_quad", "—")
+        st.markdown(_metric_box("1M Forward", p1q, f"Conf {pred_1m.get('prediction_confidence',0):.0%}", qc(p1q) if p1q in QC else "#8B949E"), unsafe_allow_html=True)
     with r3:
-        gconf = _sf(global_.get("global_conf",0)) if global_ else 0
-        st.markdown(_metric_box("Global (50 Countries)", gq, f"Confidence: {gconf:.0%}", qc(gq)), unsafe_allow_html=True)
+        p3q = pred_3m.get("predicted_quad", "—")
+        st.markdown(_metric_box("3M Forward", p3q, f"Conf {pred_3m.get('prediction_confidence',0):.0%}", qc(p3q) if p3q in QC else "#8B949E"), unsafe_allow_html=True)
     with r4:
+        p6q = pred_6m.get("predicted_quad", "—")
+        st.markdown(_metric_box("6M Forward", p6q, f"Conf {pred_6m.get('prediction_confidence',0):.0%}", qc(p6q) if p6q in QC else "#8B949E"), unsafe_allow_html=True)
+    with r5:
         if gip:
             flip = gip.flip_hazard
             flip_c = "#F85149" if flip > 0.4 else "#D29922" if flip > 0.25 else "#3FB950"
-            st.markdown(_metric_box("Regime Change Risk", f"{flip:.0%}", f"{gip.divergence.title()}", flip_c), unsafe_allow_html=True)
+            st.markdown(_metric_box("Flip Risk", f"{flip:.0%}", f"{gip.divergence.title()}", flip_c), unsafe_allow_html=True)
+
+    # Transition timeline
+    weeks_3m = pred_3m.get("expected_transition_weeks", 8)
+    if rp and rp.get("ok") and pred_3m.get("predicted_quad") != sq:
+        st.info(f"🔮 **Forward Signal:** Model predicts transition to **{pred_3m.get('predicted_quad')}** within ~{weeks_3m} weeks (confidence {pred_3m.get('prediction_confidence',0):.0%}). Price action typically leads this by 2-4 weeks.")
+    elif rp and rp.get("ok"):
+        st.success(f"🔮 **Forward Signal:** Regime **{sq}** likely persists next 3M (confidence {pred_3m.get('prediction_confidence',0):.0%}).")
+
+    # ══════════════════════════════════════════════════════════════════════════════
+    # SECTION 2: FORWARD-LOOKING RADAR
+    # ══════════════════════════════════════════════════════════════════════════════
+    st.divider()
+    st.markdown('<div class="subsection-header">🔮 Forward-Looking Radar</div>', unsafe_allow_html=True)
+    st.caption("What price action is saying BEFORE the news hits.")
+
+    li = snap.get("leading_indicators", {}) or {}
+    if li and li.get("ok"):
+        c1, c2, c3, c4, c5 = st.columns(5)
+        with c1: st.markdown(_metric_box("Transition Prob (3M)", f"{li.get('transition_prob_3m',0):.0%}", "Leading indicator model", "#D29922" if li.get('transition_prob_3m',0)>0.5 else "#3FB950"), unsafe_allow_html=True)
+        fspy = li.get("forward_spy", {})
+        with c2: st.markdown(_metric_box("SPY 1M Expected", fp(fspy.get("expected_1m")), f"Conf {fspy.get('confidence',0):.0%}", "#3FB950" if (fspy.get('expected_1m') or 0)>0 else "#F85149"), unsafe_allow_html=True)
+        with c3: st.markdown(_metric_box("SPY 3M Expected", fp(fspy.get("expected_3m")), f"Conf {fspy.get('confidence',0):.0%}", "#3FB950" if (fspy.get('expected_3m') or 0)>0 else "#F85149"), unsafe_allow_html=True)
+        with c4: st.markdown(_metric_box("GLD 3M Expected", fp(li.get("forward_gld",{}).get("expected_3m")), "Safe haven proxy", "#3FB950" if (li.get("forward_gld",{}).get("expected_3m") or 0)>0 else "#F85149"), unsafe_allow_html=True)
+        with c5: st.markdown(_metric_box("TLT 3M Expected", fp(li.get("forward_tlt",{}).get("expected_3m")), "Duration proxy", "#3FB950" if (li.get("forward_tlt",{}).get("expected_3m") or 0)>0 else "#F85149"), unsafe_allow_html=True)
+
+        # Feature importance
+        fi = li.get("feature_importance", {})
+        if fi:
+            fi_rows = [{"Feature": k, "Importance": v} for k, v in sorted(fi.items(), key=lambda x: x[1], reverse=True)[:5]]
+            if fi_rows:
+                st.markdown("**📊 Key Drivers Predicting Transition:**")
+                df_fi = pd.DataFrame(fi_rows)
+                st.dataframe(df_fi.style.format({"Importance": "{:.2f}"}).bar(subset=["Importance"], color="#3FB950"), hide_index=True, use_container_width=True, height=160)
+    else:
+        st.info("Leading indicator engine loading... Run Full Rebuild if persistently missing.")
+
+    # ══════════════════════════════════════════════════════════════════════════════
+    # SECTION 3: EARLY WARNING SIGNALS
+    # ══════════════════════════════════════════════════════════════════════════════
+    st.divider()
+    st.markdown('<div class="subsection-header">🚨 Early Warning Signals</div>', unsafe_allow_html=True)
+    st.caption("Breadth, credit, vol — the canaries in the coal mine.")
+
+    vbd = health.get("vix_bucket",{}) if health else {}
+    vb = vbd.get("bucket","—"); vl = _sf(vbd.get("vix_last")) or 0
+    crash = health.get("crash",{}).get("state","calm") if health else "calm"
+    risk_off = health.get("risk_off",{}).get("state","risk_on") if health else "risk_on"
+
+    ew1, ew2, ew3, ew4 = st.columns(4)
+    with ew1:
+        vix_color = "#3FB950" if vl < 20 else "#D29922" if vl < 25 else "#F85149"
+        st.markdown(_metric_box("VIX Regime", f"{vl:.1f}", vb, vix_color), unsafe_allow_html=True)
+    with ew2:
+        crash_color = "#3FB950" if crash=="calm" else "#D29922" if crash=="watch" else "#F85149"
+        st.markdown(_metric_box("Crash Meter", crash.upper(), "Systemic stress", crash_color), unsafe_allow_html=True)
+    with ew3:
+        ro_color = "#F85149" if risk_off=="risk_off" else "#D29922" if risk_off=="caution" else "#3FB950"
+        st.markdown(_metric_box("Risk Off", risk_off.upper().replace("_"," "), "Flight to quality", ro_color), unsafe_allow_html=True)
+    with ew4:
+        # Breadth proxy: MAG7 vs RSP spread
+        mag7_rets = [_price_ret(t, prices, 21) for t in ["AAPL","MSFT","GOOGL","AMZN","META","TSLA","NVDA"] if prices.get(t) is not None]
+        rsp_ret = _price_ret("RSP", prices, 21)
+        if mag7_rets and rsp_ret is not None:
+            mag7_avg = float(np.mean([r for r in mag7_rets if r is not None]))
+            breadth_spread = mag7_avg - rsp_ret
+            breadth_state = "NARROW" if breadth_spread > 0.03 else "HEALTHY" if breadth_spread > -0.01 else "DIVERGENT"
+            breadth_color = "#F85149" if breadth_state=="NARROW" else "#3FB950" if breadth_state=="HEALTHY" else "#D29922"
+            st.markdown(_metric_box("Breadth", breadth_state, f"MAG7-RSP {breadth_spread:+.1%}", breadth_color), unsafe_allow_html=True)
+        else:
+            st.markdown(_metric_box("Breadth", "—", "Data loading", "#8B949E"), unsafe_allow_html=True)
+
+    if vb=="Defensive" or crash in ("elevated","watch"):
+        st.markdown(f'<div style="background:#2D0D0D;border:1px solid #F85149;border-radius:8px;padding:10px;text-align:center;margin:8px 0;"><span style="color:#F85149;font-weight:700;">⚠️ DEFENSIVE POSTURE ACTIVE</span><br><span style="font-size:12px;color:#8B949E;">VIX {vl:.1f} · Crash: {crash} · Risk-Off: {risk_off} · Reduce beta, add TLT/GLD</span></div>', unsafe_allow_html=True)
+
+    # ══════════════════════════════════════════════════════════════════════════════
+    # SECTION 4: LIVE NARRATIVE STREAM
+    # ══════════════════════════════════════════════════════════════════════════════
+    st.divider()
+    st.markdown('<div class="subsection-header">📰 Live Narrative Stream</div>', unsafe_allow_html=True)
+    st.caption("Emergent themes from price action clusters + news NLP. Detected BEFORE mainstream coverage.")
+
+    pc = snap.get("price_clusters", {}) or {}
+    clusters = pc.get("clusters", []) if pc else []
+    news = snap.get("news_nlp", {}) or {}
+    emergent = news.get("emergent_narratives", []) if news else []
+    supply_alerts = news.get("supply_chain_alerts", []) if news else []
+
+    nar1, nar2 = st.columns([1.2, 1])
+    with nar1:
+        st.markdown("**🕸️ Price Action Clusters (Leading)**")
+        if clusters:
+            accel_clusters = [c for c in clusters if c.get("is_accelerating")]
+            for c in accel_clusters[:3]:
+                conf = c.get("confidence", 0)
+                theme = c.get("theme_hypothesis", "Emergent theme")
+                members = ", ".join(c.get("members", [])[:4])
+                with st.expander(f"🚀 {theme} | {c.get('member_count',0)} tickers | Conf {conf:.0%}", expanded=False):
+                    st.caption(f"Members: {members}")
+                    st.caption(f"Avg RS 3M: {fp(c.get('avg_rs_3m'))} | Recent accel: {fp(c.get('recent_accel'))} | Avg corr: {c.get('avg_correlation',0):.2f}")
+                    st.caption(f"Novel cross-sector: {'Yes' if c.get('is_novel_theme') else 'No'} | Dominant market: {c.get('dominant_market','—')}")
+            if not accel_clusters:
+                st.caption("No accelerating clusters detected. Market may be in consolidation.")
+            if len(clusters) > len(accel_clusters):
+                with st.expander(f"📊 All {len(clusters)} clusters", expanded=False):
+                    for c in clusters:
+                        st.caption(f"{c.get('theme_hypothesis','—')} | RS {fp(c.get('avg_rs_3m'))} | Corr {c.get('avg_correlation',0):.2f}")
+        else:
+            st.caption("Price cluster engine not loaded. Ensure `price_cluster_engine_v3.py` exists in engines/.")
+
+    with nar2:
+        st.markdown("**📰 News NLP (Confirming)**")
+        if emergent:
+            for e in emergent[:5]:
+                narr = e.get("narrative", "—")
+                sc = e.get("supply_chain_hits", 0)
+                sent = e.get("avg_sentiment", 0.5)
+                sent_emoji = "🟢" if sent > 0.6 else "🔴" if sent < 0.4 else "🟡"
+                with st.expander(f"{sent_emoji} {narr.replace('_',' ').title()} | Mentions {e.get('mention_count',0)} | Supply {sc}", expanded=False):
+                    st.caption(f"Sentiment: {sent:.2f} | Linked: {', '.join(e.get('linked_tickers',[])[:6]) or '—'}")
+        else:
+            st.caption("No emergent narratives from news feed. Market may be headline-driven without structural theme.")
+        if supply_alerts:
+            st.markdown("**🔗 Supply Chain Alerts**")
+            for sa in supply_alerts[:3]:
+                st.caption(f"⚠️ {sa.get('headline','—')[:80]}...")
+
+    # ══════════════════════════════════════════════════════════════════════════════
+    # SECTION 5: MARKET STRUCTURE (Compact)
+    # ══════════════════════════════════════════════════════════════════════════════
+    st.divider()
+    st.markdown('<div class="subsection-header">⚙️ Market Structure</div>', unsafe_allow_html=True)
+
+    ms1, ms2, ms3 = st.columns([1.1, 1, 1.2])
+    with ms1: st.markdown(_gamma_card(gamma_data), unsafe_allow_html=True)
+    with ms2:
+        # DXY compact
+        dxy = prices.get("DX-Y.NYB")
+        if dxy is not None:
+            dxy = pd.to_numeric(dxy, errors="coerce").dropna()
+            if len(dxy) >= 22:
+                r = float(dxy.iloc[-1] / dxy.iloc[-22] - 1)
+                trend = "Bearish" if r < -0.005 else "Bullish" if r > 0.005 else "Neutral"
+                tc = "#F85149" if "Bearish" in trend else "#3FB950" if "Bullish" in trend else "#8B949E"
+                st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:11px;color:#8B949E;text-transform:uppercase;">💱 DXY</div><div style="font-size:20px;font-weight:700;color:#E6EDF3;margin:4px 0;">${float(dxy.iloc[-1]):.2f}</div><div style="font-size:12px;color:{tc};">{trend} · {r:+.1%} 1M</div></div>', unsafe_allow_html=True)
+    with ms3: st.markdown(_lev_card(lev_data), unsafe_allow_html=True)
+
+    # ══════════════════════════════════════════════════════════════════════════════
+    # SECTION 6: PLAYBOOK QUICK REF
+    # ══════════════════════════════════════════════════════════════════════════════
+    st.divider()
+    st.markdown('<div class="subsection-header">🎯 Playbook Quick Reference</div>', unsafe_allow_html=True)
 
     if pb_data:
         best5 = " · ".join(pb_data.get("best_assets",[])[:6])
         worst5 = " · ".join(pb_data.get("worst_assets",[])[:5])
         st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:8px;padding:12px;margin:8px 0;"><div style="font-size:13px;font-weight:700;color:#E6EDF3;margin-bottom:6px;">🎯 What to Do Right Now — {sq} · {mq}</div><div style="font-size:12px;color:#3FB950;margin-bottom:4px;">✅ Buy/Hold: {best5}</div><div style="font-size:12px;color:#F85149;">❌ Avoid/Sell: {worst5}</div></div>', unsafe_allow_html=True)
 
+    # Feedback eval
     try:
         if fb_eval and fb_eval.get("evaluated",0):
             ev = int(fb_eval.get("evaluated", 0) or 0)

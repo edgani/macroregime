@@ -1028,16 +1028,6 @@ if snap is None:
     snap = load_snapshot(max_age_hours=6.0)
     if snap and snap.get("ok"): st.session_state.snap = snap
 
-if snap is None or not snap.get("ok") or st.session_state.loading:
-    from orchestrator import build_snapshot
-    _msg = "🔄 Updating data..." if st.session_state.loading else "⚡ Building MacroRegime Pro..."
-    with st.spinner(_msg):
-        pb=st.progress(0.0); pt=st.empty()
-        def prog(m,f): pb.progress(f); pt.caption(f"⏳ {m}")
-        snap=build_snapshot(progress_cb=prog, include_us_stocks=inc_us, include_forex=inc_fx,
-            include_commodities=inc_comm, include_crypto=inc_cryp, include_ihsg=inc_ihsg)
-        st.session_state.snap=snap; st.session_state.loading=False
-        pb.empty(); pt.empty(); st.rerun()
 
 if not snap or not snap.get("ok"):
     st.error("❌ Build failed. Click **⚡ Full Rebuild** to retry."); st.stop()

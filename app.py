@@ -1190,14 +1190,16 @@ if page == "🏠 Dashboard":
     st.markdown("## 🏠 Dashboard")
     st.caption("Macro regime command center — 30-second read")
 
-    # ── Dense KPI Row ──
+    # ═══════════════════════════════════════════════════════════════════
+    # ROW 1: COMPACT KPI
+    # ═══════════════════════════════════════════════════════════════════
     k1, k2, k3, k4, k5, k6, k7 = st.columns(7)
-    with k1: st.metric("Quarterly", sq, qn(sq), delta_color="off")
-    with k2: st.metric("Monthly", mq, qn(mq), delta_color="off")
+    with k1: st.metric("Q", sq, qn(sq), delta_color="off")
+    with k2: st.metric("M", mq, qn(mq), delta_color="off")
     with k3:
         flip = gip.flip_hazard if gip else 0
         flip_note = gip.divergence if gip else "-"
-        st.metric("Flip Risk", f"{flip:.0%}", flip_note if flip > 0.2 else None)
+        st.metric("Flip", f"{flip:.0%}", flip_note if flip > 0.2 else None)
     with k4:
         vix_val = health.get("vix_bucket", {}).get("vix_last", 18)
         vix_label = health.get("vix_bucket", {}).get("bucket", "-")
@@ -1214,9 +1216,11 @@ if page == "🏠 Dashboard":
             gold_s = pd.to_numeric(prices["GC=F"], errors="coerce").dropna()
             if len(gold_s) > 0: gold_val = float(gold_s.iloc[-1])
         st.metric("Gold", f"{gold_val:.1f}" if gold_val else "-")
-    with k7: st.metric("Assets", f"{snap.get('prices_loaded',0)}", f"{len(ar)} ranges")
+    with k7: st.metric("Assets", f"{snap.get('prices_loaded',0)}", f"{len(ar)} rng")
 
-    # ── Market Status Banner ──
+    # ═══════════════════════════════════════════════════════════════════
+    # ROW 2: MARKET STATUS BANNER
+    # ═══════════════════════════════════════════════════════════════════
     vbd = health.get("vix_bucket",{}) if health else {}
     vb = vbd.get("bucket","-"); vl = _sf(vbd.get("vix_last")) or 0
     if vb=="Investable":
@@ -1226,7 +1230,9 @@ if page == "🏠 Dashboard":
     elif vb=="Defensive":
         st.error(f"🔴 DEFENSIVE - VIX {vl:.1f} - {vbd.get('risk_mode','Normal')}")
 
-    # ── Regime & Playbook Banner (MERGED) ──
+    # ═══════════════════════════════════════════════════════════════════
+    # ROW 3: PLAYBOOK + FORWARD (merged, no duplicate Q/M)
+    # ═══════════════════════════════════════════════════════════════════
     best_assets = " - ".join(pb_data.get("best_assets",[])[:6]) if pb_data else "Loading..."
     worst_assets = " - ".join(pb_data.get("worst_assets",[])[:5]) if pb_data else "Loading..."
     strategy = pb_data.get("strategy","") if pb_data else ""
@@ -1236,191 +1242,242 @@ if page == "🏠 Dashboard":
         if rf3.get("predicted_quad") != sq and rf3.get("prediction_confidence",0) > 0.4:
             forward_alert = f" ⚠️ 3M shift to {rf3.get('predicted_quad')} ({rf3.get('prediction_confidence',0):.0%} conf)"
     st.markdown(f"""
-    <div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:8px;padding:12px;margin:8px 0;">
-      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
-        <div style="min-width:130px;">
-          <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">QUARTERLY</div>
-          <div style="font-size:16px;font-weight:700;color:{qc(sq)};">{sq} - {qn(sq)}</div>
+    <div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:8px;padding:10px 14px;margin:6px 0;display:flex;gap:16px;flex-wrap:wrap;align-items:center;justify-content:space-between;">
+      <div style="flex:1;min-width:260px;">
+        <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">🎯 PLAYBOOK - {sq} · {qn(sq)}</div>
+        <div style="font-size:12px;color:var(--text-primary);line-height:1.4;">
+          <span style="color:var(--long);font-weight:600;">🟢 Buy:</span> {best_assets}<br>
+        <span style="color:var(--short);font-weight:600;">🔴 Avoid:</span> {worst_assets}
         </div>
-        <div style="min-width:130px;">
-          <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">MONTHLY</div>
-          <div style="font-size:16px;font-weight:700;color:{qc(mq)};">{mq} - {qn(mq)}</div>
-        </div>
-        <div style="flex:1;min-width:280px;border-left:1px solid var(--border-default);padding-left:12px;">
-          <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">PLAYBOOK - {sq}</div>
-          <div style="font-size:12px;color:var(--text-primary);line-height:1.5;">
-            <span style="color:var(--long);font-weight:600;">🟢 Buy/Hold:</span> {best_assets}<br>
-            <span style="color:var(--short);font-weight:600;">🔴 Avoid/Sell:</span> {worst_assets}
-          </div>
-        </div>
-        <div style="min-width:140px;text-align:right;">
-          <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">FORWARD</div>
-          <div style="font-size:12px;color:var(--text-primary);">1M→{regime_forecast.get("1m",{}).get("predicted_quad","-")} ({regime_forecast.get("1m",{}).get("prediction_confidence",0):.0%})</div>
-          <div style="font-size:11px;color:var(--neutral);font-weight:600;">{forward_alert}</div>
-        </div>
+      </div>
+      <div style="min-width:140px;text-align:right;">
+        <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">FORWARD</div>
+        <div style="font-size:12px;color:var(--text-primary);">1M→{regime_forecast.get("1m",{}).get("predicted_quad","-")} ({regime_forecast.get("1m",{}).get("prediction_confidence",0):.0%})</div>
+        <div style="font-size:11px;color:var(--neutral);font-weight:600;">{forward_alert}</div>
       </div>
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Flight Board ──
+    # ═══════════════════════════════════════════════════════════════════
+    # ROW 4: FLIGHT BOARD
+    # ═══════════════════════════════════════════════════════════════════
     if frontrun:
-        st.markdown("### ✈️ Front-Run Flight Board")
         fb_cols = st.columns(4)
         with fb_cols[0]:
             boarding = frontrun.get("boarding_now", [])
             st.markdown(f'<div style="text-align:center;">{_flight_pill("BOARDING NOW", len(boarding))}</div>', unsafe_allow_html=True)
-            for item in boarding[:3]:
-                st.caption(f"🚨 {item.get('ticker', '-')} | {item.get('direction', '-')} | {item.get('entry_advice', '-')[:30]}")
+            for item in boarding[:2]:
+                st.caption(f"🚨 {item.get('ticker', '-')} | {item.get('direction', '-')}")
         with fb_cols[1]:
             gate = frontrun.get("gate_opens_soon", [])
             st.markdown(f'<div style="text-align:center;">{_flight_pill("GATE OPENS SOON", len(gate))}</div>', unsafe_allow_html=True)
-            for item in gate[:3]:
+            for item in gate[:2]:
                 st.caption(f"⚡ {item.get('ticker', '-')} | {item.get('direction', '-')}")
         with fb_cols[2]:
             checkin = frontrun.get("check_in", [])
             st.markdown(f'<div style="text-align:center;">{_flight_pill("CHECK-IN", len(checkin))}</div>', unsafe_allow_html=True)
-            for item in checkin[:3]:
+            for item in checkin[:2]:
                 st.caption(f"👀 {item.get('ticker', '-')} | {item.get('direction', '-')}")
         with fb_cols[3]:
             wait = frontrun.get("wait", [])
             st.markdown(f'<div style="text-align:center;">{_flight_pill("WAIT", len(wait))}</div>', unsafe_allow_html=True)
-            for item in wait[:3]:
+            for item in wait[:2]:
                 st.caption(f"⏳ {item.get('ticker', '-')}")
 
-    # ── Early Warning (VIX removed from here - already in KPI row) ──
-    st.markdown("### 🚨 Early Warning")
-    ew1, ew2, ew3, ew4 = st.columns(4)
+    # ═══════════════════════════════════════════════════════════════════
+    # ROW 5: EARLY WARNING + VOL FORECAST (8 cards, 1 row)
+    # ═══════════════════════════════════════════════════════════════════
+    st.markdown("### 🚨 Early Warning + Volatility")
+    ew_cols = st.columns(8)
     lev_rb = lev_data.get("rebalancing_pressure", "-") if lev_data else "-"
     lev_color = {"HIGH": "var(--short)", "MEDIUM": "var(--neutral)", "LOW": "var(--long)"}.get(lev_rb, "var(--text-secondary)")
-    ew1.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:var(--text-secondary);">LEVERAGE</div><div style="font-size:16px;font-weight:700;color:{lev_color};">{lev_rb}</div></div>', unsafe_allow_html=True)
+    with ew_cols[0]:
+        st.markdown(f'<div style="text-align:center;background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:6px;"><div style="font-size:9px;color:var(--text-secondary);text-transform:uppercase;">LEVERAGE</div><div style="font-size:14px;font-weight:700;color:{lev_color};">{lev_rb}</div></div>', unsafe_allow_html=True)
     crash_state = health.get("crash", {}).get("state", "calm")
     crash_color = "var(--long)" if crash_state == "calm" else "var(--neutral)" if crash_state == "watch" else "var(--short)"
-    ew2.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:var(--text-secondary);">CRASH</div><div style="font-size:16px;font-weight:700;color:{crash_color};">{crash_state.upper()}</div></div>', unsafe_allow_html=True)
+    with ew_cols[1]:
+        st.markdown(f'<div style="text-align:center;background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:6px;"><div style="font-size:9px;color:var(--text-secondary);text-transform:uppercase;">CRASH</div><div style="font-size:14px;font-weight:700;color:{crash_color};">{crash_state.upper()}</div></div>', unsafe_allow_html=True)
     risk_off_state = health.get("risk_off", {}).get("state", "risk_on")
     risk_color = "var(--long)" if risk_off_state == "risk_on" else "var(--neutral)" if risk_off_state == "caution" else "var(--short)"
-    ew3.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:var(--text-secondary);">RISK OFF</div><div style="font-size:16px;font-weight:700;color:{risk_color};">{risk_off_state.upper()}</div></div>', unsafe_allow_html=True)
+    with ew_cols[2]:
+        st.markdown(f'<div style="text-align:center;background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:6px;"><div style="font-size:9px;color:var(--text-secondary);text-transform:uppercase;">RISK OFF</div><div style="font-size:14px;font-weight:700;color:{risk_color};">{risk_off_state.upper()}</div></div>', unsafe_allow_html=True)
     breadth_tickers = list(US_SECTORS.keys())
     for bucket in ["Growth", "Quality", "Defensives", "Semis", "Energy", "Industrials", "Financials", "AI_Infra", "PreciousMetals"]:
         breadth_tickers += US_BUCKETS.get(bucket, [])
     breadth_tickers = list(dict.fromkeys(breadth_tickers))
-    advancers = 0; decliners = 0; unchanged = 0
+    advancers = 0; decliners = 0
     for t in breadth_tickers:
         ret = _price_ret(t, prices, 21)
         if ret is not None:
             if ret > 0.005: advancers += 1
             elif ret < -0.005: decliners += 1
-            else: unchanged += 1
-    total_b = advancers + decliners + unchanged
+    total_b = advancers + decliners
     b_score = advancers / total_b if total_b > 0 else 0.5
     b_color = "var(--long)" if b_score > 0.6 else "var(--neutral)" if b_score > 0.4 else "var(--short)"
-    ew4.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:var(--text-secondary);">BREADTH</div><div style="font-size:16px;font-weight:700;color:{b_color};">{b_score:.0%}</div><div style="font-size:9px;color:var(--text-secondary);">{advancers}↑ {decliners}↓</div></div>', unsafe_allow_html=True)
+    with ew_cols[3]:
+        st.markdown(f'<div style="text-align:center;background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:6px;"><div style="font-size:9px;color:var(--text-secondary);text-transform:uppercase;">BREADTH</div><div style="font-size:14px;font-weight:700;color:{b_color};">{b_score:.0%}</div><div style="font-size:8px;color:var(--text-secondary);">{advancers}↑ {decliners}↓</div></div>', unsafe_allow_html=True)
+    vol_f = snap.get("vol_forecast", {})
+    vol_proxies = [("SPY", "SPY"), ("QQQ", "QQQ"), ("GLD", "Gold"), ("VIX", "VIX")]
+    for idx, (ticker_key, label) in enumerate(vol_proxies):
+        with ew_cols[4 + idx]:
+            if ticker_key in vol_f:
+                v = vol_f[ticker_key]
+                regime = v.get("vol_regime", "NORMAL")
+                vcol = "var(--long)" if regime == "LOW" else ("var(--neutral)" if regime == "NORMAL" else "var(--short)")
+                val = v.get("current_ann_vol", 0)
+                st.markdown(f'<div style="text-align:center;background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:6px;"><div style="font-size:9px;color:var(--text-secondary);text-transform:uppercase;">{label}</div><div style="font-size:14px;font-weight:700;color:{vcol};">{val}%</div><div style="font-size:8px;color:var(--text-secondary);">{regime}</div></div>', unsafe_allow_html=True)
+            else:
+                st.markdown(f'<div style="text-align:center;background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:6px;"><div style="font-size:9px;color:var(--text-secondary);text-transform:uppercase;">{label}</div><div style="font-size:14px;font-weight:700;color:var(--text-secondary);">-</div></div>', unsafe_allow_html=True)
 
-    # ── Quad Probabilities ──
-    st.markdown("### 📊 Regime Probabilities")
-    rp1, rp2 = st.columns(2)
+    # ═══════════════════════════════════════════════════════════════════
+    # ROW 6: REGIME PROB + FORWARD (merged into 1 row)
+    # ═══════════════════════════════════════════════════════════════════
+    st.markdown("### 📊 Regime Map")
+    rp1, rp2, rp3 = st.columns([1.2, 1, 1])
     with rp1:
         st.markdown("**Quarterly**")
         st.plotly_chart(prob_bar(gip.structural_probs, ""), use_container_width=True, config={"displayModeBar":False}, key="dash_prob_q")
     with rp2:
         st.markdown("**Monthly**")
         st.plotly_chart(prob_bar(gip.monthly_probs, ""), use_container_width=True, config={"displayModeBar":False}, key="dash_prob_m")
+    with rp3:
+        st.markdown("**🔮 Forward**")
+        if regime_forecast and regime_forecast.get("1m"):
+            rf1 = regime_forecast["1m"]; rf3 = regime_forecast["3m"]; rf6 = regime_forecast["6m"]
+            st.markdown(f"""
+            <div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:8px;margin-bottom:6px;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="font-size:10px;color:var(--text-secondary);">1M</span><span style="font-size:12px;font-weight:700;color:{qc(rf1.get("predicted_quad","Q3"))};">{rf1.get("predicted_quad","-")}</span></div>
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span style="font-size:10px;color:var(--text-secondary);">3M</span><span style="font-size:12px;font-weight:700;color:{qc(rf3.get("predicted_quad","Q3"))};">{rf3.get("predicted_quad","-")}</span></div>
+              <div style="display:flex;justify-content:space-between;"><span style="font-size:10px;color:var(--text-secondary);">6M</span><span style="font-size:12px;font-weight:700;color:{qc(rf6.get("predicted_quad","Q3"))};">{rf6.get("predicted_quad","-")}</span></div>
+            </div>
+            """, unsafe_allow_html=True)
+            conf1 = rf1.get("prediction_confidence",0)
+            conf3 = rf3.get("prediction_confidence",0)
+            st.caption(f"Conf: 1M {conf1:.0%} · 3M {conf3:.0%}")
+        else:
+            st.caption("No forward data")
 
-    # ── Forward Projection ──
-    if regime_forecast and regime_forecast.get("1m"):
-        st.markdown("### 🔮 Forward Projection")
-        rf1 = regime_forecast["1m"]; rf3 = regime_forecast["3m"]; rf6 = regime_forecast["6m"]
-        fp1, fp2, fp3 = st.columns(3)
-        with fp1:
-            st.markdown(f'<div style="text-align:center;background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:8px;"><div style="font-size:10px;color:var(--text-secondary);">1 MONTH</div><div style="font-size:18px;font-weight:700;color:{qc(rf1.get("predicted_quad","Q3"))};">{rf1.get("predicted_quad","-")}</div><div style="font-size:10px;color:var(--text-secondary);">Conf {rf1.get("prediction_confidence",0):.0%}</div></div>', unsafe_allow_html=True)
-        with fp2:
-            st.markdown(f'<div style="text-align:center;background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:8px;"><div style="font-size:10px;color:var(--text-secondary);">3 MONTHS</div><div style="font-size:18px;font-weight:700;color:{qc(rf3.get("predicted_quad","Q3"))};">{rf3.get("predicted_quad","-")}</div><div style="font-size:10px;color:var(--text-secondary);">Conf {rf3.get("prediction_confidence",0):.0%}</div></div>', unsafe_allow_html=True)
-        with fp3:
-            st.markdown(f'<div style="text-align:center;background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:8px;"><div style="font-size:10px;color:var(--text-secondary);">6 MONTHS</div><div style="font-size:18px;font-weight:700;color:{qc(rf6.get("predicted_quad","Q3"))};">{rf6.get("predicted_quad","-")}</div><div style="font-size:10px;color:var(--text-secondary);">Conf {rf6.get("prediction_confidence",0):.0%}</div></div>', unsafe_allow_html=True)
-
-    # ── DXY Correlation ──
-    if dxy_corr:
-        st.markdown("### 💵 DXY Correlation")
-        c1, c2, c3 = st.columns(3)
-        dxy_trend = dxy_corr.get("dxy_trend", "Neutral")
+    # ═══════════════════════════════════════════════════════════════════
+    # ROW 7: MARKET EDGE (DXY + Stress + Forward-Looking)
+    # ═══════════════════════════════════════════════════════════════════
+    st.markdown("### 🧠 Market Edge")
+    edge1, edge2, edge3 = st.columns(3)
+    with edge1:
+        dxy_trend = dxy_corr.get("dxy_trend", "Neutral") if dxy_corr else "Neutral"
         dxy_color = "var(--long)" if "Bullish" in dxy_trend else "var(--short)" if "Bearish" in dxy_trend else "var(--neutral)"
-        c1.markdown(f'<div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:8px;padding:12px"><div style="font-size:11px;color:var(--text-secondary);margin-bottom:4px">DXY TREND</div><div style="font-size:16px;font-weight:700;color:{dxy_color}">{dxy_trend}</div></div>', unsafe_allow_html=True)
-        c2.metric("DXY 1M", fp(dxy_corr.get("dxy_1m")))
-        c3.metric("Correlated Assets", dxy_corr.get("total_correlated", 0))
-        pos_corr = dxy_corr.get("strongest_positive_corr", [])
-        neg_corr = dxy_corr.get("strongest_negative_corr", [])
-        if pos_corr or neg_corr:
-            with st.expander("📈 DXY Correlation Details", expanded=False):
-                corr_cols = st.columns(2)
-                with corr_cols[0]:
-                    if pos_corr:
-                        st.markdown("**📈 Positive** (rises with DXY)")
-                        pos_rows = [{"Asset": k, "r": v.get("correlation", 0)} for k, v in pos_corr[:5]]
-                        df_pos = pd.DataFrame(pos_rows)
-                        st.dataframe(df_pos.style.format({"r": "{:+.2f}"}).background_gradient(subset=["r"], cmap="RdYlGn", vmin=-1, vmax=1), hide_index=True, use_container_width=True, height=150)
-                with corr_cols[1]:
-                    if neg_corr:
-                        st.markdown("**📉 Negative** (falls when DXY rises)")
-                        neg_rows = [{"Asset": k, "r": v.get("correlation", 0)} for k, v in neg_corr[:5]]
-                        df_neg = pd.DataFrame(neg_rows)
-                        st.dataframe(df_neg.style.format({"r": "{:+.2f}"}).background_gradient(subset=["r"], cmap="RdYlGn_r", vmin=-1, vmax=1), hide_index=True, use_container_width=True, height=150)
+        dxy_val_mini = None
+        if prices.get("DX-Y.NYB") is not None:
+            dxy_s_mini = pd.to_numeric(prices["DX-Y.NYB"], errors="coerce").dropna()
+            if len(dxy_s_mini) > 0: dxy_val_mini = float(dxy_s_mini.iloc[-1])
+        pos_count = len(dxy_corr.get("strongest_positive_corr", [])) if dxy_corr else 0
+        neg_count = len(dxy_corr.get("strongest_negative_corr", [])) if dxy_corr else 0
+        dxy_disp = f"{dxy_val_mini:.2f}" if dxy_val_mini else "-"
+        st.markdown(f"""
+        <div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:8px;padding:10px;">
+          <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">💵 DXY CORRELATION</div>
+          <div style="font-size:16px;font-weight:700;color:{dxy_color};margin:2px 0;">{dxy_trend} {dxy_disp}</div>
+          <div style="font-size:11px;color:var(--text-secondary);">{pos_count} pos · {neg_count} neg correlated</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with edge2:
+        stress = snap.get("stress_test", [])
+        if stress:
+            worst = max(stress, key=lambda x: x.get("portfolio_dd", 0))
+            sev = worst.get("severity", "HIGH")
+            sevcol = "var(--short)" if sev == "EXTREME" else "var(--neutral)"
+            st.markdown(f"""
+            <div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:8px;padding:10px;">
+              <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">⚠️ WORST STRESS</div>
+              <div style="font-size:14px;font-weight:700;color:{sevcol};margin:2px 0;">{worst.get("scenario","-")}</div>
+              <div style="font-size:11px;color:var(--text-secondary);">DD: {worst.get("portfolio_dd",0):.0%} · {sev}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:8px;padding:10px;">
+              <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">⚠️ STRESS TEST</div>
+              <div style="font-size:12px;color:var(--text-secondary);">No active stress scenarios</div>
+            </div>
+            """, unsafe_allow_html=True)
+    with edge3:
+        st.markdown("""
+        <div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:8px;padding:10px;">
+          <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">🧠 FORWARD-LOOKING EDGE</div>
+          <div style="font-size:11px;color:var(--text-primary);line-height:1.4;">
+            Market prices-in <b>expectation</b> before news. Watch upstream supply chain (HBM, transformers, optical) for early signals.
+          </div>
+          <div style="font-size:10px;color:var(--neutral);margin-top:4px;">⏱️ Earnings priced in milliseconds · Structural bottlenecks in months</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    # ── Vol Forecast (Compact Cards) ──
-    vol_f = snap.get("vol_forecast", {})
-    if vol_f:
-        st.markdown("### 📊 Vol Forecast")
-        proxy_tickers = ["SPY", "QQQ", "GLD", "TLT", "DX-Y.NYB", "EEM", "VWO", "IWM"]
-        vol_cards = []
-        for t in proxy_tickers:
-            if t in vol_f:
-                v = vol_f[t]
-                regime = v.get("vol_regime", "NORMAL")
-                color = "var(--long)" if regime == "LOW" else ("var(--neutral)" if regime == "NORMAL" else "var(--short)")
-                vol_cards.append((t, v.get("current_ann_vol", 0), v.get("forecast_ann_vol", 0), regime, color))
-        if vol_cards:
-            cols = st.columns(min(len(vol_cards), 4))
-            for i, (t, cur, fore, reg, col) in enumerate(vol_cards):
-                with cols[i % 4]:
-                    st.markdown(f"""
-                    <div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:8px;text-align:center;">
-                      <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;">{t}</div>
-                      <div style="font-size:16px;font-weight:700;color:{col};">{cur}%</div>
-                      <div style="font-size:9px;color:var(--text-secondary);">{reg}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
+    # ═══════════════════════════════════════════════════════════════════
+    # ROW 8: SUPPLY CHAIN BOTTLENECK HEATMAP
+    # ═══════════════════════════════════════════════════════════════════
+    st.markdown("### 🔥 AI Infrastructure Bottleneck Monitor")
+    st.caption("Structural chokepoints · Multi-year lead times · Price-in before headline")
+    b1, b2, b3, b4 = st.columns(4)
+    with b1:
+        st.markdown("""
+        <div style="background:#2D0D0D;border:1px solid var(--short);border-radius:8px;padding:10px;">
+          <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">🔴 CRITICAL</div>
+          <div style="font-size:14px;font-weight:700;color:var(--short);margin:4px 0;">HBM / DRAM</div>
+          <div style="font-size:11px;color:var(--text-primary);line-height:1.4;">
+            Samsung + SK Hynix + Micron >95% supply. 2026 sold out. DRAM prices +80-90%.
+          </div>
+          <div style="font-size:10px;color:var(--neutral);margin-top:4px;">⏱️ Lead: 12-18 mo · Watch: MU, 005930.KS</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with b2:
+        st.markdown("""
+        <div style="background:#2D0D0D;border:1px solid var(--short);border-radius:8px;padding:10px;">
+          <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">🔴 CRITICAL</div>
+          <div style="font-size:14px;font-weight:700;color:var(--short);margin:4px 0;">Power Grid / Transformers</div>
+          <div style="font-size:11px;color:var(--text-primary);line-height:1.4;">
+            Lead time 4-5 years. PJM summer 2027 shortfall 6,600 MW. Only 5GW of 12GW announced under construction.
+          </div>
+          <div style="font-size:10px;color:var(--neutral);margin-top:4px;">⏱️ Lead: 4-5 yr · Watch: VST, ETN, GEV</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with b3:
+        st.markdown("""
+        <div style="background:#2D2305;border:1px solid var(--neutral);border-radius:8px;padding:10px;">
+          <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">🟡 ELEVATED</div>
+          <div style="font-size:14px;font-weight:700;color:var(--neutral);margin:4px 0;">Optical / Photonics</div>
+          <div style="font-size:11px;color:var(--text-primary);line-height:1.4;">
+            Data movement shifting to photons. NVDA partners with Corning, Coherent, Lumentum. All at ATHs.
+          </div>
+          <div style="font-size:10px;color:var(--neutral);margin-top:4px;">⏱️ Lead: 6-12 mo · Watch: COHR, LITE, GLW</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with b4:
+        st.markdown("""
+        <div style="background:#0D2818;border:1px solid var(--long);border-radius:8px;padding:10px;">
+          <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">🟢 MONITOR</div>
+          <div style="font-size:14px;font-weight:700;color:var(--long);margin:4px 0;">Agentic AI / CPU</div>
+          <div style="font-size:11px;color:var(--text-primary);line-height:1.4;">
+            Autonomous AI workloads optimizing server CPUs. New tailwind for INTC, AMD, NVDA Vera CPU.
+          </div>
+          <div style="font-size:10px;color:var(--neutral);margin-top:4px;">⏱️ Cycle: Monthly · Watch: INTC, AMD, NVDA</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    # ── Stress Test (Compact) ──
-    stress = snap.get("stress_test", [])
-    if stress:
-        st.markdown("### ⚠️ Stress Test")
-        sev_order = {"EXTREME": 0, "HIGH": 1, "MEDIUM": 2}
-        stress_sorted = sorted(stress, key=lambda x: sev_order.get(x.get("severity", "MEDIUM"), 3))
-        for sc in stress_sorted[:3]:  # Show max 3
-            sev = sc.get("severity", "MEDIUM")
-            sev_color = "var(--short)" if sev == "EXTREME" else "var(--neutral)" if sev == "HIGH" else "var(--text-secondary)"
-            with st.expander(f"⚠️ {sc.get('scenario', '—')} | DD: {sc.get('portfolio_dd', 0):.0%} | {sev}", expanded=False):
-                c1, c2, c3, c4 = st.columns(4)
-                c1.metric("Portfolio DD", f"{sc.get('portfolio_dd', 0):.0%}")
-                c2.metric("Worst", sc.get('worst_asset', '—'), f"{sc.get('worst_dd', 0):.0%}")
-                c3.metric("Best", sc.get('best_asset', '—'), f"{sc.get('best_dd', 0):.0%}")
-                c4.markdown(f"<div style='color:{sev_color};font-size:11px;'><b>Hedge:</b><br>{sc.get('hedge', '—')}</div>", unsafe_allow_html=True)
-
-    # ── Historical Analogs ──
+    # ═══════════════════════════════════════════════════════════════════
+    # ROW 9: HISTORICAL ANALOGS (collapsed)
+    # ═══════════════════════════════════════════════════════════════════
     if analogs and analogs.get("top_analogs"):
-        st.markdown("**Historical Analogs**")
-        for i, a in enumerate(analogs["top_analogs"][:3]):
-            with st.expander(f"📚 {a['label']} — {a.get('similarity',0):.0%} similar", expanded=(i==0)):
+        with st.expander("📚 Historical Analogs", expanded=False):
+            for i, a in enumerate(analogs["top_analogs"][:3]):
                 c1, c2, c3 = st.columns(3)
                 c1.metric("1M", a.get("path_1m","-")); c2.metric("3M", a.get("path_3m","-")); c3.metric("6M", a.get("path_6m","-"))
-                st.caption(f"📊 {a.get('next_bias','')}")
+                if a.get("next_bias"):
+                    st.caption(f"📊 {a['next_bias']}")
 
-    st.caption(f"Built {snap.get('build_time_s',0):.0f}s ago - {snap.get('prices_loaded',0)} assets - {snap.get('fred_coverage',0)} indicators")
+    st.caption(f"Built {snap.get('build_time_s',0):.0f}s ago · {snap.get('prices_loaded',0)} assets · {snap.get('fred_coverage',0)} indicators")
 
 elif page == "⚡ Alpha Center":
     st.markdown("## ⚡ Alpha Center")
     st.caption("Bottlenecks - Alpha - Discovery - Daily Signals - Front-Run")
 
-    ac = alpha_center
-    meta = ac.get("meta", {}) if ac else {}
     if not ac or not meta:
         st.warning("Alpha Center data not available. Run Full Rebuild."); st.stop()
 

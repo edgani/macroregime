@@ -983,15 +983,7 @@ with st.sidebar:
     st.markdown("## 📊 MacroRegime Pro")
     st.markdown('<div style="font-size:11px;color:#8B949E;">Powered by Hedgeye Methodology + Forward-Looking AI</div>', unsafe_allow_html=True)
     st.divider()
-    
-# ══════════════════════════════════════════════════════════════════════════════
-# SIDEBAR — Simplified
-# ══════════════════════════════════════════════════════════════════════════════
-if "snap" not in st.session_state: st.session_state.snap = None
-if "loading" not in st.session_state: st.session_state.loading = False
-if "mq_override" not in st.session_state: st.session_state.mq_override = "Auto"
-
-with st.sidebar:
+    with st.sidebar:
     st.markdown("## 📊 MacroRegime Pro v2.0")
     st.markdown('<div style="font-size:11px;color:#8B949E;">PVV Multi-Duration + Hedgeye Methodology</div>', unsafe_allow_html=True)
     st.divider()
@@ -1006,9 +998,11 @@ with st.sidebar:
             st.session_state.loading=True; st.session_state.snap=None
 
     with st.expander("⚙️ Settings"):
-        inc_us = st.checkbox("US Stocks",True); inc_fx = st.checkbox("Forex",True)
-        inc_comm = st.checkbox("Commodities",True); inc_cryp = st.checkbox("Crypto",True)
-        inc_ihsg = st.checkbox("Indonesia (IHSG)",True)
+        st.checkbox("US Stocks", value=True, key="inc_us")
+        st.checkbox("Forex", value=True, key="inc_fx")
+        st.checkbox("Commodities", value=True, key="inc_comm")
+        st.checkbox("Crypto", value=True, key="inc_cryp")
+        st.checkbox("Indonesia (IHSG)", value=True, key="inc_ihsg")
     with st.expander("🔧 Quad Override"):
         mq_ov = st.selectbox("Monthly Regime:",["Auto","Q1","Q2","Q3","Q4"],
             index=["Auto","Q1","Q2","Q3","Q4"].index(st.session_state.mq_override))
@@ -1034,12 +1028,79 @@ with st.sidebar:
         if _s.get("pvv"): sources.append("🟢 PVV")
         if not sources: sources.append("🟡 Proxy Only")
         st.caption(" · ".join(sources))
+if "snap" not in st.session_state: st.session_state.snap = None
+if "loading" not in st.session_state: st.session_state.loading = False
+if "mq_override" not in st.session_state: st.session_state.mq_override = "Auto"
 
-# ══════════════════════════════════════════════════════════════════════════════
-# MAIN TABS
-# ══════════════════════════════════════════════════════════════════════════════
+with st.sidebar:
+    st.markdown("## 📊 MacroRegime Pro")
+    st.markdown('<div style="font-size:11px;color:#8B949E;">Powered by Hedgeye Methodology + Forward-Looking AI</div>', unsafe_allow_html=True)
+    st.divider()
+        "🏠 Dashboard",
+        "📋 Playbook",
+        "⚡ Alpha Center",
+        "🇺🇸 US Stocks",
+        "💱🛢️ Macro Proxies",
+        "₿ Crypto",
+        "🌍 Global & EM",
+        "📖 Themes",
+        "🏥 Health",
+    ], label_visibility="collapsed")
+    st.divider()
+    from data.loader import snapshot_age_str, load_snapshot
+    st.caption(f"Last update: {snapshot_age_str()}")
+    c1,c2=st.columns(2)
+    with c1:
+        if st.button("🔄 Update", use_container_width=True): st.session_state.loading=True
+    with c2:
+        if st.button("⚡ Full Rebuild", use_container_width=True):
+            st.session_state.loading=True; st.session_state.snap=None
+    with st.expander("⚙️ Settings"):
+        inc_us = st.checkbox("US Stocks",True); inc_fx = st.checkbox("Forex",True)
+        inc_comm = st.checkbox("Commodities",True); inc_cryp = st.checkbox("Crypto",True)
+        inc_ihsg = st.checkbox("Indonesia (IHSG)",True)
+    with st.expander("🔧 Quad Override"):
+        mq_ov = st.selectbox("Monthly Regime:",["Auto","Q1","Q2","Q3","Q4"],
+            index=["Auto","Q1","Q2","Q3","Q4"].index(st.session_state.mq_override))
+        if mq_ov != st.session_state.mq_override: st.session_state.mq_override = mq_ov
+    st.caption("Override when model diverges from Hedgeye")
+    st.divider()
+    _s=st.session_state.snap
+    if _s and _s.get("ok"):
+        _g=_s.get("gip"); _gl=_s.get("global",{})
+        _sq=_g.structural_quad if _g else "—"; _mq=_g.monthly_quad if _g else "—"
+        st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:10px;color:#8B949E;text-transform:uppercase;">CURRENT REGIME</div><div style="font-size:18px;font-weight:700;color:{qc(_sq)};margin:4px 0;">{_sq} / {_mq}</div><div style="font-size:11px;color:#8B949E;">{QN.get(_sq,"")} · {QN.get(_mq,"")}</div></div>', unsafe_allow_html=True)
+        st.divider()
+        st.markdown("**📡 Data Sources**")
+        sources = []
+        if _s.get("cot_live"): sources.append("🟢 COT")
+        if _s.get("options_live"): sources.append("🟢 Options")
+        if _s.get("cme_live"): sources.append("🟢 CME")
+        if (_s.get("defillama_live") or {}).get("ok"): sources.append("🟢 DeFiLlama")
+        if _s.get("crypto_options_live"): sources.append("🟢 Crypto Opts")
+        if _s.get("news_narratives") and _s["news_narratives"].get("analyzed_count",0) > 0: sources.append("🟢 News NLP")
+        if _s.get("price_clusters") and _s["price_clusters"].get("meta",{}).get("clusters_found",0) > 0: sources.append("🟢 Price Clusters")
+        if not sources: sources.append("🟡 Proxy Only")
+        st.caption(" · ".join(sources))
 
+snap = st.session_state.snap
+if snap is None:
+    snap = load_snapshot(max_age_hours=6.0)
+    if snap and snap.get("ok"): st.session_state.snap = snap
 
+if snap is None or not snap.get("ok") or st.session_state.loading:
+    from orchestrator import build_snapshot
+    _msg = "🔄 Updating data..." if st.session_state.loading else "⚡ Building MacroRegime Pro..."
+    with st.spinner(_msg):
+        pb=st.progress(0.0); pt=st.empty()
+        def prog(m,f): pb.progress(f); pt.caption(f"⏳ {m}")
+        snap=build_snapshot(progress_cb=prog, include_us_stocks=inc_us, include_forex=inc_fx,
+            include_commodities=inc_comm, include_crypto=inc_cryp, include_ihsg=inc_ihsg)
+        st.session_state.snap=snap; st.session_state.loading=False
+        pb.empty(); pt.empty(); st.rerun()
+
+if not snap or not snap.get("ok"):
+    st.error("❌ Build failed. Click **⚡ Full Rebuild** to retry."); st.stop()
 
 gip = snap.get("gip"); global_ = snap.get("global",{}); rr = snap.get("risk_ranges",{})
 scen = snap.get("scenarios",{}); narr = snap.get("narratives",{}); disc = snap.get("discovery",{})
@@ -1089,6 +1150,77 @@ alpha_center = snap.get("alpha_center", {}) or {}
 # TAB: 🏠 DASHBOARD — COMPACT v2
 # ══════════════════════════════════════════════════════════════════════════════
 
+snap = st.session_state.snap
+if snap is None:
+    snap = load_snapshot(max_age_hours=6.0)
+    if snap and snap.get("ok"): st.session_state.snap = snap
+
+if snap is None or not snap.get("ok") or st.session_state.loading:
+    from orchestrator import build_snapshot
+    _msg = "🔄 Updating data..." if st.session_state.loading else "⚡ Building MacroRegime Pro..."
+    with st.spinner(_msg):
+        pb=st.progress(0.0); pt=st.empty()
+        def prog(m,f): pb.progress(f); pt.caption(f"⏳ {m}")
+        snap=build_snapshot(progress_cb=prog, include_us_stocks=st.session_state.get("inc_us", True), include_forex=st.session_state.get("inc_fx", True),
+            include_commodities=st.session_state.get("inc_comm", True), include_crypto=st.session_state.get("inc_cryp", True), include_ihsg=st.session_state.get("inc_ihsg", True))
+        st.session_state.snap=snap; st.session_state.loading=False
+        pb.empty(); pt.empty(); st.rerun()
+
+if not snap or not snap.get("ok"):
+    st.error("❌ Build failed. Click **⚡ Full Rebuild** to retry."); st.stop()
+
+gip = snap.get("gip"); global_ = snap.get("global",{}); rr = snap.get("risk_ranges",{})
+scen = snap.get("scenarios",{}); narr = snap.get("narratives",{}); disc = snap.get("discovery",{})
+transition = snap.get("transition",None); health = snap.get("health",{}); analogs = snap.get("analogs",{})
+btk = snap.get("bottleneck",{}); pb_data = snap.get("playbook",{}); prices = snap.get("prices",{})
+auto_disc = snap.get("auto_discoveries",{}); fb_eval = snap.get("feedback_eval",{})
+gamma_data = snap.get("gamma",{}); lev_data = snap.get("leveraged_etf",{})
+
+sq = gip.structural_quad if gip else "Q3"
+mq_raw = gip.monthly_quad if gip else "Q2"
+mq = st.session_state.mq_override if st.session_state.mq_override != "Auto" else mq_raw
+gq = (global_.get("global_quad","Q3") if global_ else "Q3")
+ar = rr.get("asset_ranges",{})
+dxy_corr = _compute_dxy_corr(prices)
+
+ai_data = snap.get("ai_analysis") or {}
+ai_ok = bool(ai_data.get("ok"))
+model_name = ai_data.get("model") or "rule-based-v1"
+
+vix_now = _sf(prices.get("^VIX", pd.Series()).tail(1)) if prices.get("^VIX") is not None else 20.0
+
+daily_signals = snap.get("daily_signals", []) or []
+
+# Forward-looking data
+regime_forecast = snap.get("regime_forecast", {})
+forward_returns = snap.get("forward_returns", {})
+leading_signals = snap.get("leading_signals", {})
+price_clusters = snap.get("price_clusters", {})
+news_narratives = snap.get("news_narratives", {})
+discovery_v3 = snap.get("discovery_v3", {})
+
+# IHSG structural layers
+ihsg_sector_momentum = snap.get("ihsg_sector_momentum") or {}
+ihsg_commodity_overlay = snap.get("ihsg_commodity_overlay") or {}
+ihsg_rupiah_regime = snap.get("ihsg_rupiah_regime") or {}
+ihsg_foreign_flow = snap.get("ihsg_foreign_flow") or {}
+ihsg_macro_overlay = snap.get("ihsg_macro_overlay") or {}
+alpha_center = snap.get("alpha_center", {}) or {}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TAB: 🏠 DASHBOARD — WITH FORWARD-LOOKING + NEWS + CLUSTERS
+# ══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
+# TAB: 🏠 DASHBOARD — COMPACT v2
+# ══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
+# TAB: 🏠 DASHBOARD — COMPACT v2
+# ══════════════════════════════════════════════════════════════════════════════
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MAIN TABS
+# ══════════════════════════════════════════════════════════════════════════════
 tabs = st.tabs(["🎯 Macro Radar", "📈 TREND Signals", "⚡ Alpha Center", "📋 Playbook", "🏥 Health"])
 
 
@@ -1099,7 +1231,6 @@ with tabs[0]:
     st.markdown("## 🎯 Macro Radar")
     st.caption("Regime · Forward · All Markets · 30-second read")
 
-    # ── KPI Row ──
     k1, k2, k3, k4, k5 = st.columns(5)
     with k1: st.metric("Quarterly", sq, qn(sq), delta_color="off")
     with k2: st.metric("Monthly", mq, qn(mq), delta_color="off")
@@ -1112,7 +1243,6 @@ with tabs[0]:
         st.metric("VIX", f"{vix_val:.1f}", vix_label)
     with k5: st.metric("Assets", f"{snap.get('prices_loaded',0)}", f"{len(ar)} ranges")
 
-    # ── Market Status Banner ──
     vbd = health.get("vix_bucket",{}) if health else {}
     vb = vbd.get("bucket","—"); vl = _sf(vbd.get("vix_last")) or 0
     if vb=="Investable":
@@ -1122,7 +1252,6 @@ with tabs[0]:
     elif vb=="Defensive":
         st.error(f"🔴 DEFENSIVE · VIX {vl:.1f} · {vbd.get('risk_mode','Normal')}")
 
-    # ── Regime Snapshot ──
     rs1, rs2, rs3 = st.columns([1.2, 1, 1])
     with rs1:
         st.markdown(f'<div style="background:#161B22;border:1px solid {qc(sq)};border-radius:6px;padding:8px;margin-bottom:6px;"><div style="font-size:10px;color:#8B949E;">QUARTERLY · {sq}</div><div style="font-size:14px;font-weight:700;color:{qc(sq)};margin:2px 0;">{QN.get(sq,sq)}</div><div style="font-size:11px;color:#E6EDF3;">{QUAD_EXPLAIN.get(sq,"")[:80]}...</div></div>', unsafe_allow_html=True)
@@ -1142,7 +1271,6 @@ with tabs[0]:
             fwi = {"now":"🚨 ACT NOW","1-2w":"⚡ 1-2w","3-6w":"👀 Watch","not yet":"🛑 Wait"}.get(fw,"🛑 Wait")
             st.markdown(f'<div style="background:{fwc};color:#fff;padding:6px 10px;border-radius:6px;font-weight:600;text-align:center;font-size:11px;">{fwi}</div>', unsafe_allow_html=True)
 
-    # ── Early Warning ──
     st.markdown("### 🚨 Early Warning")
     ew1, ew2, ew3, ew4 = st.columns(4)
     vix_regime = health.get("vix_bucket", {}).get("bucket", "—")
@@ -1154,7 +1282,6 @@ with tabs[0]:
     risk_off_state = health.get("risk_off", {}).get("state", "risk_on")
     risk_color = "#3FB950" if risk_off_state == "risk_on" else "#D29922" if risk_off_state == "caution" else "#F85149"
     ew3.markdown(f'<div style="text-align:center;"><div style="font-size:10px;color:#8B949E;">RISK OFF</div><div style="font-size:16px;font-weight:700;color:{risk_color};">{risk_off_state.upper()}</div></div>', unsafe_allow_html=True)
-    # Breadth
     breadth_tickers = list(US_SECTORS.keys())
     for bucket in ["Growth", "Quality", "Defensives", "Semis", "Energy", "Industrials", "Financials", "AI_Infra", "PreciousMetals"]:
         breadth_tickers += US_BUCKETS.get(bucket, [])
@@ -1173,7 +1300,6 @@ with tabs[0]:
 
     st.caption(f"Built {snap.get('build_time_s',0):.0f}s ago · {snap.get('prices_loaded',0)} assets · {snap.get('fred_coverage',0)} indicators")
 
-    # ── PVV All Markets Table ──
     st.markdown("### 📊 All Markets — PVV Composite")
     pvv_data = snap.get("pvv", {})
     if pvv_data:
@@ -1182,13 +1308,10 @@ with tabs[0]:
             if not res.get("ok"): continue
             trend = res.get("trend", {})
             pvv_rows.append({
-                "Ticker": ticker,
-                "Signal": res.get("composite_signal", "—"),
+                "Ticker": ticker, "Signal": res.get("composite_signal", "—"),
                 "VASP": round(res.get("composite_score", 0), 2),
-                "Vol": trend.get("realized_vol", "—"),
-                "VoV": trend.get("vol_of_vol", "—"),
-                "Hurst": trend.get("hurst", "—"),
-                "LRR": trend.get("lrr", "—"),
+                "Vol": trend.get("realized_vol", "—"), "VoV": trend.get("vol_of_vol", "—"),
+                "Hurst": trend.get("hurst", "—"), "LRR": trend.get("lrr", "—"),
                 "TRR": trend.get("trr", "—"),
                 "Formation": "Bull" if res.get("bullish_formation") else ("Bear" if res.get("bearish_formation") else "Mixed"),
                 "Front-Run": res.get("front_run_rationale", "")[:60],
@@ -1205,7 +1328,6 @@ with tabs[0]:
     else:
         st.info("PVV data loading...")
 
-    # ── Forward Outlook (merged from old Dashboard) ──
     st.markdown("### 🔮 Forward Outlook")
     if gip:
         rp1, rp2 = st.columns(2)
@@ -1226,7 +1348,6 @@ with tabs[0]:
         with fp3:
             st.markdown(f'<div style="text-align:center;background:#161B22;border:1px solid #30363D;border-radius:6px;padding:8px;"><div style="font-size:10px;color:#8B949E;">6 MONTHS</div><div style="font-size:18px;font-weight:700;color:{qc(rf6.get("predicted_quad","Q3"))};">{rf6.get("predicted_quad","—")}</div><div style="font-size:10px;color:#8B949E;">Conf {rf6.get("prediction_confidence",0):.0%}</div></div>', unsafe_allow_html=True)
 
-    # Vol Forecast compact
     vol_f = snap.get("vol_forecast", {})
     if vol_f:
         st.markdown("**Vol Forecast**")
@@ -1240,7 +1361,6 @@ with tabs[0]:
             df_vol = pd.DataFrame(vol_rows)
             st.dataframe(df_vol.style.map(lambda x: 'color:#3FB950;font-weight:600;' if x == "LOW" else ('color:#D29922;font-weight:600;' if x == "NORMAL" else ('color:#F85149;font-weight:600;' if x in ["ELEVATED","EXTREME"] else '')), subset=["Regime"]), hide_index=True, use_container_width=True, height=160)
 
-    # Stress Test compact
     stress = snap.get("stress_test", [])
     if stress:
         st.markdown("**Stress Test**")
@@ -1253,7 +1373,6 @@ with tabs[0]:
                 c3.metric("Best", sc['best_asset'], f"{sc['best_dd']:.0%}")
                 st.info(f"🛡️ Hedge: {sc['hedge']}")
 
-    # Historical Analogs compact
     if analogs and analogs.get("top_analogs"):
         st.markdown("**Historical Analogs**")
         for i, a in enumerate(analogs["top_analogs"][:3]):
@@ -1262,8 +1381,9 @@ with tabs[0]:
                 c1.metric("1M", a.get("path_1m","—")); c2.metric("3M", a.get("path_3m","—")); c3.metric("6M", a.get("path_6m","—"))
                 st.caption(f"📊 {a.get('next_bias','')}")
 
+
 # ══════════════════════════════════════════════════════════════════════════════
-# TAB: 📈 TREND SIGNALS — Historical Color-Coded Charts
+# TAB 1: 📈 TREND SIGNALS
 # ══════════════════════════════════════════════════════════════════════════════
 with tabs[1]:
     st.markdown("## 📈 TREND Signals")
@@ -1277,7 +1397,6 @@ with tabs[1]:
         histories = snap["trend_histories"]
         pvv_data = snap.get("pvv", {})
 
-        # Asset groups
         asset_groups = {
             "🇺🇸 US Stocks": ["SPY", "QQQ", "IWM", "XLK", "XLE", "XLF", "XLI", "XLU", "META", "AAPL", "NVDA", "TSLA", "AMZN", "GOOGL", "MSFT", "JPM", "JNJ", "UNH", "V", "MA", "PG", "HD", "BAC", "ABBV", "PFE", "KO", "PEP", "WMT", "DIS", "NFLX", "CRM", "ADBE", "PYPL", "UBER", "ABNB"],
             "🌏 Global & EM": ["EEM", "EWZ", "FXI", "INDA", "RSX", "EWG", "EWJ", "EWY", "EWT", "EWH", "EIDO", "EPHE", "THD", "ARGT", "GXG", "ICOL", "JSE.JO", "NIFTY", "SENSEX", "DAX", "FTSE", "CAC40"],
@@ -1287,7 +1406,6 @@ with tabs[1]:
             "🇮🇩 IHSG": ["^JKSE", "BBCA.JK", "BBRI.JK", "BMRI.JK", "TLKM.JK", "ASII.JK", "UNVR.JK", "PGAS.JK", "PTBA.JK", "ADRO.JK", "ANTM.JK", "INCO.JK", "ITMG.JK", "HRUM.JK", "MBMA.JK", "MDKA.JK", "TINS.JK", "BRMS.JK", "EXCL.JK", "ISAT.JK", "TOWR.JK", "TBIG.JK", "SMGR.JK", "INTP.JK", "SMCB.JK", "WSBP.JK", "WIKA.JK", "ADHI.JK", "PTPP.JK", "JSMR.JK", "CMNP.JK", "META.JK", "BORN.JK", "CPIN.JK", "MAIN.JK", "JPFA.JK", "SIPD.JK", "AALI.JK", "LSIP.JK", "SSMS.JK", "TAPG.JK", "BWPT.JK", "SIMP.JK", "STAA.JK", "MYOR.JK", "ICBP.JK", "INDF.JK", "GOOD.JK", "ULTJ.JK", "SKBM.JK", "KLBF.JK", "KAEF.JK", "DVLA.JK", "HEAL.JK", "MIKA.JK", "SILO.JK", "RAJA.JK", "ERAA.JK", "ACES.JK", "MAPI.JK", "LPPF.JK", "MIDI.JK", "AMRT.JK", "MPPA.JK", "RALS.JK", "INKP.JK", "FASW.JK", "SPMA.JK", "TBLA.JK", "GGRM.JK", "WIIM.JK", "RMBA.JK", "GJTL.JK", "AUTO.JK", "INDO.JK", "AIMS.JK", "BEST.JK", "BIRD.JK", "WEHA.JK", "PANR.JK", "MNCN.JK", "SCMA.JK", "EMTK.JK", "BMTR.JK", "VIVA.JK", "DOID.JK", "ENRG.JK", "ESSA.JK", "MEDC.JK", "ELSA.JK", "AKRA.JK", "AISA.JK", "INDR.JK", "TPIA.JK", "BRPT.JK", "SMAR.JK", "INCI.JK", "IPCM.JK", "LINK.JK", "BALI.JK", "POWR.JK"],
         }
 
-        # Also add any ticker from pvv that isn't in groups
         all_pvv_tickers = [t for t in pvv_data.keys() if t not in [x for g in asset_groups.values() for x in g]]
         if all_pvv_tickers:
             asset_groups["📊 Other"] = all_pvv_tickers[:20]
@@ -1305,11 +1423,9 @@ with tabs[1]:
                         continue
                     df_hist["date"] = pd.to_datetime(df_hist["date"])
 
-                    # Build Plotly figure inline
                     import plotly.graph_objects as go
                     fig = go.Figure()
 
-                    # Segments
                     if "signal" in df_hist.columns:
                         colors = {"BULLISH": "#3FB950", "BEARISH": "#F85149", "NEUTRAL": "#8B949E"}
                         curr_sig = df_hist["signal"].iloc[0]
@@ -1324,12 +1440,10 @@ with tabs[1]:
                                 ))
                                 curr_sig = df_hist["signal"].iloc[i]
                                 start = i
-                        # Legend
                         for sig, col in colors.items():
                             fig.add_trace(go.Scatter(x=[None], y=[None], mode="lines",
                                 line=dict(color=col, width=3), name=sig))
 
-                    # Risk range ribbon
                     if "lrr" in df_hist.columns and df_hist["lrr"].notna().any():
                         fig.add_trace(go.Scatter(
                             x=df_hist["date"].tolist() + df_hist["date"].tolist()[::-1],
@@ -1338,7 +1452,6 @@ with tabs[1]:
                             line=dict(color="rgba(255,255,255,0)"), name="Risk Range", showlegend=True
                         ))
 
-                    # Hover info
                     pvv_t = pvv_data.get(ticker, {})
                     last_vasp = pvv_t.get("composite_score", "—") if pvv_t.get("ok") else "—"
                     last_vov = pvv_t.get("trend", {}).get("vol_of_vol", "—") if pvv_t.get("ok") else "—"
@@ -1482,72 +1595,68 @@ with tabs[2]:
 # TAB: 🇺🇸 US STOCKS — COMPACT
 # ══════════════════════════════════════════════════════════════════════════════
 
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB 3: 📋 PLAYBOOK + THEMES
-# ══════════════════════════════════════════════════════════════════════════════
 with tabs[3]:
     st.markdown("## 📋 Playbook & Themes")
-    st.caption(f"What to buy & avoid in {sq} · {qn(sq)}")
+    st.caption(f"What to buy & avoid in {sq} · {qn(sq)} · Themes & Narratives")
     st.divider()
-
-    c1, c2 = st.columns(2)
-    with c1:
-        if pb_data:
-            st.markdown(f"### Regime: {sq} · {QN.get(sq,'')}")
-            st.markdown(f"**Strategy:** {pb_data.get('strategy','')}")
-            st.markdown("#### Buy/Hold")
-            for asset in pb_data.get("best_assets",[])[:10]: st.markdown(f'- {asset}')
-            st.markdown("#### Avoid/Sell")
-            for asset in pb_data.get("worst_assets",[])[:10]: st.markdown(f'- {asset}')
-            if regime_forecast and regime_forecast.get("3m"):
-                rf3 = regime_forecast["3m"]
-                if rf3.get("predicted_quad") != sq:
-                    st.divider()
-                    st.warning(f"⚠️ **Forward-Looking Alert:** 3M forecast predicts shift to **{rf3.get('predicted_quad')}** (confidence {rf3.get('prediction_confidence',0):.0%}). Consider gradually rotating toward {QWINS.get(rf3.get('predicted_quad'),'defensive')} assets.")
-        else: st.info("Playbook data loading...")
-    with c2:
-        st.markdown("### 📖 Themes & Narratives")
-        narratives_list = narr.get("narratives",[]) if narr else []
-        if price_clusters and price_clusters.get("clusters"):
-            for c in price_clusters["clusters"]:
-                if c.get("is_novel_theme") or c.get("confidence", 0) > 0.6:
-                    narratives_list.append({
-                        "name": c.get("theme_hypothesis", "Unknown Theme"),
-                        "score": c.get("confidence", 0.5),
-                        "thesis": f"Cross-sector cluster of {c.get('member_count')} tickers. Dominant: {c.get('dominant_sector')}. Avg RS 3M: {c.get('avg_rs_3m',0):+.1%}.",
-                        "tickers": c.get("members", [])[:5],
-                        "best": c.get("members", [])[:5],
-                        "worst": [],
-                        "invalidators": ["Cluster correlation breaks"],
-                    })
-        if news_narratives and news_narratives.get("emergent_narratives"):
-            for en in news_narratives["emergent_narratives"]:
+    if pb_data:
+        st.markdown(f"### Regime: {sq} · {QN.get(sq,'')}")
+        st.markdown(f"**Strategy:** {pb_data.get('strategy','')}")
+        st.markdown("#### Buy/Hold")
+        for asset in pb_data.get("best_assets",[])[:10]: st.markdown(f'- {asset}')
+        st.markdown("#### Avoid/Sell")
+        for asset in pb_data.get("worst_assets",[])[:10]: st.markdown(f'- {asset}')
+        # Add forward-looking playbook adjustment
+        if regime_forecast and regime_forecast.get("3m"):
+            rf3 = regime_forecast["3m"]
+            if rf3.get("predicted_quad") != sq:
+                st.divider()
+                st.warning(f"⚠️ **Forward-Looking Alert:** 3M forecast predicts shift to **{rf3.get('predicted_quad')}** (confidence {rf3.get('prediction_confidence',0):.0%}). Consider gradually rotating toward {QWINS.get(rf3.get('predicted_quad'),'defensive')} assets.")
+    
+    st.divider()
+    st.markdown("### 📖 Themes & Narratives")
+    narratives_list = narr.get("narratives",[]) if narr else []
+    if price_clusters and price_clusters.get("clusters"):
+        for c in price_clusters["clusters"]:
+            if c.get("is_novel_theme") or c.get("confidence", 0) > 0.6:
                 narratives_list.append({
-                    "name": f"News: {en.get('narrative', 'Unknown')}",
-                    "score": min(en.get("avg_sentiment", 0.5) + en.get("supply_chain_hits", 0) * 0.1, 1.0),
-                    "thesis": f"News-driven: {en.get('mention_count')} mentions, {en.get('supply_chain_hits',0)} supply hits. Linked: {', '.join(en.get('linked_tickers',[])[:5])}.",
-                    "tickers": en.get("linked_tickers", [])[:5],
-                    "best": en.get("linked_tickers", [])[:5],
+                    "name": c.get("theme_hypothesis", "Unknown Theme"),
+                    "score": c.get("confidence", 0.5),
+                    "thesis": f"Cross-sector cluster of {c.get('member_count')} tickers. Dominant: {c.get('dominant_sector')}. Avg RS 3M: {c.get('avg_rs_3m',0):+.1%}.",
+                    "tickers": c.get("members", [])[:5],
+                    "best": c.get("members", [])[:5],
                     "worst": [],
-                    "invalidators": ["News volume drops"],
+                    "invalidators": ["Cluster correlation breaks"],
                 })
-        if not narratives_list:
-            narratives_list = [
-                {"name":"Silver Supercycle","score":0.92,"thesis":"SLV +143% since May 2025. Industrial demand + safe haven.","tickers":["SLV","SILJ","GDXJ"],"best":["SLV","SILJ"],"worst":["XLK"],"invalidators":["Q4 deflation","DXY bullish"]},
-                {"name":"Gold Secular Bull","score":0.88,"thesis":"Central banks buying at record pace. De-dollarization structural.","tickers":["GLD","GDX","GDXJ"],"best":["GLD","GDX"],"worst":["HYG"],"invalidators":["Q4->Q1 direct","DXY reversal"]},
-            ]
-        for n in narratives_list:
-            if not isinstance(n, dict): continue
-            score = n.get("score",0)
-            with st.expander(f"📚 {n.get('name','')} — Score: {score:.0%}", expanded=False):
-                st.markdown(f"**Thesis:** {n.get('thesis','')}")
-                st.markdown(f"**Best:** {', '.join(n.get('best', n.get('tickers',[]))[:5])}")
-                st.markdown(f"**Avoid:** {', '.join(n.get('worst',[])[:5])}")
-                st.caption(f"Invalidators: {', '.join(n.get('invalidators',[])[:3])}")
+    if news_narratives and news_narratives.get("emergent_narratives"):
+        for en in news_narratives["emergent_narratives"]:
+            narratives_list.append({
+                "name": f"News: {en.get('narrative', 'Unknown')}",
+                "score": min(en.get("avg_sentiment", 0.5) + en.get("supply_chain_hits", 0) * 0.1, 1.0),
+                "thesis": f"News-driven: {en.get('mention_count')} mentions, {en.get('supply_chain_hits',0)} supply hits. Linked: {', '.join(en.get('linked_tickers',[])[:5])}.",
+                "tickers": en.get("linked_tickers", [])[:5],
+                "best": en.get("linked_tickers", [])[:5],
+                "worst": [],
+                "invalidators": ["News volume drops"],
+            })
+    if not narratives_list:
+        narratives_list = [
+            {"name":"Silver Supercycle","score":0.92,"thesis":"SLV +143% since May 2025. Industrial demand + safe haven.","tickers":["SLV","SILJ","GDXJ"],"best":["SLV","SILJ"],"worst":["XLK"],"invalidators":["Q4 deflation","DXY bullish"]},
+            {"name":"Gold Secular Bull","score":0.88,"thesis":"Central banks buying at record pace. De-dollarization structural.","tickers":["GLD","GDX","GDXJ"],"best":["GLD","GDX"],"worst":["HYG"],"invalidators":["Q4->Q1 direct","DXY reversal"]},
+        ]
+    for n in narratives_list:
+        if not isinstance(n, dict): continue
+        score = n.get("score",0)
+        with st.expander(f"📚 {n.get('name','')} — Score: {score:.0%}", expanded=False):
+            st.markdown(f"**Thesis:** {n.get('thesis','')}")
+            st.markdown(f"**Best:** {', '.join(n.get('best', n.get('tickers',[]))[:5])}")
+            st.markdown(f"**Avoid:** {', '.join(n.get('worst',[])[:5])}")
+            st.caption(f"Invalidators: {', '.join(n.get('invalidators',[])[:3])}")
+else: st.info("Playbook data loading...")
+# ══════════════════════════════════════════════════════════════════════════════
+# TAB: ⚡ ALPHA CENTER — COMPACT
+# ══════════════════════════════════════════════════════════════════════════════
 
-# ══════════════════════════════════════════════════════════════════════════════
-# TAB 4: 🏥 HEALTH
-# ══════════════════════════════════════════════════════════════════════════════
 with tabs[4]:
     st.markdown("## 🏥 System Health")
     st.caption("Data pipeline status, coverage & diagnostics")
@@ -1574,6 +1683,7 @@ with tabs[4]:
         c1.metric("Gamma Engine", len(gamma_data))
         c2.metric("Greeks Proxy", len(greeks_data))
         c3.metric("Combined", len(set(gamma_data.keys()) & set(greeks_data.keys())))
+    # Forward-looking health
     if regime_forecast and regime_forecast.get("1m"):
         st.divider()
         st.markdown("### Forward-Looking Engine Status")
@@ -1582,16 +1692,6 @@ with tabs[4]:
         c2.metric("3M Predicted", regime_forecast["3m"].get("predicted_quad", "—"))
         c3.metric("6M Predicted", regime_forecast["6m"].get("predicted_quad", "—"))
         c4.metric("News Headlines", news_narratives.get("analyzed_count", 0) if news_narratives else 0)
-    # PVV Engine status
-    pvv_data = snap.get("pvv", {})
-    if pvv_data:
-        st.divider()
-        st.markdown("### PVV Engine Status")
-        c1, c2, c3 = st.columns(3)
-        sig_counts = pd.Series([v["composite_signal"] for v in pvv_data.values() if v.get("ok")]).value_counts()
-        c1.metric("PVV Tickers", len(pvv_data))
-        c2.metric("Bullish", sig_counts.get('BULLISH', 0))
-        c3.metric("Bearish", sig_counts.get('BEARISH', 0))
     st.divider()
     st.markdown("### Data Sources")
     sources = health.get("sources",{}) if health else {}
@@ -1600,3 +1700,4 @@ with tabs[4]:
             color = "#3FB950" if status == "OK" else "#F85149" if status == "FAIL" else "#D29922"
             st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:6px;padding:6px 12px;margin:3px 0;display:flex;justify-content:space-between;"><span>{src}</span><span style="color:{color};font-weight:700;">{status}</span></div>', unsafe_allow_html=True)
     else: st.info("No detailed source status available.")
+

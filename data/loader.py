@@ -1,12 +1,10 @@
-"""data/loader.py — Bulletproof YFinance Price Loader v2
-OVERWRITE your old loader.py with this file.
+"""data/loader.py — Bulletproof YFinance Price Loader v2.1
 Fixes:
-  • Session reuse (persistent HTTP connection pool)
-  • Batch download via yf.download() instead of per-ticker loop
+  • yf.download() does NOT accept proxy kwarg in 0.2.x
+  • Batch download via yf.download() 
   • Exponential backoff retry (3 attempts)
-  • Disk cache with parquet (fast reload, survives restarts)
+  • Disk cache with parquet
   • Graceful fallback: if live fails, return cached even if stale
-  • Timeout 30s, User-Agent rotation
 """
 from __future__ import annotations
 import os, time, json, logging, math
@@ -25,39 +23,24 @@ CACHE_DIR.mkdir(parents=True, exist_ok=True)
 # ── YFinance Config ────────────────────────────────────────────
 import yfinance as yf
 
-# Use shared session to keep-alive connections
-import requests
-_SESSION = requests.Session()
-_SESSION.headers.update({
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-})
-
-# Monkey-patch yfinance to use our session (where possible)
-# yfinance 0.2.x uses its own session internally; we configure global proxy/cache
-yf.set_config({
-    "use_cache": True,
-    "cache_dir": str(CACHE_DIR / "yf_internal"),
-})
-
 # ── Retry Decorator ──────────────────────────────────────────
-class RetryWithBackoff:
-    @staticmethod
-    def call(func, *args, max_attempts=3, base_delay=2.0, **kwargs):
-        last_err = None
-        for attempt in range(1, max_attempts + 1):
-            try:
-                return func(*args, **kwargs)
-            except Exception as e:
-                last_err = e
-                err_str = str(e).lower()
-                is_timeout = "timeout" in err_str or "timed out" in err_str or "readtimeout" in err_str
-                is_rate = "too many requests" in err_str or "429" in err_str or "403" in err_str
-                if not (is_timeout or is_rate or "failed" in err_str):
-                    raise  # non-retryable
-                delay = base_delay * (2 ** (attempt - 1)) + (hash(str(args)) % 100) / 100.0
-                logger.warning(f"[Retry {attempt}/{max_attempts}] {e} — sleeping {delay:.1f}s")
-                time.sleep(delay)
-        raise last_err
+def _retry_call(func, *args, max_attempts=3, base_delay=2.0, **kwargs):
+    """Call func with exponential backoff."""
+    last_err = None
+    for attempt in range(1, max_attempts + 1):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            last_err = e
+            err_str = str(e).lower()
+            is_timeout = "timeout" in err_str or "timed out" in err_str or "readtimeout" in err_str
+            is_rate = "too many requests" in err_str or "429" in err_str or "403" in err_str
+            if not (is_timeout or is_rate or "failed" in err_str):
+                raise
+            delay = base_delay * (2 ** (attempt - 1)) + (hash(str(args)) % 100) / 100.0
+            logger.warning(f"[Retry {attempt}/{max_attempts}] {e} — sleeping {delay:.1f}s")
+            time.sleep(delay)
+    raise last_err
 
 # ── Cache Helpers ────────────────────────────────────────────
 def _cache_path(tickers_key: str, days: int) -> Path:
@@ -110,9 +93,10 @@ def _save_cache(tickers_key: str, days: int, data: Dict[str, pd.Series]):
 
 # ── Core Fetch ───────────────────────────────────────────────
 def _fetch_yf_batch(tickers: List[str], days: int = 756) -> pd.DataFrame:
-    """Use yf.download() batch endpoint — much more reliable than per-ticker."""
+    """Use yf.download() batch endpoint."""
     period = "2y" if days <= 500 else "5y"
-    df = RetryWithBackoff.call(
+    # yf.download signature: NO proxy kwarg in 0.2.x
+    df = _retry_call(
         yf.download,
         tickers=tickers,
         period=period,
@@ -121,7 +105,6 @@ def _fetch_yf_batch(tickers: List[str], days: int = 756) -> pd.DataFrame:
         auto_adjust=True,
         prepost=False,
         threads=True,
-        proxy=None,
         max_attempts=3,
         base_delay=3.0,
     )

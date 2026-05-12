@@ -1038,6 +1038,57 @@ with st.sidebar:
 # ══════════════════════════════════════════════════════════════════════════════
 # MAIN TABS
 # ══════════════════════════════════════════════════════════════════════════════
+
+
+
+gip = snap.get("gip"); global_ = snap.get("global",{}); rr = snap.get("risk_ranges",{})
+scen = snap.get("scenarios",{}); narr = snap.get("narratives",{}); disc = snap.get("discovery",{})
+transition = snap.get("transition",None); health = snap.get("health",{}); analogs = snap.get("analogs",{})
+btk = snap.get("bottleneck",{}); pb_data = snap.get("playbook",{}); prices = snap.get("prices",{})
+auto_disc = snap.get("auto_discoveries",{}); fb_eval = snap.get("feedback_eval",{})
+gamma_data = snap.get("gamma",{}); lev_data = snap.get("leveraged_etf",{})
+
+sq = gip.structural_quad if gip else "Q3"
+mq_raw = gip.monthly_quad if gip else "Q2"
+mq = st.session_state.mq_override if st.session_state.mq_override != "Auto" else mq_raw
+gq = (global_.get("global_quad","Q3") if global_ else "Q3")
+ar = rr.get("asset_ranges",{})
+dxy_corr = _compute_dxy_corr(prices)
+
+ai_data = snap.get("ai_analysis") or {}
+ai_ok = bool(ai_data.get("ok"))
+model_name = ai_data.get("model") or "rule-based-v1"
+
+vix_now = _sf(prices.get("^VIX", pd.Series()).tail(1)) if prices.get("^VIX") is not None else 20.0
+
+daily_signals = snap.get("daily_signals", []) or []
+
+# Forward-looking data
+regime_forecast = snap.get("regime_forecast", {})
+forward_returns = snap.get("forward_returns", {})
+leading_signals = snap.get("leading_signals", {})
+price_clusters = snap.get("price_clusters", {})
+news_narratives = snap.get("news_narratives", {})
+discovery_v3 = snap.get("discovery_v3", {})
+
+# IHSG structural layers
+ihsg_sector_momentum = snap.get("ihsg_sector_momentum") or {}
+ihsg_commodity_overlay = snap.get("ihsg_commodity_overlay") or {}
+ihsg_rupiah_regime = snap.get("ihsg_rupiah_regime") or {}
+ihsg_foreign_flow = snap.get("ihsg_foreign_flow") or {}
+ihsg_macro_overlay = snap.get("ihsg_macro_overlay") or {}
+alpha_center = snap.get("alpha_center", {}) or {}
+
+# ══════════════════════════════════════════════════════════════════════════════
+# TAB: 🏠 DASHBOARD — WITH FORWARD-LOOKING + NEWS + CLUSTERS
+# ══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
+# TAB: 🏠 DASHBOARD — COMPACT v2
+# ══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
+# TAB: 🏠 DASHBOARD — COMPACT v2
+# ══════════════════════════════════════════════════════════════════════════════
+
 tabs = st.tabs(["🎯 Macro Radar", "📈 TREND Signals", "⚡ Alpha Center", "📋 Playbook", "🏥 Health"])
 
 

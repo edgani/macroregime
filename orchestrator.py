@@ -43,6 +43,23 @@ except Exception as _e:
         def run(self, sq, mq, gq, gip_features, prices, **kwargs):
             return {"ok": False, "narratives": [], "bottlenecks": [], "alpha_ideas": [], "scenario_update": {}}
 
+# ── PVV + TREND SIGNAL ENGINES (v2.0) ──
+try:
+    from engines.pvv_engine import PVVEngine, PVVScanner
+except Exception as _e:
+    logger.warning(f"pvv_engine import failed: {_e}")
+    class PVVScanner:
+        def analyze_multi(self, prices, volumes): return {}
+
+try:
+    from engines.trend_signal_engine import TrendSignalEngine, TrendSignalScanner
+except Exception as _e:
+    logger.warning(f"trend_signal_engine import failed: {_e}")
+    class TrendSignalScanner:
+        def build_multi(self, prices, volumes, duration): return {}
+        def build_figures(self, histories, duration): return {}
+
+
 # ── BOTTLENECK DISCOVERY V3 (orphan integration) ──
 try:
     from engines.bottleneck_discovery_v3 import BottleneckDiscoveryV3
@@ -1617,6 +1634,62 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
     asset_ranges = _build_risk_ranges(prices, all_tickers)
     if progress_cb: progress_cb(f"Risk ranges: {len(asset_ranges)} assets", 0.65)
 
+    # ═══════════════════════════════════════════════════════════════════
+    # PVV + TREND SIGNAL ENHANCEMENT (v2.0)
+    # ═══════════════════════════════════════════════════════════════════
+    if progress_cb: progress_cb("Running PVV multi-duration analysis...", 0.66)
+    pvv_scanner = PVVScanner()
+    trend_scanner = TrendSignalScanner()
+    # Extract volumes (optional)
+    volumes = {}
+    pvv_results = pvv_scanner.analyze_multi(prices, volumes)
+    # Enhance asset_ranges with fractal PVV risk ranges
+    for ticker, pvv_res in pvv_results.items():
+        if not pvv_res.get("ok"):
+            continue
+        if ticker not in asset_ranges:
+            # Create minimal range entry if missing
+            px = pvv_res["trend"]["price"]
+            asset_ranges[ticker] = {
+                "ok": True, "px": px, "market": "unknown",
+                "composite": pvv_res["composite_signal"].lower(),
+                "quality": "A" if (pvv_res["bullish_formation"] or pvv_res["bearish_formation"]) else "B",
+                "signal": pvv_res["composite_signal"],
+                "trade": {"lrr": pvv_res["trend"]["lrr"], "trr": pvv_res["trend"]["trr"], "volume_confirm": 0.5, "stretch": "normal"},
+                "trend": {"hurst": pvv_res["trend"]["hurst"], "direction": "up" if pvv_res["trend"]["above_trend_sma"] else "down"},
+                "alerts": [],
+                "note": f"PVV TREND: {pvv_res['composite_signal']} | VASP: {pvv_res['composite_score']:.2f} | VoV: {pvv_res['trend']['vol_of_vol']:.2f}",
+            }
+        else:
+            # Override with fractal range
+            ar = asset_ranges[ticker]
+            ar["composite"] = pvv_res["composite_signal"].lower()
+            ar["signal"] = pvv_res["composite_signal"]
+            ar["quality"] = "A" if (pvv_res["bullish_formation"] or pvv_res["bearish_formation"]) else "B"
+            ar["trade"]["lrr"] = pvv_res["trend"]["lrr"]
+            ar["trade"]["trr"] = pvv_res["trend"]["trr"]
+            ar["trend"]["hurst"] = pvv_res["trend"]["hurst"]
+            ar["vasp_score"] = pvv_res["composite_score"]
+            ar["vol_of_vol"] = pvv_res["trend"]["vol_of_vol"]
+            ar["realized_vol"] = pvv_res["trend"]["realized_vol"]
+            ar["bullish_formation"] = pvv_res["bullish_formation"]
+            ar["bearish_formation"] = pvv_res["bearish_formation"]
+            ar["front_run"] = pvv_res["front_run_rationale"]
+            ar["note"] = f"PVV TREND: {pvv_res['composite_signal']} | VASP: {pvv_res['composite_score']:.2f} | VoV: {pvv_res['trend']['vol_of_vol']:.2f}"
+    if progress_cb: progress_cb(f"PVV analyzed: {len(pvv_results)} tickers", 0.67)
+
+    if progress_cb: progress_cb("Building historical TREND signals...", 0.68)
+    trend_histories = {}
+    for ticker, px in prices.items():
+        if px is None or len(px) < 200:
+            continue
+        try:
+            h = trend_scanner.engine.build_all_durations(px, volumes.get(ticker))
+            trend_histories[ticker] = {k: v.to_dict("records") for k, v in h.items() if v is not None and not v.empty}
+        except Exception as e:
+            logger.debug(f"Trend history skip {ticker}: {e}")
+    if progress_cb: progress_cb(f"Trend histories: {len(trend_histories)} tickers", 0.69)
+
     if progress_cb: progress_cb("Calculating vol forecast...", 0.56)
     vol_forecasts = _build_vol_forecast(prices, sq, lookback=20, long_window=50)
     if progress_cb: progress_cb("Calculating risk-adjusted metrics...", 0.58)
@@ -2144,6 +2217,9 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
         "barchart_live": barchart_results,
         "crypto_options_live": crypto_options,
         "defillama_live": crypto_onchain,
+        # ── PVV + TREND SIGNAL KEYS (v2.0) ───────────────────────────
+        "pvv": pvv_results,
+        "trend_histories": trend_histories,
         # ── FORWARD-LOOKING KEYS ─────────────────────────────────────
         "regime_forecast": {
             "1m": regime_forecast_1m,

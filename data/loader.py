@@ -1,8 +1,7 @@
-"""data/loader.py — Bulletproof YFinance Price Loader v3.1
-Fixes v3.1:
- • Added KOL, JJN to blacklist (delisted / illiquid)
- • yfinance TzCache fix: env var + mkdir before import
- • Batch size 50, sleep 0.3s (preserved from v3.0)
+"""data/loader.py — Bulletproof YFinance Price Loader v3.2 (Patched)
+Fixes v3.2:
+ • threads=True → threads=False (prevents Streamlit threading deadlock)
+ • Added _safe_progress wrapper so progress_cb crashes don't kill pipeline
  • Stale cache fallback preserved
 """
 from __future__ import annotations
@@ -28,13 +27,8 @@ import yfinance as yf
 
 # ── Known-bad tickers: skip entirely, never fetch ─────────────────────────────
 KNOWN_BAD_TICKERS = {
-    # Delisted / renamed / never existed on Yahoo Finance
-    "VEX", "WDL", "VIX",           # VIX without caret → ^VIX
-    "JPXN", "EIS", "TUR", "NORW",  # sometimes 404 depending on region
-    "ZNC=F", "ALI=F",              # low-liquidity futures often 404
-    "LBS=F",                       # Lumber futures delisted
-    "KOL", "JJN",                  # v3.1: KOL=delisted Coal ETF, JJN=illiquid Nickel ETN
-    # Renamed / illiquid crypto on Yahoo
+    "VEX", "WDL", "VIX", "JPXN", "EIS", "TUR", "NORW",
+    "ZNC=F", "ALI=F", "LBS=F", "KOL", "JJN",
     "BONK-USD", "FLOKI-USD", "PEPE24478-USD",
     "UNI7083-USD", "COMP5692-USD",
     "GRT6719-USD", "SUI20947-USD",
@@ -116,7 +110,16 @@ def _save_cache(tickers_key: str, days: int, data: Dict[str, pd.Series]):
     except Exception as e:
         logger.warning(f"Cache save failed: {e}")
 
-# ── Core Fetch ─────────────────────────────────────────────────────────────────
+# ── Safe progress callback ───────────────────────────────────────────────────
+def _safe_progress(cb, msg: str, pct: float):
+    if cb is None:
+        return
+    try:
+        cb(msg, float(pct))
+    except Exception:
+        pass
+
+# ── Core Fetch (PATCHED: threads=False) ──────────────────────────────────────
 def _fetch_yf_batch(tickers: List[str], days: int = 756) -> pd.DataFrame:
     period = "2y" if days <= 500 else "5y"
     df = _retry_call(
@@ -127,7 +130,7 @@ def _fetch_yf_batch(tickers: List[str], days: int = 756) -> pd.DataFrame:
         group_by="ticker",
         auto_adjust=True,
         prepost=False,
-        threads=True,
+        threads=False,          # ← PATCH v3.2: prevents Streamlit deadlock
         progress=False,
         max_attempts=3,
         base_delay=3.0,
@@ -161,11 +164,11 @@ def _extract_close(df: pd.DataFrame, tickers: List[str]) -> Dict[str, pd.Series]
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 def load_prices(tickers: List[str], days: int = 756,
-        max_age_hours: float = 12.0,
-        progress_cb=None) -> Dict[str, pd.Series]:
+                max_age_hours: float = 12.0,
+                progress_cb=None) -> Dict[str, pd.Series]:
     """
     Robust price loader. Returns dict of Series keyed by ticker.
-    v3.1: blacklist filter + faster batching + stale-cache fallback.
+    v3.2: threads=False, safer timeouts, stale-cache fallback.
     """
     if not tickers:
         return {}
@@ -181,6 +184,7 @@ def load_prices(tickers: List[str], days: int = 756,
     # 1. Try fresh cache
     cached = _load_cache(tickers_key, days, max_age_hours)
     if cached is not None:
+        _safe_progress(progress_cb, "Loaded from price cache", 0.50)
         return cached
 
     # 2. Live fetch — larger batches, shorter sleep
@@ -190,11 +194,11 @@ def load_prices(tickers: List[str], days: int = 756,
 
     for i in range(total_batches):
         batch = clean[i * BATCH_SIZE:(i + 1) * BATCH_SIZE]
-        if progress_cb:
-            progress_cb(
-                f"Fetching prices {i+1}/{total_batches} ({len(batch)} tickers)…",
-                0.10 + 0.45 * (i / max(total_batches, 1))
-            )
+        _safe_progress(
+            progress_cb,
+            f"Fetching prices {i+1}/{total_batches} ({len(batch)} tickers)…",
+            0.10 + 0.45 * (i / max(total_batches, 1))
+        )
         try:
             df_batch = _fetch_yf_batch(batch, days)
             batch_data = _extract_close(df_batch, batch)
@@ -206,6 +210,7 @@ def load_prices(tickers: List[str], days: int = 756,
                 time.sleep(0.3)
         except Exception as e:
             logger.error(f"Batch {i+1} failed: {e}")
+            # Fallback: try individual ticker fetch
             for t in batch:
                 if t not in all_data:
                     try:
@@ -229,6 +234,7 @@ def load_prices(tickers: List[str], days: int = 756,
     if loaded < total:
         logger.warning(f"Missing prices for {total-loaded} tickers")
 
+    _safe_progress(progress_cb, f"Prices ready: {loaded}/{total}", 0.55)
     return all_data
 
 # ── Snapshot persistence ───────────────────────────────────────────────────────

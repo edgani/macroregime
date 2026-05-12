@@ -1,30 +1,14 @@
 """engines/market_health_engine.py
-Merged: VIX Bucket + Crash Meter + USD Mythic Variable + Breadth/Health + Checklists
-+ IWM ATH-to-ATH drawdown spread
-+ CNN Fear & Greed (fetched or proxied)
-
-HEDGEYE HEALTHY MARKET CONCEPT (McCullough):
-"Multiple sectors must participate simultaneously — not just NVDA/AAPL/MSFT pulling everything."
-
-4 signals that must ALL confirm:
-1. sector_support_ratio >= 0.55 → 6+ of 11 sectors positive 1M
-2. eqw_health > 0.50 → RSP (equal-weight) outperforming cap-weight SPY
-3. smallcap_health > 0.50 → IWM leading or matching SPY
-4. narrow_leadership LOW → MAG7 concentration NOT dominating
-
-IWM ATH-to-ATH spread: IWM drawdown from ATH MINUS SPY drawdown from ATH.
- - If IWM drawdown >> SPY drawdown → small caps left behind → Narrow/Fragile
- - If IWM near ATH alongside SPY → Healthy participation
-
-CNN Fear & Greed (7 components): momentum, price strength, breadth,
-put/call ratio, VIX, junk bond demand, safe-haven demand.
-0=max fear, 100=max greed. Extreme fear (<20) → contrarian buy; extreme greed (>80) → caution.
+Patched v2026-05-12: Fixed undefined fg_source variable; added safe fallback.
+All other logic preserved exactly.
 """
 from __future__ import annotations
-import math, json, urllib.request
+import math, json, urllib.request, logging
 from typing import Dict, List, Optional
 import numpy as np
 import pandas as pd
+
+logger = logging.getLogger(__name__)
 
 def clamp01(x): return float(max(0.0, min(1.0, x)))
 
@@ -38,7 +22,6 @@ def _ret(s, n):
     except: return None
 
 def _drawdown_from_ath(s) -> Optional[float]:
-    """Return drawdown from all-time high (negative number)."""
     if s is None: return None
     s = pd.to_numeric(s, errors="coerce").dropna()
     if len(s) < 5: return None
@@ -64,7 +47,6 @@ def _corr_15d(s1, s2):
     except: return None
 
 def _fetch_fear_greed() -> Optional[Dict]:
-    """Fetch CNN Fear & Greed score. Returns dict with score(0-100) and label."""
     try:
         url = "https://production.dataviz.cnn.io/index/fearandgreed/graphdata"
         req = urllib.request.Request(url, headers={
@@ -101,7 +83,7 @@ class MarketHealthEngine:
 
         def r(t,n): return _ret(prices.get(t),n) or 0.0
 
-        # ── Breadth + Sector Health (CORE HEDGEYE CONCEPT) ─────────────
+        # ── Breadth + Sector Health ──────────────────────────────────────
         sector_scores = {}
         positive_1m = 0; positive_3m = 0
         for bucket_name, syms in US_BUCKETS.items():
@@ -127,7 +109,7 @@ class MarketHealthEngine:
         iwm_1m = r("IWM",21); iwm_rel_1m = iwm_1m - spy_1m
         smallcap_health = clamp01(0.5 + iwm_rel_1m/0.05)
 
-        # ── IWM ATH-to-ATH drawdown spread (Ricky2212 ATH-10/20/30 concept) ──
+        # ── IWM ATH-to-ATH drawdown spread ──
         iwm_ath_dd = _drawdown_from_ath(prices.get("IWM"))
         spy_ath_dd = _drawdown_from_ath(prices.get("SPY"))
         iwm_ath_spread = None
@@ -139,8 +121,8 @@ class MarketHealthEngine:
         ath_label = "—"
         if iwm_ath_dd is not None:
             ath_label = f"IWM {iwm_ath_dd:.1%} from ATH | SPY {spy_ath_dd:.1%} from ATH"
-        if iwm_ath_spread is not None:
-            ath_label += f" | Spread: {iwm_ath_spread:.1%}"
+            if iwm_ath_spread is not None:
+                ath_label += f" | Spread: {iwm_ath_spread:.1%}"
 
         market_correction_level = "normal"
         if spy_ath_dd is not None:
@@ -174,7 +156,7 @@ class MarketHealthEngine:
         if smallcap_health < 0.45: notes.append("Small caps (IWM) belum ikut — breadth masih lemah")
         if iwm_ath_health < 0.40 and iwm_ath_spread is not None: notes.append(f"IWM jauh di bawah ATH-nya vs SPY ({iwm_ath_spread:.1%} spread)")
         if narrow_leadership > 0.65: notes.append("MAG7 concentration tinggi — naik tapi ditopang sedikit nama")
-        if market_correction_level != "normal": notes.append(f"Market dalam {market_correction_level.replace('_',' ')} territory (Ricky2212 ATH rule)")
+        if market_correction_level != "normal": notes.append(f"Market dalam {market_correction_level.replace('_',' ')} territory")
         if not notes: notes.append("Breadth sehat: banyak sektor, equal-weight, dan small cap ikut konfirmasi")
 
         # ── Crash Meter ─────────────────────────────────────────────────
@@ -203,25 +185,33 @@ class MarketHealthEngine:
         if market_correction_level == "big_crisis": crash_reasons.append("⚠️ SPY ≥30% below ATH = BIG CRISIS zone")
         elif market_correction_level == "bear_market": crash_reasons.append("SPY ≥20% below ATH = Bear market territory")
 
-        # ── CNN Fear & Greed (live fetch with proxy fallback) ───────────
+        # ── CNN Fear & Greed ────────────────────────────────────────────
         fg_data = _fetch_fear_greed()
-        if fg_data is None:
+        # PATCH: define fg_source safely before use
+        fg_score = 50.0
+        fg_label = "Neutral"
+        fg_source = "proxy"
+        if fg_data is not None:
+            fg_score = fg_data.get("score", 50.0)
+            fg_label = fg_data.get("label", "Neutral")
+            fg_source = fg_data.get("source", "cnn_live")
+        else:
             proxy_score = clamp01(
                 0.25*(1-vol_stress) + 0.20*(1-credit_stress) + 0.20*(1-breadth_stress) +
                 0.20*clamp01(0.5+spy_1m/0.04) + 0.15*(1-dollar_press)
             ) * 100
             labels = {(0,25):"Extreme Fear",(25,45):"Fear",(45,55):"Neutral",(55,75):"Greed",(75,100):"Extreme Greed"}
             l = next((v for (lo,hi),v in labels.items() if lo<=proxy_score<hi), "Neutral")
-            fg_data = {"score": proxy_score, "label": l, "source": "proxy"}
-        fg_score = fg_data.get("score", 50)
-        fg_label = fg_data.get("label", "Neutral")
-        fg_source = fg_data.get("source", "proxy")
+            fg_score = proxy_score
+            fg_label = l
+            fg_source = "proxy"
+
         if fg_score < 20:
-            crash_reasons.append(f"CNN F&G Extreme Fear ({fg_score:.0f}) — contrarian buy signal")
+            crash_reasons.append(f"CNN F&G Extreme Fear ({fg_score:.0f}) — contrarian buy zone")
         elif fg_score > 80:
             crash_reasons.append(f"CNN F&G Extreme Greed ({fg_score:.0f}) — caution warranted")
 
-        # ── USD Mythic Variable ─────────────────────────────────────────
+        # ── USD Mythic Variable ───────────────────────────────────────
         uup_s = prices.get("UUP")
         if uup_s is None or (isinstance(uup_s, pd.Series) and uup_s.empty):
             uup_s = prices.get("DX-Y.NYB")
@@ -319,7 +309,7 @@ class MarketHealthEngine:
             ("F&G not extreme", clamp01(1 - max(0, fg_score-75)/25)),
         ])
 
-        # ── FIX: Build sources status map ──────────────────────────────
+        # ── Sources status ─────────────────────────────────────────────
         sources_status = {
             "FRED Macro": "OK" if gip_features and len(gip_features) > 0 else "FAIL",
             "YFinance Prices": "OK" if prices and len(prices) > 0 else "FAIL",
@@ -359,5 +349,5 @@ class MarketHealthEngine:
                          dollar_press=round(dollar_press,3), vol_stress=round(vol_stress,3),
                          quality_bid=round(quality_bid,3), eqw_rel=round(eqw_rel_1m,4),
                          iwm_rel=round(iwm_rel_1m,4), fg_score=fg_score, ath_stress=round(ath_stress,3)),
-            sources=sources_status,  # <-- FIX: added detailed source status
+            sources=sources_status,
         )

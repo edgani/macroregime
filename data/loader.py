@@ -16,10 +16,13 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
+# ── Cache directory (MUST be defined before any function uses it) ────────────
+CACHE_DIR = Path(".cache/prices_v2")
+CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
 # ── CRITICAL: Fix yfinance cache dir BEFORE importing yfinance ───────────────
 os.environ["YFINANCE_CACHE_DIR"] = ".cache/yfinance"
 Path(".cache/yfinance").mkdir(parents=True, exist_ok=True)
-Path(".cache/prices_v2").mkdir(parents=True, exist_ok=True)
 
 import yfinance as yf
 

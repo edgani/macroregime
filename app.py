@@ -255,39 +255,68 @@ def render_signal_row(s: dict, quad: str):
     )
     st.markdown(html, unsafe_allow_html=True)
 
-def render_risk_range_table(asset_ranges: dict, prices: dict, top_n: int = 40):
-    """Render Risk Range™ three-duration table: Trade / Trend / Tail."""
+def render_risk_range_table(asset_ranges: dict, prices: dict, top_n: int = 60):
+    """Render Risk Range™ three-duration table: Trade / Trend / Tail.
+    Schema (from _calc_risk_range): {trade/trend/tail: {lrr, trr, ...}}.
+    """
     rows = []
     for tk, ranges in list(asset_ranges.items())[:top_n]:
-        if not isinstance(ranges, dict): continue
-        trade = ranges.get("trade") or ranges.get("TRADE") or {}
-        trend = ranges.get("trend") or ranges.get("TREND") or {}
-        tail  = ranges.get("tail")  or ranges.get("TAIL")  or {}
-        px = "—"
-        try:
-            s = prices.get(tk)
-            if s is not None and len(s) > 0:
-                px = f"{float(s.iloc[-1]):.2f}"
-        except Exception:
-            pass
+        if not isinstance(ranges, dict) or not ranges.get("ok"):
+            continue
+        trade = ranges.get("trade") or {}
+        trend = ranges.get("trend") or {}
+        tail  = ranges.get("tail")  or {}
+        px_val = ranges.get("px")
+        if px_val is None:
+            try:
+                s = prices.get(tk)
+                if s is not None and len(s) > 0:
+                    px_val = float(s.iloc[-1])
+            except Exception:
+                pass
+        composite = ranges.get("composite", "neutral")
+        composite_color = {"bullish": "#2E9E5F", "bearish": "#D14B5F"}.get(composite, "#8B9AAB")
+
         def lo_hi(r):
             if not isinstance(r, dict): return "— / —"
-            lo = r.get("low", r.get("lo"))
-            hi = r.get("high", r.get("hi"))
-            try: return f"{float(lo):.2f} / {float(hi):.2f}"
-            except Exception: return "— / —"
+            lo, hi = r.get("lrr"), r.get("trr")
+            try:
+                return f"{float(lo):.2f} / {float(hi):.2f}"
+            except Exception:
+                return "— / —"
+
+        # Position within Trade range
+        position = ""
+        try:
+            lo = float(trade.get("lrr")); hi = float(trade.get("trr"))
+            if px_val is not None and hi > lo:
+                pct = (float(px_val) - lo) / (hi - lo) * 100
+                position = f"{pct:.0f}%"
+        except Exception:
+            pass
+
+        px_disp = f"{float(px_val):.2f}" if px_val is not None else "—"
         rows.append(
-            f'<tr><td class="rr-ticker">{tk}</td><td>{px}</td>'
-            f'<td>{lo_hi(trade)}</td><td>{lo_hi(trend)}</td><td>{lo_hi(tail)}</td></tr>'
+            f'<tr>'
+            f'<td class="rr-ticker">{tk}</td>'
+            f'<td>{px_disp}</td>'
+            f'<td>{lo_hi(trade)}</td>'
+            f'<td>{lo_hi(trend)}</td>'
+            f'<td>{lo_hi(tail)}</td>'
+            f'<td style="color:{composite_color};font-weight:700;text-transform:uppercase;font-size:11px;">{composite}</td>'
+            f'<td>{position}</td>'
+            f'</tr>'
         )
     if not rows:
         st.info("No Risk Range data available.")
         return
     table = (
         '<table class="rr-table">'
-        '<thead><tr><th>Ticker</th><th>Last</th>'
-        '<th>Trade ≤3wk (Lo/Hi)</th><th>Trend ≥3mo (Lo/Hi)</th><th>Tail ≤3yr (Lo/Hi)</th></tr></thead>'
-        '<tbody>' + "".join(rows) + '</tbody></table>'
+        '<thead><tr>'
+        '<th>Ticker</th><th>Last</th>'
+        '<th>Trade ≤3wk (Lo/Hi)</th><th>Trend ≥3mo (Lo/Hi)</th><th>Tail ≤3yr (Lo/Hi)</th>'
+        '<th>Bias</th><th>In-Range %</th>'
+        '</tr></thead><tbody>' + "".join(rows) + '</tbody></table>'
     )
     st.markdown(table, unsafe_allow_html=True)
 

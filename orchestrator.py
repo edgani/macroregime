@@ -153,7 +153,7 @@ TransitionEngine = None
 PlaybookEngine = None
 try:
     from engines.gip_engine import GIPEngine
-    from engines.market_health import MarketHealthEngine as _MHE
+    from engines.market_health_engine import MarketHealthEngine as _MHE
     MarketHealthEngine = _MHE
     from engines.transition_engine import TransitionEngine as _TE
     TransitionEngine = _TE
@@ -190,27 +190,35 @@ def load_fred_macro():
         "m2": "M2SL",
     }
     data = {}
+    failed = []  # collect failures, log once at end
     def _fetch_one(k_sid):
         k, sid = k_sid
         try:
             s = _fred_client.get_series(sid, observation_start="2018-01-01")
             if s is not None and len(s) > 0:
-                return k, s
+                return k, s, None
+            return k, None, "empty"
         except Exception as e:
-            logger.warning(f"FRED {k} ({sid}) failed: {e}")
-        return k, None
+            return k, None, str(e)[:80]
 
     with ThreadPoolExecutor(max_workers=6) as ex:
         futures = {ex.submit(_fetch_one, item): item[0] for item in series_ids.items()}
         for fut in as_completed(futures, timeout=None):
+            k = futures[fut]
             try:
-                k, s = fut.result(timeout=12)
+                k, s, err = fut.result(timeout=12)
                 if s is not None:
                     data[k] = s
+                elif err:
+                    failed.append(f"{k}:{err}")
             except FuturesTimeout:
-                logger.warning(f"FRED {futures[fut]} timed out (>12s)")
+                failed.append(f"{k}:timeout")
             except Exception as e:
-                logger.warning(f"FRED {futures[fut]} error: {e}")
+                failed.append(f"{k}:{str(e)[:40]}")
+    if failed:
+        logger.warning(f"FRED partial: {len(data)}/{len(series_ids)} OK · failed: {', '.join(failed)}")
+    else:
+        logger.info(f"FRED: {len(data)}/{len(series_ids)} series loaded")
     return data
 
 # ══════════════════════════════════════════════════════════════════════════════

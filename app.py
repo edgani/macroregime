@@ -529,6 +529,7 @@ if st.session_state.snap and st.session_state.snap.get("ok"):
         "📊 Macro",
         "🎯 Alpha Center",
         "📐 Risk Range™",
+        "🔬 Ticker Lab",
         "🇺🇸 US Stocks",
         "🌐 Forex",
         "📊 Commodities",
@@ -595,8 +596,179 @@ if st.session_state.snap and st.session_state.snap.get("ok"):
         prices = snap.get("prices") or {}
         render_risk_range_table(asset_ranges, prices, top_n=60)
 
-    # ── Tab 3: US Stocks ─────────────────────────────────────────────────────
+    # ── Tab 3: Ticker Lab — Options + Greeks drill-down ──────────────────────
     with tabs[3]:
+        st.markdown("### Ticker Lab — Risk Range × Gamma × Greeks")
+        st.caption("Per-ticker deep dive: Hedgeye Risk Range™ + Tier 1 Alpha options overlay + Greeks proxy.")
+
+        prices_dict = snap.get("prices") or {}
+        gamma_all = snap.get("gamma_data") or {}
+        greeks_all = snap.get("greeks_data") or {}
+        ranges_all = (snap.get("risk_ranges") or {}).get("asset_ranges", {})
+
+        # Prefer tickers with options coverage first
+        tickers_with_opts = [t for t in gamma_all if isinstance(gamma_all.get(t), dict) and gamma_all[t].get("ok")]
+        tickers_other = [t for t in prices_dict.keys() if t not in tickers_with_opts]
+        all_tickers_sorted = tickers_with_opts + sorted(tickers_other)
+        if not all_tickers_sorted:
+            st.warning("No tickers loaded yet.")
+        else:
+            default_idx = 0
+            sel = st.selectbox(
+                "Pick a ticker",
+                options=all_tickers_sorted,
+                index=default_idx,
+                format_func=lambda t: f"🟢 {t}" if t in tickers_with_opts else f"○ {t}",
+                help="🟢 = options overlay available · ○ = price-only"
+            )
+
+            gamma = gamma_all.get(sel, {}) or {}
+            greeks = greeks_all.get(sel, {}) or {}
+            rr = ranges_all.get(sel, {}) or {}
+            s_px = prices_dict.get(sel)
+            px = None
+            try:
+                if s_px is not None and len(s_px) > 0:
+                    px = float(s_px.iloc[-1])
+            except Exception:
+                px = None
+
+            # Header row: ticker + last + composite
+            composite = rr.get("composite", "neutral").upper() if rr.get("ok") else "—"
+            comp_color = {"BULLISH": "#2E9E5F", "BEARISH": "#D14B5F"}.get(composite, "#8B9AAB")
+            st.markdown(
+                f'<div class="he-card" style="border-left:4px solid #C9A961;">'
+                f'<div style="display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:16px;">'
+                f'<div><span class="he-ticker" style="font-size:28px;">{sel}</span> '
+                f'&nbsp; <span style="color:#C9A961;font-size:22px;font-weight:700;">{fmt_num(px,2)}</span></div>'
+                f'<div><span style="color:{comp_color};font-weight:800;font-size:14px;letter-spacing:1px;">RR BIAS · {composite}</span></div>'
+                f'</div></div>',
+                unsafe_allow_html=True
+            )
+
+            # Risk Range bands
+            if rr.get("ok"):
+                trade = rr.get("trade", {}); trend = rr.get("trend", {}); tail = rr.get("tail", {})
+                c1, c2, c3 = st.columns(3)
+                with c1:
+                    st.markdown(
+                        '<div class="he-card"><div class="macro-block-label">Trade ≤3wk</div>'
+                        f'<div style="font-size:14px;color:#E8ECF0;margin-top:6px;"><b style="color:#C9A961;">{fmt_num(trade.get("lrr"))} – {fmt_num(trade.get("trr"))}</b></div>'
+                        f'<div style="font-size:11px;color:#8B9AAB;margin-top:4px;">Sigma 1.5× · last 20d</div></div>',
+                        unsafe_allow_html=True
+                    )
+                with c2:
+                    direction = trend.get("direction", "—")
+                    dir_color = "#2E9E5F" if direction == "up" else ("#D14B5F" if direction == "down" else "#8B9AAB")
+                    st.markdown(
+                        '<div class="he-card"><div class="macro-block-label">Trend ≥3mo</div>'
+                        f'<div style="font-size:14px;color:#E8ECF0;margin-top:6px;"><b style="color:#C9A961;">{fmt_num(trend.get("lrr"))} – {fmt_num(trend.get("trr"))}</b></div>'
+                        f'<div style="font-size:11px;margin-top:4px;">Direction <b style="color:{dir_color};">{direction.upper()}</b></div></div>',
+                        unsafe_allow_html=True
+                    )
+                with c3:
+                    st.markdown(
+                        '<div class="he-card"><div class="macro-block-label">Tail ≤3yr</div>'
+                        f'<div style="font-size:14px;color:#E8ECF0;margin-top:6px;"><b style="color:#C9A961;">{fmt_num(tail.get("lrr"))} – {fmt_num(tail.get("trr"))}</b></div>'
+                        f'<div style="font-size:11px;color:#8B9AAB;margin-top:4px;">Full history sigma 2.5×</div></div>',
+                        unsafe_allow_html=True
+                    )
+
+            # GAMMA OVERLAY
+            st.markdown("#### 🎰 Tier 1 Alpha · Options & Gamma Overlay")
+            if gamma.get("ok"):
+                g_regime = gamma.get("regime", "—")
+                g_color = gamma.get("color", "#8B9AAB")
+                g_label = gamma.get("label", g_regime)
+                g_throttle = gamma.get("throttle", 0)
+                g_skew = gamma.get("skew", "—")
+                g_exp = gamma.get("gamma_exposure", "—")
+                g_action = gamma.get("action", "—")
+                st.markdown(
+                    f'<div class="he-card" style="border-left:3px solid {g_color};">'
+                    f'<div style="display:flex;gap:24px;flex-wrap:wrap;">'
+                    f'<div><div class="macro-block-label">Gamma Regime</div><div style="color:{g_color};font-weight:800;font-size:14px;margin-top:4px;">{g_label}</div></div>'
+                    f'<div><div class="macro-block-label">Throttle</div><div class="macro-block-val" style="margin-top:4px;">{g_throttle:.2f}×</div></div>'
+                    f'<div><div class="macro-block-label">Skew</div><div class="macro-block-val" style="margin-top:4px;">{g_skew}</div></div>'
+                    f'<div><div class="macro-block-label">GEX</div><div class="macro-block-val" style="margin-top:4px;">{g_exp}</div></div>'
+                    f'</div>'
+                    f'<div style="margin-top:10px;font-size:12px;color:#C9D5E0;"><b style="color:#C9A961;">ACTION:</b> {g_action}</div>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+                # Gamma walls table
+                g_rows = [
+                    ("Max Pain", gamma.get("max_pain")),
+                    ("Gamma Flip ↑", gamma.get("gamma_flip_up")),
+                    ("Gamma Flip ↓", gamma.get("gamma_flip_down")),
+                    ("Call Wall", gamma.get("call_wall")),
+                    ("Put Wall", gamma.get("put_wall")),
+                    ("Dist to Max Pain", f"{gamma.get('dist_max_pain_pct', 0):+.1f}%" if gamma.get('dist_max_pain_pct') is not None else "—"),
+                    ("Vol Premium (RV − IV)", f"{gamma.get('vol_premium', 0):+.1f}" if gamma.get('vol_premium') is not None else "—"),
+                    ("Realized Vol 20d", f"{gamma.get('rvol_20d', 0):.1f}%"),
+                ]
+                rows_html = "".join(
+                    f'<tr><td><b>{k}</b></td><td>{fmt_num(v) if isinstance(v,(int,float)) else v}</td></tr>'
+                    for k, v in g_rows
+                )
+                st.markdown(
+                    '<table class="rr-table"><thead><tr><th>Gamma Wall</th><th>Level</th></tr></thead><tbody>'
+                    + rows_html + '</tbody></table>',
+                    unsafe_allow_html=True
+                )
+            else:
+                st.info(f"No gamma overlay for {sel}. (Available only for top-30 options tickers.)")
+
+            # GREEKS PROXY
+            st.markdown("#### Δ Greeks Proxy")
+            if greeks.get("ok"):
+                gk_comp = greeks.get("composite", "—")
+                gk_score = greeks.get("composite_score", 0)
+                gk_color = "#2E9E5F" if "BULLISH" in gk_comp else ("#D14B5F" if "BEARISH" in gk_comp else "#8B9AAB")
+                st.markdown(
+                    f'<div class="he-card" style="border-left:3px solid {gk_color};">'
+                    f'<div style="display:flex;gap:24px;flex-wrap:wrap;align-items:baseline;">'
+                    f'<div><div class="macro-block-label">Composite</div><div style="color:{gk_color};font-weight:800;font-size:14px;margin-top:4px;">{gk_comp}</div></div>'
+                    f'<div><div class="macro-block-label">Score</div><div class="macro-block-val" style="margin-top:4px;">{gk_score:+.2f}</div></div>'
+                    f'</div></div>',
+                    unsafe_allow_html=True
+                )
+                gk_rows = [
+                    ("Delta",  greeks.get("delta"),  greeks.get("delta_val"),  greeks.get("delta_note", "")),
+                    ("Gamma",  greeks.get("gamma"),  greeks.get("gamma_val"),  greeks.get("gamma_note", "")),
+                    ("Vanna",  greeks.get("vanna"),  greeks.get("vanna_val"),  greeks.get("vanna_note", "")),
+                    ("Charm",  greeks.get("charm"),  greeks.get("charm_val"),  greeks.get("charm_note", "")),
+                    ("Volga",  greeks.get("volga"),  greeks.get("volga_val"),  greeks.get("volga_note", "")),
+                ]
+                rows_html = "".join(
+                    f'<tr><td><b>{label}</b></td><td>{tier}</td><td>{fmt_num(val,3) if isinstance(val,(int,float)) else val}</td><td style="color:#8B9AAB;">{note}</td></tr>'
+                    for label, tier, val, note in gk_rows
+                )
+                st.markdown(
+                    '<table class="rr-table"><thead><tr><th>Greek</th><th>Tier</th><th>Value</th><th>Interpretation</th></tr></thead><tbody>'
+                    + rows_html + '</tbody></table>',
+                    unsafe_allow_html=True
+                )
+                # OI concentration
+                oi = greeks.get("oi_concentration", "—")
+                oi_note = greeks.get("oi_note", "")
+                vol_p = greeks.get("vol_premium", "—")
+                st.markdown(
+                    f'<div class="he-card" style="margin-top:10px;">'
+                    f'<div style="display:flex;gap:24px;flex-wrap:wrap;">'
+                    f'<div><div class="macro-block-label">OI Concentration</div><div class="macro-block-val" style="margin-top:4px;">{oi}</div><div style="font-size:11px;color:#8B9AAB;margin-top:2px;">{oi_note}</div></div>'
+                    f'<div><div class="macro-block-label">Vol Premium</div><div class="macro-block-val" style="margin-top:4px;">{vol_p if isinstance(vol_p,str) else f"{vol_p:+.1f}"}</div></div>'
+                    f'</div></div>',
+                    unsafe_allow_html=True
+                )
+            else:
+                st.info(f"No greeks proxy for {sel}.")
+
+            # Risk disclosure
+            st.markdown(risk_disclosure_html("TRADE/TREND", sq), unsafe_allow_html=True)
+
+    # ── Tab 4: US Stocks ─────────────────────────────────────────────────────
+    with tabs[4]:
         ds = snap.get("daily_signals", [])
         us_signals = [s for s in ds if not any(x in s.get("ticker", "") for x in [".JK", "=X", "=F", "-USD", "^JKSE", "EIDO"])]
         st.markdown(f"### US Equities · {len(us_signals)} signals")
@@ -606,8 +778,8 @@ if st.session_state.snap and st.session_state.snap.get("ok"):
         else:
             st.info("No US stock signals.")
 
-    # ── Tab 4: Forex ─────────────────────────────────────────────────────────
-    with tabs[4]:
+    # ── Tab 5: Forex ─────────────────────────────────────────────────────────
+    with tabs[5]:
         fx = [s for s in snap.get("daily_signals", []) if "=X" in s.get("ticker", "") or s.get("ticker") == "DX-Y.NYB"]
         st.markdown(f"### Forex · {len(fx)} signals")
         if fx:
@@ -616,8 +788,8 @@ if st.session_state.snap and st.session_state.snap.get("ok"):
         else:
             st.info("No forex signals.")
 
-    # ── Tab 5: Commodities ───────────────────────────────────────────────────
-    with tabs[5]:
+    # ── Tab 6: Commodities ───────────────────────────────────────────────────
+    with tabs[6]:
         comm = [s for s in snap.get("daily_signals", []) if "=F" in s.get("ticker", "") or s.get("ticker") in ["GLD","SLV","USO","UNG","BNO","GDX","GDXJ"]]
         st.markdown(f"### Commodities · {len(comm)} signals")
         if comm:
@@ -626,8 +798,8 @@ if st.session_state.snap and st.session_state.snap.get("ok"):
         else:
             st.info("No commodity signals.")
 
-    # ── Tab 6: Crypto ────────────────────────────────────────────────────────
-    with tabs[6]:
+    # ── Tab 7: Crypto ────────────────────────────────────────────────────────
+    with tabs[7]:
         crypto = [s for s in snap.get("daily_signals", []) if "-USD" in s.get("ticker", "") or s.get("ticker") in ["IBIT","MSTR"]]
         st.markdown(f"### Crypto · {len(crypto)} signals")
         if crypto:
@@ -636,8 +808,8 @@ if st.session_state.snap and st.session_state.snap.get("ok"):
         else:
             st.info("No crypto signals.")
 
-    # ── Tab 7: IHSG ──────────────────────────────────────────────────────────
-    with tabs[7]:
+    # ── Tab 8: IHSG ──────────────────────────────────────────────────────────
+    with tabs[8]:
         ihsg = [s for s in snap.get("daily_signals", []) if ".JK" in s.get("ticker", "") or s.get("ticker") in ["^JKSE","EIDO"]]
         st.markdown(f"### IHSG · {len(ihsg)} signals")
         if ihsg:
@@ -666,8 +838,8 @@ if st.session_state.snap and st.session_state.snap.get("ok"):
         else:
             st.info("No sector momentum data.")
 
-    # ── Tab 8: Settings ──────────────────────────────────────────────────────
-    with tabs[8]:
+    # ── Tab 9: Settings ──────────────────────────────────────────────────────
+    with tabs[9]:
         st.markdown("### Universe Settings")
         st.session_state["inc_us"]          = st.checkbox("Include US Stocks", st.session_state.get("inc_us", True))
         st.session_state["inc_fx"]          = st.checkbox("Include Forex", st.session_state.get("inc_fx", True))

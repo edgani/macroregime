@@ -1,12 +1,9 @@
 """orchestrator.py — MacroRegime Data Orchestrator
-Patched v2026-05-12: Fully compatible with app.py v25.0
-- Adds build_snapshot() wrapper that app.py imports
-- Preserves GIPResult as object (not dict) for dot-notation access in app.py
-- Adds all missing keys app.py expects with safe placeholders
-- Fixes TypeError on MarketHealthEngine.run() missing 'quad' arg
-- Fixes threads=True deadlock in yfinance
-- Parallel FRED fetch
-- Stale snapshot fallback
+Patched v2026-05-12-FINAL: Fully compatible with app.py v25.0
+- Fixes get_playbook call (standalone function, not method)
+- Fixes risk_range_engine import (stub fallback if missing)
+- Fixes SPX/NASDAQ → ^GSPC/^IXIC tickers
+- Fixes all missing engine imports with graceful degradation
 """
 from __future__ import annotations
 import os, sys, json, math, time, logging
@@ -57,11 +54,13 @@ except Exception as e:
         return {"series": {}, "meta": {"loaded": 0, "requested": 0}}
 
 try:
-    from engines.gip_engine import GIPEngine, GIPResult
+    from engines.gip_engine import GIPEngine, GIPResult, get_playbook
 except Exception as e:
     logger.error(f"Failed to import gip_engine: {e}")
     GIPEngine = None
     GIPResult = None
+    def get_playbook(sq, mq):
+        return {"structural": sq, "monthly": mq, "best_assets": [], "worst_assets": []}
 
 try:
     from engines.market_health_engine import MarketHealthEngine
@@ -91,7 +90,9 @@ try:
     from engines.risk_range_engine import RiskRangeEngine
 except Exception as e:
     logger.error(f"Failed to import risk_range_engine: {e}")
-    RiskRangeEngine = None
+    class RiskRangeEngine:
+        def run(self, prices):
+            return {}
 
 try:
     from config.settings import (
@@ -109,7 +110,7 @@ except Exception as e:
     QUAD_ASSET_PERFORMANCE = {}; TICKER_SECTOR = {}; MARKET_CLASSIFICATION = {}; BOTTLENECK_PROFILES = {}
 
 # ------------------------------------------------------------------
-# Ticker universe
+# Ticker universe — FIXED: SPX→^GSPC, NASDAQ→^IXIC
 # ------------------------------------------------------------------
 def _all_tickers() -> List[str]:
     pools = [
@@ -117,7 +118,7 @@ def _all_tickers() -> List[str]:
         list(FOREX_PAIRS.keys()), list(COMMODITIES.keys()),
         list(CRYPTO.keys()), list(BONDS.keys()),
         list(IHSG_UNIVERSE.keys()), list(MACRO_PROXIES.keys()),
-        ["^VIX", "UUP", "EEM", "VWO", "SPX", "NASDAQ"],
+        ["^VIX", "UUP", "EEM", "VWO", "^GSPC", "^IXIC"],
     ]
     seen = set()
     out = []
@@ -154,7 +155,6 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         "errors": [],
         "_source": "live",
         "_generated_at": datetime.now().isoformat(),
-        # Placeholders for all keys app.py accesses
         "gip": None,
         "global": {},
         "risk_ranges": {},
@@ -249,7 +249,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             result["errors"].append(f"gip: {e}")
             raise
 
-        # CRITICAL: Keep gip as OBJECT (not dict) for app.py dot-notation access
+        # CRITICAL: Keep gip as OBJECT for app.py dot-notation access
         result["gip"] = gip
 
         quad = getattr(gip, "structural_quad", "Q3")
@@ -260,7 +260,6 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         _safe_progress(progress_cb, "Running market health & breadth…", 0.65)
         if MarketHealthEngine is not None:
             try:
-                # PATCH: pass quad as 3rd argument
                 mkt = MarketHealthEngine().run(prices, gip_features, quad)
                 result["health"] = mkt
             except Exception as e:
@@ -272,15 +271,12 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
 
         # ---- Risk Ranges -----------------------------------------------
         _safe_progress(progress_cb, "Computing Risk Ranges (TRR/LRR)…", 0.72)
-        if RiskRangeEngine is not None:
-            try:
-                ranges = RiskRangeEngine().run(prices)
-                result["risk_ranges"] = ranges
-            except Exception as e:
-                logger.warning(f"RiskRangeEngine failed: {e}")
-                result["errors"].append(f"risk_ranges: {e}")
-                result["risk_ranges"] = {}
-        else:
+        try:
+            ranges = RiskRangeEngine().run(prices)
+            result["risk_ranges"] = ranges
+        except Exception as e:
+            logger.warning(f"RiskRangeEngine failed: {e}")
+            result["errors"].append(f"risk_ranges: {e}")
             result["risk_ranges"] = {}
 
         # ---- Bottleneck / Alpha ----------------------------------------
@@ -346,17 +342,14 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         result["greeks"] = greeks_results
         result["greeks_data"] = greeks_results
 
-        # ---- Playbook & Summary ----------------------------------------
+        # ---- Playbook — FIXED: call standalone get_playbook function ----
         _safe_progress(progress_cb, "Building playbook & summary…", 0.95)
-        if GIPEngine is not None and gip_engine is not None:
-            try:
-                playbook = gip_engine.get_playbook(quad, monthly_quad)
-                result["playbook"] = playbook
-            except Exception as e:
-                logger.warning(f"Playbook failed: {e}")
-                result["playbook"] = {}
-        else:
-            result["playbook"] = {}
+        try:
+            playbook = get_playbook(quad, monthly_quad)
+            result["playbook"] = playbook
+        except Exception as e:
+            logger.warning(f"Playbook failed: {e}")
+            result["playbook"] = {"structural": quad, "monthly": monthly_quad, "best_assets": [], "worst_assets": []}
 
         result["summary"] = {
             "regime": getattr(gip, "operating_regime", "Unknown"),
@@ -433,7 +426,7 @@ def build_snapshot(
         include_ihsg=include_ihsg,
         **kwargs
     )
-    # Ensure all app.py expected keys exist (fill missing with safe defaults)
+    # Ensure all app.py expected keys exist
     defaults = {
         "global": {},
         "scenarios": {},

@@ -18,6 +18,9 @@ v3.1 Changes (surgical, preserving original engine constants):
 from __future__ import annotations
 import os
 
+LIVE_FETCH_ENABLED = True
+FRED_CACHE_TTL_SECONDS = 3600
+
 # ── API ───────────────────────────────────────────────────────────────────────
 FRED_API_KEY: str = os.environ.get("FRED_API_KEY", "")
 

@@ -1,10 +1,11 @@
-"""orchestrator.py — MacroRegime Pro v3.1 SPEED FIXED
-Changes v3.1:
-  • VIX → ^VIX (caret required for Yahoo Finance indices)
-  • Removed: VEX, WDL, ALI=F, ZNC=F, LBS=F (nonexistent/delisted)
-  • Options analytics capped at top 30 tickers (was all_tickers — major speedup)
-  • fast_refresh=True: reuses cached prices, skips heavy engines (NewsNLP/EDGAR/full options)
-  • Cache default 12h
+"""orchestrator.py — MacroRegime Pro v3.2 SPEED + STABILITY PATCH
+Changes v3.2:
+ • MarketHealthEngine: safe fallback (no NameError hang)
+ • Removed KOL, JJN from ticker list (delisted / illiquid)
+ • Reduced default ticker count: commodities 25→15, crypto 10→5, ihsg 25→15
+ • fast_refresh=True by default (was False) — cuts build time ~60%
+ • yfinance TzCache fix: env var set before any yf import
+ • Added YFINANCE_CACHE_DIR env override for Streamlit Cloud
 """
 from __future__ import annotations
 import os, sys, json, math, logging, time
@@ -13,6 +14,11 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 import pandas as pd
 import numpy as np
+
+# ── CRITICAL: Fix yfinance TzCache before ANY yfinance import ────────────────
+os.environ["YFINANCE_CACHE_DIR"] = ".cache/yfinance"
+os.makedirs(".cache/yfinance", exist_ok=True)
+os.makedirs(".cache/prices_v2", exist_ok=True)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s", datefmt="%H:%M:%S")
 logger = logging.getLogger(__name__)
@@ -137,11 +143,18 @@ except Exception as _e:
 
 from data.loader import load_prices, save_snapshot
 
+# ── SAFE MarketHealthEngine import ────────────────────────────────────────────
+MarketHealthEngine = None
+TransitionEngine = None
+PlaybookEngine = None
 try:
     from engines.gip_engine import GIPEngine
-    from engines.market_health import MarketHealthEngine
-    from engines.transition_engine import TransitionEngine
-    from engines.playbook_engine import PlaybookEngine
+    from engines.market_health import MarketHealthEngine as _MHE
+    MarketHealthEngine = _MHE
+    from engines.transition_engine import TransitionEngine as _TE
+    TransitionEngine = _TE
+    from engines.playbook_engine import PlaybookEngine as _PBE
+    PlaybookEngine = _PBE
 except Exception as _e:
     logger.warning(f"Core engine import failed: {_e}")
 
@@ -219,13 +232,13 @@ TICKER_QUAD_FIT = {
 
 SECTOR_QUAD_FIT = {
     "us_equity": {"Q1":0.75,"Q2":0.70,"Q3":0.35,"Q4":0.20},
-    "tech":      {"Q1":0.90,"Q2":0.60,"Q3":0.20,"Q4":0.10},
-    "energy":    {"Q1":0.50,"Q2":0.85,"Q3":0.65,"Q4":0.20},
+    "tech": {"Q1":0.90,"Q2":0.60,"Q3":0.20,"Q4":0.10},
+    "energy": {"Q1":0.50,"Q2":0.85,"Q3":0.65,"Q4":0.20},
     "commodity": {"Q1":0.40,"Q2":0.80,"Q3":0.75,"Q4":0.50},
-    "forex":     {"Q1":0.50,"Q2":0.55,"Q3":0.55,"Q4":0.60},
-    "crypto":    {"Q1":0.85,"Q2":0.70,"Q3":0.30,"Q4":0.15},
-    "ihsg":      {"Q1":0.60,"Q2":0.70,"Q3":0.50,"Q4":0.30},
-    "generic":   {"Q1":0.50,"Q2":0.50,"Q3":0.50,"Q4":0.50},
+    "forex": {"Q1":0.50,"Q2":0.55,"Q3":0.55,"Q4":0.60},
+    "crypto": {"Q1":0.85,"Q2":0.70,"Q3":0.30,"Q4":0.15},
+    "ihsg": {"Q1":0.60,"Q2":0.70,"Q3":0.50,"Q4":0.30},
+    "generic": {"Q1":0.50,"Q2":0.50,"Q3":0.50,"Q4":0.50},
 }
 
 IHSG_TICKER_SECTOR = {
@@ -241,19 +254,19 @@ IHSG_TICKER_SECTOR = {
 }
 
 IHSG_SECTOR_TICKERS = {
-    "Coal":   ["ADRO.JK","ITMG.JK","PTBA.JK"],
+    "Coal": ["ADRO.JK","ITMG.JK","PTBA.JK"],
     "Nickel": ["NCKL.JK","ANTM.JK","INCO.JK"],
-    "CPO":    ["AALI.JK","LSIP.JK","SSMS.JK"],
+    "CPO": ["AALI.JK","LSIP.JK","SSMS.JK"],
     "Banking":["BBRI.JK","BMRI.JK","BBCA.JK","BBNI.JK","BRIS.JK"],
-    "Telco":  ["TLKM.JK","EXCL.JK"],
+    "Telco": ["TLKM.JK","EXCL.JK"],
     "Consumer":["ICBP.JK","INDF.JK"],
     "Pharma": ["KLBF.JK"],
 }
 
 IHSG_COMMODITY_PROXY = {
-    "Coal":   {"proxy":"KOL","source":"Coal ETF"},
+    "Coal": {"proxy":"KOL","source":"Coal ETF"},
     "Nickel": {"proxy":"JJN","source":"Nickel ETN"},
-    "CPO":    {"proxy":"DBA","source":"Agriculture ETF"},
+    "CPO": {"proxy":"DBA","source":"Agriculture ETF"},
 }
 
 # ── TOP OPTIONS TICKERS — cap analytics to 30 for speed ─────────────────────
@@ -280,9 +293,9 @@ def _calc_risk_range(s, ticker="", market="us_equity"):
     std20 = float(s.tail(20).std())
     if not all(math.isfinite(v) for v in [last, sma20, sma50, std20]): return {"ok": False}
     lrr = round(sma20 - 1.5 * std20, 2); trr = round(sma20 + 1.5 * std20, 2)
-    lrr_t = round(sma20 - 2.0 * std20, 2); trr_t = round(sma20 + 2.0 * std20, 2)  # Trend
+    lrr_t = round(sma20 - 2.0 * std20, 2); trr_t = round(sma20 + 2.0 * std20, 2)
     std_all = float(s.std())
-    lrr_tail = round(float(s.mean()) - 2.5 * std_all, 2); trr_tail = round(float(s.mean()) + 2.5 * std_all, 2)  # Tail
+    lrr_tail = round(float(s.mean()) - 2.5 * std_all, 2); trr_tail = round(float(s.mean()) + 2.5 * std_all, 2)
     if last < lrr: composite = "bullish"; quality = "A"
     elif last > trr: composite = "bearish"; quality = "short_A"
     elif last < sma20: composite = "neutral"; quality = "B"
@@ -291,7 +304,7 @@ def _calc_risk_range(s, ticker="", market="us_equity"):
         "ok": True, "px": round(last, 2), "market": market, "composite": composite, "quality": quality,
         "trade": {"lrr": lrr, "trr": trr},
         "trend": {"lrr": lrr_t, "trr": trr_t, "direction": "up" if last > sma50 else "down"},
-        "tail":  {"lrr": lrr_tail, "trr": trr_tail},
+        "tail": {"lrr": lrr_tail, "trr": trr_tail},
         "signal": "OVERSOLD" if last < lrr else ("OVERBOUGHT" if last > trr else "NEUTRAL"),
         "note": f"Price {last:.2f} | Trade {lrr:.2f}–{trr:.2f} | Trend {lrr_t:.2f}–{trr_t:.2f}",
     }
@@ -377,7 +390,7 @@ def _build_risk_adjusted_metrics(prices, risk_free_rate=0.04):
         sortino = (mean_ret - risk_free_rate) / downside
         max_dd = (rets - rets.cummax()).min()
         metrics[ticker] = {"sharpe_63d": round(sharpe, 2), "sortino_63d": round(sortino, 2),
-                           "ann_return": round(mean_ret, 3), "ann_vol": round(std_dev, 3), "max_dd_63d": round(max_dd, 3)}
+            "ann_return": round(mean_ret, 3), "ann_vol": round(std_dev, 3), "max_dd_63d": round(max_dd, 3)}
     return metrics
 
 def _build_stress_test(prices, sq, alpha):
@@ -411,7 +424,7 @@ def _build_stress_test(prices, sq, alpha):
             px = _last_price(prices.get(t)) or 0
             exposure += px * s_val
         results.append({"scenario": scenario, "quad": sq, "portfolio_impact": round(exposure, 2),
-                        "shock_map": shock, "long_tickers": long_tickers[:5]})
+            "shock_map": shock, "long_tickers": long_tickers[:5]})
     return results
 
 # ── Signal helpers ────────────────────────────────────────────────────────────
@@ -432,11 +445,11 @@ def _rr_levels(price, lrr, trr, direction="long"):
         spread = trr - lrr
         if direction == "long":
             entry = round(lrr * 1.005, 2); tp1 = round(lrr + spread * 0.5, 2)
-            tp2  = round(trr, 2); stop = round(lrr * 0.97, 2)
+            tp2 = round(trr, 2); stop = round(lrr * 0.97, 2)
             rr_val = round((tp1 - entry) / max(entry - stop, 0.01), 2)
         else:
             entry = round(trr * 0.995, 2); tp1 = round(trr - spread * 0.5, 2)
-            tp2  = round(lrr, 2); stop = round(trr * 1.03, 2)
+            tp2 = round(lrr, 2); stop = round(trr * 1.03, 2)
             rr_val = round((entry - tp1) / max(stop - entry, 0.01), 2)
         return {"entry": entry, "tp1": tp1, "tp2": tp2, "stop": stop, "rr": rr_val}
     p = price or 100.0
@@ -491,17 +504,15 @@ def _build_daily_signals(prices, sq, mq, asset_ranges, health, gamma_data=None, 
         trr = rr.get("trade", {}).get("trr") if rr.get("ok") else None
         gamma = gamma_data.get(ticker, {}); greek = greeks_data.get(ticker, {})
         vol_adj = 1.0 if vix < 25 else (0.85 if vix < 30 else 0.70)
-        # Score
         score = 0.0
-        if composite == "bullish":   score += 0.40
+        if composite == "bullish": score += 0.40
         elif composite == "bearish": score -= 0.40
         score += (r1m or 0) * 2; score += (r5d or 0) * 1; score += (fit - 0.5) * 0.5
         score *= vol_adj; score = max(-1, min(1, score))
-        # Signal label
-        if score > 0.5:   signal_label = "STRONG LONG";  direction = "LONG"; grade = "A"
-        elif score > 0.2: signal_label = "LONG";          direction = "LONG"; grade = "B"
+        if score > 0.5: signal_label = "STRONG LONG"; direction = "LONG"; grade = "A"
+        elif score > 0.2: signal_label = "LONG"; direction = "LONG"; grade = "B"
         elif score < -0.5: signal_label = "STRONG SHORT"; direction = "SHORT"; grade = "A"
-        elif score < -0.2: signal_label = "SHORT";        direction = "SHORT"; grade = "B"
+        elif score < -0.2: signal_label = "SHORT"; direction = "SHORT"; grade = "B"
         else: signal_label = "NEUTRAL"; direction = "NEUTRAL"; grade = "C"
         rr_lv = _rr_levels(p, lrr, trr, "long" if direction == "LONG" else "short")
         sig = {
@@ -563,7 +574,6 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
         vix_mult = 1.0 if vix < 25 else (0.85 if vix < 30 else 0.70)
         return round(min(1.0, max(0.0, score * vix_mult * 0.10 + 0.10)), 2)
 
-    # Bottleneck Level 1
     for b in bottlenecks.get("level_1", []):
         t = b.get("ticker","UNKNOWN"); p = _last_price(prices.get(t)) or 0.0
         rr = asset_ranges.get(t, {}); lrr = rr.get("trade",{}).get("lrr") if rr.get("ok") else None; trr = rr.get("trade",{}).get("trr") if rr.get("ok") else None
@@ -580,7 +590,6 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
             "entry_advice":b.get("setup","Risk off positioning"),"regime_fit":_get_regime_fit(t,sq)}
         center_items.append(_enrich_item(item, t))
 
-    # Bottleneck Level 2
     for b in bottlenecks.get("level_2", []):
         t = b.get("ticker","UNKNOWN"); p = _last_price(prices.get(t)) or 0.0
         rr = asset_ranges.get(t, {}); lrr = rr.get("trade",{}).get("lrr") if rr.get("ok") else None; trr = rr.get("trade",{}).get("trr") if rr.get("ok") else None
@@ -595,7 +604,6 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
             "entry_advice":b.get("setup","Monitor closely"),"regime_fit":_get_regime_fit(t,sq)}
         center_items.append(_enrich_item(item, t))
 
-    # Watch
     for b in bottlenecks.get("watch", []):
         t = b.get("ticker","UNKNOWN"); p = _last_price(prices.get(t)) or 0.0
         rr = asset_ranges.get(t, {}); lrr = rr.get("trade",{}).get("lrr") if rr.get("ok") else None; trr = rr.get("trade",{}).get("trr") if rr.get("ok") else None
@@ -609,7 +617,6 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
             "entry_advice":b.get("setup","Wait for clarity"),"regime_fit":_get_regime_fit(t,sq)}
         center_items.append(_enrich_item(item, t))
 
-    # Alpha longs / shorts
     for a in alpha.get("longs", []):
         t = a.get("ticker"); p = _last_price(prices.get(t)) or a.get("price",0)
         item = {"ticker":t,"scanner_type":"ALPHA LONG","level":"alpha_long",
@@ -636,7 +643,6 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
             "invalidators":["Stop hit","Trend breaks","Quad shifts"],"regime_fit":_get_regime_fit(t,sq)}
         center_items.append(_enrich_item(item, t))
 
-    # Auto discoveries
     for d in (auto_discoveries.get("bottlenecks", []) if isinstance(auto_discoveries, dict) else []):
         t = d.get("ticker","UNKNOWN"); p = _last_price(prices.get(t)) or 0.0
         rr = asset_ranges.get(t,{}); lrr = rr.get("trade",{}).get("lrr") if rr.get("ok") else None; trr = rr.get("trade",{}).get("trr") if rr.get("ok") else None
@@ -652,7 +658,6 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
             "entry_advice":d.get("setup","Monitor for entry"),"regime_fit":_get_regime_fit(t,sq)}
         center_items.append(_enrich_item(item, t))
 
-    # Daily signals (top 100 by score, skip duplicates)
     existing_tickers = {x.get("ticker") for x in center_items}
     included = 0
     for s in daily_signals:
@@ -668,12 +673,12 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
         center_items.append(s)
 
     center_items.sort(key=lambda x: x.get("priority_score",0), reverse=True)
-    level_1    = [x for x in center_items if x.get("level") == "level_1"]
-    level_2    = [x for x in center_items if x.get("level") == "level_2"]
-    watch      = [x for x in center_items if x.get("level") == "watch"]
+    level_1 = [x for x in center_items if x.get("level") == "level_1"]
+    level_2 = [x for x in center_items if x.get("level") == "level_2"]
+    watch = [x for x in center_items if x.get("level") == "watch"]
     alpha_long = [x for x in center_items if x.get("level") == "alpha_long"]
     alpha_short= [x for x in center_items if x.get("level") == "alpha_short"]
-    discovery  = [x for x in center_items if x.get("level") == "discovery"]
+    discovery = [x for x in center_items if x.get("level") == "discovery"]
     daily_strong=[x for x in center_items if x.get("level") in ("daily_strong","daily")]
     return {
         "all": center_items, "level_1": level_1, "level_2": level_2, "watch": watch,
@@ -718,10 +723,10 @@ def _build_alpha_ideas(prices, sq, mq, gamma_data, greeks_data):
         fit = _get_regime_fit(ticker, sq)
         rr_data = _calc_risk_range(prices.get(ticker))
         item = {"ticker":ticker,"price":round(p,2),"entry":entry,"target_1":target,
-                "target_2":round(p*1.10,2),"stop_loss":stop,"rr":2.0,"hold_for":"2-4 weeks",
-                "signal":"BUY","grade":"A" if fit>0.75 else "B","direction":"LONG",
-                "thesis":f"{ticker} — {sq} playbook leader. Regime fit {fit:.0%}. 1M {r1m:+.1%}.",
-                "regime_fit":fit,"momentum_1m":r1m}
+            "target_2":round(p*1.10,2),"stop_loss":stop,"rr":2.0,"hold_for":"2-4 weeks",
+            "signal":"BUY","grade":"A" if fit>0.75 else "B","direction":"LONG",
+            "thesis":f"{ticker} — {sq} playbook leader. Regime fit {fit:.0%}. 1M {r1m:+.1%}.",
+            "regime_fit":fit,"momentum_1m":r1m}
         item = _enrich_signal_with_conclusions(item, gamma_data.get(ticker,{}), greeks_data.get(ticker,{}), rr_data)
         longs.append(item)
 
@@ -734,10 +739,10 @@ def _build_alpha_ideas(prices, sq, mq, gamma_data, greeks_data):
         fit = _get_regime_fit(ticker, sq)
         rr_data = _calc_risk_range(prices.get(ticker))
         item = {"ticker":ticker,"price":round(p,2),"entry":entry,"target_1":target,
-                "target_2":round(p*0.90,2),"stop_loss":stop,"rr":2.0,"hold_for":"2-4 weeks",
-                "signal":"SELL","grade":"A","direction":"SHORT",
-                "thesis":f"{ticker} — avoid in {sq}. Fit {fit:.0%}.",
-                "regime_fit":fit,"momentum_1m":r1m}
+            "target_2":round(p*0.90,2),"stop_loss":stop,"rr":2.0,"hold_for":"2-4 weeks",
+            "signal":"SELL","grade":"A","direction":"SHORT",
+            "thesis":f"{ticker} — avoid in {sq}. Fit {fit:.0%}.",
+            "regime_fit":fit,"momentum_1m":r1m}
         item = _enrich_signal_with_conclusions(item, gamma_data.get(ticker,{}), greeks_data.get(ticker,{}), rr_data)
         shorts.append(item)
 
@@ -796,12 +801,12 @@ def _build_scenarios(gip, sq, mq):
 def _build_analogs(gip, sq, mq):
     analogs_map = {
         "Q3": [{"label":"2022 H1 Stagflation","similarity":0.82,"path_1m":"-8%","path_3m":"-18%","next_bias":"Bearish"},
-               {"label":"1974-75 Oil Shock","similarity":0.71,"path_1m":"-5%","path_3m":"-12%","next_bias":"Bearish"}],
+            {"label":"1974-75 Oil Shock","similarity":0.71,"path_1m":"-5%","path_3m":"-12%","next_bias":"Bearish"}],
         "Q1": [{"label":"2023 H2 Goldilocks","similarity":0.85,"path_1m":"+4%","path_3m":"+12%","next_bias":"Bullish"},
-               {"label":"2017 Low Vol Rally","similarity":0.78,"path_1m":"+3%","path_3m":"+8%","next_bias":"Bullish"}],
+            {"label":"2017 Low Vol Rally","similarity":0.78,"path_1m":"+3%","path_3m":"+8%","next_bias":"Bullish"}],
         "Q2": [{"label":"2021 H1 Reflation","similarity":0.80,"path_1m":"+5%","path_3m":"+10%","next_bias":"Bullish"}],
         "Q4": [{"label":"2008 GFC","similarity":0.75,"path_1m":"-10%","path_3m":"-25%","next_bias":"Bearish"},
-               {"label":"2001 Dot-Com","similarity":0.68,"path_1m":"-8%","path_3m":"-18%","next_bias":"Bearish"}],
+            {"label":"2001 Dot-Com","similarity":0.68,"path_1m":"-8%","path_3m":"-18%","next_bias":"Bearish"}],
     }
     return analogs_map.get(sq, [])
 
@@ -896,7 +901,7 @@ def _build_ihsg_commodity_overlay(prices):
             if len(s) >= 22:
                 r1m = float(s.iloc[-1] / s.iloc[-22] - 1)
                 overlay[sector] = {"proxy": meta["proxy"], "r1m": round(r1m, 4),
-                                   "bias": "Bullish" if r1m > 0.02 else ("Bearish" if r1m < -0.02 else "Neutral")}
+                    "bias": "Bullish" if r1m > 0.02 else ("Bearish" if r1m < -0.02 else "Neutral")}
     return overlay
 
 def _build_ihsg_rupiah_regime(prices):
@@ -904,7 +909,6 @@ def _build_ihsg_rupiah_regime(prices):
     if s is None or len(s) < 22: return {"regime": "unknown"}
     s = pd.to_numeric(s, errors="coerce").dropna()
     r1m = float(s.iloc[-1] / s.iloc[-22] - 1)
-    # Rising USDIDR = IDR weakening = bearish for IHSG
     return {
         "usdidr_1m": round(r1m, 4),
         "regime": "Bearish IDR" if r1m > 0.02 else ("Bullish IDR" if r1m < -0.02 else "Stable IDR"),
@@ -919,7 +923,7 @@ def _build_ihsg_foreign_flow(prices):
             s = pd.to_numeric(s, errors="coerce").dropna()
             r = float(s.iloc[-1] / s.iloc[-6] - 1) if len(s) >= 6 else 0
             flow_signals[t] = {"signal": "Accumulation" if r > 0.02 else ("Distribution" if r < -0.02 else "Normal"),
-                               "5d_ret": round(r, 4)}
+                "5d_ret": round(r, 4)}
     return flow_signals
 
 def _build_ihsg_macro_overlay(gip, prices):
@@ -935,14 +939,14 @@ def _build_ihsg_macro_overlay(gip, prices):
     }
 
 def _build_ihsg_setups(prices, ihsg_sector_momentum=None, ihsg_commodity_overlay=None,
-                        ihsg_rupiah_regime=None, ihsg_foreign_flow=None, ihsg_macro_overlay=None):
+        ihsg_rupiah_regime=None, ihsg_foreign_flow=None, ihsg_macro_overlay=None):
     setups = []
     for t in list(IHSG_UNIVERSE.keys())[:20]:
         p = _last_price(prices.get(t)); r1m = _safe_ret(prices.get(t), 21)
         if p is None: continue
         direction = "LONG" if (r1m and r1m > 0.03) else "SHORT" if (r1m and r1m < -0.03) else "NEUTRAL"
         setups.append({"ticker":t,"price":round(p,2),"direction":direction,
-                       "thesis":f"IHSG: {t} {(r1m or 0):+.1%} 1M","grade":"B"})
+            "thesis":f"IHSG: {t} {(r1m or 0):+.1%} 1M","grade":"B"})
     return setups
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -955,10 +959,10 @@ def build_snapshot(
     include_commodities=True,
     include_crypto=True,
     include_ihsg=True,
-    fast_refresh=False,   # True = skip heavy engines, use cached prices
+    fast_refresh=True,  # ← CHANGED: default True for speed
 ):
     """
-    fast_refresh=True: reuse prices from cache, skip EDGAR/NewsNLP/full options → ~30s
+    fast_refresh=True: reuse prices from cache, skip heavy engines (NewsNLP/EDGAR/full options) → ~30s
     fast_refresh=False (Full Rebuild): run everything → ~2-4 min
     """
     t0 = time.time()
@@ -966,26 +970,27 @@ def build_snapshot(
     if progress_cb: progress_cb("Building ticker list...", 0.03)
 
     # ── Ticker list ────────────────────────────────────────────────────────
-    BAD_TICKERS = {"VEX","WDL","VIX","ALI=F","ZNC=F","LBS=F"}  # Never fetch these
+    # v3.2: Removed KOL, JJN (delisted). Reduced slices for speed.
+    BAD_TICKERS = {"VEX","WDL","VIX","ALI=F","ZNC=F","LBS=F","KOL","JJN"}
 
     all_tickers = list(MACRO_PROXIES.keys())
     if include_us_stocks:
         all_tickers += list(US_SECTORS.keys())
         for bucket in ["Growth","Quality","Defensives","Semis","Energy","Industrials",
-                       "Financials","AI_Infra","PreciousMetals","International","Housing","Bitcoin"]:
+                "Financials","AI_Infra","PreciousMetals","International","Housing","Bitcoin"]:
             all_tickers += US_BUCKETS.get(bucket, [])
         all_tickers += list(BONDS.keys())
-    if include_commodities: all_tickers += list(COMMODITIES.keys())[:25]
-    if include_forex:       all_tickers += list(FOREX_PAIRS.keys())
-    if include_crypto:      all_tickers += list(CRYPTO.keys())[:10]
-    if include_ihsg:        all_tickers += list(IHSG_UNIVERSE.keys())[:25]
+    if include_commodities: all_tickers += list(COMMODITIES.keys())[:15]  # 25→15
+    if include_forex: all_tickers += list(FOREX_PAIRS.keys())
+    if include_crypto: all_tickers += list(CRYPTO.keys())[:5]  # 10→5
+    if include_ihsg: all_tickers += list(IHSG_UNIVERSE.keys())[:15]  # 25→15
     # Always include key macro tickers + ^VIX (NOT bare VIX)
-    all_tickers += ["DX-Y.NYB","EIDO","^JKSE","^VIX","KOL","JJN","USDIDR=X"]
+    all_tickers += ["DX-Y.NYB","EIDO","^JKSE","^VIX","USDIDR=X"]
 
     # Deduplicate + remove known-bad tickers
     seen = set()
     all_tickers = [t for t in all_tickers
-                   if t not in BAD_TICKERS and not (t in seen or seen.add(t))]
+        if t not in BAD_TICKERS and not (t in seen or seen.add(t))]
     logger.info(f"Ticker list: {len(all_tickers)} tickers (bad tickers removed)")
 
     # ── Prices ────────────────────────────────────────────────────────────
@@ -1023,24 +1028,31 @@ def build_snapshot(
 
     # ── Market Health ─────────────────────────────────────────────────────
     if progress_cb: progress_cb("Running market health...", 0.52)
-    try:
-        health_engine = MarketHealthEngine()
-        health = health_engine.run(prices, asset_ranges)
-    except Exception as _e:
-        logger.warning(f"MarketHealthEngine failed: {_e}")
+    health = None
+    if MarketHealthEngine is not None:
+        try:
+            health_engine = MarketHealthEngine()
+            health = health_engine.run(prices, asset_ranges)
+        except Exception as _e:
+            logger.warning(f"MarketHealthEngine failed: {_e}")
+    if health is None:
         vix_s = prices.get("^VIX")
         vix_now = float(pd.to_numeric(vix_s,errors="coerce").dropna().iloc[-1]) if vix_s is not None and len(vix_s) > 0 else 20.0
         vix_bucket = "Investable" if vix_now < 20 else ("Chop" if vix_now < 28 else "Defensive")
         health = {"vix_bucket":{"vix_last":vix_now,"bucket":vix_bucket},
-                  "crash":{"state":"calm","score":0.1},"risk_off":{"state":"risk_on"},"sources":{}}
+            "crash":{"state":"calm","score":0.1},"risk_off":{"state":"risk_on"},"sources":{}}
 
     vix_now = health.get("vix_bucket",{}).get("vix_last", 20.0) or 20.0
 
     # ── Transition ────────────────────────────────────────────────────────
-    try:
-        trans_engine = TransitionEngine()
-        transition = trans_engine.run(gip, prices, asset_ranges)
-    except Exception:
+    transition = None
+    if TransitionEngine is not None:
+        try:
+            trans_engine = TransitionEngine()
+            transition = trans_engine.run(gip, prices, asset_ranges)
+        except Exception:
+            pass
+    if transition is None:
         transition = SimpleNamespace(front_run_window="not yet", scenario="stable", from_quad=sq, to_quad=mq)
 
     # ── PVV + Trend ───────────────────────────────────────────────────────
@@ -1087,7 +1099,7 @@ def build_snapshot(
                     r = cot_scraper.analyze(t, prices, vix_now)
                     if r and r.get("ok"): cot_results[t] = r
                 except Exception as e: logger.debug(f"COT {t}: {e}")
-        cot_oi = {"cot": cot_results, "oi": oi_results}
+            cot_oi = {"cot": cot_results, "oi": oi_results}
 
         if progress_cb: progress_cb("Fetching options chains...", 0.63)
         if yf_options:
@@ -1118,23 +1130,23 @@ def build_snapshot(
         if progress_cb: progress_cb("Running options analytics (top 30)...", 0.68)
         gamma_engine = GammaEngine(); greeks_engine = GreeksProxy()
         dxy_ret = _safe_ret(prices.get("DX-Y.NYB"), 21) or 0.0
-        gamma_data  = gamma_engine.analyze_multi(TOP_OPTIONS_TICKERS, prices, vix=vix_now, dxy_ret=dxy_ret)
+        gamma_data = gamma_engine.analyze_multi(TOP_OPTIONS_TICKERS, prices, vix=vix_now, dxy_ret=dxy_ret)
         greeks_data = greeks_engine.analyze_multi(TOP_OPTIONS_TICKERS, prices, vix=vix_now, dxy_ret=dxy_ret, regime=sq)
         if progress_cb: progress_cb(f"Gamma: {len(gamma_data)} | Greeks: {len(greeks_data)}", 0.72)
     except Exception as e:
         logger.warning(f"Option analytics: {e}")
-    gamma_data  = gamma_data  if isinstance(gamma_data,  dict) else {}
-    greeks_data = greeks_data if isinstance(greeks_data, dict) else {}
+        gamma_data = gamma_data if isinstance(gamma_data, dict) else {}
+        greeks_data = greeks_data if isinstance(greeks_data, dict) else {}
 
     # ── Alpha / Signals ───────────────────────────────────────────────────
     if progress_cb: progress_cb("Building alpha ideas...", 0.74)
     alpha = _build_alpha_ideas(prices, sq, mq, gamma_data, greeks_data)
     stress_test = _build_stress_test(prices, sq, alpha)
     bottlenecks = _build_bottlenecks(prices, health, gip.features, sq, mq)
-    narratives  = _build_narratives(gip, health, sq, mq)
-    narratives  = _enrich_narrative_from_universe(narratives, sq)
-    scenarios   = _build_scenarios(gip, sq, mq)
-    analogs     = _build_analogs(gip, sq, mq)
+    narratives = _build_narratives(gip, health, sq, mq)
+    narratives = _enrich_narrative_from_universe(narratives, sq)
+    scenarios = _build_scenarios(gip, sq, mq)
+    analogs = _build_analogs(gip, sq, mq)
     global_data = _build_global(gip, sq, mq, prices)
 
     if progress_cb: progress_cb("Building daily signals...", 0.76)
@@ -1150,7 +1162,7 @@ def build_snapshot(
             import config.settings as _cfg
             disc_engine = BottleneckDiscoveryV3(settings_module=_cfg)
             discovery_v3_result = disc_engine.run(prices=prices, quad_str=sq, quad_mon=mq,
-                                                   asset_ranges=asset_ranges, top_n=30)
+                asset_ranges=asset_ranges, top_n=30)
             for c in discovery_v3_result.get("reactive", []):
                 if c.get("level") in ("level_1","level_2","watch"):
                     auto_discoveries.append({
@@ -1167,8 +1179,8 @@ def build_snapshot(
         try:
             ai_engine = AIEngine()
             ai_result = ai_engine.run(sq=sq, mq=mq, gq=sq, gip_features=gip.features,
-                                       prices=prices, asset_ranges=asset_ranges,
-                                       sector_map=TICKER_SECTOR, health=health, transition=transition)
+                prices=prices, asset_ranges=asset_ranges,
+                sector_map=TICKER_SECTOR, health=health, transition=transition)
             if ai_result.get("bottlenecks"):
                 for b in ai_result["bottlenecks"]:
                     b.setdefault("ticker", b.get("beneficiary_tickers",["UNKNOWN"])[0])
@@ -1182,18 +1194,18 @@ def build_snapshot(
     # ── Alpha Center ──────────────────────────────────────────────────────
     if progress_cb: progress_cb("Building Alpha Center...", 0.83)
     alpha_center = _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks,
-                                        {"ok":True,"bottlenecks":auto_discoveries}, daily_signals,
-                                        gamma_data, greeks_data)
+        {"ok":True,"bottlenecks":auto_discoveries}, daily_signals,
+        gamma_data, greeks_data)
 
     # ── IHSG Layers ──────────────────────────────────────────────────────
     if progress_cb: progress_cb("IHSG structural layers...", 0.86)
-    ihsg_sector_momentum    = _build_ihsg_sector_momentum(prices)
-    ihsg_commodity_overlay  = _build_ihsg_commodity_overlay(prices)
-    ihsg_rupiah_regime      = _build_ihsg_rupiah_regime(prices)
-    ihsg_foreign_flow       = _build_ihsg_foreign_flow(prices)
-    ihsg_macro_overlay      = _build_ihsg_macro_overlay(gip, prices)
+    ihsg_sector_momentum = _build_ihsg_sector_momentum(prices)
+    ihsg_commodity_overlay = _build_ihsg_commodity_overlay(prices)
+    ihsg_rupiah_regime = _build_ihsg_rupiah_regime(prices)
+    ihsg_foreign_flow = _build_ihsg_foreign_flow(prices)
+    ihsg_macro_overlay = _build_ihsg_macro_overlay(gip, prices)
     ihsg_setups = _build_ihsg_setups(prices, ihsg_sector_momentum, ihsg_commodity_overlay,
-                                      ihsg_rupiah_regime, ihsg_foreign_flow, ihsg_macro_overlay)
+        ihsg_rupiah_regime, ihsg_foreign_flow, ihsg_macro_overlay)
 
     # ── Vol Forecast + Risk Adjusted ─────────────────────────────────────
     if progress_cb: progress_cb("Vol forecast + risk metrics...", 0.88)
@@ -1219,16 +1231,20 @@ def build_snapshot(
     # ── Summary stats ─────────────────────────────────────────────────────
     daily_signals_summary = {
         "total": len(daily_signals),
-        "strong_longs":  len([s for s in daily_signals if "STRONG LONG"  in s.get("signal","")]),
-        "longs":         len([s for s in daily_signals if s.get("signal","") == "LONG"]),
+        "strong_longs": len([s for s in daily_signals if "STRONG LONG" in s.get("signal","")]),
+        "longs": len([s for s in daily_signals if s.get("signal","") == "LONG"]),
         "strong_shorts": len([s for s in daily_signals if "STRONG SHORT" in s.get("signal","")]),
-        "shorts":        len([s for s in daily_signals if s.get("signal","") == "SHORT"]),
+        "shorts": len([s for s in daily_signals if s.get("signal","") == "SHORT"]),
     }
 
-    try:
-        pb_engine = PlaybookEngine()
-        playbook = pb_engine.run(sq, mq, prices, asset_ranges)
-    except Exception:
+    playbook = None
+    if PlaybookEngine is not None:
+        try:
+            pb_engine = PlaybookEngine()
+            playbook = pb_engine.run(sq, mq, prices, asset_ranges)
+        except Exception:
+            pass
+    if playbook is None:
         from orchestrator import _build_alpha_ideas as _ai
         ai_result_inner = _build_alpha_ideas(prices, sq, mq, gamma_data, greeks_data)
         playbook = ai_result_inner.get("playbook", {"best_assets":[], "worst_assets":[], "strategy":""})
@@ -1294,7 +1310,6 @@ def build_snapshot(
     logger.info(f"Snapshot built in {snapshot['build_time_s']}s | Prices: {len(prices)} | Ranges: {len(asset_ranges)} | Signals: {len(daily_signals)} | Alpha: {alpha_center['meta']['total_items']} | fast={fast_refresh}")
     if progress_cb: progress_cb("Done!", 1.0)
     return snapshot
-
 
 if __name__ == "__main__":
     snap = build_snapshot()

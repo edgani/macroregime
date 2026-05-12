@@ -1,10 +1,9 @@
-"""data/loader.py — Bulletproof YFinance Price Loader v3.0
-Fixes v3:
-  • KNOWN_BAD_TICKERS blacklist (VEX, WDL, bare VIX, etc.)
-  • Batch size ↑ 25→50, sleep ↓ 1.2s→0.3s  → ~3× faster
-  • "possibly deleted" / 0-row detection → skip without retry
-  • Cache default 12h (was 6h)
-  • Graceful fallback: stale cache > failed live fetch
+"""data/loader.py — Bulletproof YFinance Price Loader v3.1
+Fixes v3.1:
+ • Added KOL, JJN to blacklist (delisted / illiquid)
+ • yfinance TzCache fix: env var + mkdir before import
+ • Batch size 50, sleep 0.3s (preserved from v3.0)
+ • Stale cache fallback preserved
 """
 from __future__ import annotations
 import os, time, json, logging, math
@@ -17,20 +16,24 @@ import numpy as np
 
 logger = logging.getLogger(__name__)
 
-CACHE_DIR = Path(".cache/prices_v2")
-CACHE_DIR.mkdir(parents=True, exist_ok=True)
+# ── CRITICAL: Fix yfinance cache dir BEFORE importing yfinance ───────────────
+os.environ["YFINANCE_CACHE_DIR"] = ".cache/yfinance"
+Path(".cache/yfinance").mkdir(parents=True, exist_ok=True)
+Path(".cache/prices_v2").mkdir(parents=True, exist_ok=True)
 
 import yfinance as yf
 
 # ── Known-bad tickers: skip entirely, never fetch ─────────────────────────────
 KNOWN_BAD_TICKERS = {
-    # These have been delisted / renamed / never existed on Yahoo Finance
-    "VEX", "WDL", "VIX",                      # VIX without caret → ^VIX
-    "JPXN", "EIS", "TUR", "NORW",             # sometimes 404 depending on region
-    "ZNC=F", "ALI=F",                          # low-liquidity futures often 404
-    "LBS=F",                                   # Lumber futures delisted
-    "BONK-USD", "FLOKI-USD", "PEPE24478-USD",  # extremely illiquid / renamed
-    "UNI7083-USD", "COMP5692-USD",             # Yahoo uses plain UNI-USD / COMP-USD
+    # Delisted / renamed / never existed on Yahoo Finance
+    "VEX", "WDL", "VIX",           # VIX without caret → ^VIX
+    "JPXN", "EIS", "TUR", "NORW",  # sometimes 404 depending on region
+    "ZNC=F", "ALI=F",              # low-liquidity futures often 404
+    "LBS=F",                       # Lumber futures delisted
+    "KOL", "JJN",                  # v3.1: KOL=delisted Coal ETF, JJN=illiquid Nickel ETN
+    # Renamed / illiquid crypto on Yahoo
+    "BONK-USD", "FLOKI-USD", "PEPE24478-USD",
+    "UNI7083-USD", "COMP5692-USD",
     "GRT6719-USD", "SUI20947-USD",
     "TAO22974-USD", "TIA22861-USD",
     "TON11419-USD",
@@ -46,7 +49,7 @@ def _retry_call(func, *args, max_attempts=3, base_delay=2.0, **kwargs):
             last_err = e
             err_str = str(e).lower()
             is_timeout = "timeout" in err_str or "timed out" in err_str
-            is_rate    = "too many requests" in err_str or "429" in err_str or "403" in err_str
+            is_rate = "too many requests" in err_str or "429" in err_str or "403" in err_str
             if not (is_timeout or is_rate or "failed" in err_str):
                 raise
             delay = base_delay * (2 ** (attempt - 1)) + (hash(str(args)) % 100) / 100.0
@@ -122,7 +125,7 @@ def _fetch_yf_batch(tickers: List[str], days: int = 756) -> pd.DataFrame:
         auto_adjust=True,
         prepost=False,
         threads=True,
-        progress=False,       # suppress per-ticker progress noise
+        progress=False,
         max_attempts=3,
         base_delay=3.0,
     )
@@ -147,7 +150,7 @@ def _extract_close(df: pd.DataFrame, tickers: List[str]) -> Dict[str, pd.Series]
                 s = df[(t, "Adj Close")].dropna()
             else:
                 continue
-            if len(s) > 5:           # require at least 5 days
+            if len(s) > 5:
                 out[t] = s
         except Exception:
             continue
@@ -155,11 +158,11 @@ def _extract_close(df: pd.DataFrame, tickers: List[str]) -> Dict[str, pd.Series]
 
 # ── Public API ─────────────────────────────────────────────────────────────────
 def load_prices(tickers: List[str], days: int = 756,
-                max_age_hours: float = 12.0,
-                progress_cb=None) -> Dict[str, pd.Series]:
+        max_age_hours: float = 12.0,
+        progress_cb=None) -> Dict[str, pd.Series]:
     """
     Robust price loader. Returns dict of Series keyed by ticker.
-    v3: blacklist filter + faster batching + stale-cache fallback.
+    v3.1: blacklist filter + faster batching + stale-cache fallback.
     """
     if not tickers:
         return {}
@@ -197,17 +200,16 @@ def load_prices(tickers: List[str], days: int = 756,
             if missing:
                 logger.warning(f"Batch {i+1}: no data for {missing}")
             if i < total_batches - 1:
-                time.sleep(0.3)          # 0.3s (was 1.2s)
+                time.sleep(0.3)
         except Exception as e:
             logger.error(f"Batch {i+1} failed: {e}")
-            # Per-ticker fallback for failed batch (slower but reliable)
             for t in batch:
                 if t not in all_data:
                     try:
                         s = yf.Ticker(t).history(period="2y", interval="1d", progress=False)["Close"].dropna()
                         if len(s) > 5:
                             all_data[t] = s
-                        time.sleep(0.4)
+                            time.sleep(0.4)
                     except Exception:
                         pass
 
@@ -215,7 +217,6 @@ def load_prices(tickers: List[str], days: int = 756,
     if len(all_data) > max(len(clean) * 0.5, 5):
         _save_cache(tickers_key, days, all_data)
     elif len(all_data) == 0:
-        # Total failure → fall back to stale cache
         stale = _load_cache_stale(tickers_key, days)
         if stale:
             logger.warning("Live fetch failed — using STALE cache")

@@ -35,46 +35,38 @@ FRED_GROWTH_SERIES = {
     "UNRATE":  "Unemployment",
     "ICSA":    "Initial Claims",
     "HOUST":   "Housing Starts",
-    "ISMNO":   "ISM Manufacturing",
-}
+    "ISMNO":   "ISM Manufacturing"}
 FRED_INFLATION_SERIES = {
     "CPIAUCSL": "CPI",
     "CPILFESL": "Core CPI",
     "PPIACO":   "PPI",
     "T5YIE":    "5yr Breakeven",
     "T10YIE":   "10yr Breakeven",
-    "DFII10":   "10yr TIPS",
-}
+    "DFII10":   "10yr TIPS"}
 FRED_POLICY_SERIES = {
     "FEDFUNDS": "Fed Funds",
     "DFF":      "Daily Fed Funds",
-    "M2SL":     "M2 Money Supply",
-}
+    "M2SL":     "M2 Money Supply"}
 
 # ── GIP Weights (Hedgeye: RoC/momentum dominant) ─────────────────────────────
 GROWTH_LEVEL_WEIGHTS = {
     "indpro_yoy": 0.22, "retail_yoy": 0.20, "payrolls_yoy": 0.18,
-    "housing_yoy": 0.12, "ism_norm": 0.15, "unrate_inv": 0.07, "claims_inv": 0.06,
-}
+    "housing_yoy": 0.12, "ism_norm": 0.15, "unrate_inv": 0.07, "claims_inv": 0.06}
 GROWTH_MOM_WEIGHTS = {
     "indpro_roc": 0.28, "retail_roc": 0.22, "payrolls_roc": 0.18,
-    "ism_delta": 0.14, "unrate_delta": 0.10, "claims_delta": 0.08,
-}
+    "ism_delta": 0.14, "unrate_delta": 0.10, "claims_delta": 0.08}
 INFLATION_LEVEL_WEIGHTS = {
     "cpi_yoy": 0.28, "core_cpi_yoy": 0.24, "breakeven_5y": 0.18,
-    "ppi_yoy": 0.14, "oil_3m": 0.10, "gold_3m": 0.06,
-}
+    "ppi_yoy": 0.14, "oil_3m": 0.10, "gold_3m": 0.06}
 INFLATION_MOM_WEIGHTS = {
     "cpi_roc": 0.30, "core_cpi_roc": 0.26, "breakeven_delta": 0.18,
-    "oil_1m": 0.14, "dxy_inv_1m": 0.12,
-}
+    "oil_1m": 0.14, "dxy_inv_1m": 0.12}
 # PRESERVED from original — inflation-dominant for Q3 accuracy
 STRUCTURAL_WEIGHTS = {
     "growth_level": 0.15,
     "growth_momentum": 0.30,
     "inflation_level": 0.20,
-    "inflation_momentum": 0.35,
-}
+    "inflation_momentum": 0.35}
 # PRESERVED from original — but inflation_level increased from 0.10 → 0.20
 # Reason: original 0.10 causes Monthly to compute Q1 when CPI is still 2.5%+ YoY
 # Even if inflation MOMENTUM is cooling, the LEVEL is still hot → Q2 not Q1
@@ -103,13 +95,11 @@ RR_HURST_SCALE: float    = 1.0
 US_SECTORS: dict = {
     "XLK":"Technology", "XLY":"Consumer Disc", "XLI":"Industrials", "XLF":"Financials",
     "XLE":"Energy", "XLB":"Materials", "XLV":"Healthcare", "XLP":"Consumer Staples",
-    "XLU":"Utilities", "XLRE":"Real Estate", "XLC":"Communication",
-}
+    "XLU":"Utilities", "XLRE":"Real Estate", "XLC":"Communication"}
 US_FACTORS: dict = {
     "SPY":"S&P500", "QQQ":"Nasdaq", "IWM":"Russell 2000", "DIA":"Dow Jones",
     "VTV":"Value", "VUG":"Growth", "USMV":"Min Vol", "HDV":"High Div",
-    "RSP":"Equal Weight", "MTUM":"Momentum", "QUAL":"Quality", "SIZE":"Small-Mid",
-}
+    "RSP":"Equal Weight", "MTUM":"Momentum", "QUAL":"Quality", "SIZE":"Small-Mid"}
 
 # ── Forex ─────────────────────────────────────────────────────────────────────
 FOREX_PAIRS: dict = {
@@ -121,8 +111,7 @@ FOREX_PAIRS: dict = {
     "USDINR=X":"USD/INR", "USDCNY=X":"USD/CNY", "USDKRW=X":"USD/KRW",
     "USDTHB=X":"USD/THB", "USDPHP=X":"USD/PHP", "USDMYR=X":"USD/MYR",
     "EURJPY=X":"EUR/JPY", "GBPJPY=X":"GBP/JPY", "AUDNZD=X":"AUD/NZD",
-    "CADUSD=X":"CAD/USD (Oil proxy)", "DX-Y.NYB":"USD Index (DXY)",
-}
+    "CADUSD=X":"CAD/USD (Oil proxy)", "DX-Y.NYB":"USD Index (DXY)"}
 
 # ── Commodities ───────────────────────────────────────────────────────────────
 COMMODITIES: dict = {
@@ -139,18 +128,15 @@ COMMODITIES: dict = {
     "USO":"Oil ETF", "UNG":"Nat Gas ETF", "BNO":"Brent Oil ETF",
     "OIH":"Oil Services ETF", "XOP":"Oil & Gas E&P ETF",
     # Industrial Metals
-    "HG=F":"Copper", "ALI=F":"Aluminum", "ZNC=F":"Zinc",
-    "CPER":"Copper ETF", "JJC":"iPath Copper",
+    "HG=F":"Copper","CPER":"Copper ETF", "JJC":"iPath Copper",
     "SLX":"Steel ETF",
     # Infrastructure
     "GRID":"Smart Grid ETF",
     # Agriculture
     "ZW=F":"Wheat", "ZC=F":"Corn", "ZS=F":"Soybeans", "ZO=F":"Oats",
     "KC=F":"Coffee", "SB=F":"Sugar", "CT=F":"Cotton", "CC=F":"Cocoa",
-    "DBA":"Agriculture ETF", "WEAT":"Wheat ETF", "CORN":"Corn ETF", "LBS=F":"Lumber",
-    # Nuclear
-    "URA":"Uranium ETF", "CCJ":"Cameco",
-}
+    "DBA":"Agriculture ETF", "WEAT":"Wheat ETF", "CORN":"Corn ETF",# Nuclear
+    "URA":"Uranium ETF", "CCJ":"Cameco"}
 
 # ── Crypto ────────────────────────────────────────────────────────────────────
 CRYPTO: dict = {
@@ -174,8 +160,7 @@ CRYPTO: dict = {
     "MSTY":"YieldMax MSTR Option Income ETF",
     "BITS":"Global X Blockchain ETF",
     "BLOK":"Amplify Blockchain ETF",
-    "WGMI":"Valkyrie Bitcoin Miners ETF",
-}
+    "WGMI":"Valkyrie Bitcoin Miners ETF"}
 
 # ── IHSG / Indonesia ──────────────────────────────────────────────────────────
 IHSG_UNIVERSE: dict = {
@@ -210,8 +195,7 @@ IHSG_UNIVERSE: dict = {
     "SMDR.JK":"Samudera Indo", "TMAS.JK":"Temas container",
     "DSNG.JK":"Dharma Satya", "TAPG.JK":"Triputra Agro",
     "SGRO.JK":"Sampoerna Agro",
-    "BEST.JK":"Bekasi Fajar", "KIJA.JK":"Jababeka", "DMAS.JK":"Puradelta",
-}
+    "BEST.JK":"Bekasi Fajar", "KIJA.JK":"Jababeka", "DMAS.JK":"Puradelta"}
 
 # ── Bonds ─────────────────────────────────────────────────────────────────────
 BONDS: dict = {
@@ -219,16 +203,14 @@ BONDS: dict = {
     "TIP":"TIPS (inflation-linked)", "LTPZ":"Long TIPS",
     "LQD":"IG Corporate", "HYG":"HY Corporate", "JNK":"HY Bonds",
     "EMB":"EM USD Bonds", "PCY":"EM Local Bonds",
-    "BND":"Total Bond", "AGG":"US Agg Bond",
-}
+    "BND":"Total Bond", "AGG":"US Agg Bond"}
 
 # ── Core macro proxy tickers ──────────────────────────────────────────────────
 MACRO_PROXIES: dict = {
     "SPY":"S&P500", "QQQ":"Nasdaq", "IWM":"Russell 2k", "DIA":"Dow",
     "XLI":"Industrials", "XLY":"Consumer Disc", "XHB":"Homebuilders",
     "UUP":"USD ETF", "GLD":"Gold", "TLT":"Long Bond",
-    "CL=F":"WTI Oil", "GC=F":"Gold Futures",
-}
+    "CL=F":"WTI Oil", "GC=F":"Gold Futures"}
 
 # ── DXY Correlation Assets (Keith McCullough's key signal table) ──────────────
 # Source: Keith tweets — "Key $USD Correlations* 15D"
@@ -280,8 +262,7 @@ QUAD_ASSET_PERFORMANCE: dict = {
         "sectors_underweight": ["XLU","XLP","XLV","TLT"],
         "monthly_adds": ["JPXN","EIS","ITA","GLIN","RSP"],
         "hedge": "BTAL (anti-beta).",
-        "note": "Q1 = max risk-on. BTC works (Bullish TREND). Equal-weight breadth = confirmation signal.",
-    },
+        "note": "Q1 = max risk-on. BTC works (Bullish TREND). Equal-weight breadth = confirmation signal."},
 
     # Q2: REFLATION / KNIFE FIGHTS — Growth↑ Inflation↑
     # KEY: Keith May 6 2026 — "Bitcoin Is Back In The Book" — LONG IBIT
@@ -341,8 +322,7 @@ QUAD_ASSET_PERFORMANCE: dict = {
         "monthly_removes": ["TXG","MPLX","GEL"],
         "hedge": "BTAL (anti-beta). DUST if metals overextended.",
         "sizing_note": "Start min. Scale gradually. Max 3% per name. IBIT = max 3%. IWM = minimum only.",
-        "note": "Q2 KNIFE FIGHTS. BTC = LONG (Bullish TREND, DXY Bearish TREND). DXY/BTC corr -0.83.",
-    },
+        "note": "Q2 KNIFE FIGHTS. BTC = LONG (Bullish TREND, DXY Bearish TREND). DXY/BTC corr -0.83."},
 
     # Q3: STAGFLATION — Growth↓ Inflation↑
     "Q3": {
@@ -382,8 +362,7 @@ QUAD_ASSET_PERFORMANCE: dict = {
         "sectors_underweight": ["XLK","XLY","IWM","XLF","HYG"],
         "monthly_adds": ["SLV","GDX","GDXJ","SIL","ITA","GRID","TLT"],
         "hedge": "BTAL (anti-beta). DUST as metals volatility hedge.",
-        "note": "CURRENT STRUCTURAL QUAD. SLV +143% — do not underweight. BTC: signal-dependent (exit if Bearish TREND). Monthly Q2 overlay adds tactical energy offense.",
-    },
+        "note": "CURRENT STRUCTURAL QUAD. SLV +143% — do not underweight. BTC: signal-dependent (exit if Bearish TREND). Monthly Q2 overlay adds tactical energy offense."},
 
     # Q4: DEFLATION — Growth↓ Inflation↓
     "Q4": {
@@ -414,9 +393,7 @@ QUAD_ASSET_PERFORMANCE: dict = {
         "sectors_underweight": ["XLK","XLE","HYG","IWM","XLF"],
         "monthly_adds": ["TLT","IEF","GLD","BTAL","USMV"],
         "hedge": "BTAL maximum. DUST.",
-        "note": "Q4 = most dangerous. ONLY quad where Bitcoin = EXIT. Cash + Bonds + Gold + Utilities.",
-    },
-}
+        "note": "Q4 = most dangerous. ONLY quad where Bitcoin = EXIT. Cash + Bonds + Gold + Utilities."}}
 
 # ── Bottleneck Profiles ───────────────────────────────────────────────────────
 BOTTLENECK_PROFILES: dict = {
@@ -447,8 +424,7 @@ BOTTLENECK_PROFILES: dict = {
     "osv_offshore":           {"constraint":0.82,"Q1":0.55,"Q2":0.80,"Q3":0.72,"Q4":0.30},
     "tanker_shipping":        {"constraint":0.75,"Q1":0.50,"Q2":0.82,"Q3":0.65,"Q4":0.25},
     "depin_ai":               {"constraint":0.70,"Q1":0.75,"Q2":0.65,"Q3":0.55,"Q4":0.30},
-    "generic":                {"constraint":0.50,"Q1":0.50,"Q2":0.50,"Q3":0.50,"Q4":0.50},
-}
+    "generic":                {"constraint":0.50,"Q1":0.50,"Q2":0.50,"Q3":0.50,"Q4":0.50}}
 
 # ── Ticker → Sector (used by BottleneckEngine + Leaderboard) ─────────────────
 TICKER_SECTOR: dict = {
@@ -537,12 +513,11 @@ TICKER_SECTOR: dict = {
     "CL=F":"energy_infra","BZ=F":"energy_infra","NG=F":"energy_infra",
     "RB=F":"energy_infra","HO=F":"energy_infra",
     "USO":"energy_infra","UNG":"energy_infra","BNO":"energy_infra",
-    "HG=F":"generic","ALI=F":"generic","ZNC=F":"generic","CPER":"generic","JJC":"generic",
+    "HG=F":"generic","CPER":"generic","JJC":"generic",
     "SLX":"steel",
     "ZW=F":"staples","ZC=F":"staples","ZS=F":"staples","ZO=F":"staples",
     "KC=F":"staples","SB=F":"staples","CT=F":"staples","CC=F":"staples",
-    "DBA":"staples","WEAT":"staples","CORN":"staples","LBS=F":"generic",
-}
+    "DBA":"staples","WEAT":"staples","CORN":"staples"}
 
 # ── Market Classification ─────────────────────────────────────────────────────
 MARKET_CLASSIFICATION: dict = {
@@ -605,10 +580,10 @@ MARKET_CLASSIFICATION: dict = {
     "GC=F":"commodity","SI=F":"commodity","PL=F":"commodity","PA=F":"commodity",
     "CL=F":"commodity","BZ=F":"commodity","NG=F":"commodity","RB=F":"commodity","HO=F":"commodity",
     "USO":"commodity","UNG":"commodity",
-    "HG=F":"commodity","ALI=F":"commodity","ZNC=F":"commodity","CPER":"commodity","JJC":"commodity",
+    "HG=F":"commodity","CPER":"commodity","JJC":"commodity",
     "ZW=F":"commodity","ZC=F":"commodity","ZS=F":"commodity","ZO=F":"commodity",
     "KC=F":"commodity","SB=F":"commodity","CT=F":"commodity","CC=F":"commodity",
-    "DBA":"commodity","WEAT":"commodity","CORN":"commodity","LBS=F":"commodity","SLX":"commodity",
+    "DBA":"commodity","WEAT":"commodity","CORN":"commodity","SLX":"commodity",
     # Crypto
     "BTC-USD":"crypto","ETH-USD":"crypto","BNB-USD":"crypto","SOL-USD":"crypto",
     "XRP-USD":"crypto","ADA-USD":"crypto","AVAX-USD":"crypto","DOT-USD":"crypto",
@@ -642,8 +617,7 @@ MARKET_CLASSIFICATION: dict = {
     "WINS.JK":"ihsg","LEAD.JK":"ihsg","SHIP.JK":"ihsg","ELSA.JK":"ihsg",
     "SOCI.JK":"ihsg","BULL.JK":"ihsg","SMDR.JK":"ihsg","TMAS.JK":"ihsg",
     "DSNG.JK":"ihsg","TAPG.JK":"ihsg","SGRO.JK":"ihsg",
-    "BEST.JK":"ihsg","KIJA.JK":"ihsg","DMAS.JK":"ihsg",
-}
+    "BEST.JK":"ihsg","KIJA.JK":"ihsg","DMAS.JK":"ihsg"}
 
 # ── Quad → Market Direction ───────────────────────────────────────────────────
 # crypto: "long" = BTC/IBIT when Bullish TREND signal
@@ -652,8 +626,7 @@ QUAD_MARKET_DIRECTION: dict = {
     "Q1": {"us_equity":"long","forex":"neutral","commodity":"neutral","crypto":"long","ihsg":"long"},
     "Q2": {"us_equity":"long","forex":"long","commodity":"long","crypto":"long","ihsg":"long"},
     "Q3": {"us_equity":"short","forex":"short","commodity":"long","crypto":"neutral","ihsg":"short"},
-    "Q4": {"us_equity":"short","forex":"short","commodity":"short","crypto":"short","ihsg":"short"},
-}
+    "Q4": {"us_equity":"short","forex":"short","commodity":"short","crypto":"short","ihsg":"short"}}
 
 # ── EM Recovery Signals ───────────────────────────────────────────────────────
 EM_RECOVERY_SIGNALS: dict = {
@@ -661,27 +634,22 @@ EM_RECOVERY_SIGNALS: dict = {
         "trigger": "Monthly Q2 inside Structural Q3 = EM commodity exporters early recovery",
         "best": ["EIDO","EWW","EWZ","EWC","NORW","EWA","USDMXN=X","USDBRL=X","AUDUSD=X"],
         "rationale": "Q2 monthly = commodity bid + growth rebound. EM commodity exporters lead.",
-        "confidence": 0.55,
-    },
+        "confidence": 0.55},
     "Q4→Q1": {
         "trigger": "Deflation → Goldilocks = MAX EM recovery setup",
         "best": ["EIDO","INDA","EWZ","EWW","EEM","VWO","USDMXN=X","USDBRL=X","USDZAR=X"],
         "rationale": "Q4→Q1 = growth re-acceleration + Fed easing. EM equities historically +25-40% in first 6M of Q1.",
-        "confidence": 0.85,
-    },
+        "confidence": 0.85},
     "Q3→Q1": {
         "trigger": "Direct stagflation → goldilocks = EM selective recovery",
         "best": ["INDA","EIDO","EWS","EWT"],
         "rationale": "Rare direct transition. Only high-quality EM recover.",
-        "confidence": 0.35,
-    },
+        "confidence": 0.35},
     "Q3→Q3": {
         "trigger": "Stagflation persistence = EM headwind continues",
         "best": [],
         "rationale": "EM non-commodity exporters under pressure. Defensive EM (India) only.",
-        "confidence": 0.70,
-    },
-}
+        "confidence": 0.70}}
 
 # ── Country Universe (50+ countries, PRESERVED original format) ───────────────
 # Format: (etf, region, inflation_sensitivity, growth_sensitivity)
@@ -733,8 +701,7 @@ COUNTRY_UNIVERSE: dict = {
     "Hungary":     ("FLHU",  "europe",   0.40, 0.60),
     "Czech":       ("FLCZ",  "europe",   0.35, 0.65),
     "Pakistan":    ("PAK",   "em",       0.60, 0.55),
-    "Sri_Lanka":   ("SLXB",  "em",       0.55, 0.50),
-}
+    "Sri_Lanka":   ("SLXB",  "em",       0.55, 0.50)}
 
 # ── US Sector Buckets ─────────────────────────────────────────────────────────
 US_BUCKETS: dict = {
@@ -749,8 +716,7 @@ US_BUCKETS: dict = {
     "PreciousMetals": ["GLD","SLV","PPLT","GDX","GDXJ","SIL","SILJ","AEM","WPM","FNV"],
     "International":  ["JPXN","EIS","TUR","NORW","EWZ","EWW","EIDO","GLIN","UAE"],
     "Housing":        ["ITB","XHB","DHI","LEN","PHM","NVR"],
-    "Bitcoin":        ["IBIT","FBTC","MSTR","BTC-USD"],
-}
+    "Bitcoin":        ["IBIT","FBTC","MSTR","BTC-USD"]}
 IHSG_BUCKETS: dict = {
     "Banks":           ["BBCA.JK","BBRI.JK","BMRI.JK","BBNI.JK","BRIS.JK","BBTN.JK"],
     "Coal_Energy":     ["AADI.JK","ADRO.JK","PTBA.JK","ITMG.JK","HRUM.JK","INDY.JK","BUMI.JK"],
@@ -761,21 +727,18 @@ IHSG_BUCKETS: dict = {
     "Property_Health": ["CTRA.JK","BSDE.JK","PWON.JK","SMRA.JK","HEAL.JK","MIKA.JK","SILO.JK"],
     "CPO_Agri":        ["AALI.JK","LSIP.JK","SSMS.JK","INKP.JK","TKIM.JK","ESSA.JK","DSNG.JK","TAPG.JK","SGRO.JK"],
     "OSV_Hulu":        ["WINS.JK","LEAD.JK","SHIP.JK","ELSA.JK","MEDC.JK","ESSA.JK"],
-    "Tanker_Ship":     ["SOCI.JK","BULL.JK","SMDR.JK","TMAS.JK"],
-}
+    "Tanker_Ship":     ["SOCI.JK","BULL.JK","SMDR.JK","TMAS.JK"]}
 FX_BUCKETS: dict = {
     "Majors":       ["EURUSD=X","GBPUSD=X","AUDUSD=X","NZDUSD=X","USDJPY=X","USDCHF=X","USDCAD=X"],
     "EM_FX":        ["USDMXN=X","USDBRL=X","USDTRY=X","USDZAR=X","USDIDR=X","USDINR=X","USDSGD=X"],
-    "Commodity_FX": ["AUDUSD=X","USDCAD=X","USDNOK=X"],
-}
+    "Commodity_FX": ["AUDUSD=X","USDCAD=X","USDNOK=X"]}
 COMMODITY_BUCKETS: dict = {
     "Precious":      ["GC=F","SI=F","PL=F","PA=F","GLD","SLV"],
     "Miners":        ["GDX","GDXJ","SIL","SILJ"],
     "Energy":        ["CL=F","BZ=F","NG=F","RB=F","HO=F","USO","BNO","OIH","XOP"],
-    "Industrial":    ["HG=F","ALI=F","CPER","SLX"],
+    "Industrial":    ["HG=F","CPER","SLX"],
     "Agri_Softs":    ["ZC=F","ZW=F","ZS=F","KC=F","SB=F","CT=F","CC=F","DBA","WEAT","CORN"],
-    "Nuclear":       ["URA","CCJ","NXE"],
-}
+    "Nuclear":       ["URA","CCJ","NXE"]}
 CRYPTO_BUCKETS: dict = {
     "Majors":        ["BTC-USD","ETH-USD","SOL-USD","BNB-USD","XRP-USD"],
     "L1_L2":         ["ADA-USD","AVAX-USD","ATOM-USD","NEAR-USD","APT-USD","ARB-USD","OP-USD","MATIC-USD"],

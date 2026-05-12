@@ -1349,46 +1349,60 @@ if page == "🏠 Dashboard":
         pos_corr = dxy_corr.get("strongest_positive_corr", [])
         neg_corr = dxy_corr.get("strongest_negative_corr", [])
         if pos_corr or neg_corr:
-            corr_cols = st.columns(2)
-            with corr_cols[0]:
-                if pos_corr:
-                    st.markdown("**📈 Positive Correlation** (rises with DXY)")
-                    pos_rows = [{"Asset": k, "Correlation": v.get("correlation", 0), "Meaning": v.get("meaning", "")} for k, v in pos_corr]
-                    df_pos = pd.DataFrame(pos_rows)
-                    st.dataframe(df_pos.style.format({"Correlation": "{:+.2f}"}).background_gradient(subset=["Correlation"], cmap="RdYlGn", vmin=-1, vmax=1), hide_index=True, use_container_width=True, height=180)
-            with corr_cols[1]:
-                if neg_corr:
-                    st.markdown("**📉 Negative Correlation** (falls when DXY rises)")
-                    neg_rows = [{"Asset": k, "Correlation": v.get("correlation", 0), "Meaning": v.get("meaning", "")} for k, v in neg_corr]
-                    df_neg = pd.DataFrame(neg_rows)
-                    st.dataframe(df_neg.style.format({"Correlation": "{:+.2f}"}).background_gradient(subset=["Correlation"], cmap="RdYlGn_r", vmin=-1, vmax=1), hide_index=True, use_container_width=True, height=180)
+            with st.expander("📈 DXY Correlation Details", expanded=False):
+                corr_cols = st.columns(2)
+                with corr_cols[0]:
+                    if pos_corr:
+                        st.markdown("**📈 Positive** (rises with DXY)")
+                        pos_rows = [{"Asset": k, "r": v.get("correlation", 0)} for k, v in pos_corr[:5]]
+                        df_pos = pd.DataFrame(pos_rows)
+                        st.dataframe(df_pos.style.format({"r": "{:+.2f}"}).background_gradient(subset=["r"], cmap="RdYlGn", vmin=-1, vmax=1), hide_index=True, use_container_width=True, height=150)
+                with corr_cols[1]:
+                    if neg_corr:
+                        st.markdown("**📉 Negative** (falls when DXY rises)")
+                        neg_rows = [{"Asset": k, "r": v.get("correlation", 0)} for k, v in neg_corr[:5]]
+                        df_neg = pd.DataFrame(neg_rows)
+                        st.dataframe(df_neg.style.format({"r": "{:+.2f}"}).background_gradient(subset=["r"], cmap="RdYlGn_r", vmin=-1, vmax=1), hide_index=True, use_container_width=True, height=150)
 
-    # ── Vol Forecast ──
+    # ── Vol Forecast (Compact Cards) ──
     vol_f = snap.get("vol_forecast", {})
     if vol_f:
-        st.markdown("**Vol Forecast**")
-        proxy_tickers = ["SPY", "QQQ", "GLD", "TLT", "DX-Y.NYB"]
-        vol_rows = []
+        st.markdown("### 📊 Vol Forecast")
+        proxy_tickers = ["SPY", "QQQ", "GLD", "TLT", "DX-Y.NYB", "EEM", "VWO", "IWM"]
+        vol_cards = []
         for t in proxy_tickers:
             if t in vol_f:
                 v = vol_f[t]
-                vol_rows.append({"Asset": t, "Current": f"{v['current_ann_vol']}%", "Forecast": f"{v['forecast_ann_vol']}%", "Regime": v['vol_regime'], "Daily": f"±{v['expected_daily_move_pct']:.1%}"})
-        if vol_rows:
-            df_vol = pd.DataFrame(vol_rows)
-            st.dataframe(df_vol.style.map(lambda x: "color:var(--long);font-weight:600;" if x == "LOW" else ("color:var(--neutral);font-weight:600;" if x == "NORMAL" else ("color:var(--short);font-weight:600;" if x in ["ELEVATED","EXTREME"] else "")), subset=["Regime"]), hide_index=True, use_container_width=True, height=160)
+                regime = v.get("vol_regime", "NORMAL")
+                color = "var(--long)" if regime == "LOW" else ("var(--neutral)" if regime == "NORMAL" else "var(--short)")
+                vol_cards.append((t, v.get("current_ann_vol", 0), v.get("forecast_ann_vol", 0), regime, color))
+        if vol_cards:
+            cols = st.columns(min(len(vol_cards), 4))
+            for i, (t, cur, fore, reg, col) in enumerate(vol_cards):
+                with cols[i % 4]:
+                    st.markdown(f"""
+                    <div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:8px;text-align:center;">
+                      <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;">{t}</div>
+                      <div style="font-size:16px;font-weight:700;color:{col};">{cur}%</div>
+                      <div style="font-size:9px;color:var(--text-secondary);">{reg}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
 
-    # ── Stress Test ──
+    # ── Stress Test (Compact) ──
     stress = snap.get("stress_test", [])
     if stress:
-        st.markdown("**Stress Test**")
-        for sc in stress:
-            sev_color = "var(--short)" if sc['severity'] == "EXTREME" else "var(--neutral)" if sc['severity'] == "HIGH" else "var(--text-secondary)"
-            with st.expander(f"⚠️ {sc['scenario']} | DD: {sc['portfolio_dd']:.0%} | {sc['severity']}", expanded=(sc['severity'] in ["EXTREME","HIGH"])):
-                c1, c2, c3 = st.columns(3)
-                c1.metric("Portfolio DD", f"{sc['portfolio_dd']:.0%}")
-                c2.metric("Worst", sc['worst_asset'], f"{sc['worst_dd']:.0%}")
-                c3.metric("Best", sc['best_asset'], f"{sc['best_dd']:.0%}")
-                st.info(f"🛡️ Hedge: {sc['hedge']}")
+        st.markdown("### ⚠️ Stress Test")
+        sev_order = {"EXTREME": 0, "HIGH": 1, "MEDIUM": 2}
+        stress_sorted = sorted(stress, key=lambda x: sev_order.get(x.get("severity", "MEDIUM"), 3))
+        for sc in stress_sorted[:3]:  # Show max 3
+            sev = sc.get("severity", "MEDIUM")
+            sev_color = "var(--short)" if sev == "EXTREME" else "var(--neutral)" if sev == "HIGH" else "var(--text-secondary)"
+            with st.expander(f"⚠️ {sc.get('scenario', '—')} | DD: {sc.get('portfolio_dd', 0):.0%} | {sev}", expanded=False):
+                c1, c2, c3, c4 = st.columns(4)
+                c1.metric("Portfolio DD", f"{sc.get('portfolio_dd', 0):.0%}")
+                c2.metric("Worst", sc.get('worst_asset', '—'), f"{sc.get('worst_dd', 0):.0%}")
+                c3.metric("Best", sc.get('best_asset', '—'), f"{sc.get('best_dd', 0):.0%}")
+                c4.markdown(f"<div style='color:{sev_color};font-size:11px;'><b>Hedge:</b><br>{sc.get('hedge', '—')}</div>", unsafe_allow_html=True)
 
     # ── Historical Analogs ──
     if analogs and analogs.get("top_analogs"):
@@ -1478,12 +1492,17 @@ elif page == "⚡ Alpha Center":
     ]
     st.write(f"**{len(df_filtered)}** of **{len(df_alpha)}** items")
 
+    # Pre-process: fill None numeric values to prevent .format() crash
+    df_display = df_filtered.copy()
+    for col in ["Price", "Entry", "T1", "T2", "Stop", "RR", "Score"]:
+        if col in df_display.columns:
+            df_display[col] = df_display[col].apply(lambda x: round(x, 2) if pd.notna(x) and isinstance(x, (int, float)) else "—")
+
     st.dataframe(
-        df_filtered.style
+        df_display.style
             .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["LONG","BUY","YES"]) else ("color:var(--short);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["SHORT","SELL","NO"]) else ""), subset=["Direction","Worth?"])
             .map(lambda x: "color:var(--long);font-weight:700;" if x in ["A+","A"] else ("color:var(--neutral);font-weight:600;" if x=="B" else ""), subset=["Grade"])
             .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=2.0 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=1.5 else ""), subset=["RR"])
-            .format({"Score": "{:.1f}", "Price": "{:.2f}", "Entry": "{:.2f}", "T1": "{:.2f}", "T2": "{:.2f}", "Stop": "{:.2f}", "RR": "{:.1f}"})
             .background_gradient(subset=["Score"], cmap="RdYlGn", vmin=0, vmax=100),
         use_container_width=True, hide_index=True, height=380
     )
@@ -1513,12 +1532,15 @@ elif page == "⚡ Alpha Center":
                     "Thesis": (s.get("thesis") or "")[:60],
                 })
             df_sig = pd.DataFrame(sig_rows)
+            df_sig_display = df_sig.copy()
+            for col in ["Price", "Entry", "T1", "Stop", "RR", "Score"]:
+                if col in df_sig_display.columns:
+                    df_sig_display[col] = df_sig_display[col].apply(lambda x: round(x, 2) if pd.notna(x) and isinstance(x, (int, float)) else "—")
             st.dataframe(
-                df_sig.style
+                df_sig_display.style
                 .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["LONG","BUY","YES"]) else ("color:var(--short);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["SHORT","SELL","NO"]) else ""), subset=["Signal","Direction"])
                 .map(lambda x: "color:var(--long);font-weight:700;" if x in ["A+","A"] else ("color:var(--neutral);font-weight:600;" if x=="B" else ""), subset=["Grade"])
-                .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=2.0 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=1.5 else ""), subset=["RR"])
-                .format({"Score": "{:.2f}", "Price": "{:.2f}", "Entry": "{:.2f}", "T1": "{:.2f}", "Stop": "{:.2f}", "RR": "{:.1f}"}),
+                .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=2.0 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=1.5 else ""), subset=["RR"]),
                 use_container_width=True, hide_index=True, height=220
             )
 
@@ -1551,11 +1573,14 @@ elif page == "🇺🇸 US Stocks":
     all_us = longs + shorts
     if all_us:
         df_us = _consolidated_to_df(all_us)
+        df_us_display = df_us.copy()
+        for col in ["Price", "Entry", "T1", "T2", "Stop", "RR"]:
+            if col in df_us_display.columns:
+                df_us_display[col] = df_us_display[col].apply(lambda x: round(x, 2) if pd.notna(x) and isinstance(x, (int, float)) else "—")
         st.dataframe(
-            df_us.style
+            df_us_display.style
                 .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["YES","BUY NOW"]) else ("color:var(--short);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["NO","SKIP"]) else ("color:var(--neutral);font-weight:600;" if isinstance(x,str) and any(y in x.upper() for y in ["WAIT","CHASE","SMALL"]) else "")), subset=["Worth?"])
-                .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=2.0 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=1.5 else ""), subset=["RR"])
-                .format({"Price": "{:.2f}", "Entry": "{:.2f}", "T1": "{:.2f}", "T2": "{:.2f}", "Stop": "{:.2f}", "RR": "{:.1f}"}),
+                .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=2.0 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=1.5 else ""), subset=["RR"]),
             use_container_width=True, hide_index=True, height=320
         )
     else:
@@ -1596,11 +1621,14 @@ elif page == "💱 Forex":
     all_fx = longs + shorts
     if all_fx:
         df_fx = _consolidated_to_df(all_fx)
+        df_fx_display = df_fx.copy()
+        for col in ["Price", "Entry", "T1", "T2", "Stop", "RR"]:
+            if col in df_fx_display.columns:
+                df_fx_display[col] = df_fx_display[col].apply(lambda x: round(x, 4) if pd.notna(x) and isinstance(x, (int, float)) else "—")
         st.dataframe(
-            df_fx.style
+            df_fx_display.style
                 .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["YES","BUY NOW"]) else ("color:var(--short);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["NO","SKIP"]) else ("color:var(--neutral);font-weight:600;" if isinstance(x,str) and any(y in x.upper() for y in ["WAIT","CHASE","SMALL"]) else "")), subset=["Worth?"])
-                .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=2.0 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=1.5 else ""), subset=["RR"])
-                .format({"Price": "{:.4f}", "Entry": "{:.4f}", "T1": "{:.4f}", "T2": "{:.4f}", "Stop": "{:.4f}", "RR": "{:.1f}"}),
+                .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=2.0 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=1.5 else ""), subset=["RR"]),
             use_container_width=True, hide_index=True, height=260
         )
     else:
@@ -1632,11 +1660,14 @@ elif page == "🛢️ Commodities":
     all_comm = longs + shorts
     if all_comm:
         df_comm = _consolidated_to_df(all_comm)
+        df_comm_display = df_comm.copy()
+        for col in ["Price", "Entry", "T1", "T2", "Stop", "RR"]:
+            if col in df_comm_display.columns:
+                df_comm_display[col] = df_comm_display[col].apply(lambda x: round(x, 2) if pd.notna(x) and isinstance(x, (int, float)) else "—")
         st.dataframe(
-            df_comm.style
+            df_comm_display.style
                 .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["YES","BUY NOW"]) else ("color:var(--short);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["NO","SKIP"]) else ("color:var(--neutral);font-weight:600;" if isinstance(x,str) and any(y in x.upper() for y in ["WAIT","CHASE","SMALL"]) else "")), subset=["Worth?"])
-                .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=2.0 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=1.5 else ""), subset=["RR"])
-                .format({"Price": "{:.2f}", "Entry": "{:.2f}", "T1": "{:.2f}", "T2": "{:.2f}", "Stop": "{:.2f}", "RR": "{:.1f}"}),
+                .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=2.0 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=1.5 else ""), subset=["RR"]),
             use_container_width=True, hide_index=True, height=260
         )
     else:
@@ -1695,11 +1726,14 @@ elif page == "₿ Crypto":
         df_crypto = _consolidated_to_df(all_crypto)
         df_crypto["On-Chain"] = [r.get("onchain_signal","-") for r in all_crypto]
         df_crypto["TVL 7D"] = [f"{r.get('tvl_7d',0):+.1%}" if r.get('tvl_7d') is not None else "-" for r in all_crypto]
+        df_crypto_display = df_crypto.copy()
+        for col in ["Price", "Entry", "T1", "T2", "Stop", "RR"]:
+            if col in df_crypto_display.columns:
+                df_crypto_display[col] = df_crypto_display[col].apply(lambda x: round(x, 2) if pd.notna(x) and isinstance(x, (int, float)) else "—")
         st.dataframe(
-            df_crypto.style
+            df_crypto_display.style
                 .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["YES","BUY NOW"]) else ("color:var(--short);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["NO","SKIP"]) else ("color:var(--neutral);font-weight:600;" if isinstance(x,str) and any(y in x.upper() for y in ["WAIT","CHASE","SMALL"]) else "")), subset=["Worth?"])
-                .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=2.0 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=1.5 else ""), subset=["RR"])
-                .format({"Price": "{:.2f}", "Entry": "{:.2f}", "T1": "{:.2f}", "T2": "{:.2f}", "Stop": "{:.2f}", "RR": "{:.1f}"}),
+                .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=2.0 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=1.5 else ""), subset=["RR"]),
             use_container_width=True, hide_index=True, height=260
         )
     else:
@@ -1830,12 +1864,15 @@ elif page == "🌍 Global & EM":
                 "Signal": r.get("signal","-"), "Grade": r.get("grade","C"),
                 "Thesis": r.get("recommendation","-")[:50],
             } for r in ihsg_rows])
+            df_ihsg_display = df_ihsg.copy()
+            for col in ["Price", "Entry", "T1", "T2", "Stop", "RR"]:
+                if col in df_ihsg_display.columns:
+                    df_ihsg_display[col] = df_ihsg_display[col].apply(lambda x: round(x, 2) if pd.notna(x) and isinstance(x, (int, float)) else "—")
             st.dataframe(
-                df_ihsg.style
+                df_ihsg_display.style
                     .map(lambda x: "color:var(--long);font-weight:700;" if x=="BUY" else ("color:var(--short);font-weight:700;" if x=="SELL" else ""), subset=["Signal"])
                     .map(lambda x: "color:var(--long);font-weight:700;" if x in ["A","A+"] else ("color:var(--neutral);font-weight:600;" if x=="B" else ""), subset=["Grade"])
-                    .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=2.0 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=1.5 else ""), subset=["RR"])
-                    .format({"Price": "{:.2f}", "Entry": "{:.2f}", "T1": "{:.2f}", "T2": "{:.2f}", "Stop": "{:.2f}", "RR": "{:.1f}"}),
+                    .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=2.0 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=1.5 else ""), subset=["RR"]),
                 use_container_width=True, hide_index=True, height=280
             )
             ihsg_rows.sort(key=lambda x: abs(x.get("r1m") or 0), reverse=True)

@@ -190,7 +190,7 @@ def load_fred_macro():
         "m2": "M2SL",
     }
     data = {}
-    failed = []  # collect failures, log once at end
+    failed = [] # collect failures, log once at end
     def _fetch_one(k_sid):
         k, sid = k_sid
         try:
@@ -416,7 +416,7 @@ def _build_risk_adjusted_metrics(prices, risk_free_rate=0.04):
         sortino = (mean_ret - risk_free_rate) / downside
         max_dd = (rets - rets.cummax()).min()
         metrics[ticker] = {"sharpe_63d": round(sharpe, 2), "sortino_63d": round(sortino, 2),
-            "ann_return": round(mean_ret, 3), "ann_vol": round(std_dev, 3), "max_dd_63d": round(max_dd, 3)}
+                           "ann_return": round(mean_ret, 3), "ann_vol": round(std_dev, 3), "max_dd_63d": round(max_dd, 3)}
     return metrics
 
 def _build_stress_test(prices, sq, alpha):
@@ -450,7 +450,7 @@ def _build_stress_test(prices, sq, alpha):
             px = _last_price(prices.get(t)) or 0
             exposure += px * s_val
         results.append({"scenario": scenario, "quad": sq, "portfolio_impact": round(exposure, 2),
-            "shock_map": shock, "long_tickers": long_tickers[:5]})
+                        "shock_map": shock, "long_tickers": long_tickers[:5]})
     return results
 
 # ── Signal helpers ────────────────────────────────────────────────────────────
@@ -606,14 +606,14 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
         rr_lv = _rr_levels(p, lrr, trr, "long" if "LONG" in b.get("direction","") else "short")
         score = min(1.0, max(0.0, b.get("score",0)))
         item = {"ticker":t,"scanner_type":"BOTTLENECK L1","level":"level_1",
-            "priority_score":_boost_priority(score*100,t,b.get("direction","HOLD")),
-            "direction":b.get("direction","HOLD"),"signal":b.get("direction","HOLD"),
-            "grade":b.get("quality","A"),"sector":b.get("sector","Macro"),
-            "thesis":b.get("known_thesis",""),"setup":b.get("setup",""),
-            "invalidators":["Stop hit","Regime flip","VIX >35"],"hold_for":"Immediate","source":"bottleneck",
-            "price":p,"entry":rr_lv["entry"],"target_1":rr_lv["tp1"],"target_2":rr_lv["tp2"],
-            "stop_loss":rr_lv["stop"],"rr":rr_lv["rr"],"worth_entering":"URGENT — "+b.get("direction","HOLD"),
-            "entry_advice":b.get("setup","Risk off positioning"),"regime_fit":_get_regime_fit(t,sq)}
+                "priority_score":_boost_priority(score*100,t,b.get("direction","HOLD")),
+                "direction":b.get("direction","HOLD"),"signal":b.get("direction","HOLD"),
+                "grade":b.get("quality","A"),"sector":b.get("sector","Macro"),
+                "thesis":b.get("known_thesis",""),"setup":b.get("setup",""),
+                "invalidators":["Stop hit","Regime flip","VIX >35"],"hold_for":"Immediate","source":"bottleneck",
+                "price":p,"entry":rr_lv["entry"],"target_1":rr_lv["tp1"],"target_2":rr_lv["tp2"],
+                "stop_loss":rr_lv["stop"],"rr":rr_lv["rr"],"worth_entering":"URGENT — "+b.get("direction","HOLD"),
+                "entry_advice":b.get("setup","Risk off positioning"),"regime_fit":_get_regime_fit(t,sq)}
         center_items.append(_enrich_item(item, t))
 
     for b in bottlenecks.get("level_2", []):
@@ -622,12 +622,12 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
         rr_lv = _rr_levels(p, lrr, trr, "long" if "LONG" in b.get("direction","") else "short")
         score = min(1.0, max(0.0, b.get("score",0)+0.1))
         item = {"ticker":t,"scanner_type":"BOTTLENECK L2","level":"level_2",
-            "priority_score":_boost_priority(score*80,t,b.get("direction","HOLD")),
-            "direction":b.get("direction","HOLD"),"grade":b.get("quality","B"),"sector":b.get("sector","Macro"),
-            "thesis":b.get("known_thesis",""),"hold_for":"1-2 weeks","source":"bottleneck",
-            "price":p,"entry":rr_lv["entry"],"target_1":rr_lv["tp1"],"target_2":rr_lv["tp2"],
-            "stop_loss":rr_lv["stop"],"rr":rr_lv["rr"],"worth_entering":"BUILDING — "+b.get("direction","HOLD"),
-            "entry_advice":b.get("setup","Monitor closely"),"regime_fit":_get_regime_fit(t,sq)}
+                "priority_score":_boost_priority(score*80,t,b.get("direction","HOLD")),
+                "direction":b.get("direction","HOLD"),"grade":b.get("quality","B"),"sector":b.get("sector","Macro"),
+                "thesis":b.get("known_thesis",""),"hold_for":"1-2 weeks","source":"bottleneck",
+                "price":p,"entry":rr_lv["entry"],"target_1":rr_lv["tp1"],"target_2":rr_lv["tp2"],
+                "stop_loss":rr_lv["stop"],"rr":rr_lv["rr"],"worth_entering":"BUILDING — "+b.get("direction","HOLD"),
+                "entry_advice":b.get("setup","Monitor closely"),"regime_fit":_get_regime_fit(t,sq)}
         center_items.append(_enrich_item(item, t))
 
     for b in bottlenecks.get("watch", []):
@@ -635,38 +635,38 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
         rr = asset_ranges.get(t, {}); lrr = rr.get("trade",{}).get("lrr") if rr.get("ok") else None; trr = rr.get("trade",{}).get("trr") if rr.get("ok") else None
         rr_lv = _rr_levels(p, lrr, trr, "long")
         item = {"ticker":t,"scanner_type":"WATCH","level":"watch",
-            "priority_score":_boost_priority(b.get("score",0)*60,t,"HOLD"),
-            "direction":"HOLD","grade":b.get("quality","B"),"sector":b.get("sector","Macro"),
-            "thesis":b.get("known_thesis",""),"hold_for":"Monitor","source":"bottleneck",
-            "price":p,"entry":rr_lv["entry"],"target_1":rr_lv["tp1"],"target_2":rr_lv["tp2"],
-            "stop_loss":rr_lv["stop"],"rr":rr_lv["rr"],"worth_entering":"WATCH — Wait for signal",
-            "entry_advice":b.get("setup","Wait for clarity"),"regime_fit":_get_regime_fit(t,sq)}
+                "priority_score":_boost_priority(b.get("score",0)*60,t,"HOLD"),
+                "direction":"HOLD","grade":b.get("quality","B"),"sector":b.get("sector","Macro"),
+                "thesis":b.get("known_thesis",""),"hold_for":"Monitor","source":"bottleneck",
+                "price":p,"entry":rr_lv["entry"],"target_1":rr_lv["tp1"],"target_2":rr_lv["tp2"],
+                "stop_loss":rr_lv["stop"],"rr":rr_lv["rr"],"worth_entering":"WATCH — Wait for signal",
+                "entry_advice":b.get("setup","Wait for clarity"),"regime_fit":_get_regime_fit(t,sq)}
         center_items.append(_enrich_item(item, t))
 
     for a in alpha.get("longs", []):
         t = a.get("ticker"); p = _last_price(prices.get(t)) or a.get("price",0)
         item = {"ticker":t,"scanner_type":"ALPHA LONG","level":"alpha_long",
-            "priority_score":_boost_priority(75 if a.get("grade")=="A" else 60,t,"LONG"),
-            "direction":"LONG","signal":a.get("signal","BUY"),"grade":a.get("grade","B"),
-            "sector":TICKER_SECTOR.get(t,"Unknown"),"thesis":a.get("thesis",""),
-            "hold_for":"2-4 weeks","source":"alpha","price":a.get("price",p),
-            "entry":a.get("entry"),"target_1":a.get("target_1"),"target_2":a.get("target_2"),
-            "stop_loss":a.get("stop_loss"),"rr":a.get("rr",2.0),
-            "worth_entering":a.get("worth_entering","YES"),"entry_advice":a.get("entry_advice",""),
-            "invalidators":["Stop hit","Trend breaks","Quad shifts"],"regime_fit":_get_regime_fit(t,sq)}
+                "priority_score":_boost_priority(75 if a.get("grade")=="A" else 60,t,"LONG"),
+                "direction":"LONG","signal":a.get("signal","BUY"),"grade":a.get("grade","B"),
+                "sector":TICKER_SECTOR.get(t,"Unknown"),"thesis":a.get("thesis",""),
+                "hold_for":"2-4 weeks","source":"alpha","price":a.get("price",p),
+                "entry":a.get("entry"),"target_1":a.get("target_1"),"target_2":a.get("target_2"),
+                "stop_loss":a.get("stop_loss"),"rr":a.get("rr",2.0),
+                "worth_entering":a.get("worth_entering","YES"),"entry_advice":a.get("entry_advice",""),
+                "invalidators":["Stop hit","Trend breaks","Quad shifts"],"regime_fit":_get_regime_fit(t,sq)}
         center_items.append(_enrich_item(item, t))
 
     for a in alpha.get("shorts", []):
         t = a.get("ticker"); p = _last_price(prices.get(t)) or a.get("price",0)
         item = {"ticker":t,"scanner_type":"ALPHA SHORT","level":"alpha_short",
-            "priority_score":_boost_priority(75 if a.get("grade")=="A" else 60,t,"SHORT"),
-            "direction":"SHORT","signal":a.get("signal","SELL"),"grade":a.get("grade","B"),
-            "sector":TICKER_SECTOR.get(t,"Unknown"),"thesis":a.get("thesis",""),
-            "hold_for":"2-4 weeks","source":"alpha","price":a.get("price",p),
-            "entry":a.get("entry"),"target_1":a.get("target_1"),"target_2":a.get("target_2"),
-            "stop_loss":a.get("stop_loss"),"rr":a.get("rr",2.0),
-            "worth_entering":a.get("worth_entering","YES"),"entry_advice":a.get("entry_advice",""),
-            "invalidators":["Stop hit","Trend breaks","Quad shifts"],"regime_fit":_get_regime_fit(t,sq)}
+                "priority_score":_boost_priority(75 if a.get("grade")=="A" else 60,t,"SHORT"),
+                "direction":"SHORT","signal":a.get("signal","SELL"),"grade":a.get("grade","B"),
+                "sector":TICKER_SECTOR.get(t,"Unknown"),"thesis":a.get("thesis",""),
+                "hold_for":"2-4 weeks","source":"alpha","price":a.get("price",p),
+                "entry":a.get("entry"),"target_1":a.get("target_1"),"target_2":a.get("target_2"),
+                "stop_loss":a.get("stop_loss"),"rr":a.get("rr",2.0),
+                "worth_entering":a.get("worth_entering","YES"),"entry_advice":a.get("entry_advice",""),
+                "invalidators":["Stop hit","Trend breaks","Quad shifts"],"regime_fit":_get_regime_fit(t,sq)}
         center_items.append(_enrich_item(item, t))
 
     for d in (auto_discoveries.get("bottlenecks", []) if isinstance(auto_discoveries, dict) else []):
@@ -674,14 +674,14 @@ def _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks
         rr = asset_ranges.get(t,{}); lrr = rr.get("trade",{}).get("lrr") if rr.get("ok") else None; trr = rr.get("trade",{}).get("trr") if rr.get("ok") else None
         rr_lv = _rr_levels(p, lrr, trr, "long" if "LONG" in d.get("direction","") else "short")
         item = {"ticker":t,"scanner_type":"DISCOVERY","level":"discovery",
-            "priority_score":_boost_priority(d.get("score",0)*90,t,d.get("direction","HOLD")),
-            "direction":d.get("direction","HOLD"),"grade":d.get("quality","B"),
-            "sector":d.get("sector","Macro"),"thesis":d.get("known_thesis",""),
-            "hold_for":"2-4 weeks","source":"auto_discovery","price":p,
-            "entry":rr_lv["entry"],"target_1":rr_lv["tp1"],"target_2":rr_lv["tp2"],
-            "stop_loss":rr_lv["stop"],"rr":rr_lv["rr"],
-            "worth_entering":"DISCOVERY — "+d.get("direction","HOLD"),
-            "entry_advice":d.get("setup","Monitor for entry"),"regime_fit":_get_regime_fit(t,sq)}
+                "priority_score":_boost_priority(d.get("score",0)*90,t,d.get("direction","HOLD")),
+                "direction":d.get("direction","HOLD"),"grade":d.get("quality","B"),
+                "sector":d.get("sector","Macro"),"thesis":d.get("known_thesis",""),
+                "hold_for":"2-4 weeks","source":"auto_discovery","price":p,
+                "entry":rr_lv["entry"],"target_1":rr_lv["tp1"],"target_2":rr_lv["tp2"],
+                "stop_loss":rr_lv["stop"],"rr":rr_lv["rr"],
+                "worth_entering":"DISCOVERY — "+d.get("direction","HOLD"),
+                "entry_advice":d.get("setup","Monitor for entry"),"regime_fit":_get_regime_fit(t,sq)}
         center_items.append(_enrich_item(item, t))
 
     existing_tickers = {x.get("ticker") for x in center_items}
@@ -749,10 +749,10 @@ def _build_alpha_ideas(prices, sq, mq, gamma_data, greeks_data):
         fit = _get_regime_fit(ticker, sq)
         rr_data = _calc_risk_range(prices.get(ticker))
         item = {"ticker":ticker,"price":round(p,2),"entry":entry,"target_1":target,
-            "target_2":round(p*1.10,2),"stop_loss":stop,"rr":2.0,"hold_for":"2-4 weeks",
-            "signal":"BUY","grade":"A" if fit>0.75 else "B","direction":"LONG",
-            "thesis":f"{ticker} — {sq} playbook leader. Regime fit {fit:.0%}. 1M {r1m:+.1%}.",
-            "regime_fit":fit,"momentum_1m":r1m}
+                "target_2":round(p*1.10,2),"stop_loss":stop,"rr":2.0,"hold_for":"2-4 weeks",
+                "signal":"BUY","grade":"A" if fit>0.75 else "B","direction":"LONG",
+                "thesis":f"{ticker} — {sq} playbook leader. Regime fit {fit:.0%}. 1M {r1m:+.1%}.",
+                "regime_fit":fit,"momentum_1m":r1m}
         item = _enrich_signal_with_conclusions(item, gamma_data.get(ticker,{}), greeks_data.get(ticker,{}), rr_data)
         longs.append(item)
 
@@ -765,10 +765,10 @@ def _build_alpha_ideas(prices, sq, mq, gamma_data, greeks_data):
         fit = _get_regime_fit(ticker, sq)
         rr_data = _calc_risk_range(prices.get(ticker))
         item = {"ticker":ticker,"price":round(p,2),"entry":entry,"target_1":target,
-            "target_2":round(p*0.90,2),"stop_loss":stop,"rr":2.0,"hold_for":"2-4 weeks",
-            "signal":"SELL","grade":"A","direction":"SHORT",
-            "thesis":f"{ticker} — avoid in {sq}. Fit {fit:.0%}.",
-            "regime_fit":fit,"momentum_1m":r1m}
+                "target_2":round(p*0.90,2),"stop_loss":stop,"rr":2.0,"hold_for":"2-4 weeks",
+                "signal":"SELL","grade":"A","direction":"SHORT",
+                "thesis":f"{ticker} — avoid in {sq}. Fit {fit:.0%}.",
+                "regime_fit":fit,"momentum_1m":r1m}
         item = _enrich_signal_with_conclusions(item, gamma_data.get(ticker,{}), greeks_data.get(ticker,{}), rr_data)
         shorts.append(item)
 
@@ -783,36 +783,36 @@ def _build_bottlenecks(prices, health, features, sq, mq):
     g = features.get("growth_momentum",0); inf = features.get("inflation_momentum",0)
     if vix > 25:
         b["level_1"].append({"ticker":"^VIX","direction":"SHORT","sector":"Volatility",
-            "known_thesis":f"VIX {vix:.0f} — elevated vol regime","score":0.85,"quality":"A",
-            "setup":"VIX > 25 → defensive. Add TLT, reduce beta."})
+                             "known_thesis":f"VIX {vix:.0f} — elevated vol regime","score":0.85,"quality":"A",
+                             "setup":"VIX > 25 → defensive. Add TLT, reduce beta."})
     if crash == "elevated":
         b["level_1"].append({"ticker":"SPY","direction":"SHORT","sector":"Broad Market",
-            "known_thesis":f"Crash score {crash_score:.2f}","score":0.80,"quality":"A",
-            "setup":"Crash elevated → reduce equity beta, add gold/bonds"})
+                             "known_thesis":f"Crash score {crash_score:.2f}","score":0.80,"quality":"A",
+                             "setup":"Crash elevated → reduce equity beta, add gold/bonds"})
     elif crash == "watch":
         b["watch"].append({"ticker":"SPY","direction":"HOLD","sector":"Broad Market",
-            "known_thesis":f"Crash score {crash_score:.2f} — watch","score":0.60,"quality":"B",
-            "setup":"Monitor. Tighten stops."})
+                           "known_thesis":f"Crash score {crash_score:.2f} — watch","score":0.60,"quality":"B",
+                           "setup":"Monitor. Tighten stops."})
     if risk_off == "risk_off":
         b["level_1"].append({"ticker":"TLT","direction":"LONG","sector":"Treasuries",
-            "known_thesis":"Risk-off — flight to quality","score":0.75,"quality":"A",
-            "setup":"Add duration (TLT/IEF), reduce cyclical"})
+                             "known_thesis":"Risk-off — flight to quality","score":0.75,"quality":"A",
+                             "setup":"Add duration (TLT/IEF), reduce cyclical"})
     if g > 0.04:
         b["level_2"].append({"ticker":"IWM","direction":"LONG","sector":"Small Cap",
-            "known_thesis":f"Growth accelerating ({g:+.2%}) — small cap leverage","score":0.65,"quality":"B",
-            "setup":"Cyclical long in growth regime"})
+                               "known_thesis":f"Growth accelerating ({g:+.2%}) — small cap leverage","score":0.65,"quality":"B",
+                               "setup":"Cyclical long in growth regime"})
     if inf > 0.04:
         b["level_2"].append({"ticker":"XLU","direction":"LONG","sector":"Utilities",
-            "known_thesis":f"Inflation persistent ({inf:+.2%})","score":0.60,"quality":"B",
-            "setup":"Defensive sectors in high inflation"})
+                               "known_thesis":f"Inflation persistent ({inf:+.2%})","score":0.60,"quality":"B",
+                               "setup":"Defensive sectors in high inflation"})
     trans = f"{sq}->{mq}"
     em_sig = EM_RECOVERY_SIGNALS.get(trans)
     if em_sig and isinstance(em_sig, dict):
         direction = em_sig.get("direction","neutral"); conf = em_sig.get("confidence",0.5)
         b["em_recovery"].append({"ticker":"EEM","sector":"EM",
-            "direction":"LONG" if direction=="bullish" else "SHORT" if direction=="bearish" else "HOLD",
-            "known_thesis":em_sig.get("trigger","EM signal"),"score":conf,"quality":"B",
-            "setup":f"EM recovery on {trans} (conf {conf:.0%})"})
+                                  "direction":"LONG" if direction=="bullish" else "SHORT" if direction=="bearish" else "HOLD",
+                                  "known_thesis":em_sig.get("trigger","EM signal"),"score":conf,"quality":"B",
+                                  "setup":f"EM recovery on {trans} (conf {conf:.0%})"})
     return b
 
 def _build_scenarios(gip, sq, mq):
@@ -827,12 +827,12 @@ def _build_scenarios(gip, sq, mq):
 def _build_analogs(gip, sq, mq):
     analogs_map = {
         "Q3": [{"label":"2022 H1 Stagflation","similarity":0.82,"path_1m":"-8%","path_3m":"-18%","next_bias":"Bearish"},
-            {"label":"1974-75 Oil Shock","similarity":0.71,"path_1m":"-5%","path_3m":"-12%","next_bias":"Bearish"}],
+                {"label":"1974-75 Oil Shock","similarity":0.71,"path_1m":"-5%","path_3m":"-12%","next_bias":"Bearish"}],
         "Q1": [{"label":"2023 H2 Goldilocks","similarity":0.85,"path_1m":"+4%","path_3m":"+12%","next_bias":"Bullish"},
-            {"label":"2017 Low Vol Rally","similarity":0.78,"path_1m":"+3%","path_3m":"+8%","next_bias":"Bullish"}],
+                {"label":"2017 Low Vol Rally","similarity":0.78,"path_1m":"+3%","path_3m":"+8%","next_bias":"Bullish"}],
         "Q2": [{"label":"2021 H1 Reflation","similarity":0.80,"path_1m":"+5%","path_3m":"+10%","next_bias":"Bullish"}],
         "Q4": [{"label":"2008 GFC","similarity":0.75,"path_1m":"-10%","path_3m":"-25%","next_bias":"Bearish"},
-            {"label":"2001 Dot-Com","similarity":0.68,"path_1m":"-8%","path_3m":"-18%","next_bias":"Bearish"}],
+                {"label":"2001 Dot-Com","similarity":0.68,"path_1m":"-8%","path_3m":"-18%","next_bias":"Bearish"}],
     }
     return analogs_map.get(sq, [])
 
@@ -884,18 +884,18 @@ def _build_auto_discoveries(prices, gip, sq):
     spx_ret = _safe_ret(prices.get("SPY"), 63)
     if spx_ret and spx_ret > 0.08:
         discoveries.append({"ticker":"SPY","direction":"LONG","sector":"US Equity",
-            "known_thesis":f"SPY 3M momentum {spx_ret:+.2%} — trend intact","score":0.72,"quality":"B",
-            "setup":"Momentum long — buy dips to LRR"})
+                            "known_thesis":f"SPY 3M momentum {spx_ret:+.2%} — trend intact","score":0.72,"quality":"B",
+                            "setup":"Momentum long — buy dips to LRR"})
     gold_ret = _safe_ret(prices.get("GLD"), 63)
     if gold_ret and gold_ret > 0.05:
         discoveries.append({"ticker":"GLD","direction":"LONG","sector":"Precious Metals",
-            "known_thesis":f"Gold 3M {gold_ret:+.2%} — inflation hedge building","score":0.70,"quality":"B",
-            "setup":"Gold breakout — accumulate on dips"})
+                            "known_thesis":f"Gold 3M {gold_ret:+.2%} — inflation hedge building","score":0.70,"quality":"B",
+                            "setup":"Gold breakout — accumulate on dips"})
     dxy_ret = _safe_ret(prices.get("DX-Y.NYB"), 21)
     if dxy_ret and dxy_ret > 0.02:
         discoveries.append({"ticker":"UUP","direction":"LONG","sector":"USD",
-            "known_thesis":f"DXY strengthening ({dxy_ret:+.2%}) — EM/commodity headwind","score":0.68,"quality":"B",
-            "setup":"Long USD, avoid EM and commodity exporters"})
+                            "known_thesis":f"DXY strengthening ({dxy_ret:+.2%}) — EM/commodity headwind","score":0.68,"quality":"B",
+                            "setup":"Long USD, avoid EM and commodity exporters"})
     return discoveries
 
 def _build_ihsg_sector_momentum(prices):
@@ -927,7 +927,7 @@ def _build_ihsg_commodity_overlay(prices):
             if len(s) >= 22:
                 r1m = float(s.iloc[-1] / s.iloc[-22] - 1)
                 overlay[sector] = {"proxy": meta["proxy"], "r1m": round(r1m, 4),
-                    "bias": "Bullish" if r1m > 0.02 else ("Bearish" if r1m < -0.02 else "Neutral")}
+                                   "bias": "Bullish" if r1m > 0.02 else ("Bearish" if r1m < -0.02 else "Neutral")}
     return overlay
 
 def _build_ihsg_rupiah_regime(prices):
@@ -949,7 +949,7 @@ def _build_ihsg_foreign_flow(prices):
             s = pd.to_numeric(s, errors="coerce").dropna()
             r = float(s.iloc[-1] / s.iloc[-6] - 1) if len(s) >= 6 else 0
             flow_signals[t] = {"signal": "Accumulation" if r > 0.02 else ("Distribution" if r < -0.02 else "Normal"),
-                "5d_ret": round(r, 4)}
+                               "5d_ret": round(r, 4)}
     return flow_signals
 
 def _build_ihsg_macro_overlay(gip, prices):
@@ -965,14 +965,14 @@ def _build_ihsg_macro_overlay(gip, prices):
     }
 
 def _build_ihsg_setups(prices, ihsg_sector_momentum=None, ihsg_commodity_overlay=None,
-        ihsg_rupiah_regime=None, ihsg_foreign_flow=None, ihsg_macro_overlay=None):
+                       ihsg_rupiah_regime=None, ihsg_foreign_flow=None, ihsg_macro_overlay=None):
     setups = []
     for t in list(IHSG_UNIVERSE.keys())[:20]:
         p = _last_price(prices.get(t)); r1m = _safe_ret(prices.get(t), 21)
         if p is None: continue
         direction = "LONG" if (r1m and r1m > 0.03) else "SHORT" if (r1m and r1m < -0.03) else "NEUTRAL"
         setups.append({"ticker":t,"price":round(p,2),"direction":direction,
-            "thesis":f"IHSG: {t} {(r1m or 0):+.1%} 1M","grade":"B"})
+                       "thesis":f"IHSG: {t} {(r1m or 0):+.1%} 1M","grade":"B"})
     return setups
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -985,7 +985,7 @@ def build_snapshot(
     include_commodities=True,
     include_crypto=True,
     include_ihsg=True,
-    fast_refresh=True,  # ← CHANGED: default True for speed
+    fast_refresh=True, # ← CHANGED: default True for speed
 ):
     """
     fast_refresh=True: reuse prices from cache, skip heavy engines (NewsNLP/EDGAR/full options) → ~30s
@@ -1003,20 +1003,20 @@ def build_snapshot(
     if include_us_stocks:
         all_tickers += list(US_SECTORS.keys())
         for bucket in ["Growth","Quality","Defensives","Semis","Energy","Industrials",
-                "Financials","AI_Infra","PreciousMetals","International","Housing","Bitcoin"]:
+                       "Financials","AI_Infra","PreciousMetals","International","Housing","Bitcoin"]:
             all_tickers += US_BUCKETS.get(bucket, [])
         all_tickers += list(BONDS.keys())
-    if include_commodities: all_tickers += list(COMMODITIES.keys())[:15]  # 25→15
+    if include_commodities: all_tickers += list(COMMODITIES.keys())[:15] # 25→15
     if include_forex: all_tickers += list(FOREX_PAIRS.keys())
-    if include_crypto: all_tickers += list(CRYPTO.keys())[:5]  # 10→5
-    if include_ihsg: all_tickers += list(IHSG_UNIVERSE.keys())[:15]  # 25→15
+    if include_crypto: all_tickers += list(CRYPTO.keys())[:5] # 10→5
+    if include_ihsg: all_tickers += list(IHSG_UNIVERSE.keys())[:15] # 25→15
     # Always include key macro tickers + ^VIX (NOT bare VIX)
     all_tickers += ["DX-Y.NYB","EIDO","^JKSE","^VIX","USDIDR=X"]
 
     # Deduplicate + remove known-bad tickers
     seen = set()
     all_tickers = [t for t in all_tickers
-        if t not in BAD_TICKERS and not (t in seen or seen.add(t))]
+                   if t not in BAD_TICKERS and not (t in seen or seen.add(t))]
     logger.info(f"Ticker list: {len(all_tickers)} tickers (bad tickers removed)")
 
     # ── Prices ────────────────────────────────────────────────────────────
@@ -1058,15 +1058,17 @@ def build_snapshot(
     if MarketHealthEngine is not None:
         try:
             health_engine = MarketHealthEngine()
-            health = health_engine.run(prices, asset_ranges)
+            # PATCH v3.2: fix signature — pass gip.features and sq (structural quad)
+            health = health_engine.run(prices, gip.features, sq)
         except Exception as _e:
             logger.warning(f"MarketHealthEngine failed: {_e}")
     if health is None:
         vix_s = prices.get("^VIX")
         vix_now = float(pd.to_numeric(vix_s,errors="coerce").dropna().iloc[-1]) if vix_s is not None and len(vix_s) > 0 else 20.0
-        vix_bucket = "Investable" if vix_now < 20 else ("Chop" if vix_now < 28 else "Defensive")
+        # PATCH v3.2: align VIX fallback threshold with engine (<19 / <29)
+        vix_bucket = "Investable" if vix_now < 19 else ("Chop" if vix_now < 29 else "Defensive")
         health = {"vix_bucket":{"vix_last":vix_now,"bucket":vix_bucket},
-            "crash":{"state":"calm","score":0.1},"risk_off":{"state":"risk_on"},"sources":{}}
+                  "crash":{"state":"calm","score":0.1},"risk_off":{"state":"risk_on"},"sources":{}}
 
     vix_now = health.get("vix_bucket",{}).get("vix_last", 20.0) or 20.0
 
@@ -1086,7 +1088,15 @@ def build_snapshot(
     pvv_results = {}; trend_histories = {}
     try:
         pvv_scanner = PVVScanner()
-        pvv_results = pvv_scanner.analyze_multi(prices)
+        # PATCH v3.2: cap PVV to 50 priority tickers to avoid 15+ min serial blocking
+        _mag7_list = list(MAG7.keys()) if isinstance(MAG7, dict) else list(MAG7)
+        priority_tickers = list(dict.fromkeys(
+            _mag7_list + ["SPY","QQQ","IWM","TLT","GLD","DX-Y.NYB","BTC-USD","ETH-USD","^VIX"] +
+            [t for sub in US_BUCKETS.values() for t in sub][:20] +
+            list(prices.keys())[:30]
+        ))[:50]
+        pvv_prices_subset = {t: prices[t] for t in priority_tickers if t in prices}
+        pvv_results = pvv_scanner.analyze_multi(pvv_prices_subset)
     except Exception as e: logger.warning(f"PVV: {e}")
     try:
         trend_scanner = TrendSignalScanner()
@@ -1200,7 +1210,7 @@ def build_snapshot(
             import config.settings as _cfg
             disc_engine = BottleneckDiscoveryV3(settings_module=_cfg)
             discovery_v3_result = disc_engine.run(prices=prices, quad_str=sq, quad_mon=mq,
-                asset_ranges=asset_ranges, top_n=30)
+                                                  asset_ranges=asset_ranges, top_n=30)
             for c in discovery_v3_result.get("reactive", []):
                 if c.get("level") in ("level_1","level_2","watch"):
                     auto_discoveries.append({
@@ -1217,8 +1227,8 @@ def build_snapshot(
         try:
             ai_engine = AIEngine()
             ai_result = ai_engine.run(sq=sq, mq=mq, gq=sq, gip_features=gip.features,
-                prices=prices, asset_ranges=asset_ranges,
-                sector_map=TICKER_SECTOR, health=health, transition=transition)
+                                      prices=prices, asset_ranges=asset_ranges,
+                                      sector_map=TICKER_SECTOR, health=health, transition=transition)
             if ai_result.get("bottlenecks"):
                 for b in ai_result["bottlenecks"]:
                     b.setdefault("ticker", b.get("beneficiary_tickers",["UNKNOWN"])[0])
@@ -1232,8 +1242,8 @@ def build_snapshot(
     # ── Alpha Center ──────────────────────────────────────────────────────
     if progress_cb: progress_cb("Building Alpha Center...", 0.83)
     alpha_center = _build_alpha_center(prices, sq, mq, asset_ranges, health, alpha, bottlenecks,
-        {"ok":True,"bottlenecks":auto_discoveries}, daily_signals,
-        gamma_data, greeks_data)
+                                       {"ok":True,"bottlenecks":auto_discoveries}, daily_signals,
+                                       gamma_data, greeks_data)
 
     # ── IHSG Layers ──────────────────────────────────────────────────────
     if progress_cb: progress_cb("IHSG structural layers...", 0.86)
@@ -1243,7 +1253,7 @@ def build_snapshot(
     ihsg_foreign_flow = _build_ihsg_foreign_flow(prices)
     ihsg_macro_overlay = _build_ihsg_macro_overlay(gip, prices)
     ihsg_setups = _build_ihsg_setups(prices, ihsg_sector_momentum, ihsg_commodity_overlay,
-        ihsg_rupiah_regime, ihsg_foreign_flow, ihsg_macro_overlay)
+                                     ihsg_rupiah_regime, ihsg_foreign_flow, ihsg_macro_overlay)
 
     # ── Vol Forecast + Risk Adjusted ─────────────────────────────────────
     if progress_cb: progress_cb("Vol forecast + risk metrics...", 0.88)

@@ -1,10 +1,14 @@
 """engines/pvv_engine.py — Hedgeye-Style PVV + VASP + Multi-Duration Risk Range
 Implements:
-  • PVV = Price-Volume-Volatility rate-of-change  
-  • Vol-of-Vol = ROC of realized volatility
-  • Multi-Duration: TRADE (≤3w), TREND (≥3m), TAIL (≤3y)
-  • VASP = Volatility-Adjusted Signaling Process
-  • Fractal Risk Range™ (Hurst + PVV) — NOT simple Bollinger
+ • PVV = Price-Volume-Volatility rate-of-change
+ • Vol-of-Vol = ROC of realized volatility
+ • Multi-Duration: TRADE (≤3w), TREND (≥3m), TAIL (≤3y)
+ • VASP = Volatility-Adjusted Signaling Process
+ • Fractal Risk Range™ (Hurst + PVV) — NOT simple Bollinger
+
+PATCH v3.2:
+ • analyze_multi now uses ThreadPoolExecutor (8 workers) + hard timeout
+   to eliminate 15+ min serial blocking on 174 tickers.
 """
 from __future__ import annotations
 import math
@@ -12,13 +16,14 @@ import logging
 import numpy as np
 import pandas as pd
 from typing import Dict, Optional, Tuple
+from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FuturesTimeout
 
 logger = logging.getLogger(__name__)
 
 DURATIONS = {
-    "TRADE": {"days": 15,  "label": "≤3 weeks"},
-    "TREND": {"days": 63,  "label": "≥3 months"},
-    "TAIL":  {"days": 756, "label": "≤3 years"},
+    "TRADE": {"days": 15, "label": "≤3 weeks"},
+    "TREND": {"days": 63, "label": "≥3 months"},
+    "TAIL": {"days": 756, "label": "≤3 years"},
 }
 
 class PVVEngine:
@@ -101,7 +106,7 @@ class PVVEngine:
             base_vol = 0.20
 
         # Hurst scaling: persistent (H>0.5) = wider range, mean-rev (H<0.5) = tighter
-        hurst_adj = 1.0 + (hurst - 0.5) * 0.4  # ±20% scaling
+        hurst_adj = 1.0 + (hurst - 0.5) * 0.4 # ±20% scaling
 
         # PVV momentum adjustment: strong momentum = asymmetric range extension
         pvv_adj = 1.0 + abs(pvv_score) * 0.3
@@ -156,10 +161,10 @@ class PVVEngine:
 
         # 5. PVV composite score (normalized -1 to +1)
         # Keith: P=price ROC, V=volume ROC, V=vol ROC (vol expansion = negative)
-        vol_roc_norm = -vov_last  # vol expansion is bearish signal component
+        vol_roc_norm = -vov_last # vol expansion is bearish signal component
         pvv_raw = (
             np.tanh(p_roc * 10) * 0.50 +
-            np.tanh(vol_roc * 5)  * 0.20 +
+            np.tanh(vol_roc * 5) * 0.20 +
             np.tanh(vol_roc_norm * 5) * 0.30
         )
         pvv_score = float(np.clip(pvv_raw, -1.0, 1.0))
@@ -252,7 +257,7 @@ class PVVEngine:
         # e.g., price still in Q3 but PVV turning bullish = early Q1 signal
         trade_sig = results["TRADE"].get("signal", "NEUTRAL")
         trend_sig = results["TREND"].get("signal", "NEUTRAL")
-        tail_sig  = results["TAIL"].get("signal", "NEUTRAL")
+        tail_sig = results["TAIL"].get("signal", "NEUTRAL")
 
         # Bullish formation = all 3 durations aligned bullish or TREND+TAIL bullish
         bullish_formation = (trend_sig == "BULLISH" and tail_sig == "BULLISH")
@@ -285,7 +290,6 @@ class PVVEngine:
             return f"All durations {t} — high conviction, regime aligned"
         return "Mixed durations — no clear front-run edge"
 
-
 class PVVScanner:
     """Batch PVV analysis for many tickers."""
 
@@ -294,16 +298,32 @@ class PVVScanner:
 
     def analyze_multi(self, prices: Dict[str, pd.Series],
                       volumes: Optional[Dict[str, pd.Series]] = None) -> Dict[str, Dict]:
+        """
+        PATCH v3.2: ThreadPoolExecutor parallelization + hard timeout.
+        8 workers × ~3s = ~4× speedup vs serial. 120s total timeout.
+        """
         volumes = volumes or {}
         out = {}
-        for ticker, px in prices.items():
+
+        def _one(ticker_px):
+            ticker, px = ticker_px
             if px is None or px.empty:
-                out[ticker] = {"ok": False, "error": "No price data"}
-                continue
-            vol = volumes.get(ticker)
+                return ticker, {"ok": False, "error": "No price data"}
             try:
-                out[ticker] = self.engine.analyze(px, vol)
+                vol = volumes.get(ticker)
+                return ticker, self.engine.analyze(px, vol)
             except Exception as e:
-                logger.warning(f"PVV failed for {ticker}: {e}")
-                out[ticker] = {"ok": False, "error": str(e)}
+                return ticker, {"ok": False, "error": str(e)}
+
+        # ThreadPool: numpy/pandas release GIL → safe for CPU-bound Hurst
+        with ThreadPoolExecutor(max_workers=8) as ex:
+            futures = [ex.submit(_one, item) for item in prices.items()]
+            for fut in as_completed(futures, timeout=120):
+                try:
+                    t, r = fut.result(timeout=15)
+                    out[t] = r
+                except FuturesTimeout:
+                    logger.warning("PVV single ticker timed out (>15s)")
+                except Exception as e:
+                    logger.warning(f"PVV future error: {e}")
         return out

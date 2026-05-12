@@ -1,6 +1,12 @@
 """orchestrator.py — MacroRegime Data Orchestrator
-Patched v2026-05-12: Fixes TypeError on MarketHealthEngine.run(), GIPResult() empty call,
-threads deadlock, missing snapshot fallback, and unprotected progress callbacks.
+Patched v2026-05-12: Fully compatible with app.py v25.0
+- Adds build_snapshot() wrapper that app.py imports
+- Preserves GIPResult as object (not dict) for dot-notation access in app.py
+- Adds all missing keys app.py expects with safe placeholders
+- Fixes TypeError on MarketHealthEngine.run() missing 'quad' arg
+- Fixes threads=True deadlock in yfinance
+- Parallel FRED fetch
+- Stale snapshot fallback
 """
 from __future__ import annotations
 import os, sys, json, math, time, logging
@@ -123,7 +129,7 @@ def _all_tickers() -> List[str]:
     return out
 
 # ------------------------------------------------------------------
-# Core runner with bulletproof error handling
+# Core runner
 # ------------------------------------------------------------------
 def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: float = 12.0, **kwargs) -> dict:
     t0 = time.time()
@@ -142,12 +148,53 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         except Exception as e:
             logger.warning(f"Snapshot load failed: {e}")
 
-    # 2. Build result container
+    # 2. Build result container with ALL keys app.py expects
     result: dict = {
         "ok": False,
         "errors": [],
         "_source": "live",
         "_generated_at": datetime.now().isoformat(),
+        # Placeholders for all keys app.py accesses
+        "gip": None,
+        "global": {},
+        "risk_ranges": {},
+        "scenarios": {},
+        "narratives": {},
+        "discovery": {},
+        "transition": None,
+        "health": {},
+        "analogs": {},
+        "bottleneck": {},
+        "playbook": {},
+        "prices": {},
+        "auto_discoveries": {},
+        "feedback_eval": {},
+        "gamma": {},
+        "leveraged_etf": {},
+        "daily_signals": [],
+        "regime_forecast": {},
+        "forward_returns": {},
+        "leading_signals": {},
+        "price_clusters": {},
+        "news_narratives": {},
+        "bottleneck_discovery": {},
+        "frontrun": {},
+        "ihsg_sector_momentum": {},
+        "ihsg_commodity_overlay": {},
+        "ihsg_rupiah_regime": {},
+        "ihsg_foreign_flow": {},
+        "ihsg_macro_overlay": {},
+        "alpha_center": {},
+        "gamma_data": {},
+        "greeks_data": {},
+        "cot_oi": {},
+        "dxy_correlation": {},
+        "vol_forecast": {},
+        "stress_test": [],
+        "prices_loaded": 0,
+        "fred_coverage": 0,
+        "build_time_s": 0,
+        "daily_signals_summary": {},
     }
 
     try:
@@ -163,6 +210,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         fred = fred_bundle.get("series", {})
         fred_meta = fred_bundle.get("meta", {})
         result["fred_meta"] = fred_meta
+        result["fred_coverage"] = fred_meta.get("loaded", 0)
         logger.info(f"FRED loaded: {fred_meta.get('loaded',0)}/{fred_meta.get('requested',0)} series")
 
         # ---- Prices -----------------------------------------------------
@@ -180,6 +228,8 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             result["errors"].append(f"prices: {e}")
             prices = {}
 
+        result["prices"] = prices
+        result["prices_loaded"] = len(prices)
         result["price_meta"] = {"requested": len(tickers), "loaded": len(prices)}
         logger.info(f"Prices loaded: {len(prices)}/{len(tickers)} series")
 
@@ -197,23 +247,10 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         except Exception as e:
             logger.error(f"GIP engine failed: {e}")
             result["errors"].append(f"gip: {e}")
-            raise  # GIP is core — if it fails we must fallback to stale
+            raise
 
-        # Serialize GIP safely
-        result["gip"] = {
-            "structural_quad": getattr(gip, "structural_quad", "Q3"),
-            "structural_conf": round(getattr(gip, "structural_conf", 0.0), 3),
-            "monthly_quad": getattr(gip, "monthly_quad", "Q3"),
-            "monthly_conf": round(getattr(gip, "monthly_conf", 0.0), 3),
-            "divergence": getattr(gip, "divergence", "unknown"),
-            "operating_regime": getattr(gip, "operating_regime", "Unknown"),
-            "policy_score": round(getattr(gip, "policy_score", 0.0), 3),
-            "data_coverage": round(getattr(gip, "data_coverage", 0.0), 3),
-            "proxy_share": round(getattr(gip, "proxy_share", 0.0), 3),
-            "flip_hazard": round(getattr(gip, "flip_hazard", 0.0), 3),
-            "features": {k: round(v, 4) if isinstance(v, float) else v
-                         for k, v in getattr(gip, "features", {}).items()},
-        }
+        # CRITICAL: Keep gip as OBJECT (not dict) for app.py dot-notation access
+        result["gip"] = gip
 
         quad = getattr(gip, "structural_quad", "Q3")
         monthly_quad = getattr(gip, "monthly_quad", "Q3")
@@ -223,15 +260,15 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         _safe_progress(progress_cb, "Running market health & breadth…", 0.65)
         if MarketHealthEngine is not None:
             try:
-                # PATCH: pass quad as 3rd argument (was missing)
+                # PATCH: pass quad as 3rd argument
                 mkt = MarketHealthEngine().run(prices, gip_features, quad)
-                result["market_health"] = mkt
+                result["health"] = mkt
             except Exception as e:
                 logger.warning(f"MarketHealthEngine failed: {e}")
                 result["errors"].append(f"market_health: {e}")
-                result["market_health"] = {"error": str(e), "verdict": "Unknown"}
+                result["health"] = {"error": str(e), "verdict": "Unknown"}
         else:
-            result["market_health"] = {"error": "Engine not imported", "verdict": "Unknown"}
+            result["health"] = {"error": "Engine not imported", "verdict": "Unknown"}
 
         # ---- Risk Ranges -----------------------------------------------
         _safe_progress(progress_cb, "Computing Risk Ranges (TRR/LRR)…", 0.72)
@@ -255,13 +292,16 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                     quad, monthly_quad,
                     "SPY", result.get("risk_ranges"), -0.10, 25
                 )
-                result["alpha"] = alpha
+                result["bottleneck"] = alpha
+                result["alpha_center"] = alpha
             except Exception as e:
                 logger.warning(f"BottleneckEngine failed: {e}")
                 result["errors"].append(f"alpha: {e}")
-                result["alpha"] = {"all_candidates": []}
+                result["bottleneck"] = {"all_candidates": []}
+                result["alpha_center"] = {"all_candidates": []}
         else:
-            result["alpha"] = {"all_candidates": []}
+            result["bottleneck"] = {"all_candidates": []}
+            result["alpha_center"] = {"all_candidates": []}
 
         # ---- Gamma & Greeks (per-ticker proxy) ------------------------
         _safe_progress(progress_cb, "Running gamma & Greeks proxy…", 0.88)
@@ -302,7 +342,9 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                 result["errors"].append(f"greeks: {e}")
 
         result["gamma"] = gamma_results
+        result["gamma_data"] = gamma_results
         result["greeks"] = greeks_results
+        result["greeks_data"] = greeks_results
 
         # ---- Playbook & Summary ----------------------------------------
         _safe_progress(progress_cb, "Building playbook & summary…", 0.95)
@@ -329,6 +371,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
 
         result["ok"] = True
         elapsed = time.time() - t0
+        result["build_time_s"] = elapsed
         logger.info(f"Orchestrator complete in {elapsed:.1f}s")
         _safe_progress(progress_cb, f"Complete ({elapsed:.0f}s)", 1.0)
 
@@ -356,6 +399,79 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         except Exception as fallback_err:
             logger.error(f"Stale fallback also failed: {fallback_err}")
 
+    return result
+
+
+# ------------------------------------------------------------------
+# APP.PY COMPATIBILITY: build_snapshot wrapper
+# ------------------------------------------------------------------
+def build_snapshot(
+    progress_cb=None,
+    include_us_stocks: bool = True,
+    include_forex: bool = True,
+    include_commodities: bool = True,
+    include_crypto: bool = True,
+    include_ihsg: bool = True,
+    **kwargs
+) -> dict:
+    """
+    Wrapper that app.py v25.0 imports and calls.
+    Delegates to run_orchestrator() and ensures all app.py keys exist.
+    """
+    logger.info(
+        f"build_snapshot called: us={include_us_stocks}, fx={include_forex}, "
+        f"comm={include_commodities}, crypto={include_crypto}, ihsg={include_ihsg}"
+    )
+    result = run_orchestrator(
+        progress_cb=progress_cb,
+        use_cache=True,
+        max_age_hours=12.0,
+        include_us_stocks=include_us_stocks,
+        include_forex=include_forex,
+        include_commodities=include_commodities,
+        include_crypto=include_crypto,
+        include_ihsg=include_ihsg,
+        **kwargs
+    )
+    # Ensure all app.py expected keys exist (fill missing with safe defaults)
+    defaults = {
+        "global": {},
+        "scenarios": {},
+        "narratives": {},
+        "discovery": {},
+        "transition": None,
+        "analogs": {},
+        "auto_discoveries": {},
+        "feedback_eval": {},
+        "leveraged_etf": {},
+        "daily_signals": [],
+        "regime_forecast": {},
+        "forward_returns": {},
+        "leading_signals": {},
+        "price_clusters": {},
+        "news_narratives": {},
+        "bottleneck_discovery": {},
+        "frontrun": {},
+        "ihsg_sector_momentum": {},
+        "ihsg_commodity_overlay": {},
+        "ihsg_rupiah_regime": {},
+        "ihsg_foreign_flow": {},
+        "ihsg_macro_overlay": {},
+        "alpha_center": {},
+        "gamma_data": {},
+        "greeks_data": {},
+        "cot_oi": {},
+        "dxy_correlation": {},
+        "vol_forecast": {},
+        "stress_test": [],
+        "prices_loaded": 0,
+        "fred_coverage": 0,
+        "build_time_s": 0,
+        "daily_signals_summary": {},
+    }
+    for key, default_val in defaults.items():
+        if key not in result:
+            result[key] = default_val
     return result
 
 

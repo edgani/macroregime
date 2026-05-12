@@ -43,21 +43,24 @@ except Exception as _e:
         def run(self, sq, mq, gq, gip_features, prices, **kwargs):
             return {"ok": False, "narratives": [], "bottlenecks": [], "alpha_ideas": [], "scenario_update": {}}
 
-# ── PVV + TREND SIGNAL ENGINES (v2.0) ──
+# ── PVV + TREND SIGNAL ENGINES (v2.0) — safe import ──
 try:
     from engines.pvv_engine import PVVEngine, PVVScanner
+    PVV_AVAILABLE = True
 except Exception as _e:
     logger.warning(f"pvv_engine import failed: {_e}")
+    PVV_AVAILABLE = False
     class PVVScanner:
-        def analyze_multi(self, prices, volumes): return {}
+        def analyze_multi(self, prices, volumes=None): return {}
 
 try:
     from engines.trend_signal_engine import TrendSignalEngine, TrendSignalScanner
+    TREND_AVAILABLE = True
 except Exception as _e:
     logger.warning(f"trend_signal_engine import failed: {_e}")
+    TREND_AVAILABLE = False
     class TrendSignalScanner:
-        def build_multi(self, prices, volumes, duration): return {}
-        def build_figures(self, histories, duration): return {}
+        def build_multi(self, prices, volumes=None, duration="TREND"): return {}
 
 
 # ── BOTTLENECK DISCOVERY V3 (orphan integration) ──
@@ -1635,60 +1638,63 @@ def build_snapshot(progress_cb=None, include_us_stocks=True, include_forex=True,
     if progress_cb: progress_cb(f"Risk ranges: {len(asset_ranges)} assets", 0.65)
 
     # ═══════════════════════════════════════════════════════════════════
-    # PVV + TREND SIGNAL ENHANCEMENT (v2.0)
+    # PVV + TREND SIGNAL ENHANCEMENT (v2.0) — safe fallback
     # ═══════════════════════════════════════════════════════════════════
-    if progress_cb: progress_cb("Running PVV multi-duration analysis...", 0.66)
-    pvv_scanner = PVVScanner()
-    trend_scanner = TrendSignalScanner()
-    # Extract volumes (optional)
-    volumes = {}
-    pvv_results = pvv_scanner.analyze_multi(prices, volumes)
-    # Enhance asset_ranges with fractal PVV risk ranges
-    for ticker, pvv_res in pvv_results.items():
-        if not pvv_res.get("ok"):
-            continue
-        if ticker not in asset_ranges:
-            # Create minimal range entry if missing
-            px = pvv_res["trend"]["price"]
-            asset_ranges[ticker] = {
-                "ok": True, "px": px, "market": "unknown",
-                "composite": pvv_res["composite_signal"].lower(),
-                "quality": "A" if (pvv_res["bullish_formation"] or pvv_res["bearish_formation"]) else "B",
-                "signal": pvv_res["composite_signal"],
-                "trade": {"lrr": pvv_res["trend"]["lrr"], "trr": pvv_res["trend"]["trr"], "volume_confirm": 0.5, "stretch": "normal"},
-                "trend": {"hurst": pvv_res["trend"]["hurst"], "direction": "up" if pvv_res["trend"]["above_trend_sma"] else "down"},
-                "alerts": [],
-                "note": f"PVV TREND: {pvv_res['composite_signal']} | VASP: {pvv_res['composite_score']:.2f} | VoV: {pvv_res['trend']['vol_of_vol']:.2f}",
-            }
-        else:
-            # Override with fractal range
-            ar = asset_ranges[ticker]
-            ar["composite"] = pvv_res["composite_signal"].lower()
-            ar["signal"] = pvv_res["composite_signal"]
-            ar["quality"] = "A" if (pvv_res["bullish_formation"] or pvv_res["bearish_formation"]) else "B"
-            ar["trade"]["lrr"] = pvv_res["trend"]["lrr"]
-            ar["trade"]["trr"] = pvv_res["trend"]["trr"]
-            ar["trend"]["hurst"] = pvv_res["trend"]["hurst"]
-            ar["vasp_score"] = pvv_res["composite_score"]
-            ar["vol_of_vol"] = pvv_res["trend"]["vol_of_vol"]
-            ar["realized_vol"] = pvv_res["trend"]["realized_vol"]
-            ar["bullish_formation"] = pvv_res["bullish_formation"]
-            ar["bearish_formation"] = pvv_res["bearish_formation"]
-            ar["front_run"] = pvv_res["front_run_rationale"]
-            ar["note"] = f"PVV TREND: {pvv_res['composite_signal']} | VASP: {pvv_res['composite_score']:.2f} | VoV: {pvv_res['trend']['vol_of_vol']:.2f}"
-    if progress_cb: progress_cb(f"PVV analyzed: {len(pvv_results)} tickers", 0.67)
-
-    if progress_cb: progress_cb("Building historical TREND signals...", 0.68)
+    pvv_results = {}
     trend_histories = {}
-    for ticker, px in prices.items():
-        if px is None or len(px) < 200:
-            continue
+    if PVV_AVAILABLE:
+        if progress_cb: progress_cb("Running PVV multi-duration analysis...", 0.66)
         try:
-            h = trend_scanner.engine.build_all_durations(px, volumes.get(ticker))
-            trend_histories[ticker] = {k: v.to_dict("records") for k, v in h.items() if v is not None and not v.empty}
+            pvv_scanner = PVVScanner()
+            pvv_results = pvv_scanner.analyze_multi(prices, {})
+            # Enhance asset_ranges with fractal PVV risk ranges
+            for ticker, pvv_res in pvv_results.items():
+                if not pvv_res.get("ok"): continue
+                if ticker not in asset_ranges:
+                    px = pvv_res.get("trend", {}).get("price", 0)
+                    asset_ranges[ticker] = {
+                        "ok": True, "px": px, "market": "unknown",
+                        "composite": pvv_res.get("composite_signal", "NEUTRAL").lower(),
+                        "quality": "A" if (pvv_res.get("bullish_formation") or pvv_res.get("bearish_formation")) else "B",
+                        "signal": pvv_res.get("composite_signal", "NEUTRAL"),
+                        "trade": {"lrr": pvv_res.get("trend", {}).get("lrr"), "trr": pvv_res.get("trend", {}).get("trr"), "volume_confirm": 0.5, "stretch": "normal"},
+                        "trend": {"hurst": pvv_res.get("trend", {}).get("hurst", 0.5), "direction": "up" if pvv_res.get("trend", {}).get("above_trend_sma") else "down"},
+                        "alerts": [],
+                        "note": f"PVV: {pvv_res.get('composite_signal')} | VASP: {pvv_res.get('composite_score', 0):.2f}",
+                    }
+                else:
+                    ar = asset_ranges[ticker]
+                    ar["composite"] = pvv_res.get("composite_signal", "NEUTRAL").lower()
+                    ar["signal"] = pvv_res.get("composite_signal", "NEUTRAL")
+                    ar["quality"] = "A" if (pvv_res.get("bullish_formation") or pvv_res.get("bearish_formation")) else "B"
+                    ar["trade"]["lrr"] = pvv_res.get("trend", {}).get("lrr")
+                    ar["trade"]["trr"] = pvv_res.get("trend", {}).get("trr")
+                    ar["trend"]["hurst"] = pvv_res.get("trend", {}).get("hurst", 0.5)
+                    ar["vasp_score"] = pvv_res.get("composite_score")
+                    ar["vol_of_vol"] = pvv_res.get("trend", {}).get("vol_of_vol")
+                    ar["realized_vol"] = pvv_res.get("trend", {}).get("realized_vol")
+                    ar["bullish_formation"] = pvv_res.get("bullish_formation")
+                    ar["bearish_formation"] = pvv_res.get("bearish_formation")
+                    ar["front_run"] = pvv_res.get("front_run_rationale")
+                    ar["note"] = f"PVV: {pvv_res.get('composite_signal')} | VASP: {pvv_res.get('composite_score', 0):.2f}"
+            if progress_cb: progress_cb(f"PVV: {len(pvv_results)} tickers", 0.67)
         except Exception as e:
-            logger.debug(f"Trend history skip {ticker}: {e}")
-    if progress_cb: progress_cb(f"Trend histories: {len(trend_histories)} tickers", 0.69)
+            logger.warning(f"PVV analysis failed: {e}")
+
+    if TREND_AVAILABLE:
+        if progress_cb: progress_cb("Building historical TREND signals...", 0.68)
+        try:
+            trend_scanner = TrendSignalScanner()
+            for ticker, px in prices.items():
+                if px is None or len(px) < 200: continue
+                try:
+                    h = trend_scanner.engine.build_all_durations(px, None)
+                    trend_histories[ticker] = {k: v.to_dict("records") for k, v in h.items() if v is not None and not v.empty}
+                except Exception:
+                    pass
+            if progress_cb: progress_cb(f"Trend histories: {len(trend_histories)} tickers", 0.69)
+        except Exception as e:
+            logger.warning(f"Trend history failed: {e}")
 
     if progress_cb: progress_cb("Calculating vol forecast...", 0.56)
     vol_forecasts = _build_vol_forecast(prices, sq, lookback=20, long_window=50)

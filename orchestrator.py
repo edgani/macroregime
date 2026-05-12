@@ -8,10 +8,11 @@ Changes v3.2:
  • Added YFINANCE_CACHE_DIR env override for Streamlit Cloud
 """
 from __future__ import annotations
-import os, sys, json, math, logging, time
+import os, sys, json, math, logging, time, socket
 from typing import Dict, List, Optional
 from datetime import datetime, timezone
 from types import SimpleNamespace
+from concurrent.futures import ThreadPoolExecutor, as_completed, TimeoutError as FuturesTimeout
 import pandas as pd
 import numpy as np
 
@@ -19,6 +20,9 @@ import numpy as np
 os.environ["YFINANCE_CACHE_DIR"] = ".cache/yfinance"
 os.makedirs(".cache/yfinance", exist_ok=True)
 os.makedirs(".cache/prices_v2", exist_ok=True)
+
+# ── CRITICAL: bound urllib-based network calls (FRED uses urllib, no internal timeout) ──
+socket.setdefaulttimeout(20)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s | %(levelname)s | %(message)s", datefmt="%H:%M:%S")
 logger = logging.getLogger(__name__)
@@ -186,13 +190,27 @@ def load_fred_macro():
         "m2": "M2SL",
     }
     data = {}
-    for k, sid in series_ids.items():
+    def _fetch_one(k_sid):
+        k, sid = k_sid
         try:
             s = _fred_client.get_series(sid, observation_start="2018-01-01")
             if s is not None and len(s) > 0:
-                data[k] = s
-        except Exception:
-            pass
+                return k, s
+        except Exception as e:
+            logger.warning(f"FRED {k} ({sid}) failed: {e}")
+        return k, None
+
+    with ThreadPoolExecutor(max_workers=6) as ex:
+        futures = {ex.submit(_fetch_one, item): item[0] for item in series_ids.items()}
+        for fut in as_completed(futures, timeout=None):
+            try:
+                k, s = fut.result(timeout=12)
+                if s is not None:
+                    data[k] = s
+            except FuturesTimeout:
+                logger.warning(f"FRED {futures[fut]} timed out (>12s)")
+            except Exception as e:
+                logger.warning(f"FRED {futures[fut]} error: {e}")
     return data
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -998,7 +1016,7 @@ def build_snapshot(
     prices = load_prices(
         tickers=all_tickers,
         days=756,
-        max_age_hours=12.0 if fast_refresh else 12.0,
+        max_age_hours=24.0 if fast_refresh else 6.0,
         progress_cb=progress_cb,
     )
     if progress_cb: progress_cb(f"Loaded {len(prices)} price series", 0.35)
@@ -1094,11 +1112,23 @@ def build_snapshot(
         if progress_cb: progress_cb("Fetching COT data...", 0.61)
         if cot_scraper and COT_AVAILABLE:
             cot_tickers = list(MACRO_PROXIES.keys())[:10] + ["GLD","SLV","CL=F","GC=F","TLT","IBIT"]
-            for t in cot_tickers:
+            def _cot_one(t):
                 try:
                     r = cot_scraper.analyze(t, prices, vix_now)
-                    if r and r.get("ok"): cot_results[t] = r
-                except Exception as e: logger.debug(f"COT {t}: {e}")
+                    return t, r if r and r.get("ok") else None
+                except Exception as e:
+                    logger.debug(f"COT {t}: {e}")
+                    return t, None
+            with ThreadPoolExecutor(max_workers=8) as ex:
+                fmap = {ex.submit(_cot_one, t): t for t in cot_tickers}
+                for fut in as_completed(fmap):
+                    try:
+                        t, r = fut.result(timeout=35)
+                        if r: cot_results[t] = r
+                    except FuturesTimeout:
+                        logger.warning(f"COT {fmap[fut]} timed out (>35s)")
+                    except Exception as e:
+                        logger.debug(f"COT {fmap[fut]}: {e}")
             cot_oi = {"cot": cot_results, "oi": oi_results}
 
         if progress_cb: progress_cb("Fetching options chains...", 0.63)

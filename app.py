@@ -1832,12 +1832,12 @@ elif page == "⚡ Alpha Center":
     ma_list = bottleneck_ref.get("ma_watchlist", [])
     risks = bottleneck_ref.get("risk_flags", [])
 
-    # ── META BAR ──
-    m1, m2, m3, m4 = st.columns(4)
-    m1.metric("Front-Run Candidates", len(front_run))
-    m2.metric("Bottleneck Tickers", bottleneck_ref.get("meta", {}).get("total_tickers", 0))
-    m3.metric("Supply Chain Layers", bottleneck_ref.get("meta", {}).get("total_layers", 0))
-    m4.metric("Accounts Tracked", len(bottleneck_ref.get("sources", [])))
+    # ── META BAR (hidden, runs in background) ──
+    _meta_candidates = len(front_run)
+    _meta_tickers = bottleneck_ref.get("meta", {}).get("total_tickers", 0)
+    _meta_layers = bottleneck_ref.get("meta", {}).get("total_layers", 0)
+    _meta_accounts = len(bottleneck_ref.get("sources", []))
+    # st.metric lines removed per user request — data still computed above
 
     # ── INSTITUTIONAL ROTATION (horizontal, DONE·NOW·NEXT only) ──
     st.markdown("### 🔄 Institutional Rotation")
@@ -1946,6 +1946,48 @@ elif page == "⚡ Alpha Center":
                 c3.metric("Accounts", f"{len(c.get('accounts',[]))}")
                 c4.metric("Priority", c.get("priority","—"))
                 st.caption("🔵 META DATA — No live price/options; showing bottleneck intelligence")
+
+            # ── RISK RANGE BAR (3-tier) ──
+            s_ticker = prices.get(ticker)
+            if s_ticker is not None and len(s_ticker) >= 20:
+                try:
+                    s_clean = pd.to_numeric(s_ticker, errors="coerce").dropna()
+                    if len(s_clean) >= 20:
+                        px_rr = float(s_clean.iloc[-1])
+                        sma20_rr = float(s_clean.tail(20).mean())
+                        std20_rr = float(s_clean.tail(20).std())
+                        trade_l_rr = round(sma20_rr - 1.5 * std20_rr, 2)
+                        trade_r_rr = round(sma20_rr + 1.5 * std20_rr, 2)
+                        trend_l_rr = trend_r_rr = tail_l_rr = tail_r_rr = None
+                        if len(s_clean) >= 50:
+                            sma50 = float(s_clean.tail(50).mean())
+                            std50 = float(s_clean.tail(50).std())
+                            trend_l_rr = round(sma50 - 1.5 * std50, 2)
+                            trend_r_rr = round(sma50 + 1.5 * std50, 2)
+                        if len(s_clean) >= 200:
+                            sma200 = float(s_clean.tail(200).mean())
+                            std200 = float(s_clean.tail(200).std())
+                            tail_l_rr = round(sma200 - 2.0 * std200, 2)
+                            tail_r_rr = round(sma200 + 2.0 * std200, 2)
+                        elif len(s_clean) >= 100:
+                            sma100 = float(s_clean.tail(100).mean())
+                            std100 = float(s_clean.tail(100).std())
+                            tail_l_rr = round(sma100 - 2.0 * std100, 2)
+                            tail_r_rr = round(sma100 + 2.0 * std100, 2)
+                        elif trend_l_rr is not None:
+                            tail_l_rr = round(trend_l_rr - std50 * 2.0, 2)
+                            tail_r_rr = round(trend_r_rr + std50 * 2.0, 2)
+                        else:
+                            tail_l_rr = trade_l_rr
+                            tail_r_rr = trade_r_rr
+                        st.markdown("**📐 Risk Range (Trade · Trend · Tail)**")
+                        st.markdown(_risk_range_bar_html(px_rr, trade_l_rr, trade_r_rr, trend_l_rr, trend_r_rr, tail_l_rr, tail_r_rr, 100), unsafe_allow_html=True)
+                        # Expected Move
+                        em = _calc_expected_move(s_clean, 5)
+                        if em:
+                            st.caption(f"📊 Expected Move (weekly): ±{ff(em['expected'])} ({fp(em['expected_pct'])}) · Daily vol: {fp(em['daily_vol'])}")
+                except Exception:
+                    pass
 
             st.divider()
 

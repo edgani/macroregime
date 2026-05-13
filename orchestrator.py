@@ -1,6 +1,6 @@
-"""orchestrator.py - MacroRegime Data Orchestrator v26.0 FINAL
-Patched: Fully compatible with app.py v26.0
-- Alpha Center: fallback from price action + bottleneck engine
+"""orchestrator.py - MacroRegime Data Orchestrator v27.0 FINAL
+Patched: News & Rumor Engine for front-running + forward-looking signals
+- Alpha Center: fallback from price action + bottleneck engine + NEWS BOOST
 - Crypto: on-chain proxy data (TVL, momentum, vol)
 - Global & EM: 50-country live-enriched map + IHSG structural layers
 - Risk Ranges: fallback proxy when engine fails
@@ -115,6 +115,182 @@ except Exception as e:
     BONDS = {}; IHSG_UNIVERSE = {}; MACRO_PROXIES = {}
     US_BUCKETS = {}; IHSG_BUCKETS = {}; FX_BUCKETS = {}; COMMODITY_BUCKETS = {}; CRYPTO_BUCKETS = {}
     QUAD_ASSET_PERFORMANCE = {}; TICKER_SECTOR = {}; MARKET_CLASSIFICATION = {}; BOTTLENECK_PROFILES = {}
+
+# ------------------------------------------------------------------
+# News & Rumor Engine — Front-Run Market before headline
+# ------------------------------------------------------------------
+try:
+    import requests
+    import xml.etree.ElementTree as ET
+    _has_requests = True
+except Exception:
+    _has_requests = False
+    logger.warning("requests not available — news engine disabled")
+
+def _strip_html(text):
+    if not text:
+        return ""
+    import re
+    clean = re.compile('<.*?>')
+    return re.sub(clean, '', text)
+
+def _fetch_news_headlines(tickers: List[str], max_per_ticker: int = 5) -> Dict[str, List[dict]]:
+    """Scrape Yahoo Finance RSS headlines for tickers."""
+    if not _has_requests:
+        return {}
+    headlines = {}
+    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+    session = requests.Session()
+    session.headers.update(headers)
+
+    for ticker in tickers[:80]:  # Limit to avoid rate limits
+        try:
+            url = f"https://finance.yahoo.com/rss/headline?s={ticker}"
+            r = session.get(url, timeout=6)
+            if r.status_code != 200:
+                continue
+            root = ET.fromstring(r.content)
+            items = []
+            for item in root.iter('item'):
+                title = item.find('title')
+                pub = item.find('pubDate')
+                link = item.find('link')
+                if title is not None and title.text:
+                    items.append({
+                        "title": _strip_html(title.text),
+                        "date": pub.text if pub is not None else "",
+                        "url": link.text if link is not None else "",
+                        "source": "Yahoo Finance"
+                    })
+                if len(items) >= max_per_ticker:
+                    break
+            if items:
+                headlines[ticker] = items
+        except Exception as e:
+            logger.debug(f"News fetch failed for {ticker}: {e}")
+    return headlines
+
+def _analyze_news(headlines: Dict[str, List[dict]], prices: dict) -> dict:
+    """Extract sentiment, themes, rumors, and front-run signals."""
+    bullish_kw = ["surge","soar","rally","bull","upgrade","beat","strong","growth","breakthrough","deal","partnership","ai","record","expansion","launch","approve","buyback","dividend","blockbuster","moon","rocket"]
+    bearish_kw = ["crash","plunge","bear","downgrade","miss","weak","loss","layoff","investigation","fine","delay","recall","debt","bankrupt","cut","short","sell","dump","collapse","crisis"]
+    rumor_kw = ["reportedly","rumor","speculation","considering","exploring","potential","may","might","could","planned","sources say","exclusive","breaking","leak","in talks","approaching","eyeing"]
+    theme_kw = {
+        "ai": ["ai","artificial intelligence","llm","chatgpt","agentic","model","machine learning","nvidia","openai"],
+        "semiconductor": ["chip","semiconductor","gpu","cpu","tsmc","hbm","dram","foundry","wafer"],
+        "energy": ["oil","gas","energy","solar","renewable","crude","power","grid","transformer"],
+        "crypto": ["bitcoin","crypto","blockchain","etf","ethereum","btc","eth","solana"],
+        "fed_rates": ["fed","federal reserve","rate cut","rate hike","powell","interest rate","fomc"],
+        "geopolitical": ["war","sanctions","china","taiwan","trade","tariff","middle east","ukraine"],
+        "biotech": ["fda","trial","drug","vaccine","biotech","pharma","approval"],
+        "ev": ["ev","electric vehicle","tesla","battery","lithium","charging"],
+    }
+
+    ticker_news = {}
+    rumor_watch = []
+    narratives = []
+
+    for ticker, items in headlines.items():
+        if not items:
+            continue
+        bull_count = 0; bear_count = 0; rumor_count = 0
+        themes = set()
+        latest_titles = []
+
+        for item in items:
+            title_lower = item["title"].lower()
+            latest_titles.append(item["title"])
+            bull_count += sum(1 for kw in bullish_kw if kw in title_lower)
+            bear_count += sum(1 for kw in bearish_kw if kw in title_lower)
+            rumor_count += sum(1 for kw in rumor_kw if kw in title_lower)
+            for theme, kws in theme_kw.items():
+                if any(kw in title_lower for kw in kws):
+                    themes.add(theme)
+
+        total_kw = bull_count + bear_count
+        sentiment_score = (bull_count - bear_count) / max(total_kw, 1)
+        rumor_score = min(rumor_count / max(len(items), 1), 1.0)
+
+        # Price momentum cross-check
+        s = prices.get(ticker)
+        r1m = None
+        if s is not None and len(s) >= 22:
+            try:
+                s_clean = pd.to_numeric(s, errors="coerce").dropna()
+                if len(s_clean) >= 22:
+                    r1m = float(s_clean.iloc[-1] / s_clean.iloc[-22] - 1)
+            except Exception:
+                pass
+
+        front_run_signal = None
+        if rumor_score > 0.4 and sentiment_score > 0.3:
+            front_run_signal = "STRONG_BULLISH_RUMOR"
+        elif rumor_score > 0.4 and sentiment_score < -0.3:
+            front_run_signal = "STRONG_BEARISH_RUMOR"
+        elif rumor_score > 0.25:
+            front_run_signal = "RUMOR_WATCH"
+        elif sentiment_score > 0.4 and (r1m is None or r1m < 0.08):
+            front_run_signal = "NEWS_MOMENTUM_BUILDING"
+        elif sentiment_score < -0.4:
+            front_run_signal = "NEGATIVE_HEADLINE_RISK"
+        elif bull_count >= 3 and bear_count == 0:
+            front_run_signal = "BULLISH_CLUSTER"
+
+        ticker_news[ticker] = {
+            "headlines": latest_titles[:3],
+            "sentiment_score": round(sentiment_score, 2),
+            "rumor_score": round(rumor_score, 2),
+            "themes": list(themes),
+            "front_run_signal": front_run_signal,
+            "r1m": r1m,
+            "bull_count": bull_count,
+            "bear_count": bear_count,
+        }
+
+        if front_run_signal:
+            rumor_watch.append({
+                "ticker": ticker,
+                "signal": front_run_signal,
+                "sentiment": round(sentiment_score, 2),
+                "rumor": round(rumor_score, 2),
+                "themes": list(themes),
+                "headline": latest_titles[0] if latest_titles else "",
+                "r1m": r1m,
+            })
+
+        if themes and abs(sentiment_score) > 0.15:
+            narratives.append({
+                "ticker": ticker,
+                "theme": list(themes)[0] if themes else "general",
+                "sentiment": sentiment_score,
+                "headline": latest_titles[0] if latest_titles else "",
+            })
+
+    # Aggregate emergent narratives
+    emergent = {}
+    for n in narratives:
+        theme = n["theme"]
+        if theme not in emergent:
+            emergent[theme] = {"mentions": 0, "tickers": [], "avg_sentiment": 0, "headlines": []}
+        emergent[theme]["mentions"] += 1
+        emergent[theme]["tickers"].append(n["ticker"])
+        emergent[theme]["avg_sentiment"] += n["sentiment"]
+        emergent[theme]["headlines"].append(n["headline"])
+
+    for theme in emergent:
+        count = emergent[theme]["mentions"]
+        emergent[theme]["avg_sentiment"] = round(emergent[theme]["avg_sentiment"] / count, 2) if count > 0 else 0
+        emergent[theme]["tickers"] = list(dict.fromkeys(emergent[theme]["tickers"]))[:10]
+        emergent[theme]["headlines"] = emergent[theme]["headlines"][:5]
+        emergent[theme]["supply_chain_hits"] = 0
+
+    return {
+        "ticker_specific": ticker_news,
+        "emergent_narratives": [{"name": k, **v} for k, v in emergent.items()],
+        "rumor_watch": sorted(rumor_watch, key=lambda x: abs(x["sentiment"]) + x["rumor"], reverse=True)[:25],
+        "analyzed_count": sum(len(v) for v in headlines.values()),
+    }
+
 # ------------------------------------------------------------------
 # Ticker universe - FIXED: SPX->^GSPC, NASDAQ->^IXIC
 # ------------------------------------------------------------------
@@ -263,12 +439,14 @@ def _classify_market(ticker: str) -> str:
     return "us_equity"
 
 # ------------------------------------------------------------------
-# Alpha Center Proxy - generate from price action + risk ranges
+# Alpha Center Proxy - generate from price action + risk ranges + NEWS
 # ------------------------------------------------------------------
-def _alpha_center_proxy(prices: dict, risk_ranges: dict, quad: str, vix: float) -> dict:
+def _alpha_center_proxy(prices: dict, risk_ranges: dict, quad: str, vix: float, news_analysis: dict = None) -> dict:
     """Generate alpha center items from price action when bottleneck engine fails."""
     ar = risk_ranges.get("asset_ranges", {})
     alpha_items = []
+    news_map = (news_analysis or {}).get("ticker_specific", {}) if news_analysis else {}
+
     for ticker, v in ar.items():
         comp = v.get("composite", "neutral")
         if comp == "neutral":
@@ -304,12 +482,32 @@ def _alpha_center_proxy(prices: dict, risk_ranges: dict, quad: str, vix: float) 
             scanner = "regime_aligned"
         elif near_entry and rr >= 2.0:
             scanner = "bottleneck"
+
+        # NEWS BOOST
+        news = news_map.get(ticker, {})
+        news_signal = news.get("front_run_signal")
+        priority_score = round(rr * 10 + (50 if near_entry else 0), 1)
+        if news_signal in ["STRONG_BULLISH_RUMOR", "NEWS_MOMENTUM_BUILDING", "BULLISH_CLUSTER"]:
+            if side == "long":
+                priority_score += 30
+                scanner = "news_momentum"
+                if grade == "C": grade = "B"
+            elif side == "short":
+                priority_score -= 10
+        elif news_signal in ["STRONG_BEARISH_RUMOR", "NEGATIVE_HEADLINE_RISK"]:
+            if side == "short":
+                priority_score += 30
+                scanner = "news_momentum"
+                if grade == "C": grade = "B"
+            elif side == "long":
+                priority_score -= 10
+
         alpha_items.append({
             "ticker": ticker,
             "scanner_type": scanner,
             "direction": "LONG" if side == "long" else "SHORT",
             "grade": grade,
-            "priority_score": round(rr * 10 + (50 if near_entry else 0), 1),
+            "priority_score": priority_score,
             "price": px,
             "entry": entry,
             "target_1": tp1,
@@ -321,6 +519,10 @@ def _alpha_center_proxy(prices: dict, risk_ranges: dict, quad: str, vix: float) 
             "thesis": f"{side.title()} setup at {quad} regime - {action}",
             "recommendation": f"{side.title()} - Risk range {lrr}/{trr}",
             "action": action,
+            "news_signal": news_signal,
+            "news_headline": (news.get("headlines") or [""])[0] if news else "",
+            "news_sentiment": news.get("sentiment_score") if news else None,
+            "news_themes": news.get("themes") if news else [],
         })
     return {
         "meta": {
@@ -334,6 +536,7 @@ def _alpha_center_proxy(prices: dict, risk_ranges: dict, quad: str, vix: float) 
         "level_2": [i for i in alpha_items if i.get("grade") == "B"],
         "watch": [i for i in alpha_items if i.get("grade") == "C"],
     }
+
 # ------------------------------------------------------------------
 # IHSG Structural Layers - generate from price data
 # ------------------------------------------------------------------
@@ -468,6 +671,7 @@ def _ihsg_layers(prices: dict, quad: str) -> dict:
         "ihsg_foreign_flow": foreign_flow,
         "ihsg_macro_overlay": macro_overlay,
     }
+
 # ------------------------------------------------------------------
 # Core runner
 # ------------------------------------------------------------------
@@ -535,6 +739,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         "build_time_s": 0,
         "daily_signals_summary": {},
         "crypto_tokens": {},
+        "rumor_watch": [],
     }
 
     try:
@@ -583,8 +788,16 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         if not prices:
             raise RuntimeError("No price data loaded - cannot proceed")
 
+        # ---- NEWS & RUMOR ENGINE (Front-Run) ----
+        _safe_progress(progress_cb, "Scanning news & rumors...", 0.18)
+        news_headlines = _fetch_news_headlines(list(prices.keys())[:100])
+        news_analysis = _analyze_news(news_headlines, prices)
+        result["news_narratives"] = news_analysis
+        result["rumor_watch"] = news_analysis.get("rumor_watch", [])
+        logger.info(f"News analyzed: {news_analysis.get('analyzed_count',0)} headlines, {len(result['rumor_watch'])} rumor signals")
+
         # ---- IMMEDIATE PROXY FALLBACKS ----
-        _safe_progress(progress_cb, "Computing proxy fallbacks...", 0.20)
+        _safe_progress(progress_cb, "Computing proxy fallbacks...", 0.25)
 
         rr_proxy = _risk_range_proxy(prices)
         crypto_proxy = _crypto_onchain_proxy(prices)
@@ -689,7 +902,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             })
 
         if not alpha_items:
-            logger.warning("Bottleneck engine returned 0 candidates - using price-action proxy")
+            logger.warning("Bottleneck engine returned 0 candidates - using price-action proxy + news")
             vix_last = 20.0
             vix_s = prices.get("^VIX")
             if vix_s is not None and not vix_s.empty:
@@ -697,10 +910,22 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                     vix_last = float(vix_s.iloc[-1])
                 except Exception:
                     pass
-            ac_proxy = _alpha_center_proxy(prices, result["risk_ranges"], quad, vix_last)
+            ac_proxy = _alpha_center_proxy(prices, result["risk_ranges"], quad, vix_last, news_analysis)
             alpha_items = ac_proxy.get("all", [])
             result["alpha_center"] = ac_proxy
         else:
+            # Inject news into existing alpha items
+            news_map = news_analysis.get("ticker_specific", {})
+            for item in alpha_items:
+                ticker = item.get("ticker", "")
+                news = news_map.get(ticker, {})
+                if news and news.get("front_run_signal"):
+                    item["news_signal"] = news["front_run_signal"]
+                    item["news_headline"] = (news.get("headlines") or [""])[0]
+                    item["news_sentiment"] = news.get("sentiment_score")
+                    item["priority_score"] = (item.get("priority_score") or 0) + 20
+                    if item["news_signal"] in ["STRONG_BULLISH_RUMOR", "NEWS_MOMENTUM_BUILDING"] and item.get("direction") == "LONG":
+                        item["scanner_type"] = "news_momentum"
             result["alpha_center"] = {
                 "meta": {
                     "regime": quad,
@@ -944,6 +1169,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             logger.error(f"Stale fallback also failed: {fallback_err}")
 
     return result
+
 # ------------------------------------------------------------------
 # APP.PY COMPATIBILITY: build_snapshot wrapper
 # ------------------------------------------------------------------
@@ -957,7 +1183,7 @@ def build_snapshot(
     **kwargs
 ) -> dict:
     """
-    Wrapper that app.py v26.0 imports and calls.
+    Wrapper that app.py v27.0 imports and calls.
     Delegates to run_orchestrator() and ensures all app.py keys exist.
     """
     logger.info(
@@ -1011,6 +1237,7 @@ def build_snapshot(
         "build_time_s": 0,
         "daily_signals_summary": {},
         "crypto_tokens": {},
+        "rumor_watch": [],
     }
     for key, default_val in defaults.items():
         if key not in result:

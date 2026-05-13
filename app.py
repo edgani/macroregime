@@ -1263,8 +1263,10 @@ if "prices" not in st.session_state:
 if "last_refresh" not in st.session_state:
     st.session_state.last_refresh = None
 
-# Try auto-load from saved snapshot
+# ── AUTO-LOAD: Try pickle first, then auto-rebuild ──
 if st.session_state.snap is None:
+    loaded = False
+    # 1. Try pickle snapshot
     try:
         import pickle
         if os.path.exists(_SNAPSHOT_FILE):
@@ -1273,8 +1275,46 @@ if st.session_state.snap is None:
             st.session_state.snap = data.get("snap")
             st.session_state.prices = data.get("prices", {})
             st.session_state.last_refresh = data.get("timestamp")
+            if st.session_state.snap is not None:
+                loaded = True
     except Exception:
-        pass  # Silent fail, will show "Click Full Rebuild"
+        pass
+
+    # 2. If no pickle, auto-rebuild (silent background)
+    if not loaded:
+        try:
+            import sys, importlib.util
+            project_root = os.path.dirname(os.path.abspath(__file__))
+            src_path = os.path.join(project_root, "src")
+            if src_path not in sys.path and os.path.isdir(src_path):
+                sys.path.insert(0, src_path)
+            try:
+                from macroregime.rebuild import full_rebuild
+            except ImportError:
+                try:
+                    from src.macroregime.rebuild import full_rebuild
+                except ImportError:
+                    rebuild_path = os.path.join(project_root, "src", "macroregime", "rebuild.py")
+                    if os.path.exists(rebuild_path):
+                        spec = importlib.util.spec_from_file_location("macroregime.rebuild", rebuild_path)
+                        rebuild_mod = importlib.util.module_from_spec(spec)
+                        sys.modules["macroregime.rebuild"] = rebuild_mod
+                        spec.loader.exec_module(rebuild_mod)
+                        full_rebuild = rebuild_mod.full_rebuild
+                    else:
+                        raise ImportError("rebuild.py not found")
+            snap, prices = full_rebuild()
+            st.session_state.snap = snap
+            st.session_state.prices = prices
+            st.session_state.last_refresh = pd.Timestamp.now()
+            # Auto-save
+            try:
+                with open(_SNAPSHOT_FILE, "wb") as f:
+                    pickle.dump({"snap": snap, "prices": prices, "timestamp": st.session_state.last_refresh}, f)
+            except Exception:
+                pass
+        except Exception:
+            pass  # Silent fail — manual rebuild button will show
 
 with st.sidebar:
     st.markdown("## 📊 MacroRegime Pro")

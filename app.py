@@ -2552,69 +2552,9 @@ elif page == "₿ Crypto":
         st.markdown("**Deployable Capital**")
         st.markdown(f'<div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:8px;"><div style="font-size:14px;font-weight:700;color:var(--text-primary);">${sc_total:.1f}B</div><div style="font-size:10px;color:var(--text-secondary);">Stablecoin buying power</div></div>', unsafe_allow_html=True)
 
-    # ── ROW 3: MARKET STRUCTURE ──
-    st.markdown("### ⚖️ Market Structure")
-    funding = mkt_struct.get("funding", {}) if mkt_struct else {}
-    if funding:
-        fund_cols = st.columns(min(6, len(funding)))
-        for idx, (sym, data) in enumerate(funding.items()):
-            with fund_cols[idx % 6]:
-                rate = data.get("rate", 0)
-                rate_pct = rate * 100
-                rate_color = "var(--short)" if rate > 0.0005 else "var(--long)" if rate < -0.0005 else "var(--neutral)"
-                st.markdown(f'<div style="background:var(--bg-card);border:1px solid {rate_color};border-radius:6px;padding:8px;text-align:center;"><div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;">{sym} Funding</div><div style="font-size:16px;font-weight:700;color:{rate_color};">{rate_pct:.4f}%</div></div>', unsafe_allow_html=True)
-    else:
-        st.caption("No funding data — Binance API limit or network issue")
-
-    oi = mkt_struct.get("oi", {}) if mkt_struct else {}
-    if oi:
-        st.markdown("**Open Interest / Volume Proxy**")
-        oi_cols = st.columns(min(6, len(oi)))
-        for idx, (sym, data) in enumerate(oi.items()):
-            with oi_cols[idx % 6]:
-                vol = data.get("volume_24h", 0)
-                chg = data.get("price_change", 0)
-                oi_color = "var(--long)" if chg > 2 else "var(--short)" if chg < -2 else "var(--neutral)"
-                st.markdown(f'<div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:6px;text-align:center;"><div style="font-size:10px;color:var(--text-secondary);">{sym}</div><div style="font-size:12px;font-weight:700;color:{oi_color};">{chg:+.1f}%</div><div style="font-size:9px;color:var(--text-muted);">Vol {vol/1e6:.0f}M</div></div>', unsafe_allow_html=True)
-
     # ── ROW 4: NARRATIVE RADAR ──
-    st.markdown("### 📡 Narrative Radar")
-    trending = narrative.get("trending", []) if narrative else []
-    if trending:
-        st.markdown("**🔥 Trending Coins**")
-        tc = st.columns(min(4, len(trending)))
-        for idx, coin in enumerate(trending):
-            with tc[idx % 4]:
-                st.markdown(f'<div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:8px;text-align:center;"><div style="font-size:12px;font-weight:700;color:var(--text-primary);">{coin.get("symbol","-")}</div><div style="font-size:10px;color:var(--text-secondary);">#{coin.get("market_cap_rank","-")}</div></div>', unsafe_allow_html=True)
-    cats = narrative.get("categories", []) if narrative else []
-    if cats:
-        st.markdown("**📊 Top Narratives by Volume**")
-        cat_cols = st.columns(min(3, len(cats)))
-        for idx, cat in enumerate(cats[:6]):
-            with cat_cols[idx % 3]:
-                vol = cat.get("volume_24h", 0)
-                st.markdown(f'<div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:8px;"><div style="font-size:11px;font-weight:700;color:var(--text-primary);">{cat.get("name","-")[:20]}</div><div style="font-size:10px;color:var(--text-secondary);">Vol ${vol/1e9:.1f}B</div><div style="font-size:9px;color:var(--text-muted);">{", ".join(cat.get("top_3_coins",[])[:2])}</div></div>', unsafe_allow_html=True)
-
     # ── ROW 5: TOKENOMICS & UNLOCKS ──
-    st.markdown("### 🔓 Tokenomics & Unlocks")
-    unlocks = (cc.get("tokenomics") or {}).get("upcoming_unlocks", []) if cc else []
-    if unlocks:
-        for u in unlocks[:3]:
-            u_color = "var(--short)" if u.get("impact") == "HIGH" else "var(--neutral)"
-            st.markdown(f'<div style="background:var(--bg-card);border:1px solid {u_color};border-radius:6px;padding:8px;margin:3px 0;"><div style="display:flex;justify-content:space-between;"><span style="font-size:12px;font-weight:700;color:var(--text-primary);">{u.get("token")} Unlock</span><span style="font-size:10px;color:{u_color};">{u.get("impact")}</span></div><div style="font-size:10px;color:var(--text-secondary);">{u.get("date","-")} · {u.get("amount_m")}M tokens · {u.get("type")}</div></div>', unsafe_allow_html=True)
-    else:
-        st.caption("No unlock data — add Messari/DropsTab API key for live feed")
-
     # ── ROW 6: RISK FLAGS ──
-    if risk_flags:
-        st.markdown("### 🚨 Risk Flags")
-        rf_cols = st.columns(min(3, len(risk_flags)))
-        for idx, rf in enumerate(risk_flags[:6]):
-            with rf_cols[idx % 3]:
-                rf_type = rf.get("type", "")
-                rf_color = "var(--short)" if "EXTREME" in rf_type or "LIQ" in rf_type else "var(--neutral)"
-                st.markdown(f'<div style="background:#2D0D0D;border:1px solid {rf_color};border-radius:6px;padding:8px;"><div style="font-size:11px;font-weight:700;color:{rf_color};">{rf.get("ticker","-")} {rf_type.replace("_"," ")}</div><div style="font-size:10px;color:var(--text-primary);">{rf.get("impact","-")}</div></div>', unsafe_allow_html=True)
-
     crypto_tokens = snap.get("crypto_tokens", {}) or {}
     if not isinstance(crypto_tokens, dict) or not crypto_tokens:
         crypto_tokens = {}

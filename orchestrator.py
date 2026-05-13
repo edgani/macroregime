@@ -1202,12 +1202,26 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         if load_prices is None:
             raise RuntimeError("load_prices not available (data.loader import failed)")
 
-        try:
-            prices = load_prices(tickers, days=756, max_age_hours=max_age_hours, progress_cb=progress_cb)
-        except Exception as e:
-            logger.error(f"Price load failed: {e}")
-            result["errors"].append(f"prices: {e}")
-            prices = {}
+        # Retry with backoff for yfinance rate limits
+        prices = {}
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                prices = load_prices(tickers, days=756, max_age_hours=max_age_hours, progress_cb=progress_cb)
+                if prices and len(prices) > len(tickers) * 0.7:  # 70% success threshold
+                    break
+                logger.warning(f"Price load attempt {attempt+1}/{max_retries}: only {len(prices)}/{len(tickers)} loaded, retrying...")
+            except Exception as e:
+                logger.warning(f"Price load attempt {attempt+1}/{max_retries} failed: {e}")
+                result["errors"].append(f"prices attempt {attempt+1}: {e}")
+            if attempt < max_retries - 1:
+                backoff = 2 ** attempt  # 1s, 2s, 4s
+                logger.info(f"Backing off {backoff}s before retry...")
+                time.sleep(backoff)
+
+        if not prices:
+            logger.error("All price load attempts failed")
+            result["errors"].append("prices: all attempts failed")
 
         result["prices"] = prices
         result["prices_loaded"] = len(prices)

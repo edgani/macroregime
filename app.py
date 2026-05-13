@@ -1296,9 +1296,18 @@ with st.sidebar:
     if st.button("🔄 Full Rebuild", type="primary"):
         with st.spinner("Rebuilding all data..."):
             rebuild_error = None
+            debug_info = []
             try:
                 import sys, os, importlib.util
                 project_root = os.path.dirname(os.path.abspath(__file__))
+                debug_info.append(f"Project root: {project_root}")
+                debug_info.append(f"Python path: {sys.path[:3]}")
+
+                # Check critical files exist
+                init_path = os.path.join(project_root, "src", "macroregime", "__init__.py")
+                rebuild_path = os.path.join(project_root, "src", "macroregime", "rebuild.py")
+                debug_info.append(f"__init__.py exists: {os.path.exists(init_path)}")
+                debug_info.append(f"rebuild.py exists: {os.path.exists(rebuild_path)}")
 
                 # Method 1: add src/ to sys.path
                 src_path = os.path.join(project_root, "src")
@@ -1307,20 +1316,24 @@ with st.sidebar:
 
                 try:
                     from macroregime.rebuild import full_rebuild
-                except ImportError:
+                    debug_info.append("Import method 1: OK")
+                except ImportError as e1:
+                    debug_info.append(f"Method 1 failed: {e1}")
                     try:
                         from src.macroregime.rebuild import full_rebuild
-                    except ImportError:
-                        # Method 2: direct file load
-                        rebuild_path = os.path.join(project_root, "src", "macroregime", "rebuild.py")
+                        debug_info.append("Import method 2: OK")
+                    except ImportError as e2:
+                        debug_info.append(f"Method 2 failed: {e2}")
+                        # Method 3: direct file load
                         if os.path.exists(rebuild_path):
                             spec = importlib.util.spec_from_file_location("macroregime.rebuild", rebuild_path)
                             rebuild_mod = importlib.util.module_from_spec(spec)
                             sys.modules["macroregime.rebuild"] = rebuild_mod
                             spec.loader.exec_module(rebuild_mod)
                             full_rebuild = rebuild_mod.full_rebuild
+                            debug_info.append("Import method 3: OK (direct load)")
                         else:
-                            raise ImportError(f"rebuild.py not found at {rebuild_path}\nPython path: {sys.path}")
+                            raise ImportError(f"rebuild.py not found at {rebuild_path}")
 
                 snap, prices = full_rebuild()
                 st.session_state.snap = snap
@@ -1341,10 +1354,14 @@ with st.sidebar:
             except Exception as e:
                 rebuild_error = str(e)
                 st.error(f"❌ Rebuild failed: {rebuild_error}")
+                with st.expander("🔍 Debug Info", expanded=False):
+                    for line in debug_info:
+                        st.code(line)
                 st.info("💡 **Troubleshooting:**\n"
                         "1. Check that `src/macroregime/rebuild.py` exists in your repo\n"
-                        "2. Verify `src/macroregime/__init__.py` exists\n"
-                        "3. Check Streamlit Cloud logs for full traceback")
+                        "2. Verify `src/macroregime/__init__.py` exists (can be empty)\n"
+                        "3. If both exist but still fail, check `rebuild.py` for syntax errors\n"
+                        "4. Check Streamlit Cloud logs for full traceback")
 
     # Status indicator
     if st.session_state.last_refresh:

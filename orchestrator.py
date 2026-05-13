@@ -7,6 +7,7 @@ Patched: News & Rumor Engine for front-running + forward-looking signals
 - All engines: graceful degradation with synthetic data
 """
 from __future__ import annotations
+from types import SimpleNamespace
 import os, sys, json, math, time, logging
 from datetime import datetime
 from typing import Dict, List, Optional
@@ -1022,9 +1023,9 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         result["daily_signals"] = alpha_items[:20]
 
         # ---- Frontrun / Transition ----
-        result["transition"] = type("obj", (object,), {
-            "front_run_window": "1-2w" if quad in ("Q1", "Q2") else "3-6w",
-        })()
+        result["transition"] = SimpleNamespace(
+            front_run_window="1-2w" if quad in ("Q1", "Q2") else "3-6w"
+        )
         result["frontrun"] = {
             "boarding_now": [i for i in alpha_items if i.get("grade") == "A"][:3],
             "gate_opens_soon": [i for i in alpha_items if i.get("grade") == "B"][:3],

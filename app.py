@@ -912,20 +912,30 @@ def _render_narrative_card_native(row, idx=0, market_type="generic"):
     dir_color = "var(--long)" if "LONG" in direction else "var(--short)" if "SHORT" in direction else "var(--text-secondary)"
     worth_color = "var(--long)" if "YES" in worth or "BUY" in worth else "var(--neutral)" if "WAIT" in worth or "CHASE" in worth else "var(--short)" if "SKIP" in worth else "var(--text-secondary)"
 
+    # News emoji suffix for expander label (plain text, no HTML)
+    news_suffix = ""
+    if news_signal:
+        if "BULLISH" in news_signal or "BUILDING" in news_signal or "MOMENTUM" in news_signal:
+            news_suffix = " 📰+"
+        elif "BEARISH" in news_signal or "NEGATIVE" in news_signal:
+            news_suffix = " 📰-"
+        elif "RUMOR" in news_signal:
+            news_suffix = " 🔮"
+
     header = f"{dir_emoji} {ticker} | {direction.replace(' ✅','').replace(' ⚠️','')} | Grade {grade}"
     if scanner: header += f" | {scanner}"
     if row.get("score") is not None: header += f" | Score: {row.get('score',0):.2f}"
-
-    # Add news badge to header if exists
-    if news_signal:
-        if "BULLISH" in news_signal or "BUILDING" in news_signal:
-            header += ' <span class="badge badge-news-bull">📰 NEWS+</span>'
-        elif "BEARISH" in news_signal or "NEGATIVE" in news_signal:
-            header += ' <span class="badge badge-news-bear">📰 NEWS-</span>'
-        elif "RUMOR" in news_signal:
-            header += ' <span class="badge badge-news-rumor">🔮 RUMOR</span>'
+    header += news_suffix
 
     with st.expander(header, expanded=False):
+        # Render colored news badge as first element inside expander
+        if news_signal:
+            if "BULLISH" in news_signal or "BUILDING" in news_signal or "MOMENTUM" in news_signal:
+                st.markdown('<span class="badge badge-news-bull">📰 NEWS+</span>', unsafe_allow_html=True)
+            elif "BEARISH" in news_signal or "NEGATIVE" in news_signal:
+                st.markdown('<span class="badge badge-news-bear">📰 NEWS-</span>', unsafe_allow_html=True)
+            elif "RUMOR" in news_signal:
+                st.markdown('<span class="badge badge-news-rumor">🔮 RUMOR</span>', unsafe_allow_html=True)
         c1, c2, c3 = st.columns(3)
         c1.markdown(f"**Direction:** <span style='color:{dir_color};font-weight:700;'>{direction}</span>", unsafe_allow_html=True)
         c2.markdown(f"**Worth Entering:** <span style='color:{worth_color};font-weight:700;'>{worth}</span>", unsafe_allow_html=True)
@@ -1154,9 +1164,9 @@ with st.sidebar:
         st.caption("Last update: unknown")
     c1,c2=st.columns(2)
     with c1:
-        if st.button("🔄 Update", use_container_width=True): st.session_state.loading=True
+        if st.button("🔄 Update", width="stretch"): st.session_state.loading=True
     with c2:
-        if st.button("⚡ Full Rebuild", use_container_width=True):
+        if st.button("⚡ Full Rebuild", width="stretch"):
             st.session_state.loading=True; st.session_state.snap=None
     with st.expander("⚙️ Settings"):
         inc_us = st.checkbox("US Stocks", True)
@@ -1390,6 +1400,43 @@ if page == "🏠 Dashboard":
                 </div>
                 """, unsafe_allow_html=True)
 
+    # ── ROW 3b: HOT NARRATIVES FROM NEWS ──
+    if news_narratives and news_narratives.get("emergent_narratives"):
+        emergent = news_narratives["emergent_narratives"]
+        if emergent:
+            st.markdown("### 🔥 Hot Narratives This Week")
+            st.caption("Emergent themes detected from headline clustering")
+            nar_cols = st.columns(min(4, len(emergent[:4])))
+            for idx, en in enumerate(emergent[:4]):
+                with nar_cols[idx]:
+                    theme_name = en.get("name", "Unknown")
+                    sentiment = en.get("avg_sentiment", 0)
+                    mentions = en.get("mentions", 0)
+                    tickers = en.get("tickers", [])[:4]
+                    headlines = en.get("headlines", [])[:1]
+
+                    if sentiment > 0.2:
+                        nar_border = "var(--long)"
+                        nar_bg = "#0D2818"
+                    elif sentiment < -0.2:
+                        nar_border = "var(--short)"
+                        nar_bg = "#2D0D0D"
+                    else:
+                        nar_border = "var(--neutral)"
+                        nar_bg = "#2D2305"
+
+                    ticker_pills = " ".join([f'<span class="badge badge-neutral">{t}</span>' for t in tickers])
+                    hl_text = headlines[0][:50] if headlines else ""
+
+                    st.markdown(f"""
+                    <div style="background:{nar_bg};border:1px solid {nar_border};border-radius:8px;padding:10px;margin:4px 0;">
+                      <div style="font-size:12px;font-weight:700;color:var(--text-primary);margin-bottom:4px;">{theme_name.upper()}</div>
+                      <div style="font-size:10px;color:var(--text-secondary);margin-bottom:6px;">{mentions} mentions · sentiment {sentiment:+.2f}</div>
+                      <div style="font-size:10px;color:var(--text-muted);margin-bottom:6px;line-height:1.3;">{hl_text}</div>
+                      <div style="display:flex;flex-wrap:wrap;gap:4px;">{ticker_pills}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
     # ── ROW 4: PLAYBOOK + FORWARD (merged, no duplicate Q/M) ──
     best_assets = " - ".join(pb_data.get("best_assets",[])[:6]) if pb_data else "Loading..."
     worst_assets = " - ".join(pb_data.get("worst_assets",[])[:5]) if pb_data else "Loading..."
@@ -1484,19 +1531,40 @@ if page == "🏠 Dashboard":
             else:
                 st.markdown(f'<div style="text-align:center;background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:6px;"><div style="font-size:9px;color:var(--text-secondary);text-transform:uppercase;">{label}</div><div style="font-size:14px;font-weight:700;color:var(--text-secondary);">-</div></div>', unsafe_allow_html=True)
 
+
+    # ── ROW 6b: SECTOR ROTATION MOMENTUM ──
+    st.markdown("### 📊 Sector Rotation (1M)")
+    st.caption("Where the money is flowing now")
+    sector_tickers = {
+        "Tech": "QQQ", "Energy": "XLE", "Financials": "XLF", 
+        "Healthcare": "XLV", "Industrials": "XLI", "Materials": "XLB",
+        "Consumer": "XLY", "Utilities": "XLU", "REITs": "XLRE", "Gold": "GLD"
+    }
+    sec_cols = st.columns(len(sector_tickers))
+    for idx, (name, sym) in enumerate(sector_tickers.items()):
+        ret = _price_ret(sym, prices, 21)
+        if ret is not None:
+            color = "var(--long)" if ret > 0.03 else "var(--neutral)" if ret > -0.03 else "var(--short)"
+            bg = "#0D2818" if ret > 0.03 else "#2D2305" if ret > -0.03 else "#2D0D0D"
+            with sec_cols[idx]:
+                st.markdown(f'<div style="background:{bg};border:1px solid {color};border-radius:6px;padding:6px;text-align:center;"><div style="font-size:9px;color:var(--text-secondary);text-transform:uppercase;">{name}</div><div style="font-size:13px;font-weight:700;color:{color};">{fp(ret)}</div></div>', unsafe_allow_html=True)
+        else:
+            with sec_cols[idx]:
+                st.markdown(f'<div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:6px;text-align:center;"><div style="font-size:9px;color:var(--text-secondary);text-transform:uppercase;">{name}</div><div style="font-size:13px;font-weight:700;color:var(--text-secondary);">-</div></div>', unsafe_allow_html=True)
+
     # ── ROW 7: REGIME PROB + FORWARD (merged into 1 row) ──
     st.markdown("### 📊 Regime Map")
     rp1, rp2, rp3 = st.columns([1.2, 1, 1])
     with rp1:
         st.markdown("**Quarterly**")
         if gip and hasattr(gip, 'structural_probs'):
-            st.plotly_chart(prob_bar(gip.structural_probs, ""), use_container_width=True, config={"displayModeBar":False}, key="dash_prob_q")
+            st.plotly_chart(prob_bar(gip.structural_probs, ""), width="stretch", config={"displayModeBar":False}, key="dash_prob_q")
         else:
             st.caption("No quarterly probs")
     with rp2:
         st.markdown("**Monthly**")
         if gip and hasattr(gip, 'monthly_probs'):
-            st.plotly_chart(prob_bar(gip.monthly_probs, ""), use_container_width=True, config={"displayModeBar":False}, key="dash_prob_m")
+            st.plotly_chart(prob_bar(gip.monthly_probs, ""), width="stretch", config={"displayModeBar":False}, key="dash_prob_m")
         else:
             st.caption("No monthly probs")
     with rp3:
@@ -1584,7 +1652,8 @@ if page == "🏠 Dashboard":
           <div style="font-size:11px;color:var(--text-primary);line-height:1.4;">
             Samsung + SK Hynix + Micron >95% supply. 2026 sold out. DRAM prices +80-90%.
           </div>
-          <div style="font-size:10px;color:var(--neutral);margin-top:4px;">⏱️ Lead: 12-18 mo · Watch: MU, 005930.KS</div>
+          <div style="font-size:10px;color:var(--neutral);margin-top:4px;">⏱️ Lead: 12-18 mo · Watch: <b>MU</b>, <b>005930.KS</b>, <b>SK Hynix</b></div>
+        <div style="font-size:9px;color:var(--text-muted);margin-top:2px;">DRAM +80-90% y/y · 2026 capacity sold out</div>
         </div>
         """, unsafe_allow_html=True)
     with b2:
@@ -1595,7 +1664,8 @@ if page == "🏠 Dashboard":
           <div style="font-size:11px;color:var(--text-primary);line-height:1.4;">
             Lead time 4-5 years. PJM summer 2027 shortfall 6,600 MW. Only 5GW of 12GW announced under construction.
           </div>
-          <div style="font-size:10px;color:var(--neutral);margin-top:4px;">⏱️ Lead: 4-5 yr · Watch: VST, ETN, GEV</div>
+          <div style="font-size:10px;color:var(--neutral);margin-top:4px;">⏱️ Lead: 4-5 yr · Watch: <b>VST</b>, <b>ETN</b>, <b>GEV</b>, <b>NRG</b></div>
+        <div style="font-size:9px;color:var(--text-muted);margin-top:2px;">PJM 6.6GW shortfall by 2027 · Only 5/12GW contracted</div>
         </div>
         """, unsafe_allow_html=True)
     with b3:
@@ -1606,7 +1676,8 @@ if page == "🏠 Dashboard":
           <div style="font-size:11px;color:var(--text-primary);line-height:1.4;">
             Data movement shifting to photons. NVDA partners with Corning, Coherent, Lumentum. All at ATHs.
           </div>
-          <div style="font-size:10px;color:var(--neutral);margin-top:4px;">⏱️ Lead: 6-12 mo · Watch: COHR, LITE, GLW</div>
+          <div style="font-size:10px;color:var(--neutral);margin-top:4px;">⏱️ Lead: 6-12 mo · Watch: <b>COHR</b>, <b>LITE</b>, <b>GLW</b>, <b>CIEN</b></div>
+        <div style="font-size:9px;color:var(--text-muted);margin-top:2px;">NVDA photonics partnerships · Data center optical upgrade cycle</div>
         </div>
         """, unsafe_allow_html=True)
     with b4:
@@ -1617,7 +1688,8 @@ if page == "🏠 Dashboard":
           <div style="font-size:11px;color:var(--text-primary);line-height:1.4;">
             Autonomous AI workloads optimizing server CPUs. New tailwind for INTC, AMD, NVDA Vera CPU.
           </div>
-          <div style="font-size:10px;color:var(--neutral);margin-top:4px;">⏱️ Cycle: Monthly · Watch: INTC, AMD, NVDA</div>
+          <div style="font-size:10px;color:var(--neutral);margin-top:4px;">⏱️ Cycle: Monthly · Watch: <b>INTC</b>, <b>AMD</b>, <b>NVDA</b>, <b>ARM</b></div>
+        <div style="font-size:9px;color:var(--text-muted);margin-top:2px;">Agentic AI server CPU demand · NVDA Vera CPU 2026</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1733,7 +1805,7 @@ elif page == "⚡ Alpha Center":
             .map(lambda x: "color:var(--long);font-weight:700;" if x in ["A+","A"] else ("color:var(--neutral);font-weight:600;" if x=="B" else ""), subset=["Grade"])
             .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=2.0 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=1.5 else ""), subset=["RR"])
             .background_gradient(subset=["Score"], cmap="RdYlGn", vmin=0, vmax=100),
-        use_container_width=True, hide_index=True, height=380
+        width="stretch", hide_index=True, height=380
     )
 
     # Daily Signals Summary
@@ -1770,7 +1842,7 @@ elif page == "⚡ Alpha Center":
                 .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["LONG","BUY","YES"]) else ("color:var(--short);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["SHORT","SELL","NO"]) else ""), subset=["Signal","Direction"])
                 .map(lambda x: "color:var(--long);font-weight:700;" if x in ["A+","A"] else ("color:var(--neutral);font-weight:600;" if x=="B" else ""), subset=["Grade"])
                 .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=2.0 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=1.5 else ""), subset=["RR"]),
-                use_container_width=True, hide_index=True, height=220
+                width="stretch", hide_index=True, height=220
             )
 
     # Top 5 Priority Cards
@@ -1813,7 +1885,7 @@ elif page == "🇺🇸 US Stocks":
             df_us_display.style
                 .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["YES","BUY NOW"]) else ("color:var(--short);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["NO","SKIP"]) else ("color:var(--neutral);font-weight:600;" if isinstance(x,str) and any(y in x.upper() for y in ["WAIT","CHASE","SMALL"]) else "")), subset=["Worth?"])
                 .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=2.0 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=1.5 else ""), subset=["RR"]),
-            use_container_width=True, hide_index=True, height=320
+            width="stretch", hide_index=True, height=320
         )
     else:
         st.info("No US stock setups.")
@@ -1866,7 +1938,7 @@ elif page == "💱 Forex":
             df_fx_display.style
                 .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["YES","BUY NOW"]) else ("color:var(--short);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["NO","SKIP"]) else ("color:var(--neutral);font-weight:600;" if isinstance(x,str) and any(y in x.upper() for y in ["WAIT","CHASE","SMALL"]) else "")), subset=["Worth?"])
                 .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=2.0 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=1.5 else ""), subset=["RR"]),
-            use_container_width=True, hide_index=True, height=260
+            width="stretch", hide_index=True, height=260
         )
     else:
         st.info("No forex setups.")
@@ -1908,7 +1980,7 @@ elif page == "🛢️ Commodities":
             df_comm_display.style
                 .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["YES","BUY NOW"]) else ("color:var(--short);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["NO","SKIP"]) else ("color:var(--neutral);font-weight:600;" if isinstance(x,str) and any(y in x.upper() for y in ["WAIT","CHASE","SMALL"]) else "")), subset=["Worth?"])
                 .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=2.0 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=1.5 else ""), subset=["RR"]),
-            use_container_width=True, hide_index=True, height=260
+            width="stretch", hide_index=True, height=260
         )
     else:
         st.info("No commodity setups.")
@@ -1978,7 +2050,7 @@ elif page == "₿ Crypto":
             df_crypto_display.style
                 .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["YES","BUY NOW"]) else ("color:var(--short);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["NO","SKIP"]) else ("color:var(--neutral);font-weight:600;" if isinstance(x,str) and any(y in x.upper() for y in ["WAIT","CHASE","SMALL"]) else "")), subset=["Worth?"])
                 .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=2.0 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=1.5 else ""), subset=["RR"]),
-            use_container_width=True, hide_index=True, height=260
+            width="stretch", hide_index=True, height=260
         )
     else:
         st.info("No crypto setups.")
@@ -2016,7 +2088,7 @@ elif page == "🌍 Global & EM":
         c1,c2 = st.columns([1,1.5])
         with c1:
             st.markdown(f'<div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:10px;text-align:center;"><div style="font-size:10px;color:var(--text-secondary);">GLOBAL REGIME</div><div style="font-size:24px;font-weight:700;color:{qc(gq)};">{gq}</div><div style="font-size:11px;color:var(--text-primary);">{QN.get(gq,gq)}</div><div style="font-size:10px;color:var(--text-secondary);margin-top:4px;">Conf: {gconf:.0%}</div></div>', unsafe_allow_html=True)
-            st.plotly_chart(prob_bar(gprobs), use_container_width=True, config={"displayModeBar":False})
+            st.plotly_chart(prob_bar(gprobs), width="stretch", config={"displayModeBar":False})
             em_sig = (btk.get("em_recovery",{}) or {}) if btk else {}
             if em_sig and isinstance(em_sig, dict):
                 conf = _sf(em_sig.get("confidence")) or 0
@@ -2027,7 +2099,7 @@ elif page == "🌍 Global & EM":
             for country,q in sorted(cqs.items(),key=lambda x:x[1]):
                 rows.append({"Country":country,"Regime":q,"Name":QN.get(q,q)})
             df=pd.DataFrame(rows)
-            st.dataframe(df.style.map(lambda x: f'color:{qc(x)}', subset=["Regime"]).format({"Regime":lambda x:""}), hide_index=True, use_container_width=True, height=320)
+            st.dataframe(df.style.map(lambda x: f'color:{qc(x)}', subset=["Regime"]).format({"Regime":lambda x:""}), hide_index=True, width="stretch", height=320)
 
     with ihsg_tab:
         st.markdown("### 🇮🇩 IHSG Macro Report")
@@ -2126,7 +2198,7 @@ elif page == "🌍 Global & EM":
                     .map(lambda x: "color:var(--long);font-weight:700;" if x=="BUY" else ("color:var(--short);font-weight:700;" if x=="SELL" else ""), subset=["Signal"])
                     .map(lambda x: "color:var(--long);font-weight:700;" if x in ["A","A+"] else ("color:var(--neutral);font-weight:600;" if x=="B" else ""), subset=["Grade"])
                     .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=2.0 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=1.5 else ""), subset=["RR"]),
-                use_container_width=True, hide_index=True, height=280
+                width="stretch", hide_index=True, height=280
             )
             ihsg_rows.sort(key=lambda x: abs(x.get("r1m") or 0), reverse=True)
             st.markdown("### 🎯 Top 5 IHSG (by momentum)")

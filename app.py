@@ -2439,7 +2439,7 @@ elif page == "🌍 Global & EM":
                 conf = _sf(em_sig.get("confidence")) or 0
                 trigger = em_sig.get("trigger","EM signal")
                 st.markdown(f'<div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:6px;margin-top:6px;font-size:11px;"><b>EM Signal:</b> <span style="color:var(--text-secondary);">{trigger} (conf: {conf:.0%})</span></div>', unsafe_allow_html=True)
-            with ihsg_tab:
+    with ihsg_tab:
         st.markdown("### 🇮🇩 IHSG Macro Report")
         st.caption("Indonesia equity - Narrative report format")
 

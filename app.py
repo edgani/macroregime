@@ -2572,27 +2572,13 @@ elif page == "₿ Crypto":
     cot_data = snap.get("cot_oi",{}).get("cot",{}) if snap else {}
     oi_data = snap.get("cot_oi",{}).get("oi",{}) if snap else {}
 
+    # ── BUILD CRYPTO ROWS ──
     crypto_rows = []
     for ticker in list(CRYPTO.keys()):
         row = _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, "crypto", vix_now, snap.get("gamma_data",{}), snap.get("greeks_data",{}), forward_returns, news_narratives)
         if row:
-            token_data = crypto_tokens.get(ticker, {})
-            funding_sym = ticker.replace("-USD", "")
-            fund_data = funding.get(funding_sym, {}) if funding else {}
-            if fund_data:
-                row["funding_rate"] = fund_data.get("rate", 0)
-            if token_data:
-                score = token_data.get("momentum_score", 0.5)
-                tvl_7d = token_data.get("tvl_7d_change", 0)
-                row["onchain_score"] = f"{int(score*100)}%"
-                row["tvl_7d"] = tvl_7d
-                if score > 0.7 and tvl_7d > 0.15: row["onchain_signal"] = "🚀 STRONG"
-                elif score > 0.55: row["onchain_signal"] = "📈 BUILDING"
-                elif score > 0.4: row["onchain_signal"] = "👀 EARLY"
-                else: row["onchain_signal"] = "⏳ NEUTRAL"
-            else:
-                row["onchain_score"] = "-"; row["tvl_7d"] = None; row["onchain_signal"] = "-"
             crypto_rows.append(row)
+
     # ── ATTACHMENT 3 ENRICHMENT ──
     funding_map = (mkt_struct or {}).get("funding", {})
     oi_map = (mkt_struct or {}).get("oi", {})
@@ -2720,6 +2706,19 @@ elif page == "₿ Crypto":
             row["whale_signal"] = "🐋 DIST"
         else:
             row["whale_signal"] = "🐋 NEUT"
+
+        # ── ON-CHAIN SCORE (legacy) ──
+        if meta:
+            score = meta.get("momentum_score", 0.5)
+            tvl_7d = meta.get("tvl_7d_change", 0)
+            row["onchain_score"] = f"{int(score*100)}%"
+            row["tvl_7d"] = tvl_7d
+            if score > 0.7 and tvl_7d > 0.15: row["onchain_signal"] = "🚀 STRONG"
+            elif score > 0.55: row["onchain_signal"] = "📈 BUILDING"
+            elif score > 0.4: row["onchain_signal"] = "👀 EARLY"
+            else: row["onchain_signal"] = "⏳ NEUTRAL"
+        else:
+            row["onchain_score"] = "-"; row["tvl_7d"] = None; row["onchain_signal"] = "⏳ NEUTRAL"
 
         # ── LIQUIDATION ZONE PROXIMITY (Attachment 3 Layer 2.1) ──
         # Kalau harga dekat tail atau dekat stop = dekat liquidation cascade zone

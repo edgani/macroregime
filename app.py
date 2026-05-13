@@ -1321,6 +1321,190 @@ meta = alpha_center.get("meta", {}) if alpha_center else {}
 # Crypto center
 crypto_center = snap.get("crypto_center", {}) or {}
 
+
+def _render_crypto_card_compact(row, idx=0):
+    """Compact crypto ticker card with Attachment 3 on-chain data inline."""
+    ticker = row.get("ticker", "UNKNOWN")
+    price = row.get("price")
+    entry = row.get("entry")
+    t1 = row.get("target_1")
+    t2 = row.get("target_2")
+    stop = row.get("stop_loss") or row.get("stop")
+    direction = row.get("direction", "NEUTRAL")
+    worth = row.get("worth_entering", "—")
+    rr = row.get("rr", 0)
+    grade = row.get("grade", "C")
+    trade_l = row.get("trade_l") or row.get("lrr")
+    trade_r = row.get("trade_r") or row.get("trr")
+    trend_l = row.get("trend_l")
+    trend_r = row.get("trend_r")
+    tail_l = row.get("tail_l")
+    tail_r = row.get("tail_r")
+
+    # Attachment 3 compact data
+    funding_rate = row.get("funding_rate")
+    funding_emoji = row.get("funding_emoji", "")
+    narrative_badge = row.get("narrative_badge")
+    unlock_alert = row.get("unlock_alert")
+    whale_signal = row.get("whale_signal")
+    risk_pill = row.get("risk_pill")
+    price_change_24h = row.get("price_change_24h")
+    oi_24h = row.get("oi_24h")
+
+    dir_color = "var(--long)" if "LONG" in direction else "var(--short)" if "SHORT" in direction else "var(--text-secondary)"
+    worth_color = "var(--long)" if "YES" in worth or "BUY" in worth else "var(--neutral)" if "WAIT" in worth or "CHASE" in worth else "var(--short)" if "SKIP" in worth else "var(--text-secondary)"
+
+    # Build compact header badges
+    badges = []
+    if narrative_badge:
+        badges.append(f'<span class="badge badge-neutral">{narrative_badge}</span>')
+    if funding_emoji and funding_rate is not None:
+        badges.append(f'<span class="badge badge-neutral">{funding_emoji} {funding_rate*100:.4f}%</span>')
+    if unlock_alert:
+        impact_color = "var(--short)" if row.get("unlock_impact") == "HIGH" else "var(--neutral)"
+        badges.append(f'<span class="badge" style="background:{impact_color}33;color:{impact_color};border:1px solid {impact_color};">{unlock_alert}</span>')
+    if whale_signal:
+        whale_color = "var(--long)" if "ACCUM" in whale_signal else "var(--short)" if "DIST" in whale_signal else "var(--neutral)"
+        badges.append(f'<span class="badge" style="background:{whale_color}33;color:{whale_color};border:1px solid {whale_color};">{whale_signal}</span>')
+    if risk_pill:
+        badges.append(f'<span class="badge badge-short">{risk_pill}</span>')
+
+    badge_html = " ".join(badges)
+
+    # Compact header card
+    st.markdown(f'''
+    <div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:8px;padding:10px 12px;margin:4px 0;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:15px;font-weight:700;color:{dir_color};">{ticker}</span>
+          <span class="badge {'badge-a' if grade=='A' else 'badge-b' if grade=='B' else 'badge-c'}">{grade}</span>
+          <span style="font-size:11px;color:var(--text-secondary);">{direction}</span>
+          <span style="font-size:11px;color:{worth_color};font-weight:600;">{worth}</span>
+        </div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end;">{badge_html}</div>
+      </div>
+    </div>
+    ''', unsafe_allow_html=True)
+
+    # Expander label
+    expander_label = f"📊 {ticker} @ {ff(price)} | Entry {ff(entry)} | RR {ff(rr)}x"
+    with st.expander(expander_label, expanded=False):
+        # Core metrics
+        m1, m2, m3, m4, m5, m6 = st.columns(6)
+        m1.metric("Price", ff(price))
+        m2.metric("Entry", ff(entry))
+        m3.metric("Target 1", ff(t1))
+        m4.metric("Target 2", ff(t2))
+        m5.metric("Stop", ff(stop))
+        m6.metric("RR", f"{ff(rr)}x")
+
+        # Market Structure (Attachment 3)
+        st.markdown("**⚡ Market Structure**")
+        ms1, ms2, ms3, ms4 = st.columns(4)
+        with ms1:
+            if funding_rate is not None:
+                fr_color = "var(--short)" if funding_rate > 0.0005 else "var(--long)" if funding_rate < -0.0005 else "var(--neutral)"
+                st.markdown(f"<span style='color:{fr_color};font-weight:700;'>{funding_rate*100:.4f}%</span><br><span style='font-size:10px;color:var(--text-secondary);'>Funding</span>", unsafe_allow_html=True)
+            else:
+                st.caption("—")
+        with ms2:
+            if price_change_24h is not None:
+                chg_color = "var(--long)" if price_change_24h > 0 else "var(--short)"
+                st.markdown(f"<span style='color:{chg_color};font-weight:700;'>{price_change_24h:+.1f}%</span><br><span style='font-size:10px;color:var(--text-secondary);'>24h Chg</span>", unsafe_allow_html=True)
+            else:
+                st.caption("—")
+        with ms3:
+            if oi_24h:
+                st.markdown(f"<span style='font-weight:700;'>${oi_24h/1e6:.0f}M</span><br><span style='font-size:10px;color:var(--text-secondary);'>Volume</span>", unsafe_allow_html=True)
+            else:
+                st.caption("—")
+        with ms4:
+            if whale_signal:
+                w_color = "var(--long)" if "ACCUM" in whale_signal else "var(--short)" if "DIST" in whale_signal else "var(--neutral)"
+                st.markdown(f"<span style='color:{w_color};font-weight:700;'>{whale_signal}</span><br><span style='font-size:10px;color:var(--text-secondary);'>Whale</span>", unsafe_allow_html=True)
+            else:
+                st.caption("—")
+
+        # Unlock warning
+        if unlock_alert:
+            impact_emoji = "🔴" if row.get("unlock_impact") == "HIGH" else "🟡"
+            st.warning(f"{impact_emoji} **Unlock Alert:** {row.get('unlock_amount',0)}M tokens unlock in {row.get('unlock_days','?')} days ({row.get('unlock_impact','')} impact)")
+
+        # Risk Range Bar
+        if tail_l and tail_r and price:
+            st.markdown("**📐 Risk Range**")
+            st.markdown(_risk_range_bar_html(price, trade_l, trade_r, trend_l, trend_r, tail_l, tail_r, 100), unsafe_allow_html=True)
+        elif trade_l and trade_r and price:
+            st.markdown("**📐 Risk Range**")
+            st.markdown(_risk_range_bar_html(price, trade_l, trade_r, trade_l, trade_r, trade_l, trade_r, 100), unsafe_allow_html=True)
+
+        # Expected move
+        em_pct = row.get("expected_move_weekly_pct")
+        em_val = row.get("expected_move_weekly")
+        if em_pct or em_val:
+            st.caption(f"📊 Expected Move (weekly): ±{ff(em_val)} ({fp(em_pct)}) · Daily vol: {fp(row.get('daily_vol'))}")
+
+        # On-chain signal (existing)
+        if row.get("onchain_signal") and row.get("onchain_signal") != "-":
+            st.markdown(f"**On-Chain Signal:** {row.get('onchain_signal')} · Score: {row.get('onchain_score', '-')}")
+        if row.get("tvl_7d") is not None:
+            st.caption(f"TVL 7d proxy: {row.get('tvl_7d'):+.1%}")
+
+        # Options & Greeks (User says relevant — keep compact)
+        has_options = any(row.get(k) for k in ["gamma_regime","greek_composite","max_pain","max_pain_gamma","delta","vanna","put_wall","call_wall","gamma_flip_up","gamma_flip_down"])
+        if has_options:
+            st.divider()
+            st.markdown("**📊 Options & Greeks**")
+            source = row.get("options_source", "PROXY")
+            st.caption(f"🟡 {source} — Price-derived proxy levels")
+            o1, o2, o3, o4 = st.columns(4)
+            o1.metric("Gamma Regime", row.get("gamma_regime") or row.get("gamma_summary", "—"))
+            o2.metric("Greek Composite", row.get("greek_composite") or row.get("greek_summary", "—"))
+            o3.metric("Max Pain", ff(row.get("max_pain") or row.get("max_pain_gamma", "—")))
+            o4.metric("Delta", row.get("delta") or row.get("greek_delta", "—"))
+            o5, o6, o7, o8 = st.columns(4)
+            o5.metric("Vanna", row.get("vanna") or row.get("greek_vanna", "—"))
+            o6.metric("Charm", row.get("charm") or row.get("greek_charm", "—"))
+            o7.metric("Put Wall", ff(row.get("put_wall", "—")))
+            o8.metric("Call Wall", ff(row.get("call_wall", "—")))
+            o9, o10 = st.columns(2)
+            o9.metric("Gamma Flip ↑", ff(row.get("gamma_flip_up", "—")))
+            o10.metric("Gamma Flip ↓", ff(row.get("gamma_flip_down", "—")))
+            px = row.get("price")
+            mp = row.get("max_pain") or row.get("max_pain_gamma")
+            if px and mp and isinstance(mp, (int, float)) and mp != 0:
+                try:
+                    mp_dist = (px - mp) / mp
+                    mp_color = "var(--long)" if abs(mp_dist) < 0.03 else "var(--neutral)" if abs(mp_dist) < 0.06 else "var(--short)"
+                    st.markdown(f"**Max Pain Distance:** <span style='color:{mp_color};font-weight:700;'>{mp_dist:+.2%}</span>", unsafe_allow_html=True)
+                except:
+                    pass
+
+        # Flow & Positioning (compact)
+        has_flow = any(row.get(k) for k in ["cot_signal","oi_signal","onchain_signal","skew","oi_trend","cot_bias"])
+        if has_flow:
+            st.divider()
+            st.markdown("**📈 Flow & Positioning**")
+            f1, f2 = st.columns(2)
+            f1.write(f"**COT:** {row.get('cot_signal', '—')} | {row.get('cot_bias', '—')}")
+            f2.write(f"**OI:** {row.get('oi_signal') or row.get('oi_conc', '—')} | Trend: {row.get('oi_trend', '—')}")
+            if row.get("skew") and row.get("skew") != "—":
+                st.write(f"**Skew:** {row.get('skew')}")
+
+        # Thesis
+        st.divider()
+        st.markdown("**🎯 Thesis & Strategy**")
+        thesis = row.get("thesis") or row.get("recommendation") or row.get("known_thesis", "N/A")
+        st.info(thesis)
+        if row.get("action"):
+            st.caption(f"🎬 **Action:** {row.get('action')}")
+
+        # Invalidators
+        invalidators = row.get("invalidators", [])
+        if invalidators:
+            st.error(f"❌ **Invalidators:** {', '.join(invalidators)}")
+
+
 # ═══════════════════════════════════════════════════════════════════
 # PAGE: DASHBOARD — Redesigned, Compact, Forward-Looking
 # ═══════════════════════════════════════════════════════════════════
@@ -2447,14 +2631,75 @@ elif page == "₿ Crypto":
             else:
                 row["onchain_score"] = "-"; row["tvl_7d"] = None; row["onchain_signal"] = "-"
             crypto_rows.append(row)
+    # ── ATTACHMENT 3 ENRICHMENT ──
+    funding_map = (mkt_struct or {}).get("funding", {})
+    oi_map = (mkt_struct or {}).get("oi", {})
+    narrative_cats = (narrative or {}).get("categories", [])
+    unlocks = (cc.get("tokenomics") or {}).get("upcoming_unlocks", []) if cc else []
+
+    for row in crypto_rows:
+        sym = row.get("ticker", "").replace("-USD", "").replace("-USDT", "")
+
+        # Funding enrich
+        fund = funding_map.get(sym)
+        if fund:
+            row["funding_rate"] = fund.get("rate", 0)
+            row["funding_emoji"] = "🔥" if row["funding_rate"] > 0.0005 else "❄️" if row["funding_rate"] < -0.0005 else "⚖️"
+
+        # OI / 24h enrich
+        oi = oi_map.get(sym)
+        if oi:
+            row["oi_24h"] = oi.get("volume_24h", 0)
+            row["price_change_24h"] = oi.get("price_change", 0)
+
+        # Unlock enrich
+        unlock = next((u for u in unlocks if u.get("token") == sym), None)
+        if unlock:
+            try:
+                from datetime import datetime
+                days_to = (datetime.strptime(unlock["date"], "%Y-%m-%d") - datetime.now()).days
+                row["unlock_days"] = days_to
+                row["unlock_amount"] = unlock.get("amount_m", 0)
+                row["unlock_impact"] = unlock.get("impact", "MEDIUM")
+                if days_to <= 30:
+                    row["unlock_alert"] = f"🔓 {days_to}d"
+            except:
+                pass
+
+        # Narrative badge
+        for cat in narrative_cats:
+            top_coins = [c.lower() for c in cat.get("top_3_coins", [])]
+            if sym.lower() in top_coins:
+                row["narrative_badge"] = cat.get("name", "Trending")[:12]
+                break
+
+        # Whale proxy
+        meta = crypto_tokens.get(row.get("ticker"), {})
+        mom = meta.get("momentum_score", 0.5)
+        tvl7 = meta.get("tvl_7d_change", 0)
+        if mom > 0.7 and tvl7 > 0.1:
+            row["whale_signal"] = "🐋 ACCUM"
+        elif mom < 0.3 and tvl7 < -0.1:
+            row["whale_signal"] = "🐋 DIST"
+        else:
+            row["whale_signal"] = "🐋 NEUT"
+
+        # Wash trade / MEV proxy
+        vol = row.get("oi_24h", 0)
+        chg = row.get("price_change_24h", 0)
+        if vol > 1e9 and abs(chg) < 2:
+            row["risk_pill"] = "⚠️ VOL/PRICE DIV"
+
     longs, shorts = _split_long_short(crypto_rows)
 
     all_crypto = longs + shorts
     if not all_crypto:
         st.info("No crypto setups.")
     else:
+        st.markdown("### 📋 Ticker Detail Reports")
+        st.caption("Compact view: Funding · Unlock · Narrative · Whale · Options · Thesis")
         for i, row in enumerate(all_crypto):
-            _render_narrative_card_native(row, i, "crypto")
+            _render_crypto_card_compact(row, i)
 
 elif page == "🌍 Global & EM":
     st.markdown("## 🌍 Global & EM")

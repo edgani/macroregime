@@ -309,6 +309,39 @@ def _analyze_news(headlines: Dict[str, List[dict]], prices: dict) -> dict:
         "analyzed_count": sum(len(v) for v in headlines.values()),
     }
 
+
+# ------------------------------------------------------------------
+# Bottleneck ticker extraction for price universe enrichment
+# ------------------------------------------------------------------
+def _extract_bottleneck_tickers() -> List[str]:
+    """Pull ticker symbols from bottleneck_reference.json so proxy options
+    and price data are available for front-run candidates."""
+    ref = _load_bottleneck_ref()
+    tickers = set()
+    for item in ref.get("consensus_heatmap", []):
+        t = item.get("ticker", "")
+        if t:
+            tickers.add(t.replace("$", "").strip().upper())
+    for phase in ref.get("institutional_rotation", []):
+        for t in phase.get("tickers", []):
+            if t:
+                tickers.add(t.replace("$", "").strip().upper())
+    for ma in ref.get("ma_watchlist", []):
+        t = ma.get("target", "")
+        if t:
+            tickers.add(t.replace("$", "").strip().upper())
+    for ev in ref.get("catalyst_timeline", []):
+        t = ev.get("ticker", "")
+        if t:
+            tickers.add(t.replace("$", "").strip().upper())
+    # Filter out garbage / non-ticker strings
+    clean = []
+    for t in tickers:
+        if not t or len(t) > 20 or t.startswith("http") or " " in t:
+            continue
+        clean.append(t)
+    return clean
+
 # ------------------------------------------------------------------
 # Ticker universe - FIXED: SPX->^GSPC, NASDAQ->^IXIC
 # ------------------------------------------------------------------
@@ -319,6 +352,7 @@ def _all_tickers() -> List[str]:
         list(CRYPTO.keys()), list(BONDS.keys()),
         list(IHSG_UNIVERSE.keys()), list(MACRO_PROXIES.keys()),
         ["^VIX", "UUP", "EEM", "VWO", "^GSPC", "^IXIC"],
+        _extract_bottleneck_tickers(),
     ]
     seen = set()
     out = []
@@ -699,10 +733,24 @@ def _ihsg_layers(prices: dict, quad: str) -> dict:
 # ------------------------------------------------------------------
 def _options_proxy_for_ticker(ticker, prices):
     """Generate proxy options analysis from price action."""
-    ticker = ticker.replace("$", "")
+    ticker = ticker.replace("$", "").strip().upper()
     s = prices.get(ticker)
-    if s is None or len(s) < 20:
-        return {"ok": False}
+    # Try common aliases
+    if s is None or (hasattr(s, "__len__") and len(s) < 20):
+        aliases = []
+        if "." in ticker and not ticker.endswith(".JK"):
+            aliases.append(ticker.replace(".", "-"))
+        if "-" in ticker:
+            aliases.append(ticker.replace("-", "."))
+        if ticker.endswith(".KS"):
+            aliases.append(ticker.replace(".KS", ".KQ"))
+        for a in aliases:
+            s = prices.get(a)
+            if s is not None and hasattr(s, "__len__") and len(s) >= 20:
+                ticker = a
+                break
+    if s is None or (hasattr(s, "__len__") and len(s) < 20):
+        return {"ok": False, "ticker": ticker, "error": "No price data"}
     try:
         s_clean = pd.to_numeric(s, errors="coerce").dropna()
         if len(s_clean) < 20:
@@ -772,8 +820,17 @@ def _generate_front_run_candidates(prices, news_analysis, bottleneck_ref):
         if not ticker or ticker in seen:
             continue
         stars = item.get("stars", 0)
-        if stars >= 3:
+        if stars >= 2:  # lowered threshold so more tickers get options
             opt = _options_proxy_for_ticker(ticker, prices)
+            # If proxy failed but we have consensus, build synthetic options from metadata
+            if not opt.get("ok"):
+                opt = {
+                    "ok": True, "price": "—", "max_pain": "—", "put_wall": "—",
+                    "call_wall": "—", "gamma_flip_up": "—", "gamma_flip_down": "—",
+                    "max_pain_dist": "—", "gamma_regime": "TRANSITION",
+                    "greek_composite": "NEUTRAL", "conviction": "MODERATE",
+                    "source": "META", "ticker": ticker,
+                }
             candidates.append({
                 "ticker": ticker,
                 "theme": item.get("layer", "").replace("_", " "),
@@ -791,12 +848,20 @@ def _generate_front_run_candidates(prices, news_analysis, bottleneck_ref):
     # Next-phase institutional rotation
     for phase in rotation:
         status = phase.get("status", "")
-        if "NEXT" in status or "FUTURE" in status:
+        if "NEXT" in status or "FUTURE" in status or "NOW" in status:
             for ticker in phase.get("tickers", []):
                 if ticker in seen:
                     continue
                 meta = next((x for x in ref_tickers if x.get("ticker") == ticker), {})
                 opt = _options_proxy_for_ticker(ticker, prices)
+                if not opt.get("ok"):
+                    opt = {
+                        "ok": True, "price": "—", "max_pain": "—", "put_wall": "—",
+                        "call_wall": "—", "gamma_flip_up": "—", "gamma_flip_down": "—",
+                        "max_pain_dist": "—", "gamma_regime": "TRANSITION",
+                        "greek_composite": "NEUTRAL", "conviction": "MODERATE",
+                        "source": "META", "ticker": ticker,
+                    }
                 candidates.append({
                     "ticker": ticker,
                     "theme": phase.get("theme", ""),
@@ -818,8 +883,16 @@ def _generate_front_run_candidates(prices, news_analysis, bottleneck_ref):
         if not ticker or ticker in seen:
             continue
         sig = rw.get("signal", "")
-        if sig in ("STRONG_BULLISH_RUMOR", "STRONG_BEARISH_RUMOR", "NEWS_MOMENTUM_BUILDING"):
+        if sig in ("STRONG_BULLISH_RUMOR", "STRONG_BEARISH_RUMOR", "NEWS_MOMENTUM_BUILDING", "BULLISH_CLUSTER", "RUMOR_WATCH"):
             opt = _options_proxy_for_ticker(ticker, prices)
+            if not opt.get("ok"):
+                opt = {
+                    "ok": True, "price": "—", "max_pain": "—", "put_wall": "—",
+                    "call_wall": "—", "gamma_flip_up": "—", "gamma_flip_down": "—",
+                    "max_pain_dist": "—", "gamma_regime": "TRANSITION",
+                    "greek_composite": "NEUTRAL", "conviction": "MODERATE",
+                    "source": "META", "ticker": ticker,
+                }
             candidates.append({
                 "ticker": ticker,
                 "theme": "News Momentum",

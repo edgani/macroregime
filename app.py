@@ -1633,7 +1633,29 @@ if page == "🏠 Dashboard":
             with sec_cols[idx]:
                 st.markdown(f'<div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:6px;text-align:center;"><div style="font-size:9px;color:var(--text-secondary);text-transform:uppercase;">{name}</div><div style="font-size:13px;font-weight:700;color:var(--text-secondary);">-</div></div>', unsafe_allow_html=True)
 
-    # ── ROW 7: REGIME PROB + FORWARD (merged into 1 row) ──
+    
+    # ── ROW 6c: RISK FLAGS (from Alpha Center) ──
+    st.markdown("### 🔴 Global Risk Flags")
+    st.caption("Structural risks that could derail bottleneck thesis")
+    _risks = (snap.get("bottleneck_research", {}) or {}).get("risk_flags", [])
+    if _risks:
+        r_cols = st.columns(min(2, len(_risks)))
+        for idx_r, r in enumerate(_risks[:4]):
+            with r_cols[idx_r % 2]:
+                st.markdown(f"""
+                <div style="background:#2D0D0D;border:1px solid var(--short);border-radius:8px;padding:10px;margin:4px 0;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:12px;font-weight:700;color:var(--short);">{r.get('flag','-')}</span>
+                    <span style="font-size:10px;color:var(--text-secondary);">Trigger: {r.get('trigger','-')}</span>
+                  </div>
+                  <div style="font-size:11px;color:var(--text-primary);margin-top:4px;">{r.get('impact','-')}</div>
+                  <div style="font-size:10px;color:var(--neutral);margin-top:4px;">Mitigation: {r.get('mitigation','-')}</div>
+                </div>
+                """, unsafe_allow_html=True)
+    else:
+        st.caption("No active risk flags")
+
+# ── ROW 7: REGIME PROB + FORWARD (merged into 1 row) ──
     st.markdown("### 📊 Regime Map")
     rp1, rp2, rp3 = st.columns([1.2, 1, 1])
     with rp1:
@@ -1804,6 +1826,11 @@ elif page == "⚡ Alpha Center":
 
     bottleneck_ref = snap.get("bottleneck_research", {}) or {}
     front_run = snap.get("front_run_candidates", []) or []
+    rotation = bottleneck_ref.get("institutional_rotation", [])
+    heatmap = bottleneck_ref.get("consensus_heatmap", [])
+    timeline = bottleneck_ref.get("catalyst_timeline", [])
+    ma_list = bottleneck_ref.get("ma_watchlist", [])
+    risks = bottleneck_ref.get("risk_flags", [])
 
     # ── META BAR ──
     m1, m2, m3, m4 = st.columns(4)
@@ -1828,7 +1855,7 @@ elif page == "⚡ Alpha Center":
                 "Role": c.get("role", "-")[:30],
                 "⭐": c.get("consensus_stars", 0),
                 "Priority": c.get("priority", "-"),
-                "Options": opt.get("source", "-") if opt.get("ok") else "N/A",
+                "Options": opt.get("source", "-") if opt.get("ok") else "META",
                 "Gamma": opt.get("gamma_regime", "-") if opt.get("ok") else "-",
                 "Greek": opt.get("greek_composite", "-") if opt.get("ok") else "-",
                 "MaxPainDist": opt.get("max_pain_dist", "-") if opt.get("ok") else "-",
@@ -1885,203 +1912,177 @@ elif page == "⚡ Alpha Center":
             width="stretch", hide_index=True, height=420
         )
 
-        # ── DETAIL EXPANDERS ──
-        st.markdown("#### 📋 Candidate Detail Reports")
-        for c in front_run[:15]:
-            ticker = c.get("ticker", "-")
-            opt = c.get("options", {})
-            conv = opt.get("conviction", "-") if opt.get("ok") else "-"
-            conv_emoji = "🟢" if conv == "STRONG" else "🟡" if conv == "MODERATE" else "⚪" if conv == "WEAK" else "🔴"
+    # ── TICKER-BASED DETAIL REPORTS ──
+    st.markdown("### 📋 Ticker Detail Reports")
+    st.caption("All bottleneck intelligence per ticker — expand for full thesis, catalysts, M&A, and risk context")
 
-            with st.expander(f"{conv_emoji} {ticker} | {c.get('theme','-')} | ⭐{c.get('consensus_stars',0)} | {conv}", expanded=False):
-                # Core Metrics with fallback
+    # Build lookup maps for enrichment
+    heatmap_map = {h.get("ticker",""): h for h in heatmap}
+    timeline_by_ticker = {}
+    for ev in timeline:
+        t = ev.get("ticker", "")
+        if t:
+            timeline_by_ticker.setdefault(t, []).append(ev)
+    ma_map = {ma.get("target",""): ma for ma in ma_list}
+    risk_by_theme = {}
+    for r in risks:
+        flag_lower = r.get("flag","").lower()
+        for rk in ["iran", "china", "taiwan", "qatar", "helium", "capex", "nvidia", "hyperscaler", "design"]:
+            if rk in flag_lower:
+                risk_by_theme.setdefault(rk, []).append(r)
+
+    # Determine which tickers to show: front-run + consensus heatmap (deduped)
+    all_tickers_detail = []
+    seen_detail = set()
+    for c in front_run[:25]:
+        t = c.get("ticker", "")
+        if t and t not in seen_detail:
+            seen_detail.add(t)
+            all_tickers_detail.append((t, c))
+    for h in heatmap[:15]:
+        t = h.get("ticker", "")
+        if t and t not in seen_detail:
+            seen_detail.add(t)
+            all_tickers_detail.append((t, {
+                "ticker": t, "theme": h.get("layer","").replace("_"," "),
+                "role": h.get("role",""), "consensus_stars": h.get("stars",0),
+                "accounts": h.get("accounts",[]), "target": h.get("target",""),
+                "priority": h.get("priority",""), "options": {},
+                "why_front_run": f"Consensus pick: {h.get('role','')} — {h.get('target','')}",
+                "catalyst": {}, "news_headline": "", "news_signal": "",
+            }))
+
+    for idx, (ticker, c) in enumerate(all_tickers_detail):
+        opt = c.get("options", {})
+        conv = opt.get("conviction", "-") if opt.get("ok") else "META"
+        conv_emoji = "🟢" if conv == "STRONG" else "🟡" if conv == "MODERATE" else "⚪" if conv == "WEAK" else "🔴" if conv == "CONFLICTED" else "🔵"
+        stars = c.get("consensus_stars", 0)
+        hm = heatmap_map.get(ticker, {})
+        cat_list = timeline_by_ticker.get(ticker, [])
+        ma = ma_map.get(ticker, {})
+
+        # Determine theme for risk matching
+        theme_lower = (c.get("theme","") + " " + c.get("role","")).lower()
+        relevant_risks = []
+        for rk, rv in risk_by_theme.items():
+            if rk in theme_lower:
+                relevant_risks.extend(rv)
+
+        with st.expander(f"{conv_emoji} {ticker} | {c.get('theme','-')} | ⭐{stars} | {conv}", expanded=False):
+            # ── ROW 1: CORE METRICS ──
+            if opt.get("ok") and opt.get("source") != "META":
                 c1, c2, c3, c4 = st.columns(4)
-                if opt.get("ok"):
-                    c1.metric("Price", f"{opt.get('price','-')}")
-                    c2.metric("Max Pain", f"{opt.get('max_pain','-')}")
-                    c3.metric("Max Pain Dist", f"{opt.get('max_pain_dist','-')}")
-                    c4.metric("Conviction", conv)
-                else:
-                    s = prices.get(ticker.replace("$", ""))
-                    px = None
-                    if s is not None and len(s) > 0:
-                        try:
-                            px = float(pd.to_numeric(s, errors="coerce").dropna().iloc[-1])
-                        except: pass
-                    c1.metric("Price", f"{px:.2f}" if px else "N/A")
-                    c2.metric("Max Pain", "No options data")
-                    c3.metric("Max Pain Dist", "—")
-                    c4.metric("Conviction", "N/A (no live price)")
+                c1.metric("Price", f"{opt.get('price','-')}")
+                c2.metric("Max Pain", f"{opt.get('max_pain','-')}")
+                c3.metric("Max Pain Dist", f"{opt.get('max_pain_dist','-')}")
+                c4.metric("Conviction", conv)
+                st.markdown("**📊 Options Proxy Data**")
+                g1, g2, g3, g4 = st.columns(4)
+                g1.metric("Gamma Regime", opt.get("gamma_regime", "-"))
+                g2.metric("Greek", opt.get("greek_composite", "-"))
+                g3.metric("Call Wall", opt.get("call_wall", "-"))
+                g4.metric("Put Wall", opt.get("put_wall", "-"))
+                g5, g6 = st.columns(2)
+                g5.metric("Gamma Flip ↑", opt.get("gamma_flip_up", "-"))
+                g6.metric("Gamma Flip ↓", opt.get("gamma_flip_down", "-"))
+            else:
+                # Bottleneck metadata fallback
+                c1, c2, c3, c4 = st.columns(4)
+                c1.metric("Ticker", ticker)
+                c2.metric("Consensus", f"⭐{stars}")
+                c3.metric("Accounts", f"{len(c.get('accounts',[]))}")
+                c4.metric("Priority", c.get("priority","—"))
+                st.caption("🔵 META DATA — No live price/options; showing bottleneck intelligence")
 
-                if opt.get("ok"):
-                    st.markdown("**📊 Options Proxy Data**")
-                    g1, g2, g3, g4 = st.columns(4)
-                    g1.metric("Gamma Regime", opt.get("gamma_regime", "-"))
-                    g2.metric("Greek", opt.get("greek_composite", "-"))
-                    g3.metric("Call Wall", opt.get("call_wall", "-"))
-                    g4.metric("Put Wall", opt.get("put_wall", "-"))
-                    g5, g6 = st.columns(2)
-                    g5.metric("Gamma Flip ↑", opt.get("gamma_flip_up", "-"))
-                    g6.metric("Gamma Flip ↓", opt.get("gamma_flip_down", "-"))
-                else:
-                    st.caption("⚠️ No live price/options data — ticker may not be in current price universe")
+            st.divider()
 
-                st.divider()
-                st.markdown("**🎯 Front-Run Thesis**")
-                st.info(c.get("why_front_run", "-"))
-
+            # ── ROW 2: BOTTLENECK CONTEXT ──
+            b1, b2 = st.columns(2)
+            with b1:
                 st.markdown("**🔬 Bottleneck Context**")
-                b1, b2 = st.columns(2)
-                with b1:
-                    st.write(f"**Theme:** {c.get('theme', '-')}")
-                    st.write(f"**Role:** {c.get('role', '-')}")
-                    st.write(f"**Priority:** {c.get('priority', '-')}")
-                with b2:
-                    st.write(f"**Consensus:** ⭐{c.get('consensus_stars', 0)} from {len(c.get('accounts', []))} accounts")
-                    if c.get("accounts"):
-                        st.caption(f"Accounts: {', '.join(c['accounts'])}")
+                st.write(f"**Theme:** {c.get('theme', '—')}")
+                st.write(f"**Role:** {c.get('role', '—')}")
+                st.write(f"**Priority:** {c.get('priority', '—')}")
+                if hm.get("layer"):
+                    st.write(f"**Layer:** {hm['layer']}")
+                if hm.get("target"):
+                    st.write(f"**Target:** {hm['target']}")
+            with b2:
+                st.markdown("**⭐ Consensus**")
+                st.write(f"**Stars:** ⭐{stars} from {len(c.get('accounts', []))} accounts")
+                if c.get("accounts"):
+                    st.caption(f"Accounts: {', '.join(c['accounts'])}")
+                if hm.get("accounts"):
+                    st.caption(f"Sources: {', '.join(hm['accounts'])}")
 
-                cat = c.get("catalyst", {})
-                if cat:
-                    st.divider()
-                    st.markdown("**📅 Next Catalyst**")
-                    cat_color = "var(--long)" if cat.get("priority") == "HIGH" else "var(--neutral)"
+            # ── ROW 3: THESIS ──
+            st.markdown("**🎯 Front-Run Thesis**")
+            st.info(c.get("why_front_run", "—"))
+
+            # ── ROW 4: CATALYST (ticker-specific) ──
+            if cat_list:
+                st.divider()
+                st.markdown("**📅 Next Catalysts**")
+                for ev in cat_list[:3]:
+                    prio_color = "var(--long)" if ev.get("priority") == "HIGH" else "var(--neutral)" if ev.get("priority") == "MEDIUM" else "var(--text-secondary)"
                     st.markdown(f"""
-                    <div style="background:var(--bg-card);border:1px solid {cat_color};border-radius:6px;padding:8px 12px;">
-                      <span style="font-size:12px;font-weight:700;color:var(--text-primary);">{cat.get('quarter','-')}</span>
-                      <span style="font-size:11px;color:var(--text-secondary);margin-left:12px;">{cat.get('event','-')}</span>
-                      <span style="font-size:10px;color:{cat_color};font-weight:700;float:right;">{cat.get('priority','-')}</span>
+                    <div style="background:var(--bg-card);border:1px solid {prio_color};border-radius:6px;padding:8px 12px;margin:3px 0;">
+                      <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span style="font-size:12px;font-weight:700;color:var(--text-primary);">{ev.get('quarter','-')}</span>
+                        <span style="font-size:10px;color:{prio_color};font-weight:700;">{ev.get('priority','-')}</span>
+                      </div>
+                      <div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">{ev.get('event','-')}</div>
                     </div>
                     """, unsafe_allow_html=True)
 
-                if c.get("news_headline"):
-                    st.divider()
-                    st.markdown("**📰 News Signal**")
-                    st.markdown(f'<div class="news-ticker">{c["news_headline"][:120]}</div>', unsafe_allow_html=True)
-                    st.caption(f"Signal: {c.get('news_signal', '-')} | Sentiment: {c.get('news_sentiment', 0):+.2f}")
-
-    # ── BOTTLENECK RESEARCH (Toggleable) ──
-    st.markdown("### 🔬 Bottleneck Research")
-    st.caption("Supply chain layers, monopoly rankings, connecting chains")
-
-    themes = bottleneck_ref.get("meta", {}).get("themes", [])
-    for theme in themes:
-        with st.expander(f"🔍 {theme}", expanded=False):
-            if theme == "Photonics":
-                st.markdown("**12-Layer Photonics Supply Chain Map**")
-                photonics = bottleneck_ref.get("photonics_12_layer", [])
-                if photonics:
-                    df_ph = pd.DataFrame(photonics)
-                    st.dataframe(df_ph, hide_index=True, width="stretch", height=380)
-                st.markdown("**Nvidia $2B Playbook**: Locking capacity before supply shock")
-                st.markdown("**Key Tickers:** AXTI (InP monopoly), LITE (200G EML ONLY shipper), SIVE (CW laser), AAOI (ELSFP), MRVL/AVGO (CPO integration)")
-            elif theme == "Helium Crisis":
-                st.markdown("**Helium Crisis Chain**: Qatar disruption → 65% Samsung/SK Hynix supply → 4-month buffer → wafer etching yield risk → HBM constraints")
-                st.markdown("**Tickers:** Samsung, SK Hynix, Air Products, Linde, Pulsar Helium, Helium One")
-            elif theme == "Robotics":
-                st.markdown("**Robot Wars Thesis**: Japan vs China supply chain dominance")
-                st.markdown("**Chokepoint:** Nabtesco harmonic reducer = limits humanoid production speed")
-                st.markdown("**Japan Stack:** Nabtesco, THK, Yaskawa, SMC, Keyence")
-            elif theme == "Power":
-                st.markdown("**Power Struggle**: AI datacenter baseload demand")
-                st.markdown("**Tickers:** ETN (electrical), LNG (baseload), PLUG (hydrogen)")
-            elif theme == "Advanced Packaging":
-                st.markdown("**Packaging Bottleneck**: CoWoS fully booked through mid-2026, HBM4 integration")
-                st.markdown("**Tickers:** AVGO, MRVL, BESI, SMHN, LPK, INTC")
-            elif theme == "Memory":
-                st.markdown("**Memory Shortage**: HBM3E record demand, shortage through 2028")
-                st.markdown("**Tickers:** MU, Samsung, SK Hynix, Seagate, WDC")
-            elif theme == "PCB/Interconnect":
-                st.markdown("**PCB/Interconnect**: TPU v8 / Rubin / Trainium3 mass production = trigger")
-                st.markdown("**CCL Market:** $1.5B (2024) → $18.7B (2027) = 12x jump")
-                st.markdown("**Tickers:** Fujibo, EMC/TUC/ITEQ/Sytech, Asia Metal")
-            elif theme == "Chipmaking Machines":
-                st.markdown("**Chipmaking Machines = New AI Bottleneck**: EUV shortage, ASML capex down 25%")
-                st.markdown("**Tickers:** ASML, BESI, SMHN, LPK, AMEC")
-            elif theme == "AI Materials":
-                st.markdown("**AI Materials (Atoms vs Bits)**: Copper, rare earths, CCL, helium")
-                st.markdown("**Tickers:** MP (rare earths), copper miners, CCL suppliers")
-            elif theme == "Space/Quantum":
-                st.markdown("**Space/Quantum**: Satellite + quantum computing = 2026-2028 inflection")
-                st.markdown("**Tickers:** ASTS, PL, IONQ, RGTI")
-            else:
-                st.caption(f"Research data for {theme}")
-
-    # ── CONSENSUS HEATMAP ──
-    st.markdown("### ⭐ Consensus Heatmap")
-    heatmap = bottleneck_ref.get("consensus_heatmap", [])
-    if heatmap:
-        df_hm = pd.DataFrame([{
-            "Ticker": h.get("ticker"),
-            "⭐": h.get("stars", 0),
-            "Accounts": ", ".join(h.get("accounts", [])),
-            "Layer": h.get("layer", "-"),
-            "Role": h.get("role", "-")[:35],
-            "Target": h.get("target", "-"),
-            "Priority": h.get("priority", "-"),
-        } for h in heatmap])
-        st.dataframe(
-            df_hm.style
-                .map(lambda x: "color:var(--long);font-weight:700;" if x in ["TOP","HIGH"] else ("color:var(--neutral);font-weight:600;" if x=="MEDIUM" else ""), subset=["Priority"])
-                .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=4 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=3 else ""), subset=["⭐"]),
-            width="stretch", hide_index=True, height=320
-        )
-
-    # ── CATALYST TIMELINE ──
-    st.markdown("### 📅 Catalyst Timeline")
-    timeline = bottleneck_ref.get("catalyst_timeline", [])
-    if timeline:
-        for ev in timeline:
-            prio_color = "var(--long)" if ev.get("priority") == "HIGH" else "var(--neutral)" if ev.get("priority") == "MEDIUM" else "var(--text-secondary)"
-            st.markdown(f"""
-            <div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:8px 12px;margin:3px 0;">
-              <span style="font-size:12px;font-weight:600;color:var(--text-primary);">{ev.get('quarter','-')}</span>
-              <span style="font-size:11px;color:var(--text-secondary);flex:1;margin:0 12px;">{ev.get('event','-')}</span>
-              <span style="font-size:10px;color:{prio_color};font-weight:700;">{ev.get('priority','-')}</span>
-            </div>
-            """, unsafe_allow_html=True)
-
-    # ── M&A WATCHLIST ──
-    st.markdown("### 🎯 M&A Watchlist")
-    ma_list = bottleneck_ref.get("ma_watchlist", [])
-    if ma_list:
-        ma_cols = st.columns(min(4, len(ma_list)))
-        for idx, ma in enumerate(ma_list):
-            with ma_cols[idx]:
+            # ── ROW 5: M&A POTENTIAL ──
+            if ma:
+                st.divider()
+                st.markdown("**🎯 M&A Potential**")
                 prob_color = "var(--long)" if ma.get("probability") == "HIGH" else "var(--neutral)" if ma.get("probability") == "MEDIUM" else "var(--text-secondary)"
                 st.markdown(f"""
                 <div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:8px;padding:10px;margin:4px 0;">
-                  <div style="font-size:14px;font-weight:700;color:var(--text-primary);">{ma.get('target','-')}</div>
-                  <div style="font-size:10px;color:var(--text-secondary);margin:4px 0;">MCap: {ma.get('current_mcap','-')}</div>
-                  <div style="font-size:10px;color:var(--text-secondary);margin:4px 0;">Acquirer: {ma.get('potential_acquirer','-')}</div>
-                  <div style="font-size:11px;color:{prob_color};font-weight:700;margin-top:6px;">{ma.get('probability','-')} PROB</div>
-                  <div style="font-size:9px;color:var(--text-muted);margin-top:4px;">{ma.get('catalyst','-')}</div>
+                  <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:14px;font-weight:700;color:var(--text-primary);">{ma.get('target','-')}</span>
+                    <span style="font-size:11px;color:{prob_color};font-weight:700;">{ma.get('probability','-')} PROB</span>
+                  </div>
+                  <div style="font-size:10px;color:var(--text-secondary);margin:4px 0;">MCap: {ma.get('current_mcap','-')} · Acquirer: {ma.get('potential_acquirer','-')}</div>
+                  <div style="font-size:10px;color:var(--neutral);margin-top:4px;">{ma.get('catalyst','-')}</div>
                 </div>
                 """, unsafe_allow_html=True)
 
-    # ── RISK FLAGS ──
-    st.markdown("### 🔴 Risk Flags")
-    risks = bottleneck_ref.get("risk_flags", [])
-    if risks:
-        for r in risks:
-            st.markdown(f"""
-            <div style="background:#2D0D0D;border:1px solid var(--short);border-radius:6px;padding:8px 12px;margin:4px 0;">
-              <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-size:12px;font-weight:700;color:var(--short);">{r.get('flag','-')}</span>
-                <span style="font-size:10px;color:var(--text-secondary);">Trigger: {r.get('trigger','-')}</span>
-              </div>
-              <div style="font-size:11px;color:var(--text-primary);margin-top:4px;">{r.get('impact','-')}</div>
-              <div style="font-size:10px;color:var(--neutral);margin-top:4px;">Mitigation: {r.get('mitigation','-')}</div>
-            </div>
-            """, unsafe_allow_html=True)
+            # ── ROW 6: RELEVANT RISK FLAGS ──
+            if relevant_risks:
+                st.divider()
+                st.markdown("**🔴 Relevant Risk Flags**")
+                for r in relevant_risks[:2]:
+                    st.markdown(f"""
+                    <div style="background:#2D0D0D;border:1px solid var(--short);border-radius:6px;padding:8px 12px;margin:4px 0;">
+                      <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span style="font-size:12px;font-weight:700;color:var(--short);">{r.get('flag','-')}</span>
+                        <span style="font-size:10px;color:var(--text-secondary);">Trigger: {r.get('trigger','-')}</span>
+                      </div>
+                      <div style="font-size:11px;color:var(--text-primary);margin-top:4px;">{r.get('impact','-')}</div>
+                      <div style="font-size:10px;color:var(--neutral);margin-top:4px;">Mitigation: {r.get('mitigation','-')}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
 
-    # ── INSTITUTIONAL ROTATION ──
-    st.markdown("### 🔄 Institutional Rotation Phases")
-    rotation = bottleneck_ref.get("institutional_rotation", [])
+            # ── ROW 7: NEWS SIGNAL ──
+            if c.get("news_headline"):
+                st.divider()
+                st.markdown("**📰 News Signal**")
+                st.markdown(f'<div class="news-ticker">{c["news_headline"][:120]}</div>', unsafe_allow_html=True)
+                st.caption(f"Signal: {c.get('news_signal', '-')} | Sentiment: {c.get('news_sentiment', 0):+.2f}")
+
+    # ── INSTITUTIONAL ROTATION (DONE · NOW · NEXT only) ──
+    st.markdown("### 🔄 Institutional Rotation")
+    st.caption("Phases that are DONE, active NOW, or NEXT — future phases hidden until closer")
     if rotation:
         for phase in rotation:
             status = phase.get("status", "")
-            status_color = "var(--long)" if "DONE" in status else "var(--neutral)" if "NOW" in status else "var(--checkin)" if "NEXT" in status else "var(--text-secondary)"
+            if not any(s in status for s in ["DONE", "NOW", "NEXT"]):
+                continue
+            status_color = "var(--long)" if "DONE" in status else "var(--checkin)" if "NOW" in status else "var(--gate)"
             st.markdown(f"""
             <div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:8px 12px;margin:4px 0;">
               <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -2092,10 +2093,6 @@ elif page == "⚡ Alpha Center":
             </div>
             """, unsafe_allow_html=True)
 
-
-# ═══════════════════════════════════════════════════════════════════
-# PAGE: US STOCKS
-# ═══════════════════════════════════════════════════════════════════
 elif page == "🇺🇸 US Stocks":
     st.markdown("## 🇺🇸 US Stocks")
     st.caption("US Equities - Options - Greeks - COT - OI - Risk Ranges")
@@ -2132,15 +2129,12 @@ elif page == "🇺🇸 US Stocks":
     else:
         st.info("No US stock setups.")
 
-    c1, c2 = st.columns(2)
-    with c1:
-        if longs:
-            st.markdown(f'<div style="font-size:14px;font-weight:700;color:var(--long);margin:8px 0;">🟢 Top 5 Longs ({len(longs)} total)</div>', unsafe_allow_html=True)
-            for i, row in enumerate(longs[:5]): _render_narrative_card_native(row, i, "us_equity")
-    with c2:
-        if shorts:
-            st.markdown(f'<div style="font-size:14px;font-weight:700;color:var(--short);margin:8px 0;">🔴 Top 5 Shorts ({len(shorts)} total)</div>', unsafe_allow_html=True)
-            for i, row in enumerate(shorts[:5]): _render_narrative_card_native(row, i, "us_equity")
+    # ── TICKER DETAIL REPORTS ──
+    if all_us:
+        st.markdown("### 📋 Ticker Detail Reports")
+        st.caption("Expand any ticker for full setup: Risk Range · Options · Greeks · Thesis")
+        for i, row in enumerate(all_us):
+            _render_narrative_card_native(row, i, "us_equity")
 
 # ═══════════════════════════════════════════════════════════════════
 # PAGE: FOREX
@@ -2184,15 +2178,12 @@ elif page == "💱 Forex":
         )
     else:
         st.info("No forex setups.")
-    c1, c2 = st.columns(2)
-    with c1:
-        if longs:
-            st.markdown(f'<div style="font-size:13px;font-weight:700;color:var(--long);margin:6px 0;">🟢 Top 5 ({len(longs)} total)</div>', unsafe_allow_html=True)
-            for i, row in enumerate(longs[:5]): _render_narrative_card_native(row, i, "forex")
-    with c2:
-        if shorts:
-            st.markdown(f'<div style="font-size:13px;font-weight:700;color:var(--short);margin:6px 0;">🔴 Top 5 ({len(shorts)} total)</div>', unsafe_allow_html=True)
-            for i, row in enumerate(shorts[:5]): _render_narrative_card_native(row, i, "forex")
+    # ── TICKER DETAIL REPORTS ──
+    if all_fx:
+        st.markdown("### 📋 Ticker Detail Reports")
+        st.caption("Expand any ticker for full setup: Risk Range · Options · Greeks · Thesis")
+        for i, row in enumerate(all_fx):
+            _render_narrative_card_native(row, i, "forex")
 
 # ═══════════════════════════════════════════════════════════════════
 # PAGE: COMMODITIES
@@ -2226,15 +2217,12 @@ elif page == "🛢️ Commodities":
         )
     else:
         st.info("No commodity setups.")
-    c1, c2 = st.columns(2)
-    with c1:
-        if longs:
-            st.markdown(f'<div style="font-size:13px;font-weight:700;color:var(--long);margin:6px 0;">🟢 Top 5 ({len(longs)} total)</div>', unsafe_allow_html=True)
-            for i, row in enumerate(longs[:5]): _render_narrative_card_native(row, i, "commodity")
-    with c2:
-        if shorts:
-            st.markdown(f'<div style="font-size:13px;font-weight:700;color:var(--short);margin:6px 0;">🔴 Top 5 ({len(shorts)} total)</div>', unsafe_allow_html=True)
-            for i, row in enumerate(shorts[:5]): _render_narrative_card_native(row, i, "commodity")
+    # ── TICKER DETAIL REPORTS ──
+    if all_comm:
+        st.markdown("### 📋 Ticker Detail Reports")
+        st.caption("Expand any ticker for full setup: Risk Range · Options · Greeks · Thesis")
+        for i, row in enumerate(all_comm):
+            _render_narrative_card_native(row, i, "commodity")
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -2297,15 +2285,12 @@ elif page == "₿ Crypto":
     else:
         st.info("No crypto setups.")
 
-    c1, c2 = st.columns(2)
-    with c1:
-        if longs:
-            st.markdown(f'<div style="font-size:14px;font-weight:700;color:var(--long);margin:8px 0;">🟢 Top 5 Longs ({len(longs)} total)</div>', unsafe_allow_html=True)
-            for i, row in enumerate(longs[:5]): _render_narrative_card_native(row, i, "crypto")
-    with c2:
-        if shorts:
-            st.markdown(f'<div style="font-size:14px;font-weight:700;color:var(--short);margin:8px 0;">🔴 Top 5 Shorts ({len(shorts)} total)</div>', unsafe_allow_html=True)
-            for i, row in enumerate(shorts[:5]): _render_narrative_card_native(row, i, "crypto")
+    # ── TICKER DETAIL REPORTS ──
+    if all_crypto:
+        st.markdown("### 📋 Ticker Detail Reports")
+        st.caption("Expand any ticker for full setup: Risk Range · Options · Greeks · On-Chain · Thesis")
+        for i, row in enumerate(all_crypto):
+            _render_narrative_card_native(row, i, "crypto")
 
 # ═══════════════════════════════════════════════════════════════════
 # PAGE: GLOBAL & EM
@@ -2442,10 +2427,12 @@ elif page == "🌍 Global & EM":
                     .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=2.0 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=1.5 else ""), subset=["RR"]),
                 width="stretch", hide_index=True, height=280
             )
-            ihsg_rows.sort(key=lambda x: abs(x.get("r1m") or 0), reverse=True)
-            st.markdown("### 🎯 Top 5 IHSG (by momentum)")
-            for i, row in enumerate(ihsg_rows[:5]):
-                _render_narrative_card_native(row, i, "ihsg")
+            # ── TICKER DETAIL REPORTS ──
+            if ihsg_rows:
+                st.markdown("### 📋 Ticker Detail Reports")
+                st.caption("Expand any ticker for full setup: Risk Range · Sector Context · Thesis")
+                for i, row in enumerate(ihsg_rows):
+                    _render_narrative_card_native(row, i, "ihsg")
         else:
             st.info("No IHSG setups.")
 

@@ -1018,10 +1018,13 @@ def _render_narrative_card_native(row, idx=0, market_type="generic"):
             # Max Pain Distance
             px = row.get("price")
             mp = row.get("max_pain") or row.get("max_pain_gamma")
-            if px and mp:
-                mp_dist = (px - mp) / mp
-                mp_color = "var(--long)" if abs(mp_dist) < 0.03 else "var(--neutral)" if abs(mp_dist) < 0.06 else "var(--short)"
-                st.markdown(f"**Max Pain Distance:** <span style='color:{mp_color};font-weight:700;'>{mp_dist:+.2%}</span> (Price vs Max Pain)", unsafe_allow_html=True)
+            if px and mp and isinstance(mp, (int, float)) and mp != 0:
+                try:
+                    mp_dist = (px - mp) / mp
+                    mp_color = "var(--long)" if abs(mp_dist) < 0.03 else "var(--neutral)" if abs(mp_dist) < 0.06 else "var(--short)"
+                    st.markdown(f"**Max Pain Distance:** <span style='color:{mp_color};font-weight:700;'>{mp_dist:+.2%}</span> (Price vs Max Pain)", unsafe_allow_html=True)
+                except Exception:
+                    pass
 
         has_flow = any(row.get(k) for k in ["cot_signal","oi_signal","onchain_signal","skew","oi_trend","cot_bias"])
         if has_flow and market_type not in ["ihsg"]:

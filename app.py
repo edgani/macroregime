@@ -1839,6 +1839,32 @@ elif page == "⚡ Alpha Center":
     m3.metric("Supply Chain Layers", bottleneck_ref.get("meta", {}).get("total_layers", 0))
     m4.metric("Accounts Tracked", len(bottleneck_ref.get("sources", [])))
 
+    # ── INSTITUTIONAL ROTATION (horizontal, DONE·NOW·NEXT only) ──
+    st.markdown("### 🔄 Institutional Rotation")
+    st.caption("Phases that are DONE, active NOW, or NEXT")
+    if rotation:
+        rot_cols = st.columns(3)
+        col_idx = 0
+        for phase in rotation:
+            status = phase.get("status", "")
+            if not any(s in status for s in ["DONE", "NOW", "NEXT"]):
+                continue
+            status_color = "var(--long)" if "DONE" in status else "var(--checkin)" if "NOW" in status else "var(--gate)"
+            status_emoji = "✅" if "DONE" in status else "🔄" if "NOW" in status else "🔜"
+            with rot_cols[col_idx % 3]:
+                st.markdown(f"""
+                <div style="background:var(--bg-card);border:1px solid {status_color};border-radius:8px;padding:10px;margin:4px 0;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                    <span style="font-size:11px;font-weight:700;color:var(--text-primary);">Phase {phase.get('phase','-')}</span>
+                    <span style="font-size:10px;color:{status_color};font-weight:700;">{status_emoji} {status}</span>
+                  </div>
+                  <div style="font-size:12px;font-weight:600;color:var(--text-primary);margin-bottom:4px;">{phase.get('theme','-')}</div>
+                  <div style="font-size:10px;color:var(--text-secondary);">{phase.get('timeline','-')}</div>
+                  <div style="font-size:9px;color:var(--text-muted);margin-top:4px;">{', '.join(phase.get('tickers',[])[:4])}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            col_idx += 1
+
     # ── FRONT-RUN CANDIDATES TABLE ──
     st.markdown("### 🎯 Front-Run Candidates")
     st.caption("Tickers that WILL explode — not yet tradeable today. Based on bottleneck consensus + news + institutional rotation.")
@@ -1902,7 +1928,6 @@ elif page == "⚡ Alpha Center":
             if "NEGATIVE" in str(val): return "color:var(--short);"
             return ""
 
-        # SAFE dataframe — no background_gradient (causes NaN crash)
         st.dataframe(
             df_filtered.style
                 .map(_priority_color, subset=["Priority"])
@@ -2074,24 +2099,167 @@ elif page == "⚡ Alpha Center":
                 st.markdown(f'<div class="news-ticker">{c["news_headline"][:120]}</div>', unsafe_allow_html=True)
                 st.caption(f"Signal: {c.get('news_signal', '-')} | Sentiment: {c.get('news_sentiment', 0):+.2f}")
 
-    # ── INSTITUTIONAL ROTATION (DONE · NOW · NEXT only) ──
-    st.markdown("### 🔄 Institutional Rotation")
-    st.caption("Phases that are DONE, active NOW, or NEXT — future phases hidden until closer")
-    if rotation:
-        for phase in rotation:
-            status = phase.get("status", "")
-            if not any(s in status for s in ["DONE", "NOW", "NEXT"]):
-                continue
-            status_color = "var(--long)" if "DONE" in status else "var(--checkin)" if "NOW" in status else "var(--gate)"
-            st.markdown(f"""
-            <div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:8px 12px;margin:4px 0;">
-              <div style="display:flex;justify-content:space-between;align-items:center;">
-                <span style="font-size:12px;font-weight:700;color:var(--text-primary);">Phase {phase.get('phase','-')}: {phase.get('theme','-')}</span>
-                <span style="font-size:11px;color:{status_color};font-weight:700;">{status}</span>
-              </div>
-              <div style="font-size:10px;color:var(--text-secondary);margin-top:4px;">{phase.get('timeline','-')} — {', '.join(phase.get('tickers',[]))}</div>
-            </div>
-            """, unsafe_allow_html=True)
+    # ── TICKER-BASED DETAIL REPORTS ──
+    st.markdown("### 📋 Ticker Detail Reports")
+    st.caption("All bottleneck intelligence per ticker — expand for full thesis, catalysts, M&A, and risk context")
+
+    # Build lookup maps for enrichment
+    heatmap_map = {h.get("ticker",""): h for h in heatmap}
+    timeline_by_ticker = {}
+    for ev in timeline:
+        t = ev.get("ticker", "")
+        if t:
+            timeline_by_ticker.setdefault(t, []).append(ev)
+    ma_map = {ma.get("target",""): ma for ma in ma_list}
+    risk_by_theme = {}
+    for r in risks:
+        flag_lower = r.get("flag","").lower()
+        for rk in ["iran", "china", "taiwan", "qatar", "helium", "capex", "nvidia", "hyperscaler", "design"]:
+            if rk in flag_lower:
+                risk_by_theme.setdefault(rk, []).append(r)
+
+    # Determine which tickers to show: front-run + consensus heatmap (deduped)
+    all_tickers_detail = []
+    seen_detail = set()
+    for c in front_run[:25]:
+        t = c.get("ticker", "")
+        if t and t not in seen_detail:
+            seen_detail.add(t)
+            all_tickers_detail.append((t, c))
+    for h in heatmap[:15]:
+        t = h.get("ticker", "")
+        if t and t not in seen_detail:
+            seen_detail.add(t)
+            all_tickers_detail.append((t, {
+                "ticker": t, "theme": h.get("layer","").replace("_"," "),
+                "role": h.get("role",""), "consensus_stars": h.get("stars",0),
+                "accounts": h.get("accounts",[]), "target": h.get("target",""),
+                "priority": h.get("priority",""), "options": {},
+                "why_front_run": f"Consensus pick: {h.get('role','')} — {h.get('target','')}",
+                "catalyst": {}, "news_headline": "", "news_signal": "",
+            }))
+
+    for idx, (ticker, c) in enumerate(all_tickers_detail):
+        opt = c.get("options", {})
+        conv = opt.get("conviction", "-") if opt.get("ok") else "META"
+        conv_emoji = "🟢" if conv == "STRONG" else "🟡" if conv == "MODERATE" else "⚪" if conv == "WEAK" else "🔴" if conv == "CONFLICTED" else "🔵"
+        stars = c.get("consensus_stars", 0)
+        hm = heatmap_map.get(ticker, {})
+        cat_list = timeline_by_ticker.get(ticker, [])
+        ma = ma_map.get(ticker, {})
+
+        # Determine theme for risk matching
+        theme_lower = (c.get("theme","") + " " + c.get("role","")).lower()
+        relevant_risks = []
+        for rk, rv in risk_by_theme.items():
+            if rk in theme_lower:
+                relevant_risks.extend(rv)
+
+        with st.expander(f"{conv_emoji} {ticker} | {c.get('theme','-')} | ⭐{stars} | {conv}", expanded=False):
+            # ── ROW 1: CORE METRICS ──
+            if opt.get("ok") and opt.get("source") != "META":
+                c1, c2, c3, c4 = st.columns(4)
+                c1.metric("Price", f"{opt.get('price','-')}")
+                c2.metric("Max Pain", f"{opt.get('max_pain','-')}")
+                c3.metric("Max Pain Dist", f"{opt.get('max_pain_dist','-')}")
+                c4.metric("Conviction", conv)
+                st.markdown("**📊 Options Proxy Data**")
+                g1, g2, g3, g4 = st.columns(4)
+                g1.metric("Gamma Regime", opt.get("gamma_regime", "-"))
+                g2.metric("Greek", opt.get("greek_composite", "-"))
+                g3.metric("Call Wall", opt.get("call_wall", "-"))
+                g4.metric("Put Wall", opt.get("put_wall", "-"))
+                g5, g6 = st.columns(2)
+                g5.metric("Gamma Flip ↑", opt.get("gamma_flip_up", "-"))
+                g6.metric("Gamma Flip ↓", opt.get("gamma_flip_down", "-"))
+            else:
+                # Bottleneck metadata fallback
+                c1, c2, c3, c4 = st.columns(4)
+                c1.metric("Ticker", ticker)
+                c2.metric("Consensus", f"⭐{stars}")
+                c3.metric("Accounts", f"{len(c.get('accounts',[]))}")
+                c4.metric("Priority", c.get("priority","—"))
+                st.caption("🔵 META DATA — No live price/options; showing bottleneck intelligence")
+
+            st.divider()
+
+            # ── ROW 2: BOTTLENECK CONTEXT ──
+            b1, b2 = st.columns(2)
+            with b1:
+                st.markdown("**🔬 Bottleneck Context**")
+                st.write(f"**Theme:** {c.get('theme', '—')}")
+                st.write(f"**Role:** {c.get('role', '—')}")
+                st.write(f"**Priority:** {c.get('priority', '—')}")
+                if hm.get("layer"):
+                    st.write(f"**Layer:** {hm['layer']}")
+                if hm.get("target"):
+                    st.write(f"**Target:** {hm['target']}")
+            with b2:
+                st.markdown("**⭐ Consensus**")
+                st.write(f"**Stars:** ⭐{stars} from {len(c.get('accounts', []))} accounts")
+                if c.get("accounts"):
+                    st.caption(f"Accounts: {', '.join(c['accounts'])}")
+                if hm.get("accounts"):
+                    st.caption(f"Sources: {', '.join(hm['accounts'])}")
+
+            # ── ROW 3: THESIS ──
+            st.markdown("**🎯 Front-Run Thesis**")
+            st.info(c.get("why_front_run", "—"))
+
+            # ── ROW 4: CATALYST (ticker-specific) ──
+            if cat_list:
+                st.divider()
+                st.markdown("**📅 Next Catalysts**")
+                for ev in cat_list[:3]:
+                    prio_color = "var(--long)" if ev.get("priority") == "HIGH" else "var(--neutral)" if ev.get("priority") == "MEDIUM" else "var(--text-secondary)"
+                    st.markdown(f"""
+                    <div style="background:var(--bg-card);border:1px solid {prio_color};border-radius:6px;padding:8px 12px;margin:3px 0;">
+                      <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span style="font-size:12px;font-weight:700;color:var(--text-primary);">{ev.get('quarter','-')}</span>
+                        <span style="font-size:10px;color:{prio_color};font-weight:700;">{ev.get('priority','-')}</span>
+                      </div>
+                      <div style="font-size:11px;color:var(--text-secondary);margin-top:4px;">{ev.get('event','-')}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+            # ── ROW 5: M&A POTENTIAL ──
+            if ma:
+                st.divider()
+                st.markdown("**🎯 M&A Potential**")
+                prob_color = "var(--long)" if ma.get("probability") == "HIGH" else "var(--neutral)" if ma.get("probability") == "MEDIUM" else "var(--text-secondary)"
+                st.markdown(f"""
+                <div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:8px;padding:10px;margin:4px 0;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <span style="font-size:14px;font-weight:700;color:var(--text-primary);">{ma.get('target','-')}</span>
+                    <span style="font-size:11px;color:{prob_color};font-weight:700;">{ma.get('probability','-')} PROB</span>
+                  </div>
+                  <div style="font-size:10px;color:var(--text-secondary);margin:4px 0;">MCap: {ma.get('current_mcap','-')} · Acquirer: {ma.get('potential_acquirer','-')}</div>
+                  <div style="font-size:10px;color:var(--neutral);margin-top:4px;">{ma.get('catalyst','-')}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            # ── ROW 6: RELEVANT RISK FLAGS ──
+            if relevant_risks:
+                st.divider()
+                st.markdown("**🔴 Relevant Risk Flags**")
+                for r in relevant_risks[:2]:
+                    st.markdown(f"""
+                    <div style="background:#2D0D0D;border:1px solid var(--short);border-radius:6px;padding:8px 12px;margin:4px 0;">
+                      <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span style="font-size:12px;font-weight:700;color:var(--short);">{r.get('flag','-')}</span>
+                        <span style="font-size:10px;color:var(--text-secondary);">Trigger: {r.get('trigger','-')}</span>
+                      </div>
+                      <div style="font-size:11px;color:var(--text-primary);margin-top:4px;">{r.get('impact','-')}</div>
+                      <div style="font-size:10px;color:var(--neutral);margin-top:4px;">Mitigation: {r.get('mitigation','-')}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+            # ── ROW 7: NEWS SIGNAL ──
+            if c.get("news_headline"):
+                st.divider()
+                st.markdown("**📰 News Signal**")
+                st.markdown(f'<div class="news-ticker">{c["news_headline"][:120]}</div>', unsafe_allow_html=True)
+                st.caption(f"Signal: {c.get('news_signal', '-')} | Sentiment: {c.get('news_sentiment', 0):+.2f}")
 
 elif page == "🇺🇸 US Stocks":
     st.markdown("## 🇺🇸 US Stocks")
@@ -2271,14 +2439,7 @@ elif page == "🌍 Global & EM":
                 conf = _sf(em_sig.get("confidence")) or 0
                 trigger = em_sig.get("trigger","EM signal")
                 st.markdown(f'<div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:6px;margin-top:6px;font-size:11px;"><b>EM Signal:</b> <span style="color:var(--text-secondary);">{trigger} (conf: {conf:.0%})</span></div>', unsafe_allow_html=True)
-        with c2:
-            rows=[]
-            for country,q in sorted(cqs.items(),key=lambda x:x[1]):
-                rows.append({"Country":country,"Regime":q,"Name":QN.get(q,q)})
-            df=pd.DataFrame(rows)
-            st.dataframe(df.style.map(lambda x: f'color:{qc(x)}', subset=["Regime"]).format({"Regime":lambda x:""}), hide_index=True, width="stretch", height=320)
-
-    with ihsg_tab:
+            with ihsg_tab:
         st.markdown("### 🇮🇩 IHSG Macro Report")
         st.caption("Indonesia equity - Narrative report format")
 

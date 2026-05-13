@@ -640,7 +640,7 @@ def _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, market_type, 
     if not v:
         if s is None or s.empty: return None
         s_clean = pd.to_numeric(s, errors="coerce").dropna()
-        if len(s_clean) < 60: return None
+        if len(s_clean) < 20: return None
         px = float(s_clean.iloc[-1]); sma20 = float(s_clean.tail(20).mean()); std20 = float(s_clean.tail(20).std())
         if not all(math.isfinite(v) for v in [px, sma20, std20]): return None
         trade_l = round(sma20 - 1.5 * std20, 4); trade_r = round(sma20 + 1.5 * std20, 4)
@@ -793,7 +793,7 @@ def _build_ihsg_row(ticker, prices, ar, ihsg_sector_momentum=None, ihsg_commodit
     if not v:
         if s is None or s.empty: return None
         s_clean = pd.to_numeric(s, errors="coerce").dropna()
-        if len(s_clean) < 60: return None
+        if len(s_clean) < 20: return None
         px = float(s_clean.iloc[-1]); sma20 = float(s_clean.tail(20).mean()); std20 = float(s_clean.tail(20).std())
         if not all(math.isfinite(v) for v in [px, sma20, std20]): return None
         lrr = round(sma20 - 1.5 * std20, 2); trr = round(sma20 + 1.5 * std20, 2)
@@ -2089,9 +2089,15 @@ elif page == "⚡ Alpha Center":
     us_tickers = list(dict.fromkeys(us_tickers))
 
     us_rows = []
+    us_debug = {"total_tickers": len(us_tickers), "prices_available": 0, "ar_available": 0, "built": 0}
     for ticker in us_tickers:
+        if prices.get(ticker) is not None: us_debug["prices_available"] += 1
+        if ar.get(ticker): us_debug["ar_available"] += 1
         row = _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, "us_equity", vix_now, gamma_data, greeks_data, forward_returns, news_narratives)
-        if row: us_rows.append(row)
+        if row: 
+            us_rows.append(row)
+            us_debug["built"] += 1
+    st.caption(f"Debug: {us_debug['built']}/{us_debug['total_tickers']} built (prices: {us_debug['prices_available']}, ranges: {us_debug['ar_available']})")
     longs, shorts = _split_long_short(us_rows)
 
     all_us = longs + shorts

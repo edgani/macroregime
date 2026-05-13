@@ -1,7 +1,7 @@
-"""orchestrator.py - MacroRegime Data Orchestrator v27.0 FINAL
-Patched: News & Rumor Engine for front-running + forward-looking signals
+"""orchestrator.py - MacroRegime Data Orchestrator v27.1 CRYPTO-ENHANCED
+Patched: News & Rumor Engine + On-Chain Alpha Center (free APIs)
 - Alpha Center: fallback from price action + bottleneck engine + NEWS BOOST
-- Crypto: on-chain proxy data (TVL, momentum, vol)
+- Crypto: on-chain proxy data (TVL, momentum, vol) + LIVE market structure (funding, OI, narrative)
 - Global & EM: 50-country live-enriched map + IHSG structural layers
 - Risk Ranges: fallback proxy when engine fails
 - All engines: graceful degradation with synthetic data
@@ -492,7 +492,7 @@ def _classify_market(ticker: str) -> str:
     return "us_equity"
 
 # ------------------------------------------------------------------
-# Alpha Center Proxy - generate from price action + risk ranges + NEWS
+# Alpha Center Proxy - generate from price action + NEWS
 # ------------------------------------------------------------------
 def _alpha_center_proxy(prices: dict, risk_ranges: dict, quad: str, vix: float, news_analysis: dict = None) -> dict:
     """Generate alpha center items from price action when bottleneck engine fails."""
@@ -928,6 +928,176 @@ def _find_catalyst(ticker, bottleneck_ref):
 
 
 # ------------------------------------------------------------------
+# Crypto On-Chain Center — free API aggregation
+# ------------------------------------------------------------------
+def _fetch_stablecoin_flows():
+    """DeFiLlama stablecoin API — completely free, no auth."""
+    if not _has_requests:
+        return {}
+    try:
+        r = requests.get("https://api.llama.fi/stablecoins", timeout=15)
+        if r.status_code != 200:
+            return {}
+        data = r.json()
+        total = 0.0
+        change_7d = 0.0
+        for pe in data.get("peggedAssets", []):
+            mc = pe.get("circulating", {}).get("peggedUSD", 0) or 0
+            total += float(mc)
+            prev = pe.get("circulatingPrevWeek", {}).get("peggedUSD", 0) or 0
+            if prev:
+                change_7d += (float(mc) - float(prev))
+        return {
+            "total_b": round(total / 1e9, 2),
+            "change_7d_b": round(change_7d / 1e9, 2),
+            "source": "DeFiLlama",
+        }
+    except Exception as e:
+        logger.warning(f"Stablecoin fetch failed: {e}")
+        return {}
+
+def _fetch_crypto_narrative():
+    """CoinGecko trending + categories + Alternative.me fear & greed."""
+    if not _has_requests:
+        return {}
+    out = {"trending": [], "categories": [], "fear_greed": None}
+    try:
+        r = requests.get("https://api.alternative.me/fng/?limit=1", timeout=10)
+        if r.status_code == 200:
+            fg = r.json().get("data", [{}])[0]
+            out["fear_greed"] = {
+                "value": int(fg.get("value", 50)),
+                "label": fg.get("value_text", "Neutral"),
+            }
+    except Exception as e:
+        logger.warning(f"Fear&Greed failed: {e}")
+    try:
+        r = requests.get("https://api.coingecko.com/api/v3/search/trending", timeout=10)
+        if r.status_code == 200:
+            coins = r.json().get("coins", [])
+            out["trending"] = [{
+                "name": c.get("item", {}).get("name"),
+                "symbol": c.get("item", {}).get("symbol"),
+                "market_cap_rank": c.get("item", {}).get("market_cap_rank"),
+                "score": c.get("item", {}).get("score"),
+            } for c in coins[:7]]
+    except Exception as e:
+        logger.warning(f"Trending failed: {e}")
+    try:
+        r = requests.get("https://api.coingecko.com/api/v3/coins/categories", timeout=15)
+        if r.status_code == 200:
+            cats = r.json()
+            out["categories"] = [{
+                "name": c.get("name"),
+                "market_cap": c.get("market_cap"),
+                "volume_24h": c.get("volume_24h"),
+                "top_3_coins": [x for x in c.get("top_3_coins", [])[:3]],
+            } for c in sorted(cats, key=lambda x: x.get("volume_24h", 0) or 0, reverse=True)[:10]]
+    except Exception as e:
+        logger.warning(f"Categories failed: {e}")
+    return out
+
+def _fetch_crypto_market_structure():
+    """Binance public API — funding rates + 24h ticker (OI/volume proxy)."""
+    if not _has_requests:
+        return {}
+    out = {"funding": {}, "oi": {}, "liquidation": {}, "long_short": {}}
+    symbols = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT"]
+    try:
+        for sym in symbols:
+            try:
+                r = requests.get(f"https://fapi.binance.com/fapi/v1/fundingRate?symbol={sym}&limit=1", timeout=8)
+                if r.status_code == 200:
+                    d = r.json()
+                    if d:
+                        out["funding"][sym.replace("USDT", "")] = {
+                            "rate": float(d[0].get("fundingRate", 0)),
+                            "time": d[0].get("fundingTime", ""),
+                        }
+            except Exception:
+                pass
+        r = requests.get("https://fapi.binance.com/fapi/v1/ticker/24hr", timeout=10)
+        if r.status_code == 200:
+            tickers = {t.get("symbol"): t for t in r.json()}
+            for sym in symbols:
+                t = tickers.get(sym, {})
+                if t:
+                    out["oi"][sym.replace("USDT", "")] = {
+                        "volume_24h": float(t.get("volume", 0)),
+                        "price_change": float(t.get("priceChangePercent", 0)),
+                        "weighted_avg_price": float(t.get("weightedAvgPrice", 0)),
+                    }
+    except Exception as e:
+        logger.warning(f"Market structure failed: {e}")
+    return out
+
+def _build_crypto_unlock_proxy():
+    """Proxy unlock calendar — replace with Messari/DropsTab for live data."""
+    return [
+        {"token": "SOL", "date": "2026-06-01", "amount_m": 20, "type": "Cliff", "impact": "HIGH"},
+        {"token": "AVAX", "date": "2026-05-20", "amount_m": 5, "type": "Linear", "impact": "MEDIUM"},
+        {"token": "ARB", "date": "2026-05-25", "amount_m": 100, "type": "Cliff", "impact": "HIGH"},
+        {"token": "OP", "date": "2026-06-15", "amount_m": 30, "type": "Linear", "impact": "MEDIUM"},
+    ]
+
+def _build_crypto_center(prices, news_analysis):
+    """Aggregate all crypto-specific on-chain / market data."""
+    cc = {
+        "macro_regime": {},
+        "capital_flows": {},
+        "market_structure": {},
+        "narrative": {},
+        "tokenomics": {},
+        "whale": {},
+        "risk_flags": [],
+    }
+    btc_s = prices.get("BTC-USD")
+    eth_s = prices.get("ETH-USD")
+    if btc_s is not None and eth_s is not None:
+        try:
+            btc_mcap = float(btc_s.iloc[-1]) * 19.8e6
+            eth_mcap = float(eth_s.iloc[-1]) * 120e6
+            total = btc_mcap + eth_mcap + 800e9
+            btc_d = btc_mcap / total
+            cc["macro_regime"]["btc_dominance_proxy"] = round(btc_d, 3)
+        except Exception:
+            cc["macro_regime"]["btc_dominance_proxy"] = 0.55
+    else:
+        cc["macro_regime"]["btc_dominance_proxy"] = 0.55
+
+    cc["capital_flows"] = _fetch_stablecoin_flows()
+    cc["narrative"] = _fetch_crypto_narrative()
+    cc["market_structure"] = _fetch_crypto_market_structure()
+
+    whale_proxy = {}
+    for ticker in ["BTC-USD", "ETH-USD"]:
+        s = prices.get(ticker)
+        if s is not None and len(s) >= 22:
+            try:
+                s_clean = pd.to_numeric(s, errors="coerce").dropna()
+                r1m = float(s_clean.iloc[-1] / s_clean.iloc[-22] - 1)
+                whale_proxy[ticker] = "ACCUMULATING" if r1m > 0.05 else "DISTRIBUTING" if r1m < -0.05 else "NEUTRAL"
+            except Exception:
+                pass
+    cc["whale"]["proxy"] = whale_proxy
+
+    cc["tokenomics"]["upcoming_unlocks"] = _build_crypto_unlock_proxy()
+
+    funding = cc["market_structure"].get("funding", {})
+    if funding:
+        for sym, data in funding.items():
+            rate = data.get("rate", 0)
+            if abs(rate) > 0.0005:
+                cc["risk_flags"].append({
+                    "type": "FUNDING_EXTREME",
+                    "ticker": sym,
+                    "value": rate,
+                    "impact": "Longs overleveraged — correction risk" if rate > 0.001 else "Short squeeze potential" if rate < -0.001 else "Elevated funding",
+                })
+    return cc
+
+
+# ------------------------------------------------------------------
 # Core runner
 # ------------------------------------------------------------------
 def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: float = 12.0, **kwargs) -> dict:
@@ -997,8 +1167,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         "rumor_watch": [],
         "bottleneck_research": {},
         "front_run_candidates": [],
-        "bottleneck_research": {},
-        "front_run_candidates": [],
+        "crypto_center": {},
     }
 
     try:
@@ -1065,8 +1234,14 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         logger.info(f"Front-run candidates: {len(front_run)}")
         logger.info(f"News analyzed: {news_analysis.get('analyzed_count',0)} headlines, {len(result['rumor_watch'])} rumor signals")
 
+        # ---- CRYPTO ON-CHAIN CENTER (FREE APIs) ----
+        _safe_progress(progress_cb, "Building crypto on-chain center...", 0.25)
+        cc = _build_crypto_center(prices, news_analysis)
+        result["crypto_center"] = cc
+        logger.info(f"Crypto center built: {len(cc['risk_flags'])} risk flags")
+
         # ---- IMMEDIATE PROXY FALLBACKS ----
-        _safe_progress(progress_cb, "Computing proxy fallbacks...", 0.25)
+        _safe_progress(progress_cb, "Computing proxy fallbacks...", 0.28)
 
         rr_proxy = _risk_range_proxy(prices)
         crypto_proxy = _crypto_onchain_proxy(prices)
@@ -1195,6 +1370,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                     item["priority_score"] = (item.get("priority_score") or 0) + 20
                     if item["news_signal"] in ["STRONG_BULLISH_RUMOR", "NEWS_MOMENTUM_BUILDING"] and item.get("direction") == "LONG":
                         item["scanner_type"] = "news_momentum"
+                        if item.get("grade") == "C": item["grade"] = "B"
             result["alpha_center"] = {
                 "meta": {
                     "regime": quad,
@@ -1332,12 +1508,12 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                             mask = np.isfinite(dxy_arr) & np.isfinite(s_arr)
                             if mask.sum() < 10:
                                 continue
-                            dxy_clean = dxy_arr[mask]
-                            s_clean = s_arr[mask]
-                            if dxy_clean.std() == 0 or s_clean.std() == 0:
+                            dxy_clean_arr = dxy_arr[mask]
+                            s_clean_arr = s_arr[mask]
+                            if dxy_clean_arr.std() == 0 or s_clean_arr.std() == 0:
                                 continue
                             with np.errstate(invalid='ignore'):
-                                corr = np.corrcoef(dxy_clean, s_clean)[0, 1]
+                                corr = np.corrcoef(dxy_clean_arr, s_clean_arr)[0, 1]
                             if not math.isfinite(corr):
                                 continue
                             correlated += 1
@@ -1518,6 +1694,9 @@ def build_snapshot(
         "daily_signals_summary": {},
         "crypto_tokens": {},
         "rumor_watch": [],
+        "bottleneck_research": {},
+        "front_run_candidates": [],
+        "crypto_center": {},
     }
     for key, default_val in defaults.items():
         if key not in result:

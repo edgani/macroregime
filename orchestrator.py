@@ -14,6 +14,23 @@ from typing import Dict, List, Optional
 
 import pandas as pd
 import numpy as np
+import json
+
+# ------------------------------------------------------------------
+# Bottleneck Reference — static research data from 6 accounts
+# ------------------------------------------------------------------
+_BOTTLENECK_REF = None
+def _load_bottleneck_ref():
+    global _BOTTLENECK_REF
+    if _BOTTLENECK_REF is not None:
+        return _BOTTLENECK_REF
+    try:
+        with open("bottleneck_reference.json", "r", encoding="utf-8") as f:
+            _BOTTLENECK_REF = json.load(f)
+    except Exception:
+        _BOTTLENECK_REF = {}
+    return _BOTTLENECK_REF or {}
+
 
 # ------------------------------------------------------------------
 # Logging setup FIRST
@@ -676,6 +693,166 @@ def _ihsg_layers(prices: dict, quad: str) -> dict:
         "ihsg_macro_overlay": macro_overlay,
     }
 
+
+# ------------------------------------------------------------------
+# Front-Run Candidate Generator — bottleneck + news + options proxy
+# ------------------------------------------------------------------
+def _options_proxy_for_ticker(ticker, prices):
+    """Generate proxy options analysis from price action."""
+    s = prices.get(ticker)
+    if s is None or len(s) < 20:
+        return {"ok": False}
+    try:
+        s_clean = pd.to_numeric(s, errors="coerce").dropna()
+        if len(s_clean) < 20:
+            return {"ok": False}
+        px = float(s_clean.iloc[-1])
+        sma20 = float(s_clean.tail(20).mean())
+        std20 = float(s_clean.tail(20).std())
+        if std20 == 0 or not all(math.isfinite(v) for v in [px, sma20, std20]):
+            return {"ok": False}
+        max_pain = round(sma20, 2)
+        put_wall = round(sma20 - std20 * 2.0, 2)
+        call_wall = round(sma20 + std20 * 2.0, 2)
+        gamma_flip_up = round(sma20 + std20 * 1.5, 2)
+        gamma_flip_down = round(sma20 - std20 * 1.5, 2)
+        mp_dist = (px - max_pain) / max_pain if max_pain != 0 else 0
+        r5d = float(s_clean.iloc[-1] / s_clean.iloc[-6] - 1) if len(s_clean) >= 6 else 0
+        r20d = float(s_clean.iloc[-1] / s_clean.iloc[-21] - 1) if len(s_clean) >= 21 else 0
+        if r5d > 0.03 and r20d > 0.05:
+            gamma_regime = "DEEP_POSITIVE"
+        elif r5d > 0.01 and r20d > 0.02:
+            gamma_regime = "POSITIVE"
+        elif r5d < -0.03 and r20d < -0.05:
+            gamma_regime = "DEEP_NEGATIVE"
+        elif r5d < -0.01 and r20d < -0.02:
+            gamma_regime = "NEGATIVE"
+        else:
+            gamma_regime = "TRANSITION"
+        if r20d > 0.05:
+            greek = "BULLISH"
+        elif r20d < -0.05:
+            greek = "BEARISH"
+        else:
+            greek = "NEUTRAL"
+        near_max_pain = abs(mp_dist) < 0.03
+        if near_max_pain and gamma_regime in ("DEEP_POSITIVE", "POSITIVE") and greek == "BULLISH":
+            conviction = "STRONG"
+        elif gamma_regime in ("DEEP_POSITIVE", "POSITIVE", "TRANSITION") and greek == "BULLISH":
+            conviction = "MODERATE"
+        elif gamma_regime in ("NEGATIVE", "DEEP_NEGATIVE") and greek == "BEARISH":
+            conviction = "MODERATE"
+        elif near_max_pain:
+            conviction = "WEAK"
+        else:
+            conviction = "CONFLICTED"
+        return {
+            "ok": True, "price": px, "max_pain": max_pain, "put_wall": put_wall,
+            "call_wall": call_wall, "gamma_flip_up": gamma_flip_up,
+            "gamma_flip_down": gamma_flip_down, "max_pain_dist": round(mp_dist, 4),
+            "gamma_regime": gamma_regime, "greek_composite": greek,
+            "conviction": conviction, "r5d": round(r5d, 4), "r20d": round(r20d, 4),
+            "source": "PROXY"
+        }
+    except Exception as e:
+        logger.debug(f"Options proxy failed for {ticker}: {e}")
+        return {"ok": False}
+
+
+def _generate_front_run_candidates(prices, news_analysis, bottleneck_ref):
+    """Merge bottleneck research + news signals into front-run candidates."""
+    candidates = []
+    seen = set()
+    ref_tickers = bottleneck_ref.get("consensus_heatmap", [])
+    rotation = bottleneck_ref.get("institutional_rotation", [])
+    # High-consensus bottleneck tickers
+    for item in ref_tickers:
+        ticker = item.get("ticker", "")
+        if not ticker or ticker in seen:
+            continue
+        stars = item.get("stars", 0)
+        if stars >= 3:
+            opt = _options_proxy_for_ticker(ticker, prices)
+            candidates.append({
+                "ticker": ticker,
+                "theme": item.get("layer", "").replace("_", " "),
+                "role": item.get("role", ""),
+                "consensus_stars": stars,
+                "accounts": item.get("accounts", []),
+                "target": item.get("target", ""),
+                "priority": item.get("priority", ""),
+                "why_front_run": f"High consensus ({stars} stars) from {len(item.get('accounts',[]))} accounts — {item.get('role','')}",
+                "source": "bottleneck_consensus",
+                "options": opt,
+                "catalyst": _find_catalyst(ticker, bottleneck_ref),
+            })
+            seen.add(ticker)
+    # Next-phase institutional rotation
+    for phase in rotation:
+        status = phase.get("status", "")
+        if "NEXT" in status or "FUTURE" in status:
+            for ticker in phase.get("tickers", []):
+                if ticker in seen:
+                    continue
+                meta = next((x for x in ref_tickers if x.get("ticker") == ticker), {})
+                opt = _options_proxy_for_ticker(ticker, prices)
+                candidates.append({
+                    "ticker": ticker,
+                    "theme": phase.get("theme", ""),
+                    "role": meta.get("role", "Rotation play"),
+                    "consensus_stars": meta.get("stars", 1),
+                    "accounts": meta.get("accounts", []),
+                    "target": meta.get("target", phase.get("theme", "")),
+                    "priority": "HIGH" if "NEXT" in status else "MEDIUM",
+                    "why_front_run": f"Institutional rotation Phase {phase.get('phase')} ({phase.get('timeline')}): {phase.get('theme')}",
+                    "source": "institutional_rotation",
+                    "options": opt,
+                    "catalyst": _find_catalyst(ticker, bottleneck_ref),
+                })
+                seen.add(ticker)
+    # News rumor_watch
+    rumor_watch = (news_analysis or {}).get("rumor_watch", [])
+    for rw in rumor_watch:
+        ticker = rw.get("ticker", "")
+        if not ticker or ticker in seen:
+            continue
+        sig = rw.get("signal", "")
+        if sig in ("STRONG_BULLISH_RUMOR", "STRONG_BEARISH_RUMOR", "NEWS_MOMENTUM_BUILDING"):
+            opt = _options_proxy_for_ticker(ticker, prices)
+            candidates.append({
+                "ticker": ticker,
+                "theme": "News Momentum",
+                "role": "Front-run headline",
+                "consensus_stars": 0,
+                "accounts": [],
+                "target": "Momentum play",
+                "priority": "HIGH",
+                "why_front_run": f"News signal: {sig} — {rw.get('headline','')[:60]}",
+                "source": "news_rumor",
+                "options": opt,
+                "news_signal": sig,
+                "news_sentiment": rw.get("sentiment", 0),
+                "news_headline": rw.get("headline", ""),
+                "catalyst": {"quarter": "Now", "event": "News-driven", "priority": "HIGH"},
+            })
+            seen.add(ticker)
+    # Sort
+    def sort_key(c):
+        prio_map = {"TOP": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
+        conv_map = {"STRONG": 0, "MODERATE": 1, "WEAK": 2, "CONFLICTED": 3}
+        opt = c.get("options", {})
+        return (prio_map.get(c.get("priority", ""), 99), -c.get("consensus_stars", 0), conv_map.get(opt.get("conviction", "CONFLICTED"), 99))
+    candidates.sort(key=sort_key)
+    return candidates
+
+
+def _find_catalyst(ticker, bottleneck_ref):
+    for ev in bottleneck_ref.get("catalyst_timeline", []):
+        if ticker in ev.get("ticker", ""):
+            return {"quarter": ev.get("quarter", ""), "event": ev.get("event", ""), "priority": ev.get("priority", "")}
+    return {}
+
+
 # ------------------------------------------------------------------
 # Core runner
 # ------------------------------------------------------------------
@@ -744,6 +921,10 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         "daily_signals_summary": {},
         "crypto_tokens": {},
         "rumor_watch": [],
+        "bottleneck_research": {},
+        "front_run_candidates": [],
+        "bottleneck_research": {},
+        "front_run_candidates": [],
     }
 
     try:
@@ -798,6 +979,15 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         news_analysis = _analyze_news(news_headlines, prices)
         result["news_narratives"] = news_analysis
         result["rumor_watch"] = news_analysis.get("rumor_watch", [])
+
+        # ---- Bottleneck Research & Front-Run Candidates ----
+        _safe_progress(progress_cb, "Loading bottleneck intelligence...", 0.20)
+        bottleneck_ref = _load_bottleneck_ref()
+        result["bottleneck_research"] = bottleneck_ref
+        _safe_progress(progress_cb, "Generating front-run candidates...", 0.22)
+        front_run = _generate_front_run_candidates(prices, news_analysis, bottleneck_ref)
+        result["front_run_candidates"] = front_run
+        logger.info(f"Front-run candidates: {len(front_run)}")
         logger.info(f"News analyzed: {news_analysis.get('analyzed_count',0)} headlines, {len(result['rumor_watch'])} rumor signals")
 
         # ---- IMMEDIATE PROXY FALLBACKS ----

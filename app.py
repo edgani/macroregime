@@ -1154,7 +1154,6 @@ with st.sidebar:
         "₿ Crypto",
         "🌍 Global & EM",
         "📖 Themes",
-        "🏥 Health",
     ], label_visibility="collapsed")
     st.divider()
     try:
@@ -1314,6 +1313,68 @@ if page == "🏠 Dashboard":
       </div>
     </div>
     """, unsafe_allow_html=True)
+
+    # ── ROW 0b: BEHAVIORAL MACRO LENS (Lamoureux) ──
+    st.markdown("### 🎰 Behavioral Macro Lens")
+    st.caption("Lamoureux framework: sentiment extremes + contrarian positioning + structural vs transitory")
+    bm1, bm2, bm3 = st.columns(3)
+    with bm1:
+        vix_val = health.get("vix_bucket", {}).get("vix_last", 18) if health else 18
+        aaii_bull = 0.25
+        aaii_bear = 0.45
+        if aaii_bear > 0.40 and vix_val > 25:
+            risk_status = "🟢 RISK-ON"
+            risk_color = "var(--long)"
+            risk_sub = "Extreme fear = contrarian buy"
+        elif aaii_bull > 0.50 and vix_val < 15:
+            risk_status = "🔴 RISK-OFF"
+            risk_color = "var(--short)"
+            risk_sub = "Casino behavior = raise cash"
+        else:
+            risk_status = "🟡 CAUTION"
+            risk_color = "var(--neutral)"
+            risk_sub = "Mixed sentiment — wait for extreme"
+        st.markdown(f"""
+        <div style="background:var(--bg-card);border:1px solid {risk_color};border-radius:8px;padding:10px;text-align:center;">
+          <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">RISK STATE</div>
+          <div style="font-size:18px;font-weight:700;color:{risk_color};margin:4px 0;">{risk_status}</div>
+          <div style="font-size:11px;color:var(--text-secondary);">{risk_sub}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with bm2:
+        sentiment_score = round((aaii_bull - aaii_bear) * 2, 2)
+        if sentiment_score < -0.5:
+            sent_color = "var(--long)"; sent_text = "EXTREME FEAR (Bullish contrarian)"
+        elif sentiment_score > 0.5:
+            sent_color = "var(--short)"; sent_text = "EXTREME GREED (Bearish contrarian)"
+        else:
+            sent_color = "var(--neutral)"; sent_text = "NEUTRAL — no edge"
+        st.markdown(f"""
+        <div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:8px;padding:10px;text-align:center;">
+          <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">SENTIMENT EXTREME</div>
+          <div style="font-size:18px;font-weight:700;color:{sent_color};margin:4px 0;">{sentiment_score:+.2f}</div>
+          <div style="font-size:11px;color:var(--text-secondary);">{sent_text}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with bm3:
+        dgs10 = fred.get("DGS10", pd.Series()).tail(1).iloc[0] if fred and "DGS10" in fred else 4.5
+        t5yie = fred.get("T5YIE", pd.Series()).tail(1).iloc[0] if fred and "T5YIE" in fred else 2.4
+        real_yield = dgs10 - t5yie
+        if real_yield < 1.0 and t5yie < 2.5:
+            asleep = "😴 ASLEEP"
+            asleep_color = "var(--short)"
+            asleep_sub = "Bonds pricing disinflation but CPI sticky"
+        else:
+            asleep = "👀 AWAKE"
+            asleep_color = "var(--long)"
+            asleep_sub = "Yields aligned with inflation reality"
+        st.markdown(f"""
+        <div style="background:var(--bg-card);border:1px solid {asleep_color};border-radius:8px;padding:10px;text-align:center;">
+          <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">BOND TRADERS</div>
+          <div style="font-size:18px;font-weight:700;color:{asleep_color};margin:4px 0;">{asleep}</div>
+          <div style="font-size:11px;color:var(--text-secondary);">{asleep_sub}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
     # ── ROW 1: COMPACT KPI (7 columns, minimal) ──
     k1, k2, k3, k4, k5, k6, k7 = st.columns(7)
@@ -1704,157 +1765,253 @@ if page == "🏠 Dashboard":
 
     st.caption(f"Built {snap.get('build_time_s',0):.0f}s ago · {snap.get('prices_loaded',0)} assets · {snap.get('fred_coverage',0)} indicators · {news_narratives.get('analyzed_count',0)} headlines scanned")
 
+    # ── HEALTH FOOTER ──
+    st.divider()
+    hf1, hf2, hf3, hf4, hf5 = st.columns(5)
+    hf1.metric("Assets", snap.get("prices_loaded",0), delta=f"{len(ar)} ranges", delta_color="off")
+    hf2.metric("Build", f"{snap.get('build_time_s',0):.0f}s")
+    hf3.metric("VIX", f"{vix_now:.1f}")
+    hf4.metric("FRED", snap.get("fred_coverage",0))
+    hf5.metric("News", news_narratives.get("analyzed_count",0) if news_narratives else 0)
+
 
 # ═══════════════════════════════════════════════════════════════════
 # PAGE: ALPHA CENTER
 # ═══════════════════════════════════════════════════════════════════
 elif page == "⚡ Alpha Center":
     st.markdown("## ⚡ Alpha Center")
-    st.caption("Bottlenecks - Alpha - Discovery - Daily Signals - Front-Run")
+    st.caption("Front-Run Intelligence — Bottleneck Research + News + Options Proxy")
 
-    ac = alpha_center
-    meta = ac.get("meta", {}) if ac else {}
-    if not ac or not meta:
-        st.warning("Alpha Center data not available. Run Full Rebuild.")
-        # Show fallback from daily_signals if available
-        if daily_signals:
-            st.markdown("### 📈 Daily Signals Fallback")
-            for s in daily_signals[:5]:
-                st.caption(f"{s.get('ticker', '-')} | {s.get('direction', '-')} | {s.get('signal', '-')}")
-        st.stop()
+    bottleneck_ref = snap.get("bottleneck_research", {}) or {}
+    front_run = snap.get("front_run_candidates", []) or []
 
-    # Meta Bar
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Regime", meta.get("regime", "?"))
-    c2.metric("Bias", meta.get("bias", "?"))
-    c3.metric("VIX", meta.get("vix", "?"))
-    c4.metric("Total", meta.get("total_items", 0))
+    # ── META BAR ──
+    m1, m2, m3, m4 = st.columns(4)
+    m1.metric("Front-Run Candidates", len(front_run))
+    m2.metric("Bottleneck Tickers", bottleneck_ref.get("meta", {}).get("total_tickers", 0))
+    m3.metric("Supply Chain Layers", bottleneck_ref.get("meta", {}).get("total_layers", 0))
+    m4.metric("Accounts Tracked", len(bottleneck_ref.get("sources", [])))
 
-    if transition:
-        fw = transition.front_run_window
-        fwc = {"now":"var(--short)","1-2w":"var(--neutral)","3-6w":"var(--checkin)","not yet":"var(--waitpill)"}.get(fw,"var(--waitpill)")
-        fwi = {"now":"🚨 Window OPEN","1-2w":"⚡ Act within 1-2 weeks","3-6w":"👀 Watch for entry","not yet":"🛑 Not yet"}.get(fw,"🛑 Not yet")
-        st.markdown(f'<div style="background:{fwc};color:#fff;padding:6px 12px;border-radius:6px;font-weight:600;text-align:center;margin:8px 0;font-size:12px;">{fwi}</div>', unsafe_allow_html=True)
+    # ── SECTION 1: FRONT-RUN CANDIDATES ──
+    st.markdown("### 🎯 Front-Run Candidates")
+    st.caption("Tickers that WILL explode — not yet tradeable today. Based on bottleneck consensus + news + institutional rotation.")
 
-    # Flight Board Pills
-    if frontrun:
-        st.markdown("### ✈️ Flight Board")
-        pills_html = '<div class="flight-board">'
-        for status, items in frontrun.items():
-            if items:
-                cls = {"boarding_now":"badge-boarding","gate_opens_soon":"badge-gate","check_in":"badge-checkin","wait":"badge-wait"}.get(status,"badge-wait")
-                label = status.replace("_", " ").upper()
-                pills_html += f'<span class="badge {cls}">{label}: {len(items)}</span>'
-        pills_html += '</div>'
-        st.markdown(pills_html, unsafe_allow_html=True)
+    if not front_run:
+        st.info("No front-run candidates. Run Full Rebuild to generate.")
+    else:
+        df_rows = []
+        for c in front_run:
+            opt = c.get("options", {})
+            df_rows.append({
+                "Ticker": c.get("ticker", "-"),
+                "Theme": c.get("theme", "-"),
+                "Role": c.get("role", "-")[:30],
+                "⭐": c.get("consensus_stars", 0),
+                "Priority": c.get("priority", "-"),
+                "Options": opt.get("source", "-") if opt.get("ok") else "N/A",
+                "Gamma": opt.get("gamma_regime", "-") if opt.get("ok") else "-",
+                "Greek": opt.get("greek_composite", "-") if opt.get("ok") else "-",
+                "MaxPainDist": opt.get("max_pain_dist", "-") if opt.get("ok") else "-",
+                "Conviction": opt.get("conviction", "-") if opt.get("ok") else "-",
+                "Catalyst": c.get("catalyst", {}).get("quarter", "-"),
+                "Why": c.get("why_front_run", "-")[:50],
+            })
+        df_front = pd.DataFrame(df_rows)
 
-    # Master Table
-    all_items = ac.get("all", [])
-    if not all_items:
-        st.info("No Alpha Center items available.")
-        st.stop()
+        # Filters
+        f1, f2, f3, f4, f5 = st.columns(5)
+        prio_opts = sorted([x for x in df_front["Priority"].unique().tolist() if x and str(x) != "nan"])
+        sel_prio = f1.multiselect("Priority", prio_opts, default=prio_opts, key="fr_prio")
+        min_stars = f2.slider("Min ⭐", 0, 5, 0, key="fr_stars")
+        conv_opts = sorted([x for x in df_front["Conviction"].unique().tolist() if x and str(x) != "nan" and x != "-"])
+        sel_conv = f3.multiselect("Conviction", conv_opts, default=conv_opts, key="fr_conv")
+        gamma_opts = sorted([x for x in df_front["Gamma"].unique().tolist() if x and str(x) != "nan" and x != "-"])
+        sel_gamma = f4.multiselect("Gamma", gamma_opts, default=gamma_opts, key="fr_gamma")
+        theme_opts = sorted([x for x in df_front["Theme"].unique().tolist() if x and str(x) != "nan"])
+        sel_theme = f5.multiselect("Theme", theme_opts, default=theme_opts, key="fr_theme")
 
-    df_rows = []
-    for item in all_items:
-        df_rows.append({
-            "Ticker": item.get("ticker", "-"),
-            "Scanner": item.get("scanner_type", "-"),
-            "Direction": item.get("direction", "-"),
-            "Grade": item.get("grade", "-"),
-            "Score": round(item.get("priority_score", 0), 1),
-            "Price": item.get("price"),
-            "Entry": item.get("entry"),
-            "T1": item.get("target_1"),
-            "T2": item.get("target_2"),
-            "Stop": item.get("stop_loss"),
-            "RR": item.get("rr", 0),
-            "Worth?": item.get("worth_entering", "-"),
-            "Time": item.get("time_estimate", "-"),
-            "Thesis": (item.get("thesis") or item.get("recommendation") or "")[:60],
-            "News": item.get("news_signal", "")[:20],
-        })
-    df_alpha = pd.DataFrame(df_rows)
+        mask = (
+            df_front["Priority"].isin(sel_prio) &
+            (df_front["⭐"] >= min_stars) &
+            df_front["Conviction"].isin(sel_conv) &
+            df_front["Gamma"].isin(sel_gamma) &
+            df_front["Theme"].isin(sel_theme)
+        )
+        df_filtered = df_front[mask]
+        st.write(f"**{len(df_filtered)}** of **{len(df_front)}** front-run candidates")
 
-    dir_opts = sorted([x for x in df_alpha["Direction"].unique().tolist() if x and str(x) != "nan"])
-    grade_opts = sorted([x for x in df_alpha["Grade"].unique().tolist() if x and str(x) != "nan"])
-    level_opts = sorted([x for x in df_alpha["Scanner"].unique().tolist() if x and str(x) != "nan"])
+        def _conviction_color(val):
+            if val == "STRONG": return "color:var(--long);font-weight:700;"
+            if val == "MODERATE": return "color:var(--neutral);font-weight:600;"
+            if val == "WEAK": return "color:var(--text-secondary);"
+            if val == "CONFLICTED": return "color:var(--short);font-weight:700;"
+            return ""
+        def _priority_color(val):
+            if val == "TOP": return "color:var(--long);font-weight:700;"
+            if val == "HIGH": return "color:var(--neutral);font-weight:600;"
+            return ""
+        def _gamma_color(val):
+            if "POSITIVE" in str(val): return "color:var(--long);"
+            if "NEGATIVE" in str(val): return "color:var(--short);"
+            return ""
 
-    f1, f2, f3, f4 = st.columns(4)
-    filter_dirs = f1.multiselect("Direction", dir_opts, default=dir_opts[:3] if len(dir_opts) >= 3 else dir_opts)
-    filter_grades = f2.multiselect("Grade", grade_opts, default=[g for g in ["A+","A","B"] if g in grade_opts])
-    filter_levels = f3.multiselect("Scanner", level_opts, default=level_opts)
-    min_score = f4.slider("Min Score", 0.0, float(df_alpha["Score"].max() or 100), 0.0, 1.0)
+        st.dataframe(
+            df_filtered.style
+                .map(_priority_color, subset=["Priority"])
+                .map(_conviction_color, subset=["Conviction"])
+                .map(_gamma_color, subset=["Gamma"])
+                .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=4 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=3 else ""), subset=["⭐"])
+                .background_gradient(subset=["MaxPainDist"], cmap="RdYlGn", vmin=-0.1, vmax=0.1),
+            width="stretch", hide_index=True, height=420
+        )
 
-    df_filtered = df_alpha[
-        df_alpha["Direction"].isin(filter_dirs) &
-        df_alpha["Grade"].isin(filter_grades) &
-        df_alpha["Scanner"].isin(filter_levels) &
-        (df_alpha["Score"] >= min_score)
-    ]
-    st.write(f"**{len(df_filtered)}** of **{len(df_alpha)}** items")
+        # Detail expanders
+        st.markdown("#### 📋 Candidate Detail Reports")
+        for c in front_run[:10]:
+            ticker = c.get("ticker", "-")
+            opt = c.get("options", {})
+            conv = opt.get("conviction", "-") if opt.get("ok") else "-"
+            conv_emoji = "🟢" if conv == "STRONG" else "🟡" if conv == "MODERATE" else "⚪" if conv == "WEAK" else "🔴"
+            with st.expander(f"{conv_emoji} {ticker} | {c.get('theme','-')} | ⭐{c.get('consensus_stars',0)} | {conv}", expanded=False):
+                c1, c2, c3, c4 = st.columns(4)
+                c1.metric("Price", f"{opt.get('price','-')}" if opt.get("ok") else "-")
+                c2.metric("Max Pain", f"{opt.get('max_pain','-')}" if opt.get("ok") else "-")
+                c3.metric("Max Pain Dist", f"{opt.get('max_pain_dist','-')}" if opt.get("ok") else "-")
+                c4.metric("Conviction", conv)
+                if opt.get("ok"):
+                    g1, g2, g3, g4 = st.columns(4)
+                    g1.metric("Gamma Regime", opt.get("gamma_regime", "-"))
+                    g2.metric("Greek", opt.get("greek_composite", "-"))
+                    g3.metric("Call Wall", opt.get("call_wall", "-"))
+                    g4.metric("Put Wall", opt.get("put_wall", "-"))
+                st.info(c.get("why_front_run", "-"))
+                cat = c.get("catalyst", {})
+                if cat:
+                    st.caption(f"📅 Catalyst: {cat.get('quarter','-')} — {cat.get('event','-')} (Priority: {cat.get('priority','-')})")
+                if c.get("news_headline"):
+                    st.markdown(f'<div class="news-ticker">{c["news_headline"][:100]}</div>', unsafe_allow_html=True)
 
-    # Pre-process: fill None numeric values
-    df_display = df_filtered.copy()
-    for col in ["Price", "Entry", "T1", "T2", "Stop", "RR", "Score"]:
-        if col in df_display.columns:
-            df_display[col] = df_display[col].apply(lambda x: round(x, 2) if pd.notna(x) and isinstance(x, (int, float)) else "—")
+    # ── SECTION 2: BOTTLENECK RESEARCH (Toggleable) ──
+    st.markdown("### 🔬 Bottleneck Research")
+    st.caption("Supply chain layers, monopoly rankings, connecting chains — toggle themes to drill down")
 
-    st.dataframe(
-        df_display.style
-            .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["LONG","BUY","YES"]) else ("color:var(--short);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["SHORT","SELL","NO"]) else ""), subset=["Direction","Worth?"])
-            .map(lambda x: "color:var(--long);font-weight:700;" if x in ["A+","A"] else ("color:var(--neutral);font-weight:600;" if x=="B" else ""), subset=["Grade"])
-            .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=2.0 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=1.5 else ""), subset=["RR"])
-            .background_gradient(subset=["Score"], cmap="RdYlGn", vmin=0, vmax=100),
-        width="stretch", hide_index=True, height=380
-    )
+    themes = bottleneck_ref.get("meta", {}).get("themes", [])
+    for theme in themes:
+        with st.expander(f"🔍 {theme}", expanded=False):
+            if theme == "Photonics":
+                st.markdown("**12-Layer Photonics Supply Chain Map**")
+                photonics = bottleneck_ref.get("photonics_12_layer", [])
+                if photonics:
+                    df_ph = pd.DataFrame(photonics)
+                    st.dataframe(df_ph, hide_index=True, width="stretch", height=380)
+                st.markdown("**Nvidia $2B Playbook**: Locking capacity before supply shock")
+            elif theme == "Helium Crisis":
+                st.markdown("**Helium Crisis Chain**: Qatar disruption → 65% Samsung/SK Hynix supply → 4-month buffer → wafer etching yield risk → HBM constraints")
+                st.markdown("**Tickers**: Samsung, SK Hynix, Air Products, Linde, Pulsar Helium, Helium One")
+            elif theme == "Robotics":
+                st.markdown("**Robot Wars Thesis**: Japan vs China supply chain dominance")
+                st.markdown("**Chokepoint**: Nabtesco harmonic reducer = limits humanoid production speed")
+                st.markdown("**Tickers**: Nabtesco, Harmonic Drive, THK, Yaskawa, Fanuc, Keyence")
+            elif theme == "Power":
+                st.markdown("**Power Struggle**: AI datacenter baseload demand → natural gas + electrical infrastructure")
+                st.markdown("**Tickers**: ETN, LNG, PLUG, nuclear plays")
+            elif theme == "Advanced Packaging":
+                st.markdown("**Packaging Bottleneck**: CoWoS fully booked through mid-2026, HBM4 integration, hybrid bonding")
+                st.markdown("**Tickers**: AVGO, MRVL, BESI, SMHN, LPK, INTC")
+            elif theme == "Memory":
+                st.markdown("**Memory Shortage**: HBM3E record demand, shortage through 2028")
+                st.markdown("**Tickers**: MU, Samsung, SK Hynix, Seagate, WDC")
+            else:
+                st.caption(f"Research data for {theme}")
 
-    # Daily Signals Summary
-    ds_summary = snap.get("daily_signals_summary", {})
-    if ds_summary:
-        st.markdown("### 📈 Daily Signals Overview")
-        c1, c2, c3, c4, c5, c6 = st.columns(6)
-        c1.metric("Total", ds_summary.get("total", 0))
-        c2.metric("Strong Longs", ds_summary.get("strong_longs", 0), delta="LONG")
-        c3.metric("Longs", ds_summary.get("longs", 0))
-        c4.metric("Strong Shorts", ds_summary.get("strong_shorts", 0), delta="SHORT")
-        c5.metric("Shorts", ds_summary.get("shorts", 0))
-        c6.metric("Neutrals", ds_summary.get("neutrals", 0))
-        top5_signals = ds_summary.get("top_5_by_score", [])
-        if top5_signals:
-            st.markdown("**Top 5 by Score:**")
-            sig_rows = []
-            for s in top5_signals:
-                sig_rows.append({
-                    "Ticker": s.get("ticker", "-"), "Signal": s.get("signal", "-"),
-                    "Direction": s.get("direction", "-"), "Grade": s.get("grade", "-"),
-                    "Score": round(s.get("score", 0), 2), "Price": s.get("price"),
-                    "Entry": s.get("entry"), "T1": s.get("target_1"),
-                    "Stop": s.get("stop_loss"), "RR": s.get("rr", 0),
-                    "Thesis": (s.get("thesis") or "")[:60],
-                })
-            df_sig = pd.DataFrame(sig_rows)
-            df_sig_display = df_sig.copy()
-            for col in ["Price", "Entry", "T1", "Stop", "RR", "Score"]:
-                if col in df_sig_display.columns:
-                    df_sig_display[col] = df_sig_display[col].apply(lambda x: round(x, 2) if pd.notna(x) and isinstance(x, (int, float)) else "—")
-            st.dataframe(
-                df_sig_display.style
-                .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["LONG","BUY","YES"]) else ("color:var(--short);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["SHORT","SELL","NO"]) else ""), subset=["Signal","Direction"])
-                .map(lambda x: "color:var(--long);font-weight:700;" if x in ["A+","A"] else ("color:var(--neutral);font-weight:600;" if x=="B" else ""), subset=["Grade"])
-                .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=2.0 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=1.5 else ""), subset=["RR"]),
-                width="stretch", hide_index=True, height=220
-            )
+    # ── SECTION 3: CONSENSUS HEATMAP ──
+    st.markdown("### ⭐ Consensus Heatmap")
+    heatmap = bottleneck_ref.get("consensus_heatmap", [])
+    if heatmap:
+        df_hm = pd.DataFrame([{
+            "Ticker": h.get("ticker"),
+            "⭐": h.get("stars", 0),
+            "Accounts": ", ".join(h.get("accounts", [])),
+            "Layer": h.get("layer", "-"),
+            "Role": h.get("role", "-")[:35],
+            "Target": h.get("target", "-"),
+            "Priority": h.get("priority", "-"),
+        } for h in heatmap])
+        st.dataframe(
+            df_hm.style
+                .map(lambda x: "color:var(--long);font-weight:700;" if x in ["TOP","HIGH"] else ("color:var(--neutral);font-weight:600;" if x=="MEDIUM" else ""), subset=["Priority"])
+                .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=4 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=3 else ""), subset=["⭐"]),
+            width="stretch", hide_index=True, height=320
+        )
 
-    # Top 5 Priority Cards
-    st.markdown("### 🎯 Top 5 Priority Setups")
-    top5 = sorted(all_items, key=lambda x: x.get("priority_score", 0), reverse=True)[:5]
-    for i, item in enumerate(top5):
-        _render_narrative_card_native(item, i, "us_equity")
+    # ── SECTION 4: CATALYST TIMELINE ──
+    st.markdown("### 📅 Catalyst Timeline")
+    timeline = bottleneck_ref.get("catalyst_timeline", [])
+    if timeline:
+        for ev in timeline:
+            prio_color = "var(--long)" if ev.get("priority") == "HIGH" else "var(--neutral)" if ev.get("priority") == "MEDIUM" else "var(--text-secondary)"
+            st.markdown(f"""
+            <div style="display:flex;justify-content:space-between;align-items:center;background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:8px 12px;margin:3px 0;">
+              <span style="font-size:12px;font-weight:600;color:var(--text-primary);">{ev.get('quarter','-')}</span>
+              <span style="font-size:11px;color:var(--text-secondary);flex:1;margin:0 12px;">{ev.get('event','-')}</span>
+              <span style="font-size:10px;color:{prio_color};font-weight:700;">{ev.get('priority','-')}</span>
+            </div>
+            """, unsafe_allow_html=True)
+
+    # ── SECTION 5: M&A WATCHLIST ──
+    st.markdown("### 🎯 M&A Watchlist")
+    ma_list = bottleneck_ref.get("ma_watchlist", [])
+    if ma_list:
+        ma_cols = st.columns(min(4, len(ma_list)))
+        for idx, ma in enumerate(ma_list):
+            with ma_cols[idx]:
+                prob_color = "var(--long)" if ma.get("probability") == "HIGH" else "var(--neutral)" if ma.get("probability") == "MEDIUM" else "var(--text-secondary)"
+                st.markdown(f"""
+                <div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:8px;padding:10px;margin:4px 0;">
+                  <div style="font-size:14px;font-weight:700;color:var(--text-primary);">{ma.get('target','-')}</div>
+                  <div style="font-size:10px;color:var(--text-secondary);margin:4px 0;">MCap: {ma.get('current_mcap','-')}</div>
+                  <div style="font-size:10px;color:var(--text-secondary);margin:4px 0;">Acquirer: {ma.get('potential_acquirer','-')}</div>
+                  <div style="font-size:11px;color:{prob_color};font-weight:700;margin-top:6px;">{ma.get('probability','-')} PROB</div>
+                  <div style="font-size:9px;color:var(--text-muted);margin-top:4px;">{ma.get('catalyst','-')}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+    # ── SECTION 6: RISK FLAGS ──
+    st.markdown("### 🔴 Risk Flags")
+    risks = bottleneck_ref.get("risk_flags", [])
+    if risks:
+        for r in risks:
+            st.markdown(f"""
+            <div style="background:#2D0D0D;border:1px solid var(--short);border-radius:6px;padding:8px 12px;margin:4px 0;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:12px;font-weight:700;color:var(--short);">{r.get('flag','-')}</span>
+                <span style="font-size:10px;color:var(--text-secondary);">Trigger: {r.get('trigger','-')}</span>
+              </div>
+              <div style="font-size:11px;color:var(--text-primary);margin-top:4px;">{r.get('impact','-')}</div>
+              <div style="font-size:10px;color:var(--neutral);margin-top:4px;">Mitigation: {r.get('mitigation','-')}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+    # ── SECTION 7: INSTITUTIONAL ROTATION ──
+    st.markdown("### 🔄 Institutional Rotation Phases")
+    rotation = bottleneck_ref.get("institutional_rotation", [])
+    if rotation:
+        for phase in rotation:
+            status = phase.get("status", "")
+            status_color = "var(--long)" if "DONE" in status else "var(--neutral)" if "NOW" in status else "var(--checkin)" if "NEXT" in status else "var(--text-secondary)"
+            st.markdown(f"""
+            <div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:8px 12px;margin:4px 0;">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <span style="font-size:12px;font-weight:700;color:var(--text-primary);">Phase {phase.get('phase','-')}: {phase.get('theme','-')}</span>
+                <span style="font-size:11px;color:{status_color};font-weight:700;">{status}</span>
+              </div>
+              <div style="font-size:10px;color:var(--text-secondary);margin-top:4px;">{phase.get('timeline','-')} — {', '.join(phase.get('tickers',[]))}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
 
 # ═══════════════════════════════════════════════════════════════════
-# PAGE: US STOCKS
-# ═══════════════════════════════════════════════════════════════════
-elif page == "🇺🇸 US Stocks":
+# PAGE: US STOCKSelif page == "🇺🇸 US Stocks":
     st.markdown("## 🇺🇸 US Stocks")
     st.caption("US Equities - Options - Greeks - COT - OI - Risk Ranges")
 
@@ -2292,65 +2449,3 @@ elif page == "📖 Themes":
 # ═══════════════════════════════════════════════════════════════════
 # PAGE: HEALTH
 # ═══════════════════════════════════════════════════════════════════
-elif page == "🏥 Health":
-    st.markdown("## 🏥 System Health")
-    st.caption("Data pipeline status, coverage & diagnostics")
-    st.divider()
-    c1,c2,c3,c4 = st.columns(4)
-    c1.metric("Prices Loaded", snap.get("prices_loaded",0))
-    c2.metric("Assets in Snapshot", len(ar))
-    c3.metric("VIX", f"{vix_now:.1f}")
-    c4.metric("Build Time", f"{snap.get('build_time_s',0):.0f}s")
-
-    if daily_signals:
-        st.divider()
-        st.markdown("### Daily Signal Coverage")
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Tickers Rated", len(daily_signals))
-        c2.metric("Alpha Center Items", alpha_center.get("meta", {}).get("total_items", 0) if alpha_center else 0)
-        c3.metric("Strong Signals", sum(1 for s in daily_signals if "STRONG" in s.get("signal", "")))
-        c4.metric("Option-Analyzed", len(snap.get("gamma_data", {})))
-
-    gamma_data = snap.get("gamma_data", {})
-    greeks_data = snap.get("greeks_data", {})
-    if gamma_data or greeks_data:
-        st.divider()
-        st.markdown("### Option Data Coverage")
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Gamma Engine", len(gamma_data))
-        c2.metric("Greeks Proxy", len(greeks_data))
-        c3.metric("Combined", len(set(gamma_data.keys()) & set(greeks_data.keys())))
-
-    if regime_forecast and regime_forecast.get("1m"):
-        st.divider()
-        st.markdown("### Forward-Looking Engine Status")
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("1M Predicted", regime_forecast["1m"].get("predicted_quad", "-"))
-        c2.metric("3M Predicted", regime_forecast["3m"].get("predicted_quad", "-"))
-        c3.metric("6M Predicted", regime_forecast["6m"].get("predicted_quad", "-"))
-        c4.metric("News Headlines", news_narratives.get("analyzed_count", 0) if news_narratives else 0)
-
-    if discovery_v3:
-        st.divider()
-        st.markdown("### Bottleneck Scanner V3")
-        c1, c2, c3 = st.columns(3)
-        c1.metric("Reactive Found", discovery_v3.get("meta", {}).get("reactive_found", 0))
-        c2.metric("Proactive Predicted", discovery_v3.get("meta", {}).get("proactive_predicted", 0))
-        c3.metric("Spillover Links", discovery_v3.get("meta", {}).get("spillover_links", 0))
-
-    # News engine status
-    st.divider()
-    st.markdown("### 📰 News Engine Status")
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Headlines Scanned", news_narratives.get("analyzed_count", 0) if news_narratives else 0)
-    c2.metric("Rumor Signals", len(rumor_watch))
-    c3.metric("Emergent Themes", len(news_narratives.get("emergent_narratives", [])) if news_narratives else 0)
-
-    st.divider()
-    st.markdown("### Data Sources")
-    sources = health.get("sources",{}) if health else {}
-    if sources:
-        for src, status in sources.items():
-            color = "var(--long)" if status == "OK" else "var(--short)" if status == "FAIL" else "var(--neutral)"
-            st.markdown(f'<div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:6px 12px;margin:3px 0;display:flex;justify-content:space-between;"><span>{src}</span><span style="color:{color};font-weight:700;">{status}</span></div>', unsafe_allow_html=True)
-    else: st.info("No detailed source status available.")

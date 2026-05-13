@@ -2014,6 +2014,113 @@ elif page == "⚡ Alpha Center":
             st.markdown("**🎯 Front-Run Thesis**")
             st.info(c.get("why_front_run", "—"))
 
+            # ── ROW 3b: SUPPLY CHAIN POSITION ──
+            st.divider()
+            st.markdown("**🔗 Supply Chain Position**")
+            sc1, sc2, sc3 = st.columns(3)
+            with sc1:
+                st.markdown(f"""
+                <div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:8px;text-align:center;">
+                  <div style="font-size:9px;color:var(--text-secondary);text-transform:uppercase;">LAYER</div>
+                  <div style="font-size:13px;font-weight:700;color:var(--text-primary);margin-top:4px;">{hm.get('layer','—').replace('_',' ')}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            with sc2:
+                st.markdown(f"""
+                <div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:8px;text-align:center;">
+                  <div style="font-size:9px;color:var(--text-secondary);text-transform:uppercase;">ROLE</div>
+                  <div style="font-size:12px;font-weight:600;color:var(--text-primary);margin-top:4px;">{c.get('role','—')[:25]}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            with sc3:
+                target_text = hm.get('target','—')
+                target_color = "var(--long)" if "multi-year" in target_text.lower() or "10x" in target_text.lower() else "var(--neutral)"
+                st.markdown(f"""
+                <div style="background:var(--bg-card);border:1px solid {target_color};border-radius:6px;padding:8px;text-align:center;">
+                  <div style="font-size:9px;color:var(--text-secondary);text-transform:uppercase;">TARGET</div>
+                  <div style="font-size:12px;font-weight:600;color:{target_color};margin-top:4px;">{target_text[:20]}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+            # ── ROW 3c: PEER TICKERS (same layer) ──
+            layer_peers = [h for h in heatmap if h.get("layer") == hm.get("layer") and h.get("ticker") != ticker]
+            if layer_peers:
+                st.divider()
+                st.markdown("**🏭 Peer Tickers (Same Layer)**")
+                peer_cols = st.columns(min(4, len(layer_peers)))
+                for p_idx, peer in enumerate(layer_peers[:4]):
+                    with peer_cols[p_idx % 4]:
+                        peer_stars = peer.get("stars", 0)
+                        peer_color = "var(--long)" if peer_stars >= 4 else "var(--neutral)" if peer_stars >= 3 else "var(--text-secondary)"
+                        st.markdown(f"""
+                        <div style="background:var(--bg-card);border:1px solid {peer_color};border-radius:6px;padding:8px;text-align:center;margin:2px 0;">
+                          <div style="font-size:12px;font-weight:700;color:var(--text-primary);">{peer.get('ticker','-')}</div>
+                          <div style="font-size:10px;color:var(--text-secondary);margin-top:2px;">{peer.get('role','—')[:20]}</div>
+                          <div style="font-size:10px;color:{peer_color};margin-top:2px;">⭐{peer_stars}</div>
+                        </div>
+                        """, unsafe_allow_html=True)
+
+            # ── ROW 3d: ROTATION PHASE CONTEXT ──
+            ticker_phases = [p for p in rotation if ticker in p.get("tickers", [])]
+            if ticker_phases:
+                st.divider()
+                st.markdown("**🔄 Rotation Phase Context**")
+                for tp in ticker_phases[:2]:
+                    tp_status = tp.get("status", "")
+                    tp_color = "var(--long)" if "DONE" in tp_status else "var(--checkin)" if "NOW" in tp_status else "var(--gate)"
+                    st.markdown(f"""
+                    <div style="background:var(--bg-card);border:1px solid {tp_color};border-radius:6px;padding:8px 12px;margin:3px 0;">
+                      <div style="display:flex;justify-content:space-between;align-items:center;">
+                        <span style="font-size:11px;font-weight:700;color:var(--text-primary);">Phase {tp.get('phase','-')}: {tp.get('theme','-')}</span>
+                        <span style="font-size:10px;color:{tp_color};font-weight:700;">{tp_status}</span>
+                      </div>
+                      <div style="font-size:10px;color:var(--text-secondary);margin-top:4px;">{tp.get('timeline','-')}</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+
+            # ── ROW 3e: RISK SCORE ──
+            st.divider()
+            st.markdown("**⚠️ Structural Risk Score**")
+            # Calculate risk from available data
+            risk_score = 0
+            risk_factors = []
+            if hm.get("layer") in ["L1_Memory", "L1_Compute"]:
+                risk_score += 2
+                risk_factors.append("L1 chokepoint — monopoly concentration")
+            if "helium" in (c.get("theme","") + c.get("role","")).lower():
+                risk_score += 3
+                risk_factors.append("Helium supply dependency")
+            if relevant_risks:
+                risk_score += len(relevant_risks) * 2
+                risk_factors.append(f"{len(relevant_risks)} geopolitical risk flag(s)")
+            if not opt.get("ok") or opt.get("source") == "META":
+                risk_score += 1
+                risk_factors.append("No live options data — liquidity risk")
+
+            risk_score = min(10, risk_score)
+            if risk_score >= 7:
+                rs_color = "var(--short)"; rs_label = "HIGH RISK"; rs_bg = "#2D0D0D"
+            elif risk_score >= 4:
+                rs_color = "var(--neutral)"; rs_label = "MODERATE RISK"; rs_bg = "#2D2305"
+            else:
+                rs_color = "var(--long)"; rs_label = "LOW RISK"; rs_bg = "#0D2818"
+
+            r1, r2 = st.columns([1, 3])
+            with r1:
+                st.markdown(f"""
+                <div style="background:{rs_bg};border:1px solid {rs_color};border-radius:8px;padding:12px;text-align:center;">
+                  <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;">RISK SCORE</div>
+                  <div style="font-size:28px;font-weight:700;color:{rs_color};margin:4px 0;">{risk_score}/10</div>
+                  <div style="font-size:11px;color:{rs_color};font-weight:600;">{rs_label}</div>
+                </div>
+                """, unsafe_allow_html=True)
+            with r2:
+                if risk_factors:
+                    for rf in risk_factors:
+                        st.markdown(f'<div style="font-size:11px;color:var(--text-secondary);margin:2px 0;">• {rf}</div>', unsafe_allow_html=True)
+                else:
+                    st.caption("No major structural risks identified")
+
             # ── ROW 4: CATALYST (ticker-specific) ──
             if cat_list:
                 st.divider()

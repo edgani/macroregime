@@ -14,6 +14,7 @@ import plotly.graph_objects as go
 import math
 import time
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -1249,12 +1250,31 @@ def _lev_card(lev):
 # MAIN APP — COMPACT v27.1
 # ═══════════════════════════════════════════════════════════════════
 
+# ═══════════════════════════════════════════════════════════════════
+# AUTO-LOAD / SAVE MECHANISM
+# ═══════════════════════════════════════════════════════════════════
+
+_SNAPSHOT_FILE = "macroregime_snapshot.pkl"
+
 if "snap" not in st.session_state:
     st.session_state.snap = None
 if "prices" not in st.session_state:
     st.session_state.prices = {}
 if "last_refresh" not in st.session_state:
     st.session_state.last_refresh = None
+
+# Try auto-load from saved snapshot
+if st.session_state.snap is None:
+    try:
+        import pickle
+        if os.path.exists(_SNAPSHOT_FILE):
+            with open(_SNAPSHOT_FILE, "rb") as f:
+                data = pickle.load(f)
+            st.session_state.snap = data.get("snap")
+            st.session_state.prices = data.get("prices", {})
+            st.session_state.last_refresh = data.get("timestamp")
+    except Exception:
+        pass  # Silent fail, will show "Click Full Rebuild"
 
 with st.sidebar:
     st.markdown("## 📊 MacroRegime Pro")
@@ -1272,31 +1292,65 @@ with st.sidebar:
     ], index=0)
     st.divider()
 
-    # Fix import path for Streamlit Cloud
+    # ── FULL REBUILD with robust import path ──
     if st.button("🔄 Full Rebuild", type="primary"):
         with st.spinner("Rebuilding all data..."):
+            rebuild_error = None
             try:
+                import sys, os, importlib.util
+                project_root = os.path.dirname(os.path.abspath(__file__))
+
+                # Method 1: add src/ to sys.path
+                src_path = os.path.join(project_root, "src")
+                if src_path not in sys.path and os.path.isdir(src_path):
+                    sys.path.insert(0, src_path)
+
                 try:
-                    from src.macroregime.rebuild import full_rebuild
+                    from macroregime.rebuild import full_rebuild
                 except ImportError:
                     try:
-                        from macroregime.rebuild import full_rebuild
+                        from src.macroregime.rebuild import full_rebuild
                     except ImportError:
-                        from rebuild import full_rebuild
+                        # Method 2: direct file load
+                        rebuild_path = os.path.join(project_root, "src", "macroregime", "rebuild.py")
+                        if os.path.exists(rebuild_path):
+                            spec = importlib.util.spec_from_file_location("macroregime.rebuild", rebuild_path)
+                            rebuild_mod = importlib.util.module_from_spec(spec)
+                            sys.modules["macroregime.rebuild"] = rebuild_mod
+                            spec.loader.exec_module(rebuild_mod)
+                            full_rebuild = rebuild_mod.full_rebuild
+                        else:
+                            raise ImportError(f"rebuild.py not found at {rebuild_path}\nPython path: {sys.path}")
+
                 snap, prices = full_rebuild()
                 st.session_state.snap = snap
                 st.session_state.prices = prices
                 st.session_state.last_refresh = pd.Timestamp.now()
-                st.success("Rebuild complete!")
+
+                # Auto-save snapshot
+                try:
+                    import pickle
+                    with open(_SNAPSHOT_FILE, "wb") as f:
+                        pickle.dump({"snap": snap, "prices": prices, "timestamp": st.session_state.last_refresh}, f)
+                except Exception as save_err:
+                    st.warning(f"Rebuild OK but auto-save failed: {save_err}")
+
+                st.success("✅ Rebuild complete! Snapshot saved.")
                 time.sleep(1)
                 st.rerun()
             except Exception as e:
-                st.error(f"Rebuild failed: {e}")
+                rebuild_error = str(e)
+                st.error(f"❌ Rebuild failed: {rebuild_error}")
+                st.info("💡 **Troubleshooting:**\n"
+                        "1. Check that `src/macroregime/rebuild.py` exists in your repo\n"
+                        "2. Verify `src/macroregime/__init__.py` exists\n"
+                        "3. Check Streamlit Cloud logs for full traceback")
 
+    # Status indicator
     if st.session_state.last_refresh:
-        st.caption(f"Last refresh: {st.session_state.last_refresh.strftime('%Y-%m-%d %H:%M')}")
+        st.caption(f"🟢 Last refresh: {st.session_state.last_refresh.strftime('%Y-%m-%d %H:%M')}")
     else:
-        st.caption("No data loaded. Click Full Rebuild.")
+        st.caption("🔴 No data loaded. Click Full Rebuild.")
 
 snap = st.session_state.snap
 prices = st.session_state.prices

@@ -1344,12 +1344,15 @@ def _render_crypto_card_compact(row, idx=0):
     # Attachment 3 compact data
     funding_rate = row.get("funding_rate")
     funding_emoji = row.get("funding_emoji", "")
+    funding_source = row.get("funding_source", "PROXY")
     narrative_badge = row.get("narrative_badge")
     unlock_alert = row.get("unlock_alert")
     whale_signal = row.get("whale_signal")
     risk_pill = row.get("risk_pill")
+    liq_prox = row.get("liq_proximity", "⚪ N/A")
     price_change_24h = row.get("price_change_24h")
     oi_24h = row.get("oi_24h")
+    oi_source = row.get("oi_source", "PROXY")
 
     dir_color = "var(--long)" if "LONG" in direction else "var(--short)" if "SHORT" in direction else "var(--text-secondary)"
     worth_color = "var(--long)" if "YES" in worth or "BUY" in worth else "var(--neutral)" if "WAIT" in worth or "CHASE" in worth else "var(--short)" if "SKIP" in worth else "var(--text-secondary)"
@@ -1368,6 +1371,18 @@ def _render_crypto_card_compact(row, idx=0):
         badges.append(f'<span class="badge" style="background:{whale_color}33;color:{whale_color};border:1px solid {whale_color};">{whale_signal}</span>')
     if risk_pill:
         badges.append(f'<span class="badge badge-short">{risk_pill}</span>')
+    if liq_prox and not liq_prox.startswith("🟢") and not liq_prox.startswith("⚪"):
+        liq_color = "var(--short)" if "🔴" in liq_prox else "var(--neutral)"
+        badges.append(f'<span class="badge" style="background:{liq_color}33;color:{liq_color};border:1px solid {liq_color};">{liq_prox}</span>')
+    # News badge
+    if row.get("news_signal"):
+        ns = row["news_signal"]
+        if "BULLISH" in ns or "BUILDING" in ns or "MOMENTUM" in ns:
+            badges.append(f'<span class="badge badge-news-bull">📰+</span>')
+        elif "BEARISH" in ns or "NEGATIVE" in ns:
+            badges.append(f'<span class="badge badge-news-bear">📰-</span>')
+        elif "RUMOR" in ns:
+            badges.append(f'<span class="badge badge-news-rumor">🔮</span>')
 
     badge_html = " ".join(badges)
 
@@ -1398,32 +1413,31 @@ def _render_crypto_card_compact(row, idx=0):
         m5.metric("Stop", ff(stop))
         m6.metric("RR", f"{ff(rr)}x")
 
-        # Market Structure (Attachment 3)
+        # Market Structure (Attachment 3) — 4 cols, no empty "—"
         st.markdown("**⚡ Market Structure**")
         ms1, ms2, ms3, ms4 = st.columns(4)
         with ms1:
-            if funding_rate is not None:
-                fr_color = "var(--short)" if funding_rate > 0.0005 else "var(--long)" if funding_rate < -0.0005 else "var(--neutral)"
-                st.markdown(f"<span style='color:{fr_color};font-weight:700;'>{funding_rate*100:.4f}%</span><br><span style='font-size:10px;color:var(--text-secondary);'>Funding</span>", unsafe_allow_html=True)
-            else:
-                st.caption("—")
+            fr_color = "var(--short)" if funding_rate > 0.0005 else "var(--long)" if funding_rate < -0.0005 else "var(--neutral)"
+            st.markdown(f"<span style='color:{fr_color};font-weight:700;'>{funding_rate*100:.4f}%</span><br><span style='font-size:10px;color:var(--text-secondary);'>Funding ({funding_source})</span>", unsafe_allow_html=True)
         with ms2:
-            if price_change_24h is not None:
-                chg_color = "var(--long)" if price_change_24h > 0 else "var(--short)"
-                st.markdown(f"<span style='color:{chg_color};font-weight:700;'>{price_change_24h:+.1f}%</span><br><span style='font-size:10px;color:var(--text-secondary);'>24h Chg</span>", unsafe_allow_html=True)
-            else:
-                st.caption("—")
+            chg_color = "var(--long)" if price_change_24h > 0 else "var(--short)"
+            st.markdown(f"<span style='color:{chg_color};font-weight:700;'>{price_change_24h:+.1f}%</span><br><span style='font-size:10px;color:var(--text-secondary);'>24h Chg ({oi_source})</span>", unsafe_allow_html=True)
         with ms3:
-            if oi_24h:
-                st.markdown(f"<span style='font-weight:700;'>${oi_24h/1e6:.0f}M</span><br><span style='font-size:10px;color:var(--text-secondary);'>Volume</span>", unsafe_allow_html=True)
-            else:
-                st.caption("—")
+            vol_display = f"${oi_24h/1e6:.1f}M" if oi_24h >= 1e6 else f"${oi_24h/1e3:.1f}K" if oi_24h > 0 else "$0"
+            st.markdown(f"<span style='font-weight:700;'>{vol_display}</span><br><span style='font-size:10px;color:var(--text-secondary);'>Vol Proxy ({oi_source})</span>", unsafe_allow_html=True)
         with ms4:
-            if whale_signal:
-                w_color = "var(--long)" if "ACCUM" in whale_signal else "var(--short)" if "DIST" in whale_signal else "var(--neutral)"
-                st.markdown(f"<span style='color:{w_color};font-weight:700;'>{whale_signal}</span><br><span style='font-size:10px;color:var(--text-secondary);'>Whale</span>", unsafe_allow_html=True)
-            else:
-                st.caption("—")
+            w_color = "var(--long)" if "ACCUM" in whale_signal else "var(--short)" if "DIST" in whale_signal else "var(--neutral)"
+            st.markdown(f"<span style='color:{w_color};font-weight:700;'>{whale_signal}</span><br><span style='font-size:10px;color:var(--text-secondary);'>Whale Proxy</span>", unsafe_allow_html=True)
+
+        # Liquidation Zone (Attachment 3 Layer 2.1)
+        if liq_prox and not liq_prox.startswith("⚪"):
+            liq_color = "var(--short)" if "🔴" in liq_prox else "var(--neutral)" if "🟡" in liq_prox else "var(--long)"
+            st.markdown(f'''
+            <div style="background:var(--bg-card);border:1px solid {liq_color};border-radius:6px;padding:8px 12px;margin:6px 0;">
+                <span style="font-size:12px;font-weight:700;color:{liq_color};">{liq_prox}</span>
+                <span style="font-size:10px;color:var(--text-secondary);margin-left:8px;">Price near structural tail or stop = cascade risk zone (Attachment 3)</span>
+            </div>
+            ''', unsafe_allow_html=True)
 
         # Unlock warning
         if unlock_alert:
@@ -1432,10 +1446,10 @@ def _render_crypto_card_compact(row, idx=0):
 
         # Risk Range Bar
         if tail_l and tail_r and price:
-            st.markdown("**📐 Risk Range**")
+            st.markdown("**📐 Risk Range (Trade · Trend · Tail)**")
             st.markdown(_risk_range_bar_html(price, trade_l, trade_r, trend_l, trend_r, tail_l, tail_r, 100), unsafe_allow_html=True)
         elif trade_l and trade_r and price:
-            st.markdown("**📐 Risk Range**")
+            st.markdown("**📐 Risk Range (Trade)**")
             st.markdown(_risk_range_bar_html(price, trade_l, trade_r, trade_l, trade_r, trade_l, trade_r, 100), unsafe_allow_html=True)
 
         # Expected move
@@ -1490,6 +1504,18 @@ def _render_crypto_card_compact(row, idx=0):
             f2.write(f"**OI:** {row.get('oi_signal') or row.get('oi_conc', '—')} | Trend: {row.get('oi_trend', '—')}")
             if row.get("skew") and row.get("skew") != "—":
                 st.write(f"**Skew:** {row.get('skew')}")
+
+        # News section (if any)
+        if row.get("news_headline") or row.get("news_signal"):
+            st.divider()
+            st.markdown("**📰 News / Front-Run**")
+            news_color = "#3FB950" if row.get("news_sentiment") and row.get("news_sentiment") > 0.2 else "#F85149" if row.get("news_sentiment") and row.get("news_sentiment") < -0.2 else "#D29922"
+            if row.get("news_signal"):
+                st.markdown(f'<span style="color:{news_color};font-weight:700;font-size:13px;">🔮 {row["news_signal"]}</span>', unsafe_allow_html=True)
+            if row.get("news_headline"):
+                st.markdown(f'<div class="news-ticker">{row["news_headline"][:140]}</div>', unsafe_allow_html=True)
+            if row.get("news_themes"):
+                st.caption(f"Themes: {', '.join(row['news_themes'][:3])}")
 
         # Thesis
         st.divider()
@@ -2589,10 +2615,6 @@ elif page == "₿ Crypto":
                 rf_color = "var(--short)" if "EXTREME" in rf_type or "LIQ" in rf_type else "var(--neutral)"
                 st.markdown(f'<div style="background:#2D0D0D;border:1px solid {rf_color};border-radius:6px;padding:8px;"><div style="font-size:11px;font-weight:700;color:{rf_color};">{rf.get("ticker","-")} {rf_type.replace("_"," ")}</div><div style="font-size:10px;color:var(--text-primary);">{rf.get("impact","-")}</div></div>', unsafe_allow_html=True)
 
-    # ── ROW 7: TICKER DETAIL REPORTS ──
-    st.markdown("### 📋 Ticker Detail Reports")
-    st.caption("Risk Range · Options · Greeks · On-Chain · Funding · Thesis")
-
     crypto_tokens = snap.get("crypto_tokens", {}) or {}
     if not isinstance(crypto_tokens, dict) or not crypto_tokens:
         crypto_tokens = {}
@@ -2639,20 +2661,95 @@ elif page == "₿ Crypto":
 
     for row in crypto_rows:
         sym = row.get("ticker", "").replace("-USD", "").replace("-USDT", "")
+        ticker_full = row.get("ticker", "")
+        s = prices.get(ticker_full)
 
-        # Funding enrich
+        # Defensive defaults — ensure no None leaks to render
+        row.setdefault("funding_rate", 0.0)
+        row.setdefault("funding_emoji", "⚖️")
+        row.setdefault("funding_source", "PROXY")
+        row.setdefault("price_change_24h", 0.0)
+        row.setdefault("oi_24h", 0)
+        row.setdefault("oi_source", "PROXY")
+        row.setdefault("whale_signal", "🐋 NEUT")
+        row.setdefault("liq_proximity", "⚪ N/A")
+
+        # ── NEWS INJECTION (if any) ──
+        if news_narratives and news_narratives.get("ticker_specific"):
+            t_news = news_narratives["ticker_specific"].get(ticker_full, {})
+            if t_news:
+                row["news_signal"] = t_news.get("front_run_signal")
+                row["news_headline"] = (t_news.get("headlines") or [""])[0]
+                row["news_sentiment"] = t_news.get("sentiment_score")
+                row["news_themes"] = t_news.get("themes", [])
+
+        # ── FUNDING: Live Binance → Price Proxy ──
         fund = funding_map.get(sym)
         if fund:
             row["funding_rate"] = fund.get("rate", 0)
             row["funding_emoji"] = "🔥" if row["funding_rate"] > 0.0005 else "❄️" if row["funding_rate"] < -0.0005 else "⚖️"
+            row["funding_source"] = "LIVE"
+        else:
+            # Proxy: dari price momentum 5d vs 10d (Attachment 3 Layer 2.1)
+            if s is not None and len(s) >= 11:
+                try:
+                    s_clean = pd.to_numeric(s, errors="coerce").dropna()
+                    r5d = float(s_clean.iloc[-1] / s_clean.iloc[-6] - 1) if len(s_clean) >= 6 else 0
+                    r10d = float(s_clean.iloc[-1] / s_clean.iloc[-11] - 1) if len(s_clean) >= 11 else 0
+                    # Kalau rally kencang dalam 5d, asumsikan longs overleveraged = funding positif
+                    if r5d > 0.15:
+                        row["funding_rate"] = 0.0008
+                        row["funding_emoji"] = "🔥"
+                    elif r5d > 0.08:
+                        row["funding_rate"] = 0.0003
+                        row["funding_emoji"] = "⚖️"
+                    elif r5d < -0.15:
+                        row["funding_rate"] = -0.0008
+                        row["funding_emoji"] = "❄️"
+                    elif r5d < -0.08:
+                        row["funding_rate"] = -0.0003
+                        row["funding_emoji"] = "⚖️"
+                    else:
+                        row["funding_rate"] = 0.0
+                        row["funding_emoji"] = "⚖️"
+                    row["funding_source"] = "PROXY"
+                except:
+                    row["funding_rate"] = 0.0
+                    row["funding_emoji"] = "⚖️"
+                    row["funding_source"] = "PROXY"
+            else:
+                row["funding_rate"] = 0.0
+                row["funding_emoji"] = "⚖️"
+                row["funding_source"] = "PROXY"
 
-        # OI / 24h enrich
+        # ── 24H CHANGE + VOLUME: Live Binance → Price Proxy ──
         oi = oi_map.get(sym)
         if oi:
             row["oi_24h"] = oi.get("volume_24h", 0)
             row["price_change_24h"] = oi.get("price_change", 0)
+            row["oi_source"] = "LIVE"
+        else:
+            # Proxy dari price data
+            if s is not None and len(s) >= 6:
+                try:
+                    s_clean = pd.to_numeric(s, errors="coerce").dropna()
+                    if len(s_clean) >= 6:
+                        row["price_change_24h"] = float(s_clean.iloc[-1] / s_clean.iloc[-6] - 1) * 100  # 5d proxy for 24h
+                        # Volume proxy dari volatility × mean price
+                        vol_20 = s_clean.tail(20).std()
+                        mean_20 = s_clean.tail(20).mean()
+                        row["oi_24h"] = vol_20 * mean_20 * 1000  # proxy volume in notional
+                        row["oi_source"] = "PROXY"
+                except:
+                    row["price_change_24h"] = 0.0
+                    row["oi_24h"] = 0
+                    row["oi_source"] = "PROXY"
+            else:
+                row["price_change_24h"] = 0.0
+                row["oi_24h"] = 0
+                row["oi_source"] = "PROXY"
 
-        # Unlock enrich
+        # ── UNLOCK PROXIMITY ──
         unlock = next((u for u in unlocks if u.get("token") == sym), None)
         if unlock:
             try:
@@ -2666,15 +2763,15 @@ elif page == "₿ Crypto":
             except:
                 pass
 
-        # Narrative badge
+        # ── NARRATIVE BADGE ──
         for cat in narrative_cats:
             top_coins = [c.lower() for c in cat.get("top_3_coins", [])]
             if sym.lower() in top_coins:
                 row["narrative_badge"] = cat.get("name", "Trending")[:12]
                 break
 
-        # Whale proxy
-        meta = crypto_tokens.get(row.get("ticker"), {})
+        # ── WHALE PROXY ──
+        meta = crypto_tokens.get(ticker_full, {})
         mom = meta.get("momentum_score", 0.5)
         tvl7 = meta.get("tvl_7d_change", 0)
         if mom > 0.7 and tvl7 > 0.1:
@@ -2684,11 +2781,49 @@ elif page == "₿ Crypto":
         else:
             row["whale_signal"] = "🐋 NEUT"
 
-        # Wash trade / MEV proxy
+        # ── LIQUIDATION ZONE PROXIMITY (Attachment 3 Layer 2.1) ──
+        # Kalau harga dekat tail atau dekat stop = dekat liquidation cascade zone
+        px = row.get("price")
+        tail_l = row.get("tail_l")
+        tail_r = row.get("tail_r")
+        stop = row.get("stop")
+        if px and tail_l and tail_r:
+            dist_to_tail = min(abs(px - tail_l), abs(px - tail_r)) / px if px else 1
+            if dist_to_tail < 0.05:
+                row["liq_proximity"] = "🔴 NEAR LIQ ZONE"
+            elif dist_to_tail < 0.10:
+                row["liq_proximity"] = "🟡 WATCH LIQ"
+            else:
+                row["liq_proximity"] = "🟢 SAFE"
+        elif px and stop:
+            dist_to_stop = abs(px - stop) / px if px else 1
+            if dist_to_stop < 0.03:
+                row["liq_proximity"] = "🔴 NEAR STOP"
+            else:
+                row["liq_proximity"] = "🟢 SAFE"
+        else:
+            row["liq_proximity"] = "⚪ N/A"
+
+        # ── WASH TRADE / MEV RISK PROXY ──
         vol = row.get("oi_24h", 0)
         chg = row.get("price_change_24h", 0)
         if vol > 1e9 and abs(chg) < 2:
             row["risk_pill"] = "⚠️ VOL/PRICE DIV"
+        elif row.get("liq_proximity", "").startswith("🔴"):
+            row["risk_pill"] = row["liq_proximity"]
+
+    # ── SORT BY ENRICHED SCORE ──
+    def _crypto_sort_key(r):
+        score = 0
+        if r.get("funding_emoji") == "❄️": score += 3  # Short squeeze setup
+        if r.get("whale_signal") == "🐋 ACCUM": score += 2
+        if r.get("unlock_alert"): score -= 2  # Penalty for unlock
+        if r.get("risk_pill"): score -= 1
+        if r.get("grade") == "A": score += 4
+        elif r.get("grade") == "B": score += 2
+        return -score
+
+    crypto_rows.sort(key=_crypto_sort_key)
 
     longs, shorts = _split_long_short(crypto_rows)
 

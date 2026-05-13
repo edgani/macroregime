@@ -699,6 +699,7 @@ def _ihsg_layers(prices: dict, quad: str) -> dict:
 # ------------------------------------------------------------------
 def _options_proxy_for_ticker(ticker, prices):
     """Generate proxy options analysis from price action."""
+    ticker = ticker.replace("$", "")
     s = prices.get(ticker)
     if s is None or len(s) < 20:
         return {"ok": False}
@@ -947,6 +948,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             result["errors"].append("fred: using synthetic fallback (live fetch failed)")
 
         result["fred_meta"] = fred_meta
+        result["fred_series"] = fred
         result["fred_coverage"] = fred_meta.get("loaded", 0)
         logger.info(f"FRED loaded: {fred_meta.get('loaded',0)}/{fred_meta.get('requested',0)} series")
 

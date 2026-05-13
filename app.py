@@ -1253,6 +1253,7 @@ auto_disc = snap.get("auto_discoveries",{})
 fb_eval = snap.get("feedback_eval",{})
 gamma_data = snap.get("gamma",{})
 lev_data = snap.get("leveraged_etf",{})
+fred = snap.get("fred_series", {})
 
 sq = gip.structural_quad if gip else "Q3"
 mq_raw = gip.monthly_quad if gip else "Q2"
@@ -1357,8 +1358,15 @@ if page == "🏠 Dashboard":
         </div>
         """, unsafe_allow_html=True)
     with bm3:
-        dgs10 = fred.get("DGS10", pd.Series()).tail(1).iloc[0] if fred and "DGS10" in fred else 4.5
-        t5yie = fred.get("T5YIE", pd.Series()).tail(1).iloc[0] if fred and "T5YIE" in fred else 2.4
+        dgs10 = 4.5
+        t5yie = 2.4
+        try:
+                            if fred and "DGS10" in fred:
+                                dgs10 = float(fred["DGS10"].dropna().iloc[-1])
+                            if fred and "T5YIE" in fred:
+                                t5yie = float(fred["T5YIE"].dropna().iloc[-1])
+        except Exception:
+            pass
         real_yield = dgs10 - t5yie
         if real_yield < 1.0 and t5yie < 2.5:
             asleep = "😴 ASLEEP"
@@ -1865,33 +1873,73 @@ elif page == "⚡ Alpha Center":
             width="stretch", hide_index=True, height=420
         )
 
-        # Detail expanders
+        # ── DETAIL EXPANDERS (COMPREHENSIVE) ──
         st.markdown("#### 📋 Candidate Detail Reports")
-        for c in front_run[:10]:
+        for c in front_run[:15]:
             ticker = c.get("ticker", "-")
             opt = c.get("options", {})
             conv = opt.get("conviction", "-") if opt.get("ok") else "-"
             conv_emoji = "🟢" if conv == "STRONG" else "🟡" if conv == "MODERATE" else "⚪" if conv == "WEAK" else "🔴"
+
             with st.expander(f"{conv_emoji} {ticker} | {c.get('theme','-')} | ⭐{c.get('consensus_stars',0)} | {conv}", expanded=False):
+
+                # ROW 1: Core Metrics
                 c1, c2, c3, c4 = st.columns(4)
                 c1.metric("Price", f"{opt.get('price','-')}" if opt.get("ok") else "-")
                 c2.metric("Max Pain", f"{opt.get('max_pain','-')}" if opt.get("ok") else "-")
                 c3.metric("Max Pain Dist", f"{opt.get('max_pain_dist','-')}" if opt.get("ok") else "-")
                 c4.metric("Conviction", conv)
+
+                # ROW 2: Options Proxy
                 if opt.get("ok"):
                     g1, g2, g3, g4 = st.columns(4)
                     g1.metric("Gamma Regime", opt.get("gamma_regime", "-"))
                     g2.metric("Greek", opt.get("greek_composite", "-"))
                     g3.metric("Call Wall", opt.get("call_wall", "-"))
                     g4.metric("Put Wall", opt.get("put_wall", "-"))
+                    g5, g6 = st.columns(2)
+                    g5.metric("Gamma Flip ↑", opt.get("gamma_flip_up", "-"))
+                    g6.metric("Gamma Flip ↓", opt.get("gamma_flip_down", "-"))
+
+                # ROW 3: Thesis
+                st.divider()
+                st.markdown("**🎯 Front-Run Thesis**")
                 st.info(c.get("why_front_run", "-"))
+
+                # ROW 4: Bottleneck Context
+                st.markdown("**🔬 Bottleneck Context**")
+                b1, b2 = st.columns(2)
+                with b1:
+                    st.write(f"**Theme:** {c.get('theme', '-')}")
+                    st.write(f"**Role:** {c.get('role', '-')}")
+                    st.write(f"**Priority:** {c.get('priority', '-')}")
+                with b2:
+                    st.write(f"**Consensus:** ⭐{c.get('consensus_stars', 0)} from {len(c.get('accounts', []))} accounts")
+                    if c.get("accounts"):
+                        st.caption(f"Accounts: {', '.join(c['accounts'])}")
+
+                # ROW 5: Catalyst
                 cat = c.get("catalyst", {})
                 if cat:
-                    st.caption(f"📅 Catalyst: {cat.get('quarter','-')} — {cat.get('event','-')} (Priority: {cat.get('priority','-')})")
-                if c.get("news_headline"):
-                    st.markdown(f'<div class="news-ticker">{c["news_headline"][:100]}</div>', unsafe_allow_html=True)
+                    st.divider()
+                    st.markdown("**📅 Next Catalyst**")
+                    cat_color = "var(--long)" if cat.get("priority") == "HIGH" else "var(--neutral)"
+                    st.markdown(f"""
+                    <div style="background:var(--bg-card);border:1px solid {cat_color};border-radius:6px;padding:8px 12px;">
+                      <span style="font-size:12px;font-weight:700;color:var(--text-primary);">{cat.get('quarter','-')}</span>
+                      <span style="font-size:11px;color:var(--text-secondary);margin-left:12px;">{cat.get('event','-')}</span>
+                      <span style="font-size:10px;color:{cat_color};font-weight:700;float:right;">{cat.get('priority','-')}</span>
+                    </div>
+                    """, unsafe_allow_html=True)
 
-    # ── SECTION 2: BOTTLENECK RESEARCH (Toggleable) ──
+                # ROW 6: News
+                if c.get("news_headline"):
+                    st.divider()
+                    st.markdown("**📰 News Signal**")
+                    st.markdown(f'<div class="news-ticker">{c["news_headline"][:120]}</div>', unsafe_allow_html=True)
+                    st.caption(f"Signal: {c.get('news_signal', '-')} | Sentiment: {c.get('news_sentiment', 0):+.2f}")
+
+    # ── SECTION 2: BOTTLENECK RESEARCH ──
     st.markdown("### 🔬 Bottleneck Research")
     st.caption("Supply chain layers, monopoly rankings, connecting chains — toggle themes to drill down")
 
@@ -1905,22 +1953,36 @@ elif page == "⚡ Alpha Center":
                     df_ph = pd.DataFrame(photonics)
                     st.dataframe(df_ph, hide_index=True, width="stretch", height=380)
                 st.markdown("**Nvidia $2B Playbook**: Locking capacity before supply shock")
+                st.markdown("**Key Tickers:** AXTI (InP monopoly), LITE (200G EML ONLY shipper), SIVE (CW laser), AAOI (ELSFP), MRVL/AVGO (CPO integration)")
             elif theme == "Helium Crisis":
                 st.markdown("**Helium Crisis Chain**: Qatar disruption → 65% Samsung/SK Hynix supply → 4-month buffer → wafer etching yield risk → HBM constraints")
-                st.markdown("**Tickers**: Samsung, SK Hynix, Air Products, Linde, Pulsar Helium, Helium One")
+                st.markdown("**Tickers:** Samsung, SK Hynix, Air Products, Linde, Pulsar Helium, Helium One")
             elif theme == "Robotics":
                 st.markdown("**Robot Wars Thesis**: Japan vs China supply chain dominance")
-                st.markdown("**Chokepoint**: Nabtesco harmonic reducer = limits humanoid production speed")
-                st.markdown("**Tickers**: Nabtesco, Harmonic Drive, THK, Yaskawa, Fanuc, Keyence")
+                st.markdown("**Chokepoint:** Nabtesco harmonic reducer = limits humanoid production speed")
+                st.markdown("**Japan Stack:** Nabtesco, THK, Yaskawa, SMC, Keyence")
             elif theme == "Power":
-                st.markdown("**Power Struggle**: AI datacenter baseload demand → natural gas + electrical infrastructure")
-                st.markdown("**Tickers**: ETN, LNG, PLUG, nuclear plays")
+                st.markdown("**Power Struggle**: AI datacenter baseload demand")
+                st.markdown("**Tickers:** ETN, LNG, PLUG, nuclear plays")
             elif theme == "Advanced Packaging":
-                st.markdown("**Packaging Bottleneck**: CoWoS fully booked through mid-2026, HBM4 integration, hybrid bonding")
-                st.markdown("**Tickers**: AVGO, MRVL, BESI, SMHN, LPK, INTC")
+                st.markdown("**Packaging Bottleneck**: CoWoS fully booked through mid-2026, HBM4 integration")
+                st.markdown("**Tickers:** AVGO, MRVL, BESI, SMHN, LPK, INTC")
             elif theme == "Memory":
                 st.markdown("**Memory Shortage**: HBM3E record demand, shortage through 2028")
-                st.markdown("**Tickers**: MU, Samsung, SK Hynix, Seagate, WDC")
+                st.markdown("**Tickers:** MU, Samsung, SK Hynix, Seagate, WDC")
+            elif theme == "PCB/Interconnect":
+                st.markdown("**PCB/Interconnect**: TPU v8 / Rubin / Trainium3 mass production = trigger")
+                st.markdown("**CCL Market:** $1.5B (2024) → $18.7B (2027) = 12x jump")
+                st.markdown("**Tickers:** Fujibo, EMC/TUC/ITEQ/Sytech, Asia Metal")
+            elif theme == "Chipmaking Machines":
+                st.markdown("**Chipmaking Machines = New AI Bottleneck**: EUV shortage, ASML capex down 25%")
+                st.markdown("**Tickers:** ASML, BESI, SMHN, LPK, AMEC")
+            elif theme == "AI Materials":
+                st.markdown("**AI Materials (Atoms vs Bits)**: Copper, rare earths, CCL, helium")
+                st.markdown("**Tickers:** MP (rare earths), copper miners, CCL suppliers")
+            elif theme == "Space/Quantum":
+                st.markdown("**Space/Quantum**: Satellite + quantum computing = 2026-2028 inflection")
+                st.markdown("**Tickers:** ASTS, PL, IONQ, RGTI")
             else:
                 st.caption(f"Research data for {theme}")
 
@@ -2011,7 +2073,8 @@ elif page == "⚡ Alpha Center":
 
 
 # ═══════════════════════════════════════════════════════════════════
-# PAGE: US STOCKSelif page == "🇺🇸 US Stocks":
+# PAGE: US STOCKS
+# ═══════════════════════════════════════════════════════════════════elif page == "🇺🇸 US Stocks":
     st.markdown("## 🇺🇸 US Stocks")
     st.caption("US Equities - Options - Greeks - COT - OI - Risk Ranges")
 

@@ -2095,7 +2095,8 @@ elif page == "⚡ Alpha Center":
 
 # ═══════════════════════════════════════════════════════════════════
 # PAGE: US STOCKS
-# ═══════════════════════════════════════════════════════════════════elif page == "🇺🇸 US Stocks":
+# ═══════════════════════════════════════════════════════════════════
+elif page == "🇺🇸 US Stocks":
     st.markdown("## 🇺🇸 US Stocks")
     st.caption("US Equities - Options - Greeks - COT - OI - Risk Ranges")
 

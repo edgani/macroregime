@@ -1883,15 +1883,29 @@ elif page == "⚡ Alpha Center":
 
             with st.expander(f"{conv_emoji} {ticker} | {c.get('theme','-')} | ⭐{c.get('consensus_stars',0)} | {conv}", expanded=False):
 
-                # ROW 1: Core Metrics
+                # ROW 1: Core Metrics (with fallback)
                 c1, c2, c3, c4 = st.columns(4)
-                c1.metric("Price", f"{opt.get('price','-')}" if opt.get("ok") else "-")
-                c2.metric("Max Pain", f"{opt.get('max_pain','-')}" if opt.get("ok") else "-")
-                c3.metric("Max Pain Dist", f"{opt.get('max_pain_dist','-')}" if opt.get("ok") else "-")
-                c4.metric("Conviction", conv)
-
-                # ROW 2: Options Proxy
                 if opt.get("ok"):
+                    c1.metric("Price", f"{opt.get('price','-')}")
+                    c2.metric("Max Pain", f"{opt.get('max_pain','-')}")
+                    c3.metric("Max Pain Dist", f"{opt.get('max_pain_dist','-')}")
+                    c4.metric("Conviction", conv)
+                else:
+                    # Fallback: show price from prices dict if available
+                    s = prices.get(ticker.replace("$", ""))
+                    px = None
+                    if s is not None and len(s) > 0:
+                        try:
+                            px = float(pd.to_numeric(s, errors="coerce").dropna().iloc[-1])
+                        except: pass
+                    c1.metric("Price", f"{px:.2f}" if px else "N/A")
+                    c2.metric("Max Pain", "No options data")
+                    c3.metric("Max Pain Dist", "—")
+                    c4.metric("Conviction", "N/A (no live price)")
+
+                # ROW 2: Options Proxy (only if available)
+                if opt.get("ok"):
+                    st.markdown("**📊 Options Proxy Data**")
                     g1, g2, g3, g4 = st.columns(4)
                     g1.metric("Gamma Regime", opt.get("gamma_regime", "-"))
                     g2.metric("Greek", opt.get("greek_composite", "-"))
@@ -1900,6 +1914,8 @@ elif page == "⚡ Alpha Center":
                     g5, g6 = st.columns(2)
                     g5.metric("Gamma Flip ↑", opt.get("gamma_flip_up", "-"))
                     g6.metric("Gamma Flip ↓", opt.get("gamma_flip_down", "-"))
+                else:
+                    st.caption("⚠️ No live price/options data — ticker may not be in current price universe")
 
                 # ROW 3: Thesis
                 st.divider()
@@ -2116,6 +2132,42 @@ elif page == "⚡ Alpha Center":
     else:
         st.info("No US stock setups.")
 
+    # ── OPTIONS & GREEKS SUMMARY ──
+    st.markdown("### 📊 Options & Greeks Summary")
+    st.caption("Max Pain, Gamma Regime, Greek Composite — proxy from price action")
+
+    options_rows = []
+    for ticker in us_tickers[:30]:
+        gamma, greek = _get_live_or_proxy_greeks(ticker, prices, vix_now, gamma_data, greeks_data, "us_equity")
+        if gamma.get("ok") or greek.get("ok"):
+            s = prices.get(ticker)
+            px = None
+            if s is not None and len(s) > 0:
+                try:
+                    px = float(pd.to_numeric(s, errors="coerce").dropna().iloc[-1])
+                except: pass
+            mp = gamma.get("max_pain") or greek.get("max_pain")
+            mp_dist = (px - mp) / mp if px and mp else None
+            options_rows.append({
+                "Ticker": ticker, "Price": px, "Max Pain": mp, "MP Dist": mp_dist,
+                "Gamma": gamma.get("regime", "-"), "Greek": greek.get("composite", "-"),
+                "Call Wall": gamma.get("call_wall", "-"), "Put Wall": gamma.get("put_wall", "-"),
+                "Source": "LIVE" if (gamma_data and gamma_data.get(ticker,{}).get("ok") and greeks_data and greeks_data.get(ticker,{}).get("ok")) else "PROXY",
+            })
+
+    if options_rows:
+        df_opt = pd.DataFrame(options_rows)
+        st.dataframe(
+            df_opt.style
+                .map(lambda x: "color:var(--long);font-weight:700;" if "POSITIVE" in str(x) else ("color:var(--short);font-weight:700;" if "NEGATIVE" in str(x) else ""), subset=["Gamma"])
+                .map(lambda x: "color:var(--long);font-weight:700;" if "BULLISH" in str(x) else ("color:var(--short);font-weight:700;" if "BEARISH" in str(x) else ""), subset=["Greek"])
+                .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and abs(x)<0.03 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and abs(x)<0.06 else ("color:var(--short);" if isinstance(x,(int,float)) else "")), subset=["MP Dist"])
+                .background_gradient(subset=["MP Dist"], cmap="RdYlGn", vmin=-0.1, vmax=0.1),
+            width="stretch", hide_index=True, height=260
+        )
+    else:
+        st.info("No options data available for US tickers.")
+
     c1, c2 = st.columns(2)
     with c1:
         if longs:
@@ -2168,6 +2220,32 @@ elif page == "💱 Forex":
         )
     else:
         st.info("No forex setups.")
+    # ── OPTIONS & GREEKS SUMMARY ──
+    st.markdown("### 📊 Options & Greeks Summary")
+    options_rows = []
+    for ticker in list(FOREX_PAIRS.keys())[:20]:
+        gamma, greek = _get_live_or_proxy_greeks(ticker, prices, vix_now, gamma_data, greeks_data, "forex")
+        if gamma.get("ok") or greek.get("ok"):
+            s = prices.get(ticker)
+            px = None
+            if s is not None and len(s) > 0:
+                try:
+                    px = float(pd.to_numeric(s, errors="coerce").dropna().iloc[-1])
+                except: pass
+            mp = gamma.get("max_pain") or greek.get("max_pain")
+            mp_dist = (px - mp) / mp if px and mp else None
+            options_rows.append({
+                "Ticker": ticker, "Price": px, "Max Pain": mp, "MP Dist": mp_dist,
+                "Gamma": gamma.get("regime", "-"), "Greek": greek.get("composite", "-"),
+                "Call Wall": gamma.get("call_wall", "-"), "Put Wall": gamma.get("put_wall", "-"),
+                "Source": "LIVE" if (gamma_data and gamma_data.get(ticker,{}).get("ok") and greeks_data and greeks_data.get(ticker,{}).get("ok")) else "PROXY",
+            })
+    if options_rows:
+        df_opt = pd.DataFrame(options_rows)
+        st.dataframe(df_opt.style.map(lambda x: "color:var(--long);" if "POSITIVE" in str(x) else ("color:var(--short);" if "NEGATIVE" in str(x) else ""), subset=["Gamma"]).map(lambda x: "color:var(--long);" if "BULLISH" in str(x) else ("color:var(--short);" if "BEARISH" in str(x) else ""), subset=["Greek"]).background_gradient(subset=["MP Dist"], cmap="RdYlGn", vmin=-0.1, vmax=0.1), width="stretch", hide_index=True, height=220)
+    else:
+        st.info("No options data for forex.")
+
     c1, c2 = st.columns(2)
     with c1:
         if longs:
@@ -2210,6 +2288,32 @@ elif page == "🛢️ Commodities":
         )
     else:
         st.info("No commodity setups.")
+    # ── OPTIONS & GREEKS SUMMARY ──
+    st.markdown("### 📊 Options & Greeks Summary")
+    options_rows = []
+    for ticker in list(COMMODITIES.keys())[:20]:
+        gamma, greek = _get_live_or_proxy_greeks(ticker, prices, vix_now, gamma_data, greeks_data, "commodity")
+        if gamma.get("ok") or greek.get("ok"):
+            s = prices.get(ticker)
+            px = None
+            if s is not None and len(s) > 0:
+                try:
+                    px = float(pd.to_numeric(s, errors="coerce").dropna().iloc[-1])
+                except: pass
+            mp = gamma.get("max_pain") or greek.get("max_pain")
+            mp_dist = (px - mp) / mp if px and mp else None
+            options_rows.append({
+                "Ticker": ticker, "Price": px, "Max Pain": mp, "MP Dist": mp_dist,
+                "Gamma": gamma.get("regime", "-"), "Greek": greek.get("composite", "-"),
+                "Call Wall": gamma.get("call_wall", "-"), "Put Wall": gamma.get("put_wall", "-"),
+                "Source": "LIVE" if (gamma_data and gamma_data.get(ticker,{}).get("ok") and greeks_data and greeks_data.get(ticker,{}).get("ok")) else "PROXY",
+            })
+    if options_rows:
+        df_opt = pd.DataFrame(options_rows)
+        st.dataframe(df_opt.style.map(lambda x: "color:var(--long);" if "POSITIVE" in str(x) else ("color:var(--short);" if "NEGATIVE" in str(x) else ""), subset=["Gamma"]).map(lambda x: "color:var(--long);" if "BULLISH" in str(x) else ("color:var(--short);" if "BEARISH" in str(x) else ""), subset=["Greek"]).background_gradient(subset=["MP Dist"], cmap="RdYlGn", vmin=-0.1, vmax=0.1), width="stretch", hide_index=True, height=220)
+    else:
+        st.info("No options data for commodities.")
+
     c1, c2 = st.columns(2)
     with c1:
         if longs:
@@ -2280,6 +2384,32 @@ elif page == "₿ Crypto":
         )
     else:
         st.info("No crypto setups.")
+
+    # ── OPTIONS & GREEKS SUMMARY ──
+    st.markdown("### 📊 Options & Greeks Summary")
+    options_rows = []
+    for ticker in list(CRYPTO.keys())[:15]:
+        gamma, greek = _get_live_or_proxy_greeks(ticker, prices, vix_now, gamma_data, greeks_data, "crypto")
+        if gamma.get("ok") or greek.get("ok"):
+            s = prices.get(ticker)
+            px = None
+            if s is not None and len(s) > 0:
+                try:
+                    px = float(pd.to_numeric(s, errors="coerce").dropna().iloc[-1])
+                except: pass
+            mp = gamma.get("max_pain") or greek.get("max_pain")
+            mp_dist = (px - mp) / mp if px and mp else None
+            options_rows.append({
+                "Ticker": ticker, "Price": px, "Max Pain": mp, "MP Dist": mp_dist,
+                "Gamma": gamma.get("regime", "-"), "Greek": greek.get("composite", "-"),
+                "Call Wall": gamma.get("call_wall", "-"), "Put Wall": gamma.get("put_wall", "-"),
+                "Source": "LIVE" if (gamma_data and gamma_data.get(ticker,{}).get("ok") and greeks_data and greeks_data.get(ticker,{}).get("ok")) else "PROXY",
+            })
+    if options_rows:
+        df_opt = pd.DataFrame(options_rows)
+        st.dataframe(df_opt.style.map(lambda x: "color:var(--long);" if "POSITIVE" in str(x) else ("color:var(--short);" if "NEGATIVE" in str(x) else ""), subset=["Gamma"]).map(lambda x: "color:var(--long);" if "BULLISH" in str(x) else ("color:var(--short);" if "BEARISH" in str(x) else ""), subset=["Greek"]).background_gradient(subset=["MP Dist"], cmap="RdYlGn", vmin=-0.1, vmax=0.1), width="stretch", hide_index=True, height=220)
+    else:
+        st.info("No options data for crypto.")
 
     c1, c2 = st.columns(2)
     with c1:

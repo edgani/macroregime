@@ -372,8 +372,9 @@ def _crypto_onchain_proxy(prices: dict) -> dict:
             s = pd.to_numeric(s, errors="coerce").dropna()
             if len(s) < 22:
                 continue
-            r1m = float(s.iloc[-1] / s.iloc[-22] - 1)
-            r7d = float(s.iloc[-1] / s.iloc[-8] - 1) if len(s) >= 8 else r1m
+            with np.errstate(invalid='ignore', divide='ignore'):
+                r1m = float(s.iloc[-1] / s.iloc[-22] - 1) if s.iloc[-22] != 0 else 0
+                r7d = float(s.iloc[-1] / s.iloc[-8] - 1) if len(s) >= 8 and s.iloc[-8] != 0 else r1m
             r30d = r1m
             vol = float(s.tail(20).std())
             vol_40d = float(s.tail(40).std()) if len(s) >= 40 else vol
@@ -411,7 +412,7 @@ def _risk_range_proxy(prices: dict) -> dict:
             px = float(s_clean.iloc[-1])
             sma20 = float(s_clean.tail(20).mean())
             std20 = float(s_clean.tail(20).std())
-            if not all(math.isfinite(v) for v in [px, sma20, std20]):
+            if std20 == 0 or not all(math.isfinite(v) for v in [px, sma20, std20]):
                 continue
             lrr = round(sma20 - 1.5 * std20, 4)
             trr = round(sma20 + 1.5 * std20, 4)
@@ -562,8 +563,10 @@ def _ihsg_layers(prices: dict, quad: str) -> dict:
             try:
                 s = pd.to_numeric(s, errors="coerce").dropna()
                 if len(s) >= 22:
-                    r1m = float(s.iloc[-1] / s.iloc[-22] - 1)
-                    sector_returns.setdefault(sector, []).append(r1m)
+                    with np.errstate(invalid='ignore', divide='ignore'):
+                        r1m = float(s.iloc[-1] / s.iloc[-22] - 1)
+                    if math.isfinite(r1m):
+                        sector_returns.setdefault(sector, []).append(r1m)
             except Exception:
                 pass
     for sector, returns in sector_returns.items():
@@ -1058,7 +1061,18 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                         dxy_slice = dxy_clean.tail(min_len).pct_change().dropna()
                         s_slice = s_clean.tail(min_len).pct_change().dropna()
                         if len(dxy_slice) >= 20 and len(s_slice) >= 20:
-                            corr = np.corrcoef(dxy_slice.tail(20), s_slice.tail(20))[0, 1]
+                            dxy_arr = dxy_slice.tail(20).to_numpy()
+                            s_arr = s_slice.tail(20).to_numpy()
+                            # Filter NaN/inf before correlation
+                            mask = np.isfinite(dxy_arr) & np.isfinite(s_arr)
+                            if mask.sum() < 10:
+                                continue
+                            dxy_clean = dxy_arr[mask]
+                            s_clean = s_arr[mask]
+                            if dxy_clean.std() == 0 or s_clean.std() == 0:
+                                continue
+                            with np.errstate(invalid='ignore'):
+                                corr = np.corrcoef(dxy_clean, s_clean)[0, 1]
                             if not math.isfinite(corr):
                                 continue
                             correlated += 1

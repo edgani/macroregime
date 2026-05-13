@@ -640,7 +640,7 @@ def _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, market_type, 
     if not v:
         if s is None or s.empty: return None
         s_clean = pd.to_numeric(s, errors="coerce").dropna()
-        if len(s_clean) < 20: return None
+        if len(s_clean) < 60: return None
         px = float(s_clean.iloc[-1]); sma20 = float(s_clean.tail(20).mean()); std20 = float(s_clean.tail(20).std())
         if not all(math.isfinite(v) for v in [px, sma20, std20]): return None
         trade_l = round(sma20 - 1.5 * std20, 4); trade_r = round(sma20 + 1.5 * std20, 4)
@@ -793,7 +793,7 @@ def _build_ihsg_row(ticker, prices, ar, ihsg_sector_momentum=None, ihsg_commodit
     if not v:
         if s is None or s.empty: return None
         s_clean = pd.to_numeric(s, errors="coerce").dropna()
-        if len(s_clean) < 20: return None
+        if len(s_clean) < 60: return None
         px = float(s_clean.iloc[-1]); sma20 = float(s_clean.tail(20).mean()); std20 = float(s_clean.tail(20).std())
         if not all(math.isfinite(v) for v in [px, sma20, std20]): return None
         lrr = round(sma20 - 1.5 * std20, 2); trr = round(sma20 + 1.5 * std20, 2)
@@ -992,27 +992,36 @@ def _render_narrative_card_native(row, idx=0, market_type="generic"):
                 if row.get("news_headline") and row.get("news_narrative"):
                     st.caption(f"Headline: {row.get('news_headline')}")
 
+        # ── OPTIONS & GREEKS (INLINE, NOT EXPANDER) ──
         has_options = any(row.get(k) for k in ["gamma_regime","greek_composite","max_pain","max_pain_gamma","delta","vanna","put_wall","call_wall","gamma_flip_up","gamma_flip_down"])
         if has_options and market_type not in ["ihsg"]:
-            with st.expander("📊 Options & Greeks", expanded=False):
-                source = row.get("options_source", "PROXY")
-                if "LIVE" in str(source):
-                    st.success(f"🟢 {source}")
-                else:
-                    st.warning("🟡 PROXY DATA — Calculated from price action")
-                o1, o2, o3, o4 = st.columns(4)
-                o1.metric("Gamma Regime", row.get("gamma_regime") or row.get("gamma_summary", "—"))
-                o2.metric("Greek Composite", row.get("greek_composite") or row.get("greek_summary", "—"))
-                o3.metric("Max Pain", ff(row.get("max_pain") or row.get("max_pain_gamma", "—")))
-                o4.metric("Delta", row.get("delta") or row.get("greek_delta", "—"))
-                o5, o6, o7, o8 = st.columns(4)
-                o5.metric("Vanna", row.get("vanna") or row.get("greek_vanna", "—"))
-                o6.metric("Charm", row.get("charm") or row.get("greek_charm", "—"))
-                o7.metric("Put Wall", ff(row.get("put_wall", "—")))
-                o8.metric("Call Wall", ff(row.get("call_wall", "—")))
-                o9, o10 = st.columns(2)
-                o9.metric("Gamma Flip ↑", ff(row.get("gamma_flip_up", "—")))
-                o10.metric("Gamma Flip ↓", ff(row.get("gamma_flip_down", "—")))
+            st.divider()
+            st.markdown("**📊 Options & Greeks**")
+            source = row.get("options_source", "PROXY")
+            if "LIVE" in str(source):
+                st.success(f"🟢 {source}")
+            else:
+                st.warning("🟡 PROXY DATA — Calculated from price action")
+            o1, o2, o3, o4 = st.columns(4)
+            o1.metric("Gamma Regime", row.get("gamma_regime") or row.get("gamma_summary", "—"))
+            o2.metric("Greek Composite", row.get("greek_composite") or row.get("greek_summary", "—"))
+            o3.metric("Max Pain", ff(row.get("max_pain") or row.get("max_pain_gamma", "—")))
+            o4.metric("Delta", row.get("delta") or row.get("greek_delta", "—"))
+            o5, o6, o7, o8 = st.columns(4)
+            o5.metric("Vanna", row.get("vanna") or row.get("greek_vanna", "—"))
+            o6.metric("Charm", row.get("charm") or row.get("greek_charm", "—"))
+            o7.metric("Put Wall", ff(row.get("put_wall", "—")))
+            o8.metric("Call Wall", ff(row.get("call_wall", "—")))
+            o9, o10 = st.columns(2)
+            o9.metric("Gamma Flip ↑", ff(row.get("gamma_flip_up", "—")))
+            o10.metric("Gamma Flip ↓", ff(row.get("gamma_flip_down", "—")))
+            # Max Pain Distance
+            px = row.get("price")
+            mp = row.get("max_pain") or row.get("max_pain_gamma")
+            if px and mp:
+                mp_dist = (px - mp) / mp
+                mp_color = "var(--long)" if abs(mp_dist) < 0.03 else "var(--neutral)" if abs(mp_dist) < 0.06 else "var(--short)"
+                st.markdown(f"**Max Pain Distance:** <span style='color:{mp_color};font-weight:700;'>{mp_dist:+.2%}</span> (Price vs Max Pain)", unsafe_allow_html=True)
 
         has_flow = any(row.get(k) for k in ["cot_signal","oi_signal","onchain_signal","skew","oi_trend","cot_bias"])
         if has_flow and market_type not in ["ihsg"]:
@@ -1361,10 +1370,10 @@ if page == "🏠 Dashboard":
         dgs10 = 4.5
         t5yie = 2.4
         try:
-                            if fred and "DGS10" in fred:
-                                dgs10 = float(fred["DGS10"].dropna().iloc[-1])
-                            if fred and "T5YIE" in fred:
-                                t5yie = float(fred["T5YIE"].dropna().iloc[-1])
+            if fred and "DGS10" in fred:
+                dgs10 = float(fred["DGS10"].dropna().iloc[-1])
+            if fred and "T5YIE" in fred:
+                t5yie = float(fred["T5YIE"].dropna().iloc[-1])
         except Exception:
             pass
         real_yield = dgs10 - t5yie
@@ -1800,7 +1809,7 @@ elif page == "⚡ Alpha Center":
     m3.metric("Supply Chain Layers", bottleneck_ref.get("meta", {}).get("total_layers", 0))
     m4.metric("Accounts Tracked", len(bottleneck_ref.get("sources", [])))
 
-    # ── SECTION 1: FRONT-RUN CANDIDATES ──
+    # ── FRONT-RUN CANDIDATES TABLE ──
     st.markdown("### 🎯 Front-Run Candidates")
     st.caption("Tickers that WILL explode — not yet tradeable today. Based on bottleneck consensus + news + institutional rotation.")
 
@@ -1873,7 +1882,7 @@ elif page == "⚡ Alpha Center":
             width="stretch", hide_index=True, height=420
         )
 
-        # ── DETAIL EXPANDERS (COMPREHENSIVE) ──
+        # ── DETAIL EXPANDERS ──
         st.markdown("#### 📋 Candidate Detail Reports")
         for c in front_run[:15]:
             ticker = c.get("ticker", "-")
@@ -1882,8 +1891,7 @@ elif page == "⚡ Alpha Center":
             conv_emoji = "🟢" if conv == "STRONG" else "🟡" if conv == "MODERATE" else "⚪" if conv == "WEAK" else "🔴"
 
             with st.expander(f"{conv_emoji} {ticker} | {c.get('theme','-')} | ⭐{c.get('consensus_stars',0)} | {conv}", expanded=False):
-
-                # ROW 1: Core Metrics (with fallback)
+                # Core Metrics with fallback
                 c1, c2, c3, c4 = st.columns(4)
                 if opt.get("ok"):
                     c1.metric("Price", f"{opt.get('price','-')}")
@@ -1891,7 +1899,6 @@ elif page == "⚡ Alpha Center":
                     c3.metric("Max Pain Dist", f"{opt.get('max_pain_dist','-')}")
                     c4.metric("Conviction", conv)
                 else:
-                    # Fallback: show price from prices dict if available
                     s = prices.get(ticker.replace("$", ""))
                     px = None
                     if s is not None and len(s) > 0:
@@ -1903,7 +1910,6 @@ elif page == "⚡ Alpha Center":
                     c3.metric("Max Pain Dist", "—")
                     c4.metric("Conviction", "N/A (no live price)")
 
-                # ROW 2: Options Proxy (only if available)
                 if opt.get("ok"):
                     st.markdown("**📊 Options Proxy Data**")
                     g1, g2, g3, g4 = st.columns(4)
@@ -1917,12 +1923,10 @@ elif page == "⚡ Alpha Center":
                 else:
                     st.caption("⚠️ No live price/options data — ticker may not be in current price universe")
 
-                # ROW 3: Thesis
                 st.divider()
                 st.markdown("**🎯 Front-Run Thesis**")
                 st.info(c.get("why_front_run", "-"))
 
-                # ROW 4: Bottleneck Context
                 st.markdown("**🔬 Bottleneck Context**")
                 b1, b2 = st.columns(2)
                 with b1:
@@ -1934,7 +1938,6 @@ elif page == "⚡ Alpha Center":
                     if c.get("accounts"):
                         st.caption(f"Accounts: {', '.join(c['accounts'])}")
 
-                # ROW 5: Catalyst
                 cat = c.get("catalyst", {})
                 if cat:
                     st.divider()
@@ -1948,16 +1951,15 @@ elif page == "⚡ Alpha Center":
                     </div>
                     """, unsafe_allow_html=True)
 
-                # ROW 6: News
                 if c.get("news_headline"):
                     st.divider()
                     st.markdown("**📰 News Signal**")
                     st.markdown(f'<div class="news-ticker">{c["news_headline"][:120]}</div>', unsafe_allow_html=True)
                     st.caption(f"Signal: {c.get('news_signal', '-')} | Sentiment: {c.get('news_sentiment', 0):+.2f}")
 
-    # ── SECTION 2: BOTTLENECK RESEARCH ──
+    # ── BOTTLENECK RESEARCH (Toggleable) ──
     st.markdown("### 🔬 Bottleneck Research")
-    st.caption("Supply chain layers, monopoly rankings, connecting chains — toggle themes to drill down")
+    st.caption("Supply chain layers, monopoly rankings, connecting chains")
 
     themes = bottleneck_ref.get("meta", {}).get("themes", [])
     for theme in themes:
@@ -1979,7 +1981,7 @@ elif page == "⚡ Alpha Center":
                 st.markdown("**Japan Stack:** Nabtesco, THK, Yaskawa, SMC, Keyence")
             elif theme == "Power":
                 st.markdown("**Power Struggle**: AI datacenter baseload demand")
-                st.markdown("**Tickers:** ETN, LNG, PLUG, nuclear plays")
+                st.markdown("**Tickers:** ETN (electrical), LNG (baseload), PLUG (hydrogen)")
             elif theme == "Advanced Packaging":
                 st.markdown("**Packaging Bottleneck**: CoWoS fully booked through mid-2026, HBM4 integration")
                 st.markdown("**Tickers:** AVGO, MRVL, BESI, SMHN, LPK, INTC")
@@ -2002,7 +2004,7 @@ elif page == "⚡ Alpha Center":
             else:
                 st.caption(f"Research data for {theme}")
 
-    # ── SECTION 3: CONSENSUS HEATMAP ──
+    # ── CONSENSUS HEATMAP ──
     st.markdown("### ⭐ Consensus Heatmap")
     heatmap = bottleneck_ref.get("consensus_heatmap", [])
     if heatmap:
@@ -2022,7 +2024,7 @@ elif page == "⚡ Alpha Center":
             width="stretch", hide_index=True, height=320
         )
 
-    # ── SECTION 4: CATALYST TIMELINE ──
+    # ── CATALYST TIMELINE ──
     st.markdown("### 📅 Catalyst Timeline")
     timeline = bottleneck_ref.get("catalyst_timeline", [])
     if timeline:
@@ -2036,7 +2038,7 @@ elif page == "⚡ Alpha Center":
             </div>
             """, unsafe_allow_html=True)
 
-    # ── SECTION 5: M&A WATCHLIST ──
+    # ── M&A WATCHLIST ──
     st.markdown("### 🎯 M&A Watchlist")
     ma_list = bottleneck_ref.get("ma_watchlist", [])
     if ma_list:
@@ -2054,7 +2056,7 @@ elif page == "⚡ Alpha Center":
                 </div>
                 """, unsafe_allow_html=True)
 
-    # ── SECTION 6: RISK FLAGS ──
+    # ── RISK FLAGS ──
     st.markdown("### 🔴 Risk Flags")
     risks = bottleneck_ref.get("risk_flags", [])
     if risks:
@@ -2070,7 +2072,7 @@ elif page == "⚡ Alpha Center":
             </div>
             """, unsafe_allow_html=True)
 
-    # ── SECTION 7: INSTITUTIONAL ROTATION ──
+    # ── INSTITUTIONAL ROTATION ──
     st.markdown("### 🔄 Institutional Rotation Phases")
     rotation = bottleneck_ref.get("institutional_rotation", [])
     if rotation:
@@ -2105,15 +2107,9 @@ elif page == "⚡ Alpha Center":
     us_tickers = list(dict.fromkeys(us_tickers))
 
     us_rows = []
-    us_debug = {"total_tickers": len(us_tickers), "prices_available": 0, "ar_available": 0, "built": 0}
     for ticker in us_tickers:
-        if prices.get(ticker) is not None: us_debug["prices_available"] += 1
-        if ar.get(ticker): us_debug["ar_available"] += 1
         row = _build_consolidated_row(ticker, prices, ar, cot_data, oi_data, "us_equity", vix_now, gamma_data, greeks_data, forward_returns, news_narratives)
-        if row: 
-            us_rows.append(row)
-            us_debug["built"] += 1
-    st.caption(f"Debug: {us_debug['built']}/{us_debug['total_tickers']} built (prices: {us_debug['prices_available']}, ranges: {us_debug['ar_available']})")
+        if row: us_rows.append(row)
     longs, shorts = _split_long_short(us_rows)
 
     all_us = longs + shorts
@@ -2131,42 +2127,6 @@ elif page == "⚡ Alpha Center":
         )
     else:
         st.info("No US stock setups.")
-
-    # ── OPTIONS & GREEKS SUMMARY ──
-    st.markdown("### 📊 Options & Greeks Summary")
-    st.caption("Max Pain, Gamma Regime, Greek Composite — proxy from price action")
-
-    options_rows = []
-    for ticker in us_tickers[:30]:
-        gamma, greek = _get_live_or_proxy_greeks(ticker, prices, vix_now, gamma_data, greeks_data, "us_equity")
-        if gamma.get("ok") or greek.get("ok"):
-            s = prices.get(ticker)
-            px = None
-            if s is not None and len(s) > 0:
-                try:
-                    px = float(pd.to_numeric(s, errors="coerce").dropna().iloc[-1])
-                except: pass
-            mp = gamma.get("max_pain") or greek.get("max_pain")
-            mp_dist = (px - mp) / mp if px and mp else None
-            options_rows.append({
-                "Ticker": ticker, "Price": px, "Max Pain": mp, "MP Dist": mp_dist,
-                "Gamma": gamma.get("regime", "-"), "Greek": greek.get("composite", "-"),
-                "Call Wall": gamma.get("call_wall", "-"), "Put Wall": gamma.get("put_wall", "-"),
-                "Source": "LIVE" if (gamma_data and gamma_data.get(ticker,{}).get("ok") and greeks_data and greeks_data.get(ticker,{}).get("ok")) else "PROXY",
-            })
-
-    if options_rows:
-        df_opt = pd.DataFrame(options_rows)
-        st.dataframe(
-            df_opt.style
-                .map(lambda x: "color:var(--long);font-weight:700;" if "POSITIVE" in str(x) else ("color:var(--short);font-weight:700;" if "NEGATIVE" in str(x) else ""), subset=["Gamma"])
-                .map(lambda x: "color:var(--long);font-weight:700;" if "BULLISH" in str(x) else ("color:var(--short);font-weight:700;" if "BEARISH" in str(x) else ""), subset=["Greek"])
-                .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and abs(x)<0.03 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and abs(x)<0.06 else ("color:var(--short);" if isinstance(x,(int,float)) else "")), subset=["MP Dist"])
-                .background_gradient(subset=["MP Dist"], cmap="RdYlGn", vmin=-0.1, vmax=0.1),
-            width="stretch", hide_index=True, height=260
-        )
-    else:
-        st.info("No options data available for US tickers.")
 
     c1, c2 = st.columns(2)
     with c1:
@@ -2220,32 +2180,6 @@ elif page == "💱 Forex":
         )
     else:
         st.info("No forex setups.")
-    # ── OPTIONS & GREEKS SUMMARY ──
-    st.markdown("### 📊 Options & Greeks Summary")
-    options_rows = []
-    for ticker in list(FOREX_PAIRS.keys())[:20]:
-        gamma, greek = _get_live_or_proxy_greeks(ticker, prices, vix_now, gamma_data, greeks_data, "forex")
-        if gamma.get("ok") or greek.get("ok"):
-            s = prices.get(ticker)
-            px = None
-            if s is not None and len(s) > 0:
-                try:
-                    px = float(pd.to_numeric(s, errors="coerce").dropna().iloc[-1])
-                except: pass
-            mp = gamma.get("max_pain") or greek.get("max_pain")
-            mp_dist = (px - mp) / mp if px and mp else None
-            options_rows.append({
-                "Ticker": ticker, "Price": px, "Max Pain": mp, "MP Dist": mp_dist,
-                "Gamma": gamma.get("regime", "-"), "Greek": greek.get("composite", "-"),
-                "Call Wall": gamma.get("call_wall", "-"), "Put Wall": gamma.get("put_wall", "-"),
-                "Source": "LIVE" if (gamma_data and gamma_data.get(ticker,{}).get("ok") and greeks_data and greeks_data.get(ticker,{}).get("ok")) else "PROXY",
-            })
-    if options_rows:
-        df_opt = pd.DataFrame(options_rows)
-        st.dataframe(df_opt.style.map(lambda x: "color:var(--long);" if "POSITIVE" in str(x) else ("color:var(--short);" if "NEGATIVE" in str(x) else ""), subset=["Gamma"]).map(lambda x: "color:var(--long);" if "BULLISH" in str(x) else ("color:var(--short);" if "BEARISH" in str(x) else ""), subset=["Greek"]).background_gradient(subset=["MP Dist"], cmap="RdYlGn", vmin=-0.1, vmax=0.1), width="stretch", hide_index=True, height=220)
-    else:
-        st.info("No options data for forex.")
-
     c1, c2 = st.columns(2)
     with c1:
         if longs:
@@ -2288,32 +2222,6 @@ elif page == "🛢️ Commodities":
         )
     else:
         st.info("No commodity setups.")
-    # ── OPTIONS & GREEKS SUMMARY ──
-    st.markdown("### 📊 Options & Greeks Summary")
-    options_rows = []
-    for ticker in list(COMMODITIES.keys())[:20]:
-        gamma, greek = _get_live_or_proxy_greeks(ticker, prices, vix_now, gamma_data, greeks_data, "commodity")
-        if gamma.get("ok") or greek.get("ok"):
-            s = prices.get(ticker)
-            px = None
-            if s is not None and len(s) > 0:
-                try:
-                    px = float(pd.to_numeric(s, errors="coerce").dropna().iloc[-1])
-                except: pass
-            mp = gamma.get("max_pain") or greek.get("max_pain")
-            mp_dist = (px - mp) / mp if px and mp else None
-            options_rows.append({
-                "Ticker": ticker, "Price": px, "Max Pain": mp, "MP Dist": mp_dist,
-                "Gamma": gamma.get("regime", "-"), "Greek": greek.get("composite", "-"),
-                "Call Wall": gamma.get("call_wall", "-"), "Put Wall": gamma.get("put_wall", "-"),
-                "Source": "LIVE" if (gamma_data and gamma_data.get(ticker,{}).get("ok") and greeks_data and greeks_data.get(ticker,{}).get("ok")) else "PROXY",
-            })
-    if options_rows:
-        df_opt = pd.DataFrame(options_rows)
-        st.dataframe(df_opt.style.map(lambda x: "color:var(--long);" if "POSITIVE" in str(x) else ("color:var(--short);" if "NEGATIVE" in str(x) else ""), subset=["Gamma"]).map(lambda x: "color:var(--long);" if "BULLISH" in str(x) else ("color:var(--short);" if "BEARISH" in str(x) else ""), subset=["Greek"]).background_gradient(subset=["MP Dist"], cmap="RdYlGn", vmin=-0.1, vmax=0.1), width="stretch", hide_index=True, height=220)
-    else:
-        st.info("No options data for commodities.")
-
     c1, c2 = st.columns(2)
     with c1:
         if longs:
@@ -2384,32 +2292,6 @@ elif page == "₿ Crypto":
         )
     else:
         st.info("No crypto setups.")
-
-    # ── OPTIONS & GREEKS SUMMARY ──
-    st.markdown("### 📊 Options & Greeks Summary")
-    options_rows = []
-    for ticker in list(CRYPTO.keys())[:15]:
-        gamma, greek = _get_live_or_proxy_greeks(ticker, prices, vix_now, gamma_data, greeks_data, "crypto")
-        if gamma.get("ok") or greek.get("ok"):
-            s = prices.get(ticker)
-            px = None
-            if s is not None and len(s) > 0:
-                try:
-                    px = float(pd.to_numeric(s, errors="coerce").dropna().iloc[-1])
-                except: pass
-            mp = gamma.get("max_pain") or greek.get("max_pain")
-            mp_dist = (px - mp) / mp if px and mp else None
-            options_rows.append({
-                "Ticker": ticker, "Price": px, "Max Pain": mp, "MP Dist": mp_dist,
-                "Gamma": gamma.get("regime", "-"), "Greek": greek.get("composite", "-"),
-                "Call Wall": gamma.get("call_wall", "-"), "Put Wall": gamma.get("put_wall", "-"),
-                "Source": "LIVE" if (gamma_data and gamma_data.get(ticker,{}).get("ok") and greeks_data and greeks_data.get(ticker,{}).get("ok")) else "PROXY",
-            })
-    if options_rows:
-        df_opt = pd.DataFrame(options_rows)
-        st.dataframe(df_opt.style.map(lambda x: "color:var(--long);" if "POSITIVE" in str(x) else ("color:var(--short);" if "NEGATIVE" in str(x) else ""), subset=["Gamma"]).map(lambda x: "color:var(--long);" if "BULLISH" in str(x) else ("color:var(--short);" if "BEARISH" in str(x) else ""), subset=["Greek"]).background_gradient(subset=["MP Dist"], cmap="RdYlGn", vmin=-0.1, vmax=0.1), width="stretch", hide_index=True, height=220)
-    else:
-        st.info("No options data for crypto.")
 
     c1, c2 = st.columns(2)
     with c1:

@@ -1244,8 +1244,9 @@ def _lev_card(lev):
             f'</div>')
 
 
+
 # ═══════════════════════════════════════════════════════════════════
-# MAIN APP
+# MAIN APP — COMPACT v27.1
 # ═══════════════════════════════════════════════════════════════════
 
 if "snap" not in st.session_state:
@@ -1257,7 +1258,7 @@ if "last_refresh" not in st.session_state:
 
 with st.sidebar:
     st.markdown("## 📊 MacroRegime Pro")
-    st.caption("v27.0 — Front-Run Patch")
+    st.caption("v27.1 — Compact Patch")
     st.divider()
     page = st.radio("Navigate", [
         "📊 Dashboard",
@@ -1266,18 +1267,22 @@ with st.sidebar:
         "🪙 Commodities",
         "₿ Crypto",
         "🇮🇩 IHSG",
-        "🌏 Global & EM",
-        "🎨 Themes",
-        "📖 Playbook",
-        "🔬 GIP Model",
         "⚡ Alpha Center",
         "🔧 Admin",
     ], index=0)
     st.divider()
+
+    # Fix import path for Streamlit Cloud
     if st.button("🔄 Full Rebuild", type="primary"):
         with st.spinner("Rebuilding all data..."):
             try:
-                from src.macroregime.rebuild import full_rebuild
+                try:
+                    from src.macroregime.rebuild import full_rebuild
+                except ImportError:
+                    try:
+                        from macroregime.rebuild import full_rebuild
+                    except ImportError:
+                        from rebuild import full_rebuild
                 snap, prices = full_rebuild()
                 st.session_state.snap = snap
                 st.session_state.prices = prices
@@ -1287,6 +1292,7 @@ with st.sidebar:
                 st.rerun()
             except Exception as e:
                 st.error(f"Rebuild failed: {e}")
+
     if st.session_state.last_refresh:
         st.caption(f"Last refresh: {st.session_state.last_refresh.strftime('%Y-%m-%d %H:%M')}")
     else:
@@ -1309,35 +1315,59 @@ cot_data = snap.get("cot_data", {})
 oi_data = snap.get("oi_data", {})
 vix_now = snap.get("vix", 20)
 
+# ═══════════════════════════════════════════════════════════════════
+# DASHBOARD — COMPACT (semua di 1 halaman)
+# ═══════════════════════════════════════════════════════════════════
 if page == "📊 Dashboard":
     st.markdown("## 📊 Dashboard")
-    st.caption("Macro regime overview + front-run catalysts + daily signals")
+    st.caption("Regime · Probabilities · Front-Run · Signals · Playbook")
     st.divider()
-    # ── REGIME BANNER ──
+
+    # ── ROW 1: REGIME BANNER + PROB BARS ──
     if gip:
         sq = gip.structural_quad
         mq = gip.monthly_quad
+
+        # Regime Banner
         st.markdown(f"""
-        <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px;">
+        <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px;">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <div>
-              <div style="font-size:12px;color:var(--text-secondary);">STRUCTURAL REGIME</div>
-              <div style="font-size:24px;font-weight:800;color:{qc(sq)};">{qn(sq)}</div>
-              <div style="font-size:11px;color:var(--text-secondary);">{qnc(sq)}</div>
+              <div style="font-size:11px;color:var(--text-secondary);">STRUCTURAL</div>
+              <div style="font-size:22px;font-weight:800;color:{qc(sq)};">{qn(sq)}</div>
+              <div style="font-size:10px;color:var(--text-secondary);">{qnc(sq)}</div>
             </div>
             <div style="text-align:right;">
-              <div style="font-size:12px;color:var(--text-secondary);">MONTHLY REGIME</div>
-              <div style="font-size:24px;font-weight:800;color:{qc(mq)};">{qn(mq)}</div>
-              <div style="font-size:11px;color:var(--text-secondary);">{qnc(mq)}</div>
+              <div style="font-size:11px;color:var(--text-secondary);">MONTHLY</div>
+              <div style="font-size:22px;font-weight:800;color:{qc(mq)};">{qn(mq)}</div>
+              <div style="font-size:10px;color:var(--text-secondary);">{qnc(mq)}</div>
             </div>
           </div>
-          <div style="margin-top:10px;font-size:11px;color:var(--text-secondary);border-top:1px solid var(--border);padding-top:8px;">
-            {QUAD_EXPLAIN.get(sq, "")} | <b>Wins:</b> {QWINS.get(sq, "—")}
+          <div style="margin-top:8px;font-size:11px;color:var(--text-secondary);border-top:1px solid var(--border);padding-top:6px;">
+            {QUAD_EXPLAIN.get(sq, "")} | <b>Wins:</b> {QWINS.get(sq, "—")} | <b>Avoid:</b> {QWINS.get(mq, "—")}
           </div>
         </div>
         """, unsafe_allow_html=True)
+
+        # Probabilities (compact inline)
+        probs = gip.quarterly_probs if hasattr(gip, "quarterly_probs") else {}
+        mprobs = gip.monthly_probs if hasattr(gip, "monthly_probs") else {}
+        if probs or mprobs:
+            c1, c2 = st.columns(2)
+            with c1:
+                if probs:
+                    fig = prob_bar(probs, "Quarterly")
+                    st.plotly_chart(fig, use_container_width=True, key="dash_qprobs")
+            with c2:
+                if mprobs:
+                    fig = prob_bar(mprobs, "Monthly")
+                    st.plotly_chart(fig, use_container_width=True, key="dash_mprobs")
+
         st.markdown(_seq_pills(sq, mq), unsafe_allow_html=True)
-    # ── VIX + GAMMA + LEVERAGE ──
+
+    st.divider()
+
+    # ── ROW 2: VIX + GAMMA + LEVERAGE (compact 3-col) ──
     c1, c2, c3 = st.columns(3)
     with c1:
         st.markdown(_kpi_box("VIX", f"{vix_now:.1f}", qc("Q3") if vix_now > 25 else qc("Q1")), unsafe_allow_html=True)
@@ -1347,46 +1377,79 @@ if page == "📊 Dashboard":
     with c3:
         lev = snap.get("leverage", {})
         st.markdown(_lev_card(lev), unsafe_allow_html=True)
-    st.divider()
-    # ── FRONT-RUN CATALYST BOARD v27.0 ──
-    st.markdown("### 🚀 Front-Run Catalyst Board")
-    st.caption("What can make these go up — before the news hits")
-    all_rows = []
-    for market_type, tickers in [("us_equity", US_BUCKETS.get("core", [])), ("forex", FOREX_PAIRS), ("commodity", COMMODITIES), ("crypto", CRYPTO), ("ihsg", IHSG_UNIVERSE)]:
-        ar = snap.get("analysis", {}).get(market_type, {})
-        for t in tickers:
-            if market_type == "ihsg":
-                r = _build_ihsg_row(t, prices, ar, gip=gip, dxy_corr=dxy_corr, discovery_v3=discovery_v3, news_narratives=news_narratives)
-            else:
-                r = _build_consolidated_row(t, prices, ar, cot_data, oi_data, market_type, vix_now, gamma_data, greeks_data, gip=gip, dxy_corr=dxy_corr, discovery_v3=discovery_v3, news_narratives=news_narratives)
-            if r and r.get("front_run_catalysts") and r["front_run_catalysts"].get("composite_front_run_score", 0) > 0:
-                all_rows.append(r)
-    if all_rows:
-        all_rows.sort(key=lambda x: x["front_run_catalysts"]["composite_front_run_score"], reverse=True)
-        top10 = all_rows[:10]
-        cols = st.columns(5)
-        for i, row in enumerate(top10):
-            with cols[i % 5]:
-                score = row["front_run_catalysts"]["composite_front_run_score"]
-                badge = _front_run_badge_html(score)
-                st.markdown(f"{badge}", unsafe_allow_html=True)
-                st.markdown(f"**{row['ticker']}** @ {ff(row['price'])}")
-                tc = row["front_run_catalysts"].get("top_catalyst")
-                if tc:
-                    st.caption(f"{tc[1][:60]}...")
-                st.caption(f"Direction: {row.get('direction', '—')} | RR: {row.get('rr', 0):.1f}x")
-    else:
-        st.info("No front-run catalysts detected. Run Full Rebuild to refresh.")
-    st.divider()
-    # ── DAILY SIGNALS ──
-    st.markdown("### 📡 Daily Signals")
-    daily = snap.get("daily_signals", [])
-    if daily:
-        for sig in daily[:5]:
-            st.markdown(f"🎯 **{sig.get('ticker', '—')}** — {sig.get('signal', '—')} | {sig.get('confidence', '—')}")
-    else:
-        st.info("No daily signals. Run Full Rebuild.")
 
+    st.divider()
+
+    # ── ROW 3: FRONT-RUN CATALYST BOARD ──
+    with st.expander("🚀 Front-Run Catalyst Board", expanded=True):
+        st.caption("What can make these go up — before the news hits")
+        all_rows = []
+        for market_type, tickers in [("us_equity", US_BUCKETS.get("core", [])), ("forex", FOREX_PAIRS), ("commodity", COMMODITIES), ("crypto", CRYPTO), ("ihsg", IHSG_UNIVERSE)]:
+            ar = snap.get("analysis", {}).get(market_type, {})
+            for t in tickers:
+                if market_type == "ihsg":
+                    r = _build_ihsg_row(t, prices, ar, gip=gip, dxy_corr=dxy_corr, discovery_v3=discovery_v3, news_narratives=news_narratives)
+                else:
+                    r = _build_consolidated_row(t, prices, ar, cot_data, oi_data, market_type, vix_now, gamma_data, greeks_data, gip=gip, dxy_corr=dxy_corr, discovery_v3=discovery_v3, news_narratives=news_narratives)
+                if r and r.get("front_run_catalysts") and r["front_run_catalysts"].get("composite_front_run_score", 0) > 0:
+                    all_rows.append(r)
+        if all_rows:
+            all_rows.sort(key=lambda x: x["front_run_catalysts"]["composite_front_run_score"], reverse=True)
+            top10 = all_rows[:10]
+            cols = st.columns(5)
+            for i, row in enumerate(top10):
+                with cols[i % 5]:
+                    score = row["front_run_catalysts"]["composite_front_run_score"]
+                    badge = _front_run_badge_html(score)
+                    st.markdown(f"{badge}", unsafe_allow_html=True)
+                    st.markdown(f"**{row['ticker']}** @ {ff(row['price'])}")
+                    tc = row["front_run_catalysts"].get("top_catalyst")
+                    if tc:
+                        st.caption(f"{tc[1][:55]}...")
+                    st.caption(f"{row.get('direction', '—')} | RR {row.get('rr', 0):.1f}x")
+        else:
+            st.info("No front-run catalysts detected. Run Full Rebuild to refresh.")
+
+    st.divider()
+
+    # ── ROW 4: DAILY SIGNALS ──
+    with st.expander("📡 Daily Signals", expanded=True):
+        daily = snap.get("daily_signals", [])
+        if daily:
+            for sig in daily[:5]:
+                st.markdown(f"🎯 **{sig.get('ticker', '—')}** — {sig.get('signal', '—')} | {sig.get('confidence', '—')}")
+        else:
+            st.info("No daily signals. Run Full Rebuild.")
+
+    st.divider()
+
+    # ── ROW 5: PLAYBOOK (merged dari tab terpisah) ──
+    with st.expander("📖 Playbook — Tactical Rules", expanded=False):
+        if gip:
+            sq = gip.structural_quad
+            mq = gip.monthly_quad
+            st.markdown(f"**Current:** {qn(sq)} (structural) → {qn(mq)} (monthly)")
+            st.info(QUAD_EXPLAIN.get(sq, ""))
+            st.markdown(f"**Winners:** {QWINS.get(sq, '—')}  |  **Avoid:** {QWINS.get(mq, '—')}")
+        st.markdown("""
+        **Q1 Goldilocks** — Buy dips, normal size. Tech + crypto lead.  
+        **Q2 Reflation** — Commodity + energy overweight. Tighten stops.  
+        **Q3 Stagflation** — Gold + silver + defensives. Reduce equity beta.  
+        **Q4 Deflation** — Bonds + gold + cash. Avoid risk assets.
+        """)
+
+    # ── ROW 6: THEMES + GLOBAL & EM (merged, under construction) ──
+    with st.expander("🎨 Themes & Global EM", expanded=False):
+        st.info("🚧 Under construction. Add tickers to config.settings.US_BUCKETS")
+        if discovery_v3:
+            st.markdown("**Discovery v3 Bottlenecks:**")
+            for theme, data in discovery_v3.items():
+                if isinstance(data, dict) and data.get("tickers"):
+                    st.caption(f"• {theme}: {', '.join(data['tickers'][:8])}")
+
+# ═══════════════════════════════════════════════════════════════════
+# US STOCKS
+# ═══════════════════════════════════════════════════════════════════
 if page == "🇺🇸 US Stocks":
     st.markdown("## 🇺🇸 US Stocks")
     st.caption("US equity signals with options, COT, and front-run catalysts")
@@ -1408,6 +1471,9 @@ if page == "🇺🇸 US Stocks":
     if not rows:
         st.info("No signals. Run Full Rebuild.")
 
+# ═══════════════════════════════════════════════════════════════════
+# FOREX
+# ═══════════════════════════════════════════════════════════════════
 if page == "💱 Forex":
     st.markdown("## 💱 Forex")
     st.caption("FX signals with DXY correlation and macro triggers")
@@ -1429,6 +1495,9 @@ if page == "💱 Forex":
     if not rows:
         st.info("No signals. Run Full Rebuild.")
 
+# ═══════════════════════════════════════════════════════════════════
+# COMMODITIES
+# ═══════════════════════════════════════════════════════════════════
 if page == "🪙 Commodities":
     st.markdown("## 🪙 Commodities")
     st.caption("Commodity signals with supply chain and macro triggers")
@@ -1450,6 +1519,9 @@ if page == "🪙 Commodities":
     if not rows:
         st.info("No signals. Run Full Rebuild.")
 
+# ═══════════════════════════════════════════════════════════════════
+# CRYPTO
+# ═══════════════════════════════════════════════════════════════════
 if page == "₿ Crypto":
     st.markdown("## ₿ Crypto")
     st.caption("Crypto signals with on-chain and halving cycle front-run")
@@ -1471,6 +1543,9 @@ if page == "₿ Crypto":
     if not rows:
         st.info("No signals. Run Full Rebuild.")
 
+# ═══════════════════════════════════════════════════════════════════
+# IHSG
+# ═══════════════════════════════════════════════════════════════════
 if page == "🇮🇩 IHSG":
     st.markdown("## 🇮🇩 IHSG")
     st.caption("Indonesia stock signals with sector momentum and macro overlays")
@@ -1487,87 +1562,32 @@ if page == "🇮🇩 IHSG":
     else:
         st.info("No signals. Run Full Rebuild.")
 
-if page == "🌏 Global & EM":
-    st.markdown("## 🌏 Global & EM")
-    st.caption("Global and emerging market signals")
-    st.divider()
-    st.info("🚧 Global & EM tab under construction. Add tickers to config.settings.US_BUCKETS['global_em']")
-
-if page == "🎨 Themes":
-    st.markdown("## 🎨 Themes")
-    st.caption("Thematic baskets and sector rotation signals")
-    st.divider()
-    st.info("🚧 Themes tab under construction. Add thematic tickers to config.settings.US_BUCKETS['themes']")
-    # Discovery v3 thematic display
-    if discovery_v3:
-        st.markdown("### 🔍 Discovery v3 — Bottleneck Scanner")
-        for theme, data in discovery_v3.items():
-            if isinstance(data, dict) and data.get("tickers"):
-                with st.expander(f"{theme} ({len(data['tickers'])} tickers)", expanded=False):
-                    st.write(data.get("description", "No description"))
-                    st.caption(f"Tickers: {', '.join(data['tickers'][:10])}")
-
-if page == "📖 Playbook":
-    st.markdown("## 📖 Playbook")
-    st.caption("Regime-based trading rules and tactical guidance")
-    st.divider()
-    if gip:
-        sq = gip.structural_quad
-        mq = gip.monthly_quad
-        st.markdown(f"### Current Regime: {qn(sq)} / {qn(mq)}")
-        st.info(QUAD_EXPLAIN.get(sq, "No explanation available"))
-        st.markdown(f"**Winners:** {QWINS.get(sq, '—')}")
-        st.markdown(f"**Losers:** Avoid {QWINS.get(mq, '—')}")
-    else:
-        st.info("No GIP data. Run Full Rebuild.")
-    st.divider()
-    st.markdown("### 🎯 Tactical Rules")
-    st.markdown("""
-    **Q1 Goldilocks:** Buy dips, normal size. Tech + crypto lead.
-    **Q2 Reflation:** Commodity + energy overweight. Tighten stops.
-    **Q3 Stagflation:** Gold + silver + defensives. Reduce equity beta.
-    **Q4 Deflation:** Bonds + gold + cash. Avoid risk assets.
-    """)
-
-if page == "🔬 GIP Model":
-    st.markdown("## 🔬 GIP Model")
-    st.caption("Growth + Inflation + Policy model output")
-    st.divider()
-    if gip:
-        st.markdown("### Regime Probabilities")
-        probs = gip.quarterly_probs if hasattr(gip, "quarterly_probs") else {}
-        if probs:
-            fig = prob_bar(probs, "Quarterly Probabilities")
-            st.plotly_chart(fig, use_container_width=True)
-        st.markdown("### Monthly Probabilities")
-        mprobs = gip.monthly_probs if hasattr(gip, "monthly_probs") else {}
-        if mprobs:
-            fig = prob_bar(mprobs, "Monthly Probabilities")
-            st.plotly_chart(fig, use_container_width=True)
-        st.markdown("### Key Drivers")
-        drivers = gip.drivers if hasattr(gip, "drivers") else []
-        for d in drivers:
-            st.markdown(f"- {d}")
-    else:
-        st.info("No GIP data. Run Full Rebuild.")
-
+# ═══════════════════════════════════════════════════════════════════
+# ALPHA CENTER — FIXED v27.1
+# ═══════════════════════════════════════════════════════════════════
 if page == "⚡ Alpha Center":
     st.markdown("## ⚡ Alpha Center")
-    st.caption("Bottlenecks - Alpha - Discovery - Daily Signals - Front-Run")
+    st.caption("Bottlenecks · Alpha · Discovery · Daily Signals · Front-Run")
     st.divider()
-    # ── FIX v27.0: Define ac and meta properly ──
+
+    # FIX: Define ac and meta properly
     alpha_center = snap.get("alpha_center", {}) or {}
     ac = alpha_center
     meta = alpha_center.get("meta", {}) if alpha_center else {}
+
     if not ac or not meta:
-        st.warning("Alpha Center data not available. Run Full Rebuild."); st.stop()
+        st.warning("Alpha Center data not available. Run Full Rebuild.")
+        st.stop()
+
     # ── Meta Bar ──
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Regime", meta.get("regime", "?"))
     c2.metric("Bias", meta.get("bias", "?"))
     c3.metric("VIX", meta.get("vix", "?"))
     c4.metric("Total", meta.get("total_items", 0))
+
     st.divider()
+
     # ── Flight Board ──
     st.markdown("### ✈️ Flight Board")
     flights = ac.get("flights", {})
@@ -1585,7 +1605,9 @@ if page == "⚡ Alpha Center":
                         st.caption(f"{item.get('signal', '—')} | RR {item.get('rr', 0):.1f}x")
     else:
         st.info("No flight board data.")
+
     st.divider()
+
     # ── Alpha Table with Front-Run Scores ──
     st.markdown("### 📋 Alpha Table")
     alpha_items = ac.get("items", [])
@@ -1609,7 +1631,9 @@ if page == "⚡ Alpha Center":
         st.dataframe(df, use_container_width=True, hide_index=True)
     else:
         st.info("No alpha items. Run Full Rebuild.")
+
     st.divider()
+
     # ── Discovery v3 ──
     st.markdown("### 🔍 Discovery v3")
     if discovery_v3:
@@ -1622,6 +1646,9 @@ if page == "⚡ Alpha Center":
     else:
         st.info("No discovery data.")
 
+# ═══════════════════════════════════════════════════════════════════
+# ADMIN
+# ═══════════════════════════════════════════════════════════════════
 if page == "🔧 Admin":
     st.markdown("## 🔧 Admin")
     st.caption("System status and diagnostics")
@@ -1638,4 +1665,3 @@ if page == "🔧 Admin":
     st.markdown("### Price Data Keys")
     st.write(list(prices.keys())[:20])
     st.caption(f"Total: {len(prices)} tickers")
-

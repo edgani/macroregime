@@ -1902,13 +1902,13 @@ elif page == "⚡ Alpha Center":
             if "NEGATIVE" in str(val): return "color:var(--short);"
             return ""
 
+        # SAFE dataframe — no background_gradient (causes NaN crash)
         st.dataframe(
             df_filtered.style
                 .map(_priority_color, subset=["Priority"])
                 .map(_conviction_color, subset=["Conviction"])
                 .map(_gamma_color, subset=["Gamma"])
-                .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=4 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=3 else ""), subset=["⭐"])
-                .background_gradient(subset=["MaxPainDist"], cmap="RdYlGn", vmin=-0.1, vmax=0.1),
+                .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=4 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=3 else ""), subset=["⭐"]),
             width="stretch", hide_index=True, height=420
         )
 
@@ -2114,19 +2114,7 @@ elif page == "🇺🇸 US Stocks":
     longs, shorts = _split_long_short(us_rows)
 
     all_us = longs + shorts
-    if all_us:
-        df_us = _consolidated_to_df(all_us)
-        df_us_display = df_us.copy()
-        for col in ["Price", "Entry", "T1", "T2", "Stop", "RR"]:
-            if col in df_us_display.columns:
-                df_us_display[col] = df_us_display[col].apply(lambda x: round(x, 2) if pd.notna(x) and isinstance(x, (int, float)) else "—")
-        st.dataframe(
-            df_us_display.style
-                .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["YES","BUY NOW"]) else ("color:var(--short);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["NO","SKIP"]) else ("color:var(--neutral);font-weight:600;" if isinstance(x,str) and any(y in x.upper() for y in ["WAIT","CHASE","SMALL"]) else "")), subset=["Worth?"])
-                .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=2.0 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=1.5 else ""), subset=["RR"]),
-            width="stretch", hide_index=True, height=320
-        )
-    else:
+    if not all_us:
         st.info("No US stock setups.")
 
     # ── TICKER DETAIL REPORTS ──
@@ -2164,19 +2152,7 @@ elif page == "💱 Forex":
         if row: fx_rows.append(row)
     longs, shorts = _split_long_short(fx_rows)
     all_fx = longs + shorts
-    if all_fx:
-        df_fx = _consolidated_to_df(all_fx)
-        df_fx_display = df_fx.copy()
-        for col in ["Price", "Entry", "T1", "T2", "Stop", "RR"]:
-            if col in df_fx_display.columns:
-                df_fx_display[col] = df_fx_display[col].apply(lambda x: round(x, 4) if pd.notna(x) and isinstance(x, (int, float)) else "—")
-        st.dataframe(
-            df_fx_display.style
-                .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["YES","BUY NOW"]) else ("color:var(--short);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["NO","SKIP"]) else ("color:var(--neutral);font-weight:600;" if isinstance(x,str) and any(y in x.upper() for y in ["WAIT","CHASE","SMALL"]) else "")), subset=["Worth?"])
-                .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=2.0 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=1.5 else ""), subset=["RR"]),
-            width="stretch", hide_index=True, height=260
-        )
-    else:
+    if not all_fx:
         st.info("No forex setups.")
     # ── TICKER DETAIL REPORTS ──
     if all_fx:
@@ -2203,19 +2179,7 @@ elif page == "🛢️ Commodities":
         if row: comm_rows.append(row)
     longs, shorts = _split_long_short(comm_rows)
     all_comm = longs + shorts
-    if all_comm:
-        df_comm = _consolidated_to_df(all_comm)
-        df_comm_display = df_comm.copy()
-        for col in ["Price", "Entry", "T1", "T2", "Stop", "RR"]:
-            if col in df_comm_display.columns:
-                df_comm_display[col] = df_comm_display[col].apply(lambda x: round(x, 2) if pd.notna(x) and isinstance(x, (int, float)) else "—")
-        st.dataframe(
-            df_comm_display.style
-                .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["YES","BUY NOW"]) else ("color:var(--short);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["NO","SKIP"]) else ("color:var(--neutral);font-weight:600;" if isinstance(x,str) and any(y in x.upper() for y in ["WAIT","CHASE","SMALL"]) else "")), subset=["Worth?"])
-                .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=2.0 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=1.5 else ""), subset=["RR"]),
-            width="stretch", hide_index=True, height=260
-        )
-    else:
+    if not all_comm:
         st.info("No commodity setups.")
     # ── TICKER DETAIL REPORTS ──
     if all_comm:
@@ -2268,21 +2232,7 @@ elif page == "₿ Crypto":
     longs, shorts = _split_long_short(crypto_rows)
 
     all_crypto = longs + shorts
-    if all_crypto:
-        df_crypto = _consolidated_to_df(all_crypto)
-        df_crypto["On-Chain"] = [r.get("onchain_signal","-") for r in all_crypto]
-        df_crypto["TVL 7D"] = [f"{r.get('tvl_7d',0):+.1%}" if r.get('tvl_7d') is not None else "-" for r in all_crypto]
-        df_crypto_display = df_crypto.copy()
-        for col in ["Price", "Entry", "T1", "T2", "Stop", "RR"]:
-            if col in df_crypto_display.columns:
-                df_crypto_display[col] = df_crypto_display[col].apply(lambda x: round(x, 2) if pd.notna(x) and isinstance(x, (int, float)) else "—")
-        st.dataframe(
-            df_crypto_display.style
-                .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["YES","BUY NOW"]) else ("color:var(--short);font-weight:700;" if isinstance(x,str) and any(y in x.upper() for y in ["NO","SKIP"]) else ("color:var(--neutral);font-weight:600;" if isinstance(x,str) and any(y in x.upper() for y in ["WAIT","CHASE","SMALL"]) else "")), subset=["Worth?"])
-                .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=2.0 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=1.5 else ""), subset=["RR"]),
-            width="stretch", hide_index=True, height=260
-        )
-    else:
+    if not all_crypto:
         st.info("No crypto setups.")
 
     # ── TICKER DETAIL REPORTS ──
@@ -2408,33 +2358,15 @@ elif page == "🌍 Global & EM":
             row = _build_ihsg_row(ticker, prices, ar, ihsg_sector_momentum, ihsg_commodity_overlay, ihsg_rupiah_regime, ihsg_foreign_flow, ihsg_macro_overlay, forward_returns, news_narratives)
             if row: ihsg_rows.append(row)
 
-        if ihsg_rows:
-            df_ihsg = pd.DataFrame([{
-                "Ticker": r["ticker"], "Sector": r.get("sector","-"), "Price": r["price"], "Entry": r.get("entry"),
-                "T1": r.get("target_1"), "T2": r.get("target_2"), "Stop": r.get("stop"),
-                "RR": r.get("rr",0), "1M": fp(r.get("r1m")), "3M": fp(r.get("r3m")),
-                "Signal": r.get("signal","-"), "Grade": r.get("grade","C"),
-                "Thesis": r.get("recommendation","-")[:50],
-            } for r in ihsg_rows])
-            df_ihsg_display = df_ihsg.copy()
-            for col in ["Price", "Entry", "T1", "T2", "Stop", "RR"]:
-                if col in df_ihsg_display.columns:
-                    df_ihsg_display[col] = df_ihsg_display[col].apply(lambda x: round(x, 2) if pd.notna(x) and isinstance(x, (int, float)) else "—")
-            st.dataframe(
-                df_ihsg_display.style
-                    .map(lambda x: "color:var(--long);font-weight:700;" if x=="BUY" else ("color:var(--short);font-weight:700;" if x=="SELL" else ""), subset=["Signal"])
-                    .map(lambda x: "color:var(--long);font-weight:700;" if x in ["A","A+"] else ("color:var(--neutral);font-weight:600;" if x=="B" else ""), subset=["Grade"])
-                    .map(lambda x: "color:var(--long);font-weight:700;" if isinstance(x,(int,float)) and x>=2.0 else ("color:var(--neutral);font-weight:600;" if isinstance(x,(int,float)) and x>=1.5 else ""), subset=["RR"]),
-                width="stretch", hide_index=True, height=280
-            )
-            # ── TICKER DETAIL REPORTS ──
-            if ihsg_rows:
-                st.markdown("### 📋 Ticker Detail Reports")
-                st.caption("Expand any ticker for full setup: Risk Range · Sector Context · Thesis")
-                for i, row in enumerate(ihsg_rows):
-                    _render_narrative_card_native(row, i, "ihsg")
-        else:
+        if not ihsg_rows:
             st.info("No IHSG setups.")
+
+        # ── TICKER DETAIL REPORTS ──
+        if ihsg_rows:
+            st.markdown("### 📋 Ticker Detail Reports")
+            st.caption("Expand any ticker for full setup: Risk Range · Sector Context · Thesis")
+            for i, row in enumerate(ihsg_rows):
+                _render_narrative_card_native(row, i, "ihsg")
 
         # Structural Diagnostics
         st.markdown("### 🔬 Structural Diagnostics")

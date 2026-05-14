@@ -1522,7 +1522,7 @@ odte_monitor = snap.get("odte_monitor", {}) or {}
 skew_term = snap.get("skew_term", {}) or {}
 reflexivity = snap.get("reflexivity", {}) or {}
 boom_bust = snap.get("boom_bust", {}) or {}
-conviction_sizing = snap.get("conviction_sizing", {}) or {}
+conviction_sizing = {}  # Disabled per user request
 vanna_charm_flows = snap.get("vanna_charm_flows", {}) or {}
 
 # Phase 2 & 3 new keys
@@ -2884,20 +2884,6 @@ elif page == "⚡ Alpha Center":
 
 
     # ── CONVICTION SIZING (SOROS) ──
-    if conviction_sizing:
-        st.markdown("### 🎯 Conviction Sizing — Soros Framework")
-        st.caption("Size = f(grade, RR, entry quality, gamma, boom-bust stage, reflexivity)")
-        sizing_rows = []
-        for t, s in list(conviction_sizing.items())[:15]:
-            sizing_rows.append({
-                "Ticker": t,
-                "Mode": s.get("mode", "-"),
-                "Size %": s.get("size_pct", 0),
-                "$ Size": s.get("size_dollar", 0),
-                "Rationale": s.get("rationale", "")[:50],
-            })
-        if sizing_rows:
-            st.dataframe(pd.DataFrame(sizing_rows), width='stretch', hide_index=True)
 
 elif page == "🇺🇸 US Stocks":
     st.markdown("## 🇺🇸 US Stocks")

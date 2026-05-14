@@ -1211,8 +1211,12 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             except Exception as e:
                 logger.warning(f"Price load attempt {attempt+1}/{max_retries} failed: {e}")
                 result["errors"].append(f"prices attempt {attempt+1}: {e}")
+                # Stop retrying if rate limited
+                if "Rate limit" in str(e) or "Too Many Requests" in str(e) or "429" in str(e):
+                    logger.warning("Rate limit detected during price load — using cache/synthetic fallback")
+                    break
             if attempt < max_retries - 1:
-                backoff = 2 ** attempt
+                backoff = 2 ** attempt + 3  # Extra delay for cloud rate limits
                 logger.info(f"Backing off {backoff}s before retry...")
                 time.sleep(backoff)
 
@@ -1321,11 +1325,14 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
 
         _safe_progress(progress_cb, "Running 0DTE Monitor (Cem Karsan)...", 0.32)
         try:
-            odte = run_odte_monitor(["SPY", "QQQ", "IWM", "GLD", "TLT"], prices)
+            # Reduced to 3 core tickers to avoid Yahoo rate limit on cloud
+            odte = run_odte_monitor(["SPY", "QQQ", "IWM"], prices)
             result["odte_monitor"] = odte
         except Exception as e:
             logger.warning(f"0DTE monitor failed: {e}")
             result["errors"].append(f"odte: {e}")
+            # Fallback proxy
+            result["odte_monitor"] = {"expiry": "Weekly", "tickers": {}, "cascade_warning": False, "summary": "0DTE unavailable — rate limit"}
 
         _safe_progress(progress_cb, "Running Skew Term Structure...", 0.34)
         try:
@@ -1378,16 +1385,21 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         if YFinanceOptionsEngine is not None:
             try:
                 yf_engine = YFinanceOptionsEngine()
-                key_tickers = [t for t in ["SPY","QQQ","IWM","GLD","TLT","NVDA","AAPL","MSFT","AMZN","TSLA"] if t in prices][:8]
+                # Reduced to 3 core tickers + longer delay to avoid Yahoo rate limit on cloud
+                key_tickers = [t for t in ["SPY","QQQ","IWM"] if t in prices][:3]
                 for i, ticker in enumerate(key_tickers):
                     if i > 0:
-                        time.sleep(1.5)
+                        time.sleep(3.0)  # Aggressive delay for Yahoo rate limit
                     try:
                         opt = yf_engine.analyze(ticker)
                         if opt and opt.get("ok"):
                             yfinance_options_data[ticker] = opt
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.warning(f"Options fetch failed for {ticker}: {e}")
+                        # Stop trying if rate limited
+                        if "Rate limit" in str(e) or "Too Many Requests" in str(e):
+                            logger.warning("Yahoo rate limit detected — skipping remaining options fetch")
+                            break
             except Exception as e:
                 logger.error(f"YFinanceOptionsEngine failed: {e}")
         result["yfinance_options"] = yfinance_options_data

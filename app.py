@@ -1322,6 +1322,16 @@ meta = alpha_center.get("meta", {}) if alpha_center else {}
 crypto_center = snap.get("crypto_center", {}) or {}
 
 
+# NEW v27.2 DATA EXTRACTION
+behavioral_macro = snap.get("behavioral_macro", {}) or {}
+odte_monitor = snap.get("odte_monitor", {}) or {}
+skew_term = snap.get("skew_term", {}) or {}
+reflexivity = snap.get("reflexivity", {}) or {}
+boom_bust = snap.get("boom_bust", {}) or {}
+conviction_sizing = snap.get("conviction_sizing", {}) or {}
+vanna_charm_flows = snap.get("vanna_charm_flows", {}) or {}
+
+
 def _render_crypto_card_compact(row, idx=0):
     """Compact crypto ticker card with Attachment 3 on-chain data inline."""
     ticker = row.get("ticker", "UNKNOWN")
@@ -1551,22 +1561,39 @@ if page == "🏠 Dashboard":
     </div>
     """, unsafe_allow_html=True)
 
-    # ── ROW 0b: BEHAVIORAL MACRO LENS (Lamoureux) ──
+        # ── ROW 0b: BEHAVIORAL MACRO LENS (Lamoureux) — LIVE v27.2 ──
     st.markdown("### 🎰 Behavioral Macro Lens")
     st.caption("Lamoureux framework: sentiment extremes + contrarian positioning + structural vs transitory")
+
+    bm = behavioral_macro
+    yves = bm.get("yves", {}) if bm else {}
+    yves_alert = yves.get("alert")
+    yves_level = yves.get("alert_level", "NONE")
+
+    # YVES ALERT BANNER (if active)
+    if yves_alert and yves_level in ("CRITICAL", "OPPORTUNITY", "WARNING"):
+        banner_color = "#F85149" if yves_level == "CRITICAL" else "#3FB950" if yves_level == "OPPORTUNITY" else "#D29922"
+        st.markdown(f"""
+        <div style="background:{banner_color}22;border:2px solid {banner_color};border-radius:8px;padding:12px 16px;margin:8px 0;">
+          <div style="font-size:14px;font-weight:700;color:{banner_color};">🚨 YVES ALERT: {yves_level}</div>
+          <div style="font-size:12px;color:#E6EDF3;margin-top:4px;">{yves_alert}</div>
+          <div style="font-size:10px;color:var(--text-secondary);margin-top:4px;">Action: {yves.get("action","—")} | Spread: {yves.get("spread",0)}</div>
+        </div>
+        """, unsafe_allow_html=True)
+
     bm1, bm2, bm3 = st.columns(3)
     with bm1:
         vix_val = health.get("vix_bucket", {}).get("vix_last", 18) if health else 18
-        aaii_bull = 0.25
-        aaii_bear = 0.45
-        if aaii_bear > 0.40 and vix_val > 25:
+        aaii_bull = bm.get("bullish", 30) if bm else 30
+        aaii_bear = bm.get("bearish", 30) if bm else 30
+        if aaii_bear > 40 and vix_val > 25:
             risk_status = "🟢 RISK-ON"
             risk_color = "var(--long)"
             risk_sub = "Extreme fear = contrarian buy"
-        elif aaii_bull > 0.50 and vix_val < 15:
+        elif aaii_bull > 50 and vix_val < 18:
             risk_status = "🔴 RISK-OFF"
             risk_color = "var(--short)"
-            risk_sub = "Casino behavior = raise cash"
+            risk_sub = "Casino behavior = raise cash (Yves)"
         else:
             risk_status = "🟡 CAUTION"
             risk_color = "var(--neutral)"
@@ -1576,10 +1603,11 @@ if page == "🏠 Dashboard":
           <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">RISK STATE</div>
           <div style="font-size:18px;font-weight:700;color:{risk_color};margin:4px 0;">{risk_status}</div>
           <div style="font-size:11px;color:var(--text-secondary);">{risk_sub}</div>
+          <div style="font-size:9px;color:var(--text-muted);margin-top:4px;">Bull {aaii_bull:.0f}% · Bear {aaii_bear:.0f}%</div>
         </div>
         """, unsafe_allow_html=True)
     with bm2:
-        sentiment_score = round((aaii_bull - aaii_bear) * 2, 2)
+        sentiment_score = round((aaii_bull - aaii_bear) * 2, 2) if bm else 0
         if sentiment_score < -0.5:
             sent_color = "var(--long)"; sent_text = "EXTREME FEAR (Bullish contrarian)"
         elif sentiment_score > 0.5:
@@ -1594,8 +1622,7 @@ if page == "🏠 Dashboard":
         </div>
         """, unsafe_allow_html=True)
     with bm3:
-        dgs10 = 4.5
-        t5yie = 2.4
+        dgs10 = 4.5; t5yie = 2.4
         try:
             if fred and "DGS10" in fred:
                 dgs10 = float(fred["DGS10"].dropna().iloc[-1])
@@ -1617,10 +1644,10 @@ if page == "🏠 Dashboard":
           <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">BOND TRADERS</div>
           <div style="font-size:18px;font-weight:700;color:{asleep_color};margin:4px 0;">{asleep}</div>
           <div style="font-size:11px;color:var(--text-secondary);">{asleep_sub}</div>
+          <div style="font-size:9px;color:var(--text-muted);margin-top:4px;">Real Yield: {real_yield:.2f}%</div>
         </div>
         """, unsafe_allow_html=True)
-
-    # ── ROW 1: COMPACT KPI (7 columns, minimal) ──
+# ── ROW 1: COMPACT KPI (7 columns, minimal) ──
     k1, k2, k3, k4, k5, k6, k7 = st.columns(7)
     with k1: st.metric("Q", sq, qn(sq), delta_color="off")
     with k2: st.metric("M", mq, qn(mq), delta_color="off")
@@ -2031,7 +2058,97 @@ if page == "🏠 Dashboard":
 
     st.caption(f"Built {snap.get('build_time_s',0):.0f}s ago · {snap.get('prices_loaded',0)} assets · {snap.get('fred_coverage',0)} indicators · {news_narratives.get('analyzed_count',0)} headlines scanned")
 
-    # ── HEALTH FOOTER ──
+        # ── ROW 11: SOROS REFLEXIVITY + BOOM-BUST ──
+    st.markdown("### 🧠 Soros Reflexivity & Boom-Bust Stage")
+    rb1, rb2, rb3 = st.columns(3)
+    with rb1:
+        bb_stage = boom_bust.get("stage", "INCEPTION") if boom_bust else "INCEPTION"
+        bb_conf = boom_bust.get("stage_confidence", 0.5) if boom_bust else 0.5
+        bb_desc = boom_bust.get("current_description", "") if boom_bust else ""
+        bb_color = {"INCEPTION":"#8B949E","ACCELERATION":"#D29922","TEST":"#D29922",
+                    "SURVIVAL":"#3FB950","MOMENT_OF_TRUTH":"#F85149","TWILIGHT":"#F85149",
+                    "TIP_POINT":"#A371F7","CRISIS":"#F85149"}.get(bb_stage, "#8B949E")
+        st.markdown(f"""
+        <div style="background:var(--bg-card);border:1px solid {bb_color};border-radius:8px;padding:10px;text-align:center;">
+          <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">BOOM-BUST STAGE</div>
+          <div style="font-size:16px;font-weight:700;color:{bb_color};margin:4px 0;">{bb_stage}</div>
+          <div style="font-size:10px;color:var(--text-secondary);">Conf: {bb_conf:.0%}</div>
+          <div style="font-size:9px;color:var(--text-muted);margin-top:4px;">{bb_desc[:60]}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with rb2:
+        sb_score = reflexivity.get("super_bubble_score", 5.0) if reflexivity else 5.0
+        sb_stage = reflexivity.get("stage", "INCEPTION") if reflexivity else "INCEPTION"
+        sb_color = "#F85149" if sb_score > 7 else "#D29922" if sb_score > 5 else "#3FB950"
+        st.markdown(f"""
+        <div style="background:var(--bg-card);border:1px solid {sb_color};border-radius:8px;padding:10px;text-align:center;">
+          <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">SUPER-BUBBLE SCORE</div>
+          <div style="font-size:24px;font-weight:700;color:{sb_color};margin:4px 0;">{sb_score:.1f}/10</div>
+          <div style="font-size:10px;color:var(--text-secondary);">Stage: {sb_stage}</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with rb3:
+        div_idx = reflexivity.get("divergence_index", 0) if reflexivity else 0
+        div_color = "var(--short)" if div_idx > 1 else "var(--long)" if div_idx < -1 else "var(--neutral)"
+        st.markdown(f"""
+        <div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:8px;padding:10px;text-align:center;">
+          <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:0.5px;">REFLEXIVITY GAP</div>
+          <div style="font-size:18px;font-weight:700;color:{div_color};margin:4px 0;">{div_idx:+.2f}</div>
+          <div style="font-size:10px;color:var(--text-secondary);">Price vs Credit Reality</div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # ── ROW 12: CEM KARSAN 0DTE + VANNA/CHARM ──
+    st.markdown("### ⚡ Cem Karsan Market Structure")
+    odte = odte_monitor
+    if odte and odte.get("tickers"):
+        st.caption(f"0DTE Expiry: {odte.get('expiry','-')} | {odte.get('summary','')}")
+        if odte.get("cascade_warning"):
+            st.error(f"🔴 0DTE CASCADE WARNING — Door size ratio: {odte.get('door_size_ratio',0)}")
+        oc1, oc2, oc3, oc4 = st.columns(4)
+        pin_list = odte.get("pin_risk_tickers", [])[:4]
+        for idx, t in enumerate(pin_list):
+            t_data = odte.get("tickers", {}).get(t, {})
+            with [oc1, oc2, oc3, oc4][idx]:
+                pin_risk = t_data.get("pin_risk", 0)
+                pin_color = "#F85149" if pin_risk > 0.4 else "#D29922" if pin_risk > 0.25 else "#3FB950"
+                st.markdown(f"""
+                <div style="background:var(--bg-card);border:1px solid {pin_color};border-radius:6px;padding:8px;text-align:center;">
+                  <div style="font-size:10px;color:var(--text-secondary);">{t}</div>
+                  <div style="font-size:14px;font-weight:700;color:{pin_color};">PIN {pin_risk:.0%}</div>
+                  <div style="font-size:9px;color:var(--text-muted);">γ {t_data.get('net_gamma',0):.0e}</div>
+                </div>
+                """, unsafe_allow_html=True)
+
+    # Vanna / Charm mini cards
+    if vanna_charm_flows:
+        st.markdown("**Vanna & Charm Flows**")
+        vc_cols = st.columns(min(4, len(vanna_charm_flows)))
+        for idx, (ticker, vc) in enumerate(list(vanna_charm_flows.items())[:4]):
+            with vc_cols[idx]:
+                sig = vc.get("combined_signal", "NEUTRAL")
+                color = vc.get("combined_color", "#8B949E")
+                st.markdown(f"""
+                <div style="background:var(--bg-card);border:1px solid {color};border-radius:6px;padding:8px;text-align:center;">
+                  <div style="font-size:10px;color:var(--text-secondary);">{ticker}</div>
+                  <div style="font-size:12px;font-weight:700;color:{color};margin:2px 0;">{sig}</div>
+                  <div style="font-size:9px;color:var(--text-muted);">Score: {vc.get('combined_score',0):.1f}</div>
+                </div>
+                """, unsafe_allow_html=True)
+                if vc.get("cem_quote"):
+                    st.caption(f"💡 {vc['cem_quote']}")
+
+    # ── ROW 13: SKEW TERM STRUCTURE ──
+    if skew_term and skew_term.get("skew_data"):
+        st.markdown("### 📐 Skew Term Structure (30D vs 60D)")
+        sk = skew_term
+        if sk.get("rich_30d"):
+            st.markdown(f'<span class="badge badge-short">30D RICH: {", ".join(sk["rich_30d"][:5])}</span>', unsafe_allow_html=True)
+        if sk.get("cheap_30d"):
+            st.markdown(f'<span class="badge badge-long">30D CHEAP: {", ".join(sk["cheap_30d"][:5])}</span>', unsafe_allow_html=True)
+        st.caption(f"Regime: {sk.get('term_regime','-')} | {sk.get('summary','')}")
+
+# ── HEALTH FOOTER ──
     st.divider()
     hf1, hf2, hf3, hf4, hf5 = st.columns(5)
     hf1.metric("Assets", snap.get("prices_loaded",0), delta=f"{len(ar)} ranges", delta_color="off")
@@ -2399,6 +2516,23 @@ elif page == "⚡ Alpha Center":
                 st.markdown("**📰 News Signal**")
                 st.markdown(f'<div class="news-ticker">{c["news_headline"][:120]}</div>', unsafe_allow_html=True)
                 st.caption(f"Signal: {c.get('news_signal', '-')} | Sentiment: {c.get('news_sentiment', 0):+.2f}")
+
+
+    # ── CONVICTION SIZING (SOROS) ──
+    if conviction_sizing:
+        st.markdown("### 🎯 Conviction Sizing — Soros Framework")
+        st.caption("Size = f(grade, RR, entry quality, gamma, boom-bust stage, reflexivity)")
+        sizing_rows = []
+        for t, s in list(conviction_sizing.items())[:15]:
+            sizing_rows.append({
+                "Ticker": t,
+                "Mode": s.get("mode", "-"),
+                "Size %": s.get("size_pct", 0),
+                "$ Size": s.get("size_dollar", 0),
+                "Rationale": s.get("rationale", "")[:50],
+            })
+        if sizing_rows:
+            st.dataframe(pd.DataFrame(sizing_rows), use_container_width=True, hide_index=True)
 
 elif page == "🇺🇸 US Stocks":
     st.markdown("## 🇺🇸 US Stocks")

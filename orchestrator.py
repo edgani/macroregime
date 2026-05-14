@@ -1,10 +1,5 @@
-"""orchestrator.py - MacroRegime Data Orchestrator v27.1 CRYPTO-ENHANCED
-Patched: News & Rumor Engine + On-Chain Alpha Center (free APIs)
-- Alpha Center: fallback from price action + bottleneck engine + NEWS BOOST
-- Crypto: on-chain proxy data (TVL, momentum, vol) + LIVE market structure (funding, OI, narrative)
-- Global & EM: 50-country live-enriched map + IHSG structural layers
-- Risk Ranges: fallback proxy when engine fails
-- All engines: graceful degradation with synthetic data
+"""orchestrator.py - MacroRegime Data Orchestrator v27.2 ULTIMATE
+Patched: Yves Behavioral + Cem Karsan 0DTE/Vanna/Charm/Skew + Soros Reflexivity/Boom-Bust/Sizing
 """
 from __future__ import annotations
 from types import SimpleNamespace
@@ -16,9 +11,6 @@ import pandas as pd
 import numpy as np
 import json
 
-# ------------------------------------------------------------------
-# Bottleneck Reference — static research data from 6 accounts
-# ------------------------------------------------------------------
 _BOTTLENECK_REF = None
 def _load_bottleneck_ref():
     global _BOTTLENECK_REF
@@ -31,10 +23,6 @@ def _load_bottleneck_ref():
         _BOTTLENECK_REF = {}
     return _BOTTLENECK_REF or {}
 
-
-# ------------------------------------------------------------------
-# Logging setup FIRST
-# ------------------------------------------------------------------
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)-7s | %(name)s | %(message)s",
@@ -42,9 +30,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger("orchestrator")
 
-# ------------------------------------------------------------------
-# Safe progress callback wrapper
-# ------------------------------------------------------------------
 def _safe_progress(cb, msg: str, pct: float):
     if cb is None:
         return
@@ -53,9 +38,6 @@ def _safe_progress(cb, msg: str, pct: float):
     except Exception:
         pass
 
-# ------------------------------------------------------------------
-# Imports with graceful degradation
-# ------------------------------------------------------------------
 try:
     from data.loader import load_prices, load_snapshot, save_snapshot, snapshot_age_str
 except Exception as e:
@@ -100,10 +82,11 @@ except Exception as e:
     GammaEngine = None
 
 try:
-    from engines.greeks_proxy import GreeksProxy
+    from engines.greeks_proxy import GreeksProxy, get_vanna_charm_flows
 except Exception as e:
     logger.error(f"Failed to import greeks_proxy: {e}")
     GreeksProxy = None
+    def get_vanna_charm_flows(*args, **kwargs): return {}
 
 try:
     from engines.bottleneck_engine import BottleneckEngine
@@ -120,6 +103,48 @@ except Exception as e:
             return {}
 
 try:
+    from engines.aaii_scraper import get_behavioral_macro
+except Exception as e:
+    logger.error(f"Failed to import aaii_scraper: {e}")
+    def get_behavioral_macro(*args, **kwargs):
+        return {"bullish": 30, "bearish": 30, "neutral": 40, "yves": {"alert": None, "alert_level": "NONE"}}
+
+try:
+    from engines.odte_monitor import run_odte_monitor
+except Exception as e:
+    logger.error(f"Failed to import odte_monitor: {e}")
+    def run_odte_monitor(*args, **kwargs):
+        return {"expiry": "-", "tickers": {}, "cascade_warning": False, "summary": "0DTE unavailable"}
+
+try:
+    from engines.skew_term_engine import run_skew_term
+except Exception as e:
+    logger.error(f"Failed to import skew_term_engine: {e}")
+    def run_skew_term(*args, **kwargs):
+        return {"skew_data": {}, "term_regime": "NORMAL"}
+
+try:
+    from engines.reflexivity_engine import run_reflexivity
+except Exception as e:
+    logger.error(f"Failed to import reflexivity_engine: {e}")
+    def run_reflexivity(*args, **kwargs):
+        return {"super_bubble_score": 5.0, "stage": "INCEPTION", "ticker_scores": {}}
+
+try:
+    from engines.boombust_engine import classify_stage
+except Exception as e:
+    logger.error(f"Failed to import boombust_engine: {e}")
+    def classify_stage(*args, **kwargs):
+        return {"stage": "INCEPTION", "stage_confidence": 0.5}
+
+try:
+    from engines.conviction_sizing import run_sizing
+except Exception as e:
+    logger.error(f"Failed to import conviction_sizing: {e}")
+    def run_sizing(*args, **kwargs):
+        return {}
+
+try:
     from config.settings import (
         US_SECTORS, US_FACTORS, FOREX_PAIRS, COMMODITIES, CRYPTO,
         BONDS, IHSG_UNIVERSE, MACRO_PROXIES, US_BUCKETS, IHSG_BUCKETS,
@@ -134,16 +159,12 @@ except Exception as e:
     US_BUCKETS = {}; IHSG_BUCKETS = {}; FX_BUCKETS = {}; COMMODITY_BUCKETS = {}; CRYPTO_BUCKETS = {}
     QUAD_ASSET_PERFORMANCE = {}; TICKER_SECTOR = {}; MARKET_CLASSIFICATION = {}; BOTTLENECK_PROFILES = {}
 
-# ------------------------------------------------------------------
-# News & Rumor Engine — Front-Run Market before headline
-# ------------------------------------------------------------------
 try:
     import requests
     import xml.etree.ElementTree as ET
     _has_requests = True
 except Exception:
     _has_requests = False
-    logger.warning("requests not available — news engine disabled")
 
 def _strip_html(text):
     if not text:
@@ -153,15 +174,13 @@ def _strip_html(text):
     return re.sub(clean, '', text)
 
 def _fetch_news_headlines(tickers: List[str], max_per_ticker: int = 5) -> Dict[str, List[dict]]:
-    """Scrape Yahoo Finance RSS headlines for tickers."""
     if not _has_requests:
         return {}
     headlines = {}
-    headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"}
+    headers = {"User-Agent": "Mozilla/5.0"}
     session = requests.Session()
     session.headers.update(headers)
-
-    for ticker in tickers[:80]:  # Limit to avoid rate limits
+    for ticker in tickers[:80]:
         try:
             url = f"https://finance.yahoo.com/rss/headline?s={ticker}"
             r = session.get(url, timeout=6)
@@ -189,7 +208,6 @@ def _fetch_news_headlines(tickers: List[str], max_per_ticker: int = 5) -> Dict[s
     return headlines
 
 def _analyze_news(headlines: Dict[str, List[dict]], prices: dict) -> dict:
-    """Extract sentiment, themes, rumors, and front-run signals."""
     bullish_kw = ["surge","soar","rally","bull","upgrade","beat","strong","growth","breakthrough","deal","partnership","ai","record","expansion","launch","approve","buyback","dividend","blockbuster","moon","rocket"]
     bearish_kw = ["crash","plunge","bear","downgrade","miss","weak","loss","layoff","investigation","fine","delay","recall","debt","bankrupt","cut","short","sell","dump","collapse","crisis"]
     rumor_kw = ["reportedly","rumor","speculation","considering","exploring","potential","may","might","could","planned","sources say","exclusive","breaking","leak","in talks","approaching","eyeing"]
@@ -203,18 +221,15 @@ def _analyze_news(headlines: Dict[str, List[dict]], prices: dict) -> dict:
         "biotech": ["fda","trial","drug","vaccine","biotech","pharma","approval"],
         "ev": ["ev","electric vehicle","tesla","battery","lithium","charging"],
     }
-
     ticker_news = {}
     rumor_watch = []
     narratives = []
-
     for ticker, items in headlines.items():
         if not items:
             continue
         bull_count = 0; bear_count = 0; rumor_count = 0
         themes = set()
         latest_titles = []
-
         for item in items:
             title_lower = item["title"].lower()
             latest_titles.append(item["title"])
@@ -224,12 +239,9 @@ def _analyze_news(headlines: Dict[str, List[dict]], prices: dict) -> dict:
             for theme, kws in theme_kw.items():
                 if any(kw in title_lower for kw in kws):
                     themes.add(theme)
-
         total_kw = bull_count + bear_count
         sentiment_score = (bull_count - bear_count) / max(total_kw, 1)
         rumor_score = min(rumor_count / max(len(items), 1), 1.0)
-
-        # Price momentum cross-check
         s = prices.get(ticker)
         r1m = None
         if s is not None and len(s) >= 22:
@@ -239,7 +251,6 @@ def _analyze_news(headlines: Dict[str, List[dict]], prices: dict) -> dict:
                     r1m = float(s_clean.iloc[-1] / s_clean.iloc[-22] - 1)
             except Exception:
                 pass
-
         front_run_signal = None
         if rumor_score > 0.4 and sentiment_score > 0.3:
             front_run_signal = "STRONG_BULLISH_RUMOR"
@@ -253,7 +264,6 @@ def _analyze_news(headlines: Dict[str, List[dict]], prices: dict) -> dict:
             front_run_signal = "NEGATIVE_HEADLINE_RISK"
         elif bull_count >= 3 and bear_count == 0:
             front_run_signal = "BULLISH_CLUSTER"
-
         ticker_news[ticker] = {
             "headlines": latest_titles[:3],
             "sentiment_score": round(sentiment_score, 2),
@@ -264,7 +274,6 @@ def _analyze_news(headlines: Dict[str, List[dict]], prices: dict) -> dict:
             "bull_count": bull_count,
             "bear_count": bear_count,
         }
-
         if front_run_signal:
             rumor_watch.append({
                 "ticker": ticker,
@@ -275,7 +284,6 @@ def _analyze_news(headlines: Dict[str, List[dict]], prices: dict) -> dict:
                 "headline": latest_titles[0] if latest_titles else "",
                 "r1m": r1m,
             })
-
         if themes and abs(sentiment_score) > 0.15:
             narratives.append({
                 "ticker": ticker,
@@ -283,8 +291,6 @@ def _analyze_news(headlines: Dict[str, List[dict]], prices: dict) -> dict:
                 "sentiment": sentiment_score,
                 "headline": latest_titles[0] if latest_titles else "",
             })
-
-    # Aggregate emergent narratives
     emergent = {}
     for n in narratives:
         theme = n["theme"]
@@ -294,14 +300,12 @@ def _analyze_news(headlines: Dict[str, List[dict]], prices: dict) -> dict:
         emergent[theme]["tickers"].append(n["ticker"])
         emergent[theme]["avg_sentiment"] += n["sentiment"]
         emergent[theme]["headlines"].append(n["headline"])
-
     for theme in emergent:
         count = emergent[theme]["mentions"]
         emergent[theme]["avg_sentiment"] = round(emergent[theme]["avg_sentiment"] / count, 2) if count > 0 else 0
         emergent[theme]["tickers"] = list(dict.fromkeys(emergent[theme]["tickers"]))[:10]
         emergent[theme]["headlines"] = emergent[theme]["headlines"][:5]
         emergent[theme]["supply_chain_hits"] = 0
-
     return {
         "ticker_specific": ticker_news,
         "emergent_narratives": [{"name": k, **v} for k, v in emergent.items()],
@@ -309,13 +313,7 @@ def _analyze_news(headlines: Dict[str, List[dict]], prices: dict) -> dict:
         "analyzed_count": sum(len(v) for v in headlines.values()),
     }
 
-
-# ------------------------------------------------------------------
-# Bottleneck ticker extraction for price universe enrichment
-# ------------------------------------------------------------------
 def _extract_bottleneck_tickers() -> List[str]:
-    """Pull ticker symbols from bottleneck_reference.json so proxy options
-    and price data are available for front-run candidates."""
     ref = _load_bottleneck_ref()
     tickers = set()
     for item in ref.get("consensus_heatmap", []):
@@ -334,7 +332,6 @@ def _extract_bottleneck_tickers() -> List[str]:
         t = ev.get("ticker", "")
         if t:
             tickers.add(t.replace("$", "").strip().upper())
-    # Filter out garbage / non-ticker strings
     clean = []
     for t in tickers:
         if not t or len(t) > 20 or t.startswith("http") or " " in t:
@@ -342,16 +339,13 @@ def _extract_bottleneck_tickers() -> List[str]:
         clean.append(t)
     return clean
 
-# ------------------------------------------------------------------
-# Ticker universe - FIXED: SPX->^GSPC, NASDAQ->^IXIC
-# ------------------------------------------------------------------
 def _all_tickers() -> List[str]:
     pools = [
         list(US_SECTORS.keys()), list(US_FACTORS.keys()),
         list(FOREX_PAIRS.keys()), list(COMMODITIES.keys()),
         list(CRYPTO.keys()), list(BONDS.keys()),
         list(IHSG_UNIVERSE.keys()), list(MACRO_PROXIES.keys()),
-        ["^VIX", "UUP", "EEM", "VWO", "^GSPC", "^IXIC"],
+        ["^VIX", "UUP", "EEM", "VWO", "^GSPC", "^IXIC", "VVIX"],
         _extract_bottleneck_tickers(),
     ]
     seen = set()
@@ -363,9 +357,6 @@ def _all_tickers() -> List[str]:
                 out.append(t)
     return out
 
-# ------------------------------------------------------------------
-# FRED Fallback - synthetic macro data
-# ------------------------------------------------------------------
 def _fred_fallback() -> Dict[str, pd.Series]:
     import numpy as np
     dates = pd.date_range(end=datetime.now(), periods=60, freq="MS")
@@ -387,9 +378,6 @@ def _fred_fallback() -> Dict[str, pd.Series]:
         "HOUST": pd.Series(np.linspace(1300, 1400, 60), index=dates, name="HOUST"),
     }
 
-# ------------------------------------------------------------------
-# Global Regime Fallback - 50-country base map
-# ------------------------------------------------------------------
 def _global_fallback(quad: str) -> dict:
     base_map = {
         "Q1": ["USA","Japan","India","Taiwan","South Korea","Vietnam","Mexico","Singapore","Philippines","Malaysia"],
@@ -409,11 +397,7 @@ def _global_fallback(quad: str) -> dict:
         "em_recovery": {"trigger": f"Q3 defensive - watch for {quad} rotation", "confidence": 0.4},
     }
 
-# ------------------------------------------------------------------
-# Crypto On-Chain Proxy - generate from price action
-# ------------------------------------------------------------------
 def _crypto_onchain_proxy(prices: dict) -> dict:
-    """Generate crypto token metrics from price data when DeFiLlama fails."""
     tokens = {}
     for ticker in list(CRYPTO.keys()):
         s = prices.get(ticker)
@@ -426,7 +410,6 @@ def _crypto_onchain_proxy(prices: dict) -> dict:
             with np.errstate(invalid='ignore', divide='ignore'):
                 r1m = float(s.iloc[-1] / s.iloc[-22] - 1) if s.iloc[-22] != 0 else 0
                 r7d = float(s.iloc[-1] / s.iloc[-8] - 1) if len(s) >= 8 and s.iloc[-8] != 0 else r1m
-            r30d = r1m
             vol = float(s.tail(20).std())
             vol_40d = float(s.tail(40).std()) if len(s) >= 40 else vol
             vol_change = (vol / vol_40d - 1) if vol_40d > 0 else 0
@@ -437,7 +420,7 @@ def _crypto_onchain_proxy(prices: dict) -> dict:
             tokens[ticker] = {
                 "momentum_score": round(score, 3),
                 "tvl_7d_change": round(r7d, 4),
-                "tvl_30d_change": round(r30d, 4),
+                "tvl_30d_change": round(r1m, 4),
                 "dex_vol_change": round(vol_change, 4),
                 "price": round(float(s.iloc[-1]), 2),
                 "volatility_20d": round(vol / mean_20 if mean_20 > 0 else 0, 4),
@@ -447,11 +430,7 @@ def _crypto_onchain_proxy(prices: dict) -> dict:
             logger.warning(f"Crypto proxy failed for {ticker}: {e}")
     return tokens
 
-# ------------------------------------------------------------------
-# Risk Range Proxy - compute from price data when engine fails
-# ------------------------------------------------------------------
 def _risk_range_proxy(prices: dict) -> dict:
-    """Compute risk ranges directly from price data."""
     asset_ranges = {}
     for ticker, s in prices.items():
         if s is None or len(s) < 60:
@@ -491,15 +470,10 @@ def _classify_market(ticker: str) -> str:
         return "ihsg"
     return "us_equity"
 
-# ------------------------------------------------------------------
-# Alpha Center Proxy - generate from price action + NEWS
-# ------------------------------------------------------------------
 def _alpha_center_proxy(prices: dict, risk_ranges: dict, quad: str, vix: float, news_analysis: dict = None) -> dict:
-    """Generate alpha center items from price action when bottleneck engine fails."""
     ar = risk_ranges.get("asset_ranges", {})
     alpha_items = []
     news_map = (news_analysis or {}).get("ticker_specific", {}) if news_analysis else {}
-
     for ticker, v in ar.items():
         comp = v.get("composite", "neutral")
         if comp == "neutral":
@@ -513,15 +487,9 @@ def _alpha_center_proxy(prices: dict, risk_ranges: dict, quad: str, vix: float, 
         spread = trr - lrr
         side = "long" if comp == "bullish" else "short"
         if side == "long":
-            entry = round(lrr, 2)
-            tp1 = round(lrr + spread * 0.5, 2)
-            tp2 = round(trr, 2)
-            stop = round(lrr - spread * 0.25, 2)
+            entry = round(lrr, 2); tp1 = round(lrr + spread * 0.5, 2); tp2 = round(trr, 2); stop = round(lrr - spread * 0.25, 2)
         else:
-            entry = round(trr, 2)
-            tp1 = round(trr - spread * 0.5, 2)
-            tp2 = round(lrr, 2)
-            stop = round(trr + spread * 0.25, 2)
+            entry = round(trr, 2); tp1 = round(trr - spread * 0.5, 2); tp2 = round(lrr, 2); stop = round(trr + spread * 0.25, 2)
         rr = round(abs(tp1 - entry) / max(abs(entry - stop), 0.01), 2)
         pos = (px - lrr) / spread if spread > 0 else 0.5
         near_entry = (side == "long" and pos <= 0.35) or (side == "short" and pos >= 0.65)
@@ -535,26 +503,21 @@ def _alpha_center_proxy(prices: dict, risk_ranges: dict, quad: str, vix: float, 
             scanner = "regime_aligned"
         elif near_entry and rr >= 2.0:
             scanner = "bottleneck"
-
-        # NEWS BOOST
         news = news_map.get(ticker, {})
         news_signal = news.get("front_run_signal")
         priority_score = round(rr * 10 + (50 if near_entry else 0), 1)
         if news_signal in ["STRONG_BULLISH_RUMOR", "NEWS_MOMENTUM_BUILDING", "BULLISH_CLUSTER"]:
             if side == "long":
-                priority_score += 30
-                scanner = "news_momentum"
+                priority_score += 30; scanner = "news_momentum"
                 if grade == "C": grade = "B"
             elif side == "short":
                 priority_score -= 10
         elif news_signal in ["STRONG_BEARISH_RUMOR", "NEGATIVE_HEADLINE_RISK"]:
             if side == "short":
-                priority_score += 30
-                scanner = "news_momentum"
+                priority_score += 30; scanner = "news_momentum"
                 if grade == "C": grade = "B"
             elif side == "long":
                 priority_score -= 10
-
         alpha_items.append({
             "ticker": ticker,
             "scanner_type": scanner,
@@ -590,11 +553,7 @@ def _alpha_center_proxy(prices: dict, risk_ranges: dict, quad: str, vix: float, 
         "watch": [i for i in alpha_items if i.get("grade") == "C"],
     }
 
-# ------------------------------------------------------------------
-# IHSG Structural Layers - generate from price data
-# ------------------------------------------------------------------
 def _ihsg_layers(prices: dict, quad: str) -> dict:
-    """Generate IHSG structural analysis from price data."""
     sector_map = {
         "ADRO.JK": "Coal", "ITMG.JK": "Coal", "PTBA.JK": "Coal",
         "NCKL.JK": "Nickel", "ANTM.JK": "Nickel", "INCO.JK": "Nickel",
@@ -623,7 +582,6 @@ def _ihsg_layers(prices: dict, quad: str) -> dict:
     for sector, returns in sector_returns.items():
         if returns:
             avg = sum(returns) / len(returns)
-            leader = max(returns, key=lambda x: abs(x) if isinstance(x, (int, float)) else 0)
             leader_ticker = [t for t, s in sector_map.items() if s == sector and t in prices][0] if [t for t, s in sector_map.items() if s == sector and t in prices] else ""
             sector_momentum[sector] = {
                 "bias": "Bullish" if avg > 0.03 else ("Bearish" if avg < -0.03 else "Neutral"),
@@ -727,15 +685,9 @@ def _ihsg_layers(prices: dict, quad: str) -> dict:
         "ihsg_macro_overlay": macro_overlay,
     }
 
-
-# ------------------------------------------------------------------
-# Front-Run Candidate Generator — bottleneck + news + options proxy
-# ------------------------------------------------------------------
 def _options_proxy_for_ticker(ticker, prices):
-    """Generate proxy options analysis from price action."""
     ticker = ticker.replace("$", "").strip().upper()
     s = prices.get(ticker)
-    # Try common aliases
     if s is None or (hasattr(s, "__len__") and len(s) < 20):
         aliases = []
         if "." in ticker and not ticker.endswith(".JK"):
@@ -807,22 +759,18 @@ def _options_proxy_for_ticker(ticker, prices):
         logger.debug(f"Options proxy failed for {ticker}: {e}")
         return {"ok": False}
 
-
 def _generate_front_run_candidates(prices, news_analysis, bottleneck_ref):
-    """Merge bottleneck research + news signals into front-run candidates."""
     candidates = []
     seen = set()
     ref_tickers = bottleneck_ref.get("consensus_heatmap", [])
     rotation = bottleneck_ref.get("institutional_rotation", [])
-    # High-consensus bottleneck tickers
     for item in ref_tickers:
         ticker = item.get("ticker", "")
         if not ticker or ticker in seen:
             continue
         stars = item.get("stars", 0)
-        if stars >= 2:  # lowered threshold so more tickers get options
+        if stars >= 2:
             opt = _options_proxy_for_ticker(ticker, prices)
-            # If proxy failed but we have consensus, build synthetic options from metadata
             if not opt.get("ok"):
                 opt = {
                     "ok": True, "price": "—", "max_pain": "—", "put_wall": "—",
@@ -845,7 +793,6 @@ def _generate_front_run_candidates(prices, news_analysis, bottleneck_ref):
                 "catalyst": _find_catalyst(ticker, bottleneck_ref),
             })
             seen.add(ticker)
-    # Next-phase institutional rotation
     for phase in rotation:
         status = phase.get("status", "")
         if "NEXT" in status or "FUTURE" in status or "NOW" in status:
@@ -876,7 +823,6 @@ def _generate_front_run_candidates(prices, news_analysis, bottleneck_ref):
                     "catalyst": _find_catalyst(ticker, bottleneck_ref),
                 })
                 seen.add(ticker)
-    # News rumor_watch
     rumor_watch = (news_analysis or {}).get("rumor_watch", [])
     for rw in rumor_watch:
         ticker = rw.get("ticker", "")
@@ -910,7 +856,6 @@ def _generate_front_run_candidates(prices, news_analysis, bottleneck_ref):
                 "catalyst": {"quarter": "Now", "event": "News-driven", "priority": "HIGH"},
             })
             seen.add(ticker)
-    # Sort
     def sort_key(c):
         prio_map = {"TOP": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
         conv_map = {"STRONG": 0, "MODERATE": 1, "WEAK": 2, "CONFLICTED": 3}
@@ -919,19 +864,13 @@ def _generate_front_run_candidates(prices, news_analysis, bottleneck_ref):
     candidates.sort(key=sort_key)
     return candidates
 
-
 def _find_catalyst(ticker, bottleneck_ref):
     for ev in bottleneck_ref.get("catalyst_timeline", []):
         if ticker in ev.get("ticker", ""):
             return {"quarter": ev.get("quarter", ""), "event": ev.get("event", ""), "priority": ev.get("priority", "")}
     return {}
 
-
-# ------------------------------------------------------------------
-# Crypto On-Chain Center — free API aggregation
-# ------------------------------------------------------------------
 def _fetch_stablecoin_flows():
-    """DeFiLlama stablecoin API — completely free, no auth."""
     if not _has_requests:
         return {}
     try:
@@ -957,7 +896,6 @@ def _fetch_stablecoin_flows():
         return {}
 
 def _fetch_crypto_narrative():
-    """CoinGecko trending + categories + Alternative.me fear & greed."""
     if not _has_requests:
         return {}
     out = {"trending": [], "categories": [], "fear_greed": None}
@@ -998,7 +936,6 @@ def _fetch_crypto_narrative():
     return out
 
 def _fetch_crypto_market_structure():
-    """Binance public API — funding rates + 24h ticker (OI/volume proxy)."""
     if not _has_requests:
         return {}
     out = {"funding": {}, "oi": {}, "liquidation": {}, "long_short": {}}
@@ -1032,7 +969,6 @@ def _fetch_crypto_market_structure():
     return out
 
 def _build_crypto_unlock_proxy():
-    """Proxy unlock calendar — replace with Messari/DropsTab for live data."""
     return [
         {"token": "SOL", "date": "2026-06-01", "amount_m": 20, "type": "Cliff", "impact": "HIGH"},
         {"token": "AVAX", "date": "2026-05-20", "amount_m": 5, "type": "Linear", "impact": "MEDIUM"},
@@ -1041,7 +977,6 @@ def _build_crypto_unlock_proxy():
     ]
 
 def _build_crypto_center(prices, news_analysis):
-    """Aggregate all crypto-specific on-chain / market data."""
     cc = {
         "macro_regime": {},
         "capital_flows": {},
@@ -1064,11 +999,9 @@ def _build_crypto_center(prices, news_analysis):
             cc["macro_regime"]["btc_dominance_proxy"] = 0.55
     else:
         cc["macro_regime"]["btc_dominance_proxy"] = 0.55
-
     cc["capital_flows"] = _fetch_stablecoin_flows()
     cc["narrative"] = _fetch_crypto_narrative()
     cc["market_structure"] = _fetch_crypto_market_structure()
-
     whale_proxy = {}
     for ticker in ["BTC-USD", "ETH-USD"]:
         s = prices.get(ticker)
@@ -1080,9 +1013,7 @@ def _build_crypto_center(prices, news_analysis):
             except Exception:
                 pass
     cc["whale"]["proxy"] = whale_proxy
-
     cc["tokenomics"]["upcoming_unlocks"] = _build_crypto_unlock_proxy()
-
     funding = cc["market_structure"].get("funding", {})
     if funding:
         for sym, data in funding.items():
@@ -1096,15 +1027,12 @@ def _build_crypto_center(prices, news_analysis):
                 })
     return cc
 
-
 # ------------------------------------------------------------------
 # Core runner
 # ------------------------------------------------------------------
 def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: float = 12.0, **kwargs) -> dict:
     t0 = time.time()
     _safe_progress(progress_cb, "Checking snapshot cache...", 0.02)
-
-    # 1. Try snapshot first
     if use_cache:
         try:
             snap = load_snapshot(max_age_hours=max_age_hours)
@@ -1117,7 +1045,6 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         except Exception as e:
             logger.warning(f"Snapshot load failed: {e}")
 
-    # 2. Build result container with ALL keys app.py expects
     result: dict = {
         "ok": False,
         "errors": [],
@@ -1168,6 +1095,13 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         "bottleneck_research": {},
         "front_run_candidates": [],
         "crypto_center": {},
+        "behavioral_macro": {},
+        "odte_monitor": {},
+        "skew_term": {},
+        "reflexivity": {},
+        "boom_bust": {},
+        "conviction_sizing": {},
+        "vanna_charm_flows": {},
     }
 
     try:
@@ -1192,7 +1126,6 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         result["fred_meta"] = fred_meta
         result["fred_series"] = fred
         result["fred_coverage"] = fred_meta.get("loaded", 0)
-        logger.info(f"FRED loaded: {fred_meta.get('loaded',0)}/{fred_meta.get('requested',0)} series")
 
         # ---- Prices ----
         tickers = _all_tickers()
@@ -1202,20 +1135,19 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         if load_prices is None:
             raise RuntimeError("load_prices not available (data.loader import failed)")
 
-        # Retry with backoff for yfinance rate limits
         prices = {}
         max_retries = 3
         for attempt in range(max_retries):
             try:
                 prices = load_prices(tickers, days=756, max_age_hours=max_age_hours, progress_cb=progress_cb)
-                if prices and len(prices) > len(tickers) * 0.7:  # 70% success threshold
+                if prices and len(prices) > len(tickers) * 0.7:
                     break
                 logger.warning(f"Price load attempt {attempt+1}/{max_retries}: only {len(prices)}/{len(tickers)} loaded, retrying...")
             except Exception as e:
                 logger.warning(f"Price load attempt {attempt+1}/{max_retries} failed: {e}")
                 result["errors"].append(f"prices attempt {attempt+1}: {e}")
             if attempt < max_retries - 1:
-                backoff = 2 ** attempt  # 1s, 2s, 4s
+                backoff = 2 ** attempt
                 logger.info(f"Backing off {backoff}s before retry...")
                 time.sleep(backoff)
 
@@ -1226,37 +1158,32 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         result["prices"] = prices
         result["prices_loaded"] = len(prices)
         result["price_meta"] = {"requested": len(tickers), "loaded": len(prices)}
-        logger.info(f"Prices loaded: {len(prices)}/{len(tickers)} series")
 
         if not prices:
             raise RuntimeError("No price data loaded - cannot proceed")
 
-        # ---- NEWS & RUMOR ENGINE (Front-Run) ----
+        # ---- NEWS & RUMOR ----
         _safe_progress(progress_cb, "Scanning news & rumors...", 0.18)
         news_headlines = _fetch_news_headlines(list(prices.keys())[:100])
         news_analysis = _analyze_news(news_headlines, prices)
         result["news_narratives"] = news_analysis
         result["rumor_watch"] = news_analysis.get("rumor_watch", [])
 
-        # ---- Bottleneck Research & Front-Run Candidates ----
+        # ---- Bottleneck ----
         _safe_progress(progress_cb, "Loading bottleneck intelligence...", 0.20)
         bottleneck_ref = _load_bottleneck_ref()
         result["bottleneck_research"] = bottleneck_ref
         _safe_progress(progress_cb, "Generating front-run candidates...", 0.22)
         front_run = _generate_front_run_candidates(prices, news_analysis, bottleneck_ref)
         result["front_run_candidates"] = front_run
-        logger.info(f"Front-run candidates: {len(front_run)}")
-        logger.info(f"News analyzed: {news_analysis.get('analyzed_count',0)} headlines, {len(result['rumor_watch'])} rumor signals")
 
-        # ---- CRYPTO ON-CHAIN CENTER (FREE APIs) ----
+        # ---- CRYPTO CENTER ----
         _safe_progress(progress_cb, "Building crypto on-chain center...", 0.25)
         cc = _build_crypto_center(prices, news_analysis)
         result["crypto_center"] = cc
-        logger.info(f"Crypto center built: {len(cc['risk_flags'])} risk flags")
 
-        # ---- IMMEDIATE PROXY FALLBACKS ----
+        # ---- PROXY FALLBACKS ----
         _safe_progress(progress_cb, "Computing proxy fallbacks...", 0.28)
-
         rr_proxy = _risk_range_proxy(prices)
         crypto_proxy = _crypto_onchain_proxy(prices)
         result["crypto_tokens"] = crypto_proxy
@@ -1268,7 +1195,6 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         _safe_progress(progress_cb, "Running GIP regime model...", 0.55)
         if GIPEngine is None or GIPResult is None:
             raise RuntimeError("GIP engine not available")
-
         try:
             gip_engine = GIPEngine()
             gip = gip_engine.run(fred, prices)
@@ -1276,9 +1202,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             logger.error(f"GIP engine failed: {e}")
             result["errors"].append(f"gip: {e}")
             raise
-
         result["gip"] = gip
-
         quad = getattr(gip, "structural_quad", "Q3")
         monthly_quad = getattr(gip, "monthly_quad", "Q2")
         gip_features = getattr(gip, "features", {})
@@ -1314,6 +1238,65 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             logger.warning(f"RiskRangeEngine failed, using proxy: {e}")
             result["errors"].append(f"risk_ranges: {e}")
             result["risk_ranges"] = rr_proxy
+
+        # ---- NEW v27.2 ENGINES ----
+        _safe_progress(progress_cb, "Running Behavioral Macro (Yves)...", 0.30)
+        try:
+            dgs10 = float(fred.get("DGS10", pd.Series()).dropna().iloc[-1]) if fred.get("DGS10") is not None else 4.5
+            t5yie = float(fred.get("T5YIE", pd.Series()).dropna().iloc[-1]) if fred.get("T5YIE") is not None else 2.4
+            real_yield = dgs10 - t5yie
+            vix_s = prices.get("^VIX")
+            vix_last = float(vix_s.dropna().iloc[-1]) if vix_s is not None and not vix_s.empty else 20.0
+            behavioral = get_behavioral_macro(vix=vix_last, real_yield=real_yield, dxy_ret=0.0)
+            result["behavioral_macro"] = behavioral
+        except Exception as e:
+            logger.warning(f"Behavioral macro failed: {e}")
+            result["errors"].append(f"behavioral: {e}")
+            result["behavioral_macro"] = {"yves": {"alert": None}}
+
+        _safe_progress(progress_cb, "Running 0DTE Monitor (Cem Karsan)...", 0.32)
+        try:
+            odte = run_odte_monitor(list(US_SECTORS.keys()) + ["SPY", "QQQ", "IWM"], prices)
+            result["odte_monitor"] = odte
+        except Exception as e:
+            logger.warning(f"0DTE monitor failed: {e}")
+            result["errors"].append(f"odte: {e}")
+
+        _safe_progress(progress_cb, "Running Skew Term Structure...", 0.34)
+        try:
+            skew = run_skew_term(list(US_SECTORS.keys()) + ["SPY", "QQQ", "IWM", "GLD", "TLT"], prices)
+            result["skew_term"] = skew
+        except Exception as e:
+            logger.warning(f"Skew term failed: {e}")
+            result["errors"].append(f"skew: {e}")
+
+        _safe_progress(progress_cb, "Running Reflexivity (Soros)...", 0.36)
+        try:
+            reflex = run_reflexivity(prices, fred, quad)
+            result["reflexivity"] = reflex
+        except Exception as e:
+            logger.warning(f"Reflexivity failed: {e}")
+            result["errors"].append(f"reflexivity: {e}")
+
+        _safe_progress(progress_cb, "Running Boom-Bust Stage...", 0.38)
+        try:
+            bb = classify_stage(prices, fred, result.get("health", {}), quad)
+            result["boom_bust"] = bb
+        except Exception as e:
+            logger.warning(f"Boom-bust failed: {e}")
+            result["errors"].append(f"boombust: {e}")
+
+        _safe_progress(progress_cb, "Running Vanna & Charm Flows...", 0.40)
+        try:
+            vanna_charm = {}
+            for t in ["SPY", "QQQ", "IWM", "GLD", "TLT", "BTC-USD", "ETH-USD"]:
+                vc = get_vanna_charm_flows(t, prices, vix_last, 0.0, 7)
+                if vc:
+                    vanna_charm[t] = vc
+            result["vanna_charm_flows"] = vanna_charm
+        except Exception as e:
+            logger.warning(f"Vanna/Charm failed: {e}")
+            result["errors"].append(f"vannacharm: {e}")
 
         # ---- Bottleneck / Alpha ----
         _safe_progress(progress_cb, "Scanning bottleneck & alpha ideas...", 0.80)
@@ -1372,7 +1355,6 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             alpha_items = ac_proxy.get("all", [])
             result["alpha_center"] = ac_proxy
         else:
-            # Inject news into existing alpha items
             news_map = news_analysis.get("ticker_specific", {})
             for item in alpha_items:
                 ticker = item.get("ticker", "")
@@ -1389,7 +1371,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                 "meta": {
                     "regime": quad,
                     "bias": "Structural" if quad in ("Q1", "Q2") else "Defensive",
-                    "vix": 20.0,
+                    "vix": vix_last,
                     "total_items": len(alpha_items),
                 },
                 "all": alpha_items,
@@ -1397,6 +1379,16 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                 "level_2": [i for i in alpha_items if i.get("grade") == "B"],
                 "watch": [i for i in alpha_items if i.get("grade") == "C"],
             }
+
+        # ---- Conviction Sizing (Soros) ----
+        _safe_progress(progress_cb, "Calculating conviction sizing...", 0.42)
+        try:
+            sizing = run_sizing(alpha_items, result.get("gamma_data", {}), result.get("greeks_data", {}),
+                              result.get("boom_bust", {}), result.get("reflexivity", {}), 100000)
+            result["conviction_sizing"] = sizing
+        except Exception as e:
+            logger.warning(f"Conviction sizing failed: {e}")
+            result["errors"].append(f"sizing: {e}")
 
         # ---- Gamma & Greeks ----
         _safe_progress(progress_cb, "Running gamma & Greeks proxy...", 0.88)
@@ -1518,7 +1510,6 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                         if len(dxy_slice) >= 20 and len(s_slice) >= 20:
                             dxy_arr = dxy_slice.tail(20).to_numpy()
                             s_arr = s_slice.tail(20).to_numpy()
-                            # Filter NaN/inf before correlation
                             mask = np.isfinite(dxy_arr) & np.isfinite(s_arr)
                             if mask.sum() < 10:
                                 continue
@@ -1606,6 +1597,9 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             "prices_loaded": len(prices),
             "fred_loaded": fred_meta.get("loaded", 0),
             "errors": len(result["errors"]),
+            "behavioral_alert": (result.get("behavioral_macro", {}).get("yves", {}) or {}).get("alert"),
+            "boom_bust_stage": result.get("boom_bust", {}).get("stage", "-"),
+            "super_bubble_score": result.get("reflexivity", {}).get("super_bubble_score", 0),
         }
 
         result["ok"] = True
@@ -1614,7 +1608,6 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         logger.info(f"Orchestrator complete in {elapsed:.1f}s")
         _safe_progress(progress_cb, f"Complete ({elapsed:.0f}s)", 1.0)
 
-        # ---- Save snapshot ----
         try:
             save_snapshot(result)
             logger.info("Snapshot saved")
@@ -1625,8 +1618,6 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         logger.exception("Orchestrator fatal error")
         result["errors"].append(f"fatal: {e}")
         result["ok"] = False
-
-        # ---- Stale fallback ----
         try:
             stale = load_snapshot(max_age_hours=9999)
             if stale is not None and stale.get("ok"):
@@ -1652,10 +1643,6 @@ def build_snapshot(
     include_ihsg: bool = True,
     **kwargs
 ) -> dict:
-    """
-    Wrapper that app.py v27.0 imports and calls.
-    Delegates to run_orchestrator() and ensures all app.py keys exist.
-    """
     logger.info(
         f"build_snapshot called: us={include_us_stocks}, fx={include_forex}, "
         f"comm={include_commodities}, crypto={include_crypto}, ihsg={include_ihsg}"
@@ -1671,7 +1658,6 @@ def build_snapshot(
         include_ihsg=include_ihsg,
         **kwargs
     )
-    # Ensure all app.py expected keys exist
     defaults = {
         "global": {},
         "scenarios": {},
@@ -1711,6 +1697,13 @@ def build_snapshot(
         "bottleneck_research": {},
         "front_run_candidates": [],
         "crypto_center": {},
+        "behavioral_macro": {},
+        "odte_monitor": {},
+        "skew_term": {},
+        "reflexivity": {},
+        "boom_bust": {},
+        "conviction_sizing": {},
+        "vanna_charm_flows": {},
     }
     for key, default_val in defaults.items():
         if key not in result:

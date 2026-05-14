@@ -802,7 +802,8 @@ def _options_proxy_for_ticker(ticker, prices):
 
 def build_snapshot(progress_callback=None, force_refresh=False):
     _safe_progress(progress_callback, "Loading prices...", 0.05)
-    prices = load_prices() if load_prices is not None else {}
+    all_tickers = _all_tickers()
+    prices = load_prices(tickers=all_tickers) if load_prices is not None else {}
     if not prices:
         logger.error("load_prices returned empty — check data/loader.py")
         return None

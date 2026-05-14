@@ -1320,7 +1320,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
 
         _safe_progress(progress_cb, "Running 0DTE Monitor (Cem Karsan)...", 0.32)
         try:
-            odte = run_odte_monitor(list(US_SECTORS.keys()) + ["SPY", "QQQ", "IWM"], prices)
+            odte = run_odte_monitor(["SPY", "QQQ", "IWM", "GLD", "TLT"], prices)
             result["odte_monitor"] = odte
         except Exception as e:
             logger.warning(f"0DTE monitor failed: {e}")
@@ -1377,10 +1377,10 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         if YFinanceOptionsEngine is not None:
             try:
                 yf_engine = YFinanceOptionsEngine()
-                key_tickers = [t for t in ["SPY","QQQ","IWM","GLD","TLT","SLV","XLE","XLF","XLK","SMH","NVDA","AAPL","MSFT","AMZN","TSLA","META","AMD","AVGO","JPM","BAC"] if t in prices][:20]
+                key_tickers = [t for t in ["SPY","QQQ","IWM","GLD","TLT","NVDA","AAPL","MSFT","AMZN","TSLA"] if t in prices][:8]
                 for i, ticker in enumerate(key_tickers):
                     if i > 0:
-                        time.sleep(0.5)
+                        time.sleep(1.5)
                     try:
                         opt = yf_engine.analyze(ticker)
                         if opt and opt.get("ok"):

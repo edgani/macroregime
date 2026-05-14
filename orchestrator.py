@@ -150,6 +150,13 @@ except Exception as e:
         return {}
 
 try:
+    from engines.interconnect_engine import run_interconnect
+except Exception as e:
+    logger.error(f"Failed to import interconnect_engine: {e}")
+    def run_interconnect(*args, **kwargs):
+        return {"active_scenarios": [], "scenarios": [], "summary": "Interconnect unavailable"}
+
+try:
     from config.settings import (
         US_SECTORS, US_FACTORS, FOREX_PAIRS, COMMODITIES, CRYPTO,
         BONDS, IHSG_UNIVERSE, MACRO_PROXIES, US_BUCKETS, IHSG_BUCKETS,
@@ -1111,6 +1118,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         "conviction_sizing": {},
         "vanna_charm_flows": {},
         "country_list": [],
+        "interconnect": {},
     }
 
     try:
@@ -1306,6 +1314,15 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         except Exception as e:
             logger.warning(f"Vanna/Charm failed: {e}")
             result["errors"].append(f"vannacharm: {e}")
+
+        # ---- Interconnect / Cascade ----
+        _safe_progress(progress_cb, "Running Interconnect Cascade...", 0.43)
+        try:
+            interconnect = run_interconnect(prices, fred, news_analysis, quad)
+            result["interconnect"] = interconnect
+        except Exception as e:
+            logger.warning(f"Interconnect failed: {e}")
+            result["errors"].append(f"interconnect: {e}")
 
         # ---- Bottleneck / Alpha ----
         _safe_progress(progress_cb, "Scanning bottleneck & alpha ideas...", 0.80)
@@ -1744,6 +1761,7 @@ def build_snapshot(
         "conviction_sizing": {},
         "vanna_charm_flows": {},
         "country_list": [],
+        "interconnect": {},
     }
     for key, default_val in defaults.items():
         if key not in result:

@@ -1109,9 +1109,24 @@ def _render_narrative_card_native(row, idx=0, market_type="generic"):
             if ticker_cem["has_odte"] or ticker_cem["has_vanna"]:
                 st.divider()
                 st.markdown("**⚡ Cem Karsan Structure**")
-                cem_html = _render_cem_karsan_mini(ticker, ticker_cem)
-                if cem_html:
-                    st.markdown(cem_html, unsafe_allow_html=True)
+                # 0DTE
+                if ticker_cem["has_odte"]:
+                    c1, c2 = st.columns(2)
+                    pin = ticker_cem["pin_risk"]
+                    pin_color = "#F85149" if pin > 0.4 else "#D29922" if pin > 0.25 else "#3FB950"
+                    with c1:
+                        st.markdown(f"**0DTE PIN:** <span style='color:{pin_color};font-weight:700;'>{pin:.0%}</span>", unsafe_allow_html=True)
+                    with c2:
+                        st.markdown(f"**Max Pain:** {ticker_cem['max_pain']}")
+                # Vanna/Charm
+                if ticker_cem["has_vanna"]:
+                    sig = ticker_cem["vanna_signal"]
+                    color = ticker_cem["vanna_color"]
+                    st.markdown(f"**Vanna:** <span style='color:{color};font-weight:700;'>{sig}</span> (Score: {ticker_cem['vanna_score']:.1f})", unsafe_allow_html=True)
+                    if ticker_cem.get("vanna_note"):
+                        st.caption(f"💡 {ticker_cem['vanna_note']}")
+                    if ticker_cem.get("charm_note"):
+                        st.caption(f"⏰ {ticker_cem['charm_note']}")
 
         has_flow = any(row.get(k) for k in ["cot_signal","oi_signal","onchain_signal","skew","oi_trend","cot_bias"])
         if has_flow and market_type not in ["ihsg"]:
@@ -1587,9 +1602,20 @@ def _render_crypto_card_compact(row, idx=0):
             if ticker_cem["has_odte"] or ticker_cem["has_vanna"]:
                 st.divider()
                 st.markdown("**⚡ Cem Karsan Structure**")
-                cem_html = _render_cem_karsan_mini(ticker_full, ticker_cem)
-                if cem_html:
-                    st.markdown(cem_html, unsafe_allow_html=True)
+                if ticker_cem["has_odte"]:
+                    c1, c2 = st.columns(2)
+                    pin = ticker_cem["pin_risk"]
+                    pin_color = "#F85149" if pin > 0.4 else "#D29922" if pin > 0.25 else "#3FB950"
+                    with c1:
+                        st.markdown(f"**0DTE PIN:** <span style='color:{pin_color};font-weight:700;'>{pin:.0%}</span>", unsafe_allow_html=True)
+                    with c2:
+                        st.markdown(f"**Max Pain:** {ticker_cem['max_pain']}")
+                if ticker_cem["has_vanna"]:
+                    sig = ticker_cem["vanna_signal"]
+                    color = ticker_cem["vanna_color"]
+                    st.markdown(f"**Vanna:** <span style='color:{color};font-weight:700;'>{sig}</span> (Score: {ticker_cem['vanna_score']:.1f})", unsafe_allow_html=True)
+                    if ticker_cem.get("vanna_note"):
+                        st.caption(f"💡 {ticker_cem['vanna_note']}")
 
         # Flow & Positioning (compact)
         has_flow = any(row.get(k) for k in ["cot_signal","oi_signal","onchain_signal","skew","oi_trend","cot_bias"])
@@ -1997,35 +2023,37 @@ if page == "🏠 Dashboard":
         </div>""", unsafe_allow_html=True)
 
     with phil2:
-        # Cem Karsan compact
+        # Cem Karsan compact — use native streamlit components, not nested HTML
         odte = odte_monitor
-        st.markdown(f"""<div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:8px;padding:10px;">
-          <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:8px;">CEM KARSAN</div>
-        """)
+
+        # Header
+        st.markdown("""<div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:8px;">CEM KARSAN</div>""", unsafe_allow_html=True)
+
         if odte and odte.get("tickers"):
-            st.caption(f"0DTE: {odte.get('expiry','-')} | {odte.get('pin_risk_tickers',[]).__len__()} pin-risk")
+            st.caption(f"0DTE: {odte.get('expiry','-')} | {len(odte.get('pin_risk_tickers',[]))} pin-risk")
             if odte.get("cascade_warning"):
-                st.error("🔴 CASCADE", icon=None)
+                st.error("🔴 CASCADE")
             else:
-                st.success("🟢 Normal", icon=None)
+                st.success("🟢 Normal")
         else:
             st.caption("0DTE: unavailable")
 
-        # Vanna/Charm summary
+        # Vanna/Charm summary as pills
         if vanna_charm_flows:
-            vc_summary = []
+            vc_pills = []
             for ticker, vc in list(vanna_charm_flows.items())[:3]:
                 sig = vc.get("combined_signal", "NEUTRAL")
+                score = vc.get("combined_score", 0)
                 if "NEVER_SHORT" in sig:
-                    vc_summary.append(f'<span style="color:#3FB950;font-size:10px;">{ticker}: 🟢</span>')
+                    vc_pills.append(f"🟢 {ticker}: {score:.1f}")
                 elif "AVOID_LONG" in sig:
-                    vc_summary.append(f'<span style="color:#F85149;font-size:10px;">{ticker}: 🔴</span>')
+                    vc_pills.append(f"🔴 {ticker}: {score:.1f}")
                 else:
-                    vc_summary.append(f'<span style="color:#8B949E;font-size:10px;">{ticker}: ⚪</span>')
-            st.markdown(f"<div style='display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;'>{' '.join(vc_summary)}</div>", unsafe_allow_html=True)
+                    vc_pills.append(f"⚪ {ticker}: {score:.1f}")
+            for pill in vc_pills:
+                st.caption(pill)
         else:
             st.caption("Vanna/Charm: unavailable")
-        st.markdown("</div>", unsafe_allow_html=True)
 
     with phil3:
         # Skew chart (compact)
@@ -2055,11 +2083,11 @@ if page == "🏠 Dashboard":
                     fig_skew.update_layout(
                         showlegend=False,
                         height=180,
-                        margin=dict(t=20,b=5,l=0,r=0),
+                        margin=dict(t=20,b=5,l=30,r=10),
                         paper_bgcolor="#161B22",
                         plot_bgcolor="#161B22",
                         font=dict(color="#E6EDF3", family="Inter", size=9),
-                        yaxis=dict(showgrid=True, gridcolor="#21262D", tickcolor="#8B949E", title="30D-60D", titlefont=dict(size=9)),
+                        yaxis=dict(showgrid=True, gridcolor="#21262D", tickcolor="#8B949E"),
                         xaxis=dict(showgrid=False, tickfont=dict(size=9, color="#E6EDF3")),
                         bargap=0.4,
                     )
@@ -2073,6 +2101,58 @@ if page == "🏠 Dashboard":
             st.caption(f"{sk.get('term_regime','-')} | {sk.get('summary','')}")
         else:
             st.caption("Skew data unavailable")
+
+    # ═══════════════════════════════════════════════════════════════════
+    # ROW 4b: INTERCONNECT CASCADE (if active)
+    # ═══════════════════════════════════════════════════════════════════
+    interconnect = snap.get("interconnect", {}) or {}
+    if interconnect and interconnect.get("scenarios"):
+        active_scenarios = [s for s in interconnect["scenarios"] if s.get("active")]
+        if active_scenarios:
+            st.markdown("### 🔗 Active Cascade(s)")
+            for scenario in active_scenarios[:2]:
+                sc_name = scenario.get("scenario", "").replace("_", " ").title()
+                sc_trigger = scenario.get("trigger", "")
+                sc_conf = scenario.get("confidence", 0)
+
+                # Shock pills
+                shock_pills = []
+                for asset, shock in scenario.get("shock", {}).items():
+                    shock_pills.append(f'<span class="badge badge-short">{asset}: {shock:+.0%}</span>' if shock > 0 else f'<span class="badge badge-long">{asset}: {shock:+.0%}</span>')
+
+                # Asset scores top 3
+                asset_scores = scenario.get("asset_scores", {})
+                top_assets = sorted(asset_scores.items(), key=lambda x: x[1].get("transmission_score", 0), reverse=True)[:3]
+                asset_pills = []
+                for t, data in top_assets:
+                    dir_color = "var(--long)" if data.get("direction") == "LONG" else "var(--short)"
+                    asset_pills.append(f'<span style="color:{dir_color};font-size:11px;font-weight:600;">{t}: {data.get("magnitude",0):+.0%}</span>')
+
+                st.markdown(f"""<div style="background:var(--bg-card);border:1px solid var(--short);border-radius:8px;padding:10px;margin:6px 0;">
+                  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+                    <span style="font-size:13px;font-weight:700;color:var(--short);">⚠️ {sc_name}</span>
+                    <span style="font-size:10px;color:var(--text-secondary);">Conf: {sc_conf:.0%}</span>
+                  </div>
+                  <div style="font-size:11px;color:var(--text-secondary);margin-bottom:6px;">{sc_trigger}</div>
+                  <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:6px;">{" ".join(shock_pills)}</div>
+                  <div style="display:flex;flex-wrap:wrap;gap:8px;">{" · ".join(asset_pills)}</div>
+                </div>""", unsafe_allow_html=True)
+
+                # Cascade flow diagram
+                cascade = scenario.get("sector_cascade", [])
+                if cascade:
+                    flow_parts = []
+                    for sector, impact, lag in cascade[:4]:
+                        arrow = "→" if impact > 0 else "↘"
+                        flow_parts.append(f"{arrow} {sector.title()} {impact:+.0%} ({lag}d)")
+                    st.caption(f"**Flow:** {' → '.join(flow_parts)}")
+        else:
+            watch = interconnect.get("watch_scenarios", [])
+            if watch:
+                st.markdown("### 🔗 Cascade Watch")
+                for w in watch[:1]:
+                    chain = w.replace("_", " ").title()
+                    st.info(f"👀 Monitoring: {chain} — no active trigger yet")
 
     # ═══════════════════════════════════════════════════════════════════
     # ROW 5: RISK FLAGS + BOTTLENECK (collapsed)

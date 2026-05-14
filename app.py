@@ -993,6 +993,90 @@ def _consolidated_to_df(rows):
     return pd.DataFrame(out)
 
 
+def _size_guidance(row):
+    """Derive position size (% of portfolio) from composite grade + worth + recommendation."""
+    grade = row.get("grade", "C")
+    worth = row.get("worth_entering", "NO")
+    rec = row.get("recommendation", "")
+    direction = row.get("direction", "NEUTRAL")
+
+    if direction == "NEUTRAL":
+        return "0%", "var(--short)", "No directional edge — stay flat"
+    if "STRONG" in rec and grade in ("A", "A+") and worth == "YES":
+        return "100%", "var(--long)", "Maximum conviction — all checks aligned"
+    if grade in ("A", "B") and worth == "YES":
+        return "50%", "var(--neutral)", "Good setup — monitor invalidators"
+    if worth == "CHASE":
+        return "25%", "var(--neutral)", "Momentum chase — tight stop only"
+    if worth == "SMALL":
+        return "15%", "var(--neutral)", "Mixed signals — probe position"
+    if worth == "WAIT" or grade == "C":
+        return "0%", "var(--short)", "Wait for better entry or invalidator clearance"
+    if "CONFLICTED" in rec:
+        return "0%", "var(--short)", "Smart money disagrees — avoid or pair trade"
+    return "0%", "var(--short)", "No clear edge"
+
+
+def _positioning_banner_html(row):
+    """Generate the prominent positioning decision banner."""
+    direction = row.get("direction", "NEUTRAL")
+    grade = row.get("grade", "C")
+    worth = row.get("worth_entering", "NO")
+    action = row.get("action", "—")
+    entry_advice = row.get("entry_advice", "—")
+    rec = row.get("recommendation", row.get("thesis", "N/A"))
+    rr = row.get("rr", 0)
+    time_est = row.get("time_estimate", "—")
+    breakout = row.get("breakout_chance", "—")
+    path = row.get("path_smoothness", "—")
+
+    size, size_color, size_note = _size_guidance(row)
+
+    dir_color = "var(--long)" if "LONG" in direction else "var(--short)" if "SHORT" in direction else "var(--text-secondary)"
+    dir_emoji = "🟢" if "LONG" in direction else "🔴" if "SHORT" in direction else "⚪"
+    worth_color = "var(--long)" if worth == "YES" else "var(--neutral)" if worth in ("CHASE", "SMALL") else "var(--short)"
+
+    grade_cls = "badge-a" if grade == "A" else "badge-b" if grade == "B" else "badge-c"
+
+    # Banner background by conviction
+    if worth == "YES" and grade == "A":
+        bg, border = "#0D2818", "var(--long)"
+    elif worth == "YES" and grade == "B":
+        bg, border = "#2D2305", "var(--neutral)"
+    elif worth in ("WAIT", "NO", "SKIP") or grade == "C":
+        bg, border = "#2D0D0D", "var(--short)"
+    else:
+        bg, border = "var(--bg-card)", "var(--border-default)"
+
+    # Primary text: entry advice if available, else recommendation
+    primary_text = entry_advice if entry_advice and entry_advice != "—" else rec
+
+    html = f'''
+    <div style="background:{bg};border:2px solid {border};border-radius:10px;padding:14px 16px;margin:8px 0;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <span style="font-size:22px;">{dir_emoji}</span>
+          <span style="font-size:17px;font-weight:800;color:{dir_color};">{direction}</span>
+          <span class="badge {grade_cls}">GRADE {grade}</span>
+          <span class="badge" style="background:{worth_color}22;color:{worth_color};border:1px solid {worth_color};font-weight:700;">{worth}</span>
+          <span class="badge" style="background:{size_color}22;color:{size_color};border:1px solid {size_color};font-weight:700;">SIZE: {size} PORTFOLIO</span>
+        </div>
+        <div style="text-align:right;min-width:120px;">
+          <div style="font-size:12px;font-weight:700;color:var(--text-primary);">RR {ff(rr)}x · {time_est}</div>
+          <div style="font-size:10px;color:var(--text-muted);">Path: {path} · Breakout: {breakout}</div>
+        </div>
+      </div>
+      <div style="font-size:14px;font-weight:700;color:var(--text-primary);margin-bottom:8px;line-height:1.4;">
+        {primary_text[:140]}{"..." if len(primary_text) > 140 else ""}
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+        <div style="font-size:13px;font-weight:800;color:{dir_color};">🎯 {action}</div>
+        <div style="font-size:10px;color:var(--text-muted);">💡 {size_note}</div>
+      </div>
+    </div>
+    '''
+    return html
+
 def _render_narrative_card_native(row, idx=0, market_type="generic"):
     ticker = row.get("ticker", "UNKNOWN")
     price = row.get("price")
@@ -1039,20 +1123,16 @@ def _render_narrative_card_native(row, idx=0, market_type="generic"):
     header += news_suffix
 
     with st.expander(header, expanded=False):
-        # Render colored news badge as first element inside expander
-        if news_signal:
-            if "BULLISH" in news_signal or "BUILDING" in news_signal or "MOMENTUM" in news_signal:
-                st.markdown('<span class="badge badge-news-bull">📰 NEWS+</span>', unsafe_allow_html=True)
-            elif "BEARISH" in news_signal or "NEGATIVE" in news_signal:
-                st.markdown('<span class="badge badge-news-bear">📰 NEWS-</span>', unsafe_allow_html=True)
-            elif "RUMOR" in news_signal:
-                st.markdown('<span class="badge badge-news-rumor">🔮 RUMOR</span>', unsafe_allow_html=True)
-        c1, c2, c3 = st.columns(3)
-        c1.markdown(f"**Direction:** <span style='color:{dir_color};font-weight:700;'>{direction}</span>", unsafe_allow_html=True)
-        c2.markdown(f"**Worth Entering:** <span style='color:{worth_color};font-weight:700;'>{worth}</span>", unsafe_allow_html=True)
-        c3.markdown(f"**Grade:** <span style='color:{dir_color};font-weight:700;'>{grade}</span>", unsafe_allow_html=True)
-        st.divider()
+        # ═══════════════════════════════════════════════════════════════
+        # LAYER 0: 🎯 POSITIONING RECOMMENDATION (FIRST & PROMINENT)
+        # ═══════════════════════════════════════════════════════════════
+        st.markdown(_positioning_banner_html(row), unsafe_allow_html=True)
 
+        # ═══════════════════════════════════════════════════════════════
+        # LAYER 1: 📐 RISK SETUP
+        # ═══════════════════════════════════════════════════════════════
+        st.divider()
+        st.markdown("**📐 Risk Setup**")
         m1, m2, m3, m4, m5, m6 = st.columns(6)
         m1.metric("Price", ff(price))
         m2.metric("Entry", ff(entry))
@@ -1063,10 +1143,10 @@ def _render_narrative_card_native(row, idx=0, market_type="generic"):
 
         # 3-Tier Risk Range Visual Bar
         if tail_l and tail_r and price:
-            st.markdown("**📐 Risk Range (Trade · Trend · Tail)**")
+            st.markdown("**Risk Range (Trade · Trend · Tail)**")
             st.markdown(_risk_range_bar_html(price, trade_l, trade_r, trend_l, trend_r, tail_l, tail_r, 100), unsafe_allow_html=True)
         elif trade_l and trade_r and price:
-            st.markdown("**📐 Risk Range (Trade)**")
+            st.markdown("**Risk Range (Trade)**")
             st.markdown(_risk_range_bar_html(price, trade_l, trade_r, trade_l, trade_r, trade_l, trade_r, 100), unsafe_allow_html=True)
 
         em_pct = row.get("expected_move_weekly_pct")
@@ -1074,7 +1154,7 @@ def _render_narrative_card_native(row, idx=0, market_type="generic"):
         if em_pct or em_val:
             st.caption(f"📊 Expected Move (weekly): ±{ff(em_val)} ({fp(em_pct)}) · Daily vol: {fp(row.get('daily_vol'))}")
 
-        # ── CRYPTO SPECIFIC: Funding & On-Chain ──
+        # ── CRYPTO SPECIFIC: Funding & On-Chain (Layer 1 context) ──
         if market_type == "crypto":
             if row.get("funding_rate") is not None:
                 fr = row["funding_rate"]
@@ -1085,53 +1165,25 @@ def _render_narrative_card_native(row, idx=0, market_type="generic"):
             if row.get("tvl_7d") is not None:
                 st.caption(f"TVL 7d proxy: {row.get('tvl_7d'):+.1%}")
 
-        # NEWS SECTION
-        if news_signal or news_headline:
-            st.divider()
-            news_color = "#3FB950" if news_sentiment and news_sentiment > 0.2 else ("#F85149" if news_sentiment and news_sentiment < -0.2 else "#D29922")
-            st.markdown(f"**📰 News / Front-Run Signal**")
-            if news_signal:
-                st.markdown(f'<span style="color:{news_color};font-weight:700;font-size:13px;">🔮 {news_signal}</span>', unsafe_allow_html=True)
-            if news_headline:
-                st.markdown(f'<div class="news-ticker">{news_headline}</div>', unsafe_allow_html=True)
-            if news_themes:
-                st.caption(f"Themes: {', '.join(news_themes)}")
-            if news_sentiment is not None:
-                st.caption(f"Sentiment score: {news_sentiment:+.2f}")
-
-        if row.get("expected_1m") is not None or row.get("expected_3m") is not None:
-            with st.expander("🔮 Forward-Looking", expanded=False):
-                f1, f2, f3, f4 = st.columns(4)
-                f1.metric("1M Expected", fp(row.get("expected_1m")))
-                f2.metric("3M Expected", fp(row.get("expected_3m")))
-                f3.metric("6M Expected", fp(row.get("expected_6m")))
-                f4.metric("Confidence", f"{row.get('forward_confidence', 0):.0%}")
-
-        if row.get("news_narrative") or row.get("news_headline"):
-            with st.expander("📰 News / Narrative", expanded=False):
-                news_color = "var(--long)" if row.get("news_sentiment") == "positive" else "var(--short)" if row.get("news_sentiment") == "negative" else "var(--neutral)"
-                st.markdown(f"<span style='color:{news_color};font-weight:600;'>{row.get('news_narrative', row.get('news_headline', '—'))}</span>", unsafe_allow_html=True)
-                if row.get("news_headline") and row.get("news_narrative"):
-                    st.caption(f"Headline: {row.get('news_headline')}")
-
-        # ── OPTIONS & GREEKS (INLINE, NOT EXPANDER) ──
+        # ═══════════════════════════════════════════════════════════════
+        # LAYER 2: ⚡ MARKET STRUCTURE (Gamma, Greeks, Cem Karsan, Skew)
+        # ═══════════════════════════════════════════════════════════════
         has_options = any(row.get(k) for k in ["gamma_regime","greek_composite","max_pain","max_pain_gamma","delta","vanna","put_wall","call_wall","gamma_flip_up","gamma_flip_down"])
         if has_options and market_type not in ["ihsg"]:
             st.divider()
-            st.markdown("**📊 Options & Greeks**")
+            st.markdown("**⚡ Market Structure**")
             source = row.get("options_source", "PROXY")
             ticker_for_live = row.get("ticker", "")
             live_opt = yfinance_options.get(ticker_for_live) if yfinance_options else None
             if live_opt and live_opt.get("ok"):
                 st.success("🟢 LIVE — yfinance options chain")
-                # Override proxy values with live
                 for k in ["max_pain", "put_wall", "call_wall", "gamma_flip_up", "gamma_flip_down"]:
                     if live_opt.get(k) is not None:
                         row[k] = live_opt.get(k)
                 if live_opt.get("gamma_regime"):
-                    row["gamma_regime"] = live_opt["gamma_regime"]
+                    row["gamma_regime"] = live_opt.get("gamma_regime")
                 if live_opt.get("greek_composite"):
-                    row["greek_composite"] = live_opt["greek_composite"]
+                    row["greek_composite"] = live_opt.get("greek_composite")
             elif "LIVE" in str(source):
                 st.success(f"🟢 {source}")
             else:
@@ -1160,52 +1212,52 @@ def _render_narrative_card_native(row, idx=0, market_type="generic"):
                 except Exception:
                     pass
 
-        # ── CEM KARSAN + SKEW TERM (ALWAYS RENDER) ──
+        # ── CEM KARSAN + SKEW TERM (ALWAYS IN MARKET STRUCTURE) ──
         if market_type not in ["ihsg"]:
             ticker_cem = _cem_karsan_for_ticker(ticker, odte_monitor, vanna_charm_flows, prices)
-            st.divider()
-            st.markdown("**⚡ Cem Karsan Structure**")
-            cem_cols = st.columns(4)
-            idx_col = 0
-            # 0DTE
-            if ticker_cem["has_odte"]:
-                pin = ticker_cem["pin_risk"]
-                pin_color = "#F85149" if pin > 0.4 else "#D29922" if pin > 0.25 else "#3FB950"
-                with cem_cols[idx_col]:
-                    st.markdown(f"<div style='text-align:center;'><div style='font-size:9px;color:var(--text-secondary);'>0DTE PIN</div><div style='font-size:13px;font-weight:700;color:{pin_color};'>{pin:.0%}</div></div>", unsafe_allow_html=True)
-                idx_col += 1
-                with cem_cols[idx_col]:
-                    st.markdown(f"<div style='text-align:center;'><div style='font-size:9px;color:var(--text-secondary);'>MAX PAIN</div><div style='font-size:13px;font-weight:700;color:var(--text-primary);'>{ticker_cem['max_pain']}</div></div>", unsafe_allow_html=True)
-                idx_col += 1
-            else:
-                with cem_cols[idx_col]:
-                    st.markdown(f"<div style='text-align:center;'><div style='font-size:9px;color:var(--text-secondary);'>0DTE PIN</div><div style='font-size:13px;font-weight:700;color:var(--text-muted);'>—</div></div>", unsafe_allow_html=True)
-                idx_col += 1
-                with cem_cols[idx_col]:
-                    st.markdown(f"<div style='text-align:center;'><div style='font-size:9px;color:var(--text-secondary);'>MAX PAIN</div><div style='font-size:13px;font-weight:700;color:var(--text-muted);'>—</div></div>", unsafe_allow_html=True)
-                idx_col += 1
-            # Vanna/Charm
-            if ticker_cem["has_vanna"]:
-                sig = ticker_cem["vanna_signal"]
-                color = ticker_cem["vanna_color"]
-                with cem_cols[idx_col]:
-                    st.markdown(f"<div style='text-align:center;'><div style='font-size:9px;color:var(--text-secondary);'>VANNA</div><div style='font-size:13px;font-weight:700;color:{color};'>{sig[:12]}</div></div>", unsafe_allow_html=True)
-                idx_col += 1
-                if ticker_cem.get("vanna_regime") and ticker_cem["vanna_regime"] != "-":
+            if ticker_cem["has_odte"] or ticker_cem["has_vanna"]:
+                st.markdown("<div style='margin-top:8px;font-size:10px;color:var(--text-secondary);text-transform:uppercase;'>⚡ Cem Karsan Structure</div>", unsafe_allow_html=True)
+                cem_cols = st.columns(4)
+                idx_col = 0
+                # 0DTE
+                if ticker_cem["has_odte"]:
+                    pin = ticker_cem["pin_risk"]
+                    pin_color = "#F85149" if pin > 0.4 else "#D29922" if pin > 0.25 else "#3FB950"
                     with cem_cols[idx_col]:
-                        st.markdown(f"<div style='text-align:center;'><div style='font-size:9px;color:var(--text-secondary);'>CHARM</div><div style='font-size:13px;font-weight:700;color:var(--text-primary);'>{ticker_cem['charm_regime'][:12]}</div></div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='text-align:center;'><div style='font-size:9px;color:var(--text-secondary);'>0DTE PIN</div><div style='font-size:13px;font-weight:700;color:{pin_color};'>{pin:.0%}</div></div>", unsafe_allow_html=True)
                     idx_col += 1
-            else:
-                with cem_cols[idx_col]:
-                    st.markdown(f"<div style='text-align:center;'><div style='font-size:9px;color:var(--text-secondary);'>VANNA</div><div style='font-size:13px;font-weight:700;color:var(--text-muted);'>—</div></div>", unsafe_allow_html=True)
-                idx_col += 1
-                with cem_cols[idx_col]:
-                    st.markdown(f"<div style='text-align:center;'><div style='font-size:9px;color:var(--text-secondary);'>CHARM</div><div style='font-size:13px;font-weight:700;color:var(--text-muted);'>—</div></div>", unsafe_allow_html=True)
-                idx_col += 1
-            if ticker_cem.get("vanna_note"):
-                st.caption(f"💡 {ticker_cem['vanna_note']}")
-            if ticker_cem.get("charm_note"):
-                st.caption(f"⏰ {ticker_cem['charm_note']}")
+                    with cem_cols[idx_col]:
+                        st.markdown(f"<div style='text-align:center;'><div style='font-size:9px;color:var(--text-secondary);'>MAX PAIN</div><div style='font-size:13px;font-weight:700;color:var(--text-primary);'>{ticker_cem['max_pain']}</div></div>", unsafe_allow_html=True)
+                    idx_col += 1
+                else:
+                    with cem_cols[idx_col]:
+                        st.markdown(f"<div style='text-align:center;'><div style='font-size:9px;color:var(--text-secondary);'>0DTE PIN</div><div style='font-size:13px;font-weight:700;color:var(--text-muted);'>—</div></div>", unsafe_allow_html=True)
+                    idx_col += 1
+                    with cem_cols[idx_col]:
+                        st.markdown(f"<div style='text-align:center;'><div style='font-size:9px;color:var(--text-secondary);'>MAX PAIN</div><div style='font-size:13px;font-weight:700;color:var(--text-muted);'>—</div></div>", unsafe_allow_html=True)
+                    idx_col += 1
+                # Vanna/Charm
+                if ticker_cem["has_vanna"]:
+                    sig = ticker_cem["vanna_signal"]
+                    color = ticker_cem["vanna_color"]
+                    with cem_cols[idx_col]:
+                        st.markdown(f"<div style='text-align:center;'><div style='font-size:9px;color:var(--text-secondary);'>VANNA</div><div style='font-size:13px;font-weight:700;color:{color};'>{sig[:12]}</div></div>", unsafe_allow_html=True)
+                    idx_col += 1
+                    if ticker_cem.get("vanna_regime") and ticker_cem["vanna_regime"] != "-":
+                        with cem_cols[idx_col]:
+                            st.markdown(f"<div style='text-align:center;'><div style='font-size:9px;color:var(--text-secondary);'>CHARM</div><div style='font-size:13px;font-weight:700;color:var(--text-primary);'>{ticker_cem['charm_regime'][:12]}</div></div>", unsafe_allow_html=True)
+                        idx_col += 1
+                else:
+                    with cem_cols[idx_col]:
+                        st.markdown(f"<div style='text-align:center;'><div style='font-size:9px;color:var(--text-secondary);'>VANNA</div><div style='font-size:13px;font-weight:700;color:var(--text-muted);'>—</div></div>", unsafe_allow_html=True)
+                    idx_col += 1
+                    with cem_cols[idx_col]:
+                        st.markdown(f"<div style='text-align:center;'><div style='font-size:9px;color:var(--text-secondary);'>CHARM</div><div style='font-size:13px;font-weight:700;color:var(--text-muted);'>—</div></div>", unsafe_allow_html=True)
+                    idx_col += 1
+                if ticker_cem.get("vanna_note"):
+                    st.caption(f"💡 {ticker_cem['vanna_note'][:60]}")
+                if ticker_cem.get("charm_note"):
+                    st.caption(f"⏰ {ticker_cem['charm_note'][:60]}")
 
             # ── SKEW TERM PER TICKER ──
             st.markdown("<div style='margin-top:6px;font-size:10px;color:var(--text-secondary);text-transform:uppercase;'>📐 Skew Term</div>", unsafe_allow_html=True)
@@ -1231,10 +1283,29 @@ def _render_narrative_card_native(row, idx=0, market_type="generic"):
             if not skew_ok:
                 st.caption("📐 Skew: PROXY — 30D/60D vol spread from price action")
 
+        # ═══════════════════════════════════════════════════════════════
+        # LAYER 3: 📈 FLOW & CONTEXT (COT, OI, News, On-chain, Funding)
+        # ═══════════════════════════════════════════════════════════════
         has_flow = any(row.get(k) for k in ["cot_signal","oi_signal","onchain_signal","skew","oi_trend","cot_bias"])
-        if has_flow and market_type not in ["ihsg"]:
+        if (has_flow or news_signal) and market_type not in ["ihsg"]:
             st.divider()
-            st.markdown("**📈 Flow & Positioning**")
+            st.markdown("**📈 Flow & Context**")
+
+            # NEWS (front-run context)
+            if news_signal or news_headline:
+                news_color = "#3FB950" if news_sentiment and news_sentiment > 0.2 else "#F85149" if news_sentiment and news_sentiment < -0.2 else "#D29922"
+                st.markdown(f"**📰 News / Front-Run Signal**")
+                if news_signal:
+                    st.markdown(f'<span style="color:{news_color};font-weight:700;font-size:13px;">🔮 {news_signal}</span>', unsafe_allow_html=True)
+                if news_headline:
+                    st.markdown(f'<div class="news-ticker">{news_headline}</div>', unsafe_allow_html=True)
+                if news_themes:
+                    st.caption(f"Themes: {', '.join(news_themes)}")
+                if news_sentiment is not None:
+                    st.caption(f"Sentiment score: {news_sentiment:+.2f}")
+                st.markdown("<div style='margin:4px 0;'></div>", unsafe_allow_html=True)
+
+            # COT + OI
             f1, f2 = st.columns(2)
             f1.write(f"**COT Signal:** {row.get('cot_signal', '—')}")
             f1.write(f"**COT Bias:** {row.get('cot_bias', '—')}")
@@ -1245,26 +1316,39 @@ def _render_narrative_card_native(row, idx=0, market_type="generic"):
             if row.get("onchain_signal") and row.get("onchain_signal") != "—":
                 st.write(f"**On-Chain:** {row.get('onchain_signal')}")
 
-        sharpe = row.get("sharpe_63d")
-        sortino = row.get("sortino_63d")
-        max_dd = row.get("max_dd_63d")
-        if sharpe is not None or sortino is not None:
-            st.divider()
-            st.markdown("**📊 Risk-Adjusted (63D)**")
-            r1, r2, r3 = st.columns(3)
-            r1.metric("Sharpe", f"{sharpe:.2f}" if sharpe is not None else "—")
-            r2.metric("Sortino", f"{sortino:.2f}" if sortino is not None else "—")
-            r3.metric("Max DD", f"{max_dd:.1%}" if max_dd is not None else "—")
-
+        # ═══════════════════════════════════════════════════════════════
+        # LAYER 4: 🔮 FORWARD OUTLOOK
+        # ═══════════════════════════════════════════════════════════════
         st.divider()
-        st.markdown("**🎯 Thesis & Strategy**")
+        st.markdown("**🔮 Forward Outlook**")
+        fo1, fo2, fo3, fo4 = st.columns(4)
+        fo1.metric("Path", row.get("path_smoothness", "—"))
+        fo2.metric("Time to T1", row.get("time_estimate", "—"))
+        fo3.metric("Time to T2", row.get("time_estimate_t2", "—"))
+        fo4.metric("Breakout", row.get("breakout_chance", "—"))
+
+        if row.get("expected_1m") is not None or row.get("expected_3m") is not None:
+            with st.expander("📊 Forward Returns (1M / 3M / 6M)", expanded=False):
+                f1, f2, f3, f4 = st.columns(4)
+                f1.metric("1M Expected", fp(row.get("expected_1m")))
+                f2.metric("3M Expected", fp(row.get("expected_3m")))
+                f3.metric("6M Expected", fp(row.get("expected_6m")))
+                f4.metric("Confidence", f"{row.get('forward_confidence', 0):.0%}")
+
+        # ═══════════════════════════════════════════════════════════════
+        # LAYER 5: 🧠 THESIS & INVALIDATORS (Last)
+        # ═══════════════════════════════════════════════════════════════
+        st.divider()
+        st.markdown("**🧠 Thesis & Invalidators**")
         thesis = row.get("thesis") or row.get("recommendation") or row.get("known_thesis", "N/A")
         st.info(thesis)
         if row.get("action"):
             st.caption(f"🎬 **Action:** {row.get('action')}")
+
         invalidators = row.get("invalidators", [])
         if invalidators:
             st.error(f"❌ **Invalidators:** {', '.join(invalidators)}")
+
         if "STRONG" in signal or "URGENT" in scanner:
             st.divider()
             r1, r2 = st.columns(2)
@@ -1535,7 +1619,7 @@ bottleneck_v3 = snap.get("bottleneck_v3", {}) or {}
 
 
 def _render_crypto_card_compact(row, idx=0):
-    """Compact crypto ticker card with Attachment 3 on-chain data inline."""
+    """Compact crypto ticker card with Positioning-First hierarchy."""
     ticker = row.get("ticker", "UNKNOWN")
     price = row.get("price")
     entry = row.get("entry")
@@ -1586,7 +1670,6 @@ def _render_crypto_card_compact(row, idx=0):
     if liq_prox and not liq_prox.startswith("🟢") and not liq_prox.startswith("⚪"):
         liq_color = "var(--short)" if "🔴" in liq_prox else "var(--neutral)"
         badges.append(f'<span class="badge" style="background:{liq_color}33;color:{liq_color};border:1px solid {liq_color};">{liq_prox}</span>')
-    # News badge
     if row.get("news_signal"):
         ns = row["news_signal"]
         if "BULLISH" in ns or "BUILDING" in ns or "MOMENTUM" in ns:
@@ -1616,7 +1699,16 @@ def _render_crypto_card_compact(row, idx=0):
     # Expander label
     expander_label = f"📊 {ticker} @ {ff(price)} | Entry {ff(entry)} | RR {ff(rr)}x"
     with st.expander(expander_label, expanded=False):
-        # Core metrics
+        # ═══════════════════════════════════════════════════════════════
+        # LAYER 0: POSITIONING BANNER
+        # ═══════════════════════════════════════════════════════════════
+        st.markdown(_positioning_banner_html(row), unsafe_allow_html=True)
+
+        # ═══════════════════════════════════════════════════════════════
+        # LAYER 1: RISK SETUP
+        # ═══════════════════════════════════════════════════════════════
+        st.divider()
+        st.markdown("**📐 Risk Setup**")
         m1, m2, m3, m4, m5, m6 = st.columns(6)
         m1.metric("Price", ff(price))
         m2.metric("Entry", ff(entry))
@@ -1625,7 +1717,23 @@ def _render_crypto_card_compact(row, idx=0):
         m5.metric("Stop", ff(stop))
         m6.metric("RR", f"{ff(rr)}x")
 
-        # Market Structure (Attachment 3) — 4 cols, no empty "—"
+        # Risk Range Bar
+        if tail_l and tail_r and price:
+            st.markdown("**Risk Range (Trade · Trend · Tail)**")
+            st.markdown(_risk_range_bar_html(price, trade_l, trade_r, trend_l, trend_r, tail_l, tail_r, 100), unsafe_allow_html=True)
+        elif trade_l and trade_r and price:
+            st.markdown("**Risk Range (Trade)**")
+            st.markdown(_risk_range_bar_html(price, trade_l, trade_r, trade_l, trade_r, trade_l, trade_r, 100), unsafe_allow_html=True)
+
+        em_pct = row.get("expected_move_weekly_pct")
+        em_val = row.get("expected_move_weekly")
+        if em_pct or em_val:
+            st.caption(f"📊 Expected Move (weekly): ±{ff(em_val)} ({fp(em_pct)}) · Daily vol: {fp(row.get('daily_vol'))}")
+
+        # ═══════════════════════════════════════════════════════════════
+        # LAYER 2: MARKET STRUCTURE
+        # ═══════════════════════════════════════════════════════════════
+        st.divider()
         st.markdown("**⚡ Market Structure**")
         ms1, ms2, ms3, ms4 = st.columns(4)
         with ms1:
@@ -1641,13 +1749,13 @@ def _render_crypto_card_compact(row, idx=0):
             w_color = "var(--long)" if "ACCUM" in whale_signal else "var(--short)" if "DIST" in whale_signal else "var(--neutral)"
             st.markdown(f"<span style='color:{w_color};font-weight:700;'>{whale_signal}</span><br><span style='font-size:10px;color:var(--text-secondary);'>Whale Proxy</span>", unsafe_allow_html=True)
 
-        # Liquidation Zone (Attachment 3 Layer 2.1)
+        # Liquidation Zone
         if liq_prox and not liq_prox.startswith("⚪"):
             liq_color = "var(--short)" if "🔴" in liq_prox else "var(--neutral)" if "🟡" in liq_prox else "var(--long)"
             st.markdown(f'''
             <div style="background:var(--bg-card);border:1px solid {liq_color};border-radius:6px;padding:8px 12px;margin:6px 0;">
                 <span style="font-size:12px;font-weight:700;color:{liq_color};">{liq_prox}</span>
-                <span style="font-size:10px;color:var(--text-secondary);margin-left:8px;">Price near structural tail or stop = cascade risk zone (Attachment 3)</span>
+                <span style="font-size:10px;color:var(--text-secondary);margin-left:8px;">Price near structural tail or stop = cascade risk zone</span>
             </div>
             ''', unsafe_allow_html=True)
 
@@ -1656,31 +1764,10 @@ def _render_crypto_card_compact(row, idx=0):
             impact_emoji = "🔴" if row.get("unlock_impact") == "HIGH" else "🟡"
             st.warning(f"{impact_emoji} **Unlock Alert:** {row.get('unlock_amount',0)}M tokens unlock in {row.get('unlock_days','?')} days ({row.get('unlock_impact','')} impact)")
 
-        # Risk Range Bar
-        if tail_l and tail_r and price:
-            st.markdown("**📐 Risk Range (Trade · Trend · Tail)**")
-            st.markdown(_risk_range_bar_html(price, trade_l, trade_r, trend_l, trend_r, tail_l, tail_r, 100), unsafe_allow_html=True)
-        elif trade_l and trade_r and price:
-            st.markdown("**📐 Risk Range (Trade)**")
-            st.markdown(_risk_range_bar_html(price, trade_l, trade_r, trade_l, trade_r, trade_l, trade_r, 100), unsafe_allow_html=True)
-
-        # Expected move
-        em_pct = row.get("expected_move_weekly_pct")
-        em_val = row.get("expected_move_weekly")
-        if em_pct or em_val:
-            st.caption(f"📊 Expected Move (weekly): ±{ff(em_val)} ({fp(em_pct)}) · Daily vol: {fp(row.get('daily_vol'))}")
-
-        # On-chain signal (existing)
-        if row.get("onchain_signal") and row.get("onchain_signal") != "-":
-            st.markdown(f"**On-Chain Signal:** {row.get('onchain_signal')} · Score: {row.get('onchain_score', '-')}")
-        if row.get("tvl_7d") is not None:
-            st.caption(f"TVL 7d proxy: {row.get('tvl_7d'):+.1%}")
-
-        # Options & Greeks (User says relevant — keep compact)
+        # Options & Greeks (compact)
         has_options = any(row.get(k) for k in ["gamma_regime","greek_composite","max_pain","max_pain_gamma","delta","vanna","put_wall","call_wall","gamma_flip_up","gamma_flip_down"])
         if has_options:
-            st.divider()
-            st.markdown("**📊 Options & Greeks**")
+            st.markdown("<div style='margin-top:8px;font-size:10px;color:var(--text-secondary);text-transform:uppercase;'>📊 Options & Greeks</div>", unsafe_allow_html=True)
             source = row.get("options_source", "PROXY")
             st.caption(f"🟡 {source} — Price-derived proxy levels")
             o1, o2, o3, o4 = st.columns(4)
@@ -1706,13 +1793,12 @@ def _render_crypto_card_compact(row, idx=0):
                 except:
                     pass
 
-        # ── CEM KARSAN PER TICKER (Crypto) ──
+        # Cem Karsan (Crypto)
         ticker_full = row.get("ticker", "")
         if ticker_full:
             ticker_cem = _cem_karsan_for_ticker(ticker_full, odte_monitor, vanna_charm_flows, prices)
             if ticker_cem["has_odte"] or ticker_cem["has_vanna"]:
-                st.divider()
-                st.markdown("**⚡ Cem Karsan Structure**")
+                st.markdown("<div style='margin-top:8px;font-size:10px;color:var(--text-secondary);text-transform:uppercase;'>⚡ Cem Karsan Structure</div>", unsafe_allow_html=True)
                 cem_cols = st.columns(4)
                 idx = 0
                 if ticker_cem["has_odte"]:
@@ -1737,42 +1823,47 @@ def _render_crypto_card_compact(row, idx=0):
                 if ticker_cem.get("vanna_note"):
                     st.caption(f"💡 {ticker_cem['vanna_note']}")
 
-                # ── SKEW TERM PER TICKER (Crypto) ──
-                st.markdown("<div style='margin-top:6px;font-size:10px;color:var(--text-secondary);text-transform:uppercase;'>📐 Skew Term</div>", unsafe_allow_html=True)
-                s = prices.get(ticker_full)
-                if s is not None and len(s) >= 60:
-                    try:
-                        s_clean = pd.to_numeric(s, errors="coerce").dropna()
-                        if len(s_clean) >= 60:
-                            vol_30 = float(s_clean.tail(30).std())
-                            vol_60 = float(s_clean.tail(60).std())
-                            mean = float(s_clean.tail(30).mean())
-                            if mean > 0 and vol_60 > 0:
-                                skew_30d = vol_30 / mean
-                                skew_60d = vol_60 / mean
-                                spread = skew_30d - skew_60d
-                                regime = "RICH" if spread > 0.005 else "CHEAP" if spread < -0.005 else "FAIR"
-                                color = "#F85149" if regime == "RICH" else "#3FB950" if regime == "CHEAP" else "#8B949E"
-                                st.markdown(f"<div style='font-size:11px;'>30D/60D Skew: <span style='color:{color};font-weight:700;'>{regime}</span> ({spread:+.2%})</div>", unsafe_allow_html=True)
-                    except Exception:
-                        pass
-                else:
-                    st.caption("📐 Skew: insufficient data")
+            # Skew Term
+            st.markdown("<div style='margin-top:6px;font-size:10px;color:var(--text-secondary);text-transform:uppercase;'>📐 Skew Term</div>", unsafe_allow_html=True)
+            s = prices.get(ticker_full)
+            if s is not None and len(s) >= 60:
+                try:
+                    s_clean = pd.to_numeric(s, errors="coerce").dropna()
+                    if len(s_clean) >= 60:
+                        vol_30 = float(s_clean.tail(30).std())
+                        vol_60 = float(s_clean.tail(60).std())
+                        mean = float(s_clean.tail(30).mean())
+                        if mean > 0 and vol_60 > 0:
+                            skew_30d = vol_30 / mean
+                            skew_60d = vol_60 / mean
+                            spread = skew_30d - skew_60d
+                            regime = "RICH" if spread > 0.005 else "CHEAP" if spread < -0.005 else "FAIR"
+                            color = "#F85149" if regime == "RICH" else "#3FB950" if regime == "CHEAP" else "#8B949E"
+                            st.markdown(f"<div style='font-size:11px;'>30D/60D Skew: <span style='color:{color};font-weight:700;'>{regime}</span> ({spread:+.2%})</div>", unsafe_allow_html=True)
+                except Exception:
+                    pass
+            else:
+                st.caption("📐 Skew: insufficient data")
 
-        # Flow & Positioning (compact)
-        has_flow = any(row.get(k) for k in ["cot_signal","oi_signal","onchain_signal","skew","oi_trend","cot_bias"])
-        if has_flow:
-            st.divider()
-            st.markdown("**📈 Flow & Positioning**")
-            f1, f2 = st.columns(2)
-            f1.write(f"**COT:** {row.get('cot_signal', '—')} | {row.get('cot_bias', '—')}")
-            f2.write(f"**OI:** {row.get('oi_signal') or row.get('oi_conc', '—')} | Trend: {row.get('oi_trend', '—')}")
-            if row.get("skew") and row.get("skew") != "—":
-                st.write(f"**Skew:** {row.get('skew')}")
+        # ═══════════════════════════════════════════════════════════════
+        # LAYER 3: FLOW & CONTEXT
+        # ═══════════════════════════════════════════════════════════════
+        st.divider()
+        st.markdown("**📈 Flow & Context**")
+        f1, f2 = st.columns(2)
+        f1.write(f"**COT:** {row.get('cot_signal', '—')} | {row.get('cot_bias', '—')}")
+        f2.write(f"**OI:** {row.get('oi_signal') or row.get('oi_conc', '—')} | Trend: {row.get('oi_trend', '—')}")
+        if row.get("skew") and row.get("skew") != "—":
+            st.write(f"**Skew:** {row.get('skew')}")
 
-        # News section (if any)
+        # On-chain
+        if row.get("onchain_signal") and row.get("onchain_signal") != "-":
+            st.markdown(f"**On-Chain Signal:** {row.get('onchain_signal')} · Score: {row.get('onchain_score', '-')}")
+        if row.get("tvl_7d") is not None:
+            st.caption(f"TVL 7d proxy: {row.get('tvl_7d'):+.1%}")
+
+        # News
         if row.get("news_headline") or row.get("news_signal"):
-            st.divider()
             st.markdown("**📰 News / Front-Run**")
             news_color = "#3FB950" if row.get("news_sentiment") and row.get("news_sentiment") > 0.2 else "#F85149" if row.get("news_sentiment") and row.get("news_sentiment") < -0.2 else "#D29922"
             if row.get("news_signal"):
@@ -1782,640 +1873,30 @@ def _render_crypto_card_compact(row, idx=0):
             if row.get("news_themes"):
                 st.caption(f"Themes: {', '.join(row['news_themes'][:3])}")
 
-        # Thesis
+        # ═══════════════════════════════════════════════════════════════
+        # LAYER 4: FORWARD OUTLOOK
+        # ═══════════════════════════════════════════════════════════════
         st.divider()
-        st.markdown("**🎯 Thesis & Strategy**")
+        st.markdown("**🔮 Forward Outlook**")
+        fo1, fo2, fo3, fo4 = st.columns(4)
+        fo1.metric("Path", row.get("path_smoothness", "—"))
+        fo2.metric("Time to T1", row.get("time_estimate", "—"))
+        fo3.metric("Time to T2", row.get("time_estimate_t2", "—"))
+        fo4.metric("Breakout", row.get("breakout_chance", "—"))
+
+        # ═══════════════════════════════════════════════════════════════
+        # LAYER 5: THESIS & INVALIDATORS
+        # ═══════════════════════════════════════════════════════════════
+        st.divider()
+        st.markdown("**🧠 Thesis & Strategy**")
         thesis = row.get("thesis") or row.get("recommendation") or row.get("known_thesis", "N/A")
         st.info(thesis)
         if row.get("action"):
             st.caption(f"🎬 **Action:** {row.get('action')}")
 
-        # Invalidators
         invalidators = row.get("invalidators", [])
         if invalidators:
             st.error(f"❌ **Invalidators:** {', '.join(invalidators)}")
-
-
-# ═══════════════════════════════════════════════════════════════════
-# PAGE: DASHBOARD — Redesigned, Compact, Forward-Looking
-# ═══════════════════════════════════════════════════════════════════
-
-# ═══════════════════════════════════════════════════════════════════
-# PHASE 2 & 3 DISPLAY FUNCTIONS
-# ═══════════════════════════════════════════════════════════════════
-
-def _render_regime_transition():
-    """Display regime transition probabilities."""
-    if not regime_transition or not regime_transition.get("transitions"):
-        return
-    current = regime_transition.get("current_quad", "Q3")
-    most_likely = regime_transition.get("most_likely_60d", current)
-    prob = regime_transition.get("most_likely_prob_60d", 0)
-    st.markdown(f"<div style='font-size:12px;font-weight:600;color:#4fc3f7;margin-bottom:4px;'>🔄 Regime Transition — {current} → {most_likely} in 60d: {prob:.0%}</div>", unsafe_allow_html=True)
-    transitions = regime_transition.get("transitions", {})
-    cols = st.columns(4)
-    for i, q in enumerate(["Q1", "Q2", "Q3", "Q4"]):
-        t = transitions.get(q, {})
-        p60 = t.get("60d", 0)
-        color = "#3FB950" if p60 > 0.4 else "#D29922" if p60 > 0.2 else "#8B949E"
-        with cols[i]:
-            st.markdown(f"<div style='text-align:center;padding:4px;background:#161B22;border-radius:4px;border-left:3px solid {color};'><div style='font-size:10px;color:#8B949E;'>{q}</div><div style='font-size:14px;font-weight:700;color:{color};'>{p60:.0%}</div></div>", unsafe_allow_html=True)
-
-def _render_scenario_discovery():
-    """Scenario cards in dashboard."""
-    active = scenario_discovery.get("active_scenarios", [])
-    watch = scenario_discovery.get("watch_scenarios", [])
-    if not active and not watch:
-        st.caption("🔮 No active scenarios — macro stable")
-        return
-    if active:
-        st.markdown(f"<div style='font-size:12px;font-weight:600;color:#F85149;margin-bottom:4px;'>🔮 {len(active)} Active Scenario(s)</div>", unsafe_allow_html=True)
-        for sc in active[:3]:
-            with st.container(border=True):
-                c1, c2 = st.columns([3, 1])
-                c1.markdown(f"<div style='font-size:13px;font-weight:700;color:var(--text-primary);'>{sc.get('scenario', '-')}</div>", unsafe_allow_html=True)
-                c1.caption(sc.get("trigger", "-"))
-                c2.markdown(f"<div style='text-align:right;font-size:18px;font-weight:700;color:#F85149;'>{sc.get('confidence', 0):.0%}</div>", unsafe_allow_html=True)
-                shocks = sc.get("shock", {})
-                if shocks:
-                    pills = " ".join([f"<span style='background:#21262D;padding:2px 6px;border-radius:3px;font-size:10px;'>{k} {v:+.0%}</span>" for k, v in list(shocks.items())[:5]])
-                    st.markdown(f"<div style='margin-top:4px;'>{pills}</div>", unsafe_allow_html=True)
-                cascade = sc.get("sector_cascade", [])
-                if cascade:
-                    hits = [c for c in cascade if c.get("status") == "HIT"]
-                    if hits:
-                        st.caption(f"🎯 HIT: {', '.join([c['sector'] for c in hits[:3]])}")
-    if watch:
-        st.markdown(f"<div style='font-size:11px;color:#8B949E;margin-top:4px;'>👁️ Watching: {', '.join(watch)}</div>", unsafe_allow_html=True)
-
-def _render_transmission_dashboard():
-    """Transmission cascade in dashboard."""
-    active = transmission.get("active_scenarios", [])
-    if not active:
-        st.caption("🔗 No active transmission — markets decoupled")
-        return
-    st.markdown(f"<div style='font-size:12px;font-weight:600;color:#D29922;margin-bottom:4px;'>🔗 Active Transmission Cascade(s)</div>", unsafe_allow_html=True)
-    for sc in active[:2]:
-        with st.container(border=True):
-            st.markdown(f"<div style='font-size:13px;font-weight:700;color:var(--text-primary);'>{sc.get('scenario', '-')}</div>", unsafe_allow_html=True)
-            st.caption(sc.get("trigger", "-"))
-            cascade = sc.get("sector_cascade", [])
-            if cascade:
-                flow = " → ".join([f"<b>{c['sector']}</b> ({c['impact']:+.1%})" for c in cascade[:4]])
-                st.markdown(f"<div style='font-size:11px;margin-top:4px;'>📈 {flow}</div>", unsafe_allow_html=True)
-            em = sc.get("em_impact", {})
-            if em:
-                st.caption(f"EM: DXY {em.get('DXY', 0):+.1%} | EM {em.get('EM', 0):+.1%} | Rupiah {em.get('Rupiah', 0):+.1%}")
-
-
-if page == "🏠 Dashboard":
-    st.markdown("## 🏠 MacroRegime Dashboard")
-    st.caption("30-second read · Forward-looking before headline")
-
-    # ═══════════════════════════════════════════════════════════════════
-    # TOP BAR — 6 KPIs in 1 row (compact)
-    # ═══════════════════════════════════════════════════════════════════
-    vix_val = health.get("vix_bucket", {}).get("vix_last", 18) if health else 18
-    vb = (health.get("vix_bucket",{}) if health else {}).get("bucket","-")
-    dxy_val = None
-    if prices.get("DX-Y.NYB") is not None:
-        try:
-            dxy_s = pd.to_numeric(prices["DX-Y.NYB"], errors="coerce").dropna()
-            if len(dxy_s) > 0: dxy_val = float(dxy_s.iloc[-1])
-        except: pass
-    gold_val = None
-    if prices.get("GC=F") is not None:
-        try:
-            gold_s = pd.to_numeric(prices["GC=F"], errors="coerce").dropna()
-            if len(gold_s) > 0: gold_val = float(gold_s.iloc[-1])
-        except: pass
-
-    tb1, tb2, tb3, tb4, tb5, tb6 = st.columns(6)
-    with tb1:
-        st.markdown(f"""<div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:6px;text-align:center;">
-          <div style="font-size:9px;color:var(--text-secondary);text-transform:uppercase;">REGIME</div>
-          <div style="font-size:14px;font-weight:700;color:{qc(sq)};">{sq}·{mq}</div>
-          <div style="font-size:9px;color:var(--text-muted);">{qn(sq)}</div>
-        </div>""", unsafe_allow_html=True)
-    with tb2:
-        vix_color = "var(--long)" if vix_val < 18 else "var(--neutral)" if vix_val < 25 else "var(--short)"
-        st.markdown(f"""<div style="background:var(--bg-card);border:1px solid {vix_color};border-radius:6px;padding:6px;text-align:center;">
-          <div style="font-size:9px;color:var(--text-secondary);text-transform:uppercase;">VIX</div>
-          <div style="font-size:14px;font-weight:700;color:{vix_color};">{vix_val:.1f}</div>
-          <div style="font-size:9px;color:var(--text-muted);">{vb}</div>
-        </div>""", unsafe_allow_html=True)
-    with tb3:
-        st.markdown(f"""<div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:6px;text-align:center;">
-          <div style="font-size:9px;color:var(--text-secondary);text-transform:uppercase;">DXY</div>
-          <div style="font-size:14px;font-weight:700;color:var(--text-primary);">{f"{dxy_val:.2f}" if dxy_val else "—"}</div>
-        </div>""", unsafe_allow_html=True)
-    with tb4:
-        st.markdown(f"""<div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:6px;text-align:center;">
-          <div style="font-size:9px;color:var(--text-secondary);text-transform:uppercase;">GOLD</div>
-          <div style="font-size:14px;font-weight:700;color:var(--text-primary);">{f"{gold_val:.1f}" if gold_val else "—"}</div>
-        </div>""", unsafe_allow_html=True)
-    with tb5:
-        st.markdown(f"""<div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:6px;text-align:center;">
-          <div style="font-size:9px;color:var(--text-secondary);text-transform:uppercase;">ASSETS</div>
-          <div style="font-size:14px;font-weight:700;color:var(--text-primary);">{snap.get("prices_loaded",0)}</div>
-          <div style="font-size:9px;color:var(--text-muted);">{len(ar)} rng</div>
-        </div>""", unsafe_allow_html=True)
-    with tb6:
-        news_count = news_narratives.get("analyzed_count",0) if news_narratives else 0
-        st.markdown(f"""<div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:6px;text-align:center;">
-          <div style="font-size:9px;color:var(--text-secondary);text-transform:uppercase;">NEWS</div>
-          <div style="font-size:14px;font-weight:700;color:var(--text-primary);">{news_count}</div>
-          <div style="font-size:9px;color:var(--text-muted);">headlines</div>
-        </div>""", unsafe_allow_html=True)
-
-    # ═══════════════════════════════════════════════════════════════════
-    # ROW 0: REGIME TRANSITION (compact bar)
-    # ═══════════════════════════════════════════════════════════════════
-    if regime_transition and regime_transition.get("transitions"):
-        _render_regime_transition()
-        st.divider()
-
-    # ═══════════════════════════════════════════════════════════════════
-    # ROW 1: RICH REGIME CHART + PLAYBOOK + FRONT-RUN (merged)
-    # ═══════════════════════════════════════════════════════════════════
-    st.markdown("### 📊 Regime, Playbook & Front-Run")
-
-    rc1, rc2 = st.columns([1.8, 1])
-
-    with rc1:
-        # Rich regime chart: Quarterly + Monthly + Forward in 1 figure
-        if gip and hasattr(gip, 'structural_probs'):
-            from plotly.subplots import make_subplots
-            fig = make_subplots(
-                rows=1, cols=3,
-                subplot_titles=("Quarterly", "Monthly", "Forward 3M"),
-                column_widths=[0.33, 0.33, 0.34],
-                horizontal_spacing=0.08
-            )
-
-            # Quarterly
-            q_probs = gip.structural_probs if hasattr(gip, 'structural_probs') else {}
-            for q, p in sorted(q_probs.items()):
-                color = {"Q1":"#3FB950","Q2":"#D29922","Q3":"#F85149","Q4":"#A371F7"}.get(q,"#8B949E")
-                fig.add_trace(go.Bar(x=[q], y=[p], marker_color=color, text=[f"<b>{p:.0%}</b>"], textposition="outside", showlegend=False), row=1, col=1)
-
-            # Monthly
-            m_probs = gip.monthly_probs if hasattr(gip, 'monthly_probs') else {}
-            for q, p in sorted(m_probs.items()):
-                color = {"Q1":"#3FB950","Q2":"#D29922","Q3":"#F85149","Q4":"#A371F7"}.get(q,"#8B949E")
-                fig.add_trace(go.Bar(x=[q], y=[p], marker_color=color, text=[f"<b>{p:.0%}</b>"], textposition="outside", showlegend=False), row=1, col=2)
-
-            # Forward
-            if regime_forecast and regime_forecast.get("3m"):
-                rf3 = regime_forecast["3m"]
-                fwd_q = rf3.get("predicted_quad", "Q3")
-                fwd_conf = rf3.get("prediction_confidence", 0)
-                fwd_probs = {q: (fwd_conf if q == fwd_q else (1-fwd_conf)/3) for q in ["Q1","Q2","Q3","Q4"]}
-                for q, p in sorted(fwd_probs.items()):
-                    color = {"Q1":"#3FB950","Q2":"#D29922","Q3":"#F85149","Q4":"#A371F7"}.get(q,"#8B949E")
-                    opacity = 1.0 if q == fwd_q else 0.4
-                    fig.add_trace(go.Bar(x=[q], y=[p], marker_color=color, text=[f"<b>{p:.0%}</b>"], textposition="outside", showlegend=False, opacity=opacity), row=1, col=3)
-
-            fig.update_layout(
-                height=220,
-                margin=dict(t=40,b=20,l=20,r=20),
-                paper_bgcolor="#161B22",
-                plot_bgcolor="#161B22",
-                font=dict(color="#E6EDF3", family="Inter", size=11),
-                yaxis=dict(range=[0,1.15], tickformat=".0%", showgrid=True, gridcolor="#21262D"),
-                yaxis2=dict(range=[0,1.15], tickformat=".0%", showgrid=True, gridcolor="#21262D"),
-                yaxis3=dict(range=[0,1.15], tickformat=".0%", showgrid=True, gridcolor="#21262D"),
-                bargap=0.4,
-            )
-            st.plotly_chart(fig, width='stretch', config={"displayModeBar":False}, key="regime_rich_v3")
-        else:
-            st.caption("No regime probabilities")
-
-    with rc2:
-        # Playbook compact
-        best_assets = " · ".join(pb_data.get("best_assets",[])[:4]) if pb_data else "Loading..."
-        worst_assets = " · ".join(pb_data.get("worst_assets",[])[:4]) if pb_data else "Loading..."
-        st.markdown(f"""<div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:8px;padding:10px;margin-bottom:8px;">
-          <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:6px;">🎯 PLAYBOOK — {sq}</div>
-          <div style="font-size:11px;color:var(--text-primary);line-height:1.5;">
-            <span style="color:var(--long);font-weight:600;">🟢 Buy:</span> {best_assets}<br>
-            <span style="color:var(--short);font-weight:600;">🔴 Avoid:</span> {worst_assets}
-          </div>
-        </div>""", unsafe_allow_html=True)
-
-        # Forward alert compact
-        if regime_forecast and regime_forecast.get("3m"):
-            rf3 = regime_forecast["3m"]
-            if rf3.get("predicted_quad") != sq and rf3.get("prediction_confidence",0) > 0.4:
-                st.warning(f"⚠️ 3M shift to {rf3.get('predicted_quad')} ({rf3.get('prediction_confidence',0):.0%} conf)")
-
-        # Front-Run Radar — simplified horizontal pills
-        if rumor_watch:
-            st.markdown("<div style='font-size:10px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:4px;'>📡 FRONT-RUN</div>", unsafe_allow_html=True)
-            pills = []
-            for rw in rumor_watch[:5]:
-                sig = rw.get("signal", "")
-                r_ticker = rw.get("ticker", "-")
-                if "BULLISH" in sig or "BUILDING" in sig:
-                    pills.append(f'<span class="badge badge-news-bull">{r_ticker}</span>')
-                elif "BEARISH" in sig or "NEGATIVE" in sig:
-                    pills.append(f'<span class="badge badge-news-bear">{r_ticker}</span>')
-                else:
-                    pills.append(f'<span class="badge badge-news-rumor">{r_ticker}</span>')
-            st.markdown(f"<div style='display:flex;flex-wrap:wrap;gap:4px;'>{' '.join(pills)}</div>", unsafe_allow_html=True)
-        else:
-            st.caption("No front-run signals")
-
-    # ═══════════════════════════════════════════════════════════════════
-    # ROW 2: MARKET PULSE — Early Warning + Behavioral Macro (merged)
-    # ═══════════════════════════════════════════════════════════════════
-    st.markdown("### 🫀 Market Pulse")
-    st.caption("Early Warning · Behavioral Macro · Sentiment · Bond Traders")
-
-    mp = st.columns(12)
-
-    # 1. Leverage
-    lev_rb = lev_data.get("rebalancing_pressure", "-") if lev_data else "-"
-    lev_color = {"HIGH": "var(--short)", "MEDIUM": "var(--neutral)", "LOW": "var(--long)"}.get(lev_rb, "var(--text-secondary)")
-    with mp[0]:
-        st.markdown(f"""<div style="text-align:center;background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:6px;">
-          <div style="font-size:8px;color:var(--text-secondary);text-transform:uppercase;">LEVERAGE</div>
-          <div style="font-size:12px;font-weight:700;color:{lev_color};">{lev_rb}</div>
-        </div>""", unsafe_allow_html=True)
-
-    # 2. Crash
-    crash_state = health.get("crash", {}).get("state", "calm") if health else "calm"
-    crash_color = "var(--long)" if crash_state == "calm" else "var(--neutral)" if crash_state == "watch" else "var(--short)"
-    with mp[1]:
-        st.markdown(f"""<div style="text-align:center;background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:6px;">
-          <div style="font-size:8px;color:var(--text-secondary);text-transform:uppercase;">CRASH</div>
-          <div style="font-size:12px;font-weight:700;color:{crash_color};">{crash_state.upper()}</div>
-        </div>""", unsafe_allow_html=True)
-
-    # 3. Risk Off
-    risk_off_state = health.get("risk_off", {}).get("state", "risk_on") if health else "risk_on"
-    risk_color = "var(--long)" if risk_off_state == "risk_on" else "var(--neutral)" if risk_off_state == "caution" else "var(--short)"
-    with mp[2]:
-        st.markdown(f"""<div style="text-align:center;background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:6px;">
-          <div style="font-size:8px;color:var(--text-secondary);text-transform:uppercase;">RISK OFF</div>
-          <div style="font-size:12px;font-weight:700;color:{risk_color};">{risk_off_state.upper()}</div>
-        </div>""", unsafe_allow_html=True)
-
-    # 4. Breadth
-    breadth_tickers = list(US_SECTORS.keys())
-    for bucket in ["Growth", "Quality", "Defensives", "Semis", "Energy", "Industrials", "Financials", "AI_Infra", "PreciousMetals"]:
-        breadth_tickers += US_BUCKETS.get(bucket, [])
-    breadth_tickers = list(dict.fromkeys(breadth_tickers))
-    advancers = 0; decliners = 0
-    for t in breadth_tickers:
-        ret = _price_ret(t, prices, 21)
-        if ret is not None:
-            if ret > 0.005: advancers += 1
-            elif ret < -0.005: decliners += 1
-    total_b = advancers + decliners
-    b_score = advancers / total_b if total_b > 0 else 0.5
-    b_color = "var(--long)" if b_score > 0.6 else "var(--neutral)" if b_score > 0.4 else "var(--short)"
-    with mp[3]:
-        st.markdown(f"""<div style="text-align:center;background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:6px;">
-          <div style="font-size:8px;color:var(--text-secondary);text-transform:uppercase;">BREADTH</div>
-          <div style="font-size:12px;font-weight:700;color:{b_color};">{b_score:.0%}</div>
-          <div style="font-size:8px;color:var(--text-secondary);">{advancers}↑{decliners}↓</div>
-        </div>""", unsafe_allow_html=True)
-
-    # 5-8. Vol Forecast (SPY, QQQ, GLD, VIX)
-    vol_f = snap.get("vol_forecast", {})
-    vol_items = [("SPY", "SPY"), ("QQQ", "QQQ"), ("GLD", "Gold"), ("^VIX", "VIX")]
-    for idx, (ticker_key, label) in enumerate(vol_items):
-        with mp[4 + idx]:
-            if ticker_key in vol_f:
-                v = vol_f[ticker_key]
-                regime = v.get("vol_regime", "NORMAL")
-                vcol = "var(--long)" if regime == "LOW" else ("var(--neutral)" if regime == "NORMAL" else "var(--short)")
-                val = v.get("current_ann_vol", 0)
-                st.markdown(f"""<div style="text-align:center;background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:6px;">
-                  <div style="font-size:8px;color:var(--text-secondary);text-transform:uppercase;">{label}</div>
-                  <div style="font-size:12px;font-weight:700;color:{vcol};">{val}%</div>
-                  <div style="font-size:8px;color:var(--text-secondary);">{regime}</div>
-                </div>""", unsafe_allow_html=True)
-            else:
-                st.markdown(f"""<div style="text-align:center;background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:6px;">
-                  <div style="font-size:8px;color:var(--text-secondary);text-transform:uppercase;">{label}</div>
-                  <div style="font-size:12px;font-weight:700;color:var(--text-secondary);">-</div>
-                </div>""", unsafe_allow_html=True)
-
-    # 9-11. Behavioral Macro (Risk State, Sentiment, Bond Traders)
-    bm = behavioral_macro
-    yves = bm.get("yves", {}) if bm else {}
-    aaii_bull = bm.get("bullish", 30) if bm else 30
-    aaii_bear = bm.get("bearish", 30) if bm else 30
-
-    with mp[8]:
-        if aaii_bear > 40 and vix_val > 25:
-            rs, rc = "RISK-ON", "var(--long)"
-        elif aaii_bull > 50 and vix_val < 18:
-            rs, rc = "RISK-OFF", "var(--short)"
-        else:
-            rs, rc = "CAUTION", "var(--neutral)"
-        st.markdown(f"""<div style="text-align:center;background:var(--bg-card);border:1px solid {rc};border-radius:6px;padding:6px;">
-          <div style="font-size:8px;color:var(--text-secondary);text-transform:uppercase;">RISK STATE</div>
-          <div style="font-size:12px;font-weight:700;color:{rc};">{rs}</div>
-          <div style="font-size:8px;color:var(--text-muted);">B{aaii_bull:.0f}%·B{aaii_bear:.0f}%</div>
-        </div>""", unsafe_allow_html=True)
-
-    with mp[9]:
-        sent_score = round((aaii_bull - aaii_bear) * 2, 2) if bm else 0
-        if sent_score < -0.5:
-            sc, stx = "var(--long)", "FEAR"
-        elif sent_score > 0.5:
-            sc, stx = "var(--short)", "GREED"
-        else:
-            sc, stx = "var(--neutral)", "NEUT"
-        st.markdown(f"""<div style="text-align:center;background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:6px;">
-          <div style="font-size:8px;color:var(--text-secondary);text-transform:uppercase;">SENTIMENT</div>
-          <div style="font-size:12px;font-weight:700;color:{sc};">{sent_score:+.2f}</div>
-          <div style="font-size:8px;color:var(--text-muted);">{stx}</div>
-        </div>""", unsafe_allow_html=True)
-
-    with mp[10]:
-        dgs10 = 4.5; t5yie = 2.4
-        try:
-            if fred and "DGS10" in fred:
-                dgs10 = float(fred["DGS10"].dropna().iloc[-1])
-            if fred and "T5YIE" in fred:
-                t5yie = float(fred["T5YIE"].dropna().iloc[-1])
-        except Exception:
-            pass
-        real_yield = dgs10 - t5yie
-        if real_yield < 1.0 and t5yie < 2.5:
-            asleep, ac = "ASLEEP", "var(--short)"
-        else:
-            asleep, ac = "AWAKE", "var(--long)"
-        st.markdown(f"""<div style="text-align:center;background:var(--bg-card);border:1px solid {ac};border-radius:6px;padding:6px;">
-          <div style="font-size:8px;color:var(--text-secondary);text-transform:uppercase;">BONDS</div>
-          <div style="font-size:12px;font-weight:700;color:{ac};">{asleep}</div>
-          <div style="font-size:8px;color:var(--text-muted);">RY{real_yield:.1f}%</div>
-        </div>""", unsafe_allow_html=True)
-
-    with mp[11]:
-        # Yves Alert mini
-        yves_alert = yves.get("alert")
-        yves_level = yves.get("alert_level", "NONE")
-        if yves_alert and yves_level in ("CRITICAL", "OPPORTUNITY", "WARNING"):
-            yc = "#F85149" if yves_level == "CRITICAL" else "#3FB950" if yves_level == "OPPORTUNITY" else "#D29922"
-            st.markdown(f"""<div style="text-align:center;background:{yc}22;border:1px solid {yc};border-radius:6px;padding:6px;">
-              <div style="font-size:8px;color:{yc};text-transform:uppercase;">YVES</div>
-              <div style="font-size:10px;font-weight:700;color:{yc};">{yves_level}</div>
-            </div>""", unsafe_allow_html=True)
-        else:
-            st.markdown(f"""<div style="text-align:center;background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:6px;">
-              <div style="font-size:8px;color:var(--text-secondary);text-transform:uppercase;">YVES</div>
-              <div style="font-size:12px;font-weight:700;color:var(--text-secondary);">OK</div>
-            </div>""", unsafe_allow_html=True)
-
-    # ═══════════════════════════════════════════════════════════════════
-    # ROW 3: SECTOR ROTATION (compact)
-    # ═══════════════════════════════════════════════════════════════════
-    st.markdown("### 📊 Sector Rotation (1M)")
-    sector_tickers = {
-        "Tech": "QQQ", "Energy": "XLE", "Financials": "XLF", 
-        "Healthcare": "XLV", "Industrials": "XLI", "Materials": "XLB",
-        "Consumer": "XLY", "Utilities": "XLU", "REITs": "XLRE", "Gold": "GLD"
-    }
-    sec_cols = st.columns(len(sector_tickers))
-    for idx, (name, sym) in enumerate(sector_tickers.items()):
-        ret = _price_ret(sym, prices, 21)
-        if ret is not None:
-            color = "var(--long)" if ret > 0.03 else "var(--neutral)" if ret > -0.03 else "var(--short)"
-            bg = "#0D2818" if ret > 0.03 else "#2D2305" if ret > -0.03 else "#2D0D0D"
-            with sec_cols[idx]:
-                st.markdown(f"""<div style="background:{bg};border:1px solid {color};border-radius:6px;padding:6px;text-align:center;">
-                  <div style="font-size:8px;color:var(--text-secondary);text-transform:uppercase;">{name}</div>
-                  <div style="font-size:12px;font-weight:700;color:{color};">{fp(ret)}</div>
-                </div>""", unsafe_allow_html=True)
-        else:
-            with sec_cols[idx]:
-                st.markdown(f"""<div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:6px;padding:6px;text-align:center;">
-                  <div style="font-size:8px;color:var(--text-secondary);text-transform:uppercase;">{name}</div>
-                  <div style="font-size:12px;font-weight:700;color:var(--text-secondary);">-</div>
-                </div>""", unsafe_allow_html=True)
-
-    # ═══════════════════════════════════════════════════════════════════
-    # ROW 3b: SCENARIO DISCOVERY + TRANSMISSION
-    # ═══════════════════════════════════════════════════════════════════
-    st.markdown("### 🔮 Scenario & Transmission")
-    sc1, sc2 = st.columns([1, 1])
-    with sc1:
-        _render_scenario_discovery()
-        # Proxy fallback: if no active scenarios, show current regime-based guidance
-        if not scenario_discovery or not scenario_discovery.get("active_scenarios"):
-            st.caption("🔮 No active scenarios — macro stable")
-            # Show regime-based scenario proxy
-            regime_scenarios = {
-                "Q1": {"name": "Goldilocks Continuation", "shock": {"SPY": 0.05, "QQQ": 0.08, "IWM": 0.06}, "trigger": "Growth rising, inflation cooling"},
-                "Q2": {"name": "Reflation Acceleration", "shock": {"XLE": 0.10, "EEM": 0.08, "GC=F": 0.03}, "trigger": "Both growth and inflation rising"},
-                "Q3": {"name": "Stagflation Risk", "shock": {"GC=F": 0.10, "TLT": -0.05, "QQQ": -0.08}, "trigger": "Growth slowing, inflation elevated"},
-                "Q4": {"name": "Deflation Watch", "shock": {"TLT": 0.08, "GLD": 0.05, "SPY": -0.10}, "trigger": "Both growth and inflation falling"},
-            }
-            rs = regime_scenarios.get(sq, regime_scenarios["Q3"])
-            st.markdown(f"<div style='background:#161B22;border:1px solid #30363D;border-radius:6px;padding:8px;margin:4px 0;'><div style='font-size:11px;font-weight:700;color:var(--text-primary);'>📊 Regime Proxy: {rs['name']}</div><div style='font-size:10px;color:var(--text-secondary);margin-top:4px;'>{rs['trigger']}</div></div>", unsafe_allow_html=True)
-    with sc2:
-        _render_transmission_dashboard()
-        # Proxy fallback
-        if not transmission or not transmission.get("active_scenarios"):
-            st.caption("🔗 No active transmission — markets decoupled")
-            # Show regime-based transmission proxy
-            if sq == "Q3":
-                st.markdown("<div style='background:#161B22;border:1px solid #30363D;border-radius:6px;padding:8px;margin:4px 0;'><div style='font-size:11px;font-weight:700;color:var(--text-primary);'>⚠️ Q3 Transmission Watch</div><div style='font-size:10px;color:var(--text-secondary);margin-top:4px;'>Gold ↑ → Tech ↓ → EM ↓ (typical Q3 cascade)</div></div>", unsafe_allow_html=True)
-            elif sq == "Q1":
-                st.markdown("<div style='background:#161B22;border:1px solid #30363D;border-radius:6px;padding:8px;margin:4px 0;'><div style='font-size:11px;font-weight:700;color:var(--text-primary);'>✅ Q1 Transmission Normal</div><div style='font-size:10px;color:var(--text-secondary);margin-top:4px;'>Growth ↑ → Tech ↑ → Small Caps ↑</div></div>", unsafe_allow_html=True)
-    st.divider()
-
-    # ═══════════════════════════════════════════════════════════════════
-    # ROW 4: PHILOSOPHY LAYER — Soros + Cem Karsan + Skew (compact)
-    # ═══════════════════════════════════════════════════════════════════
-    st.markdown("### 🧠 Philosophy Layer")
-
-    phil1, phil2, phil3 = st.columns([1, 1, 1.5])
-
-    with phil1:
-        # Soros compact
-        bb_stage = boom_bust.get("stage", "INCEPTION") if boom_bust else "INCEPTION"
-        bb_conf = boom_bust.get("stage_confidence", 0.5) if boom_bust else 0.5
-        sb_score = reflexivity.get("super_bubble_score", 5.0) if reflexivity else 5.0
-        sb_stage = reflexivity.get("stage", "INCEPTION") if reflexivity else "INCEPTION"
-        div_idx = reflexivity.get("divergence_index", 0) if reflexivity else 0
-
-        bb_color = {"INCEPTION":"#8B949E","ACCELERATION":"#D29922","TEST":"#D29922",
-                    "SURVIVAL":"#3FB950","MOMENT_OF_TRUTH":"#F85149","TWILIGHT":"#F85149",
-                    "TIP_POINT":"#A371F7","CRISIS":"#F85149"}.get(bb_stage, "#8B949E")
-        sb_color = "#F85149" if sb_score > 7 else "#D29922" if sb_score > 5 else "#3FB950"
-        div_color = "var(--short)" if div_idx > 1 else "var(--long)" if div_idx < -1 else "var(--neutral)"
-
-        st.markdown(f"""<div style="background:var(--bg-card);border:1px solid var(--border-default);border-radius:8px;padding:10px;">
-          <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:8px;">SOROS</div>
-          <div style="display:flex;justify-content:space-between;gap:4px;">
-            <div style="text-align:center;flex:1;">
-              <div style="font-size:8px;color:var(--text-secondary);">STAGE</div>
-              <div style="font-size:12px;font-weight:700;color:{bb_color};">{bb_stage[:4]}</div>
-              <div style="font-size:8px;color:var(--text-muted);">{bb_conf:.0%}</div>
-            </div>
-            <div style="text-align:center;flex:1;">
-              <div style="font-size:8px;color:var(--text-secondary);">BUBBLE</div>
-              <div style="font-size:12px;font-weight:700;color:{sb_color};">{sb_score:.1f}</div>
-              <div style="font-size:8px;color:var(--text-muted);">/10</div>
-            </div>
-            <div style="text-align:center;flex:1;">
-              <div style="font-size:8px;color:var(--text-secondary);">GAP</div>
-              <div style="font-size:12px;font-weight:700;color:{div_color};">{div_idx:+.2f}</div>
-            </div>
-          </div>
-        </div>""", unsafe_allow_html=True)
-
-    with phil2:
-        # Cem Karsan compact — use native streamlit components, not nested HTML
-        odte = odte_monitor
-
-        # Header
-        st.markdown("""<div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:8px;">CEM KARSAN</div>""", unsafe_allow_html=True)
-
-        if odte and odte.get("tickers"):
-            st.caption(f"0DTE: {odte.get('expiry','-')} | {len(odte.get('pin_risk_tickers',[]))} pin-risk")
-            if odte.get("cascade_warning"):
-                st.error("🔴 CASCADE")
-            else:
-                st.success("🟢 Normal")
-        else:
-            st.caption("0DTE: unavailable")
-
-        # Vanna/Charm summary as pills
-        if vanna_charm_flows:
-            vc_pills = []
-            for ticker, vc in list(vanna_charm_flows.items())[:3]:
-                sig = vc.get("combined_signal", "NEUTRAL")
-                score = vc.get("combined_score", 0)
-                if "NEVER_SHORT" in sig:
-                    vc_pills.append(f"🟢 {ticker}: {score:.1f}")
-                elif "AVOID_LONG" in sig:
-                    vc_pills.append(f"🔴 {ticker}: {score:.1f}")
-                else:
-                    vc_pills.append(f"⚪ {ticker}: {score:.1f}")
-            for pill in vc_pills:
-                st.caption(pill)
-        else:
-            st.caption("Vanna/Charm: unavailable")
-
-    with phil3:
-        # Skew chart (compact)
-        if skew_term and skew_term.get("skew_data"):
-            skew_data = skew_term.get("skew_data", {})
-            if skew_data:
-                skew_df_data = []
-                for t, d in list(skew_data.items())[:12]:
-                    if d.get("ok"):
-                        skew_df_data.append({
-                            "Ticker": t,
-                            "Spread": d.get("spread", 0),
-                            "Signal": d.get("signal", "FAIR"),
-                        })
-                if skew_df_data:
-                    fig_skew = go.Figure()
-                    for row in skew_df_data:
-                        color = "#F85149" if row["Signal"] == "RICH_30D" else "#3FB950" if row["Signal"] == "CHEAP_30D" else "#8B949E"
-                        fig_skew.add_trace(go.Bar(
-                            x=[row["Ticker"]],
-                            y=[row["Spread"]],
-                            marker_color=color,
-                            text=[f"{row['Spread']:+.2f}"],
-                            textposition="outside",
-                            showlegend=False,
-                        ))
-                    fig_skew.update_layout(
-                        showlegend=False,
-                        height=180,
-                        margin=dict(t=20,b=5,l=30,r=10),
-                        paper_bgcolor="#161B22",
-                        plot_bgcolor="#161B22",
-                        font=dict(color="#E6EDF3", family="Inter", size=9),
-                        yaxis=dict(showgrid=True, gridcolor="#21262D", tickcolor="#8B949E", title=""),
-                        xaxis=dict(showgrid=False, tickfont=dict(size=9, color="#E6EDF3")),
-                        bargap=0.4,
-                    )
-                    st.plotly_chart(fig_skew, width='stretch', config={"displayModeBar": False}, key="skew_chart_v3")
-
-            sk = skew_term
-            if sk.get("rich_30d"):
-                st.markdown(f'<span class="badge badge-short">RICH: {", ".join(sk["rich_30d"][:3])}</span>', unsafe_allow_html=True)
-            if sk.get("cheap_30d"):
-                st.markdown(f'<span class="badge badge-long">CHEAP: {", ".join(sk["cheap_30d"][:3])}</span>', unsafe_allow_html=True)
-            st.caption(f"{sk.get('term_regime','-')} | {sk.get('summary','')}")
-        else:
-            st.caption("Skew data unavailable")
-
-
-
-    # ═══════════════════════════════════════════════════════════════════
-    # ROW 5: RISK FLAGS + BOTTLENECK (collapsed)
-    # ═══════════════════════════════════════════════════════════════════
-    _risks = (snap.get("bottleneck_research", {}) or {}).get("risk_flags", [])
-    if _risks:
-        with st.expander("🔴 Risk Flags & Bottleneck Monitor", expanded=False):
-            r_cols = st.columns(min(2, len(_risks)))
-            for idx_r, r in enumerate(_risks[:4]):
-                with r_cols[idx_r % 2]:
-                    st.markdown(f"""<div style="background:#2D0D0D;border:1px solid var(--short);border-radius:8px;padding:10px;margin:4px 0;">
-                      <div style="display:flex;justify-content:space-between;align-items:center;">
-                        <span style="font-size:12px;font-weight:700;color:var(--short);">{r.get('flag','-')}</span>
-                        <span style="font-size:10px;color:var(--text-secondary);">Trigger: {r.get('trigger','-')}</span>
-                      </div>
-                      <div style="font-size:11px;color:var(--text-primary);margin-top:4px;">{r.get('impact','-')}</div>
-                    </div>""", unsafe_allow_html=True)
-
-            # Bottleneck cards inside same expander
-            b1, b2, b3, b4 = st.columns(4)
-            with b1:
-                st.markdown("""<div style="background:#2D0D0D;border:1px solid var(--short);border-radius:8px;padding:10px;">
-                  <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;">🔴 CRITICAL</div>
-                  <div style="font-size:13px;font-weight:700;color:var(--short);margin:4px 0;">HBM / DRAM</div>
-                  <div style="font-size:10px;color:var(--text-primary);">Samsung + SK Hynix + Micron >95% supply. 2026 sold out. DRAM +80-90%.</div>
-                  <div style="font-size:9px;color:var(--neutral);margin-top:4px;">Watch: <b>MU</b>, <b>005930.KS</b></div>
-                </div>""", unsafe_allow_html=True)
-            with b2:
-                st.markdown("""<div style="background:#2D0D0D;border:1px solid var(--short);border-radius:8px;padding:10px;">
-                  <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;">🔴 CRITICAL</div>
-                  <div style="font-size:13px;font-weight:700;color:var(--short);margin:4px 0;">Power Grid</div>
-                  <div style="font-size:10px;color:var(--text-primary);">Lead time 4-5 years. PJM 2027 shortfall 6,600 MW.</div>
-                  <div style="font-size:9px;color:var(--neutral);margin-top:4px;">Watch: <b>VST</b>, <b>ETN</b>, <b>GEV</b></div>
-                </div>""", unsafe_allow_html=True)
-            with b3:
-                st.markdown("""<div style="background:#2D2305;border:1px solid var(--neutral);border-radius:8px;padding:10px;">
-                  <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;">🟡 ELEVATED</div>
-                  <div style="font-size:13px;font-weight:700;color:var(--neutral);margin:4px 0;">Optical</div>
-                  <div style="font-size:10px;color:var(--text-primary);">Data movement shifting to photons. NVDA partnerships.</div>
-                  <div style="font-size:9px;color:var(--neutral);margin-top:4px;">Watch: <b>COHR</b>, <b>LITE</b>, <b>GLW</b></div>
-                </div>""", unsafe_allow_html=True)
-            with b4:
-                st.markdown("""<div style="background:#0D2818;border:1px solid var(--long);border-radius:8px;padding:10px;">
-                  <div style="font-size:10px;color:var(--text-secondary);text-transform:uppercase;">🟢 MONITOR</div>
-                  <div style="font-size:13px;font-weight:700;color:var(--long);margin:4px 0;">Agentic AI</div>
-                  <div style="font-size:10px;color:var(--text-primary);">Autonomous AI workloads. NVDA Vera CPU 2026.</div>
-                  <div style="font-size:9px;color:var(--neutral);margin-top:4px;">Watch: <b>INTC</b>, <b>AMD</b>, <b>NVDA</b></div>
-                </div>""", unsafe_allow_html=True)
-
-    # ═══════════════════════════════════════════════════════════════════
-    # ROW 6: HISTORICAL ANALOGS (collapsed)
-    # ═══════════════════════════════════════════════════════════════════
-    if analogs and analogs.get("top_analogs"):
-        with st.expander("📚 Historical Analogs", expanded=False):
-            for i, a in enumerate(analogs["top_analogs"][:3]):
-                c1, c2, c3 = st.columns(3)
-                c1.metric("1M", a.get("path_1m","-")); c2.metric("3M", a.get("path_3m","-")); c3.metric("6M", a.get("path_6m","-"))
-                if a.get("next_bias"):
-                    st.caption(f"📊 {a['next_bias']}")
-
-    # ═══════════════════════════════════════════════════════════════════
-    # FOOTER — minimal caption (background, not prominent)
-    # ═══════════════════════════════════════════════════════════════════
-    st.caption(f"Built {snap.get('build_time_s',0):.0f}s ago · {snap.get('prices_loaded',0)} assets · {snap.get('fred_coverage',0)} indicators · {news_narratives.get('analyzed_count',0)} headlines · v27.3")
 
 elif page == "⚡ Alpha Center":
     st.markdown("## ⚡ Alpha Center")

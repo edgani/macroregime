@@ -1,6 +1,4 @@
-"""engines/skew_term_engine.py — Cem Karsan 30D Skew Swap Edge
-Tracks 30-day vs 60-day implied skew spread using proxy from price action.
-"""
+"""engines/skew_term_engine.py — 30D vs 60D Skew Term Structure"""
 from __future__ import annotations
 import math, logging
 from typing import Dict, List
@@ -30,9 +28,13 @@ def _skew_proxy(ticker: str, s: pd.Series, days_short: int = 30, days_long: int 
         spread = skew_short - skew_long
         signal = "RICH_30D" if spread > 0.15 else "CHEAP_30D" if spread < -0.15 else "FAIR"
         return {
-            "ok": True, "skew_30d": round(skew_short, 3), "skew_60d": round(skew_long, 3),
-            "spread": round(spread, 3), "signal": signal,
-            "downside_vol_30d": round(down_short, 3), "upside_vol_30d": round(up_short, 3),
+            "ok": True,
+            "skew_30d": round(skew_short, 3),
+            "skew_60d": round(skew_long, 3),
+            "spread": round(spread, 3),
+            "signal": signal,
+            "downside_vol_30d": round(down_short, 3),
+            "upside_vol_30d": round(up_short, 3),
         }
     except Exception as e:
         logger.debug(f"Skew proxy failed for {ticker}: {e}")
@@ -52,7 +54,9 @@ def run_skew_term(tickers: List[str], prices: Dict[str, pd.Series]) -> Dict:
             elif r["signal"] == "CHEAP_30D":
                 cheap_30d.append(t)
     return {
-        "skew_data": results, "rich_30d": rich_30d[:10], "cheap_30d": cheap_30d[:10],
+        "skew_data": results,
+        "rich_30d": rich_30d[:10],
+        "cheap_30d": cheap_30d[:10],
         "term_regime": "STRUCTURAL_OVERBID_30D" if len(rich_30d) > len(cheap_30d) * 2 else "NORMAL",
         "summary": f"30D skew rich: {len(rich_30d)} | cheap: {len(cheap_30d)}",
     }

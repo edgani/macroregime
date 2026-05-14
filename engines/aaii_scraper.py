@@ -1,7 +1,4 @@
-"""engines/aaii_scraper.py — Live AAII Sentiment + Yves Lamoureux Proxy
-Scrapes AAII weekly sentiment or falls back to proxy from VIX + put/call + FRED.
-Outputs: bullish%, bearish%, neutral%, spread, signal, yves_alert
-"""
+"""engines/aaii_scraper.py — Live AAII Sentiment + Yves Lamoureux Proxy"""
 from __future__ import annotations
 import re, json, math, logging
 from datetime import datetime, timedelta
@@ -21,15 +18,10 @@ _AAII_CACHE: Optional[Dict] = None
 _AAII_CACHE_TIME: Optional[datetime] = None
 
 def _fetch_aaii_live() -> Optional[Dict]:
-    """Scrape AAII sentiment from web (multiple sources)."""
     if not _HAS_REQUESTS:
         return None
     try:
-        r = requests.get(
-            "https://www.aaii.com/sentiment/survey",
-            headers={"User-Agent": "Mozilla/5.0"},
-            timeout=10,
-        )
+        r = requests.get("https://www.aaii.com/sentiment/survey", headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
         if r.status_code == 200:
             text = r.text
             bull_match = re.search(r'Bullish.*?(\d+\.?\d*)%', text, re.S)
@@ -48,7 +40,6 @@ def _fetch_aaii_live() -> Optional[Dict]:
     return None
 
 def _aaii_proxy(vix: float, put_call_ratio: float = 1.0, dxy_ret: float = 0.0) -> Dict:
-    """Generate proxy sentiment from market variables when AAII unavailable."""
     fear = max(0, min(100, (35 - vix) / 35 * 100))
     if put_call_ratio > 1.2:
         fear += 15
@@ -70,7 +61,6 @@ def _aaii_proxy(vix: float, put_call_ratio: float = 1.0, dxy_ret: float = 0.0) -
     }
 
 def _yves_alert(aaii: Dict, vix: float, real_yield: float, bond_asleep: bool) -> Dict:
-    """Generate Yves Lamoureux-style behavioral alert."""
     bull = aaii.get("bullish", 30)
     bear = aaii.get("bearish", 30)
     spread = bull - bear
@@ -104,7 +94,6 @@ def _yves_alert(aaii: Dict, vix: float, real_yield: float, bond_asleep: bool) ->
 def get_behavioral_macro(vix: float = 20.0, real_yield: float = 2.0,
                          put_call_ratio: float = 1.0, dxy_ret: float = 0.0,
                          force_refresh: bool = False) -> Dict:
-    """Main entry point. Returns full behavioral macro snapshot."""
     global _AAII_CACHE, _AAII_CACHE_TIME
     if not force_refresh and _AAII_CACHE is not None and _AAII_CACHE_TIME is not None:
         if datetime.now() - _AAII_CACHE_TIME < timedelta(hours=24):
@@ -134,6 +123,3 @@ def get_behavioral_macro(vix: float = 20.0, real_yield: float = 2.0,
         "real_yield": real_yield,
         "bond_asleep": bond_asleep,
     }
-
-if __name__ == "__main__":
-    print(json.dumps(get_behavioral_macro(vix=16.5, real_yield=0.8), indent=2, default=str))

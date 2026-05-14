@@ -1,6 +1,4 @@
-"""engines/boombust_engine.py — Soros Boom-Bust Stage Classifier
-8 stages: Inception → Acceleration → Test → Survival → Moment of Truth → Twilight → Tipping Point → Crisis
-"""
+"""engines/boombust_engine.py — Soros Boom-Bust Stage Classifier"""
 from __future__ import annotations
 import math, logging
 from typing import Dict, List
@@ -9,18 +7,14 @@ import numpy as np
 
 logger = logging.getLogger("boombust")
 
-def classify_stage(prices: Dict[str, pd.Series], fred: Dict[str, pd.Series], health: Dict, quad: str) -> Dict:
-    us_tickers = []
-    try:
-        from config.settings import US_SECTORS, US_BUCKETS
-        us_tickers = list(US_SECTORS.keys())
-        for b in ["Growth", "Quality", "Defensives", "Semis", "Energy", "Financials", "AI_Infra"]:
-            us_tickers += US_BUCKETS.get(b, [])
-        us_tickers = list(dict.fromkeys(us_tickers))
-    except Exception:
-        us_tickers = ["SPY", "QQQ", "IWM", "XLF", "XLE", "XLK", "XLV", "XLI", "XLU", "GLD", "TLT"]
+def classify_stage(prices: Dict[str, pd.Series], fred: Dict[str, pd.Series],
+                   health: Dict, quad: str) -> Dict:
+    spy_s = prices.get("SPY")
+    vix_s = prices.get("^VIX")
+    breadth_adv = 0
+    breadth_dec = 0
+    us_tickers = ["SPY", "QQQ", "IWM", "XLF", "XLE", "XLK", "XLV", "XLI", "XLU", "GLD", "TLT"]
 
-    breadth_adv = 0; breadth_dec = 0
     for t in us_tickers:
         s = prices.get(t)
         if s is not None and len(s) >= 22:
@@ -28,16 +22,18 @@ def classify_stage(prices: Dict[str, pd.Series], fred: Dict[str, pd.Series], hea
                 s_clean = pd.to_numeric(s, errors="coerce").dropna()
                 if len(s_clean) >= 22:
                     r = float(s_clean.iloc[-1] / s_clean.iloc[-22] - 1)
-                    if r > 0.005: breadth_adv += 1
-                    elif r < -0.005: breadth_dec += 1
+                    if r > 0.005:
+                        breadth_adv += 1
+                    elif r < -0.005:
+                        breadth_dec += 1
             except Exception:
                 pass
 
     total_b = breadth_adv + breadth_dec
     breadth_ratio = breadth_adv / total_b if total_b > 0 else 0.5
 
-    spy_mom_1m = 0.0; spy_mom_2m = 0.0
-    spy_s = prices.get("SPY")
+    spy_mom_1m = 0.0
+    spy_mom_2m = 0.0
     if spy_s is not None and len(spy_s) >= 45:
         try:
             s_clean = pd.to_numeric(spy_s, errors="coerce").dropna()
@@ -49,7 +45,6 @@ def classify_stage(prices: Dict[str, pd.Series], fred: Dict[str, pd.Series], hea
     acceleration = spy_mom_1m - spy_mom_2m
 
     vol_expanding = False
-    vix_s = prices.get("^VIX")
     if vix_s is not None and len(vix_s) >= 22:
         try:
             v_clean = pd.to_numeric(vix_s, errors="coerce").dropna()
@@ -68,7 +63,11 @@ def classify_stage(prices: Dict[str, pd.Series], fred: Dict[str, pd.Series], hea
         except Exception:
             pass
 
-    score_map = {k: 0 for k in ["INCEPTION", "ACCELERATION", "TEST", "SURVIVAL", "MOMENT_OF_TRUTH", "TWILIGHT", "TIP_POINT", "CRISIS"]}
+    score_map = {
+        "INCEPTION": 0, "ACCELERATION": 0, "TEST": 0, "SURVIVAL": 0,
+        "MOMENT_OF_TRUTH": 0, "TWILIGHT": 0, "TIP_POINT": 0, "CRISIS": 0,
+    }
+
     if abs(spy_mom_1m) < 0.05 and not vol_expanding and breadth_ratio > 0.5:
         score_map["INCEPTION"] += 2
     if acceleration > 0.02 and breadth_ratio > 0.6:
@@ -101,11 +100,15 @@ def classify_stage(prices: Dict[str, pd.Series], fred: Dict[str, pd.Series], hea
     }
 
     return {
-        "stage": stage, "stage_confidence": round(conf, 2),
-        "descriptions": descriptions, "current_description": descriptions.get(stage, ""),
+        "stage": stage,
+        "stage_confidence": round(conf, 2),
+        "descriptions": descriptions,
+        "current_description": descriptions.get(stage, ""),
         "indicators": {
-            "spy_momentum_1m": round(spy_mom_1m, 4), "acceleration": round(acceleration, 4),
-            "breadth_ratio": round(breadth_ratio, 2), "vol_expanding": vol_expanding,
+            "spy_momentum_1m": round(spy_mom_1m, 4),
+            "acceleration": round(acceleration, 4),
+            "breadth_ratio": round(breadth_ratio, 2),
+            "vol_expanding": vol_expanding,
             "credit_stress": round(credit_stress, 2),
         },
         "next_likely": _next_stage(stage),

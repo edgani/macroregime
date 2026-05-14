@@ -1,6 +1,4 @@
-"""engines/odte_monitor.py — 0DTE (Zero Days to Expiration) Monitor
-Cem Karsan style: daily gamma exposure, pin risk, cascade warning.
-"""
+"""engines/odte_monitor.py — 0DTE Gamma & Pin Risk Monitor"""
 from __future__ import annotations
 import math, logging
 from datetime import datetime, timedelta
@@ -56,10 +54,16 @@ def _calc_gamma_exposure(ticker: str, expiry: str) -> Dict:
             pain_scores.append((s, pain))
         max_pain = min(pain_scores, key=lambda x: x[1])[0] if pain_scores else spot
         return {
-            "ok": True, "spot": round(spot, 2), "net_gamma": round(net_gamma, 0),
-            "total_oi": int(total_oi), "pin_risk": round(pin_risk, 3),
-            "max_pain": round(max_pain, 2), "max_pain_dist": round((spot - max_pain) / spot, 4),
-            "call_gamma": round(call_gamma, 0), "put_gamma": round(put_gamma, 0), "expiry": expiry,
+            "ok": True,
+            "spot": round(spot, 2),
+            "net_gamma": round(net_gamma, 0),
+            "total_oi": int(total_oi),
+            "pin_risk": round(pin_risk, 3),
+            "max_pain": round(max_pain, 2),
+            "max_pain_dist": round((spot - max_pain) / spot, 4),
+            "call_gamma": round(call_gamma, 0),
+            "put_gamma": round(put_gamma, 0),
+            "expiry": expiry,
         }
     except Exception as e:
         logger.warning(f"0DTE calc failed for {ticker}: {e}")
@@ -79,10 +83,17 @@ def _odte_proxy(ticker: str, prices: Dict[str, pd.Series]) -> Dict:
         mean_5 = float(s_clean.tail(5).mean())
         pin_risk = 1.0 - min(1.0, abs(spot - mean_5) / (vol + 0.001))
         return {
-            "ok": True, "spot": round(spot, 2), "net_gamma": round(vol_chg * 1e6, 0),
-            "total_oi": 0, "pin_risk": round(pin_risk, 3), "max_pain": round(mean_5, 2),
-            "max_pain_dist": round((spot - mean_5) / spot, 4), "call_gamma": round(vol_chg * 0.5e6, 0),
-            "put_gamma": round(vol_chg * 0.5e6, 0), "expiry": _get_next_expiry(), "source": "PROXY",
+            "ok": True,
+            "spot": round(spot, 2),
+            "net_gamma": round(vol_chg * 1e6, 0),
+            "total_oi": 0,
+            "pin_risk": round(pin_risk, 3),
+            "max_pain": round(mean_5, 2),
+            "max_pain_dist": round((spot - mean_5) / spot, 4),
+            "call_gamma": round(vol_chg * 0.5e6, 0),
+            "put_gamma": round(vol_chg * 0.5e6, 0),
+            "expiry": _get_next_expiry(),
+            "source": "PROXY",
         }
     except Exception as e:
         return {"ok": False, "error": str(e)}
@@ -104,8 +115,12 @@ def run_odte_monitor(tickers: List[str], prices: Dict[str, pd.Series]) -> Dict:
     cascade = len([x for x in results.values() if x.get("pin_risk", 0) > 0.4]) >= 3
     door_ratio = min(1.0, total_gamma / 5e9) if total_gamma > 0 else 0.0
     return {
-        "expiry": expiry, "tickers": results, "pin_risk_tickers": pin_tickers[:10],
-        "cascade_warning": cascade, "door_size_ratio": round(door_ratio, 2),
-        "total_gamma_exposure": round(total_gamma, 0), "next_expiry": expiry,
+        "expiry": expiry,
+        "tickers": results,
+        "pin_risk_tickers": pin_tickers[:10],
+        "cascade_warning": cascade,
+        "door_size_ratio": round(door_ratio, 2),
+        "total_gamma_exposure": round(total_gamma, 0),
+        "next_expiry": expiry,
         "summary": f"0DTE {expiry}: {len(pin_tickers)} pin-risk tickers. {'⚠️ CASCADE RISK' if cascade else 'Normal flow.'}",
     }

@@ -82,10 +82,15 @@ except Exception as e:
     GammaEngine = None
 
 try:
-    from engines.greeks_proxy import GreeksProxy, get_vanna_charm_flows
+    from engines.greeks_proxy import GreeksProxy
 except Exception as e:
     logger.error(f"Failed to import greeks_proxy: {e}")
     GreeksProxy = None
+
+try:
+    from engines.vanna_charm_flows import get_vanna_charm_flows
+except Exception as e:
+    logger.error(f"Failed to import vanna_charm_flows: {e}")
     def get_vanna_charm_flows(*args, **kwargs): return {}
 
 try:
@@ -380,10 +385,10 @@ def _fred_fallback() -> Dict[str, pd.Series]:
 
 def _global_fallback(quad: str) -> dict:
     base_map = {
-        "Q1": ["USA","Japan","India","Taiwan","South Korea","Vietnam","Mexico","Singapore","Philippines","Malaysia"],
-        "Q2": ["China","Brazil","Australia","Canada","South Africa","Saudi Arabia","Chile","Peru","Indonesia","Thailand"],
-        "Q3": ["UK","Germany","France","Italy","Russia","Turkey","Argentina","Nigeria","Pakistan","Egypt"],
-        "Q4": ["Indonesia","Argentina","Egypt","Nigeria","Pakistan","Venezuela","Iran","Ukraine","Greece","Portugal"],
+        "Q1": ["USA","Japan","India","Taiwan","South Korea","Vietnam","Mexico","Singapore","Philippines","Malaysia","UAE","Israel","Poland","Czech Republic","Romania"],
+        "Q2": ["China","Brazil","Australia","Canada","South Africa","Saudi Arabia","Chile","Peru","Indonesia","Thailand","Colombia","New Zealand","Norway","Kazakhstan","Angola"],
+        "Q3": ["UK","Germany","France","Italy","Russia","Turkey","Argentina","Nigeria","Pakistan","Egypt","Spain","Netherlands","Belgium","Sweden","Switzerland"],
+        "Q4": ["Venezuela","Iran","Ukraine","Greece","Portugal","Lebanon","Syria","Yemen","Zimbabwe","Sudan","Afghanistan","North Korea","Myanmar","Belarus","Bolivia"],
     }
     cqs = {}
     for q, countries in base_map.items():
@@ -392,9 +397,12 @@ def _global_fallback(quad: str) -> dict:
     return {
         "global_quad": quad,
         "global_conf": 0.52,
-        "global_probs": {"Q1":0.15,"Q2":0.20,"Q3":0.45,"Q4":0.20},
+        "global_probs": {"Q1":0.20,"Q2":0.25,"Q3":0.35,"Q4":0.20},
         "country_quads": cqs,
+        "country_list": [{"country": c, "quad": q, "regime_name": {"Q1":"Goldilocks","Q2":"Reflation","Q3":"Stagflation","Q4":"Deflation"}.get(q,q)} for q, countries in base_map.items() for c in countries],
         "em_recovery": {"trigger": f"Q3 defensive - watch for {quad} rotation", "confidence": 0.4},
+        "dm_count": len(base_map.get("Q1",[])) + len(base_map.get("Q3",[])),
+        "em_count": len(base_map.get("Q2",[])) + len(base_map.get("Q4",[])),
     }
 
 def _crypto_onchain_proxy(prices: dict) -> dict:
@@ -1102,6 +1110,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         "boom_bust": {},
         "conviction_sizing": {},
         "vanna_charm_flows": {},
+        "country_list": [],
     }
 
     try:
@@ -1704,6 +1713,7 @@ def build_snapshot(
         "boom_bust": {},
         "conviction_sizing": {},
         "vanna_charm_flows": {},
+        "country_list": [],
     }
     for key, default_val in defaults.items():
         if key not in result:

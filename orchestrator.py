@@ -233,7 +233,8 @@ def _fetch_news_headlines(tickers: List[str], max_per_ticker: int = 5) -> Dict[s
     headers = {"User-Agent": "Mozilla/5.0"}
     session = requests.Session()
     session.headers.update(headers)
-    for ticker in tickers[:80]:
+    for ticker in tickers[:30]:
+        time.sleep(0.5)  # Rate limit protection
         try:
             url = f"https://finance.yahoo.com/rss/headline?s={ticker}"
             r = session.get(url, timeout=6)

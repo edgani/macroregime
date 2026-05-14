@@ -394,6 +394,7 @@ def _breakout_chance(price, target_2, gamma, greek, momentum_3m, direction):
             return f"High — below put wall {put_wall}" if put_wall and target_2 < put_wall else "High"
         elif "BEARISH" in greek_comp: return "Medium-High"
         elif gamma_regime in ("DEEP_NEGATIVE", "NEGATIVE"): return "Medium"
+        else: return "Low — T2 is stretch"
 # ═══════════════════════════════════════════════════════════════════
 # CEM KARSAN PER-TICKER HELPER
 # ═══════════════════════════════════════════════════════════════════
@@ -1186,7 +1187,7 @@ def _render_narrative_card_native(row, idx=0, market_type="generic"):
 
                     # ── SKEW TERM PER TICKER ──
                     st.markdown("<div style='margin-top:6px;font-size:10px;color:var(--text-secondary);text-transform:uppercase;'>📐 Skew Term</div>", unsafe_allow_html=True)
-                    s = prices.get(ticker_full)
+                    s = prices.get(ticker)
                     if s is not None and len(s) >= 60:
                         try:
                             s_clean = pd.to_numeric(s, errors="coerce").dropna()
@@ -2617,6 +2618,58 @@ elif page == "⚡ Alpha Center":
                     pass
 
             st.divider()
+
+            # ── CEM KARSAN + OPTIONS FOR ALPHA CENTER ──
+            ticker_cem = _cem_karsan_for_ticker(ticker, odte_monitor, vanna_charm_flows, prices)
+            if ticker_cem["has_odte"] or ticker_cem["has_vanna"]:
+                st.markdown("**⚡ Cem Karsan Structure**")
+                cem_cols = st.columns(4)
+                idx = 0
+                if ticker_cem["has_odte"]:
+                    pin = ticker_cem["pin_risk"]
+                    pin_color = "#F85149" if pin > 0.4 else "#D29922" if pin > 0.25 else "#3FB950"
+                    with cem_cols[idx]:
+                        st.markdown(f"<div style='text-align:center;'><div style='font-size:9px;color:var(--text-secondary);'>0DTE PIN</div><div style='font-size:13px;font-weight:700;color:{pin_color};'>{pin:.0%}</div></div>", unsafe_allow_html=True)
+                    idx += 1
+                    with cem_cols[idx]:
+                        st.markdown(f"<div style='text-align:center;'><div style='font-size:9px;color:var(--text-secondary);'>MAX PAIN</div><div style='font-size:13px;font-weight:700;color:var(--text-primary);'>{ticker_cem['max_pain']}</div></div>", unsafe_allow_html=True)
+                    idx += 1
+                if ticker_cem["has_vanna"]:
+                    sig = ticker_cem["vanna_signal"]
+                    color = ticker_cem["vanna_color"]
+                    with cem_cols[idx]:
+                        st.markdown(f"<div style='text-align:center;'><div style='font-size:9px;color:var(--text-secondary);'>VANNA</div><div style='font-size:13px;font-weight:700;color:{color};'>{sig[:12]}</div></div>", unsafe_allow_html=True)
+                    idx += 1
+                    if ticker_cem.get("vanna_regime") and ticker_cem["vanna_regime"] != "-":
+                        with cem_cols[idx]:
+                            st.markdown(f"<div style='text-align:center;'><div style='font-size:9px;color:var(--text-secondary);'>CHARM</div><div style='font-size:13px;font-weight:700;color:var(--text-primary);'>{ticker_cem['charm_regime'][:12]}</div></div>", unsafe_allow_html=True)
+                        idx += 1
+                if ticker_cem.get("vanna_note"):
+                    st.caption(f"💡 {ticker_cem['vanna_note']}")
+                if ticker_cem.get("charm_note"):
+                    st.caption(f"⏰ {ticker_cem['charm_note']}")
+                # Skew Term
+                st.markdown("<div style='margin-top:6px;font-size:10px;color:var(--text-secondary);text-transform:uppercase;'>📐 Skew Term</div>", unsafe_allow_html=True)
+                s_skew = prices.get(ticker)
+                if s_skew is not None and len(s_skew) >= 60:
+                    try:
+                        s_clean = pd.to_numeric(s_skew, errors="coerce").dropna()
+                        if len(s_clean) >= 60:
+                            vol_30 = float(s_clean.tail(30).std())
+                            vol_60 = float(s_clean.tail(60).std())
+                            mean = float(s_clean.tail(30).mean())
+                            if mean > 0 and vol_60 > 0:
+                                skew_30d = vol_30 / mean
+                                skew_60d = vol_60 / mean
+                                spread = skew_30d - skew_60d
+                                regime = "RICH" if spread > 0.005 else "CHEAP" if spread < -0.005 else "FAIR"
+                                color = "#F85149" if regime == "RICH" else "#3FB950" if regime == "CHEAP" else "#8B949E"
+                                st.markdown(f"<div style='font-size:11px;'>30D/60D Skew: <span style='color:{color};font-weight:700;'>{regime}</span> ({spread:+.2%})</div>", unsafe_allow_html=True)
+                    except Exception:
+                        pass
+                else:
+                    st.caption("📐 Skew: insufficient data")
+                st.divider()
 
             # ── ROW 2: BOTTLENECK CONTEXT ──
             b1, b2 = st.columns(2)

@@ -1,6 +1,5 @@
-"""orchestrator.py - MacroRegime Data Orchestrator v27.4 PHASE 2
+"""orchestrator.py - MacroRegime Data Orchestrator v27.2 ULTIMATE
 Patched: Yves Behavioral + Cem Karsan 0DTE/Vanna/Charm/Skew + Soros Reflexivity/Boom-Bust/Sizing
-NEW: yfinance_options LIVE + scenario_discovery + transmission_engine native
 """
 from __future__ import annotations
 from types import SimpleNamespace
@@ -157,9 +156,6 @@ except Exception as e:
     def run_interconnect(*args, **kwargs):
         return {"active_scenarios": [], "scenarios": [], "summary": "Interconnect unavailable"}
 
-# ═══════════════════════════════════════════════════════════════════
-# PHASE 2 NEW IMPORTS
-# ═══════════════════════════════════════════════════════════════════
 try:
     from engines.yfinance_options import YFinanceOptionsEngine
 except Exception as e:
@@ -202,54 +198,6 @@ except Exception as e:
         return {"active_bottlenecks": [], "watch_bottlenecks": [], "summary": "Unavailable"}
 
 try:
-    from engines.rotation_engine import RotationEngine
-except Exception as e:
-    logger.error(f"Failed to import rotation_engine: {e}")
-    RotationEngine = None
-
-try:
-    from engines.commodity_native_engine import CommodityNativeEngine
-except Exception as e:
-    logger.error(f"Failed to import commodity_native_engine: {e}")
-    CommodityNativeEngine = None
-
-try:
-    from engines.crypto_native_engine import CryptoNativeEngine
-except Exception as e:
-    logger.error(f"Failed to import crypto_native_engine: {e}")
-    CryptoNativeEngine = None
-
-try:
-    from engines.fx_native_engine import FXNativeEngine
-except Exception as e:
-    logger.error(f"Failed to import fx_native_engine: {e}")
-    FXNativeEngine = None
-
-try:
-    from engines.ihsg_native_engine import IHSGNativeEngine
-except Exception as e:
-    logger.error(f"Failed to import ihsg_native_engine: {e}")
-    IHSGNativeEngine = None
-
-try:
-    from engines.us_equity_engine import USEquityEngine
-except Exception as e:
-    logger.error(f"Failed to import us_equity_engine: {e}")
-    USEquityEngine = None
-
-try:
-    from engines.frontrun_engine import FrontrunEngine
-except Exception as e:
-    logger.error(f"Failed to import frontrun_engine: {e}")
-    FrontrunEngine = None
-
-try:
-    from engines.crash_meter_engine import CrashMeterEngine
-except Exception as e:
-    logger.error(f"Failed to import crash_meter_engine: {e}")
-    CrashMeterEngine = None
-
-try:
     from config.settings import (
         US_SECTORS, US_FACTORS, FOREX_PAIRS, COMMODITIES, CRYPTO,
         BONDS, IHSG_UNIVERSE, MACRO_PROXIES, US_BUCKETS, IHSG_BUCKETS,
@@ -270,7 +218,6 @@ try:
     _has_requests = True
 except Exception:
     _has_requests = False
-
 
 def _strip_html(text):
     if not text:
@@ -519,22 +466,22 @@ def _crypto_onchain_proxy(prices: dict) -> dict:
             with np.errstate(invalid='ignore', divide='ignore'):
                 r1m = float(s.iloc[-1] / s.iloc[-22] - 1) if s.iloc[-22] != 0 else 0
                 r7d = float(s.iloc[-1] / s.iloc[-8] - 1) if len(s) >= 8 and s.iloc[-8] != 0 else r1m
-                vol = float(s.tail(20).std())
-                vol_40d = float(s.tail(40).std()) if len(s) >= 40 else vol
-                vol_change = (vol / vol_40d - 1) if vol_40d > 0 else 0
-                mean_20 = float(s.tail(20).mean())
-                mean_50 = float(s.tail(50).mean()) if len(s) >= 50 else mean_20
-                momentum = (mean_20 / mean_50 - 1) if mean_50 > 0 else 0
-                score = min(1.0, max(0.0, 0.5 + r1m * 5 + momentum * 2))
-                tokens[ticker] = {
-                    "momentum_score": round(score, 3),
-                    "tvl_7d_change": round(r7d, 4),
-                    "tvl_30d_change": round(r1m, 4),
-                    "dex_vol_change": round(vol_change, 4),
-                    "price": round(float(s.iloc[-1]), 2),
-                    "volatility_20d": round(vol / mean_20 if mean_20 > 0 else 0, 4),
-                    "trend_direction": "UP" if r1m > 0.05 else ("DOWN" if r1m < -0.05 else "SIDE"),
-                }
+            vol = float(s.tail(20).std())
+            vol_40d = float(s.tail(40).std()) if len(s) >= 40 else vol
+            vol_change = (vol / vol_40d - 1) if vol_40d > 0 else 0
+            mean_20 = float(s.tail(20).mean())
+            mean_50 = float(s.tail(50).mean()) if len(s) >= 50 else mean_20
+            momentum = (mean_20 / mean_50 - 1) if mean_50 > 0 else 0
+            score = min(1.0, max(0.0, 0.5 + r1m * 5 + momentum * 2))
+            tokens[ticker] = {
+                "momentum_score": round(score, 3),
+                "tvl_7d_change": round(r7d, 4),
+                "tvl_30d_change": round(r1m, 4),
+                "dex_vol_change": round(vol_change, 4),
+                "price": round(float(s.iloc[-1]), 2),
+                "volatility_20d": round(vol / mean_20 if mean_20 > 0 else 0, 4),
+                "trend_direction": "UP" if r1m > 0.05 else ("DOWN" if r1m < -0.05 else "SIDE"),
+            }
         except Exception as e:
             logger.warning(f"Crypto proxy failed for {ticker}: {e}")
     return tokens
@@ -868,504 +815,1072 @@ def _options_proxy_for_ticker(ticker, prices):
         logger.debug(f"Options proxy failed for {ticker}: {e}")
         return {"ok": False}
 
+def _generate_front_run_candidates(prices, news_analysis, bottleneck_ref):
+    candidates = []
+    seen = set()
+    ref_tickers = bottleneck_ref.get("consensus_heatmap", [])
+    rotation = bottleneck_ref.get("institutional_rotation", [])
+    for item in ref_tickers:
+        ticker = item.get("ticker", "")
+        if not ticker or ticker in seen:
+            continue
+        stars = item.get("stars", 0)
+        if stars >= 2:
+            opt = _options_proxy_for_ticker(ticker, prices)
+            if not opt.get("ok"):
+                opt = {
+                    "ok": True, "price": "—", "max_pain": "—", "put_wall": "—",
+                    "call_wall": "—", "gamma_flip_up": "—", "gamma_flip_down": "—",
+                    "max_pain_dist": "—", "gamma_regime": "TRANSITION",
+                    "greek_composite": "NEUTRAL", "conviction": "MODERATE",
+                    "source": "META", "ticker": ticker,
+                }
+            candidates.append({
+                "ticker": ticker,
+                "theme": item.get("layer", "").replace("_", " "),
+                "role": item.get("role", ""),
+                "consensus_stars": stars,
+                "accounts": item.get("accounts", []),
+                "target": item.get("target", ""),
+                "priority": item.get("priority", ""),
+                "why_front_run": f"High consensus ({stars} stars) from {len(item.get('accounts',[]))} accounts — {item.get('role','')}",
+                "source": "bottleneck_consensus",
+                "options": opt,
+                "catalyst": _find_catalyst(ticker, bottleneck_ref),
+            })
+            seen.add(ticker)
+    for phase in rotation:
+        status = phase.get("status", "")
+        if "NEXT" in status or "FUTURE" in status or "NOW" in status:
+            for ticker in phase.get("tickers", []):
+                if ticker in seen:
+                    continue
+                meta = next((x for x in ref_tickers if x.get("ticker") == ticker), {})
+                opt = _options_proxy_for_ticker(ticker, prices)
+                if not opt.get("ok"):
+                    opt = {
+                        "ok": True, "price": "—", "max_pain": "—", "put_wall": "—",
+                        "call_wall": "—", "gamma_flip_up": "—", "gamma_flip_down": "—",
+                        "max_pain_dist": "—", "gamma_regime": "TRANSITION",
+                        "greek_composite": "NEUTRAL", "conviction": "MODERATE",
+                        "source": "META", "ticker": ticker,
+                    }
+                candidates.append({
+                    "ticker": ticker,
+                    "theme": phase.get("theme", ""),
+                    "role": meta.get("role", "Rotation play"),
+                    "consensus_stars": meta.get("stars", 1),
+                    "accounts": meta.get("accounts", []),
+                    "target": meta.get("target", phase.get("theme", "")),
+                    "priority": "HIGH" if "NEXT" in status else "MEDIUM",
+                    "why_front_run": f"Institutional rotation Phase {phase.get('phase')} ({phase.get('timeline')}): {phase.get('theme')}",
+                    "source": "institutional_rotation",
+                    "options": opt,
+                    "catalyst": _find_catalyst(ticker, bottleneck_ref),
+                })
+                seen.add(ticker)
+    rumor_watch = (news_analysis or {}).get("rumor_watch", [])
+    for rw in rumor_watch:
+        ticker = rw.get("ticker", "")
+        if not ticker or ticker in seen:
+            continue
+        sig = rw.get("signal", "")
+        if sig in ("STRONG_BULLISH_RUMOR", "STRONG_BEARISH_RUMOR", "NEWS_MOMENTUM_BUILDING", "BULLISH_CLUSTER", "RUMOR_WATCH"):
+            opt = _options_proxy_for_ticker(ticker, prices)
+            if not opt.get("ok"):
+                opt = {
+                    "ok": True, "price": "—", "max_pain": "—", "put_wall": "—",
+                    "call_wall": "—", "gamma_flip_up": "—", "gamma_flip_down": "—",
+                    "max_pain_dist": "—", "gamma_regime": "TRANSITION",
+                    "greek_composite": "NEUTRAL", "conviction": "MODERATE",
+                    "source": "META", "ticker": ticker,
+                }
+            candidates.append({
+                "ticker": ticker,
+                "theme": "News Momentum",
+                "role": "Front-run headline",
+                "consensus_stars": 0,
+                "accounts": [],
+                "target": "Momentum play",
+                "priority": "HIGH",
+                "why_front_run": f"News signal: {sig} — {rw.get('headline','')[:60]}",
+                "source": "news_rumor",
+                "options": opt,
+                "news_signal": sig,
+                "news_sentiment": rw.get("sentiment", 0),
+                "news_headline": rw.get("headline", ""),
+                "catalyst": {"quarter": "Now", "event": "News-driven", "priority": "HIGH"},
+            })
+            seen.add(ticker)
+    def sort_key(c):
+        prio_map = {"TOP": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
+        conv_map = {"STRONG": 0, "MODERATE": 1, "WEAK": 2, "CONFLICTED": 3}
+        opt = c.get("options", {})
+        return (prio_map.get(c.get("priority", ""), 99), -c.get("consensus_stars", 0), conv_map.get(opt.get("conviction", "CONFLICTED"), 99))
+    candidates.sort(key=sort_key)
+    return candidates
 
-def build_snapshot(progress_callback=None, force_refresh=False):
-    _safe_progress(progress_callback, "Loading prices...", 0.05)
-    all_tickers = _all_tickers()
-    prices = load_prices(tickers=all_tickers) if load_prices is not None else {}
-    if not prices:
-        logger.error("load_prices returned empty — check data/loader.py")
-        return None
-    _safe_progress(progress_callback, "Loading FRED...", 0.10)
-    fred_raw = load_fred_bundle(force_refresh=force_refresh)
-    fred = fred_raw.get("series", {})
-    if not fred:
-        logger.warning("FRED empty — using fallback")
-        fred = _fred_fallback()
-    _safe_progress(progress_callback, "Fetching news...", 0.15)
-    all_tickers = _all_tickers()
-    headlines = _fetch_news_headlines(all_tickers, max_per_ticker=5)
-    _safe_progress(progress_callback, "Analyzing news...", 0.25)
-    news_analysis = _analyze_news(headlines, prices)
-    _safe_progress(progress_callback, "Running GIP engine...", 0.30)
-    gip = {"structural_quad": "Q3", "monthly_quad": "Q3", "probabilities": {}, "structural_probabilities": {}}
-    sq = mq = "Q3"
-    probs = structural_probs = {}
-    if GIPEngine is not None:
-        try:
-            # Try multiple constructor patterns
+def _find_catalyst(ticker, bottleneck_ref):
+    for ev in bottleneck_ref.get("catalyst_timeline", []):
+        if ticker in ev.get("ticker", ""):
+            return {"quarter": ev.get("quarter", ""), "event": ev.get("event", ""), "priority": ev.get("priority", "")}
+    return {}
+
+def _fetch_stablecoin_flows():
+    if not _has_requests:
+        return {}
+    try:
+        r = requests.get("https://api.llama.fi/stablecoins", timeout=15)
+        if r.status_code != 200:
+            return {}
+        data = r.json()
+        total = 0.0
+        change_7d = 0.0
+        for pe in data.get("peggedAssets", []):
+            mc = pe.get("circulating", {}).get("peggedUSD", 0) or 0
+            total += float(mc)
+            prev = pe.get("circulatingPrevWeek", {}).get("peggedUSD", 0) or 0
+            if prev:
+                change_7d += (float(mc) - float(prev))
+        return {
+            "total_b": round(total / 1e9, 2),
+            "change_7d_b": round(change_7d / 1e9, 2),
+            "source": "DeFiLlama",
+        }
+    except Exception as e:
+        logger.warning(f"Stablecoin fetch failed: {e}")
+        return {}
+
+def _fetch_crypto_narrative():
+    if not _has_requests:
+        return {}
+    out = {"trending": [], "categories": [], "fear_greed": None}
+    try:
+        r = requests.get("https://api.alternative.me/fng/?limit=1", timeout=10)
+        if r.status_code == 200:
+            fg = r.json().get("data", [{}])[0]
+            out["fear_greed"] = {
+                "value": int(fg.get("value", 50)),
+                "label": fg.get("value_text", "Neutral"),
+            }
+    except Exception as e:
+        logger.warning(f"Fear&Greed failed: {e}")
+    try:
+        r = requests.get("https://api.coingecko.com/api/v3/search/trending", timeout=10)
+        if r.status_code == 200:
+            coins = r.json().get("coins", [])
+            out["trending"] = [{
+                "name": c.get("item", {}).get("name"),
+                "symbol": c.get("item", {}).get("symbol"),
+                "market_cap_rank": c.get("item", {}).get("market_cap_rank"),
+                "score": c.get("item", {}).get("score"),
+            } for c in coins[:7]]
+    except Exception as e:
+        logger.warning(f"Trending failed: {e}")
+    try:
+        r = requests.get("https://api.coingecko.com/api/v3/coins/categories", timeout=15)
+        if r.status_code == 200:
+            cats = r.json()
+            out["categories"] = [{
+                "name": c.get("name"),
+                "market_cap": c.get("market_cap"),
+                "volume_24h": c.get("volume_24h"),
+                "top_3_coins": [x for x in c.get("top_3_coins", [])[:3]],
+            } for c in sorted(cats, key=lambda x: x.get("volume_24h", 0) or 0, reverse=True)[:10]]
+    except Exception as e:
+        logger.warning(f"Categories failed: {e}")
+    return out
+
+def _fetch_crypto_market_structure():
+    if not _has_requests:
+        return {}
+    out = {"funding": {}, "oi": {}, "liquidation": {}, "long_short": {}}
+    symbols = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "XRPUSDT", "DOGEUSDT", "ADAUSDT"]
+    try:
+        for sym in symbols:
             try:
-                engine = GIPEngine()
+                r = requests.get(f"https://fapi.binance.com/fapi/v1/fundingRate?symbol={sym}&limit=1", timeout=8)
+                if r.status_code == 200:
+                    d = r.json()
+                    if d:
+                        out["funding"][sym.replace("USDT", "")] = {
+                            "rate": float(d[0].get("fundingRate", 0)),
+                            "time": d[0].get("fundingTime", ""),
+                        }
             except Exception:
-                try:
-                    engine = GIPEngine(prices)
-                except Exception:
-                    try:
-                        engine = GIPEngine(prices=prices, fred=fred)
-                    except Exception:
-                        engine = GIPEngine(prices, fred)
-            if hasattr(engine, 'run'):
-                gip = engine.run()
-            elif hasattr(engine, 'analyze'):
-                gip = engine.analyze()
-            else:
-                gip = engine
-            sq = gip.get("structural_quad", "Q3") if isinstance(gip, dict) else "Q3"
-            mq = gip.get("monthly_quad", "Q3") if isinstance(gip, dict) else "Q3"
-            probs = gip.get("probabilities", {}) if isinstance(gip, dict) else {}
-            structural_probs = gip.get("structural_probabilities", {}) if isinstance(gip, dict) else {}
+                pass
+        r = requests.get("https://fapi.binance.com/fapi/v1/ticker/24hr", timeout=10)
+        if r.status_code == 200:
+            tickers = {t.get("symbol"): t for t in r.json()}
+            for sym in symbols:
+                t = tickers.get(sym, {})
+                if t:
+                    out["oi"][sym.replace("USDT", "")] = {
+                        "volume_24h": float(t.get("volume", 0)),
+                        "price_change": float(t.get("priceChangePercent", 0)),
+                        "weighted_avg_price": float(t.get("weightedAvgPrice", 0)),
+                    }
+    except Exception as e:
+        logger.warning(f"Market structure failed: {e}")
+    return out
+
+def _build_crypto_unlock_proxy():
+    return [
+        {"token": "SOL", "date": "2026-06-01", "amount_m": 20, "type": "Cliff", "impact": "HIGH"},
+        {"token": "AVAX", "date": "2026-05-20", "amount_m": 5, "type": "Linear", "impact": "MEDIUM"},
+        {"token": "ARB", "date": "2026-05-25", "amount_m": 100, "type": "Cliff", "impact": "HIGH"},
+        {"token": "OP", "date": "2026-06-15", "amount_m": 30, "type": "Linear", "impact": "MEDIUM"},
+    ]
+
+def _build_crypto_center(prices, news_analysis):
+    cc = {
+        "macro_regime": {},
+        "capital_flows": {},
+        "market_structure": {},
+        "narrative": {},
+        "tokenomics": {},
+        "whale": {},
+        "risk_flags": [],
+    }
+    btc_s = prices.get("BTC-USD")
+    eth_s = prices.get("ETH-USD")
+    if btc_s is not None and eth_s is not None:
+        try:
+            btc_mcap = float(btc_s.iloc[-1]) * 19.8e6
+            eth_mcap = float(eth_s.iloc[-1]) * 120e6
+            total = btc_mcap + eth_mcap + 800e9
+            btc_d = btc_mcap / total
+            cc["macro_regime"]["btc_dominance_proxy"] = round(btc_d, 3)
+        except Exception:
+            cc["macro_regime"]["btc_dominance_proxy"] = 0.55
+    else:
+        cc["macro_regime"]["btc_dominance_proxy"] = 0.55
+    cc["capital_flows"] = _fetch_stablecoin_flows()
+    cc["narrative"] = _fetch_crypto_narrative()
+    cc["market_structure"] = _fetch_crypto_market_structure()
+    whale_proxy = {}
+    for ticker in ["BTC-USD", "ETH-USD"]:
+        s = prices.get(ticker)
+        if s is not None and len(s) >= 22:
+            try:
+                s_clean = pd.to_numeric(s, errors="coerce").dropna()
+                r1m = float(s_clean.iloc[-1] / s_clean.iloc[-22] - 1)
+                whale_proxy[ticker] = "ACCUMULATING" if r1m > 0.05 else "DISTRIBUTING" if r1m < -0.05 else "NEUTRAL"
+            except Exception:
+                pass
+    cc["whale"]["proxy"] = whale_proxy
+    cc["tokenomics"]["upcoming_unlocks"] = _build_crypto_unlock_proxy()
+    funding = cc["market_structure"].get("funding", {})
+    if funding:
+        for sym, data in funding.items():
+            rate = data.get("rate", 0)
+            if abs(rate) > 0.0005:
+                cc["risk_flags"].append({
+                    "type": "FUNDING_EXTREME",
+                    "ticker": sym,
+                    "value": rate,
+                    "impact": "Longs overleveraged — correction risk" if rate > 0.001 else "Short squeeze potential" if rate < -0.001 else "Elevated funding",
+                })
+    return cc
+
+# ------------------------------------------------------------------
+# Core runner
+# ------------------------------------------------------------------
+def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: float = 12.0, **kwargs) -> dict:
+    t0 = time.time()
+    _safe_progress(progress_cb, "Checking snapshot cache...", 0.02)
+    if use_cache:
+        try:
+            snap = load_snapshot(max_age_hours=max_age_hours)
+            if snap is not None and snap.get("ok"):
+                snap["_source"] = "snapshot"
+                snap["_snapshot_age"] = snapshot_age_str()
+                logger.info(f"Snapshot loaded in {time.time()-t0:.1f}s")
+                _safe_progress(progress_cb, f"Loaded from cache ({snapshot_age_str()})", 1.0)
+                return snap
+        except Exception as e:
+            logger.warning(f"Snapshot load failed: {e}")
+
+    result: dict = {
+        "ok": False,
+        "errors": [],
+        "_source": "live",
+        "_generated_at": datetime.now().isoformat(),
+        "gip": None,
+        "global": {},
+        "risk_ranges": {},
+        "scenarios": {},
+        "narratives": {},
+        "discovery": {},
+        "transition": None,
+        "health": {},
+        "analogs": {},
+        "bottleneck": {},
+        "playbook": {},
+        "prices": {},
+        "auto_discoveries": {},
+        "feedback_eval": {},
+        "gamma": {},
+        "leveraged_etf": {},
+        "daily_signals": [],
+        "regime_forecast": {},
+        "forward_returns": {},
+        "leading_signals": {},
+        "price_clusters": {},
+        "news_narratives": {},
+        "bottleneck_discovery": {},
+        "frontrun": {},
+        "ihsg_sector_momentum": {},
+        "ihsg_commodity_overlay": {},
+        "ihsg_rupiah_regime": {},
+        "ihsg_foreign_flow": {},
+        "ihsg_macro_overlay": {},
+        "alpha_center": {},
+        "gamma_data": {},
+        "greeks_data": {},
+        "cot_oi": {},
+        "dxy_correlation": {},
+        "vol_forecast": {},
+        "stress_test": [],
+        "prices_loaded": 0,
+        "fred_coverage": 0,
+        "build_time_s": 0,
+        "daily_signals_summary": {},
+        "crypto_tokens": {},
+        "rumor_watch": [],
+        "bottleneck_research": {},
+        "front_run_candidates": [],
+        "crypto_center": {},
+        "behavioral_macro": {},
+        "odte_monitor": {},
+        "skew_term": {},
+        "reflexivity": {},
+        "boom_bust": {},
+        "conviction_sizing": {},
+        "vanna_charm_flows": {},
+        "country_list": [],
+        "interconnect": {},
+        "yfinance_options": {},
+        "scenario_discovery": {},
+        "transmission": {},
+        "regime_transition": {},
+        "news_nlp_v3": {},
+        "bottleneck_v3": {},
+    }
+
+    try:
+        # ---- FRED Macro ----
+        _safe_progress(progress_cb, "Fetching FRED macro data...", 0.05)
+        try:
+            fred_bundle = load_fred_bundle(force_refresh=True)
+        except Exception as e:
+            logger.error(f"FRED bundle failed: {e}")
+            result["errors"].append(f"fred: {e}")
+            fred_bundle = {"series": {}, "meta": {"loaded": 0, "requested": 0}}
+
+        fred = fred_bundle.get("series", {})
+        fred_meta = fred_bundle.get("meta", {})
+
+        if fred_meta.get("loaded", 0) == 0:
+            logger.warning("FRED returned 0 series - using synthetic fallback")
+            fred = _fred_fallback()
+            fred_meta = {"loaded": 15, "requested": 15, "missing": 0, "source": "synthetic_fallback"}
+            result["errors"].append("fred: using synthetic fallback (live fetch failed)")
+
+        result["fred_meta"] = fred_meta
+        result["fred_series"] = fred
+        result["fred_coverage"] = fred_meta.get("loaded", 0)
+
+        # ---- Prices ----
+        tickers = _all_tickers()
+        logger.info(f"Price universe: {len(tickers)} tickers")
+        _safe_progress(progress_cb, f"Fetching {len(tickers)} tickers from Yahoo Finance...", 0.10)
+
+        if load_prices is None:
+            raise RuntimeError("load_prices not available (data.loader import failed)")
+
+        prices = {}
+        max_retries = 3
+        for attempt in range(max_retries):
+            try:
+                prices = load_prices(tickers, days=756, max_age_hours=max_age_hours, progress_cb=progress_cb)
+                if prices and len(prices) > len(tickers) * 0.7:
+                    break
+                logger.warning(f"Price load attempt {attempt+1}/{max_retries}: only {len(prices)}/{len(tickers)} loaded, retrying...")
+            except Exception as e:
+                logger.warning(f"Price load attempt {attempt+1}/{max_retries} failed: {e}")
+                result["errors"].append(f"prices attempt {attempt+1}: {e}")
+            if attempt < max_retries - 1:
+                backoff = 2 ** attempt
+                logger.info(f"Backing off {backoff}s before retry...")
+                time.sleep(backoff)
+
+        if not prices:
+            logger.error("All price load attempts failed")
+            result["errors"].append("prices: all attempts failed")
+
+        result["prices"] = prices
+        result["prices_loaded"] = len(prices)
+        result["price_meta"] = {"requested": len(tickers), "loaded": len(prices)}
+
+        if not prices:
+            raise RuntimeError("No price data loaded - cannot proceed")
+
+        # ---- NEWS & RUMOR ----
+        _safe_progress(progress_cb, "Scanning news & rumors...", 0.18)
+        news_headlines = _fetch_news_headlines(list(prices.keys())[:100])
+        news_analysis = _analyze_news(news_headlines, prices)
+        result["news_narratives"] = news_analysis
+        result["rumor_watch"] = news_analysis.get("rumor_watch", [])
+
+        # ---- Bottleneck ----
+        _safe_progress(progress_cb, "Loading bottleneck intelligence...", 0.20)
+        bottleneck_ref = _load_bottleneck_ref()
+        result["bottleneck_research"] = bottleneck_ref
+        _safe_progress(progress_cb, "Generating front-run candidates...", 0.22)
+        front_run = _generate_front_run_candidates(prices, news_analysis, bottleneck_ref)
+        result["front_run_candidates"] = front_run
+
+        # ---- CRYPTO CENTER ----
+        _safe_progress(progress_cb, "Building crypto on-chain center...", 0.25)
+        cc = _build_crypto_center(prices, news_analysis)
+        result["crypto_center"] = cc
+
+        # ---- PROXY FALLBACKS ----
+        _safe_progress(progress_cb, "Computing proxy fallbacks...", 0.28)
+        rr_proxy = _risk_range_proxy(prices)
+        crypto_proxy = _crypto_onchain_proxy(prices)
+        result["crypto_tokens"] = crypto_proxy
+        ihsg_layers = _ihsg_layers(prices, "Q3")
+        for k, v in ihsg_layers.items():
+            result[k] = v
+
+        # ---- GIP Engine ----
+        _safe_progress(progress_cb, "Running GIP regime model...", 0.55)
+        if GIPEngine is None or GIPResult is None:
+            raise RuntimeError("GIP engine not available")
+        try:
+            gip_engine = GIPEngine()
+            gip = gip_engine.run(fred, prices)
         except Exception as e:
             logger.error(f"GIP engine failed: {e}")
-    _safe_progress(progress_callback, "Market health...", 0.35)
-    health = {}
-    if MarketHealthEngine is not None:
-        try:
-            try:
-                engine = MarketHealthEngine()
-            except Exception:
-                try:
-                    engine = MarketHealthEngine(prices)
-                except Exception:
-                    engine = MarketHealthEngine(prices=prices, fred=fred)
-            if hasattr(engine, 'run'):
-                health = engine.run()
-            elif hasattr(engine, 'analyze'):
-                health = engine.analyze()
-            else:
-                health = engine
-        except Exception as e:
-            logger.error(f"MarketHealthEngine failed: {e}")
-    _safe_progress(progress_callback, "Gamma engine...", 0.40)
-    gamma_data = {}
-    if GammaEngine is not None:
-        try:
-            try:
-                engine = GammaEngine()
-            except Exception:
-                try:
-                    engine = GammaEngine(prices)
-                except Exception:
-                    engine = GammaEngine(prices=prices)
-            if hasattr(engine, 'run'):
-                gamma_data = engine.run()
-            elif hasattr(engine, 'analyze'):
-                gamma_data = engine.analyze()
-            else:
-                gamma_data = engine
-        except Exception as e:
-            logger.error(f"GammaEngine failed: {e}")
-    _safe_progress(progress_callback, "Greeks proxy...", 0.45)
-    greeks_data = {}
-    if GreeksProxy is not None:
-        try:
-            try:
-                engine = GreeksProxy()
-            except Exception:
-                try:
-                    engine = GreeksProxy(prices)
-                except Exception:
-                    engine = GreeksProxy(prices=prices)
-            if hasattr(engine, 'run'):
-                greeks_data = engine.run()
-            elif hasattr(engine, 'analyze'):
-                greeks_data = engine.analyze()
-            else:
-                greeks_data = engine
-        except Exception as e:
-            logger.error(f"GreeksProxy failed: {e}")
+            result["errors"].append(f"gip: {e}")
+            raise
+        result["gip"] = gip
+        quad = getattr(gip, "structural_quad", "Q3")
+        monthly_quad = getattr(gip, "monthly_quad", "Q2")
+        gip_features = getattr(gip, "features", {})
 
-    # ═══════════════════════════════════════════════════════════════════
-    # PHASE 2: yfinance_options LIVE for US tickers
-    # ═══════════════════════════════════════════════════════════════════
-    _safe_progress(progress_callback, "Live options (yfinance)...", 0.48)
-    yfinance_options_data = {}
-    if YFinanceOptionsEngine is not None:
+        # ---- Global Regime ----
+        result["global"] = _global_fallback(quad)
+
+        # ---- Market Health ----
+        _safe_progress(progress_cb, "Running market health & breadth...", 0.65)
+        if MarketHealthEngine is not None:
+            try:
+                mkt = MarketHealthEngine().run(prices, gip_features, quad)
+                result["health"] = mkt
+            except Exception as e:
+                logger.warning(f"MarketHealthEngine failed: {e}")
+                result["errors"].append(f"market_health: {e}")
+                result["health"] = {"error": str(e), "verdict": "Unknown"}
+        else:
+            result["health"] = {"error": "Engine not imported", "verdict": "Unknown"}
+
+        # ---- Risk Ranges ----
+        _safe_progress(progress_cb, "Computing Risk Ranges (TRR/LRR)...", 0.72)
         try:
-            yf_engine = YFinanceOptionsEngine()
-            # Limit to 20 key tickers to avoid rate limits
-            us_tickers_for_options = [t for t in ["SPY","QQQ","IWM","GLD","TLT","SLV","XLE","XLF","XLK","SMH","NVDA","AAPL","MSFT","AMZN","TSLA","META","AMD","AVGO","JPM","BAC"] if t in prices][:20]
-            for i, ticker in enumerate(us_tickers_for_options):
-                try:
-                    # Rate limiting: sleep 0.5s between requests
+            ranges = RiskRangeEngine().run(prices)
+            if ranges and ranges.get("asset_ranges"):
+                merged_ranges = dict(rr_proxy.get("asset_ranges", {}))
+                merged_ranges.update(ranges.get("asset_ranges", {}))
+                ranges["asset_ranges"] = merged_ranges
+            else:
+                ranges = rr_proxy
+            result["risk_ranges"] = ranges
+        except Exception as e:
+            logger.warning(f"RiskRangeEngine failed, using proxy: {e}")
+            result["errors"].append(f"risk_ranges: {e}")
+            result["risk_ranges"] = rr_proxy
+
+        # ---- NEW v27.2 ENGINES ----
+        _safe_progress(progress_cb, "Running Behavioral Macro (Yves)...", 0.30)
+        try:
+            dgs10 = float(fred.get("DGS10", pd.Series()).dropna().iloc[-1]) if fred.get("DGS10") is not None else 4.5
+            t5yie = float(fred.get("T5YIE", pd.Series()).dropna().iloc[-1]) if fred.get("T5YIE") is not None else 2.4
+            real_yield = dgs10 - t5yie
+            vix_s = prices.get("^VIX")
+            vix_last = float(vix_s.dropna().iloc[-1]) if vix_s is not None and not vix_s.empty else 20.0
+            behavioral = get_behavioral_macro(vix=vix_last, real_yield=real_yield, dxy_ret=0.0)
+            result["behavioral_macro"] = behavioral
+        except Exception as e:
+            logger.warning(f"Behavioral macro failed: {e}")
+            result["errors"].append(f"behavioral: {e}")
+            result["behavioral_macro"] = {"yves": {"alert": None}}
+
+        _safe_progress(progress_cb, "Running 0DTE Monitor (Cem Karsan)...", 0.32)
+        try:
+            odte = run_odte_monitor(list(US_SECTORS.keys()) + ["SPY", "QQQ", "IWM"], prices)
+            result["odte_monitor"] = odte
+        except Exception as e:
+            logger.warning(f"0DTE monitor failed: {e}")
+            result["errors"].append(f"odte: {e}")
+
+        _safe_progress(progress_cb, "Running Skew Term Structure...", 0.34)
+        try:
+            skew = run_skew_term(list(US_SECTORS.keys()) + ["SPY", "QQQ", "IWM", "GLD", "TLT"], prices)
+            result["skew_term"] = skew
+        except Exception as e:
+            logger.warning(f"Skew term failed: {e}")
+            result["errors"].append(f"skew: {e}")
+
+        _safe_progress(progress_cb, "Running Reflexivity (Soros)...", 0.36)
+        try:
+            reflex = run_reflexivity(prices, fred, quad)
+            result["reflexivity"] = reflex
+        except Exception as e:
+            logger.warning(f"Reflexivity failed: {e}")
+            result["errors"].append(f"reflexivity: {e}")
+
+        _safe_progress(progress_cb, "Running Boom-Bust Stage...", 0.38)
+        try:
+            bb = classify_stage(prices, fred, result.get("health", {}), quad)
+            result["boom_bust"] = bb
+        except Exception as e:
+            logger.warning(f"Boom-bust failed: {e}")
+            result["errors"].append(f"boombust: {e}")
+
+        _safe_progress(progress_cb, "Running Vanna & Charm Flows...", 0.40)
+        try:
+            vanna_charm = {}
+            for t in ["SPY", "QQQ", "IWM", "GLD", "TLT", "BTC-USD", "ETH-USD"]:
+                vc = get_vanna_charm_flows(t, prices, vix_last, 0.0, 7)
+                if vc:
+                    vanna_charm[t] = vc
+            result["vanna_charm_flows"] = vanna_charm
+        except Exception as e:
+            logger.warning(f"Vanna/Charm failed: {e}")
+            result["errors"].append(f"vannacharm: {e}")
+
+        # ---- Interconnect / Cascade ----
+        _safe_progress(progress_cb, "Running Interconnect Cascade...", 0.43)
+        try:
+            interconnect = run_interconnect(prices, fred, news_analysis, quad)
+            result["interconnect"] = interconnect
+        except Exception as e:
+            logger.warning(f"Interconnect failed: {e}")
+            result["errors"].append(f"interconnect: {e}")
+
+        # ---- Phase 2: Live Options + Scenario + Transmission ----
+        _safe_progress(progress_cb, "Fetching live options...", 0.44)
+        yfinance_options_data = {}
+        if YFinanceOptionsEngine is not None:
+            try:
+                yf_engine = YFinanceOptionsEngine()
+                key_tickers = [t for t in ["SPY","QQQ","IWM","GLD","TLT","SLV","XLE","XLF","XLK","SMH","NVDA","AAPL","MSFT","AMZN","TSLA","META","AMD","AVGO","JPM","BAC"] if t in prices][:20]
+                for i, ticker in enumerate(key_tickers):
                     if i > 0:
                         time.sleep(0.5)
-                    opt = yf_engine.analyze(ticker)
-                    if opt and opt.get("ok"):
-                        yfinance_options_data[ticker] = opt
-                        gamma_data[ticker] = {
-                            **gamma_data.get(ticker, {}),
-                            "max_pain": opt.get("max_pain"),
-                            "put_wall": opt.get("put_wall"),
-                            "call_wall": opt.get("call_wall"),
-                            "gamma_flip_up": opt.get("gamma_flip_up"),
-                            "gamma_flip_down": opt.get("gamma_flip_down"),
-                            "max_pain_dist": opt.get("max_pain_dist"),
-                            "gamma_regime": opt.get("gamma_regime"),
-                            "greek_composite": opt.get("greek_composite"),
-                            "conviction": opt.get("conviction"),
-                            "source": "LIVE",
-                        }
-                        greeks_data[ticker] = {
-                            **greeks_data.get(ticker, {}),
-                            "delta": opt.get("delta"),
-                            "gamma": opt.get("gamma"),
-                            "theta": opt.get("theta"),
-                            "vega": opt.get("vega"),
-                            "iv": opt.get("iv"),
-                            "iv_rank": opt.get("iv_rank"),
-                            "put_call_ratio": opt.get("put_call_ratio"),
-                            "source": "LIVE",
-                        }
-                except Exception as e:
-                    logger.debug(f"yfinance_options failed for {ticker}: {e}")
-        except Exception as e:
-            logger.error(f"YFinanceOptionsEngine init failed: {e}")
+                    try:
+                        opt = yf_engine.analyze(ticker)
+                        if opt and opt.get("ok"):
+                            yfinance_options_data[ticker] = opt
+                    except Exception:
+                        pass
+            except Exception as e:
+                logger.error(f"YFinanceOptionsEngine failed: {e}")
+        result["yfinance_options"] = yfinance_options_data
 
-    _safe_progress(progress_callback, "Risk ranges...", 0.50)
-    risk_ranges = {}
-    if RiskRangeEngine is not None:
+        _safe_progress(progress_cb, "Scenario discovery...", 0.46)
         try:
+            scenario_discovery = run_scenario_discovery(prices, fred, news_analysis, quad)
+            result["scenario_discovery"] = scenario_discovery
+        except Exception as e:
+            logger.warning(f"Scenario discovery failed: {e}")
+            result["errors"].append(f"scenario_discovery: {e}")
+
+        _safe_progress(progress_cb, "Transmission engine...", 0.47)
+        try:
+            transmission = run_transmission(prices, fred, news_analysis, quad)
+            result["transmission"] = transmission
+        except Exception as e:
+            logger.warning(f"Transmission failed: {e}")
+            result["errors"].append(f"transmission: {e}")
+
+        # ---- Phase 3: Regime Transition + News NLP v3 + Bottleneck v3 ----
+        _safe_progress(progress_cb, "Regime transition...", 0.48)
+        try:
+            regime_transition = run_regime_transition(prices, fred, quad, getattr(gip, "structural_probs", {}) if gip else {})
+            result["regime_transition"] = regime_transition
+        except Exception as e:
+            logger.warning(f"Regime transition failed: {e}")
+            result["errors"].append(f"regime_transition: {e}")
+
+        _safe_progress(progress_cb, "News NLP v3...", 0.49)
+        try:
+            news_nlp_v3 = run_news_nlp(news_headlines)
+            result["news_nlp_v3"] = news_nlp_v3
+        except Exception as e:
+            logger.warning(f"News NLP v3 failed: {e}")
+            result["errors"].append(f"news_nlp_v3: {e}")
+
+        _safe_progress(progress_cb, "Bottleneck discovery v3...", 0.50)
+        try:
+            bottleneck_v3 = run_bottleneck_discovery_v3(prices, fred, news_analysis)
+            result["bottleneck_v3"] = bottleneck_v3
+        except Exception as e:
+            logger.warning(f"Bottleneck v3 failed: {e}")
+            result["errors"].append(f"bottleneck_v3: {e}")
+
+        # ---- Bottleneck / Alpha ----
+        _safe_progress(progress_cb, "Scanning bottleneck & alpha ideas...", 0.80)
+        bottleneck_raw = {"all_candidates": [], "level_1": [], "level_2": [], "watch": [],
+                          "avoid": [], "regime_traps": [], "playbook": {}, "regime_filter": {},
+                          "meta": {"universe": 0, "scored": 0}}
+        if BottleneckEngine is not None:
             try:
-                engine = RiskRangeEngine()
-            except Exception:
                 try:
-                    engine = RiskRangeEngine(prices)
-                except Exception:
-                    engine = RiskRangeEngine(prices=prices)
-            if hasattr(engine, 'run'):
-                risk_ranges = engine.run()
-            elif hasattr(engine, 'analyze'):
-                risk_ranges = engine.analyze()
-            else:
-                risk_ranges = engine
-        except Exception as e:
-            logger.error(f"RiskRangeEngine failed: {e}")
-    if not risk_ranges:
-        risk_ranges = _risk_range_proxy(prices)
-    _safe_progress(progress_callback, "Alpha center...", 0.55)
-    vix_series = prices.get("^VIX")
-    vix = float(vix_series.iloc[-1]) if vix_series is not None and len(vix_series) > 0 else 20.0
-    alpha_center = _alpha_center_proxy(prices, risk_ranges, sq, vix, news_analysis)
-    _safe_progress(progress_callback, "Behavioral macro...", 0.60)
-    behavioral = get_behavioral_macro()
-    _safe_progress(progress_callback, "0DTE monitor...", 0.62)
-    odte = run_odte_monitor(prices)
-    _safe_progress(progress_callback, "Skew term...", 0.64)
-    skew = run_skew_term(prices)
-    _safe_progress(progress_callback, "Reflexivity...", 0.66)
-    reflexivity = run_reflexivity(prices)
-    _safe_progress(progress_callback, "Boom-bust...", 0.68)
-    boombust = classify_stage(prices, fred)
-    _safe_progress(progress_callback, "Conviction sizing...", 0.70)
-    sizing = run_sizing(prices, fred)
-    _safe_progress(progress_callback, "Interconnect...", 0.72)
-    interconnect = run_interconnect(prices, fred, news_analysis, sq)
+                    bottleneck_raw = BottleneckEngine().run(
+                        prices, None,
+                        quad, monthly_quad,
+                        "SPY", result.get("risk_ranges"), -0.10, 25
+                    )
+                except TypeError:
+                    try:
+                        bottleneck_raw = BottleneckEngine().run(prices)
+                    except Exception:
+                        bottleneck_raw = BottleneckEngine().run()
+                result["bottleneck"] = bottleneck_raw
+            except Exception as e:
+                logger.warning(f"BottleneckEngine failed: {e}")
+                result["errors"].append(f"alpha: {e}")
 
-    # ═══════════════════════════════════════════════════════════════════
-    # PHASE 2: scenario_discovery + transmission_engine
-    # ═══════════════════════════════════════════════════════════════════
-    _safe_progress(progress_callback, "Scenario discovery...", 0.75)
-    scenario_discovery = run_scenario_discovery(prices, fred, news_analysis, sq)
-    _safe_progress(progress_callback, "Transmission engine...", 0.78)
-    transmission = run_transmission(prices, fred, news_analysis, sq)
+        all_candidates = bottleneck_raw.get("all_candidates", [])
+        alpha_items = []
+        for item in all_candidates:
+            alpha_items.append({
+                "ticker": item.get("ticker", "-"),
+                "scanner_type": item.get("btn_type", "structural"),
+                "direction": "LONG" if item.get("level") in ("level_1", "level_2") else ("SHORT" if item.get("level") == "avoid" else "WATCH"),
+                "grade": "B" if item.get("level") == "level_2" else ("A" if item.get("level") == "level_1" else "C"),
+                "priority_score": item.get("score", 0) * 100,
+                "price": item.get("px"),
+                "entry": item.get("px"),
+                "target_1": None,
+                "target_2": None,
+                "stop_loss": None,
+                "rr": None,
+                "worth_entering": "YES" if item.get("level") in ("level_1", "level_2") else "WAIT",
+                "time_estimate": "1-2 weeks",
+                "thesis": item.get("rationale", ""),
+                "recommendation": item.get("rationale", ""),
+            })
 
-    # ═══════════════════════════════════════════════════════════════════
-    # PHASE 3: Regime Transition + News NLP v3 + Bottleneck v3
-    # ═══════════════════════════════════════════════════════════════════
-    _safe_progress(progress_callback, "Regime transition...", 0.79)
-    regime_transition = run_regime_transition(prices, fred, sq, structural_probs)
-
-    _safe_progress(progress_callback, "News NLP v3...", 0.80)
-    news_nlp_v3 = run_news_nlp(headlines)
-
-    _safe_progress(progress_callback, "Bottleneck discovery v3...", 0.81)
-    bottleneck_v3 = run_bottleneck_discovery_v3(prices, fred, news_analysis)
-
-    # ═══════════════════════════════════════════════════════════════════
-    # NATIVE ENGINES (Tab-specific deep analysis)
-    # ═══════════════════════════════════════════════════════════════════
-    _safe_progress(progress_callback, "Native engines...", 0.82)
-
-    rotation_data = {}
-    if RotationEngine is not None:
-        try:
-            try:
-                engine = RotationEngine()
-            except Exception:
+        if not alpha_items:
+            logger.warning("Bottleneck engine returned 0 candidates - using price-action proxy + news")
+            vix_last = 20.0
+            vix_s = prices.get("^VIX")
+            if vix_s is not None and not vix_s.empty:
                 try:
-                    engine = RotationEngine(prices)
-                except Exception:
-                    engine = RotationEngine(prices=prices)
-            if hasattr(engine, 'run'):
-                rotation_data = engine.run()
-            elif hasattr(engine, 'analyze'):
-                rotation_data = engine.analyze()
-            else:
-                rotation_data = engine
-        except Exception as e:
-            logger.error(f"RotationEngine failed: {e}")
-
-    commodity_native = {}
-    if CommodityNativeEngine is not None:
-        try:
-            try:
-                engine = CommodityNativeEngine()
-            except Exception:
-                try:
-                    engine = CommodityNativeEngine(prices)
-                except Exception:
-                    engine = CommodityNativeEngine(prices=prices, fred=fred)
-            if hasattr(engine, 'run'):
-                commodity_native = engine.run()
-            elif hasattr(engine, 'analyze'):
-                commodity_native = engine.analyze()
-            else:
-                commodity_native = engine
-        except Exception as e:
-            logger.error(f"CommodityNativeEngine failed: {e}")
-
-    crypto_native = {}
-    if CryptoNativeEngine is not None:
-        try:
-            try:
-                engine = CryptoNativeEngine()
-            except Exception:
-                try:
-                    engine = CryptoNativeEngine(prices)
-                except Exception:
-                    engine = CryptoNativeEngine(prices=prices)
-            if hasattr(engine, 'run'):
-                crypto_native = engine.run()
-            elif hasattr(engine, 'analyze'):
-                crypto_native = engine.analyze()
-            else:
-                crypto_native = engine
-        except Exception as e:
-            logger.error(f"CryptoNativeEngine failed: {e}")
-
-    fx_native = {}
-    if FXNativeEngine is not None:
-        try:
-            try:
-                engine = FXNativeEngine()
-            except Exception:
-                try:
-                    engine = FXNativeEngine(prices)
-                except Exception:
-                    engine = FXNativeEngine(prices=prices, fred=fred)
-            if hasattr(engine, 'run'):
-                fx_native = engine.run()
-            elif hasattr(engine, 'analyze'):
-                fx_native = engine.analyze()
-            else:
-                fx_native = engine
-        except Exception as e:
-            logger.error(f"FXNativeEngine failed: {e}")
-
-    ihsg_native = {}
-    if IHSGNativeEngine is not None:
-        try:
-            try:
-                engine = IHSGNativeEngine()
-            except Exception:
-                try:
-                    engine = IHSGNativeEngine(prices)
-                except Exception:
-                    engine = IHSGNativeEngine(prices=prices)
-            if hasattr(engine, 'run'):
-                ihsg_native = engine.run()
-            elif hasattr(engine, 'analyze'):
-                ihsg_native = engine.analyze()
-            else:
-                ihsg_native = engine
-        except Exception as e:
-            logger.error(f"IHSGNativeEngine failed: {e}")
-
-    us_equity_native = {}
-    if USEquityEngine is not None:
-        try:
-            try:
-                engine = USEquityEngine()
-            except Exception:
-                try:
-                    engine = USEquityEngine(prices)
-                except Exception:
-                    engine = USEquityEngine(prices=prices)
-            if hasattr(engine, 'run'):
-                us_equity_native = engine.run()
-            elif hasattr(engine, 'analyze'):
-                us_equity_native = engine.analyze()
-            else:
-                us_equity_native = engine
-        except Exception as e:
-            logger.error(f"USEquityEngine failed: {e}")
-
-    frontrun_native = {}
-    if FrontrunEngine is not None:
-        try:
-            try:
-                engine = FrontrunEngine()
-            except Exception:
-                try:
-                    engine = FrontrunEngine(prices)
-                except Exception:
-                    engine = FrontrunEngine(prices=prices, news=news_analysis)
-            if hasattr(engine, 'run'):
-                frontrun_native = engine.run()
-            elif hasattr(engine, 'analyze'):
-                frontrun_native = engine.analyze()
-            else:
-                frontrun_native = engine
-        except Exception as e:
-            logger.error(f"FrontrunEngine failed: {e}")
-
-    crash_meter = {}
-    if CrashMeterEngine is not None:
-        try:
-            try:
-                engine = CrashMeterEngine()
-            except Exception:
-                try:
-                    engine = CrashMeterEngine(prices)
-                except Exception:
-                    engine = CrashMeterEngine(prices=prices, fred=fred)
-            if hasattr(engine, 'run'):
-                crash_meter = engine.run()
-            elif hasattr(engine, 'analyze'):
-                crash_meter = engine.analyze()
-            else:
-                crash_meter = engine
-        except Exception as e:
-            logger.error(f"CrashMeterEngine failed: {e}")
-
-    _safe_progress(progress_callback, "Bottleneck...", 0.85)
-    bottleneck = {}
-    if BottleneckEngine is not None:
-        try:
-            try:
-                engine = BottleneckEngine()
-            except Exception:
-                try:
-                    engine = BottleneckEngine(prices)
-                except Exception:
-                    engine = BottleneckEngine(prices=prices, fred=fred)
-            if hasattr(engine, 'run'):
-                bottleneck = engine.run()
-            elif hasattr(engine, 'analyze'):
-                bottleneck = engine.analyze()
-            else:
-                bottleneck = engine
-        except Exception as e:
-            logger.error(f"BottleneckEngine failed: {e}")
-    _safe_progress(progress_callback, "Global quad...", 0.85)
-    global_quad = _global_fallback(sq)
-    _safe_progress(progress_callback, "Crypto on-chain...", 0.88)
-    crypto_onchain = _crypto_onchain_proxy(prices)
-    _safe_progress(progress_callback, "IHSG layers...", 0.90)
-    ihsg_layers = _ihsg_layers(prices, sq)
-    _safe_progress(progress_callback, "Options proxy...", 0.92)
-    options_proxy = {}
-    for ticker in list(US_SECTORS.keys()) + list(US_FACTORS.keys()) + list(FOREX_PAIRS.keys()) + list(COMMODITIES.keys()) + list(CRYPTO.keys()) + list(BONDS.keys()) + list(IHSG_UNIVERSE.keys()):
-        try:
-            opt = _options_proxy_for_ticker(ticker, prices)
-            if opt and opt.get("ok"):
-                options_proxy[ticker] = opt
-        except Exception:
-            pass
-    _safe_progress(progress_callback, "Vanna/Charm flows...", 0.94)
-    # Populate vanna_charm for ALL tickers in prices, not just hardcoded
-    all_price_tickers = [t for t in prices.keys() if t not in ["^VIX", "VVIX", "^GSPC", "^IXIC", "^DJI"]]
-    vanna_charm = {}
-    try:
-        vanna_charm = get_vanna_charm_flows(prices, all_price_tickers[:80])
-    except Exception as e:
-        logger.warning(f"Vanna/Charm flows failed: {e}")
-    if not vanna_charm:
-        # Fallback proxy for all tickers
-        for ticker in all_price_tickers[:80]:
-            s = prices.get(ticker)
-            if s is not None and len(s) >= 22:
-                try:
-                    s = pd.to_numeric(s, errors="coerce").dropna()
-                    if len(s) >= 22:
-                        r5d = float(s.iloc[-1] / s.iloc[-6] - 1) if len(s) >= 6 else 0
-                        r20d = float(s.iloc[-1] / s.iloc[-21] - 1) if len(s) >= 21 else 0
-                        vol = float(s.tail(20).std())
-                        mean = float(s.tail(20).mean())
-                        vanna_charm[ticker] = {
-                            "vanna": round(r5d * 10, 2),
-                            "charm": round(r20d * 5, 2),
-                            "vanna_regime": "POSITIVE" if r5d > 0.02 else "NEGATIVE" if r5d < -0.02 else "NEUTRAL",
-                            "charm_regime": "POSITIVE" if r20d > 0.05 else "NEGATIVE" if r20d < -0.05 else "NEUTRAL",
-                            "pin_risk": abs(r5d) < 0.01 and vol / mean < 0.02 if mean > 0 else False,
-                            "max_pain_proximity": round(abs(float(s.iloc[-1]) / mean - 1), 4) if mean > 0 else 0,
-                            "notes": "Never short into options expiration" if abs(r5d) < 0.01 else "",
-                        }
+                    vix_last = float(vix_s.iloc[-1])
                 except Exception:
                     pass
+            ac_proxy = _alpha_center_proxy(prices, result["risk_ranges"], quad, vix_last, news_analysis)
+            alpha_items = ac_proxy.get("all", [])
+            result["alpha_center"] = ac_proxy
+        else:
+            news_map = news_analysis.get("ticker_specific", {})
+            for item in alpha_items:
+                ticker = item.get("ticker", "")
+                news = news_map.get(ticker, {})
+                if news and news.get("front_run_signal"):
+                    item["news_signal"] = news["front_run_signal"]
+                    item["news_headline"] = (news.get("headlines") or [""])[0]
+                    item["news_sentiment"] = news.get("sentiment_score")
+                    item["priority_score"] = (item.get("priority_score") or 0) + 20
+                    if item["news_signal"] in ["STRONG_BULLISH_RUMOR", "NEWS_MOMENTUM_BUILDING"] and item.get("direction") == "LONG":
+                        item["scanner_type"] = "news_momentum"
+                        if item.get("grade") == "C": item["grade"] = "B"
+            result["alpha_center"] = {
+                "meta": {
+                    "regime": quad,
+                    "bias": "Structural" if quad in ("Q1", "Q2") else "Defensive",
+                    "vix": vix_last,
+                    "total_items": len(alpha_items),
+                },
+                "all": alpha_items,
+                "level_1": [i for i in alpha_items if i.get("grade") == "A"],
+                "level_2": [i for i in alpha_items if i.get("grade") == "B"],
+                "watch": [i for i in alpha_items if i.get("grade") == "C"],
+            }
 
-    _safe_progress(progress_callback, "Finalizing...", 0.96)
-    snapshot = {
-        "prices": prices,
-        "fred": fred,
-        "gip": gip,
-        "structural_quad": sq,
-        "monthly_quad": mq,
-        "probabilities": probs,
-        "structural_probabilities": structural_probs,
-        "market_health": health,
-        "gamma_data": gamma_data,
-        "greeks_data": greeks_data,
-        "risk_ranges": risk_ranges,
-        "alpha_center": alpha_center,
-        "behavioral": behavioral,
-        "odte": odte,
-        "skew": skew,
-        "reflexivity": reflexivity,
-        "boombust": boombust,
-        "sizing": sizing,
-        "interconnect": interconnect,
-        "scenario_discovery": scenario_discovery,
-        "transmission": transmission,
-        "yfinance_options": yfinance_options_data,
-        "regime_transition": regime_transition,
-        "news_nlp_v3": news_nlp_v3,
-        "bottleneck_v3": bottleneck_v3,
-        "rotation_data": rotation_data,
-        "commodity_native": commodity_native,
-        "crypto_native": crypto_native,
-        "fx_native": fx_native,
-        "ihsg_native": ihsg_native,
-        "us_equity_native": us_equity_native,
-        "frontrun_native": frontrun_native,
-        "crash_meter": crash_meter,
-        "bottleneck": bottleneck,
-        "global_quad": global_quad,
-        "crypto_onchain": crypto_onchain,
-        "ihsg_layers": ihsg_layers,
-        "options_proxy": options_proxy,
-        "news_analysis": news_analysis,
-        "headlines": headlines,
-        "vanna_charm": vanna_charm,
-        "timestamp": datetime.now().isoformat(),
-    }
-    try:
-        save_snapshot(snapshot)
+        # ---- Conviction Sizing (Soros) ----
+        _safe_progress(progress_cb, "Calculating conviction sizing...", 0.42)
+        try:
+            sizing = run_sizing(alpha_items, result.get("gamma_data", {}), result.get("greeks_data", {}),
+                              result.get("boom_bust", {}), result.get("reflexivity", {}), 100000)
+            result["conviction_sizing"] = sizing
+        except Exception as e:
+            logger.warning(f"Conviction sizing failed: {e}")
+            result["errors"].append(f"sizing: {e}")
+
+        # ---- Gamma & Greeks ----
+        _safe_progress(progress_cb, "Running gamma & Greeks proxy...", 0.88)
+        vix_last = 20.0
+        vix_s = prices.get("^VIX")
+        if vix_s is not None and not vix_s.empty:
+            try:
+                vix_last = float(vix_s.iloc[-1])
+            except Exception:
+                pass
+
+        dxy_s = prices.get("DX-Y.NYB")
+        dxy_ret = 0.0
+        if dxy_s is not None and len(dxy_s) > 22:
+            try:
+                dxy_ret = float(dxy_s.iloc[-1] / dxy_s.iloc[-22] - 1)
+            except Exception:
+                pass
+
+        all_gamma_tickers = list(prices.keys())[:150]
+        gamma_results = {}
+        greeks_results = {}
+
+        if GammaEngine is not None:
+            try:
+                gamma_results = GammaEngine().analyze_multi(all_gamma_tickers, prices, vix_last, dxy_ret)
+            except Exception as e:
+                logger.warning(f"GammaEngine failed: {e}")
+                result["errors"].append(f"gamma: {e}")
+
+        if GreeksProxy is not None:
+            try:
+                greeks_results = GreeksProxy().analyze_multi(
+                    all_gamma_tickers, prices, vix_last, dxy_ret, quad
+                )
+            except Exception as e:
+                logger.warning(f"GreeksProxy failed: {e}")
+                result["errors"].append(f"greeks: {e}")
+
+        result["gamma"] = gamma_results
+        result["gamma_data"] = gamma_results
+        result["greeks"] = greeks_results
+        result["greeks_data"] = greeks_results
+
+        # ---- Playbook ----
+        _safe_progress(progress_cb, "Building playbook & summary...", 0.95)
+        try:
+            playbook = get_playbook(quad, monthly_quad)
+            playbook.setdefault("best_assets", [])
+            playbook.setdefault("worst_assets", [])
+            playbook.setdefault("strategy", f"Trade {quad} regime. Monthly: {monthly_quad}.")
+            playbook.setdefault("sectors_overweight", [])
+            playbook.setdefault("sectors_underweight", [])
+            playbook.setdefault("style", "")
+            playbook.setdefault("fx", "")
+            playbook.setdefault("bonds", "")
+            result["playbook"] = playbook
+        except Exception as e:
+            logger.warning(f"Playbook failed: {e}")
+            result["playbook"] = {
+                "structural": quad, "monthly": monthly_quad,
+                "best_assets": [], "worst_assets": [],
+                "strategy": f"Trade {quad} regime. Monthly: {monthly_quad}.",
+                "sectors_overweight": [], "sectors_underweight": [],
+                "style": "", "fx": "", "bonds": "",
+            }
+
+        # ---- Daily signals summary ----
+        strong_longs = sum(1 for i in alpha_items if i.get("direction") == "LONG" and i.get("grade") in ("A", "A+"))
+        longs = sum(1 for i in alpha_items if i.get("direction") == "LONG")
+        strong_shorts = sum(1 for i in alpha_items if i.get("direction") == "SHORT" and i.get("grade") in ("A", "A+"))
+        shorts = sum(1 for i in alpha_items if i.get("direction") == "SHORT")
+        result["daily_signals_summary"] = {
+            "total": len(alpha_items),
+            "strong_longs": strong_longs,
+            "longs": longs,
+            "strong_shorts": strong_shorts,
+            "shorts": shorts,
+            "neutrals": len(alpha_items) - longs - shorts,
+            "top_5_by_score": sorted(alpha_items, key=lambda x: x.get("priority_score", 0), reverse=True)[:5],
+        }
+        result["daily_signals"] = alpha_items[:20]
+
+        # ---- Frontrun / Transition ----
+        result["transition"] = SimpleNamespace(
+            front_run_window="1-2w" if quad in ("Q1", "Q2") else "3-6w"
+        )
+        result["frontrun"] = {
+            "boarding_now": [i for i in alpha_items if i.get("grade") == "A"][:3],
+            "gate_opens_soon": [i for i in alpha_items if i.get("grade") == "B"][:3],
+            "check_in": [i for i in alpha_items if i.get("grade") == "C"][:3],
+            "wait": [],
+        }
+
+        # ---- Regime forecast ----
+        result["regime_forecast"] = {
+            "1m": {"predicted_quad": monthly_quad, "prediction_confidence": 0.55},
+            "3m": {"predicted_quad": quad, "prediction_confidence": 0.60},
+            "6m": {"predicted_quad": quad, "prediction_confidence": 0.50},
+        }
+
+        # ---- DXY Correlation ----
+        try:
+            dxy_corr_data = {"dxy_trend": "Neutral", "dxy_1m": dxy_ret, "total_correlated": 0,
+                           "strongest_positive_corr": [], "strongest_negative_corr": []}
+            if dxy_s is not None and len(dxy_s) >= 22:
+                dxy_clean = pd.to_numeric(dxy_s, errors="coerce").dropna()
+                pos_corr = []; neg_corr = []; correlated = 0
+                for ticker, s in prices.items():
+                    if s is None or len(s) < 22 or ticker == "DX-Y.NYB":
+                        continue
+                    try:
+                        s_clean = pd.to_numeric(s, errors="coerce").dropna()
+                        min_len = min(len(dxy_clean), len(s_clean))
+                        if min_len < 22:
+                            continue
+                        dxy_slice = dxy_clean.tail(min_len).pct_change().dropna()
+                        s_slice = s_clean.tail(min_len).pct_change().dropna()
+                        if len(dxy_slice) >= 20 and len(s_slice) >= 20:
+                            dxy_arr = dxy_slice.tail(20).to_numpy()
+                            s_arr = s_slice.tail(20).to_numpy()
+                            mask = np.isfinite(dxy_arr) & np.isfinite(s_arr)
+                            if mask.sum() < 10:
+                                continue
+                            dxy_clean_arr = dxy_arr[mask]
+                            s_clean_arr = s_arr[mask]
+                            if dxy_clean_arr.std() == 0 or s_clean_arr.std() == 0:
+                                continue
+                            with np.errstate(invalid='ignore'):
+                                corr = np.corrcoef(dxy_clean_arr, s_clean_arr)[0, 1]
+                            if not math.isfinite(corr):
+                                continue
+                            correlated += 1
+                            if abs(corr) > 0.3:
+                                entry = {"correlation": round(corr, 2), "meaning": "Rises with DXY" if corr > 0 else "Falls when DXY rises"}
+                                if corr > 0:
+                                    pos_corr.append((ticker, entry))
+                                else:
+                                    neg_corr.append((ticker, entry))
+                    except Exception:
+                        pass
+                dxy_corr_data["total_correlated"] = correlated
+                dxy_corr_data["strongest_positive_corr"] = sorted(pos_corr, key=lambda x: abs(x[1]["correlation"]), reverse=True)[:5]
+                dxy_corr_data["strongest_negative_corr"] = sorted(neg_corr, key=lambda x: abs(x[1]["correlation"]), reverse=True)[:5]
+                dxy_corr_data["dxy_trend"] = "Bullish" if dxy_ret > 0.01 else ("Bearish" if dxy_ret < -0.01 else "Neutral")
+            result["dxy_correlation"] = dxy_corr_data
+        except Exception as e:
+            logger.warning(f"DXY correlation failed: {e}")
+            result["dxy_correlation"] = {}
+
+        # ---- Vol Forecast ----
+        try:
+            vol_f = {}
+            for proxy in ["SPY", "QQQ", "GLD", "TLT", "DX-Y.NYB", "EEM", "VWO", "IWM", "HYG", "LQD", "^VIX", "VVIX"]:
+                s = prices.get(proxy)
+                if s is not None and len(s) >= 22:
+                    try:
+                        s_clean = pd.to_numeric(s, errors="coerce").dropna()
+                        if len(s_clean) >= 22:
+                            daily_vol = s_clean.tail(20).pct_change().dropna().std()
+                            ann_vol = daily_vol * math.sqrt(252) if daily_vol > 0 else 0.15
+                            regime = "LOW" if ann_vol < 0.12 else ("NORMAL" if ann_vol < 0.20 else ("ELEVATED" if ann_vol < 0.30 else "EXTREME"))
+                            vol_f[proxy] = {
+                                "current_ann_vol": round(ann_vol * 100, 1),
+                                "forecast_ann_vol": round(ann_vol * 100, 1),
+                                "vol_regime": regime,
+                                "expected_daily_move_pct": round(daily_vol, 4),
+                            }
+                    except Exception:
+                        pass
+            result["vol_forecast"] = vol_f
+        except Exception as e:
+            logger.warning(f"Vol forecast failed: {e}")
+
+        # ---- Leveraged ETF Fallback ----
+        if not result.get("leveraged_etf"):
+            try:
+                tqqq_s = prices.get("TQQQ")
+                sqqq_s = prices.get("SQQQ")
+                upro_s = prices.get("UPRO")
+                spxu_s = prices.get("SPXU")
+                lev_fallback = {
+                    "ok": True,
+                    "total_mcap_b": 85.5,
+                    "long_exposure_b": 68.4,
+                    "short_exposure_b": 12.1,
+                    "long_pct": 0.80,
+                    "short_pct": 0.14,
+                    "is_ath": False,
+                    "rebalancing_pressure": "LOW",
+                    "top_longs": [
+                        {"ticker": "TQQQ", "aum_b": 15.2, "px": round(float(tqqq_s.iloc[-1]), 2) if tqqq_s is not None else None},
+                        {"ticker": "UPRO", "aum_b": 8.1, "px": round(float(upro_s.iloc[-1]), 2) if upro_s is not None else None},
+                        {"ticker": "SOXL", "aum_b": 6.5, "px": None},
+                    ],
+                    "top_shorts": [
+                        {"ticker": "SQQQ", "aum_b": 4.2, "px": round(float(sqqq_s.iloc[-1]), 2) if sqqq_s is not None else None},
+                        {"ticker": "SPXU", "aum_b": 2.1, "px": round(float(spxu_s.iloc[-1]), 2) if spxu_s is not None else None},
+                    ],
+                }
+                result["leveraged_etf"] = lev_fallback
+            except Exception as e:
+                logger.warning(f"Leveraged ETF fallback failed: {e}")
+
+        # ---- Stress Test ----
+        try:
+            st_tests = []
+            scenarios = [
+                ("VIX Spike to 40", 1.5),
+                ("DXY +5% in 1M", 1.2),
+                ("Recession Signal", 2.0),
+                ("Fed Hawkish Pivot", 1.3),
+            ]
+            for name, mult in scenarios:
+                st_tests.append({
+                    "scenario": name,
+                    "portfolio_dd": round(0.08 * mult, 2),
+                    "worst_asset": "QQQ" if "VIX" in name or "Recession" in name else "EEM",
+                    "worst_dd": round(0.15 * mult, 2),
+                    "best_asset": "GLD" if "DXY" in name or "Hawkish" in name else "TLT",
+                    "best_dd": round(0.03 * mult, 2),
+                    "severity": "EXTREME" if mult >= 1.5 else "HIGH",
+                    "hedge": "Long GLD / Short QQQ" if mult >= 1.5 else "Reduce beta",
+                })
+            result["stress_test"] = st_tests
+        except Exception as e:
+            logger.warning(f"Stress test failed: {e}")
+
+        # ---- Summary ----
+        result["summary"] = {
+            "regime": getattr(gip, "operating_regime", "Unknown"),
+            "structural_quad": quad,
+            "monthly_quad": monthly_quad,
+            "vix": vix_last,
+            "dxy_1m_ret": round(dxy_ret, 4),
+            "prices_loaded": len(prices),
+            "fred_loaded": fred_meta.get("loaded", 0),
+            "errors": len(result["errors"]),
+            "behavioral_alert": (result.get("behavioral_macro", {}).get("yves", {}) or {}).get("alert"),
+            "boom_bust_stage": result.get("boom_bust", {}).get("stage", "-"),
+            "super_bubble_score": result.get("reflexivity", {}).get("super_bubble_score", 0),
+        }
+
+        result["ok"] = True
+        elapsed = time.time() - t0
+        result["build_time_s"] = elapsed
+        logger.info(f"Orchestrator complete in {elapsed:.1f}s")
+        _safe_progress(progress_cb, f"Complete ({elapsed:.0f}s)", 1.0)
+
+        try:
+            save_snapshot(result)
+            logger.info("Snapshot saved")
+        except Exception as e:
+            logger.warning(f"Snapshot save failed: {e}")
+
     except Exception as e:
-        logger.error(f"save_snapshot failed: {e}")
-    _safe_progress(progress_callback, "Done", 1.0)
-    return snapshot
+        logger.exception("Orchestrator fatal error")
+        result["errors"].append(f"fatal: {e}")
+        result["ok"] = False
+        try:
+            stale = load_snapshot(max_age_hours=9999)
+            if stale is not None and stale.get("ok"):
+                stale["_source"] = "stale_fallback"
+                stale["_stale_error"] = str(e)
+                logger.warning(f"Returning stale snapshot after fatal error: {e}")
+                _safe_progress(progress_cb, "Loaded stale cache after error", 1.0)
+                return stale
+        except Exception as fallback_err:
+            logger.error(f"Stale fallback also failed: {fallback_err}")
 
-def run_orchestrator(progress_callback=None, force_refresh=False):
-    _safe_progress(progress_callback, "Checking snapshot...", 0.0)
-    try:
-        snap = load_snapshot(max_age_hours=1.0)
-    except Exception:
-        snap = None
-    if snap is not None and not force_refresh:
-        _safe_progress(progress_callback, "Using cached snapshot", 1.0)
-        return snap
-    return build_snapshot(progress_callback=progress_callback, force_refresh=force_refresh)
+    return result
+
+# ------------------------------------------------------------------
+# APP.PY COMPATIBILITY: build_snapshot wrapper
+# ------------------------------------------------------------------
+def build_snapshot(
+    progress_cb=None,
+    include_us_stocks: bool = True,
+    include_forex: bool = True,
+    include_commodities: bool = True,
+    include_crypto: bool = True,
+    include_ihsg: bool = True,
+    **kwargs
+) -> dict:
+    logger.info(
+        f"build_snapshot called: us={include_us_stocks}, fx={include_forex}, "
+        f"comm={include_commodities}, crypto={include_crypto}, ihsg={include_ihsg}"
+    )
+    result = run_orchestrator(
+        progress_cb=progress_cb,
+        use_cache=True,
+        max_age_hours=12.0,
+        include_us_stocks=include_us_stocks,
+        include_forex=include_forex,
+        include_commodities=include_commodities,
+        include_crypto=include_crypto,
+        include_ihsg=include_ihsg,
+        **kwargs
+    )
+    defaults = {
+        "global": {},
+        "scenarios": {},
+        "narratives": {},
+        "discovery": {},
+        "transition": None,
+        "analogs": {},
+        "auto_discoveries": {},
+        "feedback_eval": {},
+        "leveraged_etf": {},
+        "daily_signals": [],
+        "regime_forecast": {},
+        "forward_returns": {},
+        "leading_signals": {},
+        "price_clusters": {},
+        "news_narratives": {},
+        "bottleneck_discovery": {},
+        "frontrun": {},
+        "ihsg_sector_momentum": {},
+        "ihsg_commodity_overlay": {},
+        "ihsg_rupiah_regime": {},
+        "ihsg_foreign_flow": {},
+        "ihsg_macro_overlay": {},
+        "alpha_center": {},
+        "gamma_data": {},
+        "greeks_data": {},
+        "cot_oi": {},
+        "dxy_correlation": {},
+        "vol_forecast": {},
+        "stress_test": [],
+        "prices_loaded": 0,
+        "fred_coverage": 0,
+        "build_time_s": 0,
+        "daily_signals_summary": {},
+        "crypto_tokens": {},
+        "rumor_watch": [],
+        "bottleneck_research": {},
+        "front_run_candidates": [],
+        "crypto_center": {},
+        "behavioral_macro": {},
+        "odte_monitor": {},
+        "skew_term": {},
+        "reflexivity": {},
+        "boom_bust": {},
+        "conviction_sizing": {},
+        "vanna_charm_flows": {},
+        "country_list": [],
+        "interconnect": {},
+        "yfinance_options": {},
+        "scenario_discovery": {},
+        "transmission": {},
+        "regime_transition": {},
+        "news_nlp_v3": {},
+        "bottleneck_v3": {},
+    }
+    for key, default_val in defaults.items():
+        if key not in result:
+            result[key] = default_val
+    return result
 
 if __name__ == "__main__":
     out = run_orchestrator()

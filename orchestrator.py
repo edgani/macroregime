@@ -1435,72 +1435,6 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             result["errors"].append(f"vannacharm: {e}")
 
         # ---- Interconnect / Cascade ----
-        
-        _safe_progress(progress_cb, "Running GEX Engine...", 0.41)
-        try:
-            key_tickers = ["SPY", "QQQ", "IWM", "GLD", "TLT", "BTC-USD", "ETH-USD"]
-            gex_data = gex_analyze_multi(key_tickers, prices, vix_last)
-            result["gex_data"] = gex_data
-        except Exception as e:
-            logger.warning(f"GEX engine failed: {e}")
-            result["errors"].append(f"gex: {e}")
-
-        _safe_progress(progress_cb, "Running Charm Proxy...", 0.42)
-        try:
-            charm_data = charm_analyze_multi(key_tickers, prices, vix_last)
-            result["charm_data"] = charm_data
-        except Exception as e:
-            logger.warning(f"Charm proxy failed: {e}")
-            result["errors"].append(f"charm: {e}")
-
-        _safe_progress(progress_cb, "Running Vanna Proxy...", 0.43)
-        try:
-            vanna_data = vanna_analyze_multi(key_tickers, prices, vix_last, dxy_ret)
-            result["vanna_data"] = vanna_data
-        except Exception as e:
-            logger.warning(f"Vanna proxy failed: {e}")
-            result["errors"].append(f"vanna: {e}")
-
-        _safe_progress(progress_cb, "Running 0DTE Enhanced...", 0.44)
-        try:
-            odte_enhanced = odte_enhanced_multi(key_tickers, prices, vix_last)
-            result["odte_enhanced"] = odte_enhanced
-        except Exception as e:
-            logger.warning(f"0DTE enhanced failed: {e}")
-            result["errors"].append(f"odte_enh: {e}")
-
-        _safe_progress(progress_cb, "Running Structure Quality...", 0.45)
-        try:
-            structure_data = structure_analyze_multi(key_tickers, prices)
-            result["structure_data"] = structure_data
-        except Exception as e:
-            logger.warning(f"Structure quality failed: {e}")
-            result["errors"].append(f"structure: {e}")
-
-        _safe_progress(progress_cb, "Running Afternoon Signal...", 0.46)
-        try:
-            afternoon_data = afternoon_analyze_multi(key_tickers, prices, charm_data, vanna_data, vix_last, gex_data, structure_data)
-            result["afternoon_data"] = afternoon_data
-        except Exception as e:
-            logger.warning(f"Afternoon signal failed: {e}")
-            result["errors"].append(f"afternoon: {e}")
-
-        _safe_progress(progress_cb, "Running Volga Proxy...", 0.47)
-        try:
-            volga_data = analyze_volga("SPY", prices, prices, vix_last)
-            result["volga_data"] = volga_data
-        except Exception as e:
-            logger.warning(f"Volga proxy failed: {e}")
-            result["errors"].append(f"volga: {e}")
-
-        _safe_progress(progress_cb, "Running Institutional Proxy...", 0.48)
-        try:
-            inst_data = inst_analyze_multi(key_tickers, prices, vix_last)
-            result["institutional_data"] = inst_data
-        except Exception as e:
-            logger.warning(f"Institutional proxy failed: {e}")
-            result["errors"].append(f"institutional: {e}")
-
         _safe_progress(progress_cb, "Running Interconnect Cascade...", 0.43)
         try:
             interconnect = run_interconnect(prices, fred, news_analysis, quad)
@@ -1684,6 +1618,81 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                 dxy_ret = float(dxy_s.iloc[-1] / dxy_s.iloc[-22] - 1)
             except Exception:
                 pass
+
+        # ---- VolSignals-style engines ----
+        key_tickers = ["SPY", "QQQ", "IWM", "GLD", "TLT", "BTC-USD", "ETH-USD"]
+        gex_data = {}
+        charm_data = {}
+        vanna_data = {}
+        odte_enhanced = {}
+        structure_data = {}
+        afternoon_data = {}
+        volga_data = {}
+        inst_data = {}
+
+        _safe_progress(progress_cb, "Running GEX Engine...", 0.41)
+        try:
+            gex_data = gex_analyze_multi(key_tickers, prices, vix_last)
+            result["gex_data"] = gex_data
+        except Exception as e:
+            logger.warning(f"GEX engine failed: {e}")
+            result["errors"].append(f"gex: {e}")
+
+        _safe_progress(progress_cb, "Running Charm Proxy...", 0.42)
+        try:
+            charm_data = charm_analyze_multi(key_tickers, prices, vix_last)
+            result["charm_data"] = charm_data
+        except Exception as e:
+            logger.warning(f"Charm proxy failed: {e}")
+            result["errors"].append(f"charm: {e}")
+
+        _safe_progress(progress_cb, "Running Vanna Proxy...", 0.43)
+        try:
+            vanna_data = vanna_analyze_multi(key_tickers, prices, vix_last, dxy_ret)
+            result["vanna_data"] = vanna_data
+        except Exception as e:
+            logger.warning(f"Vanna proxy failed: {e}")
+            result["errors"].append(f"vanna: {e}")
+
+        _safe_progress(progress_cb, "Running 0DTE Enhanced...", 0.44)
+        try:
+            odte_enhanced = odte_enhanced_multi(key_tickers, prices, vix_last)
+            result["odte_enhanced"] = odte_enhanced
+        except Exception as e:
+            logger.warning(f"0DTE enhanced failed: {e}")
+            result["errors"].append(f"odte_enh: {e}")
+
+        _safe_progress(progress_cb, "Running Structure Quality...", 0.45)
+        try:
+            structure_data = structure_analyze_multi(key_tickers, prices)
+            result["structure_data"] = structure_data
+        except Exception as e:
+            logger.warning(f"Structure quality failed: {e}")
+            result["errors"].append(f"structure: {e}")
+
+        _safe_progress(progress_cb, "Running Afternoon Signal...", 0.46)
+        try:
+            afternoon_data = afternoon_analyze_multi(key_tickers, prices, charm_data, vanna_data, vix_last, gex_data, structure_data)
+            result["afternoon_data"] = afternoon_data
+        except Exception as e:
+            logger.warning(f"Afternoon signal failed: {e}")
+            result["errors"].append(f"afternoon: {e}")
+
+        _safe_progress(progress_cb, "Running Volga Proxy...", 0.47)
+        try:
+            volga_data = analyze_volga("SPY", prices, prices, vix_last)
+            result["volga_data"] = volga_data
+        except Exception as e:
+            logger.warning(f"Volga proxy failed: {e}")
+            result["errors"].append(f"volga: {e}")
+
+        _safe_progress(progress_cb, "Running Institutional Proxy...", 0.48)
+        try:
+            inst_data = inst_analyze_multi(key_tickers, prices, vix_last)
+            result["institutional_data"] = inst_data
+        except Exception as e:
+            logger.warning(f"Institutional proxy failed: {e}")
+            result["errors"].append(f"institutional: {e}")
 
         all_gamma_tickers = list(prices.keys())[:150]
         gamma_results = {}

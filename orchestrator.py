@@ -181,6 +181,75 @@ except Exception as e:
         return {"scenarios": [], "active_scenarios": [], "watch_scenarios": [], "summary": "Unavailable"}
 
 try:
+    from engines.regime_transition_engine import run_regime_transition
+except Exception as e:
+    logger.error(f"Failed to import regime_transition_engine: {e}")
+    def run_regime_transition(*args, **kwargs):
+        return {"current_quad": "Q3", "transitions": {}, "summary": "Unavailable"}
+
+try:
+    from engines.news_nlp_engine_v3 import run_news_nlp
+except Exception as e:
+    logger.error(f"Failed to import news_nlp_engine_v3: {e}")
+    def run_news_nlp(*args, **kwargs):
+        return {"ticker_specific": {}, "emergent_narratives": [], "rumor_watch": [], "analyzed_count": 0}
+
+try:
+    from engines.bottleneck_discovery_v3 import run_bottleneck_discovery_v3
+except Exception as e:
+    logger.error(f"Failed to import bottleneck_discovery_v3: {e}")
+    def run_bottleneck_discovery_v3(*args, **kwargs):
+        return {"active_bottlenecks": [], "watch_bottlenecks": [], "summary": "Unavailable"}
+
+try:
+    from engines.rotation_engine import RotationEngine
+except Exception as e:
+    logger.error(f"Failed to import rotation_engine: {e}")
+    RotationEngine = None
+
+try:
+    from engines.commodity_native_engine import CommodityNativeEngine
+except Exception as e:
+    logger.error(f"Failed to import commodity_native_engine: {e}")
+    CommodityNativeEngine = None
+
+try:
+    from engines.crypto_native_engine import CryptoNativeEngine
+except Exception as e:
+    logger.error(f"Failed to import crypto_native_engine: {e}")
+    CryptoNativeEngine = None
+
+try:
+    from engines.fx_native_engine import FXNativeEngine
+except Exception as e:
+    logger.error(f"Failed to import fx_native_engine: {e}")
+    FXNativeEngine = None
+
+try:
+    from engines.ihsg_native_engine import IHSGNativeEngine
+except Exception as e:
+    logger.error(f"Failed to import ihsg_native_engine: {e}")
+    IHSGNativeEngine = None
+
+try:
+    from engines.us_equity_engine import USEquityEngine
+except Exception as e:
+    logger.error(f"Failed to import us_equity_engine: {e}")
+    USEquityEngine = None
+
+try:
+    from engines.frontrun_engine import FrontrunEngine
+except Exception as e:
+    logger.error(f"Failed to import frontrun_engine: {e}")
+    FrontrunEngine = None
+
+try:
+    from engines.crash_meter_engine import CrashMeterEngine
+except Exception as e:
+    logger.error(f"Failed to import crash_meter_engine: {e}")
+    CrashMeterEngine = None
+
+try:
     from config.settings import (
         US_SECTORS, US_FACTORS, FOREX_PAIRS, COMMODITIES, CRYPTO,
         BONDS, IHSG_UNIVERSE, MACRO_PROXIES, US_BUCKETS, IHSG_BUCKETS,
@@ -819,49 +888,91 @@ def build_snapshot(progress_callback=None, force_refresh=False):
     _safe_progress(progress_callback, "Analyzing news...", 0.25)
     news_analysis = _analyze_news(headlines, prices)
     _safe_progress(progress_callback, "Running GIP engine...", 0.30)
+    gip = {"structural_quad": "Q3", "monthly_quad": "Q3", "probabilities": {}, "structural_probabilities": {}}
+    sq = mq = "Q3"
+    probs = structural_probs = {}
     if GIPEngine is not None:
         try:
-            gip = GIPEngine(prices=prices, fred=fred).run()
-            sq = gip.get("structural_quad", "Q3")
-            mq = gip.get("monthly_quad", "Q3")
-            probs = gip.get("probabilities", {})
-            structural_probs = gip.get("structural_probabilities", {})
+            # Try multiple constructor patterns
+            try:
+                engine = GIPEngine()
+            except Exception:
+                try:
+                    engine = GIPEngine(prices)
+                except Exception:
+                    try:
+                        engine = GIPEngine(prices=prices, fred=fred)
+                    except Exception:
+                        engine = GIPEngine(prices, fred)
+            if hasattr(engine, 'run'):
+                gip = engine.run()
+            elif hasattr(engine, 'analyze'):
+                gip = engine.analyze()
+            else:
+                gip = engine
+            sq = gip.get("structural_quad", "Q3") if isinstance(gip, dict) else "Q3"
+            mq = gip.get("monthly_quad", "Q3") if isinstance(gip, dict) else "Q3"
+            probs = gip.get("probabilities", {}) if isinstance(gip, dict) else {}
+            structural_probs = gip.get("structural_probabilities", {}) if isinstance(gip, dict) else {}
         except Exception as e:
             logger.error(f"GIP engine failed: {e}")
-            gip = {"structural_quad": "Q3", "monthly_quad": "Q3", "probabilities": {}, "structural_probabilities": {}}
-            sq = mq = "Q3"
-            probs = structural_probs = {}
-    else:
-        gip = {"structural_quad": "Q3", "monthly_quad": "Q3", "probabilities": {}, "structural_probabilities": {}}
-        sq = mq = "Q3"
-        probs = structural_probs = {}
     _safe_progress(progress_callback, "Market health...", 0.35)
+    health = {}
     if MarketHealthEngine is not None:
         try:
-            health = MarketHealthEngine(prices=prices, fred=fred).run()
+            try:
+                engine = MarketHealthEngine()
+            except Exception:
+                try:
+                    engine = MarketHealthEngine(prices)
+                except Exception:
+                    engine = MarketHealthEngine(prices=prices, fred=fred)
+            if hasattr(engine, 'run'):
+                health = engine.run()
+            elif hasattr(engine, 'analyze'):
+                health = engine.analyze()
+            else:
+                health = engine
         except Exception as e:
             logger.error(f"MarketHealthEngine failed: {e}")
-            health = {}
-    else:
-        health = {}
     _safe_progress(progress_callback, "Gamma engine...", 0.40)
+    gamma_data = {}
     if GammaEngine is not None:
         try:
-            gamma_data = GammaEngine(prices=prices).run()
+            try:
+                engine = GammaEngine()
+            except Exception:
+                try:
+                    engine = GammaEngine(prices)
+                except Exception:
+                    engine = GammaEngine(prices=prices)
+            if hasattr(engine, 'run'):
+                gamma_data = engine.run()
+            elif hasattr(engine, 'analyze'):
+                gamma_data = engine.analyze()
+            else:
+                gamma_data = engine
         except Exception as e:
             logger.error(f"GammaEngine failed: {e}")
-            gamma_data = {}
-    else:
-        gamma_data = {}
     _safe_progress(progress_callback, "Greeks proxy...", 0.45)
+    greeks_data = {}
     if GreeksProxy is not None:
         try:
-            greeks_data = GreeksProxy(prices=prices).run()
+            try:
+                engine = GreeksProxy()
+            except Exception:
+                try:
+                    engine = GreeksProxy(prices)
+                except Exception:
+                    engine = GreeksProxy(prices=prices)
+            if hasattr(engine, 'run'):
+                greeks_data = engine.run()
+            elif hasattr(engine, 'analyze'):
+                greeks_data = engine.analyze()
+            else:
+                greeks_data = engine
         except Exception as e:
             logger.error(f"GreeksProxy failed: {e}")
-            greeks_data = {}
-    else:
-        greeks_data = {}
 
     # ═══════════════════════════════════════════════════════════════════
     # PHASE 2: yfinance_options LIVE for US tickers
@@ -871,13 +982,16 @@ def build_snapshot(progress_callback=None, force_refresh=False):
     if YFinanceOptionsEngine is not None:
         try:
             yf_engine = YFinanceOptionsEngine()
-            us_tickers_for_options = [t for t in list(US_SECTORS.keys()) + list(US_FACTORS.keys()) + ["SPY","QQQ","IWM","GLD","TLT","SLV","XLE","XLF","XLK","XLI","XLP","XLU","XLB","XLY","XLRE","SMH","ARKK","IWM","DIA","HYG","LQD","TLT","GLD","SLV","GDX","GDXJ","OXY","CVX","XOM","COP","FRO","ZIM","NVDA","AMD","INTC","MU","TSM","AVGO","QCOM","AAPL","MSFT","GOOGL","AMZN","TSLA","META","NFLX","CRM","ORCL","ADBE","INTU","PANW","SNOW","PLTR","COIN","MSTR","PYPL","UBER","ABNB","DIS","NKE","HD","LOW","COST","WMT","PG","KO","PEP","JNJ","PFE","UNH","JPM","BAC","GS","MS","WFC","C","BLK","SCHW","V","MA","AXP","CAT","DE","GE","HON","UPS","FDX","CSX","UNP","LMT","RTX","NOC","BA","LUV","UAL","DAL","AAL","MAR","HLT","BKNG","ABNB","RCL","CCL","NCLH"] if t in prices][:60]
-            for ticker in us_tickers_for_options:
+            # Limit to 20 key tickers to avoid rate limits
+            us_tickers_for_options = [t for t in ["SPY","QQQ","IWM","GLD","TLT","SLV","XLE","XLF","XLK","SMH","NVDA","AAPL","MSFT","AMZN","TSLA","META","AMD","AVGO","JPM","BAC"] if t in prices][:20]
+            for i, ticker in enumerate(us_tickers_for_options):
                 try:
+                    # Rate limiting: sleep 0.5s between requests
+                    if i > 0:
+                        time.sleep(0.5)
                     opt = yf_engine.analyze(ticker)
                     if opt and opt.get("ok"):
                         yfinance_options_data[ticker] = opt
-                        # Merge into gamma/greeks data for richer display
                         gamma_data[ticker] = {
                             **gamma_data.get(ticker, {}),
                             "max_pain": opt.get("max_pain"),
@@ -908,14 +1022,24 @@ def build_snapshot(progress_callback=None, force_refresh=False):
             logger.error(f"YFinanceOptionsEngine init failed: {e}")
 
     _safe_progress(progress_callback, "Risk ranges...", 0.50)
+    risk_ranges = {}
     if RiskRangeEngine is not None:
         try:
-            risk_ranges = RiskRangeEngine(prices=prices).run()
+            try:
+                engine = RiskRangeEngine()
+            except Exception:
+                try:
+                    engine = RiskRangeEngine(prices)
+                except Exception:
+                    engine = RiskRangeEngine(prices=prices)
+            if hasattr(engine, 'run'):
+                risk_ranges = engine.run()
+            elif hasattr(engine, 'analyze'):
+                risk_ranges = engine.analyze()
+            else:
+                risk_ranges = engine
         except Exception as e:
             logger.error(f"RiskRangeEngine failed: {e}")
-            risk_ranges = {}
-    else:
-        risk_ranges = {}
     if not risk_ranges:
         risk_ranges = _risk_range_proxy(prices)
     _safe_progress(progress_callback, "Alpha center...", 0.55)
@@ -945,15 +1069,194 @@ def build_snapshot(progress_callback=None, force_refresh=False):
     _safe_progress(progress_callback, "Transmission engine...", 0.78)
     transmission = run_transmission(prices, fred, news_analysis, sq)
 
-    _safe_progress(progress_callback, "Bottleneck...", 0.80)
+    # ═══════════════════════════════════════════════════════════════════
+    # PHASE 3: Regime Transition + News NLP v3 + Bottleneck v3
+    # ═══════════════════════════════════════════════════════════════════
+    _safe_progress(progress_callback, "Regime transition...", 0.79)
+    regime_transition = run_regime_transition(prices, fred, sq, structural_probs)
+
+    _safe_progress(progress_callback, "News NLP v3...", 0.80)
+    news_nlp_v3 = run_news_nlp(headlines)
+
+    _safe_progress(progress_callback, "Bottleneck discovery v3...", 0.81)
+    bottleneck_v3 = run_bottleneck_discovery_v3(prices, fred, news_analysis)
+
+    # ═══════════════════════════════════════════════════════════════════
+    # NATIVE ENGINES (Tab-specific deep analysis)
+    # ═══════════════════════════════════════════════════════════════════
+    _safe_progress(progress_callback, "Native engines...", 0.82)
+
+    rotation_data = {}
+    if RotationEngine is not None:
+        try:
+            try:
+                engine = RotationEngine()
+            except Exception:
+                try:
+                    engine = RotationEngine(prices)
+                except Exception:
+                    engine = RotationEngine(prices=prices)
+            if hasattr(engine, 'run'):
+                rotation_data = engine.run()
+            elif hasattr(engine, 'analyze'):
+                rotation_data = engine.analyze()
+            else:
+                rotation_data = engine
+        except Exception as e:
+            logger.error(f"RotationEngine failed: {e}")
+
+    commodity_native = {}
+    if CommodityNativeEngine is not None:
+        try:
+            try:
+                engine = CommodityNativeEngine()
+            except Exception:
+                try:
+                    engine = CommodityNativeEngine(prices)
+                except Exception:
+                    engine = CommodityNativeEngine(prices=prices, fred=fred)
+            if hasattr(engine, 'run'):
+                commodity_native = engine.run()
+            elif hasattr(engine, 'analyze'):
+                commodity_native = engine.analyze()
+            else:
+                commodity_native = engine
+        except Exception as e:
+            logger.error(f"CommodityNativeEngine failed: {e}")
+
+    crypto_native = {}
+    if CryptoNativeEngine is not None:
+        try:
+            try:
+                engine = CryptoNativeEngine()
+            except Exception:
+                try:
+                    engine = CryptoNativeEngine(prices)
+                except Exception:
+                    engine = CryptoNativeEngine(prices=prices)
+            if hasattr(engine, 'run'):
+                crypto_native = engine.run()
+            elif hasattr(engine, 'analyze'):
+                crypto_native = engine.analyze()
+            else:
+                crypto_native = engine
+        except Exception as e:
+            logger.error(f"CryptoNativeEngine failed: {e}")
+
+    fx_native = {}
+    if FXNativeEngine is not None:
+        try:
+            try:
+                engine = FXNativeEngine()
+            except Exception:
+                try:
+                    engine = FXNativeEngine(prices)
+                except Exception:
+                    engine = FXNativeEngine(prices=prices, fred=fred)
+            if hasattr(engine, 'run'):
+                fx_native = engine.run()
+            elif hasattr(engine, 'analyze'):
+                fx_native = engine.analyze()
+            else:
+                fx_native = engine
+        except Exception as e:
+            logger.error(f"FXNativeEngine failed: {e}")
+
+    ihsg_native = {}
+    if IHSGNativeEngine is not None:
+        try:
+            try:
+                engine = IHSGNativeEngine()
+            except Exception:
+                try:
+                    engine = IHSGNativeEngine(prices)
+                except Exception:
+                    engine = IHSGNativeEngine(prices=prices)
+            if hasattr(engine, 'run'):
+                ihsg_native = engine.run()
+            elif hasattr(engine, 'analyze'):
+                ihsg_native = engine.analyze()
+            else:
+                ihsg_native = engine
+        except Exception as e:
+            logger.error(f"IHSGNativeEngine failed: {e}")
+
+    us_equity_native = {}
+    if USEquityEngine is not None:
+        try:
+            try:
+                engine = USEquityEngine()
+            except Exception:
+                try:
+                    engine = USEquityEngine(prices)
+                except Exception:
+                    engine = USEquityEngine(prices=prices)
+            if hasattr(engine, 'run'):
+                us_equity_native = engine.run()
+            elif hasattr(engine, 'analyze'):
+                us_equity_native = engine.analyze()
+            else:
+                us_equity_native = engine
+        except Exception as e:
+            logger.error(f"USEquityEngine failed: {e}")
+
+    frontrun_native = {}
+    if FrontrunEngine is not None:
+        try:
+            try:
+                engine = FrontrunEngine()
+            except Exception:
+                try:
+                    engine = FrontrunEngine(prices)
+                except Exception:
+                    engine = FrontrunEngine(prices=prices, news=news_analysis)
+            if hasattr(engine, 'run'):
+                frontrun_native = engine.run()
+            elif hasattr(engine, 'analyze'):
+                frontrun_native = engine.analyze()
+            else:
+                frontrun_native = engine
+        except Exception as e:
+            logger.error(f"FrontrunEngine failed: {e}")
+
+    crash_meter = {}
+    if CrashMeterEngine is not None:
+        try:
+            try:
+                engine = CrashMeterEngine()
+            except Exception:
+                try:
+                    engine = CrashMeterEngine(prices)
+                except Exception:
+                    engine = CrashMeterEngine(prices=prices, fred=fred)
+            if hasattr(engine, 'run'):
+                crash_meter = engine.run()
+            elif hasattr(engine, 'analyze'):
+                crash_meter = engine.analyze()
+            else:
+                crash_meter = engine
+        except Exception as e:
+            logger.error(f"CrashMeterEngine failed: {e}")
+
+    _safe_progress(progress_callback, "Bottleneck...", 0.85)
+    bottleneck = {}
     if BottleneckEngine is not None:
         try:
-            bottleneck = BottleneckEngine(prices=prices, fred=fred).run()
+            try:
+                engine = BottleneckEngine()
+            except Exception:
+                try:
+                    engine = BottleneckEngine(prices)
+                except Exception:
+                    engine = BottleneckEngine(prices=prices, fred=fred)
+            if hasattr(engine, 'run'):
+                bottleneck = engine.run()
+            elif hasattr(engine, 'analyze'):
+                bottleneck = engine.analyze()
+            else:
+                bottleneck = engine
         except Exception as e:
             logger.error(f"BottleneckEngine failed: {e}")
-            bottleneck = {}
-    else:
-        bottleneck = {}
     _safe_progress(progress_callback, "Global quad...", 0.85)
     global_quad = _global_fallback(sq)
     _safe_progress(progress_callback, "Crypto on-chain...", 0.88)
@@ -1025,6 +1328,17 @@ def build_snapshot(progress_callback=None, force_refresh=False):
         "scenario_discovery": scenario_discovery,
         "transmission": transmission,
         "yfinance_options": yfinance_options_data,
+        "regime_transition": regime_transition,
+        "news_nlp_v3": news_nlp_v3,
+        "bottleneck_v3": bottleneck_v3,
+        "rotation_data": rotation_data,
+        "commodity_native": commodity_native,
+        "crypto_native": crypto_native,
+        "fx_native": fx_native,
+        "ihsg_native": ihsg_native,
+        "us_equity_native": us_equity_native,
+        "frontrun_native": frontrun_native,
+        "crash_meter": crash_meter,
         "bottleneck": bottleneck,
         "global_quad": global_quad,
         "crypto_onchain": crypto_onchain,

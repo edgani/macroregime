@@ -98,6 +98,17 @@ options_proxy = snap.get("options_proxy", {})
 news_analysis = snap.get("news_analysis", {})
 headlines = snap.get("headlines", {})
 vanna_charm = snap.get("vanna_charm", {})
+regime_transition = snap.get("regime_transition", {})
+news_nlp_v3 = snap.get("news_nlp_v3", {})
+bottleneck_v3 = snap.get("bottleneck_v3", {})
+rotation_data = snap.get("rotation_data", {})
+commodity_native = snap.get("commodity_native", {})
+crypto_native = snap.get("crypto_native", {})
+fx_native = snap.get("fx_native", {})
+ihsg_native = snap.get("ihsg_native", {})
+us_equity_native = snap.get("us_equity_native", {})
+frontrun_native = snap.get("frontrun_native", {})
+crash_meter = snap.get("crash_meter", {})
 
 # ═══════════════════════════════════════════════════════════════════
 # CONFIG IMPORTS (with fallback)
@@ -583,8 +594,16 @@ def _render_market_pulse():
     yves_level = yves.get("alert_level", "NONE")
     yves_color = "#f44336" if yves_level in ["CRITICAL", "HIGH"] else "#ff9800" if yves_level == "MEDIUM" else "#4caf50"
 
+    # Crash meter
+    crash_prob_cm = 0
+    if crash_meter and isinstance(crash_meter, dict):
+        crash_prob_cm = crash_meter.get("crash_probability", crash_meter.get("probability", 0))
+        if not isinstance(crash_prob_cm, (int, float)):
+            crash_prob_cm = 0
+
     items = [
         ("Leverage", lev_state, lev_color, f"{leverage:.1f}%"),
+        ("Crash Meter", f"{crash_prob_cm:.0f}%", "#f44336" if crash_prob_cm > 40 else "#ff9800" if crash_prob_cm > 20 else "#4caf50", "-"),
         ("Crash Prob", f"{crash_prob:.0f}%", crash_color, f"VIX {vix:.0f}"),
         ("Risk Off", risk_off, ro_color, f"DXY {dxy:.0f}"),
         ("Breadth", breadth, br_color, f"SPY {_fmt_pct(spy_r)}"),
@@ -730,10 +749,49 @@ def _render_transmission_dashboard():
             if em:
                 st.caption(f"EM: DXY {em.get('DXY', 0):+.1%} | EM {em.get('EM', 0):+.1%} | Rupiah {em.get('Rupiah', 0):+.1%}")
 
+def _render_regime_transition():
+    """Display regime transition probabilities."""
+    if not regime_transition or not regime_transition.get("transitions"):
+        st.caption("🔄 Regime transition: No data")
+        return
+    current = regime_transition.get("current_quad", "Q3")
+    most_likely = regime_transition.get("most_likely_60d", current)
+    prob = regime_transition.get("most_likely_prob_60d", 0)
+    st.markdown(f"<div style='font-size:12px;font-weight:600;color:#4fc3f7;margin-bottom:4px;'>🔄 Regime Transition — {current} → {most_likely} in 60d: {prob:.0%}</div>", unsafe_allow_html=True)
+    transitions = regime_transition.get("transitions", {})
+    cols = st.columns(4)
+    for i, q in enumerate(["Q1", "Q2", "Q3", "Q4"]):
+        t = transitions.get(q, {})
+        p30 = t.get("30d", 0)
+        p60 = t.get("60d", 0)
+        color = "#4caf50" if p60 > 0.4 else "#ff9800" if p60 > 0.2 else "#888"
+        with cols[i]:
+            st.markdown(f"<div style='text-align:center;padding:4px;background:#1a1d24;border-radius:4px;border-left:3px solid {color};'><div style='font-size:10px;color:#888;'>{q}</div><div style='font-size:14px;font-weight:700;color:{color};'>{p60:.0%}</div><div style='font-size:9px;color:#666;'>60d</div></div>", unsafe_allow_html=True)
+
+def _render_crash_meter():
+    """Display crash probability meter."""
+    if not crash_meter:
+        return
+    prob = crash_meter.get("crash_probability", crash_meter.get("probability", 0))
+    if isinstance(prob, (int, float)) and prob > 0:
+        color = "#f44336" if prob > 40 else "#ff9800" if prob > 20 else "#4caf50"
+        st.markdown(f"<div style='margin-top:4px;font-size:11px;'>💥 Crash Meter: <span style='color:{color};font-weight:700;'>{prob:.0f}%</span> ({crash_meter.get('regime', 'Normal')})</div>", unsafe_allow_html=True)
+
 def _render_bottleneck_collapsed():
     """Bottleneck in collapsed expander."""
     with st.expander("🚧 Bottleneck Analysis", expanded=False):
-        if bottleneck:
+        # Show v3 first, fallback to v1
+        if bottleneck_v3 and bottleneck_v3.get("active_bottlenecks"):
+            st.markdown("<div style='font-size:11px;font-weight:600;color:#4fc3f7;'>Bottleneck Discovery v3</div>", unsafe_allow_html=True)
+            for bn in bottleneck_v3["active_bottlenecks"][:5]:
+                st.markdown(f"<div style='font-size:12px;font-weight:700;color:#f44336;'>{bn.get('name', '-')}</div>", unsafe_allow_html=True)
+                st.caption(f"Confidence: {bn.get('confidence', 0):.0%} | Status: {bn.get('status', '-')}")
+                scores = bn.get("scores", {})
+                if scores:
+                    st.caption(f"Price: {scores.get('price_momentum', 0):.2f} | News: {scores.get('news_signal', 0):.2f} | Macro: {scores.get('macro_alignment', 0):.2f}")
+            if bottleneck_v3.get("watch_bottlenecks"):
+                st.caption(f"👁️ Watching: {len(bottleneck_v3['watch_bottlenecks'])} bottleneck(s)")
+        elif bottleneck:
             st.json(bottleneck)
         else:
             st.caption("No bottleneck data")
@@ -798,6 +856,12 @@ st.caption(f"Build: {snap.get('timestamp', '-')[:19]} · {len(prices)} assets ·
 
 # Top KPIs
 _render_top_kpis()
+# Regime Transition mini bar
+if regime_transition and regime_transition.get("transitions"):
+    current = regime_transition.get("current_quad", sq)
+    most_likely = regime_transition.get("most_likely_60d", current)
+    prob = regime_transition.get("most_likely_prob_60d", 0)
+    st.markdown(f"<div style='font-size:11px;color:#888;margin-bottom:4px;'>🔄 Transition Watch: <b>{current}</b> → <b>{most_likely}</b> in 60d: <span style='color:#ff9800;font-weight:700;'>{prob:.0%}</span></div>", unsafe_allow_html=True)
 st.divider()
 
 # TABS
@@ -851,12 +915,21 @@ with tabs[0]:
 
     st.divider()
 
-    # Row 5: Scenario Discovery + Transmission
+    # Row 5: Regime Transition + Scenario Discovery
     c1, c2 = st.columns([1, 1])
     with c1:
-        _render_scenario_discovery()
+        _render_regime_transition()
     with c2:
+        _render_scenario_discovery()
+
+    st.divider()
+
+    # Row 6: Transmission + Crash Meter
+    c1, c2 = st.columns([1, 1])
+    with c1:
         _render_transmission_dashboard()
+    with c2:
+        _render_crash_meter()
 
     st.divider()
 
@@ -879,6 +952,11 @@ with tabs[1]:
     seen = set()
     us_tickers = [t for t in us_tickers if not (t in seen or seen.add(t))]
     _render_market_tab(us_tickers, "us_equity", cols=3)
+    # US Equity Native
+    if us_equity_native and isinstance(us_equity_native, dict):
+        st.divider()
+        st.markdown("<div style='font-size:12px;font-weight:600;color:#4fc3f7;'>🇺🇸 US Equity Native</div>", unsafe_allow_html=True)
+        st.json(us_equity_native)
 
 # ═══════════════════════════════════════════════════════════════════
 # TAB 2: FOREX
@@ -886,6 +964,11 @@ with tabs[1]:
 with tabs[2]:
     fx_tickers = list(FOREX_PAIRS.keys()) + ["DX-Y.NYB", "UUP"]
     _render_market_tab(fx_tickers, "forex", cols=3)
+    # FX Native
+    if fx_native and isinstance(fx_native, dict):
+        st.divider()
+        st.markdown("<div style='font-size:12px;font-weight:600;color:#4fc3f7;'>💱 FX Native Analysis</div>", unsafe_allow_html=True)
+        st.json(fx_native)
 
 # ═══════════════════════════════════════════════════════════════════
 # TAB 3: COMMODITIES
@@ -895,6 +978,11 @@ with tabs[3]:
     seen = set()
     comm_tickers = [t for t in comm_tickers if not (t in seen or seen.add(t))]
     _render_market_tab(comm_tickers, "commodity", cols=3)
+    # Commodity Native
+    if commodity_native and isinstance(commodity_native, dict):
+        st.divider()
+        st.markdown("<div style='font-size:12px;font-weight:600;color:#4fc3f7;'>🛢️ Commodity Native Analysis</div>", unsafe_allow_html=True)
+        st.json(commodity_native)
 
 # ═══════════════════════════════════════════════════════════════════
 # TAB 4: CRYPTO
@@ -904,6 +992,11 @@ with tabs[4]:
     seen = set()
     crypto_tickers = [t for t in crypto_tickers if not (t in seen or seen.add(t))]
     _render_market_tab(crypto_tickers, "crypto", cols=3)
+    # Crypto Native
+    if crypto_native and isinstance(crypto_native, dict):
+        st.divider()
+        st.markdown("<div style='font-size:12px;font-weight:600;color:#4fc3f7;'>₿ Crypto Native Analysis</div>", unsafe_allow_html=True)
+        st.json(crypto_native)
 
 # ═══════════════════════════════════════════════════════════════════
 # TAB 5: IHSG
@@ -916,6 +1009,10 @@ with tabs[5]:
     # IHSG layers detail
     st.divider()
     st.markdown("<div style='font-size:12px;font-weight:600;color:#4fc3f7;'>🇮🇩 IHSG Deep Layers</div>", unsafe_allow_html=True)
+    if ihsg_native and isinstance(ihsg_native, dict):
+        st.divider()
+        st.markdown("<div style='font-size:12px;font-weight:600;color:#4fc3f7;'>🇮🇩 IHSG Native Analysis</div>", unsafe_allow_html=True)
+        st.json(ihsg_native)
     if ihsg_layers:
         c1, c2 = st.columns(2)
         with c1:

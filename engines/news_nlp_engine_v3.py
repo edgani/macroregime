@@ -1,246 +1,191 @@
-"""engines/news_nlp_engine_v3.py — LIGHTWEIGHT VERSION (NO torch/transformers)
-
-Uses Yahoo Finance RSS + Google News RSS + regex-based NLP.
-Zero ML models. Zero downloads. Builds in <30 seconds.
+"""engines/news_nlp_engine_v3.py — News NLP Engine v3.0
+Advanced news analysis: sentiment, urgency, entity extraction, theme clustering.
+Uses keyword + heuristic NLP (no external API required).
 """
-from __future__ import annotations
-import re
-import time
-import logging
-from typing import Dict, List, Optional, Tuple
-from dataclasses import dataclass, field
-import numpy as np
-import pandas as pd
-import feedparser
-import requests
+import logging, re
+from typing import Dict, List
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-class LightweightNLP:
-    """Pure regex/knowledge-based NLP. No ML."""
+# Enhanced sentiment lexicon
+SENTIMENT_LEXICON = {
+    "strong_positive": ["surge", "soar", "rally", "bull", "upgrade", "beat", "strong", "growth", "breakthrough", "deal", "partnership", "record", "expansion", "launch", "approve", "buyback", "dividend", "blockbuster", "moon", "rocket", "explode", "parabolic", "outperform", "exceed", "crush", "dominate", "unstoppable"],
+    "positive": ["gain", "rise", "up", "higher", "optimistic", "confident", "solid", "robust", "healthy", "improve", "recover", "bounce", "rebound", "momentum", "support", "accumulate"],
+    "strong_negative": ["crash", "plunge", "bear", "downgrade", "miss", "weak", "loss", "layoff", "investigation", "fine", "delay", "recall", "debt", "bankrupt", "cut", "short", "sell", "dump", "collapse", "crisis", "disaster", "catastrophe", "implode", "plummet", "tank", "nosedive", "freefall"],
+    "negative": ["fall", "drop", "down", "lower", "pessimistic", "concern", "worry", "risk", "threat", "pressure", "decline", "deteriorate", "slide", "retreat", "resistance", "distribute"],
+    "uncertainty": ["volatile", "uncertain", "unclear", "mixed", "cautious", "wait", "pause", "consolidate", "range", "sideways", "indecision", "hesitant"],
+}
 
-    NARRATIVE_KEYWORDS = {
-        "ai_infrastructure": ["AI data center", "GPU shortage", "HBM", "CoWoS", "photonics", "CPO", "SiC", "Blackwell", "NVIDIA", "NVDA"],
-        "energy_transition": ["nuclear renaissance", "AI power", "grid upgrade", "baseload", "gas turbine", "transformer", "power plant"],
-        "hard_assets_scarcity": ["copper shortage", "de-dollarization", "central bank buying", "supply deficit", "gold", "silver", "commodity"],
-        "defense_reshoring": ["NATO spending", "munitions shortage", "hypersonic", "missile defense", "defense", "military"],
-        "healthcare_scarcity": ["GLP-1 shortage", "robotic surgery", "aging population", "drug pricing", "healthcare", "pharma"],
-        "shipping_supply_crisis": ["Red Sea disruption", "fleet renewal", "IMO 2023", "day rates", "vessel shortage", "shipping", "freight"],
-        "fed_pivot_liquidity": ["Fed cut", "liquidity injection", "QT end", "yield curve steepening", "rate cut", "pivot"],
-        "dxy_bearish_em_recovery": ["USD bearish", "EM FX relief", "DXY breakdown", "Fed pivot", "capital flows", "emerging market"],
-        "china_reopening_commodity": ["China stimulus", "property rescue", "infrastructure", "commodity demand", "China", "Beijing"],
-        "bond_duration_bull": ["TLT", "yield collapse", "deflation", "recession pricing", "flight to quality", "treasury"],
-        "indonesia_commodity_supercycle": ["IHSG", "foreign flow", "CKPN cascade", "offshore drilling", "JIIPE", "Indonesia"],
-    }
+URGENCY_KEYWORDS = ["breaking", "urgent", "alert", "just", "now", "immediate", "emergency", "critical", "warning", "flash"]
 
-    SUPPLY_CHAIN_KEYWORDS = [
-        "shortage", "constrained supply", "sole source", "only supplier", "limited suppliers",
-        "capacity constrained", "lead time extended", "bottleneck", "tight supply", "supply crunch",
-        "backlog", "order backlog", "demand exceeds supply", "unable to meet demand",
-        "capacity expansion", "ramping production", "supply chain disruption",
-    ]
+ENTITY_MAP = {
+    "companies": ["apple", "microsoft", "google", "amazon", "tesla", "nvidia", "meta", "netflix", "amd", "intel", "qualcomm", "broadcom", "tsmc", "samsung", "jpmorgan", "goldman", "bank of america", "citi", "wells fargo"],
+    "people": ["powell", "biden", "trump", "bezos", "musk", "cook", "nadella", "zuckerberg", "buffett", "dimon"],
+    "institutions": ["fed", "federal reserve", "sec", "treasury", "imf", "world bank", "ecb", "boj", "pboc"],
+    "countries": ["usa", "china", "japan", "germany", "uk", "india", "brazil", "russia", "saudi", "iran", "israel"],
+}
 
-    BULLISH = ["surge", "rally", "breakout", "soar", "jump", "boom", "strong", "beat", "outperform", "upgrade", "bull", "gain"]
-    BEARISH = ["crash", "plunge", "drop", "fall", "weak", "miss", "underperform", "downgrade", "cut", "layoff", "bear", "loss"]
+THEME_CLUSTERS = {
+    "ai": {"keywords": ["ai", "artificial intelligence", "llm", "chatgpt", "agentic", "model", "machine learning", "nvidia", "openai", "anthropic", "gemini", "claude"], "weight": 1.5},
+    "semiconductor": {"keywords": ["chip", "semiconductor", "gpu", "cpu", "tsmc", "hbm", "dram", "foundry", "wafer", "asml", "lithography"], "weight": 1.3},
+    "energy": {"keywords": ["oil", "gas", "energy", "solar", "renewable", "crude", "power", "grid", "transformer", "lng", "opec"], "weight": 1.2},
+    "crypto": {"keywords": ["bitcoin", "crypto", "blockchain", "etf", "ethereum", "btc", "eth", "solana", "defi", "nft"], "weight": 1.2},
+    "fed_rates": {"keywords": ["fed", "federal reserve", "rate cut", "rate hike", "powell", "interest rate", "fomc", "dot plot", "terminal rate"], "weight": 1.4},
+    "geopolitical": {"keywords": ["war", "sanctions", "china", "taiwan", "trade", "tariff", "middle east", "ukraine", "gaza", "iran", "nato"], "weight": 1.3},
+    "biotech": {"keywords": ["fda", "trial", "drug", "vaccine", "biotech", "pharma", "approval", "clinical", "molecule"], "weight": 1.1},
+    "ev": {"keywords": ["ev", "electric vehicle", "tesla", "battery", "lithium", "charging", "byd", "rivian", "lucid"], "weight": 1.1},
+    "earnings": {"keywords": ["earnings", "revenue", "profit", "eps", "guidance", "beat", "miss", "forecast", "quarterly"], "weight": 1.3},
+    "merger": {"keywords": ["merger", "acquisition", "takeover", "deal", "buyout", "spinoff", "ipo", "listing"], "weight": 1.2},
+}
 
-    def classify(self, headline: str) -> Tuple[str, float]:
-        h = headline.lower()
-        best_narr, best_score = "general", 0.0
-        for narr, kws in self.NARRATIVE_KEYWORDS.items():
-            score = sum(1 for kw in kws if kw.lower() in h) / max(len(kws), 1)
-            if score > best_score:
-                best_score = score
-                best_narr = narr
-        # Boost for supply chain keywords
-        supply_boost = sum(0.05 for kw in self.SUPPLY_CHAIN_KEYWORDS if kw in h)
-        return best_narr, min(best_score * 2.5 + supply_boost, 1.0)
+class NewsNLPEngine:
+    """Advanced NLP analysis for financial news."""
 
-    def sentiment(self, headline: str) -> Tuple[str, float]:
-        h = headline.lower()
-        bull = sum(1 for w in self.BULLISH if w in h)
-        bear = sum(1 for w in self.BEARISH if w in h)
-        if bull > bear:
-            return "positive", min(0.5 + (bull - bear) * 0.12, 1.0)
-        elif bear > bull:
-            return "negative", min(0.5 + (bear - bull) * 0.12, 1.0)
-        return "neutral", 0.5
+    def __init__(self):
+        pass
 
-    def extract_tickers(self, text: str, known: List[str]) -> List[str]:
-        found = []
-        text_upper = text.upper()
-        for t in known:
-            if f"${t}" in text_upper or re.search(r'' + re.escape(t) + r'', text):
-                found.append(t)
+    def _sentiment_score(self, text: str) -> Dict:
+        text_lower = text.lower()
+        scores = {"positive": 0, "negative": 0, "uncertainty": 0, "urgency": 0}
+        for word in SENTIMENT_LEXICON["strong_positive"]:
+            scores["positive"] += text_lower.count(word) * 2
+        for word in SENTIMENT_LEXICON["positive"]:
+            scores["positive"] += text_lower.count(word)
+        for word in SENTIMENT_LEXICON["strong_negative"]:
+            scores["negative"] += text_lower.count(word) * 2
+        for word in SENTIMENT_LEXICON["negative"]:
+            scores["negative"] += text_lower.count(word)
+        for word in SENTIMENT_LEXICON["uncertainty"]:
+            scores["uncertainty"] += text_lower.count(word)
+        for word in URGENCY_KEYWORDS:
+            scores["urgency"] += text_lower.count(word)
+        total = scores["positive"] + scores["negative"] + scores["uncertainty"]
+        if total == 0:
+            return {"score": 0, "magnitude": 0, "urgency": scores["urgency"], "label": "NEUTRAL"}
+        net = (scores["positive"] - scores["negative"]) / total
+        magnitude = total / max(len(text.split()), 1)
+        if net > 0.3:
+            label = "VERY_POSITIVE" if scores["positive"] > 5 else "POSITIVE"
+        elif net < -0.3:
+            label = "VERY_NEGATIVE" if scores["negative"] > 5 else "NEGATIVE"
+        elif scores["uncertainty"] > 3:
+            label = "UNCERTAIN"
+        else:
+            label = "NEUTRAL"
+        return {"score": round(net, 3), "magnitude": round(min(1.0, magnitude), 3), "urgency": scores["urgency"], "label": label}
 
-@dataclass
-class NewsItem:
-    ticker: str
-    headline: str
-    source: str
-    published: str
-    narrative: str = ""
-    narrative_score: float = 0.0
-    sentiment: str = "neutral"
-    sentiment_score: float = 0.5
-    supply_chain_mentions: List[str] = field(default_factory=list)
-    is_new_theme: bool = False
-    linked_tickers: List[str] = field(default_factory=list)
+    def _extract_entities(self, text: str) -> Dict[str, List[str]]:
+        text_lower = text.lower()
+        found = {k: [] for k in ENTITY_MAP}
+        for category, entities in ENTITY_MAP.items():
+            for entity in entities:
+                if entity in text_lower:
+                    found[category].append(entity.title())
+        return {k: list(set(v))[:5] for k, v in found.items()}
 
-class NewsNLPEngineV3:
-    def __init__(self, use_transformers: bool = False, known_tickers: Optional[List[str]] = None):
-        self.use_transformers = False  # FORCE lightweight
-        self.known_tickers = known_tickers or []
-        self.light = LightweightNLP()
+    def _extract_themes(self, text: str) -> List[Dict]:
+        text_lower = text.lower()
+        themes = []
+        for theme, config in THEME_CLUSTERS.items():
+            score = sum(text_lower.count(kw) for kw in config["keywords"])
+            if score > 0:
+                themes.append({"theme": theme, "score": score, "weight": config["weight"], "weighted_score": round(score * config["weight"], 2)})
+        return sorted(themes, key=lambda x: x["weighted_score"], reverse=True)[:3]
 
-    def fetch_yahoo_rss(self, tickers: List[str], max_per_ticker: int = 10) -> Dict[str, List[dict]]:
-        results = {}
-        for i in range(0, len(tickers), 20):
-            batch = tickers[i:i+20]
-            sym_str = ",".join(batch)
-            url = f"https://feeds.finance.yahoo.com/rss/2.0/headline?s={sym_str}"
-            try:
-                feed = feedparser.parse(url)
-                for entry in feed.entries[:max_per_ticker * len(batch)]:
-                    link = entry.get("link", "")
-                    title = entry.get("title", "")
-                    pub = entry.get("published", "")
-                    m = re.search(r'/quote/([A-Z0-9\.\-]+)/', link)
-                    guessed = m.group(1) if m else None
-                    if guessed and guessed in batch:
-                        results.setdefault(guessed, []).append({
-                            "headline": title, "link": link, "published": pub, "source": "Yahoo Finance"
-                        })
-                time.sleep(0.5)
-            except Exception as e:
-                logger.warning(f"Yahoo RSS error: {e}")
-        return results
+    def _classify_rumor(self, text: str, sentiment: Dict) -> str:
+        text_lower = text.lower()
+        rumor_indicators = ["reportedly", "rumor", "speculation", "considering", "exploring", "potential", "may", "might", "could", "sources say", "in talks", "approaching", "eyeing", "planning to", "expected to"]
+        rumor_score = sum(1 for ri in rumor_indicators if ri in text_lower)
+        if rumor_score >= 2 and sentiment["score"] > 0.2:
+            return "BULLISH_RUMOR"
+        elif rumor_score >= 2 and sentiment["score"] < -0.2:
+            return "BEARISH_RUMOR"
+        elif rumor_score >= 1:
+            return "RUMOR_WATCH"
+        elif sentiment["urgency"] >= 2:
+            return "URGENT_NEWS"
+        elif sentiment["magnitude"] > 0.5 and abs(sentiment["score"]) > 0.3:
+            return "STRONG_SENTIMENT"
+        return "STANDARD"
 
-    def fetch_google_news(self, query: str, max_items: int = 15) -> List[dict]:
-        q = requests.utils.quote(query)
-        url = f"https://news.google.com/rss/search?q={q}&hl=en-US&gl=US&ceid=US:en"
-        try:
-            feed = feedparser.parse(url)
-            return [{"headline": e.get("title", ""), "link": e.get("link", ""),
-                     "published": e.get("published", ""), "source": "Google News"}
-                    for e in feed.entries[:max_items]]
-        except Exception as e:
-            logger.warning(f"Google News error: {e}")
-            return []
-
-    def analyze(self, headline: str, ticker: str = "") -> NewsItem:
-        headline = headline.strip()
-        if not headline:
-            return NewsItem(ticker=ticker, headline="", source="", published="")
-        narrative, narr_score = self.light.classify(headline)
-        is_new_theme = narrative == "general" and narr_score < 0.15
-        sentiment, sent_score = self.light.sentiment(headline)
-        hlower = headline.lower()
-        supply_mentions = [kw for kw in self.light.SUPPLY_CHAIN_KEYWORDS if kw in hlower]
-        linked = self.light.extract_tickers(headline, self.known_tickers)
-        return NewsItem(
-            ticker=ticker, headline=headline, source="", published="",
-            narrative=narrative, narrative_score=round(narr_score, 3),
-            sentiment=sentiment, sentiment_score=round(sent_score, 3),
-            supply_chain_mentions=supply_mentions,
-            is_new_theme=is_new_theme,
-            linked_tickers=linked,
-        )
-
-    def run(self, tickers: List[str], theme_queries: Optional[List[str]] = None, max_per_ticker: int = 8) -> Dict[str, object]:
-        ticker_news = self.fetch_yahoo_rss(tickers, max_per_ticker)
-        theme_results = {}
-        if theme_queries:
-            for q in theme_queries:
-                theme_results[q] = self.fetch_google_news(q, max_items=12)
-
-        analyzed = []
-        for t, items in ticker_news.items():
+    def analyze_headlines(self, headlines: Dict[str, List[dict]]) -> Dict:
+        """Analyze all headlines with advanced NLP."""
+        ticker_analysis = {}
+        emergent_themes = {}
+        rumor_alerts = []
+        urgent_alerts = []
+        for ticker, items in headlines.items():
+            if not items:
+                continue
+            ticker_sentiments = []
+            ticker_themes = []
+            ticker_entities = {"companies": [], "people": [], "institutions": [], "countries": []}
             for item in items:
-                ni = self.analyze(item["headline"], ticker=t)
-                ni.source = item["source"]
-                ni.published = item["published"]
-                analyzed.append(ni)
-        for q, items in theme_results.items():
-            for item in items:
-                ni = self.analyze(item["headline"], ticker="")
-                ni.source = item["source"]
-                ni.published = item["published"]
-                analyzed.append(ni)
-
-        from collections import defaultdict
-        narrative_scores = defaultdict(lambda: {"count": 0, "avg_sentiment": 0.0, "supply_hits": 0, "tickers": set()})
-        for ni in analyzed:
-            narrative_scores[ni.narrative]["count"] += 1
-            narrative_scores[ni.narrative]["avg_sentiment"] += ni.sentiment_score
-            narrative_scores[ni.narrative]["supply_hits"] += len(ni.supply_chain_mentions)
-            if ni.ticker:
-                narrative_scores[ni.narrative]["tickers"].add(ni.ticker)
-
-        for narr, data in narrative_scores.items():
-            if data["count"] > 0:
-                data["avg_sentiment"] = round(data["avg_sentiment"] / data["count"], 3)
-            data["tickers"] = list(data["tickers"])
-
-        emergent = []
-        for narr, data in narrative_scores.items():
-            if data["count"] >= 3 and data["supply_hits"] >= 2:
-                emergent.append({
-                    "narrative": narr, "mention_count": data["count"],
-                    "avg_sentiment": data["avg_sentiment"], "supply_chain_hits": data["supply_hits"],
-                    "linked_tickers": data["tickers"],
-                    "is_new": narr not in self.light.NARRATIVE_KEYWORDS,
-                })
-
-        new_theme_headlines = [ni for ni in analyzed if ni.is_new_theme and ni.narrative_score < 0.3]
-        new_themes = self._cluster_new_themes(new_theme_headlines)
-
-        return {
-            "analyzed_count": len(analyzed),
-            "narrative_scores": dict(narrative_scores),
-            "emergent_narratives": sorted(emergent, key=lambda x: x["supply_chain_hits"], reverse=True),
-            "new_theme_candidates": new_themes,
-            "supply_chain_alerts": [ni for ni in analyzed if len(ni.supply_chain_mentions) > 0],
-            "ticker_specific": {t: [ni for ni in analyzed if ni.ticker == t] for t in tickers},
-            "meta": {
-                "tickers_queried": len(tickers), "theme_queries": theme_queries or [],
-                "nlp_mode": "lightweight",
+                text = item.get("title", "")
+                sent = self._sentiment_score(text)
+                entities = self._extract_entities(text)
+                themes = self._extract_themes(text)
+                rumor_type = self._classify_rumor(text, sent)
+                ticker_sentiments.append(sent)
+                ticker_themes.extend(themes)
+                for k, v in entities.items():
+                    ticker_entities[k].extend(v)
+                if rumor_type in ["BULLISH_RUMOR", "BEARISH_RUMOR"]:
+                    rumor_alerts.append({"ticker": ticker, "type": rumor_type, "headline": text, "sentiment": sent["score"]})
+                if sent["urgency"] >= 2:
+                    urgent_alerts.append({"ticker": ticker, "headline": text, "urgency": sent["urgency"]})
+            # Aggregate
+            avg_sent = sum(s["score"] for s in ticker_sentiments) / len(ticker_sentiments) if ticker_sentiments else 0
+            avg_mag = sum(s["magnitude"] for s in ticker_sentiments) / len(ticker_sentiments) if ticker_sentiments else 0
+            total_urgency = sum(s["urgency"] for s in ticker_sentiments)
+            # Theme aggregation
+            theme_scores = {}
+            for t in ticker_themes:
+                theme_scores[t["theme"]] = theme_scores.get(t["theme"], 0) + t["weighted_score"]
+            top_themes = sorted([{"theme": k, "score": round(v, 2)} for k, v in theme_scores.items()], key=lambda x: x["score"], reverse=True)[:3]
+            # Determine front-run signal
+            signal = None
+            if avg_sent > 0.3 and avg_mag > 0.3 and total_urgency > 2:
+                signal = "STRONG_BULLISH_RUMOR"
+            elif avg_sent < -0.3 and avg_mag > 0.3 and total_urgency > 2:
+                signal = "STRONG_BEARISH_RUMOR"
+            elif any(t["theme"] in ["merger", "earnings", "ai"] for t in top_themes) and avg_mag > 0.4:
+                signal = "CATALYST_BUILDING"
+            elif avg_sent > 0.4:
+                signal = "NEWS_MOMENTUM_BUILDING"
+            elif avg_sent < -0.4:
+                signal = "NEGATIVE_HEADLINE_RISK"
+            ticker_analysis[ticker] = {
+                "avg_sentiment": round(avg_sent, 3),
+                "magnitude": round(avg_mag, 3),
+                "urgency": total_urgency,
+                "themes": top_themes,
+                "entities": {k: list(set(v))[:5] for k, v in ticker_entities.items()},
+                "headlines_analyzed": len(items),
+                "front_run_signal": signal,
             }
+            # Emergent themes
+            for t in top_themes:
+                if t["theme"] not in emergent_themes:
+                    emergent_themes[t["theme"]] = {"mentions": 0, "tickers": [], "avg_sentiment": 0, "headlines": []}
+                emergent_themes[t["theme"]]["mentions"] += 1
+                emergent_themes[t["theme"]]["tickers"].append(ticker)
+                emergent_themes[t["theme"]]["avg_sentiment"] += avg_sent
+        # Normalize emergent
+        for theme in emergent_themes:
+            count = emergent_themes[theme]["mentions"]
+            emergent_themes[theme]["avg_sentiment"] = round(emergent_themes[theme]["avg_sentiment"] / count, 2) if count > 0 else 0
+            emergent_themes[theme]["tickers"] = list(set(emergent_themes[theme]["tickers"]))[:10]
+        return {
+            "ticker_specific": ticker_analysis,
+            "emergent_narratives": [{"name": k, **v} for k, v in emergent_themes.items()],
+            "rumor_watch": sorted(rumor_alerts, key=lambda x: abs(x["sentiment"]), reverse=True)[:20],
+            "urgent_alerts": urgent_alerts[:10],
+            "analyzed_count": sum(len(v) for v in headlines.values()),
         }
 
-    def _cluster_new_themes(self, headlines: List[NewsItem]) -> List[dict]:
-        if len(headlines) < 2:
-            return []
-        def extract_kw(text):
-            words = re.findall(r'\b[A-Z][a-zA-Z]{3,}\b', text)
-            stop = {"The","And","For","Are","But","Not","You","All","Can","Had","Her","Was","One","Our","Out","Day","Get","Has","Him","His","How","Its","May","New","Now","Old","See","Two","Who","Boy","Did","She","Use","Her","Way","Many","Oil","Sit","Set","Run","Eat","Far","Sea","Eye","Ago","Off","Too","Any","Say","Man","Try","Ask","End","Why","Let","Put","She","Try","Way","Own","Say"}
-            return set(w.lower() for w in words if w not in stop)
-        groups = []
-        used = set()
-        for i, hi in enumerate(headlines):
-            if i in used:
-                continue
-            kws_i = extract_kw(hi.headline)
-            group = [hi]
-            used.add(i)
-            for j, hj in enumerate(headlines[i+1:], start=i+1):
-                if j in used:
-                    continue
-                kws_j = extract_kw(hj.headline)
-                if len(kws_i & kws_j) >= 2:
-                    group.append(hj)
-                    used.add(j)
-            if len(group) >= 2:
-                all_kws = set()
-                for g in group:
-                    all_kws |= extract_kw(g.headline)
-                # Generate readable theme description from keywords
-                top_kws = sorted(list(all_kws), key=lambda w: sum(1 for g in group if w in g.headline.lower()), reverse=True)[:5]
-                theme_desc = " / ".join(top_kws) if top_kws else "emerging_theme"
-                groups.append({
-                    "headline_count": len(group),
-                    "shared_keywords": list(all_kws)[:10],
-                    "sample_headlines": [g.headline for g in group[:3]],
-                    "suggested_theme_name": f"Theme: {theme_desc}",
-                    "keyword_strength": len(all_kws),
-                })
-        return groups
+
+def run_news_nlp(headlines: Dict[str, List[dict]]) -> Dict:
+    engine = NewsNLPEngine()
+    return engine.analyze_headlines(headlines)

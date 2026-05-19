@@ -2144,6 +2144,23 @@ def render_ticker_card_v4(row, expanded=False):
                 heat_html += '</div>'
                 st.markdown(heat_html, unsafe_allow_html=True)
 
+        # ── Dark Pool Microstructure ──
+        if show_options:
+            dp = _get_dark_pool_for_ticker(ticker, snap_local)
+            if dp:
+                dp_color = "#3FB950" if dp.get("side") == "BUY" else "#F85149"
+                dp_html = '<div style="background:#161B22;border:1px solid #30363D;border-radius:8px;padding:10px 12px;margin:6px 0;">'
+                dp_html += '<div style="font-size:0.65rem;color:#58A6FF;text-transform:uppercase;font-weight:600;letter-spacing:0.5px;margin-bottom:6px;">🌊 Dark Pool Print</div>'
+                dp_html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:0.75rem;color:#E6EDF3;margin-bottom:4px;">'
+                dp_html += f'<div>Size<br><b>{dp["size"]:,}</b></div>'
+                dp_html += f'<div>Price<br><b>{ff(dp["price"])}</b></div>'
+                dp_html += f'<div style="text-align:right;">Side<br><span style="color:{dp_color};font-weight:700;">{dp["side"]}</span></div>'
+                dp_html += '</div>'
+                dp_html += '<div style="display:flex;justify-content:space-between;font-size:0.6rem;color:#484F58;">'
+                dp_html += f'<span>Amount: ${dp["amount"]:,.0f}</span><span>{dp.get("time","—")} · {dp.get("source","PROXY")}</span>'
+                dp_html += '</div></div>'
+                st.markdown(dp_html, unsafe_allow_html=True)
+
         # Skew Curve
         if show_options and options.get("gamma_regime"):
             iv_schadner = options.get("iv_schadner")

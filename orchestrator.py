@@ -267,6 +267,308 @@ try:
 except Exception:
     _has_requests = False
 
+# ═══════════════════════════════════════════════════════════════════════
+# SPRINT 1-4 NEW ENGINE IMPORTS (May 2026)
+# All have defensive fallbacks — orchestrator continues even if any fail.
+# ═══════════════════════════════════════════════════════════════════════
+try:
+    from engines.cascade_engine import (
+        run_cascade_from_shock, run_all_cascades,
+        bottleneck_full_cascade, reverse_lookup_ticker,
+    )
+    _V2_CASCADE = True
+except Exception as e:
+    logger.error(f"Failed to import cascade_engine: {e}")
+    _V2_CASCADE = False
+    def run_cascade_from_shock(*a, **k): return {}
+    def run_all_cascades(*a, **k): return {"cascades": {}, "active_shocks": {}}
+    def bottleneck_full_cascade(*a, **k): return {"impacts": []}
+    def reverse_lookup_ticker(*a, **k): return []
+
+try:
+    from engines.yves_engine import run_yves_v2
+    _V2_YVES = True
+except Exception as e:
+    logger.error(f"Failed to import yves_engine: {e}")
+    _V2_YVES = False
+    def run_yves_v2(*a, **k): return {"alerts": [], "summary": {"level": "NONE"}}
+
+try:
+    from engines.portfolio_sizing import run_portfolio_sizing
+    _V2_SIZING = True
+except Exception as e:
+    logger.error(f"Failed to import portfolio_sizing: {e}")
+    _V2_SIZING = False
+    def run_portfolio_sizing(*a, **k): return {"positions": [], "total_deployed_pct": 0, "cash_pct": 1.0}
+
+try:
+    from engines.discovery_brain import run_discovery_brain
+    _V2_DISCOVERY = True
+except Exception as e:
+    logger.error(f"Failed to import discovery_brain: {e}")
+    _V2_DISCOVERY = False
+    def run_discovery_brain(*a, **k): return {"by_mode": {}, "top_10": [], "summary": {}}
+
+try:
+    from engines.cem_karsan_universal import analyze_multi as cem_universal_multi
+    _V2_CEM = True
+except Exception as e:
+    logger.error(f"Failed to import cem_karsan_universal: {e}")
+    _V2_CEM = False
+    def cem_universal_multi(*a, **k): return {}
+
+try:
+    from engines.ticker_universe_expander import run_ticker_expander
+    _V2_EXPANDER = True
+except Exception as e:
+    logger.error(f"Failed to import ticker_universe_expander: {e}")
+    _V2_EXPANDER = False
+    def run_ticker_expander(*a, **k): return {"new_tickers": [], "candidates": [], "auto_add_recommended": []}
+
+try:
+    from engines.edgar_scraper_real import scan_multi_tickers as edgar_scan_multi
+    _V2_EDGAR = True
+except Exception as e:
+    logger.error(f"Failed to import edgar_scraper_real: {e}")
+    _V2_EDGAR = False
+    def edgar_scan_multi(*a, **k): return {}
+
+try:
+    from engines.supply_chain_graph_real import run_supply_chain_analysis, reverse_lookup as supply_reverse
+    _V2_SUPPLY = True
+except Exception as e:
+    logger.error(f"Failed to import supply_chain_graph_real: {e}")
+    _V2_SUPPLY = False
+    def run_supply_chain_analysis(*a, **k): return {"chokepoints": [], "propagation": {}, "summary": {}}
+    def supply_reverse(*a, **k): return []
+
+try:
+    from engines.gip_engine_v10 import gip_engine_v10 as gip_v10_call
+    _V2_GIP10 = True
+except Exception as e:
+    logger.error(f"Failed to import gip_engine_v10: {e}")
+    _V2_GIP10 = False
+    gip_v10_call = None
+
+# ═══════════════════════════════════════════════════════════════════════
+# SPRINT 6 NEW ENGINES — composite signal, risk setup, bonds-XAU
+# ═══════════════════════════════════════════════════════════════════════
+try:
+    from engines.composite_signal_engine import (
+        analyze_multi as composite_analyze_multi,
+        compute_composite_signal,
+    )
+    _V2_COMPOSITE = True
+except Exception as e:
+    logger.error(f"Failed to import composite_signal_engine: {e}")
+    _V2_COMPOSITE = False
+    def composite_analyze_multi(*a, **k): return {}
+    def compute_composite_signal(*a, **k): return {"direction": "NEUTRAL", "confidence": 0}
+
+try:
+    from engines.risk_setup_engine import calculate_risk_setup as v2_risk_setup
+    _V2_RISK_SETUP = True
+except Exception as e:
+    logger.error(f"Failed to import risk_setup_engine: {e}")
+    _V2_RISK_SETUP = False
+    v2_risk_setup = None
+
+try:
+    from engines.bonds_xau_regime import run_bonds_xau_regime
+    _V2_BONDS_XAU = True
+except Exception as e:
+    logger.error(f"Failed to import bonds_xau_regime: {e}")
+    _V2_BONDS_XAU = False
+    def run_bonds_xau_regime(*a, **k): return {"ok": False, "regime": "UNKNOWN", "ticker_biases": {}}
+
+try:
+    from engines.market_classifier import classify_ticker, filter_for_tab
+    _V2_CLASSIFIER = True
+except Exception as e:
+    logger.error(f"Failed to import market_classifier: {e}")
+    _V2_CLASSIFIER = False
+    def classify_ticker(t): return "us_equity"
+    def filter_for_tab(tickers, tab): return tickers
+
+# ═══════════════════════════════════════════════════════════════════════
+# SPRINT 7 NEW ENGINES — thought process, markov v3, smart money,
+# capital rotation, UST auction, VRP, squeeze
+# ═══════════════════════════════════════════════════════════════════════
+try:
+    from engines.thought_process_engine import compute_thesis as v7_compute_thesis, analyze_multi as v7_thesis_multi
+    _V7_THOUGHT = True
+except Exception as e:
+    logger.error(f"Failed to import thought_process_engine: {e}")
+    _V7_THOUGHT = False
+    def v7_compute_thesis(*a, **k): return {"thesis_score": 0, "matched_frameworks": []}
+    def v7_thesis_multi(*a, **k): return {}
+
+try:
+    from engines.markov_regime_engine_v3 import run_markov_v3
+    _V7_MARKOV = True
+except Exception as e:
+    logger.error(f"Failed to import markov_regime_engine_v3: {e}")
+    _V7_MARKOV = False
+    def run_markov_v3(*a, **k):
+        from dataclasses import dataclass
+        @dataclass
+        class _M:
+            current_regime = "UNKNOWN"
+            confidence = 0
+            kelly_fraction = 0.25
+            notes = ["v3 unavailable"]
+            forecast_1m = {}
+            forecast_3m = {}
+            forecast_6m = {}
+            change_point_alert = False
+            change_point_probability = 0
+            stationary = {}
+            regime_probabilities = {}
+        return _M()
+
+try:
+    from engines.smart_money_tracker import run_smart_money_analysis, get_ticker_smart_money
+    _V7_SMART = True
+except Exception as e:
+    logger.error(f"Failed to import smart_money_tracker: {e}")
+    _V7_SMART = False
+    def run_smart_money_analysis(*a, **k): return {"ok": False, "n_funds_tracked": 0}
+    def get_ticker_smart_money(*a, **k): return {"smart_money_held": False}
+
+try:
+    from engines.capital_rotation_engine import compute_capital_rotation, get_ticker_capital_rotation_role
+    _V7_CAPROT = True
+except Exception as e:
+    logger.error(f"Failed to import capital_rotation_engine: {e}")
+    _V7_CAPROT = False
+    def compute_capital_rotation(*a, **k): return {"ok": False}
+    def get_ticker_capital_rotation_role(*a, **k): return None
+
+try:
+    from engines.ust_auction_tracker import run_ust_auction_tracker
+    _V7_UST = True
+except Exception as e:
+    logger.error(f"Failed to import ust_auction_tracker: {e}")
+    _V7_UST = False
+    def run_ust_auction_tracker(*a, **k): return {"ok": False}
+
+try:
+    from engines.vrp_scanner import scan_vrp
+    _V7_VRP = True
+except Exception as e:
+    logger.error(f"Failed to import vrp_scanner: {e}")
+    _V7_VRP = False
+    def scan_vrp(*a, **k): return {"ok": False, "calls_to_action": []}
+
+try:
+    from engines.squeeze_scanner import scan_squeezes
+    _V7_SQUEEZE = True
+except Exception as e:
+    logger.error(f"Failed to import squeeze_scanner: {e}")
+    _V7_SQUEEZE = False
+    def scan_squeezes(*a, **k): return {"ok": False, "imminent_squeezes": [], "strong_candidates": [], "watch_list": []}
+
+try:
+    from engines.tab_filter_engine import apply_tab_filter
+    _V7_TAB_FILTER = True
+except Exception as e:
+    logger.error(f"Failed to import tab_filter_engine: {e}")
+    _V7_TAB_FILTER = False
+    def apply_tab_filter(*a, **k): return {"passes_filter": True, "filter_score": 50}
+
+# ═══════════════════════════════════════════════════════════════════════
+# SPRINT 9 NEW ENGINES — methodology-driven scanners
+# Replace portfolio-matching with actual methodology evaluation
+# ═══════════════════════════════════════════════════════════════════════
+try:
+    from engines.karsan_vol_scanner import scan_karsan
+    _V9_KARSAN = True
+except Exception as e:
+    logger.error(f"Failed to import karsan_vol_scanner: {e}")
+    _V9_KARSAN = False
+    def scan_karsan(*a, **k): return {"ok": False, "per_ticker": {}, "squeeze_setups": [], "sell_premium": [], "buy_convexity": []}
+
+try:
+    from engines.spotgamma_gex_engine import run_spotgamma_scanner
+    _V9_SPOTGAMMA = True
+except Exception as e:
+    logger.error(f"Failed to import spotgamma_gex_engine: {e}")
+    _V9_SPOTGAMMA = False
+    def run_spotgamma_scanner(*a, **k): return {"ok": False, "per_ticker_proxy_gex": {}, "compass": {}}
+
+try:
+    from engines.leopold_methodology import run_leopold_scan
+    _V9_LEOPOLD = True
+except Exception as e:
+    logger.error(f"Failed to import leopold_methodology: {e}")
+    _V9_LEOPOLD = False
+    def run_leopold_scan(*a, **k): return {"ok": False, "per_ticker": {}, "top_picks_by_layer": {}, "asymmetry_setups": [], "written_off_recovering": []}
+
+try:
+    from engines.coatue_methodology import run_coatue_scan
+    _V9_COATUE = True
+except Exception as e:
+    logger.error(f"Failed to import coatue_methodology: {e}")
+    _V9_COATUE = False
+    def run_coatue_scan(*a, **k): return {"ok": False, "per_ticker": {}, "sellers_top": [], "buyers_top": [], "decay_alerts": [], "agentic_plays": []}
+
+logger.info(
+    f"V9 (Sprint 9) methodology engines: karsan={_V9_KARSAN} spotgamma={_V9_SPOTGAMMA} "
+    f"leopold={_V9_LEOPOLD} coatue={_V9_COATUE}"
+)
+logger.info(
+    f"V9 (Sprint 9) methodology engines: karsan={_V9_KARSAN} spotgamma={_V9_SPOTGAMMA} "
+    f"leopold={_V9_LEOPOLD} coatue={_V9_COATUE}"
+)
+
+# ═══════════════════════════════════════════════════════════════════════
+# SPRINT 11: VolSignals + SpotGamma + Schadner Integration
+# ═══════════════════════════════════════════════════════════════════════
+try:
+    from engines.volsignals_regime import compute_dealer_regime_multi
+    _V11_VOLSIGNALS = True
+except Exception as e:
+    logger.error(f"Failed to import volsignals_regime: {e}")
+    _V11_VOLSIGNALS = False
+    def compute_dealer_regime_multi(*a, **k): return {}
+
+try:
+    from engines.spotgamma_levels import compute_structural_levels_multi
+    _V11_SPOTGAMMA = True
+except Exception as e:
+    logger.error(f"Failed to import spotgamma_levels: {e}")
+    _V11_SPOTGAMMA = False
+    def compute_structural_levels_multi(*a, **k): return {}
+
+try:
+    from engines.schadner_iv import schadner_iv, validate_iv_proxy
+    _V11_SCHADNER = True
+except Exception as e:
+    logger.error(f"Failed to import schadner_iv: {e}")
+    _V11_SCHADNER = False
+    def schadner_iv(*a, **k): return None
+    def validate_iv_proxy(*a, **k): return {}
+
+logger.info(
+    f"V11 (Sprint 11) engines: volsignals={_V11_VOLSIGNALS} spotgamma={_V11_SPOTGAMMA} "
+    f"schadner={_V11_SCHADNER}"
+)
+
+
+logger.info(
+    "V2 engines loaded: "
+    f"cascade={_V2_CASCADE} yves={_V2_YVES} sizing={_V2_SIZING} "
+    f"discovery={_V2_DISCOVERY} cem={_V2_CEM} expander={_V2_EXPANDER} "
+    f"edgar={_V2_EDGAR} supply={_V2_SUPPLY} gip10={_V2_GIP10} "
+    f"composite={_V2_COMPOSITE} risk_setup={_V2_RISK_SETUP} "
+    f"bonds_xau={_V2_BONDS_XAU} classifier={_V2_CLASSIFIER}"
+)
+logger.info(
+    "V7 (Sprint 7) engines loaded: "
+    f"thought_process={_V7_THOUGHT} markov_v3={_V7_MARKOV} smart_money={_V7_SMART} "
+    f"capital_rotation={_V7_CAPROT} ust_auction={_V7_UST} vrp={_V7_VRP} squeeze={_V7_SQUEEZE}"
+)
+
 def _strip_html(text):
     if not text:
         return ""
@@ -575,14 +877,40 @@ def _classify_market(ticker: str) -> str:
         return "ihsg"
     return "us_equity"
 
-def _alpha_center_proxy(prices: dict, risk_ranges: dict, quad: str, vix: float, news_analysis: dict = None) -> dict:
+def _alpha_center_proxy(prices: dict, risk_ranges: dict, quad: str, vix: float,
+                       news_analysis: dict = None, composite_signals: dict = None,
+                       cot_data: dict = None, oi_data: dict = None,
+                       greeks_data: dict = None, gamma_data: dict = None) -> dict:
+    """v2.2 — Now uses composite_signal_engine for direction (FIXES Alpha Center vs US Stocks tab inconsistency).
+
+    If composite_signals dict passed in, direction comes from there (consistent with
+    US Stocks/Forex/Commodities/Crypto tabs). Falls back to naive composite if not.
+    """
     ar = risk_ranges.get("asset_ranges", {})
     alpha_items = []
     news_map = (news_analysis or {}).get("ticker_specific", {}) if news_analysis else {}
+    composite_signals = composite_signals or {}
+
     for ticker, v in ar.items():
-        comp = v.get("composite", "neutral")
-        if comp == "neutral":
-            continue
+        # ── v2.2: Use composite signal engine direction if available ──
+        cs = composite_signals.get(ticker, {})
+        if cs:
+            direction_from_composite = cs.get("direction", "NEUTRAL")
+            if direction_from_composite in ("NEUTRAL", "AVOID"):
+                continue  # Skip neutral/avoid in alpha center
+            side = "long" if direction_from_composite == "LONG" else "short"
+            confidence = cs.get("confidence", 0.5)
+            flipped = cs.get("flipped_from_composite", False)
+            comp = "bullish" if side == "long" else "bearish"  # Backwards-compat label
+        else:
+            # Fallback: naive composite (only used if composite_signals not provided)
+            comp = v.get("composite", "neutral")
+            if comp == "neutral":
+                continue
+            side = "long" if comp == "bullish" else "short"
+            confidence = 0.5
+            flipped = False
+
         px = v.get("px", 0)
         tr = v.get("trade", {})
         lrr = tr.get("lrr", 0)
@@ -590,15 +918,39 @@ def _alpha_center_proxy(prices: dict, risk_ranges: dict, quad: str, vix: float, 
         if not lrr or not trr:
             continue
         spread = trr - lrr
-        side = "long" if comp == "bullish" else "short"
-        if side == "long":
-            entry = round(lrr, 2); tp1 = round(lrr + spread * 0.5, 2); tp2 = round(trr, 2); stop = round(lrr - spread * 0.25, 2)
-        else:
-            entry = round(trr, 2); tp1 = round(trr - spread * 0.5, 2); tp2 = round(lrr, 2); stop = round(trr + spread * 0.25, 2)
-        rr = round(abs(tp1 - entry) / max(abs(entry - stop), 0.01), 2)
-        pos = (px - lrr) / spread if spread > 0 else 0.5
-        near_entry = (side == "long" and pos <= 0.35) or (side == "short" and pos >= 0.65)
+
+        # ── v2.2: Use risk_setup_engine for entry/target/stop if available ──
+        try:
+            from engines.risk_setup_engine import calculate_risk_setup as _rs
+            setup = _rs(
+                ticker=ticker, direction=side.upper(), price=px,
+                risk_range=v,
+                composite_signal=cs,
+                gamma_data=(gamma_data or {}).get(ticker),
+                greek_data=(greeks_data or {}).get(ticker),
+            )
+            entry = setup.get("entry")
+            tp1 = setup.get("target1")
+            tp2 = setup.get("target2")
+            stop = setup.get("stop")
+            rr = setup.get("rr", 0)
+            near_entry = setup.get("near_entry", False)
+        except Exception:
+            # Fallback to proxy
+            if side == "long":
+                entry = round(lrr, 2); tp1 = round(lrr + spread * 0.5, 2); tp2 = round(trr, 2); stop = round(lrr - spread * 0.25, 2)
+            else:
+                entry = round(trr, 2); tp1 = round(trr - spread * 0.5, 2); tp2 = round(lrr, 2); stop = round(trr + spread * 0.25, 2)
+            rr = round(abs(tp1 - entry) / max(abs(entry - stop), 0.01), 2)
+            pos = (px - lrr) / spread if spread > 0 else 0.5
+            near_entry = (side == "long" and pos <= 0.35) or (side == "short" and pos >= 0.65)
+
         grade = "A" if near_entry and rr >= 2.0 else "B" if near_entry else "C"
+        # v2.2: Boost grade by confidence
+        if confidence >= 0.7 and grade == "B":
+            grade = "A"
+        elif confidence < 0.3 and grade == "A":
+            grade = "B"
         worth = "YES" if near_entry else "WAIT"
         action = "Buy Now" if side == "long" and near_entry else ("Sell Now" if side == "short" and near_entry else "Wait")
         scanner = "structural"
@@ -608,9 +960,11 @@ def _alpha_center_proxy(prices: dict, risk_ranges: dict, quad: str, vix: float, 
             scanner = "regime_aligned"
         elif near_entry and rr >= 2.0:
             scanner = "bottleneck"
+        elif flipped:
+            scanner = "composite_flip"  # v2.2: special scanner for direction flips
         news = news_map.get(ticker, {})
         news_signal = news.get("front_run_signal")
-        priority_score = round(rr * 10 + (50 if near_entry else 0), 1)
+        priority_score = round(rr * 10 + (50 if near_entry else 0) + (confidence * 20), 1)
         if news_signal in ["STRONG_BULLISH_RUMOR", "NEWS_MOMENTUM_BUILDING", "BULLISH_CLUSTER"]:
             if side == "long":
                 priority_score += 30; scanner = "news_momentum"
@@ -1359,7 +1713,8 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         # ---- Risk Ranges ----
         _safe_progress(progress_cb, "Computing Risk Ranges (TRR/LRR)...", 0.72)
         try:
-            ranges = RiskRangeEngine().run(prices)
+            # v2 — pass quad + vix for regime-conditional ranges
+            ranges = RiskRangeEngine(current_quad=quad, vix=vix_last).run(prices)
             if ranges and ranges.get("asset_ranges"):
                 merged_ranges = dict(rr_proxy.get("asset_ranges", {}))
                 merged_ranges.update(ranges.get("asset_ranges", {}))
@@ -1562,7 +1917,15 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                     vix_last = float(vix_s.iloc[-1])
                 except Exception:
                     pass
-            ac_proxy = _alpha_center_proxy(prices, result["risk_ranges"], quad, vix_last, news_analysis)
+            # v2.2: Pass composite_signals so Alpha Center direction matches other tabs
+            ac_proxy = _alpha_center_proxy(
+                prices, result["risk_ranges"], quad, vix_last, news_analysis,
+                composite_signals=result.get("composite_signals", {}),
+                cot_data=(result.get("cot_oi", {}) or {}).get("cot", {}),
+                oi_data=(result.get("cot_oi", {}) or {}).get("oi", {}),
+                greeks_data=result.get("greeks_data", {}),
+                gamma_data=result.get("gamma_data", {}),
+            )
             alpha_items = ac_proxy.get("all", [])
             result["alpha_center"] = ac_proxy
         else:
@@ -1903,6 +2266,502 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         except Exception as e:
             logger.warning(f"Stress test failed: {e}")
 
+        # ═══════════════════════════════════════════════════════════════
+        # SPRINT 1-4 V2 ENGINE CALLS
+        # All defensively guarded — orchestrator continues on failure
+        # ═══════════════════════════════════════════════════════════════
+
+        # ── Sprint 4: GIP v10 (Bayesian + Nowcasting) ──
+        if _V2_GIP10 and gip_v10_call is not None:
+            _safe_progress(progress_cb, "Running GIP v10 (Bayesian)...", 0.78)
+            try:
+                v10 = gip_v10_call(fred, vix_last=vix_last)
+                result["gip_v10"] = {
+                    "structural_quad": v10.structural_quad,
+                    "monthly_quad": v10.monthly_quad,
+                    "structural_confidence": v10.structural_confidence,
+                    "monthly_confidence": v10.monthly_confidence,
+                    "growth_momentum": v10.growth_momentum,
+                    "inflation_momentum": v10.inflation_momentum,
+                    "nowcast_growth_adj": v10.nowcast_growth_adj,
+                    "nowcast_inflation_adj": v10.nowcast_inflation_adj,
+                    "quad_probabilities": v10.quad_probabilities,
+                    "features": v10.features,
+                    "n_series_loaded": v10.features.get("n_series_loaded", 0),
+                    "n_series_total": v10.features.get("n_series_total", 0),
+                    "notes": v10.notes,
+                }
+            except Exception as e:
+                logger.warning(f"GIP v10 failed: {e}")
+                result["errors"].append(f"gip_v10: {e}")
+
+        # ── Sprint 2: Universal Cascade Engine (Oil → Tankers, etc.) ──
+        if _V2_CASCADE:
+            _safe_progress(progress_cb, "Running Cascade Engine...", 0.80)
+            try:
+                cascade_results = run_all_cascades(prices)
+                result["cascade_analysis"] = cascade_results
+                logger.info(
+                    f"Cascade engine: {len(cascade_results.get('active_shocks', {}))} active shocks, "
+                    f"{sum(c.get('total_impacts', 0) for c in cascade_results.get('cascades', {}).values())} total impacts"
+                )
+            except Exception as e:
+                logger.warning(f"Cascade engine failed: {e}")
+                result["errors"].append(f"cascade: {e}")
+
+        # ── Sprint 3: Supply Chain Graph (chokepoint analysis) ──
+        if _V2_SUPPLY:
+            _safe_progress(progress_cb, "Running Supply Chain Graph...", 0.82)
+            try:
+                active_shocks = (result.get("cascade_analysis") or {}).get("active_shocks", {})
+                supply_chain = run_supply_chain_analysis(prices, active_shocks=active_shocks)
+                result["supply_chain_analysis"] = supply_chain
+            except Exception as e:
+                logger.warning(f"Supply chain analysis failed: {e}")
+                result["errors"].append(f"supply_chain: {e}")
+
+        # ── Sprint 2: Yves Alerts v2 ──
+        if _V2_YVES:
+            _safe_progress(progress_cb, "Running Yves Alerts v2...", 0.84)
+            try:
+                aaii_for_yves = result.get("behavioral_macro", {}) or {}
+                real_yield_val = 0.0
+                try:
+                    def _last_finite(s):
+                        if s is None:
+                            return None
+                        try:
+                            ss = pd.to_numeric(s, errors="coerce").dropna()
+                            return float(ss.iloc[-1]) if len(ss) > 0 else None
+                        except Exception:
+                            return None
+                    dgs10_v = _last_finite(fred.get("DGS10")) or 4.0
+                    t10yie_v = _last_finite(fred.get("T10YIE")) or 2.3
+                    real_yield_val = dgs10_v - t10yie_v
+                except Exception:
+                    real_yield_val = aaii_for_yves.get("real_yield", 1.5)
+
+                yves_v2 = run_yves_v2(
+                    aaii=aaii_for_yves,
+                    vix=vix_last,
+                    real_yield=real_yield_val,
+                    put_call=aaii_for_yves.get("put_call_ratio", 1.0),
+                    prices=prices,
+                    fred=fred,
+                )
+                result["yves_v2"] = yves_v2
+                logger.info(f"Yves v2: {yves_v2.get('n_alerts', 0)} alerts generated")
+            except Exception as e:
+                logger.warning(f"Yves v2 failed: {e}")
+                result["errors"].append(f"yves_v2: {e}")
+
+        # ── Sprint 3: Cem Karsan Universal (Multi-market options) ──
+        if _V2_CEM:
+            _safe_progress(progress_cb, "Running Cem Karsan Universal...", 0.86)
+            try:
+                cem_targets = [
+                    "SPY", "QQQ", "IWM", "GLD", "TLT", "BTC-USD", "ETH-USD",
+                    "USO", "UNG", "FXE", "EEM", "XLE", "XLK", "XLF",
+                ]
+                cem_universal = cem_universal_multi(cem_targets, prices, vix_last, max_yfinance=8)
+                result["cem_karsan_universal"] = cem_universal
+            except Exception as e:
+                logger.warning(f"Cem Karsan Universal failed: {e}")
+                result["errors"].append(f"cem_universal: {e}")
+
+        # ── Sprint 3: Discovery Brain (Adaptive + Reactive + Proactive) ──
+        if _V2_DISCOVERY:
+            _safe_progress(progress_cb, "Running Discovery Brain...", 0.88)
+            try:
+                # Load prior quad from snapshot if available
+                prev_quad_val = None
+                try:
+                    stale_snap = load_snapshot(max_age_hours=72)
+                    if stale_snap:
+                        prev_quad_val = stale_snap.get("summary", {}).get("structural_quad")
+                except Exception:
+                    pass
+
+                # Load bottleneck_reference.json
+                bottleneck_ref_data = {}
+                try:
+                    import os, json as _json
+                    btk_path = "bottleneck_reference.json"
+                    if os.path.exists(btk_path):
+                        with open(btk_path) as f:
+                            bottleneck_ref_data = _json.load(f)
+                except Exception:
+                    pass
+
+                discovery = run_discovery_brain(
+                    prices=prices,
+                    news_analysis=result.get("news_analysis", {}),
+                    gip_features=(result.get("gip_v10", {}).get("features") or
+                                  result.get("gip", {}).get("features", {})),
+                    current_quad=quad,
+                    monthly_quad=monthly_quad,
+                    prev_quad=prev_quad_val,
+                    cot_data=result.get("cot_data"),
+                    bottleneck_ref=bottleneck_ref_data,
+                )
+                result["discovery_brain"] = discovery
+                logger.info(
+                    f"Discovery Brain: {discovery.get('total', 0)} candidates "
+                    f"(A={discovery.get('summary', {}).get('adaptive', 0)} "
+                    f"R={discovery.get('summary', {}).get('reactive', 0)} "
+                    f"P={discovery.get('summary', {}).get('proactive', 0)})"
+                )
+            except Exception as e:
+                logger.warning(f"Discovery Brain failed: {e}")
+                result["errors"].append(f"discovery_brain: {e}")
+
+        # ── Sprint 3: Ticker Universe Expander (Auto-add new tickers) ──
+        if _V2_EXPANDER:
+            _safe_progress(progress_cb, "Running Ticker Universe Expander...", 0.90)
+            try:
+                current_universe = list(prices.keys())
+                expansion = run_ticker_expander(
+                    prices=prices,
+                    news_analysis=result.get("news_analysis", {}),
+                    current_universe=current_universe,
+                    cascade_results=result.get("cascade_analysis"),
+                    bottleneck_ref=None,
+                )
+                result["ticker_universe_expansion"] = expansion
+                # Persist auto-add list for next run
+                auto_add_list = expansion.get("auto_add_recommended", [])
+                if auto_add_list:
+                    result["auto_add_tickers_next_run"] = auto_add_list
+                    logger.info(f"Ticker expander auto-add recommended: {auto_add_list[:10]}")
+            except Exception as e:
+                logger.warning(f"Ticker expander failed: {e}")
+                result["errors"].append(f"ticker_expander: {e}")
+
+        # ── Sprint 2: Portfolio Sizing v2 (% of portfolio) ──
+        if _V2_SIZING:
+            _safe_progress(progress_cb, "Running Portfolio Sizing v2...", 0.92)
+            try:
+                # Get portfolio value from kwargs or default
+                pv_input = float(kwargs.get("portfolio_value", 100_000) or 100_000)
+
+                # Compose alpha items from existing result data
+                alpha_ideas_for_sizing = []
+                # Best ideas from frontrun if available
+                fr_data = result.get("frontrun") or {}
+                if isinstance(fr_data, dict):
+                    for tier in ("tier_a", "tier_b", "tier_c"):
+                        for item in (fr_data.get(tier) or [])[:5]:
+                            if isinstance(item, dict):
+                                alpha_ideas_for_sizing.append({
+                                    "ticker": item.get("ticker", ""),
+                                    "grade": item.get("grade", "B"),
+                                    "rr": item.get("rr", 2.0),
+                                    "direction": item.get("direction", "LONG"),
+                                    "near_entry": item.get("near_entry", False),
+                                    "hist_win_rate": item.get("hist_win_rate", 0.55),
+                                    "avg_win_pct": item.get("avg_win_pct", 0.08),
+                                    "avg_loss_pct": item.get("avg_loss_pct", 0.04),
+                                    "sector": item.get("sector", "generic"),
+                                })
+
+                if alpha_ideas_for_sizing:
+                    sized = run_portfolio_sizing(
+                        alpha_items=alpha_ideas_for_sizing,
+                        portfolio_value=pv_input,
+                        quad=quad,
+                        stage=result.get("boom_bust", {}).get("stage", "INCEPTION"),
+                        gamma_data=result.get("gamma_data"),
+                        greeks_data=result.get("greeks_data"),
+                        reflexivity=result.get("reflexivity"),
+                    )
+                    result["portfolio_sizing_v2"] = sized
+                    logger.info(
+                        f"Portfolio sizing v2: {sized.get('n_positions', 0)} positions, "
+                        f"{sized.get('total_deployed_pct', 0):.1%} deployed"
+                    )
+            except Exception as e:
+                logger.warning(f"Portfolio sizing v2 failed: {e}")
+                result["errors"].append(f"portfolio_sizing_v2: {e}")
+
+        # ═══════════════════════════════════════════════════════════════
+        # SPRINT 6: Composite Signal + Risk Setup + Bonds-XAU
+        # These fix direction bugs and add new edge
+        # ═══════════════════════════════════════════════════════════════
+
+        # ── Sprint 6: Bonds-XAU Regime (macro edge) ──
+        if _V2_BONDS_XAU:
+            _safe_progress(progress_cb, "Bonds-XAU regime analysis...", 0.94)
+            try:
+                bxau = run_bonds_xau_regime(prices, fred)
+                result["bonds_xau_regime"] = bxau
+            except Exception as e:
+                logger.warning(f"Bonds-XAU regime failed: {e}")
+                result["errors"].append(f"bonds_xau: {e}")
+
+        # ── Sprint 6: Composite Signal (multi-factor direction) ──
+        if _V2_COMPOSITE:
+            _safe_progress(progress_cb, "Composite signal analysis...", 0.95)
+            try:
+                # Run for all tickers with risk_ranges
+                rr_keys = list(result.get("risk_ranges", {}).get("asset_ranges", {}).keys())
+                composite_signals = composite_analyze_multi(
+                    tickers=rr_keys,
+                    risk_ranges=result.get("risk_ranges", {}),
+                    prices=prices,
+                    cot_data=result.get("cot_oi", {}).get("cot", {}),
+                    oi_data=result.get("cot_oi", {}).get("oi", {}),
+                    greeks_data=result.get("greeks_data", {}),
+                    gamma_data=result.get("gamma_data", {}),
+                    news_data=result.get("news_analysis", {}).get("ticker_specific", {}),
+                    quad=quad,
+                )
+                result["composite_signals"] = composite_signals
+                # Log how many flipped
+                n_flipped = sum(1 for s in composite_signals.values() if s.get("flipped_from_composite"))
+                n_total = len(composite_signals)
+                logger.info(f"Composite signals: {n_total} tickers, {n_flipped} direction flipped from naive composite")
+
+                # ── v2.2 FIX: Re-run alpha_center_proxy with composite_signals so
+                # Alpha Center direction is CONSISTENT with US Stocks/Forex/etc tabs ──
+                try:
+                    ac_proxy_v2 = _alpha_center_proxy(
+                        prices, result["risk_ranges"], quad, vix_last,
+                        news_analysis=result.get("news_analysis", {}),
+                        composite_signals=composite_signals,
+                        cot_data=(result.get("cot_oi", {}) or {}).get("cot", {}),
+                        oi_data=(result.get("cot_oi", {}) or {}).get("oi", {}),
+                        greeks_data=result.get("greeks_data", {}),
+                        gamma_data=result.get("gamma_data", {}),
+                    )
+                    result["alpha_center"] = ac_proxy_v2
+                    logger.info(f"Alpha Center re-synced with composite signals: {len(ac_proxy_v2.get('all', []))} items")
+                except Exception as e:
+                    logger.warning(f"Alpha Center re-sync failed: {e}")
+            except Exception as e:
+                logger.warning(f"Composite signal engine failed: {e}")
+                result["errors"].append(f"composite: {e}")
+
+        # ═══════════════════════════════════════════════════════════════
+        # SPRINT 7: Thought Process, Markov V3, Smart Money, Cap Rotation,
+        # UST Auction, VRP, Squeeze
+        # ═══════════════════════════════════════════════════════════════
+
+        if _V7_MARKOV:
+            _safe_progress(progress_cb, "Markov Regime V3 (HSMM + BOCPD)...", 0.96)
+            try:
+                markov = run_markov_v3(prices, fred)
+                result["markov_v3"] = {
+                    "current_regime": markov.current_regime,
+                    "confidence": markov.confidence,
+                    "regime_probabilities": markov.regime_probabilities,
+                    "forecast_1m": markov.forecast_1m,
+                    "forecast_3m": markov.forecast_3m,
+                    "forecast_6m": markov.forecast_6m,
+                    "stationary": markov.stationary,
+                    "change_point_probability": markov.change_point_probability,
+                    "change_point_alert": markov.change_point_alert,
+                    "expected_duration_days": markov.expected_duration_days,
+                    "kelly_fraction": markov.kelly_fraction,
+                    "notes": markov.notes,
+                    "n_observations": markov.n_observations,
+                }
+                logger.info(f"Markov V3: {markov.current_regime} ({markov.confidence:.0%}), Kelly {markov.kelly_fraction:.0%}")
+            except Exception as e:
+                logger.warning(f"Markov V3 failed: {e}")
+                result["errors"].append(f"markov_v3: {e}")
+
+        if _V7_SMART:
+            _safe_progress(progress_cb, "Smart money 13F analysis...", 0.97)
+            try:
+                all_tickers = list(prices.keys())
+                smart_money = run_smart_money_analysis(all_tickers)
+                result["smart_money"] = smart_money
+                logger.info(f"Smart money: {len(smart_money.get('consensus_picks', []))} consensus picks")
+            except Exception as e:
+                logger.warning(f"Smart money tracker failed: {e}")
+
+        if _V7_CAPROT:
+            _safe_progress(progress_cb, "Capital rotation monitor...", 0.975)
+            try:
+                cap_rotation = compute_capital_rotation(prices)
+                result["capital_rotation"] = cap_rotation
+                logger.info(f"Capital rotation: {cap_rotation.get('regime_label', 'N/A')}")
+            except Exception as e:
+                logger.warning(f"Capital rotation failed: {e}")
+
+        if _V7_UST:
+            _safe_progress(progress_cb, "UST auction tracker...", 0.98)
+            try:
+                ust_data = run_ust_auction_tracker()
+                result["ust_auction"] = ust_data
+            except Exception as e:
+                logger.warning(f"UST auction failed: {e}")
+
+        if _V7_THOUGHT:
+            _safe_progress(progress_cb, "Investment thesis analysis...", 0.985)
+            try:
+                rr_keys = list(result.get("risk_ranges", {}).get("asset_ranges", {}).keys())
+                bb_stage = result.get("boom_bust", {}).get("stage", "ACCELERATION")
+                bubble_score = result.get("reflexivity", {}).get("super_bubble_score", 0)
+                thesis_results = v7_thesis_multi(rr_keys, quad=quad,
+                                                 boom_bust_stage=bb_stage,
+                                                 super_bubble_score=bubble_score,
+                                                 prices=prices, fred=fred)
+                result["thought_process"] = thesis_results
+                top_theses = sorted(thesis_results.values(),
+                                    key=lambda x: x.get("thesis_score", 0),
+                                    reverse=True)[:20]
+                result["top_theses"] = top_theses
+                logger.info(f"Thought process: {len(thesis_results)} tickers analyzed")
+            except Exception as e:
+                logger.warning(f"Thought process failed: {e}")
+
+        if _V7_VRP:
+            _safe_progress(progress_cb, "VRP vol scanner...", 0.99)
+            try:
+                vrp_tickers = [t for t in ["SPY", "QQQ", "IWM", "NVDA", "TSLA", "AAPL", "MSFT", "META",
+                                            "GOOGL", "AMZN", "AMD", "GLD", "SLV", "TLT", "BTC-USD", "ETH-USD"]
+                              if t in prices]
+                vrp_results = scan_vrp(vrp_tickers, prices, vix=vix_last)
+                result["vrp_scanner"] = vrp_results
+            except Exception as e:
+                logger.warning(f"VRP scanner failed: {e}")
+
+        if _V7_SQUEEZE:
+            _safe_progress(progress_cb, "Squeeze scanner...", 0.995)
+            try:
+                squeeze_results = scan_squeezes(prices=prices,
+                                                 gamma_data=result.get("gamma_data", {}))
+                result["squeeze_scanner"] = squeeze_results
+            except Exception as e:
+                logger.warning(f"Squeeze scanner failed: {e}")
+
+        # ═══════════════════════════════════════════════════════════════
+        # SPRINT 11: VolSignals + SpotGamma + Schadner Integration
+        # ═══════════════════════════════════════════════════════════════
+
+        # ── VolSignals Dealer Regime ──
+        if _V11_VOLSIGNALS:
+            _safe_progress(progress_cb, "VolSignals dealer regime...", 0.52)
+            try:
+                vs_regime = compute_dealer_regime_multi(
+                    prices=prices,
+                    gex_data=result.get("gex_data", {}),
+                    vanna_data=result.get("vanna_data", {}),
+                    charm_data=result.get("charm_data", {}),
+                    gamma_data=result.get("gamma_data", {}),
+                    key_tickers=["SPY", "QQQ", "IWM"] + list(prices.keys())[:150]
+                )
+                result["volsignals_regime"] = vs_regime
+                logger.info(f"VolSignals regime: {len(vs_regime)} tickers classified")
+            except Exception as e:
+                logger.warning(f"VolSignals regime failed: {e}")
+                result["errors"].append(f"volsignals_regime: {e}")
+
+        # ── SpotGamma Structural Levels ──
+        if _V11_SPOTGAMMA:
+            _safe_progress(progress_cb, "SpotGamma structural levels...", 0.53)
+            try:
+                sg_levels = compute_structural_levels_multi(
+                    prices=prices,
+                    options_data=result.get("gex_data", {}),
+                    key_tickers=["SPY", "QQQ", "IWM"] + list(prices.keys())[:150]
+                )
+                result["spotgamma_levels"] = sg_levels
+                logger.info(f"SpotGamma levels: {len(sg_levels)} tickers mapped")
+            except Exception as e:
+                logger.warning(f"SpotGamma levels failed: {e}")
+                result["errors"].append(f"spotgamma_levels: {e}")
+
+        # ── Schadner IV (validate proxy IV where option prices exist) ──
+        if _V11_SCHADNER:
+            _safe_progress(progress_cb, "Schadner IV validation...", 0.54)
+            try:
+                yf_opts = result.get("yfinance_options", {})
+                schadner_validation = {}
+                for t, opt in yf_opts.items():
+                    if not isinstance(opt, dict):
+                        continue
+                    if opt.get("ok") and opt.get("call_price") and opt.get("strike") and opt.get("forward"):
+                        iv_exact = schadner_iv(
+                            C=opt["call_price"], K=opt["strike"],
+                            F=opt["forward"], T=opt.get("days_to_expiry", 21) / 365.0, D=1.0
+                        )
+                        if iv_exact is not None:
+                            iv_proxy = opt.get("iv", 0) or opt.get("implied_vol", 0) or 0
+                            schadner_validation[t] = validate_iv_proxy(t, iv_proxy, iv_exact)
+                            schadner_validation[t]["source"] = "SCHADNER"
+                result["schadner_iv"] = schadner_validation
+                logger.info(f"Schadner IV: {len(schadner_validation)} tickers validated")
+            except Exception as e:
+                logger.warning(f"Schadner IV failed: {e}")
+                result["errors"].append(f"schadner_iv: {e}")
+
+        # ═══════════════════════════════════════════════════════════════
+        # SPRINT 9: Methodology-driven scanners
+        # ═══════════════════════════════════════════════════════════════
+        try:
+            all_tickers = list(prices.keys())
+        except Exception:
+            all_tickers = []
+
+        if _V9_KARSAN:
+            _safe_progress(progress_cb, "Karsan vol scanner...", 0.996)
+            try:
+                result["karsan_scanner"] = scan_karsan(all_tickers, prices, vix=vix_last)
+                logger.info(f"Karsan: {len(result['karsan_scanner'].get('squeeze_setups', []))} squeeze, "
+                          f"{len(result['karsan_scanner'].get('sell_premium', []))} sell-prem, "
+                          f"{len(result['karsan_scanner'].get('buy_convexity', []))} buy-conv")
+            except Exception as e:
+                logger.warning(f"Karsan scanner failed: {e}")
+
+        if _V9_SPOTGAMMA:
+            _safe_progress(progress_cb, "SpotGamma proxy scanner...", 0.997)
+            try:
+                result["spotgamma_scanner"] = run_spotgamma_scanner(prices, vix=vix_last)
+                logger.info("SpotGamma proxy scanner: ok")
+            except Exception as e:
+                logger.warning(f"SpotGamma scanner failed: {e}")
+
+        if _V9_LEOPOLD:
+            _safe_progress(progress_cb, "Leopold methodology scan...", 0.998)
+            try:
+                result["leopold_scan"] = run_leopold_scan(all_tickers, prices)
+                logger.info(f"Leopold: {len(result['leopold_scan'].get('per_ticker', {}))} tickers matched, "
+                          f"{len(result['leopold_scan'].get('asymmetry_setups', []))} asymmetry setups, "
+                          f"{len(result['leopold_scan'].get('written_off_recovering', []))} written-off recovering")
+            except Exception as e:
+                logger.warning(f"Leopold scan failed: {e}")
+
+        if _V9_COATUE:
+            _safe_progress(progress_cb, "COATUE methodology scan...", 0.999)
+            try:
+                result["coatue_scan"] = run_coatue_scan(all_tickers, prices)
+                spread_data = result["coatue_scan"].get("capital_rotation_spread", {})
+                logger.info(f"COATUE: spread {spread_data.get('spread_3m_pp', 0)}pp, "
+                          f"{len(result['coatue_scan'].get('decay_alerts', []))} decay alerts")
+            except Exception as e:
+                logger.warning(f"COATUE scan failed: {e}")
+
+        # ═══════════════════════════════════════════════════════════════
+        # SPRINT 10: Autonomous Narrative Engine
+        # Synthesizes ALL engines into headline narrative + scenarios + bottlenecks
+        # ═══════════════════════════════════════════════════════════════
+        try:
+            from engines.narrative_engine import build_narrative
+            _safe_progress(progress_cb, "Building autonomous narrative...", 0.9995)
+            result["narrative"] = build_narrative(result)
+            nar = result["narrative"]
+            logger.info(
+                f"Narrative: '{nar['macro_narrative']['headline'][:80]}' | "
+                f"Scenario: {nar['scenarios']['dominant_scenario']} "
+                f"({nar['scenarios'][nar['scenarios']['dominant_scenario']]['probability']:.0%}) | "
+                f"Chains: {nar['n_active_chains']} | Bottlenecks: {nar['n_active_bottlenecks']}"
+            )
+        except Exception as e:
+            logger.warning(f"Narrative engine failed: {e}")
+            result["narrative"] = {}
+
         # ---- Summary ----
         result["summary"] = {
             "regime": getattr(gip, "operating_regime", "Unknown"),
@@ -1916,6 +2775,48 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             "behavioral_alert": (result.get("behavioral_macro", {}).get("yves", {}) or {}).get("alert"),
             "boom_bust_stage": result.get("boom_bust", {}).get("stage", "-"),
             "super_bubble_score": result.get("reflexivity", {}).get("super_bubble_score", 0),
+            # V2 additions
+            "v2_quad_v10": result.get("gip_v10", {}).get("structural_quad"),
+            "v2_yves_alerts": result.get("yves_v2", {}).get("n_alerts", 0),
+            "v2_yves_top_level": result.get("yves_v2", {}).get("summary", {}).get("level"),
+            "v2_cascade_shocks": len((result.get("cascade_analysis", {}) or {}).get("active_shocks", {})),
+            "v2_discovery_total": result.get("discovery_brain", {}).get("total", 0),
+            "v2_new_tickers": len(result.get("ticker_universe_expansion", {}).get("new_tickers", [])),
+            "v2_portfolio_deployed_pct": result.get("portfolio_sizing_v2", {}).get("total_deployed_pct", 0),
+            # Sprint 6 additions
+            "v2_composite_flipped_count": sum(1 for s in result.get("composite_signals", {}).values() if isinstance(s, dict) and s.get("flipped_from_composite")),
+            "v2_bonds_xau_regime": result.get("bonds_xau_regime", {}).get("regime", "UNKNOWN"),
+            # Sprint 7 additions
+            "v7_markov_regime": result.get("markov_v3", {}).get("current_regime", "UNKNOWN"),
+            "v7_markov_confidence": result.get("markov_v3", {}).get("confidence", 0),
+            "v7_markov_cp_alert": result.get("markov_v3", {}).get("change_point_alert", False),
+            "v7_markov_kelly": result.get("markov_v3", {}).get("kelly_fraction", 0.25),
+            "v7_smart_money_funds": result.get("smart_money", {}).get("n_funds_tracked", 0),
+            "v7_smart_money_consensus": len(result.get("smart_money", {}).get("consensus_picks", [])),
+            "v7_capital_rotation_regime": result.get("capital_rotation", {}).get("regime_label"),
+            "v7_fiscal_dominance_score": result.get("ust_auction", {}).get("fiscal_dominance", {}).get("score", 0),
+            "v7_top_theses_count": len(result.get("top_theses", [])),
+            "v7_vrp_sell_count": len(result.get("vrp_scanner", {}).get("high_vrp_sell_premium", [])),
+            "v7_squeeze_imminent": len(result.get("squeeze_scanner", {}).get("imminent_squeezes", [])),
+            # Sprint 9 + 10 additions
+            "v9_karsan_squeeze_setups": len(result.get("karsan_scanner", {}).get("squeeze_setups", [])),
+            "v9_karsan_sell_premium": len(result.get("karsan_scanner", {}).get("sell_premium", [])),
+            "v9_leopold_matched": len(result.get("leopold_scan", {}).get("per_ticker", {})),
+            "v9_leopold_asymmetry": len(result.get("leopold_scan", {}).get("asymmetry_setups", [])),
+            "v9_leopold_writtenoff": len(result.get("leopold_scan", {}).get("written_off_recovering", [])),
+            "v9_coatue_sellers": len(result.get("coatue_scan", {}).get("sellers_top", [])),
+            "v9_coatue_buyers": len(result.get("coatue_scan", {}).get("buyers_top", [])),
+            "v9_coatue_decay_alerts": len(result.get("coatue_scan", {}).get("decay_alerts", [])),
+            "v9_coatue_rotation_spread_pp": result.get("coatue_scan", {}).get("capital_rotation_spread", {}).get("spread_3m_pp"),
+            "v10_narrative_headline": result.get("narrative", {}).get("macro_narrative", {}).get("headline", "—"),
+            "v10_dominant_scenario": result.get("narrative", {}).get("scenarios", {}).get("dominant_scenario", "—"),
+            "v10_active_chains": result.get("narrative", {}).get("n_active_chains", 0),
+            "v10_active_bottlenecks": result.get("narrative", {}).get("n_active_bottlenecks", 0),
+            "v10_behavioral_divergences": result.get("narrative", {}).get("n_behavioral_divergences", 0),
+            # Sprint 11
+            "v11_volsignals_regimes": len(result.get("volsignals_regime", {})),
+            "v11_spotgamma_levels": len(result.get("spotgamma_levels", {})),
+            "v11_schadner_validated": len(result.get("schadner_iv", {})),
         }
 
         result["ok"] = True

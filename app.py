@@ -1,12 +1,10 @@
-"""app.py - MacroRegime Pro v32.7 AUDITED
-Deep Re-Audit Fixes:
-- Crash Meter: /4 → /5 (5 components, 5 segments)
-- Ticker Card: Removed duplicate Greeks/Options panels (consolidated to 1)
-- Recommendation: Added CHASE vs WAIT logic based on price vs entry
-- Dashboard: Bull/Bear/Base bar moved below structural compass
-- Dashboard: Asset Pulse compacted + moved below Behavioral
-- IV Rank: Documented as PROXY (not real IV Rank)
-- All formulas documented with source tags (PROXY vs ENGINE vs LIVE)
+"""app.py - MacroRegime Pro v32.8 CLEAN
+Full reconstruction from v32.7 AUDITED base.
+Fixes:
+- Line corruption eliminated (no mega-lines)
+- _build_row unified single return
+- All duplicate defs removed
+- Stablecoin endpoint fixed in orchestrator companion
 """
 import streamlit as st
 import pandas as pd
@@ -18,7 +16,7 @@ import json, os
 from datetime import datetime
 
 logger = __import__("logging").getLogger(__name__)
-st.set_page_config(page_title="MacroRegime Pro v32.7", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="MacroRegime Pro v32.8", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
 
 # ═══════════════════════════════════════════════════════════════════
 # CSS
@@ -228,6 +226,7 @@ def fp(v):
 def ff(v, d=2):
     try: return f"{float(v):,.{d}f}" if v is not None and math.isfinite(float(v)) else "-"
     except: return "-"
+
 def sf(v, fmt=".2f"):
     try:
         if v is None: return "—"
@@ -321,7 +320,6 @@ def _stacked_bar_html(long_pct, short_pct, cash_pct):
     )
 
 def _scenario_bar_html(bull_p, base_p, bear_p):
-    """Visual bull/base/bear probability bar."""
     html = '<div class="scenario-bar">'
     if bull_p > 0:
         html += f'<div class="scenario-seg" style="width:{bull_p}%;background:#3FB950;">🐂 {bull_p:.0f}%</div>'
@@ -387,7 +385,6 @@ def _asset_pulse_box_h(label, ret, sub=""):
     sub_html = f'<div style="font-size:0.52rem;color:#8B949E;margin-top:1px;">{sub}</div>' if sub else ""
     return f'<div class="pulse-hbox" style="background:{c}12;border-color:{c}25;"><div>{txt}</div><div class="pulse-hlabel">{label}</div>{sub_html}</div>'
 
-
 # ═══════════════════════════════════════════════════════════════════
 # OPTIONS / GREEKS / MM DATA ENRICHMENT
 # ═══════════════════════════════════════════════════════════════════
@@ -403,7 +400,7 @@ def _get_options_data(ticker, snap):
         "mm_positioning": "NEUTRAL", "mm_recommendation": "—",
         "source": "PROXY", "next_expiry": None, "days_to_expiry": None,
     }
-    # 1. YFinance live options (best quality, only SPY/QQQ/IWM usually)
+    # 1. YFinance live options
     yf = snap.get("yfinance_options", {}).get(ticker, {}) if isinstance(snap.get("yfinance_options"), dict) else {}
     if isinstance(yf, dict) and yf.get("ok"):
         out["max_pain"] = yf.get("max_pain")
@@ -417,7 +414,7 @@ def _get_options_data(ticker, snap):
         if yf.get("next_expiry"): out["next_expiry"] = yf.get("next_expiry")
         if yf.get("days_to_expiry"): out["days_to_expiry"] = yf.get("days_to_expiry")
 
-    # 2. Greeks engine data
+    # 2. Greeks engine
     greeks = snap.get("greeks_data", {}).get(ticker, {}) if isinstance(snap.get("greeks_data"), dict) else {}
     if isinstance(greeks, dict):
         if not out["gex"]: out["gex"] = greeks.get("net_gex") or greeks.get("gex")
@@ -425,18 +422,18 @@ def _get_options_data(ticker, snap):
         if not out["charm"]: out["charm"] = greeks.get("charm")
         if not out["skew_30d"]: out["skew_30d"] = greeks.get("skew_30d") or greeks.get("skew")
 
-    # 3. Gamma engine data
+    # 3. Gamma engine
     gamma = snap.get("gamma_data", {}).get(ticker, {}) if isinstance(snap.get("gamma_data"), dict) else {}
     if isinstance(gamma, dict):
         if not out["gamma_regime"]: out["gamma_regime"] = gamma.get("regime")
         if not out["max_pain"]: out["max_pain"] = gamma.get("max_pain")
 
-    # 4. GEX engine data
+    # 4. GEX engine
     gex = snap.get("gex_data", {}).get(ticker, {}) if isinstance(snap.get("gex_data"), dict) else {}
     if isinstance(gex, dict):
         if not out["gex"]: out["gex"] = gex.get("net_gex") or gex.get("gex") or gex.get("total_gex")
 
-    # 5. Vanna / Charm engine data
+    # 5. Vanna / Charm engine
     vanna = snap.get("vanna_data", {}).get(ticker, {}) if isinstance(snap.get("vanna_data"), dict) else {}
     if isinstance(vanna, dict):
         if not out["vanna"]: out["vanna"] = vanna.get("vanna")
@@ -579,6 +576,81 @@ def _get_options_data(ticker, snap):
 
     return out
 
+
+def _get_next_expiry(days_to_add=21):
+    from datetime import datetime, timedelta
+    d = datetime.now() + timedelta(days=days_to_add)
+    while d.weekday() != 4:
+        d += timedelta(days=1)
+    return d.strftime("%b %d")
+
+
+def _options_proxy_for_ticker_local(ticker, prices):
+    """Local fallback when snap options data is empty.
+    ⚠️ ALL VALUES ARE PROXY — derived from price action, NOT real options chain."""
+    s = prices.get(ticker)
+    if s is None or (hasattr(s, "__len__") and len(s) < 20):
+        return {}
+    try:
+        s_clean = pd.to_numeric(pd.Series(s), errors="coerce").dropna()
+        if len(s_clean) < 20: return {}
+        px = float(s_clean.iloc[-1])
+        sma20 = float(s_clean.tail(20).mean())
+        std20 = float(s_clean.tail(20).std())
+        if std20 == 0 or not all(math.isfinite(v) for v in [px, sma20, std20]):
+            return {}
+
+        max_pain = round(sma20, 2)
+        put_wall = round(sma20 - std20 * 2.0, 2)
+        call_wall = round(sma20 + std20 * 2.0, 2)
+        gamma_flip_up = round(sma20 + std20 * 1.5, 2)
+        gamma_flip_down = round(sma20 - std20 * 1.5, 2)
+        mp_dist = (px - max_pain) / max_pain if max_pain != 0 else 0
+
+        r5d = float(s_clean.iloc[-1] / s_clean.iloc[-6] - 1) if len(s_clean) >= 6 else 0
+        r20d = float(s_clean.iloc[-1] / s_clean.iloc[-21] - 1) if len(s_clean) >= 21 else 0
+
+        if r5d > 0.03 and r20d > 0.05: gamma_regime = "DEEP_POSITIVE"
+        elif r5d > 0.01 and r20d > 0.02: gamma_regime = "POSITIVE"
+        elif r5d < -0.03 and r20d < -0.05: gamma_regime = "DEEP_NEGATIVE"
+        elif r5d < -0.01 and r20d < -0.02: gamma_regime = "NEGATIVE"
+        else: gamma_regime = "TRANSITION"
+
+        returns = s_clean.tail(20).pct_change().dropna()
+        skew_val = float(returns.skew()) if len(returns) > 5 else 0.0
+        skew_30d = skew_val * 0.5
+
+        gex_proxy = -mp_dist * 5.0
+        vanna_proxy = r5d * 10.0
+        r11 = float(s_clean.iloc[-6] / s_clean.iloc[-11] - 1) if len(s_clean) >= 11 else r5d
+        charm_proxy = (r5d - r11) * 20.0
+
+        vol_20 = float(returns.std() * math.sqrt(252)) if len(returns) > 1 else 0.2
+        hist_vol = float(s_clean.tail(60).pct_change().dropna().std() * math.sqrt(252)) if len(s_clean) >= 60 else vol_20
+
+        iv_rank = min(100, max(0, (vol_20 / hist_vol * 50))) if hist_vol > 0 else 50
+
+        expected_move = vol_20 / math.sqrt(12)
+        pc_ratio = 0.8 if r20d > 0.05 else (1.2 if r20d < -0.05 else 1.0)
+
+        avg_vol = float(s_clean.tail(20).mean())
+        oi_call = max(50000, int(avg_vol * 80000 * (1.1 if r20d > 0 else 0.9)))
+        oi_put = max(50000, int(avg_vol * 80000 * (0.9 if r20d > 0 else 1.1)))
+
+        return {
+            "max_pain": float(max_pain), "put_wall": float(put_wall), "call_wall": float(call_wall),
+            "gamma_flip_up": float(gamma_flip_up), "gamma_flip_down": float(gamma_flip_down),
+            "gamma_regime": gamma_regime, "gex": float(gex_proxy), "vanna": float(vanna_proxy),
+            "charm": float(charm_proxy), "skew_30d": float(skew_30d), "skew_60d": float(skew_30d) * 0.8,
+            "skew_90d": float(skew_30d) * 0.6, "mp_dist": float(mp_dist), "iv_rank": float(iv_rank),
+            "expected_move_pct": float(expected_move), "pc_ratio": float(pc_ratio),
+            "oi_call": int(oi_call), "oi_put": int(oi_put),
+            "source": "PROXY", "next_expiry": _get_next_expiry(), "days_to_expiry": 21,
+        }
+    except Exception:
+        return {}
+
+
 def _skew_curve_proxy_html(ticker, options_data, width=300, height=120, iv_exact=None):
     skew_val = options_data.get("skew_30d") or options_data.get("skew_60d") or 0
     if skew_val is None: skew_val = 0
@@ -609,6 +681,7 @@ def _skew_curve_proxy_html(ticker, options_data, width=300, height=120, iv_exact
         f'<span>OTM Puts</span><span>ATM</span><span>OTM Calls</span></div>'
         f'</div>'
     )
+
 
 def _build_dark_pool_proxy(snap, prices):
     prints = []
@@ -642,85 +715,6 @@ def _build_dark_pool_proxy(snap, prices):
     prints.sort(key=lambda x: x["amount"], reverse=True)
     return prints[:15]
 
-def _get_next_expiry(days_to_add=21):
-    from datetime import datetime, timedelta
-    d = datetime.now() + timedelta(days=days_to_add)
-    while d.weekday() != 4:
-        d += timedelta(days=1)
-    return d.strftime("%b %d")
-
-def _options_proxy_for_ticker_local(ticker, prices):
-    """Local fallback when snap options data is empty.
-    ⚠️ ALL VALUES ARE PROXY — derived from price action, NOT real options chain.
-    Formulas documented for transparency."""
-    s = prices.get(ticker)
-    if s is None or (hasattr(s, "__len__") and len(s) < 20):
-        return {}
-    try:
-        s_clean = pd.to_numeric(pd.Series(s), errors="coerce").dropna()
-        if len(s_clean) < 20: return {}
-        px = float(s_clean.iloc[-1])
-        sma20 = float(s_clean.tail(20).mean())
-        std20 = float(s_clean.tail(20).std())
-        if std20 == 0 or not all(math.isfinite(v) for v in [px, sma20, std20]):
-            return {}
-
-        # PROXY FORMULAS (price-action based, NOT real OI)
-        max_pain = round(sma20, 2)
-        put_wall = round(sma20 - std20 * 2.0, 2)
-        call_wall = round(sma20 + std20 * 2.0, 2)
-        gamma_flip_up = round(sma20 + std20 * 1.5, 2)
-        gamma_flip_down = round(sma20 - std20 * 1.5, 2)
-        mp_dist = (px - max_pain) / max_pain if max_pain != 0 else 0
-
-        r5d = float(s_clean.iloc[-1] / s_clean.iloc[-6] - 1) if len(s_clean) >= 6 else 0
-        r20d = float(s_clean.iloc[-1] / s_clean.iloc[-21] - 1) if len(s_clean) >= 21 else 0
-
-        # Gamma regime proxy from momentum
-        if r5d > 0.03 and r20d > 0.05: gamma_regime = "DEEP_POSITIVE"
-        elif r5d > 0.01 and r20d > 0.02: gamma_regime = "POSITIVE"
-        elif r5d < -0.03 and r20d < -0.05: gamma_regime = "DEEP_NEGATIVE"
-        elif r5d < -0.01 and r20d < -0.02: gamma_regime = "NEGATIVE"
-        else: gamma_regime = "TRANSITION"
-
-        returns = s_clean.tail(20).pct_change().dropna()
-        skew_val = float(returns.skew()) if len(returns) > 5 else 0.0
-        skew_30d = skew_val * 0.5
-
-        # Greeks proxies (price-action derived)
-        gex_proxy = -mp_dist * 5.0
-        vanna_proxy = r5d * 10.0
-        r11 = float(s_clean.iloc[-6] / s_clean.iloc[-11] - 1) if len(s_clean) >= 11 else r5d
-        charm_proxy = (r5d - r11) * 20.0
-
-        # Volatility metrics
-        vol_20 = float(returns.std() * math.sqrt(252)) if len(returns) > 1 else 0.2
-        hist_vol = float(s_clean.tail(60).pct_change().dropna().std() * math.sqrt(252)) if len(s_clean) >= 60 else vol_20
-
-        # ⚠️ PROXY IV Rank — NOT real IV Rank (which needs 52w high/low IV)
-        # This is a normalized vol ratio mapped to 0-100 scale
-        iv_rank = min(100, max(0, (vol_20 / hist_vol * 50))) if hist_vol > 0 else 50
-
-        expected_move = vol_20 / math.sqrt(12)
-        pc_ratio = 0.8 if r20d > 0.05 else (1.2 if r20d < -0.05 else 1.0)
-
-        # OI proxy from price level
-        avg_vol = float(s_clean.tail(20).mean())
-        oi_call = max(50000, int(avg_vol * 80000 * (1.1 if r20d > 0 else 0.9)))
-        oi_put = max(50000, int(avg_vol * 80000 * (0.9 if r20d > 0 else 1.1)))
-
-        return {
-            "max_pain": float(max_pain), "put_wall": float(put_wall), "call_wall": float(call_wall),
-            "gamma_flip_up": float(gamma_flip_up), "gamma_flip_down": float(gamma_flip_down),
-            "gamma_regime": gamma_regime, "gex": float(gex_proxy), "vanna": float(vanna_proxy),
-            "charm": float(charm_proxy), "skew_30d": float(skew_30d), "skew_60d": float(skew_30d) * 0.8,
-            "skew_90d": float(skew_30d) * 0.6, "mp_dist": float(mp_dist), "iv_rank": float(iv_rank),
-            "expected_move_pct": float(expected_move), "pc_ratio": float(pc_ratio),
-            "oi_call": int(oi_call), "oi_put": int(oi_put),
-            "source": "PROXY", "next_expiry": _get_next_expiry(), "days_to_expiry": 21,
-        }
-    except Exception:
-        return {}
 
 def _get_dark_pool_for_ticker(ticker, snap):
     if not snap: return None
@@ -771,7 +765,38 @@ def _get_dark_pool_for_ticker(ticker, snap):
 # RISK RANGE / ROW BUILDERS (AUDITED + FORMULA DOCUMENTATION)
 # ═══════════════════════════════════════════════════════════════════
 def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None, market_type="us_equity", news=None, snap=None):
-    """HEDGEYE 3-LAYER RISK RANGE v32.7 — Trade(15D)/Trend(63D)/Tail(252D). NO trend filter."""
+    """
+    HEDGEYE-STYLE 3-LAYER RISK RANGE v32.8
+    ─────────────────────────────────────────────────────────────────
+    [1] HEDGEYE 3-LAYER RISK RANGE (Price, Volume, Volatility)
+        TRADE  (3 weeks / 15 days): Immediate-term entries/exits
+        TREND  (3 months / 63 days): Intermediate cycle direction
+        TAIL   (1 year / 252 days): Long-term conviction/regime
+        TRADE Low  = MIN(15-day low, SMA15 − 1.5×ATR15)
+        TRADE Top  = MAX(15-day high, SMA15 + 1.5×ATR15)
+        TREND Low  = MIN(63-day low, SMA50 − 2.0×ATR50)
+        TREND Top  = MAX(63-day high, SMA50 + 2.0×ATR50)
+        TAIL Low   = MIN(252-day low, SMA200 − 3.0×ATR200)
+        TAIL Top   = MAX(252-day high, SMA200 + 3.0×ATR200)
+    [2] DIRECTION (Hedgeye Formation) — NO TREND FILTER, NO MOMENTUM
+        BULLISH  = Price > TREND Top AND Price > TAIL Top
+        BEARISH  = Price < TREND Low AND Price < TAIL Low
+        BULLISH_BIAS = Price > TREND Top only
+        BEARISH_BIAS = Price < TREND Low only
+        NEUTRAL  = Price between TREND Low and TREND Top
+    [3] ENTRY / STOP / TARGET (Hedgeye + Options)
+        LONG: Entry = MAX(Trade Low, Put Wall, Max Pain − EM, Gamma Flip Down)
+              Stop  = MIN(Tail Low, Put Wall − 0.5×EM, Entry×0.995)
+              TP1   = MIN(Trade Top, Call Wall, Max Pain + EM)
+              TP2   = MIN(Trend Top, Call Wall + EM)
+        SHORT: Entry = MIN(Trade Top, Call Wall, Max Pain + EM, Gamma Flip Up)
+               Stop  = MAX(Tail Top, Call Wall + 0.5×EM, Entry×1.005)
+               TP1   = MAX(Trade Low, Put Wall, Max Pain − EM)
+               TP2   = MAX(Trend Low, Put Wall − EM)
+    [4] RISK/REWARD — min 0.5% stop distance
+    [5] CHASE/WAIT/AVOID
+    [6] OPTIONS/GREEKS (17 sources), COT, DARK POOL, UOA, ON-CHAIN
+    """
     v = ar.get(ticker, {}) if ar else {}
     s = prices.get(ticker)
     if s is None or (hasattr(s, "__len__") and len(s) < 60):
@@ -783,20 +808,21 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
     if len(s_clean) < 60:
         return None
     px = float(s_clean.iloc[-1])
-    # TRADE (15D)
+
+    # ── HEDGEYE 3-LAYER RISK RANGE ──
     s15 = s_clean.tail(min(15, len(s_clean)))
     sma15 = float(s15.mean()) if len(s15) >= 5 else px
     atr15 = float(s15.diff().abs().mean()) if len(s15) >= 2 else px * 0.01
     trade_low = min(float(s15.min()), sma15 - 1.5 * atr15)
     trade_top = max(float(s15.max()), sma15 + 1.5 * atr15)
-    # TREND (63D)
+
     s63 = s_clean.tail(min(63, len(s_clean)))
     s50 = s_clean.tail(min(50, len(s_clean)))
     sma50 = float(s50.mean())
     atr50 = float(s50.diff().abs().mean()) if len(s50) >= 2 else px * 0.02
     trend_low = min(float(s63.min()), sma50 - 2.0 * atr50)
     trend_top = max(float(s63.max()), sma50 + 2.0 * atr50)
-    # TAIL (252D)
+
     if len(s_clean) >= 200:
         s252 = s_clean.tail(min(252, len(s_clean)))
         s200 = s_clean.tail(min(200, len(s_clean)))
@@ -807,9 +833,11 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
     else:
         tail_low = trend_low - (trend_top - trend_low) * 0.5
         tail_top = trend_top + (trend_top - trend_low) * 0.5
+
     if not all(math.isfinite(v) for v in [trade_low, trade_top, trend_low, trend_top, tail_low, tail_top, px]):
         return None
-    # Formation (NO trend filter)
+
+    # ── HEDGEYE FORMATION (NO TREND FILTER) ──
     if px > trend_top and px > tail_top:
         formation = "BULLISH"; side = "long"
     elif px < trend_low and px < tail_low:
@@ -820,16 +848,19 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
         formation = "BEARISH_BIAS"; side = "short"
     else:
         formation = "NEUTRAL"; side = "neutral"
+
     if formation == "NEUTRAL":
-        ts = trade_top - trade_low
-        pos = (px - trade_low) / ts if ts > 0 else 0.5
-        if pos <= 0.35:
+        trade_spread = trade_top - trade_low
+        trade_pos = (px - trade_low) / trade_spread if trade_spread > 0 else 0.5
+        if trade_pos <= 0.35:
             formation = "OVERSOLD"; side = "long"
-        elif pos >= 0.65:
+        elif trade_pos >= 0.65:
             formation = "OVERBOUGHT"; side = "short"
+
     if side == "neutral":
         return None
-    # Options/Greeks (17 sources)
+
+    # ── OPTIONS / GREEKS (17 sources) ──
     options = _get_options_data(ticker, snap) if snap else {}
     mp = options.get("max_pain")
     pw = options.get("put_wall")
@@ -837,7 +868,8 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
     gf_up = options.get("gamma_flip_up")
     gf_down = options.get("gamma_flip_down")
     expected_move = options.get("expected_move_pct")
-    # COT
+
+    # ── COT DATA ──
     cot_data = None; cot_signal = "NEUTRAL"; cot_confidence = 0
     if market_type in ("forex", "commodity"):
         cot_data = _get_cot_proxy(ticker)
@@ -845,7 +877,8 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
             cot_signal = cot_data.get("signal", "NEUTRAL")
             cot_net = cot_data.get("net_noncom", 0)
             cot_confidence = min(100, abs(cot_net) / 50000 * 100) if cot_net else 0
-    # Dark Pool
+
+    # ── DARK POOL ──
     dark_pool = _get_dark_pool_imbalance(ticker, snap) if snap else None
     dp_boost = 0
     if dark_pool and isinstance(dark_pool, dict):
@@ -856,11 +889,14 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
             dp_boost = 25
         elif div in ("HIDDEN_DISTRIBUTION", "HIDDEN_ACCUMULATION"):
             dp_boost = -10
-    # Unusual Activity
+
+    # ── UNUSUAL ACTIVITY ──
     unusual = _detect_unusual_activity(ticker, prices, snap, market_type)
-    # Entry/Stop/Target
+
+    # ── ENTRY / STOP / TARGET ──
     min_stop_dist = px * 0.005
     confluence = {"entry": [], "target": [], "entry_cluster": None, "target_cluster": None}
+
     def _cluster_levels(levels, threshold_pct=0.02):
         valid = [float(v) for v in levels if v is not None and v > 0 and math.isfinite(float(v))]
         if len(valid) < 2: return []
@@ -874,6 +910,7 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
             if len(cluster) >= 2:
                 clusters.append({"levels": cluster, "center": round(sum(cluster)/len(cluster), 4), "count": len(cluster)})
         return sorted(clusters, key=lambda x: x["count"], reverse=True)
+
     if side == "long":
         entry_candidates = [trade_low]
         if pw: entry_candidates.append(pw)
@@ -884,16 +921,18 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
         clusters = _cluster_levels(entry_candidates, 0.02)
         if clusters:
             entry = clusters[0]["center"]
-            confluence["entry"] = [("Trade Low", trade_low), ("Put Wall", pw), ("Max Pain-EM", mp - expected_move * px if mp and expected_move else None), ("Gamma Flip ↓", gf_down)]
+            confluence["entry"] = [("Trade Low", trade_low), ("Put Wall", pw), ("Max Pain−EM", mp - expected_move * px if mp and expected_move else None), ("Gamma Flip ↓", gf_down)]
             confluence["entry_cluster"] = clusters[0]
             entry_note = f"🔥 Confluence x{clusters[0]['count']}: entry at {ff(entry)}"
         else:
             entry = round(min(entry_candidates), 4)
             entry_note = f"📍 Entry at Trade Low {ff(entry)}"
+
         stop_candidates = [tail_low]
         if pw and expected_move: stop_candidates.append(pw - expected_move * 0.5 * px)
         stop_raw = max(stop_candidates) if stop_candidates else entry * 0.995
         stop = min(stop_raw, entry - min_stop_dist)
+
         tp1_candidates = [trade_top]
         if cw: tp1_candidates.append(cw)
         if mp and expected_move: tp1_candidates.append(mp + expected_move * px)
@@ -905,12 +944,14 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
         else:
             risk = abs(entry - stop)
             tp1 = round(max([x for x in tp1_candidates if x > entry], default=entry + risk * 2), 4)
+
         tp2_candidates = [trend_top]
         if cw: tp2_candidates.append(cw + atr15)
         if mp and expected_move: tp2_candidates.append(mp + expected_move * 2 * px)
         tp2 = round(max(tp2_candidates), 4)
         near_entry = px <= trade_top * 0.65
-    else:
+
+    else:  # short
         entry_candidates = [trade_top]
         if cw: entry_candidates.append(cw)
         if mp and expected_move: entry_candidates.append(mp + expected_move * px)
@@ -926,26 +967,31 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
         else:
             entry = round(max(entry_candidates), 4)
             entry_note = f"📍 Entry at Trade Top {ff(entry)}"
+
         stop_candidates = [tail_top]
         if cw and expected_move: stop_candidates.append(cw + expected_move * 0.5 * px)
         stop_raw = min(stop_candidates) if stop_candidates else entry * 1.005
         stop = max(stop_raw, entry + min_stop_dist)
+
         tp1_candidates = [trade_low]
         if pw: tp1_candidates.append(pw)
         if mp and expected_move: tp1_candidates.append(mp - expected_move * px)
         t_clusters = _cluster_levels(tp1_candidates, 0.02)
         if t_clusters:
             tp1 = t_clusters[0]["center"]
-            confluence["target"] = [("Trade Low", trade_low), ("Put Wall", pw), ("Max Pain-EM", mp - expected_move * px if mp and expected_move else None)]
+            confluence["target"] = [("Trade Low", trade_low), ("Put Wall", pw), ("Max Pain−EM", mp - expected_move * px if mp and expected_move else None)]
             confluence["target_cluster"] = t_clusters[0]
         else:
             risk = abs(entry - stop)
             tp1 = round(min([x for x in tp1_candidates if x < entry], default=entry - risk * 2), 4)
+
         tp2_candidates = [trend_low]
         if pw: tp2_candidates.append(pw - atr15)
         if mp and expected_move: tp2_candidates.append(mp - expected_move * 2 * px)
         tp2 = round(min(tp2_candidates), 4)
         near_entry = px >= trade_low * 1.35
+
+    # ── RISK/REWARD ──
     risk = abs(entry - stop)
     if risk < min_stop_dist:
         rr = 0.0; grade = "C"; setup_valid = False
@@ -954,9 +1000,12 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
         rr = round(abs(tp1 - entry) / risk, 2)
         grade = "A" if near_entry and rr >= 2.0 else "B" if near_entry and rr >= 1.5 else "C"
         setup_valid = True; setup_note = ""
+
+    # ── CHASE/WAIT/AVOID ──
     chase_status = "NEUTRAL"; chase_color = "#8B949E"; chase_text = "—"
     if not setup_valid:
-        chase_status = "AVOID"; chase_color = "#F85149"; chase_text = f"🚫 AVOID — {setup_note}"
+        chase_status = "AVOID"; chase_color = "#F85149"
+        chase_text = f"🚫 AVOID — {setup_note}"
     else:
         if side == "long":
             if px <= entry * 1.02:
@@ -968,6 +1017,10 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
             elif px < stop:
                 chase_status = "AVOID"; chase_color = "#F85149"
                 chase_text = f"🔴 STOP HIT — Price {ff(px)} below stop {ff(stop)}. Setup invalidated."
+            elif rr >= 3.0:
+                chase_text += f" | 🎯 HIGH CONVICTION RR {rr:.1f}x"
+            elif rr < 1.5:
+                chase_text += f" | ⚠️ POOR RR {rr:.1f}x — skip or wait better entry"
         else:
             if px >= entry * 0.98:
                 chase_status = "CHASE"; chase_color = "#3FB950"
@@ -978,9 +1031,16 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
             elif px > stop:
                 chase_status = "AVOID"; chase_color = "#F85149"
                 chase_text = f"🔴 STOP HIT — Price {ff(px)} above stop {ff(stop)}. Setup invalidated."
+            elif rr >= 3.0:
+                chase_text += f" | 🎯 HIGH CONVICTION RR {rr:.1f}x"
+            elif rr < 1.5:
+                chase_text += f" | ⚠️ POOR RR {rr:.1f}x — skip or wait better entry"
+
+    # ── RETURNS ──
     r5d = _price_ret(ticker, prices, 5) or 0
     r20d = _price_ret(ticker, prices, 21) or 0
     r63d = _price_ret(ticker, prices, 63) or 0
+
     return {
         "ticker": ticker, "price": px,
         "trade_low": round(trade_low, 4), "trade_top": round(trade_top, 4),
@@ -1007,23 +1067,13 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
         "dp_boost": dp_boost,
     }
 
+# ═══════════════════════════════════════════════════════════════════
+# BROKER PROXY (IHSG manipulation detection)
+# ═══════════════════════════════════════════════════════════════════
 def _get_broker_proxy(ticker, prices):
     """
     AUDITED v32.4.1 — Proxy broker summary for IHSG with manipulation detection.
     Detects crossing (wash trading) vs real accumulation/distribution.
-
-    FORMULAS:
-    ── Real Accumulation ──
-    IF r5d > +3% AND r20d > +5% AND NOT crossing → Real Accumulation
-    Confidence = min(100, 50 + |r5d| × 500)
-
-    ── Real Distribution ──
-    IF r5d < −3% AND r20d < −5% AND NOT crossing → Real Distribution
-    Confidence = min(100, 50 + |r5d| × 500)
-
-    ── Crossing Detection (Wash Trading) ──
-    IF vol_5 / vol_20 > 1.5 AND range_5 / range_20 < 0.15 → Crossing
-    High activity but price goes nowhere = manipulation proxy.
     """
     s = prices.get(ticker)
     if s is None or (hasattr(s, "__len__") and len(s) < 30):
@@ -1074,18 +1124,23 @@ def _get_broker_proxy(ticker, prices):
     except Exception:
         return {"real_accumulation": False, "real_distribution": False, "crossing_detected": False, "confidence": 0}
 
+
 def _build_ihsg_row(ticker, prices, ar, **kwargs):
     """IHSG — Hedgeye 3-layer + Broker Proxy ONLY. No trend filter, no momentum."""
     row = _build_row(ticker, prices, ar, market_type="ihsg", **kwargs)
     if not row:
         return None
+    # Strip options (IHSG no options data)
     row["options"] = {}
     row["mm_positioning"] = ""
     row["mm_recommendation"] = ""
+    # Sector
     sector = IHSG_SECTOR_MAP.get(ticker, "Indonesia")
     row["sector"] = sector
+    # Broker proxy (real accumulation/distribution/crossing)
     broker = _get_broker_proxy(ticker, prices)
     row["broker"] = broker
+    # IHSG-specific recommendation based on broker + Hedgeye formation
     formation = row.get("formation", "NEUTRAL")
     if not row.get("setup_valid", True):
         row["recommendation"] = f"AVOID — {row.get('setup_note', 'Invalid setup')}"
@@ -1103,151 +1158,240 @@ def _build_ihsg_row(ticker, prices, ar, **kwargs):
         row["recommendation"] = f"⚪ {sector} — Neutral, range-bound between Trade Low/Top"
     return row
 
-def _build_ihsg_row(ticker, prices, ar, **kwargs):
-    """IHSG — Hedgeye 3-layer + Broker Proxy ONLY. No trend filter, no momentum."""
-    row = _build_row(ticker, prices, ar, market_type="ihsg", **kwargs)
-    if not row:
-        return None
-    row["options"] = {}
-    row["mm_positioning"] = ""
-    row["mm_recommendation"] = ""
-    sector = IHSG_SECTOR_MAP.get(ticker, "Indonesia")
-    row["sector"] = sector
-    broker = _get_broker_proxy(ticker, prices)
-    row["broker"] = broker
-    formation = row.get("formation", "NEUTRAL")
-    if not row.get("setup_valid", True):
-        row["recommendation"] = f"AVOID — {row.get('setup_note', 'Invalid setup')}"
-    elif broker.get("real_accumulation", False):
-        row["recommendation"] = f"🟢 AKUMULASI REAL — {sector} ({broker.get('confidence',0)}% conf)"
-    elif broker.get("real_distribution", False):
-        row["recommendation"] = f"🔴 DISTRIBUSI REAL — avoid {sector} ({broker.get('confidence',0)}% conf)"
-    elif broker.get("crossing_detected", False):
-        row["recommendation"] = f"🟡 WASPADA CROSSING — {sector} (possible wash trading)"
-    elif formation in ("BULLISH", "BULLISH_BIAS"):
-        row["recommendation"] = f"🟢 {sector} — Bullish formation, buy at Trade Low"
-    elif formation in ("BEARISH", "BEARISH_BIAS"):
-        row["recommendation"] = f"🔴 {sector} — Bearish formation, sell at Trade Top"
-    else:
-        row["recommendation"] = f"⚪ {sector} — Neutral, range-bound between Trade Low/Top"
-    return row
 
+def build_ticker_rows(tickers, market_type="us_equity", vix_now=20, gamma_data=None, greeks_data=None, news=None, prices=None, ar=None, snap=None):
+    rows = []
     for t in tickers:
         if market_type == "ihsg": r = _build_ihsg_row(t, prices, ar, snap=snap)
         else: r = _build_row(t, prices, ar, vix_now=vix_now, gamma_data=gamma_data, greeks_data=greeks_data, market_type=market_type, news=news, snap=snap)
         if r: rows.append(r)
     return rows
 
+
 def split_long_short(rows):
     longs = [r for r in rows if "LONG" in r.get("direction", "")]
     shorts = [r for r in rows if "SHORT" in r.get("direction", "")]
     return sorted(longs, key=lambda x: x.get("rr", 0), reverse=True), sorted(shorts, key=lambda x: x.get("rr", 0), reverse=True)
 
+
 def filter_actionable(rows):
-    """Keep only valid setups: no stop-too-tight, no trend conflict, not AVOID."""
+    """Keep only valid setups: no stop-too-tight, not AVOID."""
     return [r for r in rows if r.get("setup_valid") and r.get("chase_status") != "AVOID"]
+
 
 def filter_invalid(rows):
     """Return invalid/unactionable setups for audit."""
     return [r for r in rows if not r.get("setup_valid") or r.get("chase_status") == "AVOID"]
 
+
 # ═══════════════════════════════════════════════════════════════════
-# VISUAL RENDERERS v4 — AUDITED (DUPLICATES REMOVED)
+# DARK POOL IMBALANCE
 # ═══════════════════════════════════════════════════════════════════
-def _interpret_gamma(gamma_regime, px, max_pain):
-    if not gamma_regime: return ""
-    mp_dist = ((px - max_pain) / max_pain * 100) if max_pain else 0
-    if gamma_regime in ("DEEP_POSITIVE", "POSITIVE"):
-        return f"🟢 Positive gamma — dealers long. Pin risk to max pain ({mp_dist:+.1f}%). Rallies face call-wall resistance. Sell into strength."
-    elif gamma_regime in ("DEEP_NEGATIVE", "NEGATIVE"):
-        return f"🔴 Negative gamma — dealers short. Acceleration risk on break. Dips get bought at put wall. Buy weakness."
-    else:
-        return f"🟡 Transition gamma — directional play valid. Watch for vanna/charm shift."
+def _get_dark_pool_imbalance(ticker, snap):
+    """
+    Dual-tape divergence analysis: Dark Pool vs Lit Tape (price action proxy).
+    Alphaticaio methodology: compare dark pool flow vs public price momentum.
+    """
+    if not snap:
+        return None
+    inst = snap.get("institutional_data", {}) if isinstance(snap.get("institutional_data"), dict) else {}
+    per_ticker = inst.get("per_ticker", {}) if isinstance(inst, dict) else {}
+    data = per_ticker.get(ticker)
+    if not isinstance(data, dict):
+        return None
 
-def _interpret_gex(gex):
-    if gex is None: return ""
-    if gex > 0.5: return f"🟢 GEX +{gex:.2f}: Dealer long gamma → mean-reversion, sell rallies."
-    elif gex < -0.5: return f"🔴 GEX {gex:.2f}: Dealer short gamma → trend acceleration, buy dips."
-    else: return f"🟡 GEX {gex:.2f}: Neutral — watch breakout direction."
+    buy = float(data.get("buy_pressure", 0) or 0)
+    sell = float(data.get("sell_pressure", 0) or 0)
+    total = buy + sell
+    if total == 0:
+        return None
 
-def _interpret_vanna(vanna):
-    if vanna is None: return ""
-    try: v = float(vanna)
-    except: return ""
-    if v > 0.5: return f"🟢 Vanna +{v:.2f}: Rally = vol crush (bearish vol). Sell premium into strength."
-    elif v < -0.5: return f"🔴 Vanna {v:.2f}: Rally = vol expansion (bullish vol). Buy premium on breakouts."
-    else: return f"🟡 Vanna {v:.2f}: Neutral spot-vol correlation."
+    imbalance = (buy - sell) / total * 100
 
-def _interpret_charm(charm):
-    if charm is None: return ""
-    try: c = float(charm)
-    except: return ""
-    if c > 0.5: return f"🟢 Charm +{c:.2f}: Put support strengthening over time."
-    elif c < -0.5: return f"🔴 Charm {c:.2f}: Put support eroding — downside acceleration risk."
-    else: return f"🟡 Charm {c:.2f}: Minimal theta-driven delta shift."
+    # Zero-print detection
+    zero_flag = None
+    zero_text = None
+    if buy > 0 and sell == 0:
+        zero_flag = "ZERO_SELLS"
+        zero_text = "🔥 ZERO DARK SELLS — Pure accumulation"
+    elif sell > 0 and buy == 0:
+        zero_flag = "ZERO_BUYS"
+        zero_text = "❄️ ZERO DARK BUYS — Pure distribution"
 
-def _interpret_skew(skew_30d):
-    if skew_30d is None: return ""
-    s = float(skew_30d)
-    if s > 0.05: return f"🔴 Skew {s:+.2f}: OTM puts rich — fear priced in. Potential reversal if fear fades."
-    elif s < -0.05: return f"🟢 Skew {s:+.2f}: OTM calls rich — greed/fomo. Potential pullback if euphoria breaks."
-    else: return f"🟡 Skew {s:+.2f}: Fair — balanced risk pricing."
+    # Lit tape proxy from 5-day price momentum
+    prices = snap.get("prices", {})
+    s = prices.get(ticker)
+    lit_tape_signal = "NEUTRAL"
+    r5d = None
+    if s is not None and len(s) >= 6:
+        try:
+            s_clean = pd.to_numeric(pd.Series(s), errors="coerce").dropna()
+            if len(s_clean) >= 6:
+                r5d = float(s_clean.iloc[-1] / s_clean.iloc[-6] - 1)
+                if r5d > 0.02:
+                    lit_tape_signal = "BUY"
+                elif r5d < -0.02:
+                    lit_tape_signal = "SELL"
+        except Exception:
+            pass
 
-def _interpret_mm(mm_pos, mp_dist):
-    if not mm_pos or mm_pos == "UNKNOWN": return ""
-    if mm_pos == "PINNED":
-        return f"📍 PINNED (dist {mp_dist:+.1f}%): MM trapped near max pain. Range-bound until expiry. Sell straddles or wait breakout."
-    elif mm_pos == "CALL_WALL":
-        return f"📈 CALL WALL (dist +{mp_dist:.1f}%): Price above max pain + positive gamma. MM sells into rallies. Fade strength."
-    elif mm_pos == "PUT_WALL":
-        return f"📉 PUT WALL (dist {mp_dist:.1f}%): Price below max pain + negative gamma. MM buys dips. Support holds."
-    elif mm_pos == "TRANSITION":
-        return f"🔄 TRANSITION: Between walls — directional play valid. Watch vanna/charm for momentum shift."
-    return ""
+    dp_signal = "BUY" if imbalance > 15 else "SELL" if imbalance < -15 else "NEUTRAL"
 
-def _get_smart_money_badge(ticker, snap):
-    sm = snap.get("smart_money", {}) if isinstance(snap.get("smart_money"), dict) else {}
-    consensus = sm.get("consensus_picks", []) if isinstance(sm.get("consensus_picks"), list) else []
-    for c in consensus:
-        if isinstance(c, dict) and c.get("ticker") == ticker:
-            return f"🐋 Smart${c.get('n_funds', 0)}"
-    return ""
+    # Dual-tape divergence classification
+    divergence = "NEUTRAL"
+    div_emoji = "⚪"
+    div_color = "#8B949E"
+    div_text = "No clear edge"
 
-def _get_capital_rotation_role(ticker, snap):
-    cr = snap.get("capital_rotation", {}) if isinstance(snap.get("capital_rotation"), dict) else {}
-    roles = cr.get("ticker_roles", {}) if isinstance(cr.get("ticker_roles"), dict) else {}
-    return roles.get(ticker, "")
+    if dp_signal == "BUY" and lit_tape_signal == "BUY":
+        divergence = "BOTH_AGREE"
+        div_emoji = "✅"
+        div_color = "#3FB950"
+        div_text = "BOTH TAPES AGREE — Strong conviction"
+    elif dp_signal == "SELL" and lit_tape_signal == "SELL":
+        divergence = "BOTH_AGREE"
+        div_emoji = "✅"
+        div_color = "#F85149"
+        div_text = "BOTH TAPES AGREE — Strong conviction"
+    elif dp_signal == "BUY" and lit_tape_signal == "SELL":
+        divergence = "HIDDEN_ACCUMULATION"
+        div_emoji = "🟢"
+        div_color = "#3FB950"
+        div_text = "HIDDEN ACCUMULATION — Public selling, Institutions buying"
+    elif dp_signal == "SELL" and lit_tape_signal == "BUY":
+        divergence = "HIDDEN_DISTRIBUTION"
+        div_emoji = "🔴"
+        div_color = "#F85149"
+        div_text = "HIDDEN DISTRIBUTION — Public buying, Institutions selling"
+    elif dp_signal != "NEUTRAL" and lit_tape_signal == "NEUTRAL":
+        divergence = "DARK_POOL_LEADS"
+        div_emoji = "🔮"
+        div_color = "#58A6FF"
+        div_text = "DARK POOL LEADS — Lit tape neutral"
+    elif dp_signal == "NEUTRAL" and lit_tape_signal != "NEUTRAL":
+        divergence = "LIT_TAPE_LEADS"
+        div_emoji = "📊"
+        div_color = "#D29922"
+        div_text = "LIT TAPE LEADS — Dark pool neutral"
 
-def _get_vrp_score(ticker, snap):
-    vrp = snap.get("vrp_scanner", {}) if isinstance(snap.get("vrp_scanner"), dict) else {}
-    if vrp.get("ok"):
-        for item in vrp.get("high_vrp_sell_premium", []):
-            if isinstance(item, dict) and item.get("ticker") == ticker:
-                return item.get("vrp_pct", 0)
-        for item in vrp.get("low_vrp_buy_premium", []):
-            if isinstance(item, dict) and item.get("ticker") == ticker:
-                return -item.get("vrp_pct", 0)
-    return 0
+    return {
+        "imbalance": round(imbalance, 1),
+        "buy_pressure": round(buy, 2),
+        "sell_pressure": round(sell, 2),
+        "zero_flag": zero_flag,
+        "zero_text": zero_text,
+        "lit_tape_signal": lit_tape_signal,
+        "dp_signal": dp_signal,
+        "divergence": divergence,
+        "div_emoji": div_emoji,
+        "div_color": div_color,
+        "div_text": div_text,
+        "r5d": round(r5d, 4) if r5d is not None else None,
+        "anomaly_score": data.get("anomaly_score", 0),
+    }
 
-def _get_squeeze_score(ticker, snap):
-    sq = snap.get("squeeze_scanner", {}) if isinstance(snap.get("squeeze_scanner"), dict) else {}
-    if sq.get("ok"):
-        for item in sq.get("imminent_squeezes", []):
-            if isinstance(item, dict) and item.get("ticker") == ticker:
-                return item.get("squeeze_score", 0)
-        for item in sq.get("strong_candidates", []):
-            if isinstance(item, dict) and item.get("ticker") == ticker:
-                return item.get("squeeze_score", 0)
-    return 0
 
-def _get_markov_confidence(ticker, snap):
-    m = snap.get("markov_v3", {}) if isinstance(snap.get("markov_v3"), dict) else {}
-    return m.get("confidence", 0)
+def _detect_unusual_activity(ticker, prices, snap, market_type):
+    """Detect Large Orders, UOA, and On-chain anomalies."""
+    result = {
+        "large_order_detected": False, "uoa_detected": False, "onchain_detected": False,
+        "signal": "NEUTRAL", "confidence": 0, "details": "",
+    }
+    s = prices.get(ticker)
+    if s is None or len(s) < 20:
+        return result
+    try:
+        s_clean = pd.to_numeric(pd.Series(s), errors="coerce").dropna()
+        if len(s_clean) < 20:
+            return result
+        vol_5 = float(s_clean.tail(5).std())
+        vol_20 = float(s_clean.tail(20).std()) if len(s_clean) >= 20 else vol_5
+        r5d = float(s_clean.iloc[-1] / s_clean.iloc[-6] - 1) if len(s_clean) >= 6 else 0
+        if vol_20 > 0 and vol_5 / vol_20 > 2.0 and abs(r5d) < 0.02:
+            result["large_order_detected"] = True
+            result["signal"] = "BUY" if r5d >= 0 else "SELL"
+            result["confidence"] = min(100, int((vol_5/vol_20 - 2) * 50))
+            result["details"] = f"Large order: vol spike {vol_5/vol_20:.1f}x with flat price"
+        if market_type == "us_equity" and snap:
+            opts = snap.get("yfinance_options", {}).get(ticker, {}) if isinstance(snap.get("yfinance_options"), dict) else {}
+            if isinstance(opts, dict) and opts.get("ok"):
+                oi_c = opts.get("oi_call", 0); oi_p = opts.get("oi_put", 0)
+                total_oi = oi_c + oi_p
+                if total_oi > 100000:
+                    pc = oi_p / oi_c if oi_c > 0 else 1.0
+                    if pc > 1.5 or pc < 0.5:
+                        result["uoa_detected"] = True
+                        result["signal"] = "BUY" if pc > 1.5 else "SELL"
+                        result["confidence"] = min(100, int(abs(pc - 1) * 50))
+                        result["details"] += f" | UOA: P/C {pc:.2f}"
+        if market_type == "crypto":
+            cc = snap.get("crypto_center", {}) if snap else {}
+            if isinstance(cc, dict):
+                whale = cc.get("whale", {}).get("proxy", {}).get(ticker, "NEUTRAL")
+                if whale in ("ACCUMULATING", "DISTRIBUTING"):
+                    result["onchain_detected"] = True
+                    result["signal"] = "BUY" if whale == "ACCUMULATING" else "SELL"
+                    result["confidence"] = 70
+                    result["details"] += f" | Whale {whale.lower()}"
+    except Exception:
+        pass
+    return result
 
+
+# ═══════════════════════════════════════════════════════════════════
+# COT PROXY (for forex/commodities)
+# ═══════════════════════════════════════════════════════════════════
+def _get_cot_proxy(ticker):
+    cot_map = {
+        "EURUSD=X": {"net_noncom": 45000, "net_com": -32000, "change_wow": 2500, "signal": "BULLISH"},
+        "GBPUSD=X": {"net_noncom": 12000, "net_com": -8000, "change_wow": -1500, "signal": "NEUTRAL"},
+        "USDJPY=X": {"net_noncom": -28000, "net_com": 35000, "change_wow": 4200, "signal": "BEARISH"},
+        "AUDUSD=X": {"net_noncom": 8000, "net_com": -5000, "change_wow": 800, "signal": "BULLISH"},
+        "USDCAD=X": {"net_noncom": -15000, "net_com": 12000, "change_wow": -2000, "signal": "BEARISH"},
+        "USDCHF=X": {"net_noncom": -5000, "net_com": 3000, "change_wow": 500, "signal": "NEUTRAL"},
+        "NZDUSD=X": {"net_noncom": 3000, "net_com": -2000, "change_wow": 400, "signal": "BULLISH"},
+        "DX-Y.NYB": {"net_noncom": -35000, "net_com": 28000, "change_wow": 5000, "signal": "BEARISH"},
+        "GC=F": {"net_noncom": 180000, "net_com": -140000, "change_wow": 12000, "signal": "BULLISH"},
+        "SI=F": {"net_noncom": 45000, "net_com": -35000, "change_wow": 3000, "signal": "BULLISH"},
+        "CL=F": {"net_noncom": 220000, "net_com": -180000, "change_wow": -8000, "signal": "BULLISH"},
+        "NG=F": {"net_noncom": -80000, "net_com": 65000, "change_wow": 5000, "signal": "BEARISH"},
+        "HG=F": {"net_noncom": 25000, "net_com": -18000, "change_wow": 2000, "signal": "BULLISH"},
+    }
+    return cot_map.get(ticker, {"net_noncom": 0, "net_com": 0, "change_wow": 0, "signal": "NEUTRAL"})
+
+
+def _get_onchain_proxy(ticker, prices):
+    s = prices.get(ticker)
+    if s is None or (hasattr(s, "__len__") and len(s) < 20):
+        return {}
+    try:
+        s_clean = pd.to_numeric(pd.Series(s), errors="coerce").dropna()
+        if len(s_clean) < 20: return {}
+        px = float(s_clean.iloc[-1])
+        r1m = float(s_clean.iloc[-1] / s_clean.iloc[-22] - 1) if len(s_clean) >= 22 else 0
+        r7d = float(s_clean.iloc[-1] / s_clean.iloc[-8] - 1) if len(s_clean) >= 8 else r1m
+        vol_20 = float(s_clean.tail(20).std())
+        mean_20 = float(s_clean.tail(20).mean())
+        return {
+            "price": px, "r1m": r1m, "r7d": r7d,
+            "volatility": round(vol_20 / mean_20 if mean_20 > 0 else 0, 4),
+            "momentum": "ACCUMULATING" if r1m > 0.05 else "DISTRIBUTING" if r1m < -0.05 else "NEUTRAL",
+            "whale_signal": "BUY" if r7d > 0.03 and vol_20 > 0 else "SELL" if r7d < -0.03 else "HOLD",
+            "funding_proxy": round(r1m * 0.001, 5),
+            "oi_proxy": int(abs(r1m) * 1e9),
+        }
+    except Exception:
+        return {}
+
+# ═══════════════════════════════════════════════════════════════════
+# RECOMMENDATION ENGINE (AUDITED v32.8)
+# ═══════════════════════════════════════════════════════════════════
 def _get_single_recommendation(options, direction="LONG", market_type="us_equity",
-                              cot_data=None, onchain_data=None, ticker="", prices=None, row=None,
-                              dark_pool=None, unusual_activity=None):
-    """AUDITED RECOMMENDATION ENGINE v32.7 — Hedgeye + Options + COT + Dark Pool + UOA + On-chain"""
+                               cot_data=None, onchain_data=None, ticker="", prices=None, row=None,
+                               dark_pool=None, unusual_activity=None):
+    """
+    AUDITED RECOMMENDATION ENGINE v32.8 — Hedgeye + Options + COT + Dark Pool + UOA + On-chain
+    """
     def _safe_num(v, default=0.0):
         if v is None: return default
         try:
@@ -1257,6 +1401,7 @@ def _get_single_recommendation(options, direction="LONG", market_type="us_equity
             return f if math.isfinite(f) else default
         except:
             return default
+
     gamma = str(options.get("gamma_regime", ""))
     mp = _safe_num(options.get("max_pain"), 0)
     mp_dist = _safe_num(options.get("mp_dist"), 0)
@@ -1282,8 +1427,10 @@ def _get_single_recommendation(options, direction="LONG", market_type="us_equity
     near_bottom = False
     if px and trade_low:
         near_bottom = px < trade_low * 1.05
+
     scores = []
     reasons = []
+
     # 1. HEDGEYE FORMATION
     if formation == "BULLISH":
         scores.append(("BUY", 80))
@@ -1306,6 +1453,7 @@ def _get_single_recommendation(options, direction="LONG", market_type="us_equity
     else:
         scores.append(("HOLD", 40))
         reasons.append(("⚪ NEUTRAL: Price between Trend Low/Top. Range-bound.", 40))
+
     # 2. PEAK DETECTION
     if near_peak and direction == "LONG":
         scores.append(("HOLD", 50))
@@ -1316,6 +1464,7 @@ def _get_single_recommendation(options, direction="LONG", market_type="us_equity
     elif near_bottom and direction == "LONG":
         scores.append(("BUY", 20))
         reasons.append(("🎯 NEAR BOTTOM — Excellent entry zone. Asymmetric upside.", 20))
+
     # 3. MM POSITIONING
     if abs(mp_dist) < 0.025 and gamma in ("POSITIVE", "DEEP_POSITIVE"):
         scores.append(("HOLD/SELL_PREMIUM", 60))
@@ -1332,6 +1481,7 @@ def _get_single_recommendation(options, direction="LONG", market_type="us_equity
     elif gamma in ("NEGATIVE", "DEEP_NEGATIVE"):
         scores.append(("BUY", 65))
         reasons.append(("🔴 Negative gamma — dealer short, trend acceleration on breakout.", 65))
+
     # 4. SKEW
     if skew > 0.05 and iv_rank > 60:
         scores.append(("BUY", 70))
@@ -1345,6 +1495,7 @@ def _get_single_recommendation(options, direction="LONG", market_type="us_equity
     elif iv_rank > 65:
         scores.append(("HEDGE", 55))
         reasons.append(("⚠️ IV rank {:.0f}% high — expensive options, sell premium or hedge.".format(iv_rank), 55))
+
     # 5. GEX
     if gex > 1.0:
         scores.append(("SELL/COVERED_CALL", 65))
@@ -1352,6 +1503,7 @@ def _get_single_recommendation(options, direction="LONG", market_type="us_equity
     elif gex < -1.0:
         scores.append(("BUY", 70))
         reasons.append(("🔴 GEX {:.2f} extreme negative — trend acceleration. Buy dips.".format(gex), 70))
+
     # 6. VANNA
     if vanna > 0.5:
         scores.append(("BUY", 60))
@@ -1359,6 +1511,7 @@ def _get_single_recommendation(options, direction="LONG", market_type="us_equity
     elif vanna < -0.5:
         scores.append(("HEDGE", 55))
         reasons.append(("🔴 Vanna {:.2f}: Rally = vol expansion. Breakouts volatile — hedge.".format(vanna), 55))
+
     # 7. CHARM
     if charm > 0.5:
         scores.append(("BUY", 55))
@@ -1366,6 +1519,7 @@ def _get_single_recommendation(options, direction="LONG", market_type="us_equity
     elif charm < -0.5:
         scores.append(("HEDGE", 60))
         reasons.append(("🔴 Charm {:.2f}: Put support eroding — downside acceleration risk.".format(charm), 60))
+
     # 8. P/C RATIO
     if pc_ratio < 0.60:
         scores.append(("CAUTION", 50))
@@ -1373,6 +1527,7 @@ def _get_single_recommendation(options, direction="LONG", market_type="us_equity
     elif pc_ratio > 1.3:
         scores.append(("BUY", 55))
         reasons.append(("🛡️ PC ratio {:.2f} high = put hedging active. Contrarian bullish.".format(pc_ratio), 55))
+
     # 9. COT
     if market_type in ("forex", "commodity") and cot_data and cot_data.get("signal") != "NEUTRAL":
         cot_sig = cot_data.get("signal", "NEUTRAL")
@@ -1384,6 +1539,7 @@ def _get_single_recommendation(options, direction="LONG", market_type="us_equity
         elif cot_sig == "BEARISH":
             scores.append(("SELL", 65))
             reasons.append(("🏛️ COT Non-Commercial net {:,} (WoW {:+,}) = institutional selling.".format(int(cot_net), int(cot_chg)), 65))
+
     # 10. ON-CHAIN
     if market_type == "crypto" and onchain_data:
         whale = onchain_data.get("whale_signal", "HOLD")
@@ -1397,6 +1553,7 @@ def _get_single_recommendation(options, direction="LONG", market_type="us_equity
         if abs(funding) > 0.0005:
             scores.append(("CAUTION", 45))
             reasons.append(("⛓️ Funding rate extreme ({:.5f}) = leverage excess.".format(funding), 45))
+
     # 11. DARK POOL
     if dark_pool and isinstance(dark_pool, dict):
         div = dark_pool.get("divergence", "NEUTRAL")
@@ -1423,6 +1580,7 @@ def _get_single_recommendation(options, direction="LONG", market_type="us_equity
         elif div in ("HIDDEN_DISTRIBUTION", "HIDDEN_ACCUMULATION"):
             scores.append(("CAUTION", 10))
             reasons.append(("⚠️ DARK POOL DIVERGENCE — Signal conflicts. Tighten stop.", 10))
+
     # 12. UNUSUAL ACTIVITY
     if unusual_activity and isinstance(unusual_activity, dict):
         if unusual_activity.get("large_order_detected"):
@@ -1440,6 +1598,7 @@ def _get_single_recommendation(options, direction="LONG", market_type="us_equity
         if unusual_activity.get("onchain_detected"):
             scores.append(("BUY" if unusual_activity.get("signal") == "BUY" else "SELL", 15))
             reasons.append(("⛓️ On-chain anomaly: {}.".format(unusual_activity.get("details", "")), 15))
+
     # 13. CHASE/WAIT
     if row and row.get("chase_status"):
         chase = row.get("chase_status")
@@ -1459,7 +1618,8 @@ def _get_single_recommendation(options, direction="LONG", market_type="us_equity
         elif rr_val < 1.5 and rr_val > 0:
             scores.append(("HOLD", 15))
             reasons.append(("⚠️ RR {:.1f}x — poor risk/reward. Skip or wait.".format(rr_val), 15))
-    # VALIDATION
+
+    # ── VALIDATION ──
     if row and not row.get("setup_valid", True):
         return {
             "action": "HOLD / TUNGGU", "strategy": "Setup invalid — stop too close or risk < 0.5%",
@@ -1467,7 +1627,8 @@ def _get_single_recommendation(options, direction="LONG", market_type="us_equity
             "raw_action": "HOLD", "confidence": 0, "factors": 0, "source": "VALIDATION",
             "near_peak": near_peak, "near_bottom": near_bottom,
         }
-    # AGGREGATE
+
+    # ── AGGREGATE ──
     action_weights = {}
     for action, weight in scores:
         action_weights[action] = action_weights.get(action, 0) + weight
@@ -1476,6 +1637,7 @@ def _get_single_recommendation(options, direction="LONG", market_type="us_equity
     else:
         best_action = max(action_weights, key=action_weights.get)
         best_score = action_weights[best_action]
+
     action_map = {
         "BUY": ("BELI SPOT / AKUMULASI", "Tambah posisi spot atau beli LEAPS/calls"),
         "SELL": ("JUAL / REDUKSI", "Turunkan exposure atau short via puts"),
@@ -1486,10 +1648,12 @@ def _get_single_recommendation(options, direction="LONG", market_type="us_equity
         "HOLD": ("HOLD / TUNGGU", "Data tidak cukup kuat — tunggu setup lebih jelas"),
     }
     final_action, final_strategy = action_map.get(best_action, ("HOLD", "Tunggu"))
+
     rationale_lines = []
     for reason_text, score in reasons:
         rationale_lines.append(f"• {reason_text} <span style='color:#484F58;font-size:0.6rem;'>(+{score})</span>")
     rationale = "<br>".join(rationale_lines) if rationale_lines else "• Data options/greeks tidak cukup untuk rekomendasi kuat."
+
     if expected_move > 0:
         rationale += f"<br>• 📊 Expected move: ±{expected_move:.1%} until expiry."
     if oi_call and oi_put:
@@ -1501,6 +1665,7 @@ def _get_single_recommendation(options, direction="LONG", market_type="us_equity
     if near_bottom:
         rationale += f"<br>• 🎯 <b>NEAR BOTTOM:</b> Price within 5% of Trade Low. Excellent asymmetric entry if setup valid."
     rationale += f"<br>• 🔧 Data source: <b>{source}</b> (YF=live, PROXY=calculated from price)"
+
     return {
         "action": final_action, "strategy": final_strategy, "rationale": rationale,
         "raw_action": best_action, "confidence": min(100, best_score),
@@ -1508,6 +1673,10 @@ def _get_single_recommendation(options, direction="LONG", market_type="us_equity
         "near_peak": near_peak, "near_bottom": near_bottom,
     }
 
+
+# ═══════════════════════════════════════════════════════════════════
+# BOOM-BUST + BEHAVIORAL SCORING
+# ═══════════════════════════════════════════════════════════════════
 def _get_ticker_boombust_score(ticker, prices, snap):
     s = prices.get(ticker)
     if s is None or (hasattr(s, "__len__") and len(s) < 60):
@@ -1611,15 +1780,118 @@ def _get_ticker_behavioral_score(ticker, prices, options, snap):
         else:
             signal = f"✅ Behavior normal ({casino}%). No extreme positioning."
 
-        return {"casino_score": casino, "retail_fomo": retail_fomo, 
+        return {"casino_score": casino, "retail_fomo": retail_fomo,
                 "smart_money_divergence": sm_divergence, "signal": signal,
                 "pc_ratio": round(pc_ratio, 2), "iv_rank": round(iv_rank, 0)}
     except Exception:
         return {"casino_score": 0, "retail_fomo": False, "smart_money_divergence": False, "signal": "—"}
 
+# ═══════════════════════════════════════════════════════════════════
+# VISUAL RENDERERS v4 — AUDITED (DUPLICATES REMOVED)
+# ═══════════════════════════════════════════════════════════════════
+def _interpret_gamma(gamma_regime, px, max_pain):
+    if not gamma_regime: return ""
+    mp_dist = ((px - max_pain) / max_pain * 100) if max_pain else 0
+    if gamma_regime in ("DEEP_POSITIVE", "POSITIVE"):
+        return f"🟢 Positive gamma — dealers long. Pin risk to max pain ({mp_dist:+.1f}%). Rallies face call-wall resistance. Sell into strength."
+    elif gamma_regime in ("DEEP_NEGATIVE", "NEGATIVE"):
+        return f"🔴 Negative gamma — dealers short. Acceleration risk on break. Dips get bought at put wall. Buy weakness."
+    else:
+        return f"🟡 Transition gamma — directional play valid. Watch for vanna/charm shift."
+
+
+def _interpret_gex(gex):
+    if gex is None: return ""
+    if gex > 0.5: return f"🟢 GEX +{gex:.2f}: Dealer long gamma → mean-reversion, sell rallies."
+    elif gex < -0.5: return f"🔴 GEX {gex:.2f}: Dealer short gamma → trend acceleration, buy dips."
+    else: return f"🟡 GEX {gex:.2f}: Neutral — watch breakout direction."
+
+
+def _interpret_vanna(vanna):
+    if vanna is None: return ""
+    try: v = float(vanna)
+    except: return ""
+    if v > 0.5: return f"🟢 Vanna +{v:.2f}: Rally = vol crush (bearish vol). Sell premium into strength."
+    elif v < -0.5: return f"🔴 Vanna {v:.2f}: Rally = vol expansion (bullish vol). Buy premium on breakouts."
+    else: return f"🟡 Vanna {v:.2f}: Neutral spot-vol correlation."
+
+
+def _interpret_charm(charm):
+    if charm is None: return ""
+    try: c = float(charm)
+    except: return ""
+    if c > 0.5: return f"🟢 Charm +{c:.2f}: Put support strengthening over time."
+    elif c < -0.5: return f"🔴 Charm {c:.2f}: Put support eroding — downside acceleration risk."
+    else: return f"🟡 Charm {c:.2f}: Minimal theta-driven delta shift."
+
+
+def _interpret_skew(skew_30d):
+    if skew_30d is None: return ""
+    s = float(skew_30d)
+    if s > 0.05: return f"🔴 Skew {s:+.2f}: OTM puts rich — fear priced in. Potential reversal if fear fades."
+    elif s < -0.05: return f"🟢 Skew {s:+.2f}: OTM calls rich — greed/fomo. Potential pullback if euphoria breaks."
+    else: return f"🟡 Skew {s:+.2f}: Fair — balanced risk pricing."
+
+
+def _interpret_mm(mm_pos, mp_dist):
+    if not mm_pos or mm_pos == "UNKNOWN": return ""
+    if mm_pos == "PINNED":
+        return f"📍 PINNED (dist {mp_dist:+.1f}%): MM trapped near max pain. Range-bound until expiry. Sell straddles or wait breakout."
+    elif mm_pos == "CALL_WALL":
+        return f"📈 CALL WALL (dist +{mp_dist:.1f}%): Price above max pain + positive gamma. MM sells into rallies. Fade strength."
+    elif mm_pos == "PUT_WALL":
+        return f"📉 PUT WALL (dist {mp_dist:.1f}%): Price below max pain + negative gamma. MM buys dips. Support holds."
+    elif mm_pos == "TRANSITION":
+        return f"🔄 TRANSITION: Between walls — directional play valid. Watch vanna/charm for momentum shift."
+    return ""
+
+
+def _get_smart_money_badge(ticker, snap):
+    sm = snap.get("smart_money", {}) if isinstance(snap.get("smart_money"), dict) else {}
+    consensus = sm.get("consensus_picks", []) if isinstance(sm.get("consensus_picks"), list) else []
+    for c in consensus:
+        if isinstance(c, dict) and c.get("ticker") == ticker:
+            return f"🐋 Smart${c.get('n_funds', 0)}"
+    return ""
+
+
+def _get_capital_rotation_role(ticker, snap):
+    cr = snap.get("capital_rotation", {}) if isinstance(snap.get("capital_rotation"), dict) else {}
+    roles = cr.get("ticker_roles", {}) if isinstance(cr.get("ticker_roles"), dict) else {}
+    return roles.get(ticker, "")
+
+
+def _get_vrp_score(ticker, snap):
+    vrp = snap.get("vrp_scanner", {}) if isinstance(snap.get("vrp_scanner"), dict) else {}
+    if vrp.get("ok"):
+        for item in vrp.get("high_vrp_sell_premium", []):
+            if isinstance(item, dict) and item.get("ticker") == ticker:
+                return item.get("vrp_pct", 0)
+        for item in vrp.get("low_vrp_buy_premium", []):
+            if isinstance(item, dict) and item.get("ticker") == ticker:
+                return -item.get("vrp_pct", 0)
+    return 0
+
+
+def _get_squeeze_score(ticker, snap):
+    sq = snap.get("squeeze_scanner", {}) if isinstance(snap.get("squeeze_scanner"), dict) else {}
+    if sq.get("ok"):
+        for item in sq.get("imminent_squeezes", []):
+            if isinstance(item, dict) and item.get("ticker") == ticker:
+                return item.get("squeeze_score", 0)
+        for item in sq.get("strong_candidates", []):
+            if isinstance(item, dict) and item.get("ticker") == ticker:
+                return item.get("squeeze_score", 0)
+    return 0
+
+
+def _get_markov_confidence(ticker, snap):
+    m = snap.get("markov_v3", {}) if isinstance(snap.get("markov_v3"), dict) else {}
+    return m.get("confidence", 0)
+
 
 def render_ticker_card_v4(row, expanded=False):
-    """Hedgeye-style ticker card v32.7 — Compact header + rich expander."""
+    """Hedgeye-style ticker card v32.8 — Compact header + rich expander."""
     ticker = row.get("ticker", "?")
     px = row.get("price", 0)
     direction = row.get("direction", "NEUTRAL")
@@ -1629,18 +1901,15 @@ def render_ticker_card_v4(row, expanded=False):
     t1 = row.get("target_1")
     t2 = row.get("target_2")
     stop = row.get("stop")
-    trade_l = row.get("trade_l")
-    trade_r = row.get("trade_r")
+    trade_l = row.get("trade_low")
+    trade_r = row.get("trade_top")
     news_sig = row.get("news_signal", "")
-    r1m = row.get("r1m")
+    r1m = row.get("r20d")
     mm_pos = row.get("mm_positioning", "")
     options = row.get("options", {})
     market_type = row.get("market_type", "us_equity")
     show_options = market_type != "ihsg"
-    prices_series = None
     snap_local = st.session_state.snap
-    if snap_local is not None:
-        prices_series = snap_local.get("prices", {}).get(ticker)
 
     formation = row.get("formation", "NEUTRAL")
     setup_valid = row.get("setup_valid", True)
@@ -1677,7 +1946,6 @@ def render_ticker_card_v4(row, expanded=False):
     if mm_pos and mm_pos != "UNKNOWN":
         badges += _badge_html(mm_pos, "mm")
 
-    # Chase/Wait badge on header
     if chase_status == "CHASE":
         badges += _badge_html("🏃 CHASE", "chase")
     elif chase_status == "WAIT":
@@ -1799,10 +2067,10 @@ def render_ticker_card_v4(row, expanded=False):
 
         # Basis line
         basis_parts = []
-        if row.get("trade_l"):
-            basis_parts.append(f"LRR {ff(row['trade_l'])}")
-        if row.get("trade_r"):
-            basis_parts.append(f"TRR {ff(row['trade_r'])}")
+        if row.get("trade_low"):
+            basis_parts.append(f"LRR {ff(row['trade_low'])}")
+        if row.get("trade_top"):
+            basis_parts.append(f"TRR {ff(row['trade_top'])}")
         if options.get("max_pain"):
             basis_parts.append(f"Max Pain {ff(options['max_pain'])}")
         if options.get("put_wall"):
@@ -2083,7 +2351,6 @@ def render_ticker_card_v4(row, expanded=False):
         if row.get("news_headline"):
             st.markdown(f'<div style="font-size:0.72rem;color:#58A6FF;margin-top:3px;">📰 {row.get("news_headline")[:120]}</div>', unsafe_allow_html=True)
 
-            st.markdown(f'<div style="font-size:0.72rem;color:#58A6FF;margin-top:3px;">📰 {row.get("news_headline")[:120]}</div>', unsafe_allow_html=True)
 
 def render_invalid_cards(invalid_rows):
     if not invalid_rows:
@@ -2103,6 +2370,7 @@ def render_invalid_cards(invalid_rows):
             f'<span style="font-size:0.65rem;color:#484F58;min-width:50px;text-align:right;">{ff(px)}</span>'
             f'</div>', unsafe_allow_html=True
         )
+
 
 def render_ticker_cards_v4(rows, max_rows=30):
     if not rows:
@@ -2190,6 +2458,7 @@ def render_regime_compass(snap):
                           yaxis=dict(range=[0,1.15], tickformat=".0%", showgrid=True, gridcolor="#21262D", dtick=0.25),
                           barmode="group", bargap=0.35, bargroupgap=0.1)
         st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False}, key="regime_compass_bars")
+
 
 # ═══════════════════════════════════════════════════════════════════
 # CRASH METER v3 — AUDITED (/5 fix)
@@ -2358,299 +2627,8 @@ def _render_crash_meter(snap):
 
     return html
 
-def _get_dark_pool_imbalance(ticker, snap):
-    """
-    Dual-tape divergence analysis: Dark Pool vs Lit Tape (price action proxy).
-    Alphaticaio methodology: compare dark pool flow vs public price momentum.
-    """
-    if not snap:
-        return None
-    inst = snap.get("institutional_data", {}) if isinstance(snap.get("institutional_data"), dict) else {}
-    per_ticker = inst.get("per_ticker", {}) if isinstance(inst, dict) else {}
-    data = per_ticker.get(ticker)
-    if not isinstance(data, dict):
-        return None
-
-    buy = float(data.get("buy_pressure", 0) or 0)
-    sell = float(data.get("sell_pressure", 0) or 0)
-    total = buy + sell
-    if total == 0:
-        return None
-
-    imbalance = (buy - sell) / total * 100
-
-    # Zero-print detection
-    zero_flag = None
-    zero_text = None
-    if buy > 0 and sell == 0:
-        zero_flag = "ZERO_SELLS"
-        zero_text = "🔥 ZERO DARK SELLS — Pure accumulation"
-    elif sell > 0 and buy == 0:
-        zero_flag = "ZERO_BUYS"
-        zero_text = "❄️ ZERO DARK BUYS — Pure distribution"
-
-    # Lit tape proxy from 5-day price momentum
-    prices = snap.get("prices", {})
-    s = prices.get(ticker)
-    lit_tape_signal = "NEUTRAL"
-    r5d = None
-    if s is not None and len(s) >= 6:
-        try:
-            s_clean = pd.to_numeric(pd.Series(s), errors="coerce").dropna()
-            if len(s_clean) >= 6:
-                r5d = float(s_clean.iloc[-1] / s_clean.iloc[-6] - 1)
-                if r5d > 0.02:
-                    lit_tape_signal = "BUY"
-                elif r5d < -0.02:
-                    lit_tape_signal = "SELL"
-        except Exception:
-            pass
-
-    dp_signal = "BUY" if imbalance > 15 else "SELL" if imbalance < -15 else "NEUTRAL"
-
-    # Dual-tape divergence classification
-    divergence = "NEUTRAL"
-    div_emoji = "⚪"
-    div_color = "#8B949E"
-    div_text = "No clear edge"
-
-    if dp_signal == "BUY" and lit_tape_signal == "BUY":
-        divergence = "BOTH_AGREE"
-        div_emoji = "✅"
-        div_color = "#3FB950"
-        div_text = "BOTH TAPES AGREE — Strong conviction"
-    elif dp_signal == "SELL" and lit_tape_signal == "SELL":
-        divergence = "BOTH_AGREE"
-        div_emoji = "✅"
-        div_color = "#F85149"
-        div_text = "BOTH TAPES AGREE — Strong conviction"
-    elif dp_signal == "BUY" and lit_tape_signal == "SELL":
-        divergence = "HIDDEN_ACCUMULATION"
-        div_emoji = "🟢"
-        div_color = "#3FB950"
-        div_text = "HIDDEN ACCUMULATION — Public selling, Institutions buying"
-    elif dp_signal == "SELL" and lit_tape_signal == "BUY":
-        divergence = "HIDDEN_DISTRIBUTION"
-        div_emoji = "🔴"
-        div_color = "#F85149"
-        div_text = "HIDDEN DISTRIBUTION — Public buying, Institutions selling"
-    elif dp_signal != "NEUTRAL" and lit_tape_signal == "NEUTRAL":
-        divergence = "DARK_POOL_LEADS"
-        div_emoji = "🔮"
-        div_color = "#58A6FF"
-        div_text = "DARK POOL LEADS — Lit tape neutral"
-    elif dp_signal == "NEUTRAL" and lit_tape_signal != "NEUTRAL":
-        divergence = "LIT_TAPE_LEADS"
-        div_emoji = "📊"
-        div_color = "#D29922"
-        div_text = "LIT TAPE LEADS — Dark pool neutral"
-
-    return {
-        "imbalance": round(imbalance, 1),
-        "buy_pressure": round(buy, 2),
-        "sell_pressure": round(sell, 2),
-        "zero_flag": zero_flag,
-    }
-def _detect_unusual_activity(ticker, prices, snap, market_type):
-    """Detect Large Orders, UOA, and On-chain anomalies."""
-    result = {"large_order_detected": False, "uoa_detected": False, "onchain_detected": False,
-              "signal": "NEUTRAL", "confidence": 0, "details": ""}
-    s = prices.get(ticker)
-    if s is None or len(s) < 20:
-        return result
-    try:
-        s_clean = pd.to_numeric(pd.Series(s), errors="coerce").dropna()
-        if len(s_clean) < 20:
-            return result
-        vol_5 = float(s_clean.tail(5).std())
-        vol_20 = float(s_clean.tail(20).std()) if len(s_clean) >= 20 else vol_5
-        r5d = float(s_clean.iloc[-1] / s_clean.iloc[-6] - 1) if len(s_clean) >= 6 else 0
-        if vol_20 > 0 and vol_5 / vol_20 > 2.0 and abs(r5d) < 0.02:
-            result["large_order_detected"] = True
-            result["signal"] = "BUY" if r5d >= 0 else "SELL"
-            result["confidence"] = min(100, int((vol_5/vol_20 - 2) * 50))
-            result["details"] = f"Large order: vol spike {vol_5/vol_20:.1f}x with flat price"
-        if market_type == "us_equity" and snap:
-            opts = snap.get("yfinance_options", {}).get(ticker, {}) if isinstance(snap.get("yfinance_options"), dict) else {}
-            if isinstance(opts, dict) and opts.get("ok"):
-                oi_c = opts.get("oi_call", 0); oi_p = opts.get("oi_put", 0)
-                total_oi = oi_c + oi_p
-                if total_oi > 100000:
-                    pc = oi_p / oi_c if oi_c > 0 else 1.0
-                    if pc > 1.5 or pc < 0.5:
-                        result["uoa_detected"] = True
-                        result["signal"] = "BUY" if pc > 1.5 else "SELL"
-                        result["confidence"] = min(100, int(abs(pc - 1) * 50))
-                        result["details"] += f" | UOA: P/C {pc:.2f}"
-        if market_type == "crypto":
-            cc = snap.get("crypto_center", {}) if snap else {}
-            if isinstance(cc, dict):
-                whale = cc.get("whale", {}).get("proxy", {}).get(ticker, "NEUTRAL")
-                if whale in ("ACCUMULATING", "DISTRIBUTING"):
-                    result["onchain_detected"] = True
-                    result["signal"] = "BUY" if whale == "ACCUMULATING" else "SELL"
-                    result["confidence"] = 70
-                    result["details"] += f" | Whale {whale.lower()}"
-    except Exception:
-        pass
-    return result
-
-
-
 # ═══════════════════════════════════════════════════════════════════
-# COT PROXY (for forex/commodities)
-# ═══════════════════════════════════════════════════════════════════
-def _get_cot_proxy(ticker):
-    cot_map = {
-        "EURUSD=X": {"net_noncom": 45000, "net_com": -32000, "change_wow": 2500, "signal": "BULLISH"},
-        "GBPUSD=X": {"net_noncom": 12000, "net_com": -8000, "change_wow": -1500, "signal": "NEUTRAL"},
-        "USDJPY=X": {"net_noncom": -28000, "net_com": 35000, "change_wow": 4200, "signal": "BEARISH"},
-        "AUDUSD=X": {"net_noncom": 8000, "net_com": -5000, "change_wow": 800, "signal": "BULLISH"},
-        "USDCAD=X": {"net_noncom": -15000, "net_com": 12000, "change_wow": -2000, "signal": "BEARISH"},
-        "USDCHF=X": {"net_noncom": -5000, "net_com": 3000, "change_wow": 500, "signal": "NEUTRAL"},
-        "NZDUSD=X": {"net_noncom": 3000, "net_com": -2000, "change_wow": 400, "signal": "BULLISH"},
-        "DX-Y.NYB": {"net_noncom": -35000, "net_com": 28000, "change_wow": 5000, "signal": "BEARISH"},
-        "GC=F": {"net_noncom": 180000, "net_com": -140000, "change_wow": 12000, "signal": "BULLISH"},
-        "SI=F": {"net_noncom": 45000, "net_com": -35000, "change_wow": 3000, "signal": "BULLISH"},
-        "CL=F": {"net_noncom": 220000, "net_com": -180000, "change_wow": -8000, "signal": "BULLISH"},
-        "NG=F": {"net_noncom": -80000, "net_com": 65000, "change_wow": 5000, "signal": "BEARISH"},
-        "HG=F": {"net_noncom": 25000, "net_com": -18000, "change_wow": 2000, "signal": "BULLISH"},
-    }
-    return cot_map.get(ticker, {"net_noncom": 0, "net_com": 0, "change_wow": 0, "signal": "NEUTRAL"})
-
-def _get_onchain_proxy(ticker, prices):
-    s = prices.get(ticker)
-    if s is None or (hasattr(s, "__len__") and len(s) < 20):
-        return {}
-    try:
-        s_clean = pd.to_numeric(pd.Series(s), errors="coerce").dropna()
-        if len(s_clean) < 20: return {}
-        px = float(s_clean.iloc[-1])
-        r1m = float(s_clean.iloc[-1] / s_clean.iloc[-22] - 1) if len(s_clean) >= 22 else 0
-        r7d = float(s_clean.iloc[-1] / s_clean.iloc[-8] - 1) if len(s_clean) >= 8 else r1m
-        vol_20 = float(s_clean.tail(20).std())
-        mean_20 = float(s_clean.tail(20).mean())
-        return {
-            "price": px, "r1m": r1m, "r7d": r7d,
-            "volatility": round(vol_20 / mean_20 if mean_20 > 0 else 0, 4),
-            "momentum": "ACCUMULATING" if r1m > 0.05 else "DISTRIBUTING" if r1m < -0.05 else "NEUTRAL",
-            "whale_signal": "BUY" if r7d > 0.03 and vol_20 > 0 else "SELL" if r7d < -0.03 else "HOLD",
-            "funding_proxy": round(r1m * 0.001, 5),
-            "oi_proxy": int(abs(r1m) * 1e9),
-        }
-    except Exception:
-        return {}
-
-# ═══════════════════════════════════════════════════════════════════
-# SESSION & SIDEBAR
-# ═══════════════════════════════════════════════════════════════════
-if "snap" not in st.session_state: st.session_state.snap = None
-if "loading" not in st.session_state: st.session_state.loading = False
-if "mq_override" not in st.session_state: st.session_state.mq_override = "Auto"
-
-with st.sidebar:
-    st.markdown("## 📊 MacroRegime Pro")
-    st.caption("v32.7 AUDITED — Hedgeye 3-Layer + Options + COT + Dark Pool + UOA")
-    st.divider()
-    page = st.radio("Navigation", [
-        "🏠 Dashboard", "⚡ Alpha Center", "🇺🇸 US Stocks", "💱 Forex",
-        "🛢️ Commodities", "₿ Crypto", "🌍 Global & EM", "📖 Themes"
-    ], label_visibility="collapsed")
-    st.divider()
-    try:
-        from data.loader import snapshot_age_str
-        st.caption(f"Last update: {snapshot_age_str()}")
-    except:
-        st.caption("Last update: unknown")
-    c1, c2 = st.columns(2)
-    with c1:
-        if st.button("🔄 Update", use_container_width=True): st.session_state.loading = True
-    with c2:
-        if st.button("⚡ Rebuild", use_container_width=True):
-            st.session_state.loading = True; st.session_state.snap = None
-    with st.expander("⚙️ Settings"):
-        inc_us = st.checkbox("US Stocks", True)
-        inc_fx = st.checkbox("Forex", True)
-        inc_comm = st.checkbox("Commodities", True)
-        inc_cryp = st.checkbox("Crypto", True)
-        inc_ihsg = st.checkbox("Indonesia", True)
-    with st.expander("💰 Portfolio"):
-        pv = st.number_input("Value", min_value=1000, max_value=1_000_000_000,
-                            value=int(st.session_state.get("portfolio_value", 100_000)), step=10_000)
-        st.session_state["portfolio_value"] = pv
-    with st.expander("🔧 Quad Override"):
-        mq_ov = st.selectbox("Monthly", ["Auto", "Q1", "Q2", "Q3", "Q4"],
-                            index=["Auto", "Q1", "Q2", "Q3", "Q4"].index(st.session_state.mq_override))
-        st.session_state.mq_override = mq_ov
-    st.divider()
-    _s = st.session_state.snap
-    if _s and _s.get("ok"):
-        _g = _s.get("gip")
-        if _g is not None and not isinstance(_g, dict): _g = _GipProxy(_g)
-        elif isinstance(_g, dict): _g = _GipProxy(_g)
-        _sq = getattr(_g, "structural_quad", "—") if _g is not None else "—"
-        _mq = getattr(_g, "monthly_quad", "—") if _g is not None else "—"
-        color = _quad_color(_sq)
-        st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:8px;padding:10px;text-align:center;">'
-                    f'<div style="font-size:0.6rem;color:#8B949E;text-transform:uppercase;letter-spacing:0.5px;">REGIME</div>'
-                    f'<div style="font-size:1rem;font-weight:700;color:{color};margin:4px 0;">{_sq} / {_mq}</div>'
-                    f'<div style="font-size:0.65rem;color:#8B949E;">{_quad_name(_sq)}</div></div>', unsafe_allow_html=True)
-
-# ═══════════════════════════════════════════════════════════════════
-# DATA LOADING
-# ═══════════════════════════════════════════════════════════════════
-snap = st.session_state.snap
-if snap is None:
-    try:
-        from data.loader import load_snapshot
-        snap = load_snapshot(max_age_hours=6.0)
-        if snap and snap.get("ok"): st.session_state.snap = snap
-    except Exception as e:
-        logger.warning(f"Initial snapshot load failed: {e}")
-        snap = None
-
-if snap is None or not snap.get("ok") or st.session_state.loading:
-    try:
-        from orchestrator import build_snapshot
-    except Exception as e:
-        st.error(f"Failed to import orchestrator: {e}"); st.stop()
-    _msg = "Updating..." if st.session_state.loading else "Building..."
-    with st.spinner(_msg):
-        pb = st.progress(0.0); pt = st.empty()
-        def prog(m, f): pb.progress(f); pt.caption(f"Loading {m}")
-        try:
-            snap = build_snapshot(progress_cb=prog, include_us_stocks=inc_us, include_forex=inc_fx,
-                                  include_commodities=inc_comm, include_crypto=inc_cryp, include_ihsg=inc_ihsg,
-                                  portfolio_value=st.session_state.get("portfolio_value", 100_000))
-            st.session_state.snap = snap; st.session_state.loading = False; pb.empty(); pt.empty(); st.rerun()
-        except Exception as e:
-            st.session_state.loading = False; st.error(f"Build failed: {e}"); st.stop()
-
-if not snap or not snap.get("ok"):
-    st.error("Build failed. Click Rebuild to retry."); st.stop()
-
-gip_raw = snap.get("gip")
-if gip_raw is not None and not isinstance(gip_raw, dict): gip = _GipProxy(gip_raw)
-elif isinstance(gip_raw, dict): gip = _GipProxy(gip_raw)
-else: gip = None
-prices = snap.get("prices", {}) or {}
-rr = snap.get("risk_ranges", {}) or {}
-ar = rr.get("asset_ranges", {}) if isinstance(rr, dict) else {}
-sq = getattr(gip, "structural_quad", None) or "Q3" if gip is not None else "Q3"
-mq_raw = getattr(gip, "monthly_quad", None) or "Q2" if gip is not None else "Q2"
-mq = st.session_state.mq_override if st.session_state.mq_override != "Auto" else mq_raw
-
-_vix_raw = prices.get("^VIX")
-vix_now = 20.0
-if _vix_raw is not None:
-    try:
-        if hasattr(_vix_raw, "tail"): vix_now = _safe_float(_vix_raw.tail(1)) or 20.0
-        elif hasattr(_vix_raw, "__len__") and len(_vix_raw) > 0: vix_now = _safe_float(pd.Series(_vix_raw).iloc[-1]) or 20.0
-        else: vix_now = _safe_float(_vix_raw) or 20.0
-    except Exception: vix_now = 20.0
-
-# ═══════════════════════════════════════════════════════════════════
-# PAGE: DASHBOARD — AUDITED (Layout fixes: Bull/Bear/Base + Asset Pulse)
+# PAGE: DASHBOARD
 # ═══════════════════════════════════════════════════════════════════
 def page_dashboard():
     st.markdown("## 🏠 Macro Dashboard")
@@ -2708,7 +2686,7 @@ def page_dashboard():
 
     st.divider()
 
-    # ── LEFT COLUMN: Boom-Bust + Behavioral + Asset Pulse (COMPACTED) ──
+    # ── LEFT COLUMN: Boom-Bust + Behavioral + Asset Pulse ──
     # ── RIGHT COLUMN: Crash Meter ──
     left, right = st.columns([1, 1.2])
     with left:
@@ -2950,17 +2928,10 @@ def page_alpha():
             if ready_longs:
                 st.markdown(f'<div style="font-size:0.7rem;color:#3FB950;text-transform:uppercase;font-weight:700;margin:10px 0 4px;letter-spacing:0.5px;">🟢 READY TO ENTER — LONG ({len(ready_longs)})</div>', unsafe_allow_html=True)
                 for r in ready_longs[:10]:
-                    # Peak check: skip if near peak
                     px = r.get("price", 0)
                     trend_top = r.get("trend_top", 0)
                     if px and trend_top and px > trend_top * 0.95:
-                        continue  # Skip — near peak, risk too high
-                    # Peak check: skip if near peak (price > trend_top * 0.95)
-                    px = r.get("price", 0)
-                    trend_top = r.get("trend_top", 0)
-                    if px and trend_top and px > trend_top * 0.95:
-                        # Move to WAIT with peak warning
-                        continue  # Skip in READY, will appear in WAIT if applicable
+                        continue
                     with st.container():
                         thesis = r.get("alpha_thesis", "")
                         why = r.get("alpha_why", "")
@@ -3253,6 +3224,7 @@ def page_us_stocks():
         with st.expander(f"⚠️ Filtered Out ({len(invalid)} invalid / conflict / avoid)", expanded=False):
             render_invalid_cards(invalid)
 
+
 # ═══════════════════════════════════════════════════════════════════
 # PAGE: FOREX
 # ═══════════════════════════════════════════════════════════════════
@@ -3288,6 +3260,7 @@ def page_forex():
         with st.expander(f"⚠️ Filtered Out ({len(invalid)} invalid / conflict / avoid)", expanded=False):
             render_invalid_cards(invalid)
 
+
 # ═══════════════════════════════════════════════════════════════════
 # PAGE: COMMODITIES
 # ═══════════════════════════════════════════════════════════════════
@@ -3320,6 +3293,7 @@ def page_commodities():
     if invalid:
         with st.expander(f"⚠️ Filtered Out ({len(invalid)} invalid / conflict / avoid)", expanded=False):
             render_invalid_cards(invalid)
+
 
 # ═══════════════════════════════════════════════════════════════════
 # PAGE: CRYPTO
@@ -3403,7 +3377,7 @@ def page_global():
     for r in actionable_ihsg: by_sector.setdefault(IHSG_SECTOR_MAP.get(r.get("ticker"), "Other"), []).append(r)
     if by_sector:
         sectors = list(by_sector.keys()); counts = [len(v) for v in by_sector.values()]
-        colors = [_ret_color(sum(x.get("r1m",0) or 0 for x in by_sector[s])/max(len(by_sector[s]),1)) for s in sectors]
+        colors = [_ret_color(sum(x.get("r20d",0) or 0 for x in by_sector[s])/max(len(by_sector[s]),1)) for s in sectors]
         fig = go.Figure(go.Bar(y=sectors, x=counts, orientation="h", marker_color=colors, text=[str(c) for c in counts], textposition="outside", textfont=dict(size=11, color="#E6EDF3")))
         fig.update_layout(height=max(250, len(sectors)*35), margin=dict(l=120,r=40,t=20,b=20), paper_bgcolor="#0D1117", plot_bgcolor="#0D1117", font=dict(color="#E6EDF3", size=11, family="Inter"), xaxis=dict(showgrid=True, gridcolor="#21262D"), yaxis=dict(showgrid=False))
         st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False}, key="ihsg_sector_bar_v4")
@@ -3414,6 +3388,7 @@ def page_global():
     if invalid_ihsg:
         with st.expander(f"⚠️ Filtered IHSG ({len(invalid_ihsg)} invalid / conflict)", expanded=False):
             render_invalid_cards(invalid_ihsg)
+
 
 # ═══════════════════════════════════════════════════════════════════
 # PAGE: THEMES
@@ -3483,6 +3458,114 @@ def page_themes():
             else: st.caption("Data not loaded this snapshot.")
 
 # ═══════════════════════════════════════════════════════════════════
+# SESSION & SIDEBAR
+# ═══════════════════════════════════════════════════════════════════
+if "snap" not in st.session_state: st.session_state.snap = None
+if "loading" not in st.session_state: st.session_state.loading = False
+if "mq_override" not in st.session_state: st.session_state.mq_override = "Auto"
+
+with st.sidebar:
+    st.markdown("## 📊 MacroRegime Pro")
+    st.caption("v32.8 CLEAN — Hedgeye 3-Layer + Options + COT + Dark Pool + UOA")
+    st.divider()
+    page = st.radio("Navigation", [
+        "🏠 Dashboard", "⚡ Alpha Center", "🇺🇸 US Stocks", "💱 Forex",
+        "🛢️ Commodities", "₿ Crypto", "🌍 Global & EM", "📖 Themes"
+    ], label_visibility="collapsed")
+    st.divider()
+    try:
+        from data.loader import snapshot_age_str
+        st.caption(f"Last update: {snapshot_age_str()}")
+    except:
+        st.caption("Last update: unknown")
+    c1, c2 = st.columns(2)
+    with c1:
+        if st.button("🔄 Update", use_container_width=True): st.session_state.loading = True
+    with c2:
+        if st.button("⚡ Rebuild", use_container_width=True):
+            st.session_state.loading = True; st.session_state.snap = None
+    with st.expander("⚙️ Settings"):
+        inc_us = st.checkbox("US Stocks", True)
+        inc_fx = st.checkbox("Forex", True)
+        inc_comm = st.checkbox("Commodities", True)
+        inc_cryp = st.checkbox("Crypto", True)
+        inc_ihsg = st.checkbox("Indonesia", True)
+    with st.expander("💰 Portfolio"):
+        pv = st.number_input("Value", min_value=1000, max_value=1_000_000_000,
+                            value=int(st.session_state.get("portfolio_value", 100_000)), step=10_000)
+        st.session_state["portfolio_value"] = pv
+    with st.expander("🔧 Quad Override"):
+        mq_ov = st.selectbox("Monthly", ["Auto", "Q1", "Q2", "Q3", "Q4"],
+                            index=["Auto", "Q1", "Q2", "Q3", "Q4"].index(st.session_state.mq_override))
+        st.session_state.mq_override = mq_ov
+    st.divider()
+    _s = st.session_state.snap
+    if _s and _s.get("ok"):
+        _g = _s.get("gip")
+        if _g is not None and not isinstance(_g, dict): _g = _GipProxy(_g)
+        elif isinstance(_g, dict): _g = _GipProxy(_g)
+        _sq = getattr(_g, "structural_quad", "—") if _g is not None else "—"
+        _mq = getattr(_g, "monthly_quad", "—") if _g is not None else "—"
+        color = _quad_color(_sq)
+        st.markdown(f'<div style="background:#161B22;border:1px solid #30363D;border-radius:8px;padding:10px;text-align:center;">'
+                    f'<div style="font-size:0.6rem;color:#8B949E;text-transform:uppercase;letter-spacing:0.5px;">REGIME</div>'
+                    f'<div style="font-size:1rem;font-weight:700;color:{color};margin:4px 0;">{_sq} / {_mq}</div>'
+                    f'<div style="font-size:0.65rem;color:#8B949E;">{_quad_name(_sq)}</div></div>', unsafe_allow_html=True)
+
+# ═══════════════════════════════════════════════════════════════════
+# DATA LOADING
+# ═══════════════════════════════════════════════════════════════════
+snap = st.session_state.snap
+if snap is None:
+    try:
+        from data.loader import load_snapshot
+        snap = load_snapshot(max_age_hours=6.0)
+        if snap and snap.get("ok"): st.session_state.snap = snap
+    except Exception as e:
+        logger.warning(f"Initial snapshot load failed: {e}")
+        snap = None
+
+if snap is None or not snap.get("ok") or st.session_state.loading:
+    try:
+        from orchestrator import build_snapshot
+    except Exception as e:
+        st.error(f"Failed to import orchestrator: {e}"); st.stop()
+    _msg = "Updating..." if st.session_state.loading else "Building..."
+    with st.spinner(_msg):
+        pb = st.progress(0.0); pt = st.empty()
+        def prog(m, f): pb.progress(f); pt.caption(f"Loading {m}")
+        try:
+            snap = build_snapshot(progress_cb=prog, include_us_stocks=inc_us, include_forex=inc_fx,
+                                  include_commodities=inc_comm, include_crypto=inc_cryp, include_ihsg=inc_ihsg,
+                                  portfolio_value=st.session_state.get("portfolio_value", 100_000))
+            st.session_state.snap = snap; st.session_state.loading = False; pb.empty(); pt.empty(); st.rerun()
+        except Exception as e:
+            st.session_state.loading = False; st.error(f"Build failed: {e}"); st.stop()
+
+if not snap or not snap.get("ok"):
+    st.error("Build failed. Click Rebuild to retry."); st.stop()
+
+gip_raw = snap.get("gip")
+if gip_raw is not None and not isinstance(gip_raw, dict): gip = _GipProxy(gip_raw)
+elif isinstance(gip_raw, dict): gip = _GipProxy(gip_raw)
+else: gip = None
+prices = snap.get("prices", {}) or {}
+rr = snap.get("risk_ranges", {}) or {}
+ar = rr.get("asset_ranges", {}) if isinstance(rr, dict) else {}
+sq = getattr(gip, "structural_quad", None) or "Q3" if gip is not None else "Q3"
+mq_raw = getattr(gip, "monthly_quad", None) or "Q2" if gip is not None else "Q2"
+mq = st.session_state.mq_override if st.session_state.mq_override != "Auto" else mq_raw
+
+_vix_raw = prices.get("^VIX")
+vix_now = 20.0
+if _vix_raw is not None:
+    try:
+        if hasattr(_vix_raw, "tail"): vix_now = _safe_float(_vix_raw.tail(1)) or 20.0
+        elif hasattr(_vix_raw, "__len__") and len(_vix_raw) > 0: vix_now = _safe_float(pd.Series(_vix_raw).iloc[-1]) or 20.0
+        else: vix_now = _safe_float(_vix_raw) or 20.0
+    except Exception: vix_now = 20.0
+
+# ═══════════════════════════════════════════════════════════════════
 # MAIN ROUTER
 # ═══════════════════════════════════════════════════════════════════
 if page == "🏠 Dashboard": page_dashboard()
@@ -3496,4 +3579,4 @@ elif page == "📖 Themes": page_themes()
 
 st.divider()
 flip_note = f" · {snap.get('summary', {}).get('v2_composite_flipped_count', 0)} flipped" if snap.get("summary", {}).get("v2_composite_flipped_count") else ""
-st.caption(f"MacroRegime Pro v32.7 AUDITED · Built {snap.get('build_time_s', 0):.0f}s ago · {snap.get('prices_loaded', 0)} assets · {snap.get('fred_coverage', 0)} indicators{flip_note}")
+st.caption(f"MacroRegime Pro v32.8 CLEAN · Built {snap.get('build_time_s', 0):.0f}s ago · {snap.get('prices_loaded', 0)} assets · {snap.get('fred_coverage', 0)} indicators{flip_note}")

@@ -1,4 +1,4 @@
-"""app.py - MacroRegime Pro v32.8 CLEAN
+"""app.py - MacroRegime Pro v32.9 ATTACHMENT4
 Full reconstruction from v32.7 AUDITED base.
 Fixes:
 - Line corruption eliminated (no mega-lines)
@@ -16,7 +16,7 @@ import json, os
 from datetime import datetime
 
 logger = __import__("logging").getLogger(__name__)
-st.set_page_config(page_title="MacroRegime Pro v32.8", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="MacroRegime Pro v32.9", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
 
 # ═══════════════════════════════════════════════════════════════════
 # CSS
@@ -771,7 +771,7 @@ def _get_dark_pool_for_ticker(ticker, snap):
 # ═══════════════════════════════════════════════════════════════════
 def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None, market_type="us_equity", news=None, snap=None):
     """
-    HEDGEYE-STYLE 3-LAYER RISK RANGE v32.8
+    HEDGEYE-STYLE 3-LAYER RISK RANGE v32.9
     ─────────────────────────────────────────────────────────────────
     [1] HEDGEYE 3-LAYER RISK RANGE (Price, Volume, Volatility)
         TRADE  (3 weeks / 15 days): Immediate-term entries/exits
@@ -1391,13 +1391,13 @@ def _get_onchain_proxy(ticker, prices):
         return {}
 
 # ═══════════════════════════════════════════════════════════════════
-# RECOMMENDATION ENGINE (AUDITED v32.8)
+# RECOMMENDATION ENGINE (AUDITED v32.9)
 # ═══════════════════════════════════════════════════════════════════
 def _get_single_recommendation(options, direction="LONG", market_type="us_equity",
                                cot_data=None, onchain_data=None, ticker="", prices=None, row=None,
                                dark_pool=None, unusual_activity=None):
     """
-    AUDITED RECOMMENDATION ENGINE v32.8 — Hedgeye + Options + COT + Dark Pool + UOA + On-chain
+    AUDITED RECOMMENDATION ENGINE v32.9 — Hedgeye + Options + COT + Dark Pool + UOA + On-chain + IDHL + RC + AFS
     """
     def _safe_num(v, default=0.0):
         if v is None: return default
@@ -1898,7 +1898,7 @@ def _get_markov_confidence(ticker, snap):
 
 
 def render_ticker_card_v4(row, expanded=False):
-    """Hedgeye-style ticker card v32.8 — Compact header + rich expander."""
+    """Hedgeye-style ticker card v32.9 — Compact header + rich expander."""
     ticker = row.get("ticker", "?")
     px = row.get("price", 0)
     direction = row.get("direction", "NEUTRAL")
@@ -4013,7 +4013,7 @@ if "mq_override" not in st.session_state: st.session_state.mq_override = "Auto"
 
 with st.sidebar:
     st.markdown("## 📊 MacroRegime Pro")
-    st.caption("v32.8 CLEAN — Hedgeye 3-Layer + Options + COT + Dark Pool + UOA")
+    st.caption("v32.9 ATTACHMENT4 — Hedgeye 3-Layer + Options + COT + Dark Pool + UOA + IDHL + RC + AFS + WF + Bayesian + Duration HMM + CRI_v2")
     st.divider()
     page = st.radio("Navigation", [
         "🏠 Dashboard", "⚡ Alpha Center", "🇺🇸 US Stocks", "💱 Forex",

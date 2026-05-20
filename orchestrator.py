@@ -1333,18 +1333,28 @@ def _fetch_stablecoin_flows():
     if not _has_requests:
         return {}
     try:
-        r = requests.get("https://api.llama.fi/stablecoins", timeout=15)
+        # Updated endpoint: stablecoins.llama.fi (DeFiLlama stablecoin API v2)
+        r = requests.get("https://stablecoins.llama.fi/stablecoins", timeout=15)
         if r.status_code != 200:
             return {}
         data = r.json()
         total = 0.0
         change_7d = 0.0
-        for pe in data.get("peggedAssets", []):
-            mc = pe.get("circulating", {}).get("peggedUSD", 0) or 0
-            total += float(mc)
-            prev = pe.get("circulatingPrevWeek", {}).get("peggedUSD", 0) or 0
-            if prev:
-                change_7d += (float(mc) - float(prev))
+        # New API format: data -> pepegAssets list
+        pegged_assets = data.get("peggedAssets", []) if isinstance(data, dict) else []
+        for pe in pegged_assets:
+            if not isinstance(pe, dict):
+                continue
+            # circulating -> peggedUSD is the current total
+            circ = pe.get("circulating", {})
+            if isinstance(circ, dict):
+                mc = circ.get("peggedUSD", 0) or 0
+                total += float(mc)
+                # previous week for 7d change
+                prev = pe.get("circulatingPrevWeek", {})
+                if isinstance(prev, dict):
+                    prev_mc = prev.get("peggedUSD", 0) or 0
+                    change_7d += (float(mc) - float(prev_mc))
         return {
             "total_b": round(total / 1e9, 2),
             "change_7d_b": round(change_7d / 1e9, 2),
@@ -1353,6 +1363,7 @@ def _fetch_stablecoin_flows():
     except Exception as e:
         logger.warning(f"Stablecoin fetch failed: {e}")
         return {}
+
 
 def _fetch_crypto_narrative():
     if not _has_requests:

@@ -893,6 +893,7 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
     pos = (px - lrr) / spread if spread > 0 else 0.5
 
     options = _get_options_data(ticker, snap) if snap else {}
+    dark_pool = _get_dark_pool_imbalance(ticker, snap) if snap else None
     mp = options.get("max_pain")
     pw = options.get("put_wall")
     cw = options.get("call_wall")
@@ -1161,6 +1162,7 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
         "markov_ctx": markov_ctx, "behavioral_flag": behavioral_flag,
         "entry_note": note, "setup_note": setup_note,
         "confluence": confluence,
+        "dark_pool": dark_pool,
         "chase_status": chase_status, "chase_color": chase_color, "chase_text": chase_text,
     }
 
@@ -1366,7 +1368,8 @@ def _get_markov_confidence(ticker, snap):
     return m.get("confidence", 0)
 
 def _get_single_recommendation(options, direction="LONG", market_type="us_equity", 
-                              cot_data=None, onchain_data=None, ticker="", prices=None, row=None):
+                              cot_data=None, onchain_data=None, ticker="", prices=None, row=None,
+                              dark_pool=None):
     """
     AUDITED RECOMMENDATION ENGINE v32.4
     ──────────────────────────────────
@@ -1529,6 +1532,38 @@ def _get_single_recommendation(options, direction="LONG", market_type="us_equity
         elif rr_val < 1.5 and rr_val > 0:
             scores.append(("HOLD", 15))
             reasons.append(("⚠️ RR {:.1f}x — poor risk/reward. Skip or wait for better entry.".format(rr_val), 15))
+
+    # 10. DARK POOL IMBALANCE (Alphaticaio methodology)
+    if dark_pool and isinstance(dark_pool, dict):
+        divergence = dark_pool.get("divergence", "NEUTRAL")
+        zero_flag = dark_pool.get("zero_flag")
+        dp_signal = dark_pool.get("dp_signal", "NEUTRAL")
+        lit_tape = dark_pool.get("lit_tape_signal", "NEUTRAL")
+
+        if zero_flag == "ZERO_SELLS" and direction == "LONG":
+            scores.append(("BUY", 25))
+            reasons.append(("🔥 ZERO DARK SELLS — Pure institutional accumulation. No distribution detected.", 25))
+        elif zero_flag == "ZERO_BUYS" and direction == "SHORT":
+            scores.append(("SELL", 25))
+            reasons.append(("❄️ ZERO DARK BUYS — Pure institutional distribution. No buying detected.", 25))
+        elif divergence == "HIDDEN_ACCUMULATION" and direction == "LONG":
+            scores.append(("BUY", 20))
+            reasons.append(("🟢 HIDDEN ACCUMULATION — Public selling, institutions buying stealth via dark pool.", 20))
+        elif divergence == "HIDDEN_DISTRIBUTION" and direction == "SHORT":
+            scores.append(("SELL", 20))
+            reasons.append(("🔴 HIDDEN DISTRIBUTION — Public buying, institutions dumping via dark pool.", 20))
+        elif divergence == "BOTH_AGREE" and direction == "LONG" and dp_signal == "BUY":
+            scores.append(("BUY", 15))
+            reasons.append(("✅ BOTH TAPES AGREE — Dark pool & lit tape both bullish. Strong conviction.", 15))
+        elif divergence == "BOTH_AGREE" and direction == "SHORT" and dp_signal == "SELL":
+            scores.append(("SELL", 15))
+            reasons.append(("✅ BOTH TAPES AGREE — Dark pool & lit tape both bearish. Strong conviction.", 15))
+        elif divergence in ("HIDDEN_DISTRIBUTION", "HIDDEN_ACCUMULATION"):
+            scores.append(("CAUTION", 10))
+            reasons.append(("⚠️ DARK POOL DIVERGENCE — Signal conflicts with setup direction. Tighten stop.", 10))
+        else:
+            scores.append(("HOLD", 5))
+            reasons.append(("🌊 Dark pool neutral — no edge from off-exchange flow.", 5))
 
     # ── SETUP VALIDATION (NEW v32.4.1) ──
     if row and not row.get("setup_valid", True):
@@ -1795,6 +1830,25 @@ def render_ticker_card_v4(row, expanded=False):
     if confluence.get("entry_cluster") and confluence["entry_cluster"].get("count", 0) >= 2:
         badges += _badge_html(f"🔥 Confluence x{confluence['entry_cluster']['count']}", "a")
 
+    # Dark Pool badges
+    dp = row.get("dark_pool")
+    if dp and isinstance(dp, dict):
+        div = dp.get("divergence", "NEUTRAL")
+        if div == "HIDDEN_ACCUMULATION":
+            badges += _badge_html("🟢 Hidden Acc", "long")
+        elif div == "HIDDEN_DISTRIBUTION":
+            badges += _badge_html("🔴 Hidden Dist", "short")
+        elif div == "BOTH_AGREE":
+            dp_sig = dp.get("dp_signal", "")
+            if dp_sig == "BUY":
+                badges += _badge_html("✅ Both Agree", "long")
+            elif dp_sig == "SELL":
+                badges += _badge_html("✅ Both Agree", "short")
+        if dp.get("zero_flag") == "ZERO_SELLS":
+            badges += _badge_html("🔥 Zero Sells", "long")
+        elif dp.get("zero_flag") == "ZERO_BUYS":
+            badges += _badge_html("❄️ Zero Buys", "short")
+
     alpha_src = row.get("alpha_source", "")
     alpha_score = row.get("alpha_score", 0)
     if alpha_src:
@@ -1960,7 +2014,8 @@ def render_ticker_card_v4(row, expanded=False):
             rec = _get_single_recommendation(
                 options, direction=row.get("direction", "LONG"), 
                 market_type=market_type, cot_data=cot_data, 
-                onchain_data=onchain_data, ticker=ticker, row=row
+                onchain_data=onchain_data, ticker=ticker, row=row,
+                dark_pool=row.get("dark_pool")
             )
             rec_color = {"BELI SPOT / AKUMULASI": "#3FB950", "AKUMULASI SPOT": "#3FB950", "BELI CALL / LONG SPOT": "#3FB950",
                          "BELI SPOT + JUAL PUT": "#2EA043", "BELI SPOT": "#3FB950",
@@ -2144,21 +2199,58 @@ def render_ticker_card_v4(row, expanded=False):
                 heat_html += '</div>'
                 st.markdown(heat_html, unsafe_allow_html=True)
 
-        # ── Dark Pool Microstructure ──
+        # ── Dark Pool Microstructure (Alphaticaio-style) ──
         if show_options:
             dp = _get_dark_pool_for_ticker(ticker, snap_local)
-            if dp:
-                dp_color = "#3FB950" if dp.get("side") == "BUY" else "#F85149"
+            dp_imb = _get_dark_pool_imbalance(ticker, snap_local)
+            if dp or dp_imb:
                 dp_html = '<div style="background:#161B22;border:1px solid #30363D;border-radius:8px;padding:10px 12px;margin:6px 0;">'
-                dp_html += '<div style="font-size:0.65rem;color:#58A6FF;text-transform:uppercase;font-weight:600;letter-spacing:0.5px;margin-bottom:6px;">🌊 Dark Pool Print</div>'
-                dp_html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:0.75rem;color:#E6EDF3;margin-bottom:4px;">'
-                dp_html += f'<div>Size<br><b>{dp["size"]:,}</b></div>'
-                dp_html += f'<div>Price<br><b>{ff(dp["price"])}</b></div>'
-                dp_html += f'<div style="text-align:right;">Side<br><span style="color:{dp_color};font-weight:700;">{dp["side"]}</span></div>'
+                dp_html += '<div style="font-size:0.65rem;color:#58A6FF;text-transform:uppercase;font-weight:600;letter-spacing:0.5px;margin-bottom:6px;">🌊 Dark Pool Microstructure</div>'
+
+                # Imbalance gauge
+                if dp_imb:
+                    imb = dp_imb["imbalance"]
+                    imb_color = "#3FB950" if imb > 15 else "#F85149" if imb < -15 else "#8B949E"
+                    imb_pct = max(0, min(100, (imb + 100) / 2))
+                    dp_html += '<div style="margin-bottom:6px;">'
+                    dp_html += '<div style="display:flex;justify-content:space-between;font-size:0.6rem;color:#8B949E;margin-bottom:2px;">'
+                    dp_html += f'<span>Sell {dp_imb["sell_pressure"]}</span><span>Imbalance</span><span>Buy {dp_imb["buy_pressure"]}</span></div>'
+                    dp_html += '<div style="height:8px;background:#21262D;border-radius:4px;overflow:hidden;">'
+                    dp_html += f'<div style="width:{imb_pct:.0f}%;height:100%;background:{imb_color};border-radius:4px;"></div></div>'
+                    dp_html += f'<div style="display:flex;justify-content:space-between;font-size:0.55rem;color:#484F58;margin-top:1px;">'
+                    dp_html += f'<span>-100%</span><span style="color:{imb_color};font-weight:700;">{imb:+.0f}%</span><span>+100%</span></div>'
+                    dp_html += '</div>'
+
+                    # Zero-print flag
+                    if dp_imb.get("zero_text"):
+                        zc = "#F85149" if "ZERO_BUYS" in dp_imb["zero_flag"] else "#3FB950"
+                        dp_html += f'<div style="background:{zc}15;border-left:3px solid {zc};border-radius:4px;padding:4px 8px;margin:4px 0;font-size:0.7rem;color:{zc};font-weight:600;">{dp_imb["zero_text"]}</div>'
+
+                    # Dual-tape divergence
+                    dp_html += f'<div style="background:{dp_imb["div_color"]}12;border:1px solid {dp_imb["div_color"]}35;border-radius:6px;padding:6px 8px;margin:4px 0;">'
+                    dp_html += f'<div style="font-size:0.75rem;color:{dp_imb["div_color"]};font-weight:700;">{dp_imb["div_emoji"]} {dp_imb["div_text"]}</div>'
+                    dp_html += f'<div style="font-size:0.6rem;color:#484F58;margin-top:2px;">Dark Pool: {dp_imb["dp_signal"]} · Lit Tape: {dp_imb["lit_tape_signal"]}</div>'
+                    if dp_imb.get("r5d") is not None:
+                        dp_html += f'<div style="font-size:0.6rem;color:#484F58;">Price 5D: {dp_imb["r5d"]:+.1%}</div>'
+                    dp_html += '</div>'
+
+                # Single print detail
+                if dp:
+                    dp_color = "#3FB950" if dp.get("side") == "BUY" else "#F85149"
+                    dp_html += '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;font-size:0.7rem;color:#E6EDF3;margin-top:6px;padding-top:6px;border-top:1px solid #21262D;">'
+                    dp_html += f'<div>Size<br><b>{dp["size"]:,}</b></div>'
+                    dp_html += f'<div>Price<br><b>{ff(dp["price"])}</b></div>'
+                    dp_html += f'<div style="text-align:right;">Side<br><span style="color:{dp_color};font-weight:700;">{dp["side"]}</span></div>'
+                    dp_html += '</div>'
+                    dp_html += f'<div style="display:flex;justify-content:space-between;font-size:0.55rem;color:#484F58;margin-top:2px;">'
+                    dp_html += f'<span>Amount: ${dp["amount"]:,.0f}</span><span>{dp.get("time","—")} · {dp.get("source","PROXY")}</span></div>'
+
+                # OPEX context
+                days_to_exp = options.get("days_to_expiry")
+                if days_to_exp is not None and days_to_exp <= 5:
+                    dp_html += f'<div style="margin-top:4px;font-size:0.6rem;color:#D29922;">⚠️ OPEX in {days_to_exp} days — dark pool flow may be hedging-related</div>'
+
                 dp_html += '</div>'
-                dp_html += '<div style="display:flex;justify-content:space-between;font-size:0.6rem;color:#484F58;">'
-                dp_html += f'<span>Amount: ${dp["amount"]:,.0f}</span><span>{dp.get("time","—")} · {dp.get("source","PROXY")}</span>'
-                dp_html += '</div></div>'
                 st.markdown(dp_html, unsafe_allow_html=True)
 
         # Skew Curve
@@ -2437,6 +2529,110 @@ def _render_crash_meter(snap):
     html += '</div>'
 
     return html
+
+def _get_dark_pool_imbalance(ticker, snap):
+    """
+    Dual-tape divergence analysis: Dark Pool vs Lit Tape (price action proxy).
+    Alphaticaio methodology: compare dark pool flow vs public price momentum.
+    """
+    if not snap:
+        return None
+    inst = snap.get("institutional_data", {}) if isinstance(snap.get("institutional_data"), dict) else {}
+    per_ticker = inst.get("per_ticker", {}) if isinstance(inst, dict) else {}
+    data = per_ticker.get(ticker)
+    if not isinstance(data, dict):
+        return None
+
+    buy = float(data.get("buy_pressure", 0) or 0)
+    sell = float(data.get("sell_pressure", 0) or 0)
+    total = buy + sell
+    if total == 0:
+        return None
+
+    imbalance = (buy - sell) / total * 100
+
+    # Zero-print detection
+    zero_flag = None
+    zero_text = None
+    if buy > 0 and sell == 0:
+        zero_flag = "ZERO_SELLS"
+        zero_text = "🔥 ZERO DARK SELLS — Pure accumulation"
+    elif sell > 0 and buy == 0:
+        zero_flag = "ZERO_BUYS"
+        zero_text = "❄️ ZERO DARK BUYS — Pure distribution"
+
+    # Lit tape proxy from 5-day price momentum
+    prices = snap.get("prices", {})
+    s = prices.get(ticker)
+    lit_tape_signal = "NEUTRAL"
+    r5d = None
+    if s is not None and len(s) >= 6:
+        try:
+            s_clean = pd.to_numeric(pd.Series(s), errors="coerce").dropna()
+            if len(s_clean) >= 6:
+                r5d = float(s_clean.iloc[-1] / s_clean.iloc[-6] - 1)
+                if r5d > 0.02:
+                    lit_tape_signal = "BUY"
+                elif r5d < -0.02:
+                    lit_tape_signal = "SELL"
+        except Exception:
+            pass
+
+    dp_signal = "BUY" if imbalance > 15 else "SELL" if imbalance < -15 else "NEUTRAL"
+
+    # Dual-tape divergence classification
+    divergence = "NEUTRAL"
+    div_emoji = "⚪"
+    div_color = "#8B949E"
+    div_text = "No clear edge"
+
+    if dp_signal == "BUY" and lit_tape_signal == "BUY":
+        divergence = "BOTH_AGREE"
+        div_emoji = "✅"
+        div_color = "#3FB950"
+        div_text = "BOTH TAPES AGREE — Strong conviction"
+    elif dp_signal == "SELL" and lit_tape_signal == "SELL":
+        divergence = "BOTH_AGREE"
+        div_emoji = "✅"
+        div_color = "#F85149"
+        div_text = "BOTH TAPES AGREE — Strong conviction"
+    elif dp_signal == "BUY" and lit_tape_signal == "SELL":
+        divergence = "HIDDEN_ACCUMULATION"
+        div_emoji = "🟢"
+        div_color = "#3FB950"
+        div_text = "HIDDEN ACCUMULATION — Public selling, Institutions buying"
+    elif dp_signal == "SELL" and lit_tape_signal == "BUY":
+        divergence = "HIDDEN_DISTRIBUTION"
+        div_emoji = "🔴"
+        div_color = "#F85149"
+        div_text = "HIDDEN DISTRIBUTION — Public buying, Institutions selling"
+    elif dp_signal != "NEUTRAL" and lit_tape_signal == "NEUTRAL":
+        divergence = "DARK_POOL_LEADS"
+        div_emoji = "🔮"
+        div_color = "#58A6FF"
+        div_text = "DARK POOL LEADS — Lit tape neutral"
+    elif dp_signal == "NEUTRAL" and lit_tape_signal != "NEUTRAL":
+        divergence = "LIT_TAPE_LEADS"
+        div_emoji = "📊"
+        div_color = "#D29922"
+        div_text = "LIT TAPE LEADS — Dark pool neutral"
+
+    return {
+        "imbalance": round(imbalance, 1),
+        "buy_pressure": round(buy, 2),
+        "sell_pressure": round(sell, 2),
+        "zero_flag": zero_flag,
+        "zero_text": zero_text,
+        "lit_tape_signal": lit_tape_signal,
+        "dp_signal": dp_signal,
+        "divergence": divergence,
+        "div_emoji": div_emoji,
+        "div_color": div_color,
+        "div_text": div_text,
+        "r5d": round(r5d, 4) if r5d is not None else None,
+        "anomaly_score": data.get("anomaly_score", 0),
+    }
+
 
 # ═══════════════════════════════════════════════════════════════════
 # COT PROXY (for forex/commodities)

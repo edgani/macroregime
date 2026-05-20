@@ -1972,6 +1972,31 @@ def render_ticker_card_v4(row, expanded=False):
         if opt_e != 0:
             badges += _badge_html(f"Entry {opt_e:+.1f}%", "wait" if opt_e < 0 else "chase")
 
+    # ── Attachment 4 badges ──
+    # IDHL: signal decay classification
+    idhl = row.get("idhl", 0)
+    if idhl > 0:
+        if idhl < 1.0:
+            badges += _badge_html("🚫 NOISE", "short")
+        elif idhl >= 10.0:
+            badges += _badge_html("📌 STRUCTURAL", "long")
+        else:
+            badges += _badge_html(f"IDHL {idhl:.1f}d", "wait")
+
+    # RC: Reflexivity Coefficient
+    rc_level = row.get("rc_level", "")
+    if rc_level == "HIGH":
+        badges += _badge_html("🚫 SOROS LOOP", "short")
+    elif rc_level == "MEDIUM":
+        badges += _badge_html("⚠️ REFLEX", "wait")
+
+    # Walk-Forward validation
+    wf = row.get("walkforward", {})
+    if wf and wf.get("passes_gate"):
+        badges += _badge_html(f"✅ WF {wf.get('consistency',0):.0%}", "long")
+    elif wf:
+        badges += _badge_html("❌ WF FAIL", "short")
+
     confluence = row.get("confluence", {})
     if confluence.get("entry_cluster") and confluence["entry_cluster"].get("count", 0) >= 2:
         badges += _badge_html(f"🔥 x{confluence['entry_cluster']['count']}", "a")
@@ -2287,6 +2312,13 @@ def render_ticker_card_v4(row, expanded=False):
             setup_note = row.get("setup_note", "")
             st.markdown(f'<div style="font-size:0.7rem;color:#F85149;font-weight:700;margin-bottom:6px;">🚫 {setup_note}</div>', unsafe_allow_html=True)
 
+        # RC override warning
+        rc_override = row.get("rc_override", "")
+        if rc_override:
+            st.markdown(
+                f'<div style="background:#F8514915;border:1px solid #F8514950;border-radius:8px;padding:8px 12px;margin:8px 0;font-size:0.78rem;color:#F85149;font-weight:700;">'
+                f'{rc_override}</div>', unsafe_allow_html=True)
+
         # CHASE/WAIT banner
         if chase_text:
             st.markdown(
@@ -2544,7 +2576,7 @@ def render_ticker_card_v4(row, expanded=False):
 def render_invalid_cards(invalid_rows):
     if not invalid_rows:
         return
-    st.markdown(f'<div style="font-size:0.68rem;color:#8B949E;margin-bottom:4px;">{len(invalid_rows)} setup(s) filtered out — stop too tight, trend conflict, or AVOID</div>', unsafe_allow_html=True)
+    st.markdown(f'<div style="font-size:0.68rem;color:#8B949E;margin-bottom:4px;">{len(invalid_rows)} setup(s) filtered out — stop too tight, trend conflict, walk-forward fail, or AVOID</div>', unsafe_allow_html=True)
     for r in invalid_rows[:15]:
         ticker = r.get("ticker", "?")
         reason = r.get("setup_note", "") or r.get("formation", "") or r.get("chase_text", "") or "Invalid"
@@ -2599,6 +2631,21 @@ def render_regime_compass(snap):
         sq_color = _quad_color(sq); mq_color = _quad_color(mq)
         markov_color = "#58A6FF" if "BULL" in str(markov_regime).upper() else "#F85149" if "BEAR" in str(markov_regime).upper() else "#D29922"
         cp_badge = '<span style="background:#F8514922;color:#F85149;padding:1px 5px;border-radius:4px;font-size:0.6rem;font-weight:700;border:1px solid #F85149;margin-left:6px;">⚠ CP</span>' if cp_alert else ""
+
+        # Duration-Dependent HMM (Attachment 4)
+        dur_hmm = snap.get("duration_hmm", {}).get("SPY", {}) if isinstance(snap.get("duration_hmm"), dict) else {}
+        if dur_hmm:
+            dur_reg = dur_hmm.get("current_regime", "—")
+            dur_conf = dur_hmm.get("confidence", 0)
+            dur_dur = dur_hmm.get("duration", 0)
+            dur_trans = dur_hmm.get("transition_prob", 0)
+            dur_color = "#3FB950" if dur_reg == "BULL" else "#F85149" if dur_reg == "BEAR" else "#D29922"
+            st.markdown(
+                f'<div style="margin-top:6px;padding:6px 8px;background:#0D1117;border-radius:6px;border-left:3px solid {dur_color};">'
+                f'<div style="font-size:0.6rem;color:#8B949E;text-transform:uppercase;font-weight:600;">Duration HMM (SPY)</div>'
+                f'<div style="font-size:0.8rem;color:{dur_color};font-weight:700;">{dur_reg} · Day {dur_dur}</div>'
+                f'<div style="font-size:0.6rem;color:#484F58;">Conf {dur_conf:.0%} · Trans prob {dur_trans:.1%}</div></div>',
+                unsafe_allow_html=True)
         st.markdown(
             f'<div class="compass-container">'
             f'<div style="display:flex;gap:10px;align-items:center;margin-bottom:8px;">'
@@ -2951,6 +2998,20 @@ def page_dashboard():
     with st.expander("🔬 Deep Technical", expanded=False):
         c1, c2 = st.columns(2)
         with c1:
+            st.markdown("**CRI_v2 (Options Velocity)**")
+            cri = snap.get("cri_v2_data", {}) or {}
+            if cri:
+                for t, data in list(cri.items())[:3]:
+                    if isinstance(data, dict):
+                        cri_color = "#F85149" if data.get("velocity") == "EXTREME" else "#D29922" if data.get("velocity") == "HIGH" else "#3FB950"
+                        st.markdown(f'<div style="display:flex;align-items:center;gap:6px;margin:3px 0;">'
+                                    f'<span style="font-size:0.72rem;color:#E6EDF3;min-width:45px;">{t}</span>'
+                                    f'<div class="gauge-track" style="flex:1;height:8px;"><div class="gauge-fill" style="width:{min(100,data.get("cri_v2",0)*100):.0f}%;background:{cri_color};"></div></div>'
+                                    f'<span style="font-size:0.65rem;color:{cri_color};font-weight:700;width:60px;text-align:right;">{data.get("velocity","—")}</span></div>',
+                                    unsafe_allow_html=True)
+            else:
+                st.caption("CRI_v2 unavailable")
+
             st.markdown("**Skew Term**")
             skew = snap.get("skew_term", {}) or {}; skew_data = skew.get("skew_data", {}) if isinstance(skew, dict) else {}
             d30 = d60 = d90 = None
@@ -3018,10 +3079,24 @@ def page_alpha():
     st.markdown("## ⚡ Alpha Center")
 
     summary = snap.get("summary", {}) or {}
-    k1, k2, k3 = st.columns(3)
+    k1, k2, k3, k4 = st.columns(4)
     k1.metric("Smart $ Consensus", summary.get("v7_smart_money_consensus", 0))
     k2.metric("Top Theses", summary.get("v7_top_theses_count", 0))
     k3.metric("Kelly", f"{summary.get('v7_markov_kelly', 0.25):.0%}")
+    # Attachment 4: Bayesian Fusion + Fractional Kelly
+    bayes = snap.get("bayesian_fusion", {})
+    if bayes:
+        k4.metric("Bayesian Fused", f"{bayes.get('fused_signal', 0):.2f}", f"conf {bayes.get('confidence', 0):.0%}")
+    else:
+        k4.metric("Bayesian Fused", "—")
+
+    # Fractional Kelly positions
+    fk = snap.get("fractional_kelly", {})
+    if fk and fk.get("positions"):
+        st.markdown(f'<div style="font-size:0.7rem;color:#8B949E;margin:4px 0;">'
+                    f'Fractional Kelly: <b style="color:#3FB950;">{len(fk["positions"])}</b> positions · '
+                    f'Exposure <b style="color:#D29922;">{fk.get("total_exposure", 0):.1%}</b></div>',
+                    unsafe_allow_html=True)
 
     st.divider()
 
@@ -3658,6 +3733,25 @@ def page_themes():
 def page_portfolio_stress():
     st.markdown("## 📊 Portfolio Stress & Correlation")
 
+    # ── AFS (Anti-Fragility Score) ──
+    afs = snap.get("afs_data", {}) or {}
+    if afs:
+        afs_val = afs.get("afs", 0)
+        afs_color = "#3FB950" if afs_val > 2.0 else "#D29922" if afs_val > 1.0 else "#F85149"
+        afs_label = afs.get("label", "—")
+        st.markdown(
+            f'<div style="background:#161B22;border:1px solid {afs_color}40;border-radius:10px;padding:12px;margin:8px 0;">'
+            f'<div style="display:flex;align-items:center;gap:12px;">'
+            f'<div style="width:48px;height:48px;border-radius:50%;background:{afs_color}15;border:2px solid {afs_color};display:flex;align-items:center;justify-content:center;font-size:1.1rem;font-weight:800;color:{afs_color};">{afs_val:.1f}</div>'
+            f'<div><div style="font-size:0.9rem;font-weight:700;color:{afs_color};">{afs_label}</div>'
+            f'<div style="font-size:0.7rem;color:#8B949E;margin-top:2px;">{afs.get("advice","—")}</div></div></div>'
+            f'<div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;font-size:0.6rem;color:#8B949E;">'
+            f'<div>Convexity<br><b style="color:#E6EDF3;">{afs.get("components",{}).get("positive_convexity",0):.2f}</b></div>'
+            f'<div>Diversity<br><b style="color:#E6EDF3;">{afs.get("components",{}).get("regime_diversity",0):.2f}</b></div>'
+            f'<div>Liquidity<br><b style="color:#E6EDF3;">{afs.get("components",{}).get("liquidity_buffer",0):.0%}</b></div>'
+            f'<div>Correlation<br><b style="color:#E6EDF3;">{afs.get("components",{}).get("correlation_concentration",0):.2f}</b></div>'
+            f'</div></div>', unsafe_allow_html=True)
+
     # ── Portfolio Simulation Summary ──
     port = snap.get("portfolio_stress", {}) or {}
     if port and port.get("ok"):
@@ -4033,4 +4127,4 @@ elif page == "📊 Portfolio Stress": page_portfolio_stress()
 
 st.divider()
 flip_note = f" · {snap.get('summary', {}).get('v2_composite_flipped_count', 0)} flipped" if snap.get("summary", {}).get("v2_composite_flipped_count") else ""
-st.caption(f"MacroRegime Pro v32.8 CLEAN · Built {snap.get('build_time_s', 0):.0f}s ago · {snap.get('prices_loaded', 0)} assets · {snap.get('fred_coverage', 0)} indicators{flip_note}")
+st.caption(f"MacroRegime Pro v32.9 ATTACHMENT4 · Built {snap.get('build_time_s', 0):.0f}s ago · {snap.get('prices_loaded', 0)} assets · {snap.get('fred_coverage', 0)} indicators · AFS {snap.get('summary',{}).get('v32_afs',0):.1f}{flip_note}")

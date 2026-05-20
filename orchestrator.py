@@ -569,6 +569,22 @@ logger.info(
     f"schadner={_V11_SCHADNER}"
 )
 
+# ═══════════════════════════════════════════════════════════════════════
+# ATTACHMENT 4: New Engines — Walk-Forward, IDHL, RC, AFS, Fractional Kelly,
+# Bayesian Fusion, Duration-Dependent HMM, CRI_v2
+# ═══════════════════════════════════════════════════════════════════════
+try:
+    from engines.integrator_guide import enhance_snapshot, get_enhanced_summary
+    _V32_INTEGRATOR = True
+except Exception as e:
+    logger.error(f"Failed to import integrator_guide: {e}")
+    _V32_INTEGRATOR = False
+    def enhance_snapshot(snap, prices, portfolio_value=100_000): return snap
+    def get_enhanced_summary(snap): return snap.get("summary", {})
+
+logger.info(f"V32 (Attachment 4) integrator loaded: {_V32_INTEGRATOR}")
+
+
 
 logger.info(
     "V2 engines loaded: "
@@ -1616,6 +1632,15 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         "simulation_summary": {},
         "portfolio_stress": {},
         "options_pnl_simulator": {},
+        # Attachment 4
+        "idhl_data": {},
+        "rc_data": {},
+        "afs_data": {},
+        "walkforward_results": {},
+        "fractional_kelly": {},
+        "bayesian_fusion": {},
+        "duration_hmm": {},
+        "cri_v2_data": {},
     }
 
     try:
@@ -2967,6 +2992,18 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             logger.warning(f"Narrative engine failed: {e}")
             result["narrative"] = {}
 
+        # ── ATTACHMENT 4: Enhance snapshot with 8 new engines ──
+        _safe_progress(progress_cb, "Running Attachment 4 engine integration...", 0.999)
+        if _V32_INTEGRATOR:
+            try:
+                pv = float(kwargs.get("portfolio_value", 100_000) or 100_000)
+                result = enhance_snapshot(result, prices, portfolio_value=pv)
+                result["summary"] = get_enhanced_summary(result)
+                logger.info("Attachment 4 integration complete")
+            except Exception as e:
+                logger.warning(f"Attachment 4 integration failed: {e}")
+                result["errors"].append(f"attachment4: {e}")
+
         # ---- Summary ----
         result["summary"] = {
             "regime": getattr(gip, "operating_regime", "Unknown"),
@@ -3022,6 +3059,15 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             "v11_volsignals_regimes": len(result.get("volsignals_regime", {})),
             "v11_spotgamma_levels": len(result.get("spotgamma_levels", {})),
             "v11_schadner_validated": len(result.get("schadner_iv", {})),
+            # Attachment 4 (v32)
+            "v32_idhl_avg": result.get("summary", {}).get("v32_idhl_avg", 0),
+            "v32_rc_high_count": result.get("summary", {}).get("v32_rc_high_count", 0),
+            "v32_afs": result.get("summary", {}).get("v32_afs", 0),
+            "v32_afs_label": result.get("summary", {}).get("v32_afs_label", "—"),
+            "v32_wf_passed": result.get("summary", {}).get("v32_wf_passed", 0),
+            "v32_wf_total": result.get("summary", {}).get("v32_wf_total", 0),
+            "v32_kelly_positions": result.get("summary", {}).get("v32_kelly_positions", 0),
+            "v32_bayesian_fused": result.get("summary", {}).get("v32_bayesian_fused", 0),
             # Simulation v27.3
             "v27_sim_total": result.get("simulation_summary", {}).get("total", 0),
             "v27_sim_passed": result.get("simulation_summary", {}).get("passed", 0),
@@ -3151,6 +3197,15 @@ def build_snapshot(
         "simulation_summary": {},
         "portfolio_stress": {},
         "options_pnl_simulator": {},
+        # Attachment 4
+        "idhl_data": {},
+        "rc_data": {},
+        "afs_data": {},
+        "walkforward_results": {},
+        "fractional_kelly": {},
+        "bayesian_fusion": {},
+        "duration_hmm": {},
+        "cri_v2_data": {},
     }
     for key, default_val in defaults.items():
         if key not in result:

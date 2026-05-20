@@ -2004,14 +2004,55 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                         "target_2": item.get("target_2") or (item.get("target_1", 0) * 1.05),
                         "rr": item.get("rr", 0),
                     }
-                # Run batch simulation
+                # Build dark pool map
+                dark_pool_map = {}
+                unusual_map = {}
+                for t in sim_tickers:
+                    # Reconstruct dark pool from row data if available
+                    # For now, use institutional proxy + front_run data
+                    dp = None
+                    inst = result.get("institutional_data", {})
+                    if inst and inst.get("per_ticker") and t in inst.get("per_ticker", {}):
+                        dp_data = inst["per_ticker"][t]
+                        if isinstance(dp_data, dict) and dp_data.get("anomaly_score", 0) > 0.6:
+                            buy = float(dp_data.get("buy_pressure", 0) or 0)
+                            sell = float(dp_data.get("sell_pressure", 0) or 0)
+                            total = buy + sell
+                            imbalance = (buy - sell) / total * 100 if total > 0 else 0
+                            dp = {
+                                "imbalance": round(imbalance, 1),
+                                "buy_pressure": buy,
+                                "sell_pressure": sell,
+                                "dp_signal": "BUY" if imbalance > 15 else "SELL" if imbalance < -15 else "NEUTRAL",
+                                "divergence": "HIDDEN_ACCUMULATION" if imbalance > 15 else "HIDDEN_DISTRIBUTION" if imbalance < -15 else "NEUTRAL",
+                            }
+                    dark_pool_map[t] = dp
+                    # Unusual activity proxy
+                    ua = None
+                    if t in prices:
+                        try:
+                            s = _safe_series(prices[t])
+                            if len(s) >= 20:
+                                vol_5 = float(s.tail(5).std())
+                                vol_20 = float(s.tail(20).std()) if len(s) >= 20 else vol_5
+                                r5d = float(s.iloc[-1] / s.iloc[-6] - 1) if len(s) >= 6 else 0
+                                if vol_20 > 0 and vol_5 / vol_20 > 2.0 and abs(r5d) < 0.02:
+                                    ua = {"large_order_detected": True, "signal": "BUY" if r5d >= 0 else "SELL", "confidence": min(100, int((vol_5/vol_20 - 2) * 50))}
+                        except Exception:
+                            pass
+                    unusual_map[t] = ua
+
+                # Run batch simulation v2.0 (ALL extensions)
                 sim_results = run_simulation_batch(
                     sim_tickers,
                     prices,
                     sim_setups,
                     options_map=result.get("greeks_data"),
+                    dark_pool_map=dark_pool_map,
+                    unusual_map=unusual_map,
                     n_simulations=100,
                     threshold=65.0,
+                    portfolio_value=float(kwargs.get("portfolio_value", 100_000) or 100_000),
                 )
                 result["simulation_results"] = {
                     t: {
@@ -2028,6 +2069,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                         "max_consecutive_losses": r.max_consecutive_losses,
                         "passes_filter": r.passes_filter,
                         "raw_metrics": r.raw_metrics,
+                        "extensions": r.extensions,
                     }
                     for t, r in sim_results.items()
                 }
@@ -2933,6 +2975,9 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             "v27_sim_avg_score": result.get("simulation_summary", {}).get("avg_score", 0),
             "v27_sim_avg_win_rate": result.get("simulation_summary", {}).get("avg_win_rate", 0),
             "v27_sim_avg_exp_return": result.get("simulation_summary", {}).get("avg_exp_return", 0),
+            "v27_sim_avg_kelly": result.get("simulation_summary", {}).get("avg_kelly", 0),
+            "v27_sim_circuit_breakers": result.get("simulation_summary", {}).get("circuit_breakers_triggered", 0),
+            "v27_sim_dp_validated": result.get("simulation_summary", {}).get("dark_pool_validated", 0),
         }
 
         result["ok"] = True

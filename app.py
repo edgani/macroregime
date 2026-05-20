@@ -2110,6 +2110,150 @@ def render_ticker_card_v4(row, expanded=False):
             sim_html += f'</div>'
             st.markdown(sim_html, unsafe_allow_html=True)
 
+        # ── Simulation Extensions v2.0 (ALL-IN-ONE) ──
+        if sim and sim.get("extensions"):
+            ext = sim["extensions"]
+            ext_html = '<div class="ts-panel" style="border-color: #58A6FF30; margin-bottom: 8px;">'
+            ext_html += '<div class="ts-panel-title">🔬 Monte Carlo Extensions v2.0</div>'
+
+            # 1. KELLY SIZING
+            kelly = ext.get("kelly", {})
+            if kelly:
+                kc = "#3FB950" if kelly.get("fraction", 0) >= 0.5 else "#D29922" if kelly.get("fraction", 0) >= 0.25 else "#F85149"
+                ext_html += f'<div style="margin-bottom:6px;padding:5px 8px;background:#0D1117;border-radius:6px;">'
+                ext_html += f'<div style="font-size:0.6rem;color:#8B949E;text-transform:uppercase;font-weight:600;margin-bottom:3px;">💰 Kelly Sizing</div>'
+                ext_html += f'<div style="display:flex;gap:8px;align-items:center;">'
+                ext_html += f'<div style="font-size:0.75rem;color:#E6EDF3;font-weight:700;">{kelly.get("label","—")}</div>'
+                ext_html += f'<div style="flex:1;height:6px;background:#21262D;border-radius:3px;overflow:hidden;"><div style="width:{min(100,kelly.get("portfolio_pct",0)*2):.0f}%;height:100%;background:{kc};border-radius:3px;"></div></div>'
+                ext_html += f'<div style="font-size:0.65rem;color:{kc};font-weight:700;min-width:60px;text-align:right;">{kelly.get("portfolio_pct",0):.1f}% · ${kelly.get("dollar_size",0):,.0f}</div>'
+                ext_html += f'</div>'
+                ext_html += f'<div style="font-size:0.55rem;color:#484F58;margin-top:1px;">Raw Kelly {kelly.get("kelly_raw",0):.2f} · Adjusted {kelly.get("kelly_adjusted",0):.3f}</div>'
+                ext_html += f'</div>'
+
+            # 2. OPTIMAL STOP
+            stop_opt = ext.get("optimal_stop", {})
+            if stop_opt and "best" in stop_opt:
+                best = stop_opt["best"]
+                sc = "#3FB950" if best.get("score",0) >= 70 else "#D29922"
+                ext_html += f'<div style="margin-bottom:6px;padding:5px 8px;background:#0D1117;border-radius:6px;">'
+                ext_html += f'<div style="font-size:0.6rem;color:#8B949E;text-transform:uppercase;font-weight:600;margin-bottom:3px;">🛑 Optimal Stop</div>'
+                ext_html += f'<div style="font-size:0.72rem;color:#E6EDF3;"><b>{best.get("type","FIXED")}</b> · Score {best.get("score",0):.0f}</div>'
+                if best.get("type") == "FIXED":
+                    ext_html += f'<div style="font-size:0.6rem;color:#484F58;">Stop: {ff(best.get("stop"))} ({best.get("adj_pct",0):+.1f}%)</div>'
+                else:
+                    ext_html += f'<div style="font-size:0.6rem;color:#484F58;">ATR × {best.get("atr_mult",2)} trailing</div>'
+                ext_html += f'</div>'
+
+            # 3. ENTRY TIMING
+            timing = ext.get("entry_timing", {})
+            if timing and timing.get("delays"):
+                best_d = timing.get("best_delay_days", 0)
+                tc = "#3FB950" if best_d == 0 else "#D29922"
+                ext_html += f'<div style="margin-bottom:6px;padding:5px 8px;background:#0D1117;border-radius:6px;">'
+                ext_html += f'<div style="font-size:0.6rem;color:#8B949E;text-transform:uppercase;font-weight:600;margin-bottom:3px;">⏱️ Entry Timing</div>'
+                ext_html += f'<div style="font-size:0.72rem;color:{tc};font-weight:700;">{timing.get("recommendation","—")}</div>'
+                if timing.get("expected_improvement",0) != 0:
+                    ext_html += f'<div style="font-size:0.6rem;color:#484F58;">Expected improvement: {timing["expected_improvement"]:+.2f}%</div>'
+                # Mini grid of delays
+                ext_html += f'<div style="display:flex;gap:4px;margin-top:3px;">'
+                for d in timing.get("delays",[])[:6]:
+                    dc = "#3FB950" if d["delay_days"] == best_d else "#484F58"
+                    ext_html += f'<div style="text-align:center;padding:2px 5px;background:#161B22;border-radius:4px;min-width:30px;">'
+                    ext_html += f'<div style="font-size:0.55rem;color:#8B949E;">{d["delay_days"]}d</div>'
+                    ext_html += f'<div style="font-size:0.65rem;color:{dc};font-weight:700;">{d["robustness_score"]:.0f}</div>'
+                    ext_html += f'</div>'
+                ext_html += f'</div>'
+                ext_html += f'</div>'
+
+            # 4. TP SPLIT
+            tp = ext.get("tp_split", {})
+            if tp and tp.get("scenarios"):
+                ext_html += f'<div style="margin-bottom:6px;padding:5px 8px;background:#0D1117;border-radius:6px;">'
+                ext_html += f'<div style="font-size:0.6rem;color:#8B949E;text-transform:uppercase;font-weight:600;margin-bottom:3px;">🎯 Take Profit Split</div>'
+                ext_html += f'<div style="font-size:0.72rem;color:#E6EDF3;font-weight:700;">{tp.get("recommendation","—")}</div>'
+                ext_html += f'<div style="display:flex;gap:4px;margin-top:3px;">'
+                for s in tp.get("scenarios",[]):
+                    sc2 = "#3FB950" if s["tp1_ratio"] == tp.get("best_ratio",0) else "#484F58"
+                    ext_html += f'<div style="text-align:center;padding:2px 5px;background:#161B22;border-radius:4px;min-width:50px;">'
+                    ext_html += f'<div style="font-size:0.55rem;color:#8B949E;">{s["label"][:12]}</div>'
+                    ext_html += f'<div style="font-size:0.65rem;color:{sc2};font-weight:700;">S:{s["sharpe"]:.2f}</div>'
+                    ext_html += f'</div>'
+                ext_html += f'</div>'
+                ext_html += f'</div>'
+
+            # 5. REGIME STRESS
+            stress = ext.get("regime_stress", {})
+            if stress and stress.get("scenarios"):
+                vuln_c = {"HIGH":"#F85149","MEDIUM":"#D29922","LOW":"#3FB950"}.get(stress.get("vulnerability","LOW"),"#3FB950")
+                ext_html += f'<div style="margin-bottom:6px;padding:5px 8px;background:#0D1117;border-radius:6px;">'
+                ext_html += f'<div style="font-size:0.6rem;color:#8B949E;text-transform:uppercase;font-weight:600;margin-bottom:3px;">⚡ Regime Stress Test</div>'
+                ext_html += f'<div style="font-size:0.65rem;color:{vuln_c};font-weight:700;margin-bottom:3px;">Vulnerability: {stress.get("vulnerability","—")}</div>'
+                ext_html += f'<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:3px;">'
+                for name, data in stress.get("scenarios",{}).items():
+                    pc = "#3FB950" if data.get("passes") else "#F85149"
+                    ext_html += f'<div style="text-align:center;padding:3px;background:#161B22;border-radius:4px;">'
+                    ext_html += f'<div style="font-size:0.52rem;color:#8B949E;">{name}</div>'
+                    ext_html += f'<div style="font-size:0.6rem;color:{pc};font-weight:700;">{data.get("robustness_score",0):.0f}</div>'
+                    ext_html += f'</div>'
+                ext_html += f'</div>'
+                ext_html += f'</div>'
+
+            # 6. OPTIONS STRATEGY
+            opts = ext.get("options_strategy", {})
+            if opts and opts.get("best"):
+                best_opt = opts["best"]
+                oc = "#3FB950" if best_opt.get("confidence",0) >= 70 else "#D29922"
+                ext_html += f'<div style="margin-bottom:6px;padding:5px 8px;background:#0D1117;border-radius:6px;">'
+                ext_html += f'<div style="font-size:0.6rem;color:#8B949E;text-transform:uppercase;font-weight:600;margin-bottom:3px;">📐 Options Strategy</div>'
+                ext_html += f'<div style="font-size:0.75rem;color:{oc};font-weight:700;">{best_opt.get("name","—")}</div>'
+                ext_html += f'<div style="font-size:0.6rem;color:#484F58;">{best_opt.get("rationale","—")}</div>'
+                ext_html += f'<div style="margin-top:2px;font-size:0.55rem;color:#8B949E;">Confidence: {best_opt.get("confidence",0):.0f}%</div>'
+                ext_html += f'</div>'
+
+            # 7. HOLDING PERIOD
+            hold = ext.get("holding_period", {})
+            if hold and hold.get("periods"):
+                ext_html += f'<div style="margin-bottom:6px;padding:5px 8px;background:#0D1117;border-radius:6px;">'
+                ext_html += f'<div style="font-size:0.6rem;color:#8B949E;text-transform:uppercase;font-weight:600;margin-bottom:3px;">📅 Holding Period</div>'
+                ext_html += f'<div style="font-size:0.72rem;color:#E6EDF3;font-weight:700;">{hold.get("recommendation","—")}</div>'
+                ext_html += f'<div style="display:flex;gap:4px;margin-top:3px;">'
+                for p in hold.get("periods",[]):
+                    hc = "#3FB950" if p["days"] == hold.get("best_days",0) else "#484F58"
+                    ext_html += f'<div style="text-align:center;padding:2px 5px;background:#161B22;border-radius:4px;min-width:35px;">'
+                    ext_html += f'<div style="font-size:0.55rem;color:#8B949E;">{p["days"]}d</div>'
+                    ext_html += f'<div style="font-size:0.65rem;color:{hc};font-weight:700;">{p["exp_return_per_day"]:+.2f}%</div>'
+                    ext_html += f'</div>'
+                ext_html += f'</div>'
+                ext_html += f'</div>'
+
+            # 8. CIRCUIT BREAKER
+            cb = ext.get("circuit_breaker", {})
+            if cb:
+                cb_c = "#F85149" if cb.get("triggered") else "#3FB950"
+                ext_html += f'<div style="margin-bottom:6px;padding:5px 8px;background:#0D1117;border-radius:6px;">'
+                ext_html += f'<div style="font-size:0.6rem;color:#8B949E;text-transform:uppercase;font-weight:600;margin-bottom:3px;">🚨 Circuit Breaker</div>'
+                ext_html += f'<div style="font-size:0.72rem;color:{cb_c};font-weight:700;">{cb.get("recommendation","—")}</div>'
+                if cb.get("triggered"):
+                    for act in cb.get("actions",[]):
+                        ext_html += f'<div style="font-size:0.6rem;color:#F85149;">• {act}</div>'
+                    ext_html += f'<div style="font-size:0.6rem;color:#D29922;margin-top:2px;">Size multiplier: {cb.get("size_multiplier",1.0)}x · Stop tighten: +{cb.get("stop_tighten_pct",0)}% · Target reduce: -{cb.get("target_reduce_pct",0)}%</div>'
+                ext_html += f'</div>'
+
+            # 9. DARK POOL VALIDATION
+            dpv = ext.get("dark_pool", {})
+            if dpv:
+                dp_c = "#3FB950" if dpv.get("validated") else "#F85149"
+                ext_html += f'<div style="margin-bottom:6px;padding:5px 8px;background:#0D1117;border-radius:6px;">'
+                ext_html += f'<div style="font-size:0.6rem;color:#8B949E;text-transform:uppercase;font-weight:600;margin-bottom:3px;">🌊 Dark Pool Validation</div>'
+                ext_html += f'<div style="font-size:0.72rem;color:{dp_c};font-weight:700;">{dpv.get("recommendation","—")}</div>'
+                ext_html += f'<div style="font-size:0.6rem;color:#8B949E;">Final confidence: <span style="color:#E6EDF3;font-weight:700;">{dpv.get("final_confidence",0):.0f}%</span> (boost {dpv.get("score_boost",0):+.0f})</div>'
+                for ov in dpv.get("overrides",[])[:3]:
+                    ext_html += f'<div style="font-size:0.6rem;color:#484F58;">{ov}</div>'
+                ext_html += f'</div>'
+
+            ext_html += f'</div>'
+            st.markdown(ext_html, unsafe_allow_html=True)
+
         # Basis line
         basis_parts = []
         if row.get("trade_low"):
@@ -2950,7 +3094,7 @@ def page_alpha():
         else:
             st.markdown(f"**{len(alpha_candidates)} candidates** · Bottleneck + Front-Run only · Filter: NOT at peak (price < Trend Top × 0.95)")
             alpha_tickers = [c["ticker"] for c in alpha_candidates if c.get("ticker")]
-    sim_results = snap.get("simulation_results", {}) if isinstance(snap.get("simulation_results"), dict) else {}
+            sim_results = snap.get("simulation_results", {}) if isinstance(snap.get("simulation_results"), dict) else {}
             alpha_rows = build_ticker_rows(alpha_tickers, "us_equity", vix_now, snap.get("gamma_data"), snap.get("greeks_data"), snap.get("news_narratives"), prices=prices, ar=ar, snap=snap, sim_results=sim_results)
             actionable_alpha = filter_actionable(alpha_rows)
             invalid_alpha = filter_invalid(alpha_rows)

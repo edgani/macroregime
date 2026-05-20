@@ -522,6 +522,21 @@ logger.info(
 )
 
 # ═══════════════════════════════════════════════════════════════════════
+# SIMULATION ENGINE (v27.3 NEW)
+# ═══════════════════════════════════════════════════════════════════════
+try:
+    from engines.simulation_engine import run_simulation_batch, get_simulation_summary, filter_by_simulation
+    _V2_SIM = True
+except Exception as e:
+    logger.error(f"Failed to import simulation_engine: {e}")
+    _V2_SIM = False
+    def run_simulation_batch(*a, **k): return {}
+    def get_simulation_summary(*a, **k): return {"total": 0, "passed": 0, "failed": 0, "avg_score": 0}
+    def filter_by_simulation(rows, sim_results, threshold=65, require_pass=True): return rows
+
+logger.info(f"V2 Simulation engine loaded: {_V2_SIM}")
+
+# ═══════════════════════════════════════════════════════════════════════
 # SPRINT 11: VolSignals + SpotGamma + Schadner Integration
 # ═══════════════════════════════════════════════════════════════════════
 try:
@@ -561,7 +576,7 @@ logger.info(
     f"discovery={_V2_DISCOVERY} cem={_V2_CEM} expander={_V2_EXPANDER} "
     f"edgar={_V2_EDGAR} supply={_V2_SUPPLY} gip10={_V2_GIP10} "
     f"composite={_V2_COMPOSITE} risk_setup={_V2_RISK_SETUP} "
-    f"bonds_xau={_V2_BONDS_XAU} classifier={_V2_CLASSIFIER}"
+    f"bonds_xau={_V2_BONDS_XAU} classifier={_V2_CLASSIFIER} simulation={_V2_SIM}"
 )
 logger.info(
     "V7 (Sprint 7) engines loaded: "
@@ -1596,6 +1611,9 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         "afternoon_data": {},
         "volga_data": {},
         "institutional_data": {},
+        # NEW: Simulation v27.3
+        "simulation_results": {},
+        "simulation_summary": {},
     }
 
     try:
@@ -1965,7 +1983,88 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                 "watch": [i for i in alpha_items if i.get("grade") == "C"],
             }
 
-        # ---- Conviction Sizing (Soros) ----
+        # ── SIMULATION LAYER v27.3 ──
+        # Run 100 simulations on all alpha_items + daily_signals candidates
+        _safe_progress(progress_cb, "Running Monte Carlo simulation (100x per ticker)...", 0.82)
+        try:
+            if _V2_SIM and alpha_items:
+                # Build setups dict for simulation
+                sim_setups = {}
+                sim_tickers = []
+                for item in alpha_items:
+                    t = item.get("ticker")
+                    if not t:
+                        continue
+                    sim_tickers.append(t)
+                    sim_setups[t] = {
+                        "direction": item.get("direction", "LONG"),
+                        "entry": item.get("entry") or item.get("price", 0),
+                        "stop": item.get("stop_loss") or (item.get("entry", 0) * 0.95),
+                        "target_1": item.get("target_1") or (item.get("entry", 0) * 1.05),
+                        "target_2": item.get("target_2") or (item.get("target_1", 0) * 1.05),
+                        "rr": item.get("rr", 0),
+                    }
+                # Run batch simulation
+                sim_results = run_simulation_batch(
+                    sim_tickers,
+                    prices,
+                    sim_setups,
+                    options_map=result.get("greeks_data"),
+                    n_simulations=100,
+                    threshold=65.0,
+                )
+                result["simulation_results"] = {
+                    t: {
+                        "win_rate": r.win_rate,
+                        "exp_return_pct": r.exp_return_pct,
+                        "avg_drawdown_pct": r.avg_drawdown_pct,
+                        "sharpe_like": r.sharpe_like,
+                        "robustness_score": r.robustness_score,
+                        "optimal_entry_adj_pct": r.optimal_entry_adj_pct,
+                        "optimal_stop_adj_pct": r.optimal_stop_adj_pct,
+                        "optimal_target_adj_pct": r.optimal_target_adj_pct,
+                        "time_to_win_days": r.time_to_win_days,
+                        "time_to_loss_days": r.time_to_loss_days,
+                        "max_consecutive_losses": r.max_consecutive_losses,
+                        "passes_filter": r.passes_filter,
+                        "raw_metrics": r.raw_metrics,
+                    }
+                    for t, r in sim_results.items()
+                }
+                result["simulation_summary"] = get_simulation_summary(sim_results)
+                logger.info(
+                    f"Simulation complete: {result['simulation_summary']['total']} tickers, "
+                    f"{result['simulation_summary']['passed']} passed, "
+                    f"avg score {result['simulation_summary']['avg_score']:.1f}"
+                )
+                # Filter alpha_items by simulation
+                passed_tickers = {
+                    t for t, r in sim_results.items()
+                    if r.passes_filter
+                }
+                result["alpha_center"]["all"] = [
+                    i for i in result["alpha_center"]["all"]
+                    if i.get("ticker") in passed_tickers
+                ]
+                result["alpha_center"]["level_1"] = [
+                    i for i in result["alpha_center"]["level_1"]
+                    if i.get("ticker") in passed_tickers
+                ]
+                result["alpha_center"]["level_2"] = [
+                    i for i in result["alpha_center"]["level_2"]
+                    if i.get("ticker") in passed_tickers
+                ]
+                result["daily_signals"] = result["alpha_center"]["all"][:20]
+                # Attach simulation metadata to each item
+                for item in result["alpha_center"]["all"]:
+                    t = item.get("ticker")
+                    if t in result["simulation_results"]:
+                        item["simulation"] = result["simulation_results"][t]
+        except Exception as e:
+            logger.warning(f"Simulation layer failed: {e}")
+            result["errors"].append(f"simulation: {e}")
+
+                # ---- Conviction Sizing (Soros) ----
         _safe_progress(progress_cb, "Calculating conviction sizing...", 0.42)
         try:
             sizing = run_sizing(alpha_items, result.get("gamma_data", {}), result.get("greeks_data", {}),
@@ -2828,6 +2927,12 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             "v11_volsignals_regimes": len(result.get("volsignals_regime", {})),
             "v11_spotgamma_levels": len(result.get("spotgamma_levels", {})),
             "v11_schadner_validated": len(result.get("schadner_iv", {})),
+            # Simulation v27.3
+            "v27_sim_total": result.get("simulation_summary", {}).get("total", 0),
+            "v27_sim_passed": result.get("simulation_summary", {}).get("passed", 0),
+            "v27_sim_avg_score": result.get("simulation_summary", {}).get("avg_score", 0),
+            "v27_sim_avg_win_rate": result.get("simulation_summary", {}).get("avg_win_rate", 0),
+            "v27_sim_avg_exp_return": result.get("simulation_summary", {}).get("avg_exp_return", 0),
         }
 
         result["ok"] = True
@@ -2940,6 +3045,8 @@ def build_snapshot(
         "regime_transition": {},
         "news_nlp_v3": {},
         "bottleneck_v3": {},
+        "simulation_results": {},
+        "simulation_summary": {},
     }
     for key, default_val in defaults.items():
         if key not in result:

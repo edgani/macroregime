@@ -182,6 +182,11 @@ hr { margin: 0.4rem 0 !important; opacity: 0.08; border-color: #30363D; }
 # CONFIG & FALLBACKS
 # ═══════════════════════════════════════════════════════════════════
 try:
+    from engines.simulation_engine import filter_by_simulation
+except Exception:
+    def filter_by_simulation(rows, sim_results, threshold=65, require_pass=True): return rows
+
+try:
     from config.settings import (FOREX_PAIRS, COMMODITIES, CRYPTO, IHSG_UNIVERSE,
                                  IHSG_SECTOR_MAP, TICKER_SECTOR, US_SECTORS, US_BUCKETS,
                                  FX_BUCKETS, COMMODITY_BUCKETS, CRYPTO_BUCKETS)
@@ -1159,12 +1164,14 @@ def _build_ihsg_row(ticker, prices, ar, **kwargs):
     return row
 
 
-def build_ticker_rows(tickers, market_type="us_equity", vix_now=20, gamma_data=None, greeks_data=None, news=None, prices=None, ar=None, snap=None):
+def build_ticker_rows(tickers, market_type="us_equity", vix_now=20, gamma_data=None, greeks_data=None, news=None, prices=None, ar=None, snap=None, sim_results=None):
     rows = []
     for t in tickers:
         if market_type == "ihsg": r = _build_ihsg_row(t, prices, ar, snap=snap)
         else: r = _build_row(t, prices, ar, vix_now=vix_now, gamma_data=gamma_data, greeks_data=greeks_data, market_type=market_type, news=news, snap=snap)
         if r: rows.append(r)
+    if sim_results:
+        rows = filter_by_simulation(rows, sim_results, threshold=65, require_pass=True)
     return rows
 
 
@@ -1953,6 +1960,18 @@ def render_ticker_card_v4(row, expanded=False):
     elif chase_status == "AVOID":
         badges += _badge_html("🚫 AVOID", "short")
 
+    # Simulation badges
+    sim = row.get("simulation")
+    if sim:
+        score = sim.get("robustness_score", 0)
+        score_kind = "a" if score >= 80 else "b" if score >= 65 else "c"
+        badges += _badge_html(f"🎲 {score:.0f}", score_kind)
+        if sim.get("win_rate", 0) >= 60:
+            badges += _badge_html(f"WR {sim['win_rate']:.0f}%", "long")
+        opt_e = sim.get("optimal_entry_adj_pct", 0)
+        if opt_e != 0:
+            badges += _badge_html(f"Entry {opt_e:+.1f}%", "wait" if opt_e < 0 else "chase")
+
     confluence = row.get("confluence", {})
     if confluence.get("entry_cluster") and confluence["entry_cluster"].get("count", 0) >= 2:
         badges += _badge_html(f"🔥 x{confluence['entry_cluster']['count']}", "a")
@@ -2064,6 +2083,32 @@ def render_ticker_card_v4(row, expanded=False):
                 f'<div class="alpha-thesis-title">{src_emoji} {alpha_src.replace("_"," ").title()} Thesis</div>'
                 f'<div class="alpha-thesis-sub">{alpha_thesis}</div>'
                 f'</div>', unsafe_allow_html=True)
+
+        # ── Simulation Panel ──
+        sim = row.get("simulation")
+        if sim:
+            score = sim.get("robustness_score", 0)
+            score_c = "#3FB950" if score >= 80 else "#D29922" if score >= 65 else "#F85149"
+            sim_html = f'<div class="ts-panel" style="border-color: {score_c}40; margin-bottom: 8px;">'
+            sim_html += f'<div class="ts-panel-title">🎲 Monte Carlo Simulation (100 runs)</div>'
+            sim_html += f'<div class="ts-grid-4">'
+            sim_html += f'<div class="ts-stat"><div class="ts-stat-label">Robustness</div><div class="ts-stat-value" style="color:{score_c};">{score:.0f}/100</div></div>'
+            sim_html += f'<div class="ts-stat"><div class="ts-stat-label">Win Rate</div><div class="ts-stat-value" style="color:#3FB950;">{sim.get("win_rate",0):.0f}%</div></div>'
+            sim_html += f'<div class="ts-stat"><div class="ts-stat-label">Exp Return</div><div class="ts-stat-value" style="color:#E6EDF3;">{sim.get("exp_return_pct",0):+.1f}%</div></div>'
+            sim_html += f'<div class="ts-stat"><div class="ts-stat-label">Sharpe-like</div><div class="ts-stat-value" style="color:#8B949E;">{sim.get("sharpe_like",0):.2f}</div></div>'
+            sim_html += f'</div>'
+            opt_e = sim.get("optimal_entry_adj_pct", 0)
+            opt_s = sim.get("optimal_stop_adj_pct", 0)
+            opt_t = sim.get("optimal_target_adj_pct", 0)
+            if any(v != 0 for v in [opt_e, opt_s, opt_t]):
+                sim_html += f'<div style="margin-top:6px;font-size:0.68rem;color:#8B949E;">'
+                if opt_e: sim_html += f'🎯 Optimal Entry: <b style="color:#D29922;">{opt_e:+.1f}%</b> · '
+                if opt_s: sim_html += f'Stop: <b>{opt_s:+.1f}%</b> · '
+                if opt_t: sim_html += f'Target: <b>{opt_t:+.1f}%</b>'
+                sim_html += f'</div>'
+            sim_html += f'<div style="margin-top:4px;font-size:0.6rem;color:#484F58;">Max consecutive losses: {sim.get("max_consecutive_losses",0)} · Avg DD: {sim.get("avg_drawdown_pct",0):.1f}% · Time to win: {sim.get("time_to_win_days",0):.1f}d</div>'
+            sim_html += f'</div>'
+            st.markdown(sim_html, unsafe_allow_html=True)
 
         # Basis line
         basis_parts = []
@@ -2905,7 +2950,8 @@ def page_alpha():
         else:
             st.markdown(f"**{len(alpha_candidates)} candidates** · Bottleneck + Front-Run only · Filter: NOT at peak (price < Trend Top × 0.95)")
             alpha_tickers = [c["ticker"] for c in alpha_candidates if c.get("ticker")]
-            alpha_rows = build_ticker_rows(alpha_tickers, "us_equity", vix_now, snap.get("gamma_data"), snap.get("greeks_data"), snap.get("news_narratives"), prices=prices, ar=ar, snap=snap)
+    sim_results = snap.get("simulation_results", {}) if isinstance(snap.get("simulation_results"), dict) else {}
+            alpha_rows = build_ticker_rows(alpha_tickers, "us_equity", vix_now, snap.get("gamma_data"), snap.get("greeks_data"), snap.get("news_narratives"), prices=prices, ar=ar, snap=snap, sim_results=sim_results)
             actionable_alpha = filter_actionable(alpha_rows)
             invalid_alpha = filter_invalid(alpha_rows)
 
@@ -3026,7 +3072,7 @@ def page_alpha():
         fr = snap.get("front_run_candidates", []) or []
         if fr:
             fr_tickers = [item.get("ticker","") for item in fr if isinstance(item, dict) and item.get("ticker")]
-            fr_rows = build_ticker_rows(fr_tickers, "us_equity", vix_now, snap.get("gamma_data"), snap.get("greeks_data"), snap.get("news_narratives"), prices=prices, ar=ar, snap=snap)
+            fr_rows = build_ticker_rows(fr_tickers, "us_equity", vix_now, snap.get("gamma_data"), snap.get("greeks_data"), snap.get("news_narratives"), prices=prices, ar=ar, snap=snap, sim_results=sim_results)
             actionable_fr = filter_actionable(fr_rows)
             invalid_fr = filter_invalid(fr_rows)
             for row in actionable_fr:
@@ -3187,7 +3233,8 @@ def page_us_stocks():
     st.divider()
     st.markdown("### 📊 Index / ETF Setups (SPY · QQQ · IWM · GLD · TLT)")
     key_etfs = ["SPY", "QQQ", "IWM", "GLD", "TLT"]
-    etf_rows = build_ticker_rows(key_etfs, "us_equity", vix_now, snap.get("gamma_data"), snap.get("greeks_data"), snap.get("news_narratives"), prices=prices, ar=ar, snap=snap)
+    sim_results = snap.get("simulation_results", {}) if isinstance(snap.get("simulation_results"), dict) else {}
+    etf_rows = build_ticker_rows(key_etfs, "us_equity", vix_now, snap.get("gamma_data"), snap.get("greeks_data"), snap.get("news_narratives"), prices=prices, ar=ar, snap=snap, sim_results=sim_results)
     etf_actionable = filter_actionable(etf_rows)
     etf_invalid = filter_invalid(etf_rows)
     etf_longs, etf_shorts = split_long_short(etf_actionable)
@@ -3211,7 +3258,7 @@ def page_us_stocks():
     us_tickers = [t for t in us_tickers if t not in key_etfs_set]
     us_tickers = list(dict.fromkeys(us_tickers))
 
-    rows = build_ticker_rows(us_tickers, "us_equity", vix_now, snap.get("gamma_data"), snap.get("greeks_data"), snap.get("news_narratives"), prices=prices, ar=ar, snap=snap)
+    rows = build_ticker_rows(us_tickers, "us_equity", vix_now, snap.get("gamma_data"), snap.get("greeks_data"), snap.get("news_narratives"), prices=prices, ar=ar, snap=snap, sim_results=sim_results)
     actionable = filter_actionable(rows)
     invalid = filter_invalid(rows)
     longs, shorts = split_long_short(actionable)
@@ -3248,7 +3295,8 @@ def page_forex():
     if isinstance(dxy_corr, dict) and (dxy_corr.get("strongest_positive_corr") or dxy_corr.get("strongest_negative_corr")):
         st.divider()
     fx_tickers = list(FOREX_PAIRS.keys()) if FOREX_PAIRS else FALLBACK_FX
-    rows = build_ticker_rows(fx_tickers, "forex", vix_now, snap.get("gamma_data"), snap.get("greeks_data"), snap.get("news_narratives"), prices=prices, ar=ar, snap=snap)
+    sim_results = snap.get("simulation_results", {}) if isinstance(snap.get("simulation_results"), dict) else {}
+    rows = build_ticker_rows(fx_tickers, "forex", vix_now, snap.get("gamma_data"), snap.get("greeks_data"), snap.get("news_narratives"), prices=prices, ar=ar, snap=snap, sim_results=sim_results)
     actionable = filter_actionable(rows)
     invalid = filter_invalid(rows)
     longs, shorts = split_long_short(actionable)
@@ -3282,7 +3330,8 @@ def page_commodities():
         st.markdown("<div style='font-size:0.8rem; line-height:1.5;'>" + (" · ".join(pb["short"]) if pb["short"] else "—") + "</div>", unsafe_allow_html=True)
     st.divider()
     comm_tickers = list(COMMODITIES.keys()) if COMMODITIES else FALLBACK_COMM
-    rows = build_ticker_rows(comm_tickers, "commodity", vix_now, snap.get("gamma_data"), snap.get("greeks_data"), snap.get("news_narratives"), prices=prices, ar=ar, snap=snap)
+    sim_results = snap.get("simulation_results", {}) if isinstance(snap.get("simulation_results"), dict) else {}
+    rows = build_ticker_rows(comm_tickers, "commodity", vix_now, snap.get("gamma_data"), snap.get("greeks_data"), snap.get("news_narratives"), prices=prices, ar=ar, snap=snap, sim_results=sim_results)
     actionable = filter_actionable(rows)
     invalid = filter_invalid(rows)
     longs, shorts = split_long_short(actionable)
@@ -3335,7 +3384,8 @@ def page_crypto():
             st.markdown(f'<div style="margin-top:6px;font-size:0.78rem;color:#8B949E;">Fear & Greed: <span style="color:#E6EDF3;font-weight:700;">{fg.get("value",50)}</span> ({fg.get("label","Neutral")})</div>', unsafe_allow_html=True)
     st.divider()
     crypto_tickers = list(CRYPTO.keys()) if CRYPTO else FALLBACK_CRYPTO
-    rows = build_ticker_rows(crypto_tickers, "crypto", vix_now, snap.get("gamma_data"), snap.get("greeks_data"), snap.get("news_narratives"), prices=prices, ar=ar, snap=snap)
+    sim_results = snap.get("simulation_results", {}) if isinstance(snap.get("simulation_results"), dict) else {}
+    rows = build_ticker_rows(crypto_tickers, "crypto", vix_now, snap.get("gamma_data"), snap.get("greeks_data"), snap.get("news_narratives"), prices=prices, ar=ar, snap=snap, sim_results=sim_results)
     actionable = filter_actionable(rows)
     invalid = filter_invalid(rows)
     longs, shorts = split_long_short(actionable)
@@ -3370,7 +3420,8 @@ def page_global():
     st.divider()
     st.markdown("### 🇮🇩 IHSG Report")
     ihsg_tickers = list(IHSG_UNIVERSE.keys()) if IHSG_UNIVERSE else FALLBACK_IHSG
-    ihsg_rows = build_ticker_rows(ihsg_tickers, "ihsg", vix_now, prices=prices, ar=ar, snap=snap)
+    sim_results = snap.get("simulation_results", {}) if isinstance(snap.get("simulation_results"), dict) else {}
+    ihsg_rows = build_ticker_rows(ihsg_tickers, "ihsg", vix_now, prices=prices, ar=ar, snap=snap, sim_results=sim_results)
     actionable_ihsg = filter_actionable(ihsg_rows)
     invalid_ihsg = filter_invalid(ihsg_rows)
     by_sector = {}

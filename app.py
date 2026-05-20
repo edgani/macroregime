@@ -3653,7 +3653,265 @@ def page_themes():
             else: st.caption("Data not loaded this snapshot.")
 
 # ═══════════════════════════════════════════════════════════════════
+# PAGE: PORTFOLIO STRESS
+# ═══════════════════════════════════════════════════════════════════
+def page_portfolio_stress():
+    st.markdown("## 📊 Portfolio Stress & Correlation")
+
+    # ── Portfolio Simulation Summary ──
+    port = snap.get("portfolio_stress", {}) or {}
+    if port and port.get("ok"):
+        c1, c2, c3, c4, c5 = st.columns(5)
+        with c1:
+            corr = port.get("avg_correlation", 0)
+            corr_c = "#3FB950" if corr < 0.3 else "#D29922" if corr < 0.6 else "#F85149"
+            st.markdown(f'<div class="metric-grid-card">'
+                        f'<div class="metric-grid-title">Avg Correlation</div>'
+                        f'<div class="metric-grid-value" style="color:{corr_c};">{corr:.2f}</div>'
+                        f'<div class="metric-grid-sub">{"LOW" if corr < 0.3 else "MEDIUM" if corr < 0.6 else "HIGH"}</div></div>', unsafe_allow_html=True)
+        with c2:
+            exp_ret = port.get("portfolio_exp_return_pct", 0)
+            st.markdown(f'<div class="metric-grid-card">'
+                        f'<div class="metric-grid-title">Portfolio Exp Return</div>'
+                        f'<div class="metric-grid-value" style="color:{"#3FB950" if exp_ret > 0 else "#F85149"};">{exp_ret:+.1f}%</div></div>', unsafe_allow_html=True)
+        with c3:
+            sharpe = port.get("portfolio_sharpe", 0)
+            st.markdown(f'<div class="metric-grid-card">'
+                        f'<div class="metric-grid-title">Portfolio Sharpe</div>'
+                        f'<div class="metric-grid-value" style="color:{"#3FB950" if sharpe > 1 else "#D29922" if sharpe > 0.5 else "#F85149"};">{sharpe:.2f}</div></div>', unsafe_allow_html=True)
+        with c4:
+            dd = port.get("worst_case_dd_pct", 0)
+            st.markdown(f'<div class="metric-grid-card">'
+                        f'<div class="metric-grid-title">Worst Case DD</div>'
+                        f'<div class="metric-grid-value" style="color:{"#3FB950" if dd > -5 else "#D29922" if dd > -10 else "#F85149"};">{dd:.1f}%</div></div>', unsafe_allow_html=True)
+        with c5:
+            prob_pos = port.get("prob_positive", 0)
+            st.markdown(f'<div class="metric-grid-card">'
+                        f'<div class="metric-grid-title">Prob Positive</div>'
+                        f'<div class="metric-grid-value" style="color:{"#3FB950" if prob_pos > 60 else "#D29922"};">{prob_pos:.0f}%</div></div>', unsafe_allow_html=True)
+
+        st.markdown(f'<div style="font-size:0.7rem;color:#8B949E;margin:8px 0;">'
+                    f'Diversification benefit: <b style="color:{"#3FB950" if port.get("diversification_benefit") == "HIGH" else "#D29922"};">'
+                    f'{port.get("diversification_benefit", "—")}</b> · '
+                    f'{port.get("n_tickers", 0)} tickers simulated with correlated paths</div>', unsafe_allow_html=True)
+    else:
+        st.info("Portfolio stress simulation not available. Run orchestrator with simulation engine enabled.")
+
+    st.divider()
+
+    # ── Correlation Matrix (from prices) ──
+    st.markdown("### 🔗 Correlation Matrix Heatmap")
+
+    # Build correlation matrix from daily returns
+    import numpy as np
+    sim_results = snap.get("simulation_results", {}) or {}
+    passed_tickers = [t for t, r in sim_results.items() if r and r.get("passes_filter")]
+
+    if len(passed_tickers) >= 2:
+        tickers_for_corr = passed_tickers[:20]  # Limit for performance
+        corr_data = {}
+        for t in tickers_for_corr:
+            s = prices.get(t)
+            if s is None or len(s) < 30:
+                continue
+            try:
+                s_clean = pd.to_numeric(pd.Series(s), errors="coerce").dropna()
+                if len(s_clean) >= 30:
+                    corr_data[t] = s_clean.tail(60).pct_change().dropna()
+            except Exception:
+                pass
+
+        if len(corr_data) >= 2:
+            # Build DataFrame
+            df_rets = pd.DataFrame({k: v.values[:min(len(v), 50)] for k, v in corr_data.items()})
+            corr_matrix = df_rets.corr().fillna(0)
+
+            fig = go.Figure(data=go.Heatmap(
+                z=corr_matrix.values,
+                x=corr_matrix.columns,
+                y=corr_matrix.columns,
+                colorscale=[[0, '#F85149'], [0.5, '#21262D'], [1, '#3FB950']],
+                zmid=0,
+                text=[[f'{v:.2f}' for v in row] for row in corr_matrix.values],
+                texttemplate='%{text}',
+                textfont=dict(size=9, color='#E6EDF3'),
+                hovertemplate='%{x} vs %{y}<br>Correlation: %{z:.2f}<extra></extra>',
+            ))
+            fig.update_layout(
+                height=max(400, len(corr_matrix) * 30),
+                paper_bgcolor='#0D1117',
+                plot_bgcolor='#0D1117',
+                font=dict(color='#E6EDF3', size=10, family='Inter'),
+                margin=dict(l=80, r=40, t=30, b=80),
+                xaxis=dict(tickangle=-45),
+            )
+            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False}, key="corr_heatmap_v2")
+
+            # Auto-rebalance signal
+            high_corr_pairs = []
+            for i in range(len(corr_matrix.columns)):
+                for j in range(i+1, len(corr_matrix.columns)):
+                    c = corr_matrix.iloc[i, j]
+                    if c > 0.75:
+                        high_corr_pairs.append((corr_matrix.columns[i], corr_matrix.columns[j], c))
+
+            if high_corr_pairs:
+                st.markdown("### ⚠️ Auto-Rebalance Signals")
+                st.markdown("<div style='font-size:0.7rem;color:#8B949E;margin-bottom:8px;'>Pairs with correlation > 0.75 — diversification at risk. Consider reducing overlap.</div>", unsafe_allow_html=True)
+                for t1, t2, c in sorted(high_corr_pairs, key=lambda x: x[2], reverse=True)[:10]:
+                    st.markdown(
+                        f'<div style="display:flex;align-items:center;gap:10px;padding:6px 10px;background:#161B22;border:1px solid #30363D;border-radius:6px;margin:3px 0;">'
+                        f'<span style="font-size:0.75rem;color:#E6EDF3;font-weight:700;min-width:80px;">{t1}</span>'
+                        f'<span style="font-size:0.65rem;color:#8B949E;">↔</span>'
+                        f'<span style="font-size:0.75rem;color:#E6EDF3;font-weight:700;min-width:80px;">{t2}</span>'
+                        f'<div style="flex:1;height:6px;background:#21262D;border-radius:3px;overflow:hidden;">'
+                        f'<div style="width:{c*100:.0f}%;height:100%;background:#F85149;border-radius:3px;"></div></div>'
+                        f'<span style="font-size:0.7rem;color:#F85149;font-weight:700;min-width:50px;text-align:right;">{c:.2f}</span>'
+                        f'</div>', unsafe_allow_html=True)
+
+                # Rebalance recommendation
+                st.markdown(
+                    f'<div style="background:#F8514915;border-left:3px solid #F85149;border-radius:6px;padding:8px 12px;margin:8px 0;">'
+                    f'<div style="font-size:0.75rem;color:#F85149;font-weight:700;">🔄 REBALANCE RECOMMENDED</div>'
+                    f'<div style="font-size:0.7rem;color:#8B949E;margin-top:3px;">'
+                    f'{len(high_corr_pairs)} high-correlation pairs detected. '
+                    f'Portfolio behaving like {len(high_corr_pairs)//2 + 1} "super-tickers". '
+                    f'Consider: (1) Trim overlapping positions, (2) Add uncorrelated assets (commodities/bonds), '
+                    f'(3) Use options hedges instead of directional overlap.</div></div>', unsafe_allow_html=True)
+            else:
+                st.markdown(
+                    f'<div style="background:#3FB95015;border-left:3px solid #3FB950;border-radius:6px;padding:8px 12px;margin:8px 0;">'
+                    f'<div style="font-size:0.75rem;color:#3FB950;font-weight:700;">✅ DIVERSIFICATION HEALTHY</div>'
+                    f'<div style="font-size:0.7rem;color:#8B949E;margin-top:3px;">No high-correlation pairs detected. Portfolio well-diversified.</div></div>', unsafe_allow_html=True)
+    else:
+        st.caption("Need >= 2 simulation-passed tickers for correlation matrix")
+
+    st.divider()
+
+    # ── Options P&L Simulator Summary ──
+    st.markdown("### 📐 Options P&L Simulator")
+    opts_pnl = snap.get("options_pnl_simulator", {}) or {}
+    if opts_pnl:
+        # Group by strategy type
+        by_strategy = {}
+        for t, data in opts_pnl.items():
+            strat = data.get("strategy", "NO_EDGE")
+            by_strategy.setdefault(strat, []).append({"ticker": t, **data})
+
+        cols = st.columns(3)
+        col_idx = 0
+        for strat, items in by_strategy.items():
+            with cols[col_idx % 3]:
+                strat_color = {"BUY_DIRECTIONAL":"#3FB950","SELL_PREMIUM":"#D29922","CALENDAR_SPREAD":"#58A6FF",
+                               "PUT_SPREAD":"#A371F7","CALL_SPREAD":"#A371F7","NO_EDGE":"#8B949E"}.get(strat, "#8B949E")
+                st.markdown(
+                    f'<div style="background:#161B22;border:1px solid #30363D;border-radius:8px;padding:10px 12px;margin:4px 0;">'
+                    f'<div style="font-size:0.65rem;color:#8B949E;text-transform:uppercase;font-weight:600;margin-bottom:5px;">{strat.replace("_"," ")}</div>'
+                    f'<div style="font-size:1.1rem;color:{strat_color};font-weight:700;">{len(items)} tickers</div>'
+                    f'<div style="font-size:0.6rem;color:#484F58;margin-top:3px;">'
+                    f'{" · ".join([i["ticker"] for i in items[:5]])}{"..." if len(items) > 5 else ""}</div>'
+                    f'</div>', unsafe_allow_html=True)
+            col_idx += 1
+
+        # Detailed table
+        st.markdown("<div style='font-size:0.7rem;color:#8B949E;margin:8px 0;'>Options strategy mapped per ticker based on simulation + greeks</div>", unsafe_allow_html=True)
+        opts_df = []
+        for t, data in opts_pnl.items():
+            opts_df.append({
+                "Ticker": t,
+                "Strategy": data.get("name", "—"),
+                "Confidence": f"{data.get('confidence', 0):.0f}%",
+                "Rationale": data.get("rationale", "")[:80],
+            })
+        if opts_df:
+            st.dataframe(pd.DataFrame(opts_df), use_container_width=True, hide_index=True)
+    else:
+        st.caption("Options P&L simulator not available — run orchestrator with simulation + greeks data")
+
+    st.divider()
+
+    # ── Simulation Summary Dashboard ──
+    st.markdown("### 🎲 Simulation Summary Dashboard")
+    sim_sum = snap.get("simulation_summary", {}) or {}
+    if sim_sum:
+        s1, s2, s3, s4 = st.columns(4)
+        with s1:
+            st.metric("Total Simulated", sim_sum.get("total", 0))
+        with s2:
+            st.metric("Passed Filter", sim_sum.get("passed", 0))
+        with s3:
+            st.metric("Avg Score", f"{sim_sum.get('avg_score', 0):.1f}")
+        with s4:
+            st.metric("Avg Win Rate", f"{sim_sum.get('avg_win_rate', 0):.0f}%")
+
+        # Distribution histogram of robustness scores
+        sim_results = snap.get("simulation_results", {}) or {}
+        scores = [r.get("robustness_score", 0) for r in sim_results.values() if r]
+        if scores:
+            fig = go.Figure()
+            fig.add_trace(go.Histogram(
+                x=scores,
+                nbinsx=20,
+                marker_color='#58A6FF',
+                opacity=0.7,
+                name='Robustness Score',
+            ))
+            fig.add_vline(x=65, line_dash="dash", line_color="#F85149", annotation_text="Threshold 65")
+            fig.update_layout(
+                height=200,
+                paper_bgcolor='#0D1117',
+                plot_bgcolor='#0D1117',
+                font=dict(color='#E6EDF3', size=10, family='Inter'),
+                margin=dict(l=40, r=40, t=20, b=40),
+                xaxis=dict(title='Robustness Score', showgrid=True, gridcolor='#21262D'),
+                yaxis=dict(title='Count', showgrid=True, gridcolor='#21262D'),
+                showlegend=False,
+            )
+            st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False}, key="sim_hist_v2")
+    else:
+        st.caption("Simulation summary not available")
+
+    st.divider()
+
+    # ── Top Simulation-Passed Tickers with Extensions ──
+    st.markdown("### 🏆 Top Simulation-Passed Tickers (with Extensions)")
+    sim_results = snap.get("simulation_results", {}) or {}
+    passed = [(t, r) for t, r in sim_results.items() if r and r.get("passes_filter")]
+    passed.sort(key=lambda x: x[1].get("robustness_score", 0), reverse=True)
+
+    for t, r in passed[:15]:
+        score = r.get("robustness_score", 0)
+        score_c = "#3FB950" if score >= 80 else "#D29922" if score >= 65 else "#F85149"
+        ext = r.get("extensions", {})
+        kelly = ext.get("kelly", {})
+        cb = ext.get("circuit_breaker", {})
+        dpv = ext.get("dark_pool", {})
+        timing = ext.get("entry_timing", {})
+
+        badges = ""
+        if kelly:
+            badges += f'<span style="background:#3FB95022;color:#3FB950;padding:1px 5px;border-radius:4px;font-size:0.55rem;font-weight:700;margin-right:3px;">💰 {kelly.get("label","—")}</span>'
+        if cb and cb.get("triggered"):
+            badges += f'<span style="background:#F8514922;color:#F85149;padding:1px 5px;border-radius:4px;font-size:0.55rem;font-weight:700;margin-right:3px;">🚨 CB</span>'
+        if dpv and dpv.get("validated"):
+            badges += f'<span style="background:#58A6FF22;color:#58A6FF;padding:1px 5px;border-radius:4px;font-size:0.55rem;font-weight:700;margin-right:3px;">🌊 DP OK</span>'
+        if timing and timing.get("best_delay_days", 0) > 0:
+            badges += f'<span style="background:#D2992222;color:#D29922;padding:1px 5px;border-radius:4px;font-size:0.55rem;font-weight:700;margin-right:3px;">⏱️ Wait {timing["best_delay_days"]}d</span>'
+
+        st.markdown(
+            f'<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#161B22;border:1px solid #30363D;border-radius:6px;margin:3px 0;">'
+            f'<span style="font-size:0.85rem;color:#E6EDF3;font-weight:700;min-width:60px;">{t}</span>'
+            f'<div style="flex:1;height:8px;background:#21262D;border-radius:4px;overflow:hidden;">'
+            f'<div style="width:{min(100,score):.0f}%;height:100%;background:{score_c};border-radius:4px;"></div></div>'
+            f'<span style="font-size:0.7rem;color:{score_c};font-weight:700;min-width:35px;text-align:right;">{score:.0f}</span>'
+            f'<span style="font-size:0.65rem;color:#8B949E;min-width:45px;text-align:right;">WR {r.get("win_rate",0):.0f}%</span>'
+            f'<div style="display:flex;gap:2px;flex-wrap:wrap;">{badges}</div>'
+            f'</div>', unsafe_allow_html=True)
+
+
+# ═══════════════════════════════════════════════════════════════════
 # SESSION & SIDEBAR
+
 # ═══════════════════════════════════════════════════════════════════
 if "snap" not in st.session_state: st.session_state.snap = None
 if "loading" not in st.session_state: st.session_state.loading = False
@@ -3665,7 +3923,7 @@ with st.sidebar:
     st.divider()
     page = st.radio("Navigation", [
         "🏠 Dashboard", "⚡ Alpha Center", "🇺🇸 US Stocks", "💱 Forex",
-        "🛢️ Commodities", "₿ Crypto", "🌍 Global & EM", "📖 Themes"
+        "🛢️ Commodities", "₿ Crypto", "🌍 Global & EM", "📖 Themes", "📊 Portfolio Stress"
     ], label_visibility="collapsed")
     st.divider()
     try:
@@ -3771,6 +4029,7 @@ elif page == "🛢️ Commodities": page_commodities()
 elif page == "₿ Crypto": page_crypto()
 elif page == "🌍 Global & EM": page_global()
 elif page == "📖 Themes": page_themes()
+elif page == "📊 Portfolio Stress": page_portfolio_stress()
 
 st.divider()
 flip_note = f" · {snap.get('summary', {}).get('v2_composite_flipped_count', 0)} flipped" if snap.get("summary", {}).get("v2_composite_flipped_count") else ""

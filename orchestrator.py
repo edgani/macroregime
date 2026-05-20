@@ -1614,6 +1614,8 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         # NEW: Simulation v27.3
         "simulation_results": {},
         "simulation_summary": {},
+        "portfolio_stress": {},
+        "options_pnl_simulator": {},
     }
 
     try:
@@ -2102,6 +2104,57 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                     t = item.get("ticker")
                     if t in result["simulation_results"]:
                         item["simulation"] = result["simulation_results"][t]
+
+                # ── PORTFOLIO STRESS SIMULATION v2.0 ──
+                _safe_progress(progress_cb, "Running portfolio correlation stress test...", 0.83)
+                try:
+                    if _V2_SIM and len(passed_tickers) >= 2:
+                        from engines.simulation_engine import run_portfolio_simulation
+                        port_tickers = list(passed_tickers)[:15]  # Top 15 for performance
+                        port_setups = {t: sim_setups[t] for t in port_tickers if t in sim_setups}
+                        if len(port_tickers) >= 2:
+                            port_sim = run_portfolio_simulation(
+                                port_tickers, prices, port_setups, n_sims=50, holding_days=10
+                            )
+                            result["portfolio_stress"] = port_sim
+                            logger.info(
+                                f"Portfolio stress: {port_sim.get('n_tickers',0)} tickers, "
+                                f"corr {port_sim.get('avg_correlation',0):.2f}, "
+                                f"exp ret {port_sim.get('portfolio_exp_return_pct',0):.1f}%, "
+                                f"Sharpe {port_sim.get('portfolio_sharpe',0):.2f}"
+                            )
+                except Exception as e:
+                    logger.warning(f"Portfolio stress failed: {e}")
+                    result["errors"].append(f"portfolio_stress: {e}")
+
+                # ── OPTIONS P&L SIMULATOR ──
+                _safe_progress(progress_cb, "Running options P&L simulator...", 0.835)
+                try:
+                    if _V2_SIM:
+                        from engines.simulation_engine import select_options_strategy
+                        options_pnl = {}
+                        for t in passed_tickers:
+                            sim_res = sim_results.get(t)
+                            if not sim_res:
+                                continue
+                            opts = result.get("greeks_data", {}).get(t, {}) if result.get("greeks_data") else {}
+                            if not opts:
+                                opts = result.get("yfinance_options", {}).get(t, {}) if result.get("yfinance_options") else {}
+                            strat = select_options_strategy(t, sim_res, opts)
+                            if strat and strat.get("best"):
+                                options_pnl[t] = {
+                                    "strategy": strat["best"].get("strategy", "NO_EDGE"),
+                                    "name": strat["best"].get("name", "—"),
+                                    "confidence": strat["best"].get("confidence", 0),
+                                    "rationale": strat["best"].get("rationale", ""),
+                                    "candidates": [c.get("name", "—") for c in strat.get("candidates", [])[:3]],
+                                }
+                        result["options_pnl_simulator"] = options_pnl
+                        logger.info(f"Options P&L simulator: {len(options_pnl)} tickers mapped")
+                except Exception as e:
+                    logger.warning(f"Options P&L simulator failed: {e}")
+                    result["errors"].append(f"options_pnl: {e}")
+
         except Exception as e:
             logger.warning(f"Simulation layer failed: {e}")
             result["errors"].append(f"simulation: {e}")
@@ -2978,6 +3031,10 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             "v27_sim_avg_kelly": result.get("simulation_summary", {}).get("avg_kelly", 0),
             "v27_sim_circuit_breakers": result.get("simulation_summary", {}).get("circuit_breakers_triggered", 0),
             "v27_sim_dp_validated": result.get("simulation_summary", {}).get("dark_pool_validated", 0),
+            "v27_portfolio_corr": result.get("portfolio_stress", {}).get("avg_correlation", 0),
+            "v27_portfolio_sharpe": result.get("portfolio_stress", {}).get("portfolio_sharpe", 0),
+            "v27_portfolio_dd": result.get("portfolio_stress", {}).get("worst_case_dd_pct", 0),
+            "v27_options_mapped": len(result.get("options_pnl_simulator", {})),
         }
 
         result["ok"] = True
@@ -3092,6 +3149,8 @@ def build_snapshot(
         "bottleneck_v3": {},
         "simulation_results": {},
         "simulation_summary": {},
+        "portfolio_stress": {},
+        "options_pnl_simulator": {},
     }
     for key, default_val in defaults.items():
         if key not in result:

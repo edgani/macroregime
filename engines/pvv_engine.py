@@ -9,6 +9,13 @@ Implements:
 PATCH v3.2:
  • analyze_multi now uses ThreadPoolExecutor (8 workers) + hard timeout
    to eliminate 15+ min serial blocking on 174 tickers.
+
+v33 FIXES (P0):
+ • Volume sign convention — volume×price ALIGNMENT now confirms direction
+   (was: vol expansion treated as bearish, conflicting with Keith's #process)
+ • Hurst exponent rewritten to classical R/S (chunks of length `lag` on log
+   returns), replacing subsampling approach. Now matches Mandelbrot/Wallis
+   methodology and produces ~0.5 for random walks per academic literature.
 """
 from __future__ import annotations
 import math
@@ -51,42 +58,81 @@ class PVVEngine:
     @staticmethod
     def _hurst_exponent(prices: pd.Series, max_lag: int = 100) -> float:
         """
-        Rescaled Range (R/S) Hurst exponent.
-        H > 0.5 → trending/persistent
-        H < 0.5 → mean-reverting
-        H ≈ 0.5 → random walk
+        Classical Rescaled Range (R/S) Hurst exponent — v33 REWRITE.
+
+        Method (Mandelbrot/Wallis):
+          1. Compute log returns of full series.
+          2. For each lag n: split series into ⌊N/n⌋ non-overlapping chunks of size n.
+          3. For each chunk: compute mean-adjusted cumulative deviation Z,
+             range R = max(Z) - min(Z), and std S.
+          4. R/S = mean(R/S) across chunks.
+          5. H = slope of log(R/S) vs log(n).
+
+          H > 0.5 → persistent / trending
+          H < 0.5 → mean-reverting
+          H ≈ 0.5 → random walk (geometric Brownian motion)
+
+        OLD v3.2 method used `prices.iloc[::lag]` subsampling which is
+        non-standard and produced systematic bias vs academic literature.
         """
-        prices = pd.to_numeric(prices, errors="coerce").dropna()
-        if len(prices) < max_lag * 2:
+        s = pd.to_numeric(prices, errors="coerce").dropna()
+        if len(s) < max_lag * 2 + 10:
             return 0.5
-        lags = range(2, min(max_lag, len(prices) // 4))
-        tau = []
-        rs_vals = []
-        for lag in lags:
-            # price returns for this lag
-            p = prices.iloc[::lag].dropna()
-            if len(p) < 10:
-                continue
-            rets = p.pct_change().dropna()
-            if len(rets) < 5:
-                continue
-            mean_ret = rets.mean()
-            dev = rets - mean_ret
-            cumdev = dev.cumsum()
-            R = cumdev.max() - cumdev.min()
-            S = rets.std(ddof=1)
-            if S == 0 or not math.isfinite(S):
-                continue
-            rs_vals.append(R / S)
-            tau.append(lag)
-        if len(tau) < 5:
+
+        # Log returns (stationary; classical R/S is computed on returns, not prices)
+        try:
+            log_ret = np.log(s / s.shift(1)).dropna().values
+        except Exception:
             return 0.5
-        log_tau = np.log(tau)
-        log_rs = np.log(rs_vals)
-        # linear regression log(R/S) vs log(lag)
-        slope, _ = np.polyfit(log_tau, log_rs, 1)
-        H = slope
-        return float(np.clip(H, 0.0, 1.0))
+        N = len(log_ret)
+        if N < 40:
+            return 0.5
+
+        # Lag grid: log-spaced for stability
+        min_lag = 10
+        eff_max = min(max_lag, N // 4)
+        if eff_max <= min_lag:
+            return 0.5
+        try:
+            lags = np.unique(np.logspace(
+                np.log10(min_lag), np.log10(eff_max), num=12
+            ).astype(int))
+        except Exception:
+            return 0.5
+
+        rs_means = []
+        valid_lags = []
+        for n in lags:
+            if n < 2 or n > N // 2:
+                continue
+            n_chunks = N // n
+            if n_chunks < 2:
+                continue
+            rs_vals = []
+            for k in range(n_chunks):
+                chunk = log_ret[k * n : (k + 1) * n]
+                mean_c = chunk.mean()
+                Z = np.cumsum(chunk - mean_c)
+                R = Z.max() - Z.min()
+                S = chunk.std(ddof=1)
+                if S > 0 and math.isfinite(S) and math.isfinite(R):
+                    rs_vals.append(R / S)
+            if len(rs_vals) >= 2:
+                rs_means.append(float(np.mean(rs_vals)))
+                valid_lags.append(int(n))
+
+        if len(valid_lags) < 4:
+            return 0.5
+
+        try:
+            log_n = np.log(valid_lags)
+            log_rs = np.log(rs_means)
+            # Linear regression: log(R/S) = H * log(n) + c
+            slope, _ = np.polyfit(log_n, log_rs, 1)
+            H = float(slope)
+            return float(np.clip(H, 0.0, 1.0))
+        except Exception:
+            return 0.5
 
     @staticmethod
     def _fractal_risk_range(price: pd.Series, volume: Optional[pd.Series],
@@ -106,7 +152,7 @@ class PVVEngine:
             base_vol = 0.20
 
         # Hurst scaling: persistent (H>0.5) = wider range, mean-rev (H<0.5) = tighter
-        hurst_adj = 1.0 + (hurst - 0.5) * 0.4 # ±20% scaling
+        hurst_adj = 1.0 + (hurst - 0.5) * 0.4  # ±20% scaling
 
         # PVV momentum adjustment: strong momentum = asymmetric range extension
         pvv_adj = 1.0 + abs(pvv_score) * 0.3
@@ -142,11 +188,16 @@ class PVVEngine:
         # 1. Price ROC
         price_roc = self._roc(price, days)
         p_roc = price_roc.iloc[-1] if len(price_roc) > 0 else 0.0
+        if not math.isfinite(p_roc):
+            p_roc = 0.0
 
         # 2. Volume ROC (if available)
         if volume is not None and len(volume) >= days + 5:
             volume = pd.to_numeric(volume, errors="coerce").dropna()
-            vol_roc = self._roc(volume, days).iloc[-1]
+            vol_roc_series = self._roc(volume, days)
+            vol_roc = vol_roc_series.iloc[-1] if len(vol_roc_series) > 0 else 0.0
+            if not math.isfinite(vol_roc):
+                vol_roc = 0.0
         else:
             vol_roc = 0.0
 
@@ -159,14 +210,28 @@ class PVVEngine:
         # 4. Hurst exponent (fractal dimension proxy)
         hurst = self._hurst_exponent(price, max_lag=min(100, days))
 
-        # 5. PVV composite score (normalized -1 to +1)
-        # Keith: P=price ROC, V=volume ROC, V=vol ROC (vol expansion = negative)
-        vol_roc_norm = -vov_last # vol expansion is bearish signal component
+        # 5. PVV composite score (normalized -1 to +1) — v33 REWRITE
+        # Keith McCullough #process:
+        #   P (price ROC) — primary direction signal
+        #   V (volume ROC) — confirms direction WHEN ALIGNED with price
+        #   V (vol-of-vol) — regime stability; expansion = trend FRAGILITY
+        #
+        # Volume×Price alignment: vol_roc same sign as p_roc → bullish confirmation
+        # Vol-of-vol acts as a DAMPENING factor, not a signed component
+        # High vov (regime unstable) → reduce conviction toward 0
+
+        # Volume-Price confirmation component (signed by p_roc direction)
+        vol_confirm = float(np.sign(p_roc)) * abs(vol_roc) if abs(p_roc) > 1e-6 else 0.0
+
+        # Vol-of-vol dampener: high vov → reduce signal toward 0
+        vov_dampener = float(np.clip(1.0 - abs(vov_last) * 0.5, 0.3, 1.0))
+
         pvv_raw = (
-            np.tanh(p_roc * 10) * 0.50 +
-            np.tanh(vol_roc * 5) * 0.20 +
-            np.tanh(vol_roc_norm * 5) * 0.30
-        )
+            np.tanh(p_roc * 10) * 0.55 +       # Price primary
+            np.tanh(vol_confirm * 5) * 0.35 +  # Volume confirmation
+            np.tanh(vol_roc * 5) * 0.10        # Raw volume ROC (small weight)
+        ) * vov_dampener  # Multiplicative dampener instead of additive flip
+
         pvv_score = float(np.clip(pvv_raw, -1.0, 1.0))
 
         # 6. VASP: Volatility-Adjusted Signaling Process
@@ -208,10 +273,10 @@ class PVVEngine:
             "signal": signal,
             "vasp_score": round(vasp_score, 4),
             "pvv_score": round(pvv_score, 4),
-            "price_roc": round(p_roc, 4),
-            "volume_roc": round(vol_roc, 4),
-            "vol_of_vol": round(vov_last, 4),
-            "realized_vol": round(rv_last, 2),
+            "price_roc": round(float(p_roc), 4),
+            "volume_roc": round(float(vol_roc), 4),
+            "vol_of_vol": round(float(vov_last), 4),
+            "realized_vol": round(float(rv_last), 2),
             "vol_regime": vol_regime,
             "hurst": round(hurst, 3),
             "stretch": stretch,
@@ -220,8 +285,8 @@ class PVVEngine:
             "mid": mid,
             "price": round(px_last, 4),
             "position_pct": round(pos, 2),
-            "above_trend_sma": above_trend,
-            "trend_sma": round(trend_sma, 4) if math.isfinite(trend_sma) else None,
+            "above_trend_sma": bool(above_trend),
+            "trend_sma": round(float(trend_sma), 4) if math.isfinite(trend_sma) else None,
         }
 
     # ── public API ───────────────────────────────────────────────
@@ -289,6 +354,7 @@ class PVVEngine:
         if t == tr == ta and t != "NEUTRAL":
             return f"All durations {t} — high conviction, regime aligned"
         return "Mixed durations — no clear front-run edge"
+
 
 class PVVScanner:
     """Batch PVV analysis for many tickers."""

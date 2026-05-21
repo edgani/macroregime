@@ -1,4 +1,4 @@
-"""engines/portfolio_sizing.py — Portfolio Sizing v2 (Sprint 2)
+"""engines/portfolio_sizing.py — Portfolio Sizing v2 (Sprint 2 + v33 fix)
 
 Replaces conviction_sizing.py with portfolio-aware sizing:
   • % of portfolio (not absolute $)
@@ -7,6 +7,12 @@ Replaces conviction_sizing.py with portfolio-aware sizing:
   • Correlated-cluster caps (don't double up on AI plays)
   • Quad-conditional multiplier
   • Soros boom-bust stage damping
+
+v33 FIX:
+  • Added "short_A+" to GRADE_MULT (1.40x) — symmetric with long "A+"
+  • Required because risk_range_engine v33 now emits "short_A+" for high-quality
+    short setups at the entry edge. Without this entry, short_A+ would silently
+    default to 1.00x and undersize.
 
 User input: just portfolio_value (any number). Output: target_pct, target_dollar, multipliers, rationale.
 """
@@ -49,6 +55,7 @@ STAGE_MULT = {
 }
 
 # Grade multipliers
+# v33: Added short_A+ for symmetric long/short high-conviction grading.
 GRADE_MULT = {
     "A+": 1.40,
     "A":  1.20,
@@ -56,10 +63,11 @@ GRADE_MULT = {
     "C":  0.65,
     "D":  0.30,
     "F":  0.00,
-    # Hedgeye short grades
-    "short_A": 1.20,
-    "short_B": 1.00,
-    "short_C": 0.65,
+    # Hedgeye short grades — symmetric to long side after v33 fix
+    "short_A+": 1.40,    # NEW in v33 — matches long A+ multiplier
+    "short_A":  1.20,
+    "short_B":  1.00,
+    "short_C":  0.65,
 }
 
 # Correlated theme groupings — exposure netted across these

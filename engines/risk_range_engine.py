@@ -1,4 +1,4 @@
-"""engines/risk_range_engine.py — REAL Hedgeye Risk Range v2 (Sprint 5)
+"""engines/risk_range_engine.py — REAL Hedgeye Risk Range v2 (Sprint 5 + v33 fixes)
 
 REPLACES the 13-line stub. Provides multi-duration Trade/Trend/Tail levels +
 improved entry/target/stop methodology vs the old _risk_range_proxy.
@@ -10,6 +10,17 @@ METHODOLOGY UPGRADES vs proxy:
   4. Asymmetric ranges (bullish formation = wider upside Trade range)
   5. Realized vol regime adjustment
   6. Confidence intervals for each target/stop level
+
+v33 FIXES (P0):
+  1. `distance_to_low` renamed → `distance_to_entry_edge` (branch-aware).
+     OLD BUG: distance was always measured to trade_lrr even in bearish setup
+     (where the entry edge is trade_trr). Resulted in short A+ setups being
+     mis-graded as B/C.
+  2. Quality grading now emits "short_A+" and "short_A" for high-quality
+     bearish setups — symmetric to long "A+"/"A". Requires portfolio_sizing v33
+     GRADE_MULT update to read these new grades.
+  3. Legacy alias `distance_to_low` retained in return dict for back-compat;
+     slated for removal in v34.
 
 Returns same shape as _risk_range_proxy for orchestrator backwards-compat.
 """
@@ -106,7 +117,9 @@ def calculate_risk_range(ticker: str, prices_or_series,
             "atr": float, "realized_vol": float, "vol_weight": float,
             "composite": "bullish" | "bearish" | "neutral",
             "formation": "BULLISH" | "BEARISH" | "NEUTRAL",
-            "quality": "A+" | "A" | "B" | "C",
+            "quality": "A+" | "A" | "B" | "C" | "short_A+" | "short_A" | "short_B",
+            "distance_to_entry_edge": float,  # NEW in v33
+            "distance_to_low": float,         # legacy alias, deprecated v34
             "entry": float, "target1": float, "target2": float,
             "stop": float, "rr": float,
             "expected_move_weekly_pct": float,
@@ -149,10 +162,10 @@ def calculate_risk_range(ticker: str, prices_or_series,
 
         # VIX adjustment — elevated VIX widens ranges
         vix_adj = 1.0
-        if vix_proxy > 25:
-            vix_adj = 1.20
-        elif vix_proxy > 30:
+        if vix_proxy > 30:
             vix_adj = 1.40
+        elif vix_proxy > 25:
+            vix_adj = 1.20
         elif vix_proxy < 14:
             vix_adj = 0.85
 
@@ -182,24 +195,37 @@ def calculate_risk_range(ticker: str, prices_or_series,
         tail_lrr = sma_200 - tail_width * dn_mult * 1.2
         tail_trr = sma_200 + tail_width * up_mult * 1.2
 
-        # Composite signal
+        # ── v33 FIX: branch-aware distance to entry edge ─────────────────
+        # OLD: distance_to_low always measured to trade_lrr (wrong for shorts)
+        # NEW: measure to the entry edge of the CURRENT direction
         if px < trade_lrr:
-            composite = "bullish"  # Below low Trade = buy zone in bullish formation
-            distance_to_low = abs(px - trade_lrr) / max(trade_lrr, 0.001)
+            composite = "bullish"  # Below low Trade = buy zone
+            # For bullish entry: distance to trade_lrr (entry edge)
+            distance_to_entry_edge = abs(px - trade_lrr) / max(trade_lrr, 0.001)
         elif px > trade_trr:
-            composite = "bearish"  # Above high Trade = trim zone
-            distance_to_low = abs(px - trade_lrr) / max(trade_lrr, 0.001)
+            composite = "bearish"  # Above high Trade = short zone
+            # For bearish entry: distance to trade_trr (entry edge)
+            distance_to_entry_edge = abs(px - trade_trr) / max(trade_trr, 0.001)
         else:
             composite = "neutral"
-            distance_to_low = abs(px - trade_lrr) / max(trade_lrr, 0.001)
+            # Use closer edge so neutral signals near a band still score
+            d_low = abs(px - trade_lrr) / max(trade_lrr, 0.001)
+            d_high = abs(px - trade_trr) / max(trade_trr, 0.001)
+            distance_to_entry_edge = min(d_low, d_high)
 
-        # Quality grading
-        if formation == "BULLISH" and composite == "bullish" and distance_to_low < 0.02:
-            quality = "A+"
-        elif formation == "BULLISH" and composite == "bullish":
-            quality = "A"
+        # ── v33 FIX: quality grading symmetric for long AND short setups ──
+        # A+ = formation matches composite AND price within 2% of entry edge
+        # A  = formation matches composite (further from edge)
+        # B  = directional signal exists but formation mismatch
+        # C  = neutral
+        if formation == "BULLISH" and composite == "bullish":
+            quality = "A+" if distance_to_entry_edge < 0.02 else "A"
+        elif formation == "BEARISH" and composite == "bearish":
+            # NEW v33: short_A+/short_A so portfolio_sizing picks short multipliers
+            quality = "short_A+" if distance_to_entry_edge < 0.02 else "short_A"
         elif composite != "neutral":
-            quality = "B"
+            # Counter-trend setup (e.g., short into bullish formation) → reduce grade
+            quality = "B" if formation == "BULLISH" else "short_B"
         else:
             quality = "C"
 
@@ -242,6 +268,8 @@ def calculate_risk_range(ticker: str, prices_or_series,
             "composite": composite,
             "formation": formation,
             "quality": quality,
+            "distance_to_entry_edge": round(distance_to_entry_edge, 4),  # NEW v33
+            "distance_to_low": round(distance_to_entry_edge, 4),         # legacy alias
             "entry": round(entry, 4),
             "target1": round(target1, 4),
             "target2": round(target2, 4),
@@ -310,7 +338,7 @@ class RiskRangeEngine:
             else:
                 fail_count += 1
 
-        # Summary stats
+        # Summary stats — v33: count short grades too
         if asset_ranges:
             qualities = [r.get("quality") for r in asset_ranges.values()]
             formations = [r.get("formation") for r in asset_ranges.values()]
@@ -319,6 +347,8 @@ class RiskRangeEngine:
                 "failed": fail_count,
                 "a_plus_grade": qualities.count("A+"),
                 "a_grade": qualities.count("A"),
+                "short_a_plus_grade": qualities.count("short_A+"),  # NEW v33
+                "short_a_grade": qualities.count("short_A"),        # NEW v33
                 "bullish_formations": formations.count("BULLISH"),
                 "bearish_formations": formations.count("BEARISH"),
                 "neutral_formations": formations.count("NEUTRAL"),
@@ -328,12 +358,12 @@ class RiskRangeEngine:
         else:
             summary = {"total": 0, "failed": fail_count}
 
-        logger.info(f"RiskRangeEngine v2: {ok_count} ranges calculated, {fail_count} failed (quad={quad}, vix={v:.1f})")
+        logger.info(f"RiskRangeEngine v33: {ok_count} ranges calculated, {fail_count} failed (quad={quad}, vix={v:.1f})")
 
         return {
             "asset_ranges": asset_ranges,
             "summary": summary,
-            "version": "v2",
+            "version": "v33",
         }
 
 

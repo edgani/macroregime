@@ -2910,7 +2910,7 @@ def render_regime_compass(snap):
                           legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=9), bgcolor="rgba(0,0,0,0)"),
                           yaxis=dict(range=[0,1.15], tickformat=".0%", showgrid=True, gridcolor="#21262D", dtick=0.25),
                           barmode="group", bargap=0.35, bargroupgap=0.1)
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False}, key="regime_compass_bars")
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False}, key="regime_compass_bars_main")
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -3343,6 +3343,7 @@ def page_dashboard():
 # ═══════════════════════════════════════════════════════════════════
 def page_alpha():
     st.markdown("## ⚡ Alpha Center")
+    sim_results = snap.get("simulation_results", {}) or {}
 
     # ── v39: Keith Signal Dashboard (Duration Aware) ──
     ks_data = snap.get("keith_sync", {})
@@ -3430,78 +3431,6 @@ def page_alpha():
 
     st.divider()
 
-
-    # ── v39: Gatekeeper + Walkforward Status ──
-    gk_data = snap.get("alpha_gatekeeper", {})
-    wf_data = snap.get("walkforward_results", {})
-    if gk_data or wf_data:
-        st.markdown("### 🛡️ Alpha Gatekeeper & Walkforward")
-        gk_passed = [t for t, r in gk_data.items() if isinstance(r, dict) and r.get("gate_status") == "PASS"]
-        gk_marginal = [t for t, r in gk_data.items() if isinstance(r, dict) and r.get("gate_status") == "MARGINAL"]
-        gk_failed = [t for t, r in gk_data.items() if isinstance(r, dict) and r.get("gate_status") == "FAIL"]
-        wf_passed = [t for t, r in wf_data.items() if isinstance(r, dict) and r.get("gate_status") == "PASS"]
-
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("🟢 Gatekeeper PASS", len(gk_passed))
-        c2.metric("🟡 Gatekeeper MARGINAL", len(gk_marginal))
-        c3.metric("🔴 Gatekeeper FAIL", len(gk_failed))
-        c4.metric("✅ Walkforward PASS", len(wf_passed))
-
-        if gk_passed:
-            st.markdown("<div style='font-size:0.7rem;color:#3FB950;margin:4px 0;'><b>Gatekeeper Passed:</b> " + ", ".join(gk_passed[:15]) + ("..." if len(gk_passed) > 15 else "") + "</div>", unsafe_allow_html=True)
-        if gk_marginal:
-            st.markdown("<div style='font-size:0.7rem;color:#D29922;margin:4px 0;'><b>Gatekeeper Marginal:</b> " + ", ".join(gk_marginal[:10]) + ("..." if len(gk_marginal) > 10 else "") + "</div>", unsafe_allow_html=True)
-
-        # Show gatekeeper details table
-        gk_details = []
-        for t, r in list(gk_data.items())[:20]:
-            if isinstance(r, dict):
-                gk_details.append({
-                    "Ticker": t,
-                    "Status": r.get("gate_status", "—"),
-                    "Score": f"{r.get('combined_score', 0):.1f}",
-                    "Rec": r.get("recommendation", "—"),
-                    "Basis": r.get("basis", "")[:60],
-                })
-        if gk_details:
-            st.dataframe(pd.DataFrame(gk_details), use_container_width=True, hide_index=True)
-
-    # ── v39: Hedgeye Position Sizing ──
-    hp = snap.get("hedgeye_position_sizing", {})
-    if hp and hp.get("positions"):
-        st.markdown("### 💰 Hedgeye Position Sizing")
-        st.markdown(f"<div style='font-size:0.7rem;color:#8B949E;'>Deployed: <b>{hp.get('total_deployed_pct', 0):.1f}%</b> · Cash: <b>{hp.get('cash_pct', 0):.1f}%</b> · VIX Mult: <b>{hp.get('vix_multiplier', 1.0):.2f}x</b></div>", unsafe_allow_html=True)
-        hp_df = []
-        for p in hp.get("positions", [])[:15]:
-            if isinstance(p, dict):
-                hp_df.append({
-                    "Ticker": p.get("ticker", "—"),
-                    "Size %": f"{p.get('size_pct', 0):.2f}%",
-                    "Size $": f"{p.get('dollar_size', 0):,.0f}",
-                    "Conviction": f"{p.get('conviction', 0):.0%}",
-                    "Mode": p.get("mode", "—"),
-                })
-        if hp_df:
-            st.dataframe(pd.DataFrame(hp_df), use_container_width=True, hide_index=True)
-
-    # ── v39: Keith Signal Sync Status ──
-    ks = snap.get("keith_sync", {})
-    if ks:
-        overrides = [(t, v) for t, v in ks.items() if isinstance(v, dict) and v.get("override")]
-        if overrides:
-            st.markdown("### 🎙️ Keith Signal Overrides (P0)")
-            for t, v in overrides[:10]:
-                orig = v.get("original_direction", "—")
-                new = v.get("direction", "—")
-                basis = v.get("basis", "")[:80]
-                color = "#3FB950" if new == "LONG" else "#F85149" if new == "SHORT" else "#D29922"
-                st.markdown(
-                    f'<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:#161B22;border:1px solid #30363D;border-radius:6px;margin:3px 0;">'
-                    f'<span style="font-weight:700;font-size:0.8rem;color:#E6EDF3;min-width:60px;">{t}</span>'
-                    f'<span style="font-size:0.65rem;color:#8B949E;">{orig} → </span>'
-                    f'<span style="font-size:0.75rem;color:{color};font-weight:700;">{new}</span>'
-                    f'<span style="flex:1;font-size:0.65rem;color:#484F58;">{basis}</span>'
-                    f'</div>', unsafe_allow_html=True)
 
     tab1, tab2, tab3, tab4 = st.tabs(["🏆 Top Picks", "🔮 Front-Run", "📊 Vol & Squeeze", "🧠 Discovery"])
 
@@ -3831,6 +3760,12 @@ def page_alpha():
 # PAGE: US STOCKS
 # ═══════════════════════════════════════════════════════════════════
 def page_us_stocks():
+    # ── Quick Ticker Lookup ──
+    with st.expander("🔍 Quick Ticker Lookup", expanded=False):
+        q_ticker = st.text_input("Enter ticker", "", key="ql_us")
+        if q_ticker:
+            render_ticker_detail_comprehensive(q_ticker.upper().strip(), snap)
+
     st.markdown("## 🇺🇸 US Stocks")
 
     playbook = {
@@ -3902,6 +3837,12 @@ def page_us_stocks():
 # PAGE: FOREX
 # ═══════════════════════════════════════════════════════════════════
 def page_forex():
+    # ── Quick Ticker Lookup ──
+    with st.expander("🔍 Quick Ticker Lookup", expanded=False):
+        q_ticker = st.text_input("Enter ticker", "", key="ql_fx")
+        if q_ticker:
+            render_ticker_detail_comprehensive(q_ticker.upper().strip(), snap)
+
     st.markdown("## 💱 Forex")
     playbook = {
         "Q1": {"beli": ["EURUSD","AUDUSD","EM FX"], "short": ["DXY/UUP"]},
@@ -3946,6 +3887,12 @@ def page_forex():
 # PAGE: COMMODITIES
 # ═══════════════════════════════════════════════════════════════════
 def page_commodities():
+    # ── Quick Ticker Lookup ──
+    with st.expander("🔍 Quick Ticker Lookup", expanded=False):
+        q_ticker = st.text_input("Enter ticker", "", key="ql_comm")
+        if q_ticker:
+            render_ticker_detail_comprehensive(q_ticker.upper().strip(), snap)
+
     st.markdown("## 🛢️ Commodities")
     playbook = {
         "Q1": {"beli": ["Copper","Industrial Metals"], "short": ["Gold (counter-trend)"]},
@@ -3988,6 +3935,12 @@ def page_commodities():
 # PAGE: CRYPTO
 # ═══════════════════════════════════════════════════════════════════
 def page_crypto():
+    # ── Quick Ticker Lookup ──
+    with st.expander("🔍 Quick Ticker Lookup", expanded=False):
+        q_ticker = st.text_input("Enter ticker", "", key="ql_crypto")
+        if q_ticker:
+            render_ticker_detail_comprehensive(q_ticker.upper().strip(), snap)
+
     st.markdown("## ₿ Crypto")
 
     # ── v39: On-Chain v2 ──
@@ -4053,6 +4006,12 @@ def page_crypto():
 # PAGE: GLOBAL & EM
 # ═══════════════════════════════════════════════════════════════════
 def page_global():
+    # ── Quick Ticker Lookup ──
+    with st.expander("🔍 Quick Ticker Lookup", expanded=False):
+        q_ticker = st.text_input("Enter ticker", "", key="ql_global")
+        if q_ticker:
+            render_ticker_detail_comprehensive(q_ticker.upper().strip(), snap)
+
     st.markdown("## 🌍 Global & EM")
     global_ = snap.get("global", {}) or {}
     country_list = global_.get("country_list", []) if isinstance(global_, dict) else []
@@ -4123,7 +4082,7 @@ def page_global():
         colors = [_ret_color(sum(x.get("r20d",0) or 0 for x in by_sector[s])/max(len(by_sector[s]),1)) for s in sectors]
         fig = go.Figure(go.Bar(y=sectors, x=counts, orientation="h", marker_color=colors, text=[str(c) for c in counts], textposition="outside", textfont=dict(size=11, color="#E6EDF3")))
         fig.update_layout(height=max(250, len(sectors)*35), margin=dict(l=120,r=40,t=20,b=20), paper_bgcolor="#0D1117", plot_bgcolor="#0D1117", font=dict(color="#E6EDF3", size=11, family="Inter"), xaxis=dict(showgrid=True, gridcolor="#21262D"), yaxis=dict(showgrid=False))
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False}, key="ihsg_sector_bar_v4")
+        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False}, key="ihsg_sector_bar_v4_global")
     st.markdown(f"**{len(actionable_ihsg)} actionable** · Sectors: {', '.join(by_sector.keys())} · ⚠️ {len(invalid_ihsg)} filtered")
     for sector, items in by_sector.items():
         with st.expander(f"**{sector}** ({len(items)} stocks)", expanded=False):
@@ -4835,8 +4794,7 @@ with st.sidebar:
     st.divider()
     page = st.radio("Navigation", [
         "🏠 Dashboard", "⚡ Alpha Center", "🇺🇸 US Stocks", "💱 Forex",
-        "🛢️ Commodities", "₿ Crypto", "🌍 Global & EM", "📖 Themes", "📊 Portfolio Stress",
-        "🔍 Ticker Detail"
+        "🛢️ Commodities", "₿ Crypto", "🌍 Global & EM", "📖 Themes", "📊 Portfolio Stress"
     ], label_visibility="collapsed")
     st.divider()
     try:
@@ -4943,11 +4901,7 @@ elif page == "₿ Crypto": page_crypto()
 elif page == "🌍 Global & EM": page_global()
 elif page == "📖 Themes": page_themes()
 elif page == "📊 Portfolio Stress": page_portfolio_stress()
-elif page == "🔍 Ticker Detail":
-    st.markdown("## 🔍 Ticker Detail")
-    ticker_input = st.text_input("Enter ticker (e.g., NVDA, BTC-USD, BBRI.JK)", "SPY")
-    if ticker_input:
-        render_ticker_detail_comprehensive(ticker_input.upper(), snap)
+# Ticker Detail removed from sidebar — accessible via Quick Lookup in each market page
 
 st.divider()
 flip_note = f" · {snap.get('summary', {}).get('v2_composite_flipped_count', 0)} flipped" if snap.get("summary", {}).get("v2_composite_flipped_count") else ""

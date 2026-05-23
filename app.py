@@ -3083,6 +3083,13 @@ def page_dashboard():
             color = "#3FB950" if ok else "#F85149"
             cols[i % 4].markdown(f"<span style='color:{color};font-size:0.75rem;'>● {name}</span>", unsafe_allow_html=True)
 
+    # ── v38: Render Daily Plays + Alpha Synthesis + Engine Highlights di Dashboard ──
+    if _V38_OK:
+        try:
+            render_v38_complete("global", snap, prices, st)
+        except Exception as e:
+            logger.warning(f"v38 render failed (dashboard): {e}")
+
 # ═══════════════════════════════════════════════════════════════════
 # PAGE: ALPHA CENTER
 # ═══════════════════════════════════════════════════════════════════
@@ -3673,8 +3680,43 @@ def page_global():
         for q, countries in base_map.items():
             for c in countries: country_list.append({"country": c, "quad": q, "regime_name": _quad_name(q)})
     st.markdown("### 🗺️ Country Regime Map")
+
+    # ── v38: Overlay Hedgeye public calls (manual list — Edward updatable) ──
+    HEDGEYE_PUBLIC_CALLS = {
+        "Indonesia": {"quad": "Q4", "source": "Keith McCullough May 21 2026 #timestamped"},
+        # Add more as Hedgeye publishes
+    }
+    for entry in country_list:
+        if isinstance(entry, dict):
+            cname = entry.get("country", "")
+            hedgeye = HEDGEYE_PUBLIC_CALLS.get(cname)
+            if hedgeye and hedgeye["quad"] != entry.get("quad"):
+                entry["mismatch_warning"] = f"⚠️ Hedgeye: {hedgeye['quad']}"
+
     st.markdown(_heatmap_grid_html(country_list[:16], key_label="country", key_quad="quad"), unsafe_allow_html=True)
     if len(country_list) > 16: st.markdown(_heatmap_grid_html(country_list[16:32], key_label="country", key_quad="quad"), unsafe_allow_html=True)
+
+    # Show mismatch warnings below map
+    mismatches = [e for e in country_list if isinstance(e, dict) and e.get("mismatch_warning")]
+    if mismatches:
+        st.markdown(
+            '<div style="background:#161B22;border:1px solid #F0883E55;border-radius:6px;'
+            'padding:10px 14px;margin:8px 0;">'
+            '<b style="color:#F0883E;">⚠️ Hedgeye Quad Mismatches</b>'
+            '</div>',
+            unsafe_allow_html=True,
+        )
+        for m in mismatches:
+            cname = m.get("country", "?")
+            our_q = m.get("quad", "?")
+            our_regime = m.get("regime_name", "")
+            warning = m.get("mismatch_warning", "")
+            st.markdown(
+                f'<div style="font-size:0.75rem;color:#C9D1D9;padding:4px 12px;">'
+                f'<b>{cname}</b>: Our model <b style="color:#58A6FF;">{our_q}</b> ({our_regime}) · '
+                f'<span style="color:#F0883E;">{warning}</span></div>',
+                unsafe_allow_html=True,
+            )
     st.divider()
     st.markdown("### 🇮🇩 IHSG Report")
     ihsg_tickers = list(IHSG_UNIVERSE.keys()) if IHSG_UNIVERSE else FALLBACK_IHSG

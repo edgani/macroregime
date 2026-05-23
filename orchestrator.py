@@ -2645,6 +2645,26 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                 logger.warning(f"Discovery Brain failed: {e}")
                 result["errors"].append(f"discovery_brain: {e}")
 
+        # ── NEW v38.2: Auto-Discovery v3 (wraps cluster + regime_predictor + leading_indicator + edgar) ──
+        try:
+            from engines.auto_discovery_engine_v3 import IntegrationBrain as _AutoDiscBrain
+            _safe_progress(progress_cb, "Running Auto-Discovery v3...", 0.88)
+            _ib = _AutoDiscBrain()
+            _auto_disc = _ib.run(
+                prices=prices,
+                gip=result.get("gip_v10") or result.get("gip"),
+                risk_ranges=result.get("risk_ranges"),
+            )
+            result["auto_discovery"] = _auto_disc
+            logger.info(
+                f"Auto-discovery v3: {len(_auto_disc.get('clusters', []))} clusters · "
+                f"{len(_auto_disc.get('regime_predictions', {}))} regime predictions · "
+                f"{len(_auto_disc.get('leading_signals', []))} leading signals"
+            )
+        except Exception as e:
+            logger.warning(f"Auto-discovery v3 failed: {e}")
+            result.setdefault("errors", []).append(f"auto_discovery: {e}")
+
         # ── Sprint 3: Ticker Universe Expander (Auto-add new tickers) ──
         if _V2_EXPANDER:
             _safe_progress(progress_cb, "Running Ticker Universe Expander...", 0.90)

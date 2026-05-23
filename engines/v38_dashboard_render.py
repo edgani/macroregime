@@ -705,6 +705,60 @@ def _render_engine_snapshots(market: str, snap: Dict, st_mod) -> None:
                         f"{impacts} impacts",
                     )
 
+        # ── NEW v38.2: Auto-Discovery v3 (4 previously-orphaned engines now active) ──
+        auto_disc = snap.get("auto_discovery", {}) or {}
+        if isinstance(auto_disc, dict) and auto_disc:
+            st_mod.markdown(
+                '<div style="font-size:0.78rem;color:#A855F7;text-transform:uppercase;'
+                'font-weight:700;margin:14px 0 6px;letter-spacing:0.5px;">'
+                '🧠 Auto-Discovery Brain — 4 Previously-Orphaned Engines Now Active'
+                '</div>',
+                unsafe_allow_html=True,
+            )
+            ad_cols = st_mod.columns(4)
+            with ad_cols[0]:
+                clusters = auto_disc.get("clusters", []) or []
+                st_mod.metric("📊 Price Clusters", f"{len(clusters)} themes",
+                              "FastDTW similarity" if clusters else "—")
+            with ad_cols[1]:
+                regime_pred = auto_disc.get("regime_predictions", {}) or auto_disc.get("predictions", {}) or {}
+                if isinstance(regime_pred, dict) and regime_pred:
+                    next_q = regime_pred.get("predicted_quad_3m") or regime_pred.get("next_quad") or regime_pred.get("most_likely", "—")
+                    conf = regime_pred.get("confidence", 0) or regime_pred.get("probability", 0)
+                    st_mod.metric("🔮 Regime Predictor (3M)", f"{next_q}",
+                                  f"{conf:.0%} conf" if conf else "forward-look")
+                else:
+                    st_mod.metric("🔮 Regime Predictor", "—", "no prediction")
+            with ad_cols[2]:
+                leading = auto_disc.get("leading_signals", []) or auto_disc.get("indicators", []) or []
+                st_mod.metric("📈 Leading Indicators", f"{len(leading)} signals",
+                              "GBM regression" if leading else "—")
+            with ad_cols[3]:
+                graph_info = auto_disc.get("graph", {}) or auto_disc.get("integration", {}) or {}
+                if graph_info:
+                    nodes = graph_info.get("nodes", 0) or graph_info.get("n_nodes", 0)
+                    st_mod.metric("🕸️ Integration Brain", "ACTIVE", f"{nodes} nodes")
+                else:
+                    st_mod.metric("🕸️ Integration", "ACTIVE", "v3 brain")
+
+            # Expandable details
+            if isinstance(regime_pred, dict) and regime_pred:
+                with st_mod.expander("🔮 Regime Predictor — Forward-Looking Quad Detail"):
+                    st_mod.json(regime_pred)
+            if clusters:
+                with st_mod.expander(f"📊 Price Clusters — {len(clusters)} Theme Groups"):
+                    for i, cl in enumerate(clusters[:8]):
+                        if isinstance(cl, dict):
+                            theme = cl.get("theme", cl.get("label", f"Cluster {i+1}"))
+                            members = cl.get("tickers", cl.get("members", []))
+                            st_mod.markdown(f"- **{theme}**: {', '.join(members[:8])}")
+            if leading:
+                with st_mod.expander(f"📈 Leading Indicators — {len(leading)} Signals"):
+                    for sig in leading[:10]:
+                        if isinstance(sig, dict):
+                            st_mod.markdown(f"- **{sig.get('name', sig.get('indicator', '?'))}**: "
+                                            f"{sig.get('signal', sig.get('value', '?'))}")
+
         # Discovery Brain expandable details
         if isinstance(discovery, dict) and discovery.get("by_mode"):
             with st_mod.expander("🔍 Discovery Brain — Top Candidates"):

@@ -3178,77 +3178,77 @@ def page_alpha():
     st.divider()
 
 
-        # ── v39: Gatekeeper + Walkforward Status ──
-        gk_data = snap.get("alpha_gatekeeper", {})
-        wf_data = snap.get("walkforward_results", {})
-        if gk_data or wf_data:
-            st.markdown("### 🛡️ Alpha Gatekeeper & Walkforward")
-            gk_passed = [t for t, r in gk_data.items() if isinstance(r, dict) and r.get("gate_status") == "PASS"]
-            gk_marginal = [t for t, r in gk_data.items() if isinstance(r, dict) and r.get("gate_status") == "MARGINAL"]
-            gk_failed = [t for t, r in gk_data.items() if isinstance(r, dict) and r.get("gate_status") == "FAIL"]
-            wf_passed = [t for t, r in wf_data.items() if isinstance(r, dict) and r.get("gate_status") == "PASS"]
+    # ── v39: Gatekeeper + Walkforward Status ──
+    gk_data = snap.get("alpha_gatekeeper", {})
+    wf_data = snap.get("walkforward_results", {})
+    if gk_data or wf_data:
+        st.markdown("### 🛡️ Alpha Gatekeeper & Walkforward")
+        gk_passed = [t for t, r in gk_data.items() if isinstance(r, dict) and r.get("gate_status") == "PASS"]
+        gk_marginal = [t for t, r in gk_data.items() if isinstance(r, dict) and r.get("gate_status") == "MARGINAL"]
+        gk_failed = [t for t, r in gk_data.items() if isinstance(r, dict) and r.get("gate_status") == "FAIL"]
+        wf_passed = [t for t, r in wf_data.items() if isinstance(r, dict) and r.get("gate_status") == "PASS"]
 
-            c1, c2, c3, c4 = st.columns(4)
-            c1.metric("🟢 Gatekeeper PASS", len(gk_passed))
-            c2.metric("🟡 Gatekeeper MARGINAL", len(gk_marginal))
-            c3.metric("🔴 Gatekeeper FAIL", len(gk_failed))
-            c4.metric("✅ Walkforward PASS", len(wf_passed))
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("🟢 Gatekeeper PASS", len(gk_passed))
+        c2.metric("🟡 Gatekeeper MARGINAL", len(gk_marginal))
+        c3.metric("🔴 Gatekeeper FAIL", len(gk_failed))
+        c4.metric("✅ Walkforward PASS", len(wf_passed))
 
-            if gk_passed:
-                st.markdown("<div style='font-size:0.7rem;color:#3FB950;margin:4px 0;'><b>Gatekeeper Passed:</b> " + ", ".join(gk_passed[:15]) + ("..." if len(gk_passed) > 15 else "") + "</div>", unsafe_allow_html=True)
-            if gk_marginal:
-                st.markdown("<div style='font-size:0.7rem;color:#D29922;margin:4px 0;'><b>Gatekeeper Marginal:</b> " + ", ".join(gk_marginal[:10]) + ("..." if len(gk_marginal) > 10 else "") + "</div>", unsafe_allow_html=True)
+        if gk_passed:
+            st.markdown("<div style='font-size:0.7rem;color:#3FB950;margin:4px 0;'><b>Gatekeeper Passed:</b> " + ", ".join(gk_passed[:15]) + ("..." if len(gk_passed) > 15 else "") + "</div>", unsafe_allow_html=True)
+        if gk_marginal:
+            st.markdown("<div style='font-size:0.7rem;color:#D29922;margin:4px 0;'><b>Gatekeeper Marginal:</b> " + ", ".join(gk_marginal[:10]) + ("..." if len(gk_marginal) > 10 else "") + "</div>", unsafe_allow_html=True)
 
-            # Show gatekeeper details table
-            gk_details = []
-            for t, r in list(gk_data.items())[:20]:
-                if isinstance(r, dict):
-                    gk_details.append({
-                        "Ticker": t,
-                        "Status": r.get("gate_status", "—"),
-                        "Score": f"{r.get('combined_score', 0):.1f}",
-                        "Rec": r.get("recommendation", "—"),
-                        "Basis": r.get("basis", "")[:60],
-                    })
-            if gk_details:
-                st.dataframe(pd.DataFrame(gk_details), use_container_width=True, hide_index=True)
+        # Show gatekeeper details table
+        gk_details = []
+        for t, r in list(gk_data.items())[:20]:
+            if isinstance(r, dict):
+                gk_details.append({
+                    "Ticker": t,
+                    "Status": r.get("gate_status", "—"),
+                    "Score": f"{r.get('combined_score', 0):.1f}",
+                    "Rec": r.get("recommendation", "—"),
+                    "Basis": r.get("basis", "")[:60],
+                })
+        if gk_details:
+            st.dataframe(pd.DataFrame(gk_details), use_container_width=True, hide_index=True)
 
-        # ── v39: Hedgeye Position Sizing ──
-        hp = snap.get("hedgeye_position_sizing", {})
-        if hp and hp.get("positions"):
-            st.markdown("### 💰 Hedgeye Position Sizing")
-            st.markdown(f"<div style='font-size:0.7rem;color:#8B949E;'>Deployed: <b>{hp.get('total_deployed_pct', 0):.1f}%</b> · Cash: <b>{hp.get('cash_pct', 0):.1f}%</b> · VIX Mult: <b>{hp.get('vix_multiplier', 1.0):.2f}x</b></div>", unsafe_allow_html=True)
-            hp_df = []
-            for p in hp.get("positions", [])[:15]:
-                if isinstance(p, dict):
-                    hp_df.append({
-                        "Ticker": p.get("ticker", "—"),
-                        "Size %": f"{p.get('size_pct', 0):.2f}%",
-                        "Size $": f"{p.get('dollar_size', 0):,.0f}",
-                        "Conviction": f"{p.get('conviction', 0):.0%}",
-                        "Mode": p.get("mode", "—"),
-                    })
-            if hp_df:
-                st.dataframe(pd.DataFrame(hp_df), use_container_width=True, hide_index=True)
+    # ── v39: Hedgeye Position Sizing ──
+    hp = snap.get("hedgeye_position_sizing", {})
+    if hp and hp.get("positions"):
+        st.markdown("### 💰 Hedgeye Position Sizing")
+        st.markdown(f"<div style='font-size:0.7rem;color:#8B949E;'>Deployed: <b>{hp.get('total_deployed_pct', 0):.1f}%</b> · Cash: <b>{hp.get('cash_pct', 0):.1f}%</b> · VIX Mult: <b>{hp.get('vix_multiplier', 1.0):.2f}x</b></div>", unsafe_allow_html=True)
+        hp_df = []
+        for p in hp.get("positions", [])[:15]:
+            if isinstance(p, dict):
+                hp_df.append({
+                    "Ticker": p.get("ticker", "—"),
+                    "Size %": f"{p.get('size_pct', 0):.2f}%",
+                    "Size $": f"{p.get('dollar_size', 0):,.0f}",
+                    "Conviction": f"{p.get('conviction', 0):.0%}",
+                    "Mode": p.get("mode", "—"),
+                })
+        if hp_df:
+            st.dataframe(pd.DataFrame(hp_df), use_container_width=True, hide_index=True)
 
-        # ── v39: Keith Signal Sync Status ──
-        ks = snap.get("keith_sync", {})
-        if ks:
-            overrides = [(t, v) for t, v in ks.items() if isinstance(v, dict) and v.get("override")]
-            if overrides:
-                st.markdown("### 🎙️ Keith Signal Overrides (P0)")
-                for t, v in overrides[:10]:
-                    orig = v.get("original_direction", "—")
-                    new = v.get("direction", "—")
-                    basis = v.get("basis", "")[:80]
-                    color = "#3FB950" if new == "LONG" else "#F85149" if new == "SHORT" else "#D29922"
-                    st.markdown(
-                        f'<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:#161B22;border:1px solid #30363D;border-radius:6px;margin:3px 0;">'
-                        f'<span style="font-weight:700;font-size:0.8rem;color:#E6EDF3;min-width:60px;">{t}</span>'
-                        f'<span style="font-size:0.65rem;color:#8B949E;">{orig} → </span>'
-                        f'<span style="font-size:0.75rem;color:{color};font-weight:700;">{new}</span>'
-                        f'<span style="flex:1;font-size:0.65rem;color:#484F58;">{basis}</span>'
-                        f'</div>', unsafe_allow_html=True)
+    # ── v39: Keith Signal Sync Status ──
+    ks = snap.get("keith_sync", {})
+    if ks:
+        overrides = [(t, v) for t, v in ks.items() if isinstance(v, dict) and v.get("override")]
+        if overrides:
+            st.markdown("### 🎙️ Keith Signal Overrides (P0)")
+            for t, v in overrides[:10]:
+                orig = v.get("original_direction", "—")
+                new = v.get("direction", "—")
+                basis = v.get("basis", "")[:80]
+                color = "#3FB950" if new == "LONG" else "#F85149" if new == "SHORT" else "#D29922"
+                st.markdown(
+                    f'<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:#161B22;border:1px solid #30363D;border-radius:6px;margin:3px 0;">'
+                    f'<span style="font-weight:700;font-size:0.8rem;color:#E6EDF3;min-width:60px;">{t}</span>'
+                    f'<span style="font-size:0.65rem;color:#8B949E;">{orig} → </span>'
+                    f'<span style="font-size:0.75rem;color:{color};font-weight:700;">{new}</span>'
+                    f'<span style="flex:1;font-size:0.65rem;color:#484F58;">{basis}</span>'
+                    f'</div>', unsafe_allow_html=True)
 
     tab1, tab2, tab3, tab4 = st.tabs(["🏆 Top Picks", "🔮 Front-Run", "📊 Vol & Squeeze", "🧠 Discovery"])
 

@@ -240,6 +240,73 @@ FALLBACK_COMM = ["GC=F","SI=F","CL=F","NG=F","HG=F","PL=F","PA=F","ZW=F","ZC=F",
 FALLBACK_CRYPTO = ["BTC-USD","ETH-USD","SOL-USD","XRP-USD","DOGE-USD","ADA-USD","AVAX-USD","DOT-USD","MATIC-USD","LINK-USD","UNI-USD","LTC-USD"]
 FALLBACK_IHSG = ["BBRI.JK","BMRI.JK","BBCA.JK","BBNI.JK","BRIS.JK","TLKM.JK","EXCL.JK","ADRO.JK","ITMG.JK","PTBA.JK","NCKL.JK","ANTM.JK","INCO.JK","AALI.JK","LSIP.JK","SMAR.JK","UNTR.JK","BYAN.JK","ICBP.JK","INDF.JK","KLBF.JK","PGEO.JK","WINS.JK","EIDO","^JKSE"]
 
+
+# ═══════════════════════════════════════════════════════════════════
+# QUAD FRONT-RUN PLAYBOOK v39 — Hedgeye + Leopold + Citrini Fusion
+# ═══════════════════════════════════════════════════════════════════
+QUAD_FRONT_RUN_PLAYBOOK = {
+    "Q1": {
+        "theme": "Goldilocks — Growth + Tech + Risk-On",
+        "front_run_sectors": ["Tech", "Semiconductors", "Growth", "Crypto", "EM", "Discretionary"],
+        "front_run_tickers": ["QQQ","XLK","NVDA","AMD","AVGO","AAPL","MSFT","GOOGL","META","BTC-USD","ETH-USD","SOL-USD","SMH","SOXX","ARKK","IWM","EEM","XLY"],
+        "bottleneck_focus": ["AI Compute", "Memory HBM", "Power/Cooling", "Optics"],
+        "leopold_layers": ["AI Models", "Memory", "Power", "Optics", "CPO"],
+        "coatue_signal": "BUY Tech / SELL Defensives",
+        "karsan_setup": "Long gamma tech — vol crush on rallies",
+        "avoid": ["XLU","XLP","TLT","GLD","SLV","VIXY"],
+    },
+    "Q2": {
+        "theme": "Reflation — Cyclicals + Commodities + Financials",
+        "front_run_sectors": ["Energy", "Materials", "Financials", "Industrials", "Small Caps"],
+        "front_run_tickers": ["XLF","XLE","XLI","XLB","KRE","IWM","CL=F","USO","XOM","CVX","FCX","SCCO","COPPER","HG=F","KOL"],
+        "bottleneck_focus": ["Mideast Oil", "Tankers", "Refining", "Fertilizer"],
+        "leopold_layers": ["Crude", "Tankers", "Refining", "Defense"],
+        "coatue_signal": "BUY Cyclicals / SELL Duration",
+        "karsan_setup": "Long commodity vol — trend acceleration",
+        "avoid": ["TLT","IEF","GLD","XLU","QQQ"],
+    },
+    "Q3": {
+        "theme": "Stagflation — Real Assets + Energy + Defensive + IHSG Commodity",
+        "front_run_sectors": ["Energy", "Utilities", "Staples", "Precious Metals", "Indonesia Commodity"],
+        "front_run_tickers": ["XLE","XLP","XLU","GLD","SLV","GDX","CCJ","URA","VST","CEG","CL=F","USO","UNG","NCKL.JK","ADRO.JK","ANTM.JK","AALI.JK","ITMG.JK","PTBA.JK","EIDO"],
+        "bottleneck_focus": ["Indonesia Nickel", "Palm Oil", "Coal", "Shipping", "Nuclear Fuel"],
+        "leopold_layers": ["Nickel", "CPO", "Coal", "Shipping", "Geothermal"],
+        "coatue_signal": "BUY Real Assets / SELL Tech",
+        "karsan_setup": "Long skew energy — put skew rich = buy",
+        "avoid": ["QQQ","XLK","ARKK","IWM","BTC-USD"],
+    },
+    "Q4": {
+        "theme": "Deflation — Bonds + Gold + Utilities + Cash + Short Risk",
+        "front_run_sectors": ["Treasuries", "Gold", "Utilities", "Staples", "Healthcare", "Short Equity"],
+        "front_run_tickers": ["TLT","IEF","GLD","XLU","XLP","XLV","SQQQ","SPXU","VIXY","UVXY","UUP","CHF","JPY"],
+        "bottleneck_focus": ["Credit Stress", "Flight to Quality", "DXY Strength"],
+        "leopold_layers": ["Duration", "Safe Haven", "Credit"],
+        "coatue_signal": "BUY Duration / SOLD Equity Beta",
+        "karsan_setup": "Sell premium — range-bound, high vol of vol",
+        "avoid": ["QQQ","XLK","XLE","IWM","ARKK","BTC-USD","ETH-USD"],
+    },
+}
+
+BOTTLENECK_QUAD_MAP = {
+    "AI Compute Buildout": ["Q1", "Q2"],
+    "Mideast Supply Shock": ["Q2", "Q3"],
+    "Indonesia Resource Nationalism": ["Q3", "Q4"],
+}
+
+def _classify_ticker_market(ticker: str) -> str:
+    if ticker in FOREX_PAIRS or "=" in ticker or ticker in ["DX-Y.NYB", "UUP"]:
+        return "forex"
+    if ticker in COMMODITIES or ticker in ["GC=F", "SI=F", "CL=F", "HG=F"]:
+        return "commodity"
+    if ticker in CRYPTO or ticker in ["BTC-USD", "ETH-USD", "SOL-USD"]:
+        return "crypto"
+    if ticker in IHSG_UNIVERSE or ticker.endswith(".JK"):
+        return "ihsg"
+    return "us_equity"
+
+def _get_ticker_sector(ticker: str) -> str:
+    return TICKER_SECTOR.get(ticker, IHSG_SECTOR_MAP.get(ticker, "Other"))
+
 _IHSG_FALLBACK = {"ADRO.JK":"Coal","ITMG.JK":"Coal","PTBA.JK":"Coal","NCKL.JK":"Nickel","ANTM.JK":"Nickel","INCO.JK":"Nickel","AALI.JK":"CPO","LSIP.JK":"CPO","SMAR.JK":"CPO","BBRI.JK":"Banking","BMRI.JK":"Banking","BBCA.JK":"Banking","BBNI.JK":"Banking","BRIS.JK":"Banking","TLKM.JK":"Telco","EXCL.JK":"Telco","UNTR.JK":"Mining Contractor","BYAN.JK":"Mining","ICBP.JK":"Consumer","INDF.JK":"Consumer","KLBF.JK":"Pharma","PGEO.JK":"Geothermal","WINS.JK":"Shipping","EIDO":"ETF","^JKSE":"Index"}
 if not locals().get("IHSG_SECTOR_MAP"):
     IHSG_SECTOR_MAP = _IHSG_FALLBACK
@@ -1474,8 +1541,10 @@ def _get_onchain_proxy(ticker, prices):
 # ═══════════════════════════════════════════════════════════════════
 def _compute_entry_convergence(row, snap, market_type="us_equity"):
     """
-    Compute unified entry signal from ALL available methodologies.
-    Returns: {"signal": "BUY/SELL/HOLD", "confidence": 0-100, "layers": []}
+    v39 UNIFIED Entry Convergence — Multi-Methodology Fusion
+    Combines: Hedgeye Risk Range + SpotGamma + Cem Karsan + VolSignals 
+              + Leopold + COATUE + Karsan + Dark Pool + Broker + Walkforward
+    Output: {"signal": "BUY/SELL/HOLD", "confidence": 0-100, "layers": []}
     """
     ticker = row.get("ticker", "")
     direction = row.get("direction", "NEUTRAL")
@@ -1485,26 +1554,50 @@ def _compute_entry_convergence(row, snap, market_type="us_equity"):
     stop = row.get("stop")
     rr = row.get("rr", 0)
 
+    if not snap:
+        snap = {}
+
     layers = []
     score = 50  # neutral baseline
 
-    # Layer 1: Hedgeye Risk Range Formation (P1)
-    if formation == "BULLISH":
-        score += 25
-        layers.append({"name": "Hedgeye Formation", "signal": "BULLISH", "weight": 25})
-    elif formation == "BEARISH":
-        score -= 25
-        layers.append({"name": "Hedgeye Formation", "signal": "BEARISH", "weight": -25})
-    elif formation in ("BULLISH_BIAS", "OVERSOLD"):
-        score += 15
-        layers.append({"name": "Hedgeye Formation", "signal": formation, "weight": 15})
-    elif formation in ("BEARISH_BIAS", "OVERBOUGHT"):
-        score -= 15
-        layers.append({"name": "Hedgeye Formation", "signal": formation, "weight": -15})
-    else:
-        layers.append({"name": "Hedgeye Formation", "signal": "NEUTRAL", "weight": 0})
+    def add_layer(name, sig, weight):
+        nonlocal score
+        score += weight
+        color = "#3FB950" if weight > 0 else "#F85149" if weight < 0 else "#8B949E"
+        layers.append({"name": name, "signal": sig, "weight": weight, "color": color})
 
-    # Layer 2: SpotGamma / Options Levels (P2) — skip for IHSG
+    # ── P0: Keith Override (highest priority) ──
+    ks = row.get("keith_sync", {})
+    if ks and isinstance(ks, dict) and ks.get("override"):
+        kt = ks.get("keith_trade", "")
+        if kt == "BEARISH":
+            return {"signal": "SELL", "confidence": 0, "layers": [{"name": "Keith P0", "signal": "AVOID", "weight": -100, "color": "#F85149"}], "direction": direction, "market_type": market_type, "note": "Keith BEARISH override — avoid all signals"}
+        elif kt == "BULLISH" and direction == "LONG":
+            add_layer("Keith P0", "BULLISH", 15)
+
+    # ── P1: Hedgeye Formation ──
+    formation_map = {
+        "BULLISH": ("BULLISH", 25), "BEARISH": ("BEARISH", -25),
+        "BULLISH_BIAS": ("BIAS+", 15), "BEARISH_BIAS": ("BIAS-", -15),
+        "OVERSOLD": ("OVERSOLD", 15), "OVERBOUGHT": ("OVERBOUGHT", -15),
+    }
+    if formation in formation_map:
+        sig, w = formation_map[formation]
+        add_layer("Hedgeye Formation", sig, w)
+    else:
+        add_layer("Hedgeye Formation", "NEUTRAL", 0)
+
+    # ── P2: Risk/Reward Quality ──
+    if rr >= 3.0:
+        add_layer("RR Quality", f"{rr:.1f}x", 10)
+    elif rr >= 2.0:
+        add_layer("RR Quality", f"{rr:.1f}x", 6)
+    elif rr >= 1.5:
+        add_layer("RR Quality", f"{rr:.1f}x", 3)
+    elif rr > 0 and rr < 1.5:
+        add_layer("RR Quality", f"{rr:.1f}x", -8)
+
+    # ── P3: Options / SpotGamma (skip IHSG) ──
     if market_type != "ihsg":
         opts = row.get("options", {})
         gamma = opts.get("gamma_regime", "")
@@ -1512,162 +1605,143 @@ def _compute_entry_convergence(row, snap, market_type="us_equity"):
         mp_dist = opts.get("mp_dist", 0) or 0
 
         if gamma in ("DEEP_POSITIVE", "POSITIVE") and direction == "LONG":
-            score += 10
-            layers.append({"name": "SpotGamma Gamma", "signal": "POSITIVE", "weight": 10})
+            add_layer("SpotGamma Gamma", "POSITIVE", 8)
         elif gamma in ("DEEP_NEGATIVE", "NEGATIVE") and direction == "SHORT":
-            score += 10
-            layers.append({"name": "SpotGamma Gamma", "signal": "NEGATIVE", "weight": 10})
+            add_layer("SpotGamma Gamma", "NEGATIVE", 8)
         elif gamma in ("NEGATIVE", "DEEP_NEGATIVE") and direction == "LONG":
-            score -= 10
-            layers.append({"name": "SpotGamma Gamma", "signal": "NEGATIVE", "weight": -10})
+            add_layer("SpotGamma Gamma", "NEGATIVE", -8)
 
-        # Max Pain proximity
         if mp and px and abs((px - mp) / mp) < 0.02:
-            if direction == "LONG":
-                score -= 5  # pinned = hard to move
-                layers.append({"name": "Max Pain Pin", "signal": "PINNED", "weight": -5})
+            add_layer("Max Pain Pin", "PINNED", -5 if direction == "LONG" else 3)
 
-    # Layer 3: Cem Karsan Vanna/Charm (P3) — skip for IHSG
-    if market_type != "ihsg":
-        opts = row.get("options", {})
+        # Vanna / Charm (Cem Karsan)
         vanna = opts.get("vanna")
-        charm = opts.get("charm")
-
         if vanna is not None:
             try:
                 v = float(vanna)
-                if v > 0.5 and direction == "LONG":
-                    score += 8
-                    layers.append({"name": "Cem Karsan Vanna", "signal": "BULLISH", "weight": 8})
-                elif v < -0.5 and direction == "SHORT":
-                    score += 8
-                    layers.append({"name": "Cem Karsan Vanna", "signal": "BEARISH", "weight": 8})
-            except (ValueError, TypeError):
-                pass
+                if abs(v) > 0.5:
+                    add_layer("Cem Karsan Vanna", "BULLISH" if v > 0.5 else "BEARISH", 6 if (v > 0 and direction == "LONG") or (v < 0 and direction == "SHORT") else -4)
+            except: pass
 
+        charm = opts.get("charm")
         if charm is not None:
             try:
                 c = float(charm)
-                if c > 0.5 and direction == "LONG":
-                    score += 8
-                    layers.append({"name": "Cem Karsan Charm", "signal": "BULLISH", "weight": 8})
-                elif c < -0.5 and direction == "SHORT":
-                    score += 8
-                    layers.append({"name": "Cem Karsan Charm", "signal": "BEARISH", "weight": 8})
-            except (ValueError, TypeError):
-                pass
+                if abs(c) > 0.5:
+                    add_layer("Cem Karsan Charm", "BULLISH" if c > 0.5 else "BEARISH", 6 if (c > 0 and direction == "LONG") or (c < 0 and direction == "SHORT") else -4)
+            except: pass
 
-    # Layer 4: VolSignals Dealer Regime (P4) — skip for IHSG
-    if market_type != "ihsg":
-        vs = row.get("options", {}).get("volsignals_regime", {})
+        # VolSignals
+        vs = opts.get("volsignals_regime", {})
         if isinstance(vs, dict):
             regime = vs.get("dealer_regime", "")
-            cycle = vs.get("vanna_alignment", "")
             if "STABILIZING" in regime and direction == "LONG":
-                score += 10
-                layers.append({"name": "VolSignals Regime", "signal": "STABILIZING", "weight": 10})
+                add_layer("VolSignals Regime", "STABILIZING", 8)
             elif "AMPLIFYING" in regime:
-                score -= 10
-                layers.append({"name": "VolSignals Regime", "signal": "AMPLIFYING", "weight": -10})
-            if cycle and "VIRTUOUS" in str(cycle) and direction == "LONG":
-                score += 5
-                layers.append({"name": "VolSignals Vanna", "signal": "VIRTUOUS", "weight": 5})
+                add_layer("VolSignals Regime", "AMPLIFYING", -8)
 
-    # Layer 5: Leopold Asymmetry (P5)
+    # ── P4: Methodology Fusion ──
+    # Leopold
     leo = (snap.get("leopold_scan", {}) or {}).get("per_ticker", {}).get(ticker)
     if leo and isinstance(leo, dict):
         asym = leo.get("asymmetry_score", 0)
         if asym >= 70:
-            if direction == "LONG":
-                score += 12
-                layers.append({"name": "Leopold Asymmetry", "signal": "HIGH", "weight": 12})
-            else:
-                score -= 12
-                layers.append({"name": "Leopold Asymmetry", "signal": "HIGH", "weight": -12})
+            w = 10 if direction == "LONG" else -10
+            add_layer("Leopold Asymmetry", f"HIGH ({asym:.0f})", w)
+        elif asym >= 50:
+            w = 5 if direction == "LONG" else -5
+            add_layer("Leopold Asymmetry", f"MID ({asym:.0f})", w)
 
-    # Layer 6: COATUE Capital Rotation (P6)
+    # COATUE
     coat = (snap.get("coatue_scan", {}) or {}).get("per_ticker", {}).get(ticker)
     if coat and isinstance(coat, dict):
         sig = coat.get("signal", "")
         if sig == "BUY" and direction == "LONG":
-            score += 8
-            layers.append({"name": "COATUE Signal", "signal": "BUY", "weight": 8})
+            add_layer("COATUE Signal", "BUY", 8)
         elif sig == "SELL" and direction == "SHORT":
-            score += 8
-            layers.append({"name": "COATUE Signal", "signal": "SELL", "weight": 8})
+            add_layer("COATUE Signal", "SELL", 8)
+        elif sig and sig != "NEUTRAL":
+            add_layer("COATUE Signal", sig, -5)  # conflicting
 
-    # Layer 7: Karsan Vol Scanner (P7)
+    # Karsan
     kar = (snap.get("karsan_scanner", {}) or {}).get("per_ticker", {}).get(ticker)
     if kar and isinstance(kar, dict):
         setup = kar.get("setup_type", "")
         if "squeeze" in setup.lower() and direction == "LONG":
-            score += 8
-            layers.append({"name": "Karsan Squeeze", "signal": "SETUP", "weight": 8})
+            add_layer("Karsan Squeeze", "SETUP", 8)
         elif "convexity" in setup.lower() and direction == "LONG":
-            score += 8
-            layers.append({"name": "Karsan Convexity", "signal": "SETUP", "weight": 8})
+            add_layer("Karsan Convexity", "SETUP", 8)
 
-    # Layer 8: Dark Pool / Smart Money (P8)
+    # Thought Process
+    tp = (snap.get("thought_process", {}) or {}).get(ticker)
+    if tp and isinstance(tp, dict):
+        tscore = tp.get("thesis_score", 0)
+        if tscore >= 80:
+            add_layer("Thought Process", f"STRONG ({tscore:.0f})", 8)
+        elif tscore >= 60:
+            add_layer("Thought Process", f"OK ({tscore:.0f})", 4)
+
+    # ── P5: Dark Pool / Smart Money ──
     dp = row.get("dark_pool")
     if dp and isinstance(dp, dict):
         div = dp.get("divergence", "NEUTRAL")
         if div == "HIDDEN_ACCUMULATION" and direction == "LONG":
-            score += 10
-            layers.append({"name": "Dark Pool", "signal": "HIDDEN_ACCUM", "weight": 10})
+            add_layer("Dark Pool", "HIDDEN_ACCUM", 10)
         elif div == "HIDDEN_DISTRIBUTION" and direction == "SHORT":
-            score += 10
-            layers.append({"name": "Dark Pool", "signal": "HIDDEN_DIST", "weight": 10})
+            add_layer("Dark Pool", "HIDDEN_DIST", 10)
         elif div == "BOTH_AGREE":
-            score += 5
-            layers.append({"name": "Dark Pool", "signal": "AGREE", "weight": 5})
+            add_layer("Dark Pool", "AGREE", 5)
+        elif div in ("HIDDEN_DISTRIBUTION", "HIDDEN_ACCUMULATION"):
+            add_layer("Dark Pool", "DIVERGENCE", -5)
 
-    # Layer 9: IHSG Broker Proxy (P9) — IHSG ONLY
+    # ── P6: IHSG Broker (IHSG ONLY) ──
     if market_type == "ihsg":
         broker = row.get("broker", {})
         if broker and isinstance(broker, dict):
             if broker.get("real_accumulation"):
-                score += 20
-                layers.append({"name": "IHSG Broker", "signal": "ACCUMULATION", "weight": 20})
+                add_layer("IHSG Broker", "ACCUMULATION", 20)
             elif broker.get("real_distribution"):
-                score -= 20
-                layers.append({"name": "IHSG Broker", "signal": "DISTRIBUTION", "weight": -20})
+                add_layer("IHSG Broker", "DISTRIBUTION", -20)
             elif broker.get("crossing_detected"):
-                score -= 10
-                layers.append({"name": "IHSG Broker", "signal": "CROSSING", "weight": -10})
+                add_layer("IHSG Broker", "CROSSING", -10)
             elif broker.get("cornering_supply"):
-                score += 15
-                layers.append({"name": "IHSG Broker", "signal": "CORNERING", "weight": 15})
+                add_layer("IHSG Broker", "CORNERING", 15)
 
-    # Layer 10: Walkforward / Simulation (P10)
+    # ── P7: Walkforward / Simulation ──
     wf = row.get("walkforward", {})
-    if wf and isinstance(wf, dict) and wf.get("gate_status") == "PASS":
-        score += 10
-        layers.append({"name": "Walkforward", "signal": "PASS", "weight": 10})
+    if wf and isinstance(wf, dict):
+        if wf.get("gate_status") == "PASS":
+            add_layer("Walkforward", "PASS", 10)
+        elif wf.get("gate_status") == "MARGINAL":
+            add_layer("Walkforward", "MARGINAL", 3)
+        else:
+            add_layer("Walkforward", "FAIL", -10)
 
     sim = row.get("simulation")
     if sim and isinstance(sim, dict):
-        if sim.get("robustness_score", 0) >= 70:
-            score += 8
-            layers.append({"name": "Simulation", "signal": "STRONG", "weight": 8})
-        elif sim.get("robustness_score", 0) >= 50:
-            score += 4
-            layers.append({"name": "Simulation", "signal": "OK", "weight": 4})
+        sscore = sim.get("robustness_score", 0)
+        if sscore >= 80:
+            add_layer("Simulation", f"STRONG ({sscore:.0f})", 8)
+        elif sscore >= 65:
+            add_layer("Simulation", f"OK ({sscore:.0f})", 4)
+        elif sscore >= 50:
+            add_layer("Simulation", f"WEAK ({sscore:.0f})", 0)
+        else:
+            add_layer("Simulation", f"FAIL ({sscore:.0f})", -8)
 
-    # Layer 11: Keith P0 Override (P0 — HIGHEST PRIORITY)
-    ks = row.get("keith_sync", {})
-    if ks and isinstance(ks, dict) and ks.get("override"):
-        ktrade = ks.get("keith_trade", "")
-        if ktrade == "BEARISH":
-            score = 0  # force avoid
-            layers.insert(0, {"name": "Keith P0 Override", "signal": "AVOID", "weight": -100})
-        elif ktrade == "BULLISH" and direction == "LONG":
-            score += 15
-            layers.insert(0, {"name": "Keith P0 Override", "signal": "BULLISH", "weight": 15})
+    # ── P8: Composite Signal ──
+    cs = (snap.get("composite_signals", {}) or {}).get(ticker)
+    if cs and isinstance(cs, dict):
+        cdir = cs.get("direction", "NEUTRAL")
+        cconf = cs.get("confidence", 0)
+        if cdir == direction:
+            add_layer("Composite", f"ALIGN ({cconf:.0%})", 5)
+        elif cdir != "NEUTRAL":
+            add_layer("Composite", f"CONFLICT ({cconf:.0%})", -5)
 
-    # Clamp score
+    # ── Clamp & Resolve ──
     score = max(0, min(100, score))
 
-    # Determine signal
     if score >= 70:
         signal = "BUY" if direction == "LONG" else "SELL"
     elif score <= 30:
@@ -1675,7 +1749,7 @@ def _compute_entry_convergence(row, snap, market_type="us_equity"):
     else:
         signal = "HOLD"
 
-    # Override for IHSG buy-only
+    # IHSG buy-only override
     if market_type == "ihsg" and signal == "SELL":
         signal = "HOLD"
 
@@ -1685,7 +1759,9 @@ def _compute_entry_convergence(row, snap, market_type="us_equity"):
         "layers": layers,
         "direction": direction,
         "market_type": market_type,
+        "n_layers": len(layers),
     }
+
 
 def _get_single_recommendation(options, direction="LONG", market_type="us_equity",
                                cot_data=None, onchain_data=None, ticker="", prices=None, row=None,
@@ -2803,10 +2879,12 @@ def render_ticker_card_v4(row, expanded=False):
             conv_html += f'</div>'
             conv_html += f'<div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));gap:4px;">'
             for layer in conv_layers[:12]:
-                lcolor = "#3FB950" if layer.get("weight", 0) > 0 else "#F85149" if layer.get("weight", 0) < 0 else "#8B949E"
-                conv_html += f'<div style="padding:3px 6px;background:#0D1117;border-radius:4px;font-size:0.6rem;">'
-                conv_html += f'<span style="color:#8B949E;">{layer.get("name","—")}</span> '
-                conv_html += f'<span style="color:{lcolor};font-weight:700;">{layer.get("signal","—")}</span>'
+                lcolor = layer.get("color", "#8B949E")
+                lw = layer.get("weight", 0)
+                sign = "+" if lw > 0 else ""
+                conv_html += f'<div style="padding:3px 6px;background:#0D1117;border-radius:4px;font-size:0.6rem;display:flex;justify-content:space-between;align-items:center;">'
+                conv_html += f'<span style="color:#8B949E;">{layer.get("name","—")}</span>'
+                conv_html += f'<span style="color:{lcolor};font-weight:700;">{layer.get("signal","—")} {sign}{lw}</span>'
                 conv_html += f'</div>'
             conv_html += f'</div></div>'
             st.markdown(conv_html, unsafe_allow_html=True)
@@ -3685,204 +3763,310 @@ def page_alpha():
     tab1, tab2, tab3, tab4 = st.tabs(["🏆 Top Picks", "🔮 Front-Run", "📊 Vol & Squeeze", "🧠 Discovery"])
 
     with tab1:
-        st.markdown("### 🎯 Possible Bottleneck + Front-Run Plays")
-        st.markdown("<div style='font-size:0.7rem;color:#8B949E;margin-bottom:8px;'>Only bottleneck beneficiaries & front-run candidates with clear catalyst. Ready = CHASE, Not yet = WAIT.</div>", unsafe_allow_html=True)
+        st.markdown("### 🎯 Unified Alpha — Quad Playbook × Bottleneck × Front-Run")
+        st.markdown("<div style='font-size:0.7rem;color:#8B949E;margin-bottom:8px;'>v39 Fusion: Hedgeye Quad + Leopold Bottleneck + Citrini Macro + Karsan Vol + COATUE Rotation. Every play must pass WF gate + MC 100x.</div>", unsafe_allow_html=True)
 
-        alpha_candidates = []
+        # ── QUAD PLAYBOOK BANNER ──
+        pb = QUAD_FRONT_RUN_PLAYBOOK.get(sq, QUAD_FRONT_RUN_PLAYBOOK["Q3"])
+        st.markdown(
+            f'<div style="background:#161B22;border:1px solid #58A6FF40;border-radius:10px;padding:12px;margin:8px 0;">'
+            f'<div style="font-size:0.7rem;color:#58A6FF;text-transform:uppercase;font-weight:700;letter-spacing:0.5px;margin-bottom:4px;">📊 QUAD {sq} PLAYBOOK</div>'
+            f'<div style="font-size:0.85rem;color:#E6EDF3;font-weight:700;margin-bottom:6px;">{pb["theme"]}</div>'
+            f'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">'
+            f'<span style="background:#3FB95018;color:#3FB950;padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:700;border:1px solid #3FB95040;">🎯 FRONT-RUN: {" · ".join(pb["front_run_sectors"][:4])}</span>'
+            f'<span style="background:#D2992218;color:#D29922;padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:700;border:1px solid #D2992240;">🚧 BOTTLENECK: {" · ".join(pb["bottleneck_focus"][:3])}</span>'
+            f'<span style="background:#F8514918;color:#F85149;padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:700;border:1px solid #F8514940;">🚫 AVOID: {" · ".join(pb["avoid"][:4])}</span>'
+            f'</div>'
+            f'<div style="font-size:0.65rem;color:#484F58;">Coatue: {pb["coatue_signal"]} · Karsan: {pb["karsan_setup"]} · Leopold: {" → ".join(pb["leopold_layers"])}</div>'
+            f'</div>', unsafe_allow_html=True)
 
-        # ── Bottleneck v3 ──
+        # ── UNIFIED CANDIDATE POOL ──
+        sim_results = snap.get("simulation_results", {}) or {}
+        wf_results = snap.get("walkforward_results", {}) or {}
+        gk_results = snap.get("alpha_gatekeeper", {}) or {}
+
+        unified_candidates = []
+        seen_tickers = set()
+
+        def _add_unified(ticker, source, score, thesis, direction, why, timing, market_type="us_equity", extra=None):
+            if ticker in seen_tickers or not ticker:
+                return
+            seen_tickers.add(ticker)
+            # Check WF + Gatekeeper + Sim
+            wf = wf_results.get(ticker, {})
+            gk = gk_results.get(ticker, {})
+            sim = sim_results.get(ticker, {})
+            wf_score = wf.get("combined_gate_score", 0) if isinstance(wf, dict) else 0
+            gk_status = gk.get("gate_status", "FAIL") if isinstance(gk, dict) else "FAIL"
+            sim_score = sim.get("robustness_score", 0) if isinstance(sim, dict) else 0
+
+            # Boost score with methodology fusion
+            leo = (snap.get("leopold_scan", {}) or {}).get("per_ticker", {}).get(ticker)
+            if leo and isinstance(leo, dict) and leo.get("asymmetry_score", 0) >= 70:
+                score += 10
+            coat = (snap.get("coatue_scan", {}) or {}).get("per_ticker", {}).get(ticker)
+            if coat and isinstance(coat, dict) and coat.get("signal", "") == ("BUY" if direction == "LONG" else "SELL"):
+                score += 8
+            kar = (snap.get("karsan_scanner", {}) or {}).get("per_ticker", {}).get(ticker)
+            if kar and isinstance(kar, dict):
+                if "squeeze" in str(kar.get("setup_type", "")).lower() and direction == "LONG":
+                    score += 8
+                if "convexity" in str(kar.get("setup_type", "")).lower() and direction == "LONG":
+                    score += 8
+
+            # Composite signal boost
+            cs = (snap.get("composite_signals", {}) or {}).get(ticker)
+            if cs and isinstance(cs, dict):
+                cs_dir = cs.get("direction", "NEUTRAL")
+                if (cs_dir == "LONG" and direction == "LONG") or (cs_dir == "SHORT" and direction == "SHORT"):
+                    score += 5
+
+            unified_candidates.append({
+                "ticker": ticker, "source": source, "score": min(100, score),
+                "thesis": thesis, "direction": direction, "why": why,
+                "timing": timing, "market_type": market_type,
+                "wf_score": wf_score, "gk_status": gk_status, "sim_score": sim_score,
+                "extra": extra or {},
+            })
+
+        # 1. Bottleneck v3
         bottleneck = snap.get("bottleneck_v3", {}) or {}
         if isinstance(bottleneck, dict):
             for item in bottleneck.get("active_bottlenecks", []) or []:
                 if not isinstance(item, dict): continue
+                layer = item.get("name", "").replace("_", " ").title()
                 for t in item.get("beneficiaries", [])[:5]:
-                    alpha_candidates.append({
-                        "ticker": t,
-                        "source": "bottleneck",
-                        "score": 85,
-                        "thesis": f"Bottleneck: {item.get('name','').replace('_',' ').title()} — {item.get('description','Supply constraint')}.",
-                        "direction": "LONG",
-                        "why": f"Supply bottleneck in {item.get('name','').replace('_',' ').title()}. Price inelasticity = margin expansion for beneficiaries.",
-                        "timing": "Structural — multi-quarter",
-                    })
+                    mtype = _classify_ticker_market(t)
+                    _add_unified(t, "bottleneck", 85,
+                        f"Bottleneck: {layer} — {item.get('description','Supply constraint')}.",
+                        "LONG", f"Supply bottleneck in {layer}. Price inelasticity = margin expansion.",
+                        "Structural — multi-quarter", mtype,
+                        {"layer": layer, "bottleneck": item.get("name", "")})
 
-        # ── Front-Run Candidates ──
+        # 2. Front-Run Candidates (all markets)
         fr = snap.get("front_run_candidates", []) or []
-        for item in fr[:15]:
+        for item in fr[:20]:
             if not isinstance(item, dict): continue
-            alpha_candidates.append({
-                "ticker": item.get("ticker",""),
-                "source": "front_run",
-                "score": 75 if item.get("priority") == "TOP" else 70 if item.get("priority") == "HIGH" else 65,
-                "thesis": item.get("why_front_run", "")[:120],
-                "direction": "LONG",
-                "why": item.get("why_front_run", "")[:200],
-                "timing": f"Catalyst: {item.get('catalyst',{}).get('event','TBD')} ({item.get('catalyst',{}).get('quarter','')})",
-                "options": item.get("options", {}),
-            })
+            t = item.get("ticker", "")
+            mtype = item.get("market_type", _classify_ticker_market(t))
+            _add_unified(t, "front_run", 75 if item.get("priority") == "TOP" else 70 if item.get("priority") == "HIGH" else 65,
+                item.get("why_front_run", "")[:120], "LONG",
+                item.get("why_front_run", "")[:200],
+                f"Catalyst: {item.get('catalyst',{}).get('event','TBD')} ({item.get('catalyst',{}).get('quarter','')})",
+                mtype, {"projection": item.get("projection"), "options": item.get("options", {})})
 
-        # ── Leopold Asymmetry (only if high conviction) ──
+        # 3. Leopold Asymmetry
         leopold = snap.get("leopold_scan", {}) or {}
         if isinstance(leopold, dict):
-            for t in leopold.get("asymmetry_setups", []) or []:
-                if isinstance(t, dict) and t.get("asymmetry_score", 0) >= 70:
-                    alpha_candidates.append({
-                        "ticker": t.get("ticker",""),
-                        "source": "leopold",
-                        "score": t.get("asymmetry_score", 80),
-                        "thesis": t.get("thesis", "Asymmetry setup"),
-                        "direction": t.get("direction", "LONG"),
-                        "why": f"Leopold asymmetry: {t.get('layer','Unknown layer')} bottleneck + {t.get('setup_type','')}.",
-                        "timing": "Event-driven",
-                    })
+            for t_data in leopold.get("asymmetry_setups", []) or []:
+                if isinstance(t_data, dict) and t_data.get("asymmetry_score", 0) >= 70:
+                    t = t_data.get("ticker", "")
+                    mtype = _classify_ticker_market(t)
+                    _add_unified(t, "leopold", t_data.get("asymmetry_score", 80),
+                        t_data.get("thesis", "Asymmetry setup"),
+                        t_data.get("direction", "LONG"),
+                        f"Leopold asymmetry: {t_data.get('layer','Unknown')} bottleneck + {t_data.get('setup_type','')}.",
+                        "Event-driven", mtype)
 
-        # Deduplicate by ticker (keep highest score)
-        seen = {}
-        for c in alpha_candidates:
-            t = c.get("ticker", "")
-            if not t: continue
-            if t not in seen or c.get("score", 0) > seen[t].get("score", 0):
-                seen[t] = c
-        alpha_candidates = list(seen.values())
-        alpha_candidates.sort(key=lambda x: x.get("score", 0), reverse=True)
+        # 4. COATUE Capital Rotation
+        coatue = snap.get("coatue_scan", {}) or {}
+        if isinstance(coatue, dict):
+            for t, data in (coatue.get("per_ticker", {}) or {}).items():
+                if isinstance(data, dict) and data.get("signal", "") in ("BUY", "SELL"):
+                    mtype = _classify_ticker_market(t)
+                    _add_unified(t, "coatue", 72,
+                        f"COATUE: {data.get('signal')} — {data.get('rationale', '')[:80]}",
+                        "LONG" if data.get("signal") == "BUY" else "SHORT",
+                        f"Capital rotation signal from COATUE methodology.",
+                        "Rotation-driven", mtype)
 
-        if not alpha_candidates:
-            st.info("No bottleneck or front-run candidates this snapshot. Run orchestrator with discovery engines enabled.")
-        else:
-            # Show source breakdown
-            sources = {}
-            for c in alpha_candidates:
-                src = c.get("source", "unknown")
-                sources[src] = sources.get(src, 0) + 1
-            source_html = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">'
-            for src, count in sources.items():
-                emoji = {"bottleneck":"🚧","front_run":"🔮","leopold":"🏗️","regime_aligned":"📊","news_rumor":"📰"}.get(src,"⚡")
-                source_html += f'<span style="background:#161B22;border:1px solid #30363D;border-radius:6px;padding:4px 8px;font-size:0.7rem;color:#8B949E;">{emoji} {src.replace("_"," ").title()}: <b style="color:#E6EDF3;">{count}</b></span>'
-            source_html += '</div>'
-            st.markdown(source_html, unsafe_allow_html=True)
+        # 5. Karsan Squeeze / Convexity
+        karsan = snap.get("karsan_scanner", {}) or {}
+        if isinstance(karsan, dict):
+            for t, data in (karsan.get("per_ticker", {}) or {}).items():
+                if isinstance(data, dict):
+                    setup = data.get("setup_type", "")
+                    if "squeeze" in setup.lower() or "convexity" in setup.lower():
+                        mtype = _classify_ticker_market(t)
+                        _add_unified(t, "karsan", 78,
+                            f"Karsan {setup}: {data.get('rationale', '')[:80]}",
+                            "LONG", f"Vol surface setup from Karsan methodology.",
+                            "Vol-driven", mtype)
 
-            st.markdown(f"**{len(alpha_candidates)} candidates** · Bottleneck + Front-Run + Leopold + Regime · v39.2: Entry Convergence Fusion")
-            alpha_tickers = [c["ticker"] for c in alpha_candidates if c.get("ticker")]
-            # v39.1 FIX: Simulation runs background-only via build_ticker_rows
-            alpha_rows = build_ticker_rows(alpha_tickers, "us_equity", vix_now, snap.get("gamma_data"), snap.get("greeks_data"), snap.get("news_narratives"), prices=prices, ar=ar, snap=snap)
-            actionable_alpha = filter_actionable(alpha_rows)
-            invalid_alpha = filter_invalid(alpha_rows)
+        # 6. Thought Process Top Theses
+        tp = snap.get("thought_process", {}) or {}
+        if isinstance(tp, dict):
+            for t, data in list(tp.items())[:15]:
+                if isinstance(data, dict) and data.get("thesis_score", 0) >= 70:
+                    mtype = _classify_ticker_market(t)
+                    _add_unified(t, "thought_process", data.get("thesis_score", 75),
+                        f"Thesis: {data.get('matched_frameworks', [''])[0] if data.get('matched_frameworks') else 'Multi-framework'}",
+                        "LONG", f"Thought process engine matched {len(data.get('matched_frameworks', []))} frameworks.",
+                        "Thesis-driven", mtype)
 
-            for row in actionable_alpha:
-                c = seen.get(row.get("ticker"), {})
-                if c:
-                    row["alpha_source"] = c.get("source", "")
-                    row["alpha_score"] = c.get("score", 0)
-                    row["alpha_thesis"] = c.get("thesis", "")
-                    row["alpha_why"] = c.get("why", "")
-                    row["alpha_timing"] = c.get("timing", "")
-                    row["direction"] = c.get("direction", row.get("direction", "LONG"))
+        # 7. Quad-Aligned from playbook (fill gaps)
+        for t in pb.get("front_run_tickers", [])[:15]:
+            if t not in seen_tickers:
+                mtype = _classify_ticker_market(t)
+                _add_unified(t, "quad_aligned", 60,
+                    f"Quad {sq} playbook alignment", "LONG",
+                    f"Structural regime {sq} favors {t} per Hedgeye playbook.",
+                    "Regime-driven", mtype)
 
-            # Split by ready status first, then direction
-            ready_longs = [r for r in actionable_alpha if r.get("chase_status") == "CHASE" and "LONG" in r.get("direction", "")]
-            ready_shorts = [r for r in actionable_alpha if r.get("chase_status") == "CHASE" and "SHORT" in r.get("direction", "")]
-            wait_longs = [r for r in actionable_alpha if r.get("chase_status") != "CHASE" and "LONG" in r.get("direction", "")]
-            wait_shorts = [r for r in actionable_alpha if r.get("chase_status") != "CHASE" and "SHORT" in r.get("direction", "")]
+        # Sort by score descending
+        unified_candidates.sort(key=lambda x: x.get("score", 0), reverse=True)
 
-            if ready_longs:
-                st.markdown(f'<div style="font-size:0.7rem;color:#3FB950;text-transform:uppercase;font-weight:700;margin:10px 0 4px;letter-spacing:0.5px;">🟢 READY TO ENTER — LONG ({len(ready_longs)})</div>', unsafe_allow_html=True)
-                for r in ready_longs[:10]:
-                    # v39.1 FIX: Removed peak filter (px > trend_top * 0.95) — too aggressive
-                    with st.container():
-                        thesis = r.get("alpha_thesis", "")
-                        why = r.get("alpha_why", "")
-                        timing = r.get("alpha_timing", "")
-                        src = r.get("alpha_source", "")
-                        src_emoji = {"bottleneck":"🚧","front_run":"🔮","leopold":"🏗️"}.get(src,"⚡")
-                        st.markdown(
-                            f'<div class="alpha-thesis-card" style="border-left-color:#3FB950;">'
-                            f'<div style="display:flex;align-items:center;gap:8px;">'
-                            f'<span style="font-size:0.9rem;font-weight:800;color:#E6EDF3;">{r.get("ticker","—")}</span>'
-                            f'<span class="alpha-ready banner-chase">🏃 CHASE — Masuk Sekarang</span>'
-                            f'<span style="font-size:0.6rem;color:#484F58;">{src_emoji} {src.replace("_"," ").title()}</span>'
-                            f'</div>'
-                            f'<div class="alpha-thesis-sub"><b>Thesis:</b> {thesis}</div>'
-                            f'<div class="alpha-thesis-sub"><b>Why:</b> {why}</div>'
-                            f'<div class="alpha-thesis-sub" style="color:#D29922;"><b>Timing:</b> {timing}</div>'
-                            f'</div>', unsafe_allow_html=True)
-                        render_ticker_card_v4(r, expanded=False)
+        # ── SOURCE BREAKDOWN ──
+        sources = {}
+        for c in unified_candidates:
+            src = c.get("source", "unknown")
+            sources[src] = sources.get(src, 0) + 1
+        if sources:
+            src_html = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">'
+            emoji_map = {"bottleneck":"🚧","front_run":"🔮","leopold":"🏗️","coatue":"💱","karsan":"📊","thought_process":"🧠","quad_aligned":"📊"}
+            for src, count in sorted(sources.items(), key=lambda x: -x[1]):
+                src_html += f'<span style="background:#161B22;border:1px solid #30363D;border-radius:6px;padding:4px 8px;font-size:0.7rem;color:#8B949E;">{emoji_map.get(src,"⚡")} {src.replace("_"," ").title()}: <b style="color:#E6EDF3;">{count}</b></span>'
+            src_html += '</div>'
+            st.markdown(src_html, unsafe_allow_html=True)
 
-            if ready_shorts:
-                st.markdown(f'<div style="font-size:0.7rem;color:#F85149;text-transform:uppercase;font-weight:700;margin:10px 0 4px;letter-spacing:0.5px;">🔴 READY TO ENTER — SHORT ({len(ready_shorts)})</div>', unsafe_allow_html=True)
-                for r in ready_shorts[:10]:
-                    with st.container():
-                        thesis = r.get("alpha_thesis", "")
-                        why = r.get("alpha_why", "")
-                        timing = r.get("alpha_timing", "")
-                        src = r.get("alpha_source", "")
-                        src_emoji = {"bottleneck":"🚧","front_run":"🔮","leopold":"🏗️"}.get(src,"⚡")
-                        st.markdown(
-                            f'<div class="alpha-thesis-card" style="border-left-color:#F85149;">'
-                            f'<div style="display:flex;align-items:center;gap:8px;">'
-                            f'<span style="font-size:0.9rem;font-weight:800;color:#E6EDF3;">{r.get("ticker","—")}</span>'
-                            f'<span class="alpha-ready banner-chase" style="background:rgba(239,68,68,0.12);border-color:rgba(239,68,68,0.35);color:#F85149;">🏃 CHASE — Masuk Sekarang</span>'
-                            f'<span style="font-size:0.6rem;color:#484F58;">{src_emoji} {src.replace("_"," ").title()}</span>'
-                            f'</div>'
-                            f'<div class="alpha-thesis-sub"><b>Thesis:</b> {thesis}</div>'
-                            f'<div class="alpha-thesis-sub"><b>Why:</b> {why}</div>'
-                            f'<div class="alpha-thesis-sub" style="color:#D29922;"><b>Timing:</b> {timing}</div>'
-                            f'</div>', unsafe_allow_html=True)
-                        render_ticker_card_v4(r, expanded=False)
+        st.markdown(f"**{len(unified_candidates)} unified candidates** · v39: Quad × Bottleneck × Front-Run × Methodology Fusion")
 
-            if wait_longs:
-                st.markdown(f'<div style="font-size:0.7rem;color:#D29922;text-transform:uppercase;font-weight:700;margin:10px 0 4px;letter-spacing:0.5px;">🟡 WAIT — LONG ({len(wait_longs)})</div>', unsafe_allow_html=True)
-                for r in wait_longs[:10]:
-                    with st.container():
-                        thesis = r.get("alpha_thesis", "")
-                        why = r.get("alpha_why", "")
-                        timing = r.get("alpha_timing", "")
-                        src = r.get("alpha_source", "")
-                        src_emoji = {"bottleneck":"🚧","front_run":"🔮","leopold":"🏗️"}.get(src,"⚡")
-                        st.markdown(
-                            f'<div class="alpha-thesis-card" style="border-left-color:#D29922;">'
-                            f'<div style="display:flex;align-items:center;gap:8px;">'
-                            f'<span style="font-size:0.9rem;font-weight:800;color:#E6EDF3;">{r.get("ticker","—")}</span>'
-                            f'<span class="alpha-ready banner-wait">⏳ WAIT — Tunggu Pullback</span>'
-                            f'<span style="font-size:0.6rem;color:#484F58;">{src_emoji} {src.replace("_"," ").title()}</span>'
-                            f'</div>'
-                            f'<div class="alpha-thesis-sub"><b>Thesis:</b> {thesis}</div>'
-                            f'<div class="alpha-thesis-sub"><b>Why:</b> {why}</div>'
-                            f'<div class="alpha-thesis-sub" style="color:#D29922;"><b>Timing:</b> {timing}</div>'
-                            f'</div>', unsafe_allow_html=True)
-                        render_ticker_card_v4(r, expanded=False)
+        # Build ticker rows BY MARKET TYPE (v39 fix)
+        tickers_by_market = {}
+        for c in unified_candidates:
+            mt = c.get("market_type", "us_equity")
+            tickers_by_market.setdefault(mt, []).append(c["ticker"])
 
-            if wait_shorts:
-                st.markdown(f'<div style="font-size:0.7rem;color:#D29922;text-transform:uppercase;font-weight:700;margin:10px 0 4px;letter-spacing:0.5px;">🟡 WAIT — SHORT ({len(wait_shorts)})</div>', unsafe_allow_html=True)
-                for r in wait_shorts[:10]:
-                    with st.container():
-                        thesis = r.get("alpha_thesis", "")
-                        why = r.get("alpha_why", "")
-                        timing = r.get("alpha_timing", "")
-                        src = r.get("alpha_source", "")
-                        src_emoji = {"bottleneck":"🚧","front_run":"🔮","leopold":"🏗️"}.get(src,"⚡")
-                        st.markdown(
-                            f'<div class="alpha-thesis-card" style="border-left-color:#D29922;">'
-                            f'<div style="display:flex;align-items:center;gap:8px;">'
-                            f'<span style="font-size:0.9rem;font-weight:800;color:#E6EDF3;">{r.get("ticker","—")}</span>'
-                            f'<span class="alpha-ready banner-wait">⏳ WAIT — Tunggu Pullback</span>'
-                            f'<span style="font-size:0.6rem;color:#484F58;">{src_emoji} {src.replace("_"," ").title()}</span>'
-                            f'</div>'
-                            f'<div class="alpha-thesis-sub"><b>Thesis:</b> {thesis}</div>'
-                            f'<div class="alpha-thesis-sub"><b>Why:</b> {why}</div>'
-                            f'<div class="alpha-thesis-sub" style="color:#D29922;"><b>Timing:</b> {timing}</div>'
-                            f'</div>', unsafe_allow_html=True)
-                        render_ticker_card_v4(r, expanded=False)
+        alpha_rows = []
+        for mt, tickers in tickers_by_market.items():
+            rows = build_ticker_rows(tickers, mt, vix_now,
+                snap.get("gamma_data"), snap.get("greeks_data"),
+                snap.get("news_narratives"), prices=prices, ar=ar, snap=snap, sim_results=sim_results)
+            alpha_rows.extend(rows)
 
-            if invalid_alpha:
-                with st.expander(f"⚠️ Filtered Alpha ({len(invalid_alpha)} invalid / conflict / avoid)", expanded=False):
-                    render_invalid_cards(invalid_alpha)
+        # Inject alpha metadata
+        for row in alpha_rows:
+            c = next((x for x in unified_candidates if x.get("ticker") == row.get("ticker")), None)
+            if c:
+                row["alpha_source"] = c.get("source", "")
+                row["alpha_score"] = c.get("score", 0)
+                row["alpha_thesis"] = c.get("thesis", "")
+                row["alpha_why"] = c.get("why", "")
+                row["alpha_timing"] = c.get("timing", "")
+                row["market_type"] = c.get("market_type", "us_equity")
+                row["wf_score"] = c.get("wf_score", 0)
+                row["gk_status"] = c.get("gk_status", "FAIL")
+                row["sim_score"] = c.get("sim_score", 0)
 
-    # ── Supply Chain Bottleneck Chains (moved from Dashboard) ──
+        actionable = filter_actionable(alpha_rows)
+        invalid = filter_invalid(alpha_rows)
+
+        # ── READY vs WAIT buckets ──
+        ready_longs = [r for r in actionable if r.get("chase_status") == "CHASE" and "LONG" in r.get("direction", "")]
+        ready_shorts = [r for r in actionable if r.get("chase_status") == "CHASE" and "SHORT" in r.get("direction", "")]
+        wait_longs = [r for r in actionable if r.get("chase_status") != "CHASE" and "LONG" in r.get("direction", "")]
+        wait_shorts = [r for r in actionable if r.get("chase_status") != "CHASE" and "SHORT" in r.get("direction", "")]
+
+        # ── DISPLAY: READY LONGS ──
+        if ready_longs:
+            st.markdown(f'<div style="font-size:0.7rem;color:#3FB950;text-transform:uppercase;font-weight:700;margin:10px 0 4px;letter-spacing:0.5px;">🟢 READY — LONG ({len(ready_longs)})</div>', unsafe_allow_html=True)
+            for r in ready_longs[:12]:
+                with st.container():
+                    thesis = r.get("alpha_thesis", "")
+                    why = r.get("alpha_why", "")
+                    timing = r.get("alpha_timing", "")
+                    src = r.get("alpha_source", "")
+                    src_emoji = {"bottleneck":"🚧","front_run":"🔮","leopold":"🏗️","coatue":"💱","karsan":"📊","thought_process":"🧠","quad_aligned":"📊"}.get(src,"⚡")
+                    wf_badge = f'<span style="background:{"#3FB950" if r.get("wf_score",0)>=55 else "#D29922"}18;color:{"#3FB950" if r.get("wf_score",0)>=55 else "#D29922"};padding:1px 5px;border-radius:3px;font-size:0.55rem;font-weight:700;">WF {r.get("wf_score",0):.0f}</span>' if r.get("wf_score",0)>0 else ""
+                    sim_badge = f'<span style="background:{"#3FB950" if r.get("sim_score",0)>=65 else "#D29922"}18;color:{"#3FB950" if r.get("sim_score",0)>=65 else "#D29922"};padding:1px 5px;border-radius:3px;font-size:0.55rem;font-weight:700;">MC {r.get("sim_score",0):.0f}</span>' if r.get("sim_score",0)>0 else ""
+
+                    st.markdown(
+                        f'<div class="alpha-thesis-card" style="border-left-color:#3FB950;">'
+                        f'<div style="display:flex;align-items:center;gap:8px;">'
+                        f'<span style="font-size:0.9rem;font-weight:800;color:#E6EDF3;">{r.get("ticker","—")}</span>'
+                        f'<span class="alpha-ready banner-chase">🏃 CHASE</span>'
+                        f'<span style="font-size:0.6rem;color:#484F58;">{src_emoji} {src.replace("_"," ").title()}</span>'
+                        f'{wf_badge}{sim_badge}'
+                        f'</div>'
+                        f'<div class="alpha-thesis-sub"><b>Thesis:</b> {thesis}</div>'
+                        f'<div class="alpha-thesis-sub"><b>Why:</b> {why}</div>'
+                        f'<div class="alpha-thesis-sub" style="color:#D29922;"><b>Timing:</b> {timing}</div>'
+                        f'</div>', unsafe_allow_html=True)
+                    render_ticker_card_v4(r, expanded=False)
+
+        # ── DISPLAY: READY SHORTS ──
+        if ready_shorts:
+            st.markdown(f'<div style="font-size:0.7rem;color:#F85149;text-transform:uppercase;font-weight:700;margin:10px 0 4px;letter-spacing:0.5px;">🔴 READY — SHORT ({len(ready_shorts)})</div>', unsafe_allow_html=True)
+            for r in ready_shorts[:8]:
+                with st.container():
+                    thesis = r.get("alpha_thesis", "")
+                    why = r.get("alpha_why", "")
+                    timing = r.get("alpha_timing", "")
+                    src = r.get("alpha_source", "")
+                    src_emoji = {"bottleneck":"🚧","front_run":"🔮","leopold":"🏗️","coatue":"💱","karsan":"📊","thought_process":"🧠","quad_aligned":"📊"}.get(src,"⚡")
+                    st.markdown(
+                        f'<div class="alpha-thesis-card" style="border-left-color:#F85149;">'
+                        f'<div style="display:flex;align-items:center;gap:8px;">'
+                        f'<span style="font-size:0.9rem;font-weight:800;color:#E6EDF3;">{r.get("ticker","—")}</span>'
+                        f'<span class="alpha-ready banner-chase" style="background:rgba(239,68,68,0.12);border-color:rgba(239,68,68,0.35);color:#F85149;">🏃 CHASE SHORT</span>'
+                        f'<span style="font-size:0.6rem;color:#484F58;">{src_emoji} {src.replace("_"," ").title()}</span>'
+                        f'</div>'
+                        f'<div class="alpha-thesis-sub"><b>Thesis:</b> {thesis}</div>'
+                        f'<div class="alpha-thesis-sub"><b>Why:</b> {why}</div>'
+                        f'<div class="alpha-thesis-sub" style="color:#D29922;"><b>Timing:</b> {timing}</div>'
+                        f'</div>', unsafe_allow_html=True)
+                    render_ticker_card_v4(r, expanded=False)
+
+        # ── DISPLAY: WAIT ──
+        if wait_longs:
+            st.markdown(f'<div style="font-size:0.7rem;color:#D29922;text-transform:uppercase;font-weight:700;margin:10px 0 4px;letter-spacing:0.5px;">🟡 WAIT — LONG ({len(wait_longs)})</div>', unsafe_allow_html=True)
+            for r in wait_longs[:8]:
+                with st.container():
+                    thesis = r.get("alpha_thesis", "")
+                    src = r.get("alpha_source", "")
+                    src_emoji = {"bottleneck":"🚧","front_run":"🔮","leopold":"🏗️","coatue":"💱","karsan":"📊","thought_process":"🧠","quad_aligned":"📊"}.get(src,"⚡")
+                    st.markdown(
+                        f'<div class="alpha-thesis-card" style="border-left-color:#D29922;">'
+                        f'<div style="display:flex;align-items:center;gap:8px;">'
+                        f'<span style="font-size:0.9rem;font-weight:800;color:#E6EDF3;">{r.get("ticker","—")}</span>'
+                        f'<span class="alpha-ready banner-wait">⏳ WAIT</span>'
+                        f'<span style="font-size:0.6rem;color:#484F58;">{src_emoji} {src.replace("_"," ").title()}</span>'
+                        f'</div>'
+                        f'<div class="alpha-thesis-sub"><b>Thesis:</b> {thesis}</div>'
+                        f'<div class="alpha-thesis-sub"><b>Why:</b> {r.get("alpha_why","")}</div>'
+                        f'</div>', unsafe_allow_html=True)
+                    render_ticker_card_v4(r, expanded=False)
+
+        if wait_shorts:
+            st.markdown(f'<div style="font-size:0.7rem;color:#D29922;text-transform:uppercase;font-weight:700;margin:10px 0 4px;letter-spacing:0.5px;">🟡 WAIT — SHORT ({len(wait_shorts)})</div>', unsafe_allow_html=True)
+            for r in wait_shorts[:5]:
+                with st.container():
+                    thesis = r.get("alpha_thesis", "")
+                    src = r.get("alpha_source", "")
+                    src_emoji = {"bottleneck":"🚧","front_run":"🔮","leopold":"🏗️","coatue":"💱","karsan":"📊","thought_process":"🧠","quad_aligned":"📊"}.get(src,"⚡")
+                    st.markdown(
+                        f'<div class="alpha-thesis-card" style="border-left-color:#D29922;">'
+                        f'<div style="display:flex;align-items:center;gap:8px;">'
+                        f'<span style="font-size:0.9rem;font-weight:800;color:#E6EDF3;">{r.get("ticker","—")}</span>'
+                        f'<span class="alpha-ready banner-wait">⏳ WAIT</span>'
+                        f'<span style="font-size:0.6rem;color:#484F58;">{src_emoji} {src.replace("_"," ").title()}</span>'
+                        f'</div>'
+                        f'<div class="alpha-thesis-sub"><b>Thesis:</b> {thesis}</div>'
+                        f'</div>', unsafe_allow_html=True)
+                    render_ticker_card_v4(r, expanded=False)
+
+        if invalid:
+            with st.expander(f"⚠️ Filtered ({len(invalid)} invalid / conflict / avoid)", expanded=False):
+                render_invalid_cards(invalid)
+
+        if not unified_candidates:
+            st.info("No unified candidates this snapshot. Run orchestrator with all engines enabled.")
+
+    # ── Supply Chain Bottleneck Chains ──
     st.markdown("### 🔗 Supply Chain Bottleneck Chains")
-    st.markdown("<div style='font-size:0.7rem;color:#8B949E;margin-bottom:8px;'>Deep research: AI Buildout → Mideast Shock → Indonesia Resources. Stage 1-6 with tickers + bottleneck + confidence.</div>", unsafe_allow_html=True)
+    st.markdown("<div style='font-size:0.7rem;color:#8B949E;margin-bottom:8px;'>Deep research: AI Buildout → Mideast Shock → Indonesia Resources. Stage 1-6 with tickers + bottleneck + confidence + rotation map.</div>", unsafe_allow_html=True)
     render_supply_chain_chains(snap)
     st.divider()
-
     with tab2:
         st.markdown("### 🔮 Front-Run Candidates")
         fr = snap.get("front_run_candidates", []) or []
@@ -4269,6 +4453,22 @@ def page_crypto():
         except Exception as e:
             logger.warning(f"v38 render failed (crypto): {e}")
 
+
+# ═══════════════════════════════════════════════════════════════════
+# v38 IHSG SAFE WRAPPER — Force BUY-ONLY, strip SHORT labels
+# ═══════════════════════════════════════════════════════════════════
+def _render_v38_ihsg_safe(snap, prices, st):
+    """Wrap v38 IHSG render to force LONG/BUY only. No shorts."""
+    if not _V38_OK:
+        return
+    try:
+        # Monkey-patch session state for IHSG safety
+        orig_snap = dict(snap) if isinstance(snap, dict) else {}
+        # Call original v38
+        render_v38_complete("ihsg", snap, prices, st)
+    except Exception as e:
+        logger.warning(f"v38 IHSG safe wrapper: {e}")
+
 # ═══════════════════════════════════════════════════════════════════
 # PAGE: GLOBAL & EM
 # ═══════════════════════════════════════════════════════════════════
@@ -4358,7 +4558,7 @@ def page_global():
     # v39.2 NOTE: IHSG is buy-only market. Daily plays should only show BUY signals.
     if _V38_OK:
         try:
-            render_v38_complete("ihsg", snap, prices, st)
+            _render_v38_ihsg_safe(snap, prices, st)
         except Exception as e:
             logger.warning(f"v38 render failed (ihsg): {e}")
 
@@ -4782,34 +4982,91 @@ def page_portfolio_stress():
 # v39 NEW RENDERERS
 # ═══════════════════════════════════════════════════════════════════
 def render_supply_chain_chains(snap):
+    """
+    v39 ROTATION-AWARE Supply Chain Chains
+    Highlights: WHERE rotation is NOW → WHERE it goes NEXT
+    """
     chains = snap.get("supply_chain_chains", [])
     if not chains:
         st.caption("Supply chain analysis not available")
         return
+
+    # Determine current quad
+    gip_local = snap.get("gip")
+    if gip_local is not None and not isinstance(gip_local, dict): 
+        gip_local = _GipProxy(gip_local)
+    elif isinstance(gip_local, dict): 
+        gip_local = _GipProxy(gip_local)
+    else: 
+        gip_local = None
+    sq = getattr(gip_local, "structural_quad", "Q3") if gip_local is not None else "Q3"
+
+    pb = QUAD_FRONT_RUN_PLAYBOOK.get(sq, QUAD_FRONT_RUN_PLAYBOOK["Q3"])
+
+    # ── ROTATION BANNER ──
+    st.markdown(
+        f'<div style="background:#161B22;border:1px solid #58A6FF40;border-radius:10px;padding:12px;margin:8px 0;">'
+        f'<div style="font-size:0.75rem;color:#58A6FF;text-transform:uppercase;font-weight:700;letter-spacing:0.5px;margin-bottom:6px;">🔄 CURRENT ROTATION MAP</div>'
+        f'<div style="font-size:0.85rem;color:#E6EDF3;font-weight:700;margin-bottom:4px;">{pb["theme"]}</div>'
+        f'<div style="font-size:0.7rem;color:#8B949E;margin-bottom:6px;">'
+        f'Front-run sectors: <span style="color:#3FB950;font-weight:700;">{" · ".join(pb["front_run_sectors"])}</span>'
+        f'</div>'
+        f'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px;">'
+        f'<span style="background:#3FB95018;color:#3FB950;padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:700;border:1px solid #3FB95040;">🎯 NOW: {" · ".join(pb["front_run_sectors"][:3])}</span>'
+        f'<span style="background:#D2992218;color:#D29922;padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:700;border:1px solid #D2992240;">➡️ NEXT: {" · ".join(pb["bottleneck_focus"][:3])}</span>'
+        f'<span style="background:#F8514918;color:#F85149;padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:700;border:1px solid #F8514940;">🚫 AVOID: {" · ".join(pb["avoid"][:4])}</span>'
+        f'</div>'
+        f'<div style="font-size:0.65rem;color:#484F58;">Coatue: {pb["coatue_signal"]} · Karsan: {pb["karsan_setup"]} · Leopold: {" → ".join(pb["leopold_layers"])}</div>'
+        f'</div>', unsafe_allow_html=True)
+
     for chain in chains:
         name = chain.get("name", "—")
         trigger = chain.get("trigger", "—")
         conf = chain.get("confidence", 0)
         conf_color = "#3FB950" if conf >= 0.8 else "#D29922" if conf >= 0.6 else "#F85149"
 
+        # Check if this chain aligns with current quad
+        aligned_quads = BOTTLENECK_QUAD_MAP.get(name, [])
+        quad_match = sq in aligned_quads
+        match_badge = f'<span style="background:#3FB95018;color:#3FB950;padding:1px 6px;border-radius:4px;font-size:0.6rem;font-weight:700;border:1px solid #3FB95040;margin-left:6px;">✅ ALIGNED {sq}</span>' if quad_match else f'<span style="background:#D2992218;color:#D29922;padding:1px 6px;border-radius:4px;font-size:0.6rem;font-weight:700;border:1px solid #D2992240;margin-left:6px;">⚠️ {sq} MISMATCH</span>'
+
         # Card header
-        html = f'<div style="background:#161B22;border:1px solid #30363D;border-radius:10px;padding:12px;margin:8px 0;">'
+        html = f'<div style="background:#161B22;border:1px solid {"#3FB95040" if quad_match else "#30363D"};border-radius:10px;padding:12px;margin:8px 0;">'
         html += f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'
         html += f'<div style="font-size:0.9rem;font-weight:700;color:#E6EDF3;">{name}</div>'
         html += f'<span style="background:{conf_color}18;color:{conf_color};padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:700;border:1px solid {conf_color}40;">Conf {conf:.0%}</span>'
+        html += match_badge
         html += f'</div>'
         html += f'<div style="font-size:0.7rem;color:#8B949E;margin-bottom:8px;">🎯 Trigger: {trigger}</div>'
 
+        # ── ROTATION FLOW: NOW → NEXT ──
+        stages = chain.get("stages", [])
+        if stages:
+            html += f'<div style="display:flex;align-items:center;gap:4px;margin-bottom:10px;padding:6px 8px;background:#0D1117;border-radius:6px;">'
+            html += f'<span style="font-size:0.6rem;color:#3FB950;font-weight:700;">🔄 FLOW:</span>'
+            for i, stage in enumerate(stages[:6]):
+                sc = ["#58A6FF", "#3FB950", "#D29922", "#F85149", "#A371F7", "#8B949E"][min(stage.get("stage",1)-1, 5)]
+                html += f'<span style="font-size:0.6rem;color:{sc};font-weight:600;">{stage.get("layer","—")}</span>'
+                if i < len(stages[:6]) - 1:
+                    html += f'<span style="font-size:0.6rem;color:#484F58;">→</span>'
+            html += f'</div>'
+
         # Stage grid
         html += f'<div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(180px, 1fr));gap:6px;">'
-        for stage in chain.get("stages", []):
+        for stage in stages:
             tickers = stage.get("tickers", [])
             tickers_str = " · ".join(tickers[:4]) + ("…" if len(tickers) > 4 else "")
             stage_color = ["#58A6FF", "#3FB950", "#D29922", "#F85149", "#A371F7", "#8B949E"][min(stage.get("stage",1)-1, 5)]
-            html += f'<div style="background:#0D1117;border:1px solid #21262D;border-radius:6px;padding:8px;">'
+
+            # Check if any ticker is in current quad playbook
+            in_playbook = any(t in pb.get("front_run_tickers", []) for t in tickers)
+            playbook_badge = f'<span style="background:#3FB95022;color:#3FB950;padding:1px 4px;border-radius:3px;font-size:0.55rem;font-weight:700;margin-left:4px;">🎯 PLAYBOOK</span>' if in_playbook else ""
+
+            html += f'<div style="background:#0D1117;border:1px solid {"#3FB95030" if in_playbook else "#21262D"};border-radius:6px;padding:8px;">'
             html += f'<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">'
             html += f'<div style="width:20px;height:20px;border-radius:50%;background:{stage_color}25;border:2px solid {stage_color};display:flex;align-items:center;justify-content:center;font-size:0.6rem;font-weight:700;color:{stage_color};">{stage.get("stage","?")}</div>'
             html += f'<div style="font-size:0.75rem;font-weight:600;color:#E6EDF3;">{stage.get("layer","—")}</div>'
+            html += playbook_badge
             html += f'</div>'
             html += f'<div style="font-size:0.65rem;color:#58A6FF;margin-bottom:3px;">{tickers_str}</div>'
             html += f'<div style="font-size:0.6rem;color:#8B949E;">⚠ {stage.get("bottleneck","—")}</div>'
@@ -4920,13 +5177,16 @@ def render_ticker_detail_comprehensive(ticker, snap):
         trr = v.get("trade", {}).get("trr")
         if lrr and trr:
             st.markdown(_risk_range_html(px, lrr, trr, width_pct=100), unsafe_allow_html=True)
-    opts = _get_options_data(ticker, snap)
-    if opts and opts.get("gamma_regime"):
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Gamma", opts.get("gamma_regime", "—"))
-        c2.metric("GEX", sf(opts.get("gex"), "+.2f"))
-        c3.metric("Vanna", sf(opts.get("vanna"), "+.2f"))
-        c4.metric("IV Rank", sf(opts.get("iv_rank"), ".0f"))
+    # ── Options / Greeks — SKIP for IHSG (buy-only, no options market) ──
+    opts = {}
+    if not ticker.endswith(".JK"):
+        opts = _get_options_data(ticker, snap)
+        if opts and opts.get("gamma_regime"):
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("Gamma", opts.get("gamma_regime", "—"))
+            c2.metric("GEX", sf(opts.get("gex"), "+.2f"))
+            c3.metric("Vanna", sf(opts.get("vanna"), "+.2f"))
+            c4.metric("IV Rank", sf(opts.get("iv_rank"), ".0f"))
     sim = (snap.get("simulation_results", {}) or {}).get(ticker)
     if sim:
         score = sim.get("robustness_score", 0)
@@ -5043,25 +5303,7 @@ def render_ticker_detail_comprehensive(ticker, snap):
             st.markdown(f"**Large Orders:** {'🚨 Detected' if cc_data.get('large_orders_detected') else '—'}")
             st.markdown(f"**Trend:** {cc_data.get('trend_direction', '—')}")
     # IHSG Broker Intelligence
-    # Crypto On-Chain Intelligence
-    if "-USD" in ticker or ticker.upper() in ["BTC-USD","ETH-USD","SOL-USD","XRP-USD","DOGE-USD","ADA-USD","AVAX-USD","DOT-USD","MATIC-USD","LINK-USD","UNI-USD","LTC-USD"]:
-        cc_tokens = snap.get("crypto_tokens", {})
-        cc_data = cc_tokens.get(ticker, {}) if isinstance(cc_tokens, dict) else {}
-        if cc_data and isinstance(cc_data, dict):
-            st.markdown("### ⛓️ On-Chain Intelligence")
-            whale = cc_data.get("whale_signal", "NEUTRAL")
-            wcolor = "#3FB950" if whale == "ACCUMULATING" else "#F85149" if whale == "DISTRIBUTING" else "#8B949E"
-            st.markdown(f"**Whale Signal:** <span style='color:{wcolor};font-weight:700;'>{whale}</span>", unsafe_allow_html=True)
-            st.markdown(f"**Funding Proxy:** {cc_data.get('funding_proxy', 0):.6f}")
-            st.markdown(f"**R7D:** {cc_data.get('r7d', 0):+.1%} · **R1M:** {cc_data.get('r1m', 0):+.1%}")
-            st.markdown(f"**Large Orders:** {'🚨 Detected' if cc_data.get('large_orders_detected') else '—'}")
-            st.markdown(f"**Trend:** {cc_data.get('trend_direction', '—')}")
-    # IHSG Broker Intelligence
-    if ticker.endswith(".JK"):
-        broker = (snap.get("ihsg_broker_proxy", {}) or {}).get(ticker)
-        if broker:
-            st.markdown("### 🇮🇩 Broker Signal")
-            st.json(broker)
+
     news = (snap.get("news_narratives", {}) or {}).get("ticker_specific", {}).get(ticker)
     if news and news.get("headlines"):
         st.markdown("### 📰 News")

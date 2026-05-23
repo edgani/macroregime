@@ -4603,7 +4603,8 @@ with st.sidebar:
     st.divider()
     page = st.radio("Navigation", [
         "🏠 Dashboard", "⚡ Alpha Center", "🇺🇸 US Stocks", "💱 Forex",
-        "🛢️ Commodities", "₿ Crypto", "🌍 Global & EM", "📖 Themes", "📊 Portfolio Stress"
+        "🛢️ Commodities", "₿ Crypto", "🌍 Global & EM", "📖 Themes", "📊 Portfolio Stress",
+        "🔍 Ticker Detail"
     ], label_visibility="collapsed")
     st.divider()
     try:

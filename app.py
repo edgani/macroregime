@@ -1509,7 +1509,7 @@ def _compute_entry_convergence(row, snap, market_type="us_equity"):
         opts = row.get("options", {})
         gamma = opts.get("gamma_regime", "")
         mp = opts.get("max_pain")
-        mp_dist = opts.get("mp_dist", 0)
+        mp_dist = opts.get("mp_dist", 0) or 0
 
         if gamma in ("DEEP_POSITIVE", "POSITIVE") and direction == "LONG":
             score += 10
@@ -1534,22 +1534,28 @@ def _compute_entry_convergence(row, snap, market_type="us_equity"):
         charm = opts.get("charm")
 
         if vanna is not None:
-            v = float(vanna)
-            if v > 0.5 and direction == "LONG":
-                score += 8
-                layers.append({"name": "Cem Karsan Vanna", "signal": "BULLISH", "weight": 8})
-            elif v < -0.5 and direction == "SHORT":
-                score += 8
-                layers.append({"name": "Cem Karsan Vanna", "signal": "BEARISH", "weight": 8})
+            try:
+                v = float(vanna)
+                if v > 0.5 and direction == "LONG":
+                    score += 8
+                    layers.append({"name": "Cem Karsan Vanna", "signal": "BULLISH", "weight": 8})
+                elif v < -0.5 and direction == "SHORT":
+                    score += 8
+                    layers.append({"name": "Cem Karsan Vanna", "signal": "BEARISH", "weight": 8})
+            except (ValueError, TypeError):
+                pass
 
         if charm is not None:
-            c = float(charm)
-            if c > 0.5 and direction == "LONG":
-                score += 8
-                layers.append({"name": "Cem Karsan Charm", "signal": "BULLISH", "weight": 8})
-            elif c < -0.5 and direction == "SHORT":
-                score += 8
-                layers.append({"name": "Cem Karsan Charm", "signal": "BEARISH", "weight": 8})
+            try:
+                c = float(charm)
+                if c > 0.5 and direction == "LONG":
+                    score += 8
+                    layers.append({"name": "Cem Karsan Charm", "signal": "BULLISH", "weight": 8})
+                elif c < -0.5 and direction == "SHORT":
+                    score += 8
+                    layers.append({"name": "Cem Karsan Charm", "signal": "BEARISH", "weight": 8})
+            except (ValueError, TypeError):
+                pass
 
     # Layer 4: VolSignals Dealer Regime (P4) — skip for IHSG
     if market_type != "ihsg":
@@ -1563,7 +1569,7 @@ def _compute_entry_convergence(row, snap, market_type="us_equity"):
             elif "AMPLIFYING" in regime:
                 score -= 10
                 layers.append({"name": "VolSignals Regime", "signal": "AMPLIFYING", "weight": -10})
-            if "VIRTUOUS" in cycle and direction == "LONG":
+            if cycle and "VIRTUOUS" in str(cycle) and direction == "LONG":
                 score += 5
                 layers.append({"name": "VolSignals Vanna", "signal": "VIRTUOUS", "weight": 5})
 
@@ -2399,7 +2405,8 @@ def render_ticker_card_v4(row, expanded=False):
     st.markdown(card_html, unsafe_allow_html=True)
 
     # ── Trade Setup Expander ──
-    with st.expander("🔍 Toggle Full Details — Greeks · GEX · Dark Pool · OI · Sim", expanded=expanded):
+    expander_label = "🔍 Toggle Full Details — Greeks · GEX · Dark Pool · OI · Sim" if market_type != "ihsg" else "🔍 Toggle Full Details — Broker · Risk Range · Sim"
+    with st.expander(expander_label, expanded=expanded):
         # Alpha thesis
         alpha_thesis = row.get("alpha_thesis", "")
         alpha_src = row.get("alpha_source", "")
@@ -2866,8 +2873,8 @@ def render_ticker_card_v4(row, expanded=False):
         rec_html += f'<div class="ts-stat"><div class="ts-stat-label">Stop</div><div class="ts-stat-value" style="color:#F85149;">{ff(stop)}</div><div class="ts-stat-sub">{risk_pct:.1f}% risk</div></div>'
         rec_html += f'</div>'
 
-        # Greeks grid (consolidated)
-        if show_options and options.get("gamma_regime"):
+        # Greeks grid (consolidated) — SKIP for IHSG
+        if show_options and options.get("gamma_regime") and market_type != "ihsg":
             rec_html += f'<div class="ts-grid-4" style="margin-bottom:8px;padding:6px;background:#0D1117;border-radius:6px;">'
             g_color = "#3FB950" if "POS" in str(options.get("gamma_regime","")) else "#F85149" if "NEG" in str(options.get("gamma_regime","")) else "#D29922"
             rec_html += f'<div class="ts-stat"><div class="ts-stat-label">Gamma</div><div class="ts-stat-value" style="color:{g_color};">{options.get("gamma_regime","—")[:10]}</div></div>'
@@ -2902,8 +2909,9 @@ def render_ticker_card_v4(row, expanded=False):
         rec_html += f'</div>'
         st.markdown(rec_html, unsafe_allow_html=True)
 
-        # VolSignals Dealer Regime
-        if show_options and options.get("volsignals_regime"):
+        # VolSignals Dealer Regime — SKIP for IHSG
+        # VolSignals Dealer Regime — SKIP for IHSG
+        if show_options and options.get("volsignals_regime") and market_type != "ihsg":
             vs = options.get("volsignals_regime", {})
             if isinstance(vs, dict):
                 vs_reg = vs.get("dealer_regime", "—")
@@ -2919,62 +2927,64 @@ def render_ticker_card_v4(row, expanded=False):
                     f'<div class="ts-stat"><div class="ts-stat-label">Confidence</div><div class="ts-stat-value" style="color:{"#3FB950" if "High" in vs_conf else "#D29922" if "Moderate" in vs_conf else "#8B949E"};">{vs_conf}</div></div>'
                     f'</div>', unsafe_allow_html=True)
 
-        # P&L Decomposition
-        if show_options and options.get("gex") is not None:
-            gex_v = _safe_float(options.get("gex")) or 0
-            vanna_v = _safe_float(options.get("vanna")) or 0
-            iv_r = _safe_float(options.get("iv_rank")) or 50
-            vrp_term = max(-5.0, min(5.0, (50 - iv_r) * 0.08))
-            vanna_flow = max(-3.0, min(3.0, vanna_v * 2.5))
-            volga_term = max(-1.0, min(1.0, gex_v * 0.3))
-            net_edge = vrp_term + vanna_flow + volga_term
-            st.markdown(
-                f'<div class="ts-panel">'
-                f'<div class="ts-panel-title">📐 P&L Decomposition (VolSignals)</div>'
-                f'<div style="font-size:0.7rem;color:#8B949E;">'
-                f'VRP: <span style="color:{"#3FB950" if vrp_term>0 else "#F85149"};font-weight:700;">{vrp_term:+.2f}%</span> · '
-                f'Vanna: <span style="color:{"#3FB950" if vanna_flow>0 else "#F85149"};font-weight:700;">{vanna_flow:+.2f}%</span> · '
-                f'Volga: <span style="color:{"#3FB950" if volga_term>0 else "#F85149"};font-weight:700;">{volga_term:+.2f}%</span> · '
-                f'Net: <span style="color:#E6EDF3;font-weight:700;">{net_edge:+.2f}%</span>'
-                f'</div></div>', unsafe_allow_html=True)
+        # P&L Decomposition — SKIP for IHSG
 
-        # OI Concentration Heatmap
-        if show_options and options.get("max_pain"):
-            mp = options.get("max_pain")
-            pw = options.get("put_wall")
-            cw = options.get("call_wall")
-            px = row.get("price")
-            if mp and pw and cw and px:
-                levels = [("Put Wall", pw, "#F85149"), ("Max Pain", mp, "#8B949E"), ("Call Wall", cw, "#3FB950")]
-                levels.sort(key=lambda x: x[1])
-                heat_html = f'<div class="ts-panel"><div class="ts-panel-title">📊 OI Concentration Heatmap</div>'
-                for label, price, color in levels:
-                    is_near = abs(price - px) / px < 0.05 if px else False
-                    near_badge = ' <span style="background:#58A6FF22;color:#58A6FF;padding:1px 4px;border-radius:3px;font-size:0.55rem;font-weight:700;">NEAR PX</span>' if is_near else ''
-                    bar_w = min(100, max(15, 100 - abs(price - mp) / mp * 200)) if mp else 50
-                    heat_html += f'<div class="oi-bar-row">'
-                    heat_html += f'<span class="oi-bar-label">{label}</span>'
-                    heat_html += f'<div class="oi-bar-track"><div class="oi-bar-fill" style="width:{bar_w:.0f}%;background:{color};"></div></div>'
-                    heat_html += f'<span class="oi-bar-value" style="color:{color};">{ff(price)}{near_badge}</span>'
+            if show_options and options.get("gex") is not None:
+                gex_v = _safe_float(options.get("gex")) or 0
+                vanna_v = _safe_float(options.get("vanna")) or 0
+                iv_r = _safe_float(options.get("iv_rank")) or 50
+                vrp_term = max(-5.0, min(5.0, (50 - iv_r) * 0.08))
+                vanna_flow = max(-3.0, min(3.0, vanna_v * 2.5))
+                volga_term = max(-1.0, min(1.0, gex_v * 0.3))
+                net_edge = vrp_term + vanna_flow + volga_term
+                st.markdown(
+                    f'<div class="ts-panel">'
+                    f'<div class="ts-panel-title">📐 P&L Decomposition (VolSignals)</div>'
+                    f'<div style="font-size:0.7rem;color:#8B949E;">'
+                    f'VRP: <span style="color:{"#3FB950" if vrp_term>0 else "#F85149"};font-weight:700;">{vrp_term:+.2f}%</span> · '
+                    f'Vanna: <span style="color:{"#3FB950" if vanna_flow>0 else "#F85149"};font-weight:700;">{vanna_flow:+.2f}%</span> · '
+                    f'Volga: <span style="color:{"#3FB950" if volga_term>0 else "#F85149"};font-weight:700;">{volga_term:+.2f}%</span> · '
+                    f'Net: <span style="color:#E6EDF3;font-weight:700;">{net_edge:+.2f}%</span>'
+                    f'</div></div>', unsafe_allow_html=True)
+
+        # OI Concentration Heatmap — SKIP for IHSG
+
+            if show_options and options.get("max_pain"):
+                mp = options.get("max_pain")
+                pw = options.get("put_wall")
+                cw = options.get("call_wall")
+                px = row.get("price")
+                if mp and pw and cw and px:
+                    levels = [("Put Wall", pw, "#F85149"), ("Max Pain", mp, "#8B949E"), ("Call Wall", cw, "#3FB950")]
+                    levels.sort(key=lambda x: x[1])
+                    heat_html = f'<div class="ts-panel"><div class="ts-panel-title">📊 OI Concentration Heatmap</div>'
+                    for label, price, color in levels:
+                        is_near = abs(price - px) / px < 0.05 if px else False
+                        near_badge = ' <span style="background:#58A6FF22;color:#58A6FF;padding:1px 4px;border-radius:3px;font-size:0.55rem;font-weight:700;">NEAR PX</span>' if is_near else ''
+                        bar_w = min(100, max(15, 100 - abs(price - mp) / mp * 200)) if mp else 50
+                        heat_html += f'<div class="oi-bar-row">'
+                        heat_html += f'<span class="oi-bar-label">{label}</span>'
+                        heat_html += f'<div class="oi-bar-track"><div class="oi-bar-fill" style="width:{bar_w:.0f}%;background:{color};"></div></div>'
+                        heat_html += f'<span class="oi-bar-value" style="color:{color};">{ff(price)}{near_badge}</span>'
+                        heat_html += f'</div>'
+                    # SpotGamma levels
+                    sg_levels = options.get("spotgamma_levels", {})
+                    if sg_levels and isinstance(sg_levels, dict):
+                        vt = sg_levels.get("volatility_trigger")
+                        rp = sg_levels.get("risk_pivot")
+                        if vt:
+                            is_near = abs(vt - px) / px < 0.03 if px else False
+                            badge = ' <span style="background:#D2992222;color:#D29922;padding:1px 4px;border-radius:3px;font-size:0.55rem;font-weight:700;">NEAR PX</span>' if is_near else ''
+                            bw = min(100, max(15, 100 - abs(vt - mp) / mp * 200)) if mp else 50
+                            heat_html += f'<div class="oi-bar-row"><span class="oi-bar-label">Vol Trigger</span><div class="oi-bar-track"><div class="oi-bar-fill" style="width:{bw:.0f}%;background:#D29922;"></div></div><span class="oi-bar-value" style="color:#D29922;">{ff(vt)}{badge}</span></div>'
+                        if rp:
+                            is_near = abs(rp - px) / px < 0.03 if px else False
+                            badge = ' <span style="background:#F8514922;color:#F85149;padding:1px 4px;border-radius:3px;font-size:0.55rem;font-weight:700;">NEAR PX</span>' if is_near else ''
+                            bw = min(100, max(15, 100 - abs(rp - mp) / mp * 200)) if mp else 50
+                            heat_html += f'<div class="oi-bar-row"><span class="oi-bar-label">Risk Pivot</span><div class="oi-bar-track"><div class="oi-bar-fill" style="width:{bw:.0f}%;background:#F85149;"></div></div><span class="oi-bar-value" style="color:#F85149;">{ff(rp)}{badge}</span></div>'
+                    heat_html += f'<div style="margin-top:4px;font-size:0.6rem;color:#484F58;">Price: {ff(px)} · Source: {options.get("source","PROXY")}</div>'
                     heat_html += f'</div>'
-                # SpotGamma levels
-                sg_levels = options.get("spotgamma_levels", {})
-                if sg_levels and isinstance(sg_levels, dict):
-                    vt = sg_levels.get("volatility_trigger")
-                    rp = sg_levels.get("risk_pivot")
-                    if vt:
-                        is_near = abs(vt - px) / px < 0.03 if px else False
-                        badge = ' <span style="background:#D2992222;color:#D29922;padding:1px 4px;border-radius:3px;font-size:0.55rem;font-weight:700;">NEAR PX</span>' if is_near else ''
-                        bw = min(100, max(15, 100 - abs(vt - mp) / mp * 200)) if mp else 50
-                        heat_html += f'<div class="oi-bar-row"><span class="oi-bar-label">Vol Trigger</span><div class="oi-bar-track"><div class="oi-bar-fill" style="width:{bw:.0f}%;background:#D29922;"></div></div><span class="oi-bar-value" style="color:#D29922;">{ff(vt)}{badge}</span></div>'
-                    if rp:
-                        is_near = abs(rp - px) / px < 0.03 if px else False
-                        badge = ' <span style="background:#F8514922;color:#F85149;padding:1px 4px;border-radius:3px;font-size:0.55rem;font-weight:700;">NEAR PX</span>' if is_near else ''
-                        bw = min(100, max(15, 100 - abs(rp - mp) / mp * 200)) if mp else 50
-                        heat_html += f'<div class="oi-bar-row"><span class="oi-bar-label">Risk Pivot</span><div class="oi-bar-track"><div class="oi-bar-fill" style="width:{bw:.0f}%;background:#F85149;"></div></div><span class="oi-bar-value" style="color:#F85149;">{ff(rp)}{badge}</span></div>'
-                heat_html += f'<div style="margin-top:4px;font-size:0.6rem;color:#484F58;">Price: {ff(px)} · Source: {options.get("source","PROXY")}</div>'
-                heat_html += f'</div>'
-                st.markdown(heat_html, unsafe_allow_html=True)
+                    st.markdown(heat_html, unsafe_allow_html=True)
 
         # Dark Pool Microstructure
         if show_options:
@@ -3009,10 +3019,11 @@ def render_ticker_card_v4(row, expanded=False):
                 dp_html += f'</div>'
                 st.markdown(dp_html, unsafe_allow_html=True)
 
-        # Skew Curve
-        if show_options and options.get("gamma_regime"):
-            iv_schadner = options.get("iv_schadner")
-            st.markdown(_skew_curve_proxy_html(ticker, options, width=320, height=110, iv_exact=iv_schadner), unsafe_allow_html=True)
+        # Skew Curve — SKIP for IHSG
+
+            if show_options and options.get("gamma_regime"):
+                iv_schadner = options.get("iv_schadner")
+                st.markdown(_skew_curve_proxy_html(ticker, options, width=320, height=110, iv_exact=iv_schadner), unsafe_allow_html=True)
 
         # Boom-Bust + Behavioral mini
         if market_type == "us_equity":
@@ -3495,10 +3506,6 @@ def page_dashboard():
 
     st.divider()
 
-    # ── v39: Supply Chain Chains ──
-    render_supply_chain_chains(snap)
-    st.divider()
-
     with st.expander("🔬 Deep Technical", expanded=False):
         c1, c2 = st.columns(2)
         with c1:
@@ -3870,6 +3877,12 @@ def page_alpha():
                 with st.expander(f"⚠️ Filtered Alpha ({len(invalid_alpha)} invalid / conflict / avoid)", expanded=False):
                     render_invalid_cards(invalid_alpha)
 
+    # ── Supply Chain Bottleneck Chains (moved from Dashboard) ──
+    st.markdown("### 🔗 Supply Chain Bottleneck Chains")
+    st.markdown("<div style='font-size:0.7rem;color:#8B949E;margin-bottom:8px;'>Deep research: AI Buildout → Mideast Shock → Indonesia Resources. Stage 1-6 with tickers + bottleneck + confidence.</div>", unsafe_allow_html=True)
+    render_supply_chain_chains(snap)
+    st.divider()
+
     with tab2:
         st.markdown("### 🔮 Front-Run Candidates")
         fr = snap.get("front_run_candidates", []) or []
@@ -4198,8 +4211,7 @@ def page_crypto():
 
     st.markdown("## ₿ Crypto")
 
-    # ── v39: On-Chain v2 ──
-    render_crypto_onchain_v2(snap)
+    # Whale signal moved to ticker detail expander (v39.2)
     st.divider()
 
     playbook = {
@@ -4343,6 +4355,7 @@ def page_global():
             render_invalid_cards(invalid_ihsg)
 
     # ── v38: IHSG Specialist (konglomerasi 21 groups + goreng 4-phase + Quad check) ──
+    # v39.2 NOTE: IHSG is buy-only market. Daily plays should only show BUY signals.
     if _V38_OK:
         try:
             render_v38_complete("ihsg", snap, prices, st)
@@ -4773,25 +4786,35 @@ def render_supply_chain_chains(snap):
     if not chains:
         st.caption("Supply chain analysis not available")
         return
-    st.markdown("### 🔗 Supply Chain Bottleneck Chains")
-    st.markdown("<div style='font-size:0.7rem;color:#8B949E;margin-bottom:8px;'>Deep research: AI Buildout → Mideast Shock → Indonesia Resources. Each stage shows bottleneck + beneficiaries.</div>", unsafe_allow_html=True)
     for chain in chains:
         name = chain.get("name", "—")
         trigger = chain.get("trigger", "—")
         conf = chain.get("confidence", 0)
         conf_color = "#3FB950" if conf >= 0.8 else "#D29922" if conf >= 0.6 else "#F85149"
-        html = f'<div class="chain-card">'
-        html += f'<div class="chain-title">{name} · Conf <span style="color:{conf_color}">{conf:.0%}</span></div>'
-        html += f'<div style="font-size:0.65rem;color:#8B949E;margin-bottom:6px;">Trigger: {trigger}</div>'
-        for stage in chain.get("stages", []):
-            tickers_str = " · ".join(stage.get("tickers", []))
-            html += f'<div class="chain-stage">'
-            html += f'<div class="chain-num">{stage.get("stage")}</div>'
-            html += f'<div class="chain-layer">{stage.get("layer")}</div>'
-            html += f'<div class="chain-tickers">{tickers_str}</div>'
-            html += f'<div class="chain-bottleneck">⚠ {stage.get("bottleneck")}</div>'
-            html += f'</div>'
+
+        # Card header
+        html = f'<div style="background:#161B22;border:1px solid #30363D;border-radius:10px;padding:12px;margin:8px 0;">'
+        html += f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">'
+        html += f'<div style="font-size:0.9rem;font-weight:700;color:#E6EDF3;">{name}</div>'
+        html += f'<span style="background:{conf_color}18;color:{conf_color};padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:700;border:1px solid {conf_color}40;">Conf {conf:.0%}</span>'
         html += f'</div>'
+        html += f'<div style="font-size:0.7rem;color:#8B949E;margin-bottom:8px;">🎯 Trigger: {trigger}</div>'
+
+        # Stage grid
+        html += f'<div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(180px, 1fr));gap:6px;">'
+        for stage in chain.get("stages", []):
+            tickers = stage.get("tickers", [])
+            tickers_str = " · ".join(tickers[:4]) + ("…" if len(tickers) > 4 else "")
+            stage_color = ["#58A6FF", "#3FB950", "#D29922", "#F85149", "#A371F7", "#8B949E"][min(stage.get("stage",1)-1, 5)]
+            html += f'<div style="background:#0D1117;border:1px solid #21262D;border-radius:6px;padding:8px;">'
+            html += f'<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">'
+            html += f'<div style="width:20px;height:20px;border-radius:50%;background:{stage_color}25;border:2px solid {stage_color};display:flex;align-items:center;justify-content:center;font-size:0.6rem;font-weight:700;color:{stage_color};">{stage.get("stage","?")}</div>'
+            html += f'<div style="font-size:0.75rem;font-weight:600;color:#E6EDF3;">{stage.get("layer","—")}</div>'
+            html += f'</div>'
+            html += f'<div style="font-size:0.65rem;color:#58A6FF;margin-bottom:3px;">{tickers_str}</div>'
+            html += f'<div style="font-size:0.6rem;color:#8B949E;">⚠ {stage.get("bottleneck","—")}</div>'
+            html += f'</div>'
+        html += f'</div></div>'
         st.markdown(html, unsafe_allow_html=True)
 
 
@@ -5006,8 +5029,8 @@ def render_ticker_detail_comprehensive(ticker, snap):
         st.markdown("### 🌊 Dark Pool")
         if dp_imb:
             st.markdown(f"Imbalance: {dp_imb['imbalance']:+.0f}% · Divergence: {dp_imb['div_text']}")
-    # Crypto On-Chain Intelligence
-    if "-USD" in ticker or ticker in ["BTC-USD","ETH-USD","SOL-USD","XRP-USD","DOGE-USD","ADA-USD","AVAX-USD","DOT-USD","MATIC-USD","LINK-USD","UNI-USD","LTC-USD"]:
+    # Crypto On-Chain Intelligence (Whale Signal)
+    if "-USD" in ticker or ticker.upper() in ["BTC-USD","ETH-USD","SOL-USD","XRP-USD","DOGE-USD","ADA-USD","AVAX-USD","DOT-USD","MATIC-USD","LINK-USD","UNI-USD","LTC-USD"]:
         cc_tokens = snap.get("crypto_tokens", {})
         cc_data = cc_tokens.get(ticker, {}) if isinstance(cc_tokens, dict) else {}
         if cc_data and isinstance(cc_data, dict):

@@ -1177,24 +1177,27 @@ def _get_broker_proxy(ticker, prices):
 
 
 def _build_ihsg_row(ticker, prices, ar, **kwargs):
-    """IHSG — Hedgeye 3-layer + Broker Proxy ONLY. BUY-ONLY MARKET (no short)."""
+    """IHSG — Hedgeye 3-layer + Broker Proxy ONLY. BUY-ONLY MARKET (no options/greeks)."""
     row = _build_row(ticker, prices, ar, market_type="ihsg", **kwargs)
     if not row:
         return None
-    # v39.1 FIX: IHSG is buy-only (1 pintu). Force direction to LONG/BUY.
+    # IHSG is buy-only. Force direction to LONG.
     row["direction"] = "LONG"
     row["side"] = "long"
-    # Strip options (IHSG no options data)
+    # Strip ALL options/greeks data (IHSG has no options market)
     row["options"] = {}
     row["mm_positioning"] = ""
     row["mm_recommendation"] = ""
     # Sector
     sector = IHSG_SECTOR_MAP.get(ticker, "Indonesia")
     row["sector"] = sector
-    # Broker proxy (real accumulation/distribution/crossing)
+    # Broker proxy (real accumulation/distribution/crossing/cornering)
     broker = _get_broker_proxy(ticker, prices)
     row["broker"] = broker
-    # IHSG-specific recommendation based on broker + Hedgeye formation (BUY ONLY)
+    # Compute entry convergence for IHSG
+    conv = _compute_entry_convergence(row, kwargs.get("snap"), market_type="ihsg")
+    row["entry_convergence"] = conv
+    # IHSG-specific recommendation (BUY ONLY)
     formation = row.get("formation", "NEUTRAL")
     if broker.get("real_accumulation", False):
         row["recommendation"] = f"🟢 AKUMULASI REAL — {sector} ({broker.get('confidence',0)}% conf) · BELI"
@@ -1202,10 +1205,11 @@ def _build_ihsg_row(ticker, prices, ar, **kwargs):
         row["recommendation"] = f"🔴 DISTRIBUSI REAL — {sector} ({broker.get('confidence',0)}% conf) · TUNGGU/HOLD"
     elif broker.get("crossing_detected", False):
         row["recommendation"] = f"🟡 WASPADA CROSSING — {sector} (possible wash trading) · TUNGGU"
+    elif broker.get("cornering_supply", False):
+        row["recommendation"] = f"🎯 CORNERING SUPPLY — {sector} (volume drying up then spike) · WATCH BREAKOUT"
     elif formation in ("BULLISH", "BULLISH_BIAS", "OVERSOLD"):
         row["recommendation"] = f"🟢 {sector} — Bullish/Oversold formation, buy at Trade Low"
     elif formation in ("BEARISH", "BEARISH_BIAS", "OVERBOUGHT"):
-        # v39.1: In buy-only market, bearish = wait/hold, not short
         row["recommendation"] = f"🟡 {sector} — Bearish formation detected · TUNGGU pullback ke Trade Low"
     else:
         row["recommendation"] = f"⚪ {sector} — Neutral, range-bound · MONITOR"
@@ -1218,19 +1222,19 @@ def build_ticker_rows(tickers, market_type="us_equity", vix_now=20, gamma_data=N
         if market_type == "ihsg": r = _build_ihsg_row(t, prices, ar, snap=snap)
         else: r = _build_row(t, prices, ar, vix_now=vix_now, gamma_data=gamma_data, greeks_data=greeks_data, market_type=market_type, news=news, snap=snap)
         if r:
-            # v39.1 FIX: Inject ALL background engine data into row for detail expander
+            # Inject ALL background engine data into row for detail expander
             if snap:
                 r["walkforward"] = (snap.get("walkforward_results") or {}).get(t, {})
                 r["gatekeeper"] = (snap.get("alpha_gatekeeper") or {}).get(t, {})
                 r["keith_sync"] = (snap.get("keith_sync") or {}).get(t, {})
                 r["hedgeye_size"] = next((p for p in (snap.get("hedgeye_position_sizing") or {}).get("positions", []) if p.get("ticker") == t), None)
                 r["vix_bucket"] = (snap.get("vix_bucket") or {}).get("bucket", "NORMAL")
-                # Also inject simulation results directly for detail view
                 if sim_results and t in sim_results:
                     r["simulation"] = sim_results[t]
+            # Compute entry convergence for ALL tickers (v39.2)
+            r["entry_convergence"] = _compute_entry_convergence(r, snap, market_type=market_type)
             rows.append(r)
-    # v39.1 FIX: Simulation runs background-only; do NOT filter rows here
-    # filter_by_simulation now annotates rows instead of removing them
+    # Simulation runs background-only; annotate but don't filter
     if sim_results:
         rows = filter_by_simulation(rows, sim_results, threshold=50, require_pass=False)
     return rows
@@ -1462,6 +1466,221 @@ def _get_onchain_proxy(ticker, prices):
 # ═══════════════════════════════════════════════════════════════════
 # RECOMMENDATION ENGINE (AUDITED v32.9)
 # ═══════════════════════════════════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════════════
+# ENTRY CONVERGENCE v39.2 — Multi-Methodology Fusion
+# Combines: Hedgeye Risk Range + SpotGamma Levels + Cem Karsan Vanna/Charm
+#           + VolSignals Dealer Regime + Leopold Asymmetry + Citrini Macro
+# ═══════════════════════════════════════════════════════════════════
+def _compute_entry_convergence(row, snap, market_type="us_equity"):
+    """
+    Compute unified entry signal from ALL available methodologies.
+    Returns: {"signal": "BUY/SELL/HOLD", "confidence": 0-100, "layers": []}
+    """
+    ticker = row.get("ticker", "")
+    direction = row.get("direction", "NEUTRAL")
+    formation = row.get("formation", "NEUTRAL")
+    px = row.get("price", 0)
+    entry = row.get("entry")
+    stop = row.get("stop")
+    rr = row.get("rr", 0)
+
+    layers = []
+    score = 50  # neutral baseline
+
+    # Layer 1: Hedgeye Risk Range Formation (P1)
+    if formation == "BULLISH":
+        score += 25
+        layers.append({"name": "Hedgeye Formation", "signal": "BULLISH", "weight": 25})
+    elif formation == "BEARISH":
+        score -= 25
+        layers.append({"name": "Hedgeye Formation", "signal": "BEARISH", "weight": -25})
+    elif formation in ("BULLISH_BIAS", "OVERSOLD"):
+        score += 15
+        layers.append({"name": "Hedgeye Formation", "signal": formation, "weight": 15})
+    elif formation in ("BEARISH_BIAS", "OVERBOUGHT"):
+        score -= 15
+        layers.append({"name": "Hedgeye Formation", "signal": formation, "weight": -15})
+    else:
+        layers.append({"name": "Hedgeye Formation", "signal": "NEUTRAL", "weight": 0})
+
+    # Layer 2: SpotGamma / Options Levels (P2) — skip for IHSG
+    if market_type != "ihsg":
+        opts = row.get("options", {})
+        gamma = opts.get("gamma_regime", "")
+        mp = opts.get("max_pain")
+        mp_dist = opts.get("mp_dist", 0)
+
+        if gamma in ("DEEP_POSITIVE", "POSITIVE") and direction == "LONG":
+            score += 10
+            layers.append({"name": "SpotGamma Gamma", "signal": "POSITIVE", "weight": 10})
+        elif gamma in ("DEEP_NEGATIVE", "NEGATIVE") and direction == "SHORT":
+            score += 10
+            layers.append({"name": "SpotGamma Gamma", "signal": "NEGATIVE", "weight": 10})
+        elif gamma in ("NEGATIVE", "DEEP_NEGATIVE") and direction == "LONG":
+            score -= 10
+            layers.append({"name": "SpotGamma Gamma", "signal": "NEGATIVE", "weight": -10})
+
+        # Max Pain proximity
+        if mp and px and abs((px - mp) / mp) < 0.02:
+            if direction == "LONG":
+                score -= 5  # pinned = hard to move
+                layers.append({"name": "Max Pain Pin", "signal": "PINNED", "weight": -5})
+
+    # Layer 3: Cem Karsan Vanna/Charm (P3) — skip for IHSG
+    if market_type != "ihsg":
+        opts = row.get("options", {})
+        vanna = opts.get("vanna")
+        charm = opts.get("charm")
+
+        if vanna is not None:
+            v = float(vanna)
+            if v > 0.5 and direction == "LONG":
+                score += 8
+                layers.append({"name": "Cem Karsan Vanna", "signal": "BULLISH", "weight": 8})
+            elif v < -0.5 and direction == "SHORT":
+                score += 8
+                layers.append({"name": "Cem Karsan Vanna", "signal": "BEARISH", "weight": 8})
+
+        if charm is not None:
+            c = float(charm)
+            if c > 0.5 and direction == "LONG":
+                score += 8
+                layers.append({"name": "Cem Karsan Charm", "signal": "BULLISH", "weight": 8})
+            elif c < -0.5 and direction == "SHORT":
+                score += 8
+                layers.append({"name": "Cem Karsan Charm", "signal": "BEARISH", "weight": 8})
+
+    # Layer 4: VolSignals Dealer Regime (P4) — skip for IHSG
+    if market_type != "ihsg":
+        vs = row.get("options", {}).get("volsignals_regime", {})
+        if isinstance(vs, dict):
+            regime = vs.get("dealer_regime", "")
+            cycle = vs.get("vanna_alignment", "")
+            if "STABILIZING" in regime and direction == "LONG":
+                score += 10
+                layers.append({"name": "VolSignals Regime", "signal": "STABILIZING", "weight": 10})
+            elif "AMPLIFYING" in regime:
+                score -= 10
+                layers.append({"name": "VolSignals Regime", "signal": "AMPLIFYING", "weight": -10})
+            if "VIRTUOUS" in cycle and direction == "LONG":
+                score += 5
+                layers.append({"name": "VolSignals Vanna", "signal": "VIRTUOUS", "weight": 5})
+
+    # Layer 5: Leopold Asymmetry (P5)
+    leo = (snap.get("leopold_scan", {}) or {}).get("per_ticker", {}).get(ticker)
+    if leo and isinstance(leo, dict):
+        asym = leo.get("asymmetry_score", 0)
+        if asym >= 70:
+            if direction == "LONG":
+                score += 12
+                layers.append({"name": "Leopold Asymmetry", "signal": "HIGH", "weight": 12})
+            else:
+                score -= 12
+                layers.append({"name": "Leopold Asymmetry", "signal": "HIGH", "weight": -12})
+
+    # Layer 6: COATUE Capital Rotation (P6)
+    coat = (snap.get("coatue_scan", {}) or {}).get("per_ticker", {}).get(ticker)
+    if coat and isinstance(coat, dict):
+        sig = coat.get("signal", "")
+        if sig == "BUY" and direction == "LONG":
+            score += 8
+            layers.append({"name": "COATUE Signal", "signal": "BUY", "weight": 8})
+        elif sig == "SELL" and direction == "SHORT":
+            score += 8
+            layers.append({"name": "COATUE Signal", "signal": "SELL", "weight": 8})
+
+    # Layer 7: Karsan Vol Scanner (P7)
+    kar = (snap.get("karsan_scanner", {}) or {}).get("per_ticker", {}).get(ticker)
+    if kar and isinstance(kar, dict):
+        setup = kar.get("setup_type", "")
+        if "squeeze" in setup.lower() and direction == "LONG":
+            score += 8
+            layers.append({"name": "Karsan Squeeze", "signal": "SETUP", "weight": 8})
+        elif "convexity" in setup.lower() and direction == "LONG":
+            score += 8
+            layers.append({"name": "Karsan Convexity", "signal": "SETUP", "weight": 8})
+
+    # Layer 8: Dark Pool / Smart Money (P8)
+    dp = row.get("dark_pool")
+    if dp and isinstance(dp, dict):
+        div = dp.get("divergence", "NEUTRAL")
+        if div == "HIDDEN_ACCUMULATION" and direction == "LONG":
+            score += 10
+            layers.append({"name": "Dark Pool", "signal": "HIDDEN_ACCUM", "weight": 10})
+        elif div == "HIDDEN_DISTRIBUTION" and direction == "SHORT":
+            score += 10
+            layers.append({"name": "Dark Pool", "signal": "HIDDEN_DIST", "weight": 10})
+        elif div == "BOTH_AGREE":
+            score += 5
+            layers.append({"name": "Dark Pool", "signal": "AGREE", "weight": 5})
+
+    # Layer 9: IHSG Broker Proxy (P9) — IHSG ONLY
+    if market_type == "ihsg":
+        broker = row.get("broker", {})
+        if broker and isinstance(broker, dict):
+            if broker.get("real_accumulation"):
+                score += 20
+                layers.append({"name": "IHSG Broker", "signal": "ACCUMULATION", "weight": 20})
+            elif broker.get("real_distribution"):
+                score -= 20
+                layers.append({"name": "IHSG Broker", "signal": "DISTRIBUTION", "weight": -20})
+            elif broker.get("crossing_detected"):
+                score -= 10
+                layers.append({"name": "IHSG Broker", "signal": "CROSSING", "weight": -10})
+            elif broker.get("cornering_supply"):
+                score += 15
+                layers.append({"name": "IHSG Broker", "signal": "CORNERING", "weight": 15})
+
+    # Layer 10: Walkforward / Simulation (P10)
+    wf = row.get("walkforward", {})
+    if wf and isinstance(wf, dict) and wf.get("gate_status") == "PASS":
+        score += 10
+        layers.append({"name": "Walkforward", "signal": "PASS", "weight": 10})
+
+    sim = row.get("simulation")
+    if sim and isinstance(sim, dict):
+        if sim.get("robustness_score", 0) >= 70:
+            score += 8
+            layers.append({"name": "Simulation", "signal": "STRONG", "weight": 8})
+        elif sim.get("robustness_score", 0) >= 50:
+            score += 4
+            layers.append({"name": "Simulation", "signal": "OK", "weight": 4})
+
+    # Layer 11: Keith P0 Override (P0 — HIGHEST PRIORITY)
+    ks = row.get("keith_sync", {})
+    if ks and isinstance(ks, dict) and ks.get("override"):
+        ktrade = ks.get("keith_trade", "")
+        if ktrade == "BEARISH":
+            score = 0  # force avoid
+            layers.insert(0, {"name": "Keith P0 Override", "signal": "AVOID", "weight": -100})
+        elif ktrade == "BULLISH" and direction == "LONG":
+            score += 15
+            layers.insert(0, {"name": "Keith P0 Override", "signal": "BULLISH", "weight": 15})
+
+    # Clamp score
+    score = max(0, min(100, score))
+
+    # Determine signal
+    if score >= 70:
+        signal = "BUY" if direction == "LONG" else "SELL"
+    elif score <= 30:
+        signal = "SELL" if direction == "LONG" else "BUY"  # contradictory
+    else:
+        signal = "HOLD"
+
+    # Override for IHSG buy-only
+    if market_type == "ihsg" and signal == "SELL":
+        signal = "HOLD"
+
+    return {
+        "signal": signal,
+        "confidence": score,
+        "layers": layers,
+        "direction": direction,
+        "market_type": market_type,
+    }
+
 def _get_single_recommendation(options, direction="LONG", market_type="us_equity",
                                cot_data=None, onchain_data=None, ticker="", prices=None, row=None,
                                dark_pool=None, unusual_activity=None):
@@ -2561,6 +2780,30 @@ def render_ticker_card_v4(row, expanded=False):
                 f'<div style="margin-bottom:8px;padding:5px 10px;background:#21262D;border-radius:6px;font-size:0.68rem;color:#8B949E;line-height:1.4;">'
                 + "<br>".join(ctx_lines) + '</div>', unsafe_allow_html=True)
 
+        # ── Entry Convergence ──
+        conv = row.get("entry_convergence")
+        if conv and isinstance(conv, dict):
+            conv_signal = conv.get("signal", "—")
+            conv_conf = conv.get("confidence", 0)
+            conv_layers = conv.get("layers", [])
+            conv_color = "#3FB950" if conv_signal == "BUY" else "#F85149" if conv_signal == "SELL" else "#D29922" if conv_signal == "HOLD" else "#8B949E"
+            conv_html = f'<div class="ts-panel" style="border-color: {conv_color}40; margin-bottom: 8px;">'
+            conv_html += f'<div class="ts-panel-title">🎯 Entry Convergence (Multi-Methodology Fusion)</div>'
+            conv_html += f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'
+            conv_html += f'<span style="background:{conv_color}18;color:{conv_color};padding:3px 10px;border-radius:6px;font-size:0.85rem;font-weight:700;border:1px solid {conv_color}40;">{conv_signal}</span>'
+            conv_html += f'<span style="font-size:0.7rem;color:#8B949E;">Confidence <b style="color:{conv_color};">{conv_conf:.0f}%</b></span>'
+            conv_html += f'<span style="font-size:0.65rem;color:#484F58;">{len(conv_layers)} layers</span>'
+            conv_html += f'</div>'
+            conv_html += f'<div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));gap:4px;">'
+            for layer in conv_layers[:12]:
+                lcolor = "#3FB950" if layer.get("weight", 0) > 0 else "#F85149" if layer.get("weight", 0) < 0 else "#8B949E"
+                conv_html += f'<div style="padding:3px 6px;background:#0D1117;border-radius:4px;font-size:0.6rem;">'
+                conv_html += f'<span style="color:#8B949E;">{layer.get("name","—")}</span> '
+                conv_html += f'<span style="color:{lcolor};font-weight:700;">{layer.get("signal","—")}</span>'
+                conv_html += f'</div>'
+            conv_html += f'</div></div>'
+            st.markdown(conv_html, unsafe_allow_html=True)
+
         # ── Recommendation ──
         if market_type == "ihsg":
             broker = row.get("broker", {})
@@ -3499,7 +3742,19 @@ def page_alpha():
         if not alpha_candidates:
             st.info("No bottleneck or front-run candidates this snapshot. Run orchestrator with discovery engines enabled.")
         else:
-            st.markdown(f"**{len(alpha_candidates)} candidates** · Bottleneck + Front-Run only · v39.1: All candidates shown (simulation background-only)")
+            # Show source breakdown
+            sources = {}
+            for c in alpha_candidates:
+                src = c.get("source", "unknown")
+                sources[src] = sources.get(src, 0) + 1
+            source_html = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px;">'
+            for src, count in sources.items():
+                emoji = {"bottleneck":"🚧","front_run":"🔮","leopold":"🏗️","regime_aligned":"📊","news_rumor":"📰"}.get(src,"⚡")
+                source_html += f'<span style="background:#161B22;border:1px solid #30363D;border-radius:6px;padding:4px 8px;font-size:0.7rem;color:#8B949E;">{emoji} {src.replace("_"," ").title()}: <b style="color:#E6EDF3;">{count}</b></span>'
+            source_html += '</div>'
+            st.markdown(source_html, unsafe_allow_html=True)
+
+            st.markdown(f"**{len(alpha_candidates)} candidates** · Bottleneck + Front-Run + Leopold + Regime · v39.2: Entry Convergence Fusion")
             alpha_tickers = [c["ticker"] for c in alpha_candidates if c.get("ticker")]
             # v39.1 FIX: Simulation runs background-only via build_ticker_rows
             alpha_rows = build_ticker_rows(alpha_tickers, "us_equity", vix_now, snap.get("gamma_data"), snap.get("greeks_data"), snap.get("news_narratives"), prices=prices, ar=ar, snap=snap)
@@ -4065,10 +4320,6 @@ def page_global():
             )
     st.divider()
 
-    # ── v39: IHSG Broker Proxy v2 ──
-    render_ihsg_broker_v2(snap)
-    st.divider()
-
     st.markdown("### 🇮🇩 IHSG Report")
     ihsg_tickers = list(IHSG_UNIVERSE.keys()) if IHSG_UNIVERSE else FALLBACK_IHSG
     sim_results = snap.get("simulation_results", {}) if isinstance(snap.get("simulation_results"), dict) else {}
@@ -4611,6 +4862,22 @@ def render_ihsg_broker_v2(snap):
 
 def render_ticker_detail_comprehensive(ticker, snap):
     """Comprehensive single-ticker view: all methodologies, all data sources."""
+    # ── Broker Intelligence (for IHSG tickers) ──
+    if ticker.endswith(".JK"):
+        broker = (snap.get("ihsg_broker_proxy", {}) or {}).get(ticker)
+        if broker and isinstance(broker, dict):
+            b_sig = broker.get("signal", "NEUTRAL")
+            b_conf = broker.get("confidence", 0)
+            b_color = "#3FB950" if b_sig == "ACCUMULATION" else "#F85149" if b_sig == "DISTRIBUTION" else "#D29922" if b_sig == "CORNERING" else "#8B949E"
+            st.markdown(
+                f'<div style="background:#161B22;border:1px solid {b_color}40;border-radius:10px;padding:12px;margin:8px 0;">'
+                f'<div style="font-size:0.75rem;color:#8B949E;text-transform:uppercase;font-weight:600;margin-bottom:4px;">🇮🇩 Broker Intelligence (IHSG)</div>'
+                f'<div style="display:flex;align-items:center;gap:10px;">'
+                f'<span style="background:{b_color}18;color:{b_color};padding:3px 10px;border-radius:6px;font-size:0.8rem;font-weight:700;border:1px solid {b_color}40;">{b_sig}</span>'
+                f'<span style="font-size:0.7rem;color:#8B949E;">Confidence <b style="color:{b_color};">{b_conf}%</b></span>'
+                f'<span style="font-size:0.65rem;color:#484F58;">R5D: {broker.get("r5d",0):+.1%} · Vol Ratio: {broker.get("vol_ratio",1):.2f}x</span>'
+                f'</div></div>', unsafe_allow_html=True)
+
     prices = snap.get("prices", {})
     s = prices.get(ticker)
     if s is None:

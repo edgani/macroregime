@@ -16,6 +16,17 @@ import json, os
 from datetime import datetime
 
 logger = __import__("logging").getLogger(__name__)
+# ═══════════════════════════════════════════════════════════════════
+# v38 DASHBOARD RENDERER (Daily Plays + Chain Reaction + IHSG + Crypto)
+# ═══════════════════════════════════════════════════════════════════
+try:
+    from engines.v38_dashboard_render import render_v38_complete, render_ticker_detail_bundle
+    _V38_OK = True
+    logger.info("v38 dashboard renderer loaded")
+except Exception as _e_v38:
+    _V38_OK = False
+    logger.warning(f"v38 dashboard renderer not loaded: {_e_v38}")
+
 st.set_page_config(page_title="MacroRegime Pro v32.9", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
 
 # ═══════════════════════════════════════════════════════════════════
@@ -3490,6 +3501,13 @@ def page_us_stocks():
         with st.expander(f"⚠️ Filtered Out ({len(invalid)} invalid / conflict / avoid)", expanded=False):
             render_invalid_cards(invalid)
 
+    # ── v38: Daily Plays + Chain Reaction Projection ──
+    if _V38_OK:
+        try:
+            render_v38_complete("us_stocks", snap, prices, st)
+        except Exception as e:
+            logger.warning(f"v38 render failed (us_stocks): {e}")
+
 
 # ═══════════════════════════════════════════════════════════════════
 # PAGE: FOREX
@@ -3527,6 +3545,13 @@ def page_forex():
         with st.expander(f"⚠️ Filtered Out ({len(invalid)} invalid / conflict / avoid)", expanded=False):
             render_invalid_cards(invalid)
 
+    # ── v38: Daily Plays ──
+    if _V38_OK:
+        try:
+            render_v38_complete("forex", snap, prices, st)
+        except Exception as e:
+            logger.warning(f"v38 render failed (forex): {e}")
+
 
 # ═══════════════════════════════════════════════════════════════════
 # PAGE: COMMODITIES
@@ -3561,6 +3586,13 @@ def page_commodities():
     if invalid:
         with st.expander(f"⚠️ Filtered Out ({len(invalid)} invalid / conflict / avoid)", expanded=False):
             render_invalid_cards(invalid)
+
+    # ── v38: Daily Plays + Chain Reaction (Iran/Mideast war chain etc) ──
+    if _V38_OK:
+        try:
+            render_v38_complete("commodities", snap, prices, st)
+        except Exception as e:
+            logger.warning(f"v38 render failed (commodities): {e}")
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -3616,6 +3648,13 @@ def page_crypto():
         with st.expander(f"⚠️ Filtered Out ({len(invalid)} invalid / conflict / avoid)", expanded=False):
             render_invalid_cards(invalid)
 
+    # ── v38: Daily Plays + Crypto On-Chain Proxy ──
+    if _V38_OK:
+        try:
+            render_v38_complete("crypto", snap, prices, st)
+        except Exception as e:
+            logger.warning(f"v38 render failed (crypto): {e}")
+
 # ═══════════════════════════════════════════════════════════════════
 # PAGE: GLOBAL & EM
 # ═══════════════════════════════════════════════════════════════════
@@ -3658,6 +3697,13 @@ def page_global():
     if invalid_ihsg:
         with st.expander(f"⚠️ Filtered IHSG ({len(invalid_ihsg)} invalid / conflict)", expanded=False):
             render_invalid_cards(invalid_ihsg)
+
+    # ── v38: IHSG Specialist (konglomerasi 21 groups + goreng 4-phase + Quad check) ──
+    if _V38_OK:
+        try:
+            render_v38_complete("ihsg", snap, prices, st)
+        except Exception as e:
+            logger.warning(f"v38 render failed (ihsg): {e}")
 
 
 # ═══════════════════════════════════════════════════════════════════

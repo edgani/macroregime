@@ -3151,8 +3151,88 @@ def page_dashboard():
 def page_alpha():
     st.markdown("## ⚡ Alpha Center")
 
-    # ── v39: Front-Run Projections (All Markets) ──
-    render_front_run_projections(snap)
+    # ── v39: Keith Signal Dashboard (Duration Aware) ──
+    ks_data = snap.get("keith_sync", {})
+    ks_summary = snap.get("keith_summary", {})
+
+    if ks_summary and ks_summary.get("total_signals", 0) > 0:
+        st.markdown("### 🎙️ Keith McCullough Signal Sync (P0 Override)")
+        c1, c2, c3, c4 = st.columns(4)
+        c1.metric("Total Signals", ks_summary.get("total_signals", 0))
+        c2.metric("TRADE Bullish", ks_summary.get("trade_bullish", 0))
+        c3.metric("TRADE Bearish", ks_summary.get("trade_bearish", 0))
+        c4.metric("Duration Mismatch", ks_summary.get("duration_mismatches", 0))
+        st.markdown(f"<div style='font-size:0.65rem;color:#484F58;'>Last updated: {ks_summary.get('last_updated', '—')} · Sources: {', '.join(ks_summary.get('sources', ['Hedgeye'])[:2])}</div>", unsafe_allow_html=True)
+
+        # Show tickers with Keith contradictions
+        contradictions = [(t, v) for t, v in ks_data.items() if isinstance(v, dict) and v.get("override") and v.get("keith_trade") != v.get("original_direction")]
+        if contradictions:
+            st.markdown(f"<div style='font-size:0.75rem;color:#F85149;font-weight:700;margin:8px 0;'>⚠️ {len(contradictions)} Keith Contradictions Detected</div>", unsafe_allow_html=True)
+            for t, v in contradictions[:10]:
+                orig = v.get("original_direction", "—")
+                ktrade = v.get("keith_trade", "—")
+                ktrend = v.get("keith_trend", "—")
+                final = v.get("direction", "—")
+                basis = v.get("basis", "")[:100]
+
+                # Duration badge colors
+                trade_c = "#3FB950" if ktrade == "BULLISH" else "#F85149" if ktrade == "BEARISH" else "#8B949E"
+                trend_c = "#3FB950" if ktrend == "BULLISH" else "#F85149" if ktrend == "BEARISH" else "#8B949E"
+                final_c = "#3FB950" if final == "LONG" else "#F85149" if final == "SHORT" or final == "AVOID" else "#D29922"
+
+                st.markdown(
+                    f'<div style="background:#161B22;border:1px solid #F8514940;border-radius:8px;padding:8px 12px;margin:4px 0;">'
+                    f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'
+                    f'<span style="font-weight:800;font-size:1rem;color:#E6EDF3;min-width:70px;">{t}</span>'
+                    f'<span style="font-size:0.65rem;padding:2px 6px;border-radius:4px;background:{trade_c}22;color:{trade_c};font-weight:700;">🎙️ TRADE: {ktrade}</span>'
+                    f'<span style="font-size:0.65rem;padding:2px 6px;border-radius:4px;background:{trend_c}22;color:{trend_c};font-weight:700;">📈 TREND: {ktrend}</span>'
+                    f'<span style="font-size:0.75rem;color:{final_c};font-weight:700;margin-left:auto;">→ {final}</span>'
+                    f'</div>'
+                    f'<div style="font-size:0.7rem;color:#8B949E;">Dashboard said <b>{orig}</b> · Keith TRADE = <b style="color:{trade_c};">{ktrade}</b> → Override to <b style="color:{final_c};">{final}</b></div>'
+                    f'<div style="font-size:0.65rem;color:#484F58;margin-top:2px;">{basis}</div>'
+                    f'</div>', unsafe_allow_html=True)
+
+    st.divider()
+
+    # ── v39: Gatekeeper + Walkforward + Hedgeye ──
+    gk_data = snap.get("alpha_gatekeeper", {})
+    wf_data = snap.get("walkforward_results", {})
+    hp_data = snap.get("hedgeye_position_sizing", {})
+
+    # Only show gatekeeper-passed tickers as "Front-Run Ready"
+    gk_passed = {t: r for t, r in gk_data.items() if isinstance(r, dict) and r.get("gate_status") == "PASS"}
+
+    if gk_passed:
+        st.markdown("### 🔮 Front-Run Projections (Gatekeeper Passed Only)")
+        st.markdown(f"<div style='font-size:0.7rem;color:#8B949E;'>Only {len(gk_passed)} tickers passed all 8 gates + walkforward + simulation. Keith sync applied — no contradictions.</div>", unsafe_allow_html=True)
+
+        for t, r in list(gk_passed.items())[:15]:
+            basis = r.get("basis", "")
+            score = r.get("combined_score", 0)
+            rec = r.get("recommendation", "—")
+            wf = (wf_data.get(t) or {}).get("combined_gate_score", 0)
+
+            # Keith duration info
+            ks = ks_data.get(t, {})
+            keith_html = ""
+            if isinstance(ks, dict) and ks.get("keith_trade") != "NEUTRAL":
+                ktrade = ks.get("keith_trade", "")
+                ktrend = ks.get("keith_trend", "")
+                tc = "#3FB950" if ktrade == "BULLISH" else "#F85149"
+                keith_html = f'<span style="font-size:0.6rem;padding:1px 5px;border-radius:3px;background:{tc}18;color:{tc};font-weight:700;">🎙️ {ktrade[:4]}|{ktrend[:4]}</span>'
+
+            color = "#3FB950" if score >= 75 else "#D29922" if score >= 65 else "#8B949E"
+            st.markdown(
+                f'<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#161B22;border:1px solid {color}40;border-radius:6px;margin:3px 0;">'
+                f'<span style="font-weight:800;font-size:0.9rem;color:#E6EDF3;min-width:60px;">{t}</span>'
+                f'<span style="font-size:0.65rem;padding:2px 6px;border-radius:4px;background:{color}22;color:{color};font-weight:700;">🛡️ PASS {score:.0f}</span>'
+                f'{keith_html}'
+                f'<span style="font-size:0.65rem;color:#8B949E;">{rec}</span>'
+                f'<span style="flex:1;font-size:0.6rem;color:#484F58;text-align:right;">{basis[:60]}</span>'
+                f'</div>', unsafe_allow_html=True)
+    else:
+        st.info("No tickers passed the 8-gate alpha gatekeeper this snapshot. Wait for better setups or check Keith signals for direction.")
+
     st.divider()
 
     summary = snap.get("summary", {}) or {}
@@ -4334,44 +4414,6 @@ def render_supply_chain_chains(snap):
         html += f'</div>'
         st.markdown(html, unsafe_allow_html=True)
 
-def render_front_run_projections(snap):
-    fr = snap.get("front_run_candidates", [])
-    if not fr:
-        st.caption("No front-run candidates")
-        return
-    st.markdown("### 🔮 Front-Run Projections (All Markets)")
-    st.markdown("<div style='font-size:0.7rem;color:#8B949E;margin-bottom:8px;'>High conviction setups with price projections, entry levels, and catalyst timeline. Filtered by simulation + walk-forward.</div>", unsafe_allow_html=True)
-    by_market = {}
-    for c in fr[:30]:
-        mt = c.get("market_type", "us_equity")
-        by_market.setdefault(mt, []).append(c)
-    for mt, items in by_market.items():
-        mt_label = {"us_equity":"🇺🇸 US","forex":"💱 Forex","commodity":"🛢️ Commodity","crypto":"₿ Crypto","ihsg":"🇮🇩 IHSG"}.get(mt, mt)
-        st.markdown(f'<div style="font-size:0.75rem;color:#58A6FF;text-transform:uppercase;font-weight:700;margin:8px 0 4px;letter-spacing:0.5px;">{mt_label} ({len(items)})</div>', unsafe_allow_html=True)
-        for item in items[:8]:
-            ticker = item.get("ticker", "—")
-            px = item.get("price")
-            proj = item.get("projection", {})
-            target_px = proj.get("target_px")
-            rationale = proj.get("rationale", "")
-            timeframe = proj.get("timeframe", "")
-            conf = proj.get("confidence", 0)
-            priority = item.get("priority", "MEDIUM")
-            proj_html = f'<div class="projection-card">'
-            proj_html += f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'
-            proj_html += f'<span style="font-size:0.9rem;font-weight:800;color:#E6EDF3;">{ticker}</span>'
-            proj_html += f'<span style="font-size:0.65rem;color:#8B949E;">{ff(px)}</span>'
-            if target_px:
-                upside = (target_px / px - 1) * 100 if px else 0
-                proj_html += f'<span style="font-size:0.75rem;color:#3FB950;font-weight:700;">→ {ff(target_px)} ({upside:+.0f}%)</span>'
-            proj_html += f'<span style="font-size:0.55rem;padding:1px 5px;border-radius:4px;background:{"#F8514922" if priority=="HIGH" else "#D2992222"};color:{"#F85149" if priority=="HIGH" else "#D29922"};font-weight:700;">{priority}</span>'
-            proj_html += f'</div>'
-            if rationale:
-                proj_html += f'<div class="projection-rationale">{rationale}</div>'
-            if timeframe:
-                proj_html += f'<div style="font-size:0.6rem;color:#D29922;margin-top:2px;">⏱ {timeframe} · Conf {conf:.0%}</div>'
-            proj_html += f'</div>'
-            st.markdown(proj_html, unsafe_allow_html=True)
 
 def render_crypto_onchain_v2(snap):
     tokens = snap.get("crypto_tokens", {})

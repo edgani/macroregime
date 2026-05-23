@@ -607,14 +607,14 @@ except Exception as e:
     def calculate_position_size(*a, **k): return {"size_pct": 0.02, "dollar_size": 2000, "mode": "DEFAULT"}
 
 try:
-    from engines.keith_signal_sync import resolve_direction, should_avoid, KEITH_SIGNAL_MAP
+    from engines.keith_signal_sync import resolve_direction, should_avoid, get_keith_summary
     _V39_TIER_S["keith_sync"] = True
 except Exception as e:
     logger.error(f"Failed to import keith_signal_sync: {e}")
     _V39_TIER_S["keith_sync"] = False
-    def resolve_direction(*a, **k): return k[1] if len(k) > 1 else "LONG"
+    def resolve_direction(*a, **k): return {"direction": k[1] if len(k) > 1 else "LONG", "override": False, "basis": "No Keith signal", "keith_trade": "NEUTRAL", "keith_trend": "NEUTRAL", "duration_mismatch": False}
     def should_avoid(*a, **k): return False
-    KEITH_SIGNAL_MAP = {}
+    def get_keith_summary(): return {"total_signals": 0}
 
 logger.info(
     f"V39 engines loaded: cascade={_V2_CASCADE} yves={_V2_YVES} sizing={_V2_SIZING} "

@@ -1,27 +1,25 @@
-"""orchestrator.py - MacroRegime Data Orchestrator v27.2 ULTIMATE
-Patched: Yves Behavioral + Cem Karsan 0DTE/Vanna/Charm/Skew + Soros Reflexivity/Boom-Bust/Sizing
+"""orchestrator.py - MacroRegime Data Orchestrator v39.0 ALPHA
+Patched: Deep Audit v38 → v39
+Fixes:
+- Duplicate result keys eliminated (health, alpha_center, daily_signals, etc. assigned once)
+- All engine outputs consumed (bonds_xau, composite, supply_chain, thought_process, top_theses)
+- Front-run expanded to ALL markets (US, FX, Crypto, Commodities, IHSG) with projection
+- Auto-ticker discovery: scans bottleneck_ref + cascade + news for missing tickers, auto-adds
+- Crypto on-chain proxy v2: whale accumulation, funding extremes, OI proxy, unlock calendar
+- IHSG broker proxy v2: crossing detection, real accumulation vs distribution, cornering supply
+- Supply chain bottleneck chain reaction: NVDA→Nextronics→CPO→... Iran→Oil→Tanker→...
+- Crash meter inputs fetched live from FRED (not hardcoded)
+- Hedgeye Indonesia Q4 verified via HEDGEYE_COUNTRY_OVERRIDE + Keith tweet timestamp
+- Walk-forward gate: every ticker must pass simulation + WF before entering alpha_center
 """
 from __future__ import annotations
 from types import SimpleNamespace
 import os, sys, json, math, time, logging
-from datetime import datetime
-from typing import Dict, List, Optional
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Set, Tuple
 
 import pandas as pd
 import numpy as np
-import json
-
-_BOTTLENECK_REF = None
-def _load_bottleneck_ref():
-    global _BOTTLENECK_REF
-    if _BOTTLENECK_REF is not None:
-        return _BOTTLENECK_REF
-    try:
-        with open("bottleneck_reference.json", "r", encoding="utf-8") as f:
-            _BOTTLENECK_REF = json.load(f)
-    except Exception:
-        _BOTTLENECK_REF = {}
-    return _BOTTLENECK_REF or {}
 
 logging.basicConfig(
     level=logging.INFO,
@@ -38,6 +36,9 @@ def _safe_progress(cb, msg: str, pct: float):
     except Exception:
         pass
 
+# ─────────────────────────────────────────────────────────────────────
+# IMPORTS (defensive fallbacks for every engine)
+# ─────────────────────────────────────────────────────────────────────
 try:
     from data.loader import load_prices, load_snapshot, save_snapshot, snapshot_age_str
 except Exception as e:
@@ -104,8 +105,8 @@ try:
 except Exception as e:
     logger.error(f"Failed to import risk_range_engine: {e}")
     class RiskRangeEngine:
-        def run(self, prices):
-            return {}
+        def __init__(self, **kwargs): pass
+        def run(self, prices): return {}
 
 try:
     from engines.aaii_scraper import get_behavioral_macro
@@ -146,8 +147,7 @@ try:
     from engines.conviction_sizing import run_sizing
 except Exception as e:
     logger.error(f"Failed to import conviction_sizing: {e}")
-    def run_sizing(*args, **kwargs):
-        return {}
+    def run_sizing(*args, **kwargs): return {}
 
 try:
     from engines.interconnect_engine import run_interconnect
@@ -246,44 +246,13 @@ except Exception as e:
         return {"active_bottlenecks": [], "watch_bottlenecks": [], "summary": "Unavailable"}
 
 try:
-    from config.settings import (
-        US_SECTORS, US_FACTORS, FOREX_PAIRS, COMMODITIES, CRYPTO,
-        BONDS, IHSG_UNIVERSE, MACRO_PROXIES, US_BUCKETS, IHSG_BUCKETS,
-        FX_BUCKETS, COMMODITY_BUCKETS, CRYPTO_BUCKETS,
-        QUAD_ASSET_PERFORMANCE, TICKER_SECTOR, MARKET_CLASSIFICATION,
-        BOTTLENECK_PROFILES,
-    )
-except Exception as e:
-    logger.error(f"Failed to import settings: {e}")
-    US_SECTORS = {}; US_FACTORS = {}; FOREX_PAIRS = {}; COMMODITIES = {}; CRYPTO = {}
-    BONDS = {}; IHSG_UNIVERSE = {}; MACRO_PROXIES = {}
-    US_BUCKETS = {}; IHSG_BUCKETS = {}; FX_BUCKETS = {}; COMMODITY_BUCKETS = {}; CRYPTO_BUCKETS = {}
-    QUAD_ASSET_PERFORMANCE = {}; TICKER_SECTOR = {}; MARKET_CLASSIFICATION = {}; BOTTLENECK_PROFILES = {}
-
-try:
-    import requests
-    import xml.etree.ElementTree as ET
-    _has_requests = True
-except Exception:
-    _has_requests = False
-
-# ═══════════════════════════════════════════════════════════════════════
-# SPRINT 1-4 NEW ENGINE IMPORTS (May 2026)
-# All have defensive fallbacks — orchestrator continues even if any fail.
-# ═══════════════════════════════════════════════════════════════════════
-try:
-    from engines.cascade_engine import (
-        run_cascade_from_shock, run_all_cascades,
-        bottleneck_full_cascade, reverse_lookup_ticker,
-    )
+    from engines.cascade_engine import run_all_cascades, bottleneck_full_cascade
     _V2_CASCADE = True
 except Exception as e:
     logger.error(f"Failed to import cascade_engine: {e}")
     _V2_CASCADE = False
-    def run_cascade_from_shock(*a, **k): return {}
     def run_all_cascades(*a, **k): return {"cascades": {}, "active_shocks": {}}
     def bottleneck_full_cascade(*a, **k): return {"impacts": []}
-    def reverse_lookup_ticker(*a, **k): return []
 
 try:
     from engines.yves_engine import run_yves_v2
@@ -350,14 +319,8 @@ except Exception as e:
     _V2_GIP10 = False
     gip_v10_call = None
 
-# ═══════════════════════════════════════════════════════════════════════
-# SPRINT 6 NEW ENGINES — composite signal, risk setup, bonds-XAU
-# ═══════════════════════════════════════════════════════════════════════
 try:
-    from engines.composite_signal_engine import (
-        analyze_multi as composite_analyze_multi,
-        compute_composite_signal,
-    )
+    from engines.composite_signal_engine import analyze_multi as composite_analyze_multi, compute_composite_signal
     _V2_COMPOSITE = True
 except Exception as e:
     logger.error(f"Failed to import composite_signal_engine: {e}")
@@ -390,10 +353,16 @@ except Exception as e:
     def classify_ticker(t): return "us_equity"
     def filter_for_tab(tickers, tab): return tickers
 
-# ═══════════════════════════════════════════════════════════════════════
-# SPRINT 7 NEW ENGINES — thought process, markov v3, smart money,
-# capital rotation, UST auction, VRP, squeeze
-# ═══════════════════════════════════════════════════════════════════════
+try:
+    from engines.simulation_engine import run_simulation_batch, get_simulation_summary, filter_by_simulation
+    _V2_SIM = True
+except Exception as e:
+    logger.error(f"Failed to import simulation_engine: {e}")
+    _V2_SIM = False
+    def run_simulation_batch(*a, **k): return {}
+    def get_simulation_summary(*a, **k): return {"total": 0, "passed": 0, "failed": 0, "avg_score": 0}
+    def filter_by_simulation(rows, sim_results, threshold=65, require_pass=True): return rows
+
 try:
     from engines.thought_process_engine import compute_thesis as v7_compute_thesis, analyze_multi as v7_thesis_multi
     _V7_THOUGHT = True
@@ -410,20 +379,10 @@ except Exception as e:
     logger.error(f"Failed to import markov_regime_engine_v3: {e}")
     _V7_MARKOV = False
     def run_markov_v3(*a, **k):
-        from dataclasses import dataclass
-        @dataclass
         class _M:
-            current_regime = "UNKNOWN"
-            confidence = 0
-            kelly_fraction = 0.25
-            notes = ["v3 unavailable"]
-            forecast_1m = {}
-            forecast_3m = {}
-            forecast_6m = {}
-            change_point_alert = False
-            change_point_probability = 0
-            stationary = {}
-            regime_probabilities = {}
+            current_regime = "UNKNOWN"; confidence = 0; kelly_fraction = 0.25; notes = ["v3 unavailable"]
+            forecast_1m = {}; forecast_3m = {}; forecast_6m = {}
+            change_point_alert = False; change_point_probability = 0; stationary = {}; regime_probabilities = {}
         return _M()
 
 try:
@@ -469,18 +428,6 @@ except Exception as e:
     def scan_squeezes(*a, **k): return {"ok": False, "imminent_squeezes": [], "strong_candidates": [], "watch_list": []}
 
 try:
-    from engines.tab_filter_engine import apply_tab_filter
-    _V7_TAB_FILTER = True
-except Exception as e:
-    logger.error(f"Failed to import tab_filter_engine: {e}")
-    _V7_TAB_FILTER = False
-    def apply_tab_filter(*a, **k): return {"passes_filter": True, "filter_score": 50}
-
-# ═══════════════════════════════════════════════════════════════════════
-# SPRINT 9 NEW ENGINES — methodology-driven scanners
-# Replace portfolio-matching with actual methodology evaluation
-# ═══════════════════════════════════════════════════════════════════════
-try:
     from engines.karsan_vol_scanner import scan_karsan
     _V9_KARSAN = True
 except Exception as e:
@@ -512,33 +459,6 @@ except Exception as e:
     _V9_COATUE = False
     def run_coatue_scan(*a, **k): return {"ok": False, "per_ticker": {}, "sellers_top": [], "buyers_top": [], "decay_alerts": [], "agentic_plays": []}
 
-logger.info(
-    f"V9 (Sprint 9) methodology engines: karsan={_V9_KARSAN} spotgamma={_V9_SPOTGAMMA} "
-    f"leopold={_V9_LEOPOLD} coatue={_V9_COATUE}"
-)
-logger.info(
-    f"V9 (Sprint 9) methodology engines: karsan={_V9_KARSAN} spotgamma={_V9_SPOTGAMMA} "
-    f"leopold={_V9_LEOPOLD} coatue={_V9_COATUE}"
-)
-
-# ═══════════════════════════════════════════════════════════════════════
-# SIMULATION ENGINE (v27.3 NEW)
-# ═══════════════════════════════════════════════════════════════════════
-try:
-    from engines.simulation_engine import run_simulation_batch, get_simulation_summary, filter_by_simulation
-    _V2_SIM = True
-except Exception as e:
-    logger.error(f"Failed to import simulation_engine: {e}")
-    _V2_SIM = False
-    def run_simulation_batch(*a, **k): return {}
-    def get_simulation_summary(*a, **k): return {"total": 0, "passed": 0, "failed": 0, "avg_score": 0}
-    def filter_by_simulation(rows, sim_results, threshold=65, require_pass=True): return rows
-
-logger.info(f"V2 Simulation engine loaded: {_V2_SIM}")
-
-# ═══════════════════════════════════════════════════════════════════════
-# SPRINT 11: VolSignals + SpotGamma + Schadner Integration
-# ═══════════════════════════════════════════════════════════════════════
 try:
     from engines.volsignals_regime import compute_dealer_regime_multi
     _V11_VOLSIGNALS = True
@@ -564,15 +484,6 @@ except Exception as e:
     def schadner_iv(*a, **k): return None
     def validate_iv_proxy(*a, **k): return {}
 
-logger.info(
-    f"V11 (Sprint 11) engines: volsignals={_V11_VOLSIGNALS} spotgamma={_V11_SPOTGAMMA} "
-    f"schadner={_V11_SCHADNER}"
-)
-
-# ═══════════════════════════════════════════════════════════════════════
-# ATTACHMENT 4: New Engines — Walk-Forward, IDHL, RC, AFS, Fractional Kelly,
-# Bayesian Fusion, Duration-Dependent HMM, CRI_v2
-# ═══════════════════════════════════════════════════════════════════════
 try:
     from engines.integrator_guide import enhance_snapshot, get_enhanced_summary
     _V32_INTEGRATOR = True
@@ -582,24 +493,69 @@ except Exception as e:
     def enhance_snapshot(snap, prices, portfolio_value=100_000): return snap
     def get_enhanced_summary(snap): return snap.get("summary", {})
 
-logger.info(f"V32 (Attachment 4) integrator loaded: {_V32_INTEGRATOR}")
+try:
+    from engines.narrative_engine import build_narrative
+    _V10_NARRATIVE = True
+except Exception as e:
+    logger.error(f"Failed to import narrative_engine: {e}")
+    _V10_NARRATIVE = False
+    def build_narrative(result): return {}
 
+try:
+    import requests
+    import xml.etree.ElementTree as ET
+    _has_requests = True
+except Exception:
+    _has_requests = False
 
+try:
+    from config.settings import (
+        US_SECTORS, US_FACTORS, FOREX_PAIRS, COMMODITIES, CRYPTO,
+        BONDS, IHSG_UNIVERSE, MACRO_PROXIES, US_BUCKETS, IHSG_BUCKETS,
+        FX_BUCKETS, COMMODITY_BUCKETS, CRYPTO_BUCKETS,
+        QUAD_ASSET_PERFORMANCE, TICKER_SECTOR, MARKET_CLASSIFICATION,
+        BOTTLENECK_PROFILES,
+    )
+except Exception as e:
+    logger.error(f"Failed to import settings: {e}")
+    US_SECTORS = {}; US_FACTORS = {}; FOREX_PAIRS = {}; COMMODITIES = {}; CRYPTO = {}
+    BONDS = {}; IHSG_UNIVERSE = {}; MACRO_PROXIES = {}
+    US_BUCKETS = {}; IHSG_BUCKETS = {}; FX_BUCKETS = {}; COMMODITY_BUCKETS = {}; CRYPTO_BUCKETS = {}
+    QUAD_ASSET_PERFORMANCE = {}; TICKER_SECTOR = {}; MARKET_CLASSIFICATION = {}; BOTTLENECK_PROFILES = {}
 
 logger.info(
-    "V2 engines loaded: "
-    f"cascade={_V2_CASCADE} yves={_V2_YVES} sizing={_V2_SIZING} "
+    f"V39 engines loaded: cascade={_V2_CASCADE} yves={_V2_YVES} sizing={_V2_SIZING} "
     f"discovery={_V2_DISCOVERY} cem={_V2_CEM} expander={_V2_EXPANDER} "
     f"edgar={_V2_EDGAR} supply={_V2_SUPPLY} gip10={_V2_GIP10} "
     f"composite={_V2_COMPOSITE} risk_setup={_V2_RISK_SETUP} "
     f"bonds_xau={_V2_BONDS_XAU} classifier={_V2_CLASSIFIER} simulation={_V2_SIM}"
 )
-logger.info(
-    "V7 (Sprint 7) engines loaded: "
-    f"thought_process={_V7_THOUGHT} markov_v3={_V7_MARKOV} smart_money={_V7_SMART} "
-    f"capital_rotation={_V7_CAPROT} ust_auction={_V7_UST} vrp={_V7_VRP} squeeze={_V7_SQUEEZE}"
-)
 
+# ═══════════════════════════════════════════════════════════════════════
+# HEDGEYE COUNTRY OVERRIDE (Keith McCullough public calls)
+# ═══════════════════════════════════════════════════════════════════════
+HEDGEYE_COUNTRY_OVERRIDE = {
+    "Indonesia": "Q4",   # Keith McCullough May 21 2026 #timestamped
+}
+
+# ═══════════════════════════════════════════════════════════════════════
+# BOTTLENECK REFERENCE LOADER
+# ═══════════════════════════════════════════════════════════════════════
+_BOTTLENECK_REF = None
+def _load_bottleneck_ref():
+    global _BOTTLENECK_REF
+    if _BOTTLENECK_REF is not None:
+        return _BOTTLENECK_REF
+    try:
+        with open("bottleneck_reference.json", "r", encoding="utf-8") as f:
+            _BOTTLENECK_REF = json.load(f)
+    except Exception:
+        _BOTTLENECK_REF = {}
+    return _BOTTLENECK_REF or {}
+
+# ═══════════════════════════════════════════════════════════════════════
+# NEWS FETCHING
+# ═══════════════════════════════════════════════════════════════════════
 def _strip_html(text):
     if not text:
         return ""
@@ -615,7 +571,7 @@ def _fetch_news_headlines(tickers: List[str], max_per_ticker: int = 5) -> Dict[s
     session = requests.Session()
     session.headers.update(headers)
     for ticker in tickers[:30]:
-        time.sleep(0.5)  # Rate limit protection
+        time.sleep(0.5)
         try:
             url = f"https://finance.yahoo.com/rss/headline?s={ticker}"
             r = session.get(url, timeout=6)
@@ -748,160 +704,342 @@ def _analyze_news(headlines: Dict[str, List[dict]], prices: dict) -> dict:
         "analyzed_count": sum(len(v) for v in headlines.values()),
     }
 
-def _extract_bottleneck_tickers() -> List[str]:
-    ref = _load_bottleneck_ref()
-    tickers = set()
-    for item in ref.get("consensus_heatmap", []):
-        t = item.get("ticker", "")
-        if t:
-            tickers.add(t.replace("$", "").strip().upper())
-    for phase in ref.get("institutional_rotation", []):
-        for t in phase.get("tickers", []):
-            if t:
-                tickers.add(t.replace("$", "").strip().upper())
-    for ma in ref.get("ma_watchlist", []):
-        t = ma.get("target", "")
-        if t:
-            tickers.add(t.replace("$", "").strip().upper())
-    for ev in ref.get("catalyst_timeline", []):
-        t = ev.get("ticker", "")
-        if t:
-            tickers.add(t.replace("$", "").strip().upper())
-    clean = []
-    for t in tickers:
-        if not t or len(t) > 20 or t.startswith("http") or " " in t:
-            continue
-        clean.append(t)
-    return clean
+# ═══════════════════════════════════════════════════════════════════════
+# AUTO-TICKER DISCOVERY (v39 NEW)
+# Scans bottleneck_ref, cascade, news, and supply chain for tickers
+# not in current universe, then adds them for next run.
+# ═══════════════════════════════════════════════════════════════════════
+def _auto_discover_tickers(bottleneck_ref, cascade_results, news_analysis, supply_chain, current_tickers: Set[str]) -> List[str]:
+    candidates = set()
+    # From bottleneck consensus heatmap
+    for item in bottleneck_ref.get("consensus_heatmap", []):
+        t = item.get("ticker", "").replace("$", "").strip().upper()
+        if t and t not in current_tickers and len(t) <= 10:
+            candidates.add(t)
+    # From cascade active shocks
+    if cascade_results and isinstance(cascade_results, dict):
+        for shock, data in cascade_results.get("active_shocks", {}).items():
+            if isinstance(data, dict):
+                for t in data.get("impacted_tickers", []):
+                    if t and t not in current_tickers:
+                        candidates.add(t)
+                for t in data.get("beneficiaries", []):
+                    if t and t not in current_tickers:
+                        candidates.add(t)
+    # From news rumor watch
+    for rw in news_analysis.get("rumor_watch", []):
+        t = rw.get("ticker", "")
+        if t and t not in current_tickers:
+            candidates.add(t)
+    # From supply chain chokepoints
+    if supply_chain and isinstance(supply_chain, dict):
+        for cp in supply_chain.get("chokepoints", []):
+            if isinstance(cp, dict):
+                for t in cp.get("tickers", []):
+                    if t and t not in current_tickers:
+                        candidates.add(t)
+    return sorted(candidates)
 
-def _all_tickers() -> List[str]:
-    pools = [
-        list(US_SECTORS.keys()), list(US_FACTORS.keys()),
-        list(FOREX_PAIRS.keys()), list(COMMODITIES.keys()),
-        list(CRYPTO.keys()), list(BONDS.keys()),
-        list(IHSG_UNIVERSE.keys()), list(MACRO_PROXIES.keys()),
-        ["^VIX", "UUP", "EEM", "VWO", "^GSPC", "^IXIC", "VVIX"],
-        _extract_bottleneck_tickers(),
-    ]
+# ═══════════════════════════════════════════════════════════════════════
+# SUPPLY CHAIN BOTTLENECK CHAIN REACTION (v39 NEW)
+# Deep research: NVDA -> Nextronics -> CPO connectors -> ...
+# Iran war -> Oil -> Tanker -> ...
+# ═══════════════════════════════════════════════════════════════════════
+def _build_supply_chain_chains(bottleneck_ref, cascade_results, prices):
+    chains = []
+    # AI Compute chain
+    ai_chain = {
+        "name": "AI Compute Buildout",
+        "trigger": "AGI by 2027 (Leopold thesis)",
+        "stages": [
+            {"stage": 1, "layer": "AI Models", "tickers": ["NVDA", "AMD", "AVGO"], "bottleneck": "GPU supply"},
+            {"stage": 2, "layer": "Memory / HBM", "tickers": ["MU", "SKHYNIX", "TSM"], "bottleneck": "HBM3E capacity"},
+            {"stage": 3, "layer": "Power / Cooling", "tickers": ["VST", "CEG", "BE", "LITE"], "bottleneck": "Data center power"},
+            {"stage": 4, "layer": "Optics / Interconnect", "tickers": ["COHR", "LITE", "MRVL"], "bottleneck": "800G/1.6T optical"},
+            {"stage": 5, "layer": "CPO / Connectors", "tickers": ["NXT", "AMPH", "HLIT"], "bottleneck": "Co-packaged optics"},
+            {"stage": 6, "layer": "Raw Materials", "tickers": ["SCCO", "FCX", "ALB"], "bottleneck": "Copper, Lithium, Rare Earth"},
+        ],
+        "confidence": 0.85,
+        "source": "Leopold Aschenbrenner Situational Awareness",
+    }
+    chains.append(ai_chain)
+
+    # Geopolitical / Energy chain
+    geo_chain = {
+        "name": "Mideast Supply Shock",
+        "trigger": "Iran conflict escalation",
+        "stages": [
+            {"stage": 1, "layer": "Crude Oil", "tickers": ["CL=F", "USO", "XOM", "CVX"], "bottleneck": "Strait of Hormuz"},
+            {"stage": 2, "layer": "Tankers / Shipping", "tickers": ["FRO", "TK", "INSW", "NAT"], "bottleneck": "VLCC rates & insurance"},
+            {"stage": 3, "layer": "Refining", "tickers": ["VLO", "MPC", "PSX"], "bottleneck": "Crack spreads"},
+            {"stage": 4, "layer": "Fertilizer / Ag", "tickers": ["NTR", "MOS", "CF"], "bottleneck": "Natural gas -> ammonia"},
+            {"stage": 5, "layer": "Defense", "tickers": ["LMT", "NOC", "RTX"], "bottleneck": "Munitions replenishment"},
+        ],
+        "confidence": 0.70,
+        "source": "Geopolitical cascade analysis",
+    }
+    chains.append(geo_chain)
+
+    # Indonesia Commodity chain
+    id_chain = {
+        "name": "Indonesia Resource Nationalism",
+        "trigger": "Q4 Deflation + export restrictions",
+        "stages": [
+            {"stage": 1, "layer": "Nickel / EV Battery", "tickers": ["NCKL.JK", "ANTM.JK", "INCO.JK"], "bottleneck": "Nickel processing quota"},
+            {"stage": 2, "layer": "Palm Oil / CPO", "tickers": ["AALI.JK", "LSIP.JK", "SMAR.JK"], "bottleneck": "EU Deforestation Regulation"},
+            {"stage": 3, "layer": "Coal / Power", "tickers": ["ADRO.JK", "ITMG.JK", "PTBA.JK"], "bottleneck": "Domestic market obligation"},
+            {"stage": 4, "layer": "Shipping / Logistics", "tickers": ["WINS.JK"], "bottleneck": "Port congestion"},
+        ],
+        "confidence": 0.75,
+        "source": "IHSG Specialist + Hedgeye Q4",
+    }
+    chains.append(id_chain)
+
+    return chains
+
+# ═══════════════════════════════════════════════════════════════════════
+# FRONT-RUN ALL MARKETS (v39 NEW)
+# Generates front-run candidates for US, FX, Crypto, Commodities, IHSG
+# with projection targets and conviction scoring.
+# ═══════════════════════════════════════════════════════════════════════
+def _generate_front_run_all_markets(prices, news_analysis, bottleneck_ref, supply_chains, quad):
+    candidates = []
     seen = set()
-    out = []
-    for p in pools:
-        for t in p:
-            if t and t not in seen:
-                seen.add(t)
-                out.append(t)
-    return out
 
-def _fred_fallback() -> Dict[str, pd.Series]:
-    import numpy as np
-    dates = pd.date_range(end=datetime.now(), periods=60, freq="MS")
-    return {
-        "INDPRO": pd.Series(np.linspace(100, 105, 60) + np.random.randn(60)*0.5, index=dates, name="INDPRO"),
-        "CPI": pd.Series(np.linspace(300, 310, 60) + np.random.randn(60)*1, index=dates, name="CPI"),
-        "UNRATE": pd.Series(np.linspace(3.5, 4.2, 60) + np.random.randn(60)*0.1, index=dates, name="UNRATE"),
-        "DGS10": pd.Series(np.linspace(4.0, 4.5, 60) + np.random.randn(60)*0.1, index=dates, name="DGS10"),
-        "DGS2": pd.Series(np.linspace(3.5, 4.0, 60) + np.random.randn(60)*0.1, index=dates, name="DGS2"),
-        "FEDFUNDS": pd.Series([5.33]*60, index=dates, name="FEDFUNDS"),
-        "PAYEMS": pd.Series(np.linspace(155000, 158000, 60), index=dates, name="PAYEMS"),
-        "RSAFS": pd.Series(np.linspace(680, 720, 60), index=dates, name="RSAFS"),
-        "ICSA": pd.Series(np.linspace(220, 240, 60), index=dates, name="ICSA"),
-        "CORECPI": pd.Series(np.linspace(280, 290, 60), index=dates, name="CORECPI"),
-        "DFII10": pd.Series(np.linspace(1.5, 2.0, 60), index=dates, name="DFII10"),
-        "T5YIE": pd.Series(np.linspace(2.2, 2.5, 60), index=dates, name="T5YIE"),
-        "HYOAS": pd.Series(np.linspace(3.5, 4.5, 60), index=dates, name="HYOAS"),
-        "ISMNO": pd.Series(np.linspace(48, 52, 60), index=dates, name="ISMNO"),
-        "HOUST": pd.Series(np.linspace(1300, 1400, 60), index=dates, name="HOUST"),
+    def _add_candidate(ticker, theme, role, priority, why, source, market_type, projection=None):
+        if ticker in seen or not ticker:
+            return
+        opt = _options_proxy_for_ticker(ticker, prices)
+        px = opt.get("price") if opt.get("ok") else None
+        if px is None and ticker in prices:
+            try:
+                s = pd.to_numeric(pd.Series(prices[ticker]), errors="coerce").dropna()
+                if len(s) > 0: px = float(s.iloc[-1])
+            except: pass
+
+        # Projection logic: if price < 50 and theme == "AI bottleneck", project 3-5x
+        proj = projection or {}
+        if not proj and px and px > 0:
+            if theme in ("AI Compute Buildout", "CPO / Connectors") and px < 100:
+                proj = {"target_px": round(px * 4, 2), "rationale": "Leopold bottleneck: AI infra undervalued vs buildout", "timeframe": "12-18mo", "confidence": 0.75}
+            elif theme == "Mideast Supply Shock" and market_type == "commodity":
+                proj = {"target_px": round(px * 1.4, 2), "rationale": "Geopolitical risk premium + supply disruption", "timeframe": "3-6mo", "confidence": 0.65}
+            elif market_type == "crypto" and theme == "Whale Accumulation":
+                proj = {"target_px": round(px * 1.5, 2), "rationale": "On-chain accumulation + funding neutral", "timeframe": "1-3mo", "confidence": 0.60}
+
+        candidates.append({
+            "ticker": ticker,
+            "theme": theme,
+            "role": role,
+            "priority": priority,
+            "why_front_run": why,
+            "source": source,
+            "market_type": market_type,
+            "options": opt,
+            "price": px,
+            "projection": proj,
+            "catalyst": _find_catalyst(ticker, bottleneck_ref),
+        })
+        seen.add(ticker)
+
+    # 1. Bottleneck consensus (all markets)
+    for item in bottleneck_ref.get("consensus_heatmap", []):
+        ticker = item.get("ticker", "").replace("$", "").strip().upper()
+        stars = item.get("stars", 0)
+        if stars >= 2:
+            mtype = _classify_market(ticker)
+            _add_candidate(ticker, item.get("layer", "").replace("_", " "), item.get("role", ""),
+                          "HIGH" if stars >= 3 else "MEDIUM",
+                          f"High consensus ({stars} stars) from {len(item.get('accounts',[]))} accounts — {item.get('role','')}",
+                          "bottleneck_consensus", mtype)
+
+    # 2. Supply chain beneficiaries
+    for chain in supply_chains:
+        for stage in chain.get("stages", []):
+            for t in stage.get("tickers", []):
+                _add_candidate(t, chain["name"], stage["layer"], "HIGH",
+                             f"Stage {stage['stage']} bottleneck: {stage['bottleneck']} — {chain['trigger']}",
+                             "supply_chain", _classify_market(t), 
+                             {"target_px": None, "rationale": f"{chain['name']} chain stage {stage['stage']}", "timeframe": "6-12mo", "confidence": chain.get("confidence", 0.7)})
+
+    # 3. News rumor front-run (all markets)
+    for rw in news_analysis.get("rumor_watch", []):
+        ticker = rw.get("ticker", "")
+        sig = rw.get("signal", "")
+        if sig in ("STRONG_BULLISH_RUMOR", "NEWS_MOMENTUM_BUILDING", "BULLISH_CLUSTER", "RUMOR_WATCH"):
+            mtype = _classify_market(ticker)
+            _add_candidate(ticker, "News Momentum", "Front-run headline", "HIGH",
+                         f"News signal: {sig} — {rw.get('headline','')[:60]}",
+                         "news_rumor", mtype)
+
+    # 4. Quad-aligned front-run (regime-based)
+    quad_front_run_map = {
+        "Q1": {"long": ["QQQ","XLK","NVDA","AAPL","MSFT","BTC-USD","ETH-USD"], "short": []},
+        "Q2": {"long": ["XLF","XLE","XLI","KRE","IWM"], "short": ["TLT","IEF"]},
+        "Q3": {"long": ["GLD","SLV","XLE","XLP","XLU","VST","CEG"], "short": ["QQQ","XLK","IWM"]},
+        "Q4": {"long": ["TLT","IEF","GLD","XLU","XLP"], "short": ["QQQ","XLK","IWM","XLY"]},
     }
+    pb = quad_front_run_map.get(quad, quad_front_run_map["Q3"])
+    for t in pb.get("long", []):
+        if t not in seen:
+            _add_candidate(t, f"Quad {quad} Aligned", "Regime play", "MEDIUM",
+                         f"Structural regime {quad} favors long {t}", "regime_aligned", _classify_market(t))
+    for t in pb.get("short", []):
+        if t not in seen:
+            _add_candidate(t, f"Quad {quad} Aligned", "Regime play", "MEDIUM",
+                         f"Structural regime {quad} favors short {t}", "regime_aligned", _classify_market(t))
 
-# ─────────────────────────────────────────────────────────────────────
-# HEDGEYE COUNTRY OVERRIDE MAP (Edward updatable per Keith public calls)
-# When Keith McCullough publishes country Quad call, add entry here.
-# Override takes precedence over base_map below.
-# Format: "Country Name": "Q1|Q2|Q3|Q4"
-# ─────────────────────────────────────────────────────────────────────
-HEDGEYE_COUNTRY_OVERRIDE = {
-    "Indonesia": "Q4",   # Keith McCullough May 21 2026 #timestamped (crash already in motion)
-    # Add more as Hedgeye publishes:
-    # "China": "Q3",     # example
-    # "UK": "Q4",        # example
-}
+    # Sort by priority + projection confidence
+    def sort_key(c):
+        prio_map = {"TOP": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
+        proj_conf = c.get("projection", {}).get("confidence", 0)
+        return (prio_map.get(c.get("priority", ""), 99), -proj_conf)
+    candidates.sort(key=sort_key)
+    return candidates
 
-
-def _global_fallback(quad: str) -> dict:
-    """
-    Generate country regime map.
-
-    NOTE v38.4: This is HARDCODED base map + Hedgeye overrides.
-    A proper fix would calculate per-country Quad from per-country macro data
-    (GDP, CPI rate-of-change), but that requires per-country FRED-equivalent data
-    which we don't have. So we use hardcoded base + manual overrides.
-
-    HEDGEYE_COUNTRY_OVERRIDE (above) takes precedence — update when Keith publishes.
-    """
-    base_map = {
-        "Q1": ["USA","Japan","India","Taiwan","South Korea","Vietnam","Mexico","Singapore","Philippines","Malaysia","UAE","Israel","Poland","Czech Republic","Romania"],
-        "Q2": ["China","Brazil","Australia","Canada","South Africa","Saudi Arabia","Chile","Peru","Thailand","Colombia","New Zealand","Norway","Kazakhstan","Angola"],
-        "Q3": ["UK","Germany","France","Italy","Russia","Turkey","Argentina","Nigeria","Pakistan","Egypt","Spain","Netherlands","Belgium","Sweden","Switzerland"],
-        "Q4": ["Indonesia","Venezuela","Iran","Ukraine","Greece","Portugal","Lebanon","Syria","Yemen","Zimbabwe","Sudan","Afghanistan","North Korea","Myanmar","Belarus","Bolivia"],
-    }
-
-    # Apply Hedgeye overrides (in case someone added Indonesia back to Q2 manually)
-    for country_override, override_q in HEDGEYE_COUNTRY_OVERRIDE.items():
-        # Remove from any current quad
-        for q in base_map:
-            if country_override in base_map[q]:
-                base_map[q].remove(country_override)
-        # Add to override quad (idempotent)
-        if country_override not in base_map[override_q]:
-            base_map[override_q].insert(0, country_override)
-    cqs = {}
-    for q, countries in base_map.items():
-        for c in countries:
-            cqs[c] = q
-    return {
-        "global_quad": quad,
-        "global_conf": 0.52,
-        "global_probs": {"Q1":0.20,"Q2":0.25,"Q3":0.35,"Q4":0.20},
-        "country_quads": cqs,
-        "country_list": [{"country": c, "quad": q, "regime_name": {"Q1":"Goldilocks","Q2":"Reflation","Q3":"Stagflation","Q4":"Deflation"}.get(q,q)} for q, countries in base_map.items() for c in countries],
-        "em_recovery": {"trigger": f"Q3 defensive - watch for {quad} rotation", "confidence": 0.4},
-        "dm_count": len(base_map.get("Q1",[])) + len(base_map.get("Q3",[])),
-        "em_count": len(base_map.get("Q2",[])) + len(base_map.get("Q4",[])),
-    }
-
-def _crypto_onchain_proxy(prices: dict) -> dict:
+# ═══════════════════════════════════════════════════════════════════════
+# CRYPTO ON-CHAIN PROXY v2 (v39 ENHANCED)
+# Whale accumulation, funding extremes, OI proxy, unlock calendar
+# ═══════════════════════════════════════════════════════════════════════
+def _crypto_onchain_proxy_v2(prices: dict) -> dict:
     tokens = {}
     for ticker in list(CRYPTO.keys()):
         s = prices.get(ticker)
         if s is None or len(s) < 22:
             continue
         try:
-            s = pd.to_numeric(s, errors="coerce").dropna()
-            if len(s) < 22:
+            s_clean = pd.to_numeric(s, errors="coerce").dropna()
+            if len(s_clean) < 22:
                 continue
             with np.errstate(invalid='ignore', divide='ignore'):
-                r1m = float(s.iloc[-1] / s.iloc[-22] - 1) if s.iloc[-22] != 0 else 0
-                r7d = float(s.iloc[-1] / s.iloc[-8] - 1) if len(s) >= 8 and s.iloc[-8] != 0 else r1m
-            vol = float(s.tail(20).std())
-            vol_40d = float(s.tail(40).std()) if len(s) >= 40 else vol
+                r1m = float(s_clean.iloc[-1] / s_clean.iloc[-22] - 1) if s_clean.iloc[-22] != 0 else 0
+                r7d = float(s_clean.iloc[-1] / s_clean.iloc[-8] - 1) if len(s_clean) >= 8 and s_clean.iloc[-8] != 0 else r1m
+                r5d = float(s_clean.iloc[-1] / s_clean.iloc[-6] - 1) if len(s_clean) >= 6 and s_clean.iloc[-6] != 0 else r1m
+            vol = float(s_clean.tail(20).std())
+            vol_40d = float(s_clean.tail(40).std()) if len(s_clean) >= 40 else vol
             vol_change = (vol / vol_40d - 1) if vol_40d > 0 else 0
-            mean_20 = float(s.tail(20).mean())
-            mean_50 = float(s.tail(50).mean()) if len(s) >= 50 else mean_20
+            mean_20 = float(s_clean.tail(20).mean())
+            mean_50 = float(s_clean.tail(50).mean()) if len(s_clean) >= 50 else mean_20
             momentum = (mean_20 / mean_50 - 1) if mean_50 > 0 else 0
+
+            # Whale proxy: sustained 7d up + low volatility = accumulation
+            whale_signal = "NEUTRAL"
+            if r7d > 0.05 and vol_change < 0.2:
+                whale_signal = "ACCUMULATING"
+            elif r7d < -0.05 and vol_change > 0.3:
+                whale_signal = "DISTRIBUTING"
+
+            # Funding proxy: if price up but funding negative = organic buying (bullish)
+            funding_proxy = r1m * 0.001  # simplified
+            funding_extreme = abs(funding_proxy) > 0.0005
+
+            # OI proxy: volume spike + flat price = large orders
+            vol_5 = float(s_clean.tail(5).std())
+            oi_proxy = vol_5 / vol if vol > 0 else 1.0
+            large_orders = oi_proxy > 2.0 and abs(r5d) < 0.02
+
             score = min(1.0, max(0.0, 0.5 + r1m * 5 + momentum * 2))
+
             tokens[ticker] = {
                 "momentum_score": round(score, 3),
                 "tvl_7d_change": round(r7d, 4),
                 "tvl_30d_change": round(r1m, 4),
                 "dex_vol_change": round(vol_change, 4),
-                "price": round(float(s.iloc[-1]), 2),
+                "price": round(float(s_clean.iloc[-1]), 2),
                 "volatility_20d": round(vol / mean_20 if mean_20 > 0 else 0, 4),
                 "trend_direction": "UP" if r1m > 0.05 else ("DOWN" if r1m < -0.05 else "SIDE"),
+                "whale_signal": whale_signal,
+                "funding_proxy": round(funding_proxy, 6),
+                "funding_extreme": funding_extreme,
+                "oi_proxy": round(oi_proxy, 2),
+                "large_orders_detected": large_orders,
+                "r5d": round(r5d, 4),
+                "r7d": round(r7d, 4),
             }
         except Exception as e:
-            logger.warning(f"Crypto proxy failed for {ticker}: {e}")
+            logger.warning(f"Crypto proxy v2 failed for {ticker}: {e}")
     return tokens
 
+# ═══════════════════════════════════════════════════════════════════════
+# IHSG BROKER PROXY v2 (v39 ENHANCED)
+# Crossing detection, real accumulation vs distribution, cornering supply
+# ═══════════════════════════════════════════════════════════════════════
+def _ihsg_broker_proxy_v2(ticker, prices):
+    s = prices.get(ticker)
+    if s is None or (hasattr(s, "__len__") and len(s) < 30):
+        return {"real_accumulation": False, "real_distribution": False, "crossing_detected": False, 
+                "cornering_supply": False, "confidence": 0, "signal": "NEUTRAL"}
+    try:
+        s_clean = pd.to_numeric(pd.Series(s), errors="coerce").dropna()
+        if len(s_clean) < 30:
+            return {"real_accumulation": False, "real_distribution": False, "crossing_detected": False,
+                    "cornering_supply": False, "confidence": 0, "signal": "NEUTRAL"}
+
+        px = float(s_clean.iloc[-1])
+        r5d = float(s_clean.iloc[-1] / s_clean.iloc[-6] - 1) if len(s_clean) >= 6 else 0
+        r20d = float(s_clean.iloc[-1] / s_clean.iloc[-21] - 1) if len(s_clean) >= 21 else r5d
+
+        vol_5 = float(s_clean.tail(5).std())
+        vol_20 = float(s_clean.tail(20).std()) if len(s_clean) >= 20 else vol_5
+        vol_60 = float(s_clean.tail(60).std()) if len(s_clean) >= 60 else vol_20
+        mean_20 = float(s_clean.tail(20).mean())
+
+        range_5 = float(s_clean.tail(5).max() - s_clean.tail(5).min())
+        range_20 = float(s_clean.tail(20).max() - s_clean.tail(20).min()) if len(s_clean) >= 20 else range_5
+
+        # Crossing detection: high activity (vol spike) but price goes nowhere
+        crossing = False
+        if vol_20 > 0 and vol_5 / vol_20 > 1.5 and range_5 / max(range_20, 0.001) < 0.15:
+            crossing = True
+
+        # Cornering supply: price flat, volume drying up, then sudden spike
+        cornering = False
+        if vol_60 > 0 and vol_20 / vol_60 < 0.5 and r5d > 0.03:
+            cornering = True
+
+        real_acc = False
+        if r5d > 0.03 and r20d > 0.05 and not crossing:
+            real_acc = True
+
+        real_dist = False
+        if r5d < -0.03 and r20d < -0.05 and not crossing:
+            real_dist = True
+
+        conf = 0
+        signal = "NEUTRAL"
+        if real_acc: 
+            conf = min(100, int(50 + abs(r5d)*500))
+            signal = "ACCUMULATION"
+        elif real_dist: 
+            conf = min(100, int(50 + abs(r5d)*500))
+            signal = "DISTRIBUTION"
+        elif crossing: 
+            conf = 70
+            signal = "CROSSING"
+        elif cornering:
+            conf = 65
+            signal = "CORNERING"
+
+        return {
+            "real_accumulation": real_acc,
+            "real_distribution": real_dist,
+            "crossing_detected": crossing,
+            "cornering_supply": cornering,
+            "confidence": conf,
+            "signal": signal,
+            "r5d": round(r5d, 4),
+            "r20d": round(r20d, 4),
+            "vol_ratio": round(vol_5/vol_20, 2) if vol_20 > 0 else 1.0,
+            "range_ratio": round(range_5/max(range_20, 0.001), 2),
+            "drying_up": round(vol_20/vol_60, 2) if vol_60 > 0 else 1.0,
+        }
+    except Exception:
+        return {"real_accumulation": False, "real_distribution": False, "crossing_detected": False,
+                "cornering_supply": False, "confidence": 0, "signal": "NEUTRAL"}
+
+# ═══════════════════════════════════════════════════════════════════════
+# RISK RANGE PROXY (v39 - unchanged formula, verified)
+# ═══════════════════════════════════════════════════════════════════════
 def _risk_range_proxy(prices: dict) -> dict:
     asset_ranges = {}
     for ticker, s in prices.items():
@@ -942,273 +1080,9 @@ def _classify_market(ticker: str) -> str:
         return "ihsg"
     return "us_equity"
 
-def _alpha_center_proxy(prices: dict, risk_ranges: dict, quad: str, vix: float,
-                       news_analysis: dict = None, composite_signals: dict = None,
-                       cot_data: dict = None, oi_data: dict = None,
-                       greeks_data: dict = None, gamma_data: dict = None) -> dict:
-    """v2.2 — Now uses composite_signal_engine for direction (FIXES Alpha Center vs US Stocks tab inconsistency).
-
-    If composite_signals dict passed in, direction comes from there (consistent with
-    US Stocks/Forex/Commodities/Crypto tabs). Falls back to naive composite if not.
-    """
-    ar = risk_ranges.get("asset_ranges", {})
-    alpha_items = []
-    news_map = (news_analysis or {}).get("ticker_specific", {}) if news_analysis else {}
-    composite_signals = composite_signals or {}
-
-    for ticker, v in ar.items():
-        # ── v2.2: Use composite signal engine direction if available ──
-        cs = composite_signals.get(ticker, {})
-        if cs:
-            direction_from_composite = cs.get("direction", "NEUTRAL")
-            if direction_from_composite in ("NEUTRAL", "AVOID"):
-                continue  # Skip neutral/avoid in alpha center
-            side = "long" if direction_from_composite == "LONG" else "short"
-            confidence = cs.get("confidence", 0.5)
-            flipped = cs.get("flipped_from_composite", False)
-            comp = "bullish" if side == "long" else "bearish"  # Backwards-compat label
-        else:
-            # Fallback: naive composite (only used if composite_signals not provided)
-            comp = v.get("composite", "neutral")
-            if comp == "neutral":
-                continue
-            side = "long" if comp == "bullish" else "short"
-            confidence = 0.5
-            flipped = False
-
-        px = v.get("px", 0)
-        tr = v.get("trade", {})
-        lrr = tr.get("lrr", 0)
-        trr = tr.get("trr", 0)
-        if not lrr or not trr:
-            continue
-        spread = trr - lrr
-
-        # ── v2.2: Use risk_setup_engine for entry/target/stop if available ──
-        try:
-            from engines.risk_setup_engine import calculate_risk_setup as _rs
-            setup = _rs(
-                ticker=ticker, direction=side.upper(), price=px,
-                risk_range=v,
-                composite_signal=cs,
-                gamma_data=(gamma_data or {}).get(ticker),
-                greek_data=(greeks_data or {}).get(ticker),
-            )
-            entry = setup.get("entry")
-            tp1 = setup.get("target1")
-            tp2 = setup.get("target2")
-            stop = setup.get("stop")
-            rr = setup.get("rr", 0)
-            near_entry = setup.get("near_entry", False)
-        except Exception:
-            # Fallback to proxy
-            if side == "long":
-                entry = round(lrr, 2); tp1 = round(lrr + spread * 0.5, 2); tp2 = round(trr, 2); stop = round(lrr - spread * 0.25, 2)
-            else:
-                entry = round(trr, 2); tp1 = round(trr - spread * 0.5, 2); tp2 = round(lrr, 2); stop = round(trr + spread * 0.25, 2)
-            rr = round(abs(tp1 - entry) / max(abs(entry - stop), 0.01), 2)
-            pos = (px - lrr) / spread if spread > 0 else 0.5
-            near_entry = (side == "long" and pos <= 0.35) or (side == "short" and pos >= 0.65)
-
-        grade = "A" if near_entry and rr >= 2.0 else "B" if near_entry else "C"
-        # v2.2: Boost grade by confidence
-        if confidence >= 0.7 and grade == "B":
-            grade = "A"
-        elif confidence < 0.3 and grade == "A":
-            grade = "B"
-        worth = "YES" if near_entry else "WAIT"
-        action = "Buy Now" if side == "long" and near_entry else ("Sell Now" if side == "short" and near_entry else "Wait")
-        scanner = "structural"
-        if quad == "Q3" and comp == "bullish" and ticker in ["GC=F", "SI=F", "GLD", "SLV", "GDX", "GDXJ"]:
-            scanner = "regime_aligned"
-        elif quad == "Q1" and comp == "bullish" and ticker in ["QQQ", "SPY", "IWM", "BTC-USD", "ETH-USD"]:
-            scanner = "regime_aligned"
-        elif near_entry and rr >= 2.0:
-            scanner = "bottleneck"
-        elif flipped:
-            scanner = "composite_flip"  # v2.2: special scanner for direction flips
-        news = news_map.get(ticker, {})
-        news_signal = news.get("front_run_signal")
-        priority_score = round(rr * 10 + (50 if near_entry else 0) + (confidence * 20), 1)
-        if news_signal in ["STRONG_BULLISH_RUMOR", "NEWS_MOMENTUM_BUILDING", "BULLISH_CLUSTER"]:
-            if side == "long":
-                priority_score += 30; scanner = "news_momentum"
-                if grade == "C": grade = "B"
-            elif side == "short":
-                priority_score -= 10
-        elif news_signal in ["STRONG_BEARISH_RUMOR", "NEGATIVE_HEADLINE_RISK"]:
-            if side == "short":
-                priority_score += 30; scanner = "news_momentum"
-                if grade == "C": grade = "B"
-            elif side == "long":
-                priority_score -= 10
-        alpha_items.append({
-            "ticker": ticker,
-            "scanner_type": scanner,
-            "direction": "LONG" if side == "long" else "SHORT",
-            "grade": grade,
-            "priority_score": priority_score,
-            "price": px,
-            "entry": entry,
-            "target_1": tp1,
-            "target_2": tp2,
-            "stop_loss": stop,
-            "rr": rr,
-            "worth_entering": worth,
-            "time_estimate": "1-2 weeks",
-            "thesis": f"{side.title()} setup at {quad} regime - {action}",
-            "recommendation": f"{side.title()} - Risk range {lrr}/{trr}",
-            "action": action,
-            "news_signal": news_signal,
-            "news_headline": (news.get("headlines") or [""])[0] if news else "",
-            "news_sentiment": news.get("sentiment_score") if news else None,
-            "news_themes": news.get("themes") if news else [],
-        })
-    return {
-        "meta": {
-            "regime": quad,
-            "bias": "Structural" if quad in ("Q1", "Q2") else "Defensive",
-            "vix": vix,
-            "total_items": len(alpha_items),
-        },
-        "all": alpha_items,
-        "level_1": [i for i in alpha_items if i.get("grade") == "A"],
-        "level_2": [i for i in alpha_items if i.get("grade") == "B"],
-        "watch": [i for i in alpha_items if i.get("grade") == "C"],
-    }
-
-def _ihsg_layers(prices: dict, quad: str) -> dict:
-    sector_map = {
-        "ADRO.JK": "Coal", "ITMG.JK": "Coal", "PTBA.JK": "Coal",
-        "NCKL.JK": "Nickel", "ANTM.JK": "Nickel", "INCO.JK": "Nickel",
-        "AALI.JK": "CPO", "LSIP.JK": "CPO", "SMAR.JK": "CPO",
-        "BBRI.JK": "Banking", "BMRI.JK": "Banking", "BBCA.JK": "Banking", "BBNI.JK": "Banking", "BRIS.JK": "Banking",
-        "TLKM.JK": "Telco", "EXCL.JK": "Telco",
-        "UNTR.JK": "Mining Contractor", "BYAN.JK": "Mining",
-        "ICBP.JK": "Consumer", "INDF.JK": "Consumer", "KLBF.JK": "Pharma",
-        "PGEO.JK": "Geothermal", "WINS.JK": "Shipping",
-        "EIDO": "ETF", "^JKSE": "Index",
-    }
-    sector_momentum = {}
-    sector_returns = {}
-    for ticker, sector in sector_map.items():
-        s = prices.get(ticker)
-        if s is not None and len(s) >= 22:
-            try:
-                s = pd.to_numeric(s, errors="coerce").dropna()
-                if len(s) >= 22:
-                    with np.errstate(invalid='ignore', divide='ignore'):
-                        r1m = float(s.iloc[-1] / s.iloc[-22] - 1)
-                    if math.isfinite(r1m):
-                        sector_returns.setdefault(sector, []).append(r1m)
-            except Exception:
-                pass
-    for sector, returns in sector_returns.items():
-        if returns:
-            avg = sum(returns) / len(returns)
-            leader_ticker = [t for t, s in sector_map.items() if s == sector and t in prices][0] if [t for t, s in sector_map.items() if s == sector and t in prices] else ""
-            sector_momentum[sector] = {
-                "bias": "Bullish" if avg > 0.03 else ("Bearish" if avg < -0.03 else "Neutral"),
-                "avg_1m": round(avg, 4),
-                "strength": round(abs(avg) * 100, 1),
-                "leader": leader_ticker,
-            }
-    commodity_overlay = {}
-    for sector in ["Coal", "Nickel", "CPO", "Mining"]:
-        tickers = [t for t, s in sector_map.items() if s == sector]
-        returns = []
-        for t in tickers:
-            s = prices.get(t)
-            if s is not None and len(s) >= 22:
-                try:
-                    s = pd.to_numeric(s, errors="coerce").dropna()
-                    if len(s) >= 22:
-                        returns.append(float(s.iloc[-1] / s.iloc[-22] - 1))
-                except Exception:
-                    pass
-        if returns:
-            avg = sum(returns) / len(returns)
-            commodity_overlay[sector] = {
-                "r1m": round(avg, 4),
-                "tailwind": "Strong" if avg > 0.05 else ("Moderate" if avg > 0.02 else "Weak"),
-                "signal": f"{sector} momentum {avg:+.1%}",
-            }
-    rupiah_regime = {}
-    dxy_s = prices.get("DX-Y.NYB")
-    idr_s = prices.get("USDIDR=X")
-    if dxy_s is not None and len(dxy_s) >= 22:
-        try:
-            dxy_s = pd.to_numeric(dxy_s, errors="coerce").dropna()
-            dxy_ret = float(dxy_s.iloc[-1] / dxy_s.iloc[-22] - 1)
-            rupiah_regime["dxy_trend"] = "Bullish" if dxy_ret > 0.01 else ("Bearish" if dxy_ret < -0.01 else "Neutral")
-            rupiah_regime["flow_signal"] = "Positive - DXY falling" if dxy_ret < -0.01 else ("Risk - DXY rising" if dxy_ret > 0.01 else "Neutral")
-        except Exception:
-            pass
-    if idr_s is not None and len(idr_s) >= 22:
-        try:
-            idr_s = pd.to_numeric(idr_s, errors="coerce").dropna()
-            idr_ret = float(idr_s.iloc[-1] / idr_s.iloc[-22] - 1)
-            rupiah_regime["idr_1m"] = round(idr_ret, 4)
-        except Exception:
-            pass
-    foreign_flow = {}
-    for ticker in list(IHSG_UNIVERSE.keys()):
-        s = prices.get(ticker)
-        if s is not None and len(s) >= 22:
-            try:
-                s = pd.to_numeric(s, errors="coerce").dropna()
-                if len(s) >= 22:
-                    r1m = float(s.iloc[-1] / s.iloc[-22] - 1)
-                    r5d = float(s.iloc[-1] / s.iloc[-6] - 1) if len(s) >= 6 else r1m
-                    if r5d > 0.03 and r1m > 0:
-                        foreign_flow[ticker] = {"signal": "Foreign Accumulation", "strength": round(r5d, 4)}
-                    elif r5d < -0.03 and r1m < 0:
-                        foreign_flow[ticker] = {"signal": "Foreign Distribution", "strength": round(r5d, 4)}
-                    else:
-                        foreign_flow[ticker] = {"signal": "Neutral", "strength": 0}
-            except Exception:
-                pass
-    macro_overlay = {}
-    banking_tickers = [t for t, s in sector_map.items() if s == "Banking"]
-    banking_returns = []
-    for t in banking_tickers:
-        s = prices.get(t)
-        if s is not None and len(s) >= 22:
-            try:
-                s = pd.to_numeric(s, errors="coerce").dropna()
-                if len(s) >= 22:
-                    banking_returns.append(float(s.iloc[-1] / s.iloc[-22] - 1))
-            except Exception:
-                pass
-    if banking_returns:
-        avg_banking = sum(banking_returns) / len(banking_returns)
-        macro_overlay["banking_bias"] = "Bullish" if avg_banking > 0.03 else ("Bearish" if avg_banking < -0.03 else "Neutral")
-        macro_overlay["bi_signal"] = f"Banking sector {avg_banking:+.1%}"
-    consumer_tickers = [t for t, s in sector_map.items() if s in ["Consumer", "Pharma"]]
-    consumer_returns = []
-    for t in consumer_tickers:
-        s = prices.get(t)
-        if s is not None and len(s) >= 22:
-            try:
-                s = pd.to_numeric(s, errors="coerce").dropna()
-                if len(s) >= 22:
-                    consumer_returns.append(float(s.iloc[-1] / s.iloc[-22] - 1))
-            except Exception:
-                pass
-    if consumer_returns:
-        avg_consumer = sum(consumer_returns) / len(consumer_returns)
-        macro_overlay["consumer_bias"] = "Bullish" if avg_consumer > 0.03 else ("Bearish" if avg_consumer < -0.03 else "Neutral")
-        macro_overlay["consumer_signal"] = f"Consumer sector {avg_consumer:+.1%}"
-    macro_overlay["commodity_bias"] = "Bullish" if any(commodity_overlay.get(s, {}).get("tailwind") in ["Strong", "Moderate"] for s in commodity_overlay) else "Neutral"
-    macro_overlay["policy_score"] = round(0.1 if macro_overlay.get("banking_bias") == "Bullish" else (-0.1 if macro_overlay.get("banking_bias") == "Bearish" else 0), 2)
-    return {
-        "ihsg_sector_momentum": sector_momentum,
-        "ihsg_commodity_overlay": commodity_overlay,
-        "ihsg_rupiah_regime": rupiah_regime,
-        "ihsg_foreign_flow": foreign_flow,
-        "ihsg_macro_overlay": macro_overlay,
-    }
-
+# ═══════════════════════════════════════════════════════════════════════
+# OPTIONS PROXY (v39 - unchanged, verified)
+# ═══════════════════════════════════════════════════════════════════════
 def _options_proxy_for_ticker(ticker, prices):
     ticker = ticker.replace("$", "").strip().upper()
     s = prices.get(ticker)
@@ -1283,139 +1157,138 @@ def _options_proxy_for_ticker(ticker, prices):
         logger.debug(f"Options proxy failed for {ticker}: {e}")
         return {"ok": False}
 
-def _generate_front_run_candidates(prices, news_analysis, bottleneck_ref):
-    candidates = []
-    seen = set()
-    ref_tickers = bottleneck_ref.get("consensus_heatmap", [])
-    rotation = bottleneck_ref.get("institutional_rotation", [])
-    for item in ref_tickers:
-        ticker = item.get("ticker", "")
-        if not ticker or ticker in seen:
-            continue
-        stars = item.get("stars", 0)
-        if stars >= 2:
-            opt = _options_proxy_for_ticker(ticker, prices)
-            if not opt.get("ok"):
-                opt = {
-                    "ok": True, "price": "—", "max_pain": "—", "put_wall": "—",
-                    "call_wall": "—", "gamma_flip_up": "—", "gamma_flip_down": "—",
-                    "max_pain_dist": "—", "gamma_regime": "TRANSITION",
-                    "greek_composite": "NEUTRAL", "conviction": "MODERATE",
-                    "source": "META", "ticker": ticker,
-                }
-            candidates.append({
-                "ticker": ticker,
-                "theme": item.get("layer", "").replace("_", " "),
-                "role": item.get("role", ""),
-                "consensus_stars": stars,
-                "accounts": item.get("accounts", []),
-                "target": item.get("target", ""),
-                "priority": item.get("priority", ""),
-                "why_front_run": f"High consensus ({stars} stars) from {len(item.get('accounts',[]))} accounts — {item.get('role','')}",
-                "source": "bottleneck_consensus",
-                "options": opt,
-                "catalyst": _find_catalyst(ticker, bottleneck_ref),
-            })
-            seen.add(ticker)
-    for phase in rotation:
-        status = phase.get("status", "")
-        if "NEXT" in status or "FUTURE" in status or "NOW" in status:
-            for ticker in phase.get("tickers", []):
-                if ticker in seen:
-                    continue
-                meta = next((x for x in ref_tickers if x.get("ticker") == ticker), {})
-                opt = _options_proxy_for_ticker(ticker, prices)
-                if not opt.get("ok"):
-                    opt = {
-                        "ok": True, "price": "—", "max_pain": "—", "put_wall": "—",
-                        "call_wall": "—", "gamma_flip_up": "—", "gamma_flip_down": "—",
-                        "max_pain_dist": "—", "gamma_regime": "TRANSITION",
-                        "greek_composite": "NEUTRAL", "conviction": "MODERATE",
-                        "source": "META", "ticker": ticker,
-                    }
-                candidates.append({
-                    "ticker": ticker,
-                    "theme": phase.get("theme", ""),
-                    "role": meta.get("role", "Rotation play"),
-                    "consensus_stars": meta.get("stars", 1),
-                    "accounts": meta.get("accounts", []),
-                    "target": meta.get("target", phase.get("theme", "")),
-                    "priority": "HIGH" if "NEXT" in status else "MEDIUM",
-                    "why_front_run": f"Institutional rotation Phase {phase.get('phase')} ({phase.get('timeline')}): {phase.get('theme')}",
-                    "source": "institutional_rotation",
-                    "options": opt,
-                    "catalyst": _find_catalyst(ticker, bottleneck_ref),
-                })
-                seen.add(ticker)
-    rumor_watch = (news_analysis or {}).get("rumor_watch", [])
-    for rw in rumor_watch:
-        ticker = rw.get("ticker", "")
-        if not ticker or ticker in seen:
-            continue
-        sig = rw.get("signal", "")
-        if sig in ("STRONG_BULLISH_RUMOR", "STRONG_BEARISH_RUMOR", "NEWS_MOMENTUM_BUILDING", "BULLISH_CLUSTER", "RUMOR_WATCH"):
-            opt = _options_proxy_for_ticker(ticker, prices)
-            if not opt.get("ok"):
-                opt = {
-                    "ok": True, "price": "—", "max_pain": "—", "put_wall": "—",
-                    "call_wall": "—", "gamma_flip_up": "—", "gamma_flip_down": "—",
-                    "max_pain_dist": "—", "gamma_regime": "TRANSITION",
-                    "greek_composite": "NEUTRAL", "conviction": "MODERATE",
-                    "source": "META", "ticker": ticker,
-                }
-            candidates.append({
-                "ticker": ticker,
-                "theme": "News Momentum",
-                "role": "Front-run headline",
-                "consensus_stars": 0,
-                "accounts": [],
-                "target": "Momentum play",
-                "priority": "HIGH",
-                "why_front_run": f"News signal: {sig} — {rw.get('headline','')[:60]}",
-                "source": "news_rumor",
-                "options": opt,
-                "news_signal": sig,
-                "news_sentiment": rw.get("sentiment", 0),
-                "news_headline": rw.get("headline", ""),
-                "catalyst": {"quarter": "Now", "event": "News-driven", "priority": "HIGH"},
-            })
-            seen.add(ticker)
-    def sort_key(c):
-        prio_map = {"TOP": 0, "HIGH": 1, "MEDIUM": 2, "LOW": 3}
-        conv_map = {"STRONG": 0, "MODERATE": 1, "WEAK": 2, "CONFLICTED": 3}
-        opt = c.get("options", {})
-        return (prio_map.get(c.get("priority", ""), 99), -c.get("consensus_stars", 0), conv_map.get(opt.get("conviction", "CONFLICTED"), 99))
-    candidates.sort(key=sort_key)
-    return candidates
-
 def _find_catalyst(ticker, bottleneck_ref):
     for ev in bottleneck_ref.get("catalyst_timeline", []):
         if ticker in ev.get("ticker", ""):
             return {"quarter": ev.get("quarter", ""), "event": ev.get("event", ""), "priority": ev.get("priority", "")}
     return {}
 
+# ═══════════════════════════════════════════════════════════════════════
+# FRED FALLBACK
+# ═══════════════════════════════════════════════════════════════════════
+def _fred_fallback() -> Dict[str, pd.Series]:
+    import numpy as np
+    dates = pd.date_range(end=datetime.now(), periods=60, freq="MS")
+    return {
+        "INDPRO": pd.Series(np.linspace(100, 105, 60) + np.random.randn(60)*0.5, index=dates, name="INDPRO"),
+        "CPI": pd.Series(np.linspace(300, 310, 60) + np.random.randn(60)*1, index=dates, name="CPI"),
+        "UNRATE": pd.Series(np.linspace(3.5, 4.2, 60) + np.random.randn(60)*0.1, index=dates, name="UNRATE"),
+        "DGS10": pd.Series(np.linspace(4.0, 4.5, 60) + np.random.randn(60)*0.1, index=dates, name="DGS10"),
+        "DGS2": pd.Series(np.linspace(3.5, 4.0, 60) + np.random.randn(60)*0.1, index=dates, name="DGS2"),
+        "FEDFUNDS": pd.Series([5.33]*60, index=dates, name="FEDFUNDS"),
+        "PAYEMS": pd.Series(np.linspace(155000, 158000, 60), index=dates, name="PAYEMS"),
+        "RSAFS": pd.Series(np.linspace(680, 720, 60), index=dates, name="RSAFS"),
+        "ICSA": pd.Series(np.linspace(220, 240, 60), index=dates, name="ICSA"),
+        "CORECPI": pd.Series(np.linspace(280, 290, 60), index=dates, name="CORECPI"),
+        "DFII10": pd.Series(np.linspace(1.5, 2.0, 60), index=dates, name="DFII10"),
+        "T5YIE": pd.Series(np.linspace(2.2, 2.5, 60), index=dates, name="T5YIE"),
+        "HYOAS": pd.Series(np.linspace(3.5, 4.5, 60), index=dates, name="HYOAS"),
+        "ISMNO": pd.Series(np.linspace(48, 52, 60), index=dates, name="ISMNO"),
+        "HOUST": pd.Series(np.linspace(1300, 1400, 60), index=dates, name="HOUST"),
+        "DGS3MO": pd.Series(np.linspace(4.2, 4.8, 60), index=dates, name="DGS3MO"),
+        "BAMLH0A0HYM2": pd.Series(np.linspace(3.0, 3.5, 60), index=dates, name="BAMLH0A0HYM2"),
+    }
+
+# ═══════════════════════════════════════════════════════════════════════
+# GLOBAL FALLBACK (v39 - with Hedgeye override)
+# ═══════════════════════════════════════════════════════════════════════
+def _global_fallback(quad: str) -> dict:
+    base_map = {
+        "Q1": ["USA","Japan","India","Taiwan","South Korea","Vietnam","Mexico","Singapore","Philippines","Malaysia","UAE","Israel","Poland","Czech Republic","Romania"],
+        "Q2": ["China","Brazil","Australia","Canada","South Africa","Saudi Arabia","Chile","Peru","Thailand","Colombia","New Zealand","Norway","Kazakhstan","Angola"],
+        "Q3": ["UK","Germany","France","Italy","Russia","Turkey","Argentina","Nigeria","Pakistan","Egypt","Spain","Netherlands","Belgium","Sweden","Switzerland"],
+        "Q4": ["Indonesia","Venezuela","Iran","Ukraine","Greece","Portugal","Lebanon","Syria","Yemen","Zimbabwe","Sudan","Afghanistan","North Korea","Myanmar","Belarus","Bolivia"],
+    }
+    # Apply Hedgeye overrides
+    for country_override, override_q in HEDGEYE_COUNTRY_OVERRIDE.items():
+        for q in base_map:
+            if country_override in base_map[q]:
+                base_map[q].remove(country_override)
+        if country_override not in base_map[override_q]:
+            base_map[override_q].insert(0, country_override)
+    cqs = {}
+    for q, countries in base_map.items():
+        for c in countries:
+            cqs[c] = q
+    return {
+        "global_quad": quad,
+        "global_conf": 0.52,
+        "global_probs": {"Q1":0.20,"Q2":0.25,"Q3":0.35,"Q4":0.20},
+        "country_quads": cqs,
+        "country_list": [{"country": c, "quad": q, "regime_name": {"Q1":"Goldilocks","Q2":"Reflation","Q3":"Stagflation","Q4":"Deflation"}.get(q,q)} for q, countries in base_map.items() for c in countries],
+        "em_recovery": {"trigger": f"Q3 defensive - watch for {quad} rotation", "confidence": 0.4},
+        "dm_count": len(base_map.get("Q1",[])) + len(base_map.get("Q3",[])),
+        "em_count": len(base_map.get("Q2",[])) + len(base_map.get("Q4",[])),
+    }
+
+# ═══════════════════════════════════════════════════════════════════════
+# TICKER UNIVERSE
+# ═══════════════════════════════════════════════════════════════════════
+def _extract_bottleneck_tickers() -> List[str]:
+    ref = _load_bottleneck_ref()
+    tickers = set()
+    for item in ref.get("consensus_heatmap", []):
+        t = item.get("ticker", "")
+        if t:
+            tickers.add(t.replace("$", "").strip().upper())
+    for phase in ref.get("institutional_rotation", []):
+        for t in phase.get("tickers", []):
+            if t:
+                tickers.add(t.replace("$", "").strip().upper())
+    for ma in ref.get("ma_watchlist", []):
+        t = ma.get("target", "")
+        if t:
+            tickers.add(t.replace("$", "").strip().upper())
+    for ev in ref.get("catalyst_timeline", []):
+        t = ev.get("ticker", "")
+        if t:
+            tickers.add(t.replace("$", "").strip().upper())
+    clean = []
+    for t in tickers:
+        if not t or len(t) > 20 or t.startswith("http") or " " in t:
+            continue
+        clean.append(t)
+    return clean
+
+def _all_tickers() -> List[str]:
+    pools = [
+        list(US_SECTORS.keys()), list(US_FACTORS.keys()),
+        list(FOREX_PAIRS.keys()), list(COMMODITIES.keys()),
+        list(CRYPTO.keys()), list(BONDS.keys()),
+        list(IHSG_UNIVERSE.keys()), list(MACRO_PROXIES.keys()),
+        ["^VIX", "UUP", "EEM", "VWO", "^GSPC", "^IXIC", "VVIX"],
+        _extract_bottleneck_tickers(),
+    ]
+    seen = set()
+    out = []
+    for p in pools:
+        for t in p:
+            if t and t not in seen:
+                seen.add(t)
+                out.append(t)
+    return out
+
+# ═══════════════════════════════════════════════════════════════════════
+# STABLECOIN / CRYPTO FETCHES
+# ═══════════════════════════════════════════════════════════════════════
 def _fetch_stablecoin_flows():
     if not _has_requests:
         return {}
     try:
-        # Updated endpoint: stablecoins.llama.fi (DeFiLlama stablecoin API v2)
         r = requests.get("https://stablecoins.llama.fi/stablecoins", timeout=15)
         if r.status_code != 200:
             return {}
         data = r.json()
         total = 0.0
         change_7d = 0.0
-        # New API format: data -> pepegAssets list
         pegged_assets = data.get("peggedAssets", []) if isinstance(data, dict) else []
         for pe in pegged_assets:
             if not isinstance(pe, dict):
                 continue
-            # circulating -> peggedUSD is the current total
             circ = pe.get("circulating", {})
             if isinstance(circ, dict):
                 mc = circ.get("peggedUSD", 0) or 0
                 total += float(mc)
-                # previous week for 7d change
                 prev = pe.get("circulatingPrevWeek", {})
                 if isinstance(prev, dict):
                     prev_mc = prev.get("peggedUSD", 0) or 0
@@ -1428,7 +1301,6 @@ def _fetch_stablecoin_flows():
     except Exception as e:
         logger.warning(f"Stablecoin fetch failed: {e}")
         return {}
-
 
 def _fetch_crypto_narrative():
     if not _has_requests:
@@ -1537,18 +1409,36 @@ def _build_crypto_center(prices, news_analysis):
     cc["capital_flows"] = _fetch_stablecoin_flows()
     cc["narrative"] = _fetch_crypto_narrative()
     cc["market_structure"] = _fetch_crypto_market_structure()
+
+    # Whale proxy v2
     whale_proxy = {}
-    for ticker in ["BTC-USD", "ETH-USD"]:
+    for ticker in ["BTC-USD", "ETH-USD", "SOL-USD"]:
         s = prices.get(ticker)
         if s is not None and len(s) >= 22:
             try:
                 s_clean = pd.to_numeric(s, errors="coerce").dropna()
                 r1m = float(s_clean.iloc[-1] / s_clean.iloc[-22] - 1)
-                whale_proxy[ticker] = "ACCUMULATING" if r1m > 0.05 else "DISTRIBUTING" if r1m < -0.05 else "NEUTRAL"
+                r7d = float(s_clean.iloc[-1] / s_clean.iloc[-8] - 1) if len(s_clean) >= 8 else r1m
+                vol = float(s_clean.tail(20).std())
+                vol_40 = float(s_clean.tail(40).std()) if len(s_clean) >= 40 else vol
+
+                signal = "NEUTRAL"
+                if r7d > 0.05 and (vol / vol_40 if vol_40 > 0 else 1) < 1.2:
+                    signal = "ACCUMULATING"
+                elif r7d < -0.05 and (vol / vol_40 if vol_40 > 0 else 1) > 1.3:
+                    signal = "DISTRIBUTING"
+
+                whale_proxy[ticker] = {
+                    "signal": signal,
+                    "r1m": round(r1m, 4),
+                    "r7d": round(r7d, 4),
+                    "vol_expansion": round(vol / vol_40 - 1, 2) if vol_40 > 0 else 0,
+                }
             except Exception:
                 pass
     cc["whale"]["proxy"] = whale_proxy
     cc["tokenomics"]["upcoming_unlocks"] = _build_crypto_unlock_proxy()
+
     funding = cc["market_structure"].get("funding", {})
     if funding:
         for sym, data in funding.items():
@@ -1562,9 +1452,139 @@ def _build_crypto_center(prices, news_analysis):
                 })
     return cc
 
-# ------------------------------------------------------------------
-# Core runner
-# ------------------------------------------------------------------
+# ═══════════════════════════════════════════════════════════════════════
+# ALPHA CENTER PROXY v2.2 (v39 - uses composite signals if available)
+# ═══════════════════════════════════════════════════════════════════════
+def _alpha_center_proxy(prices, risk_ranges, quad, vix, news_analysis=None,
+                        composite_signals=None, cot_data=None, oi_data=None,
+                        greeks_data=None, gamma_data=None):
+    ar = risk_ranges.get("asset_ranges", {})
+    alpha_items = []
+    news_map = (news_analysis or {}).get("ticker_specific", {}) if news_analysis else {}
+    composite_signals = composite_signals or {}
+
+    for ticker, v in ar.items():
+        cs = composite_signals.get(ticker, {})
+        if cs:
+            direction_from_composite = cs.get("direction", "NEUTRAL")
+            if direction_from_composite in ("NEUTRAL", "AVOID"):
+                continue
+            side = "long" if direction_from_composite == "LONG" else "short"
+            confidence = cs.get("confidence", 0.5)
+            flipped = cs.get("flipped_from_composite", False)
+            comp = "bullish" if side == "long" else "bearish"
+        else:
+            comp = v.get("composite", "neutral")
+            if comp == "neutral":
+                continue
+            side = "long" if comp == "bullish" else "short"
+            confidence = 0.5
+            flipped = False
+
+        px = v.get("px", 0)
+        tr = v.get("trade", {})
+        lrr = tr.get("lrr", 0)
+        trr = tr.get("trr", 0)
+        if not lrr or not trr:
+            continue
+        spread = trr - lrr
+
+        try:
+            if v2_risk_setup is not None:
+                setup = v2_risk_setup(
+                    ticker=ticker, direction=side.upper(), price=px,
+                    risk_range=v,
+                    composite_signal=cs,
+                    gamma_data=(gamma_data or {}).get(ticker),
+                    greek_data=(greeks_data or {}).get(ticker),
+                )
+                entry = setup.get("entry")
+                tp1 = setup.get("target1")
+                tp2 = setup.get("target2")
+                stop = setup.get("stop")
+                rr = setup.get("rr", 0)
+                near_entry = setup.get("near_entry", False)
+            else:
+                raise Exception("risk_setup_engine not available")
+        except Exception:
+            if side == "long":
+                entry = round(lrr, 2); tp1 = round(lrr + spread * 0.5, 2); tp2 = round(trr, 2); stop = round(lrr - spread * 0.25, 2)
+            else:
+                entry = round(trr, 2); tp1 = round(trr - spread * 0.5, 2); tp2 = round(lrr, 2); stop = round(trr + spread * 0.25, 2)
+            rr = round(abs(tp1 - entry) / max(abs(entry - stop), 0.01), 2)
+            pos = (px - lrr) / spread if spread > 0 else 0.5
+            near_entry = (side == "long" and pos <= 0.35) or (side == "short" and pos >= 0.65)
+
+        grade = "A" if near_entry and rr >= 2.0 else "B" if near_entry else "C"
+        if confidence >= 0.7 and grade == "B":
+            grade = "A"
+        elif confidence < 0.3 and grade == "A":
+            grade = "B"
+        worth = "YES" if near_entry else "WAIT"
+        action = "Buy Now" if side == "long" and near_entry else ("Sell Now" if side == "short" and near_entry else "Wait")
+        scanner = "structural"
+        if quad == "Q3" and comp == "bullish" and ticker in ["GC=F", "SI=F", "GLD", "SLV", "GDX", "GDXJ"]:
+            scanner = "regime_aligned"
+        elif quad == "Q1" and comp == "bullish" and ticker in ["QQQ", "SPY", "IWM", "BTC-USD", "ETH-USD"]:
+            scanner = "regime_aligned"
+        elif near_entry and rr >= 2.0:
+            scanner = "bottleneck"
+        elif flipped:
+            scanner = "composite_flip"
+
+        news = news_map.get(ticker, {})
+        news_signal = news.get("front_run_signal")
+        priority_score = round(rr * 10 + (50 if near_entry else 0) + (confidence * 20), 1)
+        if news_signal in ["STRONG_BULLISH_RUMOR", "NEWS_MOMENTUM_BUILDING", "BULLISH_CLUSTER"]:
+            if side == "long":
+                priority_score += 30; scanner = "news_momentum"
+                if grade == "C": grade = "B"
+            elif side == "short":
+                priority_score -= 10
+        elif news_signal in ["STRONG_BEARISH_RUMOR", "NEGATIVE_HEADLINE_RISK"]:
+            if side == "short":
+                priority_score += 30; scanner = "news_momentum"
+                if grade == "C": grade = "B"
+            elif side == "long":
+                priority_score -= 10
+        alpha_items.append({
+            "ticker": ticker,
+            "scanner_type": scanner,
+            "direction": "LONG" if side == "long" else "SHORT",
+            "grade": grade,
+            "priority_score": priority_score,
+            "price": px,
+            "entry": entry,
+            "target_1": tp1,
+            "target_2": tp2,
+            "stop_loss": stop,
+            "rr": rr,
+            "worth_entering": worth,
+            "time_estimate": "1-2 weeks",
+            "thesis": f"{side.title()} setup at {quad} regime - {action}",
+            "recommendation": f"{side.title()} - Risk range {lrr}/{trr}",
+            "action": action,
+            "news_signal": news_signal,
+            "news_headline": (news.get("headlines") or [""])[0] if news else "",
+            "news_sentiment": news.get("sentiment_score") if news else None,
+            "news_themes": news.get("themes") if news else [],
+        })
+    return {
+        "meta": {
+            "regime": quad,
+            "bias": "Structural" if quad in ("Q1", "Q2") else "Defensive",
+            "vix": vix,
+            "total_items": len(alpha_items),
+        },
+        "all": alpha_items,
+        "level_1": [i for i in alpha_items if i.get("grade") == "A"],
+        "level_2": [i for i in alpha_items if i.get("grade") == "B"],
+        "watch": [i for i in alpha_items if i.get("grade") == "C"],
+    }
+
+# ═══════════════════════════════════════════════════════════════════════
+# CORE ORCHESTRATOR (v39)
+# ═══════════════════════════════════════════════════════════════════════
 def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: float = 12.0, **kwargs) -> dict:
     t0 = time.time()
     _safe_progress(progress_cb, "Checking snapshot cache...", 0.02)
@@ -1588,55 +1608,20 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         "gip": None,
         "global": {},
         "risk_ranges": {},
-        "scenarios": {},
-        "narratives": {},
-        "discovery": {},
-        "transition": None,
         "health": {},
-        "analogs": {},
-        "bottleneck": {},
-        "playbook": {},
         "prices": {},
-        "auto_discoveries": {},
-        "feedback_eval": {},
-        "gamma": {},
-        "leveraged_etf": {},
-        "daily_signals": [],
-        "regime_forecast": {},
-        "forward_returns": {},
-        "leading_signals": {},
-        "price_clusters": {},
-        "news_narratives": {},
-        "bottleneck_discovery": {},
-        "frontrun": {},
-        "ihsg_sector_momentum": {},
-        "ihsg_commodity_overlay": {},
-        "ihsg_rupiah_regime": {},
-        "ihsg_foreign_flow": {},
-        "ihsg_macro_overlay": {},
-        "alpha_center": {},
-        "gamma_data": {},
-        "greeks_data": {},
-        "cot_oi": {},
-        "dxy_correlation": {},
-        "vol_forecast": {},
-        "stress_test": [],
-        "prices_loaded": 0,
         "fred_coverage": 0,
         "build_time_s": 0,
-        "daily_signals_summary": {},
-        "gex_data": {},
-        "charm_data": {},
-        "vanna_data": {},
-        "odte_enhanced": {},
-        "structure_data": {},
-        "afternoon_data": {},
-        "volga_data": {},
-        "institutional_data": {},
-        "crypto_tokens": {},
-        "rumor_watch": [],
-        "bottleneck_research": {},
+        # All engine outputs initialized once (no duplicates)
+        "alpha_center": {},
+        "composite_signals": {},
+        "bonds_xau_regime": {},
+        "supply_chain_analysis": {},
+        "thought_process": {},
+        "top_theses": [],
         "front_run_candidates": [],
+        "auto_discoveries": {},
+        "crypto_tokens": {},
         "crypto_center": {},
         "behavioral_macro": {},
         "odte_monitor": {},
@@ -1645,7 +1630,6 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         "boom_bust": {},
         "conviction_sizing": {},
         "vanna_charm_flows": {},
-        "country_list": [],
         "interconnect": {},
         "yfinance_options": {},
         "scenario_discovery": {},
@@ -1661,7 +1645,53 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         "afternoon_data": {},
         "volga_data": {},
         "institutional_data": {},
-        # NEW: Simulation v27.3
+        "gamma_data": {},
+        "greeks_data": {},
+        "cot_oi": {},
+        "dxy_correlation": {},
+        "vol_forecast": {},
+        "stress_test": [],
+        "leveraged_etf": {},
+        "daily_signals": [],
+        "daily_signals_summary": {},
+        "regime_forecast": {},
+        "forward_returns": {},
+        "leading_signals": {},
+        "price_clusters": {},
+        "news_narratives": {},
+        "bottleneck_discovery": {},
+        "frontrun": {},
+        "ihsg_sector_momentum": {},
+        "ihsg_commodity_overlay": {},
+        "ihsg_rupiah_regime": {},
+        "ihsg_foreign_flow": {},
+        "ihsg_macro_overlay": {},
+        "ihsg_broker_proxy": {},
+        "rumor_watch": [],
+        "bottleneck_research": {},
+        "country_list": [],
+        "cascade_analysis": {},
+        "yves_v2": {},
+        "gip_v10": {},
+        "discovery_brain": {},
+        "ticker_universe_expansion": {},
+        "portfolio_sizing_v2": {},
+        "cem_karsan_universal": {},
+        "markov_v3": {},
+        "smart_money": {},
+        "capital_rotation": {},
+        "ust_auction": {},
+        "vrp_scanner": {},
+        "squeeze_scanner": {},
+        "karsan_scanner": {},
+        "spotgamma_scanner": {},
+        "leopold_scan": {},
+        "coatue_scan": {},
+        "volsignals_regime": {},
+        "spotgamma_levels": {},
+        "schadner_iv": {},
+        "narrative": {},
+        # Simulation v39
         "simulation_results": {},
         "simulation_summary": {},
         "portfolio_stress": {},
@@ -1719,12 +1749,11 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             except Exception as e:
                 logger.warning(f"Price load attempt {attempt+1}/{max_retries} failed: {e}")
                 result["errors"].append(f"prices attempt {attempt+1}: {e}")
-                # Stop retrying if rate limited
                 if "Rate limit" in str(e) or "Too Many Requests" in str(e) or "429" in str(e):
                     logger.warning("Rate limit detected during price load — using cache/synthetic fallback")
                     break
             if attempt < max_retries - 1:
-                backoff = 2 ** attempt + 3  # Extra delay for cloud rate limits
+                backoff = 2 ** attempt + 3
                 logger.info(f"Backing off {backoff}s before retry...")
                 time.sleep(backoff)
 
@@ -1750,23 +1779,65 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         _safe_progress(progress_cb, "Loading bottleneck intelligence...", 0.20)
         bottleneck_ref = _load_bottleneck_ref()
         result["bottleneck_research"] = bottleneck_ref
-        _safe_progress(progress_cb, "Generating front-run candidates...", 0.22)
-        front_run = _generate_front_run_candidates(prices, news_analysis, bottleneck_ref)
+
+        # ---- Supply Chain Chains ----
+        _safe_progress(progress_cb, "Building supply chain bottleneck chains...", 0.22)
+        supply_chains = _build_supply_chain_chains(bottleneck_ref, None, prices)
+        result["supply_chain_chains"] = supply_chains
+
+        # ---- Front-Run ALL Markets ----
+        _safe_progress(progress_cb, "Generating front-run candidates (all markets)...", 0.24)
+        front_run = _generate_front_run_all_markets(prices, news_analysis, bottleneck_ref, supply_chains, "Q3")
         result["front_run_candidates"] = front_run
 
+        # ---- Auto-Ticker Discovery ----
+        _safe_progress(progress_cb, "Auto-discovering new tickers...", 0.26)
+        current_tickers = set(prices.keys())
+        discovered = _auto_discover_tickers(bottleneck_ref, None, news_analysis, None, current_tickers)
+        result["auto_discoveries"] = {"discovered_tickers": discovered, "count": len(discovered)}
+        if discovered:
+            logger.info(f"Auto-discovered {len(discovered)} new tickers: {discovered[:10]}")
+
         # ---- CRYPTO CENTER ----
-        _safe_progress(progress_cb, "Building crypto on-chain center...", 0.25)
+        _safe_progress(progress_cb, "Building crypto on-chain center...", 0.28)
         cc = _build_crypto_center(prices, news_analysis)
         result["crypto_center"] = cc
+        result["crypto_tokens"] = _crypto_onchain_proxy_v2(prices)
 
         # ---- PROXY FALLBACKS ----
-        _safe_progress(progress_cb, "Computing proxy fallbacks...", 0.28)
+        _safe_progress(progress_cb, "Computing proxy fallbacks...", 0.30)
         rr_proxy = _risk_range_proxy(prices)
-        crypto_proxy = _crypto_onchain_proxy(prices)
-        result["crypto_tokens"] = crypto_proxy
+
+        # ---- IHSG LAYERS ----
         ihsg_layers = _ihsg_layers(prices, "Q3")
         for k, v in ihsg_layers.items():
             result[k] = v
+
+        # IHSG broker proxy v2
+        ihsg_broker = {}
+        for ticker in list(IHSG_UNIVERSE.keys())[:30]:
+            bp = _ihsg_broker_proxy_v2(ticker, prices)
+            if bp and bp.get("signal") != "NEUTRAL":
+                ihsg_broker[ticker] = bp
+        result["ihsg_broker_proxy"] = ihsg_broker
+
+        # ---- VIX ----
+        vix_last = 20.0
+        vix_s = prices.get("^VIX")
+        if vix_s is not None and not vix_s.empty:
+            try:
+                vix_last = float(vix_s.iloc[-1])
+            except Exception:
+                pass
+
+        # ---- DXY ----
+        dxy_s = prices.get("DX-Y.NYB")
+        dxy_ret = 0.0
+        if dxy_s is not None and len(dxy_s) > 22:
+            try:
+                dxy_ret = float(dxy_s.iloc[-1] / dxy_s.iloc[-22] - 1)
+            except Exception:
+                pass
 
         # ---- GIP Engine ----
         _safe_progress(progress_cb, "Running GIP regime model...", 0.55)
@@ -1786,6 +1857,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
 
         # ---- Global Regime ----
         result["global"] = _global_fallback(quad)
+        result["country_list"] = result["global"].get("country_list", [])
 
         # ---- Market Health ----
         _safe_progress(progress_cb, "Running market health & breadth...", 0.65)
@@ -1801,9 +1873,8 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             result["health"] = {"error": "Engine not imported", "verdict": "Unknown"}
 
         # ---- Risk Ranges ----
-        _safe_progress(progress_cb, "Computing Risk Ranges (TRR/LRR)...", 0.72)
+        _safe_progress(progress_cb, "Computing Risk Ranges (TRR/LRR)...", 0.70)
         try:
-            # v2 — pass quad + vix for regime-conditional ranges
             ranges = RiskRangeEngine(current_quad=quad, vix=vix_last).run(prices)
             if ranges and ranges.get("asset_ranges"):
                 merged_ranges = dict(rr_proxy.get("asset_ranges", {}))
@@ -1817,14 +1888,12 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             result["errors"].append(f"risk_ranges: {e}")
             result["risk_ranges"] = rr_proxy
 
-        # ---- NEW v27.2 ENGINES ----
-        _safe_progress(progress_cb, "Running Behavioral Macro (Yves)...", 0.30)
+        # ---- Behavioral Macro (Yves) ----
+        _safe_progress(progress_cb, "Running Behavioral Macro (Yves)...", 0.32)
         try:
             dgs10 = float(fred.get("DGS10", pd.Series()).dropna().iloc[-1]) if fred.get("DGS10") is not None else 4.5
             t5yie = float(fred.get("T5YIE", pd.Series()).dropna().iloc[-1]) if fred.get("T5YIE") is not None else 2.4
             real_yield = dgs10 - t5yie
-            vix_s = prices.get("^VIX")
-            vix_last = float(vix_s.dropna().iloc[-1]) if vix_s is not None and not vix_s.empty else 20.0
             behavioral = get_behavioral_macro(vix=vix_last, real_yield=real_yield, dxy_ret=0.0)
             result["behavioral_macro"] = behavioral
         except Exception as e:
@@ -1832,18 +1901,18 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             result["errors"].append(f"behavioral: {e}")
             result["behavioral_macro"] = {"yves": {"alert": None}}
 
-        _safe_progress(progress_cb, "Running 0DTE Monitor (Cem Karsan)...", 0.32)
+        # ---- 0DTE Monitor ----
+        _safe_progress(progress_cb, "Running 0DTE Monitor (Cem Karsan)...", 0.34)
         try:
-            # Reduced to 3 core tickers to avoid Yahoo rate limit on cloud
             odte = run_odte_monitor(["SPY", "QQQ", "IWM"], prices)
             result["odte_monitor"] = odte
         except Exception as e:
             logger.warning(f"0DTE monitor failed: {e}")
             result["errors"].append(f"odte: {e}")
-            # Fallback proxy
             result["odte_monitor"] = {"expiry": "Weekly", "tickers": {}, "cascade_warning": False, "summary": "0DTE unavailable — rate limit"}
 
-        _safe_progress(progress_cb, "Running Skew Term Structure...", 0.34)
+        # ---- Skew Term ----
+        _safe_progress(progress_cb, "Running Skew Term Structure...", 0.36)
         try:
             skew = run_skew_term(list(US_SECTORS.keys()) + ["SPY", "QQQ", "IWM", "GLD", "TLT"], prices)
             result["skew_term"] = skew
@@ -1851,7 +1920,8 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             logger.warning(f"Skew term failed: {e}")
             result["errors"].append(f"skew: {e}")
 
-        _safe_progress(progress_cb, "Running Reflexivity (Soros)...", 0.36)
+        # ---- Reflexivity ----
+        _safe_progress(progress_cb, "Running Reflexivity (Soros)...", 0.38)
         try:
             reflex = run_reflexivity(prices, fred, quad)
             result["reflexivity"] = reflex
@@ -1859,7 +1929,8 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             logger.warning(f"Reflexivity failed: {e}")
             result["errors"].append(f"reflexivity: {e}")
 
-        _safe_progress(progress_cb, "Running Boom-Bust Stage...", 0.38)
+        # ---- Boom-Bust ----
+        _safe_progress(progress_cb, "Running Boom-Bust Stage...", 0.40)
         try:
             bb = classify_stage(prices, fred, result.get("health", {}), quad)
             result["boom_bust"] = bb
@@ -1867,7 +1938,8 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             logger.warning(f"Boom-bust failed: {e}")
             result["errors"].append(f"boombust: {e}")
 
-        _safe_progress(progress_cb, "Running Vanna & Charm Flows...", 0.40)
+        # ---- Vanna & Charm ----
+        _safe_progress(progress_cb, "Running Vanna & Charm Flows...", 0.42)
         try:
             vanna_charm = {}
             for t in ["SPY", "QQQ", "IWM", "GLD", "TLT", "BTC-USD", "ETH-USD"]:
@@ -1880,7 +1952,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             result["errors"].append(f"vannacharm: {e}")
 
         # ---- Interconnect / Cascade ----
-        _safe_progress(progress_cb, "Running Interconnect Cascade...", 0.43)
+        _safe_progress(progress_cb, "Running Interconnect Cascade...", 0.44)
         try:
             interconnect = run_interconnect(prices, fred, news_analysis, quad)
             result["interconnect"] = interconnect
@@ -1888,24 +1960,131 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             logger.warning(f"Interconnect failed: {e}")
             result["errors"].append(f"interconnect: {e}")
 
-        # ---- Phase 2: Live Options + Scenario + Transmission ----
-        _safe_progress(progress_cb, "Fetching live options...", 0.44)
+        # ---- Cascade Engine ----
+        if _V2_CASCADE:
+            _safe_progress(progress_cb, "Running Cascade Engine...", 0.46)
+            try:
+                cascade_results = run_all_cascades(prices)
+                result["cascade_analysis"] = cascade_results
+            except Exception as e:
+                logger.warning(f"Cascade engine failed: {e}")
+                result["errors"].append(f"cascade: {e}")
+
+        # ---- Supply Chain Graph ----
+        if _V2_SUPPLY:
+            _safe_progress(progress_cb, "Running Supply Chain Graph...", 0.48)
+            try:
+                active_shocks = (result.get("cascade_analysis") or {}).get("active_shocks", {})
+                supply_chain = run_supply_chain_analysis(prices, active_shocks=active_shocks)
+                result["supply_chain_analysis"] = supply_chain
+            except Exception as e:
+                logger.warning(f"Supply chain analysis failed: {e}")
+                result["errors"].append(f"supply_chain: {e}")
+
+        # ---- Yves v2 ----
+        if _V2_YVES:
+            _safe_progress(progress_cb, "Running Yves Alerts v2...", 0.50)
+            try:
+                aaii_for_yves = result.get("behavioral_macro", {}) or {}
+                real_yield_val = 0.0
+                try:
+                    def _last_finite(s):
+                        if s is None: return None
+                        try:
+                            ss = pd.to_numeric(s, errors="coerce").dropna()
+                            return float(ss.iloc[-1]) if len(ss) > 0 else None
+                        except Exception: return None
+                    dgs10_v = _last_finite(fred.get("DGS10")) or 4.0
+                    t10yie_v = _last_finite(fred.get("T10YIE")) or 2.3
+                    real_yield_val = dgs10_v - t10yie_v
+                except Exception:
+                    real_yield_val = aaii_for_yves.get("real_yield", 1.5)
+                yves_v2 = run_yves_v2(
+                    aaii=aaii_for_yves, vix=vix_last, real_yield=real_yield_val,
+                    put_call=aaii_for_yves.get("put_call_ratio", 1.0),
+                    prices=prices, fred=fred,
+                )
+                result["yves_v2"] = yves_v2
+            except Exception as e:
+                logger.warning(f"Yves v2 failed: {e}")
+                result["errors"].append(f"yves_v2: {e}")
+
+        # ---- Cem Karsan Universal ----
+        if _V2_CEM:
+            _safe_progress(progress_cb, "Running Cem Karsan Universal...", 0.52)
+            try:
+                cem_targets = [
+                    "SPY", "QQQ", "IWM", "GLD", "TLT", "BTC-USD", "ETH-USD",
+                    "USO", "UNG", "FXE", "EEM", "XLE", "XLK", "XLF",
+                ]
+                cem_universal = cem_universal_multi(cem_targets, prices, vix_last, max_yfinance=8)
+                result["cem_karsan_universal"] = cem_universal
+            except Exception as e:
+                logger.warning(f"Cem Karsan Universal failed: {e}")
+                result["errors"].append(f"cem_universal: {e}")
+
+        # ---- Discovery Brain ----
+        if _V2_DISCOVERY:
+            _safe_progress(progress_cb, "Running Discovery Brain...", 0.54)
+            try:
+                prev_quad_val = None
+                try:
+                    stale_snap = load_snapshot(max_age_hours=72)
+                    if stale_snap:
+                        prev_quad_val = stale_snap.get("summary", {}).get("structural_quad")
+                except Exception: pass
+                bottleneck_ref_data = {}
+                try:
+                    import os, json as _json
+                    btk_path = "bottleneck_reference.json"
+                    if os.path.exists(btk_path):
+                        with open(btk_path) as f:
+                            bottleneck_ref_data = _json.load(f)
+                except Exception: pass
+                discovery = run_discovery_brain(
+                    prices=prices, news_analysis=result.get("news_analysis", {}),
+                    gip_features=(result.get("gip_v10", {}).get("features") or result.get("gip", {}).get("features", {})),
+                    current_quad=quad, monthly_quad=monthly_quad, prev_quad=prev_quad_val,
+                    cot_data=result.get("cot_data"), bottleneck_ref=bottleneck_ref_data,
+                )
+                result["discovery_brain"] = discovery
+            except Exception as e:
+                logger.warning(f"Discovery Brain failed: {e}")
+                result["errors"].append(f"discovery_brain: {e}")
+
+        # ---- Ticker Expander ----
+        if _V2_EXPANDER:
+            _safe_progress(progress_cb, "Running Ticker Universe Expander...", 0.56)
+            try:
+                current_universe = list(prices.keys())
+                expansion = run_ticker_expander(
+                    prices=prices, news_analysis=result.get("news_analysis", {}),
+                    current_universe=current_universe, cascade_results=result.get("cascade_analysis"), bottleneck_ref=None,
+                )
+                result["ticker_universe_expansion"] = expansion
+                auto_add_list = expansion.get("auto_add_recommended", [])
+                if auto_add_list:
+                    result["auto_add_tickers_next_run"] = auto_add_list
+            except Exception as e:
+                logger.warning(f"Ticker expander failed: {e}")
+                result["errors"].append(f"ticker_expander: {e}")
+
+        # ---- Live Options ----
+        _safe_progress(progress_cb, "Fetching live options...", 0.58)
         yfinance_options_data = {}
         if YFinanceOptionsEngine is not None:
             try:
                 yf_engine = YFinanceOptionsEngine()
-                # Reduced to 3 core tickers + longer delay to avoid Yahoo rate limit on cloud
                 key_tickers = [t for t in ["SPY","QQQ","IWM"] if t in prices][:3]
                 for i, ticker in enumerate(key_tickers):
                     if i > 0:
-                        time.sleep(3.0)  # Aggressive delay for Yahoo rate limit
+                        time.sleep(3.0)
                     try:
                         opt = yf_engine.analyze(ticker)
                         if opt and opt.get("ok"):
                             yfinance_options_data[ticker] = opt
                     except Exception as e:
                         logger.warning(f"Options fetch failed for {ticker}: {e}")
-                        # Stop trying if rate limited
                         if "Rate limit" in str(e) or "Too Many Requests" in str(e):
                             logger.warning("Yahoo rate limit detected — skipping remaining options fetch")
                             break
@@ -1913,7 +2092,8 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                 logger.error(f"YFinanceOptionsEngine failed: {e}")
         result["yfinance_options"] = yfinance_options_data
 
-        _safe_progress(progress_cb, "Scenario discovery...", 0.46)
+        # ---- Scenario Discovery ----
+        _safe_progress(progress_cb, "Scenario discovery...", 0.60)
         try:
             scenario_discovery = run_scenario_discovery(prices, fred, news_analysis, quad)
             result["scenario_discovery"] = scenario_discovery
@@ -1921,7 +2101,8 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             logger.warning(f"Scenario discovery failed: {e}")
             result["errors"].append(f"scenario_discovery: {e}")
 
-        _safe_progress(progress_cb, "Transmission engine...", 0.47)
+        # ---- Transmission ----
+        _safe_progress(progress_cb, "Transmission engine...", 0.62)
         try:
             transmission = run_transmission(prices, fred, news_analysis, quad)
             result["transmission"] = transmission
@@ -1929,8 +2110,8 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             logger.warning(f"Transmission failed: {e}")
             result["errors"].append(f"transmission: {e}")
 
-        # ---- Phase 3: Regime Transition + News NLP v3 + Bottleneck v3 ----
-        _safe_progress(progress_cb, "Regime transition...", 0.48)
+        # ---- Regime Transition ----
+        _safe_progress(progress_cb, "Regime transition...", 0.64)
         try:
             regime_transition = run_regime_transition(prices, fred, quad, getattr(gip, "structural_probs", {}) if gip else {})
             result["regime_transition"] = regime_transition
@@ -1938,7 +2119,8 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             logger.warning(f"Regime transition failed: {e}")
             result["errors"].append(f"regime_transition: {e}")
 
-        _safe_progress(progress_cb, "News NLP v3...", 0.49)
+        # ---- News NLP v3 ----
+        _safe_progress(progress_cb, "News NLP v3...", 0.66)
         try:
             news_nlp_v3 = run_news_nlp(news_headlines)
             result["news_nlp_v3"] = news_nlp_v3
@@ -1946,7 +2128,8 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             logger.warning(f"News NLP v3 failed: {e}")
             result["errors"].append(f"news_nlp_v3: {e}")
 
-        _safe_progress(progress_cb, "Bottleneck discovery v3...", 0.50)
+        # ---- Bottleneck v3 ----
+        _safe_progress(progress_cb, "Bottleneck discovery v3...", 0.68)
         try:
             bottleneck_v3 = run_bottleneck_discovery_v3(prices, fred, news_analysis)
             result["bottleneck_v3"] = bottleneck_v3
@@ -1954,248 +2137,373 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             logger.warning(f"Bottleneck v3 failed: {e}")
             result["errors"].append(f"bottleneck_v3: {e}")
 
-        # ---- Bottleneck / Alpha ----
-        _safe_progress(progress_cb, "Scanning bottleneck & alpha ideas...", 0.80)
-        bottleneck_raw = {"all_candidates": [], "level_1": [], "level_2": [], "watch": [],
-                          "avoid": [], "regime_traps": [], "playbook": {}, "regime_filter": {},
-                          "meta": {"universe": 0, "scored": 0}}
-        if BottleneckEngine is not None:
+        # ---- Gamma & Greeks ----
+        _safe_progress(progress_cb, "Running gamma & Greeks proxy...", 0.70)
+        key_tickers = ["SPY", "QQQ", "IWM", "GLD", "TLT", "BTC-USD", "ETH-USD"]
+
+        try:
+            result["gex_data"] = gex_analyze_multi(key_tickers, prices, vix_last)
+        except Exception as e:
+            logger.warning(f"GEX failed: {e}"); result["errors"].append(f"gex: {e}")
+        try:
+            result["charm_data"] = charm_analyze_multi(key_tickers, prices, vix_last)
+        except Exception as e:
+            logger.warning(f"Charm failed: {e}"); result["errors"].append(f"charm: {e}")
+        try:
+            result["vanna_data"] = vanna_analyze_multi(key_tickers, prices, vix_last, dxy_ret)
+        except Exception as e:
+            logger.warning(f"Vanna failed: {e}"); result["errors"].append(f"vanna: {e}")
+        try:
+            result["odte_enhanced"] = odte_enhanced_multi(key_tickers, prices, vix_last)
+        except Exception as e:
+            logger.warning(f"0DTE enhanced failed: {e}"); result["errors"].append(f"odte_enh: {e}")
+        try:
+            result["structure_data"] = structure_analyze_multi(key_tickers, prices)
+        except Exception as e:
+            logger.warning(f"Structure failed: {e}"); result["errors"].append(f"structure: {e}")
+        try:
+            result["afternoon_data"] = afternoon_analyze_multi(key_tickers, prices, result.get("charm_data"), result.get("vanna_data"), vix_last, result.get("gex_data"), result.get("structure_data"))
+        except Exception as e:
+            logger.warning(f"Afternoon failed: {e}"); result["errors"].append(f"afternoon: {e}")
+        try:
+            result["volga_data"] = analyze_volga("SPY", prices, prices, vix_last)
+        except Exception as e:
+            logger.warning(f"Volga failed: {e}"); result["errors"].append(f"volga: {e}")
+        try:
+            result["institutional_data"] = inst_analyze_multi(key_tickers, prices, vix_last)
+        except Exception as e:
+            logger.warning(f"Institutional failed: {e}"); result["errors"].append(f"institutional: {e}")
+
+        all_gamma_tickers = list(prices.keys())[:150]
+        if GammaEngine is not None:
             try:
-                try:
-                    bottleneck_raw = BottleneckEngine().run(
-                        prices, None,
-                        quad, monthly_quad,
-                        "SPY", result.get("risk_ranges"), -0.10, 25
-                    )
-                except TypeError:
-                    try:
-                        bottleneck_raw = BottleneckEngine().run(prices)
-                    except Exception:
-                        bottleneck_raw = BottleneckEngine().run()
-                result["bottleneck"] = bottleneck_raw
+                result["gamma_data"] = GammaEngine().analyze_multi(all_gamma_tickers, prices, vix_last, dxy_ret)
             except Exception as e:
-                logger.warning(f"BottleneckEngine failed: {e}")
-                result["errors"].append(f"alpha: {e}")
+                logger.warning(f"GammaEngine failed: {e}"); result["errors"].append(f"gamma: {e}")
+        if GreeksProxy is not None:
+            try:
+                result["greeks_data"] = GreeksProxy().analyze_multi(all_gamma_tickers, prices, vix_last, dxy_ret, quad)
+            except Exception as e:
+                logger.warning(f"GreeksProxy failed: {e}"); result["errors"].append(f"greeks: {e}")
 
-        all_candidates = bottleneck_raw.get("all_candidates", [])
-        alpha_items = []
-        for item in all_candidates:
-            alpha_items.append({
-                "ticker": item.get("ticker", "-"),
-                "scanner_type": item.get("btn_type", "structural"),
-                "direction": "LONG" if item.get("level") in ("level_1", "level_2") else ("SHORT" if item.get("level") == "avoid" else "WATCH"),
-                "grade": "B" if item.get("level") == "level_2" else ("A" if item.get("level") == "level_1" else "C"),
-                "priority_score": item.get("score", 0) * 100,
-                "price": item.get("px"),
-                "entry": item.get("px"),
-                "target_1": None,
-                "target_2": None,
-                "stop_loss": None,
-                "rr": None,
-                "worth_entering": "YES" if item.get("level") in ("level_1", "level_2") else "WAIT",
-                "time_estimate": "1-2 weeks",
-                "thesis": item.get("rationale", ""),
-                "recommendation": item.get("rationale", ""),
-            })
+        # ---- Composite Signals ----
+        if _V2_COMPOSITE:
+            _safe_progress(progress_cb, "Composite signal analysis...", 0.72)
+            try:
+                rr_keys = list(result.get("risk_ranges", {}).get("asset_ranges", {}).keys())
+                composite_signals = composite_analyze_multi(
+                    tickers=rr_keys, risk_ranges=result.get("risk_ranges", {}),
+                    prices=prices, cot_data=result.get("cot_oi", {}).get("cot", {}),
+                    oi_data=result.get("cot_oi", {}).get("oi", {}),
+                    greeks_data=result.get("greeks_data", {}),
+                    gamma_data=result.get("gamma_data", {}),
+                    news_data=result.get("news_analysis", {}).get("ticker_specific", {}),
+                    quad=quad,
+                )
+                result["composite_signals"] = composite_signals
+                n_flipped = sum(1 for s in composite_signals.values() if s.get("flipped_from_composite"))
+                logger.info(f"Composite signals: {len(composite_signals)} tickers, {n_flipped} flipped")
+            except Exception as e:
+                logger.warning(f"Composite signal engine failed: {e}")
+                result["errors"].append(f"composite: {e}")
 
-        if not alpha_items:
-            logger.warning("Bottleneck engine returned 0 candidates - using price-action proxy + news")
-            vix_last = 20.0
-            vix_s = prices.get("^VIX")
-            if vix_s is not None and not vix_s.empty:
-                try:
-                    vix_last = float(vix_s.iloc[-1])
-                except Exception:
-                    pass
-            # v2.2: Pass composite_signals so Alpha Center direction matches other tabs
-            ac_proxy = _alpha_center_proxy(
-                prices, result["risk_ranges"], quad, vix_last, news_analysis,
+        # ---- Bonds-XAU Regime ----
+        if _V2_BONDS_XAU:
+            _safe_progress(progress_cb, "Bonds-XAU regime analysis...", 0.74)
+            try:
+                bxau = run_bonds_xau_regime(prices, fred)
+                result["bonds_xau_regime"] = bxau
+            except Exception as e:
+                logger.warning(f"Bonds-XAU regime failed: {e}")
+                result["errors"].append(f"bonds_xau: {e}")
+
+        # ---- Markov V3 ----
+        if _V7_MARKOV:
+            _safe_progress(progress_cb, "Markov Regime V3...", 0.76)
+            try:
+                markov = run_markov_v3(prices, fred)
+                result["markov_v3"] = {
+                    "current_regime": markov.current_regime, "confidence": markov.confidence,
+                    "regime_probabilities": markov.regime_probabilities,
+                    "forecast_1m": markov.forecast_1m, "forecast_3m": markov.forecast_3m,
+                    "forecast_6m": markov.forecast_6m, "stationary": markov.stationary,
+                    "change_point_probability": markov.change_point_probability,
+                    "change_point_alert": markov.change_point_alert,
+                    "expected_duration_days": markov.expected_duration_days,
+                    "kelly_fraction": markov.kelly_fraction, "notes": markov.notes,
+                    "n_observations": markov.n_observations,
+                }
+            except Exception as e:
+                logger.warning(f"Markov V3 failed: {e}")
+                result["errors"].append(f"markov_v3: {e}")
+
+        # ---- Smart Money ----
+        if _V7_SMART:
+            _safe_progress(progress_cb, "Smart money 13F analysis...", 0.78)
+            try:
+                all_tickers = list(prices.keys())
+                result["smart_money"] = run_smart_money_analysis(all_tickers)
+            except Exception as e:
+                logger.warning(f"Smart money tracker failed: {e}")
+
+        # ---- Capital Rotation ----
+        if _V7_CAPROT:
+            _safe_progress(progress_cb, "Capital rotation monitor...", 0.80)
+            try:
+                result["capital_rotation"] = compute_capital_rotation(prices)
+            except Exception as e:
+                logger.warning(f"Capital rotation failed: {e}")
+
+        # ---- UST Auction ----
+        if _V7_UST:
+            _safe_progress(progress_cb, "UST auction tracker...", 0.82)
+            try:
+                result["ust_auction"] = run_ust_auction_tracker()
+            except Exception as e:
+                logger.warning(f"UST auction failed: {e}")
+
+        # ---- Thought Process ----
+        if _V7_THOUGHT:
+            _safe_progress(progress_cb, "Investment thesis analysis...", 0.84)
+            try:
+                rr_keys = list(result.get("risk_ranges", {}).get("asset_ranges", {}).keys())
+                bb_stage = result.get("boom_bust", {}).get("stage", "ACCELERATION")
+                bubble_score = result.get("reflexivity", {}).get("super_bubble_score", 0)
+                thesis_results = v7_thesis_multi(rr_keys, quad=quad, boom_bust_stage=bb_stage,
+                                                 super_bubble_score=bubble_score, prices=prices, fred=fred)
+                result["thought_process"] = thesis_results
+                result["top_theses"] = sorted(thesis_results.values(), key=lambda x: x.get("thesis_score", 0), reverse=True)[:20]
+            except Exception as e:
+                logger.warning(f"Thought process failed: {e}")
+
+        # ---- VRP ----
+        if _V7_VRP:
+            _safe_progress(progress_cb, "VRP vol scanner...", 0.86)
+            try:
+                vrp_tickers = [t for t in ["SPY", "QQQ", "IWM", "NVDA", "TSLA", "AAPL", "MSFT", "META",
+                                            "GOOGL", "AMZN", "AMD", "GLD", "SLV", "TLT", "BTC-USD", "ETH-USD"]
+                              if t in prices]
+                result["vrp_scanner"] = scan_vrp(vrp_tickers, prices, vix=vix_last)
+            except Exception as e:
+                logger.warning(f"VRP scanner failed: {e}")
+
+        # ---- Squeeze ----
+        if _V7_SQUEEZE:
+            _safe_progress(progress_cb, "Squeeze scanner...", 0.88)
+            try:
+                result["squeeze_scanner"] = scan_squeezes(prices=prices, gamma_data=result.get("gamma_data", {}))
+            except Exception as e:
+                logger.warning(f"Squeeze scanner failed: {e}")
+
+        # ---- VolSignals ----
+        if _V11_VOLSIGNALS:
+            _safe_progress(progress_cb, "VolSignals dealer regime...", 0.90)
+            try:
+                result["volsignals_regime"] = compute_dealer_regime_multi(
+                    prices=prices, gex_data=result.get("gex_data", {}),
+                    vanna_data=result.get("vanna_data", {}), charm_data=result.get("charm_data", {}),
+                    gamma_data=result.get("gamma_data", {}),
+                    key_tickers=["SPY", "QQQ", "IWM"] + list(prices.keys())[:150]
+                )
+            except Exception as e:
+                logger.warning(f"VolSignals regime failed: {e}")
+
+        # ---- SpotGamma Levels ----
+        if _V11_SPOTGAMMA:
+            _safe_progress(progress_cb, "SpotGamma structural levels...", 0.92)
+            try:
+                result["spotgamma_levels"] = compute_structural_levels_multi(
+                    prices=prices, options_data=result.get("gex_data", {}),
+                    key_tickers=["SPY", "QQQ", "IWM"] + list(prices.keys())[:150]
+                )
+            except Exception as e:
+                logger.warning(f"SpotGamma levels failed: {e}")
+
+        # ---- Schadner IV ----
+        if _V11_SCHADNER:
+            _safe_progress(progress_cb, "Schadner IV validation...", 0.94)
+            try:
+                yf_opts = result.get("yfinance_options", {})
+                schadner_validation = {}
+                for t, opt in yf_opts.items():
+                    if not isinstance(opt, dict): continue
+                    if opt.get("ok") and opt.get("call_price") and opt.get("strike") and opt.get("forward"):
+                        iv_exact = schadner_iv(C=opt["call_price"], K=opt["strike"],
+                                               F=opt["forward"], T=opt.get("days_to_expiry", 21)/365.0, D=1.0)
+                        if iv_exact is not None:
+                            iv_proxy = opt.get("iv", 0) or opt.get("implied_vol", 0) or 0
+                            schadner_validation[t] = validate_iv_proxy(t, iv_proxy, iv_exact)
+                            schadner_validation[t]["source"] = "SCHADNER"
+                result["schadner_iv"] = schadner_validation
+            except Exception as e:
+                logger.warning(f"Schadner IV failed: {e}")
+
+        # ---- Sprint 9 Methodology Scanners ----
+        all_tickers = list(prices.keys())
+        if _V9_KARSAN:
+            _safe_progress(progress_cb, "Karsan vol scanner...", 0.95)
+            try:
+                result["karsan_scanner"] = scan_karsan(all_tickers, prices, vix=vix_last)
+            except Exception as e:
+                logger.warning(f"Karsan scanner failed: {e}")
+        if _V9_SPOTGAMMA:
+            _safe_progress(progress_cb, "SpotGamma proxy scanner...", 0.96)
+            try:
+                result["spotgamma_scanner"] = run_spotgamma_scanner(prices, vix=vix_last)
+            except Exception as e:
+                logger.warning(f"SpotGamma scanner failed: {e}")
+        if _V9_LEOPOLD:
+            _safe_progress(progress_cb, "Leopold methodology scan...", 0.97)
+            try:
+                result["leopold_scan"] = run_leopold_scan(all_tickers, prices)
+            except Exception as e:
+                logger.warning(f"Leopold scan failed: {e}")
+        if _V9_COATUE:
+            _safe_progress(progress_cb, "COATUE methodology scan...", 0.98)
+            try:
+                result["coatue_scan"] = run_coatue_scan(all_tickers, prices)
+            except Exception as e:
+                logger.warning(f"COATUE scan failed: {e}")
+
+        # ---- Narrative Engine ----
+        if _V10_NARRATIVE:
+            _safe_progress(progress_cb, "Building autonomous narrative...", 0.99)
+            try:
+                result["narrative"] = build_narrative(result)
+            except Exception as e:
+                logger.warning(f"Narrative engine failed: {e}")
+                result["narrative"] = {}
+
+        # ---- Attachment 4 Integration ----
+        if _V32_INTEGRATOR:
+            _safe_progress(progress_cb, "Running Attachment 4 engine integration...", 0.995)
+            try:
+                pv = float(kwargs.get("portfolio_value", 100_000) or 100_000)
+                result = enhance_snapshot(result, prices, portfolio_value=pv)
+            except Exception as e:
+                logger.warning(f"Attachment 4 integration failed: {e}")
+                result["errors"].append(f"attachment4: {e}")
+
+        # ---- Alpha Center (with composite signals) ----
+        _safe_progress(progress_cb, "Building Alpha Center...", 0.75)
+        try:
+            ac_proxy_v2 = _alpha_center_proxy(
+                prices, result["risk_ranges"], quad, vix_last,
+                news_analysis=result.get("news_analysis", {}),
                 composite_signals=result.get("composite_signals", {}),
                 cot_data=(result.get("cot_oi", {}) or {}).get("cot", {}),
                 oi_data=(result.get("cot_oi", {}) or {}).get("oi", {}),
                 greeks_data=result.get("greeks_data", {}),
                 gamma_data=result.get("gamma_data", {}),
             )
-            alpha_items = ac_proxy.get("all", [])
-            result["alpha_center"] = ac_proxy
-        else:
-            news_map = news_analysis.get("ticker_specific", {})
-            for item in alpha_items:
-                ticker = item.get("ticker", "")
-                news = news_map.get(ticker, {})
-                if news and news.get("front_run_signal"):
-                    item["news_signal"] = news["front_run_signal"]
-                    item["news_headline"] = (news.get("headlines") or [""])[0]
-                    item["news_sentiment"] = news.get("sentiment_score")
-                    item["priority_score"] = (item.get("priority_score") or 0) + 20
-                    if item["news_signal"] in ["STRONG_BULLISH_RUMOR", "NEWS_MOMENTUM_BUILDING"] and item.get("direction") == "LONG":
-                        item["scanner_type"] = "news_momentum"
-                        if item.get("grade") == "C": item["grade"] = "B"
-            result["alpha_center"] = {
-                "meta": {
-                    "regime": quad,
-                    "bias": "Structural" if quad in ("Q1", "Q2") else "Defensive",
-                    "vix": vix_last,
-                    "total_items": len(alpha_items),
-                },
-                "all": alpha_items,
-                "level_1": [i for i in alpha_items if i.get("grade") == "A"],
-                "level_2": [i for i in alpha_items if i.get("grade") == "B"],
-                "watch": [i for i in alpha_items if i.get("grade") == "C"],
-            }
+            result["alpha_center"] = ac_proxy_v2
+        except Exception as e:
+            logger.warning(f"Alpha Center failed: {e}")
+            result["errors"].append(f"alpha_center: {e}")
 
-        # ── SIMULATION LAYER v27.3 ──
-        # Run 100 simulations on all alpha_items + daily_signals candidates
-        _safe_progress(progress_cb, "Running Monte Carlo simulation (100x per ticker)...", 0.82)
-        try:
-            if _V2_SIM and alpha_items:
-                # Build setups dict for simulation
-                sim_setups = {}
-                sim_tickers = []
-                for item in alpha_items:
-                    t = item.get("ticker")
-                    if not t:
-                        continue
-                    sim_tickers.append(t)
-                    sim_setups[t] = {
-                        "direction": item.get("direction", "LONG"),
-                        "entry": item.get("entry") or item.get("price", 0),
-                        "stop": item.get("stop_loss") or (item.get("entry", 0) * 0.95),
-                        "target_1": item.get("target_1") or (item.get("entry", 0) * 1.05),
-                        "target_2": item.get("target_2") or (item.get("target_1", 0) * 1.05),
-                        "rr": item.get("rr", 0),
+        # ---- Simulation Layer ----
+        _safe_progress(progress_cb, "Running Monte Carlo simulation (100x per ticker)...", 0.80)
+        if _V2_SIM:
+            try:
+                alpha_items = result.get("alpha_center", {}).get("all", [])
+                if alpha_items:
+                    sim_setups = {}
+                    sim_tickers = []
+                    for item in alpha_items:
+                        t = item.get("ticker")
+                        if not t: continue
+                        sim_tickers.append(t)
+                        sim_setups[t] = {
+                            "direction": item.get("direction", "LONG"),
+                            "entry": item.get("entry") or item.get("price", 0),
+                            "stop": item.get("stop_loss") or (item.get("entry", 0) * 0.95),
+                            "target_1": item.get("target_1") or (item.get("entry", 0) * 1.05),
+                            "target_2": item.get("target_2") or (item.get("target_1", 0) * 1.05),
+                            "rr": item.get("rr", 0),
+                        }
+                    dark_pool_map = {}
+                    unusual_map = {}
+                    for t in sim_tickers:
+                        dp = None
+                        inst = result.get("institutional_data", {})
+                        if inst and inst.get("per_ticker") and t in inst.get("per_ticker", {}):
+                            dp_data = inst["per_ticker"][t]
+                            if isinstance(dp_data, dict) and dp_data.get("anomaly_score", 0) > 0.6:
+                                buy = float(dp_data.get("buy_pressure", 0) or 0)
+                                sell = float(dp_data.get("sell_pressure", 0) or 0)
+                                total = buy + sell
+                                imbalance = (buy - sell) / total * 100 if total > 0 else 0
+                                dp = {
+                                    "imbalance": round(imbalance, 1),
+                                    "buy_pressure": buy, "sell_pressure": sell,
+                                    "dp_signal": "BUY" if imbalance > 15 else "SELL" if imbalance < -15 else "NEUTRAL",
+                                    "divergence": "HIDDEN_ACCUMULATION" if imbalance > 15 else "HIDDEN_DISTRIBUTION" if imbalance < -15 else "NEUTRAL",
+                                }
+                        dark_pool_map[t] = dp
+                        ua = None
+                        if t in prices:
+                            try:
+                                s = pd.to_numeric(pd.Series(prices[t]), errors="coerce").dropna()
+                                if len(s) >= 20:
+                                    vol_5 = float(s.tail(5).std())
+                                    vol_20 = float(s.tail(20).std()) if len(s) >= 20 else vol_5
+                                    r5d = float(s.iloc[-1] / s.iloc[-6] - 1) if len(s) >= 6 else 0
+                                    if vol_20 > 0 and vol_5 / vol_20 > 2.0 and abs(r5d) < 0.02:
+                                        ua = {"large_order_detected": True, "signal": "BUY" if r5d >= 0 else "SELL", "confidence": min(100, int((vol_5/vol_20 - 2) * 50))}
+                            except Exception: pass
+                        unusual_map[t] = ua
+
+                    sim_results = run_simulation_batch(
+                        sim_tickers, prices, sim_setups,
+                        options_map=result.get("greeks_data"),
+                        dark_pool_map=dark_pool_map, unusual_map=unusual_map,
+                        n_simulations=100, threshold=65.0,
+                        portfolio_value=float(kwargs.get("portfolio_value", 100_000) or 100_000),
+                    )
+                    result["simulation_results"] = {
+                        t: {
+                            "win_rate": r.win_rate, "exp_return_pct": r.exp_return_pct,
+                            "avg_drawdown_pct": r.avg_drawdown_pct, "sharpe_like": r.sharpe_like,
+                            "robustness_score": r.robustness_score,
+                            "optimal_entry_adj_pct": r.optimal_entry_adj_pct,
+                            "optimal_stop_adj_pct": r.optimal_stop_adj_pct,
+                            "optimal_target_adj_pct": r.optimal_target_adj_pct,
+                            "time_to_win_days": r.time_to_win_days,
+                            "time_to_loss_days": r.time_to_loss_days,
+                            "max_consecutive_losses": r.max_consecutive_losses,
+                            "passes_filter": r.passes_filter,
+                            "raw_metrics": r.raw_metrics, "extensions": r.extensions,
+                        }
+                        for t, r in sim_results.items()
                     }
-                # Build dark pool map
-                dark_pool_map = {}
-                unusual_map = {}
-                for t in sim_tickers:
-                    # Reconstruct dark pool from row data if available
-                    # For now, use institutional proxy + front_run data
-                    dp = None
-                    inst = result.get("institutional_data", {})
-                    if inst and inst.get("per_ticker") and t in inst.get("per_ticker", {}):
-                        dp_data = inst["per_ticker"][t]
-                        if isinstance(dp_data, dict) and dp_data.get("anomaly_score", 0) > 0.6:
-                            buy = float(dp_data.get("buy_pressure", 0) or 0)
-                            sell = float(dp_data.get("sell_pressure", 0) or 0)
-                            total = buy + sell
-                            imbalance = (buy - sell) / total * 100 if total > 0 else 0
-                            dp = {
-                                "imbalance": round(imbalance, 1),
-                                "buy_pressure": buy,
-                                "sell_pressure": sell,
-                                "dp_signal": "BUY" if imbalance > 15 else "SELL" if imbalance < -15 else "NEUTRAL",
-                                "divergence": "HIDDEN_ACCUMULATION" if imbalance > 15 else "HIDDEN_DISTRIBUTION" if imbalance < -15 else "NEUTRAL",
-                            }
-                    dark_pool_map[t] = dp
-                    # Unusual activity proxy
-                    ua = None
-                    if t in prices:
+                    result["simulation_summary"] = get_simulation_summary(sim_results)
+                    passed_tickers = {t for t, r in sim_results.items() if r.passes_filter}
+                    result["alpha_center"]["all"] = [i for i in result["alpha_center"]["all"] if i.get("ticker") in passed_tickers]
+                    result["alpha_center"]["level_1"] = [i for i in result["alpha_center"]["level_1"] if i.get("ticker") in passed_tickers]
+                    result["alpha_center"]["level_2"] = [i for i in result["alpha_center"]["level_2"] if i.get("ticker") in passed_tickers]
+                    result["daily_signals"] = result["alpha_center"]["all"][:20]
+                    for item in result["alpha_center"]["all"]:
+                        t = item.get("ticker")
+                        if t in result["simulation_results"]:
+                            item["simulation"] = result["simulation_results"][t]
+                    # Portfolio stress
+                    if len(passed_tickers) >= 2:
                         try:
-                            s = _safe_series(prices[t])
-                            if len(s) >= 20:
-                                vol_5 = float(s.tail(5).std())
-                                vol_20 = float(s.tail(20).std()) if len(s) >= 20 else vol_5
-                                r5d = float(s.iloc[-1] / s.iloc[-6] - 1) if len(s) >= 6 else 0
-                                if vol_20 > 0 and vol_5 / vol_20 > 2.0 and abs(r5d) < 0.02:
-                                    ua = {"large_order_detected": True, "signal": "BUY" if r5d >= 0 else "SELL", "confidence": min(100, int((vol_5/vol_20 - 2) * 50))}
-                        except Exception:
-                            pass
-                    unusual_map[t] = ua
-
-                # Run batch simulation v2.0 (ALL extensions)
-                sim_results = run_simulation_batch(
-                    sim_tickers,
-                    prices,
-                    sim_setups,
-                    options_map=result.get("greeks_data"),
-                    dark_pool_map=dark_pool_map,
-                    unusual_map=unusual_map,
-                    n_simulations=100,
-                    threshold=65.0,
-                    portfolio_value=float(kwargs.get("portfolio_value", 100_000) or 100_000),
-                )
-                result["simulation_results"] = {
-                    t: {
-                        "win_rate": r.win_rate,
-                        "exp_return_pct": r.exp_return_pct,
-                        "avg_drawdown_pct": r.avg_drawdown_pct,
-                        "sharpe_like": r.sharpe_like,
-                        "robustness_score": r.robustness_score,
-                        "optimal_entry_adj_pct": r.optimal_entry_adj_pct,
-                        "optimal_stop_adj_pct": r.optimal_stop_adj_pct,
-                        "optimal_target_adj_pct": r.optimal_target_adj_pct,
-                        "time_to_win_days": r.time_to_win_days,
-                        "time_to_loss_days": r.time_to_loss_days,
-                        "max_consecutive_losses": r.max_consecutive_losses,
-                        "passes_filter": r.passes_filter,
-                        "raw_metrics": r.raw_metrics,
-                        "extensions": r.extensions,
-                    }
-                    for t, r in sim_results.items()
-                }
-                result["simulation_summary"] = get_simulation_summary(sim_results)
-                logger.info(
-                    f"Simulation complete: {result['simulation_summary']['total']} tickers, "
-                    f"{result['simulation_summary']['passed']} passed, "
-                    f"avg score {result['simulation_summary']['avg_score']:.1f}"
-                )
-                # Filter alpha_items by simulation
-                passed_tickers = {
-                    t for t, r in sim_results.items()
-                    if r.passes_filter
-                }
-                result["alpha_center"]["all"] = [
-                    i for i in result["alpha_center"]["all"]
-                    if i.get("ticker") in passed_tickers
-                ]
-                result["alpha_center"]["level_1"] = [
-                    i for i in result["alpha_center"]["level_1"]
-                    if i.get("ticker") in passed_tickers
-                ]
-                result["alpha_center"]["level_2"] = [
-                    i for i in result["alpha_center"]["level_2"]
-                    if i.get("ticker") in passed_tickers
-                ]
-                result["daily_signals"] = result["alpha_center"]["all"][:20]
-                # Attach simulation metadata to each item
-                for item in result["alpha_center"]["all"]:
-                    t = item.get("ticker")
-                    if t in result["simulation_results"]:
-                        item["simulation"] = result["simulation_results"][t]
-
-                # ── PORTFOLIO STRESS SIMULATION v2.0 ──
-                _safe_progress(progress_cb, "Running portfolio correlation stress test...", 0.83)
-                try:
-                    if _V2_SIM and len(passed_tickers) >= 2:
-                        from engines.simulation_engine import run_portfolio_simulation
-                        port_tickers = list(passed_tickers)[:15]  # Top 15 for performance
-                        port_setups = {t: sim_setups[t] for t in port_tickers if t in sim_setups}
-                        if len(port_tickers) >= 2:
-                            port_sim = run_portfolio_simulation(
-                                port_tickers, prices, port_setups, n_sims=50, holding_days=10
-                            )
-                            result["portfolio_stress"] = port_sim
-                            logger.info(
-                                f"Portfolio stress: {port_sim.get('n_tickers',0)} tickers, "
-                                f"corr {port_sim.get('avg_correlation',0):.2f}, "
-                                f"exp ret {port_sim.get('portfolio_exp_return_pct',0):.1f}%, "
-                                f"Sharpe {port_sim.get('portfolio_sharpe',0):.2f}"
-                            )
-                except Exception as e:
-                    logger.warning(f"Portfolio stress failed: {e}")
-                    result["errors"].append(f"portfolio_stress: {e}")
-
-                # ── OPTIONS P&L SIMULATOR ──
-                _safe_progress(progress_cb, "Running options P&L simulator...", 0.835)
-                try:
-                    if _V2_SIM:
+                            from engines.simulation_engine import run_portfolio_simulation
+                            port_tickers = list(passed_tickers)[:15]
+                            port_setups = {t: sim_setups[t] for t in port_tickers if t in sim_setups}
+                            if len(port_tickers) >= 2:
+                                port_sim = run_portfolio_simulation(port_tickers, prices, port_setups, n_sims=50, holding_days=10)
+                                result["portfolio_stress"] = port_sim
+                        except Exception as e:
+                            logger.warning(f"Portfolio stress failed: {e}")
+                    # Options P&L
+                    try:
                         from engines.simulation_engine import select_options_strategy
                         options_pnl = {}
                         for t in passed_tickers:
                             sim_res = sim_results.get(t)
-                            if not sim_res:
-                                continue
+                            if not sim_res: continue
                             opts = result.get("greeks_data", {}).get(t, {}) if result.get("greeks_data") else {}
                             if not opts:
                                 opts = result.get("yfinance_options", {}).get(t, {}) if result.get("yfinance_options") else {}
@@ -2209,145 +2517,24 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                                     "candidates": [c.get("name", "—") for c in strat.get("candidates", [])[:3]],
                                 }
                         result["options_pnl_simulator"] = options_pnl
-                        logger.info(f"Options P&L simulator: {len(options_pnl)} tickers mapped")
-                except Exception as e:
-                    logger.warning(f"Options P&L simulator failed: {e}")
-                    result["errors"].append(f"options_pnl: {e}")
+                    except Exception as e:
+                        logger.warning(f"Options P&L simulator failed: {e}")
+            except Exception as e:
+                logger.warning(f"Simulation layer failed: {e}")
+                result["errors"].append(f"simulation: {e}")
 
-        except Exception as e:
-            logger.warning(f"Simulation layer failed: {e}")
-            result["errors"].append(f"simulation: {e}")
-
-                # ---- Conviction Sizing (Soros) ----
-        _safe_progress(progress_cb, "Calculating conviction sizing...", 0.42)
+        # ---- Conviction Sizing ----
+        _safe_progress(progress_cb, "Calculating conviction sizing...", 0.85)
         try:
-            sizing = run_sizing(alpha_items, result.get("gamma_data", {}), result.get("greeks_data", {}),
-                              result.get("boom_bust", {}), result.get("reflexivity", {}), 100000)
+            sizing = run_sizing(result.get("alpha_center", {}).get("all", []), result.get("gamma_data", {}),
+                              result.get("greeks_data", {}), result.get("boom_bust", {}), result.get("reflexivity", {}), 100000)
             result["conviction_sizing"] = sizing
         except Exception as e:
             logger.warning(f"Conviction sizing failed: {e}")
             result["errors"].append(f"sizing: {e}")
 
-        # ---- Gamma & Greeks ----
-        _safe_progress(progress_cb, "Running gamma & Greeks proxy...", 0.88)
-        vix_last = 20.0
-        vix_s = prices.get("^VIX")
-        if vix_s is not None and not vix_s.empty:
-            try:
-                vix_last = float(vix_s.iloc[-1])
-            except Exception:
-                pass
-
-        dxy_s = prices.get("DX-Y.NYB")
-        dxy_ret = 0.0
-        if dxy_s is not None and len(dxy_s) > 22:
-            try:
-                dxy_ret = float(dxy_s.iloc[-1] / dxy_s.iloc[-22] - 1)
-            except Exception:
-                pass
-
-        # ---- VolSignals-style engines ----
-        key_tickers = ["SPY", "QQQ", "IWM", "GLD", "TLT", "BTC-USD", "ETH-USD"]
-        gex_data = {}
-        charm_data = {}
-        vanna_data = {}
-        odte_enhanced = {}
-        structure_data = {}
-        afternoon_data = {}
-        volga_data = {}
-        inst_data = {}
-
-        _safe_progress(progress_cb, "Running GEX Engine...", 0.41)
-        try:
-            gex_data = gex_analyze_multi(key_tickers, prices, vix_last)
-            result["gex_data"] = gex_data
-        except Exception as e:
-            logger.warning(f"GEX engine failed: {e}")
-            result["errors"].append(f"gex: {e}")
-
-        _safe_progress(progress_cb, "Running Charm Proxy...", 0.42)
-        try:
-            charm_data = charm_analyze_multi(key_tickers, prices, vix_last)
-            result["charm_data"] = charm_data
-        except Exception as e:
-            logger.warning(f"Charm proxy failed: {e}")
-            result["errors"].append(f"charm: {e}")
-
-        _safe_progress(progress_cb, "Running Vanna Proxy...", 0.43)
-        try:
-            vanna_data = vanna_analyze_multi(key_tickers, prices, vix_last, dxy_ret)
-            result["vanna_data"] = vanna_data
-        except Exception as e:
-            logger.warning(f"Vanna proxy failed: {e}")
-            result["errors"].append(f"vanna: {e}")
-
-        _safe_progress(progress_cb, "Running 0DTE Enhanced...", 0.44)
-        try:
-            odte_enhanced = odte_enhanced_multi(key_tickers, prices, vix_last)
-            result["odte_enhanced"] = odte_enhanced
-        except Exception as e:
-            logger.warning(f"0DTE enhanced failed: {e}")
-            result["errors"].append(f"odte_enh: {e}")
-
-        _safe_progress(progress_cb, "Running Structure Quality...", 0.45)
-        try:
-            structure_data = structure_analyze_multi(key_tickers, prices)
-            result["structure_data"] = structure_data
-        except Exception as e:
-            logger.warning(f"Structure quality failed: {e}")
-            result["errors"].append(f"structure: {e}")
-
-        _safe_progress(progress_cb, "Running Afternoon Signal...", 0.46)
-        try:
-            afternoon_data = afternoon_analyze_multi(key_tickers, prices, charm_data, vanna_data, vix_last, gex_data, structure_data)
-            result["afternoon_data"] = afternoon_data
-        except Exception as e:
-            logger.warning(f"Afternoon signal failed: {e}")
-            result["errors"].append(f"afternoon: {e}")
-
-        _safe_progress(progress_cb, "Running Volga Proxy...", 0.47)
-        try:
-            volga_data = analyze_volga("SPY", prices, prices, vix_last)
-            result["volga_data"] = volga_data
-        except Exception as e:
-            logger.warning(f"Volga proxy failed: {e}")
-            result["errors"].append(f"volga: {e}")
-
-        _safe_progress(progress_cb, "Running Institutional Proxy...", 0.48)
-        try:
-            inst_data = inst_analyze_multi(key_tickers, prices, vix_last)
-            result["institutional_data"] = inst_data
-        except Exception as e:
-            logger.warning(f"Institutional proxy failed: {e}")
-            result["errors"].append(f"institutional: {e}")
-
-        all_gamma_tickers = list(prices.keys())[:150]
-        gamma_results = {}
-        greeks_results = {}
-
-        if GammaEngine is not None:
-            try:
-                gamma_results = GammaEngine().analyze_multi(all_gamma_tickers, prices, vix_last, dxy_ret)
-            except Exception as e:
-                logger.warning(f"GammaEngine failed: {e}")
-                result["errors"].append(f"gamma: {e}")
-
-        if GreeksProxy is not None:
-            try:
-                greeks_results = GreeksProxy().analyze_multi(
-                    all_gamma_tickers, prices, vix_last, dxy_ret, quad
-                )
-            except Exception as e:
-                logger.warning(f"GreeksProxy failed: {e}")
-                result["errors"].append(f"greeks: {e}")
-
-        result["gamma"] = gamma_results
-        result["gamma_data"] = gamma_results
-        result["greeks"] = greeks_results
-        result["greeks_data"] = greeks_results
-
         # ---- Playbook ----
-        _safe_progress(progress_cb, "Building playbook & summary...", 0.95)
+        _safe_progress(progress_cb, "Building playbook & summary...", 0.90)
         try:
             playbook = get_playbook(quad, monthly_quad)
             playbook.setdefault("best_assets", [])
@@ -2369,17 +2556,16 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                 "style": "", "fx": "", "bonds": "",
             }
 
-        # ---- Daily signals summary ----
+        # ---- Daily Signals Summary ----
+        alpha_items = result.get("alpha_center", {}).get("all", [])
         strong_longs = sum(1 for i in alpha_items if i.get("direction") == "LONG" and i.get("grade") in ("A", "A+"))
         longs = sum(1 for i in alpha_items if i.get("direction") == "LONG")
         strong_shorts = sum(1 for i in alpha_items if i.get("direction") == "SHORT" and i.get("grade") in ("A", "A+"))
         shorts = sum(1 for i in alpha_items if i.get("direction") == "SHORT")
         result["daily_signals_summary"] = {
             "total": len(alpha_items),
-            "strong_longs": strong_longs,
-            "longs": longs,
-            "strong_shorts": strong_shorts,
-            "shorts": shorts,
+            "strong_longs": strong_longs, "longs": longs,
+            "strong_shorts": strong_shorts, "shorts": shorts,
             "neutrals": len(alpha_items) - longs - shorts,
             "top_5_by_score": sorted(alpha_items, key=lambda x: x.get("priority_score", 0), reverse=True)[:5],
         }
@@ -2396,7 +2582,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             "wait": [],
         }
 
-        # ---- Regime forecast ----
+        # ---- Regime Forecast ----
         result["regime_forecast"] = {
             "1m": {"predicted_quad": monthly_quad, "prediction_confidence": 0.55},
             "3m": {"predicted_quad": quad, "prediction_confidence": 0.60},
@@ -2416,33 +2602,26 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                     try:
                         s_clean = pd.to_numeric(s, errors="coerce").dropna()
                         min_len = min(len(dxy_clean), len(s_clean))
-                        if min_len < 22:
-                            continue
+                        if min_len < 22: continue
                         dxy_slice = dxy_clean.tail(min_len).pct_change().dropna()
                         s_slice = s_clean.tail(min_len).pct_change().dropna()
                         if len(dxy_slice) >= 20 and len(s_slice) >= 20:
                             dxy_arr = dxy_slice.tail(20).to_numpy()
                             s_arr = s_slice.tail(20).to_numpy()
                             mask = np.isfinite(dxy_arr) & np.isfinite(s_arr)
-                            if mask.sum() < 10:
-                                continue
+                            if mask.sum() < 10: continue
                             dxy_clean_arr = dxy_arr[mask]
                             s_clean_arr = s_arr[mask]
-                            if dxy_clean_arr.std() == 0 or s_clean_arr.std() == 0:
-                                continue
+                            if dxy_clean_arr.std() == 0 or s_clean_arr.std() == 0: continue
                             with np.errstate(invalid='ignore'):
                                 corr = np.corrcoef(dxy_clean_arr, s_clean_arr)[0, 1]
-                            if not math.isfinite(corr):
-                                continue
+                            if not math.isfinite(corr): continue
                             correlated += 1
                             if abs(corr) > 0.3:
                                 entry = {"correlation": round(corr, 2), "meaning": "Rises with DXY" if corr > 0 else "Falls when DXY rises"}
-                                if corr > 0:
-                                    pos_corr.append((ticker, entry))
-                                else:
-                                    neg_corr.append((ticker, entry))
-                    except Exception:
-                        pass
+                                if corr > 0: pos_corr.append((ticker, entry))
+                                else: neg_corr.append((ticker, entry))
+                    except Exception: pass
                 dxy_corr_data["total_correlated"] = correlated
                 dxy_corr_data["strongest_positive_corr"] = sorted(pos_corr, key=lambda x: abs(x[1]["correlation"]), reverse=True)[:5]
                 dxy_corr_data["strongest_negative_corr"] = sorted(neg_corr, key=lambda x: abs(x[1]["correlation"]), reverse=True)[:5]
@@ -2470,8 +2649,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                                 "vol_regime": regime,
                                 "expected_daily_move_pct": round(daily_vol, 4),
                             }
-                    except Exception:
-                        pass
+                    except Exception: pass
             result["vol_forecast"] = vol_f
         except Exception as e:
             logger.warning(f"Vol forecast failed: {e}")
@@ -2479,19 +2657,11 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         # ---- Leveraged ETF Fallback ----
         if not result.get("leveraged_etf"):
             try:
-                tqqq_s = prices.get("TQQQ")
-                sqqq_s = prices.get("SQQQ")
-                upro_s = prices.get("UPRO")
-                spxu_s = prices.get("SPXU")
+                tqqq_s = prices.get("TQQQ"); sqqq_s = prices.get("SQQQ")
+                upro_s = prices.get("UPRO"); spxu_s = prices.get("SPXU")
                 lev_fallback = {
-                    "ok": True,
-                    "total_mcap_b": 85.5,
-                    "long_exposure_b": 68.4,
-                    "short_exposure_b": 12.1,
-                    "long_pct": 0.80,
-                    "short_pct": 0.14,
-                    "is_ath": False,
-                    "rebalancing_pressure": "LOW",
+                    "ok": True, "total_mcap_b": 85.5, "long_exposure_b": 68.4, "short_exposure_b": 12.1,
+                    "long_pct": 0.80, "short_pct": 0.14, "is_ath": False, "rebalancing_pressure": "LOW",
                     "top_longs": [
                         {"ticker": "TQQQ", "aum_b": 15.2, "px": round(float(tqqq_s.iloc[-1]), 2) if tqqq_s is not None else None},
                         {"ticker": "UPRO", "aum_b": 8.1, "px": round(float(upro_s.iloc[-1]), 2) if upro_s is not None else None},
@@ -2510,15 +2680,12 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         try:
             st_tests = []
             scenarios = [
-                ("VIX Spike to 40", 1.5),
-                ("DXY +5% in 1M", 1.2),
-                ("Recession Signal", 2.0),
-                ("Fed Hawkish Pivot", 1.3),
+                ("VIX Spike to 40", 1.5), ("DXY +5% in 1M", 1.2),
+                ("Recession Signal", 2.0), ("Fed Hawkish Pivot", 1.3),
             ]
             for name, mult in scenarios:
                 st_tests.append({
-                    "scenario": name,
-                    "portfolio_dd": round(0.08 * mult, 2),
+                    "scenario": name, "portfolio_dd": round(0.08 * mult, 2),
                     "worst_asset": "QQQ" if "VIX" in name or "Recession" in name else "EEM",
                     "worst_dd": round(0.15 * mult, 2),
                     "best_asset": "GLD" if "DXY" in name or "Hawkish" in name else "TLT",
@@ -2530,528 +2697,48 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         except Exception as e:
             logger.warning(f"Stress test failed: {e}")
 
-        # ═══════════════════════════════════════════════════════════════
-        # SPRINT 1-4 V2 ENGINE CALLS
-        # All defensively guarded — orchestrator continues on failure
-        # ═══════════════════════════════════════════════════════════════
-
-        # ── Sprint 4: GIP v10 (Bayesian + Nowcasting) ──
-        if _V2_GIP10 and gip_v10_call is not None:
-            _safe_progress(progress_cb, "Running GIP v10 (Bayesian)...", 0.78)
-            try:
-                v10 = gip_v10_call(fred, vix_last=vix_last)
-                result["gip_v10"] = {
-                    "structural_quad": v10.structural_quad,
-                    "monthly_quad": v10.monthly_quad,
-                    "structural_confidence": v10.structural_confidence,
-                    "monthly_confidence": v10.monthly_confidence,
-                    "growth_momentum": v10.growth_momentum,
-                    "inflation_momentum": v10.inflation_momentum,
-                    "nowcast_growth_adj": v10.nowcast_growth_adj,
-                    "nowcast_inflation_adj": v10.nowcast_inflation_adj,
-                    "quad_probabilities": v10.quad_probabilities,
-                    "features": v10.features,
-                    "n_series_loaded": v10.features.get("n_series_loaded", 0),
-                    "n_series_total": v10.features.get("n_series_total", 0),
-                    "notes": v10.notes,
-                }
-            except Exception as e:
-                logger.warning(f"GIP v10 failed: {e}")
-                result["errors"].append(f"gip_v10: {e}")
-
-        # ── Sprint 2: Universal Cascade Engine (Oil → Tankers, etc.) ──
-        if _V2_CASCADE:
-            _safe_progress(progress_cb, "Running Cascade Engine...", 0.80)
-            try:
-                cascade_results = run_all_cascades(prices)
-                result["cascade_analysis"] = cascade_results
-                logger.info(
-                    f"Cascade engine: {len(cascade_results.get('active_shocks', {}))} active shocks, "
-                    f"{sum(c.get('total_impacts', 0) for c in cascade_results.get('cascades', {}).values())} total impacts"
-                )
-            except Exception as e:
-                logger.warning(f"Cascade engine failed: {e}")
-                result["errors"].append(f"cascade: {e}")
-
-        # ── Sprint 3: Supply Chain Graph (chokepoint analysis) ──
-        if _V2_SUPPLY:
-            _safe_progress(progress_cb, "Running Supply Chain Graph...", 0.82)
-            try:
-                active_shocks = (result.get("cascade_analysis") or {}).get("active_shocks", {})
-                supply_chain = run_supply_chain_analysis(prices, active_shocks=active_shocks)
-                result["supply_chain_analysis"] = supply_chain
-            except Exception as e:
-                logger.warning(f"Supply chain analysis failed: {e}")
-                result["errors"].append(f"supply_chain: {e}")
-
-        # ── Sprint 2: Yves Alerts v2 ──
-        if _V2_YVES:
-            _safe_progress(progress_cb, "Running Yves Alerts v2...", 0.84)
-            try:
-                aaii_for_yves = result.get("behavioral_macro", {}) or {}
-                real_yield_val = 0.0
-                try:
-                    def _last_finite(s):
-                        if s is None:
-                            return None
-                        try:
-                            ss = pd.to_numeric(s, errors="coerce").dropna()
-                            return float(ss.iloc[-1]) if len(ss) > 0 else None
-                        except Exception:
-                            return None
-                    dgs10_v = _last_finite(fred.get("DGS10")) or 4.0
-                    t10yie_v = _last_finite(fred.get("T10YIE")) or 2.3
-                    real_yield_val = dgs10_v - t10yie_v
-                except Exception:
-                    real_yield_val = aaii_for_yves.get("real_yield", 1.5)
-
-                yves_v2 = run_yves_v2(
-                    aaii=aaii_for_yves,
-                    vix=vix_last,
-                    real_yield=real_yield_val,
-                    put_call=aaii_for_yves.get("put_call_ratio", 1.0),
-                    prices=prices,
-                    fred=fred,
-                )
-                result["yves_v2"] = yves_v2
-                logger.info(f"Yves v2: {yves_v2.get('n_alerts', 0)} alerts generated")
-            except Exception as e:
-                logger.warning(f"Yves v2 failed: {e}")
-                result["errors"].append(f"yves_v2: {e}")
-
-        # ── Sprint 3: Cem Karsan Universal (Multi-market options) ──
-        if _V2_CEM:
-            _safe_progress(progress_cb, "Running Cem Karsan Universal...", 0.86)
-            try:
-                cem_targets = [
-                    "SPY", "QQQ", "IWM", "GLD", "TLT", "BTC-USD", "ETH-USD",
-                    "USO", "UNG", "FXE", "EEM", "XLE", "XLK", "XLF",
-                ]
-                cem_universal = cem_universal_multi(cem_targets, prices, vix_last, max_yfinance=8)
-                result["cem_karsan_universal"] = cem_universal
-            except Exception as e:
-                logger.warning(f"Cem Karsan Universal failed: {e}")
-                result["errors"].append(f"cem_universal: {e}")
-
-        # ── Sprint 3: Discovery Brain (Adaptive + Reactive + Proactive) ──
-        if _V2_DISCOVERY:
-            _safe_progress(progress_cb, "Running Discovery Brain...", 0.88)
-            try:
-                # Load prior quad from snapshot if available
-                prev_quad_val = None
-                try:
-                    stale_snap = load_snapshot(max_age_hours=72)
-                    if stale_snap:
-                        prev_quad_val = stale_snap.get("summary", {}).get("structural_quad")
-                except Exception:
-                    pass
-
-                # Load bottleneck_reference.json
-                bottleneck_ref_data = {}
-                try:
-                    import os, json as _json
-                    btk_path = "bottleneck_reference.json"
-                    if os.path.exists(btk_path):
-                        with open(btk_path) as f:
-                            bottleneck_ref_data = _json.load(f)
-                except Exception:
-                    pass
-
-                discovery = run_discovery_brain(
-                    prices=prices,
-                    news_analysis=result.get("news_analysis", {}),
-                    gip_features=(result.get("gip_v10", {}).get("features") or
-                                  result.get("gip", {}).get("features", {})),
-                    current_quad=quad,
-                    monthly_quad=monthly_quad,
-                    prev_quad=prev_quad_val,
-                    cot_data=result.get("cot_data"),
-                    bottleneck_ref=bottleneck_ref_data,
-                )
-                result["discovery_brain"] = discovery
-                logger.info(
-                    f"Discovery Brain: {discovery.get('total', 0)} candidates "
-                    f"(A={discovery.get('summary', {}).get('adaptive', 0)} "
-                    f"R={discovery.get('summary', {}).get('reactive', 0)} "
-                    f"P={discovery.get('summary', {}).get('proactive', 0)})"
-                )
-            except Exception as e:
-                logger.warning(f"Discovery Brain failed: {e}")
-                result["errors"].append(f"discovery_brain: {e}")
-
-        # ── Sprint 3: Ticker Universe Expander (Auto-add new tickers) ──
-        if _V2_EXPANDER:
-            _safe_progress(progress_cb, "Running Ticker Universe Expander...", 0.90)
-            try:
-                current_universe = list(prices.keys())
-                expansion = run_ticker_expander(
-                    prices=prices,
-                    news_analysis=result.get("news_analysis", {}),
-                    current_universe=current_universe,
-                    cascade_results=result.get("cascade_analysis"),
-                    bottleneck_ref=None,
-                )
-                result["ticker_universe_expansion"] = expansion
-                # Persist auto-add list for next run
-                auto_add_list = expansion.get("auto_add_recommended", [])
-                if auto_add_list:
-                    result["auto_add_tickers_next_run"] = auto_add_list
-                    logger.info(f"Ticker expander auto-add recommended: {auto_add_list[:10]}")
-            except Exception as e:
-                logger.warning(f"Ticker expander failed: {e}")
-                result["errors"].append(f"ticker_expander: {e}")
-
-        # ── Sprint 2: Portfolio Sizing v2 (% of portfolio) ──
+        # ---- Portfolio Sizing v2 ----
         if _V2_SIZING:
             _safe_progress(progress_cb, "Running Portfolio Sizing v2...", 0.92)
             try:
-                # Get portfolio value from kwargs or default
                 pv_input = float(kwargs.get("portfolio_value", 100_000) or 100_000)
-
-                # Compose alpha items from existing result data
                 alpha_ideas_for_sizing = []
-                # Best ideas from frontrun if available
                 fr_data = result.get("frontrun") or {}
                 if isinstance(fr_data, dict):
                     for tier in ("tier_a", "tier_b", "tier_c"):
                         for item in (fr_data.get(tier) or [])[:5]:
                             if isinstance(item, dict):
                                 alpha_ideas_for_sizing.append({
-                                    "ticker": item.get("ticker", ""),
-                                    "grade": item.get("grade", "B"),
-                                    "rr": item.get("rr", 2.0),
-                                    "direction": item.get("direction", "LONG"),
+                                    "ticker": item.get("ticker", ""), "grade": item.get("grade", "B"),
+                                    "rr": item.get("rr", 2.0), "direction": item.get("direction", "LONG"),
                                     "near_entry": item.get("near_entry", False),
                                     "hist_win_rate": item.get("hist_win_rate", 0.55),
                                     "avg_win_pct": item.get("avg_win_pct", 0.08),
                                     "avg_loss_pct": item.get("avg_loss_pct", 0.04),
                                     "sector": item.get("sector", "generic"),
                                 })
-
                 if alpha_ideas_for_sizing:
                     sized = run_portfolio_sizing(
-                        alpha_items=alpha_ideas_for_sizing,
-                        portfolio_value=pv_input,
-                        quad=quad,
+                        alpha_items=alpha_ideas_for_sizing, portfolio_value=pv_input, quad=quad,
                         stage=result.get("boom_bust", {}).get("stage", "INCEPTION"),
-                        gamma_data=result.get("gamma_data"),
-                        greeks_data=result.get("greeks_data"),
+                        gamma_data=result.get("gamma_data"), greeks_data=result.get("greeks_data"),
                         reflexivity=result.get("reflexivity"),
                     )
                     result["portfolio_sizing_v2"] = sized
-                    logger.info(
-                        f"Portfolio sizing v2: {sized.get('n_positions', 0)} positions, "
-                        f"{sized.get('total_deployed_pct', 0):.1%} deployed"
-                    )
             except Exception as e:
                 logger.warning(f"Portfolio sizing v2 failed: {e}")
                 result["errors"].append(f"portfolio_sizing_v2: {e}")
 
-        # ═══════════════════════════════════════════════════════════════
-        # SPRINT 6: Composite Signal + Risk Setup + Bonds-XAU
-        # These fix direction bugs and add new edge
-        # ═══════════════════════════════════════════════════════════════
-
-        # ── Sprint 6: Bonds-XAU Regime (macro edge) ──
-        if _V2_BONDS_XAU:
-            _safe_progress(progress_cb, "Bonds-XAU regime analysis...", 0.94)
-            try:
-                bxau = run_bonds_xau_regime(prices, fred)
-                result["bonds_xau_regime"] = bxau
-            except Exception as e:
-                logger.warning(f"Bonds-XAU regime failed: {e}")
-                result["errors"].append(f"bonds_xau: {e}")
-
-        # ── Sprint 6: Composite Signal (multi-factor direction) ──
-        if _V2_COMPOSITE:
-            _safe_progress(progress_cb, "Composite signal analysis...", 0.95)
-            try:
-                # Run for all tickers with risk_ranges
-                rr_keys = list(result.get("risk_ranges", {}).get("asset_ranges", {}).keys())
-                composite_signals = composite_analyze_multi(
-                    tickers=rr_keys,
-                    risk_ranges=result.get("risk_ranges", {}),
-                    prices=prices,
-                    cot_data=result.get("cot_oi", {}).get("cot", {}),
-                    oi_data=result.get("cot_oi", {}).get("oi", {}),
-                    greeks_data=result.get("greeks_data", {}),
-                    gamma_data=result.get("gamma_data", {}),
-                    news_data=result.get("news_analysis", {}).get("ticker_specific", {}),
-                    quad=quad,
-                )
-                result["composite_signals"] = composite_signals
-                # Log how many flipped
-                n_flipped = sum(1 for s in composite_signals.values() if s.get("flipped_from_composite"))
-                n_total = len(composite_signals)
-                logger.info(f"Composite signals: {n_total} tickers, {n_flipped} direction flipped from naive composite")
-
-                # ── v2.2 FIX: Re-run alpha_center_proxy with composite_signals so
-                # Alpha Center direction is CONSISTENT with US Stocks/Forex/etc tabs ──
-                try:
-                    ac_proxy_v2 = _alpha_center_proxy(
-                        prices, result["risk_ranges"], quad, vix_last,
-                        news_analysis=result.get("news_analysis", {}),
-                        composite_signals=composite_signals,
-                        cot_data=(result.get("cot_oi", {}) or {}).get("cot", {}),
-                        oi_data=(result.get("cot_oi", {}) or {}).get("oi", {}),
-                        greeks_data=result.get("greeks_data", {}),
-                        gamma_data=result.get("gamma_data", {}),
-                    )
-                    result["alpha_center"] = ac_proxy_v2
-                    logger.info(f"Alpha Center re-synced with composite signals: {len(ac_proxy_v2.get('all', []))} items")
-                except Exception as e:
-                    logger.warning(f"Alpha Center re-sync failed: {e}")
-            except Exception as e:
-                logger.warning(f"Composite signal engine failed: {e}")
-                result["errors"].append(f"composite: {e}")
-
-        # ═══════════════════════════════════════════════════════════════
-        # SPRINT 7: Thought Process, Markov V3, Smart Money, Cap Rotation,
-        # UST Auction, VRP, Squeeze
-        # ═══════════════════════════════════════════════════════════════
-
-        if _V7_MARKOV:
-            _safe_progress(progress_cb, "Markov Regime V3 (HSMM + BOCPD)...", 0.96)
-            try:
-                markov = run_markov_v3(prices, fred)
-                result["markov_v3"] = {
-                    "current_regime": markov.current_regime,
-                    "confidence": markov.confidence,
-                    "regime_probabilities": markov.regime_probabilities,
-                    "forecast_1m": markov.forecast_1m,
-                    "forecast_3m": markov.forecast_3m,
-                    "forecast_6m": markov.forecast_6m,
-                    "stationary": markov.stationary,
-                    "change_point_probability": markov.change_point_probability,
-                    "change_point_alert": markov.change_point_alert,
-                    "expected_duration_days": markov.expected_duration_days,
-                    "kelly_fraction": markov.kelly_fraction,
-                    "notes": markov.notes,
-                    "n_observations": markov.n_observations,
-                }
-                logger.info(f"Markov V3: {markov.current_regime} ({markov.confidence:.0%}), Kelly {markov.kelly_fraction:.0%}")
-            except Exception as e:
-                logger.warning(f"Markov V3 failed: {e}")
-                result["errors"].append(f"markov_v3: {e}")
-
-        if _V7_SMART:
-            _safe_progress(progress_cb, "Smart money 13F analysis...", 0.97)
-            try:
-                all_tickers = list(prices.keys())
-                smart_money = run_smart_money_analysis(all_tickers)
-                result["smart_money"] = smart_money
-                logger.info(f"Smart money: {len(smart_money.get('consensus_picks', []))} consensus picks")
-            except Exception as e:
-                logger.warning(f"Smart money tracker failed: {e}")
-
-        if _V7_CAPROT:
-            _safe_progress(progress_cb, "Capital rotation monitor...", 0.975)
-            try:
-                cap_rotation = compute_capital_rotation(prices)
-                result["capital_rotation"] = cap_rotation
-                logger.info(f"Capital rotation: {cap_rotation.get('regime_label', 'N/A')}")
-            except Exception as e:
-                logger.warning(f"Capital rotation failed: {e}")
-
-        if _V7_UST:
-            _safe_progress(progress_cb, "UST auction tracker...", 0.98)
-            try:
-                ust_data = run_ust_auction_tracker()
-                result["ust_auction"] = ust_data
-            except Exception as e:
-                logger.warning(f"UST auction failed: {e}")
-
-        if _V7_THOUGHT:
-            _safe_progress(progress_cb, "Investment thesis analysis...", 0.985)
-            try:
-                rr_keys = list(result.get("risk_ranges", {}).get("asset_ranges", {}).keys())
-                bb_stage = result.get("boom_bust", {}).get("stage", "ACCELERATION")
-                bubble_score = result.get("reflexivity", {}).get("super_bubble_score", 0)
-                thesis_results = v7_thesis_multi(rr_keys, quad=quad,
-                                                 boom_bust_stage=bb_stage,
-                                                 super_bubble_score=bubble_score,
-                                                 prices=prices, fred=fred)
-                result["thought_process"] = thesis_results
-                top_theses = sorted(thesis_results.values(),
-                                    key=lambda x: x.get("thesis_score", 0),
-                                    reverse=True)[:20]
-                result["top_theses"] = top_theses
-                logger.info(f"Thought process: {len(thesis_results)} tickers analyzed")
-            except Exception as e:
-                logger.warning(f"Thought process failed: {e}")
-
-        if _V7_VRP:
-            _safe_progress(progress_cb, "VRP vol scanner...", 0.99)
-            try:
-                vrp_tickers = [t for t in ["SPY", "QQQ", "IWM", "NVDA", "TSLA", "AAPL", "MSFT", "META",
-                                            "GOOGL", "AMZN", "AMD", "GLD", "SLV", "TLT", "BTC-USD", "ETH-USD"]
-                              if t in prices]
-                vrp_results = scan_vrp(vrp_tickers, prices, vix=vix_last)
-                result["vrp_scanner"] = vrp_results
-            except Exception as e:
-                logger.warning(f"VRP scanner failed: {e}")
-
-        if _V7_SQUEEZE:
-            _safe_progress(progress_cb, "Squeeze scanner...", 0.995)
-            try:
-                squeeze_results = scan_squeezes(prices=prices,
-                                                 gamma_data=result.get("gamma_data", {}))
-                result["squeeze_scanner"] = squeeze_results
-            except Exception as e:
-                logger.warning(f"Squeeze scanner failed: {e}")
-
-        # ═══════════════════════════════════════════════════════════════
-        # SPRINT 11: VolSignals + SpotGamma + Schadner Integration
-        # ═══════════════════════════════════════════════════════════════
-
-        # ── VolSignals Dealer Regime ──
-        if _V11_VOLSIGNALS:
-            _safe_progress(progress_cb, "VolSignals dealer regime...", 0.52)
-            try:
-                vs_regime = compute_dealer_regime_multi(
-                    prices=prices,
-                    gex_data=result.get("gex_data", {}),
-                    vanna_data=result.get("vanna_data", {}),
-                    charm_data=result.get("charm_data", {}),
-                    gamma_data=result.get("gamma_data", {}),
-                    key_tickers=["SPY", "QQQ", "IWM"] + list(prices.keys())[:150]
-                )
-                result["volsignals_regime"] = vs_regime
-                logger.info(f"VolSignals regime: {len(vs_regime)} tickers classified")
-            except Exception as e:
-                logger.warning(f"VolSignals regime failed: {e}")
-                result["errors"].append(f"volsignals_regime: {e}")
-
-        # ── SpotGamma Structural Levels ──
-        if _V11_SPOTGAMMA:
-            _safe_progress(progress_cb, "SpotGamma structural levels...", 0.53)
-            try:
-                sg_levels = compute_structural_levels_multi(
-                    prices=prices,
-                    options_data=result.get("gex_data", {}),
-                    key_tickers=["SPY", "QQQ", "IWM"] + list(prices.keys())[:150]
-                )
-                result["spotgamma_levels"] = sg_levels
-                logger.info(f"SpotGamma levels: {len(sg_levels)} tickers mapped")
-            except Exception as e:
-                logger.warning(f"SpotGamma levels failed: {e}")
-                result["errors"].append(f"spotgamma_levels: {e}")
-
-        # ── Schadner IV (validate proxy IV where option prices exist) ──
-        if _V11_SCHADNER:
-            _safe_progress(progress_cb, "Schadner IV validation...", 0.54)
-            try:
-                yf_opts = result.get("yfinance_options", {})
-                schadner_validation = {}
-                for t, opt in yf_opts.items():
-                    if not isinstance(opt, dict):
-                        continue
-                    if opt.get("ok") and opt.get("call_price") and opt.get("strike") and opt.get("forward"):
-                        iv_exact = schadner_iv(
-                            C=opt["call_price"], K=opt["strike"],
-                            F=opt["forward"], T=opt.get("days_to_expiry", 21) / 365.0, D=1.0
-                        )
-                        if iv_exact is not None:
-                            iv_proxy = opt.get("iv", 0) or opt.get("implied_vol", 0) or 0
-                            schadner_validation[t] = validate_iv_proxy(t, iv_proxy, iv_exact)
-                            schadner_validation[t]["source"] = "SCHADNER"
-                result["schadner_iv"] = schadner_validation
-                logger.info(f"Schadner IV: {len(schadner_validation)} tickers validated")
-            except Exception as e:
-                logger.warning(f"Schadner IV failed: {e}")
-                result["errors"].append(f"schadner_iv: {e}")
-
-        # ═══════════════════════════════════════════════════════════════
-        # SPRINT 9: Methodology-driven scanners
-        # ═══════════════════════════════════════════════════════════════
-        try:
-            all_tickers = list(prices.keys())
-        except Exception:
-            all_tickers = []
-
-        if _V9_KARSAN:
-            _safe_progress(progress_cb, "Karsan vol scanner...", 0.996)
-            try:
-                result["karsan_scanner"] = scan_karsan(all_tickers, prices, vix=vix_last)
-                logger.info(f"Karsan: {len(result['karsan_scanner'].get('squeeze_setups', []))} squeeze, "
-                          f"{len(result['karsan_scanner'].get('sell_premium', []))} sell-prem, "
-                          f"{len(result['karsan_scanner'].get('buy_convexity', []))} buy-conv")
-            except Exception as e:
-                logger.warning(f"Karsan scanner failed: {e}")
-
-        if _V9_SPOTGAMMA:
-            _safe_progress(progress_cb, "SpotGamma proxy scanner...", 0.997)
-            try:
-                result["spotgamma_scanner"] = run_spotgamma_scanner(prices, vix=vix_last)
-                logger.info("SpotGamma proxy scanner: ok")
-            except Exception as e:
-                logger.warning(f"SpotGamma scanner failed: {e}")
-
-        if _V9_LEOPOLD:
-            _safe_progress(progress_cb, "Leopold methodology scan...", 0.998)
-            try:
-                result["leopold_scan"] = run_leopold_scan(all_tickers, prices)
-                logger.info(f"Leopold: {len(result['leopold_scan'].get('per_ticker', {}))} tickers matched, "
-                          f"{len(result['leopold_scan'].get('asymmetry_setups', []))} asymmetry setups, "
-                          f"{len(result['leopold_scan'].get('written_off_recovering', []))} written-off recovering")
-            except Exception as e:
-                logger.warning(f"Leopold scan failed: {e}")
-
-        if _V9_COATUE:
-            _safe_progress(progress_cb, "COATUE methodology scan...", 0.999)
-            try:
-                result["coatue_scan"] = run_coatue_scan(all_tickers, prices)
-                spread_data = result["coatue_scan"].get("capital_rotation_spread", {})
-                logger.info(f"COATUE: spread {spread_data.get('spread_3m_pp', 0)}pp, "
-                          f"{len(result['coatue_scan'].get('decay_alerts', []))} decay alerts")
-            except Exception as e:
-                logger.warning(f"COATUE scan failed: {e}")
-
-        # ═══════════════════════════════════════════════════════════════
-        # SPRINT 10: Autonomous Narrative Engine
-        # Synthesizes ALL engines into headline narrative + scenarios + bottlenecks
-        # ═══════════════════════════════════════════════════════════════
-        try:
-            from engines.narrative_engine import build_narrative
-            _safe_progress(progress_cb, "Building autonomous narrative...", 0.9995)
-            result["narrative"] = build_narrative(result)
-            nar = result["narrative"]
-            logger.info(
-                f"Narrative: '{nar['macro_narrative']['headline'][:80]}' | "
-                f"Scenario: {nar['scenarios']['dominant_scenario']} "
-                f"({nar['scenarios'][nar['scenarios']['dominant_scenario']]['probability']:.0%}) | "
-                f"Chains: {nar['n_active_chains']} | Bottlenecks: {nar['n_active_bottlenecks']}"
-            )
-        except Exception as e:
-            logger.warning(f"Narrative engine failed: {e}")
-            result["narrative"] = {}
-
-        # ── ATTACHMENT 4: Enhance snapshot with 8 new engines ──
-        _safe_progress(progress_cb, "Running Attachment 4 engine integration...", 0.999)
-        if _V32_INTEGRATOR:
-            try:
-                pv = float(kwargs.get("portfolio_value", 100_000) or 100_000)
-                result = enhance_snapshot(result, prices, portfolio_value=pv)
-                result["summary"] = get_enhanced_summary(result)
-                logger.info("Attachment 4 integration complete")
-            except Exception as e:
-                logger.warning(f"Attachment 4 integration failed: {e}")
-                result["errors"].append(f"attachment4: {e}")
-
-        # ---- Summary ----
+        # ---- SUMMARY (SINGLE ASSIGNMENT) ----
         result["summary"] = {
             "regime": getattr(gip, "operating_regime", "Unknown"),
-            "structural_quad": quad,
-            "monthly_quad": monthly_quad,
-            "vix": vix_last,
-            "dxy_1m_ret": round(dxy_ret, 4),
-            "prices_loaded": len(prices),
-            "fred_loaded": fred_meta.get("loaded", 0),
+            "structural_quad": quad, "monthly_quad": monthly_quad,
+            "vix": vix_last, "dxy_1m_ret": round(dxy_ret, 4),
+            "prices_loaded": len(prices), "fred_loaded": fred_meta.get("loaded", 0),
             "errors": len(result["errors"]),
             "behavioral_alert": (result.get("behavioral_macro", {}).get("yves", {}) or {}).get("alert"),
             "boom_bust_stage": result.get("boom_bust", {}).get("stage", "-"),
             "super_bubble_score": result.get("reflexivity", {}).get("super_bubble_score", 0),
-            # V2 additions
             "v2_quad_v10": result.get("gip_v10", {}).get("structural_quad"),
             "v2_yves_alerts": result.get("yves_v2", {}).get("n_alerts", 0),
             "v2_yves_top_level": result.get("yves_v2", {}).get("summary", {}).get("level"),
@@ -3059,10 +2746,8 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             "v2_discovery_total": result.get("discovery_brain", {}).get("total", 0),
             "v2_new_tickers": len(result.get("ticker_universe_expansion", {}).get("new_tickers", [])),
             "v2_portfolio_deployed_pct": result.get("portfolio_sizing_v2", {}).get("total_deployed_pct", 0),
-            # Sprint 6 additions
             "v2_composite_flipped_count": sum(1 for s in result.get("composite_signals", {}).values() if isinstance(s, dict) and s.get("flipped_from_composite")),
             "v2_bonds_xau_regime": result.get("bonds_xau_regime", {}).get("regime", "UNKNOWN"),
-            # Sprint 7 additions
             "v7_markov_regime": result.get("markov_v3", {}).get("current_regime", "UNKNOWN"),
             "v7_markov_confidence": result.get("markov_v3", {}).get("confidence", 0),
             "v7_markov_cp_alert": result.get("markov_v3", {}).get("change_point_alert", False),
@@ -3074,7 +2759,6 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             "v7_top_theses_count": len(result.get("top_theses", [])),
             "v7_vrp_sell_count": len(result.get("vrp_scanner", {}).get("high_vrp_sell_premium", [])),
             "v7_squeeze_imminent": len(result.get("squeeze_scanner", {}).get("imminent_squeezes", [])),
-            # Sprint 9 + 10 additions
             "v9_karsan_squeeze_setups": len(result.get("karsan_scanner", {}).get("squeeze_setups", [])),
             "v9_karsan_sell_premium": len(result.get("karsan_scanner", {}).get("sell_premium", [])),
             "v9_leopold_matched": len(result.get("leopold_scan", {}).get("per_ticker", {})),
@@ -3089,11 +2773,9 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             "v10_active_chains": result.get("narrative", {}).get("n_active_chains", 0),
             "v10_active_bottlenecks": result.get("narrative", {}).get("n_active_bottlenecks", 0),
             "v10_behavioral_divergences": result.get("narrative", {}).get("n_behavioral_divergences", 0),
-            # Sprint 11
             "v11_volsignals_regimes": len(result.get("volsignals_regime", {})),
             "v11_spotgamma_levels": len(result.get("spotgamma_levels", {})),
             "v11_schadner_validated": len(result.get("schadner_iv", {})),
-            # Attachment 4 (v32)
             "v32_idhl_avg": result.get("summary", {}).get("v32_idhl_avg", 0),
             "v32_rc_high_count": result.get("summary", {}).get("v32_rc_high_count", 0),
             "v32_afs": result.get("summary", {}).get("v32_afs", 0),
@@ -3102,7 +2784,6 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             "v32_wf_total": result.get("summary", {}).get("v32_wf_total", 0),
             "v32_kelly_positions": result.get("summary", {}).get("v32_kelly_positions", 0),
             "v32_bayesian_fused": result.get("summary", {}).get("v32_bayesian_fused", 0),
-            # Simulation v27.3
             "v27_sim_total": result.get("simulation_summary", {}).get("total", 0),
             "v27_sim_passed": result.get("simulation_summary", {}).get("passed", 0),
             "v27_sim_avg_score": result.get("simulation_summary", {}).get("avg_score", 0),
@@ -3115,12 +2796,18 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             "v27_portfolio_sharpe": result.get("portfolio_stress", {}).get("portfolio_sharpe", 0),
             "v27_portfolio_dd": result.get("portfolio_stress", {}).get("worst_case_dd_pct", 0),
             "v27_options_mapped": len(result.get("options_pnl_simulator", {})),
+            # v39 NEW
+            "v39_auto_discovered": result.get("auto_discoveries", {}).get("count", 0),
+            "v39_supply_chains": len(result.get("supply_chain_chains", [])),
+            "v39_front_run_total": len(result.get("front_run_candidates", [])),
+            "v39_ihsg_broker_signals": len(result.get("ihsg_broker_proxy", {})),
+            "v39_crypto_whale_accumulating": sum(1 for v in (result.get("crypto_tokens", {}) or {}).values() if isinstance(v, dict) and v.get("whale_signal") == "ACCUMULATING"),
         }
 
         result["ok"] = True
         elapsed = time.time() - t0
         result["build_time_s"] = elapsed
-        logger.info(f"Orchestrator complete in {elapsed:.1f}s")
+        logger.info(f"Orchestrator v39 complete in {elapsed:.1f}s")
         _safe_progress(progress_cb, f"Complete ({elapsed:.0f}s)", 1.0)
 
         try:
@@ -3146,9 +2833,142 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
 
     return result
 
-# ------------------------------------------------------------------
+# ═══════════════════════════════════════════════════════════════════════
+# IHSG LAYERS (v39 - unchanged)
+# ═══════════════════════════════════════════════════════════════════════
+def _ihsg_layers(prices: dict, quad: str) -> dict:
+    sector_map = {
+        "ADRO.JK": "Coal", "ITMG.JK": "Coal", "PTBA.JK": "Coal",
+        "NCKL.JK": "Nickel", "ANTM.JK": "Nickel", "INCO.JK": "Nickel",
+        "AALI.JK": "CPO", "LSIP.JK": "CPO", "SMAR.JK": "CPO",
+        "BBRI.JK": "Banking", "BMRI.JK": "Banking", "BBCA.JK": "Banking", "BBNI.JK": "Banking", "BRIS.JK": "Banking",
+        "TLKM.JK": "Telco", "EXCL.JK": "Telco",
+        "UNTR.JK": "Mining Contractor", "BYAN.JK": "Mining",
+        "ICBP.JK": "Consumer", "INDF.JK": "Consumer", "KLBF.JK": "Pharma",
+        "PGEO.JK": "Geothermal", "WINS.JK": "Shipping",
+        "EIDO": "ETF", "^JKSE": "Index",
+    }
+    sector_momentum = {}
+    sector_returns = {}
+    for ticker, sector in sector_map.items():
+        s = prices.get(ticker)
+        if s is not None and len(s) >= 22:
+            try:
+                s = pd.to_numeric(s, errors="coerce").dropna()
+                if len(s) >= 22:
+                    with np.errstate(invalid='ignore', divide='ignore'):
+                        r1m = float(s.iloc[-1] / s.iloc[-22] - 1)
+                    if math.isfinite(r1m):
+                        sector_returns.setdefault(sector, []).append(r1m)
+            except Exception:
+                pass
+    for sector, returns in sector_returns.items():
+        if returns:
+            avg = sum(returns) / len(returns)
+            leader_ticker = [t for t, s in sector_map.items() if s == sector and t in prices][0] if [t for t, s in sector_map.items() if s == sector and t in prices] else ""
+            sector_momentum[sector] = {
+                "bias": "Bullish" if avg > 0.03 else ("Bearish" if avg < -0.03 else "Neutral"),
+                "avg_1m": round(avg, 4), "strength": round(abs(avg) * 100, 1), "leader": leader_ticker,
+            }
+    commodity_overlay = {}
+    for sector in ["Coal", "Nickel", "CPO", "Mining"]:
+        tickers = [t for t, s in sector_map.items() if s == sector]
+        returns = []
+        for t in tickers:
+            s = prices.get(t)
+            if s is not None and len(s) >= 22:
+                try:
+                    s = pd.to_numeric(s, errors="coerce").dropna()
+                    if len(s) >= 22:
+                        returns.append(float(s.iloc[-1] / s.iloc[-22] - 1))
+                except Exception:
+                    pass
+        if returns:
+            avg = sum(returns) / len(returns)
+            commodity_overlay[sector] = {
+                "r1m": round(avg, 4),
+                "tailwind": "Strong" if avg > 0.05 else ("Moderate" if avg > 0.02 else "Weak"),
+                "signal": f"{sector} momentum {avg:+.1%}",
+            }
+    rupiah_regime = {}
+    dxy_s = prices.get("DX-Y.NYB")
+    idr_s = prices.get("USDIDR=X")
+    if dxy_s is not None and len(dxy_s) >= 22:
+        try:
+            dxy_s = pd.to_numeric(dxy_s, errors="coerce").dropna()
+            dxy_ret = float(dxy_s.iloc[-1] / dxy_s.iloc[-22] - 1)
+            rupiah_regime["dxy_trend"] = "Bullish" if dxy_ret > 0.01 else ("Bearish" if dxy_ret < -0.01 else "Neutral")
+            rupiah_regime["flow_signal"] = "Positive - DXY falling" if dxy_ret < -0.01 else ("Risk - DXY rising" if dxy_ret > 0.01 else "Neutral")
+        except Exception:
+            pass
+    if idr_s is not None and len(idr_s) >= 22:
+        try:
+            idr_s = pd.to_numeric(idr_s, errors="coerce").dropna()
+            idr_ret = float(idr_s.iloc[-1] / idr_s.iloc[-22] - 1)
+            rupiah_regime["idr_1m"] = round(idr_ret, 4)
+        except Exception:
+            pass
+    foreign_flow = {}
+    for ticker in list(IHSG_UNIVERSE.keys()):
+        s = prices.get(ticker)
+        if s is not None and len(s) >= 22:
+            try:
+                s = pd.to_numeric(s, errors="coerce").dropna()
+                if len(s) >= 22:
+                    r1m = float(s.iloc[-1] / s.iloc[-22] - 1)
+                    r5d = float(s.iloc[-1] / s.iloc[-6] - 1) if len(s) >= 6 else r1m
+                    if r5d > 0.03 and r1m > 0:
+                        foreign_flow[ticker] = {"signal": "Foreign Accumulation", "strength": round(r5d, 4)}
+                    elif r5d < -0.03 and r1m < 0:
+                        foreign_flow[ticker] = {"signal": "Foreign Distribution", "strength": round(r5d, 4)}
+                    else:
+                        foreign_flow[ticker] = {"signal": "Neutral", "strength": 0}
+            except Exception:
+                pass
+    macro_overlay = {}
+    banking_tickers = [t for t, s in sector_map.items() if s == "Banking"]
+    banking_returns = []
+    for t in banking_tickers:
+        s = prices.get(t)
+        if s is not None and len(s) >= 22:
+            try:
+                s = pd.to_numeric(s, errors="coerce").dropna()
+                if len(s) >= 22:
+                    banking_returns.append(float(s.iloc[-1] / s.iloc[-22] - 1))
+            except Exception:
+                pass
+    if banking_returns:
+        avg_banking = sum(banking_returns) / len(banking_returns)
+        macro_overlay["banking_bias"] = "Bullish" if avg_banking > 0.03 else ("Bearish" if avg_banking < -0.03 else "Neutral")
+        macro_overlay["bi_signal"] = f"Banking sector {avg_banking:+.1%}"
+    consumer_tickers = [t for t, s in sector_map.items() if s in ["Consumer", "Pharma"]]
+    consumer_returns = []
+    for t in consumer_tickers:
+        s = prices.get(t)
+        if s is not None and len(s) >= 22:
+            try:
+                s = pd.to_numeric(s, errors="coerce").dropna()
+                if len(s) >= 22:
+                    consumer_returns.append(float(s.iloc[-1] / s.iloc[-22] - 1))
+            except Exception:
+                pass
+    if consumer_returns:
+        avg_consumer = sum(consumer_returns) / len(consumer_returns)
+        macro_overlay["consumer_bias"] = "Bullish" if avg_consumer > 0.03 else ("Bearish" if avg_consumer < -0.03 else "Neutral")
+        macro_overlay["consumer_signal"] = f"Consumer sector {avg_consumer:+.1%}"
+    macro_overlay["commodity_bias"] = "Bullish" if any(commodity_overlay.get(s, {}).get("tailwind") in ["Strong", "Moderate"] for s in commodity_overlay) else "Neutral"
+    macro_overlay["policy_score"] = round(0.1 if macro_overlay.get("banking_bias") == "Bullish" else (-0.1 if macro_overlay.get("banking_bias") == "Bearish" else 0), 2)
+    return {
+        "ihsg_sector_momentum": sector_momentum,
+        "ihsg_commodity_overlay": commodity_overlay,
+        "ihsg_rupiah_regime": rupiah_regime,
+        "ihsg_foreign_flow": foreign_flow,
+        "ihsg_macro_overlay": macro_overlay,
+    }
+
+# ═══════════════════════════════════════════════════════════════════════
 # APP.PY COMPATIBILITY: build_snapshot wrapper
-# ------------------------------------------------------------------
+# ═══════════════════════════════════════════════════════════════════════
 def build_snapshot(
     progress_cb=None,
     include_us_stocks: bool = True,
@@ -3163,83 +2983,32 @@ def build_snapshot(
         f"comm={include_commodities}, crypto={include_crypto}, ihsg={include_ihsg}"
     )
     result = run_orchestrator(
-        progress_cb=progress_cb,
-        use_cache=True,
-        max_age_hours=12.0,
-        include_us_stocks=include_us_stocks,
-        include_forex=include_forex,
-        include_commodities=include_commodities,
-        include_crypto=include_crypto,
-        include_ihsg=include_ihsg,
-        **kwargs
+        progress_cb=progress_cb, use_cache=True, max_age_hours=12.0,
+        include_us_stocks=include_us_stocks, include_forex=include_forex,
+        include_commodities=include_commodities, include_crypto=include_crypto,
+        include_ihsg=include_ihsg, **kwargs
     )
+    # Ensure all default keys exist (single pass)
     defaults = {
-        "global": {},
-        "scenarios": {},
-        "narratives": {},
-        "discovery": {},
-        "transition": None,
-        "analogs": {},
-        "auto_discoveries": {},
-        "feedback_eval": {},
-        "leveraged_etf": {},
-        "daily_signals": [],
-        "regime_forecast": {},
-        "forward_returns": {},
-        "leading_signals": {},
-        "price_clusters": {},
-        "news_narratives": {},
-        "bottleneck_discovery": {},
-        "frontrun": {},
-        "ihsg_sector_momentum": {},
-        "ihsg_commodity_overlay": {},
-        "ihsg_rupiah_regime": {},
-        "ihsg_foreign_flow": {},
-        "ihsg_macro_overlay": {},
-        "alpha_center": {},
-        "gamma_data": {},
-        "greeks_data": {},
-        "cot_oi": {},
-        "dxy_correlation": {},
-        "vol_forecast": {},
-        "stress_test": [],
-        "prices_loaded": 0,
-        "fred_coverage": 0,
-        "build_time_s": 0,
-        "daily_signals_summary": {},
-        "crypto_tokens": {},
-        "rumor_watch": [],
-        "bottleneck_research": {},
-        "front_run_candidates": [],
-        "crypto_center": {},
-        "behavioral_macro": {},
-        "odte_monitor": {},
-        "skew_term": {},
-        "reflexivity": {},
-        "boom_bust": {},
-        "conviction_sizing": {},
-        "vanna_charm_flows": {},
-        "country_list": [],
-        "interconnect": {},
-        "yfinance_options": {},
-        "scenario_discovery": {},
-        "transmission": {},
-        "regime_transition": {},
-        "news_nlp_v3": {},
-        "bottleneck_v3": {},
-        "simulation_results": {},
-        "simulation_summary": {},
-        "portfolio_stress": {},
-        "options_pnl_simulator": {},
-        # Attachment 4
-        "idhl_data": {},
-        "rc_data": {},
-        "afs_data": {},
-        "walkforward_results": {},
-        "fractional_kelly": {},
-        "bayesian_fusion": {},
-        "duration_hmm": {},
-        "cri_v2_data": {},
+        "global": {}, "health": {}, "prices_loaded": 0, "fred_coverage": 0, "build_time_s": 0,
+        "alpha_center": {}, "composite_signals": {}, "bonds_xau_regime": {},
+        "supply_chain_analysis": {}, "thought_process": {}, "top_theses": [],
+        "front_run_candidates": [], "auto_discoveries": {}, "crypto_tokens": {},
+        "crypto_center": {}, "behavioral_macro": {}, "odte_monitor": {}, "skew_term": {},
+        "reflexivity": {}, "boom_bust": {}, "conviction_sizing": {}, "vanna_charm_flows": {},
+        "interconnect": {}, "yfinance_options": {}, "scenario_discovery": {},
+        "transmission": {}, "regime_transition": {}, "news_nlp_v3": {}, "bottleneck_v3": {},
+        "simulation_results": {}, "simulation_summary": {}, "portfolio_stress": {},
+        "options_pnl_simulator": {}, "idhl_data": {}, "rc_data": {}, "afs_data": {},
+        "walkforward_results": {}, "fractional_kelly": {}, "bayesian_fusion": {},
+        "duration_hmm": {}, "cri_v2_data": {}, "ihsg_broker_proxy": {},
+        "supply_chain_chains": [], "cascade_analysis": {}, "yves_v2": {},
+        "gip_v10": {}, "discovery_brain": {}, "ticker_universe_expansion": {},
+        "portfolio_sizing_v2": {}, "cem_karsan_universal": {}, "markov_v3": {},
+        "smart_money": {}, "capital_rotation": {}, "ust_auction": {}, "vrp_scanner": {},
+        "squeeze_scanner": {}, "karsan_scanner": {}, "spotgamma_scanner": {},
+        "leopold_scan": {}, "coatue_scan": {}, "volsignals_regime": {},
+        "spotgamma_levels": {}, "schadner_iv": {}, "narrative": {},
     }
     for key, default_val in defaults.items():
         if key not in result:

@@ -3053,6 +3053,91 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                 logger.warning(f"Portfolio sizing v2 failed: {e}")
                 result["errors"].append(f"portfolio_sizing_v2: {e}")
 
+        # ═══════════════════════════════════════════════════════════════════════
+        # KEITH McCULLOUGH SIGNAL SYNC (P0 OVERRIDE) — v39.1 Deep Audit Fix
+        # ═══════════════════════════════════════════════════════════════════════
+        KEITH_PUBLIC_SIGNALS = {
+            "GC=F": {"trade": "BEARISH", "trend": "BEARISH", "basis": "Keith tweet May 22 2026: Gold remains Bearish TRADE @Hedgeye and Bearish TREND"},
+            "GLD": {"trade": "BEARISH", "trend": "BEARISH", "basis": "Keith tweet May 22 2026: Gold remains Bearish TRADE"},
+            "SI=F": {"trade": "BEARISH", "trend": "BEARISH", "basis": "Keith tweet May 22 2026: Silver remains Bearish TREND"},
+            "SLV": {"trade": "BEARISH", "trend": "BEARISH", "basis": "Keith tweet May 22 2026: Silver remains Bearish TREND"},
+            "PALL": {"trade": "BEARISH", "trend": "BEARISH", "basis": "Keith tweet May 22 2026: $PALL remains Bearish TREND"},
+            "DX-Y.NYB": {"trade": "BULLISH", "trend": "BULLISH", "basis": "Keith tweet May 22 2026: USD Index remains Bullish TREND @Hedgeye"},
+            "UUP": {"trade": "BULLISH", "trend": "BULLISH", "basis": "Keith tweet May 22 2026: USD Index remains Bullish TREND"},
+            "CL=F": {"trade": "BULLISH", "trend": "BULLISH", "basis": "Keith tweet May 20 2026: Long USD and Oil vs Short Gold obvious immediate-term TRADE"},
+            "USO": {"trade": "BULLISH", "trend": "BULLISH", "basis": "Keith tweet May 20 2026: Long Oil vs Short Gold obvious immediate-term TRADE"},
+            "BRENT": {"trade": "BULLISH", "trend": "BULLISH", "basis": "Keith tweet May 20 2026: Long Oil vs Short Gold obvious immediate-term TRADE"},
+        }
+
+        keith_sync = {}
+        keith_summary = {
+            "total_signals": 0, "trade_bullish": 0, "trade_bearish": 0,
+            "trend_bullish": 0, "trend_bearish": 0, "overrides_applied": 0,
+            "duration_mismatches": 0, "last_updated": "2026-05-22",
+            "sources": ["Keith McCullough X @KeithMcCullough"]
+        }
+
+        for item in result["alpha_center"].get("all", []):
+            t = item.get("ticker", "")
+            ks = KEITH_PUBLIC_SIGNALS.get(t)
+            if not ks:
+                continue
+            keith_summary["total_signals"] += 1
+            if ks["trade"] == "BULLISH":
+                keith_summary["trade_bullish"] += 1
+            else:
+                keith_summary["trade_bearish"] += 1
+            if ks["trend"] == "BULLISH":
+                keith_summary["trend_bullish"] += 1
+            else:
+                keith_summary["trend_bearish"] += 1
+
+            current_dir = item.get("direction", "LONG")
+            keith_trade = ks["trade"]
+            keith_trend = ks["trend"]
+
+            override = False
+            final_dir = current_dir
+            if keith_trade == "BEARISH" and current_dir == "LONG":
+                override = True
+                final_dir = "SHORT"
+                item["direction"] = "SHORT"
+                item["side"] = "short"
+                item["action"] = "AVOID"
+                item["recommendation"] = "AVOID — Keith Bearish Override"
+                item["chase_status"] = "AVOID"
+                item["chase_color"] = "#F85149"
+                item["chase_text"] = f"🚫 AVOID — Keith Bearish TRADE: {ks['basis'][:80]}"
+                item["grade"] = "C"
+                keith_summary["overrides_applied"] += 1
+            elif keith_trade == "BULLISH" and current_dir == "SHORT":
+                override = True
+                final_dir = "LONG"
+                item["direction"] = "LONG"
+                item["side"] = "long"
+                keith_summary["overrides_applied"] += 1
+
+            keith_sync[t] = {
+                "ticker": t,
+                "original_direction": current_dir,
+                "direction": final_dir,
+                "keith_trade": keith_trade,
+                "keith_trend": keith_trend,
+                "override": override,
+                "basis": ks["basis"],
+                "duration_mismatch": keith_trade != keith_trend,
+            }
+            if keith_trade != keith_trend:
+                keith_summary["duration_mismatches"] += 1
+
+        result["keith_sync"] = keith_sync
+        result["keith_summary"] = keith_summary
+        logger.info(f"Keith sync applied: {keith_summary['overrides_applied']} overrides on {keith_summary['total_signals']} signals")
+
+        # v39.1: Rebuild level_1/level_2 after Keith override (AVOID items drop to grade C)
+        result["alpha_center"]["level_1"] = [i for i in result["alpha_center"]["all"] if i.get("grade") == "A"]
+        result["alpha_center"]["level_2"] = [i for i in result["alpha_center"]["all"] if i.get("grade") == "B"]
+
         # ---- SUMMARY (SINGLE ASSIGNMENT) ----
         result["summary"] = {
             "regime": getattr(gip, "operating_regime", "Unknown"),

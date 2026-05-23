@@ -2000,6 +2000,12 @@ def render_ticker_card_v4(row, expanded=False):
 
     # ── Build badges ──
     badges = ""
+    # v39.1: Keith P0 override badge (highest priority)
+    ks = row.get("keith_sync", {})
+    if ks and isinstance(ks, dict) and ks.get("override"):
+        kt = ks.get("keith_trade", "BEARISH")
+        kcolor = "#F85149" if kt == "BEARISH" else "#3FB950"
+        badges += f'<span style="background:{kcolor}22;color:{kcolor};padding:2px 8px;border-radius:12px;font-size:0.65rem;font-weight:700;border:1px solid {kcolor}50;letter-spacing:0.3px;">🎙️ KEITH {kt[:4]}</span>'
     badges += _badge_html(dir_label, dir_kind)
     badges += _badge_html(grade, grade_kind)
     if formation == "BULLISH":
@@ -2116,7 +2122,15 @@ def render_ticker_card_v4(row, expanded=False):
 
     # ── Status banner inside card ──
     status_banner = ""
-    if chase_status == "CHASE":
+    # v39.1: Keith P0 override takes precedence over all technical signals
+    ks = row.get("keith_sync", {})
+    if ks and isinstance(ks, dict) and ks.get("override"):
+        kt = ks.get("keith_trade", "BEARISH")
+        status_banner = f'<div class="hy-status-pill banner-avoid">🚫 AVOID — Keith {kt.title()} Override</div>'
+        chase_status = "AVOID"
+        chase_color = "#F85149"
+        chase_text = f"🚫 AVOID — Keith {kt.title()} Override: {ks.get('basis','')[:80]}"
+    elif chase_status == "CHASE":
         status_banner = f'<div class="hy-status-pill banner-chase">🏃 CHASE — Ready to enter</div>'
     elif chase_status == "WAIT":
         status_banner = f'<div class="hy-status-pill banner-wait">⏳ WAIT — Pullback needed</div>'

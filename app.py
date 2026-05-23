@@ -192,10 +192,33 @@ hr { margin: 0.4rem 0 !important; opacity: 0.08; border-color: #30363D; }
 # ═══════════════════════════════════════════════════════════════════
 # CONFIG & FALLBACKS
 # ═══════════════════════════════════════════════════════════════════
-try:
-    from engines.simulation_engine import filter_by_simulation
-except Exception:
-    def filter_by_simulation(rows, sim_results, threshold=65, require_pass=True): return rows
+def filter_by_simulation(rows, sim_results, threshold=65, require_pass=True):
+    """Filter ticker rows by simulation results. Handles dict-format snap data."""
+    if not sim_results:
+        return rows
+    filtered = []
+    for row in rows:
+        t = row.get("ticker")
+        if not t:
+            continue
+        sim = sim_results.get(t)
+        if sim is None:
+            if not require_pass:
+                filtered.append(row)
+            continue
+        # Orchestrator serializes sim results to dicts; handle both dict and object
+        if isinstance(sim, dict):
+            passes = sim.get("passes_filter", False)
+            score = sim.get("robustness_score", 0)
+        else:
+            passes = getattr(sim, "passes_filter", False)
+            score = getattr(sim, "robustness_score", 0)
+        if require_pass and not passes:
+            continue
+        if score < threshold:
+            continue
+        filtered.append(row)
+    return filtered
 
 try:
     from config.settings import (FOREX_PAIRS, COMMODITIES, CRYPTO, IHSG_UNIVERSE,

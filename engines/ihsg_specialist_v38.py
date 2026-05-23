@@ -369,27 +369,45 @@ class IHSGSpecialistEngine:
         """
         Cross-check our Indonesia Quad estimate against Hedgeye call.
 
+        Reads from snap["global"]["country_list"] (where dashboard stores it),
+        with fallback to snap["gip"] keys.
+
         Looks at:
-          - GIP engine output for Indonesia
+          - global country_list for Indonesia entry
           - USDIDR trajectory
           - EIDO performance vs SPY/EEM
-          - Indonesia 10Y bond proxy
           - Foreign flow proxy
         """
-        # Get our estimate from GIP engine output
-        gip = snap.get("gip", {}) or {}
+        # ── Get our estimate (CORRECTED — read from global.country_list) ──
         our_estimate = "UNKNOWN"
-        if isinstance(gip, dict):
-            # Try Indonesia-specific first
-            id_gip = gip.get("indonesia") or gip.get("IDN") or gip.get("EIDO", {})
-            if isinstance(id_gip, dict):
-                our_estimate = id_gip.get("structural_quad", id_gip.get("quad", "UNKNOWN"))
+        our_regime_name = ""
+
+        # Primary source: snap["global"]["country_list"]
+        global_data = snap.get("global", {}) or {}
+        if isinstance(global_data, dict):
+            country_list = global_data.get("country_list", []) or []
+            for entry in country_list:
+                if isinstance(entry, dict):
+                    country = str(entry.get("country", "")).lower()
+                    if country in ("indonesia", "ihsg", "id"):
+                        our_estimate = entry.get("quad", "UNKNOWN")
+                        our_regime_name = entry.get("regime_name", "")
+                        break
+
+        # Fallback: snap["gip"] keys
+        if our_estimate == "UNKNOWN":
+            gip = snap.get("gip", {}) or {}
+            if isinstance(gip, dict):
+                id_gip = gip.get("indonesia") or gip.get("IDN") or gip.get("EIDO") or {}
+                if isinstance(id_gip, dict):
+                    our_estimate = id_gip.get("structural_quad",
+                                              id_gip.get("quad", "UNKNOWN"))
 
         # Cross-validation signals
         signals = {}
 
         # USDIDR signal
-        usdidr = prices.get("USDIDR=X")
+        usdidr = prices.get("USDIDR=X") or prices.get("IDR=X")
         if usdidr is not None:
             try:
                 s = pd.to_numeric(pd.Series(usdidr), errors="coerce").dropna()
@@ -414,24 +432,42 @@ class IHSGSpecialistEngine:
             except Exception:
                 pass
 
-        # Aggregate match
-        confirms_q4 = sum(1 for v in signals.values() if v)
-        total_signals = len([v for v in signals.values() if v is not None])
-        match = (our_estimate == hedgeye_call) or (
-            confirms_q4 >= 2 and hedgeye_call == "Q4"
-        )
-        confidence = (confirms_q4 / max(total_signals, 1)) if total_signals > 0 else 0.5
-
-        if match:
+        # ── FIXED match logic ──
+        # Only "match" if our_estimate is NOT UNKNOWN AND equals hedgeye_call
+        if our_estimate == "UNKNOWN":
+            match = False
+            confidence = 0.0
             recommendation = (
-                f"✅ Match. Our model agrees with Hedgeye call ({hedgeye_call}). "
-                "Indonesia bearish bias confirmed across signals."
+                f"⚠️ Our model: NO Indonesia classification (UNKNOWN). "
+                f"Hedgeye says: {hedgeye_call}. Cannot verify match — "
+                f"GIP engine doesn't have Indonesia entry. "
+                f"Check page_global() country_list output for Indonesia row."
+            )
+        elif our_estimate == hedgeye_call:
+            match = True
+            confirms = sum(1 for v in signals.values() if v)
+            total = len([v for v in signals.values() if v is not None])
+            confidence = (confirms / max(total, 1)) if total > 0 else 0.7
+            recommendation = (
+                f"✅ MATCH. Our model ({our_estimate}) agrees with Hedgeye ({hedgeye_call}). "
+                f"Cross-validation: {confirms}/{total} signals confirm Indonesia bearish."
             )
         else:
+            # MISMATCH — explicitly call out
+            match = False
+            confirms = sum(1 for v in signals.values() if v)
+            total = len([v for v in signals.values() if v is not None])
+            confidence = (confirms / max(total, 1)) if total > 0 else 0.3
+            # Determine which view signals support
+            if confirms >= total / 2 and total > 0:
+                support_str = f"Signals SUPPORT Hedgeye view ({confirms}/{total} confirm Q4 bias)"
+            else:
+                support_str = f"Signals SUPPORT our view ({total-confirms}/{total} contradict Q4 bias)"
             recommendation = (
-                f"⚠️ Mismatch. Our estimate: {our_estimate}, Hedgeye says: {hedgeye_call}. "
-                "Investigate GIP engine calibration. Cross-validation signals: "
-                f"{confirms_q4}/{total_signals} confirm Hedgeye view."
+                f"⚠️ MISMATCH. Our model: **{our_estimate}** ({our_regime_name}), "
+                f"Hedgeye says: **{hedgeye_call}**. {support_str}. "
+                f"Investigate GIP engine calibration — kalau Indonesia genuinely "
+                f"transitioning from Q2 → Q4, monthly quad bisa lead structural quad."
             )
 
         return IHSGQuadCheck(

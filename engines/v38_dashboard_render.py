@@ -73,6 +73,25 @@ except Exception as e:
     logger.warning(f"ticker_discovery_engine not loaded: {e}")
     _ENGINES["discovery"] = False
 
+# v37 Alpha Synthesis (8 hybrid frameworks) — NEW integration
+try:
+    from engines.alpha_synthesis_v37 import AlphaSynthesisEngine, generate_alpha_primer
+    _ENGINES["alpha_synthesis"] = True
+except Exception as e:
+    logger.warning(f"alpha_synthesis_v37 not loaded: {e}")
+    _ENGINES["alpha_synthesis"] = False
+
+# v36 Bottleneck KB v2 — NEW integration
+try:
+    from engines.bottleneck_kb_v2 import (
+        lookup_ticker_in_kb, get_accounts_tracking_ticker, get_account_lens,
+        BOTTLENECK_KB_V36, ACCOUNT_THOUGHT_PROCESS_V36,
+    )
+    _ENGINES["bottleneck_kb_v2"] = True
+except Exception as e:
+    logger.warning(f"bottleneck_kb_v2 not loaded: {e}")
+    _ENGINES["bottleneck_kb_v2"] = False
+
 
 # ═══════════════════════════════════════════════════════════════════════
 # MAIN RENDERER
@@ -113,7 +132,14 @@ def render_v38_complete(market: str, snap: Dict, prices: Dict, st_mod,
             _render_chain_context_for_actionable(market, snap, prices, st_mod,
                                                   top_n_for_chain_context)
 
-        # ── Section 4: Run auto-discovery silently in background ─────
+        # ── Section 4 (NEW): Alpha Synthesis v37 — 8 hybrid frameworks ──
+        if _ENGINES.get("alpha_synthesis"):
+            _render_alpha_synthesis_picks(market, snap, prices, st_mod)
+
+        # ── Section 5 (NEW): Surface existing engines from snap ──────
+        _render_engine_snapshots(market, snap, st_mod)
+
+        # ── Section 6: Run auto-discovery silently in background ─────
         if _ENGINES["discovery"] and _ENGINES["chain_reaction"]:
             _run_discovery_silent(snap)
 
@@ -472,6 +498,241 @@ def _render_chain_context_for_actionable(market: str, snap: Dict, prices: Dict,
             </div>
         </div>'''
         st_mod.markdown(html, unsafe_allow_html=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Section 4 (NEW): Alpha Synthesis v37 — 8 Hybrid Frameworks
+# ═══════════════════════════════════════════════════════════════════════
+
+def _render_alpha_synthesis_picks(market: str, snap: Dict, prices: Dict, st_mod) -> None:
+    """Render alpha synthesis picks from 8 hybrid frameworks."""
+    try:
+        engine = AlphaSynthesisEngine()
+        universe = _get_market_universe(market, snap, prices)
+        if not universe:
+            return
+
+        # Scan top 50 tickers (performance cap)
+        signals = engine.scan_universe(universe[:50], snap, prices)
+        if not signals:
+            return
+
+        # Find convergent (2+ frameworks on same ticker)
+        convergent = engine.find_convergent_tickers(signals)
+
+        st_mod.divider()
+        st_mod.markdown("## ⭐ Alpha Synthesis — 8 Hybrid Frameworks (v37)")
+        st_mod.caption(
+            f"v37 · {len(signals)} signals across {len(set(s.ticker for s in signals))} tickers · "
+            f"{len(convergent)} multi-framework convergent picks (BE THE ALPHA)"
+        )
+
+        # Top convergent first (highest conviction)
+        if convergent:
+            convergent_sorted = sorted(
+                convergent.items(),
+                key=lambda kv: max(s.conviction for s in kv[1]),
+                reverse=True,
+            )
+            for ticker, sigs in convergent_sorted[:6]:
+                _render_alpha_convergent_card(ticker, sigs, st_mod)
+
+        # Single-framework signals (top 5)
+        single = [s for s in signals if s.ticker not in convergent]
+        if single:
+            st_mod.markdown(
+                '<div style="font-size:0.7rem;color:#58A6FF;text-transform:uppercase;'
+                'font-weight:700;margin:8px 0 4px;letter-spacing:0.5px;">'
+                '🔍 Single-Framework Signals'
+                '</div>',
+                unsafe_allow_html=True,
+            )
+            for sig in single[:5]:
+                _render_alpha_single_card(sig, st_mod)
+    except Exception as e:
+        logger.debug(f"alpha synthesis render failed: {e}")
+
+
+def _render_alpha_convergent_card(ticker: str, signals: List, st_mod) -> None:
+    """Render multi-framework convergent ticker."""
+    import numpy as np
+    direction = signals[0].direction
+    dir_color = "#3FB950" if direction == "LONG" else "#F85149"
+    n_frameworks = len(signals)
+    avg_conv = float(np.mean([s.conviction for s in signals]))
+
+    framework_pills = "".join([
+        f'<span style="background:#58A6FF22;color:#58A6FF;'
+        f'padding:3px 9px;border-radius:9px;font-size:0.6rem;margin:1px;'
+        f'border:1px solid #58A6FF55;font-weight:700;">{s.framework}</span>'
+        for s in signals
+    ])
+
+    # Bottleneck KB context (NEW integration)
+    btk_context = ""
+    if _ENGINES.get("bottleneck_kb_v2"):
+        try:
+            btk = lookup_ticker_in_kb(ticker)
+            if btk:
+                accounts = btk.get("accounts", [])
+                btk_context = (
+                    f'<div style="font-size:0.62rem;color:#A855F7;margin-top:4px;">'
+                    f'📚 Bottleneck KB: {btk.get("bottleneck_id","?")} (tier {btk.get("tier","?")}) · '
+                    f'Tracked by: {", ".join(accounts[:3])}'
+                    f'</div>'
+                )
+        except Exception:
+            pass
+
+    html = f'''<div style="background:#161B22;border:2px solid #C9A961AA;border-radius:8px;
+                padding:12px 14px;margin:6px 0;box-shadow:0 0 15px #C9A96122;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;">
+            <span style="color:{dir_color};font-size:1.1rem;font-weight:800;">
+                ⭐ {ticker} {direction}
+            </span>
+            <span style="background:#C9A96133;color:#C9A961;
+                         padding:4px 12px;border-radius:11px;font-size:0.7rem;
+                         font-weight:800;border:1px solid #C9A96188;">
+                {n_frameworks} FRAMEWORKS · {avg_conv:.0f}/100
+            </span>
+        </div>
+        <div style="margin:6px 0;">{framework_pills}</div>
+        <div style="font-size:0.7rem;color:#C9D1D9;line-height:1.5;margin-top:6px;
+                    background:#0D111766;padding:8px 10px;border-radius:4px;
+                    border-left:2px solid #C9A961;">
+            {signals[0].thesis[:280]}...
+        </div>
+        {btk_context}
+    </div>'''
+    st_mod.markdown(html, unsafe_allow_html=True)
+
+
+def _render_alpha_single_card(sig, st_mod) -> None:
+    """Render single-framework alpha signal."""
+    dir_color = "#3FB950" if sig.direction == "LONG" else "#F85149"
+    components_str = " · ".join(sig.framework_components[:3])
+
+    html = f'''<div style="background:#161B22;border:1px solid #30363D;border-radius:6px;
+                padding:9px 12px;margin:4px 0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+            <span style="color:{dir_color};font-weight:800;font-size:0.9rem;">
+                {sig.ticker} {sig.direction}
+            </span>
+            <span style="color:#58A6FF;font-size:0.65rem;font-weight:700;">
+                {sig.framework} · {sig.conviction:.0f}
+            </span>
+        </div>
+        <div style="font-size:0.62rem;color:#8B949E;margin-top:3px;">
+            {components_str}
+        </div>
+    </div>'''
+    st_mod.markdown(html, unsafe_allow_html=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Section 5 (NEW): Surface Existing Engines from Snapshot
+# ═══════════════════════════════════════════════════════════════════════
+
+def _render_engine_snapshots(market: str, snap: Dict, st_mod) -> None:
+    """
+    Surface engines that orchestrator builds but page didn't show.
+
+    Shows: discovery_brain, smart_money, capital_rotation, cascade_engine.
+    Compact display — doesn't take much vertical space.
+    """
+    try:
+        # Get relevant data
+        discovery = snap.get("discovery_brain", {}) or {}
+        smart_money = snap.get("smart_money", {}) or {}
+        capital_rot = snap.get("capital_rotation", {}) or {}
+        cascade = snap.get("cascade_engine", {}) or snap.get("cascade", {}) or {}
+
+        # If nothing to show, return
+        if not (discovery or smart_money or capital_rot or cascade):
+            return
+
+        st_mod.divider()
+        st_mod.markdown("## 🎯 Orchestrator Engine Highlights")
+        st_mod.caption("Surfacing existing engines that build in orchestrator but didn't have UI")
+
+        # Build 4-column metric row
+        cols = st_mod.columns(4)
+
+        # Discovery Brain
+        with cols[0]:
+            if isinstance(discovery, dict):
+                by_mode = discovery.get("by_mode", {})
+                total = sum(len(v) for v in by_mode.values() if isinstance(v, list)) if by_mode else 0
+                if total > 0:
+                    st_mod.metric(
+                        "🔍 Discovery Brain",
+                        f"{total} candidates",
+                        f"A={len(by_mode.get('adaptive',[]))} R={len(by_mode.get('reactive',[]))} P={len(by_mode.get('proactive',[]))}",
+                    )
+
+        # Smart Money
+        with cols[1]:
+            if isinstance(smart_money, dict):
+                consensus = smart_money.get("consensus_picks", [])
+                if consensus:
+                    st_mod.metric(
+                        "💰 Smart Money",
+                        f"{len(consensus)} consensus",
+                        "13F-tracked",
+                    )
+
+        # Capital Rotation
+        with cols[2]:
+            if isinstance(capital_rot, dict):
+                rot_status = capital_rot.get("status", capital_rot.get("validation", ""))
+                rot_top = capital_rot.get("dominant_sector", capital_rot.get("top_rotation", ""))
+                if rot_status or rot_top:
+                    st_mod.metric(
+                        "🔄 Capital Rotation",
+                        str(rot_status)[:20] if rot_status else "—",
+                        str(rot_top)[:20] if rot_top else "",
+                    )
+
+        # Cascade Engine
+        with cols[3]:
+            if isinstance(cascade, dict):
+                shocks = cascade.get("active_shocks", 0) or len(cascade.get("shocks", []) or [])
+                impacts = cascade.get("total_impacts", 0)
+                if shocks > 0:
+                    st_mod.metric(
+                        "⚡ Cascade Engine",
+                        f"{shocks} shocks",
+                        f"{impacts} impacts",
+                    )
+
+        # Discovery Brain expandable details
+        if isinstance(discovery, dict) and discovery.get("by_mode"):
+            with st_mod.expander("🔍 Discovery Brain — Top Candidates"):
+                by_mode = discovery.get("by_mode", {})
+                for mode in ("adaptive", "reactive", "proactive"):
+                    items = by_mode.get(mode, [])
+                    if items:
+                        st_mod.markdown(f"**{mode.upper()}** ({len(items)})")
+                        for item in items[:5]:
+                            if isinstance(item, dict):
+                                name = item.get("name", item.get("ticker", "?"))
+                                conf = item.get("confidence", 0)
+                                thesis = item.get("thesis", "")[:120]
+                                st_mod.markdown(f"- **{name}** ({conf:.0%}): {thesis}")
+                        st_mod.markdown("")
+
+        # Smart Money consensus picks
+        if isinstance(smart_money, dict) and smart_money.get("consensus_picks"):
+            with st_mod.expander("💰 Smart Money Consensus Picks"):
+                for pick in smart_money.get("consensus_picks", [])[:10]:
+                    if isinstance(pick, dict):
+                        ticker = pick.get("ticker", "?")
+                        n_funds = pick.get("n_funds_buying", pick.get("n_buying", 0))
+                        thesis = pick.get("thesis", pick.get("rationale", ""))[:150]
+                        st_mod.markdown(f"- **{ticker}** ({n_funds} funds buying): {thesis}")
+
+    except Exception as e:
+        logger.debug(f"engine snapshots render failed: {e}")
 
 
 # ═══════════════════════════════════════════════════════════════════════

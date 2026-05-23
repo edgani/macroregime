@@ -813,13 +813,47 @@ def _fred_fallback() -> Dict[str, pd.Series]:
         "HOUST": pd.Series(np.linspace(1300, 1400, 60), index=dates, name="HOUST"),
     }
 
+# ─────────────────────────────────────────────────────────────────────
+# HEDGEYE COUNTRY OVERRIDE MAP (Edward updatable per Keith public calls)
+# When Keith McCullough publishes country Quad call, add entry here.
+# Override takes precedence over base_map below.
+# Format: "Country Name": "Q1|Q2|Q3|Q4"
+# ─────────────────────────────────────────────────────────────────────
+HEDGEYE_COUNTRY_OVERRIDE = {
+    "Indonesia": "Q4",   # Keith McCullough May 21 2026 #timestamped (crash already in motion)
+    # Add more as Hedgeye publishes:
+    # "China": "Q3",     # example
+    # "UK": "Q4",        # example
+}
+
+
 def _global_fallback(quad: str) -> dict:
+    """
+    Generate country regime map.
+
+    NOTE v38.4: This is HARDCODED base map + Hedgeye overrides.
+    A proper fix would calculate per-country Quad from per-country macro data
+    (GDP, CPI rate-of-change), but that requires per-country FRED-equivalent data
+    which we don't have. So we use hardcoded base + manual overrides.
+
+    HEDGEYE_COUNTRY_OVERRIDE (above) takes precedence — update when Keith publishes.
+    """
     base_map = {
         "Q1": ["USA","Japan","India","Taiwan","South Korea","Vietnam","Mexico","Singapore","Philippines","Malaysia","UAE","Israel","Poland","Czech Republic","Romania"],
-        "Q2": ["China","Brazil","Australia","Canada","South Africa","Saudi Arabia","Chile","Peru","Indonesia","Thailand","Colombia","New Zealand","Norway","Kazakhstan","Angola"],
+        "Q2": ["China","Brazil","Australia","Canada","South Africa","Saudi Arabia","Chile","Peru","Thailand","Colombia","New Zealand","Norway","Kazakhstan","Angola"],
         "Q3": ["UK","Germany","France","Italy","Russia","Turkey","Argentina","Nigeria","Pakistan","Egypt","Spain","Netherlands","Belgium","Sweden","Switzerland"],
-        "Q4": ["Venezuela","Iran","Ukraine","Greece","Portugal","Lebanon","Syria","Yemen","Zimbabwe","Sudan","Afghanistan","North Korea","Myanmar","Belarus","Bolivia"],
+        "Q4": ["Indonesia","Venezuela","Iran","Ukraine","Greece","Portugal","Lebanon","Syria","Yemen","Zimbabwe","Sudan","Afghanistan","North Korea","Myanmar","Belarus","Bolivia"],
     }
+
+    # Apply Hedgeye overrides (in case someone added Indonesia back to Q2 manually)
+    for country_override, override_q in HEDGEYE_COUNTRY_OVERRIDE.items():
+        # Remove from any current quad
+        for q in base_map:
+            if country_override in base_map[q]:
+                base_map[q].remove(country_override)
+        # Add to override quad (idempotent)
+        if country_override not in base_map[override_q]:
+            base_map[override_q].insert(0, country_override)
     cqs = {}
     for q, countries in base_map.items():
         for c in countries:
@@ -2644,26 +2678,6 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             except Exception as e:
                 logger.warning(f"Discovery Brain failed: {e}")
                 result["errors"].append(f"discovery_brain: {e}")
-
-        # ── NEW v38.2: Auto-Discovery v3 (wraps cluster + regime_predictor + leading_indicator + edgar) ──
-        try:
-            from engines.auto_discovery_engine_v3 import IntegrationBrain as _AutoDiscBrain
-            _safe_progress(progress_cb, "Running Auto-Discovery v3...", 0.88)
-            _ib = _AutoDiscBrain()
-            _auto_disc = _ib.run(
-                prices=prices,
-                gip=result.get("gip_v10") or result.get("gip"),
-                risk_ranges=result.get("risk_ranges"),
-            )
-            result["auto_discovery"] = _auto_disc
-            logger.info(
-                f"Auto-discovery v3: {len(_auto_disc.get('clusters', []))} clusters · "
-                f"{len(_auto_disc.get('regime_predictions', {}))} regime predictions · "
-                f"{len(_auto_disc.get('leading_signals', []))} leading signals"
-            )
-        except Exception as e:
-            logger.warning(f"Auto-discovery v3 failed: {e}")
-            result.setdefault("errors", []).append(f"auto_discovery: {e}")
 
         # ── Sprint 3: Ticker Universe Expander (Auto-add new tickers) ──
         if _V2_EXPANDER:

@@ -192,8 +192,10 @@ hr { margin: 0.4rem 0 !important; opacity: 0.08; border-color: #30363D; }
 # ═══════════════════════════════════════════════════════════════════
 # CONFIG & FALLBACKS
 # ═══════════════════════════════════════════════════════════════════
-def filter_by_simulation(rows, sim_results, threshold=65, require_pass=True):
-    """Filter ticker rows by simulation results. Handles dict-format snap data."""
+def filter_by_simulation(rows, sim_results, threshold=50, require_pass=False):
+    """Filter ticker rows by simulation results. Handles dict-format snap data.
+    v39.1 FIX: Relaxed threshold (50), require_pass=False default. 
+    Simulation runs background-only; rows kept for detail view."""
     if not sim_results:
         return rows
     filtered = []
@@ -203,8 +205,9 @@ def filter_by_simulation(rows, sim_results, threshold=65, require_pass=True):
             continue
         sim = sim_results.get(t)
         if sim is None:
-            if not require_pass:
-                filtered.append(row)
+            # No sim data - keep row, mark unvalidated
+            row["_sim_status"] = "NO_DATA"
+            filtered.append(row)
             continue
         # Orchestrator serializes sim results to dicts; handle both dict and object
         if isinstance(sim, dict):
@@ -213,9 +216,13 @@ def filter_by_simulation(rows, sim_results, threshold=65, require_pass=True):
         else:
             passes = getattr(sim, "passes_filter", False)
             score = getattr(sim, "robustness_score", 0)
+        row["_sim_passed"] = passes
+        row["_sim_score"] = score
+        row["_sim_status"] = "PASS" if (passes and score >= threshold) else "MARGINAL" if score >= threshold else "FAIL"
+        # v39.1: Don't filter out on simulation alone - show all with annotation
         if require_pass and not passes:
             continue
-        if score < threshold:
+        if require_pass and score < threshold:
             continue
         filtered.append(row)
     return filtered
@@ -933,7 +940,7 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
     unusual = _detect_unusual_activity(ticker, prices, snap, market_type)
 
     # ── ENTRY / STOP / TARGET ──
-    min_stop_dist = px * 0.005
+    min_stop_dist = px * 0.003  # v39.1: relaxed from 0.5% to 0.3%
     confluence = {"entry": [], "target": [], "entry_cluster": None, "target_cluster": None}
 
     def _cluster_levels(levels, threshold_pct=0.02):
@@ -1170,10 +1177,13 @@ def _get_broker_proxy(ticker, prices):
 
 
 def _build_ihsg_row(ticker, prices, ar, **kwargs):
-    """IHSG — Hedgeye 3-layer + Broker Proxy ONLY. No trend filter, no momentum."""
+    """IHSG — Hedgeye 3-layer + Broker Proxy ONLY. BUY-ONLY MARKET (no short)."""
     row = _build_row(ticker, prices, ar, market_type="ihsg", **kwargs)
     if not row:
         return None
+    # v39.1 FIX: IHSG is buy-only (1 pintu). Force direction to LONG/BUY.
+    row["direction"] = "LONG"
+    row["side"] = "long"
     # Strip options (IHSG no options data)
     row["options"] = {}
     row["mm_positioning"] = ""
@@ -1184,22 +1194,21 @@ def _build_ihsg_row(ticker, prices, ar, **kwargs):
     # Broker proxy (real accumulation/distribution/crossing)
     broker = _get_broker_proxy(ticker, prices)
     row["broker"] = broker
-    # IHSG-specific recommendation based on broker + Hedgeye formation
+    # IHSG-specific recommendation based on broker + Hedgeye formation (BUY ONLY)
     formation = row.get("formation", "NEUTRAL")
-    if not row.get("setup_valid", True):
-        row["recommendation"] = f"AVOID — {row.get('setup_note', 'Invalid setup')}"
-    elif broker.get("real_accumulation", False):
-        row["recommendation"] = f"🟢 AKUMULASI REAL — {sector} ({broker.get('confidence',0)}% conf)"
+    if broker.get("real_accumulation", False):
+        row["recommendation"] = f"🟢 AKUMULASI REAL — {sector} ({broker.get('confidence',0)}% conf) · BELI"
     elif broker.get("real_distribution", False):
-        row["recommendation"] = f"🔴 DISTRIBUSI REAL — avoid {sector} ({broker.get('confidence',0)}% conf)"
+        row["recommendation"] = f"🔴 DISTRIBUSI REAL — {sector} ({broker.get('confidence',0)}% conf) · TUNGGU/HOLD"
     elif broker.get("crossing_detected", False):
-        row["recommendation"] = f"🟡 WASPADA CROSSING — {sector} (possible wash trading)"
-    elif formation in ("BULLISH", "BULLISH_BIAS"):
-        row["recommendation"] = f"🟢 {sector} — Bullish formation, buy at Trade Low"
-    elif formation in ("BEARISH", "BEARISH_BIAS"):
-        row["recommendation"] = f"🔴 {sector} — Bearish formation, sell at Trade Top"
+        row["recommendation"] = f"🟡 WASPADA CROSSING — {sector} (possible wash trading) · TUNGGU"
+    elif formation in ("BULLISH", "BULLISH_BIAS", "OVERSOLD"):
+        row["recommendation"] = f"🟢 {sector} — Bullish/Oversold formation, buy at Trade Low"
+    elif formation in ("BEARISH", "BEARISH_BIAS", "OVERBOUGHT"):
+        # v39.1: In buy-only market, bearish = wait/hold, not short
+        row["recommendation"] = f"🟡 {sector} — Bearish formation detected · TUNGGU pullback ke Trade Low"
     else:
-        row["recommendation"] = f"⚪ {sector} — Neutral, range-bound between Trade Low/Top"
+        row["recommendation"] = f"⚪ {sector} — Neutral, range-bound · MONITOR"
     return row
 
 
@@ -1209,16 +1218,21 @@ def build_ticker_rows(tickers, market_type="us_equity", vix_now=20, gamma_data=N
         if market_type == "ihsg": r = _build_ihsg_row(t, prices, ar, snap=snap)
         else: r = _build_row(t, prices, ar, vix_now=vix_now, gamma_data=gamma_data, greeks_data=greeks_data, market_type=market_type, news=news, snap=snap)
         if r:
-            # Inject v39 data from snap
+            # v39.1 FIX: Inject ALL background engine data into row for detail expander
             if snap:
                 r["walkforward"] = (snap.get("walkforward_results") or {}).get(t, {})
                 r["gatekeeper"] = (snap.get("alpha_gatekeeper") or {}).get(t, {})
                 r["keith_sync"] = (snap.get("keith_sync") or {}).get(t, {})
                 r["hedgeye_size"] = next((p for p in (snap.get("hedgeye_position_sizing") or {}).get("positions", []) if p.get("ticker") == t), None)
                 r["vix_bucket"] = (snap.get("vix_bucket") or {}).get("bucket", "NORMAL")
+                # Also inject simulation results directly for detail view
+                if sim_results and t in sim_results:
+                    r["simulation"] = sim_results[t]
             rows.append(r)
+    # v39.1 FIX: Simulation runs background-only; do NOT filter rows here
+    # filter_by_simulation now annotates rows instead of removing them
     if sim_results:
-        rows = filter_by_simulation(rows, sim_results, threshold=65, require_pass=True)
+        rows = filter_by_simulation(rows, sim_results, threshold=50, require_pass=False)
     return rows
 
 
@@ -1229,8 +1243,16 @@ def split_long_short(rows):
 
 
 def filter_actionable(rows):
-    """Keep only valid setups: no stop-too-tight, not AVOID."""
-    return [r for r in rows if r.get("setup_valid") and r.get("chase_status") != "AVOID"]
+    """v39.1 FIX: Keep valid + WAIT setups. AVOID excluded. Invalid kept with annotation for detail view."""
+    out = []
+    for r in rows:
+        if r.get("chase_status") == "AVOID":
+            continue
+        if not r.get("setup_valid"):
+            r["_invalid_note"] = r.get("setup_note", "Invalid setup")
+            r["grade"] = "C"
+        out.append(r)
+    return out
 
 
 def filter_invalid(rows):
@@ -2326,6 +2348,140 @@ def render_ticker_card_v4(row, expanded=False):
             ext_html += f'</div>'
             st.markdown(ext_html, unsafe_allow_html=True)
 
+        # ── v39.1 Background Engine Panels (Gatekeeper · Hedgeye · On-Chain · Broker) ──
+        # Gatekeeper Status
+        gk = row.get("gatekeeper", {})
+        if gk and isinstance(gk, dict):
+            gk_status = gk.get("gate_status", "—")
+            gk_score = gk.get("combined_score", 0)
+            gk_rec = gk.get("recommendation", "—")
+            gk_color = "#3FB950" if gk_status == "PASS" else "#D29922" if gk_status == "MARGINAL" else "#F85149" if gk_status == "FAIL" else "#8B949E"
+            gk_html = f'<div class="ts-panel" style="border-color: {gk_color}30; margin-bottom: 8px;">'
+            gk_html += f'<div class="ts-panel-title">🛡️ Alpha Gatekeeper (8 Gates)</div>'
+            gk_html += f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'
+            gk_html += f'<span style="background:{gk_color}18;color:{gk_color};padding:3px 10px;border-radius:6px;font-size:0.75rem;font-weight:700;border:1px solid {gk_color}40;">{gk_status}</span>'
+            gk_html += f'<span style="font-size:0.7rem;color:#8B949E;">Score <b style="color:{gk_color};">{gk_score:.1f}</b></span>'
+            gk_html += f'<span style="font-size:0.7rem;color:#8B949E;">Rec: <b style="color:#E6EDF3;">{gk_rec}</b></span>'
+            gk_html += f'</div></div>'
+            st.markdown(gk_html, unsafe_allow_html=True)
+
+        # Walkforward Status
+        wf = row.get("walkforward", {})
+        if wf and isinstance(wf, dict):
+            wf_score = wf.get("combined_gate_score", 0)
+            wf_status = wf.get("gate_status", "—")
+            wf_color = "#3FB950" if wf_status == "PASS" else "#D29922" if wf_status == "MARGINAL" else "#F85149"
+            wf_html = f'<div class="ts-panel" style="border-color: {wf_color}30; margin-bottom: 8px;">'
+            wf_html += f'<div class="ts-panel-title">🎲 Walkforward Backtest (MC 100x)</div>'
+            wf_html += f'<div style="display:flex;align-items:center;gap:10px;">'
+            wf_html += f'<span style="background:{wf_color}18;color:{wf_color};padding:3px 10px;border-radius:6px;font-size:0.75rem;font-weight:700;border:1px solid {wf_color}40;">{wf_status}</span>'
+            wf_html += f'<span style="font-size:0.7rem;color:#8B949E;">Gate Score <b style="color:{wf_color};">{wf_score:.1f}</b></span>'
+            wf_html += f'</div></div>'
+            st.markdown(wf_html, unsafe_allow_html=True)
+
+        # Hedgeye Position Sizing
+        hp = row.get("hedgeye_size")
+        if hp and isinstance(hp, dict):
+            hp_pct = hp.get("size_pct", 0)
+            hp_dollar = hp.get("dollar_size", 0)
+            hp_mode = hp.get("mode", "—")
+            hp_conv = hp.get("conviction", 0)
+            hp_color = "#3FB950" if hp_pct >= 0.04 else "#D29922" if hp_pct >= 0.02 else "#8B949E"
+            hp_html = f'<div class="ts-panel" style="border-color: {hp_color}30; margin-bottom: 8px;">'
+            hp_html += f'<div class="ts-panel-title">💰 Hedgeye Position Sizing</div>'
+            hp_html += f'<div class="ts-grid-4">'
+            hp_html += f'<div class="ts-stat"><div class="ts-stat-label">Size %</div><div class="ts-stat-value" style="color:{hp_color};">{hp_pct:.2%}</div></div>'
+            hp_html += f'<div class="ts-stat"><div class="ts-stat-label">Size $</div><div class="ts-stat-value" style="color:#E6EDF3;">${hp_dollar:,.0f}</div></div>'
+            hp_html += f'<div class="ts-stat"><div class="ts-stat-label">Mode</div><div class="ts-stat-value" style="color:#8B949E;">{hp_mode}</div></div>'
+            hp_html += f'<div class="ts-stat"><div class="ts-stat-label">Conviction</div><div class="ts-stat-value" style="color:{"#3FB950" if hp_conv>=0.8 else "#D29922" if hp_conv>=0.5 else "#F85149"};">{hp_conv:.0%}</div></div>'
+            hp_html += f'</div></div>'
+            st.markdown(hp_html, unsafe_allow_html=True)
+
+        # Keith Signal Sync
+        ks = row.get("keith_sync", {})
+        if ks and isinstance(ks, dict) and ks.get("keith_trade") != "NEUTRAL":
+            ktrade = ks.get("keith_trade", "—")
+            ktrend = ks.get("keith_trend", "—")
+            kfinal = ks.get("direction", "—")
+            kbasis = ks.get("basis", "")[:120]
+            k_override = ks.get("override", False)
+            tc = "#3FB950" if ktrade == "BULLISH" else "#F85149" if ktrade == "BEARISH" else "#8B949E"
+            k_html = f'<div class="ts-panel" style="border-color: {tc}30; margin-bottom: 8px;">'
+            k_html += f'<div class="ts-panel-title">🎙️ Keith McCullough Signal Sync (P0)</div>'
+            k_html += f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'
+            k_html += f'<span style="background:{tc}18;color:{tc};padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:700;border:1px solid {tc}40;">🎙️ TRADE: {ktrade}</span>'
+            k_html += f'<span style="background:{"#3FB950" if ktrend=="BULLISH" else "#F85149" if ktrend=="BEARISH" else "#8B949E"}18;color:{"#3FB950" if ktrend=="BULLISH" else "#F85149" if ktrend=="BEARISH" else "#8B949E"};padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:700;border:1px solid {"#3FB950" if ktrend=="BULLISH" else "#F85149" if ktrend=="BEARISH" else "#8B949E"}40;">📈 TREND: {ktrend}</span>'
+            if k_override:
+                k_html += f'<span style="background:#F8514918;color:#F85149;padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:700;border:1px solid #F8514940;">⚠️ OVERRIDE</span>'
+            k_html += f'</div>'
+            k_html += f'<div style="font-size:0.7rem;color:#E6EDF3;">Dashboard → <b>{kfinal}</b></div>'
+            k_html += f'<div style="font-size:0.65rem;color:#484F58;margin-top:2px;">{kbasis}</div>'
+            k_html += f'</div>'
+            st.markdown(k_html, unsafe_allow_html=True)
+
+        # Crypto On-Chain Intelligence (if crypto ticker)
+        if market_type == "crypto":
+            cc_tokens = snap_local.get("crypto_tokens", {}) if snap_local else {}
+            cc_data = cc_tokens.get(ticker, {}) if isinstance(cc_tokens, dict) else {}
+            if cc_data and isinstance(cc_data, dict):
+                whale = cc_data.get("whale_signal", "NEUTRAL")
+                funding = cc_data.get("funding_proxy", 0)
+                large = cc_data.get("large_orders_detected", False)
+                wcolor = "#3FB950" if whale == "ACCUMULATING" else "#F85149" if whale == "DISTRIBUTING" else "#8B949E"
+                cc_html = f'<div class="ts-panel" style="border-color: {wcolor}30; margin-bottom: 8px;">'
+                cc_html += f'<div class="ts-panel-title">⛓️ On-Chain Intelligence</div>'
+                cc_html += f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'
+                cc_html += f'<span style="background:{wcolor}18;color:{wcolor};padding:3px 10px;border-radius:6px;font-size:0.75rem;font-weight:700;border:1px solid {wcolor}40;">🐋 {whale}</span>'
+                cc_html += f'<span style="font-size:0.7rem;color:#8B949E;">Funding <b style="color:{"#F85149" if abs(funding)>0.0005 else "#8B949E"};">{funding:.6f}</b></span>'
+                if large:
+                    cc_html += f'<span style="background:#D2992218;color:#D29922;padding:3px 10px;border-radius:6px;font-size:0.75rem;font-weight:700;border:1px solid #D2992240;">🚨 Large Orders</span>'
+                cc_html += f'</div>'
+                cc_html += f'<div style="font-size:0.65rem;color:#484F58;">R7D: {cc_data.get("r7d",0):+.1%} · R1M: {cc_data.get("r1m",0):+.1%} · Vol Change: {cc_data.get("dex_vol_change",0):+.1%}</div>'
+                cc_html += f'</div>'
+                st.markdown(cc_html, unsafe_allow_html=True)
+
+        # IHSG Broker Intelligence (if IHSG ticker)
+        if market_type == "ihsg":
+            broker = row.get("broker", {})
+            if broker and isinstance(broker, dict):
+                b_sig = broker.get("signal", "NEUTRAL")
+                b_conf = broker.get("confidence", 0)
+                b_cross = broker.get("crossing_detected", False)
+                b_acc = broker.get("real_accumulation", False)
+                b_dist = broker.get("real_distribution", False)
+                b_color = "#3FB950" if b_acc else "#F85149" if b_dist else "#D29922" if b_cross else "#8B949E"
+                b_emoji = "📈" if b_acc else "📉" if b_dist else "🎯" if b_cross else "⚪"
+                b_html = f'<div class="ts-panel" style="border-color: {b_color}30; margin-bottom: 8px;">'
+                b_html += f'<div class="ts-panel-title">🇮🇩 Broker Intelligence (IHSG)</div>'
+                b_html += f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'
+                b_html += f'<span style="background:{b_color}18;color:{b_color};padding:3px 10px;border-radius:6px;font-size:0.75rem;font-weight:700;border:1px solid {b_color}40;">{b_emoji} {b_sig}</span>'
+                b_html += f'<span style="font-size:0.7rem;color:#8B949E;">Confidence <b style="color:{b_color};">{b_conf}%</b></span>'
+                b_html += f'</div>'
+                b_html += f'<div style="font-size:0.65rem;color:#484F58;">R5D: {broker.get("r5d",0):+.1%} · R20D: {broker.get("r20d",0):+.1%} · Vol Ratio: {broker.get("vol_ratio",1):.2f}x · Range Ratio: {broker.get("range_ratio",1):.2f}</div>'
+                b_html += f'</div>'
+                st.markdown(b_html, unsafe_allow_html=True)
+
+        # Smart Money / Capital Rotation / VRP / Squeeze badges (if data exists)
+        sm_badge = _get_smart_money_badge(ticker, snap_local) if snap_local else ""
+        cr_role = _get_capital_rotation_role(ticker, snap_local) if snap_local else ""
+        vrp_score = _get_vrp_score(ticker, snap_local) if snap_local else 0
+        sq_score = _get_squeeze_score(ticker, snap_local) if snap_local else 0
+        if sm_badge or cr_role or vrp_score or sq_score:
+            intel_html = f'<div class="ts-panel" style="border-color: #58A6FF30; margin-bottom: 8px;">'
+            intel_html += f'<div class="ts-panel-title">🧠 Smart Consensus & Scanners</div>'
+            intel_html += f'<div style="display:flex;flex-wrap:wrap;gap:6px;">'
+            if sm_badge:
+                intel_html += f'<span style="background:#3FB95018;color:#3FB950;padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:700;border:1px solid #3FB95040;">{sm_badge}</span>'
+            if cr_role:
+                intel_html += f'<span style="background:#58A6FF18;color:#58A6FF;padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:700;border:1px solid #58A6FF40;">🔄 {cr_role.replace("_"," ")}</span>'
+            if vrp_score:
+                vcolor = "#F85149" if vrp_score > 10 else "#3FB950" if vrp_score < -10 else "#8B949E"
+                intel_html += f'<span style="background:{vcolor}18;color:{vcolor};padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:700;border:1px solid {vcolor}40;">📊 VRP {vrp_score:+.0f}%</span>'
+            if sq_score:
+                intel_html += f'<span style="background:#D2992218;color:#D29922;padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:700;border:1px solid #D2992240;">🔥 Squeeze {sq_score:.0f}</span>'
+            intel_html += f'</div></div>'
+            st.markdown(intel_html, unsafe_allow_html=True)
+
         # Basis line
         basis_parts = []
         if row.get("trade_low"):
@@ -3217,44 +3373,24 @@ def page_alpha():
 
     st.divider()
 
-    # ── v39: Gatekeeper + Walkforward + Hedgeye ──
+    # ── v39.1: Gatekeeper + Walkforward + Hedgeye (BACKGROUND ONLY) ──
     gk_data = snap.get("alpha_gatekeeper", {})
     wf_data = snap.get("walkforward_results", {})
     hp_data = snap.get("hedgeye_position_sizing", {})
 
-    # Only show gatekeeper-passed tickers as "Front-Run Ready"
+    # v39.1 FIX: Gatekeeper runs in background — data attached to each ticker detail expander
+    # Compact summary only, no main filter
     gk_passed = {t: r for t, r in gk_data.items() if isinstance(r, dict) and r.get("gate_status") == "PASS"}
+    gk_marginal = {t: r for t, r in gk_data.items() if isinstance(r, dict) and r.get("gate_status") == "MARGINAL"}
 
-    if gk_passed:
-        st.markdown("### 🔮 Front-Run Projections (Gatekeeper Passed Only)")
-        st.markdown(f"<div style='font-size:0.7rem;color:#8B949E;'>Only {len(gk_passed)} tickers passed all 8 gates + walkforward + simulation. Keith sync applied — no contradictions.</div>", unsafe_allow_html=True)
-
-        for t, r in list(gk_passed.items())[:15]:
-            basis = r.get("basis", "")
-            score = r.get("combined_score", 0)
-            rec = r.get("recommendation", "—")
-            wf = (wf_data.get(t) or {}).get("combined_gate_score", 0)
-
-            # Keith duration info
-            ks = ks_data.get(t, {})
-            keith_html = ""
-            if isinstance(ks, dict) and ks.get("keith_trade") != "NEUTRAL":
-                ktrade = ks.get("keith_trade", "")
-                ktrend = ks.get("keith_trend", "")
-                tc = "#3FB950" if ktrade == "BULLISH" else "#F85149"
-                keith_html = f'<span style="font-size:0.6rem;padding:1px 5px;border-radius:3px;background:{tc}18;color:{tc};font-weight:700;">🎙️ {ktrade[:4]}|{ktrend[:4]}</span>'
-
-            color = "#3FB950" if score >= 75 else "#D29922" if score >= 65 else "#8B949E"
-            st.markdown(
-                f'<div style="display:flex;align-items:center;gap:8px;padding:6px 10px;background:#161B22;border:1px solid {color}40;border-radius:6px;margin:3px 0;">'
-                f'<span style="font-weight:800;font-size:0.9rem;color:#E6EDF3;min-width:60px;">{t}</span>'
-                f'<span style="font-size:0.65rem;padding:2px 6px;border-radius:4px;background:{color}22;color:{color};font-weight:700;">🛡️ PASS {score:.0f}</span>'
-                f'{keith_html}'
-                f'<span style="font-size:0.65rem;color:#8B949E;">{rec}</span>'
-                f'<span style="flex:1;font-size:0.6rem;color:#484F58;text-align:right;">{basis[:60]}</span>'
-                f'</div>', unsafe_allow_html=True)
-    else:
-        st.info("No tickers passed the 8-gate alpha gatekeeper this snapshot. Wait for better setups or check Keith signals for direction.")
+    with st.expander(f"🛡️ Background Engine Status (Gatekeeper · Walkforward · Hedgeye)", expanded=False):
+        c1, c2, c3 = st.columns(3)
+        c1.metric("🟢 Gatekeeper PASS", len(gk_passed))
+        c2.metric("🟡 Gatekeeper MARGINAL", len(gk_marginal))
+        c3.metric("✅ Walkforward PASS", len([t for t, r in wf_data.items() if isinstance(r, dict) and r.get("gate_status") == "PASS"]))
+        if gk_passed:
+            st.markdown(f"<div style='font-size:0.65rem;color:#484F58;'>Top 5 passed: " + ", ".join(list(gk_passed.keys())[:5]) + "</div>", unsafe_allow_html=True)
+        st.caption("Gatekeeper + Walkforward + Hedgeye sizing data is shown inside each ticker’s 🔍 Toggle Full Details expander below.")
 
     st.divider()
 
@@ -3420,10 +3556,10 @@ def page_alpha():
         if not alpha_candidates:
             st.info("No bottleneck or front-run candidates this snapshot. Run orchestrator with discovery engines enabled.")
         else:
-            st.markdown(f"**{len(alpha_candidates)} candidates** · Bottleneck + Front-Run only · Filter: NOT at peak (price < Trend Top × 0.95)")
+            st.markdown(f"**{len(alpha_candidates)} candidates** · Bottleneck + Front-Run only · v39.1: All candidates shown (simulation background-only)")
             alpha_tickers = [c["ticker"] for c in alpha_candidates if c.get("ticker")]
-            sim_results = snap.get("simulation_results", {}) if isinstance(snap.get("simulation_results"), dict) else {}
-            alpha_rows = build_ticker_rows(alpha_tickers, "us_equity", vix_now, snap.get("gamma_data"), snap.get("greeks_data"), snap.get("news_narratives"), prices=prices, ar=ar, snap=snap, sim_results=sim_results)
+            # v39.1 FIX: Simulation runs background-only via build_ticker_rows
+            alpha_rows = build_ticker_rows(alpha_tickers, "us_equity", vix_now, snap.get("gamma_data"), snap.get("greeks_data"), snap.get("news_narratives"), prices=prices, ar=ar, snap=snap)
             actionable_alpha = filter_actionable(alpha_rows)
             invalid_alpha = filter_invalid(alpha_rows)
 
@@ -3446,10 +3582,7 @@ def page_alpha():
             if ready_longs:
                 st.markdown(f'<div style="font-size:0.7rem;color:#3FB950;text-transform:uppercase;font-weight:700;margin:10px 0 4px;letter-spacing:0.5px;">🟢 READY TO ENTER — LONG ({len(ready_longs)})</div>', unsafe_allow_html=True)
                 for r in ready_longs[:10]:
-                    px = r.get("price", 0)
-                    trend_top = r.get("trend_top", 0)
-                    if px and trend_top and px > trend_top * 0.95:
-                        continue
+                    # v39.1 FIX: Removed peak filter (px > trend_top * 0.95) — too aggressive
                     with st.container():
                         thesis = r.get("alpha_thesis", "")
                         why = r.get("alpha_why", "")
@@ -4543,6 +4676,63 @@ def render_ticker_detail_comprehensive(ticker, snap):
             f'<div><div style="font-size:0.6rem;color:#8B949E;">Exp Return</div><div style="font-size:1rem;color:#E6EDF3;font-weight:700;">{sim.get("exp_return_pct",0):+.1f}%</div></div>'
             f'<div><div style="font-size:0.6rem;color:#8B949E;">Sharpe</div><div style="font-size:1rem;color:#E6EDF3;font-weight:700;">{sim.get("sharpe_like",0):.2f}</div></div>'
             f'</div></div>', unsafe_allow_html=True)
+    # v39.1: Background Engine Panels (Gatekeeper · Walkforward · Hedgeye · Keith)
+    gk = (snap.get("alpha_gatekeeper", {}) or {}).get(ticker, {})
+    if gk and isinstance(gk, dict):
+        gk_status = gk.get("gate_status", "—")
+        gk_score = gk.get("combined_score", 0)
+        gk_color = "#3FB950" if gk_status == "PASS" else "#D29922" if gk_status == "MARGINAL" else "#F85149"
+        st.markdown(f"**🛡️ Gatekeeper:** <span style='color:{gk_color};font-weight:700;'>{gk_status}</span> · Score {gk_score:.1f}", unsafe_allow_html=True)
+
+    wf = (snap.get("walkforward_results", {}) or {}).get(ticker, {})
+    if wf and isinstance(wf, dict):
+        wf_status = wf.get("gate_status", "—")
+        wf_score = wf.get("combined_gate_score", 0)
+        wf_color = "#3FB950" if wf_status == "PASS" else "#D29922" if wf_status == "MARGINAL" else "#F85149"
+        st.markdown(f"**🎲 Walkforward:** <span style='color:{wf_color};font-weight:700;'>{wf_status}</span> · Score {wf_score:.1f}", unsafe_allow_html=True)
+
+    ks = (snap.get("keith_sync", {}) or {}).get(ticker, {})
+    if ks and isinstance(ks, dict) and ks.get("keith_trade") != "NEUTRAL":
+        ktrade = ks.get("keith_trade", "—")
+        ktrend = ks.get("keith_trend", "—")
+        kfinal = ks.get("direction", "—")
+        koverride = ks.get("override", False)
+        tc = "#3FB950" if ktrade == "BULLISH" else "#F85149"
+        st.markdown(f"**🎙️ Keith Sync:** TRADE <span style='color:{tc};font-weight:700;'>{ktrade}</span> · TREND <span style='color:{tc};font-weight:700;'>{ktrend}</span> → Final <b>{kfinal}</b> {'⚠️ OVERRIDE' if koverride else ''}", unsafe_allow_html=True)
+
+    hp_list = (snap.get("hedgeye_position_sizing", {}) or {}).get("positions", [])
+    hp = next((p for p in hp_list if isinstance(p, dict) and p.get("ticker") == ticker), None)
+    if hp and isinstance(hp, dict):
+        st.markdown(f"**💰 Hedgeye Size:** {hp.get('size_pct',0):.2%} · ${hp.get('dollar_size',0):,.0f} · Conviction {hp.get('conviction',0):.0%}", unsafe_allow_html=True)
+
+    # v39.1: Smart Consensus & Scanners
+    sm = snap.get("smart_money", {})
+    sm_consensus = sm.get("consensus_picks", []) if isinstance(sm, dict) else []
+    sm_match = next((c for c in sm_consensus if isinstance(c, dict) and c.get("ticker") == ticker), None)
+    if sm_match:
+        st.markdown(f"**🐋 Smart Money Consensus:** {sm_match.get('n_funds',0)} funds · Signal {sm_match.get('signal','—')}", unsafe_allow_html=True)
+
+    cr = snap.get("capital_rotation", {})
+    cr_roles = cr.get("ticker_roles", {}) if isinstance(cr, dict) else {}
+    if ticker in cr_roles:
+        st.markdown(f"**🔄 Capital Rotation:** {cr_roles[ticker].replace('_',' ').title()}", unsafe_allow_html=True)
+
+    vrp = snap.get("vrp_scanner", {})
+    if isinstance(vrp, dict) and vrp.get("ok"):
+        vrp_item = next((i for i in vrp.get("high_vrp_sell_premium",[]) if isinstance(i, dict) and i.get("ticker")==ticker), None)
+        if not vrp_item:
+            vrp_item = next((i for i in vrp.get("low_vrp_buy_premium",[]) if isinstance(i, dict) and i.get("ticker")==ticker), None)
+        if vrp_item:
+            st.markdown(f"**📊 VRP:** {vrp_item.get('vrp_pct',0):.0f}% · IV Rank {vrp_item.get('iv_rank','—')}", unsafe_allow_html=True)
+
+    sq = snap.get("squeeze_scanner", {})
+    if isinstance(sq, dict) and sq.get("ok"):
+        sq_item = next((i for i in sq.get("imminent_squeezes",[]) if isinstance(i, dict) and i.get("ticker")==ticker), None)
+        if not sq_item:
+            sq_item = next((i for i in sq.get("strong_candidates",[]) if isinstance(i, dict) and i.get("ticker")==ticker), None)
+        if sq_item:
+            st.markdown(f"**🔥 Squeeze Score:** {sq_item.get('squeeze_score',0):.0f}/100 · Tier {sq_item.get('tier','—')}", unsafe_allow_html=True)
+
     methods = []
     cs = (snap.get("composite_signals", {}) or {}).get(ticker)
     if cs:
@@ -4576,6 +4766,34 @@ def render_ticker_detail_comprehensive(ticker, snap):
         st.markdown("### 🌊 Dark Pool")
         if dp_imb:
             st.markdown(f"Imbalance: {dp_imb['imbalance']:+.0f}% · Divergence: {dp_imb['div_text']}")
+    # Crypto On-Chain Intelligence
+    if "-USD" in ticker or ticker in ["BTC-USD","ETH-USD","SOL-USD","XRP-USD","DOGE-USD","ADA-USD","AVAX-USD","DOT-USD","MATIC-USD","LINK-USD","UNI-USD","LTC-USD"]:
+        cc_tokens = snap.get("crypto_tokens", {})
+        cc_data = cc_tokens.get(ticker, {}) if isinstance(cc_tokens, dict) else {}
+        if cc_data and isinstance(cc_data, dict):
+            st.markdown("### ⛓️ On-Chain Intelligence")
+            whale = cc_data.get("whale_signal", "NEUTRAL")
+            wcolor = "#3FB950" if whale == "ACCUMULATING" else "#F85149" if whale == "DISTRIBUTING" else "#8B949E"
+            st.markdown(f"**Whale Signal:** <span style='color:{wcolor};font-weight:700;'>{whale}</span>", unsafe_allow_html=True)
+            st.markdown(f"**Funding Proxy:** {cc_data.get('funding_proxy', 0):.6f}")
+            st.markdown(f"**R7D:** {cc_data.get('r7d', 0):+.1%} · **R1M:** {cc_data.get('r1m', 0):+.1%}")
+            st.markdown(f"**Large Orders:** {'🚨 Detected' if cc_data.get('large_orders_detected') else '—'}")
+            st.markdown(f"**Trend:** {cc_data.get('trend_direction', '—')}")
+    # IHSG Broker Intelligence
+    # Crypto On-Chain Intelligence
+    if "-USD" in ticker or ticker.upper() in ["BTC-USD","ETH-USD","SOL-USD","XRP-USD","DOGE-USD","ADA-USD","AVAX-USD","DOT-USD","MATIC-USD","LINK-USD","UNI-USD","LTC-USD"]:
+        cc_tokens = snap.get("crypto_tokens", {})
+        cc_data = cc_tokens.get(ticker, {}) if isinstance(cc_tokens, dict) else {}
+        if cc_data and isinstance(cc_data, dict):
+            st.markdown("### ⛓️ On-Chain Intelligence")
+            whale = cc_data.get("whale_signal", "NEUTRAL")
+            wcolor = "#3FB950" if whale == "ACCUMULATING" else "#F85149" if whale == "DISTRIBUTING" else "#8B949E"
+            st.markdown(f"**Whale Signal:** <span style='color:{wcolor};font-weight:700;'>{whale}</span>", unsafe_allow_html=True)
+            st.markdown(f"**Funding Proxy:** {cc_data.get('funding_proxy', 0):.6f}")
+            st.markdown(f"**R7D:** {cc_data.get('r7d', 0):+.1%} · **R1M:** {cc_data.get('r1m', 0):+.1%}")
+            st.markdown(f"**Large Orders:** {'🚨 Detected' if cc_data.get('large_orders_detected') else '—'}")
+            st.markdown(f"**Trend:** {cc_data.get('trend_direction', '—')}")
+    # IHSG Broker Intelligence
     if ticker.endswith(".JK"):
         broker = (snap.get("ihsg_broker_proxy", {}) or {}).get(ticker)
         if broker:

@@ -2751,17 +2751,20 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                                 for t, r in gate_results.items()
                             }
                             passed_gate_tickers = {t for t, r in gate_results.items() if r.get("gate_status") == "PASS"}
-                            passed_tickers = passed_tickers.intersection(passed_gate_tickers) if passed_tickers else passed_gate_tickers
+                            # v39.1 FIX: Gatekeeper runs background-only, does NOT filter main alpha_center
+                            # passed_tickers = passed_tickers.intersection(passed_gate_tickers) if passed_tickers else passed_gate_tickers
+                            passed_gate_tickers = set()  # background-only, no filtering
                             logger.info(f"Alpha gatekeeper: {len(passed_gate_tickers)}/{len(sim_tickers)} passed")
                         except Exception as e:
                             logger.warning(f"Alpha gatekeeper failed: {e}")
                             result["alpha_gatekeeper"] = {}
 
 
+                    # v39.1 FIX: Simulation runs background-only; all tickers stay visible
                     passed_tickers = {t for t, r in sim_results.items() if r.passes_filter}
-                    result["alpha_center"]["all"] = [i for i in result["alpha_center"]["all"] if i.get("ticker") in passed_tickers]
-                    result["alpha_center"]["level_1"] = [i for i in result["alpha_center"]["level_1"] if i.get("ticker") in passed_tickers]
-                    result["alpha_center"]["level_2"] = [i for i in result["alpha_center"]["level_2"] if i.get("ticker") in passed_tickers]
+                    # result["alpha_center"]["all"] = [i for i in result["alpha_center"]["all"] if i.get("ticker") in passed_tickers]  # REMOVED
+                    # result["alpha_center"]["level_1"] = [i for i in result["alpha_center"]["level_1"] if i.get("ticker") in passed_tickers]  # REMOVED
+                    # result["alpha_center"]["level_2"] = [i for i in result["alpha_center"]["level_2"] if i.get("ticker") in passed_tickers]  # REMOVED
                     result["daily_signals"] = result["alpha_center"]["all"][:20]
                     for item in result["alpha_center"]["all"]:
                         t = item.get("ticker")

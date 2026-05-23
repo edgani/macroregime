@@ -1080,6 +1080,11 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
         "cot_data": cot_data, "cot_signal": cot_signal, "cot_confidence": cot_confidence,
         "unusual_activity": unusual,
         "chase_status": chase_status, "chase_color": chase_color, "chase_text": chase_text,
+        "walkforward": {},
+        "gatekeeper": {},
+        "hedgeye_size": None,
+        "keith_sync": {},
+        "vix_bucket": "NORMAL",
         "dp_boost": dp_boost,
     }
 
@@ -1180,7 +1185,15 @@ def build_ticker_rows(tickers, market_type="us_equity", vix_now=20, gamma_data=N
     for t in tickers:
         if market_type == "ihsg": r = _build_ihsg_row(t, prices, ar, snap=snap)
         else: r = _build_row(t, prices, ar, vix_now=vix_now, gamma_data=gamma_data, greeks_data=greeks_data, market_type=market_type, news=news, snap=snap)
-        if r: rows.append(r)
+        if r:
+            # Inject v39 data from snap
+            if snap:
+                r["walkforward"] = (snap.get("walkforward_results") or {}).get(t, {})
+                r["gatekeeper"] = (snap.get("alpha_gatekeeper") or {}).get(t, {})
+                r["keith_sync"] = (snap.get("keith_sync") or {}).get(t, {})
+                r["hedgeye_size"] = next((p for p in (snap.get("hedgeye_position_sizing") or {}).get("positions", []) if p.get("ticker") == t), None)
+                r["vix_bucket"] = (snap.get("vix_bucket") or {}).get("bucket", "NORMAL")
+            rows.append(r)
     if sim_results:
         rows = filter_by_simulation(rows, sim_results, threshold=65, require_pass=True)
     return rows
@@ -2910,7 +2923,7 @@ def page_dashboard():
     markov = snap.get("markov_v3", {}) or {}
     behavioral = snap.get("behavioral_macro", {}) or {}
 
-    k1, k2, k3, k4 = st.columns(4)
+    k1, k2, k3, k4, k5, k6, k7, k8 = st.columns(8)
     with k1:
         vix_color = "#3FB950" if vix_now < 18 else "#D29922" if vix_now < 25 else "#F85149"
         st.markdown(f'<div class="metric-grid-card">'
@@ -2944,6 +2957,32 @@ def page_dashboard():
                     f'<div class="metric-grid-value" style="color:{kelly_color};">{kelly:.0%}</div>'
                     f'<div class="metric-grid-sub">Optimal bet size</div>'
                     f'</div>', unsafe_allow_html=True)
+    with k5:
+        vix_b = (snap.get("vix_bucket") or {}).get("bucket", "—")
+        vix_l = (snap.get("vix_bucket") or {}).get("label", "—")
+        vix_c = "#3FB950" if vix_b == "INVESTABLE" else "#D29922" if vix_b == "CHOP" else "#F85149"
+        st.markdown(f'<div class="metric-grid-card">'
+                    f'<div class="metric-grid-title">VIX Bucket</div>'
+                    f'<div class="metric-grid-value" style="color:{vix_c};">{vix_b}</div>'
+                    f'<div class="metric-grid-sub">{vix_l}</div></div>', unsafe_allow_html=True)
+    with k6:
+        gk_passed = snap.get("summary", {}).get("v39_gatekeeper_passed", 0)
+        st.markdown(f'<div class="metric-grid-card">'
+                    f'<div class="metric-grid-title">Gatekeeper</div>'
+                    f'<div class="metric-grid-value" style="color:{"#3FB950" if gk_passed > 0 else "#8B949E"};">{gk_passed}</div>'
+                    f'<div class="metric-grid-sub">8-gate passed</div></div>', unsafe_allow_html=True)
+    with k7:
+        keith_ov = snap.get("summary", {}).get("v39_keith_overrides", 0)
+        st.markdown(f'<div class="metric-grid-card">'
+                    f'<div class="metric-grid-title">Keith Overrides</div>'
+                    f'<div class="metric-grid-value" style="color:{"#D29922" if keith_ov > 0 else "#8B949E"};">{keith_ov}</div>'
+                    f'<div class="metric-grid-sub">P0 signal sync</div></div>', unsafe_allow_html=True)
+    with k8:
+        wf_passed = snap.get("summary", {}).get("v39_walkforward_passed", 0)
+        st.markdown(f'<div class="metric-grid-card">'
+                    f'<div class="metric-grid-title">Walkforward</div>'
+                    f'<div class="metric-grid-value" style="color:{"#3FB950" if wf_passed > 0 else "#8B949E"};">{wf_passed}</div>'
+                    f'<div class="metric-grid-sub">MC 100x passed</div></div>', unsafe_allow_html=True)
 
     st.divider()
 
@@ -3137,6 +3176,79 @@ def page_alpha():
                     unsafe_allow_html=True)
 
     st.divider()
+
+
+        # ── v39: Gatekeeper + Walkforward Status ──
+        gk_data = snap.get("alpha_gatekeeper", {})
+        wf_data = snap.get("walkforward_results", {})
+        if gk_data or wf_data:
+            st.markdown("### 🛡️ Alpha Gatekeeper & Walkforward")
+            gk_passed = [t for t, r in gk_data.items() if isinstance(r, dict) and r.get("gate_status") == "PASS"]
+            gk_marginal = [t for t, r in gk_data.items() if isinstance(r, dict) and r.get("gate_status") == "MARGINAL"]
+            gk_failed = [t for t, r in gk_data.items() if isinstance(r, dict) and r.get("gate_status") == "FAIL"]
+            wf_passed = [t for t, r in wf_data.items() if isinstance(r, dict) and r.get("gate_status") == "PASS"]
+
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("🟢 Gatekeeper PASS", len(gk_passed))
+            c2.metric("🟡 Gatekeeper MARGINAL", len(gk_marginal))
+            c3.metric("🔴 Gatekeeper FAIL", len(gk_failed))
+            c4.metric("✅ Walkforward PASS", len(wf_passed))
+
+            if gk_passed:
+                st.markdown("<div style='font-size:0.7rem;color:#3FB950;margin:4px 0;'><b>Gatekeeper Passed:</b> " + ", ".join(gk_passed[:15]) + ("..." if len(gk_passed) > 15 else "") + "</div>", unsafe_allow_html=True)
+            if gk_marginal:
+                st.markdown("<div style='font-size:0.7rem;color:#D29922;margin:4px 0;'><b>Gatekeeper Marginal:</b> " + ", ".join(gk_marginal[:10]) + ("..." if len(gk_marginal) > 10 else "") + "</div>", unsafe_allow_html=True)
+
+            # Show gatekeeper details table
+            gk_details = []
+            for t, r in list(gk_data.items())[:20]:
+                if isinstance(r, dict):
+                    gk_details.append({
+                        "Ticker": t,
+                        "Status": r.get("gate_status", "—"),
+                        "Score": f"{r.get('combined_score', 0):.1f}",
+                        "Rec": r.get("recommendation", "—"),
+                        "Basis": r.get("basis", "")[:60],
+                    })
+            if gk_details:
+                st.dataframe(pd.DataFrame(gk_details), use_container_width=True, hide_index=True)
+
+        # ── v39: Hedgeye Position Sizing ──
+        hp = snap.get("hedgeye_position_sizing", {})
+        if hp and hp.get("positions"):
+            st.markdown("### 💰 Hedgeye Position Sizing")
+            st.markdown(f"<div style='font-size:0.7rem;color:#8B949E;'>Deployed: <b>{hp.get('total_deployed_pct', 0):.1f}%</b> · Cash: <b>{hp.get('cash_pct', 0):.1f}%</b> · VIX Mult: <b>{hp.get('vix_multiplier', 1.0):.2f}x</b></div>", unsafe_allow_html=True)
+            hp_df = []
+            for p in hp.get("positions", [])[:15]:
+                if isinstance(p, dict):
+                    hp_df.append({
+                        "Ticker": p.get("ticker", "—"),
+                        "Size %": f"{p.get('size_pct', 0):.2f}%",
+                        "Size $": f"{p.get('dollar_size', 0):,.0f}",
+                        "Conviction": f"{p.get('conviction', 0):.0%}",
+                        "Mode": p.get("mode", "—"),
+                    })
+            if hp_df:
+                st.dataframe(pd.DataFrame(hp_df), use_container_width=True, hide_index=True)
+
+        # ── v39: Keith Signal Sync Status ──
+        ks = snap.get("keith_sync", {})
+        if ks:
+            overrides = [(t, v) for t, v in ks.items() if isinstance(v, dict) and v.get("override")]
+            if overrides:
+                st.markdown("### 🎙️ Keith Signal Overrides (P0)")
+                for t, v in overrides[:10]:
+                    orig = v.get("original_direction", "—")
+                    new = v.get("direction", "—")
+                    basis = v.get("basis", "")[:80]
+                    color = "#3FB950" if new == "LONG" else "#F85149" if new == "SHORT" else "#D29922"
+                    st.markdown(
+                        f'<div style="display:flex;align-items:center;gap:8px;padding:5px 10px;background:#161B22;border:1px solid #30363D;border-radius:6px;margin:3px 0;">'
+                        f'<span style="font-weight:700;font-size:0.8rem;color:#E6EDF3;min-width:60px;">{t}</span>'
+                        f'<span style="font-size:0.65rem;color:#8B949E;">{orig} → </span>'
+                        f'<span style="font-size:0.75rem;color:{color};font-weight:700;">{new}</span>'
+                        f'<span style="flex:1;font-size:0.65rem;color:#484F58;">{basis}</span>'
+                        f'</div>', unsafe_allow_html=True)
 
     tab1, tab2, tab3, tab4 = st.tabs(["🏆 Top Picks", "🔮 Front-Run", "📊 Vol & Squeeze", "🧠 Discovery"])
 
@@ -3828,6 +3940,32 @@ def page_themes():
                 st.markdown(f'<div style="font-size:0.78rem;color:#8B949E;">Worst: <span style="color:#F85149;font-weight:700;">{s.get("worst_asset","—")} {s.get("worst_dd",0):.0%}</span> · Best: <span style="color:#3FB950;font-weight:700;">{s.get("best_asset","—")} {s.get("best_dd",0):.0%}</span></div>', unsafe_allow_html=True)
                 st.markdown(f'<div style="font-size:0.78rem;color:#8B949E;margin-top:4px;">Hedge: <span style="color:#E6EDF3;">{s.get("hedge","—")}</span></div>', unsafe_allow_html=True)
     else: st.caption("Stress test unavailable")
+
+    st.divider()
+    st.markdown("### 🛡️ v39 Engine Status")
+    v39_engines_status = [
+        ("🎲 Walkforward", "MC 100x backtest gatekeeper", snap.get("walkforward_results")),
+        ("🛡️ Gatekeeper", "8-gate alpha validator", snap.get("alpha_gatekeeper")),
+        ("📊 VIX Bucket", "Hedgeye vol regime sizing", snap.get("vix_bucket")),
+        ("💰 Hedgeye Sizing", "Exact position sizing (2-6%)", snap.get("hedgeye_position_sizing")),
+        ("🎙️ Keith Sync", "Tweet signal P0 override", snap.get("keith_sync")),
+        ("🎯 Entry Decision", "Multi-signal entry engine", snap.get("entry_decisions")),
+        ("🔮 Alpha Synthesis", "8 hybrid frameworks", snap.get("alpha_synthesis")),
+        ("📅 Daily Plays", "Day-trade scan engine", snap.get("daily_plays")),
+        ("⏱️ Movement Timing", "Regime timing detector", snap.get("movement_regimes")),
+        ("🇮🇩 IHSG Specialist", "Goreng + konglomerasi", snap.get("ihsg_specialist")),
+        ("🔗 Chain Reaction", "Supply chain projection", snap.get("chain_reaction")),
+        ("🔮 Front-Run", "News catalyst scanner", snap.get("frontrun_signals")),
+        ("🧠 Methodology Pack", "6 investor scores", snap.get("methodology_scores")),
+    ]
+    cols = st.columns(4)
+    for i, (name, desc, data) in enumerate(v39_engines_status):
+        status = "🟢" if data else "⚪"
+        color = "#3FB950" if data else "#484F58"
+        cols[i % 4].markdown(f"<span style='color:{color};font-size:0.75rem;'>{status} {name}</span>", unsafe_allow_html=True)
+        if data and isinstance(data, dict) and len(data) > 0:
+            cols[i % 4].caption(f"{len(data)} items")
+
     st.divider()
     st.markdown("### 🧠 Methodology Lens")
     methodologies = [
@@ -3850,6 +3988,51 @@ def page_themes():
 # ═══════════════════════════════════════════════════════════════════
 def page_portfolio_stress():
     st.markdown("## 📊 Portfolio Stress & Correlation")
+
+    # ── v39: Walkforward + Gatekeeper Stress ──
+    st.markdown("### 🛡️ Walkforward & Gatekeeper Stress")
+    wf = snap.get("walkforward_results", {})
+    gk = snap.get("alpha_gatekeeper", {})
+    if wf or gk:
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            wf_scores = [v.get("combined_gate_score", 0) for v in wf.values() if isinstance(v, dict)]
+            if wf_scores:
+                fig = go.Figure()
+                fig.add_trace(go.Histogram(x=wf_scores, nbinsx=15, marker_color='#58A6FF', opacity=0.7))
+                fig.add_vline(x=55, line_dash="dash", line_color="#F85149", annotation_text="Threshold 55")
+                fig.update_layout(height=200, paper_bgcolor='#0D1117', plot_bgcolor='#0D1117',
+                                  font=dict(color='#E6EDF3', size=10), margin=dict(l=40,r=40,t=20,b=40),
+                                  xaxis=dict(title='WF Gate Score', showgrid=True, gridcolor='#21262D'),
+                                  yaxis=dict(title='Count', showgrid=True, gridcolor='#21262D'),
+                                  showlegend=False)
+                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False}, key="wf_hist_v39")
+        with c2:
+            gk_scores = [v.get("combined_score", 0) for v in gk.values() if isinstance(v, dict)]
+            if gk_scores:
+                fig = go.Figure()
+                fig.add_trace(go.Histogram(x=gk_scores, nbinsx=15, marker_color='#A855F7', opacity=0.7))
+                fig.add_vline(x=65, line_dash="dash", line_color="#F85149", annotation_text="Threshold 65")
+                fig.update_layout(height=200, paper_bgcolor='#0D1117', plot_bgcolor='#0D1117',
+                                  font=dict(color='#E6EDF3', size=10), margin=dict(l=40,r=40,t=20,b=40),
+                                  xaxis=dict(title='Gatekeeper Score', showgrid=True, gridcolor='#21262D'),
+                                  yaxis=dict(title='Count', showgrid=True, gridcolor='#21262D'),
+                                  showlegend=False)
+                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False}, key="gk_hist_v39")
+        with c3:
+            st.markdown("<div style='font-size:0.7rem;color:#8B949E;'><b>Gate Status Distribution</b></div>", unsafe_allow_html=True)
+            gk_pass = sum(1 for v in gk.values() if isinstance(v, dict) and v.get("gate_status") == "PASS")
+            gk_marg = sum(1 for v in gk.values() if isinstance(v, dict) and v.get("gate_status") == "MARGINAL")
+            gk_fail = sum(1 for v in gk.values() if isinstance(v, dict) and v.get("gate_status") == "FAIL")
+            total_gk = gk_pass + gk_marg + gk_fail
+            if total_gk > 0:
+                st.markdown(_stacked_bar_html(gk_pass/total_gk*100, gk_marg/total_gk*100, gk_fail/total_gk*100), unsafe_allow_html=True)
+                st.markdown(f"<div style='font-size:0.6rem;color:#484F58;'>PASS {gk_pass} · MARGINAL {gk_marg} · FAIL {gk_fail}</div>", unsafe_allow_html=True)
+    else:
+        st.caption("Walkforward/Gatekeeper data not available")
+
+    st.divider()
+
 
     # ── AFS (Anti-Fragility Score) ──
     afs = snap.get("afs_data", {}) or {}

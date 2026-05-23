@@ -573,6 +573,49 @@ except Exception as e:
     _V39_TIER_S["methodology_pack"] = False
     def evaluate_all_pack(*a, **k): return {}
 
+try:
+    from engines.walkforward_backtest_engine import batch_gatekeeper
+    _V39_TIER_S["walkforward"] = True
+except Exception as e:
+    logger.error(f"Failed to import walkforward_backtest_engine: {e}")
+    _V39_TIER_S["walkforward"] = False
+    def batch_gatekeeper(*a, **k): return {}
+
+try:
+    from engines.alpha_gatekeeper import batch_evaluate
+    _V39_TIER_S["alpha_gatekeeper"] = True
+except Exception as e:
+    logger.error(f"Failed to import alpha_gatekeeper: {e}")
+    _V39_TIER_S["alpha_gatekeeper"] = False
+    def batch_evaluate(*a, **k): return {}
+
+try:
+    from engines.vix_bucket_engine import classify_vix_bucket, apply_vix_position_sizing
+    _V39_TIER_S["vix_bucket"] = True
+except Exception as e:
+    logger.error(f"Failed to import vix_bucket_engine: {e}")
+    _V39_TIER_S["vix_bucket"] = False
+    def classify_vix_bucket(*a, **k): return {"bucket": "NORMAL", "label": "Investable", "multiplier": 1.0}
+    def apply_vix_position_sizing(*a, **k): return k[1] if len(k) > 1 else 0
+
+try:
+    from engines.hedgeye_position_sizing import calculate_position_size
+    _V39_TIER_S["hedgeye_sizing"] = True
+except Exception as e:
+    logger.error(f"Failed to import hedgeye_position_sizing: {e}")
+    _V39_TIER_S["hedgeye_sizing"] = False
+    def calculate_position_size(*a, **k): return {"size_pct": 0.02, "dollar_size": 2000, "mode": "DEFAULT"}
+
+try:
+    from engines.keith_signal_sync import resolve_direction, should_avoid, KEITH_SIGNAL_MAP
+    _V39_TIER_S["keith_sync"] = True
+except Exception as e:
+    logger.error(f"Failed to import keith_signal_sync: {e}")
+    _V39_TIER_S["keith_sync"] = False
+    def resolve_direction(*a, **k): return k[1] if len(k) > 1 else "LONG"
+    def should_avoid(*a, **k): return False
+    KEITH_SIGNAL_MAP = {}
+
 logger.info(
     f"V39 engines loaded: cascade={_V2_CASCADE} yves={_V2_YVES} sizing={_V2_SIZING} "
     f"discovery={_V2_DISCOVERY} cem={_V2_CEM} expander={_V2_EXPANDER} "
@@ -1880,6 +1923,14 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             except Exception:
                 pass
 
+        # ---- VIX Bucket (v39) ----
+        try:
+            vix_bucket = classify_vix_bucket(vix_last)
+            result["vix_bucket"] = vix_bucket
+        except Exception as e:
+            logger.warning(f"VIX bucket failed: {e}")
+            result["vix_bucket"] = {"bucket": "NORMAL", "label": "Investable", "multiplier": 1.0}
+
         # ---- DXY ----
         dxy_s = prices.get("DX-Y.NYB")
         dxy_ret = 0.0
@@ -2623,6 +2674,31 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                             except Exception: pass
                         unusual_map[t] = ua
 
+                    # ---- Walkforward Backtest (v39) ----
+                    if _V39_TIER_S.get("walkforward"):
+                        _safe_progress(progress_cb, "Running walkforward backtest gatekeeper...", 0.785)
+                        try:
+                            wf_results = batch_gatekeeper(
+                                tickers=sim_tickers,
+                                prices=prices,
+                                setups=sim_setups,
+                                options_map=result.get("greeks_data"),
+                            )
+                            result["walkforward_results"] = {
+                                t: {
+                                    "walkforward_score": r.get("walkforward_score", 0),
+                                    "mc_score": r.get("mc_score", 0),
+                                    "combined_gate_score": r.get("combined_gate_score", 0),
+                                    "gate_status": r.get("gate_status", "FAIL"),
+                                    "optimal_stop_adj": r.get("optimal_stop_adj", 0),
+                                    "optimal_target_adj": r.get("optimal_target_adj", 0),
+                                }
+                                for t, r in wf_results.items()
+                            }
+                        except Exception as e:
+                            logger.warning(f"Walkforward failed: {e}")
+                            result["walkforward_results"] = {}
+
                     sim_results = run_simulation_batch(
                         sim_tickers, prices, sim_setups,
                         options_map=result.get("greeks_data"),
@@ -2647,6 +2723,41 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                         for t, r in sim_results.items()
                     }
                     result["simulation_summary"] = get_simulation_summary(sim_results)
+                    # ---- Alpha Gatekeeper (v39 8-gate validator) ----
+                    if _V39_TIER_S.get("alpha_gatekeeper"):
+                        _safe_progress(progress_cb, "Running alpha gatekeeper (8 gates)...", 0.790)
+                        try:
+                            market_map = {}
+                            direction_map = {}
+                            for t in sim_tickers:
+                                cs = result.get("composite_signals", {}).get(t, {})
+                                rr = result.get("risk_ranges", {}).get("asset_ranges", {}).get(t, {})
+                                market_map[t] = rr.get("market", "us_equity") if isinstance(rr, dict) else "us_equity"
+                                direction_map[t] = cs.get("direction", "LONG") if isinstance(cs, dict) else "LONG"
+                            gate_results = batch_evaluate(
+                                tickers=sim_tickers,
+                                market_map=market_map,
+                                direction_map=direction_map,
+                                data_snap=result,
+                                current_quad=quad,
+                            )
+                            result["alpha_gatekeeper"] = {
+                                t: {
+                                    "gate_status": r.get("gate_status", "FAIL"),
+                                    "combined_score": r.get("combined_score", 0),
+                                    "recommendation": r.get("recommendation", "AVOID"),
+                                    "basis": r.get("basis", ""),
+                                }
+                                for t, r in gate_results.items()
+                            }
+                            passed_gate_tickers = {t for t, r in gate_results.items() if r.get("gate_status") == "PASS"}
+                            passed_tickers = passed_tickers.intersection(passed_gate_tickers) if passed_tickers else passed_gate_tickers
+                            logger.info(f"Alpha gatekeeper: {len(passed_gate_tickers)}/{len(sim_tickers)} passed")
+                        except Exception as e:
+                            logger.warning(f"Alpha gatekeeper failed: {e}")
+                            result["alpha_gatekeeper"] = {}
+
+
                     passed_tickers = {t for t, r in sim_results.items() if r.passes_filter}
                     result["alpha_center"]["all"] = [i for i in result["alpha_center"]["all"] if i.get("ticker") in passed_tickers]
                     result["alpha_center"]["level_1"] = [i for i in result["alpha_center"]["level_1"] if i.get("ticker") in passed_tickers]
@@ -2693,7 +2804,47 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                 logger.warning(f"Simulation layer failed: {e}")
                 result["errors"].append(f"simulation: {e}")
 
-        # ---- Conviction Sizing ----
+        # ---- Hedgeye Position Sizing (v39 exact) ----
+        _safe_progress(progress_cb, "Calculating Hedgeye position sizing...", 0.855)
+        try:
+            hedgeye_sized = []
+            alpha_items = result.get("alpha_center", {}).get("all", [])
+            vix_mult = result.get("vix_bucket", {}).get("multiplier", 1.0)
+            for item in alpha_items:
+                t = item.get("ticker")
+                if not t: continue
+                gate = (result.get("alpha_gatekeeper", {}).get(t) or {}).get("gate_status", "FAIL")
+                wf = (result.get("walkforward_results", {}).get(t) or {}).get("combined_gate_score", 0)
+                sim_score = (result.get("simulation_results", {}).get(t) or {}).get("robustness_score", 0)
+                conviction = 0.8 if gate == "PASS" else 0.5
+                if wf >= 70: conviction += 0.1
+                if sim_score >= 70: conviction += 0.1
+                conviction = min(1.0, conviction)
+                if _V39_TIER_S.get("hedgeye_sizing"):
+                    sized = calculate_position_size(
+                        ticker=t,
+                        conviction=conviction,
+                        vix_bucket=result.get("vix_bucket"),
+                        quad=quad,
+                        portfolio_value=float(kwargs.get("portfolio_value", 100_000) or 100_000),
+                        existing_exposure=sum(x.get("dollar_size", 0) for x in hedgeye_sized),
+                    )
+                else:
+                    sized = {"size_pct": 0.02 * conviction * vix_mult, "dollar_size": 2000 * conviction * vix_mult, "mode": "DEFAULT"}
+                sized["ticker"] = t
+                sized["conviction"] = conviction
+                hedgeye_sized.append(sized)
+            result["hedgeye_position_sizing"] = {
+                "positions": hedgeye_sized,
+                "total_deployed_pct": sum(p.get("size_pct", 0) for p in hedgeye_sized),
+                "cash_pct": max(0, 1.0 - sum(p.get("size_pct", 0) for p in hedgeye_sized)),
+                "vix_multiplier": vix_mult,
+            }
+        except Exception as e:
+            logger.warning(f"Hedgeye sizing failed: {e}")
+            result["hedgeye_position_sizing"] = {"positions": [], "total_deployed_pct": 0, "cash_pct": 1.0, "vix_multiplier": 1.0}
+
+        # ---- Legacy Conviction Sizing (fallback) ----
         _safe_progress(progress_cb, "Calculating conviction sizing...", 0.85)
         try:
             sizing = run_sizing(result.get("alpha_center", {}).get("all", []), result.get("gamma_data", {}),
@@ -2968,6 +3119,14 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             "v27_portfolio_dd": result.get("portfolio_stress", {}).get("worst_case_dd_pct", 0),
             "v27_options_mapped": len(result.get("options_pnl_simulator", {})),
             # v39 NEW — TIER S engine outputs
+            "v39_vix_bucket": (result.get("vix_bucket") or {}).get("bucket", "—"),
+            "v39_vix_label": (result.get("vix_bucket") or {}).get("label", "—"),
+            "v39_keith_overrides": sum(1 for v in (result.get("keith_sync") or {}).values() if isinstance(v, dict) and v.get("override")),
+            "v39_walkforward_passed": sum(1 for v in (result.get("walkforward_results") or {}).values() if v.get("gate_status") == "PASS"),
+            "v39_gatekeeper_passed": sum(1 for v in (result.get("alpha_gatekeeper") or {}).values() if v.get("gate_status") == "PASS"),
+            "v39_gatekeeper_marginal": sum(1 for v in (result.get("alpha_gatekeeper") or {}).values() if v.get("gate_status") == "MARGINAL"),
+            "v39_hedgeye_positions": len((result.get("hedgeye_position_sizing") or {}).get("positions", [])),
+            "v39_hedgeye_deployed": (result.get("hedgeye_position_sizing") or {}).get("total_deployed_pct", 0),
             "v39_alpha_synthesis_signals": len(result.get("alpha_synthesis", {}).get("top_signals", [])),
             "v39_entry_decisions": len(result.get("entry_decisions", {})),
             "v39_movement_regimes": len(result.get("movement_regimes", {})),

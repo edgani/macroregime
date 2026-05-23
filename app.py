@@ -1963,7 +1963,7 @@ def render_ticker_card_v4(row, expanded=False):
     options = row.get("options", {})
     market_type = row.get("market_type", "us_equity")
     show_options = market_type != "ihsg"
-    snap_local = st.session_state.snap
+    snap_local = st.session_state.get("snap")
 
     formation = row.get("formation", "NEUTRAL")
     setup_valid = row.get("setup_valid", True)
@@ -2144,7 +2144,7 @@ def render_ticker_card_v4(row, expanded=False):
     st.markdown(card_html, unsafe_allow_html=True)
 
     # ── Trade Setup Expander ──
-    with st.expander("🎯 Trade Setup", expanded=expanded):
+    with st.expander("🔍 Toggle Full Details — Greeks · GEX · Dark Pool · OI · Sim", expanded=expanded):
         # Alpha thesis
         alpha_thesis = row.get("alpha_thesis", "")
         alpha_src = row.get("alpha_source", "")
@@ -2646,7 +2646,7 @@ def render_ticker_cards_v4(rows, max_rows=30):
         return
     st.markdown(f'<div style="font-size:0.72rem;color:#8B949E;margin-bottom:4px;">Showing {min(len(rows), max_rows)} of {len(rows)} setups</div>', unsafe_allow_html=True)
     for i, r in enumerate(rows[:max_rows]):
-        render_ticker_card_v4(r, expanded=(i < 2))
+        render_ticker_card_v4(r, expanded=(i < 5))
 
 # ═══════════════════════════════════════════════════════════════════
 # REGIME COMPASS

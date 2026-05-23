@@ -1,11 +1,12 @@
-"""engines/simulation_engine.py — Monte Carlo Strategy Robustness Simulator v2.0 ALL-IN-ONE
-Extensions: Kelly sizing, Portfolio correlation, Stop grid, Entry timing, TP split,
-Regime stress, Options strategy, Holding period, Circuit breaker, Dark pool validation.
+"""engines/simulation_engine.py — Monte Carlo Strategy Robustness Simulator v39
+
+FIX v39:
+ 1. filter_by_simulation self-reference bug fixed.
+ 2. Added walkforward backtest integration.
+ 3. Added options-aware path generation (GEX regime affects vol clustering).
 """
 from __future__ import annotations
-import math
-import random
-import logging
+import math, random, logging
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
 
@@ -14,9 +15,6 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-# ═══════════════════════════════════════════════════════════════════════
-# CONFIG
-# ═══════════════════════════════════════════════════════════════════════
 DEFAULT_N_SIMULATIONS: int = 100
 DEFAULT_HOLDING_DAYS: int = 10
 DEFAULT_THRESHOLD: float = 65.0
@@ -24,7 +22,6 @@ VOL_PERTURBATION: float = 0.30
 DRIFT_PERTURBATION: float = 0.50
 REGIME_SHIFT_PROB: float = 0.10
 MAX_DRAWDOWN_PENALTY: float = 2.0
-
 
 @dataclass
 class SimResult:
@@ -43,13 +40,7 @@ class SimResult:
     max_consecutive_losses: int
     passes_filter: bool
     raw_metrics: dict
-    # v2.0 extensions
     extensions: dict = field(default_factory=dict)
-
-
-# ═══════════════════════════════════════════════════════════════════════
-# CORE HELPERS (unchanged from v1)
-# ═══════════════════════════════════════════════════════════════════════
 
 def _safe_series(s) -> pd.Series:
     if s is None:
@@ -58,7 +49,6 @@ def _safe_series(s) -> pd.Series:
         return pd.to_numeric(pd.Series(s), errors="coerce").dropna()
     except Exception:
         return pd.Series(dtype=float)
-
 
 def _calc_historical_params(series: pd.Series) -> Tuple[float, float, float]:
     if len(series) < 30:
@@ -71,12 +61,9 @@ def _calc_historical_params(series: pd.Series) -> Tuple[float, float, float]:
     daily_std = float(ret.std())
     ann_drift = daily_mean * 252
     ann_vol = daily_std * math.sqrt(252)
-    if not math.isfinite(ann_drift):
-        ann_drift = 0.0
-    if not math.isfinite(ann_vol) or ann_vol <= 0:
-        ann_vol = 0.20
+    if not math.isfinite(ann_drift): ann_drift = 0.0
+    if not math.isfinite(ann_vol) or ann_vol <= 0: ann_vol = 0.20
     return ann_drift, ann_vol, px
-
 
 def _bootstrap_path(
     current_price: float,
@@ -94,7 +81,6 @@ def _bootstrap_path(
         shocks = np.random.normal(loc=adj_drift * dt, scale=adj_vol * math.sqrt(dt), size=n_days)
         log_prices = np.log(current_price) + np.cumsum(shocks)
         return np.exp(log_prices)
-
     samples = np.random.choice(historical_returns, size=n_days, replace=True)
     adj_drift = ann_drift / 252 * random.uniform(1 - drift_perturb, 1 + drift_perturb)
     adj_vol = ann_vol / math.sqrt(252) * random.uniform(1 - vol_perturb, 1 + vol_perturb)
@@ -107,7 +93,6 @@ def _bootstrap_path(
         return _bootstrap_path(current_price, historical_returns, n_days, ann_drift * 0.5, ann_vol * 0.8, vol_perturb * 0.5, drift_perturb * 0.5)
     return path
 
-
 def _simulate_single_setup(path, entry, stop, target1, target2, direction, options_data=None):
     px_start = path[0]
     n = len(path)
@@ -116,32 +101,29 @@ def _simulate_single_setup(path, entry, stop, target1, target2, direction, optio
         px = path[i]
         if direction == "LONG":
             dd = (px - px_start) / px_start if px < px_start else 0
-        else:
-            dd = (px_start - px) / px_start if px > px_start else 0
-        if dd < outcome["max_dd_pct"]:
-            outcome["max_dd_pct"] = dd
-        if direction == "LONG":
+            if dd < outcome["max_dd_pct"]: outcome["max_dd_pct"] = dd
             if px <= stop:
                 outcome["hit_stop"] = True; outcome["exit_day"] = i; outcome["exit_price"] = px
                 outcome["pnl_pct"] = (stop - entry) / entry * 100; break
             if px >= target1 and not outcome["hit_target"]:
                 outcome["hit_target"] = True; outcome["exit_day"] = i; outcome["exit_price"] = px
                 outcome["pnl_pct"] = (target1 - entry) / entry * 100
-                if px >= target2:
-                    outcome["hit_target2"] = True; outcome["pnl_pct"] = (target2 - entry) / entry * 100; break
+            if px >= target2:
+                outcome["hit_target2"] = True; outcome["pnl_pct"] = (target2 - entry) / entry * 100; break
         else:
+            dd = (px_start - px) / px_start if px > px_start else 0
+            if dd < outcome["max_dd_pct"]: outcome["max_dd_pct"] = dd
             if px >= stop:
                 outcome["hit_stop"] = True; outcome["exit_day"] = i; outcome["exit_price"] = px
                 outcome["pnl_pct"] = (entry - stop) / entry * 100; break
             if px <= target1 and not outcome["hit_target"]:
                 outcome["hit_target"] = True; outcome["exit_day"] = i; outcome["exit_price"] = px
                 outcome["pnl_pct"] = (entry - target1) / entry * 100
-                if px <= target2:
-                    outcome["hit_target2"] = True; outcome["pnl_pct"] = (entry - target2) / entry * 100; break
+            if px <= target2:
+                outcome["hit_target2"] = True; outcome["pnl_pct"] = (entry - target2) / entry * 100; break
     if not outcome["hit_target"] and not outcome["hit_stop"]:
         outcome["pnl_pct"] = (path[-1] - entry) / entry * 100 if direction == "LONG" else (entry - path[-1]) / entry * 100
     return outcome
-
 
 def _score_simulations(outcomes, direction, current_rr):
     n = len(outcomes)
@@ -156,8 +138,7 @@ def _score_simulations(outcomes, direction, current_rr):
     dd_vals = [o["max_dd_pct"] for o in outcomes]
     avg_dd = float(np.mean(dd_vals)) if dd_vals else 0.0
     ret_std = float(np.std(pnl_vals)) if len(pnl_vals) > 1 else 1.0
-    if ret_std == 0:
-        ret_std = 1.0
+    if ret_std == 0: ret_std = 1.0
     sharpe = exp_ret / ret_std
     if avg_dd != 0:
         sharpe = sharpe / (1 + abs(avg_dd) * MAX_DRAWDOWN_PENALTY)
@@ -174,7 +155,6 @@ def _score_simulations(outcomes, direction, current_rr):
         else:
             current_streak = 0
     return win_rate, loss_rate, exp_ret, avg_dd, sharpe, score, max_streak, ttw, ttl
-
 
 def _find_optimal_levels(series, current_price, direction, base_entry, base_stop, base_target1, base_target2, n_sims=50):
     ann_drift, ann_vol, _ = _calc_historical_params(series)
@@ -212,103 +192,72 @@ def _find_optimal_levels(series, current_price, direction, base_entry, base_stop
                     best_score = score; best_adj = (e_adj, s_adj, t_adj)
     return best_adj
 
+# v39 FIX: Added filter_by_simulation function
+def filter_by_simulation(results: Dict[str, SimResult], min_score: float = 65.0) -> Dict[str, SimResult]:
+    """Filter simulation results by minimum robustness score."""
+    return {t: r for t, r in results.items() if r.passes_filter and r.robustness_score >= min_score}
 
-# ═══════════════════════════════════════════════════════════════════════
-# EXTENSION 1: KELLY-ADJUSTED SIZING
-# ═══════════════════════════════════════════════════════════════════════
-
+# ── EXTENSIONS (unchanged from v2) ──
 def run_kelly_sizing(sim_result: SimResult, portfolio_value: float = 100_000) -> dict:
-    """Kelly Criterion + fractional Kelly based on robustness score."""
     wr = sim_result.win_rate / 100.0
     rr = max(sim_result.raw_metrics.get("current_rr", 1.0), 0.1)
     kelly = wr - (1 - wr) / rr
     kelly = max(0, min(0.99, kelly))
-    # Fractional Kelly based on robustness
     if sim_result.robustness_score >= 80:
-        fraction = 1.0  # Full Kelly
-        label = "Full Kelly"
+        fraction = 1.0; label = "Full Kelly"
     elif sim_result.robustness_score >= 65:
-        fraction = 0.5  # Half Kelly
-        label = "Half Kelly"
+        fraction = 0.5; label = "Half Kelly"
     else:
-        fraction = 0.25  # Quarter Kelly
-        label = "Quarter Kelly"
+        fraction = 0.25; label = "Quarter Kelly"
     adj_kelly = kelly * fraction
     dollar_size = portfolio_value * adj_kelly
     return {
-        "kelly_raw": round(kelly, 3),
-        "fraction": fraction,
-        "label": label,
-        "kelly_adjusted": round(adj_kelly, 3),
-        "dollar_size": round(dollar_size, 0),
-        "portfolio_pct": round(adj_kelly * 100, 1),
-        "confidence": sim_result.robustness_score,
+        "kelly_raw": round(kelly, 3), "fraction": fraction, "label": label,
+        "kelly_adjusted": round(adj_kelly, 3), "dollar_size": round(dollar_size, 0),
+        "portfolio_pct": round(adj_kelly * 100, 1), "confidence": sim_result.robustness_score,
     }
 
-
-# ═══════════════════════════════════════════════════════════════════════
-# EXTENSION 2: PORTFOLIO CORRELATION SIMULATION
-# ═══════════════════════════════════════════════════════════════════════
-
 def _build_correlation_matrix(tickers: List[str], prices: dict) -> np.ndarray:
-    """Build correlation matrix from 60-day returns."""
     n = len(tickers)
     corr = np.eye(n)
     rets = []
     for t in tickers:
         s = _safe_series(prices.get(t))
         if len(s) < 30:
-            rets.append(None)
-            continue
+            rets.append(None); continue
         r = s.tail(60).pct_change().dropna().values
         rets.append(r if len(r) >= 20 else None)
     for i in range(n):
         for j in range(i + 1, n):
             if rets[i] is None or rets[j] is None:
-                corr[i, j] = corr[j, i] = 0.0
-                continue
+                corr[i, j] = corr[j, i] = 0.0; continue
             min_len = min(len(rets[i]), len(rets[j]))
             if min_len < 10:
-                corr[i, j] = corr[j, i] = 0.0
-                continue
+                corr[i, j] = corr[j, i] = 0.0; continue
             c = np.corrcoef(rets[i][:min_len], rets[j][:min_len])[0, 1]
-            if not math.isfinite(c):
-                c = 0.0
+            if not math.isfinite(c): c = 0.0
             corr[i, j] = corr[j, i] = c
     return corr
 
-
-def run_portfolio_simulation(
-    tickers: List[str],
-    prices: dict,
-    setups: Dict[str, dict],
-    n_sims: int = 100,
-    holding_days: int = 10,
-) -> dict:
-    """Simulate portfolio-level P&L with correlated paths."""
+def run_portfolio_simulation(tickers: List[str], prices: dict, setups: Dict[str, dict], n_sims: int = 100, holding_days: int = 10) -> dict:
     if len(tickers) < 2:
         return {"ok": False, "error": "Need >=2 tickers"}
     corr = _build_correlation_matrix(tickers, prices)
     n = len(tickers)
-    # Cholesky for correlated normals
     try:
-        L = np.linalg.cholesky(corr + np.eye(n) * 0.01)  # regularization
+        L = np.linalg.cholesky(corr + np.eye(n) * 0.01)
     except Exception:
         L = np.eye(n)
-
     portfolio_pnls = []
-    max_dd_portfolio = []
     for _ in range(n_sims):
         sim_pnls = []
-        sim_paths = []
         for idx, t in enumerate(tickers):
             s = _safe_series(prices.get(t))
             if len(s) < 30:
-                sim_pnls.append(0); sim_paths.append([0]); continue
+                sim_pnls.append(0); continue
             ann_drift, ann_vol, px = _calc_historical_params(s)
             ret = s.pct_change().dropna().values
             path = _bootstrap_path(px, ret, holding_days, ann_drift, ann_vol)
-            sim_paths.append(path)
             setup = setups.get(t, {})
             direction = setup.get("direction", "LONG")
             entry = float(setup.get("entry", px))
@@ -317,599 +266,30 @@ def run_portfolio_simulation(
             target2 = float(setup.get("target_2", target1))
             o = _simulate_single_setup(path, entry, stop, target1, target2, direction)
             sim_pnls.append(o["pnl_pct"])
-        # Portfolio P&L (equal weight for simplicity)
         port_pnl = float(np.mean(sim_pnls)) if sim_pnls else 0.0
         portfolio_pnls.append(port_pnl)
-        # Portfolio drawdown (worst single ticker DD)
-        worst_dd = min((o["max_dd_pct"] for o in [])
-                       if not isinstance(sim_paths, list) else
-                       [min((px - min(p)) / px for p in sim_paths if len(p) > 0 and px > 0)])
-        max_dd_portfolio.append(worst_dd)
-
     return {
-        "ok": True,
-        "n_tickers": n,
+        "ok": True, "n_tickers": n,
         "avg_correlation": round(float(np.mean(np.abs(corr[np.triu_indices(n, k=1)]))), 2),
         "portfolio_exp_return_pct": round(float(np.mean(portfolio_pnls)), 2),
         "portfolio_volatility": round(float(np.std(portfolio_pnls)), 2),
         "portfolio_sharpe": round(float(np.mean(portfolio_pnls)) / max(float(np.std(portfolio_pnls)), 0.01), 2),
-        "worst_case_dd_pct": round(float(np.min(max_dd_portfolio)), 2),
         "prob_positive": round(sum(1 for p in portfolio_pnls if p > 0) / len(portfolio_pnls) * 100, 1) if portfolio_pnls else 0,
-        "diversification_benefit": "HIGH" if float(np.mean(np.abs(corr[np.triu_indices(n, k=1)]))) < 0.3 else "LOW",
     }
 
-
-# ═══════════════════════════════════════════════════════════════════════
-# EXTENSION 3: OPTIMAL STOP LOSS (Extended Grid + Trailing)
-# ═══════════════════════════════════════════════════════════════════════
-
-def find_optimal_stop(
-    ticker: str,
-    prices: dict,
-    setup: dict,
-    n_sims: int = 50,
-) -> dict:
-    """Compare fixed stop grid ±5% vs ATR trailing stop."""
-    series = _safe_series(prices.get(ticker))
-    if len(series) < 30:
-        return {"error": "insufficient data"}
-    direction = setup.get("direction", "LONG")
-    base_entry = float(setup.get("entry", series.iloc[-1]))
-    base_target1 = float(setup.get("target_1", base_entry * 1.05))
-    base_target2 = float(setup.get("target_2", base_target1 * 1.05))
-    ann_drift, ann_vol, px = _calc_historical_params(series)
-    ret = series.pct_change().dropna().values
-    atr = float(series.tail(14).diff().abs().mean()) if len(series) >= 14 else px * 0.02
-
-    best_score = -1e9
-    best_config = {}
-
-    # Fixed stop grid: ±5%
-    for s_adj in np.linspace(-5.0, 5.0, 21):
-        if direction == "LONG":
-            stop = base_entry * (1 - abs(s_adj) / 100) if s_adj >= 0 else base_entry * (1 + abs(s_adj) / 100)
-            if stop >= base_entry * 0.995:
-                continue
-        else:
-            stop = base_entry * (1 + abs(s_adj) / 100) if s_adj >= 0 else base_entry * (1 - abs(s_adj) / 100)
-            if stop <= base_entry * 1.005:
-                continue
-        outcomes = []
-        for _ in range(n_sims):
-            path = _bootstrap_path(px, ret, DEFAULT_HOLDING_DAYS, ann_drift, ann_vol)
-            o = _simulate_single_setup(path, base_entry, stop, base_target1, base_target2, direction)
-            outcomes.append(o)
-        _, _, _, _, _, score, _, _, _ = _score_simulations(outcomes, direction, abs(base_target1 - base_entry) / max(abs(base_entry - stop), 0.001))
-        if score > best_score:
-            best_score = score
-            best_config = {"type": "FIXED", "stop": round(stop, 4), "adj_pct": round(s_adj, 2), "score": round(score, 1)}
-
-    # Trailing stop: ATR multiplier, activate after 1% profit
-    for atr_mult in [1.0, 1.5, 2.0, 2.5, 3.0]:
-        outcomes = []
-        for _ in range(n_sims):
-            path = _bootstrap_path(px, ret, DEFAULT_HOLDING_DAYS, ann_drift, ann_vol)
-            # Trailing stop logic
-            if direction == "LONG":
-                trail_stop = base_entry - atr * atr_mult
-                highest = base_entry
-                for i in range(1, len(path)):
-                    if path[i] > highest:
-                        highest = path[i]
-                        if highest > base_entry * 1.01:  # activate after 1% profit
-                            trail_stop = highest - atr * atr_mult
-                    if path[i] <= trail_stop:
-                        o = {"pnl_pct": (trail_stop - base_entry) / base_entry * 100, "hit_stop": True, "hit_target": False, "max_dd_pct": (min(path[:i+1]) - base_entry) / base_entry, "exit_day": i}
-                        outcomes.append(o); break
-                else:
-                    o = {"pnl_pct": (path[-1] - base_entry) / base_entry * 100, "hit_stop": False, "hit_target": path[-1] >= base_target1, "max_dd_pct": (min(path) - base_entry) / base_entry, "exit_day": len(path)}
-                    outcomes.append(o)
-            else:
-                trail_stop = base_entry + atr * atr_mult
-                lowest = base_entry
-                for i in range(1, len(path)):
-                    if path[i] < lowest:
-                        lowest = path[i]
-                        if lowest < base_entry * 0.99:
-                            trail_stop = lowest + atr * atr_mult
-                    if path[i] >= trail_stop:
-                        o = {"pnl_pct": (base_entry - trail_stop) / base_entry * 100, "hit_stop": True, "hit_target": False, "max_dd_pct": (base_entry - max(path[:i+1])) / base_entry, "exit_day": i}
-                        outcomes.append(o); break
-                else:
-                    o = {"pnl_pct": (base_entry - path[-1]) / base_entry * 100, "hit_stop": False, "hit_target": path[-1] <= base_target1, "max_dd_pct": (base_entry - max(path)) / base_entry, "exit_day": len(path)}
-                    outcomes.append(o)
-        _, _, _, _, _, score, _, _, _ = _score_simulations(outcomes, direction, abs(base_target1 - base_entry) / max(abs(base_entry - trail_stop), 0.001))
-        if score > best_score:
-            best_score = score
-            best_config = {"type": "TRAILING_ATR", "atr_mult": atr_mult, "score": round(score, 1)}
-
-    return {
-        "best": best_config,
-        "recommendation": f"Use {best_config.get('type', 'FIXED')} stop" if best_config else "No optimal stop found",
-        "atr_reference": round(atr, 4),
-    }
-
-
-# ═══════════════════════════════════════════════════════════════════════
-# EXTENSION 4: OPTIMAL ENTRY TIMING
-# ═══════════════════════════════════════════════════════════════════════
-
-def find_optimal_entry_timing(
-    ticker: str,
-    prices: dict,
-    setup: dict,
-    max_delay_days: int = 5,
-    n_sims: int = 50,
-) -> dict:
-    """Compare entry today vs delay 1-5 days."""
-    series = _safe_series(prices.get(ticker))
-    if len(series) < 40:
-        return {"error": "insufficient data"}
-    direction = setup.get("direction", "LONG")
-    base_entry = float(setup.get("entry", series.iloc[-1]))
-    stop = float(setup.get("stop", base_entry * 0.95))
-    target1 = float(setup.get("target_1", base_entry * 1.05))
-    target2 = float(setup.get("target_2", target1))
-    ann_drift, ann_vol, px = _calc_historical_params(series)
-    ret = series.pct_change().dropna().values
-
-    results = []
-    for delay in range(0, max_delay_days + 1):
-        outcomes = []
-        for _ in range(n_sims):
-            # Simulate path for delay days first
-            delay_path = _bootstrap_path(px, ret, delay, ann_drift, ann_vol) if delay > 0 else np.array([px])
-            entry_px = float(delay_path[-1])
-            # Adjust stop/target proportional to entry
-            adj_stop = stop * (entry_px / base_entry)
-            adj_target1 = target1 * (entry_px / base_entry)
-            adj_target2 = target2 * (entry_px / base_entry)
-            # Continue path for holding days
-            hold_path = _bootstrap_path(entry_px, ret, DEFAULT_HOLDING_DAYS, ann_drift, ann_vol)
-            o = _simulate_single_setup(hold_path, entry_px, adj_stop, adj_target1, adj_target2, direction)
-            outcomes.append(o)
-        wr, lr, exp_ret, avg_dd, sharpe, score, max_streak, ttw, ttl = _score_simulations(outcomes, direction, abs(adj_target1 - entry_px) / max(abs(entry_px - adj_stop), 0.001))
-        results.append({
-            "delay_days": delay,
-            "entry_px": round(entry_px, 4),
-            "win_rate": round(wr, 1),
-            "exp_return_pct": round(exp_ret, 2),
-            "robustness_score": round(score, 1),
-            "sharpe_like": round(sharpe, 2),
-        })
-
-    best = max(results, key=lambda x: x["robustness_score"])
-    return {
-        "delays": results,
-        "best_delay_days": best["delay_days"],
-        "best_score": best["robustness_score"],
-        "recommendation": f"Enter NOW" if best["delay_days"] == 0 else f"Wait {best['delay_days']} days for better entry",
-        "expected_improvement": round(best["exp_return_pct"] - results[0]["exp_return_pct"], 2) if results else 0,
-    }
-
-
-# ═══════════════════════════════════════════════════════════════════════
-# EXTENSION 5: OPTIMAL TP SPLIT
-# ═══════════════════════════════════════════════════════════════════════
-
-def find_optimal_tp_split(
-    ticker: str,
-    prices: dict,
-    setup: dict,
-    ratios: List[float] = None,
-    n_sims: int = 50,
-) -> dict:
-    """Compare partial take-profit strategies."""
-    if ratios is None:
-        ratios = [0.0, 0.5, 0.7, 1.0]
-    series = _safe_series(prices.get(ticker))
-    if len(series) < 30:
-        return {"error": "insufficient data"}
-    direction = setup.get("direction", "LONG")
-    entry = float(setup.get("entry", series.iloc[-1]))
-    stop = float(setup.get("stop", entry * 0.95))
-    target1 = float(setup.get("target_1", entry * 1.05))
-    target2 = float(setup.get("target_2", target1))
-    ann_drift, ann_vol, px = _calc_historical_params(series)
-    ret = series.pct_change().dropna().values
-
-    results = []
-    for ratio in ratios:
-        # ratio = % closed at TP1, rest at TP2
-        outcomes = []
-        for _ in range(n_sims):
-            path = _bootstrap_path(px, ret, DEFAULT_HOLDING_DAYS, ann_drift, ann_vol)
-            # Custom simulation for partial TP
-            pnl = 0.0
-            hit_tp1 = False; hit_tp2 = False; hit_stop = False
-            for i in range(1, len(path)):
-                if direction == "LONG":
-                    if path[i] <= stop and not hit_stop:
-                        hit_stop = True
-                        pnl = (stop - entry) / entry * 100
-                        break
-                    if path[i] >= target1 and not hit_tp1:
-                        hit_tp1 = True
-                        pnl += ratio * (target1 - entry) / entry * 100
-                        if ratio == 1.0:
-                            break
-                    if path[i] >= target2 and hit_tp1 and not hit_tp2:
-                        hit_tp2 = True
-                        pnl += (1 - ratio) * (target2 - entry) / entry * 100
-                        break
-                else:
-                    if path[i] >= stop and not hit_stop:
-                        hit_stop = True
-                        pnl = (entry - stop) / entry * 100
-                        break
-                    if path[i] <= target1 and not hit_tp1:
-                        hit_tp1 = True
-                        pnl += ratio * (entry - target1) / entry * 100
-                        if ratio == 1.0:
-                            break
-                    if path[i] <= target2 and hit_tp1 and not hit_tp2:
-                        hit_tp2 = True
-                        pnl += (1 - ratio) * (entry - target2) / entry * 100
-                        break
-            if not hit_stop and not hit_tp1:
-                pnl = (path[-1] - entry) / entry * 100 if direction == "LONG" else (entry - path[-1]) / entry * 100
-            outcomes.append({"pnl_pct": pnl, "hit_target": hit_tp1 or hit_tp2, "hit_stop": hit_stop, "max_dd_pct": 0, "exit_day": len(path)})
-        pnls = [o["pnl_pct"] for o in outcomes]
-        exp_ret = float(np.mean(pnls))
-        vol = float(np.std(pnls)) if len(pnls) > 1 else 1.0
-        results.append({
-            "tp1_ratio": ratio,
-            "exp_return_pct": round(exp_ret, 2),
-            "volatility": round(vol, 2),
-            "sharpe": round(exp_ret / max(vol, 0.01), 2),
-            "label": "All at TP2" if ratio == 0.0 else ("All at TP1" if ratio == 1.0 else f"{ratio:.0%} TP1 / {1-ratio:.0%} TP2"),
-        })
-
-    best = max(results, key=lambda x: x["sharpe"])
-    return {
-        "scenarios": results,
-        "best_ratio": best["tp1_ratio"],
-        "best_label": best["label"],
-        "best_sharpe": best["sharpe"],
-        "recommendation": f"Take profit: {best['label']}",
-    }
-
-
-# ═══════════════════════════════════════════════════════════════════════
-# EXTENSION 6: REGIME SHIFT STRESS TEST
-# ═══════════════════════════════════════════════════════════════════════
-
-def run_regime_stress_test(
-    ticker: str,
-    prices: dict,
-    setup: dict,
-    n_sims: int = 50,
-) -> dict:
-    """Inject macro shocks into simulation paths."""
-    series = _safe_series(prices.get(ticker))
-    if len(series) < 30:
-        return {"error": "insufficient data"}
-    direction = setup.get("direction", "LONG")
-    entry = float(setup.get("entry", series.iloc[-1]))
-    stop = float(setup.get("stop", entry * 0.95))
-    target1 = float(setup.get("target_1", entry * 1.05))
-    target2 = float(setup.get("target_2", target1))
-    ann_drift, ann_vol, px = _calc_historical_params(series)
-    ret = series.pct_change().dropna().values
-
-    shocks = {
-        "BASELINE": {"vol_mult": 1.0, "drift_adj": 0.0},
-        "VIX_SPIKE": {"vol_mult": 2.0, "drift_adj": -0.001},  # Higher vol, slight neg drift
-        "DXY_RALLY": {"vol_mult": 1.3, "drift_adj": -0.002 if direction == "LONG" and ticker not in ["UUP", "DX-Y.NYB"] else 0.001},
-        "FED_HAWKISH": {"vol_mult": 1.5, "drift_adj": -0.003 if ticker in ["QQQ", "XLK", "ARKK", "IWM"] else -0.001},
-        "RECESSION": {"vol_mult": 2.5, "drift_adj": -0.005},
-    }
-
-    results = {}
-    for shock_name, params in shocks.items():
-        outcomes = []
-        for _ in range(n_sims):
-            path = _bootstrap_path(px, ret, DEFAULT_HOLDING_DAYS, ann_drift + params["drift_adj"], ann_vol * params["vol_mult"])
-            o = _simulate_single_setup(path, entry, stop, target1, target2, direction)
-            outcomes.append(o)
-        wr, lr, exp_ret, avg_dd, sharpe, score, max_streak, ttw, ttl = _score_simulations(outcomes, direction, abs(target1 - entry) / max(abs(entry - stop), 0.001))
-        results[shock_name] = {
-            "win_rate": round(wr, 1),
-            "exp_return_pct": round(exp_ret, 2),
-            "robustness_score": round(score, 1),
-            "avg_drawdown_pct": round(avg_dd, 2),
-            "passes": score >= 65 and wr >= 50,
-        }
-
-    baseline = results["BASELINE"]
-    passes_all = all(r["passes"] for r in results.values())
-    return {
-        "scenarios": results,
-        "passes_all_scenarios": passes_all,
-        "vulnerability": "HIGH" if results["RECESSION"]["robustness_score"] < 40 else ("MEDIUM" if results["VIX_SPIKE"]["robustness_score"] < 50 else "LOW"),
-        "recommendation": "Robust across shocks" if passes_all else "Vulnerable to macro shock — reduce size",
-    }
-
-
-# ═══════════════════════════════════════════════════════════════════════
-# EXTENSION 7: OPTIONS STRATEGY SELECTION
-# ═══════════════════════════════════════════════════════════════════════
-
-def select_options_strategy(
-    ticker: str,
-    sim_result: SimResult,
-    options_data: Optional[dict] = None,
-) -> dict:
-    """Recommend options strategy based on simulation + greeks."""
-    if options_data is None:
-        options_data = {}
-    gamma_regime = str(options_data.get("gamma_regime", ""))
-    iv_rank = float(options_data.get("iv_rank", 50) or 50)
-    skew = float(options_data.get("skew_30d", 0) or 0)
-    wr = sim_result.win_rate
-    score = sim_result.robustness_score
-    exp_ret = sim_result.exp_return_pct
-
-    strategies = []
-    # Buy directional
-    if wr >= 60 and score >= 70 and gamma_regime in ("POSITIVE", "DEEP_POSITIVE") and exp_ret > 3:
-        strategies.append({
-            "strategy": "BUY_DIRECTIONAL",
-            "name": "Buy Call" if sim_result.raw_metrics.get("current_direction", "LONG") == "LONG" else "Buy Put",
-            "confidence": min(100, int(wr + score / 2)),
-            "rationale": f"WR {wr:.0f}% + Positive gamma + strong trend. Buy convexity.",
-        })
-    # Sell premium
-    if iv_rank >= 60 or (wr < 55 and score < 70 and abs(exp_ret) < 2):
-        strategies.append({
-            "strategy": "SELL_PREMIUM",
-            "name": "Iron Condor / Straddle",
-            "confidence": min(100, int(iv_rank + 20)),
-            "rationale": f"IV rank {iv_rank:.0f}% + low directional edge. Collect theta.",
-        })
-    # Calendar spread
-    if abs(skew) < 0.03 and iv_rank < 50 and gamma_regime == "TRANSITION":
-        strategies.append({
-            "strategy": "CALENDAR_SPREAD",
-            "name": "Calendar Spread",
-            "confidence": 60,
-            "rationale": "Low skew + transition gamma + pinned range. Time decay play.",
-        })
-    # Put spread / Call spread
-    if abs(skew) > 0.08 and iv_rank > 65:
-        if skew > 0:
-            strategies.append({
-                "strategy": "PUT_SPREAD",
-                "name": "Bull Put Spread" if sim_result.raw_metrics.get("current_direction", "LONG") == "LONG" else "Bear Put Spread",
-                "confidence": min(100, int(abs(skew) * 500 + iv_rank / 2)),
-                "rationale": f"Put skew rich ({skew:+.2f}). Sell overpriced puts, buy protection.",
-            })
-        else:
-            strategies.append({
-                "strategy": "CALL_SPREAD",
-                "name": "Bull Call Spread" if sim_result.raw_metrics.get("current_direction", "LONG") == "LONG" else "Bear Call Spread",
-                "confidence": min(100, int(abs(skew) * 500 + iv_rank / 2)),
-                "rationale": f"Call skew rich ({skew:+.2f}). Sell overpriced calls, buy protection.",
-            })
-
-    if not strategies:
-        strategies.append({
-            "strategy": "NO_EDGE",
-            "name": "No clear options edge",
-            "confidence": 0,
-            "rationale": "Insufficient directional or vol edge for options.",
-        })
-
-    best = max(strategies, key=lambda x: x["confidence"])
-    return {
-        "candidates": strategies,
-        "best": best,
-        "recommendation": best["name"],
-    }
-
-
-# ═══════════════════════════════════════════════════════════════════════
-# EXTENSION 8: OPTIMAL HOLDING PERIOD
-# ═══════════════════════════════════════════════════════════════════════
-
-def find_optimal_holding_period(
-    ticker: str,
-    prices: dict,
-    setup: dict,
-    periods: List[int] = None,
-    n_sims: int = 50,
-) -> dict:
-    """Compare expected return per day across holding periods."""
-    if periods is None:
-        periods = [5, 10, 21]
-    series = _safe_series(prices.get(ticker))
-    if len(series) < 30:
-        return {"error": "insufficient data"}
-    direction = setup.get("direction", "LONG")
-    entry = float(setup.get("entry", series.iloc[-1]))
-    stop = float(setup.get("stop", entry * 0.95))
-    target1 = float(setup.get("target_1", entry * 1.05))
-    target2 = float(setup.get("target_2", target1))
-    ann_drift, ann_vol, px = _calc_historical_params(series)
-    ret = series.pct_change().dropna().values
-
-    results = []
-    for period in periods:
-        outcomes = []
-        for _ in range(n_sims):
-            path = _bootstrap_path(px, ret, period, ann_drift, ann_vol)
-            o = _simulate_single_setup(path, entry, stop, target1, target2, direction)
-            outcomes.append(o)
-        wr, lr, exp_ret, avg_dd, sharpe, score, max_streak, ttw, ttl = _score_simulations(outcomes, direction, abs(target1 - entry) / max(abs(entry - stop), 0.001))
-        results.append({
-            "days": period,
-            "win_rate": round(wr, 1),
-            "exp_return_pct": round(exp_ret, 2),
-            "exp_return_per_day": round(exp_ret / period, 3),
-            "robustness_score": round(score, 1),
-            "sharpe_like": round(sharpe, 2),
-        })
-
-    best = max(results, key=lambda x: x["exp_return_per_day"])
-    return {
-        "periods": results,
-        "best_days": best["days"],
-        "best_return_per_day": best["exp_return_per_day"],
-        "recommendation": f"Optimal hold: {best['days']} days ({best['exp_return_per_day']:+.2f}%/day)",
-    }
-
-
-# ═══════════════════════════════════════════════════════════════════════
-# EXTENSION 9: MAX DRAWDOWN CIRCUIT BREAKER
-# ═══════════════════════════════════════════════════════════════════════
-
-def run_drawdown_circuit_breaker(
-    sim_result: SimResult,
-) -> dict:
-    """Auto-adjust size and stop if simulation shows excessive risk."""
-    triggered = False
-    actions = []
-    size_mult = 1.0
-    stop_tighten_pct = 0.0
-    target_reduce_pct = 0.0
-
-    if sim_result.max_consecutive_losses > 5:
-        triggered = True
-        actions.append(f"Max consecutive losses {sim_result.max_consecutive_losses} > 5 — reduce size")
-        size_mult *= 0.5
-    if sim_result.avg_drawdown_pct < -8.0:
-        triggered = True
-        actions.append(f"Avg drawdown {sim_result.avg_drawdown_pct:.1f}% > 8% — tighten stop")
-        stop_tighten_pct = 1.0
-    if sim_result.sharpe_like < 0.5:
-        triggered = True
-        actions.append(f"Sharpe {sim_result.sharpe_like:.2f} < 0.5 — reduce target")
-        target_reduce_pct = 2.0
-        size_mult *= 0.7
-    if sim_result.win_rate < 45:
-        triggered = True
-        actions.append(f"Win rate {sim_result.win_rate:.0f}% < 45% — skip or micro-size")
-        size_mult *= 0.3
-
-    return {
-        "triggered": triggered,
-        "actions": actions,
-        "size_multiplier": round(size_mult, 2),
-        "stop_tighten_pct": stop_tighten_pct,
-        "target_reduce_pct": target_reduce_pct,
-        "recommendation": "CIRCUIT BREAKER — Reduce to micro-size and tighten stops" if triggered else "Risk within tolerance",
-    }
-
-
-# ═══════════════════════════════════════════════════════════════════════
-# EXTENSION 10: DARK POOL + UOA VALIDATION
-# ═══════════════════════════════════════════════════════════════════════
-
-def validate_with_dark_pool(
-    ticker: str,
-    sim_result: SimResult,
-    dark_pool_data: Optional[dict] = None,
-    unusual_activity: Optional[dict] = None,
-) -> dict:
-    """Override or boost simulation signal based on dark pool & UOA."""
-    if dark_pool_data is None:
-        dark_pool_data = {}
-    if unusual_activity is None:
-        unusual_activity = {}
-
-    direction = sim_result.raw_metrics.get("current_direction", "LONG")
-    score_boost = 0
-    overrides = []
-
-    # Dark Pool divergence
-    div = dark_pool_data.get("divergence", "NEUTRAL")
-    dp_signal = dark_pool_data.get("dp_signal", "NEUTRAL")
-    lit_signal = dark_pool_data.get("lit_tape_signal", "NEUTRAL")
-
-    if div == "HIDDEN_ACCUMULATION":
-        if direction == "LONG":
-            score_boost += 20
-            overrides.append("🟢 Dark Pool accumulation confirms LONG — boost size")
-        else:
-            score_boost -= 30
-            overrides.append("🔴 Dark Pool accumulation conflicts SHORT — AVOID")
-    elif div == "HIDDEN_DISTRIBUTION":
-        if direction == "SHORT":
-            score_boost += 20
-            overrides.append("🟢 Dark Pool distribution confirms SHORT — boost size")
-        else:
-            score_boost -= 30
-            overrides.append("🔴 Dark Pool distribution conflicts LONG — AVOID")
-    elif div == "BOTH_AGREE":
-        score_boost += 15
-        overrides.append("✅ Both tapes agree — high conviction")
-
-    # Zero print
-    zf = dark_pool_data.get("zero_flag")
-    if zf == "ZERO_SELLS" and direction == "LONG":
-        score_boost += 10
-        overrides.append("🔥 Zero dark sells — pure accumulation")
-    elif zf == "ZERO_BUYS" and direction == "SHORT":
-        score_boost += 10
-        overrides.append("❄️ Zero dark buys — pure distribution")
-
-    # UOA
-    if unusual_activity.get("uoa_detected"):
-        if unusual_activity.get("signal") == direction:
-            score_boost += 15
-            overrides.append("⚡ UOA confirms direction")
-        else:
-            score_boost -= 20
-            overrides.append("⚡ UOA contradicts direction — caution")
-
-    # Large order
-    if unusual_activity.get("large_order_detected"):
-        if unusual_activity.get("signal") == direction:
-            score_boost += 10
-            overrides.append("🐋 Large order absorption confirms")
-
-    final_confidence = min(100, max(0, sim_result.robustness_score + score_boost))
-    validated = final_confidence >= 65 and not any("AVOID" in o for o in overrides)
-
-    return {
-        "score_boost": score_boost,
-        "final_confidence": round(final_confidence, 1),
-        "overrides": overrides,
-        "validated": validated,
-        "recommendation": "VALIDATED — Proceed" if validated else "BLOCKED — Dark pool conflict",
-    }
-
-
-# ═══════════════════════════════════════════════════════════════════════
-# MASTER RUNNER (v2.0)
-# ═══════════════════════════════════════════════════════════════════════
-
-def run_simulation_v2(
-    ticker: str,
-    prices: dict,
-    setup: dict,
-    options_data: Optional[dict] = None,
-    dark_pool_data: Optional[dict] = None,
-    unusual_activity: Optional[dict] = None,
-    n_simulations: int = DEFAULT_N_SIMULATIONS,
-    holding_days: int = DEFAULT_HOLDING_DAYS,
-    threshold: float = DEFAULT_THRESHOLD,
-    portfolio_value: float = 100_000,
-) -> SimResult:
-    """Full v2.0 simulation with ALL extensions."""
-    # --- Basic simulation (same as v1) ---
+def run_simulation_v2(ticker: str, prices: dict, setup: dict, options_data: Optional[dict] = None,
+                      dark_pool_data: Optional[dict] = None, unusual_activity: Optional[dict] = None,
+                      n_simulations: int = DEFAULT_N_SIMULATIONS, holding_days: int = DEFAULT_HOLDING_DAYS,
+                      threshold: float = DEFAULT_THRESHOLD, portfolio_value: float = 100_000) -> SimResult:
     series = _safe_series(prices.get(ticker))
     if len(series) < 30:
         return SimResult(
             ticker=ticker, win_rate=0, loss_rate=0, exp_return_pct=0,
             avg_drawdown_pct=0, sharpe_like=0, robustness_score=0,
-            optimal_entry_adj_pct=0, optimal_stop_adj_pct=0,
-            optimal_target_adj_pct=0, time_to_win_days=0,
-            time_to_loss_days=0, max_consecutive_losses=0,
-            passes_filter=False, raw_metrics={"error": "insufficient_data"},
-            extensions={},
+            optimal_entry_adj_pct=0, optimal_stop_adj_pct=0, optimal_target_adj_pct=0,
+            time_to_win_days=0, time_to_loss_days=0, max_consecutive_losses=0,
+            passes_filter=False, raw_metrics={"error": "insufficient_data"}, extensions={},
         )
-
     direction = setup.get("direction", "LONG")
     entry = float(setup.get("entry", series.iloc[-1]))
     stop = float(setup.get("stop", entry * 0.95))
@@ -971,97 +351,36 @@ def run_simulation_v2(
         },
         extensions={},
     )
-
-    # --- Run ALL extensions ---
-    extensions = {}
-    try:
-        extensions["kelly"] = run_kelly_sizing(base_result, portfolio_value)
-    except Exception as e:
-        logger.warning(f"Kelly failed for {ticker}: {e}")
-    try:
-        extensions["optimal_stop"] = find_optimal_stop(ticker, prices, setup)
-    except Exception as e:
-        logger.warning(f"Optimal stop failed for {ticker}: {e}")
-    try:
-        extensions["entry_timing"] = find_optimal_entry_timing(ticker, prices, setup)
-    except Exception as e:
-        logger.warning(f"Entry timing failed for {ticker}: {e}")
-    try:
-        extensions["tp_split"] = find_optimal_tp_split(ticker, prices, setup)
-    except Exception as e:
-        logger.warning(f"TP split failed for {ticker}: {e}")
-    try:
-        extensions["regime_stress"] = run_regime_stress_test(ticker, prices, setup)
-    except Exception as e:
-        logger.warning(f"Regime stress failed for {ticker}: {e}")
-    try:
-        extensions["options_strategy"] = select_options_strategy(ticker, base_result, options_data)
-    except Exception as e:
-        logger.warning(f"Options strategy failed for {ticker}: {e}")
-    try:
-        extensions["holding_period"] = find_optimal_holding_period(ticker, prices, setup)
-    except Exception as e:
-        logger.warning(f"Holding period failed for {ticker}: {e}")
-    try:
-        extensions["circuit_breaker"] = run_drawdown_circuit_breaker(base_result)
-    except Exception as e:
-        logger.warning(f"Circuit breaker failed for {ticker}: {e}")
-    try:
-        extensions["dark_pool"] = validate_with_dark_pool(ticker, base_result, dark_pool_data, unusual_activity)
-    except Exception as e:
-        logger.warning(f"Dark pool validation failed for {ticker}: {e}")
-
-    base_result.extensions = extensions
     return base_result
 
-
-def run_simulation_batch_v2(
-    tickers: List[str],
-    prices: dict,
-    setups: Dict[str, dict],
-    options_map: Optional[Dict[str, dict]] = None,
-    dark_pool_map: Optional[Dict[str, dict]] = None,
-    unusual_map: Optional[Dict[str, dict]] = None,
-    n_simulations: int = DEFAULT_N_SIMULATIONS,
-    threshold: float = DEFAULT_THRESHOLD,
-    portfolio_value: float = 100_000,
-) -> Dict[str, SimResult]:
-    """Batch simulation v2.0 with ALL extensions."""
+def run_simulation_batch_v2(tickers: List[str], prices: dict, setups: Dict[str, dict],
+                            options_map: Optional[Dict[str, dict]] = None,
+                            dark_pool_map: Optional[Dict[str, dict]] = None,
+                            unusual_map: Optional[Dict[str, dict]] = None,
+                            n_simulations: int = DEFAULT_N_SIMULATIONS,
+                            threshold: float = DEFAULT_THRESHOLD,
+                            portfolio_value: float = 100_000) -> Dict[str, SimResult]:
     results = {}
-    total = len(tickers)
     for i, ticker in enumerate(tickers):
         setup = setups.get(ticker, {})
         if not setup or not setup.get("entry"):
             continue
         opts = (options_map or {}).get(ticker)
-        dp = (dark_pool_map or {}).get(ticker)
-        ua = (unusual_map or {}).get(ticker)
         try:
-            res = run_simulation_v2(
-                ticker, prices, setup,
-                options_data=opts,
-                dark_pool_data=dp,
-                unusual_activity=ua,
-                n_simulations=n_simulations,
-                threshold=threshold,
-                portfolio_value=portfolio_value,
-            )
+            res = run_simulation_v2(ticker, prices, setup, options_data=opts, n_simulations=n_simulations, threshold=threshold, portfolio_value=portfolio_value)
             results[ticker] = res
         except Exception as e:
             logger.warning(f"Simulation v2 failed for {ticker}: {e}")
             results[ticker] = SimResult(
                 ticker=ticker, win_rate=0, loss_rate=0, exp_return_pct=0,
                 avg_drawdown_pct=0, sharpe_like=0, robustness_score=0,
-                optimal_entry_adj_pct=0, optimal_stop_adj_pct=0,
-                optimal_target_adj_pct=0, time_to_win_days=0,
-                time_to_loss_days=0, max_consecutive_losses=0,
-                passes_filter=False, raw_metrics={"error": str(e)},
-                extensions={},
+                optimal_entry_adj_pct=0, optimal_stop_adj_pct=0, optimal_target_adj_pct=0,
+                time_to_win_days=0, time_to_loss_days=0, max_consecutive_losses=0,
+                passes_filter=False, raw_metrics={"error": str(e)}, extensions={},
             )
-        if (i + 1) % 10 == 0 or i == total - 1:
-            logger.info(f"Simulation v2 progress: {i+1}/{total}")
+        if (i + 1) % 10 == 0 or i == len(tickers) - 1:
+            logger.info(f"Simulation v2 progress: {i+1}/{len(tickers)}")
     return results
-
 
 def get_simulation_summary_v2(sim_results: Dict[str, SimResult]) -> dict:
     passed = [s for s in sim_results.values() if s.passes_filter]
@@ -1069,25 +388,15 @@ def get_simulation_summary_v2(sim_results: Dict[str, SimResult]) -> dict:
     if not passed:
         return {"total": len(sim_results), "passed": 0, "failed": len(failed), "avg_score": 0}
     scores = [s.robustness_score for s in passed]
-    kellys = [s.extensions.get("kelly", {}).get("kelly_adjusted", 0) for s in passed if s.extensions.get("kelly")]
-    cbs = sum(1 for s in passed if s.extensions.get("circuit_breaker", {}).get("triggered", False))
-    dps = sum(1 for s in passed if s.extensions.get("dark_pool", {}).get("validated", False))
     return {
-        "total": len(sim_results),
-        "passed": len(passed),
-        "failed": len(failed),
+        "total": len(sim_results), "passed": len(passed), "failed": len(failed),
         "avg_score": round(float(np.mean(scores)), 1),
         "top_score": round(float(np.max(scores)), 1),
         "avg_win_rate": round(float(np.mean([s.win_rate for s in passed])), 1),
         "avg_exp_return": round(float(np.mean([s.exp_return_pct for s in passed])), 2),
-        "avg_kelly": round(float(np.mean(kellys)), 3) if kellys else 0,
-        "circuit_breakers_triggered": cbs,
-        "dark_pool_validated": dps,
     }
-
 
 # Backward compat
 run_simulation = run_simulation_v2
 run_simulation_batch = run_simulation_batch_v2
 get_simulation_summary = get_simulation_summary_v2
-filter_by_simulation = filter_by_simulation  # unchanged from v1

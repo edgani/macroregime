@@ -4252,7 +4252,7 @@ def render_ihsg_broker_v2(snap):
         if cornering:
             st.markdown(
                 f'<div style="background:#D2992215;border-left:3px solid #D29922;border-radius:4px;padding:4px 8px;margin:2px 0;font-size:0.65rem;color:#D29922;">'
-                f'🎯 Cornering supply: volume drying up ({data.get("drying_up",1):.1f}x) then sudden spike. Possible accumulation before breakout.'</div>',
+                f'🎯 Cornering supply: volume drying up ({data.get("drying_up",1):.1f}x) then sudden spike. Possible accumulation before breakout.</div>',
                 unsafe_allow_html=True)
 
 def render_ticker_detail_comprehensive(ticker, snap):

@@ -295,14 +295,6 @@ except Exception as e:
     def run_ticker_expander(*a, **k): return {"new_tickers": [], "candidates": [], "auto_add_recommended": []}
 
 try:
-    from engines.edgar_scraper_real import scan_multi_tickers as edgar_scan_multi
-    _V2_EDGAR = True
-except Exception as e:
-    logger.error(f"Failed to import edgar_scraper_real: {e}")
-    _V2_EDGAR = False
-    def edgar_scan_multi(*a, **k): return {}
-
-try:
     from engines.supply_chain_graph_real import run_supply_chain_analysis, reverse_lookup as supply_reverse
     _V2_SUPPLY = True
 except Exception as e:
@@ -310,14 +302,6 @@ except Exception as e:
     _V2_SUPPLY = False
     def run_supply_chain_analysis(*a, **k): return {"chokepoints": [], "propagation": {}, "summary": {}}
     def supply_reverse(*a, **k): return []
-
-try:
-    from engines.gip_engine_v10 import gip_engine_v10 as gip_v10_call
-    _V2_GIP10 = True
-except Exception as e:
-    logger.error(f"Failed to import gip_engine_v10: {e}")
-    _V2_GIP10 = False
-    gip_v10_call = None
 
 try:
     from engines.composite_signal_engine import analyze_multi as composite_analyze_multi, compute_composite_signal
@@ -343,15 +327,6 @@ except Exception as e:
     logger.error(f"Failed to import bonds_xau_regime: {e}")
     _V2_BONDS_XAU = False
     def run_bonds_xau_regime(*a, **k): return {"ok": False, "regime": "UNKNOWN", "ticker_biases": {}}
-
-try:
-    from engines.market_classifier import classify_ticker, filter_for_tab
-    _V2_CLASSIFIER = True
-except Exception as e:
-    logger.error(f"Failed to import market_classifier: {e}")
-    _V2_CLASSIFIER = False
-    def classify_ticker(t): return "us_equity"
-    def filter_for_tab(tickers, tab): return tickers
 
 try:
     from engines.simulation_engine import run_simulation_batch, get_simulation_summary, filter_by_simulation
@@ -523,12 +498,87 @@ except Exception as e:
     US_BUCKETS = {}; IHSG_BUCKETS = {}; FX_BUCKETS = {}; COMMODITY_BUCKETS = {}; CRYPTO_BUCKETS = {}
     QUAD_ASSET_PERFORMANCE = {}; TICKER_SECTOR = {}; MARKET_CLASSIFICATION = {}; BOTTLENECK_PROFILES = {}
 
+# ═══════════════════════════════════════════════════════════════════════
+# TIER S ENGINE IMPORTS (v39 fix — previously uncalled, now wired)
+# ═══════════════════════════════════════════════════════════════════════
+_V39_TIER_S = {}
+
+try:
+    from engines.alpha_synthesis_v37 import run_alpha_synthesis
+    _V39_TIER_S["alpha_synthesis"] = True
+except Exception as e:
+    logger.error(f"Failed to import alpha_synthesis_v37: {e}")
+    _V39_TIER_S["alpha_synthesis"] = False
+    def run_alpha_synthesis(*a, **k): return {"frameworks": [], "top_signals": [], "synthesis_summary": {}}
+
+try:
+    from engines.daily_play_engine import DailyPlayEngine
+    _V39_TIER_S["daily_play"] = True
+except Exception as e:
+    logger.error(f"Failed to import daily_play_engine: {e}")
+    _V39_TIER_S["daily_play"] = False
+    class DailyPlayEngine:
+        def scan_all(self, *a, **k): return {"plays": [], "summary": "DailyPlayEngine unavailable"}
+
+try:
+    from engines.ihsg_specialist_v38 import IHSGSpecialistEngine
+    _V39_TIER_S["ihsg_specialist"] = True
+except Exception as e:
+    logger.error(f"Failed to import ihsg_specialist_v38: {e}")
+    _V39_TIER_S["ihsg_specialist"] = False
+    class IHSGSpecialistEngine:
+        def analyze(self, *a, **k): return {"goreng_phases": [], "conglomerate_flows": [], "hedgeye_check": {}}
+
+try:
+    from engines.entry_decision_engine import decide_entry
+    _V39_TIER_S["entry_decision"] = True
+except Exception as e:
+    logger.error(f"Failed to import entry_decision_engine: {e}")
+    _V39_TIER_S["entry_decision"] = False
+    def decide_entry(*a, **k): return {"action": "AVOID", "direction": "NEUTRAL", "conviction": 0}
+
+try:
+    from engines.movement_timing_engine import MovementTimingDetector
+    _V39_TIER_S["movement_timing"] = True
+except Exception as e:
+    logger.error(f"Failed to import movement_timing_engine: {e}")
+    _V39_TIER_S["movement_timing"] = False
+    class MovementTimingDetector:
+        def detect(self, *a, **k): return None
+
+try:
+    from engines.frontrun_engine import FrontRunEngine
+    _V39_TIER_S["frontrun"] = True
+except Exception as e:
+    logger.error(f"Failed to import frontrun_engine: {e}")
+    _V39_TIER_S["frontrun"] = False
+    class FrontRunEngine:
+        def scan(self, *a, **k): return {"front_run_signals": [], "catalyst_timeline": []}
+
+try:
+    from engines.chain_reaction_engine import ChainReactionEngine
+    _V39_TIER_S["chain_reaction"] = True
+except Exception as e:
+    logger.error(f"Failed to import chain_reaction_engine: {e}")
+    _V39_TIER_S["chain_reaction"] = False
+    class ChainReactionEngine:
+        def __init__(self, *a, **k): pass
+        def project_all(self, *a, **k): return {}
+
+try:
+    from engines.methodology_pack import evaluate_all_pack
+    _V39_TIER_S["methodology_pack"] = True
+except Exception as e:
+    logger.error(f"Failed to import methodology_pack: {e}")
+    _V39_TIER_S["methodology_pack"] = False
+    def evaluate_all_pack(*a, **k): return {}
+
 logger.info(
     f"V39 engines loaded: cascade={_V2_CASCADE} yves={_V2_YVES} sizing={_V2_SIZING} "
     f"discovery={_V2_DISCOVERY} cem={_V2_CEM} expander={_V2_EXPANDER} "
-    f"edgar={_V2_EDGAR} supply={_V2_SUPPLY} gip10={_V2_GIP10} "
-    f"composite={_V2_COMPOSITE} risk_setup={_V2_RISK_SETUP} "
-    f"bonds_xau={_V2_BONDS_XAU} classifier={_V2_CLASSIFIER} simulation={_V2_SIM}"
+    f"supply={_V2_SUPPLY} composite={_V2_COMPOSITE} risk_setup={_V2_RISK_SETUP} "
+    f"bonds_xau={_V2_BONDS_XAU} simulation={_V2_SIM} "
+    f"tier_s={sum(_V39_TIER_S.values())}/{len(_V39_TIER_S)}"
 )
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -1672,7 +1722,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         "country_list": [],
         "cascade_analysis": {},
         "yves_v2": {},
-        "gip_v10": {},
+        "gip_v10": {},  # DEPRECATED: gip_engine_v10 not wired (use "gip" instead)
         "discovery_brain": {},
         "ticker_universe_expansion": {},
         "portfolio_sizing_v2": {},
@@ -2042,10 +2092,10 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                             bottleneck_ref_data = _json.load(f)
                 except Exception: pass
                 discovery = run_discovery_brain(
-                    prices=prices, news_analysis=result.get("news_analysis", {}),
-                    gip_features=(result.get("gip_v10", {}).get("features") or result.get("gip", {}).get("features", {})),
+                    prices=prices, news_analysis=result.get("news_narratives", {}),
+                    gip_features=result.get("gip", {}).get("features", {}),
                     current_quad=quad, monthly_quad=monthly_quad, prev_quad=prev_quad_val,
-                    cot_data=result.get("cot_data"), bottleneck_ref=bottleneck_ref_data,
+                    cot_data=result.get("cot_oi", {}).get("cot"), bottleneck_ref=bottleneck_ref_data,
                 )
                 result["discovery_brain"] = discovery
             except Exception as e:
@@ -2058,7 +2108,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             try:
                 current_universe = list(prices.keys())
                 expansion = run_ticker_expander(
-                    prices=prices, news_analysis=result.get("news_analysis", {}),
+                    prices=prices, news_analysis=result.get("news_narratives", {}),
                     current_universe=current_universe, cascade_results=result.get("cascade_analysis"), bottleneck_ref=None,
                 )
                 result["ticker_universe_expansion"] = expansion
@@ -2384,12 +2434,132 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                 logger.warning(f"Attachment 4 integration failed: {e}")
                 result["errors"].append(f"attachment4: {e}")
 
+        # ═══════════════════════════════════════════════════════════════════════
+        # TIER S ENGINE CALLS (v39 fix — previously uncalled, now wired)
+        # ═══════════════════════════════════════════════════════════════════════
+        if _V39_TIER_S.get("alpha_synthesis"):
+            _safe_progress(progress_cb, "Running Alpha Synthesis v37 (8 hybrid frameworks)...", 0.751)
+            try:
+                result["alpha_synthesis"] = run_alpha_synthesis(result, prices)
+                logger.info(f"Alpha synthesis: {len(result['alpha_synthesis'].get('top_signals', []))} signals")
+            except Exception as e:
+                logger.warning(f"Alpha synthesis failed: {e}")
+                result["errors"].append(f"alpha_synthesis: {e}")
+
+        if _V39_TIER_S.get("entry_decision"):
+            _safe_progress(progress_cb, "Running entry decision engine...", 0.752)
+            try:
+                entry_decisions = {}
+                for item in result.get("alpha_center", {}).get("all", [])[:50]:
+                    t = item.get("ticker")
+                    if not t:
+                        continue
+                    cs = result.get("composite_signals", {}).get(t, {})
+                    gd = (result.get("gamma_data", {}) or {}).get(t) if result.get("gamma_data") else None
+                    entry_decisions[t] = decide_entry(
+                        ticker=t, px=item.get("price", 0),
+                        composite_signal=cs,
+                        risk_range=result.get("risk_ranges", {}).get("asset_ranges", {}).get(t),
+                        gamma_data=gd,
+                        karsan=result.get("karsan_scanner", {}).get("per_ticker", {}).get(t),
+                        thought_process=result.get("thought_process", {}).get(t),
+                        quad=quad,
+                    )
+                result["entry_decisions"] = entry_decisions
+            except Exception as e:
+                logger.warning(f"Entry decision failed: {e}")
+                result["errors"].append(f"entry_decision: {e}")
+
+        if _V39_TIER_S.get("movement_timing"):
+            _safe_progress(progress_cb, "Running movement timing engine...", 0.753)
+            try:
+                mtd = MovementTimingDetector()
+                movement_regimes = {}
+                for t in list(prices.keys())[:80]:
+                    s = prices.get(t)
+                    if s is not None and len(s) >= 60:
+                        try:
+                            reg = mtd.detect(t, pd.Series(s), result)
+                            if reg:
+                                movement_regimes[t] = reg
+                        except Exception:
+                            pass
+                result["movement_regimes"] = movement_regimes
+            except Exception as e:
+                logger.warning(f"Movement timing failed: {e}")
+                result["errors"].append(f"movement_timing: {e}")
+
+        if _V39_TIER_S.get("daily_play"):
+            _safe_progress(progress_cb, "Running daily play engine...", 0.754)
+            try:
+                dpe = DailyPlayEngine()
+                result["daily_plays"] = dpe.scan_all(prices, result)
+            except Exception as e:
+                logger.warning(f"Daily play failed: {e}")
+                result["errors"].append(f"daily_play: {e}")
+
+        if _V39_TIER_S.get("ihsg_specialist"):
+            _safe_progress(progress_cb, "Running IHSG specialist v38...", 0.755)
+            try:
+                ihsg_spec = IHSGSpecialistEngine()
+                result["ihsg_specialist"] = ihsg_spec.analyze(prices)
+            except Exception as e:
+                logger.warning(f"IHSG specialist failed: {e}")
+                result["errors"].append(f"ihsg_specialist: {e}")
+
+        if _V39_TIER_S.get("chain_reaction"):
+            _safe_progress(progress_cb, "Running chain reaction engine...", 0.756)
+            try:
+                cre = ChainReactionEngine()
+                chain_tickers = [t for t in list(prices.keys())[:100] if t in [
+                    "NVDA", "AMD", "AVGO", "TSM", "MU", "VST", "CEG", "BE",
+                    "LITE", "COHR", "MRVL", "NXT", "AMPH", "SCCO", "FCX", "ALB",
+                    "CL=F", "USO", "XOM", "CVX", "FRO", "TK", "INSW",
+                ]]
+                result["chain_reaction"] = cre.project_all(chain_tickers)
+            except Exception as e:
+                logger.warning(f"Chain reaction failed: {e}")
+                result["errors"].append(f"chain_reaction: {e}")
+
+        if _V39_TIER_S.get("frontrun"):
+            _safe_progress(progress_cb, "Running front-run engine...", 0.757)
+            try:
+                fre = FrontRunEngine()
+                result["frontrun_signals"] = fre.scan(result.get("news_narratives", {}), prices)
+            except Exception as e:
+                logger.warning(f"Front-run engine failed: {e}")
+                result["errors"].append(f"frontrun: {e}")
+
+        if _V39_TIER_S.get("methodology_pack"):
+            _safe_progress(progress_cb, "Running methodology pack (6 investors)...", 0.758)
+            try:
+                all_tickers = list(prices.keys())
+                result["methodology_scores"] = {}
+                for t in all_tickers[:50]:
+                    try:
+                        result["methodology_scores"][t] = evaluate_all_pack(
+                            ticker=t, prices_series=prices.get(t),
+                            boom_bust_stage=result.get("boom_bust", {}).get("stage", "ACCELERATION"),
+                            super_bubble_score=result.get("reflexivity", {}).get("super_bubble_score", 0),
+                            vix=vix_last, fred=fred,
+                            gamma_data=result.get("gamma_data", {}).get(t),
+                            greeks_data=result.get("greeks_data", {}).get(t),
+                            markov_v3=result.get("markov_v3"),
+                            risk_range=result.get("risk_ranges", {}).get("asset_ranges", {}).get(t),
+                            composite_signal=result.get("composite_signals", {}).get(t),
+                        )
+                    except Exception:
+                        pass
+            except Exception as e:
+                logger.warning(f"Methodology pack failed: {e}")
+                result["errors"].append(f"methodology_pack: {e}")
+
         # ---- Alpha Center (with composite signals) ----
         _safe_progress(progress_cb, "Building Alpha Center...", 0.75)
         try:
             ac_proxy_v2 = _alpha_center_proxy(
                 prices, result["risk_ranges"], quad, vix_last,
-                news_analysis=result.get("news_analysis", {}),
+                news_analysis=result.get("news_narratives", {}),
                 composite_signals=result.get("composite_signals", {}),
                 cot_data=(result.get("cot_oi", {}) or {}).get("cot", {}),
                 oi_data=(result.get("cot_oi", {}) or {}).get("oi", {}),
@@ -2739,7 +2909,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             "behavioral_alert": (result.get("behavioral_macro", {}).get("yves", {}) or {}).get("alert"),
             "boom_bust_stage": result.get("boom_bust", {}).get("stage", "-"),
             "super_bubble_score": result.get("reflexivity", {}).get("super_bubble_score", 0),
-            "v2_quad_v10": result.get("gip_v10", {}).get("structural_quad"),
+            "v2_quad_v10": None,  # DEPRECATED: gip_engine_v10 not wired — use v2_quad instead
             "v2_yves_alerts": result.get("yves_v2", {}).get("n_alerts", 0),
             "v2_yves_top_level": result.get("yves_v2", {}).get("summary", {}).get("level"),
             "v2_cascade_shocks": len((result.get("cascade_analysis", {}) or {}).get("active_shocks", {})),
@@ -2776,14 +2946,15 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             "v11_volsignals_regimes": len(result.get("volsignals_regime", {})),
             "v11_spotgamma_levels": len(result.get("spotgamma_levels", {})),
             "v11_schadner_validated": len(result.get("schadner_iv", {})),
-            "v32_idhl_avg": result.get("summary", {}).get("v32_idhl_avg", 0),
-            "v32_rc_high_count": result.get("summary", {}).get("v32_rc_high_count", 0),
-            "v32_afs": result.get("summary", {}).get("v32_afs", 0),
-            "v32_afs_label": result.get("summary", {}).get("v32_afs_label", "—"),
-            "v32_wf_passed": result.get("summary", {}).get("v32_wf_passed", 0),
-            "v32_wf_total": result.get("summary", {}).get("v32_wf_total", 0),
-            "v32_kelly_positions": result.get("summary", {}).get("v32_kelly_positions", 0),
-            "v32_bayesian_fused": result.get("summary", {}).get("v32_bayesian_fused", 0),
+            # v32 integrator metrics (from enhance_snapshot if available)
+            "v32_idhl_avg": result.get("idhl_data", {}).get("avg", 0),
+            "v32_rc_high_count": result.get("rc_data", {}).get("high_count", 0),
+            "v32_afs": result.get("afs_data", {}).get("score", 0),
+            "v32_afs_label": result.get("afs_data", {}).get("label", "—"),
+            "v32_wf_passed": result.get("walkforward_results", {}).get("passed", 0),
+            "v32_wf_total": result.get("walkforward_results", {}).get("total", 0),
+            "v32_kelly_positions": result.get("fractional_kelly", {}).get("n_positions", 0),
+            "v32_bayesian_fused": result.get("bayesian_fusion", {}).get("n_fused", 0),
             "v27_sim_total": result.get("simulation_summary", {}).get("total", 0),
             "v27_sim_passed": result.get("simulation_summary", {}).get("passed", 0),
             "v27_sim_avg_score": result.get("simulation_summary", {}).get("avg_score", 0),
@@ -2796,7 +2967,15 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             "v27_portfolio_sharpe": result.get("portfolio_stress", {}).get("portfolio_sharpe", 0),
             "v27_portfolio_dd": result.get("portfolio_stress", {}).get("worst_case_dd_pct", 0),
             "v27_options_mapped": len(result.get("options_pnl_simulator", {})),
-            # v39 NEW
+            # v39 NEW — TIER S engine outputs
+            "v39_alpha_synthesis_signals": len(result.get("alpha_synthesis", {}).get("top_signals", [])),
+            "v39_entry_decisions": len(result.get("entry_decisions", {})),
+            "v39_movement_regimes": len(result.get("movement_regimes", {})),
+            "v39_daily_plays": len(result.get("daily_plays", {}).get("plays", [])),
+            "v39_ihsg_goreng_detected": len(result.get("ihsg_specialist", {}).get("goreng_phases", [])),
+            "v39_chain_projections": len(result.get("chain_reaction", {})),
+            "v39_frontrun_signals": len(result.get("frontrun_signals", {}).get("front_run_signals", [])),
+            "v39_methodology_matches": sum(1 for v in (result.get("methodology_scores", {}) or {}).values() if v.get("matched")),
             "v39_auto_discovered": result.get("auto_discoveries", {}).get("count", 0),
             "v39_supply_chains": len(result.get("supply_chain_chains", [])),
             "v39_front_run_total": len(result.get("front_run_candidates", [])),
@@ -3003,7 +3182,7 @@ def build_snapshot(
         "walkforward_results": {}, "fractional_kelly": {}, "bayesian_fusion": {},
         "duration_hmm": {}, "cri_v2_data": {}, "ihsg_broker_proxy": {},
         "supply_chain_chains": [], "cascade_analysis": {}, "yves_v2": {},
-        "gip_v10": {}, "discovery_brain": {}, "ticker_universe_expansion": {},
+        "gip_v10": {}, "discovery_brain": {}, "ticker_universe_expansion": {},  # gip_v10 DEPRECATED
         "portfolio_sizing_v2": {}, "cem_karsan_universal": {}, "markov_v3": {},
         "smart_money": {}, "capital_rotation": {}, "ust_auction": {}, "vrp_scanner": {},
         "squeeze_scanner": {}, "karsan_scanner": {}, "spotgamma_scanner": {},

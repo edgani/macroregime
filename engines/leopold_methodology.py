@@ -51,8 +51,8 @@ OOM_DRIVERS = {
         "ticker_beneficiaries": [],  # not a single-ticker bet
     },
     "unhobbling": {
-        "rate_per_year_ooms": "step_change",
-        "description": "Chatbot → agent → drop-in worker capability gains",
+        "rate_per_year_ooms": 0.3,
+        "description": "Chatbot → agent → drop-in worker capability gains (quantified as step-change equivalent)",
         "binding_constraint": "Inference compute explosion (CPU-heavy for agentic)",
         "ticker_beneficiaries": ["AMD", "MU", "000660.KS"],  # CPU + memory
     },
@@ -60,18 +60,24 @@ OOM_DRIVERS = {
 
 
 def compute_oom_trajectory() -> Dict:
-    """Aggregate OOM rate of change."""
+    """Aggregate OOM rate of change.
+
+    Leopold's essay: "training compute on track to grow ~10x per year" = 1 OOM/year.
+    Components: 0.5 (raw compute) + 0.5 (algo efficiency) + 0.3 (unhobbling step-change) = 1.3 OOMs/year
+    The unhobbling 0.3 is a conservative quantification of the step-change capability gains
+    (chatbot → agent → drop-in worker) that drive inference compute explosion.
+    """
     total_ooms_per_year = sum(
         v["rate_per_year_ooms"] for v in OOM_DRIVERS.values()
         if isinstance(v["rate_per_year_ooms"], (int, float))
     )
     return {
-        "annual_ooms": total_ooms_per_year,
-        "annual_multiplier": 10 ** total_ooms_per_year,  # 10x/year
-        "4yr_cumulative_ooms": total_ooms_per_year * 4,
-        "4yr_cumulative_multiplier": 10 ** (total_ooms_per_year * 4),  # 100,000x in 4 years
+        "annual_ooms": round(total_ooms_per_year, 2),
+        "annual_multiplier": 10 ** total_ooms_per_year,  # ~20x/year with unhobbling
+        "4yr_cumulative_ooms": round(total_ooms_per_year * 4, 2),
+        "4yr_cumulative_multiplier": 10 ** (total_ooms_per_year * 4),  # ~160,000x in 4 years
         "drivers": OOM_DRIVERS,
-        "thesis": "Compute scaling FORCES physical bottlenecks. Software/algo can't substitute.",
+        "thesis": "Compute scaling FORCES physical bottlenecks. 1.3 OOMs/year = ~20x annual growth. Software/algo can't substitute.",
     }
 
 

@@ -46,6 +46,7 @@ QUAD_MULT = {
 STAGE_MULT = {
     "INCEPTION": 1.00,
     "ACCELERATION": 1.25,
+    "EUPHORIA": 1.00,      # Peak — neutral sizing (don't chase, don't exit)
     "TEST": 0.85,
     "SURVIVAL": 1.10,
     "MOMENT_OF_TRUTH": 0.55,

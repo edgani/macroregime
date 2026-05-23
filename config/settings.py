@@ -756,7 +756,5 @@ CRYPTO_BUCKETS: dict = {
 # MAG7 for breadth/concentration analysis
 MAG7 = ["AAPL","MSFT","NVDA","AMZN","META","GOOGL","TSLA"]
 
-# ── CRITICAL: Missing constants required by fred_loader / orchestrator ────────
-# (Insert these near the top of your existing settings.py, after the imports)
-LIVE_FETCH_ENABLED: bool = True
-FRED_CACHE_TTL_SECONDS: int = 3600
+# NOTE: LIVE_FETCH_ENABLED and FRED_CACHE_TTL_SECONDS already defined at top of file.
+# Duplicates removed to prevent redefinition warnings.

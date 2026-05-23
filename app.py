@@ -3083,13 +3083,6 @@ def page_dashboard():
             color = "#3FB950" if ok else "#F85149"
             cols[i % 4].markdown(f"<span style='color:{color};font-size:0.75rem;'>● {name}</span>", unsafe_allow_html=True)
 
-    # ── v38: Render Daily Plays + Alpha Synthesis + Engine Highlights di Dashboard ──
-    if _V38_OK:
-        try:
-            render_v38_complete("global", snap, prices, st)
-        except Exception as e:
-            logger.warning(f"v38 render failed (dashboard): {e}")
-
 # ═══════════════════════════════════════════════════════════════════
 # PAGE: ALPHA CENTER
 # ═══════════════════════════════════════════════════════════════════

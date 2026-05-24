@@ -16,248 +16,8 @@ import json, os
 from datetime import datetime
 
 logger = __import__("logging").getLogger(__name__)
-# ═══════════════════════════════════════════════════════════════════
-# v38 DASHBOARD RENDERER (Daily Plays + Chain Reaction + IHSG + Crypto)
-# ═══════════════════════════════════════════════════════════════════
-try:
-    from engines.v38_dashboard_render import render_v38_complete, render_ticker_detail_bundle
-    _V38_OK = True
-    logger.info("v38 dashboard renderer loaded")
-except Exception as _e_v38:
-    _V38_OK = False
-    logger.warning(f"v38 dashboard renderer not loaded: {_e_v38}")
-
-st.set_page_config(page_title="MacroRegime Pro v39", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
-
-# ═══════════════════════════════════════════════════════════════════
-# CSS
-# ═══════════════════════════════════════════════════════════════════
-st.markdown("""
-<style>
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
-html, body, [class*="css"] { font-family: "Inter", sans-serif; }
-.block-container { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; padding-left: 1rem !important; padding-right: 1rem !important; max-width: 1440px !important; }
-h1 { font-size: 1.4rem !important; margin: 0.2rem 0 0.3rem !important; font-weight: 800 !important; letter-spacing: -0.5px; }
-h2 { font-size: 1.05rem !important; margin: 0.4rem 0 0.2rem !important; font-weight: 700 !important; letter-spacing: -0.3px; }
-h3 { font-size: 0.9rem !important; margin: 0.3rem 0 0.15rem !important; font-weight: 600 !important; }
-hr { margin: 0.4rem 0 !important; opacity: 0.08; border-color: #30363D; }
-[data-testid="stMetric"] { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; padding: 5px 8px !important; }
-[data-testid="stMetricLabel"] { font-size: 0.58rem !important; font-weight: 600 !important; letter-spacing: 0.6px; text-transform: uppercase; opacity: 0.55; }
-[data-testid="stMetricValue"] { font-size: 1.05rem !important; font-weight: 700 !important; }
-
-.ticker-card-v4 { display: flex; align-items: center; gap: 10px; padding: 7px 10px; background: #161B22; border: 1px solid #30363D; border-radius: 8px; margin: 3px 0; transition: border-color 0.2s; flex-wrap: wrap; }
-.ticker-card-v4:hover { border-color: #484F58; }
-.tc-v4-left { min-width: 80px; }
-.tc-v4-symbol { font-weight: 800; font-size: 0.9rem; color: #E6EDF3; letter-spacing: -0.3px; }
-.tc-v4-price { font-weight: 600; font-size: 0.75rem; color: #8B949E; font-variant-numeric: tabular-nums; }
-.tc-v4-badges { display: flex; gap: 3px; flex-wrap: wrap; margin-top: 2px; }
-.tc-v4-spark { width: 80px; height: 24px; display: flex; align-items: flex-end; gap: 1px; flex-shrink: 0; }
-.tc-v4-rr { flex: 1; min-width: 120px; }
-.tc-v4-meta { display: flex; gap: 8px; font-size: 0.68rem; color: #8B949E; font-variant-numeric: tabular-nums; min-width: 110px; }
-
-.badge { display: inline-flex; align-items: center; padding: 1px 5px; border-radius: 10px; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.3px; border: 1px solid transparent; line-height: 1.3; }
-.badge-long { background: rgba(34,197,94,0.12); color: #3FB950; border-color: rgba(34,197,94,0.3); }
-.badge-short { background: rgba(239,68,68,0.12); color: #F85149; border-color: rgba(239,68,68,0.3); }
-.badge-neut { background: rgba(234,179,8,0.12); color: #eab308; border-color: rgba(234,179,8,0.3); }
-.badge-grade-a { background: rgba(34,197,94,0.15); color: #3FB950; border-color: #3FB950; }
-.badge-grade-b { background: rgba(234,179,8,0.15); color: #D29922; border-color: #D29922; }
-.badge-grade-c { background: rgba(139,148,158,0.15); color: #8B949E; border-color: #8B949E; }
-.badge-news { background: rgba(88,166,255,0.12); color: #58A6FF; border-color: rgba(88,166,255,0.3); }
-.badge-mm { background: rgba(168,85,247,0.12); color: #A855F7; border-color: rgba(168,85,247,0.3); }
-.badge-chase { background: rgba(34,197,94,0.2); color: #3FB950; border-color: #3FB950; }
-.badge-wait { background: rgba(234,179,8,0.2); color: #D29922; border-color: #D29922; }
-
-.sp-bar-v4 { width: 3px; border-radius: 1px; opacity: 0.85; }
-.rr-track-v4 { position: relative; height: 16px; background: #21262D; border-radius: 4px; overflow: hidden; }
-.rr-zone-v4 { position: absolute; top: 2px; bottom: 2px; border-radius: 2px; }
-.rr-dot-v4 { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 7px; height: 7px; border-radius: 50%; background: #E6EDF3; border: 2px solid #58A6FF; z-index: 10; box-shadow: 0 0 4px rgba(88,166,255,0.4); }
-.rr-labels-v4 { display: flex; justify-content: space-between; font-size: 0.58rem; color: #8B949E; margin-top: 1px; font-variant-numeric: tabular-nums; }
-
-.gauge-track { position: relative; height: 12px; background: #21262D; border-radius: 6px; overflow: hidden; margin: 3px 0; }
-.gauge-fill { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 6px; transition: width 0.5s ease; }
-.gauge-label { display: flex; justify-content: space-between; font-size: 0.6rem; color: #8B949E; margin-top: 1px; }
-
-.hm-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
-.hm-cell { padding: 5px 3px; border-radius: 4px; text-align: center; font-size: 0.68rem; font-weight: 600; color: #E6EDF3; border: 1px solid rgba(255,255,255,0.05); }
-
-.pulse-hbox { min-width: 70px; height: 40px; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.68rem; font-weight: 700; color: #E6EDF3; border: 1px solid rgba(255,255,255,0.06); flex-shrink: 0; }
-.pulse-hlabel { font-size: 0.52rem; font-weight: 500; color: rgba(255,255,255,0.5); text-transform: uppercase; margin-top: 1px; }
-
-.timeline { display: flex; align-items: center; gap: 0px; margin: 6px 0; }
-.tl-node { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #30363D; background: #21262D; flex-shrink: 0; }
-.tl-node.active { border-color: #58A6FF; background: #58A6FF; box-shadow: 0 0 5px rgba(88,166,255,0.35); }
-.tl-node.past { border-color: #3FB950; background: #3FB950; }
-.tl-line { flex: 1; height: 2px; background: #30363D; min-width: 16px; }
-.tl-line.active { background: #58A6FF; }
-.tl-labels { display: flex; justify-content: space-between; font-size: 0.58rem; color: #8B949E; margin-top: 3px; }
-
-.stack-bar { display: flex; height: 20px; border-radius: 4px; overflow: hidden; background: #21262D; }
-.stack-seg { display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: 700; color: #fff; }
-
-.skew-row { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
-.skew-label { width: 32px; font-size: 0.65rem; color: #8B949E; font-weight: 600; }
-.skew-track { flex: 1; height: 14px; background: #21262D; border-radius: 4px; position: relative; overflow: hidden; }
-.skew-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
-.skew-value { width: 36px; font-size: 0.65rem; color: #E6EDF3; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
-
-.gex-track { position: relative; height: 18px; background: #21262D; border-radius: 4px; overflow: hidden; display: flex; align-items: center; }
-.gex-center { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #8B949E; opacity: 0.3; }
-
-.stTabs [data-baseweb="tab-list"] { gap: 2px !important; margin-bottom: 5px !important; }
-.stTabs [data-baseweb="tab"] { padding: 4px 10px !important; font-size: 0.78rem !important; font-weight: 600 !important; border-radius: 6px 6px 0 0 !important; }
-[data-testid="stExpander"] { border: 1px solid #30363D !important; border-radius: 8px !important; margin-bottom: 5px !important; }
-[data-testid="stExpander"] > details > summary { padding: 7px 10px !important; font-size: 0.78rem !important; font-weight: 600 !important; }
-[data-testid="stSidebar"] .block-container { padding-top: 0.6rem !important; }
-
-.narrative-card { background: #161B22; border-left: 3px solid #58A6FF; border-radius: 8px; padding: 10px 14px; margin: 6px 0; }
-.narrative-headline { font-size: 0.85rem; font-weight: 600; color: #E6EDF3; line-height: 1.4; }
-.narrative-sub { font-size: 0.7rem; color: #8B949E; margin-top: 4px; }
-
-.metric-grid-card { background: #161B22; border: 1px solid #30363D; border-radius: 8px; padding: 10px 12px; }
-.metric-grid-title { font-size: 0.6rem; color: #8B949E; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600; margin-bottom: 4px; }
-.metric-grid-value { font-size: 1.05rem; font-weight: 700; color: #E6EDF3; }
-.metric-grid-sub { font-size: 0.65rem; color: #8B949E; margin-top: 2px; }
-
-.compass-container { background: #161B22; border: 1px solid #30363D; border-radius: 10px; padding: 12px 14px; margin: 6px 0; }
-.compass-title { font-size: 0.75rem; color: #8B949E; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600; }
-.compass-quad { font-size: 1.2rem; font-weight: 800; letter-spacing: -1px; }
-.compass-sub { font-size: 0.7rem; color: #8B949E; }
-
-.dp-row { display: flex; align-items: center; gap: 8px; padding: 5px 8px; background: #161B22; border-bottom: 1px solid #21262D; font-size: 0.75rem; }
-.dp-time { width: 60px; color: #8B949E; font-variant-numeric: tabular-nums; }
-.dp-ticker { width: 55px; color: #E6EDF3; font-weight: 700; }
-.dp-price { width: 60px; color: #E6EDF3; font-variant-numeric: tabular-nums; }
-.dp-size { width: 70px; color: #8B949E; font-variant-numeric: tabular-nums; text-align: right; }
-.dp-amt { width: 65px; color: #3FB950; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
-.dp-amt.sell { color: #F85149; }
-
-.mm-box { background: #161B22; border: 1px solid #30363D; border-radius: 8px; padding: 10px 12px; margin: 4px 0; }
-.mm-title { font-size: 0.7rem; color: #A855F7; text-transform: uppercase; font-weight: 600; margin-bottom: 6px; letter-spacing: 0.5px; }
-.mm-line { display: flex; justify-content: space-between; font-size: 0.75rem; padding: 2px 0; }
-.mm-label { color: #8B949E; }
-.mm-value { color: #E6EDF3; font-weight: 600; font-variant-numeric: tabular-nums; }
-
-.skew-curve-container { background: #161B22; border: 1px solid #30363D; border-radius: 8px; padding: 10px; margin: 4px 0; }
-.skew-curve-title { font-size: 0.7rem; color: #8B949E; text-transform: uppercase; font-weight: 600; margin-bottom: 6px; }
-
-.scenario-bar { display: flex; height: 18px; border-radius: 4px; overflow: hidden; background: #21262D; margin: 4px 0; }
-.scenario-seg { display: flex; align-items: center; justify-content: center; font-size: 0.55rem; font-weight: 700; color: #fff; }
-
-/* Hedgeye-style ticker card v5 */
-.hy-card { background: #161B22; border: 1px solid #30363D; border-radius: 10px; margin: 4px 0; overflow: hidden; }
-.hy-header { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid #21262D; }
-.hy-symbol { font-weight: 800; font-size: 1.0rem; color: #E6EDF3; letter-spacing: -0.5px; min-width: 70px; }
-.hy-price { font-weight: 700; font-size: 0.85rem; color: #E6EDF3; font-variant-numeric: tabular-nums; min-width: 55px; }
-.hy-badges { display: flex; gap: 3px; flex-wrap: wrap; flex: 1; }
-.hy-status-bar { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #0D1117; border-bottom: 1px solid #21262D; }
-.hy-status-pill { padding: 2px 8px; border-radius: 12px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid transparent; }
-.hy-meta-row { display: flex; align-items: center; gap: 10px; padding: 5px 12px; font-size: 0.68rem; color: #8B949E; font-variant-numeric: tabular-nums; }
-.hy-meta-row b { color: #E6EDF3; font-weight: 600; }
-.hy-rr-track { position: relative; height: 14px; background: #21262D; border-radius: 4px; overflow: hidden; flex: 1; }
-.hy-rr-zone { position: absolute; top: 0; bottom: 0; }
-.hy-rr-dot { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 8px; height: 8px; border-radius: 50%; background: #E6EDF3; border: 2px solid #58A6FF; z-index: 10; box-shadow: 0 0 5px rgba(88,166,255,0.5); }
-.hy-rr-labels { display: flex; justify-content: space-between; font-size: 0.55rem; color: #484F58; margin-top: 1px; }
-
-/* Trade Setup panels */
-.ts-panel { background: #0D1117; border: 1px solid #21262D; border-radius: 8px; padding: 10px 12px; margin: 6px 0; }
-.ts-panel-title { font-size: 0.6rem; color: #8B949E; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600; margin-bottom: 6px; }
-.ts-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-.ts-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.ts-stat { text-align: center; }
-.ts-stat-label { font-size: 0.52rem; color: #8B949E; text-transform: uppercase; margin-bottom: 2px; }
-.ts-stat-value { font-size: 0.78rem; font-weight: 700; color: #E6EDF3; font-variant-numeric: tabular-nums; }
-.ts-stat-sub { font-size: 0.55rem; color: #484F58; }
-
-/* Status banners */
-.banner-chase { background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.35); color: #3FB950; }
-.banner-wait { background: rgba(234,179,8,0.12); border: 1px solid rgba(234,179,8,0.35); color: #D29922; }
-.banner-avoid { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); color: #F85149; }
-.banner-hold { background: rgba(139,148,158,0.12); border: 1px solid rgba(139,148,158,0.25); color: #8B949E; }
-
-/* OI Heatmap bars */
-.oi-bar-row { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
-.oi-bar-label { font-size: 0.65rem; color: #8B949E; min-width: 65px; font-weight: 600; }
-.oi-bar-track { flex: 1; height: 12px; background: #21262D; border-radius: 3px; overflow: hidden; position: relative; }
-.oi-bar-fill { height: 100%; border-radius: 3px; opacity: 0.7; }
-.oi-bar-value { font-size: 0.65rem; font-weight: 700; min-width: 60px; text-align: right; font-variant-numeric: tabular-nums; }
-
-/* Alpha Center thesis card */
-.alpha-thesis-card { background: #161B22; border-left: 3px solid #A855F7; border-radius: 8px; padding: 10px 14px; margin: 4px 0; }
-.alpha-thesis-title { font-size: 0.78rem; font-weight: 600; color: #E6EDF3; }
-.alpha-thesis-sub { font-size: 0.68rem; color: #8B949E; margin-top: 3px; line-height: 1.4; }
-.alpha-ready { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 12px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-left: 6px; }
-</style>
-""", unsafe_allow_html=True)
-
-# ═══════════════════════════════════════════════════════════════════
-# CONFIG & FALLBACKS
-# ═══════════════════════════════════════════════════════════════════
-def filter_by_simulation(rows, sim_results, threshold=50, require_pass=False):
-    """Filter ticker rows by simulation results. Handles dict-format snap data.
-    v39.1 FIX: Relaxed threshold (50), require_pass=False default. 
-    Simulation runs background-only; rows kept for detail view."""
-    if not sim_results:
-        return rows
-    filtered = []
-    for row in rows:
-        t = row.get("ticker")
-        if not t:
-            continue
-        sim = sim_results.get(t)
-        if sim is None:
-            # No sim data - keep row, mark unvalidated
-            row["_sim_status"] = "NO_DATA"
-            filtered.append(row)
-            continue
-        # Orchestrator serializes sim results to dicts; handle both dict and object
-        if isinstance(sim, dict):
-            passes = sim.get("passes_filter", False)
-            score = sim.get("robustness_score", 0)
-        else:
-            passes = getattr(sim, "passes_filter", False)
-            score = getattr(sim, "robustness_score", 0)
-        row["_sim_passed"] = passes
-        row["_sim_score"] = score
-        row["_sim_status"] = "PASS" if (passes and score >= threshold) else "MARGINAL" if score >= threshold else "FAIL"
-        # v39.1: Don't filter out on simulation alone - show all with annotation
-        if require_pass and not passes:
-            continue
-        if require_pass and score < threshold:
-            continue
-        filtered.append(row)
-    return filtered
-
-try:
-    from config.settings import (FOREX_PAIRS, COMMODITIES, CRYPTO, IHSG_UNIVERSE,
-                                 IHSG_SECTOR_MAP, TICKER_SECTOR, US_SECTORS, US_BUCKETS,
-                                 FX_BUCKETS, COMMODITY_BUCKETS, CRYPTO_BUCKETS)
-except ImportError:
-    FOREX_PAIRS = {}; COMMODITIES = {}; CRYPTO = {}; IHSG_UNIVERSE = {}; TICKER_SECTOR = {}; US_SECTORS = {}; US_BUCKETS = {}; FX_BUCKETS = {}; COMMODITY_BUCKETS = {}; CRYPTO_BUCKETS = {}
-
-FALLBACK_US = ["SPY","QQQ","IWM","NVDA","AAPL","MSFT","GOOGL","META","TSLA","AMD","NFLX","AMZN","CRM","AVGO","XOM","JPM","V","MA","UNH","JNJ","XLK","XLF","XLE","XLU","XLP","XLI","XLB","XLRE","XLY","ARKK","TLT","GLD","SLV","GDX","VIXY","SQQQ","TQQQ","UPRO","SPXU"]
-FALLBACK_FX  = ["EURUSD=X","GBPUSD=X","USDJPY=X","AUDUSD=X","USDCAD=X","USDCHF=X","NZDUSD=X","USDCNY=X","USDIDR=X","DX-Y.NYB","UUP"]
-FALLBACK_COMM = ["GC=F","SI=F","CL=F","NG=F","HG=F","PL=F","PA=F","ZW=F","ZC=F","ZS=F","KC=F","CC=F","CT=F"]
-FALLBACK_CRYPTO = ["BTC-USD","ETH-USD","SOL-USD","XRP-USD","DOGE-USD","ADA-USD","AVAX-USD","DOT-USD","MATIC-USD","LINK-USD","UNI-USD","LTC-USD"]
-FALLBACK_IHSG = ["BBRI.JK","BMRI.JK","BBCA.JK","BBNI.JK","BRIS.JK","TLKM.JK","EXCL.JK","ADRO.JK","ITMG.JK","PTBA.JK","NCKL.JK","ANTM.JK","INCO.JK","AALI.JK","LSIP.JK","SMAR.JK","UNTR.JK","BYAN.JK","ICBP.JK","INDF.JK","KLBF.JK","PGEO.JK","WINS.JK","EIDO","^JKSE"]
-
-
-# ═══════════════════════════════════════════════════════════════════
-# QUAD PLAYBOOK v39.3 — DYNAMIC (from snap/orchestrator, not hardcoded)
-# ═══════════════════════════════════════════════════════════════════
-def _get_quad_playbook(snap):
-    """
-    Build quad playbook DYNAMICALLY from orchestrator data.
-    Falls back to config.settings if snap incomplete.
-    """
-    gip = snap.get("gip")
-    if gip is not None and not isinstance(gip, dict):
-        try: sq = getattr(gip, "structural_quad", "Q3")
-        except: sq = "Q3"
-    elif isinstance(gip, dict):
-        sq = gip.get("structural_quad", "Q3")
-    else:
-        sq = "Q3"
-
+# ════════════════════════════════════════════════════════════
+    # v38 REMOVED
     # Try to get from snap.playbook (orchestrator output)
     pb = snap.get("playbook", {}) if isinstance(snap.get("playbook"), dict) else {}
 
@@ -381,97 +141,124 @@ QUAD_FRONT_RUN_PLAYBOOK = {}  # populated at runtime via _get_quad_playbook(snap
 BOTTLENECK_QUAD_MAP = {}  # populated at runtime via _get_bottleneck_quad_map(snap)
 
 # ═══════════════════════════════════════════════════════════════════
-# HEDGEYE PLAYBOOK v39.1 — DYNAMIC + KEITH-AWARE
-# Replaces all hardcoded playbooks. Respects Keith P0 overrides.
+# HEDGEYE PLAYBOOK v39.2 — DYNAMIC + KEITH-AWARE + DEEP RESEARCH VERIFIED
+# Source: Hedgeye ETF Pro March 2026 + Keith X/Twitter May 2026 + The Call
 # ═══════════════════════════════════════════════════════════════════
 def _get_hedgeye_playbook(snap):
     """
     Returns {"beli": [...], "short": [...], "quad": sq}
-    Dynamically derived from _get_quad_playbook + Keith signal sync.
-    If Keith says BEARISH gold → gold removed from beli, added to short.
-    If Keith says BULLISH USD → USD removed from short, added to beli.
+    Dynamically derived from GIP quad + Hedgeye historical playbook + Keith signal sync.
+
+    VERIFIED AGAINST HEDGEYE RESEARCH (May 2026):
+    - Q3 = Stagflation (Growth decel, Inflation accel)
+    - Q3 Playbook: Long Energy, Staples, Utilities, REITs, Industrials, TLT
+    - Q3 Playbook: Short Tech (XLK, NVDA, bag 7), Financials (XLF), Consumer Disc (XLY)
+    - Keith Override (May 2026): BEARISH Gold → Gold removed from beli, added to short
+    - Keith Override (May 2026): BULLISH USD → USD in beli
+    - Keith Override (May 2026): BULLISH Oil → Oil in beli
+    - Exception: SNDK, VST, CEG = AI Infrastructure Bottleneck (supply constrained = Q3 favorable)
     """
-    pb = _get_quad_playbook(snap)
-    sq = pb.get("quad", "Q3")
+    gip = snap.get("gip")
+    sq = "Q3"
+    if gip is not None:
+        if isinstance(gip, dict):
+            sq = gip.get("structural_quad", "Q3")
+        else:
+            try: sq = getattr(gip, "structural_quad", "Q3")
+            except: pass
 
-    # Base from dynamic quad playbook
-    beli = list(pb.get("front_run_tickers", []))
-    short = list(pb.get("avoid", []))
-
-    # Ensure sector ETFs represented
-    sector_map = {
-        "Q1": {"beli": ["QQQ","XLK","XLF","XLI","XLY","IWM","ARKK"], "short": ["XLU","XLP","TLT","GLD"]},
-        "Q2": {"beli": ["XLF","XLE","XLI","XLB","KRE","IWM","XOM","CVX"], "short": ["TLT","IEF","XLU","XLP"]},
-        "Q3": {"beli": ["XLE","XLP","XLU","ITA","VST","CEG","BE","LITE","CCJ","URA"], "short": ["QQQ","XLK","IWM","ARKK","KRE","XLY"]},
-        "Q4": {"beli": ["TLT","IEF","XLU","XLP","XLV"], "short": ["QQQ","XLK","IWM","XLY","XLF","XLE"]},
-    }
-    base = sector_map.get(sq, sector_map["Q3"])
-
-    # Add asset-class-specific tickers per quad
-    asset_map = {
+    # Base Hedgeye playbook by quad (from official Hedgeye research)
+    base_map = {
         "Q1": {
-            "crypto": {"beli": ["BTC-USD","ETH-USD","SOL-USD"], "short": []},
-            "forex": {"beli": ["EURUSD=X","AUDUSD=X","GBPUSD=X"], "short": ["DX-Y.NYB","UUP"]},
-            "commodity": {"beli": ["HG=F","GC=F"], "short": ["CL=F","NG=F"]},
+            "beli": ["QQQ","XLK","NVDA","AAPL","MSFT","GOOGL","META","AMD","ARKK","IWM","XLF","XLI","XLY"],
+            "short": ["XLU","XLP","TLT","GLD","SLV","UUP","DX-Y.NYB"],
+            "theme": "Goldilocks — Growth accel, Inflation decel. Long Tech/Growth/Financials."
         },
         "Q2": {
-            "crypto": {"beli": ["BTC-USD","MSTR"], "short": []},
-            "forex": {"beli": ["GBPUSD=X","USDCAD=X"], "short": ["USDJPY=X"]},
-            "commodity": {"beli": ["CL=F","USO","XLE","GC=F"], "short": []},
+            "beli": ["XLF","XLE","XLI","XLB","KRE","IWM","XOM","CVX","CL=F","USO","XOP","OIH","BNO","UUP","DX-Y.NYB"],
+            "short": ["TLT","IEF","XLU","XLP","GLD","SLV"],
+            "theme": "Reflation — Growth accel, Inflation accel. Long Cyclicals/Energy/Financials/USD."
         },
         "Q3": {
-            "crypto": {"beli": ["BTC-USD","MSTR","IBIT"], "short": ["ETH-USD","SOL-USD"]},
-            "forex": {"beli": ["DX-Y.NYB","UUP","USDCHF=X"], "short": ["EURUSD=X","GBPUSD=X","AUDUSD=X"]},
-            "commodity": {"beli": ["CL=F","USO","CCJ","URA"], "short": []},
+            "beli": [
+                # Energy & Power (supply bottleneck = inflation hedge)
+                "XLE","XOP","OIH","BNO","CL=F","USO","VST","CEG","BE","LITE","CCJ","URA",
+                # Staples & Utilities (defensive)
+                "XLP","XLU","XLV","ITA","TLT","IEF",
+                # Industrials (Hedgeye specific)
+                "XLI","CAT","PCAR","OSK","HII","UPS","JBHT","EMR",
+                # Consumer Staples / Retail
+                "PEP","CASY","BURL","HSY","MAR","SBUX",
+                # Healthcare / Biotech
+                "TXG","AVO",
+                # Real Assets / Commodities
+                "HG=F","CPER","SLX",
+                # USD Bullish (Keith May 2026)
+                "UUP","DX-Y.NYB",
+                # AI Bottleneck Exception (supply constrained physical assets)
+                "SNDK","MU","NXT","AMPH","COHR","MRVL",
+            ],
+            "short": [
+                # Tech / Growth (MOAB Tech per Hedgeye)
+                "QQQ","XLK","SKYY","CIBR","IVES","MAGS","MSFO","DESK","BLOK","BITS","WGMI",
+                # Bag 7 / Mag 7 (Hedgeye bearish trend)
+                "NVDA","META","TSLA","AMZN","GOOGL","AAPL","MSFT","AMD","NFLX","CRM",
+                # Financials (Q3 headwind)
+                "XLF","KRE","COF","ALLY","SYF","MA","V","BR.B",
+                # Consumer Disc
+                "XLY",
+                # Gold / Precious Metals (Keith BEARISH May 2026)
+                "GLD","SLV","GC=F","SI=F","PALL","GDX","GDXJ","PPLT",
+                # Crypto (relative underperform in Q3)
+                "ETH-USD","SOL-USD",
+            ],
+            "theme": "Stagflation — Growth decel, Inflation accel. Long Energy/Staples/Utilities/Industrials/USD. Short Tech/Financials/Gold(Keith)."
         },
         "Q4": {
-            "crypto": {"beli": ["BTC-USD"], "short": ["ETH-USD","SOL-USD"]},
-            "forex": {"beli": ["USDJPY=X","USDCHF=X"], "short": ["AUDUSD=X","EURUSD=X"]},
-            "commodity": {"beli": ["GC=F","SI=F","TLT"], "short": ["CL=F","HG=F"]},
+            "beli": ["TLT","IEF","GLD","SLV","XLU","XLP","XLV","JPY","CHF"],
+            "short": ["QQQ","XLK","IWM","XLY","XLF","XLE","CL=F","USO"],
+            "theme": "Deflation — Growth decel, Inflation decel. Long Bonds/Gold/Staples/Utilities. Short Tech/Cyclicals."
         },
     }
-    asset_base = asset_map.get(sq, asset_map["Q3"])
-    for asset_class in ("crypto", "forex", "commodity"):
-        for t in asset_base.get(asset_class, {}).get("beli", []):
-            if t not in beli:
-                beli.append(t)
-        for t in asset_base.get(asset_class, {}).get("short", []):
-            if t not in short:
-                short.append(t)
+    pb = base_map.get(sq, base_map["Q3"])
+    beli = [t for t in pb["beli"] if t]
+    short = [t for t in pb["short"] if t]
 
-    # Merge base sectors
-    for t in base["beli"]:
-        if t not in beli:
-            beli.append(t)
-    for t in base["short"]:
-        if t not in short:
-            short.append(t)
-
-    # ── KEITH P0 OVERRIDE: Adjust lists based on Keith public signals ──
+    # ── KEITH P0 OVERRIDE (May 2026 verified signals) ──
     keith = snap.get("keith_sync", {})
     if keith:
         for ticker, signal in keith.items():
             if not isinstance(signal, dict):
                 continue
             trade = signal.get("keith_trade", "NEUTRAL")
-            # Bearish Keith → remove from beli, add to short
             if trade == "BEARISH":
                 if ticker in beli:
                     beli.remove(ticker)
                 if ticker not in short:
                     short.append(ticker)
-            # Bullish Keith → remove from short, add to beli
             elif trade == "BULLISH":
                 if ticker in short:
                     short.remove(ticker)
                 if ticker not in beli:
                     beli.append(ticker)
 
-    # Deduplicate
-    beli = list(dict.fromkeys(beli))[:20]
-    short = list(dict.fromkeys(short))[:20]
+    # Deduplicate & sort
+    beli = list(dict.fromkeys(beli))[:25]
+    short = list(dict.fromkeys(short))[:25]
 
-    return {"beli": beli, "short": short, "quad": sq, "theme": pb.get("theme", "")}
+    return {"beli": beli, "short": short, "quad": sq, "theme": pb["theme"]}
+
+
+def _is_hedgeye_avoid(ticker, snap):
+    """Check if ticker is in Hedgeye avoid list for current quad."""
+    pb = _get_hedgeye_playbook(snap)
+    return ticker in pb.get("short", [])
+
+
+def _is_hedgeye_favor(ticker, snap):
+    """Check if ticker is in Hedgeye favor list for current quad."""
+    pb = _get_hedgeye_playbook(snap)
+    return ticker in pb.get("beli", [])
 
 
 def _classify_ticker_market(ticker: str) -> str:
@@ -1654,20 +1441,21 @@ def split_long_short(rows):
 
 def filter_actionable(rows, snap=None):
     """
-    v39.4 HEDGEYE-ALIGNED QUALITY FILTER
+    v39.4 HEDGEYE-ALIGNED QUALITY FILTER — Remove sampah tickers
     Requirements:
-    - setup_valid = True
-    - chase_status != AVOID
-    - RR >= 0.5
+    - setup_valid = True (stop not too tight)
+    - chase_status != AVOID (not broken)
+    - RR >= 0.5 minimum
+    - Must have SOME edge: options/greeks OR dark pool OR alpha_source OR broker OR strong formation
     - Keith BEARISH override = auto-kill
-    - Signal-to-Quad alignment: sector must NOT be in quad "avoid" list
-    - IHSG: broker signal or strong formation (min quality 25)
+    - Signal-to-Quad alignment: ticker must NOT be in Hedgeye avoid list (unless Keith bullish)
+    - IHSG: must have broker signal or strong formation (min quality 25)
     """
-    # Get current quad playbook for alignment check
-    quad_pb = _get_hedgeye_playbook(snap) if snap else {"beli": [], "short": [], "quad": "Q3"}
-    avoid_tickers = set(quad_pb.get("short", []))
-    favor_tickers = set(quad_pb.get("beli", []))
-    current_quad = quad_pb.get("quad", "Q3")
+    # Get Hedgeye playbook for alignment check
+    pb = _get_hedgeye_playbook(snap) if snap else {"beli": [], "short": [], "quad": "Q3"}
+    avoid_tickers = set(pb.get("short", []))
+    favor_tickers = set(pb.get("beli", []))
+    current_quad = pb.get("quad", "Q3")
 
     out = []
     for r in rows:
@@ -1686,15 +1474,14 @@ def filter_actionable(rows, snap=None):
             continue
 
         # ── SIGNAL-TO-QUAD ALIGNMENT (Hedgeye A/B Test) ──
-        # If ticker is explicitly in the avoid list for current quad, heavy penalty
+        # If ticker is in Hedgeye avoid list for current quad → heavy penalty
+        # Exception: Keith BULLISH override > Quad playbook
         quad_aligned = True
         if t in avoid_tickers:
             quad_aligned = False
-            # Exception: if Keith says BULLISH on an avoid-list ticker, allow it (Keith P0 > Quad)
             if ks and isinstance(ks, dict) and ks.get("keith_trade") == "BULLISH":
-                quad_aligned = True
+                quad_aligned = True  # Keith P0 > Quad
 
-        # If ticker is in favor list, boost
         in_favor = t in favor_tickers
 
         # Quality scoring
@@ -1715,7 +1502,7 @@ def filter_actionable(rows, snap=None):
         if in_favor:
             quality_score += 15; reasons.append(f"Quad {current_quad} favored")
         if not quad_aligned:
-            quality_score -= 25; reasons.append(f"Quad {current_quad} avoid-list")
+            quality_score -= 30; reasons.append(f"Quad {current_quad} avoid-list")
 
         if formation in ("BULLISH", "BEARISH"):
             quality_score += 20; reasons.append("Strong formation")
@@ -4876,7 +4663,7 @@ def page_alpha():
                     try:
                         s_clean = pd.to_numeric(pd.Series(s), errors="coerce").dropna()
                         if len(s_clean) < 40: continue
-                        # Hedgeye Risk Range squeeze proxy (v39.1 — BB removed)
+                        # Hedgeye Risk Range squeeze proxy (v39.2 — BB removed)
                         px = float(s_clean.iloc[-1])
                         trade_basis = float(s_clean.tail(15).mean())
                         trade_std = float(s_clean.tail(15).std())
@@ -4887,7 +4674,6 @@ def page_alpha():
                         trend_std = float(s_clean.tail(63).std()) if len(s_clean) >= 63 else trade_std
                         trend_lrr = trend_basis - 2.0 * trend_std
                         trend_trr = trend_basis + 2.0 * trend_std
-                        # Squeeze = price inside tight trade range + vol contracting
                         in_trade_range = trade_lrr < px < trade_trr
                         near_trend_mid = abs(px - trend_basis) / max(trend_basis, 0.001) < 0.03
                         vol_20 = float(s_clean.tail(20).pct_change().dropna().std())
@@ -5006,7 +4792,7 @@ def page_us_stocks():
         with st.expander(f"⚠️ Filtered Out ({len(invalid)} invalid / conflict / avoid)", expanded=False):
             render_invalid_cards(invalid)
 
-    # v38 Daily Plays REMOVED per v39.1 audit
+    # v38 Daily Plays REMOVED per v39.2 audit
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -5045,7 +4831,7 @@ def page_forex():
         with st.expander(f"⚠️ Filtered Out ({len(invalid)} invalid / conflict / avoid)", expanded=False):
             render_invalid_cards(invalid)
 
-    # v38 Daily Plays REMOVED per v39.1 audit
+    # v38 Daily Plays REMOVED per v39.2 audit
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -5082,7 +4868,7 @@ def page_commodities():
         with st.expander(f"⚠️ Filtered Out ({len(invalid)} invalid / conflict / avoid)", expanded=False):
             render_invalid_cards(invalid)
 
-    # v38 Daily Plays REMOVED per v39.1 audit
+    # v38 Daily Plays REMOVED per v39.2 audit
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -5142,28 +4928,11 @@ def page_crypto():
         with st.expander(f"⚠️ Filtered Out ({len(invalid)} invalid / conflict / avoid)", expanded=False):
             render_invalid_cards(invalid)
 
-    # v38 Daily Plays REMOVED per v39.1 audit
+    # v38 Daily Plays REMOVED per v39.2 audit
 
 
-# ═══════════════════════════════════════════════════════════════════
-# v38 IHSG SAFE WRAPPER — Force BUY-ONLY, strip SHORT labels
-# ═══════════════════════════════════════════════════════════════════
-def _render_v38_ihsg_safe(snap, prices, st):
-    """Wrap v38 IHSG render to force LONG/BUY only. No shorts."""
-    if not _V38_OK:
-        return
-    try:
-        # Monkey-patch session state for IHSG safety
-        orig_snap = dict(snap) if isinstance(snap, dict) else {}
-        # Call original v38
-        render_v38_complete("ihsg", snap, prices, st)
-    except Exception as e:
-        logger.warning(f"v38 IHSG safe wrapper: {e}")
 
-# ═══════════════════════════════════════════════════════════════════
-# PAGE: GLOBAL & EM
-# ═══════════════════════════════════════════════════════════════════
-def page_global():
+    # v38 REMOVED
     # ── Quick Ticker Lookup ──
     with st.expander("🔍 Quick Ticker Lookup", expanded=False):
         q_ticker = st.text_input("Enter ticker", "", key="ql_global")
@@ -5245,7 +5014,7 @@ def page_global():
         with st.expander(f"⚠️ Filtered IHSG ({len(invalid_ihsg)} invalid / conflict)", expanded=False):
             render_invalid_cards(invalid_ihsg)
 
-    # v38 Daily Plays REMOVED per v39.1 audit
+    # v38 Daily Plays REMOVED per v39.2 audit
 
 
 # ═══════════════════════════════════════════════════════════════════

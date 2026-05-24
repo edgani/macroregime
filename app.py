@@ -1158,6 +1158,9 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
     if side == "neutral":
         return None
 
+    # ATR proxy for downstream entry/stop/target code (backward compat)
+    atr15 = atr_val
+
     # Backward-compatible variable names
     trade_low  = round(trade_lrr, 4)
     trade_top  = round(trade_trr, 4)

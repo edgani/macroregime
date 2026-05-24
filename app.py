@@ -537,6 +537,23 @@ def ff(v, d=2):
     try: return f"{float(v):,.{d}f}" if v is not None and math.isfinite(float(v)) else "-"
     except: return "-"
 
+def _ffm(v, market_type="us_equity"):
+    """Market-aware formatter: forex=4dp, crypto=4dp if <1, else 2dp, commodity=2dp, equity=2dp"""
+    if v is None: return "—"
+    try:
+        f = float(v)
+        if not math.isfinite(f): return "—"
+        if market_type == "forex":
+            return f"{f:,.4f}"
+        elif market_type == "crypto":
+            return f"{f:,.4f}" if abs(f) < 1 else f"{f:,.2f}"
+        elif market_type == "commodity":
+            return f"{f:,.2f}"
+        else:
+            return f"{f:,.2f}"
+    except:
+        return "—"
+
 def sf(v, fmt=".2f"):
     try:
         if v is None: return "—"
@@ -1313,7 +1330,15 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
     unusual = _detect_unusual_activity(ticker, prices, snap, market_type)
 
     # ── ENTRY / STOP / TARGET ──
-    min_stop_dist = px * 0.003  # v39.1: relaxed from 0.5% to 0.3%
+    # v39.3: Asset-class aware min stop distance
+    if market_type == "forex":
+        min_stop_dist = max(px * 0.003, 0.0005)  # min 5 pips for forex
+    elif market_type == "crypto":
+        min_stop_dist = max(px * 0.005, 0.01)    # min 1% for crypto
+    elif market_type == "commodity":
+        min_stop_dist = max(px * 0.004, 0.02)   # min 2% or $0.02 for commodities
+    else:
+        min_stop_dist = px * 0.003  # US equity / IHSG: 0.3%
     confluence = {"entry": [], "target": [], "entry_cluster": None, "target_cluster": None}
 
     def _cluster_levels(levels, threshold_pct=0.02):
@@ -1689,8 +1714,9 @@ def filter_actionable(rows, snap=None):
     out = []
     for r in rows:
         t = r.get("ticker", "")
-        # Hard excludes
-        if r.get("chase_status") == "AVOID":
+        # ── v39.3 HARD EXCLUDES ──
+        # Only CHASE (ready now) or WAIT (almost ready). NEUTRAL/AVOID = kill.
+        if r.get("chase_status") not in ("CHASE", "WAIT"):
             continue
         ks = r.get("keith_sync", {})
         if ks and isinstance(ks, dict) and ks.get("override") and ks.get("keith_trade") == "BEARISH":
@@ -1699,7 +1725,7 @@ def filter_actionable(rows, snap=None):
             continue
 
         rr = r.get("rr", 0) or 0
-        if rr < 0.5:
+        if rr < 1.0:
             continue
 
         # ── SIGNAL-TO-QUAD ALIGNMENT (Hedgeye A/B Test) ──
@@ -1799,7 +1825,8 @@ def filter_actionable(rows, snap=None):
         else:
             r["grade"] = "D"
 
-        if quality_score >= 25:
+        # v39.3: HIGH CONVICTION ONLY — Grade A/B + quality >= 60
+        if quality_score >= 60 and r.get("grade") in ("A", "B"):
             out.append(r)
 
     return sorted(out, key=lambda x: x.get("quality_score", 0), reverse=True)
@@ -3010,11 +3037,11 @@ def render_ticker_card_v4(row, expanded=False):
     # ── Meta row ──
     meta_parts = []
     if entry is not None:
-        meta_parts.append(f'Entry <b>{ff(entry)}</b>')
+        meta_parts.append(f'Entry <b>{_ffm(entry, market_type)}</b>')
     if t1 is not None:
-        meta_parts.append(f'T1 <b>{ff(t1)}</b>')
+        meta_parts.append(f'T1 <b>{_ffm(t1, market_type)}</b>')
     if stop is not None:
-        meta_parts.append(f'SL <b>{ff(stop)}</b> ({risk_pct:.1f}%)')
+        meta_parts.append(f'SL <b>{_ffm(stop, market_type)}</b> ({risk_pct:.1f}%)')
     if rr_val:
         meta_parts.append(f'RR <b>{rr_val:.1f}x</b>')
     if r1m is not None:
@@ -3038,7 +3065,7 @@ def render_ticker_card_v4(row, expanded=False):
         f'<div class="hy-card">'
         f'<div class="hy-header">'
         f'<div class="hy-symbol">{ticker}</div>'
-        f'<div class="hy-price">{ff(px)}</div>'
+        f'<div class="hy-price">{_ffm(px, market_type)}</div>'
         f'<div class="hy-badges">{badges}</div>'
         f'</div>'
         f'<div class="hy-status-bar">{status_banner}</div>'
@@ -3369,15 +3396,15 @@ def render_ticker_card_v4(row, expanded=False):
         # Basis line
         basis_parts = []
         if row.get("trade_low"):
-            basis_parts.append(f"LRR {ff(row['trade_low'])}")
+            basis_parts.append(f"LRR {_ffm(row['trade_low'], market_type)}")
         if row.get("trade_top"):
-            basis_parts.append(f"TRR {ff(row['trade_top'])}")
+            basis_parts.append(f"TRR {_ffm(row['trade_top'], market_type)}")
         if options.get("max_pain"):
-            basis_parts.append(f"Max Pain {ff(options['max_pain'])}")
+            basis_parts.append(f"Max Pain {_ffm(options['max_pain'], market_type)}")
         if options.get("put_wall"):
-            basis_parts.append(f"Put Wall {ff(options['put_wall'])}")
+            basis_parts.append(f"Put Wall {_ffm(options['put_wall'], market_type)}")
         if options.get("call_wall"):
-            basis_parts.append(f"Call Wall {ff(options['call_wall'])}")
+            basis_parts.append(f"Call Wall {_ffm(options['call_wall'], market_type)}")
         basis_html = " · ".join(basis_parts) if basis_parts else "Basis: Price action proxy"
         st.markdown(f'<div style="font-size:0.7rem;color:#8B949E;margin-bottom:8px;">{basis_html}</div>', unsafe_allow_html=True)
 
@@ -3513,10 +3540,10 @@ def render_ticker_card_v4(row, expanded=False):
 
         # Entry/Target/Stop grid
         rec_html += f'<div class="ts-grid-4" style="margin-bottom:8px;">'
-        rec_html += f'<div class="ts-stat"><div class="ts-stat-label">Entry</div><div class="ts-stat-value" style="color:#E6EDF3;">{ff(entry)}</div></div>'
-        rec_html += f'<div class="ts-stat"><div class="ts-stat-label">Target 1</div><div class="ts-stat-value" style="color:#3FB950;">{ff(t1)}</div></div>'
-        rec_html += f'<div class="ts-stat"><div class="ts-stat-label">Target 2</div><div class="ts-stat-value" style="color:#2EA043;">{ff(t2)}</div></div>'
-        rec_html += f'<div class="ts-stat"><div class="ts-stat-label">Stop</div><div class="ts-stat-value" style="color:#F85149;">{ff(stop)}</div><div class="ts-stat-sub">{risk_pct:.1f}% risk</div></div>'
+        rec_html += f'<div class="ts-stat"><div class="ts-stat-label">Entry</div><div class="ts-stat-value" style="color:#E6EDF3;">{_ffm(entry, market_type)}</div></div>'
+        rec_html += f'<div class="ts-stat"><div class="ts-stat-label">Target 1</div><div class="ts-stat-value" style="color:#3FB950;">{_ffm(t1, market_type)}</div></div>'
+        rec_html += f'<div class="ts-stat"><div class="ts-stat-label">Target 2</div><div class="ts-stat-value" style="color:#2EA043;">{_ffm(t2, market_type)}</div></div>'
+        rec_html += f'<div class="ts-stat"><div class="ts-stat-label">Stop</div><div class="ts-stat-value" style="color:#F85149;">{_ffm(stop, market_type)}</div><div class="ts-stat-sub">{risk_pct:.1f}% risk</div></div>'
         rec_html += f'</div>'
 
         # Greeks grid (consolidated) — SKIP for IHSG
@@ -3568,13 +3595,13 @@ def render_ticker_card_v4(row, expanded=False):
         trade_r = row.get("trade_top", 0)
         trend_top = row.get("trend_top", 0)
         if formation == "BULLISH":
-            reasons.append(f"📈 <b>Hedgeye BULLISH:</b> Price {ff(px)} > Trend Top {ff(trend_top)} AND Tail Top. Formation mendukung {direction}.")
+            reasons.append(f"📈 <b>Hedgeye BULLISH:</b> Price {_ffm(px, market_type)} > Trend Top {_ffm(trend_top, market_type)} AND Tail Top. Formation mendukung {direction}.")
         elif formation == "BEARISH":
-            reasons.append(f"📉 <b>Hedgeye BEARISH:</b> Price {ff(px)} < Trend Low AND Tail Low. Formation mendukung {direction}.")
+            reasons.append(f"📉 <b>Hedgeye BEARISH:</b> Price {_ffm(px, market_type)} < Trend Low AND Tail Low. Formation mendukung {direction}.")
         elif formation == "OVERSOLD":
-            reasons.append(f"📉 <b>OVERSOLD:</b> Price di bawah Trade Low {ff(trade_l)}. Mean-reversion play dengan RR {row.get('rr',0):.1f}x.")
+            reasons.append(f"📉 <b>OVERSOLD:</b> Price di bawah Trade Low {_ffm(trade_l, market_type)}. Mean-reversion play dengan RR {row.get('rr',0):.1f}x.")
         elif formation == "OVERBOUGHT":
-            reasons.append(f"📈 <b>OVERBOUGHT:</b> Price di atas Trade Top {ff(trade_r)}. Fade rally setup.")
+            reasons.append(f"📈 <b>OVERBOUGHT:</b> Price di atas Trade Top {_ffm(trade_r, market_type)}. Fade rally setup.")
         elif formation in ("BULLISH_BIAS", "BEARISH_BIAS"):
             reasons.append(f"📊 <b>BIAS:</b> Price {formation.replace('_', ' ')} — directional favorable untuk {direction}.")
 
@@ -3710,7 +3737,7 @@ def render_ticker_card_v4(row, expanded=False):
         stop = row.get("stop")
         rr = row.get("rr", 0)
         if entry and stop and rr >= 2.0:
-            reasons.append(f"🎯 <b>Asymmetric Setup:</b> Entry {ff(entry)} → Stop {ff(stop)} (risk {row.get('risk_pct',0):.1f}%). RR {rr:.1f}x = reward {ff(row.get('target_1',0))}. High conviction.")
+            reasons.append(f"🎯 <b>Asymmetric Setup:</b> Entry {_ffm(entry, market_type)} → Stop {_ffm(stop, market_type)} (risk {row.get('risk_pct',0):.1f}%). RR {rr:.1f}x = reward {_ffm(row.get('target_1',0), market_type)}. High conviction.")
         elif entry and stop and rr >= 1.5:
             reasons.append(f"⚠️ <b>Moderate Setup:</b> RR {rr:.1f}x — valid tapi jangan oversize. Max 2-3% position.")
         elif entry and stop and rr < 1.5:
@@ -3783,7 +3810,7 @@ def render_ticker_card_v4(row, expanded=False):
                         heat_html += f'<div class="oi-bar-row">'
                         heat_html += f'<span class="oi-bar-label">{label}</span>'
                         heat_html += f'<div class="oi-bar-track"><div class="oi-bar-fill" style="width:{bar_w:.0f}%;background:{color};"></div></div>'
-                        heat_html += f'<span class="oi-bar-value" style="color:{color};">{ff(price)}{near_badge}</span>'
+                        heat_html += f'<span class="oi-bar-value" style="color:{color};">{_ffm(price, market_type)}{near_badge}</span>'
                         heat_html += f'</div>'
                     # SpotGamma levels
                     sg_levels = options.get("spotgamma_levels", {})
@@ -3794,12 +3821,12 @@ def render_ticker_card_v4(row, expanded=False):
                             is_near = abs(vt - px) / px < 0.03 if px else False
                             badge = ' <span style="background:#D2992222;color:#D29922;padding:1px 4px;border-radius:3px;font-size:0.55rem;font-weight:700;">NEAR PX</span>' if is_near else ''
                             bw = min(100, max(15, 100 - abs(vt - mp) / mp * 200)) if mp else 50
-                            heat_html += f'<div class="oi-bar-row"><span class="oi-bar-label">Vol Trigger</span><div class="oi-bar-track"><div class="oi-bar-fill" style="width:{bw:.0f}%;background:#D29922;"></div></div><span class="oi-bar-value" style="color:#D29922;">{ff(vt)}{badge}</span></div>'
+                            heat_html += f'<div class="oi-bar-row"><span class="oi-bar-label">Vol Trigger</span><div class="oi-bar-track"><div class="oi-bar-fill" style="width:{bw:.0f}%;background:#D29922;"></div></div><span class="oi-bar-value" style="color:#D29922;">{_ffm(vt, market_type)}{badge}</span></div>'
                         if rp:
                             is_near = abs(rp - px) / px < 0.03 if px else False
                             badge = ' <span style="background:#F8514922;color:#F85149;padding:1px 4px;border-radius:3px;font-size:0.55rem;font-weight:700;">NEAR PX</span>' if is_near else ''
                             bw = min(100, max(15, 100 - abs(rp - mp) / mp * 200)) if mp else 50
-                            heat_html += f'<div class="oi-bar-row"><span class="oi-bar-label">Risk Pivot</span><div class="oi-bar-track"><div class="oi-bar-fill" style="width:{bw:.0f}%;background:#F85149;"></div></div><span class="oi-bar-value" style="color:#F85149;">{ff(rp)}{badge}</span></div>'
+                            heat_html += f'<div class="oi-bar-row"><span class="oi-bar-label">Risk Pivot</span><div class="oi-bar-track"><div class="oi-bar-fill" style="width:{bw:.0f}%;background:#F85149;"></div></div><span class="oi-bar-value" style="color:#F85149;">{_ffm(rp, market_type)}{badge}</span></div>'
                     heat_html += f'<div style="margin-top:4px;font-size:0.6rem;color:#484F58;">Price: {ff(px)} · Source: {options.get("source","PROXY")}</div>'
                     heat_html += f'</div>'
                     st.markdown(heat_html, unsafe_allow_html=True)
@@ -4555,6 +4582,11 @@ def page_alpha():
                 if "convexity" in str(kar.get("setup_type", "")).lower() and direction == "LONG":
                     score += 8
 
+            # v39.3: HIGH CONVICTION GATE — unified candidates must have SOME validation
+            # Sim ≥ 50 OR Gatekeeper PASS/MARGINAL OR WF ≥ 40. Kalau semua FAIL, skip.
+            if sim_score < 50 and gk_status == "FAIL" and wf_score < 40:
+                return  # Not enough conviction — skip entirely
+
             # Composite signal boost
             cs = (snap.get("composite_signals", {}) or {}).get(ticker)
             if cs and isinstance(cs, dict):
@@ -4702,11 +4734,20 @@ def page_alpha():
         actionable = filter_actionable(alpha_rows, snap=snap)
         invalid = filter_invalid(alpha_rows)
 
-        # ── READY vs WAIT buckets ──
-        ready_longs = [r for r in actionable if r.get("chase_status") == "CHASE" and "LONG" in r.get("direction", "")]
-        ready_shorts = [r for r in actionable if r.get("chase_status") == "CHASE" and "SHORT" in r.get("direction", "")]
-        wait_longs = [r for r in actionable if r.get("chase_status") != "CHASE" and "LONG" in r.get("direction", "")]
-        wait_shorts = [r for r in actionable if r.get("chase_status") != "CHASE" and "SHORT" in r.get("direction", "")]
+        # v39.3: ALPHA CENTER — only HIGH CONVICTION (grade A/B + RR≥1.5 + sim/WF pass)
+        hc_actionable = filter_high_conviction(actionable)
+        hc_tickers = {r.get("ticker") for r in hc_actionable}
+        monitor_alpha = [r for r in actionable if r.get("ticker") not in hc_tickers]
+
+        # ── READY vs WAIT buckets (HIGH CONVICTION ONLY) ──
+        ready_longs = [r for r in hc_actionable if r.get("chase_status") == "CHASE" and "LONG" in r.get("direction", "")]
+        ready_shorts = [r for r in hc_actionable if r.get("chase_status") == "CHASE" and "SHORT" in r.get("direction", "")]
+        wait_longs = [r for r in hc_actionable if r.get("chase_status") != "CHASE" and "LONG" in r.get("direction", "")]
+        wait_shorts = [r for r in hc_actionable if r.get("chase_status") != "CHASE" and "SHORT" in r.get("direction", "")]
+
+        # Monitor bucket (valid tapi belum high conviction)
+        mon_longs = [r for r in monitor_alpha if "LONG" in r.get("direction", "")]
+        mon_shorts = [r for r in monitor_alpha if "SHORT" in r.get("direction", "")]
 
         # ── DISPLAY: READY LONGS ──
         if ready_longs:
@@ -4778,9 +4819,10 @@ def page_alpha():
                         f'</div>', unsafe_allow_html=True)
                     render_ticker_card_v4(r, expanded=False)
 
-        if wait_shorts:
-            st.markdown(f'<div style="font-size:0.7rem;color:#D29922;text-transform:uppercase;font-weight:700;margin:10px 0 4px;letter-spacing:0.5px;">🟡 WAIT — SHORT ({len(wait_shorts)})</div>', unsafe_allow_html=True)
-            for r in wait_shorts[:5]:
+        # ── MONITOR bucket (valid tapi belum high conviction) ──
+        if mon_longs or mon_shorts:
+            st.markdown(f'<div style="font-size:0.7rem;color:#D29922;text-transform:uppercase;font-weight:700;margin:10px 0 4px;letter-spacing:0.5px;">🟡 MONITOR — Not Yet High Conviction ({len(mon_longs)+len(mon_shorts)})</div>', unsafe_allow_html=True)
+            for r in (mon_longs + mon_shorts)[:10]:
                 with st.container():
                     thesis = r.get("alpha_thesis", "")
                     src = r.get("alpha_source", "")
@@ -4789,10 +4831,11 @@ def page_alpha():
                         f'<div class="alpha-thesis-card" style="border-left-color:#D29922;">'
                         f'<div style="display:flex;align-items:center;gap:8px;">'
                         f'<span style="font-size:0.9rem;font-weight:800;color:#E6EDF3;">{r.get("ticker","—")}</span>'
-                        f'<span class="alpha-ready banner-wait">⏳ WAIT</span>'
+                        f'<span class="alpha-ready banner-wait">⏳ MONITOR</span>'
                         f'<span style="font-size:0.6rem;color:#484F58;">{src_emoji} {src.replace("_"," ").title()}</span>'
                         f'</div>'
                         f'<div class="alpha-thesis-sub"><b>Thesis:</b> {thesis}</div>'
+                        f'<div class="alpha-thesis-sub" style="color:#8B949E;font-size:0.65rem;">Quality: {r.get("quality_score",0):.0f} · RR {r.get("rr",0):.1f}x · Grade {r.get("grade","C")}</div>'
                         f'</div>', unsafe_allow_html=True)
                     render_ticker_card_v4(r, expanded=False)
 
@@ -5011,12 +5054,29 @@ def page_us_stocks():
     rows = build_ticker_rows(us_tickers, "us_equity", vix_now, snap.get("gamma_data"), snap.get("greeks_data"), snap.get("news_narratives"), prices=prices, ar=ar, snap=snap, sim_results=sim_results)
     actionable = filter_actionable(rows, snap=snap)
     invalid = filter_invalid(rows)
-    longs, shorts = split_long_short(actionable)
 
-    st.markdown(f"**{len(actionable)} actionable** · 🟢 {len(longs)} Long · 🔴 {len(shorts)} Short · ⚠️ {len(invalid)} filtered")
-    tab_l, tab_s = st.tabs([f"🟢 Long ({len(longs)})", f"🔴 Short ({len(shorts)}))"])
-    with tab_l: render_ticker_cards_v4(longs)
-    with tab_s: render_ticker_cards_v4(shorts)
+    # v39.3: HIGH CONVICTION gate — only grade A/B + RR≥1.5 + sim/WF pass
+    high_conv = filter_high_conviction(actionable)
+    hc_longs, hc_shorts = split_long_short(high_conv)
+
+    # Monitor = valid & actionable tapi belum high conviction (grade C, RR 1.0–1.5, WF marginal, dll)
+    hc_tickers = {r.get("ticker") for r in high_conv}
+    monitor = [r for r in actionable if r.get("ticker") not in hc_tickers]
+    mon_longs, mon_shorts = split_long_short(monitor)
+
+    st.markdown(
+        f"**{len(high_conv)} high conviction** · "
+        f"🟢 {len(hc_longs)} Long · 🔴 {len(hc_shorts)} Short · "
+        f"🟡 {len(monitor)} monitor · ⚠️ {len(invalid)} filtered"
+    )
+    tab_hc_l, tab_hc_s, tab_mon = st.tabs([
+        f"🎯 Ready Long ({len(hc_longs)})",
+        f"🎯 Ready Short ({len(hc_shorts)})",
+        f"🟡 Monitor ({len(monitor)})",
+    ])
+    with tab_hc_l: render_ticker_cards_v4(hc_longs)
+    with tab_hc_s: render_ticker_cards_v4(hc_shorts)
+    with tab_mon: render_ticker_cards_v4(monitor)
     if invalid:
         with st.expander(f"⚠️ Filtered Out ({len(invalid)} invalid / conflict / avoid)", expanded=False):
             render_invalid_cards(invalid)
@@ -5051,11 +5111,25 @@ def page_forex():
     rows = build_ticker_rows(fx_tickers, "forex", vix_now, snap.get("gamma_data"), snap.get("greeks_data"), snap.get("news_narratives"), prices=prices, ar=ar, snap=snap, sim_results=sim_results)
     actionable = filter_actionable(rows, snap=snap)
     invalid = filter_invalid(rows)
-    longs, shorts = split_long_short(actionable)
-    st.markdown(f"**{len(actionable)} actionable** · 🟢 {len(longs)} Long · 🔴 {len(shorts)} Short · ⚠️ {len(invalid)} filtered")
-    tab_l, tab_s = st.tabs([f"🟢 Long ({len(longs)})", f"🔴 Short ({len(shorts)}))"])
-    with tab_l: render_ticker_cards_v4(longs)
-    with tab_s: render_ticker_cards_v4(shorts)
+
+    high_conv = filter_high_conviction(actionable)
+    hc_longs, hc_shorts = split_long_short(high_conv)
+    hc_tickers = {r.get("ticker") for r in high_conv}
+    monitor = [r for r in actionable if r.get("ticker") not in hc_tickers]
+
+    st.markdown(
+        f"**{len(high_conv)} high conviction** · "
+        f"🟢 {len(hc_longs)} Long · 🔴 {len(hc_shorts)} Short · "
+        f"🟡 {len(monitor)} monitor · ⚠️ {len(invalid)} filtered"
+    )
+    tab_hc_l, tab_hc_s, tab_mon = st.tabs([
+        f"🎯 Ready Long ({len(hc_longs)})",
+        f"🎯 Ready Short ({len(hc_shorts)})",
+        f"🟡 Monitor ({len(monitor)})",
+    ])
+    with tab_hc_l: render_ticker_cards_v4(hc_longs)
+    with tab_hc_s: render_ticker_cards_v4(hc_shorts)
+    with tab_mon: render_ticker_cards_v4(monitor)
     if invalid:
         with st.expander(f"⚠️ Filtered Out ({len(invalid)} invalid / conflict / avoid)", expanded=False):
             render_invalid_cards(invalid)
@@ -5088,11 +5162,25 @@ def page_commodities():
     rows = build_ticker_rows(comm_tickers, "commodity", vix_now, snap.get("gamma_data"), snap.get("greeks_data"), snap.get("news_narratives"), prices=prices, ar=ar, snap=snap, sim_results=sim_results)
     actionable = filter_actionable(rows, snap=snap)
     invalid = filter_invalid(rows)
-    longs, shorts = split_long_short(actionable)
-    st.markdown(f"**{len(actionable)} actionable** · 🟢 {len(longs)} Long · 🔴 {len(shorts)} Short · ⚠️ {len(invalid)} filtered")
-    tab_l, tab_s = st.tabs([f"🟢 Long ({len(longs)})", f"🔴 Short ({len(shorts)}))"])
-    with tab_l: render_ticker_cards_v4(longs)
-    with tab_s: render_ticker_cards_v4(shorts)
+
+    high_conv = filter_high_conviction(actionable)
+    hc_longs, hc_shorts = split_long_short(high_conv)
+    hc_tickers = {r.get("ticker") for r in high_conv}
+    monitor = [r for r in actionable if r.get("ticker") not in hc_tickers]
+
+    st.markdown(
+        f"**{len(high_conv)} high conviction** · "
+        f"🟢 {len(hc_longs)} Long · 🔴 {len(hc_shorts)} Short · "
+        f"🟡 {len(monitor)} monitor · ⚠️ {len(invalid)} filtered"
+    )
+    tab_hc_l, tab_hc_s, tab_mon = st.tabs([
+        f"🎯 Ready Long ({len(hc_longs)})",
+        f"🎯 Ready Short ({len(hc_shorts)})",
+        f"🟡 Monitor ({len(monitor)})",
+    ])
+    with tab_hc_l: render_ticker_cards_v4(hc_longs)
+    with tab_hc_s: render_ticker_cards_v4(hc_shorts)
+    with tab_mon: render_ticker_cards_v4(monitor)
     if invalid:
         with st.expander(f"⚠️ Filtered Out ({len(invalid)} invalid / conflict / avoid)", expanded=False):
             render_invalid_cards(invalid)
@@ -5148,11 +5236,25 @@ def page_crypto():
     rows = build_ticker_rows(crypto_tickers, "crypto", vix_now, snap.get("gamma_data"), snap.get("greeks_data"), snap.get("news_narratives"), prices=prices, ar=ar, snap=snap, sim_results=sim_results)
     actionable = filter_actionable(rows, snap=snap)
     invalid = filter_invalid(rows)
-    longs, shorts = split_long_short(actionable)
-    st.markdown(f"**{len(actionable)} actionable** · 🟢 {len(longs)} Long · 🔴 {len(shorts)} Short · ⚠️ {len(invalid)} filtered")
-    tab_l, tab_s = st.tabs([f"🟢 Long ({len(longs)})", f"🔴 Short ({len(shorts)}))"])
-    with tab_l: render_ticker_cards_v4(longs)
-    with tab_s: render_ticker_cards_v4(shorts)
+
+    high_conv = filter_high_conviction(actionable)
+    hc_longs, hc_shorts = split_long_short(high_conv)
+    hc_tickers = {r.get("ticker") for r in high_conv}
+    monitor = [r for r in actionable if r.get("ticker") not in hc_tickers]
+
+    st.markdown(
+        f"**{len(high_conv)} high conviction** · "
+        f"🟢 {len(hc_longs)} Long · 🔴 {len(hc_shorts)} Short · "
+        f"🟡 {len(monitor)} monitor · ⚠️ {len(invalid)} filtered"
+    )
+    tab_hc_l, tab_hc_s, tab_mon = st.tabs([
+        f"🎯 Ready Long ({len(hc_longs)})",
+        f"🎯 Ready Short ({len(hc_shorts)})",
+        f"🟡 Monitor ({len(monitor)})",
+    ])
+    with tab_hc_l: render_ticker_cards_v4(hc_longs)
+    with tab_hc_s: render_ticker_cards_v4(hc_shorts)
+    with tab_mon: render_ticker_cards_v4(monitor)
     if invalid:
         with st.expander(f"⚠️ Filtered Out ({len(invalid)} invalid / conflict / avoid)", expanded=False):
             render_invalid_cards(invalid)
@@ -5240,18 +5342,30 @@ def page_global():
     ihsg_rows = build_ticker_rows(ihsg_tickers, "ihsg", vix_now, prices=prices, ar=ar, snap=snap, sim_results=sim_results)
     actionable_ihsg = filter_actionable(ihsg_rows, snap=snap)
     invalid_ihsg = filter_invalid(ihsg_rows)
+
+    # v39.3: IHSG juga high conviction only
+    high_conv_ihsg = filter_high_conviction(actionable_ihsg)
+    hc_tickers_ihsg = {r.get("ticker") for r in high_conv_ihsg}
+    monitor_ihsg = [r for r in actionable_ihsg if r.get("ticker") not in hc_tickers_ihsg]
+
     by_sector = {}
-    for r in actionable_ihsg: by_sector.setdefault(IHSG_SECTOR_MAP.get(r.get("ticker"), "Other"), []).append(r)
+    for r in high_conv_ihsg: by_sector.setdefault(IHSG_SECTOR_MAP.get(r.get("ticker"), "Other"), []).append(r)
     if by_sector:
         sectors = list(by_sector.keys()); counts = [len(v) for v in by_sector.values()]
         colors = [_ret_color(sum(x.get("r20d",0) or 0 for x in by_sector[s])/max(len(by_sector[s]),1)) for s in sectors]
         fig = go.Figure(go.Bar(y=sectors, x=counts, orientation="h", marker_color=colors, text=[str(c) for c in counts], textposition="outside", textfont=dict(size=11, color="#E6EDF3")))
         fig.update_layout(height=max(250, len(sectors)*35), margin=dict(l=120,r=40,t=20,b=20), paper_bgcolor="#0D1117", plot_bgcolor="#0D1117", font=dict(color="#E6EDF3", size=11, family="Inter"), xaxis=dict(showgrid=True, gridcolor="#21262D"), yaxis=dict(showgrid=False))
         st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False}, key="ihsg_sector_bar_v4_global")
-    st.markdown(f"**{len(actionable_ihsg)} actionable** · Sectors: {', '.join(by_sector.keys())} · ⚠️ {len(invalid_ihsg)} filtered")
+    st.markdown(
+        f"**{len(high_conv_ihsg)} high conviction** · Sectors: {', '.join(by_sector.keys())} · "
+        f"🟡 {len(monitor_ihsg)} monitor · ⚠️ {len(invalid_ihsg)} filtered"
+    )
     for sector, items in by_sector.items():
         with st.expander(f"**{sector}** ({len(items)} stocks)", expanded=False):
             render_ticker_cards_v4(items, max_rows=10)
+    if monitor_ihsg:
+        with st.expander(f"🟡 Monitor IHSG ({len(monitor_ihsg)} valid tapi belum high conviction)", expanded=False):
+            render_ticker_cards_v4(monitor_ihsg, max_rows=10)
     if invalid_ihsg:
         with st.expander(f"⚠️ Filtered IHSG ({len(invalid_ihsg)} invalid / conflict)", expanded=False):
             render_invalid_cards(invalid_ihsg)

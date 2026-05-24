@@ -242,56 +242,143 @@ FALLBACK_IHSG = ["BBRI.JK","BMRI.JK","BBCA.JK","BBNI.JK","BRIS.JK","TLKM.JK","EX
 
 
 # ═══════════════════════════════════════════════════════════════════
-# QUAD FRONT-RUN PLAYBOOK v39 — Hedgeye + Leopold + Citrini Fusion
+# QUAD PLAYBOOK v39.3 — DYNAMIC (from snap/orchestrator, not hardcoded)
 # ═══════════════════════════════════════════════════════════════════
-QUAD_FRONT_RUN_PLAYBOOK = {
-    "Q1": {
-        "theme": "Goldilocks — Growth + Tech + Risk-On",
-        "front_run_sectors": ["Tech", "Semiconductors", "Growth", "Crypto", "EM", "Discretionary"],
-        "front_run_tickers": ["QQQ","XLK","NVDA","AMD","AVGO","AAPL","MSFT","GOOGL","META","BTC-USD","ETH-USD","SOL-USD","SMH","SOXX","ARKK","IWM","EEM","XLY"],
-        "bottleneck_focus": ["AI Compute", "Memory HBM", "Power/Cooling", "Optics"],
-        "leopold_layers": ["AI Models", "Memory", "Power", "Optics", "CPO"],
-        "coatue_signal": "BUY Tech / SELL Defensives",
-        "karsan_setup": "Long gamma tech — vol crush on rallies",
-        "avoid": ["XLU","XLP","TLT","GLD","SLV","VIXY"],
-    },
-    "Q2": {
-        "theme": "Reflation — Cyclicals + Commodities + Financials",
-        "front_run_sectors": ["Energy", "Materials", "Financials", "Industrials", "Small Caps"],
-        "front_run_tickers": ["XLF","XLE","XLI","XLB","KRE","IWM","CL=F","USO","XOM","CVX","FCX","SCCO","COPPER","HG=F","KOL"],
-        "bottleneck_focus": ["Mideast Oil", "Tankers", "Refining", "Fertilizer"],
-        "leopold_layers": ["Crude", "Tankers", "Refining", "Defense"],
-        "coatue_signal": "BUY Cyclicals / SELL Duration",
-        "karsan_setup": "Long commodity vol — trend acceleration",
-        "avoid": ["TLT","IEF","GLD","XLU","QQQ"],
-    },
-    "Q3": {
-        "theme": "Stagflation — Real Assets + Energy + Defensive + IHSG Commodity",
-        "front_run_sectors": ["Energy", "Utilities", "Staples", "Precious Metals", "Indonesia Commodity"],
-        "front_run_tickers": ["XLE","XLP","XLU","GLD","SLV","GDX","CCJ","URA","VST","CEG","CL=F","USO","UNG","NCKL.JK","ADRO.JK","ANTM.JK","AALI.JK","ITMG.JK","PTBA.JK","EIDO"],
-        "bottleneck_focus": ["Indonesia Nickel", "Palm Oil", "Coal", "Shipping", "Nuclear Fuel"],
-        "leopold_layers": ["Nickel", "CPO", "Coal", "Shipping", "Geothermal"],
-        "coatue_signal": "BUY Real Assets / SELL Tech",
-        "karsan_setup": "Long skew energy — put skew rich = buy",
-        "avoid": ["QQQ","XLK","ARKK","IWM","BTC-USD"],
-    },
-    "Q4": {
-        "theme": "Deflation — Bonds + Gold + Utilities + Cash + Short Risk",
-        "front_run_sectors": ["Treasuries", "Gold", "Utilities", "Staples", "Healthcare", "Short Equity"],
-        "front_run_tickers": ["TLT","IEF","GLD","XLU","XLP","XLV","SQQQ","SPXU","VIXY","UVXY","UUP","CHF","JPY"],
-        "bottleneck_focus": ["Credit Stress", "Flight to Quality", "DXY Strength"],
-        "leopold_layers": ["Duration", "Safe Haven", "Credit"],
-        "coatue_signal": "BUY Duration / SOLD Equity Beta",
-        "karsan_setup": "Sell premium — range-bound, high vol of vol",
-        "avoid": ["QQQ","XLK","XLE","IWM","ARKK","BTC-USD","ETH-USD"],
-    },
-}
+def _get_quad_playbook(snap):
+    """
+    Build quad playbook DYNAMICALLY from orchestrator data.
+    Falls back to config.settings if snap incomplete.
+    """
+    gip = snap.get("gip")
+    if gip is not None and not isinstance(gip, dict):
+        try: sq = getattr(gip, "structural_quad", "Q3")
+        except: sq = "Q3"
+    elif isinstance(gip, dict):
+        sq = gip.get("structural_quad", "Q3")
+    else:
+        sq = "Q3"
 
-BOTTLENECK_QUAD_MAP = {
-    "AI Compute Buildout": ["Q1", "Q2"],
-    "Mideast Supply Shock": ["Q2", "Q3"],
-    "Indonesia Resource Nationalism": ["Q3", "Q4"],
-}
+    # Try to get from snap.playbook (orchestrator output)
+    pb = snap.get("playbook", {}) if isinstance(snap.get("playbook"), dict) else {}
+
+    # Dynamic sector/ticker lists from config (not hardcoded)
+    sectors_ow = pb.get("sectors_overweight", [])
+    sectors_uw = pb.get("sectors_underweight", [])
+    best_assets = pb.get("best_assets", [])
+    worst_assets = pb.get("worst_assets", [])
+
+    # If orchestrator gives us nothing, derive from config settings
+    if not sectors_ow:
+        sectors_ow = _derive_sectors_from_config(sq, "overweight")
+    if not sectors_uw:
+        sectors_uw = _derive_sectors_from_config(sq, "underweight")
+    if not best_assets:
+        best_assets = _derive_tickers_from_config(sq, "best")
+    if not worst_assets:
+        worst_assets = _derive_tickers_from_config(sq, "worst")
+
+    # Dynamic bottleneck from snap (not hardcoded)
+    chains = snap.get("supply_chain_chains", [])
+    bottleneck_names = [c.get("name", "") for c in chains if isinstance(c, dict)]
+
+    # Dynamic methodology signals from snap
+    leo = snap.get("leopold_scan", {})
+    leo_layers = []
+    if isinstance(leo, dict):
+        for layer, items in (leo.get("top_picks_by_layer") or {}).items():
+            if items:
+                leo_layers.append(layer)
+
+    coat = snap.get("coatue_scan", {})
+    coat_signal = ""
+    if isinstance(coat, dict):
+        sellers = len(coat.get("sellers_top", []))
+        buyers = len(coat.get("buyers_top", []))
+        if buyers > sellers:
+            coat_signal = "BUY Rotation"
+        elif sellers > buyers:
+            coat_signal = "SELL Rotation"
+        else:
+            coat_signal = "NEUTRAL"
+
+    kar = snap.get("karsan_scanner", {})
+    kar_setup = ""
+    if isinstance(kar, dict):
+        squeeze = len(kar.get("squeeze_setups", []))
+        sell_prem = len(kar.get("sell_premium", []))
+        buy_conv = len(kar.get("buy_convexity", []))
+        if squeeze > 0:
+            kar_setup = f"Squeeze setups: {squeeze}"
+        elif sell_prem > buy_conv:
+            kar_setup = "Sell premium bias"
+        else:
+            kar_setup = "Buy convexity bias"
+
+    # Build playbook dict
+    playbook = {
+        "theme": pb.get("strategy", f"Quad {sq} regime play"),
+        "front_run_sectors": sectors_ow,
+        "front_run_tickers": best_assets,
+        "bottleneck_focus": bottleneck_names[:5],
+        "leopold_layers": leo_layers[:5],
+        "coatue_signal": coat_signal,
+        "karsan_setup": kar_setup,
+        "avoid": worst_assets,
+        "quad": sq,
+    }
+    return playbook
+
+def _derive_sectors_from_config(quad, bias):
+    """Derive sectors from config.settings.QUAD_ASSET_PERFORMANCE if available."""
+    try:
+        from config.settings import QUAD_ASSET_PERFORMANCE
+        perf = QUAD_ASSET_PERFORMANCE.get(quad, {})
+        if bias == "overweight":
+            return [k for k, v in perf.items() if isinstance(v, dict) and v.get("expected_return", 0) > 0.03]
+        else:
+            return [k for k, v in perf.items() if isinstance(v, dict) and v.get("expected_return", 0) < -0.03]
+    except Exception:
+        return []
+
+def _derive_tickers_from_config(quad, bias):
+    """Derive tickers from config.settings.US_BUCKETS / FX_BUCKETS etc."""
+    tickers = []
+    try:
+        from config.settings import US_BUCKETS, FX_BUCKETS, COMMODITY_BUCKETS, CRYPTO_BUCKETS
+        if bias == "best":
+            for bucket in ["Growth", "Quality", "Semis", "AI_Infra", "Energy"]:
+                tickers.extend(US_BUCKETS.get(bucket, []))
+        else:
+            for bucket in ["Defensives", "Bonds", "PreciousMetals"]:
+                tickers.extend(US_BUCKETS.get(bucket, []))
+    except Exception:
+        pass
+    return list(dict.fromkeys(tickers))[:20]
+
+def _get_bottleneck_quad_map(snap):
+    """Dynamic bottleneck-to-quad mapping from orchestrator supply_chain_chains."""
+    chains = snap.get("supply_chain_chains", [])
+    mapping = {}
+    for chain in chains:
+        if isinstance(chain, dict):
+            name = chain.get("name", "")
+            # Derive aligned quads from chain trigger keywords
+            trigger = chain.get("trigger", "").lower()
+            aligned = ["Q3"]  # default
+            if any(k in trigger for k in ["ai", "compute", "gpu", "semiconductor"]):
+                aligned = ["Q1", "Q2"]
+            elif any(k in trigger for k in ["oil", "energy", "geopolitical", "war", "iran"]):
+                aligned = ["Q2", "Q3"]
+            elif any(k in trigger for k in ["indonesia", "resource", "nationalism", "cpo", "nickel"]):
+                aligned = ["Q3", "Q4"]
+            elif any(k in trigger for k in ["deflation", "recession", "credit", "duration"]):
+                aligned = ["Q4", "Q1"]
+            mapping[name] = aligned
+    return mapping
+
+# Legacy alias for backward compat (redirects to dynamic)
+QUAD_FRONT_RUN_PLAYBOOK = {}  # populated at runtime via _get_quad_playbook(snap)
+BOTTLENECK_QUAD_MAP = {}  # populated at runtime via _get_bottleneck_quad_map(snap)
 
 def _classify_ticker_market(ticker: str) -> str:
     if ticker in FOREX_PAIRS or "=" in ticker or ticker in ["DX-Y.NYB", "UUP"]:
@@ -1058,10 +1145,34 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
             risk = abs(entry - stop)
             tp1 = round(max([x for x in tp1_candidates if x > entry], default=entry + risk * 2), 4)
 
-        tp2_candidates = [trend_top]
-        if cw: tp2_candidates.append(cw + atr15)
-        if mp and expected_move: tp2_candidates.append(mp + expected_move * 2 * px)
-        tp2 = round(max(tp2_candidates), 4)
+        # ── ATH BREAKOUT / TREND ACCELERATION DETECTION ──
+        breakout_mode = False
+        breakout_note = ""
+        if formation == "BULLISH" and gamma_data and gamma_data.get("gamma_regime") in ("NEGATIVE", "DEEP_NEGATIVE"):
+            # Negative gamma + above all ranges = trend ACCELERATION (not mean-reversion)
+            # This is SNDK/Palantir mode: ATH to ATH
+            breakout_mode = True
+            breakout_note = "🔥 ATH BREAKOUT MODE — Negative gamma + above Trend/Tail = trend acceleration. Targets projected beyond standard range."
+
+        if breakout_mode:
+            # Project targets beyond trend_top for breakout plays
+            tp2_candidates = [trend_top * 1.05, px * 1.08]
+            if cw: tp2_candidates.append(cw + atr15 * 2)
+            if mp and expected_move: tp2_candidates.append(mp + expected_move * 3 * px)
+            tp2 = round(max(tp2_candidates), 4)
+            # TP1 also more aggressive
+            tp1_candidates = [trade_top * 1.02, px * 1.04]
+            if cw: tp1_candidates.append(cw + atr15)
+            if mp and expected_move: tp1_candidates.append(mp + expected_move * 1.5 * px)
+            if t_clusters:
+                tp1 = t_clusters[0]["center"] * 1.02  # slight boost
+            else:
+                tp1 = round(max(tp1_candidates), 4)
+        else:
+            tp2_candidates = [trend_top]
+            if cw: tp2_candidates.append(cw + atr15)
+            if mp and expected_move: tp2_candidates.append(mp + expected_move * 2 * px)
+            tp2 = round(max(tp2_candidates), 4)
         near_entry = px <= trade_top * 0.65
 
     else:  # short
@@ -1098,10 +1209,31 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
             risk = abs(entry - stop)
             tp1 = round(min([x for x in tp1_candidates if x < entry], default=entry - risk * 2), 4)
 
-        tp2_candidates = [trend_low]
-        if pw: tp2_candidates.append(pw - atr15)
-        if mp and expected_move: tp2_candidates.append(mp - expected_move * 2 * px)
-        tp2 = round(min(tp2_candidates), 4)
+        # ── SHORT BREAKDOWN / TREND ACCELERATION DETECTION ──
+        breakdown_mode = False
+        breakdown_note = ""
+        if formation == "BEARISH" and gamma_data and gamma_data.get("gamma_regime") in ("POSITIVE", "DEEP_POSITIVE"):
+            # Positive gamma + below all ranges = breakdown acceleration
+            breakdown_mode = True
+            breakdown_note = "🔥 BREAKDOWN MODE — Positive gamma + below Trend/Tail = breakdown acceleration. Targets projected beyond standard range."
+
+        if breakdown_mode:
+            tp2_candidates = [trend_low * 0.95, px * 0.92]
+            if pw: tp2_candidates.append(pw - atr15 * 2)
+            if mp and expected_move: tp2_candidates.append(mp - expected_move * 3 * px)
+            tp2 = round(min(tp2_candidates), 4)
+            tp1_candidates = [trade_low * 0.98, px * 0.96]
+            if pw: tp1_candidates.append(pw - atr15)
+            if mp and expected_move: tp1_candidates.append(mp - expected_move * 1.5 * px)
+            if t_clusters:
+                tp1 = t_clusters[0]["center"] * 0.98
+            else:
+                tp1 = round(min(tp1_candidates), 4)
+        else:
+            tp2_candidates = [trend_low]
+            if pw: tp2_candidates.append(pw - atr15)
+            if mp and expected_move: tp2_candidates.append(mp - expected_move * 2 * px)
+            tp2 = round(min(tp2_candidates), 4)
         near_entry = px >= trade_low * 1.35
 
     # ── RISK/REWARD ──
@@ -1156,6 +1288,10 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
 
     return {
         "ticker": ticker, "price": px,
+        "breakout_mode": breakout_mode if 'breakout_mode' in locals() else False,
+        "breakout_note": breakout_note if 'breakout_note' in locals() else "",
+        "breakdown_mode": breakdown_mode if 'breakdown_mode' in locals() else False,
+        "breakdown_note": breakdown_note if 'breakdown_note' in locals() else "",
         "trade_low": round(trade_low, 4), "trade_top": round(trade_top, 4),
         "trend_low": round(trend_low, 4), "trend_top": round(trend_top, 4),
         "tail_low": round(tail_low, 4), "tail_top": round(tail_top, 4),
@@ -1314,15 +1450,177 @@ def split_long_short(rows):
 
 
 def filter_actionable(rows):
-    """v39.1 FIX: Keep valid + WAIT setups. AVOID excluded. Invalid kept with annotation for detail view."""
+    """
+    v39.3 STRICT QUALITY FILTER — Remove sampah tickers
+    Requirements:
+    - setup_valid = True (stop not too tight)
+    - chase_status != AVOID (not broken)
+    - RR >= 0.5 minimum
+    - Must have SOME edge: options/greeks OR dark pool OR alpha_source OR broker OR strong formation
+    - Keith BEARISH override = auto-kill
+    - IHSG: must have broker signal or strong formation (min quality 25)
+    """
     out = []
     for r in rows:
+        # Hard excludes
         if r.get("chase_status") == "AVOID":
             continue
+        ks = r.get("keith_sync", {})
+        if ks and isinstance(ks, dict) and ks.get("override") and ks.get("keith_trade") == "BEARISH":
+            continue
         if not r.get("setup_valid"):
-            r["_invalid_note"] = r.get("setup_note", "Invalid setup")
+            continue
+
+        rr = r.get("rr", 0) or 0
+        if rr < 0.5:
+            continue
+
+        # Quality scoring
+        quality_score = 0
+        reasons = []
+
+        if rr >= 2.0:
+            quality_score += 30; reasons.append("RR≥2")
+        elif rr >= 1.5:
+            quality_score += 20; reasons.append("RR≥1.5")
+        elif rr >= 1.2:
+            quality_score += 10; reasons.append("RR≥1.2")
+        else:
+            quality_score += 5; reasons.append("RR<1.2")
+
+        formation = r.get("formation", "NEUTRAL")
+        if formation in ("BULLISH", "BEARISH"):
+            quality_score += 20; reasons.append("Strong formation")
+        elif formation in ("BULLISH_BIAS", "BEARISH_BIAS", "OVERSOLD", "OVERBOUGHT"):
+            quality_score += 15; reasons.append("Bias/Oversold")
+
+        opts = r.get("options", {})
+        market_type = r.get("market_type", "us_equity")
+        if market_type != "ihsg" and opts:
+            gamma = opts.get("gamma_regime", "")
+            if gamma and gamma != "TRANSITION":
+                quality_score += 10; reasons.append("Gamma signal")
+            if opts.get("max_pain"):
+                quality_score += 5; reasons.append("Max pain")
+            if opts.get("vanna") is not None or opts.get("charm") is not None:
+                quality_score += 5; reasons.append("Greeks data")
+
+        dp = r.get("dark_pool")
+        if dp and isinstance(dp, dict) and dp.get("divergence") not in ("NEUTRAL", None):
+            quality_score += 15; reasons.append("Dark pool edge")
+
+        if r.get("alpha_source"):
+            quality_score += 15; reasons.append("Methodology")
+        if r.get("alpha_score", 0) >= 70:
+            quality_score += 10; reasons.append("High alpha")
+
+        sim = r.get("simulation")
+        if sim and isinstance(sim, dict):
+            if sim.get("robustness_score", 0) >= 65:
+                quality_score += 15; reasons.append("Sim strong")
+            elif sim.get("robustness_score", 0) >= 50:
+                quality_score += 8; reasons.append("Sim OK")
+
+        wf = r.get("walkforward", {})
+        if wf and isinstance(wf, dict) and wf.get("gate_status") == "PASS":
+            quality_score += 10; reasons.append("WF pass")
+
+        if market_type == "ihsg":
+            broker = r.get("broker", {})
+            if broker and isinstance(broker, dict):
+                if broker.get("real_accumulation"):
+                    quality_score += 25; reasons.append("Real accumulation")
+                elif broker.get("real_distribution"):
+                    quality_score += 15; reasons.append("Real distribution")
+                elif broker.get("cornering_supply"):
+                    quality_score += 20; reasons.append("Cornering")
+                elif broker.get("crossing_detected"):
+                    quality_score -= 10; reasons.append("Crossing warning")
+            if quality_score < 20 and formation == "NEUTRAL":
+                continue
+
+        if r.get("breakout_mode") or r.get("breakdown_mode"):
+            quality_score += 10; reasons.append("Breakout mode")
+
+        quality_score = max(0, min(100, quality_score))
+        r["quality_score"] = quality_score
+        r["quality_reasons"] = reasons
+
+        if quality_score >= 80:
+            r["grade"] = "A"
+        elif quality_score >= 60:
+            r["grade"] = "B"
+        elif quality_score >= 40:
             r["grade"] = "C"
-        out.append(r)
+        else:
+            r["grade"] = "D"
+
+        if quality_score >= 25:
+            out.append(r)
+
+    return sorted(out, key=lambda x: x.get("quality_score", 0), reverse=True)
+
+
+def filter_high_conviction(rows, min_rr=1.5, min_sim=50, min_wf=55):
+    """
+    v39.2 QUALITY GATE — Only the best setups survive.
+    Requirements:
+      - RR >= min_rr (default 1.5)
+      - setup_valid = True
+      - chase_status = CHASE or WAIT (not AVOID)
+      - Keith NOT overriding to BEARISH
+      - Sim robustness >= min_sim (if sim data exists)
+      - WF gate score >= min_wf OR gate_status PASS/MARGINAL (if WF data exists)
+      - Grade A or B (not C)
+    """
+    out = []
+    for r in rows:
+        rr = r.get("rr", 0) or 0
+        grade = r.get("grade", "C")
+        chase = r.get("chase_status", "NEUTRAL")
+        valid = r.get("setup_valid", False)
+
+        # Keith check
+        ks = r.get("keith_sync", {})
+        keith_block = ks and isinstance(ks, dict) and ks.get("override") and ks.get("keith_trade") == "BEARISH"
+
+        # Sim check
+        sim = r.get("simulation")
+        sim_ok = True
+        if sim and isinstance(sim, dict):
+            sim_ok = sim.get("robustness_score", 0) >= min_sim
+
+        # WF check
+        wf = r.get("walkforward", {})
+        wf_ok = True
+        if wf and isinstance(wf, dict):
+            wf_ok = (wf.get("combined_gate_score", 0) >= min_wf) or (wf.get("gate_status") in ("PASS", "MARGINAL"))
+
+        # Composite check
+        conv = r.get("entry_convergence", {})
+        conv_ok = True
+        if conv and isinstance(conv, dict):
+            conv_ok = conv.get("confidence", 0) >= 40  # at least some confidence
+
+        if rr >= min_rr and valid and chase != "AVOID" and not keith_block and sim_ok and wf_ok and conv_ok and grade in ("A", "B"):
+            r["_quality_passed"] = True
+            r["_quality_score"] = min(100, int(rr * 20 + (50 if chase == "CHASE" else 25) + (20 if grade == "A" else 10)))
+            out.append(r)
+    return sorted(out, key=lambda x: x.get("_quality_score", 0), reverse=True)
+
+
+def filter_low_conviction(rows):
+    """v39.2: Setups that exist but don't meet high conviction gate. Monitor only."""
+    out = []
+    for r in rows:
+        if r.get("_quality_passed"):
+            continue
+        if r.get("chase_status") == "AVOID":
+            continue
+        rr = r.get("rr", 0) or 0
+        if rr > 0:
+            r["_low_conviction_note"] = f"RR {rr:.1f}x — monitor for better entry"
+            out.append(r)
     return out
 
 
@@ -2324,6 +2622,23 @@ def render_ticker_card_v4(row, expanded=False):
     if not setup_valid:
         badges += _badge_html("🚫 INVALID", "short")
 
+    # Quality score badge
+    qscore = row.get("quality_score", 0)
+    if qscore >= 80:
+        badges += _badge_html(f"⭐ {qscore:.0f}", "a")
+    elif qscore >= 60:
+        badges += _badge_html(f"✓ {qscore:.0f}", "b")
+    elif qscore >= 40:
+        badges += _badge_html(f"△ {qscore:.0f}", "c")
+    elif qscore > 0:
+        badges += _badge_html(f"⚠ {qscore:.0f}", "short")
+
+    # Breakout / Breakdown badges
+    if row.get("breakout_mode"):
+        badges += _badge_html("🔥 ATH BREAKOUT", "chase")
+    if row.get("breakdown_mode"):
+        badges += _badge_html("🔥 BREAKDOWN", "short")
+
     if rr_val and rr_val >= 2:
         badges += _badge_html(f"RR {rr_val}x", "news")
     if mm_pos and mm_pos != "UNKNOWN":
@@ -2439,6 +2754,12 @@ def render_ticker_card_v4(row, expanded=False):
         status_banner = f'<div class="hy-status-pill banner-avoid">🚫 AVOID — Setup broken</div>'
     elif not setup_valid:
         status_banner = f'<div class="hy-status-pill banner-avoid">🚫 INVALID — Stop too tight</div>'
+
+    # Breakout / breakdown note override
+    if row.get("breakout_note"):
+        status_banner = f'<div class="hy-status-pill banner-chase">{row["breakout_note"][:60]}</div>'
+    elif row.get("breakdown_note"):
+        status_banner = f'<div class="hy-status-pill banner-avoid">{row["breakdown_note"][:60]}</div>'
     else:
         status_banner = f'<div class="hy-status-pill banner-hold">⏸ HOLD — Monitor</div>'
 
@@ -2454,6 +2775,9 @@ def render_ticker_card_v4(row, expanded=False):
         meta_parts.append(f'RR <b>{rr_val:.1f}x</b>')
     if r1m is not None:
         meta_parts.append(f'1M <b>{fp(r1m)}</b>')
+    qreasons = row.get("quality_reasons", [])
+    if qreasons:
+        meta_parts.append(f'Edge <b>{" · ".join(qreasons[:3])}</b>')
 
     extra_meta = ""
     ts = row.get("trend_strength")
@@ -2986,6 +3310,178 @@ def render_ticker_card_v4(row, expanded=False):
         rec_html += f'</div>'
         rec_html += f'</div>'
         st.markdown(rec_html, unsafe_allow_html=True)
+
+        # ── 🎯 WHY THIS POSITION — Synthesized Narrative ──
+        why_html = f'<div class="ts-panel" style="border-color: #58A6FF40; margin-bottom: 8px;">'
+        why_html += f'<div class="ts-panel-title">🎯 Why Take This Position</div>'
+
+        reasons = []
+
+        # 1. Formation + Risk Range position
+        formation = row.get("formation", "NEUTRAL")
+        px = row.get("price", 0)
+        trade_l = row.get("trade_low", 0)
+        trade_r = row.get("trade_top", 0)
+        trend_top = row.get("trend_top", 0)
+        if formation == "BULLISH":
+            reasons.append(f"📈 <b>Hedgeye BULLISH:</b> Price {ff(px)} > Trend Top {ff(trend_top)} AND Tail Top. Formation mendukung {direction}.")
+        elif formation == "BEARISH":
+            reasons.append(f"📉 <b>Hedgeye BEARISH:</b> Price {ff(px)} < Trend Low AND Tail Low. Formation mendukung {direction}.")
+        elif formation == "OVERSOLD":
+            reasons.append(f"📉 <b>OVERSOLD:</b> Price di bawah Trade Low {ff(trade_l)}. Mean-reversion play dengan RR {row.get('rr',0):.1f}x.")
+        elif formation == "OVERBOUGHT":
+            reasons.append(f"📈 <b>OVERBOUGHT:</b> Price di atas Trade Top {ff(trade_r)}. Fade rally setup.")
+        elif formation in ("BULLISH_BIAS", "BEARISH_BIAS"):
+            reasons.append(f"📊 <b>BIAS:</b> Price {formation.replace('_', ' ')} — directional favorable untuk {direction}.")
+
+        # 2. Options / Greeks context (skip IHSG)
+        if show_options and market_type != "ihsg":
+            opts = row.get("options", {})
+            gamma = opts.get("gamma_regime", "")
+            mp = opts.get("max_pain")
+            vanna = opts.get("vanna")
+            charm = opts.get("charm")
+            gex = opts.get("gex")
+
+            if gamma in ("NEGATIVE", "DEEP_NEGATIVE") and direction == "LONG":
+                reasons.append(f"🔴 <b>Negative Gamma:</b> Dealer short gamma = trend ACCELERATION on breakout. Bukan mean-reversion, ini momentum fuel. Target bisa lebih agresif.")
+            elif gamma in ("POSITIVE", "DEEP_POSITIVE") and direction == "LONG":
+                reasons.append(f"🟢 <b>Positive Gamma:</b> Dealer long = mean-reversion ke max pain. Sell into strength, buy dips. Range-bound behavior.")
+
+            if mp and px:
+                mp_dist = (px - mp) / mp * 100
+                if abs(mp_dist) < 2:
+                    reasons.append(f"📍 <b>Max Pain Pin:</b> Price {mp_dist:+.1f}% dari max pain {ff(mp)}. MM trapped — range-bound until expiry. Straddle income play.")
+                elif mp_dist > 3 and gamma in ("POSITIVE", "DEEP_POSITIVE"):
+                    reasons.append(f"📈 <b>Call Wall:</b> Price +{mp_dist:.1f}% above max pain + pos gamma. MM sells rallies. <b>Fade strength.</b>")
+                elif mp_dist < -3 and gamma in ("NEGATIVE", "DEEP_NEGATIVE"):
+                    reasons.append(f"📉 <b>Put Wall:</b> Price {mp_dist:.1f}% below max pain + neg gamma. MM buys dips. <b>Support holds.</b>")
+
+            if vanna is not None:
+                try:
+                    v = float(vanna)
+                    if v > 0.5:
+                        reasons.append(f"🟢 <b>Vanna +{v:.2f}:</b> Rally = vol crush. Buy spot on dips, jangan chase di atas.")
+                    elif v < -0.5:
+                        reasons.append(f"🔴 <b>Vanna {v:.2f}:</b> Rally = vol expansion. Breakout volatile — hedge dengan call spread.")
+                except: pass
+
+            if charm is not None:
+                try:
+                    c = float(charm)
+                    if c > 0.5:
+                        reasons.append(f"🟢 <b>Charm +{c:.2f}:</b> Put support strengthening daily. Support level naik tiap hari.")
+                    elif c < -0.5:
+                        reasons.append(f"🔴 <b>Charm {c:.2f}:</b> Put support eroding — downside acceleration risk. Tighten stop.")
+                except: pass
+
+            if gex is not None:
+                try:
+                    g = float(gex)
+                    if g > 0.5:
+                        reasons.append(f"🟢 <b>GEX +{g:.2f}:</b> Extreme positive = strong mean-reversion. Sell covered calls di resistance.")
+                    elif g < -0.5:
+                        reasons.append(f"🔴 <b>GEX {g:.2f}:</b> Extreme negative = trend acceleration. Buy dips, jangan short.")
+                except: pass
+
+        # 3. Dark Pool
+        dp = row.get("dark_pool")
+        if dp and isinstance(dp, dict):
+            div = dp.get("divergence", "NEUTRAL")
+            if div == "HIDDEN_ACCUMULATION":
+                reasons.append(f"🟢 <b>Hidden Accumulation:</b> Dark Pool BUY + Lit Tape SELL/NEUTRAL. Institutions stealth buying. <b>Smart money edge.</b>")
+            elif div == "HIDDEN_DISTRIBUTION":
+                reasons.append(f"🔴 <b>Hidden Distribution:</b> Dark Pool SELL + Lit Tape BUY. Institutions dumping ke retail. <b>Contrarian SELL.</b>")
+            elif div == "BOTH_AGREE":
+                dp_sig = dp.get("dp_signal", "")
+                reasons.append(f"✅ <b>Both Tapes Agree:</b> Dark Pool + Lit Tape {dp_sig}. Strong conviction, no divergence.")
+
+            zf = dp.get("zero_flag")
+            if zf == "ZERO_SELLS":
+                reasons.append(f"🔥 <b>ZERO Dark Sells:</b> Pure institutional accumulation. No institutional distribution detected.")
+            elif zf == "ZERO_BUYS":
+                reasons.append(f"❄️ <b>ZERO Dark Buys:</b> Pure institutional distribution. No institutional buying detected.")
+
+        # 4. Squeeze / VRP
+        sq = row.get("squeeze_score", 0)
+        if sq and sq > 60:
+            reasons.append(f"🔥 <b>Squeeze Score {sq:.0f}:</b> Vol compression + price near BB middle. Breakout imminent.")
+
+        vrp = row.get("vrp_score", 0)
+        if vrp and vrp > 10:
+            reasons.append(f"📊 <b>VRP +{vrp:.0f}%:</b> Implied vol expensive vs realized. Sell premium (covered calls / straddles).")
+        elif vrp and vrp < -10:
+            reasons.append(f"📊 <b>VRP {vrp:.0f}%:</b> Implied vol cheap. Buy convexity (calls / call spreads).")
+
+        # 5. Methodology confluence
+        alpha_src = row.get("alpha_source", "")
+        alpha_score = row.get("alpha_score", 0)
+        if alpha_src:
+            src_names = {"bottleneck":"Leopold Bottleneck","front_run":"News Catalyst","leopold":"Leopold Asymmetry","coatue":"COATUE Rotation","karsan":"Karsan Vol","thought_process":"Multi-Framework Thesis","quad_aligned":"Hedgeye Playbook"}
+            reasons.append(f"🏗️ <b>{src_names.get(alpha_src, alpha_src)}:</b> Alpha score {alpha_score:.0f}/100. Methodology validation passed.")
+
+        # 6. Walkforward / Simulation
+        wf = row.get("walkforward", {})
+        if wf and isinstance(wf, dict) and wf.get("gate_status") == "PASS":
+            reasons.append(f"🎲 <b>Walkforward PASS:</b> MC 100x backtest validated. Setup robust across multiple market conditions.")
+
+        sim = row.get("simulation")
+        if sim and isinstance(sim, dict):
+            wr = sim.get("win_rate", 0)
+            if wr >= 60:
+                reasons.append(f"🎲 <b>Sim Win Rate {wr:.0f}%:</b> Monte Carlo 100 runs menunjukkan edge statistik kuat.")
+            elif wr >= 50:
+                reasons.append(f"🎲 <b>Sim Win Rate {wr:.0f}%:</b> Edge moderat — valid tapi tighten stop.")
+
+        # 7. Keith override
+        ks = row.get("keith_sync", {})
+        if ks and isinstance(ks, dict) and ks.get("override"):
+            kt = ks.get("keith_trade", "")
+            reasons.append(f"🎙️ <b>Keith P0 Override:</b> Keith {kt} — signal ini di-override oleh Hedgeye founder. <b>{'AVOID' if kt == 'BEARISH' else 'HIGH CONVICTION'}.</b>")
+
+        # 8. Macro narrative (from snap)
+        narrative = snap_local.get("narrative", {}) if snap_local else {}
+        scenarios = narrative.get("scenarios", {}) if isinstance(narrative, dict) else {}
+        if scenarios:
+            dom = scenarios.get("dominant_scenario", "base")
+            bull_p = scenarios.get("bull", {}).get("probability", 0) if isinstance(scenarios.get("bull"), dict) else 0
+            if dom == "bull" and direction == "LONG":
+                reasons.append(f"📰 <b>Macro Narrative:</b> Dominant scenario BULLISH ({bull_p:.0%} prob). Tailwind untuk longs.")
+            elif dom == "bear" and direction == "SHORT":
+                reasons.append(f"📰 <b>Macro Narrative:</b> Dominant scenario BEARISH. Headwind untuk risk assets.")
+
+        # 9. IHSG Broker (if applicable)
+        if market_type == "ihsg":
+            broker = row.get("broker", {})
+            if broker and isinstance(broker, dict):
+                if broker.get("real_accumulation"):
+                    reasons.append(f"🇮🇩 <b>Broker Accumulation REAL:</b> Volume + price trend konsisten. Bukan crossing/wash trade. Confidence {broker.get('confidence',0)}%.")
+                elif broker.get("crossing_detected"):
+                    reasons.append(f"⚠️ <b>Crossing Detected:</b> High volume tapi price flat — possible wash trading. <b>TUNGGU.</b>")
+                elif broker.get("cornering_supply"):
+                    reasons.append(f"🎯 <b>Cornering Supply:</b> Volume drying up then spike. Possible accumulation before breakout. Watch closely.")
+
+        # 10. Entry quality
+        entry = row.get("entry")
+        stop = row.get("stop")
+        rr = row.get("rr", 0)
+        if entry and stop and rr >= 2.0:
+            reasons.append(f"🎯 <b>Asymmetric Setup:</b> Entry {ff(entry)} → Stop {ff(stop)} (risk {row.get('risk_pct',0):.1f}%). RR {rr:.1f}x = reward {ff(row.get('target_1',0))}. High conviction.")
+        elif entry and stop and rr >= 1.5:
+            reasons.append(f"⚠️ <b>Moderate Setup:</b> RR {rr:.1f}x — valid tapi jangan oversize. Max 2-3% position.")
+        elif entry and stop and rr < 1.5:
+            reasons.append(f"🚫 <b>Poor RR:</b> {rr:.1f}x — risk/reward tidak cukup. Skip atau tunggu entry lebih baik.")
+
+        # Render
+        if reasons:
+            for r in reasons:
+                why_html += f'<div style="font-size:0.72rem;color:#E6EDF3;line-height:1.5;margin-bottom:4px;padding:3px 0;border-bottom:1px solid #21262D;">{r}</div>'
+        else:
+            why_html += f'<div style="font-size:0.72rem;color:#8B949E;">⚪ Data tidak cukup untuk reasoning kuat. Setup didasarkan price action saja.</div>'
+
+        why_html += f'</div>'
+        st.markdown(why_html, unsafe_allow_html=True)
+
 
         # VolSignals Dealer Regime — SKIP for IHSG
         # VolSignals Dealer Regime — SKIP for IHSG
@@ -3760,14 +4256,15 @@ def page_alpha():
     st.divider()
 
 
-    tab1, tab2, tab3, tab4 = st.tabs(["🏆 Top Picks", "🔮 Front-Run", "📊 Vol & Squeeze", "🧠 Discovery"])
+    tab1, tab2, tab3, tab4 = st.tabs(["🎯 Unified Alpha", "🔮 Pure Front-Run", "📊 Vol & Squeeze", "🧠 Discovery"])
 
     with tab1:
-        st.markdown("### 🎯 Unified Alpha — Quad Playbook × Bottleneck × Front-Run")
+        st.markdown("### 🎯 Unified Alpha — Quad Playbook × Bottleneck × Front-Run × Methodology")
+        st.caption("**What this is:** Fusion of Hedgeye Quad playbook + Leopold bottleneck layers + COATUE rotation + Karsan vol + Thought Process thesis. Every ticker passes Walkforward gate (MC 100x) + Gatekeeper (8-gate). Only CHASE = ready to enter. WAIT = pullback needed. AVOID = broken setup.")
         st.markdown("<div style='font-size:0.7rem;color:#8B949E;margin-bottom:8px;'>v39 Fusion: Hedgeye Quad + Leopold Bottleneck + Citrini Macro + Karsan Vol + COATUE Rotation. Every play must pass WF gate + MC 100x.</div>", unsafe_allow_html=True)
 
         # ── QUAD PLAYBOOK BANNER ──
-        pb = QUAD_FRONT_RUN_PLAYBOOK.get(sq, QUAD_FRONT_RUN_PLAYBOOK["Q3"])
+        pb = _get_quad_playbook(snap)
         st.markdown(
             f'<div style="background:#161B22;border:1px solid #58A6FF40;border-radius:10px;padding:12px;margin:8px 0;">'
             f'<div style="font-size:0.7rem;color:#58A6FF;text-transform:uppercase;font-weight:700;letter-spacing:0.5px;margin-bottom:4px;">📊 QUAD {sq} PLAYBOOK</div>'
@@ -4068,7 +4565,8 @@ def page_alpha():
     render_supply_chain_chains(snap)
     st.divider()
     with tab2:
-        st.markdown("### 🔮 Front-Run Candidates")
+        st.markdown("### 🔮 Pure Front-Run Candidates")
+        st.caption("**What this is:** Ticker-ticker murni yang muncul dari news catalyst, supply chain bottleneck, atau rumor front-run. Belum melalui full methodology fusion seperti tab Unified Alpha. Gunakan untuk watchlist awal.")
         fr = snap.get("front_run_candidates", []) or []
         if fr:
             fr_tickers = [item.get("ticker","") for item in fr if isinstance(item, dict) and item.get("ticker")]
@@ -4176,6 +4674,7 @@ def page_alpha():
 
     with tab4:
         st.markdown("### 🔮 Discovery Brain")
+        st.caption("**What this is:** Adaptive/Reactive/Proactive discovery dari news + cascade + behavioral. Raw ideas yang belum melalui risk range validation. Untuk brainstorming, bukan execution langsung.")
         disc = snap.get("discovery_brain", {}) or {}
         if isinstance(disc, dict) and disc.get("by_mode"):
             for mode in ("adaptive", "reactive", "proactive"):
@@ -5001,7 +5500,7 @@ def render_supply_chain_chains(snap):
         gip_local = None
     sq = getattr(gip_local, "structural_quad", "Q3") if gip_local is not None else "Q3"
 
-    pb = QUAD_FRONT_RUN_PLAYBOOK.get(sq, QUAD_FRONT_RUN_PLAYBOOK["Q3"])
+    pb = _get_quad_playbook(snap)
 
     # ── ROTATION BANNER ──
     st.markdown(
@@ -5026,7 +5525,7 @@ def render_supply_chain_chains(snap):
         conf_color = "#3FB950" if conf >= 0.8 else "#D29922" if conf >= 0.6 else "#F85149"
 
         # Check if this chain aligns with current quad
-        aligned_quads = BOTTLENECK_QUAD_MAP.get(name, [])
+        bq_map = _get_bottleneck_quad_map(snap); aligned_quads = bq_map.get(name, [])
         quad_match = sq in aligned_quads
         match_badge = f'<span style="background:#3FB95018;color:#3FB950;padding:1px 6px;border-radius:4px;font-size:0.6rem;font-weight:700;border:1px solid #3FB95040;margin-left:6px;">✅ ALIGNED {sq}</span>' if quad_match else f'<span style="background:#D2992218;color:#D29922;padding:1px 6px;border-radius:4px;font-size:0.6rem;font-weight:700;border:1px solid #D2992240;margin-left:6px;">⚠️ {sq} MISMATCH</span>'
 

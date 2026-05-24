@@ -16,8 +16,237 @@ import json, os
 from datetime import datetime
 
 logger = __import__("logging").getLogger(__name__)
-# ════════════════════════════════════════════════════════════
-    # v38 REMOVED
+st.set_page_config(page_title="MacroRegime Pro v39", page_icon="📊", layout="wide", initial_sidebar_state="expanded")
+
+# ═══════════════════════════════════════════════════════════════════
+# CSS
+# ═══════════════════════════════════════════════════════════════════
+st.markdown("""
+<style>
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap");
+html, body, [class*="css"] { font-family: "Inter", sans-serif; }
+.block-container { padding-top: 0.5rem !important; padding-bottom: 0.5rem !important; padding-left: 1rem !important; padding-right: 1rem !important; max-width: 1440px !important; }
+h1 { font-size: 1.4rem !important; margin: 0.2rem 0 0.3rem !important; font-weight: 800 !important; letter-spacing: -0.5px; }
+h2 { font-size: 1.05rem !important; margin: 0.4rem 0 0.2rem !important; font-weight: 700 !important; letter-spacing: -0.3px; }
+h3 { font-size: 0.9rem !important; margin: 0.3rem 0 0.15rem !important; font-weight: 600 !important; }
+hr { margin: 0.4rem 0 !important; opacity: 0.08; border-color: #30363D; }
+[data-testid="stMetric"] { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 6px; padding: 5px 8px !important; }
+[data-testid="stMetricLabel"] { font-size: 0.58rem !important; font-weight: 600 !important; letter-spacing: 0.6px; text-transform: uppercase; opacity: 0.55; }
+[data-testid="stMetricValue"] { font-size: 1.05rem !important; font-weight: 700 !important; }
+
+.ticker-card-v4 { display: flex; align-items: center; gap: 10px; padding: 7px 10px; background: #161B22; border: 1px solid #30363D; border-radius: 8px; margin: 3px 0; transition: border-color 0.2s; flex-wrap: wrap; }
+.ticker-card-v4:hover { border-color: #484F58; }
+.tc-v4-left { min-width: 80px; }
+.tc-v4-symbol { font-weight: 800; font-size: 0.9rem; color: #E6EDF3; letter-spacing: -0.3px; }
+.tc-v4-price { font-weight: 600; font-size: 0.75rem; color: #8B949E; font-variant-numeric: tabular-nums; }
+.tc-v4-badges { display: flex; gap: 3px; flex-wrap: wrap; margin-top: 2px; }
+.tc-v4-spark { width: 80px; height: 24px; display: flex; align-items: flex-end; gap: 1px; flex-shrink: 0; }
+.tc-v4-rr { flex: 1; min-width: 120px; }
+.tc-v4-meta { display: flex; gap: 8px; font-size: 0.68rem; color: #8B949E; font-variant-numeric: tabular-nums; min-width: 110px; }
+
+.badge { display: inline-flex; align-items: center; padding: 1px 5px; border-radius: 10px; font-size: 0.6rem; font-weight: 700; letter-spacing: 0.3px; border: 1px solid transparent; line-height: 1.3; }
+.badge-long { background: rgba(34,197,94,0.12); color: #3FB950; border-color: rgba(34,197,94,0.3); }
+.badge-short { background: rgba(239,68,68,0.12); color: #F85149; border-color: rgba(239,68,68,0.3); }
+.badge-neut { background: rgba(234,179,8,0.12); color: #eab308; border-color: rgba(234,179,8,0.3); }
+.badge-grade-a { background: rgba(34,197,94,0.15); color: #3FB950; border-color: #3FB950; }
+.badge-grade-b { background: rgba(234,179,8,0.15); color: #D29922; border-color: #D29922; }
+.badge-grade-c { background: rgba(139,148,158,0.15); color: #8B949E; border-color: #8B949E; }
+.badge-news { background: rgba(88,166,255,0.12); color: #58A6FF; border-color: rgba(88,166,255,0.3); }
+.badge-mm { background: rgba(168,85,247,0.12); color: #A855F7; border-color: rgba(168,85,247,0.3); }
+.badge-chase { background: rgba(34,197,94,0.2); color: #3FB950; border-color: #3FB950; }
+.badge-wait { background: rgba(234,179,8,0.2); color: #D29922; border-color: #D29922; }
+
+.sp-bar-v4 { width: 3px; border-radius: 1px; opacity: 0.85; }
+.rr-track-v4 { position: relative; height: 16px; background: #21262D; border-radius: 4px; overflow: hidden; }
+.rr-zone-v4 { position: absolute; top: 2px; bottom: 2px; border-radius: 2px; }
+.rr-dot-v4 { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 7px; height: 7px; border-radius: 50%; background: #E6EDF3; border: 2px solid #58A6FF; z-index: 10; box-shadow: 0 0 4px rgba(88,166,255,0.4); }
+.rr-labels-v4 { display: flex; justify-content: space-between; font-size: 0.58rem; color: #8B949E; margin-top: 1px; font-variant-numeric: tabular-nums; }
+
+.gauge-track { position: relative; height: 12px; background: #21262D; border-radius: 6px; overflow: hidden; margin: 3px 0; }
+.gauge-fill { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 6px; transition: width 0.5s ease; }
+.gauge-label { display: flex; justify-content: space-between; font-size: 0.6rem; color: #8B949E; margin-top: 1px; }
+
+.hm-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; }
+.hm-cell { padding: 5px 3px; border-radius: 4px; text-align: center; font-size: 0.68rem; font-weight: 600; color: #E6EDF3; border: 1px solid rgba(255,255,255,0.05); }
+
+.pulse-hbox { min-width: 70px; height: 40px; border-radius: 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.68rem; font-weight: 700; color: #E6EDF3; border: 1px solid rgba(255,255,255,0.06); flex-shrink: 0; }
+.pulse-hlabel { font-size: 0.52rem; font-weight: 500; color: rgba(255,255,255,0.5); text-transform: uppercase; margin-top: 1px; }
+
+.timeline { display: flex; align-items: center; gap: 0px; margin: 6px 0; }
+.tl-node { width: 12px; height: 12px; border-radius: 50%; border: 2px solid #30363D; background: #21262D; flex-shrink: 0; }
+.tl-node.active { border-color: #58A6FF; background: #58A6FF; box-shadow: 0 0 5px rgba(88,166,255,0.35); }
+.tl-node.past { border-color: #3FB950; background: #3FB950; }
+.tl-line { flex: 1; height: 2px; background: #30363D; min-width: 16px; }
+.tl-line.active { background: #58A6FF; }
+.tl-labels { display: flex; justify-content: space-between; font-size: 0.58rem; color: #8B949E; margin-top: 3px; }
+
+.stack-bar { display: flex; height: 20px; border-radius: 4px; overflow: hidden; background: #21262D; }
+.stack-seg { display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: 700; color: #fff; }
+
+.skew-row { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
+.skew-label { width: 32px; font-size: 0.65rem; color: #8B949E; font-weight: 600; }
+.skew-track { flex: 1; height: 14px; background: #21262D; border-radius: 4px; position: relative; overflow: hidden; }
+.skew-fill { height: 100%; border-radius: 4px; transition: width 0.4s ease; }
+.skew-value { width: 36px; font-size: 0.65rem; color: #E6EDF3; font-weight: 700; text-align: right; font-variant-numeric: tabular-nums; }
+
+.gex-track { position: relative; height: 18px; background: #21262D; border-radius: 4px; overflow: hidden; display: flex; align-items: center; }
+.gex-center { position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: #8B949E; opacity: 0.3; }
+
+.stTabs [data-baseweb="tab-list"] { gap: 2px !important; margin-bottom: 5px !important; }
+.stTabs [data-baseweb="tab"] { padding: 4px 10px !important; font-size: 0.78rem !important; font-weight: 600 !important; border-radius: 6px 6px 0 0 !important; }
+[data-testid="stExpander"] { border: 1px solid #30363D !important; border-radius: 8px !important; margin-bottom: 5px !important; }
+[data-testid="stExpander"] > details > summary { padding: 7px 10px !important; font-size: 0.78rem !important; font-weight: 600 !important; }
+[data-testid="stSidebar"] .block-container { padding-top: 0.6rem !important; }
+
+.narrative-card { background: #161B22; border-left: 3px solid #58A6FF; border-radius: 8px; padding: 10px 14px; margin: 6px 0; }
+.narrative-headline { font-size: 0.85rem; font-weight: 600; color: #E6EDF3; line-height: 1.4; }
+.narrative-sub { font-size: 0.7rem; color: #8B949E; margin-top: 4px; }
+
+.metric-grid-card { background: #161B22; border: 1px solid #30363D; border-radius: 8px; padding: 10px 12px; }
+.metric-grid-title { font-size: 0.6rem; color: #8B949E; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600; margin-bottom: 4px; }
+.metric-grid-value { font-size: 1.05rem; font-weight: 700; color: #E6EDF3; }
+.metric-grid-sub { font-size: 0.65rem; color: #8B949E; margin-top: 2px; }
+
+.compass-container { background: #161B22; border: 1px solid #30363D; border-radius: 10px; padding: 12px 14px; margin: 6px 0; }
+.compass-title { font-size: 0.75rem; color: #8B949E; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600; }
+.compass-quad { font-size: 1.2rem; font-weight: 800; letter-spacing: -1px; }
+.compass-sub { font-size: 0.7rem; color: #8B949E; }
+
+.dp-row { display: flex; align-items: center; gap: 8px; padding: 5px 8px; background: #161B22; border-bottom: 1px solid #21262D; font-size: 0.75rem; }
+.dp-time { width: 60px; color: #8B949E; font-variant-numeric: tabular-nums; }
+.dp-ticker { width: 55px; color: #E6EDF3; font-weight: 700; }
+.dp-price { width: 60px; color: #E6EDF3; font-variant-numeric: tabular-nums; }
+.dp-size { width: 70px; color: #8B949E; font-variant-numeric: tabular-nums; text-align: right; }
+.dp-amt { width: 65px; color: #3FB950; font-weight: 700; font-variant-numeric: tabular-nums; text-align: right; }
+.dp-amt.sell { color: #F85149; }
+
+.mm-box { background: #161B22; border: 1px solid #30363D; border-radius: 8px; padding: 10px 12px; margin: 4px 0; }
+.mm-title { font-size: 0.7rem; color: #A855F7; text-transform: uppercase; font-weight: 600; margin-bottom: 6px; letter-spacing: 0.5px; }
+.mm-line { display: flex; justify-content: space-between; font-size: 0.75rem; padding: 2px 0; }
+.mm-label { color: #8B949E; }
+.mm-value { color: #E6EDF3; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.skew-curve-container { background: #161B22; border: 1px solid #30363D; border-radius: 8px; padding: 10px; margin: 4px 0; }
+.skew-curve-title { font-size: 0.7rem; color: #8B949E; text-transform: uppercase; font-weight: 600; margin-bottom: 6px; }
+
+.scenario-bar { display: flex; height: 18px; border-radius: 4px; overflow: hidden; background: #21262D; margin: 4px 0; }
+.scenario-seg { display: flex; align-items: center; justify-content: center; font-size: 0.55rem; font-weight: 700; color: #fff; }
+
+/* Hedgeye-style ticker card v5 */
+.hy-card { background: #161B22; border: 1px solid #30363D; border-radius: 10px; margin: 4px 0; overflow: hidden; }
+.hy-header { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid #21262D; }
+.hy-symbol { font-weight: 800; font-size: 1.0rem; color: #E6EDF3; letter-spacing: -0.5px; min-width: 70px; }
+.hy-price { font-weight: 700; font-size: 0.85rem; color: #E6EDF3; font-variant-numeric: tabular-nums; min-width: 55px; }
+.hy-badges { display: flex; gap: 3px; flex-wrap: wrap; flex: 1; }
+.hy-status-bar { display: flex; align-items: center; gap: 6px; padding: 6px 12px; background: #0D1117; border-bottom: 1px solid #21262D; }
+.hy-status-pill { padding: 2px 8px; border-radius: 12px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid transparent; }
+.hy-meta-row { display: flex; align-items: center; gap: 10px; padding: 5px 12px; font-size: 0.68rem; color: #8B949E; font-variant-numeric: tabular-nums; }
+.hy-meta-row b { color: #E6EDF3; font-weight: 600; }
+.hy-rr-track { position: relative; height: 14px; background: #21262D; border-radius: 4px; overflow: hidden; flex: 1; }
+.hy-rr-zone { position: absolute; top: 0; bottom: 0; }
+.hy-rr-dot { position: absolute; top: 50%; transform: translate(-50%, -50%); width: 8px; height: 8px; border-radius: 50%; background: #E6EDF3; border: 2px solid #58A6FF; z-index: 10; box-shadow: 0 0 5px rgba(88,166,255,0.5); }
+.hy-rr-labels { display: flex; justify-content: space-between; font-size: 0.55rem; color: #484F58; margin-top: 1px; }
+
+/* Trade Setup panels */
+.ts-panel { background: #0D1117; border: 1px solid #21262D; border-radius: 8px; padding: 10px 12px; margin: 6px 0; }
+.ts-panel-title { font-size: 0.6rem; color: #8B949E; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 600; margin-bottom: 6px; }
+.ts-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.ts-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.ts-stat { text-align: center; }
+.ts-stat-label { font-size: 0.52rem; color: #8B949E; text-transform: uppercase; margin-bottom: 2px; }
+.ts-stat-value { font-size: 0.78rem; font-weight: 700; color: #E6EDF3; font-variant-numeric: tabular-nums; }
+.ts-stat-sub { font-size: 0.55rem; color: #484F58; }
+
+/* Status banners */
+.banner-chase { background: rgba(34,197,94,0.12); border: 1px solid rgba(34,197,94,0.35); color: #3FB950; }
+.banner-wait { background: rgba(234,179,8,0.12); border: 1px solid rgba(234,179,8,0.35); color: #D29922; }
+.banner-avoid { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.35); color: #F85149; }
+.banner-hold { background: rgba(139,148,158,0.12); border: 1px solid rgba(139,148,158,0.25); color: #8B949E; }
+
+/* OI Heatmap bars */
+.oi-bar-row { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
+.oi-bar-label { font-size: 0.65rem; color: #8B949E; min-width: 65px; font-weight: 600; }
+.oi-bar-track { flex: 1; height: 12px; background: #21262D; border-radius: 3px; overflow: hidden; position: relative; }
+.oi-bar-fill { height: 100%; border-radius: 3px; opacity: 0.7; }
+.oi-bar-value { font-size: 0.65rem; font-weight: 700; min-width: 60px; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Alpha Center thesis card */
+.alpha-thesis-card { background: #161B22; border-left: 3px solid #A855F7; border-radius: 8px; padding: 10px 14px; margin: 4px 0; }
+.alpha-thesis-title { font-size: 0.78rem; font-weight: 600; color: #E6EDF3; }
+.alpha-thesis-sub { font-size: 0.68rem; color: #8B949E; margin-top: 3px; line-height: 1.4; }
+.alpha-ready { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 12px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-left: 6px; }
+</style>
+""", unsafe_allow_html=True)
+
+# ═══════════════════════════════════════════════════════════════════
+# CONFIG & FALLBACKS
+# ═══════════════════════════════════════════════════════════════════
+def filter_by_simulation(rows, sim_results, threshold=50, require_pass=False):
+    """Filter ticker rows by simulation results. Handles dict-format snap data.
+    v39.1 FIX: Relaxed threshold (50), require_pass=False default. 
+    Simulation runs background-only; rows kept for detail view."""
+    if not sim_results:
+        return rows
+    filtered = []
+    for row in rows:
+        t = row.get("ticker")
+        if not t:
+            continue
+        sim = sim_results.get(t)
+        if sim is None:
+            # No sim data - keep row, mark unvalidated
+            row["_sim_status"] = "NO_DATA"
+            filtered.append(row)
+            continue
+        # Orchestrator serializes sim results to dicts; handle both dict and object
+        if isinstance(sim, dict):
+            passes = sim.get("passes_filter", False)
+            score = sim.get("robustness_score", 0)
+        else:
+            passes = getattr(sim, "passes_filter", False)
+            score = getattr(sim, "robustness_score", 0)
+        row["_sim_passed"] = passes
+        row["_sim_score"] = score
+        row["_sim_status"] = "PASS" if (passes and score >= threshold) else "MARGINAL" if score >= threshold else "FAIL"
+        # v39.1: Don't filter out on simulation alone - show all with annotation
+        if require_pass and not passes:
+            continue
+        if require_pass and score < threshold:
+            continue
+        filtered.append(row)
+    return filtered
+
+try:
+    from config.settings import (FOREX_PAIRS, COMMODITIES, CRYPTO, IHSG_UNIVERSE,
+                                 IHSG_SECTOR_MAP, TICKER_SECTOR, US_SECTORS, US_BUCKETS,
+                                 FX_BUCKETS, COMMODITY_BUCKETS, CRYPTO_BUCKETS)
+except ImportError:
+    FOREX_PAIRS = {}; COMMODITIES = {}; CRYPTO = {}; IHSG_UNIVERSE = {}; TICKER_SECTOR = {}; US_SECTORS = {}; US_BUCKETS = {}; FX_BUCKETS = {}; COMMODITY_BUCKETS = {}; CRYPTO_BUCKETS = {}
+
+FALLBACK_US = ["SPY","QQQ","IWM","NVDA","AAPL","MSFT","GOOGL","META","TSLA","AMD","NFLX","AMZN","CRM","AVGO","XOM","JPM","V","MA","UNH","JNJ","XLK","XLF","XLE","XLU","XLP","XLI","XLB","XLRE","XLY","ARKK","TLT","GLD","SLV","GDX","VIXY","SQQQ","TQQQ","UPRO","SPXU"]
+FALLBACK_FX  = ["EURUSD=X","GBPUSD=X","USDJPY=X","AUDUSD=X","USDCAD=X","USDCHF=X","NZDUSD=X","USDCNY=X","USDIDR=X","DX-Y.NYB","UUP"]
+FALLBACK_COMM = ["GC=F","SI=F","CL=F","NG=F","HG=F","PL=F","PA=F","ZW=F","ZC=F","ZS=F","KC=F","CC=F","CT=F"]
+FALLBACK_CRYPTO = ["BTC-USD","ETH-USD","SOL-USD","XRP-USD","DOGE-USD","ADA-USD","AVAX-USD","DOT-USD","MATIC-USD","LINK-USD","UNI-USD","LTC-USD"]
+FALLBACK_IHSG = ["BBRI.JK","BMRI.JK","BBCA.JK","BBNI.JK","BRIS.JK","TLKM.JK","EXCL.JK","ADRO.JK","ITMG.JK","PTBA.JK","NCKL.JK","ANTM.JK","INCO.JK","AALI.JK","LSIP.JK","SMAR.JK","UNTR.JK","BYAN.JK","ICBP.JK","INDF.JK","KLBF.JK","PGEO.JK","WINS.JK","EIDO","^JKSE"]
+
+
+# ═══════════════════════════════════════════════════════════════════
+# QUAD PLAYBOOK v39.3 — DYNAMIC (from snap/orchestrator, not hardcoded)
+# ═══════════════════════════════════════════════════════════════════
+def _get_quad_playbook(snap):
+    """
+    Build quad playbook DYNAMICALLY from orchestrator data.
+    Falls back to config.settings if snap incomplete.
+    """
+    gip = snap.get("gip")
+    if gip is not None and not isinstance(gip, dict):
+        try: sq = getattr(gip, "structural_quad", "Q3")
+        except: sq = "Q3"
+    elif isinstance(gip, dict):
+        sq = gip.get("structural_quad", "Q3")
+    else:
+        sq = "Q3"
+
     # Try to get from snap.playbook (orchestrator output)
     pb = snap.get("playbook", {}) if isinstance(snap.get("playbook"), dict) else {}
 
@@ -4931,8 +5160,21 @@ def page_crypto():
     # v38 Daily Plays REMOVED per v39.2 audit
 
 
+# ═══════════════════════════════════════════════════════════════════
+# v38 IHSG SAFE WRAPPER — Force BUY-ONLY, strip SHORT labels
+# ═══════════════════════════════════════════════════════════════════
+    try:
+        # Monkey-patch session state for IHSG safety
+        orig_snap = dict(snap) if isinstance(snap, dict) else {}
+        # Call original v38
+        # v38_REMOVED("ihsg", snap, prices, st)
+    except Exception as e:
+        logger.warning(f"v38 IHSG safe wrapper: {e}")
 
-    # v38 REMOVED
+# ═══════════════════════════════════════════════════════════════════
+# PAGE: GLOBAL & EM
+# ═══════════════════════════════════════════════════════════════════
+def page_global():
     # ── Quick Ticker Lookup ──
     with st.expander("🔍 Quick Ticker Lookup", expanded=False):
         q_ticker = st.text_input("Enter ticker", "", key="ql_global")

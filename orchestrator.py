@@ -3054,22 +3054,15 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                 result["errors"].append(f"portfolio_sizing_v2: {e}")
 
         # ═══════════════════════════════════════════════════════════════════════
-        # KEITH McCULLOUGH SIGNAL SYNC (P0 OVERRIDE) — v39.1 Deep Audit Fix
-        # ═══════════════════════════════════════════════════════════════════════
+                # ═══════════════════════════════════════════════════════════════════════
         # KEITH McCULLOUGH SIGNAL SYNC (P0 OVERRIDE) — v39.5 DYNAMIC
         # Resolves Keith stance DYNAMICALLY from Hedgeye Risk Range positioning:
-        #   BEARISH = Price > TRR (breakdown from top, not reclaiming) OR Price < LRR (oversold breakdown)
-        #   BULLISH = Price < LRR (at/below low, ready to bounce) — for long entries
-        #   For shorts: BEARISH = Price > TRR (overbought, breakdown from range top)
+        #   BEARISH = Price > TRR (breakdown from top, not reclaiming) OR Price < LRR
+        #   BULLISH = Price < LRR (at/below low, ready to bounce)
         #   Basis auto-generated from price vs TRR/LRR, NOT hardcoded.
         # ═══════════════════════════════════════════════════════════════════════
-        
+
         def _resolve_keith_signal(ticker, risk_ranges, prices):
-            """
-            Dynamic Keith signal resolver based on Hedgeye Risk Range positioning.
-            Keith methodology: if price breaks TRR/Tail Top and doesn't reclaim → BEARISH trend.
-            If price breaks LRR/Tail Low and reclaims → BULLISH bounce.
-            """
             ar = risk_ranges.get("asset_ranges", {})
             v = ar.get(ticker, {})
             s = prices.get(ticker)
@@ -3085,22 +3078,22 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                 trr = tr.get("trr")
                 if not lrr or not trr or not all(math.isfinite(x) for x in [px, lrr, trr]):
                     return None
-        
+
                 px_vs_trr = (px - trr) / max(trr, 0.001)
                 px_vs_lrr = (px - lrr) / max(lrr, 0.001)
-        
+
                 history = s_clean.tail(5)
                 was_above_trr = any(float(x) > trr * 1.005 for x in history.head(4))
                 was_below_lrr = any(float(x) < lrr * 0.995 for x in history.head(4))
                 now_inside = lrr * 0.995 <= px <= trr * 1.005
-        
+
                 reclaiming_trr = was_above_trr and now_inside and all(
                     lrr * 0.995 <= float(x) <= trr * 1.005 for x in history.tail(2)
                 )
                 reclaiming_lrr = was_below_lrr and now_inside and all(
                     lrr * 0.995 <= float(x) <= trr * 1.005 for x in history.tail(2)
                 )
-        
+
                 if px > trr * 1.01 and not reclaiming_trr:
                     return {
                         "trade": "BEARISH", "trend": "BEARISH",
@@ -3124,8 +3117,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             except Exception as e:
                 logger.debug(f"Keith resolver failed for {ticker}: {e}")
                 return None
-        
-        
+
         keith_sync = {}
         keith_summary = {
             "total_signals": 0, "trade_bullish": 0, "trade_bearish": 0,
@@ -3133,7 +3125,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             "duration_mismatches": 0, "last_updated": datetime.now().strftime("%Y-%m-%d"),
             "sources": ["Dynamic Hedgeye Risk Range Resolver v39.5"]
         }
-        
+
         for item in result["alpha_center"].get("all", []):
             t = item.get("ticker", "")
             ks = _resolve_keith_signal(t, result.get("risk_ranges", {}), prices)
@@ -3148,11 +3140,11 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                 keith_summary["trend_bullish"] += 1
             else:
                 keith_summary["trend_bearish"] += 1
-        
+
             current_dir = item.get("direction", "LONG")
             keith_trade = ks["trade"]
             keith_trend = ks["trend"]
-        
+
             override = False
             final_dir = current_dir
             if keith_trade == "BEARISH" and current_dir == "LONG":
@@ -3173,7 +3165,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                 item["direction"] = "LONG"
                 item["side"] = "long"
                 keith_summary["overrides_applied"] += 1
-        
+
             keith_sync[t] = {
                 "ticker": t,
                 "original_direction": current_dir,
@@ -3190,11 +3182,11 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             }
             if keith_trade != keith_trend:
                 keith_summary["duration_mismatches"] += 1
-        
+
         result["keith_sync"] = keith_sync
         result["keith_summary"] = keith_summary
         logger.info(f"Keith dynamic sync: {keith_summary['overrides_applied']} overrides on {keith_summary['total_signals']} signals")
-        # v39.1: Rebuild level_1/level_2 after Keith override (AVOID items drop to grade C)
+        # v39.5: Rebuild level_1/level_2 after Keith override (AVOID items drop to grade C)
         result["alpha_center"]["level_1"] = [i for i in result["alpha_center"]["all"] if i.get("grade") == "A"]
         result["alpha_center"]["level_2"] = [i for i in result["alpha_center"]["all"] if i.get("grade") == "B"]
 

@@ -623,7 +623,7 @@ def _risk_range_html(px, lrr, trr, width_pct=100):
         f'<div class="rr-zone-v4" style="left:0%;width:{left_pct:.0f}%;background:{color}15;"></div>'
         f'<div class="rr-dot-v4" style="left:{max(3,min(97,left_pct)):.0f}%;border-color:{color};"></div>'
         f'</div>'
-        f'<div class="rr-labels-v4" style="width:{width_pct}%;"><span>{ff(lrr)}</span><span>{_ffm(px, market_type)}</span><span>{ff(trr)}</span></div>'
+        f'<div class="rr-labels-v4" style="width:{width_pct}%;"><span>{ff(lrr)}</span><span>{ff(px)}</span><span>{ff(trr)}</span></div>'
     )
 
 def _gauge_html(value, max_val=100, color=None, height=12, label_left="0", label_right="100"):
@@ -1097,22 +1097,36 @@ def _get_dark_pool_for_ticker(ticker, snap):
 # ═══════════════════════════════════════════════════════════════════
 def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None, market_type="us_equity", news=None, snap=None):
     """
-    HEDGEYE 3-LAYER RISK RANGE — EXACT PINE v15 PORT (AUDITED)
-    Calibrated to Keith McCullough's methodology.
-
-    FORMULA (per Pine v15):
-      Width = ATR14 × m × f
-      mTrade = 0.3496
-      mTrend = mTrade × √(trendLen/tradeLen) = 0.7164
-      mTail  = mTrend × √(tailLen/trendLen)  = 1.4328 (252D)
-      f = 1 + (D - 1.5) × fractalWeight       [Fractal dimension adjustment]
-      D = 2 - H                               [Hurst exponent]
-
-    FORMATION (Keith exact):
-      BULLISH  = close > trendTRR AND close > tailTRR
-      BEARISH  = close < trendLRR AND close < tailLRR
-      BULLISH_BIAS = close > trendTRR only
-      BEARISH_BIAS = close < trendLRR only
+    HEDGEYE-STYLE 3-LAYER RISK RANGE v32.9
+    ─────────────────────────────────────────────────────────────────
+    [1] HEDGEYE 3-LAYER RISK RANGE (Price, Volume, Volatility)
+        TRADE  (3 weeks / 15 days): Immediate-term entries/exits
+        TREND  (3 months / 63 days): Intermediate cycle direction
+        TAIL   (1 year / 252 days): Long-term conviction/regime
+        TRADE Low  = MIN(15-day low, SMA15 − 1.5×ATR15)
+        TRADE Top  = MAX(15-day high, SMA15 + 1.5×ATR15)
+        TREND Low  = MIN(63-day low, SMA50 − 2.0×ATR50)
+        TREND Top  = MAX(63-day high, SMA50 + 2.0×ATR50)
+        TAIL Low   = MIN(252-day low, SMA200 − 3.0×ATR200)
+        TAIL Top   = MAX(252-day high, SMA200 + 3.0×ATR200)
+    [2] DIRECTION (Hedgeye Formation) — NO TREND FILTER, NO MOMENTUM
+        BULLISH  = Price > TREND Top AND Price > TAIL Top
+        BEARISH  = Price < TREND Low AND Price < TAIL Low
+        BULLISH_BIAS = Price > TREND Top only
+        BEARISH_BIAS = Price < TREND Low only
+        NEUTRAL  = Price between TREND Low and TREND Top
+    [3] ENTRY / STOP / TARGET (Hedgeye + Options)
+        LONG: Entry = MAX(Trade Low, Put Wall, Max Pain − EM, Gamma Flip Down)
+              Stop  = MIN(Tail Low, Put Wall − 0.5×EM, Entry×0.995)
+              TP1   = MIN(Trade Top, Call Wall, Max Pain + EM)
+              TP2   = MIN(Trend Top, Call Wall + EM)
+        SHORT: Entry = MIN(Trade Top, Call Wall, Max Pain + EM, Gamma Flip Up)
+               Stop  = MAX(Tail Top, Call Wall + 0.5×EM, Entry×1.005)
+               TP1   = MAX(Trade Low, Put Wall, Max Pain − EM)
+               TP2   = MAX(Trend Low, Put Wall − EM)
+    [4] RISK/REWARD — min 0.5% stop distance
+    [5] CHASE/WAIT/AVOID
+    [6] OPTIONS/GREEKS (17 sources), COT, DARK POOL, UOA, ON-CHAIN
     """
     v = ar.get(ticker, {}) if ar else {}
     s = prices.get(ticker)
@@ -1126,204 +1140,167 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
         return None
     px = float(s_clean.iloc[-1])
 
-    # ── PINE v15 EXACT PARAMETERS ──
-    trade_len = 15
-    trend_len = 63
-    tail_len = 252          # HEDGEYE STANDARD (was 180 in Pine default)
-    atr_len = 14
-    basis_type = "SMA"      # Pine default; MacroRegime can override per asset
-    m_trade = 0.3496        # Calibrated multiplier
-
-    # √time scaling — EXACT Pine v15 formula
-    m_trend = m_trade * math.sqrt(trend_len / trade_len)   # = 0.7164
-    m_tail = m_trend * math.sqrt(tail_len / trend_len)     # = 1.4328 for 252D
-
-    # ── BASIS LINES (SMA/EMA) ──
+    # ═══════════════════════════════════════════════════════════════════
+    # PINE SCRIPT v15 TRR/LRR ENGINE (ported to Python)
+    # ═══════════════════════════════════════════════════════════════════
     def _basis(series, length, btype):
+        """Pine f_basis() equivalent: EMA_ER / EMA / SMA / WMA / HMA"""
         if len(series) < length:
             return float(series.mean())
-        tail = series.tail(length)
+        s = series.tail(length)
         if btype == "EMA":
-            return float(tail.ewm(span=length, adjust=False).mean().iloc[-1])
-        else:  # SMA default (Pine v15)
-            return float(tail.mean())
+            return float(s.ewm(span=length, adjust=False).mean().iloc[-1])
+        elif btype == "SMA":
+            return float(s.mean())
+        elif btype == "WMA":
+            weights = np.arange(1, length + 1)
+            return float(np.average(s.values, weights=weights))
+        elif btype == "EMA_ER":
+            ema = float(s.ewm(span=length, adjust=False).mean().iloc[-1])
+            delta = float(s.diff().abs().sum())
+            change = abs(float(s.iloc[-1]) - float(s.iloc[0]))
+            er = change / delta if delta > 0 else 0.5
+            adj = 1.0 + (er - 0.5) * 0.10
+            return ema * adj
+        else:  # HMA
+            half = max(1, int(length / 2))
+            wma_half = s.tail(half)
+            weights_half = np.arange(1, len(wma_half) + 1)
+            wma_h = np.average(wma_half.values, weights=weights_half)
+            weights_full = np.arange(1, length + 1)
+            wma_f = np.average(s.values, weights=weights_full)
+            return float(2 * wma_h - wma_f)
 
-    basis_trade = _basis(s_clean, trade_len, basis_type)
-    basis_trend = _basis(s_clean, trend_len, basis_type)
-    basis_tail = _basis(s_clean, tail_len, basis_type)
+    def _detect_asset(ticker):
+        t = ticker.upper()
+        is_crypto = any(x in t for x in ["BTC", "ETH", "SOL", "USDT", "PERP"]) or t.endswith("-USD")
+        is_forex = "=X" in t or t in ["DX-Y.NYB", "UUP"]
+        is_commodity = t in ["GC=F", "SI=F", "CL=F", "NG=F", "HG=F", "ZW=F", "ZC=F", "USO", "GLD", "SLV", "GDX", "XLE"]
+        is_index = t in ["SPY", "QQQ", "IWM", "SPX", "ES1", "NQ1", "^GSPC", "^IXIC", "^VIX"]
+        if is_crypto:   return "Crypto"
+        if is_forex:    return "Forex"
+        if is_commodity:return "Commodities"
+        if is_index:    return "Index"
+        return "Stocks"
 
-    # ── TRUE ATR14 PROXY (Parkinson scaled) ──
-    # NOTE: MacroRegime data loader currently only fetches CLOSE.
-    # For exact Pine parity, high/low/close are needed.
-    # Fallback: Parkinson volatility proxy from close data.
-    def _true_atr_proxy(series, lookback=14):
-        """
-        Parkinson volatility proxy using close-to-close.
-        σ ≈ √(∑(ln(close/close[1]))² / (2×lookback))
-        Scaled up to approximate True ATR (empirical: True ATR ≈ 1.25× Parkinson)
-        """
-        log_ret = np.log(series / series.shift(1)).dropna()
-        if len(log_ret) < 2:
-            return float(series.std()) * 1.5  # rough fallback
-        parkinson = math.sqrt((log_ret ** 2).sum() / (2 * len(log_ret))) * series.iloc[-1]
-        return parkinson * 1.25
+    asset = _detect_asset(ticker)
 
-    atr14 = _true_atr_proxy(s_clean, atr_len)
+    # Auto-optimized params per asset class (Pine v15 switch table)
+    param_map = {
+        "Crypto":      {"basis": "EMA",      "width": "Fixed-Pct", "tm": 0.80, "trm": 0.90, "tam": 1.00, "tp": 3.5, "trp": 7.0, "tap": 14.0},
+        "Forex":       {"basis": "EMA_ER",   "width": "Vol-Based", "tm": 0.50, "trm": 0.60, "tam": 0.70, "tp": 1.5, "trp": 3.0, "tap": 6.0},
+        "Commodities": {"basis": "SMA",      "width": "ATR-Based", "tm": 0.70, "trm": 0.80, "tam": 0.90, "tp": 2.5, "trp": 5.0, "tap": 10.0},
+        "Index":       {"basis": "SMA",      "width": "Vol-Based", "tm": 0.60, "trm": 0.70, "tam": 0.80, "tp": 1.8, "trp": 3.5, "tap": 7.0},
+        "Stocks":      {"basis": "SMA",      "width": "Vol-Based", "tm": 0.65, "trm": 0.75, "tam": 0.85, "tp": 2.0, "trp": 4.0, "tap": 8.0},
+    }
+    p = param_map.get(asset, param_map["Stocks"])
 
-    # ── FRACTAL DIMENSION (Simplified Hurst) ──
-    def _hurst_proxy(series, max_lag=30):
-        """Simplified R/S Hurst estimator from lagged differences."""
-        if len(series) < max_lag * 2:
-            return 0.5  # random walk default
-        lags = range(2, min(max_lag, len(series) // 4) + 1)
-        tau = []
-        for lag in lags:
-            diffs = series.diff(lag).dropna().abs()
-            if len(diffs) > 0:
-                tau.append(math.log(diffs.mean()))
-        if len(tau) < 2:
-            return 0.5
-        x = np.array([math.log(l) for l in lags[:len(tau)]])
-        y = np.array(tau)
-        n = len(x)
-        slope = (n * np.sum(x * y) - np.sum(x) * np.sum(y)) / (n * np.sum(x**2) - np.sum(x)**2)
-        H = max(0.1, min(0.9, slope))  # clamp
-        return H
+    # Lookback lengths (days)
+    trade_len = 15
+    trend_len = 63
+    tail_len = min(252, len(s_clean))
 
-    def _fractal_dim(series, length, max_lag=30):
-        H = _hurst_proxy(series.tail(length * 2), max_lag)
-        D = 2.0 - H
-        return max(1.0, min(1.9, D))
+    # Basis lines
+    trade_basis = _basis(s_clean, trade_len, p["basis"])
+    trend_basis = _basis(s_clean, trend_len, p["basis"])
+    tail_basis  = _basis(s_clean, tail_len,  p["basis"])
 
-    fractal_weight = 0.3  # Pine default
-    D_trade = _fractal_dim(s_clean, trade_len)
-    D_trend = _fractal_dim(s_clean, trend_len)
-    D_tail = _fractal_dim(s_clean, tail_len)
-
-    f_trade = 1.0 + (D_trade - 1.5) * fractal_weight
-    f_trend = 1.0 + (D_trend - 1.5) * fractal_weight
-    f_tail = 1.0 + (D_tail - 1.5) * fractal_weight
-
-    # ── WIDTH CALCULATION (Exact Pine v15) ──
-    trade_width = atr14 * m_trade * f_trade
-    trend_width = atr14 * m_trend * f_trend
-    tail_width = atr14 * m_tail * f_tail
-
-    # ── TRR / LRR LEVELS ──
-    trade_trr = basis_trade + trade_width
-    trade_lrr = basis_trade - trade_width
-    trend_trr = basis_trend + trend_width
-    trend_lrr = basis_trend - trend_width
-    tail_trr = basis_tail + tail_width
-    tail_lrr = basis_tail - tail_width
-
-    # ── HEDGEYE FORMATION (Exact Pine v15 Logic) ──
-    # Hysteresis state machine
-    def _state_hysteresis(score, threshold, neutral_band, prev_state):
-        if score > threshold:
-            return 1
-        elif score < -threshold:
-            return -1
-        elif abs(score) <= neutral_band:
-            return 0
-        return prev_state
-
-    # Phase scores (normalized distance from basis)
-    trade_score = (px - basis_trade) / trade_width if trade_width != 0 else 0
-    trend_score = (px - basis_trend) / trend_width if trend_width != 0 else 0
-    tail_score = (px - basis_tail) / tail_width if tail_width != 0 else 0
-
-    # Default thresholds (Pine v15 defaults)
-    trade_thresh = 0.20
-    trade_neutral = 0.06
-    trend_thresh = 0.14
-    trend_neutral = 0.05
-    tail_thresh = 0.10
-    tail_neutral = 0.03
-
-    # Vol regime for adaptive thresholds (Pine: volRegime = rvNow / (rvBase * 1.25))
+    # Realized volatility (log returns) — Pine: ta.stdev(math.log(close/close[1]), len)
     log_ret = np.log(s_clean / s_clean.shift(1)).dropna()
-    rv_now = log_ret.tail(20).std() * math.sqrt(252.0) if len(log_ret) >= 20 else 0.2
-    rv_base = log_ret.tail(50).std() * math.sqrt(252.0) if len(log_ret) >= 50 else rv_now
+    def _rv(lookback):
+        lr = log_ret.tail(lookback)
+        return float(lr.std()) if len(lr) >= 2 else 0.01
+
+    sig_trade = _rv(trade_len)
+    sig_trend = _rv(trend_len)
+    sig_tail  = _rv(tail_len)
+
+    # ATR proxy (for ATR-Based width method)
+    def _atr(lookback=14):
+        if len(s_clean) < 2:
+            return px * 0.01
+        # True Range proxy: max(high-low, |close-close_prev|)
+        diff = s_clean.diff().abs().tail(lookback)
+        return float(diff.mean()) if len(diff) > 0 else px * 0.01
+
+    atr_val = _atr(14)
+
+    # Safe basis floor (0.05% of price)
+    safe_basis_trade = max(trade_basis, px * 0.0005)
+    safe_basis_trend = max(trend_basis, px * 0.0005)
+    safe_basis_tail  = max(tail_basis,  px * 0.0005)
+
+    # Vol regime detector (Pine: rvNow / rvBase clamped 0-1)
+    rv_now = sig_trade * math.sqrt(252.0)
+    rv_base = max(sig_trend * math.sqrt(252.0), 0.001)
     vol_regime = max(0.0, min(1.0, rv_now / (rv_base * 1.25))) if rv_base > 0 else 0.5
+    vol_adj_mult = 1.0 + (vol_regime - 0.5) * 0.6  # +30% high vol, -15% low vol
 
-    eff_trade_thresh = trade_thresh * (1.0 + vol_regime * 0.25)
-    eff_trend_thresh = trend_thresh * (1.0 + vol_regime * 0.20)
-    eff_tail_thresh = tail_thresh * (1.0 + vol_regime * 0.15)
+    # Auto-adjusted multipliers
+    auto_trade_mult = p["tm"] * vol_adj_mult
+    auto_trend_mult = p["trm"] * vol_adj_mult
+    auto_tail_mult  = p["tam"] * vol_adj_mult
 
-    # Initialize states (direct calc for batch; persistent state would need storage)
-    trade_phase = _state_hysteresis(trade_score, eff_trade_thresh, trade_neutral, 0)
-    trend_phase = _state_hysteresis(trend_score, eff_trend_thresh, trend_neutral, 0)
-    tail_phase = _state_hysteresis(tail_score, eff_tail_thresh, tail_neutral, 0)
+    # WIDTH CALCULATION — exact Pine v15 logic
+    width_method = p["width"]
+    if width_method == "Vol-Based":
+        # σ × √T × Basis × Multiplier  (Pine exact)
+        trade_width = sig_trade * math.sqrt(float(trade_len)) * safe_basis_trade * auto_trade_mult
+        trend_width = sig_trend * math.sqrt(float(trend_len)) * safe_basis_trend * auto_trend_mult
+        tail_width  = sig_tail  * math.sqrt(float(tail_len))  * safe_basis_tail  * auto_tail_mult
+    elif width_method == "ATR-Based":
+        trade_width = atr_val * auto_trade_mult
+        trend_width = atr_val * auto_trend_mult
+        tail_width  = atr_val * auto_tail_mult
+    else:  # Fixed-Pct
+        trade_width = safe_basis_trade * p["tp"] / 100.0
+        trend_width = safe_basis_trend * p["trp"] / 100.0
+        tail_width  = safe_basis_tail  * p["tap"] / 100.0
 
-    # Emergency breaks (Pine: close > TRR + breakATR × atr14, double close)
-    trend_break_atr = 0.50  # Pine default
-    tail_break_atr = 0.75   # Pine default
-    require_double = True   # Pine default
+    # TRR / LRR levels
+    trade_trr = trade_basis + trade_width
+    trade_lrr = max(trade_basis - trade_width, px * 0.0001)
+    trend_trr = trend_basis + trend_width
+    trend_lrr = max(trend_basis - trend_width, px * 0.0001)
+    tail_trr  = tail_basis  + tail_width
+    tail_lrr  = max(tail_basis  - tail_width,  px * 0.0001)
 
-    trend_break_up = px > trend_trr + trend_break_atr * atr14
-    trend_break_down = px < trend_lrr - trend_break_atr * atr14
-    tail_break_up = px > tail_trr + tail_break_atr * atr14
-    tail_break_down = px < tail_lrr - tail_break_atr * atr14
-
-    if require_double and len(s_clean) >= 2:
-        px_prev = float(s_clean.iloc[-2])
-        trend_break_up = trend_break_up and (px_prev > trend_trr + trend_break_atr * atr14)
-        trend_break_down = trend_break_down and (px_prev < trend_lrr - trend_break_atr * atr14)
-        tail_break_up = tail_break_up and (px_prev > tail_trr + tail_break_atr * atr14)
-        tail_break_down = tail_break_down and (px_prev < tail_lrr - tail_break_atr * atr14)
-
-    if trend_break_up or trend_break_down:
-        trend_phase = 0
-    if tail_break_up or tail_break_down:
-        tail_phase = 0
-
-    # Formation (Keith exact)
-    bull_form = px > trend_trr and px > tail_trr
-    bear_form = px < trend_lrr and px < tail_lrr
-
-    # Direction assignment
-    if bull_form:
-        formation = "BULLISH"
-        side = "long"
-    elif bear_form:
-        formation = "BEARISH"
-        side = "short"
+    # ── HEDGEYE FORMATION (NO TREND FILTER) ──
+    if px > trend_trr and px > tail_trr:
+        formation = "BULLISH"; side = "long"
+    elif px < trend_lrr and px < tail_lrr:
+        formation = "BEARISH"; side = "short"
     elif px > trend_trr:
-        formation = "BULLISH_BIAS"
-        side = "long"
+        formation = "BULLISH_BIAS"; side = "long"
     elif px < trend_lrr:
-        formation = "BEARISH_BIAS"
-        side = "short"
+        formation = "BEARISH_BIAS"; side = "short"
     else:
-        # Trade-range oversold/overbought override
+        formation = "NEUTRAL"; side = "neutral"
+
+    # Trade-range oversold/overbought override
+    if formation == "NEUTRAL":
         trade_spread = trade_trr - trade_lrr
         trade_pos = (px - trade_lrr) / trade_spread if trade_spread > 0 else 0.5
         if trade_pos <= 0.35:
-            formation = "OVERSOLD"
-            side = "long"
+            formation = "OVERSOLD"; side = "long"
         elif trade_pos >= 0.65:
-            formation = "OVERBOUGHT"
-            side = "short"
-        else:
-            formation = "NEUTRAL"
-            side = "neutral"
+            formation = "OVERBOUGHT"; side = "short"
 
     if side == "neutral":
         return None
 
-    # ── ATR PROXY FOR DOWNSTREAM (backward compat) ──
-    atr15 = atr14  # unified
+    # ATR proxy for downstream entry/stop/target code (backward compat)
+    atr15 = atr_val
 
-    # ── BACKWARD-COMPATIBLE VARIABLE NAMES ──
-    trade_low = round(trade_lrr, 4)
-    trade_top = round(trade_trr, 4)
-    trend_low = round(trend_lrr, 4)
-    trend_top = round(trend_trr, 4)
-    tail_low = round(tail_lrr, 4)
-    tail_top = round(tail_trr, 4)
+    # Backward-compatible variable names
+    trade_low  = round(trade_lrr, 4)
+    trade_top  = round(trade_trr, 4)
+    trend_low  = round(trend_lrr, 4)
+    trend_top  = round(trend_trr, 4)
+    tail_low   = round(tail_lrr, 4)
+    tail_top   = round(tail_trr, 4)
 
-    # ── OPTIONS / GREEKS (17 sources) ──
+# ── OPTIONS / GREEKS (17 sources) ──
     options = _get_options_data(ticker, snap) if snap else {}
     mp = options.get("max_pain")
     pw = options.get("put_wall")
@@ -1357,228 +1334,192 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
     unusual = _detect_unusual_activity(ticker, prices, snap, market_type)
 
     # ── ENTRY / STOP / TARGET ──
-    # Asset-class aware min stop distance
+    # v39.3: Asset-class aware min stop distance
     if market_type == "forex":
-        min_stop_dist = max(px * 0.003, 0.0005)
+        min_stop_dist = max(px * 0.003, 0.0005)  # min 5 pips for forex
     elif market_type == "crypto":
-        min_stop_dist = max(px * 0.005, 0.01)
+        min_stop_dist = max(px * 0.005, 0.01)    # min 1% for crypto
     elif market_type == "commodity":
-        min_stop_dist = max(px * 0.004, 0.02)
+        min_stop_dist = max(px * 0.004, 0.02)   # min 2% or $0.02 for commodities
     else:
-        min_stop_dist = px * 0.003
-
+        min_stop_dist = px * 0.003  # US equity / IHSG: 0.3%
     confluence = {"entry": [], "target": [], "entry_cluster": None, "target_cluster": None}
 
     def _cluster_levels(levels, threshold_pct=0.02):
         valid = [float(v) for v in levels if v is not None and v > 0 and math.isfinite(float(v))]
-        if len(valid) < 2:
-            return []
+        if len(valid) < 2: return []
         valid.sort()
         clusters = []
         for i in range(len(valid)):
             cluster = [valid[i]]
-            for j in range(i + 1, len(valid)):
+            for j in range(i+1, len(valid)):
                 if abs(valid[j] - valid[i]) / valid[i] <= threshold_pct:
                     cluster.append(valid[j])
             if len(cluster) >= 2:
-                clusters.append({"levels": cluster, "center": round(sum(cluster) / len(cluster), 4), "count": len(cluster)})
+                clusters.append({"levels": cluster, "center": round(sum(cluster)/len(cluster), 4), "count": len(cluster)})
         return sorted(clusters, key=lambda x: x["count"], reverse=True)
 
     if side == "long":
         entry_candidates = [trade_low]
-        if pw:
-            entry_candidates.append(pw)
-        if mp and expected_move:
-            entry_candidates.append(mp - expected_move * px)
-        if gf_down:
-            entry_candidates.append(gf_down)
+        if pw: entry_candidates.append(pw)
+        if mp and expected_move: entry_candidates.append(mp - expected_move * px)
+        if gf_down: entry_candidates.append(gf_down)
         if cot_data and cot_signal == "BULLISH":
             entry_candidates.append(trade_low - atr15 * 0.5)
         clusters = _cluster_levels(entry_candidates, 0.02)
         if clusters:
             entry = clusters[0]["center"]
-            confluence["entry"] = [("Trade Low", trade_low), ("Put Wall", pw),
-                                   ("Max Pain−EM", mp - expected_move * px if mp and expected_move else None),
-                                   ("Gamma Flip ↓", gf_down)]
+            confluence["entry"] = [("Trade Low", trade_low), ("Put Wall", pw), ("Max Pain−EM", mp - expected_move * px if mp and expected_move else None), ("Gamma Flip ↓", gf_down)]
             confluence["entry_cluster"] = clusters[0]
-            entry_note = f"🔥 Confluence x{clusters[0]['count']}: entry at {ff(entry)}"
+            entry_note = f"🔥 Confluence x{clusters[0]['count']}: entry at {_ffm(entry, market_type)}"
         else:
             entry = round(min(entry_candidates), 4)
-            entry_note = f"📍 Entry at Trade Low {ff(entry)}"
+            entry_note = f"📍 Entry at Trade Low {_ffm(entry, market_type)}"
 
         stop_candidates = [tail_low]
-        if pw and expected_move:
-            stop_candidates.append(pw - expected_move * 0.5 * px)
+        if pw and expected_move: stop_candidates.append(pw - expected_move * 0.5 * px)
         stop_raw = max(stop_candidates) if stop_candidates else entry * 0.995
         stop = min(stop_raw, entry - min_stop_dist)
 
         tp1_candidates = [trade_top]
-        if cw:
-            tp1_candidates.append(cw)
-        if mp and expected_move:
-            tp1_candidates.append(mp + expected_move * px)
+        if cw: tp1_candidates.append(cw)
+        if mp and expected_move: tp1_candidates.append(mp + expected_move * px)
         t_clusters = _cluster_levels(tp1_candidates, 0.02)
         if t_clusters:
             tp1 = t_clusters[0]["center"]
-            confluence["target"] = [("Trade Top", trade_top), ("Call Wall", cw),
-                                    ("Max Pain+EM", mp + expected_move * px if mp and expected_move else None)]
+            confluence["target"] = [("Trade Top", trade_top), ("Call Wall", cw), ("Max Pain+EM", mp + expected_move * px if mp and expected_move else None)]
             confluence["target_cluster"] = t_clusters[0]
         else:
             risk = abs(entry - stop)
             tp1 = round(max([x for x in tp1_candidates if x > entry], default=entry + risk * 2), 4)
 
-        # Breakout mode detection
+        # ── ATH BREAKOUT / TREND ACCELERATION DETECTION ──
         breakout_mode = False
         breakout_note = ""
         if formation == "BULLISH" and gamma_data and gamma_data.get("gamma_regime") in ("NEGATIVE", "DEEP_NEGATIVE"):
+            # Negative gamma + above all ranges = trend ACCELERATION (not mean-reversion)
+            # This is SNDK/Palantir mode: ATH to ATH
             breakout_mode = True
-            breakout_note = "🔥 ATH BREAKOUT MODE — Negative gamma + above Trend/Tail = trend acceleration."
+            breakout_note = "🔥 ATH BREAKOUT MODE — Negative gamma + above Trend/Tail = trend acceleration. Targets projected beyond standard range."
 
         if breakout_mode:
+            # Project targets beyond trend_top for breakout plays
             tp2_candidates = [trend_top * 1.05, px * 1.08]
-            if cw:
-                tp2_candidates.append(cw + atr15 * 2)
-            if mp and expected_move:
-                tp2_candidates.append(mp + expected_move * 3 * px)
+            if cw: tp2_candidates.append(cw + atr15 * 2)
+            if mp and expected_move: tp2_candidates.append(mp + expected_move * 3 * px)
             tp2 = round(max(tp2_candidates), 4)
+            # TP1 also more aggressive
             tp1_candidates = [trade_top * 1.02, px * 1.04]
-            if cw:
-                tp1_candidates.append(cw + atr15)
-            if mp and expected_move:
-                tp1_candidates.append(mp + expected_move * 1.5 * px)
+            if cw: tp1_candidates.append(cw + atr15)
+            if mp and expected_move: tp1_candidates.append(mp + expected_move * 1.5 * px)
             if t_clusters:
-                tp1 = t_clusters[0]["center"] * 1.02
+                tp1 = t_clusters[0]["center"] * 1.02  # slight boost
             else:
                 tp1 = round(max(tp1_candidates), 4)
         else:
             tp2_candidates = [trend_top]
-            if cw:
-                tp2_candidates.append(cw + atr15)
-            if mp and expected_move:
-                tp2_candidates.append(mp + expected_move * 2 * px)
+            if cw: tp2_candidates.append(cw + atr15)
+            if mp and expected_move: tp2_candidates.append(mp + expected_move * 2 * px)
             tp2 = round(max(tp2_candidates), 4)
         near_entry = px <= trade_top * 0.65
 
     else:  # short
         entry_candidates = [trade_top]
-        if cw:
-            entry_candidates.append(cw)
-        if mp and expected_move:
-            entry_candidates.append(mp + expected_move * px)
-        if gf_up:
-            entry_candidates.append(gf_up)
+        if cw: entry_candidates.append(cw)
+        if mp and expected_move: entry_candidates.append(mp + expected_move * px)
+        if gf_up: entry_candidates.append(gf_up)
         if cot_data and cot_signal == "BEARISH":
             entry_candidates.append(trade_top + atr15 * 0.5)
+        # v39.5: Entry short = MAX(candidates) — fade at highest confluence, no cluster dilution
         entry = round(max([float(x) for x in entry_candidates if x is not None and math.isfinite(float(x))]), 4)
-        entry_note = f"📍 Entry at Trade Top {ff(entry)}"
-        confluence["entry"] = [("Trade Top", trade_top), ("Call Wall", cw),
-                               ("Max Pain+EM", mp + expected_move * px if mp and expected_move else None),
-                               ("Gamma Flip ↑", gf_up)]
+        entry_note = f"📍 Entry at Trade Top {_ffm(entry, market_type)}"
+        confluence["entry"] = [("Trade Top", trade_top), ("Call Wall", cw), ("Max Pain+EM", mp + expected_move * px if mp and expected_move else None), ("Gamma Flip ↑", gf_up)]
 
+        # v39.5: Short stop = above Trade Top or entry + 1.5% minimum (not 0.3%)
         stop_candidates = [tail_top, entry * 1.015]
-        if cw and expected_move:
-            stop_candidates.append(cw + expected_move * 0.5 * px)
+        if cw and expected_move: stop_candidates.append(cw + expected_move * 0.5 * px)
         stop_raw = max(stop_candidates) if stop_candidates else entry * 1.005
         stop = max(stop_raw, entry + max(px * 0.015, 0.01))
 
         tp1_candidates = [trade_low]
-        if pw:
-            tp1_candidates.append(pw)
-        if mp and expected_move:
-            tp1_candidates.append(mp - expected_move * px)
+        if pw: tp1_candidates.append(pw)
+        if mp and expected_move: tp1_candidates.append(mp - expected_move * px)
         t_clusters = _cluster_levels(tp1_candidates, 0.02)
         if t_clusters:
             tp1 = t_clusters[0]["center"]
-            confluence["target"] = [("Trade Low", trade_low), ("Put Wall", pw),
-                                    ("Max Pain−EM", mp - expected_move * px if mp and expected_move else None)]
+            confluence["target"] = [("Trade Low", trade_low), ("Put Wall", pw), ("Max Pain−EM", mp - expected_move * px if mp and expected_move else None)]
             confluence["target_cluster"] = t_clusters[0]
         else:
             risk = abs(entry - stop)
             tp1 = round(min([x for x in tp1_candidates if x < entry], default=entry - risk * 2), 4)
 
+        # ── SHORT BREAKDOWN / TREND ACCELERATION DETECTION ──
         breakdown_mode = False
         breakdown_note = ""
         if formation == "BEARISH" and gamma_data and gamma_data.get("gamma_regime") in ("POSITIVE", "DEEP_POSITIVE"):
+            # Positive gamma + below all ranges = breakdown acceleration
             breakdown_mode = True
-            breakdown_note = "🔥 BREAKDOWN MODE — Positive gamma + below Trend/Tail = breakdown acceleration."
+            breakdown_note = "🔥 BREAKDOWN MODE — Positive gamma + below Trend/Tail = breakdown acceleration. Targets projected beyond standard range."
 
         if breakdown_mode:
             tp2_candidates = [trend_low * 0.95, px * 0.92]
-            if pw:
-                tp2_candidates.append(pw - atr15 * 2)
-            if mp and expected_move:
-                tp2_candidates.append(mp - expected_move * 3 * px)
+            if pw: tp2_candidates.append(pw - atr15 * 2)
+            if mp and expected_move: tp2_candidates.append(mp - expected_move * 3 * px)
             tp2 = round(min(tp2_candidates), 4)
             tp1_candidates = [trade_low * 0.98, px * 0.96]
-            if pw:
-                tp1_candidates.append(pw - atr15)
-            if mp and expected_move:
-                tp1_candidates.append(mp - expected_move * 1.5 * px)
+            if pw: tp1_candidates.append(pw - atr15)
+            if mp and expected_move: tp1_candidates.append(mp - expected_move * 1.5 * px)
             if t_clusters:
                 tp1 = t_clusters[0]["center"] * 0.98
             else:
                 tp1 = round(min(tp1_candidates), 4)
         else:
             tp2_candidates = [trend_low]
-            if pw:
-                tp2_candidates.append(pw - atr15)
-            if mp and expected_move:
-                tp2_candidates.append(mp - expected_move * 2 * px)
+            if pw: tp2_candidates.append(pw - atr15)
+            if mp and expected_move: tp2_candidates.append(mp - expected_move * 2 * px)
             tp2 = round(min(tp2_candidates), 4)
         near_entry = px >= entry * 0.98
 
     # ── RISK/REWARD ──
     risk = abs(entry - stop)
     if risk < min_stop_dist:
-        rr = 0.0
-        grade = "C"
-        setup_valid = False
-        setup_note = f"🚫 INVALID — Stop {ff(stop)} too close to entry {ff(entry)} (risk {risk/px:.2%} < min)."
+        rr = 0.0; grade = "C"; setup_valid = False
+        setup_note = f"🚫 INVALID — Stop {_ffm(stop, market_type)} too close to entry {_ffm(entry, market_type)} (risk {risk/px:.2%} < 0.5% min)."
     else:
         rr = round(abs(tp1 - entry) / risk, 2)
         grade = "A" if near_entry and rr >= 2.0 else "B" if near_entry and rr >= 1.5 else "C"
-        setup_valid = True
-        setup_note = ""
+        setup_valid = True; setup_note = ""
 
     # ── CHASE/WAIT/AVOID ──
-    chase_status = "NEUTRAL"
-    chase_color = "#8B949E"
-    chase_text = "—"
+    chase_status = "NEUTRAL"; chase_color = "#8B949E"; chase_text = "—"
     if not setup_valid:
-        chase_status = "AVOID"
-        chase_color = "#F85149"
+        chase_status = "AVOID"; chase_color = "#F85149"
         chase_text = f"🚫 AVOID — {setup_note}"
     else:
         if side == "long":
             if px <= entry * 1.02:
-                chase_status = "CHASE"
-                chase_color = "#3FB950"
-                chase_text = f"🟢 CHASE — Price at/near entry {ff(entry)}. Risk: {risk/px:.2%}."
+                chase_status = "CHASE"; chase_color = "#3FB950"
+                chase_text = f"🟢 CHASE — Price at/near entry {_ffm(entry, market_type)}. Risk: {risk/px:.2%}."
             elif px > entry * 1.05 and px > stop:
-                chase_status = "WAIT"
-                chase_color = "#D29922"
-                chase_text = f"🟡 WAIT — Price {ff(px)} above entry {ff(entry)}. Wait pullback to {ff(entry)}-{ff(stop)} zone."
+                chase_status = "WAIT"; chase_color = "#D29922"
+                chase_text = f"🟡 WAIT — Price {ff(px)} above entry {_ffm(entry, market_type)}. Wait pullback to {_ffm(entry, market_type)}-{_ffm(stop, market_type)} zone."
             elif px < stop:
-                chase_status = "AVOID"
-                chase_color = "#F85149"
-                chase_text = f"🔴 STOP HIT — Price {ff(px)} below stop {ff(stop)}. Setup invalidated."
+                chase_status = "AVOID"; chase_color = "#F85149"
+                chase_text = f"🔴 STOP HIT — Price {_ffm(px, market_type)} below stop {_ffm(stop, market_type)}. Setup invalidated."
             elif rr >= 3.0:
                 chase_text += f" | 🎯 HIGH CONVICTION RR {rr:.1f}x"
             elif rr < 1.5:
                 chase_text += f" | ⚠️ POOR RR {rr:.1f}x — skip or wait better entry"
         else:
             if px >= entry * 0.98:
-                chase_status = "CHASE"
-                chase_color = "#3FB950"
-                chase_text = f"🟢 CHASE — Price at/near entry {ff(entry)}. Risk: {risk/px:.2%}."
+                chase_status = "CHASE"; chase_color = "#3FB950"
+                chase_text = f"🟢 CHASE — Price at/near entry {_ffm(entry, market_type)}. Risk: {risk/px:.2%}."
             elif px < entry * 0.95 and px < stop:
-                chase_status = "WAIT"
-                chase_color = "#D29922"
-                chase_text = f"🟡 WAIT — Price {ff(px)} below entry {ff(entry)}. Wait pullback to {ff(entry)}-{ff(stop)} zone."
+                chase_status = "WAIT"; chase_color = "#D29922"
+                chase_text = f"🟡 WAIT — Price {_ffm(px, market_type)} below entry {_ffm(entry, market_type)}. Wait pullback to {_ffm(entry, market_type)}-{_ffm(stop, market_type)} zone."
             elif px > stop:
-                chase_status = "AVOID"
-                chase_color = "#F85149"
-                chase_text = f"🔴 STOP HIT — Price {ff(px)} above stop {ff(stop)}. Setup invalidated."
+                chase_status = "AVOID"; chase_color = "#F85149"
+                chase_text = f"🔴 STOP HIT — Price {_ffm(px, market_type)} above stop {_ffm(stop, market_type)}. Setup invalidated."
             elif rr >= 3.0:
                 chase_text += f" | 🎯 HIGH CONVICTION RR {rr:.1f}x"
             elif rr < 1.5:
@@ -1622,22 +1563,11 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
         "keith_sync": {},
         "vix_bucket": "NORMAL",
         "dp_boost": dp_boost,
-        # Pine v15 extras (new)
-        "trade_phase": trade_phase,
-        "trend_phase": trend_phase,
-        "tail_phase": tail_phase,
-        "vol_regime": round(vol_regime, 3),
-        "fractal_dim_trade": round(D_trade, 3),
-        "fractal_dim_trend": round(D_trend, 3),
-        "fractal_dim_tail": round(D_tail, 3),
-        "atr14_proxy": round(atr14, 4),
-        "basis_trade": round(basis_trade, 4),
-        "basis_trend": round(basis_trend, 4),
-        "basis_tail": round(basis_tail, 4),
     }
 
-
-
+# ═══════════════════════════════════════════════════════════════════
+# BROKER PROXY (IHSG manipulation detection)
+# ═══════════════════════════════════════════════════════════════════
 def _get_broker_proxy(ticker, prices):
     """
     AUDITED v32.4.1 — Proxy broker summary for IHSG with manipulation detection.

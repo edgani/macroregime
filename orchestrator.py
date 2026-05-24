@@ -1134,146 +1134,33 @@ def _ihsg_broker_proxy_v2(ticker, prices):
 # RISK RANGE PROXY (v39 - unchanged formula, verified)
 # ═══════════════════════════════════════════════════════════════════════
 def _risk_range_proxy(prices: dict) -> dict:
-    """
-    HEDGEYE 3-LAYER RISK RANGE — EXACT PINE v15 PORT (AUDITED)
-    Backend risk range untuk alpha_center / front_run_candidates.
-    Formula identik dengan _build_row di app.py.
-    """
     asset_ranges = {}
     for ticker, s in prices.items():
         if s is None or len(s) < 60:
             continue
         try:
-            s_clean = pd.to_numeric(pd.Series(s), errors="coerce").dropna()
+            s_clean = pd.to_numeric(s, errors="coerce").dropna()
             if len(s_clean) < 60:
                 continue
             px = float(s_clean.iloc[-1])
-
-            # ── PINE v15 EXACT PARAMETERS ──
-            trade_len = 15
-            trend_len = 63
-            tail_len = 252
-            atr_len = 14
-            basis_type = "SMA"
-            m_trade = 0.3496
-            m_trend = m_trade * math.sqrt(trend_len / trade_len)   # 0.7164
-            m_tail = m_trend * math.sqrt(tail_len / trend_len)     # 1.4328
-
-            # ── BASIS ──
-            def _basis(series, length, btype):
-                if len(series) < length:
-                    return float(series.mean())
-                tail = series.tail(length)
-                if btype == "EMA":
-                    return float(tail.ewm(span=length, adjust=False).mean().iloc[-1])
-                return float(tail.mean())
-
-            basis_trade = _basis(s_clean, trade_len, basis_type)
-            basis_trend = _basis(s_clean, trend_len, basis_type)
-            basis_tail = _basis(s_clean, tail_len, basis_type)
-
-            # ── ATR14 PROXY (Parkinson scaled) ──
-            log_ret = np.log(s_clean / s_clean.shift(1)).dropna()
-            if len(log_ret) >= 2:
-                parkinson = math.sqrt((log_ret ** 2).sum() / (2 * len(log_ret))) * s_clean.iloc[-1]
-                atr14 = parkinson * 1.25
-            else:
-                atr14 = float(s_clean.std()) * 1.5
-
-            # ── FRACTAL DIMENSION ──
-            def _hurst_proxy(series, max_lag=30):
-                if len(series) < max_lag * 2:
-                    return 0.5
-                lags = range(2, min(max_lag, len(series) // 4) + 1)
-                tau = []
-                for lag in lags:
-                    diffs = series.diff(lag).dropna().abs()
-                    if len(diffs) > 0:
-                        tau.append(math.log(diffs.mean()))
-                if len(tau) < 2:
-                    return 0.5
-                x = np.array([math.log(l) for l in lags[:len(tau)]])
-                y = np.array(tau)
-                n = len(x)
-                slope = (n * np.sum(x * y) - np.sum(x) * np.sum(y)) / (n * np.sum(x**2) - np.sum(x)**2)
-                return max(0.1, min(0.9, slope))
-
-            def _fractal_dim(series, length, max_lag=30):
-                H = _hurst_proxy(series.tail(length * 2), max_lag)
-                D = 2.0 - H
-                return max(1.0, min(1.9, D))
-
-            fractal_weight = 0.3
-            D_trade = _fractal_dim(s_clean, trade_len)
-            D_trend = _fractal_dim(s_clean, trend_len)
-            D_tail = _fractal_dim(s_clean, tail_len)
-
-            f_trade = 1.0 + (D_trade - 1.5) * fractal_weight
-            f_trend = 1.0 + (D_trend - 1.5) * fractal_weight
-            f_tail = 1.0 + (D_tail - 1.5) * fractal_weight
-
-            # ── WIDTHS ──
-            trade_width = atr14 * m_trade * f_trade
-            trend_width = atr14 * m_trend * f_trend
-            tail_width = atr14 * m_tail * f_tail
-
-            # ── TRR / LRR ──
-            trade_trr = basis_trade + trade_width
-            trade_lrr = basis_trade - trade_width
-            trend_trr = basis_trend + trend_width
-            trend_lrr = basis_trend - trend_width
-            tail_trr = basis_tail + tail_width
-            tail_lrr = basis_tail - tail_width
-
-            # ── FORMATION ──
-            if px > trend_trr and px > tail_trr:
-                comp = "bullish"; formation = "BULLISH"
-            elif px < trend_lrr and px < tail_lrr:
-                comp = "bearish"; formation = "BEARISH"
-            elif px > trend_trr:
-                comp = "bullish"; formation = "BULLISH_BIAS"
-            elif px < trend_lrr:
-                comp = "bearish"; formation = "BEARISH_BIAS"
-            else:
-                trade_spread = trade_trr - trade_lrr
-                trade_pos = (px - trade_lrr) / trade_spread if trade_spread > 0 else 0.5
-                if trade_pos <= 0.35:
-                    comp = "bullish"; formation = "OVERSOLD"
-                elif trade_pos >= 0.65:
-                    comp = "bearish"; formation = "OVERBOUGHT"
-                else:
-                    comp = "neutral"; formation = "NEUTRAL"
-
-            # Quality grade
-            quality = "A" if formation in ("BULLISH", "BEARISH") else "B" if formation in ("BULLISH_BIAS", "BEARISH_BIAS", "OVERSOLD", "OVERBOUGHT") else "C"
-
+            sma20 = float(s_clean.tail(20).mean())
+            std20 = float(s_clean.tail(20).std())
+            if std20 == 0 or not all(math.isfinite(v) for v in [px, sma20, std20]):
+                continue
+            lrr = round(sma20 - 1.5 * std20, 4)
+            trr = round(sma20 + 1.5 * std20, 4)
+            comp = "bullish" if px < lrr else "bearish" if px > trr else "neutral"
+            quality = "A" if abs(px - lrr) / max(lrr, 0.001) < 0.02 else "B" if comp != "neutral" else "C"
             asset_ranges[ticker] = {
                 "px": px,
-                "trade": {"lrr": round(trade_lrr, 4), "trr": round(trade_trr, 4)},
-                "trend": {"lrr": round(trend_lrr, 4), "trr": round(trend_trr, 4)},
-                "tail": {"lrr": round(tail_lrr, 4), "trr": round(tail_trr, 4)},
+                "trade": {"lrr": lrr, "trr": trr},
                 "composite": comp,
-                "formation": formation,
                 "quality": quality,
                 "market": _classify_market(ticker),
-                # Pine v15 extras
-                "vol_regime": round(max(0.0, min(1.0, (log_ret.tail(20).std() * math.sqrt(252.0)) / ((log_ret.tail(50).std() * math.sqrt(252.0)) * 1.25))) if len(log_ret) >= 50 else 0.5, 3),
-                "fractal_dim_trade": round(D_trade, 3),
-                "fractal_dim_trend": round(D_trend, 3),
-                "fractal_dim_tail": round(D_tail, 3),
-                "atr14_proxy": round(atr14, 4),
-                "basis_trade": round(basis_trade, 4),
-                "basis_trend": round(basis_trend, 4),
-                "basis_tail": round(basis_tail, 4),
-                "m_trade": m_trade,
-                "m_trend": round(m_trend, 4),
-                "m_tail": round(m_tail, 4),
             }
         except Exception:
             pass
     return {"asset_ranges": asset_ranges}
-
-
 
 def _classify_market(ticker: str) -> str:
     if ticker in FOREX_PAIRS or "=" in ticker or ticker in ["DX-Y.NYB", "UUP"]:

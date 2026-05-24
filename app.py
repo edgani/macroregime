@@ -623,7 +623,7 @@ def _risk_range_html(px, lrr, trr, width_pct=100):
         f'<div class="rr-zone-v4" style="left:0%;width:{left_pct:.0f}%;background:{color}15;"></div>'
         f'<div class="rr-dot-v4" style="left:{max(3,min(97,left_pct)):.0f}%;border-color:{color};"></div>'
         f'</div>'
-        f'<div class="rr-labels-v4" style="width:{width_pct}%;"><span>{ff(lrr)}</span><span>{ff(px)}</span><span>{ff(trr)}</span></div>'
+        f'<div class="rr-labels-v4" style="width:{width_pct}%;"><span>{ff(lrr)}</span><span>{_ffm(px, market_type)}</span><span>{ff(trr)}</span></div>'
     )
 
 def _gauge_html(value, max_val=100, color=None, height=12, label_left="0", label_right="100"):
@@ -1371,10 +1371,10 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
             entry = clusters[0]["center"]
             confluence["entry"] = [("Trade Low", trade_low), ("Put Wall", pw), ("Max Pain−EM", mp - expected_move * px if mp and expected_move else None), ("Gamma Flip ↓", gf_down)]
             confluence["entry_cluster"] = clusters[0]
-            entry_note = f"🔥 Confluence x{clusters[0]['count']}: entry at {ff(entry)}"
+            entry_note = f"🔥 Confluence x{clusters[0]['count']}: entry at {_ffm(entry, market_type)}"
         else:
             entry = round(min(entry_candidates), 4)
-            entry_note = f"📍 Entry at Trade Low {ff(entry)}"
+            entry_note = f"📍 Entry at Trade Low {_ffm(entry, market_type)}"
 
         stop_candidates = [tail_low]
         if pw and expected_move: stop_candidates.append(pw - expected_move * 0.5 * px)
@@ -1432,7 +1432,7 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
             entry_candidates.append(trade_top + atr15 * 0.5)
         # v39.5: Entry short = MAX(candidates) — fade at highest confluence, no cluster dilution
         entry = round(max([float(x) for x in entry_candidates if x is not None and math.isfinite(float(x))]), 4)
-        entry_note = f"📍 Entry at Trade Top {ff(entry)}"
+        entry_note = f"📍 Entry at Trade Top {_ffm(entry, market_type)}"
         confluence["entry"] = [("Trade Top", trade_top), ("Call Wall", cw), ("Max Pain+EM", mp + expected_move * px if mp and expected_move else None), ("Gamma Flip ↑", gf_up)]
 
         # v39.5: Short stop = above Trade Top or entry + 1.5% minimum (not 0.3%)
@@ -1484,7 +1484,7 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
     risk = abs(entry - stop)
     if risk < min_stop_dist:
         rr = 0.0; grade = "C"; setup_valid = False
-        setup_note = f"🚫 INVALID — Stop {ff(stop)} too close to entry {ff(entry)} (risk {risk/px:.2%} < 0.5% min)."
+        setup_note = f"🚫 INVALID — Stop {_ffm(stop, market_type)} too close to entry {_ffm(entry, market_type)} (risk {risk/px:.2%} < 0.5% min)."
     else:
         rr = round(abs(tp1 - entry) / risk, 2)
         grade = "A" if near_entry and rr >= 2.0 else "B" if near_entry and rr >= 1.5 else "C"
@@ -1499,13 +1499,13 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
         if side == "long":
             if px <= entry * 1.02:
                 chase_status = "CHASE"; chase_color = "#3FB950"
-                chase_text = f"🟢 CHASE — Price at/near entry {ff(entry)}. Risk: {risk/px:.2%}."
+                chase_text = f"🟢 CHASE — Price at/near entry {_ffm(entry, market_type)}. Risk: {risk/px:.2%}."
             elif px > entry * 1.05 and px > stop:
                 chase_status = "WAIT"; chase_color = "#D29922"
-                chase_text = f"🟡 WAIT — Price {ff(px)} above entry {ff(entry)}. Wait pullback to {ff(entry)}-{ff(stop)} zone."
+                chase_text = f"🟡 WAIT — Price {_ffm(px, market_type)} above entry {_ffm(entry, market_type)}. Wait pullback to {_ffm(entry, market_type)}-{_ffm(stop, market_type)} zone."
             elif px < stop:
                 chase_status = "AVOID"; chase_color = "#F85149"
-                chase_text = f"🔴 STOP HIT — Price {ff(px)} below stop {ff(stop)}. Setup invalidated."
+                chase_text = f"🔴 STOP HIT — Price {_ffm(px, market_type)} below stop {_ffm(stop, market_type)}. Setup invalidated."
             elif rr >= 3.0:
                 chase_text += f" | 🎯 HIGH CONVICTION RR {rr:.1f}x"
             elif rr < 1.5:
@@ -1513,13 +1513,13 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
         else:
             if px >= entry * 0.98:
                 chase_status = "CHASE"; chase_color = "#3FB950"
-                chase_text = f"🟢 CHASE — Price at/near entry {ff(entry)}. Risk: {risk/px:.2%}."
+                chase_text = f"🟢 CHASE — Price at/near entry {_ffm(entry, market_type)}. Risk: {risk/px:.2%}."
             elif px < entry * 0.95 and px < stop:
                 chase_status = "WAIT"; chase_color = "#D29922"
-                chase_text = f"🟡 WAIT — Price {ff(px)} below entry {ff(entry)}. Wait pullback to {ff(entry)}-{ff(stop)} zone."
+                chase_text = f"🟡 WAIT — Price {_ffm(px, market_type)} below entry {_ffm(entry, market_type)}. Wait pullback to {_ffm(entry, market_type)}-{_ffm(stop, market_type)} zone."
             elif px > stop:
                 chase_status = "AVOID"; chase_color = "#F85149"
-                chase_text = f"🔴 STOP HIT — Price {ff(px)} above stop {ff(stop)}. Setup invalidated."
+                chase_text = f"🔴 STOP HIT — Price {_ffm(px, market_type)} above stop {_ffm(stop, market_type)}. Setup invalidated."
             elif rr >= 3.0:
                 chase_text += f" | 🎯 HIGH CONVICTION RR {rr:.1f}x"
             elif rr < 1.5:
@@ -1680,6 +1680,13 @@ def build_ticker_rows(tickers, market_type="us_equity", vix_now=20, gamma_data=N
                     r["simulation"] = sim_results[t]
             # Compute entry convergence for ALL tickers (v39.2)
             r["entry_convergence"] = _compute_entry_convergence(r, snap, market_type=market_type)
+            # v39.5: Convergence override — if HOLD with <60% confidence, force WAIT
+            conv = r.get("entry_convergence", {})
+            if conv and isinstance(conv, dict) and conv.get("signal") == "HOLD" and conv.get("confidence", 0) < 60:
+                if r.get("chase_status") not in ("AVOID",):
+                    r["chase_status"] = "WAIT"
+                    r["chase_color"] = "#D29922"
+                    r["chase_text"] = (r.get("chase_text", "") + f" | ⏳ CONVERGENCE HOLD ({conv.get('confidence',0):.0f}%) — signals conflict").strip(" |")
             rows.append(r)
     # Simulation runs background-only; annotate but don't filter
     if sim_results:
@@ -2425,10 +2432,10 @@ def _get_single_recommendation(options, direction="LONG", market_type="us_equity
         reasons.append(("📍 Pinned near max pain ({:.1f}%) + pos gamma = range-bound.".format(mp_dist*100), 60))
     elif mp_dist < -0.03 and gamma in ("NEGATIVE", "DEEP_NEGATIVE"):
         scores.append(("BUY", 85))
-        reasons.append(("📉 Below max pain ({:.1f}%) + neg gamma = MM buys dips. Put wall ${:.2f}.".format(mp_dist*100, put_wall), 85))
+        reasons.append((f"📉 Below max pain ({mp_dist*100:.1f}%) + neg gamma = MM buys dips. Put wall ${_ffm(put_wall, market_type)}.", 85))
     elif mp_dist > 0.03 and gamma in ("POSITIVE", "DEEP_POSITIVE"):
         scores.append(("SELL/COVERED_CALL", 70))
-        reasons.append(("📈 Above max pain (+{:.1f}%) + pos gamma = MM sells rallies. Call wall ${:.2f}.".format(mp_dist*100, call_wall), 70))
+        reasons.append((f"📈 Above max pain (+{mp_dist*100:.1f}%) + pos gamma = MM sells rallies. Call wall ${_ffm(call_wall, market_type)}.", 70))
     elif gamma in ("POSITIVE", "DEEP_POSITIVE"):
         scores.append(("BUY", 55))
         reasons.append(("🟢 Positive gamma — dealer long, mean-reversion to max pain ${:.2f}.".format(mp), 55))
@@ -2577,7 +2584,7 @@ def _get_single_recommendation(options, direction="LONG", market_type="us_equity
     if row and not row.get("setup_valid", True):
         return {
             "action": "HOLD / TUNGGU", "strategy": "Setup invalid — stop too close or risk < 0.5%",
-            "rationale": f"• 🚫 Stop {ff(row.get('stop'))} too close to entry {ff(row.get('entry'))} (risk {row.get('risk_pct',0):.2f}% < 0.5% min).",
+            "rationale": f"• 🚫 Stop {_ffm(row.get('stop'), market_type)} too close to entry {_ffm(row.get('entry'), market_type)} (risk {row.get('risk_pct',0):.2f}% < 0.5% min).",
             "raw_action": "HOLD", "confidence": 0, "factors": 0, "source": "VALIDATION",
             "near_peak": near_peak, "near_bottom": near_bottom,
         }
@@ -3084,7 +3091,7 @@ def render_ticker_card_v4(row, expanded=False):
     st.markdown(card_html, unsafe_allow_html=True)
 
     # ── Trade Setup Expander ──
-    expander_label = "🔍 Toggle Full Details — Greeks · GEX · Dark Pool · OI · Sim" if market_type != "ihsg" else "🔍 Toggle Full Details — Broker · Risk Range · Sim"
+    expander_label = "🔍 Essential Details" if market_type != "ihsg" else "🔍 Essential Details"
     with st.expander(expander_label, expanded=expanded):
         # Alpha thesis
         alpha_thesis = row.get("alpha_thesis", "")
@@ -3123,285 +3130,290 @@ def render_ticker_card_v4(row, expanded=False):
             sim_html += f'</div>'
             st.markdown(sim_html, unsafe_allow_html=True)
 
-        # ── Simulation Extensions v2.0 (ALL-IN-ONE) ──
-        if sim and sim.get("extensions"):
-            ext = sim["extensions"]
-            ext_html = '<div class="ts-panel" style="border-color: #58A6FF30; margin-bottom: 8px;">'
-            ext_html += '<div class="ts-panel-title">🔬 Monte Carlo Extensions v2.0</div>'
+                # ── v39.5: Background Engines (Collapsed by Default) ──
+        with st.expander("🔧 Background Engines — Sim · WF · Gatekeeper · Greeks · DP", expanded=False):
+            # ── Simulation Extensions v2.0 (ALL-IN-ONE) ──
+                    if sim and sim.get("extensions"):
+                        ext = sim["extensions"]
+                        ext_html = '<div class="ts-panel" style="border-color: #58A6FF30; margin-bottom: 8px;">'
+                        ext_html += '<div class="ts-panel-title">🔬 Monte Carlo Extensions v2.0</div>'
 
-            # 1. KELLY SIZING
-            kelly = ext.get("kelly", {})
-            if kelly:
-                kc = "#3FB950" if kelly.get("fraction", 0) >= 0.5 else "#D29922" if kelly.get("fraction", 0) >= 0.25 else "#F85149"
-                ext_html += f'<div style="margin-bottom:6px;padding:5px 8px;background:#0D1117;border-radius:6px;">'
-                ext_html += f'<div style="font-size:0.6rem;color:#8B949E;text-transform:uppercase;font-weight:600;margin-bottom:3px;">💰 Kelly Sizing</div>'
-                ext_html += f'<div style="display:flex;gap:8px;align-items:center;">'
-                ext_html += f'<div style="font-size:0.75rem;color:#E6EDF3;font-weight:700;">{kelly.get("label","—")}</div>'
-                ext_html += f'<div style="flex:1;height:6px;background:#21262D;border-radius:3px;overflow:hidden;"><div style="width:{min(100,kelly.get("portfolio_pct",0)*2):.0f}%;height:100%;background:{kc};border-radius:3px;"></div></div>'
-                ext_html += f'<div style="font-size:0.65rem;color:{kc};font-weight:700;min-width:60px;text-align:right;">{kelly.get("portfolio_pct",0):.1f}% · ${kelly.get("dollar_size",0):,.0f}</div>'
-                ext_html += f'</div>'
-                ext_html += f'<div style="font-size:0.55rem;color:#484F58;margin-top:1px;">Raw Kelly {kelly.get("kelly_raw",0):.2f} · Adjusted {kelly.get("kelly_adjusted",0):.3f}</div>'
-                ext_html += f'</div>'
+                        # 1. KELLY SIZING
+                        kelly = ext.get("kelly", {})
+                        if kelly:
+                            kc = "#3FB950" if kelly.get("fraction", 0) >= 0.5 else "#D29922" if kelly.get("fraction", 0) >= 0.25 else "#F85149"
+                            ext_html += f'<div style="margin-bottom:6px;padding:5px 8px;background:#0D1117;border-radius:6px;">'
+                            ext_html += f'<div style="font-size:0.6rem;color:#8B949E;text-transform:uppercase;font-weight:600;margin-bottom:3px;">💰 Kelly Sizing</div>'
+                            ext_html += f'<div style="display:flex;gap:8px;align-items:center;">'
+                            ext_html += f'<div style="font-size:0.75rem;color:#E6EDF3;font-weight:700;">{kelly.get("label","—")}</div>'
+                            ext_html += f'<div style="flex:1;height:6px;background:#21262D;border-radius:3px;overflow:hidden;"><div style="width:{min(100,kelly.get("portfolio_pct",0)*2):.0f}%;height:100%;background:{kc};border-radius:3px;"></div></div>'
+                            ext_html += f'<div style="font-size:0.65rem;color:{kc};font-weight:700;min-width:60px;text-align:right;">{kelly.get("portfolio_pct",0):.1f}% · ${kelly.get("dollar_size",0):,.0f}</div>'
+                            ext_html += f'</div>'
+                            ext_html += f'<div style="font-size:0.55rem;color:#484F58;margin-top:1px;">Raw Kelly {kelly.get("kelly_raw",0):.2f} · Adjusted {kelly.get("kelly_adjusted",0):.3f}</div>'
+                            ext_html += f'</div>'
 
-            # 2. OPTIMAL STOP
-            stop_opt = ext.get("optimal_stop", {})
-            if stop_opt and "best" in stop_opt:
-                best = stop_opt["best"]
-                sc = "#3FB950" if best.get("score",0) >= 70 else "#D29922"
-                ext_html += f'<div style="margin-bottom:6px;padding:5px 8px;background:#0D1117;border-radius:6px;">'
-                ext_html += f'<div style="font-size:0.6rem;color:#8B949E;text-transform:uppercase;font-weight:600;margin-bottom:3px;">🛑 Optimal Stop</div>'
-                ext_html += f'<div style="font-size:0.72rem;color:#E6EDF3;"><b>{best.get("type","FIXED")}</b> · Score {best.get("score",0):.0f}</div>'
-                if best.get("type") == "FIXED":
-                    ext_html += f'<div style="font-size:0.6rem;color:#484F58;">Stop: {ff(best.get("stop"))} ({best.get("adj_pct",0):+.1f}%)</div>'
-                else:
-                    ext_html += f'<div style="font-size:0.6rem;color:#484F58;">ATR × {best.get("atr_mult",2)} trailing</div>'
-                ext_html += f'</div>'
+                        # 2. OPTIMAL STOP
+                        stop_opt = ext.get("optimal_stop", {})
+                        if stop_opt and "best" in stop_opt:
+                            best = stop_opt["best"]
+                            sc = "#3FB950" if best.get("score",0) >= 70 else "#D29922"
+                            ext_html += f'<div style="margin-bottom:6px;padding:5px 8px;background:#0D1117;border-radius:6px;">'
+                            ext_html += f'<div style="font-size:0.6rem;color:#8B949E;text-transform:uppercase;font-weight:600;margin-bottom:3px;">🛑 Optimal Stop</div>'
+                            ext_html += f'<div style="font-size:0.72rem;color:#E6EDF3;"><b>{best.get("type","FIXED")}</b> · Score {best.get("score",0):.0f}</div>'
+                            if best.get("type") == "FIXED":
+                                ext_html += f'<div style="font-size:0.6rem;color:#484F58;">Stop: {ff(best.get("stop"))} ({best.get("adj_pct",0):+.1f}%)</div>'
+                            else:
+                                ext_html += f'<div style="font-size:0.6rem;color:#484F58;">ATR × {best.get("atr_mult",2)} trailing</div>'
+                            ext_html += f'</div>'
 
-            # 3. ENTRY TIMING
-            timing = ext.get("entry_timing", {})
-            if timing and timing.get("delays"):
-                best_d = timing.get("best_delay_days", 0)
-                tc = "#3FB950" if best_d == 0 else "#D29922"
-                ext_html += f'<div style="margin-bottom:6px;padding:5px 8px;background:#0D1117;border-radius:6px;">'
-                ext_html += f'<div style="font-size:0.6rem;color:#8B949E;text-transform:uppercase;font-weight:600;margin-bottom:3px;">⏱️ Entry Timing</div>'
-                ext_html += f'<div style="font-size:0.72rem;color:{tc};font-weight:700;">{timing.get("recommendation","—")}</div>'
-                if timing.get("expected_improvement",0) != 0:
-                    ext_html += f'<div style="font-size:0.6rem;color:#484F58;">Expected improvement: {timing["expected_improvement"]:+.2f}%</div>'
-                # Mini grid of delays
-                ext_html += f'<div style="display:flex;gap:4px;margin-top:3px;">'
-                for d in timing.get("delays",[])[:6]:
-                    dc = "#3FB950" if d["delay_days"] == best_d else "#484F58"
-                    ext_html += f'<div style="text-align:center;padding:2px 5px;background:#161B22;border-radius:4px;min-width:30px;">'
-                    ext_html += f'<div style="font-size:0.55rem;color:#8B949E;">{d["delay_days"]}d</div>'
-                    ext_html += f'<div style="font-size:0.65rem;color:{dc};font-weight:700;">{d["robustness_score"]:.0f}</div>'
-                    ext_html += f'</div>'
-                ext_html += f'</div>'
-                ext_html += f'</div>'
+                        # 3. ENTRY TIMING
+                        timing = ext.get("entry_timing", {})
+                        if timing and timing.get("delays"):
+                            best_d = timing.get("best_delay_days", 0)
+                            tc = "#3FB950" if best_d == 0 else "#D29922"
+                            ext_html += f'<div style="margin-bottom:6px;padding:5px 8px;background:#0D1117;border-radius:6px;">'
+                            ext_html += f'<div style="font-size:0.6rem;color:#8B949E;text-transform:uppercase;font-weight:600;margin-bottom:3px;">⏱️ Entry Timing</div>'
+                            ext_html += f'<div style="font-size:0.72rem;color:{tc};font-weight:700;">{timing.get("recommendation","—")}</div>'
+                            if timing.get("expected_improvement",0) != 0:
+                                ext_html += f'<div style="font-size:0.6rem;color:#484F58;">Expected improvement: {timing["expected_improvement"]:+.2f}%</div>'
+                            # Mini grid of delays
+                            ext_html += f'<div style="display:flex;gap:4px;margin-top:3px;">'
+                            for d in timing.get("delays",[])[:6]:
+                                dc = "#3FB950" if d["delay_days"] == best_d else "#484F58"
+                                ext_html += f'<div style="text-align:center;padding:2px 5px;background:#161B22;border-radius:4px;min-width:30px;">'
+                                ext_html += f'<div style="font-size:0.55rem;color:#8B949E;">{d["delay_days"]}d</div>'
+                                ext_html += f'<div style="font-size:0.65rem;color:{dc};font-weight:700;">{d["robustness_score"]:.0f}</div>'
+                                ext_html += f'</div>'
+                            ext_html += f'</div>'
+                            ext_html += f'</div>'
 
-            # 4. TP SPLIT
-            tp = ext.get("tp_split", {})
-            if tp and tp.get("scenarios"):
-                ext_html += f'<div style="margin-bottom:6px;padding:5px 8px;background:#0D1117;border-radius:6px;">'
-                ext_html += f'<div style="font-size:0.6rem;color:#8B949E;text-transform:uppercase;font-weight:600;margin-bottom:3px;">🎯 Take Profit Split</div>'
-                ext_html += f'<div style="font-size:0.72rem;color:#E6EDF3;font-weight:700;">{tp.get("recommendation","—")}</div>'
-                ext_html += f'<div style="display:flex;gap:4px;margin-top:3px;">'
-                for s in tp.get("scenarios",[]):
-                    sc2 = "#3FB950" if s["tp1_ratio"] == tp.get("best_ratio",0) else "#484F58"
-                    ext_html += f'<div style="text-align:center;padding:2px 5px;background:#161B22;border-radius:4px;min-width:50px;">'
-                    ext_html += f'<div style="font-size:0.55rem;color:#8B949E;">{s["label"][:12]}</div>'
-                    ext_html += f'<div style="font-size:0.65rem;color:{sc2};font-weight:700;">S:{s["sharpe"]:.2f}</div>'
-                    ext_html += f'</div>'
-                ext_html += f'</div>'
-                ext_html += f'</div>'
+                        # 4. TP SPLIT
+                        tp = ext.get("tp_split", {})
+                        if tp and tp.get("scenarios"):
+                            ext_html += f'<div style="margin-bottom:6px;padding:5px 8px;background:#0D1117;border-radius:6px;">'
+                            ext_html += f'<div style="font-size:0.6rem;color:#8B949E;text-transform:uppercase;font-weight:600;margin-bottom:3px;">🎯 Take Profit Split</div>'
+                            ext_html += f'<div style="font-size:0.72rem;color:#E6EDF3;font-weight:700;">{tp.get("recommendation","—")}</div>'
+                            ext_html += f'<div style="display:flex;gap:4px;margin-top:3px;">'
+                            for s in tp.get("scenarios",[]):
+                                sc2 = "#3FB950" if s["tp1_ratio"] == tp.get("best_ratio",0) else "#484F58"
+                                ext_html += f'<div style="text-align:center;padding:2px 5px;background:#161B22;border-radius:4px;min-width:50px;">'
+                                ext_html += f'<div style="font-size:0.55rem;color:#8B949E;">{s["label"][:12]}</div>'
+                                ext_html += f'<div style="font-size:0.65rem;color:{sc2};font-weight:700;">S:{s["sharpe"]:.2f}</div>'
+                                ext_html += f'</div>'
+                            ext_html += f'</div>'
+                            ext_html += f'</div>'
 
-            # 5. REGIME STRESS
-            stress = ext.get("regime_stress", {})
-            if stress and stress.get("scenarios"):
-                vuln_c = {"HIGH":"#F85149","MEDIUM":"#D29922","LOW":"#3FB950"}.get(stress.get("vulnerability","LOW"),"#3FB950")
-                ext_html += f'<div style="margin-bottom:6px;padding:5px 8px;background:#0D1117;border-radius:6px;">'
-                ext_html += f'<div style="font-size:0.6rem;color:#8B949E;text-transform:uppercase;font-weight:600;margin-bottom:3px;">⚡ Regime Stress Test</div>'
-                ext_html += f'<div style="font-size:0.65rem;color:{vuln_c};font-weight:700;margin-bottom:3px;">Vulnerability: {stress.get("vulnerability","—")}</div>'
-                ext_html += f'<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:3px;">'
-                for name, data in stress.get("scenarios",{}).items():
-                    pc = "#3FB950" if data.get("passes") else "#F85149"
-                    ext_html += f'<div style="text-align:center;padding:3px;background:#161B22;border-radius:4px;">'
-                    ext_html += f'<div style="font-size:0.52rem;color:#8B949E;">{name}</div>'
-                    ext_html += f'<div style="font-size:0.6rem;color:{pc};font-weight:700;">{data.get("robustness_score",0):.0f}</div>'
-                    ext_html += f'</div>'
-                ext_html += f'</div>'
-                ext_html += f'</div>'
+                        # 5. REGIME STRESS
+                        stress = ext.get("regime_stress", {})
+                        if stress and stress.get("scenarios"):
+                            vuln_c = {"HIGH":"#F85149","MEDIUM":"#D29922","LOW":"#3FB950"}.get(stress.get("vulnerability","LOW"),"#3FB950")
+                            ext_html += f'<div style="margin-bottom:6px;padding:5px 8px;background:#0D1117;border-radius:6px;">'
+                            ext_html += f'<div style="font-size:0.6rem;color:#8B949E;text-transform:uppercase;font-weight:600;margin-bottom:3px;">⚡ Regime Stress Test</div>'
+                            ext_html += f'<div style="font-size:0.65rem;color:{vuln_c};font-weight:700;margin-bottom:3px;">Vulnerability: {stress.get("vulnerability","—")}</div>'
+                            ext_html += f'<div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:3px;">'
+                            for name, data in stress.get("scenarios",{}).items():
+                                pc = "#3FB950" if data.get("passes") else "#F85149"
+                                ext_html += f'<div style="text-align:center;padding:3px;background:#161B22;border-radius:4px;">'
+                                ext_html += f'<div style="font-size:0.52rem;color:#8B949E;">{name}</div>'
+                                ext_html += f'<div style="font-size:0.6rem;color:{pc};font-weight:700;">{data.get("robustness_score",0):.0f}</div>'
+                                ext_html += f'</div>'
+                            ext_html += f'</div>'
+                            ext_html += f'</div>'
 
-            # 6. OPTIONS STRATEGY
-            opts = ext.get("options_strategy", {})
-            if opts and opts.get("best"):
-                best_opt = opts["best"]
-                oc = "#3FB950" if best_opt.get("confidence",0) >= 70 else "#D29922"
-                ext_html += f'<div style="margin-bottom:6px;padding:5px 8px;background:#0D1117;border-radius:6px;">'
-                ext_html += f'<div style="font-size:0.6rem;color:#8B949E;text-transform:uppercase;font-weight:600;margin-bottom:3px;">📐 Options Strategy</div>'
-                ext_html += f'<div style="font-size:0.75rem;color:{oc};font-weight:700;">{best_opt.get("name","—")}</div>'
-                ext_html += f'<div style="font-size:0.6rem;color:#484F58;">{best_opt.get("rationale","—")}</div>'
-                ext_html += f'<div style="margin-top:2px;font-size:0.55rem;color:#8B949E;">Confidence: {best_opt.get("confidence",0):.0f}%</div>'
-                ext_html += f'</div>'
+                        # 6. OPTIONS STRATEGY
+                        opts = ext.get("options_strategy", {})
+                        if opts and opts.get("best"):
+                            best_opt = opts["best"]
+                            oc = "#3FB950" if best_opt.get("confidence",0) >= 70 else "#D29922"
+                            ext_html += f'<div style="margin-bottom:6px;padding:5px 8px;background:#0D1117;border-radius:6px;">'
+                            ext_html += f'<div style="font-size:0.6rem;color:#8B949E;text-transform:uppercase;font-weight:600;margin-bottom:3px;">📐 Options Strategy</div>'
+                            ext_html += f'<div style="font-size:0.75rem;color:{oc};font-weight:700;">{best_opt.get("name","—")}</div>'
+                            ext_html += f'<div style="font-size:0.6rem;color:#484F58;">{best_opt.get("rationale","—")}</div>'
+                            ext_html += f'<div style="margin-top:2px;font-size:0.55rem;color:#8B949E;">Confidence: {best_opt.get("confidence",0):.0f}%</div>'
+                            ext_html += f'</div>'
 
-            # 7. HOLDING PERIOD
-            hold = ext.get("holding_period", {})
-            if hold and hold.get("periods"):
-                ext_html += f'<div style="margin-bottom:6px;padding:5px 8px;background:#0D1117;border-radius:6px;">'
-                ext_html += f'<div style="font-size:0.6rem;color:#8B949E;text-transform:uppercase;font-weight:600;margin-bottom:3px;">📅 Holding Period</div>'
-                ext_html += f'<div style="font-size:0.72rem;color:#E6EDF3;font-weight:700;">{hold.get("recommendation","—")}</div>'
-                ext_html += f'<div style="display:flex;gap:4px;margin-top:3px;">'
-                for p in hold.get("periods",[]):
-                    hc = "#3FB950" if p["days"] == hold.get("best_days",0) else "#484F58"
-                    ext_html += f'<div style="text-align:center;padding:2px 5px;background:#161B22;border-radius:4px;min-width:35px;">'
-                    ext_html += f'<div style="font-size:0.55rem;color:#8B949E;">{p["days"]}d</div>'
-                    ext_html += f'<div style="font-size:0.65rem;color:{hc};font-weight:700;">{p["exp_return_per_day"]:+.2f}%</div>'
-                    ext_html += f'</div>'
-                ext_html += f'</div>'
-                ext_html += f'</div>'
+                        # 7. HOLDING PERIOD
+                        hold = ext.get("holding_period", {})
+                        if hold and hold.get("periods"):
+                            ext_html += f'<div style="margin-bottom:6px;padding:5px 8px;background:#0D1117;border-radius:6px;">'
+                            ext_html += f'<div style="font-size:0.6rem;color:#8B949E;text-transform:uppercase;font-weight:600;margin-bottom:3px;">📅 Holding Period</div>'
+                            ext_html += f'<div style="font-size:0.72rem;color:#E6EDF3;font-weight:700;">{hold.get("recommendation","—")}</div>'
+                            ext_html += f'<div style="display:flex;gap:4px;margin-top:3px;">'
+                            for p in hold.get("periods",[]):
+                                hc = "#3FB950" if p["days"] == hold.get("best_days",0) else "#484F58"
+                                ext_html += f'<div style="text-align:center;padding:2px 5px;background:#161B22;border-radius:4px;min-width:35px;">'
+                                ext_html += f'<div style="font-size:0.55rem;color:#8B949E;">{p["days"]}d</div>'
+                                ext_html += f'<div style="font-size:0.65rem;color:{hc};font-weight:700;">{p["exp_return_per_day"]:+.2f}%</div>'
+                                ext_html += f'</div>'
+                            ext_html += f'</div>'
+                            ext_html += f'</div>'
 
-            # 8. CIRCUIT BREAKER
-            cb = ext.get("circuit_breaker", {})
-            if cb:
-                cb_c = "#F85149" if cb.get("triggered") else "#3FB950"
-                ext_html += f'<div style="margin-bottom:6px;padding:5px 8px;background:#0D1117;border-radius:6px;">'
-                ext_html += f'<div style="font-size:0.6rem;color:#8B949E;text-transform:uppercase;font-weight:600;margin-bottom:3px;">🚨 Circuit Breaker</div>'
-                ext_html += f'<div style="font-size:0.72rem;color:{cb_c};font-weight:700;">{cb.get("recommendation","—")}</div>'
-                if cb.get("triggered"):
-                    for act in cb.get("actions",[]):
-                        ext_html += f'<div style="font-size:0.6rem;color:#F85149;">• {act}</div>'
-                    ext_html += f'<div style="font-size:0.6rem;color:#D29922;margin-top:2px;">Size multiplier: {cb.get("size_multiplier",1.0)}x · Stop tighten: +{cb.get("stop_tighten_pct",0)}% · Target reduce: -{cb.get("target_reduce_pct",0)}%</div>'
-                ext_html += f'</div>'
+                        # 8. CIRCUIT BREAKER
+                        cb = ext.get("circuit_breaker", {})
+                        if cb:
+                            cb_c = "#F85149" if cb.get("triggered") else "#3FB950"
+                            ext_html += f'<div style="margin-bottom:6px;padding:5px 8px;background:#0D1117;border-radius:6px;">'
+                            ext_html += f'<div style="font-size:0.6rem;color:#8B949E;text-transform:uppercase;font-weight:600;margin-bottom:3px;">🚨 Circuit Breaker</div>'
+                            ext_html += f'<div style="font-size:0.72rem;color:{cb_c};font-weight:700;">{cb.get("recommendation","—")}</div>'
+                            if cb.get("triggered"):
+                                for act in cb.get("actions",[]):
+                                    ext_html += f'<div style="font-size:0.6rem;color:#F85149;">• {act}</div>'
+                                ext_html += f'<div style="font-size:0.6rem;color:#D29922;margin-top:2px;">Size multiplier: {cb.get("size_multiplier",1.0)}x · Stop tighten: +{cb.get("stop_tighten_pct",0)}% · Target reduce: -{cb.get("target_reduce_pct",0)}%</div>'
+                            ext_html += f'</div>'
 
-            # 9. DARK POOL VALIDATION
-            dpv = ext.get("dark_pool", {})
-            if dpv:
-                dp_c = "#3FB950" if dpv.get("validated") else "#F85149"
-                ext_html += f'<div style="margin-bottom:6px;padding:5px 8px;background:#0D1117;border-radius:6px;">'
-                ext_html += f'<div style="font-size:0.6rem;color:#8B949E;text-transform:uppercase;font-weight:600;margin-bottom:3px;">🌊 Dark Pool Validation</div>'
-                ext_html += f'<div style="font-size:0.72rem;color:{dp_c};font-weight:700;">{dpv.get("recommendation","—")}</div>'
-                ext_html += f'<div style="font-size:0.6rem;color:#8B949E;">Final confidence: <span style="color:#E6EDF3;font-weight:700;">{dpv.get("final_confidence",0):.0f}%</span> (boost {dpv.get("score_boost",0):+.0f})</div>'
-                for ov in dpv.get("overrides",[])[:3]:
-                    ext_html += f'<div style="font-size:0.6rem;color:#484F58;">{ov}</div>'
-                ext_html += f'</div>'
+                        # 9. DARK POOL VALIDATION
+                        dpv = ext.get("dark_pool", {})
+                        if dpv:
+                            dp_c = "#3FB950" if dpv.get("validated") else "#F85149"
+                            ext_html += f'<div style="margin-bottom:6px;padding:5px 8px;background:#0D1117;border-radius:6px;">'
+                            ext_html += f'<div style="font-size:0.6rem;color:#8B949E;text-transform:uppercase;font-weight:600;margin-bottom:3px;">🌊 Dark Pool Validation</div>'
+                            ext_html += f'<div style="font-size:0.72rem;color:{dp_c};font-weight:700;">{dpv.get("recommendation","—")}</div>'
+                            ext_html += f'<div style="font-size:0.6rem;color:#8B949E;">Final confidence: <span style="color:#E6EDF3;font-weight:700;">{dpv.get("final_confidence",0):.0f}%</span> (boost {dpv.get("score_boost",0):+.0f})</div>'
+                            for ov in dpv.get("overrides",[])[:3]:
+                                ext_html += f'<div style="font-size:0.6rem;color:#484F58;">{ov}</div>'
+                            ext_html += f'</div>'
 
-            ext_html += f'</div>'
-            st.markdown(ext_html, unsafe_allow_html=True)
+                        ext_html += f'</div>'
+                        st.markdown(ext_html, unsafe_allow_html=True)
 
-        # ── v39.1 Background Engine Panels (Gatekeeper · Hedgeye · On-Chain · Broker) ──
-        # Gatekeeper Status
-        gk = row.get("gatekeeper", {})
-        if gk and isinstance(gk, dict):
-            gk_status = gk.get("gate_status", "—")
-            gk_score = gk.get("combined_score", 0)
-            gk_rec = gk.get("recommendation", "—")
-            gk_color = "#3FB950" if gk_status == "PASS" else "#D29922" if gk_status == "MARGINAL" else "#F85149" if gk_status == "FAIL" else "#8B949E"
-            gk_html = f'<div class="ts-panel" style="border-color: {gk_color}30; margin-bottom: 8px;">'
-            gk_html += f'<div class="ts-panel-title">🛡️ Alpha Gatekeeper (8 Gates)</div>'
-            gk_html += f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'
-            gk_html += f'<span style="background:{gk_color}18;color:{gk_color};padding:3px 10px;border-radius:6px;font-size:0.75rem;font-weight:700;border:1px solid {gk_color}40;">{gk_status}</span>'
-            gk_html += f'<span style="font-size:0.7rem;color:#8B949E;">Score <b style="color:{gk_color};">{gk_score:.1f}</b></span>'
-            gk_html += f'<span style="font-size:0.7rem;color:#8B949E;">Rec: <b style="color:#E6EDF3;">{gk_rec}</b></span>'
-            gk_html += f'</div></div>'
-            st.markdown(gk_html, unsafe_allow_html=True)
+                    # ── v39.1 Background Engine Panels (Gatekeeper · Hedgeye · On-Chain · Broker) ──
+                    # Gatekeeper Status
+                    gk = row.get("gatekeeper", {})
+                    if gk and isinstance(gk, dict):
+                        gk_status = gk.get("gate_status", "—")
+                        gk_score = gk.get("combined_score", 0)
+                        gk_rec = gk.get("recommendation", "—")
+                        gk_color = "#3FB950" if gk_status == "PASS" else "#D29922" if gk_status == "MARGINAL" else "#F85149" if gk_status == "FAIL" else "#8B949E"
+                        gk_html = f'<div class="ts-panel" style="border-color: {gk_color}30; margin-bottom: 8px;">'
+                        gk_html += f'<div class="ts-panel-title">🛡️ Alpha Gatekeeper (8 Gates)</div>'
+                        gk_html += f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'
+                        gk_html += f'<span style="background:{gk_color}18;color:{gk_color};padding:3px 10px;border-radius:6px;font-size:0.75rem;font-weight:700;border:1px solid {gk_color}40;">{gk_status}</span>'
+                        gk_html += f'<span style="font-size:0.7rem;color:#8B949E;">Score <b style="color:{gk_color};">{gk_score:.1f}</b></span>'
+                        gk_html += f'<span style="font-size:0.7rem;color:#8B949E;">Rec: <b style="color:#E6EDF3;">{gk_rec}</b></span>'
+                        gk_html += f'</div></div>'
+                        st.markdown(gk_html, unsafe_allow_html=True)
 
-        # Walkforward Status
-        wf = row.get("walkforward", {})
-        if wf and isinstance(wf, dict):
-            wf_score = wf.get("combined_gate_score", 0)
-            wf_status = wf.get("gate_status", "—")
-            wf_color = "#3FB950" if wf_status == "PASS" else "#D29922" if wf_status == "MARGINAL" else "#F85149"
-            wf_html = f'<div class="ts-panel" style="border-color: {wf_color}30; margin-bottom: 8px;">'
-            wf_html += f'<div class="ts-panel-title">🎲 Walkforward Backtest (MC 100x)</div>'
-            wf_html += f'<div style="display:flex;align-items:center;gap:10px;">'
-            wf_html += f'<span style="background:{wf_color}18;color:{wf_color};padding:3px 10px;border-radius:6px;font-size:0.75rem;font-weight:700;border:1px solid {wf_color}40;">{wf_status}</span>'
-            wf_html += f'<span style="font-size:0.7rem;color:#8B949E;">Gate Score <b style="color:{wf_color};">{wf_score:.1f}</b></span>'
-            wf_html += f'</div></div>'
-            st.markdown(wf_html, unsafe_allow_html=True)
+                    # Walkforward Status
+                    wf = row.get("walkforward", {})
+                    if wf and isinstance(wf, dict):
+                        wf_score = wf.get("combined_gate_score", 0)
+                        wf_status = wf.get("gate_status", "—")
+                        wf_color = "#3FB950" if wf_status == "PASS" else "#D29922" if wf_status == "MARGINAL" else "#F85149"
+                        wf_html = f'<div class="ts-panel" style="border-color: {wf_color}30; margin-bottom: 8px;">'
+                        wf_html += f'<div class="ts-panel-title">🎲 Walkforward Backtest (MC 100x)</div>'
+                        wf_html += f'<div style="display:flex;align-items:center;gap:10px;">'
+                        wf_html += f'<span style="background:{wf_color}18;color:{wf_color};padding:3px 10px;border-radius:6px;font-size:0.75rem;font-weight:700;border:1px solid {wf_color}40;">{wf_status}</span>'
+                        wf_html += f'<span style="font-size:0.7rem;color:#8B949E;">Gate Score <b style="color:{wf_color};">{wf_score:.1f}</b></span>'
+                        wf_html += f'</div></div>'
+                        st.markdown(wf_html, unsafe_allow_html=True)
 
-        # Hedgeye Position Sizing
-        hp = row.get("hedgeye_size")
-        if hp and isinstance(hp, dict):
-            hp_pct = hp.get("size_pct", 0)
-            hp_dollar = hp.get("dollar_size", 0)
-            hp_mode = hp.get("mode", "—")
-            hp_conv = hp.get("conviction", 0)
-            hp_color = "#3FB950" if hp_pct >= 0.04 else "#D29922" if hp_pct >= 0.02 else "#8B949E"
-            hp_html = f'<div class="ts-panel" style="border-color: {hp_color}30; margin-bottom: 8px;">'
-            hp_html += f'<div class="ts-panel-title">💰 Hedgeye Position Sizing</div>'
-            hp_html += f'<div class="ts-grid-4">'
-            hp_html += f'<div class="ts-stat"><div class="ts-stat-label">Size %</div><div class="ts-stat-value" style="color:{hp_color};">{hp_pct:.2%}</div></div>'
-            hp_html += f'<div class="ts-stat"><div class="ts-stat-label">Size $</div><div class="ts-stat-value" style="color:#E6EDF3;">${hp_dollar:,.0f}</div></div>'
-            hp_html += f'<div class="ts-stat"><div class="ts-stat-label">Mode</div><div class="ts-stat-value" style="color:#8B949E;">{hp_mode}</div></div>'
-            hp_html += f'<div class="ts-stat"><div class="ts-stat-label">Conviction</div><div class="ts-stat-value" style="color:{"#3FB950" if hp_conv>=0.8 else "#D29922" if hp_conv>=0.5 else "#F85149"};">{hp_conv:.0%}</div></div>'
-            hp_html += f'</div></div>'
-            st.markdown(hp_html, unsafe_allow_html=True)
+                    # Hedgeye Position Sizing
+                    hp = row.get("hedgeye_size")
+                    if hp and isinstance(hp, dict):
+                        hp_pct = hp.get("size_pct", 0)
+                        hp_dollar = hp.get("dollar_size", 0)
+                        hp_mode = hp.get("mode", "—")
+                        hp_conv = hp.get("conviction", 0)
+                        hp_color = "#3FB950" if hp_pct >= 0.04 else "#D29922" if hp_pct >= 0.02 else "#8B949E"
+                        hp_html = f'<div class="ts-panel" style="border-color: {hp_color}30; margin-bottom: 8px;">'
+                        hp_html += f'<div class="ts-panel-title">💰 Hedgeye Position Sizing</div>'
+                        hp_html += f'<div class="ts-grid-4">'
+                        hp_html += f'<div class="ts-stat"><div class="ts-stat-label">Size %</div><div class="ts-stat-value" style="color:{hp_color};">{hp_pct:.2%}</div></div>'
+                        hp_html += f'<div class="ts-stat"><div class="ts-stat-label">Size $</div><div class="ts-stat-value" style="color:#E6EDF3;">${hp_dollar:,.0f}</div></div>'
+                        hp_html += f'<div class="ts-stat"><div class="ts-stat-label">Mode</div><div class="ts-stat-value" style="color:#8B949E;">{hp_mode}</div></div>'
+                        hp_html += f'<div class="ts-stat"><div class="ts-stat-label">Conviction</div><div class="ts-stat-value" style="color:{"#3FB950" if hp_conv>=0.8 else "#D29922" if hp_conv>=0.5 else "#F85149"};">{hp_conv:.0%}</div></div>'
+                        hp_html += f'</div></div>'
+                        st.markdown(hp_html, unsafe_allow_html=True)
 
-        # Keith Signal Sync
-        ks = row.get("keith_sync", {})
-        if ks and isinstance(ks, dict) and ks.get("keith_trade") != "NEUTRAL":
-            ktrade = ks.get("keith_trade", "—")
-            ktrend = ks.get("keith_trend", "—")
-            kfinal = ks.get("direction", "—")
-            kbasis = ks.get("basis", "")[:120]
-            k_override = ks.get("override", False)
-            tc = "#3FB950" if ktrade == "BULLISH" else "#F85149" if ktrade == "BEARISH" else "#8B949E"
-            k_html = f'<div class="ts-panel" style="border-color: {tc}30; margin-bottom: 8px;">'
-            k_html += f'<div class="ts-panel-title">🎙️ Keith McCullough Signal Sync (P0)</div>'
-            k_html += f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'
-            k_html += f'<span style="background:{tc}18;color:{tc};padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:700;border:1px solid {tc}40;">🎙️ TRADE: {ktrade}</span>'
-            k_html += f'<span style="background:{"#3FB950" if ktrend=="BULLISH" else "#F85149" if ktrend=="BEARISH" else "#8B949E"}18;color:{"#3FB950" if ktrend=="BULLISH" else "#F85149" if ktrend=="BEARISH" else "#8B949E"};padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:700;border:1px solid {"#3FB950" if ktrend=="BULLISH" else "#F85149" if ktrend=="BEARISH" else "#8B949E"}40;">📈 TREND: {ktrend}</span>'
-            if k_override:
-                k_html += f'<span style="background:#F8514918;color:#F85149;padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:700;border:1px solid #F8514940;">⚠️ OVERRIDE</span>'
-            k_html += f'</div>'
-            k_html += f'<div style="font-size:0.7rem;color:#E6EDF3;">Dashboard → <b>{kfinal}</b></div>'
-            k_html += f'<div style="font-size:0.65rem;color:#484F58;margin-top:2px;">{kbasis}</div>'
-            k_html += f'</div>'
-            st.markdown(k_html, unsafe_allow_html=True)
+                    # Keith Signal Sync
+                    ks = row.get("keith_sync", {})
+                    if ks and isinstance(ks, dict) and ks.get("keith_trade") != "NEUTRAL":
+                        ktrade = ks.get("keith_trade", "—")
+                        ktrend = ks.get("keith_trend", "—")
+                        kfinal = ks.get("direction", "—")
+                        kbasis = ks.get("basis", "")[:120]
+                        k_override = ks.get("override", False)
+                        tc = "#3FB950" if ktrade == "BULLISH" else "#F85149" if ktrade == "BEARISH" else "#8B949E"
+                        k_html = f'<div class="ts-panel" style="border-color: {tc}30; margin-bottom: 8px;">'
+                        k_html += f'<div class="ts-panel-title">🎙️ Keith McCullough Signal Sync (P0)</div>'
+                        k_html += f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'
+                        k_html += f'<span style="background:{tc}18;color:{tc};padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:700;border:1px solid {tc}40;">🎙️ TRADE: {ktrade}</span>'
+                        k_html += f'<span style="background:{"#3FB950" if ktrend=="BULLISH" else "#F85149" if ktrend=="BEARISH" else "#8B949E"}18;color:{"#3FB950" if ktrend=="BULLISH" else "#F85149" if ktrend=="BEARISH" else "#8B949E"};padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:700;border:1px solid {"#3FB950" if ktrend=="BULLISH" else "#F85149" if ktrend=="BEARISH" else "#8B949E"}40;">📈 TREND: {ktrend}</span>'
+                        if k_override:
+                            k_html += f'<span style="background:#F8514918;color:#F85149;padding:2px 8px;border-radius:4px;font-size:0.7rem;font-weight:700;border:1px solid #F8514940;">⚠️ OVERRIDE</span>'
+                        k_html += f'</div>'
+                        k_html += f'<div style="font-size:0.7rem;color:#E6EDF3;">Dashboard → <b>{kfinal}</b></div>'
+                        k_html += f'<div style="font-size:0.65rem;color:#484F58;margin-top:2px;">{kbasis}</div>'
+                        k_html += f'</div>'
+                        st.markdown(k_html, unsafe_allow_html=True)
 
-        # Crypto On-Chain Intelligence (if crypto ticker)
-        if market_type == "crypto":
-            cc_tokens = snap_local.get("crypto_tokens", {}) if snap_local else {}
-            cc_data = cc_tokens.get(ticker, {}) if isinstance(cc_tokens, dict) else {}
-            if cc_data and isinstance(cc_data, dict):
-                whale = cc_data.get("whale_signal", "NEUTRAL")
-                funding = cc_data.get("funding_proxy", 0)
-                large = cc_data.get("large_orders_detected", False)
-                wcolor = "#3FB950" if whale == "ACCUMULATING" else "#F85149" if whale == "DISTRIBUTING" else "#8B949E"
-                cc_html = f'<div class="ts-panel" style="border-color: {wcolor}30; margin-bottom: 8px;">'
-                cc_html += f'<div class="ts-panel-title">⛓️ On-Chain Intelligence</div>'
-                cc_html += f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'
-                cc_html += f'<span style="background:{wcolor}18;color:{wcolor};padding:3px 10px;border-radius:6px;font-size:0.75rem;font-weight:700;border:1px solid {wcolor}40;">🐋 {whale}</span>'
-                cc_html += f'<span style="font-size:0.7rem;color:#8B949E;">Funding <b style="color:{"#F85149" if abs(funding)>0.0005 else "#8B949E"};">{funding:.6f}</b></span>'
-                if large:
-                    cc_html += f'<span style="background:#D2992218;color:#D29922;padding:3px 10px;border-radius:6px;font-size:0.75rem;font-weight:700;border:1px solid #D2992240;">🚨 Large Orders</span>'
-                cc_html += f'</div>'
-                cc_html += f'<div style="font-size:0.65rem;color:#484F58;">R7D: {cc_data.get("r7d",0):+.1%} · R1M: {cc_data.get("r1m",0):+.1%} · Vol Change: {cc_data.get("dex_vol_change",0):+.1%}</div>'
-                cc_html += f'</div>'
-                st.markdown(cc_html, unsafe_allow_html=True)
+                    # Crypto On-Chain Intelligence (if crypto ticker)
+                    if market_type == "crypto":
+                        cc_tokens = snap_local.get("crypto_tokens", {}) if snap_local else {}
+                        cc_data = cc_tokens.get(ticker, {}) if isinstance(cc_tokens, dict) else {}
+                        if cc_data and isinstance(cc_data, dict):
+                            whale = cc_data.get("whale_signal", "NEUTRAL")
+                            funding = cc_data.get("funding_proxy", 0)
+                            large = cc_data.get("large_orders_detected", False)
+                            wcolor = "#3FB950" if whale == "ACCUMULATING" else "#F85149" if whale == "DISTRIBUTING" else "#8B949E"
+                            cc_html = f'<div class="ts-panel" style="border-color: {wcolor}30; margin-bottom: 8px;">'
+                            cc_html += f'<div class="ts-panel-title">⛓️ On-Chain Intelligence</div>'
+                            cc_html += f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'
+                            cc_html += f'<span style="background:{wcolor}18;color:{wcolor};padding:3px 10px;border-radius:6px;font-size:0.75rem;font-weight:700;border:1px solid {wcolor}40;">🐋 {whale}</span>'
+                            cc_html += f'<span style="font-size:0.7rem;color:#8B949E;">Funding <b style="color:{"#F85149" if abs(funding)>0.0005 else "#8B949E"};">{funding:.6f}</b></span>'
+                            if large:
+                                cc_html += f'<span style="background:#D2992218;color:#D29922;padding:3px 10px;border-radius:6px;font-size:0.75rem;font-weight:700;border:1px solid #D2992240;">🚨 Large Orders</span>'
+                            cc_html += f'</div>'
+                            cc_html += f'<div style="font-size:0.65rem;color:#484F58;">R7D: {cc_data.get("r7d",0):+.1%} · R1M: {cc_data.get("r1m",0):+.1%} · Vol Change: {cc_data.get("dex_vol_change",0):+.1%}</div>'
+                            cc_html += f'</div>'
+                            st.markdown(cc_html, unsafe_allow_html=True)
 
-        # IHSG Broker Intelligence (if IHSG ticker)
-        if market_type == "ihsg":
-            broker = row.get("broker", {})
-            if broker and isinstance(broker, dict):
-                b_sig = broker.get("signal", "NEUTRAL")
-                b_conf = broker.get("confidence", 0)
-                b_cross = broker.get("crossing_detected", False)
-                b_acc = broker.get("real_accumulation", False)
-                b_dist = broker.get("real_distribution", False)
-                b_color = "#3FB950" if b_acc else "#F85149" if b_dist else "#D29922" if b_cross else "#8B949E"
-                b_emoji = "📈" if b_acc else "📉" if b_dist else "🎯" if b_cross else "⚪"
-                b_html = f'<div class="ts-panel" style="border-color: {b_color}30; margin-bottom: 8px;">'
-                b_html += f'<div class="ts-panel-title">🇮🇩 Broker Intelligence (IHSG)</div>'
-                b_html += f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'
-                b_html += f'<span style="background:{b_color}18;color:{b_color};padding:3px 10px;border-radius:6px;font-size:0.75rem;font-weight:700;border:1px solid {b_color}40;">{b_emoji} {b_sig}</span>'
-                b_html += f'<span style="font-size:0.7rem;color:#8B949E;">Confidence <b style="color:{b_color};">{b_conf}%</b></span>'
-                b_html += f'</div>'
-                b_html += f'<div style="font-size:0.65rem;color:#484F58;">R5D: {broker.get("r5d",0):+.1%} · R20D: {broker.get("r20d",0):+.1%} · Vol Ratio: {broker.get("vol_ratio",1):.2f}x · Range Ratio: {broker.get("range_ratio",1):.2f}</div>'
-                b_html += f'</div>'
-                st.markdown(b_html, unsafe_allow_html=True)
+                    # IHSG Broker Intelligence (if IHSG ticker)
+                    if market_type == "ihsg":
+                        broker = row.get("broker", {})
+                        if broker and isinstance(broker, dict):
+                            b_sig = broker.get("signal", "NEUTRAL")
+                            b_conf = broker.get("confidence", 0)
+                            b_cross = broker.get("crossing_detected", False)
+                            b_acc = broker.get("real_accumulation", False)
+                            b_dist = broker.get("real_distribution", False)
+                            b_color = "#3FB950" if b_acc else "#F85149" if b_dist else "#D29922" if b_cross else "#8B949E"
+                            b_emoji = "📈" if b_acc else "📉" if b_dist else "🎯" if b_cross else "⚪"
+                            b_html = f'<div class="ts-panel" style="border-color: {b_color}30; margin-bottom: 8px;">'
+                            b_html += f'<div class="ts-panel-title">🇮🇩 Broker Intelligence (IHSG)</div>'
+                            b_html += f'<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'
+                            b_html += f'<span style="background:{b_color}18;color:{b_color};padding:3px 10px;border-radius:6px;font-size:0.75rem;font-weight:700;border:1px solid {b_color}40;">{b_emoji} {b_sig}</span>'
+                            b_html += f'<span style="font-size:0.7rem;color:#8B949E;">Confidence <b style="color:{b_color};">{b_conf}%</b></span>'
+                            b_html += f'</div>'
+                            b_html += f'<div style="font-size:0.65rem;color:#484F58;">R5D: {broker.get("r5d",0):+.1%} · R20D: {broker.get("r20d",0):+.1%} · Vol Ratio: {broker.get("vol_ratio",1):.2f}x · Range Ratio: {broker.get("range_ratio",1):.2f}</div>'
+                            b_html += f'</div>'
+                            st.markdown(b_html, unsafe_allow_html=True)
 
-        # Smart Money / Capital Rotation / VRP / Squeeze badges (if data exists)
-        sm_badge = _get_smart_money_badge(ticker, snap_local) if snap_local else ""
-        cr_role = _get_capital_rotation_role(ticker, snap_local) if snap_local else ""
-        vrp_score = _get_vrp_score(ticker, snap_local) if snap_local else 0
-        sq_score = _get_squeeze_score(ticker, snap_local) if snap_local else 0
-        if sm_badge or cr_role or vrp_score or sq_score:
-            intel_html = f'<div class="ts-panel" style="border-color: #58A6FF30; margin-bottom: 8px;">'
-            intel_html += f'<div class="ts-panel-title">🧠 Smart Consensus & Scanners</div>'
-            intel_html += f'<div style="display:flex;flex-wrap:wrap;gap:6px;">'
-            if sm_badge:
-                intel_html += f'<span style="background:#3FB95018;color:#3FB950;padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:700;border:1px solid #3FB95040;">{sm_badge}</span>'
-            if cr_role:
-                intel_html += f'<span style="background:#58A6FF18;color:#58A6FF;padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:700;border:1px solid #58A6FF40;">🔄 {cr_role.replace("_"," ")}</span>'
-            if vrp_score:
-                vcolor = "#F85149" if vrp_score > 10 else "#3FB950" if vrp_score < -10 else "#8B949E"
-                intel_html += f'<span style="background:{vcolor}18;color:{vcolor};padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:700;border:1px solid {vcolor}40;">📊 VRP {vrp_score:+.0f}%</span>'
-            if sq_score:
-                intel_html += f'<span style="background:#D2992218;color:#D29922;padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:700;border:1px solid #D2992240;">🔥 Squeeze {sq_score:.0f}</span>'
-            intel_html += f'</div></div>'
-            st.markdown(intel_html, unsafe_allow_html=True)
+                    # Smart Money / Capital Rotation / VRP / Squeeze badges (if data exists)
+                    sm_badge = _get_smart_money_badge(ticker, snap_local) if snap_local else ""
+                    cr_role = _get_capital_rotation_role(ticker, snap_local) if snap_local else ""
+                    vrp_score = _get_vrp_score(ticker, snap_local) if snap_local else 0
+                    sq_score = _get_squeeze_score(ticker, snap_local) if snap_local else 0
+                    if sm_badge or cr_role or vrp_score or sq_score:
+                        intel_html = f'<div class="ts-panel" style="border-color: #58A6FF30; margin-bottom: 8px;">'
+                        intel_html += f'<div class="ts-panel-title">🧠 Smart Consensus & Scanners</div>'
+                        intel_html += f'<div style="display:flex;flex-wrap:wrap;gap:6px;">'
+                        if sm_badge:
+                            intel_html += f'<span style="background:#3FB95018;color:#3FB950;padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:700;border:1px solid #3FB95040;">{sm_badge}</span>'
+                        if cr_role:
+                            intel_html += f'<span style="background:#58A6FF18;color:#58A6FF;padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:700;border:1px solid #58A6FF40;">🔄 {cr_role.replace("_"," ")}</span>'
+                        if vrp_score:
+                            vcolor = "#F85149" if vrp_score > 10 else "#3FB950" if vrp_score < -10 else "#8B949E"
+                            intel_html += f'<span style="background:{vcolor}18;color:{vcolor};padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:700;border:1px solid {vcolor}40;">📊 VRP {vrp_score:+.0f}%</span>'
+                        if sq_score:
+                            intel_html += f'<span style="background:#D2992218;color:#D29922;padding:2px 8px;border-radius:4px;font-size:0.65rem;font-weight:700;border:1px solid #D2992240;">🔥 Squeeze {sq_score:.0f}</span>'
+                        intel_html += f'</div></div>'
+                        st.markdown(intel_html, unsafe_allow_html=True)
 
-        # Basis line
+
+
+        # ── Essential Panels (Always Visible) ──
+# Basis line
         basis_parts = []
         if row.get("trade_low"):
             basis_parts.append(f"LRR {_ffm(row['trade_low'], market_type)}")
@@ -3630,7 +3642,7 @@ def render_ticker_card_v4(row, expanded=False):
             if mp and px:
                 mp_dist = (px - mp) / mp * 100
                 if abs(mp_dist) < 2:
-                    reasons.append(f"📍 <b>Max Pain Pin:</b> Price {mp_dist:+.1f}% dari max pain {ff(mp)}. MM trapped — range-bound until expiry. Straddle income play.")
+                    reasons.append(f"📍 <b>Max Pain Pin:</b> Price {mp_dist:+.1f}% dari max pain {_ffm(mp, market_type)}. MM trapped — range-bound until expiry. Straddle income play.")
                 elif mp_dist > 3 and gamma in ("POSITIVE", "DEEP_POSITIVE"):
                     reasons.append(f"📈 <b>Call Wall:</b> Price +{mp_dist:.1f}% above max pain + pos gamma. MM sells rallies. <b>Fade strength.</b>")
                 elif mp_dist < -3 and gamma in ("NEGATIVE", "DEEP_NEGATIVE"):
@@ -3835,7 +3847,7 @@ def render_ticker_card_v4(row, expanded=False):
                             badge = ' <span style="background:#F8514922;color:#F85149;padding:1px 4px;border-radius:3px;font-size:0.55rem;font-weight:700;">NEAR PX</span>' if is_near else ''
                             bw = min(100, max(15, 100 - abs(rp - mp) / mp * 200)) if mp else 50
                             heat_html += f'<div class="oi-bar-row"><span class="oi-bar-label">Risk Pivot</span><div class="oi-bar-track"><div class="oi-bar-fill" style="width:{bw:.0f}%;background:#F85149;"></div></div><span class="oi-bar-value" style="color:#F85149;">{_ffm(rp, market_type)}{badge}</span></div>'
-                    heat_html += f'<div style="margin-top:4px;font-size:0.6rem;color:#484F58;">Price: {ff(px)} · Source: {options.get("source","PROXY")}</div>'
+                    heat_html += f'<div style="margin-top:4px;font-size:0.6rem;color:#484F58;">Price: {_ffm(px, market_type)} · Source: {options.get("source","PROXY")}</div>'
                     heat_html += f'</div>'
                     st.markdown(heat_html, unsafe_allow_html=True)
 
@@ -3912,7 +3924,7 @@ def render_invalid_cards(invalid_rows):
             f'<span style="font-weight:700;font-size:0.8rem;color:#E6EDF3;min-width:55px;">{ticker}</span>'
             f'<span style="font-size:0.6rem;padding:1px 5px;border-radius:4px;background:#F8514915;color:#F85149;border:1px solid #F8514940;">{dir_} {grade}</span>'
             f'<span style="flex:1;font-size:0.68rem;color:#8B949E;">{reason[:100]}</span>'
-            f'<span style="font-size:0.65rem;color:#484F58;min-width:50px;text-align:right;">{ff(px)}</span>'
+            f'<span style="font-size:0.65rem;color:#484F58;min-width:50px;text-align:right;">{_ffm(px, market_type)}</span>'
             f'</div>', unsafe_allow_html=True
         )
 
@@ -5991,7 +6003,7 @@ def render_ticker_detail_comprehensive(ticker, snap):
     except:
         st.error(f"Invalid price data for {ticker}")
         return
-    st.markdown(f"## 📊 {ticker} · {ff(px)}")
+    st.markdown(f"## 📊 {ticker} · {_ffm(px, market_type)}")
     ar = (snap.get("risk_ranges", {}) or {}).get("asset_ranges", {})
     if ticker in ar:
         v = ar[ticker]

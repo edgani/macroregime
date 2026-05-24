@@ -1009,49 +1009,147 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
         return None
     px = float(s_clean.iloc[-1])
 
-    # ── HEDGEYE 3-LAYER RISK RANGE ──
-    s15 = s_clean.tail(min(15, len(s_clean)))
-    sma15 = float(s15.mean()) if len(s15) >= 5 else px
-    atr15 = float(s15.diff().abs().mean()) if len(s15) >= 2 else px * 0.01
-    trade_low = min(float(s15.min()), sma15 - 1.5 * atr15)
-    trade_top = max(float(s15.max()), sma15 + 1.5 * atr15)
+    # ═══════════════════════════════════════════════════════════════════
+    # PINE SCRIPT v15 TRR/LRR ENGINE (ported to Python)
+    # ═══════════════════════════════════════════════════════════════════
+    def _basis(series, length, btype):
+        """Pine f_basis() equivalent: EMA_ER / EMA / SMA / WMA / HMA"""
+        if len(series) < length:
+            return float(series.mean())
+        s = series.tail(length)
+        if btype == "EMA":
+            return float(s.ewm(span=length, adjust=False).mean().iloc[-1])
+        elif btype == "SMA":
+            return float(s.mean())
+        elif btype == "WMA":
+            weights = np.arange(1, length + 1)
+            return float(np.average(s.values, weights=weights))
+        elif btype == "EMA_ER":
+            ema = float(s.ewm(span=length, adjust=False).mean().iloc[-1])
+            delta = float(s.diff().abs().sum())
+            change = abs(float(s.iloc[-1]) - float(s.iloc[0]))
+            er = change / delta if delta > 0 else 0.5
+            adj = 1.0 + (er - 0.5) * 0.10
+            return ema * adj
+        else:  # HMA
+            half = max(1, int(length / 2))
+            wma_half = s.tail(half)
+            weights_half = np.arange(1, len(wma_half) + 1)
+            wma_h = np.average(wma_half.values, weights=weights_half)
+            weights_full = np.arange(1, length + 1)
+            wma_f = np.average(s.values, weights=weights_full)
+            return float(2 * wma_h - wma_f)
 
-    s63 = s_clean.tail(min(63, len(s_clean)))
-    s50 = s_clean.tail(min(50, len(s_clean)))
-    sma50 = float(s50.mean())
-    atr50 = float(s50.diff().abs().mean()) if len(s50) >= 2 else px * 0.02
-    trend_low = min(float(s63.min()), sma50 - 2.0 * atr50)
-    trend_top = max(float(s63.max()), sma50 + 2.0 * atr50)
+    def _detect_asset(ticker):
+        t = ticker.upper()
+        is_crypto = any(x in t for x in ["BTC", "ETH", "SOL", "USDT", "PERP"]) or t.endswith("-USD")
+        is_forex = "=X" in t or t in ["DX-Y.NYB", "UUP"]
+        is_commodity = t in ["GC=F", "SI=F", "CL=F", "NG=F", "HG=F", "ZW=F", "ZC=F", "USO", "GLD", "SLV", "GDX", "XLE"]
+        is_index = t in ["SPY", "QQQ", "IWM", "SPX", "ES1", "NQ1", "^GSPC", "^IXIC", "^VIX"]
+        if is_crypto:   return "Crypto"
+        if is_forex:    return "Forex"
+        if is_commodity:return "Commodities"
+        if is_index:    return "Index"
+        return "Stocks"
 
-    if len(s_clean) >= 200:
-        s252 = s_clean.tail(min(252, len(s_clean)))
-        s200 = s_clean.tail(min(200, len(s_clean)))
-        sma200 = float(s200.mean())
-        atr200 = float(s200.diff().abs().mean()) if len(s200) >= 2 else px * 0.03
-        tail_low = min(float(s252.min()), sma200 - 3.0 * atr200)
-        tail_top = max(float(s252.max()), sma200 + 3.0 * atr200)
-    else:
-        tail_low = trend_low - (trend_top - trend_low) * 0.5
-        tail_top = trend_top + (trend_top - trend_low) * 0.5
+    asset = _detect_asset(ticker)
 
-    if not all(math.isfinite(v) for v in [trade_low, trade_top, trend_low, trend_top, tail_low, tail_top, px]):
-        return None
+    # Auto-optimized params per asset class (Pine v15 switch table)
+    param_map = {
+        "Crypto":      {"basis": "EMA",      "width": "Fixed-Pct", "tm": 0.80, "trm": 0.90, "tam": 1.00, "tp": 3.5, "trp": 7.0, "tap": 14.0},
+        "Forex":       {"basis": "EMA_ER",   "width": "Vol-Based", "tm": 0.50, "trm": 0.60, "tam": 0.70, "tp": 1.5, "trp": 3.0, "tap": 6.0},
+        "Commodities": {"basis": "SMA",      "width": "ATR-Based", "tm": 0.70, "trm": 0.80, "tam": 0.90, "tp": 2.5, "trp": 5.0, "tap": 10.0},
+        "Index":       {"basis": "SMA",      "width": "Vol-Based", "tm": 0.60, "trm": 0.70, "tam": 0.80, "tp": 1.8, "trp": 3.5, "tap": 7.0},
+        "Stocks":      {"basis": "SMA",      "width": "Vol-Based", "tm": 0.65, "trm": 0.75, "tam": 0.85, "tp": 2.0, "trp": 4.0, "tap": 8.0},
+    }
+    p = param_map.get(asset, param_map["Stocks"])
+
+    # Lookback lengths (days)
+    trade_len = 15
+    trend_len = 63
+    tail_len = min(252, len(s_clean))
+
+    # Basis lines
+    trade_basis = _basis(s_clean, trade_len, p["basis"])
+    trend_basis = _basis(s_clean, trend_len, p["basis"])
+    tail_basis  = _basis(s_clean, tail_len,  p["basis"])
+
+    # Realized volatility (log returns) — Pine: ta.stdev(math.log(close/close[1]), len)
+    log_ret = np.log(s_clean / s_clean.shift(1)).dropna()
+    def _rv(lookback):
+        lr = log_ret.tail(lookback)
+        return float(lr.std()) if len(lr) >= 2 else 0.01
+
+    sig_trade = _rv(trade_len)
+    sig_trend = _rv(trend_len)
+    sig_tail  = _rv(tail_len)
+
+    # ATR proxy (for ATR-Based width method)
+    def _atr(lookback=14):
+        if len(s_clean) < 2:
+            return px * 0.01
+        # True Range proxy: max(high-low, |close-close_prev|)
+        diff = s_clean.diff().abs().tail(lookback)
+        return float(diff.mean()) if len(diff) > 0 else px * 0.01
+
+    atr_val = _atr(14)
+
+    # Safe basis floor (0.05% of price)
+    safe_basis_trade = max(trade_basis, px * 0.0005)
+    safe_basis_trend = max(trend_basis, px * 0.0005)
+    safe_basis_tail  = max(tail_basis,  px * 0.0005)
+
+    # Vol regime detector (Pine: rvNow / rvBase clamped 0-1)
+    rv_now = sig_trade * math.sqrt(252.0)
+    rv_base = max(sig_trend * math.sqrt(252.0), 0.001)
+    vol_regime = max(0.0, min(1.0, rv_now / (rv_base * 1.25))) if rv_base > 0 else 0.5
+    vol_adj_mult = 1.0 + (vol_regime - 0.5) * 0.6  # +30% high vol, -15% low vol
+
+    # Auto-adjusted multipliers
+    auto_trade_mult = p["tm"] * vol_adj_mult
+    auto_trend_mult = p["trm"] * vol_adj_mult
+    auto_tail_mult  = p["tam"] * vol_adj_mult
+
+    # WIDTH CALCULATION — exact Pine v15 logic
+    width_method = p["width"]
+    if width_method == "Vol-Based":
+        # σ × √T × Basis × Multiplier  (Pine exact)
+        trade_width = sig_trade * math.sqrt(float(trade_len)) * safe_basis_trade * auto_trade_mult
+        trend_width = sig_trend * math.sqrt(float(trend_len)) * safe_basis_trend * auto_trend_mult
+        tail_width  = sig_tail  * math.sqrt(float(tail_len))  * safe_basis_tail  * auto_tail_mult
+    elif width_method == "ATR-Based":
+        trade_width = atr_val * auto_trade_mult
+        trend_width = atr_val * auto_trend_mult
+        tail_width  = atr_val * auto_tail_mult
+    else:  # Fixed-Pct
+        trade_width = safe_basis_trade * p["tp"] / 100.0
+        trend_width = safe_basis_trend * p["trp"] / 100.0
+        tail_width  = safe_basis_tail  * p["tap"] / 100.0
+
+    # TRR / LRR levels
+    trade_trr = trade_basis + trade_width
+    trade_lrr = max(trade_basis - trade_width, px * 0.0001)
+    trend_trr = trend_basis + trend_width
+    trend_lrr = max(trend_basis - trend_width, px * 0.0001)
+    tail_trr  = tail_basis  + tail_width
+    tail_lrr  = max(tail_basis  - tail_width,  px * 0.0001)
 
     # ── HEDGEYE FORMATION (NO TREND FILTER) ──
-    if px > trend_top and px > tail_top:
+    if px > trend_trr and px > tail_trr:
         formation = "BULLISH"; side = "long"
-    elif px < trend_low and px < tail_low:
+    elif px < trend_lrr and px < tail_lrr:
         formation = "BEARISH"; side = "short"
-    elif px > trend_top:
+    elif px > trend_trr:
         formation = "BULLISH_BIAS"; side = "long"
-    elif px < trend_low:
+    elif px < trend_lrr:
         formation = "BEARISH_BIAS"; side = "short"
     else:
         formation = "NEUTRAL"; side = "neutral"
 
+    # Trade-range oversold/overbought override
     if formation == "NEUTRAL":
-        trade_spread = trade_top - trade_low
-        trade_pos = (px - trade_low) / trade_spread if trade_spread > 0 else 0.5
+        trade_spread = trade_trr - trade_lrr
+        trade_pos = (px - trade_lrr) / trade_spread if trade_spread > 0 else 0.5
         if trade_pos <= 0.35:
             formation = "OVERSOLD"; side = "long"
         elif trade_pos >= 0.65:
@@ -1060,7 +1158,15 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
     if side == "neutral":
         return None
 
-    # ── OPTIONS / GREEKS (17 sources) ──
+    # Backward-compatible variable names
+    trade_low  = round(trade_lrr, 4)
+    trade_top  = round(trade_trr, 4)
+    trend_low  = round(trend_lrr, 4)
+    trend_top  = round(trend_trr, 4)
+    tail_low   = round(tail_lrr, 4)
+    tail_top   = round(tail_trr, 4)
+
+# ── OPTIONS / GREEKS (17 sources) ──
     options = _get_options_data(ticker, snap) if snap else {}
     mp = options.get("max_pain")
     pw = options.get("put_wall")

@@ -380,6 +380,100 @@ def _get_bottleneck_quad_map(snap):
 QUAD_FRONT_RUN_PLAYBOOK = {}  # populated at runtime via _get_quad_playbook(snap)
 BOTTLENECK_QUAD_MAP = {}  # populated at runtime via _get_bottleneck_quad_map(snap)
 
+# ═══════════════════════════════════════════════════════════════════
+# HEDGEYE PLAYBOOK v39.1 — DYNAMIC + KEITH-AWARE
+# Replaces all hardcoded playbooks. Respects Keith P0 overrides.
+# ═══════════════════════════════════════════════════════════════════
+def _get_hedgeye_playbook(snap):
+    """
+    Returns {"beli": [...], "short": [...], "quad": sq}
+    Dynamically derived from _get_quad_playbook + Keith signal sync.
+    If Keith says BEARISH gold → gold removed from beli, added to short.
+    If Keith says BULLISH USD → USD removed from short, added to beli.
+    """
+    pb = _get_quad_playbook(snap)
+    sq = pb.get("quad", "Q3")
+
+    # Base from dynamic quad playbook
+    beli = list(pb.get("front_run_tickers", []))
+    short = list(pb.get("avoid", []))
+
+    # Ensure sector ETFs represented
+    sector_map = {
+        "Q1": {"beli": ["QQQ","XLK","XLF","XLI","XLY","IWM","ARKK"], "short": ["XLU","XLP","TLT","GLD"]},
+        "Q2": {"beli": ["XLF","XLE","XLI","XLB","KRE","IWM","XOM","CVX"], "short": ["TLT","IEF","XLU","XLP"]},
+        "Q3": {"beli": ["XLE","XLP","XLU","ITA","VST","CEG","BE","LITE","CCJ","URA"], "short": ["QQQ","XLK","IWM","ARKK","KRE","XLY"]},
+        "Q4": {"beli": ["TLT","IEF","XLU","XLP","XLV"], "short": ["QQQ","XLK","IWM","XLY","XLF","XLE"]},
+    }
+    base = sector_map.get(sq, sector_map["Q3"])
+
+    # Add asset-class-specific tickers per quad
+    asset_map = {
+        "Q1": {
+            "crypto": {"beli": ["BTC-USD","ETH-USD","SOL-USD"], "short": []},
+            "forex": {"beli": ["EURUSD=X","AUDUSD=X","GBPUSD=X"], "short": ["DX-Y.NYB","UUP"]},
+            "commodity": {"beli": ["HG=F","GC=F"], "short": ["CL=F","NG=F"]},
+        },
+        "Q2": {
+            "crypto": {"beli": ["BTC-USD","MSTR"], "short": []},
+            "forex": {"beli": ["GBPUSD=X","USDCAD=X"], "short": ["USDJPY=X"]},
+            "commodity": {"beli": ["CL=F","USO","XLE","GC=F"], "short": []},
+        },
+        "Q3": {
+            "crypto": {"beli": ["BTC-USD","MSTR","IBIT"], "short": ["ETH-USD","SOL-USD"]},
+            "forex": {"beli": ["DX-Y.NYB","UUP","USDCHF=X"], "short": ["EURUSD=X","GBPUSD=X","AUDUSD=X"]},
+            "commodity": {"beli": ["CL=F","USO","CCJ","URA"], "short": []},
+        },
+        "Q4": {
+            "crypto": {"beli": ["BTC-USD"], "short": ["ETH-USD","SOL-USD"]},
+            "forex": {"beli": ["USDJPY=X","USDCHF=X"], "short": ["AUDUSD=X","EURUSD=X"]},
+            "commodity": {"beli": ["GC=F","SI=F","TLT"], "short": ["CL=F","HG=F"]},
+        },
+    }
+    asset_base = asset_map.get(sq, asset_map["Q3"])
+    for asset_class in ("crypto", "forex", "commodity"):
+        for t in asset_base.get(asset_class, {}).get("beli", []):
+            if t not in beli:
+                beli.append(t)
+        for t in asset_base.get(asset_class, {}).get("short", []):
+            if t not in short:
+                short.append(t)
+
+    # Merge base sectors
+    for t in base["beli"]:
+        if t not in beli:
+            beli.append(t)
+    for t in base["short"]:
+        if t not in short:
+            short.append(t)
+
+    # ── KEITH P0 OVERRIDE: Adjust lists based on Keith public signals ──
+    keith = snap.get("keith_sync", {})
+    if keith:
+        for ticker, signal in keith.items():
+            if not isinstance(signal, dict):
+                continue
+            trade = signal.get("keith_trade", "NEUTRAL")
+            # Bearish Keith → remove from beli, add to short
+            if trade == "BEARISH":
+                if ticker in beli:
+                    beli.remove(ticker)
+                if ticker not in short:
+                    short.append(ticker)
+            # Bullish Keith → remove from short, add to beli
+            elif trade == "BULLISH":
+                if ticker in short:
+                    short.remove(ticker)
+                if ticker not in beli:
+                    beli.append(ticker)
+
+    # Deduplicate
+    beli = list(dict.fromkeys(beli))[:20]
+    short = list(dict.fromkeys(short))[:20]
+
+    return {"beli": beli, "short": short, "quad": sq, "theme": pb.get("theme", "")}
+
+
 def _classify_ticker_market(ticker: str) -> str:
     if ticker in FOREX_PAIRS or "=" in ticker or ticker in ["DX-Y.NYB", "UUP"]:
         return "forex"
@@ -1558,19 +1652,26 @@ def split_long_short(rows):
     return sorted(longs, key=lambda x: x.get("rr", 0), reverse=True), sorted(shorts, key=lambda x: x.get("rr", 0), reverse=True)
 
 
-def filter_actionable(rows):
+def filter_actionable(rows, snap=None):
     """
-    v39.3 STRICT QUALITY FILTER — Remove sampah tickers
+    v39.4 HEDGEYE-ALIGNED QUALITY FILTER
     Requirements:
-    - setup_valid = True (stop not too tight)
-    - chase_status != AVOID (not broken)
-    - RR >= 0.5 minimum
-    - Must have SOME edge: options/greeks OR dark pool OR alpha_source OR broker OR strong formation
+    - setup_valid = True
+    - chase_status != AVOID
+    - RR >= 0.5
     - Keith BEARISH override = auto-kill
-    - IHSG: must have broker signal or strong formation (min quality 25)
+    - Signal-to-Quad alignment: sector must NOT be in quad "avoid" list
+    - IHSG: broker signal or strong formation (min quality 25)
     """
+    # Get current quad playbook for alignment check
+    quad_pb = _get_hedgeye_playbook(snap) if snap else {"beli": [], "short": [], "quad": "Q3"}
+    avoid_tickers = set(quad_pb.get("short", []))
+    favor_tickers = set(quad_pb.get("beli", []))
+    current_quad = quad_pb.get("quad", "Q3")
+
     out = []
     for r in rows:
+        t = r.get("ticker", "")
         # Hard excludes
         if r.get("chase_status") == "AVOID":
             continue
@@ -1583,6 +1684,18 @@ def filter_actionable(rows):
         rr = r.get("rr", 0) or 0
         if rr < 0.5:
             continue
+
+        # ── SIGNAL-TO-QUAD ALIGNMENT (Hedgeye A/B Test) ──
+        # If ticker is explicitly in the avoid list for current quad, heavy penalty
+        quad_aligned = True
+        if t in avoid_tickers:
+            quad_aligned = False
+            # Exception: if Keith says BULLISH on an avoid-list ticker, allow it (Keith P0 > Quad)
+            if ks and isinstance(ks, dict) and ks.get("keith_trade") == "BULLISH":
+                quad_aligned = True
+
+        # If ticker is in favor list, boost
+        in_favor = t in favor_tickers
 
         # Quality scoring
         quality_score = 0
@@ -1598,6 +1711,12 @@ def filter_actionable(rows):
             quality_score += 5; reasons.append("RR<1.2")
 
         formation = r.get("formation", "NEUTRAL")
+        # Signal-to-Quad alignment scoring
+        if in_favor:
+            quality_score += 15; reasons.append(f"Quad {current_quad} favored")
+        if not quad_aligned:
+            quality_score -= 25; reasons.append(f"Quad {current_quad} avoid-list")
+
         if formation in ("BULLISH", "BEARISH"):
             quality_score += 20; reasons.append("Strong formation")
         elif formation in ("BULLISH_BIAS", "BEARISH_BIAS", "OVERSOLD", "OVERBOUGHT"):
@@ -3753,7 +3872,7 @@ def render_ticker_cards_v4(rows, max_rows=30):
         return
     st.markdown(f'<div style="font-size:0.72rem;color:#8B949E;margin-bottom:4px;">Showing {min(len(rows), max_rows)} of {len(rows)} setups</div>', unsafe_allow_html=True)
     for i, r in enumerate(rows[:max_rows]):
-        render_ticker_card_v4(r, expanded=(i < 5))
+        render_ticker_card_v4(r, expanded=False)
 
 # ═══════════════════════════════════════════════════════════════════
 # REGIME COMPASS
@@ -4564,7 +4683,7 @@ def page_alpha():
                 row["gk_status"] = c.get("gk_status", "FAIL")
                 row["sim_score"] = c.get("sim_score", 0)
 
-        actionable = filter_actionable(alpha_rows)
+        actionable = filter_actionable(alpha_rows, snap=snap)
         invalid = filter_invalid(alpha_rows)
 
         # ── READY vs WAIT buckets ──
@@ -4680,7 +4799,7 @@ def page_alpha():
         if fr:
             fr_tickers = [item.get("ticker","") for item in fr if isinstance(item, dict) and item.get("ticker")]
             fr_rows = build_ticker_rows(fr_tickers, "us_equity", vix_now, snap.get("gamma_data"), snap.get("greeks_data"), snap.get("news_narratives"), prices=prices, ar=ar, snap=snap, sim_results=sim_results)
-            actionable_fr = filter_actionable(fr_rows)
+            actionable_fr = filter_actionable(fr_rows, snap=snap)
             invalid_fr = filter_invalid(fr_rows)
             for row in actionable_fr:
                 item = next((x for x in fr if isinstance(x, dict) and x.get("ticker") == row.get("ticker")), {})
@@ -4757,16 +4876,24 @@ def page_alpha():
                     try:
                         s_clean = pd.to_numeric(pd.Series(s), errors="coerce").dropna()
                         if len(s_clean) < 40: continue
-                        bb_upper = float(s_clean.tail(20).mean()) + 2 * float(s_clean.tail(20).std())
-                        bb_lower = float(s_clean.tail(20).mean()) - 2 * float(s_clean.tail(20).std())
+                        # Hedgeye Risk Range squeeze proxy (v39.1 — BB removed)
                         px = float(s_clean.iloc[-1])
-                        if bb_upper == bb_lower: continue
-                        pct_b = (px - bb_lower) / (bb_upper - bb_lower)
+                        trade_basis = float(s_clean.tail(15).mean())
+                        trade_std = float(s_clean.tail(15).std())
+                        if trade_std == 0: continue
+                        trade_lrr = trade_basis - 1.5 * trade_std
+                        trade_trr = trade_basis + 1.5 * trade_std
+                        trend_basis = float(s_clean.tail(63).mean()) if len(s_clean) >= 63 else trade_basis
+                        trend_std = float(s_clean.tail(63).std()) if len(s_clean) >= 63 else trade_std
+                        trend_lrr = trend_basis - 2.0 * trend_std
+                        trend_trr = trend_basis + 2.0 * trend_std
+                        # Squeeze = price inside tight trade range + vol contracting
+                        in_trade_range = trade_lrr < px < trade_trr
+                        near_trend_mid = abs(px - trend_basis) / max(trend_basis, 0.001) < 0.03
                         vol_20 = float(s_clean.tail(20).pct_change().dropna().std())
                         vol_5 = float(s_clean.tail(5).pct_change().dropna().std()) if len(s_clean) >= 5 else vol_20
                         vol_contracting = vol_5 < vol_20 * 0.6
-                        near_mid = 0.35 < pct_b < 0.65
-                        if vol_contracting and near_mid:
+                        if vol_contracting and in_trade_range and near_trend_mid:
                             score = min(100, int(50 + (1 - vol_5/vol_20) * 50))
                             proxy_sq.append({"ticker": t, "squeeze_score": score, "tier": "PROXY"})
                     except Exception: pass
@@ -4828,13 +4955,7 @@ def page_us_stocks():
 
     st.markdown("## 🇺🇸 US Stocks")
 
-    playbook = {
-        "Q1": {"beli": ["QQQ","XLK","NVDA","AAPL","MSFT","GOOGL","META","AMD","ARKK"], "short": ["XLU","XLP","TLT","GLD"]},
-        "Q2": {"beli": ["XLF","XLE","XLI","XLB","KRE","IWM","XOM","CVX"], "short": ["TLT","IEF"]},
-        "Q3": {"beli": ["XLE","XLP","XLU","ITA","GLD","SLV","VST","CEG","BE","LITE","CCJ"], "short": ["QQQ","XLK","IWM","ARKK","KRE"]},
-        "Q4": {"beli": ["TLT","IEF","GLD","XLU","XLP","XLV"], "short": ["QQQ","XLK","IWM","XLY","XLF","XLE"]},
-    }
-    pb = playbook.get(sq, playbook["Q3"])
+    pb = _get_hedgeye_playbook(snap)
 
     c1, c2 = st.columns(2)
     with c1:
@@ -4849,7 +4970,7 @@ def page_us_stocks():
     key_etfs = ["SPY", "QQQ", "IWM", "GLD", "TLT"]
     sim_results = snap.get("simulation_results", {}) if isinstance(snap.get("simulation_results"), dict) else {}
     etf_rows = build_ticker_rows(key_etfs, "us_equity", vix_now, snap.get("gamma_data"), snap.get("greeks_data"), snap.get("news_narratives"), prices=prices, ar=ar, snap=snap, sim_results=sim_results)
-    etf_actionable = filter_actionable(etf_rows)
+    etf_actionable = filter_actionable(etf_rows, snap=snap)
     etf_invalid = filter_invalid(etf_rows)
     etf_longs, etf_shorts = split_long_short(etf_actionable)
     if etf_longs:
@@ -4873,7 +4994,7 @@ def page_us_stocks():
     us_tickers = list(dict.fromkeys(us_tickers))
 
     rows = build_ticker_rows(us_tickers, "us_equity", vix_now, snap.get("gamma_data"), snap.get("greeks_data"), snap.get("news_narratives"), prices=prices, ar=ar, snap=snap, sim_results=sim_results)
-    actionable = filter_actionable(rows)
+    actionable = filter_actionable(rows, snap=snap)
     invalid = filter_invalid(rows)
     longs, shorts = split_long_short(actionable)
 
@@ -4885,12 +5006,7 @@ def page_us_stocks():
         with st.expander(f"⚠️ Filtered Out ({len(invalid)} invalid / conflict / avoid)", expanded=False):
             render_invalid_cards(invalid)
 
-    # ── v38: Daily Plays + Chain Reaction Projection ──
-    if _V38_OK:
-        try:
-            render_v38_complete("us_stocks", snap, prices, st)
-        except Exception as e:
-            logger.warning(f"v38 render failed (us_stocks): {e}")
+    # v38 Daily Plays REMOVED per v39.1 audit
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -4904,13 +5020,7 @@ def page_forex():
             render_ticker_detail_comprehensive(q_ticker.upper().strip(), snap)
 
     st.markdown("## 💱 Forex")
-    playbook = {
-        "Q1": {"beli": ["EURUSD","AUDUSD","EM FX"], "short": ["DXY/UUP"]},
-        "Q2": {"beli": ["GBPUSD","CADUSD"], "short": ["JPY"]},
-        "Q3": {"beli": ["UUP","CHF"], "short": ["EURUSD","GBPUSD","EM FX"]},
-        "Q4": {"beli": ["JPY","CHF"], "short": ["AUDUSD","EM FX"]},
-    }
-    pb = playbook.get(sq, playbook["Q3"])
+    pb = _get_hedgeye_playbook(snap)
     c1, c2 = st.columns(2)
     with c1:
         st.markdown("<div style='font-size:0.68rem; color:#3FB950; text-transform:uppercase; font-weight:600; margin-bottom:3px;'>Buy</div>", unsafe_allow_html=True)
@@ -4924,7 +5034,7 @@ def page_forex():
     fx_tickers = list(FOREX_PAIRS.keys()) if FOREX_PAIRS else FALLBACK_FX
     sim_results = snap.get("simulation_results", {}) if isinstance(snap.get("simulation_results"), dict) else {}
     rows = build_ticker_rows(fx_tickers, "forex", vix_now, snap.get("gamma_data"), snap.get("greeks_data"), snap.get("news_narratives"), prices=prices, ar=ar, snap=snap, sim_results=sim_results)
-    actionable = filter_actionable(rows)
+    actionable = filter_actionable(rows, snap=snap)
     invalid = filter_invalid(rows)
     longs, shorts = split_long_short(actionable)
     st.markdown(f"**{len(actionable)} actionable** · 🟢 {len(longs)} Long · 🔴 {len(shorts)} Short · ⚠️ {len(invalid)} filtered")
@@ -4935,12 +5045,7 @@ def page_forex():
         with st.expander(f"⚠️ Filtered Out ({len(invalid)} invalid / conflict / avoid)", expanded=False):
             render_invalid_cards(invalid)
 
-    # ── v38: Daily Plays ──
-    if _V38_OK:
-        try:
-            render_v38_complete("forex", snap, prices, st)
-        except Exception as e:
-            logger.warning(f"v38 render failed (forex): {e}")
+    # v38 Daily Plays REMOVED per v39.1 audit
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -4954,13 +5059,7 @@ def page_commodities():
             render_ticker_detail_comprehensive(q_ticker.upper().strip(), snap)
 
     st.markdown("## 🛢️ Commodities")
-    playbook = {
-        "Q1": {"beli": ["Copper","Industrial Metals"], "short": ["Gold (counter-trend)"]},
-        "Q2": {"beli": ["CL=F","USO","XLE","Energy"], "short": []},
-        "Q3": {"beli": ["GLD","SLV","CL=F","CCJ","URA"], "short": []},
-        "Q4": {"beli": ["GLD","TLT"], "short": ["CL=F","Industrial metals"]},
-    }
-    pb = playbook.get(sq, playbook["Q3"])
+    pb = _get_hedgeye_playbook(snap)
     c1, c2 = st.columns(2)
     with c1:
         st.markdown("<div style='font-size:0.68rem; color:#3FB950; text-transform:uppercase; font-weight:600; margin-bottom:3px;'>Buy</div>", unsafe_allow_html=True)
@@ -4972,7 +5071,7 @@ def page_commodities():
     comm_tickers = list(COMMODITIES.keys()) if COMMODITIES else FALLBACK_COMM
     sim_results = snap.get("simulation_results", {}) if isinstance(snap.get("simulation_results"), dict) else {}
     rows = build_ticker_rows(comm_tickers, "commodity", vix_now, snap.get("gamma_data"), snap.get("greeks_data"), snap.get("news_narratives"), prices=prices, ar=ar, snap=snap, sim_results=sim_results)
-    actionable = filter_actionable(rows)
+    actionable = filter_actionable(rows, snap=snap)
     invalid = filter_invalid(rows)
     longs, shorts = split_long_short(actionable)
     st.markdown(f"**{len(actionable)} actionable** · 🟢 {len(longs)} Long · 🔴 {len(shorts)} Short · ⚠️ {len(invalid)} filtered")
@@ -4983,12 +5082,7 @@ def page_commodities():
         with st.expander(f"⚠️ Filtered Out ({len(invalid)} invalid / conflict / avoid)", expanded=False):
             render_invalid_cards(invalid)
 
-    # ── v38: Daily Plays + Chain Reaction (Iran/Mideast war chain etc) ──
-    if _V38_OK:
-        try:
-            render_v38_complete("commodities", snap, prices, st)
-        except Exception as e:
-            logger.warning(f"v38 render failed (commodities): {e}")
+    # v38 Daily Plays REMOVED per v39.1 audit
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -5006,13 +5100,7 @@ def page_crypto():
     # Whale signal moved to ticker detail expander (v39.2)
     st.divider()
 
-    playbook = {
-        "Q1": {"beli": ["BTC","ETH","SOL","alts"], "short": []},
-        "Q2": {"beli": ["BTC","MSTR","CORZ","IREN"], "short": []},
-        "Q3": {"beli": ["BTC","MSTR","IBIT"], "short": ["alts (ETH/SOL relative)"]},
-        "Q4": {"beli": ["BTC (hedge ONLY)"], "short": ["alts","ETH","memecoin"]},
-    }
-    pb = playbook.get(sq, playbook["Q3"])
+    pb = _get_hedgeye_playbook(snap)
     c1, c2 = st.columns(2)
     with c1:
         st.markdown("<div style='font-size:0.68rem; color:#3FB950; text-transform:uppercase; font-weight:600; margin-bottom:3px;'>Buy</div>", unsafe_allow_html=True)
@@ -5043,7 +5131,7 @@ def page_crypto():
     crypto_tickers = list(CRYPTO.keys()) if CRYPTO else FALLBACK_CRYPTO
     sim_results = snap.get("simulation_results", {}) if isinstance(snap.get("simulation_results"), dict) else {}
     rows = build_ticker_rows(crypto_tickers, "crypto", vix_now, snap.get("gamma_data"), snap.get("greeks_data"), snap.get("news_narratives"), prices=prices, ar=ar, snap=snap, sim_results=sim_results)
-    actionable = filter_actionable(rows)
+    actionable = filter_actionable(rows, snap=snap)
     invalid = filter_invalid(rows)
     longs, shorts = split_long_short(actionable)
     st.markdown(f"**{len(actionable)} actionable** · 🟢 {len(longs)} Long · 🔴 {len(shorts)} Short · ⚠️ {len(invalid)} filtered")
@@ -5054,12 +5142,7 @@ def page_crypto():
         with st.expander(f"⚠️ Filtered Out ({len(invalid)} invalid / conflict / avoid)", expanded=False):
             render_invalid_cards(invalid)
 
-    # ── v38: Daily Plays + Crypto On-Chain Proxy ──
-    if _V38_OK:
-        try:
-            render_v38_complete("crypto", snap, prices, st)
-        except Exception as e:
-            logger.warning(f"v38 render failed (crypto): {e}")
+    # v38 Daily Plays REMOVED per v39.1 audit
 
 
 # ═══════════════════════════════════════════════════════════════════
@@ -5144,7 +5227,7 @@ def page_global():
     ihsg_tickers = list(IHSG_UNIVERSE.keys()) if IHSG_UNIVERSE else FALLBACK_IHSG
     sim_results = snap.get("simulation_results", {}) if isinstance(snap.get("simulation_results"), dict) else {}
     ihsg_rows = build_ticker_rows(ihsg_tickers, "ihsg", vix_now, prices=prices, ar=ar, snap=snap, sim_results=sim_results)
-    actionable_ihsg = filter_actionable(ihsg_rows)
+    actionable_ihsg = filter_actionable(ihsg_rows, snap=snap)
     invalid_ihsg = filter_invalid(ihsg_rows)
     by_sector = {}
     for r in actionable_ihsg: by_sector.setdefault(IHSG_SECTOR_MAP.get(r.get("ticker"), "Other"), []).append(r)
@@ -5162,13 +5245,7 @@ def page_global():
         with st.expander(f"⚠️ Filtered IHSG ({len(invalid_ihsg)} invalid / conflict)", expanded=False):
             render_invalid_cards(invalid_ihsg)
 
-    # ── v38: IHSG Specialist (konglomerasi 21 groups + goreng 4-phase + Quad check) ──
-    # v39.2 NOTE: IHSG is buy-only market. Daily plays should only show BUY signals.
-    if _V38_OK:
-        try:
-            _render_v38_ihsg_safe(snap, prices, st)
-        except Exception as e:
-            logger.warning(f"v38 render failed (ihsg): {e}")
+    # v38 Daily Plays REMOVED per v39.1 audit
 
 
 # ═══════════════════════════════════════════════════════════════════

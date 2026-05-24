@@ -3086,18 +3086,14 @@ def _resolve_keith_signal(ticker, risk_ranges, prices):
         if not lrr or not trr or not all(math.isfinite(x) for x in [px, lrr, trr]):
             return None
 
-        # Keith logic: breakdown from risk range top = bearish until reclaim
-        # Reclaim = price must close back inside range AND hold for 3+ days
-        px_vs_trr = (px - trr) / max(trr, 0.001)  # % distance above TRR
-        px_vs_lrr = (px - lrr) / max(lrr, 0.001)  # % distance above LRR
+        px_vs_trr = (px - trr) / max(trr, 0.001)
+        px_vs_lrr = (px - lrr) / max(lrr, 0.001)
 
-        # Check for reclaim: price was outside, now back inside
         history = s_clean.tail(5)
         was_above_trr = any(float(x) > trr * 1.005 for x in history.head(4))
         was_below_lrr = any(float(x) < lrr * 0.995 for x in history.head(4))
         now_inside = lrr * 0.995 <= px <= trr * 1.005
 
-        # Reclaim detection: was outside, now inside for 2+ days
         reclaiming_trr = was_above_trr and now_inside and all(
             lrr * 0.995 <= float(x) <= trr * 1.005 for x in history.tail(2)
         )
@@ -3106,35 +3102,25 @@ def _resolve_keith_signal(ticker, risk_ranges, prices):
         )
 
         if px > trr * 1.01 and not reclaiming_trr:
-            # Price above TRR, not reclaiming back inside = BEARISH (overbought/breakdown)
             return {
-                "trade": "BEARISH",
-                "trend": "BEARISH",
+                "trade": "BEARISH", "trend": "BEARISH",
                 "basis": f"Price {px:.2f} > TRR {trr:.2f} (+{px_vs_trr*100:.1f}%) — breakdown from risk range top, not reclaiming. Short signal.",
-                "px": px, "lrr": lrr, "trr": trr,
-                "reclaiming": False,
+                "px": px, "lrr": lrr, "trr": trr, "reclaiming": False,
             }
         elif px < lrr * 0.99 and not reclaiming_lrr:
-            # Price below LRR, not reclaiming = BEARISH breakdown (for long-universe assets)
-            # OR BULLISH if it's a mean-reversion candidate (Keith sometimes buys extreme LRR)
-            # Conservative: BEARISH until reclaim for trend-following
             return {
-                "trade": "BEARISH",
-                "trend": "BEARISH",
+                "trade": "BEARISH", "trend": "BEARISH",
                 "basis": f"Price {px:.2f} < LRR {lrr:.2f} ({px_vs_lrr*100:.1f}%) — breakdown from risk range low, not reclaiming. Avoid.",
-                "px": px, "lrr": lrr, "trr": trr,
-                "reclaiming": False,
+                "px": px, "lrr": lrr, "trr": trr, "reclaiming": False,
             }
         elif reclaiming_trr or reclaiming_lrr:
             return {
-                "trade": "BULLISH",
-                "trend": "BULLISH",
+                "trade": "BULLISH", "trend": "BULLISH",
                 "basis": f"Price {px:.2f} reclaiming risk range ({lrr:.2f}/{trr:.2f}) — bounce valid, trend resuming.",
-                "px": px, "lrr": lrr, "trr": trr,
-                "reclaiming": True,
+                "px": px, "lrr": lrr, "trr": trr, "reclaiming": True,
             }
         else:
-            return None  # Neutral, inside range
+            return None
     except Exception as e:
         logger.debug(f"Keith resolver failed for {ticker}: {e}")
         return None
@@ -3208,9 +3194,7 @@ for item in result["alpha_center"].get("all", []):
 result["keith_sync"] = keith_sync
 result["keith_summary"] = keith_summary
 logger.info(f"Keith dynamic sync: {keith_summary['overrides_applied']} overrides on {keith_summary['total_signals']} signals")
-
-
-        # v39.1: Rebuild level_1/level_2 after Keith override (AVOID items drop to grade C)
+# v39.1: Rebuild level_1/level_2 after Keith override (AVOID items drop to grade C)
         result["alpha_center"]["level_1"] = [i for i in result["alpha_center"]["all"] if i.get("grade") == "A"]
         result["alpha_center"]["level_2"] = [i for i in result["alpha_center"]["all"] if i.get("grade") == "B"]
 

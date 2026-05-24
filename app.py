@@ -1703,6 +1703,7 @@ def filter_actionable(rows, snap=None):
     - Must have SOME edge: options/greeks OR dark pool OR alpha_source OR broker OR strong formation
     - Keith BEARISH override = auto-kill
     - Signal-to-Quad alignment: ticker must be in Hedgeye favor list OR have strong methodology signal
+    - Avoid-list = auto-kill unless Keith BULLISH override
     - IHSG: must have broker signal or strong formation (min quality 25)
     """
     # Get Hedgeye playbook for alignment check

@@ -426,6 +426,10 @@ def _get_hedgeye_playbook(snap):
                 "UUP","DX-Y.NYB",
                 # AI Bottleneck Exception (supply constrained physical assets)
                 "SNDK","MU","NXT","AMPH","COHR","MRVL",
+                # Citrini Research 2026: Advanced Packaging / EDA / Copper / Materials
+                "SNPS",  # Synopsys — EDA, advanced packaging (Citrini 26 Trades 2026)
+                "SCCO","FCX",  # Copper — supply bottleneck, green transition (Citrini)
+                "ALB",  # Lithium / battery materials — physical scarcity (Citrini)
             ],
             "short": [
                 # Tech / Growth (MOAB Tech per Hedgeye)
@@ -1426,20 +1430,16 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
         if gf_up: entry_candidates.append(gf_up)
         if cot_data and cot_signal == "BEARISH":
             entry_candidates.append(trade_top + atr15 * 0.5)
-        clusters = _cluster_levels(entry_candidates, 0.02)
-        if clusters:
-            entry = clusters[0]["center"]
-            confluence["entry"] = [("Trade Top", trade_top), ("Call Wall", cw), ("Max Pain+EM", mp + expected_move * px if mp and expected_move else None), ("Gamma Flip ↑", gf_up)]
-            confluence["entry_cluster"] = clusters[0]
-            entry_note = f"🔥 Confluence x{clusters[0]['count']}: entry at {ff(entry)}"
-        else:
-            entry = round(max(entry_candidates), 4)
-            entry_note = f"📍 Entry at Trade Top {ff(entry)}"
+        # v39.5: Entry short = MAX(candidates) — fade at highest confluence, no cluster dilution
+        entry = round(max([float(x) for x in entry_candidates if x is not None and math.isfinite(float(x))]), 4)
+        entry_note = f"📍 Entry at Trade Top {ff(entry)}"
+        confluence["entry"] = [("Trade Top", trade_top), ("Call Wall", cw), ("Max Pain+EM", mp + expected_move * px if mp and expected_move else None), ("Gamma Flip ↑", gf_up)]
 
-        stop_candidates = [tail_top]
+        # v39.5: Short stop = above Trade Top or entry + 1.5% minimum (not 0.3%)
+        stop_candidates = [tail_top, entry * 1.015]
         if cw and expected_move: stop_candidates.append(cw + expected_move * 0.5 * px)
-        stop_raw = min(stop_candidates) if stop_candidates else entry * 1.005
-        stop = max(stop_raw, entry + min_stop_dist)
+        stop_raw = max(stop_candidates) if stop_candidates else entry * 1.005
+        stop = max(stop_raw, entry + max(px * 0.015, 0.01))
 
         tp1_candidates = [trade_low]
         if pw: tp1_candidates.append(pw)
@@ -1478,7 +1478,7 @@ def _build_row(ticker, prices, ar, vix_now=20, gamma_data=None, greeks_data=None
             if pw: tp2_candidates.append(pw - atr15)
             if mp and expected_move: tp2_candidates.append(mp - expected_move * 2 * px)
             tp2 = round(min(tp2_candidates), 4)
-        near_entry = px >= trade_low * 1.35
+        near_entry = px >= entry * 0.98
 
     # ── RISK/REWARD ──
     risk = abs(entry - stop)
@@ -1695,14 +1695,14 @@ def split_long_short(rows):
 
 def filter_actionable(rows, snap=None):
     """
-    v39.4 HEDGEYE-ALIGNED QUALITY FILTER — Remove sampah tickers
+    v39.5 HEDGEYE-ALIGNED QUALITY FILTER — Remove sampah tickers
     Requirements:
     - setup_valid = True (stop not too tight)
-    - chase_status != AVOID (not broken)
-    - RR >= 0.5 minimum
+    - chase_status = CHASE or WAIT (not AVOID/NEUTRAL)
+    - RR >= 1.0 minimum
     - Must have SOME edge: options/greeks OR dark pool OR alpha_source OR broker OR strong formation
     - Keith BEARISH override = auto-kill
-    - Signal-to-Quad alignment: ticker must NOT be in Hedgeye avoid list (unless Keith bullish)
+    - Signal-to-Quad alignment: ticker must be in Hedgeye favor list OR have strong methodology signal
     - IHSG: must have broker signal or strong formation (min quality 25)
     """
     # Get Hedgeye playbook for alignment check
@@ -1714,7 +1714,7 @@ def filter_actionable(rows, snap=None):
     out = []
     for r in rows:
         t = r.get("ticker", "")
-        # ── v39.3 HARD EXCLUDES ──
+        # ── v39.5 HARD EXCLUDES ──
         # Only CHASE (ready now) or WAIT (almost ready). NEUTRAL/AVOID = kill.
         if r.get("chase_status") not in ("CHASE", "WAIT"):
             continue
@@ -1728,16 +1728,9 @@ def filter_actionable(rows, snap=None):
         if rr < 1.0:
             continue
 
-        # ── SIGNAL-TO-QUAD ALIGNMENT (Hedgeye A/B Test) ──
-        # If ticker is in Hedgeye avoid list for current quad → heavy penalty
-        # Exception: Keith BULLISH override > Quad playbook
-        quad_aligned = True
-        if t in avoid_tickers:
-            quad_aligned = False
-            if ks and isinstance(ks, dict) and ks.get("keith_trade") == "BULLISH":
-                quad_aligned = True  # Keith P0 > Quad
-
+        # ── HEDGEYE PLAYBOOK ALIGNMENT ──
         in_favor = t in favor_tickers
+        in_avoid = t in avoid_tickers
 
         # Quality scoring
         quality_score = 0
@@ -1753,16 +1746,24 @@ def filter_actionable(rows, snap=None):
             quality_score += 5; reasons.append("RR<1.2")
 
         formation = r.get("formation", "NEUTRAL")
-        # Signal-to-Quad alignment scoring
-        if in_favor:
-            quality_score += 15; reasons.append(f"Quad {current_quad} favored")
-        if not quad_aligned:
-            quality_score -= 30; reasons.append(f"Quad {current_quad} avoid-list")
-
         if formation in ("BULLISH", "BEARISH"):
             quality_score += 20; reasons.append("Strong formation")
         elif formation in ("BULLISH_BIAS", "BEARISH_BIAS", "OVERSOLD", "OVERBOUGHT"):
             quality_score += 15; reasons.append("Bias/Oversold")
+
+        # Hedgeye playbook alignment (P0 priority)
+        if in_favor:
+            quality_score += 25; reasons.append(f"Hedgeye Q{current_quad} favored")
+        if in_avoid:
+            quality_score -= 50; reasons.append(f"Hedgeye Q{current_quad} avoid-list")
+
+        # Methodology signals (Citrini, Leopold, COATUE, Karsan, etc)
+        alpha_src = r.get("alpha_source", "")
+        alpha_score = r.get("alpha_score", 0)
+        if alpha_src in ("bottleneck", "front_run", "leopold", "coatue", "karsan", "thought_process"):
+            quality_score += 20; reasons.append(f"{alpha_src} signal")
+        if alpha_score >= 70:
+            quality_score += 10; reasons.append("High alpha")
 
         opts = r.get("options", {})
         market_type = r.get("market_type", "us_equity")
@@ -1778,11 +1779,6 @@ def filter_actionable(rows, snap=None):
         dp = r.get("dark_pool")
         if dp and isinstance(dp, dict) and dp.get("divergence") not in ("NEUTRAL", None):
             quality_score += 15; reasons.append("Dark pool edge")
-
-        if r.get("alpha_source"):
-            quality_score += 15; reasons.append("Methodology")
-        if r.get("alpha_score", 0) >= 70:
-            quality_score += 10; reasons.append("High alpha")
 
         sim = r.get("simulation")
         if sim and isinstance(sim, dict):
@@ -1825,8 +1821,19 @@ def filter_actionable(rows, snap=None):
         else:
             r["grade"] = "D"
 
-        # v39.3: HIGH CONVICTION ONLY — Grade A/B + quality >= 60
-        if quality_score >= 60 and r.get("grade") in ("A", "B"):
+        # v39.5: HIGH CONVICTION GATE
+        # Grade A/B + quality >= 60 + (in Hedgeye favor OR strong methodology signal)
+        # Kalau di avoid list → auto-kill kecuali ada Keith BULLISH override
+        if in_avoid and not (ks and isinstance(ks, dict) and ks.get("keith_trade") == "BULLISH"):
+            continue  # Auto-kill avoid-list tanpa override
+
+        if quality_score >= 60 and r.get("grade") in ("A", "B") and (in_favor or alpha_src or market_type == "ihsg"):
+            out.append(r)
+        elif quality_score >= 50 and r.get("grade") == "B" and not in_avoid:
+            # Borderline — monitor only, not ready
+            r["chase_status"] = "WAIT"
+            r["chase_color"] = "#D29922"
+            r["chase_text"] = f"⏳ MONITOR — Quality {quality_score} but not in Hedgeye playbook"
             out.append(r)
 
     return sorted(out, key=lambda x: x.get("quality_score", 0), reverse=True)
@@ -3009,28 +3016,28 @@ def render_ticker_card_v4(row, expanded=False):
 
     # ── Status banner inside card ──
     status_banner = ""
-    # v39.1: Keith P0 override takes precedence over all technical signals
+    # v39.5: Keith P0 override takes precedence over all technical signals
     ks = row.get("keith_sync", {})
     if ks and isinstance(ks, dict) and ks.get("override"):
         kt = ks.get("keith_trade", "BEARISH")
         status_banner = f'<div class="hy-status-pill banner-avoid">🚫 AVOID — Keith {kt.title()} Override</div>'
         chase_status = "AVOID"
         chase_color = "#F85149"
-        chase_text = f"🚫 AVOID — Keith {kt.title()} Override: {ks.get('basis','')[:80]}"
+        chase_text = f"🚫 AVOID — Keith {kt.title()} Override: {ks.get('basis','')[:120]}"
+    elif not setup_valid:
+        status_banner = f'<div class="hy-status-pill banner-avoid">🚫 INVALID — Stop too tight / Risk &lt; min</div>'
     elif chase_status == "CHASE":
-        status_banner = f'<div class="hy-status-pill banner-chase">🏃 CHASE — Ready to enter</div>'
+        if row.get("breakout_note"):
+            status_banner = f'<div class="hy-status-pill banner-chase">{row["breakout_note"][:80]}</div>'
+        else:
+            status_banner = f'<div class="hy-status-pill banner-chase">🏃 CHASE — Ready to enter</div>'
     elif chase_status == "WAIT":
-        status_banner = f'<div class="hy-status-pill banner-wait">⏳ WAIT — Pullback needed</div>'
+        if row.get("breakdown_note"):
+            status_banner = f'<div class="hy-status-pill banner-avoid">{row["breakdown_note"][:80]}</div>'
+        else:
+            status_banner = f'<div class="hy-status-pill banner-wait">⏳ WAIT — Pullback needed</div>'
     elif chase_status == "AVOID":
         status_banner = f'<div class="hy-status-pill banner-avoid">🚫 AVOID — Setup broken</div>'
-    elif not setup_valid:
-        status_banner = f'<div class="hy-status-pill banner-avoid">🚫 INVALID — Stop too tight</div>'
-
-    # Breakout / breakdown note override
-    if row.get("breakout_note"):
-        status_banner = f'<div class="hy-status-pill banner-chase">{row["breakout_note"][:60]}</div>'
-    elif row.get("breakdown_note"):
-        status_banner = f'<div class="hy-status-pill banner-avoid">{row["breakdown_note"][:60]}</div>'
     else:
         status_banner = f'<div class="hy-status-pill banner-hold">⏸ HOLD — Monitor</div>'
 
@@ -4560,7 +4567,7 @@ def page_alpha():
             if ticker in seen_tickers or not ticker:
                 return
             seen_tickers.add(ticker)
-            # Check WF + Gatekeeper + Sim
+            # Check WF + Gatekeeper + Sim (background data, not hard gate)
             wf = wf_results.get(ticker, {})
             gk = gk_results.get(ticker, {})
             sim = sim_results.get(ticker, {})
@@ -4568,31 +4575,35 @@ def page_alpha():
             gk_status = gk.get("gate_status", "FAIL") if isinstance(gk, dict) else "FAIL"
             sim_score = sim.get("robustness_score", 0) if isinstance(sim, dict) else 0
 
-            # Boost score with methodology fusion
+            # Boost score with methodology fusion (Citrini, Leopold, COATUE, Karsan)
             leo = (snap.get("leopold_scan", {}) or {}).get("per_ticker", {}).get(ticker)
             if leo and isinstance(leo, dict) and leo.get("asymmetry_score", 0) >= 70:
-                score += 10
+                score += 15
             coat = (snap.get("coatue_scan", {}) or {}).get("per_ticker", {}).get(ticker)
             if coat and isinstance(coat, dict) and coat.get("signal", "") == ("BUY" if direction == "LONG" else "SELL"):
-                score += 8
+                score += 12
             kar = (snap.get("karsan_scanner", {}) or {}).get("per_ticker", {}).get(ticker)
             if kar and isinstance(kar, dict):
                 if "squeeze" in str(kar.get("setup_type", "")).lower() and direction == "LONG":
-                    score += 8
+                    score += 10
                 if "convexity" in str(kar.get("setup_type", "")).lower() and direction == "LONG":
-                    score += 8
+                    score += 10
 
-            # v39.3: HIGH CONVICTION GATE — unified candidates must have SOME validation
-            # Sim ≥ 50 OR Gatekeeper PASS/MARGINAL OR WF ≥ 40. Kalau semua FAIL, skip.
-            if sim_score < 50 and gk_status == "FAIL" and wf_score < 40:
-                return  # Not enough conviction — skip entirely
+            # v39.5: RELAXED GATE — methodology signals (Citrini/Leopold/COATUE/Karsan) bypass sim/gk requirement
+            # Ticker dari affiliate sources tetap masuk meskipun belum ada sim/gk data
+            has_methodology = bool(leo or coat or kar or source in ("bottleneck", "front_run", "leopold", "coatue", "karsan", "thought_process"))
+            has_gate = sim_score >= 50 or gk_status in ("PASS", "MARGINAL") or wf_score >= 40
+            if not has_gate and not has_methodology:
+                return  # Skip only if no gate AND no methodology backing
 
             # Composite signal boost
             cs = (snap.get("composite_signals", {}) or {}).get(ticker)
             if cs and isinstance(cs, dict):
                 cs_dir = cs.get("direction", "NEUTRAL")
                 if (cs_dir == "LONG" and direction == "LONG") or (cs_dir == "SHORT" and direction == "SHORT"):
-                    score += 5
+                    score += 8
+                elif cs_dir != "NEUTRAL":
+                    score -= 5  # Conflict penalty
 
             unified_candidates.append({
                 "ticker": ticker, "source": source, "score": min(100, score),

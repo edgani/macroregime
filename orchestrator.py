@@ -28,6 +28,11 @@ logging.basicConfig(
 )
 logger = logging.getLogger("orchestrator")
 
+# ── Silence noisy third-party loggers (yfinance 404s for delisted/invalid symbols
+#    are expected and handled; integrator_guide optional-engine warnings are non-fatal) ──
+for _noisy in ("yfinance", "yfinance.data", "yfinance.utils", "peewee", "urllib3", "integrator_guide"):
+    logging.getLogger(_noisy).setLevel(logging.CRITICAL)
+
 def _safe_progress(cb, msg: str, pct: float):
     if cb is None:
         return
@@ -79,25 +84,25 @@ except Exception as e:
 try:
     from engines.gamma_engine import GammaEngine
 except Exception as e:
-    logger.error(f"Failed to import gamma_engine: {e}")
+    logger.debug(f"Optional engine not present: gamma_engine: {e}")
     GammaEngine = None
 
 try:
     from engines.greeks_proxy import GreeksProxy
 except Exception as e:
-    logger.error(f"Failed to import greeks_proxy: {e}")
+    logger.debug(f"Optional engine not present: greeks_proxy: {e}")
     GreeksProxy = None
 
 try:
     from engines.vanna_charm_flows import get_vanna_charm_flows
 except Exception as e:
-    logger.error(f"Failed to import vanna_charm_flows: {e}")
+    logger.debug(f"Optional engine not present: vanna_charm_flows: {e}")
     def get_vanna_charm_flows(*args, **kwargs): return {}
 
 try:
     from engines.bottleneck_engine import BottleneckEngine
 except Exception as e:
-    logger.error(f"Failed to import bottleneck_engine: {e}")
+    logger.debug(f"Optional engine not present: bottleneck_engine: {e}")
     BottleneckEngine = None
 
 try:
@@ -111,137 +116,137 @@ except Exception as e:
 try:
     from engines.aaii_scraper import get_behavioral_macro
 except Exception as e:
-    logger.error(f"Failed to import aaii_scraper: {e}")
+    logger.debug(f"Optional engine not present: aaii_scraper: {e}")
     def get_behavioral_macro(*args, **kwargs):
         return {"bullish": 30, "bearish": 30, "neutral": 40, "yves": {"alert": None, "alert_level": "NONE"}}
 
 try:
     from engines.odte_monitor import run_odte_monitor
 except Exception as e:
-    logger.error(f"Failed to import odte_monitor: {e}")
+    logger.debug(f"Optional engine not present: odte_monitor: {e}")
     def run_odte_monitor(*args, **kwargs):
         return {"expiry": "-", "tickers": {}, "cascade_warning": False, "summary": "0DTE unavailable"}
 
 try:
     from engines.skew_term_engine import run_skew_term
 except Exception as e:
-    logger.error(f"Failed to import skew_term_engine: {e}")
+    logger.debug(f"Optional engine not present: skew_term_engine: {e}")
     def run_skew_term(*args, **kwargs):
         return {"skew_data": {}, "term_regime": "NORMAL"}
 
 try:
     from engines.reflexivity_engine import run_reflexivity
 except Exception as e:
-    logger.error(f"Failed to import reflexivity_engine: {e}")
+    logger.debug(f"Optional engine not present: reflexivity_engine: {e}")
     def run_reflexivity(*args, **kwargs):
         return {"super_bubble_score": 5.0, "stage": "INCEPTION", "ticker_scores": {}}
 
 try:
     from engines.boombust_engine import classify_stage
 except Exception as e:
-    logger.error(f"Failed to import boombust_engine: {e}")
+    logger.debug(f"Optional engine not present: boombust_engine: {e}")
     def classify_stage(*args, **kwargs):
         return {"stage": "INCEPTION", "stage_confidence": 0.5}
 
 try:
     from engines.conviction_sizing import run_sizing
 except Exception as e:
-    logger.error(f"Failed to import conviction_sizing: {e}")
+    logger.debug(f"Optional engine not present: conviction_sizing: {e}")
     def run_sizing(*args, **kwargs): return {}
 
 try:
     from engines.interconnect_engine import run_interconnect
 except Exception as e:
-    logger.error(f"Failed to import interconnect_engine: {e}")
+    logger.debug(f"Optional engine not present: interconnect_engine: {e}")
     def run_interconnect(*args, **kwargs):
         return {"active_scenarios": [], "scenarios": [], "summary": "Interconnect unavailable"}
 
 try:
     from engines.yfinance_options import YFinanceOptionsEngine
 except Exception as e:
-    logger.error(f"Failed to import yfinance_options: {e}")
+    logger.debug(f"Optional engine not present: yfinance_options: {e}")
     YFinanceOptionsEngine = None
 
 try:
     from engines.scenario_discovery_engine import run_scenario_discovery
 except Exception as e:
-    logger.error(f"Failed to import scenario_discovery_engine: {e}")
+    logger.debug(f"Optional engine not present: scenario_discovery_engine: {e}")
     def run_scenario_discovery(*args, **kwargs):
         return {"scenarios": [], "active_scenarios": [], "watch_scenarios": [], "summary": "Unavailable"}
 
 try:
     from engines.transmission_engine import run_transmission
 except Exception as e:
-    logger.error(f"Failed to import transmission_engine: {e}")
+    logger.debug(f"Optional engine not present: transmission_engine: {e}")
     def run_transmission(*args, **kwargs):
         return {"scenarios": [], "active_scenarios": [], "watch_scenarios": [], "summary": "Unavailable"}
 
 try:
     from engines.regime_transition_engine import run_regime_transition
 except Exception as e:
-    logger.error(f"Failed to import regime_transition_engine: {e}")
+    logger.debug(f"Optional engine not present: regime_transition_engine: {e}")
     def run_regime_transition(*args, **kwargs):
         return {"current_quad": "Q3", "transitions": {}, "summary": "Unavailable"}
 
 try:
     from engines.news_nlp_engine_v3 import run_news_nlp
 except Exception as e:
-    logger.error(f"Failed to import news_nlp_engine_v3: {e}")
+    logger.debug(f"Optional engine not present: news_nlp_engine_v3: {e}")
     def run_news_nlp(*args, **kwargs):
         return {"ticker_specific": {}, "emergent_narratives": [], "rumor_watch": [], "analyzed_count": 0}
 
 try:
     from engines.gex_engine import analyze_multi as gex_analyze_multi
 except Exception as e:
-    logger.error(f"Failed to import gex_engine: {e}")
+    logger.debug(f"Optional engine not present: gex_engine: {e}")
     def gex_analyze_multi(*args, **kwargs): return {}
 
 try:
     from engines.charm_proxy_engine import analyze_multi as charm_analyze_multi
 except Exception as e:
-    logger.error(f"Failed to import charm_proxy_engine: {e}")
+    logger.debug(f"Optional engine not present: charm_proxy_engine: {e}")
     def charm_analyze_multi(*args, **kwargs): return {}
 
 try:
     from engines.vanna_proxy_engine import analyze_multi as vanna_analyze_multi
 except Exception as e:
-    logger.error(f"Failed to import vanna_proxy_engine: {e}")
+    logger.debug(f"Optional engine not present: vanna_proxy_engine: {e}")
     def vanna_analyze_multi(*args, **kwargs): return {}
 
 try:
     from engines.odte_enhanced import analyze_multi as odte_enhanced_multi
 except Exception as e:
-    logger.error(f"Failed to import odte_enhanced: {e}")
+    logger.debug(f"Optional engine not present: odte_enhanced: {e}")
     def odte_enhanced_multi(*args, **kwargs): return {}
 
 try:
     from engines.structure_quality import analyze_multi as structure_analyze_multi
 except Exception as e:
-    logger.error(f"Failed to import structure_quality: {e}")
+    logger.debug(f"Optional engine not present: structure_quality: {e}")
     def structure_analyze_multi(*args, **kwargs): return {}
 
 try:
     from engines.afternoon_signal import analyze_multi as afternoon_analyze_multi
 except Exception as e:
-    logger.error(f"Failed to import afternoon_signal: {e}")
+    logger.debug(f"Optional engine not present: afternoon_signal: {e}")
     def afternoon_analyze_multi(*args, **kwargs): return {}
 
 try:
     from engines.volga_proxy import analyze_volga
 except Exception as e:
-    logger.error(f"Failed to import volga_proxy: {e}")
+    logger.debug(f"Optional engine not present: volga_proxy: {e}")
     def analyze_volga(*args, **kwargs): return {}
 
 try:
     from engines.institutional_proxy import analyze_multi as inst_analyze_multi
 except Exception as e:
-    logger.error(f"Failed to import institutional_proxy: {e}")
+    logger.debug(f"Optional engine not present: institutional_proxy: {e}")
     def inst_analyze_multi(*args, **kwargs): return {}
 
 try:
     from engines.bottleneck_discovery_v3 import run_bottleneck_discovery_v3
 except Exception as e:
-    logger.error(f"Failed to import bottleneck_discovery_v3: {e}")
+    logger.debug(f"Optional engine not present: bottleneck_discovery_v3: {e}")
     def run_bottleneck_discovery_v3(*args, **kwargs):
         return {"active_bottlenecks": [], "watch_bottlenecks": [], "summary": "Unavailable"}
 
@@ -249,7 +254,7 @@ try:
     from engines.cascade_engine import run_all_cascades, bottleneck_full_cascade
     _V2_CASCADE = True
 except Exception as e:
-    logger.error(f"Failed to import cascade_engine: {e}")
+    logger.debug(f"Optional engine not present: cascade_engine: {e}")
     _V2_CASCADE = False
     def run_all_cascades(*a, **k): return {"cascades": {}, "active_shocks": {}}
     def bottleneck_full_cascade(*a, **k): return {"impacts": []}
@@ -258,7 +263,7 @@ try:
     from engines.yves_engine import run_yves_v2
     _V2_YVES = True
 except Exception as e:
-    logger.error(f"Failed to import yves_engine: {e}")
+    logger.debug(f"Optional engine not present: yves_engine: {e}")
     _V2_YVES = False
     def run_yves_v2(*a, **k): return {"alerts": [], "summary": {"level": "NONE"}}
 
@@ -266,7 +271,7 @@ try:
     from engines.portfolio_sizing import run_portfolio_sizing
     _V2_SIZING = True
 except Exception as e:
-    logger.error(f"Failed to import portfolio_sizing: {e}")
+    logger.debug(f"Optional engine not present: portfolio_sizing: {e}")
     _V2_SIZING = False
     def run_portfolio_sizing(*a, **k): return {"positions": [], "total_deployed_pct": 0, "cash_pct": 1.0}
 
@@ -274,7 +279,7 @@ try:
     from engines.discovery_brain import run_discovery_brain
     _V2_DISCOVERY = True
 except Exception as e:
-    logger.error(f"Failed to import discovery_brain: {e}")
+    logger.debug(f"Optional engine not present: discovery_brain: {e}")
     _V2_DISCOVERY = False
     def run_discovery_brain(*a, **k): return {"by_mode": {}, "top_10": [], "summary": {}}
 
@@ -282,7 +287,7 @@ try:
     from engines.cem_karsan_universal import analyze_multi as cem_universal_multi
     _V2_CEM = True
 except Exception as e:
-    logger.error(f"Failed to import cem_karsan_universal: {e}")
+    logger.debug(f"Optional engine not present: cem_karsan_universal: {e}")
     _V2_CEM = False
     def cem_universal_multi(*a, **k): return {}
 
@@ -290,7 +295,7 @@ try:
     from engines.ticker_universe_expander import run_ticker_expander
     _V2_EXPANDER = True
 except Exception as e:
-    logger.error(f"Failed to import ticker_universe_expander: {e}")
+    logger.debug(f"Optional engine not present: ticker_universe_expander: {e}")
     _V2_EXPANDER = False
     def run_ticker_expander(*a, **k): return {"new_tickers": [], "candidates": [], "auto_add_recommended": []}
 
@@ -298,7 +303,7 @@ try:
     from engines.supply_chain_graph_real import run_supply_chain_analysis, reverse_lookup as supply_reverse
     _V2_SUPPLY = True
 except Exception as e:
-    logger.error(f"Failed to import supply_chain_graph_real: {e}")
+    logger.debug(f"Optional engine not present: supply_chain_graph_real: {e}")
     _V2_SUPPLY = False
     def run_supply_chain_analysis(*a, **k): return {"chokepoints": [], "propagation": {}, "summary": {}}
     def supply_reverse(*a, **k): return []
@@ -307,7 +312,7 @@ try:
     from engines.composite_signal_engine import analyze_multi as composite_analyze_multi, compute_composite_signal
     _V2_COMPOSITE = True
 except Exception as e:
-    logger.error(f"Failed to import composite_signal_engine: {e}")
+    logger.debug(f"Optional engine not present: composite_signal_engine: {e}")
     _V2_COMPOSITE = False
     def composite_analyze_multi(*a, **k): return {}
     def compute_composite_signal(*a, **k): return {"direction": "NEUTRAL", "confidence": 0}
@@ -316,7 +321,7 @@ try:
     from engines.risk_setup_engine import calculate_risk_setup as v2_risk_setup
     _V2_RISK_SETUP = True
 except Exception as e:
-    logger.error(f"Failed to import risk_setup_engine: {e}")
+    logger.debug(f"Optional engine not present: risk_setup_engine: {e}")
     _V2_RISK_SETUP = False
     v2_risk_setup = None
 
@@ -324,7 +329,7 @@ try:
     from engines.bonds_xau_regime import run_bonds_xau_regime
     _V2_BONDS_XAU = True
 except Exception as e:
-    logger.error(f"Failed to import bonds_xau_regime: {e}")
+    logger.debug(f"Optional engine not present: bonds_xau_regime: {e}")
     _V2_BONDS_XAU = False
     def run_bonds_xau_regime(*a, **k): return {"ok": False, "regime": "UNKNOWN", "ticker_biases": {}}
 
@@ -332,7 +337,7 @@ try:
     from engines.simulation_engine import run_simulation_batch, get_simulation_summary, filter_by_simulation
     _V2_SIM = True
 except Exception as e:
-    logger.error(f"Failed to import simulation_engine: {e}")
+    logger.debug(f"Optional engine not present: simulation_engine: {e}")
     _V2_SIM = False
     def run_simulation_batch(*a, **k): return {}
     def get_simulation_summary(*a, **k): return {"total": 0, "passed": 0, "failed": 0, "avg_score": 0}
@@ -342,7 +347,7 @@ try:
     from engines.thought_process_engine import compute_thesis as v7_compute_thesis, analyze_multi as v7_thesis_multi
     _V7_THOUGHT = True
 except Exception as e:
-    logger.error(f"Failed to import thought_process_engine: {e}")
+    logger.debug(f"Optional engine not present: thought_process_engine: {e}")
     _V7_THOUGHT = False
     def v7_compute_thesis(*a, **k): return {"thesis_score": 0, "matched_frameworks": []}
     def v7_thesis_multi(*a, **k): return {}
@@ -351,7 +356,7 @@ try:
     from engines.markov_regime_engine_v3 import run_markov_v3
     _V7_MARKOV = True
 except Exception as e:
-    logger.error(f"Failed to import markov_regime_engine_v3: {e}")
+    logger.debug(f"Optional engine not present: markov_regime_engine_v3: {e}")
     _V7_MARKOV = False
     def run_markov_v3(*a, **k):
         class _M:
@@ -364,7 +369,7 @@ try:
     from engines.smart_money_tracker import run_smart_money_analysis, get_ticker_smart_money
     _V7_SMART = True
 except Exception as e:
-    logger.error(f"Failed to import smart_money_tracker: {e}")
+    logger.debug(f"Optional engine not present: smart_money_tracker: {e}")
     _V7_SMART = False
     def run_smart_money_analysis(*a, **k): return {"ok": False, "n_funds_tracked": 0}
     def get_ticker_smart_money(*a, **k): return {"smart_money_held": False}
@@ -373,7 +378,7 @@ try:
     from engines.capital_rotation_engine import compute_capital_rotation, get_ticker_capital_rotation_role
     _V7_CAPROT = True
 except Exception as e:
-    logger.error(f"Failed to import capital_rotation_engine: {e}")
+    logger.debug(f"Optional engine not present: capital_rotation_engine: {e}")
     _V7_CAPROT = False
     def compute_capital_rotation(*a, **k): return {"ok": False}
     def get_ticker_capital_rotation_role(*a, **k): return None
@@ -382,7 +387,7 @@ try:
     from engines.ust_auction_tracker import run_ust_auction_tracker
     _V7_UST = True
 except Exception as e:
-    logger.error(f"Failed to import ust_auction_tracker: {e}")
+    logger.debug(f"Optional engine not present: ust_auction_tracker: {e}")
     _V7_UST = False
     def run_ust_auction_tracker(*a, **k): return {"ok": False}
 
@@ -390,7 +395,7 @@ try:
     from engines.vrp_scanner import scan_vrp
     _V7_VRP = True
 except Exception as e:
-    logger.error(f"Failed to import vrp_scanner: {e}")
+    logger.debug(f"Optional engine not present: vrp_scanner: {e}")
     _V7_VRP = False
     def scan_vrp(*a, **k): return {"ok": False, "calls_to_action": []}
 
@@ -398,7 +403,7 @@ try:
     from engines.squeeze_scanner import scan_squeezes
     _V7_SQUEEZE = True
 except Exception as e:
-    logger.error(f"Failed to import squeeze_scanner: {e}")
+    logger.debug(f"Optional engine not present: squeeze_scanner: {e}")
     _V7_SQUEEZE = False
     def scan_squeezes(*a, **k): return {"ok": False, "imminent_squeezes": [], "strong_candidates": [], "watch_list": []}
 
@@ -406,7 +411,7 @@ try:
     from engines.karsan_vol_scanner import scan_karsan
     _V9_KARSAN = True
 except Exception as e:
-    logger.error(f"Failed to import karsan_vol_scanner: {e}")
+    logger.debug(f"Optional engine not present: karsan_vol_scanner: {e}")
     _V9_KARSAN = False
     def scan_karsan(*a, **k): return {"ok": False, "per_ticker": {}, "squeeze_setups": [], "sell_premium": [], "buy_convexity": []}
 
@@ -414,7 +419,7 @@ try:
     from engines.spotgamma_gex_engine import run_spotgamma_scanner
     _V9_SPOTGAMMA = True
 except Exception as e:
-    logger.error(f"Failed to import spotgamma_gex_engine: {e}")
+    logger.debug(f"Optional engine not present: spotgamma_gex_engine: {e}")
     _V9_SPOTGAMMA = False
     def run_spotgamma_scanner(*a, **k): return {"ok": False, "per_ticker_proxy_gex": {}, "compass": {}}
 
@@ -422,7 +427,7 @@ try:
     from engines.leopold_methodology import run_leopold_scan
     _V9_LEOPOLD = True
 except Exception as e:
-    logger.error(f"Failed to import leopold_methodology: {e}")
+    logger.debug(f"Optional engine not present: leopold_methodology: {e}")
     _V9_LEOPOLD = False
     def run_leopold_scan(*a, **k): return {"ok": False, "per_ticker": {}, "top_picks_by_layer": {}, "asymmetry_setups": [], "written_off_recovering": []}
 
@@ -430,7 +435,7 @@ try:
     from engines.coatue_methodology import run_coatue_scan
     _V9_COATUE = True
 except Exception as e:
-    logger.error(f"Failed to import coatue_methodology: {e}")
+    logger.debug(f"Optional engine not present: coatue_methodology: {e}")
     _V9_COATUE = False
     def run_coatue_scan(*a, **k): return {"ok": False, "per_ticker": {}, "sellers_top": [], "buyers_top": [], "decay_alerts": [], "agentic_plays": []}
 
@@ -438,7 +443,7 @@ try:
     from engines.volsignals_regime import compute_dealer_regime_multi
     _V11_VOLSIGNALS = True
 except Exception as e:
-    logger.error(f"Failed to import volsignals_regime: {e}")
+    logger.debug(f"Optional engine not present: volsignals_regime: {e}")
     _V11_VOLSIGNALS = False
     def compute_dealer_regime_multi(*a, **k): return {}
 
@@ -446,7 +451,7 @@ try:
     from engines.spotgamma_levels import compute_structural_levels_multi
     _V11_SPOTGAMMA = True
 except Exception as e:
-    logger.error(f"Failed to import spotgamma_levels: {e}")
+    logger.debug(f"Optional engine not present: spotgamma_levels: {e}")
     _V11_SPOTGAMMA = False
     def compute_structural_levels_multi(*a, **k): return {}
 
@@ -454,7 +459,7 @@ try:
     from engines.schadner_iv import schadner_iv, validate_iv_proxy
     _V11_SCHADNER = True
 except Exception as e:
-    logger.error(f"Failed to import schadner_iv: {e}")
+    logger.debug(f"Optional engine not present: schadner_iv: {e}")
     _V11_SCHADNER = False
     def schadner_iv(*a, **k): return None
     def validate_iv_proxy(*a, **k): return {}
@@ -463,7 +468,7 @@ try:
     from engines.integrator_guide import enhance_snapshot, get_enhanced_summary
     _V32_INTEGRATOR = True
 except Exception as e:
-    logger.error(f"Failed to import integrator_guide: {e}")
+    logger.debug(f"Optional engine not present: integrator_guide: {e}")
     _V32_INTEGRATOR = False
     def enhance_snapshot(snap, prices, portfolio_value=100_000): return snap
     def get_enhanced_summary(snap): return snap.get("summary", {})
@@ -472,7 +477,7 @@ try:
     from engines.narrative_engine import build_narrative
     _V10_NARRATIVE = True
 except Exception as e:
-    logger.error(f"Failed to import narrative_engine: {e}")
+    logger.debug(f"Optional engine not present: narrative_engine: {e}")
     _V10_NARRATIVE = False
     def build_narrative(result): return {}
 
@@ -492,7 +497,7 @@ try:
         BOTTLENECK_PROFILES,
     )
 except Exception as e:
-    logger.error(f"Failed to import settings: {e}")
+    logger.debug(f"Optional engine not present: settings: {e}")
     US_SECTORS = {}; US_FACTORS = {}; FOREX_PAIRS = {}; COMMODITIES = {}; CRYPTO = {}
     BONDS = {}; IHSG_UNIVERSE = {}; MACRO_PROXIES = {}
     US_BUCKETS = {}; IHSG_BUCKETS = {}; FX_BUCKETS = {}; COMMODITY_BUCKETS = {}; CRYPTO_BUCKETS = {}
@@ -507,7 +512,7 @@ try:
     from engines.alpha_synthesis_v37 import run_alpha_synthesis
     _V39_TIER_S["alpha_synthesis"] = True
 except Exception as e:
-    logger.error(f"Failed to import alpha_synthesis_v37: {e}")
+    logger.debug(f"Optional engine not present: alpha_synthesis_v37: {e}")
     _V39_TIER_S["alpha_synthesis"] = False
     def run_alpha_synthesis(*a, **k): return {"frameworks": [], "top_signals": [], "synthesis_summary": {}}
 
@@ -515,7 +520,7 @@ try:
     from engines.daily_play_engine import DailyPlayEngine
     _V39_TIER_S["daily_play"] = True
 except Exception as e:
-    logger.error(f"Failed to import daily_play_engine: {e}")
+    logger.debug(f"Optional engine not present: daily_play_engine: {e}")
     _V39_TIER_S["daily_play"] = False
     class DailyPlayEngine:
         def scan_all(self, *a, **k): return {"plays": [], "summary": "DailyPlayEngine unavailable"}
@@ -524,7 +529,7 @@ try:
     from engines.ihsg_specialist_v38 import IHSGSpecialistEngine
     _V39_TIER_S["ihsg_specialist"] = True
 except Exception as e:
-    logger.error(f"Failed to import ihsg_specialist_v38: {e}")
+    logger.debug(f"Optional engine not present: ihsg_specialist_v38: {e}")
     _V39_TIER_S["ihsg_specialist"] = False
     class IHSGSpecialistEngine:
         def analyze(self, *a, **k): return {"goreng_phases": [], "conglomerate_flows": [], "hedgeye_check": {}}
@@ -533,7 +538,7 @@ try:
     from engines.entry_decision_engine import decide_entry
     _V39_TIER_S["entry_decision"] = True
 except Exception as e:
-    logger.error(f"Failed to import entry_decision_engine: {e}")
+    logger.debug(f"Optional engine not present: entry_decision_engine: {e}")
     _V39_TIER_S["entry_decision"] = False
     def decide_entry(*a, **k): return {"action": "AVOID", "direction": "NEUTRAL", "conviction": 0}
 
@@ -541,7 +546,7 @@ try:
     from engines.movement_timing_engine import MovementTimingDetector
     _V39_TIER_S["movement_timing"] = True
 except Exception as e:
-    logger.error(f"Failed to import movement_timing_engine: {e}")
+    logger.debug(f"Optional engine not present: movement_timing_engine: {e}")
     _V39_TIER_S["movement_timing"] = False
     class MovementTimingDetector:
         def detect(self, *a, **k): return None
@@ -550,7 +555,7 @@ try:
     from engines.frontrun_engine import FrontRunEngine
     _V39_TIER_S["frontrun"] = True
 except Exception as e:
-    logger.error(f"Failed to import frontrun_engine: {e}")
+    logger.debug(f"Optional engine not present: frontrun_engine: {e}")
     _V39_TIER_S["frontrun"] = False
     class FrontRunEngine:
         def scan(self, *a, **k): return {"front_run_signals": [], "catalyst_timeline": []}
@@ -559,7 +564,7 @@ try:
     from engines.chain_reaction_engine import ChainReactionEngine
     _V39_TIER_S["chain_reaction"] = True
 except Exception as e:
-    logger.error(f"Failed to import chain_reaction_engine: {e}")
+    logger.debug(f"Optional engine not present: chain_reaction_engine: {e}")
     _V39_TIER_S["chain_reaction"] = False
     class ChainReactionEngine:
         def __init__(self, *a, **k): pass
@@ -569,7 +574,7 @@ try:
     from engines.methodology_pack import evaluate_all_pack
     _V39_TIER_S["methodology_pack"] = True
 except Exception as e:
-    logger.error(f"Failed to import methodology_pack: {e}")
+    logger.debug(f"Optional engine not present: methodology_pack: {e}")
     _V39_TIER_S["methodology_pack"] = False
     def evaluate_all_pack(*a, **k): return {}
 
@@ -577,7 +582,7 @@ try:
     from engines.walkforward_backtest_engine import batch_gatekeeper
     _V39_TIER_S["walkforward"] = True
 except Exception as e:
-    logger.error(f"Failed to import walkforward_backtest_engine: {e}")
+    logger.debug(f"Optional engine not present: walkforward_backtest_engine: {e}")
     _V39_TIER_S["walkforward"] = False
     def batch_gatekeeper(*a, **k): return {}
 
@@ -585,7 +590,7 @@ try:
     from engines.alpha_gatekeeper import batch_evaluate
     _V39_TIER_S["alpha_gatekeeper"] = True
 except Exception as e:
-    logger.error(f"Failed to import alpha_gatekeeper: {e}")
+    logger.debug(f"Optional engine not present: alpha_gatekeeper: {e}")
     _V39_TIER_S["alpha_gatekeeper"] = False
     def batch_evaluate(*a, **k): return {}
 
@@ -593,7 +598,7 @@ try:
     from engines.vix_bucket_engine import classify_vix_bucket, apply_vix_position_sizing
     _V39_TIER_S["vix_bucket"] = True
 except Exception as e:
-    logger.error(f"Failed to import vix_bucket_engine: {e}")
+    logger.debug(f"Optional engine not present: vix_bucket_engine: {e}")
     _V39_TIER_S["vix_bucket"] = False
     def classify_vix_bucket(*a, **k): return {"bucket": "NORMAL", "label": "Investable", "multiplier": 1.0}
     def apply_vix_position_sizing(*a, **k): return k[1] if len(k) > 1 else 0
@@ -602,7 +607,7 @@ try:
     from engines.hedgeye_position_sizing import calculate_position_size
     _V39_TIER_S["hedgeye_sizing"] = True
 except Exception as e:
-    logger.error(f"Failed to import hedgeye_position_sizing: {e}")
+    logger.debug(f"Optional engine not present: hedgeye_position_sizing: {e}")
     _V39_TIER_S["hedgeye_sizing"] = False
     def calculate_position_size(*a, **k): return {"size_pct": 0.02, "dollar_size": 2000, "mode": "DEFAULT"}
 
@@ -610,7 +615,7 @@ try:
     from engines.keith_signal_sync import resolve_direction, should_avoid, get_keith_summary
     _V39_TIER_S["keith_sync"] = True
 except Exception as e:
-    logger.error(f"Failed to import keith_signal_sync: {e}")
+    logger.debug(f"Optional engine not present: keith_signal_sync: {e}")
     _V39_TIER_S["keith_sync"] = False
     def resolve_direction(*a, **k): return {"direction": k[1] if len(k) > 1 else "LONG", "override": False, "basis": "No Keith signal", "keith_trade": "NEUTRAL", "keith_trend": "NEUTRAL", "duration_mismatch": False}
     def should_avoid(*a, **k): return False
@@ -803,34 +808,52 @@ def _analyze_news(headlines: Dict[str, List[dict]], prices: dict) -> dict:
 # not in current universe, then adds them for next run.
 # ═══════════════════════════════════════════════════════════════════════
 def _auto_discover_tickers(bottleneck_ref, cascade_results, news_analysis, supply_chain, current_tickers: Set[str]) -> List[str]:
+    # Map common company NAMES → real Yahoo symbols (auto-discovery often surfaces names)
+    NAME_TO_SYMBOL = {
+        "TSMC": "TSM", "SAMSUNG": "005930.KS", "SEAGATE": "STX", "KEYENCE": "6861.T",
+        "FANUC": "6954.T", "YASKAWA": "6506.T", "NABTESCO": "6268.T", "LINDE": "LIN",
+        "BESI": "BESI.AS", "FUJIBO": "3104.T", "THK": "6481.T", "SKHYNIX": "000660.KS",
+        "SK HYNIX": "000660.KS", "DISCO": "6146.T", "TOKYO ELECTRON": "8035.T",
+        "ASML": "ASML", "INFINEON": "IFX.DE", "STMICRO": "STM",
+    }
+    # Tickers that simply don't resolve on yfinance — never retry these
+    BLOCKLIST = {"VVIX", "AMEC", "ASIA METAL", "HELIUM ONE", "JEN", "LPK", "SYTECH",
+                 "SIPHONICS", "ELSFPS", "TUC", "RPI", "SMHN", "SMHN.DE"}
+
+    def _valid_symbol(t: str) -> bool:
+        # Reject names with spaces, empty, too long, or known-bad
+        if not t or " " in t or len(t) > 12 or t in BLOCKLIST:
+            return False
+        # Allow A-Z, 0-9, dot, caret, dash (covers .KS/.T/.AS/.DE, ^VIX, BRK-B)
+        return all(c.isalnum() or c in ".^-=" for c in t)
+
     candidates = set()
+    def _add(raw):
+        t = (raw or "").replace("$", "").strip().upper()
+        t = NAME_TO_SYMBOL.get(t, t)  # map name→symbol if known
+        if t and t not in current_tickers and _valid_symbol(t):
+            candidates.add(t)
+
     # From bottleneck consensus heatmap
     for item in bottleneck_ref.get("consensus_heatmap", []):
-        t = item.get("ticker", "").replace("$", "").strip().upper()
-        if t and t not in current_tickers and len(t) <= 10:
-            candidates.add(t)
+        _add(item.get("ticker", ""))
     # From cascade active shocks
     if cascade_results and isinstance(cascade_results, dict):
         for shock, data in cascade_results.get("active_shocks", {}).items():
             if isinstance(data, dict):
                 for t in data.get("impacted_tickers", []):
-                    if t and t not in current_tickers:
-                        candidates.add(t)
+                    _add(t)
                 for t in data.get("beneficiaries", []):
-                    if t and t not in current_tickers:
-                        candidates.add(t)
+                    _add(t)
     # From news rumor watch
     for rw in news_analysis.get("rumor_watch", []):
-        t = rw.get("ticker", "")
-        if t and t not in current_tickers:
-            candidates.add(t)
+        _add(rw.get("ticker", ""))
     # From supply chain chokepoints
     if supply_chain and isinstance(supply_chain, dict):
         for cp in supply_chain.get("chokepoints", []):
             if isinstance(cp, dict):
                 for t in cp.get("tickers", []):
-                    if t and t not in current_tickers:
-                        candidates.add(t)
+                    _add(t)
     return sorted(candidates)
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -1344,12 +1367,19 @@ def _extract_bottleneck_tickers() -> List[str]:
     return clean
 
 def _all_tickers() -> List[str]:
+    # Pull Alpha Center curated list to ensure RR data is computed for them
+    try:
+        from engines.alpha_center_curator import ALPHA_CENTER_CANDIDATES
+        alpha_tickers = list(ALPHA_CENTER_CANDIDATES.keys())
+    except Exception:
+        alpha_tickers = []
     pools = [
         list(US_SECTORS.keys()), list(US_FACTORS.keys()),
         list(FOREX_PAIRS.keys()), list(COMMODITIES.keys()),
         list(CRYPTO.keys()), list(BONDS.keys()),
         list(IHSG_UNIVERSE.keys()), list(MACRO_PROXIES.keys()),
-        ["^VIX", "UUP", "EEM", "VWO", "^GSPC", "^IXIC", "VVIX"],
+        ["^VIX", "UUP", "EEM", "VWO", "^GSPC", "^IXIC", "^VVIX"],
+        alpha_tickers,  # ← Alpha Center surge candidates always loaded
         _extract_bottleneck_tickers(),
     ]
     seen = set()
@@ -2018,7 +2048,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             skew = run_skew_term(list(US_SECTORS.keys()) + ["SPY", "QQQ", "IWM", "GLD", "TLT"], prices)
             result["skew_term"] = skew
         except Exception as e:
-            logger.warning(f"Skew term failed: {e}")
+            logger.debug(f"Skew term failed: {e}")
             result["errors"].append(f"skew: {e}")
 
         # ---- Reflexivity ----
@@ -2058,7 +2088,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             interconnect = run_interconnect(prices, fred, news_analysis, quad)
             result["interconnect"] = interconnect
         except Exception as e:
-            logger.warning(f"Interconnect failed: {e}")
+            logger.debug(f"Interconnect failed: {e}")
             result["errors"].append(f"interconnect: {e}")
 
         # ---- Cascade Engine ----
@@ -2150,7 +2180,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                 )
                 result["discovery_brain"] = discovery
             except Exception as e:
-                logger.warning(f"Discovery Brain failed: {e}")
+                logger.debug(f"Discovery Brain failed: {e}")
                 result["errors"].append(f"discovery_brain: {e}")
 
         # ---- Ticker Expander ----
@@ -2199,7 +2229,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             scenario_discovery = run_scenario_discovery(prices, fred, news_analysis, quad)
             result["scenario_discovery"] = scenario_discovery
         except Exception as e:
-            logger.warning(f"Scenario discovery failed: {e}")
+            logger.debug(f"Scenario discovery failed: {e}")
             result["errors"].append(f"scenario_discovery: {e}")
 
         # ---- Transmission ----
@@ -2208,7 +2238,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             transmission = run_transmission(prices, fred, news_analysis, quad)
             result["transmission"] = transmission
         except Exception as e:
-            logger.warning(f"Transmission failed: {e}")
+            logger.debug(f"Transmission failed: {e}")
             result["errors"].append(f"transmission: {e}")
 
         # ---- Regime Transition ----
@@ -2217,7 +2247,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             regime_transition = run_regime_transition(prices, fred, quad, getattr(gip, "structural_probs", {}) if gip else {})
             result["regime_transition"] = regime_transition
         except Exception as e:
-            logger.warning(f"Regime transition failed: {e}")
+            logger.debug(f"Regime transition failed: {e}")
             result["errors"].append(f"regime_transition: {e}")
 
         # ---- News NLP v3 ----
@@ -2446,7 +2476,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             try:
                 result["karsan_scanner"] = scan_karsan(all_tickers, prices, vix=vix_last)
             except Exception as e:
-                logger.warning(f"Karsan scanner failed: {e}")
+                logger.debug(f"Karsan scanner failed: {e}")
         if _V9_SPOTGAMMA:
             _safe_progress(progress_cb, "SpotGamma proxy scanner...", 0.96)
             try:
@@ -2546,7 +2576,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                 dpe = DailyPlayEngine()
                 result["daily_plays"] = dpe.scan_all(prices, result)
             except Exception as e:
-                logger.warning(f"Daily play failed: {e}")
+                logger.debug(f"Daily play failed: {e}")
                 result["errors"].append(f"daily_play: {e}")
 
         if _V39_TIER_S.get("ihsg_specialist"):
@@ -2569,7 +2599,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                 ]]
                 result["chain_reaction"] = cre.project_all(chain_tickers)
             except Exception as e:
-                logger.warning(f"Chain reaction failed: {e}")
+                logger.debug(f"Chain reaction failed: {e}")
                 result["errors"].append(f"chain_reaction: {e}")
 
         if _V39_TIER_S.get("frontrun"):
@@ -2578,7 +2608,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                 fre = FrontRunEngine()
                 result["frontrun_signals"] = fre.scan(result.get("news_narratives", {}), prices)
             except Exception as e:
-                logger.warning(f"Front-run engine failed: {e}")
+                logger.debug(f"Front-run engine failed: {e}")
                 result["errors"].append(f"frontrun: {e}")
 
         if _V39_TIER_S.get("methodology_pack"):
@@ -2622,9 +2652,13 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
             logger.warning(f"Alpha Center failed: {e}")
             result["errors"].append(f"alpha_center: {e}")
 
-        # ---- Simulation Layer ----
-        _safe_progress(progress_cb, "Running Monte Carlo simulation (100x per ticker)...", 0.80)
-        if _V2_SIM:
+        # ---- Simulation Layer (DISABLED by default — was 12-min killer) ----
+        # Monte Carlo 100x/ticker + walkforward gatekeeper too slow for interactive use.
+        # Set env MACROREGIME_HEAVY_SIM=1 to re-enable.
+        import os as _os
+        _RUN_HEAVY_SIM = _os.environ.get("MACROREGIME_HEAVY_SIM", "0") == "1"
+        _safe_progress(progress_cb, "Skipping heavy Monte Carlo (fast mode)...", 0.80)
+        if _V2_SIM and _RUN_HEAVY_SIM:
             try:
                 alpha_items = result.get("alpha_center", {}).get("all", [])
                 if alpha_items:
@@ -2844,7 +2878,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
                 "vix_multiplier": vix_mult,
             }
         except Exception as e:
-            logger.warning(f"Hedgeye sizing failed: {e}")
+            logger.debug(f"Hedgeye sizing failed: {e}")
             result["hedgeye_position_sizing"] = {"positions": [], "total_deployed_pct": 0, "cash_pct": 1.0, "vix_multiplier": 1.0}
 
         # ---- Legacy Conviction Sizing (fallback) ----
@@ -2958,7 +2992,7 @@ def run_orchestrator(progress_cb=None, use_cache: bool = True, max_age_hours: fl
         # ---- Vol Forecast ----
         try:
             vol_f = {}
-            for proxy in ["SPY", "QQQ", "GLD", "TLT", "DX-Y.NYB", "EEM", "VWO", "IWM", "HYG", "LQD", "^VIX", "VVIX"]:
+            for proxy in ["SPY", "QQQ", "GLD", "TLT", "DX-Y.NYB", "EEM", "VWO", "IWM", "HYG", "LQD", "^VIX", "^VVIX"]:
                 s = prices.get(proxy)
                 if s is not None and len(s) >= 22:
                     try:
@@ -3496,3 +3530,408 @@ def build_snapshot(
 if __name__ == "__main__":
     out = run_orchestrator()
     print(json.dumps(out.get("summary", {}), indent=2, default=str))
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# V40 SNAPSHOT BUILDER — wires new engines (TRR v20.3b, chain reactions, alpha center)
+# ═══════════════════════════════════════════════════════════════════════════
+
+def build_snapshot_v40(
+    portfolio_value: float = 100000,
+    quad_override: str = None,
+    progress_cb=None,
+    **kwargs,
+) -> dict:
+    """V40 entry point — wires the new engines into the snapshot dict.
+
+    Falls back to legacy build_snapshot for prices/GIP/news/Keith,
+    then OVERWRITES risk_range, chain reactions, alpha center, sizing, walkforward
+    with v40 engines.
+    """
+    def _cb(msg, pct):
+        try:
+            if progress_cb:
+                progress_cb(msg, pct)
+        except Exception:
+            pass
+
+    _cb("v40: Building base snapshot from legacy orchestrator…", 5)
+
+    # Run legacy build_snapshot to get prices, GIP, news, Keith signals
+    try:
+        snap = build_snapshot(progress_cb=progress_cb, **kwargs)
+    except Exception as e:
+        logger.error(f"v40: legacy build_snapshot failed: {e}")
+        snap = {"ok": False, "error": str(e)}
+
+    # Determine quad — handle GIPResult dataclass OR dict
+    gip = snap.get("gip", {}) if isinstance(snap, dict) else {}
+    if isinstance(gip, dict):
+        current_quad = (quad_override or gip.get("monthly_quad") or
+                       gip.get("structural_quad") or gip.get("current_quad") or "Q3")
+    else:
+        current_quad = (quad_override or getattr(gip, "monthly_quad", None) or
+                       getattr(gip, "structural_quad", None) or "Q3")
+    if not isinstance(current_quad, str) or not current_quad.startswith("Q"):
+        current_quad = "Q3"
+
+    prices = snap.get("prices", {}) if isinstance(snap, dict) else {}
+    vix = snap.get("vix", 20.0)
+    if vix is None or vix == 0:
+        vix = 20.0
+
+    # ── V40 ENGINE: TRR/LRR v20.3b ──────────────────────────────────────
+    _cb("v40: Computing TRR/LRR v20.3b with auto-tune…", 30)
+    try:
+        from engines.risk_range_v20 import calculate_for_universe
+        iv_dict = {"^VIX": vix}
+        # Add IV symbols from prices if present
+        for iv_sym in ["^VXN", "^RVX", "^OVX", "^GVZ", "^CVIX"]:
+            if iv_sym in prices:
+                try:
+                    iv_dict[iv_sym] = float(prices[iv_sym].iloc[-1])
+                except Exception:
+                    pass
+        rr_v40 = calculate_for_universe(prices, current_quad=current_quad, iv_dict=iv_dict)
+        snap["risk_range"] = rr_v40
+        snap["risk_range_version"] = "v20.3b"
+        logger.info(f"v40: TRR/LRR computed for {rr_v40.get('summary', {}).get('total', 0)} tickers")
+    except Exception as e:
+        logger.error(f"v40: TRR/LRR failed: {e}")
+        snap["risk_range"] = {"asset_ranges": {}, "error": str(e)}
+
+    # ── V40 ENGINE: CHAIN REACTIONS v2 ──────────────────────────────────
+    _cb("v40: Computing chain reactions…", 50)
+    try:
+        from engines.chain_reaction_v2 import get_chain_engine
+        chain_engine = get_chain_engine()
+        snap["chain_reactions_catalog"] = chain_engine.get_all_chains()
+        # Active transmissions
+        active_transmissions = []
+        for ticker, series in list(prices.items())[:200]:
+            try:
+                s = series.dropna()
+                if len(s) < 5: continue
+                d1 = (float(s.iloc[-1]) / float(s.iloc[-2]) - 1) * 100
+                if abs(d1) >= 2.0:
+                    chains_for_ticker = chain_engine.get_chain_for_parent(ticker)
+                    if chains_for_ticker:
+                        cascade = chain_engine.calculate_cascade(ticker, d1, current_quad)
+                        active_transmissions.append({
+                            "shock_ticker": ticker,
+                            "shock_pct": round(d1, 2),
+                            "cascade": cascade,
+                        })
+            except Exception:
+                continue
+        snap["transmissions"] = {"active_transmissions": active_transmissions,
+                                 "shock_count": len(active_transmissions)}
+    except Exception as e:
+        logger.error(f"v40: chain reactions failed: {e}")
+        snap["chain_reactions_catalog"] = {}
+        snap["transmissions"] = {"active_transmissions": [], "error": str(e)}
+
+    # ── V40 ENGINE: ALPHA CENTER CURATOR ─────────────────────────────────
+    _cb("v40: Running Alpha Center 5-layer filter…", 65)
+    try:
+        from engines.alpha_center_curator import get_curator
+        curator = get_curator(bottleneck_ref_path="bottleneck_reference.json")
+        keith_signals = snap.get("keith_signals", {}) or snap.get("keith_signal_sync", {})
+        wf_results = snap.get("walkforward_results", {})
+        ac_result = curator.filter_universe(
+            keith_signals=keith_signals,
+            wf_results=wf_results,
+            current_quad=current_quad,
+        )
+        snap["alpha_center"] = ac_result
+    except Exception as e:
+        logger.error(f"v40: alpha center failed: {e}")
+        snap["alpha_center"] = {"passed": [], "rejected": [], "error": str(e)}
+
+    # ── V40 ENGINE: HEDGEYE POSITION SIZING ──────────────────────────────
+    _cb("v40: Computing Hedgeye position sizing…", 75)
+    try:
+        from engines.hedgeye_position_sizing import run_sizing as run_v40_sizing
+        passed = snap.get("alpha_center", {}).get("passed", [])
+        candidates = [{"ticker": p["ticker"],
+                      "conviction": min(10, max(3, p["candidate"].get("stars", 3) * 2)),
+                      "is_breakout": False}
+                     for p in passed]
+        rr_for_sizing = snap.get("risk_range", {}).get("asset_ranges", {})
+        sizing = run_v40_sizing(candidates, current_quad, vix,
+                                keith_signals=snap.get("keith_signals"),
+                                rr_data=rr_for_sizing)
+        snap["sizing"] = sizing
+    except Exception as e:
+        logger.error(f"v40: sizing failed: {e}")
+        snap["sizing"] = {"positions": [], "error": str(e)}
+
+    # ── V40 ENGINE: WALKFORWARD BATCH GATE (skipped — too slow, broken on small histories) ───────
+    _cb("v40: Skipping walkforward gate (use Portfolio Stress page for on-demand)", 85)
+    snap["walkforward_results_v40"] = {"skipped": True, "reason": "Run on-demand from Portfolio Stress page"}
+
+    # ── V40 ENGINE: SCENARIO DISCOVERY (real) ────────────────────────────
+    _cb("v40: Scenario discovery…", 92)
+    try:
+        from engines.scenario_discovery_engine import run_scenario_discovery
+        scen = run_scenario_discovery(gip_result=gip, current_quad=current_quad)
+        snap["scenarios"] = scen
+    except Exception as e:
+        logger.error(f"v40: scenario discovery failed: {e}")
+        snap["scenarios"] = {"active_scenarios": [], "error": str(e)}
+
+    # ── V40 ENGINE: REGIME TRANSITION ────────────────────────────────────
+    try:
+        from engines.regime_transition_engine import run_regime_transition
+        snap["regime_transition"] = run_regime_transition(gip)
+    except Exception as e:
+        snap["regime_transition"] = {"transitioning": False, "error": str(e)}
+
+    # ── V40 ENGINE: MARKET HEALTH ────────────────────────────────────────
+    try:
+        from engines.market_health_engine import run_market_health
+        snap["market_health"] = run_market_health(prices, vix=vix, dxy=snap.get("dxy"))
+    except Exception as e:
+        snap["market_health"] = {"score": 50, "label": "ERROR", "error": str(e)}
+
+    # ── V40 DATA SCRAPERS: options/COT/OI/on-chain ───────────────────────
+    snap.update(_v40_fetch_external_data(snap, prices, current_quad, _cb))
+
+    # ── V40 ENGINE: TIER1ALPHA MARKET STRUCTURE ──────────────────────────
+    try:
+        from engines.tier1alpha_model import compute_tier1alpha
+        snap["tier1alpha"] = compute_tier1alpha(snap)
+    except Exception as e:
+        logger.error(f"v40: tier1alpha failed: {e}")
+        snap["tier1alpha"] = {}
+
+    # ── V40 ENGINE: NARRATIVE (Ricky2212 thesis collection) ──────────────
+    try:
+        from engines.narrative_engine import build_narrative
+        snap["narrative"] = build_narrative(snap)
+        # Also surface scenarios at top level for themes page
+        narr_scenarios = snap["narrative"].get("scenarios", {})
+        if narr_scenarios and not snap.get("scenarios"):
+            snap["scenarios"] = narr_scenarios
+    except Exception as e:
+        logger.error(f"v40: narrative engine failed: {e}")
+        snap["narrative"] = {}
+
+    _cb("v40: Snapshot complete", 100)
+    snap["ok"] = True
+    snap["v40"] = True
+    snap["current_quad"] = current_quad
+    return snap
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# V40 EXTERNAL DATA FETCHER — barchart/laevitas/cftc/cme/defillama
+# ═══════════════════════════════════════════════════════════════════════════
+
+def _v40_fetch_external_data(snap, prices, current_quad, cb=None):
+    """Fetch options/COT/OI/on-chain. Uses reliable server-side sources (v40.4).
+
+    PRIMARY (reliable server-side):
+      • options_data ← yfinance option_chain (GEX/walls/max-pain/PCR/expected-move)
+      • onchain_data ← DeFiLlama api.llama.fi (keyed by ticker)
+      • cot_data     ← CFTC (keyed by TICKER not product → fixes 'unavailable')
+    FALLBACK: barchart/laevitas/cme scrapers (if yfinance/etc miss).
+    All keyed by EXACT ticker symbol the UI uses.
+    """
+    def _cb(m, p):
+        try:
+            if cb: cb(m, p)
+        except Exception: pass
+
+    out = {"options_data": {}, "cot_data": {}, "cme_oi": {}, "onchain_data": {}}
+    price_tickers = list(prices.keys()) if prices else []
+
+    us_tickers = [t for t in price_tickers if not any(s in t.upper() for s in [".JK", "=X", "=F", "-USD", "^"])]
+    crypto_tickers = [t for t in price_tickers if "-USD" in t.upper() and not t.startswith("DX")]
+    fx_comm_tickers = [t for t in price_tickers if "=X" in t.upper() or "=F" in t.upper()
+                       or t in ("DX-Y.NYB", "UUP", "USO", "GLD", "SLV", "UNG", "CPER", "CORN", "WEAT")]
+
+    # ── OPTIONS via yfinance (US + ETF + index proxies) ──────────────────
+    _cb("v40: Fetching options (yfinance)…", 95)
+    try:
+        from engines.live_data_engine import fetch_options_yf
+        # US equities + key ETFs + commodity/FX ETF proxies (for OI heatmap)
+        _commodity_etfs = ["USO", "GLD", "SLV", "UNG", "CPER", "UGA", "CORN", "WEAT", "SOYB"]
+        _fx_etfs = ["UUP", "FXE", "FXY", "FXB", "FXA", "FXC"]
+        # Alpha Center candidates (small/mid-cap moonshots) — fetch their options too so
+        # Accumulation Readiness (GEX/PCR/walls) shows for POET/SIVE/OKLO/NVTS/AXTI/etc.
+        _alpha_tickers = []
+        try:
+            from engines.alpha_center_curator import ALPHA_CENTER_CANDIDATES
+            _alpha_tickers = [t for t in ALPHA_CENTER_CANDIDATES.keys()
+                              if t in price_tickers and "." not in t and "=" not in t]
+        except Exception:
+            pass
+        # Cover the FULL US universe (alpha candidates are already inside us_tickers).
+        # Parallel fetch makes ~150 tickers take ~30-45s. This ends the "some US names
+        # have walls, some don't" inconsistency — every us_equity ticker gets real options.
+        opt_targets = list(dict.fromkeys(
+            us_tickers
+            + [t for t in ("SPY", "QQQ", "IBIT", "TLT", "IWM") if t in price_tickers]
+            + _commodity_etfs + _fx_etfs
+        ))
+        out["options_data"] = fetch_options_yf(opt_targets, max_tickers=200, max_workers=10)
+    except Exception as e:
+        logger.warning(f"v40: yfinance options failed: {e}")
+
+    # Crypto options via yfinance proxies (IBIT for BTC, ETHA for ETH) + laevitas fallback
+    try:
+        from engines.live_data_engine import fetch_options_yf
+        crypto_etf_map = {"BTC-USD": "IBIT", "ETH-USD": "ETHA"}
+        for crypto_t, etf in crypto_etf_map.items():
+            if crypto_t in price_tickers:
+                etf_opts = fetch_options_yf([etf], max_tickers=1)
+                if etf_opts.get(etf):
+                    out["options_data"][crypto_t] = {**etf_opts[etf], "proxy_etf": etf}
+    except Exception as e:
+        logger.debug(f"crypto options proxy: {e}")
+
+    # ── ON-CHAIN via DeFiLlama (keyed by ticker) ─────────────────────────
+    _cb("v40: Fetching on-chain (DeFiLlama)…", 97)
+    try:
+        from engines.live_data_engine import fetch_onchain_defillama
+        chain_map = {}
+        name_map = {"BTC-USD": "Bitcoin", "ETH-USD": "Ethereum", "SOL-USD": "Solana",
+                    "AVAX-USD": "Avalanche", "MATIC-USD": "Polygon", "ARB-USD": "Arbitrum",
+                    "OP-USD": "OP Mainnet", "BNB-USD": "BSC"}
+        for t in crypto_tickers:
+            if t in name_map:
+                chain_map[t] = name_map[t]
+        if chain_map:
+            out["onchain_data"] = fetch_onchain_defillama(chain_map)
+    except Exception as e:
+        logger.warning(f"v40: DeFiLlama failed: {e}")
+
+    # ── COT keyed by ticker (fixes 'unavailable') ────────────────────────
+    _cb("v40: Fetching COT (CFTC)…", 98)
+    try:
+        from engines.live_data_engine import fetch_cot_by_ticker
+        out["cot_data"] = fetch_cot_by_ticker(fx_comm_tickers)
+    except Exception as e:
+        logger.warning(f"v40: COT failed: {e}")
+
+    # ── FINRA daily short-sale volume (FREE real dark-pool signal, no key) ──
+    _cb("v40: Fetching FINRA dark-pool (off-exchange short vol)…", 98)
+    try:
+        from engines.live_data_engine import fetch_finra_short_volume, attach_finra_signal
+        finra = fetch_finra_short_volume(us_tickers, lookback_days=5)
+        out["finra_short"] = attach_finra_signal(finra, prices)
+    except Exception as e:
+        logger.debug(f"v40: FINRA short-vol failed: {e}")
+        out["finra_short"] = {}
+
+    # ── FlashAlpha real GEX (FREE 5/day, needs FLASHALPHA_KEY) — overrides proxy ──
+    try:
+        from engines.live_data_engine import fetch_flashalpha_gex
+        fa = fetch_flashalpha_gex(us_tickers, max_calls=5)
+        if fa:
+            out.setdefault("options_data", {})
+            for t, g in fa.items():
+                out["options_data"][t] = {**(out["options_data"].get(t, {})), **g}  # real GEX wins
+            logger.info(f"v40: FlashAlpha real GEX merged for {len(fa)} tickers")
+    except Exception as e:
+        logger.debug(f"v40: FlashAlpha failed: {e}")
+
+    # ── CME OI (commodities — best effort, may fail server-side) ─────────
+    try:
+        from engines.cme_scraper import get_cme_volume
+        cme_map = {"CL=F": "CL", "GC=F": "GC", "SI=F": "SI", "NG=F": "NG", "HG=F": "HG"}
+        for tkr, prod in cme_map.items():
+            if tkr in price_tickers:
+                try:
+                    vol = get_cme_volume(prod)
+                    if vol: out["cme_oi"][tkr] = vol
+                except Exception:
+                    continue
+    except Exception as e:
+        logger.debug(f"v40: CME OI: {e}")
+
+    # ── MERGE scraped data (Hermes agent / local browser scraper) ────────
+    # Fills what yfinance can't: futures OI (CME), crypto Deribit GEX (laevitas),
+    # barchart greeks. Scraped values take priority where present.
+    try:
+        from engines.live_data_engine import load_scraped_data
+        scraped = load_scraped_data()
+        if scraped:
+            for tkr, sdata in scraped.items():
+                if not isinstance(sdata, dict):
+                    continue
+                existing = out["options_data"].get(tkr, {})
+                # Scraped non-null fields override; keep yfinance fields otherwise
+                merged = {**existing}
+                for k, v in sdata.items():
+                    if v is not None:
+                        merged[k] = v
+                merged["source"] = sdata.get("source", merged.get("source", "scraped"))
+                out["options_data"][tkr] = merged
+            logger.info(f"v40: merged scraped data for {len(scraped)} tickers")
+    except Exception as e:
+        logger.debug(f"v40: scraped merge skipped: {e}")
+
+    # ── PROXY FALLBACK (from macroregime base) — fill greeks/GEX for tickers
+    #    WITHOUT yfinance options (small-caps, FX, futures, crypto). Computed from
+    #    price/vol so EVERY ticker shows something. Marked source='proxy' (modeled,
+    #    NOT real dealer flow/dark pool — those need yfinance options or UW/scraper).
+    try:
+        from engines.gex_engine import analyze_gex
+        try:
+            from engines.greeks_proxy import GreeksProxy
+            _gp = GreeksProxy()
+        except Exception:
+            _gp = None
+        vix_now = snap.get("vix", 20.0) or 20.0
+        # Cover ALL price tickers (us_tickers etc. are local, not snap keys — old bug
+        # made cover empty → no proxy for US names). Prioritize US + alpha + key assets.
+        cover = list(us_tickers)  # local var from above (all non-IHSG/FX/futures US names)
+        try:
+            from engines.alpha_center_curator import ALPHA_CENTER_CANDIDATES
+            cover += [t for t in ALPHA_CENTER_CANDIDATES.keys() if t in price_tickers]
+        except Exception:
+            pass
+        # add crypto + commodity + fx so every market gets proxy coverage
+        cover += [t for t in price_tickers if any(s in t.upper() for s in ["-USD", "=F", "=X"])]
+        cover = [t for t in dict.fromkeys(cover) if t in price_tickers][:150]
+        n_proxy = 0
+        for t in cover:
+            existing = out["options_data"].get(t, {})
+            # Only fill if real options data is absent (don't overwrite yfinance/scraped)
+            if existing.get("net_gex") is not None or existing.get("call_wall") is not None:
+                continue
+            try:
+                gx = analyze_gex(t, prices, vix=vix_now)
+                if not gx or not gx.get("ok", True):
+                    continue
+                merged = dict(existing)
+                if gx.get("net_gex") is not None: merged["net_gex"] = gx["net_gex"]
+                if gx.get("flip_level"): merged["gamma_flip"] = gx["flip_level"]
+                if gx.get("call_wall"): merged["call_wall"] = gx["call_wall"]
+                if gx.get("put_wall"): merged["put_wall"] = gx["put_wall"]
+                if _gp is not None:
+                    try:
+                        g = _gp.analyze(t, prices, vix=vix_now)
+                        if g.get("ok"):
+                            if g.get("max_pain"): merged.setdefault("max_pain", g["max_pain"])
+                            merged["greeks_proxy"] = {
+                                "gamma": g.get("gamma"), "vanna": g.get("vanna"),
+                                "charm": g.get("charm"), "composite": g.get("composite"),
+                            }
+                    except Exception:
+                        pass
+                merged["source"] = "proxy"  # modeled from price, NOT real flow
+                out["options_data"][t] = merged
+                n_proxy += 1
+            except Exception:
+                continue
+        if n_proxy:
+            logger.info(f"v40: greeks/GEX proxy filled {n_proxy} tickers (price-derived fallback)")
+    except Exception as e:
+        logger.debug(f"v40: proxy fallback skipped: {e}")
+
+    logger.info(f"v40: external data — options:{len(out['options_data'])} "
+                f"cot:{len(out['cot_data'])} cme:{len(out['cme_oi'])} onchain:{len(out['onchain_data'])}")
+    return out

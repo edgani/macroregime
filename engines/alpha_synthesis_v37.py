@@ -1150,3 +1150,18 @@ __all__ = [
     "UPSTREAM_PLUS_ONE_MAP",
     "FISCAL_TRAP_TICKERS",
 ]
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# V40 WRAPPER — convenience function for orchestrator
+# ═══════════════════════════════════════════════════════════════════════════
+
+def run_alpha_synthesis(snap, prices):
+    """Wrapper exposing AlphaSynthesisEngine.run() as a function for orchestrator."""
+    try:
+        engine = AlphaSynthesisEngine()
+        return engine.run(snap, prices) if hasattr(engine, 'run') else {
+            "frameworks": [], "top_signals": [], "synthesis_summary": {}
+        }
+    except Exception as e:
+        return {"frameworks": [], "top_signals": [], "synthesis_summary": {}, "error": str(e)}

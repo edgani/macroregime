@@ -580,3 +580,82 @@ def generate_quad_sequencing(snap: Dict) -> Dict:
         "path_dependencies": path_deps,
         "hedgeye_aligned": True,
     }
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# NEXT-QUAD PLAYBOOK — position AHEAD of the transition (Keith's storm-prep)
+# Synthesizes Hedgeye quad→asset rotation + Ricky-style bottleneck thesis pattern
+# so we're positioned BEFORE the regime shift, not reacting after.
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Hedgeye-backtested quad → asset/sector winners & losers
+_QUAD_PLAYBOOK = {
+    "Q1_GOLDILOCKS": {  # growth↑ inflation↓
+        "label": "Q1 Goldilocks (growth↑ infl↓)",
+        "into": ["Tech/Nasdaq (XLK, QQQ)", "Consumer Disc (XLY)", "growth & high-beta", "BTC/crypto", "long-duration growth"],
+        "out": ["Energy (XLE)", "defensives (XLU/XLP)", "USD cash", "commodities"],
+        "factor": "Momentum + Growth + High Beta",
+    },
+    "Q2_REFLATION": {  # growth↑ inflation↑
+        "label": "Q2 Reflation (growth↑ infl↑)",
+        "into": ["Energy (XLE)", "Materials (XLB)", "Industrials (XLI)", "commodities (oil/copper)", "EM equities (EEM)", "small-caps (IWM)", "Tech that's a bottleneck"],
+        "out": ["long bonds (TLT)", "utilities (XLU)", "staples (XLP)", "USD"],
+        "factor": "High Beta + Cyclical + Inflation-leverage",
+    },
+    "Q3_STAGFLATION": {  # growth↓ inflation↑
+        "label": "Q3 Stagflation (growth↓ infl↑)",
+        "into": ["Gold (GLD)", "Energy (XLE)", "Utilities (XLU)", "commodities", "TIPS", "Consumer Staples (XLP)", "low-vol/quality"],
+        "out": ["Tech/growth (XLK)", "Consumer Disc (XLY)", "small-caps", "high-beta", "long bonds early"],
+        "factor": "Low Beta + Quality + Inflation-hedge",
+    },
+    "Q4_DEFLATION": {  # growth↓ inflation↓
+        "label": "Q4 Deflation (growth↓ infl↓)",
+        "into": ["Long Treasuries (TLT)", "Utilities (XLU)", "Staples (XLP)", "USD (UUP)", "Healthcare (XLV)", "low-beta/min-vol"],
+        "out": ["Energy (XLE)", "Materials", "small-caps", "high-beta", "cyclicals", "commodities"],
+        "factor": "Defensive + Long-Duration Bonds + USD",
+    },
+}
+
+
+def generate_next_quad_playbook(snap: Dict) -> Dict:
+    """Position AHEAD of the next quad. Returns rotate-into / rotate-out-of lists
+    plus the trigger to watch — so we set up before the transition (Keith storm-prep)."""
+    seq = generate_quad_sequencing(snap)
+    markov = snap.get("markov_v3", {}) or {}
+    current = markov.get("current_regime", "UNKNOWN")
+    fc_3m = markov.get("forecast_3m", {}) or {}
+
+    # Next quad = highest-prob non-current in 3M forecast
+    nxt, nxt_p = None, 0.0
+    for q, p in fc_3m.items():
+        if q != current and p > nxt_p:
+            nxt, nxt_p = q, p
+
+    cur_pb = _QUAD_PLAYBOOK.get(current, {})
+    nxt_pb = _QUAD_PLAYBOOK.get(nxt, {}) if nxt else {}
+
+    # What to ADD ahead: next-quad winners that are ALSO current-quad losers = early rotation edge
+    rotate_in = nxt_pb.get("into", [])
+    rotate_out = nxt_pb.get("out", [])
+    # Names to start accumulating early (next-quad winners not yet bid because still current quad)
+    early_edge = [x for x in nxt_pb.get("into", []) if x in cur_pb.get("out", [])]
+
+    storm_or_opp = None
+    if nxt in ("Q3_STAGFLATION", "Q4_DEFLATION"):
+        storm_or_opp = "🌪️ STORM — defensive rotation; de-risk high-beta BEFORE the shift"
+    elif nxt in ("Q1_GOLDILOCKS", "Q2_REFLATION"):
+        storm_or_opp = "🌤️ OPPORTUNITY — risk-on rotation; accumulate cyclicals/growth early"
+
+    return {
+        "current_quad": cur_pb.get("label", current),
+        "next_quad": nxt_pb.get("label", nxt) if nxt else None,
+        "next_prob": nxt_p,
+        "transition_eta": seq.get("transition_eta") or seq.get("eta"),
+        "storm_or_opportunity": storm_or_opp,
+        "rotate_into": rotate_in,
+        "rotate_out_of": rotate_out,
+        "early_rotation_edge": early_edge,  # next-quad winners that are current-quad laggards
+        "next_quad_factor": nxt_pb.get("factor"),
+        "trigger": seq.get("trigger") or seq.get("narrative_lines", []),
+        "stag_on_lag": seq.get("stag_on_lag", False),
+    }

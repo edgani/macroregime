@@ -1,33 +1,116 @@
-"""hedgeye_position_sizing.py - Exact Hedgeye Sizing v39
-2-6% max per equity, 10-20% max per ETF, 50-100bps adds
+"""hedgeye_position_sizing.py — VIX-bucket × Quad-fit × Conviction sizing v40
+
+Real implementation (replaces stub). Hedgeye public methodology:
+  Base: 50-100 bps inception, 150-200 bps breakout
+  VIX bucket: Investable (9-18) 1.0×, Chop (18-29) 0.5×, F-bucket (29+) 0.1×
+  Quad fit: GREAT 1.0, GOOD 0.7, NEUTRAL 0.4, BAD 0.1, AVOID 0
+  Conviction (1-10): linear 0.10-1.00
+  Distance-to-LRR bonus: ≤2% → +30bp, ≤5% → +15bp
+  Keith TRADE BEARISH override → block
 """
+from typing import Dict, Optional, List
+import logging
+logger = logging.getLogger(__name__)
 
-def calculate_position_size(ticker, conviction, vix_bucket, quad, portfolio_value, existing_exposure):
-    """Calculate position size per Hedgeye methodology."""
-    vix_mult = vix_bucket.get("multiplier", 1.0) if vix_bucket else 1.0
+QUAD_SECTOR_FIT = {
+    "Q1": {
+        "GREAT": ["XLK", "QQQ", "IGV", "SOXX", "XLY", "XLC", "XBI", "XHB"],
+        "GOOD": ["NVDA", "META", "AMZN", "GOOG", "AAPL", "MSFT", "TSLA", "AMD", "AVGO", "MU"],
+        "AVOID": ["XLU", "XLP", "TLT", "GLD", "VNQ"],
+    },
+    "Q2": {
+        "GREAT": ["XLE", "XLF", "XLI", "XOP", "OIH", "XLB", "IWM", "EFA"],
+        "GOOD": ["JPM", "BAC", "GS", "FCX", "CAT", "DE", "MU", "AVGO", "MEDC.JK", "ADRO.JK"],
+        "AVOID": ["TLT", "XLP", "GLD"],
+    },
+    "Q3": {
+        "GREAT": ["XLE", "GLD", "GDX", "XME", "DBC", "USO", "UNG", "PALL", "CL=F", "GC=F"],
+        "GOOD": ["FCX", "NEM", "CCJ", "MOS", "CF", "VLO", "OXY", "FRO", "STNG"],
+        "AVOID": ["XLY", "IYC", "ITB", "XHB"],
+    },
+    "Q4": {
+        "GREAT": ["UUP", "TLT", "XLU", "XLP", "GLD", "MUB", "AGG"],
+        "GOOD": ["VZ", "T", "WMT", "KO", "PG", "PEP", "NEE"],
+        "AVOID": ["JNK", "HYG", "IWM", "EEM", "XLE", "XLF"],
+    },
+}
 
-    # Base size: 2% min, 6% max per equity
-    base_pct = 0.02
-    max_pct = 0.06
+def get_quad_fit(ticker: str, quad: str) -> str:
+    q = QUAD_SECTOR_FIT.get(quad, {})
+    if ticker in q.get("GREAT", []): return "GREAT"
+    if ticker in q.get("GOOD", []): return "GOOD"
+    if ticker in q.get("AVOID", []): return "AVOID"
+    opp = {"Q1": "Q4", "Q4": "Q1", "Q2": "Q3", "Q3": "Q2"}.get(quad)
+    if opp and ticker in QUAD_SECTOR_FIT.get(opp, {}).get("GREAT", []):
+        return "BAD"
+    return "NEUTRAL"
 
-    # Conviction adjustment
-    size_pct = base_pct + (max_pct - base_pct) * conviction
-    size_pct *= vix_mult
+def get_vix_bucket(vix: float) -> Dict:
+    if vix < 18:
+        return {"bucket": "INVESTABLE", "multiplier": 1.0, "label": "🟢 Investable (9-18)"}
+    if vix < 29:
+        return {"bucket": "CHOP", "multiplier": 0.5, "label": "🟡 Chop (18-29)"}
+    return {"bucket": "F_BUCKET", "multiplier": 0.10, "label": "🔴 F-bucket (29+)"}
 
-    # Cap at max
-    size_pct = min(size_pct, max_pct)
+def calculate_position_size(ticker, quad, vix, conviction=5, rr_data=None,
+                             keith_signal=None, is_breakout=False):
+    base = 175 if is_breakout else 75
+    vix_d = get_vix_bucket(vix)
+    fit = get_quad_fit(ticker, quad)
+    fit_mult = {"GREAT": 1.0, "GOOD": 0.70, "NEUTRAL": 0.40, "BAD": 0.10, "AVOID": 0.0}.get(fit, 0.40)
+    conv = max(1, min(10, conviction)) / 10.0
 
-    # Dollar size
-    dollar_size = portfolio_value * size_pct
+    dist_bonus = 0
+    if rr_data and "trade" in rr_data:
+        px = rr_data.get("px", 0); lrr = rr_data["trade"].get("lrr", 0)
+        if px > 0 and lrr > 0:
+            d = (px - lrr) / px * 100
+            if 0 < d <= 2.0: dist_bonus = 30
+            elif d <= 5.0: dist_bonus = 15
 
-    # Mode
-    mode = "CONVICTION_HIGH" if conviction >= 0.8 else "CONVICTION_MED" if conviction >= 0.5 else "DEFAULT"
+    keith_block = False; keith_boost = 1.0
+    if keith_signal:
+        sig = keith_signal.get("TRADE", keith_signal.get("trade", "NEUTRAL"))
+        if isinstance(sig, str):
+            if sig.upper() == "BEARISH": keith_block = True
+            elif sig.upper() == "BULLISH": keith_boost = 1.10
 
-    return {
-        "size_pct": round(size_pct, 4),
-        "dollar_size": round(dollar_size, 2),
-        "mode": mode,
-        "max_equity_pct": max_pct,
-        "vix_multiplier": vix_mult,
-        "conviction": conviction,
-    }
+    if keith_block:
+        return {"ticker": ticker, "bps": 0, "blocked": True,
+                "reason": "Keith TRADE BEARISH", "quad_fit": fit,
+                "vix_bucket": vix_d["bucket"]}
+
+    bps = int(base * vix_d["multiplier"] * fit_mult * conv * keith_boost + dist_bonus)
+    bps = max(0, min(bps, 250))
+
+    if bps >= 150: tier = "🔵 FULL"
+    elif bps >= 75: tier = "🟢 HALF"
+    elif bps >= 25: tier = "🟡 QUARTER"
+    elif bps > 0: tier = "⚪ MINIMAL"
+    else: tier = "❌ NONE"
+
+    return {"ticker": ticker, "bps": bps, "blocked": False, "tier": tier,
+            "quad_fit": fit, "vix_bucket": vix_d["bucket"],
+            "vix_bucket_label": vix_d["label"], "is_breakout": is_breakout,
+            "distance_bonus": dist_bonus,
+            "explanation": f"{base}bp × {vix_d['multiplier']}vix × {fit_mult}({fit}) × {conv}conv × {keith_boost}Keith + {dist_bonus}dist = {bps}bp"}
+
+def run_sizing(candidates, quad, vix, keith_signals=None, rr_data=None):
+    """Batch sizing — replaces conviction_sizing stub."""
+    ks = keith_signals or {}; rd = rr_data or {}
+    out = []; total = 0
+    for c in candidates or []:
+        if isinstance(c, str):
+            c = {"ticker": c, "conviction": 5}
+        t = c.get("ticker") if isinstance(c, dict) else None
+        if not t: continue
+        s = calculate_position_size(t, quad, vix,
+            conviction=c.get("conviction", 5),
+            rr_data=rd.get(t), keith_signal=ks.get(t),
+            is_breakout=c.get("is_breakout", False))
+        out.append(s)
+        if not s["blocked"]: total += s["bps"]
+    return {"positions": out, "total_bps": total,
+            "total_pct": round(total / 100, 2),
+            "blocked_count": sum(1 for x in out if x["blocked"]),
+            "quad_applied": quad, "vix_applied": vix}

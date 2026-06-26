@@ -59,9 +59,11 @@ def _calc_volume_weight(s: pd.Series, lookback: int = 20) -> float:
     except Exception:
         return 1.0
 
-def calculate_risk_range(ticker: str, prices_or_series,
+def _calculate_risk_range_v39_atr(ticker: str, prices_or_series,
                          current_quad: str = "Q3",
                          vix_proxy: float = 20.0) -> Dict:
+    """LEGACY v39 ATR×mult / SMA-basis engine. Kept ONLY as a fallback for when
+    the calibrated v20.3b engine can't compute (insufficient data). Not primary."""
     s = prices_or_series.get(ticker) if isinstance(prices_or_series, dict) else prices_or_series
     if s is None or (hasattr(s, "__len__") and len(s) < 60):
         return {"ticker": ticker, "ok": False, "reason": "insufficient_data"}
@@ -182,6 +184,79 @@ def calculate_risk_range(ticker: str, prices_or_series,
     except Exception as e:
         logger.debug(f"Risk range calc failed for {ticker}: {e}")
         return {"ticker": ticker, "ok": False, "reason": f"exception:{type(e).__name__}"}
+
+def calculate_risk_range(ticker: str, prices_or_series,
+                         current_quad: str = "Q3",
+                         vix_proxy: float = 20.0) -> Dict:
+    """S0 CONSOLIDATION — single source of truth for BAND math.
+
+    Delegates to the calibrated v20.3b engine (prev-close basis, realized-vol/IV,
+    Hurst fractal, asymmetric skew — verified vs Hedgeye public prints), then
+    derives the v39-shaped setup keys (entry/target/stop/composite/quality/rr) so
+    every downstream consumer (orchestrator, market pages, daily_play, simulation)
+    keeps working unchanged. Falls back to legacy v39 ATR only if v20 can't compute.
+    """
+    s = prices_or_series.get(ticker) if isinstance(prices_or_series, dict) else prices_or_series
+    try:
+        from engines.risk_range_v20 import calculate_trr_lrr_v20
+        v = calculate_trr_lrr_v20(ticker, s, external_iv=vix_proxy, current_quad=current_quad)
+    except Exception as e:
+        logger.debug(f"v20 risk range failed for {ticker}: {e}; falling back to v39")
+        v = None
+    if not v:
+        return _calculate_risk_range_v39_atr(ticker, prices_or_series, current_quad, vix_proxy)
+
+    px = v["px"]
+    t_lrr, t_trr = v["trade"]["lrr"], v["trade"]["trr"]
+    tr_lrr, tr_trr = v["trend"]["lrr"], v["trend"]["trr"]
+    tl_lrr, tl_trr = v["tail"]["lrr"], v["tail"]["trr"]
+    sig = v.get("signals", {})
+    formation = sig.get("formation", "NEUTRAL")
+    quality = sig.get("quality", "C")
+
+    # composite (v39 semantics): where price sits vs the TRADE band
+    if px < t_lrr:
+        composite = "bullish"; dist = abs(px - t_lrr) / max(t_lrr, 1e-6)
+    elif px > t_trr:
+        composite = "bearish"; dist = abs(px - t_trr) / max(t_trr, 1e-6)
+    else:
+        composite = "neutral"
+        dist = min(abs(px - t_lrr) / max(t_lrr, 1e-6), abs(px - t_trr) / max(t_trr, 1e-6))
+
+    # setup derivation (v39 entry/target/stop logic, now on v20 bands)
+    if formation == "BULLISH":
+        entry = px * 0.995 if px <= t_lrr else min(px, t_lrr * 1.01)
+        target1, target2, stop = t_trr, tr_trr, t_lrr * 0.985
+    elif formation == "BEARISH":
+        entry = px * 1.005 if px >= t_trr else max(px, t_trr * 0.99)
+        target1, target2, stop = t_lrr, tr_lrr, t_trr * 1.015
+    else:
+        entry, target1, target2, stop = px, t_trr, tr_trr, t_lrr
+    rr = abs(target1 - entry) / max(abs(entry - stop), 1e-6)
+
+    vd = v.get("vol", {})
+    rv = vd.get("realized_vol_ann", 0.0) or 0.0
+    return {
+        "ticker": ticker, "ok": True, "px": round(px, 4),
+        "trade": {"lrr": round(t_lrr, 4), "trr": round(t_trr, 4)},
+        "trend": {"lrr": round(tr_lrr, 4), "trr": round(tr_trr, 4)},
+        "tail": {"lrr": round(tl_lrr, 4), "trr": round(tl_trr, 4)},
+        "atr_14": vd.get("atr", 0.0), "atr_30": vd.get("atr", 0.0),
+        "realized_vol_20": round(rv, 4), "realized_vol_60": round(rv, 4),
+        "vol_weight": 1.0,
+        "composite": composite, "formation": formation, "quality": quality,
+        "distance_to_entry_edge": round(dist, 4), "distance_to_low": round(dist, 4),
+        "entry": round(entry, 4), "target1": round(target1, 4),
+        "target2": round(target2, 4), "stop": round(stop, 4), "rr": round(rr, 2),
+        "expected_move_weekly_pct": round(rv / math.sqrt(52), 4) if rv else 0.0,
+        "daily_vol_pct": vd.get("daily_vol", 0.0),
+        "regime_mult_applied": current_quad, "vix_adj": 1.0,
+        "market": _classify_market_simple(ticker),
+        # carry v20's richer signals through for engines that want them
+        "signals": sig, "hurst": v.get("hurst"), "phase": v.get("phase"),
+        "bsi": v.get("bsi"), "engine": "v20.3b_via_v39_shim",
+    }
+
 
 def _classify_market_simple(ticker: str) -> str:
     t = (ticker or "").upper()

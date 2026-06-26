@@ -46,14 +46,17 @@ def get_quad_fit(ticker: str, quad: str) -> str:
     return "NEUTRAL"
 
 def get_vix_bucket(vix: float) -> Dict:
-    if vix < 18:
-        return {"bucket": "INVESTABLE", "multiplier": 1.0, "label": "🟢 Investable (9-18)"}
+    # S3-a: Hedgeye published buckets — 9–19 investable, 20–29 chop, 29+ f-bucket.
+    # (Was <18 investable, which mislabelled VIX 18–19 as chop.)
+    if vix < 20:
+        return {"bucket": "INVESTABLE", "multiplier": 1.0, "label": "🟢 Investable (9-19)"}
     if vix < 29:
-        return {"bucket": "CHOP", "multiplier": 0.5, "label": "🟡 Chop (18-29)"}
+        return {"bucket": "CHOP", "multiplier": 0.5, "label": "🟡 Chop (20-29)"}
     return {"bucket": "F_BUCKET", "multiplier": 0.10, "label": "🔴 F-bucket (29+)"}
 
 def calculate_position_size(ticker, quad, vix, conviction=5, rr_data=None,
-                             keith_signal=None, is_breakout=False):
+                             keith_signal=None, is_breakout=False,
+                             current_position_bps=0):
     base = 175 if is_breakout else 75
     vix_d = get_vix_bucket(vix)
     fit = get_quad_fit(ticker, quad)
@@ -81,7 +84,16 @@ def calculate_position_size(ticker, quad, vix, conviction=5, rr_data=None,
                 "vix_bucket": vix_d["bucket"]}
 
     bps = int(base * vix_d["multiplier"] * fit_mult * conv * keith_boost + dist_bonus)
-    bps = max(0, min(bps, 250))
+    bps = max(0, min(bps, 250))  # per-signal ADD cap
+
+    # S3-c: enforce Hedgeye POSITION envelope (equities max 6%). This function sizes
+    # the ADD; clamp so cumulative position never exceeds 6%, and flag when at cap.
+    MAX_POSITION_BPS = 600
+    cur = max(0, int(current_position_bps))
+    room = max(0, MAX_POSITION_BPS - cur)
+    bps = min(bps, room)
+    position_after = cur + bps
+    at_max = position_after >= MAX_POSITION_BPS
 
     if bps >= 150: tier = "🔵 FULL"
     elif bps >= 75: tier = "🟢 HALF"
@@ -93,7 +105,9 @@ def calculate_position_size(ticker, quad, vix, conviction=5, rr_data=None,
             "quad_fit": fit, "vix_bucket": vix_d["bucket"],
             "vix_bucket_label": vix_d["label"], "is_breakout": is_breakout,
             "distance_bonus": dist_bonus,
-            "explanation": f"{base}bp × {vix_d['multiplier']}vix × {fit_mult}({fit}) × {conv}conv × {keith_boost}Keith + {dist_bonus}dist = {bps}bp"}
+            "position_after_bps": position_after, "at_max_position": at_max,
+            "max_position_bps": MAX_POSITION_BPS,
+            "explanation": f"{base}bp × {vix_d['multiplier']}vix × {fit_mult}({fit}) × {conv}conv × {keith_boost}Keith + {dist_bonus}dist = {bps}bp (pos {position_after}/{MAX_POSITION_BPS}bp)"}
 
 def run_sizing(candidates, quad, vix, keith_signals=None, rr_data=None):
     """Batch sizing — replaces conviction_sizing stub."""

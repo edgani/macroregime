@@ -125,6 +125,9 @@ def _fetch_one_option_yf(ticker: str):
             "iv_30d": round(atm_iv, 4) if atm_iv else None,
             "expected_move_pct": round(expected_move_pct, 2) if expected_move_pct else None,
             "total_call_oi": int(tot_call), "total_put_oi": int(tot_put),
+            "gex_by_strike": {round(float(k), 2): round(float(v), 0) for k, v in gex_by_strike.items()},
+            "call_oi_by_strike": {round(float(k), 2): int(v) for k, v in total_call_oi.items()},
+            "put_oi_by_strike": {round(float(k), 2): int(v) for k, v in total_put_oi.items()},
             "source": "yfinance",
         }
     except Exception as e:

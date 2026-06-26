@@ -68,6 +68,9 @@ def analyze_gex(ticker, prices, vix=20.0, risk_free=0.045):
         T = 0.02  # ~1 week
 
     sigma = vix / 100.0
+    # S0-b: align dealer-sign convention with spotgamma_gex_engine
+    _idx_set = {"SPY", "QQQ", "IWM", "DIA", "^GSPC", "^NDX", "^RUT", "^DJI"}
+    is_idx = ticker.upper() in _idx_set or ticker.startswith("^")
 
     # Build strike → GEX map
     gex_by_strike = {}
@@ -77,9 +80,13 @@ def analyze_gex(ticker, prices, vix=20.0, risk_free=0.045):
         oi = float(opt.get("openInterest", 0) or 0)
         if strike <= 0 or oi <= 0:
             continue
-        gamma = _black_scholes_gamma(spot, strike, T, risk_free, sigma)
-        # Calls: customer long = dealer short gamma = negative GEX
-        gex = gamma * oi * 100 * spot  # contract multiplier
+        iv = float(opt.get("impliedVolatility", 0) or 0)
+        vol = iv if iv > 0 else sigma  # S1-c: per-strike IV (skew); VIX fallback
+        gamma = _black_scholes_gamma(spot, strike, T, risk_free, vol)
+        # S0-b: SpotGamma convention + per-1%-notional scaling (spot²·0.01).
+        # Index: dealers long calls (+); single-stock equity: dealers short calls (−).
+        gex = gamma * oi * 100 * (spot ** 2) * 0.01
+        gex *= (1.0 if is_idx else -1.0)
         gex_by_strike[strike] = gex_by_strike.get(strike, 0) + gex
 
     for _, opt in puts.iterrows():
@@ -87,10 +94,11 @@ def analyze_gex(ticker, prices, vix=20.0, risk_free=0.045):
         oi = float(opt.get("openInterest", 0) or 0)
         if strike <= 0 or oi <= 0:
             continue
-        gamma = _black_scholes_gamma(spot, strike, T, risk_free, sigma)
-        # Puts: customer long = dealer short gamma = negative GEX
-        # But puts have negative delta, so gamma sign flips for dealer positioning
-        gex = gamma * oi * 100 * spot
+        iv = float(opt.get("impliedVolatility", 0) or 0)
+        vol = iv if iv > 0 else sigma  # S1-c: per-strike IV (skew); VIX fallback
+        gamma = _black_scholes_gamma(spot, strike, T, risk_free, vol)
+        # S0-b: dealers short puts → −GEX (both index & equity)
+        gex = gamma * oi * 100 * (spot ** 2) * 0.01
         gex_by_strike[strike] = gex_by_strike.get(strike, 0) - gex
 
     if not gex_by_strike:
@@ -112,13 +120,17 @@ def analyze_gex(ticker, prices, vix=20.0, risk_free=0.045):
             flip_level = strike
 
     if flip_level is None:
-        flip_level = strikes[len(strikes)//2] if strikes else spot
+        # No sign change (single-regime book, common for negative-gamma equities):
+        # default the flip to the strike nearest spot rather than an arbitrary middle.
+        flip_level = min(strikes, key=lambda k: abs(k - spot)) if strikes else spot
 
-    # Call Wall: highest positive GEX strike (dealer long gamma = resistance)
-    call_wall = max(gex_by_strike.items(), key=lambda x: x[1])[0] if gex_by_strike else spot * 1.05
-
-    # Put Wall: lowest negative GEX strike (dealer short gamma = support)
-    put_wall = min(gex_by_strike.items(), key=lambda x: x[1])[0] if gex_by_strike else spot * 0.95
+    # Walls — position-anchored so they stay meaningful even for single-stock
+    # all-negative (negative-gamma) books: call wall = the dominant-GEX strike ABOVE
+    # spot, put wall = the most-negative-GEX strike BELOW spot.
+    above = {k: v for k, v in gex_by_strike.items() if k >= spot}
+    below = {k: v for k, v in gex_by_strike.items() if k <= spot}
+    call_wall = max(above.items(), key=lambda x: x[1])[0] if above else spot * 1.05
+    put_wall = min(below.items(), key=lambda x: x[1])[0] if below else spot * 0.95
 
     # Speed: rate of gamma change near spot
     near_strikes = [k for k in strikes if abs(k - spot) / spot < 0.05]
@@ -128,23 +140,19 @@ def analyze_gex(ticker, prices, vix=20.0, risk_free=0.045):
     else:
         speed = 0
 
-    # Regime
-    if net_gex > 0:
-        regime = "POSITIVE" if net_gex > 1e6 else "DEEP_POSITIVE"
-        label = "Positive"
-        color = "#3FB950"
-    elif net_gex < -1e6:
-        regime = "DEEP_NEGATIVE"
-        label = "Deep Negative"
-        color = "#F85149"
-    elif net_gex < 0:
-        regime = "NEGATIVE"
-        label = "Negative"
-        color = "#D29922"
+    # Regime — S0-b: ratio-based (net/gross) so it's scale-invariant and not
+    # tied to an absolute magnitude that changes with the spot² scaling.
+    # (Also fixes the old inverted bug: small positive was labelled DEEP_POSITIVE.)
+    gross_gex = sum(abs(g) for g in gex_values) or 1.0
+    ratio = net_gex / gross_gex
+    if ratio > 0.15:
+        regime, label, color = "DEEP_POSITIVE", "Deep Positive", "#3FB950"
+    elif ratio > 0:
+        regime, label, color = "POSITIVE", "Positive", "#3FB950"
+    elif ratio > -0.15:
+        regime, label, color = "NEGATIVE", "Negative", "#D29922"
     else:
-        regime = "TRANSITION"
-        label = "Transition"
-        color = "#8B949E"
+        regime, label, color = "DEEP_NEGATIVE", "Deep Negative", "#F85149"
 
     return {
         "ok": True,
@@ -158,6 +166,8 @@ def analyze_gex(ticker, prices, vix=20.0, risk_free=0.045):
         "label": label,
         "color": color,
         "expiry": expiry,
+        "strikes": [round(float(k), 2) for k in strikes],
+        "gex_by_strike": [round(float(v), 0) for v in gex_values],
         "source": "YF_OPTIONS"
     }
 

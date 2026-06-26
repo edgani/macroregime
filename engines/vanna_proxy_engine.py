@@ -68,12 +68,18 @@ def analyze_vanna(ticker: str, prices: Dict, vix: float = 20.0,
         sma20 = float(s_clean.tail(20).mean())
         std20 = float(s_clean.tail(20).std())
 
-        # Skew proxy: 30d vs 60d realized vol spread (normalized by SMA)
+        # Skew proxy (S2-c): realized downside-vs-upside semideviation asymmetry.
+        # +ve = downside vol dominates = put-skew / crash-prone (vanna tailwind on a
+        #  vol-down tick); -ve = upside-skewed. The OLD code used a 30d/60d realized-
+        #  vol term-structure spread, which is NOT skew. This is computable from price.
         vol_30 = float(s_clean.tail(30).std())
         vol_60 = float(s_clean.tail(min(60, len(s_clean))).std()) if len(s_clean) >= 60 else vol_30
-
-        if sma20 > 0 and math.isfinite(sma20):
-            skew_spread = (vol_30 / sma20) - (vol_60 / sma20)
+        _rets = s_clean.pct_change().dropna().tail(60)
+        if len(_rets) >= 20:
+            _dsd = float(_rets[_rets < 0].std()) if int((_rets < 0).sum()) > 1 else 0.0
+            _usd = float(_rets[_rets > 0].std()) if int((_rets > 0).sum()) > 1 else 0.0
+            _den = _dsd + _usd
+            skew_spread = ((_dsd - _usd) / _den) if _den > 1e-9 else 0.0
         else:
             skew_spread = 0.0
 
@@ -90,19 +96,19 @@ def analyze_vanna(ticker: str, prices: Dict, vix: float = 20.0,
         vix_regime = "ELEVATED" if vix_elevated else ("NORMAL" if vix_normal else "LOW")
 
         # Vanna signal logic
-        if vix_elevated and skew_spread > 0.005:
+        if vix_elevated and skew_spread > 0.10:
             signal = "NEVER_SHORT"
             regime = "DOMINANT"
             color = "#3FB950"
             futures_per_1pct = round(std20 * 2.0, 2)
             note = f"Vanna dominant — if VIX drops 1%, dealers buy {futures_per_1pct} futures"
-        elif vix_elevated and skew_spread < -0.005:
+        elif vix_elevated and skew_spread < -0.10:
             signal = "AVOID_LONG"
             regime = "DOMINANT"
             color = "#F85149"
             futures_per_1pct = round(std20 * 2.0, 2)
             note = f"Vanna headwind — if VIX rises 1%, dealers sell {futures_per_1pct} futures"
-        elif vix_normal and abs(skew_spread) < 0.005:
+        elif vix_normal and abs(skew_spread) < 0.10:
             signal = "NEUTRAL"
             regime = "NORMAL"
             color = "#8B949E"

@@ -28,6 +28,27 @@ def _black_scholes_theta(S, K, T, r, sigma, option_type="call"):
     return theta / 365.0  # per calendar day
 
 
+def _black_scholes_charm(S, K, T, r, sigma):
+    """Charm = ∂Δ/∂t (delta decay per CALENDAR day). Assumes q=0.
+
+    FIX S1-b: the old code used theta (∂V/∂t) as a 'charm proxy' — a DIFFERENT
+    Greek. Charm is the time-derivative of DELTA, which is what drives the
+    delta-rehedging flow Karsan/SpotGamma describe. With q=0, ∂Δ_call/∂t ==
+    ∂Δ_put/∂t, so one formula serves both legs.
+    """
+    if T <= 0 or sigma <= 0 or S <= 0 or K <= 0:
+        return 0.0
+    try:
+        srt = sigma * math.sqrt(T)
+        d1 = (math.log(S / K) + (r + 0.5 * sigma ** 2) * T) / srt
+        d2 = d1 - srt
+        pdf = math.exp(-0.5 * d1 ** 2) / math.sqrt(2 * math.pi)
+        charm_per_year = -pdf * (2 * r * T - d2 * srt) / (2 * T * srt)
+        return charm_per_year / 365.0
+    except Exception:
+        return 0.0
+
+
 def analyze_charm(ticker, prices, vix=20.0, risk_free=0.045):
     """
     Calculate Charm exposure for a ticker.
@@ -58,27 +79,31 @@ def analyze_charm(ticker, prices, vix=20.0, risk_free=0.045):
                 T = max((exp_date - datetime.now()).days / 365.0, 0.0027)
                 sigma = vix / 100.0
 
-                net_charm = 0
+                net_charm = 0.0
+                gross_charm = 0.0
                 for _, opt in calls.iterrows():
                     strike = float(opt.get("strike", 0))
                     oi = float(opt.get("openInterest", 0) or 0)
                     if strike <= 0 or oi <= 0:
                         continue
-                    theta = _black_scholes_theta(spot, strike, T, risk_free, sigma, "call")
-                    # Charm proxy: theta * delta decay direction
-                    charm = -theta * oi * 100  # negative theta = dealer must buy
-                    net_charm += charm
+                    iv = float(opt.get("impliedVolatility", 0) or 0)
+                    vol = iv if iv > 0 else sigma  # per-strike IV (skew); VIX fallback
+                    charm = _black_scholes_charm(spot, strike, T, risk_free, vol) * oi * 100
+                    net_charm += charm            # dealers short calls
+                    gross_charm += abs(charm)
 
                 for _, opt in puts.iterrows():
                     strike = float(opt.get("strike", 0))
                     oi = float(opt.get("openInterest", 0) or 0)
                     if strike <= 0 or oi <= 0:
                         continue
-                    theta = _black_scholes_theta(spot, strike, T, risk_free, sigma, "put")
-                    charm = -theta * oi * 100
-                    net_charm -= charm  # puts flip sign
+                    iv = float(opt.get("impliedVolatility", 0) or 0)
+                    vol = iv if iv > 0 else sigma
+                    charm = _black_scholes_charm(spot, strike, T, risk_free, vol) * oi * 100
+                    net_charm -= charm            # puts flip dealer sign
+                    gross_charm += abs(charm)
 
-                return _charm_from_net(net_charm, spot, s_clean, vix, "YF_OPTIONS")
+                return _charm_from_net(net_charm, spot, s_clean, vix, "YF_OPTIONS", gross=gross_charm)
         except Exception:
             pass
 
@@ -86,34 +111,32 @@ def analyze_charm(ticker, prices, vix=20.0, risk_free=0.045):
     return _charm_proxy(ticker, spot, s_clean, vix)
 
 
-def _charm_from_net(net_charm, spot, s_clean, vix, source):
-    """Interpret net charm exposure."""
+def _charm_from_net(net_charm, spot, s_clean, vix, source, gross=None):
+    """Interpret net charm via a SCALE-INVARIANT imbalance (−1..1).
+
+    FIX S1-b: old code thresholded raw magnitude (±5e5/±1e5) calibrated to a
+    theta-dollar scale. With the correct (tiny-magnitude) charm Greek those
+    thresholds never fired → always NEUTRAL. Normalize: imbalance = net/gross.
+    """
     r5d = float(s_clean.iloc[-1] / s_clean.iloc[-6] - 1) if len(s_clean) >= 6 else 0
 
-    if net_charm > 5e5:
-        regime = "BUILDING"
-        signal = "NEVER_SHORT"
-        color = "#3FB950"
-        note = f"Charm {net_charm/1e6:.1f}M — dealers must BUY futures to hedge"
-    elif net_charm > 1e5:
-        regime = "BUILDING"
-        signal = "BULLISH_BIAS"
-        color = "#3FB950"
-        note = f"Charm {net_charm/1e6:.1f}M — positive drift expected"
-    elif net_charm < -5e5:
-        regime = "FADING"
-        signal = "AVOID_LONG"
-        color = "#F85149"
-        note = f"Charm {net_charm/1e6:.1f}M — dealers must SELL futures to hedge"
-    elif net_charm < -1e5:
-        regime = "FADING"
-        signal = "BEARISH_BIAS"
-        color = "#F85149"
-        note = f"Charm {net_charm/1e6:.1f}M — negative drift expected"
+    imb = max(-1.0, min(1.0, net_charm / gross)) if (gross and gross > 0) else 0.0
+    HI, LO = 0.30, 0.10
+
+    if imb > HI:
+        regime, signal, color = "BUILDING", "NEVER_SHORT", "#3FB950"
+        note = f"Charm imbalance +{imb:.2f} — dealers must BUY to hedge delta decay"
+    elif imb > LO:
+        regime, signal, color = "BUILDING", "BULLISH_BIAS", "#3FB950"
+        note = f"Charm imbalance +{imb:.2f} — positive drift expected"
+    elif imb < -HI:
+        regime, signal, color = "FADING", "AVOID_LONG", "#F85149"
+        note = f"Charm imbalance {imb:.2f} — dealers must SELL to hedge delta decay"
+    elif imb < -LO:
+        regime, signal, color = "FADING", "BEARISH_BIAS", "#F85149"
+        note = f"Charm imbalance {imb:.2f} — negative drift expected"
     else:
-        regime = "STABLE"
-        signal = "NEUTRAL"
-        color = "#8B949E"
+        regime, signal, color = "STABLE", "NEUTRAL", "#8B949E"
         note = "Charm balanced — no time-decay drift"
 
     # Afternoon sweet spot: 1:30-3pm ET (13:30-15:00)
@@ -124,7 +147,8 @@ def _charm_from_net(net_charm, spot, s_clean, vix, source):
 
     return {
         "ok": True,
-        "net_charm": round(net_charm, 0),
+        "net_charm": round(net_charm, 2),
+        "charm_imbalance": round(imb, 3),
         "regime": regime,
         "signal": signal,
         "color": color,
@@ -137,15 +161,14 @@ def _charm_from_net(net_charm, spot, s_clean, vix, source):
 
 
 def _charm_proxy(ticker, spot, s_clean, vix):
-    """Proxy charm from price momentum."""
+    """Proxy charm from price momentum (acceleration), normalized to a -1..1 imbalance."""
     r5d = float(s_clean.iloc[-1] / s_clean.iloc[-6] - 1) if len(s_clean) >= 6 else 0
     r10d = float(s_clean.iloc[-1] / s_clean.iloc[-11] - 1) if len(s_clean) >= 11 else 0
 
-    # Proxy charm from acceleration
     accel = r5d - (r10d / 2)
-    net_charm_proxy = accel * 1e6
-
-    return _charm_from_net(net_charm_proxy, spot, s_clean, vix, "PROXY")
+    # ≈1.5% 5d-vs-10d acceleration → full-strength signal
+    charm_norm = max(-1.0, min(1.0, accel / 0.015))
+    return _charm_from_net(charm_norm, spot, s_clean, vix, "PROXY", gross=1.0)
 
 
 def analyze_multi(tickers, prices, vix=20.0):

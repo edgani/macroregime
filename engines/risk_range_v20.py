@@ -9,7 +9,11 @@ Upgraded from v20.2 with:
   • Spring/Upthrust/Coiled Spring detection
   • Composite vPOC + VAH/VAL (when intraday OHLCV available)
 
-CALIBRATION VERIFIED against 4 Hedgeye public data points (avg error 0.4%):
+CALIBRATION (⚠️ IN-SAMPLE / anecdotal — NOT walk-forward validated):
+  Multipliers were tuned to match these 4 public Hedgeye prints. With only 4
+  points and no out-of-sample test, "avg error 0.4%" is a fit statistic, not
+  validation. Treat as plausible-but-unproven until OOS-tested across many
+  dates × assets (TODO: see S2 backlog).
   SPX Feb 27, 2024:  predicted 4965/5114 vs actual 4950/5119 → 0.3% / 0.1%
   SPX Apr 13, 2020:  predicted 2718/2957 vs actual 2726/2959 → 0.3% / 0.07%
   Gold Oct 16, 2025: predicted 4127/4346 vs actual 4092/4362 → 0.8% / 0.4%
@@ -120,6 +124,111 @@ def auto_tune(ticker: str) -> Tuple[float, float, Optional[str]]:
         if re.search(pattern, t):
             return mt, mtr, iv
     return M_TRADE_BASE, M_TREND_BASE, None
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ATR-WIDTH MODEL (MQA v21 script-faithful) — width = ATR × mult × modifiers
+# Default. Edward's calibration ($98.52 WTI = SMA63 + ATR×0.711) is ATR-based,
+# and the MQA v21 Pine uses ATR. Set WIDTH_MODE="vasp" for the legacy RV/IV model.
+# ═══════════════════════════════════════════════════════════════════════════
+WIDTH_MODE = "atr"
+
+# ATR-scale multipliers (mTrade, mTrend, mTail) ported from the MQA v21 auto-tune.
+# Scale differs from the VASP table (ATR base, not annualized realized vol).
+ATR_MULT_RULES = [
+    (r"(\^GSPC|SPY|\^SPX|ES=F|MES1|SPX)", 0.45, 0.65, 1.30),
+    (r"(\^NDX|QQQ|NQ=F|MNQ1|NDX)", 0.50, 0.70, 1.40),
+    (r"(\^RUT|IWM|RTY|M2K1|RUT)", 0.55, 0.80, 1.50),
+    (r"(\^DJI|YM1|DIA|DJI)", 0.40, 0.60, 1.20),
+    (r"(GC=F|GLD|XAUUSD|MGC1|GLDM)", 0.65, 0.95, 1.80),
+    (r"(SI=F|SLV|XAGUSD)", 0.75, 1.10, 2.00),
+    (r"(CL=F|USO|WTI|MCL1|BZ=F|XLE|XOP)", 0.55, 0.711, 1.50),
+    (r"(NG=F|UNG|NATGAS)", 0.80, 1.20, 2.20),
+    (r"(HG=F|COPPER|CPER)", 0.60, 0.90, 1.70),
+    (r"(BTC|XBT|BITCOIN)", 0.70, 1.00, 1.90),
+    (r"(ETH|ETHEREUM)", 0.75, 1.10, 2.00),
+    (r"(SOL-USD|XRP|ADA|DOGE)", 0.80, 1.15, 2.10),
+    (r"EURUSD", 0.35, 0.50, 1.00),
+    (r"GBPUSD", 0.40, 0.55, 1.10),
+    (r"USDJPY|JPY=X", 0.30, 0.45, 0.90),
+    (r"(AUDUSD|NZDUSD)", 0.40, 0.60, 1.20),
+    (r"(USDCAD|USDCHF)", 0.35, 0.50, 1.00),
+    (r"USDIDR|IDR=X", 0.40, 0.60, 1.20),
+    (r"^(TSLA|NVDA|AMD|PLTR|SMCI|MSTR|COIN|NVTS|SIVE)$", 0.65, 0.95, 1.80),
+    (r"^(AAPL|MSFT|GOOGL|GOOG|AMZN|TSM|AVGO)$", 0.55, 0.80, 1.50),
+    (r"^(META|NFLX|CRM|ADBE)$", 0.60, 0.85, 1.60),
+    (r"^(JPM|BAC|GS|WFC|MS|C)$", 0.45, 0.65, 1.30),
+    (r"^(MU|WDC|STX|SNDK)$", 0.65, 0.95, 1.80),
+    (r"^(COHR|LITE|AAOI|POET|MRVL|CRDO|SITM|AXTI|GLW)$", 0.70, 1.00, 1.85),
+    (r"(IHSG|\^JKSE|JKSE|JCI)", 0.50, 0.75, 1.40),
+    (r"\.JK$", 0.55, 0.80, 1.50),
+]
+ATR_MULT_DEFAULT = (0.50, 0.711, 1.50)
+
+
+def _atr_tune(ticker: str) -> Tuple[float, float, float]:
+    """Return (mTrade, mTrend, mTail) ATR-scale multipliers per ticker (MQA v21)."""
+    if not ticker:
+        return ATR_MULT_DEFAULT
+    t = ticker.upper()
+    for pattern, mt, mtr, mta in ATR_MULT_RULES:
+        if re.search(pattern, t):
+            return mt, mtr, mta
+    return ATR_MULT_DEFAULT
+
+
+def _atr_now_and_sma(s: pd.Series, ohlcv: Optional[pd.DataFrame],
+                     period: int = 14, sma_len: int = 20) -> Tuple[float, float]:
+    """ATR(period) latest + SMA(sma_len) of the ATR series, for vol-of-vol = ROC of ATR
+    (MQA v21 [ADD-VOV]). True range when OHLCV present; else close-to-close TR (synthetic)."""
+    try:
+        if ohlcv is not None and all(c in ohlcv.columns for c in ("high", "low", "close")):
+            h = pd.to_numeric(ohlcv["high"], errors="coerce")
+            l = pd.to_numeric(ohlcv["low"], errors="coerce")
+            c = pd.to_numeric(ohlcv["close"], errors="coerce")
+            prev_c = c.shift(1)
+            tr = pd.concat([(h - l), (h - prev_c).abs(), (l - prev_c).abs()], axis=1).max(axis=1)
+        else:
+            tr = s.diff().abs()
+        tr = tr.dropna()
+        if len(tr) < period:
+            atr_now = float(tr.mean()) if len(tr) else 0.0
+            return atr_now, atr_now
+        atr_series = tr.rolling(period).mean().dropna()
+        atr_now = float(atr_series.iloc[-1])
+        atr_sma = float(atr_series.tail(sma_len).mean()) if len(atr_series) >= 1 else atr_now
+        return atr_now, (atr_sma if atr_sma > 0 else atr_now)
+    except Exception:
+        return 0.0, 0.0
+
+
+def _volume_factor(ohlcv: Optional[pd.DataFrame]) -> float:
+    """Conditional volume inflator/deflator (MQA v21 [ADD-VOL]). Diverging high vol widens;
+    confirming high vol tightens; low vol widens slightly. No volume data → neutral 1.0."""
+    try:
+        if ohlcv is None or "volume" not in ohlcv.columns or "close" not in ohlcv.columns:
+            return 1.0
+        v = pd.to_numeric(ohlcv["volume"], errors="coerce").dropna()
+        c = pd.to_numeric(ohlcv["close"], errors="coerce").dropna()
+        if len(v) < 21 or len(c) < 2:
+            return 1.0
+        vol_ma = float(v.tail(20).mean())
+        if vol_ma <= 0:
+            return 1.0
+        vol_roc = (float(v.iloc[-1]) - vol_ma) / vol_ma
+        price_up = float(c.iloc[-1]) > float(c.iloc[-2])
+        v_up = float(v.iloc[-1]) > float(v.iloc[-2])
+        confirm = (price_up and v_up) or ((not price_up) and (not v_up))
+        diverge = (price_up and not v_up) or ((not price_up) and v_up)
+        if vol_roc > 0.30 and diverge:
+            return 1.0 + min(vol_roc * 0.25, 0.30)
+        if vol_roc > 0.30 and confirm:
+            return 1.0 - min(vol_roc * 0.10, 0.15)
+        if vol_roc < -0.20:
+            return 1.0 + abs(vol_roc) * 0.15
+        return 1.0
+    except Exception:
+        return 1.0
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -337,10 +446,19 @@ def calculate_trr_lrr_v20(
     # Quad adjustment
     quad_adj = QUAD_VOL_ADJ.get(current_quad, 1.0)
 
-    # Base widths
-    base_trade_w = px * daily_vol * m_trade * f_trade * quad_adj
-    base_trend_w = px * daily_vol * m_trend * f_trend * quad_adj
-    base_tail_w = px * daily_vol * m_tail * f_tail * quad_adj
+    # Base widths — ATR model (MQA v21 script) by default; VASP (RV/IV) as fallback.
+    if WIDTH_MODE == "atr":
+        atr_now, atr_sma = _atr_now_and_sma(s, ohlcv, period=14, sma_len=20)
+        vov_factor = (1.0 + (atr_now / atr_sma - 1.0) * 0.30) if atr_sma > 0 else 1.0
+        vol_factor = _volume_factor(ohlcv)
+        m_trade_a, m_trend_a, m_tail_a = _atr_tune(ticker)
+        base_trade_w = atr_now * m_trade_a * vol_factor * vov_factor * f_trade
+        base_trend_w = atr_now * m_trend_a * vol_factor * vov_factor * f_trend
+        base_tail_w = atr_now * m_tail_a * vol_factor * vov_factor * f_tail
+    else:
+        base_trade_w = px * daily_vol * m_trade * f_trade * quad_adj
+        base_trend_w = px * daily_vol * m_trend * f_trend * quad_adj
+        base_tail_w = px * daily_vol * m_tail * f_tail * quad_adj
 
     # Phase determination for skew
     ma_short = float(s.tail(21).mean())
@@ -360,22 +478,38 @@ def calculate_trr_lrr_v20(
     trend_lower, trend_upper = _apply_skew(base_trend_w, phase, SKEW_MAG * 0.6)
     tail_lower, tail_upper = _apply_skew(base_tail_w, phase, SKEW_MAG * 0.3)
 
-    # Final TRR/LRR
-    trade_trr = basis + trade_upper
-    trade_lrr = basis - trade_lower
-    trend_trr = basis + trend_upper
-    trend_lrr = basis - trend_lower
-    tail_trr = basis + tail_upper
-    tail_lrr = basis - tail_lower
+    # ── BASIS per duration (MQA v21 [FIX-BASIS]) ──
+    # TRADE = prior close (static daily, front-runs 1-mo momentum) · TREND = SMA63 · TAIL = SMA756.
+    # Previously ALL three used prior close → mis-centered TREND/TAIL. Now matches Hedgeye + the
+    # MQA v21 Pine script: TREND TRR = SMA63 + width, TAIL TRR = SMA756 + width.
+    basis_trade = basis  # prior close
+    basis_trend = float(s.tail(min(TREND_LEN, len(s))).mean())
+    basis_tail = float(s.tail(min(TAIL_LEN, len(s))).mean())
+
+    # Final TRR/LRR — each duration centered on its OWN basis
+    trade_trr = basis_trade + trade_upper
+    trade_lrr = basis_trade - trade_lower
+    trend_trr = basis_trend + trend_upper
+    trend_lrr = basis_trend - trend_lower
+    tail_trr = basis_tail + tail_upper
+    tail_lrr = basis_tail - tail_lower
 
     # Phase state via hysteresis (TRADE/TREND/TAIL)
     trade_mid_width = (trade_lower + trade_upper) * 0.5
     trend_mid_width = (trend_lower + trend_upper) * 0.5
     tail_mid_width = (tail_lower + tail_upper) * 0.5
 
-    trade_score = (px - basis) / max(trade_mid_width, px * 0.001)
-    trend_score = (px - basis) / max(trend_mid_width, px * 0.001)
-    tail_score = (px - basis) / max(tail_mid_width, px * 0.001)
+    # FIX S1-a: anchor phase score to each duration's MEAN, not prev-close.
+    # (px - basis) is a ~1-day move ≈ 0 vs a multi-day width → score ≈ 0 → phase
+    # always neutral → engine silently collapsed to a 21/63 MA cross. Anchoring to
+    # each duration's mean makes TRADE/TREND/TAIL phase genuinely independent.
+    anchor_trade = float(s.tail(TRADE_LEN).mean())
+    anchor_trend = float(s.tail(min(TREND_LEN, len(s))).mean())
+    anchor_tail = float(s.tail(min(TAIL_LEN, len(s))).mean())
+
+    trade_score = (px - anchor_trade) / max(trade_mid_width, px * 0.001)
+    trend_score = (px - anchor_trend) / max(trend_mid_width, px * 0.001)
+    tail_score = (px - anchor_tail) / max(tail_mid_width, px * 0.001)
 
     # Vol regime modifier (for thresholds)
     rv_base = float(pd.Series(log_ret).rolling(50).std().mean() * np.sqrt(252)) if len(log_ret) >= 50 else realized_vol
@@ -389,12 +523,26 @@ def calculate_trr_lrr_v20(
     trend_phase = _hysteresis(trend_score, eff_trend_thresh, PHASE_NEUTRAL_TREND, phase)
     tail_phase = _hysteresis(tail_score, eff_tail_thresh, PHASE_NEUTRAL_TAIL, phase)
 
-    # ATR for breakout confirmation
+    # ATR for breakout confirmation — S3-b: true ATR (H/L/C) when OHLCV is
+    # available, else an HONEST close-to-close range (old code labelled C2C 'atr').
     atr_window = min(VOL_LEN, len(s) - 1)
-    tr = pd.concat([
-        (s - s.shift(1)).abs(),
-    ], axis=1).max(axis=1)
-    atr = float(tr.tail(atr_window).mean()) if atr_window > 0 else px * 0.01
+    atr_kind = "c2c"
+    atr = float((s - s.shift(1)).abs().tail(atr_window).mean()) if atr_window > 0 else px * 0.01
+    if ohlcv is not None and len(ohlcv) >= atr_window + 1:
+        try:
+            _cmap = {c.lower(): c for c in ohlcv.columns}
+            _h = pd.to_numeric(ohlcv[_cmap["high"]], errors="coerce")
+            _l = pd.to_numeric(ohlcv[_cmap["low"]], errors="coerce")
+            _cl = pd.to_numeric(ohlcv[_cmap["close"]], errors="coerce")
+            _tr = pd.concat([(_h - _l), (_h - _cl.shift(1)).abs(),
+                             (_l - _cl.shift(1)).abs()], axis=1).max(axis=1)
+            _atr = float(_tr.tail(atr_window).mean())
+            if math.isfinite(_atr) and _atr > 0:
+                atr, atr_kind = _atr, "true_atr"
+        except Exception:
+            pass
+    if not math.isfinite(atr) or atr <= 0:
+        atr, atr_kind = px * 0.01, "fallback"
 
     # Trend breakout confirmation
     trend_break_up = px > trend_trr + 0.50 * atr
@@ -459,6 +607,7 @@ def calculate_trr_lrr_v20(
             "vasp_mult": round(vasp_mult, 4),
             "daily_vol": round(daily_vol, 6),
             "atr": round(atr, 6),
+            "atr_kind": atr_kind,
         },
         "quad_applied": current_quad,
         "bsi": bsi_data,
@@ -480,9 +629,9 @@ def _derive_signals_v20_3b(rr: Dict) -> Dict:
     trend_phase = tr["phase_state"]
     tail_phase = tl["phase_state"]
 
-    # MA-based trend bias (21v63) — used as fallback when hysteresis phase is neutral.
-    # Without this, trade/trend phase_state ≈ 0 always (since score = (px−basis)/width,
-    # and basis = prev-close → ~1-day return ≈ 0) → no longs/shorts ever fire.
+    # Safety net: fall back to 21v63 MA bias ONLY when a duration is genuinely neutral.
+    # (Phase score is now anchored to each duration's mean — see S1-a — so this rarely
+    # fires; previously it fired ALWAYS because score ≈ 0 with a prev-close basis.)
     ma_phase = rr.get("phase_code", 0)
     if trade_phase == 0:
         trade_phase = ma_phase

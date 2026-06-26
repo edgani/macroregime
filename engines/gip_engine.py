@@ -22,6 +22,16 @@ from config.settings import (
 
 logger = logging.getLogger(__name__)
 
+# ─── S2-b: MONTHLY-QUAD ANCHOR WEIGHTS ──────────────────────────────────────
+# ⚠️ OVERFIT RISK: these were hand-tuned to reproduce the May-2026 Hedgeye call
+# ("Structural Q3 / Monthly Q2"). They are NOT validated across other historical
+# quad transitions. Treat as a regime-specific prior; OOS-test before trusting
+# out-of-regime. Exposed as constants so they can be swept / re-fit later.
+M_INFL_STRUCT_ANCHOR = 0.70   # monthly inflation = 70% sticky structural + 30% 1M price
+M_GROWTH_PRICE_WEIGHT = 0.80  # monthly growth = 80% volatile price + 20% structural
+Q3_HOT_INFL_THRESH = 0.15     # struct Q3 + i_level above this → penalize monthly Q1
+Q3_MONTHLY_MOD = {"Q1": -0.35, "Q2": +0.20, "Q3": +0.10}
+
 def _fv(*series_list):
     for s in series_list:
         if s is not None:
@@ -331,28 +341,42 @@ class GIPEngine:
         monthly_g_price = _nan(f_proxy.get("monthly_g_price", 0.0))
         monthly_i_price = _nan(f_proxy.get("monthly_i_price", 0.0))
 
-        # Growth: 80% price (volatile, mean-reverting) — unchanged
-        m_g_level = 0.20 * g_level + 0.80 * monthly_g_price
+        # Growth: mostly price (volatile, mean-reverting)
+        m_g_level = (1.0 - M_GROWTH_PRICE_WEIGHT) * g_level + M_GROWTH_PRICE_WEIGHT * monthly_g_price
         m_g_mom = monthly_g_price
 
-        # INFLATION: 70% structural level (sticky) + 30% 1M price (transient)
-        m_i_level = 0.70 * i_level + 0.30 * monthly_i_price
+        # INFLATION: mostly sticky structural level + a transient 1M price tilt
+        m_i_level = M_INFL_STRUCT_ANCHOR * i_level + (1.0 - M_INFL_STRUCT_ANCHOR) * monthly_i_price
         m_i_mom = monthly_i_price
 
         # Structural bias: when structural is Q3 (hot inflation), monthly Q1 is
         # economically inconsistent — CPI doesn't vanish in 1 month. Penalize Q1.
         month_modifiers = {}
-        if struct_quad == "Q3" and i_level > 0.15:
-            # Hot structural inflation → monthly can't be Goldilocks (low infl)
-            month_modifiers["Q1"] = -0.35
-            month_modifiers["Q2"] = +0.20
-            month_modifiers["Q3"] = +0.10
+        if struct_quad == "Q3" and i_level > Q3_HOT_INFL_THRESH:
+            month_modifiers = dict(Q3_MONTHLY_MOD)
 
         month_probs, month_quad, month_conf = _score_quad(
             m_g_level, m_g_mom, m_i_level, m_i_mom, policy,
             MONTHLY_WEIGHTS, POLICY_WEIGHT_MONTHLY,
             modifiers=month_modifiers
         )
+
+        # ── FIX S1-d: hard-gate proxy reliance ──────────────────────────────────
+        # When most macro inputs are price-proxied (FRED unavailable), the quad is
+        # COINCIDENT with markets, not leading — that defeats the whole edge. Haircut
+        # confidence hard and surface a warning the UI must show.
+        proxy_warning = None
+        if proxy_share > 0.5:
+            penalty = max(0.25, 1.0 - proxy_share)
+            proxy_warning = (f"⚠️ {proxy_share*100:.0f}% of macro inputs PRICE-PROXIED "
+                             f"(FRED missing) — quad is COINCIDENT, not leading. Low conviction.")
+        elif proxy_share > 0.25:
+            penalty = 1.0 - 0.5 * (proxy_share - 0.25)
+            proxy_warning = f"{proxy_share*100:.0f}% proxy inputs — partial price-coincidence."
+        else:
+            penalty = 1.0
+        struct_conf *= penalty
+        month_conf *= penalty
 
         if struct_quad == month_quad:
             div = "aligned"; regime = f"Aligned {struct_quad}"
@@ -375,6 +399,7 @@ class GIPEngine:
             growth_level=g_level, growth_momentum=g_mom_,
             inflation_level=i_level, inflation_momentum=i_mom_,
             policy_score=policy, data_coverage=coverage, proxy_share=proxy_share,
+            proxy_warning=proxy_warning,
             q3_modifier=q3_mod,
             q3_credit_stress=_nan(merge("q3_credit_stress")),
             q3_consumer_stress=_nan(merge("q3_consumer_stress")),

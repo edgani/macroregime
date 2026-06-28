@@ -102,6 +102,23 @@ def _conv_card(r, dmax, reg, extra=""):
             f"<span class='wr-score wr-mono'>{disp:.1f}</span></div><div class='wr-why'>{_causal5(r, reg)}</div>{szhtml}{extra}</div>")
 
 
+def _oe_inline(s):
+    """Risk range (Hedgeye LRR/TRR) + entry-quality score, inline on the ticker — no separate tab."""
+    lrr, trr, close = s.get("lrr"), s.get("trr"), s.get("close") or s.get("px")
+    if not (lrr and trr):
+        return ""
+    rng = f"<span class='k'>risk range</span> {lrr:.2f}–{trr:.2f}"
+    try:
+        from warroom import optimal_entry as OE
+        q, why = OE.quality(s.get("_dir"), lrr, trr, close, s.get("timing"))
+    except Exception:
+        q, why = None, ""
+    if q is None:
+        return f"<div class='wr-why'>{rng}</div>"
+    qc = "grn" if q >= 70 else "amb" if q >= 45 else "gry"
+    return f"<div class='wr-why'>{rng} · <span class='k'>entry quality</span> <b class='b-{qc}'>{q}</b>/100 <span class='wr-sub'>({why})</span></div>"
+
+
 def _setup_card(s):
     k = _DIRK.get(s["_dir"], "inf")
     levels = (f"<span class='k'>entry</span> {s['entry']} · <span class='k'>stop</span> {s['stop']} · <span class='k'>target</span> {s['target']}"
@@ -112,7 +129,7 @@ def _setup_card(s):
     return (f"<div class='wr-card'><div class='wr-ctop'>{_b(s['_dir'], k)}"
             f"<span class='wr-tkr wr-mono'>{s['ticker']}</span><span class='wr-sub'>${s['px']}</span>"
             f"<span class='wr-score wr-mono'>{s['score']:.1f}</span></div>"
-            f"<div class='wr-why'>{levels}. <span class='k'>RS</span> {s['rs']:+.0f}% · {s['form'].lower()}.</div>{cfh}{_decision(s)}{_pa_line(s)}{_struct_line(s)}{_idioflag(s)}{_ivflag(s)}{_mechflag(s)}{_timing(s)}</div>")
+            f"<div class='wr-why'>{levels}. <span class='k'>RS</span> {s['rs']:+.0f}% · {s['form'].lower()}.</div>{_oe_inline(s)}{cfh}{_decision(s)}{_pa_line(s)}{_struct_line(s)}{_idioflag(s)}{_ivflag(s)}{_mechflag(s)}{_timing(s)}</div>")
 
 
 def _livenote(label, val):
@@ -989,39 +1006,48 @@ def morning_brief(d):
     # 1. what changed since yesterday
     wc = d.get("whatchanged") or []
     wc_items = "".join(f"<li>{_safe_txt(x)}</li>" for x in wc[:7]) or "<li class='wr-sub'>no material change recorded since last run (or first run today).</li>"
-    # 2. today's regime / posture
-    reg = d.get("regime")
-    reg_s = _safe_txt(reg) if reg else "—"
-    post = d.get("posture") or {}
-    post_s = _safe_txt(post.get("stance") or post.get("label") or post) if post else "—"
+    # 2. today's regime / posture — extract clean fields (do NOT dump the raw dict)
+    reg = d.get("regime") or {}
+    if isinstance(reg, dict):
+        struct = reg.get("structural", "—"); month = reg.get("monthly", "—")
+        oper = reg.get("operating", "")
+        rt = reg.get("regime_transition") if isinstance(reg.get("regime_transition"), dict) else {}
+        reg_why = rt.get("summary") or ""
+        reg_line = f"{struct} structural · {month} monthly" + (f" — {oper}" if oper else "")
+        post_s = reg.get("posture", "—")
+    else:
+        reg_line, reg_why, post_s = _safe_txt(reg), "", "—"
     # 3. risk compass (cross-asset rotation)
     cr = d.get("cycle_rotation", {}) or {}
     comp = cr.get("compass", "—"); comp_c = cr.get("color", "gry")
-    # 4. crash probability
+    # 4. crash probability — extract type/pressure/basis
     crash = d.get("crash") or {}
-    crash_p = crash.get("prob") or crash.get("pct") or crash.get("probability") or crash.get("score")
-    crash_s = (f"{crash_p:.0f}%" if isinstance(crash_p, (int, float)) and crash_p > 1 else f"{crash_p*100:.0f}%" if isinstance(crash_p, (int, float)) else _safe_txt(crash) if crash else "—")
-    # 5. highest conviction (few names, not 60)
+    if isinstance(crash, dict):
+        ct = crash.get("type", "—"); cp = crash.get("pressure"); cb = crash.get("basis", "")
+        crash_s = f"{ct}" + (f" ({cp:.0f})" if isinstance(cp, (int, float)) else "") + (f" — {cb}" if cb else "")
+    else:
+        crash_s = _safe_txt(crash)
+    # 5. highest conviction (few names, not 60) — with risk range + entry quality inline
     conv = d.get("conviction") or []
     rows = ""
     for r in conv[:3]:
         k = _DIRK.get(r.get("_dir"), "inf")
-        why = r.get("form") or r.get("conf") or ""
+        why = r.get("form") or ""
         rows += (f"<div class='wr-card'><div class='wr-ctop'>{_b(r.get('_dir','?'), k)}"
                  f"<span class='wr-tkr wr-mono'>{r.get('ticker','?')}</span>"
                  f"<span class='wr-sub'>${r.get('px','—')} · entry {r.get('entry','—')} · stop {r.get('stop','—')} · target {r.get('target','—')}</span></div>"
-                 f"<div class='wr-why'>{why}</div></div>")
+                 f"<div class='wr-why'>{why}</div>{_oe_inline(r)}</div>")
     rows = rows or "<div class='wr-note'>no high-conviction setups today.</div>"
 
     head = "<div class='wr-top'><b>Morning Brief</b><span>what changed · what matters · what to do — the 30-second read before the detail tabs</span></div>"
     summary = (f"<div class='wr-card'>"
                f"<div class='wr-why' style='font-size:14px;'>"
-               f"<span class='k'>Regime</span> <b>{reg_s}</b> &nbsp;·&nbsp; <span class='k'>Posture</span> <b>{post_s}</b><br>"
-               f"<span class='k'>Cross-asset</span> <b class='b-{comp_c}'>{comp}</b> &nbsp;·&nbsp; <span class='k'>Crash prob</span> <b>{crash_s}</b>"
+               f"<span class='k'>Regime</span> <b>{reg_line}</b><br>"
+               + (f"<span class='wr-sub'>{reg_why}</span><br>" if reg_why else "")
+               + f"<span class='k'>Posture</span> <b>{post_s}</b> &nbsp;·&nbsp; <span class='k'>Cross-asset</span> <b class='b-{comp_c}'>{comp}</b> &nbsp;·&nbsp; <span class='k'>Crash</span> <b>{crash_s}</b>"
                f"</div></div>")
     changed = f"<div class='wr-lbl'>What changed since yesterday</div><div class='wr-card'><ul class='wr-rows' style='margin:0;padding-left:18px;'>{wc_items}</ul></div>"
-    opp = f"<div class='wr-lbl'>Highest conviction (top 3)</div>{rows}"
-    note = ("<div class='wr-note'>This is the executive summary — the institutional-briefing top of the app. "
-            "It answers the three questions that matter at 7am (what changed, what's the regime, what to act on) before you ever open the 13 detail tabs. "
-            "Numbers and full reasoning live in the tabs behind it.</div>")
+    opp = f"<div class='wr-lbl'>Highest conviction (top 3) — risk range + entry quality on each</div>{rows}"
+    note = ("<div class='wr-note'>This is the executive summary — what changed, the regime, and what to act on, before the detail tabs. "
+            "For the full click-through briefing deck, run the interactive Morning Brief (briefing.html).</div>")
     st.markdown(CSS + head + summary + changed + opp + note, unsafe_allow_html=True)

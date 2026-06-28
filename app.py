@@ -11,6 +11,7 @@ Data: parquet cache (build_cache.py) → yfinance live → synthetic fallback. F
 """
 import streamlit as st
 from warroom import data as D, compute as C, render as R, fred as F, feeds as FEEDS, tracker as TR, statelog as SL
+from warroom import brief_export as BE
 
 
 def main():
@@ -35,24 +36,27 @@ def main():
             d["whatchanged"], d["whatchanged_prev_ts"] = SL.record_and_diff(d)
         except Exception:
             d["whatchanged"], d["whatchanged_prev_ts"] = [], None
-    tabs = st.tabs(["Morning Brief", "Command Center", "Alpha Center", "Optimal Entry", "Cross-Asset Rotation",
+        try:
+            BE.export(d)   # regenerate the interactive briefing deck (briefing.html) with today's data
+        except Exception:
+            pass
+    tabs = st.tabs(["Morning Brief", "Command Center", "Alpha Center", "Cross-Asset Rotation",
                     "US Stocks", "Crypto", "Commodities", "FX", "IHSG", "Flow", "Bottleneck",
                     "Market State", "Track Record", "Risk & Health"])
     with tabs[0]: R.morning_brief(d)
     with tabs[1]: R.command_center(d, source)
     with tabs[2]: R.alpha(d)
-    with tabs[3]: R.optimal_entry(d)
-    with tabs[4]: R.cycle_rotation(d)
-    with tabs[5]: R.us_stocks(d)
-    with tabs[6]: R.crypto(d)
-    with tabs[7]: R.commodities(d)
-    with tabs[8]: R.fx(d)
-    with tabs[9]: R.ihsg(d)
-    with tabs[10]: R.flow(d)
-    with tabs[11]: R.bottleneck(d)
-    with tabs[12]: R.market_state(d)
-    with tabs[13]: R.track_record(TR.performance(), TR.open_positions(), TR.closed_trades())
-    with tabs[14]: R.risk_health(d)
+    with tabs[3]: R.cycle_rotation(d)
+    with tabs[4]: R.us_stocks(d)
+    with tabs[5]: R.crypto(d)
+    with tabs[6]: R.commodities(d)
+    with tabs[7]: R.fx(d)
+    with tabs[8]: R.ihsg(d)
+    with tabs[9]: R.flow(d)
+    with tabs[10]: R.bottleneck(d)
+    with tabs[11]: R.market_state(d)
+    with tabs[12]: R.track_record(TR.performance(), TR.open_positions(), TR.closed_trades())
+    with tabs[13]: R.risk_health(d)
 
 
 if __name__ == "__main__":

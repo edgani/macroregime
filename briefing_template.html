@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Morning Brief</title>
+<style>
+  :root{
+    --bg:#0a0e14; --panel:#121823; --panel2:#0f1520; --line:#1f2935;
+    --txt:#e6edf3; --sub:#8b97a7; --dim:#5b6675;
+    --grn:#3fb950; --red:#f85149; --amb:#d6a429; --inf:#4493f8;
+    --risk:#d6a429;            /* set at runtime from the compass */
+    --risk-soft:rgba(214,164,41,.14);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:var(--bg); color:var(--txt); overflow:hidden;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+  /* ── stage ── */
+  #stage{position:relative;height:100vh;width:100%;overflow:hidden}
+  .slide{
+    position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;
+    padding:clamp(28px,6vw,90px); opacity:0; transform:translateX(40px);
+    transition:opacity .42s ease,transform .42s ease; pointer-events:none;
+    max-width:1100px;margin:0 auto;
+  }
+  .slide.active{opacity:1;transform:translateX(0);pointer-events:auto}
+  .slide.prev{transform:translateX(-40px)}
+  .eyebrow{
+    font-size:12px;letter-spacing:.22em;text-transform:uppercase;color:var(--risk);
+    font-weight:600;margin-bottom:18px;display:flex;align-items:center;gap:10px;
+  }
+  .eyebrow::before{content:"";width:26px;height:2px;background:var(--risk);display:inline-block}
+  h1{font-size:clamp(34px,6.5vw,76px);font-weight:760;line-height:1.02;letter-spacing:-.02em;margin-bottom:18px}
+  h2{font-size:clamp(22px,3.6vw,40px);font-weight:720;line-height:1.08;letter-spacing:-.01em;margin-bottom:26px}
+  .lede{font-size:clamp(15px,1.9vw,21px);color:var(--sub);line-height:1.5;max-width:760px}
+  .big{color:var(--risk)}
+  .k{color:var(--dim);font-size:13px;letter-spacing:.04em;text-transform:uppercase}
+  /* ── changed list ── */
+  ul.changed{list-style:none;display:flex;flex-direction:column;gap:13px;margin-top:8px}
+  ul.changed li{
+    display:flex;gap:14px;align-items:flex-start;font-size:clamp(15px,1.9vw,19px);line-height:1.4;
+    padding:14px 18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;
+  }
+  ul.changed li::before{content:"→";color:var(--risk);font-weight:700;flex:none}
+  /* ── regime grid ── */
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-top:6px}
+  .cell{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+  .cell .k{display:block;margin-bottom:8px}
+  .cell .v{font-size:clamp(18px,2.4vw,26px);font-weight:680}
+  .pill{display:inline-block;padding:3px 11px;border-radius:20px;font-size:12px;font-weight:650;letter-spacing:.02em}
+  .pill.grn{background:rgba(63,185,80,.16);color:var(--grn)} .pill.red{background:rgba(248,81,73,.16);color:var(--red)}
+  .pill.amb{background:rgba(214,164,41,.16);color:var(--amb)} .pill.inf{background:rgba(68,147,248,.16);color:var(--inf)}
+  /* ── compass ── */
+  .compass-wrap{display:grid;grid-template-columns:minmax(220px,300px) 1fr;gap:clamp(20px,4vw,56px);align-items:center;margin-top:4px}
+  @media(max-width:720px){.compass-wrap{grid-template-columns:1fr}}
+  .gauge{position:relative;width:100%;max-width:300px}
+  .axes{display:flex;flex-direction:column;gap:9px}
+  .axis{display:grid;grid-template-columns:124px 1fr;gap:12px;align-items:center;font-size:13px}
+  .axis .nm{color:var(--sub);text-align:right;font-size:12.5px;line-height:1.15}
+  .bar{position:relative;height:24px;background:var(--panel);border-radius:6px;border:1px solid var(--line);overflow:hidden}
+  .bar .mid{position:absolute;left:50%;top:0;bottom:0;width:1px;background:var(--dim);opacity:.5}
+  .bar .fill{position:absolute;top:3px;bottom:3px;border-radius:4px;transition:width .6s ease}
+  .bar .fill.dn{right:50%;background:linear-gradient(90deg,var(--grn),rgba(63,185,80,.5))}
+  .bar .fill.up{left:50%;background:linear-gradient(270deg,var(--red),rgba(248,81,73,.5))}
+  .axis .vd{font-size:11.5px;color:var(--dim);margin-top:2px}
+  /* ── conviction ── */
+  .conv{display:flex;flex-direction:column;gap:13px;margin-top:6px}
+  .ccard{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 20px;border-left:3px solid var(--line)}
+  .ccard.Long{border-left-color:var(--grn)} .ccard.Short{border-left-color:var(--red)} .ccard.Watch{border-left-color:var(--amb)}
+  .ctop{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:7px}
+  .tkr{font-size:clamp(17px,2.2vw,22px);font-weight:720}
+  .q{margin-left:auto;font-weight:740;font-size:18px;padding:2px 11px;border-radius:8px}
+  .q.grn{background:rgba(63,185,80,.16);color:var(--grn)} .q.amb{background:rgba(214,164,41,.16);color:var(--amb)} .q.gry{background:rgba(139,151,167,.14);color:var(--sub)}
+  .lv{font-size:13.5px;color:var(--sub);line-height:1.5}
+  .lv .k{margin-right:3px}
+  /* ── nav ── */
+  #nav{position:fixed;left:0;right:0;bottom:0;height:64px;display:flex;align-items:center;
+       justify-content:space-between;padding:0 clamp(20px,5vw,70px);
+       background:linear-gradient(0deg,var(--bg) 40%,transparent);z-index:20}
+  .navbtn{width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:var(--panel);
+          color:var(--txt);font-size:19px;cursor:pointer;display:flex;align-items:center;justify-content:center;
+          transition:border-color .2s,background .2s}
+  .navbtn:hover{border-color:var(--risk);background:var(--risk-soft)}
+  .navbtn:disabled{opacity:.3;cursor:default}
+  .dots{display:flex;gap:9px;align-items:center}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--line);cursor:pointer;transition:all .25s}
+  .dot.on{background:var(--risk);width:22px;border-radius:5px}
+  .count{position:fixed;top:26px;right:clamp(20px,5vw,70px);font-size:12.5px;color:var(--dim);letter-spacing:.1em;z-index:20}
+  .brand{position:fixed;top:24px;left:clamp(20px,5vw,70px);font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--sub);font-weight:600;z-index:20}
+  .brand b{color:var(--risk)}
+  .progress{position:fixed;top:0;left:0;height:2px;background:var(--risk);z-index:30;transition:width .42s ease}
+  .foot{margin-top:24px;font-size:12px;color:var(--dim);line-height:1.5;max-width:720px}
+  @media(prefers-reduced-motion:reduce){.slide{transition:opacity .01s}.bar .fill{transition:none}}
+</style>
+</head>
+<body>
+<div class="progress" id="prog"></div>
+<div class="brand">War Room · <b>Morning Brief</b></div>
+<div class="count mono" id="count">01 / 06</div>
+<div id="stage"></div>
+<div id="nav">
+  <button class="navbtn" id="prev">‹</button>
+  <div class="dots" id="dots"></div>
+  <button class="navbtn" id="next">›</button>
+</div>
+
+<script>
+/* data injected by warroom/brief_export.py; this sample renders standalone */
+window.BRIEF = window.BRIEF || /*__BRIEF__*/{
+  "date":"Sample — run the app to generate live data",
+  "regime":{"structural":"Quad 3","monthly":"Quad 2","operating":"Monthly Q2 inside Structural Q3","why":"RIPE: leading horizon already in Q2 while structural still reads Q3. The Q3→Q2 (Reflation) turn is in motion but not yet confirmed — the window to position ahead of it.","posture":"Defensive"},
+  "crash":{"type":"LOW","pressure":34.5,"basis":"no dominant crash driver"},
+  "compass":{"state":"MIXED / TRANSITIONING","color":"amb","score":0,"down":3,"up":3,
+    "meaning":"The axes disagree — rotation is not aligned. A transition zone: conviction is low because the asset classes aren't confirming each other. Wait for confluence before sizing up.",
+    "axes":[
+      {"name":"Crypto risk-curve","vote":-1,"verdict":"flight up to BTC — alts lagging","down":"alts / ETH","up":"BTC / stables"},
+      {"name":"US sector clock","vote":1,"verdict":"early-cycle — cyclicals leading","down":"discretionary / financials","up":"utilities / staples"},
+      {"name":"US factors","vote":1,"verdict":"broad risk-on — small-caps participating","down":"small / value","up":"large / quality"},
+      {"name":"FX risk-on/off","vote":1,"verdict":"AUD/JPY rising, USD soft","down":"AUD / EM FX","up":"USD / JPY"},
+      {"name":"Commodity complex","vote":-1,"verdict":"gold leading — fear bid","down":"copper / oil","up":"gold"},
+      {"name":"DM → EM","vote":-1,"verdict":"capital fleeing EM → DM","down":"EM equities","up":"US / USD"},
+      {"name":"IHSG intra-market","vote":0,"verdict":"mixed rotation","down":"coal / metals","up":"big-cap banks"}
+    ]},
+  "changed":["First run today — no prior snapshot to diff against.","Connect the app and re-run to populate yesterday→today deltas."],
+  "conviction":[
+    {"ticker":"SNDK","dir":"Long","px":2335.0,"entry":"1754.77–2335.0","stop":1754.77,"target":2475.1,"rr":"1700–2350","quality":71,"why":"bullish formation · near lower band, room to target"}
+  ]
+};
+
+const B = window.BRIEF;
+const RC = {grn:"#3fb950",red:"#f85149",amb:"#d6a429"};
+const accent = RC[B.compass?.color] || RC.amb;
+document.documentElement.style.setProperty('--risk', accent);
+document.documentElement.style.setProperty('--risk-soft', accent+"24");
+
+const esc = s => String(s==null?"":s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+const qcls = q => q>=70?"grn":q>=45?"amb":"gry";
+
+/* ── build the compass gauge (semicircle, needle from score) ── */
+function gauge(c){
+  const score=c.score||0, n=c.axes?c.axes.length:7;
+  const t=Math.max(-1,Math.min(1,score/Math.max(1,n)));        // -1 risk-off … +1 risk-on
+  const ang=t*78;                                              // needle angle (deg), left=risk-on
+  const col=accent;
+  return `<svg class="gauge" viewBox="0 0 200 132">
+    <path d="M18 116 A82 82 0 0 1 182 116" fill="none" stroke="#1f2935" stroke-width="13" stroke-linecap="round"/>
+    <path d="M18 116 A82 82 0 0 1 100 34" fill="none" stroke="#3fb950" stroke-width="13" stroke-linecap="round" opacity=".55"/>
+    <path d="M100 34 A82 82 0 0 1 182 116" fill="none" stroke="#f85149" stroke-width="13" stroke-linecap="round" opacity=".55"/>
+    <g transform="rotate(${-ang} 100 116)">
+      <line x1="100" y1="116" x2="100" y2="46" stroke="${col}" stroke-width="3.5" stroke-linecap="round"/>
+      <circle cx="100" cy="116" r="7" fill="${col}"/>
+    </g>
+    <text x="22" y="130" fill="#3fb950" font-size="9" font-family="monospace">RISK-ON</text>
+    <text x="150" y="130" fill="#f85149" font-size="9" font-family="monospace">RISK-OFF</text>
+    <text x="100" y="92" fill="${col}" font-size="26" font-weight="700" text-anchor="middle" font-family="monospace">${score>0?"+":""}${score}</text>
+    <text x="100" y="108" fill="#8b97a7" font-size="8.5" text-anchor="middle">NET / ${n} AXES</text>
+  </svg>`;
+}
+function axesBars(c){
+  return `<div class="axes">`+(c.axes||[]).map(a=>{
+    const v=a.vote||0, w=Math.abs(v)*46+4;
+    const fill = v>0?`<div class="fill dn" style="width:${w}%"></div>`:v<0?`<div class="fill up" style="width:${w}%"></div>`:"";
+    return `<div class="axis"><div class="nm">${esc(a.name)}</div>
+      <div><div class="bar"><div class="mid"></div>${fill}</div>
+      <div class="vd">${esc(a.verdict)}</div></div></div>`;
+  }).join("")+`</div>`;
+}
+
+/* ── slides ── */
+const reg=B.regime||{}, cr=B.crash||{}, cm=B.compass||{};
+const slides=[
+  // 1 cover
+  `<div class="eyebrow">Morning Brief · ${esc(B.date||"")}</div>
+   <h1>${esc(reg.structural||"—")} <span style="color:var(--dim)">structural</span> · ${esc(reg.monthly||"—")} <span style="color:var(--dim)">monthly</span></h1>
+   <p class="lede">${esc(reg.why||reg.operating||"")}</p>
+   <div class="foot">Cross-asset compass reads <b class="big">${esc(cm.state||"—")}</b> · crash pressure <b>${esc(cr.type||"—")}</b>. Click → or use arrow keys.</div>`,
+  // 2 what changed
+  `<div class="eyebrow">01 · What changed since yesterday</div>
+   <h2>The delta is the signal.</h2>
+   <ul class="changed">${(B.changed||[]).slice(0,7).map(x=>`<li>${esc(x)}</li>`).join("")||'<li>No material change recorded.</li>'}</ul>`,
+  // 3 regime
+  `<div class="eyebrow">02 · Today's regime</div>
+   <h2>${esc(reg.operating||"Regime")}</h2>
+   <div class="grid">
+     <div class="cell"><span class="k">Structural</span><div class="v">${esc(reg.structural||"—")}</div></div>
+     <div class="cell"><span class="k">Monthly</span><div class="v">${esc(reg.monthly||"—")}</div></div>
+     <div class="cell"><span class="k">Posture</span><div class="v">${esc(reg.posture||"—")}</div></div>
+     <div class="cell"><span class="k">Crash pressure</span><div class="v">${esc(cr.type||"—")}${cr.pressure!=null?` · ${cr.pressure}`:""}</div></div>
+   </div>
+   <p class="lede" style="margin-top:20px">${esc(reg.why||"")} ${cr.basis?`<br><span style="color:var(--dim)">Crash basis: ${esc(cr.basis)}.</span>`:""}</p>`,
+  // 4 compass (signature)
+  `<div class="eyebrow">03 · Cross-asset rotation</div>
+   <h2 style="margin-bottom:18px">Where is capital flowing — <span class="big">${esc(cm.state||"—")}</span></h2>
+   <div class="compass-wrap"><div>${gauge(cm)}</div>${axesBars(cm)}</div>
+   <div class="foot">${esc(cm.meaning||"")} &nbsp; Each bar = one axis racing along the same risk curve. Green left = capital rotating <b>down</b> the curve (risk-on); red right = <b>up</b> to safety.</div>`,
+  // 5 conviction
+  `<div class="eyebrow">04 · Highest conviction</div>
+   <h2>What to act on — risk range + entry quality on each.</h2>
+   <div class="conv">${(B.conviction||[]).slice(0,4).map(c=>`
+     <div class="ccard ${esc(c.dir)}">
+       <div class="ctop"><span class="pill ${c.dir==='Long'?'grn':c.dir==='Short'?'red':'amb'}">${esc(c.dir)}</span>
+         <span class="tkr mono">${esc(c.ticker)}</span><span class="lv">$${esc(c.px)}</span>
+         ${c.quality!=null?`<span class="q ${qcls(c.quality)}">${c.quality}</span>`:""}</div>
+       <div class="lv"><span class="k">entry</span>${esc(c.entry)} · <span class="k">stop</span>${esc(c.stop)} · <span class="k">target</span>${esc(c.target)}${c.rr?` · <span class="k">range</span>${esc(c.rr)}`:""}</div>
+       ${c.why?`<div class="lv" style="margin-top:5px;color:var(--dim)">${esc(c.why)}</div>`:""}
+     </div>`).join("")||'<div class="ccard">No high-conviction setups today.</div>'}</div>`,
+  // 6 bottom line
+  `<div class="eyebrow">05 · Bottom line</div>
+   <h1 style="font-size:clamp(28px,5vw,58px)">${cm.score>2?"Lean in — risk is rotating down the curve.":cm.score<-2?"Defend — capital is fleeing to safety.":"Wait for confluence."}</h1>
+   <p class="lede">${esc(cm.meaning||"")}</p>
+   <div class="foot">This deck is the 30-second read. The full numbers, per-ticker risk ranges, greeks, and reasoning live in the War Room tabs behind it. Weights are unvalidated priors — walk-forward before sizing.</div>`
+];
+
+/* ── engine ── */
+const stage=document.getElementById('stage'), dotsEl=document.getElementById('dots'),
+      countEl=document.getElementById('count'), progEl=document.getElementById('prog'),
+      prevB=document.getElementById('prev'), nextB=document.getElementById('next');
+let i=0;
+slides.forEach((html,idx)=>{const d=document.createElement('div');d.className='slide';d.innerHTML=html;d.dataset.i=idx;stage.appendChild(d);
+  const dot=document.createElement('div');dot.className='dot';dot.onclick=()=>go(idx);dotsEl.appendChild(dot);});
+const els=[...stage.children], dots=[...dotsEl.children];
+function go(n){
+  i=Math.max(0,Math.min(slides.length-1,n));
+  els.forEach((e,x)=>{e.classList.toggle('active',x===i);e.classList.toggle('prev',x<i);});
+  dots.forEach((d,x)=>d.classList.toggle('on',x===i));
+  countEl.textContent=String(i+1).padStart(2,'0')+' / '+String(slides.length).padStart(2,'0');
+  progEl.style.width=((i+1)/slides.length*100)+'%';
+  prevB.disabled=i===0;nextB.disabled=i===slides.length-1;
+}
+nextB.onclick=()=>go(i+1);prevB.onclick=()=>go(i-1);
+document.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key===' ')go(i+1);if(e.key==='ArrowLeft')go(i-1);});
+let sx=0;stage.addEventListener('touchstart',e=>sx=e.touches[0].clientX,{passive:true});
+stage.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>50)go(i+(dx<0?1:-1));},{passive:true});
+go(0);
+</script>
+</body>
+</html>

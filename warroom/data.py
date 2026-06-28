@@ -33,9 +33,11 @@ BETA_UNIVERSE = ["ACLS", "GDX", "GDXJ", "SIL", "FNV", "WPM", "NEM", "GOLD", "AEM
                  "MARA", "RIOT", "CLSK", "DNN", "NXE", "OKLO", "SMR"]
 # adjacent-theme names for the theme graph (quantum, robotics/automation, defense-tech)
 THEME_EXT = ["IONQ", "RGTI", "QBTS", "ARQQ", "TSLA", "ISRG", "ROK", "SERV", "PATH", "TER", "NNDM", "KTOS"]
-US_UNIVERSE = list(dict.fromkeys(MACRO_PROXY + US_NAMES + BETA_UNIVERSE + THEME_EXT))
+# DM<->EM rotation nodes (US-listed country/region ETFs) — the global risk-curve axis
+EM_PROXY = ["EEM", "EWZ", "INDA", "FXI", "EWY", "EWT", "EWW", "EFA"]
+US_UNIVERSE = list(dict.fromkeys(MACRO_PROXY + US_NAMES + BETA_UNIVERSE + THEME_EXT + EM_PROXY))
 IDX_UNIVERSE = ["BBCA.JK", "BMRI.JK", "BBRI.JK", "BBNI.JK", "TLKM.JK", "ASII.JK", "BUMI.JK",
-                "ADRO.JK", "ANTM.JK", "MDKA.JK", "GOTO.JK", "AMMN.JK", "BREN.JK", "HUMI.JK"]
+                "ADRO.JK", "ANTM.JK", "MDKA.JK", "GOTO.JK", "AMMN.JK", "BREN.JK", "HUMI.JK", "^JKSE"]
 CRYPTO_UNIVERSE = ["BTC-USD", "ETH-USD", "SOL-USD", "BNB-USD", "COIN", "IBIT", "MSTR"]
 FX_UNIVERSE = ["DX-Y.NYB", "EURUSD=X", "USDJPY=X", "GBPUSD=X", "AUDUSD=X", "USDIDR=X"]
 COMMO_UNIVERSE = ["GLD", "SLV", "USO", "UNG", "CPER", "DBC", "WEAT", "URA"]

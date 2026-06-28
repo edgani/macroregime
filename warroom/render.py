@@ -860,3 +860,168 @@ def risk_health(d):
             + f"<div class='wr-lbl'>Engine exceptions (no longer silent)</div><div class='wr-rows'>{errs}</div>"
             f"<div class='wr-note'>Risk limits are guidance, not advice. Engine errors here would otherwise be swallowed — if a panel elsewhere is unexpectedly blank, check here.</div>")
     st.markdown(CSS + html, unsafe_allow_html=True)
+
+
+# ═══════════════════════════════════ OPTIMAL ENTRY (consolidated entry view) ═══
+def _oe_qcolor(q):
+    return "grn" if q >= 70 else "amb" if q >= 45 else "gry"
+
+
+def _oe_card(r):
+    if r.get("error"):
+        return (f"<div class='wr-card'><div class='wr-ctop'>"
+                f"<span class='wr-tkr wr-mono'>{r['ticker']}</span>"
+                f"<span class='wr-sub'>{r['error']}</span></div></div>")
+    dirn = r.get("direction", "?")
+    k = _DIRK.get(dirn, "inf")
+    q = r.get("quality", 0)
+    src = r.get("source", "screen")
+    srck = "inf" if src in ("beta-play", "bridge", "beta-play+bridge") else "amb" if src == "manual" else "gry"
+    rrr = r.get("rr_ratio")
+    rrr_txt = f"{rrr:.2f}" if rrr is not None else "—"
+    lrr, trr = r.get("lrr"), r.get("trr")
+    rng = f"{lrr:.2f}–{trr:.2f}" if (lrr and trr) else "—"
+    if dirn in ("Long", "Short"):
+        levels = (f"<span class='k'>entry</span> {r.get('entry','—')} · <span class='k'>stop</span> {r.get('stop','—')} "
+                  f"· <span class='k'>target</span> {r.get('target','—')} · <span class='k'>R:R</span> {rrr_txt}")
+    else:
+        levels = f"<span class='k'>watch</span> {r.get('entry','—')}"
+    tim = r.get("timing", "") or "—"
+    return (f"<div class='wr-card'><div class='wr-ctop'>{_b(dirn, k)}"
+            f"<span class='wr-tkr wr-mono'>{r['ticker']}</span>"
+            f"<span class='wr-sub'>{r.get('market','')} · ${r.get('px','—')} · RR {rng}</span>"
+            f"{_b(src, srck)}"
+            f"<span class='wr-score wr-mono b-{_oe_qcolor(q)}' style='padding:2px 8px;border-radius:7px;'>{q}</span></div>"
+            f"<div class='wr-why'>{levels}. <span class='k'>timing</span> {tim}. {r.get('why','')}</div></div>")
+
+
+def _oe_section(title, rows, empty):
+    cards = "".join(_oe_card(r) for r in rows) or f"<div class='wr-note'>{empty}</div>"
+    return f"<div class='wr-lbl'>{title}</div>{cards}"
+
+
+def optimal_entry(d):
+    oe = d.get("optimal_entry", {}) or {}
+    from_sel = oe.get("from_selection", [])
+    top_q = oe.get("top_quality", [])
+    combined = oe.get("combined", [])
+    sel_c, br_c, n = oe.get("sel_count", 0), oe.get("bridge_count", 0), oe.get("n_total", 0)
+    head = (f"<div class='wr-top'><b>Optimal Entry</b><span>where to enter the names worth entering — risk range + anti-FOMO timing, ranked</span></div>"
+            f"<div style='margin-bottom:14px;'>{_b(f'{sel_c} beta-play QUALIFIES', 'inf')} {_b(f'{br_c} theme bridges', 'inf')} {_b(f'{n} setups scored', 'gry')}</div>")
+    body = (_oe_section("① From selection — beta-play QUALIFIES + theme bridges (the funnel output)", from_sel, "no QUALIFIES / bridge names with a clean entry right now.")
+            + _oe_section("② Top entry-quality — cross-asset (US · crypto · commodities · FX · IHSG)", top_q, "no actionable setups scored.")
+            + _oe_section("③ Combined — selection-funnelled, then ranked by entry quality", combined, "—"))
+    note = ("<div class='wr-note'>Entry quality = where price sits in its TRADE range vs the trade direction "
+            "(a Long near the lower band has room; a Long stretched to the upper band is FOMO) blended 0.6 / 0.4 "
+            "with the anti-FOMO timing verdict. Levels = Hedgeye TRADE / TREND risk range. Weights are unvalidated "
+            "priors — walk-forward before sizing. Real signed GEX needs your live options feed.</div>")
+    st.markdown(CSS + head + body + note, unsafe_allow_html=True)
+    # ── ④ Manual watchlist (live load + score) ──
+    st.markdown("<div class='wr-lbl' style='margin-top:18px;'>④ Manual watchlist — your tickers, analyzed live</div>", unsafe_allow_html=True)
+    raw = st.text_input("tickers", value="", placeholder="e.g. NVDA, BBCA.JK, BTC-USD, GC=F",
+                        label_visibility="collapsed", key="oe_watch")
+    if raw and raw.strip():
+        tickers = [t.strip() for t in raw.replace(";", ",").split(",") if t.strip()]
+        if tickers:
+            with st.spinner("loading + scoring…"):
+                res = []
+                try:
+                    from warroom import optimal_entry as OE
+                    res = OE.analyze_watchlist(tickers)
+                except Exception as e:
+                    st.markdown(f"<div class='wr-note'>watchlist error: {e}</div>", unsafe_allow_html=True)
+            if res:
+                st.markdown(CSS + _oe_section("watchlist — ranked by entry quality", res, "no data."),
+                            unsafe_allow_html=True)
+
+
+# ═══════════════════════════════════ CYCLE ROTATION (cross-asset compass) ═══
+def _vbadge(v):
+    return _b("DOWN-curve ↓ risk-on", "grn") if v > 0 else _b("UP-curve ↑ risk-off", "red") if v < 0 else _b("neutral", "gry")
+
+
+def _axis_card(a):
+    v = a.get("vote", 0)
+    extra = ""
+    if a.get("ahr999"):
+        ah = a["ahr999"]
+        ahc = "grn" if ah["value"] < 0.45 else "amb" if ah["value"] < 1.2 else "red"
+        extra = f"<div class='wr-why' style='margin-top:4px;'><span class='k'>AHR999</span> <b class='b-{ahc}'>{ah['value']}</b> — {ah['zone']} <span class='wr-sub'>(price-derived proxy)</span></div>"
+    if a.get("breadth_pct") is not None:
+        extra += f"<div class='wr-why'><span class='k'>altseason breadth</span> {a['breadth_pct']:.0f}% of alts beating BTC (90d)</div>"
+    return (f"<div class='wr-card'><div class='wr-ctop'>{_vbadge(v)}"
+            f"<span class='wr-tkr'>{a['name']}</span></div>"
+            f"<div class='wr-why'>{a['verdict']}</div>"
+            f"<div class='wr-why'><span class='k'>down-curve</span> {a.get('down_curve','—')} &nbsp;·&nbsp; <span class='k'>up-curve</span> {a.get('up_curve','—')}</div>{extra}</div>")
+
+
+def cycle_rotation(d):
+    cr = d.get("cycle_rotation", {}) or {}
+    if not cr.get("axes"):
+        st.markdown(CSS + "<div class='wr-note'>Cross-asset rotation not available (needs price data across asset classes).</div>", unsafe_allow_html=True)
+        return
+    col = cr.get("color", "amb")
+    head = (f"<div class='wr-top'><b>Cross-Asset Rotation Compass</b><span>rotation is universal — same mechanic in every asset class</span></div>"
+            f"<div class='wr-card' style='border-left:4px solid var(--{ 'grn' if col=='grn' else 'red' if col=='red' else 'amb'});'>"
+            f"<div class='wr-ctop'><span class='wr-tkr wr-mono b-{col}' style='font-size:18px;'>{cr['compass']}</span>"
+            f"<span class='wr-sub'>{cr.get('down_axes',0)} risk-on ↓ · {cr.get('up_axes',0)} risk-off ↑ · of {cr.get('n_axes',7)} axes</span></div>"
+            f"<div class='wr-why' style='font-size:13px;'>{cr.get('meaning','')}</div></div>")
+    agree = ", ".join(cr.get("agree", [])) or "—"
+    disagree = ", ".join(cr.get("disagree", [])) or "none"
+    conf = (f"<div class='wr-why' style='margin:8px 0 14px;'>{_b('confluence', 'inf')} agreeing: <b>{agree}</b>. "
+            f"disagreeing: <b>{disagree}</b>. <span class='wr-sub'>The edge is when many axes agree — that's a coherent regime; when they split, it's a transition (wait).</span></div>")
+    cards = "".join(_axis_card(a) for a in cr["axes"])
+    note = (f"<div class='wr-note'>Each axis is a relative-strength race along the same risk curve (low-risk → high-risk). "
+            f"When capital rotates DOWN the curve everywhere at once — alts over BTC, EM over DM, high-beta FX over havens, "
+            f"copper over gold, small over large, IHSG cyclicals over banks — that's the risk-on / generational-wealth window. "
+            f"Up the curve = flight to safety. {cr.get('onchain_note','')}</div>")
+    st.markdown(CSS + head + conf + cards + note, unsafe_allow_html=True)
+
+
+# ═══════════════════════════════════ MORNING BRIEF (executive summary / slide 1) ═══
+def _safe_txt(x):
+    if isinstance(x, dict):
+        return x.get("text") or x.get("msg") or x.get("label") or x.get("name") or str(x)
+    return str(x)
+
+
+def morning_brief(d):
+    # 1. what changed since yesterday
+    wc = d.get("whatchanged") or []
+    wc_items = "".join(f"<li>{_safe_txt(x)}</li>" for x in wc[:7]) or "<li class='wr-sub'>no material change recorded since last run (or first run today).</li>"
+    # 2. today's regime / posture
+    reg = d.get("regime")
+    reg_s = _safe_txt(reg) if reg else "—"
+    post = d.get("posture") or {}
+    post_s = _safe_txt(post.get("stance") or post.get("label") or post) if post else "—"
+    # 3. risk compass (cross-asset rotation)
+    cr = d.get("cycle_rotation", {}) or {}
+    comp = cr.get("compass", "—"); comp_c = cr.get("color", "gry")
+    # 4. crash probability
+    crash = d.get("crash") or {}
+    crash_p = crash.get("prob") or crash.get("pct") or crash.get("probability") or crash.get("score")
+    crash_s = (f"{crash_p:.0f}%" if isinstance(crash_p, (int, float)) and crash_p > 1 else f"{crash_p*100:.0f}%" if isinstance(crash_p, (int, float)) else _safe_txt(crash) if crash else "—")
+    # 5. highest conviction (few names, not 60)
+    conv = d.get("conviction") or []
+    rows = ""
+    for r in conv[:3]:
+        k = _DIRK.get(r.get("_dir"), "inf")
+        why = r.get("form") or r.get("conf") or ""
+        rows += (f"<div class='wr-card'><div class='wr-ctop'>{_b(r.get('_dir','?'), k)}"
+                 f"<span class='wr-tkr wr-mono'>{r.get('ticker','?')}</span>"
+                 f"<span class='wr-sub'>${r.get('px','—')} · entry {r.get('entry','—')} · stop {r.get('stop','—')} · target {r.get('target','—')}</span></div>"
+                 f"<div class='wr-why'>{why}</div></div>")
+    rows = rows or "<div class='wr-note'>no high-conviction setups today.</div>"
+
+    head = "<div class='wr-top'><b>Morning Brief</b><span>what changed · what matters · what to do — the 30-second read before the detail tabs</span></div>"
+    summary = (f"<div class='wr-card'>"
+               f"<div class='wr-why' style='font-size:14px;'>"
+               f"<span class='k'>Regime</span> <b>{reg_s}</b> &nbsp;·&nbsp; <span class='k'>Posture</span> <b>{post_s}</b><br>"
+               f"<span class='k'>Cross-asset</span> <b class='b-{comp_c}'>{comp}</b> &nbsp;·&nbsp; <span class='k'>Crash prob</span> <b>{crash_s}</b>"
+               f"</div></div>")
+    changed = f"<div class='wr-lbl'>What changed since yesterday</div><div class='wr-card'><ul class='wr-rows' style='margin:0;padding-left:18px;'>{wc_items}</ul></div>"
+    opp = f"<div class='wr-lbl'>Highest conviction (top 3)</div>{rows}"
+    note = ("<div class='wr-note'>This is the executive summary — the institutional-briefing top of the app. "
+            "It answers the three questions that matter at 7am (what changed, what's the regime, what to act on) before you ever open the 13 detail tabs. "
+            "Numbers and full reasoning live in the tabs behind it.</div>")
+    st.markdown(CSS + head + summary + changed + opp + note, unsafe_allow_html=True)

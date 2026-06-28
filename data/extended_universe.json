@@ -993,6 +993,127 @@
       "fetch_priority": "MEDIUM"
     }
   },
-  "tier_3_user_requested": {},
+  "tier_3_user_requested": {
+    "FANUY": {
+      "discovered_date": "2026-06-28",
+      "source": "serenity+agility_deck",
+      "watch": false,
+      "alpha_context": {
+        "chain_name": "humanoid_cascade",
+        "tier": 3,
+        "role": "humanoid/robotics supply chain"
+      }
+    },
+    "YASKY": {
+      "discovered_date": "2026-06-28",
+      "source": "serenity+agility_deck",
+      "watch": false,
+      "alpha_context": {
+        "chain_name": "humanoid_cascade",
+        "tier": 3,
+        "role": "humanoid/robotics supply chain"
+      }
+    },
+    "ABB": {
+      "discovered_date": "2026-06-28",
+      "source": "serenity+agility_deck",
+      "watch": false,
+      "alpha_context": {
+        "chain_name": "humanoid_cascade",
+        "tier": 3,
+        "role": "humanoid/robotics supply chain"
+      }
+    },
+    "CGNX": {
+      "discovered_date": "2026-06-28",
+      "source": "serenity+agility_deck",
+      "watch": false,
+      "alpha_context": {
+        "chain_name": "humanoid_cascade",
+        "tier": 3,
+        "role": "humanoid/robotics supply chain"
+      }
+    },
+    "MBLY": {
+      "discovered_date": "2026-06-28",
+      "source": "serenity+agility_deck",
+      "watch": false,
+      "alpha_context": {
+        "chain_name": "humanoid_cascade",
+        "tier": 3,
+        "role": "humanoid/robotics supply chain"
+      }
+    },
+    "SYM": {
+      "discovered_date": "2026-06-28",
+      "source": "serenity+agility_deck",
+      "watch": false,
+      "alpha_context": {
+        "chain_name": "humanoid_cascade",
+        "tier": 3,
+        "role": "humanoid/robotics supply chain"
+      }
+    },
+    "6324.T": {
+      "discovered_date": "2026-06-28",
+      "source": "serenity+agility_deck",
+      "watch": false,
+      "alpha_context": {
+        "chain_name": "humanoid_cascade",
+        "tier": 3,
+        "role": "humanoid/robotics supply chain"
+      }
+    },
+    "AAOI": {
+      "discovered_date": "2026-06-28",
+      "source": "serenity",
+      "watch": false,
+      "alpha_context": {
+        "chain_name": "photonics_cascade",
+        "tier": 3,
+        "role": "photonics / optical interconnect"
+      }
+    },
+    "JBL": {
+      "discovered_date": "2026-06-28",
+      "source": "serenity",
+      "watch": false,
+      "alpha_context": {
+        "chain_name": "photonics_cascade",
+        "tier": 3,
+        "role": "photonics / optical interconnect"
+      }
+    },
+    "NBIS": {
+      "discovered_date": "2026-06-28",
+      "source": "serenity",
+      "watch": false,
+      "alpha_context": {
+        "chain_name": "neocloud",
+        "tier": 3,
+        "role": "neocloud AI infra"
+      }
+    },
+    "RKLB": {
+      "discovered_date": "2026-06-28",
+      "source": "serenity",
+      "watch": false,
+      "alpha_context": {
+        "chain_name": "space",
+        "tier": 3,
+        "role": "space (RKLB analogy)"
+      }
+    },
+    "CCXI": {
+      "discovered_date": "2026-06-28",
+      "source": "agility_ipo",
+      "watch": true,
+      "alpha_context": {
+        "chain_name": "humanoid_cascade",
+        "tier": 3,
+        "role": "Agility Robotics SPAC (AGLT on IPO ~Sep2026)"
+      }
+    }
+  },
   "fetch_failed": {}
 }

@@ -20,9 +20,11 @@ from warroom import drivers as DRV
 from warroom import price_action as PA
 from warroom import structure as ST
 from warroom import rotation as ROT
+from warroom import cycle_rotation as CR
 from warroom import beta_play as BP
 from warroom import themes as TH
 from warroom import secular_map as SEC
+from warroom import optimal_entry as OE
 
 _DATADIR = os.path.join(os.path.dirname(__file__), "..", "data")
 
@@ -218,6 +220,7 @@ def _setups(prices, bench_t=None, names=None, n=8, long_only=False):
             conf = _try(lambda: __import__("engines.confluence_engine", fromlist=["multi_tf_confluence"]).multi_tf_confluence(
                 rr.get("trade", {}).get("phase"), rr.get("trend", {}).get("phase"), rr.get("tail", {}).get("phase")))
         rows.append({"ticker": t, "_dir": direction, "px": px, "entry": entry, "stop": stop, "target": target,
+                     "lrr": tl, "trr": th, "close": px, "trend_band": (nl, nh),
                      "rs": round(rs * 100, 1), "accel": round(acc * 100, 1), "form": form, "conf": conf, "score": round(max(strength, 0) * 10, 1)})
     rows.sort(key=lambda x: (x["_dir"] != "Watch", x["score"]), reverse=True)
     return rows[:n]
@@ -414,6 +417,7 @@ def run(us, idx, crypto, fx, commo, fred=None, feeds=None):
     out["drivers"] = {"assets": _drv, "summary": _try(lambda: DRV.coherence_summary(_drv)) or {}}
     out["market_character"] = _try(lambda: PA.market_character(allpx, "SPY"))
     out["rotation"] = _try(lambda: ROT.compute(allpx)) or {}
+    out["cycle_rotation"] = _try(lambda: CR.compute(allpx)) or {}
     out["beta_plays"] = _try(lambda: BP.analyze_themes(allpx)) or {}
     out["theme_graph"] = _try(lambda: TH.connect_dots(allpx)) or {}
     # live feeds (from build_feeds.py snapshot) → fill feed-gated lens slots; empty = graceful proxy
@@ -519,6 +523,9 @@ def run(us, idx, crypto, fx, commo, fred=None, feeds=None):
     out["diagnostics"] = {"failures": len(_DIAG),
                           "by_engine": dict(_Counter(x["engine"] for x in _DIAG).most_common(12)),
                           "samples": _DIAG[:10]}
+    # OPTIMAL ENTRY — consolidate tagged setups (risk range + timing) into a ranked entry view.
+    # Runs LAST so every setup already carries its timing/decision tags from the _tag loop above.
+    out["optimal_entry"] = _try(lambda: OE.gather(out)) or {}
     return out
 
 

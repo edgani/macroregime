@@ -114,6 +114,37 @@ def _conv_card(r, dmax, reg, extra=""):
             f"<span class='wr-score wr-mono'>{disp:.1f}</span></div><div class='wr-why'>{_causal5(r, reg)}</div>{szhtml}{extra}</div>")
 
 
+def _asymmetry(s):
+    """Institutional framing from the Asymmetric Return / Convexity Engine spec (Edward's ChatGPT docs):
+    upside / downside / R:R / Expected Value / P(win) / Kelly / alpha tier / kill — derived from the
+    entry/stop/target + conviction score. P(win) is a MODEL ESTIMATE from the score, not calibrated."""
+    px = s.get("close") or s.get("px"); stop = s.get("stop"); tgt = s.get("target"); dr = s.get("_dir")
+    if dr not in ("Long", "Short"):
+        return ""
+    try:
+        px = float(str(px).replace(",", "")); stop = float(str(stop).replace(",", "")); tgt = float(str(tgt).replace(",", ""))
+    except Exception:
+        return ""
+    if px <= 0:
+        return ""
+    up = (tgt - px) / px * 100 if dr == "Long" else (px - tgt) / px * 100
+    dn = (stop - px) / px * 100 if dr == "Long" else (px - stop) / px * 100
+    if up <= 0 or dn >= 0:
+        return ""
+    rr = up / abs(dn)
+    score = s.get("score") or 0
+    prob = max(0.40, min(0.78, 0.40 + 0.35 * (max(score, 0) / 100.0)))  # model est from conviction
+    ev = prob * up + (1 - prob) * dn                                    # probability-weighted (dn negative)
+    kelly = max(0.0, min(0.25, (prob * rr - (1 - prob)) / rr)) if rr > 0 else 0.0
+    tier = "generational 10x-class" if up >= 80 else "strategic" if up >= 20 else "tactical"
+    evc = "grn" if ev > 0 else "red"
+    return (f"<div class='wr-why' style='margin-top:4px'><span class='k'>upside</span> <b class='b-grn'>+{up:.0f}%</b> · "
+            f"<span class='k'>downside</span> <b class='b-red'>{dn:.0f}%</b> · <span class='k'>R:R</span> <b>{rr:.1f}</b> · "
+            f"<span class='k'>EV</span> <b class='b-{evc}'>{ev:+.0f}%</b> · <span class='k'>P(win)</span> ~{prob*100:.0f}%<span class='wr-sub'> est</span> · "
+            f"<span class='k'>Kelly</span> {kelly*100:.0f}%</div>"
+            f"<div class='wr-why'><span class='k'>alpha</span> {tier} · <span class='k'>kill</span> invalidates below {stop:g} ({dn:.0f}%)</div>")
+
+
 def _oe_inline(s):
     """Risk range (Hedgeye LRR/TRR) + entry-quality score, inline on the ticker — no separate tab."""
     lrr, trr, close = s.get("lrr"), s.get("trr"), s.get("close") or s.get("px")
@@ -141,7 +172,7 @@ def _setup_card(s):
     return (f"<div class='wr-card'><div class='wr-ctop'>{_b(s['_dir'], k)}"
             f"<span class='wr-tkr wr-mono'>{s['ticker']}</span><span class='wr-sub'>${s['px']}</span>"
             f"<span class='wr-score wr-mono'>{s['score']:.1f}</span></div>"
-            f"<div class='wr-why'>{levels}. <span class='k'>RS</span> {s['rs']:+.0f}% · {s['form'].lower()}.</div>{_oe_inline(s)}{cfh}{_decision(s)}{_pa_line(s)}{_struct_line(s)}{_idioflag(s)}{_ivflag(s)}{_mechflag(s)}{_timing(s)}</div>")
+            f"<div class='wr-why'>{levels}. <span class='k'>RS</span> {s['rs']:+.0f}% · {s['form'].lower()}.</div>{_oe_inline(s)}{_asymmetry(s)}{cfh}{_decision(s)}{_pa_line(s)}{_struct_line(s)}{_idioflag(s)}{_ivflag(s)}{_mechflag(s)}{_timing(s)}</div>")
 
 
 def _livenote(label, val):
@@ -1048,7 +1079,7 @@ def morning_brief(d):
         rows += (f"<div class='wr-card'><div class='wr-ctop'>{_b(r.get('_dir','?'), k)}"
                  f"<span class='wr-tkr wr-mono'>{r.get('ticker','?')}</span>"
                  f"<span class='wr-sub'>${r.get('px','—')} · entry {r.get('entry','—')} · stop {r.get('stop','—')} · target {r.get('target','—')}</span></div>"
-                 f"<div class='wr-why'>{why}</div>{_oe_inline(r)}</div>")
+                 f"<div class='wr-why'>{why}</div>{_oe_inline(r)}{_asymmetry(r)}</div>")
     rows = rows or "<div class='wr-note'>no high-conviction setups today.</div>"
 
     head = "<div class='wr-top'><b>Morning Brief</b><span>what changed · what matters · what to do — the 30-second read before the detail tabs</span></div>"

@@ -163,10 +163,25 @@ def brief_dict(d):
             except Exception:
                 pass
         lrr, trr = r.get("lrr"), r.get("trr")
+        # asymmetry (Convexity/Asymmetric-Return spec): upside/downside/RR/EV/P/Kelly/tier
+        asym = {}
+        try:
+            px = float(str(r.get("px")).replace(",", "")); stop = float(str(r.get("stop")).replace(",", "")); tgt = float(str(r.get("target")).replace(",", ""))
+            dr = r.get("_dir")
+            up = (tgt - px) / px * 100 if dr == "Long" else (px - tgt) / px * 100
+            dn = (stop - px) / px * 100 if dr == "Long" else (px - stop) / px * 100
+            if up > 0 and dn < 0:
+                rr = up / abs(dn); prob = max(0.40, min(0.78, 0.40 + 0.35 * (max(r.get("score", 0) or 0, 0) / 100.0)))
+                ev = prob * up + (1 - prob) * dn; kelly = max(0.0, min(0.25, (prob * rr - (1 - prob)) / rr))
+                asym = {"up": round(up), "dn": round(dn), "rr": round(rr, 1), "ev": round(ev),
+                        "prob": round(prob * 100), "kelly": round(kelly * 100),
+                        "tier": "generational" if up >= 80 else "strategic" if up >= 20 else "tactical"}
+        except Exception:
+            pass
         conv.append({"ticker": r.get("ticker"), "dir": r.get("_dir"), "px": r.get("px"),
                      "entry": r.get("entry"), "stop": r.get("stop"), "target": r.get("target"),
                      "rr": (f"{lrr:.2f}–{trr:.2f}" if (lrr and trr) else ""),
-                     "quality": q, "why": (why or (r.get("form") or "")).strip()})
+                     "quality": q, "why": (why or (r.get("form") or "")).strip(), "asym": asym})
     return {
         "date": str(d.get("data_asof") or ""),
         "regime": {"structural": reg.get("structural", "—"), "monthly": reg.get("monthly", "—"),

@@ -388,6 +388,7 @@ const slides=[
          <span class="tkr mono">${esc(c.ticker)}</span><span class="lv">$${esc(c.px)}</span>
          ${c.quality!=null?`<span class="q ${qcls(c.quality)}">${c.quality}</span>`:""}</div>
        <div class="lv"><span class="k">entry</span>${esc(c.entry)} · <span class="k">stop</span>${esc(c.stop)} · <span class="k">target</span>${esc(c.target)}${c.rr?` · <span class="k">range</span>${esc(c.rr)}`:""}</div>
+       ${c.asym&&c.asym.up!=null?`<div class="lv" style="margin-top:5px"><span class="k">upside</span> <b style="color:var(--grn)">+${c.asym.up}%</b> · <span class="k">downside</span> <b style="color:var(--red)">${c.asym.dn}%</b> · <span class="k">R:R</span> <b>${c.asym.rr}</b> · <span class="k">EV</span> <b style="color:${c.asym.ev>0?'var(--grn)':'var(--red)'}">${c.asym.ev>0?'+':''}${c.asym.ev}%</b> · <span class="k">P</span> ~${c.asym.prob}% · <span class="k">Kelly</span> ${c.asym.kelly}% · <span class="k">${esc(c.asym.tier)}</span></div>`:""}
        ${c.why?`<div class="lv" style="margin-top:5px;color:var(--dim)">${esc(c.why)}</div>`:""}
      </div>`).join("")||'<div class="ccard">No high-conviction setups today.</div>'}</div>`,
   // portfolio impact

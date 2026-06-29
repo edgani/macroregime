@@ -44,6 +44,18 @@ html, body, [class*="css"] {font-family:-apple-system,'Segoe UI',Roboto,Helvetic
 .n-amb{border:0.5px solid #5a4520;color:#e0bd86;} .n-grn{border:0.5px solid #234b3a;color:#8fd3b8;}
 .wr-note{color:#6b7682;font-size:11px;}
 .wr-flowbar{height:8px;border-radius:4px;background:#1b212a;overflow:hidden;flex:1;}
+.mm-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(228px,1fr));gap:9px;margin-bottom:18px;}
+.mm-card{background:#12161d;border:0.5px solid #232a32;border-radius:10px;padding:13px 15px;}
+.mm-card.off{opacity:0.45;}
+.mm-top{display:flex;align-items:baseline;gap:8px;margin-bottom:6px;}
+.mm-name{font-size:14px;font-weight:600;color:#e8edf2;}
+.mm-val{margin-left:auto;font-size:23px;font-weight:700;color:#e8edf2;font-family:'SF Mono',ui-monospace,monospace;}
+.mm-val.na{font-size:12px;font-weight:600;color:#6b7682;}
+.mm-status{font-size:11px;margin-bottom:8px;}
+.mm-bar{height:7px;background:#1b212a;border-radius:4px;overflow:hidden;margin-bottom:9px;}
+.mm-fill{height:100%;border-radius:4px;}
+.mm-tags{display:flex;flex-wrap:wrap;gap:5px;}
+.mm-tag{font-size:10px;padding:2px 8px;border-radius:11px;background:#1b212a;color:#9aa6b2;}
 </style>
 """
 
@@ -1040,6 +1052,22 @@ def morning_brief(d):
     rows = rows or "<div class='wr-note'>no high-conviction setups today.</div>"
 
     head = "<div class='wr-top'><b>Morning Brief</b><span>what changed · what matters · what to do — the 30-second read before the detail tabs</span></div>"
+    # ── Mission Control meters (real-data only; missing feeds flagged, NOT faked) ──
+    from warroom import brief_export as BE
+    _MC = {"grn": "#3fb950", "red": "#f85149", "amb": "#d6a429", "inf": "#4493f8", "gry": "#6b7682"}
+    mcards = ""
+    for m in BE._meters(d):
+        col = _MC.get(m.get("color"), "#6b7682")
+        if m.get("real") and m.get("value") is not None:
+            val = f"<span class='mm-val'>{m['value']}</span>"
+            bar = f"<div class='mm-bar'><div class='mm-fill' style='width:{max(0, min(100, m['value']))}%;background:{col};'></div></div>"
+            off = ""
+        else:
+            val = "<span class='mm-val na'>n/a</span>"; bar = "<div class='mm-bar'></div>"; off = " off"
+        tags = "".join(f"<span class='mm-tag'>{t}</span>" for t in (m.get("components") or [])[:5])
+        mcards += (f"<div class='mm-card{off}'><div class='mm-top'><span class='mm-name'>{m['name']}</span>{val}</div>"
+                   f"<div class='mm-status' style='color:{col};'>{m['status']}</div>{bar}<div class='mm-tags'>{tags}</div></div>")
+    meters_html = "<div class='wr-lbl'>Mission Control — 30-second scan (greyed = no live feed yet, not faked)</div><div class='mm-grid'>" + mcards + "</div>"
     summary = (f"<div class='wr-card'>"
                f"<div class='wr-why' style='font-size:14px;'>"
                f"<span class='k'>Regime</span> <b>{reg_line}</b><br>"
@@ -1050,4 +1078,4 @@ def morning_brief(d):
     opp = f"<div class='wr-lbl'>Highest conviction (top 3) — risk range + entry quality on each</div>{rows}"
     note = ("<div class='wr-note'>This is the executive summary — what changed, the regime, and what to act on, before the detail tabs. "
             "For the full click-through briefing deck, run the interactive Morning Brief (briefing.html).</div>")
-    st.markdown(CSS + head + summary + changed + opp + note, unsafe_allow_html=True)
+    st.markdown(CSS + head + meters_html + summary + changed + opp + note, unsafe_allow_html=True)

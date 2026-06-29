@@ -95,6 +95,40 @@
   .brand b{color:var(--risk)}
   .progress{position:fixed;top:0;left:0;height:2px;background:var(--risk);z-index:30;transition:width .42s ease}
   .foot{margin-top:24px;font-size:12px;color:var(--dim);line-height:1.5;max-width:720px}
+  /* ── bottleneck explorer (clickable) ── */
+  .bt-list{display:flex;flex-direction:column;gap:8px;margin-top:4px;max-height:58vh;overflow-y:auto}
+  .bt-theme{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;cursor:pointer}
+  .bt-head{display:flex;align-items:center;gap:12px;padding:13px 16px}
+  .bt-name{font-weight:680;font-size:15px} .bt-leader{margin-left:auto;color:var(--sub);font-size:13px}
+  .bt-caret{color:var(--dim);transition:transform .2s} .bt-theme.open .bt-caret{transform:rotate(90deg)}
+  .bt-tiers{max-height:0;overflow:hidden;transition:max-height .3s ease;padding:0 16px}
+  .bt-theme.open .bt-tiers{max-height:340px;padding:0 16px 12px}
+  .bt-tier{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--line);font-size:13px}
+  .bt-tier .mono{min-width:62px;font-weight:650} .bt-role{color:var(--sub);flex:1;font-size:12.5px}
+  .chip{display:inline-block;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:4px 11px;font-size:12px;margin:4px 5px 0 0;color:var(--sub)}
+  /* ── scenario tree ── */
+  .scn{display:flex;flex-direction:column;gap:13px;margin-top:6px}
+  .scn-branch{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;border-left:3px solid var(--risk)}
+  .scn-top{display:flex;align-items:center;gap:13px;margin-bottom:11px}
+  .scn-prob{font-size:21px;font-weight:740;color:var(--risk)} .scn-trig{font-size:15px;font-weight:620}
+  .scn-assets{display:flex;flex-wrap:wrap;gap:8px}
+  .scn-a{font-size:13px;padding:4px 11px;border-radius:7px;font-weight:600}
+  .scn-a.up{background:rgba(63,185,80,.14);color:var(--grn)} .scn-a.dn{background:rgba(248,81,73,.14);color:var(--red)}
+  /* ── narrative lifecycle ── */
+  .nrr{display:flex;flex-direction:column;gap:11px;margin-top:6px}
+  .nrr-row{display:grid;grid-template-columns:200px 1fr;gap:14px;align-items:center}
+  @media(max-width:640px){.nrr-row{grid-template-columns:1fr}}
+  .nrr-name{font-size:14px;font-weight:620} .nrr-track{position:relative;height:26px;background:var(--panel);border:1px solid var(--line);border-radius:7px;overflow:hidden}
+  .nrr-fill{position:absolute;left:0;top:0;bottom:0;border-radius:7px 0 0 7px;transition:width .6s ease;opacity:.6}
+  .nrr-stage{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:600;white-space:nowrap}
+  /* ── portfolio ── */
+  .pf{display:flex;gap:10px;margin-top:6px;flex-wrap:wrap}
+  .pf-in{flex:1;min-width:240px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:13px 15px;color:var(--txt);font-size:14px;font-family:inherit}
+  .pf-in:focus{outline:none;border-color:var(--risk)}
+  .pf-btn{background:var(--risk-soft);border:1px solid var(--risk);color:var(--risk);border-radius:9px;padding:0 22px;font-weight:650;cursor:pointer;font-size:14px}
+  .pf-rows{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+  .pf-row{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:11px 16px}
+  .pf-row .pill{margin-left:auto}
   @media(prefers-reduced-motion:reduce){.slide{transition:opacity .01s}.bar .fill{transition:none}}
 </style>
 </head>
@@ -171,8 +205,80 @@ function axesBars(c){
   }).join("")+`</div>`;
 }
 
+/* ── radar (crash components) ── */
+function radar(c){
+  const comp=c.components||{}; const keys=Object.keys(comp);
+  if(!keys.length) return `<div class="foot">No crash-component data.</div>`;
+  const n=keys.length, cx=150, cy=150, R=100;
+  const pt=(i,r)=>{const a=-Math.PI/2+i*2*Math.PI/n;return [cx+Math.cos(a)*r, cy+Math.sin(a)*r];};
+  let rings=""; [0.25,0.5,0.75,1].forEach(f=>{
+    const p=keys.map((k,i)=>pt(i,R*f).join(",")).join(" ");
+    rings+=`<polygon points="${p}" fill="none" stroke="#1f2935" stroke-width="1"/>`;});
+  let axesL="", labels="";
+  keys.forEach((k,i)=>{const[x,y]=pt(i,R);const[lx,ly]=pt(i,R+18);
+    axesL+=`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#1f2935" stroke-width="1"/>`;
+    labels+=`<text x="${lx}" y="${ly}" fill="#8b97a7" font-size="8.5" text-anchor="middle">${esc(k.replace(/_/g,' '))}</text>`;});
+  const poly=keys.map((k,i)=>pt(i,R*Math.max(0,Math.min(1,comp[k]||0))).join(",")).join(" ");
+  const dots=keys.map((k,i)=>{const[x,y]=pt(i,R*Math.max(0,Math.min(1,comp[k]||0)));return `<circle cx="${x}" cy="${y}" r="3" fill="${accent}"/>`;}).join("");
+  return `<svg viewBox="0 0 300 300" style="max-width:320px;width:100%">${rings}${axesL}
+    <polygon points="${poly}" fill="${accent}33" stroke="${accent}" stroke-width="2"/>${dots}${labels}</svg>`;
+}
+/* ── bottleneck explorer (clickable) ── */
+function bottleneckHTML(b){
+  const themes=(b&&b.themes)||[];
+  const cards=themes.map(t=>`
+    <div class="bt-theme" onclick="this.classList.toggle('open')">
+      <div class="bt-head"><span class="bt-name">${esc(t.name)}</span>
+        <span class="bt-leader mono">${esc(t.leader)} ${t.run>=0?'+':''}${esc(t.run)}%</span>
+        <span class="bt-caret">▸</span></div>
+      <div class="bt-tiers">${(t.tiers||[]).map(x=>`
+        <div class="bt-tier"><span class="mono">${esc(x.ticker)}</span>
+          <span class="bt-role">${esc(x.role)}</span>
+          <span class="pill ${x.verdict==='QUALIFIES'?'grn':x.verdict==='MARGINAL'?'amb':'gry'}">${esc(x.verdict||'')}</span></div>`).join("")}</div>
+    </div>`).join("");
+  const dots=((b&&b.next_dots)||[]).map(x=>`<span class="chip">${esc(x.frm)} → ${esc(x.to)}</span>`).join("");
+  return `<div class="bt-list">${cards}</div>${dots?`<div class="foot"><span class="k">Where capital is heading next:</span><br>${dots}</div>`:""}`;
+}
+/* ── scenario tree ── */
+function scenarioHTML(sc){
+  if(!sc||!sc.length) return `<div class="foot">No active regime transition — no branching scenarios today.</div>`;
+  return `<div class="scn">`+sc.map(s=>`
+    <div class="scn-branch"><div class="scn-top"><span class="scn-prob mono">${esc(s.prob)}%</span><span class="scn-trig">${esc(s.trigger)}</span></div>
+      <div class="scn-assets">${(s.branch||[]).map(a=>`<span class="scn-a ${a[1]==='up'?'up':'dn'}">${esc(a[0])} ${a[1]==='up'?'↑':'↓'}</span>`).join("")}</div></div>`).join("")+`</div>`;
+}
+/* ── narrative lifecycle ── */
+function narrativeHTML(nr){
+  if(!nr||!nr.length) return `<div class="foot">No narrative-lifecycle data.</div>`;
+  return `<div class="nrr">`+nr.map(t=>{
+    const pct=t.num*10, col=t.num>=8?"var(--red)":t.num>=6?"var(--amb)":t.num>=4?"var(--inf)":"var(--grn)";
+    return `<div class="nrr-row"><div class="nrr-name">${esc(t.theme)} <span class="mono" style="color:var(--dim)">${esc(t.leader)}</span></div>
+      <div class="nrr-track"><div class="nrr-fill" style="width:${pct}%;background:${col}"></div><span class="nrr-stage">${esc(t.stage)} · ${esc(t.num)}/10</span></div></div>`;
+  }).join("")+`</div><div class="foot">Accumulation → Markup → Late markup → Distribution. Late-stage = crowded; early-stage = where the next leg of edge lives.</div>`;
+}
+/* ── portfolio impact (regime-fit, saved locally) ── */
+function portfolioHTML(){
+  return `<div class="pf"><input id="pfIn" class="pf-in" placeholder="e.g. NVDA long, USO neutral, BTC-USD overweight, BBCA.JK underweight">
+    <button class="pf-btn" onclick="pfSave()">Check fit</button></div><div id="pfOut" class="pf-out"></div>`;
+}
+function pfSave(){const v=(document.getElementById('pfIn').value||"").trim();try{if(v)localStorage.setItem('wr_pf',v);}catch(e){} pfRender(v);}
+function pfRender(v){
+  const out=document.getElementById('pfOut'); if(!out)return;
+  try{v=v||localStorage.getItem('wr_pf')||"";}catch(e){v=v||"";}
+  const inp=document.getElementById('pfIn'); if(inp&&!inp.value&&v)inp.value=v;
+  if(!v){out.innerHTML='<div class="foot">Enter your positions to see how they fit today\u2019s regime. Saved on this device only.</div>';return;}
+  const items=v.split(/[,;]/).map(s=>s.trim()).filter(Boolean);
+  const score=(B.compass&&B.compass.score)||0, L=/(long|over)/i, S=/(short|under|cash)/i;
+  let net=0; const rows=items.map(it=>{
+    const tilt=L.test(it)?1:S.test(it)?-1:0; net+=tilt;
+    const fit=((score>1&&tilt>0)||(score<-1&&tilt<0))?["aligned","grn"]:((score>1&&tilt<0)||(score<-1&&tilt>0))?["against regime","red"]:["neutral","amb"];
+    return `<div class="pf-row"><span class="mono">${esc(it)}</span><span class="pill ${fit[1]}">${fit[0]}</span></div>`;}).join("");
+  const dir=score>1?"risk-on":score<-1?"risk-off":"mixed";
+  const rec=(net>0&&score<-1)?"You're net-long into a risk-off tape — consider trimming beta.":(net<0&&score>1)?"You're net-defensive into a risk-on tape — you may be underexposed.":"Your tilt broadly matches today's regime.";
+  out.innerHTML=`<div class="pf-rows">${rows}</div><div class="foot"><span class="k">Regime is ${dir} (compass ${score>0?'+':''}${score}).</span> ${esc(rec)}</div>`;
+}
+
 /* ── slides ── */
-const reg=B.regime||{}, cr=B.crash||{}, cm=B.compass||{};
+const reg=B.regime||{}, cr=B.crash||{}, cm=B.compass||{}, why=B.why||{}, bk=B.bottleneck||{}, sc=B.scenarios||[], nr=B.narrative||[];
 const slides=[
   // 1 cover
   `<div class="eyebrow">Morning Brief · ${esc(B.date||"")}</div>
@@ -183,8 +289,14 @@ const slides=[
   `<div class="eyebrow">01 · What changed since yesterday</div>
    <h2>The delta is the signal.</h2>
    <ul class="changed">${(B.changed||[]).slice(0,7).map(x=>`<li>${esc(x)}</li>`).join("")||'<li>No material change recorded.</li>'}</ul>`,
+  // WHY causal
+  `<div class="eyebrow">02 · Why — the causal chain</div>
+   <h2>What's actually driving it.</h2>
+   <p class="lede">${esc(why.summary||"Cross-asset drivers resolving today's tape.")}</p>
+   ${(why.chains&&why.chains.length)?`<ul class="changed" style="margin-top:18px">${why.chains.map(c=>`<li>${esc(c)}</li>`).join("")}</ul>`:""}
+   ${why.bait?`<div class="foot"><span class="k">Policy read:</span> ${esc(why.fed_lean||"")} ${esc(why.bait)}</div>`:""}`,
   // 3 regime
-  `<div class="eyebrow">02 · Today's regime</div>
+  `<div class="eyebrow">03 · Today's regime</div>
    <h2>${esc(reg.operating||"Regime")}</h2>
    <div class="grid">
      <div class="cell"><span class="k">Structural</span><div class="v">${esc(reg.structural||"—")}</div></div>
@@ -194,12 +306,31 @@ const slides=[
    </div>
    <p class="lede" style="margin-top:20px">${esc(reg.why||"")} ${cr.basis?`<br><span style="color:var(--dim)">Crash basis: ${esc(cr.basis)}.</span>`:""}</p>`,
   // 4 compass (signature)
-  `<div class="eyebrow">03 · Cross-asset rotation</div>
+  `<div class="eyebrow">04 · Cross-asset rotation</div>
    <h2 style="margin-bottom:18px">Where is capital flowing — <span class="big">${esc(cm.state||"—")}</span></h2>
    <div class="compass-wrap"><div>${gauge(cm)}</div>${axesBars(cm)}</div>
    <div class="foot">${esc(cm.meaning||"")} &nbsp; Each bar = one axis racing along the same risk curve. Green left = capital rotating <b>down</b> the curve (risk-on); red right = <b>up</b> to safety.</div>`,
+  // crash radar
+  `<div class="eyebrow">05 · Crash pressure</div>
+   <h2>${esc(cr.type||"—")} <span style="color:var(--dim);font-size:.6em">${cr.pressure!=null?`· ${cr.pressure}/100`:""}</span></h2>
+   <div class="compass-wrap"><div>${radar(cr)}</div>
+     <div><p class="lede">${esc(cr.basis||"")}</p>
+     ${cr.bottom?`<div class="foot"><span class="k">Bottom signal:</span> ${esc(cr.bottom)}</div>`:""}
+     <div class="foot">Each spoke is one fragility input (0 calm → 1 stressed). A balanced small shape = no dominant driver; a spike = the thing to watch.</div></div></div>`,
+  // bottleneck explorer
+  `<div class="eyebrow">06 · Bottleneck explorer</div>
+   <h2>Click a chain to trace the supply map.</h2>
+   ${bottleneckHTML(bk)}`,
+  // scenario tree
+  `<div class="eyebrow">07 · Scenario tree</div>
+   <h2>If the regime turns — who moves.</h2>
+   ${scenarioHTML(sc)}`,
+  // narrative lifecycle
+  `<div class="eyebrow">08 · Narrative lifecycle</div>
+   <h2>How far each theme has run.</h2>
+   ${narrativeHTML(nr)}`,
   // 5 conviction
-  `<div class="eyebrow">04 · Highest conviction</div>
+  `<div class="eyebrow">09 · Highest conviction</div>
    <h2>What to act on — risk range + entry quality on each.</h2>
    <div class="conv">${(B.conviction||[]).slice(0,4).map(c=>`
      <div class="ccard ${esc(c.dir)}">
@@ -209,8 +340,13 @@ const slides=[
        <div class="lv"><span class="k">entry</span>${esc(c.entry)} · <span class="k">stop</span>${esc(c.stop)} · <span class="k">target</span>${esc(c.target)}${c.rr?` · <span class="k">range</span>${esc(c.rr)}`:""}</div>
        ${c.why?`<div class="lv" style="margin-top:5px;color:var(--dim)">${esc(c.why)}</div>`:""}
      </div>`).join("")||'<div class="ccard">No high-conviction setups today.</div>'}</div>`,
+  // portfolio impact
+  `<div class="eyebrow">10 · Portfolio impact</div>
+   <h2>Your positions vs today's regime.</h2>
+   ${portfolioHTML()}
+   <div class="foot">No fake P&L — this checks whether your tilt is aligned with today's cross-asset compass, and flags positions fighting the regime. Stored on this device only.</div>`,
   // 6 bottom line
-  `<div class="eyebrow">05 · Bottom line</div>
+  `<div class="eyebrow">11 · Bottom line</div>
    <h1 style="font-size:clamp(28px,5vw,58px)">${cm.score>2?"Lean in — risk is rotating down the curve.":cm.score<-2?"Defend — capital is fleeing to safety.":"Wait for confluence."}</h1>
    <p class="lede">${esc(cm.meaning||"")}</p>
    <div class="foot">This deck is the 30-second read. The full numbers, per-ticker risk ranges, greeks, and reasoning live in the War Room tabs behind it. Weights are unvalidated priors — walk-forward before sizing.</div>`
@@ -236,7 +372,7 @@ nextB.onclick=()=>go(i+1);prevB.onclick=()=>go(i-1);
 document.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key===' ')go(i+1);if(e.key==='ArrowLeft')go(i-1);});
 let sx=0;stage.addEventListener('touchstart',e=>sx=e.touches[0].clientX,{passive:true});
 stage.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>50)go(i+(dx<0?1:-1));},{passive:true});
-go(0);
+go(0); try{pfRender();}catch(e){}
 </script>
 </body>
 </html>

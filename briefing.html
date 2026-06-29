@@ -95,9 +95,43 @@
   .brand b{color:var(--risk)}
   .progress{position:fixed;top:0;left:0;height:2px;background:var(--risk);z-index:30;transition:width .42s ease}
   .foot{margin-top:24px;font-size:12px;color:var(--dim);line-height:1.5;max-width:720px}
+  /* ── bottleneck explorer (clickable) ── */
+  .bt-list{display:flex;flex-direction:column;gap:8px;margin-top:4px;max-height:58vh;overflow-y:auto}
+  .bt-theme{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;cursor:pointer}
+  .bt-head{display:flex;align-items:center;gap:12px;padding:13px 16px}
+  .bt-name{font-weight:680;font-size:15px} .bt-leader{margin-left:auto;color:var(--sub);font-size:13px}
+  .bt-caret{color:var(--dim);transition:transform .2s} .bt-theme.open .bt-caret{transform:rotate(90deg)}
+  .bt-tiers{max-height:0;overflow:hidden;transition:max-height .3s ease;padding:0 16px}
+  .bt-theme.open .bt-tiers{max-height:340px;padding:0 16px 12px}
+  .bt-tier{display:flex;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--line);font-size:13px}
+  .bt-tier .mono{min-width:62px;font-weight:650} .bt-role{color:var(--sub);flex:1;font-size:12.5px}
+  .chip{display:inline-block;background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:4px 11px;font-size:12px;margin:4px 5px 0 0;color:var(--sub)}
+  /* ── scenario tree ── */
+  .scn{display:flex;flex-direction:column;gap:13px;margin-top:6px}
+  .scn-branch{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;border-left:3px solid var(--risk)}
+  .scn-top{display:flex;align-items:center;gap:13px;margin-bottom:11px}
+  .scn-prob{font-size:21px;font-weight:740;color:var(--risk)} .scn-trig{font-size:15px;font-weight:620}
+  .scn-assets{display:flex;flex-wrap:wrap;gap:8px}
+  .scn-a{font-size:13px;padding:4px 11px;border-radius:7px;font-weight:600}
+  .scn-a.up{background:rgba(63,185,80,.14);color:var(--grn)} .scn-a.dn{background:rgba(248,81,73,.14);color:var(--red)}
+  /* ── narrative lifecycle ── */
+  .nrr{display:flex;flex-direction:column;gap:11px;margin-top:6px}
+  .nrr-row{display:grid;grid-template-columns:200px 1fr;gap:14px;align-items:center}
+  @media(max-width:640px){.nrr-row{grid-template-columns:1fr}}
+  .nrr-name{font-size:14px;font-weight:620} .nrr-track{position:relative;height:26px;background:var(--panel);border:1px solid var(--line);border-radius:7px;overflow:hidden}
+  .nrr-fill{position:absolute;left:0;top:0;bottom:0;border-radius:7px 0 0 7px;transition:width .6s ease;opacity:.6}
+  .nrr-stage{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:600;white-space:nowrap}
+  /* ── portfolio ── */
+  .pf{display:flex;gap:10px;margin-top:6px;flex-wrap:wrap}
+  .pf-in{flex:1;min-width:240px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:13px 15px;color:var(--txt);font-size:14px;font-family:inherit}
+  .pf-in:focus{outline:none;border-color:var(--risk)}
+  .pf-btn{background:var(--risk-soft);border:1px solid var(--risk);color:var(--risk);border-radius:9px;padding:0 22px;font-weight:650;cursor:pointer;font-size:14px}
+  .pf-rows{display:flex;flex-direction:column;gap:8px;margin-top:14px}
+  .pf-row{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:11px 16px}
+  .pf-row .pill{margin-left:auto}
   @media(prefers-reduced-motion:reduce){.slide{transition:opacity .01s}.bar .fill{transition:none}}
 </style>
-<script>window.BRIEF={"date": "{'date': '2026-06-26', 'stale_days': 2}", "regime": {"structural": "Quad 1", "monthly": "Quad 4", "operating": "Monthly Q4 inside Structural Q1", "why": "RIPE: leading horizon already in Q4 while structural still reads Q1. The Q1->Q4 (Deflation) turn is in motion but not yet confirmed \u2014 the window to position ahead of it. Drivers: proxy_share, q3_credit_stress.", "posture": "Risk-on"}, "crash": {"type": "LOW", "pressure": 34.8, "basis": "no dominant crash driver"}, "compass": {"state": "MIXED / TRANSITIONING", "color": "amb", "score": 2, "down": 2, "up": 4, "meaning": "The axes disagree \u2014 rotation is not aligned. This is a transition zone: conviction is low because the asset classes are not confirming each other. Wait for confluence before sizing up.", "axes": [{"name": "Crypto risk-curve", "vote": -1, "verdict": "flight UP to BTC \u2014 alts lagging, risk-off within crypto", "down": "alts / ETH / small-caps", "up": "BTC / stablecoins"}, {"name": "US sector clock", "vote": 1, "verdict": "LATE-CYCLE (energy/staples leading) \u00b7 cyclicals leading vs defensives", "down": "discretionary / financials / tech / materials", "up": "utilities / staples / health"}, {"name": "US factors", "vote": 1, "verdict": "broad risk-on \u2014 small-caps participating (risk down the curve)", "down": "small-cap / value / junk", "up": "large-cap / quality / low-vol"}, {"name": "FX risk-on/off", "vote": 1, "verdict": "risk-on FX \u2014 AUD/JPY rising, USD soft (capital out the risk curve)", "down": "AUD / NZD / commodity & EM FX", "up": "USD / JPY / CHF (havens)"}, {"name": "Commodity complex", "vote": -1, "verdict": "fear/late-cycle \u2014 gold leading, copper & silver lagging (risk-off)", "down": "copper / oil / silver (growth)", "up": "gold (store of value)"}, {"name": "DM \u2192 EM", "vote": 1, "verdict": "capital rotating DM \u2192 EM \u2014 EM outperforming US, USD soft (global risk-on)", "down": "EM equities / EM FX (incl. IHSG)", "up": "US / DM / USD"}, {"name": "IHSG intra-market", "vote": 0, "verdict": "mixed IHSG rotation", "down": "coal / metals / small-caps", "up": "big-cap banks"}]}, "changed": ["('med', 'Monthly quad: Quad 1 \u2192 Quad 4')", "('low', 'New conviction: TDOC Long')", "('low', 'New conviction: FANUY Long')", "('low', 'New conviction: AOS Long')", "('low', 'New conviction: URA Long')", "('low', 'New conviction: LRCX Long')", "('low', 'Dropped from conviction: AMMN.JK')"], "conviction": [{"ticker": "TDOC", "dir": "Long", "px": 219.11, "entry": "212.54\u2013219.11", "stop": 212.54, "target": 232.26, "rr": "216.25\u2013221.48", "quality": 53, "why": "mid-range (loc 0.55) \u00b7 timing ON-TIME"}, {"ticker": "FANUY", "dir": "Long", "px": 387.66, "entry": "376.03\u2013387.66", "stop": 376.03, "target": 410.92, "rr": "381.33\u2013403.82", "quality": 65, "why": "near LRR (loc 0.28) \u00b7 timing \u2014"}, {"ticker": "AOS", "dir": "Long", "px": 289.69, "entry": "268.48\u2013289.69", "stop": 268.48, "target": 307.07, "rr": "268.48\u2013299.32", "quality": 45, "why": "mid-range (loc 0.69) \u00b7 timing ON-TIME"}, {"ticker": "URA", "dir": "Long", "px": 157.57, "entry": "152.84\u2013157.57", "stop": 152.84, "target": 167.02, "rr": "154.81\u2013163.15", "quality": 66, "why": "near LRR (loc 0.33) \u00b7 timing ON-TIME"}]};</script>
+<script>window.BRIEF={"date": "{'date': '2026-06-26', 'stale_days': 2}", "regime": {"structural": "Quad 3", "monthly": "Quad 2", "operating": "Monthly Q2 inside Structural Q3", "why": "RIPE: leading horizon already in Q2 while structural still reads Q3. The Q3->Q2 (Reflation) turn is in motion but not yet confirmed \u2014 the window to position ahead of it. Drivers: proxy_share, inflation_shock.", "posture": "Defensive"}, "crash": {"type": "LOW", "pressure": 33.7, "basis": "no dominant crash driver", "components": {"fragility": 0.5, "liquidity_contraction": 0.5, "breadth_weak": 0.42, "crowding_unwind": 0.0, "divergences": 0.0, "dealer_gamma": 0.5, "distribution": 0.0}, "bottom": "NO_BOTTOM_SIGNAL"}, "compass": {"state": "RISK-OFF \u00b7 UP the curve", "color": "red", "score": -4, "down": 5, "up": 1, "meaning": "Flight to safety across the board \u2014 USD, gold, BTC, quality, large-cap, banks. Capital is leaving the risk curve. Defend, don't chase; wait for the rotation to turn back down.", "axes": [{"name": "Crypto risk-curve", "vote": -1, "verdict": "flight UP to BTC \u2014 alts lagging, risk-off within crypto", "down": "alts / ETH / small-caps", "up": "BTC / stablecoins"}, {"name": "US sector clock", "vote": 0, "verdict": "transition (no clear sector leadership) \u00b7 cyclicals mixed vs defensives", "down": "discretionary / financials / tech / materials", "up": "utilities / staples / health"}, {"name": "US factors", "vote": -1, "verdict": "narrow/defensive \u2014 mega-cap & quality leading (risk up the curve)", "down": "small-cap / value / junk", "up": "large-cap / quality / low-vol"}, {"name": "FX risk-on/off", "vote": 1, "verdict": "risk-on FX \u2014 AUD/JPY rising, USD soft (capital out the risk curve)", "down": "AUD / NZD / commodity & EM FX", "up": "USD / JPY / CHF (havens)"}, {"name": "Commodity complex", "vote": -1, "verdict": "fear/late-cycle \u2014 gold leading, copper & silver lagging (risk-off)", "down": "copper / oil / silver (growth)", "up": "gold (store of value)"}, {"name": "DM \u2192 EM", "vote": -1, "verdict": "capital fleeing EM \u2192 DM \u2014 US/USD bid (global risk-off)", "down": "EM equities / EM FX (incl. IHSG)", "up": "US / DM / USD"}, {"name": "IHSG intra-market", "vote": -1, "verdict": "IHSG risk-off \u2014 banks/defensives leading cyclicals", "down": "coal / metals / small-caps", "up": "big-cap banks"}]}, "changed": [], "conviction": [{"ticker": "SNDK", "dir": "Long", "px": 141.39, "entry": "137.15\u2013141.39", "stop": 137.15, "target": 149.87, "rr": "139.06\u2013142.99", "quality": 50, "why": "mid-range (loc 0.59) \u00b7 timing ON-TIME"}, {"ticker": "PFE", "dir": "Short", "px": 55.1, "entry": "55.1\u201356.75", "stop": 56.75, "target": 51.79, "rr": "52.23\u201355.18", "quality": 84, "why": "near TRR (loc 0.97) \u00b7 timing ON-TIME"}, {"ticker": "MKSI", "dir": "Short", "px": 154.34, "entry": "154.34\u2013158.97", "stop": 158.97, "target": 145.08, "rr": "151.19\u2013156.07", "quality": 65, "why": "near TRR (loc 0.65) \u00b7 timing ON-TIME"}, {"ticker": "AUDUSD", "dir": "Long", "px": 130.38, "entry": "123.04\u2013130.38", "stop": 123.04, "target": 138.2, "rr": "123.04\u2013133.36", "quality": 39, "why": "stretched to TRR (loc 0.71) \u2014 FOMO \u00b7 timing \u2014"}], "why": {"summary": {"offside": [], "stretched": [], "decoupled": [{"asset": "BTC-USD", "display": "Bitcoin", "driver_text": "liquidity - dollar + risk", "std_resid": 1.98, "r2": 0.03, "betas": {"rates": 0.04, "USD": 0.16, "risk": 0.02}, "flips": [], "status": "decoupled", "idiosyncratic": false, "note": "Bitcoin DECOUPLED from drivers (R\u00b2 0.03) \u2014 factor model doesn't explain it now; coherence unreliable"}, {"asset": "SLV", "display": "Silver (XAG)", "driver_text": "gold + copper - dollar", "std_resid": 1.76, "r2": 0.02, "betas": {"gold": -0.05, "copper": -0.04, "USD": -0.04}, "flips": [], "status": "decoupled", "idiosyncratic": false, "note": "Silver (XAG) DECOUPLED from drivers (R\u00b2 0.02) \u2014 factor model doesn't explain it now; coherence unreliable"}, {"asset": "AUDUSD=X", "display": "AUD/USD", "driver_text": "commodities + risk - dollar", "std_resid": 1.61, "r2": 0.0, "betas": {"copper": 0.03, "risk": 0.0, "USD": -0.07}, "flips": [], "status": "decoupled", "idiosyncratic": false, "note": "AUD/USD DECOUPLED from drivers (R\u00b2 0.00) \u2014 factor model doesn't explain it now; coherence unreliable"}, {"asset": "GLD", "display": "Gold (XAU)", "driver_text": "real rates - dollar", "std_resid": 1.27, "r2": 0.01, "betas": {"rates": -0.05, "USD": -0.1}, "flips": [], "status": "decoupled", "idiosyncratic": false, "note": "Gold (XAU) DECOUPLED from drivers (R\u00b2 0.01) \u2014 factor model doesn't explain it now; coherence unreliable"}, {"asset": "USO", "display": "Oil (WTI)", "driver_text": "demand/growth - dollar", "std_resid": 1.0, "r2": 0.02, "betas": {"risk": -0.05, "USD": 0.03}, "flips": [], "status": "decoupled", "idiosyncratic": false, "note": "Oil (WTI) DECOUPLED from drivers (R\u00b2 0.02) \u2014 factor model doesn't explain it now; coherence unreliable"}, {"asset": "GBPUSD=X", "display": "GBP/USD", "driver_text": "inverse dollar + risk", "std_resid": 0.7, "r2": 0.03, "betas": {"USD": -0.06, "risk": 0.04}, "flips": [], "status": "decoupled", "idiosyncratic": false, "note": "GBP/USD DECOUPLED from drivers (R\u00b2 0.03) \u2014 factor model doesn't explain it now; coherence unreliable"}, {"asset": "URA", "display": "Uranium", "driver_text": "secular nuclear (idiosyncratic)", "std_resid": 0.69, "r2": 0.02, "betas": {"risk": -0.13}, "flips": [], "status": "decoupled", "idiosyncratic": true, "note": "Uranium DECOUPLED from drivers (R\u00b2 0.02) \u2014 factor model doesn't explain it now; coherence unreliable"}, {"asset": "USDIDR=X", "display": "USD/IDR", "driver_text": "dollar - commodities - risk", "std_resid": 0.69, "r2": 0.01, "betas": {"USD": -0.08, "commodities": -0.01, "risk": -0.07}, "flips": [], "status": "decoupled", "idiosyncratic": false, "note": "USD/IDR DECOUPLED from drivers (R\u00b2 0.01) \u2014 factor model doesn't explain it now; coherence unreliable"}, {"asset": "ETH-USD", "display": "Ethereum", "driver_text": "BTC + risk", "std_resid": -0.67, "r2": 0.01, "betas": {"BTC": -0.08, "risk": 0.03}, "flips": [], "status": "decoupled", "idiosyncratic": false, "note": "Ethereum DECOUPLED from drivers (R\u00b2 0.01) \u2014 factor model doesn't explain it now; coherence unreliable"}, {"asset": "SPY", "display": "US equity (SPY)", "driver_text": "rates + credit + growth", "std_resid": 0.62, "r2": 0.01, "betas": {"rates": 0.08, "credit": 0.06, "copper": -0.05}, "flips": [], "status": "decoupled", "idiosyncratic": false, "note": "US equity (SPY) DECOUPLED from drivers (R\u00b2 0.01) \u2014 factor model doesn't explain it now; coherence unreliable"}, {"asset": "IWM", "display": "US small-cap (IWM)", "driver_text": "rates + credit + growth", "std_resid": -0.54, "r2": 0.01, "betas": {"rates": 0.04, "credit": -0.01, "copper": -0.14}, "flips": [], "status": "decoupled", "idiosyncratic": false, "note": "US small-cap (IWM) DECOUPLED from drivers (R\u00b2 0.01) \u2014 factor model doesn't explain it now; coherence unreliable"}, {"asset": "DX-Y.NYB", "display": "Dollar (DXY)", "driver_text": "US yields - risk (+ oil tested)", "std_resid": -0.53, "r2": 0.01, "betas": {"rates": -0.04, "risk": -0.03, "USO": 0.12}, "flips": [], "status": "decoupled", "idiosyncratic": false, "note": "Dollar (DXY) DECOUPLED from drivers (R\u00b2 0.01) \u2014 factor model doesn't explain it now; coherence unreliable"}, {"asset": "USDJPY=X", "display": "USD/JPY", "driver_text": "US yields + risk", "std_resid": 0.53, "r2": 0.0, "betas": {"rates": 0.01, "risk": -0.03}, "flips": [], "status": "decoupled", "idiosyncratic": false, "note": "USD/JPY DECOUPLED from drivers (R\u00b2 0.00) \u2014 factor model doesn't explain it now; coherence unreliable"}, {"asset": "COIN", "display": "Coinbase", "driver_text": "BTC + risk", "std_resid": -0.39, "r2": 0.04, "betas": {"BTC": -0.04, "risk": -0.09}, "flips": [], "status": "decoupled", "idiosyncratic": false, "note": "Coinbase DECOUPLED from drivers (R\u00b2 0.04) \u2014 factor model doesn't explain it now; coherence unreliable"}, {"asset": "CPER", "display": "Copper", "driver_text": "global growth - dollar", "std_resid": -0.36, "r2": 0.0, "betas": {"risk": -0.01, "USD": 0.01, "commodities": -0.02}, "flips": [], "status": "decoupled", "idiosyncratic": false, "note": "Copper DECOUPLED from drivers (R\u00b2 0.00) \u2014 factor model doesn't explain it now; coherence unreliable"}, {"asset": "SOL-USD", "display": "Solana", "driver_text": "BTC beta", "std_resid": -0.32, "r2": 0.0, "betas": {"BTC": -0.0}, "flips": [], "status": "decoupled", "idiosyncratic": false, "note": "Solana DECOUPLED from drivers (R\u00b2 0.00) \u2014 factor model doesn't explain it now; coherence unreliable"}, {"asset": "WEAT", "display": "Wheat", "driver_text": "weather/supply (idiosyncratic)", "std_resid": 0.21, "r2": 0.0, "betas": {"commodities": 0.01}, "flips": [], "status": "decoupled", "idiosyncratic": true, "note": "Wheat DECOUPLED from drivers (R\u00b2 0.00) \u2014 factor model doesn't explain it now; coherence unreliable"}, {"asset": "MSTR", "display": "MSTR (BTC proxy)", "driver_text": "BTC levered", "std_resid": -0.2, "r2": 0.01, "betas": {"BTC": 0.09}, "flips": [], "status": "decoupled", "idiosyncratic": false, "note": "MSTR (BTC proxy) DECOUPLED from drivers (R\u00b2 0.01) \u2014 factor model doesn't explain it now; coherence unreliable"}, {"asset": "__IHSG__", "display": "IHSG (composite)", "driver_text": "-USD/IDR + commodities + EM risk", "std_resid": 0.17, "r2": 0.03, "betas": {"USD/IDR": -0.0, "commodities": -0.03, "risk": 0.03}, "flips": [], "status": "decoupled", "idiosyncratic": false, "note": "IHSG (composite) DECOUPLED from drivers (R\u00b2 0.03) \u2014 factor model doesn't explain it now; coherence unreliable"}, {"asset": "EURUSD=X", "display": "EUR/USD", "driver_text": "inverse dollar", "std_resid": 0.1, "r2": 0.0, "betas": {"USD": 0.01}, "flips": [], "status": "decoupled", "idiosyncratic": false, "note": "EUR/USD DECOUPLED from drivers (R\u00b2 0.00) \u2014 factor model doesn't explain it now; coherence unreliable"}, {"asset": "UNG", "display": "Natural gas", "driver_text": "weather/storage (idiosyncratic)", "std_resid": 0.09, "r2": 0.01, "betas": {"commodities": -0.13}, "flips": [], "status": "decoupled", "idiosyncratic": true, "note": "Natural gas DECOUPLED from drivers (R\u00b2 0.01) \u2014 factor model doesn't explain it now; coherence unreliable"}, {"asset": "DBC", "display": "Broad commodities", "driver_text": "growth - dollar", "std_resid": 0.01, "r2": 0.01, "betas": {"risk": 0.04, "USD": -0.09}, "flips": [], "status": "decoupled", "idiosyncratic": false, "note": "Broad commodities DECOUPLED from drivers (R\u00b2 0.01) \u2014 factor model doesn't explain it now; coherence unreliable"}], "regime_flips": [], "n_offside": 0, "n_stretched": 0, "n_decoupled": 22, "n_total": 22}, "chains": ["AI compute \u2192 Networking / optics (demands)", "AI compute \u2192 Power / datacenter (demands)", "Grid / electrification \u2192 Copper / materials (demands)", "AI compute \u2192 Robotics / physical AI (enables)", "AI compute \u2192 Autonomous / humanoid (enables)"], "bait": null, "fed_lean": "unclear"}, "bottleneck": {"themes": [{"name": "Memory / HBM", "leader": "MU", "run": 7.0, "tiers": [{"ticker": "LRCX", "role": "memory equipment pure-play", "verdict": "REJECT"}, {"ticker": "AMAT", "role": "diversified but memory strength; MU agreements = visibility", "verdict": "REJECT"}, {"ticker": "ENTG", "role": "materials play, less cyclical than equipment", "verdict": "REJECT"}, {"ticker": "AMKR", "role": "advanced packaging, less hyped than TSM", "verdict": "REJECT"}, {"ticker": "TSM", "role": "already expensive \u2014 only if you believe AI infra 5-10yr", "verdict": "REJECT"}, {"ticker": "KLAC", "role": "yield = critical; recurring revenue > equipment sales", "verdict": "REJECT"}, {"ticker": "MKSI", "role": "under-the-radar vacuum / subsystems", "verdict": "REJECT"}, {"ticker": "ACLS", "role": "ion implant \u2014 narrower, leveraged to memory capex", "verdict": "REJECT"}]}, {"name": "AI compute", "leader": "NVDA", "run": -12.0, "tiers": [{"ticker": "AVGO", "role": "custom ASIC + networking", "verdict": "REJECT"}, {"ticker": "MRVL", "role": "custom silicon / optics", "verdict": "REJECT"}, {"ticker": "AMD", "role": "GPU #2", "verdict": "REJECT"}, {"ticker": "ALAB", "role": "PCIe/CXL retimers", "verdict": "REJECT"}, {"ticker": "CRDO", "role": "active electrical cables", "verdict": "REJECT"}, {"ticker": "VRT", "role": "thermal/power infra", "verdict": "REJECT"}, {"ticker": "MPWR", "role": "power management", "verdict": "NO DATA"}]}, {"name": "Power / electrification", "leader": "VST", "run": 13.0, "tiers": [{"ticker": "CEG", "role": "nuclear IPP", "verdict": "REJECT"}, {"ticker": "GEV", "role": "grid + gas turbines", "verdict": "REJECT"}, {"ticker": "ETN", "role": "electrical equipment", "verdict": "REJECT"}, {"ticker": "POWL", "role": "switchgear", "verdict": "NO DATA"}, {"ticker": "NEE", "role": "regulated + renewables", "verdict": "NO DATA"}]}, {"name": "Uranium / nuclear", "leader": "CCJ", "run": -18.0, "tiers": [{"ticker": "UEC", "role": "US uranium", "verdict": "REJECT"}, {"ticker": "URA", "role": "sector ETF", "verdict": "REJECT"}, {"ticker": "DNN", "role": "Denison", "verdict": "REJECT"}, {"ticker": "NXE", "role": "NexGen", "verdict": "REJECT"}, {"ticker": "OKLO", "role": "SMR developer", "verdict": "REJECT"}, {"ticker": "SMR", "role": "NuScale", "verdict": "REJECT"}]}, {"name": "Gold / precious", "leader": "GLD", "run": 36.0, "tiers": [{"ticker": "SLV", "role": "silver \u2014 higher beta to the metal", "verdict": "REJECT"}, {"ticker": "GDX", "role": "senior gold miners", "verdict": "REJECT"}, {"ticker": "GDXJ", "role": "junior miners \u2014 leveraged", "verdict": "REJECT"}, {"ticker": "SIL", "role": "silver miners", "verdict": "REJECT"}, {"ticker": "AEM", "role": "Agnico", "verdict": "REJECT"}, {"ticker": "FNV", "role": "royalty \u2014 lower risk", "verdict": "REJECT"}, {"ticker": "WPM", "role": "streaming", "verdict": "REJECT"}, {"ticker": "NEM", "role": "largest producer", "verdict": "REJECT"}]}, {"name": "Oil / energy", "leader": "USO", "run": 15.0, "tiers": [{"ticker": "XLE", "role": "integrated majors", "verdict": "REJECT"}, {"ticker": "XOP", "role": "E&P \u2014 higher beta", "verdict": "REJECT"}, {"ticker": "OIH", "role": "oil services ETF", "verdict": "REJECT"}, {"ticker": "SLB", "role": "largest service co", "verdict": "REJECT"}, {"ticker": "HAL", "role": "Halliburton", "verdict": "REJECT"}, {"ticker": "AMLP", "role": "midstream MLP \u2014 income, less price beta", "verdict": "REJECT"}]}, {"name": "Copper / electrification", "leader": "CPER", "run": -26.0, "tiers": [{"ticker": "FCX", "role": "Freeport \u2014 copper bellwether", "verdict": "REJECT"}, {"ticker": "COPX", "role": "copper miners ETF", "verdict": "REJECT"}, {"ticker": "SCCO", "role": "Southern Copper", "verdict": "REJECT"}]}, {"name": "Bitcoin ecosystem", "leader": "BTC-USD", "run": 4.0, "tiers": [{"ticker": "IBIT", "role": "spot ETF", "verdict": "REJECT"}, {"ticker": "MSTR", "role": "levered BTC treasury", "verdict": "REJECT"}, {"ticker": "MARA", "role": "miner", "verdict": "REJECT"}, {"ticker": "RIOT", "role": "miner", "verdict": "REJECT"}, {"ticker": "CLSK", "role": "miner", "verdict": "REJECT"}, {"ticker": "COIN", "role": "exchange", "verdict": "REJECT"}]}, {"name": "Indonesia banks", "leader": "BBCA.JK", "run": 21.0, "tiers": [{"ticker": "BMRI.JK", "role": "Bank Mandiri", "verdict": "REJECT"}, {"ticker": "BBRI.JK", "role": "BRI \u2014 retail/micro", "verdict": "REJECT"}, {"ticker": "BBNI.JK", "role": "BNI \u2014 more cyclical", "verdict": "REJECT"}]}, {"name": "Indonesia coal / energy", "leader": "ADRO.JK", "run": -13.0, "tiers": [{"ticker": "BUMI.JK", "role": "Bumi Resources \u2014 high beta", "verdict": "REJECT"}, {"ticker": "HUMI.JK", "role": "Humpuss", "verdict": "REJECT"}]}, {"name": "Indonesia metals / EV", "leader": "ANTM.JK", "run": 14.0, "tiers": [{"ticker": "MDKA.JK", "role": "Merdeka \u2014 copper/gold", "verdict": "REJECT"}, {"ticker": "AMMN.JK", "role": "Amman \u2014 copper/gold", "verdict": "REJECT"}]}], "next_dots": [{"frm": "AI compute", "to": "Networking / optics", "rel": "demands"}, {"frm": "AI compute", "to": "Power / datacenter", "rel": "demands"}, {"frm": "Grid / electrification", "to": "Copper / materials", "rel": "demands"}, {"frm": "AI compute", "to": "Robotics / physical AI", "rel": "enables"}, {"frm": "AI compute", "to": "Autonomous / humanoid", "rel": "enables"}], "bridges": [{"ticker": "ETN", "themes": ["Cooling / thermal", "Power / datacenter", "Grid / electrification"]}, {"ticker": "AVGO", "themes": ["AI compute", "Networking / optics"]}, {"ticker": "MRVL", "themes": ["AI compute", "Networking / optics"]}, {"ticker": "ALAB", "themes": ["AI compute", "Networking / optics"]}, {"ticker": "CRDO", "themes": ["AI compute", "Networking / optics"]}, {"ticker": "GEV", "themes": ["Power / datacenter", "Grid / electrification"]}]}, "scenarios": [{"trigger": "Q3 \u2192 Q2 turn confirms", "prob": 64, "branch": []}, {"trigger": "Turn fails \u2014 stays Q3", "prob": 36, "branch": []}], "narrative": [{"theme": "Gold / precious", "leader": "GLD", "run": 36.0, "stage": "Markup", "num": 6}, {"theme": "Power / electrification", "leader": "VST", "run": 13.0, "stage": "Early markup", "num": 4}, {"theme": "Oil / energy", "leader": "USO", "run": 15.0, "stage": "Early markup", "num": 4}, {"theme": "Indonesia banks", "leader": "BBCA.JK", "run": 21.0, "stage": "Early markup", "num": 4}, {"theme": "Indonesia metals / EV", "leader": "ANTM.JK", "run": 14.0, "stage": "Early markup", "num": 4}, {"theme": "Memory / HBM", "leader": "MU", "run": 7.0, "stage": "Accumulation", "num": 2}, {"theme": "AI compute", "leader": "NVDA", "run": -12.0, "stage": "Accumulation", "num": 2}, {"theme": "Uranium / nuclear", "leader": "CCJ", "run": -18.0, "stage": "Accumulation", "num": 2}]};</script>
 </head>
 <body>
 <div class="progress" id="prog"></div>
@@ -172,8 +206,80 @@ function axesBars(c){
   }).join("")+`</div>`;
 }
 
+/* ── radar (crash components) ── */
+function radar(c){
+  const comp=c.components||{}; const keys=Object.keys(comp);
+  if(!keys.length) return `<div class="foot">No crash-component data.</div>`;
+  const n=keys.length, cx=150, cy=150, R=100;
+  const pt=(i,r)=>{const a=-Math.PI/2+i*2*Math.PI/n;return [cx+Math.cos(a)*r, cy+Math.sin(a)*r];};
+  let rings=""; [0.25,0.5,0.75,1].forEach(f=>{
+    const p=keys.map((k,i)=>pt(i,R*f).join(",")).join(" ");
+    rings+=`<polygon points="${p}" fill="none" stroke="#1f2935" stroke-width="1"/>`;});
+  let axesL="", labels="";
+  keys.forEach((k,i)=>{const[x,y]=pt(i,R);const[lx,ly]=pt(i,R+18);
+    axesL+=`<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="#1f2935" stroke-width="1"/>`;
+    labels+=`<text x="${lx}" y="${ly}" fill="#8b97a7" font-size="8.5" text-anchor="middle">${esc(k.replace(/_/g,' '))}</text>`;});
+  const poly=keys.map((k,i)=>pt(i,R*Math.max(0,Math.min(1,comp[k]||0))).join(",")).join(" ");
+  const dots=keys.map((k,i)=>{const[x,y]=pt(i,R*Math.max(0,Math.min(1,comp[k]||0)));return `<circle cx="${x}" cy="${y}" r="3" fill="${accent}"/>`;}).join("");
+  return `<svg viewBox="0 0 300 300" style="max-width:320px;width:100%">${rings}${axesL}
+    <polygon points="${poly}" fill="${accent}33" stroke="${accent}" stroke-width="2"/>${dots}${labels}</svg>`;
+}
+/* ── bottleneck explorer (clickable) ── */
+function bottleneckHTML(b){
+  const themes=(b&&b.themes)||[];
+  const cards=themes.map(t=>`
+    <div class="bt-theme" onclick="this.classList.toggle('open')">
+      <div class="bt-head"><span class="bt-name">${esc(t.name)}</span>
+        <span class="bt-leader mono">${esc(t.leader)} ${t.run>=0?'+':''}${esc(t.run)}%</span>
+        <span class="bt-caret">▸</span></div>
+      <div class="bt-tiers">${(t.tiers||[]).map(x=>`
+        <div class="bt-tier"><span class="mono">${esc(x.ticker)}</span>
+          <span class="bt-role">${esc(x.role)}</span>
+          <span class="pill ${x.verdict==='QUALIFIES'?'grn':x.verdict==='MARGINAL'?'amb':'gry'}">${esc(x.verdict||'')}</span></div>`).join("")}</div>
+    </div>`).join("");
+  const dots=((b&&b.next_dots)||[]).map(x=>`<span class="chip">${esc(x.frm)} → ${esc(x.to)}</span>`).join("");
+  return `<div class="bt-list">${cards}</div>${dots?`<div class="foot"><span class="k">Where capital is heading next:</span><br>${dots}</div>`:""}`;
+}
+/* ── scenario tree ── */
+function scenarioHTML(sc){
+  if(!sc||!sc.length) return `<div class="foot">No active regime transition — no branching scenarios today.</div>`;
+  return `<div class="scn">`+sc.map(s=>`
+    <div class="scn-branch"><div class="scn-top"><span class="scn-prob mono">${esc(s.prob)}%</span><span class="scn-trig">${esc(s.trigger)}</span></div>
+      <div class="scn-assets">${(s.branch||[]).map(a=>`<span class="scn-a ${a[1]==='up'?'up':'dn'}">${esc(a[0])} ${a[1]==='up'?'↑':'↓'}</span>`).join("")}</div></div>`).join("")+`</div>`;
+}
+/* ── narrative lifecycle ── */
+function narrativeHTML(nr){
+  if(!nr||!nr.length) return `<div class="foot">No narrative-lifecycle data.</div>`;
+  return `<div class="nrr">`+nr.map(t=>{
+    const pct=t.num*10, col=t.num>=8?"var(--red)":t.num>=6?"var(--amb)":t.num>=4?"var(--inf)":"var(--grn)";
+    return `<div class="nrr-row"><div class="nrr-name">${esc(t.theme)} <span class="mono" style="color:var(--dim)">${esc(t.leader)}</span></div>
+      <div class="nrr-track"><div class="nrr-fill" style="width:${pct}%;background:${col}"></div><span class="nrr-stage">${esc(t.stage)} · ${esc(t.num)}/10</span></div></div>`;
+  }).join("")+`</div><div class="foot">Accumulation → Markup → Late markup → Distribution. Late-stage = crowded; early-stage = where the next leg of edge lives.</div>`;
+}
+/* ── portfolio impact (regime-fit, saved locally) ── */
+function portfolioHTML(){
+  return `<div class="pf"><input id="pfIn" class="pf-in" placeholder="e.g. NVDA long, USO neutral, BTC-USD overweight, BBCA.JK underweight">
+    <button class="pf-btn" onclick="pfSave()">Check fit</button></div><div id="pfOut" class="pf-out"></div>`;
+}
+function pfSave(){const v=(document.getElementById('pfIn').value||"").trim();try{if(v)localStorage.setItem('wr_pf',v);}catch(e){} pfRender(v);}
+function pfRender(v){
+  const out=document.getElementById('pfOut'); if(!out)return;
+  try{v=v||localStorage.getItem('wr_pf')||"";}catch(e){v=v||"";}
+  const inp=document.getElementById('pfIn'); if(inp&&!inp.value&&v)inp.value=v;
+  if(!v){out.innerHTML='<div class="foot">Enter your positions to see how they fit today\u2019s regime. Saved on this device only.</div>';return;}
+  const items=v.split(/[,;]/).map(s=>s.trim()).filter(Boolean);
+  const score=(B.compass&&B.compass.score)||0, L=/(long|over)/i, S=/(short|under|cash)/i;
+  let net=0; const rows=items.map(it=>{
+    const tilt=L.test(it)?1:S.test(it)?-1:0; net+=tilt;
+    const fit=((score>1&&tilt>0)||(score<-1&&tilt<0))?["aligned","grn"]:((score>1&&tilt<0)||(score<-1&&tilt>0))?["against regime","red"]:["neutral","amb"];
+    return `<div class="pf-row"><span class="mono">${esc(it)}</span><span class="pill ${fit[1]}">${fit[0]}</span></div>`;}).join("");
+  const dir=score>1?"risk-on":score<-1?"risk-off":"mixed";
+  const rec=(net>0&&score<-1)?"You're net-long into a risk-off tape — consider trimming beta.":(net<0&&score>1)?"You're net-defensive into a risk-on tape — you may be underexposed.":"Your tilt broadly matches today's regime.";
+  out.innerHTML=`<div class="pf-rows">${rows}</div><div class="foot"><span class="k">Regime is ${dir} (compass ${score>0?'+':''}${score}).</span> ${esc(rec)}</div>`;
+}
+
 /* ── slides ── */
-const reg=B.regime||{}, cr=B.crash||{}, cm=B.compass||{};
+const reg=B.regime||{}, cr=B.crash||{}, cm=B.compass||{}, why=B.why||{}, bk=B.bottleneck||{}, sc=B.scenarios||[], nr=B.narrative||[];
 const slides=[
   // 1 cover
   `<div class="eyebrow">Morning Brief · ${esc(B.date||"")}</div>
@@ -184,8 +290,14 @@ const slides=[
   `<div class="eyebrow">01 · What changed since yesterday</div>
    <h2>The delta is the signal.</h2>
    <ul class="changed">${(B.changed||[]).slice(0,7).map(x=>`<li>${esc(x)}</li>`).join("")||'<li>No material change recorded.</li>'}</ul>`,
+  // WHY causal
+  `<div class="eyebrow">02 · Why — the causal chain</div>
+   <h2>What's actually driving it.</h2>
+   <p class="lede">${esc(why.summary||"Cross-asset drivers resolving today's tape.")}</p>
+   ${(why.chains&&why.chains.length)?`<ul class="changed" style="margin-top:18px">${why.chains.map(c=>`<li>${esc(c)}</li>`).join("")}</ul>`:""}
+   ${why.bait?`<div class="foot"><span class="k">Policy read:</span> ${esc(why.fed_lean||"")} ${esc(why.bait)}</div>`:""}`,
   // 3 regime
-  `<div class="eyebrow">02 · Today's regime</div>
+  `<div class="eyebrow">03 · Today's regime</div>
    <h2>${esc(reg.operating||"Regime")}</h2>
    <div class="grid">
      <div class="cell"><span class="k">Structural</span><div class="v">${esc(reg.structural||"—")}</div></div>
@@ -195,12 +307,31 @@ const slides=[
    </div>
    <p class="lede" style="margin-top:20px">${esc(reg.why||"")} ${cr.basis?`<br><span style="color:var(--dim)">Crash basis: ${esc(cr.basis)}.</span>`:""}</p>`,
   // 4 compass (signature)
-  `<div class="eyebrow">03 · Cross-asset rotation</div>
+  `<div class="eyebrow">04 · Cross-asset rotation</div>
    <h2 style="margin-bottom:18px">Where is capital flowing — <span class="big">${esc(cm.state||"—")}</span></h2>
    <div class="compass-wrap"><div>${gauge(cm)}</div>${axesBars(cm)}</div>
    <div class="foot">${esc(cm.meaning||"")} &nbsp; Each bar = one axis racing along the same risk curve. Green left = capital rotating <b>down</b> the curve (risk-on); red right = <b>up</b> to safety.</div>`,
+  // crash radar
+  `<div class="eyebrow">05 · Crash pressure</div>
+   <h2>${esc(cr.type||"—")} <span style="color:var(--dim);font-size:.6em">${cr.pressure!=null?`· ${cr.pressure}/100`:""}</span></h2>
+   <div class="compass-wrap"><div>${radar(cr)}</div>
+     <div><p class="lede">${esc(cr.basis||"")}</p>
+     ${cr.bottom?`<div class="foot"><span class="k">Bottom signal:</span> ${esc(cr.bottom)}</div>`:""}
+     <div class="foot">Each spoke is one fragility input (0 calm → 1 stressed). A balanced small shape = no dominant driver; a spike = the thing to watch.</div></div></div>`,
+  // bottleneck explorer
+  `<div class="eyebrow">06 · Bottleneck explorer</div>
+   <h2>Click a chain to trace the supply map.</h2>
+   ${bottleneckHTML(bk)}`,
+  // scenario tree
+  `<div class="eyebrow">07 · Scenario tree</div>
+   <h2>If the regime turns — who moves.</h2>
+   ${scenarioHTML(sc)}`,
+  // narrative lifecycle
+  `<div class="eyebrow">08 · Narrative lifecycle</div>
+   <h2>How far each theme has run.</h2>
+   ${narrativeHTML(nr)}`,
   // 5 conviction
-  `<div class="eyebrow">04 · Highest conviction</div>
+  `<div class="eyebrow">09 · Highest conviction</div>
    <h2>What to act on — risk range + entry quality on each.</h2>
    <div class="conv">${(B.conviction||[]).slice(0,4).map(c=>`
      <div class="ccard ${esc(c.dir)}">
@@ -210,8 +341,13 @@ const slides=[
        <div class="lv"><span class="k">entry</span>${esc(c.entry)} · <span class="k">stop</span>${esc(c.stop)} · <span class="k">target</span>${esc(c.target)}${c.rr?` · <span class="k">range</span>${esc(c.rr)}`:""}</div>
        ${c.why?`<div class="lv" style="margin-top:5px;color:var(--dim)">${esc(c.why)}</div>`:""}
      </div>`).join("")||'<div class="ccard">No high-conviction setups today.</div>'}</div>`,
+  // portfolio impact
+  `<div class="eyebrow">10 · Portfolio impact</div>
+   <h2>Your positions vs today's regime.</h2>
+   ${portfolioHTML()}
+   <div class="foot">No fake P&L — this checks whether your tilt is aligned with today's cross-asset compass, and flags positions fighting the regime. Stored on this device only.</div>`,
   // 6 bottom line
-  `<div class="eyebrow">05 · Bottom line</div>
+  `<div class="eyebrow">11 · Bottom line</div>
    <h1 style="font-size:clamp(28px,5vw,58px)">${cm.score>2?"Lean in — risk is rotating down the curve.":cm.score<-2?"Defend — capital is fleeing to safety.":"Wait for confluence."}</h1>
    <p class="lede">${esc(cm.meaning||"")}</p>
    <div class="foot">This deck is the 30-second read. The full numbers, per-ticker risk ranges, greeks, and reasoning live in the War Room tabs behind it. Weights are unvalidated priors — walk-forward before sizing.</div>`
@@ -237,7 +373,7 @@ nextB.onclick=()=>go(i+1);prevB.onclick=()=>go(i-1);
 document.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key===' ')go(i+1);if(e.key==='ArrowLeft')go(i-1);});
 let sx=0;stage.addEventListener('touchstart',e=>sx=e.touches[0].clientX,{passive:true});
 stage.addEventListener('touchend',e=>{const dx=e.changedTouches[0].clientX-sx;if(Math.abs(dx)>50)go(i+(dx<0?1:-1));},{passive:true});
-go(0);
+go(0); try{pfRender();}catch(e){}
 </script>
 </body>
 </html>

@@ -99,6 +99,50 @@ def _why(d):
             "bait": pol.get("bait", ""), "fed_lean": pol.get("fed_lean", "")}
 
 
+def _meters(d):
+    """Composite 0-100 meters — ONLY the ones with real data. Missing-feed meters are flagged, not faked."""
+    crash = d.get("crash") or {}; cr = d.get("cycle_rotation") or {}; conv = d.get("conviction") or []
+    out = []
+    cp = crash.get("pressure")
+    if isinstance(cp, (int, float)):
+        out.append({"name": "Crash", "value": round(cp), "status": crash.get("type", "—"),
+                    "color": "grn" if cp < 40 else "amb" if cp < 65 else "red",
+                    "components": [k.replace("_", " ") for k in (crash.get("components") or {})][:6], "real": True})
+    sc = cr.get("score"); n = cr.get("n_axes") or 7
+    if isinstance(sc, (int, float)):
+        out.append({"name": "Rotation", "value": round(abs(sc) / n * 100), "status": cr.get("compass", "—"),
+                    "color": cr.get("color", "amb"), "components": [a.get("name") for a in cr.get("axes", [])][:6], "real": True})
+    if conv:
+        cv = round(max((r.get("score", 0) or 0) for r in conv))
+        out.append({"name": "Conviction", "value": min(cv, 100), "status": "top setup", "color": "inf",
+                    "components": ["regime", "rotation", "flow", "entry"], "real": True})
+    try:
+        from warroom import optimal_entry as OE
+        qs = [OE.quality(r.get("_dir"), r.get("lrr"), r.get("trr"), r.get("close") or r.get("px"), r.get("timing"))[0]
+              for r in conv[:5] if r.get("lrr") and r.get("trr")]
+        qs = [q for q in qs if q is not None]
+        if qs:
+            ev = round(sum(qs) / len(qs))
+            out.append({"name": "Entry", "value": ev, "status": "scale-in" if ev >= 60 else "wait" if ev < 45 else "selective",
+                        "color": "grn" if ev >= 60 else "amb", "components": ["risk range", "timing", "location"], "real": True})
+    except Exception:
+        pass
+    for nm, comp in [("Liquidity", ["Fed", "ECB", "BOJ", "RRP", "TGA", "M2"]), ("Credit", ["HY", "IG", "CDS", "bank funding"]),
+                     ("Bubble", ["valuation", "leverage", "sentiment", "options"]), ("Trend", ["breadth", "momentum", "internals"])]:
+        out.append({"name": nm, "value": None, "status": "needs data feed", "color": "gry", "components": comp, "real": False})
+    return out
+
+
+def _thesis_beta(d):
+    tb = d.get("thesis_beta") or {}
+    out = []
+    for theme, info in list(tb.items())[:5]:
+        out.append({"theme": theme, "leader": info.get("leader"),
+                    "members": [{"ticker": m["ticker"], "beta": m["beta"], "conv": m["convexity"],
+                                 "vol": m["ann_vol"], "asym": m["asym"]} for m in info.get("members", [])[:6]]})
+    return out
+
+
 def brief_dict(d):
     reg = d.get("regime") or {}
     rt = reg.get("regime_transition") if isinstance(reg.get("regime_transition"), dict) else {}
@@ -138,6 +182,8 @@ def brief_dict(d):
         "bottleneck": _bottleneck(d),
         "scenarios": _scenarios(d),
         "narrative": _narrative(d),
+        "meters": _meters(d),
+        "thesis_beta": _thesis_beta(d),
     }
 
 

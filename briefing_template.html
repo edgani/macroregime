@@ -129,6 +129,25 @@
   .pf-rows{display:flex;flex-direction:column;gap:8px;margin-top:14px}
   .pf-row{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:11px 16px}
   .pf-row .pill{margin-left:auto}
+  /* ── mission-control meters ── */
+  .meters{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-top:6px;max-height:62vh;overflow-y:auto}
+  .meter{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:15px 17px}
+  .meter.off{opacity:.5}
+  .m-top{display:flex;align-items:baseline;gap:9px;margin-bottom:9px}
+  .m-name{font-weight:680;font-size:15px} .m-val{margin-left:auto;font-size:24px;font-weight:760;font-family:ui-monospace,Menlo,monospace}
+  .m-val.gry{font-size:13px;font-weight:600;color:var(--dim)}
+  .m-status{font-size:11.5px;color:var(--sub);margin-bottom:9px}
+  .m-bar{height:8px;background:var(--panel2);border:1px solid var(--line);border-radius:5px;overflow:hidden;margin-bottom:9px}
+  .m-fill{height:100%;border-radius:5px;transition:width .6s ease}
+  .m-tags{display:flex;flex-wrap:wrap;gap:5px}
+  .m-tag{font-size:10.5px;padding:2px 8px;border-radius:12px;background:var(--panel2);color:var(--sub);border:1px solid var(--line)}
+  /* ── thesis beta ── */
+  .tb-theme{margin-top:14px} .tb-h{font-size:14px;font-weight:680;margin-bottom:8px}
+  .tb-h .mono{color:var(--dim);font-weight:500;font-size:12.5px}
+  .tb-grid{display:flex;flex-direction:column;gap:6px}
+  .tb-row{display:grid;grid-template-columns:64px 1fr auto auto auto;gap:10px;align-items:center;font-size:12.5px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 12px}
+  .tb-row .mono{font-weight:650} .tb-b{font-weight:700;font-family:ui-monospace,Menlo,monospace}
+  .tb-meta{font-size:11px;color:var(--dim)}
   @media(prefers-reduced-motion:reduce){.slide{transition:opacity .01s}.bar .fill{transition:none}}
 </style>
 </head>
@@ -277,14 +296,40 @@ function pfRender(v){
   out.innerHTML=`<div class="pf-rows">${rows}</div><div class="foot"><span class="k">Regime is ${dir} (compass ${score>0?'+':''}${score}).</span> ${esc(rec)}</div>`;
 }
 
+/* ── mission-control meters ── */
+function metersHTML(mt){
+  if(!mt||!mt.length) return `<div class="foot">No meter data.</div>`;
+  return `<div class="meters">`+mt.map(m=>{
+    const c=`var(--${m.color||'gry'})`;
+    const val=m.real&&m.value!=null?`<span class="m-val">${esc(m.value)}</span>`:`<span class="m-val gry">n/a</span>`;
+    const bar=m.real&&m.value!=null?`<div class="m-bar"><div class="m-fill" style="width:${Math.max(0,Math.min(100,m.value))}%;background:${c}"></div></div>`:`<div class="m-bar"></div>`;
+    return `<div class="meter ${m.real?'':'off'}"><div class="m-top"><span class="m-name">${esc(m.name)}</span>${val}<span class="m-status" style="margin:0 0 0 0;color:${c}">0–100</span></div>
+      <div class="m-status">${esc(m.status)}</div>${bar}
+      <div class="m-tags">${(m.components||[]).map(x=>`<span class="m-tag">${esc(x)}</span>`).join("")}</div></div>`;
+  }).join("")+`</div>`;
+}
+/* ── thesis beta ── */
+function thesisBetaHTML(tb){
+  if(!tb||!tb.length) return `<div class="foot">No thesis-beta data (needs the supply-chain tiers populated on live data).</div>`;
+  return tb.slice(0,3).map(t=>`<div class="tb-theme"><div class="tb-h">${esc(t.theme)} <span class="mono">leader ${esc(t.leader)} = 1.0β</span></div>
+    <div class="tb-grid">${(t.members||[]).map(m=>`<div class="tb-row"><span class="mono">${esc(m.ticker)}</span>
+      <div class="m-bar" style="margin:0"><div class="m-fill" style="width:${Math.max(0,Math.min(100,m.beta*40))}%;background:${m.conv>0?'var(--grn)':'var(--amb)'}"></div></div>
+      <span class="tb-b">${esc(m.beta)}β</span><span class="tb-meta">conv ${m.conv>0?'+':''}${esc(m.conv)}</span><span class="tb-meta">vol ${esc(m.vol)}</span></div>`).join("")}</div></div>`).join("");
+}
+
 /* ── slides ── */
-const reg=B.regime||{}, cr=B.crash||{}, cm=B.compass||{}, why=B.why||{}, bk=B.bottleneck||{}, sc=B.scenarios||[], nr=B.narrative||[];
+const reg=B.regime||{}, cr=B.crash||{}, cm=B.compass||{}, why=B.why||{}, bk=B.bottleneck||{}, sc=B.scenarios||[], nr=B.narrative||[], mt=B.meters||[], tb=B.thesis_beta||[];
 const slides=[
   // 1 cover
   `<div class="eyebrow">Morning Brief · ${esc(B.date||"")}</div>
    <h1>${esc(reg.structural||"—")} <span style="color:var(--dim)">structural</span> · ${esc(reg.monthly||"—")} <span style="color:var(--dim)">monthly</span></h1>
    <p class="lede">${esc(reg.why||reg.operating||"")}</p>
    <div class="foot">Cross-asset compass reads <b class="big">${esc(cm.state||"—")}</b> · crash pressure <b>${esc(cr.type||"—")}</b>. Click → or use arrow keys.</div>`,
+  // mission control — meters (only real-data ones; missing feeds flagged)
+  `<div class="eyebrow">Mission Control · 30-second scan</div>
+   <h2 style="margin-bottom:6px">The meters that have data.</h2>
+   <p class="lede" style="font-size:15px;margin-bottom:16px">Composite 0–100 gauges. Greyed = no live feed yet (not faked).</p>
+   ${metersHTML(mt)}`,
   // 2 what changed
   `<div class="eyebrow">01 · What changed since yesterday</div>
    <h2>The delta is the signal.</h2>
@@ -321,16 +366,21 @@ const slides=[
   `<div class="eyebrow">06 · Bottleneck explorer</div>
    <h2>Click a chain to trace the supply map.</h2>
    ${bottleneckHTML(bk)}`,
+  // thesis beta (beta propagation)
+  `<div class="eyebrow">07 · Thesis beta — who has leverage</div>
+   <h2>Don't buy the theme. Buy the beta to it.</h2>
+   <p class="lede" style="font-size:14px;margin-bottom:14px">Each name's beta to the theme leader, from real 120-day returns. Green bar = positive convexity (more upside-beta than downside). High beta + high vol = the trap, not the trade.</p>
+   ${thesisBetaHTML(tb)}`,
   // scenario tree
-  `<div class="eyebrow">07 · Scenario tree</div>
+  `<div class="eyebrow">08 · Scenario tree</div>
    <h2>If the regime turns — who moves.</h2>
    ${scenarioHTML(sc)}`,
   // narrative lifecycle
-  `<div class="eyebrow">08 · Narrative lifecycle</div>
+  `<div class="eyebrow">09 · Narrative lifecycle</div>
    <h2>How far each theme has run.</h2>
    ${narrativeHTML(nr)}`,
   // 5 conviction
-  `<div class="eyebrow">09 · Highest conviction</div>
+  `<div class="eyebrow">10 · Highest conviction</div>
    <h2>What to act on — risk range + entry quality on each.</h2>
    <div class="conv">${(B.conviction||[]).slice(0,4).map(c=>`
      <div class="ccard ${esc(c.dir)}">
@@ -341,12 +391,12 @@ const slides=[
        ${c.why?`<div class="lv" style="margin-top:5px;color:var(--dim)">${esc(c.why)}</div>`:""}
      </div>`).join("")||'<div class="ccard">No high-conviction setups today.</div>'}</div>`,
   // portfolio impact
-  `<div class="eyebrow">10 · Portfolio impact</div>
+  `<div class="eyebrow">11 · Portfolio impact</div>
    <h2>Your positions vs today's regime.</h2>
    ${portfolioHTML()}
    <div class="foot">No fake P&L — this checks whether your tilt is aligned with today's cross-asset compass, and flags positions fighting the regime. Stored on this device only.</div>`,
   // 6 bottom line
-  `<div class="eyebrow">11 · Bottom line</div>
+  `<div class="eyebrow">12 · Bottom line</div>
    <h1 style="font-size:clamp(28px,5vw,58px)">${cm.score>2?"Lean in — risk is rotating down the curve.":cm.score<-2?"Defend — capital is fleeing to safety.":"Wait for confluence."}</h1>
    <p class="lede">${esc(cm.meaning||"")}</p>
    <div class="foot">This deck is the 30-second read. The full numbers, per-ticker risk ranges, greeks, and reasoning live in the War Room tabs behind it. Weights are unvalidated priors — walk-forward before sizing.</div>`

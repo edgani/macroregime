@@ -21,6 +21,7 @@ from warroom import price_action as PA
 from warroom import structure as ST
 from warroom import rotation as ROT
 from warroom import cycle_rotation as CR
+from warroom import thesis_beta as TB
 from warroom import beta_play as BP
 from warroom import themes as TH
 from warroom import secular_map as SEC
@@ -419,6 +420,7 @@ def run(us, idx, crypto, fx, commo, fred=None, feeds=None):
     out["rotation"] = _try(lambda: ROT.compute(allpx)) or {}
     out["cycle_rotation"] = _try(lambda: CR.compute(allpx)) or {}
     out["beta_plays"] = _try(lambda: BP.analyze_themes(allpx)) or {}
+    out["thesis_beta"] = _try(lambda: TB.compute(allpx, out.get("beta_plays") or {})) or {}
     out["theme_graph"] = _try(lambda: TH.connect_dots(allpx)) or {}
     # live feeds (from build_feeds.py snapshot) → fill feed-gated lens slots; empty = graceful proxy
     feeds = feeds or {}

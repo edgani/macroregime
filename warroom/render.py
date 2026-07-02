@@ -23,6 +23,10 @@ html, body, [class*="css"] {font-family:-apple-system,'Segoe UI',Roboto,Helvetic
 .wr-badge{font-size:11px;font-weight:600;padding:4px 11px;border-radius:8px;white-space:nowrap;}
 .b-grn{color:#9adcc0;background:#15332a;} .b-red{color:#f0a0a0;background:#3a1f22;}
 .b-amb{color:#e7c389;background:#33280f;} .b-inf{color:#9cc3e7;background:#13283a;} .b-gry{color:#9aa6b2;background:#1b212a;}
+.b-blu{color:#93c5e8;background:#122436;}
+.wr-cgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;margin:6px 0 14px;}
+.wr-ccell{background:#12161d;border:0.5px solid #232a32;border-radius:8px;padding:9px 11px;display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.wr-cctry{display:flex;align-items:center;gap:7px;font-size:12.5px;color:#e8edf2;}
 .wr-bar{height:6px;background:#1b212a;border-radius:3px;overflow:hidden;margin-top:5px;}
 .wr-barfill{height:100%;}
 .wr-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(116px,1fr));gap:8px;margin-bottom:16px;}
@@ -114,35 +118,70 @@ def _conv_card(r, dmax, reg, extra=""):
             f"<span class='wr-score wr-mono'>{disp:.1f}</span></div><div class='wr-why'>{_causal5(r, reg)}</div>{szhtml}{extra}</div>")
 
 
+_RECCOL = {"BUY": "grn", "SELL": "red", "HOLD": "amb", "WATCH": "amb", "AVOID": "gry"}
+
 def _asymmetry(s):
-    """Institutional framing from the Asymmetric Return / Convexity Engine spec (Edward's ChatGPT docs):
-    upside / downside / R:R / Expected Value / P(win) / Kelly / alpha tier / kill — derived from the
-    entry/stop/target + conviction score. P(win) is a MODEL ESTIMATE from the score, not calibrated."""
-    px = s.get("close") or s.get("px"); stop = s.get("stop"); tgt = s.get("target"); dr = s.get("_dir")
-    if dr not in ("Long", "Short"):
+    """LEVEL 8 DECISION block (spec approach). Reads decision_pkg from compute:
+      • REKOMENDASI (BUY/WATCH/AVOID/SELL/HOLD) + alasan
+      • ENTRY zones (conservative/base/aggressive) + DCA + pyramid
+      • 5 STOPS (technical/macro/thesis/time/fundamental) — non-price = kondisi kausal
+      • TARGET T1/T2/T3 + expected holding
+      • INVALIDATION list (kausal, bukan cuma level)
+      • P(win)/EV — HANYA jika terkalibrasi dari track record; kalau tidak → 'uncalibrated'
+    Tidak ada P(win) fabrikasi dari score. Tidak ada stop/target hardcoded."""
+    pkg = s.get("decision_pkg")
+    dr = s.get("_dir")
+    if not isinstance(pkg, dict):
         return ""
-    try:
-        px = float(str(px).replace(",", "")); stop = float(str(stop).replace(",", "")); tgt = float(str(tgt).replace(",", ""))
-    except Exception:
-        return ""
-    if px <= 0:
-        return ""
-    up = (tgt - px) / px * 100 if dr == "Long" else (px - tgt) / px * 100
-    dn = (stop - px) / px * 100 if dr == "Long" else (px - stop) / px * 100
-    if up <= 0 or dn >= 0:
-        return ""
-    rr = up / abs(dn)
-    score = s.get("score") or 0
-    prob = max(0.40, min(0.78, 0.40 + 0.35 * (max(score, 0) / 100.0)))  # model est from conviction
-    ev = prob * up + (1 - prob) * dn                                    # probability-weighted (dn negative)
-    kelly = max(0.0, min(0.25, (prob * rr - (1 - prob)) / rr)) if rr > 0 else 0.0
-    tier = "generational 10x-class" if up >= 80 else "strategic" if up >= 20 else "tactical"
-    evc = "grn" if ev > 0 else "red"
-    return (f"<div class='wr-why' style='margin-top:4px'><span class='k'>upside</span> <b class='b-grn'>+{up:.0f}%</b> · "
-            f"<span class='k'>downside</span> <b class='b-red'>{dn:.0f}%</b> · <span class='k'>R:R</span> <b>{rr:.1f}</b> · "
-            f"<span class='k'>EV</span> <b class='b-{evc}'>{ev:+.0f}%</b> · <span class='k'>P(win)</span> ~{prob*100:.0f}%<span class='wr-sub'> est</span> · "
-            f"<span class='k'>Kelly</span> {kelly*100:.0f}%</div>"
-            f"<div class='wr-why'><span class='k'>alpha</span> {tier} · <span class='k'>kill</span> invalidates below {stop:g} ({dn:.0f}%)</div>")
+    rec = pkg.get("recommendation", "WATCH"); reason = pkg.get("reason", "")
+    rc = _RECCOL.get(rec, "gry")
+    head = f"<div class='wr-why' style='margin-top:5px'>{_b(rec, rc)} <span class='wr-sub'>{reason}</span></div>"
+
+    if pkg.get("levels_withheld"):
+        return head + ("<div class='wr-why'><span class='k'>levels</span> "
+                       "<span class='wr-sub'>risk range tidak tersedia — level di-withhold, tidak difabrikasi</span></div>")
+    lv = pkg.get("levels")
+    if not lv or dr not in ("Long", "Short"):
+        return head
+
+    e = lv.get("entry") or {}; tg = lv.get("targets") or {}
+    def _z(name):
+        z = e.get(name)
+        return f"{z[0]}–{z[1]}" if z and z[0] is not None and z[1] is not None else "—"
+    entry_line = (f"<div class='wr-why'><span class='k'>entry</span> base <b>{_z('base')}</b> · "
+                  f"cons {_z('conservative')} · aggr {_z('aggressive')}</div>")
+    dca = e.get("dca_ladder") or []
+    dca_txt = " · ".join(f"{r['px']}@{int(r['wt']*100)}%" for r in dca if r.get("px") is not None)
+    pyr = (e.get("pyramid") or {}).get("level")
+    ladder_line = (f"<div class='wr-why'><span class='k'>DCA</span> {dca_txt}"
+                   + (f" · <span class='k'>pyramid</span> {pyr}" if pyr else "") + "</div>") if dca_txt else ""
+
+    t_txt = " → ".join(f"T{i}:{tg.get('t'+str(i))}" for i in (1, 2, 3) if tg.get("t" + str(i)) is not None)
+    tgt_line = f"<div class='wr-why'><span class='k'>target</span> {t_txt}</div>" if t_txt else ""
+
+    # P(win)/EV — calibrated-or-silent
+    pw = pkg.get("pwin"); ev = pkg.get("ev_r")
+    if pw is not None:
+        evc = "grn" if (ev is not None and ev > 0) else "red"
+        prob_line = (f"<div class='wr-why'><span class='k'>P(win)</span> <b>{pw*100:.0f}%</b> "
+                     f"<span class='wr-sub'>{pkg.get('pwin_note','')}</span>"
+                     + (f" · <span class='k'>EV</span> <b class='b-{evc}'>{ev:+.2f}R</b>" if ev is not None else "") + "</div>")
+    else:
+        prob_line = f"<div class='wr-why'><span class='k'>P(win)</span> <span class='wr-sub'>{pkg.get('pwin_note','uncalibrated')}</span></div>"
+
+    stops = pkg.get("stops") or {}
+    stop_bits = []
+    for k in ("technical", "macro", "thesis", "time", "fundamental"):
+        v = stops.get(k)
+        if v:
+            stop_bits.append(f"<span class='k'>{k}</span> {v}")
+    stops_line = "<div class='wr-why' style='font-size:11px;opacity:.85'>" + " · ".join(stop_bits) + "</div>" if stop_bits else ""
+
+    inval = pkg.get("invalidation") or []
+    inval_line = ("<div class='wr-why' style='font-size:11px'><span class='k'>invalidates if</span> "
+                  + " ⊕ ".join(inval[:3]) + "</div>") if inval else ""
+
+    return head + entry_line + ladder_line + tgt_line + prob_line + stops_line + inval_line
 
 
 def _oe_inline(s):
@@ -502,6 +541,28 @@ def _whatchanged(d):
             f"<div class='wr-card' style='margin-bottom:16px;border-left:3px solid {accent};'>{body}</div>")
 
 
+_CSTATECOL = {"goldilocks": "grn", "reflation": "amb", "stagflation": "red", "deflation": "blu"}
+
+def country_grid(d):
+    """Global macro regime grid (borrowed layout, real price-proxy quads). 'data pending' where absent."""
+    cr = d.get("country_regime") or {}
+    cells = cr.get("cells") or []
+    if not cells:
+        return ""
+    html = ""
+    for c in cells:
+        col = _CSTATECOL.get(c.get("state"), "gry")
+        gi = ""
+        if c.get("g") is not None:
+            gi = f"<span class='wr-sub' style='font-size:10px;'>g{c['g']:+.0f} i{c['i']:+.0f}</span>"
+        html += (f"<div class='wr-ccell'><div class='wr-cctry'>{c['flag']} {c['country']}</div>"
+                 f"<div style='display:flex;align-items:center;gap:6px;'>{gi}{_b(c['label'] + ' ' + c['emoji'], col)}</div></div>")
+    note = cr.get("note", "")
+    head = (f"<div class='wr-lbl'>Global macro regime — {cr.get('n_live',0)}/{cr.get('n_total',0)} live "
+            f"· commodity inflation tilt {cr.get('infl_tilt','?')}% ({cr.get('tilt_src','?')})</div>")
+    return head + f"<div class='wr-cgrid'>{html}</div><div class='wr-note' style='margin-bottom:14px;'>{note}</div>"
+
+
 def command_center(d, source):
     reg = d["regime"]; fund = d.get("funding", {})
     gs, isr, b = reg["g_struct"], reg["i_struct"], reg["breadth"]
@@ -611,6 +672,7 @@ def command_center(d, source):
             f"<div class='wr-lbl'>Why — regime drivers (Hedgeye GIP: structural + monthly)</div><div class='wr-grid'>{drivers}</div>"
             f"{state_html}"
             f"{quad_html}"
+            f"{country_grid(d)}"
             f"{mc_html}{_rotation_panel(d)}{_theme_graph_panel(d)}{narr_html}{chain_html}{_macro_links(d)}{_policy_panel(d)}{_coherence_panel(d)}{mech_html}{crowd_html}"
             f"<div class='wr-lbl'>What to do — highest conviction</div>{cards}"
             f"<div class='wr-lbl'>The edge — propagation</div><div class='wr-chain'>"

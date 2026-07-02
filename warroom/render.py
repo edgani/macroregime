@@ -1220,3 +1220,145 @@ def causal_chains(d):
                   f"<div class='wr-lbl' style='margin:8px 0 3px'>Kill-switch — switch sides when</div>{flips}</div>")
     note = "<div class='wr-note'>Ant Markets discipline: hold a hypothesis, watch for disconfirming evidence, switch when it fires. Chains are curated priors; link/flip status is from 20-day price momentum — a reasoning checklist, not proven causality.</div>"
     st.markdown(CSS + head + cards + note, unsafe_allow_html=True)
+
+
+# ═══════════════════════════════════ MISSION CONTROL (mockup-faithful design) ═══
+_MCC = {"Macro": "#4493f8", "Liquidity": "#4493f8", "Credit": "#4493f8", "Rotation": "#a371f7",
+        "Conviction": "#a371f7", "Wealth": "#2ea043", "Trend": "#3fb950", "Bubble": "#e0863a", "Entry": "#d6a429"}
+
+
+def _mc_color(m):
+    if not m.get("real"):
+        return "#5b6675"
+    if m["name"] == "Crash":
+        v = m.get("value") or 0
+        return "#3fb950" if v < 40 else "#d6a429" if v < 65 else "#f85149"
+    return _MCC.get(m["name"], "#4493f8")
+
+
+def mission_control(d):
+    from warroom import brief_export as BE
+    meters = BE._meters(d)
+    cr = d.get("cycle_rotation") or {}
+    score = cr.get("score", 0); ccol = cr.get("color", "amb")
+    risk = "RISK-ON" if (isinstance(score, (int, float)) and score > 2) else "RISK-OFF" if (isinstance(score, (int, float)) and score < -2) else "MIXED"
+    risk_hex = "#3fb950" if risk == "RISK-ON" else "#f85149" if risk == "RISK-OFF" else "#d6a429"
+    date = d.get("data_asof") or ""
+
+    css = """<style>
+    .mcx{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif;color:#e6edf3;max-width:1120px;margin:0 auto;padding:4px 2px 40px}
+    .mcx *{box-sizing:border-box}
+    .mcx-hd{display:flex;align-items:center;gap:13px;margin-bottom:22px;padding-bottom:17px;border-bottom:1px solid #1e2530}
+    .mcx-shield{font-size:22px;color:#4493f8}
+    .mcx-hd .t{font-size:22px;font-weight:760;letter-spacing:.04em}
+    .mcx-hd .d{color:#8b97a7;font-size:12.5px;margin-top:2px}
+    .mcx-badge{margin-left:auto;font-size:12px;font-weight:700;letter-spacing:.06em;padding:6px 14px;border-radius:8px}
+    .mcx-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:11px;margin-bottom:26px}
+    .mcx-tile{background:#12161d;border:1px solid #1e2530;border-radius:13px;padding:15px 17px}
+    .mcx-tile .l{font-size:11.5px;color:#8b97a7;margin-bottom:8px;letter-spacing:.02em}
+    .mcx-tile .n{font-size:31px;font-weight:770;line-height:.95;font-family:ui-monospace,Menlo,monospace}
+    .mcx-tile .n.na{font-size:14px;color:#5b6675;font-weight:600}
+    .mcx-tile .s{font-size:11.5px;margin-top:7px;display:flex;align-items:center;gap:6px}
+    .mcx-dot{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
+    .mcx-lbl{font-size:12px;letter-spacing:.15em;text-transform:uppercase;color:#8b97a7;font-weight:600;margin:26px 0 12px}
+    .mcx-meter{background:#12161d;border:1px solid #1e2530;border-radius:14px;padding:18px 20px;margin-bottom:12px}
+    .mcx-meter.off{opacity:.5}
+    .mcx-mtop{display:flex;align-items:center;margin-bottom:5px}
+    .mcx-mname{font-size:16px;font-weight:690;display:flex;align-items:center;gap:10px}
+    .mcx-idot{width:10px;height:10px;border-radius:3px;display:inline-block}
+    .mcx-mnum{margin-left:auto;font-size:35px;font-weight:790;font-family:ui-monospace,Menlo,monospace;line-height:1}
+    .mcx-mnum.na{font-size:15px;color:#5b6675;font-weight:600}
+    .mcx-mstatus{font-size:13px;color:#c9d3de;margin:3px 0 13px;display:flex;align-items:center;gap:8px}
+    .mcx-range{margin-left:auto;color:#5b6675;font-size:11px;font-family:ui-monospace,Menlo,monospace}
+    .mcx-bar{height:10px;background:#0a0e14;border-radius:6px;overflow:hidden;margin-bottom:14px}
+    .mcx-fill{height:100%;border-radius:6px;transition:width .6s ease}
+    .mcx-tags{display:flex;flex-wrap:wrap;gap:7px}
+    .mcx-tag{font-size:11px;padding:3px 11px;border-radius:14px;background:#0f1520;color:#9aa6b2;border:1px solid #1e2530}
+    .mcx-recs{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    @media(max-width:640px){.mcx-recs{grid-template-columns:1fr}}
+    .mcx-rec{border-radius:13px;padding:15px 18px;border:1px solid #1e2530}
+    .mcx-rec.buy{background:rgba(46,160,67,.09);border-color:rgba(63,185,80,.32)}
+    .mcx-rec.wait{background:rgba(214,164,41,.09);border-color:rgba(214,164,41,.32)}
+    .mcx-rec.reduce{background:rgba(248,81,73,.09);border-color:rgba(248,81,73,.32)}
+    .mcx-rectop{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+    .mcx-recpill{font-size:11px;font-weight:750;padding:2px 9px;border-radius:6px;letter-spacing:.04em}
+    .mcx-recname{font-size:17px;font-weight:730}
+    .mcx-recsub{font-size:12px;color:#8b97a7}
+    .mcx-flow{display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:#12161d;border:1px solid #1e2530;border-radius:13px;padding:15px 18px}
+    .mcx-node{background:#0f1520;border:1px solid #1e2530;border-radius:9px;padding:8px 14px;font-size:13px;font-weight:620}
+    .mcx-arrow{color:#5b6675;font-size:15px}
+    .mcx-chain{background:#12161d;border:1px solid #1e2530;border-radius:12px;padding:13px 17px;margin-bottom:9px;border-left:3px solid #5b6675}
+    .mcx-ctop{display:flex;align-items:center;gap:10px;margin-bottom:4px}
+    .mcx-cname{font-size:14.5px;font-weight:680}
+    .mcx-cint{margin-left:auto;font-size:13px;font-weight:700;font-family:ui-monospace,Menlo,monospace}
+    .mcx-cverd{font-size:12px;color:#8b97a7}
+    .mcx-note{margin-top:22px;font-size:11.5px;color:#5b6675;line-height:1.55;border-top:1px solid #1e2530;padding-top:14px}
+    </style>"""
+
+    def tile(m):
+        c = _mc_color(m)
+        val = f"<span class='n'>{m['value']}</span>" if (m['real'] and m['value'] is not None) else "<span class='n na'>n/a</span>"
+        return (f"<div class='mcx-tile'><div class='l'>{m['name']}</div>{val}"
+                f"<div class='s'><span class='mcx-dot' style='background:{c}'></span>{m['status'][:22]}</div></div>")
+
+    def meter(m):
+        c = _mc_color(m)
+        num = f"<span class='mcx-mnum'>{m['value']}</span>" if (m['real'] and m['value'] is not None) else "<span class='mcx-mnum na'>n/a</span>"
+        w = max(0, min(100, m['value'])) if (m['real'] and m['value'] is not None) else 0
+        tags = "".join(f"<span class='mcx-tag'>{t}</span>" for t in (m.get('components') or []))
+        return (f"<div class='mcx-meter{'' if m['real'] else ' off'}'>"
+                f"<div class='mcx-mtop'><span class='mcx-mname'><span class='mcx-idot' style='background:{c}'></span>{m['name']} Meter</span>{num}</div>"
+                f"<div class='mcx-mstatus'><span class='mcx-dot' style='background:{c}'></span>{m['status']}<span class='mcx-range'>0&ndash;100</span></div>"
+                f"<div class='mcx-bar'><div class='mcx-fill' style='width:{w}%;background:{c}'></div></div>"
+                f"<div class='mcx-tags'>{tags}</div></div>")
+
+    by = {m["name"]: m for m in meters}
+    top5 = [by[n] for n in ["Macro", "Crash", "Liquidity", "Rotation", "Conviction"] if n in by]
+    header = (f"<div class='mcx-hd'><span class='mcx-shield'>&#9670;</span>"
+              f"<div><div class='t'>WAR ROOM</div><div class='d'>{date} &middot; Mission Control</div></div>"
+              f"<span class='mcx-badge' style='background:{risk_hex}22;color:{risk_hex}'>{risk}</span></div>")
+    tiles = "<div class='mcx-tiles'>" + "".join(tile(m) for m in top5) + "</div>"
+    meters_html = "<div class='mcx-lbl'>Meters</div>" + "".join(meter(m) for m in meters)
+
+    # recommendations from conviction
+    recs = ""
+    for r in (d.get("conviction") or [])[:4]:
+        dr = r.get("_dir")
+        if dr == "Long":
+            cls, pill, pc = "buy", "BUY", "#3fb950"
+        elif dr == "Short":
+            cls, pill, pc = "reduce", "REDUCE", "#f85149"
+        else:
+            cls, pill, pc = "wait", "WAIT", "#d6a429"
+        recs += (f"<div class='mcx-rec {cls}'><div class='mcx-rectop'><span class='mcx-recpill' style='background:{pc}22;color:{pc}'>{pill}</span>"
+                 f"<span class='mcx-recname'>{r.get('ticker','?')}</span></div>"
+                 f"<div class='mcx-recsub'>${r.get('px','—')} &middot; entry {r.get('entry','—')} &middot; stop {r.get('stop','—')} &middot; target {r.get('target','—')}</div></div>")
+    recs_html = ("<div class='mcx-lbl'>Highest Conviction</div><div class='mcx-recs'>" + recs + "</div>") if recs else ""
+
+    # money rotation flow from compass
+    if isinstance(score, (int, float)) and score > 2:
+        flow = ["Cash", "Credit", "Equities", "Cyclicals", "High-beta"]
+    elif isinstance(score, (int, float)) and score < -2:
+        flow = ["Cash", "Treasury", "Gold", "USD", "Defensives"]
+    else:
+        flow = ["Cash", "Treasury", "Balanced", "Selective"]
+    nodes = "<span class='mcx-arrow'>&rarr;</span>".join(f"<span class='mcx-node'>{n}</span>" for n in flow)
+    flow_html = f"<div class='mcx-lbl'>Money Rotation &middot; {cr.get('compass','—')}</div><div class='mcx-flow'>{nodes}</div>"
+
+    # active chains from causal engine
+    chains = ""
+    for c in (d.get("causal_chains") or [])[:4]:
+        col = {"grn": "#3fb950", "red": "#f85149", "amb": "#d6a429", "gry": "#5b6675"}.get(c.get("color"), "#5b6675")
+        integ = c.get("integrity")
+        chains += (f"<div class='mcx-chain' style='border-left-color:{col}'><div class='mcx-ctop'>"
+                   f"<span class='mcx-cname'>{c.get('name','—')}</span>"
+                   f"<span class='mcx-cint' style='color:{col}'>{integ if integ is not None else '—'}%</span></div>"
+                   f"<div class='mcx-cverd'>{c.get('verdict','')}</div></div>")
+    chains_html = ("<div class='mcx-lbl'>Active Causal Chains</div>" + chains) if chains else ""
+
+    note = ("<div class='mcx-note'>Design matches the mockup spec. 4 meters carry real data (Macro from regime probs, Crash, Rotation, Entry, Conviction); "
+            "Liquidity / Credit / Bubble / Wealth / Trend are greyed &mdash; no live feed yet, not faked. On synthetic sandbox data values are plumbing; real values populate on your machine. "
+            "Money rotation is derived from the cross-asset compass; recommendations are the top conviction setups.</div>")
+
+    html = f"<div class='mcx'>{header}{tiles}{recs_html}{flow_html}{meters_html}{chains_html}{note}</div>"
+    st.markdown(css + html, unsafe_allow_html=True)

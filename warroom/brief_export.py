@@ -199,6 +199,11 @@ def brief_dict(d):
         "narrative": _narrative(d),
         "meters": _meters(d),
         "thesis_beta": _thesis_beta(d),
+        "causal": [{"name": c.get("name"), "verdict": c.get("verdict"), "color": c.get("color"),
+                    "integrity": c.get("integrity"), "thesis": c.get("thesis"),
+                    "links": [{"label": l["label"], "ok": l["ok"]} for l in c.get("links", [])],
+                    "flips": [{"label": f["label"], "fired": f["fired"]} for f in c.get("flips", [])]}
+                   for c in (d.get("causal_chains") or [])],
     }
 
 

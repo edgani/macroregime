@@ -1110,3 +1110,113 @@ def morning_brief(d):
     note = ("<div class='wr-note'>This is the executive summary — what changed, the regime, and what to act on, before the detail tabs. "
             "For the full click-through briefing deck, run the interactive Morning Brief (briefing.html).</div>")
     st.markdown(CSS + head + meters_html + summary + changed + opp + note, unsafe_allow_html=True)
+
+
+# ═══════════════════════════════════ BRIEFING (embedded deck, no separate file) ═══
+def briefing_embed():
+    import os, streamlit.components.v1 as _c
+    p = os.path.join(os.path.dirname(__file__), "..", "briefing.html")
+    try:
+        html = open(p, encoding="utf-8").read()
+        _c.html(html, height=720, scrolling=False)
+    except Exception:
+        st.markdown(CSS + "<div class='wr-note'>Briefing deck not generated yet — run a refresh.</div>", unsafe_allow_html=True)
+
+
+# ═══════════════════════════════════ UNIVERSAL NODE TEMPLATE (chain_reactions) ═══
+def node_template(d):
+    import json, os
+    try:
+        chains = json.load(open(os.path.join(os.path.dirname(__file__), "..", "data", "chain_reactions.json")))["chains"]
+    except Exception:
+        chains = []
+    if not chains:
+        st.markdown(CSS + "<div class='wr-note'>No chain data.</div>", unsafe_allow_html=True)
+        return
+    head = "<div class='wr-top'><b>Universal Node Template</b><span>every bottleneck chain as one node — drivers · beneficiaries · kill · status</span></div>"
+    cards = ""
+    for ch in chains:
+        status = (ch.get("trigger_status") or "").upper()
+        sc = "grn" if status == "ACTIVE" else "amb" if status in ("EMERGING", "WATCH") else "gry"
+        mom = "High" if status == "ACTIVE" else "Emerging" if status in ("EMERGING", "WATCH") else "Low"
+        seq = ch.get("propagation_sequence") or []
+        bens = []
+        for step in seq:
+            for t in (step.get("tickers") or []):
+                if t not in bens:
+                    bens.append(t)
+        bens = bens[:8]
+        drivers = (ch.get("trigger_event") or "")[:160]
+        mech = (ch.get("mechanism") or "")[:200]
+        kill = ch.get("kill_condition") or ch.get("invalidation") or ch.get("kill") or "trigger status → INACTIVE (mechanism breaks: capacity catches up / demand slows)"
+        ben_tags = "".join(f"<span class='wr-node n-grn'>{b}</span>" for b in bens) or "<span class='wr-sub'>—</span>"
+        cards += (f"<div class='wr-card'><div class='wr-ctop'>{_b(status or '—', sc)}"
+                  f"<span class='wr-tkr'>{ch.get('name','—')}</span></div>"
+                  f"<div class='wr-grid' style='margin:6px 0 10px'>"
+                  f"<div class='wr-tile'><div class='wr-lbl' style='margin:0'>Duration</div><div class='wr-tv' style='font-size:14px'>{ch.get('horizon','—')[:28]}</div></div>"
+                  f"<div class='wr-tile'><div class='wr-lbl' style='margin:0'>Momentum</div><div class='wr-tv' style='font-size:15px'>{mom}</div></div>"
+                  f"<div class='wr-tile'><div class='wr-lbl' style='margin:0'>Tiers</div><div class='wr-tv'>{len(seq)}</div></div>"
+                  f"<div class='wr-tile'><div class='wr-lbl' style='margin:0'>Names</div><div class='wr-tv'>{len(bens)}</div></div></div>"
+                  f"<div class='wr-why'><span class='k'>drivers</span> {drivers}</div>"
+                  f"<div class='wr-why'><span class='k'>mechanism</span> {mech}</div>"
+                  f"<div class='wr-lbl' style='margin:8px 0 4px'>Beneficiaries</div>{ben_tags}"
+                  f"<div class='wr-why' style='margin-top:8px'><span class='k'>kill condition</span> {kill}</div></div>")
+    note = "<div class='wr-note'>Node fields are real chain data (trigger, mechanism, horizon, propagation tiers). Momentum is derived from trigger_status. No fabricated Score/Confidence numbers — those need a calibrated model.</div>"
+    st.markdown(CSS + head + cards + note, unsafe_allow_html=True)
+
+
+# ═══════════════════════════════════ FAIR VALUE (Company Page, free fundamentals) ═══
+def fair_value_cards(d):
+    fv = d.get("fair_value") or {}
+    head = "<div class='wr-top'><b>Fair Value — Company Page</b><span>base · bull · bear from free fundamentals (analyst targets + fwd-multiple)</span></div>"
+    if not fv:
+        st.markdown(CSS + head + "<div class='wr-note'>No fundamental data loaded. Fair Value populates on a live machine with yfinance (free) — it fetches analyst targets + forward multiples for the top conviction names. In this environment (no network) it's empty by design, not broken.</div>", unsafe_allow_html=True)
+        return
+    cards = ""
+    for sym, v in fv.items():
+        up = v.get("upside_pct")
+        upc = "grn" if (up or 0) > 0 else "red"
+        mc = v.get("market_cap")
+        mc_s = (f"${mc/1e9:.0f}B" if isinstance(mc, (int, float)) and mc else "—")
+        cards += (f"<div class='wr-card'><div class='wr-ctop'><span class='wr-tkr wr-mono'>{sym}</span>"
+                  f"<span class='wr-sub'>${v.get('price','—')} · {mc_s}</span>"
+                  + (f"<span class='wr-score'>{up:+d}% to base</span>" if up is not None else "") + "</div>"
+                  f"<div class='wr-grid' style='margin:6px 0 8px'>"
+                  f"<div class='wr-tile'><div class='wr-lbl' style='margin:0'>Bear FV</div><div class='wr-tv' style='font-size:15px'>{v.get('bear','—')}</div></div>"
+                  f"<div class='wr-tile'><div class='wr-lbl' style='margin:0'>Base FV</div><div class='wr-tv'>{v.get('base','—')}</div></div>"
+                  f"<div class='wr-tile'><div class='wr-lbl' style='margin:0'>Bull FV</div><div class='wr-tv' style='font-size:15px'>{v.get('bull','—')}</div></div>"
+                  f"<div class='wr-tile'><div class='wr-lbl' style='margin:0'>PE / Fwd</div><div class='wr-tv' style='font-size:14px'>{v.get('pe','—')} / {v.get('fwd_pe','—')}</div></div></div>"
+                  f"<div class='wr-why'><span class='k'>method</span> {v.get('method','')} · <span class='k'>analysts</span> {v.get('n_analysts','—')}</div></div>")
+    note = "<div class='wr-note'>HONEST: a multiple/target band, not a DCF. Analyst targets lag and are retail-grade. Sanity band, not precision. base/bull/bear = mean/high/low analyst target, cross-checked vs forward-EPS × current multiple.</div>"
+    st.markdown(CSS + head + cards + note, unsafe_allow_html=True)
+
+
+# ═══════════════════════════════════ CAUSAL CHAINS + KILL-SWITCH (Ant Markets thinking) ═══
+def causal_chains(d):
+    chains = d.get("causal_chains") or []
+    head = "<div class='wr-top'><b>Causal Chains & Kill-Switch</b><span>view the network, not the asset · watch for what BREAKS the thesis, don't just confirm it</span></div>"
+    if not chains:
+        st.markdown(CSS + head + "<div class='wr-note'>No causal-chain data.</div>", unsafe_allow_html=True)
+        return
+    cards = ""
+    for c in chains:
+        integ = c.get("integrity")
+        integ_s = f"{integ}% links confirming" if integ is not None else "no data"
+        links = ""
+        for l in c["links"]:
+            mark = "✓" if l["ok"] else "✗" if l["ok"] is False else "·"
+            mc = "b-grn" if l["ok"] else "b-red" if l["ok"] is False else "b-gry"
+            links += f"<div class='wr-why'><b class='{mc}'>{mark}</b> {l['label']} <span class='wr-sub'>{l['state']}</span></div>"
+        flips = ""
+        for f in c["flips"]:
+            fs = "🔴 FIRED" if f["fired"] else "watching" if f["fired"] is False else "—"
+            fc = "b-red" if f["fired"] else "b-gry"
+            flips += f"<div class='wr-why'><span class='k'>flip</span> {f['label']} · <b class='{fc}'>{fs}</b></div>"
+        cards += (f"<div class='wr-card' style='border-left:3px solid var(--{c['color']}, #6b7682)'>"
+                  f"<div class='wr-ctop'>{_b(c['verdict'][:44], c['color'])}<span class='wr-tkr'>{c['name']}</span>"
+                  f"<span class='wr-sub'>{integ_s}</span></div>"
+                  f"<div class='wr-why' style='color:#9aa6b2;margin-bottom:6px'>{c['thesis']}</div>"
+                  f"<div class='wr-lbl' style='margin:6px 0 3px'>Chain links (live)</div>{links}"
+                  f"<div class='wr-lbl' style='margin:8px 0 3px'>Kill-switch — switch sides when</div>{flips}</div>")
+    note = "<div class='wr-note'>Ant Markets discipline: hold a hypothesis, watch for disconfirming evidence, switch when it fires. Chains are curated priors; link/flip status is from 20-day price momentum — a reasoning checklist, not proven causality.</div>"
+    st.markdown(CSS + head + cards + note, unsafe_allow_html=True)

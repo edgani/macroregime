@@ -21,7 +21,9 @@ from warroom import price_action as PA
 from warroom import structure as ST
 from warroom import rotation as ROT
 from warroom import cycle_rotation as CR
+from warroom import causal_chain as CCH
 from warroom import thesis_beta as TB
+from warroom import fair_value as FV
 from warroom import beta_play as BP
 from warroom import themes as TH
 from warroom import secular_map as SEC
@@ -390,6 +392,9 @@ def run(us, idx, crypto, fx, commo, fred=None, feeds=None):
     pool.sort(key=lambda x: x["score"], reverse=True)
     out["ranked"] = len(pool)
     out["conviction"] = pool[:5]
+    # Fair Value (FREE data via yfinance) for top US-listed conviction names — fills the Company Page
+    _us_conv = [r.get("ticker") for r in out["conviction"] if r.get("ticker") and "." not in r["ticker"] and "-USD" not in r["ticker"]]
+    out["fair_value"] = _try(lambda: FV.for_names(_us_conv, limit=6)) or {}
     out["watchlist"] = pool[5:14]
     allpx = {}
     for dd in (us, idx, crypto, fx, commo):
@@ -419,6 +424,7 @@ def run(us, idx, crypto, fx, commo, fred=None, feeds=None):
     out["market_character"] = _try(lambda: PA.market_character(allpx, "SPY"))
     out["rotation"] = _try(lambda: ROT.compute(allpx)) or {}
     out["cycle_rotation"] = _try(lambda: CR.compute(allpx)) or {}
+    out["causal_chains"] = _try(lambda: CCH.compute(allpx)) or []
     out["beta_plays"] = _try(lambda: BP.analyze_themes(allpx)) or {}
     out["thesis_beta"] = _try(lambda: TB.compute(allpx, out.get("beta_plays") or {})) or {}
     out["theme_graph"] = _try(lambda: TH.connect_dots(allpx)) or {}

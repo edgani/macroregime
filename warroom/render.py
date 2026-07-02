@@ -181,7 +181,30 @@ def _asymmetry(s):
     inval_line = ("<div class='wr-why' style='font-size:11px'><span class='k'>invalidates if</span> "
                   + " ⊕ ".join(inval[:3]) + "</div>") if inval else ""
 
-    return head + entry_line + ladder_line + tgt_line + prob_line + stops_line + inval_line
+    # MARKET-CAP THESIS TARGET (beda dari technical target di atas — ini target thesis dari expected mcap)
+    mct = pkg.get("mcap_target")
+    mct_line = ""
+    if isinstance(mct, dict) and mct.get("convexity"):
+        sc = mct["scenarios"]; cx = mct["convexity"]
+        tier = mct.get("alpha_tier", ""); tcol = mct.get("alpha_color", "gry")
+        mcap_now = sc.get("market_cap")
+        mc_txt = f" · mcap ${mcap_now/1e9:.0f}B→${sc['bull']['mcap']/1e9:.0f}B" if mcap_now else ""
+        mct_line = (
+            f"<div class='wr-why' style='margin-top:6px;border-top:0.5px solid #232a32;padding-top:5px;'>"
+            f"<span class='k'>thesis target ({sc['thesis_label']}, {sc['horizon_m']}mo)</span> "
+            f"bull <b class='b-grn'>${sc['bull']['px']}</b> ({cx['upside_pct']:+.0f}%) · "
+            f"base ${sc['base']['px']} ({cx['base_pct']:+.0f}%) · "
+            f"bear <b class='b-red'>${sc['bear']['px']}</b> ({cx['downside_pct']:+.0f}%){mc_txt}</div>"
+            f"<div class='wr-why' style='font-size:11px'>"
+            f"<span class='k'>convexity</span> EV <b>{cx['ev_pct']:+.0f}%</b> · tail <b>{cx['tail_ratio']}</b>"
+            + ("  ⟡ asymmetric" if cx.get("asymmetric") else "")
+            + f" · {_b(tier, tcol)}"
+            + (f" · <span class='k'>size</span> {mct['suggested_weight']*100:.1f}%" if mct.get("suggested_weight") else "")
+            + "</div>"
+            f"<div class='wr-why' style='font-size:10.5px;opacity:.8'><span class='k'>kill thesis</span> "
+            + " · ".join((mct.get("kill_thesis") or [])[:2]) + "</div>")
+
+    return head + entry_line + ladder_line + tgt_line + prob_line + stops_line + inval_line + mct_line
 
 
 def _oe_inline(s):
@@ -563,6 +586,61 @@ def country_grid(d):
     return head + f"<div class='wr-cgrid'>{html}</div><div class='wr-note' style='margin-bottom:14px;'>{note}</div>"
 
 
+_THESIS_TITLE = {"ai_power": "AI Power / Electrification", "ai_compute": "AI Compute", "photonics": "Photonics / CPO",
+                 "uranium": "Uranium / Nuclear", "crypto_beta": "Crypto Beta Chain", "generic": "Other"}
+
+def decision_market_panel(d):
+    """DECISION MARKET (spec Edward): bukan 'Buy X'. Per thesis → semua kandidat + efficient frontier
+    (max-EV / min-risk / max-convexity). Target dari expected market cap, alpha dipisah per tier."""
+    dm = d.get("decision_market") or {}
+    if not dm:
+        return ""
+    blocks = ""
+    for thk, mkt in dm.items():
+        cands = mkt.get("candidates") or []
+        fr = mkt.get("frontier") or {}
+        if not cands:
+            continue
+        rows = ""
+        for r in cands:
+            tcol = "grn" if "GENERATIONAL" in r["alpha_tier"] else ("grn" if "STRATEGIC" in r["alpha_tier"] else "amb" if "TACTICAL" in r["alpha_tier"] else "gry")
+            evc = "grn" if r["ev_pct"] > 0 else "red"
+            tg = r["targets"]
+            rows += (f"<div class='wr-row' style='gap:10px;align-items:baseline;'>"
+                     f"<span class='wr-mono' style='min-width:56px;color:#e8edf2;font-weight:600;'>{r['ticker']}</span>"
+                     f"<span class='wr-mono' style='min-width:64px;'>${tg['price']}</span>"
+                     f"<span class='wr-sub' style='min-width:150px;'>bull <b class='b-grn'>${tg['bull']}</b> / bear <b class='b-red'>${tg['bear']}</b></span>"
+                     f"<span class='wr-mono b-{evc}' style='min-width:70px;'>EV {r['ev_pct']:+.0f}%</span>"
+                     f"<span class='wr-sub' style='min-width:56px;'>tail {r['tail_ratio']}</span>"
+                     f"{_b(r['alpha_tier'], tcol)}"
+                     f"<span class='wr-sub' style='margin-left:auto;'>size {r['weight']*100:.1f}%</span></div>")
+        frontier_html = ""
+        if fr:
+            frontier_html = (
+                "<div class='wr-cgrid' style='grid-template-columns:repeat(3,1fr);margin-top:8px;'>"
+                f"<div class='wr-ccell' style='flex-direction:column;align-items:flex-start;gap:2px;'>"
+                f"<span class='wr-sub'>MAX EV</span><b class='wr-mono'>{fr.get('max_ev',{}).get('ticker','—')}</b>"
+                f"<span class='wr-sub' style='font-size:10px;'>{fr.get('max_ev',{}).get('note','')}</span></div>"
+                f"<div class='wr-ccell' style='flex-direction:column;align-items:flex-start;gap:2px;'>"
+                f"<span class='wr-sub'>MIN RISK</span><b class='wr-mono'>{fr.get('min_risk',{}).get('ticker','—')}</b>"
+                f"<span class='wr-sub' style='font-size:10px;'>{fr.get('min_risk',{}).get('note','')}</span></div>"
+                f"<div class='wr-ccell' style='flex-direction:column;align-items:flex-start;gap:2px;'>"
+                f"<span class='wr-sub'>MAX CONVEXITY</span><b class='wr-mono'>{fr.get('max_convexity',{}).get('ticker','—')}</b>"
+                f"<span class='wr-sub' style='font-size:10px;'>{fr.get('max_convexity',{}).get('note','')}</span></div></div>")
+        title = _THESIS_TITLE.get(thk, thk)
+        blocks += (f"<div class='wr-card' style='margin-bottom:12px;'>"
+                   f"<div class='wr-ctop'><span class='wr-tkr' style='font-size:13px;'>{title}</span>"
+                   f"<span class='wr-sub' style='margin-left:auto;'>{len(cands)} kandidat · ranked by EV</span></div>"
+                   f"<div class='wr-rows' style='margin-top:6px;'>{rows}</div>{frontier_html}</div>")
+    if not blocks:
+        return ""
+    return ("<div class='wr-lbl'>Decision Market — pilih berdasarkan objective, bukan dipaksa satu jawaban</div>"
+            + blocks
+            + "<div class='wr-note' style='margin-bottom:14px;'>Target = expected market cap (bull/base/bear × mcap sekarang, di-scale by ukuran — small-cap lebih convex). "
+            "EV = probability-weighted. Alpha dipisah: TACTICAL &lt;20% · STRATEGIC 20-80% · GENERATIONAL 10x+. "
+            "Multiples & probabilitas = PRIOR yang bisa lu kalibrasi di market_cap_target.py — bukan presisi karangan.</div>")
+
+
 def command_center(d, source):
     reg = d["regime"]; fund = d.get("funding", {})
     gs, isr, b = reg["g_struct"], reg["i_struct"], reg["breadth"]
@@ -697,10 +775,11 @@ def alpha(d):
                  f"<span class='wr-mono' style='color:#9aa6b2;'>{disp:.1f}</span>"
                  f"<span style='color:#9aa6b2;'>RS {r.get('rs',0):+.0f}% · entry {r.get('entry','')}</span></div>")
     val = d.get("validation", {})
-    val_html = (f"<div class='wr-note' style='margin-bottom:4px;'>Walk-forward + MC-100x gatekeeper: "
-                f"{val.get('passed',0)}/{val.get('checked',0)} conviction setups PASS (anti-overfit). Each card shows its WF gate.</div>") if val.get("checked") else ""
+    val_html = (f"<div class='wr-note' style='margin-bottom:4px;'>Walk-forward gatekeeper ({val.get('method','path-dependent')}): "
+                f"{val.get('passed',0)}/{val.get('checked',0)} conviction setups PASS. Each card shows its WF gate.</div>") if val.get("checked") else ""
     html = (f"<div class='wr-top'><b>Alpha center</b><span>cross-market competitive ranking</span></div>"
             f"<div class='wr-grid'>{funnel}</div><div class='wr-lbl'>Highest conviction — best across all markets</div>{val_html}{cards}"
+            f"{decision_market_panel(d)}"
             f"<div class='wr-lbl'>Watchlist</div><div class='wr-rows'>{rows}</div>")
     st.markdown(CSS + html, unsafe_allow_html=True)
 

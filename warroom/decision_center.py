@@ -223,7 +223,7 @@ def recommend(s, regime, open_tickers=None):
 
 
 # ────────────────────────────────────────── paket lengkap ──────────────────────────────────────────
-def build(s, regime, chains=None, open_tickers=None, fundamentals=None, db_path=None):
+def build(s, regime, chains=None, open_tickers=None, fundamentals=None, db_path=None, market_cap=None, conviction=None):
     """Satu paket keputusan utuh untuk satu setup (dipanggil compute)."""
     d = s.get("_dir"); px = s.get("close") or s.get("px")
     rr = s.get("_rr_full")  # dict risk range asli kalau compute simpen; fallback rakit dari lrr/trr
@@ -235,12 +235,21 @@ def build(s, regime, chains=None, open_tickers=None, fundamentals=None, db_path=
     lv = levels(d, rr, _f(px)) if rr else None
     s["decision_levels"] = lv
     pw, n, note = pwin_calibrated(d, s.get("market"), db_path or os.path.join("data", "track_record.db"))
+    # MARKET-CAP TARGET + CONVEXITY (thesis-level target, beda dari technical target di atas)
+    mct = None
+    try:
+        from warroom import market_cap_target as MC
+        conv = conviction if conviction is not None else int(s.get("score", 50))
+        mct = MC.build(s.get("ticker"), _f(px), market_cap, conv, d if d in ("Long", "Short") else "Long")
+    except Exception:
+        mct = None
     pkg = {
         "levels": lv,
         "stops": stops_full(d, lv, regime, chains, s.get("ticker"), fundamentals),
         "invalidation": invalidation_list(d, lv, regime, chains, s.get("ticker")),
         "pwin": pw, "pwin_n": n, "pwin_note": note,
         "ev_r": ev_r(pw, lv, d, _f(px)),
+        "mcap_target": mct,
         "levels_withheld": bool(d in ("Long", "Short") and lv is None),
     }
     pkg["recommendation"], pkg["reason"] = recommend(s, regime, open_tickers)

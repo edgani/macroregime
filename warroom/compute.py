@@ -433,6 +433,9 @@ def run(us, idx, crypto, fx, commo, fred=None, feeds=None):
     # global country-regime grid (real price-proxy quads; borrowed layout, not fabricated labels)
     from warroom import country_regime as CRG
     out["country_regime"] = _try(lambda: CRG.build(us, commo)) or {}
+    # composite meters from price proxies + funding (replaces stubbed 'needs data feed')
+    from warroom import meters as MET
+    out["meters_computed"] = _try(lambda: MET.compute_all(us, fred, out.get("fair_value"))) or {}
     out["beta_plays"] = _try(lambda: BP.analyze_themes(allpx)) or {}
     out["thesis_beta"] = _try(lambda: TB.compute(allpx, out.get("beta_plays") or {})) or {}
     out["theme_graph"] = _try(lambda: TH.connect_dots(allpx)) or {}
@@ -511,7 +514,12 @@ def run(us, idx, crypto, fx, commo, fred=None, feeds=None):
 
     def _decide(s):
         try:
-            s["decision_pkg"] = DC.build(s, reg, chains=_chains, open_tickers=_open_tk)
+            mc = None
+            fv = (out.get("fair_value") or {}).get(s.get("ticker"))
+            if isinstance(fv, dict):
+                mc = fv.get("market_cap")
+            s["decision_pkg"] = DC.build(s, reg, chains=_chains, open_tickers=_open_tk,
+                                         market_cap=mc, conviction=int(s.get("score", 50)))
         except Exception as e:
             _DIAG.append({"engine": "decision_center.py", "error": f"{type(e).__name__}: {str(e)[:120]}"})
 
@@ -560,6 +568,30 @@ def run(us, idx, crypto, fx, commo, fred=None, feeds=None):
     # OPTIMAL ENTRY — consolidate tagged setups (risk range + timing) into a ranked entry view.
     # Runs LAST so every setup already carries its timing/decision tags from the _tag loop above.
     out["optimal_entry"] = _try(lambda: OE.gather(out)) or {}
+    # DECISION MARKET — group conviction names by thesis → efficient frontier (max-EV/min-risk/max-convexity)
+    def _decision_market():
+        from warroom import market_cap_target as MC
+        from collections import defaultdict
+        buckets = defaultdict(list)
+        fvmap = out.get("fair_value") or {}
+        for r in out.get("conviction", []):
+            if r.get("_dir") not in ("Long", "Short"):
+                continue
+            tk = r["ticker"]
+            thk = MC.thesis_for(tk)
+            mc = (fvmap.get(tk) or {}).get("market_cap")
+            buckets[thk].append({"ticker": tk, "price": _f(r.get("close") or r.get("px")),
+                                 "market_cap": mc, "conviction": int(r.get("score", 50)),
+                                 "direction": r.get("_dir"), "thesis_key": thk})
+        markets = {}
+        for thk, cands in buckets.items():
+            if len(cands) < 1:
+                continue
+            dm = MC.decision_market(cands)
+            if dm.get("candidates"):
+                markets[thk] = dm
+        return markets
+    out["decision_market"] = _try(_decision_market) or {}
     return out
 
 

@@ -103,6 +103,7 @@ def _meters(d):
     """10 composite meters matching the mockup. Real-data ones carry values; missing-feed ones are flagged, not faked."""
     crash = d.get("crash") or {}; cr = d.get("cycle_rotation") or {}; conv = d.get("conviction") or []
     reg = d.get("regime") or {}
+    mc = d.get("meters_computed") or {}   # price-proxy meters (trend/credit/bubble/wealth/liquidity)
     out = []
     # 1 Macro — derived from regime quad confidence (real, from struct_probs)
     sp = reg.get("struct_probs") if isinstance(reg.get("struct_probs"), dict) else {}
@@ -114,25 +115,25 @@ def _meters(d):
     out.append({"name": "Crash", "value": round(cp) if isinstance(cp, (int, float)) else None,
                 "status": crash.get("type", "—"), "color": "grn" if (cp or 0) < 40 else "amb" if (cp or 0) < 65 else "red",
                 "components": [k.replace("_", " ") for k in (crash.get("components") or {})][:6], "real": isinstance(cp, (int, float))})
-    # 3 Liquidity — needs feed
-    out.append({"name": "Liquidity", "value": None, "status": "needs data feed", "color": "gry",
+    # 3 Liquidity — from funding_stress (FRED); price-proxy synthetic flag if no key
+    out.append(mc.get("liquidity") or {"name": "Liquidity", "value": None, "status": "needs data feed", "color": "gry",
                 "components": ["Fed", "ECB", "BOJ", "RRP", "TGA", "M2"], "real": False})
     # 4 Rotation
     sc = cr.get("score"); n = cr.get("n_axes") or 7
     out.append({"name": "Rotation", "value": round(abs(sc) / n * 100) if isinstance(sc, (int, float)) else None,
                 "status": cr.get("compass", "—"), "color": cr.get("color", "amb"),
                 "components": ["ETF Flow", "Country Flow", "Sector Flow", "Cross Asset"], "real": isinstance(sc, (int, float))})
-    # 5 Wealth — needs feed (secular gen-wealth themes)
-    out.append({"name": "Wealth", "value": None, "status": "needs data feed", "color": "gry",
+    # 5 Wealth — secular theme momentum (price)
+    out.append(mc.get("wealth") or {"name": "Wealth", "value": None, "status": "needs data feed", "color": "gry",
                 "components": ["AI", "Power Grid", "Nuclear", "India", "Robotics"], "real": False})
-    # 6 Bubble — needs feed
-    out.append({"name": "Bubble", "value": None, "status": "needs data feed", "color": "gry",
+    # 6 Bubble — extension + vol + valuation (price)
+    out.append(mc.get("bubble") or {"name": "Bubble", "value": None, "status": "needs data feed", "color": "gry",
                 "components": ["Valuation", "Leverage", "Sentiment", "Options"], "real": False})
-    # 7 Credit — needs feed
-    out.append({"name": "Credit", "value": None, "status": "needs data feed", "color": "gry",
+    # 7 Credit — ETF spread proxy (price)
+    out.append(mc.get("credit") or {"name": "Credit", "value": None, "status": "needs data feed", "color": "gry",
                 "components": ["HY", "IG", "CDS", "Bank Funding"], "real": False})
-    # 8 Trend — needs feed
-    out.append({"name": "Trend", "value": None, "status": "needs data feed", "color": "gry",
+    # 8 Trend — breadth + momentum + structure (price)
+    out.append(mc.get("trend") or {"name": "Trend", "value": None, "status": "needs data feed", "color": "gry",
                 "components": ["Breadth", "Momentum", "Market Structure", "Internals"], "real": False})
     # 9 Entry
     try:

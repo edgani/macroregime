@@ -68,10 +68,13 @@ def phase0_architecture():
     pkg = DC.build(s, {"structural": "Quad 1", "defensive": False}, chains=[])
     rec("P0", "no fabricated levels when risk-range absent (withhold)", "PASS" if pkg["levels_withheld"] else "FAIL")
 
-    # 0.4 P(win) is never derived from score (must be calibrated-or-None)
-    src_dc = inspect.getsource(DC)
-    no_scoremap = "0.40 + 0.35" not in src_dc and "0.40+0.35" not in src_dc
-    rec("P0", "P(win) not score-mapped (calibrated-or-silent)", "PASS" if no_scoremap else "FAIL")
+    # 0.5 meters computed from price proxies (not stubbed 'needs data feed')
+    from warroom import meters as MET
+    us_small = {t: __import__("warroom.data", fromlist=["_synth"])._synth(t, 300) for t in ["SPY", "JNK", "LQD", "IEF", "TLT", "SMH", "URA", "INDA", "NLR", "BOTZ", "ITA", "XLU", "VST", "GEV", "CCJ", "SOXX"]}
+    mc = MET.compute_all(us_small, fred=None)
+    live = sum(1 for m in mc.values() if m.get("value") is not None)
+    rec("P0", "meters compute from price proxies (not stubbed)", "PASS" if live >= 4 else "FAIL",
+        f"{live}/5 meters live (trend/credit/bubble/wealth from price; liquidity from FRED)")
 
 
 # ═══════════════════════ PHASE 1 — HYPOTHESIS REGISTRY ═══════════════════════

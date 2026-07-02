@@ -37,7 +37,11 @@ THEME_EXT = ["IONQ", "RGTI", "QBTS", "ARQQ", "TSLA", "ISRG", "ROK", "SERV", "PAT
 EM_PROXY = ["EEM", "EWZ", "INDA", "FXI", "EWY", "EWT", "EWW", "EFA"]
 # country-regime grid proxies (US-listed single-country ETFs) — for the global macro grid
 COUNTRY_PROXY = ["EZU", "EWU", "EWJ", "EIDO", "EWA", "EWC", "EWG", "EWL", "EZA"]
-US_UNIVERSE = list(dict.fromkeys(MACRO_PROXY + US_NAMES + BETA_UNIVERSE + THEME_EXT + EM_PROXY + COUNTRY_PROXY))
+# credit / liquidity / rates proxies (price-based meter inputs — no FRED needed for these)
+CREDIT_PROXY = ["LQD", "JNK", "AGG", "BIL", "TIP", "EMB", "SHY"]
+# secular "wealth" theme proxies (AI/power/nuclear/india/robotics/defense/cyber)
+WEALTH_PROXY = ["BOTZ", "NLR", "ITA", "KWEB", "XLK", "IGV"]
+US_UNIVERSE = list(dict.fromkeys(MACRO_PROXY + US_NAMES + BETA_UNIVERSE + THEME_EXT + EM_PROXY + COUNTRY_PROXY + CREDIT_PROXY + WEALTH_PROXY))
 IDX_UNIVERSE = ["BBCA.JK", "BMRI.JK", "BBRI.JK", "BBNI.JK", "TLKM.JK", "ASII.JK", "BUMI.JK",
                 "ADRO.JK", "ANTM.JK", "MDKA.JK", "GOTO.JK", "AMMN.JK", "BREN.JK", "HUMI.JK", "^JKSE"]
 CRYPTO_UNIVERSE = ["BTC-USD", "ETH-USD", "SOL-USD", "BNB-USD", "COIN", "IBIT", "MSTR"]

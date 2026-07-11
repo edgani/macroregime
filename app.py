@@ -38,7 +38,7 @@ def _run(markets):
     import data_layer as DL
     from run import build_desk
     data = DL.load_all(markets=list(markets), allow_live=True)
-    return build_desk(data)
+    return build_desk(data, top_per_market=40)  # raised 12→40 so the expanded crypto universe can surface
 
 
 with st.sidebar:

@@ -25,7 +25,7 @@ import math
 EPS = 1e-6
 
 # ── per-market visible caps (spec): compete WITHIN market, then globally ──
-MARKET_CAPS = {"us": 10, "crypto": 6, "commodity": 5, "fx": 4, "idx": 8}
+MARKET_CAPS = {"us": 10, "crypto": 40, "commodity": 5, "fx": 4, "idx": 8}  # crypto raised 6→40 for top-100 scan
 TIER1_MAX = 5     # highest conviction (global)
 TIER2_MAX = 10    # watchlist (global)
 

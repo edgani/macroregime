@@ -19,6 +19,7 @@ def get_regime_posterior_from_v40(prices) -> dict:
         m = {"risk on": "risk_on", "bull": "risk_on", "risk off": "risk_off", "bear": "risk_off",
              "recovery": "transition_up", "topping": "transition_down", "range": "chop"}
         key = next((v for k, v in m.items() if k in st), "chop")
-        return {key: 1.0}
-    except Exception:
-        return {"chop": 1.0}
+        return {key: 1.0, "_fallback": False}
+    except Exception as e:
+        # NOT silent: a dead regime feed must be visible, not disguised as a real neutral-chop read
+        return {"chop": 1.0, "_fallback": True, "_error": f"{type(e).__name__}: {e}"}

@@ -41,7 +41,14 @@ COUNTRY_PROXY = ["EZU", "EWU", "EWJ", "EIDO", "EWA", "EWC", "EWG", "EWL", "EZA"]
 CREDIT_PROXY = ["LQD", "JNK", "AGG", "BIL", "TIP", "EMB", "SHY"]
 # secular "wealth" theme proxies (AI/power/nuclear/india/robotics/defense/cyber)
 WEALTH_PROXY = ["BOTZ", "NLR", "ITA", "KWEB", "XLK", "IGV"]
-US_UNIVERSE = list(dict.fromkeys(MACRO_PROXY + US_NAMES + BETA_UNIVERSE + THEME_EXT + EM_PROXY + COUNTRY_PROXY + CREDIT_PROXY + WEALTH_PROXY))
+# CPO / photonics / HBM / power supply-chain names from user's attachments (consensus_heatmap + bottleneck ref).
+# These are the curated thesis tickers — US-listed & ADRs (intl names like Samsung/SK Hynix need yfinance
+# on your machine via data_ingest; add "005930.KS","000660.KS","2317.TW" etc. to your cache).
+SUPPLY_CHAIN = ["MU", "AVGO", "MRVL", "AAOI", "COHR", "QCOM", "ETN", "CRDO", "AMD", "LNG", "MP", "AXTI",
+                "LITE", "SITM", "GLW", "TEL", "APH", "FORM", "NVDA", "ANET", "CIEN", "ALAB", "AEHR",
+                "HIMX", "POWL", "VRT", "GEV", "FN", "AMKR", "ARM", "ASML", "LRCX", "AMAT", "KLAC",
+                "SMCI", "DELL", "CLS", "FLEX", "TSM", "KEYS", "PLUG", "ASTS", "SMTC"]
+US_UNIVERSE = list(dict.fromkeys(MACRO_PROXY + US_NAMES + BETA_UNIVERSE + THEME_EXT + EM_PROXY + COUNTRY_PROXY + CREDIT_PROXY + WEALTH_PROXY + SUPPLY_CHAIN))
 IDX_UNIVERSE = ["BBCA.JK", "BMRI.JK", "BBRI.JK", "BBNI.JK", "TLKM.JK", "ASII.JK", "BUMI.JK",
                 "ADRO.JK", "ANTM.JK", "MDKA.JK", "GOTO.JK", "AMMN.JK", "BREN.JK", "HUMI.JK", "^JKSE"]
 CRYPTO_UNIVERSE = ["BTC-USD", "ETH-USD", "SOL-USD", "BNB-USD", "COIN", "IBIT", "MSTR"]

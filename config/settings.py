@@ -23,6 +23,14 @@ FRED_CACHE_TTL_SECONDS = 3600
 
 # ── API ───────────────────────────────────────────────────────────────────────
 FRED_API_KEY: str = os.environ.get("FRED_API_KEY", "")
+# ── Additional API keys (read from env / Streamlit secrets) — for onchain/alt-data expansion ──
+TAOSTATS_KEY: str = os.environ.get("TAOSTATS_KEY", "")
+ETHERSCAN_KEY: str = os.environ.get("ETHERSCAN_KEY", "")
+DUNE_SIM_KEY: str = os.environ.get("DUNE_SIM_KEY", "")
+GEMINI_API_KEY: str = os.environ.get("GEMINI_API_KEY", "")
+GLASSNODE_KEY: str = os.environ.get("GLASSNODE_KEY", "")
+CRYPTOQUANT_KEY: str = os.environ.get("CRYPTOQUANT_KEY", "")
+
 
 # ── Cache / storage ───────────────────────────────────────────────────────────
 PRICE_HISTORY_DAYS: int = 756

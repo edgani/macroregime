@@ -10,6 +10,11 @@ HOLDING = {"STRUCTURAL_LONG": "weeks–months", "TACTICAL_MOMENTUM": "days–wee
 def _category(sig, a, mode):
     ftype = (a.get("flow") or {}).get("type", "NEUTRAL")
     stage = a.get("stage", "")
+    # SQUEEZE OVERRIDE (capital preservation, checked FIRST): a short signal into an active
+    # squeeze / short-covering (dealer-amplified upside) is suicidal. Force REDUCE_AVOID, never
+    # label it DISTRIBUTION_SHORT ("short failed continuation"). This must precede the short return.
+    if (mode == "SQUEEZE" or ftype == "SHORT_COVERING") and (sig.direction == "short" or sig.action == "BUILD_SHORT"):
+        return "REDUCE_AVOID"
     if sig.direction == "short" or sig.action == "BUILD_SHORT":
         return "DISTRIBUTION_SHORT"
     if sig.action in ("AVOID",) or mode == "DISTRIBUTION":
@@ -41,7 +46,7 @@ def _why_now(sig, a):
         if (a.get("market_mode") or {}).get("mode") == "DISTRIBUTION": w.append("market mode DISTRIBUTION — upside reactions weak")
         if bm.get("regime") == "FOREIGN_LED" and bm.get("flow_score", 0) < -20: w.append("foreign-led distribution — do not fade the foreign tape")
         if a.get("_short_conflict"): w.append("⚠ conflicting tape (accumulation/reclaim present) — short is regime-driven, conviction haircut applied")
-        return w[:4] or ["regime tilt short + per-ticker distribution evidence"]
+        return w[:4]  # no default string: empty evidence → fails the ≥2-reason gate → correctly WATCH, not fabricated
     if f.get("type") == "ACCUMULATION": w.append(f"persistent accumulation (absorption {f.get('absorption')}, persistence {f.get('persistence')})")
     if f.get("type") == "SHORT_COVERING": w.append("violent short-covering tape — squeeze propagating")
     if f.get("type") == "PANIC_LIQUIDATION": w.append("panic climax, low is in (sellers exhausted)")
@@ -56,7 +61,7 @@ def _why_now(sig, a):
         w.append(f"foreign-led bid (EFD {bm.get('efd')}) — follow the foreign tape")
     if rz.get("response") == "FAILED_BREAKDOWN_RECLAIM": w.append("failed breakdown + reclaim at lower band (trapped shorts)")
     if rz.get("response") == "ACCEPTANCE_ABOVE": w.append("acceptance above range (valid expansion, not a wick)")
-    return w[:4] or ["confluence of layers (no single dominant trigger)"]
+    return w[:4]  # no default string: empty evidence → fails the ≥2-reason gate → correctly WATCH, not fabricated
 
 def _whos_trapped(sig, a, mode):
     crowd = float(a.get("crowding", 50) or 50); vel = float(a.get("adoption_velocity", 0) or 0)

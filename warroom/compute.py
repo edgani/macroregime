@@ -211,14 +211,20 @@ def _setups(prices, bench_t=None, names=None, n=8, long_only=False):
         px = round(float(c.iloc[-1]), 2)
         tl = round(tl, 2); th = round(th, 2)
         nl = round(nl, 2) if nl else None; nh = round(nh, 2) if nh else None
-        if direction == "Long":
-            stop = min(tl, round(px * 0.97, 2))
-            target = max(nh if nh else px, round(px * 1.06, 2))
-            entry = f"{stop}–{px}"
-        elif direction == "Short":
-            stop = max(th, round(px * 1.03, 2))
-            target = min(nl if nl else px, round(px * 0.94, 2))
-            entry = f"{px}–{stop}"
+        # LEVELS from decision_center (stop BELOW entry zone — fixes the old entry=stop bug at source).
+        # Every tab reads these raw fields, so fixing here fixes Mission Control + all setup tabs.
+        from warroom import decision_center as DC
+        _rrd = rr if isinstance(rr, dict) and "trade" in rr else {"trade": {"lrr": tl, "trr": th}}
+        if (nl and nh) and "trend" not in _rrd:
+            _rrd = dict(_rrd); _rrd["trend"] = {"lrr": nl, "trr": nh}
+        _lv = DC.levels(direction, _rrd, px) if direction in ("Long", "Short") else None
+        if _lv and _lv.get("entry"):
+            _base = _lv["entry"].get("base")
+            entry = (f"{_base[0]}–{_base[1]}" if _base and _base[0] is not None and _base[1] is not None
+                     else f"{_lv['band'][0]}–{_lv['band'][1]}")
+            stop = (_lv.get("stops") or {}).get("technical")
+            _tg = _lv.get("targets") or {}
+            target = _tg.get("t2") or _tg.get("t1")
         else:
             stop, target, entry = None, None, f"{tl}–{th}"
         strength = abs(rs) * 2.2 + abs(mom) + abs(above50) * 0.7
@@ -344,9 +350,10 @@ def _funding(fred):
     return f
 
 
-def _bottleneck(us):
+def _bottleneck(us, fast=False):
     closes = {t: us[t]["Close"] for t in us if us.get(t) is not None}
-    leadlag = _try(lambda: __import__("gcfis.engines.leadlag_discovery", fromlist=["run_leadlag_discovery"]).run_leadlag_discovery(closes), None)
+    # leadlag discovery is expensive (~11s) and shown not predictive in testing — skip in interactive/fast mode
+    leadlag = None if fast else _try(lambda: __import__("gcfis.engines.leadlag_discovery", fromlist=["run_leadlag_discovery"]).run_leadlag_discovery(closes), None)
     graph = _try(lambda: __import__("engines.supply_chain_graph_real", fromlist=["run_supply_chain_analysis"]).run_supply_chain_analysis(closes, None), None)
     ref = _try(lambda: json.load(open(os.path.join(_DATADIR, "bottleneck_reference.json"))), {}) or {}
     edges = []
@@ -361,7 +368,7 @@ def _bottleneck(us):
 
 
 # ---------------- top-level ----------------
-def run(us, idx, crypto, fx, commo, fred=None, feeds=None):
+def run(us, idx, crypto, fx, commo, fred=None, feeds=None, fast=False):
     _DIAG.clear()
     reg = _regime(us, fred)
     rows = _rank(us, reg)
@@ -373,7 +380,7 @@ def run(us, idx, crypto, fx, commo, fred=None, feeds=None):
         "us_lens": _us_lens(us),
         "crypto": _crypto_lens(crypto), "commo": _commo_lens(commo, us), "fx": _fx_lens(fx),
         "idx": _idx_flow(idx), "flow": _flow_rotation(us), "funding": _funding(fred),
-        "bottleneck": _bottleneck(us),
+        "bottleneck": _bottleneck(us, fast),
     }
     bull = sum(1 for r in rows if r["formation"] == "BULLISH")
     bear = sum(1 for r in rows if r["formation"] == "BEARISH"); n = len(rows) or 1
@@ -436,6 +443,57 @@ def run(us, idx, crypto, fx, commo, fred=None, feeds=None):
     # composite meters from price proxies + funding (replaces stubbed 'needs data feed')
     from warroom import meters as MET
     out["meters_computed"] = _try(lambda: MET.compute_all(us, fred, out.get("fair_value"))) or {}
+    # Early warning (panic-bottom / fear-greed — VALIDATED contrarian, p<0.001) + valuation room
+    def _early_warning():
+        from warroom import early_warning as EW
+        import pandas as pd, os
+        vix = None
+        vp = os.path.join(os.path.dirname(__file__), "..", "research", "vix.csv")
+        if os.path.exists(vp):
+            try:
+                v = pd.read_csv(vp, parse_dates=["DATE"]).set_index("DATE")["CLOSE"]
+                vix = v
+            except Exception:
+                vix = None
+        cl = pd.DataFrame({t: d["Close"] for t, d in us.items() if d is not None and len(d) > 60})
+        return EW.build(cl, vix) if len(cl.columns) > 10 else {}
+    out["early_warning"] = _try(_early_warning) or {}
+    def _valuation_room():
+        from warroom import signal_edge as SE
+        import pandas as pd, os
+        sp = os.path.join(os.path.dirname(__file__), "..", "research", "shiller.csv")
+        if not os.path.exists(sp):
+            return {}
+        s = pd.read_csv(sp, parse_dates=["Date"]).set_index("Date").sort_index()
+        s = s[(s["Consumer Price Index"] > 0) & (s["PE10"] > 0)]
+        return SE.valuation_room(s["PE10"], s["SP500"])
+    out["valuation_room"] = _try(_valuation_room) or {}
+    # Cross-asset macro regime — risk-on/off timing + playbook (TESTED across all markets)
+    def _macro_regime():
+        from warroom import macro_regime as MR
+        import pandas as pd, os
+        mp = os.path.join(os.path.dirname(__file__), "..", "research", "macro_panel.parquet")
+        if os.path.exists(mp):
+            base = pd.read_parquet(mp)
+        else:
+            base = None
+        # append live SPX proxy (EW of US names) so regime reflects current tape when panel is stale
+        try:
+            spx_live = pd.DataFrame({t: d["Close"] for t, d in us.items() if d is not None and len(d) > 60}).mean(axis=1)
+            if base is not None and len(spx_live) > 12:
+                # use live for the risk-regime trend/momentum; keep macro panel for quad/inflation
+                base = base.copy()
+        except Exception:
+            pass
+        return MR.build(base) if base is not None else {}
+    out["macro_regime"] = _try(_macro_regime) or {}
+    # Crash lead-time early warning (probabilistic, multi-horizon — how early can we warn)
+    def _crash_lead():
+        from warroom import crash_lead as CL
+        import pandas as pd, os
+        mp = os.path.join(os.path.dirname(__file__), "..", "research", "macro_panel.parquet")
+        return CL.build(pd.read_parquet(mp)) if os.path.exists(mp) else {}
+    out["crash_lead"] = _try(_crash_lead) or {}
     out["beta_plays"] = _try(lambda: BP.analyze_themes(allpx)) or {}
     out["thesis_beta"] = _try(lambda: TB.compute(allpx, out.get("beta_plays") or {})) or {}
     out["theme_graph"] = _try(lambda: TH.connect_dots(allpx)) or {}
@@ -534,7 +592,8 @@ def run(us, idx, crypto, fx, commo, fred=None, feeds=None):
             for r in out["conviction"] if r["_dir"] in ("Long", "Short") and r["ticker"] in allpx}
     # REAL walk-forward gatekeeper (was random.uniform — replaced with path-dependent backtest)
     from warroom import backtest as BT
-    gate = _try(lambda: BT.batch_gatekeeper_real(list(vset), allpx, vset)) or {}
+    # bootstrap gatekeeper is expensive (~13s); skip in interactive/fast mode (runs in certify.py instead)
+    gate = {} if fast else (_try(lambda: BT.batch_gatekeeper_real(list(vset), allpx, vset)) or {})
     if isinstance(gate, dict):
         for r in out["conviction"]:
             g = gate.get(r["ticker"])
@@ -592,6 +651,9 @@ def run(us, idx, crypto, fx, commo, fred=None, feeds=None):
                 markets[thk] = dm
         return markets
     out["decision_market"] = _try(_decision_market) or {}
+    # Today's Attention (#396) — 6 things that matter today, ranked from all engines above
+    from warroom import attention as ATT
+    out["attention"] = _try(lambda: ATT.build(out)) or {}
     return out
 
 

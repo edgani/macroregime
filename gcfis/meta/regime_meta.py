@@ -111,7 +111,19 @@ def run_regime_meta(per_ticker: dict, systemic: dict, regime_posterior: dict,
         if _rzd in ("REJECTION", "NO_BID_CONTINUATION"): dist += 0.15
         dist = min(dist, 1.0); bear = dist * 100.0
 
-        meta_long = bull * W["long"] * (1 - W["drag"] * stress)
+        # ASSET-SUITABILITY DECOUPLING — fixes the "Q3 Gold rejected because equities are risk-off" flaw.
+        # Real assets (commodity/gold) must NOT inherit the equity risk-off long-crush (W["long"]→0.20):
+        # in a stagflation/risk-off EQUITY regime they are frequently beneficiaries, not victims. When the
+        # commodity's OWN supply-constraint (bottleneck) or reflexivity is strong, floor its long-tilt so it
+        # isn't zeroed by the equity cycle it doesn't belong to.
+        # ⚠ PRIOR, NOT VALIDATED: the 0.60 floor is hand-set, pending regime-replay validation (a real
+        # asset-suitability matrix mined from stagflation episodes). It swaps one unvalidated equity weight
+        # (0.20) for a decoupled, economically-defensible one — structure fixed now, the number earns its
+        # value later. Do not present this as a validated suitability score.
+        tilt_long = W["long"]
+        if market == "commodity" and (subs.get("bottleneck", 0.0) > 0.5 or subs.get("reflexivity", 0.0) > 0.5):
+            tilt_long = max(tilt_long, 0.60)
+        meta_long = bull * tilt_long * (1 - W["drag"] * stress)
         if crowd > 90 and vel < 0:
             meta_long *= 0.30                                   # positioning override: crowded & rolling over beats macro
         # stress AMPLIFIES per-ticker bear evidence — it never manufactures a short by itself

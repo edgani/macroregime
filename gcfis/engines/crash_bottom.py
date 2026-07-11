@@ -52,12 +52,20 @@ def run_crash_bottom(systemic: dict, internals: dict | None, per_ticker: dict) -
               "leadership_return": accel_pos > 0.5, "vol_normalizing": shock < 50,
               "liquidity_recovering": liq > 55}
     n_true = sum(checks.values())
-    if n_true >= 4:
+    # CREDIT/FRAGILITY GATE (systemic-deleveraging guard): a durable bottom cannot be declared while
+    # systemic fragility is still elevated. In a margin-call cascade, VIX can normalize and price-liquidity
+    # recover while credit spreads stay frozen and institutions dump a second round. `frag` embeds the
+    # credit-spread component (fragility.py credit weight 0.30), so require it to have eased first.
+    credit_ok = frag < 55
+    checks["credit_not_frozen"] = credit_ok
+    if n_true >= 4 and credit_ok:
         bstate = "DURABLE_BOTTOM_FORMING"
+    elif n_true >= 4 and not credit_ok:
+        bstate = "LOCAL_BOUNCE_RISK"    # surface stabilizing but credit still frozen — do NOT call the bottom
     elif panic_sh > 0.2 and n_true <= 2:
         bstate = "LOCAL_BOUNCE_RISK"
     else:
         bstate = "NO_BOTTOM_SIGNAL"
     return {"pressure": round(float(pressure), 1), "components": {k: round(v, 2) for k, v in comp.items()},
             "type": ctype, "basis": basis,
-            "bottom": {"state": bstate, "checks": checks, "score": round(100.0 * n_true / 6.0, 1)}}
+            "bottom": {"state": bstate, "checks": checks, "score": round(100.0 * n_true / 7.0, 1)}}

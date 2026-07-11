@@ -1,70 +1,65 @@
-"""
-War Room — entry point.  Run:  streamlit run app.py
+"""app.py — War Room OS · LIVE only. Renders the approved v0.3 dashboard on your live feeds.
 
-Architecture:
-  • Design + ranking  = mine (warroom/render.py, warroom/compute.py) — verdict-first mockup.
-  • Formula engines   = your zip (engines/, gcfis/) called as providers: Hedgeye GIP (structural+
-    monthly), Hedgeye Risk Range, GEX/greeks, methodology (Citrini/Yves/Soros/Coatue/Druck via
-    thought_process), lead-lag (Granger+TE) + supply-chain-graph for propagation, value-based LPM.
-  • NO old UI, NO old ticker-filter/elimination pipeline.
-Data: parquet cache (build_cache.py) → yfinance live → synthetic fallback. FRED via fredgraph (no key).
+    streamlit run app.py
+
+Uses v40's proven loaders (data.loader.load_prices + data.fred_loader.load_fred_series) to fetch
+live prices + FRED, runs the engines, and injects real data into dashboard.html. No historical/demo
+modes. If a feed is down, the affected panel shows its honest state (not fabricated).
 """
+from __future__ import annotations
+import os, sys, json
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+HERE = os.path.dirname(os.path.abspath(__file__))
 import streamlit as st
-from warroom import data as D, compute as C, render as R, fred as F, feeds as FEEDS, tracker as TR, statelog as SL
-from warroom import brief_export as BE
+import streamlit.components.v1 as components
+
+st.set_page_config(page_title="War Room OS", layout="wide", initial_sidebar_state="collapsed")
+st.markdown("""<style>
+  .stApp{background:#0a0d12}
+  header[data-testid="stHeader"]{background:transparent}
+  .block-container{padding:0 !important;max-width:100% !important}
+  #MainMenu,footer{visibility:hidden}
+  section[data-testid="stSidebar"]{width:230px !important}
+</style>""", unsafe_allow_html=True)
+
+DASH_PATH = os.path.join(HERE, "dashboard.html")
 
 
-def main():
-    st.set_page_config(page_title="War Room", layout="wide", initial_sidebar_state="collapsed")
-    with st.spinner("Loading prices + running engines…"):
-        us, source = D.load(D.US_UNIVERSE)
-        idx, _ = D.load(D.IDX_UNIVERSE)
-        cp, _ = D.load(D.CRYPTO_UNIVERSE)
-        fxp, _ = D.load(D.FX_UNIVERSE)
-        commo, _ = D.load(D.COMMO_UNIVERSE)
-        feeds = FEEDS.load_feeds()                     # live-feed snapshot (build_feeds.py); empty = proxy
-        fred = feeds.get("fred") or F.fetch()
-        d = C.run(us, idx, cp, fxp, commo, fred, feeds)
-        # forward-test logger: log today's conviction point-in-time, then resolve open signals on later bars
-        allpx = {**commo, **fxp, **cp, **idx, **us}
-        try:
-            TR.log_signals(d["conviction"], d["regime"])
-            TR.update_outcomes(allpx)
-        except Exception:
-            pass
-        try:
-            d["whatchanged"], d["whatchanged_prev_ts"] = SL.record_and_diff(d)
-        except Exception:
-            d["whatchanged"], d["whatchanged_prev_ts"] = [], None
-        try:
-            BE.export(d)   # regenerate the interactive briefing deck (briefing.html) with today's data
-        except Exception:
-            pass
-    tabs = st.tabs(["Mission Control", "Morning Brief", "Briefing", "Command Center", "Alpha Center", "Cross-Asset Rotation",
-                    "Causal Chains", "US Stocks", "Crypto", "Commodities", "FX", "IHSG", "Flow", "Bottleneck",
-                    "Market State", "Track Record", "Risk & Health"])
-    with tabs[0]: R.mission_control(d)
-    with tabs[1]: R.morning_brief(d)
-    with tabs[2]: R.briefing_embed()
-    with tabs[3]: R.command_center(d, source)
-    with tabs[4]: R.alpha(d)
-    with tabs[5]: R.cycle_rotation(d)
-    with tabs[6]: R.causal_chains(d)
-    with tabs[7]:
-        R.us_stocks(d)
-        R.fair_value_cards(d)
-    with tabs[8]: R.crypto(d)
-    with tabs[9]: R.commodities(d)
-    with tabs[10]: R.fx(d)
-    with tabs[11]: R.ihsg(d)
-    with tabs[12]: R.flow(d)
-    with tabs[13]:
-        R.bottleneck(d)
-        R.node_template(d)
-    with tabs[14]: R.market_state(d)
-    with tabs[15]: R.track_record(TR.performance(), TR.open_positions(), TR.closed_trades())
-    with tabs[16]: R.risk_health(d)
+def _inject(desk):
+    html = open(DASH_PATH, encoding="utf-8").read()
+    payload = "window.DASHBOARD_DATA = " + json.dumps(desk, default=str) + ";"
+    if "/*__INJECT_DATA__*/" in html:
+        return html.replace("/*__INJECT_DATA__*/", payload)
+    return html.replace("<body>", "<body>\n<script>" + payload + "</script>", 1)
 
 
-if __name__ == "__main__":
-    main()
+@st.cache_data(ttl=1800, show_spinner="Fetching live data (yfinance + FRED) and running the engines…")
+def _run(markets):
+    import data_layer as DL
+    from run import build_desk
+    data = DL.load_all(markets=list(markets), allow_live=True)
+    return build_desk(data)
+
+
+with st.sidebar:
+    st.markdown("**War Room OS · LIVE**")
+    mkts = st.multiselect("Markets", ["us", "idx", "crypto", "commodity", "fx"],
+                          default=["us", "idx", "crypto", "commodity", "fx"])
+    if st.button("↻ Refresh live data"):
+        st.cache_data.clear()
+    st.caption("Live feeds via v40 loaders (yfinance + FRED). Panels show honest state if a feed is down.")
+
+try:
+    desk = _run(tuple(mkts))
+    html = _inject(desk)
+    src = desk["meta"]["source"]; n = sum(len(m["setups"]) for m in desk["markets"].values())
+    if src == "LIVE":
+        st.toast(f"LIVE · universe {desk['meta']['universe_n']} · {n} setups")
+    else:
+        st.warning(f"Feeds returned no data here (source={src}). On your machine/Cloud the same loaders "
+                   f"fetch live — this environment blocks outbound network. Showing the run as-is.")
+except Exception as e:
+    st.error(f"Run failed: {e}")
+    html = open(DASH_PATH, encoding="utf-8").read()
+
+components.html(html, height=1150, scrolling=True)

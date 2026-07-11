@@ -15,6 +15,8 @@ def _valid(r: dict, a: dict) -> tuple[bool, str]:
         return False, "entry invalid (WAIT)"
     if r.get("ev") is None:
         return False, "no EV (entry/stop/target incomplete)"
+    if float(r.get("ev") or 0.0) <= 0.0:
+        return False, "non-positive EV (losing expectation — never emit)"
     why = [w for w in (r.get("why_now") or []) if w and "no single dominant" not in str(w)]
     if len(why) < 2:
         return False, "insufficient evidence (<2 reasons)"

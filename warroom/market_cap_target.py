@@ -85,6 +85,10 @@ _TICKER_THESIS = {
     "CRDO": "ai_compute", "AMAT": "ai_compute", "LRCX": "ai_compute", "KLAC": "ai_compute",
     # photonics
     "COHR": "photonics", "LITE": "photonics", "FN": "photonics", "GLW": "photonics", "AMKR": "photonics",
+    "AAOI": "photonics", "CIEN": "photonics", "AXTI": "photonics", "SITM": "photonics",
+    "CRDO": "ai_compute", "ALAB": "ai_compute", "AEHR": "ai_compute", "HIMX": "ai_compute", "FORM": "ai_compute",
+    "APH": "ai_compute", "TEL": "ai_compute", "SMCI": "ai_compute", "DELL": "ai_compute", "ARM": "ai_compute",
+    "QCOM": "ai_compute", "SMTC": "ai_compute", "KEYS": "ai_compute", "ASML": "ai_compute", "TSM": "ai_compute",
     # uranium
     "CCJ": "uranium", "UEC": "uranium", "URA": "uranium", "DNN": "uranium", "NXE": "uranium",
     # crypto

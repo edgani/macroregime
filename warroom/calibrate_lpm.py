@@ -11,7 +11,7 @@ This is mode-agnostic: cumulative -> b is anchor offset (a~1); windowed -> a is 
 import sys
 import numpy as np
 import pandas as pd
-from lpm import lpm as build_lpm
+from warroom.lpm import lpm as build_lpm
 
 SCALINGS = ["volume", "value_close", "value_typical"]
 CONFIGS = ([("cumulative", None, sp) for sp in (1, 10, 20, 30, 50)] +

@@ -1,0 +1,64 @@
+{
+  "records": [
+    {
+      "adapter_type": "BINANCE_SPOT_KLINES",
+      "allowed_assets": [
+        "BTCUSDT",
+        "ETHUSDT"
+      ],
+      "allowed_hosts": [
+        "data-api.binance.vision"
+      ],
+      "allowed_timeframes": [
+        "15m",
+        "1h",
+        "4h",
+        "1d"
+      ],
+      "approved_modes": [
+        "BOOTSTRAP",
+        "PROSPECTIVE"
+      ],
+      "max_response_bytes": 8000000,
+      "max_rows_per_request": 1000,
+      "notes": [
+        "Public market data only",
+        "No API key",
+        "Research monitoring and prospective evidence"
+      ],
+      "provider_id": "BINANCE_SPOT_PUBLIC_KLINES_V1",
+      "publication_lag_seconds": 0,
+      "status": "APPROVED",
+      "venue": "BINANCE_SPOT"
+    },
+    {
+      "adapter_type": "CANONICAL_CSV",
+      "allowed_assets": [
+        "*"
+      ],
+      "allowed_hosts": [],
+      "allowed_timeframes": [
+        "15m",
+        "1h",
+        "4h",
+        "1d"
+      ],
+      "approved_modes": [
+        "MANUAL_PIT",
+        "PROSPECTIVE"
+      ],
+      "max_response_bytes": 500000000,
+      "max_rows_per_request": 5000000,
+      "notes": [
+        "Requires explicit observed_at and available_at",
+        "No silent timestamp inference"
+      ],
+      "provider_id": "LOCAL_CANONICAL_CSV_PIT_V1",
+      "publication_lag_seconds": 0,
+      "status": "APPROVED",
+      "venue": "LOCAL_FILE"
+    }
+  ],
+  "registry_hash": "dcf439af86af8fa3af0f527016ac411b3fe6e11008cd45608ea50ffc8035d743",
+  "registry_id": "WRV3-PROVIDERS-20260712"
+}

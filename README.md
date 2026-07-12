@@ -1,65 +1,207 @@
-# War Room OS — complete, self-contained package
+# War Room OS v3 — Streamlit Trading Workstation
 
-This is the **whole thing**: the gcfis reasoning brain + the KEEP signal/UI engines + the rescue
-engines + the data adapter + the full validation suite + the real research data + the dashboard.
-It runs from this folder — no other repo needed.
+War Room OS v3 is an installable Streamlit workstation for **live market monitoring, discretionary trade planning, risk sizing, paper-trade journaling, and prospective evidence collection**.
 
+It is designed to stay useful without turning unvalidated research into fake certainty.
+
+## What is ready
+
+- Streamlit Market Desk.
+- BTCUSDT and ETHUSDT finalized-bar bootstrap and collection from Binance public market data.
+- 15m, 1h, 4h, and 1d views.
+- Canonical point-in-time CSV import for SPY, QQQ, futures, FX, commodities, IHSG, and other frozen-matrix assets.
+- Candlestick chart with fixed ATR and past-only conformal boundaries.
+- MQA volatility/range state.
+- Separate Momentum axes rather than one opaque composite score.
+- Four-role MTF context: Structural, Trend, Tactical, Execution.
+- Manual direction selection and structural execution template.
+- Position sizing with account equity, risk percentage, estimated costs, and leverage cap.
+- Downloadable operator ticket.
+- Append-only paper-trade journal with tamper-evident global and per-trade chains.
+- Paper P&L, R multiple, win rate, and equity curve.
+- Immutable prospective observations and matured outcomes.
+- Evidence evaluation, incidents, runtime journals, Docker, systemd, and Oracle VPS installer.
+
+## What is intentionally not included
+
+- Broker or exchange order placement.
+- Autonomous BUY/SELL.
+- Uncalibrated probability.
+- Automatic promotion to PAPER or LIVE evidence.
+- Claims that the structural template has predictive edge.
+
+The operator chooses direction and remains responsible for execution. The app supplies context, arithmetic, risk controls, and records.
+
+# Quick start
+
+## Windows
+
+```powershell
+py -m venv .venv
+.venv\Scripts\activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+pip install .
+python scripts\validate_all.py
+warroom bootstrap-all
+warroom streamlit
 ```
-warroom_os/
-  gcfis/                     # the reasoning brain (57 files, self-contained) — orchestrator + 13 layers
-  warroom/                   # KEEP signal/UI engines (signal_edge, early_warning, meters, internals,
-                             #   drivers, backtest, walkforward, accumulation, render, …)
-  engines/                   # RESCUE engines: onchain_engine, cftc_cot_scraper, fx_carry_engine
-                             #   (+ bottleneck/gip/vix/thought as refs). The 83-file bloat is DROPPED.
-  research/                  # REAL data: sp500_panel.parquet (482 tkr, 2013-18), macro_panel (1881-2023),
-                             #   factor_ic / validated_tickers / macro_attribution, shiller.csv, vix.csv
-  data_layer.py              # ONE data adapter — yfinance + FRED (no key) + synthetic fallback, source-stamped
-  run.py                     # data → gcfis.orchestrator → asymmetric_discovery → desk_data.json + dashboard
-  dashboard.html             # approved v0.3 UI, data-driven (renders the run; standalone = mock)
-  validate_all.py            # runs all 3 validators below
-  validation_plus.py         # statistical battery + negative/positive controls (validates the validator)
-  validate_real.py           # factor + macro battery on the real bundled data (reconciles prior work)
-  component_validation.py    # every engine: runs/deterministic/no-lookahead/no-repaint/formula/edge
-  VALIDATION.md              # the full coverage matrix + results
-  requirements.txt
+
+Open:
+
+```text
+http://127.0.0.1:8501
 ```
 
-## Run it
+## Linux / macOS
 
 ```bash
+python3 -m venv .venv
+. .venv/bin/activate
+python -m pip install --upgrade pip
 pip install -r requirements.txt
-
-streamlit run app.py         # the dashboard (main file = app.py)
-python run.py --synthetic     # headless: offline: proves the pipeline runs end-to-end (0 setups on noise = correct)
-python run.py                 # your machine: live yfinance + FRED → desk_data.json + dashboard_live.html
-python validate_all.py        # the entire validation stack (statistical + real-data + component)
+pip install .
+python scripts/validate_all.py
+warroom bootstrap-all
+warroom streamlit
 ```
 
-Open `dashboard.html` standalone (design), or `dashboard_live.html` after a run (populated).
+Open `http://127.0.0.1:8501`.
 
-## Verified — every entry point runs from THIS folder
+# Streamlit workflow
 
+## 1. Market Desk
+
+Choose an asset and timeframe. The page shows:
+
+- finalized-bar chart;
+- ATR and conformal boundaries;
+- range location and volatility state;
+- trend context, acceleration, release, persistence, efficiency, noise, and exhaustion;
+- MTF alignment and conflict codes;
+- watchlist for the selected timeframe.
+
+`BULLISH CONTEXT`, `BEARISH CONTEXT`, and conflict labels are descriptive. They are not calibrated trade probabilities.
+
+## 2. Execution Planner
+
+1. Review MTF context.
+2. Select LONG or SHORT yourself.
+3. Generate an unvalidated structural template.
+4. Edit entry zone, invalidation, and targets.
+5. Enter account equity, risk budget, estimated round-trip costs, and leverage ceiling.
+6. Calculate the operator plan.
+7. Download the JSON ticket or open it as a paper trade.
+
+The quantity is capped by both cash-risk budget and maximum leverage.
+
+## 3. Paper Journal
+
+- Review open, closed, and cancelled paper trades.
+- Close using the current market price or a manual price.
+- Record the close reason.
+- Track realized P&L, R multiple, win rate, and cumulative P&L.
+- Validate journal integrity before reading results.
+
+## 4. Operations & Evidence
+
+- Bootstrap or collect selected Binance scopes.
+- Bootstrap or collect all approved online scopes.
+- Import canonical PIT CSV data.
+- Inspect evidence evaluation and immutable journals.
+- Review operational incidents.
+
+# Canonical CSV format
+
+Required columns:
+
+```text
+asset,timeframe,observed_at,available_at,open,high,low,close,volume,source_record_id
 ```
-run.py --synthetic        → pipeline runs, writes dashboard_live.html ✓
-validation_plus.py        → VALIDATOR VALIDATED (noise→NOISE, planted→TRADEABLE) ✓
-validate_real.py          → IC reproduces prior factor_ic.parquet exactly (5/5) ✓
-component_validation.py   → 28 checks, 21 PASS, 0 FAIL ✓
+
+Optional:
+
+```text
+revision_id
 ```
 
-## What is validated vs what still needs feeds (honest)
+Timestamps must be timezone-aware. `available_at` cannot precede `observed_at`.
 
-Fully validated **here, on real data**: gcfis brain (13 layers, e2e), all statistical methods
-(permutation/MC/White-RC/SPA/FDR/DSR/drift), US-equity signals, macro/cross-asset/crash/CAPE, and
-every engine's determinism/no-lookahead/no-repaint/formula.
+CLI import:
 
-Genuinely **needs feeds not in this zip** (flagged, never faked): non-US prices (IHSG/crypto/FX/commodity),
-live/current prices (panel ends 2018-02), vintage/ALFRED FRED, on-chain (Glassnode), COT (CFTC).
-`run.py` picks these up automatically on a machine with network + keys.
+```bash
+warroom import-csv /path/to/file.csv --tier bootstrap
+```
 
-## The gate (unchanged)
+Prospective import additionally requires every observation to be strictly after the armed seal start.
 
-A signal surfaces a ticker only if it clears **perm_p < 0.05 AND DSR ≥ 0.95**, survives Reality-Check/SPA
-after data-snooping, and is stable OOS. On synthetic/noise → 0 setups. That is correct, not a bug.
+# Oracle Ubuntu VPS
 
-DROPPED from the original 64k-LOC zip: 83 orphaned engines (~60%), led by the 19-file options/GEX/vanna/
-charm cluster (needs paid options data). KEPT: only what's validated and wired.
+```bash
+unzip WarRoom_OS_v3_Streamlit_Trading_2026-07-13.zip
+cd warroom_os_v3_streamlit
+sudo bash ops/install_oracle_ubuntu.sh
+```
+
+The service binds to localhost. From your computer:
+
+```bash
+ssh -L 8501:127.0.0.1:8501 ubuntu@SERVER_IP
+```
+
+Open `http://127.0.0.1:8501`.
+
+Optional operator PIN:
+
+```bash
+sudo systemctl edit warroom-streamlit.service
+```
+
+Add:
+
+```ini
+[Service]
+Environment=WARROOM_OPERATOR_PIN=replace-with-a-long-secret
+```
+
+Then:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl restart warroom-streamlit.service
+```
+
+# Daily commands
+
+```bash
+warroom status
+warroom bootstrap-all
+warroom collect-all
+warroom evaluate
+warroom snapshot BTCUSDT
+warroom streamlit
+```
+
+# Runtime directories
+
+- `runtime/bootstrap/` — historical context, not prospective evidence.
+- `runtime/prospective/` — sealed forward market batches.
+- `runtime/observations/` — immutable descriptive tickets.
+- `runtime/outcomes/` — realized forward outcomes.
+- `runtime/trading/plans/` — immutable manual paper plans.
+- `runtime/trading/paper_events.jsonl` — append-only paper lifecycle events.
+- `runtime/evaluation/latest.json` — current evidence report.
+- `runtime/incidents/` — immutable operational failures.
+- `runtime/uploads/` — canonical CSV uploads named by content hash.
+
+# Validation
+
+```bash
+python scripts/validate_all.py
+```
+
+The release validates code, formula registry, market matrix, applicability, collection plan, provider registry, release manifest, prospective seal, trial ledger, runtime stores, and the paper journal.
+
+# Trust boundary
+
+The original ZIP is retained as migration and audit evidence only. Active production code under `src/warroom_v3` cannot import the rejected legacy `gcfis`, `warroom`, or old entry/risk-range stack.

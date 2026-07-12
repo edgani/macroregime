@@ -1,0 +1,15 @@
+{
+  "claim_ceiling": "RESEARCH_EVIDENCE_ONLY",
+  "global_blockers": [
+    "NO_VALIDATED_DECISION_POLICY",
+    "NO_VALIDATED_PORTFOLIO_POLICY",
+    "NO_CALIBRATED_ACTION_PROBABILITY"
+  ],
+  "live_eligible": false,
+  "outcomes_seen": 0,
+  "paper_eligible": false,
+  "report_hash": "2f4f9deb37053d69f9937a294b6884d192f96a7899fd7d75062dd93c5df77f74",
+  "report_id": "WRV3-PROSPECTIVE-EVALUATION",
+  "scope_evaluations": [],
+  "tickets_seen": 0
+}

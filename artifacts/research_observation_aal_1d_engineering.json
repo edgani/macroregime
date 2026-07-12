@@ -1,0 +1,44 @@
+{
+  "as_of": "2013-10-24T21:00:00+00:00",
+  "asset": "AAL",
+  "claim_ceiling": "DESCRIPTIVE_ONLY",
+  "component_evidence": {
+    "momentum_axes": "NOT_EVALUATED",
+    "mqa_benchmarks": "NOT_EVALUATED"
+  },
+  "component_states": {
+    "momentum_axes": {
+      "acceleration": 1.120633412509903,
+      "as_of_index": 179,
+      "claim_ceiling": "DESCRIPTIVE_ONLY",
+      "exhaustion_risk": 0.0,
+      "noise_ratio": 0.5280235988200587,
+      "path_efficiency": 0.47197640117994133,
+      "release_rank": 0.873015873015873,
+      "signed_persistence": 0.3,
+      "trend_context": 5.067300079176571
+    },
+    "mqa_benchmarks": {
+      "as_of_index": 179,
+      "atr": 0.6323266460642282,
+      "claim_ceiling": "DESCRIPTIVE_ONLY",
+      "close": 22.67,
+      "conformal_lower": 22.27112290369642,
+      "conformal_upper": 23.068877096303584,
+      "fixed_lower": 22.037673353935773,
+      "fixed_upper": 23.30232664606423,
+      "prior_range_location": 1.1432098765432104,
+      "volatility_percentile": 0.9523809523809523,
+      "volatility_state": "EXPANSION"
+    }
+  },
+  "observation_id": "ce2a88f074cde4e59b6e2f90bdba9d8ea24f31bca2cdef93e0de8bad12e3732f",
+  "reason_codes": [
+    "DESCRIPTIVE_ONLY",
+    "NO_CALIBRATED_PROBABILITY",
+    "NO_EXECUTION_MAP",
+    "SCOPE_NOT_EVALUATED"
+  ],
+  "source_snapshot_hash": "ea6c107aade7aa1419dbf13a81ef6a2e30e4503561edbfcf7201747e5c5b1b4e",
+  "timeframe": "1d"
+}

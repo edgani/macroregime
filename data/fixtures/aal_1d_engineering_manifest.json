@@ -1,0 +1,29 @@
+{
+  "allowed_uses": [
+    "contract_tests",
+    "causality_tests",
+    "pipeline_smoke_tests"
+  ],
+  "burned_windows": [
+    [
+      "2013-02-08",
+      "2013-10-25"
+    ]
+  ],
+  "claim_ceiling": "ENGINEERING_ONLY",
+  "dataset_id": "NEWZIP-AAL-1D-ENGINEERING-001",
+  "evidence_tier": "UNIT_FIXTURE",
+  "fixture_file": "data/fixtures/aal_1d_engineering.csv",
+  "fixture_sha256": "cd1db6165fa664851b80ec636136851ad56f00e4beed62cad22dad04b8be6cd6",
+  "forbidden_uses": [
+    "edge_claim",
+    "paper",
+    "live",
+    "hidden_oos"
+  ],
+  "point_in_time_complete": false,
+  "revision_policy": "LATEST_ONLY",
+  "source_file": "warroom_os/research/sp500_panel.parquet",
+  "source_file_sha256": "db2a61d7f66d219354cfaad9dff01a5c9d5b01145ae11549cd11555588729420",
+  "source_zip_sha256": "92c670a92b3a594fb5775c45ce00c4fcaed4f9dcff14ac06e8c7acaf04886a9a"
+}

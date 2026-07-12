@@ -1,0 +1,18 @@
+Looking in indexes: https://reader:****@packages.applied-caas-gateway1.internal.api.openai.org/artifactory/api/pypi/pypi-public/simple
+Obtaining file:///mnt/data/warroom_os_v3_ready
+  Installing build dependencies: started
+  Installing build dependencies: finished with status 'done'
+  Checking if build backend supports build_editable: started
+  Checking if build backend supports build_editable: finished with status 'done'
+  Getting requirements to build editable: started
+  Getting requirements to build editable: finished with status 'done'
+  Preparing editable metadata (pyproject.toml): started
+  Preparing editable metadata (pyproject.toml): finished with status 'done'
+Building wheels for collected packages: warroom-os-v3
+  Building editable for warroom-os-v3 (pyproject.toml): started
+  Building editable for warroom-os-v3 (pyproject.toml): finished with status 'done'
+  Created wheel for warroom-os-v3: filename=warroom_os_v3-3.0.0-0.editable-py3-none-any.whl size=1654 sha256=8ee98c29105be0f85f7f2aa9f10790dd7bd376b2267d64340eeb72415efc9da7
+  Stored in directory: /tmp/pip-ephem-wheel-cache-2yuepjxm/wheels/49/ee/73/78db2da0c2dbf2ddd17a86f401c924ff1ddecf75dcaf47de25
+Successfully built warroom-os-v3
+Installing collected packages: warroom-os-v3
+Successfully installed warroom-os-v3-3.0.0

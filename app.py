@@ -12,6 +12,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 HERE = os.path.dirname(os.path.abspath(__file__))
 import streamlit as st
 import streamlit.components.v1 as components
+import subprocess
+from pathlib import Path
+from alpha_foundry_adapter import attach_alpha_foundry, load_alpha_foundry_state, minimal_desk
 
 st.set_page_config(page_title="War Room OS", layout="wide", initial_sidebar_state="collapsed")
 st.markdown("""<style>
@@ -38,7 +41,7 @@ def _run(markets):
     import data_layer as DL
     from run import build_desk
     data = DL.load_all(markets=list(markets), allow_live=True)
-    return build_desk(data, top_per_market=40)  # raised 12→40 so the expanded crypto universe can surface
+    return attach_alpha_foundry(build_desk(data, top_per_market=40))  # original UI + integrated research state
 
 
 with st.sidebar:
@@ -48,6 +51,30 @@ with st.sidebar:
     if st.button("↻ Refresh live data"):
         st.cache_data.clear()
     st.caption("Live feeds via v40 loaders (yfinance + FRED). Panels show honest state if a feed is down.")
+    st.divider()
+    st.markdown("**US Alpha Foundry · integrated backend**")
+    _fs = load_alpha_foundry_state()
+    _fc = _fs.get("counts", {})
+    st.caption(f"Status: {_fs.get('status')} · shortlist {_fc.get('shortlist',0)} · trials {_fc.get('registered_trials',0)}")
+    st.caption("PAPER/LIVE tetap blocked sampai lockbox + prospective pass.")
+    with st.expander("Run free-data research pipeline", expanded=False):
+        _sec_contact = st.text_input("SEC contact email", value=os.environ.get("SEC_CONTACT_EMAIL", ""), key="sec_contact")
+        _run_quick = st.button("Run US Alpha Foundry — Quick", key="run_af_quick")
+        if _run_quick:
+            if "@" not in _sec_contact:
+                st.error("Masukkan email kontak yang valid untuk SEC fair-access policy.")
+            else:
+                _af_root = Path(HERE) / "alpha_foundry"
+                _env = os.environ.copy()
+                _env["SEC_USER_AGENT"] = f"Edward Gani {_sec_contact}"
+                with st.spinner("Running free-data Alpha Foundry. Ini dapat memakan waktu..."):
+                    _proc = subprocess.run([sys.executable, "run_pipeline.py", "--mode", "quick"], cwd=_af_root, env=_env, text=True, capture_output=True)
+                if _proc.returncode == 0:
+                    st.success("Pipeline selesai. Refresh dashboard untuk melihat shortlist/tournament.")
+                    st.cache_data.clear()
+                else:
+                    st.error("Pipeline gagal. Log terakhir:")
+                    st.code((_proc.stdout + "\n" + _proc.stderr)[-6000:])
 
 try:
     desk = _run(tuple(mkts))
@@ -59,7 +86,8 @@ try:
         st.warning(f"Feeds returned no data here (source={src}). On your machine/Cloud the same loaders "
                    f"fetch live — this environment blocks outbound network. Showing the run as-is.")
 except Exception as e:
-    st.error(f"Run failed: {e}")
-    html = open(DASH_PATH, encoding="utf-8").read()
+    st.warning(f"Live market run failed: {e}. Original UI remains available in fail-closed mode; research status is still loaded.")
+    desk = minimal_desk(str(e))
+    html = _inject(desk)
 
 components.html(html, height=1150, scrolling=True)

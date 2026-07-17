@@ -1,0 +1,63 @@
+{
+  "candidate": "NDX_D0_EQ_ACTIVE_DIRECTION",
+  "freeze_date": "2026-07-17",
+  "historical_status": "EXPLORATORY_ONLY",
+  "mandatory_steps": [
+    {
+      "name": "Immutable strategy freeze",
+      "rule": "No changes to fields, signs, weights, model, alpha, target or event exclusions.",
+      "step": 1
+    },
+    {
+      "name": "Prospective-only event accumulation",
+      "rule": "Use only releases occurring after 2026-07-17; every eligible event remains in the denominator.",
+      "step": 2
+    },
+    {
+      "name": "Strict PIT expectation source",
+      "rule": "Store a pre-release snapshot timestamp, provider/version ID, raw bytes and hash.",
+      "step": 3
+    },
+    {
+      "name": "Executable post-release prices",
+      "rule": "Evaluate entries at fixed 08:30+5s, +30s, +1m and +5m with bid/ask and slippage.",
+      "step": 4
+    },
+    {
+      "name": "Memory-control benchmark",
+      "rule": "Run identical code on anonymized event IDs/dates and on matched lower-exposure assets without LLM re-optimization.",
+      "step": 5
+    },
+    {
+      "name": "Fixed discovery budget",
+      "rule": "Candidate count is one; no new variants until the prospective verdict is recorded.",
+      "step": 6
+    },
+    {
+      "name": "Sequential promotion threshold",
+      "rule": "Require economically positive post-cost returns, calibrated direction, stability across CPI/labor and no single-era dependence.",
+      "step": 7
+    },
+    {
+      "name": "Independent reproducibility",
+      "rule": "A separate runtime must reproduce hashes, signals and fills without conversational context.",
+      "step": 8
+    }
+  ],
+  "minimum_evidence_before_live": {
+    "drift_and_calibration_monitoring": true,
+    "llm_execution_authority": "NONE",
+    "paper_events_after_paper_approval": 24,
+    "risk_limits_hard_coded": true
+  },
+  "minimum_evidence_before_paper": {
+    "executable_price_coverage": "100%",
+    "historical_retuning_allowed": false,
+    "minimum_per_family": 10,
+    "post_cost_positive_required": true,
+    "prospective_events": 24,
+    "strict_pit_coverage": "100%"
+  },
+  "production_status": "BLOCKED",
+  "protocol_id": "WARROOM_LLM_CONTAMINATION_ESCAPE_V1"
+}

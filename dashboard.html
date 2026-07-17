@@ -250,6 +250,62 @@ function rows(list){ // list: [ [k, v, subhtml?] ]
   return list.map(r=>`<div class="drow"><div><span class="${r[3]?'kk':'k'}">${r[0]}</span>${r[2]?`<div class="sub2">${r[2]}</div>`:''}</div><div class="v">${r[1]}</div></div>`).join('');
 }
 
+
+/* ══════════ INTEGRATED FREE ALPHA FOUNDRY (keeps original UI) ══════════ */
+function foundryState(){ return window.__FOUNDRY || null; }
+function foundryStatusPanel(){
+  const F=foundryState(); if(!F) return '';
+  const C=F.counts||{}, P=F.permissions||{};
+  const stateCls=F.status==='SHADOW_READY'?'u':'a';
+  return panel('Free Alpha Foundry — proof state', [['eng','◆ integrated backend'],['res','◐ historical candidate max'],['build','○ prospective required']], rows([
+    ['Operational state',`<span class="${stateCls}">${esc2(F.status)}</span>`,esc2(F.active_branch)],
+    ['Current shortlist',`<span class="${C.shortlist?'u':'m'}">${C.shortlist||0}</span>`,'real selector output only; no placeholder tickers'],
+    ['Registered trials',String(C.registered_trials||0),'all successes and failures stay in graveyard'],
+    ['Historical candidates',`<span class="${C.historical_candidates?'a':'m'}">${C.historical_candidates||0}</span>`,'still not proven until lockbox + future pass'],
+    ['Proven component / selector / alpha',`<span class="m">${C.proven_components||0} / ${C.proven_selectors||0} / ${C.proven_alpha||0}</span>`,'fail-closed claim ceiling'],
+    ['Permission',`<span class="${P.paper?'u':'d'}">PAPER ${P.paper?'OPEN':'BLOCKED'}</span> · <span class="${P.live?'u':'d'}">LIVE ${P.live?'OPEN':'BLOCKED'}</span>`,'research + prospective shadow only']
+  ])+`<div class="note" style="margin-top:8px">${esc2(F.warning)}</div>`);
+}
+function foundryMissionStrip(){
+  const F=foundryState(); if(!F) return '';
+  const C=F.counts||{};
+  return `<div class="panel" style="margin-bottom:12px;border-color:rgba(183,142,255,.32)"><div class="phd"><h3 style="color:var(--th)">◆ ALPHA PROOF FACTORY</h3><div class="prov">${badge('eng','◆ original UI adapter')}${badge('res','◐ fail-closed')}</div></div><div class="pbd"><div class="wsb" style="grid-template-columns:repeat(5,1fr)">
+    <div class="wcell"><span class="kx">Coverage</span><span class="vx i">${C.coverage_components||0} components</span></div>
+    <div class="wcell"><span class="kx">Free proof</span><span class="vx u">${C.free_full||0} full</span><span class="sub2">${C.free_partial||0} partial · ${C.free_low||0} low</span></div>
+    <div class="wcell"><span class="kx">Trials</span><span class="vx ${C.registered_trials?'i':'m'}">${C.registered_trials||0}</span></div>
+    <div class="wcell"><span class="kx">Shortlist</span><span class="vx ${C.shortlist?'u':'m'}">${C.shortlist||0}</span></div>
+    <div class="wcell"><span class="kx">Claim ceiling</span><span class="vx a">SHADOW</span></div>
+  </div></div></div>`;
+}
+function foundryShortlistPanel(){
+  const F=foundryState(); if(!F) return '';
+  const L=Array.isArray(F.shortlist)?F.shortlist:[];
+  if(!L.length){
+    const C=F.counts||{};
+    return panel('US Alpha Foundry — selector output', [['eng','◆ purged expanding WFA'],['build','○ real data run pending']],
+      `<div class="note">No real-market Top-20 has been emitted yet. Backend is integrated, but the free-data pipeline must build the historical entity master, SEC filed-time panel and tournament first. Readiness: <b>${C.readiness_ready||0}/${C.readiness_total||0}</b>. Nothing is fabricated.</div>`);
+  }
+  const cards=L.slice(0,20).map((x,i)=>`<div class="scard"><div class="stop2"><span class="stk">#${esc2(x.overall_rank||i+1)} · ${esc2(x.ticker)}</span><span class="actbadge wait">SHADOW</span><span class="conv">sector pct ${esc2(x.sector_rank_pct||'—')}</span></div><div class="est"><div class="estc"><div class="ek">Score</div><div class="ev i">${esc2(x.selector_score||'—')}</div></div><div class="estc"><div class="ek">Horizon</div><div class="ev sg">T63</div></div><div class="estc"><div class="ek">Filed</div><div class="ev m">${esc2(x.filed||'—')}</div></div><div class="estc"><div class="ek">Status</div><div class="ev a">NOT PROVEN</div></div></div><div class="swhy">${esc2(x.company_name||'')} · WHY IN: ${esc2(x.why_in||'')}</div></div>`).join('');
+  return `<div class="panel"><div class="phd"><h3>US Top-20 — prospective shadow selector</h3><div class="prov">${badge('eng','◆ Alpha Foundry')}${badge('res','◐ not PAPER/LIVE')}</div></div><div class="pbd"><div class="setups">${cards}</div></div></div>`;
+}
+function foundryAlphaCards(){
+  const F=foundryState(), L=F&&Array.isArray(F.shortlist)?F.shortlist:[]; if(!L.length) return '';
+  const cards=L.slice(0,12).map((x,i)=>`<div class="acard" data-tk="${esc2(x.ticker)}"><div class="top"><div><div class="tk">${esc2(x.ticker)}</div><span class="mk">US · SHADOW #${esc2(x.overall_rank||i+1)}</span></div><div class="asym"><div class="av">${esc2(x.sector_rank_pct||'—')}</div><div class="al">SECTOR RANK</div></div></div><div class="tierline"><span class="tierbadge tac">HISTORICAL CANDIDATE</span><span class="baserate">T63 · Ridge frozen</span></div><div class="thesis">${esc2(x.company_name||'')} · ${esc2(x.why_in||'')}</div><div class="mcapline"><div class="mcell"><div class="mk2">Score</div><div class="mv2">${esc2(x.selector_score||'—')}</div></div><div class="mcell"><div class="mk2">Decision date</div><div class="mv2">${esc2(x.decision_date||'—')}</div></div><div class="mcell"><div class="mk2">Claim</div><div class="mv2 a">SHADOW</div></div></div><div class="gated">not proven · no PAPER/LIVE · prospective denominator mandatory</div><div class="cardfoot"><span class="why">FILED ${esc2(x.filed||'—')}</span><span class="trace">TRACEBACK ›</span></div></div>`).join('');
+  return `<div class="lbl" style="margin:13px 0 7px">Selector shadow shortlist — output from the frozen US proof factory</div><div class="cards">${cards}</div>`;
+}
+function foundryValidationPanel(){
+  const F=foundryState(); if(!F) return '';
+  const C=F.counts||{}, X=F.fixed_results||{};
+  return panel('Current Proof & Permission Ledger', [['eng','◆ trial graveyard'],['eng','◆ lockbox'],['res','◐ prospective required']], rows([
+    ['CPI/Labor actual pipeline',`<span class="u">${esc2(X.cpi_labor_actual_pipeline)}</span>`,'official actual/revision infrastructure'],
+    ['CPI/Labor standalone 5D/20D',`<span class="d">${esc2(X.cpi_labor_5d20d_signal)}</span>`,'expanded WFA produced zero promotion'],
+    ['NDX D0 packet',`<span class="a">${esc2(X.ndx_d0_packet)}</span>`,'association begins before surprise is known; non-executable'],
+    ['US registered trials',String(C.registered_trials||0),'complete trial family remains in graveyard'],
+    ['US historical candidates',String(C.historical_candidates||0),'maximum current claim = candidate'],
+    ['System proven component / selector / alpha',`<span class="m">0 / 0 / 0</span>`,'requires one-shot lockbox + untouched future evidence']
+  ])+`<div class="note" style="margin-top:8px">Original 14-tab interface is preserved. Research modules are adapters behind Alpha, US Stocks, Mission Control and Validation; they do not replace the War Room.</div>`);
+}
+
 /* ══════════ MISSION CONTROL (bespoke) ══════════ */
 /* regional regime row — reads window.__REGIONAL (real price-proxy) when live, else honest '—' */
 /* grade-gate: a metric renders a NUMBER only if its walk-forward grade is VALIDATED.
@@ -301,7 +357,9 @@ function viewMC(){
   <div class="viewhead"><h2 class="sg">MISSION CONTROL</h2><span class="vd">Cockpit — what the world is doing, now. &lt;30s scan.</span></div>
   <div class="provrow">${badge('eng','◆ warroom/attention.py')}${badge('eng','◆ meters.py')}${badge('eng','◆ drivers.py')}${badge('prod','✅ meters/drivers PROD')}${badge('build','○ status-bar wiring')}</div>
   ${liveStrip}
-  ${regimeStrip}  <div class="grid" style="grid-template-columns:1fr">
+  ${regimeStrip}
+  ${foundryMissionStrip()}
+  <div class="grid" style="grid-template-columns:1fr">
     ${panel('World Status — Macro Drivers',[['eng','◆ drivers.py'],['prod','✅ PROD']],`
       <div class="wsb">
         <div class="wcell"><span class="kx">Liquidity</span><span class="vx u">▲ Improving <span class="chip up" style="margin-left:auto"><span class="dot"></span>+</span></span></div>
@@ -552,6 +610,9 @@ function viewAlpha(){
   <div class="viewhead"><h2 class="th">◆ ALPHA &amp; TICKERS — Asymmetric Opportunity</h2><span class="vd">Structural asymmetry (not expected return). Tiers SEPARATED. Ticker = consequence.</span></div>
   <div class="provrow">${badge('eng','◆ asymmetric_discovery.py')}${badge('eng','◆ moonshot_universe.py')}${badge('eng','◆ market_cap_target.py')}${badge('eng','◆ competitive_ranking_engine.py')}${badge('eng','◆ signal_edge.py')}${badge('res','◐ 3/6 factors need feeds')}</div>
   ${_banner}
+  ${foundryStatusPanel()}
+  ${foundryAlphaCards()}
+  <div class="lbl" style="margin:13px 0 7px">Structural asymmetry candidates from the original War Room engine</div>
   <div class="cards">${cards}</div>`;
 }
 
@@ -587,6 +648,7 @@ function viewGeneric(id){
   const t=TABS[id];
   let panels=t.panels.map(p=>panel(p[0],p[1],p[2])).join('');
   // Validation tab: prepend the LIVE reproducible walk-forward grade card (overrides stale hardcoded claims)
+  if(id==='rc' && window.__FOUNDRY){ panels = foundryValidationPanel() + panels; }
   if(id==='rc' && window.__GRADES){
     const G=window.__GRADES;
     const nice={crash_pressure:'Crash-pressure (banded)',panic_bottom:'Panic-bottom',factor_momentum:'Factor momentum',
@@ -679,11 +741,13 @@ function viewMarket(id){
   </div>`).join('')
    : `<div class="note">No ticker cleared the validated gate in this market — nothing emitted (by design).</div>`;
   const droppedNote = dropped>0? `<div class="note" style="margin-top:6px;opacity:.6">${dropped} candidate(s) failed the gate and were omitted (not shown).</div>`:'';
+  const foundryBlock = id==='us' ? foundryShortlistPanel() : '';
   return `
   <div class="viewhead"><h2>${m.title}</h2><span class="vd">${m.sub}</span>${m.longOnly?'<span class="lo-badge">LONG-ONLY ENFORCED</span>':''}</div>
   <div class="provrow">${m.prov.map(([c,x])=>badge(c,x)).join('')}</div>
   <div class="lbl" style="margin-bottom:7px">Screener funnel — how a ticker surfaces in this market</div>
   <div class="funnel">${fun}</div>
+  ${foundryBlock}
   <div class="grid" style="grid-template-columns:1.15fr 1fr;align-items:start">
     <div class="panel"><div class="phd"><h3>Setups — surfaced tickers</h3><div class="prov">${badge('eng','◆ entry.py')}${badge('res','◐ synthetic in mock')}</div></div><div class="pbd"><div class="setups">${setups}</div>${droppedNote}</div></div>
     ${panel('Market Driver Bias',[['eng','◆ market_drivers.py'],['res','◐ your June-26 matrix']],drv)}
@@ -702,8 +766,9 @@ function viewMarket(id){
     document.querySelector('.mockbadge .pill').textContent = (real?'REAL':'v0.3')+' · universe '+(D.meta.universe_n||'?');
   }catch(e){}
   const esc=s=>String(s==null?'':s).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  window.__FOUNDRY = D.alpha_foundry || null;
   // ALPHA (mutate in place → existing renderer works)
-  if(Array.isArray(D.alpha) && D.alpha.length){
+  if(Array.isArray(D.alpha)){
     ALPHA.length=0;
     D.alpha.forEach(a=>ALPHA.push({
       tk:a.tk, mkt:esc(a.market).toUpperCase().slice(0,18), asym:String(a.asymmetry),
@@ -752,7 +817,7 @@ function viewMarket(id){
     const t=document.title; document.title=t.replace('MOCK v0.2','LIVE v0.3');
   }
   // blank any market NOT loaded this run so it never shows stale mock prices
-  if(window.__LIVE && D.markets){
+  if((window.__LIVE || (D.meta&&D.meta.safe_fail_closed)) && D.markets){
     for(const id in MARKET){
       if(D.markets[id]) continue;
       MARKET[id].setups=[{tk:'—',act:'NOT LOADED',ac:'wait',e:'—',s:'—',t:'—',rr:'—',ty:'—',gm:'—',cv:0,

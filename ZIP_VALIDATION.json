@@ -1,0 +1,423 @@
+{
+  "app_py_present": true,
+  "files": [
+    {
+      "actual": "3ed731b65d06150c138e2dadb0be0697550888a6b47eb8c45ecc9adba8b8e9bd",
+      "expected": "3ed731b65d06150c138e2dadb0be0697550888a6b47eb8c45ecc9adba8b8e9bd",
+      "file": ".pytest_cache/.gitignore",
+      "pass": true
+    },
+    {
+      "actual": "37dc88ef9a0abeddbe81053a6dd8fdfb13afb613045ea1eb4a5c815a74a3bde4",
+      "expected": "37dc88ef9a0abeddbe81053a6dd8fdfb13afb613045ea1eb4a5c815a74a3bde4",
+      "file": ".pytest_cache/CACHEDIR.TAG",
+      "pass": true
+    },
+    {
+      "actual": "73fd6fccdd802c419a6b2d983d6c3173b7da97558ac4b589edec2dfe443db9ad",
+      "expected": "73fd6fccdd802c419a6b2d983d6c3173b7da97558ac4b589edec2dfe443db9ad",
+      "file": ".pytest_cache/README.md",
+      "pass": true
+    },
+    {
+      "actual": "373ede94f3f3aa741f970031244a709796a04af774cdc2c7e80acd45f9fc1ba7",
+      "expected": "373ede94f3f3aa741f970031244a709796a04af774cdc2c7e80acd45f9fc1ba7",
+      "file": ".pytest_cache/v/cache/nodeids",
+      "pass": true
+    },
+    {
+      "actual": "0dd2bb672fb0bf7daf6371323ea1076e0b5e19f43d0f72ff4446a3f90566482a",
+      "expected": "0dd2bb672fb0bf7daf6371323ea1076e0b5e19f43d0f72ff4446a3f90566482a",
+      "file": "OPEN_LOCKBOX_ONCE.bat",
+      "pass": true
+    },
+    {
+      "actual": "8c2a9a1933a32df1e2b6066ef2530f5f86c6d097d44e386cdcb53199028fadc9",
+      "expected": "8c2a9a1933a32df1e2b6066ef2530f5f86c6d097d44e386cdcb53199028fadc9",
+      "file": "P6_86_STATUS.md",
+      "pass": true
+    },
+    {
+      "actual": "63d96336b8679eb6c7661592e7a2383065e3b67db9d04add0f431369c7cd4f99",
+      "expected": "63d96336b8679eb6c7661592e7a2383065e3b67db9d04add0f431369c7cd4f99",
+      "file": "P6_87_STATUS.md",
+      "pass": true
+    },
+    {
+      "actual": "007392e4449d2358500f8f732fac47c3e83efa9b3391f14a8edf8aa839b1153d",
+      "expected": "007392e4449d2358500f8f732fac47c3e83efa9b3391f14a8edf8aa839b1153d",
+      "file": "P6_88_STATUS.md",
+      "pass": true
+    },
+    {
+      "actual": "9fafad0d9632af003dbce4cec8208b9824dbaa54effdcf1b959a37cf0e089723",
+      "expected": "9fafad0d9632af003dbce4cec8208b9824dbaa54effdcf1b959a37cf0e089723",
+      "file": "P6_89_STATUS.md",
+      "pass": true
+    },
+    {
+      "actual": "1c118abd59fffce3212db39ee56c499c0cb111a59c268b5c2cb04edf6a58fcfa",
+      "expected": "1c118abd59fffce3212db39ee56c499c0cb111a59c268b5c2cb04edf6a58fcfa",
+      "file": "P6_90_STATUS.md",
+      "pass": true
+    },
+    {
+      "actual": "216dd57783661338998ef4323446a3cc54dcc923e09ef2820732fa0966eb4070",
+      "expected": "216dd57783661338998ef4323446a3cc54dcc923e09ef2820732fa0966eb4070",
+      "file": "P6_91_STATUS.md",
+      "pass": true
+    },
+    {
+      "actual": "9f7c3bd1e063e3521f30e199c150c1fd40badb7bb872c9b5fd1c27fe9cfa24b9",
+      "expected": "9f7c3bd1e063e3521f30e199c150c1fd40badb7bb872c9b5fd1c27fe9cfa24b9",
+      "file": "P6_92_STATUS.md",
+      "pass": true
+    },
+    {
+      "actual": "6c39929f14d9f8133665f122acc611bdc27e4f9895993e5d1d9eb2ab534f4aab",
+      "expected": "6c39929f14d9f8133665f122acc611bdc27e4f9895993e5d1d9eb2ab534f4aab",
+      "file": "P6_93_FINAL_OPERATIONAL_STATUS.md",
+      "pass": true
+    },
+    {
+      "actual": "743dd95b5a03753daa163ef3bf4c1a63d6e66d166a8b01c36e251b0b32f651bc",
+      "expected": "743dd95b5a03753daa163ef3bf4c1a63d6e66d166a8b01c36e251b0b32f651bc",
+      "file": "README_FIRST.md",
+      "pass": true
+    },
+    {
+      "actual": "5d95dcc54b069b8a91511c53450778ee0d7e64051617155082278d35e6160e1c",
+      "expected": "5d95dcc54b069b8a91511c53450778ee0d7e64051617155082278d35e6160e1c",
+      "file": "RUN_APP.bat",
+      "pass": true
+    },
+    {
+      "actual": "9efb42df3593a35e7277c9f724f0c9e580bbbbbade536e02cce46a5919f1d67c",
+      "expected": "9efb42df3593a35e7277c9f724f0c9e580bbbbbade536e02cce46a5919f1d67c",
+      "file": "RUN_FULL_HISTORY.bat",
+      "pass": true
+    },
+    {
+      "actual": "31d48c3285bf52d5b689a26c185b02086148df7349408e6378d63dd310a52299",
+      "expected": "31d48c3285bf52d5b689a26c185b02086148df7349408e6378d63dd310a52299",
+      "file": "RUN_OFFLINE_TESTS.bat",
+      "pass": true
+    },
+    {
+      "actual": "c460fa2802d6613c632b02d8f57432089bb76913100a1510613544316b677792",
+      "expected": "c460fa2802d6613c632b02d8f57432089bb76913100a1510613544316b677792",
+      "file": "RUN_QUICK.bat",
+      "pass": true
+    },
+    {
+      "actual": "c47fa2d9103bca3193d17167d250a0abb4c9f17e3508e5ce72cb57064a98d9e5",
+      "expected": "c47fa2d9103bca3193d17167d250a0abb4c9f17e3508e5ce72cb57064a98d9e5",
+      "file": "__pycache__/app.cpython-313.pyc",
+      "pass": true
+    },
+    {
+      "actual": "852e64bd7c220c58c08199f9968c6402a6c73b843dea674b1d66a3a265864f88",
+      "expected": "852e64bd7c220c58c08199f9968c6402a6c73b843dea674b1d66a3a265864f88",
+      "file": "__pycache__/run_pipeline.cpython-313.pyc",
+      "pass": true
+    },
+    {
+      "actual": "4ff7c9426e5a37ddb233021d6e3b62d509db8b7afe52d79dd0ed37429ac97143",
+      "expected": "4ff7c9426e5a37ddb233021d6e3b62d509db8b7afe52d79dd0ed37429ac97143",
+      "file": "__pycache__/validate_package.cpython-313.pyc",
+      "pass": true
+    },
+    {
+      "actual": "da9e09a88b9fa355f05192579822d5f1f812d97f3c25b6607ae77f3e18c2f6b8",
+      "expected": "da9e09a88b9fa355f05192579822d5f1f812d97f3c25b6607ae77f3e18c2f6b8",
+      "file": "app.py",
+      "pass": true
+    },
+    {
+      "actual": "f0584e26a8e8d196c64582f4df583dcb4621648f7ecb8b170c4d3b105a5a0583",
+      "expected": "f0584e26a8e8d196c64582f4df583dcb4621648f7ecb8b170c4d3b105a5a0583",
+      "file": "bootstrap.ps1",
+      "pass": true
+    },
+    {
+      "actual": "807959a4716ec9cf3b95346e170947dd009c32dca8fed9bc9cf0ad0085c1315e",
+      "expected": "807959a4716ec9cf3b95346e170947dd009c32dca8fed9bc9cf0ad0085c1315e",
+      "file": "config/freeze_contract.json",
+      "pass": true
+    },
+    {
+      "actual": "513c973ffadbbd3074076f79703597e43df863cd70e0f07eb889c8be97779c4b",
+      "expected": "513c973ffadbbd3074076f79703597e43df863cd70e0f07eb889c8be97779c4b",
+      "file": "config/source_registry.json",
+      "pass": true
+    },
+    {
+      "actual": "34620ff7a752a413b3e43d9b78336c6cf01d5fc254b28d08554f0b8727ba860d",
+      "expected": "34620ff7a752a413b3e43d9b78336c6cf01d5fc254b28d08554f0b8727ba860d",
+      "file": "data/reference/SOURCE_RECEIPTS.json",
+      "pass": true
+    },
+    {
+      "actual": "ba8ba572c2ee52f07e29fbb8f11ce554f081cb5a662efa232518b723d144caef",
+      "expected": "ba8ba572c2ee52f07e29fbb8f11ce554f081cb5a662efa232518b723d144caef",
+      "file": "data/reference/current_us_universe_2026-07-17.csv",
+      "pass": true
+    },
+    {
+      "actual": "39c488ebd6ce6838599e54751adbe8c8e4b68d5801dd77d29b6d137dd77388ac",
+      "expected": "39c488ebd6ce6838599e54751adbe8c8e4b68d5801dd77d29b6d137dd77388ac",
+      "file": "data/reference/sp500_ticker_start_end.csv",
+      "pass": true
+    },
+    {
+      "actual": "98c440d24faf814cf51108ee1830d4a399d312d68b14afca541c38ed51d9561f",
+      "expected": "98c440d24faf814cf51108ee1830d4a399d312d68b14afca541c38ed51d9561f",
+      "file": "docs/CLAIM_LADDER.csv",
+      "pass": true
+    },
+    {
+      "actual": "dcc44efea3337823ef26ddc6d78089fc37cb84208b025311590f36d0be589003",
+      "expected": "dcc44efea3337823ef26ddc6d78089fc37cb84208b025311590f36d0be589003",
+      "file": "docs/DATA_GAP_IMPACT.csv",
+      "pass": true
+    },
+    {
+      "actual": "391120c7e8ba663ebb09d9efa42bbca1dc346d35bfeea9c1727f4e5b1d9ebfca",
+      "expected": "391120c7e8ba663ebb09d9efa42bbca1dc346d35bfeea9c1727f4e5b1d9ebfca",
+      "file": "outputs/synthetic_demo/SYNTHETIC_DEMO_SUMMARY.json",
+      "pass": true
+    },
+    {
+      "actual": "3af168ec475d384bfe528347b63e84bda182c590f55dd4474051d86ac5cd3654",
+      "expected": "3af168ec475d384bfe528347b63e84bda182c590f55dd4474051d86ac5cd3654",
+      "file": "outputs/synthetic_demo/SYNTHETIC_MONTHLY_IC.csv",
+      "pass": true
+    },
+    {
+      "actual": "f1025b9ef4f6445714a5d70a3c4f4c86a13be6e3f3fc97d2357227fe28a4ec6f",
+      "expected": "f1025b9ef4f6445714a5d70a3c4f4c86a13be6e3f3fc97d2357227fe28a4ec6f",
+      "file": "outputs/synthetic_demo/SYNTHETIC_WFA_PREDICTIONS.csv",
+      "pass": true
+    },
+    {
+      "actual": "902c61739c79bba33f2e5cef30a40a525011a84e1d819fe4a2afae46ec857c08",
+      "expected": "902c61739c79bba33f2e5cef30a40a525011a84e1d819fe4a2afae46ec857c08",
+      "file": "requirements.txt",
+      "pass": true
+    },
+    {
+      "actual": "3cd49344d6b5b6bec095741ff656734692afcc8a1ef6504331bf9b624b8d38cf",
+      "expected": "3cd49344d6b5b6bec095741ff656734692afcc8a1ef6504331bf9b624b8d38cf",
+      "file": "run_pipeline.py",
+      "pass": true
+    },
+    {
+      "actual": "5cb48fd175126a64ce70d29ecfd2098d651f9b3daa31ac1a0c156698311ccb36",
+      "expected": "5cb48fd175126a64ce70d29ecfd2098d651f9b3daa31ac1a0c156698311ccb36",
+      "file": "schemas/ENTITY_QUARANTINE_SCHEMA.csv",
+      "pass": true
+    },
+    {
+      "actual": "171ed39ed8e03b720c2f533c333d046a89d1350182450c5583b85a2a330f9374",
+      "expected": "171ed39ed8e03b720c2f533c333d046a89d1350182450c5583b85a2a330f9374",
+      "file": "schemas/PROSPECTIVE_RECEIPT_SCHEMA.csv",
+      "pass": true
+    },
+    {
+      "actual": "700e463b1fa0d6351bc4f0165480ad9993070125510186cc64d32a20a9444ff2",
+      "expected": "700e463b1fa0d6351bc4f0165480ad9993070125510186cc64d32a20a9444ff2",
+      "file": "schemas/TRIAL_GRAVEYARD_SCHEMA.csv",
+      "pass": true
+    },
+    {
+      "actual": "79f207a145338fde439e919ac091ea2ff11f16acc719575085065ecc051a4989",
+      "expected": "79f207a145338fde439e919ac091ea2ff11f16acc719575085065ecc051a4989",
+      "file": "src/__init__.py",
+      "pass": true
+    },
+    {
+      "actual": "b1cd54acf64bbe8ff646f2d6f317c45e5a85c4b3db32efdc3875dbbf65853871",
+      "expected": "b1cd54acf64bbe8ff646f2d6f317c45e5a85c4b3db32efdc3875dbbf65853871",
+      "file": "src/__pycache__/__init__.cpython-313.pyc",
+      "pass": true
+    },
+    {
+      "actual": "181b307cc3082091075a7211e23c9d49419ca1836cedafc18c8f61a9045193be",
+      "expected": "181b307cc3082091075a7211e23c9d49419ca1836cedafc18c8f61a9045193be",
+      "file": "src/__pycache__/build_entity_master.cpython-313.pyc",
+      "pass": true
+    },
+    {
+      "actual": "f8025632b1af94362c8a4fec2edbf160df1885f3eb9892a4e4929ff58c63cd72",
+      "expected": "f8025632b1af94362c8a4fec2edbf160df1885f3eb9892a4e4929ff58c63cd72",
+      "file": "src/__pycache__/build_panel.cpython-313.pyc",
+      "pass": true
+    },
+    {
+      "actual": "ecdc857db8b0aaa8d10e5202ca04e9fc1494bf5d75de03f842e4af35007edf8e",
+      "expected": "ecdc857db8b0aaa8d10e5202ca04e9fc1494bf5d75de03f842e4af35007edf8e",
+      "file": "src/__pycache__/build_prices.cpython-313.pyc",
+      "pass": true
+    },
+    {
+      "actual": "d35692c8a7ee1238f37bd7179138569875cbbe85db4d5a6d9098515f584fb3a3",
+      "expected": "d35692c8a7ee1238f37bd7179138569875cbbe85db4d5a6d9098515f584fb3a3",
+      "file": "src/__pycache__/build_sec_features.cpython-313.pyc",
+      "pass": true
+    },
+    {
+      "actual": "a0981d9ba04c2a936cde0f77945ff1c63a9c0149b8a548aebe028b6d1c42ad76",
+      "expected": "a0981d9ba04c2a936cde0f77945ff1c63a9c0149b8a548aebe028b6d1c42ad76",
+      "file": "src/__pycache__/common.cpython-313.pyc",
+      "pass": true
+    },
+    {
+      "actual": "dcf867c38d074b55e2cb6334164514b131116c4881cec29742ee02d017fb149e",
+      "expected": "dcf867c38d074b55e2cb6334164514b131116c4881cec29742ee02d017fb149e",
+      "file": "src/__pycache__/download_data.cpython-313.pyc",
+      "pass": true
+    },
+    {
+      "actual": "b5aa5e1593cf433a26de2a0c245bd788c0a0ab5ad519bbdb978b6a522b525c24",
+      "expected": "b5aa5e1593cf433a26de2a0c245bd788c0a0ab5ad519bbdb978b6a522b525c24",
+      "file": "src/__pycache__/open_lockbox.cpython-313.pyc",
+      "pass": true
+    },
+    {
+      "actual": "aa8e3c8d2fd0bf587664e8bb5e91974bf0678bf7b16378692b72da0f55b2d134",
+      "expected": "aa8e3c8d2fd0bf587664e8bb5e91974bf0678bf7b16378692b72da0f55b2d134",
+      "file": "src/__pycache__/prospective.cpython-313.pyc",
+      "pass": true
+    },
+    {
+      "actual": "ea6b1af37d42616904c5425bc398ea55165cbe92eda44d3a735d16a842606235",
+      "expected": "ea6b1af37d42616904c5425bc398ea55165cbe92eda44d3a735d16a842606235",
+      "file": "src/__pycache__/run_current_selector.cpython-313.pyc",
+      "pass": true
+    },
+    {
+      "actual": "8ff53c2adb9da1f274380c6c5ea5be94e1bf025cff5c6c6ec5641db3dcfb9e32",
+      "expected": "8ff53c2adb9da1f274380c6c5ea5be94e1bf025cff5c6c6ec5641db3dcfb9e32",
+      "file": "src/__pycache__/run_tournament.cpython-313.pyc",
+      "pass": true
+    },
+    {
+      "actual": "d129ce3db1a4a6813c0c9d38cda7d9a118d95670d2930a44031bb0a0c4cab4a0",
+      "expected": "d129ce3db1a4a6813c0c9d38cda7d9a118d95670d2930a44031bb0a0c4cab4a0",
+      "file": "src/build_entity_master.py",
+      "pass": true
+    },
+    {
+      "actual": "c57503d55b940542249d8c0cdfd7906c3fd01d380cc9a26e926b943978690a4b",
+      "expected": "c57503d55b940542249d8c0cdfd7906c3fd01d380cc9a26e926b943978690a4b",
+      "file": "src/build_panel.py",
+      "pass": true
+    },
+    {
+      "actual": "eeba4d0022c8fd8194b569ff11ed39b47e9e6a7a8826fbbfa662510d751030fa",
+      "expected": "eeba4d0022c8fd8194b569ff11ed39b47e9e6a7a8826fbbfa662510d751030fa",
+      "file": "src/build_prices.py",
+      "pass": true
+    },
+    {
+      "actual": "dcc4183f505cfe5beb2cb914c0fc1e48194dfa41f1c64f39b63a8fd37993fe6d",
+      "expected": "dcc4183f505cfe5beb2cb914c0fc1e48194dfa41f1c64f39b63a8fd37993fe6d",
+      "file": "src/build_sec_features.py",
+      "pass": true
+    },
+    {
+      "actual": "73cdacba6cb5d517ec006b970bae64930c5707cade1b1cc2cb55282399e09583",
+      "expected": "73cdacba6cb5d517ec006b970bae64930c5707cade1b1cc2cb55282399e09583",
+      "file": "src/common.py",
+      "pass": true
+    },
+    {
+      "actual": "14e026784b1248405d1b55f8fa5bb9ff719b7b8925b9ffd2e912bcba049ca272",
+      "expected": "14e026784b1248405d1b55f8fa5bb9ff719b7b8925b9ffd2e912bcba049ca272",
+      "file": "src/download_data.py",
+      "pass": true
+    },
+    {
+      "actual": "bba5e7491fbf9e5cf3bcf6c8d0d796b8a9225d551e22703dafaf6d6e70788d86",
+      "expected": "bba5e7491fbf9e5cf3bcf6c8d0d796b8a9225d551e22703dafaf6d6e70788d86",
+      "file": "src/open_lockbox.py",
+      "pass": true
+    },
+    {
+      "actual": "42be28ec91fbac27d05095de5381ac0609b595069e6f6c3eb37363d18f57bb2d",
+      "expected": "42be28ec91fbac27d05095de5381ac0609b595069e6f6c3eb37363d18f57bb2d",
+      "file": "src/prospective.py",
+      "pass": true
+    },
+    {
+      "actual": "1168af59232e8299edfcb1cd5fbccdbfb93e0cb4cab32550d1246d4e0e6f0346",
+      "expected": "1168af59232e8299edfcb1cd5fbccdbfb93e0cb4cab32550d1246d4e0e6f0346",
+      "file": "src/run_current_selector.py",
+      "pass": true
+    },
+    {
+      "actual": "5084402bf47eff33749f680474c2b422def14845a4d222376adf89dcf3c1df3a",
+      "expected": "5084402bf47eff33749f680474c2b422def14845a4d222376adf89dcf3c1df3a",
+      "file": "src/run_tournament.py",
+      "pass": true
+    },
+    {
+      "actual": "149cea75d6d9b7d9f3fe256de57bf2506f517cbda9c17ceae6604da2c4b5948d",
+      "expected": "149cea75d6d9b7d9f3fe256de57bf2506f517cbda9c17ceae6604da2c4b5948d",
+      "file": "tests/__pycache__/conftest.cpython-313-pytest-9.0.2.pyc",
+      "pass": true
+    },
+    {
+      "actual": "5e1480c1906033e59385b97aabf8ddc081e5e8ef2bf19f159ba999b07210d491",
+      "expected": "5e1480c1906033e59385b97aabf8ddc081e5e8ef2bf19f159ba999b07210d491",
+      "file": "tests/__pycache__/conftest.cpython-313.pyc",
+      "pass": true
+    },
+    {
+      "actual": "a6211180bb9ed60a367a85bb4327835c8eea40187783fe6c8a6b56f15cb575fd",
+      "expected": "a6211180bb9ed60a367a85bb4327835c8eea40187783fe6c8a6b56f15cb575fd",
+      "file": "tests/__pycache__/generate_synthetic_demo.cpython-313.pyc",
+      "pass": true
+    },
+    {
+      "actual": "5a0ba1c03047542939ba8b1b08087888dbe72f607541b8bd00c69703476812d1",
+      "expected": "5a0ba1c03047542939ba8b1b08087888dbe72f607541b8bd00c69703476812d1",
+      "file": "tests/__pycache__/test_pipeline.cpython-313-pytest-9.0.2.pyc",
+      "pass": true
+    },
+    {
+      "actual": "3b6d9f91a1bc2989cee9aad79b70b0a7d3a55099421484f55be6a70a33405023",
+      "expected": "3b6d9f91a1bc2989cee9aad79b70b0a7d3a55099421484f55be6a70a33405023",
+      "file": "tests/__pycache__/test_pipeline.cpython-313.pyc",
+      "pass": true
+    },
+    {
+      "actual": "d0a5179e44e0206108b1fd09e2ecc8c792aae09903c85a3cd4cbf4aaf2335bd9",
+      "expected": "d0a5179e44e0206108b1fd09e2ecc8c792aae09903c85a3cd4cbf4aaf2335bd9",
+      "file": "tests/conftest.py",
+      "pass": true
+    },
+    {
+      "actual": "a6361d2565ca279856b3c7a505fca81d9cf96d4193fbd590dae106741c737ad4",
+      "expected": "a6361d2565ca279856b3c7a505fca81d9cf96d4193fbd590dae106741c737ad4",
+      "file": "tests/generate_synthetic_demo.py",
+      "pass": true
+    },
+    {
+      "actual": "d29f73b35a3b03a9b70b4da579b18f03a1aab2d9218ecfa9eb0fdd31a0088a20",
+      "expected": "d29f73b35a3b03a9b70b4da579b18f03a1aab2d9218ecfa9eb0fdd31a0088a20",
+      "file": "tests/test_pipeline.py",
+      "pass": true
+    },
+    {
+      "actual": "9629360a8850f9b2985b0c8fc17cd044aa4e8953702b4cd0c827275fe157447c",
+      "expected": "9629360a8850f9b2985b0c8fc17cd044aa4e8953702b4cd0c827275fe157447c",
+      "file": "validate_package.py",
+      "pass": true
+    }
+  ],
+  "manifest_passed": 69,
+  "manifest_total": 69,
+  "pass": true,
+  "run_app_bat_present": true
+}

@@ -1,0 +1,18 @@
+[
+  {
+    "file": "sp500_ticker_start_end.csv",
+    "source": "https://raw.githubusercontent.com/fja05680/sp500/refs/heads/master/sp500_ticker_start_end.csv",
+    "grade": "THIRD_PARTY_HISTORICAL_MEMBERSHIP",
+    "size_bytes": 27977,
+    "sha256": "39c488ebd6ce6838599e54751adbe8c8e4b68d5801dd77d29b6d137dd77388ac",
+    "claim_ceiling": "RESEARCH"
+  },
+  {
+    "file": "current_us_universe_2026-07-17.csv",
+    "source": "Nasdaq Trader official symbol directory captured in P6.84",
+    "grade": "OFFICIAL_CURRENT_UNIVERSE",
+    "size_bytes": 1405722,
+    "sha256": "ba8ba572c2ee52f07e29fbb8f11ce554f081cb5a662efa232518b723d144caef",
+    "claim_ceiling": "CURRENT_ENGINEERING"
+  }
+]

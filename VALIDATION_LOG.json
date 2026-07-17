@@ -1,0 +1,628 @@
+{
+  "checks": [
+    {
+      "check": "required:README_FIRST.md",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "required:app.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "required:RUN_APP.bat",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "required:RUN_QUICK.bat",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "required:RUN_FULL_HISTORY.bat",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "required:RUN_OFFLINE_TESTS.bat",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "required:OPEN_LOCKBOX_ONCE.bat",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "required:bootstrap.ps1",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "required:run_pipeline.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "required:requirements.txt",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "required:config/freeze_contract.json",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "required:config/source_registry.json",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "required:data/reference/sp500_ticker_start_end.csv",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "required:data/reference/current_us_universe_2026-07-17.csv",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "required:src/download_data.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "required:src/build_prices.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "required:src/build_entity_master.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "required:src/build_sec_features.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "required:src/build_panel.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "required:src/run_tournament.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "required:src/run_current_selector.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "required:src/prospective.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "required:src/open_lockbox.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "required:outputs/synthetic_demo/SYNTHETIC_DEMO_SUMMARY.json",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "required:docs/DATA_GAP_IMPACT.csv",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "required:docs/CLAIM_LADDER.csv",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "required:P6_93_FINAL_OPERATIONAL_STATUS.md",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "historical claim ceiling",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "lockbox no retuning",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "prospective required",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "registered target count four",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "registered model count two",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "membership intervals >1000",
+      "detail": "1259",
+      "pass": true
+    },
+    {
+      "check": "membership contains removals",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "current official universe >10k",
+      "detail": "13054",
+      "pass": true
+    },
+    {
+      "check": "current eligible >4k",
+      "detail": "4843",
+      "pass": true
+    },
+    {
+      "check": "AST:__init__.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "AST:build_entity_master.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "AST:build_panel.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "AST:build_prices.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "AST:build_sec_features.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "AST:common.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "AST:download_data.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "AST:open_lockbox.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "AST:prospective.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "AST:run_current_selector.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "AST:run_tournament.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "AST:run_pipeline.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "AST:app.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "pytest",
+      "detail": "......                                                                   [100%]\n6 passed in 3.86s\n",
+      "pass": true
+    },
+    {
+      "check": "synthetic demo engineering only",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "synthetic OOS predictions",
+      "detail": "5040",
+      "pass": true
+    },
+    {
+      "check": "manifest files >=40",
+      "detail": "69",
+      "pass": true
+    },
+    {
+      "check": "hash:.pytest_cache/.gitignore",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:.pytest_cache/CACHEDIR.TAG",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:.pytest_cache/README.md",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:.pytest_cache/v/cache/nodeids",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:OPEN_LOCKBOX_ONCE.bat",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:P6_86_STATUS.md",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:P6_87_STATUS.md",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:P6_88_STATUS.md",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:P6_89_STATUS.md",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:P6_90_STATUS.md",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:P6_91_STATUS.md",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:P6_92_STATUS.md",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:P6_93_FINAL_OPERATIONAL_STATUS.md",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:README_FIRST.md",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:RUN_APP.bat",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:RUN_FULL_HISTORY.bat",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:RUN_OFFLINE_TESTS.bat",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:RUN_QUICK.bat",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:__pycache__/app.cpython-313.pyc",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:__pycache__/run_pipeline.cpython-313.pyc",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:__pycache__/validate_package.cpython-313.pyc",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:app.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:bootstrap.ps1",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:config/freeze_contract.json",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:config/source_registry.json",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:data/reference/SOURCE_RECEIPTS.json",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:data/reference/current_us_universe_2026-07-17.csv",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:data/reference/sp500_ticker_start_end.csv",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:docs/CLAIM_LADDER.csv",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:docs/DATA_GAP_IMPACT.csv",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:outputs/synthetic_demo/SYNTHETIC_DEMO_SUMMARY.json",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:outputs/synthetic_demo/SYNTHETIC_MONTHLY_IC.csv",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:outputs/synthetic_demo/SYNTHETIC_WFA_PREDICTIONS.csv",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:requirements.txt",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:run_pipeline.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:schemas/ENTITY_QUARANTINE_SCHEMA.csv",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:schemas/PROSPECTIVE_RECEIPT_SCHEMA.csv",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:schemas/TRIAL_GRAVEYARD_SCHEMA.csv",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:src/__init__.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:src/__pycache__/__init__.cpython-313.pyc",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:src/__pycache__/build_entity_master.cpython-313.pyc",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:src/__pycache__/build_panel.cpython-313.pyc",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:src/__pycache__/build_prices.cpython-313.pyc",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:src/__pycache__/build_sec_features.cpython-313.pyc",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:src/__pycache__/common.cpython-313.pyc",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:src/__pycache__/download_data.cpython-313.pyc",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:src/__pycache__/open_lockbox.cpython-313.pyc",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:src/__pycache__/prospective.cpython-313.pyc",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:src/__pycache__/run_current_selector.cpython-313.pyc",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:src/__pycache__/run_tournament.cpython-313.pyc",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:src/build_entity_master.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:src/build_panel.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:src/build_prices.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:src/build_sec_features.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:src/common.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:src/download_data.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:src/open_lockbox.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:src/prospective.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:src/run_current_selector.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:src/run_tournament.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:tests/__pycache__/conftest.cpython-313-pytest-9.0.2.pyc",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:tests/__pycache__/conftest.cpython-313.pyc",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:tests/__pycache__/generate_synthetic_demo.cpython-313.pyc",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:tests/__pycache__/test_pipeline.cpython-313-pytest-9.0.2.pyc",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:tests/__pycache__/test_pipeline.cpython-313.pyc",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:tests/conftest.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:tests/generate_synthetic_demo.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:tests/test_pipeline.py",
+      "detail": "",
+      "pass": true
+    },
+    {
+      "check": "hash:validate_package.py",
+      "detail": "",
+      "pass": true
+    }
+  ],
+  "checks_passed": 122,
+  "checks_total": 122,
+  "live": "BLOCKED",
+  "manifest_files": 69,
+  "operational_runner_ready": true,
+  "package": "War_Room_OS_P6_86_P6_93_US_ALPHA_FOUNDRY_OPERATIONAL",
+  "paper": "BLOCKED",
+  "pass": true,
+  "proven_alpha": 0,
+  "proven_components": 0,
+  "proven_selectors": 0,
+  "real_market_data_included": false,
+  "real_market_tournament_executed": false,
+  "synthetic_engineering_validation": true
+}

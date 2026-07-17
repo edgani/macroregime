@@ -1,0 +1,9 @@
+gap,affected_scope,impact_if_ignored,operational_treatment,does_it_block_v1
+historical analyst consensus PIT,expectation/revision components,look-ahead and revised-consensus contamination,exclude from v1 and collect prospectively,NO
+stock-level historical options/dealer data,options component,false gamma/dealer attribution,exclude stock-level options and keep aggregate context only,NO
+complete historical ticker-CIK mapping,fundamental joins,wrong-company joins and survivor bias,instance-prefix plus active-interval resolver; quarantine unmatched,HIGH BUT MANAGED
+third-party historical prices,return labels,coverage errors and non-executable claims,hash shards; membership filter; research claim ceiling,HIGH BUT MANAGED
+historical S&P membership third-party,universe eligibility,remaining membership errors,restrict to S&P cohort; report coverage; prospective official archive,HIGH BUT MANAGED
+exchange-grade intraday fills,execution,P&L impossible to execute,use daily/weekly gross research only,NO FOR V1
+future prospective observations,proven status,historical contamination mistaken for deployment edge,seal every eligible future shortlist,YES FOR PROVEN LABEL
+filing extraction errors,fundamental components,false feature values,coverage audit and quarantine; full filing review for promoted names,HIGH BUT MANAGED

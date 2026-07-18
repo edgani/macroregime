@@ -237,28 +237,33 @@ def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds
             if not prices.get("idx"):
                 sources["idx"] = f"typef_idx failed: {e}"
 
-    # ---- fallback: production retries real yfinance only; legacy demo loader is test-only ----
-    if not v40_ok:
-        if allow_synthetic:
-            try:
-                from warroom import data as WD
-                for m in markets:
-                    if prices.get(m):
-                        continue
-                    px, src = WD.load(UNI.get(m, UNIVERSE.get(m, [])), days=500)
-                    prices[m] = px
-                    sources[m] = f"warroom.data test-only · {src}"
-            except Exception:
-                pass
-        for m in markets:
-            if prices.get(m):
-                continue
-            px, src = load_prices(
-                UNIVERSE.get(m, []), start, allow_live,
-                allow_synthetic=allow_synthetic,
-            )
-            prices[m] = px
-            sources[m] = src
+    # ---- per-market fallback: retry EVERY missing market, even when another market loaded. ----
+    # The previous code retried only when *all* v40 markets failed. That meant US could load while
+    # FX remained permanently NO_DATA. Missingness is now isolated per market.
+    if allow_synthetic:
+        try:
+            from warroom import data as WD
+            for m in markets:
+                if prices.get(m):
+                    continue
+                px, src = WD.load(UNI.get(m, UNIVERSE.get(m, [])), days=500)
+                prices[m] = px
+                sources[m] = f"warroom.data test-only · {src}"
+        except Exception:
+            pass
+    for m in markets:
+        if prices.get(m):
+            continue
+        px, src = load_prices(
+            UNIVERSE.get(m, []), start, allow_live,
+            allow_synthetic=allow_synthetic,
+        )
+        prices[m] = px
+        sources[m] = f"per-market fallback · {src}"
+        if px:
+            v40_ok = True
+        # Keep the market key present so downstream code can distinguish an empty market from a crash.
+        ohlcv.setdefault(m, {})
     # ---- FRED via v40's fred_loader (the working path) ----
     fred, fsrc = {}, "OFFLINE" if not allow_live else "unavailable"
     if allow_live:

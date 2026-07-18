@@ -1,4 +1,4 @@
-# War Room OS — Capital Intelligence Map / Full Live Intelligence v2
+# War Room OS — Capital Intelligence Map / Full Live Intelligence v2.2
 
 A multi-market decision system with explicit live-data lineage, derivatives/option context, institutional event feeds and fail-closed rendering.
 

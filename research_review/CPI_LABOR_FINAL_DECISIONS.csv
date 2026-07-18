@@ -1,6 +1,0 @@
-scope,decision,evidence,operational_rule
-Standalone 5D/20D propagation signal,FINAL_DROP,"0 promotion passes after expanded model, baseline, bootstrap, multiplicity and era tests.",Do not use CPI/labor packet as a direct 5D/20D trading signal.
-D0 same-day Nasdaq directional association,KEEP_PROSPECTIVE_SHADOW_ONLY,61 OOS events; win rate 63.9%; permutation q 0.0288.,Record direction prospectively after release. Do not calculate tradable P&L from previous close and do not authorize PAPER/LIVE.
-Actual release packet ingestion,KEEP,Official 120-event truth tensor and anomaly/revision lineage remain valid.,"Use as descriptive, scenario and future intraday-research input."
-Immediate post-release execution,BLOCKED_PENDING_STRICT_DATA,No immutable PIT expectations and no exchange-time post-release fills.,Reopen only with strict PIT expectation snapshots and R1/R5/R30 market receipts.
-Further optimization on the same public dataset,STOP,Model and target search is now post-hoc and raises false-discovery risk.,No additional tuning; next evidence must be prospective or strict-data based.

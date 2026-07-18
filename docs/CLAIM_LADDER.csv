@@ -1,7 +1,0 @@
-evidence,status_allowed,capital_permission
-engineering tests only,ENGINEERING_PASS,NONE
-historical association,HISTORICAL_EXPLORATORY,NONE
-purged WFA plus validation,HISTORICAL_CANDIDATE,NONE
-one-shot computational lockbox,LOCKBOX_VALIDATED_CANDIDATE,NONE
-sealed future prospective pass,PAPER_ELIGIBLE,SEPARATE_APPROVAL_REQUIRED
-paper pass,LIVE_ELIGIBLE,SEPARATE_APPROVAL_REQUIRED

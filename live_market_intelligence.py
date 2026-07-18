@@ -543,6 +543,105 @@ def fetch_deribit_currency(currency: str) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
+
+def _bs_delta_gamma(spot: float, strike: float, iv: float, days: float, option_type: str,
+                    rate: float = 0.04, dividend: float = 0.0) -> Tuple[Optional[float], Optional[float]]:
+    if spot <= 0 or strike <= 0 or iv <= 0 or days <= 0:
+        return None, None
+    t = max(days / 365.0, 1.0 / 365.0)
+    root = math.sqrt(t)
+    d1 = (math.log(spot / strike) + (rate - dividend + 0.5 * iv * iv) * t) / (iv * root)
+    delta_call = math.exp(-dividend * t) * _norm_cdf(d1)
+    delta = delta_call if option_type == "call" else delta_call - math.exp(-dividend * t)
+    gamma = math.exp(-dividend * t) * _norm_pdf(d1) / (spot * iv * root)
+    return delta, gamma
+
+
+def fetch_yfinance_option_chain(ticker: str, max_expiries: int = 2, limit: int = 300) -> Dict[str, Any]:
+    """Free delayed option-chain fallback.
+
+    This is a snapshot of OI/volume/IV/quotes, not live trade flow and not dealer inventory.
+    Greeks are Black-Scholes estimates from the reported IV and underlying snapshot.
+    """
+    key = f"yfinance_options_{ticker}_{max_expiries}_{limit}"
+    cached = _read_cache_any(key)
+    if cached and float(cached.get("_cache_age_seconds") or 1e9) <= 90:
+        rows = cached.get("data") or []
+        return {"status": FeedStatus(provider="yfinance", dataset=f"option_chain_{ticker}", state="LIVE",
+                                     fetched_at=cached.get("fetched_at"), age_seconds=cached.get("_cache_age_seconds"),
+                                     stale_after_seconds=600, records=len(rows),
+                                     note="Delayed/free option-chain fallback; not trade-level options flow.").to_dict(),
+                "data": rows}
+    if not _network_enabled():
+        if cached:
+            rows = cached.get("data") or []
+            return {"status": FeedStatus(provider="yfinance", dataset=f"option_chain_{ticker}", state="STALE",
+                                         fetched_at=cached.get("fetched_at"), age_seconds=cached.get("_cache_age_seconds"),
+                                         stale_after_seconds=600, records=len(rows),
+                                         note="Offline; using last-good delayed option-chain snapshot.").to_dict(),
+                    "data": rows}
+        return {"status": FeedStatus(provider="yfinance", dataset=f"option_chain_{ticker}", state="OFFLINE",
+                                     fetched_at=_utc_now(), stale_after_seconds=600, records=0,
+                                     note="Network disabled and no cached chain exists.").to_dict(), "data": []}
+    try:
+        import yfinance as yf
+        tk = yf.Ticker(ticker)
+        expiries = list(tk.options or [])[:max_expiries]
+        try:
+            spot = _f((tk.fast_info or {}).get("last_price"))
+        except Exception:
+            spot = None
+        if spot is None:
+            hist = tk.history(period="5d", interval="1d", auto_adjust=True)
+            if hist is not None and not hist.empty:
+                spot = _f(hist["Close"].dropna().iloc[-1])
+        rows: List[Dict[str, Any]] = []
+        for expiry in expiries:
+            chain = tk.option_chain(expiry)
+            for option_type, frame in (("call", chain.calls), ("put", chain.puts)):
+                if frame is None or frame.empty:
+                    continue
+                for record in frame.to_dict("records"):
+                    strike = _f(record.get("strike")); iv = _f(record.get("impliedVolatility")); days = _days_to_expiration(expiry)
+                    delta = gamma = None
+                    if spot and strike and iv and days:
+                        delta, gamma = _bs_delta_gamma(spot, strike, iv, days, option_type)
+                    rows.append({
+                        "provider": "yfinance", "underlying": ticker,
+                        "contract": record.get("contractSymbol"), "option_type": option_type,
+                        "strike": strike, "expiration": expiry,
+                        "open_interest": _f(record.get("openInterest"), 0.0) or 0.0,
+                        "implied_volatility": iv, "delta": delta, "gamma": gamma,
+                        "theta": None, "vega": None,
+                        "bid": _f(record.get("bid")), "ask": _f(record.get("ask")),
+                        "last_price": _f(record.get("lastPrice")), "last_size": None,
+                        "volume": _f(record.get("volume"), 0.0) or 0.0,
+                        "underlying_price": spot, "timestamp": _iso(record.get("lastTradeDate")),
+                        "oi_reporting_note": "OI is prior-cleared/delayed; not intraday opening/closing intent.",
+                    })
+        if spot and len(rows) > limit:
+            rows.sort(key=lambda r: (str(r.get("expiration") or ""), abs((_f(r.get("strike")) or spot) - spot), -(_f(r.get("open_interest"), 0.0) or 0.0)))
+            rows = rows[:limit]
+        payload = {"fetched_at": _utc_now(), "data": rows}
+        if rows:
+            _write_cache(key, payload)
+        state = "LIVE" if rows else "EMPTY"
+        return {"status": FeedStatus(provider="yfinance", dataset=f"option_chain_{ticker}", state=state,
+                                     fetched_at=payload["fetched_at"], stale_after_seconds=600, records=len(rows),
+                                     note="Delayed/free option-chain OI/volume/IV with estimated Greeks; not live flow.").to_dict(),
+                "data": rows}
+    except Exception as exc:
+        if cached:
+            rows = cached.get("data") or []
+            return {"status": FeedStatus(provider="yfinance", dataset=f"option_chain_{ticker}", state="STALE",
+                                         fetched_at=cached.get("fetched_at"), age_seconds=cached.get("_cache_age_seconds"),
+                                         stale_after_seconds=600, records=len(rows),
+                                         note=f"Fetch failed; using last-good delayed chain: {type(exc).__name__}").to_dict(),
+                    "data": rows}
+        return {"status": FeedStatus(provider="yfinance", dataset=f"option_chain_{ticker}", state="ERROR",
+                                     fetched_at=_utc_now(), stale_after_seconds=600, records=0,
+                                     note=f"Option-chain fallback failed: {type(exc).__name__}: {exc}").to_dict(), "data": []}
+
 def fetch_massive_option_chain(ticker: str, limit: int = 250) -> Dict[str, Any]:
     key = os.getenv("MASSIVE_API_KEY", "").strip()
     if not key:
@@ -1175,7 +1274,7 @@ def summarize_option_chain(ticker: str, rows: Sequence[Dict[str, Any]], flow_eve
         vanna = charm = None
         if spot and iv and days:
             vanna, charm = _bs_vanna_charm(spot, strike, iv, days, "call" if sign > 0 else "put")
-        multiplier = 100.0 if str(r.get("provider")) == "Massive" else 1.0
+        multiplier = 100.0 if str(r.get("provider")) in {"Massive", "yfinance"} else 1.0
         gamma_notional = sign * (gamma or 0.0) * oi * multiplier * ((spot or 1.0) ** 2) * 0.01
         vanna_notional = sign * (vanna or 0.0) * oi * multiplier * (spot or 1.0)
         charm_notional = sign * (charm or 0.0) * oi * multiplier * (spot or 1.0)
@@ -1546,7 +1645,10 @@ def collect_live_market_intelligence(desk: Dict[str, Any], institutional: Option
     for currency in [x for x in crypto_assets if x in {"BTC", "ETH"}]:
         tasks[f"deribit:{currency}"] = (fetch_deribit_currency, (currency,))
     for ticker in option_tickers:
-        tasks[f"massive:{ticker}"] = (fetch_massive_option_chain, (ticker,))
+        if os.getenv("MASSIVE_API_KEY", "").strip():
+            tasks[f"massive:{ticker}"] = (fetch_massive_option_chain, (ticker,))
+        else:
+            tasks[f"yfopt:{ticker}"] = (fetch_yfinance_option_chain, (ticker,))
         if os.getenv("ORTEX_API_KEY", "").strip():
             tasks[f"ortex:{ticker}"] = (fetch_ortex_short_interest, (ticker,))
         if os.getenv("INTRINIO_API_KEY", "").strip():
@@ -1575,7 +1677,7 @@ def collect_live_market_intelligence(desk: Dict[str, Any], institutional: Option
         elif prefix == "deribit":
             deribit_chains[name] = result.get("data") or []
             statuses.append(result.get("status") or {})
-        elif prefix == "massive":
+        elif prefix in {"massive", "yfopt"}:
             option_chains[name] = result.get("data") or []
             statuses.append(result.get("status") or {})
         elif prefix in {"ortex", "intrinio"}:
@@ -1658,7 +1760,7 @@ def collect_live_market_intelligence(desk: Dict[str, Any], institutional: Option
     for row in option_summaries:
         if row.get("state") != "NO_DATA":
             events.append({
-                "event_type": "OPTIONS_STATE", "provider": "Massive + optional UW bridge", "ticker": row.get("ticker"),
+                "event_type": "OPTIONS_STATE", "provider": "Option chain + optional UW bridge", "ticker": row.get("ticker"),
                 "timestamp": _utc_now(), "state": (row.get("integrated_context") or {}).get("directional_context") or row.get("directional_context"),
                 "description": f"{(row.get('integrated_context') or {}).get('directional_context') or row.get('directional_context')} · {(row.get('integrated_context') or {}).get('gamma_context') or row.get('gamma_context')} · context {(row.get('integrated_context') or {}).get('context_score') or row.get('context_score')}",
                 "observed": True, "position_inference": "CONTEXT_ONLY", "raw": row,
@@ -1674,7 +1776,8 @@ def collect_live_market_intelligence(desk: Dict[str, Any], institutional: Option
     coverage = {
         "public_crypto_derivatives": {"assets": crypto_assets, "venues": ["Binance", "Bybit", "OKX"], "configured": True},
         "crypto_options": {"assets": [x for x in crypto_assets if x in {"BTC", "ETH"}], "venues": ["Deribit"], "configured": True},
-        "us_option_chain": {"tickers": option_tickers, "configured": bool(os.getenv("MASSIVE_API_KEY", "").strip())},
+        "us_option_chain": {"tickers": option_tickers, "configured": True,
+                            "provider": "Massive" if os.getenv("MASSIVE_API_KEY", "").strip() else "yfinance delayed fallback"},
         "live_greek_flow": {"tickers": option_tickers, "configured": bool(os.getenv("UNUSUAL_WHALES_STREAM_BRIDGE_URL", "").strip())},
         "short_interest_borrow": {"tickers": option_tickers, "configured": bool(os.getenv("ORTEX_API_KEY", "").strip() or os.getenv("INTRINIO_API_KEY", "").strip())},
         "liquidation_heatmap": {"assets": crypto_assets, "configured": bool(os.getenv("COINGLASS_API_KEY", "").strip())},

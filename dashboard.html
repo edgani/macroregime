@@ -353,7 +353,7 @@ function viewMC(){
     <div class="provrow">${badge('eng','◆ consistency_guard.py')}${badge(A.ok?'prod':'res',A.ok?(A.quarantined_count?'🟡 consistent · rows quarantined':'✅ cross-tab consistent'):'❌ critical output block')}</div>
     ${liveStrip}${foundryMissionStrip()}
     ${panel('Current Permission & Integrity',[['eng','◆ fail-closed']],rows([
-      ['Data mode',esc2((window.DASHBOARD_DATA||{}).meta?.source||'NO_DATA'),esc2((window.DASHBOARD_DATA||{}).meta?.data_claim||'synthetic output is blocked')],
+      ['Data mode',esc2((window.DASHBOARD_DATA||{}).meta?.data_mode||(window.DASHBOARD_DATA||{}).meta?.source||'NO_DATA'),esc2((window.DASHBOARD_DATA||{}).meta?.source||'')+' · '+esc2((window.DASHBOARD_DATA||{}).meta?.data_claim||'real data/cache only')],
       ['Universe ceiling',esc2((window.DASHBOARD_DATA||{}).meta?.universe_claim_ceiling||'—'),'live scanner is not the full-market selector'],
       ['Cross-tab audit',`<span class="${A.ok?(A.quarantined_count?'a':'u'):'d'}">${A.ok?(A.quarantined_count?'PARTIAL PASS':'PASS'):'BLOCKED'}</span>`,esc2([...(A.critical_errors||[]),...(A.warnings||[])].join('; ')||'rotation/setup/Alpha identities consistent')],
       ['Raw rotation method','<span class="a">RS proxy</span>','descriptive only; not capital flow and not a recommendation'],
@@ -453,14 +453,14 @@ function viewMarket(id){
       <div class="estc"><div class="ek">Target</div><div class="ev ${x.t==='—'?'m':'u'}">${x.t}</div></div>
       <div class="estc"><div class="ek">R/R</div><div class="ev ${x.rr==='—'?'m':'sg'}">${x.rr}</div></div>
     </div>
-    <div class="styp">${x.ty}${x.gm&&x.gm!=='unknown'&&x.gm!=='INVALID'?`<span class="gm m">${x.gm}</span>`:''}</div><div class="sub2">Levels: ${esc2(x.level_source||'UNAVAILABLE')} · stop ${esc2(x.stop_basis||'—')} · target ${esc2(x.target_basis||'—')}${x.structural_target?` · structural scenario ${esc2(x.structural_target)}`:''}${x.as_of?` · as-of ${esc2(x.as_of)}`:''}</div>
+    <div class="styp">${x.ty}${x.gm&&x.gm!=='unknown'&&x.gm!=='INVALID'?`<span class="gm m">${x.gm}</span>`:''}</div><div class="sub2">Levels: ${esc2(x.level_source||'UNAVAILABLE')} · stop ${esc2(x.stop_basis||'—')} · target ${esc2(x.target_basis||'—')}${x.current_quote!=null?` · intraday quote ${esc2(x.current_quote)} (${esc2(x.quote_status||'—')})`:''}${x.quote_as_of?` @ ${esc2(x.quote_as_of)}`:''}${x.structural_target?` · structural scenario ${esc2(x.structural_target)}`:''}${x.as_of?` · daily model as-of ${esc2(x.as_of)}`:''}</div>
     <div class="swhy">${x.why}${x.macro_alignment?` · macro ${esc2(x.macro_alignment)} (${esc2(x.driver_confidence||'NONE')} coverage)`:''}</div>
   </div>`).join('')
    : `<div class="note">No ticker cleared the registered research gate in this market — nothing emitted (by design).</div>`;
   const droppedNote = dropped>0? `<div class="note" style="margin-top:6px;opacity:.6">${dropped} candidate(s) failed the gate and were omitted (not shown).</div>`:'';
   const foundryBlock = id==='us' ? foundryShortlistPanel() : '';
   return `
-  <div class="viewhead"><h2>${m.title}</h2><span class="vd">${m.sub}${m.source_info&&m.source_info.as_of?` · data as-of ${esc2(m.source_info.as_of.slice(0,10))}`:''}</span>${m.longOnly?'<span class="lo-badge">LONG-ONLY ENFORCED</span>':''}</div>
+  <div class="viewhead"><h2>${m.title}</h2><span class="vd">${m.sub}${m.source_info&&m.source_info.as_of?` · daily as-of ${esc2(m.source_info.as_of.slice(0,10))}`:''}${m.source_info&&m.source_info.status?` · ${esc2(m.source_info.status)}`:''}</span>${m.longOnly?'<span class="lo-badge">LONG-ONLY ENFORCED</span>':''}</div>
   <div class="provrow">${m.prov.map(([c,x])=>badge(c,x)).join('')}</div>
   <div class="lbl" style="margin-bottom:7px">Screener funnel — how a ticker surfaces in this market</div>
   <div class="funnel">${fun}</div>
@@ -475,9 +475,16 @@ function viewMarket(id){
 (function bindLive(){
   const D = window.DASHBOARD_DATA; if(!D) return;
   try{
-    const src=String(D.meta.source||'NO_DATA'), approved=src.startsWith('DAILY_SNAPSHOT');
+    const src=String(D.meta.source||'NO_DATA'), mode=String(D.meta.data_mode||src);
+    const approved=src.startsWith('RESILIENT_')||src.startsWith('DAILY_SNAPSHOT');
     const vp=document.getElementById('verpill'), tp=document.getElementById('valpill');
-    if(vp){vp.textContent='v0.4 · '+(approved?(src.includes('PARTIAL')?'DATA PARTIAL':'DATA DAILY'):'NO DATA'); vp.style.borderColor=approved?'rgba(46,193,111,.6)':'rgba(233,179,60,.65)'; vp.style.color=approved?'var(--up)':'var(--amb)';}
+    let label='NO DATA';
+    if(src==='RESILIENT_DESK_LKG') label='LKG CACHE';
+    else if(mode.includes('INTRADAY_QUOTE')) label=mode.includes('PARTIAL')?'PARTIAL QUOTES + DAILY':'INTRADAY QUOTE + DAILY';
+    else if(src.includes('LKG')) label='DAILY LKG CACHE';
+    else if(src.includes('PARTIAL')) label='DATA PARTIAL';
+    else if(approved) label='DATA DAILY';
+    if(vp){vp.textContent='v0.5 · '+label; vp.style.borderColor=approved?'rgba(46,193,111,.6)':'rgba(233,179,60,.65)'; vp.style.color=approved?'var(--up)':'var(--amb)';}
     if(tp){tp.textContent='RESEARCH ONLY · PAPER/LIVE BLOCKED'; tp.className='pill warn';}
   }catch(e){}
   const esc=s=>String(s==null?'':s).replace(/</g,'&lt;').replace(/>/g,'&gt;');
@@ -519,6 +526,7 @@ function viewMarket(id){
         why:esc(x.why), invalid:x.valid?null:(x.warn||'gate not met'), level_source:x.level_source,
         stop_basis:x.stop_basis,target_basis:x.target_basis,structural_target:x.structural_target,data_quality:x.data_quality,
         as_of:x.as_of,evidence_family:x.evidence_family,score_label:x.score_label,
+        current_quote:x.current_quote,quote_as_of:x.quote_as_of,quote_provider:x.quote_provider,quote_status:x.quote_status,
         macro_alignment:x.macro_alignment,driver_confidence:x.driver_confidence}));
       if(!MARKET[id].setups.length) MARKET[id].setups=[{tk:'—',act:'NO SETUP',ac:'wait',
         e:'—',s:'—',t:'—',rr:'—',ty:'—',gm:'—',cv:0,why:'',
@@ -527,7 +535,7 @@ function viewMarket(id){
   }
   // Mission Control live-macro override (quad / liquidity / fragility / shock / x-asset)
   window.__SYS = D.systemic || null;
-  window.__LIVE = !!(D.meta && String(D.meta.source||'').startsWith('DAILY_SNAPSHOT'));
+  window.__LIVE = !!(D.meta && (String(D.meta.source||'').startsWith('RESILIENT_')||String(D.meta.source||'').startsWith('DAILY_SNAPSHOT')));
   window.__REGIME_TF = D.regime_tf || null;
   window.__REGIONAL = D.regional || null;
   window.__GRADES = D.grades || null;

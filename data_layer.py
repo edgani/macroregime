@@ -1,8 +1,8 @@
 """data_layer.py — the ONE data adapter for War Room OS.
 
-Real data on YOUR machine (yfinance + FRED fredgraph, no API key needed), synthetic
-fallback anywhere else (sandbox / offline). FAILS SOFT to synthetic and STAMPS the source
-so the dashboard is always honest about whether it is showing live or synthetic data.
+Real data on the user machine through a provider cascade plus persistent last-known-good cache.
+Decision-bearing UI paths never synthesize prices. Provider failures are isolated per ticker/market
+and clearly stamped as live refresh, fresh cache, stale cache, partial, or unavailable.
 
 Per-market universes are extensible — add tickers here, they flow through the whole pipeline.
 On-chain (crypto) + COT (commodity/fx) need their own feeds/keys (onchain_engine, cftc_cot_scraper);
@@ -159,160 +159,218 @@ def _load_feeds(allow_live=True, fetch_live=False):
     return feeds
 
 
-def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds=False):
-    """Use v40's PROVEN live loaders (data.loader.load_prices + data.fred_loader.load_fred_series) —
-    the exact path that fetches FRED+Yahoo live for you in v40. Falls back to warroom.data then
-    synthetic only if those are unavailable. In this sandbox the network is blocked, so it falls back;
-    on your machine/Cloud it returns REAL live data like v40 does."""
+def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds=False, force_refresh=False):
+    """Load all requested markets through the resilient v5 provider/cache cascade.
+
+    Live path never fabricates prices. Each ticker independently resolves through providers and then
+    last-known-good cache. One failed ticker or market cannot blank the rest of the desk.
+    """
+    import os
     markets = markets or list(UNIVERSE.keys())
-    prices, ohlcv, sources = {}, {}, {}
+    prices, ohlcv, sources, bundles = {}, {}, {}, {}
     try:
         from warroom import data as WD
-        UNI = {"us": getattr(WD, "US_UNIVERSE", UNIVERSE["us"]),
-               "idx": getattr(WD, "IDX_UNIVERSE", UNIVERSE["idx"]),
-               "crypto": UNIVERSE["crypto"], "commodity": UNIVERSE["commodity"], "fx": UNIVERSE["fx"]}
+        UNI = {
+            "us": getattr(WD, "US_UNIVERSE", UNIVERSE["us"]),
+            "idx": getattr(WD, "IDX_UNIVERSE", UNIVERSE["idx"]),
+            "crypto": UNIVERSE["crypto"],
+            "commodity": UNIVERSE["commodity"],
+            "fx": UNIVERSE["fx"],
+        }
     except Exception:
         UNI = dict(UNIVERSE)
-    # ---- prices + OHLCV via v40's data.loader (yfinance per-ticker, the working path) ----
-    v40_ok = False
-    if allow_live:
-        try:
-            from data.loader import load_prices as _lp, load_ohlcv as _lo
-            for m in markets:
-                tk = UNI.get(m, UNIVERSE.get(m, []))
-                px = _lp(tk)
-                prices[m] = px
-                sources[m] = f"data.loader v40 · {len(px)} live" if px else "data.loader v40 · 0 (network blocked here)"
-                try: ohlcv[m] = _lo(tk)
-                except Exception: ohlcv[m] = {}
-                if px: v40_ok = True
-        except Exception as e:
-            sources["_v40loader"] = f"data.loader failed: {e}"
-    # ---- macro-proxy ETFs (SPY/GLD/USO/UUP/XLI/XLY/TLT) for GIP + regime + cross-asset ----
-    if allow_live:
-        try:
-            from data.loader import load_prices as _lp2
-            _prox = _lp2(["SPY","GLD","USO","UUP","XLI","XLY","TLT","DBC","IWM","SMH"])
-            if _prox:
-                prices["_proxy"] = _prox
-                sources["_proxy"] = f"macro proxies · {len(_prox)}"
-        except Exception:
-            pass
 
-    # ---- country-index proxies for the REGIONAL REGIME row (real, not hardcoded) ----
+    if allow_live:
+        from data.loader import load_market, clear_memory_cache
+        if force_refresh:
+            clear_memory_cache()
+        for market in markets:
+            tickers = UNI.get(market, UNIVERSE.get(market, []))
+            try:
+                bundle = load_market(tickers, market=market, days=756, force_refresh=force_refresh)
+                bundles[market] = bundle
+                ohlcv[market] = dict(bundle.frames)
+                prices[market] = {t: frame["Close"].dropna() for t, frame in bundle.frames.items() if "Close" in frame}
+                sources[market] = bundle.source_summary
+            except Exception as exc:
+                prices[market], ohlcv[market] = {}, {}
+                sources[market] = f"resilient_v5 failed · {type(exc).__name__}: {exc}"
+    else:
+        # Explicit test-only path. The Streamlit app never calls this mode.
+        for market in markets:
+            px, src = load_prices(UNI.get(market, UNIVERSE.get(market, [])), start, allow_live=False)
+            prices[market] = px
+            ohlcv[market] = {t: pd.DataFrame({"Open": s, "High": s, "Low": s, "Close": s, "Volume": 0.0}) for t, s in px.items()}
+            sources[market] = "SYNTHETIC_TEST_ONLY"
+
+    # Macro proxies and regional proxies use the same persistent provider/cache layer.
     proxies = {}
     if allow_live:
         try:
-            from data.loader import load_prices as _lp3
+            from data.loader import load_market
+            proxy_tickers = ["SPY", "^GSPC", "GLD", "USO", "UUP", "XLI", "XLY", "TLT", "DBC", "IWM", "SMH"]
+            proxy_bundle = load_market(proxy_tickers, market="us", days=756, force_refresh=force_refresh)
+            bundles["_proxy"] = proxy_bundle
+            prices["_proxy"] = {t: f["Close"].dropna() for t, f in proxy_bundle.frames.items()}
+            sources["_proxy"] = proxy_bundle.source_summary
+        except Exception as exc:
+            prices["_proxy"] = {}
+            sources["_proxy"] = f"proxy unavailable · {type(exc).__name__}"
+        try:
+            from data.loader import load_market
             from regional_regime import EXTRA_PROXY_TICKERS
-            proxies = _lp3(EXTRA_PROXY_TICKERS) or {}
+            region_bundle = load_market(EXTRA_PROXY_TICKERS, market="us", days=756, force_refresh=force_refresh)
+            bundles["_regional"] = region_bundle
+            proxies = {t: f["Close"].dropna() for t, f in region_bundle.frames.items()}
         except Exception:
             proxies = {}
-    # ---- IHSG/IDX: enrich with idx.co.id (typef_idx) for foreign flow / bandarmologi.
-    #      yfinance (BBCA.JK etc.) above is the reliable base; typef_idx OVERWRITES only if it works. ----
-    if "idx" in markets:
+
+    # Optional IDX official enrichment. It can improve IDX rows but never erases the LKG base.
+    if allow_live and "idx" in markets:
         try:
             from gcfis.feeds.typef_idx import build_typef
             from warroom import data as _WD
-            idxu = getattr(_WD, "IDX_UNIVERSE", ["BBCA.JK","BMRI.JK","BBRI.JK","BBNI.JK","TLKM.JK","ASII.JK"])
-            idx_ohlcv, idx_status = build_typef(idxu, days=120)
-            if idx_ohlcv:
-                col = lambda df: (df["close"] if "close" in df.columns else df["Close"] if "Close" in df.columns else df.iloc[:, 3])
-                prices["idx"] = {tk: col(df) for tk, df in idx_ohlcv.items()}
-                ohlcv["idx"] = {tk: df.rename(columns=str.capitalize) for tk, df in idx_ohlcv.items()}
-                sources["idx"] = f"typef_idx (idx.co.id) · {len(idx_ohlcv)} names + foreign flow"
-                v40_ok = True
-            elif prices.get("idx"):
-                sources["idx"] = f"yfinance base ({len(prices['idx'])}) · typef_idx enrich failed: {idx_status}"
+            idxu = getattr(_WD, "IDX_UNIVERSE", ["BBCA.JK", "BMRI.JK", "BBRI.JK", "BBNI.JK", "TLKM.JK", "ASII.JK"])
+            idx_frames, idx_status = build_typef(idxu, days=120)
+            if idx_frames:
+                normalized = {}
+                for ticker, frame in idx_frames.items():
+                    f = frame.rename(columns={str(c): str(c).capitalize() for c in frame.columns})
+                    if "Close" in f.columns:
+                        normalized[ticker] = f
+                if normalized:
+                    ohlcv.setdefault("idx", {}).update(normalized)
+                    prices.setdefault("idx", {}).update({t: f["Close"].dropna() for t, f in normalized.items()})
+                    sources["idx"] = sources.get("idx", "") + f" · idx.co.id enrich:{len(normalized)}"
             else:
-                sources["idx"] = f"typef_idx: {idx_status}"
-        except Exception as e:
-            if not prices.get("idx"):
-                sources["idx"] = f"typef_idx failed: {e}"
+                sources["idx"] = sources.get("idx", "") + f" · idx enrich unavailable:{idx_status}"
+        except Exception as exc:
+            sources["idx"] = sources.get("idx", "") + f" · idx enrich error:{type(exc).__name__}"
 
-    # ---- fallback: warroom.data, then synthetic ----
-    if not v40_ok:
-        try:
-            from warroom import data as WD
-            for m in markets:
-                if prices.get(m): continue
-                px, src = WD.load(UNI.get(m, UNIVERSE.get(m, [])), days=500)
-                prices[m] = px; sources[m] = f"warroom.data · {src}"
-        except Exception:
-            for m in markets:
-                if prices.get(m): continue
-                px, src = load_prices(UNIVERSE.get(m, []), start, allow_live)
-                prices[m] = px; sources[m] = src
-    # ---- FRED via v40's fred_loader (the working path) ----
+    # FRED already has API -> CSV -> DBnomics -> persistent-cache cascade.
     fred, fsrc = {}, "unavailable"
     try:
         from data.fred_loader import load_fred_series
-        fred = load_fred_series(force_refresh=allow_live) or {}
-        fsrc = f"data.fred_loader v40 · {len(fred)} series" if fred else "data.fred_loader v40 · 0 (blocked here)"
-    except Exception as e:
+        fred = load_fred_series(force_refresh=bool(force_refresh)) or {}
+        fsrc = f"fred_resilient · {len(fred)} series" if fred else "fred unavailable/cache empty"
+    except Exception as exc:
         try:
             from warroom import fred as WF
-            fred = WF.fetch() or {}; fsrc = f"warroom.fred · {len(fred)} series"
-        except Exception as e2:
-            fred, fsrc = {}, f"fred unavailable ({e2})"
-    # ---- VIX (bundled) ----
+            fred = WF.fetch() or {}
+            fsrc = f"warroom.fred · {len(fred)} series"
+        except Exception:
+            fred, fsrc = {}, f"fred unavailable · {type(exc).__name__}"
+
     vix = None
     try:
         vp = os.path.join(os.path.dirname(os.path.abspath(__file__)), "research", "vix.csv")
         if os.path.exists(vp):
-            v = pd.read_csv(vp); v["DATE"] = pd.to_datetime(v["DATE"]); vix = v.set_index("DATE")["CLOSE"]
+            v = pd.read_csv(vp)
+            v["DATE"] = pd.to_datetime(v["DATE"])
+            vix = v.set_index("DATE")["CLOSE"]
     except Exception:
         pass
-    # ---- liquidity read via US Treasury + NY Fed (TGA/RRP/SOFR, no key) ----
+
     try:
         from engines.treasury_liquidity import analyze_liquidity
-        _liq = analyze_liquidity(fred if fred else None)
-    except Exception as e:
-        _liq = {"ok": False, "error": str(e)}
+        liquidity = analyze_liquidity(fred if fred else None)
+    except Exception as exc:
+        liquidity = {"ok": False, "error": str(exc)}
 
     bench = prices.get("us", {}).get(BENCH)
     if bench is None:
-        bp, _ = load_prices([BENCH], start, allow_live); bench = bp.get(BENCH)
-    # ---- specialized flow feeds (on-chain / COT / GEX / dark-pool) → un-gate the metrics ----
+        bench = prices.get("_proxy", {}).get(BENCH)
+    if bench is None:
+        bench = prices.get("_proxy", {}).get("^GSPC")
+    if bench is None and allow_live:
+        try:
+            from data.loader import load_market
+            bb = load_market([BENCH], market="us", days=756, force_refresh=force_refresh)
+            bundles["_bench"] = bb
+            if BENCH in bb.frames:
+                bench = bb.frames[BENCH]["Close"].dropna()
+        except Exception:
+            bench = None
+
     feeds = _load_feeds(allow_live=allow_live, fetch_live=fetch_live_feeds)
 
-    # Source truth is per-market. Daily Yahoo/IDX/FRED snapshots are not streaming prices and
-    # must never be conflated with trading permission. Synthetic rows do not count as approved.
     market_meta = {}
     approved_count = 0
-    for m in markets:
-        pm = prices.get(m) or {}
-        src = str(sources.get(m) or "MISSING")
-        approved = bool(pm) and "SYNTHETIC" not in src.upper() and "0 (NETWORK" not in src.upper()
-        if approved:
-            approved_count += 1
+    stale_market_count = 0
+    for market in markets:
+        pm = prices.get(market) or {}
+        bundle = bundles.get(market)
         latest = []
         for series in pm.values():
             try:
-                idx = pd.Index(series.index)
-                if len(idx): latest.append(pd.Timestamp(idx.max()))
+                if len(series.index):
+                    latest.append(pd.Timestamp(series.index.max()))
             except Exception:
                 pass
         as_of = max(latest).isoformat() if latest else None
-        market_meta[m] = {
-            "status": "READY" if approved else "MISSING",
-            "source": src,
+        if bundle is not None:
+            status = bundle.status
+            live_count = bundle.live_count
+            cache_fresh = bundle.cache_fresh_count
+            cache_stale = bundle.cache_stale_count
+            missing = bundle.missing_count
+            requested = bundle.requested_count
+            provider_counts = bundle.provider_counts
+        else:
+            status = "READY" if pm else "MISSING"
+            live_count, cache_fresh, cache_stale = (len(pm), 0, 0) if pm else (0, 0, 0)
+            missing, requested, provider_counts = (0, len(pm), {}) if pm else (0, 0, {})
+        approved = bool(pm) and status != "MISSING"
+        if approved:
+            approved_count += 1
+        if cache_stale and not (live_count or cache_fresh):
+            stale_market_count += 1
+        market_meta[market] = {
+            "status": status,
+            "source": sources.get(market, "MISSING"),
             "loaded": len(pm),
-            "ohlcv_loaded": len(ohlcv.get(m) or {}),
+            "requested": requested,
+            "live_refreshed": live_count,
+            "cache_fresh": cache_fresh,
+            "cache_stale": cache_stale,
+            "missing": missing,
+            "provider_counts": provider_counts,
+            "ohlcv_loaded": len(ohlcv.get(market) or {}),
             "as_of": as_of,
-            "frequency": "DAILY",
+            "frequency": "DAILY_MODEL",
             "realtime": False,
+            "last_known_good_enabled": True,
         }
+
     if approved_count == len(markets) and approved_count:
-        overall_source = "DAILY_SNAPSHOT"
+        overall_source = "RESILIENT_DAILY_LKG" if stale_market_count else "RESILIENT_DAILY"
     elif approved_count:
-        overall_source = "DAILY_SNAPSHOT_PARTIAL"
+        overall_source = "RESILIENT_DAILY_PARTIAL"
     else:
-        overall_source = "SYNTHETIC"
-    return {"prices": prices, "ohlcv": ohlcv, "bench": bench, "fred": fred, "vix": vix,
-            "sources": sources, "bench_source": "v40" if v40_ok else "fallback", "fred_source": fsrc,
-            "overall_source": overall_source, "market_meta": market_meta, "markets": markets,
-            "treasury_liquidity": _liq, "proxies": proxies, "feeds": feeds}
+        overall_source = "DATA_UNAVAILABLE"
+
+    try:
+        from data.resilient_market_data import write_health
+        write_health(bundles, {"overall_source": overall_source, "fred_source": fsrc})
+    except Exception:
+        pass
+
+    return {
+        "prices": prices,
+        "ohlcv": ohlcv,
+        "bench": bench,
+        "fred": fred,
+        "vix": vix,
+        "sources": sources,
+        "bench_source": "resilient_v5",
+        "fred_source": fsrc,
+        "overall_source": overall_source,
+        "market_meta": market_meta,
+        "markets": markets,
+        "treasury_liquidity": liquidity,
+        "proxies": proxies,
+        "feeds": feeds,
+    }
 
 
 

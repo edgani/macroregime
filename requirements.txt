@@ -11,3 +11,7 @@ pyarrow>=14
 streamlit>=1.35
 requests>=2.31
 pytest>=8.0
+
+urllib3>=2.0
+
+curl_cffi>=0.7

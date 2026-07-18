@@ -345,11 +345,11 @@ def build_desk(data, top_per_market=12):
             "sources": data["sources"], "fred_source": data["fred_source"],
             "universe_n": len(union),
             "note": disc["summary"].get("note", ""),
-            "universe_source": "CONFIGURED_LIVE_SCAN_UNIVERSE",
+            "universe_source": "CONFIGURED_RESILIENT_SCAN_UNIVERSE",
             "universe_claim_ceiling": "NOT_FULL_MARKET_SELECTOR",
             "feeds_status": (data.get("feeds") or {}).get("_status", {}),
             "market_meta": data.get("market_meta", {}),
-            "data_claim": "LATEST_AVAILABLE_DAILY_SNAPSHOT_NOT_STREAMING",
+            "data_claim": "RESILIENT_PROVIDER_CASCADE_WITH_LAST_KNOWN_GOOD_CACHE; INTRADAY_QUOTES_MAY_BE_DELAYED; DAILY_MODEL",
             "trading_permission": "RESEARCH_ONLY_PAPER_AND_LIVE_BLOCKED",
         },
         "systemic": systemic,
@@ -388,8 +388,8 @@ def print_summary(desk):
     print(f"\nPER-MARKET SETUPS (convicted only — empty = gate not met, not a bug):")
     for mid, mk in desk["markets"].items():
         f = mk["funnel"]
-        print(f"  {mk['label']:12} universe {f['universe']:>2} → eliminated {f['eliminated']:>2} → "
-              f"setups {f['setups']:>2}   bias={mk['bias']}")
+        print(f"  {mk['label']:12} loaded {f.get('loaded',0):>3} → history {f.get('history_eligible',0):>3} → "
+              f"valid {f.get('signal_valid',0):>3} → displayed {f.get('displayed',0):>3}   bias={mk['bias']}")
         for x in mk["setups"][:6]:
             rr = f"R/R {x['rr']}" if x["rr"] else "—"
             flag = "" if x["valid"] else " [INVALID: " + (x["warn"] or "gate") + "]"

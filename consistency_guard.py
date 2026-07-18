@@ -94,7 +94,7 @@ def enforce_desk(desk: dict) -> dict:
         warnings.append(f"{len(quarantined)} malformed setup row(s) quarantined; unaffected outputs retained")
         meta["integrity_state"] = "PARTIAL_QUARANTINE"
     else:
-        meta["integrity_state"] = "PASS" if str(meta.get("source") or "").startswith("DAILY_SNAPSHOT") else "NO_DECISION_DATA"
+        meta["integrity_state"] = "PASS" if (str(meta.get("source") or "").startswith("DAILY_SNAPSHOT") or str(meta.get("source") or "").startswith("RESILIENT_")) else "NO_DECISION_DATA"
 
     audit = {
         "ok": not critical,

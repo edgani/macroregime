@@ -22,14 +22,11 @@ if errorlevel 1 (
   )
 )
 
-if not exist ".cache\market_v7" mkdir ".cache\market_v7"
+if not exist ".cache\market_v6" mkdir ".cache\market_v6"
 set WARROOM_DAILY_REFRESH_MINUTES=30
 set WARROOM_QUOTE_REFRESH_SECONDS=180
-set WARROOM_REQUEST_TIMEOUT=5
-set WARROOM_YFINANCE_TIMEOUT=8
-set WARROOM_RETRY_TOTAL=1
-set WARROOM_FEED_WORKERS=12
-set WARROOM_REFRESH_HARD_TIMEOUT=120
+set WARROOM_REQUEST_TIMEOUT=12
+set WARROOM_FEED_WORKERS=8
 
 streamlit run app.py --server.fileWatcherType none
 if errorlevel 1 goto :run_error

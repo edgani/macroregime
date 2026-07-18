@@ -1,13 +1,15 @@
-"""War Room OS v7 — non-blocking resilient dashboard.
+"""War Room OS v6 — resilient intraday-quote + daily-model dashboard.
 
-The UI renders immediately from the latest verified desk (or an explicit no-data desk). Provider and
-engine refreshes run in a supervised background process with a hard timeout. A slow or unavailable
-provider can therefore never trap the Streamlit page behind an endless spinner.
+The app never substitutes synthetic data. It uses a provider cascade and persistent last-known-good
+cache. If current providers fail, the latest verified desk/cache remains visible with an explicit stale
+badge. External networks can still fail; the application isolates failures rather than crashing or
+blanking the entire dashboard.
 """
 from __future__ import annotations
 
 import json
 import os
+import pickle
 import subprocess
 import sys
 from pathlib import Path
@@ -18,17 +20,9 @@ HERE = Path(__file__).resolve().parent
 import streamlit as st
 import streamlit.components.v1 as components
 
-from alpha_foundry_adapter import load_alpha_foundry_state, minimal_desk
-from data.resilient_market_data import read_health
-from desk_runtime import (
-    DESK_SCHEMA_VERSION,
-    cache_age_seconds,
-    is_running,
-    launch_refresh,
-    load_desk,
-    read_status,
-    repair_stale_runtime,
-)
+from alpha_foundry_adapter import attach_alpha_foundry, load_alpha_foundry_state, minimal_desk
+from consistency_guard import enforce_desk
+from data.resilient_market_data import attach_quotes_to_desk, read_health
 
 st.set_page_config(page_title="War Room OS", layout="wide", initial_sidebar_state="collapsed")
 st.markdown("""<style>
@@ -36,14 +30,16 @@ st.markdown("""<style>
   header[data-testid="stHeader"]{background:transparent}
   .block-container{padding:0 !important;max-width:100% !important}
   #MainMenu,footer{visibility:hidden}
-  section[data-testid="stSidebar"]{width:270px !important}
+  section[data-testid="stSidebar"]{width:250px !important}
 </style>""", unsafe_allow_html=True)
 
 DASH_PATH = HERE / "dashboard.html"
-DEFAULT_MARKETS = ["us", "idx", "crypto", "commodity", "fx"]
+DESK_SCHEMA_VERSION = "V6_RICH_DYNAMIC_2026_07_18"
+DESK_CACHE = HERE / ".cache" / "desk_v6.pkl"
+DESK_CACHE.parent.mkdir(parents=True, exist_ok=True)
 
 
-def inject(desk: dict) -> str:
+def _inject(desk):
     html = DASH_PATH.read_text(encoding="utf-8")
     payload = "window.DASHBOARD_DATA = " + json.dumps(desk, default=str) + ";"
     if "/*__INJECT_DATA__*/" in html:
@@ -51,56 +47,92 @@ def inject(desk: dict) -> str:
     return html.replace("<body>", "<body>\n<script>" + payload + "</script>", 1)
 
 
-def status_age_minutes(status: dict) -> float | None:
-    from datetime import datetime, timezone
+def _save_desk_lkg(desk: dict) -> None:
+    meta = dict((desk or {}).get("meta") or {})
+    loaded = sum(int(((market.get("funnel") or {}).get("loaded") or 0)) for market in ((desk or {}).get("markets") or {}).values())
+    if meta.get("desk_schema_version") != DESK_SCHEMA_VERSION or loaded <= 0:
+        return
     try:
-        value = str(status.get("updated_at_utc") or "").replace("Z", "+00:00")
-        timestamp = datetime.fromisoformat(value)
-        if timestamp.tzinfo is None:
-            timestamp = timestamp.replace(tzinfo=timezone.utc)
-        return max(0.0, (datetime.now(timezone.utc) - timestamp).total_seconds() / 60.0)
+        tmp = DESK_CACHE.with_suffix(".pkl.tmp")
+        with tmp.open("wb") as file:
+            pickle.dump(desk, file, protocol=pickle.HIGHEST_PROTOCOL)
+        os.replace(tmp, DESK_CACHE)
+    except Exception:
+        pass
+
+
+def _load_desk_lkg(reason: str) -> dict | None:
+    if not DESK_CACHE.exists():
+        return None
+    try:
+        with DESK_CACHE.open("rb") as file:
+            desk = pickle.load(file)
+        desk = dict(desk)
+        desk["meta"] = dict(desk.get("meta") or {})
+        if desk["meta"].get("desk_schema_version") != DESK_SCHEMA_VERSION:
+            return None
+        desk["meta"]["source"] = "RESILIENT_DESK_LKG"
+        desk["meta"]["data_mode"] = "LAST_KNOWN_GOOD_DESK"
+        desk["meta"]["lkg_reason"] = reason
+        desk["meta"]["trading_permission"] = "RESEARCH_ONLY_PAPER_AND_LIVE_BLOCKED"
+        return desk
     except Exception:
         return None
 
 
-repair_stale_runtime()
+def _approved_source(source: str) -> bool:
+    return source.startswith("RESILIENT_") or source.startswith("DAILY_SNAPSHOT")
+
+
+@st.cache_data(ttl=300, show_spinner="Refreshing providers, last-known-good cache, and War Room engines…")
+def _run(markets: tuple[str, ...], refresh_nonce: int):
+    import data_layer as data_layer
+    from run import build_desk
+
+    force = refresh_nonce > 0
+    try:
+        data = data_layer.load_all(markets=list(markets), allow_live=True, force_refresh=force)
+        source = str(data.get("overall_source") or "")
+        if not _approved_source(source):
+            cached = _load_desk_lkg("all current providers unavailable")
+            if cached is not None:
+                return cached
+            return enforce_desk(minimal_desk(
+                "No real provider or previous cache is available yet. Connect once to seed the last-known-good cache."
+            ))
+        desk = build_desk(data, top_per_market=20)
+        desk = attach_alpha_foundry(desk)
+        desk = attach_quotes_to_desk(desk, force_refresh=force)
+        desk = enforce_desk(desk)
+        if str(desk.get("meta", {}).get("source", "")).startswith("RESILIENT_"):
+            _save_desk_lkg(desk)
+        return desk
+    except Exception as exc:
+        cached = _load_desk_lkg(f"current refresh failed: {type(exc).__name__}: {exc}")
+        if cached is not None:
+            return cached
+        raise
+
+
+if "refresh_nonce" not in st.session_state:
+    st.session_state.refresh_nonce = 0
 
 with st.sidebar:
-    st.markdown("**War Room OS · NON-BLOCKING FEEDS**")
-    markets = st.multiselect("Markets", DEFAULT_MARKETS, default=DEFAULT_MARKETS)
-    auto_refresh = st.checkbox("Auto-refresh in background", value=True)
-    refresh_minutes = st.select_slider("Full refresh interval", options=[5, 10, 15, 30, 60], value=15)
-
-    c1, c2 = st.columns(2)
-    with c1:
-        if st.button("Fast refresh", use_container_width=True):
-            ok, message = launch_refresh(markets or DEFAULT_MARKETS, force=True, scope="fast")
-            (st.success if ok else st.info)(message)
-            st.rerun()
-    with c2:
-        if st.button("Full refresh", use_container_width=True):
-            ok, message = launch_refresh(markets or DEFAULT_MARKETS, force=True, scope="full")
-            (st.success if ok else st.info)(message)
-            st.rerun()
-
-    st.caption(
-        "Dashboard renders first. Providers and engines refresh in a supervised child process. "
-        "Fast refresh seeds a representative desk; full refresh expands the configured universe."
+    st.markdown("**War Room OS · RESILIENT FEEDS**")
+    markets = st.multiselect(
+        "Markets", ["us", "idx", "crypto", "commodity", "fx"],
+        default=["us", "idx", "crypto", "commodity", "fx"],
     )
-
-    status = read_status()
-    st.markdown("**Refresh status**")
-    st.caption(f"{status.get('state','IDLE')} · {status.get('message','No refresh recorded')}")
-    if status.get("scope"):
-        st.caption(f"scope={status.get('scope')} · timeout={status.get('hard_timeout_seconds','?')}s")
-    if (HERE / ".cache" / "refresh_v7.log").exists():
-        with st.expander("Background log tail", expanded=False):
-            try:
-                text = (HERE / ".cache" / "refresh_v7.log").read_text(encoding="utf-8", errors="replace")
-                st.code(text[-5000:])
-            except Exception as exc:
-                st.caption(str(exc))
-
+    auto_refresh = st.checkbox("Auto-refresh", value=True)
+    refresh_minutes = st.select_slider("Refresh interval", options=[2, 5, 10, 15, 30], value=5)
+    if st.button("↻ Refresh all providers now"):
+        st.session_state.refresh_nonce += 1
+        st.cache_data.clear()
+        st.rerun()
+    st.caption(
+        "Provider cascade + persistent last-known-good cache. Intraday quotes may be delayed; "
+        "models use daily OHLCV. PAPER/LIVE permissions remain separate."
+    )
     health = read_health()
     if health.get("markets"):
         with st.expander("Feed health", expanded=False):
@@ -110,85 +142,78 @@ with st.sidebar:
                     f"fresh cache {info.get('cache_fresh',0)} · stale {info.get('cache_stale',0)} · "
                     f"missing {info.get('missing',0)}"
                 )
-
     st.divider()
-    st.markdown("**US Alpha Foundry**")
+    st.markdown("**US Alpha Foundry · integrated backend**")
     foundry = load_alpha_foundry_state()
     counts = foundry.get("counts", {})
     st.caption(
-        f"{foundry.get('status')} · shortlist {counts.get('shortlist',0)} · "
+        f"Status: {foundry.get('status')} · foundry shortlist {counts.get('shortlist',0)} · "
         f"trials {counts.get('registered_trials',0)}"
     )
+    st.caption("Alpha tab tetap berisi tactical discovery watch dari live desk. Frozen Foundry shortlist muncul setelah pipeline selesai. PAPER/LIVE tetap blocked.")
     with st.expander("Run free-data research pipeline", expanded=False):
-        sec_contact = st.text_input("SEC contact email", value=os.environ.get("SEC_CONTACT_EMAIL", ""))
-        if st.button("Run Alpha Foundry Quick"):
+        sec_contact = st.text_input(
+            "SEC contact email", value=os.environ.get("SEC_CONTACT_EMAIL", ""), key="sec_contact"
+        )
+        if st.button("Run US Alpha Foundry — Quick", key="run_af_quick"):
             if "@" not in sec_contact:
-                st.error("Masukkan email kontak valid untuk SEC fair-access policy.")
+                st.error("Masukkan email kontak yang valid untuk SEC fair-access policy.")
             else:
+                alpha_root = HERE / "alpha_foundry"
                 env = os.environ.copy()
                 env["SEC_USER_AGENT"] = f"Edward Gani {sec_contact}"
-                log = (HERE / ".cache" / "alpha_foundry.log").open("ab")
-                kwargs = dict(
-                    cwd=str(HERE / "alpha_foundry"), env=env, stdout=log,
-                    stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL, close_fds=True,
-                )
-                if os.name == "nt":
-                    kwargs["creationflags"] = subprocess.CREATE_NEW_PROCESS_GROUP | subprocess.CREATE_NO_WINDOW
+                with st.spinner("Running free-data Alpha Foundry. Ini dapat memakan waktu..."):
+                    proc = subprocess.run(
+                        [sys.executable, "run_pipeline.py", "--mode", "quick"],
+                        cwd=alpha_root, env=env, text=True, capture_output=True,
+                    )
+                if proc.returncode == 0:
+                    st.success("Pipeline selesai. Dashboard akan memakai output terbaru.")
+                    st.cache_data.clear()
+                    st.rerun()
                 else:
-                    kwargs["start_new_session"] = True
-                subprocess.Popen([sys.executable, "run_pipeline.py", "--mode", "quick"], **kwargs)
-                log.close()
-                st.success("Alpha Foundry started in background. Dashboard tetap bisa dipakai.")
+                    st.error("Pipeline gagal. Log terakhir:")
+                    st.code((proc.stdout + "\n" + proc.stderr)[-6000:])
 
-# Read the current desk immediately. No network call occurs in the Streamlit request path.
-desk = load_desk()
-status = read_status()
-running = is_running()
-cache_age = cache_age_seconds()
-
-# First run: render now and start a fast seed in the background.
-if desk is None and not running:
-    launch_refresh(markets or DEFAULT_MARKETS, force=False, scope="fast")
-    status = read_status()
-    running = True
-
-# Scheduled full refresh. It never blocks this page render.
-if desk is not None and auto_refresh and not running:
-    due_seconds = int(refresh_minutes) * 60
-    if cache_age is None or cache_age >= due_seconds:
-        launch_refresh(markets or DEFAULT_MARKETS, force=False, scope="full")
-        status = read_status()
-        running = True
-
-if desk is None:
-    desk = minimal_desk(
-        "Initial provider seed is running in the background. The interface remains usable; "
-        "real panels will replace this state after the first successful cache write."
+if auto_refresh:
+    components.html(
+        f"""<script>
+        const wait={int(refresh_minutes)*60*1000};
+        setTimeout(()=>window.parent.location.reload(), wait);
+        </script>""",
+        height=0,
     )
-    desk.setdefault("meta", {})
-    desk["meta"].update({
-        "desk_schema_version": DESK_SCHEMA_VERSION,
-        "source": "BACKGROUND_INITIALIZING",
-        "data_mode": "NO_VERIFIED_CACHE_YET",
-        "trading_permission": "RESEARCH_ONLY_PAPER_AND_LIVE_BLOCKED",
-    })
 
-# Visible refresh state without a blocking Streamlit spinner.
-state = str(status.get("state") or "IDLE")
-message = str(status.get("message") or "")
-if state == "RUNNING":
-    st.info(f"Background refresh berjalan: {message}. Dashboard di bawah tetap aktif.")
-elif state == "SUCCESS":
-    st.success(message or "Background refresh completed")
-elif state in {"FAILED", "TIMEOUT", "TIMEOUT_RECOVERED", "LAUNCH_FAILED"}:
-    st.warning(f"{state}: {message}. Last-known-good desk tetap dipakai.")
+try:
+    desk = _run(tuple(markets), int(st.session_state.refresh_nonce))
+    # A manual refresh is forceful only once; subsequent reruns use normal cache policy.
+    st.session_state.refresh_nonce = 0
+    html = _inject(desk)
+    meta = desk.get("meta") or {}
+    source = str(meta.get("source") or "")
+    mode = str(meta.get("data_mode") or "")
+    count = sum(len(m.get("setups") or []) for m in (desk.get("markets") or {}).values())
+    audit = desk.get("consistency_audit") or {}
+    quarantined = int(audit.get("quarantined_count") or 0)
+    if source == "RESILIENT_DESK_LKG":
+        st.warning(
+            "Current providers failed, so the dashboard loaded the last-known-good verified desk. "
+            "No panel was fabricated; inspect data-as-of labels before acting."
+        )
+    elif source.startswith("RESILIENT_"):
+        quote_text = f" · quotes {meta.get('quote_fresh',0)}/{meta.get('quote_total',0)} fresh" if meta.get("quote_total") else ""
+        st.toast(f"{mode or source} · {count} displayed setups{quote_text} · RESEARCH ONLY")
+        if quarantined:
+            st.warning(f"{quarantined} malformed row(s) were quarantined; unaffected markets remain loaded.")
+    elif source == "DATA_UNAVAILABLE":
+        st.warning(
+            "First-run data is unavailable and no last-known-good cache exists. Connect once, then the app can survive temporary provider outages."
+        )
+    else:
+        st.info(f"Research state loaded with source={source}. No trading permission is implied.")
+except Exception as exc:
+    st.error(f"No current provider and no previous verified desk were available: {type(exc).__name__}: {exc}")
+    desk = minimal_desk(str(exc))
+    html = _inject(desk)
 
-html = inject(desk)
 components.html(html, height=1350, scrolling=True)
-
-# Poll only while a worker is active. Otherwise use the selected normal refresh interval.
-reload_seconds = 4 if running else max(60, int(refresh_minutes) * 60)
-components.html(
-    f"""<script>setTimeout(()=>window.parent.location.reload(), {reload_seconds * 1000});</script>""",
-    height=0,
-)

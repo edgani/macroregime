@@ -35,7 +35,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 ROOT = Path(__file__).resolve().parents[1]
-CACHE_ROOT = ROOT / ".cache" / "market_v7"
+CACHE_ROOT = ROOT / ".cache" / "market_v6"
 DAILY_DIR = CACHE_ROOT / "daily"
 QUOTE_DIR = CACHE_ROOT / "quotes"
 HEALTH_PATH = CACHE_ROOT / "feed_health.json"
@@ -44,10 +44,8 @@ for _p in (DAILY_DIR, QUOTE_DIR):
 
 DAILY_REFRESH_MINUTES = int(os.environ.get("WARROOM_DAILY_REFRESH_MINUTES", "30"))
 QUOTE_REFRESH_SECONDS = int(os.environ.get("WARROOM_QUOTE_REFRESH_SECONDS", "180"))
-REQUEST_TIMEOUT = float(os.environ.get("WARROOM_REQUEST_TIMEOUT", "5"))
-YFINANCE_TIMEOUT = float(os.environ.get("WARROOM_YFINANCE_TIMEOUT", "8"))
-RETRY_TOTAL = int(os.environ.get("WARROOM_RETRY_TOTAL", "1"))
-MAX_WORKERS = int(os.environ.get("WARROOM_FEED_WORKERS", "12"))
+REQUEST_TIMEOUT = float(os.environ.get("WARROOM_REQUEST_TIMEOUT", "12"))
+MAX_WORKERS = int(os.environ.get("WARROOM_FEED_WORKERS", "8"))
 MIN_BARS = 60
 
 BINANCE_BASES = [
@@ -221,7 +219,7 @@ def _normalize_frame(frame: pd.DataFrame) -> pd.DataFrame:
 
 def _session() -> requests.Session:
     retry = Retry(
-        total=RETRY_TOTAL, connect=RETRY_TOTAL, read=RETRY_TOTAL, status=RETRY_TOTAL,
+        total=3, connect=3, read=3, status=3,
         backoff_factor=0.6,
         status_forcelist=(429, 500, 502, 503, 504),
         allowed_methods=frozenset(["GET"]),
@@ -289,7 +287,7 @@ def _fetch_yfinance_batch(tickers: list[str], days: int) -> tuple[dict[str, pd.D
             actions=False,
             threads=min(16, max(1, len(tickers))),
             progress=False,
-            timeout=YFINANCE_TIMEOUT,
+            timeout=15,
             multi_level_index=True,
         )
         return _parse_yfinance_download(raw, tickers), errors

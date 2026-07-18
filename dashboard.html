@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WAR ROOM PRO / GCFIS — Investment OS v0.7 Research</title>
+<title>WAR ROOM PRO / GCFIS — Investment OS v0.6 Research</title>
 <style>
   :root{
     --base:#0a0d12; --panel:#10151d; --panel2:#151b25; --elev:#1a2330;
@@ -193,7 +193,7 @@
   <div class="logo">WAR ROOM <b>PRO</b> / GCFIS</div>
   <div class="sub">Investment OS · engine-mapped from your v40 + warroom_pro audit</div>
   <div class="statusbadge">
-    <span class="pill" id="verpill">v0.7 · LOADING</span>
+    <span class="pill" id="verpill">v0.6 · LOADING</span>
     <span class="pill warn" id="valpill">RESEARCH ONLY · PAPER/LIVE BLOCKED</span>
     <span class="clock" id="clk">--:--:-- UTC</span>
   </div>
@@ -439,10 +439,10 @@ function viewMarket(id){
   const foundry=id==='us'?panel('US Alpha Foundry — Frozen Selector',[['eng','◆ separate research pipeline']],foundryShortlistRows()):'';
   return `<div class="viewhead"><h2>${title}</h2><span class="vd">Daily-model research setups${obj(m.source_info).as_of?' · as-of '+txt(String(m.source_info.as_of).slice(0,10)):''} · ${txt(obj(m.source_info).status)}</span>${longOnly?'<span class="lo-badge">LONG-ONLY ENFORCED</span>':''}</div><div class="provrow">${badge('eng','◆ data-bound market adapter')}${badge('res','◐ research watch · not full-market selector')}</div><div class="lbl" style="margin-bottom:7px">Screener funnel — all counts use the same runtime population</div><div class="funnel">${fun}</div>${foundry}<div class="grid" style="grid-template-columns:1.15fr 1fr;align-items:start"><div class="panel"><div class="phd"><h3>Current Tactical Watch Setups</h3><div class="prov">${badge('eng','◆ entry.py')}${badge('res','◐ daily snapshot')}</div></div><div class="pbd"><div class="setups">${cards}</div>${V(f.failed,0)?`<div class="note">${V(f.failed,0)} invalid candidate(s) quarantined or omitted.</div>`:''}</div></div>${panel('Market Driver Bias',[['eng','◆ market_drivers.py']],drvBody)}</div>`;
 }
-(function bindV7(){
+(function bindV6(){
   const M=obj(DESK.meta),src=String(M.source||'NO_DATA'),mode=String(M.data_mode||src),vp=document.getElementById('verpill'),tp=document.getElementById('valpill');
   let label='NO DATA';if(src==='RESILIENT_DESK_LKG')label='LKG CACHE';else if(mode.includes('INTRADAY_QUOTE'))label=mode.includes('PARTIAL')?'PARTIAL QUOTES + DAILY':'INTRADAY QUOTE + DAILY';else if(src.includes('LKG'))label='DAILY LKG CACHE';else if(src.includes('PARTIAL'))label='DATA PARTIAL';else if(src.startsWith('RESILIENT_')||src.startsWith('DAILY_SNAPSHOT'))label='DATA DAILY';
-  if(vp){vp.textContent='v0.7 · '+label;vp.style.borderColor=label==='NO DATA'?'rgba(233,179,60,.65)':'rgba(46,193,111,.6)';vp.style.color=label==='NO DATA'?'var(--amb)':'var(--up)';}
+  if(vp){vp.textContent='v0.6 · '+label;vp.style.borderColor=label==='NO DATA'?'rgba(233,179,60,.65)':'rgba(46,193,111,.6)';vp.style.color=label==='NO DATA'?'var(--amb)':'var(--up)';}
   if(tp){tp.textContent='RESEARCH ONLY · PAPER/LIVE BLOCKED';tp.className='pill warn';}
 })();
 /* router */

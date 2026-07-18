@@ -7,9 +7,9 @@ if not exist ".venv\Scripts\python.exe" (
   exit /b 1
 )
 call ".venv\Scripts\activate.bat"
-python release_validate_v7.py
+python release_validate_v6.py
 if errorlevel 1 (
-  echo [War Room] Deep audit failed. Review RELEASE_VALIDATION_v7.json and console output.
+  echo [War Room] Deep audit failed. Review RELEASE_VALIDATION_v6.json and console output.
   pause
   exit /b 1
 )

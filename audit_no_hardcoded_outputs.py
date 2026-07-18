@@ -10,7 +10,7 @@ checks={
  'generic_tabs_registry_driven': 'Registered Components & Current Proof State' in html,
  'ccxi_not_auto_universe': 'WARROOM_INCLUDE_CURATED_DISCOVERY' in (root/'warroom/data.py').read_text(),
  'consistency_guard_present': (root/'consistency_guard.py').exists(),
- 'canonical_market_keys': '"idx" in markets or "commodity" in markets' in (root/'consistency_guard.py').read_text(),
+ 'canonical_market_keys': 'CANONICAL_MARKETS' in (root/'consistency_guard.py').read_text() and '"idx": "ihsg"' in (root/'consistency_guard.py').read_text() and '"commodity": "commod"' in (root/'consistency_guard.py').read_text(),
 }
 report={'pass':all(checks.values()),'checks':checks}
 (root/'HARD_CODE_AND_CROSS_TAB_AUDIT.json').write_text(json.dumps(report,indent=2))

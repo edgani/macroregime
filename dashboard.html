@@ -350,12 +350,12 @@ function viewMC(){
     <div class="wcell"><span class="kx">Cross-asset</span><span class="vx i">${esc2(S.cross_asset)}</span></div>
   </div>${rot}<div class="note" style="margin-top:8px">Mission Control no longer promotes raw rotation names. Raw RS proxy observations (${raw.length}) stay in Flow & Rotation; ${unconfirmed.length} unconfirmed name(s) are withheld here. This is not actual fund flow.</div></div></div>`;
   return `<div class="viewhead"><h2 class="sg">MISSION CONTROL</h2><span class="vd">Validated upstream outputs only. No independent ticker ranking.</span></div>
-    <div class="provrow">${badge('eng','◆ consistency_guard.py')}${badge(A.ok?'prod':'res',A.ok?'✅ cross-tab consistent':'❌ output blocked')}</div>
+    <div class="provrow">${badge('eng','◆ consistency_guard.py')}${badge(A.ok?'prod':'res',A.ok?(A.quarantined_count?'🟡 consistent · rows quarantined':'✅ cross-tab consistent'):'❌ critical output block')}</div>
     ${liveStrip}${foundryMissionStrip()}
     ${panel('Current Permission & Integrity',[['eng','◆ fail-closed']],rows([
       ['Data source',esc2((window.DASHBOARD_DATA||{}).meta?.source||'NO_DATA'),'synthetic output is blocked'],
       ['Universe ceiling',esc2((window.DASHBOARD_DATA||{}).meta?.universe_claim_ceiling||'—'),'live scanner is not the full-market selector'],
-      ['Cross-tab audit',`<span class="${A.ok?'u':'d'}">${A.ok?'PASS':'BLOCKED'}</span>`,esc2((A.errors||[]).join('; ')||'rotation/setup/Alpha identities consistent')],
+      ['Cross-tab audit',`<span class="${A.ok?(A.quarantined_count?'a':'u'):'d'}">${A.ok?(A.quarantined_count?'PARTIAL PASS':'PASS'):'BLOCKED'}</span>`,esc2([...(A.critical_errors||[]),...(A.warnings||[])].join('; ')||'rotation/setup/Alpha identities consistent')],
       ['Raw rotation method','<span class="a">RS proxy</span>','descriptive only; not capital flow and not a recommendation'],
       ['PAPER / LIVE','<span class="d">BLOCKED / BLOCKED</span>','until lockbox + prospective evidence']
     ]))}`;
@@ -617,7 +617,7 @@ function viewMarket(id){
   const D = window.DASHBOARD_DATA; if(!D) return;
   try{
     const b=document.querySelector('.mockbadge .pill.warn');
-    const real = D.meta.source && D.meta.source!=='SYNTHETIC';
+    const real = D.meta.source==='LIVE';
     b.textContent = (real?(D.meta.source==='LIVE'?'LIVE · ':'REAL DATA · '):'SYNTHETIC RUN · ')+(D.meta.generated||'');
     b.style.background = real ? 'var(--up)' : 'var(--amb)';
     b.style.borderColor = real ? 'var(--up)' : 'var(--amb)';
@@ -666,7 +666,7 @@ function viewMarket(id){
   }
   // Mission Control live-macro override (quad / liquidity / fragility / shock / x-asset)
   window.__SYS = D.systemic || null;
-  window.__LIVE = !!(D.meta && D.meta.source && D.meta.source!=='SYNTHETIC');
+  window.__LIVE = !!(D.meta && D.meta.source==='LIVE');
   window.__REGIME_TF = D.regime_tf || null;
   window.__REGIONAL = D.regional || null;
   window.__GRADES = D.grades || null;
@@ -676,6 +676,13 @@ function viewMarket(id){
     if(vp){ vp.textContent='v0.3 · LIVE'; vp.style.borderColor='rgba(46,193,111,.6)'; vp.style.color='var(--up)'; }
     if(tp){ const un=(D.meta&&D.meta.universe_n)||0; tp.textContent='● LIVE · '+un+' names'; tp.className='pill'; tp.style.borderColor='rgba(46,193,111,.6)'; tp.style.color='var(--up)'; }
     const t=document.title; document.title=t.replace('MOCK v0.2','LIVE v0.3');
+  }
+  else {
+    const vp=document.getElementById('verpill'), tp=document.getElementById('valpill');
+    const src=(D.meta&&D.meta.source)||'NO_DATA';
+    const label=src==='DATA_UNAVAILABLE'?'NO DATA':(src==='CONSISTENCY_BLOCKED'?'BLOCKED':'RESEARCH');
+    if(vp){ vp.textContent='v0.3 · '+label; vp.style.borderColor='rgba(233,179,60,.65)'; vp.style.color='var(--amb)'; }
+    if(tp){ tp.textContent='● '+label; tp.className='pill warn'; }
   }
   // blank any market NOT loaded this run so it never shows stale mock prices
   if((window.__LIVE || (D.meta&&D.meta.safe_fail_closed)) && D.markets){

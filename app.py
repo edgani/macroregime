@@ -83,11 +83,18 @@ try:
     desk = _run(tuple(mkts))
     html = _inject(desk)
     src = desk["meta"]["source"]; n = sum(len(m["setups"]) for m in desk["markets"].values())
+    audit = desk.get("consistency_audit") or {}
+    quarantined = int(audit.get("quarantined_count") or 0)
     if src == "LIVE":
         st.toast(f"LIVE · universe {desk['meta']['universe_n']} · {n} setups")
+        if quarantined:
+            st.warning(f"{quarantined} malformed setup row(s) were quarantined. Unaffected live outputs remain visible; inspect Mission Control for details.")
+    elif src == "DATA_UNAVAILABLE":
+        st.warning("Live/approved market data was unavailable, so decision-bearing outputs were withheld. Check the sidebar market selection and Data Health/source details.")
+    elif src == "CONSISTENCY_BLOCKED":
+        st.error("A critical desk-structure error blocked decision outputs. This is different from a network/feed failure; inspect the consistency audit.")
     else:
-        st.warning(f"Feeds returned no data here (source={src}). On your machine/Cloud the same loaders "
-                   f"fetch live — this environment blocks outbound network. Showing the run as-is.")
+        st.info(f"Research state loaded with source={src}. No LIVE claim is being made.")
 except Exception as e:
     st.warning(f"Live market run failed: {e}. Original UI remains available in fail-closed mode; research status is still loaded.")
     desk = minimal_desk(str(e))

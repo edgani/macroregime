@@ -503,7 +503,7 @@ def build_desk(data, top_per_market=12):
             "market_meta": data.get("market_meta", {}),
             "data_claim": "RESILIENT_PROVIDER_CASCADE_WITH_LAST_KNOWN_GOOD_CACHE; INTRADAY_QUOTES_MAY_BE_DELAYED; DAILY_MODEL",
             "trading_permission": "RESEARCH_ONLY_PAPER_AND_LIVE_BLOCKED",
-            "desk_schema_version": "V6_RICH_DYNAMIC_2026_07_18",
+            "desk_schema_version": "V7_NONBLOCKING_REFRESH_2026_07_18",
         },
         "systemic": systemic,
         "regime_tf": _json_safe(_regime_tf),

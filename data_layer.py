@@ -180,6 +180,15 @@ def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds
     except Exception:
         UNI = dict(UNIVERSE)
 
+    # Non-blocking first-start mode: seed a representative live desk quickly, then a full
+    # universe refresh can replace it in the background. This changes only refresh scope,
+    # never the calculation or claim ceiling.
+    if os.environ.get("WARROOM_FAST_START", "0") == "1":
+        fast_limits = {"us": 36, "idx": 20, "crypto": 36, "commodity": 6, "fx": 6}
+        for market, limit in fast_limits.items():
+            if market in UNI:
+                UNI[market] = list(dict.fromkeys(UNI[market]))[:limit]
+
     if allow_live:
         from data.loader import load_market, clear_memory_cache
         if force_refresh:

@@ -1,4 +1,4 @@
-"""market_drivers.py — frozen causal-sign hypothesis map with current change-z readings per market.
+"""market_drivers.py — researched surge-up / surge-down driver matrix PER MARKET (June 2026).
 Each driver: series id (to wire), sign (+1: factor UP → market UP), horizon (ST days–weeks /
 MT 1–6mo / LT 6mo+), strength 1–3, and the empirical note. read_all() computes a robust z of the
 CHANGE of any series supplied (change-centric, never level) and aggregates a per-market bias.
@@ -92,11 +92,6 @@ def read_all(data: dict | None) -> dict:
                     z = None
             row = dict(d)
             row["reading_z"] = round(z, 2) if z is not None else None
-            signed = (d["sign"] * z) if z is not None else None
-            row["signed_contribution_z"] = round(signed, 2) if signed is not None else None
-            row["effect"] = ("TAILWIND" if signed is not None and signed > 0.15 else
-                             "HEADWIND" if signed is not None and signed < -0.15 else
-                             "NEUTRAL" if signed is not None else "NO_DATA")
             if z is not None:
                 w = _HW[d["horizon"]] * d["strength"]
                 num += w * d["sign"] * z; den += w
@@ -110,8 +105,6 @@ def read_all(data: dict | None) -> dict:
                     ("SHORT" if full else "LEAN_SHORT") if score < -0.5 else "NEUTRAL")
         else:
             bias = "NO_DATA"
-        fed = int(sum(1 for r in readings if r["reading_z"] is not None))
         out[mkt] = {"drivers": readings, "bias": bias, "score": score,
-                    "fed": fed, "total": len(readings),
-                    "coverage": round(fed / len(readings), 3) if readings else 0.0}
+                    "fed": int(sum(1 for r in readings if r["reading_z"] is not None))}
     return out

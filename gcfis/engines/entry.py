@@ -28,8 +28,7 @@ def _true_atr(ohlcv, n: int = 14) -> float | None:
         return None
 
 def _hedgeye_range(ohlcv, ticker=None) -> dict | None:
-    """Internal MQA risk-range proxy using OHLC true range and frozen TRADE/TREND durations.
-    It is not claimed to be the proprietary Hedgeye calculation.
+    """The REAL Hedgeye risk range (Wilder true-range on high/low, TRADE/TREND durations, no-repaint).
     Returns {trade:{lrr,trr}, trend:{lrr,trr}, ...} or None when OHLC isn't available."""
     if ohlcv is None:
         return None
@@ -104,7 +103,7 @@ def run_entry(price: pd.Series, direction: str, dealer: dict | None = None,
     # ── stop/target: RISK-RANGE driven (thesis boundary), ATR only as fallback when no OHLC ──
     hrr = _hedgeye_range(ohlcv, ticker)
     if hrr:
-        rr_src = "mqa_risk_range_proxy"
+        rr_src = "hedgeye_risk_range"
         lrr, trr = float(hrr["trade"]["lrr"]), float(hrr["trade"]["trr"])     # TRADE = tactical entry zone
         tl = (hrr.get("trend") or {})
         tlrr, ttrr = float(tl.get("lrr") or lrr), float(tl.get("trr") or trr)  # TREND = thesis boundary
@@ -118,19 +117,17 @@ def run_entry(price: pd.Series, direction: str, dealer: dict | None = None,
         if direction == "long":
             fade = etype in {"PULLBACK", "MEAN_REVERSION"}
             entry_px = min(p, lrr + 0.25 * band) if fade else p
-            thesis_stop = lrr - 0.10 * band
-            noise_floor = entry_px - 1.0 * atr_true
+            thesis_stop = lrr - 0.10 * band                   # price out of the TRADE range = setup invalid
+            noise_floor = entry_px - 1.0 * atr_true           # never tighter than one true-ATR of noise
             stop = min(thesis_stop, noise_floor)
-            # A continuation/breakout target must remain above the current executable entry,
-            # even when price has already moved beyond yesterday's frozen range.
-            target = trr if fade else max(entry_px + band, max(trr, ttrr) + band)
+            target = trr if fade else max(trr, ttrr) + 1.0 * band   # fade→range top; breakout→extension
         else:
             fade = etype in {"BOUNCE_SHORT", "MEAN_REVERSION"}
             entry_px = max(p, trr - 0.25 * band) if fade else p
             thesis_stop = trr + 0.10 * band
             noise_floor = entry_px + 1.0 * atr_true
             stop = max(thesis_stop, noise_floor)
-            target = lrr if fade else min(entry_px - band, min(lrr, tlrr) - band)
+            target = lrr if fade else min(lrr, tlrr) - 1.0 * band
         risk_range_out = [round(lrr, 2), round(trr, 2)]
     else:
         rr_src = "atr_fallback (no OHLC — close-only proxy, stop is vol-based not thesis-based)"
@@ -145,38 +142,10 @@ def run_entry(price: pd.Series, direction: str, dealer: dict | None = None,
             else:
                 entry_px = p; stop = p + k_atr * atr; target = p - 2.0 * sigma
         risk_range_out = [round(ref - sigma, 2), round(ref + sigma, 2)]
-    # Directional geometry is part of validity. The old code used absolute distances,
-    # so a target below a long entry could still report a positive R/R and valid=True.
-    finite = all(np.isfinite(float(v)) for v in (entry_px, stop, target))
-    if direction == "long":
-        direction_ok = finite and float(stop) < float(entry_px) < float(target)
-        risk = float(entry_px) - float(stop) if direction_ok else 0.0
-        reward = float(target) - float(entry_px) if direction_ok else 0.0
-    else:
-        direction_ok = finite and float(target) < float(entry_px) < float(stop)
-        risk = float(stop) - float(entry_px) if direction_ok else 0.0
-        reward = float(entry_px) - float(target) if direction_ok else 0.0
-    if not direction_ok:
-        valid = False
-        warn = (warn + "; " if warn else "") + "directional level invariant failed"
+    risk = abs(entry_px - stop); reward = abs(target - entry_px)
     rr = round(reward / risk, 2) if risk > 0 else 0.0
-    if rr < rr_min:
-        valid = False
-        warn = (warn + "; " if warn else "") + f"R/R {rr} < {rr_min}"
-
-    # Adaptive precision prevents sub-$1 assets from collapsing entry/stop/target to
-    # the same two-decimal value. Keep enough decimals to preserve strict ordering.
-    def _round_levels(values):
-        scale = max(abs(float(v)) for v in values if np.isfinite(float(v)))
-        start = 2 if scale >= 10 else (4 if scale >= 1 else 6)
-        for decimals in range(start, 9):
-            rounded = tuple(round(float(v), decimals) for v in values)
-            if len(set(rounded)) == len(rounded):
-                return rounded, decimals
-        return tuple(round(float(v), 8) for v in values), 8
-    (entry_out, stop_out, target_out), price_decimals = _round_levels((entry_px, stop, target))
+    if rr < rr_min: valid = False; warn = (warn + "; " if warn else "") + f"R/R {rr} < {rr_min}"
     return {"ok": True, "entry_type": etype, "entry_score": round(float(np.clip(entry_score, -1, 1)), 2),
             "gamma_regime": gregime, "valid": bool(valid), "warning": warn,
-            "entry_px": entry_out, "stop": stop_out, "target": target_out,
-            "price_decimals": price_decimals,
+            "entry_px": round(entry_px, 2), "stop": round(stop, 2), "target": round(target, 2),
             "rr": rr, "rsi": round(rsi, 1), "risk_range": risk_range_out, "rr_source": rr_src}

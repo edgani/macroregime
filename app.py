@@ -15,6 +15,7 @@ import streamlit.components.v1 as components
 import subprocess
 from pathlib import Path
 from alpha_foundry_adapter import attach_alpha_foundry, load_alpha_foundry_state, minimal_desk
+from consistency_guard import enforce_desk
 
 st.set_page_config(page_title="War Room OS", layout="wide", initial_sidebar_state="collapsed")
 st.markdown("""<style>
@@ -41,7 +42,9 @@ def _run(markets):
     import data_layer as DL
     from run import build_desk
     data = DL.load_all(markets=list(markets), allow_live=True)
-    return attach_alpha_foundry(build_desk(data, top_per_market=40))  # original UI + integrated research state
+    if data.get("overall_source") != "LIVE":
+        return enforce_desk(minimal_desk("Live data unavailable; synthetic outputs are blocked from the review UI."))
+    return enforce_desk(attach_alpha_foundry(build_desk(data, top_per_market=40)))
 
 
 with st.sidebar:

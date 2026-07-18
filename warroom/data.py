@@ -19,14 +19,21 @@ US_NAMES = ["NVDA", "AMD", "AVGO", "MRVL", "SMH", "SOXX", "MU", "TSM", "INTC",
             "MSFT", "GOOGL", "AMZN", "META", "ORCL", "NBIS", "CRM", "NOW",
             "AAPL", "ARKK", "XLE", "XLU", "XLP", "COPX"]
 def _dynamic_us():
+    """Research-only discovered names. Never auto-admit them into the live scanner.
+
+    Explicit opt-in is retained for offline research, but the default app path is fail-closed.
+    A name must enter through the official universe/entity pipeline or a user-supplied watchlist.
+    """
     import os, json
+    if os.environ.get("WARROOM_INCLUDE_CURATED_DISCOVERY", "0") != "1":
+        return []
     try:
         d = json.load(open(os.path.join(os.path.dirname(__file__), "..", "data", "extended_universe.json")))
         ks = list((d.get("tier_2_discovered") or {}).keys()) + list((d.get("tier_3_user_requested") or {}).keys())
         return [k.upper() for k in ks if isinstance(k, str) and k.isalpha() and 1 <= len(k) <= 5 and k.upper() not in US_NAMES and k.upper() != "HYNIX"]
     except Exception:
         return []
-US_NAMES = US_NAMES + _dynamic_us()            # adaptive: merge engine-discovered tickers
+US_NAMES = US_NAMES + _dynamic_us()
 # cross-asset beta-play candidates (precious/miners, energy, copper, crypto-miners, nuclear) for the beta-play finder
 BETA_UNIVERSE = ["ACLS", "GDX", "GDXJ", "SIL", "FNV", "WPM", "NEM", "GOLD", "AEM",
                  "XOP", "OIH", "SLB", "HAL", "AMLP", "FCX", "COPX", "SCCO",

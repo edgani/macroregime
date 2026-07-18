@@ -88,6 +88,17 @@ def load_alpha_foundry_state() -> dict[str, Any]:
     ]
     required_ready = sum(row["status"] == "READY" for row in readiness)
 
+    registry = {}
+    for row in components:
+        registry.setdefault(row.get("tab", "UNKNOWN"), []).append({
+            "component_id": row.get("component_id"),
+            "component_name": row.get("component_name"),
+            "decision_role": row.get("decision_role"),
+            "current_status": row.get("current_status"),
+            "main_blocker": row.get("main_blocker"),
+            "impact_on_final_result": row.get("impact_on_final_result"),
+        })
+
     return {
         "integrated": True,
         "ui_contract": "ORIGINAL_14_TAB_UI_PRESERVED",
@@ -110,6 +121,7 @@ def load_alpha_foundry_state() -> dict[str, Any]:
             "readiness_total": len(readiness),
         },
         "shortlist": shortlist,
+        "component_registry": registry,
         "shortlist_receipt": receipt,
         "validation": validation,
         "discovery": discovery,
@@ -136,16 +148,52 @@ def load_alpha_foundry_state() -> dict[str, Any]:
 
 def attach_alpha_foundry(desk: dict[str, Any]) -> dict[str, Any]:
     desk = dict(desk or {})
-    desk["alpha_foundry"] = load_alpha_foundry_state()
+    state = load_alpha_foundry_state()
+    desk["alpha_foundry"] = state
+    desk["component_registry"] = state.get("component_registry", {})
     desk.setdefault("meta", {})
     desk["meta"]["safe_fail_closed"] = True
+
+    # One source of truth for ticker surfaces. Mission Control may only name a ticker if it
+    # is also emitted by Alpha, a market setup, or the frozen Foundry shortlist. Raw RS rotation
+    # remains available for the Flow tab as a descriptive observation.
+    surfaced = set()
+    setup_map = {}
+    for market in (desk.get("markets") or {}).values():
+        for row in market.get("setups") or []:
+            tk = str(row.get("tk") or "").upper()
+            if tk and tk != "—":
+                surfaced.add(tk); setup_map[tk] = row
+    for row in desk.get("alpha") or []:
+        tk = str(row.get("tk") or "").upper()
+        if tk: surfaced.add(tk)
+    for row in state.get("shortlist") or []:
+        tk = str(row.get("ticker") or "").upper()
+        if tk:
+            surfaced.add(tk)
+            if tk in setup_map:
+                row.update({
+                    "entry": setup_map[tk].get("e"), "stop": setup_map[tk].get("s"),
+                    "target": setup_map[tk].get("t"), "rr": setup_map[tk].get("rr"),
+                    "level_source": setup_map[tk].get("level_source"),
+                    "structural_target": setup_map[tk].get("structural_target"),
+                })
+
+    systemic = desk.setdefault("systemic", {})
+    raw_in = [str(x).upper() for x in systemic.get("rotation_in_raw") or []]
+    raw_out = [str(x).upper() for x in systemic.get("rotation_out_raw") or []]
+    systemic["rotation_in"] = [x for x in raw_in if x in surfaced]
+    systemic["rotation_out"] = [x for x in raw_out if x in surfaced]
+    systemic["rotation_unconfirmed"] = [x for x in raw_in if x not in surfaced]
+    systemic["rotation_claim"] = "CROSS_CONFIRMED_RS_PROXY_ONLY"
+    systemic["surfaced_tickers"] = sorted(surfaced)
     return desk
 
 
 def minimal_desk(error: str | None = None) -> dict[str, Any]:
     markets = {
         key: {"label": key.upper(), "long_only": key == "ihsg", "drivers": [], "bias": "NO_DATA", "funnel": {"universe": 0, "eliminated": 0, "setups": 0}, "setups": []}
-        for key in ("us", "ihsg", "crypto", "commodity", "fx")
+        for key in ("us", "ihsg", "crypto", "commod", "fx")
     }
     return attach_alpha_foundry({
         "meta": {"generated": None, "source": "NO_DATA", "sources": {}, "fred_source": "NO_DATA", "universe_n": 0, "note": error or "Live data unavailable; research state still loaded.", "feeds_status": {}, "safe_fail_closed": True},

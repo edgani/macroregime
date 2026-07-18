@@ -38,19 +38,53 @@ def _num(x, d=None):
         return d
 
 
-def _setup_from_ranking(entry, price, direction):
-    """Enrich a ranking row (ticker/action/conviction/reason) with entry/stop/target via entry.py."""
+def _setup_from_ranking(entry, price, direction, ohlcv=None):
+    """Convert an orchestrator row into one UI setup without recomputing valid levels.
+
+    The orchestrator already ran the entry engine with true OHLCV and risk range. Reusing those
+    values avoids the old bug where run.py silently replaced them with a close-only ATR fallback.
+    """
     tk = entry.get("ticker")
     lo = is_long_only(tk)
-    e = run_entry(price, direction, long_only=lo) if price is not None and len(price) > 60 else {}
+    existing = {
+        "entry_px": entry.get("entry_px"), "stop": entry.get("stop"),
+        "target": entry.get("target"), "rr": entry.get("rr"),
+        "entry_type": entry.get("entry_type"), "gamma_regime": entry.get("gamma_regime"),
+        "valid": entry.get("entry_valid"),
+    }
+    has_existing = all(existing.get(k) not in (None, 0, 0.0, "") for k in ("entry_px", "stop", "target"))
+    if has_existing:
+        e = existing
+        level_source = ((entry.get("execution") or {}).get("level_source")
+                        or "ORCHESTRATOR_RISK_RANGE")
+        warning = ((entry.get("execution") or {}).get("warning") or "")
+    else:
+        e = run_entry(price, direction, long_only=lo, ohlcv=ohlcv, ticker=tk) if price is not None and len(price) > 60 else {}
+        level_source = e.get("rr_source", "UNAVAILABLE")
+        warning = e.get("warning", "")
+    entry_px, stop, target = e.get("entry_px"), e.get("stop"), e.get("target")
+    direction_ok = True
+    try:
+        if direction == "long": direction_ok = float(stop) < float(entry_px) < float(target)
+        elif direction == "short": direction_ok = float(target) < float(entry_px) < float(stop)
+    except Exception:
+        direction_ok = False
+    valid = bool(e.get("valid", False)) and direction_ok
+    if not direction_ok:
+        warning = (warning + "; " if warning else "") + "directional level invariant failed"
     return {
         "tk": tk, "act": entry.get("action", ""), "dir": direction,
         "conv": _num(entry.get("conviction"), 0),
-        "e": _num(e.get("entry_px"), None), "s": _num(e.get("stop"), None),
-        "t": _num(e.get("target"), None), "rr": _num(e.get("rr"), None),
+        "e": _num(entry_px, None), "s": _num(stop, None),
+        "t": _num(target, None), "rr": _num(e.get("rr"), None),
         "ty": e.get("entry_type", ""), "gm": e.get("gamma_regime", ""),
-        "valid": bool(e.get("valid", False)), "warn": e.get("warning", ""),
-        "why": entry.get("reason", ""),
+        "valid": valid, "warn": warning, "why": entry.get("reason", ""),
+        "level_source": level_source,
+        "stop_basis": "TRADE_RANGE_INVALIDATION" if "risk_range" in str(level_source).lower() else "VOLATILITY_FALLBACK",
+        "target_basis": "TACTICAL_RESPONSE_ZONE" if "risk_range" in str(level_source).lower() else "VOLATILITY_FALLBACK",
+        "structural_target": (entry.get("opportunity") or {}).get("base"),
+        "invalidation": entry.get("invalidation") or {},
+        "data_quality": "REAL_OHLC" if ohlcv is not None else "CLOSE_ONLY",
     }
 
 
@@ -157,7 +191,10 @@ def build_desk(data, top_per_market=12):
         "fragility": _num(fr.get("fragility")) if fr.get("ok") else fr.get("reason"),
         "shock_prob": _num(sh.get("shock_prob")) if sh.get("ok") else sh.get("reason"),
         "cross_asset": xa.get("regime"), "defer_longs": xa.get("defer_longs"),
-        "rotation_in": fl.get("rotating_in", []), "rotation_out": fl.get("rotating_out", []),
+        "rotation_in_raw": fl.get("rotating_in", []), "rotation_out_raw": fl.get("rotating_out", []),
+        "rotation_scores": fl.get("rotation_score", {}),
+        "rotation_method": "RELATIVE_STRENGTH_PROXY_NOT_CAPITAL_FLOW",
+        "rotation_in": [], "rotation_out": [],
     }
 
     # ── per-market setups (group ranking by market) ──
@@ -176,13 +213,13 @@ def build_desk(data, top_per_market=12):
         setups = []
         for row in long_rows:
             if market_of(row.get("ticker")) == m:
-                setups.append(_setup_from_ranking(row, pm.get(row["ticker"]), "long"))
+                setups.append(_setup_from_ranking(row, pm.get(row["ticker"]), "long", (data.get("ohlcv", {}).get(m, {}) or {}).get(row["ticker"])))
         for row in short_rows:
             if market_of(row.get("ticker")) == m and not mk_cfg["long_only"]:
-                setups.append(_setup_from_ranking(row, pm.get(row["ticker"]), "short"))
+                setups.append(_setup_from_ranking(row, pm.get(row["ticker"]), "short", (data.get("ohlcv", {}).get(m, {}) or {}).get(row["ticker"])))
         for row in spot_rows:
             if market_of(row.get("ticker")) == m:
-                s = _setup_from_ranking(row, pm.get(row["ticker"]), "long")
+                s = _setup_from_ranking(row, pm.get(row["ticker"]), "long", (data.get("ohlcv", {}).get(m, {}) or {}).get(row["ticker"]))
                 s["ty"] = s["ty"] or "SPOT"
                 setups.append(s)
         setups = setups[:top_per_market]
@@ -196,9 +233,11 @@ def build_desk(data, top_per_market=12):
             except Exception:
                 pass
         drv = bias.get("gold" if m == "commodity" else m, {})
-        markets[m] = {
-            "label": mk_cfg["label"], "long_only": mk_cfg["long_only"],
+        ui_key = {"idx": "ihsg", "commodity": "commod"}.get(m, m)
+        markets[ui_key] = {
+            "source_market": m, "label": mk_cfg["label"], "long_only": mk_cfg["long_only"],
             "drivers": mk_cfg["drivers"],
+            "driver_readings": drv.get("drivers", []),
             "bias": drv.get("bias", "NO_DATA"),
             "funnel": {"universe": len(univ),
                        "eliminated": sum(1 for t in univ if t in eliminated),
@@ -206,14 +245,12 @@ def build_desk(data, top_per_market=12):
             "setups": setups,
         }
 
-    # ── asymmetric alpha (Alpha tab) — structural, over the moonshot universe ──
-    disc = run_discovery(top=20)
-    alpha = [{
-        "tk": c["ticker"], "market": c["domain"], "asymmetry": c["asymmetry"],
-        "tier": c["tier"], "upside": c["upside_bucket"], "base_rate": c["base_rate"],
-        "stage": c["stage"], "node": c["node"], "scarcity": c["scarcity"],
-        "gated": c.get("feed_gated_neutral", []),
-    } for c in disc["candidates"][:12]]
+    # Current Alpha output is intentionally empty here. The previous path used a curated
+    # moonshot universe with neutral feed defaults, which is research prior—not a live selector.
+    # Alpha cards now come only from the frozen Alpha Foundry shortlist or validated final desk.
+    disc = {"summary": {"note": "Curated structural priors are excluded from live Alpha output."}}
+    alpha = []
+
 
     return {
         "meta": {
@@ -222,6 +259,8 @@ def build_desk(data, top_per_market=12):
             "sources": data["sources"], "fred_source": data["fred_source"],
             "universe_n": len(union),
             "note": disc["summary"].get("note", ""),
+            "universe_source": "CONFIGURED_LIVE_SCAN_UNIVERSE",
+            "universe_claim_ceiling": "NOT_FULL_MARKET_SELECTOR",
             "feeds_status": (data.get("feeds") or {}).get("_status", {}),   # per-feed: snapshot / live / absent
         },
         "systemic": systemic,

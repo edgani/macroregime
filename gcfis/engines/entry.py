@@ -28,7 +28,8 @@ def _true_atr(ohlcv, n: int = 14) -> float | None:
         return None
 
 def _hedgeye_range(ohlcv, ticker=None) -> dict | None:
-    """The REAL Hedgeye risk range (Wilder true-range on high/low, TRADE/TREND durations, no-repaint).
+    """Internal MQA risk-range proxy using OHLC true range and frozen TRADE/TREND durations.
+    It is not claimed to be the proprietary Hedgeye calculation.
     Returns {trade:{lrr,trr}, trend:{lrr,trr}, ...} or None when OHLC isn't available."""
     if ohlcv is None:
         return None
@@ -103,7 +104,7 @@ def run_entry(price: pd.Series, direction: str, dealer: dict | None = None,
     # ── stop/target: RISK-RANGE driven (thesis boundary), ATR only as fallback when no OHLC ──
     hrr = _hedgeye_range(ohlcv, ticker)
     if hrr:
-        rr_src = "hedgeye_risk_range"
+        rr_src = "mqa_risk_range_proxy"
         lrr, trr = float(hrr["trade"]["lrr"]), float(hrr["trade"]["trr"])     # TRADE = tactical entry zone
         tl = (hrr.get("trend") or {})
         tlrr, ttrr = float(tl.get("lrr") or lrr), float(tl.get("trr") or trr)  # TREND = thesis boundary

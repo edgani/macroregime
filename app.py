@@ -1,4 +1,4 @@
-"""app.py — War Room OS · LIVE only. Renders the approved v0.3 dashboard on your live feeds.
+"""app.py — War Room OS · latest approved daily snapshots. Renders the approved dashboard.
 
     streamlit run app.py
 
@@ -42,18 +42,19 @@ def _run(markets):
     import data_layer as DL
     from run import build_desk
     data = DL.load_all(markets=list(markets), allow_live=True)
-    if data.get("overall_source") != "LIVE":
-        return enforce_desk(minimal_desk("Live data unavailable; synthetic outputs are blocked from the review UI."))
-    return enforce_desk(attach_alpha_foundry(build_desk(data, top_per_market=40)))
+    source = str(data.get("overall_source") or "")
+    if not source.startswith("DAILY_SNAPSHOT"):
+        return enforce_desk(minimal_desk("Approved daily market data unavailable; synthetic outputs are blocked from the review UI."))
+    return enforce_desk(attach_alpha_foundry(build_desk(data, top_per_market=12)))
 
 
 with st.sidebar:
-    st.markdown("**War Room OS · LIVE**")
+    st.markdown("**War Room OS · DAILY SNAPSHOT / RESEARCH**")
     mkts = st.multiselect("Markets", ["us", "idx", "crypto", "commodity", "fx"],
                           default=["us", "idx", "crypto", "commodity", "fx"])
     if st.button("↻ Refresh live data"):
         st.cache_data.clear()
-    st.caption("Live feeds via v40 loaders (yfinance + FRED). Panels show honest state if a feed is down.")
+    st.caption("Latest available daily OHLCV + macro snapshots. This is not streaming execution data and not a LIVE trading permission.")
     st.divider()
     st.markdown("**US Alpha Foundry · integrated backend**")
     _fs = load_alpha_foundry_state()
@@ -85,10 +86,10 @@ try:
     src = desk["meta"]["source"]; n = sum(len(m["setups"]) for m in desk["markets"].values())
     audit = desk.get("consistency_audit") or {}
     quarantined = int(audit.get("quarantined_count") or 0)
-    if src == "LIVE":
-        st.toast(f"LIVE · universe {desk['meta']['universe_n']} · {n} setups")
+    if str(src).startswith("DAILY_SNAPSHOT"):
+        st.toast(f"DAILY SNAPSHOT · configured watchlist {desk['meta']['universe_n']} · {n} displayed setups · RESEARCH ONLY")
         if quarantined:
-            st.warning(f"{quarantined} malformed setup row(s) were quarantined. Unaffected live outputs remain visible; inspect Mission Control for details.")
+            st.warning(f"{quarantined} malformed setup row(s) were quarantined. Unaffected research outputs remain visible; inspect Mission Control for details.")
     elif src == "DATA_UNAVAILABLE":
         st.warning("Live/approved market data was unavailable, so decision-bearing outputs were withheld. Check the sidebar market selection and Data Health/source details.")
     elif src == "CONSISTENCY_BLOCKED":

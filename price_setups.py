@@ -60,11 +60,18 @@ def price_signal_setups(ohlcv, top=12):
         warning = str(entry.get("warning") or "")
         if not geometry_ok:
             warning = (warning + "; " if warning else "") + "malformed levels quarantined"
+        raw_source = str(entry.get("rr_source", "UNAVAILABLE"))
+        safe_source = "MQA_RISK_RANGE_PROXY" if "hedgeye" in raw_source.lower() else raw_source
+        try:
+            as_of = str(pd.Timestamp(row["df"].index[-1]).date())
+        except Exception:
+            as_of = None
         output.append({
             "tk": row["tk"],
-            "act": "BUILD_LONG" if valid else "WATCH",
+            "act": "WATCH_LONG" if valid else "WATCH",
             "dir": "long",
             "conv": round(float(row["score"]) * 100),
+            "score_label": "SETUP_SCORE",
             "e": entry_px,
             "s": stop,
             "t": target,
@@ -76,11 +83,13 @@ def price_signal_setups(ohlcv, top=12):
             "phase": phase.get("phase") if phase.get("ok") else None,
             "phase_conf": phase.get("confidence") if phase.get("ok") else None,
             "why": f"markup-readiness {round(row['mr'])} · RS {round(row['rs'] * 100)}%" + (f" · {phase['phase']} {phase['confidence']}%" if phase.get("ok") else ""),
-            "level_source": entry.get("rr_source", "UNAVAILABLE"),
-            "stop_basis": "TRADE_RANGE_INVALIDATION" if "risk_range" in str(entry.get("rr_source", "")).lower() else "VOLATILITY_FALLBACK",
-            "target_basis": "TACTICAL_RESPONSE_ZONE" if "risk_range" in str(entry.get("rr_source", "")).lower() else "VOLATILITY_FALLBACK",
+            "level_source": safe_source,
+            "stop_basis": "RISK_RANGE_INVALIDATION" if "risk_range" in raw_source.lower() else "VOLATILITY_FALLBACK",
+            "target_basis": "TACTICAL_RESPONSE_ZONE" if "risk_range" in raw_source.lower() else "VOLATILITY_FALLBACK",
             "structural_target": None,
-            "data_quality": "REAL_OHLC",
+            "data_quality": "DAILY_OHLC_SNAPSHOT",
+            "evidence_family": "PRICE_RS",
+            "as_of": as_of,
             "price_decimals": entry.get("price_decimals"),
         })
     return output

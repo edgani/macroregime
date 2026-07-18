@@ -182,17 +182,26 @@ def attach_alpha_foundry(desk: dict[str, Any]) -> dict[str, Any]:
     systemic = desk.setdefault("systemic", {})
     raw_in = [str(x).upper() for x in systemic.get("rotation_in_raw") or []]
     raw_out = [str(x).upper() for x in systemic.get("rotation_out_raw") or []]
-    systemic["rotation_in"] = [x for x in raw_in if x in surfaced]
-    systemic["rotation_out"] = [x for x in raw_out if x in surfaced]
-    systemic["rotation_unconfirmed"] = [x for x in raw_in if x not in surfaced]
-    systemic["rotation_claim"] = "CROSS_CONFIRMED_RS_PROXY_ONLY"
+    # RS rotation and PRICE_RS setups share the same price/relative-strength family. Their overlap
+    # is not independent confirmation. Only a frozen selector/fundamental output can confirm Mission.
+    independent = {str(row.get("ticker") or "").upper() for row in state.get("shortlist") or [] if row.get("ticker")}
+    for market in (desk.get("markets") or {}).values():
+        for row in market.get("setups") or []:
+            if str(row.get("evidence_family") or "").upper() not in {"PRICE_RS", "PRICE_ONLY", ""}:
+                tk = str(row.get("tk") or "").upper()
+                if tk: independent.add(tk)
+    systemic["rotation_in"] = [x for x in raw_in if x in independent]
+    systemic["rotation_out"] = [x for x in raw_out if x in independent]
+    systemic["rotation_same_family_overlap"] = [x for x in raw_in if x in surfaced and x not in independent]
+    systemic["rotation_unconfirmed"] = [x for x in raw_in if x not in independent]
+    systemic["rotation_claim"] = "INDEPENDENT_EVIDENCE_REQUIRED"
     systemic["surfaced_tickers"] = sorted(surfaced)
     return desk
 
 
 def minimal_desk(error: str | None = None) -> dict[str, Any]:
     markets = {
-        key: {"label": key.upper(), "long_only": key == "ihsg", "drivers": [], "bias": "NO_DATA", "funnel": {"universe": 0, "eliminated": 0, "setups": 0}, "setups": []}
+        key: {"label": key.upper(), "long_only": key == "ihsg", "drivers": [], "bias": "NO_DATA", "funnel": {"loaded": 0, "surfaceable": 0, "history_eligible": 0, "signal_valid": 0, "displayed": 0, "failed": 0, "non_surfaceable": 0}, "setups": []}
         for key in ("us", "ihsg", "crypto", "commod", "fx")
     }
     return attach_alpha_foundry({

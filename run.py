@@ -30,6 +30,63 @@ from gcfis.engines.asymmetric_discovery import run_discovery
 from gcfis.market_drivers import read_all as market_bias
 
 
+
+
+_NON_STOCK_US = {
+    "SPY","IWM","XLI","XLY","XHB","USO","GLD","UUP","TLT","IEF","DBC","HYG","XLK","XLE","XLF","XLV","XLP","XLU","XLB","XLRE","XLC","IWD","IWF","MTUM",
+    "SMH","SOXX","ARKK","COPX","GDX","GDXJ","SIL","XOP","OIH","AMLP","EEM","EWZ","INDA","FXI","EWY","EWT","EWW","EFA",
+    "EZU","EWU","EWJ","EIDO","EWA","EWC","EWG","EWL","EZA","LQD","JNK","AGG","BIL","TIP","EMB","SHY","BOTZ","NLR","ITA","KWEB","IGV","^VIX"
+}
+
+def _surfaceable_ticker(market, ticker):
+    t = str(ticker or "").upper()
+    if market == "us":
+        return bool(t) and t not in _NON_STOCK_US and not t.startswith("^") and "=" not in t and not t.endswith("-USD")
+    if market == "idx":
+        return t.endswith(".JK") and not t.startswith("^")
+    if market == "crypto":
+        return t.endswith("-USD")
+    return bool(t)
+
+def _history_eligible_count(ohlcv_map):
+    count = 0
+    for frame in (ohlcv_map or {}).values():
+        try:
+            df = __import__("pandas").DataFrame(frame)
+            cols = {str(c).lower() for c in df.columns}
+            if len(df.dropna()) >= 200 and {"open","high","low","close"}.issubset(cols):
+                count += 1
+        except Exception:
+            pass
+    return count
+
+def _driver_bundle(driver_models, market, tickers):
+    if market != "commodity":
+        model = driver_models.get(market, {})
+        rows = []
+        for row in model.get("drivers", []):
+            if row.get("reading_z") is None:
+                continue
+            rows.append({k: row.get(k) for k in ("factor","series","horizon","strength","reading_z","signed_contribution_z","effect")})
+        return model.get("bias", "NO_DATA"), rows, model.get("fed", 0), model.get("total", 0), market.upper()
+    types = []
+    upper = {str(t).upper() for t in tickers}
+    if upper & {"CL=F","BZ=F","USO"}: types.append("oil")
+    if upper & {"GC=F","SI=F","GLD","SLV"}: types.append("gold")
+    rows, biases, fed, total = [], [], 0, 0
+    for subtype in types:
+        model = driver_models.get(subtype, {})
+        fed += int(model.get("fed", 0)); total += int(model.get("total", 0))
+        if model.get("bias") not in (None,"NO_DATA"): biases.append(model.get("bias"))
+        for row in model.get("drivers", []):
+            if row.get("reading_z") is None: continue
+            copy = {k: row.get(k) for k in ("factor","series","horizon","strength","reading_z","signed_contribution_z","effect")}
+            copy["factor"] = subtype.upper()+" · "+str(copy.get("factor"))
+            rows.append(copy)
+    bias = biases[0] if len(set(biases)) == 1 else ("MIXED" if biases else "NO_DATA")
+    label = "/".join(x.upper() for x in types) if types else "NO_SUPPORTED_COMMODITY_MODEL"
+    return bias, rows, fed, total, label
+
 def _num(x, d=None):
     try:
         f = float(x)
@@ -72,19 +129,26 @@ def _setup_from_ranking(entry, price, direction, ohlcv=None):
     valid = bool(e.get("valid", False)) and direction_ok
     if not direction_ok:
         warning = (warning + "; " if warning else "") + "directional level invariant failed"
+    safe_level_source = "MQA_RISK_RANGE_PROXY" if "hedgeye" in str(level_source).lower() else level_source
+    try:
+        as_of = str(__import__("pandas").Timestamp(__import__("pandas").DataFrame(ohlcv).index[-1]).date()) if ohlcv is not None else None
+    except Exception:
+        as_of = None
     return {
         "tk": tk, "act": entry.get("action", ""), "dir": direction,
-        "conv": _num(entry.get("conviction"), 0),
+        "conv": _num(entry.get("conviction"), 0), "score_label": "CONVICTION_SCORE",
         "e": _num(entry_px, None), "s": _num(stop, None),
         "t": _num(target, None), "rr": _num(e.get("rr"), None),
         "ty": e.get("entry_type", ""), "gm": e.get("gamma_regime", ""),
         "valid": valid, "warn": warning, "why": entry.get("reason", ""),
-        "level_source": level_source,
-        "stop_basis": "TRADE_RANGE_INVALIDATION" if "risk_range" in str(level_source).lower() else "VOLATILITY_FALLBACK",
+        "level_source": safe_level_source,
+        "stop_basis": "RISK_RANGE_INVALIDATION" if "risk_range" in str(level_source).lower() else "VOLATILITY_FALLBACK",
         "target_basis": "TACTICAL_RESPONSE_ZONE" if "risk_range" in str(level_source).lower() else "VOLATILITY_FALLBACK",
         "structural_target": (entry.get("opportunity") or {}).get("base"),
         "invalidation": entry.get("invalidation") or {},
-        "data_quality": "REAL_OHLC" if ohlcv is not None else "CLOSE_ONLY",
+        "data_quality": "DAILY_OHLC_SNAPSHOT" if ohlcv is not None else "CLOSE_ONLY",
+        "evidence_family": "MULTI_FACTOR_ORCHESTRATOR",
+        "as_of": as_of,
     }
 
 
@@ -189,7 +253,10 @@ def build_desk(data, top_per_market=12):
                       liq.get("reason"),
                       data.get("treasury_liquidity", {}).get("bias") if data.get("treasury_liquidity", {}).get("ok") else None),
         "fragility": _num(fr.get("fragility")) if fr.get("ok") else fr.get("reason"),
+        "fragility_label": fr.get("label"), "fragility_components": fr.get("components", {}),
+        "shock_score": _num(sh.get("shock_prob")) if sh.get("ok") else sh.get("reason"),
         "shock_prob": _num(sh.get("shock_prob")) if sh.get("ok") else sh.get("reason"),
+        "shock_label": sh.get("alert"), "shock_components": sh.get("components", {}),
         "cross_asset": xa.get("regime"), "defer_longs": xa.get("defer_longs"),
         "rotation_in_raw": fl.get("rotating_in", []), "rotation_out_raw": fl.get("rotating_out", []),
         "rotation_scores": fl.get("rotation_score", {}),
@@ -202,46 +269,65 @@ def build_desk(data, top_per_market=12):
     short_rows = rk.get("master_short", [])
     spot_rows = rk.get("master_spot", [])
     eliminated = {e.get("ticker"): e.get("reason", "eliminated") for e in rk.get("eliminated", []) if isinstance(e, dict)}
-    bias = market_bias(_driver_series(data))  # driver matrix now fed real FRED+price series (unmapped drivers → NO_DATA, honest)
+    driver_models = market_bias(_driver_series(data))  # current change-z readings; missing series remain NO_DATA
 
     markets = {}
     _MKDEF = {"label": None, "long_only": False, "drivers": []}
     for m in data["markets"]:
         mk_cfg = MARKETS.get(m, {**_MKDEF, "label": m})
-        pm = prices.get(m) or {}            # ← safe: a failed-fetch market (e.g. idx down) no longer KeyErrors
-        univ = list(pm.keys())
-        setups = []
+        pm = prices.get(m) or {}
+        ohlcv_m = (data.get("ohlcv", {}).get(m, {}) or {})
+        univ = [t for t in pm.keys() if _surfaceable_ticker(m, t)]
+        evaluated = []
         for row in long_rows:
-            if market_of(row.get("ticker")) == m:
-                setups.append(_setup_from_ranking(row, pm.get(row["ticker"]), "long", (data.get("ohlcv", {}).get(m, {}) or {}).get(row["ticker"])))
+            if market_of(row.get("ticker")) == m and _surfaceable_ticker(m, row.get("ticker")):
+                evaluated.append(_setup_from_ranking(row, pm.get(row["ticker"]), "long", ohlcv_m.get(row["ticker"])))
         for row in short_rows:
-            if market_of(row.get("ticker")) == m and not mk_cfg["long_only"]:
-                setups.append(_setup_from_ranking(row, pm.get(row["ticker"]), "short", (data.get("ohlcv", {}).get(m, {}) or {}).get(row["ticker"])))
+            if market_of(row.get("ticker")) == m and not mk_cfg["long_only"] and _surfaceable_ticker(m, row.get("ticker")):
+                evaluated.append(_setup_from_ranking(row, pm.get(row["ticker"]), "short", ohlcv_m.get(row["ticker"])))
         for row in spot_rows:
-            if market_of(row.get("ticker")) == m:
-                s = _setup_from_ranking(row, pm.get(row["ticker"]), "long", (data.get("ohlcv", {}).get(m, {}) or {}).get(row["ticker"]))
-                s["ty"] = s["ty"] or "SPOT"
-                setups.append(s)
-        setups = setups[:top_per_market]
-        # if the full conviction pipeline surfaced nothing but we have OHLCV, fall back to the
-        # VALIDATED price-signal path (bandarmetrics markup-readiness + RS + entry) so real data
-        # shows real tickers. Labeled PRICE-SIGNAL (short-horizon), not the full conviction gate.
-        if not setups and data.get("ohlcv", {}).get(m):
+            if market_of(row.get("ticker")) == m and _surfaceable_ticker(m, row.get("ticker")):
+                setup = _setup_from_ranking(row, pm.get(row["ticker"]), "long", ohlcv_m.get(row["ticker"]))
+                setup["ty"] = setup["ty"] or "SPOT"
+                evaluated.append(setup)
+        # Price-only fallback is a separate research path. It cannot be called the full
+        # conviction selector and invalid rows do not count as entry-valid.
+        if not any(row.get("valid") for row in evaluated) and ohlcv_m:
             try:
                 from price_setups import price_signal_setups
-                setups = price_signal_setups(data["ohlcv"][m], top=top_per_market)
+                evaluated = price_signal_setups(ohlcv_m, top=max(top_per_market * 3, top_per_market))
             except Exception:
-                pass
-        drv = bias.get("gold" if m == "commodity" else m, {})
+                evaluated = []
+        valid_rows = [row for row in evaluated if row.get("valid") and _surfaceable_ticker(m, row.get("tk"))]
+        failed_rows = [row for row in evaluated if not row.get("valid")]
+        bias_value, driver_rows, driver_fed, driver_total, driver_scope = _driver_bundle(driver_models, m, [row.get("tk") for row in valid_rows] or univ)
+        driver_confidence = "NONE" if driver_fed == 0 else ("LOW" if driver_fed < 2 else "PARTIAL")
+        for row in valid_rows:
+            direction = str(row.get("dir") or "").lower()
+            contra = ((direction == "long" and bias_value in {"SHORT", "LEAN_SHORT"}) or
+                      (direction == "short" and bias_value in {"LONG", "LEAN_LONG"}))
+            aligned = ((direction == "long" and bias_value in {"LONG", "LEAN_LONG"}) or
+                       (direction == "short" and bias_value in {"SHORT", "LEAN_SHORT"}))
+            row["macro_alignment"] = "COUNTER_REGIME" if contra else ("ALIGNED" if aligned else "NEUTRAL_OR_NO_DATA")
+            row["driver_confidence"] = driver_confidence
+            # Price/RS-only rows are watch setups, not recommendations. A low-coverage macro
+            # headwind is disclosed, not used as a hidden hard block.
+            if row.get("evidence_family") == "PRICE_RS":
+                row["act"] = "WATCH_LONG" if direction == "long" else "WATCH_SHORT"
+            elif contra:
+                row["act"] = "WATCH_COUNTER_REGIME"
+        setups = valid_rows[:top_per_market]
         ui_key = {"idx": "ihsg", "commodity": "commod"}.get(m, m)
+        source_info = dict((data.get("market_meta") or {}).get(m) or {})
         markets[ui_key] = {
             "source_market": m, "label": mk_cfg["label"], "long_only": mk_cfg["long_only"],
-            "drivers": mk_cfg["drivers"],
-            "driver_readings": drv.get("drivers", []),
-            "bias": drv.get("bias", "NO_DATA"),
-            "funnel": {"universe": len(univ),
-                       "eliminated": sum(1 for t in univ if t in eliminated),
-                       "setups": len(setups)},
+            "drivers": mk_cfg["drivers"], "driver_scope": driver_scope,
+            "driver_readings": driver_rows, "driver_coverage": {"fed": driver_fed, "total": driver_total},
+            "bias": bias_value, "source_info": source_info,
+            "funnel": {"loaded": len(pm), "surfaceable": len(univ),
+                       "history_eligible": _history_eligible_count({t: ohlcv_m[t] for t in univ if t in ohlcv_m}),
+                       "signal_valid": len(valid_rows), "displayed": len(setups),
+                       "failed": len(failed_rows), "non_surfaceable": len(pm) - len(univ)},
             "setups": setups,
         }
 
@@ -261,7 +347,10 @@ def build_desk(data, top_per_market=12):
             "note": disc["summary"].get("note", ""),
             "universe_source": "CONFIGURED_LIVE_SCAN_UNIVERSE",
             "universe_claim_ceiling": "NOT_FULL_MARKET_SELECTOR",
-            "feeds_status": (data.get("feeds") or {}).get("_status", {}),   # per-feed: snapshot / live / absent
+            "feeds_status": (data.get("feeds") or {}).get("_status", {}),
+            "market_meta": data.get("market_meta", {}),
+            "data_claim": "LATEST_AVAILABLE_DAILY_SNAPSHOT_NOT_STREAMING",
+            "trading_permission": "RESEARCH_ONLY_PAPER_AND_LIVE_BLOCKED",
         },
         "systemic": systemic,
         "regime_tf": _regime_tf,

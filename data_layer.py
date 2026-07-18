@@ -275,10 +275,43 @@ def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds
         bp, _ = load_prices([BENCH], start, allow_live); bench = bp.get(BENCH)
     # ---- specialized flow feeds (on-chain / COT / GEX / dark-pool) → un-gate the metrics ----
     feeds = _load_feeds(allow_live=allow_live, fetch_live=fetch_live_feeds)
-    live = v40_ok or (len(fred) > 5)
+
+    # Source truth is per-market. Daily Yahoo/IDX/FRED snapshots are not streaming prices and
+    # must never be conflated with trading permission. Synthetic rows do not count as approved.
+    market_meta = {}
+    approved_count = 0
+    for m in markets:
+        pm = prices.get(m) or {}
+        src = str(sources.get(m) or "MISSING")
+        approved = bool(pm) and "SYNTHETIC" not in src.upper() and "0 (NETWORK" not in src.upper()
+        if approved:
+            approved_count += 1
+        latest = []
+        for series in pm.values():
+            try:
+                idx = pd.Index(series.index)
+                if len(idx): latest.append(pd.Timestamp(idx.max()))
+            except Exception:
+                pass
+        as_of = max(latest).isoformat() if latest else None
+        market_meta[m] = {
+            "status": "READY" if approved else "MISSING",
+            "source": src,
+            "loaded": len(pm),
+            "ohlcv_loaded": len(ohlcv.get(m) or {}),
+            "as_of": as_of,
+            "frequency": "DAILY",
+            "realtime": False,
+        }
+    if approved_count == len(markets) and approved_count:
+        overall_source = "DAILY_SNAPSHOT"
+    elif approved_count:
+        overall_source = "DAILY_SNAPSHOT_PARTIAL"
+    else:
+        overall_source = "SYNTHETIC"
     return {"prices": prices, "ohlcv": ohlcv, "bench": bench, "fred": fred, "vix": vix,
             "sources": sources, "bench_source": "v40" if v40_ok else "fallback", "fred_source": fsrc,
-            "overall_source": "LIVE" if live else "SYNTHETIC", "markets": markets,
+            "overall_source": overall_source, "market_meta": market_meta, "markets": markets,
             "treasury_liquidity": _liq, "proxies": proxies, "feeds": feeds}
 
 

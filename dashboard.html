@@ -193,8 +193,8 @@
   <div class="logo">WAR ROOM <b>PRO</b> / GCFIS</div>
   <div class="sub">Investment OS · engine-mapped from your v40 + warroom_pro audit</div>
   <div class="mockbadge">
-    <span class="pill" id="verpill">v0.3 · MOCK</span>
-    <span class="pill warn" id="valpill">SYNTHETIC — NOT VALIDATED</span>
+    <span class="pill" id="verpill">v0.4 · NO DATA</span>
+    <span class="pill warn" id="valpill">RESEARCH ONLY · PAPER/LIVE BLOCKED</span>
     <span class="clock" id="clk">--:--:-- UTC</span>
   </div>
 </header>
@@ -338,22 +338,22 @@ function regionalCells(){
 }
 function viewMC(){
   const S=window.__SYS||{}, A=(window.DASHBOARD_DATA||{}).consistency_audit||{};
-  const confirmed=(S.rotation_in||[]), raw=(S.rotation_in_raw||[]), unconfirmed=(S.rotation_unconfirmed||[]);
+  const confirmed=(S.rotation_in||[]), raw=(S.rotation_in_raw||[]), unconfirmed=(S.rotation_unconfirmed||[]), same=(S.rotation_same_family_overlap||[]);
   const rot=confirmed.length
-    ? `<div class="lbl" style="margin-top:9px">Cross-confirmed RS improving: <span class="u">${confirmed.map(esc2).join(', ')}</span></div>`
-    : `<div class="lbl" style="margin-top:9px">Cross-confirmed RS improving: <span class="m">none</span></div>`;
+    ? `<div class="lbl" style="margin-top:9px">Independently confirmed RS improving: <span class="u">${confirmed.map(esc2).join(', ')}</span></div>`
+    : `<div class="lbl" style="margin-top:9px">Independently confirmed RS improving: <span class="m">none</span></div>`;
   const liveStrip=`<div class="panel" style="margin-bottom:12px;border-color:rgba(46,193,111,.35)"><div class="phd"><h3 style="color:var(--up)">◆ DATA-BOUND SYSTEMIC STATE</h3><div class="prov">${badge('eng','◆ run.py')}${badge('res','◐ fail-closed')}</div></div><div class="pbd"><div class="wsb" style="grid-template-columns:repeat(5,1fr)">
-    <div class="wcell"><span class="kx">Quad</span><span class="vx sg">${esc2(S.quad)} · ${esc2(S.quad_name)}</span></div>
+    <div class="wcell"><span class="kx">Regime estimate</span><span class="vx sg">${esc2(S.quad)} · ${esc2(S.quad_name)}</span></div>
     <div class="wcell"><span class="kx">Liquidity</span><span class="vx m">${esc2(S.liquidity)}</span></div>
-    <div class="wcell"><span class="kx">Fragility</span><span class="vx m">${esc2(S.fragility)}</span></div>
-    <div class="wcell"><span class="kx">Shock</span><span class="vx m">${esc2(S.shock_prob)}</span></div>
+    <div class="wcell"><span class="kx">Fragility score</span><span class="vx m">${esc2(S.fragility)}</span></div>
+    <div class="wcell"><span class="kx">Shock-stress score</span><span class="vx m">${esc2(S.shock_score)}</span></div>
     <div class="wcell"><span class="kx">Cross-asset</span><span class="vx i">${esc2(S.cross_asset)}</span></div>
-  </div>${rot}<div class="note" style="margin-top:8px">Mission Control no longer promotes raw rotation names. Raw RS proxy observations (${raw.length}) stay in Flow & Rotation; ${unconfirmed.length} unconfirmed name(s) are withheld here. This is not actual fund flow.</div></div></div>`;
-  return `<div class="viewhead"><h2 class="sg">MISSION CONTROL</h2><span class="vd">Validated upstream outputs only. No independent ticker ranking.</span></div>
+  </div>${rot}<div class="note" style="margin-top:8px">Mission Control requires independent evidence. Raw RS observations (${raw.length}) stay in Flow & Rotation; ${same.length} same-price-family overlap(s) and ${unconfirmed.length} unconfirmed name(s) are withheld. This is not actual fund flow.</div></div></div>`;
+  return `<div class="viewhead"><h2 class="sg">MISSION CONTROL</h2><span class="vd">Data-bound upstream observations only. Descriptive claim ceiling; no independent ticker ranking.</span></div>
     <div class="provrow">${badge('eng','◆ consistency_guard.py')}${badge(A.ok?'prod':'res',A.ok?(A.quarantined_count?'🟡 consistent · rows quarantined':'✅ cross-tab consistent'):'❌ critical output block')}</div>
     ${liveStrip}${foundryMissionStrip()}
     ${panel('Current Permission & Integrity',[['eng','◆ fail-closed']],rows([
-      ['Data source',esc2((window.DASHBOARD_DATA||{}).meta?.source||'NO_DATA'),'synthetic output is blocked'],
+      ['Data mode',esc2((window.DASHBOARD_DATA||{}).meta?.source||'NO_DATA'),esc2((window.DASHBOARD_DATA||{}).meta?.data_claim||'synthetic output is blocked')],
       ['Universe ceiling',esc2((window.DASHBOARD_DATA||{}).meta?.universe_claim_ceiling||'—'),'live scanner is not the full-market selector'],
       ['Cross-tab audit',`<span class="${A.ok?(A.quarantined_count?'a':'u'):'d'}">${A.ok?(A.quarantined_count?'PARTIAL PASS':'PASS'):'BLOCKED'}</span>`,esc2([...(A.critical_errors||[]),...(A.warnings||[])].join('; ')||'rotation/setup/Alpha identities consistent')],
       ['Raw rotation method','<span class="a">RS proxy</span>','descriptive only; not capital flow and not a recommendation'],
@@ -363,173 +363,17 @@ function viewMC(){
 
 /* ══════════ generic tab spec (data-driven) ══════════ */
 const TABS={
- macro:{title:'MACRO &amp; REGIME',cls:'',sub:'Risk-on/off timing, dollar-hub, quad, regime state, decision engine.',
-  prov:[['eng','◆ drivers.py'],['eng','◆ gip_engine.py'],['eng','◆ regime_hmm.py'],['eng','◆ forward_macro.py'],['prod','✅ cross-asset + quad PROD']],
-  panels:[
-   ['Cross-Asset Driver Coherence',[['eng','◆ drivers.py'],['prod','✅ PROD · empirical OLS']],rows([
-     ['Gold (XAU)','<span class="a">STRETCHED +1.4σ</span>','R²=0.61 · real-rates−dollar model'],
-     ['Copper','<span class="u">IN-LINE</span>','R²=0.55 · growth−dollar'],
-     ['Oil (WTI)','<span class="d">OFFSIDE −2.1σ</span>','R²=0.48 · rich vs model'],
-     ['BTC','<span class="a">DECOUPLED</span>','R²=0.22 → coherence N/A (low fit)'],
-     ['SPY','<span class="u">IN-LINE</span>','R²=0.71 · rates+credit+growth']],)],
-   ['GIP Quad Regime',[['eng','◆ gip_engine.py'],['prod','✅ PROD']],rows([
-     ['Current Quad','<span class="a">Q3 · Growth↓ Inflation↑</span>','stagflationary lean'],
-     ['Playbook','<span class="m">Gold, energy, quality, USD</span>','quad→asset map'],
-     ['Δ vs 3mo','Q1 → Q3','deceleration path'],
-     ['Forward-implied','<span class="a">Q3 persists</span>','forward_macro.py · market-implied']],)],
-   ['Regime State Machine',[['eng','◆ regime_hmm.py'],['res','◐ RESEARCH']],rows([
-     ['HMM State','State 3 / 4','Gaussian HMM, runtime-fit on daily'],
-     ['Persistence','~34 days median','needs walk-forward'],
-     ['Historical Analog','1999 / 2007 / 2018','nearest-fit (BUILD)','x']],)],
-   ['Decision Engine',[['eng','◆ decision_center.py'],['eng','◆ regime_meta.py'],['res','◐ structure OK, edges need data']],`
-     <div class="note">Theme → Evidence → Probability → Scenarios → Market → Industry → Company → Ticker → Execution.<br>
-     <span class="d">War = state machine</span> (Shock→Transmission→Reaction→Pricing→Recovery), <span class="d">Fed = conditional</span> (cut+recession ≠ cut+soft-landing). Structure exists in <b>gcfis/meta/decision_stack.py</b>; needs wiring to the UI + edge validation.</div>`],
-  ]},
-
- ew:{title:'EARLY WARNING',cls:'',sub:'Panic-bottom, euphoria-top, crash lead-time, funding stress, mania/distribution.',
-  prov:[['eng','◆ early_warning.py'],['eng','◆ crash_lead.py'],['eng','◆ funding_stress.py'],['eng','◆ crash_bottom.py'],['prod','✅ panic-bottom PROD']],
-  panels:[
-   ['Composite Fear-Greed',[['eng','◆ early_warning.py'],['prod','✅ panic PROD · euphoria FLAGGED']],rows([
-     ['Index (0=fear,100=greed)','<span class="a">58 · mild greed</span>','40%·(1−VIXpct)+30%·(1−breadth)+30%·mom-z'],
-     ['Panic→Bottom signal','<span class="m">not active</span>','when fires: fwd63 +5-8% vs +3%, p<0.001'],
-     ['Euphoria→Top signal','<span class="a">weak (p=0.34)</span>','bull-sample bias — flagged, not overclaimed']],)],
-   ['Crash Lead-Time (probabilistic)',[['eng','◆ crash_lead.py'],['prod','✅ PROD']],rows([
-     ['P(crash ≤12mo)','<span class="a">15%</span>','baseline-conditioned'],
-     ['P(crash ≤24mo)','<span class="d">27%</span>','vs 15% base · p=0.0001'],
-     ['P(crash ≤36mo)','<span class="d">34%</span>','valuation + credit + breadth']],)],
-   ['Funding / Liquidity Stress',[['eng','◆ funding_stress.py'],['need','⚠ needs FRED']],rows([
-     ['SOFR−FF spread','<span class="a">watch</span>','FRED · repo stress proxy'],
-     ['Credit accident risk','<span class="u">low</span>','HY OAS + MOVE composite'],
-     ['Net-liquidity impulse','<span class="u">+</span>','FedBS − TGA − RRP']],)],
-   ['Mania / Distribution',[['eng','◆ crash_bottom.py'],['build','○ insider/IPO feeds BUILD']],`<div class="note">Retail mania · insider selling · CEO selling · IPO/SPAC surge · AI-bubble gauge. Composite exists (crash-pressure + type classifier); insider/IPO sub-panels need alt-data feeds — flagged, not faked.</div>`],
-  ]},
-
- sc:{title:'SUPPLY CHAIN / BOTTLENECK',cls:'',sub:'The choke-points that create asymmetry. Node → tier → who is exposed.',
-  prov:[['eng','◆ bottleneck_engine.py'],['eng','◆ moonshot_universe.py'],['eng','◆ secular_map.py'],['res','◐ scoring RESEARCH']],
-  panels:[
-   ['Bottleneck Migration Map',[['eng','◆ moonshot_universe.py'],['res','◐ 10 domains curated']],rows([
-     ['GPU / accelerator silicon','<span class="a">Tier1 · consensus</span>','NVDA AMD AVGO — priced'],
-     ['Advanced packaging / ABF (L3-4)','<span class="u">Tier3 · accelerating</span>','hidden: AEHR CAMT FORM'],
-     ['Photonics / CPO','<span class="u">Tier2 · accelerating</span>','COHR LITE AAOI · hidden FN'],
-     ['Power / grid','<span class="u">Tier2</span>','GEV ETN VRT POWL'],
-     ['Cooling / thermal','<span class="u">Tier3 · emergence</span>','liquid-cooling supply chain'],
-     ['Uranium / nuclear','<span class="a">Tier3</span>','CCJ UEC · supply-inelastic']],)],
-   ['Bottleneck Score (per node)',[['eng','◆ bottleneck_engine.py'],['res','◐ needs pricing-power test']],rows([
-     ['Formula','geo-mean of normalized [0,1]','irreplaceability × qual-cycle × substitution × layer-depth'],
-     ['Validation gap','bottleneck→pricing-power/return','event-study on YOUR data'],
-     ['Elasticity','how fast supply responds','THE core of asymmetry']],)],
-  ]},
-
- co:{title:'COMPANY INTELLIGENCE',cls:'',sub:'Ticker = investment memo. Role in chain, accumulation stage, scenario, kill-thesis.',
-  prov:[['eng','◆ investment_memo.py'],['eng','◆ accumulation.py'],['eng','◆ market_cap_target.py'],['prod','✅ accumulation PROD']],
-  panels:[
-   ['Institutional Adoption Curve (Stage 1-5)',[['eng','◆ accumulation.py'],['prod','✅ PROD · catches PLTR/SNDK']],rows([
-     ['Accumulation score','0.30·RS + 0.25·VE + 0.20·ΔER + 0.15·own + 0.10·OI','alpha-RS, not return-ratio'],
-     ['Stage','<span class="u">Stage 2→3 transition</span>','uncrowded → crowding = the timing edge'],
-     ['Crowding velocity','<span class="u">accelerating</span>','the entry trigger']],)],
-   ['Market-Cap Scenario → Price Target',[['eng','◆ market_cap_target.py'],['res','◐ priors, calibrate via tracker']],rows([
-     ['Method','price × (mcap_target/mcap_now) × (1−dilution)','NOT technical highs'],
-     ['Bull / Base / Bear','thesis-TAM multiples × mcap-now','small-cap = bigger convexity (log-scaled)'],
-     ['Kill-thesis','explicit "what changes my mind"','per-thesis conditions']],)],
-   ['Fundamental Dossier',[['build','○ needs paid fundamental feed']],`<div class="note">Moat · ROIC · FCF inflection · margin · patent · hiring · insider · 13F. Framework exists; <span class="d">all need a fundamental feed</span> — flagged feed-gated, never fabricated.</div>`],
-  ]},
-
- crypto:{title:'CRYPTO',cls:'',sub:'On-chain footprint retail can\'t see on a price chart. Accumulation / cornering / distribution.',
-  prov:[['eng','◆ onchain_engine.py'],['rescue','⟲ RESCUE from engines/'],['eng','◆ gcfis/crypto.py'],['need','⚠ needs Glassnode/CryptoQuant key']],
-  panels:[
-   ['On-Chain Accumulation / Distribution',[['eng','◆ onchain_engine.py'],['rescue','⟲ RESCUE'],['need','⚠ API key']],rows([
-     ['Exchange netflow','<span class="u">outflow → accumulation</span>','neg = bullish, pos = distribution'],
-     ['Exchange reserves','<span class="u">declining → supply shock</span>','thin float = outsized price impact'],
-     ['Whale cohort (1k–100k)','<span class="u">balance ↑</span>','+ Glassnode Accum Trend Score'],
-     ['MVRV Z','<span class="a">neutral</span>','&lt;0.85z bottom · &gt;7z top warning'],
-     ['aSOPR','<span class="u">crossing &gt;1</span>','profit transition = early bull'],
-     ['Funding rate','<span class="u">neg = contrarian bull</span>','shorts pay longs'],
-     ['Stablecoin inflow','<span class="u">dry powder</span>','+ coin outflow = strong instit. accumulation']],)],
-   ['Derivatives + ETF',[['eng','◆ gcfis/crypto.py'],['res','◐ post-ETF weighted']],rows([
-     ['ETF flow','net creations','IBIT/FBTC — the marginal buyer'],
-     ['CME basis','term structure','institutional positioning'],
-     ['Funding + OI','leverage state','fragility down the beta chain']],)],
-   ['Crypto Beta Chain',[['eng','◆ market_cap_target.py'],['res','◐ crypto_beta thesis']],`<div class="note">BTC → ETH → SOL → alt → meme: rising beta + rising fragility down the chain. mcap-scenario convexity per rung. Kill: BTC loses 200d, funding deeply negative, unlock cliff, exchange reserves rising.</div>`],
-  ]},
-
- commod:{title:'COMMODITIES',cls:'',sub:'Positioning (COT), curve structure, driver coherence, supply elasticity.',
-  prov:[['eng','◆ cftc_cot_scraper.py'],['rescue','⟲ RESCUE from engines/'],['eng','◆ drivers.py'],['prod','✅ COT feed is FREE (CFTC)']],
-  panels:[
-   ['Commitment of Traders (COT)',[['eng','◆ cftc_cot_scraper.py'],['rescue','⟲ RESCUE'],['prod','✅ FREE feed']],rows([
-     ['Non-commercial (specs)','<span class="a">net long, 78th %ile</span>','crowded — extreme watch'],
-     ['Commercial (hedgers)','<span class="d">net short</span>','the "smart" side'],
-     ['Retail (non-reportable)','<span class="m">small net long</span>',''],
-     ['Signal','<span class="a">positioning extreme</span>','contrarian setup building']],)],
-   ['Curve + Driver Coherence',[['eng','◆ drivers.py'],['prod','✅ PROD']],rows([
-     ['Copper','<span class="u">IN-LINE</span>','growth−dollar model, R²=0.55'],
-     ['Curve structure','contango / backwardation','inventory signal'],
-     ['Uranium','<span class="a">idiosyncratic</span>','secular — supply-inelastic (10y mine lead-time)']],)],
-  ]},
-
- fx:{title:'FX',cls:'',sub:'Carry (rate differential) is the dominant medium-term FX driver. + COT + real yield.',
-  prov:[['eng','◆ fx_carry_engine.py'],['rescue','⟲ RESCUE from engines/'],['eng','◆ cftc_cot_scraper.py'],['need','⚠ needs FRED']],
-  panels:[
-   ['Carry / Rate-Differential Ranking',[['eng','◆ fx_carry_engine.py'],['rescue','⟲ RESCUE'],['need','⚠ FRED']],rows([
-     ['Method','FRED harmonized 10Y gov yields, G10','higher + RISING diff attracts flow'],
-     ['High-carry','<span class="u">USD, AUD</span>','rate-diff tailwind'],
-     ['Low/negative carry','<span class="d">JPY, CHF</span>','funding currencies'],
-     ['Horizon','monthly → positioning bias','not a tick signal']],)],
-   ['FX Positioning (COT)',[['eng','◆ cftc_cot_scraper.py'],['rescue','⟲ RESCUE'],['prod','✅ FREE']],rows([
-     ['EUR net','<span class="a">specs long</span>','COT non-commercial'],
-     ['JPY net','<span class="d">specs short (extreme)</span>','reversal risk'],
-     ['DXY correlation','engine present','usd_correlation_engine']],)],
-  ]},
-
- ihsg:{title:'IHSG',cls:'',sub:'Regime-aware foreign flow (EFD) + bandarmologi accumulation. Your validated flow_regime.',
-  prov:[['eng','◆ flow_regime.py'],['eng','◆ accumulation.py'],['eng','◆ broker_flow.py'],['eng','◆ typef_idx.py'],['prod','✅ validated vs 2025 ATH']],
-  panels:[
-   ['Effective Flow Driver — Regime State',[['eng','◆ flow_regime.py'],['prod','✅ PROD · your redesign']],rows([
-     ['Current state','<span class="u">DOMESTIC_LED</span>','4 states: FOREIGN/DOMESTIC/OPERATOR/DECOUPLED'],
-     ['EFD = Corr_F × Par_F','the composite driver','KEEP tier — clean edge'],
-     ['Foreign net','<span class="d">net sell</span>','but tape rising → domestic markup, NOT bearish'],
-     ['Validation','2025 IHSG ATH-on-foreign-selling','BBCA/ISAT/TPIA/HUMI — confirmed']],)],
-   ['Bandarmologi Accumulation',[['eng','◆ broker_flow.py'],['eng','◆ accumulation.py'],['res','◐ RESEARCH']],rows([
-     ['Order-flow intent','accumulation vs distribution','BRAIN-style broker reclassification'],
-     ['Type-F feed','<span class="u">live</span>','typef_idx.py — real IDX daily summary'],
-     ['LPM','<span class="a">conditional-only</span>','validity gate: liq-expansion + breadth + slope']],)],
-  ]},
-
- flow:{title:'FLOW &amp; ROTATION',cls:'',sub:'Where money is flowing, on the risk curve. RRG + cross-asset cycle.',
-  prov:[['eng','◆ cycle_rotation.py'],['eng','◆ rotation.py'],['prod','✅ cycle PROD']],
-  panels:[
-   ['Cross-Asset Cycle Rotation',[['eng','◆ cycle_rotation.py'],['prod','✅ PROD']],rows([
-     ['Cycle position','<span class="sg">risk-seeking tail</span>','cash→bond→gold→commod→lg→growth→micro→crypto'],
-     ['Leading','<span class="u">growth, micro, crypto</span>','flow concentration'],
-     ['Lagging','<span class="m">cash, bonds</span>','']],)],
-   ['RRG Rotation Map',[['eng','◆ rotation.py'],['res','◐ RESEARCH · rotation-momentum weak prior']],`<div class="note">RRG-style relative-rotation quadrants (leading/weakening/lagging/improving) + crypto risk-curve. <span class="a">Honest flag:</span> your own prior test found rotation-momentum weak — keep as map, validate before trading it.</div>`],
-  ]},
-
- kg:{title:'KNOWLEDGE GRAPH',cls:'',sub:'Everything connected. Shock propagation, typed causal edges, company cards.',
-  prov:[['eng','◆ knowledge_graph.py'],['eng','◆ causal_chain.py'],['eng','◆ causal_attribution.py'],['res','◐ 3 edges tested, rest structural']],
-  panels:[
-   ['Causal Web + Shock Propagation',[['eng','◆ knowledge_graph.py'],['res','◐ 3 edges tested']],rows([
-     ['Chain','War→Energy→Inflation→Fed→DXY→Gold','typed edges + delay + reliability'],
-     ['Tested edges','<span class="u">3 validated</span>','rest are structural (RESEARCH)'],
-     ['Kill-switch','<span class="a">causal_chain.py</span>','chain integrity check']],)],
-   ['Company Knowledge Cards',[['eng','◆ investment_memo.py'],['build','○ 68 names — content curation']],`<div class="note">Per-name: role in chain + catalysts + convexity + kill-thesis. Structure + engine exist; the <b>curated content for ~68 names</b> is the build gap (needs fundamental research, not code).</div>`],
-  ]},
-
- rc:{title:'VALIDATION / RESEARCH CENTER',cls:'',sub:'The lab, not a checklist. Every signal earns Production or stays Research.',
-  prov:[['eng','◆ signal_edge.py'],['eng','◆ backtest.py'],['eng','◆ walkforward.py'],['eng','◆ run_validation.py'],['prod','✅ 16 tests executable']],
-  panels:[
-   ['Signal LIFT Table (event study)',[['eng','◆ signal_edge.py'],['prod','✅ PROD on S&P 2013-18']],rows([
-     ['RS top-decile (cross-sectional)','<span class="u">lift 2.08x</span>','tail edge — caught AMD $2.52→$12'],
-     ['Excess return top-decile','<span class="a">p=0.12 (NOT sig)</span>','mostly beta, alpha unproven — honest'],
-     ['Breakout (absolute)','<span class="d">lift 0.56–1.01x REJECTED</span>','no edge'],
-     ['Volume-spike / base-breakout','<span class="d">REJECTED</span>','coin-flip']],)],
-   ['4-Fold Gate — Engine Status',[['eng','◆ certify.py'],['prod','✅ automated']],rows([
-     ['Cross-Asset Macro','<span class="u">✅ PRODUCTION</span>','corr −0.22, p<0.001'],
-     ['Panic-Bottom','<span class="u">✅ PRODUCTION</span>','fwd63 +6% vs +3%, p<0.001'],
-     ['Crash Lead-Time','<span class="u">✅ PRODUCTION</span>','15→27% @24mo, p=0.0001'],
-     ['Rotation','<span class="d">✗ REJECTED</span>','coin-flip'],
-     ['Lead-Lag (daily)','<span class="d">✗ REJECTED</span>','p>0.5 → exploration only']],)],
-   ['Anti-Overfit Harness',[['eng','◆ backtest.py'],['eng','◆ walkforward.py'],['res','◐ subset live']],`<div class="note">Walk-forward (purged/embargoed) · bootstrap · permutation/placebo · sensitivity · ablation · survivorship check · look-ahead check · data-revision (ALFRED vintage). <span class="d">Vintage/survivorship need data not in sandbox</span> — live on your machine.</div>`],
-  ]},
+ macro:{title:'MACRO &amp; REGIME',cls:'',sub:'Data-bound macro state, coverage and proof ceiling.'},
+ ew:{title:'EARLY WARNING',cls:'',sub:'Descriptive fragility and shock-stress state; not a crash timer.'},
+ sc:{title:'SUPPLY CHAIN / BOTTLENECK',cls:'',sub:'Registered causal-chain components and evidence state.'},
+ co:{title:'COMPANY INTELLIGENCE',cls:'',sub:'Registered company-evidence components and proof state.'},
+ crypto:{title:'CRYPTO',cls:'',sub:'Data-bound market setups; full lifecycle selector remains separate.'},
+ commod:{title:'COMMODITIES',cls:'',sub:'Per-contract data-bound setups; no universal commodity driver.'},
+ fx:{title:'FX',cls:'',sub:'Pair-relative data-bound setups and driver coverage.'},
+ ihsg:{title:'IHSG / IDX',cls:'',sub:'Long-only data-bound setups; index proxies are excluded.'},
+ flow:{title:'FLOW &amp; ROTATION',cls:'',sub:'RS observations only unless direct capital-flow evidence exists.'},
+ kg:{title:'KNOWLEDGE GRAPH',cls:'',sub:'Registered causal evidence, lag and invalidation state.'},
+ rc:{title:'VALIDATION / RESEARCH CENTER',cls:'',sub:'Every signal earns promotion or remains research.'}
 };
 
 /* ══════════ ALPHA (bespoke, enriched) ══════════ */
@@ -550,19 +394,34 @@ document.getElementById('overlay').onclick=e=>{if(e.target.id==='overlay')e.curr
 
 /* generic tab renderer */
 function viewGeneric(id){
-  const t=TABS[id], map={macro:'MACRO & REGIME',early:'EARLY WARNING',sc:'SUPPLY CHAIN',co:'COMPANY INTEL',crypto:'CRYPTO',commod:'COMMODITIES',fx:'FX',ihsg:'IHSG',flow:'FLOW & ROTATION',kg:'KNOWLEDGE GRAPH',rc:'VALIDATION'};
+  const t=TABS[id], map={macro:'MACRO & REGIME',ew:'EARLY WARNING',sc:'SUPPLY CHAIN',co:'COMPANY INTEL',crypto:'CRYPTO',commod:'COMMODITIES',fx:'FX',ihsg:'IHSG',flow:'FLOW & ROTATION',kg:'KNOWLEDGE GRAPH',rc:'VALIDATION'};
   const reg=((window.__REGISTRY||{})[map[id]]||[]);
   let body=reg.length?rows(reg.map(x=>[
     `${esc2(x.component_id)} · ${esc2(x.component_name)}`,
     `<span class="${/FIX|READY/.test(x.current_status||'')?'u':/DROP|BLOCK/.test(x.current_status||'')?'d':'a'}">${esc2(x.current_status)}</span>`,
     `${esc2(x.decision_role)} · blocker: ${esc2(x.main_blocker)}`
   ])):`<div class="note">No registered data-bound output for this tab yet.</div>`;
-  if(id==='flow'){
-    const S=window.__SYS||{}, raw=S.rotation_in_raw||[], out=S.rotation_out_raw||[];
+  const S=window.__SYS||{};
+  if(id==='macro'){
+    body=panel('Current Descriptive Macro Snapshot',[['eng','◆ current data binding'],['res','◐ not a predictive permission']],rows([
+      ['Regime estimate',`${esc2(S.quad||'—')} · ${esc2(S.quad_name||'—')}`,'descriptive classification; review source coverage'],
+      ['Liquidity',esc2(S.liquidity||'—'),'missing stays missing'],
+      ['Cross-asset',esc2(S.cross_asset||'—'),'descriptive only']
+    ]))+panel('Registered Components & Current Proof State',[['eng','◆ coverage registry']],body);
+  } else if(id==='ew'){
+    const fc=Object.keys(S.fragility_components||{}).length, sc=Object.keys(S.shock_components||{}).length;
+    body=panel('Current Stress Snapshot',[['eng','◆ fragility.py / shock.py'],['res','◐ score, not calibrated crash probability']],rows([
+      ['Fragility score',esc2(S.fragility||'—'),`${esc2(S.fragility_label||'—')} · ${fc} component(s) available`],
+      ['Shock-stress score',esc2(S.shock_score||'—'),`${esc2(S.shock_label||'—')} · ${sc} component(s) available`],
+      ['Permission','DESCRIPTIVE ONLY','does not time a crash or bottom']
+    ]))+panel('Registered Components & Current Proof State',[['eng','◆ coverage registry']],body);
+  } else if(id==='flow'){
+    const raw=S.rotation_in_raw||[], out=S.rotation_out_raw||[], same=S.rotation_same_family_overlap||[];
     body=panel('RS Rotation Observations — descriptive only',[['res','◐ not actual flow']],rows([
-      ['Improving RS',raw.length?raw.map(esc2).join(', '):'—','not promoted to Mission unless cross-confirmed by a selector/setup'],
-      ['Weakening RS',out.length?out.map(esc2).join(', '):'—','relative-strength proxy only'],
-      ['Method',esc2(S.rotation_method||'—'),'rotation-momentum was not validated as a timing edge']
+      ['Improving RS',raw.length?raw.map(esc2).join(', '):'—','price-relative-strength observation'],
+      ['Weakening RS',out.length?out.map(esc2).join(', '):'—','price-relative-strength observation'],
+      ['Same-family overlap withheld',same.length?same.map(esc2).join(', '):'—','RS plus PRICE_RS is not independent confirmation'],
+      ['Method',esc2(S.rotation_method||'—'),'not capital flow and not a timing edge']
     ]))+panel('Registered Components',[['eng','◆ coverage registry']],body);
   } else {
     body=panel('Registered Components & Current Proof State',[['eng','◆ coverage registry'],['res','◐ no hard-coded current values']],body);
@@ -582,33 +441,33 @@ const MARKET={
 function viewMarket(id){
   const m=MARKET[id];
   const fun=m.funnel.map((f,i)=>`<div class="fstep ${f[3]||''}">${i<m.funnel.length-1?'<span class="farr">›</span>':''}<div class="fn">${f[0]}</div><div class="fl">${f[1]}</div><div class="fg">${f[2]}</div></div>`).join('');
-  const drv=m.drivers.length?rows(m.drivers.map(d=>[d[0],`<span class="${d[1].includes('LONG')||d[1].includes('BULL')||d[1].includes('+')||d[1].includes('BID')||d[1].includes('SUPPORT')||d[1].includes('MOMENTUM')?'u':d[1].includes('SELL')||d[1].includes('HEADWIND')||d[1].includes('PRESSURE')||d[1].includes('DRAG')?'d':'a'}">${d[1]}</span>`,`${d[2]} · ${d[3]}`])):`<div class="note">No data-bound driver reading.</div>`;
+  const drv=m.drivers.length?rows(m.drivers.map(d=>[d[0],`<span class="${d[1].includes('TAILWIND')?'u':d[1].includes('HEADWIND')?'d':'a'}">${d[1]}</span>`,`${d[2]} · ${d[3]}`])):`<div class="note">No data-bound driver reading.</div>`;
   // Q: if the gate isn't met, do NOT show the ticker at all — omit it, don't flash it.
   const actionable=m.setups.filter(x=>!(x.invalid) && x.ac!=='avoid' && !(x.gm==='INVALID') && x.cv);
-  const dropped=m.setups.length-actionable.length;
+  const dropped=Number(m.failed||0);
   const setups=actionable.length? actionable.map(x=>`<div class="scard">
-    <div class="stop2"><span class="stk">${x.tk}</span><span class="actbadge ${x.ac}">${x.act}</span><span class="conv">${x.cv?'conv '+x.cv:''}</span></div>
+    <div class="stop2"><span class="stk">${x.tk}</span><span class="actbadge ${x.ac}">${x.act}</span><span class="conv">${x.cv?(esc2(x.score_label||'SCORE')+' '+x.cv):''}</span></div>
     <div class="est">
       <div class="estc"><div class="ek">Entry</div><div class="ev ${x.e==='—'?'m':'i'}">${x.e}</div></div>
       <div class="estc"><div class="ek">Stop</div><div class="ev ${x.s==='—'?'m':'d'}">${x.s}</div></div>
       <div class="estc"><div class="ek">Target</div><div class="ev ${x.t==='—'?'m':'u'}">${x.t}</div></div>
       <div class="estc"><div class="ek">R/R</div><div class="ev ${x.rr==='—'?'m':'sg'}">${x.rr}</div></div>
     </div>
-    <div class="styp">${x.ty}<span class="gm m">${x.gm==='INVALID'?'':x.gm}</span></div><div class="sub2">Levels: ${esc2(x.level_source||'UNAVAILABLE')} · stop ${esc2(x.stop_basis||'—')} · target ${esc2(x.target_basis||'—')}${x.structural_target?` · structural scenario ${esc2(x.structural_target)}`:''}</div>
-    <div class="swhy">${x.why}</div>
+    <div class="styp">${x.ty}${x.gm&&x.gm!=='unknown'&&x.gm!=='INVALID'?`<span class="gm m">${x.gm}</span>`:''}</div><div class="sub2">Levels: ${esc2(x.level_source||'UNAVAILABLE')} · stop ${esc2(x.stop_basis||'—')} · target ${esc2(x.target_basis||'—')}${x.structural_target?` · structural scenario ${esc2(x.structural_target)}`:''}${x.as_of?` · as-of ${esc2(x.as_of)}`:''}</div>
+    <div class="swhy">${x.why}${x.macro_alignment?` · macro ${esc2(x.macro_alignment)} (${esc2(x.driver_confidence||'NONE')} coverage)`:''}</div>
   </div>`).join('')
-   : `<div class="note">No ticker cleared the validated gate in this market — nothing emitted (by design).</div>`;
+   : `<div class="note">No ticker cleared the registered research gate in this market — nothing emitted (by design).</div>`;
   const droppedNote = dropped>0? `<div class="note" style="margin-top:6px;opacity:.6">${dropped} candidate(s) failed the gate and were omitted (not shown).</div>`:'';
   const foundryBlock = id==='us' ? foundryShortlistPanel() : '';
   return `
-  <div class="viewhead"><h2>${m.title}</h2><span class="vd">${m.sub}</span>${m.longOnly?'<span class="lo-badge">LONG-ONLY ENFORCED</span>':''}</div>
+  <div class="viewhead"><h2>${m.title}</h2><span class="vd">${m.sub}${m.source_info&&m.source_info.as_of?` · data as-of ${esc2(m.source_info.as_of.slice(0,10))}`:''}</span>${m.longOnly?'<span class="lo-badge">LONG-ONLY ENFORCED</span>':''}</div>
   <div class="provrow">${m.prov.map(([c,x])=>badge(c,x)).join('')}</div>
   <div class="lbl" style="margin-bottom:7px">Screener funnel — how a ticker surfaces in this market</div>
   <div class="funnel">${fun}</div>
   ${foundryBlock}
   <div class="grid" style="grid-template-columns:1.15fr 1fr;align-items:start">
-    <div class="panel"><div class="phd"><h3>Setups — surfaced tickers</h3><div class="prov">${badge('eng','◆ entry.py')}${badge('res','◐ synthetic in mock')}</div></div><div class="pbd"><div class="setups">${setups}</div>${droppedNote}</div></div>
-    ${panel('Market Driver Bias',[['eng','◆ market_drivers.py'],['res','◐ your June-26 matrix']],drv)}
+    <div class="panel"><div class="phd"><h3>Setups — surfaced tickers</h3><div class="prov">${badge('eng','◆ entry.py')}${badge('res','◐ daily snapshot · research only')}</div></div><div class="pbd"><div class="setups">${setups}</div>${droppedNote}</div></div>
+    ${panel('Market Driver Bias',[['eng','◆ market_drivers.py'],['res','◐ frozen causal sign + current change-z']],drv)}
   </div>`;
 }
 
@@ -616,12 +475,10 @@ function viewMarket(id){
 (function bindLive(){
   const D = window.DASHBOARD_DATA; if(!D) return;
   try{
-    const b=document.querySelector('.mockbadge .pill.warn');
-    const real = D.meta.source==='LIVE';
-    b.textContent = (real?(D.meta.source==='LIVE'?'LIVE · ':'REAL DATA · '):'SYNTHETIC RUN · ')+(D.meta.generated||'');
-    b.style.background = real ? 'var(--up)' : 'var(--amb)';
-    b.style.borderColor = real ? 'var(--up)' : 'var(--amb)';
-    document.querySelector('.mockbadge .pill').textContent = (real?'REAL':'v0.3')+' · universe '+(D.meta.universe_n||'?');
+    const src=String(D.meta.source||'NO_DATA'), approved=src.startsWith('DAILY_SNAPSHOT');
+    const vp=document.getElementById('verpill'), tp=document.getElementById('valpill');
+    if(vp){vp.textContent='v0.4 · '+(approved?(src.includes('PARTIAL')?'DATA PARTIAL':'DATA DAILY'):'NO DATA'); vp.style.borderColor=approved?'rgba(46,193,111,.6)':'rgba(233,179,60,.65)'; vp.style.color=approved?'var(--up)':'var(--amb)';}
+    if(tp){tp.textContent='RESEARCH ONLY · PAPER/LIVE BLOCKED'; tp.className='pill warn';}
   }catch(e){}
   const esc=s=>String(s==null?'':s).replace(/</g,'&lt;').replace(/>/g,'&gt;');
   window.__FOUNDRY = D.alpha_foundry || null;
@@ -643,22 +500,26 @@ function viewMarket(id){
   // per-market setups + funnel (mutate in place)
   if(D.markets){
     const actClass=a=>({BUILD_LONG:'long',START_SCALING:'scale',BUILD_SHORT:'short',
-      STAND_ASIDE:'wait',WAIT:'wait',AVOID:'avoid',WATCH:'wait'}[a]||'wait');
+      STAND_ASIDE:'wait',WAIT:'wait',AVOID:'avoid',WATCH:'wait',WATCH_LONG:'wait',WATCH_SHORT:'wait',WATCH_COUNTER_REGIME:'wait'}[a]||'wait');
     for(const id in D.markets){ if(!MARKET[id]) continue;
       const mk=D.markets[id];
       MARKET[id].funnel=[
-        [String(mk.funnel.universe),'UNIVERSE','loaded prices'],
-        [String(mk.funnel.eliminated),'ELIMINATED','liquidity · noise · false-BO','elim'],
-        [esc(mk.bias)||'—','MARKET BIAS','market_drivers matrix'],
-        [String(mk.funnel.setups),'ENTRY-VALID','gamma-aware + R/R gate','last']];
-      MARKET[id].drivers=(mk.driver_readings||[]).filter(x=>x.reading_z!=null).map(x=>[x.factor,`${x.reading_z>0?'+':''}${x.reading_z}z`,`${x.horizon} · strength ${x.strength}`,x.note]);
+        [String(mk.funnel.loaded||0),'LOADED','configured watchlist / instruments'],
+        [String(mk.funnel.history_eligible||0),'HISTORY-ELIGIBLE','≥200 daily OHLC bars'],
+        [String(mk.funnel.signal_valid||0),'SIGNAL-VALID','directional levels + R/R gate'],
+        [String(mk.funnel.displayed||0),'DISPLAYED','tight research shortlist','last']];
+      MARKET[id].failed=Number(mk.funnel.failed||0);
+      MARKET[id].source_info=mk.source_info||{};
+      MARKET[id].drivers=(mk.driver_readings||[]).map(x=>[x.factor,`${x.effect||'NO_DATA'} ${x.signed_contribution_z==null?'':(x.signed_contribution_z>0?'+':'')+x.signed_contribution_z+'z'}`,`${x.horizon} · strength ${x.strength}`,`dynamic series ${x.series||'—'} · scope ${mk.driver_scope||'—'} · coverage ${(mk.driver_coverage||{}).fed||0}/${(mk.driver_coverage||{}).total||0}`]);
       MARKET[id].setups=(mk.setups||[]).map(x=>({
         tk:x.tk, act:x.act, ac:actClass(x.act), dir:x.dir,
         e:x.e==null?'—':String(x.e), s:x.s==null?'—':String(x.s),
         t:x.t==null?'—':String(x.t), rr:x.rr==null?'—':String(x.rr),
         ty:x.ty||'—', gm:x.valid?(x.gm||'—'):'INVALID', cv:x.conv||0, valid:!!x.valid,
         why:esc(x.why), invalid:x.valid?null:(x.warn||'gate not met'), level_source:x.level_source,
-        stop_basis:x.stop_basis,target_basis:x.target_basis,structural_target:x.structural_target,data_quality:x.data_quality}));
+        stop_basis:x.stop_basis,target_basis:x.target_basis,structural_target:x.structural_target,data_quality:x.data_quality,
+        as_of:x.as_of,evidence_family:x.evidence_family,score_label:x.score_label,
+        macro_alignment:x.macro_alignment,driver_confidence:x.driver_confidence}));
       if(!MARKET[id].setups.length) MARKET[id].setups=[{tk:'—',act:'NO SETUP',ac:'wait',
         e:'—',s:'—',t:'—',rr:'—',ty:'—',gm:'—',cv:0,why:'',
         invalid:'no name cleared the conviction gate on this data — correct behavior, not fabricated'}];
@@ -666,18 +527,12 @@ function viewMarket(id){
   }
   // Mission Control live-macro override (quad / liquidity / fragility / shock / x-asset)
   window.__SYS = D.systemic || null;
-  window.__LIVE = !!(D.meta && D.meta.source==='LIVE');
+  window.__LIVE = !!(D.meta && String(D.meta.source||'').startsWith('DAILY_SNAPSHOT'));
   window.__REGIME_TF = D.regime_tf || null;
   window.__REGIONAL = D.regional || null;
   window.__GRADES = D.grades || null;
   // flip the header badges so you can SEE the live run took (no more guessing MOCK vs live)
-  if(window.__LIVE){
-    const vp=document.getElementById('verpill'), tp=document.getElementById('valpill');
-    if(vp){ vp.textContent='v0.3 · LIVE'; vp.style.borderColor='rgba(46,193,111,.6)'; vp.style.color='var(--up)'; }
-    if(tp){ const un=(D.meta&&D.meta.universe_n)||0; tp.textContent='● LIVE · '+un+' names'; tp.className='pill'; tp.style.borderColor='rgba(46,193,111,.6)'; tp.style.color='var(--up)'; }
-    const t=document.title; document.title=t.replace('MOCK v0.2','LIVE v0.3');
-  }
-  else {
+  if(!window.__LIVE){
     const vp=document.getElementById('verpill'), tp=document.getElementById('valpill');
     const src=(D.meta&&D.meta.source)||'NO_DATA';
     const label=src==='DATA_UNAVAILABLE'?'NO DATA':(src==='CONSISTENCY_BLOCKED'?'BLOCKED':'RESEARCH');

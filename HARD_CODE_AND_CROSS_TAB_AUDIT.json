@@ -4,8 +4,11 @@
     "alpha_array_empty": true,
     "no_hardcoded_setup_objects": true,
     "no_mock_regional_values": true,
-    "mission_cross_confirmed_label": true,
+    "mission_independent_confirmation_label": true,
     "generic_tabs_registry_driven": true,
+    "no_legacy_static_panels": true,
+    "daily_snapshot_not_live_label": true,
+    "early_warning_key_fixed": true,
     "ccxi_not_auto_universe": true,
     "consistency_guard_present": true,
     "canonical_market_keys": true

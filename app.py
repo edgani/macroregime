@@ -19,6 +19,11 @@ from copy import deepcopy
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+try:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(HERE, ".env"), override=False)
+except Exception:
+    pass
 
 import streamlit as st
 import streamlit.components.v1 as components
@@ -64,6 +69,20 @@ def _run_institutional(desk: dict) -> dict:
     return collect_institutional_data(desk)
 
 
+@st.cache_data(ttl=15, show_spinner=False)
+def _run_live_intelligence(desk: dict, institutional: dict) -> dict:
+    from live_market_intelligence import collect_live_market_intelligence
+
+    return collect_live_market_intelligence(desk, institutional)
+
+
+@st.cache_data(ttl=120, show_spinner=False)
+def _run_full_live_data(desk: dict) -> dict:
+    from full_live_data_hub import collect_full_live_data
+
+    return collect_full_live_data(desk)
+
+
 def _provider_config() -> list[tuple[str, bool, str]]:
     return [
         ("SEC EDGAR", bool(os.getenv("WARROOM_SEC_USER_AGENT", "").strip()), "WARROOM_SEC_USER_AGENT"),
@@ -71,6 +90,16 @@ def _provider_config() -> list[tuple[str, bool, str]]:
         ("Massive", bool(os.getenv("MASSIVE_API_KEY", "").strip()), "MASSIVE_API_KEY"),
         ("Nansen", bool(os.getenv("NANSEN_API_KEY", "").strip()), "NANSEN_API_KEY"),
         ("Arkham", bool(os.getenv("ARKHAM_API_KEY", "").strip()), "ARKHAM_API_KEY"),
+        ("Massive Options", bool(os.getenv("MASSIVE_API_KEY", "").strip()), "MASSIVE_API_KEY"),
+        ("UW Live Greeks bridge", bool(os.getenv("UNUSUAL_WHALES_STREAM_BRIDGE_URL", "").strip()), "UNUSUAL_WHALES_STREAM_BRIDGE_URL"),
+        ("Massive WebSocket bridge", bool(os.getenv("MASSIVE_STREAM_BRIDGE_URL", "").strip()), "MASSIVE_STREAM_BRIDGE_URL"),
+        ("ORTEX", bool(os.getenv("ORTEX_API_KEY", "").strip()), "ORTEX_API_KEY"),
+        ("Intrinio SI fallback", bool(os.getenv("INTRINIO_API_KEY", "").strip()), "INTRINIO_API_KEY"),
+        ("CoinGlass", bool(os.getenv("COINGLASS_API_KEY", "").strip()), "COINGLASS_API_KEY"),
+        ("EIA physical energy", bool(os.getenv("EIA_API_KEY", "").strip()), "EIA_API_KEY"),
+        ("Databento futures/options bridge", bool(os.getenv("DATABENTO_STREAM_BRIDGE_URL", "").strip()), "DATABENTO_STREAM_BRIDGE_URL"),
+        ("IDX licensed broker/foreign bridge", bool(os.getenv("IDX_DATA_BRIDGE_URL", "").strip()), "IDX_DATA_BRIDGE_URL"),
+        ("Binance / Bybit / OKX / Deribit", True, "PUBLIC ENDPOINTS"),
     ]
 
 
@@ -107,14 +136,40 @@ def _render() -> None:
         core = _run_core(markets)
         desk = deepcopy(core)
         desk["institutional"] = _run_institutional(core)
+        try:
+            desk["full_live_data"] = _run_full_live_data(core)
+        except Exception as full_exc:
+            desk["full_live_data"] = {"overall_state":"ERROR","statuses":[],"tab_coverage":{},"note":f"{type(full_exc).__name__}: {full_exc}"}
+        try:
+            desk["live_intelligence"] = _run_live_intelligence(core, desk["institutional"])
+        except Exception as live_exc:
+            desk["live_intelligence"] = {
+                "overall_state": "ERROR", "statuses": [], "events": [],
+                "crypto_derivatives": [], "crypto_options": [], "us_options": [], "us_squeeze": [],
+                "rules": {"no_synthetic": True},
+                "note": f"{type(live_exc).__name__}: {live_exc}",
+            }
         health = desk.get("data_health") or {}
+        live_statuses = list((desk.get("live_intelligence") or {}).get("statuses") or [])
+        full_statuses = list((desk.get("full_live_data") or {}).get("statuses") or [])
+        health["sources"] = list(health.get("sources") or []) + live_statuses + full_statuses
+        health["total_count"] = len(health["sources"])
+        health["live_count"] = sum(1 for row in health["sources"] if row.get("state") == "LIVE")
+        if health["live_count"] and health["live_count"] < health["total_count"]:
+            health["overall"] = "PARTIAL"
+        elif health["live_count"] == health["total_count"] and health["total_count"]:
+            health["overall"] = "LIVE"
+        desk["data_health"] = health
         meta = desk.get("meta") or {}
         inst = desk.get("institutional") or {}
+        derivatives = desk.get("live_intelligence") or {}
         live_count = int(health.get("live_count") or 0)
         inst_state = inst.get("overall_state") or "NOT_LOADED"
+        deriv_state = derivatives.get("overall_state") or "NOT_LOADED"
+        full_state = (desk.get("full_live_data") or {}).get("overall_state") or "NOT_LOADED"
         st.caption(
             f"Market source: {meta.get('source','NO_DATA')} · data feeds live: {live_count}/{health.get('total_count',0)} "
-            f"· institutional: {inst_state} · generated: {meta.get('generated','—')}"
+            f"· full-stack: {full_state} · institutional: {inst_state} · derivatives/options: {deriv_state} · generated: {meta.get('generated','—')}"
         )
         components.html(_inject(desk), height=1160, scrolling=False)
     except Exception as exc:
@@ -124,6 +179,9 @@ def _render() -> None:
             "data_health": {"overall": "ERROR", "sources": []},
             "systemic": {}, "markets": {}, "alpha": [], "reference": {},
             "institutional": {"overall_state": "ERROR", "statuses": [], "events": []},
+            "live_intelligence": {"overall_state": "ERROR", "statuses": [], "events": [],
+                                  "crypto_derivatives": [], "crypto_options": [], "us_options": [], "us_squeeze": []},
+            "full_live_data": {"overall_state":"ERROR","statuses":[],"tab_coverage":{}},
         }
         components.html(_inject(fallback), height=1160, scrolling=False)
 

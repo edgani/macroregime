@@ -6,12 +6,13 @@ Production mode never fills missing market data with synthetic series. A failed 
 
 ## Refresh architecture
 
-The Streamlit app separates two cadences:
+The Streamlit app separates three cadences:
 
 - Core prices, macro and engines: cached for 60 seconds.
-- Institutional event layer: polled every 10–60 seconds, selectable in the sidebar; provider-specific file caches prevent duplicate paid requests.
+- Institutional event layer: polled every 10–60 seconds.
+- Derivatives/options state: cached for roughly 5–45 seconds depending on the endpoint.
 
-This is near-real-time REST polling. It is not presented as tick-perfect exchange colocation. The UI preserves the last workspace in local storage when it refreshes.
+Persistent Unusual Whales Kafka and Massive WebSocket workers are included for users with streaming entitlements. Streamlit consumes their local HTTP snapshots; it does not own a fragile permanent socket. REST adapters remain failover paths. This is not presented as exchange colocation.
 
 ## Connectors
 
@@ -22,7 +23,14 @@ This is near-real-time REST polling. It is not presented as tick-perfect exchang
 | Massive | `MASSIVE_API_KEY` | US trades filtered to `exchange=4` with `trf_id` | Raw TRF prints; never automatic accumulation/distribution |
 | Nansen | `NANSEN_API_KEY` | Provider-classified Fund/Smart Trader holdings | Smart-Money classification is evidence, not a forward-return guarantee |
 | Arkham | `ARKHAM_API_KEY` | Large labeled on-chain transfers | Transfer event only; exchange/custody/internal movement must be classified |
-| yfinance | none | Prices and option-chain OI/IV | OI-implied gamma proxy, not observed dealer inventory or live options flow |
+| Massive options | `MASSIVE_API_KEY` | US option-chain Greeks, IV, quotes/trades and OI | OI may be prior-cleared; signed gamma remains a proxy without dealer-side inventory |
+| UW live bridge | `UNUSUAL_WHALES_STREAM_BRIDGE_URL` | Live GEX, Greek flow, net flow, option state and IV term | Persistent Kafka/WebSocket worker required |
+| ORTEX | `ORTEX_API_KEY` | Estimated/live short interest, CTB, DTC and free float | Licensed schema; verify exchange mapping and entitlement |
+| Intrinio | `INTRINIO_API_KEY` | Official settlement-based short interest | Reporting lag; fallback rather than live squeeze trigger |
+| Binance / Bybit / OKX | none | Perpetual mark, funding, OI, account/taker context | Venue-specific; units and account ratios are not canonical global positioning |
+| Deribit | none | BTC/ETH option OI, IV and reference zones | Venue-specific option state |
+| CoinGlass | `COINGLASS_API_KEY` | Cross-exchange OI, funding, liquidations and heatmap/map | Vendor-modeled liquidation zones are not guaranteed targets |
+| yfinance | none | Existing price fallback and legacy option-chain proxy | Not trade-level live options flow |
 | FRED | existing loader / optional key | Macro and liquidity series | Official macro series when available |
 | FINRA short volume | none / snapshot builder | Aggregate short-sale volume | Descriptive only; not dark-pool prints, short interest, or institutional intent |
 
@@ -64,3 +72,8 @@ Options-chain OI structure and live options flow are separate datasets. Protocol
 - Existing valid sources continue rendering.
 - The source registry shows provider, dataset, state, fetched time, stale threshold, record count and note.
 - No placeholder trade, fake print or synthetic ticker is emitted.
+
+
+## Derivatives failure behavior
+
+The state plane uses parallel provider calls, retry/backoff, fresh response caches and stale last-good failover. A missing licensed key remains `NOT_CONFIGURED`. A public-exchange outage remains `ERROR` or `STALE`; it does not zero-fill OI/funding or suppress the rest of the dashboard.

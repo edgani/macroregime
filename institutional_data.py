@@ -21,19 +21,40 @@ Data semantics
 """
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 import json
 import os
+import re
 import time
 
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 
 HERE = Path(__file__).resolve().parent
 CACHE_DIR = HERE / ".cache" / "institutional"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
+
+
+def _session() -> requests.Session:
+    session = requests.Session()
+    retry = Retry(
+        total=1, connect=1, read=1, backoff_factor=0.25,
+        status_forcelist=(429, 500, 502, 503, 504),
+        allowed_methods=frozenset({"GET", "POST"}), raise_on_status=False,
+    )
+    adapter = HTTPAdapter(max_retries=retry, pool_connections=20, pool_maxsize=30)
+    session.mount("https://", adapter)
+    session.mount("http://", adapter)
+    session.headers.update({"User-Agent": "WarRoomOS/2.0 institutional-data"})
+    return session
+
+
+HTTP = _session()
 
 
 @dataclass
@@ -54,6 +75,10 @@ class FeedStatus:
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def _network_enabled() -> bool:
+    return os.getenv("WARROOM_NETWORK_MODE", "live").strip().lower() not in {"offline", "disabled", "0", "false"}
 
 
 def _as_float(value: Any, default: Optional[float] = None) -> Optional[float]:
@@ -133,6 +158,19 @@ def _write_cache(key: str, payload: Dict[str, Any]) -> None:
     temp.replace(path)
 
 
+def _read_cache_any(key: str) -> Optional[Dict[str, Any]]:
+    path = _cache_path(key)
+    if not path.exists():
+        return None
+    try:
+        age = time.time() - path.stat().st_mtime
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload["_cache_age_seconds"] = round(age, 2)
+        return payload
+    except Exception:
+        return None
+
+
 def _cached_json_request(
     *,
     cache_key: str,
@@ -146,20 +184,45 @@ def _cached_json_request(
 ) -> Dict[str, Any]:
     cached = _read_cache(cache_key, ttl_seconds)
     if cached is not None:
+        cached["_cache_state"] = "LIVE"
         return cached
-    response = requests.request(
-        method,
-        url,
-        headers=headers or {},
-        params=params,
-        json=json_body,
-        timeout=timeout,
-    )
-    response.raise_for_status()
-    payload = response.json()
-    wrapped = {"payload": payload, "fetched_at": _utc_now(), "status_code": response.status_code}
-    _write_cache(cache_key, wrapped)
-    return wrapped
+    if not _network_enabled():
+        stale = _read_cache_any(cache_key)
+        if stale is not None:
+            stale["_cache_state"] = "STALE"
+            stale["_cache_error"] = "WARROOM_NETWORK_MODE=offline"
+            return stale
+        raise RuntimeError("WARROOM_NETWORK_MODE=offline")
+    try:
+        response = HTTP.request(
+            method, url, headers=headers or {}, params=params, json=json_body,
+            timeout=min(float(timeout), float(os.getenv("WARROOM_HTTP_TIMEOUT", "8"))),
+        )
+        response.raise_for_status()
+        payload = response.json()
+        wrapped = {"payload": payload, "fetched_at": _utc_now(), "status_code": response.status_code, "_cache_state": "LIVE"}
+        _write_cache(cache_key, wrapped)
+        return wrapped
+    except Exception as exc:
+        stale = _read_cache_any(cache_key)
+        if stale is not None:
+            stale["_cache_state"] = "STALE"
+            stale["_cache_error"] = f"{type(exc).__name__}: {exc}"
+            return stale
+        raise
+
+
+def _parallel_cached_requests(specs: Dict[str, Dict[str, Any]], max_workers: int = 10) -> Dict[str, Dict[str, Any]]:
+    if not specs:
+        return {}
+    out: Dict[str, Dict[str, Any]] = {}
+    with ThreadPoolExecutor(max_workers=min(max_workers, len(specs))) as pool:
+        futures = {pool.submit(_cached_json_request, **kwargs): name for name, kwargs in specs.items()}
+        for fut in as_completed(futures):
+            name = futures[fut]
+            try: out[name] = fut.result()
+            except Exception as exc: out[name] = {"_request_error": f"{type(exc).__name__}: {exc}", "payload": None, "fetched_at": None}
+    return out
 
 
 def _extract_rows(payload: Any) -> List[Dict[str, Any]]:
@@ -253,7 +316,7 @@ def fetch_unusual_whales_options(limit: int = 100, min_premium: int = 100_000) -
             })
         return {
             "status": FeedStatus(
-                provider="Unusual Whales", dataset="options_flow", state="LIVE" if rows else "EMPTY",
+                provider="Unusual Whales", dataset="options_flow", state=(wrapped.get("_cache_state") or "LIVE") if rows else "EMPTY",
                 fetched_at=wrapped["fetched_at"], age_seconds=wrapped.get("_cache_age_seconds", 0),
                 stale_after_seconds=30, records=len(rows),
                 note="Trade-side flow; hedge/open-close intent remains unconfirmed unless separately reconciled.",
@@ -314,7 +377,7 @@ def fetch_unusual_whales_dark_pool(limit: int = 100, min_premium: int = 100_000)
             })
         return {
             "status": FeedStatus(
-                provider="Unusual Whales", dataset="dark_pool", state="LIVE" if rows else "EMPTY",
+                provider="Unusual Whales", dataset="dark_pool", state=(wrapped.get("_cache_state") or "LIVE") if rows else "EMPTY",
                 fetched_at=wrapped["fetched_at"], age_seconds=wrapped.get("_cache_age_seconds", 0),
                 stale_after_seconds=30, records=len(rows),
                 note="Off-exchange prints; accumulation/distribution requires clustering and price-response confirmation.",
@@ -329,6 +392,60 @@ def fetch_unusual_whales_dark_pool(limit: int = 100, min_premium: int = 100_000)
         }
 
 
+def fetch_massive_stream_bridge(tickers: Iterable[str], limit: int = 500) -> Dict[str, Any]:
+    url = os.getenv("MASSIVE_STREAM_BRIDGE_URL", "").strip()
+    if not url:
+        return _not_configured("Massive Stream", "trades_quotes", "MASSIVE_STREAM_BRIDGE_URL", 15)
+    token = os.getenv("MASSIVE_STREAM_BRIDGE_TOKEN", "").strip()
+    symbols = [str(t).upper() for t in tickers if t]
+    try:
+        wrapped = _cached_json_request(
+            cache_key="massive_stream_bridge", ttl_seconds=2, method="GET", url=url,
+            headers={"Authorization": f"Bearer {token}"} if token else {},
+            params={"kind": "all", "tickers": ",".join(symbols), "limit": min(limit, 2000)}, timeout=4,
+        )
+        raw_rows = _extract_rows(wrapped["payload"])
+        rows: List[Dict[str, Any]] = []
+        for r in raw_rows:
+            market = str(r.get("market") or "")
+            ticker = str(r.get("ticker") or "")
+            price = _as_float(r.get("price"))
+            size = _as_float(r.get("size"))
+            premium = (price or 0.0) * (size or 0.0)
+            if market == "stocks" and (r.get("exchange") == 4 or r.get("trf_id") not in (None, "")):
+                rows.append({
+                    "event_type": "DARK_POOL", "provider": "Massive Stream", "ticker": ticker,
+                    "timestamp": _iso_timestamp(r.get("timestamp"), wrapped["fetched_at"]),
+                    "premium": premium, "price": price, "size": size,
+                    "trf_id": r.get("trf_id"), "trf": True, "conditions": r.get("conditions") or [],
+                    "observed": True, "position_inference": "UNCONFIRMED", "raw_id": r.get("received_at"),
+                })
+            elif market == "options" and str(r.get("event") or "").upper() == "T":
+                contract = ticker
+                match = re.match(r"(?:O:)?([A-Z.]+?)\d{6,}", contract)
+                underlying = match.group(1) if match else contract
+                rows.append({
+                    "event_type": "OPTIONS_FLOW", "provider": "Massive Stream", "ticker": underlying,
+                    "timestamp": _iso_timestamp(r.get("timestamp"), wrapped["fetched_at"]),
+                    "premium": premium * 100.0, "price": price, "size": size,
+                    "contract": contract, "conditions": r.get("conditions") or [],
+                    "classification": "RAW_OPTION_TRADE", "flags": ["STREAM"],
+                    "observed": True, "position_inference": "UNCONFIRMED", "raw_id": r.get("received_at"),
+                })
+        rows.sort(key=lambda x: str(x.get("timestamp") or ""), reverse=True)
+        return {
+            "status": FeedStatus(provider="Massive Stream", dataset="trades_quotes",
+                                 state=(wrapped.get("_cache_state") or "LIVE") if rows else "EMPTY",
+                                 fetched_at=wrapped["fetched_at"], age_seconds=wrapped.get("_cache_age_seconds", 0),
+                                 stale_after_seconds=15, records=len(rows),
+                                 note="Persistent WebSocket bridge; option trade direction/open-close remains unconfirmed.").to_dict(),
+            "data": rows,
+        }
+    except Exception as exc:
+        return {"status": FeedStatus(provider="Massive Stream", dataset="trades_quotes", state="ERROR",
+                                     stale_after_seconds=15, note=f"{type(exc).__name__}: {exc}").to_dict(), "data": []}
+
+
 def fetch_massive_dark_pool(tickers: Iterable[str], limit_per_ticker: int = 250) -> Dict[str, Any]:
     key = os.getenv("MASSIVE_API_KEY", "").strip()
     if not key:
@@ -338,46 +455,26 @@ def fetch_massive_dark_pool(tickers: Iterable[str], limit_per_ticker: int = 250)
     if not symbols:
         return {"status": FeedStatus(provider="Massive", dataset="trf_trades", state="EMPTY",
                                       stale_after_seconds=45, note="No eligible US shortlist tickers.").to_dict(), "data": []}
-    all_rows: List[Dict[str, Any]] = []
-    errors: List[str] = []
     date = datetime.now(timezone.utc).date().isoformat()
-    for ticker in symbols:
-        try:
-            wrapped = _cached_json_request(
-                cache_key=f"massive_trf_{ticker}_{date}", ttl_seconds=30, method="GET",
-                url=f"https://api.massive.com/v3/trades/{ticker}",
-                params={"apiKey": key, "timestamp": date, "limit": min(limit_per_ticker, 50_000), "sort": "timestamp", "order": "desc"},
-            )
-            for r in _extract_rows(wrapped["payload"]):
-                if r.get("exchange") != 4 or r.get("trf_id") is None:
-                    continue
-                price = _as_float(r.get("price"), 0.0) or 0.0
-                size = _as_float(r.get("size"), 0.0) or 0.0
-                all_rows.append({
-                    "event_type": "DARK_POOL",
-                    "provider": "Massive",
-                    "ticker": ticker,
-                    "timestamp": _iso_timestamp(r.get("sip_timestamp") or r.get("participant_timestamp"), wrapped["fetched_at"]),
-                    "premium": price * size,
-                    "price": price,
-                    "size": size,
-                    "conditions": r.get("conditions") or [],
-                    "trf_id": r.get("trf_id"),
-                    "trf": True,
-                    "observed": True,
-                    "position_inference": "UNCONFIRMED",
-                    "raw_id": r.get("id"),
-                })
-        except Exception as exc:
-            errors.append(f"{ticker}: {type(exc).__name__}")
-    all_rows.sort(key=lambda x: x.get("premium", 0), reverse=True)
-    state = "LIVE" if all_rows else ("ERROR" if errors else "EMPTY")
-    return {
-        "status": FeedStatus(provider="Massive", dataset="trf_trades", state=state, fetched_at=_utc_now(),
-                             stale_after_seconds=45, records=len(all_rows),
-                             note=("; ".join(errors[:3]) if errors else "exchange=4 and trf_id present; intent unconfirmed")).to_dict(),
-        "data": all_rows[:200],
-    }
+    specs={ticker:dict(cache_key=f"massive_trf_{ticker}_{date}",ttl_seconds=30,method="GET",
+        url=f"https://api.massive.com/v3/trades/{ticker}",params={"apiKey":key,"timestamp":date,"limit":min(limit_per_ticker,50_000),"sort":"timestamp","order":"desc"},timeout=8) for ticker in symbols}
+    fetched=_parallel_cached_requests(specs,max_workers=8)
+    all_rows: List[Dict[str, Any]]=[];errors=[];any_stale=False
+    for ticker,wrapped in fetched.items():
+        if wrapped.get("_request_error"):
+            errors.append(f"{ticker}: {wrapped['_request_error']}");continue
+        any_stale=any_stale or wrapped.get("_cache_state")=="STALE"
+        for r in _extract_rows(wrapped.get("payload")):
+            if r.get("exchange") != 4 or r.get("trf_id") is None: continue
+            price=_as_float(r.get("price"),0.0) or 0.0;size=_as_float(r.get("size"),0.0) or 0.0
+            all_rows.append({"event_type":"DARK_POOL","provider":"Massive","ticker":ticker,
+                "timestamp":_iso_timestamp(r.get("sip_timestamp") or r.get("participant_timestamp"),wrapped.get("fetched_at")),
+                "premium":price*size,"price":price,"size":size,"conditions":r.get("conditions") or [],"trf_id":r.get("trf_id"),
+                "trf":True,"observed":True,"position_inference":"UNCONFIRMED","raw_id":r.get("id")})
+    all_rows.sort(key=lambda x:x.get("premium",0),reverse=True)
+    state=("STALE" if any_stale else "LIVE") if all_rows else ("ERROR" if errors else "EMPTY")
+    return {"status":FeedStatus(provider="Massive",dataset="trf_trades",state=state,fetched_at=_utc_now(),stale_after_seconds=45,
+        records=len(all_rows),note=("; ".join(errors[:3]) if errors else "exchange=4 and trf_id present; intent unconfirmed")).to_dict(),"data":all_rows[:200]}
 
 
 def _sec_headers() -> Dict[str, str]:
@@ -402,74 +499,46 @@ def _sec_ticker_map() -> Dict[str, Dict[str, Any]]:
 def fetch_sec_filings(tickers: Iterable[str], limit_per_ticker: int = 12) -> Dict[str, Any]:
     if not os.getenv("WARROOM_SEC_USER_AGENT", "").strip():
         return _not_configured("SEC EDGAR", "filings", "WARROOM_SEC_USER_AGENT", 180)
-    symbols = [str(t).upper().replace(".JK", "") for t in tickers if t]
-    symbols = [t for t in dict.fromkeys(symbols) if t and "-USD" not in t and "=" not in t][:20]
+    symbols=[str(t).upper().replace(".JK","") for t in tickers if t]
+    symbols=[t for t in dict.fromkeys(symbols) if t and "-USD" not in t and "=" not in t][:20]
     if not symbols:
-        return {"status": FeedStatus(provider="SEC EDGAR", dataset="filings", state="EMPTY",
-                                      stale_after_seconds=180, note="No US shortlist tickers.").to_dict(), "data": []}
+        return {"status":FeedStatus(provider="SEC EDGAR",dataset="filings",state="EMPTY",stale_after_seconds=180,note="No US shortlist tickers.").to_dict(),"data":[]}
     try:
-        mapping = _sec_ticker_map()
-        rows: List[Dict[str, Any]] = []
-        missing = []
-        target_forms = {"4", "8-K", "13D", "13D/A", "13G", "13G/A", "13F-HR", "10-Q", "10-K", "S-1", "424B5"}
+        mapping=_sec_ticker_map();specs={};meta={};missing=[]
         for ticker in symbols:
-            info = mapping.get(ticker)
-            if not info:
-                missing.append(ticker)
-                continue
-            cik_int = int(info["cik_str"])
-            cik = str(cik_int).zfill(10)
-            wrapped = _cached_json_request(
-                cache_key=f"sec_submissions_{cik}", ttl_seconds=90, method="GET",
-                url=f"https://data.sec.gov/submissions/CIK{cik}.json", headers=_sec_headers(), timeout=20,
-            )
-            recent = ((wrapped["payload"].get("filings") or {}).get("recent") or {})
-            forms = recent.get("form") or []
-            accessions = recent.get("accessionNumber") or []
-            filing_dates = recent.get("filingDate") or []
-            report_dates = recent.get("reportDate") or []
-            docs = recent.get("primaryDocument") or []
-            descriptions = recent.get("primaryDocDescription") or []
-            accepted = recent.get("acceptanceDateTime") or []
-            emitted = 0
-            for idx, form in enumerate(forms):
-                if form not in target_forms:
-                    continue
-                accession = accessions[idx] if idx < len(accessions) else ""
-                document = docs[idx] if idx < len(docs) else ""
-                accession_clean = accession.replace("-", "")
-                url = f"https://www.sec.gov/Archives/edgar/data/{cik_int}/{accession_clean}/{document}" if accession and document else None
-                rows.append({
-                    "event_type": "SEC_FILING",
-                    "provider": "SEC EDGAR",
-                    "ticker": ticker,
-                    "company": info.get("title"),
-                    "timestamp": accepted[idx] if idx < len(accepted) else (filing_dates[idx] if idx < len(filing_dates) else wrapped["fetched_at"]),
-                    "form": form,
-                    "filing_date": filing_dates[idx] if idx < len(filing_dates) else None,
-                    "report_date": report_dates[idx] if idx < len(report_dates) else None,
-                    "description": descriptions[idx] if idx < len(descriptions) else None,
-                    "accession": accession,
-                    "url": url,
-                    "observed": True,
-                    "position_inference": "DISCLOSURE_ONLY",
-                })
-                emitted += 1
-                if emitted >= limit_per_ticker:
-                    break
-        rows.sort(key=lambda x: str(x.get("timestamp") or ""), reverse=True)
-        return {
-            "status": FeedStatus(provider="SEC EDGAR", dataset="filings", state="LIVE" if rows else "EMPTY",
-                                 fetched_at=_utc_now(), stale_after_seconds=180, records=len(rows),
-                                 note=(f"Missing ticker mapping: {', '.join(missing[:5])}" if missing else "Direct SEC submissions JSON; filing lags vary by form.")).to_dict(),
-            "data": rows[:200],
-        }
+            info=mapping.get(ticker)
+            if not info:missing.append(ticker);continue
+            cik_int=int(info["cik_str"]);cik=str(cik_int).zfill(10);url=f"https://data.sec.gov/submissions/CIK{cik}.json"
+            specs[ticker]=dict(cache_key=f"sec_submissions_{cik}",ttl_seconds=90,method="GET",url=url,headers=_sec_headers(),timeout=8)
+            meta[ticker]=(info,cik_int,cik)
+        fetched=_parallel_cached_requests(specs,max_workers=8);rows_out=[];any_stale=False;errors=[]
+        target_forms={"4","8-K","13D","13D/A","13G","13G/A","13F-HR","10-Q","10-K","S-1","424B5"}
+        for ticker,wrapped in fetched.items():
+            if wrapped.get("_request_error"):errors.append(f"{ticker}: {wrapped['_request_error']}");continue
+            info,cik_int,cik=meta[ticker];any_stale=any_stale or wrapped.get("_cache_state")=="STALE"
+            recent=((wrapped.get("payload") or {}).get("filings") or {}).get("recent") or {}
+            forms=recent.get("form") or [];accessions=recent.get("accessionNumber") or [];filing_dates=recent.get("filingDate") or []
+            report_dates=recent.get("reportDate") or [];docs=recent.get("primaryDocument") or [];descriptions=recent.get("primaryDocDescription") or [];accepted=recent.get("acceptanceDateTime") or []
+            emitted=0
+            for idx,form in enumerate(forms):
+                if form not in target_forms:continue
+                accession=accessions[idx] if idx<len(accessions) else "";document=docs[idx] if idx<len(docs) else "";clean=accession.replace("-","")
+                url=f"https://www.sec.gov/Archives/edgar/data/{cik_int}/{clean}/{document}" if accession and document else None
+                rows_out.append({"event_type":"SEC_FILING","provider":"SEC EDGAR","ticker":ticker,"company":info.get("title"),
+                    "timestamp":accepted[idx] if idx<len(accepted) else (filing_dates[idx] if idx<len(filing_dates) else wrapped.get("fetched_at")),
+                    "form":form,"filing_date":filing_dates[idx] if idx<len(filing_dates) else None,"report_date":report_dates[idx] if idx<len(report_dates) else None,
+                    "description":descriptions[idx] if idx<len(descriptions) else None,"accession":accession,"url":url,"observed":True,"position_inference":"DISCLOSURE_ONLY"})
+                emitted+=1
+                if emitted>=limit_per_ticker:break
+        rows_out.sort(key=lambda x:str(x.get("timestamp") or ""),reverse=True)
+        state=("STALE" if any_stale else "LIVE") if rows_out else ("ERROR" if errors else "EMPTY")
+        notes=[]
+        if missing:notes.append(f"Missing ticker mapping: {', '.join(missing[:5])}")
+        if errors:notes.append("; ".join(errors[:3]))
+        if not notes:notes.append("Direct SEC submissions JSON; filing lags vary by form.")
+        return {"status":FeedStatus(provider="SEC EDGAR",dataset="filings",state=state,fetched_at=_utc_now(),stale_after_seconds=180,records=len(rows_out),note=" · ".join(notes)).to_dict(),"data":rows_out[:200]}
     except Exception as exc:
-        return {
-            "status": FeedStatus(provider="SEC EDGAR", dataset="filings", state="ERROR",
-                                 stale_after_seconds=180, note=f"{type(exc).__name__}: {exc}").to_dict(),
-            "data": [],
-        }
+        return {"status":FeedStatus(provider="SEC EDGAR",dataset="filings",state="ERROR",stale_after_seconds=180,note=f"{type(exc).__name__}: {exc}").to_dict(),"data":[]}
 
 
 def fetch_arkham_transfers(limit: int = 100, min_usd: int = 500_000) -> Dict[str, Any]:
@@ -515,7 +584,7 @@ def fetch_arkham_transfers(limit: int = 100, min_usd: int = 500_000) -> Dict[str
             })
         return {
             "status": FeedStatus(
-                provider="Arkham", dataset="labeled_transfers", state="LIVE" if rows else "EMPTY",
+                provider="Arkham", dataset="labeled_transfers", state=(wrapped.get("_cache_state") or "LIVE") if rows else "EMPTY",
                 fetched_at=wrapped["fetched_at"], age_seconds=wrapped.get("_cache_age_seconds", 0),
                 stale_after_seconds=45, records=len(rows),
                 note="Labeled entity/address transfers above threshold; exchange, custody and internal movements require classification.",
@@ -569,7 +638,7 @@ def fetch_nansen_smart_money(limit: int = 50) -> Dict[str, Any]:
                 "position_inference": "PROVIDER_CLASSIFIED_SMART_MONEY",
             })
         return {
-            "status": FeedStatus(provider="Nansen", dataset="smart_money", state="LIVE" if rows else "EMPTY",
+            "status": FeedStatus(provider="Nansen", dataset="smart_money", state=(wrapped.get("_cache_state") or "LIVE") if rows else "EMPTY",
                                  fetched_at=wrapped["fetched_at"], age_seconds=wrapped.get("_cache_age_seconds", 0),
                                  stale_after_seconds=120, records=len(rows),
                                  note="Provider-classified Funds/Smart Traders; not a guarantee of future performance.").to_dict(),
@@ -600,35 +669,57 @@ def _ticker_shortlist(desk: Dict[str, Any]) -> List[str]:
 
 def collect_institutional_data(desk: Dict[str, Any]) -> Dict[str, Any]:
     shortlist = _ticker_shortlist(desk)
-    options = fetch_unusual_whales_options()
-    uw_dark = fetch_unusual_whales_dark_pool()
-    # Avoid duplicate paid calls: Massive is the fallback/raw source when UW dark-pool is unavailable.
-    massive = fetch_massive_dark_pool(shortlist) if uw_dark["status"]["state"] in {"NOT_CONFIGURED", "ERROR", "EMPTY"} else {
-        "status": FeedStatus(provider="Massive", dataset="trf_trades", state="STANDBY",
-                             stale_after_seconds=45, note="Unusual Whales dark-pool feed active; Massive adapter kept as raw fallback.").to_dict(),
-        "data": [],
+    jobs = {
+        "options": (fetch_unusual_whales_options, ()),
+        "stream": (fetch_massive_stream_bridge, (shortlist,)),
+        "uw_dark": (fetch_unusual_whales_dark_pool, ()),
+        "sec": (fetch_sec_filings, (shortlist,)),
+        "smart": (fetch_nansen_smart_money, ()),
+        "arkham": (fetch_arkham_transfers, ()),
     }
-    sec = fetch_sec_filings(shortlist)
-    smart = fetch_nansen_smart_money()
-    arkham = fetch_arkham_transfers()
+    results: Dict[str, Any] = {}
+    with ThreadPoolExecutor(max_workers=len(jobs)) as pool:
+        futures = {pool.submit(fn, *args): name for name, (fn, args) in jobs.items()}
+        for fut in as_completed(futures):
+            name=futures[fut]
+            try: results[name]=fut.result()
+            except Exception as exc: results[name]={"status":FeedStatus(name,name,"ERROR",note=f"{type(exc).__name__}: {exc}").to_dict(),"data":[]}
 
-    dark_rows = uw_dark.get("data") or massive.get("data") or []
-    events = (options.get("data") or []) + dark_rows + (sec.get("data") or []) + (smart.get("data") or []) + (arkham.get("data") or [])
+    options = results["options"]
+    stream = results["stream"]
+    uw_dark = results["uw_dark"]
+    sec = results["sec"]
+    smart = results["smart"]
+    arkham = results["arkham"]
+    stream_options = [x for x in stream.get("data") or [] if x.get("event_type") == "OPTIONS_FLOW"]
+    stream_dark = [x for x in stream.get("data") or [] if x.get("event_type") == "DARK_POOL"]
+
+    # Massive REST is an isolated raw fallback; skip it when another TRF source is active.
+    if uw_dark.get("status", {}).get("state") in {"NOT_CONFIGURED", "ERROR", "EMPTY", "OFFLINE"} and not stream_dark:
+        massive = fetch_massive_dark_pool(shortlist)
+    else:
+        massive = {
+            "status": FeedStatus(provider="Massive", dataset="trf_trades", state="STANDBY",
+                                 stale_after_seconds=45, note="Another TRF source is active; Massive REST retained as fallback.").to_dict(),
+            "data": [],
+        }
+
+    dark_rows = (stream_dark + (uw_dark.get("data") or []) + (massive.get("data") or []))[:300]
+    option_rows = (stream_options + (options.get("data") or []))[:300]
+    events = option_rows + dark_rows + (sec.get("data") or []) + (smart.get("data") or []) + (arkham.get("data") or [])
     events.sort(key=lambda x: str(x.get("timestamp") or ""), reverse=True)
 
-    statuses = [options["status"], uw_dark["status"], massive["status"], sec["status"], smart["status"], arkham["status"]]
-    active = sum(1 for s in statuses if s["state"] == "LIVE")
-    errors = sum(1 for s in statuses if s["state"] == "ERROR")
-    overall = "LIVE" if active >= 2 else ("PARTIAL" if active else ("ERROR" if errors else "NOT_CONFIGURED"))
+    statuses = [options["status"], stream["status"], uw_dark["status"], massive["status"], sec["status"], smart["status"], arkham["status"]]
+    active = sum(1 for x in statuses if x.get("state") == "LIVE")
+    stale = sum(1 for x in statuses if x.get("state") == "STALE")
+    errors = sum(1 for x in statuses if x.get("state") == "ERROR")
+    overall = "LIVE" if active >= 2 else "PARTIAL" if active or stale else "ERROR" if errors else "NOT_CONFIGURED"
     return {
-        "generated": _utc_now(),
-        "overall_state": overall,
-        "watchlist": shortlist,
-        "statuses": statuses,
-        "options_flow": options.get("data") or [],
-        "dark_pool": dark_rows,
-        "sec_filings": sec.get("data") or [],
-        "smart_money": smart.get("data") or [],
-        "arkham_transfers": arkham.get("data") or [],
-        "events": events[:300],
+        "generated": _utc_now(), "overall_state": overall, "watchlist": shortlist,
+        "status_counts": {"live": active, "stale": stale, "error": errors, "total": len(statuses)},
+        "statuses": statuses, "options_flow": option_rows, "dark_pool": dark_rows,
+        "sec_filings": sec.get("data") or [], "smart_money": smart.get("data") or [],
+        "arkham_transfers": arkham.get("data") or [], "events": events[:300],
+        "rules": {"no_synthetic": True, "intent_from_single_event": False, "failure_isolated": True},
     }
+

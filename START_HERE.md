@@ -1,25 +1,34 @@
-# Start Here
+# START HERE — Full Live War Room
 
-1. Install dependencies:
+1. Copy `.env.example` to `.env`.
+2. Add a real `WARROOM_SEC_USER_AGENT` and only the provider keys you own.
+3. Install dependencies:
 
 ```bash
 pip install -r requirements.txt
+pip install -r requirements-streaming.txt
 ```
 
-2. Configure at minimum a real SEC user-agent; add paid provider keys as available. See `.env.example` and `DATA_CONNECTORS.md`.
+4. Validate code and semantics:
 
-3. Start:
+```bash
+python validate_live_stack.py
+python validate_redesign.py
+```
+
+5. Start entitled stream workers. See `stream_workers/README.md`.
+6. Verify live connections on the deployment machine:
+
+```bash
+python verify_live_connections.py --strict --write-report
+```
+
+7. Start the dashboard:
 
 ```bash
 streamlit run app.py
 ```
 
-4. Open the Streamlit URL. The default view is `OBSERVED`. Use `ALL LAYERS` only when you intentionally want structural/inferred maps shown alongside observed data.
+Windows users can run `RUN_LIVE_WARROOM.bat` after creating `.env`.
 
-5. Run the integrity audit after changes:
-
-```bash
-python validate_redesign.py
-```
-
-The included `War_Room_OS_preview.html` outside the project folder is a UI preview fixture only. It is not the production data path.
+Read `LIVE_DATA_ACTIVATION.md` before interpreting direction, squeeze pressure, Greek context, targets or duration.

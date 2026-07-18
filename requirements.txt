@@ -10,3 +10,5 @@ statsmodels>=0.14
 hmmlearn>=0.3
 networkx>=3.1
 pyarrow>=14
+
+python-dotenv>=1.0

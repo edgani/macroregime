@@ -1,0 +1,277 @@
+{
+  "schema_version": "3.0",
+  "production_rules": {
+    "synthetic_fallback": false,
+    "missing_as_neutral": false,
+    "squeeze_score_is_probability": false,
+    "reference_zone_is_guaranteed_target": false,
+    "dealer_inventory_observed_without_position_side": false,
+    "provider_failure_isolated": true,
+    "last_good_cache_labeled_stale": true
+  },
+  "planes": {
+    "event": [
+      "options_trade_flow",
+      "directional_greek_flow",
+      "TRF_prints",
+      "SEC_filings",
+      "smart_money",
+      "labeled_transfers",
+      "IDX_broker_events"
+    ],
+    "state": [
+      "spot_futures_price",
+      "open_interest",
+      "funding",
+      "long_short_ratio",
+      "taker_ratio",
+      "short_interest",
+      "cost_to_borrow",
+      "days_to_cover",
+      "option_surface",
+      "greeks",
+      "liquidation_map",
+      "fundamentals",
+      "physical_inventory"
+    ]
+  },
+  "tabs": {
+    "mission_control": [
+      "core_prices",
+      "FRED_macro",
+      "breadth",
+      "cross_asset_rotation",
+      "ETF_flow",
+      "institutional_events",
+      "derivatives_state"
+    ],
+    "macro_regime": [
+      "FRED_macro",
+      "rates",
+      "credit",
+      "liquidity",
+      "market_implied_confirmation",
+      "cross_asset_rotation"
+    ],
+    "early_warning": [
+      "breadth",
+      "volatility",
+      "credit_spreads",
+      "funding_stress",
+      "derivatives_crowding",
+      "physical_stress"
+    ],
+    "alpha_center": [
+      "macro_alignment",
+      "bottleneck",
+      "SEC_XBRL",
+      "earnings_estimates",
+      "ownership",
+      "institutional_events",
+      "price_state"
+    ],
+    "institutional": [
+      "options_trade_flow",
+      "TRF_prints",
+      "SEC_filings",
+      "ownership",
+      "smart_money",
+      "labeled_transfers",
+      "IDX_broker"
+    ],
+    "derivatives_squeeze": [
+      "perp_OI",
+      "funding",
+      "long_short_ratio",
+      "taker_ratio",
+      "short_interest",
+      "cost_to_borrow",
+      "days_to_cover",
+      "option_OI",
+      "option_volume",
+      "IV_surface",
+      "delta_gamma_vega_theta",
+      "vanna_charm_context",
+      "GEX",
+      "liquidation_heatmap",
+      "futures_statistics"
+    ],
+    "us_stocks": [
+      "consolidated_price",
+      "breadth",
+      "SEC_XBRL",
+      "earnings",
+      "estimates",
+      "ETF_flow",
+      "options",
+      "short_interest",
+      "TRF",
+      "SEC_filings"
+    ],
+    "ihsg": [
+      "IDX_price",
+      "foreign_flow",
+      "broker_summary",
+      "orderbook",
+      "free_float",
+      "controller",
+      "USDIDR",
+      "macro"
+    ],
+    "crypto": [
+      "spot",
+      "perp_OI",
+      "funding",
+      "liquidations",
+      "options",
+      "protocol_TVL",
+      "smart_money",
+      "entity_transfers",
+      "unlocks"
+    ],
+    "commodities": [
+      "futures_price",
+      "CFTC_COT",
+      "curve",
+      "EIA_inventory",
+      "physical_flow",
+      "futures_statistics",
+      "options"
+    ],
+    "fx": [
+      "spot",
+      "rate_differential",
+      "CFTC_TFF",
+      "options_volatility",
+      "central_bank",
+      "balance_of_payments",
+      "futures_statistics"
+    ],
+    "flow_rotation": [
+      "price_rotation",
+      "ETF_flow",
+      "options_sector_flow",
+      "CFTC_positioning",
+      "onchain_flow",
+      "IDX_foreign"
+    ],
+    "supply_chain": [
+      "curated_topology",
+      "EIA_physical",
+      "SEC_fundamentals",
+      "price_confirmation",
+      "capacity_data"
+    ],
+    "company_intel": [
+      "SEC_XBRL",
+      "earnings",
+      "ownership",
+      "SEC_filings",
+      "options",
+      "short_interest",
+      "TRF",
+      "price_state"
+    ],
+    "validation": [
+      "source_lineage",
+      "freshness",
+      "frozen_spec",
+      "OOS",
+      "calibration",
+      "drift",
+      "provider_schema_tests"
+    ]
+  },
+  "provider_priority": {
+    "US_options_stream": [
+      "Unusual_Whales_stream_bridge",
+      "Massive_options_WebSocket"
+    ],
+    "US_option_chain": [
+      "Massive_snapshot"
+    ],
+    "US_short_interest_borrow": [
+      "ORTEX",
+      "Intrinio_settlement_fallback"
+    ],
+    "US_TRF": [
+      "Massive_stream",
+      "Unusual_Whales_dark_pool",
+      "Massive_REST_fallback"
+    ],
+    "filings_fundamentals": [
+      "SEC_EDGAR_submissions",
+      "SEC_EDGAR_XBRL"
+    ],
+    "earnings_ownership_ETF_flow": [
+      "Intrinio"
+    ],
+    "crypto_perps": [
+      "Binance",
+      "Bybit",
+      "OKX",
+      "CoinGlass"
+    ],
+    "crypto_options": [
+      "Deribit",
+      "CoinGlass"
+    ],
+    "crypto_entities": [
+      "Arkham",
+      "Nansen"
+    ],
+    "futures_exchange_statistics": [
+      "Databento_bridge"
+    ],
+    "commodity_physical": [
+      "EIA"
+    ],
+    "futures_positioning": [
+      "CFTC_PRE_TFF",
+      "CFTC_PRE_disaggregated"
+    ],
+    "Indonesia": [
+      "licensed_IDX_bridge"
+    ]
+  },
+  "required_environment": {
+    "SEC": [
+      "WARROOM_SEC_USER_AGENT"
+    ],
+    "Unusual_Whales": [
+      "UNUSUAL_WHALES_API_KEY",
+      "UNUSUAL_WHALES_STREAM_BRIDGE_URL",
+      "UW_KAFKA_DECODER_MODULE"
+    ],
+    "Massive": [
+      "MASSIVE_API_KEY",
+      "MASSIVE_STREAM_BRIDGE_URL"
+    ],
+    "ORTEX": [
+      "ORTEX_API_KEY"
+    ],
+    "Intrinio": [
+      "INTRINIO_API_KEY"
+    ],
+    "CoinGlass": [
+      "COINGLASS_API_KEY"
+    ],
+    "Nansen": [
+      "NANSEN_API_KEY"
+    ],
+    "Arkham": [
+      "ARKHAM_API_KEY"
+    ],
+    "Databento": [
+      "DATABENTO_API_KEY",
+      "DATABENTO_STREAM_BRIDGE_URL"
+    ],
+    "EIA": [
+      "EIA_API_KEY"
+    ],
+    "IDX": [
+      "IDX_DATA_BRIDGE_URL",
+      "IDX_DATA_BRIDGE_TOKEN"
+    ]
+  }
+}

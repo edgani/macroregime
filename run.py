@@ -151,10 +151,120 @@ def _empty_desk(data, reason="No live price universe or benchmark was available.
                      "cross_asset": "NO_DATA", "defer_longs": None, "rotation_in": [], "rotation_out": []},
         "regime_tf": {"state": "NO_DATA"}, "regional": {}, "grades": _load_grades(),
         "markets": markets, "alpha": [], "desk_picks": {}, "feeds": {},
+        "macro_observations": _macro_observations(data), "market_breadth": _market_breadth(data),
+        "rotation_snapshot": _rotation_snapshot(data),
         "data_health": _data_health(data), "reference": _load_reference_data(),
         "institutional": {"overall_state": "NOT_LOADED", "statuses": [], "events": [],
                           "options_flow": [], "dark_pool": [], "sec_filings": [], "smart_money": [], "arkham_transfers": []},
     }
+
+
+def _series_summary(series):
+    """Compact latest observation summary for JSON/UI; never forward-fills missing values."""
+    try:
+        import pandas as pd
+        x = pd.to_numeric(pd.Series(series), errors="coerce").dropna().sort_index()
+        if x.empty:
+            return None
+        latest = float(x.iloc[-1]); previous = float(x.iloc[-2]) if len(x) > 1 else None
+        def chg(n):
+            if len(x) <= n or float(x.iloc[-n-1]) == 0: return None
+            return (latest / float(x.iloc[-n-1]) - 1.0) * 100.0
+        idx = x.index[-1]
+        return {
+            "timestamp": str(idx), "value": latest, "previous": previous,
+            "change_abs": latest - previous if previous is not None else None,
+            "change_1_period_pct": chg(1), "change_4_period_pct": chg(4),
+            "observations": int(len(x)), "observed": True,
+        }
+    except Exception:
+        return None
+
+
+def _macro_observations(data):
+    out = {}
+    for sid, series in (data.get("fred") or {}).items():
+        summary = _series_summary(series)
+        if summary is not None:
+            summary.update({"series_id": sid, "provider": "FRED", "state": "LIVE"})
+            out[sid] = summary
+    return out
+
+
+def _market_breadth(data):
+    """Breadth from the actually loaded universe; coverage is always disclosed."""
+    import pandas as pd
+    output = {}
+    for market, rows in (data.get("prices") or {}).items():
+        if market.startswith("_") or not isinstance(rows, dict):
+            continue
+        stats = []
+        for ticker, raw in rows.items():
+            try:
+                if isinstance(raw, pd.DataFrame):
+                    series = raw["Close"] if "Close" in raw.columns else raw.iloc[:, -1]
+                else:
+                    series = raw
+                x = pd.to_numeric(pd.Series(series), errors="coerce").dropna().sort_index()
+                if len(x) < 22:
+                    continue
+                last = float(x.iloc[-1]); prev = float(x.iloc[-2])
+                row = {
+                    "ticker": ticker, "ret_1d": (last / prev - 1) * 100 if prev else None,
+                    "ret_5d": (last / float(x.iloc[-6]) - 1) * 100 if len(x) >= 6 and x.iloc[-6] else None,
+                    "ret_20d": (last / float(x.iloc[-21]) - 1) * 100 if len(x) >= 21 and x.iloc[-21] else None,
+                    "above_20d": last > float(x.tail(20).mean()),
+                    "above_50d": last > float(x.tail(50).mean()) if len(x) >= 50 else None,
+                    "above_200d": last > float(x.tail(200).mean()) if len(x) >= 200 else None,
+                    "new_20d_high": last >= float(x.tail(20).max()),
+                    "new_20d_low": last <= float(x.tail(20).min()),
+                }
+                stats.append(row)
+            except Exception:
+                continue
+        n = len(stats)
+        def ratio(key):
+            vals = [r[key] for r in stats if r.get(key) is not None]
+            return round(100 * sum(bool(v) for v in vals) / len(vals), 2) if vals else None
+        def med(key):
+            vals = [float(r[key]) for r in stats if r.get(key) is not None]
+            return round(float(pd.Series(vals).median()), 4) if vals else None
+        adv = sum(1 for r in stats if (r.get("ret_1d") or 0) > 0)
+        dec = sum(1 for r in stats if (r.get("ret_1d") or 0) < 0)
+        output[market] = {
+            "provider": "derived_from_loaded_prices", "state": "LIVE" if n else "NO_DATA",
+            "coverage": n, "advance": adv, "decline": dec, "unchanged": max(0, n-adv-dec),
+            "advance_pct": round(100*adv/n,2) if n else None,
+            "above_20d_pct": ratio("above_20d"), "above_50d_pct": ratio("above_50d"),
+            "above_200d_pct": ratio("above_200d"), "new_20d_high_pct": ratio("new_20d_high"),
+            "new_20d_low_pct": ratio("new_20d_low"), "median_ret_1d_pct": med("ret_1d"),
+            "median_ret_5d_pct": med("ret_5d"), "median_ret_20d_pct": med("ret_20d"),
+            "constituents": stats,
+            "semantics": "Breadth is only over the loaded War Room universe, not the full exchange unless that universe is complete.",
+        }
+    return output
+
+
+def _rotation_snapshot(data):
+    """Cross-asset relative return snapshot from live loaded proxy prices."""
+    import pandas as pd
+    rows = []
+    pools = {}
+    pools.update((data.get("prices") or {}).get("_proxy") or {})
+    pools.update(data.get("proxies") or {})
+    for ticker, raw in pools.items():
+        try:
+            x = pd.to_numeric(pd.Series(raw), errors="coerce").dropna().sort_index()
+            if len(x) < 21: continue
+            last=float(x.iloc[-1])
+            def ret(n): return (last/float(x.iloc[-n-1])-1)*100 if len(x)>n and x.iloc[-n-1] else None
+            rows.append({"ticker":ticker,"ret_1d_pct":ret(1),"ret_5d_pct":ret(5),"ret_20d_pct":ret(20),"ret_60d_pct":ret(60),"timestamp":str(x.index[-1]),"observed":True})
+        except Exception:
+            continue
+    ranked = sorted(rows, key=lambda r: (r.get("ret_20d_pct") is not None, r.get("ret_20d_pct") or -1e9), reverse=True)
+    for i,row in enumerate(ranked,1): row["rank_20d"] = i
+    return {"state":"LIVE" if ranked else "NO_DATA","provider":"derived_from_loaded_prices","rows":ranked,
+            "semantics":"Relative price rotation is confirmation, not a dollar-flow ledger."}
 
 
 def _driver_series(data):
@@ -323,6 +433,9 @@ def build_desk(data, top_per_market=12):
         "alpha": alpha,
         "desk_picks": out.get("final_desk", {}),
         "feeds": {k: v for k, v in (data.get("feeds") or {}).items() if k != "_status"},
+        "macro_observations": _macro_observations(data),
+        "market_breadth": _market_breadth(data),
+        "rotation_snapshot": _rotation_snapshot(data),
         "data_health": _data_health(data),
         "reference": _load_reference_data(),
         "institutional": {"overall_state": "NOT_LOADED", "statuses": [], "events": [],

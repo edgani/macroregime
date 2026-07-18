@@ -1,0 +1,29 @@
+{
+  "status": "PASS",
+  "offline_scope": [
+    "options analytics",
+    "streamed Greek-flow integration",
+    "sector options rotation",
+    "crypto pressure context",
+    "full tab-coverage hub",
+    "provider payload parsers",
+    "liquidation zones",
+    "stale last-good failover",
+    "Python compile",
+    "dashboard JS syntax"
+  ],
+  "not_verified_without_credentials_or_network": [
+    "provider authentication",
+    "entitlements",
+    "exchange reachability",
+    "live payload schema changes"
+  ],
+  "sample": {
+    "options_context": "UPSIDE_CONTEXT",
+    "integrated_context": "UPSIDE_PRESSURE_CONTEXT",
+    "evidence_completeness_pct": 85.7,
+    "gamma_context": "DAMPENING_PROXY",
+    "crypto_short_squeeze_pressure": 44.0,
+    "tab_coverage_count": 14
+  }
+}

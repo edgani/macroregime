@@ -205,6 +205,10 @@ def minimal_desk(error: str | None = None) -> dict[str, Any]:
         for key in ("us", "ihsg", "crypto", "commod", "fx")
     }
     return attach_alpha_foundry({
-        "meta": {"generated": None, "source": "NO_DATA", "sources": {}, "fred_source": "NO_DATA", "universe_n": 0, "note": error or "Live data unavailable; research state still loaded.", "feeds_status": {}, "safe_fail_closed": True},
-        "systemic": {}, "regime_tf": {}, "regional": {}, "grades": {}, "markets": markets, "alpha": [], "desk_picks": {}, "feeds": {},
+        "meta": {"generated": None, "source": "NO_DATA", "sources": {}, "fred_source": "NO_DATA", "universe_n": 0, "note": error or "Live data unavailable; research state still loaded.", "feeds_status": {}, "safe_fail_closed": True, "desk_schema_version": "V6_RICH_DYNAMIC_2026_07_18"},
+        "systemic": {}, "regime_tf": {}, "regional": {}, "grades": {}, "markets": markets,
+        "alpha": [], "alpha_watch": [], "macro_state": {}, "early_warning": {},
+        "flow_rotation": {}, "supply_chain": {"claim":"REFERENCE_ONLY_NOT_CURRENT_SIGNAL","chains":[],"bottleneck":{}},
+        "company_intel": [], "knowledge_graph": {"current_nodes":[],"current_edges":[]},
+        "validation_state": {}, "research_engine": {}, "desk_picks": {}, "feeds": {},
     })

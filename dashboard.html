@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WAR ROOM PRO / GCFIS — Investment OS [MOCK v0.2 · engine-mapped]</title>
+<title>WAR ROOM PRO / GCFIS — Investment OS v0.6 Research</title>
 <style>
   :root{
     --base:#0a0d12; --panel:#10151d; --panel2:#151b25; --elev:#1a2330;
@@ -22,7 +22,7 @@
   header{display:flex;align-items:center;gap:14px;padding:9px 16px;background:linear-gradient(180deg,#0d1219,#0a0d12);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:40}
   .logo{font-family:var(--mono);font-weight:700;letter-spacing:.5px;font-size:13px}.logo b{color:var(--sig)}
   .sub{color:var(--faint);font-size:11px;font-family:var(--mono)}
-  .mockbadge{margin-left:auto;display:flex;align-items:center;gap:8px}
+  .statusbadge{margin-left:auto;display:flex;align-items:center;gap:8px}
   .pill{font-family:var(--mono);font-size:10.5px;padding:3px 8px;border:1px solid var(--line);border-radius:2px;color:var(--mut);letter-spacing:.4px}
   .pill.warn{color:#0a0d12;background:var(--amb);border-color:var(--amb);font-weight:700}
   .clock{font-family:var(--mono);color:var(--mut);font-size:11px}
@@ -94,8 +94,8 @@
   .rflow{position:absolute;right:-7px;top:50%;transform:translateY(-50%);color:var(--faint);font-size:12px;z-index:2}
 
   /* alpha cards */
-  .mockbanner{display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(224,169,46,.08);border:1px solid rgba(224,169,46,.35);border-radius:3px;margin-bottom:12px}
-  .mockbanner .mbx{color:var(--mut);font-size:11.5px}
+  .statusbanner{display:flex;align-items:center;gap:10px;padding:9px 12px;background:rgba(224,169,46,.08);border:1px solid rgba(224,169,46,.35);border-radius:3px;margin-bottom:12px}
+  .statusbanner .mbx{color:var(--mut);font-size:11.5px}
   .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(360px,1fr));gap:12px}
   .acard{background:var(--panel);border:1px solid var(--line);border-radius:4px;cursor:pointer;transition:border-color .12s,transform .12s;overflow:hidden}
   .acard:hover{border-color:var(--sig);transform:translateY(-1px)}
@@ -192,8 +192,8 @@
 <header>
   <div class="logo">WAR ROOM <b>PRO</b> / GCFIS</div>
   <div class="sub">Investment OS · engine-mapped from your v40 + warroom_pro audit</div>
-  <div class="mockbadge">
-    <span class="pill" id="verpill">v0.4 · NO DATA</span>
+  <div class="statusbadge">
+    <span class="pill" id="verpill">v0.6 · LOADING</span>
     <span class="pill warn" id="valpill">RESEARCH ONLY · PAPER/LIVE BLOCKED</span>
     <span class="clock" id="clk">--:--:-- UTC</span>
   </div>
@@ -220,7 +220,7 @@
   <div id="stage"></div>
   <div class="note" style="margin-top:18px;border-top:1px solid var(--hair);padding-top:12px">
     Badge legend — <span class="b eng">◆ engine.py</span> the module from YOUR code that powers this panel ·
-    <span class="b prod">✅ PROD</span> validated on real data ·
+    <span class="b prod">✅ DATA</span> observed data / engineering-validated feed ·
     <span class="b res">◐ RESEARCH</span> built, needs walk-forward ·
     <span class="b need">⚠ NEEDS DATA</span> needs a feed/API key ·
     <span class="b rescue">⟲ RESCUE</span> orphaned in engines/ but fills a gap ·
@@ -235,13 +235,7 @@ function tick(){const d=new Date();document.getElementById('clk').textContent=d.
 setInterval(tick,1000);tick();
 
 /* helper builders */
-const badge=(cls,txt)=>{
-  if(window.__LIVE){
-    if(/needs FRED|⚠ FRED/i.test(txt)) return '';                       // FRED is live this run
-    if(/synthetic in mock/i.test(txt)) return `<span class="b prod">● live</span>`;
-  }
-  return `<span class="b ${cls}">${txt}</span>`;
-};
+const badge=(cls,txt)=>`<span class="b ${cls}">${txt}</span>`;
 const esc2=s=>String(s==null?'—':s).replace(/</g,'&lt;').replace(/>/g,'&gt;');
 function panel(title, provs, bodyHTML){
   return `<div class="panel"><div class="phd"><h3>${title}</h3><div class="prov">${provs.map(([c,t])=>badge(c,t)).join('')}</div></div><div class="pbd">${bodyHTML}</div></div>`;
@@ -250,328 +244,217 @@ function rows(list){ // list: [ [k, v, subhtml?] ]
   return list.map(r=>`<div class="drow"><div><span class="${r[3]?'kk':'k'}">${r[0]}</span>${r[2]?`<div class="sub2">${r[2]}</div>`:''}</div><div class="v">${r[1]}</div></div>`).join('');
 }
 
+/* Dynamic runtime panels begin below. No hard-coded current-state fallback is permitted. */
+/* ══════════ V6 RICH DYNAMIC DATA BINDING ══════════ */
+const MARKET_IDS=['us','ihsg','crypto','commod','fx'];
+let DESK=window.DASHBOARD_DATA||{};
+window.__FOUNDRY=DESK.alpha_foundry||null;
+window.__REGISTRY=DESK.component_registry||(DESK.alpha_foundry||{}).component_registry||{};
+window.__SYS=DESK.systemic||{};
+window.__REGIME_TF=DESK.regime_tf||{};
+window.__REGIONAL=DESK.regional||{};
+window.__GRADES=DESK.grades||{};
 
-/* ══════════ INTEGRATED FREE ALPHA FOUNDRY (keeps original UI) ══════════ */
-function foundryState(){ return window.__FOUNDRY || null; }
-function foundryStatusPanel(){
-  const F=foundryState(); if(!F) return '';
-  const C=F.counts||{}, P=F.permissions||{};
-  const stateCls=F.status==='SHADOW_READY'?'u':'a';
-  return panel('Free Alpha Foundry — proof state', [['eng','◆ integrated backend'],['res','◐ historical candidate max'],['build','○ prospective required']], rows([
-    ['Operational state',`<span class="${stateCls}">${esc2(F.status)}</span>`,esc2(F.active_branch)],
-    ['Current shortlist',`<span class="${C.shortlist?'u':'m'}">${C.shortlist||0}</span>`,'real selector output only; no placeholder tickers'],
-    ['Registered trials',String(C.registered_trials||0),'all successes and failures stay in graveyard'],
-    ['Historical candidates',`<span class="${C.historical_candidates?'a':'m'}">${C.historical_candidates||0}</span>`,'still not proven until lockbox + future pass'],
-    ['Proven component / selector / alpha',`<span class="m">${C.proven_components||0} / ${C.proven_selectors||0} / ${C.proven_alpha||0}</span>`,'fail-closed claim ceiling'],
-    ['Permission',`<span class="${P.paper?'u':'d'}">PAPER ${P.paper?'OPEN':'BLOCKED'}</span> · <span class="${P.live?'u':'d'}">LIVE ${P.live?'OPEN':'BLOCKED'}</span>`,'research + prospective shadow only']
-  ])+`<div class="note" style="margin-top:8px">${esc2(F.warning)}</div>`);
-}
-function foundryMissionStrip(){
-  const F=foundryState(); if(!F) return '';
-  const C=F.counts||{};
-  return `<div class="panel" style="margin-bottom:12px;border-color:rgba(183,142,255,.32)"><div class="phd"><h3 style="color:var(--th)">◆ ALPHA PROOF FACTORY</h3><div class="prov">${badge('eng','◆ original UI adapter')}${badge('res','◐ fail-closed')}</div></div><div class="pbd"><div class="wsb" style="grid-template-columns:repeat(5,1fr)">
-    <div class="wcell"><span class="kx">Coverage</span><span class="vx i">${C.coverage_components||0} components</span></div>
-    <div class="wcell"><span class="kx">Free proof</span><span class="vx u">${C.free_full||0} full</span><span class="sub2">${C.free_partial||0} partial · ${C.free_low||0} low</span></div>
-    <div class="wcell"><span class="kx">Trials</span><span class="vx ${C.registered_trials?'i':'m'}">${C.registered_trials||0}</span></div>
-    <div class="wcell"><span class="kx">Shortlist</span><span class="vx ${C.shortlist?'u':'m'}">${C.shortlist||0}</span></div>
-    <div class="wcell"><span class="kx">Claim ceiling</span><span class="vx a">SHADOW</span></div>
-  </div></div></div>`;
-}
-function foundryShortlistPanel(){
-  const F=foundryState(); if(!F) return '';
-  const L=Array.isArray(F.shortlist)?F.shortlist:[];
-  if(!L.length){
-    const C=F.counts||{};
-    return panel('US Alpha Foundry — selector output', [['eng','◆ purged expanding WFA'],['build','○ real data run pending']],
-      `<div class="note">No real-market Top-20 has been emitted yet. Backend is integrated, but the free-data pipeline must build the historical entity master, SEC filed-time panel and tournament first. Readiness: <b>${C.readiness_ready||0}/${C.readiness_total||0}</b>. Nothing is fabricated.</div>`);
-  }
-  const cards=L.slice(0,20).map((x,i)=>`<div class="scard"><div class="stop2"><span class="stk">#${esc2(x.overall_rank||i+1)} · ${esc2(x.ticker)}</span><span class="actbadge wait">SHADOW</span><span class="conv">sector pct ${esc2(x.sector_rank_pct||'—')}</span></div><div class="est"><div class="estc"><div class="ek">Score</div><div class="ev i">${esc2(x.selector_score||'—')}</div></div><div class="estc"><div class="ek">Horizon</div><div class="ev sg">T63</div></div><div class="estc"><div class="ek">Filed</div><div class="ev m">${esc2(x.filed||'—')}</div></div><div class="estc"><div class="ek">Status</div><div class="ev a">NOT PROVEN</div></div></div><div class="swhy">${esc2(x.company_name||'')} · WHY IN: ${esc2(x.why_in||'')}</div></div>`).join('');
-  return `<div class="panel"><div class="phd"><h3>US Top-20 — prospective shadow selector</h3><div class="prov">${badge('eng','◆ Alpha Foundry')}${badge('res','◐ not PAPER/LIVE')}</div></div><div class="pbd"><div class="setups">${cards}</div></div></div>`;
-}
-function foundryAlphaCards(){
-  const F=foundryState(), L=F&&Array.isArray(F.shortlist)?F.shortlist:[]; if(!L.length) return '';
-  const cards=L.slice(0,12).map((x,i)=>`<div class="acard" data-tk="${esc2(x.ticker)}"><div class="top"><div><div class="tk">${esc2(x.ticker)}</div><span class="mk">US · SHADOW #${esc2(x.overall_rank||i+1)}</span></div><div class="asym"><div class="av">${esc2(x.sector_rank_pct||'—')}</div><div class="al">SECTOR RANK</div></div></div><div class="tierline"><span class="tierbadge tac">HISTORICAL CANDIDATE</span><span class="baserate">T63 · Ridge frozen</span></div><div class="thesis">${esc2(x.company_name||'')} · ${esc2(x.why_in||'')}</div><div class="mcapline"><div class="mcell"><div class="mk2">Score</div><div class="mv2">${esc2(x.selector_score||'—')}</div></div><div class="mcell"><div class="mk2">Decision date</div><div class="mv2">${esc2(x.decision_date||'—')}</div></div><div class="mcell"><div class="mk2">Claim</div><div class="mv2 a">SHADOW</div></div></div><div class="gated">not proven · no PAPER/LIVE · prospective denominator mandatory</div><div class="cardfoot"><span class="why">FILED ${esc2(x.filed||'—')}</span><span class="trace">TRACEBACK ›</span></div></div>`).join('');
-  return `<div class="lbl" style="margin:13px 0 7px">Selector shadow shortlist — output from the frozen US proof factory</div><div class="cards">${cards}</div>`;
-}
-function foundryValidationPanel(){
-  const F=foundryState(); if(!F) return '';
-  const C=F.counts||{}, X=F.fixed_results||{};
-  return panel('Current Proof & Permission Ledger', [['eng','◆ trial graveyard'],['eng','◆ lockbox'],['res','◐ prospective required']], rows([
-    ['CPI/Labor actual pipeline',`<span class="u">${esc2(X.cpi_labor_actual_pipeline)}</span>`,'official actual/revision infrastructure'],
-    ['CPI/Labor standalone 5D/20D',`<span class="d">${esc2(X.cpi_labor_5d20d_signal)}</span>`,'expanded WFA produced zero promotion'],
-    ['NDX D0 packet',`<span class="a">${esc2(X.ndx_d0_packet)}</span>`,'association begins before surprise is known; non-executable'],
-    ['US registered trials',String(C.registered_trials||0),'complete trial family remains in graveyard'],
-    ['US historical candidates',String(C.historical_candidates||0),'maximum current claim = candidate'],
-    ['System proven component / selector / alpha',`<span class="m">0 / 0 / 0</span>`,'requires one-shot lockbox + untouched future evidence']
-  ])+`<div class="note" style="margin-top:8px">Original 14-tab interface is preserved. Research modules are adapters behind Alpha, US Stocks, Mission Control and Validation; they do not replace the War Room.</div>`);
-}
+const V=(x,d='—')=>(x===null||x===undefined||x===''?d:x);
+const N=x=>{const n=Number(x);return Number.isFinite(n)?n:null};
+const CLS=x=>/FIX|READY|PASS|ALIGNED|TAILWIND|FRESH|LIVE/.test(String(x||''))?'u':/DROP|BLOCK|FAIL|HEADWIND|COUNTER|STALE|MISSING/.test(String(x||''))?'d':'a';
+const pct=x=>N(x)==null?'—':(N(x)*100).toFixed(1)+'%';
+const txt=x=>esc2(V(x));
+const arr=x=>Array.isArray(x)?x:[];
+const obj=x=>(x&&typeof x==='object'&&!Array.isArray(x))?x:{};
 
-/* ══════════ MISSION CONTROL (bespoke) ══════════ */
-/* regional regime row — reads window.__REGIONAL (real price-proxy) when live, else honest '—' */
-/* grade-gate: a metric renders a NUMBER only if its walk-forward grade is VALIDATED.
-   PARTIAL → banded label; REJECTED/FEED_GATED → "—". No ungraded number can show. */
-function gradeOf(key){ const G=window.__GRADES; return (G&&G[key]&&G[key].grade)||null; }
-function emitGraded(key, value, opts){
-  opts=opts||{}; const g=gradeOf(key);
-  if(g===null) return value;
-  if(g==='VALIDATED') return value;
-  if(g==='PARTIAL')   return opts.band||value;
-  return '—';
+function registryRows(tab){
+  const reg=arr((window.__REGISTRY||{})[tab]);
+  return reg.length?rows(reg.map(x=>[
+    `${txt(x.component_id)} · ${txt(x.component_name)}`,
+    `<span class="${CLS(x.current_status)}">${txt(x.current_status)}</span>`,
+    `${txt(x.decision_role)} · blocker: ${txt(x.main_blocker)}`
+  ])):`<div class="note">Registry unavailable for this tab.</div>`;
 }
-function gradeBadge(key){
-  const g=gradeOf(key); if(!g) return '';
-  const m={VALIDATED:['prod','✅ validated OOS'],PARTIAL:['research','🟡 partial'],
-           REJECTED:['res','❌ rejected OOS'],FEED_GATED:['res','⚫ feed-gated']};
-  const b=m[g]||['res',g]; return `<span class="b ${b[0]}">${b[1]}</span>`;
+function feedHealthPanel(){
+  const mm=obj((DESK.meta||{}).market_meta);
+  const label={us:'US',idx:'IHSG',crypto:'CRYPTO',commodity:'COMMOD',fx:'FX'};
+  const list=Object.entries(mm).map(([k,x])=>[
+    label[k]||k.toUpperCase(),
+    `<span class="${CLS(x.status)}">${txt(x.status)}</span>`,
+    `loaded ${V(x.loaded,0)}/${V(x.requested,0)} · live ${V(x.live_refreshed,0)} · cache ${V(x.cache_fresh,0)}/${V(x.cache_stale,0)} · missing ${V(x.missing,0)} · as-of ${x.as_of?txt(String(x.as_of).slice(0,10)):'—'}`
+  ]);
+  return panel('Data Feed Health & Freshness',[['eng','◆ resilient_market_data.py'],['prod','✅ provider cascade + LKG']],list.length?rows(list):`<div class="note">No market feed metadata.</div>`);
 }
-function regionalCells(){
-  const order=['US','China','Europe','Japan','India','IHSG','Crypto','Commod'];
-  const R=window.__REGIONAL;
-  if(R && Object.keys(R).length){
-    return order.map(k=>{
-      const o=R[k];
-      if(!o) return `<div class="rcell"><div class="rk">${k}</div><div class="rv m">—</div><div class="sub2" style="font-size:8px">no data</div></div>`;
-      return `<div class="rcell"><div class="rk">${k}</div><div class="rv ${o.cls}">${o.label}</div><div class="sub2" style="font-size:8px">${esc2(o.detail)}</div></div>`;
-    }).join('');
-  }
-  return order.map(k=>`<div class="rcell"><div class="rk">${k}</div><div class="rv m">—</div><div class="sub2" style="font-size:8px">no data-bound regime</div></div>`).join('');
+function regimePanel(){
+  const R=obj(DESK.regime_tf), qcol=q=>({Q1:'u',Q2:'u',Q3:'d',Q4:'d'}[q]||'m');
+  const cell=(name,x)=>`<div class="wcell"><span class="kx">${name}</span><span class="vx ${qcol(x&&x.quad)}">${txt(x&&x.quad)} · ${txt(x&&x.name)}</span><span class="sub2">${x&&x.conf!=null?'confidence '+txt(x.conf):x&&x.g!=null?'growth '+txt(x.g)+' · inflation '+txt(x.i):'—'}</span></div>`;
+  return panel('Multi-Timeframe Regime',[['eng','◆ regime_multitf.py'],['res','◐ structural/monthly macro + price proxies']],`<div class="wsb" style="grid-template-columns:repeat(4,1fr)">${cell('Structural',R.structural)}${cell('Monthly',R.monthly)}${cell('Weekly',R.weekly)}${cell('Daily',R.daily)}</div><div class="note" style="margin-top:8px">Posture: <b>${txt(R.posture)}</b> · ${R.aligned?'<span class="u">aligned</span>':'<span class="a">divergent</span>'}</div>`);
+}
+function regionalPanel(){
+  const R=obj(DESK.regional); const names=['US','Europe','China','Japan','India','IHSG','Crypto','Commod'];
+  return panel('Regional Regime',[['eng','◆ regional_regime.py'],['res','◐ price-state context']],`<div class="regions">${names.map(name=>{const x=R[name];return `<div class="reg"><span>${name}</span><b class="${x?txt(x.cls):'m'}">${x?txt(x.label):'—'}</b><small>${x?txt(x.detail):'no loaded proxy'}</small></div>`}).join('')}</div>`);
+}
+function opportunityPanel(){
+  const watch=arr(DESK.alpha_watch).slice(0,10);
+  return panel('Cross-Market Opportunity Monitor',[['eng','◆ run.py'],['res','◐ tactical discovery watch · not proven alpha']],watch.length?rows(watch.map(x=>[
+    `${txt(x.tk)} · ${txt(String(x.market||'').toUpperCase())}`,
+    `<span class="${x.direction==='long'?'u':x.direction==='short'?'d':'a'}">${txt(x.action)}</span> · score ${txt(x.setup_score)} · R/R ${txt(x.rr)}`,
+    `${txt(x.proof_status)} · macro ${txt(x.macro_alignment)} · ${txt(x.why)}`
+  ])):`<div class="note">No valid current setup passed the research gate. This is an honest empty state, not a missing UI panel.</div>`);
+}
+function proofPanel(){
+  const F=obj(DESK.alpha_foundry),C=obj(F.counts),P=obj(F.permissions);
+  return panel('Alpha Proof Factory',[['eng','◆ Alpha Foundry adapter'],['res','◐ fail-closed']],`<div class="wsb" style="grid-template-columns:repeat(5,1fr)">
+    <div class="wcell"><span class="kx">Coverage</span><span class="vx i">${V(C.coverage_components,0)} components</span></div>
+    <div class="wcell"><span class="kx">Free proof</span><span class="vx u">${V(C.free_full,0)} full</span><span class="sub2">${V(C.free_partial,0)} partial · ${V(C.free_low,0)} low</span></div>
+    <div class="wcell"><span class="kx">Trials</span><span class="vx ${C.registered_trials?'i':'m'}">${V(C.registered_trials,0)}</span></div>
+    <div class="wcell"><span class="kx">Foundry shortlist</span><span class="vx ${C.shortlist?'i':'m'}">${V(C.shortlist,0)}</span></div>
+    <div class="wcell"><span class="kx">Claim ceiling</span><span class="vx a">${txt(F.claim_ceiling||'SHADOW')}</span></div>
+  </div><div class="note" style="margin-top:8px">Current tactical discovery watch: ${arr(DESK.alpha_watch).length}. Frozen Foundry output appears only after its separate data pipeline runs. PAPER ${P.paper?'OPEN':'BLOCKED'} · LIVE ${P.live?'OPEN':'BLOCKED'}.</div>`);
+}
+function permissionPanel(){
+  const M=obj(DESK.meta),A=obj(DESK.consistency_audit);
+  return panel('Current Permission & Integrity',[['eng','◆ consistency_guard.py'],['res','◐ fail-closed']],rows([
+    ['Data mode',`<span class="${CLS(M.data_mode||M.source)}">${txt(M.data_mode||M.source)}</span>`,txt(M.data_claim)],
+    ['Universe ceiling',txt(M.universe_claim_ceiling),'configured scan universe; not a full-market selector'],
+    ['Cross-tab audit',`<span class="${A.ok?'u':'d'}">${A.ok?'PASS':'BLOCKED'}</span>`,`${V(A.quarantined_count,0)} setup row(s) quarantined`],
+    ['PAPER / LIVE','<span class="d">BLOCKED / BLOCKED</span>','requires frozen lockbox + prospective evidence']
+  ]));
 }
 function viewMC(){
-  const S=window.__SYS||{}, A=(window.DASHBOARD_DATA||{}).consistency_audit||{};
-  const confirmed=(S.rotation_in||[]), raw=(S.rotation_in_raw||[]), unconfirmed=(S.rotation_unconfirmed||[]), same=(S.rotation_same_family_overlap||[]);
-  const rot=confirmed.length
-    ? `<div class="lbl" style="margin-top:9px">Independently confirmed RS improving: <span class="u">${confirmed.map(esc2).join(', ')}</span></div>`
-    : `<div class="lbl" style="margin-top:9px">Independently confirmed RS improving: <span class="m">none</span></div>`;
-  const liveStrip=`<div class="panel" style="margin-bottom:12px;border-color:rgba(46,193,111,.35)"><div class="phd"><h3 style="color:var(--up)">◆ DATA-BOUND SYSTEMIC STATE</h3><div class="prov">${badge('eng','◆ run.py')}${badge('res','◐ fail-closed')}</div></div><div class="pbd"><div class="wsb" style="grid-template-columns:repeat(5,1fr)">
-    <div class="wcell"><span class="kx">Regime estimate</span><span class="vx sg">${esc2(S.quad)} · ${esc2(S.quad_name)}</span></div>
-    <div class="wcell"><span class="kx">Liquidity</span><span class="vx m">${esc2(S.liquidity)}</span></div>
-    <div class="wcell"><span class="kx">Fragility score</span><span class="vx m">${esc2(S.fragility)}</span></div>
-    <div class="wcell"><span class="kx">Shock-stress score</span><span class="vx m">${esc2(S.shock_score)}</span></div>
-    <div class="wcell"><span class="kx">Cross-asset</span><span class="vx i">${esc2(S.cross_asset)}</span></div>
-  </div>${rot}<div class="note" style="margin-top:8px">Mission Control requires independent evidence. Raw RS observations (${raw.length}) stay in Flow & Rotation; ${same.length} same-price-family overlap(s) and ${unconfirmed.length} unconfirmed name(s) are withheld. This is not actual fund flow.</div></div></div>`;
-  return `<div class="viewhead"><h2 class="sg">MISSION CONTROL</h2><span class="vd">Data-bound upstream observations only. Descriptive claim ceiling; no independent ticker ranking.</span></div>
-    <div class="provrow">${badge('eng','◆ consistency_guard.py')}${badge(A.ok?'prod':'res',A.ok?(A.quarantined_count?'🟡 consistent · rows quarantined':'✅ cross-tab consistent'):'❌ critical output block')}</div>
-    ${liveStrip}${foundryMissionStrip()}
-    ${panel('Current Permission & Integrity',[['eng','◆ fail-closed']],rows([
-      ['Data mode',esc2((window.DASHBOARD_DATA||{}).meta?.data_mode||(window.DASHBOARD_DATA||{}).meta?.source||'NO_DATA'),esc2((window.DASHBOARD_DATA||{}).meta?.source||'')+' · '+esc2((window.DASHBOARD_DATA||{}).meta?.data_claim||'real data/cache only')],
-      ['Universe ceiling',esc2((window.DASHBOARD_DATA||{}).meta?.universe_claim_ceiling||'—'),'live scanner is not the full-market selector'],
-      ['Cross-tab audit',`<span class="${A.ok?(A.quarantined_count?'a':'u'):'d'}">${A.ok?(A.quarantined_count?'PARTIAL PASS':'PASS'):'BLOCKED'}</span>`,esc2([...(A.critical_errors||[]),...(A.warnings||[])].join('; ')||'rotation/setup/Alpha identities consistent')],
-      ['Raw rotation method','<span class="a">RS proxy</span>','descriptive only; not capital flow and not a recommendation'],
-      ['PAPER / LIVE','<span class="d">BLOCKED / BLOCKED</span>','until lockbox + prospective evidence']
-    ]))}`;
+  const S=obj(DESK.systemic),rot=arr(S.rotation_in),raw=arr(S.rotation_in_raw),same=arr(S.rotation_same_family_overlap),unconfirmed=arr(S.rotation_unconfirmed);
+  const systemic=panel('Data-Bound Systemic State',[['eng','◆ run.py / gcfis'],['res','◐ descriptive state']],`<div class="wsb" style="grid-template-columns:repeat(5,1fr)">
+    <div class="wcell"><span class="kx">Regime estimate</span><span class="vx sg">${txt(S.quad)} · ${txt(S.quad_name)}</span></div>
+    <div class="wcell"><span class="kx">Liquidity</span><span class="vx ${CLS(S.liquidity)}">${txt(S.liquidity)}</span></div>
+    <div class="wcell"><span class="kx">Fragility score</span><span class="vx ${N(S.fragility)>70?'d':'m'}">${txt(S.fragility)}</span></div>
+    <div class="wcell"><span class="kx">Shock-stress score</span><span class="vx ${N(S.shock_score)>70?'d':'m'}">${txt(S.shock_score)}</span></div>
+    <div class="wcell"><span class="kx">Cross-asset</span><span class="vx i">${txt(S.cross_asset)}</span></div>
+  </div><div class="note" style="margin-top:8px">Independent RS confirmation: ${rot.length?rot.map(txt).join(', '):'none'} · raw ${raw.length} · same-family overlap ${same.length} · unconfirmed ${unconfirmed.length}. RS is not actual capital flow.</div>`);
+  return `<div class="viewhead"><h2 class="sg">MISSION CONTROL</h2><span class="vd">Complete read-only cockpit: data, regime, risk, opportunities, proof and permission.</span></div>
+  <div class="provrow">${badge('eng','◆ original 14-tab UI')}${badge('prod','✅ resilient data binding')}${badge('res','◐ no independent ticker ranking')}</div>
+  <div class="grid" style="grid-template-columns:1fr">${systemic}${feedHealthPanel()}${regimePanel()}${regionalPanel()}${opportunityPanel()}${panel('Early-Warning Snapshot',[['eng','◆ crash_bottom.py / internals']],earlyWarningRows())}${panel('Flow & Rotation Snapshot',[['res','◐ descriptive proxy']],flowRows())}${proofPanel()}${permissionPanel()}</div>`;
 }
-
-/* ══════════ generic tab spec (data-driven) ══════════ */
-const TABS={
- macro:{title:'MACRO &amp; REGIME',cls:'',sub:'Data-bound macro state, coverage and proof ceiling.'},
- ew:{title:'EARLY WARNING',cls:'',sub:'Descriptive fragility and shock-stress state; not a crash timer.'},
- sc:{title:'SUPPLY CHAIN / BOTTLENECK',cls:'',sub:'Registered causal-chain components and evidence state.'},
- co:{title:'COMPANY INTELLIGENCE',cls:'',sub:'Registered company-evidence components and proof state.'},
- crypto:{title:'CRYPTO',cls:'',sub:'Data-bound market setups; full lifecycle selector remains separate.'},
- commod:{title:'COMMODITIES',cls:'',sub:'Per-contract data-bound setups; no universal commodity driver.'},
- fx:{title:'FX',cls:'',sub:'Pair-relative data-bound setups and driver coverage.'},
- ihsg:{title:'IHSG / IDX',cls:'',sub:'Long-only data-bound setups; index proxies are excluded.'},
- flow:{title:'FLOW &amp; ROTATION',cls:'',sub:'RS observations only unless direct capital-flow evidence exists.'},
- kg:{title:'KNOWLEDGE GRAPH',cls:'',sub:'Registered causal evidence, lag and invalidation state.'},
- rc:{title:'VALIDATION / RESEARCH CENTER',cls:'',sub:'Every signal earns promotion or remains research.'}
-};
-
-/* ══════════ ALPHA (bespoke, enriched) ══════════ */
-const ALPHA=[];
+function earlyWarningRows(){
+  const E=obj(DESK.early_warning),C=obj(E.crash_bottom),I=obj(E.internals),F=obj(E.fragility),S=obj(E.shock),B=obj(C.bottom);
+  return rows([
+    ['Fragility',txt(F.ok?F.fragility:F.reason),`${txt(F.label)} · ${Object.keys(obj(F.components)).length} component(s)`],
+    ['Shock stress',txt(S.ok?S.shock_prob:S.reason),`${txt(S.alert)} · ${Object.keys(obj(S.components)).length} component(s)`],
+    ['Crash pressure',txt(C.pressure),`${txt(C.type)} · ${txt(C.basis)}`],
+    ['Bottom state',txt(B.state),`score ${txt(B.score)} · ${Object.values(obj(B.checks)).filter(Boolean).length}/${Object.keys(obj(B.checks)).length} checks`],
+    ['Breadth / concentration',`${pct(I.breadth)} / ${pct(I.top5_share)}`,'descriptive internals; not calibrated timing']
+  ]);
+}
+function flowRows(){
+  const S=obj(DESK.systemic),F=obj(DESK.flow_rotation),L=obj(F.leadlag);
+  return rows([
+    ['Improving RS',arr(S.rotation_in_raw).length?arr(S.rotation_in_raw).map(txt).join(', '):'—','raw relative-strength observation'],
+    ['Weakening RS',arr(S.rotation_out_raw).length?arr(S.rotation_out_raw).map(txt).join(', '):'—','raw relative-strength observation'],
+    ['Independent confirmations',arr(S.rotation_in).length?arr(S.rotation_in).map(txt).join(', '):'—','requires non-price evidence family'],
+    ['Lead-lag edges',txt(L.n_edges_found),`${txt(L.n_pairs_tested)} pairs tested · FDR q ${txt(L.fdr_q)}`],
+    ['Claim',txt(F.claim),'not actual fund flow']
+  ]);
+}
+function foundryShortlistRows(){
+  const F=obj(DESK.alpha_foundry),s=arr(F.shortlist);
+  return s.length?rows(s.slice(0,20).map(x=>[
+    txt(x.ticker),`rank ${txt(x.rank)} · score ${txt(x.score)}`,`frozen Foundry shadow · ${txt(x.why_in||'')}`
+  ])):`<div class="note">Frozen Foundry shortlist has not been generated yet. Run the separate US Alpha Foundry pipeline; tactical discovery watch below remains available now.</div>`;
+}
+function alphaWatchCards(){
+  const w=arr(DESK.alpha_watch);
+  if(!w.length)return `<div class="note">No current tactical discovery watch passed its data and level gates.</div>`;
+  return `<div class="alphagrid">${w.slice(0,24).map(x=>`<div class="acard ${x.market==='us'?'str':'tac'}" data-tk="${txt(x.tk)}"><div class="atop"><b>${txt(x.tk)}</b><span>${txt(String(x.market||'').toUpperCase())}</span></div><div class="asym">${txt(x.setup_score)}</div><div class="tier tac">TACTICAL WATCH · UNPROVEN</div><div class="thesis">${txt(x.why)}</div><div class="ametrics"><span>R/R <b>${txt(x.rr)}</b></span><span>Macro <b>${txt(x.macro_alignment)}</b></span><span>Mode <b>${txt(x.market_mode)}</b></span></div><div class="gate">${txt(x.action)} · ${txt(x.level_source)} · as-of ${txt(x.as_of)}</div></div>`).join('')}</div>`;
+}
 function viewAlpha(){
-  const F=foundryState(), L=F&&Array.isArray(F.shortlist)?F.shortlist:[];
-  return `<div class="viewhead"><h2 class="th">◆ ALPHA &amp; TICKERS</h2><span class="vd">Only frozen selector output is allowed. Curated moonshot priors are not emitted as current candidates.</span></div>
-    <div class="provrow">${badge('eng','◆ Alpha Foundry')}${badge('res','◐ lockbox + prospective required')}</div>
-    ${foundryStatusPanel()}${foundryAlphaCards()}
-    ${!L.length?`<div class="panel"><div class="pbd"><div class="note">No real selector shortlist exists yet. No placeholder ticker, TAM multiple, price target, or curated candidate is shown.</div></div></div>`:''}`;
+  return `<div class="viewhead"><h2 class="th">◆ ALPHA &amp; TICKERS</h2><span class="vd">Three separate layers: current tactical watch, frozen selector, and proof status. No curated ticker is emitted as a current candidate.</span></div>
+  <div class="provrow">${badge('eng','◆ live desk discovery')}${badge('eng','◆ Alpha Foundry')}${badge('res','◐ lockbox + prospective required')}</div>
+  <div class="grid" style="grid-template-columns:1fr">${proofPanel()}${panel('Frozen US Alpha Foundry — Selector Output',[['eng','◆ purged expanding WFA'],['res','◐ not run / shadow only']],foundryShortlistRows())}${panel('Current Cross-Market Tactical Discovery Watch',[['eng','◆ current valid setups'],['res','◐ not proven alpha']],alphaWatchCards())}${panel('Alpha Component Registry',[['eng','◆ coverage registry']],registryRows('ALPHA'))}</div>`;
 }
 function openTrace(tk){
-  const F=foundryState(), row=((F&&F.shortlist)||[]).find(x=>String(x.ticker).toUpperCase()===String(tk).toUpperCase());
-  document.getElementById('drawer').innerHTML=`<div class="dhd"><div class="dtk">${esc2(tk)}</div><span class="pill">DATA TRACE</span><span class="x" id="closeX">✕</span></div><div class="dintro">${row?esc2(JSON.stringify(row,null,2)):'No data-bound trace receipt exists for this ticker.'}</div>`;
-  document.getElementById('overlay').classList.add('on'); document.getElementById('closeX').onclick=()=>document.getElementById('overlay').classList.remove('on');
+  const x=arr(DESK.alpha_watch).find(r=>String(r.tk).toUpperCase()===String(tk).toUpperCase())||arr(obj(DESK.alpha_foundry).shortlist).find(r=>String(r.ticker).toUpperCase()===String(tk).toUpperCase());
+  document.getElementById('mTitle').textContent=tk+' · Evidence Trace';
+  document.getElementById('mBody').innerHTML=x?rows(Object.entries(x).slice(0,24).map(([k,v])=>[txt(k),txt(Array.isArray(v)?v.join(', '):typeof v==='object'?JSON.stringify(v):v),''])):`<div class="note">No current trace receipt.</div>`;
+  document.getElementById('overlay').classList.add('on');document.getElementById('closeX').onclick=()=>document.getElementById('overlay').classList.remove('on');
 }
 document.getElementById('overlay').onclick=e=>{if(e.target.id==='overlay')e.currentTarget.classList.remove('on');};
-
-/* generic tab renderer */
+function macroPanels(){
+  const M=obj(DESK.macro_state),F=obj(M.forward_macro),L=obj(M.liquidity),C=obj(M.input_coverage),D=obj(M.driver_models);
+  const cov=group=>arr(C[group]).length?arr(C[group]).map(txt).join(', '):'none';
+  const drivers=Object.entries(D).map(([m,x])=>[m.toUpperCase(),`<span class="${CLS(x.bias)}">${txt(x.bias)}</span>`,`coverage ${V(x.fed,0)}/${V(x.total,0)} · score ${txt(x.score)}`]);
+  return panel('Growth / Inflation Nowcast',[['eng','◆ forward_macro.py'],['res','◐ state estimate']],rows([
+    ['Forward Quad',`${txt(F.forward_quad)} · ${txt(F.quad_name)}`,`GROC ${txt(F.GROC)} · IROC ${txt(F.IROC)}`],
+    ['Growth inputs',cov('growth_inputs'),'only available-at-runtime inputs are used'],
+    ['Inflation inputs',cov('infl_inputs'),'only available-at-runtime inputs are used'],
+    ['Systemic inputs',cov('systemic_inputs'),'missing stays missing']
+  ]))+panel('Liquidity & Cross-Asset',[['eng','◆ liquidity.py / cross_asset.py']],rows([
+    ['Liquidity state',txt(L.expanding?'EXPANDING':L.reason),'no universal risk-on score'],
+    ['Cross-asset regime',txt(obj(M.cross_asset).regime),`defer longs: ${txt(obj(M.cross_asset).defer_longs)}`],
+    ['Regional coverage',String(Object.keys(obj(M.regional)).length),'price-state context only']
+  ]))+panel('Market Driver Matrix',[['eng','◆ market_drivers.py'],['res','◐ frozen causal signs']],drivers.length?rows(drivers):`<div class="note">No driver series currently loaded.</div>`)+regimePanel()+regionalPanel();
+}
+function supplyPanels(){
+  const S=obj(DESK.supply_chain),chains=arr(S.chains),B=obj(S.bottleneck),heat=arr(B.consensus_heatmap);
+  const chainRows=chains.slice(0,10).map(c=>[txt(c.name),`<span class="a">${txt(c.status)}</span>`,`${txt(c.horizon)} · ${arr(c.steps).length} propagation step(s) · REFERENCE ONLY`]);
+  const heatRows=heat.slice(0,12).map(x=>[txt(x.ticker),`${txt(x.layer)} · ${txt(x.role)}`,`${txt(x.priority)} · ${txt(x.stars)} stars · research reference, not current selector`]);
+  return panel('Causal Chain Reference Library',[['res','◐ static mechanism map · not current']],chainRows.length?rows(chainRows):`<div class="note">No chain reference loaded.</div>`)+panel('Bottleneck Reference Heatmap',[['res','◐ source map · requires event validation']],heatRows.length?rows(heatRows):`<div class="note">No bottleneck reference loaded.</div>`)+panel('Registered Components & Proof State',[['eng','◆ coverage registry']],registryRows('SUPPLY CHAIN'));
+}
+function companyPanels(){
+  const C=arr(DESK.company_intel);
+  const live=C.length?rows(C.slice(0,16).map(x=>[txt(x.tk),`score ${txt(x.setup_score)} · R/R ${txt(x.rr)} · ${txt(x.proof_status)}`,`stage ${txt(x.stage)} · flow ${txt(x.flow_type)} · mode ${txt(x.market_mode)} · macro ${txt(x.macro_alignment)}`])):`<div class="note">No current US company watch passed the tactical gate.</div>`;
+  return panel('Current US Company Watch — Runtime Evidence',[['eng','◆ per-ticker engine outputs'],['res','◐ tactical / not fundamental alpha']],live)+panel('Company-Intelligence Component Registry',[['eng','◆ coverage registry']],registryRows('COMPANY INTEL'));
+}
+function graphPanels(){
+  const K=obj(DESK.knowledge_graph),nodes=arr(K.current_nodes),edges=arr(K.current_edges);
+  return panel('Current Surfaced Nodes',[['eng','◆ live desk union']],nodes.length?rows(nodes.slice(0,24).map(x=>[txt(x.ticker),`${txt(x.market)} · ${txt(x.role)}`,txt(x.status)])):`<div class="note">No current surfaced node.</div>`)+panel('Reference-Chain Overlap',[['res','◐ overlap is not causal validation']],edges.length?rows(edges.map(x=>[txt(x.chain),arr(x.tickers).map(txt).join(', '),`${txt(x.role)} · ${txt(x.claim)}`])):`<div class="note">No current ticker overlaps a registered reference chain.</div>`)+panel('Knowledge-Graph Component Registry',[['eng','◆ coverage registry']],registryRows('KNOWLEDGE GRAPH'));
+}
+function validationPanels(){
+  const Vd=obj(DESK.validation_state),I=obj(Vd.internals),C=obj(Vd.crash),L=obj(Vd.leadlag),R=obj(Vd.ranking_summary),F=obj(DESK.alpha_foundry),Ct=obj(F.counts),A=obj(DESK.consistency_audit);
+  return panel('Runtime Integrity & Research Ledger',[['eng','◆ validation adapter']],rows([
+    ['Feed / desk integrity',`<span class="${A.ok?'u':'d'}">${A.ok?'PASS':'BLOCKED'}</span>`,`${V(A.quarantined_count,0)} quarantined · source ${txt(obj(DESK.meta).source)}`],
+    ['Market internals',`breadth ${pct(I.breadth)}`,`top-5 share ${pct(I.top5_share)} · ${arr(I.divergences).length} divergence(s)`],
+    ['Crash/bottom state',`${txt(C.type)} / ${txt(obj(C.bottom).state)}`,`pressure ${txt(C.pressure)} · descriptive only`],
+    ['Lead-lag discovery',`${V(L.n_edges_found,0)} edge(s)`,`${V(L.n_pairs_tested,0)} pairs · FDR q ${txt(L.fdr_q)}`],
+    ['Runtime ranking',`${V(R.master_long,0)} long · ${V(R.master_short,0)} short · ${V(R.master_spot,0)} spot`,`${V(R.eliminated,0)} eliminated · ${V(R.deferred_longs,0)} deferred`],
+    ['Foundry trials / candidates',`${V(Ct.registered_trials,0)} / ${V(Ct.historical_candidates,0)}`,'complete trial graveyard required'],
+    ['System proven component / selector / alpha','<span class="m">0 / 0 / 0</span>','lockbox + prospective evidence required']
+  ]))+panel('Validation Component Registry',[['eng','◆ coverage registry']],registryRows('VALIDATION'));
+}
 function viewGeneric(id){
-  const t=TABS[id], map={macro:'MACRO & REGIME',ew:'EARLY WARNING',sc:'SUPPLY CHAIN',co:'COMPANY INTEL',crypto:'CRYPTO',commod:'COMMODITIES',fx:'FX',ihsg:'IHSG',flow:'FLOW & ROTATION',kg:'KNOWLEDGE GRAPH',rc:'VALIDATION'};
-  const reg=((window.__REGISTRY||{})[map[id]]||[]);
-  let body=reg.length?rows(reg.map(x=>[
-    `${esc2(x.component_id)} · ${esc2(x.component_name)}`,
-    `<span class="${/FIX|READY/.test(x.current_status||'')?'u':/DROP|BLOCK/.test(x.current_status||'')?'d':'a'}">${esc2(x.current_status)}</span>`,
-    `${esc2(x.decision_role)} · blocker: ${esc2(x.main_blocker)}`
-  ])):`<div class="note">No registered data-bound output for this tab yet.</div>`;
-  const S=window.__SYS||{};
-  if(id==='macro'){
-    body=panel('Current Descriptive Macro Snapshot',[['eng','◆ current data binding'],['res','◐ not a predictive permission']],rows([
-      ['Regime estimate',`${esc2(S.quad||'—')} · ${esc2(S.quad_name||'—')}`,'descriptive classification; review source coverage'],
-      ['Liquidity',esc2(S.liquidity||'—'),'missing stays missing'],
-      ['Cross-asset',esc2(S.cross_asset||'—'),'descriptive only']
-    ]))+panel('Registered Components & Current Proof State',[['eng','◆ coverage registry']],body);
-  } else if(id==='ew'){
-    const fc=Object.keys(S.fragility_components||{}).length, sc=Object.keys(S.shock_components||{}).length;
-    body=panel('Current Stress Snapshot',[['eng','◆ fragility.py / shock.py'],['res','◐ score, not calibrated crash probability']],rows([
-      ['Fragility score',esc2(S.fragility||'—'),`${esc2(S.fragility_label||'—')} · ${fc} component(s) available`],
-      ['Shock-stress score',esc2(S.shock_score||'—'),`${esc2(S.shock_label||'—')} · ${sc} component(s) available`],
-      ['Permission','DESCRIPTIVE ONLY','does not time a crash or bottom']
-    ]))+panel('Registered Components & Current Proof State',[['eng','◆ coverage registry']],body);
-  } else if(id==='flow'){
-    const raw=S.rotation_in_raw||[], out=S.rotation_out_raw||[], same=S.rotation_same_family_overlap||[];
-    body=panel('RS Rotation Observations — descriptive only',[['res','◐ not actual flow']],rows([
-      ['Improving RS',raw.length?raw.map(esc2).join(', '):'—','price-relative-strength observation'],
-      ['Weakening RS',out.length?out.map(esc2).join(', '):'—','price-relative-strength observation'],
-      ['Same-family overlap withheld',same.length?same.map(esc2).join(', '):'—','RS plus PRICE_RS is not independent confirmation'],
-      ['Method',esc2(S.rotation_method||'—'),'not capital flow and not a timing edge']
-    ]))+panel('Registered Components',[['eng','◆ coverage registry']],body);
-  } else {
-    body=panel('Registered Components & Current Proof State',[['eng','◆ coverage registry'],['res','◐ no hard-coded current values']],body);
-  }
-  if(id==='rc' && window.__FOUNDRY) body=foundryValidationPanel()+body;
-  return `<div class="viewhead"><h2 class="${t.cls}">${t.title}</h2><span class="vd">${t.sub}</span></div><div class="provrow">${badge('eng','◆ data-bound review mode')}</div><div class="grid" style="grid-template-columns:1fr">${body}</div>`;
+  const title={macro:'MACRO &amp; REGIME',ew:'EARLY WARNING',flow:'FLOW &amp; ROTATION',sc:'SUPPLY CHAIN / BOTTLENECK',co:'COMPANY INTELLIGENCE',kg:'KNOWLEDGE GRAPH',rc:'VALIDATION / RESEARCH CENTER'}[id]||id.toUpperCase();
+  const sub={macro:'State, drivers, liquidity and regional context.',ew:'Vulnerability, trigger pressure, internals and bottom durability.',flow:'RS observations, lead-lag and registered flow components.',sc:'Reference mechanisms plus current overlap; not narrative promotion.',co:'Runtime company evidence plus fundamental component coverage.',kg:'Current nodes, reference edges, invalidation and proof state.',rc:'Every result earns a claim ceiling or remains research.'}[id]||'';
+  let body='';
+  if(id==='macro') body=macroPanels();
+  else if(id==='ew') body=panel('Current Early-Warning State',[['eng','◆ fragility / shock / crash-bottom'],['res','◐ descriptive']],earlyWarningRows())+panel('Early-Warning Component Registry',[['eng','◆ coverage registry']],registryRows('EARLY WARNING'));
+  else if(id==='flow') body=panel('Current Flow & Rotation Observations',[['res','◐ not actual fund flow']],flowRows())+panel('Flow Component Registry',[['eng','◆ coverage registry']],registryRows('FLOW & ROTATION'));
+  else if(id==='sc') body=supplyPanels();
+  else if(id==='co') body=companyPanels();
+  else if(id==='kg') body=graphPanels();
+  else if(id==='rc') body=validationPanels();
+  return `<div class="viewhead"><h2>${title}</h2><span class="vd">${sub}</span></div><div class="provrow">${badge('eng','◆ rich dynamic adapter')}${badge('res','◐ no hard-coded current values')}</div><div class="grid" style="grid-template-columns:1fr">${body}</div>`;
 }
-
-/* ══════════ PER-MARKET SCREENERS (the funnel + setups) ══════════ */
-const MARKET={
- us:{title:'US STOCKS',sub:'Data-bound setups + frozen selector shortlist.',longOnly:false,prov:[],funnel:[['0','UNIVERSE','not loaded'],['0','ELIMINATED','—','elim'],['NO_DATA','MARKET BIAS','—'],['0','ENTRY-VALID','—','last']],drivers:[],setups:[]},
- ihsg:{title:'IHSG / IDX',sub:'Long-only. Data-bound outputs only.',longOnly:true,prov:[],funnel:[['0','UNIVERSE','not loaded'],['0','ELIMINATED','—','elim'],['NO_DATA','MARKET BIAS','—'],['0','ENTRY-VALID','—','last']],drivers:[],setups:[]},
- crypto:{title:'CRYPTO',sub:'Data-bound outputs only.',longOnly:false,prov:[],funnel:[['0','UNIVERSE','not loaded'],['0','ELIMINATED','—','elim'],['NO_DATA','MARKET BIAS','—'],['0','ENTRY-VALID','—','last']],drivers:[],setups:[]},
- commod:{title:'COMMODITIES',sub:'Data-bound outputs only.',longOnly:false,prov:[],funnel:[['0','UNIVERSE','not loaded'],['0','ELIMINATED','—','elim'],['NO_DATA','MARKET BIAS','—'],['0','ENTRY-VALID','—','last']],drivers:[],setups:[]},
- fx:{title:'FX',sub:'Data-bound outputs only.',longOnly:false,prov:[],funnel:[['0','UNIVERSE','not loaded'],['0','ELIMINATED','—','elim'],['NO_DATA','MARKET BIAS','—'],['0','ENTRY-VALID','—','last']],drivers:[],setups:[]}
-};
+function marketData(id){return obj(obj(DESK.markets)[id]);}
 function viewMarket(id){
-  const m=MARKET[id];
-  const fun=m.funnel.map((f,i)=>`<div class="fstep ${f[3]||''}">${i<m.funnel.length-1?'<span class="farr">›</span>':''}<div class="fn">${f[0]}</div><div class="fl">${f[1]}</div><div class="fg">${f[2]}</div></div>`).join('');
-  const drv=m.drivers.length?rows(m.drivers.map(d=>[d[0],`<span class="${d[1].includes('TAILWIND')?'u':d[1].includes('HEADWIND')?'d':'a'}">${d[1]}</span>`,`${d[2]} · ${d[3]}`])):`<div class="note">No data-bound driver reading.</div>`;
-  // Q: if the gate isn't met, do NOT show the ticker at all — omit it, don't flash it.
-  const actionable=m.setups.filter(x=>!(x.invalid) && x.ac!=='avoid' && !(x.gm==='INVALID') && x.cv);
-  const dropped=Number(m.failed||0);
-  const setups=actionable.length? actionable.map(x=>`<div class="scard">
-    <div class="stop2"><span class="stk">${x.tk}</span><span class="actbadge ${x.ac}">${x.act}</span><span class="conv">${x.cv?(esc2(x.score_label||'SCORE')+' '+x.cv):''}</span></div>
-    <div class="est">
-      <div class="estc"><div class="ek">Entry</div><div class="ev ${x.e==='—'?'m':'i'}">${x.e}</div></div>
-      <div class="estc"><div class="ek">Stop</div><div class="ev ${x.s==='—'?'m':'d'}">${x.s}</div></div>
-      <div class="estc"><div class="ek">Target</div><div class="ev ${x.t==='—'?'m':'u'}">${x.t}</div></div>
-      <div class="estc"><div class="ek">R/R</div><div class="ev ${x.rr==='—'?'m':'sg'}">${x.rr}</div></div>
-    </div>
-    <div class="styp">${x.ty}${x.gm&&x.gm!=='unknown'&&x.gm!=='INVALID'?`<span class="gm m">${x.gm}</span>`:''}</div><div class="sub2">Levels: ${esc2(x.level_source||'UNAVAILABLE')} · stop ${esc2(x.stop_basis||'—')} · target ${esc2(x.target_basis||'—')}${x.current_quote!=null?` · intraday quote ${esc2(x.current_quote)} (${esc2(x.quote_status||'—')})`:''}${x.quote_as_of?` @ ${esc2(x.quote_as_of)}`:''}${x.structural_target?` · structural scenario ${esc2(x.structural_target)}`:''}${x.as_of?` · daily model as-of ${esc2(x.as_of)}`:''}</div>
-    <div class="swhy">${x.why}${x.macro_alignment?` · macro ${esc2(x.macro_alignment)} (${esc2(x.driver_confidence||'NONE')} coverage)`:''}</div>
-  </div>`).join('')
-   : `<div class="note">No ticker cleared the registered research gate in this market — nothing emitted (by design).</div>`;
-  const droppedNote = dropped>0? `<div class="note" style="margin-top:6px;opacity:.6">${dropped} candidate(s) failed the gate and were omitted (not shown).</div>`:'';
-  const foundryBlock = id==='us' ? foundryShortlistPanel() : '';
-  return `
-  <div class="viewhead"><h2>${m.title}</h2><span class="vd">${m.sub}${m.source_info&&m.source_info.as_of?` · daily as-of ${esc2(m.source_info.as_of.slice(0,10))}`:''}${m.source_info&&m.source_info.status?` · ${esc2(m.source_info.status)}`:''}</span>${m.longOnly?'<span class="lo-badge">LONG-ONLY ENFORCED</span>':''}</div>
-  <div class="provrow">${m.prov.map(([c,x])=>badge(c,x)).join('')}</div>
-  <div class="lbl" style="margin-bottom:7px">Screener funnel — how a ticker surfaces in this market</div>
-  <div class="funnel">${fun}</div>
-  ${foundryBlock}
-  <div class="grid" style="grid-template-columns:1.15fr 1fr;align-items:start">
-    <div class="panel"><div class="phd"><h3>Setups — surfaced tickers</h3><div class="prov">${badge('eng','◆ entry.py')}${badge('res','◐ daily snapshot · research only')}</div></div><div class="pbd"><div class="setups">${setups}</div>${droppedNote}</div></div>
-    ${panel('Market Driver Bias',[['eng','◆ market_drivers.py'],['res','◐ frozen causal sign + current change-z']],drv)}
-  </div>`;
+  const m=marketData(id),title={us:'US STOCKS',ihsg:'IHSG / IDX',crypto:'CRYPTO',commod:'COMMODITIES',fx:'FX'}[id],longOnly=id==='ihsg';
+  const f=obj(m.funnel),fun=[
+    [V(f.loaded,0),'LOADED','daily series'],[V(f.history_eligible,0),'HISTORY-ELIGIBLE','OHLC coverage'],[V(f.signal_valid,0),'SIGNAL-VALID','level and gate pass'],[V(f.displayed,0),'DISPLAYED','current research watch']
+  ].map((x,i)=>`<div class="fstep ${i===3?'last':''}">${i<3?'<span class="farr">›</span>':''}<div class="fn">${x[0]}</div><div class="fl">${x[1]}</div><div class="fg">${x[2]}</div></div>`).join('');
+  const setup=arr(m.setups);const cards=setup.length?setup.map(x=>`<div class="scard"><div class="stop2"><span class="stk">${txt(x.tk)}</span><span class="actbadge ${String(x.dir)==='short'?'short':String(x.act).includes('WATCH')?'wait':'long'}">${txt(x.act)}</span><span class="conv">${txt(x.score_label||'SCORE')} ${txt(x.conv)}</span></div><div class="est"><div class="estc"><div class="ek">Entry</div><div class="ev i">${txt(x.e)}</div></div><div class="estc"><div class="ek">Stop</div><div class="ev d">${txt(x.s)}</div></div><div class="estc"><div class="ek">Target</div><div class="ev u">${txt(x.t)}</div></div><div class="estc"><div class="ek">R/R</div><div class="ev sg">${txt(x.rr)}</div></div></div><div class="styp">${txt(x.ty)}${x.gm&&x.gm!=='unknown'?`<span class="gm m">${txt(x.gm)}</span>`:''}</div><div class="sub2">${txt(x.level_source)} · daily model ${txt(x.as_of)}${x.current_quote!=null?` · quote ${txt(x.current_quote)} (${txt(x.quote_status)})`:''}</div><div class="swhy">${txt(x.why)} · macro ${txt(x.macro_alignment)} (${txt(x.driver_confidence)} coverage)</div></div>`).join(''):`<div class="note">No ticker cleared the current research gate. Feed and panel remain loaded.</div>`;
+  const drv=arr(m.driver_readings);const drvBody=drv.length?rows(drv.map(x=>[txt(x.factor),`<span class="${CLS(x.effect)}">${txt(x.effect)} ${x.signed_contribution_z==null?'':txt(x.signed_contribution_z)+'z'}</span>`,`${txt(x.horizon)} · strength ${txt(x.strength)} · ${txt(x.series)}`])):`<div class="note">No supported driver series loaded for this market.</div>`;
+  const foundry=id==='us'?panel('US Alpha Foundry — Frozen Selector',[['eng','◆ separate research pipeline']],foundryShortlistRows()):'';
+  return `<div class="viewhead"><h2>${title}</h2><span class="vd">Daily-model research setups${obj(m.source_info).as_of?' · as-of '+txt(String(m.source_info.as_of).slice(0,10)):''} · ${txt(obj(m.source_info).status)}</span>${longOnly?'<span class="lo-badge">LONG-ONLY ENFORCED</span>':''}</div><div class="provrow">${badge('eng','◆ data-bound market adapter')}${badge('res','◐ research watch · not full-market selector')}</div><div class="lbl" style="margin-bottom:7px">Screener funnel — all counts use the same runtime population</div><div class="funnel">${fun}</div>${foundry}<div class="grid" style="grid-template-columns:1.15fr 1fr;align-items:start"><div class="panel"><div class="phd"><h3>Current Tactical Watch Setups</h3><div class="prov">${badge('eng','◆ entry.py')}${badge('res','◐ daily snapshot')}</div></div><div class="pbd"><div class="setups">${cards}</div>${V(f.failed,0)?`<div class="note">${V(f.failed,0)} invalid candidate(s) quarantined or omitted.</div>`:''}</div></div>${panel('Market Driver Bias',[['eng','◆ market_drivers.py']],drvBody)}</div>`;
 }
-
-/* ══════════ LIVE-DATA BINDING (run.py injects window.DASHBOARD_DATA) ══════════ */
-(function bindLive(){
-  const D = window.DASHBOARD_DATA; if(!D) return;
-  try{
-    const src=String(D.meta.source||'NO_DATA'), mode=String(D.meta.data_mode||src);
-    const approved=src.startsWith('RESILIENT_')||src.startsWith('DAILY_SNAPSHOT');
-    const vp=document.getElementById('verpill'), tp=document.getElementById('valpill');
-    let label='NO DATA';
-    if(src==='RESILIENT_DESK_LKG') label='LKG CACHE';
-    else if(mode.includes('INTRADAY_QUOTE')) label=mode.includes('PARTIAL')?'PARTIAL QUOTES + DAILY':'INTRADAY QUOTE + DAILY';
-    else if(src.includes('LKG')) label='DAILY LKG CACHE';
-    else if(src.includes('PARTIAL')) label='DATA PARTIAL';
-    else if(approved) label='DATA DAILY';
-    if(vp){vp.textContent='v0.5 · '+label; vp.style.borderColor=approved?'rgba(46,193,111,.6)':'rgba(233,179,60,.65)'; vp.style.color=approved?'var(--up)':'var(--amb)';}
-    if(tp){tp.textContent='RESEARCH ONLY · PAPER/LIVE BLOCKED'; tp.className='pill warn';}
-  }catch(e){}
-  const esc=s=>String(s==null?'':s).replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  window.__FOUNDRY = D.alpha_foundry || null;
-  window.__REGISTRY = D.component_registry || (D.alpha_foundry||{}).component_registry || {};
-  // ALPHA (mutate in place → existing renderer works)
-  if(Array.isArray(D.alpha)){
-    ALPHA.length=0;
-    D.alpha.forEach(a=>ALPHA.push({
-      tk:a.tk, mkt:esc(a.market).toUpperCase().slice(0,18), asym:String(a.asymmetry),
-      tier: a.tier>=4?'gen':a.tier===3?'str':'tac',
-      tierLbl: a.tier>=4?'GENERATIONAL':a.tier===3?'STRATEGIC':'TACTICAL',
-      base:'tier-'+a.tier+' · base-rate: '+a.base_rate,
-      mcNow:'—', mcBull:a.upside||'—', px:a.upside||'—',
-      thesis:esc(a.scarcity||a.node),
-      gated: (a.gated&&a.gated.length)? 'feed-gated neutral: '+a.gated.join(', '):'',
-      why:esc(a.node)
-    }));
-  }
-  // per-market setups + funnel (mutate in place)
-  if(D.markets){
-    const actClass=a=>({BUILD_LONG:'long',START_SCALING:'scale',BUILD_SHORT:'short',
-      STAND_ASIDE:'wait',WAIT:'wait',AVOID:'avoid',WATCH:'wait',WATCH_LONG:'wait',WATCH_SHORT:'wait',WATCH_COUNTER_REGIME:'wait'}[a]||'wait');
-    for(const id in D.markets){ if(!MARKET[id]) continue;
-      const mk=D.markets[id];
-      MARKET[id].funnel=[
-        [String(mk.funnel.loaded||0),'LOADED','configured watchlist / instruments'],
-        [String(mk.funnel.history_eligible||0),'HISTORY-ELIGIBLE','≥200 daily OHLC bars'],
-        [String(mk.funnel.signal_valid||0),'SIGNAL-VALID','directional levels + R/R gate'],
-        [String(mk.funnel.displayed||0),'DISPLAYED','tight research shortlist','last']];
-      MARKET[id].failed=Number(mk.funnel.failed||0);
-      MARKET[id].source_info=mk.source_info||{};
-      MARKET[id].drivers=(mk.driver_readings||[]).map(x=>[x.factor,`${x.effect||'NO_DATA'} ${x.signed_contribution_z==null?'':(x.signed_contribution_z>0?'+':'')+x.signed_contribution_z+'z'}`,`${x.horizon} · strength ${x.strength}`,`dynamic series ${x.series||'—'} · scope ${mk.driver_scope||'—'} · coverage ${(mk.driver_coverage||{}).fed||0}/${(mk.driver_coverage||{}).total||0}`]);
-      MARKET[id].setups=(mk.setups||[]).map(x=>({
-        tk:x.tk, act:x.act, ac:actClass(x.act), dir:x.dir,
-        e:x.e==null?'—':String(x.e), s:x.s==null?'—':String(x.s),
-        t:x.t==null?'—':String(x.t), rr:x.rr==null?'—':String(x.rr),
-        ty:x.ty||'—', gm:x.valid?(x.gm||'—'):'INVALID', cv:x.conv||0, valid:!!x.valid,
-        why:esc(x.why), invalid:x.valid?null:(x.warn||'gate not met'), level_source:x.level_source,
-        stop_basis:x.stop_basis,target_basis:x.target_basis,structural_target:x.structural_target,data_quality:x.data_quality,
-        as_of:x.as_of,evidence_family:x.evidence_family,score_label:x.score_label,
-        current_quote:x.current_quote,quote_as_of:x.quote_as_of,quote_provider:x.quote_provider,quote_status:x.quote_status,
-        macro_alignment:x.macro_alignment,driver_confidence:x.driver_confidence}));
-      if(!MARKET[id].setups.length) MARKET[id].setups=[{tk:'—',act:'NO SETUP',ac:'wait',
-        e:'—',s:'—',t:'—',rr:'—',ty:'—',gm:'—',cv:0,why:'',
-        invalid:'no name cleared the conviction gate on this data — correct behavior, not fabricated'}];
-    }
-  }
-  // Mission Control live-macro override (quad / liquidity / fragility / shock / x-asset)
-  window.__SYS = D.systemic || null;
-  window.__LIVE = !!(D.meta && (String(D.meta.source||'').startsWith('RESILIENT_')||String(D.meta.source||'').startsWith('DAILY_SNAPSHOT')));
-  window.__REGIME_TF = D.regime_tf || null;
-  window.__REGIONAL = D.regional || null;
-  window.__GRADES = D.grades || null;
-  // flip the header badges so you can SEE the live run took (no more guessing MOCK vs live)
-  if(!window.__LIVE){
-    const vp=document.getElementById('verpill'), tp=document.getElementById('valpill');
-    const src=(D.meta&&D.meta.source)||'NO_DATA';
-    const label=src==='DATA_UNAVAILABLE'?'NO DATA':(src==='CONSISTENCY_BLOCKED'?'BLOCKED':'RESEARCH');
-    if(vp){ vp.textContent='v0.3 · '+label; vp.style.borderColor='rgba(233,179,60,.65)'; vp.style.color='var(--amb)'; }
-    if(tp){ tp.textContent='● '+label; tp.className='pill warn'; }
-  }
-  // blank any market NOT loaded this run so it never shows stale mock prices
-  if((window.__LIVE || (D.meta&&D.meta.safe_fail_closed)) && D.markets){
-    for(const id in MARKET){
-      if(D.markets[id]) continue;
-      MARKET[id].setups=[{tk:'—',act:'NOT LOADED',ac:'wait',e:'—',s:'—',t:'—',rr:'—',ty:'—',gm:'—',cv:0,
-        why:'',invalid:'market not fetched this run — add it in the sidebar or check the feed'}];
-    }
-  }
+(function bindV6(){
+  const M=obj(DESK.meta),src=String(M.source||'NO_DATA'),mode=String(M.data_mode||src),vp=document.getElementById('verpill'),tp=document.getElementById('valpill');
+  let label='NO DATA';if(src==='RESILIENT_DESK_LKG')label='LKG CACHE';else if(mode.includes('INTRADAY_QUOTE'))label=mode.includes('PARTIAL')?'PARTIAL QUOTES + DAILY':'INTRADAY QUOTE + DAILY';else if(src.includes('LKG'))label='DAILY LKG CACHE';else if(src.includes('PARTIAL'))label='DATA PARTIAL';else if(src.startsWith('RESILIENT_')||src.startsWith('DAILY_SNAPSHOT'))label='DATA DAILY';
+  if(vp){vp.textContent='v0.6 · '+label;vp.style.borderColor=label==='NO DATA'?'rgba(233,179,60,.65)':'rgba(46,193,111,.6)';vp.style.color=label==='NO DATA'?'var(--amb)':'var(--up)';}
+  if(tp){tp.textContent='RESEARCH ONLY · PAPER/LIVE BLOCKED';tp.className='pill warn';}
 })();
-
 /* router */
-const MARKET_IDS=['us','ihsg','crypto','commod','fx'];
 function render(v){
   const stage=document.getElementById('stage');
-  if(v==='mc') stage.innerHTML=viewMC();
-  else if(v==='alpha'){ stage.innerHTML=viewAlpha(); stage.querySelectorAll('.acard').forEach(c=>c.onclick=()=>openTrace(c.dataset.tk)); }
-  else if(MARKET_IDS.includes(v)) stage.innerHTML=viewMarket(v);
+  if(v==='mc')stage.innerHTML=viewMC();
+  else if(v==='alpha'){stage.innerHTML=viewAlpha();stage.querySelectorAll('.acard').forEach(c=>c.onclick=()=>openTrace(c.dataset.tk));}
+  else if(MARKET_IDS.includes(v))stage.innerHTML=viewMarket(v);
   else stage.innerHTML=viewGeneric(v);
   window.scrollTo(0,0);
 }
-document.getElementById('nav').onclick=e=>{
-  const t=e.target.closest('.tab');if(!t)return;
-  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');
-  render(t.dataset.v);
-};
+document.getElementById('nav').onclick=e=>{const t=e.target.closest('.tab');if(!t)return;document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));t.classList.add('on');render(t.dataset.v);};
 render('mc');
 </script>
 </body>

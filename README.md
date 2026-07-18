@@ -1,65 +1,85 @@
-# War Room OS — complete, self-contained package
+# War Room OS v6 — Original UI, Rich Runtime Data Binding
 
-This is the **whole thing**: the gcfis reasoning brain + the KEEP signal/UI engines + the rescue
-engines + the data adapter + the full validation suite + the real research data + the dashboard.
-It runs from this folder — no other repo needed.
+This package preserves the original 14-tab War Room interface and reconnects it to runtime data and
+engine outputs without restoring the old hard-coded current tickers, prices, probabilities, targets or
+allocation values.
 
-```
-warroom_os/
-  gcfis/                     # the reasoning brain (57 files, self-contained) — orchestrator + 13 layers
-  warroom/                   # KEEP signal/UI engines (signal_edge, early_warning, meters, internals,
-                             #   drivers, backtest, walkforward, accumulation, render, …)
-  engines/                   # RESCUE engines: onchain_engine, cftc_cot_scraper, fx_carry_engine
-                             #   (+ bottleneck/gip/vix/thought as refs). The 83-file bloat is DROPPED.
-  research/                  # REAL data: sp500_panel.parquet (482 tkr, 2013-18), macro_panel (1881-2023),
-                             #   factor_ic / validated_tickers / macro_attribution, shiller.csv, vix.csv
-  data_layer.py              # ONE data adapter — yfinance + FRED (no key) + synthetic fallback, source-stamped
-  run.py                     # data → gcfis.orchestrator → asymmetric_discovery → desk_data.json + dashboard
-  dashboard.html             # approved v0.3 UI, data-driven (renders the run; standalone = mock)
-  validate_all.py            # runs all 3 validators below
-  validation_plus.py         # statistical battery + negative/positive controls (validates the validator)
-  validate_real.py           # factor + macro battery on the real bundled data (reconciles prior work)
-  component_validation.py    # every engine: runs/deterministic/no-lookahead/no-repaint/formula/edge
-  VALIDATION.md              # the full coverage matrix + results
-  requirements.txt
+## Run
+
+On Windows, extract the ZIP to a new folder and double-click:
+
+```text
+RUN_APP.bat
 ```
 
-## Run it
+The root `RUN_WARROOM.bat` calls the same launcher.
 
-```bash
-pip install -r requirements.txt
+## Runtime feed behavior
 
-streamlit run app.py         # the dashboard (main file = app.py)
-python run.py --synthetic     # headless: offline: proves the pipeline runs end-to-end (0 setups on noise = correct)
-python run.py                 # your machine: live yfinance + FRED → desk_data.json + dashboard_live.html
-python validate_all.py        # the entire validation stack (statistical + real-data + component)
+Daily-model inputs use a resilient provider cascade:
+
+1. yfinance batch;
+2. direct Yahoo chart endpoint;
+3. Binance for supported crypto;
+4. Stooq where supported;
+5. persistent last-known-good cache.
+
+Intraday quotes are attached only to surfaced research-watch tickers. They do not replace daily OHLCV
+as the model input. Provider and ticker failures are isolated, so one failure does not blank every tab.
+A first run with no network and no pre-existing cache cannot create real current data.
+
+Use `CHECK_FEEDS.bat` to produce a feed-diagnostics report. Use `SEED_OR_REFRESH_FEEDS.bat` to seed or
+refresh the persistent cache.
+
+## Alpha behavior
+
+The Alpha tab has two deliberately separate layers:
+
+- **Current tactical discovery watch** — generated from currently valid runtime setups across markets;
+  explicitly labelled `UNPROVEN_RESEARCH_WATCH`.
+- **Frozen US Alpha Foundry selector** — populated only after the separate SEC/price research pipeline
+  runs and produces a real shortlist.
+
+The tactical watch prevents Alpha from becoming an empty UI regression, but it is not promoted as a
+proven selector. Curated moonshot names and placeholder tickers are not emitted as current candidates.
+
+Run the historical Free Alpha Foundry with:
+
+```text
+RUN_ALPHA_FOUNDRY_QUICK.bat
 ```
 
-Open `dashboard.html` standalone (design), or `dashboard_live.html` after a run (populated).
+## Mission Control and all tabs
 
-## Verified — every entry point runs from THIS folder
+Mission Control again displays the complete read-only cockpit:
 
-```
-run.py --synthetic        → pipeline runs, writes dashboard_live.html ✓
-validation_plus.py        → VALIDATOR VALIDATED (noise→NOISE, planted→TRADEABLE) ✓
-validate_real.py          → IC reproduces prior factor_ic.parquet exactly (5/5) ✓
-component_validation.py   → 28 checks, 21 PASS, 0 FAIL ✓
-```
+- feed health and freshness;
+- systemic state;
+- multi-timeframe regime;
+- regional context;
+- cross-market opportunity watch;
+- early warning;
+- flow/rotation observations;
+- Alpha proof state;
+- permissions and integrity.
 
-## What is validated vs what still needs feeds (honest)
+Macro, Early Warning, Flow, Supply Chain, Company Intel, Knowledge Graph and Validation consume rich
+runtime payloads instead of being replaced by registry-only screens. Reference chains are explicitly
+labelled as reference material, not current signals.
 
-Fully validated **here, on real data**: gcfis brain (13 layers, e2e), all statistical methods
-(permutation/MC/White-RC/SPA/FDR/DSR/drift), US-equity signals, macro/cross-asset/crash/CAPE, and
-every engine's determinism/no-lookahead/no-repaint/formula.
+## Claim ceiling
 
-Genuinely **needs feeds not in this zip** (flagged, never faked): non-US prices (IHSG/crypto/FX/commodity),
-live/current prices (panel ends 2018-02), vintage/ALFRED FRED, on-chain (Glassnode), COT (CFTC).
-`run.py` picks these up automatically on a machine with network + keys.
+- No current values are hard-coded into dashboard JavaScript.
+- Runtime tactical setups are research watches, not proven alpha.
+- The Foundry remains historical-candidate maximum until lockbox and prospective evidence pass.
+- PAPER and LIVE are blocked.
+- `MQA_RISK_RANGE_PROXY` is a local proxy label, not a claim of exact proprietary Hedgeye levels.
 
-## The gate (unchanged)
+## Validation
 
-A signal surfaces a ticker only if it clears **perm_p < 0.05 AND DSR ≥ 0.95**, survives Reality-Check/SPA
-after data-snooping, and is stable OOS. On synthetic/noise → 0 setups. That is correct, not a bug.
+See:
 
-DROPPED from the original 64k-LOC zip: 83 orphaned engines (~60%), led by the 19-file options/GEX/vanna/
-charm cluster (needs paid options data). KEPT: only what's validated and wired.
+- `V6_DEEP_RUNTIME_AUDIT.json`
+- `RELEASE_VALIDATION_v6.json`
+- `research_review/DEEP_REAUDIT_v6.md`
+- `PATCHED_MANIFEST_SHA256.json`

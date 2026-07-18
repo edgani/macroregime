@@ -1,16 +1,21 @@
 {
   "pass": true,
   "checks": {
-    "alpha_array_empty": true,
-    "no_hardcoded_setup_objects": true,
-    "no_mock_regional_values": true,
-    "mission_independent_confirmation_label": true,
-    "generic_tabs_registry_driven": true,
-    "no_legacy_static_panels": true,
-    "daily_snapshot_not_live_label": true,
-    "early_warning_key_fixed": true,
-    "ccxi_not_auto_universe": true,
-    "consistency_guard_present": true,
-    "canonical_market_keys": true
+    "14_tabs_preserved": true,
+    "no_static_alpha_array": true,
+    "no_static_tab_payload": true,
+    "no_static_market_payload": true,
+    "no_legacy_current_tickers": true,
+    "no_legacy_current_values": true,
+    "alpha_is_runtime_watch": true,
+    "foundry_is_separate": true,
+    "mission_is_rich_dynamic": true,
+    "all_major_tabs_have_runtime_panels": true,
+    "no_curated_discovery_in_run": true,
+    "desk_schema_guard": true,
+    "research_permission_header": true,
+    "risk_range_deoverclaimed": true,
+    "no_mock_current_fallback": true,
+    "initial_header_is_research_only": true
   }
 }

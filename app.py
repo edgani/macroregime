@@ -1,4 +1,4 @@
-"""War Room OS v5 — resilient intraday-quote + daily-model dashboard.
+"""War Room OS v6 — resilient intraday-quote + daily-model dashboard.
 
 The app never substitutes synthetic data. It uses a provider cascade and persistent last-known-good
 cache. If current providers fail, the latest verified desk/cache remains visible with an explicit stale
@@ -34,7 +34,8 @@ st.markdown("""<style>
 </style>""", unsafe_allow_html=True)
 
 DASH_PATH = HERE / "dashboard.html"
-DESK_CACHE = HERE / ".cache" / "desk_v5.pkl"
+DESK_SCHEMA_VERSION = "V6_RICH_DYNAMIC_2026_07_18"
+DESK_CACHE = HERE / ".cache" / "desk_v6.pkl"
 DESK_CACHE.parent.mkdir(parents=True, exist_ok=True)
 
 
@@ -47,6 +48,10 @@ def _inject(desk):
 
 
 def _save_desk_lkg(desk: dict) -> None:
+    meta = dict((desk or {}).get("meta") or {})
+    loaded = sum(int(((market.get("funnel") or {}).get("loaded") or 0)) for market in ((desk or {}).get("markets") or {}).values())
+    if meta.get("desk_schema_version") != DESK_SCHEMA_VERSION or loaded <= 0:
+        return
     try:
         tmp = DESK_CACHE.with_suffix(".pkl.tmp")
         with tmp.open("wb") as file:
@@ -64,6 +69,8 @@ def _load_desk_lkg(reason: str) -> dict | None:
             desk = pickle.load(file)
         desk = dict(desk)
         desk["meta"] = dict(desk.get("meta") or {})
+        if desk["meta"].get("desk_schema_version") != DESK_SCHEMA_VERSION:
+            return None
         desk["meta"]["source"] = "RESILIENT_DESK_LKG"
         desk["meta"]["data_mode"] = "LAST_KNOWN_GOOD_DESK"
         desk["meta"]["lkg_reason"] = reason
@@ -93,7 +100,7 @@ def _run(markets: tuple[str, ...], refresh_nonce: int):
             return enforce_desk(minimal_desk(
                 "No real provider or previous cache is available yet. Connect once to seed the last-known-good cache."
             ))
-        desk = build_desk(data, top_per_market=12)
+        desk = build_desk(data, top_per_market=20)
         desk = attach_alpha_foundry(desk)
         desk = attach_quotes_to_desk(desk, force_refresh=force)
         desk = enforce_desk(desk)
@@ -140,10 +147,10 @@ with st.sidebar:
     foundry = load_alpha_foundry_state()
     counts = foundry.get("counts", {})
     st.caption(
-        f"Status: {foundry.get('status')} · shortlist {counts.get('shortlist',0)} · "
+        f"Status: {foundry.get('status')} · foundry shortlist {counts.get('shortlist',0)} · "
         f"trials {counts.get('registered_trials',0)}"
     )
-    st.caption("PAPER/LIVE tetap blocked sampai lockbox + prospective pass.")
+    st.caption("Alpha tab tetap berisi tactical discovery watch dari live desk. Frozen Foundry shortlist muncul setelah pipeline selesai. PAPER/LIVE tetap blocked.")
     with st.expander("Run free-data research pipeline", expanded=False):
         sec_contact = st.text_input(
             "SEC contact email", value=os.environ.get("SEC_CONTACT_EMAIL", ""), key="sec_contact"
@@ -209,4 +216,4 @@ except Exception as exc:
     desk = minimal_desk(str(exc))
     html = _inject(desk)
 
-components.html(html, height=1150, scrolling=True)
+components.html(html, height=1350, scrolling=True)

@@ -1,0 +1,165 @@
+{
+  "version": "v6",
+  "pass": true,
+  "release_scope": "deep integration re-audit and UI/runtime regression closure",
+  "executed_checks": {
+    "python_core_compile": "PASS",
+    "dashboard_javascript_syntax": "PASS",
+    "resilient_feed_tests": "6/6 PASS",
+    "alpha_foundry_pipeline_tests": "6/6 PASS",
+    "gcfis_full_logic_suite": "ALL TESTS PASSED",
+    "hardcoded_and_cross_tab_audit": "16/16 PASS",
+    "deep_runtime_and_browser_render_audit": "22/22 PASS",
+    "rich_data_browser_contract": "PASS",
+    "no_data_first_run_browser_contract": "PASS"
+  },
+  "regressions_closed": [
+    "Alpha no longer forced empty when valid runtime setups exist",
+    "Mission Control rich cockpit restored",
+    "Macro/Early Warning/Flow/Supply Chain/Company Intel/Knowledge Graph/Validation receive rich payloads",
+    "previously discarded engine outputs now reach the desk JSON",
+    "v5 last-known-good desks rejected by v6 schema guard",
+    "Alpha Foundry historical membership reference restored",
+    "dead mock current-state fallback removed",
+    "packaged synthetic current desk/dashboard removed",
+    "v5 feed cache namespace isolated from v6"
+  ],
+  "data_contract": {
+    "current_market_data": "provider cascade or last-known-good cache only",
+    "synthetic_current_data": "PROHIBITED",
+    "first_run_without_network_or_cache": "complete UI with explicit no-data states; no invented observations",
+    "external_live_endpoint_execution_in_artifact_sandbox": "NOT AVAILABLE; provider fallback logic tested with isolated mocks"
+  },
+  "claim_state": {
+    "tactical_alpha_watch": "UNPROVEN_RESEARCH_WATCH",
+    "foundry_selector": "HISTORICAL_CANDIDATE_MAX_UNTIL_LOCKBOX_AND_PROSPECTIVE",
+    "paper": "BLOCKED",
+    "live": "BLOCKED"
+  },
+  "ui_contract": {
+    "version": "v6",
+    "original_tab_order": [
+      [
+        "mc",
+        "MISSION CONTROL"
+      ],
+      [
+        "macro",
+        "MACRO &amp; REGIME"
+      ],
+      [
+        "ew",
+        "EARLY WARNING"
+      ],
+      [
+        "alpha",
+        "\u25c6 ALPHA"
+      ],
+      [
+        "us",
+        "US STOCKS"
+      ],
+      [
+        "ihsg",
+        "IHSG"
+      ],
+      [
+        "crypto",
+        "CRYPTO"
+      ],
+      [
+        "commod",
+        "COMMODITIES"
+      ],
+      [
+        "fx",
+        "FX"
+      ],
+      [
+        "flow",
+        "FLOW &amp; ROTATION"
+      ],
+      [
+        "sc",
+        "SUPPLY CHAIN"
+      ],
+      [
+        "co",
+        "COMPANY INTEL"
+      ],
+      [
+        "kg",
+        "KNOWLEDGE GRAPH"
+      ],
+      [
+        "rc",
+        "VALIDATION"
+      ]
+    ],
+    "v6_tab_order": [
+      [
+        "mc",
+        "MISSION CONTROL"
+      ],
+      [
+        "macro",
+        "MACRO &amp; REGIME"
+      ],
+      [
+        "ew",
+        "EARLY WARNING"
+      ],
+      [
+        "alpha",
+        "\u25c6 ALPHA"
+      ],
+      [
+        "us",
+        "US STOCKS"
+      ],
+      [
+        "ihsg",
+        "IHSG"
+      ],
+      [
+        "crypto",
+        "CRYPTO"
+      ],
+      [
+        "commod",
+        "COMMODITIES"
+      ],
+      [
+        "fx",
+        "FX"
+      ],
+      [
+        "flow",
+        "FLOW &amp; ROTATION"
+      ],
+      [
+        "sc",
+        "SUPPLY CHAIN"
+      ],
+      [
+        "co",
+        "COMPANY INTEL"
+      ],
+      [
+        "kg",
+        "KNOWLEDGE GRAPH"
+      ],
+      [
+        "rc",
+        "VALIDATION"
+      ]
+    ],
+    "tab_order_identical": true,
+    "original_css_sha256": "16d430055df10496f52fd1d93a11d44d76de41d2ed3fc8d85684177d7ae19d99",
+    "v6_css_sha256": "a010f1c87d8a6148e7ea32f71bb93615c47e4e1f9bd7de1b35d7df5223b34707",
+    "normalized_visual_css_identical": true,
+    "allowed_css_change": "mock/status class rename only; declarations remain identical",
+    "content_contract": "original hard-coded current-state renderers replaced by runtime-bound rich panels",
+    "hardcoded_current_payload_removed": true
+  }
+}

@@ -35,7 +35,7 @@ def enforce_desk(desk: dict) -> dict:
         # Offline data may support engine tests, but never user-facing decisions.
         for market in markets.values():
             market["setups"] = []
-            market.setdefault("funnel", {})["setups"] = 0
+            market.setdefault("funnel", {})["displayed"] = 0
         desk["alpha"] = []
         desk.setdefault("systemic", {})["rotation_in"] = []
         desk.setdefault("systemic", {})["rotation_out"] = []
@@ -64,7 +64,18 @@ def enforce_desk(desk: dict) -> dict:
             clean.append(row)
             surfaced.add(ticker)
         market["setups"] = clean
-        market.setdefault("funnel", {})["setups"] = len(clean)
+        market.setdefault("funnel", {})["displayed"] = len(clean)
+
+    # Tactical Alpha watch is a view of cleaned setup rows, not an independent selector.
+    clean_alpha = []
+    for row in desk.get("alpha_watch") or desk.get("alpha") or []:
+        ticker = str(row.get("tk") or row.get("ticker") or "").upper()
+        if ticker and ticker in surfaced:
+            clean_alpha.append(row)
+        elif ticker:
+            quarantined.append({"market": row.get("market"), "ticker": ticker, "reason": "alpha-watch row has no surviving valid setup"})
+    desk["alpha_watch"] = clean_alpha
+    desk["alpha"] = clean_alpha
 
     state = desk.get("alpha_foundry") or {}
     for row in state.get("shortlist") or []:
@@ -109,7 +120,7 @@ def enforce_desk(desk: dict) -> dict:
     if critical:
         for market in markets.values():
             market["setups"] = []
-            market.setdefault("funnel", {})["setups"] = 0
+            market.setdefault("funnel", {})["displayed"] = 0
         desk["alpha"] = []
         systemic["rotation_in"] = []
         systemic["rotation_out"] = []

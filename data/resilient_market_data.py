@@ -1,4 +1,4 @@
-"""Resilient market-data layer for War Room OS v5.
+"""Resilient market-data layer for War Room OS v6.
 
 Goals
 -----
@@ -35,7 +35,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 ROOT = Path(__file__).resolve().parents[1]
-CACHE_ROOT = ROOT / ".cache" / "market_v5"
+CACHE_ROOT = ROOT / ".cache" / "market_v6"
 DAILY_DIR = CACHE_ROOT / "daily"
 QUOTE_DIR = CACHE_ROOT / "quotes"
 HEALTH_PATH = CACHE_ROOT / "feed_health.json"
@@ -103,7 +103,7 @@ class MarketBundle:
             count = int(self.provider_counts.get(key, 0))
             if count:
                 parts.append(f"{key}:{count}")
-        return "resilient_v5 · " + (" · ".join(parts) if parts else "no data")
+        return "resilient_v6 · " + (" · ".join(parts) if parts else "no data")
 
     @property
     def status(self) -> str:

@@ -17,7 +17,7 @@ often zero rows — that is correct behavior (the gate refuses to fabricate). Ed
 where run_validation.py --cache clears perm_p<0.05 AND DSR>=0.95 on YOUR data.
 """
 from __future__ import annotations
-import os, sys, json, argparse, datetime as dt
+import os, sys, json, argparse, datetime as dt, math
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)          # data_layer.py + gcfis/ live here
@@ -26,7 +26,6 @@ import data_layer as DL
 from gcfis.orchestrator import run_gcfis
 from gcfis.markets import market_of, is_long_only, MARKETS
 from gcfis.engines.entry import run_entry
-from gcfis.engines.asymmetric_discovery import run_discovery
 from gcfis.market_drivers import read_all as market_bias
 
 
@@ -152,6 +151,107 @@ def _setup_from_ranking(entry, price, direction, ohlcv=None):
     }
 
 
+
+
+
+def _json_safe(value):
+    """Convert numpy/pandas/NaN objects into a stable browser-safe structure."""
+    if isinstance(value, dict):
+        return {str(k): _json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_json_safe(v) for v in value]
+    try:
+        import numpy as np
+        if isinstance(value, np.generic):
+            value = value.item()
+    except Exception:
+        pass
+    try:
+        import pandas as pd
+        if isinstance(value, (pd.Timestamp, pd.Period)):
+            return str(value)
+    except Exception:
+        pass
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    return str(value)
+
+
+def _load_reference_state():
+    """Load static research maps as REFERENCE objects, never as current market signals."""
+    base = os.path.join(HERE, "data")
+    out = {"claim": "REFERENCE_ONLY_NOT_CURRENT_SIGNAL", "chains": [], "bottleneck": {}}
+    try:
+        with open(os.path.join(base, "chain_reactions.json"), encoding="utf-8") as file:
+            raw = json.load(file)
+        for chain in (raw.get("chains") or [])[:12]:
+            steps = []
+            for step in (chain.get("propagation_sequence") or [])[:10]:
+                steps.append({
+                    "tier": step.get("tier"), "step": step.get("step"),
+                    "tickers": step.get("tickers") or [], "role": step.get("role"),
+                    "horizon_quarters": step.get("horizon_quarters"),
+                })
+            out["chains"].append({
+                "chain_id": chain.get("chain_id"), "name": chain.get("name"),
+                "trigger": chain.get("trigger_event"), "mechanism": chain.get("mechanism"),
+                "horizon": chain.get("horizon"), "status": chain.get("trigger_status"),
+                "steps": steps,
+            })
+    except Exception as exc:
+        out["chain_error"] = f"{type(exc).__name__}: {exc}"
+    try:
+        with open(os.path.join(base, "bottleneck_reference.json"), encoding="utf-8") as file:
+            raw = json.load(file)
+        out["bottleneck"] = {
+            "version": raw.get("version"), "generated_at": raw.get("generated_at"),
+            "consensus_heatmap": (raw.get("consensus_heatmap") or [])[:20],
+            "risk_flags": (raw.get("risk_flags") or [])[:12],
+            "catalyst_timeline": (raw.get("catalyst_timeline") or [])[:16],
+            "institutional_rotation": (raw.get("institutional_rotation") or [])[:12],
+        }
+    except Exception as exc:
+        out["bottleneck_error"] = f"{type(exc).__name__}: {exc}"
+    return out
+
+
+def _build_alpha_watch(markets, per_ticker, limit=24):
+    """Display union of valid setups; no new fitted model and no proven-alpha claim."""
+    rows = []
+    for market_id, market in (markets or {}).items():
+        for setup in market.get("setups") or []:
+            if not setup.get("valid"):
+                continue
+            tk = str(setup.get("tk") or "").upper()
+            if not tk:
+                continue
+            detail = (per_ticker or {}).get(tk) or {}
+            flow = detail.get("flow") or {}
+            mode = detail.get("market_mode") or {}
+            response = detail.get("response") or {}
+            horizon = detail.get("horizon") or {}
+            rows.append({
+                "tk": tk, "ticker": tk, "market": market_id,
+                "classification": "TACTICAL_DISCOVERY_WATCH",
+                "proof_status": "UNPROVEN_RESEARCH_WATCH",
+                "setup_score": _num(setup.get("conv"), 0) or 0,
+                "rr": _num(setup.get("rr"), 0) or 0,
+                "direction": setup.get("dir"), "action": setup.get("act"),
+                "entry": setup.get("e"), "stop": setup.get("s"), "target": setup.get("t"),
+                "as_of": setup.get("as_of"), "level_source": setup.get("level_source"),
+                "evidence_family": setup.get("evidence_family"),
+                "macro_alignment": setup.get("macro_alignment"),
+                "driver_confidence": setup.get("driver_confidence"), "why": setup.get("why"),
+                "stage": detail.get("stage"), "rs": detail.get("rs"),
+                "accumulation": detail.get("accumulation"), "rsi": detail.get("rsi"),
+                "flow_type": flow.get("type"), "flow_proxy": flow.get("proxy"),
+                "market_mode": mode.get("mode"), "response_zone": response.get("response"),
+                "horizon_alignment": horizon.get("alignment"),
+            })
+    rows.sort(key=lambda row: (float(row.get("setup_score") or 0), float(row.get("rr") or 0)), reverse=True)
+    return rows[:limit]
 
 def _load_grades():
     """The walk-forward grade card (metric_grades.json). The UI emits a metric as a number only
@@ -331,12 +431,64 @@ def build_desk(data, top_per_market=12):
             "setups": setups,
         }
 
-    # Current Alpha output is intentionally empty here. The previous path used a curated
-    # moonshot universe with neutral feed defaults, which is research prior—not a live selector.
-    # Alpha cards now come only from the frozen Alpha Foundry shortlist or validated final desk.
-    disc = {"summary": {"note": "Curated structural priors are excluded from live Alpha output."}}
-    alpha = []
+    # Two distinct surfaces: current tactical discovery watch + frozen Foundry output attached later.
+    # Both remain unproven until lockbox and prospective gates pass.
+    per_ticker = out.get("per_ticker", {}) or {}
+    alpha = _build_alpha_watch(markets, per_ticker, limit=max(20, top_per_market))
+    disc = {"summary": {"note": "Current Alpha surface is a tactical discovery watch; frozen selector proof remains separate."}}
 
+    reference_state = _load_reference_state()
+    internals = _json_safe(out.get("internals") or {})
+    crash = _json_safe(out.get("crash") or {})
+    leadlag = _json_safe(out.get("leadlag") or {})
+    final_desk = _json_safe(out.get("final_desk") or {})
+    ranking_summary = {
+        "master_long": len(long_rows), "master_short": len(short_rows),
+        "master_spot": len(spot_rows), "eliminated": len(rk.get("eliminated") or []),
+        "deferred_longs": len(rk.get("deferred_longs") or []),
+        "portfolio": _json_safe(rk.get("portfolio") or {}),
+    }
+    macro_state = {
+        "forward_macro": _json_safe(fm), "liquidity": _json_safe(liq),
+        "cross_asset": _json_safe(xa), "regime_tf": _json_safe(_regime_tf),
+        "regional": _json_safe(_regional),
+        "input_coverage": {group: sorted(list((macro_in.get(group) or {}).keys()))
+                           for group in ("liquidity_inputs", "growth_inputs", "infl_inputs", "systemic_inputs")},
+        "driver_models": _json_safe(driver_models),
+    }
+    early_warning = {
+        "fragility": _json_safe(fr), "shock": _json_safe(sh),
+        "crash_bottom": crash, "internals": internals,
+        "permission": "DESCRIPTIVE_STRESS_STATE_NOT_CALIBRATED_CRASH_PROBABILITY",
+    }
+    flow_rotation = {
+        "flow": _json_safe(fl), "leadlag": leadlag,
+        "claim": "RELATIVE_STRENGTH_AND_PRICE_FLOW_PROXY_NOT_ACTUAL_CAPITAL_FLOW",
+    }
+    company_intel = []
+    for watch in alpha:
+        if watch.get("market") != "us":
+            continue
+        company_intel.append({k: watch.get(k) for k in (
+            "tk", "proof_status", "setup_score", "rr", "stage", "rs", "accumulation",
+            "rsi", "flow_type", "market_mode", "response_zone", "horizon_alignment",
+            "macro_alignment", "why", "as_of"
+        )})
+    current_nodes = [{
+        "ticker": row.get("tk"), "market": row.get("market"),
+        "role": row.get("classification"), "status": row.get("proof_status")
+    } for row in alpha]
+    current_edges = []
+    surfaced = {row.get("tk") for row in alpha}
+    for chain in reference_state.get("chains") or []:
+        for step in chain.get("steps") or []:
+            hits = [ticker for ticker in step.get("tickers") or [] if ticker in surfaced]
+            if hits:
+                current_edges.append({
+                    "chain_id": chain.get("chain_id"), "chain": chain.get("name"),
+                    "tickers": hits, "role": step.get("role"),
+                    "claim": "REFERENCE_CHAIN_OVERLAP_NOT_VALIDATED_CAUSAL_EDGE",
+                })
 
     return {
         "meta": {
@@ -351,16 +503,39 @@ def build_desk(data, top_per_market=12):
             "market_meta": data.get("market_meta", {}),
             "data_claim": "RESILIENT_PROVIDER_CASCADE_WITH_LAST_KNOWN_GOOD_CACHE; INTRADAY_QUOTES_MAY_BE_DELAYED; DAILY_MODEL",
             "trading_permission": "RESEARCH_ONLY_PAPER_AND_LIVE_BLOCKED",
+            "desk_schema_version": "V6_RICH_DYNAMIC_2026_07_18",
         },
         "systemic": systemic,
-        "regime_tf": _regime_tf,
-        "regional": _regional,
+        "regime_tf": _json_safe(_regime_tf),
+        "regional": _json_safe(_regional),
         "grades": _load_grades(),
         "markets": markets,
         "alpha": alpha,
-        "desk_picks": out.get("final_desk", {}),
-        "feeds": {k: v for k, v in (data.get("feeds") or {}).items() if k != "_status"},  # onchain/cot/gex/finra when present
+        "alpha_watch": alpha,
+        "macro_state": macro_state,
+        "early_warning": early_warning,
+        "flow_rotation": flow_rotation,
+        "supply_chain": reference_state,
+        "company_intel": company_intel,
+        "knowledge_graph": {
+            "claim": "REFERENCE_GRAPH_PLUS_CURRENT_SURFACE_OVERLAP",
+            "current_nodes": current_nodes, "current_edges": current_edges,
+            "reference_chain_count": len(reference_state.get("chains") or []),
+        },
+        "validation_state": {
+            "internals": internals, "crash": crash, "leadlag": leadlag,
+            "ranking_summary": ranking_summary, "final_desk": final_desk,
+            "claim": "HISTORICAL_RESEARCH_AND_RUNTIME_INTEGRITY_ONLY",
+        },
+        "research_engine": {
+            "drivers": _json_safe(out.get("drivers") or {}),
+            "systemic": _json_safe(sysm),
+            "per_ticker_available": len(per_ticker),
+        },
+        "desk_picks": final_desk,
+        "feeds": {k: v for k, v in (data.get("feeds") or {}).items() if k != "_status"},
     }
+
 
 
 def render_dashboard(desk, template_path, out_path):
@@ -395,7 +570,7 @@ def print_summary(desk):
             flag = "" if x["valid"] else " [INVALID: " + (x["warn"] or "gate") + "]"
             print(f"      {x['tk']:10} {x['act']:13} conv={x['conv']:<5} {x['ty']:12} {rr}{flag}")
     print(f"\n  TOTAL convicted setups: {total}")
-    print(f"\nASYMMETRIC ALPHA (structural, top {len(desk['alpha'])}):")
+    print(f"\nTACTICAL DISCOVERY WATCH (unproven, top {len(desk['alpha'])}):")
     for a in desk["alpha"][:8]:
         g = " (feed-gated: " + ",".join(a["gated"]) + ")" if a["gated"] else ""
         print(f"  {a['tk']:8} asym={a['asymmetry']:<5} tier{a['tier']} {a['upside']:<8} "

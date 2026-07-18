@@ -194,7 +194,7 @@ def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds
                 sources[market] = bundle.source_summary
             except Exception as exc:
                 prices[market], ohlcv[market] = {}, {}
-                sources[market] = f"resilient_v5 failed · {type(exc).__name__}: {exc}"
+                sources[market] = f"resilient_v6 failed · {type(exc).__name__}: {exc}"
     else:
         # Explicit test-only path. The Streamlit app never calls this mode.
         for market in markets:
@@ -362,7 +362,7 @@ def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds
         "fred": fred,
         "vix": vix,
         "sources": sources,
-        "bench_source": "resilient_v5",
+        "bench_source": "resilient_v6",
         "fred_source": fsrc,
         "overall_source": overall_source,
         "market_meta": market_meta,

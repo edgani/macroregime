@@ -1,65 +1,59 @@
-# War Room OS — complete, self-contained package
+# War Room OS — Capital Intelligence Map
 
-This is the **whole thing**: the gcfis reasoning brain + the KEEP signal/UI engines + the rescue
-engines + the data adapter + the full validation suite + the real research data + the dashboard.
-It runs from this folder — no other repo needed.
+This package combines the existing GCFIS/War Room engines with a redesigned, data-driven interface modeled as a capital-intelligence map. The UI follows one decision path:
 
-```
-warroom_os/
-  gcfis/                     # the reasoning brain (57 files, self-contained) — orchestrator + 13 layers
-  warroom/                   # KEEP signal/UI engines (signal_edge, early_warning, meters, internals,
-                             #   drivers, backtest, walkforward, accumulation, render, …)
-  engines/                   # RESCUE engines: onchain_engine, cftc_cot_scraper, fx_carry_engine
-                             #   (+ bottleneck/gip/vix/thought as refs). The 83-file bloat is DROPPED.
-  research/                  # REAL data: sp500_panel.parquet (482 tkr, 2013-18), macro_panel (1881-2023),
-                             #   factor_ic / validated_tickers / macro_attribution, shiller.csv, vix.csv
-  data_layer.py              # ONE data adapter — yfinance + FRED (no key) + synthetic fallback, source-stamped
-  run.py                     # data → gcfis.orchestrator → asymmetric_discovery → desk_data.json + dashboard
-  dashboard.html             # approved v0.3 UI, data-driven (renders the run; standalone = mock)
-  validate_all.py            # runs all 3 validators below
-  validation_plus.py         # statistical battery + negative/positive controls (validates the validator)
-  validate_real.py           # factor + macro battery on the real bundled data (reconciles prior work)
-  component_validation.py    # every engine: runs/deterministic/no-lookahead/no-repaint/formula/edge
-  VALIDATION.md              # the full coverage matrix + results
-  requirements.txt
-```
+`World → Regime → Market → Theme/Bottleneck → Ticker/Token → Institutional Positioning → Execution → Validation`
 
-## Run it
+## Start
 
 ```bash
 pip install -r requirements.txt
-
-streamlit run app.py         # the dashboard (main file = app.py)
-python run.py --synthetic     # headless: offline: proves the pipeline runs end-to-end (0 setups on noise = correct)
-python run.py                 # your machine: live yfinance + FRED → desk_data.json + dashboard_live.html
-python validate_all.py        # the entire validation stack (statistical + real-data + component)
+streamlit run app.py
 ```
 
-Open `dashboard.html` standalone (design), or `dashboard_live.html` after a run (populated).
+Read `START_HERE.md`, copy the relevant values from `.env.example`, and use `DATA_CONNECTORS.md` for provider setup and data semantics.
 
-## Verified — every entry point runs from THIS folder
+## Production rules
 
+- Production mode never fabricates missing prices or events.
+- Synthetic series exist only behind the explicit `python run.py --synthetic` test command.
+- Missing feeds render `NO_DATA`, `NOT_CONFIGURED`, `STALE`, or `ERROR`.
+- Options-chain OI is labeled as an OI-implied gamma proxy, not live flow or observed dealer inventory.
+- FINRA short volume is descriptive aggregate data, not dark-pool prints, short interest, or institutional intent.
+- Options alerts, TRF prints, SEC filings and whale transfers are evidence; none is automatically a directional position.
+- Structural maps and live observations are visually and semantically separated.
+- Default `OBSERVED` mode cannot promote structural Alpha hypotheses into Mission Control actions.
+- IHSG remains long-only.
+
+## Key files
+
+```text
+app.py                    Streamlit production app with split refresh cadences
+dashboard.html            Capital Intelligence Map SPA
+institutional_data.py     UW, Massive, SEC, Nansen and Arkham adapters
+data_layer.py             Price/macro adapter; synthetic disabled by default
+run.py                    Core engine orchestration and normalized desk object
+validate_redesign.py      Fast UI/data-semantics integrity audit
+DATA_CONNECTORS.md        Keys, cadence, semantics and failure behavior
+REDESIGN_V1.md            Workspace and visual-system map
+.env.example              Environment variable template
 ```
-run.py --synthetic        → pipeline runs, writes dashboard_live.html ✓
-validation_plus.py        → VALIDATOR VALIDATED (noise→NOISE, planted→TRADEABLE) ✓
-validate_real.py          → IC reproduces prior factor_ic.parquet exactly (5/5) ✓
-component_validation.py   → 28 checks, 21 PASS, 0 FAIL ✓
+
+The original research, validation and engine directories remain in this package. Their historical reports should not be read as proof that every newly connected institutional dataset has forward edge. Options flow, TRF prints, SEC events and on-chain entity signals still require their own frozen event studies, walk-forward tests, costs, regime attribution and multiple-testing controls before any derived score is promoted to production.
+
+## Run modes
+
+```bash
+streamlit run app.py
+python run.py --institutional
+python run.py --markets us,crypto --institutional
+python run.py --synthetic          # explicit pipeline test only
+python validate_redesign.py
+python validate_all.py             # legacy/full validation stack
 ```
 
-## What is validated vs what still needs feeds (honest)
+`dashboard.html` is a template and needs injected `window.DASHBOARD_DATA`. The included preview outside this folder is a clearly labeled UI fixture, not a production signal output.
 
-Fully validated **here, on real data**: gcfis brain (13 layers, e2e), all statistical methods
-(permutation/MC/White-RC/SPA/FDR/DSR/drift), US-equity signals, macro/cross-asset/crash/CAPE, and
-every engine's determinism/no-lookahead/no-repaint/formula.
+## Current live-data boundary
 
-Genuinely **needs feeds not in this zip** (flagged, never faked): non-US prices (IHSG/crypto/FX/commodity),
-live/current prices (panel ends 2018-02), vintage/ALFRED FRED, on-chain (Glassnode), COT (CFTC).
-`run.py` picks these up automatically on a machine with network + keys.
-
-## The gate (unchanged)
-
-A signal surfaces a ticker only if it clears **perm_p < 0.05 AND DSR ≥ 0.95**, survives Reality-Check/SPA
-after data-snooping, and is stable OOS. On synthetic/noise → 0 setups. That is correct, not a bug.
-
-DROPPED from the original 64k-LOC zip: 83 orphaned engines (~60%), led by the 19-file options/GEX/vanna/
-charm cluster (needs paid options data). KEPT: only what's validated and wired.
+The app uses near-real-time REST polling for configured institutional feeds and a slower cache for market/macro engines. It does not claim exchange-colocated tick latency. Provider credentials, entitlements and reporting lags still apply. A future WebSocket sidecar can replace the polling layer without changing the normalized event contract or UI.

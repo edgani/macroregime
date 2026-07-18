@@ -6,8 +6,8 @@ Run on a machine WITH network (sandbox blocks idx.co.id / fred / defillama / cft
     python build_feeds.py
 
 Feeds (all PUBLIC except FRED key): FRED macro, FX carry (FRED rates), IDX Type-F foreign flow
-(idx.co.id), crypto on-chain (DefiLlama), COT positioning (CFTC), options chain → GEX (yfinance),
-FINRA short-volume (dark-pool proxy). Each is defensive: a failure just leaves that feed empty.
+(idx.co.id), crypto on-chain (DefiLlama), COT positioning (CFTC), options-chain OI structure (yfinance),
+FINRA aggregate short-volume (descriptive only; not dark-pool prints or institutional intent). Each is defensive: a failure just leaves that feed empty.
 First IDX Type-F warm-up (~120 sessions) is slow once, then per-day CSV cached.
 """
 from __future__ import annotations
@@ -69,7 +69,7 @@ def main():
         return get_all_signals()
     feeds["cot"] = _try("CFTC COT positioning", cot)
 
-    # 6) Options chain → GEX (yfinance; or FlashAlpha if key set)
+    # 6) Options-chain OI structure (yfinance; optional third-party gamma model if configured)
     def gex():
         from engines.live_data_engine import fetch_options_yf, fetch_flashalpha_gex
         top = ["NVDA", "AMD", "AVGO", "MRVL", "MU", "SMH", "MSFT", "META", "AAPL", "AMZN"]
@@ -77,9 +77,9 @@ def main():
         if fa:
             return {"source": "flashalpha", "data": fetch_flashalpha_gex(top, fa, max_calls=10)}
         return {"source": "yfinance", "data": fetch_options_yf(top, max_tickers=10, max_workers=4)}
-    feeds["gex"] = _try("Options chain → GEX", gex)
+    feeds["gex"] = _try("Options-chain OI / gamma proxy", gex)
 
-    # 7) FINRA short-volume (dark-pool proxy)
+    # 7) FINRA aggregate short-volume — descriptive only, never labeled dark-pool prints
     def finra():
         from engines.live_data_engine import fetch_finra_short_volume
         top = ["NVDA", "AMD", "AVGO", "MRVL", "MU", "MSFT", "META", "AAPL"]

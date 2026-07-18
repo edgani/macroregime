@@ -1,8 +1,8 @@
 """data_layer.py — the ONE data adapter for War Room OS.
 
-Real data on YOUR machine (yfinance + FRED fredgraph, no API key needed), synthetic
-fallback anywhere else (sandbox / offline). FAILS SOFT to synthetic and STAMPS the source
-so the dashboard is always honest about whether it is showing live or synthetic data.
+Real data on YOUR machine (yfinance + FRED fredgraph, no API key needed). Production mode
+never fabricates a fallback series: missing feeds remain empty and the dashboard renders NO_DATA/STALE.
+Synthetic data is available only when explicitly requested for pipeline tests.
 
 Per-market universes are extensible — add tickers here, they flow through the whole pipeline.
 On-chain (crypto) + COT (commodity/fx) need their own feeds/keys (onchain_engine, cftc_cot_scraper);
@@ -50,8 +50,12 @@ def _synth(n=500, drift=0.0004, vol=0.02, start=100.0, seed=None):
     return pd.Series(start * np.exp(np.cumsum(r)), index=idx)
 
 
-def load_prices(tickers, start="2022-01-01", allow_live=True):
-    """Return ({ticker: close Series}, source_str). Tries yfinance; falls back to synthetic."""
+def load_prices(tickers, start="2022-01-01", allow_live=True, allow_synthetic=False):
+    """Return ({ticker: close Series}, source_str).
+
+    Synthetic series are emitted only when ``allow_synthetic=True``. Production callers must
+    preserve missingness so NO_DATA cannot silently become a trading signal.
+    """
     if allow_live:
         try:
             import yfinance as yf
@@ -73,13 +77,14 @@ def load_prices(tickers, start="2022-01-01", allow_live=True):
         except ImportError:
             pass
         except Exception as e:
-            sys.stderr.write(f"[data_layer] yfinance failed ({e}) → synthetic fallback\n")
-    # synthetic fallback — deterministic per ticker so the dashboard is stable
-    out = {}
-    for i, t in enumerate(tickers):
-        drift = 0.0003 + (hash(t) % 11) * 0.0001
-        out[t] = _synth(drift=drift, seed=(abs(hash(t)) % 9999))
-    return out, "SYNTHETIC (offline fallback)"
+            sys.stderr.write(f"[data_layer] yfinance failed ({e}); production keeps NO_DATA\n")
+    if allow_synthetic:
+        out = {}
+        for i, t in enumerate(tickers):
+            drift = 0.0003 + (hash(t) % 11) * 0.0001
+            out[t] = _synth(drift=drift, seed=(abs(hash(t)) % 9999))
+        return out, "SYNTHETIC (explicit test mode)"
+    return {}, "NO_DATA (live source unavailable; synthetic disabled)"
 
 
 def load_fred(allow_live=True):
@@ -116,6 +121,9 @@ def _load_feeds(allow_live=True, fetch_live=False):
     that feed empty — never crashes, never blocks. Returns {feed: value, "_status": {feed: how}}."""
     import os, pickle
     feeds, status = {}, {}
+    if not allow_live:
+        feeds["_status"] = {"_mode": "offline/test mode; specialized live snapshots disabled"}
+        return feeds
     snap = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "feeds_snapshot.pkl")
     try:
         if os.path.exists(snap):
@@ -159,11 +167,10 @@ def _load_feeds(allow_live=True, fetch_live=False):
     return feeds
 
 
-def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds=False):
+def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds=False, allow_synthetic=False):
     """Use v40's PROVEN live loaders (data.loader.load_prices + data.fred_loader.load_fred_series) —
-    the exact path that fetches FRED+Yahoo live for you in v40. Falls back to warroom.data then
-    synthetic only if those are unavailable. In this sandbox the network is blocked, so it falls back;
-    on your machine/Cloud it returns REAL live data like v40 does."""
+    the exact path that fetches FRED+Yahoo live for you in v40. It may try alternate real loaders,
+    but synthetic series are used only with ``allow_synthetic=True``. Production preserves NO_DATA."""
     markets = markets or list(UNIVERSE.keys())
     prices, ohlcv, sources = {}, {}, {}
     try:
@@ -210,7 +217,7 @@ def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds
             proxies = {}
     # ---- IHSG/IDX: enrich with idx.co.id (typef_idx) for foreign flow / bandarmologi.
     #      yfinance (BBCA.JK etc.) above is the reliable base; typef_idx OVERWRITES only if it works. ----
-    if "idx" in markets:
+    if "idx" in markets and allow_live:
         try:
             from gcfis.feeds.typef_idx import build_typef
             from warroom import data as _WD
@@ -230,31 +237,42 @@ def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds
             if not prices.get("idx"):
                 sources["idx"] = f"typef_idx failed: {e}"
 
-    # ---- fallback: warroom.data, then synthetic ----
+    # ---- fallback: production retries real yfinance only; legacy demo loader is test-only ----
     if not v40_ok:
-        try:
-            from warroom import data as WD
-            for m in markets:
-                if prices.get(m): continue
-                px, src = WD.load(UNI.get(m, UNIVERSE.get(m, [])), days=500)
-                prices[m] = px; sources[m] = f"warroom.data · {src}"
-        except Exception:
-            for m in markets:
-                if prices.get(m): continue
-                px, src = load_prices(UNIVERSE.get(m, []), start, allow_live)
-                prices[m] = px; sources[m] = src
+        if allow_synthetic:
+            try:
+                from warroom import data as WD
+                for m in markets:
+                    if prices.get(m):
+                        continue
+                    px, src = WD.load(UNI.get(m, UNIVERSE.get(m, [])), days=500)
+                    prices[m] = px
+                    sources[m] = f"warroom.data test-only · {src}"
+            except Exception:
+                pass
+        for m in markets:
+            if prices.get(m):
+                continue
+            px, src = load_prices(
+                UNIVERSE.get(m, []), start, allow_live,
+                allow_synthetic=allow_synthetic,
+            )
+            prices[m] = px
+            sources[m] = src
     # ---- FRED via v40's fred_loader (the working path) ----
-    fred, fsrc = {}, "unavailable"
-    try:
-        from data.fred_loader import load_fred_series
-        fred = load_fred_series(force_refresh=allow_live) or {}
-        fsrc = f"data.fred_loader v40 · {len(fred)} series" if fred else "data.fred_loader v40 · 0 (blocked here)"
-    except Exception as e:
+    fred, fsrc = {}, "OFFLINE" if not allow_live else "unavailable"
+    if allow_live:
         try:
-            from warroom import fred as WF
-            fred = WF.fetch() or {}; fsrc = f"warroom.fred · {len(fred)} series"
-        except Exception as e2:
-            fred, fsrc = {}, f"fred unavailable ({e2})"
+            from data.fred_loader import load_fred_series
+            fred = load_fred_series(force_refresh=True) or {}
+            fred = {k: v for k, v in fred.items() if v is not None and len(v) > 0}
+            fsrc = f"data.fred_loader v40 · {len(fred)} series" if fred else "data.fred_loader v40 · 0 (blocked here)"
+        except Exception as e:
+            try:
+                from warroom import fred as WF
+                fred = WF.fetch() or {}; fsrc = f"warroom.fred · {len(fred)} series"
+            except Exception as e2:
+                fred, fsrc = {}, f"fred unavailable ({e2})"
     # ---- VIX (bundled) ----
     vix = None
     try:
@@ -264,21 +282,26 @@ def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds
     except Exception:
         pass
     # ---- liquidity read via US Treasury + NY Fed (TGA/RRP/SOFR, no key) ----
-    try:
-        from engines.treasury_liquidity import analyze_liquidity
-        _liq = analyze_liquidity(fred if fred else None)
-    except Exception as e:
-        _liq = {"ok": False, "error": str(e)}
+    if allow_live:
+        try:
+            from engines.treasury_liquidity import analyze_liquidity
+            _liq = analyze_liquidity(fred if fred else None)
+        except Exception as e:
+            _liq = {"ok": False, "error": str(e)}
+    else:
+        _liq = {"ok": False, "error": "offline/test mode"}
 
     bench = prices.get("us", {}).get(BENCH)
     if bench is None:
-        bp, _ = load_prices([BENCH], start, allow_live); bench = bp.get(BENCH)
+        bp, _ = load_prices([BENCH], start, allow_live, allow_synthetic=allow_synthetic); bench = bp.get(BENCH)
     # ---- specialized flow feeds (on-chain / COT / GEX / dark-pool) → un-gate the metrics ----
     feeds = _load_feeds(allow_live=allow_live, fetch_live=fetch_live_feeds)
     live = v40_ok or (len(fred) > 5)
+    has_synthetic = any("synthetic" in str(v).lower() for v in sources.values())
+    overall = "LIVE" if live else ("SYNTHETIC_TEST" if has_synthetic else "NO_DATA")
     return {"prices": prices, "ohlcv": ohlcv, "bench": bench, "fred": fred, "vix": vix,
-            "sources": sources, "bench_source": "v40" if v40_ok else "fallback", "fred_source": fsrc,
-            "overall_source": "LIVE" if live else "SYNTHETIC", "markets": markets,
+            "sources": sources, "bench_source": "v40" if v40_ok else "unavailable", "fred_source": fsrc,
+            "overall_source": overall, "markets": markets,
             "treasury_liquidity": _liq, "proxies": proxies, "feeds": feeds}
 
 

@@ -2,7 +2,7 @@
 
 Problem solved: barchart/CME/laevitas are JS-heavy + bot-detected → fail on cloud servers.
 This engine uses sources that ACTUALLY work server-side (Streamlit Cloud):
-  • OPTIONS/GEX/WALLS  → yfinance option_chain (real OI, IV, computes gamma/walls/max-pain/PCR/GEX)
+  • OPTIONS OI STRUCTURE → yfinance option_chain (OI/IV, walls/max-pain/PCR and an OI-implied gamma proxy)
   • ON-CHAIN          → DeFiLlama api.llama.fi (public REST, proper headers)
   • COT               → CFTC reports (keyed by TICKER, not product name — fixes "unavailable")
 
@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# OPTIONS via yfinance — computes GEX / walls / max-pain / PCR / expected move
+# OPTIONS via yfinance — OI structure / walls / max-pain / PCR / expected move
 # ═══════════════════════════════════════════════════════════════════════════
 
 def _norm_cdf(x):
@@ -118,6 +118,8 @@ def _fetch_one_option_yf(ticker: str):
             "put_wall_strike": round(put_wall, 2) if put_wall else None,
             "max_pain": round(max_pain, 2) if max_pain else None,
             "gamma_flip": round(gamma_flip, 2) if gamma_flip else None,
+            "gex_proxy": net_gex, "net_gex_proxy": net_gex,
+            # Backward-compatible aliases. These are explicitly OI-implied proxies, not observed dealer books.
             "gex": net_gex, "net_gex": net_gex,
             "put_call_ratio": round(pcr, 2) if pcr else None,
             "pc_ratio": round(pcr, 2) if pcr else None,
@@ -128,7 +130,8 @@ def _fetch_one_option_yf(ticker: str):
             "gex_by_strike": {round(float(k), 2): round(float(v), 0) for k, v in gex_by_strike.items()},
             "call_oi_by_strike": {round(float(k), 2): int(v) for k, v in total_call_oi.items()},
             "put_oi_by_strike": {round(float(k), 2): int(v) for k, v in total_put_oi.items()},
-            "source": "yfinance",
+            "source": "yfinance_option_chain",
+            "data_semantics": "OI_IMPLIED_GAMMA_PROXY_NOT_DEALER_POSITION",
         }
     except Exception as e:
         logger.debug(f"options fetch {ticker}: {e}")
@@ -136,10 +139,11 @@ def _fetch_one_option_yf(ticker: str):
 
 
 def fetch_options_yf(tickers: List[str], max_tickers: int = 30, max_workers: int = 12) -> Dict:
-    """Fetch real options data via yfinance (PARALLEL) + gamma exposure, walls, max-pain.
-    Threaded so 100+ tickers complete in ~30-60s instead of minutes (yfinance is I/O-bound).
-    Returns: {ticker: {call_wall, put_wall, max_pain, gex, net_gex, put_call_ratio,
-                       atm_iv, expected_move_pct, gamma_flip, ...}}"""
+    """Fetch option-chain OI/IV via yfinance and calculate walls, max-pain and an OI-implied gamma proxy.
+
+    The gamma proxy assumes calls positive and puts negative; it is *not* an observed dealer inventory
+    or a substitute for trade-level options flow. Threading only reduces I/O latency.
+    """
     try:
         import yfinance as yf  # noqa: F401
     except ImportError:
@@ -204,19 +208,19 @@ def fetch_onchain_defillama(ticker_chain_map: Dict[str, str]) -> Dict:
         except Exception:
             pass
 
-        # Interpret as accumulation/distribution proxy
-        signal = "NEUTRAL"
+        # Protocol TVL direction is not a whale-position claim.
+        signal = "TVL_STABLE"
         if tvl_change_7d is not None:
             if tvl_change_7d > 5:
-                signal = "ACCUMULATION (TVL inflow)"
+                signal = "PROTOCOL_TVL_INFLOW"
             elif tvl_change_7d < -5:
-                signal = "DISTRIBUTION (TVL outflow)"
+                signal = "PROTOCOL_TVL_OUTFLOW"
 
         out[ticker] = {
             "tvl": tvl,
             "tvl_usd": tvl,
             "tvl_change_7d": round(tvl_change_7d, 2) if tvl_change_7d is not None else None,
-            "whale_accum_7d": round(tvl_change_7d, 2) if tvl_change_7d is not None else None,
+            "protocol_tvl_change_7d": round(tvl_change_7d, 2) if tvl_change_7d is not None else None,
             "signal": signal,
             "source": "defillama",
         }
@@ -337,14 +341,11 @@ def load_scraped_data(github_raw_url: str = None, local_path: str = None) -> Dic
 
 
 def fetch_finra_short_volume(tickers: List[str], lookback_days: int = 5) -> Dict:
-    """FREE REAL dark-pool signal — FINRA Daily Short Sale Volume (off-exchange/TRF).
-    No API key. File: cdn.finra.org/equity/regsho/daily/CNMSshvol{YYYYMMDD}.txt
-    (pipe-delimited: Date|Symbol|ShortVolume|ShortExemptVolume|TotalVolume|Market).
+    """Fetch FINRA Daily Short Sale Volume.
 
-    Off-exchange short-volume ratio is a genuine dark-pool flow gauge: a HIGH ratio
-    with price holding/rising often = market-makers hedging dark-pool BUYS (accumulation);
-    a high ratio with price falling = real distribution. Returns per-ticker:
-      {short_volume, total_volume, short_pct, signal}  (signal needs price context, set later)
+    This is an aggregate short-volume dataset, not individual dark-pool prints, not short interest,
+    and not sufficient to infer accumulation/distribution. It is retained only as a descriptive
+    market-microstructure input and is never promoted as institutional intent.
     """
     import urllib.request
     want = {t.upper() for t in tickers if not any(s in t.upper() for s in [".JK", "=X", "=F", "-USD", "^"])}
@@ -389,7 +390,7 @@ def fetch_finra_short_volume(tickers: List[str], lookback_days: int = 5) -> Dict
 
 
 def attach_finra_signal(finra: Dict, prices: Dict) -> Dict:
-    """Add an interpreted dark-pool signal using price context (5-day change)."""
+    """Attach descriptive price context without inferring institutional intent."""
     for sym, d in finra.items():
         ser = prices.get(sym)
         chg = None
@@ -398,25 +399,22 @@ def attach_finra_signal(finra: Dict, prices: Dict) -> Dict:
                 chg = (float(ser.iloc[-1]) / float(ser.iloc[-6]) - 1) * 100
         except Exception:
             pass
-        sp = d.get("short_pct", 50)
-        if sp >= 55 and chg is not None and chg >= 0:
-            d["signal"] = "accumulation"   # heavy off-exchange short vol + price up = MM hedging dark-pool buys
-            d["note"] = f"off-exch short {sp:.0f}% + harga +{chg:.1f}% → MM hedging dark-pool buys (akumulasi)"
-        elif sp >= 55 and chg is not None and chg < 0:
-            d["signal"] = "distribution"
-            d["note"] = f"off-exch short {sp:.0f}% + harga {chg:.1f}% → tekanan jual real (distribusi)"
-        else:
-            d["signal"] = "neutral"
-            d["note"] = f"off-exch short volume {sp:.0f}% (netral)"
+        sp = d.get("short_pct")
+        d["signal"] = "DESCRIPTIVE_ONLY"
+        d["price_change_5d_pct"] = round(chg, 2) if chg is not None else None
+        d["note"] = (
+            f"FINRA short-volume ratio {sp:.1f}%" if sp is not None else "FINRA short-volume available"
+        ) + "; not accumulation/distribution evidence."
+        d["data_semantics"] = "AGGREGATE_SHORT_VOLUME_NOT_DARK_POOL_PRINT_OR_SHORT_INTEREST"
     return finra
 
 
 def fetch_flashalpha_gex(tickers: List[str], api_key: str = None, max_calls: int = 5) -> Dict:
-    """FREE REAL GEX (5 calls/day on free tier) — FlashAlpha pre-computed gamma exposure,
-    gamma-flip, call/put walls, dealer regime. Needs FLASHALPHA_KEY (free, no card).
-    Falls back silently if key absent or package not installed. Marks source='flashalpha'
-    (REAL — displayed as real dealer data, unlike the SMA proxy).
-    Limited to top `max_calls` tickers/run given the 5/day budget."""
+    """Optional third-party pre-computed gamma fields.
+
+    Provider output is preserved but War Room does not claim it observes dealer inventory. Credentials,
+    entitlements and provider methodology must be verified independently.
+    """
     import os
     key = api_key or os.environ.get("FLASHALPHA_KEY") or os.environ.get("FLASHALPHA_API_KEY")
     if not key:
@@ -437,7 +435,8 @@ def fetch_flashalpha_gex(tickers: List[str], api_key: str = None, max_calls: int
                 "call_wall": g.get("call_wall"),
                 "put_wall": g.get("put_wall"),
                 "dealer_regime": g.get("dealer_regime") or g.get("regime"),
-                "source": "flashalpha",  # REAL — show as real dealer data
+                "source": "flashalpha",
+                "data_semantics": "THIRD_PARTY_MODEL_OUTPUT_NOT_OBSERVED_DEALER_BOOK",
             }
         except Exception as e:
             logger.debug(f"flashalpha {t}: {e}")

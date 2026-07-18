@@ -1,4 +1,6 @@
-# War Room OS runner deps (superset of your warroom_pro requirements)
+# War Room OS production runtime
+streamlit>=1.37
+requests>=2.31
 yfinance>=0.2.40
 pandas>=2.0
 numpy>=1.24

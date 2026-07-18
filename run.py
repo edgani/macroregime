@@ -9,8 +9,8 @@ then:
     python run.py --markets us,crypto        # subset
 
 Output:
-    desk_data.json   — structured desk (systemic macro + per-market setups + asymmetric alpha)
-    dashboard.html   — the approved v0.3 UI, POPULATED with the run (open in a browser)
+    desk_data.json   — structured desk (systemic macro + per-market setups + evidence lineage)
+    dashboard_live.html — Capital Intelligence Map populated with the run
 
 HONEST: setups only appear where the conviction gate is met. On synthetic/noise data that is
 often zero rows — that is correct behavior (the gate refuses to fabricate). Edge is only real
@@ -66,6 +66,97 @@ def _load_grades():
     except Exception:
         return {}
 
+
+
+def _load_reference_data():
+    """Curated structural maps. They are never presented as live flow observations."""
+    out = {}
+    for key, rel in (("chain_reactions", "data/chain_reactions.json"),
+                     ("bottlenecks", "data/bottleneck_reference.json"),
+                     ("ihsg_conglomerates", "data/ihsg_conglomerates.json")):
+        path = os.path.join(HERE, rel)
+        try:
+            with open(path, encoding="utf-8") as fh:
+                out[key] = json.load(fh)
+        except Exception as exc:
+            out[key] = {"_error": f"{type(exc).__name__}: {exc}"}
+    return out
+
+
+def _data_health(data):
+    now = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    rows = []
+    for name, raw in (data.get("sources") or {}).items():
+        text = str(raw)
+        low = text.lower()
+        state = "LIVE" if any(x in low for x in (" live", "live ", "typef", "macro proxies")) else (
+            "SYNTHETIC_TEST" if "synthetic" in low else "NO_DATA")
+        rows.append({
+            "provider": name,
+            "dataset": "market_data",
+            "state": state,
+            "observed": state == "LIVE",
+            "fetched_at": now,
+            "stale_after_seconds": 90,
+            "note": text,
+            "data_semantics": "OBSERVED_PRICE_OR_VOLUME" if state == "LIVE" else "MISSING_OR_TEST_ONLY",
+        })
+    fred = str(data.get("fred_source") or "unavailable")
+    fred_live = bool(data.get("fred"))
+    rows.append({
+        "provider": "FRED",
+        "dataset": "macro",
+        "state": "LIVE" if fred_live else "NO_DATA",
+        "observed": fred_live,
+        "fetched_at": now,
+        "stale_after_seconds": 3600,
+        "note": fred,
+        "data_semantics": "OFFICIAL_MACRO_SERIES" if fred_live else "MISSING",
+    })
+    feed_status = (data.get("feeds") or {}).get("_status") or {}
+    for name, raw in feed_status.items():
+        text = str(raw)
+        low = text.lower()
+        state = "LIVE" if ("live" in low or "snapshot" in low) and "failed" not in low and "absent" not in low else "NO_DATA"
+        rows.append({
+            "provider": name,
+            "dataset": "specialized",
+            "state": state,
+            "observed": state == "LIVE",
+            "fetched_at": now,
+            "stale_after_seconds": 3600 if "snapshot" in low else 180,
+            "note": text,
+            "data_semantics": "SEE_FEED_METADATA",
+        })
+    live = sum(1 for r in rows if r["state"] == "LIVE")
+    synthetic = sum(1 for r in rows if r["state"] == "SYNTHETIC_TEST")
+    overall = "LIVE" if live >= 2 else ("PARTIAL" if live else ("SYNTHETIC_TEST" if synthetic else "NO_DATA"))
+    return {"overall": overall, "live_count": live, "total_count": len(rows), "sources": rows, "checked_at": now}
+
+
+def _empty_desk(data, reason="No live price universe or benchmark was available."):
+    markets = {}
+    for m in data.get("markets") or []:
+        cfg = MARKETS.get(m, {"label": m, "long_only": False, "drivers": []})
+        markets[m] = {"label": cfg.get("label", m), "long_only": cfg.get("long_only", False),
+                      "drivers": cfg.get("drivers", []), "bias": "NO_DATA",
+                      "funnel": {"universe": 0, "eliminated": 0, "setups": 0}, "setups": []}
+    return {
+        "meta": {"generated": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
+                 "source": data.get("overall_source", "NO_DATA"), "sources": data.get("sources", {}),
+                 "fred_source": data.get("fred_source", "NO_DATA"), "universe_n": 0,
+                 "note": reason, "feeds_status": (data.get("feeds") or {}).get("_status", {})},
+        "systemic": {"quad": None, "quad_name": "NO_DATA", "growth_roc": None, "infl_roc": None,
+                     "liquidity": "NO_DATA", "fragility": "NO_DATA", "shock_prob": "NO_DATA",
+                     "cross_asset": "NO_DATA", "defer_longs": None, "rotation_in": [], "rotation_out": []},
+        "regime_tf": {"state": "NO_DATA"}, "regional": {}, "grades": _load_grades(),
+        "markets": markets, "alpha": [], "desk_picks": {}, "feeds": {},
+        "data_health": _data_health(data), "reference": _load_reference_data(),
+        "institutional": {"overall_state": "NOT_LOADED", "statuses": [], "events": [],
+                          "options_flow": [], "dark_pool": [], "sec_filings": [], "smart_money": [], "arkham_transfers": []},
+    }
+
+
 def _driver_series(data):
     """Map already-loaded feeds → the driver matrix's SEMANTIC ids. Only the ones we can verify get
     wired; everything else stays absent → NO_DATA (honest). FRED + prices are already fetched — the
@@ -104,7 +195,7 @@ def build_desk(data, top_per_market=12):
         for _t, _v in (prices.get(m, {}) or {}).items():
             union[_t] = _c1d(_v)
     if bench is None or not union:
-        raise SystemExit("no price data (need bench + universe). On your machine: pip install yfinance.")
+        return _empty_desk(data)
 
     from macro_inputs import assemble
     macro_in = assemble(data.get("fred"), union, bench, data.get("vix"))
@@ -231,7 +322,11 @@ def build_desk(data, top_per_market=12):
         "markets": markets,
         "alpha": alpha,
         "desk_picks": out.get("final_desk", {}),
-        "feeds": {k: v for k, v in (data.get("feeds") or {}).items() if k != "_status"},  # onchain/cot/gex/finra when present
+        "feeds": {k: v for k, v in (data.get("feeds") or {}).items() if k != "_status"},
+        "data_health": _data_health(data),
+        "reference": _load_reference_data(),
+        "institutional": {"overall_state": "NOT_LOADED", "statuses": [], "events": [],
+                          "options_flow": [], "dark_pool": [], "sec_filings": [], "smart_money": [], "arkham_transfers": []},
     }
 
 
@@ -283,11 +378,16 @@ def main():
     ap.add_argument("--out", default=os.path.join(HERE, "desk_data.json"))
     ap.add_argument("--template", default=os.path.join(HERE, "dashboard.html"))
     ap.add_argument("--html", default=os.path.join(HERE, "dashboard_live.html"))
+    ap.add_argument("--institutional", action="store_true", help="fetch configured institutional feeds")
     args = ap.parse_args()
 
     markets = args.markets.split(",") if args.markets else None
-    data = DL.load_all(markets=markets, start=args.start, allow_live=not args.synthetic)
+    data = DL.load_all(markets=markets, start=args.start, allow_live=not args.synthetic,
+                       fetch_live_feeds=not args.synthetic, allow_synthetic=args.synthetic)
     desk = build_desk(data)
+    if args.institutional and not args.synthetic:
+        from institutional_data import collect_institutional_data
+        desk["institutional"] = collect_institutional_data(desk)
 
     json.dump(desk, open(args.out, "w"), indent=2, default=str)
     rendered = render_dashboard(desk, args.template, args.html)

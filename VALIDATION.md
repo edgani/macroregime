@@ -1,3 +1,5 @@
+> **SUPERSEDED BY v2.4 AUDIT:** This historical report contains earlier validation language that is no longer used for production status. `metric_grades.json` and `DEEP_REAUDIT_V24.md` are authoritative. No metric is a proven autonomous trade signal without the remaining point-in-time, global multiple-testing, and prospective gates.
+
 # Data wiring fix — uses YOUR feeds, systemic now populates
 
 Two fixes so the app runs on your real feeds instead of my synthetic layer:

@@ -221,10 +221,10 @@ def fetch_sec_fundamentals(tickers):
             if ocf is not None and capex is not None: flattened["free_cash_flow_proxy"]={"value":ocf-capex,"unit":"USD","note":"latest filed OCF minus latest filed capex; verify matching periods"}
             data.append({"provider":"SEC EDGAR","ticker":ticker,"company":info.get("title"),"cik":info["cik"],"facts":flattened,
                          "semantics":"Filed XBRL facts; reporting periods and units must be checked before comparison."})
-        statuses.append(status(r,"SEC EDGAR",f"companyfacts_{ticker}",1 if flattened else 0,86400,"Official filed XBRL company facts.",url,["alpha_center","us_stocks","company_intel"]))
+        statuses.append(status(r,"SEC EDGAR",f"companyfacts_{ticker}",1 if flattened else 0,86400,"Official filed XBRL company facts.",url,["alpha_center","us_stocks","company_intel","institutional"]))
     if map_result: statuses.insert(0,status(map_result,"SEC EDGAR","ticker_map",len(mapping),172800,"Official ticker-to-CIK mapping.","https://www.sec.gov/files/company_tickers.json",["institutional","company_intel"]))
     state="LIVE" if data else "OFFLINE" if any(x.get("state")=="OFFLINE" for x in statuses) else "EMPTY"
-    return {"status":Status("SEC EDGAR","company_facts_bundle",state,records=len(data),fetched_at=now_iso(),stale_after_seconds=86400,required_for=["alpha_center","us_stocks","company_intel"]).to_dict(),"statuses":statuses,"data":data}
+    return {"status":Status("SEC EDGAR","company_facts_bundle",state,records=len(data),fetched_at=now_iso(),stale_after_seconds=86400,required_for=["alpha_center","us_stocks","company_intel","institutional"]).to_dict(),"statuses":statuses,"data":data}
 
 
 # ----------------------------- Intrinio context -----------------------------
@@ -394,13 +394,13 @@ CORE_DATASETS_BY_TAB = {
  "macro_regime":{"macro_observations","liquidity_state"},
  "early_warning":{"market_breadth","macro_observations","liquidity_state"},
  "alpha_center":{"price_state","core_prices"},
- "institutional":{"company_facts","sec_filings"},
- "derivatives_squeeze":{"COT","futures_options_statistics"},
+ "institutional":{"filings","company_facts_bundle"},
+ "derivatives_squeeze":set(),
  "us_stocks":{"core_prices","market_breadth","price_state"},
  "ihsg":{"core_prices","market_breadth","price_state"},
  "crypto":{"core_prices","market_breadth"},
- "commodities":{"core_prices","COT"},
- "fx":{"core_prices","COT"},
+ "commodities":{"core_prices"},
+ "fx":{"core_prices"},
  "flow_rotation":{"cross_asset_rotation","core_prices"},
  "company_intel":{"price_state","core_prices"},
  "validation":{"source_lineage"},
@@ -451,10 +451,24 @@ def collect_full_live_data(desk:Dict[str,Any]):
     for tab,reqs in REQUIREMENTS.items():
         related=[x for x in statuses if tab in (x.get("required_for") or [])]
         core_names=CORE_DATASETS_BY_TAB.get(tab,set())
-        core=[x for x in related if x.get("dataset") in core_names]
-        core_usable=[x for x in core if x.get("state") in usable]
+        def is_core(row):
+            dataset=str(row.get("dataset") or "")
+            return dataset in core_names or any(dataset.startswith(name + "_") for name in core_names)
+        core=[x for x in related if is_core(x)]
+        core_usable=[x for x in core if x.get("state") in usable or x.get("state")=="EMPTY"]
         optional_missing=[x for x in related if x not in core and x.get("state") in bad]
-        if core and not core_usable:
+        if tab=="institutional" and core:
+            # A healthy SEC query with no new filing is NO_SIGNAL, not missing infrastructure.
+            if any(x.get("state") in {"LIVE","STALE","EMPTY","NO_SIGNAL"} for x in core):
+                state="PARTIAL" if optional_missing else ("NO_SIGNAL" if not any(x.get("records") for x in core) else "LIVE")
+            elif any(x.get("state")=="ACTION_REQUIRED" for x in core):
+                state="ACTION_REQUIRED"
+            else:
+                state="NO_DATA"
+        elif not core_names:
+            # Cross-plane datasets (derivatives/event streams) are merged by the background worker.
+            state="PARTIAL" if any(x.get("state") in usable for x in related) else "NO_DATA"
+        elif core and not core_usable:
             state="ACTION_REQUIRED" if any(x.get("state")=="ACTION_REQUIRED" for x in core) else "NO_DATA"
         elif core_usable and optional_missing:
             state="PARTIAL"

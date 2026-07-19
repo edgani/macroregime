@@ -1,6 +1,6 @@
 {
   "crash_pressure": {
-    "grade": "VALIDATED",
+    "grade": "PARTIAL",
     "oos": {
       "oos_ic": 0.1002,
       "perm_p": 0.004,
@@ -14,8 +14,8 @@
         "n_oos": 669
       }
     },
-    "note": "FIXED-weight composite validates OOS on BOTH a 60/40 split (IC +0.10, perm_p 0.004) and a pre/post-1990 split (+0.11). Do NOT fit weights \u2014 a fitted linear model overfits and flips to -0.16 OOS. IC is modest (weak-but-real), so emit as a banded probability (low/elevated/high), never a precise 0-100. No single component dominates OOS; the combo is what works.",
-    "emit": "banded"
+    "note": "Historical OOS evidence exists for the frozen composite, but the current package has not completed global experiment-budget correction, point-in-time universe/vintage controls, or untouched prospective validation. Use only as a banded research warning, never as a crash probability or trade signal.",
+    "emit": "banded_research_only"
   },
   "panic_bottom": {
     "grade": "PARTIAL",
@@ -27,27 +27,29 @@
       "p": 0.1004,
       "n_fear": 98
     },
-    "note": "extreme-fear \u2192 fwd return direction is robust (~2x: 3.07% vs 1.54%), but strict monthly-OOS significance is marginal (p=0.10, only 98 OOS fear events). The engine's DAILY fear-greed test was strongly significant (t=8.36); on monthly OOS alone it's directional-not-significant. Emit as a number but flag the confidence.",
-    "emit": "number"
+    "note": "Historical direction is suggestive but monthly OOS significance is marginal (p=0.1004; 98 fear events). This is a descriptive tendency, not a contrarian BUY signal or calibrated probability.",
+    "emit": "descriptive_only"
   },
   "factor_momentum": {
-    "grade": "VALIDATED",
+    "grade": "REJECTED",
     "oos": {
       "mean_ic": 0.0206,
       "t": 2.53,
       "p": 0.0117,
       "n_days_oos": 442
     },
-    "emit": "number"
+    "emit": "none",
+    "note": "Rejected for production: result was split-dependent; the stricter audit found mom_126 OOS IC approximately -0.0008. Fragility to split/methodology is treated as failure, not validation."
   },
   "dollar_hub": {
-    "grade": "VALIDATED",
+    "grade": "PARTIAL",
     "oos": {
       "oos_ic": -0.2163,
       "perm_p": 0.002,
       "n_oos": 253
     },
-    "emit": "number"
+    "emit": "descriptive_only",
+    "note": "Historical OOS relationship only. Not yet cleared global multiple-testing, post-cutoff prospective, cost, and contamination gates; use as macro context, not a directional trading edge."
   },
   "cape_rate": {
     "grade": "REJECTED",
@@ -60,14 +62,14 @@
     "emit": "number"
   },
   "bandarmetrics_markup": {
-    "grade": "FEED_GATED",
-    "emit": "number_if_fed",
-    "note": "IHSG operator-flow scorer; validated separately at fwd-42d IC 0.173 on bandar data. Needs idx.co.id foreign-flow feed; emit only when fed."
+    "grade": "RESEARCH_PROXY",
+    "emit": "none_until_idx_validated",
+    "note": "The reported IC 0.173 came from an OHLCV proxy on a historical US equity sample, not point-in-time IHSG broker-summary/foreign-flow data. Do not label this as a validated IHSG bandar edge. Re-test on licensed point-in-time IDX data before emission."
   },
   "accumulation_composite": {
     "grade": "FEED_GATED",
-    "emit": "partial",
-    "note": "0.30RS+0.25VE validated; 0.20 ER +0.15 own +0.10 OI need earnings/13F/options feeds \u2014 show '\u2014' for those, never silent-zero."
+    "emit": "descriptive_partial_only",
+    "note": "Research composite only. Missing earnings/ownership/options inputs remain missing, never zero. Requires frozen specification and point-in-time OOS/prospective validation after licensed feeds are connected."
   },
   "rotation_momentum": {
     "grade": "REJECTED",

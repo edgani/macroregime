@@ -1,22 +1,29 @@
-"""Background data collector for War Room OS.
+"""Stable background collector for War Room OS v2.4.
 
-Core, institutional, derivatives and slow specialist planes refresh independently. The worker
-always writes the newest complete/partial snapshot atomically and retains prior plane data when a
-provider fails. The Streamlit process never waits on these network calls.
+Design goals:
+- one worker process only;
+- independent schedules for core, event/derivatives and slow enrichment planes;
+- no intermediate core-only/final state flapping;
+- last-good retention on transient provider failure;
+- bounded child processes around third-party libraries;
+- one atomic snapshot commit after each completed plane batch.
 """
 from __future__ import annotations
 
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Future, ThreadPoolExecutor
 from copy import deepcopy
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 import argparse
 import multiprocessing as mp
-import queue as queue_mod
 import os
+import pickle
 import signal
 import sys
+import tempfile
 import time
+import logging
+from logging.handlers import RotatingFileHandler
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -26,220 +33,471 @@ try:
 except Exception:
     pass
 
-from runtime_store import PID, consume_force_refresh, now_iso, read_snapshot, write_snapshot, write_status
+from runtime_store import (
+    PID, claim_worker_instance, consume_force_refresh, force_refresh_requested, now_iso,
+    read_snapshot, release_worker_instance, write_snapshot, write_status,
+)
 
 STOP = False
+MARKETS = ["us", "idx", "crypto", "commodity", "fx"]
+CORE_SECONDS = max(60, int(os.getenv("WARROOM_CORE_REFRESH_SECONDS", "300")))
+EVENT_SECONDS = max(15, int(os.getenv("WARROOM_EVENT_REFRESH_SECONDS", "45")))
+SLOW_SECONDS = max(300, int(os.getenv("WARROOM_SLOW_REFRESH_SECONDS", "1800")))
+EXPANDED_SECONDS = max(SLOW_SECONDS, int(os.getenv("WARROOM_EXPANDED_REFRESH_SECONDS", "3600")))
+
+LOG_PATH = HERE / "runtime" / "worker.log"
+LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
+LOGGER = logging.getLogger("warroom.worker")
+if not LOGGER.handlers:
+    LOGGER.setLevel(logging.INFO)
+    handler = RotatingFileHandler(LOG_PATH, maxBytes=1_500_000, backupCount=3, encoding="utf-8")
+    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+    LOGGER.addHandler(handler)
+
 
 def _stop(*_):
     global STOP
     STOP = True
 
+
 signal.signal(signal.SIGTERM, _stop)
 if hasattr(signal, "SIGINT"):
     signal.signal(signal.SIGINT, _stop)
 
-MARKETS = ["us", "idx", "crypto", "commodity", "fx"]
-CORE_SECONDS = max(60, int(os.getenv("WARROOM_CORE_REFRESH_SECONDS", "300")))
-EVENT_SECONDS = max(10, int(os.getenv("WARROOM_EVENT_REFRESH_SECONDS", "30")))
-SLOW_SECONDS = max(300, int(os.getenv("WARROOM_SLOW_REFRESH_SECONDS", "1800")))
-
-
-def _safe_plane(name: str, fn, fallback: dict) -> dict:
-    try:
-        value = fn()
-        if isinstance(value, dict):
-            return value
-        return {**fallback, "overall_state": "ERROR", "note": f"{name} returned non-dict"}
-    except Exception as exc:
-        return {**fallback, "overall_state": "ERROR", "note": f"{type(exc).__name__}: {exc}"}
-
 
 def build_core(fast: bool = True) -> dict:
     import data_layer as DL
-    from run import build_desk
-    data = DL.load_all(markets=MARKETS, allow_live=True, allow_synthetic=False, fast_core=fast, skip_slow_context=fast)
-    desk = build_desk(data, top_per_market=40)
-    desk.setdefault("runtime", {})["core_collected_at"] = now_iso()
-    desk["runtime"]["core_profile"] = "FAST" if fast else "EXPANDED"
+    from run import build_desk, build_fast_desk
+
+    data = DL.load_all(
+        markets=MARKETS,
+        allow_live=True,
+        allow_synthetic=False,
+        fast_core=fast,
+        skip_slow_context=fast,
+    )
+    desk = (build_fast_desk(data, top_per_market=20) if fast else build_desk(data, top_per_market=40))
+    runtime = desk.setdefault("runtime", {})
+    runtime["core_collected_at"] = now_iso()
+    runtime["core_profile"] = "FAST" if fast else "EXPANDED"
     return desk
 
 
-def _core_child(fast: bool, output) -> None:
-    try:
-        output.put((True, build_core(fast=fast)))
-    except Exception as exc:
-        output.put((False, f"{type(exc).__name__}: {exc}"))
-
-
-def build_core_bounded(fast: bool = True) -> dict:
-    """Hard wall-clock boundary around third-party loaders.
-
-    yfinance/curl/network DNS failures can outlive their nominal request timeout. Running the whole
-    core collector in a child process lets the worker retain last-good data instead of hanging.
-    """
-    timeout = int(os.getenv("WARROOM_FAST_CORE_HARD_TIMEOUT", "75") if fast else os.getenv("WARROOM_EXPANDED_CORE_HARD_TIMEOUT", "240"))
-    context = mp.get_context("spawn" if os.name == "nt" else "fork")
-    output = context.Queue(maxsize=1)
-    process = context.Process(target=_core_child, args=(fast, output), daemon=True)
-    process.start(); process.join(timeout=max(10, timeout))
-    if process.is_alive():
-        process.terminate(); process.join(5)
-        raise TimeoutError(f"{'fast' if fast else 'expanded'} core exceeded {timeout}s hard timeout")
-    try:
-        ok, value = output.get_nowait()
-    except queue_mod.Empty:
-        raise RuntimeError(f"core child exited with code {process.exitcode} without a result")
-    if not ok:
-        raise RuntimeError(value)
-    return value
-
-
-def collect_event_planes(core: dict) -> tuple[dict, dict]:
+def collect_event_planes(core: dict) -> dict:
     from institutional_data import collect_institutional_data
     from live_market_intelligence import collect_live_market_intelligence
-    institutional = _safe_plane("institutional", lambda: collect_institutional_data(core),
-                                {"statuses": [], "events": []})
-    live = _safe_plane("live_intelligence", lambda: collect_live_market_intelligence(core, institutional),
-                       {"statuses": [], "events": [], "crypto_derivatives": [], "crypto_options": [],
-                        "us_options": [], "us_squeeze": []})
-    return institutional, live
+
+    institutional = collect_institutional_data(core)
+    live = collect_live_market_intelligence(core, institutional)
+    return {"institutional": institutional, "live_intelligence": live}
 
 
 def collect_slow_plane(core: dict) -> dict:
     from full_live_data_hub import collect_full_live_data
-    return _safe_plane("full_live_data", lambda: collect_full_live_data(core),
-                       {"statuses": [], "tab_coverage": {}})
+    return collect_full_live_data(core)
 
 
-def merge_snapshot(core: dict, institutional: dict | None = None, live: dict | None = None,
-                   full: dict | None = None, previous: dict | None = None) -> dict:
-    desk = deepcopy(core)
+def _child_call(kind: str, payload: Any, result_path: str) -> None:
+    """Collector child writes its result to a file, avoiding multiprocessing Queue deadlocks.
+
+    Several War Room planes are multi-megabyte dictionaries. Waiting for a child to exit before
+    draining a Queue can block forever when the pipe buffer fills. A temporary pickle is bounded,
+    atomic enough for a private child result, and works on Windows spawn as well as POSIX fork.
+    """
+    # The parent installs a graceful SIGTERM handler for the long-running loop. A bounded child must
+    # restore the default handler or process.terminate() only flips STOP and leaves it orphaned.
+    if hasattr(signal, "SIGTERM"):
+        signal.signal(signal.SIGTERM, signal.SIG_DFL)
+    if hasattr(signal, "SIGINT"):
+        signal.signal(signal.SIGINT, signal.SIG_DFL)
+    packet: tuple[bool, Any]
+    try:
+        if kind == "core_fast":
+            value = build_core(True)
+        elif kind == "core_expanded":
+            value = build_core(False)
+        elif kind == "events":
+            value = collect_event_planes(payload)
+        elif kind == "slow":
+            value = collect_slow_plane(payload)
+        else:
+            raise ValueError(f"unknown collector kind {kind}")
+        packet = (True, value)
+    except BaseException as exc:
+        packet = (False, f"{type(exc).__name__}: {exc}")
+    try:
+        tmp = result_path + f".{os.getpid()}.tmp"
+        with open(tmp, "wb") as fh:
+            pickle.dump(packet, fh, protocol=pickle.HIGHEST_PROTOCOL)
+            fh.flush()
+            try:
+                os.fsync(fh.fileno())
+            except OSError:
+                pass
+        os.replace(tmp, result_path)
+    except BaseException:
+        # Parent will report the missing result file. Never keep a half-written packet.
+        pass
+
+
+def run_bounded(kind: str, payload: Any, timeout: int) -> dict:
+    """Run a collector in a killable child process and return its dictionary result."""
+    context = mp.get_context("spawn" if os.name == "nt" else "fork")
+    fd, result_path = tempfile.mkstemp(prefix=f"warroom_{kind}_", suffix=".pkl", dir=str(HERE / "runtime"))
+    os.close(fd)
+    try:
+        os.unlink(result_path)
+    except OSError:
+        pass
+    process = context.Process(target=_child_call, args=(kind, payload, result_path), daemon=True)
+    process.start()
+    process.join(timeout=max(10, int(timeout)))
+    if process.is_alive():
+        process.terminate()
+        process.join(5)
+        if process.is_alive():
+            try:
+                process.kill()
+            except AttributeError:
+                os.kill(process.pid, signal.SIGKILL)
+            process.join(5)
+        for path in (result_path, result_path + f".{process.pid}.tmp"):
+            try:
+                os.unlink(path)
+            except OSError:
+                pass
+        raise TimeoutError(f"{kind} exceeded {timeout}s hard timeout")
+    if not os.path.exists(result_path):
+        raise RuntimeError(f"{kind} child exited with code {process.exitcode} without a result")
+    try:
+        with open(result_path, "rb") as fh:
+            ok, value = pickle.load(fh)
+    except Exception as exc:
+        raise RuntimeError(f"{kind} produced an unreadable result: {type(exc).__name__}: {exc}") from exc
+    finally:
+        try:
+            os.unlink(result_path)
+        except OSError:
+            pass
+    if not ok:
+        raise RuntimeError(str(value))
+    if not isinstance(value, dict):
+        raise TypeError(f"{kind} returned {type(value).__name__}, expected dict")
+    return value
+
+
+def _overall_state(plane: dict | None) -> str:
+    return str((plane or {}).get("overall_state") or (plane or {}).get("state") or "").upper()
+
+
+def _record_count(plane: dict | None) -> int:
+    """Count actual observations, not configuration dictionaries or coverage metadata."""
+    if not isinstance(plane, dict):
+        return 0
+    keys = (
+        "events", "options_flow", "dark_pool", "sec_filings", "smart_money",
+        "arkham_transfers", "crypto_derivatives", "crypto_options", "us_options",
+        "us_short_interest", "us_squeeze", "options_sector_rotation", "sec_fundamentals",
+        "intrinio_companies", "etf_flows", "eia", "databento", "idx_live",
+    )
+    total = 0
+    for key in keys:
+        value = plane.get(key)
+        if isinstance(value, list):
+            total += len(value)
+        elif isinstance(value, dict):
+            total += len(value)
+    # Structured public datasets such as CFTC/DeFiLlama may be dictionaries.
+    for key in ("cftc", "defillama"):
+        value = plane.get(key)
+        if isinstance(value, dict):
+            total += len(value)
+    return total
+
+
+def _retain_plane(name: str, new: dict | None, old: dict | None) -> tuple[dict, dict | None]:
+    """Keep last-good plane when a transient refresh returns an unusable empty/error payload."""
+    old = deepcopy(old or {})
+    new = deepcopy(new or {})
+    bad_states = {"ERROR", "NO_DATA", "OFFLINE", "INITIALIZING", "NOT_CONFIGURED", "NOT_ENTITLED", "ACTION_REQUIRED"}
+    new_state = _overall_state(new)
+    old_records = _record_count(old)
+    new_records = _record_count(new)
+    if old_records and new_state in bad_states:
+        old.setdefault("runtime", {})["last_refresh_error"] = new.get("note") or new_state or "empty refresh"
+        old["runtime"]["retained_last_good"] = True
+        old["runtime"]["last_refresh_attempt_at"] = now_iso()
+        if old.get("overall_state") == "LIVE":
+            old["overall_state"] = "STALE"
+        return old, {"plane": name, "action": "RETAINED_LAST_GOOD", "reason": new_state or "EMPTY"}
+    new.setdefault("runtime", {})["retained_last_good"] = False
+    return new, None
+
+
+def _market_universe(desk: dict, market: str) -> int:
+    return int((((desk.get("markets") or {}).get(market) or {}).get("funnel") or {}).get("universe") or 0)
+
+
+def _stabilize_core(new: dict, old: dict | None) -> tuple[dict, list[dict]]:
+    """Reject catastrophic coverage drops and preserve isolated market/macro last-good data."""
+    old = old or {}
+    result = deepcopy(new)
+    retained: list[dict] = []
+    if not old.get("markets"):
+        return result, retained
+
+    old_total = sum(_market_universe(old, m) for m in MARKETS)
+    new_total = sum(_market_universe(result, m) for m in MARKETS)
+    if old_total >= 10 and new_total < max(3, int(old_total * 0.35)):
+        # Catastrophic provider outage: reject the whole core refresh.
+        kept = deepcopy(old)
+        kept.setdefault("runtime", {})["core_last_refresh_error"] = (
+            f"coverage collapse {old_total}→{new_total}; retained prior core"
+        )
+        kept["runtime"]["core_retained_last_good"] = True
+        return kept, [{"plane": "core", "action": "REJECTED_COVERAGE_COLLAPSE", "old": old_total, "new": new_total}]
+
+    for market in MARKETS:
+        old_n, new_n = _market_universe(old, market), _market_universe(result, market)
+        if old_n and new_n < max(1, int(old_n * 0.25)):
+            result.setdefault("markets", {})[market] = deepcopy((old.get("markets") or {}).get(market))
+            result["markets"][market]["data_state"] = "STALE"
+            for row in result["markets"][market].get("setups") or []:
+                row["data_state"] = "STALE"
+            if (old.get("market_breadth") or {}).get(market):
+                result.setdefault("market_breadth", {})[market] = deepcopy(old["market_breadth"][market])
+                result["market_breadth"][market]["state"] = "STALE"
+            retained.append({"plane": "core", "market": market, "action": "RETAINED_MARKET", "old": old_n, "new": new_n})
+
+    if not result.get("macro_observations") and old.get("macro_observations"):
+        result["macro_observations"] = deepcopy(old["macro_observations"])
+        retained.append({"plane": "core", "dataset": "macro_observations", "action": "RETAINED_LAST_GOOD"})
+    new_sys, old_sys = result.setdefault("systemic", {}), old.get("systemic") or {}
+    if str(new_sys.get("liquidity") or "").upper() in {"", "NO_DATA", "INITIALIZING", "NONE"} and old_sys.get("liquidity"):
+        for key in ("liquidity", "liquidity_detail"):
+            if key in old_sys:
+                new_sys[key] = deepcopy(old_sys[key])
+        new_sys["liquidity_state"] = "STALE"
+        retained.append({"plane": "core", "dataset": "liquidity", "action": "RETAINED_LAST_GOOD"})
+
+    result.setdefault("runtime", {})["core_retained_items"] = retained
+    result["runtime"]["core_retained_last_good"] = bool(retained)
+    return result, retained
+
+
+def _dedupe_statuses(rows: list[dict]) -> list[dict]:
+    """One newest status per provider+dataset prevents duplicate source counts and status flapping."""
+    out: dict[tuple[str, str], dict] = {}
+    for row in rows or []:
+        if not isinstance(row, dict):
+            continue
+        key = (str(row.get("provider") or ""), str(row.get("dataset") or ""))
+        out[key] = row
+    return list(out.values())
+
+
+def merge_snapshot(core: dict, institutional: dict | None, live: dict | None,
+                   full: dict | None, previous: dict | None, diagnostics: list[dict] | None = None) -> dict:
     previous = previous or {}
-    desk["institutional"] = institutional if institutional is not None else previous.get("institutional", {"overall_state":"INITIALIZING","statuses":[],"events":[]})
-    desk["live_intelligence"] = live if live is not None else previous.get("live_intelligence", {"overall_state":"INITIALIZING","statuses":[],"events":[],"crypto_derivatives":[],"crypto_options":[],"us_options":[],"us_squeeze":[]})
-    desk["full_live_data"] = full if full is not None else previous.get("full_live_data", {"overall_state":"INITIALIZING","statuses":[],"tab_coverage":{}})
+    desk, core_retained = _stabilize_core(core, previous)
+    inst, inst_diag = _retain_plane("institutional", institutional, previous.get("institutional"))
+    live_plane, live_diag = _retain_plane("live_intelligence", live, previous.get("live_intelligence"))
+    full_plane, full_diag = _retain_plane("full_live_data", full, previous.get("full_live_data"))
+    desk["institutional"] = inst
+    desk["live_intelligence"] = live_plane
+    desk["full_live_data"] = full_plane
+
     health = dict(desk.get("data_health") or {})
-    extra = list((desk["institutional"] or {}).get("statuses") or []) + list((desk["live_intelligence"] or {}).get("statuses") or []) + list((desk["full_live_data"] or {}).get("statuses") or [])
-    health["sources"] = list(health.get("sources") or []) + extra
-    health["total_count"] = len(health["sources"])
-    health["live_count"] = sum(1 for row in health["sources"] if row.get("state") in {"LIVE","PARTIAL","STALE"})
-    health["overall"] = "LIVE" if health["total_count"] and health["live_count"] == health["total_count"] else "PARTIAL" if health["live_count"] else "NO_DATA"
+    sources = _dedupe_statuses(
+        list(health.get("sources") or [])
+        + list((inst or {}).get("statuses") or [])
+        + list((live_plane or {}).get("statuses") or [])
+        + list((full_plane or {}).get("statuses") or [])
+    )
+    health["sources"] = sources
+    health["total_count"] = len(sources)
+    health["live_count"] = sum(1 for row in sources if row.get("state") in {"LIVE", "PARTIAL", "STALE", "NO_SIGNAL", "CASH_ONLY"})
+    core_observations = sum(_market_universe(desk, m) for m in MARKETS)
+    macro_observations = len(desk.get("macro_observations") or {})
+    if core_observations == 0 and macro_observations == 0:
+        health["overall"] = "NO_DATA"
+    else:
+        health["overall"] = (
+            "LIVE" if sources and all(row.get("state") in {"LIVE", "STANDBY", "NO_SIGNAL", "CASH_ONLY"} for row in sources)
+            else "PARTIAL" if health["live_count"] else "NO_DATA"
+        )
+    health["core_observations"] = core_observations
+    health["macro_observations"] = macro_observations
     desk["data_health"] = health
-    # Reconcile cross-plane coverage after the event/derivatives plane is available. The slow hub
-    # cannot know about public crypto derivatives or delayed US option chains by itself.
-    coverage = dict((desk.get("full_live_data") or {}).get("tab_coverage") or {})
-    live_rows = desk.get("live_intelligence") or {}
-    valid_derivative_states={"LIVE","STALE","PARTIAL"}
-    derivative_records = (len([x for x in (live_rows.get("crypto_derivatives") or []) if x.get("state") in valid_derivative_states]) +
-                          len([x for x in (live_rows.get("crypto_options") or []) if x.get("state") in valid_derivative_states]) +
-                          len([x for x in (live_rows.get("us_options") or []) if x.get("state") in valid_derivative_states]))
+
+    coverage = dict((full_plane or {}).get("tab_coverage") or {})
+    valid = {"LIVE", "STALE", "PARTIAL", "NO_SIGNAL"}
+    derivative_records = sum(
+        len([x for x in (live_plane.get(key) or []) if x.get("state") in valid])
+        for key in ("crypto_derivatives", "crypto_options", "us_options")
+    )
     if "derivatives_squeeze" in coverage and derivative_records:
         coverage["derivatives_squeeze"]["state"] = "LIVE" if derivative_records >= 3 else "PARTIAL"
         coverage["derivatives_squeeze"]["cross_plane_records"] = derivative_records
-    if "us_stocks" in coverage and any(x.get("state") in {"LIVE","STALE"} for x in (live_rows.get("us_options") or [])):
-        if coverage["us_stocks"].get("state") == "NO_DATA": coverage["us_stocks"]["state"] = "PARTIAL"
-    inst_events = len((desk.get("institutional") or {}).get("events") or [])
-    if "institutional" in coverage and inst_events:
-        coverage["institutional"]["state"] = "LIVE"
-        coverage["institutional"]["cross_plane_records"] = inst_events
-    if desk.get("full_live_data") is not None:
-        desk["full_live_data"]["tab_coverage"] = coverage
-    desk.setdefault("runtime", {}).update({
+    if "us_stocks" in coverage and any(x.get("state") in {"LIVE", "STALE"} for x in live_plane.get("us_options") or []):
+        if coverage["us_stocks"].get("state") == "NO_DATA":
+            coverage["us_stocks"]["state"] = "PARTIAL"
+    if "institutional" in coverage:
+        inst_state = str(inst.get("overall_state") or "").upper()
+        inst_records = len(inst.get("events") or [])
+        if inst_records:
+            coverage["institutional"]["state"] = "LIVE" if inst_state == "LIVE" else "PARTIAL"
+            coverage["institutional"]["cross_plane_records"] = inst_records
+        elif inst_state in {"NO_SIGNAL", "LIVE", "STALE"}:
+            coverage["institutional"]["state"] = "NO_SIGNAL" if inst_state == "NO_SIGNAL" else inst_state
+        elif inst_state in {"ACTION_REQUIRED", "NOT_ENTITLED", "NOT_CONFIGURED"} and coverage["institutional"].get("state") == "NO_DATA":
+            coverage["institutional"]["state"] = inst_state
+    if full_plane is not None:
+        full_plane["tab_coverage"] = coverage
+
+    all_diag = list(diagnostics or []) + core_retained + [x for x in (inst_diag, live_diag, full_diag) if x]
+    runtime = desk.setdefault("runtime", {})
+    runtime.update({
         "worker_state": "LIVE",
-        "institutional_collected_at": now_iso() if institutional is not None else (previous.get("runtime") or {}).get("institutional_collected_at"),
-        "derivatives_collected_at": now_iso() if live is not None else (previous.get("runtime") or {}).get("derivatives_collected_at"),
-        "slow_plane_collected_at": now_iso() if full is not None else (previous.get("runtime") or {}).get("slow_plane_collected_at"),
+        "worker_heartbeat_at": now_iso(),
+        "stability_events": all_diag[-30:],
+        "institutional_collected_at": (inst.get("generated") or runtime.get("institutional_collected_at")),
+        "derivatives_collected_at": (live_plane.get("generated") or runtime.get("derivatives_collected_at")),
+        "slow_plane_collected_at": (full_plane.get("generated") or runtime.get("slow_plane_collected_at")),
     })
     return desk
 
 
-def run_once(previous: dict | None = None) -> dict:
-    write_status(state="COLLECTING_CORE", pid=os.getpid())
-    core = build_core_bounded(fast=True)
-    # Publish core immediately, so first paint does not wait for slow/paid providers.
-    partial = merge_snapshot(core, previous=previous)
-    write_snapshot(partial)
-    write_status(state="COLLECTING_EVENT_AND_SLOW_PLANES", pid=os.getpid())
-    with ThreadPoolExecutor(max_workers=2) as pool:
-        event_future = pool.submit(collect_event_planes, core)
-        slow_future = pool.submit(collect_slow_plane, core)
-        institutional, live = event_future.result()
-        full = slow_future.result()
-    final = merge_snapshot(core, institutional, live, full, partial)
-    write_snapshot(final)
-    write_status(state="IDLE", pid=os.getpid(), last_success=now_iso())
-    return final
+def _current_core(snapshot: dict) -> dict:
+    """The merged snapshot itself is a valid core base for event/slow collectors."""
+    return deepcopy(snapshot)
 
 
 def loop() -> None:
-    PID.write_text(str(os.getpid()), encoding="utf-8")
+    # Atomic lease prevents simultaneous Streamlit sessions/manual launches from racing on PID.write.
+    if not claim_worker_instance():
+        LOGGER.info("collector start skipped: another worker owns the instance lease")
+        return
+    LOGGER.info("collector started pid=%s", os.getpid())
+
     previous = read_snapshot() or {}
-    core = None
+    core = _current_core(previous) if previous.get("markets") else None
     institutional = previous.get("institutional")
     live = previous.get("live_intelligence")
     full = previous.get("full_live_data")
-    last_core = last_event = last_slow = 0.0
+    last_started = {"core": 0.0, "events": 0.0, "slow": 0.0, "expanded": 0.0}
+    pending: dict[str, Future] = {}
+    diagnostics: list[dict] = []
+    last_success = str((read_status() or {}).get("last_success") or "")
+    executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="warroom-plane")
+
+    timeouts = {
+        "core": int(os.getenv("WARROOM_FAST_CORE_HARD_TIMEOUT", "90")),
+        "events": int(os.getenv("WARROOM_EVENT_HARD_TIMEOUT", "75")),
+        "slow": int(os.getenv("WARROOM_SLOW_HARD_TIMEOUT", "120")),
+        "expanded": int(os.getenv("WARROOM_EXPANDED_CORE_HARD_TIMEOUT", "240")),
+    }
+
+    def schedule(name: str, kind: str, payload: dict | None = None) -> None:
+        if name in pending:
+            return
+        write_status(state=f"COLLECTING_{name.upper()}", pid=os.getpid(), pending=sorted([*pending, name]))
+        LOGGER.info("schedule %s kind=%s", name, kind)
+        pending[name] = executor.submit(run_bounded, kind, payload, timeouts[name])
+        last_started[name] = time.time()
+
     try:
         while not STOP:
             force = consume_force_refresh()
             now = time.time()
-            if force or core is None or now - last_core >= CORE_SECONDS:
-                write_status(state="COLLECTING_CORE", pid=os.getpid())
+            if (force or core is None or now - last_started["core"] >= CORE_SECONDS) and "core" not in pending:
+                schedule("core", "core_fast")
+            if core is not None and (force or now - last_started["events"] >= EVENT_SECONDS) and "events" not in pending:
+                schedule("events", "events", core)
+            if core is not None and (force or now - last_started["slow"] >= SLOW_SECONDS) and "slow" not in pending:
+                schedule("slow", "slow", core)
+            if core is not None and (force or now - last_started["expanded"] >= EXPANDED_SECONDS) and "expanded" not in pending:
+                schedule("expanded", "core_expanded")
+
+            changed = False
+            for name, future in list(pending.items()):
+                if not future.done():
+                    continue
+                pending.pop(name, None)
                 try:
-                    core = build_core_bounded(fast=True)
-                    last_core = now
-                    snap = merge_snapshot(core, institutional, live, full, previous)
-                    write_snapshot(snap); previous = snap
+                    value = future.result()
+                    if name == "core":
+                        core, core_diag = _stabilize_core(value, core or previous)
+                        diagnostics.extend(core_diag)
+                    elif name == "expanded":
+                        candidate, core_diag = _stabilize_core(value, core or previous)
+                        if sum(_market_universe(candidate, m) for m in MARKETS) >= sum(_market_universe(core or {}, m) for m in MARKETS):
+                            core = candidate
+                        diagnostics.extend(core_diag)
+                    elif name == "events":
+                        institutional = value.get("institutional")
+                        live = value.get("live_intelligence")
+                    elif name == "slow":
+                        full = value
+                    last_success = now_iso()
+                    diagnostics.append({"plane": name, "action": "REFRESH_OK", "at": last_success})
+                    LOGGER.info("refresh ok plane=%s", name)
+                    changed = True
                 except Exception as exc:
-                    write_status(state="CORE_ERROR", pid=os.getpid(), error=f"{type(exc).__name__}: {exc}")
-            if core is not None and (force or now - last_event >= EVENT_SECONDS):
-                write_status(state="COLLECTING_EVENTS", pid=os.getpid())
-                institutional, live = collect_event_planes(core)
-                last_event = now
-                snap = merge_snapshot(core, institutional, live, full, previous)
-                write_snapshot(snap); previous = snap
-            if core is not None and (force or now - last_slow >= SLOW_SECONDS):
-                write_status(state="COLLECTING_SLOW_PLANE", pid=os.getpid())
-                # Try an expanded universe after a fast snapshot already exists. Failure/timeout in
-                # this enrichment cannot remove the usable fast core.
-                try:
-                    expanded = build_core_bounded(fast=False)
-                    if sum(int((v.get("funnel") or {}).get("universe") or 0) for v in (expanded.get("markets") or {}).values()) >= sum(int((v.get("funnel") or {}).get("universe") or 0) for v in (core.get("markets") or {}).values()):
-                        core = expanded
-                except Exception:
-                    pass
-                full = collect_slow_plane(core)
-                last_slow = now
-                snap = merge_snapshot(core, institutional, live, full, previous)
-                write_snapshot(snap); previous = snap
-            write_status(state="IDLE", pid=os.getpid(), last_success=now_iso())
+                    diagnostics.append({"plane": name, "action": "REFRESH_ERROR", "error": f"{type(exc).__name__}: {exc}", "at": now_iso()})
+                    LOGGER.exception("refresh error plane=%s: %s", name, exc)
+                    write_status(state=f"{name.upper()}_ERROR", pid=os.getpid(), error=f"{type(exc).__name__}: {exc}")
+
+            if changed and core is not None:
+                snapshot = merge_snapshot(core, institutional, live, full, previous, diagnostics)
+                result = write_snapshot(snapshot)
+                previous = read_snapshot() or snapshot
+                LOGGER.info("snapshot commit written=%s changed=%s revision=%s", result.get("written"), result.get("changed"), result.get("revision"))
+
+            write_status(
+                state="IDLE" if not pending else "COLLECTING",
+                pid=os.getpid(), pending=sorted(pending), last_success=last_success or None,
+                snapshot_revision=int(((previous.get("runtime") or {}).get("snapshot_sequence") or 0)),
+                force_pending=force_refresh_requested(),
+            )
             for _ in range(10):
-                if STOP or consume_force_refresh():
-                    # Recreate flag for next outer loop when consumed during sleep.
-                    from runtime_store import request_force_refresh
-                    request_force_refresh()
+                if STOP or force_refresh_requested():
                     break
-                time.sleep(1)
+                time.sleep(0.5)
     finally:
-        try: PID.unlink()
-        except Exception: pass
-        write_status(state="STOPPED", pid=os.getpid())
+        executor.shutdown(wait=False, cancel_futures=True)
+        release_worker_instance()
+        LOGGER.info("collector stopped pid=%s", os.getpid())
+        write_status(state="STOPPED", pid=os.getpid(), pending=[])
 
 
-def main():
+def run_once(previous: dict | None = None) -> dict:
+    previous = previous or read_snapshot() or {}
+    core = run_bounded("core_fast", None, int(os.getenv("WARROOM_FAST_CORE_HARD_TIMEOUT", "90")))
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        event_future = pool.submit(run_bounded, "events", core, int(os.getenv("WARROOM_EVENT_HARD_TIMEOUT", "75")))
+        slow_future = pool.submit(run_bounded, "slow", core, int(os.getenv("WARROOM_SLOW_HARD_TIMEOUT", "120")))
+        event_value = event_future.result()
+        full = slow_future.result()
+    snapshot = merge_snapshot(core, event_value.get("institutional"), event_value.get("live_intelligence"), full, previous)
+    write_snapshot(snapshot, force=True)
+    return snapshot
+
+
+def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--once", action="store_true")
     args = parser.parse_args()
-    PID.write_text(str(os.getpid()), encoding="utf-8")
-    try:
-        if args.once:
-            run_once(read_snapshot() or {})
-        else:
-            loop()
-    finally:
-        if args.once:
-            try: PID.unlink()
-            except Exception: pass
+    if args.once:
+        if not claim_worker_instance():
+            raise SystemExit("another War Room worker is already running")
+        try:
+            run_once()
+        finally:
+            release_worker_instance()
+    else:
+        loop()
+
 
 if __name__ == "__main__":
     main()

@@ -227,16 +227,23 @@ def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds
                         v40_ok = True
         except Exception as e:
             sources["_v40loader"] = f"data.loader failed: {e}"
-    # ---- macro-proxy ETFs (SPY/GLD/USO/UUP/XLI/XLY/TLT) for GIP + regime + cross-asset ----
-    if allow_live and not skip_slow_context:
+    # ---- macro-proxy ETFs for cross-asset rotation and regime context ----
+    # These are core UI inputs, not slow enrichment. The fast profile loads a compact set; the
+    # expanded profile adds sectors/EM. Without this wire Flow & Rotation stayed NO_DATA until a
+    # much later expanded refresh.
+    if allow_live:
         try:
             from data.loader import load_prices as _lp2
-            _prox = _lp2(["SPY","GLD","USO","UUP","XLI","XLY","TLT","DBC","IWM","SMH"])
+            _proxy_fast = ["SPY","QQQ","IWM","SMH","GLD","TLT","UUP","DBC","USO","EEM","EIDO"]
+            _proxy_expanded = _proxy_fast + ["XLF","XLE","XLK","XLI","XLY","XLU","XLV","XLP","HYG","LQD","VWO"]
+            _prox = _lp2(_proxy_fast if skip_slow_context else _proxy_expanded)
             if _prox:
                 prices["_proxy"] = _prox
                 sources["_proxy"] = f"macro proxies · {len(_prox)}"
-        except Exception:
-            pass
+            else:
+                sources["_proxy"] = "macro proxies · 0"
+        except Exception as exc:
+            sources["_proxy"] = f"macro proxies error · {type(exc).__name__}: {exc}"
 
     # ---- country-index proxies for the REGIONAL REGIME row (real, not hardcoded) ----
     proxies = {}
@@ -272,22 +279,13 @@ def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds
     # ---- per-market fallback: retry EVERY missing market, even when another market loaded. ----
     # The previous code retried only when *all* v40 markets failed. That meant US could load while
     # FX remained permanently NO_DATA. Missingness is now isolated per market.
-    if allow_synthetic:
-        try:
-            from warroom import data as WD
-            for m in markets:
-                if prices.get(m):
-                    continue
-                px, src = WD.load(UNI.get(m, UNIVERSE.get(m, [])), days=500)
-                prices[m] = px
-                sources[m] = f"warroom.data test-only · {src}"
-        except Exception:
-            pass
+    # Explicit synthetic test mode must stay offline. Do not call legacy loaders that may reach
+    # Yahoo before the deterministic test fallback below.
     for m in markets:
         if prices.get(m):
             continue
         px, src = load_prices(
-            UNIVERSE.get(m, []), start, allow_live,
+            UNI.get(m, UNIVERSE.get(m, [])), start, allow_live,
             allow_synthetic=allow_synthetic,
         )
         prices[m] = px
@@ -298,11 +296,24 @@ def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds
         ohlcv.setdefault(m, {})
     # ---- FRED via v40's fred_loader (the working path) ----
     fred, fsrc = {}, "OFFLINE" if not allow_live else "unavailable"
-    if allow_live and not skip_slow_context:
+    if allow_live:
         try:
-            from data.fred_loader import load_fred_series
-            fred = load_fred_series(force_refresh=False) or {}
+            from data.fred_loader import load_fred_series, load_fred_subset
+            _fast_fred = ["INDPRO","RSAFS","PAYEMS","UNRATE","ICSA","CPI","CORECPI","FEDFUNDS",
+                          "DGS2","DGS10","DFII10","T10YIE","HYOAS","WALCL","RRPONTSYD","WTREGEN"]
+            fred = (load_fred_subset(_fast_fred, force_refresh=False) if fast_core
+                    else load_fred_series(force_refresh=False)) or {}
             fred = {k: v for k, v in fred.items() if v is not None and len(v) > 0}
+            # Normalise nice-name keys from fred_loader to the semantic IDs consumed by legacy engines.
+            _fred_aliases = {
+                "HYOAS": "BAMLH0A0HYM2", "CPI": "CPIAUCSL", "CORECPI": "CPILFESL",
+                "FEDFUNDS": "FEDFUNDS", "DFF": "DFF", "DGS2": "DGS2", "DGS10": "DGS10",
+                "DFII10": "DFII10", "T5YIE": "T5YIE", "T10YIE": "T10YIE",
+                "WALCL": "WALCL", "RRPONTSYD": "RRPONTSYD", "WTREGEN": "WTREGEN",
+            }
+            for _nice, _semantic in _fred_aliases.items():
+                if _nice in fred and _semantic not in fred:
+                    fred[_semantic] = fred[_nice]
             fsrc = f"data.fred_loader v40 · {len(fred)} series" if fred else "data.fred_loader v40 · 0 (blocked here)"
         except Exception as e:
             try:
@@ -319,14 +330,14 @@ def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds
     except Exception:
         pass
     # ---- liquidity read via US Treasury + NY Fed (TGA/RRP/SOFR, no key) ----
-    if allow_live and not skip_slow_context:
+    if allow_live:
         try:
             from engines.treasury_liquidity import analyze_liquidity
             _liq = analyze_liquidity(fred if fred else None)
         except Exception as e:
             _liq = {"ok": False, "error": str(e)}
     else:
-        _liq = {"ok": False, "state": "INITIALIZING" if skip_slow_context else "OFFLINE", "error": "fast core: slow context pending" if skip_slow_context else "offline/test mode"}
+        _liq = {"ok": False, "state": "OFFLINE", "error": "offline/test mode"}
 
     bench = prices.get("us", {}).get(BENCH)
     if bench is None:
@@ -335,7 +346,7 @@ def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds
     feeds = _load_feeds(allow_live=allow_live and not skip_slow_context, fetch_live=fetch_live_feeds)
     live = v40_ok or (len(fred) > 5)
     has_synthetic = any(("synthetic (explicit" in str(v).lower()) or ("test-only" in str(v).lower()) for v in sources.values())
-    overall = "LIVE" if live else ("SYNTHETIC_TEST" if has_synthetic else "NO_DATA")
+    overall = "SYNTHETIC_TEST" if has_synthetic else ("LIVE" if live else "NO_DATA")
     return {"prices": prices, "ohlcv": ohlcv, "bench": bench, "fred": fred, "vix": vix,
             "sources": sources, "bench_source": "v40" if v40_ok else "unavailable", "fred_source": fsrc,
             "overall_source": overall, "markets": markets,

@@ -713,7 +713,20 @@ def collect_institutional_data(desk: Dict[str, Any]) -> Dict[str, Any]:
     active = sum(1 for x in statuses if x.get("state") == "LIVE")
     stale = sum(1 for x in statuses if x.get("state") == "STALE")
     errors = sum(1 for x in statuses if x.get("state") == "ERROR")
-    overall = "LIVE" if active >= 2 else "PARTIAL" if active or stale else "ERROR" if errors else "NOT_ENTITLED"
+    sec_state = str((sec.get("status") or {}).get("state") or "").upper()
+    if events and (active or stale):
+        overall = "LIVE" if active >= 2 else "PARTIAL"
+    elif sec_state in {"LIVE", "STALE", "EMPTY", "NO_SIGNAL"}:
+        # Public filing transport is healthy; an empty event set means no new qualifying filing.
+        overall = "NO_SIGNAL"
+    elif sec_state == "ACTION_REQUIRED":
+        overall = "ACTION_REQUIRED"
+    elif active or stale:
+        overall = "PARTIAL"
+    elif errors:
+        overall = "ERROR"
+    else:
+        overall = "NOT_ENTITLED"
     return {
         "generated": _utc_now(), "overall_state": overall, "watchlist": shortlist,
         "status_counts": {"live": active, "stale": stale, "error": errors, "total": len(statuses)},

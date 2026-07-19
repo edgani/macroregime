@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 HERE = Path(__file__).resolve().parents[1]
 CACHE = HERE / ".cache" / "treasury_liquidity.json"
 CACHE.parent.mkdir(parents=True, exist_ok=True)
-_UA = {"User-Agent": os.getenv("WARROOM_PUBLIC_USER_AGENT", "WarRoomOS/2.3 research contact-required")}
+_UA = {"User-Agent": os.getenv("WARROOM_PUBLIC_USER_AGENT", "WarRoomOS/2.4 research contact-required")}
 _TIMEOUT = max(2, min(8, int(os.getenv("WARROOM_LIQUIDITY_TIMEOUT", "5"))))
 _CACHE_TTL = max(60, int(os.getenv("WARROOM_LIQUIDITY_CACHE_TTL", "900")))
 _STALE_AFTER = max(_CACHE_TTL, int(os.getenv("WARROOM_LIQUIDITY_STALE_AFTER", "86400")))

@@ -1,0 +1,146 @@
+{
+  "status": "PASS",
+  "version": "2.4",
+  "offline_deterministic": true,
+  "stress_enabled": true,
+  "elapsed_seconds": 13.369,
+  "checks": [
+    {
+      "name": "single static iframe shell",
+      "pass": true,
+      "detail": "Streamlit must not remount HTML on refresh"
+    },
+    {
+      "name": "static serving enabled",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "browser polls atomic static snapshot",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "content hash gates redraw",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "section DOM diffing",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "visual motion disabled",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "no generic rerun timer",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "one worker instance lease",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "atomic snapshot writes",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "heartbeat excluded from snapshot hash",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "large child payload avoids queue",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "bounded child restores terminate semantics",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "no-data status derives from records",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "synthetic-disabled is not synthetic-test",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "inactive nodes cannot emit arrows",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "market arrow lineage has no modulo routing",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "dashboard JavaScript syntax",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "stable hash ignores heartbeat/timestamp/order",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "stable hash changes on visible state",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "empty market never labeled live",
+      "pass": true,
+      "detail": "{'provider': 'us', 'dataset': 'market_data', 'state': 'NO_DATA', 'observed': False, 'records': 0, 'fetched_at': '2026-07-19T04:37:24Z', 'stale_after_seconds': 90, 'note': 'per-market fallback \u00b7 NO_DATA (live source unavailable; synthetic disabled)', 'data_semantics': 'MISSING'}"
+    },
+    {
+      "name": "explicit synthetic remains test-only",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "market symbol routing",
+      "pass": true,
+      "detail": "{\"AMD\": \"us\", \"BBCA.JK\": \"idx\", \"DX-Y.NYB\": \"fx\", \"IDR=X\": \"fx\", \"JPY=X\": \"fx\", \"SI=F\": \"commodity\", \"STRK-USD\": \"crypto\", \"TAO-USD\": \"crypto\", \"^JKSE\": \"idx\"}"
+    },
+    {
+      "name": "Streamlit app has no exception",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Streamlit mounts exactly one iframe",
+      "pass": true,
+      "detail": "1"
+    },
+    {
+      "name": "large child payload transport",
+      "pass": true,
+      "detail": "elapsed=0.14s"
+    },
+    {
+      "name": "hard timeout terminates collector",
+      "pass": true,
+      "detail": "elapsed=10.34s children=[]"
+    }
+  ],
+  "error": null,
+  "not_verified_here": [
+    "authenticated provider credentials and paid entitlements",
+    "external endpoint reachability from the user's machine",
+    "exchange/provider schema changes after packaging",
+    "full browser E2E rendering (container Chromium blocks local/file navigation by administrator policy)"
+  ]
+}

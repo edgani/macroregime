@@ -28,13 +28,13 @@ def market_of(ticker, hint=None) -> str:
     if hint and hint in MARKETS:
         return hint
     t = str(ticker or "").upper()
-    if t.endswith(".JK"):
+    if t.endswith(".JK") or t in {"^JKSE", "JKSE"}:
         return "idx"
     if t in _COMMOD or t.startswith(("XAU", "XAG")):
         return "commodity"
-    if t in _FX6 or t.endswith("=X"):
+    if t in _FX6 or t.endswith("=X") or t in {"DX-Y.NYB", "DXY", "UUP"}:
         return "fx"
-    if t in _CRYPTO or "USDT" in t or "USDC" in t or "-PERP" in t:
+    if t in _CRYPTO or t.endswith(("-USD", "-USDT", "-USDC")) or "USDT" in t or "USDC" in t or "-PERP" in t:
         return "crypto"
     return "us"
 

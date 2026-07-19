@@ -177,7 +177,7 @@ def _fetch_via_api(session: requests.Session, nice: str, sid: str, api_key: str)
         "observation_start": "2015-01-01",
     }
     try:
-        resp = session.get(url, params=params, timeout=10)
+        resp = session.get(url, params=params, timeout=max(3, int(os.getenv("WARROOM_FRED_HTTP_TIMEOUT", "6"))))
         if resp.status_code != 200:
             return None
         data = resp.json()
@@ -207,7 +207,7 @@ def _fetch_via_api(session: requests.Session, nice: str, sid: str, api_key: str)
 def _fetch_via_csv(session: requests.Session, nice: str, sid: str) -> Optional[pd.Series]:
     url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={sid}"
     try:
-        resp = session.get(url, timeout=8)
+        resp = session.get(url, timeout=max(3, int(os.getenv("WARROOM_FRED_HTTP_TIMEOUT", "6"))))
         resp.raise_for_status()
         df = pd.read_csv(StringIO(resp.text))
         df.columns = [c.strip() for c in df.columns]
@@ -228,7 +228,7 @@ def _fetch_via_csv(session: requests.Session, nice: str, sid: str) -> Optional[p
 def _fetch_via_dbnomics(session: requests.Session, nice: str, sid: str) -> Optional[pd.Series]:
     url = f"https://api.db.nomics.world/v22/series/FED/{sid}"
     try:
-        resp = session.get(url, timeout=10)
+        resp = session.get(url, timeout=max(3, int(os.getenv("WARROOM_FRED_HTTP_TIMEOUT", "6"))))
         if resp.status_code != 200:
             return None
         data = resp.json()
@@ -348,12 +348,38 @@ def load_fred_bundle(*, force_refresh: bool = False) -> dict:
         logger.error(
             f"FRED v3 fetched 0 series. api_key_present={bool(api_key)}. "
             "Set FRED_API_KEY in Streamlit secrets. "
-            "Fallback to synthetic will be applied by orchestrator."
+            "Production will preserve NO_DATA; no synthetic macro series is substituted."
         )
     else:
         logger.info(f"FRED v3 loaded {len(loaded_keys)}/{len(FRED_SERIES)} series via {sources_used}")
 
     return {"series": out, "meta": meta}
+
+
+def load_fred_subset(keys, *, force_refresh: bool = False) -> Dict[str, pd.Series]:
+    """Load only the macro series required by the fast dashboard plane.
+
+    The full registry remains available to expanded research refreshes. Limiting first-load fan-out
+    prevents a blocked FRED mirror from consuming the entire core hard-timeout.
+    """
+    wanted = [str(k) for k in keys if str(k) in FRED_SERIES]
+    if not LIVE_FETCH_ENABLED or not wanted:
+        return {}
+    api_key = _get_fred_api_key()
+    session = _session()
+    out: Dict[str, pd.Series] = {}
+    max_workers = min(6, max(1, len(wanted)))
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = {executor.submit(_fetch_one_cascading, nice, FRED_SERIES[nice], session, api_key): nice for nice in wanted}
+        for fut in as_completed(futures):
+            nice = futures[fut]
+            try:
+                _, series, _ = fut.result()
+                if series is not None and not series.empty:
+                    out[nice] = series
+            except Exception:
+                continue
+    return out
 
 
 @st.cache_data(ttl=FRED_CACHE_TTL_SECONDS, show_spinner=False) if _ST_AVAILABLE else (lambda f: f)

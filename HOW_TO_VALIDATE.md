@@ -1,3 +1,5 @@
+> **SUPERSEDED BY v2.4 AUDIT:** This historical report contains earlier validation language that is no longer used for production status. `metric_grades.json` and `DEEP_REAUDIT_V24.md` are authoritative. No metric is a proven autonomous trade signal without the remaining point-in-time, global multiple-testing, and prospective gates.
+
 # War Room OS — validation & research, how to run it yourself
 
 Everything that produces a number is reproducible. Nothing is taken on faith.

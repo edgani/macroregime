@@ -86,20 +86,29 @@ def _load_reference_data():
 def _data_health(data):
     now = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
     rows = []
+    price_markets = data.get("prices") or {}
     for name, raw in (data.get("sources") or {}).items():
         text = str(raw)
         low = text.lower()
-        state = "LIVE" if any(x in low for x in (" live", "live ", "typef", "macro proxies")) else (
-            "SYNTHETIC_TEST" if "synthetic" in low else "NO_DATA")
+        records = len((price_markets.get(name) or {})) if isinstance(price_markets, dict) else 0
+        if (("synthetic" in low and "disabled" not in low) or "test-only" in low):
+            state = "SYNTHETIC_TEST"
+        elif records > 0:
+            state = "LIVE"
+        elif "offline" in low or ("disabled" in low and "synthetic disabled" not in low):
+            state = "OFFLINE"
+        else:
+            state = "NO_DATA"
         rows.append({
             "provider": name,
             "dataset": "market_data",
             "state": state,
             "observed": state == "LIVE",
+            "records": records,
             "fetched_at": now,
             "stale_after_seconds": 90,
             "note": text,
-            "data_semantics": "OBSERVED_PRICE_OR_VOLUME" if state == "LIVE" else "MISSING_OR_TEST_ONLY",
+            "data_semantics": "OBSERVED_PRICE_OR_VOLUME" if state == "LIVE" else ("TEST_ONLY" if state == "SYNTHETIC_TEST" else "MISSING"),
         })
     fred = str(data.get("fred_source") or "unavailable")
     fred_live = bool(data.get("fred"))
@@ -117,7 +126,14 @@ def _data_health(data):
     for name, raw in feed_status.items():
         text = str(raw)
         low = text.lower()
-        state = "LIVE" if ("live" in low or "snapshot" in low) and "failed" not in low and "absent" not in low else "NO_DATA"
+        if any(x in low for x in ("offline", "disabled")):
+            state = "OFFLINE"
+        elif any(x in low for x in ("failed", "absent", "unavailable", "no_data")):
+            state = "NO_DATA"
+        elif "live" in low or "snapshot" in low:
+            state = "LIVE"
+        else:
+            state = "NO_DATA"
         rows.append({
             "provider": name,
             "dataset": "specialized",
@@ -290,6 +306,122 @@ def _driver_series(data):
         if px.get(k) is not None: out["DXY"] = px[k]; break
     return out
 
+
+def _quick_pct_change(series, periods):
+    try:
+        import pandas as pd
+        x = pd.to_numeric(pd.Series(series), errors="coerce").dropna().sort_index()
+        if len(x) <= periods or float(x.iloc[-periods-1]) == 0:
+            return None
+        return (float(x.iloc[-1]) / float(x.iloc[-periods-1]) - 1.0) * 100.0
+    except Exception:
+        return None
+
+
+def build_fast_desk(data, top_per_market=12):
+    """Latency-bounded first paint built from observed prices/macro only.
+
+    The full GCFIS research pipeline runs later in the expanded worker plane. This function avoids
+    blocking the initial dashboard on heavy model fitting while preserving honest NO_DATA/NO_SIGNAL
+    semantics and the same JSON contract consumed by the UI.
+    """
+    prices = data.get("prices") or {}
+    union = {t: v for m in (data.get("markets") or []) for t, v in (prices.get(m) or {}).items()}
+    if not union:
+        return _empty_desk(data)
+
+    breadth = _market_breadth(data)
+    rotation = _rotation_snapshot(data)
+    macro = _macro_observations(data)
+    fred = data.get("fred") or {}
+
+    # Direction is rate-of-change context, not a calibrated forecast.
+    growth_parts = [x for x in (_quick_pct_change(fred.get("INDPRO"), 12),
+                                _quick_pct_change(fred.get("RSAFS"), 12),
+                                _quick_pct_change(fred.get("PAYEMS"), 12)) if x is not None]
+    growth_level = sum(growth_parts) / len(growth_parts) if growth_parts else None
+    cpi_source = fred.get("CPI") if fred.get("CPI") is not None else fred.get("CPIAUCSL")
+    cpi_yoy = _quick_pct_change(cpi_source, 12)
+    cpi_prev = None
+    try:
+        import pandas as pd
+        cpi = pd.to_numeric(pd.Series(cpi_source), errors="coerce").dropna().sort_index()
+        if len(cpi) > 15 and float(cpi.iloc[-16]) != 0:
+            cpi_prev = (float(cpi.iloc[-4]) / float(cpi.iloc[-16]) - 1.0) * 100.0
+    except Exception:
+        pass
+    inflation_roc = cpi_yoy - cpi_prev if cpi_yoy is not None and cpi_prev is not None else None
+    growth_roc = growth_level
+    if growth_roc is None or inflation_roc is None:
+        quad, quad_name = None, "PARTIAL_MACRO"
+    elif growth_roc >= 0 and inflation_roc < 0:
+        quad, quad_name = 1, "Goldilocks"
+    elif growth_roc >= 0 and inflation_roc >= 0:
+        quad, quad_name = 2, "Reflation"
+    elif growth_roc < 0 and inflation_roc >= 0:
+        quad, quad_name = 3, "Stagflation"
+    else:
+        quad, quad_name = 4, "Deflation"
+
+    liq = data.get("treasury_liquidity") or {}
+    liq_value = liq.get("bias") if liq.get("ok") else liq.get("state") or "NO_DATA"
+    markets = {}
+    all_setups = []
+    for market in data.get("markets") or []:
+        cfg = MARKETS.get(market, {"label": market, "long_only": False, "drivers": []})
+        frames = (data.get("ohlcv") or {}).get(market) or {}
+        setups = []
+        if frames:
+            try:
+                from price_setups import price_signal_setups
+                setups = price_signal_setups(frames, top=top_per_market) or []
+            except Exception:
+                setups = []
+        b = breadth.get(market) or {}
+        adv, above = b.get("advance_pct"), b.get("above_50d_pct")
+        if adv is None and above is None:
+            bias = "NO_DATA"
+        elif (adv or 0) >= 55 and (above is None or above >= 50):
+            bias = "LEAN_LONG"
+        elif (adv or 100) <= 45 and (above is None or above < 50):
+            bias = "WAIT" if cfg.get("long_only") else "LEAN_SHORT"
+        else:
+            bias = "NEUTRAL"
+        markets[market] = {
+            "label": cfg.get("label", market), "long_only": bool(cfg.get("long_only")),
+            "drivers": cfg.get("drivers", []), "bias": bias,
+            "data_state": b.get("state") or ("LIVE" if prices.get(market) else "NO_DATA"),
+            "funnel": {"universe": len(prices.get(market) or {}), "eliminated": 0, "setups": len(setups)},
+            "setups": setups,
+        }
+        all_setups.extend(({**row, "market": market} for row in setups))
+
+    ranked_rotation = rotation.get("rows") or []
+    systemic = {
+        "quad": quad, "quad_name": quad_name, "growth_roc": _num(growth_roc),
+        "infl_roc": _num(inflation_roc), "inflation_yoy": _num(cpi_yoy),
+        "liquidity": liq_value, "liquidity_detail": liq,
+        "fragility": "RESEARCH_PENDING", "shock_prob": "RESEARCH_PENDING",
+        "cross_asset": rotation.get("state") or "NO_DATA", "defer_longs": None,
+        "rotation_in": [r.get("ticker") for r in ranked_rotation[:3] if r.get("ticker")],
+        "rotation_out": [r.get("ticker") for r in ranked_rotation[-3:] if r.get("ticker")],
+        "semantics": "FAST_CONTEXT_ONLY; expanded research plane replaces this when available.",
+    }
+    now = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+    return {
+        "meta": {"generated": now, "source": data.get("overall_source", "NO_DATA"),
+                 "sources": data.get("sources", {}), "fred_source": data.get("fred_source", "NO_DATA"),
+                 "universe_n": len(union), "note": "Latency-bounded observed-data first paint.",
+                 "feeds_status": (data.get("feeds") or {}).get("_status", {})},
+        "systemic": systemic, "regime_tf": {"state": "FAST_CONTEXT", "quad": quad},
+        "regional": {}, "grades": _load_grades(), "markets": markets, "alpha": [],
+        "desk_picks": {"fast_context": sorted(all_setups, key=lambda r: float(r.get("conv") or 0), reverse=True)[:20]},
+        "feeds": {}, "macro_observations": macro, "market_breadth": breadth,
+        "rotation_snapshot": rotation, "data_health": _data_health(data),
+        "reference": _load_reference_data(),
+        "institutional": {"overall_state": "NOT_LOADED", "statuses": [], "events": [],
+                          "options_flow": [], "dark_pool": [], "sec_filings": [], "smart_money": [], "arkham_transfers": []},
+    }
 
 def build_desk(data, top_per_market=12):
     import pandas as _pd

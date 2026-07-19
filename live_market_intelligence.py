@@ -1773,7 +1773,22 @@ def collect_live_market_intelligence(desk: Dict[str, Any], institutional: Option
     stale = sum(1 for s in statuses if s.get("state") == "STALE")
     errors = sum(1 for s in statuses if s.get("state") == "ERROR")
     configured_or_public = sum(1 for s in statuses if s.get("state") not in {"NOT_CONFIGURED"})
-    overall = "LIVE" if active >= 6 else "PARTIAL" if active or stale else "ERROR" if errors else "NOT_CONFIGURED"
+    domain_records = {
+        "crypto_perps": sum(1 for x in crypto_aggregates if x.get("state") not in {"NO_DATA", "ERROR"}),
+        "crypto_options": sum(1 for x in crypto_option_summaries if x.get("state") not in {"NO_DATA", "ERROR"}),
+        "us_options": sum(1 for x in option_summaries if x.get("state") not in {"NO_DATA", "ERROR"}),
+    }
+    live_domains = sum(1 for n in domain_records.values() if n > 0)
+    if live_domains >= 2:
+        overall = "LIVE"
+    elif live_domains == 1:
+        overall = "PARTIAL"
+    elif stale:
+        overall = "STALE"
+    elif errors:
+        overall = "ERROR"
+    else:
+        overall = "NO_DATA"
 
     coverage = {
         "public_crypto_derivatives": {"assets": crypto_assets, "venues": ["Binance", "Bybit", "OKX"], "configured": True},
@@ -1786,7 +1801,7 @@ def collect_live_market_intelligence(desk: Dict[str, Any], institutional: Option
     }
     return {
         "generated": _utc_now(), "overall_state": overall,
-        "status_counts": {"live": active, "stale": stale, "error": errors, "total_non_optional": configured_or_public, "total": len(statuses)},
+        "status_counts": {"live": active, "stale": stale, "error": errors, "live_domains": live_domains, "domain_records": domain_records, "total_non_optional": configured_or_public, "total": len(statuses)},
         "coverage": coverage, "statuses": statuses,
         "crypto_derivatives_raw": crypto_rows, "crypto_derivatives": crypto_aggregates,
         "crypto_options": crypto_option_summaries,

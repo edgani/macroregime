@@ -140,7 +140,7 @@ def _download_chunk(tickers: list[str], days: int) -> dict[str, pd.DataFrame]:
     missing = [ticker for ticker in tickers if ticker not in out]
     # A large unresolved universe used to trigger dozens of serial retries and stall Streamlit.
     # Retry a bounded number; the remaining symbols are reported missing and retried next cycle.
-    retry_cap = max(0, int(os.getenv("WARROOM_YF_RETRY_CAP", "6")))
+    retry_cap = max(0, int(os.getenv("WARROOM_YF_RETRY_CAP", "2")))
     for ticker in missing[:retry_cap]:
         try:
             raw = yf.download(

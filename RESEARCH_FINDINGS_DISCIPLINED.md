@@ -31,5 +31,5 @@ reason your "forward test" instinct was right all along.
 ## What this means for the product
 - Ship the survivors (skew, reversal, illiquidity) as **candidate** short-horizon signals, flagged "pending forward."
 - Do NOT ship momentum or low-vol as validated — they're fragile / regime-dependent here.
-- The real durable edge remains the **structural** one you already have: IHSG bandar/foreign-flow (mechanism-based, validated IC 0.173), not a price-derived factor.
+- The structural IHSG broker/foreign-flow hypothesis remains economically plausible, but the reported IC 0.173 came from an OHLCV proxy on a historical US sample. It is **not** validated as an IHSG bandar signal; licensed point-in-time IDX data and frozen OOS/prospective testing are still required.
 - There is no secret hidden metric in price/volume that the discipline didn't already surface. The edge is structure + execution + risk, not a magic combination.

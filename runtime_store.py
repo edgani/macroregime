@@ -189,10 +189,22 @@ def pid_alive(pid: int) -> bool:
         return False
 
 
-def worker_alive() -> bool:
+def worker_alive(max_heartbeat_age: float = 180.0) -> bool:
+    """Return true only for a live PID with a recent collector heartbeat.
+
+    An embedded collector shares the Streamlit PID. PID-only checks therefore reported a dead
+    collector thread as alive forever. Status freshness closes that failure mode.
+    """
     try:
-        return PID.exists() and pid_alive(int(PID.read_text(encoding="utf-8").strip()))
-    except (OSError, ValueError):
+        if not PID.exists() or not pid_alive(int(PID.read_text(encoding="utf-8").strip())):
+            return False
+        status = read_json(STATUS, include_age=True) or {}
+        state = str(status.get("state") or "").upper()
+        if state in {"WORKER_FATAL", "START_ERROR", "STOPPED"}:
+            return False
+        age = float(status.get("_file_age_seconds") or 0.0)
+        return age <= max_heartbeat_age
+    except (OSError, ValueError, TypeError):
         return False
 
 

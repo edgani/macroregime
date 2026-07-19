@@ -1,17 +1,18 @@
-# War Room OS — Hosted Live Architecture v2.6
+# War Room OS — Deterministic Hosted Live Architecture v2.7
 
-The v2.6 deployment fixes the permanent `INITIALIZING` failure in v2.5 and hardens cold-start behavior.
+v2.7 removes the permanent `INITIALIZING · R1` failure by making the first market snapshot a
+pre-render requirement instead of delegating it to an unverified detached process.
 
 Core architecture:
 
-- one embedded dashboard document;
-- one leased background collector process by default;
-- embedded-thread fallback when detached processes cannot start;
-- atomic JSON snapshots;
-- a fast price-first initial plane;
-- expanded macro, derivatives, institutional, and enrichment planes after the first usable snapshot;
-- explicit `LIVE / PARTIAL / STALE / NO_DATA / DEGRADED / NOT_ENTITLED` semantics;
+- bounded inline market bootstrap before first paint;
+- committed snapshot injected into the iframe on first render;
+- one embedded background collector on managed hosting;
+- independent market, macro/liquidity, event/derivatives, slow-enrichment, and expanded planes;
+- atomic snapshot, price, FRED, and liquidity caches;
+- multi-provider public price fallback;
+- explicit `LIVE / PARTIAL / STALE / NO_SIGNAL / NO_DATA / ACTION_REQUIRED / NOT_ENTITLED` states;
 - no synthetic production fallback.
 
 Deploy with `app.py` at repository root. Read `DEPLOY_NOW.md` and
-`V26_INITIALIZING_ROOT_CAUSE.md` first.
+`V27_DEEP_STARTUP_REAUDIT.md` first.

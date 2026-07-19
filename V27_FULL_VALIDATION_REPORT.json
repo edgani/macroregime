@@ -1,0 +1,180 @@
+{
+  "version": "2.7",
+  "status": "PASS",
+  "elapsed_seconds": 32.228,
+  "passed": 33,
+  "total": 33,
+  "checks": [
+    {
+      "name": "hosted default is embedded collector",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "inline bootstrap precedes worker and iframe",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "inline bootstrap guarantees terminal R2",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "worker uses staged market bootstrap",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "no fork from executor thread",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "context plane starts independently",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "prior R1/empty snapshot is not valid core",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "public price fallback is multi-provider",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "FX aliases corrected",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "price cache writes atomically",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "FRED cache has pickle fallback",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "liquidity cache writes unique atomic temp",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "worker heartbeat is not PID-only",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "dashboard polls static snapshot without iframe remount",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "dashboard version is v2.7",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "all Python files compile",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "dashboard JavaScript parses",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "direct hosted bootstrap commits R2",
+      "passed": true,
+      "detail": "{'ok': True, 'revision': 2, 'observations': 28, 'health': 'PARTIAL', 'snapshot': None}"
+    },
+    {
+      "name": "direct hosted bootstrap fills every core market",
+      "passed": true,
+      "detail": "{\"us\": 6, \"idx\": 4, \"crypto\": 6, \"commodity\": 6, \"fx\": 6}"
+    },
+    {
+      "name": "direct hosted bootstrap is bounded",
+      "passed": true,
+      "detail": "elapsed=1.907s"
+    },
+    {
+      "name": "background context loads macro observations",
+      "passed": true,
+      "detail": "19"
+    },
+    {
+      "name": "background context loads liquidity",
+      "passed": true,
+      "detail": "{'quad': 2, 'quad_name': 'Reflation', 'growth_roc': 1.064, 'infl_roc': 0.378, 'inflation_yoy': 1.642, 'liquidity': 'IMPROVING', 'liquidity_detail': {'ok': True, 'state': 'LIVE', 'coverage': 3, 'bias': 'IMPROVING', 'signals': ['fixture'], 'generated': '2026-07-20T00:00:00Z', '_age_seconds': 10.061893701553345, 'cache': 'fresh'}, 'fragility': 'RESEARCH_PENDING', 'shock_prob': 'RESEARCH_PENDING', 'cross_asset': 'LIVE', 'defer_longs': None, 'rotation_in': ['QQQ', 'DBC', 'UUP'], 'rotation_out': ['EEM', 'GLD', 'EIDO'], 'semantics': 'FAST_CONTEXT_ONLY; expanded research plane replaces this when available.'}"
+    },
+    {
+      "name": "background context remains bounded from cache",
+      "passed": true,
+      "detail": "elapsed=11.014s"
+    },
+    {
+      "name": "offline bootstrap exits INITIALIZING",
+      "passed": true,
+      "detail": "{'ok': False, 'revision': 2, 'observations': 0, 'health': 'NO_DATA', 'snapshot': None}"
+    },
+    {
+      "name": "offline bootstrap commits explicit R2",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "Streamlit shell mounts one dashboard",
+      "passed": true,
+      "detail": "{\"iframes\": 1, \"errors\": 0}"
+    },
+    {
+      "name": "spawn transports large plane without queue deadlock",
+      "passed": true,
+      "detail": "elapsed=1.396s"
+    },
+    {
+      "name": "hard timeout kills child",
+      "passed": true,
+      "detail": "elapsed=3.215s"
+    },
+    {
+      "name": "no orphan collector children",
+      "passed": true,
+      "detail": "[]"
+    },
+    {
+      "name": "heartbeat/timestamps do not trigger redraw",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "meaningful state changes revision hash",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "arrow lineage audit passes",
+      "passed": true,
+      "detail": "PASS no modulo candidate routing\nPASS no generic cartesian graph calls outside curated supply chain\nPASS mission candidate uses market parent\nPASS market/setup direction gate present\nPASS provider/ticker event lineage present\nPASS state-colored arrowheads present\nPASS edge relation tooltip present\nPASS NO_DATA edge blocking present\n"
+    },
+    {
+      "name": "live stack fixture audit passes",
+      "passed": true,
+      "detail": "{\n  \"status\": \"PASS\",\n  \"offline_scope\": [\n    \"options analytics\",\n    \"streamed Greek-flow integration\",\n    \"sector options rotation\",\n    \"crypto pressure context\",\n    \"full tab-coverage hub\",\n    \"provider payload parsers\",\n    \"liquidation zones\",\n    \"stale last-good failover\",\n    \"Python compile\",\n    \"dashboard JS syntax\"\n  ],\n  \"not_verified_without_credentials_or_network\": [\n    \"provider authentication\",\n    \"entitlements\",\n    \"exchange reachability\",\n    \"live payload schema changes\"\n  ],\n  \"sample\": {\n    \"options_context\": \"UPSIDE_CONTEXT\",\n    \"integrated_context\": \"UPSIDE_PRESSURE_CONTEXT\",\n    \"evidence_completeness_pct\": 85.7,\n    \"gamma_context\": \"DAMPENING_PROXY\",\n    \"crypto_short_squeeze_pressure\": 44.0,\n    \"tab_coverage_count\": 14\n  }\n}\n"
+    }
+  ],
+  "error": null,
+  "not_verified_here": [
+    "authenticated paid-provider responses without the user's API keys and entitlements",
+    "public internet reachability from the user's Streamlit hosting account",
+    "exchange/provider schema changes after packaging"
+  ]
+}

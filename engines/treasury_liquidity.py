@@ -50,9 +50,9 @@ def _read_cache() -> Optional[dict]:
 
 def _write_cache(obj: dict) -> None:
     try:
-        tmp = CACHE.with_suffix(".tmp")
+        tmp = CACHE.with_name(f"{CACHE.name}.{os.getpid()}.tmp")
         tmp.write_text(json.dumps(obj, default=str, separators=(",", ":")), encoding="utf-8")
-        tmp.replace(CACHE)
+        os.replace(tmp, CACHE)
     except Exception:
         pass
 

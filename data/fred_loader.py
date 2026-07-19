@@ -130,31 +130,55 @@ CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _cache_load(nice: str, max_age_h: float = 24) -> Optional[pd.Series]:
-    fp = CACHE_DIR / f"{nice}.parquet"
-    if not fp.exists():
+    """Load a real cached series from parquet or the dependency-light pickle fallback."""
+    candidates = [CACHE_DIR / f"{nice}.parquet", CACHE_DIR / f"{nice}.pkl"]
+    existing = [fp for fp in candidates if fp.exists()]
+    if not existing:
         return None
-    try:
-        age_h = (time.time() - fp.stat().st_mtime) / 3600
-        if age_h > max_age_h:
-            return None
-        df = pd.read_parquet(fp)
-        if df.empty or "value" not in df.columns:
-            return None
-        s = pd.Series(df["value"].values, index=pd.to_datetime(df.index), name=nice).dropna()
-        return s if len(s) > 0 else None
-    except Exception:
-        return None
+    # Prefer the newest valid representation. This also survives pyarrow import failures on hosts.
+    for fp in sorted(existing, key=lambda x: x.stat().st_mtime, reverse=True):
+        try:
+            age_h = (time.time() - fp.stat().st_mtime) / 3600
+            if age_h > max_age_h:
+                continue
+            df = pd.read_parquet(fp) if fp.suffix == ".parquet" else pd.read_pickle(fp)
+            if df.empty or "value" not in df.columns:
+                continue
+            series = pd.Series(df["value"].values, index=pd.to_datetime(df.index), name=nice).dropna()
+            if len(series) > 0:
+                return series
+        except Exception:
+            continue
+    return None
 
 
 def _cache_save(nice: str, s: pd.Series):
     if s is None or s.empty:
         return
+    df = pd.DataFrame({"value": s.values}, index=s.index)
+    parquet = CACHE_DIR / f"{nice}.parquet"
     try:
-        fp = CACHE_DIR / f"{nice}.parquet"
-        df = pd.DataFrame({"value": s.values}, index=s.index)
-        df.to_parquet(fp, compression="zstd")
+        tmp = parquet.with_name(f"{parquet.name}.{os.getpid()}.tmp")
+        df.to_parquet(tmp, compression="zstd")
+        os.replace(tmp, parquet)
+        return
+    except Exception as e:
+        logger.debug(f"FRED parquet cache failed for {nice}: {e}; using pickle fallback")
+        try:
+            tmp.unlink()
+        except Exception:
+            pass
+    fallback = CACHE_DIR / f"{nice}.pkl"
+    try:
+        tmp = fallback.with_name(f"{fallback.name}.{os.getpid()}.tmp")
+        df.to_pickle(tmp)
+        os.replace(tmp, fallback)
     except Exception as e:
         logger.debug(f"FRED cache save failed for {nice}: {e}")
+        try:
+            tmp.unlink()
+        except Exception:
+            pass
 
 
 # ── Session ───────────────────────────────────────────────────────────────

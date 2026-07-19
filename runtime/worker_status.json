@@ -1,1 +1,1 @@
-{"state":"STARTING","pending":[],"snapshot_revision":1,"last_success":null,"error":null,"updated_at":"\u2014","architecture":"background-worker/static-json-polling"}
+{"state":"STARTING","architecture":"inline-bootstrap/embedded-worker/static-json-polling","updated_at":"\u2014","pending":[]}

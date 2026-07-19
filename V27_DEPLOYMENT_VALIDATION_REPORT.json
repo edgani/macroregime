@@ -1,0 +1,16 @@
+{
+  "version": "2.7",
+  "status": "PASS",
+  "checks": [
+    {
+      "name": "Streamlit shell mounts one dashboard",
+      "passed": true,
+      "detail": "{\"iframes\": 1, \"errors\": 0}"
+    },
+    {
+      "name": "fresh app startup commits market R2 before iframe",
+      "passed": true,
+      "detail": "{\"iframes\": 1, \"errors\": 0, \"revision\": 2, \"health\": \"PARTIAL\", \"counts\": {\"us\": 6, \"idx\": 4, \"crypto\": 6, \"commodity\": 6, \"fx\": 6}, \"seeded_first_paint\": true}"
+    }
+  ]
+}

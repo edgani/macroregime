@@ -13,6 +13,7 @@ from pathlib import Path
 from threading import Lock
 from typing import Dict, Iterable, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import io
 import os
 import pickle
 import time
@@ -46,38 +47,12 @@ _DISK_CACHE: dict[str, tuple[float, pd.DataFrame]] | None = None
 _HTTP_TIMEOUT = max(2, int(os.getenv("WARROOM_PRICE_HTTP_TIMEOUT", "5")))
 _HTTP_WORKERS = max(4, int(os.getenv("WARROOM_PRICE_HTTP_WORKERS", "16")))
 _HTTP_HEADERS = {
-    "User-Agent": os.getenv("WARROOM_PUBLIC_USER_AGENT", "Mozilla/5.0 WarRoomOS/2.6"),
+    "User-Agent": os.getenv("WARROOM_PUBLIC_USER_AGENT", "Mozilla/5.0 WarRoomOS/2.7"),
     "Accept": "application/json,text/plain,*/*",
 }
 
 
-def _download_symbol_http(provider: str, days: int) -> pd.DataFrame | None:
-    """Fetch one Yahoo chart with explicit connect/read timeouts.
-
-    yfinance can wait indefinitely inside cookie/crumb handling on managed hosts. The chart endpoint
-    is simpler and lets the first War Room snapshot finish deterministically even when a provider
-    is blocked or rate-limited.
-    """
-    period2 = int(time.time()) + 86400
-    period1 = period2 - max(120, int(days) + 30) * 86400
-    params = {
-        "period1": period1, "period2": period2, "interval": "1d",
-        "events": "history", "includeAdjustedClose": "true",
-    }
-    payload = None
-    hosts = ["query1.finance.yahoo.com"]
-    if os.getenv("WARROOM_YAHOO_SECONDARY", "0").strip().lower() in {"1", "true", "yes"}:
-        hosts.append("query2.finance.yahoo.com")
-    for host in hosts:
-        url = f"https://{host}/v8/finance/chart/{provider}"
-        try:
-            response = requests.get(url, params=params, headers=_HTTP_HEADERS, timeout=(3, _HTTP_TIMEOUT))
-            if response.status_code != 200:
-                continue
-            payload = response.json()
-            break
-        except Exception:
-            continue
+def _frame_from_yahoo_payload(payload: dict) -> pd.DataFrame | None:
     try:
         result = ((payload or {}).get("chart") or {}).get("result") or []
         if not result:
@@ -103,6 +78,137 @@ def _download_symbol_http(provider: str, days: int) -> pd.DataFrame | None:
         return _normalize_frame(frame)
     except Exception:
         return None
+
+
+def _stooq_symbol(provider: str) -> str | None:
+    p = str(provider or "").upper()
+    if p.endswith("-USD"):
+        return None
+    if p.endswith(".JK"):
+        # Stooq coverage for Indonesia is incomplete but this is a harmless fallback.
+        return p[:-3].lower() + ".id"
+    if p == "^JKSE":
+        return "^jkse"
+    commodity = {
+        "CL=F": "cl.f", "BZ=F": "co.f", "GC=F": "gc.f",
+        "SI=F": "si.f", "HG=F": "hg.f", "NG=F": "ng.f",
+        "DX-Y.NYB": "dx.f",
+    }
+    if p in commodity:
+        return commodity[p]
+    fx = {
+        "EURUSD=X": "eurusd", "JPY=X": "usdjpy", "GBPUSD=X": "gbpusd",
+        "AUDUSD=X": "audusd", "IDR=X": "usdidr",
+    }
+    if p in fx:
+        return fx[p]
+    if p.startswith("^") or any(ch in p for ch in "=/-"):
+        return None
+    return p.lower() + ".us"
+
+
+def _download_stooq(provider: str) -> pd.DataFrame | None:
+    symbol = _stooq_symbol(provider)
+    if not symbol:
+        return None
+    try:
+        url = "https://stooq.com/q/d/l/"
+        response = requests.get(
+            url, params={"s": symbol, "i": "d"}, headers=_HTTP_HEADERS,
+            timeout=(2, max(3, _HTTP_TIMEOUT)),
+        )
+        if response.status_code != 200 or len(response.content) < 64:
+            return None
+        frame = pd.read_csv(io.BytesIO(response.content))
+        if "Date" not in frame.columns:
+            return None
+        frame["Date"] = pd.to_datetime(frame["Date"], errors="coerce")
+        frame = frame.dropna(subset=["Date"]).set_index("Date")
+        if "Volume" not in frame.columns:
+            frame["Volume"] = 0.0
+        return _normalize_frame(frame)
+    except Exception:
+        return None
+
+
+def _download_crypto_public(provider: str, days: int) -> pd.DataFrame | None:
+    if not str(provider).upper().endswith("-USD"):
+        return None
+    base = str(provider).upper()[:-4]
+    limit = min(1000, max(120, int(days)))
+    # Binance is fast when available; OKX is an independent no-key fallback.
+    try:
+        response = requests.get(
+            "https://api.binance.com/api/v3/klines",
+            params={"symbol": f"{base}USDT", "interval": "1d", "limit": limit},
+            headers=_HTTP_HEADERS, timeout=(2, max(3, _HTTP_TIMEOUT)),
+        )
+        if response.status_code == 200:
+            rows = response.json()
+            if isinstance(rows, list) and len(rows) >= 50:
+                frame = pd.DataFrame(rows, columns=[
+                    "ts", "Open", "High", "Low", "Close", "Volume", "close_ts",
+                    "quote_volume", "trades", "taker_base", "taker_quote", "ignore",
+                ])
+                frame.index = pd.to_datetime(frame.pop("ts"), unit="ms", utc=True).tz_convert(None)
+                return _normalize_frame(frame[["Open", "High", "Low", "Close", "Volume"]])
+    except Exception:
+        pass
+    try:
+        response = requests.get(
+            "https://www.okx.com/api/v5/market/history-candles",
+            params={"instId": f"{base}-USDT", "bar": "1D", "limit": min(300, limit)},
+            headers=_HTTP_HEADERS, timeout=(2, max(3, _HTTP_TIMEOUT)),
+        )
+        if response.status_code == 200:
+            rows = (response.json() or {}).get("data") or []
+            if isinstance(rows, list) and len(rows) >= 50:
+                frame = pd.DataFrame(rows, columns=[
+                    "ts", "Open", "High", "Low", "Close", "Volume", "volCcy", "volQuote", "confirm",
+                ])
+                frame.index = pd.to_datetime(frame.pop("ts"), unit="ms", utc=True).tz_convert(None)
+                frame = frame.sort_index()
+                return _normalize_frame(frame[["Open", "High", "Low", "Close", "Volume"]])
+    except Exception:
+        pass
+    return None
+
+
+def _download_symbol_http(provider: str, days: int) -> pd.DataFrame | None:
+    """Fetch one daily history from independent public endpoints with bounded timeouts.
+
+    Provider order is asset-aware. Crypto uses exchange-native public APIs first. Other assets use
+    Yahoo chart hosts and then Stooq as an independent fallback. Missing data stays missing.
+    """
+    provider = str(provider or "").strip()
+    bootstrap = os.getenv("WARROOM_BOOTSTRAP_CORE", "0").strip().lower() in {"1", "true", "yes"}
+    if provider.upper().endswith("-USD"):
+        crypto = _download_crypto_public(provider, days)
+        if crypto is not None:
+            return crypto
+        if bootstrap:
+            return None
+
+    period2 = int(time.time()) + 86400
+    period1 = period2 - max(120, int(days) + 30) * 86400
+    params = {
+        "period1": period1, "period2": period2, "interval": "1d",
+        "events": "history", "includeAdjustedClose": "true",
+    }
+    yahoo_hosts = ("query1.finance.yahoo.com",) if bootstrap else ("query1.finance.yahoo.com", "query2.finance.yahoo.com")
+    for host in yahoo_hosts:
+        try:
+            response = requests.get(
+                f"https://{host}/v8/finance/chart/{provider}", params=params,
+                headers=_HTTP_HEADERS, timeout=(2, max(3, _HTTP_TIMEOUT)),
+            )
+            if response.status_code == 200:
+                frame = _frame_from_yahoo_payload(response.json())
+                if frame is not None:
+                    return frame
+        except Exception:
+            continue
+    return _download_stooq(provider)
 
 
 def _download_many_http(providers: list[str], days: int) -> dict[str, pd.DataFrame]:
@@ -261,11 +367,21 @@ def _load_disk_cache() -> dict[str, tuple[float, pd.DataFrame]]:
 
 def _save_disk_cache(cache: dict[str, tuple[float, pd.DataFrame]]) -> None:
     try:
-        tmp = _CACHE_PATH.with_suffix('.tmp')
-        tmp.write_bytes(pickle.dumps(cache, protocol=pickle.HIGHEST_PROTOCOL))
-        tmp.replace(_CACHE_PATH)
+        tmp = _CACHE_PATH.with_name(f"{_CACHE_PATH.name}.{os.getpid()}.tmp")
+        payload = pickle.dumps(cache, protocol=pickle.HIGHEST_PROTOCOL)
+        with open(tmp, "wb") as handle:
+            handle.write(payload)
+            handle.flush()
+            try:
+                os.fsync(handle.fileno())
+            except OSError:
+                pass
+        os.replace(tmp, _CACHE_PATH)
     except Exception:
-        pass
+        try:
+            tmp.unlink()
+        except Exception:
+            pass
 
 
 def load_bundle(tickers: Iterable[str], days: int = 756, progress_cb=None) -> dict[str, pd.DataFrame]:

@@ -1,4 +1,4 @@
-"""Stable background collector for War Room OS v2.6.
+"""Stable staged collector for War Room OS v2.7.
 
 Design goals:
 - one worker process only;
@@ -22,6 +22,7 @@ import signal
 import sys
 import tempfile
 import time
+import threading
 import logging
 from logging.handlers import RotatingFileHandler
 
@@ -39,11 +40,14 @@ from runtime_store import (
 )
 
 STOP = False
+_ACTIVE_CHILDREN: dict[int, mp.Process] = {}
+_ACTIVE_CHILDREN_LOCK = threading.Lock()
 MARKETS = ["us", "idx", "crypto", "commodity", "fx"]
 CORE_SECONDS = max(60, int(os.getenv("WARROOM_CORE_REFRESH_SECONDS", "300")))
 EVENT_SECONDS = max(15, int(os.getenv("WARROOM_EVENT_REFRESH_SECONDS", "45")))
 SLOW_SECONDS = max(300, int(os.getenv("WARROOM_SLOW_REFRESH_SECONDS", "1800")))
 EXPANDED_SECONDS = max(SLOW_SECONDS, int(os.getenv("WARROOM_EXPANDED_REFRESH_SECONDS", "3600")))
+CONTEXT_SECONDS = max(300, int(os.getenv("WARROOM_CONTEXT_REFRESH_SECONDS", "900")))
 
 LOG_PATH = HERE / "runtime" / "worker.log"
 LOG_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -55,12 +59,31 @@ if not LOGGER.handlers:
     LOGGER.addHandler(handler)
 
 
+def _terminate_child(process: mp.Process, grace: float = 1.0) -> None:
+    try:
+        if not process.is_alive():
+            return
+        process.terminate()
+        process.join(grace)
+        if process.is_alive():
+            try:
+                process.kill()
+            except AttributeError:
+                if process.pid:
+                    os.kill(process.pid, signal.SIGKILL)
+            process.join(grace)
+    except Exception:
+        pass
+
+
 def _stop(*_):
     global STOP
     STOP = True
+    with _ACTIVE_CHILDREN_LOCK:
+        children = list(_ACTIVE_CHILDREN.values())
+    for process in children:
+        _terminate_child(process)
 
-
-import threading
 
 def _install_signal_handlers() -> None:
     """Install process signal handlers only from the real main thread.
@@ -78,21 +101,38 @@ def _install_signal_handlers() -> None:
         pass
 
 
-def build_core(fast: bool = True) -> dict:
+def build_core(fast: bool = True, bootstrap: bool = False, refresh_context: bool = False) -> dict:
     import data_layer as DL
     from run import build_desk, build_fast_desk
 
-    data = DL.load_all(
-        markets=MARKETS,
-        allow_live=True,
-        allow_synthetic=False,
-        fast_core=fast,
-        skip_slow_context=fast,
-    )
-    desk = (build_fast_desk(data, top_per_market=20) if fast else build_desk(data, top_per_market=40))
+    prior_bootstrap = os.environ.get("WARROOM_BOOTSTRAP_CORE")
+    prior_price_first = os.environ.get("WARROOM_FAST_CORE_PRICE_FIRST")
+    if bootstrap:
+        os.environ["WARROOM_BOOTSTRAP_CORE"] = "1"
+    if refresh_context:
+        os.environ["WARROOM_FAST_CORE_PRICE_FIRST"] = "0"
+    try:
+        data = DL.load_all(
+            markets=MARKETS,
+            allow_live=True,
+            allow_synthetic=False,
+            fast_core=fast,
+            skip_slow_context=fast,
+            bootstrap_core=bootstrap,
+        )
+    finally:
+        if prior_bootstrap is None:
+            os.environ.pop("WARROOM_BOOTSTRAP_CORE", None)
+        else:
+            os.environ["WARROOM_BOOTSTRAP_CORE"] = prior_bootstrap
+        if prior_price_first is None:
+            os.environ.pop("WARROOM_FAST_CORE_PRICE_FIRST", None)
+        else:
+            os.environ["WARROOM_FAST_CORE_PRICE_FIRST"] = prior_price_first
+    desk = (build_fast_desk(data, top_per_market=(8 if bootstrap else 20)) if fast else build_desk(data, top_per_market=40))
     runtime = desk.setdefault("runtime", {})
     runtime["core_collected_at"] = now_iso()
-    runtime["core_profile"] = "FAST" if fast else "EXPANDED"
+    runtime["core_profile"] = "BOOTSTRAP" if bootstrap else ("CONTEXT" if refresh_context else ("FAST" if fast else "EXPANDED"))
     return desk
 
 
@@ -125,14 +165,23 @@ def _child_call(kind: str, payload: Any, result_path: str) -> None:
         signal.signal(signal.SIGINT, signal.SIG_DFL)
     packet: tuple[bool, Any]
     try:
-        if kind == "core_fast":
+        if kind == "core_bootstrap":
+            value = build_core(True, bootstrap=True)
+        elif kind == "core_fast":
             value = build_core(True)
+        elif kind == "core_context":
+            value = build_core(True, refresh_context=True)
         elif kind == "core_expanded":
             value = build_core(False)
         elif kind == "events":
             value = collect_event_planes(payload)
         elif kind == "slow":
             value = collect_slow_plane(payload)
+        elif kind == "_test_blob" and os.getenv("WARROOM_TEST_MODE", "0") == "1":
+            value = {"blob": "x" * int(payload or 0)}
+        elif kind == "_test_sleep" and os.getenv("WARROOM_TEST_MODE", "0") == "1":
+            time.sleep(float(payload or 0))
+            value = {"slept": float(payload or 0)}
         else:
             raise ValueError(f"unknown collector kind {kind}")
         packet = (True, value)
@@ -160,14 +209,23 @@ def _direct_collect(kind: str, payload: Any) -> dict:
     Provider adapters still carry their own HTTP timeouts, and the plane remains isolated in the
     worker executor so the Streamlit render thread is never blocked.
     """
-    if kind == "core_fast":
+    if kind == "core_bootstrap":
+        value = build_core(True, bootstrap=True)
+    elif kind == "core_fast":
         value = build_core(True)
+    elif kind == "core_context":
+        value = build_core(True, refresh_context=True)
     elif kind == "core_expanded":
         value = build_core(False)
     elif kind == "events":
         value = collect_event_planes(payload)
     elif kind == "slow":
         value = collect_slow_plane(payload)
+    elif kind == "_test_blob" and os.getenv("WARROOM_TEST_MODE", "0") == "1":
+        value = {"blob": "x" * int(payload or 0)}
+    elif kind == "_test_sleep" and os.getenv("WARROOM_TEST_MODE", "0") == "1":
+        time.sleep(float(payload or 0))
+        value = {"slept": float(payload or 0)}
     else:
         raise ValueError(f"unknown collector kind {kind}")
     if not isinstance(value, dict):
@@ -179,7 +237,15 @@ def run_bounded(kind: str, payload: Any, timeout: int) -> dict:
     """Run a collector in a killable child process, with a hosted single-process fallback."""
     if os.getenv("WARROOM_INPROCESS_COLLECTORS", "0").strip().lower() in {"1", "true", "yes"}:
         return _direct_collect(kind, payload)
-    context = mp.get_context("spawn" if os.name == "nt" else "fork")
+    # Always use spawn. Forking from a ThreadPoolExecutor thread can deadlock on Linux
+    # after requests/pandas/OpenBLAS have created locks, which was the v2.6 permanent R1 failure.
+    start_method = os.getenv("WARROOM_MP_START_METHOD", "spawn").strip().lower()
+    if start_method not in {"spawn", "forkserver"}:
+        start_method = "spawn"
+    try:
+        context = mp.get_context(start_method)
+    except ValueError:
+        context = mp.get_context("spawn")
     fd, result_path = tempfile.mkstemp(prefix=f"warroom_{kind}_", suffix=".pkl", dir=str(HERE / "runtime"))
     os.close(fd)
     try:
@@ -189,47 +255,52 @@ def run_bounded(kind: str, payload: Any, timeout: int) -> dict:
     process = context.Process(target=_child_call, args=(kind, payload, result_path), daemon=True)
     try:
         process.start()
+        if process.pid:
+            with _ACTIVE_CHILDREN_LOCK:
+                _ACTIVE_CHILDREN[process.pid] = process
     except (OSError, RuntimeError, PermissionError) as exc:
-        LOGGER.warning("child process unavailable for %s; using in-process collector: %s", kind, exc)
+        LOGGER.warning("child process unavailable for %s: %s", kind, exc)
         for path in (result_path,):
             try:
                 os.unlink(path)
             except OSError:
                 pass
-        return _direct_collect(kind, payload)
-    process.join(timeout=max(10, int(timeout)))
-    if process.is_alive():
-        process.terminate()
-        process.join(5)
+        if os.getenv("WARROOM_ALLOW_INPROCESS_FALLBACK", "0").strip().lower() in {"1", "true", "yes"}:
+            return _direct_collect(kind, payload)
+        raise RuntimeError(f"child process unavailable for {kind}: {type(exc).__name__}: {exc}") from exc
+    try:
+        process.join(timeout=max(3, int(timeout)))
         if process.is_alive():
+            _terminate_child(process, grace=2.0)
+            for path in (result_path, result_path + f".{process.pid}.tmp"):
+                try:
+                    os.unlink(path)
+                except OSError:
+                    pass
+            raise TimeoutError(f"{kind} exceeded {timeout}s hard timeout")
+        if STOP and not os.path.exists(result_path):
+            raise RuntimeError(f"{kind} cancelled during worker shutdown")
+        if not os.path.exists(result_path):
+            raise RuntimeError(f"{kind} child exited with code {process.exitcode} without a result")
+        try:
+            with open(result_path, "rb") as fh:
+                ok, value = pickle.load(fh)
+        except Exception as exc:
+            raise RuntimeError(f"{kind} produced an unreadable result: {type(exc).__name__}: {exc}") from exc
+        finally:
             try:
-                process.kill()
-            except AttributeError:
-                os.kill(process.pid, signal.SIGKILL)
-            process.join(5)
-        for path in (result_path, result_path + f".{process.pid}.tmp"):
-            try:
-                os.unlink(path)
+                os.unlink(result_path)
             except OSError:
                 pass
-        raise TimeoutError(f"{kind} exceeded {timeout}s hard timeout")
-    if not os.path.exists(result_path):
-        raise RuntimeError(f"{kind} child exited with code {process.exitcode} without a result")
-    try:
-        with open(result_path, "rb") as fh:
-            ok, value = pickle.load(fh)
-    except Exception as exc:
-        raise RuntimeError(f"{kind} produced an unreadable result: {type(exc).__name__}: {exc}") from exc
+        if not ok:
+            raise RuntimeError(str(value))
+        if not isinstance(value, dict):
+            raise TypeError(f"{kind} returned {type(value).__name__}, expected dict")
+        return value
     finally:
-        try:
-            os.unlink(result_path)
-        except OSError:
-            pass
-    if not ok:
-        raise RuntimeError(str(value))
-    if not isinstance(value, dict):
-        raise TypeError(f"{kind} returned {type(value).__name__}, expected dict")
-    return value
+        if process.pid:
+            with _ACTIVE_CHILDREN_LOCK:
+                _ACTIVE_CHILDREN.pop(process.pid, None)
 
 
 def _overall_state(plane: dict | None) -> str:
@@ -441,8 +512,10 @@ def merge_snapshot(core: dict, institutional: dict | None, live: dict | None,
 
     all_diag = list(diagnostics or []) + core_retained + [x for x in (inst_diag, live_diag, full_diag) if x]
     runtime = desk.setdefault("runtime", {})
+    health_state = str(health.get("overall") or "").upper()
     merged_worker_state = (
-        "CORE_ERROR" if runtime.get("initial_core_error") and str(health.get("overall") or "").upper() == "NO_DATA"
+        "CORE_ERROR" if runtime.get("initial_core_error") and health_state == "NO_DATA"
+        else "NO_DATA" if health_state == "NO_DATA"
         else "LIVE"
     )
     runtime.update({
@@ -461,6 +534,46 @@ def _current_core(snapshot: dict) -> dict:
     return deepcopy(snapshot)
 
 
+def bootstrap_snapshot_once(*, direct: bool = False, previous: dict | None = None, commit: bool = True) -> dict:
+    """Commit the first non-initializing snapshot and return a compact result.
+
+    Hosted Streamlit calls this once before embedding the dashboard.  It deliberately collects only
+    the small market bootstrap universe; macro/liquidity and paid enrichment arrive on later planes.
+    A failed public fetch still commits an explicit R2 NO_DATA snapshot, so the browser can never
+    remain on bootstrap revision R1 indefinitely.
+    """
+    previous = previous or read_snapshot() or {}
+    timeout = int(os.getenv("WARROOM_BOOTSTRAP_HARD_TIMEOUT", "22"))
+    write_status(state="BOOTSTRAP_CORE", pid=os.getpid(), pending=["bootstrap"], error=None)
+    try:
+        value = build_core(True, bootstrap=True) if direct else run_bounded("core_bootstrap", None, timeout)
+        core, diagnostics = _stabilize_core(value, previous)
+        snapshot = merge_snapshot(core, previous.get("institutional"), previous.get("live_intelligence"), previous.get("full_live_data"), previous, diagnostics)
+        result = write_snapshot(snapshot, force=True) if commit else {"revision": int(((previous.get("runtime") or {}).get("snapshot_sequence") or 1)) + 1}
+        if commit:
+            write_status(
+                state="BOOTSTRAP_READY" if sum(_market_universe(core, m) for m in MARKETS) else "BOOTSTRAP_NO_DATA",
+                pid=os.getpid(), pending=[], error=None,
+                snapshot_revision=result.get("revision"), last_success=now_iso(),
+            )
+        return {
+            "ok": bool(sum(_market_universe(core, m) for m in MARKETS)),
+            "revision": result.get("revision"),
+            "observations": sum(_market_universe(core, m) for m in MARKETS),
+            "health": (snapshot.get("data_health") or {}).get("overall"),
+            "snapshot": snapshot if not commit else None,
+        }
+    except BaseException as exc:
+        error_text = f"{type(exc).__name__}: {exc}"
+        LOGGER.exception("inline/bootstrap core failed: %s", exc)
+        core = _degraded_core_snapshot(error_text, previous)
+        snapshot = merge_snapshot(core, previous.get("institutional"), previous.get("live_intelligence"), previous.get("full_live_data"), previous, [{"plane": "bootstrap", "action": "REFRESH_ERROR", "error": error_text, "at": now_iso()}])
+        result = write_snapshot(snapshot, force=True) if commit else {"revision": int(((previous.get("runtime") or {}).get("snapshot_sequence") or 1)) + 1}
+        if commit:
+            write_status(state="BOOTSTRAP_ERROR", pid=os.getpid(), pending=[], error=error_text, snapshot_revision=result.get("revision"))
+        return {"ok": False, "revision": result.get("revision"), "observations": 0, "health": "NO_DATA", "error": error_text, "snapshot": snapshot if not commit else None}
+
+
 def loop() -> None:
     """Long-running collector with fatal-error reporting and guaranteed lease cleanup."""
     _install_signal_handlers()
@@ -476,18 +589,54 @@ def loop() -> None:
         write_status(state="BOOTING", pid=os.getpid(), pending=[], error=None)
 
         previous = read_snapshot() or {}
-        core = _current_core(previous) if previous.get("markets") else None
+        previous_has_core = (
+            sum(_market_universe(previous, market) for market in MARKETS) > 0
+            or len(previous.get("macro_observations") or {}) > 0
+        )
+        core = _current_core(previous) if previous_has_core else None
         institutional = previous.get("institutional")
         live = previous.get("live_intelligence")
         full = previous.get("full_live_data")
-        last_started = {"core": 0.0, "events": 0.0, "slow": 0.0, "expanded": 0.0}
+        startup_now = time.time()
+        last_started = {
+            "core": startup_now - max(0, CORE_SECONDS - int(os.getenv("WARROOM_POST_BOOTSTRAP_CORE_DELAY", "20"))),
+            "context": 0.0,
+            "events": startup_now - max(0, EVENT_SECONDS - int(os.getenv("WARROOM_POST_BOOTSTRAP_EVENT_DELAY", "15"))),
+            "slow": startup_now,
+            "expanded": startup_now,
+        }
         pending: dict[str, Future] = {}
         diagnostics: list[dict] = []
         last_success = str((read_status() or {}).get("last_success") or "")
+        # Commit a small market-only snapshot synchronously before background planes start.
+        # This removes the all-or-nothing R1 bootstrap and makes startup deterministic.
+        if core is None:
+            bootstrap_timeout = int(os.getenv("WARROOM_BOOTSTRAP_HARD_TIMEOUT", "28"))
+            write_status(state="BOOTSTRAP_CORE", pid=os.getpid(), pending=["bootstrap"], error=None)
+            try:
+                bootstrap_value = run_bounded("core_bootstrap", None, bootstrap_timeout)
+                core, bootstrap_diag = _stabilize_core(bootstrap_value, previous)
+                diagnostics.extend(bootstrap_diag)
+                last_success = now_iso()
+                bootstrap_snapshot = merge_snapshot(core, institutional, live, full, previous, diagnostics)
+                bootstrap_result = write_snapshot(bootstrap_snapshot, force=True)
+                previous = read_snapshot() or bootstrap_snapshot
+                LOGGER.info("bootstrap commit revision=%s observations=%s", bootstrap_result.get("revision"), sum(_market_universe(core, m) for m in MARKETS))
+            except Exception as exc:
+                error_text = f"{type(exc).__name__}: {exc}"
+                LOGGER.exception("bootstrap core failed: %s", exc)
+                core = _degraded_core_snapshot(error_text, previous)
+                diagnostics.append({"plane": "bootstrap", "action": "REFRESH_ERROR", "error": error_text, "at": now_iso()})
+                bootstrap_snapshot = merge_snapshot(core, institutional, live, full, previous, diagnostics)
+                write_snapshot(bootstrap_snapshot, force=True)
+                previous = read_snapshot() or bootstrap_snapshot
+                write_status(state="BOOTSTRAP_ERROR", pid=os.getpid(), pending=[], error=error_text)
+
         executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="warroom-plane")
 
         timeouts = {
             "core": int(os.getenv("WARROOM_FAST_CORE_HARD_TIMEOUT", "90")),
+            "context": int(os.getenv("WARROOM_CONTEXT_HARD_TIMEOUT", "90")),
             "events": int(os.getenv("WARROOM_EVENT_HARD_TIMEOUT", "75")),
             "slow": int(os.getenv("WARROOM_SLOW_HARD_TIMEOUT", "120")),
             "expanded": int(os.getenv("WARROOM_EXPANDED_CORE_HARD_TIMEOUT", "240")),
@@ -509,6 +658,9 @@ def loop() -> None:
                 core_due = (core is None and now - last_started["core"] >= core_retry_seconds) or (core is not None and now - last_started["core"] >= CORE_SECONDS)
                 if (force or core_due) and "core" not in pending:
                     schedule("core", "core_fast")
+                context_due = now - last_started["context"] >= CONTEXT_SECONDS
+                if (force or context_due) and "context" not in pending:
+                    schedule("context", "core_context")
                 core_ready = bool(core) and (
                     sum(_market_universe(core, m) for m in MARKETS) > 0
                     or len((core or {}).get("macro_observations") or {}) > 0
@@ -527,7 +679,7 @@ def loop() -> None:
                     pending.pop(name, None)
                     try:
                         value = future.result()
-                        if name == "core":
+                        if name in {"core", "context"}:
                             core, core_diag = _stabilize_core(value, core or previous)
                             diagnostics.extend(core_diag)
                         elif name == "expanded":

@@ -1,0 +1,34 @@
+{
+  "version": "2.7",
+  "tests": [
+    {
+      "name": "staged_bootstrap_fixture",
+      "ok": true,
+      "elapsed_seconds": 4.424,
+      "revision": 2,
+      "health": "PARTIAL",
+      "counts": {
+        "us": 6,
+        "idx": 4,
+        "crypto": 6,
+        "commodity": 6,
+        "fx": 6
+      }
+    },
+    {
+      "name": "offline_exits_initializing",
+      "ok": true,
+      "elapsed_seconds": 3.878,
+      "revision": 2,
+      "health": "NO_DATA",
+      "counts": {
+        "us": 0,
+        "idx": 0,
+        "crypto": 0,
+        "commodity": 0,
+        "fx": 0
+      }
+    }
+  ],
+  "ok": true
+}

@@ -168,7 +168,7 @@ def _load_feeds(allow_live=True, fetch_live=False):
     return feeds
 
 
-def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds=False, allow_synthetic=False, fast_core=False, skip_slow_context=False):
+def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds=False, allow_synthetic=False, fast_core=False, skip_slow_context=False, bootstrap_core=False):
     """Use v40's PROVEN live loaders (data.loader.load_prices + data.fred_loader.load_fred_series) —
     the exact path that fetches FRED+Yahoo live for you in v40. It may try alternate real loaders,
     but synthetic series are used only with ``allow_synthetic=True``. Production preserves NO_DATA."""
@@ -185,10 +185,17 @@ def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds
     except Exception:
         UNI = dict(UNIVERSE)
     if fast_core:
-        fast_limits = {"us": int(os.getenv("WARROOM_FAST_US_NAMES", "18")),
-                       "idx": int(os.getenv("WARROOM_FAST_IDX_NAMES", "12")),
-                       "crypto": int(os.getenv("WARROOM_FAST_CRYPTO_NAMES", "16")),
-                       "commodity": 20, "fx": 20}
+        if bootstrap_core:
+            fast_limits = {"us": int(os.getenv("WARROOM_BOOT_US_NAMES", "6")),
+                           "idx": int(os.getenv("WARROOM_BOOT_IDX_NAMES", "4")),
+                           "crypto": int(os.getenv("WARROOM_BOOT_CRYPTO_NAMES", "6")),
+                           "commodity": int(os.getenv("WARROOM_BOOT_COMMODITY_NAMES", "6")),
+                           "fx": int(os.getenv("WARROOM_BOOT_FX_NAMES", "6"))}
+        else:
+            fast_limits = {"us": int(os.getenv("WARROOM_FAST_US_NAMES", "18")),
+                           "idx": int(os.getenv("WARROOM_FAST_IDX_NAMES", "12")),
+                           "crypto": int(os.getenv("WARROOM_FAST_CRYPTO_NAMES", "16")),
+                           "commodity": 20, "fx": 20}
         anchors = {"us":["SPY","QQQ","IWM","NVDA","AMD","MSFT","AAPL","AMZN","META","SMH"],
                    "idx":["^JKSE","BBCA.JK","BMRI.JK","BBRI.JK","TLKM.JK","ASII.JK","ANTM.JK","ADRO.JK"],
                    "crypto":["BTC-USD","ETH-USD","SOL-USD","XRP-USD","BNB-USD","DOGE-USD"],
@@ -232,7 +239,7 @@ def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds
     # These are core UI inputs, not slow enrichment. The fast profile loads a compact set; the
     # expanded profile adds sectors/EM. Without this wire Flow & Rotation stayed NO_DATA until a
     # much later expanded refresh.
-    if allow_live:
+    if allow_live and not bootstrap_core:
         try:
             from data.loader import load_prices as _lp2
             _proxy_fast = ["SPY","QQQ","IWM","SMH","GLD","TLT","UUP","DBC","USO","EEM","EIDO"]
@@ -303,8 +310,8 @@ def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds
         # Keep the market key present so downstream code can distinguish an empty market from a crash.
         ohlcv.setdefault(m, {})
     # ---- FRED via v40's fred_loader (the working path) ----
-    fred, fsrc = {}, "OFFLINE" if not allow_live else "unavailable"
-    if allow_live:
+    fred, fsrc = {}, "OFFLINE" if not allow_live else ("PENDING_BACKGROUND_MACRO" if bootstrap_core else "unavailable")
+    if allow_live and not bootstrap_core:
         try:
             from data.fred_loader import load_fred_series, load_fred_subset, load_fred_cached_subset
             _fast_fred = ["INDPRO","RSAFS","PAYEMS","UNRATE","ICSA","CPI","CORECPI","FEDFUNDS",
@@ -344,12 +351,14 @@ def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds
     except Exception:
         pass
     # ---- liquidity read via US Treasury + NY Fed (TGA/RRP/SOFR, no key) ----
-    if allow_live:
+    if allow_live and not bootstrap_core:
         try:
             from engines.treasury_liquidity import analyze_liquidity, cached_liquidity
             _liq = cached_liquidity() if price_first else analyze_liquidity(fred if fred else None)
         except Exception as e:
             _liq = {"ok": False, "state": "NO_DATA", "error": str(e)}
+    elif bootstrap_core:
+        _liq = {"ok": False, "state": "PENDING", "error": "liquidity loads after market bootstrap"}
     else:
         _liq = {"ok": False, "state": "OFFLINE", "error": "offline/test mode"}
 

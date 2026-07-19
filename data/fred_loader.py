@@ -115,6 +115,7 @@ FRED_SERIES = {
     # Liquidity
     "WALCL": "WALCL",
     "RRPONTSYD": "RRPONTSYD",
+    "WTREGEN": "WTREGEN",
 }
 
 # Series guaranteed to exist for backwards-compat (orchestrator references)
@@ -124,7 +125,7 @@ LEGACY_REQUIRED = ["INDPRO", "RSAFS", "PAYEMS", "UNRATE", "ICSA",
 
 
 # ── Cache ─────────────────────────────────────────────────────────────────
-CACHE_DIR = Path(".cache/fred_v3")
+CACHE_DIR = Path(__file__).resolve().parents[1] / ".cache" / "fred_v3"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 

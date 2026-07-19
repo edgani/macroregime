@@ -52,7 +52,7 @@ def main() -> None:
         os.environ.pop(key, None)
     from institutional_data import collect_institutional_data
     result = collect_institutional_data({"alpha": [{"tk": "NVDA"}], "markets": {}})
-    require(result["overall_state"] == "NOT_CONFIGURED", "Missing credentials did not remain NOT_CONFIGURED")
+    require(result["overall_state"] in {"NOT_CONFIGURED","NOT_ENTITLED","ACTION_REQUIRED"}, "Missing credentials did not remain explicitly unavailable")
     require(not result["events"], "Missing credentials emitted placeholder events")
 
     print("PASS — Python, JavaScript, data semantics and no-credential behavior are intact.")

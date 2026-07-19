@@ -237,12 +237,12 @@ def _extract_rows(payload: Any) -> List[Dict[str, Any]]:
     return []
 
 
-def _not_configured(provider: str, dataset: str, env_name: str, stale_after: int) -> Dict[str, Any]:
+def _not_configured(provider: str, dataset: str, env_name: str, stale_after: int, state: str = "NOT_ENTITLED") -> Dict[str, Any]:
     return {
         "status": FeedStatus(
             provider=provider,
             dataset=dataset,
-            state="NOT_CONFIGURED",
+            state=state,
             stale_after_seconds=stale_after,
             note=f"Set {env_name}; no placeholder or synthetic records emitted.",
         ).to_dict(),
@@ -498,7 +498,7 @@ def _sec_ticker_map() -> Dict[str, Dict[str, Any]]:
 
 def fetch_sec_filings(tickers: Iterable[str], limit_per_ticker: int = 12) -> Dict[str, Any]:
     if not os.getenv("WARROOM_SEC_USER_AGENT", "").strip():
-        return _not_configured("SEC EDGAR", "filings", "WARROOM_SEC_USER_AGENT", 180)
+        return _not_configured("SEC EDGAR", "filings", "WARROOM_SEC_USER_AGENT", 180, state="ACTION_REQUIRED")
     symbols=[str(t).upper().replace(".JK","") for t in tickers if t]
     symbols=[t for t in dict.fromkeys(symbols) if t and "-USD" not in t and "=" not in t][:20]
     if not symbols:
@@ -695,7 +695,7 @@ def collect_institutional_data(desk: Dict[str, Any]) -> Dict[str, Any]:
     stream_dark = [x for x in stream.get("data") or [] if x.get("event_type") == "DARK_POOL"]
 
     # Massive REST is an isolated raw fallback; skip it when another TRF source is active.
-    if uw_dark.get("status", {}).get("state") in {"NOT_CONFIGURED", "ERROR", "EMPTY", "OFFLINE"} and not stream_dark:
+    if uw_dark.get("status", {}).get("state") in {"NOT_CONFIGURED", "NOT_ENTITLED", "ACTION_REQUIRED", "ERROR", "EMPTY", "OFFLINE"} and not stream_dark:
         massive = fetch_massive_dark_pool(shortlist)
     else:
         massive = {
@@ -713,7 +713,7 @@ def collect_institutional_data(desk: Dict[str, Any]) -> Dict[str, Any]:
     active = sum(1 for x in statuses if x.get("state") == "LIVE")
     stale = sum(1 for x in statuses if x.get("state") == "STALE")
     errors = sum(1 for x in statuses if x.get("state") == "ERROR")
-    overall = "LIVE" if active >= 2 else "PARTIAL" if active or stale else "ERROR" if errors else "NOT_CONFIGURED"
+    overall = "LIVE" if active >= 2 else "PARTIAL" if active or stale else "ERROR" if errors else "NOT_ENTITLED"
     return {
         "generated": _utc_now(), "overall_state": overall, "watchlist": shortlist,
         "status_counts": {"live": active, "stale": stale, "error": errors, "total": len(statuses)},

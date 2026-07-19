@@ -1,22 +1,11 @@
-# War Room OS — Capital Intelligence Map / Full Live Intelligence v2.2
+# War Room OS — Capital Intelligence Map v2.3
 
-A multi-market decision system with explicit live-data lineage, derivatives/option context, institutional event feeds and fail-closed rendering.
+This build fixes the remaining false/ambiguous `NO_DATA` states and removes network latency from the Streamlit render path.
 
-Start with:
+Run: `RUN_FAST_WARROOM.bat`
 
+Key documents:
 - `START_HERE.md`
+- `NO_DATA_ROOT_CAUSE_AUDIT_V23.md`
 - `LIVE_DATA_ACTIVATION.md`
-- `.env.example`
-- `DATA_REQUIREMENTS_MATRIX.json`
-- `SQUEEZE_OPTIONS_SEMANTICS.md`
-
-Run:
-
-```bash
-python validate_live_stack.py
-python validate_redesign.py
-python verify_live_connections.py --strict --write-report
-streamlit run app.py
-```
-
-No production component is permitted to replace missing data with synthetic observations.
+- `V23_VALIDATION_REPORT.json`

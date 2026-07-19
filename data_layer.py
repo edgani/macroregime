@@ -9,7 +9,8 @@ On-chain (crypto) + COT (commodity/fx) need their own feeds/keys (onchain_engine
 until wired, those markets score on price + the market_drivers matrix only (flagged in the UI).
 """
 from __future__ import annotations
-import io, sys, time
+import io, sys, time, os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import numpy as np
 import pandas as pd
 
@@ -20,18 +21,18 @@ UNIVERSE = {
     "idx": ["BBCA.JK","BREN.JK","BRMS.JK","ADRO.JK","ANTM.JK","MDKA.JK","TLKM.JK","GOTO.JK"],
     "crypto": [  # ~top-100 by mkt cap (stablecoins + pure wrappers excluded). Yahoo skips any that don't resolve.
         "BTC-USD","ETH-USD","XRP-USD","BNB-USD","SOL-USD","DOGE-USD","ADA-USD","TRX-USD","AVAX-USD","LINK-USD",
-        "SUI-USD","XLM-USD","HBAR-USD","DOT-USD","BCH-USD","LTC-USD","UNI7083-USD","NEAR-USD","APT-USD","ICP-USD",
+        "SUI-USD","XLM-USD","HBAR-USD","DOT-USD","BCH-USD","LTC-USD","UNI-USD","NEAR-USD","APT-USD","ICP-USD",
         "ETC-USD","POL-USD","ARB-USD","OP-USD","ATOM-USD","FIL-USD","IMX-USD","INJ-USD","VET-USD","ALGO-USD",
         "GRT-USD","RENDER-USD","TIA-USD","SEI-USD","STX-USD","AAVE-USD","MKR-USD","RUNE-USD","THETA-USD","FTM-USD",
         "FLOW-USD","EGLD-USD","XTZ-USD","SAND-USD","MANA-USD","AXS-USD","CHZ-USD","EOS-USD","QNT-USD","MINA-USD",
         "GALA-USD","CRV-USD","LDO-USD","SNX-USD","ENS-USD","DYDX-USD","JUP-USD","PYTH-USD","JTO-USD","ONDO-USD",
-        "WLD-USD","FET-USD","AR-USD","KAS-USD","ZEC-USD","DASH-USD","XMR-USD","COMP5692-USD","PENDLE-USD","KAVA-USD",
+        "WLD-USD","FET-USD","AR-USD","KAS-USD","ZEC-USD","DASH-USD","XMR-USD","COMP-USD","PENDLE-USD","KAVA-USD",
         "ROSE-USD","1INCH-USD","ENJ-USD","ZIL-USD","BAT-USD","CELO-USD","KSM-USD","NEO-USD","IOTA-USD","GMX-USD",
         "WOO-USD","CFX-USD","ASTR-USD","SKL-USD","ANKR-USD","SHIB-USD","PEPE-USD","WIF-USD","BONK-USD","FLOKI-USD",
-        "TON11419-USD","TAO22974-USD","ENA-USD","STRK-USD","W-USD","JASMY-USD","NOT-USD","ORDI-USD","AKT-USD","BEAM-USD",
+        "TON-USD","TAO-USD","ENA-USD","STRK-USD","W-USD","JASMY-USD","NOT-USD","ORDI-USD","AKT-USD","BEAM-USD",
     ],
     "commodity": ["CL=F","BZ=F","GC=F","SI=F","HG=F","NG=F"],
-    "fx": ["EURUSD=X","USDJPY=X","GBPUSD=X","AUDUSD=X","USDIDR=X","DX-Y.NYB"],
+    "fx": ["EURUSD=X","JPY=X","GBPUSD=X","AUDUSD=X","IDR=X","DX-Y.NYB"],
 }
 BENCH = "SPY"
 
@@ -167,11 +168,13 @@ def _load_feeds(allow_live=True, fetch_live=False):
     return feeds
 
 
-def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds=False, allow_synthetic=False):
+def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds=False, allow_synthetic=False, fast_core=False, skip_slow_context=False):
     """Use v40's PROVEN live loaders (data.loader.load_prices + data.fred_loader.load_fred_series) —
     the exact path that fetches FRED+Yahoo live for you in v40. It may try alternate real loaders,
     but synthetic series are used only with ``allow_synthetic=True``. Production preserves NO_DATA."""
     markets = markets or list(UNIVERSE.keys())
+    if os.getenv("WARROOM_NETWORK_MODE", "live").strip().lower() in {"offline","disabled","0","false"}:
+        allow_live = False
     prices, ohlcv, sources = {}, {}, {}
     try:
         from warroom import data as WD
@@ -180,23 +183,52 @@ def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds
                "crypto": UNIVERSE["crypto"], "commodity": UNIVERSE["commodity"], "fx": UNIVERSE["fx"]}
     except Exception:
         UNI = dict(UNIVERSE)
+    if fast_core:
+        fast_limits = {"us": int(os.getenv("WARROOM_FAST_US_NAMES", "18")),
+                       "idx": int(os.getenv("WARROOM_FAST_IDX_NAMES", "12")),
+                       "crypto": int(os.getenv("WARROOM_FAST_CRYPTO_NAMES", "16")),
+                       "commodity": 20, "fx": 20}
+        anchors = {"us":["SPY","QQQ","IWM","NVDA","AMD","MSFT","AAPL","AMZN","META","SMH"],
+                   "idx":["^JKSE","BBCA.JK","BMRI.JK","BBRI.JK","TLKM.JK","ASII.JK","ANTM.JK","ADRO.JK"],
+                   "crypto":["BTC-USD","ETH-USD","SOL-USD","XRP-USD","BNB-USD","DOGE-USD"],
+                   "commodity":UNIVERSE["commodity"], "fx":UNIVERSE["fx"]}
+        for m in list(UNI):
+            values=[]
+            for ticker in anchors.get(m,[]) + list(UNI.get(m,[])):
+                if ticker not in values: values.append(ticker)
+            UNI[m]=values[:fast_limits.get(m,len(values))]
     # ---- prices + OHLCV via v40's data.loader (yfinance per-ticker, the working path) ----
     v40_ok = False
     if allow_live:
         try:
-            from data.loader import load_prices as _lp, load_ohlcv as _lo
-            for m in markets:
+            from data.loader import load_bundle as _bundle
+
+            def _fetch_market(m):
                 tk = UNI.get(m, UNIVERSE.get(m, []))
-                px = _lp(tk)
-                prices[m] = px
-                sources[m] = f"data.loader v40 · {len(px)} live" if px else "data.loader v40 · 0 (network blocked here)"
-                try: ohlcv[m] = _lo(tk)
-                except Exception: ohlcv[m] = {}
-                if px: v40_ok = True
+                frames = _bundle(tk, days=756)
+                px = {ticker: frame["Close"].dropna() for ticker, frame in frames.items() if "Close" in frame}
+                return m, px, frames
+
+            # Markets are independent. Fetch them concurrently so a slow Yahoo batch for one
+            # universe cannot block all other markets and create false NO_DATA panels.
+            with ThreadPoolExecutor(max_workers=min(5, max(1, len(markets)))) as pool:
+                futures = {pool.submit(_fetch_market, m): m for m in markets}
+                for fut in as_completed(futures):
+                    m = futures[fut]
+                    try:
+                        _, px, frames = fut.result()
+                    except Exception as exc:
+                        prices[m], ohlcv[m] = {}, {}
+                        sources[m] = f"data.loader error · {type(exc).__name__}: {exc}"
+                        continue
+                    prices[m], ohlcv[m] = px, frames
+                    sources[m] = f"data.loader batch · {len(px)} live" if px else "data.loader batch · 0"
+                    if px:
+                        v40_ok = True
         except Exception as e:
             sources["_v40loader"] = f"data.loader failed: {e}"
     # ---- macro-proxy ETFs (SPY/GLD/USO/UUP/XLI/XLY/TLT) for GIP + regime + cross-asset ----
-    if allow_live:
+    if allow_live and not skip_slow_context:
         try:
             from data.loader import load_prices as _lp2
             _prox = _lp2(["SPY","GLD","USO","UUP","XLI","XLY","TLT","DBC","IWM","SMH"])
@@ -208,7 +240,7 @@ def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds
 
     # ---- country-index proxies for the REGIONAL REGIME row (real, not hardcoded) ----
     proxies = {}
-    if allow_live:
+    if allow_live and not skip_slow_context:
         try:
             from data.loader import load_prices as _lp3
             from regional_regime import EXTRA_PROXY_TICKERS
@@ -217,7 +249,7 @@ def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds
             proxies = {}
     # ---- IHSG/IDX: enrich with idx.co.id (typef_idx) for foreign flow / bandarmologi.
     #      yfinance (BBCA.JK etc.) above is the reliable base; typef_idx OVERWRITES only if it works. ----
-    if "idx" in markets and allow_live:
+    if "idx" in markets and allow_live and not skip_slow_context and os.getenv("WARROOM_ENABLE_IDX_SCRAPER", "0").strip().lower() in {"1","true","yes"}:
         try:
             from gcfis.feeds.typef_idx import build_typef
             from warroom import data as _WD
@@ -266,10 +298,10 @@ def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds
         ohlcv.setdefault(m, {})
     # ---- FRED via v40's fred_loader (the working path) ----
     fred, fsrc = {}, "OFFLINE" if not allow_live else "unavailable"
-    if allow_live:
+    if allow_live and not skip_slow_context:
         try:
             from data.fred_loader import load_fred_series
-            fred = load_fred_series(force_refresh=True) or {}
+            fred = load_fred_series(force_refresh=False) or {}
             fred = {k: v for k, v in fred.items() if v is not None and len(v) > 0}
             fsrc = f"data.fred_loader v40 · {len(fred)} series" if fred else "data.fred_loader v40 · 0 (blocked here)"
         except Exception as e:
@@ -287,22 +319,22 @@ def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds
     except Exception:
         pass
     # ---- liquidity read via US Treasury + NY Fed (TGA/RRP/SOFR, no key) ----
-    if allow_live:
+    if allow_live and not skip_slow_context:
         try:
             from engines.treasury_liquidity import analyze_liquidity
             _liq = analyze_liquidity(fred if fred else None)
         except Exception as e:
             _liq = {"ok": False, "error": str(e)}
     else:
-        _liq = {"ok": False, "error": "offline/test mode"}
+        _liq = {"ok": False, "state": "INITIALIZING" if skip_slow_context else "OFFLINE", "error": "fast core: slow context pending" if skip_slow_context else "offline/test mode"}
 
     bench = prices.get("us", {}).get(BENCH)
     if bench is None:
         bp, _ = load_prices([BENCH], start, allow_live, allow_synthetic=allow_synthetic); bench = bp.get(BENCH)
     # ---- specialized flow feeds (on-chain / COT / GEX / dark-pool) → un-gate the metrics ----
-    feeds = _load_feeds(allow_live=allow_live, fetch_live=fetch_live_feeds)
+    feeds = _load_feeds(allow_live=allow_live and not skip_slow_context, fetch_live=fetch_live_feeds)
     live = v40_ok or (len(fred) > 5)
-    has_synthetic = any("synthetic" in str(v).lower() for v in sources.values())
+    has_synthetic = any(("synthetic (explicit" in str(v).lower()) or ("test-only" in str(v).lower()) for v in sources.values())
     overall = "LIVE" if live else ("SYNTHETIC_TEST" if has_synthetic else "NO_DATA")
     return {"prices": prices, "ohlcv": ohlcv, "bench": bench, "fred": fred, "vix": vix,
             "sources": sources, "bench_source": "v40" if v40_ok else "unavailable", "fred_source": fsrc,

@@ -17,7 +17,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
-import json, math, os, time
+import csv, io, json, math, os, time
 
 import requests
 from requests.adapters import HTTPAdapter
@@ -122,8 +122,8 @@ def status(result,provider,dataset,records,stale_after,note,endpoint,required_fo
                   f"{note} · {result.get('note','')}".strip(" ·"),endpoint,required_for).to_dict()
 
 
-def not_configured(provider,dataset,env_name,required_for,stale_after=300,note=""):
-    return {"status":Status(provider,dataset,"NOT_CONFIGURED",True,None,None,stale_after,0,
+def not_configured(provider,dataset,env_name,required_for,stale_after=300,note="",state="NOT_CONFIGURED"):
+    return {"status":Status(provider,dataset,state,True,None,None,stale_after,0,
             f"Set {env_name}. {note}".strip(),required_for=required_for).to_dict(),"data":[]}
 
 
@@ -194,7 +194,7 @@ FACT_TAGS={
 
 def fetch_sec_fundamentals(tickers):
     ua=os.getenv("WARROOM_SEC_USER_AGENT","").strip()
-    if not ua:return not_configured("SEC EDGAR","company_facts","WARROOM_SEC_USER_AGENT",["alpha_center","us_stocks","company_intel"])
+    if not ua:return not_configured("SEC EDGAR","company_facts","WARROOM_SEC_USER_AGENT",["alpha_center","us_stocks","company_intel","institutional"], note="Public API; provide a descriptive user-agent with contact email for fair-access compliance.", state="ACTION_REQUIRED")
     map_result,mapping=sec_ticker_map(); mapping=mapping or {}
     specs={}
     metadata={}
@@ -230,7 +230,7 @@ def fetch_sec_fundamentals(tickers):
 # ----------------------------- Intrinio context -----------------------------
 def fetch_intrinio_context(tickers,etfs):
     key=os.getenv("INTRINIO_API_KEY","").strip()
-    if not key:return not_configured("Intrinio","fundamentals_etf_earnings_ownership","INTRINIO_API_KEY",["alpha_center","us_stocks","flow_rotation","company_intel"],3600)
+    if not key:return not_configured("Intrinio","fundamentals_etf_earnings_ownership","INTRINIO_API_KEY",["alpha_center","us_stocks","flow_rotation","company_intel"],3600,state="NOT_ENTITLED")
     base=os.getenv("INTRINIO_BASE_URL","https://api-v2.intrinio.com").rstrip("/");headers={"Accept":"application/json"}
     specs={}; meta={}
     for ticker in tickers[:6]:
@@ -271,7 +271,7 @@ DEFAULT_EIA_REQUESTS=[
 
 def fetch_eia_context():
     key=os.getenv("EIA_API_KEY","").strip()
-    if not key:return not_configured("EIA","energy_physical","EIA_API_KEY",["commodities","early_warning"],86400,"Use EIA_REQUESTS_JSON to narrow products/areas.")
+    if not key:return not_configured("EIA","energy_physical","EIA_API_KEY",["commodities","early_warning"],86400,"Use EIA_REQUESTS_JSON to narrow products/areas.",state="ACTION_REQUIRED")
     try: specs=json.loads(os.getenv("EIA_REQUESTS_JSON",json.dumps(DEFAULT_EIA_REQUESTS)))
     except Exception: specs=DEFAULT_EIA_REQUESTS
     base=os.getenv("EIA_BASE_URL","https://api.eia.gov").rstrip("/"); calls={};meta={}
@@ -287,6 +287,27 @@ def fetch_eia_context():
 
 
 # ----------------------------- existing public specialist feeds -----------------------------
+def _cftc_csv_fallback(dataset: str, resource_url: str) -> dict:
+    """Official Socrata CSV fallback when the JSON endpoint is blocked or rate-limited."""
+    key = f"cftc_csv_{dataset}"
+    cached = read_cache(key)
+    if cached and cached.get("_age_seconds", 1e9) <= 21600:
+        return {"state":"LIVE","payload":cached.get("payload") or [],"fetched_at":cached.get("fetched_at"),"age_seconds":cached.get("_age_seconds"),"note":"fresh official CSV cache"}
+    csv_url = resource_url.rsplit('.', 1)[0] + '.csv'
+    try:
+        response = HTTP.get(csv_url, params={"$limit":1000,"$order":"report_date_as_yyyy_mm_dd DESC"}, timeout=min(8,float(os.getenv("WARROOM_HTTP_TIMEOUT","8"))))
+        if not 200 <= response.status_code < 300:
+            raise RuntimeError(f"HTTP {response.status_code}: {response.text[:120]}")
+        parsed = list(csv.DictReader(io.StringIO(response.text)))
+        wrapped={"payload":parsed,"fetched_at":now_iso()};write_cache(key,wrapped)
+        return {"state":"LIVE","payload":parsed,"fetched_at":wrapped["fetched_at"],"age_seconds":0,"note":"official Socrata CSV fallback"}
+    except Exception as exc:
+        stale=read_cache(key)
+        if stale:
+            return {"state":"STALE","payload":stale.get("payload") or [],"fetched_at":stale.get("fetched_at"),"age_seconds":stale.get("_age_seconds"),"note":f"last-good CSV after {type(exc).__name__}"}
+        return {"state":"ERROR","payload":[],"fetched_at":None,"age_seconds":None,"note":f"CSV fallback {type(exc).__name__}: {exc}"}
+
+
 def fetch_cftc_context():
     datasets={
         "tff_futures":("https://publicreporting.cftc.gov/resource/gpe5-46if.json","Traders in Financial Futures: dealer, asset manager, leveraged funds and other reportables."),
@@ -296,7 +317,12 @@ def fetch_cftc_context():
                      params={"$limit":1000,"$order":"report_date_as_yyyy_mm_dd DESC"},timeout=8) for name,(url,_) in datasets.items()}
     fetched=request_many(specs,max_workers=2);data={};statuses=[]
     for name,r in fetched.items():
-        url,note=datasets[name];rr=rows(r.get("payload"));latest=max((str(x.get("report_date_as_yyyy_mm_dd") or "") for x in rr),default="")
+        url,note=datasets[name];rr=rows(r.get("payload"))
+        if not rr:
+            fallback=_cftc_csv_fallback(name,url)
+            if rows(fallback.get("payload")):
+                r=fallback;rr=rows(r.get("payload"))
+        latest=max((str(x.get("report_date_as_yyyy_mm_dd") or "") for x in rr),default="")
         current=[x for x in rr if str(x.get("report_date_as_yyyy_mm_dd") or "")==latest] if latest else []
         data[name]={"report_date":latest,"rows":current,"semantics":"Weekly reported positions; not intraday positioning."}
         statuses.append(status(r,"CFTC PRE",name,len(current),8*86400,note,url,["commodities","fx","flow_rotation"]))
@@ -328,7 +354,7 @@ def fetch_defillama_context():
 # ----------------------------- local persistent bridges -----------------------------
 def fetch_bridge(provider,dataset,url_env,token_env,required_for,params=None,stale_after=30):
     url=os.getenv(url_env,"").strip()
-    if not url:return not_configured(provider,dataset,url_env,required_for,stale_after)
+    if not url:return not_configured(provider,dataset,url_env,required_for,stale_after,state="NOT_ENTITLED")
     token=os.getenv(token_env,"").strip();headers={"Authorization":f"Bearer {token}"} if token else {}
     r=request_json(provider,dataset,url,cache_key=f"bridge_{provider}_{dataset}",ttl=3,stale_after=stale_after,headers=headers,params=params or {},timeout=5)
     rr=rows(r.get("payload"));return {"status":status(r,provider,dataset,len(rr),stale_after,"Persistent bridge snapshot.",url,required_for),"data":rr,"raw":r.get("payload")}
@@ -361,6 +387,25 @@ REQUIREMENTS={
  "validation":["source_lineage","freshness","frozen_spec","oos","calibration","drift"],
 }
 
+# Only these datasets determine whether a workspace has usable core data. Licensed enrichments
+# may make the workspace PARTIAL, but can no longer turn a healthy price/macro tab into NO_DATA.
+CORE_DATASETS_BY_TAB = {
+ "mission_control":{"macro_observations","market_breadth","cross_asset_rotation","core_prices"},
+ "macro_regime":{"macro_observations","liquidity_state"},
+ "early_warning":{"market_breadth","macro_observations","liquidity_state"},
+ "alpha_center":{"price_state","core_prices"},
+ "institutional":{"company_facts","sec_filings"},
+ "derivatives_squeeze":{"COT","futures_options_statistics"},
+ "us_stocks":{"core_prices","market_breadth","price_state"},
+ "ihsg":{"core_prices","market_breadth","price_state"},
+ "crypto":{"core_prices","market_breadth"},
+ "commodities":{"core_prices","COT"},
+ "fx":{"core_prices","COT"},
+ "flow_rotation":{"cross_asset_rotation","core_prices"},
+ "company_intel":{"price_state","core_prices"},
+ "validation":{"source_lineage"},
+}
+
 
 def collect_full_live_data(desk:Dict[str,Any]):
     tickers=shortlist(desk); etfs=[x.strip().upper() for x in os.getenv("WARROOM_ETF_FLOW_WATCHLIST","SPY,QQQ,IWM,SMH,XLF,XLE,XLK,XLI,GLD,TLT,EEM,EIDO").split(",") if x.strip()]
@@ -382,20 +427,48 @@ def collect_full_live_data(desk:Dict[str,Any]):
         if result.get("status"): statuses.append(result["status"])
     # Include core derived coverage in the same registry.
     macro=desk.get("macro_observations") or {}; breadth=desk.get("market_breadth") or {}; rotation=desk.get("rotation_snapshot") or {}
+    loaded_markets={k:int((v.get("funnel") or {}).get("universe") or 0) for k,v in (desk.get("markets") or {}).items()}
+    core_price_count=sum(loaded_markets.values())
+    breadth_count=sum(int((v or {}).get("coverage") or 0) for v in breadth.values())
+    setup_count=sum(len(v.get("setups") or []) for v in (desk.get("markets") or {}).values())
+    liq=(desk.get("systemic") or {}).get("liquidity")
+    liq_state="LIVE" if liq and str(liq).upper() not in {"NO_DATA","NONE","—","INITIALIZING"} else "NO_DATA"
     statuses += [
       Status("FRED","macro_observations","LIVE" if macro else "NO_DATA",records=len(macro),fetched_at=(desk.get("meta") or {}).get("generated"),stale_after_seconds=86400,note="Latest observations from loaded official macro series.",required_for=["mission_control","macro_regime","early_warning"]).to_dict(),
-      Status("War Room derived","market_breadth","LIVE" if breadth else "NO_DATA",records=len(breadth),fetched_at=(desk.get("meta") or {}).get("generated"),stale_after_seconds=300,note="Derived only from currently loaded universe; coverage disclosed.",required_for=["mission_control","early_warning","us_stocks","ihsg","crypto"]).to_dict(),
+      Status("War Room derived","market_breadth","LIVE" if breadth_count else "NO_DATA",records=breadth_count,fetched_at=(desk.get("meta") or {}).get("generated"),stale_after_seconds=300,note="Derived only from currently loaded universe; coverage disclosed.",required_for=["mission_control","early_warning","us_stocks","ihsg","crypto"]).to_dict(),
       Status("War Room derived","cross_asset_rotation","LIVE" if rotation.get("rows") else "NO_DATA",records=len(rotation.get("rows") or []),fetched_at=(desk.get("meta") or {}).get("generated"),stale_after_seconds=300,note="Relative-price rotation, not dollar flow.",required_for=["mission_control","macro_regime","flow_rotation"]).to_dict(),
+      Status("War Room core","core_prices","LIVE" if core_price_count else "NO_DATA",records=core_price_count,fetched_at=(desk.get("meta") or {}).get("generated"),stale_after_seconds=600,note=f"Loaded per market: {loaded_markets}",required_for=["mission_control","alpha_center","us_stocks","ihsg","crypto","commodities","fx","flow_rotation","company_intel"]).to_dict(),
+      Status("War Room core","price_state","LIVE" if setup_count else ("NO_SIGNAL" if core_price_count else "NO_DATA"),records=setup_count,fetched_at=(desk.get("meta") or {}).get("generated"),stale_after_seconds=600,note="NO_SIGNAL means price data loaded but no setup passed current gates.",required_for=["alpha_center","us_stocks","ihsg","company_intel"]).to_dict(),
+      Status("Treasury/NY Fed/FRED","liquidity_state",liq_state,records=1 if liq_state=="LIVE" else 0,fetched_at=(desk.get("meta") or {}).get("generated"),stale_after_seconds=86400,note=str(liq or "No usable liquidity observation"),required_for=["mission_control","macro_regime","early_warning"]).to_dict(),
+      Status("War Room","source_lineage","LIVE",records=len(statuses),fetched_at=(desk.get("meta") or {}).get("generated"),stale_after_seconds=86400,note="Provider, state and reporting lag registry.",required_for=["validation"]).to_dict(),
     ]
     live=sum(1 for x in statuses if x.get("state")=="LIVE");stale=sum(1 for x in statuses if x.get("state")=="STALE");errors=sum(1 for x in statuses if x.get("state")=="ERROR")
     configured=[x for x in statuses if x.get("state")!="NOT_CONFIGURED"]
     overall="LIVE" if configured and all(x.get("state") in {"LIVE","STANDBY"} for x in configured) else "PARTIAL" if live or stale else "ERROR" if errors else "NOT_CONFIGURED"
     tab_coverage={}
+    bad={"NOT_CONFIGURED","ACTION_REQUIRED","NOT_ENTITLED","NO_DATA","EMPTY","ERROR","OFFLINE"}
+    usable={"LIVE","STALE","PARTIAL","NO_SIGNAL","CASH_ONLY"}
     for tab,reqs in REQUIREMENTS.items():
         related=[x for x in statuses if tab in (x.get("required_for") or [])]
-        tab_coverage[tab]={"required_datasets":reqs,"provider_statuses":related,"live":sum(1 for x in related if x.get("state")=="LIVE"),
-                           "stale":sum(1 for x in related if x.get("state")=="STALE"),"missing":sum(1 for x in related if x.get("state") in {"NOT_CONFIGURED","NO_DATA","EMPTY","ERROR","OFFLINE"}),
-                           "state":"LIVE" if related and all(x.get("state")=="LIVE" for x in related) else "PARTIAL" if any(x.get("state") in {"LIVE","STALE"} for x in related) else "NO_DATA"}
+        core_names=CORE_DATASETS_BY_TAB.get(tab,set())
+        core=[x for x in related if x.get("dataset") in core_names]
+        core_usable=[x for x in core if x.get("state") in usable]
+        optional_missing=[x for x in related if x not in core and x.get("state") in bad]
+        if core and not core_usable:
+            state="ACTION_REQUIRED" if any(x.get("state")=="ACTION_REQUIRED" for x in core) else "NO_DATA"
+        elif core_usable and optional_missing:
+            state="PARTIAL"
+        elif core_usable:
+            state="LIVE"
+        elif any(x.get("state") in usable for x in related):
+            state="PARTIAL"
+        else:
+            state="NO_DATA"
+        tab_coverage[tab]={"required_datasets":reqs,"core_datasets":sorted(core_names),"provider_statuses":related,
+                           "live":sum(1 for x in related if x.get("state")=="LIVE"),
+                           "stale":sum(1 for x in related if x.get("state")=="STALE"),
+                           "missing":sum(1 for x in related if x.get("state") in bad),
+                           "optional_missing":len(optional_missing),"state":state}
     return {"generated":now_iso(),"overall_state":overall,"status_counts":{"live":live,"stale":stale,"error":errors,"total":len(statuses)},
             "watchlist":tickers,"etf_watchlist":etfs,"statuses":statuses,"tab_coverage":tab_coverage,"requirements":REQUIREMENTS,
             "sec_fundamentals":results.get("sec_fundamentals",{}).get("data") or [],

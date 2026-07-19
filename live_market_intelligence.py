@@ -345,6 +345,12 @@ def _desk_watchlist(desk: Dict[str, Any], limit: int = 8) -> List[str]:
     if configured:
         return configured[:limit]
     values: List[str] = []
+    # Liquid anchors come first. Previously five obscure setup tickers could consume the entire
+    # watchlist and make the aggregate US options panel read NO_DATA even while SPY/QQQ chains existed.
+    anchors = _parse_csv_env("WARROOM_OPTIONS_ANCHORS", ["SPY", "QQQ", "IWM", "SMH", "NVDA", "AMD"])
+    for ticker in anchors:
+        if ticker not in values:
+            values.append(ticker)
     for market_id in ("us",):
         market = ((desk.get("markets") or {}).get(market_id) or {})
         for row in market.get("setups") or []:
@@ -354,10 +360,6 @@ def _desk_watchlist(desk: Dict[str, Any], limit: int = 8) -> List[str]:
     for row in desk.get("alpha") or []:
         ticker = str(row.get("tk") or "").upper().strip()
         if ticker and ticker not in values and ticker.replace(".", "").isalnum():
-            values.append(ticker)
-    defaults = ["SPY", "QQQ", "NVDA", "AMD", "TSLA"]
-    for ticker in defaults:
-        if ticker not in values:
             values.append(ticker)
     return values[:limit]
 

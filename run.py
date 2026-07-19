@@ -351,10 +351,11 @@ def build_desk(data, top_per_market=12):
     systemic = {
         "quad": fm.get("forward_quad"), "quad_name": fm.get("quad_name"),
         "growth_roc": _num(fm.get("GROC")), "infl_roc": _num(fm.get("IROC")),
-        "liquidity": (lambda _r, _t: ("expanding" if liq.get("expanding")
-                      else (_r if _r and "no " not in _r.lower() else (_t or "—"))))(
-                      liq.get("reason"),
-                      data.get("treasury_liquidity", {}).get("bias") if data.get("treasury_liquidity", {}).get("ok") else None),
+        "liquidity": (data.get("treasury_liquidity", {}).get("bias")
+                      if data.get("treasury_liquidity", {}).get("ok")
+                      else ("expanding" if liq.get("expanding") else
+                            (liq.get("reason") if liq.get("reason") and "no " not in str(liq.get("reason")).lower() else "NO_DATA"))),
+        "liquidity_detail": data.get("treasury_liquidity", {}),
         "fragility": _num(fr.get("fragility")) if fr.get("ok") else fr.get("reason"),
         "shock_prob": _num(sh.get("shock_prob")) if sh.get("ok") else sh.get("reason"),
         "cross_asset": xa.get("regime"), "defer_longs": xa.get("defer_longs"),

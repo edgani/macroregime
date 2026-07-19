@@ -82,7 +82,7 @@ const money = x => { const n=num(x); if(n===null)return '—'; const a=Math.abs(
 const pct = x => { const n=num(x); return n===null?'—':(n>0?'+':'')+n.toFixed(1)+'%'; };
 const timeLabel = x => { if(!x)return '—'; try { const d=new Date(x); return isNaN(d)?String(x).slice(0,19):d.toISOString().replace('T',' ').slice(0,19)+'Z'; } catch(e){return String(x).slice(0,19);} };
 const short = (s,n=58) => String(s??'').length>n?String(s).slice(0,n-1)+'…':String(s??'');
-const normalizeState = s => { const v=String(s??'').toUpperCase(); if(/LIVE|BULL|LONG|EXPAND|ACCUM|IMPROV|POSITIVE|CONSTRUCT/.test(v))return 'constructive'; if(/BEAR|SHORT|CONTRACT|DISTRIB|DETERIOR|NEGATIVE|RISK|CRITICAL|ERROR|BROKEN/.test(v))return 'destructive'; if(/WATCH|MIXED|PARTIAL|WAIT|TRANSITION|GUARDED|STANDBY/.test(v))return 'watch'; if(/NO_DATA|NOT_CONFIGURED|EMPTY|UNAVAILABLE|NONE|—/.test(v))return 'no_data'; return 'neutral'; };
+const normalizeState = s => { const v=String(s??'').toUpperCase(); if(/LIVE|BULL|LONG|EXPAND|ACCUM|IMPROV|POSITIVE|CONSTRUCT/.test(v))return 'constructive'; if(/BEAR|SHORT|CONTRACT|DISTRIB|DETERIOR|NEGATIVE|RISK|CRITICAL|ERROR|BROKEN/.test(v))return 'destructive'; if(/WATCH|MIXED|PARTIAL|WAIT|TRANSITION|GUARDED|STANDBY|NO_SIGNAL|ACTION_REQUIRED|INITIALIZING/.test(v))return 'watch'; if(/NO_DATA|NOT_CONFIGURED|NOT_ENTITLED|EMPTY|UNAVAILABLE|OFFLINE|NONE|—/.test(v))return 'no_data'; return 'neutral'; };
 const sourceState = obj(D.data_health).overall || obj(D.meta).source || 'NO_DATA';
 const LI = obj(D.live_intelligence);
 const FLD = obj(D.full_live_data);
@@ -142,7 +142,8 @@ function basicRail(title,desc,current,next,alt,invalidation,windowText,confidenc
 
 function coverageFor(tab){return obj(obj(FLD.tab_coverage)[tab]);}
 function coverageRows(tab){return arr(coverageFor(tab).provider_statuses).map(x=>({time:x.fetched_at||FLD.generated,ticker:x.provider,desc:`${x.dataset} · ${x.note||''}`,state:x.state,raw:x}));}
-function coverageLabel(tab){const c=coverageFor(tab);return Object.keys(c).length?`${c.state||'NO_DATA'} · ${c.live||0} live / ${c.missing||0} missing`:'NO COVERAGE CONTRACT';}
+function coverageLabel(tab){const c=coverageFor(tab);return Object.keys(c).length?`${c.state||'NO_DATA'} · ${c.live||0} live · ${c.optional_missing||0} optional enrichment missing`:'NO COVERAGE CONTRACT';}
+function providerStatus(providerPattern,datasetPattern=''){return arr(FLD.statuses).find(x=>new RegExp(providerPattern,'i').test(String(x.provider||''))&&(!datasetPattern||new RegExp(datasetPattern,'i').test(String(x.dataset||''))))||null;}
 function latestFundamental(ticker){return arr(FLD.sec_fundamentals).find(x=>String(x.ticker||'').toUpperCase()===String(ticker||'').toUpperCase())||null;}
 function breadthFor(id){return obj(obj(D.market_breadth)[id]);}
 function marketDerivativeContext(id){
@@ -212,6 +213,11 @@ function firstCandidates(limit=8){
    const aligned=isSetupAligned(marketId,bias,s);
    out.push({ticker:s.tk,score:num(s.conv)||0,why:s.why,stage:s.act||s.ty,evidence:'observed',market:marketId,aligned,bias,raw:s});
   });
+  // Keep loaded names available for Company Intel even when no trade setup passes. These rows are
+  // explicitly PRICE CONTEXT and never become actionable/aligned candidates.
+  arr(breadthFor(marketId).constituents).slice(0,8).forEach(r=>{
+   const ticker=r.ticker||r.tk;if(ticker&&!out.some(x=>x.ticker===ticker))out.push({ticker,score:0,why:`Loaded price context · 1D ${pct(r.ret_1d)} · 5D ${pct(r.ret_5d)}`,stage:'PRICE CONTEXT',evidence:'observed',market:marketId,aligned:false,bias,raw:r});
+  });
  });
  if(state.mode==='all')arr(D.alpha).forEach(a=>a.tk&&out.push({ticker:a.tk,score:num(a.asymmetry)||0,why:a.node||a.scarcity||a.stage,stage:a.stage||'ALPHA',evidence:'structural',market:a.market||a.domain||null,aligned:false,raw:a}));
  const seen=new Set();
@@ -228,7 +234,7 @@ function modelMission(){
  const all=firstCandidates(80).filter(c=>c.evidence==='observed'&&c.aligned);
  const perMarket=[];
  ids.forEach(([id])=>{const c=all.filter(x=>x.market===id).sort((a,b)=>b.score-a.score)[0];if(c)perMarket.push(c);});
- const l3=perMarket.length?perMarket.map((c,i)=>node('c_'+i,c.ticker,short(c.why,34),c.stage||'CANDIDATE',c.stage,c.evidence||'observed',{raw:c,market:c.market})):[node('none','NO ALIGNED ACTIONABLE TICKER','market/setup gates emitted nothing','NO_DATA','NO_DATA')];
+ const l3=perMarket.length?perMarket.map((c,i)=>node('c_'+i,c.ticker,short(c.why,34),c.stage||'CANDIDATE',c.stage,c.evidence||'observed',{raw:c,market:c.market})):[node('none','NO ALIGNED ACTIONABLE TICKER','data loaded; current gates emitted no actionable ticker','NO_SIGNAL','NO_SIGNAL')];
  const g=layered([l0,l1,l2,l3]);
  // Keep each overview candidate directly below its actual parent market to eliminate crossing lines.
  l3.forEach(c=>{if(c.id==='none')return;const parent=l2.find(m=>m.market===c.market);if(parent)c.x=parent.x;});
@@ -290,7 +296,15 @@ function modelAlpha(){
  const structural=arr(D.alpha);
  const live=firstCandidates(30).filter(x=>x.evidence==='observed'&&x.aligned);
  if(state.mode!=='all'){
-  if(!live.length)return emptyModel('ALPHA CENTER','No live-gated candidate currently clears market-direction and setup gates. Structural hypotheses remain hidden in OBSERVED mode.');
+  if(!live.length){
+   const observed=firstCandidates(24).filter(x=>x.evidence==='observed');
+   const center=node('alpha_no_signal','ALPHA RESEARCH GATE','price data loaded; no candidate passed all gates','NO_SIGNAL','NO_SIGNAL','inferred',{x:500,y:310});
+   const rejected=observed.slice(0,12).map((a,i)=>{const angle=(i/Math.max(1,observed.length))*Math.PI*2;return node('ar_'+i,a.ticker,`${String(a.market||'').toUpperCase()} · conflicts with ${a.bias||'market state'}`,'FAILED CURRENT GATE','watch','observed',{x:500+Math.cos(angle)*190,y:310+Math.sin(angle)*190,raw:a,market:a.market});});
+   const g={nodes:[center,...rejected],edges:rejected.map(n=>edge(n.id,'alpha_no_signal','watch','inferred','did not clear all gates',1.4,{relation:'failed_gate'}))};
+   return {title:'ALPHA CENTER',sub:'NO_SIGNAL is not NO_DATA: live price/setup inputs loaded, but nothing currently clears direction, conviction and evidence gates.',canvas:'LIVE OPPORTUNITY GATE',badges:['observed','inferred'],graph:g,
+    rail:basicRail('NO SIGNAL','No candidate currently passes the complete observed gate.','Data is available; do not force a trade.','Wait for market alignment, stronger price evidence or independent confirmation.','Rejected candidates remain visible for audit, not recommendation.','Any candidate remains invalid until all required gates pass.','Until state changes',0,'NO ACTION'),
+    ledger:observed.slice(0,20).map(a=>({time:obj(D.meta).generated,ticker:a.ticker,desc:`FAILED CURRENT GATE · ${a.market} · bias ${a.bias} · ${a.stage} · ${a.why}`,state:'NO_SIGNAL',raw:a})),queue:[]};
+  }
   const center=node('alpha_live_core','LIVE ALPHA GATE','market → setup → evidence','OBSERVED CANDIDATES','watch','inferred',{x:500,y:310});
   const nodes=live.slice(0,16).map((a,i)=>{const angle=(i/Math.max(1,live.length))*Math.PI*2;const radius=140+(i%2)*62;return node('al_'+i,a.ticker,`${String(a.market||'').toUpperCase()} · ${a.bias||'—'}`,`${a.stage||'SETUP'} · ${Math.round(a.score||0)}`,a.stage,'observed',{x:500+Math.cos(angle)*radius,y:310+Math.sin(angle)*radius,raw:a,market:a.market});});
   const g={nodes:[center,...nodes],edges:nodes.map(n=>edge('alpha_live_core',n.id,n.state,'inferred','passed live gate',1.8,{active:true,relation:'live_alpha_gate'}))};
@@ -318,8 +332,8 @@ function modelInstitutional(){
  const pnodes=providers.map((p,i)=>node('p_'+i,p.provider,p.dataset,p.state,p.state,'observed',{raw:p,provider:p.provider}));
  const tickerNames=[...new Set(events.map(e=>e.ticker).filter(Boolean))].slice(0,8);
  const tickers=tickerNames.map((t,i)=>node('it_'+i,t,'observed event cluster',`${events.filter(e=>e.ticker===t).length} events`,'watch','observed',{raw:{ticker:t,events:events.filter(e=>e.ticker===t)},ticker:t}));
- const gate=node('iscore','EVIDENCE GATE','cross-source reconciliation',events.length?'EVIDENCE ACTIVE':'NO EVENTS',events.length?'watch':'NO_DATA','inferred');
- const last=tickers.length?tickers:[node('ino','NO LIVE INSTITUTIONAL EVENTS','credentials or feed required','NO_DATA','NO_DATA')];
+ const gate=node('iscore','EVIDENCE GATE','cross-source reconciliation',events.length?'EVIDENCE ACTIVE':'NO_SIGNAL',events.length?'watch':'NO_SIGNAL','inferred');
+ const last=tickers.length?tickers:[node('ino','NO LIVE INSTITUTIONAL EVENTS','public SEC may need user-agent; licensed enrichments need entitlement','NO_SIGNAL','NO_SIGNAL')];
  const g=layered([pnodes,last,[gate]]);
  function providerMatches(p,e){const s=(String(p.provider)+' '+String(p.dataset)).toUpperCase(),t=String(e.event_type||'').toUpperCase(),ep=String(e.provider||'').toUpperCase();return s.includes(ep)||ep.includes(String(p.provider).toUpperCase())||(t==='OPTIONS_FLOW'&&/UNUSUAL|OPTION/.test(s))||(t==='DARK_POOL'&&/MASSIVE|DARK|TRF/.test(s))||(t==='SEC_FILING'&&/SEC/.test(s))||(t==='SMART_MONEY'&&/NANSEN/.test(s))||(t==='ARKHAM_TRANSFER'&&/ARKHAM/.test(s));}
  tickers.forEach(tn=>{events.filter(e=>e.ticker===tn.ticker).forEach(e=>{const p=pnodes.find(n=>providerMatches(n.raw,e));if(p)g.edges.push(edge(p.id,tn.id,eventState(e),'observed',e.event_type,1.8,{active:true,relation:'observed_event'}));});g.edges.push(edge(tn.id,gate.id,'watch','inferred','reconcile',1.6,{relation:'evidence_gate'}));});
@@ -390,7 +404,7 @@ function modelMarket(id,title){
  const breadthNode=node('breadth_ctx','BREADTH',`${b.coverage||0} names`,b.state==='LIVE'?`${fmt(b.advance_pct)}% ADV`:'NO_DATA',b.advance_pct>=55?'constructive':b.advance_pct<45?'destructive':'watch','observed',{raw:b});
  const derivNode=node('mderiv',derivCtx.label,`${liveRows.length} normalized rows`,liveState,liveState,'observed',{raw:liveRows});
  const l1=[stateNode,breadthNode,derivNode];
- const l2=setups.length?setups.slice(0,8).map((s,i)=>node('s_'+i,s.tk,short(s.why,35),s.act||s.ty||'SETUP',s.act||s.ty,'observed',{raw:s,market:id})):[node('sn','NO ALIGNED SURFACED TICKER',allSetups.length?'setups conflict with market bias':'conviction gate not met','NO_DATA','NO_DATA')];
+ const l2=setups.length?setups.slice(0,8).map((s,i)=>node('s_'+i,s.tk,short(s.why,35),s.act||s.ty||'SETUP',s.act||s.ty,'observed',{raw:s,market:id})):[node('sn','NO ALIGNED SURFACED TICKER',allSetups.length?'setups conflict with market bias':'price data loaded; conviction gate not met','NO_SIGNAL','NO_SIGNAL')];
  const g=layered([l0,l1,l2]);
  l0.forEach(d=>{if(edgeAllowed(d,stateNode))g.edges.push(edge(d.id,stateNode.id,'watch','structural','driver',1.4,{relation:'driver_state'}));});
  if(edgeAllowed(breadthNode,stateNode))g.edges.push(edge(breadthNode.id,stateNode.id,'watch','inferred','breadth confirm',1.5,{relation:'confirmation'}));
@@ -433,15 +447,18 @@ function modelSupply(){
 }
 
 function modelCompany(){
- const pool=firstCandidates(50); const cand=(state.selectedTicker&&pool.find(x=>x.ticker===state.selectedTicker))||pool.find(x=>x.aligned); if(!cand)return emptyModel('COMPANY INTEL','Select a ticker from any live queue or wait for an aligned candidate to clear the gates.');
+ const pool=firstCandidates(80); const cand=(state.selectedTicker&&pool.find(x=>x.ticker===state.selectedTicker))||pool.find(x=>x.aligned)||pool[0]; if(!cand)return emptyModel('COMPANY INTEL','No ticker has usable price/setup data yet. The tab no longer requires an aligned Alpha candidate, but it still requires at least one loaded ticker.');
  const t=cand.ticker, events=arr(obj(D.institutional).events).filter(e=>e.ticker===t), setup=Object.values(obj(D.markets)).flatMap(m=>arr(m.setups)).find(s=>s.tk===t), alpha=arr(D.alpha).find(a=>a.tk===t), fundamental=latestFundamental(t);
- const root=node('co','COMPANY / TOKEN',cand.why||'candidate',t,'watch','observed',{raw:{cand,setup,alpha,events}});
- const value=node('value','VALUE CAPTURE','bottleneck / role',alpha?.node||alpha?.scarcity||'NO_DATA',alpha?'watch':'NO_DATA',alpha?'structural':'observed');
- const fund=node('fund','FUNDAMENTALS','SEC filed XBRL',fundamental?'LIVE':'NO_DATA',fundamental?'constructive':'NO_DATA','observed',{raw:fundamental});
- const pos=node('pos','POSITIONING','options / TRF / filings',events.length?`${events.length} EVENTS`:'NO_DATA',events.length?'watch':'NO_DATA','observed');
- const valuation=node('valuation','VALUATION','expected vs market cap',alpha?.upside||'NO_DATA',alpha?'watch':'NO_DATA','inferred');
- const price=node('price','PRICE STATE','entry / stop / target',setup?`${fmt(setup.e)} / ${fmt(setup.s)} / ${fmt(setup.t)}`:'NO_DATA',setup?.act||'NO_DATA','observed');
- const kill=node('kill','KILL THESIS','fundamental + price invalidation',setup?.warn||'NOT DEFINED',setup?.warn?'destructive':'NO_DATA','inferred');
+ const sec=providerStatus('SEC','company|facts'), instConfigured=arr(obj(D.institutional).statuses).some(x=>!['NOT_CONFIGURED','NOT_ENTITLED','ACTION_REQUIRED'].includes(String(x.state||'').toUpperCase()));
+ const root=node('co','COMPANY / TOKEN',cand.why||'loaded candidate',t,cand.aligned?'watch':'NO_SIGNAL','observed',{raw:{cand,setup,alpha,events}});
+ const value=node('value','VALUE CAPTURE','bottleneck / role',alpha?.node||alpha?.scarcity||'RESEARCH NOT MAPPED',alpha?'watch':'NO_SIGNAL',alpha?'structural':'observed');
+ const fundamentalState=fundamental?'LIVE':(sec?.state||'ACTION_REQUIRED');
+ const fund=node('fund','FUNDAMENTALS','SEC filed XBRL',fundamental?'LIVE':fundamentalState,fundamental?'constructive':fundamentalState,'observed',{raw:fundamental||sec});
+ const positionState=events.length?'LIVE':(instConfigured?'NO_SIGNAL':'NOT_ENTITLED');
+ const pos=node('pos','POSITIONING','options / TRF / filings',events.length?`${events.length} EVENTS`:positionState,events.length?'watch':positionState,'observed');
+ const valuation=node('valuation','VALUATION','expected vs market cap',alpha?.upside||'RESEARCH NOT MAPPED',alpha?'watch':'NO_SIGNAL','inferred');
+ const price=node('price','PRICE STATE','entry / stop / target',setup?`${fmt(setup.e)} / ${fmt(setup.s)} / ${fmt(setup.t)}`:'NO_SIGNAL',setup?.act||'NO_SIGNAL','observed');
+ const kill=node('kill','KILL THESIS','fundamental + price invalidation',setup?.warn||'NOT YET DEFINED',setup?.warn?'destructive':'NO_SIGNAL','inferred');
  const l0=[root],l1=[value,fund,pos],l2=[valuation,price,kill]; const g=layered([l0,l1,l2]);
  connectPairs(g,[[root,value,'watch',value.evidence,'structural role'],[root,fund,'watch','observed','filed facts'],[root,pos,'watch','observed','events'],[value,valuation,'watch','inferred','value capture'],[fund,valuation,'watch','inferred','valuation input'],[fund,kill,'watch','inferred','fundamental invalidation'],[price,kill,'watch','inferred','price invalidation'],[pos,price,'watch','inferred','confirmation only']]);
  return {title:'COMPANY INTEL',sub:'Explicit evidence relationships only; fundamentals, positioning and value capture no longer point to every output.',canvas:`${t} INVESTMENT MAP`,badges:['observed','structural','inferred'],graph:g,

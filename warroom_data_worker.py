@@ -1,4 +1,4 @@
-"""Stable background collector for War Room OS v2.4.
+"""Stable background collector for War Room OS v2.6.
 
 Design goals:
 - one worker process only;
@@ -35,7 +35,7 @@ except Exception:
 
 from runtime_store import (
     PID, claim_worker_instance, consume_force_refresh, force_refresh_requested, now_iso,
-    read_snapshot, release_worker_instance, write_snapshot, write_status,
+    read_snapshot, read_status, release_worker_instance, write_snapshot, write_status,
 )
 
 STOP = False
@@ -60,9 +60,22 @@ def _stop(*_):
     STOP = True
 
 
-signal.signal(signal.SIGTERM, _stop)
-if hasattr(signal, "SIGINT"):
-    signal.signal(signal.SIGINT, _stop)
+import threading
+
+def _install_signal_handlers() -> None:
+    """Install process signal handlers only from the real main thread.
+
+    Streamlit executes app code in a ScriptRunner thread. Importing this module from an
+    embedded fallback worker must therefore never call signal.signal() at import time.
+    """
+    if threading.current_thread() is not threading.main_thread():
+        return
+    try:
+        signal.signal(signal.SIGTERM, _stop)
+        if hasattr(signal, "SIGINT"):
+            signal.signal(signal.SIGINT, _stop)
+    except (ValueError, OSError):
+        pass
 
 
 def build_core(fast: bool = True) -> dict:
@@ -140,8 +153,32 @@ def _child_call(kind: str, payload: Any, result_path: str) -> None:
         pass
 
 
+def _direct_collect(kind: str, payload: Any) -> dict:
+    """Single-process fallback for hosts that disallow child processes.
+
+    This path is used only when explicitly requested or when process creation itself fails.
+    Provider adapters still carry their own HTTP timeouts, and the plane remains isolated in the
+    worker executor so the Streamlit render thread is never blocked.
+    """
+    if kind == "core_fast":
+        value = build_core(True)
+    elif kind == "core_expanded":
+        value = build_core(False)
+    elif kind == "events":
+        value = collect_event_planes(payload)
+    elif kind == "slow":
+        value = collect_slow_plane(payload)
+    else:
+        raise ValueError(f"unknown collector kind {kind}")
+    if not isinstance(value, dict):
+        raise TypeError(f"{kind} returned {type(value).__name__}, expected dict")
+    return value
+
+
 def run_bounded(kind: str, payload: Any, timeout: int) -> dict:
-    """Run a collector in a killable child process and return its dictionary result."""
+    """Run a collector in a killable child process, with a hosted single-process fallback."""
+    if os.getenv("WARROOM_INPROCESS_COLLECTORS", "0").strip().lower() in {"1", "true", "yes"}:
+        return _direct_collect(kind, payload)
     context = mp.get_context("spawn" if os.name == "nt" else "fork")
     fd, result_path = tempfile.mkstemp(prefix=f"warroom_{kind}_", suffix=".pkl", dir=str(HERE / "runtime"))
     os.close(fd)
@@ -150,7 +187,16 @@ def run_bounded(kind: str, payload: Any, timeout: int) -> dict:
     except OSError:
         pass
     process = context.Process(target=_child_call, args=(kind, payload, result_path), daemon=True)
-    process.start()
+    try:
+        process.start()
+    except (OSError, RuntimeError, PermissionError) as exc:
+        LOGGER.warning("child process unavailable for %s; using in-process collector: %s", kind, exc)
+        for path in (result_path,):
+            try:
+                os.unlink(path)
+            except OSError:
+                pass
+        return _direct_collect(kind, payload)
     process.join(timeout=max(10, int(timeout)))
     if process.is_alive():
         process.terminate()
@@ -296,6 +342,44 @@ def _dedupe_statuses(rows: list[dict]) -> list[dict]:
     return list(out.values())
 
 
+def _degraded_core_snapshot(error: str, previous: dict | None = None) -> dict:
+    """Produce a complete NO_DATA desk when the first live core attempt fails.
+
+    The UI must never remain INITIALIZING forever. Building the normal desk in explicit offline
+    mode gives every market/tab a truthful missing-data state and preserves the collector error.
+    """
+    previous = previous or {}
+    old_mode = os.environ.get("WARROOM_NETWORK_MODE")
+    try:
+        os.environ["WARROOM_NETWORK_MODE"] = "offline"
+        desk = build_core(True)
+    except Exception:
+        desk = {
+            "meta": {"source": "NO_DATA", "note": "Initial core collection failed."},
+            "systemic": {"liquidity": "NO_DATA", "quad_name": "NO_DATA"},
+            "markets": {}, "alpha": [], "reference": {}, "macro_observations": {},
+            "market_breadth": {}, "rotation_snapshot": {},
+            "data_health": {"overall": "NO_DATA", "sources": [], "live_count": 0, "total_count": 0},
+        }
+    finally:
+        if old_mode is None:
+            os.environ.pop("WARROOM_NETWORK_MODE", None)
+        else:
+            os.environ["WARROOM_NETWORK_MODE"] = old_mode
+    runtime = desk.setdefault("runtime", {})
+    runtime.update({
+        "worker_state": "CORE_ERROR",
+        "initial_core_error": error,
+        "core_collected_at": now_iso(),
+        "core_profile": "DEGRADED_OFFLINE_STATUS",
+    })
+    desk.setdefault("meta", {})["note"] = f"Live core failed; showing explicit NO_DATA states. {error}"
+    health = desk.setdefault("data_health", {})
+    health["overall"] = "NO_DATA"
+    health["initial_core_error"] = error
+    return desk
+
+
 def merge_snapshot(core: dict, institutional: dict | None, live: dict | None,
                    full: dict | None, previous: dict | None, diagnostics: list[dict] | None = None) -> dict:
     previous = previous or {}
@@ -357,8 +441,12 @@ def merge_snapshot(core: dict, institutional: dict | None, live: dict | None,
 
     all_diag = list(diagnostics or []) + core_retained + [x for x in (inst_diag, live_diag, full_diag) if x]
     runtime = desk.setdefault("runtime", {})
+    merged_worker_state = (
+        "CORE_ERROR" if runtime.get("initial_core_error") and str(health.get("overall") or "").upper() == "NO_DATA"
+        else "LIVE"
+    )
     runtime.update({
-        "worker_state": "LIVE",
+        "worker_state": merged_worker_state,
         "worker_heartbeat_at": now_iso(),
         "stability_events": all_diag[-30:],
         "institutional_collected_at": (inst.get("generated") or runtime.get("institutional_collected_at")),
@@ -374,102 +462,136 @@ def _current_core(snapshot: dict) -> dict:
 
 
 def loop() -> None:
-    # Atomic lease prevents simultaneous Streamlit sessions/manual launches from racing on PID.write.
-    if not claim_worker_instance():
-        LOGGER.info("collector start skipped: another worker owns the instance lease")
-        return
-    LOGGER.info("collector started pid=%s", os.getpid())
-
-    previous = read_snapshot() or {}
-    core = _current_core(previous) if previous.get("markets") else None
-    institutional = previous.get("institutional")
-    live = previous.get("live_intelligence")
-    full = previous.get("full_live_data")
-    last_started = {"core": 0.0, "events": 0.0, "slow": 0.0, "expanded": 0.0}
-    pending: dict[str, Future] = {}
-    diagnostics: list[dict] = []
-    last_success = str((read_status() or {}).get("last_success") or "")
-    executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="warroom-plane")
-
-    timeouts = {
-        "core": int(os.getenv("WARROOM_FAST_CORE_HARD_TIMEOUT", "90")),
-        "events": int(os.getenv("WARROOM_EVENT_HARD_TIMEOUT", "75")),
-        "slow": int(os.getenv("WARROOM_SLOW_HARD_TIMEOUT", "120")),
-        "expanded": int(os.getenv("WARROOM_EXPANDED_CORE_HARD_TIMEOUT", "240")),
-    }
-
-    def schedule(name: str, kind: str, payload: dict | None = None) -> None:
-        if name in pending:
-            return
-        write_status(state=f"COLLECTING_{name.upper()}", pid=os.getpid(), pending=sorted([*pending, name]))
-        LOGGER.info("schedule %s kind=%s", name, kind)
-        pending[name] = executor.submit(run_bounded, kind, payload, timeouts[name])
-        last_started[name] = time.time()
-
+    """Long-running collector with fatal-error reporting and guaranteed lease cleanup."""
+    _install_signal_handlers()
+    claimed = False
+    executor: ThreadPoolExecutor | None = None
     try:
-        while not STOP:
-            force = consume_force_refresh()
-            now = time.time()
-            if (force or core is None or now - last_started["core"] >= CORE_SECONDS) and "core" not in pending:
-                schedule("core", "core_fast")
-            if core is not None and (force or now - last_started["events"] >= EVENT_SECONDS) and "events" not in pending:
-                schedule("events", "events", core)
-            if core is not None and (force or now - last_started["slow"] >= SLOW_SECONDS) and "slow" not in pending:
-                schedule("slow", "slow", core)
-            if core is not None and (force or now - last_started["expanded"] >= EXPANDED_SECONDS) and "expanded" not in pending:
-                schedule("expanded", "core_expanded")
+        # Atomic lease prevents simultaneous Streamlit sessions/manual launches from racing.
+        if not claim_worker_instance():
+            LOGGER.info("collector start skipped: another worker owns the instance lease")
+            return
+        claimed = True
+        LOGGER.info("collector started pid=%s", os.getpid())
+        write_status(state="BOOTING", pid=os.getpid(), pending=[], error=None)
 
-            changed = False
-            for name, future in list(pending.items()):
-                if not future.done():
-                    continue
-                pending.pop(name, None)
-                try:
-                    value = future.result()
-                    if name == "core":
-                        core, core_diag = _stabilize_core(value, core or previous)
-                        diagnostics.extend(core_diag)
-                    elif name == "expanded":
-                        candidate, core_diag = _stabilize_core(value, core or previous)
-                        if sum(_market_universe(candidate, m) for m in MARKETS) >= sum(_market_universe(core or {}, m) for m in MARKETS):
-                            core = candidate
-                        diagnostics.extend(core_diag)
-                    elif name == "events":
-                        institutional = value.get("institutional")
-                        live = value.get("live_intelligence")
-                    elif name == "slow":
-                        full = value
-                    last_success = now_iso()
-                    diagnostics.append({"plane": name, "action": "REFRESH_OK", "at": last_success})
-                    LOGGER.info("refresh ok plane=%s", name)
-                    changed = True
-                except Exception as exc:
-                    diagnostics.append({"plane": name, "action": "REFRESH_ERROR", "error": f"{type(exc).__name__}: {exc}", "at": now_iso()})
-                    LOGGER.exception("refresh error plane=%s: %s", name, exc)
-                    write_status(state=f"{name.upper()}_ERROR", pid=os.getpid(), error=f"{type(exc).__name__}: {exc}")
+        previous = read_snapshot() or {}
+        core = _current_core(previous) if previous.get("markets") else None
+        institutional = previous.get("institutional")
+        live = previous.get("live_intelligence")
+        full = previous.get("full_live_data")
+        last_started = {"core": 0.0, "events": 0.0, "slow": 0.0, "expanded": 0.0}
+        pending: dict[str, Future] = {}
+        diagnostics: list[dict] = []
+        last_success = str((read_status() or {}).get("last_success") or "")
+        executor = ThreadPoolExecutor(max_workers=4, thread_name_prefix="warroom-plane")
 
-            if changed and core is not None:
-                snapshot = merge_snapshot(core, institutional, live, full, previous, diagnostics)
-                result = write_snapshot(snapshot)
-                previous = read_snapshot() or snapshot
-                LOGGER.info("snapshot commit written=%s changed=%s revision=%s", result.get("written"), result.get("changed"), result.get("revision"))
+        timeouts = {
+            "core": int(os.getenv("WARROOM_FAST_CORE_HARD_TIMEOUT", "90")),
+            "events": int(os.getenv("WARROOM_EVENT_HARD_TIMEOUT", "75")),
+            "slow": int(os.getenv("WARROOM_SLOW_HARD_TIMEOUT", "120")),
+            "expanded": int(os.getenv("WARROOM_EXPANDED_CORE_HARD_TIMEOUT", "240")),
+        }
 
-            write_status(
-                state="IDLE" if not pending else "COLLECTING",
-                pid=os.getpid(), pending=sorted(pending), last_success=last_success or None,
-                snapshot_revision=int(((previous.get("runtime") or {}).get("snapshot_sequence") or 0)),
-                force_pending=force_refresh_requested(),
-            )
-            for _ in range(10):
-                if STOP or force_refresh_requested():
-                    break
-                time.sleep(0.5)
+        def schedule(name: str, kind: str, payload: dict | None = None) -> None:
+            if name in pending:
+                return
+            write_status(state=f"COLLECTING_{name.upper()}", pid=os.getpid(), pending=sorted([*pending, name]))
+            LOGGER.info("schedule %s kind=%s", name, kind)
+            pending[name] = executor.submit(run_bounded, kind, payload, timeouts[name])
+            last_started[name] = time.time()
+
+        try:
+            while not STOP:
+                force = consume_force_refresh()
+                now = time.time()
+                core_retry_seconds = min(CORE_SECONDS, max(30, int(os.getenv("WARROOM_INITIAL_CORE_RETRY_SECONDS", "60"))))
+                core_due = (core is None and now - last_started["core"] >= core_retry_seconds) or (core is not None and now - last_started["core"] >= CORE_SECONDS)
+                if (force or core_due) and "core" not in pending:
+                    schedule("core", "core_fast")
+                core_ready = bool(core) and (
+                    sum(_market_universe(core, m) for m in MARKETS) > 0
+                    or len((core or {}).get("macro_observations") or {}) > 0
+                )
+                if core_ready and (force or now - last_started["events"] >= EVENT_SECONDS) and "events" not in pending:
+                    schedule("events", "events", core)
+                if core_ready and (force or now - last_started["slow"] >= SLOW_SECONDS) and "slow" not in pending:
+                    schedule("slow", "slow", core)
+                if core_ready and (force or now - last_started["expanded"] >= EXPANDED_SECONDS) and "expanded" not in pending:
+                    schedule("expanded", "core_expanded")
+
+                changed = False
+                for name, future in list(pending.items()):
+                    if not future.done():
+                        continue
+                    pending.pop(name, None)
+                    try:
+                        value = future.result()
+                        if name == "core":
+                            core, core_diag = _stabilize_core(value, core or previous)
+                            diagnostics.extend(core_diag)
+                        elif name == "expanded":
+                            candidate, core_diag = _stabilize_core(value, core or previous)
+                            if sum(_market_universe(candidate, m) for m in MARKETS) >= sum(_market_universe(core or {}, m) for m in MARKETS):
+                                core = candidate
+                            diagnostics.extend(core_diag)
+                        elif name == "events":
+                            institutional = value.get("institutional")
+                            live = value.get("live_intelligence")
+                        elif name == "slow":
+                            full = value
+                        last_success = now_iso()
+                        diagnostics.append({"plane": name, "action": "REFRESH_OK", "at": last_success})
+                        LOGGER.info("refresh ok plane=%s", name)
+                        changed = True
+                    except Exception as exc:
+                        error_text = f"{type(exc).__name__}: {exc}"
+                        diagnostics.append({"plane": name, "action": "REFRESH_ERROR", "error": error_text, "at": now_iso()})
+                        LOGGER.exception("refresh error plane=%s: %s", name, exc)
+                        write_status(state=f"{name.upper()}_ERROR", pid=os.getpid(), error=error_text)
+                        if name == "core" and core is None:
+                            core = _degraded_core_snapshot(error_text, previous)
+                            changed = True
+
+                if changed and core is not None:
+                    snapshot = merge_snapshot(core, institutional, live, full, previous, diagnostics)
+                    result = write_snapshot(snapshot)
+                    previous = read_snapshot() or snapshot
+                    LOGGER.info("snapshot commit written=%s changed=%s revision=%s", result.get("written"), result.get("changed"), result.get("revision"))
+
+                if pending:
+                    loop_state = "COLLECTING"
+                elif core is not None and str(((core.get("data_health") or {}).get("overall") or "")).upper() == "NO_DATA":
+                    loop_state = "DEGRADED"
+                else:
+                    loop_state = "IDLE"
+                write_status(
+                    state=loop_state,
+                    pid=os.getpid(), pending=sorted(pending), last_success=last_success or None,
+                    snapshot_revision=int(((previous.get("runtime") or {}).get("snapshot_sequence") or 0)),
+                    force_pending=force_refresh_requested(),
+                )
+                for _ in range(10):
+                    if STOP or force_refresh_requested():
+                        break
+                    time.sleep(0.5)
+        finally:
+            if executor is not None:
+                executor.shutdown(wait=False, cancel_futures=True)
+    except BaseException as exc:
+        LOGGER.exception("collector fatal error: %s", exc)
+        try:
+            write_status(state="WORKER_FATAL", pid=os.getpid(), pending=[], error=f"{type(exc).__name__}: {exc}")
+        except Exception:
+            pass
+        raise
     finally:
-        executor.shutdown(wait=False, cancel_futures=True)
-        release_worker_instance()
+        if claimed:
+            release_worker_instance()
         LOGGER.info("collector stopped pid=%s", os.getpid())
-        write_status(state="STOPPED", pid=os.getpid(), pending=[])
-
+        current_state = str((read_status() or {}).get("state") or "")
+        if current_state != "WORKER_FATAL":
+            write_status(state="STOPPED" if STOP else current_state or "STOPPED", pid=os.getpid(), pending=[])
 
 def run_once(previous: dict | None = None) -> dict:
     previous = previous or read_snapshot() or {}

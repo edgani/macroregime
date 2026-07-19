@@ -1,8 +1,8 @@
-"""War Room OS stable shell.
+"""War Room OS hosted deployment shell.
 
-The dashboard iframe is mounted once.  It polls ``static/desk_snapshot.json`` directly and updates
-only when the worker publishes a new content revision.  There is no ``st.fragment``/autorefresh
-loop, so the whole iframe cannot blink every few seconds.
+The dashboard is embedded once. A singleton collector runs inside the Streamlit process by default,
+which is compatible with managed hosts that terminate or sandbox detached child processes. Local
+power users may set ``WARROOM_WORKER_MODE=process`` to use the external collector process.
 """
 from __future__ import annotations
 
@@ -11,7 +11,9 @@ import os
 import shutil
 import subprocess
 import sys
+import threading
 import time
+import traceback
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -24,8 +26,14 @@ except Exception:
 
 import streamlit as st
 from runtime_store import (
-    STATIC_SNAPSHOT, STATIC_STATUS, acquire_start_lock, read_snapshot, read_status,
-    release_start_lock, worker_alive,
+    STATIC_SNAPSHOT,
+    STATIC_STATUS,
+    acquire_start_lock,
+    read_snapshot,
+    read_status,
+    release_start_lock,
+    worker_alive,
+    write_status,
 )
 
 st.set_page_config(page_title="War Room OS", layout="wide", initial_sidebar_state="collapsed")
@@ -42,83 +50,187 @@ st.markdown(
 DASH_SOURCE = HERE / "dashboard.html"
 DASH_STATIC = HERE / "static" / "dashboard_live.html"
 WORKER_PATH = HERE / "warroom_data_worker.py"
+BOOT_LOG = HERE / "runtime" / "worker_boot.log"
 
 
 def _boot_snapshot() -> dict:
     status = read_status() or {}
+    worker_state = str(status.get("state") or "STARTING")
     return {
-        "meta": {"source": "INITIALIZING", "generated": status.get("updated_at", "—"),
-                 "note": "Background collector is building the first stable snapshot."},
-        "runtime": {"worker_state": status.get("state", "STARTING"),
-                    "architecture": "background-worker/static-json-polling",
-                    "snapshot_sequence": 0, "content_hash": "boot"},
+        "meta": {
+            "source": "INITIALIZING",
+            "generated": status.get("updated_at", "—"),
+            "note": "Collector is building the first stable snapshot.",
+        },
+        "runtime": {
+            "worker_state": worker_state,
+            "architecture": "embedded-worker/static-json-polling",
+            "snapshot_sequence": 0,
+            "content_hash": "boot",
+        },
         "data_health": {"overall": "INITIALIZING", "sources": [], "live_count": 0, "total_count": 0},
         "systemic": {"liquidity": "INITIALIZING", "quad_name": "INITIALIZING"},
-        "markets": {}, "alpha": [], "reference": {}, "macro_observations": {},
-        "market_breadth": {}, "rotation_snapshot": {},
+        "markets": {},
+        "alpha": [],
+        "reference": {},
+        "macro_observations": {},
+        "market_breadth": {},
+        "rotation_snapshot": {},
         "institutional": {"overall_state": "INITIALIZING", "statuses": [], "events": []},
-        "live_intelligence": {"overall_state": "INITIALIZING", "statuses": [], "events": [],
-                              "crypto_derivatives": [], "crypto_options": [], "us_options": [],
-                              "us_squeeze": []},
+        "live_intelligence": {
+            "overall_state": "INITIALIZING",
+            "statuses": [],
+            "events": [],
+            "crypto_derivatives": [],
+            "crypto_options": [],
+            "us_options": [],
+            "us_squeeze": [],
+        },
         "full_live_data": {"overall_state": "INITIALIZING", "statuses": [], "tab_coverage": {}},
     }
+
+
+def _json_revision(path: Path) -> int:
+    try:
+        obj = json.loads(path.read_text(encoding="utf-8"))
+        return int(((obj.get("runtime") or {}).get("snapshot_sequence") or 0))
+    except Exception:
+        return -1
 
 
 def _prepare_static() -> None:
     DASH_STATIC.parent.mkdir(parents=True, exist_ok=True)
     if not DASH_STATIC.exists() or DASH_STATIC.stat().st_mtime < DASH_SOURCE.stat().st_mtime:
         shutil.copy2(DASH_SOURCE, DASH_STATIC)
-    if not STATIC_SNAPSHOT.exists():
-        source = read_snapshot() or _boot_snapshot()
-        STATIC_SNAPSHOT.write_text(json.dumps(source, default=str, separators=(",", ":")), encoding="utf-8")
+
+    runtime_snapshot = read_snapshot()
+    if runtime_snapshot is not None and (
+        not STATIC_SNAPSHOT.exists() or _json_revision(STATIC_SNAPSHOT) < int(((runtime_snapshot.get("runtime") or {}).get("snapshot_sequence") or 0))
+    ):
+        STATIC_SNAPSHOT.write_text(json.dumps(runtime_snapshot, default=str, separators=(",", ":")), encoding="utf-8")
+    elif not STATIC_SNAPSHOT.exists():
+        STATIC_SNAPSHOT.write_text(json.dumps(_boot_snapshot(), default=str, separators=(",", ":")), encoding="utf-8")
+
     if not STATIC_STATUS.exists():
         STATIC_STATUS.write_text(json.dumps(read_status() or {"state": "STARTING"}), encoding="utf-8")
 
 
-def _start_worker() -> bool:
+def _start_process_worker() -> dict:
+    """Start the standalone worker and preserve its stderr for deployment diagnostics."""
     if worker_alive():
-        return True
+        return {"mode": "existing", "started": True}
     if not acquire_start_lock():
-        # Another Streamlit session/rerun is already spawning it.
-        for _ in range(20):
+        for _ in range(30):
             if worker_alive():
-                return True
+                return {"mode": "existing", "started": True}
             time.sleep(0.1)
-        return worker_alive()
+        return {"mode": "process", "started": False, "error": "worker start lock held without a live worker"}
     try:
+        BOOT_LOG.parent.mkdir(parents=True, exist_ok=True)
         flags = 0
-        kwargs = {}
+        kwargs: dict = {}
         if os.name == "nt":
             flags = getattr(subprocess, "CREATE_NO_WINDOW", 0) | getattr(subprocess, "DETACHED_PROCESS", 0)
         else:
             kwargs["start_new_session"] = True
-        subprocess.Popen(
-            [sys.executable, str(WORKER_PATH)], cwd=str(HERE),
-            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-            creationflags=flags, **kwargs,
-        )
-        for _ in range(30):
-            if worker_alive():
-                return True
+        with open(BOOT_LOG, "a", encoding="utf-8", buffering=1) as log_handle:
+            subprocess.Popen(
+                [sys.executable, str(WORKER_PATH)],
+                cwd=str(HERE),
+                stdout=log_handle,
+                stderr=log_handle,
+                creationflags=flags,
+                **kwargs,
+            )
+        for _ in range(50):
+            status = read_status() or {}
+            state = str(status.get("state") or "")
+            if worker_alive() and state not in {"", "STARTING"}:
+                return {"mode": "process", "started": True, "state": state}
+            if state in {"WORKER_FATAL", "START_ERROR"}:
+                return {"mode": "process", "started": False, "error": status.get("error")}
             time.sleep(0.1)
-        return worker_alive()
-    except Exception:
-        return False
+        return {"mode": "process", "started": worker_alive(), "state": (read_status() or {}).get("state")}
+    except Exception as exc:
+        write_status(state="START_ERROR", error=f"{type(exc).__name__}: {exc}", pending=[])
+        return {"mode": "process", "started": False, "error": f"{type(exc).__name__}: {exc}"}
     finally:
         release_start_lock()
 
 
-_prepare_static()
-if os.getenv("WARROOM_DISABLE_AUTOSTART", "0").strip().lower() not in {"1", "true", "yes"}:
-    _start_worker()
+def _embedded_runner() -> None:
+    try:
+        # Managed Streamlit hosts are often single-process sandboxes. Avoid nested process creation
+        # and use bounded direct HTTP market fetches instead of yfinance cookie/crumb startup.
+        os.environ.setdefault("WARROOM_HOSTED_MODE", "1")
+        os.environ.setdefault("WARROOM_PRICE_BACKEND", "http")
+        os.environ.setdefault("WARROOM_ENABLE_YFINANCE_FALLBACK", "0")
+        # Leave multiprocessing enabled in the embedded fallback when the host supports it;
+        # collector child processes provide the only reliable hard timeout for DNS/library hangs.
+        from warroom_data_worker import loop
+        loop()
+    except BaseException as exc:
+        detail = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))[-12000:]
+        BOOT_LOG.parent.mkdir(parents=True, exist_ok=True)
+        with open(BOOT_LOG, "a", encoding="utf-8") as fh:
+            fh.write("\nEMBEDDED WORKER FATAL\n" + detail + "\n")
+        try:
+            write_status(state="WORKER_FATAL", error=f"{type(exc).__name__}: {exc}", pending=[])
+        except Exception:
+            pass
 
-# IMPORTANT: embed the local HTML file, not the static URL.
-#
-# Streamlit >=1.56 treats a string that does not start with ``/`` as raw HTML. The old value
-# ``app/static/dashboard_live.html`` was therefore rendered as visible text. Adding ``/`` alone
-# is not sufficient because Streamlit serves .html files from ``static/`` as text/plain. Passing
-# a local Path makes Streamlit read and embed the document as HTML, while the document polls JSON
-# from Streamlit's supported static-file endpoint.
+
+@st.cache_resource(show_spinner=False)
+def _start_embedded_worker() -> dict:
+    if worker_alive():
+        return {"mode": "existing", "started": True, "thread": None}
+    thread = threading.Thread(target=_embedded_runner, name="warroom-collector", daemon=True)
+    thread.start()
+    for _ in range(40):
+        status = read_status() or {}
+        state = str(status.get("state") or "")
+        if state not in {"", "STARTING"}:
+            return {"mode": "embedded", "started": thread.is_alive(), "state": state, "thread": thread}
+        if not thread.is_alive():
+            break
+        time.sleep(0.1)
+    return {
+        "mode": "embedded",
+        "started": thread.is_alive(),
+        "state": (read_status() or {}).get("state"),
+        "thread": thread,
+    }
+
+
+def _ensure_worker() -> dict:
+    if os.getenv("WARROOM_DISABLE_AUTOSTART", "0").strip().lower() in {"1", "true", "yes"}:
+        return {"mode": "disabled", "started": False}
+    # Deterministic hosted defaults are inherited by a standalone worker process.
+    os.environ.setdefault("WARROOM_HOSTED_MODE", "1")
+    os.environ.setdefault("WARROOM_PRICE_BACKEND", "http")
+    os.environ.setdefault("WARROOM_ENABLE_YFINANCE_FALLBACK", "0")
+    os.environ.setdefault("WARROOM_PRICE_HTTP_TIMEOUT", "4")
+    os.environ.setdefault("WARROOM_FAST_CORE_HARD_TIMEOUT", "18")
+    os.environ.setdefault("WARROOM_FAST_CORE_PRICE_FIRST", "1")
+    os.environ.setdefault("WARROOM_FAST_US_NAMES", "12")
+    os.environ.setdefault("WARROOM_FAST_IDX_NAMES", "8")
+    os.environ.setdefault("WARROOM_FAST_CRYPTO_NAMES", "10")
+    requested = os.getenv("WARROOM_WORKER_MODE", "process").strip().lower()
+    if requested == "process":
+        result = _start_process_worker()
+        if result.get("started"):
+            return result
+        # Automatic recovery for managed hosts where detached processes are unavailable.
+        fallback = _start_embedded_worker()
+        fallback["process_error"] = result.get("error")
+        return fallback
+    return _start_embedded_worker()
+
+
+_prepare_static()
+SUPERVISOR = _ensure_worker()
+
+
 def _render_dashboard() -> None:
     if not DASH_SOURCE.exists():
         st.error(f"Dashboard document is missing: {DASH_SOURCE}")
@@ -128,8 +240,6 @@ def _render_dashboard() -> None:
             st.iframe(DASH_SOURCE, width="stretch", height=1160, tab_index=0)
             return
     except Exception as exc:
-        # A compatibility fallback is useful on hosting images with a partially upgraded
-        # Streamlit package. The HTML still uses the same-origin static JSON endpoints.
         fallback_error = exc
     else:
         fallback_error = None
@@ -142,5 +252,9 @@ def _render_dashboard() -> None:
         st.error("War Room dashboard could not be embedded.")
         st.code(detail)
 
+
+status_now = read_status() or {}
+if str(status_now.get("state") or "").upper() in {"WORKER_FATAL", "START_ERROR"}:
+    st.error(f"War Room collector failed: {status_now.get('error') or 'unknown error'}. Check runtime/worker_boot.log.")
 
 _render_dashboard()

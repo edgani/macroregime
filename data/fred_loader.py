@@ -356,6 +356,16 @@ def load_fred_bundle(*, force_refresh: bool = False) -> dict:
     return {"series": out, "meta": meta}
 
 
+def load_fred_cached_subset(keys, *, max_age_h: float = 24.0) -> Dict[str, pd.Series]:
+    """Return only already-cached macro observations; never touches the network."""
+    out: Dict[str, pd.Series] = {}
+    for nice in [str(k) for k in keys if str(k) in FRED_SERIES]:
+        series = _cache_load(nice, max_age_h=max_age_h)
+        if series is not None and not series.empty:
+            out[nice] = series
+    return out
+
+
 def load_fred_subset(keys, *, force_refresh: bool = False) -> Dict[str, pd.Series]:
     """Load only the macro series required by the fast dashboard plane.
 

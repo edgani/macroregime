@@ -1,18 +1,17 @@
-# War Room OS — Stable Live Architecture v2.4
+# War Room OS — Hosted Live Architecture v2.6
 
-This build replaces the rerun/remount refresh path with a single static dashboard iframe, one leased background collector, atomic snapshot publication, stable content revisions, and explicit data-state semantics.
+The v2.6 deployment fixes the permanent `INITIALIZING` failure in v2.5 and hardens cold-start behavior.
 
-Run: `RUN_STABLE_WARROOM.bat`
+Core architecture:
 
-Before first use:
-- copy `.env.example` to `.env`;
-- add only credentials you are entitled to use;
-- replace `WARROOM_SEC_USER_AGENT` with a real application/contact identity;
-- run `RESET_RUNTIME.bat` once when upgrading from v2.3.
+- one embedded dashboard document;
+- one leased background collector process by default;
+- embedded-thread fallback when detached processes cannot start;
+- atomic JSON snapshots;
+- a fast price-first initial plane;
+- expanded macro, derivatives, institutional, and enrichment planes after the first usable snapshot;
+- explicit `LIVE / PARTIAL / STALE / NO_DATA / DEGRADED / NOT_ENTITLED` semantics;
+- no synthetic production fallback.
 
-Key documents:
-- `START_HERE.md`
-- `DEEP_REAUDIT_V24.md`
-- `LIVE_DATA_ACTIVATION.md`
-- `V24_STABILITY_TEST_REPORT.json`
-- `metric_grades.json`
+Deploy with `app.py` at repository root. Read `DEPLOY_NOW.md` and
+`V26_INITIALIZING_ROOT_CAUSE.md` first.

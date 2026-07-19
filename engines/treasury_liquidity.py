@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 HERE = Path(__file__).resolve().parents[1]
 CACHE = HERE / ".cache" / "treasury_liquidity.json"
 CACHE.parent.mkdir(parents=True, exist_ok=True)
-_UA = {"User-Agent": os.getenv("WARROOM_PUBLIC_USER_AGENT", "WarRoomOS/2.4 research contact-required")}
+_UA = {"User-Agent": os.getenv("WARROOM_PUBLIC_USER_AGENT", "WarRoomOS/2.6 research contact-required")}
 _TIMEOUT = max(2, min(8, int(os.getenv("WARROOM_LIQUIDITY_TIMEOUT", "5"))))
 _CACHE_TTL = max(60, int(os.getenv("WARROOM_LIQUIDITY_CACHE_TTL", "900")))
 _STALE_AFTER = max(_CACHE_TTL, int(os.getenv("WARROOM_LIQUIDITY_STALE_AFTER", "86400")))
@@ -127,6 +127,21 @@ def _previous(fred: Optional[Dict], key: str):
         return float(series.iloc[-2]) if len(series) > 1 else None
     except Exception:
         return None
+
+
+def cached_liquidity() -> Dict:
+    """Return last-good liquidity without any network request."""
+    cached = _read_cache()
+    if not cached:
+        return {
+            "ok": False, "state": "NO_DATA", "coverage": 0, "signals": [],
+            "bias": "NO_DATA", "note": "No cached liquidity yet; expanded refresh will fetch it.",
+            "generated": _now(),
+        }
+    age = float(cached.get("_age_seconds", 1e9))
+    cached["state"] = "LIVE" if age <= _CACHE_TTL else "STALE"
+    cached["cache"] = "fresh" if age <= _CACHE_TTL else "last-good"
+    return cached
 
 
 def analyze_liquidity(fred: Optional[Dict] = None) -> Dict:

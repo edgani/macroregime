@@ -175,6 +175,7 @@ def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds
     markets = markets or list(UNIVERSE.keys())
     if os.getenv("WARROOM_NETWORK_MODE", "live").strip().lower() in {"offline","disabled","0","false"}:
         allow_live = False
+    price_first = bool(fast_core and os.getenv("WARROOM_FAST_CORE_PRICE_FIRST", "0").strip().lower() in {"1", "true", "yes"})
     prices, ohlcv, sources = {}, {}, {}
     try:
         from warroom import data as WD
@@ -281,13 +282,20 @@ def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds
     # FX remained permanently NO_DATA. Missingness is now isolated per market.
     # Explicit synthetic test mode must stay offline. Do not call legacy loaders that may reach
     # Yahoo before the deterministic test fallback below.
+    hosted_http = (os.getenv("WARROOM_HOSTED_MODE", "0").strip().lower() in {"1", "true", "yes"}
+                   or os.getenv("WARROOM_PRICE_BACKEND", "").strip().lower() == "http")
     for m in markets:
         if prices.get(m):
             continue
-        px, src = load_prices(
-            UNI.get(m, UNIVERSE.get(m, [])), start, allow_live,
-            allow_synthetic=allow_synthetic,
-        )
+        if hosted_http and not allow_synthetic:
+            # The bounded HTTP loader already attempted this market. Do not fall back into
+            # yfinance cookie/crumb handling on managed hosts, which can hang past its timeout.
+            px, src = {}, "bounded HTTP returned 0; legacy yfinance fallback disabled"
+        else:
+            px, src = load_prices(
+                UNI.get(m, UNIVERSE.get(m, [])), start, allow_live,
+                allow_synthetic=allow_synthetic,
+            )
         prices[m] = px
         sources[m] = f"per-market fallback · {src}"
         if px:
@@ -298,11 +306,14 @@ def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds
     fred, fsrc = {}, "OFFLINE" if not allow_live else "unavailable"
     if allow_live:
         try:
-            from data.fred_loader import load_fred_series, load_fred_subset
+            from data.fred_loader import load_fred_series, load_fred_subset, load_fred_cached_subset
             _fast_fred = ["INDPRO","RSAFS","PAYEMS","UNRATE","ICSA","CPI","CORECPI","FEDFUNDS",
                           "DGS2","DGS10","DFII10","T10YIE","HYOAS","WALCL","RRPONTSYD","WTREGEN"]
-            fred = (load_fred_subset(_fast_fred, force_refresh=False) if fast_core
-                    else load_fred_series(force_refresh=False)) or {}
+            if price_first:
+                fred = load_fred_cached_subset(_fast_fred, max_age_h=48) or {}
+            else:
+                fred = (load_fred_subset(_fast_fred, force_refresh=False) if fast_core
+                        else load_fred_series(force_refresh=False)) or {}
             fred = {k: v for k, v in fred.items() if v is not None and len(v) > 0}
             # Normalise nice-name keys from fred_loader to the semantic IDs consumed by legacy engines.
             _fred_aliases = {
@@ -314,7 +325,10 @@ def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds
             for _nice, _semantic in _fred_aliases.items():
                 if _nice in fred and _semantic not in fred:
                     fred[_semantic] = fred[_nice]
-            fsrc = f"data.fred_loader v40 · {len(fred)} series" if fred else "data.fred_loader v40 · 0 (blocked here)"
+            if price_first:
+                fsrc = f"cached macro · {len(fred)} series" if fred else "PENDING_EXPANDED_MACRO_REFRESH"
+            else:
+                fsrc = f"data.fred_loader v40 · {len(fred)} series" if fred else "data.fred_loader v40 · 0 (blocked here)"
         except Exception as e:
             try:
                 from warroom import fred as WF
@@ -332,16 +346,17 @@ def load_all(markets=None, start="2022-01-01", allow_live=True, fetch_live_feeds
     # ---- liquidity read via US Treasury + NY Fed (TGA/RRP/SOFR, no key) ----
     if allow_live:
         try:
-            from engines.treasury_liquidity import analyze_liquidity
-            _liq = analyze_liquidity(fred if fred else None)
+            from engines.treasury_liquidity import analyze_liquidity, cached_liquidity
+            _liq = cached_liquidity() if price_first else analyze_liquidity(fred if fred else None)
         except Exception as e:
-            _liq = {"ok": False, "error": str(e)}
+            _liq = {"ok": False, "state": "NO_DATA", "error": str(e)}
     else:
         _liq = {"ok": False, "state": "OFFLINE", "error": "offline/test mode"}
 
     bench = prices.get("us", {}).get(BENCH)
-    if bench is None:
-        bp, _ = load_prices([BENCH], start, allow_live, allow_synthetic=allow_synthetic); bench = bp.get(BENCH)
+    if bench is None and not hosted_http:
+        bp, _ = load_prices([BENCH], start, allow_live, allow_synthetic=allow_synthetic)
+        bench = bp.get(BENCH)
     # ---- specialized flow feeds (on-chain / COT / GEX / dark-pool) → un-gate the metrics ----
     feeds = _load_feeds(allow_live=allow_live and not skip_slow_context, fetch_live=fetch_live_feeds)
     live = v40_ok or (len(fred) > 5)

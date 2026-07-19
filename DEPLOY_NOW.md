@@ -1,15 +1,31 @@
-# Deploy War Room OS v2.5
+# Deploy War Room OS v2.6 — Hosted Worker Fix
 
-1. Replace the deployed repository with the **contents** of `War_Room_OS_Deploy_Fix_v2_5`.
-2. Confirm these items are at repository root:
+This release fixes the permanent `INITIALIZING` state in v2.5.
+
+1. Replace the deployed repository completely with the **contents** of this package.
+2. Confirm these are at repository root:
    - `app.py`
+   - `warroom_data_worker.py`
+   - `runtime_store.py`
    - `dashboard.html`
    - `.streamlit/config.toml`
-   - `static/desk_snapshot.json`
-3. Set the application entrypoint to `app.py`.
-4. Clear the host build cache and redeploy. Do not reuse the v2.4 running container.
-5. Do not configure the entrypoint as `static/dashboard_live.html`.
+3. Keep the application entrypoint as `app.py`.
+4. Clear the host build cache and redeploy. Do not overwrite only `app.py` on top of an older folder.
+5. Do not set the entrypoint to `static/dashboard_live.html`.
 
-A successful initial render shows the War Room shell immediately. Until the background worker finishes,
-its data status can say `INITIALIZING`; it must not show the literal text
-`app/static/dashboard_live.html?...`.
+## Expected startup
+
+- The UI shell appears immediately.
+- `SYNC BOOTING/COLLECTING_CORE` appears while the first price snapshot is built.
+- On a healthy public-data connection, market panels should populate after the first polling cycles.
+- If the first collector attempt fails or times out, the screen must leave `INITIALIZING` and show
+  explicit `NO_DATA/DEGRADED` plus the collector error. It must not remain initializing forever.
+
+## Diagnostics
+
+The two files below now retain startup errors instead of discarding them:
+
+- `runtime/worker_boot.log`
+- `runtime/worker.log`
+
+`runtime/worker_status.json` exposes `WORKER_FATAL`, `CORE_ERROR`, or `DEGRADED` when applicable.

@@ -46,7 +46,7 @@ button,input,select{font:inherit}.mono{font-family:var(--mono)}
 <script>/*__INJECT_DATA__*/</script>
 <div id="app">
   <header class="topbar">
-    <div class="brand"><div class="brandmark">W</div><div><div class="brandname">WAR ROOM <b>OS</b></div><div class="brandver">CAPITAL INTELLIGENCE MAP · v2.4 STABLE</div></div></div>
+    <div class="brand"><div class="brandmark">W</div><div><div class="brandname">WAR ROOM <b>OS</b></div><div class="brandver">CAPITAL INTELLIGENCE MAP · v2.6 HOSTED</div></div></div>
     <div class="top-metrics" id="topMetrics"></div>
     <span id="dataSync" class="top-chip">SYNC <b>BOOTING</b></span><input class="search" id="search" placeholder="SEARCH TICKER / THEME / EVENT" />
   </header>
@@ -576,7 +576,7 @@ async function pollSnapshot(){
  if(pollInFlight)return;pollInFlight=true;
  try{
   const next=await fetchJsonBounded(DATA_URL);lastPollOkAt=Date.now();acceptSnapshot(next);
-  try{const status=await fetchJsonBounded(STATUS_URL,2500);const sync=document.getElementById('dataSync');if(sync){const st=String(status.state||'UNKNOWN');sync.dataset.worker='1';const html=`SYNC <b>${esc(st)} · R${lastRevision}</b>`;if(sync.innerHTML!==html)sync.innerHTML=html;}}catch(_){ }
+  try{const status=await fetchJsonBounded(STATUS_URL,2500);const sync=document.getElementById('dataSync');if(sync){const st=String(status.state||'UNKNOWN');sync.dataset.worker='1';const err=String(status.error||'');const html=`SYNC <b>${esc(st)} · R${lastRevision}${err?' · '+esc(short(err,55)):''}</b>`;if(sync.innerHTML!==html)sync.innerHTML=html;sync.classList.toggle('bad',/ERROR|FATAL/.test(st));}}catch(_){ }
  }catch(err){const sync=document.getElementById('dataSync');if(sync){const html=`SYNC <b>RETRYING · R${lastRevision}</b>`;if(sync.innerHTML!==html)sync.innerHTML=html;}}
  finally{pollInFlight=false;}
 }

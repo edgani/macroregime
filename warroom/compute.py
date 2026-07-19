@@ -64,6 +64,16 @@ def _ret(c, n):
     return float(c.iloc[-1] / c.iloc[-1 - n] - 1) if len(c) > n else 0.0
 
 
+def _safe_float(value, default=None):
+    try:
+        if value is None:
+            return default
+        result = float(value)
+        return result if np.isfinite(result) else default
+    except (TypeError, ValueError, OverflowError):
+        return default
+
+
 # ---------------- regime: real GIP (structural + monthly) via GIPEngine, proxy fallback ----------------
 def _proxy_quad(us):
     def acc(tickers):
@@ -639,7 +649,7 @@ def run(us, idx, crypto, fx, commo, fred=None, feeds=None, fast=False):
             tk = r["ticker"]
             thk = MC.thesis_for(tk)
             mc = (fvmap.get(tk) or {}).get("market_cap")
-            buckets[thk].append({"ticker": tk, "price": _f(r.get("close") or r.get("px")),
+            buckets[thk].append({"ticker": tk, "price": _safe_float(r.get("close") or r.get("px")),
                                  "market_cap": mc, "conviction": int(r.get("score", 50)),
                                  "direction": r.get("_dir"), "thesis_key": thk})
         markets = {}

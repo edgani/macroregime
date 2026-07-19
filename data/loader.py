@@ -12,12 +12,14 @@ from datetime import datetime
 from pathlib import Path
 from threading import Lock
 from typing import Dict, Iterable, Tuple
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import os
 import pickle
 import time
 
+import numpy as np
 import pandas as pd
-import yfinance as yf
+import requests
 
 _HERE = Path(__file__).resolve().parents[1]
 _CACHE_PATH = _HERE / ".cache" / "price_cache.pkl"
@@ -40,6 +42,84 @@ _MEM_TTL = int(os.getenv("WARROOM_PRICE_MEMORY_TTL", "55"))
 _BATCH_SIZE = max(5, int(os.getenv("WARROOM_YF_BATCH_SIZE", "40")))
 _DISK_TTL = max(60, int(os.getenv("WARROOM_PRICE_DISK_TTL", "300")))
 _DISK_CACHE: dict[str, tuple[float, pd.DataFrame]] | None = None
+
+_HTTP_TIMEOUT = max(2, int(os.getenv("WARROOM_PRICE_HTTP_TIMEOUT", "5")))
+_HTTP_WORKERS = max(4, int(os.getenv("WARROOM_PRICE_HTTP_WORKERS", "16")))
+_HTTP_HEADERS = {
+    "User-Agent": os.getenv("WARROOM_PUBLIC_USER_AGENT", "Mozilla/5.0 WarRoomOS/2.6"),
+    "Accept": "application/json,text/plain,*/*",
+}
+
+
+def _download_symbol_http(provider: str, days: int) -> pd.DataFrame | None:
+    """Fetch one Yahoo chart with explicit connect/read timeouts.
+
+    yfinance can wait indefinitely inside cookie/crumb handling on managed hosts. The chart endpoint
+    is simpler and lets the first War Room snapshot finish deterministically even when a provider
+    is blocked or rate-limited.
+    """
+    period2 = int(time.time()) + 86400
+    period1 = period2 - max(120, int(days) + 30) * 86400
+    params = {
+        "period1": period1, "period2": period2, "interval": "1d",
+        "events": "history", "includeAdjustedClose": "true",
+    }
+    payload = None
+    hosts = ["query1.finance.yahoo.com"]
+    if os.getenv("WARROOM_YAHOO_SECONDARY", "0").strip().lower() in {"1", "true", "yes"}:
+        hosts.append("query2.finance.yahoo.com")
+    for host in hosts:
+        url = f"https://{host}/v8/finance/chart/{provider}"
+        try:
+            response = requests.get(url, params=params, headers=_HTTP_HEADERS, timeout=(3, _HTTP_TIMEOUT))
+            if response.status_code != 200:
+                continue
+            payload = response.json()
+            break
+        except Exception:
+            continue
+    try:
+        result = ((payload or {}).get("chart") or {}).get("result") or []
+        if not result:
+            return None
+        item = result[0]
+        timestamps = item.get("timestamp") or []
+        quote = (((item.get("indicators") or {}).get("quote") or [{}])[0])
+        adjusted = (((item.get("indicators") or {}).get("adjclose") or [{}])[0]).get("adjclose") or []
+        if not timestamps or not quote:
+            return None
+        index = pd.to_datetime(timestamps, unit="s", utc=True).tz_convert(None)
+        frame = pd.DataFrame({
+            "Open": quote.get("open"), "High": quote.get("high"), "Low": quote.get("low"),
+            "Close": quote.get("close"), "Volume": quote.get("volume"),
+        }, index=index)
+        frame = frame.apply(pd.to_numeric, errors="coerce")
+        if adjusted and len(adjusted) == len(frame):
+            adj = pd.Series(pd.to_numeric(adjusted, errors="coerce"), index=frame.index)
+            raw_close = frame["Close"].replace(0, np.nan)
+            factor = (adj / raw_close).replace([np.inf, -np.inf], np.nan)
+            for col in ("Open", "High", "Low", "Close"):
+                frame[col] = frame[col] * factor
+        return _normalize_frame(frame)
+    except Exception:
+        return None
+
+
+def _download_many_http(providers: list[str], days: int) -> dict[str, pd.DataFrame]:
+    result: dict[str, pd.DataFrame] = {}
+    if not providers:
+        return result
+    with ThreadPoolExecutor(max_workers=min(_HTTP_WORKERS, len(providers))) as pool:
+        futures = {pool.submit(_download_symbol_http, provider, days): provider for provider in providers}
+        for future in as_completed(futures):
+            provider = futures[future]
+            try:
+                frame = future.result()
+            except Exception:
+                frame = None
+            if frame is not None:
+                result[provider] = frame
+    return result
 
 
 def _clean_tickers(tickers: Iterable[str]) -> list[str]:
@@ -122,6 +202,7 @@ def _download_chunk(tickers: list[str], days: int) -> dict[str, pd.DataFrame]:
     if not tickers:
         return {}
     try:
+        import yfinance as yf
         raw = yf.download(
             tickers=tickers,
             period=_period(days),
@@ -213,14 +294,27 @@ def load_bundle(tickers: Iterable[str], days: int = 756, progress_cb=None) -> di
             stale_or_missing.append(provider)
 
     total = max(1, len(stale_or_missing))
-    for start in range(0, len(stale_or_missing), _BATCH_SIZE):
-        chunk = stale_or_missing[start : start + _BATCH_SIZE]
-        if progress_cb and chunk:
-            progress_cb(f"Fetching {chunk[0]}…{chunk[-1]}", 0.1 + 0.8 * start / total)
-        fetched = _download_chunk(chunk, days)
+    backend = os.getenv("WARROOM_PRICE_BACKEND", "http" if os.getenv("WARROOM_HOSTED_MODE") == "1" else "hybrid").strip().lower()
+    unresolved = list(stale_or_missing)
+    if backend in {"http", "hybrid"} and unresolved:
+        if progress_cb:
+            progress_cb(f"Fetching {len(unresolved)} symbols with bounded HTTP", 0.15)
+        fetched = _download_many_http(unresolved, days)
         provider_frames.update(fetched)
         for provider, frame in fetched.items():
             disk[provider] = (now, frame)
+        unresolved = [provider for provider in unresolved if provider not in fetched]
+
+    enable_yf = os.getenv("WARROOM_ENABLE_YFINANCE_FALLBACK", "1" if backend != "http" else "0").strip().lower() in {"1", "true", "yes"}
+    if enable_yf:
+        for start in range(0, len(unresolved), _BATCH_SIZE):
+            chunk = unresolved[start : start + _BATCH_SIZE]
+            if progress_cb and chunk:
+                progress_cb(f"Yahoo fallback {chunk[0]}…{chunk[-1]}", 0.45 + 0.45 * start / total)
+            fetched = _download_chunk(chunk, days)
+            provider_frames.update(fetched)
+            for provider, frame in fetched.items():
+                disk[provider] = (now, frame)
     if stale_or_missing:
         _save_disk_cache(disk)
 

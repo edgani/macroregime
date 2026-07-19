@@ -1,5 +1,5 @@
 # War Room OS production runtime
-streamlit>=1.37
+streamlit>=1.56,<2
 requests>=2.31
 yfinance>=1.5.1
 pandas>=2.0

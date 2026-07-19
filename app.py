@@ -112,10 +112,35 @@ _prepare_static()
 if os.getenv("WARROOM_DISABLE_AUTOSTART", "0").strip().lower() not in {"1", "true", "yes"}:
     _start_worker()
 
-url = "app/static/dashboard_live.html?v=24&poll_ms=7000"
-# Streamlit >=1.56 exposes st.iframe; keep a compatibility fallback for older installations.
-if hasattr(st, "iframe"):
-    st.iframe(url, height=1160)
-else:
-    import streamlit.components.v1 as components
-    components.iframe(url, height=1160, scrolling=False)
+# IMPORTANT: embed the local HTML file, not the static URL.
+#
+# Streamlit >=1.56 treats a string that does not start with ``/`` as raw HTML. The old value
+# ``app/static/dashboard_live.html`` was therefore rendered as visible text. Adding ``/`` alone
+# is not sufficient because Streamlit serves .html files from ``static/`` as text/plain. Passing
+# a local Path makes Streamlit read and embed the document as HTML, while the document polls JSON
+# from Streamlit's supported static-file endpoint.
+def _render_dashboard() -> None:
+    if not DASH_SOURCE.exists():
+        st.error(f"Dashboard document is missing: {DASH_SOURCE}")
+        return
+    try:
+        if hasattr(st, "iframe"):
+            st.iframe(DASH_SOURCE, width="stretch", height=1160, tab_index=0)
+            return
+    except Exception as exc:
+        # A compatibility fallback is useful on hosting images with a partially upgraded
+        # Streamlit package. The HTML still uses the same-origin static JSON endpoints.
+        fallback_error = exc
+    else:
+        fallback_error = None
+
+    try:
+        import streamlit.components.v1 as components
+        components.html(DASH_SOURCE.read_text(encoding="utf-8"), height=1160, scrolling=False)
+    except Exception as exc:
+        detail = f"Primary iframe error: {fallback_error!r}; fallback error: {exc!r}"
+        st.error("War Room dashboard could not be embedded.")
+        st.code(detail)
+
+
+_render_dashboard()

@@ -90,8 +90,18 @@ let FLD = obj(D.full_live_data);
 let lastRevision = Number(obj(D.runtime).snapshot_sequence || 0);
 let lastContentHash = String(obj(D.runtime).content_hash || '');
 let lastPollOkAt = Date.now();
-const DATA_URL = 'desk_snapshot.json';
-const STATUS_URL = 'worker_status.json';
+function staticAssetUrl(filename){
+  // Local HTML is embedded as srcdoc by st.iframe. Resolve static assets against the parent
+  // Streamlit route, including an optional server.baseUrlPath used by hosted deployments.
+  try{
+    const parentUrl=new URL(window.parent.location.href);
+    let base=parentUrl.pathname||'/';
+    if(!base.endsWith('/'))base=base.slice(0,base.lastIndexOf('/')+1);
+    return new URL(`${base}app/static/${filename}`,parentUrl.origin).toString();
+  }catch(_){return `/app/static/${filename}`;}
+}
+const DATA_URL = staticAssetUrl('desk_snapshot.json');
+const STATUS_URL = staticAssetUrl('worker_status.json');
 const POLL_MS = Math.max(5000, Number(new URLSearchParams(location.search).get('poll_ms') || 7000));
 let pollInFlight=false;
 

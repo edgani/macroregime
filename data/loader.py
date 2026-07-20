@@ -47,7 +47,7 @@ _DISK_CACHE: dict[str, tuple[float, pd.DataFrame]] | None = None
 _HTTP_TIMEOUT = max(2, int(os.getenv("WARROOM_PRICE_HTTP_TIMEOUT", "5")))
 _HTTP_WORKERS = max(4, int(os.getenv("WARROOM_PRICE_HTTP_WORKERS", "16")))
 _HTTP_HEADERS = {
-    "User-Agent": os.getenv("WARROOM_PUBLIC_USER_AGENT", "Mozilla/5.0 WarRoomOS/2.8"),
+    "User-Agent": os.getenv("WARROOM_PUBLIC_USER_AGENT", "Mozilla/5.0 WarRoomOS/2.9"),
     "Accept": "application/json,text/plain,*/*",
 }
 

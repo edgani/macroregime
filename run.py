@@ -318,6 +318,107 @@ def _quick_pct_change(series, periods):
         return None
 
 
+
+
+def _alpha_signal_context(data, breadth, markets):
+    """Build descriptive live context for the structural alpha universe.
+
+    These are ranking inputs, not calibrated predictive factors.  Crowding and reflexivity are
+    cross-sectional price-context percentiles over the actually loaded universe.  Missing
+    fundamentals remain feed-gated inside the discovery engine.
+    """
+    import pandas as pd
+    ticker_market = {}
+    for market in data.get("markets") or []:
+        for ticker in ((data.get("prices") or {}).get(market) or {}):
+            ticker_market[str(ticker).upper()] = market
+
+    raw = []
+    for market, block in (breadth or {}).items():
+        for row in (block or {}).get("constituents") or []:
+            ticker = str(row.get("ticker") or "").upper()
+            if not ticker:
+                continue
+            raw.append({
+                "ticker": ticker,
+                "market": market,
+                "ret_5d": abs(float(row.get("ret_5d") or 0.0)),
+                "ret_20d": abs(float(row.get("ret_20d") or 0.0)),
+                "new_high": bool(row.get("new_20d_high")),
+            })
+    frame = pd.DataFrame(raw)
+    signals = {}
+    if not frame.empty:
+        frame["crowding_pct"] = frame["ret_20d"].rank(pct=True, method="average") * 100.0
+        frame["reflexivity"] = frame["ret_5d"].rank(pct=True, method="average") * 85.0 + frame["new_high"].astype(float) * 15.0
+        for row in frame.to_dict("records"):
+            signals[row["ticker"]] = {
+                "crowding_pct": round(float(row["crowding_pct"]), 2),
+                "reflexivity": round(min(100.0, float(row["reflexivity"])), 2),
+            }
+
+    setup_map = {}
+    for market, block in (markets or {}).items():
+        for setup in (block or {}).get("setups") or []:
+            ticker = str(setup.get("tk") or "").upper()
+            if ticker:
+                setup_map[ticker] = {**setup, "market": market}
+    return signals, ticker_market, setup_map
+
+
+def _build_alpha_candidates(data, breadth, markets, top=160):
+    """Run the structural asymmetry radar on curated nodes plus the loaded live universe.
+
+    Upside buckets are headroom classes with inverse base rates, never targets or probabilities.
+    """
+    signals, ticker_market, setup_map = _alpha_signal_context(data, breadth, markets)
+    extras = []
+    for market in ("us", "idx", "crypto"):
+        for ticker in ((data.get("prices") or {}).get(market) or {}):
+            t = str(ticker).upper()
+            if t.startswith("^") or t.endswith("=F") or t.endswith("=X"):
+                continue
+            extras.append(t)
+    discovery = run_discovery(signals_by_ticker=signals, extra_tickers=extras, top=top)
+    rows = []
+    for c in discovery.get("candidates") or []:
+        ticker = str(c.get("ticker") or "").upper()
+        setup = setup_map.get(ticker)
+        market = ticker_market.get(ticker)
+        if market is None:
+            market = "idx" if ticker.endswith(".JK") else ("crypto" if ticker.endswith("-USD") else "us")
+        rows.append({
+            "tk": ticker,
+            "market": market,
+            "domain": c.get("domain"),
+            "framework": c.get("framework"),
+            "source": c.get("source"),
+            "asymmetry": c.get("asymmetry"),
+            "tier": c.get("tier"),
+            "upside": c.get("upside_bucket"),
+            "base_rate": c.get("base_rate"),
+            "confidence": c.get("confidence"),
+            "stage": c.get("stage"),
+            "node": c.get("node"),
+            "scarcity": c.get("scarcity"),
+            "is_hidden": bool(c.get("is_hidden")),
+            "is_crowded": bool(c.get("is_crowded")),
+            "uncategorized": bool(c.get("uncategorized")),
+            "factors": c.get("factors") or {},
+            "gated": c.get("feed_gated_neutral") or [],
+            "price_loaded": ticker in ticker_market,
+            "timing": setup or {},
+            "timing_action": (setup or {}).get("act") or "NO_TIMING",
+            "timing_valid": bool((setup or {}).get("valid")),
+        })
+    return rows, {
+        **(discovery.get("summary") or {}),
+        "loaded_live_universe": len(set(extras)),
+        "ranked_candidates": len(rows),
+        "semantics": "Structural asymmetry/headroom screen; not a return forecast, probability or capital permission.",
+    }
+
+
 def build_fast_desk(data, top_per_market=12):
     """Latency-bounded first paint built from observed prices/macro only.
 
@@ -409,6 +510,7 @@ def build_fast_desk(data, top_per_market=12):
         "rotation_out": [r.get("ticker") for r in ranked_rotation[-3:] if r.get("ticker")],
         "semantics": "FAST_CONTEXT_ONLY; expanded research plane replaces this when available.",
     }
+    alpha, alpha_meta = _build_alpha_candidates(data, breadth, markets, top=160)
     now = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
     return {
         "meta": {"generated": now, "source": data.get("overall_source", "NO_DATA"),
@@ -416,8 +518,8 @@ def build_fast_desk(data, top_per_market=12):
                  "universe_n": len(union), "note": "Latency-bounded observed-data first paint.",
                  "feeds_status": (data.get("feeds") or {}).get("_status", {})},
         "systemic": systemic, "regime_tf": {"state": "FAST_CONTEXT", "quad": quad},
-        "regional": {}, "grades": _load_grades(), "markets": markets, "alpha": [],
-        "desk_picks": {"fast_context": sorted(all_setups, key=lambda r: float(r.get("conv") or 0), reverse=True)[:20]},
+        "regional": {}, "grades": _load_grades(), "markets": markets, "alpha": alpha,
+        "alpha_meta": alpha_meta, "desk_picks": {"fast_context": sorted(all_setups, key=lambda r: float(r.get("conv") or 0), reverse=True)[:20]},
         "feeds": {}, "macro_observations": macro, "market_breadth": breadth,
         "rotation_snapshot": rotation, "data_health": _data_health(data),
         "reference": _load_reference_data(),
@@ -553,14 +655,8 @@ def build_desk(data, top_per_market=12):
             "setups": setups,
         }
 
-    # ── asymmetric alpha (Alpha tab) — structural, over the moonshot universe ──
-    disc = run_discovery(top=20)
-    alpha = [{
-        "tk": c["ticker"], "market": c["domain"], "asymmetry": c["asymmetry"],
-        "tier": c["tier"], "upside": c["upside_bucket"], "base_rate": c["base_rate"],
-        "stage": c["stage"], "node": c["node"], "scarcity": c["scarcity"],
-        "gated": c.get("feed_gated_neutral", []),
-    } for c in disc["candidates"][:12]]
+    # ── asymmetric alpha (Alpha Center) — structural headroom + live timing context ──
+    alpha, alpha_meta = _build_alpha_candidates(data, _market_breadth(data), markets, top=240)
 
     return {
         "meta": {
@@ -577,6 +673,7 @@ def build_desk(data, top_per_market=12):
         "grades": _load_grades(),
         "markets": markets,
         "alpha": alpha,
+        "alpha_meta": alpha_meta,
         "desk_picks": out.get("final_desk", {}),
         "feeds": {k: v for k, v in (data.get("feeds") or {}).items() if k != "_status"},
         "macro_observations": _macro_observations(data),

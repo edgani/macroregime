@@ -1,89 +1,86 @@
-# Deploy War Room OS v2.8 — Deterministic Hosted Startup
+# Deploy War Room OS v2.9 — Decision-First
 
-This release replaces the v2.6 startup model. The dashboard is no longer allowed to render a
-permanent bootstrap `R1` while hoping a detached process eventually fills it.
+## Full replacement is required
 
-## Full replacement required
+Do not copy a few v2.9 files over an older deployment. Old runtime snapshots, static HTML and
+worker locks can keep the previous interface alive.
 
-1. Delete the old deployed repository contents. Do not copy only `app.py` over v2.6.
+1. Delete the old deployed repository contents.
 2. Upload the **contents** of this package to the repository root.
 3. Confirm these paths exist at root:
    - `app.py`
    - `warroom_data_worker.py`
    - `runtime_store.py`
+   - `run.py`
+   - `price_setups.py`
    - `dashboard.html`
    - `data/loader.py`
    - `.streamlit/config.toml`
 4. Keep the application entrypoint as `app.py`.
 5. Clear the hosting build cache and redeploy.
 
-## What must happen now
-
-Before the iframe is mounted, `app.py` runs one small, bounded market bootstrap. First paint is
-therefore one of only two truthful states:
-
-- **R2 with market observations**: US, IHSG, crypto, commodities, and FX have at least the symbols
-  the public providers returned; or
-- **R2 NO_DATA with an explicit error**: public egress/providers failed.
-
-The browser must never remain indefinitely at `INITIALIZING · R1`.
-
-After first paint, the embedded collector fills separate background planes:
-
-1. macro, liquidity, regime, and cross-asset context;
-2. options/derivatives and institutional events;
-3. slower fundamentals, SEC, CFTC, EIA, on-chain, and licensed feeds;
-4. expanded universes.
-
-## Hosted settings
-
-Do not set `WARROOM_WORKER_MODE=process` on a managed Streamlit host. The package defaults to:
+The header must read:
 
 ```text
-WARROOM_WORKER_MODE=embedded
-WARROOM_PRICE_BACKEND=http
-WARROOM_ENABLE_YFINANCE_FALLBACK=0
+v2.9 DECISION-FIRST
 ```
 
-The public loader has bounded fallbacks: Yahoo chart hosts, Stooq, Binance, and OKX. Missing data
-remains missing; no synthetic series is substituted.
+## First-paint behavior
 
-## Credentials
+Before the dashboard is mounted, `app.py` performs a small bounded market bootstrap. First paint is
+therefore either:
+
+- a committed snapshot with observed market histories; or
+- explicit `NO_DATA/DEGRADED` with the actual startup error.
+
+It must not remain indefinitely at bootstrap `R1`.
+
+## Action vocabulary
+
+- `BUILD LONG`: bullish setup is aligned with the market posture. Use the displayed trigger/stop;
+  it does not mean market-buy immediately.
+- `WATCH LONG`: bullish candidate, but alignment or trigger is missing. No position yet.
+- `BUILD SHORT`: bearish setup is aligned in a two-sided market. Use the displayed trigger/stop.
+- `WATCH SHORT`: bearish candidate, but alignment or trigger is missing. No position yet.
+- `REDUCE / AVOID`: defensive response, especially for long-only IHSG. It never opens an IHSG short.
+- `NO TRADE`: data can be live while no current setup is permitted.
+
+## Alpha Center semantics
+
+Alpha Center is no longer populated by a tactical price fallback. It loads the structural
+asymmetry engine on first paint and separates:
+
+1. extreme-upside/headroom discovery;
+2. independent proof of value capture;
+3. tactical timing/execution;
+4. validation and capital permission.
+
+`50–500x` is also shown as approximately `+4,900%–49,900%` scenario headroom. The higher the
+headroom class, the lower the base rate. It is not a price target, expected return or probability.
+
+## Data credentials
 
 Add secrets through the hosting platform, not by committing `.env`:
 
-- `FRED_API_KEY` is strongly recommended for reliable macro data.
-- `WARROOM_SEC_USER_AGENT` must contain a real application/contact identity.
-- Unusual Whales, Massive, ORTEX/Intrinio, Nansen, Arkham, Databento, CoinGlass, EIA, and licensed
-  IDX feeds require their own key or entitlement.
+- `FRED_API_KEY` for reliable macro history;
+- `WARROOM_SEC_USER_AGENT` with a real application/contact identity;
+- provider credentials/entitlements for Unusual Whales, Massive, ORTEX/Intrinio, Nansen, Arkham,
+  Databento, CoinGlass, EIA and licensed IDX feeds.
 
-Those optional sources may show `NOT_ENTITLED` or `ACTION_REQUIRED`; they must not prevent market
-prices from loading.
+A failed or unentitled endpoint is retained in the Evidence Ledger. The canvas displays a domain
+summary such as `PARTIAL`, `NOT_ENTITLED` or `NO_SIGNAL`; one provider error must not blank the rest
+of the workspace.
 
 ## Diagnostics
 
-Run locally or inspect from the deployment file console:
-
 ```text
 python diagnose_no_data.py
-python validate_v28_startup.py
-python validate_v28_fx_alpha.py
+python validate_v29_decision_first.py
 ```
 
-Key files:
+Inspect:
 
 - `runtime/worker_status.json`
 - `runtime/worker.log`
 - `runtime/worker_boot.log`
 - `runtime/NO_DATA_DIAGNOSTIC.json`
-
-A valid failure is explicit `NO_DATA/DEGRADED` with an error. Permanent `INITIALIZING` is not valid.
-
-## v2.8 FX and Alpha behavior
-
-- Six loaded FX spot histories now display as `FX SPOT DATA · LIVE`; an incomplete macro-relative
-  direction model displays separately as `MACRO-RELATIVE MODEL · INCOMPLETE`.
-- FX price-only setups cannot enter Mission Control or Alpha Center.
-- Alpha Center is a staged research funnel with at most five visible candidate cards; the full list
-  remains in the Evidence Ledger.
-- `LONG WATCH` and `SHORT WATCH` are research labels, not capital permission.

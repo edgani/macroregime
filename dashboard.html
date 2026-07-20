@@ -28,11 +28,11 @@ button,input,select{font:inherit}.mono{font-family:var(--mono)}
 .sidebar-foot{margin:16px 8px 4px;padding:9px;border:1px solid var(--line);background:rgba(9,15,28,.75)}.sidebar-foot .label{font:8px var(--mono);letter-spacing:.12em;color:var(--faint)}.sidebar-foot .value{font:10px var(--mono);margin-top:5px;color:var(--muted);line-height:1.45}
 .content{min-width:0;min-height:0;display:grid;grid-template-rows:45px minmax(0,1fr);overflow:hidden}
 .viewbar{display:flex;align-items:center;gap:10px;padding:0 13px;border-bottom:1px solid var(--line);background:rgba(7,12,23,.72)}.view-title{font:700 12px var(--mono);letter-spacing:.08em}.view-sub{font:10px var(--mono);color:var(--faint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.view-actions{margin-left:auto;display:flex;gap:5px}.seg{border:1px solid var(--line);background:#08101e;color:var(--muted);padding:5px 8px;font:9px var(--mono);cursor:pointer}.seg.active{color:var(--cyan);border-color:rgba(69,215,255,.45);background:rgba(69,215,255,.08)}
-.page{min-height:0;padding:10px;display:grid;grid-template-rows:minmax(390px,1fr) 188px;gap:10px;overflow:auto}
-.workspace{min-height:390px;display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:10px}.card{border:1px solid var(--line);background:linear-gradient(180deg,rgba(11,18,34,.88),rgba(6,11,21,.94));box-shadow:inset 0 1px rgba(255,255,255,.02),0 12px 45px rgba(0,0,0,.16);border-radius:4px;min-width:0}.canvas-card{position:relative;overflow:hidden;min-height:390px}.canvas-card:before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(62,102,153,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(62,102,153,.05) 1px,transparent 1px);background-size:32px 32px;mask-image:linear-gradient(to bottom,rgba(0,0,0,.8),transparent);pointer-events:none}.card-head{height:38px;display:flex;align-items:center;gap:8px;padding:0 11px;border-bottom:1px solid rgba(27,42,67,.8);position:relative;z-index:2}.card-head h3{margin:0;font:10px var(--mono);letter-spacing:.11em;color:var(--muted);text-transform:uppercase}.card-head .meta{font:9px var(--mono);color:var(--faint)}.card-head .right{margin-left:auto;display:flex;align-items:center;gap:6px}.evidence-pill{font:8px var(--mono);letter-spacing:.06em;padding:2px 6px;border:1px solid var(--line);color:var(--faint);border-radius:8px}.evidence-pill.observed{color:var(--cyan);border-color:rgba(69,215,255,.35)}.evidence-pill.structural{color:var(--purple);border-color:rgba(169,122,255,.35)}.evidence-pill.inferred{color:var(--amber);border-color:rgba(255,209,102,.35)}
-#graph{height:calc(100% - 38px);min-height:350px;position:relative;z-index:1}#graph svg{display:block;width:100%;height:100%}.edge{fill:none;stroke:#2a4265;opacity:.55}.edge.active{opacity:.9;stroke-dasharray:8 13;animation:none}.edge.constructive{stroke:var(--green)}.edge.destructive{stroke:var(--mag)}.edge.watch{stroke:var(--amber)}.edge.observed{filter:drop-shadow(0 0 4px currentColor)}.edge.inferred{stroke-dasharray:4 8;animation:none}.edge.structural{stroke:var(--purple);opacity:.35}.edge-label{fill:#65748d;font:9px var(--mono)}@keyframes flow{to{stroke-dashoffset:-42}}
-.node{cursor:pointer;transition:none}.node:hover{filter:brightness(1.25)}.node-box{fill:#0b1425;stroke:#28405e;stroke-width:1}.node.selected .node-box{stroke:var(--white);stroke-width:1.5;filter:drop-shadow(0 0 8px rgba(255,255,255,.25))}.node.constructive .node-box{stroke:rgba(54,242,139,.7);filter:drop-shadow(0 0 8px rgba(54,242,139,.12))}.node.destructive .node-box{stroke:rgba(255,79,163,.75);filter:drop-shadow(0 0 8px rgba(255,79,163,.13))}.node.watch .node-box{stroke:rgba(255,209,102,.65)}.node.no_data{opacity:.48}.node.structural .node-box{stroke:rgba(169,122,255,.6);stroke-dasharray:5 4}.node-title{fill:var(--text);font:700 10.5px var(--mono)}.node-sub{fill:#718099;font:8.5px var(--mono)}.node-value{fill:var(--cyan);font:700 10px var(--mono)}.node.constructive .node-value{fill:var(--green)}.node.destructive .node-value{fill:var(--mag)}.node.watch .node-value{fill:var(--amber)}.node-badge{fill:#111e32;stroke:#2a405e}.node-badge-text{fill:#8090aa;font:7.5px var(--mono)}
-.rail{display:flex;flex-direction:column;min-height:390px}.rail-body{padding:11px;overflow:auto}.location{border:1px solid rgba(69,215,255,.22);background:linear-gradient(135deg,rgba(69,215,255,.08),rgba(169,122,255,.04));padding:10px;margin-bottom:10px}.location .eyebrow{font:8px var(--mono);letter-spacing:.13em;color:var(--cyan)}.location .main{font:700 13px var(--mono);margin-top:5px;line-height:1.35}.location .desc{font-size:11px;color:var(--muted);line-height:1.45;margin-top:5px}.decision-row{padding:8px 2px;border-bottom:1px solid rgba(27,42,67,.7)}.decision-row:last-child{border-bottom:0}.decision-label{font:8px var(--mono);letter-spacing:.1em;color:var(--faint);text-transform:uppercase}.decision-value{font:10.5px var(--mono);line-height:1.45;margin-top:3px;color:var(--text)}.decision-value.green{color:var(--green)}.decision-value.mag{color:var(--mag)}.decision-value.amber{color:var(--amber)}.confidence{margin-top:5px;height:5px;background:#111c2e;overflow:hidden}.confidence i{height:100%;display:block;background:linear-gradient(90deg,var(--mag),var(--amber),var(--green))}
+.page{min-height:0;padding:10px;display:grid;grid-template-rows:minmax(430px,1fr) 198px;gap:10px;overflow:auto}
+.workspace{min-height:430px;display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:10px}.card{border:1px solid var(--line);background:linear-gradient(180deg,rgba(11,18,34,.88),rgba(6,11,21,.94));box-shadow:inset 0 1px rgba(255,255,255,.02),0 12px 45px rgba(0,0,0,.16);border-radius:4px;min-width:0}.canvas-card{position:relative;overflow:hidden;min-height:430px}.canvas-card:before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(62,102,153,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(62,102,153,.05) 1px,transparent 1px);background-size:32px 32px;mask-image:linear-gradient(to bottom,rgba(0,0,0,.8),transparent);pointer-events:none}.card-head{height:38px;display:flex;align-items:center;gap:8px;padding:0 11px;border-bottom:1px solid rgba(27,42,67,.8);position:relative;z-index:2}.card-head h3{margin:0;font:10px var(--mono);letter-spacing:.11em;color:var(--muted);text-transform:uppercase}.card-head .meta{font:9px var(--mono);color:var(--faint)}.card-head .right{margin-left:auto;display:flex;align-items:center;gap:6px}.evidence-pill{font:8px var(--mono);letter-spacing:.06em;padding:2px 6px;border:1px solid var(--line);color:var(--faint);border-radius:8px}.evidence-pill.observed{color:var(--cyan);border-color:rgba(69,215,255,.35)}.evidence-pill.structural{color:var(--purple);border-color:rgba(169,122,255,.35)}.evidence-pill.inferred{color:var(--amber);border-color:rgba(255,209,102,.35)}
+#graph{height:calc(100% - 38px);min-height:390px;position:relative;z-index:1}#graph svg{display:block;width:100%;height:100%}.edge{fill:none;stroke:#2a4265;opacity:.55}.edge.active{opacity:.9;stroke-dasharray:8 13;animation:none}.edge.constructive{stroke:var(--green)}.edge.destructive{stroke:var(--mag)}.edge.watch{stroke:var(--amber)}.edge.observed{filter:drop-shadow(0 0 4px currentColor)}.edge.inferred{stroke-dasharray:4 8;animation:none}.edge.structural{stroke:var(--purple);opacity:.35}.edge-label{fill:#65748d;font:9px var(--mono)}@keyframes flow{to{stroke-dashoffset:-42}}
+.node{cursor:pointer;transition:none}.node:hover{filter:brightness(1.25)}.node-box{fill:#0b1425;stroke:#28405e;stroke-width:1}.node.selected .node-box{stroke:var(--white);stroke-width:1.5;filter:drop-shadow(0 0 8px rgba(255,255,255,.25))}.node.constructive .node-box{stroke:rgba(54,242,139,.7);filter:drop-shadow(0 0 8px rgba(54,242,139,.12))}.node.destructive .node-box{stroke:rgba(255,79,163,.75);filter:drop-shadow(0 0 8px rgba(255,79,163,.13))}.node.watch .node-box{stroke:rgba(255,209,102,.65)}.node.no_data{opacity:.48}.node.structural .node-box{stroke:rgba(169,122,255,.6);stroke-dasharray:5 4}.node-title{fill:var(--text);font:700 10.5px var(--mono)}.node-sub{fill:#718099;font:8.5px var(--mono)}.node-value{fill:var(--cyan);font:700 9.5px var(--mono)}.node.constructive .node-value{fill:var(--green)}.node.destructive .node-value{fill:var(--mag)}.node.watch .node-value{fill:var(--amber)}.node-badge{fill:#111e32;stroke:#2a405e}.node-badge-text{fill:#8090aa;font:7.5px var(--mono)}
+.rail{display:flex;flex-direction:column;min-height:430px}.rail-body{padding:11px;overflow:auto}.location{border:1px solid rgba(69,215,255,.22);background:linear-gradient(135deg,rgba(69,215,255,.08),rgba(169,122,255,.04));padding:10px;margin-bottom:10px}.location .eyebrow{font:8px var(--mono);letter-spacing:.13em;color:var(--cyan)}.location .main{font:700 13px var(--mono);margin-top:5px;line-height:1.35}.location .desc{font-size:11px;color:var(--muted);line-height:1.45;margin-top:5px}.decision-row{padding:8px 2px;border-bottom:1px solid rgba(27,42,67,.7)}.decision-row:last-child{border-bottom:0}.decision-label{font:8px var(--mono);letter-spacing:.1em;color:var(--faint);text-transform:uppercase}.decision-value{font:10.5px var(--mono);line-height:1.45;margin-top:3px;color:var(--text)}.decision-value.green{color:var(--green)}.decision-value.mag{color:var(--mag)}.decision-value.amber{color:var(--amber)}.confidence{margin-top:5px;height:5px;background:#111c2e;overflow:hidden}.confidence i{height:100%;display:block;background:linear-gradient(90deg,var(--mag),var(--amber),var(--green))}
 .lower{display:grid;grid-template-columns:1.15fr .85fr;gap:10px;min-height:188px}.panel-body{padding:8px 10px;height:148px;overflow:auto}.ledger{display:grid;gap:5px}.ledger-row{display:grid;grid-template-columns:90px minmax(110px,.7fr) minmax(180px,1.5fr) 76px;gap:8px;align-items:center;border-bottom:1px solid rgba(27,42,67,.65);padding:5px 2px;font:9.5px var(--mono)}.ledger-row:last-child{border-bottom:0}.ledger-time{color:var(--faint)}.ledger-ticker{color:var(--white);font-weight:700}.ledger-desc{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.state-tag{justify-self:end;padding:2px 5px;border:1px solid var(--line);color:var(--faint);font-size:8px}.state-tag.live,.state-tag.constructive{color:var(--green);border-color:rgba(54,242,139,.3)}.state-tag.watch,.state-tag.partial{color:var(--amber);border-color:rgba(255,209,102,.3)}.state-tag.destructive,.state-tag.error{color:var(--mag);border-color:rgba(255,79,163,.3)}
 .queue{display:grid;gap:5px}.queue-item{display:grid;grid-template-columns:34px 1fr auto;gap:8px;align-items:center;padding:6px;border:1px solid rgba(27,42,67,.75);background:rgba(10,17,31,.58)}.queue-rank{font:700 12px var(--mono);color:var(--cyan);text-align:center}.queue-main b{font:700 10px var(--mono)}.queue-main div{font:9px var(--mono);color:var(--faint);margin-top:2px}.queue-score{font:700 11px var(--mono);color:var(--green)}
 .tape{display:flex;align-items:center;border-top:1px solid rgba(69,215,255,.17);background:#050911;overflow:hidden}.tape-label{height:100%;display:flex;align-items:center;padding:0 11px;background:rgba(69,215,255,.09);color:var(--cyan);font:700 9px var(--mono);letter-spacing:.12em;white-space:nowrap}.tape-track{display:flex;gap:24px;align-items:center;white-space:nowrap;padding-left:20px;animation:none;transform:none;font:9.5px var(--mono);color:var(--muted)}.tape-item b{color:var(--white)}.tape-item .type{color:var(--cyan)}.tape-item .money{color:var(--green)}@keyframes marquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
@@ -46,7 +46,7 @@ button,input,select{font:inherit}.mono{font-family:var(--mono)}
 <script>/*__INJECT_DATA__*/</script>
 <div id="app">
   <header class="topbar">
-    <div class="brand"><div class="brandmark">W</div><div><div class="brandname">WAR ROOM <b>OS</b></div><div class="brandver">CAPITAL INTELLIGENCE MAP · v2.8 STAGED LIVE</div></div></div>
+    <div class="brand"><div class="brandmark">W</div><div><div class="brandname">WAR ROOM <b>OS</b></div><div class="brandver">CAPITAL INTELLIGENCE MAP · v2.9 DECISION-FIRST</div></div></div>
     <div class="top-metrics" id="topMetrics"></div>
     <span id="dataSync" class="top-chip">SYNC <b>BOOTING</b></span><input class="search" id="search" placeholder="SEARCH TICKER / THEME / EVENT" />
   </header>
@@ -205,7 +205,7 @@ function marketDerivativeLedger(id){
 function marketSetups(id){return arr(obj(obj(D.markets)[id]).setups).filter(x=>x&&x.tk&&x.tk!=='—');}
 function marketObj(id){return obj(obj(D.markets)[id]);}
 function setupDirection(s){
- const a=String(s?.act||s?.ty||'').toUpperCase();
+ const a=String(s?.act||s?.ty||s?.dir||'').toUpperCase();
  if(/SHORT|SELL|DISTRIB|BREAKDOWN|REDUCE/.test(a))return 'short';
  if(/LONG|BUY|BUILD|ACCUM|BREAKOUT/.test(a))return 'long';
  return 'neutral';
@@ -219,9 +219,7 @@ function biasDirection(b){
 function isSetupAligned(marketId,marketBias,s){
  const sd=setupDirection(s), bd=biasDirection(marketBias);
  if(marketId==='idx' && sd==='short')return false;
- if(sd==='neutral')return true;
- // A neutral, missing or partial market context is not permission for both long and short.
- // This was the reason Alpha showed BUILD_LONG cards while the parent market was NEUTRAL.
+ if(sd==='neutral')return false;
  if(bd==='neutral')return false;
  return sd===bd;
 }
@@ -245,12 +243,49 @@ function marketContextState(id,m,b){
  if(id==='fx' && String(m?.bias_state||'').toUpperCase()!=='LIVE')return 'PARTIAL';
  return (!bias||bias==='NO_DATA')?'PARTIAL':bias;
 }
+function executionAction(marketId,marketBias,s){
+ const sd=setupDirection(s), aligned=isSetupAligned(marketId,marketBias,s), valid=Boolean(s?.valid);
+ if(marketId==='idx' && sd==='short')return 'REDUCE / AVOID';
+ if(!aligned){
+  if(sd==='long')return 'WATCH LONG';
+  if(sd==='short')return 'WATCH SHORT';
+  return 'NO TRADE';
+ }
+ if(sd==='long')return valid?'BUILD LONG':'WATCH LONG';
+ if(sd==='short')return valid?'BUILD SHORT':'WATCH SHORT';
+ return 'NO TRADE';
+}
+function actionState(action){
+ const x=String(action||'').toUpperCase();
+ if(/BUILD LONG|BUY/.test(x))return 'constructive';
+ if(/BUILD SHORT|REDUCE|AVOID/.test(x))return 'destructive';
+ if(/WATCH|WAIT/.test(x))return 'watch';
+ return 'NO_SIGNAL';
+}
+function marketPosture(marketId,bias){
+ const bd=biasDirection(bias);
+ if(marketId==='idx'&&bd==='short')return 'DEFENSIVE / WAIT';
+ if(bd==='long')return 'LONG BIAS';
+ if(bd==='short')return 'SHORT BIAS';
+ return 'NO TRADE / TWO-SIDED WATCH';
+}
+function headroomPercentLabel(value){
+ const x=String(value||'?').replace(/\s/g,'');
+ if(x.includes('500x+'))return '+49,900%+';
+ if(x.includes('50–500x')||x.includes('50-500x'))return '+4,900%–49,900%';
+ if(x.includes('10–50x')||x.includes('10-50x'))return '+900%–4,900%';
+ if(x.includes('3–10x')||x.includes('3-10x'))return '+200%–900%';
+ if(x.includes('1.5–3x')||x.includes('1.5-3x'))return '+50%–200%';
+ return 'SCENARIO HEADROOM';
+}
+function alphaTierRank(a){const t=Number(a?.tier||0);return Number.isFinite(t)?t:0;}
 function researchActionLabel(value){
  const x=String(value||'WATCH').toUpperCase();
- if(/BUILD_LONG|BUY|LONG/.test(x))return 'LONG WATCH';
- if(/SHORT|SELL/.test(x))return 'SHORT WATCH';
- return 'WATCH';
+ if(/BUILD_LONG|BUILD LONG|BUY|LONG/.test(x))return 'WATCH LONG';
+ if(/BUILD_SHORT|BUILD SHORT|SHORT|SELL/.test(x))return 'WATCH SHORT';
+ return 'RESEARCH';
 }
+
 function marketOfCandidate(c){return c?.market||c?.market_id||c?.source_market||null;}
 function edgeAllowed(a,b){
  if(!a||!b)return false;
@@ -295,7 +330,7 @@ function modelMission(){
  const all=firstCandidates(80).filter(c=>c.evidence==='observed'&&c.aligned);
  const perMarket=[];
  ids.forEach(([id])=>{const c=all.filter(x=>x.market===id).sort((a,b)=>b.score-a.score)[0];if(c)perMarket.push(c);});
- const l3=perMarket.length?perMarket.map((c,i)=>node('c_'+i,c.ticker,short(c.why,34),c.stage||'CANDIDATE',c.stage,c.evidence||'observed',{raw:c,market:c.market})):[node('none','NO ALIGNED ACTIONABLE TICKER','data loaded; current gates emitted no actionable ticker','NO_SIGNAL','NO_SIGNAL')];
+ const l3=perMarket.length?perMarket.map((c,i)=>{const a=executionAction(c.market,obj(markets[c.market]).bias,c.raw||{});return node('c_'+i,c.ticker,short(c.why,34),a,actionState(a),c.evidence||'observed',{raw:c,market:c.market});}):[node('none','NO ALIGNED ACTIONABLE TICKER','data loaded; current gates emitted no actionable ticker','NO_SIGNAL','NO_SIGNAL')];
  const g=layered([l0,l1,l2,l3]);
  // Keep each overview candidate directly below its actual parent market to eliminate crossing lines.
  l3.forEach(c=>{if(c.id==='none')return;const parent=l2.find(m=>m.market===c.market);if(parent)c.x=parent.x;});
@@ -355,103 +390,73 @@ function modelEarly(){
 }
 
 function modelAlpha(){
- const structural=arr(D.alpha);
- const observed=firstCandidates(80).filter(x=>x.evidence==='observed');
- const aligned=observed.filter(x=>x.aligned);
+ const rows=arr(D.alpha), meta=obj(D.alpha_meta);
+ if(!rows.length)return emptyModel('ALPHA CENTER','Structural asymmetry universe has not loaded yet. Alpha is not replaced with a tactical price screener.');
  const instTickers=new Set([...arr(obj(D.institutional).events),...arr(LI.events)].map(x=>String(x.ticker||'').toUpperCase()).filter(Boolean));
  const fundTickers=new Set(arr(FLD.sec_fundamentals).map(x=>String(x.ticker||'').toUpperCase()).filter(Boolean));
- const enriched=aligned.map(a=>{
-  const key=String(a.ticker||'').toUpperCase();
-  const inst=instTickers.has(key), fund=fundTickers.has(key);
-  const evidenceCount=Number(inst)+Number(fund);
-  return {...a,inst,fund,evidenceCount,
-   researchStage:evidenceCount===2?'MULTI-SOURCE WATCH':evidenceCount===1?'PARTIAL EVIDENCE':'PRICE / MARKET WATCH',
-   blocker:evidenceCount===2?'Predictive selector and prospective gate still not approved':inst?'Fundamental/value-capture evidence missing':fund?'Institutional confirmation missing':'Institutional + fundamental confirmation missing'};
- }).sort((a,b)=>(b.evidenceCount-a.evidenceCount)||(b.score-a.score));
-
- if(state.mode!=='all'){
-  const discovery=node('alpha_pool','TACTICAL DISCOVERY POOL',`${observed.length} observed price contexts`,'RESEARCH ONLY','watch','observed',{raw:{observed:observed.length}});
-  const alignGate=node('alpha_align','MARKET ALIGNMENT',`${aligned.length}/${observed.length} direction-aligned`,aligned.length?'PARTIAL':'NO_SIGNAL',aligned.length?'watch':'NO_SIGNAL','inferred',{raw:{aligned:aligned.length,total:observed.length}});
-  const evidenceGate=node('alpha_evidence','INDEPENDENT EVIDENCE',`${enriched.filter(x=>x.evidenceCount>0).length} with institutional or filed facts`,enriched.some(x=>x.evidenceCount>0)?'PARTIAL':'ACTION_REQUIRED',enriched.some(x=>x.evidenceCount>0)?'watch':'ACTION_REQUIRED','observed');
-  const permission=node('alpha_permission','CAPITAL PERMISSION','validated selector + prospective record','BLOCKED','NO_SIGNAL','inferred',{raw:{paper:false,live:false}});
-  const candidates=(enriched.length?enriched:observed).slice(0,5).map((a,i)=>node('alpha_c_'+i,a.ticker,
-    `${String(a.market||'').toUpperCase()} · ${a.researchStage||'FAILED ALIGNMENT'}`,
-    `${researchActionLabel(a.stage)} · R${Math.round(a.score||0)}`,
-    a.evidenceCount===2?'watch':a.aligned?'watch':'NO_SIGNAL','observed',{raw:a,market:a.market}));
-  const last=candidates.length?candidates:[node('alpha_none','NO CURRENT CANDIDATE','data loaded; none passed market alignment','NO_SIGNAL','NO_SIGNAL')];
-  const g=layered([[discovery],[alignGate,evidenceGate,permission],last]);
-  g.edges.push(edge(discovery.id,alignGate.id,'watch','inferred','direction gate',1.7,{relation:'market_alignment'}));
-  g.edges.push(edge(alignGate.id,evidenceGate.id,'watch','inferred','independent evidence',1.7,{relation:'evidence_gate'}));
-  g.edges.push(edge(evidenceGate.id,permission.id,'watch','inferred','validation gate',1.7,{relation:'capital_permission'}));
-  candidates.forEach(n=>{
-    const raw=n.raw||{};
-    if(raw.aligned)g.edges.push(edge(alignGate.id,n.id,'watch','inferred','market aligned',1.5,{relation:'candidate_alignment'}));
-    if(raw.evidenceCount>0)g.edges.push(edge(evidenceGate.id,n.id,'watch','observed',raw.evidenceCount===2?'institutional + filed facts':'one independent source',1.7,{active:true,relation:'candidate_evidence'}));
-  });
-  const lead=enriched[0];
-  const title=lead?`${lead.ticker} · ${lead.researchStage}`:'NO ACTIONABLE ALPHA';
-  return {title:'ALPHA CENTER',sub:'Readable stage-gate view. These are tactical research candidates, not a validated alpha selector or capital permission.',canvas:'ALPHA EVIDENCE FUNNEL',badges:['observed','inferred'],graph:g,
-   rail:basicRail(title,
-    lead?`${lead.ticker} is market-aligned, but remains research-only. Readiness R${Math.round(lead.score||0)} is descriptive, not probability.`:'Observed data is loaded, but no candidate has cleared market alignment.',
-    `Discovery ${observed.length} · aligned ${aligned.length} · independent evidence ${enriched.filter(x=>x.evidenceCount>0).length} · capital permission 0.`,
-    lead?`Next blocker: ${lead.blocker}.`:'Wait for a direction-aligned setup, then verify mechanism/value capture and independent evidence.',
-    'A price setup can disappear when market state, revisions, institutional evidence or execution conditions change.',
-    'Any missing required source, stale data, setup invalidation or market-bias reversal keeps the candidate blocked.',
-    'Setup horizon first; structural thesis and prospective validation are separate horizons',lead?Math.min(70,35+lead.evidenceCount*15):0,'OPEN EVIDENCE TRACE — NO CAPITAL ACTION'),
-   ledger:(enriched.length?enriched:observed).slice(0,25).map(a=>({time:obj(D.meta).generated,ticker:a.ticker,desc:`${a.aligned?'MARKET ALIGNED':'FAILED ALIGNMENT'} · ${a.researchStage||'PRICE CONTEXT'} · ${a.blocker||('bias '+a.bias)} · readiness R${Math.round(a.score||0)} is not probability`,state:a.aligned?'PARTIAL':'NO_SIGNAL',raw:a})),
-   queue:enriched.slice(0,8).map(a=>({ticker:a.ticker,score:Math.min(70,35+a.evidenceCount*15),why:a.blocker,stage:a.researchStage}))};
- }
-
- if(!structural.length)return emptyModel('ALPHA CENTER','No structural hypothesis is available from the research contract.');
- const hypothesis=node('struct_pool','STRUCTURAL HYPOTHESES',`${structural.length} mapped candidates`,'RESEARCH ONLY','watch','structural');
- const mechanism=node('struct_mech','MECHANISM / VALUE CAPTURE','direct exposure + demand conversion','REQUIRED','watch','structural');
- const proof=node('struct_proof','POINT-IN-TIME PROOF','revisions + filings + positioning','REQUIRED','ACTION_REQUIRED','observed');
- const validation=node('struct_val','PROSPECTIVE VALIDATION','frozen rules + untouched lockbox','NOT PASSED','NO_SIGNAL','inferred');
- const nodes=structural.slice(0,5).map((a,i)=>node('struct_c_'+i,a.tk,`${String(a.market||'').toUpperCase()} · ${a.stage||'hypothesis'}`,`ASYM ${num(a.asymmetry)||0} · RESEARCH`, 'watch','structural',{raw:a}));
- const g=layered([[hypothesis],[mechanism,proof,validation],nodes]);
- g.edges.push(edge(hypothesis.id,mechanism.id,'watch','structural','causal mapping',1.6,{relation:'mechanism_gate'}));
- g.edges.push(edge(mechanism.id,proof.id,'watch','inferred','dated evidence',1.6,{relation:'proof_gate'}));
- g.edges.push(edge(proof.id,validation.id,'watch','inferred','prospective test',1.6,{relation:'validation_gate'}));
- nodes.forEach(n=>g.edges.push(edge(hypothesis.id,n.id,'watch','structural','hypothesis only',1.4,{relation:'structural_hypothesis'})));
- const lead=structural[0];
- return {title:'ALPHA CENTER',sub:'ALL LAYERS separates structural hypotheses from observed proof and prospective validation. No hypothesis is promoted by asymmetry score alone.',canvas:'STRUCTURAL ALPHA RESEARCH FUNNEL',badges:['structural','observed','inferred'],graph:g,
-  rail:basicRail(`${lead.tk} · STRUCTURAL HYPOTHESIS`,`${lead.node||lead.scarcity||'Mapped structural candidate'}.`, `Stage ${fmt(lead.stage)} · scarcity ${fmt(lead.scarcity)}.`,`Prove direct value capture, expectation gap, institutional/fundamental evidence and remaining return.`,`Most structural candidates fail or become priced before the evidence completes.`,`Kill thesis, point-in-time lineage and frozen prospective gate are mandatory.`,'Structural / multi-quarter; execution timing separate',25,'RESEARCH TRACE ONLY'),
-  ledger:structural.slice(0,20).map(a=>({time:obj(D.meta).generated,ticker:a.tk,desc:`STRUCTURAL HYPOTHESIS · ${a.node||a.scarcity} · gated ${arr(a.gated).join(', ')||'proof not yet mapped'}`,state:'RESEARCH',raw:a})),
-  queue:structural.slice(0,8).map(a=>({ticker:a.tk,score:25,why:a.node||a.scarcity,stage:'STRUCTURAL RESEARCH'}))};
+ const enriched=rows.map(a=>{
+  const ticker=String(a.tk||'').toUpperCase(), timing=obj(a.timing), market=a.market||'us';
+  const inst=instTickers.has(ticker), fund=fundTickers.has(ticker), evidenceCount=Number(inst)+Number(fund);
+  const action=timing&&Object.keys(timing).length?executionAction(market,obj(obj(D.markets)[market]).bias,timing):'NO TIMING';
+  const mapped=!a.uncategorized, hidden=Boolean(a.is_hidden), active=/BUILD LONG|BUILD SHORT/.test(action);
+  return {...a,ticker,inst,fund,evidenceCount,action,mapped,hidden,active,
+   headroomPct:headroomPercentLabel(a.upside),
+   proofState:evidenceCount===2?'MULTI-SOURCE':evidenceCount===1?'ONE SOURCE':'PROOF MISSING'};
+ }).sort((a,b)=>(Number(b.mapped)-Number(a.mapped))||(Number(b.hidden)-Number(a.hidden))||(alphaTierRank(b)-alphaTierRank(a))||(b.evidenceCount-a.evidenceCount)||(num(b.asymmetry)-num(a.asymmetry)));
+ const mappedCount=enriched.filter(x=>x.mapped).length, hiddenCount=enriched.filter(x=>x.hidden).length;
+ const timingCount=enriched.filter(x=>x.action!=='NO TIMING').length, proofCount=enriched.filter(x=>x.evidenceCount>0).length;
+ const universe=node('a_universe','EXTREME ALPHA UNIVERSE',`${meta.loaded_live_universe||0} live names + structural map`,`${enriched.length} RANKED`,'watch','observed',{raw:meta,w:220});
+ const asym=node('a_asym','ASYMMETRY / HEADROOM',`${mappedCount} mapped · ${hiddenCount} hidden`,'STRUCTURAL SCREEN','watch','structural',{w:205});
+ const proof=node('a_proof','INDEPENDENT PROOF',`${proofCount} have filed/institutional evidence`,proofCount?'PARTIAL':'MISSING','watch','observed',{w:205});
+ const timing=node('a_timing','TIMING / EXECUTION',`${timingCount} have live price context`,'SEPARATE GATE','watch','inferred',{w:205});
+ const extreme=enriched.filter(x=>x.mapped&&x.hidden&&alphaTierRank(x)>=4).sort((a,b)=>(num(b.asymmetry)||0)-(num(a.asymmetry)||0)).slice(0,2);
+ const multiBag=enriched.filter(x=>x.mapped&&x.hidden&&alphaTierRank(x)===3).sort((a,b)=>(num(b.asymmetry)||0)-(num(a.asymmetry)||0)).slice(0,2);
+ const timed=enriched.filter(x=>x.mapped&&x.price_loaded).sort((a,b)=>(num(b.asymmetry)||0)-(num(a.asymmetry)||0)).slice(0,2);
+ const candidateRows=[...extreme,...multiBag,...timed,...enriched.filter(x=>x.mapped&&x.hidden).slice(0,5)].filter((x,i,a)=>a.findIndex(y=>y.ticker===x.ticker)===i).slice(0,5);
+ const candidates=candidateRows.map((a,i)=>node('a_c_'+i,a.ticker,
+  `${a.upside||'?'} · ${a.headroomPct}`,
+  `${a.action} · A${Math.round(num(a.asymmetry)||0)} · ${String(a.base_rate||'?').toUpperCase()}`,
+  a.active?actionState(a.action):'watch',a.mapped?'structural':'observed',{raw:a,market:a.market,w:194}));
+ const g=layered([[universe],[asym,proof,timing],candidates]);
+ g.edges.push(edge(universe.id,asym.id,'watch','structural','map scarcity',1.6,{relation:'structural_screen'}));
+ g.edges.push(edge(asym.id,proof.id,'watch','inferred','prove value capture',1.6,{relation:'proof_gate'}));
+ g.edges.push(edge(proof.id,timing.id,'watch','inferred','time separately',1.6,{relation:'timing_gate'}));
+ candidates.forEach(n=>g.edges.push(edge(timing.id,n.id,n.state,'inferred','candidate state',1.3,{active:n.raw.active,relation:'candidate_timing'})));
+ const lead=candidateRows[0]||enriched.find(x=>x.mapped&&x.hidden)||enriched[0];
+ return {title:'ALPHA CENTER',sub:'Extreme-upside discovery: bottleneck, value capture, expectation gap and room-to-run. Tactical timing is only the last layer—not the definition of alpha.',canvas:'EXTREME ALPHA RADAR',badges:['structural','observed','inferred'],graph:g,
+  rail:{...basicRail(`${lead.ticker} · ${lead.upside||'?'} HEADROOM CLASS`,
+   `${lead.node||'Unclassified candidate'}. ${lead.upside||'?'} equals ${lead.headroomPct}; this is scenario headroom, not a target or probability.`,
+   `Universe ${enriched.length} · mapped ${mappedCount} · hidden ${hiddenCount} · proof ${proofCount} · live timing ${timingCount}.`,
+   lead.action==='NO TIMING'?`Prove direct value capture, expectation gap and remaining return; then wait for a separate timing signal.`:`Prove direct value capture, expectation gap and remaining return; use ${lead.action} only as timing context.`,
+   `Most high-headroom candidates fail, dilute, become crowded or never capture the bottleneck.`,
+   `Kill on broken mechanism, substitution, dilution, missing proof or price invalidation.`,
+   'Structural thesis: quarters/years · timing: setup-specific',Math.min(80,25+lead.evidenceCount*20+(lead.active?15:0)),'RESEARCH EXTREME ALPHA → THEN TIME ENTRY'),confidenceLabel:'EVIDENCE COMPLETENESS'},
+  ledger:enriched.slice(0,40).map(a=>({time:obj(D.meta).generated,ticker:a.ticker,desc:`${a.domain||'unclassified'} · ${a.node||'mapping required'} · headroom ${a.upside} / base rate ${a.base_rate} · asymmetry A${Math.round(num(a.asymmetry)||0)} · ${a.proofState} · ${a.action}`,state:a.active?actionState(a.action):'RESEARCH',raw:a})),
+  queue:enriched.slice(0,12).map(a=>({ticker:a.ticker,score:num(a.asymmetry)||0,why:`${a.upside} headroom · ${a.base_rate} base rate · ${a.proofState}`,stage:a.action==='NO TIMING'?'STRUCTURAL RESEARCH':a.action}))};
 }
 
 function modelInstitutional(){
- const I=obj(D.institutional), statuses=arr(I.statuses), events=arr(I.events); const providers=statuses.length?statuses:[
-  {provider:'Unusual Whales',dataset:'options_flow',state:'NOT_CONFIGURED',note:'Set API key'},
-  {provider:'Massive / UW',dataset:'dark_pool',state:'NOT_CONFIGURED',note:'Set API key'},
-  {provider:'SEC EDGAR',dataset:'filings',state:'NOT_LOADED',note:'Direct public feed'},
-  {provider:'Nansen',dataset:'smart_money',state:'NOT_CONFIGURED',note:'Set API key'},
-  {provider:'Arkham',dataset:'labeled_transfers',state:'NOT_CONFIGURED',note:'Set API key'}];
- const pnodes=providers.map((p,i)=>node('p_'+i,p.provider,p.dataset,p.state,p.state,'observed',{raw:p,provider:p.provider}));
- const tickerNames=[...new Set(events.map(e=>e.ticker).filter(Boolean))].slice(0,8);
- const tickers=tickerNames.map((t,i)=>node('it_'+i,t,'observed event cluster',`${events.filter(e=>e.ticker===t).length} events`,'watch','observed',{raw:{ticker:t,events:events.filter(e=>e.ticker===t)},ticker:t}));
- const gate=node('iscore','EVIDENCE GATE','cross-source reconciliation',events.length?'EVIDENCE ACTIVE':'NO_SIGNAL',events.length?'watch':'NO_SIGNAL','inferred');
- const last=tickers.length?tickers:[node('ino','NO LIVE INSTITUTIONAL EVENTS','public SEC may need user-agent; licensed enrichments need entitlement','NO_SIGNAL','NO_SIGNAL')];
- const g=layered([pnodes,last,[gate]]);
- function providerMatches(p,e){const s=(String(p.provider)+' '+String(p.dataset)).toUpperCase(),t=String(e.event_type||'').toUpperCase(),ep=String(e.provider||'').toUpperCase();return s.includes(ep)||ep.includes(String(p.provider).toUpperCase())||(t==='OPTIONS_FLOW'&&/UNUSUAL|OPTION/.test(s))||(t==='DARK_POOL'&&/MASSIVE|DARK|TRF/.test(s))||(t==='SEC_FILING'&&/SEC/.test(s))||(t==='SMART_MONEY'&&/NANSEN/.test(s))||(t==='ARKHAM_TRANSFER'&&/ARKHAM/.test(s));}
- tickers.forEach(tn=>{events.filter(e=>e.ticker===tn.ticker).forEach(e=>{const p=pnodes.find(n=>providerMatches(n.raw,e));if(p)g.edges.push(edge(p.id,tn.id,eventState(e),'observed',e.event_type,1.8,{active:true,relation:'observed_event'}));});g.edges.push(edge(tn.id,gate.id,'watch','inferred','reconcile',1.6,{relation:'evidence_gate'}));});
+ const I=obj(D.institutional), statuses=arr(I.statuses), events=arr(I.events);
+ const active=statuses.filter(x=>['LIVE','STALE','NO_SIGNAL'].includes(String(x.state||'').toUpperCase()));
+ const required=statuses.filter(x=>['ACTION_REQUIRED','NOT_ENTITLED','NOT_CONFIGURED'].includes(String(x.state||'').toUpperCase()));
+ const source=node('inst_sources','SOURCE COVERAGE',`${active.length} active · ${required.length} require access`,active.length?'PARTIAL':'ACTION REQUIRED',active.length?'watch':'ACTION_REQUIRED','observed',{raw:statuses,w:210});
+ const secRow=statuses.find(x=>/SEC/i.test(`${x.provider||''} ${x.dataset||''}`));
+ const sec=node('inst_sec','SEC EDGAR','Form 4 · 13D/G · 8-K',secRow?.state||'ACTION_REQUIRED',secRow?.state||'ACTION_REQUIRED','observed',{raw:secRow||{},w:190});
+ const ev=node('inst_events','OBSERVED EVENTS',`${events.length} current records`,events.length?'LIVE':'NO SIGNAL',events.length?'constructive':'NO_SIGNAL','observed',{raw:events,w:190});
+ const gate=node('inst_gate','CROSS-SOURCE GATE','single print/filing is not intent',events.length?'RECONCILE':'BLOCKED','watch','inferred',{w:205});
+ const tickerNames=[...new Set(events.map(e=>e.ticker).filter(Boolean))].slice(0,5);
+ const tickers=tickerNames.map((t,i)=>node('inst_t_'+i,t,`${events.filter(e=>e.ticker===t).length} observed events`,'VERIFY INTENT','watch','observed',{raw:{ticker:t,events:events.filter(e=>e.ticker===t)},w:176}));
+ const last=tickers.length?tickers:[node('inst_none','NO CONFIRMED CLUSTER','configure sources or wait for repeated evidence','NO SIGNAL','NO_SIGNAL','observed',{w:220})];
+ const g=layered([[source,sec],[ev,gate],last]);
+ if(edgeAllowed(source,ev))g.edges.push(edge(source.id,ev.id,'watch','observed','feed coverage',1.4,{relation:'source_coverage'}));
+ if(edgeAllowed(sec,ev))g.edges.push(edge(sec.id,ev.id,'watch','observed','filings',1.4,{relation:'sec_events'}));
+ if(edgeAllowed(ev,gate))g.edges.push(edge(ev.id,gate.id,'watch','inferred','reconcile',1.6,{relation:'evidence_gate'}));
+ tickers.forEach(t=>g.edges.push(edge(gate.id,t.id,'watch','inferred','ticker cluster',1.4,{relation:'ticker_cluster'})));
  const lead=events[0];
- return {title:'INSTITUTIONAL POSITIONING',sub:'Arrows now mean an actual provider/event/ticker lineage. A provider is never connected to a ticker it did not observe.',canvas:'INSTITUTIONAL EVIDENCE MAP',badges:['observed','inferred'],graph:g,
- rail:basicRail(lead?`${lead.ticker} · ${lead.event_type}`:(I.overall_state||'NOT CONFIGURED'),lead?eventDescription(lead):'Connect provider keys. SEC can run without a paid market-data key.',`Observed events: ${events.length}. Active feeds: ${providers.filter(p=>p.state==='LIVE').length}.`,`Cluster repeated evidence and reconcile options with next-day OI / price response.`,`Single prints, hedges, rolls and custody transfers can be noise.`,`Invalidate the inference when follow-through or independent evidence fails.`,'Seconds to quarters by source',lead?60:0,lead?'OPEN RAW EVENT / CROSS-CHECK':'CONFIGURE DATA SOURCES'),
- ledger:events.slice(0,30).map(e=>({time:e.timestamp,ticker:e.ticker||e.provider,desc:eventDescription(e),state:eventState(e)})),queue:institutionalQueue(events)};
+ return {title:'INSTITUTIONAL POSITIONING',sub:'Canvas shows usable evidence domains, not a wall of provider errors. Provider entitlement and error details stay in the ledger.',canvas:'INSTITUTIONAL EVIDENCE MAP',badges:['observed','inferred'],graph:g,
+  rail:basicRail(lead?`${lead.ticker} · VERIFY INSTITUTIONAL INTENT`:(required.length?'DATA ACCESS REQUIRED':'NO INSTITUTIONAL CLUSTER'),lead?eventDescription(lead):`${active.length} active sources; ${required.length} require configuration or entitlement.`, `Observed events ${events.length}. Active feeds ${active.length}.`,`Require repetition, next-day OI/ownership reconciliation and price response.`,`Single prints, hedges, rolls, custody and market-maker inventory can be noise.`,`Invalidate when follow-through or independent evidence fails.`,'Seconds to quarters by source',lead?45:0,lead?'WATCH / VERIFY — NOT AUTOMATIC BUY':'CONFIGURE SOURCES / NO TRADE'),
+  ledger:[...events.slice(0,30).map(e=>({time:e.timestamp,ticker:e.ticker,desc:eventDescription(e),state:eventState(e),raw:e})),...statuses.map(x=>({time:x.fetched_at,ticker:x.provider,desc:`${x.dataset} · ${x.note}`,state:x.state,raw:x}))],queue:tickerNames.map(t=>({ticker:t,score:events.filter(e=>e.ticker===t).length*10,why:'Observed event cluster; intent not inferred',stage:'VERIFY'}))};
 }
-
-function eventDescription(e){
- if(e.event_type==='OPTIONS_FLOW')return `${e.option_type||''} ${e.contract||''} · ${money(e.premium)} · ${arr(e.flags).join('/')||e.classification||'trade-side'}`;
- if(e.event_type==='DARK_POOL')return `TRF print ${money(e.premium)} @ ${fmt(e.price)} · ${e.nbbo_location||'location unknown'} · intent unconfirmed`;
- if(e.event_type==='SEC_FILING')return `${e.form} · ${e.description||e.company||'SEC filing'}`;
- if(e.event_type==='SMART_MONEY')return `${e.chain||''} · holdings ${money(e.value_usd)} · 24h ${pct(e.change_24h_pct)}`;
- if(e.event_type==='ARKHAM_TRANSFER')return `${e.chain||''} · ${e.from_entity||'unknown'} → ${e.to_entity||'unknown'} · ${money(e.value_usd)} · intent unconfirmed`;
- if(e.event_type==='DERIVATIVES_STATE'||e.event_type==='OPTIONS_STATE')return e.description||`${e.state||'CONTEXT'} · not a calibrated probability`;
- return short(JSON.stringify(e),100);
-}
-function eventState(e){if(e.event_type==='SMART_MONEY')return normalizeState(e.classification); if(e.event_type==='OPTIONS_FLOW')return /CALL_ASK|PUT_BID/.test(e.classification||'')?'constructive':/PUT_ASK|CALL_BID/.test(e.classification||'')?'destructive':'watch'; return 'watch';}
-function institutionalQueue(events){const m={};events.forEach(e=>{const t=e.ticker||'—';if(!m[t])m[t]={ticker:t,score:0,why:[],stage:'EVIDENCE'};m[t].score+=e.event_type==='SEC_FILING'?18:e.event_type==='OPTIONS_FLOW'?12:e.event_type==='DARK_POOL'?9:10;m[t].why.push(e.event_type);});return Object.values(m).sort((a,b)=>b.score-a.score).slice(0,8).map(x=>({...x,why:[...new Set(x.why)].join(' + ')}));}
 
 function derivativeLedgerRows(kind='all'){
  const rows=[];
@@ -468,51 +473,59 @@ function derivativeQueue(kind='all'){
 }
 function modelDerivatives(){
  const statuses=arr(LI.statuses), crypto=arr(LI.crypto_derivatives), options=arr(LI.us_options), ussq=arr(LI.us_squeeze), copt=arr(LI.crypto_options), marketOpt=obj(LI.market_options_context);
- const providerRows=[...new Map(statuses.map(x=>[`${x.provider}:${x.dataset}`,x])).values()].slice(0,6);
- const providers=providerRows.map((x,i)=>node('lp_'+i,x.provider,short(x.dataset,28),x.state,x.state,'observed',{raw:x,provider:x.provider,dataset:x.dataset}));
- const usOpt=node('dom_us','US OPTIONS',`${options.filter(x=>x.state!=='NO_DATA').length}/${options.length} chains`,options.some(x=>x.state==='LIVE')?'LIVE':'NO_DATA',options.some(x=>x.state==='LIVE')?'constructive':'NO_DATA','observed');
- const shortB=node('dom_si','SHORT / BORROW',`${arr(LI.us_short_interest).length} tickers`,arr(LI.us_short_interest).length?'LIVE':'NO_DATA',arr(LI.us_short_interest).length?'watch':'NO_DATA','observed');
- const cp=node('dom_cp','CRYPTO PERPS',`${crypto.filter(x=>x.state!=='NO_DATA').length} assets`,crypto.some(x=>x.state==='LIVE')?'LIVE':'NO_DATA',crypto.some(x=>x.state==='LIVE')?'constructive':'NO_DATA','observed');
- const co=node('dom_co','CRYPTO OPTIONS',`${copt.filter(x=>x.state!=='NO_DATA').length} assets`,copt.some(x=>x.state==='LIVE')?'LIVE':'NO_DATA',copt.some(x=>x.state==='LIVE')?'watch':'NO_DATA','observed');
- const domains=[usOpt,shortB,cp,co];
- const oi=node('eng_oi','OI + FUNDING','build / cover / liquidation','STATE ENGINE','watch','inferred');
- const greeks=node('eng_g','GAMMA / VANNA / CHARM','signed-OI proxy unless live side known','GREEKS CONTEXT','watch','inferred');
- const squeeze=node('eng_sq','SQUEEZE PRESSURE','ingredients, not probability','PRESSURE INDEX','watch','inferred');
- const zones=node('eng_z','REFERENCE ZONES','walls / expected move / liquidation','NOT TARGETS','watch','inferred');
- const rot=node('eng_rot','OPTIONS ROTATION',`${arr(marketOpt.sector_rotation).length} sectors`,marketOpt.state||'NO_DATA',marketOpt.state,'observed',{raw:marketOpt});
- const engines=[oi,greeks,squeeze,zones,rot];
- const targets=[...crypto.slice(0,3).map((x,i)=>node('dc_'+i,x.asset,short(x.positioning_quadrant,31),`S${fmt(x.short_squeeze_pressure)} / L${fmt(x.long_squeeze_pressure)}`,Math.max(num(x.short_squeeze_pressure)||0,num(x.long_squeeze_pressure)||0)>=70?'watch':x.state,'observed',{raw:x,targetType:'crypto'})),...ussq.filter(x=>x.state!=='NO_DATA').slice(0,3).map((x,i)=>node('du_'+i,x.ticker,'US forced-flow context',`S${fmt(x.short_squeeze_pressure)} / L${fmt(x.long_squeeze_pressure)}`,Math.max(num(x.short_squeeze_pressure)||0,num(x.long_squeeze_pressure)||0)>=70?'watch':x.state,'observed',{raw:x,targetType:'us'}))];
- const last=targets.length?targets:[node('dt0','NO DERIVATIVES CONTEXT','connect feeds / wait for history','NO_DATA','NO_DATA')];
- const g=layered([providers.length?providers:[node('lp0','LIVE PROVIDERS','public endpoints unavailable','NO_DATA','NO_DATA')],domains,engines,last]);
- function pd(p,d){const x=(String(p.provider)+' '+String(p.dataset)).toUpperCase();if(d===usOpt)return /MASSIVE|UNUSUAL|OPTION/.test(x);if(d===shortB)return /ORTEX|INTRINIO|SHORT|BORROW/.test(x);if(d===cp)return /BINANCE|BYBIT|OKX|COINGLASS/.test(x);if(d===co)return /DERIBIT|OPTION/.test(x);return false;}
- providers.forEach(p=>domains.filter(d=>pd(p.raw,d)).forEach(d=>g.edges.push(edge(p.id,d.id,'watch','observed','feed',1.6,{active:p.state==='live',relation:'provider_domain'}))));
- connectPairs(g,[[usOpt,greeks,'watch','inferred','surface'],[usOpt,zones,'watch','inferred','walls/EM'],[usOpt,rot,'watch','inferred','sector flow'],[usOpt,squeeze,'watch','inferred','option pressure'],[shortB,squeeze,'watch','inferred','borrow pressure'],[cp,oi,'watch','inferred','OI/funding'],[cp,squeeze,'watch','inferred','forced flow'],[cp,zones,'watch','inferred','liquidations'],[co,greeks,'watch','inferred','option surface'],[co,zones,'watch','inferred','walls/EM'],[co,squeeze,'watch','inferred','option pressure']]);
- targets.forEach(t=>{if(t.targetType==='crypto'){[oi,squeeze,zones,greeks].forEach(e=>g.edges.push(edge(e.id,t.id,t.state,'inferred','context',1.4,{relation:'engine_target'})));}else{[greeks,squeeze,zones,rot].forEach(e=>g.edges.push(edge(e.id,t.id,t.state,'inferred','context',1.4,{relation:'engine_target'})));}});
- const queue=derivativeQueue('all'), lead=queue[0]; const leadRaw=crypto.find(x=>x.asset===lead?.ticker)||ussq.find(x=>x.ticker===lead?.ticker);
- return {title:'DERIVATIVES / SQUEEZE',sub:'Each arrow now follows a valid provider → domain → engine → asset path; no all-to-all inference web.',canvas:'DERIVATIVES PRESSURE MAP',badges:['observed','inferred'],graph:g,
-  rail:{...basicRail(lead?`${lead.ticker} · ${lead.stage}`:(LI.overall_state||'NO DATA'),lead?lead.why:'No asset has enough current derivatives evidence.',`Live providers ${num(obj(LI.status_counts).live)||0}/${num(obj(LI.status_counts).total)||0}. OI and funding are interpreted jointly with price.`,`Require persistence, price confirmation and a reachable liquidity/reference zone before acting.`,`Crowding can unwind slowly or be hedged; a high pressure index can remain high without a squeeze.`,`Data stale, OI units incomparable, or price/OI quadrant reverses.`,leadRaw?.horizon_context||'Intraday funding/OI; expiry-specific options horizon',lead?Math.min(95,lead.score):0,'OPEN RAW VENUES / REFERENCE ZONES'),confidenceLabel:'EVIDENCE COMPLETENESS'},
-  ledger:[...derivativeLedgerRows('all'),...statuses.slice(0,30).map(x=>({time:x.fetched_at,ticker:x.provider,desc:`${x.dataset} · ${x.note}`,state:x.state,raw:x}))],queue};
+ const usLive=options.filter(x=>['LIVE','STALE'].includes(String(x.state||'').toUpperCase())).length;
+ const cryptoLive=crypto.filter(x=>['LIVE','STALE'].includes(String(x.state||'').toUpperCase())).length;
+ const coptLive=copt.filter(x=>['LIVE','STALE'].includes(String(x.state||'').toUpperCase())).length;
+ const borrow=arr(LI.us_short_interest);
+ const usOpt=node('dom_us','US OPTIONS',`${usLive}/${options.length} chains usable`,usLive?'LIVE':'NO DATA',usLive?'constructive':'NO_DATA','observed',{raw:options,w:190});
+ const shortB=node('dom_si','SHORT / BORROW',`${borrow.length} tickers`,borrow.length?'LIVE':'NOT ENTITLED',borrow.length?'watch':'NO_DATA','observed',{raw:borrow,w:190});
+ const cp=node('dom_cp','CRYPTO PERPS',`${cryptoLive} assets usable`,cryptoLive?'LIVE':'NO DATA',cryptoLive?'constructive':'NO_DATA','observed',{raw:crypto,w:190});
+ const co=node('dom_co','CRYPTO OPTIONS',`${coptLive} assets usable`,coptLive?'LIVE':'NO DATA',coptLive?'watch':'NO_DATA','observed',{raw:copt,w:190});
+ const pos=node('eng_pos','POSITION BUILD / COVER','price × OI × funding','STATE CONTEXT','watch','inferred',{w:195});
+ const vol=node('eng_vol','VOL / GREEKS','gamma · vanna · charm · skew','CONTEXT','watch','inferred',{w:195});
+ const squeeze=node('eng_sq','SQUEEZE PRESSURE','ingredients, not probability','PRESSURE ONLY','watch','inferred',{w:195});
+ const zones=node('eng_z','REFERENCE ZONES','walls · expected move · liquidations','NOT TARGETS','watch','inferred',{w:195});
+ const queue=derivativeQueue('all');
+ const targets=queue.slice(0,5).map((q,i)=>node('der_t_'+i,q.ticker,short(q.why,36),q.stage==='CRYPTO DERIVATIVES'?'PERP CONTEXT':'OPTIONS CONTEXT','watch','observed',{raw:q,w:176,targetType:q.stage==='CRYPTO DERIVATIVES'?'crypto':'us'}));
+ const last=targets.length?targets:[node('der_none','NO USABLE DERIVATIVE CONTEXT','providers unavailable or insufficient history','NO DATA','NO_DATA','observed',{w:220})];
+ const g=layered([[usOpt,shortB,cp,co],[pos,vol,squeeze,zones],last]);
+ connectPairs(g,[[cp,pos,'watch','inferred','OI/funding'],[cp,squeeze,'watch','inferred','forced flow'],[co,vol,'watch','inferred','option surface'],[co,zones,'watch','inferred','walls/EM'],[usOpt,vol,'watch','inferred','surface/greeks'],[usOpt,zones,'watch','inferred','walls/EM'],[shortB,squeeze,'watch','inferred','borrow pressure']]);
+ targets.forEach(t=>{
+  if(t.targetType==='crypto'){g.edges.push(edge(pos.id,t.id,'watch','inferred','position context',1.3,{relation:'position_target'}));g.edges.push(edge(squeeze.id,t.id,'watch','inferred','pressure context',1.3,{relation:'squeeze_target'}));}
+  else {g.edges.push(edge(vol.id,t.id,'watch','inferred','greek context',1.3,{relation:'greek_target'}));g.edges.push(edge(zones.id,t.id,'watch','inferred','reference zones',1.3,{relation:'zone_target'}));}
+ });
+ const lead=queue[0], leadRaw=crypto.find(x=>x.asset===lead?.ticker)||ussq.find(x=>x.ticker===lead?.ticker);
+ return {title:'DERIVATIVES / SQUEEZE',sub:'Decision-first domain summary. Raw endpoint errors are retained in the ledger, not drawn as overlapping provider boxes.',canvas:'DERIVATIVES DECISION MAP',badges:['observed','inferred'],graph:g,
+  rail:{...basicRail(lead?`${lead.ticker} · ${lead.stage}`:(LI.overall_state||'NO DATA'),lead?lead.why:'No asset has enough current derivatives evidence.',`Usable domains: US options ${usLive}, crypto perps ${cryptoLive}, crypto options ${coptLive}, borrow ${borrow.length}.`,`Require persistence, price confirmation and reachable reference zones before taking a directional trade.`,`Crowding can unwind slowly or be hedged; pressure is not probability.`,`Data stale, units incomparable, or price/OI quadrant reverses.`,leadRaw?.horizon_context||'Funding/OI intraday; options expiry-specific',lead?Math.min(85,lead.score):0,'WATCH PRESSURE + TRIGGER — NOT AUTO TRADE'),confidenceLabel:'EVIDENCE COMPLETENESS'},
+  ledger:[...derivativeLedgerRows('all'),...statuses.slice(0,40).map(x=>({time:x.fetched_at,ticker:x.provider,desc:`${x.dataset} · ${x.note}`,state:x.state,raw:x}))],queue};
 }
 
 function modelMarket(id,title){
- const m=marketObj(id), allSetups=marketSetups(id), setups=allSetups.filter(s=>isSetupAligned(id,m.bias,s)), drivers=arr(m.drivers), b=breadthFor(id), tab=id==='idx'?'ihsg':id==='commodity'?'commodities':id==='fx'?'fx':id==='crypto'?'crypto':'us_stocks';
- const l0=drivers.length?drivers.slice(0,6).map((d,i)=>node('d_'+i,String(d).replaceAll('_',' ').toUpperCase(),'market-specific driver','INPUT','neutral','structural',{raw:d})):[node('dn','DRIVER FEEDS','none mapped','NO_DATA','NO_DATA')];
- const derivCtx=marketDerivativeContext(id), liveRows=derivCtx.rows, liveState=derivCtx.state;
- const stateNode=node('mbias',title+' CONTEXT',`${obj(m.funnel).universe||b.coverage||0} loaded`,marketContextValue(id,m,b),marketContextState(id,m,b),'inferred',{raw:m});
- const breadthNode=node('breadth_ctx','BREADTH',`${b.coverage||0} names`,b.state==='LIVE'?`${fmt(b.advance_pct)}% ADV`:'NO_DATA',b.advance_pct>=55?'constructive':b.advance_pct<45?'destructive':'watch','observed',{raw:b});
- const derivNode=node('mderiv',derivCtx.label,`${liveRows.length} normalized rows`,liveState,liveState,'observed',{raw:liveRows});
- const l1=[stateNode,breadthNode,derivNode];
- const l2=setups.length?setups.slice(0,5).map((s,i)=>node('s_'+i,s.tk,short(s.why,35),researchActionLabel(s.act||s.ty||'SETUP'),s.act||s.ty,'observed',{raw:s,market:id})):[node('sn','NO ALIGNED SURFACED TICKER',allSetups.length?'setups conflict with market bias':'price data loaded; conviction gate not met','NO_SIGNAL','NO_SIGNAL')];
- const g=layered([l0,l1,l2]);
- l0.forEach(d=>{if(edgeAllowed(d,stateNode))g.edges.push(edge(d.id,stateNode.id,'watch','structural','driver',1.4,{relation:'driver_state'}));});
- if(edgeAllowed(breadthNode,stateNode))g.edges.push(edge(breadthNode.id,stateNode.id,'watch','inferred','breadth confirm',1.5,{relation:'confirmation'}));
- if(edgeAllowed(derivNode,stateNode))g.edges.push(edge(derivNode.id,stateNode.id,'watch','inferred','derivatives confirm',1.5,{relation:'confirmation'}));
- l2.forEach(s=>{if(s.id!=='sn'&&edgeAllowed(stateNode,s))g.edges.push(edge(stateNode.id,s.id,s.state,'inferred','aligned setup',1.9,{active:true,relation:'candidate_lineage'}));});
- const top=setups[0];
- const special=id==='idx'?'IHSG remains long-only; bearish state means wait/reduce, never short.':id==='crypto'?'Wallet/entity flows are separated from protocol TVL and price proxies.':'Market setup requires driver, price and execution agreement.';
- return {title,sub:special,canvas:`${title} DECISION MAP`,badges:['observed','structural','inferred'],graph:g,
- rail:basicRail(top?`${top.tk} · ${top.act}`:(m.bias||'NO_DATA'),top?top.why:(allSetups.length?`Setups exist but conflict with ${fmt(m.bias)} bias.`:`No ticker cleared the gate. Bias: ${fmt(m.bias)}.`),top?`Entry ${fmt(top.e)} · stop ${fmt(top.s)} · target ${fmt(top.t)} · R/R ${fmt(top.rr)}`:'Keep the market state visible without inventing an opportunity.',`Next candidate appears only after full funnel, direction alignment and data checks.`,`Alternative path: market bias can rotate while no individual ticker qualifies.`,top?(top.warn||`Invalidation ${fmt(top.s)}`):'No setup means no trade-level invalidation.','Setup-specific',top?Math.min(95,num(top.conv)||0):0,top?top.act:'NO ACTION'),
- ledger:[...allSetups.map(s=>({time:obj(D.meta).generated,ticker:s.tk,desc:`${s.act} · ${s.why} · ${isSetupAligned(id,m.bias,s)?'ALIGNED':'CONFLICTS WITH MARKET BIAS'} · entry ${fmt(s.e)} / stop ${fmt(s.s)} / target ${fmt(s.t)}`,state:isSetupAligned(id,m.bias,s)?s.act:'watch'})),...derivativeLedgerRows(id==='crypto'?'crypto':id==='us'?'us':'none'),...marketDerivativeLedger(id),...coverageRows(tab)],queue:[...setups.slice(0,8).map(s=>({ticker:s.tk,score:num(s.conv)||0,why:s.why,stage:s.act||s.ty})),...derivativeQueue(id==='crypto'?'crypto':id==='us'?'us':'none')].sort((a,b)=>b.score-a.score).slice(0,8)};
+ const m=marketObj(id), allSetups=marketSetups(id), aligned=allSetups.filter(s=>isSetupAligned(id,m.bias,s)), b=breadthFor(id), tab=id==='idx'?'ihsg':id==='commodity'?'commodities':id==='crypto'?'crypto':'us_stocks';
+ const derivCtx=marketDerivativeContext(id), liveRows=derivCtx.rows;
+ const posture=marketPosture(id,m.bias);
+ const stateNode=node('mbias','MARKET POSTURE',`${obj(m.funnel).universe||b.coverage||0} names loaded`,posture,posture,'inferred',{raw:m,w:205});
+ const breadthNode=node('breadth_ctx','BREADTH',`${b.coverage||0} names`,b.state==='LIVE'?`${fmt(b.advance_pct)}% ADV`:'NO DATA',b.advance_pct>=55?'constructive':b.advance_pct<45?'destructive':'watch','observed',{raw:b,w:190});
+ const derivNode=node('mderiv',derivCtx.label,`${liveRows.length} normalized rows`,derivCtx.state,derivCtx.state,'observed',{raw:liveRows,w:190});
+ const candidatePool=(aligned.length?aligned:allSetups).slice(0,5);
+ const cards=candidatePool.map((s,i)=>{const action=executionAction(id,m.bias,s);const sub=isSetupAligned(id,m.bias,s)?`TRIG ${fmt(s.e)} · STOP ${fmt(s.s)}`:`WAIT ALIGNMENT · TRIG ${fmt(s.e)}`;return node('s_'+i,s.tk,sub,action,actionState(action),'observed',{raw:s,market:id,w:178});});
+ const last=cards.length?cards:[node('sn','NO CURRENT SETUP','data loaded; no ticker passed setup construction','NO TRADE','NO_SIGNAL','observed',{w:220})];
+ const g=layered([[stateNode,breadthNode,derivNode],last]);
+ if(edgeAllowed(breadthNode,stateNode))g.edges.push(edge(breadthNode.id,stateNode.id,'watch','inferred','confirm posture',1.4,{relation:'breadth_confirmation'}));
+ if(edgeAllowed(derivNode,stateNode))g.edges.push(edge(derivNode.id,stateNode.id,'watch','inferred','confirm posture',1.4,{relation:'derivative_confirmation'}));
+ cards.forEach(n=>{if(isSetupAligned(id,m.bias,n.raw))g.edges.push(edge(stateNode.id,n.id,n.state,'inferred','action candidate',1.7,{active:/BUILD/.test(n.value),relation:'candidate_lineage'}));});
+ const top=aligned[0]||allSetups[0], topAction=top?executionAction(id,m.bias,top):'NO TRADE';
+ const watchText=candidatePool.slice(0,4).map(s=>`${s.tk} ${executionAction(id,m.bias,s)}`).join(' · ')||'No watchlist candidate.';
+ const special=id==='idx'?'IHSG is cash long-only: bearish context means reduce/avoid or wait, never open a short.':id==='crypto'?'Crypto actions require venue/liquidity and derivatives confirmation.':'Action labels distinguish build, directional watch and no-trade states.';
+ return {title,sub:special,canvas:`${title} ACTION MAP`,badges:['observed','inferred'],graph:g,
+  rail:{...basicRail(`${title}: ${posture}`,
+   top?`${top.tk} is currently ${topAction}. Readiness is not probability.`:`No current setup.`,
+   `ACTION NOW: ${aligned.length&&top?topAction:'NO TRADE'}. Watchlist: ${watchText}`,
+   top?`Trigger ${fmt(top.e)} · stop ${fmt(top.s)} · reference target ${fmt(top.t)} · R/R ${fmt(top.rr)}.`:'Wait for a setup and market alignment.',
+   `Alternative: posture can rotate while every ticker remains NO TRADE.`,
+   top?(top.warn||`Invalidate at ${fmt(top.s)} or on posture reversal.`):'No setup means no trade-level invalidation.','Setup-specific',top&&isSetupAligned(id,m.bias,top)?Math.min(85,num(top.conv)||0):10,aligned.length&&top?topAction:'NO TRADE'),confidenceLabel:'SETUP COMPLETENESS'},
+  ledger:[...allSetups.map(s=>{const a=executionAction(id,m.bias,s);return {time:obj(D.meta).generated,ticker:s.tk,desc:`${a} · ${s.why} · trigger ${fmt(s.e)} / stop ${fmt(s.s)} / reference ${fmt(s.t)} · ${isSetupAligned(id,m.bias,s)?'MARKET ALIGNED':'WAITING FOR ALIGNMENT'}`,state:actionState(a),raw:s};}),...marketDerivativeLedger(id),...coverageRows(tab)],
+  queue:candidatePool.slice(0,8).map(s=>({ticker:s.tk,score:num(s.conv)||0,why:`trigger ${fmt(s.e)} · stop ${fmt(s.s)} · ${s.why}`,stage:executionAction(id,m.bias,s)}))};
 }
 
 function modelFx(){
@@ -592,7 +605,7 @@ function modelCompany(){
  const l0=[root],l1=[value,fund,pos],l2=[valuation,price,kill]; const g=layered([l0,l1,l2]);
  connectPairs(g,[[root,value,'watch',value.evidence,'structural role'],[root,fund,'watch','observed','filed facts'],[root,pos,'watch','observed','events'],[value,valuation,'watch','inferred','value capture'],[fund,valuation,'watch','inferred','valuation input'],[fund,kill,'watch','inferred','fundamental invalidation'],[price,kill,'watch','inferred','price invalidation'],[pos,price,'watch','inferred','confirmation only']]);
  return {title:'COMPANY INTEL',sub:'Explicit evidence relationships only; fundamentals, positioning and value capture no longer point to every output.',canvas:`${t} INVESTMENT MAP`,badges:['observed','structural','inferred'],graph:g,
- rail:basicRail(t,cand.why||'Candidate selected from current queue.',setup?`${setup.act} · entry ${fmt(setup.e)} · stop ${fmt(setup.s)}`:'No current executable setup.',events.length?`${events.length} institutional events require interpretation.`:'Wait for independent institutional evidence.',fundamental?'Filed fundamentals loaded; compare matched periods before valuation.':'No fundamentals loaded means the thesis cannot be considered complete.',setup?.warn||`Price invalidation ${fmt(setup?.s)}`,'Company-specific',Math.min(90,cand.score||0),'OPEN EVIDENCE TRACE'),
+ rail:{...basicRail(t,cand.why||'Candidate selected from current research queue.',setup?`ACTION: ${executionAction(cand.market||'us',obj(obj(D.markets)[cand.market||'us']).bias,setup)} · trigger ${fmt(setup.e)} · stop ${fmt(setup.s)}`:'NO TRADE — no executable setup.',events.length?`${events.length} institutional events require interpretation.`:'Wait for independent institutional evidence.',fundamental?'Filed fundamentals loaded; compare matched periods before valuation.':'No fundamentals loaded means the thesis cannot be considered complete.',setup?.warn||`Price invalidation ${fmt(setup?.s)}`,'Company-specific',Math.min(90,20+(fundamental?25:0)+(events.length?25:0)+(alpha?15:0)+(setup?15:0)),'OPEN EVIDENCE TRACE — NO AUTO TRADE'),confidenceLabel:'EVIDENCE COMPLETENESS'},
  ledger:[...(events.slice(0,10).map(e=>({time:e.timestamp,ticker:t,desc:eventDescription(e),state:eventState(e)}))),...(fundamental?[{time:obj(D.meta).generated,ticker:t,desc:`SEC facts · ${Object.keys(fundamental.facts||{}).join(', ')}`,state:'LIVE',raw:fundamental}]:[]),...(setup?[{time:obj(D.meta).generated,ticker:t,desc:`${setup.act} · ${setup.why}`,state:setup.act}]:[]),...coverageRows('company_intel')],queue:[cand]};
 }
 
@@ -608,27 +621,35 @@ function modelKnowledge(){
 function modelValidation(){
  const grades=obj(D.grades); const entries=Object.entries(grades).filter(([k,v])=>v&&typeof v==='object');
  if(!entries.length)return emptyModel('VALIDATION CENTER','No machine-readable metric grades were loaded.');
- const center=node('prod','PRODUCTION GATE','OOS / DSR / multiple testing','ENFORCED','watch','observed'); const nodes=entries.slice(0,18).map(([k,v],i)=>{const status=v.grade||v.status||v.verdict||'UNKNOWN';const angle=(i/Math.max(1,entries.length))*Math.PI*2;return node('v_'+i,k.replaceAll('_',' ').toUpperCase(),short(v.note||v.reason||'',35),status,status,'observed',{x:500+Math.cos(angle)*(175+(i%2)*60),y:310+Math.sin(angle)*(175+(i%2)*60),raw:v});});center.x=500;center.y=310;const g={nodes:[center,...nodes],edges:nodes.map(n=>edge(n.id,'prod',n.state,'inferred'))};
+ const statusOf=v=>String(v.grade||v.status||v.verdict||'UNKNOWN').toUpperCase();
+ const validated=entries.filter(([,v])=>/VALIDATED|PRODUCTION/.test(statusOf(v))).length;
+ const partial=entries.filter(([,v])=>/PARTIAL|MONITOR|RESEARCH/.test(statusOf(v))).length;
+ const rejected=entries.filter(([,v])=>/REJECT|FAILED|BROKEN/.test(statusOf(v))).length;
+ const inventory=node('val_inv','RESEARCH INVENTORY',`${entries.length} machine-readable grade cards`,'FROZEN SPECS','watch','observed',{w:205});
+ const oos=node('val_oos','OOS / LOCKBOX',`${validated} currently validated`,'REQUIRED','watch','observed',{w:195});
+ const correction=node('val_corr','SELECTION CONTROL',`${partial} partial · ${rejected} rejected`,'DSR / PBO / FDR','watch','observed',{w:205});
+ const displayed=entries.slice().sort((a,b)=>{
+   const rank=v=>/REJECT|FAILED|BROKEN/.test(statusOf(v))?0:/PARTIAL|MONITOR|RESEARCH/.test(statusOf(v))?1:2;
+   return rank(a[1])-rank(b[1]);
+ }).slice(0,8);
+ const nodes=displayed.map(([k,v],i)=>{const status=statusOf(v);return node('v_'+i,k.replaceAll('_',' ').toUpperCase(),short(v.note||v.reason||'open grade card',31),status,status,'observed',{raw:v,w:184});});
+ const center=node('prod','PRODUCTION GATE','baseline + costs + OOS + prospective','FAIL CLOSED','watch','observed',{w:220});
+ const g=layered([[inventory,oos,correction],nodes.slice(0,4),nodes.slice(4,8),[center]]);
+ nodes.forEach(n=>g.edges.push(edge(n.id,center.id,n.state,'inferred','grade gate',1.25,{relation:'validation_gate'})));
  return {title:'VALIDATION CENTER',sub:'A component enters production only after its frozen specification beats the baseline out of sample.',canvas:'EVIDENCE LABORATORY',badges:['observed','inferred'],graph:g,
- rail:basicRail('PRODUCTION GATE',`${entries.length} graded components loaded.`,`Validated components may inform decisions within their tested scope.`,`Monitor degradation, drift, calibration and prospective lockbox outcomes.`,`Good in-sample results are not production evidence.`,`Reject or downgrade on OOS failure, drift or broken data lineage.`,'Continuous monitoring',65,'OPEN GRADE CARD'),ledger:[...entries.slice(0,20).map(([k,v])=>({time:obj(D.meta).generated,ticker:k,desc:v.note||v.reason||JSON.stringify(v),state:v.grade||v.status||'UNKNOWN'})),...arr(FLD.statuses).slice(0,30).map(x=>({time:x.fetched_at,ticker:x.provider,desc:`${x.dataset} · ${x.note}`,state:x.state,raw:x}))],queue:entries.slice(0,8).map(([k,v])=>({ticker:k,score:/VALID/i.test(v.grade||v.status||'')?90:/PARTIAL/i.test(v.grade||v.status||'')?55:15,why:v.note||v.reason||'',stage:v.grade||v.status||'UNKNOWN'}))};
+ rail:basicRail('PRODUCTION GATE',`${entries.length} graded components · ${validated} validated · ${partial} partial · ${rejected} rejected.`,`Only validated components may inform decisions inside their tested scope.`,`Monitor degradation, drift, calibration and untouched prospective outcomes.`,`Good in-sample results, attractive narratives and repeated tweaking are not production evidence.`,`Reject or downgrade on OOS failure, drift, broken lineage or failed prospective lockbox.`,'Continuous monitoring',Math.min(80,Math.round(validated/Math.max(1,entries.length)*100)),'OPEN GRADE CARD — NO AUTO PROMOTION'),ledger:[...entries.slice(0,30).map(([k,v])=>({time:obj(D.meta).generated,ticker:k,desc:v.note||v.reason||JSON.stringify(v),state:v.grade||v.status||'UNKNOWN'})),...arr(FLD.statuses).slice(0,30).map(x=>({time:x.fetched_at,ticker:x.provider,desc:`${x.dataset} · ${x.note}`,state:x.state,raw:x}))],queue:entries.slice(0,8).map(([k,v])=>({ticker:k,score:/VALID/i.test(v.grade||v.status||'')?90:/PARTIAL/i.test(v.grade||v.status||'')?55:15,why:v.note||v.reason||'',stage:v.grade||v.status||'UNKNOWN'}))};
 }
 
 function emptyModel(title,message){const g=layered([[node('empty',title,message,'NO_DATA','NO_DATA')]]);return {title,sub:message,canvas:title,badges:['observed'],graph:g,rail:basicRail('NO DATA',message,'No action.','Connect or repair the required source.','Do not substitute a static narrative or synthetic series.','Data availability is the current invalidation.','Until source recovers',0,'NO ACTION'),ledger:[],queue:[]};}
 function getModel(){switch(state.view){case'mc':return modelMission();case'macro':return modelMacro();case'ew':return modelEarly();case'alpha':return modelAlpha();case'inst':return modelInstitutional();case'deriv':return modelDerivatives();case'us':return modelMarket('us','US STOCKS');case'ihsg':return modelMarket('idx','IHSG');case'crypto':return modelMarket('crypto','CRYPTO');case'commod':return modelMarket('commodity','COMMODITIES');case'fx':return modelFx();case'flow':return modelFlow();case'sc':return modelSupply();case'co':return modelCompany();case'kg':return modelKnowledge();case'rc':return modelValidation();default:return modelMission();}}
 
 function graphSvg(model){
- const g=model.graph||{nodes:[],edges:[]}; const visibleNodes=g.nodes.filter(n=>state.mode==='all'||n.evidence!=='structural'||['sc','kg'].includes(state.view)); const ids=new Set(visibleNodes.map(n=>n.id)); const edges=arr(g.edges).filter(e=>ids.has(e.from)&&ids.has(e.to)); const map=Object.fromEntries(visibleNodes.map(n=>[n.id,n]));
- if(!visibleNodes.length)return `<div class="empty"><div><div class="code">NO OBSERVED NODES</div><p>Switch to <b>ALL LAYERS</b> to inspect structural maps, or connect the required live feed.</p></div></div>`;
- const defs=`<defs>
-  <marker id="arrow-neutral" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#365274"/></marker>
-  <marker id="arrow-constructive" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#36f28b"/></marker>
-  <marker id="arrow-destructive" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#ff4fa3"/></marker>
-  <marker id="arrow-watch" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#ffd166"/></marker>
-  <marker id="arrow-structural" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#a97aff"/></marker>
-  <filter id="glow"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
- const edgeHtml=edges.map((e,i)=>{const a=map[e.from],b=map[e.to];if(!a||!b)return'';const dy=b.y-a.y;const c1y=a.y+dy*.42,c2y=a.y+dy*.58;const path=`M ${a.x} ${a.y+26} C ${a.x} ${c1y}, ${b.x} ${c2y}, ${b.x} ${b.y-26}`;const klass=`edge ${e.state||''} ${e.evidence||''} ${e.active?'active':''}`;const marker=e.evidence==='structural'?'structural':['constructive','destructive','watch'].includes(e.state)?e.state:'neutral';const lx=(a.x+b.x)/2,ly=(a.y+b.y)/2;const tip=`${a.label} → ${b.label} · ${e.relation||e.evidence||'relation'}${e.label?' · '+e.label:''}`;return `<g class="edge-group"><title>${esc(tip)}</title><path class="${klass}" d="${path}" stroke-width="${e.width||1.7}" marker-end="url(#arrow-${marker})"/>${e.label?`<text class="edge-label" x="${lx}" y="${ly-4}" text-anchor="middle">${esc(e.label)}</text>`:''}</g>`;}).join('');
- const nodeHtml=visibleNodes.map(n=>{const w=168,h=54,x=n.x-w/2,y=n.y-h/2;const selected=state.selected===n.id?'selected':'';const ev=n.evidence||'observed';return `<g class="node ${n.state||''} ${ev} ${selected}" data-node="${esc(n.id)}" transform="translate(${x},${y})"><rect class="node-box" width="${w}" height="${h}" rx="4"/><text class="node-title" x="10" y="17">${esc(short(n.label,24))}</text><text class="node-sub" x="10" y="33">${esc(short(n.sub,30))}</text><text class="node-value" x="158" y="17" text-anchor="end">${esc(short(n.value,18))}</text><rect class="node-badge" x="116" y="39" width="42" height="10" rx="5"/><text class="node-badge-text" x="137" y="47" text-anchor="middle">${esc(ev.toUpperCase().slice(0,6))}</text></g>`;}).join('');
- return `<svg viewBox="0 0 1000 620" preserveAspectRatio="xMidYMid meet">${defs}${edgeHtml}${nodeHtml}</svg>`;
+ const g=model.graph||{nodes:[],edges:[]}; const visibleNodes=g.nodes.filter(n=>state.mode==='all'||n.evidence!=='structural'||['alpha','sc','kg'].includes(state.view)); const ids=new Set(visibleNodes.map(n=>n.id)); const edges=arr(g.edges).filter(e=>ids.has(e.from)&&ids.has(e.to)); const map=Object.fromEntries(visibleNodes.map(n=>[n.id,n]));
+ const defs=`<defs><marker id="arrow-neutral" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#365274"/></marker><marker id="arrow-constructive" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#36f28b"/></marker><marker id="arrow-destructive" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#ff4fa3"/></marker><marker id="arrow-watch" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#ffd166"/></marker><marker id="arrow-structural" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#a97aff"/></marker><filter id="glow"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
+ const showEdgeLabels=edges.length<=7;
+ const edgeHtml=edges.map(e=>{const a=map[e.from],b=map[e.to];if(!a||!b)return'';const ah=a.h||64,bh=b.h||64,dy=b.y-a.y;const c1y=a.y+dy*.42,c2y=a.y+dy*.58;const path=`M ${a.x} ${a.y+ah/2} C ${a.x} ${c1y}, ${b.x} ${c2y}, ${b.x} ${b.y-bh/2}`;const klass=`edge ${e.state||''} ${e.evidence||''} ${e.active?'active':''}`;const marker=e.evidence==='structural'?'structural':['constructive','destructive','watch'].includes(e.state)?e.state:'neutral';const lx=(a.x+b.x)/2,ly=(a.y+b.y)/2;const tip=`${a.label} → ${b.label} · ${e.relation||e.evidence||'relation'}${e.label?' · '+e.label:''}`;return `<g class="edge-group"><title>${esc(tip)}</title><path class="${klass}" d="${path}" stroke-width="${e.width||1.7}" marker-end="url(#arrow-${marker})"/>${showEdgeLabels&&e.label?`<text class="edge-label" x="${lx}" y="${ly-5}" text-anchor="middle">${esc(short(e.label,22))}</text>`:''}</g>`;}).join('');
+ const nodeHtml=visibleNodes.map(n=>{const w=n.w||184,h=n.h||64,x=n.x-w/2,y=n.y-h/2;const selected=state.selected===n.id?'selected':'';const ev=String(n.evidence||'observed');return `<g class="node ${n.state||''} ${ev} ${selected}" data-node="${esc(n.id)}" transform="translate(${x},${y})"><rect class="node-box" width="${w}" height="${h}" rx="5"/><text class="node-title" x="11" y="17">${esc(short(n.label,24))}</text><text class="node-sub" x="11" y="35">${esc(short(n.sub,31))}</text><text class="node-value" x="11" y="54">${esc(short(n.value,25))}</text><rect class="node-badge" x="${w-51}" y="47" width="42" height="10" rx="5"/><text class="node-badge-text" x="${w-30}" y="55" text-anchor="middle">${esc(ev.toUpperCase().slice(0,6))}</text></g>`;}).join('');
+ return `<svg viewBox="0 0 1000 650" preserveAspectRatio="xMidYMid meet">${defs}${edgeHtml}${nodeHtml}</svg>`;
 }
 
 function renderRail(r){

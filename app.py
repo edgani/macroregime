@@ -283,7 +283,7 @@ def _ensure_initial_snapshot() -> dict:
 
     Previous releases rendered R1 immediately and trusted a detached worker to replace it. On some
     managed hosts that worker never got CPU/process permission, leaving the browser permanently on
-    INITIALIZING. v2.7 makes first paint deterministic: either a small real-data bootstrap commits,
+    INITIALIZING. v2.8 makes first paint deterministic: either a small real-data bootstrap commits,
     or an explicit NO_DATA/error snapshot commits. Background planes are enrichment, not startup.
     """
     current = read_snapshot() or {}

@@ -1,6 +1,6 @@
-# War Room OS — Deterministic Hosted Live Architecture v2.7
+# War Room OS — Deterministic Hosted Live Architecture v2.8
 
-v2.7 removes the permanent `INITIALIZING · R1` failure by making the first market snapshot a
+v2.8 removes the permanent `INITIALIZING · R1` failure by making the first market snapshot a
 pre-render requirement instead of delegating it to an unverified detached process.
 
 Core architecture:

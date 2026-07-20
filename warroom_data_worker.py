@@ -1,4 +1,4 @@
-"""Stable staged collector for War Room OS v2.7.
+"""Stable staged collector for War Room OS v2.8.
 
 Design goals:
 - one worker process only;

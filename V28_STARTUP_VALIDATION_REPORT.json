@@ -1,10 +1,10 @@
 {
-  "version": "2.7",
+  "version": "2.8",
   "tests": [
     {
       "name": "staged_bootstrap_fixture",
       "ok": true,
-      "elapsed_seconds": 5.151,
+      "elapsed_seconds": 5.033,
       "revision": 2,
       "health": "PARTIAL",
       "counts": {
@@ -18,7 +18,7 @@
     {
       "name": "offline_exits_initializing",
       "ok": true,
-      "elapsed_seconds": 4.313,
+      "elapsed_seconds": 4.319,
       "revision": 2,
       "health": "NO_DATA",
       "counts": {

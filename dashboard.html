@@ -46,7 +46,7 @@ button,input,select{font:inherit}.mono{font-family:var(--mono)}
 <script>/*__INJECT_DATA__*/</script>
 <div id="app">
   <header class="topbar">
-    <div class="brand"><div class="brandmark">W</div><div><div class="brandname">WAR ROOM <b>OS</b></div><div class="brandver">CAPITAL INTELLIGENCE MAP · v2.7 STAGED LIVE</div></div></div>
+    <div class="brand"><div class="brandmark">W</div><div><div class="brandname">WAR ROOM <b>OS</b></div><div class="brandver">CAPITAL INTELLIGENCE MAP · v2.8 STAGED LIVE</div></div></div>
     <div class="top-metrics" id="topMetrics"></div>
     <span id="dataSync" class="top-chip">SYNC <b>BOOTING</b></span><input class="search" id="search" placeholder="SEARCH TICKER / THEME / EVENT" />
   </header>
@@ -219,8 +219,37 @@ function biasDirection(b){
 function isSetupAligned(marketId,marketBias,s){
  const sd=setupDirection(s), bd=biasDirection(marketBias);
  if(marketId==='idx' && sd==='short')return false;
- if(sd==='neutral'||bd==='neutral')return true;
+ if(sd==='neutral')return true;
+ // A neutral, missing or partial market context is not permission for both long and short.
+ // This was the reason Alpha showed BUILD_LONG cards while the parent market was NEUTRAL.
+ if(bd==='neutral')return false;
  return sd===bd;
+}
+function marketObservedState(m,b){
+ const loaded=num(obj(m?.funnel).universe)||num(b?.coverage)||0;
+ const raw=String(m?.data_state||b?.state||'').toUpperCase();
+ return loaded>0||raw==='LIVE'?'LIVE':raw||'NO_DATA';
+}
+function marketContextValue(id,m,b){
+ const observed=marketObservedState(m,b);
+ if(observed!=='LIVE')return 'NO_DATA';
+ const bias=String(m?.bias||'').toUpperCase();
+ if(id==='fx' && (String(m?.bias_state||'').toUpperCase()!=='LIVE'||!bias||bias==='NO_DATA'))return 'SPOT LIVE · MACRO PENDING';
+ if(!bias||bias==='NO_DATA')return 'PRICE LIVE · CONTEXT PENDING';
+ return bias;
+}
+function marketContextState(id,m,b){
+ const observed=marketObservedState(m,b);
+ if(observed!=='LIVE')return 'NO_DATA';
+ const bias=String(m?.bias||'').toUpperCase();
+ if(id==='fx' && String(m?.bias_state||'').toUpperCase()!=='LIVE')return 'PARTIAL';
+ return (!bias||bias==='NO_DATA')?'PARTIAL':bias;
+}
+function researchActionLabel(value){
+ const x=String(value||'WATCH').toUpperCase();
+ if(/BUILD_LONG|BUY|LONG/.test(x))return 'LONG WATCH';
+ if(/SHORT|SELL/.test(x))return 'SHORT WATCH';
+ return 'WATCH';
 }
 function marketOfCandidate(c){return c?.market||c?.market_id||c?.source_market||null;}
 function edgeAllowed(a,b){
@@ -241,7 +270,8 @@ function firstCandidates(limit=8){
   const bias=m?.bias||'NO_DATA';
   arr(m?.setups).forEach(s=>{
    if(!s?.tk||s.tk==='—')return;
-   const aligned=isSetupAligned(marketId,bias,s);
+   const fxMacroReady=marketId!=='fx'||String(m?.bias_state||'').toUpperCase()==='LIVE';
+   const aligned=fxMacroReady&&isSetupAligned(marketId,bias,s);
    out.push({ticker:s.tk,score:num(s.conv)||0,why:s.why,stage:s.act||s.ty,evidence:'observed',market:marketId,aligned,bias,raw:s});
   });
   // Keep loaded names available for Company Intel even when no trade setup passes. These rows are
@@ -261,7 +291,7 @@ function modelMission(){
  const l0=[node('liq','GLOBAL LIQUIDITY','macro/liquidity observations',short(sys.liquidity||'NO_DATA',18),sys.liquidity,'observed',{raw:sys})];
  const l1=[node('regime','REGIME',`growth ${fmt(sys.growth_roc)} · inflation ${fmt(sys.infl_roc)}`,sys.quad_name||sys.quad||'NO_DATA',sys.quad_name||sys.quad,'inferred',{raw:sys})];
  const ids=[['us','US'],['idx','IHSG'],['crypto','CRYPTO'],['commodity','COMMOD'],['fx','FX']];
- const l2=ids.map(([id,label])=>{const m=obj(markets[id]);return node('m_'+id,label,`${obj(m.funnel).setups||0} surfaced`,m.bias||'NO_DATA',m.bias,'inferred',{raw:m,market:id});});
+ const l2=ids.map(([id,label])=>{const m=obj(markets[id]),b=breadthFor(id);return node('m_'+id,label,`${obj(m.funnel).universe||b.coverage||0} loaded · ${obj(m.funnel).setups||0} surfaced`,marketContextValue(id,m,b),marketContextState(id,m,b),'inferred',{raw:m,market:id});});
  const all=firstCandidates(80).filter(c=>c.evidence==='observed'&&c.aligned);
  const perMarket=[];
  ids.forEach(([id])=>{const c=all.filter(x=>x.market===id).sort((a,b)=>b.score-a.score)[0];if(c)perMarket.push(c);});
@@ -326,32 +356,68 @@ function modelEarly(){
 
 function modelAlpha(){
  const structural=arr(D.alpha);
- const live=firstCandidates(30).filter(x=>x.evidence==='observed'&&x.aligned);
+ const observed=firstCandidates(80).filter(x=>x.evidence==='observed');
+ const aligned=observed.filter(x=>x.aligned);
+ const instTickers=new Set([...arr(obj(D.institutional).events),...arr(LI.events)].map(x=>String(x.ticker||'').toUpperCase()).filter(Boolean));
+ const fundTickers=new Set(arr(FLD.sec_fundamentals).map(x=>String(x.ticker||'').toUpperCase()).filter(Boolean));
+ const enriched=aligned.map(a=>{
+  const key=String(a.ticker||'').toUpperCase();
+  const inst=instTickers.has(key), fund=fundTickers.has(key);
+  const evidenceCount=Number(inst)+Number(fund);
+  return {...a,inst,fund,evidenceCount,
+   researchStage:evidenceCount===2?'MULTI-SOURCE WATCH':evidenceCount===1?'PARTIAL EVIDENCE':'PRICE / MARKET WATCH',
+   blocker:evidenceCount===2?'Predictive selector and prospective gate still not approved':inst?'Fundamental/value-capture evidence missing':fund?'Institutional confirmation missing':'Institutional + fundamental confirmation missing'};
+ }).sort((a,b)=>(b.evidenceCount-a.evidenceCount)||(b.score-a.score));
+
  if(state.mode!=='all'){
-  if(!live.length){
-   const observed=firstCandidates(24).filter(x=>x.evidence==='observed');
-   const center=node('alpha_no_signal','ALPHA RESEARCH GATE','price data loaded; no candidate passed all gates','NO_SIGNAL','NO_SIGNAL','inferred',{x:500,y:310});
-   const rejected=observed.slice(0,12).map((a,i)=>{const angle=(i/Math.max(1,observed.length))*Math.PI*2;return node('ar_'+i,a.ticker,`${String(a.market||'').toUpperCase()} · conflicts with ${a.bias||'market state'}`,'FAILED CURRENT GATE','watch','observed',{x:500+Math.cos(angle)*190,y:310+Math.sin(angle)*190,raw:a,market:a.market});});
-   const g={nodes:[center,...rejected],edges:rejected.map(n=>edge(n.id,'alpha_no_signal','watch','inferred','did not clear all gates',1.4,{relation:'failed_gate'}))};
-   return {title:'ALPHA CENTER',sub:'NO_SIGNAL is not NO_DATA: live price/setup inputs loaded, but nothing currently clears direction, conviction and evidence gates.',canvas:'LIVE OPPORTUNITY GATE',badges:['observed','inferred'],graph:g,
-    rail:basicRail('NO SIGNAL','No candidate currently passes the complete observed gate.','Data is available; do not force a trade.','Wait for market alignment, stronger price evidence or independent confirmation.','Rejected candidates remain visible for audit, not recommendation.','Any candidate remains invalid until all required gates pass.','Until state changes',0,'NO ACTION'),
-    ledger:observed.slice(0,20).map(a=>({time:obj(D.meta).generated,ticker:a.ticker,desc:`FAILED CURRENT GATE · ${a.market} · bias ${a.bias} · ${a.stage} · ${a.why}`,state:'NO_SIGNAL',raw:a})),queue:[]};
-  }
-  const center=node('alpha_live_core','LIVE ALPHA GATE','market → setup → evidence','OBSERVED CANDIDATES','watch','inferred',{x:500,y:310});
-  const nodes=live.slice(0,16).map((a,i)=>{const angle=(i/Math.max(1,live.length))*Math.PI*2;const radius=140+(i%2)*62;return node('al_'+i,a.ticker,`${String(a.market||'').toUpperCase()} · ${a.bias||'—'}`,`${a.stage||'SETUP'} · ${Math.round(a.score||0)}`,a.stage,'observed',{x:500+Math.cos(angle)*radius,y:310+Math.sin(angle)*radius,raw:a,market:a.market});});
-  const g={nodes:[center,...nodes],edges:nodes.map(n=>edge('alpha_live_core',n.id,n.state,'inferred','passed live gate',1.8,{active:true,relation:'live_alpha_gate'}))};
-  const lead=live[0];
-  return {title:'ALPHA CENTER',sub:'OBSERVED mode now shows only candidates that cleared live market-direction and setup gates. Structural moonshots remain separate.',canvas:'LIVE OPPORTUNITY CONSTELLATION',badges:['observed','inferred'],graph:g,
-   rail:basicRail(`${lead.ticker} · ${lead.stage}`,lead.why||'Top live-gated candidate.',`Market ${String(lead.market).toUpperCase()} · bias ${lead.bias}.`,`Require independent institutional/fundamental confirmation before promotion.`,`A live setup can fail; this is not a generational-alpha claim.`,`Invalidate on setup stop, data staleness or market-bias reversal.`,'Setup-specific',Math.min(90,lead.score||0),'OPEN CANDIDATE TRACE'),
-   ledger:live.slice(0,20).map(a=>({time:obj(D.meta).generated,ticker:a.ticker,desc:`LIVE-GATED · ${a.market} · ${a.bias} · ${a.stage} · ${a.why}`,state:a.stage,raw:a})),queue:live.slice(0,8)};
+  const discovery=node('alpha_pool','TACTICAL DISCOVERY POOL',`${observed.length} observed price contexts`,'RESEARCH ONLY','watch','observed',{raw:{observed:observed.length}});
+  const alignGate=node('alpha_align','MARKET ALIGNMENT',`${aligned.length}/${observed.length} direction-aligned`,aligned.length?'PARTIAL':'NO_SIGNAL',aligned.length?'watch':'NO_SIGNAL','inferred',{raw:{aligned:aligned.length,total:observed.length}});
+  const evidenceGate=node('alpha_evidence','INDEPENDENT EVIDENCE',`${enriched.filter(x=>x.evidenceCount>0).length} with institutional or filed facts`,enriched.some(x=>x.evidenceCount>0)?'PARTIAL':'ACTION_REQUIRED',enriched.some(x=>x.evidenceCount>0)?'watch':'ACTION_REQUIRED','observed');
+  const permission=node('alpha_permission','CAPITAL PERMISSION','validated selector + prospective record','BLOCKED','NO_SIGNAL','inferred',{raw:{paper:false,live:false}});
+  const candidates=(enriched.length?enriched:observed).slice(0,5).map((a,i)=>node('alpha_c_'+i,a.ticker,
+    `${String(a.market||'').toUpperCase()} · ${a.researchStage||'FAILED ALIGNMENT'}`,
+    `${researchActionLabel(a.stage)} · R${Math.round(a.score||0)}`,
+    a.evidenceCount===2?'watch':a.aligned?'watch':'NO_SIGNAL','observed',{raw:a,market:a.market}));
+  const last=candidates.length?candidates:[node('alpha_none','NO CURRENT CANDIDATE','data loaded; none passed market alignment','NO_SIGNAL','NO_SIGNAL')];
+  const g=layered([[discovery],[alignGate,evidenceGate,permission],last]);
+  g.edges.push(edge(discovery.id,alignGate.id,'watch','inferred','direction gate',1.7,{relation:'market_alignment'}));
+  g.edges.push(edge(alignGate.id,evidenceGate.id,'watch','inferred','independent evidence',1.7,{relation:'evidence_gate'}));
+  g.edges.push(edge(evidenceGate.id,permission.id,'watch','inferred','validation gate',1.7,{relation:'capital_permission'}));
+  candidates.forEach(n=>{
+    const raw=n.raw||{};
+    if(raw.aligned)g.edges.push(edge(alignGate.id,n.id,'watch','inferred','market aligned',1.5,{relation:'candidate_alignment'}));
+    if(raw.evidenceCount>0)g.edges.push(edge(evidenceGate.id,n.id,'watch','observed',raw.evidenceCount===2?'institutional + filed facts':'one independent source',1.7,{active:true,relation:'candidate_evidence'}));
+  });
+  const lead=enriched[0];
+  const title=lead?`${lead.ticker} · ${lead.researchStage}`:'NO ACTIONABLE ALPHA';
+  return {title:'ALPHA CENTER',sub:'Readable stage-gate view. These are tactical research candidates, not a validated alpha selector or capital permission.',canvas:'ALPHA EVIDENCE FUNNEL',badges:['observed','inferred'],graph:g,
+   rail:basicRail(title,
+    lead?`${lead.ticker} is market-aligned, but remains research-only. Readiness R${Math.round(lead.score||0)} is descriptive, not probability.`:'Observed data is loaded, but no candidate has cleared market alignment.',
+    `Discovery ${observed.length} · aligned ${aligned.length} · independent evidence ${enriched.filter(x=>x.evidenceCount>0).length} · capital permission 0.`,
+    lead?`Next blocker: ${lead.blocker}.`:'Wait for a direction-aligned setup, then verify mechanism/value capture and independent evidence.',
+    'A price setup can disappear when market state, revisions, institutional evidence or execution conditions change.',
+    'Any missing required source, stale data, setup invalidation or market-bias reversal keeps the candidate blocked.',
+    'Setup horizon first; structural thesis and prospective validation are separate horizons',lead?Math.min(70,35+lead.evidenceCount*15):0,'OPEN EVIDENCE TRACE — NO CAPITAL ACTION'),
+   ledger:(enriched.length?enriched:observed).slice(0,25).map(a=>({time:obj(D.meta).generated,ticker:a.ticker,desc:`${a.aligned?'MARKET ALIGNED':'FAILED ALIGNMENT'} · ${a.researchStage||'PRICE CONTEXT'} · ${a.blocker||('bias '+a.bias)} · readiness R${Math.round(a.score||0)} is not probability`,state:a.aligned?'PARTIAL':'NO_SIGNAL',raw:a})),
+   queue:enriched.slice(0,8).map(a=>({ticker:a.ticker,score:Math.min(70,35+a.evidenceCount*15),why:a.blocker,stage:a.researchStage}))};
  }
- if(!structural.length)return emptyModel('ALPHA CENTER','No structural candidate is available from the alpha research contract.');
- const nodes=structural.slice(0,18).map((a,i)=>{const score=num(a.asymmetry)||0; const angle=(i/structural.length)*Math.PI*2; const radius=130+(i%3)*58; return node('a_'+i,a.tk,`${String(a.market||'').toUpperCase()} · ${a.stage||'stage —'}`,`ASYM ${score}`,score>=70?'constructive':score>=50?'watch':'neutral','structural',{x:500+Math.cos(angle)*radius,y:310+Math.sin(angle)*radius,raw:a});});
- const center=node('alpha_core','ALPHA RESEARCH GATE','macro → bottleneck → mispricing','HYPOTHESIS',structural.length?'watch':'NO_DATA','inferred',{x:500,y:310});
- const g={nodes:[center,...nodes],edges:nodes.map(n=>edge('alpha_core',n.id,n.state,'structural','hypothesis',1.5,{relation:'structural_hypothesis'}))};
- return {title:'ALPHA CENTER',sub:'ALL LAYERS shows structural hypotheses. These are not promoted to Mission Control until live gates confirm.',canvas:'STRUCTURAL OPPORTUNITY CONSTELLATION',badges:['structural','inferred'],graph:g,
- rail:basicRail(structural[0].tk,`${structural[0].node||structural[0].scarcity||'Top structural hypothesis'} · tier ${fmt(structural[0].tier)}.`,`Stage: ${fmt(structural[0].stage)} · scarcity: ${fmt(structural[0].scarcity)}`,`Require live market, institutional and price confirmation before promotion.`,`Most high-asymmetry hypotheses fail; structural upside is not a return forecast.`,`Kill thesis and data gates must be explicit.`,'Candidate-specific',Math.min(65,num(structural[0].asymmetry)||35),'OPEN RESEARCH TRACE'),
- ledger:structural.slice(0,12).map(a=>({time:obj(D.meta).generated,ticker:a.tk,desc:`STRUCTURAL · ${a.node||a.scarcity} · gated: ${arr(a.gated).join(', ')||'none'}`,state:'watch'})),queue:structural.slice(0,8).map(a=>({ticker:a.tk,score:num(a.asymmetry)||0,why:a.node||a.scarcity,stage:`STRUCTURAL · ${a.stage||'hypothesis'}`}))};
+
+ if(!structural.length)return emptyModel('ALPHA CENTER','No structural hypothesis is available from the research contract.');
+ const hypothesis=node('struct_pool','STRUCTURAL HYPOTHESES',`${structural.length} mapped candidates`,'RESEARCH ONLY','watch','structural');
+ const mechanism=node('struct_mech','MECHANISM / VALUE CAPTURE','direct exposure + demand conversion','REQUIRED','watch','structural');
+ const proof=node('struct_proof','POINT-IN-TIME PROOF','revisions + filings + positioning','REQUIRED','ACTION_REQUIRED','observed');
+ const validation=node('struct_val','PROSPECTIVE VALIDATION','frozen rules + untouched lockbox','NOT PASSED','NO_SIGNAL','inferred');
+ const nodes=structural.slice(0,5).map((a,i)=>node('struct_c_'+i,a.tk,`${String(a.market||'').toUpperCase()} · ${a.stage||'hypothesis'}`,`ASYM ${num(a.asymmetry)||0} · RESEARCH`, 'watch','structural',{raw:a}));
+ const g=layered([[hypothesis],[mechanism,proof,validation],nodes]);
+ g.edges.push(edge(hypothesis.id,mechanism.id,'watch','structural','causal mapping',1.6,{relation:'mechanism_gate'}));
+ g.edges.push(edge(mechanism.id,proof.id,'watch','inferred','dated evidence',1.6,{relation:'proof_gate'}));
+ g.edges.push(edge(proof.id,validation.id,'watch','inferred','prospective test',1.6,{relation:'validation_gate'}));
+ nodes.forEach(n=>g.edges.push(edge(hypothesis.id,n.id,'watch','structural','hypothesis only',1.4,{relation:'structural_hypothesis'})));
+ const lead=structural[0];
+ return {title:'ALPHA CENTER',sub:'ALL LAYERS separates structural hypotheses from observed proof and prospective validation. No hypothesis is promoted by asymmetry score alone.',canvas:'STRUCTURAL ALPHA RESEARCH FUNNEL',badges:['structural','observed','inferred'],graph:g,
+  rail:basicRail(`${lead.tk} · STRUCTURAL HYPOTHESIS`,`${lead.node||lead.scarcity||'Mapped structural candidate'}.`, `Stage ${fmt(lead.stage)} · scarcity ${fmt(lead.scarcity)}.`,`Prove direct value capture, expectation gap, institutional/fundamental evidence and remaining return.`,`Most structural candidates fail or become priced before the evidence completes.`,`Kill thesis, point-in-time lineage and frozen prospective gate are mandatory.`,'Structural / multi-quarter; execution timing separate',25,'RESEARCH TRACE ONLY'),
+  ledger:structural.slice(0,20).map(a=>({time:obj(D.meta).generated,ticker:a.tk,desc:`STRUCTURAL HYPOTHESIS · ${a.node||a.scarcity} · gated ${arr(a.gated).join(', ')||'proof not yet mapped'}`,state:'RESEARCH',raw:a})),
+  queue:structural.slice(0,8).map(a=>({ticker:a.tk,score:25,why:a.node||a.scarcity,stage:'STRUCTURAL RESEARCH'}))};
 }
 
 function modelInstitutional(){
@@ -402,7 +468,7 @@ function derivativeQueue(kind='all'){
 }
 function modelDerivatives(){
  const statuses=arr(LI.statuses), crypto=arr(LI.crypto_derivatives), options=arr(LI.us_options), ussq=arr(LI.us_squeeze), copt=arr(LI.crypto_options), marketOpt=obj(LI.market_options_context);
- const providerRows=[...new Map(statuses.map(x=>[`${x.provider}:${x.dataset}`,x])).values()].slice(0,10);
+ const providerRows=[...new Map(statuses.map(x=>[`${x.provider}:${x.dataset}`,x])).values()].slice(0,6);
  const providers=providerRows.map((x,i)=>node('lp_'+i,x.provider,short(x.dataset,28),x.state,x.state,'observed',{raw:x,provider:x.provider,dataset:x.dataset}));
  const usOpt=node('dom_us','US OPTIONS',`${options.filter(x=>x.state!=='NO_DATA').length}/${options.length} chains`,options.some(x=>x.state==='LIVE')?'LIVE':'NO_DATA',options.some(x=>x.state==='LIVE')?'constructive':'NO_DATA','observed');
  const shortB=node('dom_si','SHORT / BORROW',`${arr(LI.us_short_interest).length} tickers`,arr(LI.us_short_interest).length?'LIVE':'NO_DATA',arr(LI.us_short_interest).length?'watch':'NO_DATA','observed');
@@ -415,7 +481,7 @@ function modelDerivatives(){
  const zones=node('eng_z','REFERENCE ZONES','walls / expected move / liquidation','NOT TARGETS','watch','inferred');
  const rot=node('eng_rot','OPTIONS ROTATION',`${arr(marketOpt.sector_rotation).length} sectors`,marketOpt.state||'NO_DATA',marketOpt.state,'observed',{raw:marketOpt});
  const engines=[oi,greeks,squeeze,zones,rot];
- const targets=[...crypto.map((x,i)=>node('dc_'+i,x.asset,short(x.positioning_quadrant,31),`S${fmt(x.short_squeeze_pressure)} / L${fmt(x.long_squeeze_pressure)}`,Math.max(num(x.short_squeeze_pressure)||0,num(x.long_squeeze_pressure)||0)>=70?'watch':x.state,'observed',{raw:x,targetType:'crypto'})),...ussq.filter(x=>x.state!=='NO_DATA').slice(0,6).map((x,i)=>node('du_'+i,x.ticker,'US forced-flow context',`S${fmt(x.short_squeeze_pressure)} / L${fmt(x.long_squeeze_pressure)}`,Math.max(num(x.short_squeeze_pressure)||0,num(x.long_squeeze_pressure)||0)>=70?'watch':x.state,'observed',{raw:x,targetType:'us'}))];
+ const targets=[...crypto.slice(0,3).map((x,i)=>node('dc_'+i,x.asset,short(x.positioning_quadrant,31),`S${fmt(x.short_squeeze_pressure)} / L${fmt(x.long_squeeze_pressure)}`,Math.max(num(x.short_squeeze_pressure)||0,num(x.long_squeeze_pressure)||0)>=70?'watch':x.state,'observed',{raw:x,targetType:'crypto'})),...ussq.filter(x=>x.state!=='NO_DATA').slice(0,3).map((x,i)=>node('du_'+i,x.ticker,'US forced-flow context',`S${fmt(x.short_squeeze_pressure)} / L${fmt(x.long_squeeze_pressure)}`,Math.max(num(x.short_squeeze_pressure)||0,num(x.long_squeeze_pressure)||0)>=70?'watch':x.state,'observed',{raw:x,targetType:'us'}))];
  const last=targets.length?targets:[node('dt0','NO DERIVATIVES CONTEXT','connect feeds / wait for history','NO_DATA','NO_DATA')];
  const g=layered([providers.length?providers:[node('lp0','LIVE PROVIDERS','public endpoints unavailable','NO_DATA','NO_DATA')],domains,engines,last]);
  function pd(p,d){const x=(String(p.provider)+' '+String(p.dataset)).toUpperCase();if(d===usOpt)return /MASSIVE|UNUSUAL|OPTION/.test(x);if(d===shortB)return /ORTEX|INTRINIO|SHORT|BORROW/.test(x);if(d===cp)return /BINANCE|BYBIT|OKX|COINGLASS/.test(x);if(d===co)return /DERIBIT|OPTION/.test(x);return false;}
@@ -432,11 +498,11 @@ function modelMarket(id,title){
  const m=marketObj(id), allSetups=marketSetups(id), setups=allSetups.filter(s=>isSetupAligned(id,m.bias,s)), drivers=arr(m.drivers), b=breadthFor(id), tab=id==='idx'?'ihsg':id==='commodity'?'commodities':id==='fx'?'fx':id==='crypto'?'crypto':'us_stocks';
  const l0=drivers.length?drivers.slice(0,6).map((d,i)=>node('d_'+i,String(d).replaceAll('_',' ').toUpperCase(),'market-specific driver','INPUT','neutral','structural',{raw:d})):[node('dn','DRIVER FEEDS','none mapped','NO_DATA','NO_DATA')];
  const derivCtx=marketDerivativeContext(id), liveRows=derivCtx.rows, liveState=derivCtx.state;
- const stateNode=node('mbias',title+' STATE',`${obj(m.funnel).universe||0} loaded`,m.bias||'NO_DATA',m.bias,'inferred',{raw:m});
+ const stateNode=node('mbias',title+' CONTEXT',`${obj(m.funnel).universe||b.coverage||0} loaded`,marketContextValue(id,m,b),marketContextState(id,m,b),'inferred',{raw:m});
  const breadthNode=node('breadth_ctx','BREADTH',`${b.coverage||0} names`,b.state==='LIVE'?`${fmt(b.advance_pct)}% ADV`:'NO_DATA',b.advance_pct>=55?'constructive':b.advance_pct<45?'destructive':'watch','observed',{raw:b});
  const derivNode=node('mderiv',derivCtx.label,`${liveRows.length} normalized rows`,liveState,liveState,'observed',{raw:liveRows});
  const l1=[stateNode,breadthNode,derivNode];
- const l2=setups.length?setups.slice(0,8).map((s,i)=>node('s_'+i,s.tk,short(s.why,35),s.act||s.ty||'SETUP',s.act||s.ty,'observed',{raw:s,market:id})):[node('sn','NO ALIGNED SURFACED TICKER',allSetups.length?'setups conflict with market bias':'price data loaded; conviction gate not met','NO_SIGNAL','NO_SIGNAL')];
+ const l2=setups.length?setups.slice(0,5).map((s,i)=>node('s_'+i,s.tk,short(s.why,35),researchActionLabel(s.act||s.ty||'SETUP'),s.act||s.ty,'observed',{raw:s,market:id})):[node('sn','NO ALIGNED SURFACED TICKER',allSetups.length?'setups conflict with market bias':'price data loaded; conviction gate not met','NO_SIGNAL','NO_SIGNAL')];
  const g=layered([l0,l1,l2]);
  l0.forEach(d=>{if(edgeAllowed(d,stateNode))g.edges.push(edge(d.id,stateNode.id,'watch','structural','driver',1.4,{relation:'driver_state'}));});
  if(edgeAllowed(breadthNode,stateNode))g.edges.push(edge(breadthNode.id,stateNode.id,'watch','inferred','breadth confirm',1.5,{relation:'confirmation'}));
@@ -449,15 +515,47 @@ function modelMarket(id,title){
  ledger:[...allSetups.map(s=>({time:obj(D.meta).generated,ticker:s.tk,desc:`${s.act} · ${s.why} · ${isSetupAligned(id,m.bias,s)?'ALIGNED':'CONFLICTS WITH MARKET BIAS'} · entry ${fmt(s.e)} / stop ${fmt(s.s)} / target ${fmt(s.t)}`,state:isSetupAligned(id,m.bias,s)?s.act:'watch'})),...derivativeLedgerRows(id==='crypto'?'crypto':id==='us'?'us':'none'),...marketDerivativeLedger(id),...coverageRows(tab)],queue:[...setups.slice(0,8).map(s=>({ticker:s.tk,score:num(s.conv)||0,why:s.why,stage:s.act||s.ty})),...derivativeQueue(id==='crypto'?'crypto':id==='us'?'us':'none')].sort((a,b)=>b.score-a.score).slice(0,8)};
 }
 
+function modelFx(){
+ const id='fx',m=marketObj(id),b=breadthFor(id),pairs=arr(b.constituents),deriv=marketDerivativeContext(id);
+ const loaded=num(obj(m.funnel).universe)||num(b.coverage)||pairs.length;
+ const spot=node('fx_spot','FX SPOT DATA',`${loaded} pairs loaded`,loaded?'LIVE':'NO_DATA',loaded?'constructive':'NO_DATA','observed',{raw:{market:m,breadth:b}});
+ const dxyRow=pairs.find(x=>String(x.ticker||'').toUpperCase()==='DX-Y.NYB');
+ const usd=node('fx_usd','USD / DXY CONTEXT',dxyRow?`20D ${pct(dxyRow.ret_20d)} · 5D ${pct(dxyRow.ret_5d)}`:'DXY series unavailable',dxyRow?'PRICE CONTEXT':'PARTIAL',dxyRow?'watch':'PARTIAL','observed',{raw:dxyRow||{}});
+ const cov=num(m.driver_coverage)||0,total=num(m.driver_total)||3;
+ const macroReady=String(m.bias_state||'').toUpperCase()==='LIVE'&&cov>=2&&String(m.bias||'').toUpperCase()!=='NO_DATA'&&String(m.bias||'').trim()!=='';
+ const macro=node('fx_macro','MACRO-RELATIVE MODEL',`${cov}/${total} driver families available`,macroReady?(m.bias||'AVAILABLE'):'INCOMPLETE',macroReady?m.bias:'ACTION_REQUIRED','inferred',{raw:m});
+ const cot=node('fx_cot',deriv.label,`${deriv.rows.length} normalized records`,deriv.state,deriv.state,'observed',{raw:deriv.rows});
+ const pairNodes=pairs.filter(x=>String(x.ticker||'').toUpperCase()!=='DX-Y.NYB').slice(0,5).map((r,i)=>node('fx_pair_'+i,r.ticker,
+  `1D ${pct(r.ret_1d)} · 5D ${pct(r.ret_5d)}`,
+  `20D ${pct(r.ret_20d)} · PRICE ONLY`, 'watch','observed',{raw:r,ticker:r.ticker}));
+ const gate=node('fx_gate','PAIR DIRECTION GATE',macroReady?'macro context available; require pair-specific confirmation':'spot/COT live; pair-specific macro differential missing',macroReady?'RESEARCH SIGNAL':'NO_SIGNAL',macroReady?'watch':'NO_SIGNAL','inferred',{raw:{macroReady,coverage:cov,total}});
+ const last=pairNodes.length?pairNodes:[node('fx_none','NO FX SPOT SERIES','public price sources returned no pair history','NO_DATA','NO_DATA')];
+ const g=layered([[spot,usd,macro,cot],last,[gate]]);
+ if(edgeAllowed(spot,gate))g.edges.push(edge(spot.id,gate.id,'watch','inferred','price timing only',1.4,{relation:'price_context'}));
+ if(edgeAllowed(macro,gate))g.edges.push(edge(macro.id,gate.id,'watch','inferred','rate / policy / external balance',1.8,{relation:'macro_relative_gate'}));
+ if(edgeAllowed(cot,gate))g.edges.push(edge(cot.id,gate.id,'watch','inferred','positioning context',1.5,{relation:'positioning_context'}));
+ pairNodes.forEach(n=>{if(edgeAllowed(spot,n))g.edges.push(edge(spot.id,n.id,'watch','observed','loaded pair',1.2,{relation:'spot_pair'}));});
+ const lead=pairs.filter(x=>String(x.ticker||'').toUpperCase()!=='DX-Y.NYB').sort((a,b)=>Math.abs(num(b.ret_20d)||0)-Math.abs(num(a.ret_20d)||0))[0];
+ return {title:'FX',sub:'FX is pair-specific. Spot prices and COT can be live while the macro-relative direction model remains incomplete; price-only direction is intentionally not promoted.',canvas:'FX RELATIVE-VALUE MAP',badges:['observed','inferred'],graph:g,
+  rail:basicRail(loaded?`FX SPOT LIVE · ${loaded} SERIES`:'FX NO DATA',
+   loaded?`Price history is loaded. Direction is withheld until rate differential, real-rate, central-bank, external-balance and positioning inputs are reconciled.`:'No spot history was returned by the public providers.',
+   `${lead?`${lead.ticker} has the largest absolute 20D move (${pct(lead.ret_20d)}), but this is price context only.`:'No pair context available'} COT/futures rows: ${deriv.rows.length}.`,
+   macroReady?'Build pair-specific relative-value evidence and check execution levels.':'Complete the macro-relative inputs; do not rescue the falsified price-only FX family.',
+   'Different pairs can move in opposite directions; there is no valid single aggregate FX long/short state.',
+   'Any pair signal invalidates when the rate/policy differential, positioning or price acceptance reverses.','Pair and catalyst specific',macroReady?45:10,'NO DIRECTIONAL TRADE FROM PRICE ALONE'),
+  ledger:[...pairs.slice(0,20).map(r=>({time:obj(D.meta).generated,ticker:r.ticker,desc:`PRICE CONTEXT ONLY · 1D ${pct(r.ret_1d)} · 5D ${pct(r.ret_5d)} · 20D ${pct(r.ret_20d)}`,state:'LIVE',raw:r})),...marketDerivativeLedger('fx'),...coverageRows('fx')],
+  queue:[]};
+}
+
 function modelFlow(){
  const s=obj(D.systemic), ins=arr(s.rotation_in), outs=arr(s.rotation_out), rot=obj(D.rotation_snapshot), rrows=arr(rot.rows);
  const l0=[node('cash','GLOBAL LIQUIDITY','macro impulse',short(s.liquidity||'NO_DATA',17),s.liquidity,'observed')];
  const out=node('out','ROTATING OUT','confirmed list',outs.length?outs.join(', '):'NO_DATA',outs.length?'destructive':'NO_DATA','inferred');
  const reg=node('reg','REGIME FILTER','cross asset',s.cross_asset||s.quad_name||'NO_DATA',s.cross_asset||s.quad_name,'inferred');
  const l1=[out,reg];
- const marketNodes=Object.entries(obj(D.markets)).map(([id,m])=>node('fm_'+id,(m.label||id).toUpperCase(),`${obj(m.funnel).setups||0} setups`,m.bias||'NO_DATA',m.bias,'inferred',{market:id,raw:m}));
+ const marketNodes=Object.entries(obj(D.markets)).map(([id,m])=>{const b=breadthFor(id);return node('fm_'+id,(m.label||id).toUpperCase(),`${obj(m.funnel).universe||b.coverage||0} loaded · ${obj(m.funnel).setups||0} setups`,marketContextValue(id,m,b),marketContextState(id,m,b),'inferred',{market:id,raw:m});});
  const optRot=arr(LI.options_sector_rotation).slice(0,8), observedRot=rrows.slice(0,10);
- const l3=optRot.length?optRot.map((t,i)=>node('orin_'+i,String(t.key||'SECTOR').toUpperCase(),`options net premium ${money(t.net)}`,`${t.records||0} BUCKETS`,num(t.net)>=0?'constructive':'destructive','observed',{raw:t,market:'us'})):observedRot.length?observedRot.map((t,i)=>node('rin_'+i,t.ticker,`20D ${pct(t.ret_20d_pct)} · 5D ${pct(t.ret_5d_pct)}`,`RANK ${t.rank_20d}`,t.ret_20d_pct>0?'constructive':'destructive','observed',{raw:t,market:t.market||null})):(ins.length?ins.slice(0,10).map((t,i)=>node('rin_'+i,t,'model rotation-in output','WATCH','watch','inferred',{raw:t,market:null})):[node('rin0','NO ROTATION-IN','no validated list','NO_DATA','NO_DATA')]);
+ const l3=optRot.length?optRot.slice(0,6).map((t,i)=>node('orin_'+i,String(t.key||'SECTOR').toUpperCase(),`options net premium ${money(t.net)}`,`${t.records||0} BUCKETS`,num(t.net)>=0?'constructive':'destructive','observed',{raw:t,market:'us'})):observedRot.length?observedRot.slice(0,6).map((t,i)=>node('rin_'+i,t.ticker,`20D ${pct(t.ret_20d_pct)} · 5D ${pct(t.ret_5d_pct)}`,`RANK ${t.rank_20d}`,t.ret_20d_pct>0?'constructive':'destructive','observed',{raw:t,market:t.market||null})):(ins.length?ins.slice(0,10).map((t,i)=>node('rin_'+i,t,'model rotation-in output','WATCH','watch','inferred',{raw:t,market:null})):[node('rin0','NO ROTATION-IN','no validated list','NO_DATA','NO_DATA')]);
  const g=layered([l0,l1,marketNodes,l3]);
  if(edgeAllowed(l0[0],reg))g.edges.push(edge('cash','reg','watch','inferred','macro filter',1.7,{relation:'model_input'}));
  if(edgeAllowed(reg,out))g.edges.push(edge('reg','out','watch','inferred','rotation state',1.4,{relation:'rotation_state'}));
@@ -516,7 +614,7 @@ function modelValidation(){
 }
 
 function emptyModel(title,message){const g=layered([[node('empty',title,message,'NO_DATA','NO_DATA')]]);return {title,sub:message,canvas:title,badges:['observed'],graph:g,rail:basicRail('NO DATA',message,'No action.','Connect or repair the required source.','Do not substitute a static narrative or synthetic series.','Data availability is the current invalidation.','Until source recovers',0,'NO ACTION'),ledger:[],queue:[]};}
-function getModel(){switch(state.view){case'mc':return modelMission();case'macro':return modelMacro();case'ew':return modelEarly();case'alpha':return modelAlpha();case'inst':return modelInstitutional();case'deriv':return modelDerivatives();case'us':return modelMarket('us','US STOCKS');case'ihsg':return modelMarket('idx','IHSG');case'crypto':return modelMarket('crypto','CRYPTO');case'commod':return modelMarket('commodity','COMMODITIES');case'fx':return modelMarket('fx','FX');case'flow':return modelFlow();case'sc':return modelSupply();case'co':return modelCompany();case'kg':return modelKnowledge();case'rc':return modelValidation();default:return modelMission();}}
+function getModel(){switch(state.view){case'mc':return modelMission();case'macro':return modelMacro();case'ew':return modelEarly();case'alpha':return modelAlpha();case'inst':return modelInstitutional();case'deriv':return modelDerivatives();case'us':return modelMarket('us','US STOCKS');case'ihsg':return modelMarket('idx','IHSG');case'crypto':return modelMarket('crypto','CRYPTO');case'commod':return modelMarket('commodity','COMMODITIES');case'fx':return modelFx();case'flow':return modelFlow();case'sc':return modelSupply();case'co':return modelCompany();case'kg':return modelKnowledge();case'rc':return modelValidation();default:return modelMission();}}
 
 function graphSvg(model){
  const g=model.graph||{nodes:[],edges:[]}; const visibleNodes=g.nodes.filter(n=>state.mode==='all'||n.evidence!=='structural'||['sc','kg'].includes(state.view)); const ids=new Set(visibleNodes.map(n=>n.id)); const edges=arr(g.edges).filter(e=>ids.has(e.from)&&ids.has(e.to)); const map=Object.fromEntries(visibleNodes.map(n=>[n.id,n]));

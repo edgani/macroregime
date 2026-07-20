@@ -1,4 +1,4 @@
-# Deploy War Room OS v2.7 — Deterministic Hosted Startup
+# Deploy War Room OS v2.8 — Deterministic Hosted Startup
 
 This release replaces the v2.6 startup model. The dashboard is no longer allowed to render a
 permanent bootstrap `R1` while hoping a detached process eventually fills it.
@@ -66,8 +66,8 @@ Run locally or inspect from the deployment file console:
 
 ```text
 python diagnose_no_data.py
-python validate_v27_startup.py
-python validate_v27_full.py
+python validate_v28_startup.py
+python validate_v28_fx_alpha.py
 ```
 
 Key files:
@@ -78,3 +78,12 @@ Key files:
 - `runtime/NO_DATA_DIAGNOSTIC.json`
 
 A valid failure is explicit `NO_DATA/DEGRADED` with an error. Permanent `INITIALIZING` is not valid.
+
+## v2.8 FX and Alpha behavior
+
+- Six loaded FX spot histories now display as `FX SPOT DATA · LIVE`; an incomplete macro-relative
+  direction model displays separately as `MACRO-RELATIVE MODEL · INCOMPLETE`.
+- FX price-only setups cannot enter Mission Control or Alpha Center.
+- Alpha Center is a staged research funnel with at most five visible candidate cards; the full list
+  remains in the Evidence Ledger.
+- `LONG WATCH` and `SHORT WATCH` are research labels, not capital permission.

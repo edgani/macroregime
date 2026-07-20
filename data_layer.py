@@ -32,7 +32,7 @@ UNIVERSE = {
         "TON-USD","TAO-USD","ENA-USD","STRK-USD","W-USD","JASMY-USD","NOT-USD","ORDI-USD","AKT-USD","BEAM-USD",
     ],
     "commodity": ["CL=F","BZ=F","GC=F","SI=F","HG=F","NG=F"],
-    "fx": ["EURUSD=X","JPY=X","GBPUSD=X","AUDUSD=X","IDR=X","DX-Y.NYB"],
+    "fx": ["EURUSD=X","USDJPY=X","GBPUSD=X","AUDUSD=X","USDIDR=X","DX-Y.NYB"],
 }
 BENCH = "SPY"
 

@@ -391,6 +391,8 @@ def build_fast_desk(data, top_per_market=12):
             "label": cfg.get("label", market), "long_only": bool(cfg.get("long_only")),
             "drivers": cfg.get("drivers", []), "bias": bias,
             "data_state": b.get("state") or ("LIVE" if prices.get(market) else "NO_DATA"),
+            "bias_state": "FAST_PRICE_CONTEXT" if bias != "NO_DATA" else "PARTIAL",
+            "driver_coverage": None, "driver_total": len(cfg.get("drivers", [])),
             "funnel": {"universe": len(prices.get(market) or {}), "eliminated": 0, "setups": len(setups)},
             "setups": setups,
         }
@@ -530,10 +532,21 @@ def build_desk(data, top_per_market=12):
             except Exception:
                 pass
         drv = bias.get("gold" if m == "commodity" else m, {})
+        driver_bias = drv.get("bias", "NO_DATA")
+        driver_fed = int(drv.get("fed") or 0)
+        driver_total = len(drv.get("drivers") or [])
         markets[m] = {
             "label": mk_cfg["label"], "long_only": mk_cfg["long_only"],
             "drivers": mk_cfg["drivers"],
-            "bias": drv.get("bias", "NO_DATA"),
+            # Price availability and directional-model availability are different facts. FX in
+            # particular may have six live spot pairs while its macro-relative model is still
+            # incomplete. Never collapse those two states into a misleading NO_DATA badge.
+            "data_state": "LIVE" if len(univ) else "NO_DATA",
+            "bias": driver_bias,
+            "bias_state": ("LIVE" if driver_bias not in (None, "", "NO_DATA") else
+                           ("PARTIAL" if driver_fed else "ACTION_REQUIRED")),
+            "driver_coverage": driver_fed,
+            "driver_total": driver_total,
             "funnel": {"universe": len(univ),
                        "eliminated": sum(1 for t in univ if t in eliminated),
                        "setups": len(setups)},

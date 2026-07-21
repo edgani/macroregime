@@ -668,7 +668,7 @@ def build_desk(data, top_per_market=12):
             "source": data["overall_source"],
             "sources": data["sources"], "fred_source": data["fred_source"],
             "universe_n": len(union),
-            "note": disc["summary"].get("note", ""),
+            "note": alpha_meta.get("note", ""),
             "feeds_status": (data.get("feeds") or {}).get("_status", {}),   # per-feed: snapshot / live / absent
         },
         "systemic": systemic,

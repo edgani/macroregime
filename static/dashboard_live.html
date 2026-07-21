@@ -54,7 +54,7 @@ button,input,select{font:inherit}.mono{font-family:var(--mono)}
 <script>/*__INJECT_DATA__*/</script>
 <div id="app">
   <header class="topbar">
-    <div class="brand"><div class="brandmark">W</div><div><div class="brandname">WAR ROOM <b>OS</b></div><div class="brandver">DECISION-INTELLIGENCE OS · v3.3</div></div></div>
+    <div class="brand"><div class="brandmark">W</div><div><div class="brandname">WAR ROOM <b>OS</b></div><div class="brandver">DECISION-INTELLIGENCE OS · v3.3.1</div></div></div>
     <div class="top-metrics" id="topMetrics"></div>
     <span id="dataSync" class="top-chip">SYNC <b>BOOTING</b></span><input class="search" id="search" placeholder="SEARCH TICKER / THEME / EVENT" />
   </header>
@@ -186,6 +186,8 @@ function coverageRows(tab){return arr(coverageFor(tab).provider_statuses).map(x=
 function coverageLabel(tab){const c=coverageFor(tab);return Object.keys(c).length?`${c.state||'NO_DATA'} · ${c.live||0} live · ${c.optional_missing||0} optional enrichment missing`:'NO COVERAGE CONTRACT';}
 function providerStatus(providerPattern,datasetPattern=''){return arr(FLD.statuses).find(x=>new RegExp(providerPattern,'i').test(String(x.provider||''))&&(!datasetPattern||new RegExp(datasetPattern,'i').test(String(x.dataset||''))))||null;}
 function providerMatches(event,status){const ep=String(event?.provider||event?.source||event?.venue||'').toLowerCase(),ed=String(event?.dataset||event?.event_type||'').toLowerCase(),sp=String(status?.provider||'').toLowerCase(),sd=String(status?.dataset||'').toLowerCase();return Boolean((ep&&sp&&(ep.includes(sp)||sp.includes(ep)))||(ed&&sd&&(ed.includes(sd)||sd.includes(ed))));}
+function eventDescription(e){const x=obj(e);const parts=[x.description,x.note,x.summary,x.event_type||x.type,x.side,x.strike!=null?`strike ${fmt(x.strike)}`:'',x.expiry?`expiry ${x.expiry}`:'',x.premium!=null?`premium ${money(x.premium)}`:'',x.notional!=null?`notional ${money(x.notional)}`:''];return parts.filter(Boolean).join(' · ')||'Observed event; intent unverified.';}
+function eventState(e){const v=String(obj(e).state||obj(e).status||'OBSERVED').toUpperCase();if(/ERROR|NO_DATA|NOT_CONFIGURED|NOT_ENTITLED|ACTION_REQUIRED/.test(v))return v;if(/STALE/.test(v))return'STALE';return'OBSERVED';}
 function latestFundamental(ticker){return arr(FLD.sec_fundamentals).find(x=>String(x.ticker||'').toUpperCase()===String(ticker||'').toUpperCase())||null;}
 function breadthFor(id){return obj(obj(D.market_breadth)[id]);}
 function bestAvailabilityStatus(statuses, fallback='NO_DATA'){
@@ -755,9 +757,24 @@ function getModel(){switch(state.view){case'mc':return modelMission();case'macro
 
 
 function orientationClass(x){const v=String(x||'').toUpperCase();if(v==='LONG')return'long';if(v==='SHORT')return'short';if(v==='BLOCKED')return'blocked';return'neutral';}
+function orientationFromText(x){const v=String(x||'').toUpperCase();if(/BLOCKED|NO_DATA|NO DATA|ACTION_REQUIRED|ERROR|FATAL/.test(v))return'BLOCKED';if(/SHORT|SELL|REDUCE|AVOID|DESTRUCTIVE|RISK OFF|RISK_OFF/.test(v))return'SHORT';if(/LONG|BUY|BUILD|CONSTRUCTIVE|LEAN_LONG|RISK ON|RISK_ON/.test(v))return'LONG';return'NEUTRAL';}
+function normalizedBoard(model){
+ const direct=obj(model.board),directRows=arr(direct.rows);
+ if(directRows.length)return direct;
+ const rail=obj(model.rail),queue=arr(model.queue),nodes=arr(obj(model.graph).nodes).filter(n=>!['empty','none'].includes(String(n.id||''))&&!/^NO /.test(String(n.label||'')));
+ let rows=[];
+ if(queue.length){
+  rows=queue.slice(0,18).map((q,i)=>{const action=q.stage||q.action||q.state||'RESEARCH';return {instrument:q.ticker||q.label||`ROW ${i+1}`,orientation:orientationFromText(action),action,state:action,why:q.why||rail.current||'',coverage:Math.max(0,Math.min(100,num(q.score)||num(rail.confidence)||0)),total:100,trigger:rail.next||'—',stop:rail.invalidation||'—',target:'—',freshness:obj(D.meta).generated,event:'',raw:q};});
+ }
+ if(!rows.length&&nodes.length){
+  rows=nodes.slice(0,18).map((n,i)=>{const action=n.value||n.state||'OBSERVE';const evidence=String(n.evidence||'observed').toUpperCase();const cov=evidence==='OBSERVED'?85:evidence==='INFERRED'?55:evidence==='STRUCTURAL'?35:20;return {instrument:n.label||`NODE ${i+1}`,orientation:orientationFromText(`${action} ${n.state||''}`),action,state:n.state||action,why:n.sub||rail.current||'',coverage:cov,total:100,trigger:rail.next||'—',stop:rail.invalidation||'—',target:'—',freshness:obj(D.meta).generated,event:'',raw:n.raw||n};});
+ }
+ if(!rows.length){rows=[{instrument:model.title||'WORKSPACE',orientation:orientationFromText(`${rail.action||''} ${rail.title||''}`),action:rail.action||'NO ACTION',state:rail.title||'NO DATA',why:rail.current||rail.desc||'No workspace state is available.',coverage:num(rail.confidence)||0,total:100,trigger:rail.next||'—',stop:rail.invalidation||'—',target:'—',freshness:obj(D.meta).generated,event:'',raw:rail}];}
+ return {kind:direct.kind||'workspace',rows,developments:arr(direct.developments),title:direct.title||`${model.title||'WORKSPACE'} DECISION BOARD`,note:direct.note||'Workspace state, evidence and next action. Instrument-level direction appears only where the underlying model supports it.'};
+}
 function renderDevelopments(rows){const fresh=arr(rows).filter(x=>x.freshness!=='STALE').slice(0,9);if(!fresh.length)return'';return `<section class="board-section"><div class="board-section-head">CURRENT DEVELOPMENTS <span>PRIMARY-SOURCE DATED · NO AUTO DIRECTION</span></div><div class="dev-grid">${fresh.map(x=>`<article class="dev-card" data-dev="${esc(x.id||'')}"><div class="cat">${esc(x.category||'STRUCTURAL CHANGE')}</div><b>${esc(x.title||'UNTITLED')}</b><p>${esc(short(x.why_it_matters||x.summary,180))}</p><div class="fresh">${esc(x.date||'—')} · ${esc(x.freshness||'FRESH')}</div></article>`).join('')}</div></section>`;}
 function renderDecisionBoard(model){
- const b=obj(model.board),rows=arr(b.rows),r=obj(model.rail),devs=arr(b.developments);
+ const b=normalizedBoard(model),rows=arr(b.rows),r=obj(model.rail),devs=arr(b.developments);
  const table=rows.length?`<section class="board-section"><div class="board-section-head">${esc(b.title||'DECISION MATRIX')} <span>${rows.length} instruments · ${esc(b.note||'')}</span></div><div style="overflow:auto"><table class="decision-table"><thead><tr><th style="width:12%">INSTRUMENT</th><th style="width:15%">STATE / ACTION</th><th style="width:11%">ORIENTATION</th><th style="width:9%">EVIDENCE</th><th style="width:12%">TRIGGER / STOP</th><th>WHY / NEXT RISK</th><th style="width:10%">FRESHNESS</th></tr></thead><tbody>${rows.map(x=>{const cls=orientationClass(x.orientation);const cov=Math.min(100,Math.round(100*(num(x.coverage)||0)/Math.max(1,num(x.total)||100)));return `<tr data-board-row="${esc(x.instrument||'')}"><td>${esc(x.instrument||'—')}</td><td><span class="action ${cls}">${esc(x.action||x.state||'NO ACTION')}</span><div style="color:var(--faint);margin-top:3px">${esc(x.state||'')}</div></td><td><span class="action ${cls}">${esc(x.orientation||'NEUTRAL')}</span></td><td>${esc(`${fmt(x.coverage)}/${fmt(x.total)}`)}<div class="coverage-mini"><i style="width:${cov}%"></i></div></td><td>${esc(fmt(x.trigger))}<br><span style="color:var(--mag)">${esc(fmt(x.stop))}</span></td><td>${esc(short(x.why||'',170))}${x.event?`<div style="color:var(--amber);margin-top:4px">EVENT: ${esc(short(x.event,120))}</div>`:''}</td><td>${esc(timeLabel(x.freshness||obj(D.meta).generated))}</td></tr>`;}).join('')}</tbody></table></div></section>`:`<div class="empty"><div><div class="code">NO DECISION ROWS</div><p>No instrument has a pair/setup state. The system will not invent one.</p></div></div>`;
  const kpis=`<div class="board-kpis"><div class="board-kpi"><div class="k">YOU ARE HERE</div><div class="v">${esc(r.title||'NO DATA')}</div><div class="d">${esc(short(r.desc||'',120))}</div></div><div class="board-kpi"><div class="k">ACTION</div><div class="v">${esc(r.action||'NO ACTION')}</div><div class="d">Capital permission remains separate.</div></div><div class="board-kpi"><div class="k">NEXT</div><div class="v">${esc(short(r.next||'—',70))}</div><div class="d">${esc(short(r.current||'',90))}</div></div><div class="board-kpi"><div class="k">INVALIDATION</div><div class="v">${esc(short(r.invalidation||'—',70))}</div><div class="d">${esc(r.window||'')}</div></div></div>`;
  return `<div class="decision-board">${kpis}${table}${renderDevelopments(devs)}</div>`;
@@ -793,14 +810,14 @@ function openDetail(raw,title){document.getElementById('drawerTitle').textConten
 
 function render(){
  renderSidebar();renderSubnav();renderTop();const model=getModel();window.__MODEL=model;
- document.getElementById('viewTitle').textContent=model.title;document.getElementById('viewSub').textContent=model.sub;document.getElementById('canvasTitle').textContent=state.layout==='map'?model.canvas:state.layout==='evidence'?'EVIDENCE / RESEARCH CONTRACT':(model.board?.title||model.canvas);document.getElementById('canvasMeta').textContent=state.layout==='map'?`${arr(model.graph?.nodes).length} nodes · ${arr(model.graph?.edges).length} edges`:`${arr(model.board?.rows).length||arr(model.queue).length} decision rows`;
+ const activeBoard=normalizedBoard(model);document.getElementById('viewTitle').textContent=model.title;document.getElementById('viewSub').textContent=model.sub;document.getElementById('canvasTitle').textContent=state.layout==='map'?model.canvas:state.layout==='evidence'?'EVIDENCE / RESEARCH CONTRACT':(activeBoard.title||model.canvas);document.getElementById('canvasMeta').textContent=state.layout==='map'?`${arr(model.graph?.nodes).length} nodes · ${arr(model.graph?.edges).length} edges`:`${arr(activeBoard.rows).length} decision rows`;
  renderResearchDock(model);
  const page=document.querySelector('.page'),canvas=document.querySelector('.canvas-card'),dock=document.getElementById('researchDock');page.classList.toggle('board-layout',state.layout==='board');page.classList.toggle('evidence-layout',state.layout==='evidence');canvas.classList.toggle('board-active',state.layout!=='map');dock.classList.toggle('hidden',state.layout!=='evidence');
  setHTML('canvasBadges',arr(model.badges).map(badgeHtml).join(''));setHTML('graph',state.layout==='map'?graphSvg(model):state.layout==='evidence'?renderEvidenceCanvas(model):renderDecisionBoard(model));setHTML('rail',renderRail(model.rail));setHTML('ledger',renderLedger(model.ledger));setHTML('queue',renderQueue(model.queue));document.getElementById('ledgerMeta').textContent=`${arr(model.ledger).length} records`;document.getElementById('queueMeta').textContent=`${arr(model.queue).length} ranked`;renderTape();
  document.querySelectorAll('.seg').forEach(b=>b.classList.toggle('active',b.dataset.mode===state.mode));document.querySelectorAll('.layout-seg').forEach(b=>b.classList.toggle('active',b.dataset.layout===state.layout));
  document.querySelectorAll('.node').forEach(el=>el.onclick=()=>{const id=el.dataset.node;state.selected=id;const n=arr(model.graph.nodes).find(x=>x.id===id);const tk=n?.raw?.ticker||n?.raw?.tk||n?.raw?.asset||n?.label;if(tk&&/^[A-Z0-9.=_-]{1,20}$/i.test(String(tk)))state.selectedTicker=String(tk);persistState();render();if(n?.raw)openDetail(n.raw,n.label);});
  document.querySelectorAll('.queue-item').forEach(el=>el.onclick=()=>{state.selectedTicker=el.dataset.queue;persistState();openDetail(arr(model.queue).find(x=>x.ticker===el.dataset.queue)||{},el.dataset.queue);});
- document.querySelectorAll('[data-board-row]').forEach(el=>el.onclick=()=>{const key=el.dataset.boardRow;const row=arr(model.board?.rows).find(x=>String(x.instrument)===String(key));if(row)openDetail(row.raw||row,key);});
+ document.querySelectorAll('[data-board-row]').forEach(el=>el.onclick=()=>{const key=el.dataset.boardRow;const row=arr(activeBoard.rows).find(x=>String(x.instrument)===String(key));if(row)openDetail(row.raw||row,key);});
  document.querySelectorAll('[data-dev]').forEach(el=>el.onclick=()=>{const key=el.dataset.dev;const row=arr(model.board?.developments).find(x=>String(x.id)===String(key));if(row)openDetail(row,row.title);});
 }
 

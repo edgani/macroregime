@@ -1,0 +1,51 @@
+{
+  "version": "3.3.1",
+  "suite": "empty_board_and_worker_hotfix",
+  "status": "PASS",
+  "passed": 8,
+  "total": 8,
+  "checks": [
+    {
+      "name": "undefined_disc_removed",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "v331_header",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "generic_workspace_board",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "event_helpers_present",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "javascript_parse",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "fast_desk_no_nameerror",
+      "passed": true,
+      "detail": "Latency-bounded observed-data first paint."
+    },
+    {
+      "name": "browser_page_errors",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "all_19_views_have_board_rows",
+      "passed": true,
+      "detail": "counts={'mc': 7, 'macro': 6, 'ew': 7, 'alpha': 3, 'co': 1, 'us': 2, 'ihsg': 2, 'crypto': 2, 'commod': 1, 'fx': 5, 'flow': 7, 'inst': 1, 'deriv': 1, 'sc': 1, 'kg': 1, 'execution': 7, 'research': 5, 'rc': 3, 'datahealth': 1}; zero=[]"
+    }
+  ],
+  "capital_permission": "CAPITAL_BLOCKED",
+  "proof_boundary": "This suite verifies UI/runtime regression behavior, not predictive alpha."
+}

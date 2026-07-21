@@ -4,12 +4,12 @@ v2 takes the bandarmetrics LOGIC (silent accumulation / distribution detection) 
 core on battle-tested accumulation/distribution indicators instead of a fragile custom VWAP-delta:
 
   • A/D Line (ADL)  — cumulative Money-Flow-Volume (Close Location Value × Volume). The canonical
-                      "is smart money accumulating?" line. Rises when closes print near highs on
+                      close-location/volume pressure line; it does not identify beneficial owners. Rises when closes print near highs on
                       volume even if price is flat/down (the real silent-accumulation footprint).
   • OBV             — On-Balance Volume (signed-volume accumulator), confirmation of ADL.
   • CMF             — Chaikin Money Flow (20d), bounded −1..+1: >0 buying pressure, <0 selling.
   • Divergence      — price-slope vs ADL-slope: price DOWN + ADL UP = bullish divergence (the
-                      accumulation signal); price UP + ADL DOWN = bearish divergence (distribution).
+                      accumulation signal); price UP + ADL DOWN = negative price/volume divergence.
   • DTE / Real DTE  — days-to-exit from average daily $-volume (how trapped the inventory is).
   • Volume Rotation — efficiency of transfer (green clean / yellow noise / red distribution).
   • Intensity       — ADL rate-of-change z-spikes (fires before price moves).
@@ -151,6 +151,7 @@ def compute(df, vwap_win: int = 20, lpm_smooth: int = 20, adv_win: int = 60, cmf
         "rotation_dist": {"green": green, "yellow": yellow, "red": red},
         "price_slope_20": round(price_slope, 4),
         "phase": phase, "score": int(round(score)),
+        "phase_semantics": "OHLCV_PRICE_VOLUME_PROXY_ONLY; no beneficial-owner or institutional-intent inference.",
         "avgcost": round(avgcost, 2),
         "ignition": ignition, "foreign_flow": ff, "stealth_accumulation": stealth,
         "markup_readiness": markup,
@@ -173,7 +174,7 @@ def _divergence(price_slope, adl_slope):
     if ps < -0.005 and ads > 0.01:
         return "BULLISH_DIV"      # price down, accumulation up → silent accumulation
     if ps > 0.005 and ads < -0.01:
-        return "BEARISH_DIV"      # price up, distribution → smart money exiting into strength
+        return "BEARISH_DIV"      # price up + ADL down; participant identity and intent unknown
     if ps > 0.005 and ads > 0.005:
         return "ALIGNED_UP"       # trend confirmed up
     if ps < -0.005 and ads < -0.005:
@@ -318,9 +319,9 @@ def foreign_flow_metrics(foreign, price=None):
 
 
 def detect_stealth_accumulation(adl_slope, cmf, price_slope, ignition_score, obv_slope):
-    """HIDDEN accumulation — money flowing in while price stays flat/down and hasn't ignited yet.
-    This is the manipulation-aware tell: smart money absorbs supply quietly (A/D + CMF up) while
-    keeping price suppressed, BEFORE the markup. Returns {is_stealth, score 0-100, reason}."""
+    """Positive close-location/volume-pressure proxy while price stays flat/down.
+    This uses OHLCV only and cannot identify beneficial owners, manipulation or intent.
+    The legacy key is retained for compatibility. Returns {is_stealth, score 0-100, reason}."""
     score = 0.0
     reasons = []
     if adl_slope > 0.005:

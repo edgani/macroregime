@@ -13,7 +13,14 @@
       "state": "OBSERVED_STRUCTURAL_CHANGE",
       "summary": "Robinhood launched the public mainnet of its Arbitrum-based Layer 2, with Stock Tokens, DEX integrations, lending primitives and an explicit real-world-asset focus.",
       "why_it_matters": "Distribution, tokenization, settlement, collateral and DeFi may converge inside a retail brokerage ecosystem. The investment question is who captures fees, liquidity and developer mindshare rather than merely who announces a chain.",
-      "watch": ["active addresses and funded wallets", "stock-token turnover and collateral use", "TVL and stablecoin liquidity", "developer deployment", "Robinhood revenue/value capture", "Arbitrum and partner economics"],
+      "watch": [
+        "active addresses and funded wallets",
+        "stock-token turnover and collateral use",
+        "TVL and stablecoin liquidity",
+        "developer deployment",
+        "Robinhood revenue/value capture",
+        "Arbitrum and partner economics"
+      ],
       "source": "Robinhood Newsroom",
       "source_url": "https://robinhood.com/us/en/newsroom/robinhood-accelerates-global-expansion-robinhood-chain-mainnet-stock-tokens-agentic-trading/"
     },
@@ -27,7 +34,14 @@
       "state": "OBSERVED_STRUCTURAL_CHANGE",
       "summary": "Robinhood made Stock Tokens available through its wallet in many jurisdictions, enabling 24/7 trading and potential use in lending pools and as collateral, subject to jurisdictional restrictions.",
       "why_it_matters": "This changes the competitive map from tokenized price exposure to composable financial collateral. Legal form, redemption, issuer credit risk, liquidity fragmentation and underlying-share rights remain critical.",
-      "watch": ["legal/beneficial ownership", "redemption and reserve mechanics", "secondary liquidity", "collateral haircuts", "jurisdiction coverage", "issuer and counterparty risk"],
+      "watch": [
+        "legal/beneficial ownership",
+        "redemption and reserve mechanics",
+        "secondary liquidity",
+        "collateral haircuts",
+        "jurisdiction coverage",
+        "issuer and counterparty risk"
+      ],
       "source": "Robinhood Newsroom",
       "source_url": "https://robinhood.com/us/en/newsroom/robinhood-accelerates-global-expansion-robinhood-chain-mainnet-stock-tokens-agentic-trading/"
     },
@@ -41,7 +55,14 @@
       "state": "OBSERVED_STRUCTURAL_CHANGE",
       "summary": "Robinhood announced onchain USDG lending through Morpho-based infrastructure and plans for AI-connected crypto trading accounts using its Trading MCP.",
       "why_it_matters": "The key shift is brokerage distribution of self-custody lending and automated execution. This creates new growth surfaces but also smart-contract, model, execution, monitoring and suitability risks.",
-      "watch": ["net deposits into Earn", "realized yield versus advertised yield", "insurance exclusions", "agentic account adoption", "execution quality", "incident and loss rates"],
+      "watch": [
+        "net deposits into Earn",
+        "realized yield versus advertised yield",
+        "insurance exclusions",
+        "agentic account adoption",
+        "execution quality",
+        "incident and loss rates"
+      ],
       "source": "Robinhood Newsroom",
       "source_url": "https://robinhood.com/us/en/newsroom/robinhood-accelerates-global-expansion-robinhood-chain-mainnet-stock-tokens-agentic-trading/"
     },
@@ -55,7 +76,14 @@
       "state": "OBSERVED_STRUCTURAL_CHANGE",
       "summary": "The SEC issued a Commission-level interpretation clarifying the application of federal securities laws to certain crypto assets and transactions, with related CFTC guidance.",
       "why_it_matters": "Regulatory classification changes access, listing, custody, token design and capital formation. War Room must track asset-by-asset legal status rather than use a generic regulatory score.",
-      "watch": ["asset classification", "exchange listing response", "custody requirements", "transition relief", "enforcement and litigation", "CFTC/SEC harmonization"],
+      "watch": [
+        "asset classification",
+        "exchange listing response",
+        "custody requirements",
+        "transition relief",
+        "enforcement and litigation",
+        "CFTC/SEC harmonization"
+      ],
       "source": "U.S. SEC",
       "source_url": "https://www.sec.gov/newsroom/press-releases/2026-30-sec-clarifies-application-federal-securities-laws-crypto-assets"
     },
@@ -69,7 +97,14 @@
       "state": "OBSERVED_STRUCTURAL_CHANGE",
       "summary": "Nasdaq described a design for tokenized equities intended to preserve issuer rights, fungibility and the existing regulated market rather than create a disconnected parallel market.",
       "why_it_matters": "The chokepoints may sit in clearing, custody, transfer agency, identity, collateral and interoperability—not necessarily in speculative L1 tokens.",
-      "watch": ["SEC implementation", "DTC settlement support", "issuer adoption", "custody and transfer agents", "trading-hours changes", "fee-pool migration"],
+      "watch": [
+        "SEC implementation",
+        "DTC settlement support",
+        "issuer adoption",
+        "custody and transfer agents",
+        "trading-hours changes",
+        "fee-pool migration"
+      ],
       "source": "Nasdaq",
       "source_url": "https://ir.nasdaq.com/news-releases/news-release-details/nasdaq-launch-equity-token-design-putting-issuers-center"
     },
@@ -83,7 +118,14 @@
       "state": "OBSERVED_STRUCTURAL_CHANGE",
       "summary": "The CFTC's DCM filing list shows a growing field of designated and pending prediction/event-contract exchanges during 2025–2026.",
       "why_it_matters": "Distribution, regulatory licenses, clearing, market making and event-data quality are becoming a new financial-market stack. Volume alone does not prove durable economics.",
-      "watch": ["designated/pending status", "contract legality", "customer growth", "liquidity concentration", "market-maker economics", "state and federal disputes"],
+      "watch": [
+        "designated/pending status",
+        "contract legality",
+        "customer growth",
+        "liquidity concentration",
+        "market-maker economics",
+        "state and federal disputes"
+      ],
       "source": "U.S. CFTC",
       "source_url": "https://www.cftc.gov/IndustryOversight/IndustryFilings/TradingOrganizations"
     },
@@ -97,7 +139,14 @@
       "state": "OBSERVED_STRUCTURAL_CHANGE",
       "summary": "Robinhood's joint venture closed its acquisition of MIAXdx, giving it exchange and clearing infrastructure for futures and event contracts, with Susquehanna as a key liquidity partner.",
       "why_it_matters": "Robinhood is moving from distributor toward vertically integrated market infrastructure. Monitor whether economics migrate from order flow to exchange, clearing and data layers.",
-      "watch": ["exchange launch", "contracts listed", "third-party FCM adoption", "clearing economics", "liquidity-provider concentration", "regulatory intervention"],
+      "watch": [
+        "exchange launch",
+        "contracts listed",
+        "third-party FCM adoption",
+        "clearing economics",
+        "liquidity-provider concentration",
+        "regulatory intervention"
+      ],
       "source": "Robinhood Newsroom",
       "source_url": "https://robinhood.com/us/en/newsroom/robinhood-prediction-markets-joint-venture/"
     },
@@ -111,7 +160,14 @@
       "state": "OBSERVED_STRUCTURAL_CHANGE",
       "summary": "The GENIUS Act established a U.S. federal framework for payment stablecoins.",
       "why_it_matters": "Stablecoin growth can affect Treasury demand, payments, exchange liquidity and onchain credit. Track issuer economics, reserve composition, distribution and regulatory compliance rather than stablecoin market cap alone.",
-      "watch": ["circulating supply", "issuer market share", "reserve yield", "bank/payment distribution", "onchain velocity", "redemptions and depegs"],
+      "watch": [
+        "circulating supply",
+        "issuer market share",
+        "reserve yield",
+        "bank/payment distribution",
+        "onchain velocity",
+        "redemptions and depegs"
+      ],
       "source": "The White House",
       "source_url": "https://www.whitehouse.gov/fact-sheets/2025/07/fact-sheet-president-donald-j-trump-signs-genius-act-into-law/"
     },
@@ -125,7 +181,14 @@
       "state": "OBSERVED_STRUCTURAL_CHANGE",
       "summary": "Indonesia enacted Law No. 4 of 2026, including changes aimed at strengthening capital-market governance through IDX demutualization and expanding OJK oversight of strategic mineral and commodity exchanges.",
       "why_it_matters": "This is a structural governance and market-infrastructure change, not an immediate index direction signal. It may alter ownership, incentives, listings, surveillance and commodity-market linkages.",
-      "watch": ["implementing regulations", "IDX ownership/governance", "broker and issuer response", "strategic mineral exchange design", "foreign investor confidence", "market-data access"],
+      "watch": [
+        "implementing regulations",
+        "IDX ownership/governance",
+        "broker and issuer response",
+        "strategic mineral exchange design",
+        "foreign investor confidence",
+        "market-data access"
+      ],
       "source": "BPK RI regulation database",
       "source_url": "https://peraturan.bpk.go.id/Details/350166/uu-no-4-tahun-2026"
     },
@@ -139,7 +202,14 @@
       "state": "OBSERVED_MACRO_CHANGE",
       "summary": "Bank Indonesia raised the BI-Rate by 25 basis points to 5.75% after earlier increases, emphasizing rupiah stability while maintaining growth support.",
       "why_it_matters": "Banks, duration, domestic liquidity, foreign flows and USD/IDR respond differently. The action must be transmitted through pair-, sector- and company-specific channels.",
-      "watch": ["July policy decision", "JISDOR", "SRBI/SBN foreign ownership", "bank margins and credit", "foreign equity flow", "inflation and reserves"],
+      "watch": [
+        "July policy decision",
+        "JISDOR",
+        "SRBI/SBN foreign ownership",
+        "bank margins and credit",
+        "foreign equity flow",
+        "inflation and reserves"
+      ],
       "source": "Bank Indonesia",
       "source_url": "https://www.bi.go.id/id/publikasi/ruang-media/news-release/Pages/sp_2812626.aspx"
     },
@@ -153,7 +223,14 @@
       "state": "OBSERVED_EVENT_WINDOW",
       "summary": "Bank Indonesia's scheduled July policy meeting runs 21–22 July 2026. Pair direction must wait for the decision, guidance and price acceptance rather than infer from spot history alone.",
       "why_it_matters": "USD/IDR can react to the policy path, intervention, global dollar conditions and positioning. Event risk should reduce position permission when evidence is incomplete.",
-      "watch": ["policy rate", "guidance", "JISDOR", "NDF and onshore spread", "foreign bond/equity flow", "post-event acceptance"],
+      "watch": [
+        "policy rate",
+        "guidance",
+        "JISDOR",
+        "NDF and onshore spread",
+        "foreign bond/equity flow",
+        "post-event acceptance"
+      ],
       "source": "Bank Indonesia",
       "source_url": "https://www.bi.go.id/id/publikasi/ruang-media/news-release/Pages/sp_2730825.aspx"
     },
@@ -167,7 +244,14 @@
       "state": "OBSERVED_STRUCTURAL_CHANGE",
       "summary": "The CFTC stayed a self-certified NYMEX contract designed for continuous 24/7 trading while it reviews surveillance, reference-price and physically delivered commodity concerns.",
       "why_it_matters": "Market-hours expansion can alter weekend gaps, liquidity, price discovery and manipulation risk. It does not change physical oil fundamentals by itself.",
-      "watch": ["CFTC review outcome", "CME contract changes", "weekend liquidity", "cash-market reference windows", "surveillance design", "basis and spread behavior"],
+      "watch": [
+        "CFTC review outcome",
+        "CME contract changes",
+        "weekend liquidity",
+        "cash-market reference windows",
+        "surveillance design",
+        "basis and spread behavior"
+      ],
       "source": "U.S. CFTC",
       "source_url": "https://www.cftc.gov/PressRoom/PressReleases/9265-26"
     },
@@ -181,9 +265,97 @@
       "state": "OBSERVED_STRUCTURAL_CHANGE",
       "summary": "Robinhood began rolling out FX, commodity and ETF perpetual futures to eligible European users with leverage and 24/7 access.",
       "why_it_matters": "This may change retail participation and weekend liquidity in derivative venues, but it is not evidence for long or short direction in any currency pair.",
-      "watch": ["volume and open interest", "weekend spreads", "liquidations", "venue basis", "jurisdictional limits", "spillover to regulated futures and spot"],
+      "watch": [
+        "volume and open interest",
+        "weekend spreads",
+        "liquidations",
+        "venue basis",
+        "jurisdictional limits",
+        "spillover to regulated futures and spot"
+      ],
       "source": "Robinhood Newsroom",
       "source_url": "https://robinhood.com/us/en/newsroom/robinhood-accelerates-global-expansion-robinhood-chain-mainnet-stock-tokens-agentic-trading/"
+    },
+    {
+      "id": "crypto_circle_occ_trust_bank_20260710",
+      "market": "crypto",
+      "date": "2026-07-10",
+      "stale_after_days": 120,
+      "category": "STABLECOIN_BANKING_INFRASTRUCTURE",
+      "title": "Circle receives final OCC approval for a national trust bank",
+      "state": "OBSERVED_STRUCTURAL_CHANGE",
+      "summary": "Circle announced final OCC approval to establish a national trust bank focused initially on federally supervised digital-asset custody, with reserve-management capability contemplated later.",
+      "why_it_matters": "Stablecoin competition is shifting from token issuance toward regulated custody, reserve infrastructure, clearing and institutional distribution. The investment question is fee capture, reserve economics and adoption—not a generic bullish stablecoin label.",
+      "watch": [
+        "bank opening and operating scope",
+        "institutional custody customers",
+        "reserve-management transition",
+        "USDC supply and settlement usage",
+        "Circle fee and balance-sheet economics"
+      ],
+      "source": "Circle Pressroom",
+      "source_url": "https://www.circle.com/pressroom/circle-receives-final-occ-approval-to-establish-national-trust-bank"
+    },
+    {
+      "id": "crypto_coinbase_usdc_margin_20260715",
+      "market": "crypto",
+      "date": "2026-07-15",
+      "stale_after_days": 90,
+      "category": "REGULATED_COLLATERAL_AND_CLEARING",
+      "title": "USDC enters regulated derivatives-margin workflow through Coinbase and Marex",
+      "state": "OBSERVED_STRUCTURAL_CHANGE",
+      "summary": "Coinbase reported that Marex is accepting USDC as collateral in regulated derivatives clearing with conversion and reporting infrastructure supplied by Coinbase.",
+      "why_it_matters": "Stablecoins are moving from exchange settlement into regulated collateral workflows. War Room must track collateral eligibility, haircuts, clearing-member adoption, custody and issuer/platform fee capture.",
+      "watch": [
+        "cleared volume using USDC",
+        "eligible products and jurisdictions",
+        "collateral haircuts",
+        "additional FCM/clearing adoption",
+        "Coinbase and Circle value capture"
+      ],
+      "source": "Coinbase Blog",
+      "source_url": "https://www.coinbase.com/blog/landing"
+    },
+    {
+      "id": "crypto_ethereum_agentic_security_20260709",
+      "market": "crypto",
+      "date": "2026-07-09",
+      "stale_after_days": 90,
+      "category": "AGENTIC_SECURITY_AND_PROTOCOL_RISK",
+      "title": "Ethereum protocol-security team reports agent-assisted discovery and triage of real bugs",
+      "state": "OBSERVED_STRUCTURAL_CHANGE",
+      "summary": "The Ethereum Foundation described coordinated AI agents testing protocol code and emphasized that triage and reproducible proof—not candidate count—determine whether a finding is real.",
+      "why_it_matters": "As agentic trading and autonomous onchain execution expand, security triage, reproducibility and permission controls become bottlenecks. Agent output is evidence inventory, not an oracle or automatic exploit-risk score.",
+      "watch": [
+        "verified vulnerabilities and remediation time",
+        "client diversity and affected surfaces",
+        "agent false-positive rate",
+        "security-budget changes",
+        "agent permission and transaction-control standards"
+      ],
+      "source": "Ethereum Foundation Blog",
+      "source_url": "https://blog.ethereum.org/2026/07/09/triage-is-the-product"
+    },
+    {
+      "id": "crypto_prediction_dcm_expansion_20260716",
+      "market": "crypto",
+      "date": "2026-07-16",
+      "stale_after_days": 90,
+      "category": "PREDICTION_MARKET_INFRASTRUCTURE",
+      "title": "CFTC DCM designations broaden prediction-market and event-contract infrastructure",
+      "state": "OBSERVED_STRUCTURAL_CHANGE",
+      "summary": "CFTC industry filings show multiple new or pending designated contract markets in June and July 2026, expanding the regulated venue layer for event contracts and adjacent products.",
+      "why_it_matters": "The chokepoints may shift toward licensing, clearing, market surveillance, liquidity distribution and brokerage access. A new venue designation is not proof of product-market fit or token value capture.",
+      "watch": [
+        "approved product sets",
+        "clearing arrangements",
+        "market-maker programs",
+        "retail distribution",
+        "volume/liquidity concentration",
+        "regulatory restrictions by contract type"
+      ],
+      "source": "CFTC DCM Filings",
+      "source_url": "https://www.cftc.gov/IndustryOversight/IndustryFilings/TradingOrganizations"
     }
   ]
 }

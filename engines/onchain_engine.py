@@ -1,7 +1,7 @@
 """
-onchain_engine.py — crypto on-chain accumulation / cornering / distribution detection.
+onchain_engine.py — crypto on-chain supply/liquidity context (intent unverified).
 
-Answers Edward's question: "is someone quietly accumulating / cornering supply → price likely up?"
+Combines exchange, reserve, entity-balance, valuation and funding context without inferring beneficial-owner intent or automatic price direction.
 by reading the on-chain footprint that retail can't see on a price chart.
 
 Pure-logic + defensive (neutral on missing data). NOTE: needs an on-chain data feed (Glassnode /
@@ -9,13 +9,13 @@ CryptoQuant / Nansen API) to run LIVE — the system doesn't fetch on-chain yet,
 an API key. Logic is unit-tested in __main__ and correct in isolation.
 
 Encoded signals (grounded in CryptoQuant/Glassnode/Nansen methodology, 2026):
-  - Exchange NETFLOW: negative (outflow>inflow) = accumulation/bullish; positive = distribution
+  - Exchange NETFLOW: negative means observed net outflow; positive means observed net inflow. Neither proves intent.
   - Exchange RESERVES declining → supply-shock (thin float, demand has outsized price impact)
   - WHALE accumulation (1k–100k cohort balance ↑) + Glassnode Accumulation Trend Score (0–1, →1 = accumulating)
   - MVRV / MVRV Z-Score: low (<0.85 z) = undervalued/bottom; high (>7 z) = top warning
   - aSOPR: <1 loss-dominant (capitulation); crossing >1 = profit transition (early bull)
-  - Funding rate: deeply negative = shorts pay longs = contrarian bullish
-  - Stablecoin inflow to exchanges = dry powder (bullish); + coin outflow = strong institutional accumulation
+  - Funding rate: deeply negative means shorts pay longs; contrarian interpretation remains conditional.
+  - Stablecoin exchange inflow is settlement-liquidity context; coin outflow is supply-location context, not institutional intent.
 """
 from __future__ import annotations
 from typing import Optional
@@ -30,19 +30,19 @@ def _num(x) -> Optional[float]:
 
 
 def netflow_signal(net_exchange_flow_7d=None) -> dict:
-    """Net coins to exchanges over ~7d. Negative = outflow = accumulation/bullish."""
+    """Net coins to exchanges over ~7d. Sign describes observed location flow, not intent."""
     n = _num(net_exchange_flow_7d)
     if n is None:
         return {"bias": 0, "label": "netflow n/a", "reason": "no exchange flow data"}
     if n < 0:
-        return {"bias": 1, "label": "outflow (akumulasi)", "reason": f"net outflow {n:,.0f} → coins ke cold storage, supply turun"}
+        return {"bias": 1, "label": "net exchange outflow", "reason": f"net outflow {n:,.0f} → fewer coins observed at exchanges; custody/intent unknown"}
     if n > 0:
-        return {"bias": -1, "label": "inflow (distribusi)", "reason": f"net inflow {n:,.0f} → coins ke exchange, siap dijual"}
+        return {"bias": -1, "label": "net exchange inflow", "reason": f"net inflow {n:,.0f} → more coins observed at exchanges; sale intent unknown"}
     return {"bias": 0, "label": "netflow flat", "reason": "flow seimbang"}
 
 
 def reserve_signal(reserve_now=None, reserve_30d_ago=None) -> dict:
-    """Exchange reserves trend. Declining = supply shock potential (bullish)."""
+    """Exchange reserves trend. Declining reserves are supply-location context, not a directional signal."""
     r0, r1 = _num(reserve_now), _num(reserve_30d_ago)
     if r0 is None or r1 is None or r1 <= 0:
         return {"bias": 0, "label": "reserve n/a", "reason": "no reserve data"}
@@ -61,19 +61,19 @@ def whale_signal(whale_bal_chg_30d_pct=None, accumulation_trend_score=None) -> d
     bias, bits = 0, []
     if w is not None:
         if w > 0.5:
-            bias = 1; bits.append(f"whale +{w:.1f}% (akumulasi)")
+            bias = 1; bits.append(f"labeled-entity balance +{w:.1f}% (intent unknown)")
         elif w < -0.5:
             bias = -1; bits.append(f"whale {w:.1f}% (offload)")
         else:
             bits.append(f"whale ~flat ({w:+.1f}%)")
     if a is not None:
         if a >= 0.6:
-            bias = 1 if bias >= 0 else bias; bits.append(f"AccTrend {a:.2f} (entity besar akumulasi)")
+            bias = 1 if bias >= 0 else bias; bits.append(f"entity-balance trend {a:.2f} positive")
         elif a <= 0.4:
-            bias = -1 if bias <= 0 else bias; bits.append(f"AccTrend {a:.2f} (distribusi)")
+            bias = -1 if bias <= 0 else bias; bits.append(f"entity-balance trend {a:.2f} negative")
     if not bits:
         return {"bias": 0, "label": "whale n/a", "reason": "no whale data"}
-    return {"bias": bias, "label": "whale " + ("akumulasi" if bias > 0 else "distribusi" if bias < 0 else "netral"),
+    return {"bias": bias, "label": "labeled-entity balance " + ("positive" if bias > 0 else "negative" if bias < 0 else "mixed"),
             "reason": " · ".join(bits)}
 
 
@@ -104,7 +104,7 @@ def sopr_signal(asopr=None) -> dict:
 
 
 def funding_signal(funding_rate=None) -> dict:
-    """Perp funding. Deeply negative = shorts pay longs = contrarian bullish (bearish overextended)."""
+    """Perp funding context. Deeply negative means shorts pay longs; direction still requires price/regime confirmation."""
     fr = _num(funding_rate)
     if fr is None:
         return {"bias": 0, "label": "funding n/a", "reason": "no funding data"}
@@ -116,12 +116,12 @@ def funding_signal(funding_rate=None) -> dict:
 
 
 def stablecoin_signal(stablecoin_inflow_7d=None) -> dict:
-    """Stablecoin inflow to exchanges = dry powder waiting to buy (bullish)."""
+    """Stablecoin exchange inflow is settlement-liquidity context, not proof of future buying."""
     s = _num(stablecoin_inflow_7d)
     if s is None:
         return {"bias": 0, "label": "stablecoin n/a", "reason": "no stablecoin flow"}
     if s > 0:
-        return {"bias": 1, "label": "stablecoin inflow", "reason": f"stablecoin +{s:,.0f} masuk exchange → dry powder buat beli"}
+        return {"bias": 1, "label": "stablecoin exchange inflow", "reason": f"stablecoin +{s:,.0f} observed at exchanges → more settlement liquidity; use/intent unknown"}
     return {"bias": 0, "label": "stablecoin netral", "reason": "no net stablecoin inflow"}
 
 
@@ -144,9 +144,9 @@ def onchain_composite(net_exchange_flow_7d=None, reserve_now=None, reserve_30d_a
     if n_have == 0:
         verdict, label = 0, "on-chain n/a (butuh feed)"
     elif score >= 2:
-        verdict, label = 1, "AKUMULASI (smart money beli diam-diam)"
+        verdict, label = 1, "POSITIVE SUPPLY/LIQUIDITY CONTEXT"
     elif score <= -2:
-        verdict, label = -1, "DISTRIBUSI (smart money lepas barang)"
+        verdict, label = -1, "NEGATIVE SUPPLY/LIQUIDITY CONTEXT"
     else:
         verdict, label = 0, "on-chain campur/netral"
     # CORNERING: reserves draining hard + whales accumulating + net outflow + supply shock → markup-ready
@@ -154,19 +154,20 @@ def onchain_composite(net_exchange_flow_7d=None, reserve_now=None, reserve_30d_a
                  and parts["netflow"]["bias"] == 1)
     return {"verdict": verdict, "label": label, "score": score, "metrics_available": n_have,
             "cornering": cornering,
-            "cornering_note": ("⚠️ CORNERING SUPPLY: reserve drain + whale akumulasi + outflow → MM lagi ngumpulin, markup likely"
+            "cornering_note": ("SUPPLY-TIGHTNESS CLUSTER: reserve decline + labeled-entity balance increase + net outflow; ownership, intent and price impact remain unverified"
                                if cornering else ""),
+            "semantics": "CONTEXT_ONLY; no beneficial-owner intent or automatic market direction.",
             "parts": parts}
 
 
 def tvl_flow_signal(tvl_change_7d_pct=None) -> dict:
-    """DeFiLlama TVL 7d change: capital flowing INTO the chain = on-chain accumulation proxy.
-    NOTE: TVL ≠ exchange netflow/whale supply — it's DeFi locked capital, a softer/different flow signal."""
+    """DeFiLlama TVL 7d change: locked-value expansion/contraction context.
+    TVL can change with asset prices, leverage, incentives and accounting; it is not equivalent to net capital flow."""
     c = _num(tvl_change_7d_pct)
     if c is None:
         return {"bias": 0, "label": "TVL n/a", "reason": "no DeFiLlama TVL"}
     if c > 5:
-        return {"bias": 1, "label": "TVL inflow", "reason": f"TVL +{c:.1f}% 7d → capital masuk chain (akumulasi on-chain)"}
+        return {"bias": 1, "label": "TVL expansion", "reason": f"TVL +{c:.1f}% 7d → locked value expanded; price, incentives and leverage may explain part of the move"}
     if c < -5:
         return {"bias": -1, "label": "TVL outflow", "reason": f"TVL {c:.1f}% 7d → capital keluar chain"}
     return {"bias": 0, "label": "TVL flat", "reason": f"TVL {c:+.1f}% 7d"}

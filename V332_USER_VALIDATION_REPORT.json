@@ -1,0 +1,77 @@
+{
+  "version": "3.3.2",
+  "suite": "user_release_verifier",
+  "status": "PASS",
+  "passed": 13,
+  "total": 13,
+  "checks": [
+    {
+      "name": "version",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "dashboard_static_sync",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "readability_patch",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "stale_error_guard",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "error_only_in_error_state",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "capital_fail_closed",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "current_source_inventory",
+      "passed": true,
+      "detail": "sources=34"
+    },
+    {
+      "name": "current_developments_inventory",
+      "passed": true,
+      "detail": "developments=17"
+    },
+    {
+      "name": "python_compile",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "package_manifest",
+      "passed": true,
+      "detail": "files=281; mismatches=[]"
+    },
+    {
+      "name": "master_release_evidence",
+      "passed": true,
+      "detail": "10/10"
+    },
+    {
+      "name": "offline_collector",
+      "passed": true,
+      "detail": "rc=0; source=NO_DATA; health=NO_DATA"
+    },
+    {
+      "name": "streamlit_health",
+      "passed": true,
+      "detail": "port=39657; body=ok"
+    }
+  ],
+  "operational_permission": "READY_FOR_USER_REVIEW",
+  "capital_permission": "CAPITAL_BLOCKED",
+  "proof_boundary": "Operational verification is not predictive proof. PIT WFA, costs/capacity, lockbox and prospective results remain separate gates."
+}

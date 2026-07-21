@@ -725,7 +725,7 @@ def loop() -> None:
                     state=loop_state,
                     pid=os.getpid(), pending=sorted(pending), last_success=last_success or None,
                     snapshot_revision=int(((previous.get("runtime") or {}).get("snapshot_sequence") or 0)),
-                    force_pending=force_refresh_requested(),
+                    force_pending=force_refresh_requested(), error=None,
                 )
                 for _ in range(10):
                     if STOP or force_refresh_requested():

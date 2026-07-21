@@ -1,0 +1,81 @@
+{
+  "version": "3.3.2",
+  "suite": "master_operational_release",
+  "generated_utc": "2026-07-21T16:57:39Z",
+  "status": "PASS",
+  "passed": 10,
+  "total": 10,
+  "checks": [
+    {
+      "name": "readability_and_semantic_integrity",
+      "passed": true,
+      "detail": "28/28"
+    },
+    {
+      "name": "decision_intelligence_regression",
+      "passed": true,
+      "detail": "34/34"
+    },
+    {
+      "name": "arrow_lineage",
+      "passed": true,
+      "detail": "8/8 explicit lineage and NO_DATA gates passed"
+    },
+    {
+      "name": "live_stack_parser_fixtures",
+      "passed": true,
+      "detail": "provider/parser, stale failover, option/crypto pressure and dashboard JS fixtures passed"
+    },
+    {
+      "name": "gcfis_synthetic_correctness",
+      "passed": true,
+      "detail": "ALL TESTS PASSED; synthetic correctness only, not predictive proof"
+    },
+    {
+      "name": "python_compile",
+      "passed": true,
+      "detail": "full source tree compiled successfully"
+    },
+    {
+      "name": "offline_worker_once",
+      "passed": true,
+      "detail": "rc=0; snapshot source=NO_DATA; health=NO_DATA; no undefined disc error"
+    },
+    {
+      "name": "streamlit_health",
+      "passed": true,
+      "detail": "actual /_stcore/health returned ok on localhost"
+    },
+    {
+      "name": "official_source_coverage",
+      "passed": true,
+      "detail": "34 official/current sources; 17 dated development records; changes require review and never auto-direct"
+    },
+    {
+      "name": "readability_preview",
+      "passed": true,
+      "detail": "small text enlarged selectively; large headings retained"
+    }
+  ],
+  "operational_permission": "READY_FOR_USER_REVIEW",
+  "capital_permission": "CAPITAL_BLOCKED",
+  "fixed_from_user_review": [
+    "Selective typography enlargement and row spacing for hard-to-read text.",
+    "Stale worker error is cleared after recovery and displayed only during ERROR/FATAL state.",
+    "One canonical row per instrument; conflicting long/short candidates collapse to NO TRADE.",
+    "Low-price crypto trigger/stop precision preserved.",
+    "Company Intel excludes futures, FX, crypto and index instruments.",
+    "FX is pair-specific and DXY context is not presented as a tradable FX pair.",
+    "Macro and causal context no longer masquerade as standalone trade direction.",
+    "Alpha numeric upside/probability/EV/sizing are withheld without point-in-time proof.",
+    "Poor R/R, missing evidence and stale data fail closed.",
+    "Provider/source rows are deduplicated and relative-price context is not called observed fund flow."
+  ],
+  "proof_boundary": [
+    "Software, parser, fixture and semantic checks are not predictive edge.",
+    "Paid-provider authentication, entitlements and live schema reachability require the user credentials.",
+    "Point-in-time WFA, multiple-testing correction, strong baselines, costs/capacity, untouched lockbox and mature prospective evidence remain separate promotion gates.",
+    "No monitoring system can guarantee every future development; source coverage, freshness and review debt are explicit.",
+    "Capital remains blocked."
+  ]
+}

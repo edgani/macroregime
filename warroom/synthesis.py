@@ -107,7 +107,7 @@ def decide(s, ctx=None):
         if "real demand" in vv and direction == "Short":
             votes.append(("volume", -1.5, "heavy-volume buying works against the short"))
         if er == "absorption":
-            votes.append(("absorption", 1.0, "absorption — smart money soaking supply/demand"))
+            votes.append(("absorption", 1.0, "absorption/churn proxy — participant identity unknown"))
         if "capitulation" in ch and direction == "Long":
             votes.append(("character", 1.0, "capitulation washout — contrarian"))
         elif "euphoria" in ch and direction == "Long":

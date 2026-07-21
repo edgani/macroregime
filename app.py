@@ -1,4 +1,4 @@
-"""War Room OS v3.3 decision-intelligence hosted deployment shell.
+"""War Room OS v3.3.2 decision-intelligence hosted deployment shell.
 
 The dashboard is embedded once. Hosted deployments perform one bounded inline market bootstrap
 before first paint, then keep a singleton collector thread inside the Streamlit process. This avoids

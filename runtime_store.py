@@ -153,6 +153,11 @@ def write_snapshot(desk: dict, *, force: bool = False) -> dict:
 
 def write_status(**kwargs) -> dict:
     current = read_json(STATUS, include_age=False) or {}
+    # A recovered worker must not keep displaying an old error forever. Error history remains in
+    # worker.log and snapshot stability_events; the live status contains only the current error.
+    if "error" in kwargs and kwargs.get("error") is None:
+        current.pop("error", None)
+        kwargs = {k: v for k, v in kwargs.items() if k != "error"}
     current.update(kwargs)
     current["updated_at"] = now_iso()
     current.setdefault("architecture", "background-worker/static-json-polling")

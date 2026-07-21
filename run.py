@@ -40,6 +40,25 @@ def _num(x, d=None):
         return d
 
 
+def _safe_research_reason(value):
+    """Translate legacy price-pattern vocabulary into descriptive, non-intent semantics."""
+    text = str(value or "")
+    replacements = {
+        "smart money": "unverified large-participant context",
+        "stealth accumulation": "positive price/volume pressure proxy",
+        "accumulation": "positive price/volume context",
+        "distribution": "negative price/volume context",
+        "markup-readiness": "positive price-pressure proxy",
+        "markup": "positive price-pressure context",
+        "markdown": "negative price-pressure context",
+        "position building": "rising participation context",
+        "liquidation": "falling participation context",
+    }
+    for old, new in replacements.items():
+        text = text.replace(old, new).replace(old.title(), new).replace(old.upper(), new.upper())
+    return text
+
+
 def _setup_from_ranking(entry, price, direction):
     """Enrich a ranking row (ticker/action/conviction/reason) with entry/stop/target via entry.py."""
     tk = entry.get("ticker")
@@ -52,14 +71,15 @@ def _setup_from_ranking(entry, price, direction):
         "t": _num(e.get("target"), None), "rr": _num(e.get("rr"), None),
         "ty": e.get("entry_type", ""), "gm": e.get("gamma_regime", ""),
         "valid": bool(e.get("valid", False)), "warn": e.get("warning", ""),
-        "why": entry.get("reason", ""),
+        "why": _safe_research_reason(entry.get("reason", "")),
+        "evidence_semantics": "RESEARCH_RANKING_CONTEXT; conviction is not probability; ownership and intent are unverified.",
     }
 
 
 
 def _load_grades():
     """The walk-forward grade card (metric_grades.json). The UI emits a metric as a number only
-    when its grade is VALIDATED; PARTIAL emits banded; REJECTED/FEED_GATED emit '—'. Regenerate
+    when its exact grade is PRODUCTION or LIMITED_PRODUCTION; all other grades remain research/monitoring context; REJECTED/FEED_GATED emit '—'. Regenerate
     with: python walkforward_validate.py"""
     import os, json
     p = os.path.join(os.path.dirname(os.path.abspath(__file__)), "metric_grades.json")
@@ -629,8 +649,8 @@ def build_desk(data, top_per_market=12):
                 setups.append(s)
         setups = setups[:top_per_market]
         # if the full conviction pipeline surfaced nothing but we have OHLCV, fall back to the
-        # VALIDATED price-signal path (bandarmetrics markup-readiness + RS + entry) so real data
-        # shows real tickers. Labeled PRICE-SIGNAL (short-horizon), not the full conviction gate.
+        # DESCRIPTIVE price-context path (price/volume pressure proxy + RS + entry geometry) so real data
+        # shows real tickers. It is not validated alpha, ownership evidence, or the full conviction gate.
         if not setups and data.get("ohlcv", {}).get(m):
             try:
                 from price_setups import price_signal_setups

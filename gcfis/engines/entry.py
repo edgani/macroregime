@@ -7,6 +7,15 @@ from __future__ import annotations
 import numpy as np, pandas as pd
 from ..core.change_core import robust_z, last
 
+
+
+def _round_px(value: float) -> float:
+    """Preserve meaningful precision for low-priced crypto/FX instruments."""
+    x = float(value)
+    a = abs(x)
+    digits = 2 if a >= 100 else 4 if a >= 1 else 6 if a >= 0.01 else 8
+    return round(x, digits)
+
 def _rsi(px: pd.Series, n: int = 14) -> float:
     d = px.diff(); up = d.clip(lower=0).rolling(n).mean(); dn = (-d.clip(upper=0)).rolling(n).mean()
     return last(100 - 100 / (1 + up / dn.replace(0, np.nan)), 50)
@@ -128,7 +137,7 @@ def run_entry(price: pd.Series, direction: str, dealer: dict | None = None,
             noise_floor = entry_px + 1.0 * atr_true
             stop = max(thesis_stop, noise_floor)
             target = lrr if fade else min(lrr, tlrr) - 1.0 * band
-        risk_range_out = [round(lrr, 2), round(trr, 2)]
+        risk_range_out = [_round_px(lrr), _round_px(trr)]
     else:
         rr_src = "atr_fallback (no OHLC — close-only proxy, stop is vol-based not thesis-based)"
         if direction == "long":
@@ -141,11 +150,11 @@ def run_entry(price: pd.Series, direction: str, dealer: dict | None = None,
                 entry_px = max(p, ref + 0.5 * sigma); stop = entry_px + k_atr * atr; target = ref - 1.0 * sigma
             else:
                 entry_px = p; stop = p + k_atr * atr; target = p - 2.0 * sigma
-        risk_range_out = [round(ref - sigma, 2), round(ref + sigma, 2)]
+        risk_range_out = [_round_px(ref - sigma), _round_px(ref + sigma)]
     risk = abs(entry_px - stop); reward = abs(target - entry_px)
     rr = round(reward / risk, 2) if risk > 0 else 0.0
     if rr < rr_min: valid = False; warn = (warn + "; " if warn else "") + f"R/R {rr} < {rr_min}"
     return {"ok": True, "entry_type": etype, "entry_score": round(float(np.clip(entry_score, -1, 1)), 2),
             "gamma_regime": gregime, "valid": bool(valid), "warning": warn,
-            "entry_px": round(entry_px, 2), "stop": round(stop, 2), "target": round(target, 2),
+            "entry_px": _round_px(entry_px), "stop": _round_px(stop), "target": _round_px(target),
             "rr": rr, "rsi": round(rsi, 1), "risk_range": risk_range_out, "rr_source": rr_src}

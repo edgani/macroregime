@@ -1,6 +1,6 @@
-# Deploy War Room OS v3.3
+# Deploy War Room OS v3.3.2
 
-Use a full clean replacement. Do not overlay v3.3 on an older deployment because stale
+Use a full clean replacement. Do not overlay v3.3.2 on an older deployment because stale
 runtime snapshots, worker locks and static HTML can preserve prior logic or interface.
 
 ## Required root files

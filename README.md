@@ -1,18 +1,18 @@
-# War Room OS — Decision Intelligence v3.3
+# War Room OS — Decision Intelligence v3.3.2
 
 This is the canonical integrated release built from the user-supplied
 `War_Room_OS_Decision_First_v2_9(1).zip` lineage. It keeps the eight-workspace
 research architecture, but changes the default experience from graph-first to
 **decision-board first**.
 
-## Why v3.3 exists
+## Why v3.3.2 exists
 
 The v3.2 maps were honest but not sufficiently actionable. In particular, FX could
 show live spot context while withholding a single direction, which was epistemically
 correct but operationally unclear. Large graph canvases also used too much space before
 answering the user’s immediate questions.
 
-v3.3 therefore uses three explicit modes:
+v3.3.2 therefore uses three explicit modes:
 
 - **BOARD** — default decision surface: state, orientation, action, evidence, trigger,
   invalidation, reason, risk and freshness.
@@ -91,7 +91,7 @@ Double-click:
 CHECK_AND_RUN.bat
 ```
 
-The script creates `.venv`, installs dependencies, runs the v3.3 master release suite
+The script creates `.venv`, installs dependencies, runs the v3.3.2 master release suite
 and starts Streamlit only when the operational checks pass.
 
 For later starts:

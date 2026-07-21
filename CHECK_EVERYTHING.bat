@@ -16,11 +16,12 @@ call .venv\Scripts\activate.bat
 python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 if errorlevel 1 goto :fail
-python validate_release_v331.py
+call RESET_RUNTIME.bat
+python validate_user_v332.py
 if errorlevel 1 goto :fail
 echo.
-echo ALL V3.3.1 MASTER RELEASE CHECKS PASSED.
-echo Review V331_MASTER_RELEASE_REPORT.json and V331_HOTFIX_VALIDATION_REPORT.json.
+echo ALL V3.3.2 USER-RELEASE CHECKS PASSED.
+echo Review V332_USER_VALIDATION_REPORT.json and V332_MASTER_RELEASE_REPORT.json.
 echo Operational review is ready; capital permission remains BLOCKED.
 pause
 exit /b 0

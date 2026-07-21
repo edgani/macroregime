@@ -1,16 +1,16 @@
-# Start Here — War Room OS v3.3
+# Start Here — War Room OS v3.3.2
 
 ## First run
 
 1. Extract the complete ZIP into a normal writable folder.
 2. Never place `.env`, API keys or private tokens inside the repository.
 3. Double-click `CHECK_AND_RUN.bat`.
-4. The app starts only after the v3.3 master operational checks pass.
+4. The app starts only after the v3.3.2 master operational checks pass.
 
 The header must read:
 
 ```text
-DECISION-INTELLIGENCE OS · v3.3
+DECISION-INTELLIGENCE OS · v3.3.2
 ```
 
 ## Use the three display modes in this order

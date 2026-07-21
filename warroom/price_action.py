@@ -7,7 +7,7 @@ the crowd is FEELING. This answers the tape-reading questions directly (why are 
 slow? is volume confirming?) instead of reaching for a data story to justify the move after the fact.
 
 effort = volume vs its average ; result = price distance achieved vs ATR.
-  high effort + small result  -> ABSORPTION (smart money soaking supply/demand)
+  high effort + small result  -> ABSORPTION/CHURN PROXY (participant identity unknown)
   high effort + big result    -> CONVICTION (real distribution if down, real demand if up)
   low effort + big result     -> NO-SUPPLY / NO-DEMAND (thin, suspect, easy to reverse)
   low effort + small result   -> QUIET
@@ -73,7 +73,7 @@ def read(df, lookback=5):
     elif direction == "up" and fast and expand and pos > 0.75:
         character = "blow-off / euphoria"
     elif effort_result == "absorption":
-        character = "absorption / churn — smart money active"
+        character = "absorption / churn proxy — participant identity unknown"
     elif (not fast) and range_exp < 0.9:
         character = "grind / base — low emotion"
     else:

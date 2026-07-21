@@ -42,7 +42,7 @@ def source_contract() -> None:
     check("board_map_evidence_modes", all(x in html for x in ('data-layout="board"', 'data-layout="map"', 'data-layout="evidence"')))
     check("board_default", "layout:savedState.layout||'board'" in html)
     check("fx_explicit_matrix", "PAIR-SPECIFIC FX STATES" in html and "orientation:r.orientation" in html)
-    check("crypto_current_developments", "brokerage/onchain convergence" in html and "CURRENT DEVELOPMENTS" in html)
+    check("crypto_current_developments", "Includes dated structural changes" in html and "CURRENT DEVELOPMENTS" in html and "TOKENIZED_SECURITIES" in (ROOT / "data" / "current_developments.json").read_text(encoding="utf-8"))
     check("official_radar_ui", "OFFICIAL SOURCE RADAR" in html and "RADAR <b>" in html)
     check("numeric_headroom_withheld", "Numeric upside classes are withheld" in html)
     if scripts and shutil.which("node"):

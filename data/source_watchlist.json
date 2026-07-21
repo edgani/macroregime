@@ -208,6 +208,161 @@
       ],
       "url": "https://www.ojk.go.id/en/berita-dan-kegiatan/siaran-pers/Default.aspx",
       "max_age_hours": 24
+    },
+    {
+      "id": "sec_crypto_newsroom",
+      "markets": [
+        "crypto",
+        "us"
+      ],
+      "url": "https://www.sec.gov/about/crypto-task-force/crypto-newsroom",
+      "max_age_hours": 12
+    },
+    {
+      "id": "cftc_dcm_products",
+      "markets": [
+        "crypto",
+        "us",
+        "commodity",
+        "fx"
+      ],
+      "url": "https://www.cftc.gov/IndustryOversight/IndustryFilings/TradingOrganizationProducts",
+      "max_age_hours": 12
+    },
+    {
+      "id": "cftc_dcm_rules",
+      "markets": [
+        "crypto",
+        "us",
+        "commodity",
+        "fx"
+      ],
+      "url": "https://www.cftc.gov/IndustryOversight/IndustryFilings/TradingOrganizationRules",
+      "max_age_hours": 12
+    },
+    {
+      "id": "coinbase_blog",
+      "markets": [
+        "crypto",
+        "us",
+        "fx"
+      ],
+      "url": "https://www.coinbase.com/blog/landing",
+      "max_age_hours": 12
+    },
+    {
+      "id": "circle_pressroom",
+      "markets": [
+        "crypto",
+        "us",
+        "fx"
+      ],
+      "url": "https://www.circle.com/pressroom",
+      "max_age_hours": 12
+    },
+    {
+      "id": "ethereum_foundation_blog",
+      "markets": [
+        "crypto"
+      ],
+      "url": "https://blog.ethereum.org/",
+      "max_age_hours": 12
+    },
+    {
+      "id": "solana_news",
+      "markets": [
+        "crypto"
+      ],
+      "url": "https://solana.com/news",
+      "max_age_hours": 12
+    },
+    {
+      "id": "arbitrum_blog",
+      "markets": [
+        "crypto"
+      ],
+      "url": "https://blog.arbitrum.io/",
+      "max_age_hours": 12
+    },
+    {
+      "id": "optimism_blog",
+      "markets": [
+        "crypto"
+      ],
+      "url": "https://optimism.io/blog",
+      "max_age_hours": 12
+    },
+    {
+      "id": "chainlink_newsroom",
+      "markets": [
+        "crypto",
+        "us"
+      ],
+      "url": "https://chain.link/newsroom",
+      "max_age_hours": 24
+    },
+    {
+      "id": "occ_news_releases",
+      "markets": [
+        "crypto",
+        "us",
+        "fx"
+      ],
+      "url": "https://www.occ.gov/news-issuances/news-releases/index-news-releases.html",
+      "max_age_hours": 24
+    },
+    {
+      "id": "fincen_newsroom",
+      "markets": [
+        "crypto",
+        "us",
+        "fx"
+      ],
+      "url": "https://www.fincen.gov/news-room",
+      "max_age_hours": 24
     }
-  ]
+  ],
+  "coverage_taxonomy": {
+    "crypto": [
+      "brokerage/onchain convergence",
+      "stablecoins/reserves/payments",
+      "tokenized securities/RWAs",
+      "L1/L2 protocol economics",
+      "perpetuals/options/market structure",
+      "prediction markets",
+      "agentic execution and security",
+      "regulation/licensing/enforcement",
+      "institutional custody/collateral/clearing",
+      "developer activity and protocol upgrades",
+      "unlocks/insider supply/liquidity"
+    ],
+    "us": [
+      "macro/credit/liquidity",
+      "earnings/revisions/filings",
+      "market structure/tokenization",
+      "options/TRF/ownership",
+      "supply-chain/value capture"
+    ],
+    "idx": [
+      "BI/OJK/IDX policy",
+      "foreign/broker context",
+      "controller/free float/corporate actions",
+      "commodity/import linkage",
+      "liquidity and governance"
+    ],
+    "commodity": [
+      "inventory/curve/basis",
+      "production/capacity",
+      "shipping/logistics",
+      "producer hedging/COT",
+      "policy/geopolitics/weather"
+    ],
+    "fx": [
+      "rate/carry/real-rate differentials",
+      "funding/cross-currency basis",
+      "balance of payments",
+      "intervention/reaction functions",
+      "positioning/event risk"
+    ]
+  }
 }

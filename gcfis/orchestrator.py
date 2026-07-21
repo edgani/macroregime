@@ -113,8 +113,11 @@ def run_gcfis(prices: dict, bench: pd.Series, regime_posterior: dict,
         if pos.get("crowding") is not None: a["crowding"] = pos["crowding"]
         if broker_flow_by_ticker and tkr in broker_flow_by_ticker:
             bf = run_broker_flow(broker_flow_by_ticker[tkr], price_down=(px.iloc[-1] < px.iloc[-20] if len(px) > 20 else True))
-            a["broker_sign"] = 1 if bf.get("verdict") == "NET_ACCUMULATION" else -1
+            a["broker_sign"] = int(bf.get("flow_sign", 0) or 0)
             a["broker_verdict"] = bf.get("verdict", "")
+            a["broker_flow_context"] = bf
+            a["broker_owner_status"] = "UNVERIFIED"
+            a["broker_intent_status"] = "UNVERIFIED"
         if (volumes or {}).get(tkr) is not None:
             a["adv"] = float((px * volumes[tkr]).tail(20).mean())
         a["market"] = market_of(tkr, (market_hints or {}).get(tkr))

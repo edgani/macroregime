@@ -1,49 +1,99 @@
-"""broker_flow.py — order-flow INTENT classifier (bandarmologi / BRAIN-style).
-Separates BUILDING vs SCALPING vs ABSORBING vs PANIC vs DELIBERATE distribution.
-IHSG uses broker codes; other markets pass size-bucket/tick-classified flow (same schema)."""
-from __future__ import annotations
-import numpy as np
+"""Broker-route flow context, not beneficial-owner or intent inference.
 
-def _label(net, gross, ng, size_pct, agg_share, pass_share, price_down):
+This module describes observable buy/sell pressure by broker route.  It deliberately
+avoids labels such as "building long", "panic selling", "distribution", or
+"smart money" because broker codes do not identify the economic owner and may
+contain crossings, facilitation, market making, controller transfers, or hedges.
+"""
+from __future__ import annotations
+
+
+def _context_label(net: float, gross: float, ng: float, agg_share: float, pass_share: float) -> str:
     if gross <= 0:
         return "INACTIVE"
-    if abs(ng) < 0.35:
-        return "ABSORBING" if (pass_share > 0.6 and net > 0 and price_down) else "MARKET_MAKING"
-    if net > 0:
-        if size_pct < 0.4 and agg_share < 0.5:
-            return "SCALPING"
-        return "BUILDING_LONG" if agg_share >= 0.5 else "ACCUMULATING"
-    else:
-        if size_pct < 0.4 and agg_share > 0.6:
-            return "PANIC_SELLING"          # retail capitulation
-        return "DELIBERATE_SELLING"         # distribution
+    if abs(ng) < 0.15:
+        return "BALANCED_FLOW_CONTEXT"
+    side = "BUY" if net > 0 else "SELL"
+    style = "AGGRESSIVE" if agg_share >= 0.55 else "PASSIVE" if pass_share >= 0.60 else "MIXED"
+    return f"{style}_NET_{side}_CONTEXT"
+
 
 def run_broker_flow(brokers: list[dict], price_down: bool = True) -> dict:
-    """brokers: list of {broker, agg_buy, pass_buy, agg_sell, pass_sell, is_foreign?}."""
+    """Summarise route-level flow without claiming owner identity or intent.
+
+    Input rows: ``broker, agg_buy, pass_buy, agg_sell, pass_sell, is_foreign?``.
+    ``price_down`` is retained for API compatibility but is not used to infer intent.
+    """
+    del price_down
     if not brokers:
-        return {"ok": False, "reason": "no broker flow data"}
-    rows = []
+        return {
+            "ok": False,
+            "reason": "no broker flow data",
+            "beneficial_owner": "UNVERIFIED",
+            "intent": "UNVERIFIED",
+        }
+
+    rows: list[dict] = []
     for b in brokers:
-        ab, pb = b.get("agg_buy", 0), b.get("pass_buy", 0)
-        as_, ps = b.get("agg_sell", 0), b.get("pass_sell", 0)
+        ab = float(b.get("agg_buy", 0) or 0)
+        pb = float(b.get("pass_buy", 0) or 0)
+        as_ = float(b.get("agg_sell", 0) or 0)
+        ps = float(b.get("pass_sell", 0) or 0)
         buy, sell = ab + pb, as_ + ps
-        net = buy - sell; gross = buy + sell
+        net, gross = buy - sell, buy + sell
         ng = net / gross if gross else 0.0
-        agg = ab + as_; agg_share = agg / gross if gross else 0.0
+        agg_share = (ab + as_) / gross if gross else 0.0
         pass_share = (pb + ps) / gross if gross else 0.0
-        rows.append({**b, "net": net, "gross": gross, "ng": ng, "agg_share": agg_share, "pass_share": pass_share})
-    gmax = max(r["gross"] for r in rows) or 1
+        rows.append({
+            **b,
+            "net": net,
+            "gross": gross,
+            "ng": ng,
+            "agg_share": agg_share,
+            "pass_share": pass_share,
+            "label": _context_label(net, gross, ng, agg_share, pass_share),
+        })
+
+    total_net = sum(r["net"] for r in rows)
+    total_gross = sum(r["gross"] for r in rows)
+    total_ng = total_net / total_gross if total_gross else 0.0
+    if abs(total_ng) < 0.10:
+        verdict = "BALANCED_FLOW_CONTEXT"
+        sign = 0
+    elif total_net > 0:
+        verdict = "NET_BUY_CONTEXT"
+        sign = 1
+    else:
+        verdict = "NET_SELL_CONTEXT"
+        sign = -1
+
+    gmax = max((r["gross"] for r in rows), default=0.0) or 1.0
+    compact = []
     for r in rows:
-        r["size_pct"] = r["gross"] / gmax
-        r["label"] = _label(r["net"], r["gross"], r["ng"], r["size_pct"], r["agg_share"], r["pass_share"], price_down)
-    # smart-money net: down-weight scalpers/market-makers, up-weight foreign & directional
-    smart = 0.0
-    for r in rows:
-        w = 0.1 if r["label"] in ("SCALPING", "MARKET_MAKING") else 1.0
-        w *= 1.3 if r.get("is_foreign") else 1.0
-        w *= min(abs(r["ng"]) + 0.2, 1.0)
-        smart += w * r["net"]
-    verdict = ("NET_ACCUMULATION" if smart > 0 else "NET_DISTRIBUTION")
-    return {"ok": True, "smart_money_net": round(float(smart), 1), "verdict": verdict,
-            "brokers": [{"broker": r.get("broker", "?"), "label": r["label"], "net": r["net"],
-                         "ng": round(r["ng"], 2), "size_pct": round(r["size_pct"], 2)} for r in rows]}
+        compact.append({
+            "broker": r.get("broker", "?"),
+            "label": r["label"],
+            "net": round(float(r["net"]), 1),
+            "ng": round(float(r["ng"]), 2),
+            "size_pct": round(float(r["gross"] / gmax), 2),
+            "is_foreign_route": bool(r.get("is_foreign")),
+            "beneficial_owner": "UNVERIFIED",
+            "intent": "UNVERIFIED",
+        })
+
+    return {
+        "ok": True,
+        "route_net": round(float(total_net), 1),
+        "route_net_gross_ratio": round(float(total_ng), 3),
+        "flow_sign": sign,
+        "verdict": verdict,
+        "beneficial_owner": "UNVERIFIED",
+        "intent": "UNVERIFIED",
+        "crossing": "UNKNOWN",
+        "facilitation": "UNKNOWN",
+        "note": (
+            "Broker-route context only. It does not establish beneficial owner, "
+            "accumulation/distribution, panic, or trade intent."
+        ),
+        "brokers": compact,
+    }

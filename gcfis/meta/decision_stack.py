@@ -54,7 +54,7 @@ def _why_now(sig, a):
     if a.get("runaway"): w.append("reflexive runaway loop (price×flow accelerating)")
     if a.get("sweet_spot"): w.append("uncrowded sweet-spot (Stage 2→3 adoption)")
     if a.get("bottleneck_node"): w.append(f"supply-chain bottleneck: {a['bottleneck_node']}")
-    if a.get("broker_verdict") == "NET_ACCUMULATION": w.append("smart-money net buying (broker flow)")
+    if a.get("broker_verdict") == "NET_BUY_CONTEXT": w.append("broker-route net-buy context (owner/intent unverified)")
     if bm.get("regime") == "DOMESTIC_LED" and bm.get("flow_score", 0) > 20:
         w.append("domestic-led markup vs foreign selling (counter-consensus — the 2025-IHSG pattern)")
     if bm.get("regime") == "FOREIGN_LED" and bm.get("flow_score", 0) > 20:

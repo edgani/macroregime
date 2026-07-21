@@ -19,6 +19,8 @@ where run_validation.py --cache clears perm_p<0.05 AND DSR>=0.95 on YOUR data.
 from __future__ import annotations
 import os, sys, json, argparse, datetime as dt
 
+from research_kernel import attach_research_kernel
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)          # data_layer.py + gcfis/ live here
 import data_layer as DL
@@ -157,7 +159,7 @@ def _empty_desk(data, reason="No live price universe or benchmark was available.
         markets[m] = {"label": cfg.get("label", m), "long_only": cfg.get("long_only", False),
                       "drivers": cfg.get("drivers", []), "bias": "NO_DATA",
                       "funnel": {"universe": 0, "eliminated": 0, "setups": 0}, "setups": []}
-    return {
+    desk = {
         "meta": {"generated": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
                  "source": data.get("overall_source", "NO_DATA"), "sources": data.get("sources", {}),
                  "fred_source": data.get("fred_source", "NO_DATA"), "universe_n": 0,
@@ -173,6 +175,7 @@ def _empty_desk(data, reason="No live price universe or benchmark was available.
         "institutional": {"overall_state": "NOT_LOADED", "statuses": [], "events": [],
                           "options_flow": [], "dark_pool": [], "sec_filings": [], "smart_money": [], "arkham_transfers": []},
     }
+    return attach_research_kernel(desk)
 
 
 def _series_summary(series):
@@ -512,7 +515,7 @@ def build_fast_desk(data, top_per_market=12):
     }
     alpha, alpha_meta = _build_alpha_candidates(data, breadth, markets, top=160)
     now = dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
-    return {
+    desk = {
         "meta": {"generated": now, "source": data.get("overall_source", "NO_DATA"),
                  "sources": data.get("sources", {}), "fred_source": data.get("fred_source", "NO_DATA"),
                  "universe_n": len(union), "note": "Latency-bounded observed-data first paint.",
@@ -526,6 +529,7 @@ def build_fast_desk(data, top_per_market=12):
         "institutional": {"overall_state": "NOT_LOADED", "statuses": [], "events": [],
                           "options_flow": [], "dark_pool": [], "sec_filings": [], "smart_money": [], "arkham_transfers": []},
     }
+    return attach_research_kernel(desk)
 
 def build_desk(data, top_per_market=12):
     import pandas as _pd
@@ -658,7 +662,7 @@ def build_desk(data, top_per_market=12):
     # ── asymmetric alpha (Alpha Center) — structural headroom + live timing context ──
     alpha, alpha_meta = _build_alpha_candidates(data, _market_breadth(data), markets, top=240)
 
-    return {
+    desk = {
         "meta": {
             "generated": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z"),
             "source": data["overall_source"],
@@ -684,6 +688,7 @@ def build_desk(data, top_per_market=12):
         "institutional": {"overall_state": "NOT_LOADED", "statuses": [], "events": [],
                           "options_flow": [], "dark_pool": [], "sec_filings": [], "smart_money": [], "arkham_transfers": []},
     }
+    return attach_research_kernel(desk)
 
 
 def render_dashboard(desk, template_path, out_path):

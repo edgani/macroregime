@@ -1,4 +1,4 @@
-"""Stable staged collector for War Room OS v2.8.
+"""Stable staged collector for War Room OS v3.2.
 
 Design goals:
 - one worker process only;
@@ -34,6 +34,7 @@ try:
 except Exception:
     pass
 
+from research_kernel import attach_research_kernel
 from runtime_store import (
     PID, claim_worker_instance, consume_force_refresh, force_refresh_requested, now_iso,
     read_snapshot, read_status, release_worker_instance, write_snapshot, write_status,
@@ -526,7 +527,10 @@ def merge_snapshot(core: dict, institutional: dict | None, live: dict | None,
         "derivatives_collected_at": (live_plane.get("generated") or runtime.get("derivatives_collected_at")),
         "slow_plane_collected_at": (full_plane.get("generated") or runtime.get("slow_plane_collected_at")),
     })
-    return desk
+    # Rebuild the research contract after every plane merge so institutional, derivative and
+    # slow-source evidence can update the same market-specific reasoning kernel without changing
+    # any underlying ranking or granting capital permission.
+    return attach_research_kernel(desk)
 
 
 def _current_core(snapshot: dict) -> dict:

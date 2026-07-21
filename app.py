@@ -1,4 +1,4 @@
-"""War Room OS hosted deployment shell.
+"""War Room OS v3.2 research-first hosted deployment shell.
 
 The dashboard is embedded once. Hosted deployments perform one bounded inline market bootstrap
 before first paint, then keep a singleton collector thread inside the Streamlit process. This avoids
@@ -26,6 +26,7 @@ except Exception:
     pass
 
 import streamlit as st
+from research_kernel import attach_research_kernel
 from runtime_store import (
     STATIC_SNAPSHOT,
     STATIC_STATUS,
@@ -59,7 +60,7 @@ BOOT_LOG = HERE / "runtime" / "worker_boot.log"
 def _boot_snapshot() -> dict:
     status = read_status() or {}
     worker_state = str(status.get("state") or "STARTING")
-    return {
+    desk = {
         "meta": {
             "source": "INITIALIZING",
             "generated": status.get("updated_at", "—"),
@@ -91,6 +92,7 @@ def _boot_snapshot() -> dict:
         },
         "full_live_data": {"overall_state": "INITIALIZING", "statuses": [], "tab_coverage": {}},
     }
+    return attach_research_kernel(desk)
 
 
 def _json_revision(path: Path) -> int:
@@ -283,7 +285,7 @@ def _ensure_initial_snapshot() -> dict:
 
     Previous releases rendered R1 immediately and trusted a detached worker to replace it. On some
     managed hosts that worker never got CPU/process permission, leaving the browser permanently on
-    INITIALIZING. v2.9 keeps first paint deterministic: either a small real-data bootstrap commits,
+    INITIALIZING. v3.2 keeps first paint deterministic: either a small real-data bootstrap commits,
     or an explicit NO_DATA/error snapshot commits. Background planes are enrichment, not startup.
     """
     current = read_snapshot() or {}
@@ -378,7 +380,7 @@ def _render_dashboard() -> None:
         return
     try:
         if hasattr(st, "iframe"):
-            st.iframe(source, width="stretch", height=1160, tab_index=0)
+            st.iframe(source, width="stretch", height=1240, tab_index=0)
             return
     except Exception as exc:
         fallback_error = exc
@@ -387,7 +389,7 @@ def _render_dashboard() -> None:
 
     try:
         import streamlit.components.v1 as components
-        components.html(source.read_text(encoding="utf-8"), height=1160, scrolling=False)
+        components.html(source.read_text(encoding="utf-8"), height=1240, scrolling=False)
     except Exception as exc:
         detail = f"Primary iframe error: {fallback_error!r}; fallback error: {exc!r}"
         st.error("War Room dashboard could not be embedded.")

@@ -1,0 +1,1821 @@
+{
+  "meta": {
+    "generated": "2026-07-21T08:00:00Z",
+    "source": "FIXTURE",
+    "note": "v3.2 browser validation fixture"
+  },
+  "runtime": {
+    "snapshot_sequence": 32,
+    "content_hash": "fixture32",
+    "worker_state": "LIVE"
+  },
+  "data_health": {
+    "overall": "PARTIAL",
+    "sources": [
+      {
+        "provider": "Yahoo/Stooq",
+        "dataset": "market_prices",
+        "state": "LIVE",
+        "fetched_at": "2026-07-21T08:00:00Z",
+        "note": "fixture public prices",
+        "data_semantics": "OBSERVED_PRICE"
+      },
+      {
+        "provider": "FRED",
+        "dataset": "macro",
+        "state": "LIVE",
+        "fetched_at": "2026-07-21T08:00:00Z",
+        "note": "fixture macro",
+        "data_semantics": "OFFICIAL_MACRO_SERIES"
+      },
+      {
+        "provider": "SEC",
+        "dataset": "filings",
+        "state": "LIVE",
+        "fetched_at": "2026-07-21T08:00:00Z",
+        "note": "fixture filings",
+        "data_semantics": "PUBLIC_FILING"
+      },
+      {
+        "provider": "UnusualWhales",
+        "dataset": "options_flow",
+        "state": "NOT_ENTITLED",
+        "fetched_at": "2026-07-21T08:00:00Z",
+        "note": "optional paid feed not configured",
+        "data_semantics": "MISSING"
+      }
+    ],
+    "live_count": 3,
+    "total_count": 4,
+    "core_observations": 303,
+    "macro_observations": 5
+  },
+  "systemic": {
+    "quad": 2,
+    "quad_name": "Reflation",
+    "growth_roc": 1.2,
+    "infl_roc": 0.3,
+    "liquidity": "IMPROVING",
+    "fragility": 28,
+    "shock_prob": 22,
+    "cross_asset": "RISK_ON",
+    "defer_longs": false,
+    "rotation_in": [
+      "NVDA",
+      "AADI.JK",
+      "BTC-USD"
+    ],
+    "rotation_out": [
+      "TLT"
+    ]
+  },
+  "markets": {
+    "us": {
+      "label": "US Stocks",
+      "long_only": false,
+      "drivers": [
+        "growth",
+        "liquidity"
+      ],
+      "bias": "LEAN_LONG",
+      "data_state": "LIVE",
+      "bias_state": "LIVE",
+      "driver_coverage": 3,
+      "driver_total": 4,
+      "funnel": {
+        "universe": 120,
+        "eliminated": 80,
+        "setups": 2
+      },
+      "setups": [
+        {
+          "tk": "NVDA",
+          "act": "BUILD_LONG",
+          "ty": "BREAKOUT",
+          "valid": true,
+          "conv": 78,
+          "e": 172.4,
+          "s": 165.0,
+          "t": 188.0,
+          "rr": 2.1,
+          "why": "relative strength + price acceptance"
+        },
+        {
+          "tk": "AMD",
+          "act": "WATCH_LONG",
+          "ty": "RECLAIM",
+          "valid": false,
+          "conv": 63,
+          "e": 144.0,
+          "s": 137.0,
+          "t": 158.0,
+          "rr": 2.0,
+          "why": "waiting for acceptance"
+        }
+      ]
+    },
+    "idx": {
+      "label": "IHSG",
+      "long_only": true,
+      "drivers": [
+        "foreign",
+        "usd_idr"
+      ],
+      "bias": "LEAN_LONG",
+      "data_state": "LIVE",
+      "bias_state": "LIVE",
+      "driver_coverage": 2,
+      "driver_total": 3,
+      "funnel": {
+        "universe": 85,
+        "eliminated": 55,
+        "setups": 2
+      },
+      "setups": [
+        {
+          "tk": "AADI.JK",
+          "act": "BUILD_LONG",
+          "ty": "RECLAIM",
+          "valid": true,
+          "conv": 72,
+          "e": 8350,
+          "s": 7900,
+          "t": 9300,
+          "rr": 2.1,
+          "why": "sector strength + price acceptance"
+        },
+        {
+          "tk": "HUMI.JK",
+          "act": "WATCH_LONG",
+          "ty": "RANGE",
+          "valid": false,
+          "conv": 56,
+          "e": 122,
+          "s": 112,
+          "t": 145,
+          "rr": 2.3,
+          "why": "liquidity gate incomplete"
+        }
+      ]
+    },
+    "crypto": {
+      "label": "Crypto",
+      "long_only": false,
+      "drivers": [
+        "liquidity",
+        "stablecoin"
+      ],
+      "bias": "LEAN_LONG",
+      "data_state": "LIVE",
+      "bias_state": "LIVE",
+      "driver_coverage": 2,
+      "driver_total": 4,
+      "funnel": {
+        "universe": 70,
+        "eliminated": 40,
+        "setups": 2
+      },
+      "setups": [
+        {
+          "tk": "BTC-USD",
+          "act": "BUILD_LONG",
+          "ty": "RECLAIM",
+          "valid": true,
+          "conv": 75,
+          "e": 118000,
+          "s": 112500,
+          "t": 130000,
+          "rr": 2.18,
+          "why": "liquidity + acceptance"
+        },
+        {
+          "tk": "SOL-USD",
+          "act": "WATCH_LONG",
+          "ty": "BREAKOUT",
+          "valid": false,
+          "conv": 61,
+          "e": 210,
+          "s": 195,
+          "t": 245,
+          "rr": 2.33,
+          "why": "venue confirmation pending"
+        }
+      ]
+    },
+    "commodity": {
+      "label": "Commodities",
+      "long_only": false,
+      "drivers": [
+        "curve",
+        "inventory"
+      ],
+      "bias": "LEAN_LONG",
+      "data_state": "LIVE",
+      "bias_state": "LIVE",
+      "driver_coverage": 2,
+      "driver_total": 3,
+      "funnel": {
+        "universe": 20,
+        "eliminated": 10,
+        "setups": 1
+      },
+      "setups": [
+        {
+          "tk": "GC=F",
+          "act": "BUILD_LONG",
+          "ty": "BREAKOUT",
+          "valid": true,
+          "conv": 69,
+          "e": 2490,
+          "s": 2430,
+          "t": 2620,
+          "rr": 2.17,
+          "why": "trend + physical context"
+        }
+      ]
+    },
+    "fx": {
+      "label": "FX",
+      "long_only": false,
+      "drivers": [
+        "rates",
+        "funding",
+        "positioning"
+      ],
+      "bias": "NO_DATA",
+      "data_state": "LIVE",
+      "bias_state": "PARTIAL",
+      "driver_coverage": 1,
+      "driver_total": 3,
+      "funnel": {
+        "universe": 8,
+        "eliminated": 0,
+        "setups": 0
+      },
+      "setups": []
+    }
+  },
+  "alpha": [
+    {
+      "tk": "NVDA",
+      "market": "us",
+      "domain": "AI Compute",
+      "framework": "chokepoint",
+      "asymmetry": 84,
+      "tier": 3,
+      "upside": "3\u201310x",
+      "base_rate": "low",
+      "confidence": 55,
+      "stage": "RESEARCH",
+      "node": "Accelerated compute bottleneck",
+      "scarcity": "qualification + ecosystem",
+      "is_hidden": false,
+      "is_crowded": true,
+      "uncategorized": false,
+      "factors": {},
+      "gated": [],
+      "price_loaded": true,
+      "timing_action": "BUILD_LONG",
+      "timing_valid": true,
+      "timing": {
+        "tk": "NVDA",
+        "act": "BUILD_LONG",
+        "ty": "BREAKOUT",
+        "valid": true,
+        "conv": 78,
+        "e": 172.4,
+        "s": 165.0,
+        "t": 188.0,
+        "rr": 2.1,
+        "why": "relative strength + price acceptance"
+      }
+    },
+    {
+      "tk": "AADI.JK",
+      "market": "idx",
+      "domain": "Energy",
+      "framework": "value capture",
+      "asymmetry": 67,
+      "tier": 2,
+      "upside": "1.5\u20133x",
+      "base_rate": "moderate",
+      "confidence": 44,
+      "stage": "RESEARCH",
+      "node": "Coal cash-flow capture",
+      "scarcity": "asset duration",
+      "is_hidden": true,
+      "is_crowded": false,
+      "uncategorized": false,
+      "factors": {},
+      "gated": [],
+      "price_loaded": true,
+      "timing_action": "BUILD_LONG",
+      "timing_valid": true,
+      "timing": {
+        "tk": "AADI.JK",
+        "act": "BUILD_LONG",
+        "ty": "RECLAIM",
+        "valid": true,
+        "conv": 72,
+        "e": 8350,
+        "s": 7900,
+        "t": 9300,
+        "rr": 2.1,
+        "why": "sector strength + price acceptance"
+      }
+    },
+    {
+      "tk": "SOL-USD",
+      "market": "crypto",
+      "domain": "High-throughput chain",
+      "framework": "network effects",
+      "asymmetry": 70,
+      "tier": 3,
+      "upside": "3\u201310x",
+      "base_rate": "low",
+      "confidence": 40,
+      "stage": "RESEARCH",
+      "node": "Liquidity/application distribution",
+      "scarcity": "developer and venue network",
+      "is_hidden": false,
+      "is_crowded": true,
+      "uncategorized": false,
+      "factors": {},
+      "gated": [],
+      "price_loaded": true,
+      "timing_action": "WATCH_LONG",
+      "timing_valid": false,
+      "timing": {
+        "tk": "SOL-USD",
+        "act": "WATCH_LONG",
+        "ty": "BREAKOUT",
+        "valid": false,
+        "conv": 61,
+        "e": 210,
+        "s": 195,
+        "t": 245,
+        "rr": 2.33,
+        "why": "venue confirmation pending"
+      }
+    }
+  ],
+  "alpha_meta": {
+    "loaded_live_universe": 303,
+    "ranked_candidates": 3
+  },
+  "reference": {
+    "chains": [
+      {
+        "name": "AI Infrastructure Cascade",
+        "trigger_event": "AI capex acceleration",
+        "trigger_status": "STRUCTURAL_REFERENCE",
+        "mechanism": "Compute demand propagates into memory, packaging, power and cooling.",
+        "propagation_sequence": [
+          {
+            "tier": 1,
+            "role": "GPU / accelerators",
+            "tickers": [
+              "NVDA"
+            ],
+            "horizon_quarters": 0,
+            "rationale": "direct compute capture"
+          },
+          {
+            "tier": 2,
+            "role": "HBM / memory",
+            "tickers": [
+              "MU"
+            ],
+            "horizon_quarters": 1,
+            "rationale": "memory bottleneck"
+          },
+          {
+            "tier": 3,
+            "role": "Power / cooling",
+            "tickers": [
+              "VRT"
+            ],
+            "horizon_quarters": 2,
+            "rationale": "datacenter infrastructure"
+          }
+        ]
+      }
+    ]
+  },
+  "grades": {
+    "price_context": {
+      "status": "RESEARCH",
+      "note": "descriptive only"
+    },
+    "alpha_selector": {
+      "status": "BLOCKED_TEST",
+      "note": "no prospective proof"
+    },
+    "risk_range": {
+      "status": "PARTIAL",
+      "note": "requires frozen OOS"
+    }
+  },
+  "macro_observations": {
+    "CPI": {
+      "timestamp": "2026-07-21T08:00:00Z",
+      "value": 320.1,
+      "change_1_period_pct": 0.2,
+      "change_4_period_pct": 1.1,
+      "state": "LIVE"
+    },
+    "INDPRO": {
+      "timestamp": "2026-07-21T08:00:00Z",
+      "value": 103.2,
+      "change_1_period_pct": 0.3,
+      "change_4_period_pct": 1.0,
+      "state": "LIVE"
+    }
+  },
+  "market_breadth": {
+    "us": {
+      "state": "LIVE",
+      "coverage": 120,
+      "advance_pct": 62,
+      "above_50d_pct": 58,
+      "median_ret_20d_pct": 4.2,
+      "constituents": [
+        {
+          "ticker": "NVDA",
+          "ret_1d": 1.1,
+          "ret_5d": 4.3,
+          "ret_20d": 11.2,
+          "above_20d": true
+        }
+      ]
+    },
+    "idx": {
+      "state": "LIVE",
+      "coverage": 85,
+      "advance_pct": 55,
+      "above_50d_pct": 52,
+      "median_ret_20d_pct": 2.1,
+      "constituents": [
+        {
+          "ticker": "AADI.JK",
+          "ret_1d": 2.0,
+          "ret_5d": 5.0,
+          "ret_20d": 18.0,
+          "above_20d": true
+        }
+      ]
+    },
+    "crypto": {
+      "state": "LIVE",
+      "coverage": 70,
+      "advance_pct": 59,
+      "above_50d_pct": 54,
+      "median_ret_20d_pct": 6.5,
+      "constituents": [
+        {
+          "ticker": "BTC-USD",
+          "ret_1d": 0.4,
+          "ret_5d": 3.2,
+          "ret_20d": 9.7,
+          "above_20d": true
+        }
+      ]
+    },
+    "commodity": {
+      "state": "LIVE",
+      "coverage": 20,
+      "advance_pct": 57,
+      "above_50d_pct": 60,
+      "median_ret_20d_pct": 3.8,
+      "constituents": [
+        {
+          "ticker": "GC=F",
+          "ret_1d": 0.2,
+          "ret_5d": 1.8,
+          "ret_20d": 5.5,
+          "above_20d": true
+        }
+      ]
+    },
+    "fx": {
+      "state": "LIVE",
+      "coverage": 8,
+      "advance_pct": 50,
+      "above_50d_pct": 50,
+      "median_ret_20d_pct": 0.3,
+      "constituents": [
+        {
+          "ticker": "EURUSD=X",
+          "ret_1d": 0.1,
+          "ret_5d": 0.8,
+          "ret_20d": 1.4
+        },
+        {
+          "ticker": "DX-Y.NYB",
+          "ret_1d": -0.1,
+          "ret_5d": -0.4,
+          "ret_20d": -1.1
+        }
+      ]
+    }
+  },
+  "rotation_snapshot": {
+    "state": "LIVE",
+    "rows": [
+      {
+        "ticker": "QQQ",
+        "ret_1d_pct": 0.4,
+        "ret_5d_pct": 2.2,
+        "ret_20d_pct": 6.8,
+        "rank_20d": 1,
+        "timestamp": "2026-07-21T08:00:00Z",
+        "market": "us"
+      },
+      {
+        "ticker": "BTC-USD",
+        "ret_1d_pct": 0.2,
+        "ret_5d_pct": 3.0,
+        "ret_20d_pct": 9.5,
+        "rank_20d": 2,
+        "timestamp": "2026-07-21T08:00:00Z",
+        "market": "crypto"
+      }
+    ]
+  },
+  "institutional": {
+    "overall_state": "PARTIAL",
+    "statuses": [
+      {
+        "provider": "Yahoo/Stooq",
+        "dataset": "market_prices",
+        "state": "LIVE",
+        "fetched_at": "2026-07-21T08:00:00Z",
+        "note": "fixture public prices",
+        "data_semantics": "OBSERVED_PRICE"
+      },
+      {
+        "provider": "FRED",
+        "dataset": "macro",
+        "state": "LIVE",
+        "fetched_at": "2026-07-21T08:00:00Z",
+        "note": "fixture macro",
+        "data_semantics": "OFFICIAL_MACRO_SERIES"
+      },
+      {
+        "provider": "SEC",
+        "dataset": "filings",
+        "state": "LIVE",
+        "fetched_at": "2026-07-21T08:00:00Z",
+        "note": "fixture filings",
+        "data_semantics": "PUBLIC_FILING"
+      },
+      {
+        "provider": "UnusualWhales",
+        "dataset": "options_flow",
+        "state": "NOT_ENTITLED",
+        "fetched_at": "2026-07-21T08:00:00Z",
+        "note": "optional paid feed not configured",
+        "data_semantics": "MISSING"
+      }
+    ],
+    "events": [
+      {
+        "timestamp": "2026-07-21T08:00:00Z",
+        "event_type": "FORM 4",
+        "ticker": "NVDA",
+        "description": "Officer open-market purchase fixture",
+        "state": "LIVE"
+      }
+    ]
+  },
+  "live_intelligence": {
+    "overall_state": "PARTIAL",
+    "statuses": [
+      {
+        "provider": "Yahoo/Stooq",
+        "dataset": "market_prices",
+        "state": "LIVE",
+        "fetched_at": "2026-07-21T08:00:00Z",
+        "note": "fixture public prices",
+        "data_semantics": "OBSERVED_PRICE"
+      },
+      {
+        "provider": "FRED",
+        "dataset": "macro",
+        "state": "LIVE",
+        "fetched_at": "2026-07-21T08:00:00Z",
+        "note": "fixture macro",
+        "data_semantics": "OFFICIAL_MACRO_SERIES"
+      },
+      {
+        "provider": "SEC",
+        "dataset": "filings",
+        "state": "LIVE",
+        "fetched_at": "2026-07-21T08:00:00Z",
+        "note": "fixture filings",
+        "data_semantics": "PUBLIC_FILING"
+      },
+      {
+        "provider": "UnusualWhales",
+        "dataset": "options_flow",
+        "state": "NOT_ENTITLED",
+        "fetched_at": "2026-07-21T08:00:00Z",
+        "note": "optional paid feed not configured",
+        "data_semantics": "MISSING"
+      }
+    ],
+    "events": [
+      {
+        "timestamp": "2026-07-21T08:00:00Z",
+        "event_type": "OPTIONS",
+        "ticker": "NVDA",
+        "description": "Repeated ask-side premium fixture; intent unconfirmed",
+        "state": "LIVE"
+      }
+    ],
+    "us_options": [
+      {
+        "ticker": "NVDA",
+        "state": "LIVE"
+      }
+    ],
+    "crypto_derivatives": [
+      {
+        "ticker": "BTC-USD",
+        "state": "LIVE"
+      }
+    ],
+    "crypto_options": [],
+    "us_squeeze": [],
+    "options_sector_rotation": []
+  },
+  "full_live_data": {
+    "overall_state": "PARTIAL",
+    "statuses": [
+      {
+        "provider": "Yahoo/Stooq",
+        "dataset": "market_prices",
+        "state": "LIVE",
+        "fetched_at": "2026-07-21T08:00:00Z",
+        "note": "fixture public prices",
+        "data_semantics": "OBSERVED_PRICE"
+      },
+      {
+        "provider": "FRED",
+        "dataset": "macro",
+        "state": "LIVE",
+        "fetched_at": "2026-07-21T08:00:00Z",
+        "note": "fixture macro",
+        "data_semantics": "OFFICIAL_MACRO_SERIES"
+      },
+      {
+        "provider": "SEC",
+        "dataset": "filings",
+        "state": "LIVE",
+        "fetched_at": "2026-07-21T08:00:00Z",
+        "note": "fixture filings",
+        "data_semantics": "PUBLIC_FILING"
+      },
+      {
+        "provider": "UnusualWhales",
+        "dataset": "options_flow",
+        "state": "NOT_ENTITLED",
+        "fetched_at": "2026-07-21T08:00:00Z",
+        "note": "optional paid feed not configured",
+        "data_semantics": "MISSING"
+      }
+    ],
+    "tab_coverage": {
+      "macro_regime": {
+        "state": "LIVE",
+        "provider_statuses": [
+          {
+            "provider": "Yahoo/Stooq",
+            "dataset": "market_prices",
+            "state": "LIVE",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "fixture public prices",
+            "data_semantics": "OBSERVED_PRICE"
+          },
+          {
+            "provider": "FRED",
+            "dataset": "macro",
+            "state": "LIVE",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "fixture macro",
+            "data_semantics": "OFFICIAL_MACRO_SERIES"
+          },
+          {
+            "provider": "SEC",
+            "dataset": "filings",
+            "state": "LIVE",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "fixture filings",
+            "data_semantics": "PUBLIC_FILING"
+          },
+          {
+            "provider": "UnusualWhales",
+            "dataset": "options_flow",
+            "state": "NOT_ENTITLED",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "optional paid feed not configured",
+            "data_semantics": "MISSING"
+          }
+        ]
+      },
+      "early_warning": {
+        "state": "PARTIAL",
+        "provider_statuses": [
+          {
+            "provider": "Yahoo/Stooq",
+            "dataset": "market_prices",
+            "state": "LIVE",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "fixture public prices",
+            "data_semantics": "OBSERVED_PRICE"
+          },
+          {
+            "provider": "FRED",
+            "dataset": "macro",
+            "state": "LIVE",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "fixture macro",
+            "data_semantics": "OFFICIAL_MACRO_SERIES"
+          },
+          {
+            "provider": "SEC",
+            "dataset": "filings",
+            "state": "LIVE",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "fixture filings",
+            "data_semantics": "PUBLIC_FILING"
+          },
+          {
+            "provider": "UnusualWhales",
+            "dataset": "options_flow",
+            "state": "NOT_ENTITLED",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "optional paid feed not configured",
+            "data_semantics": "MISSING"
+          }
+        ]
+      },
+      "us_stocks": {
+        "state": "PARTIAL",
+        "provider_statuses": [
+          {
+            "provider": "Yahoo/Stooq",
+            "dataset": "market_prices",
+            "state": "LIVE",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "fixture public prices",
+            "data_semantics": "OBSERVED_PRICE"
+          },
+          {
+            "provider": "FRED",
+            "dataset": "macro",
+            "state": "LIVE",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "fixture macro",
+            "data_semantics": "OFFICIAL_MACRO_SERIES"
+          },
+          {
+            "provider": "SEC",
+            "dataset": "filings",
+            "state": "LIVE",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "fixture filings",
+            "data_semantics": "PUBLIC_FILING"
+          },
+          {
+            "provider": "UnusualWhales",
+            "dataset": "options_flow",
+            "state": "NOT_ENTITLED",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "optional paid feed not configured",
+            "data_semantics": "MISSING"
+          }
+        ]
+      },
+      "ihsg": {
+        "state": "LIVE",
+        "provider_statuses": [
+          {
+            "provider": "Yahoo/Stooq",
+            "dataset": "market_prices",
+            "state": "LIVE",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "fixture public prices",
+            "data_semantics": "OBSERVED_PRICE"
+          },
+          {
+            "provider": "FRED",
+            "dataset": "macro",
+            "state": "LIVE",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "fixture macro",
+            "data_semantics": "OFFICIAL_MACRO_SERIES"
+          },
+          {
+            "provider": "SEC",
+            "dataset": "filings",
+            "state": "LIVE",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "fixture filings",
+            "data_semantics": "PUBLIC_FILING"
+          },
+          {
+            "provider": "UnusualWhales",
+            "dataset": "options_flow",
+            "state": "NOT_ENTITLED",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "optional paid feed not configured",
+            "data_semantics": "MISSING"
+          }
+        ]
+      },
+      "crypto": {
+        "state": "PARTIAL",
+        "provider_statuses": [
+          {
+            "provider": "Yahoo/Stooq",
+            "dataset": "market_prices",
+            "state": "LIVE",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "fixture public prices",
+            "data_semantics": "OBSERVED_PRICE"
+          },
+          {
+            "provider": "FRED",
+            "dataset": "macro",
+            "state": "LIVE",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "fixture macro",
+            "data_semantics": "OFFICIAL_MACRO_SERIES"
+          },
+          {
+            "provider": "SEC",
+            "dataset": "filings",
+            "state": "LIVE",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "fixture filings",
+            "data_semantics": "PUBLIC_FILING"
+          },
+          {
+            "provider": "UnusualWhales",
+            "dataset": "options_flow",
+            "state": "NOT_ENTITLED",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "optional paid feed not configured",
+            "data_semantics": "MISSING"
+          }
+        ]
+      },
+      "commodities": {
+        "state": "PARTIAL",
+        "provider_statuses": [
+          {
+            "provider": "Yahoo/Stooq",
+            "dataset": "market_prices",
+            "state": "LIVE",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "fixture public prices",
+            "data_semantics": "OBSERVED_PRICE"
+          },
+          {
+            "provider": "FRED",
+            "dataset": "macro",
+            "state": "LIVE",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "fixture macro",
+            "data_semantics": "OFFICIAL_MACRO_SERIES"
+          },
+          {
+            "provider": "SEC",
+            "dataset": "filings",
+            "state": "LIVE",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "fixture filings",
+            "data_semantics": "PUBLIC_FILING"
+          },
+          {
+            "provider": "UnusualWhales",
+            "dataset": "options_flow",
+            "state": "NOT_ENTITLED",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "optional paid feed not configured",
+            "data_semantics": "MISSING"
+          }
+        ]
+      },
+      "fx": {
+        "state": "PARTIAL",
+        "provider_statuses": [
+          {
+            "provider": "Yahoo/Stooq",
+            "dataset": "market_prices",
+            "state": "LIVE",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "fixture public prices",
+            "data_semantics": "OBSERVED_PRICE"
+          },
+          {
+            "provider": "FRED",
+            "dataset": "macro",
+            "state": "LIVE",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "fixture macro",
+            "data_semantics": "OFFICIAL_MACRO_SERIES"
+          },
+          {
+            "provider": "SEC",
+            "dataset": "filings",
+            "state": "LIVE",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "fixture filings",
+            "data_semantics": "PUBLIC_FILING"
+          },
+          {
+            "provider": "UnusualWhales",
+            "dataset": "options_flow",
+            "state": "NOT_ENTITLED",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "optional paid feed not configured",
+            "data_semantics": "MISSING"
+          }
+        ]
+      },
+      "institutional": {
+        "state": "PARTIAL",
+        "provider_statuses": [
+          {
+            "provider": "Yahoo/Stooq",
+            "dataset": "market_prices",
+            "state": "LIVE",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "fixture public prices",
+            "data_semantics": "OBSERVED_PRICE"
+          },
+          {
+            "provider": "FRED",
+            "dataset": "macro",
+            "state": "LIVE",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "fixture macro",
+            "data_semantics": "OFFICIAL_MACRO_SERIES"
+          },
+          {
+            "provider": "SEC",
+            "dataset": "filings",
+            "state": "LIVE",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "fixture filings",
+            "data_semantics": "PUBLIC_FILING"
+          },
+          {
+            "provider": "UnusualWhales",
+            "dataset": "options_flow",
+            "state": "NOT_ENTITLED",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "optional paid feed not configured",
+            "data_semantics": "MISSING"
+          }
+        ]
+      },
+      "flow_rotation": {
+        "state": "PARTIAL",
+        "provider_statuses": [
+          {
+            "provider": "Yahoo/Stooq",
+            "dataset": "market_prices",
+            "state": "LIVE",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "fixture public prices",
+            "data_semantics": "OBSERVED_PRICE"
+          },
+          {
+            "provider": "FRED",
+            "dataset": "macro",
+            "state": "LIVE",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "fixture macro",
+            "data_semantics": "OFFICIAL_MACRO_SERIES"
+          },
+          {
+            "provider": "SEC",
+            "dataset": "filings",
+            "state": "LIVE",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "fixture filings",
+            "data_semantics": "PUBLIC_FILING"
+          },
+          {
+            "provider": "UnusualWhales",
+            "dataset": "options_flow",
+            "state": "NOT_ENTITLED",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "optional paid feed not configured",
+            "data_semantics": "MISSING"
+          }
+        ]
+      },
+      "company_intel": {
+        "state": "PARTIAL",
+        "provider_statuses": [
+          {
+            "provider": "Yahoo/Stooq",
+            "dataset": "market_prices",
+            "state": "LIVE",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "fixture public prices",
+            "data_semantics": "OBSERVED_PRICE"
+          },
+          {
+            "provider": "FRED",
+            "dataset": "macro",
+            "state": "LIVE",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "fixture macro",
+            "data_semantics": "OFFICIAL_MACRO_SERIES"
+          },
+          {
+            "provider": "SEC",
+            "dataset": "filings",
+            "state": "LIVE",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "fixture filings",
+            "data_semantics": "PUBLIC_FILING"
+          },
+          {
+            "provider": "UnusualWhales",
+            "dataset": "options_flow",
+            "state": "NOT_ENTITLED",
+            "fetched_at": "2026-07-21T08:00:00Z",
+            "note": "optional paid feed not configured",
+            "data_semantics": "MISSING"
+          }
+        ]
+      }
+    },
+    "sec_fundamentals": [
+      {
+        "ticker": "NVDA",
+        "facts": {
+          "Revenue": 100,
+          "NetIncome": 30
+        }
+      }
+    ],
+    "cftc": {},
+    "databento": []
+  },
+  "research_kernel": {
+    "version": "1.0",
+    "doctrine": [
+      "Start from an important decision problem, not an available dataset.",
+      "Detect what has already changed before forecasting what may change.",
+      "Study historical winners and losers; explain mechanisms, not resemblance.",
+      "Record contradictory evidence and uncertainty explicitly.",
+      "Explain the rational counterparty and the source of advantage.",
+      "Run the cheapest valid falsifier against a strong market-specific baseline.",
+      "Ablate complexity and inspect failure piles, not only aggregate metrics.",
+      "No prospective evidence means no capital permission."
+    ],
+    "markets": {
+      "us": {
+        "market": "us",
+        "label": "US STOCKS",
+        "decision_problem": "Find company-specific value capture and estimate revisions before the market fully reprices them.",
+        "epistemic_state": {
+          "observed": true,
+          "inferred": true,
+          "disputed": false,
+          "unknown": true
+        },
+        "current_rain": {
+          "state": "OBSERVED_IMPROVING",
+          "claim": "Loaded price breadth is constructive now; this is present-state context, not proof of future excess return.",
+          "evidence": "120 loaded names \u00b7 62.0% advancing \u00b7 58.0% above 50D \u00b7 median 20D +4.2% \u00b7 top context NVDA / BUILD LONG"
+        },
+        "structural_pressure": {
+          "state": "RESEARCH_REQUIRED",
+          "claim": "1 structural candidates are mapped; mechanism and value capture remain case-specific."
+        },
+        "trigger": {
+          "state": "PARTIAL",
+          "claim": "NVDA trigger 172.4 / stop 165.0 / reference 188.0",
+          "action_context": "BUILD LONG"
+        },
+        "market_recognition": {
+          "state": "RESEARCH_REQUIRED",
+          "claim": "NVDA is the leading structural research candidate (3\u201310x headroom class; timing BUILD_LONG). Headroom is not a target or probability; value capture, valuation and remaining return still require proof.",
+          "ticker": "NVDA",
+          "price_loaded": true
+        },
+        "study_the_tape": {
+          "state": "RESEARCH_REQUIRED",
+          "winner_autopsy": "No winner case may be inferred from price similarity alone. Link a point-in-time winner and loser case before promotion.",
+          "why_they_won": "UNASSESSED",
+          "why_others_failed": [
+            "momentum mislabeled as flow",
+            "good theme / wrong beneficiary",
+            "earnings already priced",
+            "options print was hedge or roll"
+          ],
+          "condition_persistence": [
+            {
+              "condition": "direct value capture",
+              "status": "PARTIAL",
+              "evidence": "Structural alpha mapping present.",
+              "critical": true
+            },
+            {
+              "condition": "estimate revision durability",
+              "status": "PARTIAL",
+              "evidence": "Observed market/price context loaded.",
+              "critical": true
+            },
+            {
+              "condition": "liquidity/capacity",
+              "status": "PARTIAL",
+              "evidence": "At least one cross-source event is linked.",
+              "critical": true
+            },
+            {
+              "condition": "valuation headroom",
+              "status": "PARTIAL",
+              "evidence": "Market-specific directional model available.",
+              "critical": true
+            },
+            {
+              "condition": "catalyst timing",
+              "status": "UNASSESSED",
+              "evidence": "Requires company/instrument-specific research.",
+              "critical": true
+            }
+          ]
+        },
+        "edge_decomposition": {
+          "information": "PARTIAL",
+          "interpretation": "RESEARCH_REQUIRED",
+          "positioning": "PARTIAL",
+          "timing": "PARTIAL",
+          "expression": "PARTIAL",
+          "execution": "PARTIAL",
+          "durability": "UNASSESSED",
+          "note": "No composite edge score is produced. Each dimension must earn evidence independently."
+        },
+        "counterparty_challenge": {
+          "state": "RESEARCH_REQUIRED",
+          "likely_counterparties": [
+            "index/passive flow",
+            "dealer hedge",
+            "corporate buyback",
+            "fundamental investor",
+            "forced seller"
+          ],
+          "why_favorable": "UNASSESSED \u2014 explain information, interpretation, horizon, constraint or liquidity-provision advantage.",
+          "hard_gate": "No counterparty explanation means no edge claim."
+        },
+        "cost_of_staying": {
+          "state": "UNASSESSED",
+          "costs": [
+            "foregone best alternative",
+            "adverse carry/funding/theta",
+            "thesis decay",
+            "capital lock-up",
+            "lost learning cycles"
+          ],
+          "value_of_waiting": [
+            "new information",
+            "better price",
+            "lower execution risk",
+            "preserved optionality"
+          ],
+          "current_choice": "PROBE/WAIT decision must be instrument-specific; no numeric score is invented."
+        },
+        "execution": {
+          "state": "PARTIAL",
+          "ticker": "NVDA",
+          "research_action": "TRIGGERED WATCH LONG",
+          "entry_trigger": 172.4,
+          "trade_invalidation": 165.0,
+          "reference_target": 188.0,
+          "thesis_invalidation": "Broken mechanism/value capture or a critical condition that no longer holds.",
+          "exit_hierarchy": [
+            "hard risk",
+            "thesis broken",
+            "trade structure broken",
+            "catalyst realized",
+            "expected-return exhausted",
+            "superior alternative",
+            "time stop"
+          ]
+        },
+        "validation": {
+          "baseline": "Price trend + market beta + earnings revisions + liquidity.",
+          "next_cheapest_falsifier": "Test whether the selected evidence adds point-in-time OOS lift over: Price trend + market beta + earnings revisions + liquidity.",
+          "required": [
+            "point-in-time lineage",
+            "strong baseline",
+            "purged/embargoed WFA",
+            "ablation",
+            "cost/capacity",
+            "untouched lockbox",
+            "prospective outcomes"
+          ],
+          "status": "RESEARCH_ONLY",
+          "capital_permission": "BLOCKED",
+          "reason": "Executable price context exists, but it remains a research watch until validated and prospectively promoted."
+        }
+      },
+      "idx": {
+        "market": "idx",
+        "label": "IHSG",
+        "decision_problem": "Find liquid long-only opportunities where foreign/controller/broker context and company economics align without mistaking routing for ownership intent.",
+        "epistemic_state": {
+          "observed": true,
+          "inferred": true,
+          "disputed": false,
+          "unknown": true
+        },
+        "current_rain": {
+          "state": "OBSERVED_IMPROVING",
+          "claim": "Loaded price breadth is constructive now; this is present-state context, not proof of future excess return.",
+          "evidence": "85 loaded names \u00b7 55.0% advancing \u00b7 52.0% above 50D \u00b7 median 20D +2.1% \u00b7 top context AADI.JK / BUILD LONG"
+        },
+        "structural_pressure": {
+          "state": "RESEARCH_REQUIRED",
+          "claim": "1 structural candidates are mapped; mechanism and value capture remain case-specific."
+        },
+        "trigger": {
+          "state": "PARTIAL",
+          "claim": "AADI.JK trigger 8350 / stop 7900 / reference 9300",
+          "action_context": "BUILD LONG"
+        },
+        "market_recognition": {
+          "state": "RESEARCH_REQUIRED",
+          "claim": "AADI.JK is the leading structural research candidate (1.5\u20133x headroom class; timing BUILD_LONG). Headroom is not a target or probability; value capture, valuation and remaining return still require proof.",
+          "ticker": "AADI.JK",
+          "price_loaded": true
+        },
+        "study_the_tape": {
+          "state": "RESEARCH_REQUIRED",
+          "winner_autopsy": "No winner case may be inferred from price similarity alone. Link a point-in-time winner and loser case before promotion.",
+          "why_they_won": "UNASSESSED",
+          "why_others_failed": [
+            "broker route mistaken for beneficial owner",
+            "cross trade mistaken for accumulation",
+            "dilution/corporate action",
+            "correct commodity call / wrong company"
+          ],
+          "condition_persistence": [
+            {
+              "condition": "minority-holder value capture",
+              "status": "PARTIAL",
+              "evidence": "Structural alpha mapping present.",
+              "critical": true
+            },
+            {
+              "condition": "free-float/liquidity",
+              "status": "PARTIAL",
+              "evidence": "Observed market/price context loaded.",
+              "critical": true
+            },
+            {
+              "condition": "controller alignment",
+              "status": "UNASSESSED",
+              "evidence": "No independent positioning/event evidence linked.",
+              "critical": true
+            },
+            {
+              "condition": "corporate-action integrity",
+              "status": "PARTIAL",
+              "evidence": "Market-specific directional model available.",
+              "critical": true
+            },
+            {
+              "condition": "sector/commodity transmission",
+              "status": "UNASSESSED",
+              "evidence": "Requires company/instrument-specific research.",
+              "critical": true
+            }
+          ]
+        },
+        "edge_decomposition": {
+          "information": "PARTIAL",
+          "interpretation": "RESEARCH_REQUIRED",
+          "positioning": "UNASSESSED",
+          "timing": "PARTIAL",
+          "expression": "PARTIAL",
+          "execution": "PARTIAL",
+          "durability": "UNASSESSED",
+          "note": "No composite edge score is produced. Each dimension must earn evidence independently."
+        },
+        "counterparty_challenge": {
+          "state": "RESEARCH_REQUIRED",
+          "likely_counterparties": [
+            "controller",
+            "foreign fund",
+            "broker facilitation",
+            "crossing counterparty",
+            "retail liquidity"
+          ],
+          "why_favorable": "UNASSESSED \u2014 explain information, interpretation, horizon, constraint or liquidity-provision advantage.",
+          "hard_gate": "No counterparty explanation means no edge claim."
+        },
+        "cost_of_staying": {
+          "state": "UNASSESSED",
+          "costs": [
+            "foregone best alternative",
+            "adverse carry/funding/theta",
+            "thesis decay",
+            "capital lock-up",
+            "lost learning cycles"
+          ],
+          "value_of_waiting": [
+            "new information",
+            "better price",
+            "lower execution risk",
+            "preserved optionality"
+          ],
+          "current_choice": "PROBE/WAIT decision must be instrument-specific; no numeric score is invented."
+        },
+        "execution": {
+          "state": "PARTIAL",
+          "ticker": "AADI.JK",
+          "research_action": "TRIGGERED WATCH LONG",
+          "entry_trigger": 8350,
+          "trade_invalidation": 7900,
+          "reference_target": 9300,
+          "thesis_invalidation": "Broken mechanism/value capture or a critical condition that no longer holds.",
+          "exit_hierarchy": [
+            "hard risk",
+            "thesis broken",
+            "trade structure broken",
+            "catalyst realized",
+            "expected-return exhausted",
+            "superior alternative",
+            "time stop"
+          ]
+        },
+        "validation": {
+          "baseline": "Price trend + liquidity + foreign/sector context; long-only.",
+          "next_cheapest_falsifier": "Test whether the selected evidence adds point-in-time OOS lift over: Price trend + liquidity + foreign/sector context; long-only.",
+          "required": [
+            "point-in-time lineage",
+            "strong baseline",
+            "purged/embargoed WFA",
+            "ablation",
+            "cost/capacity",
+            "untouched lockbox",
+            "prospective outcomes"
+          ],
+          "status": "RESEARCH_ONLY",
+          "capital_permission": "BLOCKED",
+          "reason": "Executable price context exists, but it remains a research watch until validated and prospectively promoted."
+        }
+      },
+      "crypto": {
+        "market": "crypto",
+        "label": "CRYPTO",
+        "decision_problem": "Separate organic adoption and token value capture from subsidy, sybil, wash activity and reflexive leverage.",
+        "epistemic_state": {
+          "observed": true,
+          "inferred": true,
+          "disputed": false,
+          "unknown": true
+        },
+        "current_rain": {
+          "state": "OBSERVED_IMPROVING",
+          "claim": "Loaded price breadth is constructive now; this is present-state context, not proof of future excess return.",
+          "evidence": "70 loaded names \u00b7 59.0% advancing \u00b7 54.0% above 50D \u00b7 median 20D +6.5% \u00b7 top context BTC-USD / BUILD LONG"
+        },
+        "structural_pressure": {
+          "state": "RESEARCH_REQUIRED",
+          "claim": "1 structural candidates are mapped; mechanism and value capture remain case-specific."
+        },
+        "trigger": {
+          "state": "PARTIAL",
+          "claim": "BTC-USD trigger 118000 / stop 112500 / reference 130000",
+          "action_context": "BUILD LONG"
+        },
+        "market_recognition": {
+          "state": "RESEARCH_REQUIRED",
+          "claim": "SOL-USD is the leading structural research candidate (3\u201310x headroom class; timing WATCH_LONG). Headroom is not a target or probability; value capture, valuation and remaining return still require proof.",
+          "ticker": "SOL-USD",
+          "price_loaded": true
+        },
+        "study_the_tape": {
+          "state": "RESEARCH_REQUIRED",
+          "winner_autopsy": "No winner case may be inferred from price similarity alone. Link a point-in-time winner and loser case before promotion.",
+          "why_they_won": "UNASSESSED",
+          "why_others_failed": [
+            "transfer mistaken for trade intent",
+            "subsidized activity",
+            "wash/sybil volume",
+            "unlock overwhelms demand",
+            "crime candle/pump-and-dump"
+          ],
+          "condition_persistence": [
+            {
+              "condition": "organic activity",
+              "status": "PARTIAL",
+              "evidence": "Structural alpha mapping present.",
+              "critical": true
+            },
+            {
+              "condition": "token-required value capture",
+              "status": "PARTIAL",
+              "evidence": "Observed market/price context loaded.",
+              "critical": true
+            },
+            {
+              "condition": "unlock/supply control",
+              "status": "UNASSESSED",
+              "evidence": "No independent positioning/event evidence linked.",
+              "critical": true
+            },
+            {
+              "condition": "venue liquidity",
+              "status": "PARTIAL",
+              "evidence": "Market-specific directional model available.",
+              "critical": true
+            },
+            {
+              "condition": "wallet/entity attribution",
+              "status": "UNASSESSED",
+              "evidence": "Requires company/instrument-specific research.",
+              "critical": true
+            }
+          ]
+        },
+        "edge_decomposition": {
+          "information": "PARTIAL",
+          "interpretation": "RESEARCH_REQUIRED",
+          "positioning": "UNASSESSED",
+          "timing": "PARTIAL",
+          "expression": "PARTIAL",
+          "execution": "PARTIAL",
+          "durability": "UNASSESSED",
+          "note": "No composite edge score is produced. Each dimension must earn evidence independently."
+        },
+        "counterparty_challenge": {
+          "state": "RESEARCH_REQUIRED",
+          "likely_counterparties": [
+            "market maker",
+            "insider/unlock seller",
+            "LP rebalancer",
+            "airdrop farmer",
+            "leveraged directional trader"
+          ],
+          "why_favorable": "UNASSESSED \u2014 explain information, interpretation, horizon, constraint or liquidity-provision advantage.",
+          "hard_gate": "No counterparty explanation means no edge claim."
+        },
+        "cost_of_staying": {
+          "state": "UNASSESSED",
+          "costs": [
+            "foregone best alternative",
+            "adverse carry/funding/theta",
+            "thesis decay",
+            "capital lock-up",
+            "lost learning cycles"
+          ],
+          "value_of_waiting": [
+            "new information",
+            "better price",
+            "lower execution risk",
+            "preserved optionality"
+          ],
+          "current_choice": "PROBE/WAIT decision must be instrument-specific; no numeric score is invented."
+        },
+        "execution": {
+          "state": "PARTIAL",
+          "ticker": "BTC-USD",
+          "research_action": "TRIGGERED WATCH LONG",
+          "entry_trigger": 118000,
+          "trade_invalidation": 112500,
+          "reference_target": 130000,
+          "thesis_invalidation": "Broken mechanism/value capture or a critical condition that no longer holds.",
+          "exit_hierarchy": [
+            "hard risk",
+            "thesis broken",
+            "trade structure broken",
+            "catalyst realized",
+            "expected-return exhausted",
+            "superior alternative",
+            "time stop"
+          ]
+        },
+        "validation": {
+          "baseline": "BTC beta + token size + age + liquidity + momentum.",
+          "next_cheapest_falsifier": "Test whether the selected evidence adds point-in-time OOS lift over: BTC beta + token size + age + liquidity + momentum.",
+          "required": [
+            "point-in-time lineage",
+            "strong baseline",
+            "purged/embargoed WFA",
+            "ablation",
+            "cost/capacity",
+            "untouched lockbox",
+            "prospective outcomes"
+          ],
+          "status": "RESEARCH_ONLY",
+          "capital_permission": "BLOCKED",
+          "reason": "Executable price context exists, but it remains a research watch until validated and prospectively promoted."
+        }
+      },
+      "commodity": {
+        "market": "commodity",
+        "label": "COMMODITIES",
+        "decision_problem": "Detect physical tightness and the best tradable expression before benchmark repricing or rapid supply response.",
+        "epistemic_state": {
+          "observed": true,
+          "inferred": true,
+          "disputed": false,
+          "unknown": true
+        },
+        "current_rain": {
+          "state": "OBSERVED_IMPROVING",
+          "claim": "Loaded price breadth is constructive now; this is present-state context, not proof of future excess return.",
+          "evidence": "20 loaded names \u00b7 57.0% advancing \u00b7 60.0% above 50D \u00b7 median 20D +3.8% \u00b7 top context GC=F / BUILD LONG"
+        },
+        "structural_pressure": {
+          "state": "UNASSESSED",
+          "claim": "No structural pressure/value-capture case is linked to this market."
+        },
+        "trigger": {
+          "state": "PARTIAL",
+          "claim": "GC=F trigger 2490 / stop 2430 / reference 2620",
+          "action_context": "BUILD LONG"
+        },
+        "market_recognition": {
+          "state": "UNASSESSED",
+          "claim": "No structural candidate is linked to this market, so recognition gap and remaining return are unassessed."
+        },
+        "study_the_tape": {
+          "state": "RESEARCH_REQUIRED",
+          "winner_autopsy": "No winner case may be inferred from price similarity alone. Link a point-in-time winner and loser case before promotion.",
+          "why_they_won": "UNASSESSED",
+          "why_others_failed": [
+            "financial positioning mistaken for physical shortage",
+            "wrong location/grade",
+            "rapid capacity response",
+            "headline spike mean reverts"
+          ],
+          "condition_persistence": [
+            {
+              "condition": "location/grade-specific tightness",
+              "status": "UNASSESSED",
+              "evidence": "No direct value-capture case linked.",
+              "critical": true
+            },
+            {
+              "condition": "curve confirmation",
+              "status": "PARTIAL",
+              "evidence": "Observed market/price context loaded.",
+              "critical": true
+            },
+            {
+              "condition": "inventory quality",
+              "status": "UNASSESSED",
+              "evidence": "No independent positioning/event evidence linked.",
+              "critical": true
+            },
+            {
+              "condition": "supply-response lag",
+              "status": "PARTIAL",
+              "evidence": "Market-specific directional model available.",
+              "critical": true
+            },
+            {
+              "condition": "demand destruction threshold",
+              "status": "UNASSESSED",
+              "evidence": "Requires company/instrument-specific research.",
+              "critical": true
+            }
+          ]
+        },
+        "edge_decomposition": {
+          "information": "PARTIAL",
+          "interpretation": "UNASSESSED",
+          "positioning": "UNASSESSED",
+          "timing": "PARTIAL",
+          "expression": "PARTIAL",
+          "execution": "PARTIAL",
+          "durability": "UNASSESSED",
+          "note": "No composite edge score is produced. Each dimension must earn evidence independently."
+        },
+        "counterparty_challenge": {
+          "state": "RESEARCH_REQUIRED",
+          "likely_counterparties": [
+            "producer hedge",
+            "commercial consumer",
+            "inventory holder",
+            "CTA/speculator",
+            "forced physical seller"
+          ],
+          "why_favorable": "UNASSESSED \u2014 explain information, interpretation, horizon, constraint or liquidity-provision advantage.",
+          "hard_gate": "No counterparty explanation means no edge claim."
+        },
+        "cost_of_staying": {
+          "state": "UNASSESSED",
+          "costs": [
+            "foregone best alternative",
+            "adverse carry/funding/theta",
+            "thesis decay",
+            "capital lock-up",
+            "lost learning cycles"
+          ],
+          "value_of_waiting": [
+            "new information",
+            "better price",
+            "lower execution risk",
+            "preserved optionality"
+          ],
+          "current_choice": "PROBE/WAIT decision must be instrument-specific; no numeric score is invented."
+        },
+        "execution": {
+          "state": "PARTIAL",
+          "ticker": "GC=F",
+          "research_action": "TRIGGERED WATCH LONG",
+          "entry_trigger": 2490,
+          "trade_invalidation": 2430,
+          "reference_target": 2620,
+          "thesis_invalidation": "Broken mechanism/value capture or a critical condition that no longer holds.",
+          "exit_hierarchy": [
+            "hard risk",
+            "thesis broken",
+            "trade structure broken",
+            "catalyst realized",
+            "expected-return exhausted",
+            "superior alternative",
+            "time stop"
+          ]
+        },
+        "validation": {
+          "baseline": "Trend + curve/carry + inventory surprise + USD.",
+          "next_cheapest_falsifier": "Test whether the selected evidence adds point-in-time OOS lift over: Trend + curve/carry + inventory surprise + USD.",
+          "required": [
+            "point-in-time lineage",
+            "strong baseline",
+            "purged/embargoed WFA",
+            "ablation",
+            "cost/capacity",
+            "untouched lockbox",
+            "prospective outcomes"
+          ],
+          "status": "RESEARCH_ONLY",
+          "capital_permission": "BLOCKED",
+          "reason": "Executable price context exists, but it remains a research watch until validated and prospectively promoted."
+        }
+      },
+      "fx": {
+        "market": "fx",
+        "label": "FX",
+        "decision_problem": "Identify the dominant pair-specific driver and when rate, funding, policy or risk regimes have changed.",
+        "epistemic_state": {
+          "observed": true,
+          "inferred": false,
+          "disputed": false,
+          "unknown": true
+        },
+        "current_rain": {
+          "state": "OBSERVED_MIXED",
+          "claim": "Loaded price breadth is mixed; the system should wait for a more discriminating trigger.",
+          "evidence": "8 loaded names \u00b7 50.0% advancing \u00b7 50.0% above 50D \u00b7 median 20D +0.3%"
+        },
+        "structural_pressure": {
+          "state": "UNASSESSED",
+          "claim": "No structural pressure/value-capture case is linked to this market."
+        },
+        "trigger": {
+          "state": "NO_SIGNAL",
+          "claim": "No instrument-specific trigger is currently constructed.",
+          "action_context": "NO TRADE"
+        },
+        "market_recognition": {
+          "state": "UNASSESSED",
+          "claim": "No structural candidate is linked to this market, so recognition gap and remaining return are unassessed."
+        },
+        "study_the_tape": {
+          "state": "RESEARCH_REQUIRED",
+          "winner_autopsy": "No winner case may be inferred from price similarity alone. Link a point-in-time winner and loser case before promotion.",
+          "why_they_won": "UNASSESSED",
+          "why_others_failed": [
+            "aggregate FX call applied to every pair",
+            "old correlation after regime change",
+            "carry dominates thesis",
+            "intervention/funding shock"
+          ],
+          "condition_persistence": [
+            {
+              "condition": "pair-specific rate/policy differential",
+              "status": "UNASSESSED",
+              "evidence": "No direct value-capture case linked.",
+              "critical": true
+            },
+            {
+              "condition": "funding regime",
+              "status": "PARTIAL",
+              "evidence": "Observed market/price context loaded.",
+              "critical": true
+            },
+            {
+              "condition": "positioning asymmetry",
+              "status": "UNASSESSED",
+              "evidence": "No independent positioning/event evidence linked.",
+              "critical": true
+            },
+            {
+              "condition": "external balance",
+              "status": "UNASSESSED",
+              "evidence": "Market-specific directional model incomplete.",
+              "critical": true
+            },
+            {
+              "condition": "intervention risk",
+              "status": "UNASSESSED",
+              "evidence": "Requires company/instrument-specific research.",
+              "critical": true
+            }
+          ]
+        },
+        "edge_decomposition": {
+          "information": "UNASSESSED",
+          "interpretation": "UNASSESSED",
+          "positioning": "UNASSESSED",
+          "timing": "NO_SIGNAL",
+          "expression": "UNASSESSED",
+          "execution": "UNASSESSED",
+          "durability": "UNASSESSED",
+          "note": "No composite edge score is produced. Each dimension must earn evidence independently."
+        },
+        "counterparty_challenge": {
+          "state": "RESEARCH_REQUIRED",
+          "likely_counterparties": [
+            "corporate hedger",
+            "reserve manager",
+            "real-money fund",
+            "carry fund",
+            "policy/intervention flow"
+          ],
+          "why_favorable": "UNASSESSED \u2014 explain information, interpretation, horizon, constraint or liquidity-provision advantage.",
+          "hard_gate": "No counterparty explanation means no edge claim."
+        },
+        "cost_of_staying": {
+          "state": "UNASSESSED",
+          "costs": [
+            "foregone best alternative",
+            "adverse carry/funding/theta",
+            "thesis decay",
+            "capital lock-up",
+            "lost learning cycles"
+          ],
+          "value_of_waiting": [
+            "new information",
+            "better price",
+            "lower execution risk",
+            "preserved optionality"
+          ],
+          "current_choice": "PROBE/WAIT decision must be instrument-specific; no numeric score is invented."
+        },
+        "execution": {
+          "state": "NO_SIGNAL",
+          "ticker": null,
+          "research_action": "NO TRADE",
+          "entry_trigger": null,
+          "trade_invalidation": null,
+          "reference_target": null,
+          "thesis_invalidation": "Broken mechanism/value capture or a critical condition that no longer holds.",
+          "exit_hierarchy": [
+            "hard risk",
+            "thesis broken",
+            "trade structure broken",
+            "catalyst realized",
+            "expected-return exhausted",
+            "superior alternative",
+            "time stop"
+          ]
+        },
+        "validation": {
+          "baseline": "Carry + rate differential + trend + volatility regime.",
+          "next_cheapest_falsifier": "Test whether the selected evidence adds point-in-time OOS lift over: Carry + rate differential + trend + volatility regime.",
+          "required": [
+            "point-in-time lineage",
+            "strong baseline",
+            "purged/embargoed WFA",
+            "ablation",
+            "cost/capacity",
+            "untouched lockbox",
+            "prospective outcomes"
+          ],
+          "status": "RESEARCH_ONLY",
+          "capital_permission": "BLOCKED",
+          "reason": "Prospective, market-specific evidence has not earned capital permission."
+        }
+      }
+    },
+    "global_permission": "CAPITAL_BLOCKED",
+    "semantics": "Research governance and decision context only; not alpha proof or autonomous trade permission."
+  }
+}

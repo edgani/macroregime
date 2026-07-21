@@ -1,26 +1,56 @@
-# War Room OS — Decision-First Live Architecture v2.9
+# War Room OS — Research-First Decision OS v3.2
 
-v2.9 corrects the role of the main workspaces and removes the overlapping provider/node wall.
+This is the canonical integrated release built from `War_Room_OS_Decision_First_v2_9`.
+It replaces the flat navigation with eight decision workspaces and embeds the same
+research discipline into US stocks, IHSG, crypto, commodities and FX.
 
-## What each workspace is for
+## Eight workspaces
 
-- **Alpha Center**: extreme-asymmetry discovery. It searches structural bottlenecks, hidden value-capture nodes, expectation gaps and room-to-run. Headroom classes such as `10–50x`, `50–500x` and `500x+` are scenario-capacity buckets with falling base rates; they are not targets or probabilities.
-- **Market tabs**: execution posture. Every visible ticker is labelled `BUILD LONG`, `WATCH LONG`, `BUILD SHORT`, `WATCH SHORT`, `REDUCE / AVOID`, or `NO TRADE` with trigger and stop context.
-- **Institutional**: usable evidence domains and confirmed event clusters. Raw provider entitlement/errors remain in the ledger instead of covering the canvas.
-- **Derivatives / Squeeze**: domain summaries for options, borrow, perps and crypto options. OI/funding/Greeks/squeeze scores are context, not probabilities.
-- **Company Intel**: evidence trace for value capture, filed fundamentals, positioning, price state and thesis invalidation.
-- **Validation Center**: fail-closed production gate. Research is never promoted solely because an in-sample result looks attractive.
+1. **Mission** — You Are Here, Current Rain, recognition gap and decision queue.
+2. **Regime & Risk** — macro nowcast, liquidity plumbing, credit and risk propagation.
+3. **Opportunities** — structural asymmetry and company research inventory.
+4. **Markets** — US, IHSG, crypto, commodities and FX adapters.
+5. **Flow & Positioning** — cross-asset flow, options, TRF/dark pool, filings, broker routes and on-chain events.
+6. **Causal Map** — supply chains, chokepoints, value capture and winner genealogy.
+7. **Execution & Portfolio** — trigger, trade invalidation, thesis invalidation, exit state and capital gate.
+8. **Research & Validation** — Study the Tape, prediction log, baseline, ablation, failure review and data lineage.
 
-## Architecture
+## Non-negotiable semantics
 
-- bounded inline market bootstrap before first paint;
-- committed snapshot injected into the first render;
-- one embedded background collector on managed hosting;
-- independent market, macro/liquidity, event/derivatives, slow-enrichment and expanded-universe planes;
-- atomic snapshot and last-good caches;
-- multi-provider public-price fallback;
-- explicit `LIVE / PARTIAL / STALE / NO_SIGNAL / NO_DATA / ACTION_REQUIRED / NOT_ENTITLED` states;
-- no synthetic production fallback.
+- Missing or stale feed never becomes a live claim.
+- Observed, inferred, structural and unknown evidence remain distinct.
+- Broker routes do not reveal beneficial owner or intent.
+- Options prints, dark-pool prints and whale transfers are context, not automatic direction.
+- Theme conviction is not probability.
+- Hand-authored market-cap multiples are not accepted as EV, price targets or sizing.
+- IHSG is cash long-only.
+- A triggered watch is not an order.
+- Engineering PASS does not prove predictive alpha.
+- Capital permission remains `CAPITAL_BLOCKED` until market-specific point-in-time WFA,
+  lockbox and prospective evidence earn promotion.
 
-Deploy with `app.py` at repository root. Read `DEPLOY_NOW.md` and
-`V29_DECISION_FIRST_REAUDIT.md` before deployment.
+## Run locally on Windows
+
+Double-click:
+
+```text
+CHECK_AND_RUN.bat
+```
+
+The script creates `.venv`, installs missing dependencies, runs the canonical release
+validator and starts Streamlit only if the release checks pass.
+
+To run without repeating the full validation:
+
+```text
+RUN_WARROOM.bat
+```
+
+## Canonical validation
+
+```bash
+python validate_release_v32.py
+```
+
+A passing report means the application is operationally ready for review. It does not
+mean every component is profitable or proven. See `V32_RELEASE_VALIDATION_REPORT.json`.

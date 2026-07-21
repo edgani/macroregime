@@ -66,7 +66,9 @@ def t_broker():
        {"broker":"XA","agg_buy":0,"pass_buy":0,"agg_sell":5500,"pass_sell":34000},
        {"broker":"YP","agg_buy":0,"pass_buy":0,"agg_sell":1200,"pass_sell":0}]
     r=run_broker_flow(b); lab={x["broker"]:x["label"] for x in r["brokers"]}
-    assert lab["AK"]=="BUILDING_LONG" and lab["XA"]=="DELIBERATE_SELLING" and lab["YP"]=="PANIC_SELLING"; print(f"  broker_flow {lab}  OK")
+    assert lab["AK"]=="AGGRESSIVE_NET_BUY_CONTEXT" and lab["XA"]=="PASSIVE_NET_SELL_CONTEXT" and lab["YP"]=="AGGRESSIVE_NET_SELL_CONTEXT"
+    assert r["beneficial_owner"] == "UNVERIFIED" and r["intent"] == "UNVERIFIED"
+    print(f"  broker_flow {lab} owner/intent=UNVERIFIED  OK")
 def t_l13_entry():
     up=S(100*np.exp(np.cumsum(rng.normal(0.0015,0.01,N))))
     e=run_entry(up,"long",dealer={"gex_sign":-1,"regime":"momentum"}); assert e["ok"] and e["entry_type"] in("BREAKOUT","CONTINUATION")
@@ -99,7 +101,7 @@ def t_cross_asset():
 def t_narrative():
     sig=TickerSignal(ticker="NVDA",action="BUILD_LONG",direction="long",conviction=82.0,
                      entry_type="BREAKOUT",entry_valid=True,gamma_regime="momentum",entry_px=880,stop=845,target=950,rr=2.1)
-    td={"theme":"AI","theme_score":1.2,"stage":"INSTITUTIONAL","crowding":31,"sweet_spot":True,"broker_verdict":"NET_ACCUMULATION"}
+    td={"theme":"AI","theme_score":1.2,"stage":"INSTITUTIONAL","crowding":31,"sweet_spot":True,"broker_verdict":"NET_BUY_CONTEXT"}
     txt=build_reason(sig,td,{"forward_quad":"Q1","fragility":20},{"regime":"GROWTH_ON","defer_longs":False})
     assert "BUILD_LONG NVDA" in txt and "AI" in txt and "BREAKOUT" in txt and "R/R 2.1" in txt
     # defer note appears when liquidation

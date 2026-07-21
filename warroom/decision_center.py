@@ -201,25 +201,28 @@ def ev_r(pwin, lv, direction, px):
 
 # ────────────────────────────────────── rekomendasi (vocab spec) ──────────────────────────────────────
 def recommend(s, regime, open_tickers=None):
-    """BUY / WATCH / AVOID / SELL / HOLD per spec. Aturan eksplisit, bisa diaudit."""
+    """Research/action vocabulary. Capital permission is handled outside this descriptive layer."""
     d = s.get("_dir"); t = s.get("ticker")
+    market = str(s.get("market") or "").lower()
     if open_tickers and t in open_tickers:
-        return "HOLD", "posisi terbuka di track record — kelola pakai stops di bawah"
+        return "MANAGE OPEN POSITION", "existing position; use explicit risk and thesis invalidation"
     lv = s.get("decision_levels")
     timing = ((s.get("timing") or {}).get("entry_timing") or "").upper()
     late = ("LATE" in timing) or ("FOMO" in timing)
     if d == "Long":
         if regime.get("defensive") and not s.get("_override_defensive"):
-            return "AVOID", "posture Defensive (Quad 3/4 / breadth lemah) — long baru butuh bukti lebih"
+            return "REDUCE / AVOID", "defensive regime; new long requires stronger evidence"
         if lv and lv.get("in_zone") and not late:
-            return "BUY", "di entry zone + timing bukan FOMO"
-        return "WATCH", ("stretched / timing LATE — tunggu pullback ke base zone" if late or (lv and not lv.get("in_zone"))
-                         else "tunggu level (risk range withheld)" if not lv else "tunggu trigger")
+            return "TRIGGERED WATCH LONG", "entry-state conditions observed; capital remains governed by validation gate"
+        return "WATCH LONG", ("late/stretched; wait for a valid zone" if late or (lv and not lv.get("in_zone"))
+                              else "risk range withheld" if not lv else "wait for trigger")
     if d == "Short":
+        if market in {"idx", "ihsg", "indonesia"}:
+            return "REDUCE / AVOID", "IHSG adapter is long-only; short execution is prohibited"
         if lv and lv.get("in_zone") and not late:
-            return "SELL", "di entry zone short + timing bukan late"
-        return "WATCH", "tunggu bounce ke zone / timing"
-    return "WATCH", "belum ada formation + RS yang searah"
+            return "TRIGGERED WATCH SHORT", "short-state conditions observed; capital remains governed by validation gate"
+        return "WATCH SHORT", "wait for bounce/zone and explicit trigger"
+    return "NO TRADE", "no aligned formation and relative-strength state"
 
 
 # ────────────────────────────────────────── paket lengkap ──────────────────────────────────────────

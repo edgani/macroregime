@@ -1,1 +1,0 @@
-PASS — Python, JavaScript, data semantics and no-credential behavior are intact.

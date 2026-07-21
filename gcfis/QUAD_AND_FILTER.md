@@ -15,7 +15,7 @@ Offensive score = **geometric mean** of the AVAILABLE offensive sub-scores (each
 - **Reflexivity (B5)**: runaway loop detector (price×flow co-acceleration) feeds confluence. `t_reflexivity`.
 A ticker reaches **master_long** only if: confluence·regime-tilt·(1−stress) ≥ 55, NOT distributing,
 passes capacity (ADV), NOT cross-asset-deferred. **master_short** = distribution score
-(exit_signal / crowded-rolling-over[crowd>85 & vel<0] / broker NET_DISTRIBUTION / COT-extreme).
+(exit_signal / crowded-rolling-over[crowd>85 & vel<0] / broker-route NET_SELL_CONTEXT (owner/intent unverified) / COT-extreme).
 Counter-regime: bullish quad + distribution → demote long / flip short.
 
 ## Ticker PRESENTATION (core/contracts.py + dashboard.card_html) — full GCFIS output contract

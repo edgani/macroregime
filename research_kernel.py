@@ -10,6 +10,9 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
+from current_developments import attach_current_developments
+from fx_pair_state import attach_fx_pair_states
+
 MARKET_DOCTRINE: dict[str, dict[str, Any]] = {
     "us": {
         "label": "US STOCKS",
@@ -29,11 +32,11 @@ MARKET_DOCTRINE: dict[str, dict[str, Any]] = {
     },
     "crypto": {
         "label": "CRYPTO",
-        "decision_problem": "Separate organic adoption and token value capture from subsidy, sybil, wash activity and reflexive leverage.",
+        "decision_problem": "Separate organic adoption and token value capture from subsidy, sybil, wash activity and reflexive leverage while tracking broker-DeFi convergence, tokenized assets, stablecoins, prediction markets and agentic execution.",
         "baseline": "BTC beta + token size + age + liquidity + momentum.",
-        "counterparties": ["market maker", "insider/unlock seller", "LP rebalancer", "airdrop farmer", "leveraged directional trader"],
-        "critical_conditions": ["organic activity", "token-required value capture", "unlock/supply control", "venue liquidity", "wallet/entity attribution"],
-        "failure_modes": ["transfer mistaken for trade intent", "subsidized activity", "wash/sybil volume", "unlock overwhelms demand", "crime candle/pump-and-dump"],
+        "counterparties": ["market maker", "insider/unlock seller", "LP rebalancer", "centralized broker", "token issuer", "airdrop farmer", "leveraged directional trader", "regulatory-constrained participant"],
+        "critical_conditions": ["organic activity and retention", "token-required value capture", "unlock/supply control", "venue and collateral liquidity", "legal form / reserves / redemption", "distribution and developer adoption", "wallet/entity attribution and security"],
+        "failure_modes": ["transfer mistaken for trade intent", "tokenized exposure mistaken for underlying ownership", "platform captures value but token does not", "subsidized TVL or wash/sybil volume", "fragmented liquidity", "unlock overwhelms demand", "jurisdiction/regulatory break", "agentic execution or smart-contract loss", "crime candle/pump-and-dump"],
     },
     "commodity": {
         "label": "COMMODITIES",
@@ -245,6 +248,8 @@ def build_market_kernel(desk: dict, market_id: str) -> dict:
     action = _permission(best, market_id, market, current_rain, conditions)
 
     best_action = _setup_action(market_id, market, best) if best else "NO TRADE"
+    market_developments = _rows(_obj(_obj(desk.get("current_developments")).get("by_market")).get(market_id))
+    fresh_developments = [x for x in market_developments if x.get("freshness") == "FRESH"]
     trigger = (
         f"{best.get('tk')} trigger {best.get('e')} / stop {best.get('s')} / reference {best.get('t')}"
         if best else "No instrument-specific trigger is currently constructed."
@@ -266,6 +271,12 @@ def build_market_kernel(desk: dict, market_id: str) -> dict:
                 f"{len(alpha_rows)} structural candidates are mapped; mechanism and value capture remain case-specific."
                 if alpha_rows else "No structural pressure/value-capture case is linked to this market."
             ),
+        },
+        "current_developments": {
+            "state": "REVIEW_REQUIRED" if fresh_developments else "NO_FRESH_DEVELOPMENT",
+            "fresh_count": len(fresh_developments),
+            "entries": fresh_developments[:12],
+            "semantics": "Dated structural changes from primary sources; no automatic direction or trade action.",
         },
         "trigger": {"state": "PARTIAL" if best else "NO_SIGNAL", "claim": trigger, "action_context": best_action},
         "market_recognition": recognition,
@@ -316,14 +327,15 @@ def attach_research_kernel(desk: dict) -> dict:
     """Attach or refresh the universal research kernel on a merged desk snapshot."""
     if not isinstance(desk, dict):
         return desk
-    result = deepcopy(desk)
+    result = attach_current_developments(deepcopy(desk))
+    result = attach_fx_pair_states(result)
     markets = _obj(result.get("markets"))
     kernels = {}
     for market_id in MARKET_DOCTRINE:
         if market_id in markets or market_id in {"us", "idx", "crypto", "commodity", "fx"}:
             kernels[market_id] = build_market_kernel(result, market_id)
     result["research_kernel"] = {
-        "version": "1.0",
+        "version": "1.1",
         "doctrine": [
             "Start from an important decision problem, not an available dataset.",
             "Detect what has already changed before forecasting what may change.",
@@ -333,6 +345,8 @@ def attach_research_kernel(desk: dict) -> dict:
             "Run the cheapest valid falsifier against a strong market-specific baseline.",
             "Ablate complexity and inspect failure piles, not only aggregate metrics.",
             "No prospective evidence means no capital permission.",
+            "Fresh official-source changes require human review and never become automatic directional claims.",
+            "FX is pair-specific; a price-only state can never become a triggered watch.",
         ],
         "markets": kernels,
         "global_permission": "CAPITAL_BLOCKED",

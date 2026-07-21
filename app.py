@@ -1,4 +1,4 @@
-"""War Room OS v3.2 research-first hosted deployment shell.
+"""War Room OS v3.3 decision-intelligence hosted deployment shell.
 
 The dashboard is embedded once. Hosted deployments perform one bounded inline market bootstrap
 before first paint, then keep a singleton collector thread inside the Streamlit process. This avoids
@@ -366,11 +366,37 @@ def _start_startup_watchdog() -> threading.Thread:
     return thread
 
 
+def _official_radar_runner() -> None:
+    interval = max(900, int(os.getenv("WARROOM_RADAR_REFRESH_SECONDS", "3600")))
+    initial_delay = max(2, int(os.getenv("WARROOM_RADAR_INITIAL_DELAY_SECONDS", "8")))
+    time.sleep(initial_delay)
+    while True:
+        try:
+            from official_source_radar import run_once
+            run_once(timeout=float(os.getenv("WARROOM_RADAR_HTTP_TIMEOUT", "8")))
+        except BaseException as exc:
+            try:
+                BOOT_LOG.parent.mkdir(parents=True, exist_ok=True)
+                with open(BOOT_LOG, "a", encoding="utf-8") as fh:
+                    fh.write(f"\nOFFICIAL RADAR ERROR: {type(exc).__name__}: {exc}\n")
+            except Exception:
+                pass
+        time.sleep(interval)
+
+
+@st.cache_resource(show_spinner=False)
+def _start_official_radar() -> threading.Thread:
+    thread = threading.Thread(target=_official_radar_runner, name="warroom-official-source-radar", daemon=True)
+    thread.start()
+    return thread
+
+
 _prepare_static()
 INITIAL_BOOTSTRAP = _ensure_initial_snapshot()
 DASH_RENDER_SOURCE = _prepare_runtime_dashboard()
 SUPERVISOR = _ensure_worker()
 STARTUP_WATCHDOG = _start_startup_watchdog()
+OFFICIAL_RADAR = _start_official_radar()
 
 
 def _render_dashboard() -> None:

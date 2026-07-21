@@ -1,0 +1,213 @@
+{
+  "schema_version": "1.0",
+  "semantics": "Primary-source change detector. A changed page is flagged for human review; it is never auto-translated into a directional market claim.",
+  "sources": [
+    {
+      "id": "robinhood_newsroom",
+      "markets": [
+        "crypto",
+        "us",
+        "fx"
+      ],
+      "url": "https://robinhood.com/us/en/newsroom",
+      "max_age_hours": 24
+    },
+    {
+      "id": "robinhood_investor_results",
+      "markets": [
+        "us",
+        "crypto"
+      ],
+      "url": "https://investors.robinhood.com/financials/quarterly-results",
+      "max_age_hours": 24
+    },
+    {
+      "id": "sec_crypto",
+      "markets": [
+        "crypto",
+        "us"
+      ],
+      "url": "https://www.sec.gov/featured-topics/crypto-task-force/cryptosec",
+      "max_age_hours": 24
+    },
+    {
+      "id": "sec_press",
+      "markets": [
+        "us",
+        "crypto"
+      ],
+      "url": "https://www.sec.gov/newsroom/press-releases",
+      "max_age_hours": 12
+    },
+    {
+      "id": "cftc_press",
+      "markets": [
+        "crypto",
+        "commodity",
+        "fx"
+      ],
+      "url": "https://www.cftc.gov/PressRoom/PressReleases",
+      "max_age_hours": 12
+    },
+    {
+      "id": "cftc_dcm_filings",
+      "markets": [
+        "crypto",
+        "us"
+      ],
+      "url": "https://www.cftc.gov/IndustryOversight/IndustryFilings/TradingOrganizations",
+      "max_age_hours": 24
+    },
+    {
+      "id": "nasdaq_newsroom",
+      "markets": [
+        "us",
+        "crypto"
+      ],
+      "url": "https://www.nasdaq.com/newsroom",
+      "max_age_hours": 24
+    },
+    {
+      "id": "bank_indonesia_news",
+      "markets": [
+        "idx",
+        "fx"
+      ],
+      "url": "https://www.bi.go.id/en/default.aspx",
+      "max_age_hours": 12
+    },
+    {
+      "id": "bank_indonesia_jisdor",
+      "markets": [
+        "idx",
+        "fx"
+      ],
+      "url": "https://www.bi.go.id/en/statistik/informasi-kurs/jisdor/default.aspx",
+      "max_age_hours": 6
+    },
+    {
+      "id": "bpk_financial_regulation",
+      "markets": [
+        "idx"
+      ],
+      "url": "https://peraturan.bpk.go.id/",
+      "max_age_hours": 48
+    },
+    {
+      "id": "federal_reserve_press",
+      "markets": [
+        "us",
+        "fx",
+        "commodity",
+        "crypto"
+      ],
+      "url": "https://www.federalreserve.gov/newsevents/pressreleases.htm",
+      "max_age_hours": 12
+    },
+    {
+      "id": "federal_reserve_fomc",
+      "markets": [
+        "us",
+        "fx",
+        "commodity",
+        "crypto"
+      ],
+      "url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+      "max_age_hours": 24
+    },
+    {
+      "id": "us_treasury_press",
+      "markets": [
+        "us",
+        "fx",
+        "crypto",
+        "commodity"
+      ],
+      "url": "https://home.treasury.gov/news/press-releases",
+      "max_age_hours": 12
+    },
+    {
+      "id": "sec_edgar_current",
+      "markets": [
+        "us",
+        "crypto"
+      ],
+      "url": "https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent",
+      "max_age_hours": 2,
+      "requires_sec_user_agent": true
+    },
+    {
+      "id": "eia_press",
+      "markets": [
+        "commodity",
+        "us"
+      ],
+      "url": "https://www.eia.gov/pressroom/releases.php",
+      "max_age_hours": 12
+    },
+    {
+      "id": "eia_steo",
+      "markets": [
+        "commodity",
+        "us",
+        "fx"
+      ],
+      "url": "https://www.eia.gov/outlooks/steo/",
+      "max_age_hours": 24
+    },
+    {
+      "id": "eia_today_in_energy",
+      "markets": [
+        "commodity",
+        "us"
+      ],
+      "url": "https://www.eia.gov/todayinenergy/",
+      "max_age_hours": 24
+    },
+    {
+      "id": "opec_press",
+      "markets": [
+        "commodity",
+        "fx"
+      ],
+      "url": "https://www.opec.org/press-releases.html",
+      "max_age_hours": 24
+    },
+    {
+      "id": "cme_notices",
+      "markets": [
+        "commodity",
+        "fx",
+        "crypto",
+        "us"
+      ],
+      "url": "https://www.cmegroup.com/notices.html",
+      "max_age_hours": 12
+    },
+    {
+      "id": "idx_announcements",
+      "markets": [
+        "idx"
+      ],
+      "url": "https://www.idx.co.id/en/news/announcement",
+      "max_age_hours": 6
+    },
+    {
+      "id": "idx_press_releases",
+      "markets": [
+        "idx"
+      ],
+      "url": "https://www.idx.co.id/en/news/press-release/",
+      "max_age_hours": 12
+    },
+    {
+      "id": "ojk_press_releases",
+      "markets": [
+        "idx",
+        "crypto"
+      ],
+      "url": "https://www.ojk.go.id/en/berita-dan-kegiatan/siaran-pers/Default.aspx",
+      "max_age_hours": 24
+    }
+  ]
+}

@@ -1,0 +1,187 @@
+{
+  "version": "3.3",
+  "suite": "decision_intelligence_release_contract",
+  "status": "PASS",
+  "passed": 34,
+  "total": 34,
+  "checks": [
+    {
+      "name": "python_compile",
+      "passed": true,
+      "detail": "199 files; 0 errors"
+    },
+    {
+      "name": "v33_header",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "board_map_evidence_modes",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "board_default",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "fx_explicit_matrix",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "crypto_current_developments",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "official_radar_ui",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "numeric_headroom_withheld",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "javascript_parse",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "fx_pair_rows_present",
+      "passed": true,
+      "detail": "['DX-Y.NYB', 'EURUSD=X', 'GBPUSD=X', 'USDIDR=X']"
+    },
+    {
+      "name": "fx_long_explicit",
+      "passed": true,
+      "detail": "{'pair': 'EURUSD=X', 'orientation': 'LONG', 'state': 'TRIGGERED_WATCH_LONG', 'research_action': 'TRIGGERED WATCH LONG', 'capital_permission': 'BLOCKED', 'reason': 'Price and carry/rate differential agree; still research-only and not prospectively promoted. Price trigger is valid, but capital remains blocked.', 'driver_coverage': 2, 'driver_total': 4, 'drivers': [{'driver': 'price', 'sign': 1, 'state': 'OBSERVED', 'evidence': ['20D +1.40%', '5D +0.80%']}, {'driver': 'carry/rate differential', 'sign': 1, 'state': 'OBSERVED_OR_DERIVED', 'evidence': ['carry +0.50pp', 'CARRY_LONG']}], 'event_risks': [], 'entry_trigger': 1.19, 'trade_invalidation': 1.17, 'reference_target': 1.23, 'rr': 2.0, 'freshness': 'CURRENT', 'semantics': 'Pair-specific research state; not an autonomous order or calibrated probability.'}"
+    },
+    {
+      "name": "fx_short_explicit",
+      "passed": true,
+      "detail": "{'pair': 'GBPUSD=X', 'orientation': 'SHORT', 'state': 'TRIGGERED_WATCH_SHORT', 'research_action': 'TRIGGERED WATCH SHORT', 'capital_permission': 'BLOCKED', 'reason': 'Price and carry/rate differential agree; still research-only and not prospectively promoted. Price trigger is valid, but capital remains blocked.', 'driver_coverage': 2, 'driver_total': 4, 'drivers': [{'driver': 'price', 'sign': -1, 'state': 'OBSERVED', 'evidence': ['20D -1.50%', '5D -0.80%', 'above20=False', 'above50=False']}, {'driver': 'carry/rate differential', 'sign': -1, 'state': 'OBSERVED_OR_DERIVED', 'evidence': ['carry -0.70pp', 'CARRY_SHORT']}], 'event_risks': [], 'entry_trigger': 1.31, 'trade_invalidation': 1.33, 'reference_target': 1.27, 'rr': 2.0, 'freshness': 'CURRENT', 'semantics': 'Pair-specific research state; not an autonomous order or calibrated probability.'}"
+    },
+    {
+      "name": "fx_event_risk_downgrade",
+      "passed": true,
+      "detail": "{'pair': 'USDIDR=X', 'orientation': 'NEUTRAL', 'state': 'EVENT_RISK_WAIT', 'research_action': 'WAIT / REASSESS AFTER EVENT', 'capital_permission': 'BLOCKED', 'reason': 'Fresh policy/market-structure event risk can invalidate the current pair path.', 'driver_coverage': 2, 'driver_total': 4, 'drivers': [{'driver': 'price', 'sign': 1, 'state': 'OBSERVED', 'evidence': ['20D +1.40%', '5D +0.60%', 'above20=True', 'above50=True']}, {'driver': 'carry/rate differential', 'sign': 1, 'state': 'OBSERVED_OR_DERIVED', 'evidence': ['carry +2.00pp', 'CARRY_LONG']}], 'event_risks': [{'title': 'Bank Indonesia July policy meeting is live event risk', 'date': '2026-07-21', 'category': 'EVENT_RISK'}], 'entry_trigger': 18000, 'trade_invalidation': 17600, 'reference_target': 18600, 'rr': 1.5, 'freshness': 'CURRENT', 'semantics': 'Pair-specific research state; not an autonomous order or calibrated probability.'}"
+    },
+    {
+      "name": "price_only_never_triggered",
+      "passed": true,
+      "detail": "[{'pair': 'DX-Y.NYB', 'orientation': 'SHORT', 'state': 'PRICE_ONLY_SHORT', 'research_action': 'WATCH SHORT \u00b7 PRICE ONLY', 'capital_permission': 'BLOCKED', 'reason': 'Direction is only price context; no independent macro/positioning confirmation.', 'driver_coverage': 1, 'driver_total': 4, 'drivers': [{'driver': 'price', 'sign': -1, 'state': 'OBSERVED', 'evidence': ['20D -1.10%', '5D -0.40%']}], 'event_risks': [], 'entry_trigger': None, 'trade_invalidation': None, 'reference_target': None, 'rr': None, 'freshness': 'CURRENT', 'semantics': 'Pair-specific research state; not an autonomous order or calibrated probability.'}]"
+    },
+    {
+      "name": "no_aggregate_fx_call",
+      "passed": true,
+      "detail": "There is no single FX long/short state. Every pair is scored separately and price-only direction cannot trigger a trade watch."
+    },
+    {
+      "name": "crypto_structural_coverage",
+      "passed": true,
+      "detail": "['BROKER_DEFI_CONVERGENCE', 'ONCHAIN_YIELD_AND_AGENTIC_EXECUTION', 'PREDICTION_MARKETS', 'REGULATION', 'STABLECOIN_POLICY', 'TOKENIZED_SECURITIES']"
+    },
+    {
+      "name": "developments_have_dates_sources",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "developments_no_direction",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "freshness_computed",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "radar_primary_sources",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "radar_human_review_semantics",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "sec_user_agent_gate",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "radar_bounded_http",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "five_market_adapters",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "capital_blocked",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "crypto_doctrine_expanded",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "all_markets_developments_field",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "all_markets_research_only",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "browser_page_errors",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "browser_board_default",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "browser_fx_matrix",
+      "passed": true,
+      "detail": "['INSTRUMENT', 'STATE / ACTION', 'ORIENTATION', 'EVIDENCE', 'TRIGGER / STOP', 'WHY / NEXT RISK', 'FRESHNESS']"
+    },
+    {
+      "name": "browser_map_drilldown",
+      "passed": true,
+      "detail": "7"
+    },
+    {
+      "name": "browser_evidence_mode",
+      "passed": true,
+      "detail": "6"
+    },
+    {
+      "name": "browser_crypto_developments",
+      "passed": true,
+      "detail": "6"
+    }
+  ],
+  "release_posture": "OPERATIONAL DECISION-INTELLIGENCE OS; CAPITAL BLOCKED; PREDICTIVE EDGE NOT PROVEN BY THIS SUITE",
+  "not_verified": [
+    "paid-provider credentials and entitlements",
+    "complete point-in-time datasets for all markets",
+    "market-specific WFA/lockbox/prospective performance for every component",
+    "guaranteed completeness of all future public developments",
+    "autonomous order execution"
+  ]
+}

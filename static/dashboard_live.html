@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>WAR ROOM OS — Capital Intelligence Map</title>
+<title>WAR ROOM OS — Decision Intelligence</title>
 <style>
 :root{
   --bg:#050811;--bg2:#070c17;--panel:#0a101e;--panel2:#0d1526;--line:#1b2a43;
@@ -33,6 +33,12 @@ button,input,select{font:inherit}.mono{font-family:var(--mono)}
 #graph{height:calc(100% - 38px);min-height:390px;position:relative;z-index:1}#graph svg{display:block;width:100%;height:100%}.edge{fill:none;stroke:#2a4265;opacity:.55}.edge.active{opacity:.9;stroke-dasharray:8 13;animation:none}.edge.constructive{stroke:var(--green)}.edge.destructive{stroke:var(--mag)}.edge.watch{stroke:var(--amber)}.edge.observed{filter:drop-shadow(0 0 4px currentColor)}.edge.inferred{stroke-dasharray:4 8;animation:none}.edge.structural{stroke:var(--purple);opacity:.35}.edge-label{fill:#65748d;font:9px var(--mono)}@keyframes flow{to{stroke-dashoffset:-42}}
 .node{cursor:pointer;transition:none}.node:hover{filter:brightness(1.25)}.node-box{fill:#0b1425;stroke:#28405e;stroke-width:1}.node.selected .node-box{stroke:var(--white);stroke-width:1.5;filter:drop-shadow(0 0 8px rgba(255,255,255,.25))}.node.constructive .node-box{stroke:rgba(54,242,139,.7);filter:drop-shadow(0 0 8px rgba(54,242,139,.12))}.node.destructive .node-box{stroke:rgba(255,79,163,.75);filter:drop-shadow(0 0 8px rgba(255,79,163,.13))}.node.watch .node-box{stroke:rgba(255,209,102,.65)}.node.no_data{opacity:.48}.node.structural .node-box{stroke:rgba(169,122,255,.6);stroke-dasharray:5 4}.node-title{fill:var(--text);font:700 10.5px var(--mono)}.node-sub{fill:#718099;font:8.5px var(--mono)}.node-value{fill:var(--cyan);font:700 9.5px var(--mono)}.node.constructive .node-value{fill:var(--green)}.node.destructive .node-value{fill:var(--mag)}.node.watch .node-value{fill:var(--amber)}.node-badge{fill:#111e32;stroke:#2a405e}.node-badge-text{fill:#8090aa;font:7.5px var(--mono)}
 .rail{display:flex;flex-direction:column;min-height:410px}.rail-body{padding:11px;overflow:auto}.location{border:1px solid rgba(69,215,255,.22);background:linear-gradient(135deg,rgba(69,215,255,.08),rgba(169,122,255,.04));padding:10px;margin-bottom:10px}.location .eyebrow{font:8px var(--mono);letter-spacing:.13em;color:var(--cyan)}.location .main{font:700 13px var(--mono);margin-top:5px;line-height:1.35}.location .desc{font-size:11px;color:var(--muted);line-height:1.45;margin-top:5px}.decision-row{padding:8px 2px;border-bottom:1px solid rgba(27,42,67,.7)}.decision-row:last-child{border-bottom:0}.decision-label{font:8px var(--mono);letter-spacing:.1em;color:var(--faint);text-transform:uppercase}.decision-value{font:10.5px var(--mono);line-height:1.45;margin-top:3px;color:var(--text)}.decision-value.green{color:var(--green)}.decision-value.mag{color:var(--mag)}.decision-value.amber{color:var(--amber)}.confidence{margin-top:5px;height:5px;background:#111c2e;overflow:hidden}.confidence i{height:100%;display:block;background:linear-gradient(90deg,var(--mag),var(--amber),var(--green))}
+
+.view-divider{width:1px;background:var(--line);margin:0 2px}.layout-seg{border:1px solid var(--line);background:#08101e;color:var(--muted);padding:5px 8px;font:9px var(--mono);cursor:pointer}.layout-seg.active{color:var(--green);border-color:rgba(54,242,139,.45);background:rgba(54,242,139,.07)}
+.decision-board{height:100%;overflow:auto;padding:12px;position:relative;z-index:2;background:linear-gradient(180deg,rgba(5,9,18,.52),rgba(5,9,18,.9))}.board-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:10px}.board-kpi{border:1px solid var(--line);background:#091222;padding:9px;min-width:0}.board-kpi .k{font:8px var(--mono);letter-spacing:.1em;color:var(--faint)}.board-kpi .v{font:700 12px/1.35 var(--mono);margin-top:5px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.board-kpi .d{font:9px/1.35 var(--mono);color:var(--muted);margin-top:4px}.board-section{border:1px solid var(--line);margin-top:9px;background:rgba(7,13,24,.78)}.board-section-head{height:32px;display:flex;align-items:center;gap:8px;padding:0 9px;border-bottom:1px solid var(--line);font:700 9px var(--mono);letter-spacing:.09em;color:var(--muted)}.board-section-head span{margin-left:auto;color:var(--faint);font-weight:400}.decision-table{width:100%;border-collapse:collapse;table-layout:fixed;font:9px var(--mono)}.decision-table th{position:sticky;top:0;background:#0a1323;color:var(--faint);text-align:left;padding:7px 8px;border-bottom:1px solid var(--line);letter-spacing:.06em}.decision-table td{padding:8px;border-bottom:1px solid rgba(27,42,67,.62);vertical-align:top;color:var(--muted);overflow-wrap:anywhere}.decision-table tr:last-child td{border-bottom:0}.decision-table td:first-child{color:var(--white);font-weight:700}.decision-table .action{font-weight:700}.decision-table .action.long{color:var(--green)}.decision-table .action.short{color:var(--mag)}.decision-table .action.neutral{color:var(--amber)}.decision-table .action.blocked{color:var(--faint)}.coverage-mini{height:4px;background:#111c2e;margin-top:5px}.coverage-mini i{display:block;height:100%;background:linear-gradient(90deg,var(--mag),var(--amber),var(--green))}.dev-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;padding:9px}.dev-card{border:1px solid rgba(169,122,255,.3);background:rgba(169,122,255,.045);padding:9px;min-width:0}.dev-card .cat{font:8px var(--mono);color:var(--purple);letter-spacing:.08em}.dev-card b{display:block;font:700 10px/1.35 var(--mono);margin-top:5px}.dev-card p{font:9px/1.42 var(--mono);color:var(--muted);margin:5px 0 0}.dev-card .fresh{font:8px var(--mono);color:var(--green);margin-top:7px}.evidence-mode{padding:10px;height:100%;overflow:auto}.evidence-mode .research-dock{grid-template-columns:repeat(3,minmax(0,1fr))}.canvas-card.board-active:before{opacity:.25}.research-dock.hidden{display:none}.page.board-layout{grid-template-rows:minmax(470px,1fr) 0 198px}.page.evidence-layout{grid-template-rows:minmax(430px,1fr) 142px 198px}
+@media(max-width:1180px){.board-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.dev-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:760px){.board-kpis,.dev-grid{grid-template-columns:1fr}.decision-table{min-width:900px}.view-actions{overflow-x:auto}.view-divider{display:none}}
+
 .research-dock{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:8px;min-height:132px}.research-card{border:1px solid var(--line);background:linear-gradient(180deg,rgba(11,18,34,.88),rgba(6,11,21,.94));padding:9px 10px;min-width:0;overflow:hidden}.research-card .rk{font:8px var(--mono);letter-spacing:.1em;color:var(--faint);text-transform:uppercase}.research-card .rv{font:700 9.5px/1.35 var(--mono);color:var(--text);margin-top:5px}.research-card .rd{font:9px/1.42 var(--mono);color:var(--muted);margin-top:5px;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}.research-card.constructive{border-color:rgba(54,242,139,.28)}.research-card.watch{border-color:rgba(255,209,102,.28)}.research-card.destructive{border-color:rgba(255,79,163,.30)}.research-card.no_data{opacity:.62}.epistemic-row{display:flex;gap:5px;flex-wrap:wrap;margin-top:8px}.epistemic{font:7.5px var(--mono);padding:2px 5px;border:1px solid var(--line);color:var(--faint)}.epistemic.on{color:var(--cyan);border-color:rgba(69,215,255,.34)}
 .lower{display:grid;grid-template-columns:1.15fr .85fr;gap:10px;min-height:188px}.panel-body{padding:8px 10px;height:148px;overflow:auto}.ledger{display:grid;gap:5px}.ledger-row{display:grid;grid-template-columns:90px minmax(110px,.7fr) minmax(180px,1.5fr) 76px;gap:8px;align-items:center;border-bottom:1px solid rgba(27,42,67,.65);padding:5px 2px;font:9.5px var(--mono)}.ledger-row:last-child{border-bottom:0}.ledger-time{color:var(--faint)}.ledger-ticker{color:var(--white);font-weight:700}.ledger-desc{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.state-tag{justify-self:end;padding:2px 5px;border:1px solid var(--line);color:var(--faint);font-size:8px}.state-tag.live,.state-tag.constructive{color:var(--green);border-color:rgba(54,242,139,.3)}.state-tag.watch,.state-tag.partial{color:var(--amber);border-color:rgba(255,209,102,.3)}.state-tag.destructive,.state-tag.error{color:var(--mag);border-color:rgba(255,79,163,.3)}
 .queue{display:grid;gap:5px}.queue-item{display:grid;grid-template-columns:34px 1fr auto;gap:8px;align-items:center;padding:6px;border:1px solid rgba(27,42,67,.75);background:rgba(10,17,31,.58)}.queue-rank{font:700 12px var(--mono);color:var(--cyan);text-align:center}.queue-main b{font:700 10px var(--mono)}.queue-main div{font:9px var(--mono);color:var(--faint);margin-top:2px}.queue-score{font:700 11px var(--mono);color:var(--green)}
@@ -40,7 +46,7 @@ button,input,select{font:inherit}.mono{font-family:var(--mono)}
 .empty{display:grid;place-items:center;height:100%;min-height:260px;text-align:center;padding:20px}.empty .code{font:700 17px var(--mono);color:var(--faint)}.empty p{max-width:560px;color:var(--muted);font-size:11px;line-height:1.55}.empty b{color:var(--amber)}
 .drawer-backdrop{position:fixed;inset:0;background:rgba(1,3,8,.7);backdrop-filter:blur(3px);z-index:30;display:none}.drawer-backdrop.open{display:block}.drawer{position:absolute;right:0;top:0;height:100%;width:min(510px,92vw);background:#070c16;border-left:1px solid var(--line);overflow:auto}.drawer-head{position:sticky;top:0;display:flex;align-items:center;gap:8px;padding:12px;border-bottom:1px solid var(--line);background:rgba(7,12,22,.96);z-index:2}.drawer-head b{font:700 14px var(--mono)}.drawer-close{margin-left:auto;background:transparent;border:1px solid var(--line);color:var(--muted);padding:4px 8px;cursor:pointer}.drawer-body{padding:12px}.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.detail-cell{border:1px solid var(--line);padding:8px;background:#0a111f}.detail-cell .k{font:8px var(--mono);color:var(--faint);text-transform:uppercase;letter-spacing:.08em}.detail-cell .v{font:10px var(--mono);margin-top:5px;word-break:break-word}.raw{margin-top:10px;white-space:pre-wrap;font:9px/1.5 var(--mono);color:#77869f;border:1px solid var(--line);background:#050a13;padding:9px;max-height:420px;overflow:auto}
 @media(max-width:1180px){.research-dock{grid-template-columns:repeat(3,minmax(0,1fr))}.page{grid-template-rows:minmax(400px,1fr) auto auto}}
-@media(max-width:1050px){.shell{grid-template-columns:166px minmax(0,1fr)}.workspace{grid-template-columns:minmax(0,1fr) 270px}.search{display:none}.lower{grid-template-columns:1fr}.page{grid-template-rows:minmax(400px,1fr) auto auto}.panel-body{height:160px}}
+@media(max-width:1050px){.shell{grid-template-columns:166px minmax(0,1fr)}.workspace{grid-template-columns:minmax(0,1fr) 270px}.search{display:none}.lower{grid-template-columns:1fr}.page{grid-template-rows:minmax(400px,1fr) auto}.panel-body{height:160px}}
 @media(max-width:760px){html,body{overflow:auto}#app{height:auto;min-height:100%;grid-template-rows:48px auto 39px}.shell{display:block}.sidebar{display:flex;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding:4px}.nav-group,.sidebar-foot{display:none}.nav-item{width:auto;white-space:nowrap;border-left:0;border-bottom:2px solid transparent}.nav-item.active{border-bottom-color:var(--cyan)}.content{overflow:visible}.viewbar{grid-template-columns:1fr auto;height:auto;min-height:70px;padding:7px}.subnav{grid-column:1/-1}.page{display:block;overflow:visible}.research-dock{grid-template-columns:1fr 1fr;margin-top:10px}.workspace{display:block}.rail{margin-top:10px}.lower{margin-top:10px}.canvas-card{height:480px}.top-metrics{display:none}}
 </style>
 </head>
@@ -48,14 +54,14 @@ button,input,select{font:inherit}.mono{font-family:var(--mono)}
 <script>/*__INJECT_DATA__*/</script>
 <div id="app">
   <header class="topbar">
-    <div class="brand"><div class="brandmark">W</div><div><div class="brandname">WAR ROOM <b>OS</b></div><div class="brandver">RESEARCH-FIRST DECISION OS · v3.2</div></div></div>
+    <div class="brand"><div class="brandmark">W</div><div><div class="brandname">WAR ROOM <b>OS</b></div><div class="brandver">DECISION-INTELLIGENCE OS · v3.3</div></div></div>
     <div class="top-metrics" id="topMetrics"></div>
     <span id="dataSync" class="top-chip">SYNC <b>BOOTING</b></span><input class="search" id="search" placeholder="SEARCH TICKER / THEME / EVENT" />
   </header>
   <div class="shell">
     <aside class="sidebar" id="sidebar"></aside>
     <section class="content">
-      <div class="viewbar"><div class="view-ident"><div class="view-title" id="viewTitle"></div><div class="view-sub" id="viewSub"></div></div><div class="subnav" id="subnav"></div><div class="view-actions"><button class="seg active" data-mode="observed">OBSERVED</button><button class="seg" data-mode="all">ALL LAYERS</button></div></div>
+      <div class="viewbar"><div class="view-ident"><div class="view-title" id="viewTitle"></div><div class="view-sub" id="viewSub"></div></div><div class="subnav" id="subnav"></div><div class="view-actions"><button class="layout-seg active" data-layout="board">BOARD</button><button class="layout-seg" data-layout="map">MAP</button><button class="layout-seg" data-layout="evidence">EVIDENCE</button><span class="view-divider"></span><button class="seg active" data-mode="observed">OBSERVED</button><button class="seg" data-mode="all">ALL LAYERS</button></div></div>
       <main class="page">
         <div class="workspace">
           <section class="card canvas-card"><div class="card-head"><h3 id="canvasTitle">CAPITAL MAP</h3><span class="meta" id="canvasMeta"></span><div class="right" id="canvasBadges"></div></div><div id="graph"></div></section>
@@ -64,7 +70,7 @@ button,input,select{font:inherit}.mono{font-family:var(--mono)}
         <section class="research-dock" id="researchDock"></section>
         <div class="lower">
           <section class="card"><div class="card-head"><h3 id="ledgerTitle">EVIDENCE LEDGER</h3><span class="meta" id="ledgerMeta"></span></div><div class="panel-body" id="ledger"></div></section>
-          <section class="card"><div class="card-head"><h3 id="queueTitle">ACTION / RESEARCH QUEUE</h3><span class="meta" id="queueMeta"></span></div><div class="panel-body" id="queue"></div></section>
+          <section class="card"><div class="card-head"><h3 id="queueTitle">DECISION QUEUE</h3><span class="meta" id="queueMeta"></span></div><div class="panel-body" id="queue"></div></section>
         </div>
       </main>
     </section>
@@ -122,13 +128,13 @@ const WORKSPACES = [
 const VIEW_TO_WORKSPACE=Object.fromEntries(WORKSPACES.flatMap(w=>w.views.map(v=>[v[0],w.id])));
 const savedState=(()=>{try{return JSON.parse(localStorage.getItem('warroom_ui_state')||'{}')}catch(_){return {}}})();
 const savedView=VIEW_TO_WORKSPACE[savedState.view]?savedState.view:'mc';
-let state={workspace:VIEW_TO_WORKSPACE[savedView]||'mission',view:savedView,mode:savedState.mode||'observed',selected:null,selectedTicker:savedState.selectedTicker||null,search:''};
-function persistState(){try{localStorage.setItem('warroom_ui_state',JSON.stringify({workspace:state.workspace,view:state.view,mode:state.mode,selectedTicker:state.selectedTicker}))}catch(_){}}
+let state={workspace:VIEW_TO_WORKSPACE[savedView]||'mission',view:savedView,mode:savedState.mode||'observed',layout:savedState.layout||'board',selected:null,selectedTicker:savedState.selectedTicker||null,search:''};
+function persistState(){try{localStorage.setItem('warroom_ui_state',JSON.stringify({workspace:state.workspace,view:state.view,mode:state.mode,layout:state.layout,selectedTicker:state.selectedTicker}))}catch(_){}}
 function activeWorkspace(){return WORKSPACES.find(w=>w.id===state.workspace)||WORKSPACES[0];}
 
 function renderSidebar(){
  const counts={opportunities:arr(D.alpha).length,positioning:arr(obj(D.institutional).events).length+arr(LI.events).length,markets:Object.values(obj(D.markets)).reduce((a,m)=>a+arr(m?.setups).length,0),research:Object.keys(obj(D.grades)).length};
- setHTML('sidebar',`<div class="nav-group">DECISION WORKSPACES</div>${WORKSPACES.map(w=>`<button class="nav-item ${state.workspace===w.id?'active':''}" data-workspace="${w.id}"><span class="ico">${w.ico}</span>${w.label}${counts[w.id]?`<span class="nav-badge">${counts[w.id]}</span>`:''}</button>`).join('')}<div class="sidebar-foot"><div class="label">NON-NEGOTIABLE</div><div class="value">Missing feed = NO DATA.<br>Observed ≠ inferred.<br>No prospective proof = capital blocked.<br>Research must beat a strong baseline.</div></div>`);
+ setHTML('sidebar',`<div class="nav-group">DECISION WORKSPACES</div>${WORKSPACES.map(w=>`<button class="nav-item ${state.workspace===w.id?'active':''}" data-workspace="${w.id}"><span class="ico">${w.ico}</span>${w.label}${counts[w.id]?`<span class="nav-badge">${counts[w.id]}</span>`:''}</button>`).join('')}<div class="sidebar-foot"><div class="label">NON-NEGOTIABLE</div><div class="value">Observed ≠ inferred.<br>No prospective proof = capital blocked.<br>Research must beat a strong baseline.</div></div>`);
  document.querySelectorAll('.nav-item').forEach(b=>b.onclick=()=>{const w=WORKSPACES.find(x=>x.id===b.dataset.workspace);if(!w)return;state.workspace=w.id;if(!w.views.some(v=>v[0]===state.view))state.view=w.views[0][0];state.selected=null;persistState();render();});
 }
 function renderSubnav(){
@@ -149,6 +155,7 @@ function renderTop(){
   `INSTITUTIONAL <b>${esc(inst.overall_state||'NOT_LOADED')}</b>`,
   `DERIVATIVES <b>${esc(li.overall_state||'NOT_LOADED')}</b>`,
   `FULL STACK <b>${esc(FLD.overall_state||'NOT_LOADED')}</b>`,
+  `RADAR <b>${esc(String(obj(obj(D.current_developments).official_source_radar).changed_unreviewed||0))} REVIEW · ${esc(String(obj(D.current_developments).fresh_count||0))} FRESH</b>`,
   `UPDATED <b>${esc(timeLabel(obj(D.meta).generated))}</b>`
  ];
  setHTML('topMetrics',chips.map(x=>`<div class="top-chip">${x}</div>`).join(''));
@@ -178,6 +185,7 @@ function coverageFor(tab){return obj(obj(FLD.tab_coverage)[tab]);}
 function coverageRows(tab){return arr(coverageFor(tab).provider_statuses).map(x=>({time:x.fetched_at||FLD.generated,ticker:x.provider,desc:`${x.dataset} · ${x.note||''}`,state:x.state,raw:x}));}
 function coverageLabel(tab){const c=coverageFor(tab);return Object.keys(c).length?`${c.state||'NO_DATA'} · ${c.live||0} live · ${c.optional_missing||0} optional enrichment missing`:'NO COVERAGE CONTRACT';}
 function providerStatus(providerPattern,datasetPattern=''){return arr(FLD.statuses).find(x=>new RegExp(providerPattern,'i').test(String(x.provider||''))&&(!datasetPattern||new RegExp(datasetPattern,'i').test(String(x.dataset||''))))||null;}
+function providerMatches(event,status){const ep=String(event?.provider||event?.source||event?.venue||'').toLowerCase(),ed=String(event?.dataset||event?.event_type||'').toLowerCase(),sp=String(status?.provider||'').toLowerCase(),sd=String(status?.dataset||'').toLowerCase();return Boolean((ep&&sp&&(ep.includes(sp)||sp.includes(ep)))||(ed&&sd&&(ed.includes(sd)||sd.includes(ed))));}
 function latestFundamental(ticker){return arr(FLD.sec_fundamentals).find(x=>String(x.ticker||'').toUpperCase()===String(ticker||'').toUpperCase())||null;}
 function breadthFor(id){return obj(obj(D.market_breadth)[id]);}
 function bestAvailabilityStatus(statuses, fallback='NO_DATA'){
@@ -285,33 +293,6 @@ function marketPosture(marketId,bias){
  if(bd==='long')return 'LONG BIAS';
  if(bd==='short')return 'SHORT BIAS';
  return 'NO TRADE / TWO-SIDED WATCH';
-}
-function providerMatches(status,event){
- const s=obj(status),e=obj(event);
- const sp=String(s.provider||'').toLowerCase(), ep=String(e.provider||e.source||'').toLowerCase();
- const sd=String(s.dataset||'').toLowerCase(), ed=String(e.dataset||e.event_type||'').toLowerCase();
- if(sp&&ep&&(sp.includes(ep)||ep.includes(sp)))return true;
- if(sd&&ed&&(sd.includes(ed)||ed.includes(sd)))return true;
- return false;
-}
-function eventDescription(e){
- const x=obj(e);
- const explicit=x.description||x.note||x.summary||x.filing_description||x.title;
- if(explicit)return String(explicit);
- const parts=[];
- if(x.event_type||x.dataset)parts.push(String(x.event_type||x.dataset));
- if(x.side)parts.push(`side ${x.side}`);
- if(x.premium!==undefined)parts.push(`premium ${money(x.premium)}`);
- if(x.notional!==undefined)parts.push(`notional ${money(x.notional)}`);
- if(x.form)parts.push(`form ${x.form}`);
- if(x.entity)parts.push(`entity ${x.entity}`);
- parts.push('observed event; intent is not inferred');
- return parts.join(' · ');
-}
-function eventState(e){
- const x=obj(e), explicit=String(x.state||'').toUpperCase();
- if(explicit)return explicit;
- return 'OBSERVED';
 }
 function headroomPercentLabel(value){
  const x=String(value||'?').replace(/\s/g,'');
@@ -458,8 +439,8 @@ function modelAlpha(){
  const timed=enriched.filter(x=>x.mapped&&x.price_loaded).sort((a,b)=>(num(b.asymmetry)||0)-(num(a.asymmetry)||0)).slice(0,2);
  const candidateRows=[...extreme,...multiBag,...timed,...enriched.filter(x=>x.mapped&&x.hidden).slice(0,5)].filter((x,i,a)=>a.findIndex(y=>y.ticker===x.ticker)===i).slice(0,5);
  const candidates=candidateRows.map((a,i)=>node('a_c_'+i,a.ticker,
-  `${a.upside||'?'} · ${a.headroomPct}`,
-  `${a.action} · A${Math.round(num(a.asymmetry)||0)} · ${String(a.base_rate||'?').toUpperCase()}`,
+  `STRUCTURAL CLASS · ${a.proofState}`,
+  `${a.action} · EVIDENCE ${a.evidenceCount}/3`,
   a.active?actionState(a.action):'watch',a.mapped?'structural':'observed',{raw:a,market:a.market,w:194}));
  const g=layered([[universe],[asym,proof,timing],candidates]);
  g.edges.push(edge(universe.id,asym.id,'watch','structural','map scarcity',1.6,{relation:'structural_screen'}));
@@ -468,23 +449,22 @@ function modelAlpha(){
  candidates.forEach(n=>g.edges.push(edge(timing.id,n.id,n.state,'inferred','candidate state',1.3,{active:n.raw.active,relation:'candidate_timing'})));
  const lead=candidateRows[0]||enriched.find(x=>x.mapped&&x.hidden)||enriched[0];
  return {title:'ALPHA CENTER',sub:'Extreme-upside discovery: bottleneck, value capture, expectation gap and room-to-run. Tactical timing is only the last layer—not the definition of alpha.',canvas:'EXTREME ALPHA RADAR',badges:['structural','observed','inferred'],graph:g,
-  rail:{...basicRail(`${lead.ticker} · ${lead.upside||'?'} HEADROOM CLASS`,
-   `${lead.node||'Unclassified candidate'}. ${lead.upside||'?'} equals ${lead.headroomPct}; this is scenario headroom, not a target or probability.`,
+  rail:{...basicRail(`${lead.ticker} · STRUCTURAL RESEARCH CLASS`,
+   `${lead.node||'Unclassified candidate'}. Numeric upside classes are withheld from the decision surface until a point-in-time value-capture model exists.`,
    `Universe ${enriched.length} · mapped ${mappedCount} · hidden ${hiddenCount} · proof ${proofCount} · live timing ${timingCount}.`,
    lead.action==='NO TIMING'?`Prove direct value capture, expectation gap and remaining return; then wait for a separate timing signal.`:`Prove direct value capture, expectation gap and remaining return; use ${lead.action} only as timing context.`,
    `Most high-headroom candidates fail, dilute, become crowded or never capture the bottleneck.`,
    `Kill on broken mechanism, substitution, dilution, missing proof or price invalidation.`,
    'Structural thesis: quarters/years · timing: setup-specific',Math.min(80,25+lead.evidenceCount*20+(lead.active?15:0)),'RESEARCH EXTREME ALPHA → THEN TIME ENTRY'),confidenceLabel:'EVIDENCE COMPLETENESS'},
   ledger:enriched.slice(0,40).map(a=>({time:obj(D.meta).generated,ticker:a.ticker,desc:`${a.domain||'unclassified'} · ${a.node||'mapping required'} · headroom ${a.upside} / base rate ${a.base_rate} · asymmetry A${Math.round(num(a.asymmetry)||0)} · ${a.proofState} · ${a.action}`,state:a.active?actionState(a.action):'RESEARCH',raw:a})),
-  queue:enriched.slice(0,12).map(a=>({ticker:a.ticker,score:num(a.asymmetry)||0,why:`${a.upside} headroom · ${a.base_rate} base rate · ${a.proofState}`,stage:a.action==='NO TIMING'?'STRUCTURAL RESEARCH':a.action}))};
+  queue:enriched.slice(0,12).map(a=>({ticker:a.ticker,score:num(a.asymmetry)||0,why:`${a.proofState} · value capture and remaining return unassessed`,stage:a.action==='NO TIMING'?'STRUCTURAL RESEARCH':a.action}))};
 }
 
 function modelInstitutional(){
  const I=obj(D.institutional), statuses=arr(I.statuses), events=arr(I.events);
  const active=statuses.filter(x=>['LIVE','STALE','NO_SIGNAL'].includes(String(x.state||'').toUpperCase()));
  const required=statuses.filter(x=>['ACTION_REQUIRED','NOT_ENTITLED','NOT_CONFIGURED'].includes(String(x.state||'').toUpperCase()));
- const sourceLinked=events.filter(e=>statuses.some(s=>providerMatches(s,e))).length;
- const source=node('inst_sources','SOURCE COVERAGE',`${active.length} active · ${sourceLinked}/${events.length} events source-linked`,active.length?'PARTIAL':'ACTION REQUIRED',active.length?'watch':'ACTION_REQUIRED','observed',{raw:statuses,w:210});
+ const source=node('inst_sources','SOURCE COVERAGE',`${active.length} active · ${required.length} require access`,active.length?'PARTIAL':'ACTION REQUIRED',active.length?'watch':'ACTION_REQUIRED','observed',{raw:statuses,w:210});
  const secRow=statuses.find(x=>/SEC/i.test(`${x.provider||''} ${x.dataset||''}`));
  const sec=node('inst_sec','SEC EDGAR','Form 4 · 13D/G · 8-K',secRow?.state||'ACTION_REQUIRED',secRow?.state||'ACTION_REQUIRED','observed',{raw:secRow||{},w:190});
  const ev=node('inst_events','OBSERVED EVENTS',`${events.length} current records`,events.length?'LIVE':'NO SIGNAL',events.length?'constructive':'NO_SIGNAL','observed',{raw:events,w:190});
@@ -500,7 +480,7 @@ function modelInstitutional(){
  const lead=events[0];
  return {title:'INSTITUTIONAL POSITIONING',sub:'Canvas shows usable evidence domains, not a wall of provider errors. Provider entitlement and error details stay in the ledger.',canvas:'INSTITUTIONAL EVIDENCE MAP',badges:['observed','inferred'],graph:g,
   rail:basicRail(lead?`${lead.ticker} · VERIFY INSTITUTIONAL INTENT`:(required.length?'DATA ACCESS REQUIRED':'NO INSTITUTIONAL CLUSTER'),lead?eventDescription(lead):`${active.length} active sources; ${required.length} require configuration or entitlement.`, `Observed events ${events.length}. Active feeds ${active.length}.`,`Require repetition, next-day OI/ownership reconciliation and price response.`,`Single prints, hedges, rolls, custody and market-maker inventory can be noise.`,`Invalidate when follow-through or independent evidence fails.`,'Seconds to quarters by source',lead?45:0,lead?'WATCH / VERIFY — NOT AUTOMATIC BUY':'CONFIGURE SOURCES / NO TRADE'),
-  ledger:[...events.slice(0,30).map(e=>({time:e.timestamp,ticker:e.ticker,desc:eventDescription(e),state:eventState(e),raw:e})),...statuses.map(x=>({time:x.fetched_at,ticker:x.provider,desc:`${x.dataset} · ${x.note}`,state:x.state,raw:x}))],queue:tickerNames.map(t=>({ticker:t,score:events.filter(e=>e.ticker===t).length*10,why:'Observed event cluster; intent not inferred',stage:'VERIFY'}))};
+  ledger:[...events.slice(0,30).map(e=>{const matched=statuses.filter(st=>providerMatches(e,st)).map(st=>st.provider).filter(Boolean);return {time:e.timestamp,ticker:e.ticker,desc:`${eventDescription(e)}${matched.length?' · source '+matched.join('/'):' · source lineage unresolved'}`,state:eventState(e),raw:e};}),...statuses.map(x=>({time:x.fetched_at,ticker:x.provider,desc:`${x.dataset} · ${x.note}`,state:x.state,raw:x}))],queue:tickerNames.map(t=>({ticker:t,score:events.filter(e=>e.ticker===t).length*10,why:'Observed event cluster; intent not inferred',stage:'VERIFY'}))};
 }
 
 function derivativeLedgerRows(kind='all'){
@@ -562,7 +542,10 @@ function modelMarket(id,title){
  const top=aligned[0]||allSetups[0], topAction=top?executionAction(id,m.bias,top):'NO TRADE';
  const watchText=candidatePool.slice(0,4).map(s=>`${s.tk} ${executionAction(id,m.bias,s)}`).join(' · ')||'No watchlist candidate.';
  const special=id==='idx'?'IHSG is cash long-only: bearish context means reduce/avoid or wait, never open a short.':id==='crypto'?'Crypto actions require venue/liquidity and derivatives confirmation.':'Action labels distinguish build, directional watch and no-trade states.';
- return {title,sub:special,canvas:`${title} ACTION MAP`,badges:['observed','inferred'],graph:g,
+ const devRows=arr(obj(obj(D.current_developments).by_market)[id]).filter(x=>x.freshness==='FRESH');
+ const boardRows=allSetups.map(s=>{const a=executionAction(id,m.bias,s);return {instrument:s.tk,orientation:/SHORT/.test(a)?'SHORT':/LONG/.test(a)?'LONG':'NEUTRAL',action:a,state:actionState(a),why:s.why,coverage:num(s.conv)||0,total:100,trigger:s.e,stop:s.s,target:s.t,freshness:obj(D.meta).generated,event:'',raw:s};});
+ return {title,sub:special,canvas:`${title} DECISION BOARD`,badges:['observed','inferred'],graph:g,
+  board:{kind:id,rows:boardRows,developments:devRows,title:`${title} ACTION MATRIX`,note:id==='crypto'?'Includes dated structural changes: brokerage/onchain convergence, tokenized assets, stablecoins, prediction markets, agentic execution and regulation.':'Actions remain research states until prospective promotion.'},
   rail:{...basicRail(`${title}: ${posture}`,
    top?`${top.tk} is currently ${topAction}. Readiness is not probability.`:`No current setup.`,
    `ACTION NOW: ${aligned.length&&top?topAction:'NO TRADE'}. Watchlist: ${watchText}`,
@@ -574,35 +557,30 @@ function modelMarket(id,title){
 }
 
 function modelFx(){
- const id='fx',m=marketObj(id),b=breadthFor(id),pairs=arr(b.constituents),deriv=marketDerivativeContext(id);
- const loaded=num(obj(m.funnel).universe)||num(b.coverage)||pairs.length;
- const spot=node('fx_spot','FX SPOT DATA',`${loaded} pairs loaded`,loaded?'LIVE':'NO_DATA',loaded?'constructive':'NO_DATA','observed',{raw:{market:m,breadth:b}});
- const dxyRow=pairs.find(x=>String(x.ticker||'').toUpperCase()==='DX-Y.NYB');
- const usd=node('fx_usd','USD / DXY CONTEXT',dxyRow?`20D ${pct(dxyRow.ret_20d)} · 5D ${pct(dxyRow.ret_5d)}`:'DXY series unavailable',dxyRow?'PRICE CONTEXT':'PARTIAL',dxyRow?'watch':'PARTIAL','observed',{raw:dxyRow||{}});
- const cov=num(m.driver_coverage)||0,total=num(m.driver_total)||3;
- const macroReady=String(m.bias_state||'').toUpperCase()==='LIVE'&&cov>=2&&String(m.bias||'').toUpperCase()!=='NO_DATA'&&String(m.bias||'').trim()!=='';
- const macro=node('fx_macro','MACRO-RELATIVE MODEL',`${cov}/${total} driver families available`,macroReady?(m.bias||'AVAILABLE'):'INCOMPLETE',macroReady?m.bias:'ACTION_REQUIRED','inferred',{raw:m});
+ const id='fx',m=marketObj(id),b=breadthFor(id),fxs=obj(D.fx_pair_states),rows=arr(fxs.pairs),deriv=marketDerivativeContext(id);
+ const loaded=rows.length||num(obj(m.funnel).universe)||num(b.coverage)||0;
+ const triggered=rows.filter(x=>String(x.state||'').startsWith('TRIGGERED_WATCH'));
+ const watches=rows.filter(x=>['WATCH_LONG','WATCH_SHORT'].includes(String(x.state||'')));
+ const conflicts=rows.filter(x=>/CONFLICT|EVENT_RISK|PRICE_ONLY|NO_SIGNAL/.test(String(x.state||'')));
+ const spot=node('fx_spot','PAIR-SPECIFIC FX',`${loaded} pair states`,rows.length?'LIVE':'NO_DATA',rows.length?'constructive':'NO_DATA','observed',{raw:fxs});
+ const carryRows=rows.filter(x=>arr(x.drivers).some(d=>d.driver==='carry/rate differential'));
+ const carry=node('fx_carry','RATE / CARRY',`${carryRows.length}/${rows.length} pairs covered`,carryRows.length?'PARTIAL':'NO_DATA',carryRows.length?'watch':'NO_DATA','observed',{raw:carryRows});
  const cot=node('fx_cot',deriv.label,`${deriv.rows.length} normalized records`,deriv.state,deriv.state,'observed',{raw:deriv.rows});
- const pairNodes=pairs.filter(x=>String(x.ticker||'').toUpperCase()!=='DX-Y.NYB').slice(0,5).map((r,i)=>node('fx_pair_'+i,r.ticker,
-  `1D ${pct(r.ret_1d)} · 5D ${pct(r.ret_5d)}`,
-  `20D ${pct(r.ret_20d)} · PRICE ONLY`, 'watch','observed',{raw:r,ticker:r.ticker}));
- const gate=node('fx_gate','PAIR DIRECTION GATE',macroReady?'macro context available; require pair-specific confirmation':'spot/COT live; pair-specific macro differential missing',macroReady?'RESEARCH SIGNAL':'NO_SIGNAL',macroReady?'watch':'NO_SIGNAL','inferred',{raw:{macroReady,coverage:cov,total}});
- const last=pairNodes.length?pairNodes:[node('fx_none','NO FX SPOT SERIES','public price sources returned no pair history','NO_DATA','NO_DATA')];
- const g=layered([[spot,usd,macro,cot],last,[gate]]);
- if(edgeAllowed(spot,gate))g.edges.push(edge(spot.id,gate.id,'watch','inferred','price timing only',1.4,{relation:'price_context'}));
- if(edgeAllowed(macro,gate))g.edges.push(edge(macro.id,gate.id,'watch','inferred','rate / policy / external balance',1.8,{relation:'macro_relative_gate'}));
- if(edgeAllowed(cot,gate))g.edges.push(edge(cot.id,gate.id,'watch','inferred','positioning context',1.5,{relation:'positioning_context'}));
- pairNodes.forEach(n=>{if(edgeAllowed(spot,n))g.edges.push(edge(spot.id,n.id,'watch','observed','loaded pair',1.2,{relation:'spot_pair'}));});
- const lead=pairs.filter(x=>String(x.ticker||'').toUpperCase()!=='DX-Y.NYB').sort((a,b)=>Math.abs(num(b.ret_20d)||0)-Math.abs(num(a.ret_20d)||0))[0];
- return {title:'FX',sub:'FX is pair-specific. Spot prices and COT can be live while the macro-relative direction model remains incomplete; price-only direction is intentionally not promoted.',canvas:'FX RELATIVE-VALUE MAP',badges:['observed','inferred'],graph:g,
-  rail:basicRail(loaded?`FX SPOT LIVE · ${loaded} SERIES`:'FX NO DATA',
-   loaded?`Price history is loaded. Direction is withheld until rate differential, real-rate, central-bank, external-balance and positioning inputs are reconciled.`:'No spot history was returned by the public providers.',
-   `${lead?`${lead.ticker} has the largest absolute 20D move (${pct(lead.ret_20d)}), but this is price context only.`:'No pair context available'} COT/futures rows: ${deriv.rows.length}.`,
-   macroReady?'Build pair-specific relative-value evidence and check execution levels.':'Complete the macro-relative inputs; do not rescue the falsified price-only FX family.',
-   'Different pairs can move in opposite directions; there is no valid single aggregate FX long/short state.',
-   'Any pair signal invalidates when the rate/policy differential, positioning or price acceptance reverses.','Pair and catalyst specific',macroReady?45:10,'NO DIRECTIONAL TRADE FROM PRICE ALONE'),
-  ledger:[...pairs.slice(0,20).map(r=>({time:obj(D.meta).generated,ticker:r.ticker,desc:`PRICE CONTEXT ONLY · 1D ${pct(r.ret_1d)} · 5D ${pct(r.ret_5d)} · 20D ${pct(r.ret_20d)}`,state:'LIVE',raw:r})),...marketDerivativeLedger('fx'),...coverageRows('fx')],
-  queue:[]};
+ const eventRows=arr(obj(obj(D.current_developments).by_market).fx).filter(x=>x.freshness==='FRESH');
+ const events=node('fx_events','EVENT RISK',`${eventRows.length} fresh structural/policy items`,eventRows.length?'REVIEW':'NO_SIGNAL',eventRows.length?'watch':'NO_SIGNAL','observed',{raw:eventRows});
+ const pairNodes=rows.slice(0,6).map((r,i)=>node('fx_pair_'+i,r.pair,`${r.driver_coverage}/${r.driver_total} drivers · ${r.reason}`,r.research_action,normalizeState(r.state),'observed',{raw:r,ticker:r.pair,w:190}));
+ const gate=node('fx_gate','PAIR PERMISSION GATE','price-only never triggers; event risk downgrades',triggered.length?`${triggered.length} TRIGGERED WATCH`:'NO TRIGGERED WATCH',triggered.length?'watch':'NO_SIGNAL','inferred',{raw:fxs});
+ const last=pairNodes.length?pairNodes:[node('fx_none','NO FX PAIR STATES','spot/carry inputs unavailable','NO_DATA','NO_DATA')];
+ const g=layered([[spot,carry,cot,events],last,[gate]]);
+ [spot,carry,cot,events].forEach(n=>{if(edgeAllowed(n,gate))g.edges.push(edge(n.id,gate.id,'watch','inferred','pair gate',1.4,{relation:'pair_gate'}));});
+ pairNodes.forEach(n=>{if(edgeAllowed(spot,n))g.edges.push(edge(spot.id,n.id,n.state,'observed','pair state',1.2,{relation:'pair_state'}));});
+ const lead=triggered[0]||watches[0]||rows[0];
+ const boardRows=rows.map(r=>({instrument:r.pair,orientation:r.orientation,action:r.research_action,state:r.state,why:r.reason,coverage:r.driver_coverage,total:r.driver_total,trigger:r.entry_trigger,stop:r.trade_invalidation,target:r.reference_target,freshness:r.freshness,event:r.event_risks?.map(x=>x.title).join('; '),raw:r}));
+ return {title:'FX',sub:'No aggregate FX call. Every pair has an explicit LONG / SHORT / NEUTRAL / BLOCKED research state, driver coverage, event-risk gate, trigger and invalidation.',canvas:'FX PAIR DECISION BOARD',badges:['observed','inferred'],graph:g,
+  board:{kind:'fx',rows:boardRows,developments:eventRows,title:'PAIR-SPECIFIC FX STATES',note:'Price-only states are visible but cannot become triggered watches. Capital remains blocked.'},
+  rail:basicRail(lead?`${lead.pair}: ${lead.orientation} · ${lead.research_action}`:'FX: NO PAIR STATE',lead?`${lead.reason} Driver coverage ${lead.driver_coverage}/${lead.driver_total}.`:'No pair-specific evidence is loaded.',`Triggered ${triggered.length} · watches ${watches.length} · conflicted/blocked ${conflicts.length}.`,lead?`Trigger ${fmt(lead.entry_trigger)} · invalidation ${fmt(lead.trade_invalidation)} · reference ${fmt(lead.reference_target)}.`:'Load pair price and independent rate/carry inputs.',lead?.event_risks?.length?`Event risk: ${lead.event_risks.map(x=>x.title).join('; ')}`:'Different pairs can point in opposite directions; never apply one FX state to every pair.',lead?`Invalidate on driver disagreement, policy shock or price acceptance reversal.`:'No state, no invalidation.','Pair and catalyst specific',lead?Math.min(75,Math.round(100*lead.driver_coverage/Math.max(1,lead.driver_total))):0,lead?.research_action||'NO ACTION'),
+  ledger:[...rows.map(r=>({time:obj(D.meta).generated,ticker:r.pair,desc:`${r.research_action} · ${r.reason} · coverage ${r.driver_coverage}/${r.driver_total} · trigger ${fmt(r.entry_trigger)} / stop ${fmt(r.trade_invalidation)}`,state:r.state,raw:r})),...eventRows.map(x=>({time:x.date,ticker:x.category,desc:`${x.title} · ${x.why_it_matters}`,state:x.freshness,raw:x})),...marketDerivativeLedger('fx'),...coverageRows('fx')],
+  queue:[...triggered,...watches].slice(0,10).map(r=>({ticker:r.pair,score:25*r.driver_coverage,why:`${r.reason} · trigger ${fmt(r.entry_trigger)} / stop ${fmt(r.trade_invalidation)}`,stage:r.research_action}))};
 }
 
 function modelFlow(){
@@ -667,10 +645,9 @@ function modelValidation(){
  const grades=obj(D.grades); const entries=Object.entries(grades).filter(([k,v])=>v&&typeof v==='object');
  if(!entries.length)return emptyModel('VALIDATION CENTER','No machine-readable metric grades were loaded.');
  const statusOf=v=>String(v.grade||v.status||v.verdict||'UNKNOWN').toUpperCase();
- const isValidatedStatus=s=>['VALIDATED','LIMITED_PRODUCTION','PRODUCTION'].includes(String(s||'').toUpperCase());
- const validated=entries.filter(([,v])=>isValidatedStatus(statusOf(v))).length;
- const partial=entries.filter(([,v])=>/^(PARTIAL|MONITOR|RESEARCH|RESEARCH_ONLY|OOS_CANDIDATE)$/.test(statusOf(v))).length;
- const rejected=entries.filter(([,v])=>/^(REJECTED|REJECT|FAILED|BROKEN|BLOCKED|BLOCKED_TEST|NOT_VALIDATED)$/.test(statusOf(v))).length;
+ const validated=entries.filter(([,v])=>/VALIDATED|PRODUCTION/.test(statusOf(v))).length;
+ const partial=entries.filter(([,v])=>/PARTIAL|MONITOR|RESEARCH/.test(statusOf(v))).length;
+ const rejected=entries.filter(([,v])=>/REJECT|FAILED|BROKEN/.test(statusOf(v))).length;
  const inventory=node('val_inv','RESEARCH INVENTORY',`${entries.length} machine-readable grade cards`,'FROZEN SPECS','watch','observed',{w:205});
  const oos=node('val_oos','OOS / LOCKBOX',`${validated} currently validated`,'REQUIRED','watch','observed',{w:195});
  const correction=node('val_corr','SELECTION CONTROL',`${partial} partial · ${rejected} rejected`,'DSR / PBO / FDR','watch','observed',{w:205});
@@ -683,7 +660,7 @@ function modelValidation(){
  const g=layered([[inventory,oos,correction],nodes.slice(0,4),nodes.slice(4,8),[center]]);
  nodes.forEach(n=>g.edges.push(edge(n.id,center.id,n.state,'inferred','grade gate',1.25,{relation:'validation_gate'})));
  return {title:'VALIDATION CENTER',sub:'A component enters production only after its frozen specification beats the baseline out of sample.',canvas:'EVIDENCE LABORATORY',badges:['observed','inferred'],graph:g,
- rail:basicRail('PRODUCTION GATE',`${entries.length} graded components · ${validated} validated · ${partial} partial · ${rejected} rejected.`,`Only validated components may inform decisions inside their tested scope.`,`Monitor degradation, drift, calibration and untouched prospective outcomes.`,`Good in-sample results, attractive narratives and repeated tweaking are not production evidence.`,`Reject or downgrade on OOS failure, drift, broken lineage or failed prospective lockbox.`,'Continuous monitoring',Math.min(80,Math.round(validated/Math.max(1,entries.length)*100)),'OPEN GRADE CARD — NO AUTO PROMOTION'),ledger:[...entries.slice(0,30).map(([k,v])=>({time:obj(D.meta).generated,ticker:k,desc:v.note||v.reason||JSON.stringify(v),state:v.grade||v.status||'UNKNOWN'})),...arr(FLD.statuses).slice(0,30).map(x=>({time:x.fetched_at,ticker:x.provider,desc:`${x.dataset} · ${x.note}`,state:x.state,raw:x}))],queue:entries.slice(0,8).map(([k,v])=>{const st=statusOf(v);return {ticker:k,score:isValidatedStatus(st)?90:/^(PARTIAL|MONITOR|RESEARCH|RESEARCH_ONLY|OOS_CANDIDATE)$/.test(st)?55:15,why:v.note||v.reason||'',stage:st};})};
+ rail:basicRail('PRODUCTION GATE',`${entries.length} graded components · ${validated} validated · ${partial} partial · ${rejected} rejected.`,`Only validated components may inform decisions inside their tested scope.`,`Monitor degradation, drift, calibration and untouched prospective outcomes.`,`Good in-sample results, attractive narratives and repeated tweaking are not production evidence.`,`Reject or downgrade on OOS failure, drift, broken lineage or failed prospective lockbox.`,'Continuous monitoring',Math.min(80,Math.round(validated/Math.max(1,entries.length)*100)),'OPEN GRADE CARD — NO AUTO PROMOTION'),ledger:[...entries.slice(0,30).map(([k,v])=>({time:obj(D.meta).generated,ticker:k,desc:v.note||v.reason||JSON.stringify(v),state:v.grade||v.status||'UNKNOWN'})),...arr(FLD.statuses).slice(0,30).map(x=>({time:x.fetched_at,ticker:x.provider,desc:`${x.dataset} · ${x.note}`,state:x.state,raw:x}))],queue:entries.slice(0,8).map(([k,v])=>({ticker:k,score:/VALID/i.test(v.grade||v.status||'')?90:/PARTIAL/i.test(v.grade||v.status||'')?55:15,why:v.note||v.reason||'',stage:v.grade||v.status||'UNKNOWN'}))};
 }
 
 function modelExecution(){
@@ -736,7 +713,7 @@ function modelDataHealth(){
  const g=layered([domains,[lineage],[gate]]);domains.forEach(n=>{if(edgeAllowed(n,lineage))g.edges.push(edge(n.id,lineage.id,n.state,'observed','source contract',1.2,{relation:'lineage'}));});g.edges.push(edge(lineage.id,gate.id,'watch','inferred','freshness gate',1.8,{relation:'data_gate'}));
  return {title:'DATA & LINEAGE',sub:'Provider health is infrastructure evidence. It never becomes a market thesis, and one endpoint failure cannot be drawn as a trade signal.',canvas:'SOURCE → LINEAGE → CLAIM GATE',badges:['observed','inferred'],graph:g,
   rail:basicRail(`${health.overall||'NO_DATA'} DATA STATE`,`Worker ${runtime.worker_state||'UNKNOWN'} · revision ${runtime.snapshot_sequence||0}.`,`Live claims may use only fresh, correctly timestamped observations inside their stated semantics.`,`Repair the highest-impact missing source; optional enrichments must not block independent core domains.`,`Never replace a missing provider with synthetic production observations or a static narrative.`,`Invalidate every downstream claim when its source becomes stale, revised incorrectly or unmapped.`,'Continuous',Math.min(90,Math.round((num(health.live_count)||0)/Math.max(1,num(health.total_count)||1)*100)),'DIAGNOSE SOURCE — DO NOT GUESS'),
-  ledger:statuses.map(x=>({time:x.fetched_at||obj(D.meta).generated,ticker:x.provider||'SOURCE',desc:`${x.dataset||''} · ${x.note||''} · semantics ${x.data_semantics||'UNSPECIFIED'}`,state:x.state||'NO_DATA',raw:x})),queue:statuses.filter(x=>!['LIVE','NO_SIGNAL','CASH_ONLY'].includes(String(x.state||'').toUpperCase())).slice(0,10).map(x=>({ticker:x.provider||'SOURCE',score:0,why:x.note||x.dataset||'',stage:x.state||'NO_DATA'}))};
+  ledger:[...statuses.map(x=>({time:x.fetched_at||obj(D.meta).generated,ticker:x.provider||'SOURCE',desc:`${x.dataset||''} · ${x.note||''} · semantics ${x.data_semantics||'UNSPECIFIED'}`,state:x.state||'NO_DATA',raw:x})),...arr(obj(obj(D.current_developments).official_source_radar).sources).map(x=>({time:x.checked_at,ticker:x.id,desc:`OFFICIAL SOURCE RADAR · ${x.note||''} · no directional semantics`,state:x.state||'NOT_RUN',raw:x}))],queue:statuses.filter(x=>!['LIVE','NO_SIGNAL','CASH_ONLY'].includes(String(x.state||'').toUpperCase())).slice(0,10).map(x=>({ticker:x.provider||'SOURCE',score:0,why:x.note||x.dataset||'',stage:x.state||'NO_DATA'}))};
 }
 
 function marketIdForView(){return ({us:'us',ihsg:'idx',crypto:'crypto',commod:'commodity',fx:'fx'})[state.view]||null;}
@@ -763,12 +740,12 @@ function renderResearchDock(model){
  }else{
   const doctrine=arr(RK.doctrine);
   setHTML('researchDock',[
-   researchCard('DECISION PROBLEM','START FROM DECISION',doctrine[0]||'Choose the important decision problem.','watch'),
-   researchCard('CURRENT RAIN','OBSERVED FIRST',doctrine[1]||'Detect what already changed before forecasting.','observed'),
-   researchCard('STUDY THE TAPE','MECHANISM > RHYME',doctrine[2]||'Study winners, losers and contradictory evidence.','structural'),
-   researchCard('COUNTERPARTY CHALLENGE','NO EDGE WITHOUT WHY',doctrine[4]||'Explain the rational other side and why the trade is favorable.','inferred'),
-   researchCard('COST OF STAYING / WAITING','COMPARE BOTH',doctrine[5]||'Measure opportunity cost against the value of more information.','watch'),
-   researchCard('NEXT CHEAPEST FALSIFIER',RK.global_permission||'CAPITAL BLOCKED',doctrine[7]||'Run the cheapest decisive test; prospective evidence is required.','NO_DATA')
+   researchCard('PROBLEM OWNERSHIP','START FROM DECISION',doctrine[0]||'Choose the important decision problem.','watch'),
+   researchCard('CURRENT RAIN','OBSERVED FIRST',doctrine[1]||'Detect what already changed.','observed'),
+   researchCard('STUDY THE TAPE','MECHANISM > RHYME',doctrine[2]||'Study winners and losers.','structural'),
+   researchCard('COUNTEREVIDENCE','WRITE IT DOWN',doctrine[3]||'Do not delete inconvenient evidence.','watch'),
+   researchCard('COUNTERPARTY','NO EDGE WITHOUT WHY',doctrine[4]||'Explain the rational other side.','inferred'),
+   researchCard('PERMISSION',RK.global_permission||'CAPITAL BLOCKED',doctrine[7]||'Prospective evidence is required.','NO_DATA')
   ].join(''));
  }
 }
@@ -776,8 +753,19 @@ function renderResearchDock(model){
 function emptyModel(title,message){const g=layered([[node('empty',title,message,'NO_DATA','NO_DATA')]]);return {title,sub:message,canvas:title,badges:['observed'],graph:g,rail:basicRail('NO DATA',message,'No action.','Connect or repair the required source.','Do not substitute a static narrative or synthetic series.','Data availability is the current invalidation.','Until source recovers',0,'NO ACTION'),ledger:[],queue:[]};}
 function getModel(){switch(state.view){case'mc':return modelMission();case'macro':return modelMacro();case'ew':return modelEarly();case'alpha':return modelAlpha();case'inst':return modelInstitutional();case'deriv':return modelDerivatives();case'us':return modelMarket('us','US STOCKS');case'ihsg':return modelMarket('idx','IHSG');case'crypto':return modelMarket('crypto','CRYPTO');case'commod':return modelMarket('commodity','COMMODITIES');case'fx':return modelFx();case'flow':return modelFlow();case'sc':return modelSupply();case'co':return modelCompany();case'kg':return modelKnowledge();case'execution':return modelExecution();case'research':return modelResearchProcess();case'datahealth':return modelDataHealth();case'rc':return modelValidation();default:return modelMission();}}
 
+
+function orientationClass(x){const v=String(x||'').toUpperCase();if(v==='LONG')return'long';if(v==='SHORT')return'short';if(v==='BLOCKED')return'blocked';return'neutral';}
+function renderDevelopments(rows){const fresh=arr(rows).filter(x=>x.freshness!=='STALE').slice(0,9);if(!fresh.length)return'';return `<section class="board-section"><div class="board-section-head">CURRENT DEVELOPMENTS <span>PRIMARY-SOURCE DATED · NO AUTO DIRECTION</span></div><div class="dev-grid">${fresh.map(x=>`<article class="dev-card" data-dev="${esc(x.id||'')}"><div class="cat">${esc(x.category||'STRUCTURAL CHANGE')}</div><b>${esc(x.title||'UNTITLED')}</b><p>${esc(short(x.why_it_matters||x.summary,180))}</p><div class="fresh">${esc(x.date||'—')} · ${esc(x.freshness||'FRESH')}</div></article>`).join('')}</div></section>`;}
+function renderDecisionBoard(model){
+ const b=obj(model.board),rows=arr(b.rows),r=obj(model.rail),devs=arr(b.developments);
+ const table=rows.length?`<section class="board-section"><div class="board-section-head">${esc(b.title||'DECISION MATRIX')} <span>${rows.length} instruments · ${esc(b.note||'')}</span></div><div style="overflow:auto"><table class="decision-table"><thead><tr><th style="width:12%">INSTRUMENT</th><th style="width:15%">STATE / ACTION</th><th style="width:11%">ORIENTATION</th><th style="width:9%">EVIDENCE</th><th style="width:12%">TRIGGER / STOP</th><th>WHY / NEXT RISK</th><th style="width:10%">FRESHNESS</th></tr></thead><tbody>${rows.map(x=>{const cls=orientationClass(x.orientation);const cov=Math.min(100,Math.round(100*(num(x.coverage)||0)/Math.max(1,num(x.total)||100)));return `<tr data-board-row="${esc(x.instrument||'')}"><td>${esc(x.instrument||'—')}</td><td><span class="action ${cls}">${esc(x.action||x.state||'NO ACTION')}</span><div style="color:var(--faint);margin-top:3px">${esc(x.state||'')}</div></td><td><span class="action ${cls}">${esc(x.orientation||'NEUTRAL')}</span></td><td>${esc(`${fmt(x.coverage)}/${fmt(x.total)}`)}<div class="coverage-mini"><i style="width:${cov}%"></i></div></td><td>${esc(fmt(x.trigger))}<br><span style="color:var(--mag)">${esc(fmt(x.stop))}</span></td><td>${esc(short(x.why||'',170))}${x.event?`<div style="color:var(--amber);margin-top:4px">EVENT: ${esc(short(x.event,120))}</div>`:''}</td><td>${esc(timeLabel(x.freshness||obj(D.meta).generated))}</td></tr>`;}).join('')}</tbody></table></div></section>`:`<div class="empty"><div><div class="code">NO DECISION ROWS</div><p>No instrument has a pair/setup state. The system will not invent one.</p></div></div>`;
+ const kpis=`<div class="board-kpis"><div class="board-kpi"><div class="k">YOU ARE HERE</div><div class="v">${esc(r.title||'NO DATA')}</div><div class="d">${esc(short(r.desc||'',120))}</div></div><div class="board-kpi"><div class="k">ACTION</div><div class="v">${esc(r.action||'NO ACTION')}</div><div class="d">Capital permission remains separate.</div></div><div class="board-kpi"><div class="k">NEXT</div><div class="v">${esc(short(r.next||'—',70))}</div><div class="d">${esc(short(r.current||'',90))}</div></div><div class="board-kpi"><div class="k">INVALIDATION</div><div class="v">${esc(short(r.invalidation||'—',70))}</div><div class="d">${esc(r.window||'')}</div></div></div>`;
+ return `<div class="decision-board">${kpis}${table}${renderDevelopments(devs)}</div>`;
+}
+function renderEvidenceCanvas(model){return `<div class="evidence-mode"><div class="research-dock">${document.getElementById('researchDock')?.innerHTML||''}</div><section class="board-section"><div class="board-section-head">EVIDENCE LEDGER PREVIEW</div>${renderLedger(arr(model.ledger).slice(0,20))}</section></div>`;}
+
 function graphSvg(model){
- const g=model.graph||{nodes:[],edges:[]}; const visibleNodes=g.nodes.filter(n=>state.mode==='all'||n.evidence!=='structural'||['alpha','sc','kg','research'].includes(state.view)); const ids=new Set(visibleNodes.map(n=>n.id)); const edges=arr(g.edges).filter(e=>ids.has(e.from)&&ids.has(e.to)); const map=Object.fromEntries(visibleNodes.map(n=>[n.id,n]));
+ const g=model.graph||{nodes:[],edges:[]}; const visibleNodes=g.nodes.filter(n=>state.mode==='all'||n.evidence!=='structural'||['alpha','sc','kg'].includes(state.view)); const ids=new Set(visibleNodes.map(n=>n.id)); const edges=arr(g.edges).filter(e=>ids.has(e.from)&&ids.has(e.to)); const map=Object.fromEntries(visibleNodes.map(n=>[n.id,n]));
  const defs=`<defs><marker id="arrow-neutral" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#365274"/></marker><marker id="arrow-constructive" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#36f28b"/></marker><marker id="arrow-destructive" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#ff4fa3"/></marker><marker id="arrow-watch" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#ffd166"/></marker><marker id="arrow-structural" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="#a97aff"/></marker><filter id="glow"><feGaussianBlur stdDeviation="2.5" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>`;
  const showEdgeLabels=edges.length<=7;
  const edgeHtml=edges.map(e=>{const a=map[e.from],b=map[e.to];if(!a||!b)return'';const ah=a.h||64,bh=b.h||64,dy=b.y-a.y;const c1y=a.y+dy*.42,c2y=a.y+dy*.58;const path=`M ${a.x} ${a.y+ah/2} C ${a.x} ${c1y}, ${b.x} ${c2y}, ${b.x} ${b.y-bh/2}`;const klass=`edge ${e.state||''} ${e.evidence||''} ${e.active?'active':''}`;const marker=e.evidence==='structural'?'structural':['constructive','destructive','watch'].includes(e.state)?e.state:'neutral';const lx=(a.x+b.x)/2,ly=(a.y+b.y)/2;const tip=`${a.label} → ${b.label} · ${e.relation||e.evidence||'relation'}${e.label?' · '+e.label:''}`;return `<g class="edge-group"><title>${esc(tip)}</title><path class="${klass}" d="${path}" stroke-width="${e.width||1.7}" marker-end="url(#arrow-${marker})"/>${showEdgeLabels&&e.label?`<text class="edge-label" x="${lx}" y="${ly-5}" text-anchor="middle">${esc(short(e.label,22))}</text>`:''}</g>`;}).join('');
@@ -786,7 +774,7 @@ function graphSvg(model){
 }
 
 function renderRail(r){
- const conf=Math.max(0,Math.min(100,num(r.confidence)||0));const confLabel=r.confidenceLabel||'EVIDENCE COMPLETENESS';return `<div class="location"><div class="eyebrow">YOU ARE HERE</div><div class="main">${esc(r.title||'NO DATA')}</div><div class="desc">${esc(r.desc||'')}</div></div>${[['CURRENT',r.current,''],['NEXT',r.next,'green'],['ALTERNATIVE',r.alternative,'amber'],['INVALIDATION',r.invalidation,'mag'],['TIME WINDOW',r.window,''],['ACTION',r.action,'green']].map(([k,v,c])=>`<div class="decision-row"><div class="decision-label">${k}</div><div class="decision-value ${c}">${esc(v||'—')}</div>${k==='ACTION'?`<div class="confidence"><i style="width:${conf}%"></i></div><div class="decision-label" style="margin-top:4px">${esc(confLabel)} ${conf}%</div>`:''}</div>`).join('')}`;
+ const conf=Math.max(0,Math.min(100,num(r.confidence)||0));const confLabel=r.confidenceLabel||'CONFIDENCE';return `<div class="location"><div class="eyebrow">YOU ARE HERE</div><div class="main">${esc(r.title||'NO DATA')}</div><div class="desc">${esc(r.desc||'')}</div></div>${[['CURRENT',r.current,''],['NEXT',r.next,'green'],['ALTERNATIVE',r.alternative,'amber'],['INVALIDATION',r.invalidation,'mag'],['TIME WINDOW',r.window,''],['ACTION',r.action,'green']].map(([k,v,c])=>`<div class="decision-row"><div class="decision-label">${k}</div><div class="decision-value ${c}">${esc(v||'—')}</div>${k==='ACTION'?`<div class="confidence"><i style="width:${conf}%"></i></div><div class="decision-label" style="margin-top:4px">${esc(confLabel)} ${conf}%</div>`:''}</div>`).join('')}`;
 }
 function renderLedger(rows){
  const filtered=arr(rows).filter(r=>!state.search||JSON.stringify(r).toLowerCase().includes(state.search.toLowerCase())); if(!filtered.length)return `<div class="empty"><div><div class="code">NO EVIDENCE ROWS</div><p>The system will not fill this panel with mock values.</p></div></div>`;
@@ -805,11 +793,15 @@ function openDetail(raw,title){document.getElementById('drawerTitle').textConten
 
 function render(){
  renderSidebar();renderSubnav();renderTop();const model=getModel();window.__MODEL=model;
- document.getElementById('viewTitle').textContent=model.title;document.getElementById('viewSub').textContent=model.sub;document.getElementById('canvasTitle').textContent=model.canvas;document.getElementById('canvasMeta').textContent=`${arr(model.graph?.nodes).length} nodes · ${arr(model.graph?.edges).length} edges`;
- setHTML('canvasBadges',arr(model.badges).map(badgeHtml).join(''));setHTML('graph',graphSvg(model));setHTML('rail',renderRail(model.rail));renderResearchDock(model);setHTML('ledger',renderLedger(model.ledger));setHTML('queue',renderQueue(model.queue));document.getElementById('ledgerMeta').textContent=`${arr(model.ledger).length} records`;document.getElementById('queueMeta').textContent=`${arr(model.queue).length} ranked`;renderTape();
- document.querySelectorAll('.seg').forEach(b=>b.classList.toggle('active',b.dataset.mode===state.mode));
+ document.getElementById('viewTitle').textContent=model.title;document.getElementById('viewSub').textContent=model.sub;document.getElementById('canvasTitle').textContent=state.layout==='map'?model.canvas:state.layout==='evidence'?'EVIDENCE / RESEARCH CONTRACT':(model.board?.title||model.canvas);document.getElementById('canvasMeta').textContent=state.layout==='map'?`${arr(model.graph?.nodes).length} nodes · ${arr(model.graph?.edges).length} edges`:`${arr(model.board?.rows).length||arr(model.queue).length} decision rows`;
+ renderResearchDock(model);
+ const page=document.querySelector('.page'),canvas=document.querySelector('.canvas-card'),dock=document.getElementById('researchDock');page.classList.toggle('board-layout',state.layout==='board');page.classList.toggle('evidence-layout',state.layout==='evidence');canvas.classList.toggle('board-active',state.layout!=='map');dock.classList.toggle('hidden',state.layout!=='evidence');
+ setHTML('canvasBadges',arr(model.badges).map(badgeHtml).join(''));setHTML('graph',state.layout==='map'?graphSvg(model):state.layout==='evidence'?renderEvidenceCanvas(model):renderDecisionBoard(model));setHTML('rail',renderRail(model.rail));setHTML('ledger',renderLedger(model.ledger));setHTML('queue',renderQueue(model.queue));document.getElementById('ledgerMeta').textContent=`${arr(model.ledger).length} records`;document.getElementById('queueMeta').textContent=`${arr(model.queue).length} ranked`;renderTape();
+ document.querySelectorAll('.seg').forEach(b=>b.classList.toggle('active',b.dataset.mode===state.mode));document.querySelectorAll('.layout-seg').forEach(b=>b.classList.toggle('active',b.dataset.layout===state.layout));
  document.querySelectorAll('.node').forEach(el=>el.onclick=()=>{const id=el.dataset.node;state.selected=id;const n=arr(model.graph.nodes).find(x=>x.id===id);const tk=n?.raw?.ticker||n?.raw?.tk||n?.raw?.asset||n?.label;if(tk&&/^[A-Z0-9.=_-]{1,20}$/i.test(String(tk)))state.selectedTicker=String(tk);persistState();render();if(n?.raw)openDetail(n.raw,n.label);});
  document.querySelectorAll('.queue-item').forEach(el=>el.onclick=()=>{state.selectedTicker=el.dataset.queue;persistState();openDetail(arr(model.queue).find(x=>x.ticker===el.dataset.queue)||{},el.dataset.queue);});
+ document.querySelectorAll('[data-board-row]').forEach(el=>el.onclick=()=>{const key=el.dataset.boardRow;const row=arr(model.board?.rows).find(x=>String(x.instrument)===String(key));if(row)openDetail(row.raw||row,key);});
+ document.querySelectorAll('[data-dev]').forEach(el=>el.onclick=()=>{const key=el.dataset.dev;const row=arr(model.board?.developments).find(x=>String(x.id)===String(key));if(row)openDetail(row,row.title);});
 }
 
 function acceptSnapshot(next){
@@ -834,6 +826,7 @@ async function pollSnapshot(){
 }
 
 document.querySelectorAll('.seg').forEach(b=>b.onclick=()=>{state.mode=b.dataset.mode;persistState();render();});
+document.querySelectorAll('.layout-seg').forEach(b=>b.onclick=()=>{state.layout=b.dataset.layout;persistState();render();});
 document.getElementById('search').addEventListener('input',e=>{state.search=e.target.value;const model=getModel();setHTML('ledger',renderLedger(model.ledger));setHTML('queue',renderQueue(model.queue));});
 document.getElementById('drawerClose').onclick=()=>document.getElementById('drawerBackdrop').classList.remove('open');document.getElementById('drawerBackdrop').onclick=e=>{if(e.target.id==='drawerBackdrop')e.currentTarget.classList.remove('open');};
 render();

@@ -1,5 +1,5 @@
 {
-  "schema_version": "3.0",
+  "schema_version": "3.3",
   "production_rules": {
     "synthetic_fallback": false,
     "missing_as_neutral": false,
@@ -7,7 +7,11 @@
     "reference_zone_is_guaranteed_target": false,
     "dealer_inventory_observed_without_position_side": false,
     "provider_failure_isolated": true,
-    "last_good_cache_labeled_stale": true
+    "last_good_cache_labeled_stale": true,
+    "official_page_change_is_directional_signal": false,
+    "fx_aggregate_direction_allowed": false,
+    "fx_price_only_can_trigger": false,
+    "current_development_without_date_source_allowed": false
   },
   "planes": {
     "event": [
@@ -33,6 +37,13 @@
       "liquidation_map",
       "fundamentals",
       "physical_inventory"
+    ],
+    "current_developments": [
+      "official_source_change_hash",
+      "dated_structural_inventory",
+      "freshness_expiry",
+      "human_review_status",
+      "source_lineage"
     ]
   },
   "tabs": {
@@ -43,7 +54,8 @@
       "cross_asset_rotation",
       "ETF_flow",
       "institutional_events",
-      "derivatives_state"
+      "derivatives_state",
+      "official_source_radar"
     ],
     "macro_regime": [
       "FRED_macro",
@@ -51,7 +63,8 @@
       "credit",
       "liquidity",
       "market_implied_confirmation",
-      "cross_asset_rotation"
+      "cross_asset_rotation",
+      "official_source_radar"
     ],
     "early_warning": [
       "breadth",
@@ -59,7 +72,8 @@
       "credit_spreads",
       "funding_stress",
       "derivatives_crowding",
-      "physical_stress"
+      "physical_stress",
+      "official_source_radar"
     ],
     "alpha_center": [
       "macro_alignment",
@@ -68,7 +82,8 @@
       "earnings_estimates",
       "ownership",
       "institutional_events",
-      "price_state"
+      "price_state",
+      "official_source_radar"
     ],
     "institutional": [
       "options_trade_flow",
@@ -106,7 +121,8 @@
       "options",
       "short_interest",
       "TRF",
-      "SEC_filings"
+      "SEC_filings",
+      "official_source_radar"
     ],
     "ihsg": [
       "IDX_price",
@@ -116,7 +132,8 @@
       "free_float",
       "controller",
       "USDIDR",
-      "macro"
+      "macro",
+      "official_source_radar"
     ],
     "crypto": [
       "spot",
@@ -127,7 +144,16 @@
       "protocol_TVL",
       "smart_money",
       "entity_transfers",
-      "unlocks"
+      "unlocks",
+      "stablecoin_supply_reserves_velocity",
+      "tokenized_asset_legal_form",
+      "prediction_market_licenses_liquidity",
+      "broker_DeFi_distribution",
+      "developer_activity",
+      "protocol_revenue_value_capture",
+      "agentic_execution_risk",
+      "regulatory_asset_classification",
+      "official_source_radar"
     ],
     "commodities": [
       "futures_price",
@@ -136,7 +162,8 @@
       "EIA_inventory",
       "physical_flow",
       "futures_statistics",
-      "options"
+      "options",
+      "official_source_radar"
     ],
     "fx": [
       "spot",
@@ -145,7 +172,13 @@
       "options_volatility",
       "central_bank",
       "balance_of_payments",
-      "futures_statistics"
+      "futures_statistics",
+      "pair_specific_driver_state",
+      "event_risk",
+      "entry_trigger",
+      "trade_invalidation",
+      "price_only_block",
+      "official_source_radar"
     ],
     "flow_rotation": [
       "price_rotation",
@@ -179,7 +212,8 @@
       "OOS",
       "calibration",
       "drift",
-      "provider_schema_tests"
+      "provider_schema_tests",
+      "official_source_radar"
     ]
   },
   "provider_priority": {
@@ -232,6 +266,21 @@
     ],
     "Indonesia": [
       "licensed_IDX_bridge"
+    ],
+    "official_current_developments": [
+      "Robinhood_Newsroom",
+      "SEC",
+      "CFTC",
+      "Nasdaq",
+      "Federal_Reserve",
+      "US_Treasury",
+      "EIA",
+      "OPEC",
+      "CME",
+      "Bank_Indonesia",
+      "IDX",
+      "OJK",
+      "BPK"
     ]
   },
   "required_environment": {

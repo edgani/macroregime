@@ -66,14 +66,15 @@ def card_html(r: dict, deferred: bool = False) -> str:
     rot = r.get("rotation") or {}
     rotation_chip = (_chip("↻ rotation", f"primed by {rot.get('leader')} (fired {rot.get('days_since_fire')}d, ~{rot.get('window')}d window)", "#3fb950") if rot else "")
     if opt.get("is_real"):
-        options = (_chip("GEX", ("+" if opt.get("gex_sign", 0) >= 0 else "") + str(opt.get("gex")), "#a371f7")
-                   + _chip("γflip", opt.get("gamma_flip"), "#a371f7")
-                   + _chip("call_wall", opt.get("call_wall"), "#a371f7") + _chip("put_wall", opt.get("put_wall"), "#a371f7")
-                   + _chip("vanna", opt.get("vanna"), "#a371f7") + _chip("charm", opt.get("charm"), "#a371f7"))
-    elif opt.get("gex") is not None:
-        options = (_chip("GEX·proxy", ("+" if opt.get("gex_sign", 0) >= 0 else "") + str(opt.get("gex")), "#8a63d2")
-                   + _chip("γflip·proxy", opt.get("gamma_flip"), "#8a63d2")
-                   + _chip("call_wall", opt.get("call_wall"), "#8a63d2") + _chip("put_wall", opt.get("put_wall"), "#8a63d2"))
+        options = (_chip("γmag", opt.get("unsigned_gamma_magnitude"), "#a371f7")
+                   + _chip("dealer sign", opt.get("dealer_sign_state", "UNKNOWN"), "#a371f7")
+                   + _chip("call_wall", opt.get("call_wall"), "#a371f7")
+                   + _chip("put_wall", opt.get("put_wall"), "#a371f7"))
+        if opt.get("dealer_sign_state") == "EXPLICIT":
+            options += (_chip("signed GEX", opt.get("gex"), "#a371f7")
+                        + _chip("γflip", opt.get("gamma_flip"), "#a371f7")
+                        + _chip("vanna", opt.get("vanna"), "#a371f7")
+                        + _chip("charm", opt.get("charm"), "#a371f7"))
     else:
         options = _chip("options", "no real chain (n/a)", "#57606a")
     macro = (_chip("Quad", (mac.get("quad") or "—"), "#d29922") + _chip("Liq", mac.get("liquidity_regime"), "#d29922")

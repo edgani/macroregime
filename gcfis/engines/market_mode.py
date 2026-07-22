@@ -24,16 +24,18 @@ def run_market_mode(price, dealer=None, flow=None, crowding=50.0, adoption_veloc
     rng10 = float(px.tail(10).max() - px.tail(10).min()); rng60 = float(px.tail(60).max() - px.tail(60).min() or 1e-9)
     compressed = (rng10 / rng60) < 0.30
     ret20z = float(r.tail(20).sum() / ((np.sqrt(20) * s30) + 1e-9)); trending = abs(ret20z) > 1.0
-    gex_sign = int((dealer or {}).get("gex_sign", 0)); greg = (dealer or {}).get("regime", "unknown")
+    raw_sign = (dealer or {}).get("gex_sign")
+    gex_sign = int(raw_sign) if raw_sign in (-1, 1, -1.0, 1.0) else None
+    greg = str((dealer or {}).get("regime", "unknown"))
     ftype = (flow or {}).get("type", "NEUTRAL")
     crowd = float(crowding if crowding is not None else 50.0); vel = float(adoption_velocity or 0.0)
     if ftype == "DISTRIBUTION" or (crowd > 85 and vel < 0):
         mode = "DISTRIBUTION"
-    elif ftype == "SHORT_COVERING" or (crowd < 20 and ret20z > 0.8 and (vol_rising or gex_sign < 0)):
+    elif ftype == "SHORT_COVERING" or (crowd < 20 and ret20z > 0.8 and (vol_rising or gex_sign == -1)):
         mode = "SQUEEZE"
-    elif (gex_sign < 0 and (vol_rising or trending)) or (greg == "momentum" and trending) or (vol_rising and trending):
+    elif (gex_sign == -1 and (vol_rising or trending)) or (greg in {"momentum", "amplification_context"} and trending) or (vol_rising and trending):
         mode = "EXPANSION"
-    elif (gex_sign > 0 and not vol_rising) or (greg == "mean_reversion" and not trending) or (compressed and not trending):
+    elif (gex_sign == 1 and not vol_rising) or (greg in {"mean_reversion", "mean_reversion_context"} and not trending) or (compressed and not trending):
         mode = "PINNING"
     else:
         mode = "MIXED"

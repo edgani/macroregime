@@ -1,63 +1,27 @@
-# Deploy War Room OS v3.3.2
+# Deploy War Room OS v4.2
 
-Use a full clean replacement. Do not overlay v3.3.2 on an older deployment because stale
-runtime snapshots, worker locks and static HTML can preserve prior logic or interface.
+Deploy by clean replacement. Never overlay v4.2 on an older folder because stale snapshots, static HTML, locks or legacy reports can preserve prior semantics.
 
-## Required root files
+## Required procedure
 
-```text
-app.py
-warroom_data_worker.py
-runtime_store.py
-run.py
-research_kernel.py
-fx_pair_state.py
-current_developments.py
-official_source_radar.py
-dashboard.html
-data/current_developments.json
-data/source_watchlist.json
-static/dashboard_live.html
-.streamlit/config.toml
-requirements.txt
-```
+1. Extract to a new directory.
+2. Configure secrets outside the package.
+3. Run `CHECK_EVERYTHING.bat` on the target machine.
+4. Deploy `app.py` only after `V42_USER_VALIDATION_REPORT.json` is `PASS`.
+5. Keep capital integration disabled; the default proof registry promotes zero predictive components.
 
-Use `app.py` as the Streamlit entrypoint and clear the hosting build cache.
+## Data behavior
 
-## Secrets
+Missing credentials must remain `NO_DATA`, `NOT_CONFIGURED`, `NOT_ENTITLED` or `ACTION_REQUIRED`. Optional source failures may not block independent domains, but they may not be silently imputed into claims.
 
-Configure secrets in the hosting platform, never in the ZIP or git history. Relevant
-variables are documented in `.env.example`, `DATA_CONNECTORS.md` and
-`LIVE_DATA_ACTIVATION.md`.
+## Official-source radar
 
-No credential means the related source remains `ACTION_REQUIRED`, `NOT_CONFIGURED` or
-`NOT_ENTITLED`. It must never be replaced with an invented event or direction.
+A source-page hash change is a review alert only. A dated development remains `REVIEW_REQUIRED` until a human verifies the source, interpretation, beneficiary mapping and claim boundary. It never creates long/short direction by itself.
 
-## Official radar
-
-The radar runs in a bounded background thread and does not block first paint. Configure:
+## Required deployment result
 
 ```text
-WARROOM_RADAR_REFRESH_SECONDS=3600
-WARROOM_RADAR_INITIAL_DELAY_SECONDS=8
-WARROOM_RADAR_HTTP_TIMEOUT=8
-WARROOM_SEC_USER_AGENT="War Room OS your-email@example.com"
+software_permission: READY_FOR_USER_REVIEW
+predictive_components_promoted: 0
+capital_permission: BLOCKED
 ```
-
-## Release verification
-
-Run before deploy:
-
-```bash
-python validate_release_v33.py
-```
-
-Required result:
-
-```text
-status: PASS
-operational_permission: READY_FOR_USER_REVIEW
-capital_permission: CAPITAL_BLOCKED
-```
-
-Deployment readiness and predictive proof are deliberately separate.

@@ -1255,6 +1255,13 @@ def summarize_option_chain(ticker: str, rows: Sequence[Dict[str, Any]], flow_eve
     total_gamma = 0.0
     total_vanna = 0.0
     total_charm = 0.0
+    call_minus_put_gamma_proxy = 0.0
+    dte_buckets = {
+        "0DTE": {"gamma": 0.0, "vanna": 0.0, "charm": 0.0, "vega": 0.0, "open_interest": 0.0, "contracts": 0},
+        "1_7DTE": {"gamma": 0.0, "vanna": 0.0, "charm": 0.0, "vega": 0.0, "open_interest": 0.0, "contracts": 0},
+        "8_30DTE": {"gamma": 0.0, "vanna": 0.0, "charm": 0.0, "vega": 0.0, "open_interest": 0.0, "contracts": 0},
+        "31P_DTE": {"gamma": 0.0, "vanna": 0.0, "charm": 0.0, "vega": 0.0, "open_interest": 0.0, "contracts": 0},
+    }
     for r in valid:
         strike = float(r["strike"])
         oi = _f(r.get("open_interest"), 0.0) or 0.0
@@ -1277,18 +1284,30 @@ def summarize_option_chain(ticker: str, rows: Sequence[Dict[str, Any]], flow_eve
         if spot and iv and days:
             vanna, charm = _bs_vanna_charm(spot, strike, iv, days, "call" if sign > 0 else "put")
         multiplier = 100.0 if str(r.get("provider")) in {"Massive", "yfinance"} else 1.0
-        gamma_notional = sign * (gamma or 0.0) * oi * multiplier * ((spot or 1.0) ** 2) * 0.01
-        vanna_notional = sign * (vanna or 0.0) * oi * multiplier * (spot or 1.0)
-        charm_notional = sign * (charm or 0.0) * oi * multiplier * (spot or 1.0)
+        # Public OI does not identify who is long or short.  Store unsigned Greek magnitude and
+        # keep call-minus-put as a separately named chain-composition proxy.
+        gamma_notional = abs((gamma or 0.0) * oi * multiplier * ((spot or 1.0) ** 2) * 0.01)
+        vanna_notional = abs((vanna or 0.0) * oi * multiplier * (spot or 1.0))
+        charm_notional = abs((charm or 0.0) * oi * multiplier * (spot or 1.0))
+        vega_raw = abs((_f(r.get("vega"), 0.0) or 0.0) * oi * multiplier)
         total_gamma += gamma_notional; total_vanna += vanna_notional; total_charm += charm_notional
+        call_minus_put_gamma_proxy += sign * gamma_notional
         gamma_by_strike[strike] = gamma_by_strike.get(strike, 0.0) + gamma_notional
         vanna_by_strike[strike] = vanna_by_strike.get(strike, 0.0) + vanna_notional
         charm_by_strike[strike] = charm_by_strike.get(strike, 0.0) + charm_notional
+        if days is not None:
+            bucket = "0DTE" if days < 1.0 else "1_7DTE" if days <= 7 else "8_30DTE" if days <= 30 else "31P_DTE"
+            dte_buckets[bucket]["gamma"] += gamma_notional
+            dte_buckets[bucket]["vanna"] += vanna_notional
+            dte_buckets[bucket]["charm"] += charm_notional
+            dte_buckets[bucket]["vega"] += vega_raw
+            dte_buckets[bucket]["open_interest"] += oi
+            dte_buckets[bucket]["contracts"] += 1
 
     call_wall = max(strike_call_oi, key=strike_call_oi.get) if strike_call_oi else None
     put_wall = max(strike_put_oi, key=strike_put_oi.get) if strike_put_oi else None
     gamma_wall_pos = max(gamma_by_strike, key=gamma_by_strike.get) if gamma_by_strike else None
-    gamma_wall_neg = min(gamma_by_strike, key=gamma_by_strike.get) if gamma_by_strike else None
+    gamma_wall_neg = None  # signed negative wall is unknowable without position-side inventory
 
     # Max pain: payout at expiry using OI; descriptive and most meaningful near expiry.
     candidates = sorted(set(strike_call_oi) | set(strike_put_oi))
@@ -1360,8 +1379,8 @@ def summarize_option_chain(ticker: str, rows: Sequence[Dict[str, Any]], flow_eve
         score -= _clip(skew_25d * 100 * 1.5, -10, 10)
         drivers.append(f"25Δ put-call skew {skew_25d*100:+.1f} vol pts")
     score = _clip(score)
-    lean = "UPSIDE_CONTEXT" if score >= 60 else "DOWNSIDE_CONTEXT" if score <= 40 else "BALANCED_CONTEXT"
-    gamma_context = "DAMPENING_PROXY" if total_gamma > 0 else "AMPLIFICATION_PROXY" if total_gamma < 0 else "NEUTRAL_PROXY"
+    lean = "CALL_HEAVY_CHAIN_CONTEXT" if score >= 60 else "PUT_HEAVY_CHAIN_CONTEXT" if score <= 40 else "BALANCED_CHAIN_CONTEXT"
+    gamma_context = "MAGNITUDE_ONLY_DEALER_SIGN_UNKNOWN"
 
     zones = {
         "spot": spot, "nearest_expiry": nearest, "call_wall": call_wall, "put_wall": put_wall,
@@ -1375,19 +1394,24 @@ def summarize_option_chain(ticker: str, rows: Sequence[Dict[str, Any]], flow_eve
         "nearest_expiry": nearest, "expiries_loaded": len(expiries),
         "call_oi": call_oi, "put_oi": put_oi, "put_call_oi": pcr_oi,
         "call_volume": call_vol, "put_volume": put_vol, "put_call_volume": pcr_vol,
-        "gamma_proxy": total_gamma, "gamma_context": gamma_context,
-        "vanna_proxy": total_vanna, "charm_proxy": total_charm,
+        "gamma_magnitude": total_gamma, "gamma_proxy": total_gamma, "gamma_context": gamma_context,
+        "call_minus_put_gamma_proxy": call_minus_put_gamma_proxy,
+        "vanna_magnitude": total_vanna, "vanna_proxy": total_vanna,
+        "charm_magnitude": total_charm, "charm_proxy": total_charm,
+        "dte_buckets": dte_buckets,
+        "dealer_sign_state": "UNKNOWN", "ownership_state": "UNVERIFIED",
         "skew_25d": skew_25d, "atm_iv_term": atm_iv_by_expiry, "term_slope": term_slope,
         "flow_balance": flow_balance, "context_score": round(score, 1), "directional_context": lean,
         "drivers": drivers, "zones": zones,
         "horizon_context": f"Nearest loaded expiry {nearest}; expected-move band is expiry-specific." if nearest else "No expiry horizon loaded.",
         "calibrated_probability": None,
         "semantics": {
-            "gamma": "OI-signed gamma proxy (calls positive, puts negative). It is not dealer inventory without position-side data.",
+            "gamma": "Unsigned gamma magnitude from public chain data. Call-minus-put composition is separate and is not dealer inventory.",
             "vanna": "Sensitivity of delta to implied volatility under Black-Scholes assumptions; sign impact depends on spot and IV path.",
             "charm": "Delta decay through time under Black-Scholes assumptions; it is not a guaranteed dealer hedge flow.",
             "zones": "Walls, max pain and expected move are reference zones, not guaranteed targets or support/resistance.",
-            "direction": "Context score combines transparent chain/flow descriptors and is not a calibrated market-direction probability.",
+            "direction": "Chain-balance context describes calls versus puts/observed flow. It is not beneficial-owner intent or calibrated market direction.",
+            "dte": "Greeks are bucketed by DTE; no Greek is assumed dominant from DTE alone.",
         },
     }
 

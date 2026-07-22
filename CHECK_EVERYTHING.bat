@@ -14,19 +14,20 @@ if not exist ".venv\Scripts\python.exe" (
 )
 call .venv\Scripts\activate.bat
 python -m pip install --upgrade pip
+if errorlevel 1 goto :fail
 python -m pip install -r requirements.txt
 if errorlevel 1 goto :fail
 call RESET_RUNTIME.bat
-python validate_user_v332.py
+python validate_user_v42.py
 if errorlevel 1 goto :fail
 echo.
-echo ALL V3.3.2 USER-RELEASE CHECKS PASSED.
-echo Review V332_USER_VALIDATION_REPORT.json and V332_MASTER_RELEASE_REPORT.json.
-echo Operational review is ready; capital permission remains BLOCKED.
+echo ALL WAR ROOM OS v4.2 USER-MACHINE CHECKS PASSED.
+echo Review V42_USER_VALIDATION_REPORT.json and V42_MASTER_REAUDIT_REPORT.json.
+echo The application is ready for research review. Predictive promotion remains ZERO and capital remains BLOCKED.
 pause
 exit /b 0
 :fail
 echo.
-echo VALIDATION FAILED. Do not use the build until the failing check is resolved.
+echo VALIDATION FAILED. Do not rely on this build until the failing check is resolved.
 pause
 exit /b 1

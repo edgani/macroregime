@@ -1,0 +1,8 @@
+{
+  "template": true,
+  "status": "NOT_ARMED",
+  "policy_hash": null,
+  "matured": false,
+  "observations": 0,
+  "silent_retuning": false
+}

@@ -1,0 +1,13 @@
+{
+  "template": true,
+  "status": "NOT_RUN",
+  "components": [],
+  "allowed_status": [
+    "RESEARCH",
+    "OOS_CANDIDATE",
+    "LOCKBOX_PASS",
+    "PROSPECTIVE_WATCH",
+    "LIMITED_PRODUCTION_ELIGIBLE",
+    "RETIRED"
+  ]
+}

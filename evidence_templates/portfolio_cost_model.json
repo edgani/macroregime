@@ -1,0 +1,13 @@
+{
+  "template": true,
+  "status": "NOT_RUN",
+  "markets": {},
+  "required_contract": [
+    "fees",
+    "spread",
+    "slippage",
+    "market_impact",
+    "capacity",
+    "funding_carry_borrow_as_applicable"
+  ]
+}

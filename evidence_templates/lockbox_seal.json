@@ -1,0 +1,8 @@
+{
+  "template": true,
+  "status": "NOT_ARMED",
+  "sealed": false,
+  "opened": false,
+  "frozen_hash": null,
+  "sealed_at": null
+}

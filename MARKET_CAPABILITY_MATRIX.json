@@ -1,0 +1,46 @@
+{
+  "version": "4.2",
+  "static_capabilities": {
+    "us": {
+      "cash": true,
+      "shorting": true,
+      "options_product": "LISTED_EQUITY_ETF_INDEX_OPTIONS",
+      "options_scope": "PER_INSTRUMENT",
+      "futures_product": "INDEX_FUTURES_OPTIONAL",
+      "order_book_scope": "VENUE_OR_CONSOLIDATED_L2_IF_LICENSED"
+    },
+    "idx": {
+      "cash": true,
+      "shorting": false,
+      "options_product": "NONE",
+      "options_scope": "DISABLED",
+      "futures_product": "SINGLE_STOCK_FUTURES_IF_ACTIVE_AND_FED",
+      "order_book_scope": "IDX_DEPTH_IF_LICENSED"
+    },
+    "crypto": {
+      "cash": true,
+      "shorting": true,
+      "options_product": "VENUE_LISTED_CRYPTO_OPTIONS",
+      "options_scope": "PER_UNDERLYING_PER_VENUE",
+      "futures_product": "PERPETUALS_AND_DATED_FUTURES_PER_VENUE",
+      "order_book_scope": "PER_VENUE_ONLY"
+    },
+    "commodity": {
+      "cash": false,
+      "shorting": true,
+      "options_product": "OPTIONS_ON_FUTURES",
+      "options_scope": "PER_CONTRACT_IF_FED",
+      "futures_product": "LISTED_FUTURES",
+      "order_book_scope": "NATIVE_FUTURES_BOOK_IF_LICENSED"
+    },
+    "fx": {
+      "cash": true,
+      "shorting": true,
+      "options_product": "LISTED_FX_OPTIONS_OR_OTC_VOL_SURFACE",
+      "options_scope": "OPTIONAL_DATASET_NOT_INFERRED_FROM_SPOT",
+      "futures_product": "LISTED_FX_FUTURES_OPTIONAL",
+      "order_book_scope": "VENUE_SPECIFIC_NO_GLOBAL_CONSOLIDATED_BOOK"
+    }
+  },
+  "dynamic_rule": "Module visible only when actual current option-specific rows/statuses are usable."
+}

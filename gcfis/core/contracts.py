@@ -26,7 +26,7 @@ class TickerSignal:
     reflexivity: float = 0.0
     runaway: bool = False
     # Options panel
-    options: dict = field(default_factory=dict)   # call_wall/put_wall/gex/gex_sign/vanna/is_real
+    options: dict = field(default_factory=dict)   # unsigned Greek magnitudes; signed fields only with explicit dealer_sign
     # Macro context (stamped per ticker)
     macro: dict = field(default_factory=dict)     # quad/liquidity_regime/fragility/shock_prob/cross_asset_regime
     # Entry (L13)

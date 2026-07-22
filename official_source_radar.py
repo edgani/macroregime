@@ -75,7 +75,7 @@ def run_once(timeout: float = 8.0) -> dict:
             rows.append(row)
             continue
         headers = {
-            "User-Agent": ua if "sec.gov" in url else "WarRoomOS-Research/3.3 (+local research dashboard)",
+            "User-Agent": ua if "sec.gov" in url else "WarRoomOS-Research/4.2 (+local research dashboard)",
             "Accept": "text/html,application/xhtml+xml",
         }
         try:

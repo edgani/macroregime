@@ -1,36 +1,32 @@
-> **SUPERSEDED BY v2.4 AUDIT:** This historical report contains earlier validation language that is no longer used for production status. `metric_grades.json` and `DEEP_REAUDIT_V24.md` are authoritative. No metric is a proven autonomous trade signal without the remaining point-in-time, global multiple-testing, and prospective gates.
+# How to validate War Room OS v4.2
 
-# War Room OS — validation & research, how to run it yourself
+## User-machine release check
 
-Everything that produces a number is reproducible. Nothing is taken on faith.
+On Windows, run:
 
-## Two harnesses (run offline, no feeds/keys needed — they use bundled real data)
+```text
+CHECK_EVERYTHING.bat
+```
 
-**1. Metric grades** — `python walkforward_validate.py`
-Walk-forward (fit early / test late) + permutation on every OS metric. Writes `metric_grades.json`.
-The app reads this: VALIDATED → emits a live number; PARTIAL → banded; REJECTED/FEED-GATED → "—".
-Result: factor_momentum & dollar_hub VALIDATED clean; crash_pressure VALIDATED but banded (fixed
-weights only — fitting overfits and dies OOS); panic_bottom PARTIAL; rotation/lead-lag/price-alpha
-REJECTED; bandarmetrics/accumulation FEED-GATED.
+It installs dependencies in `.venv`, verifies the package manifest, compiles Python, runs the quarantined legacy compatibility suite, performs one offline worker cycle and checks a real Streamlit health endpoint.
 
-**2. Disciplined factor research** — `python research_harness.py`
-Anti-memorization hidden-metric search: anonymized (cross-sectional ranks, no ticker identity),
-FDR + White's Reality Check, out-of-sample. Writes `research_results.json`.
-Result: survivors = short-horizon microstructure (skew, 1wk/1mo reversal, illiquidity). Momentum
-died; low-vol reversed sign in the 2016-18 regime. Reality-check p=0.0005 (real, not fluke).
+Required output:
 
-## Why post-cutoff data is the only clean test
-Both harnesses run on data inside my training window, so a "pass" cannot fully rule out memorization
-(skill and memory are observationally equivalent on seen data). The only memorization-proof
-validation is forward / post-Jan-2026 data. Every grade is flagged pending that. This is the rigorous
-version of "forward testing."
+```text
+status: PASS
+software_permission: READY_FOR_USER_REVIEW
+predictive_components_promoted: 0
+capital_permission: BLOCKED
+```
 
-## In the app
-- Header flips green **v0.3 · LIVE** when real data loads (stays MOCK if the run failed).
-- **Validation tab** shows the LIVE grade card recomputed from `walkforward_validate.py` — it overrides
-  any stale hardcoded claim.
-- Every metric elsewhere is grade-gated: no ungraded number renders.
+## Build-environment deep audit
 
-## Design
-Unchanged from warroom_os_COMPLETE — same layout, same tabs, same badge system. Only the honesty of
-what each panel emits changed.
+```bash
+python run_master_reaudit_v42.py
+```
+
+This additionally runs the 43-contract source/browser suite. It proves UI, code, capability and fail-closed semantics—not predictive edge.
+
+## Predictive proof
+
+Use the templates in `evidence_templates/` and follow `PROOF_PLAN.md`. No component can be promoted from a good backtest alone. Exact-scope point-in-time lineage, repeated purged walk-forward OOS, a strong baseline, multiple-testing correction, realistic costs/capacity, a one-time untouched lockbox, matured prospective outcomes and human approval are mandatory.

@@ -1,0 +1,181 @@
+{
+  "version": "4.2",
+  "claim_ceiling": "RESEARCH_ONLY_UNTIL_EXACT_SCOPE_GATES_PASS",
+  "promotion_ladder": [
+    "DESIGN_ONLY",
+    "DATA_CONTRACT_VERIFIED",
+    "DESCRIPTIVE_CONTROL",
+    "OOS_CANDIDATE",
+    "LOCKBOX_PASS",
+    "PROSPECTIVE_WATCH",
+    "LIMITED_PRODUCTION_ELIGIBLE",
+    "HUMAN_APPROVED_LIMITED_PRODUCTION"
+  ],
+  "components": {
+    "generic_price_context": {
+      "scope": "ALL_MARKETS_DESCRIPTIVE",
+      "state": "DESCRIPTIVE_CONTROL",
+      "wfa_pass": false,
+      "lockbox_pass": false,
+      "prospective_pass": false,
+      "cost_model_pass": false,
+      "multiple_testing_pass": false,
+      "human_signoff": false,
+      "capital_permission": "BLOCKED"
+    },
+    "us_directional_selector": {
+      "scope": "US_EQUITIES_DAILY",
+      "state": "DESIGN_ONLY",
+      "wfa_pass": false,
+      "lockbox_pass": false,
+      "prospective_pass": false,
+      "cost_model_pass": false,
+      "multiple_testing_pass": false,
+      "human_signoff": false,
+      "capital_permission": "BLOCKED"
+    },
+    "ihsg_long_selector": {
+      "scope": "IHSG_LONG_ONLY_DAILY",
+      "state": "DESIGN_ONLY",
+      "wfa_pass": false,
+      "lockbox_pass": false,
+      "prospective_pass": false,
+      "cost_model_pass": false,
+      "multiple_testing_pass": false,
+      "human_signoff": false,
+      "capital_permission": "BLOCKED"
+    },
+    "crypto_directional_selector": {
+      "scope": "CRYPTO_PER_ASSET_PER_VENUE",
+      "state": "DESIGN_ONLY",
+      "wfa_pass": false,
+      "lockbox_pass": false,
+      "prospective_pass": false,
+      "cost_model_pass": false,
+      "multiple_testing_pass": false,
+      "human_signoff": false,
+      "capital_permission": "BLOCKED"
+    },
+    "commodity_directional_selector": {
+      "scope": "FUTURES_PER_CONTRACT",
+      "state": "DESIGN_ONLY",
+      "wfa_pass": false,
+      "lockbox_pass": false,
+      "prospective_pass": false,
+      "cost_model_pass": false,
+      "multiple_testing_pass": false,
+      "human_signoff": false,
+      "capital_permission": "BLOCKED"
+    },
+    "fx_pair_selector": {
+      "scope": "FX_PAIR_SPECIFIC",
+      "state": "DESIGN_ONLY",
+      "wfa_pass": false,
+      "lockbox_pass": false,
+      "prospective_pass": false,
+      "cost_model_pass": false,
+      "multiple_testing_pass": false,
+      "human_signoff": false,
+      "capital_permission": "BLOCKED"
+    },
+    "wasserstein_hmm": {
+      "scope": "CROSS_ASSET_DAILY_ALLOCATION_CHALLENGER",
+      "state": "DESIGN_ONLY",
+      "wfa_pass": false,
+      "lockbox_pass": false,
+      "prospective_pass": false,
+      "cost_model_pass": false,
+      "multiple_testing_pass": false,
+      "human_signoff": false,
+      "capital_permission": "BLOCKED"
+    },
+    "simple_hmm": {
+      "scope": "CROSS_ASSET_DAILY_CONTEXT_CHALLENGER",
+      "state": "DESIGN_ONLY",
+      "wfa_pass": false,
+      "lockbox_pass": false,
+      "prospective_pass": false,
+      "cost_model_pass": false,
+      "multiple_testing_pass": false,
+      "human_signoff": false,
+      "capital_permission": "BLOCKED"
+    },
+    "volatility_risk_premium": {
+      "scope": "OPTIONS_PER_INSTRUMENT",
+      "state": "DESIGN_ONLY",
+      "wfa_pass": false,
+      "lockbox_pass": false,
+      "prospective_pass": false,
+      "cost_model_pass": false,
+      "multiple_testing_pass": false,
+      "human_signoff": false,
+      "capital_permission": "BLOCKED"
+    },
+    "dealer_greeks": {
+      "scope": "OPTIONS_PER_INSTRUMENT",
+      "state": "DESCRIPTIVE_CONTROL",
+      "wfa_pass": false,
+      "lockbox_pass": false,
+      "prospective_pass": false,
+      "cost_model_pass": false,
+      "multiple_testing_pass": false,
+      "human_signoff": false,
+      "capital_permission": "BLOCKED"
+    },
+    "order_flow_imbalance": {
+      "scope": "VENUE_SPECIFIC_EXECUTION",
+      "state": "DESIGN_ONLY",
+      "wfa_pass": false,
+      "lockbox_pass": false,
+      "prospective_pass": false,
+      "cost_model_pass": false,
+      "multiple_testing_pass": false,
+      "human_signoff": false,
+      "capital_permission": "BLOCKED"
+    },
+    "failed_breakout": {
+      "scope": "MARKET_SPECIFIC_EXECUTION_PATTERN",
+      "state": "DESIGN_ONLY",
+      "wfa_pass": false,
+      "lockbox_pass": false,
+      "prospective_pass": false,
+      "cost_model_pass": false,
+      "multiple_testing_pass": false,
+      "human_signoff": false,
+      "capital_permission": "BLOCKED"
+    },
+    "merton_structural_credit": {
+      "scope": "COMPANY_SPECIFIC_CREDIT_CONTEXT",
+      "state": "DESIGN_ONLY",
+      "wfa_pass": false,
+      "lockbox_pass": false,
+      "prospective_pass": false,
+      "cost_model_pass": false,
+      "multiple_testing_pass": false,
+      "human_signoff": false,
+      "capital_permission": "BLOCKED"
+    },
+    "alpha_scenario_valuation": {
+      "scope": "COMPANY_OR_TOKEN_SPECIFIC",
+      "state": "DESIGN_ONLY",
+      "wfa_pass": false,
+      "lockbox_pass": false,
+      "prospective_pass": false,
+      "cost_model_pass": false,
+      "multiple_testing_pass": false,
+      "human_signoff": false,
+      "capital_permission": "BLOCKED"
+    },
+    "portfolio_allocator": {
+      "scope": "VALIDATED_RETURN_STREAMS_ONLY",
+      "state": "DESIGN_ONLY",
+      "wfa_pass": false,
+      "lockbox_pass": false,
+      "prospective_pass": false,
+      "cost_model_pass": false,
+      "multiple_testing_pass": false,
+      "human_signoff": false,
+      "capital_permission": "BLOCKED"
+    }
+  }
+}

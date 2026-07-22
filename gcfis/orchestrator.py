@@ -180,9 +180,17 @@ def run_gcfis(prices: dict, bench: pd.Series, regime_posterior: dict,
                 sig.entry_px = e["entry_px"]; sig.stop = e["stop"]; sig.target = e["target"]; sig.rr = e["rr"]
         # options panel (real GEX/gamma/walls/vanna/charm or unknown — never fabricated)
         d = dealers.get(sig.ticker, {})
-        sig.options = {"call_wall": d.get("call_wall"), "put_wall": d.get("put_wall"), "gex": d.get("gex"),
-                       "gex_sign": d.get("gex_sign", 0), "gamma": d.get("gamma"), "gamma_flip": d.get("gamma_flip"),
-                       "vanna": d.get("vanna"), "charm": d.get("charm"), "is_real": bool(d.get("ok"))}
+        sig.options = {"call_wall": d.get("call_wall"), "put_wall": d.get("put_wall"),
+                       "dealer_sign_state": d.get("dealer_sign_state", "UNKNOWN"),
+                       "ownership_state": d.get("ownership_state", "UNVERIFIED"),
+                       "unsigned_gamma_magnitude": d.get("unsigned_gamma_magnitude"),
+                       "unsigned_vanna_magnitude": d.get("unsigned_vanna_magnitude"),
+                       "unsigned_charm_magnitude": d.get("unsigned_charm_magnitude"),
+                       "dte_buckets": d.get("dte_buckets", {}),
+                       "gex": d.get("gex"), "gex_sign": d.get("gex_sign"),
+                       "gamma_flip": d.get("gamma_flip"), "vanna": d.get("vanna"),
+                       "charm": d.get("charm"), "is_real": bool(d.get("ok")),
+                       "semantics": d.get("semantics")}
         # macro context stamped per ticker
         sig.macro = {"quad": systemic.get("forward_quad"), "liquidity_regime": liq_score,
                      "fragility": frag_v, "shock_prob": shock_p, "cross_asset_regime": cross.get("regime"),
@@ -191,7 +199,7 @@ def run_gcfis(prices: dict, bench: pd.Series, regime_posterior: dict,
         a = per_ticker[sig.ticker]
         # complete Scores panel (liquidity/dealer/positioning) — full GCFIS Scores contract
         sig.scores["liquidity"] = round(liq_score, 1)
-        sig.scores["dealer"] = d.get("gex_sign", 0)
+        sig.scores["dealer"] = d.get("gex_sign")
         if a.get("cot_index") is not None: sig.scores["positioning"] = a.get("cot_index")
         # institutional detail (revision/ownership_Δ/etf_flow surface when data supplied)
         er = (earnings_rev_by_ticker or {}).get(sig.ticker)

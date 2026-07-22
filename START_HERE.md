@@ -1,70 +1,68 @@
-# Start Here — War Room OS v3.3.2
+# Start Here — War Room OS v4.2 Deep Re-audit
 
-## First run
+## First run on Windows
 
-1. Extract the complete ZIP into a normal writable folder.
-2. Never place `.env`, API keys or private tokens inside the repository.
+1. Extract the ZIP into a new writable folder. Do not overwrite an older War Room folder.
+2. Keep API keys outside the repository; use environment variables or Streamlit secrets.
 3. Double-click `CHECK_AND_RUN.bat`.
-4. The app starts only after the v3.3.2 master operational checks pass.
+4. The script creates `.venv`, installs dependencies, verifies the package, runs the offline collector, starts a real Streamlit health check, and launches the app only if every user-machine check passes.
 
 The header must read:
 
 ```text
-DECISION-INTELLIGENCE OS · v3.3.2
+DECISION-INTELLIGENCE OS · v4.2
 ```
 
-## Use the three display modes in this order
+## Read the interface in this order
 
 ```text
 BOARD → MAP → EVIDENCE
 ```
 
-- **BOARD** answers what the state/action is now.
-- **MAP** explains the causal or transmission path.
-- **EVIDENCE** shows the research discipline and missing proof.
+- **BOARD**: current descriptive state, missing proof, next falsifier and invalidation.
+- **MAP**: causal or transmission hypothesis.
+- **EVIDENCE**: lineage, source review, validation grade and failure records.
 
-## FX interpretation
+## Critical claim boundary
 
-Do not search for one global FX bias. Read every pair row separately:
-
-```text
-PAIR | STATE/ACTION | ORIENTATION | EVIDENCE | TRIGGER/STOP | WHY/RISK | FRESHNESS
-```
-
-Examples:
-
-- `LONG + TRIGGERED WATCH LONG`: pair drivers agree and a setup trigger exists.
-- `SHORT + WATCH SHORT`: directional research watch, no validated trigger yet.
-- `SHORT + PRICE ONLY`: context only; it cannot be promoted.
-- `NEUTRAL + EVENT_RISK_WAIT`: wait for the event and post-event price acceptance.
-- `BLOCKED`: missing/stale/conflicting evidence.
-
-All states remain research-only until capital permission is earned.
-
-## What healthy data states look like
-
-The dashboard must leave `INITIALIZING`. Panels may legitimately show:
+Generic market rows are **descriptive price context**, not trade calls:
 
 ```text
-LIVE · PARTIAL · STALE · NO_SIGNAL · NO_DATA · ACTION_REQUIRED · NOT_ENTITLED
+POSITIVE PRICE CONTEXT
+NEGATIVE PRICE CONTEXT
+NO TRADE · CONFLICTED
+LOW LIQUIDITY · CONTEXT ONLY
 ```
 
-Blank panels or synthetic replacement claims are not acceptable.
+They are not calibrated probability, evidence completeness, expected return or capital permission. Reference targets are geometry only—not fair value.
 
-## Current developments
+Alpha Center is a structural research inventory. Numeric upside, probability, EV, target and sizing remain `WITHHELD` until a complete point-in-time scenario model and exact-scope proof gates exist.
 
-The Crypto board should include dated cards for structural changes such as tokenization,
-brokerage/onchain convergence, stablecoins, prediction markets, regulation and agentic
-execution. The top radar chip shows fresh entries and official pages awaiting review.
+## Options capability
 
-A changed official page is only a research alert. It never creates direction by itself.
+Options modules appear only where a real supported product and instrument-level feed exist:
 
-## Review order
+- US: listed equity/ETF/index options, per instrument.
+- IHSG: disabled; no active supported listed-option chain is assumed.
+- Crypto: per underlying and per venue only.
+- Commodities: options-on-futures feed only; futures/COT alone do not enable options.
+- FX: listed-option or vol-surface feed only; spot alone does not enable options.
+
+Unsigned Greek magnitude may be displayed. Signed dealer gamma/vanna/charm requires an explicit signed-inventory input. Call/put OI never supplies dealer ownership by assumption.
+
+## Proof ladder
+
+A component may influence capital only after all exact-scope gates pass:
 
 ```text
-Mission → Regime & Risk → Opportunities → Markets → Flow & Positioning
-→ Causal Map → Execution & Portfolio → Research & Validation
+point-in-time data contract
+→ frozen specification and baseline
+→ repeated walk-forward OOS
+→ multiple-testing correction
+→ realistic costs, slippage and capacity
+→ one-time untouched lockbox
+→ matured prospective evidence
+→ human approval
 ```
 
-At each market, inspect Current Rain, Study the Tape, Counterparty Challenge,
-Cost of Staying/Waiting, trigger/invalidation and Next Cheapest Falsifier.
+The shipped build has **zero promoted predictive components** and **capital permission BLOCKED** by design. See `WHAT_IS_AND_IS_NOT_PROVEN.md` and `PROOF_PLAN.md`.

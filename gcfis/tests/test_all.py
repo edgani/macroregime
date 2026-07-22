@@ -49,9 +49,16 @@ def t_l6_bottleneck():
     assert r["tightest_bottleneck"]=="GPU"; print(f"  L6 bottleneck tightest={r['tightest_bottleneck']}  OK")
 def t_l8_dealer():
     chain=pd.DataFrame([{"strike":100,"oi":5000,"iv":.3,"type":"C","T":.05},{"strike":100,"oi":800,"iv":.3,"type":"P","T":.05}])
-    d=run_dealer(chain,100); assert d["gex_sign"]==1 and d["regime"]=="mean_reversion"
-    assert d.get("gamma") is not None and d.get("charm") is not None and d.get("gamma_flip") is not None, d
-    assert run_dealer(None,100)["regime"]=="unknown"; print(f"  L8 dealer regime={d['regime']} γ={d['gamma']} charm={d['charm']} (no-chain=unknown, not fabricated)  OK")
+    unsigned=run_dealer(chain,100)
+    assert unsigned["dealer_sign_state"]=="UNKNOWN" and unsigned["regime"]=="unknown"
+    assert unsigned["gex"] is None and unsigned["gex_sign"] is None
+    assert unsigned["unsigned_gamma_magnitude"]>0 and unsigned["unsigned_charm_magnitude"]>0
+    signed_chain=chain.copy(); signed_chain["dealer_sign"]=1
+    signed=run_dealer(signed_chain,100)
+    assert signed["dealer_sign_state"]=="EXPLICIT" and signed["gex_sign"]==1
+    assert signed["regime"]=="mean_reversion_context" and signed["gamma_flip"] is not None
+    assert run_dealer(None,100)["regime"]=="unknown"
+    print(f"  L8 dealer unsigned={unsigned['unsigned_gamma_magnitude']} sign=UNKNOWN | explicit regime={signed['regime']}  OK")
 def t_l9_positioning():
     r=run_positioning("X",cot_net=S(np.r_[rng.normal(0,1,N-1),[10]])); assert r["extreme_long"]; print(f"  L9 positioning cot={r['cot_index']} extreme_long={r['extreme_long']}  OK")
 def t_l10_crypto():
@@ -154,7 +161,10 @@ def t_full_contract_e2e():
     assert out["ok"]
     longs = out["ranking"]["master_long"]; assert any(r2["ticker"]=="STRONG" for r2 in longs), "STRONG should rank long"
     s = next(r2 for r2 in longs if r2["ticker"]=="STRONG")
-    o = s["options"]; assert o["is_real"] and o["gex_sign"] != 0 and o["gamma"] is not None and o["charm"] is not None and o["gamma_flip"] is not None, o
+    o = s["options"]
+    assert o["is_real"] and o["dealer_sign_state"] == "UNKNOWN", o
+    assert o["unsigned_gamma_magnitude"] is not None and o["unsigned_gamma_magnitude"] > 0, o
+    assert o["gex"] is None and o["gex_sign"] is None and o["gamma_flip"] is None, o
     for k in ("accumulation","theme","bottleneck","reflexivity","confluence","liquidity","dealer","positioning"):
         assert k in s["scores"], f"scores missing {k}: {s['scores']}"
     opp = s["opportunity"]; assert opp["bear"] < opp["base"] < opp["bull"] < opp["supercycle"]
@@ -163,11 +173,11 @@ def t_full_contract_e2e():
     for k in ("revision","ownership_delta","etf_flow"):
         assert inst.get(k) is not None, f"institutional missing {k}: {inst}"
     html = card_html(s)
-    for must in ("Bottle","Reflex","Pos","GEX","γflip","charm","bear","bull","Quad"):
+    for must in ("Bottle","Reflex","Pos","γmag","dealer sign","bear","bull","Quad"):
         assert must in html, f"card missing {must}"
     print(f"  FULL CONTRACT e2e: STRONG {s['action']} conv={s['conviction']} confluence={s['scores'].get('confluence')} "
           f"bottle={s['bottleneck']} reflex={s['scores'].get('reflexivity')} pos={s['scores'].get('positioning')} | "
-          f"opt[gex_sign={o['gex_sign']} γ={o['gamma']} charm={o['charm']} γflip={o['gamma_flip']}] | "
+          f"opt[sign={o['dealer_sign_state']} γmag={o['unsigned_gamma_magnitude']}] | "
           f"inst[rev={inst['revision']} own={inst['ownership_delta']} etf={inst['etf_flow']}] | "
           f"opp={opp['bear']}/{opp['base']}/{opp['bull']}/{opp['supercycle']}  OK")
 

@@ -770,7 +770,15 @@ def main() -> None:
         if not claim_worker_instance():
             raise SystemExit("another War Room worker is already running")
         try:
-            run_once()
+            write_status(state="COLLECTING_ONCE", pid=os.getpid(), pending=["core", "events", "slow"], error=None)
+            snapshot = run_once()
+            snapshot = read_snapshot() or snapshot
+            revision = int(((snapshot.get("runtime") or {}).get("snapshot_sequence") or 0))
+            health = str(((snapshot.get("data_health") or {}).get("overall") or "NO_DATA")).upper()
+            write_status(state="IDLE" if health not in {"NO_DATA", "ERROR"} else "DEGRADED", pid=os.getpid(), pending=[], snapshot_revision=revision, error=None)
+        except BaseException as exc:
+            write_status(state="WORKER_FATAL", pid=os.getpid(), pending=[], error=f"{type(exc).__name__}: {exc}")
+            raise
         finally:
             release_worker_instance()
     else:

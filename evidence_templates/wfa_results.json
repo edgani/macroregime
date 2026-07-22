@@ -1,0 +1,25 @@
+{
+  "template": true,
+  "status": "NOT_RUN",
+  "markets": {},
+  "required_markets": [
+    "us",
+    "ihsg",
+    "crypto",
+    "commodities",
+    "fx"
+  ],
+  "required_contract": [
+    "strong_baseline",
+    "point_in_time",
+    "survivor_free",
+    "purged",
+    "embargoed",
+    "costs",
+    "capacity",
+    "multiple_testing",
+    "ablation",
+    "failure_review",
+    "oos_folds"
+  ]
+}

@@ -1,0 +1,150 @@
+{
+  "version": "4.2",
+  "claim_ceiling": "RESEARCH_ONLY",
+  "rules": {
+    "generic_price_context": {
+      "status": "DESCRIPTIVE_CONTROL",
+      "scope": "OHLCV descriptive screen only",
+      "formula": "mean(equal-weighted cross-sectional ranks: 12M return, legacy readiness proxy, legacy OHLCV proxy, pressure flag)",
+      "weights": [
+        0.25,
+        0.25,
+        0.25,
+        0.25
+      ],
+      "dead_zone": 0.15,
+      "selection": "liquidity state -> agreement count -> absolute context score",
+      "not_claimed": [
+        "probability",
+        "expected return",
+        "ownership",
+        "intent",
+        "trade direction",
+        "capital permission"
+      ],
+      "reason": "Simple transparent baseline; no fitted coefficients. Still unvalidated predictively."
+    },
+    "macro_quad": {
+      "status": "RESEARCH_PROXY",
+      "scope": "market/macro context",
+      "formula": "legacy GROC/IROC proxy retained as diagnostic",
+      "not_claimed": [
+        "objective economic truth",
+        "allocation signal"
+      ],
+      "required_work": "PIT official-vintage mapping and baseline tournament"
+    },
+    "fragility_and_shock": {
+      "status": "PARTIAL_RESEARCH",
+      "display": "LOW/MODERATE/HIGH bands",
+      "raw_location": "diagnostics only",
+      "not_claimed": [
+        "event probability",
+        "crash forecast"
+      ],
+      "required_work": "freeze definition and repeated PIT WFA"
+    },
+    "alpha_inventory": {
+      "status": "STRUCTURAL_RESEARCH",
+      "selection": "loaded status -> lifecycle stage -> hidden flag -> ticker",
+      "weights": "NONE",
+      "not_claimed": [
+        "upside",
+        "EV",
+        "fair value",
+        "probability",
+        "sizing"
+      ],
+      "required_work": "direct value capture plus point-in-time scenario model"
+    },
+    "fx_pair_context": {
+      "status": "RESEARCH_ONLY",
+      "drivers": [
+        "price",
+        "carry/rate differential when available"
+      ],
+      "directional_permission": "BLOCKED",
+      "required_work": "pair-specific additional domains and exact-scope validation"
+    },
+    "dealer_greeks": {
+      "status": "DESCRIPTIVE_CONTROL",
+      "unsigned": "gamma/vanna/charm magnitude and DTE buckets",
+      "signed": "requires explicit dealer_sign for every usable row",
+      "not_claimed": [
+        "dealer ownership from OI",
+        "hedge direction without sign"
+      ]
+    },
+    "scenario_valuation": {
+      "status": "FAIL_CLOSED",
+      "equity": "demand*share*margin*multiple-net_debt, divided by future diluted shares",
+      "token": "(economic_activity*capture_rate-net_costs)*multiple, divided by future diluted supply",
+      "EV": "withheld unless probabilities externally calibrated and sum to 1"
+    },
+    "regime_tournament": {
+      "status": "NOT_TESTED",
+      "baselines": [
+        "equal weight",
+        "static risk balanced",
+        "simple trend defensive"
+      ],
+      "challengers": [
+        "2-state HMM",
+        "3-state HMM",
+        "Wasserstein adaptive HMM"
+      ],
+      "winner": null,
+      "common_contract": "identical PIT universe, lag, costs, constraints and splits"
+    },
+    "portfolio_allocator": {
+      "status": "DESIGN_ONLY",
+      "tournament": [
+        "1/N",
+        "volatility scaling",
+        "risk parity",
+        "HRP",
+        "constrained MVO",
+        "Black-Litterman tilt"
+      ],
+      "input_gate": "validated return streams only"
+    },
+    "volatility_risk_premium": {
+      "status": "DESIGN_ONLY",
+      "scope": "option-capable instruments only",
+      "required_inputs": [
+        "actual option surface",
+        "expected/forecast realized variance",
+        "skew",
+        "term",
+        "hedging costs",
+        "margin/tail stress"
+      ],
+      "not_claimed": [
+        "premium always positive",
+        "free money"
+      ]
+    },
+    "order_flow_imbalance": {
+      "status": "DESIGN_ONLY",
+      "scope": "venue-specific execution",
+      "not_claimed": [
+        "62% durable prediction",
+        "global FX book",
+        "institutional intent"
+      ]
+    },
+    "failed_breakout": {
+      "status": "DESIGN_ONLY",
+      "scope": "market-specific execution pattern",
+      "causal_rule": "predeclared level -> excursion -> loss of acceptance -> failed retest",
+      "required_work": "parameter plateau and baseline WFA"
+    },
+    "merton_credit": {
+      "status": "DESIGN_ONLY",
+      "scope": "company-specific credit context",
+      "not_claimed": [
+        "exact default probability without calibration"
+      ]
+    }
+  }
+}

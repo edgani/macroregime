@@ -75,9 +75,11 @@ def run_entry(price: pd.Series, direction: str, dealer: dict | None = None,
 
     trend = float(np.tanh((p / sma50 - 1) * 10) + np.sign(sma50 - sma200) * 0.3)
     mom = float(np.tanh((rsi - 50) / 20))
-    dsign = (dealer or {}).get("gex_sign", 0); gregime = (dealer or {}).get("regime", "unknown")
-    # dealer contribution is direction-aware: momentum regime helps trend entries, mean-rev helps fades
-    dealer_contrib = float(dsign) * (1 if direction == "long" else -1) * -1  # GEX<0 (momentum) aids trend
+    raw_dsign = (dealer or {}).get("gex_sign")
+    dsign = float(raw_dsign) if raw_dsign in (-1, 1, -1.0, 1.0) else 0.0
+    gregime = str((dealer or {}).get("regime", "unknown"))
+    # Dealer contribution is zero unless contract-level dealer sign is explicitly supplied.
+    dealer_contrib = dsign * (1 if direction == "long" else -1) * -1
     liq = (liquidity_score - 50) / 50.0
     structure = float((pos - 0.5) * 2) if direction == "long" else float((0.5 - pos) * 2)
     entry_score = 0.25 * trend + 0.25 * mom + 0.20 * dealer_contrib + 0.15 * liq + 0.15 * structure
@@ -85,18 +87,18 @@ def run_entry(price: pd.Series, direction: str, dealer: dict | None = None,
     near_hi, near_lo = pos > 0.8, pos < 0.2
     breaking = p >= hi20 * 0.999
     if direction == "long":
-        if gregime == "momentum" and breaking: etype = "BREAKOUT"
-        elif gregime == "momentum" and trend > 0: etype = "CONTINUATION"
-        elif gregime == "mean_reversion" and near_lo and rsi < 38: etype = "MEAN_REVERSION"
-        elif gregime == "mean_reversion" and near_lo: etype = "PULLBACK"
+        if gregime in {"momentum", "amplification_context"} and breaking: etype = "BREAKOUT"
+        elif gregime in {"momentum", "amplification_context"} and trend > 0: etype = "CONTINUATION"
+        elif gregime in {"mean_reversion", "mean_reversion_context"} and near_lo and rsi < 38: etype = "MEAN_REVERSION"
+        elif gregime in {"mean_reversion", "mean_reversion_context"} and near_lo: etype = "PULLBACK"
         elif breaking: etype = "BREAKOUT"
         elif near_lo: etype = "PULLBACK"
         else: etype = "CONTINUATION"
     else:  # short
-        if gregime == "momentum" and p <= lo20 * 1.001: etype = "BREAKDOWN"
-        elif gregime == "momentum" and trend < 0: etype = "CONTINUATION"
-        elif gregime == "mean_reversion" and near_hi and rsi > 62: etype = "MEAN_REVERSION"
-        elif gregime == "mean_reversion" and near_hi: etype = "BOUNCE_SHORT"
+        if gregime in {"momentum", "amplification_context"} and p <= lo20 * 1.001: etype = "BREAKDOWN"
+        elif gregime in {"momentum", "amplification_context"} and trend < 0: etype = "CONTINUATION"
+        elif gregime in {"mean_reversion", "mean_reversion_context"} and near_hi and rsi > 62: etype = "MEAN_REVERSION"
+        elif gregime in {"mean_reversion", "mean_reversion_context"} and near_hi: etype = "BOUNCE_SHORT"
         elif p <= lo20 * 1.001: etype = "BREAKDOWN"
         elif near_hi: etype = "BOUNCE_SHORT"
         else: etype = "CONTINUATION"
@@ -104,10 +106,10 @@ def run_entry(price: pd.Series, direction: str, dealer: dict | None = None,
     # gamma-validity: breakout/continuation need momentum regime; pullback/mean-rev need mean-rev regime
     trend_types = {"BREAKOUT", "BREAKDOWN", "CONTINUATION"}
     valid = True; warn = ""
-    if gregime == "mean_reversion" and etype in trend_types:
-        valid = False; warn = "breakout in positive-gamma (dealers fade) — likely to fail"
-    if gregime == "momentum" and etype in {"PULLBACK", "MEAN_REVERSION", "BOUNCE_SHORT"}:
-        warn = "fading a negative-gamma (momentum) tape — risky"
+    if gregime in {"mean_reversion", "mean_reversion_context"} and etype in trend_types:
+        valid = False; warn = "trend entry conflicts with explicit positive-gamma context"
+    if gregime in {"momentum", "amplification_context"} and etype in {"PULLBACK", "MEAN_REVERSION", "BOUNCE_SHORT"}:
+        warn = "fade conflicts with explicit negative-gamma context"
 
     # ── stop/target: RISK-RANGE driven (thesis boundary), ATR only as fallback when no OHLC ──
     hrr = _hedgeye_range(ohlcv, ticker)

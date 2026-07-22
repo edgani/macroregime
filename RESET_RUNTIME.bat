@@ -9,6 +9,8 @@ for %%F in (
   runtime\worker.instance.lock
   runtime\worker.pid
   runtime\worker_boot.log
+  runtime\v42_fixture_desk.json
+  runtime\v42_fixture_dashboard.html
   static\desk_snapshot.json
   static\worker_status.json
 ) do del /Q "%%F" >nul 2>&1

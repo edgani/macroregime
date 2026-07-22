@@ -10,6 +10,8 @@ from copy import deepcopy
 from datetime import datetime, timezone
 from typing import Any
 
+from proof_registry import component_status
+
 PAIR_ALIASES = {
     "EURUSD": "EURUSD=X", "EURUSD=X": "EURUSD=X",
     "GBPUSD": "GBPUSD=X", "GBPUSD=X": "GBPUSD=X",
@@ -113,7 +115,7 @@ def _fresh_event_risk(desk: dict, pair: str) -> list[dict]:
     pair = _canon(pair)
     out = []
     for row in rows:
-        if row.get("freshness") != "FRESH":
+        if row.get("freshness") == "STALE" or row.get("source_verification") != "HUMAN_REVIEWED":
             continue
         title = str(row.get("title") or "").upper()
         category = str(row.get("category") or "").upper()
@@ -151,6 +153,7 @@ def build_fx_pair_states(desk: dict) -> dict:
         independent = len(drivers)
         conflict = long_votes and short_votes
 
+        selector_promoted = bool(component_status("fx_pair_selector").get("predictive_promoted"))
         if not price:
             orientation, state, action = "BLOCKED", "NO_PRICE_DATA", "NO ACTION"
             reason = "No current pair-price observation."
@@ -158,32 +161,34 @@ def build_fx_pair_states(desk: dict) -> dict:
             orientation, state, action = "NEUTRAL", "EVENT_RISK_WAIT", "WAIT / REASSESS AFTER EVENT"
             reason = "Fresh policy/market-structure event risk can invalidate the current pair path."
         elif conflict:
-            orientation, state, action = "NEUTRAL", "DRIVER_CONFLICT", "NO TRADE / TWO-SIDED WATCH"
+            orientation, state, action = "NEUTRAL", "DRIVER_CONFLICT", "NO TRADE · DRIVER CONFLICT"
             reason = "Price and independent rate/carry evidence disagree."
         elif independent == 1:
             orientation = "LONG" if price_sign > 0 else "SHORT" if price_sign < 0 else "NEUTRAL"
             state = f"PRICE_ONLY_{orientation}" if orientation != "NEUTRAL" else "PRICE_ONLY_NEUTRAL"
-            action = f"WATCH {orientation} · PRICE ONLY" if orientation != "NEUTRAL" else "NO TRADE · PRICE ONLY"
+            action = ("POSITIVE PRICE CONTEXT · NO TRADE" if orientation == "LONG" else
+                      "NEGATIVE PRICE CONTEXT · NO TRADE" if orientation == "SHORT" else
+                      "MIXED PRICE CONTEXT · NO TRADE")
             reason = "Direction is only price context; no independent macro/positioning confirmation."
         elif long_votes >= 2:
-            orientation, state, action = "LONG", "WATCH_LONG", "WATCH LONG"
-            reason = "Price and carry/rate differential agree; still research-only and not prospectively promoted."
+            orientation, state = "LONG", "MULTI_DRIVER_LONG_CONTEXT"
+            action = "DIRECTIONAL RESEARCH CONTEXT · NO TRADE"
+            reason = "Price and carry/rate differential agree, but the exact-scope FX selector is not promoted."
         elif short_votes >= 2:
-            orientation, state, action = "SHORT", "WATCH_SHORT", "WATCH SHORT"
-            reason = "Price and carry/rate differential agree; still research-only and not prospectively promoted."
+            orientation, state = "SHORT", "MULTI_DRIVER_SHORT_CONTEXT"
+            action = "DIRECTIONAL RESEARCH CONTEXT · NO TRADE"
+            reason = "Price and carry/rate differential agree, but the exact-scope FX selector is not promoted."
         else:
             orientation, state, action = "NEUTRAL", "NO_SIGNAL", "NO TRADE"
             reason = "Available drivers do not form a directional pair state."
 
-        # A setup can upgrade a two-driver watch to triggered watch, never a price-only state.
-        setup_valid = bool(setup) and bool(setup.get("valid", True)) and not setup.get("warn")
-        raw_action = str(setup.get("act") or "").upper()
-        setup_direction = 1 if "LONG" in raw_action or "BUY" in raw_action else -1 if "SHORT" in raw_action or "SELL" in raw_action else 0
-        orientation_sign = 1 if orientation == "LONG" else -1 if orientation == "SHORT" else 0
-        if independent >= 2 and setup_valid and setup_direction and setup_direction == orientation_sign and state in {"WATCH_LONG", "WATCH_SHORT"}:
-            state = f"TRIGGERED_WATCH_{orientation}"
-            action = f"TRIGGERED WATCH {orientation}"
-            reason += " Price trigger is valid, but capital remains blocked."
+        # Reference geometry is shown for research, but cannot promote an unvalidated selector.
+        setup_valid = bool(setup) and setup.get("e") is not None and setup.get("s") is not None
+        directional_permission = bool(selector_promoted and independent >= 2 and setup_valid and not event_risk and not conflict)
+        if directional_permission and orientation in {"LONG", "SHORT"}:
+            state = f"TRIGGERED_RESEARCH_{orientation}"
+            action = f"TRIGGERED RESEARCH {orientation}"
+            reason += " Exact-scope selector promotion exists; capital still requires human approval."
 
         rows.append({
             "pair": pair,
@@ -191,6 +196,8 @@ def build_fx_pair_states(desk: dict) -> dict:
             "state": state,
             "research_action": action,
             "capital_permission": "BLOCKED",
+            "directional_permission": directional_permission,
+            "selector_state": component_status("fx_pair_selector").get("state"),
             "reason": reason,
             "driver_coverage": independent,
             "driver_total": 4,
@@ -204,14 +211,14 @@ def build_fx_pair_states(desk: dict) -> dict:
             "semantics": "Pair-specific research state; not an autonomous order or calibrated probability.",
         })
 
-    actionable = [x for x in rows if x["state"].startswith("TRIGGERED_WATCH")]
-    watches = [x for x in rows if x["state"] in {"WATCH_LONG", "WATCH_SHORT"}]
+    actionable = [x for x in rows if x.get("directional_permission")]
+    watches = [x for x in rows if x["state"] in {"MULTI_DRIVER_LONG_CONTEXT", "MULTI_DRIVER_SHORT_CONTEXT"}]
     return {
         "state": "LIVE" if rows else "NO_DATA",
         "pairs": rows,
         "triggered_count": len(actionable),
         "watch_count": len(watches),
-        "semantics": "There is no single FX long/short state. Every pair is scored separately and price-only direction cannot trigger a trade watch.",
+        "semantics": "There is no single FX long/short state. Pair orientation is descriptive until the exact-scope FX selector passes WFA, lockbox and prospective gates.",
         "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
     }
 

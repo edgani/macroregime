@@ -12,6 +12,9 @@ from typing import Any
 
 from current_developments import attach_current_developments
 from fx_pair_state import attach_fx_pair_states
+from market_capabilities import attach_market_capabilities
+from proof_registry import attach_proof_registry, component_status
+from regime_tournament import attach_regime_tournament
 
 MARKET_DOCTRINE: dict[str, dict[str, Any]] = {
     "us": {
@@ -81,26 +84,56 @@ def _state(value: Any) -> str:
 
 
 def _setup_action(market_id: str, market: dict, setup: dict) -> str:
+    """Translate a setup into its maximum permitted claim.
+
+    Generic OHLCV screens are descriptive controls. They never become WATCH/BUILD actions.
+    Market-specific directional labels require an exact-scope promoted selector, which the
+    current registry intentionally does not grant.
+    """
     raw = str(setup.get("act") or setup.get("ty") or "").upper()
-    valid = bool(setup.get("valid", True)) and not setup.get("warn")
-    if not valid:
-        return "NO TRADE"
-    if market_id == "idx":
-        if "SHORT" in raw or "SELL" in raw:
-            return "REDUCE / AVOID"
-        return "BUILD LONG" if "BUILD" in raw or "LONG" in raw or "BUY" in raw else "WATCH LONG"
-    if "SHORT" in raw or "SELL" in raw:
-        return "BUILD SHORT" if "BUILD" in raw else "WATCH SHORT"
-    if "LONG" in raw or "BUY" in raw or "BUILD" in raw:
-        return "BUILD LONG" if "BUILD" in raw else "WATCH LONG"
-    return "WATCH / WAIT"
+    direction = str(setup.get("dir") or "neutral").lower()
+    rr = _number(setup.get("rr"))
+    if setup.get("conflicted") or "CONFLICT" in raw:
+        return "NO TRADE · CONFLICTED"
+    if str(setup.get("liquidity_state") or "").upper() == "BELOW_RESEARCH_FLOOR":
+        return "LOW LIQUIDITY · CONTEXT ONLY"
+    if rr is not None and rr < 1.5:
+        return "NO TRADE · POOR R/R"
+    if not bool(setup.get("directional_permission")):
+        if market_id == "idx" and direction == "short":
+            return "NEGATIVE PRICE CONTEXT · NOT ELIGIBLE FOR NEW LONG"
+        if direction == "long":
+            return "POSITIVE PRICE CONTEXT"
+        if direction == "short":
+            return "NEGATIVE PRICE CONTEXT"
+        return "MIXED PRICE CONTEXT"
+    selector = component_status({
+        "us": "us_directional_selector",
+        "idx": "ihsg_long_selector",
+        "crypto": "crypto_directional_selector",
+        "commodity": "commodity_directional_selector",
+        "fx": "fx_pair_selector",
+    }.get(market_id, "generic_price_context"))
+    if not selector.get("predictive_promoted"):
+        return "DIRECTIONAL CLAIM WITHHELD"
+    return str(setup.get("research_action") or raw or "DIRECTIONAL RESEARCH CONTEXT")
 
 
 def _best_setup(market_id: str, market: dict) -> dict:
     setups = [x for x in _rows(market.get("setups")) if isinstance(x, dict) and x.get("tk")]
     if not setups:
         return {}
-    return sorted(setups, key=lambda x: (_number(x.get("conv")) or 0, _number(x.get("rr")) or 0), reverse=True)[0]
+    # Research priority: cleared liquidity first, then component agreement, then descriptive rank.
+    # R/R does not rescue a weak/unvalidated selector.
+    return sorted(
+        setups,
+        key=lambda x: (
+            1 if str(x.get("liquidity_state") or "").upper() == "ELIGIBLE" else 0,
+            int(_number(x.get("agreement_count")) or 0),
+            _number(x.get("setup_rank")) or _number(x.get("conv")) or 0,
+        ),
+        reverse=True,
+    )[0]
 
 
 def _market_alpha(desk: dict, market_id: str) -> list[dict]:
@@ -217,17 +250,14 @@ def _edge_decomposition(alpha_rows: list[dict], events: list[dict], best: dict, 
 def _permission(best: dict, market_id: str, market: dict, current_rain: dict, conditions: list[dict]) -> dict:
     action = _setup_action(market_id, market, best) if best else "NO TRADE"
     missing = [x["condition"] for x in conditions if x["status"] in {"NO_DATA", "UNASSESSED"}]
-    capital = "BLOCKED"
-    reason = "Prospective, market-specific evidence has not earned capital permission."
     if current_rain.get("state") == "NO_DATA":
         action = "NO ACTION"
         reason = "Required present-state observations are unavailable."
-    elif action.startswith(ACTIONABLE_PREFIXES):
-        action = action.replace("BUILD", "TRIGGERED WATCH", 1)
-        reason = "Executable price context exists, but it remains a research watch until validated and prospectively promoted."
+    else:
+        reason = "Current output is descriptive research context. Exact-scope WFA, lockbox and prospective gates have not promoted a selector."
     return {
         "research_action": action,
-        "capital_permission": capital,
+        "capital_permission": "BLOCKED",
         "reason": reason,
         "missing_critical_evidence": missing,
     }
@@ -251,7 +281,7 @@ def build_market_kernel(desk: dict, market_id: str) -> dict:
     market_developments = _rows(_obj(_obj(desk.get("current_developments")).get("by_market")).get(market_id))
     fresh_developments = [x for x in market_developments if x.get("freshness") == "FRESH"]
     trigger = (
-        f"{best.get('tk')} trigger {best.get('e')} / stop {best.get('s')} / reference {best.get('t')}"
+        f"{best.get('tk')} reference geometry {best.get('e')} / invalidation {best.get('s')} / reference {best.get('t')}"
         if best else "No instrument-specific trigger is currently constructed."
     )
     return {
@@ -278,7 +308,7 @@ def build_market_kernel(desk: dict, market_id: str) -> dict:
             "entries": fresh_developments[:12],
             "semantics": "Dated structural changes from primary sources; no automatic direction or trade action.",
         },
-        "trigger": {"state": "PARTIAL" if best else "NO_SIGNAL", "claim": trigger, "action_context": best_action},
+        "trigger": {"state": "REFERENCE_GEOMETRY_ONLY" if best else "NO_SIGNAL", "claim": trigger, "action_context": best_action},
         "market_recognition": recognition,
         "study_the_tape": {
             "state": "RESEARCH_REQUIRED",
@@ -301,7 +331,7 @@ def build_market_kernel(desk: dict, market_id: str) -> dict:
             "current_choice": "PROBE/WAIT decision must be instrument-specific; no numeric score is invented.",
         },
         "execution": {
-            "state": "PARTIAL" if best else "NO_SIGNAL",
+            "state": "RESEARCH_ONLY" if best else "NO_SIGNAL",
             "ticker": best.get("tk") if best else None,
             "research_action": action["research_action"],
             "entry_trigger": best.get("e") if best else None,
@@ -334,8 +364,11 @@ def attach_research_kernel(desk: dict) -> dict:
     for market_id in MARKET_DOCTRINE:
         if market_id in markets or market_id in {"us", "idx", "crypto", "commodity", "fx"}:
             kernels[market_id] = build_market_kernel(result, market_id)
+    result = attach_market_capabilities(result)
+    result = attach_proof_registry(result)
+    result = attach_regime_tournament(result)
     result["research_kernel"] = {
-        "version": "1.1",
+        "version": "4.2",
         "doctrine": [
             "Start from an important decision problem, not an available dataset.",
             "Detect what has already changed before forecasting what may change.",
@@ -347,6 +380,9 @@ def attach_research_kernel(desk: dict) -> dict:
             "No prospective evidence means no capital permission.",
             "Fresh official-source changes require human review and never become automatic directional claims.",
             "FX is pair-specific; a price-only state can never become a triggered watch.",
+            "Options and Greek modules appear only where product and data capability gates pass.",
+            "Generic OHLCV screens are context screens, never directional selectors.",
+            "No scenario headroom, probability or EV without point-in-time economic inputs and calibrated probabilities.",
         ],
         "markets": kernels,
         "global_permission": "CAPITAL_BLOCKED",

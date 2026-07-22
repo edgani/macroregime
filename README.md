@@ -1,98 +1,38 @@
-# War Room OS — Decision Intelligence v3.3.2
+# War Room OS — Deep Re-audit v4.2
 
-This is the canonical integrated release built from the user-supplied
-`War_Room_OS_Decision_First_v2_9(1).zip` lineage. It keeps the eight-workspace
-research architecture, but changes the default experience from graph-first to
-**decision-board first**.
-
-## Why v3.3.2 exists
-
-The v3.2 maps were honest but not sufficiently actionable. In particular, FX could
-show live spot context while withholding a single direction, which was epistemically
-correct but operationally unclear. Large graph canvases also used too much space before
-answering the user’s immediate questions.
-
-v3.3.2 therefore uses three explicit modes:
-
-- **BOARD** — default decision surface: state, orientation, action, evidence, trigger,
-  invalidation, reason, risk and freshness.
-- **MAP** — causal/flow drill-down after the decision state is understood.
-- **EVIDENCE** — research doctrine, failure review and falsification detail.
+War Room OS v4.2 is a research-first, fail-closed decision terminal. This release is a semantic and software hardening pass: it prevents descriptive metrics, structural maps, option-chain magnitudes, current developments and legacy research engines from silently becoming trade direction, probability, fair value or position size.
 
 ## Eight workspaces
 
-1. **Mission** — You Are Here, Current Rain, recognition gap and decision queue.
-2. **Regime & Risk** — macro nowcast, liquidity plumbing, credit and risk propagation.
-3. **Opportunities** — structural asymmetry and value-capture research inventory.
-4. **Markets** — US, IHSG, crypto, commodities and FX adapters.
-5. **Flow & Positioning** — cross-asset context, options, TRF/dark pool, filings,
-   broker routes and on-chain events.
-6. **Causal Map** — supply chains, chokepoints, value capture and winner genealogy.
-7. **Execution & Portfolio** — trigger, trade invalidation, thesis invalidation,
-   opportunity cost, exit state and capital gate.
-8. **Research & Validation** — Study the Tape, prediction log, baseline, ablation,
-   failure review, data lineage and source-change review.
+1. **Mission** — current state, disagreements and strongest evidence path.
+2. **Regime & Risk** — market-implied macro context and a blocked regime-model tournament.
+3. **Opportunities** — structural mechanism and value-capture research inventory.
+4. **Markets** — market-specific adapters; generic OHLCV output is descriptive only.
+5. **Flow & Positioning** — price leadership, actual sourced flow, derivatives pressure and institutional evidence remain separate.
+6. **Causal Map** — chokepoints and beneficiaries, with activation/value capture still requiring evidence.
+7. **Execution & Portfolio** — reference geometry and invalidation; size stays zero without promoted proof.
+8. **Research & Validation** — point-in-time lineage, baselines, experiment registry, WFA, lockbox and prospective gates.
 
-## FX is now pair-specific
+## Major v4.2 corrections
 
-There is deliberately no aggregate `FX LONG` or `FX SHORT`. Every pair receives one
-of these explicit states:
+- Generic cross-market long/short fallback removed.
+- Setup rank separated from probability and evidence completeness.
+- All predictive selectors default to `BLOCKED` in a proof registry.
+- IHSG remains long-only and does not assume listed options.
+- Options are enabled per market/instrument only when an actual option feed exists.
+- Dealer sign is withheld unless explicit signed inventory is supplied.
+- Wasserstein HMM is a challenger in a tournament, not a production winner.
+- Alpha upside/EV/fair value/sizing are withheld without a complete scenario model and calibrated probabilities.
+- Current developments require human review and cannot generate direction automatically.
+- Legacy GCFIS engines are retained only for diagnostics/backward compatibility and are quarantined from capital output.
 
-- `TRIGGERED WATCH LONG`
-- `TRIGGERED WATCH SHORT`
-- `WATCH LONG`
-- `WATCH SHORT`
-- `WATCH LONG/SHORT · PRICE ONLY`
-- `NO TRADE / TWO-SIDED WATCH`
-- `WAIT / REASSESS AFTER EVENT`
-- `BLOCKED / NO DATA`
+## Run
 
-Every row shows orientation, driver coverage, trigger, stop/invalidation, reason,
-event risk and freshness. Price-only direction can never become a triggered state.
-
-## Current-developments radar
-
-The release includes:
-
-- a dated structural-development inventory;
-- automatic freshness expiry;
-- a primary/official-source change detector;
-- explicit `CHANGED_UNREVIEWED`, `UNCHANGED`, `ERROR` and `ACTION_REQUIRED` states;
-- human review before any changed page enters the research inventory.
-
-The source registry covers Robinhood, SEC, CFTC, Nasdaq, Federal Reserve, U.S. Treasury,
-EIA, OPEC, CME, Bank Indonesia, IDX, OJK and BPK sources. A page change is never
-translated automatically into long/short direction.
-
-Crypto research now explicitly covers brokerage/onchain convergence, tokenized assets,
-stablecoin economics, prediction markets, agentic execution, protocol revenue/value
-capture, developer adoption, legal form, reserves, redemption, unlocks and market
-microstructure—not just BTC/ETH/SOL price and perps.
-
-## Non-negotiable semantics
-
-- Missing or stale feed never becomes a current claim.
-- Observed, inferred, structural, disputed and unknown evidence remain distinct.
-- Broker routes do not reveal beneficial owner or intent.
-- Options prints, dark-pool prints and whale transfers are context, not automatic direction.
-- Theme conviction is not probability.
-- Hand-authored upside classes are not EV, targets or sizing.
-- IHSG is cash long-only.
-- A triggered watch is not an autonomous order.
-- Engineering PASS does not prove predictive alpha.
-- Capital permission remains `CAPITAL_BLOCKED` until market-specific point-in-time WFA,
-  untouched lockbox and prospective evidence earn promotion.
-
-## Run locally on Windows
-
-Double-click:
+On Windows, double-click:
 
 ```text
 CHECK_AND_RUN.bat
 ```
-
-The script creates `.venv`, installs dependencies, runs the v3.3.2 master release suite
-and starts Streamlit only when the operational checks pass.
 
 For later starts:
 
@@ -100,19 +40,8 @@ For later starts:
 RUN_WARROOM.bat
 ```
 
-To update only the official-source hashes/status:
-
-```text
-REFRESH_OFFICIAL_RADAR.bat
-```
-
 ## Validation boundary
 
-```bash
-python validate_release_v33.py
-```
+The shipped master suite verifies source semantics, market capability gates, dealer-sign withholding, scenario valuation withholding, proof registry behavior, full Python compilation, an offline worker cycle, JavaScript/browser rendering of all 19 subviews and legacy compatibility.
 
-A PASS means the integrated application is operationally ready for user review and that
-its tested fail-closed/semantic contracts work. It does **not** mean every component has
-predictive edge, live provider entitlements, or capital permission. See
-`V33_MASTER_RELEASE_REPORT.json`.
+A software PASS does **not** prove forecast skill or profitability. Exact-scope PIT walk-forward tests, realistic costs/capacity, a one-time untouched lockbox, matured prospective results and human approval are still required before any component can be promoted.

@@ -1,4 +1,7 @@
-"""run.py — War Room OS end-to-end runner (gcfis orchestrator = brain, one pipeline).
+"""run.py — War Room OS v4.2 deep-reaudit runner.
+
+The runner builds a fail-closed research terminal. Generic price context is descriptive only;
+predictive promotion requires exact-scope walk-forward, lockbox and prospective evidence.
 
 Drop this + data_layer.py + dashboard.html into your warroom_pro_full root (next to gcfis/),
 then:
@@ -12,9 +15,9 @@ Output:
     desk_data.json   — structured desk (systemic macro + per-market setups + evidence lineage)
     dashboard_live.html — Capital Intelligence Map populated with the run
 
-HONEST: setups only appear where the conviction gate is met. On synthetic/noise data that is
-often zero rows — that is correct behavior (the gate refuses to fabricate). Edge is only real
-where run_validation.py --cache clears perm_p<0.05 AND DSR>=0.95 on YOUR data.
+HONEST: a software run proves only pipeline operation. It does not prove predictive edge.
+Capital remains blocked until the proof registry records repeated PIT walk-forward, one-time
+lockbox, realistic costs/capacity, prospective evidence and human signoff.
 """
 from __future__ import annotations
 import os, sys, json, argparse, datetime as dt
@@ -38,6 +41,21 @@ def _num(x, d=None):
         return round(f, 3)
     except Exception:
         return d
+
+
+def _research_band(value, unavailable="UNAVAILABLE"):
+    """Banded descriptive display for unpromoted composite diagnostics.
+
+    Thresholds are fixed presentation bands, not calibrated event probabilities.
+    """
+    x = _num(value, None)
+    if x is None:
+        return unavailable
+    if x < 33.333333:
+        return "LOW_RESEARCH_BAND"
+    if x < 66.666667:
+        return "MODERATE_RESEARCH_BAND"
+    return "HIGH_RESEARCH_BAND"
 
 
 def _safe_research_reason(value):
@@ -390,55 +408,89 @@ def _alpha_signal_context(data, breadth, markets):
 
 
 def _build_alpha_candidates(data, breadth, markets, top=160):
-    """Run the structural asymmetry radar on curated nodes plus the loaded live universe.
+    """Build a structural research inventory without an unvalidated weighted alpha score.
 
-    Upside buckets are headroom classes with inverse base rates, never targets or probabilities.
+    The ordering is an explicit research-queue prior only: loaded names first, then lifecycle
+    stage, hidden-node flag and ticker.  No upside, probability, EV, fair value or capital
+    direction is inferred from structural centrality or price momentum.
     """
-    signals, ticker_market, setup_map = _alpha_signal_context(data, breadth, markets)
-    extras = []
-    for market in ("us", "idx", "crypto"):
+    from gcfis.data.moonshot_universe import all_candidates
+    from scenario_valuation import withheld
+
+    ticker_market = {}
+    for market in data.get("markets") or []:
         for ticker in ((data.get("prices") or {}).get(market) or {}):
-            t = str(ticker).upper()
-            if t.startswith("^") or t.endswith("=F") or t.endswith("=X"):
-                continue
-            extras.append(t)
-    discovery = run_discovery(signals_by_ticker=signals, extra_tickers=extras, top=top)
-    rows = []
-    for c in discovery.get("candidates") or []:
-        ticker = str(c.get("ticker") or "").upper()
-        setup = setup_map.get(ticker)
-        market = ticker_market.get(ticker)
-        if market is None:
-            market = "idx" if ticker.endswith(".JK") else ("crypto" if ticker.endswith("-USD") else "us")
-        rows.append({
+            ticker_market[str(ticker).upper()] = market
+    setup_map = {}
+    for market, block in (markets or {}).items():
+        for setup in (block or {}).get("setups") or []:
+            ticker = str(setup.get("tk") or "").upper()
+            if ticker:
+                setup_map[ticker] = {**setup, "market": market}
+
+    stage_order = {"emergence": 0, "acceleration": 1, "consensus": 2}
+    mapped = []
+    seen = set()
+    for candidate in all_candidates(hidden_only=False):
+        ticker = str(candidate.get("ticker") or "").upper()
+        key = (ticker, str(candidate.get("node") or ""))
+        if not ticker or key in seen:
+            continue
+        seen.add(key)
+        market = ticker_market.get(ticker) or ("idx" if ticker.endswith(".JK") else ("crypto" if ticker.endswith("-USD") else "us"))
+        setup = setup_map.get(ticker) or {}
+        valuation_kind = "token" if market == "crypto" else "equity"
+        mapped.append({
             "tk": ticker,
             "market": market,
-            "domain": c.get("domain"),
-            "framework": c.get("framework"),
-            "source": c.get("source"),
-            "asymmetry": c.get("asymmetry"),
-            "tier": c.get("tier"),
-            "upside": c.get("upside_bucket"),
-            "base_rate": c.get("base_rate"),
-            "confidence": c.get("confidence"),
-            "stage": c.get("stage"),
-            "node": c.get("node"),
-            "scarcity": c.get("scarcity"),
-            "is_hidden": bool(c.get("is_hidden")),
-            "is_crowded": bool(c.get("is_crowded")),
-            "uncategorized": bool(c.get("uncategorized")),
-            "factors": c.get("factors") or {},
-            "gated": c.get("feed_gated_neutral") or [],
+            "domain": candidate.get("domain"),
+            "framework": candidate.get("framework"),
+            "source": candidate.get("source"),
+            "stage": candidate.get("stage"),
+            "lifecycle_stage": candidate.get("stage") or "unknown",
+            "node": candidate.get("node"),
+            "scarcity": candidate.get("scarcity"),
+            "is_hidden": bool(candidate.get("is_hidden")),
+            "is_crowded": bool(candidate.get("is_crowded")),
             "price_loaded": ticker in ticker_market,
-            "timing": setup or {},
-            "timing_action": (setup or {}).get("act") or "NO_TIMING",
-            "timing_valid": bool((setup or {}).get("valid")),
+            "timing": setup,
+            "timing_action": setup.get("act") or "NO_PRICE_CONTEXT",
+            "timing_valid": False,
+            "research_priority_basis": "LOADED_STATUS_THEN_LIFECYCLE_STAGE_THEN_HIDDEN_FLAG; NOT EXPECTED RETURN",
+            "proof_domains": [],
+            "evidence_domains": [],
+            "required_evidence_domains": 4,
+            "next_missing_gate": "independent mechanism and direct value-capture evidence",
+            "mapped": bool(candidate.get("node")),
+            "queue_priority": None,
+            "proof_state": "PROOF_MISSING",
+            "value_capture_state": "UNASSESSED",
+            "expectation_gap_state": "UNASSESSED",
+            "remaining_return_state": "UNASSESSED",
+            "scenario_valuation": withheld(valuation_kind),
+            "asymmetry": None,
+            "tier": None,
+            "upside": None,
+            "base_rate": None,
+            "confidence": "UNCALIBRATED",
+            "capital_permission": "BLOCKED",
         })
+
+    mapped.sort(key=lambda row: (
+        0 if row.get("price_loaded") else 1,
+        stage_order.get(str(row.get("stage") or "").lower(), 9),
+        0 if row.get("is_hidden") else 1,
+        str(row.get("tk") or ""),
+    ))
+    rows = mapped[:top]
     return rows, {
-        **(discovery.get("summary") or {}),
-        "loaded_live_universe": len(set(extras)),
+        "universe": len(mapped),
+        "mapped": len(mapped),
         "ranked_candidates": len(rows),
-        "semantics": "Structural asymmetry/headroom screen; not a return forecast, probability or capital permission.",
+        "proof": 0,
+        "live_timing": sum(1 for r in rows if r.get("price_loaded")),
+        "note": "Structural research inventory only. Queue order is not alpha ranking.",
+        "semantics": "No numeric alpha potential, probability, EV, fair value or sizing without point-in-time economic inputs and exact-scope proof.",
     }
 
 
@@ -498,7 +550,7 @@ def build_fast_desk(data, top_per_market=12):
         if frames:
             try:
                 from price_setups import price_signal_setups
-                setups = price_signal_setups(frames, top=top_per_market) or []
+                setups = price_signal_setups(frames, top=top_per_market, market_id=market) or []
             except Exception:
                 setups = []
         b = breadth.get(market) or {}
@@ -542,7 +594,7 @@ def build_fast_desk(data, top_per_market=12):
                  "feeds_status": (data.get("feeds") or {}).get("_status", {})},
         "systemic": systemic, "regime_tf": {"state": "FAST_CONTEXT", "quad": quad},
         "regional": {}, "grades": _load_grades(), "markets": markets, "alpha": alpha,
-        "alpha_meta": alpha_meta, "desk_picks": {"fast_context": sorted(all_setups, key=lambda r: float(r.get("conv") or 0), reverse=True)[:20]},
+        "alpha_meta": alpha_meta, "desk_picks": {"picks": [], "state": "CAPITAL_BLOCKED", "reason": "Fast context never produces capital picks."},
         "feeds": {}, "macro_observations": macro, "market_breadth": breadth,
         "rotation_snapshot": rotation, "data_health": _data_health(data),
         "reference": _load_reference_data(),
@@ -616,66 +668,54 @@ def build_desk(data, top_per_market=12):
                       else ("expanding" if liq.get("expanding") else
                             (liq.get("reason") if liq.get("reason") and "no " not in str(liq.get("reason")).lower() else "NO_DATA"))),
         "liquidity_detail": data.get("treasury_liquidity", {}),
-        "fragility": _num(fr.get("fragility")) if fr.get("ok") else fr.get("reason"),
-        "shock_prob": _num(sh.get("shock_prob")) if sh.get("ok") else sh.get("reason"),
+        "fragility_raw": _num(fr.get("fragility")) if fr.get("ok") else None,
+        "fragility": _research_band(fr.get("fragility")) if fr.get("ok") else (fr.get("reason") or "UNAVAILABLE"),
+        "shock_raw": _num(sh.get("shock_prob")) if sh.get("ok") else None,
+        "shock_prob": _research_band(sh.get("shock_prob")) if sh.get("ok") else (sh.get("reason") or "UNAVAILABLE"),
+        "systemic_semantics": "UNPROMOTED_COMPOSITES_ARE_BANDED_RESEARCH_WARNINGS_NOT_PROBABILITIES",
+        "quad_state": "RESEARCH_PROXY",
+        "quad_semantics": "Market/macro proxy context; not an objective economic state and not a trade signal.",
         "cross_asset": xa.get("regime"), "defer_longs": xa.get("defer_longs"),
-        "rotation_in": fl.get("rotating_in", []), "rotation_out": fl.get("rotating_out", []),
+        "rotation_in": [], "rotation_out": [],
+        "rotation_semantics": "Use rotation_snapshot observed relative price leadership only; legacy inferred flow lists are withheld.",
     }
 
-    # ── per-market setups (group ranking by market) ──
-    long_rows = rk.get("master_long", [])
-    short_rows = rk.get("master_short", [])
-    spot_rows = rk.get("master_spot", [])
-    eliminated = {e.get("ticker"): e.get("reason", "eliminated") for e in rk.get("eliminated", []) if isinstance(e, dict)}
-    bias = market_bias(_driver_series(data))  # driver matrix now fed real FRED+price series (unmapped drivers → NO_DATA, honest)
-
+    # ── per-market descriptive context screens ──
+    # No predictive selector in the current registry is promoted.  The full GCFIS ranking is kept
+    # in research diagnostics but may not populate a directional market board.  Every market uses
+    # its own downstream adapter after the descriptive OHLCV context screen.
+    bias = market_bias(_driver_series(data))
     markets = {}
     _MKDEF = {"label": None, "long_only": False, "drivers": []}
     for m in data["markets"]:
         mk_cfg = MARKETS.get(m, {**_MKDEF, "label": m})
-        pm = prices.get(m) or {}            # ← safe: a failed-fetch market (e.g. idx down) no longer KeyErrors
+        pm = prices.get(m) or {}
         univ = list(pm.keys())
         setups = []
-        for row in long_rows:
-            if market_of(row.get("ticker")) == m:
-                setups.append(_setup_from_ranking(row, pm.get(row["ticker"]), "long"))
-        for row in short_rows:
-            if market_of(row.get("ticker")) == m and not mk_cfg["long_only"]:
-                setups.append(_setup_from_ranking(row, pm.get(row["ticker"]), "short"))
-        for row in spot_rows:
-            if market_of(row.get("ticker")) == m:
-                s = _setup_from_ranking(row, pm.get(row["ticker"]), "long")
-                s["ty"] = s["ty"] or "SPOT"
-                setups.append(s)
-        setups = setups[:top_per_market]
-        # if the full conviction pipeline surfaced nothing but we have OHLCV, fall back to the
-        # DESCRIPTIVE price-context path (price/volume pressure proxy + RS + entry geometry) so real data
-        # shows real tickers. It is not validated alpha, ownership evidence, or the full conviction gate.
-        if not setups and data.get("ohlcv", {}).get(m):
+        frames = (data.get("ohlcv") or {}).get(m) or {}
+        if frames:
             try:
                 from price_setups import price_signal_setups
-                setups = price_signal_setups(data["ohlcv"][m], top=top_per_market)
+                setups = price_signal_setups(frames, top=top_per_market, market_id=m) or []
             except Exception:
-                pass
+                setups = []
         drv = bias.get("gold" if m == "commodity" else m, {})
         driver_bias = drv.get("bias", "NO_DATA")
         driver_fed = int(drv.get("fed") or 0)
         driver_total = len(drv.get("drivers") or [])
         markets[m] = {
-            "label": mk_cfg["label"], "long_only": mk_cfg["long_only"],
+            "label": mk_cfg["label"],
+            "long_only": mk_cfg["long_only"],
             "drivers": mk_cfg["drivers"],
-            # Price availability and directional-model availability are different facts. FX in
-            # particular may have six live spot pairs while its macro-relative model is still
-            # incomplete. Never collapse those two states into a misleading NO_DATA badge.
             "data_state": "LIVE" if len(univ) else "NO_DATA",
             "bias": driver_bias,
             "bias_state": ("LIVE" if driver_bias not in (None, "", "NO_DATA") else
                            ("PARTIAL" if driver_fed else "ACTION_REQUIRED")),
             "driver_coverage": driver_fed,
             "driver_total": driver_total,
-            "funnel": {"universe": len(univ),
-                       "eliminated": sum(1 for t in univ if t in eliminated),
-                       "setups": len(setups)},
+            "selector_state": "DESCRIPTIVE_CONTEXT_ONLY",
+            "directional_selector_permission": "BLOCKED",
+            "funnel": {"universe": len(univ), "eliminated": 0, "setups": len(setups)},
             "setups": setups,
         }
 
@@ -698,7 +738,7 @@ def build_desk(data, top_per_market=12):
         "markets": markets,
         "alpha": alpha,
         "alpha_meta": alpha_meta,
-        "desk_picks": out.get("final_desk", {}),
+        "desk_picks": {"picks": [], "state": "CAPITAL_BLOCKED", "reason": "No exact-scope selector is promoted in the proof registry."},
         "feeds": {k: v for k, v in (data.get("feeds") or {}).items() if k != "_status"},
         "macro_observations": _macro_observations(data),
         "market_breadth": _market_breadth(data),
@@ -728,27 +768,33 @@ def render_dashboard(desk, template_path, out_path):
 
 def print_summary(desk):
     m = desk["meta"]; s = desk["systemic"]
-    print(f"\n{'='*66}\nWAR ROOM OS — run @ {m['generated']}  [{m['source']}]  universe={m['universe_n']}")
-    print(f"{'='*66}")
-    print(f"MACRO: quad={s['quad']} ({s['quad_name']}) | liquidity={s['liquidity']} | "
-          f"fragility={s['fragility']} | shock={s['shock_prob']} | x-asset={s['cross_asset']}")
-    total = sum(len(mk["setups"]) for mk in desk["markets"].values())
-    print(f"\nPER-MARKET SETUPS (convicted only — empty = gate not met, not a bug):")
-    for mid, mk in desk["markets"].items():
-        f = mk["funnel"]
-        print(f"  {mk['label']:12} universe {f['universe']:>2} → eliminated {f['eliminated']:>2} → "
-              f"setups {f['setups']:>2}   bias={mk['bias']}")
-        for x in mk["setups"][:6]:
-            rr = f"R/R {x['rr']}" if x["rr"] else "—"
-            flag = "" if x["valid"] else " [INVALID: " + (x["warn"] or "gate") + "]"
-            print(f"      {x['tk']:10} {x['act']:13} conv={x['conv']:<5} {x['ty']:12} {rr}{flag}")
-    print(f"\n  TOTAL convicted setups: {total}")
-    print(f"\nASYMMETRIC ALPHA (structural, top {len(desk['alpha'])}):")
-    for a in desk["alpha"][:8]:
-        g = " (feed-gated: " + ",".join(a["gated"]) + ")" if a["gated"] else ""
-        print(f"  {a['tk']:8} asym={a['asymmetry']:<5} tier{a['tier']} {a['upside']:<8} "
-              f"[{a['base_rate']}] {a['node'][:40]}{g}")
-    print(f"\nRULE: act only where run_validation.py --cache clears perm_p<0.05 AND DSR>=0.95 on YOUR data.\n")
+    print(f"\n{'='*72}\nWAR ROOM OS v4.2 — run @ {m['generated']}  [{m['source']}]  universe={m['universe_n']}")
+    print(f"{'='*72}")
+    print(f"MACRO CONTEXT: quad={s.get('quad')} ({s.get('quad_name')}) | liquidity={s.get('liquidity')} | "
+          f"fragility={s.get('fragility')} | shock={s.get('shock_prob')} | x-asset={s.get('cross_asset')}")
+    total = sum(len(mk.get("setups") or []) for mk in desk.get("markets", {}).values())
+    print("\nPER-MARKET DESCRIPTIVE CONTEXT (not a directional selector):")
+    for mid, mk in desk.get("markets", {}).items():
+        f = mk.get("funnel") or {}
+        print(f"  {mk.get('label', mid):12} universe {f.get('universe',0):>3} -> contexts {f.get('setups',0):>3} "
+              f"selector={mk.get('directional_selector_permission','BLOCKED')} bias_context={mk.get('bias')}")
+        for x in (mk.get("setups") or [])[:5]:
+            print(f"      {x.get('tk','—'):12} {x.get('act','RESEARCH_CONTEXT'):34} "
+                  f"setup_rank={x.get('setup_rank',x.get('conv'))} geometry={x.get('execution_state')}")
+    print(f"  TOTAL descriptive context rows: {total}")
+    print(f"\nALPHA RESEARCH INVENTORY ({len(desk.get('alpha') or [])} rows; not expected-return ranking):")
+    for a in (desk.get("alpha") or [])[:8]:
+        print(f"  {a.get('tk','—'):8} proof={a.get('proof_state')} stage={a.get('stage')} "
+              f"value={a.get('value_capture_state')} scenario={obj_status(a.get('scenario_valuation'))}")
+    pr = desk.get('proof_registry') or {}
+    comps = pr.get('components') or {}
+    promoted = [k for k,v in comps.items() if str(v.get('state','')).upper() in {'LIMITED_PRODUCTION_ELIGIBLE','HUMAN_APPROVED_LIMITED_PRODUCTION'}]
+    print(f"\nPROOF REGISTRY: {len(promoted)} promoted components / {len(comps)} total")
+    print("CAPITAL PERMISSION: BLOCKED unless exact-scope evidence artifacts independently clear every gate.\n")
+
+
+def obj_status(value):
+    return value.get('state') or value.get('status') or 'WITHHELD' if isinstance(value, dict) else 'WITHHELD'
 
 
 def main():

@@ -1,0 +1,13 @@
+{
+  "template": true,
+  "status": "NOT_RUN",
+  "datasets": [],
+  "required_fields": [
+    "event_time",
+    "published_time",
+    "available_time",
+    "ingested_time",
+    "revision_vintage",
+    "effective_time"
+  ]
+}

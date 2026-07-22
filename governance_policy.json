@@ -1,0 +1,134 @@
+{
+  "version": "4.2",
+  "release_type": "DEEP_REAUDIT_FAIL_CLOSED_BUILD",
+  "claim_ceiling": "RESEARCH_ONLY_UNTIL_EVIDENCE_GATES_PASS",
+  "default_capital_permission": "BLOCKED",
+  "workspace_count": 8,
+  "markets": [
+    "us",
+    "ihsg",
+    "crypto",
+    "commodities",
+    "fx"
+  ],
+  "hard_rules": [
+    {
+      "id": "NO_SYNTHETIC_PRODUCTION",
+      "rule": "Synthetic or fallback data may never satisfy a production or live decision gate."
+    },
+    {
+      "id": "NO_DATA_NO_CLAIM",
+      "rule": "UNAVAILABLE, ERROR, STALE, NOT_CONFIGURED, or NO_DATA must not generate a current market claim or active order instruction."
+    },
+    {
+      "id": "OBSERVED_INFERRED_SPLIT",
+      "rule": "Observed, inferred, disputed, unknown, and model-dependent evidence must remain visibly separate."
+    },
+    {
+      "id": "NO_INTENT_FROM_PRINT",
+      "rule": "Options, TRF prints, broker flow, transfers, short volume, or price/volume alone must not be labeled as beneficial-owner intent."
+    },
+    {
+      "id": "NO_CONVICTION_AS_PROBABILITY",
+      "rule": "Conviction or qualitative confidence must not be used as calibrated probability."
+    },
+    {
+      "id": "NO_EV_WITHOUT_CALIBRATION",
+      "rule": "Expected value requires calibrated probabilities plus costs, slippage, capacity, and horizon."
+    },
+    {
+      "id": "MARKET_SPECIFIC_BASELINES",
+      "rule": "No single formula or bottleneck definition may be assumed valid across all markets."
+    },
+    {
+      "id": "IHSG_LONG_ONLY",
+      "rule": "IHSG may not emit a ticker-level short execution instruction."
+    },
+    {
+      "id": "NO_ACTION_WITHOUT_TICKET",
+      "rule": "No active instruction without trigger, entry state, trade invalidation, thesis invalidation, liquidity, costs, and capacity."
+    },
+    {
+      "id": "PIT_REQUIRED",
+      "rule": "Predictive evidence requires point-in-time availability, revision vintage, survivor-free universe treatment, and correct event timestamps."
+    },
+    {
+      "id": "WFA_REQUIRED",
+      "rule": "Predictive promotion requires market-specific strong baseline, purged/embargoed walk-forward evidence, costs, multiple-testing control, ablation, and failure review."
+    },
+    {
+      "id": "LOCKBOX_ONE_TIME",
+      "rule": "A hidden lockbox may be opened once only after formulas, parameters, universe, and evaluation policy are frozen."
+    },
+    {
+      "id": "PROSPECTIVE_REQUIRED",
+      "rule": "No production claim without matured prospective outcomes under a frozen policy."
+    },
+    {
+      "id": "ENGINEERING_NOT_ALPHA",
+      "rule": "Compile, UI, parser, startup, or regression PASS does not prove predictive edge or profitability."
+    },
+    {
+      "id": "HUMAN_SIGNOFF",
+      "rule": "Even complete evidence gates grant limited-production eligibility only; they never authorize autonomous orders."
+    },
+    {
+      "id": "PROCESS_OUTCOME_SPLIT",
+      "rule": "Decision quality must be recorded before outcome and judged separately from P&L."
+    },
+    {
+      "id": "COUNTEREVIDENCE_FIRST_CLASS",
+      "rule": "Contradictory evidence, rejected alternatives, and uncertainty must be logged rather than hidden."
+    },
+    {
+      "id": "STUDY_THE_TAPE_ALL_MARKETS",
+      "rule": "Every market adapter must include winner and loser autopsy, why the mechanism worked, and which critical conditions persist."
+    },
+    {
+      "id": "COUNTERPARTY_CHALLENGE",
+      "rule": "Every edge claim must explain the likely other side, its constraints and horizon, and why the trade is favorable without assuming stupidity."
+    },
+    {
+      "id": "OPTIONS_CAPABILITY_GATE",
+      "rule": "Options/Greeks are enabled only for a supported product, instrument and current option-specific feed. IHSG options are disabled; crypto is per underlying/venue; commodity options are options-on-futures; FX requires listed options or an OTC vol surface."
+    },
+    {
+      "id": "DEALER_SIGN_WITHHELD",
+      "rule": "Public option open interest or call/put type must not be assigned a dealer sign. Signed GEX, vanna, charm and hedge direction require explicit auditable inventory ownership."
+    },
+    {
+      "id": "GENERIC_PRICE_CONTEXT_ONLY",
+      "rule": "Generic OHLCV context may rank research attention but may not emit ticker-level directional watches or capital instructions."
+    },
+    {
+      "id": "REFERENCE_TARGET_NOT_FAIR_VALUE",
+      "rule": "Technical reference geometry must be labeled separately from scenario valuation, remaining return and fair value."
+    },
+    {
+      "id": "ALPHA_VALUE_CAPTURE_GATE",
+      "rule": "Alpha potential remains withheld until direct value capture, point-in-time economic assumptions, dilution/supply, scenario ranges and calibrated probabilities are available."
+    },
+    {
+      "id": "REGIME_TOURNAMENT",
+      "rule": "Adaptive HMM/Wasserstein models are challengers against simple baselines under identical PIT data, costs, constraints and repeated walk-forward splits; reported paper Sharpe is not production proof."
+    },
+    {
+      "id": "CURRENT_DEVELOPMENT_REVIEW",
+      "rule": "A recent date or changed official page is not source verification. Current-development claims require explicit human review and never create automatic direction."
+    },
+    {
+      "id": "OFI_SCOPE",
+      "rule": "Order-flow imbalance is venue-specific execution research. Contemporaneous price impact must not be relabeled as durable next-move prediction or institutional intent."
+    }
+  ],
+  "promotion_ladder": [
+    "DESIGN_ONLY",
+    "DATA_CONTRACT_VERIFIED",
+    "DESCRIPTIVE_CONTROL",
+    "OOS_CANDIDATE",
+    "LOCKBOX_PASS",
+    "PROSPECTIVE_WATCH",
+    "LIMITED_PRODUCTION_ELIGIBLE",
+    "HUMAN_APPROVED_LIMITED_PRODUCTION"
+  ]
+}

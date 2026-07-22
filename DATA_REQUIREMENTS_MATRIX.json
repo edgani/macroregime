@@ -1,5 +1,5 @@
 {
-  "schema_version": "3.3",
+  "schema_version": "4.2",
   "production_rules": {
     "synthetic_fallback": false,
     "missing_as_neutral": false,
@@ -11,7 +11,13 @@
     "official_page_change_is_directional_signal": false,
     "fx_aggregate_direction_allowed": false,
     "fx_price_only_can_trigger": false,
-    "current_development_without_date_source_allowed": false
+    "current_development_without_date_source_allowed": false,
+    "generic_price_context_is_directional_signal": false,
+    "setup_rank_is_probability": false,
+    "options_enabled_from_spot_or_futures_feed": false,
+    "signed_dealer_greeks_without_explicit_sign": false,
+    "current_development_requires_human_review": true,
+    "alpha_numeric_output_without_scenario_model": false
   },
   "planes": {
     "event": [

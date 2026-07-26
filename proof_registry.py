@@ -52,6 +52,9 @@ _COMPONENTS = {
     "price_derived_network_diffusion_v61": ("US_FIXED_PANEL_PRICE_DERIVED_NETWORK", "DESIGN_ONLY"),
     "discrete_event_origin_proxy_v62": ("US_FIXED_PANEL_GAP_VOLUME_EVENT_PROXY", "DESIGN_ONLY"),
     "sec_point_in_time_fundamentals_v62": ("US_SEC_XBRL_POINT_IN_TIME_PIPELINE", "DESIGN_ONLY"),
+    "smile_slope_archive_v65": ("US_OPTIONS_AGGREGATE_MAINTAINED_ARCHIVE_2006_2023", "DESCRIPTIVE_CONTROL"),
+    "smile_announcement_archive_v65": ("US_OPTIONS_INFORMATION_ORIGIN_AGGREGATE_MAINTAINED_ARCHIVE_2006_2023", "DESCRIPTIVE_CONTROL"),
+    "smile_expectations_div_archive_v65": ("US_OPTIONS_EXPECTATIONS_DISTRIBUTION_AGGREGATE_MAINTAINED_ARCHIVE_2006_2023", "DESCRIPTIVE_CONTROL"),
 }
 
 
@@ -67,7 +70,7 @@ def default_registry() -> dict[str, Any]:
             "capital_permission": "BLOCKED",
         }
     return {
-        "version": "6.3",
+        "version": "6.5",
         "claim_ceiling": "RESEARCH_ONLY_UNTIL_SIGNED_EXACT_SCOPE_GATES_PASS",
         "promotion_ladder": PROMOTION_LADDER,
         "registry_semantics": "CONFIGURATION_ONLY_NOT_EVIDENCE",

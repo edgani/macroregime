@@ -17,6 +17,11 @@ from proof_registry import attach_proof_registry, component_status
 from regime_tournament import attach_regime_tournament
 from research_evidence_v53 import attach_research_evidence_v53
 from research_evidence_v62 import attach_research_evidence_v62
+from research_evidence_v64 import attach_research_evidence_v64
+from research_evidence_v65 import attach_research_evidence_v65
+from research_evidence_v66 import attach_research_evidence_v66
+from research_evidence_v76 import attach_research_evidence_v76
+from research_evidence_v77 import attach_research_evidence_v77
 from options_research_evidence_v55 import attach_options_research_v55
 
 MARKET_DOCTRINE: dict[str, dict[str, Any]] = {
@@ -364,7 +369,7 @@ def attach_research_kernel(desk: dict) -> dict:
     result = attach_proof_registry(result)
     result = attach_regime_tournament(result)
     result["research_kernel"] = {
-        "version": "4.2",
+        "version": "7.6",
         "doctrine": [
             "Start from an important decision problem, not an available dataset.",
             "Detect what has already changed before forecasting what may change.",
@@ -386,4 +391,9 @@ def attach_research_kernel(desk: dict) -> dict:
     }
     result = attach_research_evidence_v53(result)
     result = attach_research_evidence_v62(result)
+    result = attach_research_evidence_v64(result)
+    result = attach_research_evidence_v65(result)
+    result = attach_research_evidence_v66(result)
+    result = attach_research_evidence_v76(result)
+    result = attach_research_evidence_v77(result)
     return attach_options_research_v55(result)

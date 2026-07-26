@@ -1,5 +1,5 @@
 from __future__ import annotations
-import csv, hashlib, json, math, sys, time, warnings
+import csv, hashlib, json, math, sys, time
 from pathlib import Path
 from statistics import NormalDist
 import numpy as np
@@ -9,7 +9,6 @@ ROOT=Path(__file__).resolve().parents[2];sys.path.insert(0,str(ROOT))
 from parquet_compat import read_parquet_compat
 R=ROOT/'research_v61';P=R/'protocols';O=R/'results';L=R/'ledgers';D=R/'data'
 PROTO=P/'V61_NETWORK_DIFFUSION_PROTOCOL_FROZEN.json';GRID=P/'V61_NETWORK_DIFFUSION_CANDIDATE_GRID_FROZEN.csv'
-warnings.filterwarnings('ignore',category=RuntimeWarning)
 
 def future_roll(x,h,op):
     rev=x.shift(-1).iloc[::-1];roll=rev.rolling(h,min_periods=h);return (roll.max() if op=='max' else roll.min()).iloc[::-1]

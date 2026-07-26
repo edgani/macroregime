@@ -1,0 +1,54 @@
+{
+  "checks": [
+    {
+      "detail": [],
+      "name": "no_javascript_page_errors",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "plain_summary_visible",
+      "status": "PASS"
+    },
+    {
+      "detail": 4,
+      "name": "four_beginner_summary_boxes",
+      "status": "PASS"
+    },
+    {
+      "detail": 7,
+      "name": "plain_condition_cards_rendered",
+      "status": "PASS"
+    },
+    {
+      "detail": {
+        "class": "simple-card long",
+        "text": "GLOBAL LIQUIDITY\nMENDUKUNG\nARTINYA\nLikuiditas saat ini cenderung mendukung aset berisiko. Ini tetap bukan perintah membeli.\nYANG DILAKUKAN\nMasukkan ke daftar pantauan, tetapi jangan eksekusi otomatis sebelum bukti dan setup lengkap.\nKENAPA\ncomposite liquidity research context\nDATA 55/100\nData sedang"
+      },
+      "name": "risk_on_renders_constructive_not_adverse",
+      "status": "PASS"
+    },
+    {
+      "detail": {
+        "app": 1365,
+        "body": 1365,
+        "viewport": 1365
+      },
+      "name": "no_horizontal_page_overflow",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "technical_detail_collapsed_by_default",
+      "status": "PASS"
+    }
+  ],
+  "passed": 7,
+  "schema": "warroom.validation.v77.ui_render",
+  "status": "PASS",
+  "total": 7,
+  "viewport": [
+    1365,
+    850
+  ]
+}

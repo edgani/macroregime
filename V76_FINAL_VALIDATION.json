@@ -1,7 +1,7 @@
 {
   "checks": [
     {
-      "detail": "{'files': 342, 'failures': []}",
+      "detail": "{'files': 346, 'failures': []}",
       "name": "python_compile_all",
       "status": "PASS"
     },
@@ -61,7 +61,7 @@
       "status": "PASS"
     },
     {
-      "detail": "{'README': '> **Current release: V7.6 Final Safe Kernel.** Final for one exact usable scope: `US_SMA10_MONTHLY_RISK_CAP`. Ticker and', 'START': '> **Current release: V7.6 Final Safe Kernel.** Run `CHECK_FINAL_V76.bat` first. Only the exact broad-US-equity monthly r'}",
+      "detail": "{'README': '> **Current release: V7.7 Human-Readable Final.** It inherits the exact V7.6 proof boundary (`US_SMA10_MONTHLY_RISK_CAP`', 'START': '> **Current release: V7.7 Human-Readable Final.** Run `CHECK_FINAL_V77.bat` first. It inherits the exact V7.6 proof boun'}",
       "name": "release_identity_consistent",
       "status": "PASS"
     },
@@ -81,7 +81,7 @@
       "status": "PASS"
     },
     {
-      "detail": "............                                                             [100%]\n12 passed in 0.81s\n\n",
+      "detail": "............                                                             [100%]\n12 passed in <elapsed>\n\n",
       "name": "v59_lifecycle_adversarial",
       "status": "PASS"
     },

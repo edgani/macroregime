@@ -1,4 +1,4 @@
-"""run.py — War Room OS v4.2 deep-reaudit runner.
+"""run.py — War Room OS v7.7 human-readable final runner (V7.6 proof boundary inherited).
 
 The runner builds a fail-closed research terminal. Generic price context is descriptive only;
 predictive promotion requires exact-scope walk-forward, lockbox and prospective evidence.

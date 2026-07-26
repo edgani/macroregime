@@ -1,3 +1,5 @@
+> **Current release: V6.5 Proof-First Active Kernel.** Only components that pass their exact scope contract are active; predictive capital remains blocked until PIT, capacity, cost and prospective gates pass. See `V65_FINAL_STATUS.md`.
+
 # v5.3 attachment continuation
 
 This package now includes the reconciled v5.1 research ledger. Four narrow historical claims are visible as evidence only; V61 failed and V62 remains acquisition-blocked. Every such row has zero live decision weight and capital remains blocked. See `V53_ATTACHMENT_CONTINUATION_FINAL.md`.

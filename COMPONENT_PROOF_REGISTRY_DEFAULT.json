@@ -1,302 +1,226 @@
 {
-  "claim_ceiling": "RESEARCH_ONLY_UNTIL_EXACT_SCOPE_GATES_PASS",
+  "claim_ceiling": "One scoped historical risk-reduction control may cap broad US equity exposure at completed monthly rebalances. Directional/ticker/target/short/leverage/cross-market capital remains blocked.",
   "components": {
     "alpha_scenario_valuation": {
       "capital_permission": "BLOCKED",
-      "cost_model_pass": false,
-      "human_signoff": false,
-      "lockbox_pass": false,
-      "multiple_testing_pass": false,
-      "prospective_pass": false,
+      "predictive_promoted": false,
+      "proof_receipt_valid": false,
+      "receipt_id": null,
       "scope": "COMPANY_OR_TOKEN_SPECIFIC",
-      "state": "DESIGN_ONLY",
-      "wfa_pass": false
+      "state": "DESIGN_ONLY"
     },
     "commodity_directional_selector": {
       "capital_permission": "BLOCKED",
-      "cost_model_pass": false,
-      "human_signoff": false,
-      "lockbox_pass": false,
-      "multiple_testing_pass": false,
-      "prospective_pass": false,
+      "predictive_promoted": false,
+      "proof_receipt_valid": false,
+      "receipt_id": null,
       "scope": "FUTURES_PER_CONTRACT",
-      "state": "DESIGN_ONLY",
-      "wfa_pass": false
-    },
-    "cross_market_causal_discovery_grammar": {
-      "bounded_single_claim_potential": 5155920,
-      "capital_permission": "BLOCKED",
-      "cost_model_pass": false,
-      "human_signoff": false,
-      "live_decision_weight": 0.0,
-      "lockbox_pass": false,
-      "multiple_testing_pass": false,
-      "prospective_pass": false,
-      "registered_base_candidates": 868,
-      "result": "DATA_ACQUISITION_AND_POINT_IN_TIME_REPLICATION_REQUIRED",
-      "scope": "ALL_MARKETS_RESEARCH_REGISTRY",
-      "state": "DESIGN_ONLY",
-      "wfa_pass": false
+      "state": "DESIGN_ONLY"
     },
     "crypto_directional_selector": {
       "capital_permission": "BLOCKED",
-      "cost_model_pass": false,
-      "human_signoff": false,
-      "lockbox_pass": false,
-      "multiple_testing_pass": false,
-      "prospective_pass": false,
+      "predictive_promoted": false,
+      "proof_receipt_valid": false,
+      "receipt_id": null,
       "scope": "CRYPTO_PER_ASSET_PER_VENUE",
-      "state": "DESIGN_ONLY",
-      "wfa_pass": false
+      "state": "DESIGN_ONLY"
     },
     "dealer_greeks": {
       "capital_permission": "BLOCKED",
-      "cost_model_pass": false,
-      "human_signoff": false,
-      "lockbox_pass": false,
-      "multiple_testing_pass": false,
-      "prospective_pass": false,
+      "predictive_promoted": false,
+      "proof_receipt_valid": false,
+      "receipt_id": null,
       "scope": "OPTIONS_PER_INSTRUMENT",
-      "state": "DESCRIPTIVE_CONTROL",
-      "wfa_pass": false
+      "state": "DESCRIPTIVE_CONTROL"
     },
     "discrete_event_origin_proxy_v62": {
       "capital_permission": "BLOCKED",
-      "claim_boundary": "Gap/volume/hold-fade proxies do not identify earnings, guidance or fundamental origin.",
-      "cost_model_pass": false,
-      "human_signoff": false,
-      "live_decision_weight": 0.0,
-      "lockbox_pass": false,
-      "multiple_testing_pass": true,
-      "prospective_pass": false,
-      "registered_trials": 10656,
-      "result": "ZERO_DIAGNOSTIC_OR_PRODUCTION_SURVIVORS",
+      "predictive_promoted": false,
+      "proof_receipt_valid": false,
+      "receipt_id": null,
       "scope": "US_FIXED_PANEL_GAP_VOLUME_EVENT_PROXY",
-      "state": "REJECTED_RESEARCH",
-      "wfa_pass": false
+      "state": "DESIGN_ONLY"
     },
     "early_move_driver_research_v60": {
       "capital_permission": "BLOCKED",
-      "claim_boundary": "No production-proven early-move driver. Historical aggregate factor pairs require fresh point-in-time stock-level reconstruction.",
-      "cost_model_pass": false,
-      "historical_factor_pair_strict_candidates": 61,
-      "human_signoff": false,
-      "live_decision_weight": 0.0,
-      "lockbox_pass": false,
-      "multiple_testing_pass": true,
-      "price_volume_extreme_move_claims": 125529,
-      "prospective_pass": false,
-      "registered_empirical_claim_records": 215788,
-      "result": "DATA_READY_PRICE_VOLUME_NEGATIVE_SPECIALIZED_DATA_REQUIRED",
+      "predictive_promoted": false,
+      "proof_receipt_valid": false,
+      "receipt_id": null,
       "scope": "CROSS_MARKET_ORIGIN_VULNERABILITY_TRIGGER_TRANSMISSION",
-      "state": "RESEARCH_ONLY",
-      "wfa_pass": false
+      "state": "DESIGN_ONLY"
     },
-    "exhaustive_price_volume_precursor": {
+    "equity_scenario_probability_calibration": {
       "capital_permission": "BLOCKED",
-      "cost_model_pass": false,
-      "human_signoff": false,
-      "live_decision_weight": 0.0,
-      "lockbox_pass": false,
-      "multiple_testing_pass": true,
-      "prospective_pass": false,
-      "registered_trials": 102966,
-      "result": "NO_FULL_GATE_SURVIVORS",
-      "scope": "US_EQUITIES_EXTREME_MOVE_DISCOVERY_2013_2018_FIXED_PANEL",
-      "state": "DESIGN_ONLY",
-      "wfa_pass": false
+      "predictive_promoted": false,
+      "proof_receipt_valid": false,
+      "receipt_id": null,
+      "scope": "COMPANY_SPECIFIC_SCENARIO_PROBABILITY",
+      "state": "DESIGN_ONLY"
     },
     "failed_breakout": {
       "capital_permission": "BLOCKED",
-      "cost_model_pass": false,
-      "human_signoff": false,
-      "lockbox_pass": false,
-      "multiple_testing_pass": false,
-      "prospective_pass": false,
+      "predictive_promoted": false,
+      "proof_receipt_valid": false,
+      "receipt_id": null,
       "scope": "MARKET_SPECIFIC_EXECUTION_PATTERN",
-      "state": "DESIGN_ONLY",
-      "wfa_pass": false
+      "state": "DESIGN_ONLY"
     },
     "fx_pair_selector": {
       "capital_permission": "BLOCKED",
-      "cost_model_pass": false,
-      "human_signoff": false,
-      "lockbox_pass": false,
-      "multiple_testing_pass": false,
-      "prospective_pass": false,
+      "predictive_promoted": false,
+      "proof_receipt_valid": false,
+      "receipt_id": null,
       "scope": "FX_PAIR_SPECIFIC",
-      "state": "DESIGN_ONLY",
-      "wfa_pass": false
+      "state": "DESIGN_ONLY"
     },
     "generic_price_context": {
       "capital_permission": "BLOCKED",
-      "cost_model_pass": false,
-      "human_signoff": false,
-      "lockbox_pass": false,
-      "multiple_testing_pass": false,
-      "prospective_pass": false,
+      "predictive_promoted": false,
+      "proof_receipt_valid": false,
+      "receipt_id": null,
       "scope": "ALL_MARKETS_DESCRIPTIVE",
-      "state": "DESCRIPTIVE_CONTROL",
-      "wfa_pass": false
+      "state": "DESCRIPTIVE_CONTROL"
     },
     "ihsg_long_selector": {
       "capital_permission": "BLOCKED",
-      "cost_model_pass": false,
-      "human_signoff": false,
-      "lockbox_pass": false,
-      "multiple_testing_pass": false,
-      "prospective_pass": false,
+      "predictive_promoted": false,
+      "proof_receipt_valid": false,
+      "receipt_id": null,
       "scope": "IHSG_LONG_ONLY_DAILY",
-      "state": "DESIGN_ONLY",
-      "wfa_pass": false
+      "state": "DESIGN_ONLY"
     },
     "mechanical_flow_driver_v60": {
       "capital_permission": "BLOCKED",
-      "claim_boundary": "Total OI is non-directional; side-specific liquidation is transmission; signed participant/aggressor inputs are required for attribution.",
-      "cost_model_pass": false,
-      "human_signoff": false,
-      "live_decision_weight": 0.0,
-      "lockbox_pass": false,
-      "multiple_testing_pass": false,
-      "prospective_pass": false,
-      "result": "ATTRIBUTION_ONLY_NOT_PREDICTIVE_PROOF",
+      "predictive_promoted": false,
+      "proof_receipt_valid": false,
+      "receipt_id": null,
       "scope": "ALL_MARKETS_MARKET_SPECIFIC_INPUT_CONTRACTS",
-      "state": "DESCRIPTIVE_CONTROL",
-      "wfa_pass": false
+      "state": "DESCRIPTIVE_CONTROL"
     },
     "merton_structural_credit": {
       "capital_permission": "BLOCKED",
-      "cost_model_pass": false,
-      "human_signoff": false,
-      "lockbox_pass": false,
-      "multiple_testing_pass": false,
-      "prospective_pass": false,
+      "predictive_promoted": false,
+      "proof_receipt_valid": false,
+      "receipt_id": null,
       "scope": "COMPANY_SPECIFIC_CREDIT_CONTEXT",
-      "state": "DESIGN_ONLY",
-      "wfa_pass": false
-    },
-    "openap_pair_interactions": {
-      "capital_permission": "BLOCKED",
-      "cost_model_pass": false,
-      "global_research_candidates": 25,
-      "human_signoff": false,
-      "live_decision_weight": 0.0,
-      "lockbox_pass": false,
-      "multiple_testing_pass": true,
-      "prospective_pass": false,
-      "registered_trials": 89464,
-      "result": "PORTFOLIO_LEVEL_CANDIDATES_NOT_STOCK_LEVEL_PROOF",
-      "scope": "US_EQUITIES_MAINTAINED_PORTFOLIO_RETURNS_2010_2024",
-      "state": "DESIGN_ONLY",
-      "wfa_pass": false
+      "state": "DESIGN_ONLY"
     },
     "order_flow_imbalance": {
       "capital_permission": "BLOCKED",
-      "cost_model_pass": false,
-      "human_signoff": false,
-      "lockbox_pass": false,
-      "multiple_testing_pass": false,
-      "prospective_pass": false,
+      "predictive_promoted": false,
+      "proof_receipt_valid": false,
+      "receipt_id": null,
       "scope": "VENUE_SPECIFIC_EXECUTION",
-      "state": "DESIGN_ONLY",
-      "wfa_pass": false
+      "state": "DESIGN_ONLY"
     },
     "portfolio_allocator": {
       "capital_permission": "BLOCKED",
-      "cost_model_pass": false,
-      "human_signoff": false,
-      "lockbox_pass": false,
-      "multiple_testing_pass": false,
-      "prospective_pass": false,
+      "predictive_promoted": false,
+      "proof_receipt_valid": false,
+      "receipt_id": null,
       "scope": "VALIDATED_RETURN_STREAMS_ONLY",
-      "state": "DESIGN_ONLY",
-      "wfa_pass": false
+      "state": "DESIGN_ONLY"
     },
     "position_lifecycle_v59": {
       "capital_permission": "BLOCKED",
-      "claim_limit": "May describe signed participant changes and current lifecycle state; may not claim informed accumulation, future direction, target, timing, or expected return.",
-      "cost_model_pass": false,
-      "human_signoff": false,
-      "live_decision_weight": 0.0,
-      "lockbox_pass": false,
-      "multiple_testing_pass": false,
-      "prospective_pass": false,
+      "predictive_promoted": false,
+      "proof_receipt_valid": false,
+      "receipt_id": null,
       "scope": "MARKET_SPECIFIC_POSITION_BUILD_SURGE_TOP_CONTEXT",
-      "state": "DESCRIPTIVE_CONTROL",
-      "wfa_pass": false
+      "state": "DESCRIPTIVE_CONTROL"
     },
     "price_derived_network_diffusion_v61": {
       "capital_permission": "BLOCKED",
-      "claim_boundary": "Rejects generic correlation-derived peer diffusion as a universal detector; does not test dated customer-supplier links.",
-      "cost_model_pass": false,
-      "human_signoff": false,
-      "live_decision_weight": 0.0,
-      "lockbox_pass": false,
-      "multiple_testing_pass": true,
-      "prospective_pass": false,
-      "registered_trials": 6024,
-      "result": "ZERO_DIAGNOSTIC_OR_PRODUCTION_SURVIVORS",
+      "predictive_promoted": false,
+      "proof_receipt_valid": false,
+      "receipt_id": null,
       "scope": "US_FIXED_PANEL_PRICE_DERIVED_NETWORK",
-      "state": "REJECTED_RESEARCH",
-      "wfa_pass": false
+      "state": "DESIGN_ONLY"
     },
     "sec_point_in_time_fundamentals_v62": {
       "capital_permission": "BLOCKED",
-      "claim_boundary": "Synthetic engineering controls are not market predictive proof.",
-      "cost_model_pass": false,
-      "human_signoff": false,
-      "live_decision_weight": 0.0,
-      "lockbox_pass": false,
-      "multiple_testing_pass": false,
-      "prospective_pass": false,
-      "result": "ENGINEERING_PIPELINE_VALIDATED_MARKET_DATA_ACQUISITION_BLOCKED",
+      "predictive_promoted": false,
+      "proof_receipt_valid": false,
+      "receipt_id": null,
       "scope": "US_SEC_XBRL_POINT_IN_TIME_PIPELINE",
-      "state": "DATA_CONTRACT_VERIFIED",
-      "wfa_pass": false
+      "state": "DESIGN_ONLY"
     },
     "simple_hmm": {
       "capital_permission": "BLOCKED",
-      "cost_model_pass": false,
-      "human_signoff": false,
-      "lockbox_pass": false,
-      "multiple_testing_pass": false,
-      "prospective_pass": false,
+      "predictive_promoted": false,
+      "proof_receipt_valid": false,
+      "receipt_id": null,
       "scope": "CROSS_ASSET_DAILY_CONTEXT_CHALLENGER",
-      "state": "DESIGN_ONLY",
-      "wfa_pass": false
+      "state": "DESIGN_ONLY"
+    },
+    "smile_announcement_archive_v65": {
+      "capital_permission": "BLOCKED",
+      "predictive_promoted": false,
+      "proof_receipt_valid": false,
+      "receipt_id": null,
+      "scope": "US_OPTIONS_INFORMATION_ORIGIN_AGGREGATE_MAINTAINED_ARCHIVE_2006_2023",
+      "state": "DESCRIPTIVE_CONTROL"
+    },
+    "smile_expectations_div_archive_v65": {
+      "capital_permission": "BLOCKED",
+      "predictive_promoted": false,
+      "proof_receipt_valid": false,
+      "receipt_id": null,
+      "scope": "US_OPTIONS_EXPECTATIONS_DISTRIBUTION_AGGREGATE_MAINTAINED_ARCHIVE_2006_2023",
+      "state": "DESCRIPTIVE_CONTROL"
+    },
+    "smile_slope_archive_v65": {
+      "capital_permission": "BLOCKED",
+      "predictive_promoted": false,
+      "proof_receipt_valid": false,
+      "receipt_id": null,
+      "scope": "US_OPTIONS_AGGREGATE_MAINTAINED_ARCHIVE_2006_2023",
+      "state": "DESCRIPTIVE_CONTROL"
+    },
+    "token_scenario_probability_calibration": {
+      "capital_permission": "BLOCKED",
+      "predictive_promoted": false,
+      "proof_receipt_valid": false,
+      "receipt_id": null,
+      "scope": "TOKEN_SPECIFIC_SCENARIO_PROBABILITY",
+      "state": "DESIGN_ONLY"
     },
     "us_directional_selector": {
       "capital_permission": "BLOCKED",
-      "cost_model_pass": false,
-      "human_signoff": false,
-      "lockbox_pass": false,
-      "multiple_testing_pass": false,
-      "prospective_pass": false,
+      "predictive_promoted": false,
+      "proof_receipt_valid": false,
+      "receipt_id": null,
       "scope": "US_EQUITIES_DAILY",
-      "state": "DESIGN_ONLY",
-      "wfa_pass": false
+      "state": "DESIGN_ONLY"
+    },
+    "us_sma10_monthly_risk_cap_v66": {
+      "capital_permission": "CONDITIONAL_RISK_CAP_ONLY",
+      "claim_limit": "A pass proves historical robustness of a monthly US broad-equity drawdown/left-tail reduction rule within the tested data and execution assumptions. It does not prove advance crash detection, daily timing, alpha generation, or cross-market use.",
+      "data_sha256": "28d16941c581bda9bdcae4e0f9e3cc4b61204f8484e8c2249abdde2efe2cc3c4",
+      "decision_active": true,
+      "predictive_promoted": false,
+      "predictive_semantics": false,
+      "proof_receipt_valid": true,
+      "protocol_sha256": "7a4a91c8350882529e3a82106c52a234a92508a115c50b6ab2052a39bba92006",
+      "receipt_id": "V66_SMA10_RISK_REDUCTION_CONFIRMATION_RESULTS",
+      "scope": "US_BROAD_EQUITY_MONTHLY_EXPOSURE_CAP_ONLY",
+      "state": "SCOPED_RISK_CONTROL_CONFIRMED"
     },
     "volatility_risk_premium": {
       "capital_permission": "BLOCKED",
-      "cost_model_pass": false,
-      "human_signoff": false,
-      "lockbox_pass": false,
-      "multiple_testing_pass": false,
-      "prospective_pass": false,
+      "predictive_promoted": false,
+      "proof_receipt_valid": false,
+      "receipt_id": null,
       "scope": "OPTIONS_PER_INSTRUMENT",
-      "state": "DESIGN_ONLY",
-      "wfa_pass": false
+      "state": "DESIGN_ONLY"
     },
     "wasserstein_hmm": {
       "capital_permission": "BLOCKED",
-      "cost_model_pass": false,
-      "human_signoff": false,
-      "lockbox_pass": false,
-      "multiple_testing_pass": false,
-      "prospective_pass": false,
+      "predictive_promoted": false,
+      "proof_receipt_valid": false,
+      "receipt_id": null,
       "scope": "CROSS_ASSET_DAILY_ALLOCATION_CHALLENGER",
-      "state": "DESIGN_ONLY",
-      "wfa_pass": false
+      "state": "DESIGN_ONLY"
     }
   },
   "promotion_ladder": [
@@ -309,5 +233,6 @@
     "LIMITED_PRODUCTION_ELIGIBLE",
     "HUMAN_APPROVED_LIMITED_PRODUCTION"
   ],
-  "version": "6.3"
+  "registry_semantics": "CONFIGURATION_ONLY_NOT_EVIDENCE",
+  "version": "6.6"
 }

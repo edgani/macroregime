@@ -1,3 +1,5 @@
+> **Current release: V7.7 Human-Readable Final.** Run `CHECK_FINAL_V77.bat` first. It inherits the exact V7.6 proof boundary, fixes state semantics, and defaults to a layperson-readable board. Ticker capital remains blocked.
+
 # War Room OS V5.9 — Position Lifecycle Continuation
 
 This release is built directly from the exact V5.8 source package. It fixes surge/final-desk wiring and adds fail-closed cross-market position-building, surge and topping diagnostics. Lifecycle output remains descriptive, has zero live decision weight and capital remains BLOCKED. Start with `V59_FINAL_STATUS.md`, `V59_POSITION_LIFECYCLE_MAPPING.md`, and `V59_OIL_2026_CASE_AUDIT.json`.
@@ -27,7 +29,7 @@ This package now includes the reconciled v5.1 research ledger. Four narrow histo
 The dashboard header intentionally remains:
 
 ```text
-DECISION-INTELLIGENCE OS · v4.2
+DECISION-INTELLIGENCE OS · v7.6 FINAL SAFE KERNEL
 ```
 
 The codebase is the v4.2 app; v5.2 identifies this real-source hardening/audit release.
@@ -72,3 +74,13 @@ The shipped trust store is empty and all components are blocked. Custom proof op
 
 V5.8 maps 868 candidates and executes 795 current data-ready claims, including broad weak/controversial families and negative controls. Three aggregate OpenAP candidates survive the global gross gate, none survives a coarse 25 bps/month global stress, and all live/capital permissions remain blocked. Start with `V58_FINAL_STATUS.md` and `V58_EXHAUSTIVE_REVERSE_ENGINEERING_FINAL.md`.
 
+
+## V6.6: what is usable now
+
+The only decision-active market component is the monthly broad-US-equity SMA10 risk cap. Use it only as a maximum-exposure constraint at a completed monthly rebalance. The bundled June 2026 observation is above SMA10, so it does not force a reduction for July 2026. Refresh the completed monthly close before the next rebalance. All ticker ranking, long/short, target, timing, and cross-market capital remains blocked.
+
+## V7.6 final check
+
+1. Run `CHECK_FINAL_V76.bat`.
+2. Launch with `CHECK_AND_RUN.bat` or `RUN_FAST_WARROOM.bat`.
+3. Treat all ticker rows as research context with size zero unless a future exact-scope signed proof receipt is present.

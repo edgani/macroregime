@@ -1,4 +1,4 @@
-"""War Room OS v4.2 deep-reaudit decision-intelligence hosted deployment shell.
+"""War Room OS v7.7 human-readable final hosted deployment shell (V7.6 proof boundary inherited).
 
 The dashboard is embedded once. Hosted deployments perform one bounded inline market bootstrap
 before first paint, then keep a singleton collector thread inside the Streamlit process. This avoids

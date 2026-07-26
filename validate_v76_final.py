@@ -4,6 +4,7 @@ from __future__ import annotations
 import ast
 import json
 import py_compile
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -23,7 +24,8 @@ def run(name: str, args: list[str], timeout: int = 240) -> None:
     print("RUN", name, flush=True)
     try:
         proc = subprocess.run(args, cwd=ROOT, capture_output=True, text=True, timeout=timeout)
-        add(name, proc.returncode == 0, (proc.stdout + "\n" + proc.stderr)[-12000:])
+        output = re.sub(r"\b\d+(?:\.\d+)?s\b", "<elapsed>", proc.stdout + "\n" + proc.stderr)
+        add(name, proc.returncode == 0, output[-12000:])
     except subprocess.TimeoutExpired as exc:
         add(name, False, f"timeout: {exc}")
 
@@ -57,6 +59,7 @@ def static_security_scan() -> None:
     allowed_scoped_files = {
         "validate_v66_scoped_usable.py", "build_release_v66.py", "research_evidence_v66.py",
         "release_contract_v76.py", "research_evidence_v76.py", "validate_v76_final.py", "build_release_v76.py",
+        "release_contract_v77.py", "research_evidence_v77.py", "validate_v77_final.py", "build_release_v77.py",
     }
     for path in ROOT.rglob("*.py"):
         if any(part in {".git", "__pycache__", "hardening_tests"} for part in path.parts):
@@ -133,8 +136,8 @@ def documentation_checks() -> None:
     start = (ROOT / "START_HERE.md").read_text(encoding="utf-8")
     dash = (ROOT / "dashboard.html").read_text(encoding="utf-8")
     kernel = (ROOT / "research_kernel.py").read_text(encoding="utf-8")
-    add("release_identity_consistent", all(("V7.6" in text or "v7.6" in text or '"version": "7.6"' in text) for text in (readme, start, dash, kernel)), {"README": readme[:120], "START": start[:120]})
-    add("dashboard_final_safe_brand", "v7.6 FINAL SAFE KERNEL" in dash and "release_contract_v76" in dash, "dashboard identity and contract binding")
+    add("release_identity_consistent", all(("V7.6" in text or "v7.6" in text or "V7.7" in text or "v7.7" in text or '"version": "7.6"' in text) for text in (readme, start, dash, kernel)), {"README": readme[:120], "START": start[:120]})
+    add("dashboard_final_safe_brand", ("v7.6 FINAL SAFE KERNEL" in dash or "v7.7 HUMAN-READABLE FINAL" in dash) and "release_contract_v76" in dash, "dashboard identity and contract binding")
     add("no_v65_current_release_banner", "Current release: V6.5" not in readme and "Current release: V6.5" not in start, "legacy current-release banner removed")
 
 

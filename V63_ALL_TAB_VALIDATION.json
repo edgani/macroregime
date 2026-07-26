@@ -92,7 +92,7 @@
           true
         ],
         "rc": [
-          12,
+          13,
           true
         ],
         "research": [
@@ -439,11 +439,11 @@
         "alternative": "Pipeline validation or descriptive usefulness never grants future-return permission.",
         "confidence": 0,
         "confidenceLabel": "PRODUCTION COVERAGE",
-        "current": "Latest V62 promoted components: 0.",
-        "desc": "232468 claim records \u00b7 0 production-eligible \u00b7 7 rejected/failed.",
+        "current": "The V6.6 SMA10 control may only cap broad US equity exposure at completed monthly rebalances; ticker and directional promotions remain 0.",
+        "desc": "232468 claim records \u00b7 0 modern archive-supported aggregate evidence modules \u00b7 0 scoped decision control \u00b7 0 production-eligible ticker alpha \u00b7 0 PIT selectors.",
         "invalidation": "Reject/downgrade on OOS failure, drift, broken lineage, cost failure or absent signed receipt.",
         "next": "Open the exact component record, data lineage, baseline, lockbox and prospective state.",
-        "title": "CAPITAL GATE",
+        "title": "V7.6 FINAL SAFE SCOPE \u00b7 DIRECTIONAL CAPITAL BLOCKED",
         "window": "Continuous monitoring"
       },
       "passed": true

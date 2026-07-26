@@ -1,10 +1,12 @@
+> **Current release: V7.7 Human-Readable Final.** It inherits the exact V7.6 proof boundary (`US_SMA10_MONTHLY_RISK_CAP` only), fixes RISK_ON/RISK_OFF display semantics, and makes the plain-language board the default. Ticker and directional capital remain blocked. See `V77_FINAL_STATUS.md`.
+
 # v5.3 attachment continuation
 
 This package now includes the reconciled v5.1 research ledger. Four narrow historical claims are visible as evidence only; V61 failed and V62 remains acquisition-blocked. Every such row has zero live decision weight and capital remains blocked. See `V53_ATTACHMENT_CONTINUATION_FINAL.md`.
 
 # War Room OS v5.3 — v5.2 Real-Source Hardening + v5.1 Research Accounting
 
-This package is the actual v4.2 application source with a v5.2 security, proof-governance, reproducibility and fail-closed hardening layer. The visual application header remains `DECISION-INTELLIGENCE OS · v4.2`; the hardening base is v5.2 and the reconciled continuation release is v5.3.
+This package is the actual v4.2 application source with a v5.2 security, proof-governance, reproducibility and fail-closed hardening layer. The original visual design is preserved; the application header now reports `DECISION-INTELLIGENCE OS · v7.6 FINAL SAFE KERNEL`; the hardening base is v5.2 and the reconciled continuation release is v5.3.
 
 ## What changed materially
 
@@ -44,3 +46,19 @@ See `START_HERE.md`, `V53_ATTACHMENT_CONTINUATION_FINAL.md`, `V53_RELEASE_CLEAN_
 The supplied gamma-scalping video has been mapped into `options_volatility_flow.py` and a frozen V71 prospective protocol. Options output is volatility/range and mechanical-flow research only. Chain composition is not spot direction; public OI is unsigned; call/put concentration zones are not targets; capital remains blocked.
 
 See `V55_OPTIONS_VOLATILITY_FLOW_FINAL_STATUS.md` and `V55_VIDEO_TO_IMPLEMENTATION_MATRIX.md`.
+
+## V6.6 scoped usable control
+
+V6.6 adds one decision-usable component: `US_SMA10_MONTHLY_RISK_CAP`. It may only cap or reduce an independently chosen broad-US-equity exposure at a completed monthly rebalance. It cannot create exposure, select tickers, short, set targets, predict crashes, or transfer to another market.
+
+Run the bundled snapshot check with:
+
+```bash
+python run_v66_risk_cap.py --csv research_v66/data/sp500_monthly_shiller.csv --as-of 2026-07-26
+```
+
+Every future ticker or directional model must first write zero-capital forecasts to the V6.6 append-only prospective shadow ledger.
+
+## V7.6 final release boundary
+
+Run `python validate_v76_final.py` or `CHECK_FINAL_V76.bat`. The release is final for the exact confirmed broad-US-equity monthly exposure-cap scope. All ticker, directional, target, timing, leverage, crash-prediction, and cross-market capital permissions remain fail-closed.

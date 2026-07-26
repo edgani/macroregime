@@ -13860,7 +13860,7 @@
       "title": "CAPITAL BLOCKED",
       "window": "Exact-scope only"
     },
-    "sub": "Reference geometry and descriptive context never create an order. Position size remains zero until an exact-scope selector and portfolio policy pass every proof gate. \u00b7 PROOF CAPITAL_BLOCKED \u00b7 CAPITAL BLOCKED",
+    "sub": "Ticker orders remain blocked. One scoped control is usable only to cap broad US equity exposure at a completed monthly rebalance; it cannot create exposure, select names, short, or set targets. \u00b7 PROOF CAPITAL_BLOCKED \u00b7 CAPITAL BLOCKED",
     "title": "EXECUTION & PORTFOLIO"
   },
   "flow": {
@@ -18678,12 +18678,25 @@
         {
           "evidence": "observed",
           "id": "val_oos",
-          "label": "PRODUCTION-ELIGIBLE",
+          "label": "PROOF-FIRST KERNEL",
+          "raw": {},
           "state": "watch",
-          "sub": "0 exact-scope components",
+          "sub": "0 aggregate evidence modules \u00b7 0 PIT selectors",
           "value": "ZERO",
-          "w": 205,
-          "x": 500,
+          "w": 225,
+          "x": 357.3333333333333,
+          "y": 55
+        },
+        {
+          "evidence": "observed",
+          "id": "val_risk",
+          "label": "SCOPED US RISK CAP",
+          "raw": {},
+          "state": "watch",
+          "sub": "NO CONFIRMED CONTROL",
+          "value": "ZERO",
+          "w": 225,
+          "x": 642.6666666666666,
           "y": 55
         },
         {
@@ -19613,14 +19626,14 @@
       "alternative": "Pipeline validation or descriptive usefulness never grants future-return permission.",
       "confidence": 0,
       "confidenceLabel": "PRODUCTION COVERAGE",
-      "current": "Latest V62 promoted components: 0.",
-      "desc": "232468 claim records \u00b7 0 production-eligible \u00b7 7 rejected/failed.",
+      "current": "The V6.6 SMA10 control may only cap broad US equity exposure at completed monthly rebalances; ticker and directional promotions remain 0.",
+      "desc": "232468 claim records \u00b7 0 modern archive-supported aggregate evidence modules \u00b7 0 scoped decision control \u00b7 0 production-eligible ticker alpha \u00b7 0 PIT selectors.",
       "invalidation": "Reject/downgrade on OOS failure, drift, broken lineage, cost failure or absent signed receipt.",
       "next": "Open the exact component record, data lineage, baseline, lockbox and prospective state.",
-      "title": "CAPITAL GATE",
+      "title": "V7.6 FINAL SAFE SCOPE \u00b7 DIRECTIONAL CAPITAL BLOCKED",
       "window": "Continuous monitoring"
     },
-    "sub": "Evidence accounting includes the latest V6.1/V6.2 negative results. Production means exact-scope proof\u2014not a descriptive control, synthetic test, or attractive backtest. \u00b7 PROOF EVIDENCE_ACCOUNTING \u00b7 CAPITAL BLOCKED",
+    "sub": "V7.6 is final for one exact usable scope: the V6.6 broad-US-equity monthly risk cap. Three aggregate option/information modules remain evidence-only; zero PIT ticker selectors or directional-alpha capital components are active. \u00b7 PROOF EVIDENCE_ACCOUNTING \u00b7 CAPITAL BLOCKED",
     "title": "VALIDATION CENTER"
   },
   "research": {
@@ -21014,10 +21027,10 @@
       "confidence": 0,
       "confidenceLabel": "RESEARCH MATURITY",
       "current": "Prediction, setup, expectation and contradictory evidence must be written before results are viewed.",
-      "desc": "5 market adapters \u00b7 232468 registered empirical claim records \u00b7 0 V62 promotions.",
+      "desc": "5 market adapters \u00b7 232468 claim records \u00b7 0 archive claims pass global 10bp + stability \u00b7 0 PIT selectors.",
       "invalidation": "Invalidate on broken lineage, failed baseline lift, unstable regimes or failed prospective evidence.",
       "next": "Run the disposable version, tune the baseline, ablate complexity and attack the largest failure pile.",
-      "title": "RESEARCH ONLY",
+      "title": "PROOF-FIRST ACTIVE KERNEL",
       "window": "Continuous"
     },
     "sub": "The operating system optimizes speed of falsification\u2014not the number of backtests\u2014and records uncertainty before outcomes are known. \u00b7 PROOF RESEARCH_GOVERNANCE \u00b7 CAPITAL BLOCKED",

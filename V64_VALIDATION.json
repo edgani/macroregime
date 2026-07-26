@@ -1,0 +1,277 @@
+{
+  "capital_permission": "BLOCKED",
+  "checks": {
+    "all_19_views": {
+      "detail": [
+        "alpha",
+        "co",
+        "commod",
+        "crypto",
+        "datahealth",
+        "deriv",
+        "ew",
+        "execution",
+        "flow",
+        "fx",
+        "ihsg",
+        "inst",
+        "kg",
+        "macro",
+        "mc",
+        "rc",
+        "research",
+        "sc",
+        "us"
+      ],
+      "passed": true
+    },
+    "all_capital_blocked": {
+      "detail": null,
+      "passed": true
+    },
+    "all_tab_model_runner": {
+      "detail": "",
+      "passed": true
+    },
+    "capital_blocked": {
+      "detail": null,
+      "passed": true
+    },
+    "company_etf_guard": {
+      "detail": "AAPL",
+      "passed": true
+    },
+    "dashboard_exposure_anchor": {
+      "detail": null,
+      "passed": true
+    },
+    "evidence_claims_four": {
+      "detail": [
+        "AnalystRevision",
+        "AnnouncementReturn",
+        "DivYieldST",
+        "SmileSlope"
+      ],
+      "passed": true
+    },
+    "evidence_module_reconciled": {
+      "detail": null,
+      "passed": true
+    },
+    "fixture_generation": {
+      "detail": "ENTORY (67 rows; not expected-return ranking):\n  AEHR     proof=PROOF_MISSING stage=emergence value=UNASSESSED scenario=WITHHELD\n  ATI      proof=PROOF_MISSING stage=emergence value=UNASSESSED scenario=WITHHELD\n  BE       proof=PROOF_MISSING stage=emergence value=UNASSESSED scenario=WITHHELD\n  FORM     proof=PROOF_MISSING stage=emergence value=UNASSESSED scenario=WITHHELD\n  LEU      proof=PROOF_MISSING stage=emergence value=UNASSESSED scenario=WITHHELD\n  MTRN     proof=PROOF_MISSING stage=emergence value=UNASSESSED scenario=WITHHELD\n  NBIS     proof=PROOF_MISSING stage=emergence value=UNASSESSED scenario=WITHHELD\n  POET     proof=PROOF_MISSING stage=emergence value=UNASSESSED scenario=WITHHELD\n\nPROOF REGISTRY: 0 promoted components / 26 total\nCAPITAL PERMISSION: BLOCKED unless exact-scope evidence artifacts independently clear every gate.\n\n\u2192 desk_data.json written: /tmp/warroom_v64_dwew53fq/desk.json\n\u2192 dashboard written:      /tmp/warroom_v64_dwew53fq/fixture.html  (open in a browser)\n",
+      "passed": true
+    },
+    "historical_not_modern": {
+      "detail": null,
+      "passed": true
+    },
+    "javascript_parse": {
+      "detail": "",
+      "passed": true
+    },
+    "modern_grid_bound": {
+      "detail": null,
+      "passed": true
+    },
+    "modern_protocol_bound": {
+      "detail": null,
+      "passed": true
+    },
+    "modern_universe_208": {
+      "detail": null,
+      "passed": true
+    },
+    "no_independent_or_selector_proof": {
+      "detail": null,
+      "passed": true
+    },
+    "research_shows_233736": {
+      "detail": null,
+      "passed": true
+    },
+    "research_shows_historical_claims": {
+      "detail": null,
+      "passed": true
+    },
+    "research_shows_smileslope": {
+      "detail": null,
+      "passed": true
+    },
+    "smileslope_not_10bp_familywise": {
+      "detail": null,
+      "passed": true
+    },
+    "smileslope_only_modern_survivor": {
+      "detail": [
+        "SmileSlope"
+      ],
+      "passed": true
+    },
+    "smileslope_positive_adjusted_lbs": {
+      "detail": null,
+      "passed": true
+    },
+    "smileslope_validation_lockbox_pass": {
+      "detail": null,
+      "passed": true
+    },
+    "snapshot_v64_attached": {
+      "detail": {
+        "capital_permission": "BLOCKED",
+        "claim_boundary": "Three aggregate historical gross factor claims passed frozen confirmatory controls. One options-based factor, SmileSlope, passed the modern all-stock aggregate screen in the reused maintained archive, but did not clear the familywise 10bp/month hurdle and has no independent external lockbox, non-micro investable reconstruction, point-in-time ticker selector, operational feed, or capital permission.",
+        "claims": [
+          {
+            "capital_permission": "BLOCKED",
+            "claim_id": "AnalystRevision",
+            "historical_gross_proven": true,
+            "modern_all_stock_gross_proven": false,
+            "modern_non_micro_investable_proven": false,
+            "operational_ready": false,
+            "proof_scope": "HISTORICAL_GROSS_MARKET_CLAIM_PROVEN",
+            "stock_level_pit_selector_proven": false
+          },
+          {
+            "capital_permission": "BLOCKED",
+            "claim_id": "AnnouncementReturn",
+            "historical_gross_proven": true,
+            "modern_all_stock_gross_proven": false,
+            "modern_non_micro_investable_proven": false,
+            "operational_ready": false,
+            "proof_scope": "HISTORICAL_GROSS_MARKET_CLAIM_PROVEN",
+            "stock_level_pit_selector_proven": false
+          },
+          {
+            "capital_permission": "BLOCKED",
+            "claim_id": "DivYieldST",
+            "historical_gross_proven": true,
+            "modern_all_stock_gross_proven": false,
+            "modern_non_micro_investable_proven": false,
+            "operational_ready": false,
+            "proof_scope": "HISTORICAL_GROSS_MARKET_CLAIM_PROVEN",
+            "stock_level_pit_selector_proven": false
+          },
+          {
+            "capital_permission": "BLOCKED",
+            "claim_id": "SmileSlope",
+            "claim_limit": "Modern aggregate all-stock portfolio claim only. This maintained archive was used in earlier War Room research, so it is a confirmatory re-analysis rather than a genuinely untouched independent dataset. It does not prove non-micro investability, PIT ticker selection, operational readiness or capital permission.",
+            "flat_10bp_hurdle_pass": false,
+            "flat_25bp_hurdle_pass": false,
+            "independent_external_lockbox": false,
+            "modern_all_stock_gross_proven": true,
+            "modern_non_micro_investable_proven": false,
+            "operational_ready": false,
+            "proof_scope": "MODERN_ALL_STOCK_AGGREGATE_GROSS_CLAIM_SUPPORTED",
+            "stock_level_pit_selector_proven": false
+          }
+        ],
+        "created_at_utc": "2026-07-26T02:54:25.816495+00:00",
+        "historical_gross_market_claims_proven": 3,
+        "independent_modern_claims_proven": 0,
+        "live_decision_weight": 0.0,
+        "live_predictive_components_promoted": 0,
+        "modern_all_stock_claims_proven": 1,
+        "modern_non_micro_investable_claims_proven": 0,
+        "new_confirmatory_claim_records": 1268,
+        "operational_ready_components": 0,
+        "schema": "warroom.v64.scoped_proof_evidence.v1",
+        "status": "RECONCILED_SCOPED_PROOF",
+        "stock_level_pit_selectors_proven": 0,
+        "total_empirical_claim_records": 233736,
+        "tsmom_crisis_overlay_verdict": "NOT_PROVEN"
+      },
+      "passed": true
+    },
+    "survivor_protocol_bound": {
+      "detail": null,
+      "passed": true
+    },
+    "three_historical_scoped_claims": {
+      "detail": [
+        {
+          "capital_permission": "BLOCKED",
+          "claim_id": "AnalystRevision",
+          "historical_gross_proven": true,
+          "modern_all_stock_gross_proven": false,
+          "modern_non_micro_investable_proven": false,
+          "operational_ready": false,
+          "proof_scope": "HISTORICAL_GROSS_MARKET_CLAIM_PROVEN",
+          "stock_level_pit_selector_proven": false
+        },
+        {
+          "capital_permission": "BLOCKED",
+          "claim_id": "AnnouncementReturn",
+          "historical_gross_proven": true,
+          "modern_all_stock_gross_proven": false,
+          "modern_non_micro_investable_proven": false,
+          "operational_ready": false,
+          "proof_scope": "HISTORICAL_GROSS_MARKET_CLAIM_PROVEN",
+          "stock_level_pit_selector_proven": false
+        },
+        {
+          "capital_permission": "BLOCKED",
+          "claim_id": "DivYieldST",
+          "historical_gross_proven": true,
+          "modern_all_stock_gross_proven": false,
+          "modern_non_micro_investable_proven": false,
+          "operational_ready": false,
+          "proof_scope": "HISTORICAL_GROSS_MARKET_CLAIM_PROVEN",
+          "stock_level_pit_selector_proven": false
+        }
+      ],
+      "passed": true
+    },
+    "trial_accounting_exact": {
+      "detail": null,
+      "passed": true
+    },
+    "tsmom_overlay_not_proven": {
+      "detail": "NOT_PROVEN",
+      "passed": true
+    },
+    "tsmom_protocol_bound": {
+      "detail": null,
+      "passed": true
+    },
+    "validation_no_production": {
+      "detail": {
+        "action": "REVIEW EVIDENCE \u00b7 NO AUTO PROMOTION",
+        "alternative": "Pipeline validation or descriptive usefulness never grants future-return permission.",
+        "confidence": 0,
+        "confidenceLabel": "PRODUCTION COVERAGE",
+        "current": "Every evidence-active V65 claim passes its exact contract; decision-active promotions remain 0.",
+        "desc": "233736 claim records \u00b7 3 global-10bp stability-supported modern archive-supported claims \u00b7 0 production-eligible \u00b7 0 PIT selectors.",
+        "invalidation": "Reject/downgrade on OOS failure, drift, broken lineage, cost failure or absent signed receipt.",
+        "next": "Open the exact component record, data lineage, baseline, lockbox and prospective state.",
+        "title": "PROOF-FIRST KERNEL \u00b7 CAPITAL BLOCKED",
+        "window": "Continuous monitoring"
+      },
+      "passed": true
+    },
+    "validation_scope_text": {
+      "detail": "233736 claim records \u00b7 3 global-10bp stability-supported modern archive-supported claims \u00b7 0 production-eligible \u00b7 0 PIT selectors.",
+      "passed": true
+    },
+    "validation_shows_233736": {
+      "detail": null,
+      "passed": true
+    },
+    "validation_shows_historical_claims": {
+      "detail": null,
+      "passed": true
+    },
+    "validation_shows_smileslope": {
+      "detail": null,
+      "passed": true
+    }
+  },
+  "historical_gross_market_claims_proven": 3,
+  "independent_modern_claims_proven": 0,
+  "live_predictive_components_promoted": 0,
+  "modern_all_stock_archive_claims_supported": 1,
+  "passed": 33,
+  "schema": "warroom.v64.scoped_proof_validation.v1",
+  "status": "PASS",
+  "stock_level_pit_selectors_proven": 0,
+  "total": 33
+}

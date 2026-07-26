@@ -1,0 +1,334 @@
+{
+  "adjudication": {
+    "capital_permission": "BLOCKED_PENDING_EXACT_INSTRUMENT_REPLICATION",
+    "claim": "NOT_PROVEN",
+    "live_weight": 0.0,
+    "permission": "NONE",
+    "survivors": [],
+    "ticker_permission": false
+  },
+  "claim_limit": "Official factor-archive adaptive style evidence only. Not ticker selection, not a specific investable product, and not proof of live net execution.",
+  "created_at_utc": "2026-07-26T04:38:24.594428+00:00",
+  "protocol_sha256": "de5a0f55b8b5071bc1ef9af867261aebdd9b156186883a3da3bf69c29adc25c5",
+  "results": {
+    "FACTOR_MOMENTUM_LONG_CASH": {
+      "lockbox_25bps_turnover": {
+        "annualized": -0.009150189404125923,
+        "avg_turnover": 0.05774647887323943,
+        "bootstrap": {
+          "lower_0_0833pct": -0.003804916350225628,
+          "positive_probability": 0.25305
+        },
+        "end": "2026-04-30",
+        "gates": {
+          "boot": false,
+          "lb": false,
+          "looy": false,
+          "rolling": false
+        },
+        "lb": -0.004601709399119808,
+        "looy_min": -0.0019138167717045263,
+        "mdd": -0.09333932055978345,
+        "mean": -0.0007625157836771603,
+        "n": 71,
+        "pass": false,
+        "rolling36_positive": 0.16666666666666666,
+        "se": 0.001221125218638593,
+        "start": "2018-01-31",
+        "t": -0.6244370127146119,
+        "z": 3.143980287069073
+      },
+      "lockbox_primary": {
+        "annualized": -0.00811075278440761,
+        "avg_turnover": 0.05774647887323943,
+        "bootstrap": {
+          "lower_0_0833pct": -0.003694853006593401,
+          "positive_probability": 0.27445
+        },
+        "end": "2026-04-30",
+        "gates": {
+          "boot": false,
+          "lb": false,
+          "looy": false,
+          "rolling": false
+        },
+        "lb": -0.0044978426344079335,
+        "looy_min": -0.0018218812878335589,
+        "mdd": -0.09115999265997798,
+        "mean": -0.0006758960653673008,
+        "n": 71,
+        "pass": false,
+        "rolling36_positive": 0.2222222222222222,
+        "se": 0.0012156394824611267,
+        "start": "2018-01-31",
+        "t": -0.5560004220979342,
+        "z": 3.143980287069073
+      },
+      "pass": false,
+      "reverse_lockbox": {
+        "annualized": -0.005275162708550142,
+        "avg_turnover": 0.05774647887323943,
+        "bootstrap": {
+          "lower_0_0833pct": -0.004573187697117926,
+          "positive_probability": 0.3658
+        },
+        "end": "2026-04-30",
+        "gates": {
+          "boot": false,
+          "lb": false,
+          "looy": false,
+          "rolling": false
+        },
+        "lb": -0.004239212430845026,
+        "looy_min": -0.001077873571733413,
+        "mdd": -0.09412347710470237,
+        "mean": -0.00043959689237917847,
+        "n": 71,
+        "pass": false,
+        "rolling36_positive": 0.027777777777777776,
+        "se": 0.0012085366928327598,
+        "start": "2018-01-31",
+        "t": -0.3637431076658348,
+        "z": 3.143980287069073
+      },
+      "reverse_validation": {
+        "annualized": -0.04754516559489522,
+        "avg_turnover": 0.05441176470588236,
+        "bootstrap": {
+          "lower_0_0833pct": -0.006468940918821687,
+          "positive_probability": 0.0
+        },
+        "end": "2017-11-30",
+        "gates": {
+          "boot": false,
+          "lb": false,
+          "looy": false,
+          "rolling": false
+        },
+        "lb": -0.006648168008157035,
+        "looy_min": -0.004479435270239603,
+        "mdd": -0.23595637679115045,
+        "mean": -0.003962097132907935,
+        "n": 68,
+        "pass": false,
+        "rolling36_positive": 0.0,
+        "se": 0.000854353599574617,
+        "start": "2010-03-31",
+        "t": -4.637537823777724,
+        "z": 3.143980287069073
+      },
+      "validation_25bps_turnover": {
+        "annualized": 0.033259871477248154,
+        "avg_turnover": 0.05441176470588236,
+        "bootstrap": {
+          "lower_0_0833pct": 0.0003052243599820965,
+          "positive_probability": 0.99965
+        },
+        "end": "2017-11-30",
+        "gates": {
+          "boot": true,
+          "lb": true,
+          "looy": true,
+          "rolling": true
+        },
+        "lb": 6.483918806349373e-05,
+        "looy_min": 0.0023165288012444037,
+        "mdd": -0.039204091508259986,
+        "mean": 0.002771655956437346,
+        "n": 68,
+        "pass": true,
+        "rolling36_positive": 1.0,
+        "se": 0.0008609522074635018,
+        "start": "2010-03-31",
+        "t": 3.2192913060796635,
+        "z": 3.143980287069073
+      },
+      "validation_primary": {
+        "annualized": 0.03423928324195404,
+        "avg_turnover": 0.05441176470588236,
+        "bootstrap": {
+          "lower_0_0833pct": 0.0003809780365997361,
+          "positive_probability": 0.99975
+        },
+        "end": "2017-11-30",
+        "gates": {
+          "boot": true,
+          "lb": true,
+          "looy": true,
+          "rolling": true
+        },
+        "lb": 0.00015581048825341658,
+        "looy_min": 0.002396528801244405,
+        "mdd": -0.038627781781082615,
+        "mean": 0.00285327360349617,
+        "n": 68,
+        "pass": true,
+        "rolling36_positive": 1.0,
+        "se": 0.0008579771082971458,
+        "start": "2010-03-31",
+        "t": 3.3255824379267556,
+        "z": 3.143980287069073
+      }
+    },
+    "FACTOR_MOMENTUM_SIGN": {
+      "lockbox_25bps_turnover": {
+        "annualized": -0.025423494283639846,
+        "avg_turnover": 0.11549295774647886,
+        "bootstrap": {
+          "lower_0_0833pct": -0.006677391578021357,
+          "positive_probability": 0.09295
+        },
+        "end": "2026-04-30",
+        "gates": {
+          "boot": false,
+          "lb": false,
+          "looy": false,
+          "rolling": false
+        },
+        "lb": -0.0067716596722596605,
+        "looy_min": -0.0030808673089008335,
+        "mdd": -0.18950323230997612,
+        "mean": -0.002118624523636654,
+        "n": 71,
+        "pass": false,
+        "rolling36_positive": 0.0,
+        "se": 0.0014799822911614774,
+        "start": "2018-01-31",
+        "t": -1.431520185267876,
+        "z": 3.143980287069073
+      },
+      "lockbox_primary": {
+        "annualized": -0.023344621044203227,
+        "avg_turnover": 0.11549295774647886,
+        "bootstrap": {
+          "lower_0_0833pct": -0.006456261296303048,
+          "positive_probability": 0.1099
+        },
+        "end": "2026-04-30",
+        "gates": {
+          "boot": false,
+          "lb": false,
+          "looy": false,
+          "rolling": false
+        },
+        "lb": -0.006540665145434194,
+        "looy_min": -0.0028969963411588978,
+        "mdd": -0.18066928630956547,
+        "mean": -0.0019453850870169355,
+        "n": 71,
+        "pass": false,
+        "rolling36_positive": 0.0,
+        "se": 0.001461612236348065,
+        "start": "2018-01-31",
+        "t": -1.330985769438828,
+        "z": 3.143980287069073
+      },
+      "pass": false,
+      "reverse_lockbox": {
+        "annualized": 0.008572790058287726,
+        "avg_turnover": 0.11549295774647886,
+        "bootstrap": {
+          "lower_0_0833pct": -0.00364663454518934,
+          "positive_probability": 0.67
+        },
+        "end": "2026-04-30",
+        "gates": {
+          "boot": false,
+          "lb": false,
+          "looy": false,
+          "rolling": true
+        },
+        "lb": -0.003805371911779131,
+        "looy_min": -0.0002616428328869888,
+        "mdd": -0.07817158871341512,
+        "mean": 0.0007143991715239771,
+        "n": 71,
+        "pass": false,
+        "rolling36_positive": 0.8611111111111112,
+        "se": 0.0014375952361700699,
+        "start": "2018-01-31",
+        "t": 0.4969404137893669,
+        "z": 3.143980287069073
+      },
+      "reverse_validation": {
+        "annualized": -0.029365898386347063,
+        "avg_turnover": 0.10882352941176472,
+        "bootstrap": {
+          "lower_0_0833pct": -0.005233278535986342,
+          "positive_probability": 0.0102
+        },
+        "end": "2017-11-30",
+        "gates": {
+          "boot": false,
+          "lb": false,
+          "looy": false,
+          "rolling": false
+        },
+        "lb": -0.006100327042702133,
+        "looy_min": -0.00330480468434282,
+        "mdd": -0.18327503043111593,
+        "mean": -0.0024471581988622553,
+        "n": 68,
+        "pass": false,
+        "rolling36_positive": 0.0,
+        "se": 0.0011619566632987664,
+        "start": "2010-03-31",
+        "t": -2.106066668540661,
+        "z": 3.143980287069073
+      },
+      "validation_25bps_turnover": {
+        "annualized": 0.012795310151052933,
+        "avg_turnover": 0.10882352941176472,
+        "bootstrap": {
+          "lower_0_0833pct": -0.0022754650468319593,
+          "positive_probability": 0.85245
+        },
+        "end": "2017-11-30",
+        "gates": {
+          "boot": false,
+          "lb": false,
+          "looy": true,
+          "rolling": true
+        },
+        "lb": -0.002654224638407597,
+        "looy_min": 0.0005371584587313991,
+        "mdd": -0.07048084995825377,
+        "mean": 0.0010662758459210778,
+        "n": 68,
+        "pass": false,
+        "rolling36_positive": 0.8181818181818182,
+        "se": 0.0011833727137637539,
+        "start": "2010-03-31",
+        "t": 0.901048193455259,
+        "z": 3.143980287069073
+      },
+      "validation_primary": {
+        "annualized": 0.0147541336804647,
+        "avg_turnover": 0.10882352941176472,
+        "bootstrap": {
+          "lower_0_0833pct": -0.002074047064905324,
+          "positive_probability": 0.88625
+        },
+        "end": "2017-11-30",
+        "gates": {
+          "boot": false,
+          "lb": false,
+          "looy": true,
+          "rolling": true
+        },
+        "lb": -0.002460873919310874,
+        "looy_min": 0.0006947855773754674,
+        "mdd": -0.06825017317767745,
+        "mean": 0.001229511140038725,
+        "n": 68,
+        "pass": false,
+        "rolling36_positive": 0.8484848484848485,
+        "se": 0.0011737939561923601,
+        "start": "2010-03-31",
+        "t": 1.0474676015772857,
+        "z": 3.143980287069073
+      }
+    }
+  },
+  "schema": "warroom.v66.factor_momentum_results.v1"
+}

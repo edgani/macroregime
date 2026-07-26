@@ -1,0 +1,33 @@
+{
+  "candidate_count": 208,
+  "candidate_grid": "research_v64/protocols/V64_MODERN_212_FACTOR_GRID_FROZEN.csv",
+  "candidate_grid_sha256": "b2c9d1ff59532b46487003ad7c0b6e3ec527a74fd6a343c7705b253727458ed4",
+  "capital_permission": "BLOCKED",
+  "claim_limit": "Modern aggregate all-stock portfolio claim only. This maintained archive was used in earlier War Room research, so it is a confirmatory re-analysis rather than a genuinely untouched independent dataset. It does not prove non-micro investability, PIT ticker selection, operational readiness or capital permission.",
+  "controls": [
+    "BM",
+    "Mom12m",
+    "OperProf",
+    "Investment"
+  ],
+  "estimator": "OLS alpha with Newey-West/HAC lag 6",
+  "frozen_at_utc": "2026-07-26T02:51:18.134593+00:00",
+  "input": "research_v58/data/PredictorLSretWide.csv maintained OpenAP all-stock long-short returns through 2024-12",
+  "input_sha256": "79aa0896d79924e1efa83f9afe51a3b4ce94137adfd2c5c3fd2d5d350532ee18",
+  "lockbox": [
+    "2015-01-01",
+    "2024-12-31"
+  ],
+  "multiple_testing": "Bonferroni across 208 candidates x 2 splits",
+  "primary_gate": "alpha > 0 and Bonferroni one-sided simultaneous lower bound > 0 in validation and lockbox",
+  "question": "Which pre-existing Open Source Asset Pricing factor portfolios, if any, retain positive factor-controlled aggregate all-stock alpha in both a modern validation period and a later lockbox after simultaneous correction across the entire candidate universe?",
+  "schema": "warroom.v64.modern_212_factor_confirmation.protocol.v1",
+  "sensitivity_hurdles_monthly_decimal": [
+    0.001,
+    0.0025
+  ],
+  "validation": [
+    "2006-01-01",
+    "2014-12-31"
+  ]
+}

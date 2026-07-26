@@ -1,0 +1,64 @@
+{
+  "candidates": {
+    "FACTOR_MOMENTUM_LONG_CASH": "equal weight positive-trend factors; negative-trend factors held as cash",
+    "FACTOR_MOMENTUM_SIGN": "equal weight sign(trailing12m factor return) times next factor return"
+  },
+  "claim_limit": "Official factor-archive adaptive style evidence only. Not ticker selection, not a specific investable product, and not proof of live net execution.",
+  "cost_model": {
+    "fixed_monthly_bps": 5,
+    "turnover": "0.5*sum(abs(weight_t-weight_t-1))",
+    "turnover_bps_per_100pct_one_way": [
+      10,
+      25
+    ]
+  },
+  "created_at_utc": "2026-07-26T04:38:17.787875+00:00",
+  "cumulative_selection_correction": {
+    "family_alpha_one_sided": 0.01,
+    "family_size": 12,
+    "includes_all_prior_v66_trials": true
+  },
+  "decision_scope_if_passed": {
+    "capital_requires_exact_instrument_mapping": true,
+    "max_weight": 0.2,
+    "permission": "SHADOW_ADAPTIVE_STYLE_SLEEVE",
+    "ticker_selection": false
+  },
+  "gates": {
+    "block_bootstrap_lower_gt": 0,
+    "both_splits": true,
+    "leave_one_year_out_min_mean_gt": 0,
+    "net_primary_familywise_lb_gt": 0,
+    "net_stress_mean_gt": 0,
+    "reverse_signal_control_fails": true,
+    "rolling36_positive_fraction_ge": 0.75
+  },
+  "inputs": [
+    "TSMOM",
+    "VME_VAL",
+    "VME_MOM",
+    "BAB_GLOBAL",
+    "QMJ_GLOBAL"
+  ],
+  "literature_prior": "time-series momentum applied to factor returns; fixed before outcome",
+  "no_post_outcome_changes": true,
+  "parent_release": "V6.5",
+  "primary_function": "ADAPTIVE_STYLE_REGIME_SLEEVE",
+  "protocol_sha256": "de5a0f55b8b5071bc1ef9af867261aebdd9b156186883a3da3bf69c29adc25c5",
+  "schema": "warroom.v66.factor_momentum_protocol.v1",
+  "signals": {
+    "lag_months": 1,
+    "lookback_months": 12,
+    "return_definition": "compounded excess return"
+  },
+  "splits": {
+    "lockbox": [
+      "2018-01-01",
+      "LATEST_IN_FROZEN_FILES"
+    ],
+    "validation": [
+      "2010-01-01",
+      "2017-12-31"
+    ]
+  }
+}

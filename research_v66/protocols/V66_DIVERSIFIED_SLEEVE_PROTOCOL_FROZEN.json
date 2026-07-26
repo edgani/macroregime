@@ -1,0 +1,56 @@
+{
+  "candidate_formulas": {
+    "INSTITUTIONAL_DIVERSIFIED": "0.40*TSMOM + 0.20*QMJ_GLOBAL + 0.20*BAB_GLOBAL + 0.20*MOM_AA",
+    "TREND_CROSSASSET": "0.50*TSMOM + 0.50*MOM_AA",
+    "TREND_DEFENSIVE": "0.50*TSMOM + 0.25*QMJ_GLOBAL + 0.25*BAB_GLOBAL"
+  },
+  "claim_limit": "Aggregate official AQR factor-archive evidence for fixed, non-optimized diversified sleeves. Not ticker selection, not a specific product, and not proof of live net execution.",
+  "costs_monthly_bps": [
+    10,
+    25
+  ],
+  "created_at_utc": "2026-07-26T04:33:36.057795+00:00",
+  "decision_scope_if_passed": {
+    "capital_permission_requires_exact_proxy_or_futures_replication": true,
+    "max_weight": 0.2,
+    "may_increase_gross_risk": false,
+    "may_originate_ticker_positions": false,
+    "permission": "SHADOW_STRATEGIC_SLEEVE"
+  },
+  "global_trial_accounting": "three new fixed candidates; no optimization and no changes after outcome",
+  "parent_release": "V6.5",
+  "primary_function": "STRATEGIC_DIVERSIFYING_RETURN_SLEEVE",
+  "protocol_sha256": "d8a0a01175df62929c638b5bf3761988151695234e2f3739e998993f33168755",
+  "schema": "warroom.v66.diversified_sleeve_protocol.v1",
+  "sources": {
+    "BAB_GLOBAL": "research_v58/data/Betting-Against-Beta-Equity-Factors-Monthly.xlsx:BAB Factors:Global",
+    "MOM_AA": "research_v58/data/Value-and-Momentum-Everywhere-Factors-Monthly.xlsx:VME Factors:MOM^AA",
+    "QMJ_GLOBAL": "research_v58/data/Quality-Minus-Junk-Factors-Monthly.xlsx:QMJ Factors:Global",
+    "TSMOM": "research_v58/data/Time-Series-Momentum-Factors-Monthly.xlsx:TSMOM"
+  },
+  "splits": {
+    "lockbox": [
+      "2018-01-01",
+      "LATEST_IN_FROZEN_FILES"
+    ],
+    "validation": [
+      "2010-01-01",
+      "2017-12-31"
+    ]
+  },
+  "statistical_gates": {
+    "block_length_months": 12,
+    "bootstrap_net10_lower_0_333pct_gt": 0,
+    "family_size": 3,
+    "hac_lags": 6,
+    "leave_one_calendar_year_out_min_mean_gt": 0,
+    "moving_block_bootstrap_reps": 20000,
+    "must_pass_both_splits": true,
+    "net_10bps_familywise_lower_bound_gt": 0,
+    "net_25bps_mean_gt": 0,
+    "one_sided_family_alpha": 0.01,
+    "reverse_sign_control_must_fail": true,
+    "rolling_36m_positive_fraction_ge": 0.75
+  },
+  "weights_are_fixed_and_not_optimized": true
+}

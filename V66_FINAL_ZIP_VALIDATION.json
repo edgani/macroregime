@@ -1,0 +1,21 @@
+{
+  "schema": "warroom.v66.final_zip_validation.v1",
+  "status": "PASS",
+  "source_validation": {
+    "passed": 38,
+    "total": 38,
+    "status": "PASS"
+  },
+  "clean_extract": {
+    "manifest_mismatches": 0,
+    "focused_runtime_tests": "9/9 PASS",
+    "evidence_reconciliation": "PASS",
+    "python_compile": "PASS",
+    "source_mutation": 0,
+    "deterministic_rebuild": "PASS"
+  },
+  "decision_active_scoped_risk_controls": 1,
+  "decision_active_ticker_or_directional_components": 0,
+  "capital_permission": "CONDITIONAL_RISK_CAP_ONLY_FOR_US_BROAD_EQUITY_REDUCTION",
+  "claim_limit": "The release is usable only as a completed-month broad-US-equity exposure cap. It is not a ticker selector, alpha engine, crash forecast, short signal, target model, or cross-market permission."
+}

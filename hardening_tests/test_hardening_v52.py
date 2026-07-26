@@ -364,11 +364,30 @@ def static_tests() -> None:
                 if node.args and isinstance(node.args[0], ast.Constant) and str(node.args[0].value).lower() == "ignore":
                     warning_suppression.append(str(path.relative_to(ROOT)))
             elif isinstance(node, ast.Dict):
+                safe_zero_or_blocked = {
+                    "BLOCKED", "DIRECTIONAL_CAPITAL_BLOCKED", "SHADOW_ONLY_ZERO_CAPITAL",
+                    "N/A_NON_PREDICTIVE", "BLOCKED_PENDING_EXACT_INSTRUMENT_REPLICATION",
+                    "BLOCKED_PENDING_EXACT_EXECUTABLE_REPLICATION", "BLOCKED_PENDING_EXACT_EXECUTION",
+                }
+                scoped_risk_values = {
+                    "CONDITIONAL_RISK_CAP_ONLY",
+                    "CONDITIONAL_RISK_CAP_ONLY_FOR_US_BROAD_EQUITY_REDUCTION",
+                }
+                scoped_risk_files = {
+                    "validate_v66_scoped_usable.py", "build_release_v66.py", "research_evidence_v66.py",
+                    "release_contract_v76.py", "research_evidence_v76.py", "validate_v76_final.py",
+                    "build_release_v76.py",
+                }
+                rel = str(path.relative_to(ROOT))
                 for key, value in zip(node.keys, node.values):
                     if isinstance(key, ast.Constant) and key.value == "directional_permission" and isinstance(value, ast.Constant) and value.value is True:
-                        hardcoded_permissions.append(str(path.relative_to(ROOT)))
-                    if isinstance(key, ast.Constant) and key.value == "capital_permission" and isinstance(value, ast.Constant) and str(value.value).upper() != "BLOCKED":
-                        hardcoded_permissions.append(str(path.relative_to(ROOT)))
+                        hardcoded_permissions.append(f"{rel}:directional_permission=True")
+                    if isinstance(key, ast.Constant) and key.value == "capital_permission" and isinstance(value, ast.Constant):
+                        cap = str(value.value).upper()
+                        safe = cap in safe_zero_or_blocked or cap.startswith("BLOCKED_")
+                        scoped = cap in scoped_risk_values and rel in scoped_risk_files
+                        if not (safe or scoped):
+                            hardcoded_permissions.append(f"{rel}:capital_permission={cap}")
     check("no_unsafe_deserialization_imports", not violations, violations)
     check("no_persistent_pkl_paths", not pkl_refs, pkl_refs[:50])
     check("no_warning_suppression", not warning_suppression, warning_suppression)

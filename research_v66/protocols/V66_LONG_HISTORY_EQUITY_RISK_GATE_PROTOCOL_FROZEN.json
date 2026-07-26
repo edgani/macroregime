@@ -1,0 +1,68 @@
+{
+  "bootstrap": {
+    "moving_block_months": 12,
+    "repetitions": 10000,
+    "seed": 6610
+  },
+  "candidates": {
+    "DUAL_AND_LONG_CASH": "Exposure at month t is 1 only if both SMA10 and MOM12 are positive.",
+    "DUAL_OR_LONG_CASH": "Exposure at month t is 1 if either SMA10 or MOM12 is positive.",
+    "MOM12_LONG_CASH": "Exposure at month t is 1 only if prior 12-month total return is positive.",
+    "SMA10_LONG_CASH": "Exposure at month t is 1 only if prior-month close exceeds prior-month 10-month SMA."
+  },
+  "claim_limit": "A passing result supports only a monthly US broad-equity exposure reduction gate. It does not prove exact daily crash timing, ticker alpha, shorting, or cross-market transportability.",
+  "costs": {
+    "primary_one_way_turnover_bps": 10,
+    "stress_one_way_turnover_bps": 25
+  },
+  "created_at_utc": "2026-07-26T04:46:57.323373+00:00",
+  "cumulative_selection_correction": {
+    "family_alpha": 0.01,
+    "must_use_simultaneous_candidate_correction": true,
+    "new_candidate_count": 4,
+    "prior_v66_family_size": 13,
+    "total_family_size": 17
+  },
+  "data": {
+    "file": "research_v66/data/sp500_monthly_shiller.csv",
+    "file_sha256": "28d16941c581bda9bdcae4e0f9e3cc4b61204f8484e8c2249abdde2efe2cc3c4",
+    "return_formula": "(P_t + annual_dividend_t/12)/P_{t-1} - 1; cash return conservatively fixed at zero.",
+    "source": "datasets/s-and-p-500 GitHub mirror generated from Robert Shiller/FRED source chain",
+    "usable_end_rule": "Last month with positive SP500 price and positive dividend; later zero-filled fundamentals excluded."
+  },
+  "decision_scope_if_passed": {
+    "capital_permission": "CONDITIONAL_RISK_CAP_ONLY",
+    "may_raise_exposure_above_baseline": false,
+    "may_select_tickers": false,
+    "may_set_targets": false,
+    "may_short": false,
+    "permission": "REDUCE_US_BROAD_EQUITY_EXPOSURE_ONLY"
+  },
+  "gates": {
+    "annualized_return_shortfall_vs_benchmark_ge": -0.025,
+    "bootstrap_drawdown_improvement_probability_ge": 0.95,
+    "bootstrap_es_improvement_simultaneous_lower_gt": 0,
+    "downside_capture_lt": 0.75,
+    "expected_shortfall_5pct_improvement_gt": 0,
+    "max_drawdown_improvement_ge": 0.1,
+    "must_pass_validation_and_lockbox": true,
+    "reverse_rule_must_not_pass": true,
+    "risk_off_next_month_loss5_odds_ratio_simultaneous_lower_gt": 1.0,
+    "stress_25bps_must_preserve_positive_es_improvement": true,
+    "upside_capture_ge": 0.65
+  },
+  "no_post_outcome_changes": true,
+  "primary_function": "LONG_HISTORY_BROAD_EQUITY_DOWNSIDE_GATE",
+  "protocol_sha256": "ef73c0c393ad149e0114041e5425640128e85c47cd6e83797259c47bd582f6bd",
+  "schema": "warroom.v66.long_history_equity_risk_gate_protocol.v1",
+  "splits": {
+    "lockbox": [
+      "2000-01-01",
+      "LATEST_USABLE_MONTH"
+    ],
+    "validation": [
+      "1960-01-01",
+      "1999-12-31"
+    ]
+  }
+}

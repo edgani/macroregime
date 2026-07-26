@@ -1,0 +1,4 @@
+candidate,validation_pass,lockbox_pass,stability_pass,validation_alpha_lb,lockbox_alpha_lb,validation_rolling_positive_share,lockbox_rolling_positive_share,validation_bootstrap_positive_probability,lockbox_bootstrap_positive_probability,live_decision_weight,capital_permission
+SMILE_ANN,True,True,True,0.003945043837703057,0.0004819513346608494,1.0,0.9838709677419355,1.0,0.9961,0.0,BLOCKED
+SMILE_ONLY,True,True,True,0.0025774789447644726,0.00029510711235302117,1.0,0.9838709677419355,1.0,0.9992,0.0,BLOCKED
+SMILE_EXPECTATIONS_DIV,True,True,True,0.0019373326134955091,0.0002768343970789653,1.0,0.9838709677419355,1.0,0.9953,0.0,BLOCKED

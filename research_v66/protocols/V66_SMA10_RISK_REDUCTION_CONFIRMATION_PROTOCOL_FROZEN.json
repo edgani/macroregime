@@ -1,0 +1,73 @@
+{
+  "bootstrap": {
+    "moving_block_months": 12,
+    "repetitions": 20000,
+    "seed": 6618
+  },
+  "candidate": "SMA10_LONG_CASH",
+  "claim_limit": "A pass proves historical robustness of a monthly US broad-equity drawdown/left-tail reduction rule within the tested data and execution assumptions. It does not prove advance crash detection, daily timing, alpha generation, or cross-market use.",
+  "confirmatory_holdout": [
+    "1920-01-01",
+    "1959-12-31"
+  ],
+  "costs": {
+    "primary_one_way_bps": 10,
+    "stress_one_way_bps": 25
+  },
+  "created_at_utc": "2026-07-26T04:54:03.236562+00:00",
+  "data": {
+    "file": "research_v66/data/sp500_monthly_shiller.csv",
+    "file_sha256": "28d16941c581bda9bdcae4e0f9e3cc4b61204f8484e8c2249abdde2efe2cc3c4",
+    "return_formula": "(P_t + annual_dividend_t/12)/P_{t-1}-1; cash return fixed at zero for conservative comparability."
+  },
+  "decision_scope_if_passed": {
+    "capital_permission": "CONDITIONAL_RISK_CAP_ONLY",
+    "max_effect": "May cap/reduce an independently authorized US broad-equity baseline; cannot create exposure.",
+    "may_predict_crash": false,
+    "may_select_tickers": false,
+    "may_set_targets": false,
+    "may_short": false,
+    "permission": "REDUCE_US_BROAD_EQUITY_EXPOSURE_ONLY_AT_MONTHLY_REBALANCE"
+  },
+  "gates": {
+    "confirmatory_annualized_return_shortfall_ge": -0.025,
+    "confirmatory_bootstrap_drawdown_positive_probability_ge": 0.95,
+    "confirmatory_bootstrap_es_lower_gt": 0,
+    "confirmatory_downside_capture_lt": 0.75,
+    "confirmatory_expected_shortfall5_improvement_gt": 0,
+    "confirmatory_max_drawdown_improvement_ge": 0.15,
+    "confirmatory_upside_capture_ge": 0.65,
+    "reverse_rule_must_fail": true,
+    "rolling_drawdown_improvement_positive_share_ge": 0.7,
+    "rolling_es_improvement_positive_share_ge": 0.8,
+    "rolling_return_shortfall_median_ge": -0.025,
+    "stress25_es_improvement_gt": 0
+  },
+  "no_post_outcome_changes": true,
+  "previously_evaluated_eras_for_context": [
+    [
+      "1960-01-01",
+      "1999-12-31"
+    ],
+    [
+      "2000-01-01",
+      "2023-06-01"
+    ]
+  ],
+  "primary_function": "US_BROAD_EQUITY_MONTHLY_RISK_REDUCTION_NOT_CRASH_PREDICTION",
+  "protocol_sha256": "7a4a91c8350882529e3a82106c52a234a92508a115c50b6ab2052a39bba92006",
+  "rolling_stability": {
+    "end": "2023-06-01",
+    "start": "1920-01-01",
+    "step_months": 12,
+    "window_years": 20
+  },
+  "rule": "At month t, broad-equity exposure is 1 only if prior-month SP500 price is above its prior-month 10-month simple moving average; otherwise exposure is 0. One-month lag. No leverage. No shorting.",
+  "schema": "warroom.v66.sma10_risk_reduction_confirmation_protocol.v1",
+  "selection_accounting": "Candidate emerged from a frozen four-rule screen; confirmation therefore retains the cumulative 17-trial family correction and uses an era never evaluated by that runner.",
+  "selection_correction": {
+    "cumulative_family_size": 17,
+    "family_alpha": 0.01,
+    "quantile": 0.0005882352941176471
+  }
+}

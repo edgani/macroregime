@@ -1,0 +1,37 @@
+{
+  "capital_permission": "BLOCKED",
+  "created_at_utc": "2026-07-26T03:00:04.818326+00:00",
+  "patches": [
+    {
+      "fix": "Introduced a five-level proof taxonomy and separate counts.",
+      "id": "V64-01",
+      "issue": "Historical market claim, live data readiness and capital readiness were collapsed into one status."
+    },
+    {
+      "fix": "Frozen and ran exact three-candidate validation/lockbox, global correction and decade robustness.",
+      "id": "V64-02",
+      "issue": "Three V5.8 gross survivors were not subjected to factor-controlled confirmatory scope analysis."
+    },
+    {
+      "fix": "Frozen and ran 208-candidate modern screen; SmileSlope was the only gross survivor.",
+      "id": "V64-03",
+      "issue": "No full modern factor-controlled screen explained whether every anomaly had decayed."
+    },
+    {
+      "fix": "Research and Validation tabs now show three historical scoped claims, SmileSlope modern archive support, and zero independent/PIT/capital claims.",
+      "id": "V64-04",
+      "issue": "Dashboard displayed only negative V6.1/V6.2 evidence."
+    },
+    {
+      "fix": "Every V6.4 claim remains live weight zero and capital blocked; production count still comes only from exact signed proof receipts.",
+      "id": "V64-05",
+      "issue": "A positive statistical claim could be confused with production."
+    },
+    {
+      "fix": "Frozen lagged observable state battery; 0 states passed, so overlay remains NOT_PROVEN.",
+      "id": "V64-06",
+      "issue": "Canonical TSMOM was assumed potentially useful as lagged crisis overlay without exact proof."
+    }
+  ],
+  "schema": "warroom.v64.patch_ledger.v1"
+}

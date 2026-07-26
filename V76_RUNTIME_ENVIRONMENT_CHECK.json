@@ -1,0 +1,9 @@
+{
+  "schema": "warroom.v76.runtime_environment_check",
+  "status": "BLOCKED_BY_ENVIRONMENT",
+  "check": "streamlit_health_endpoint",
+  "reason": "The current build container does not have the Streamlit runtime installed (No module named streamlit).",
+  "package_requirement_present": true,
+  "requirement": "streamlit>=1.56,<2",
+  "impact": "Source, JavaScript, proof contracts, and clean-scope validators passed; live HTTP boot could not be executed in this container until requirements are installed."
+}

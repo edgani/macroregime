@@ -1,0 +1,53 @@
+{
+  "schema": "warroom.v64.tsmom_crisis_overlay.protocol.v1",
+  "frozen_at_utc": "2026-07-26T03:20:00Z",
+  "research_question": "Does canonical aggregate time-series momentum provide a causal, post-publication crisis-defense overlay after equity stress is already observable?",
+  "claim_limit": "Crisis-defense overlay only; not an early-crash predictor, ticker selector, exact market direction forecast, or capital authorization.",
+  "candidate_selection": {
+    "candidate": "AQR aggregate TSMOM monthly excess return",
+    "reason": "Canonical literature-defined strategy; selected before opening this conditional outcome battery, not selected from this battery's results.",
+    "candidate_count": 1
+  },
+  "data": {
+    "tsmom": "research_v58/data/Time-Series-Momentum-Factors-Monthly.xlsx, sheet TSMOM Factors, column TSMOM",
+    "equity_state": "research/shiller.csv, monthly SP500",
+    "availability": "Equity stress state for month t uses prices through month t-1 only; TSMOM outcome is month t.",
+    "alignment": "calendar month-end"
+  },
+  "splits": {
+    "validation": ["2010-01-01", "2017-12-31"],
+    "lockbox": ["2018-01-01", "latest common date"]
+  },
+  "predefined_states": [
+    {"id": "DD12_LE_M10", "definition": "prior-month SP500 drawdown from trailing 12-month high <= -10%"},
+    {"id": "DD12_LE_M15", "definition": "prior-month SP500 drawdown from trailing 12-month high <= -15%"},
+    {"id": "RET12_LT_0", "definition": "prior-month trailing 12-month SP500 return < 0%"},
+    {"id": "RET3_LE_M10", "definition": "prior-month trailing 3-month SP500 return <= -10%"}
+  ],
+  "primary_outcomes": [
+    "mean monthly TSMOM excess return > 0 in both validation and lockbox",
+    "HAC one-sided simultaneous lower bound > 0 in both validation and lockbox",
+    "positive-year fraction >= 0.5 where at least two stress months exist in a year"
+  ],
+  "multiple_testing": {
+    "family": "4 states x 2 splits",
+    "correction": "Bonferroni one-sided across 8 state-split tests"
+  },
+  "minimum_events_per_split": 6,
+  "cost_stress": {
+    "status": "secondary robustness only",
+    "monthly_stresses": [0.0, 0.001, 0.0025],
+    "reason": "Bundled factor returns do not provide realized turnover/cost vintages; cost is not used to redefine the market claim."
+  },
+  "promotion_gate": {
+    "market_claim_proven": "all primary outcomes pass in validation and lockbox for at least one frozen state",
+    "operational_ready": false,
+    "capital_ready": false
+  },
+  "forbidden": [
+    "changing thresholds after seeing outcomes",
+    "using contemporaneous SP500 return to label the same month's state",
+    "selecting the best state without family correction",
+    "calling crisis defense an early crash predictor"
+  ]
+}

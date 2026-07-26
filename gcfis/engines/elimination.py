@@ -2,6 +2,7 @@
 structure. A ticker failing here never reaches scoring. From closes+volume (proxy-grade)."""
 from __future__ import annotations
 import numpy as np, pandas as pd
+from ..core.numeric import log_returns
 
 def run_elimination(price, volume=None, min_adv: float = 0.0,
                     max_gap_freq: float = 0.05, max_volofvol: float = 1.20,
@@ -9,7 +10,7 @@ def run_elimination(price, volume=None, min_adv: float = 0.0,
     px = pd.to_numeric(pd.Series(price), errors="coerce").dropna()
     if len(px) < 90:
         return {"ok": True, "eliminated": True, "reasons": ["insufficient history (<90 bars)"]}
-    r = np.log(px).diff().dropna()
+    r = log_returns(px).dropna()
     reasons = []
     # liquidity: ADV floor (needs volume)
     if volume is not None and min_adv > 0:

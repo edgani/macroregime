@@ -1,11 +1,15 @@
 """Options Greek exposure research engine.
 
-Public option-chain OI does not reveal whether dealers are long or short each contract.  Signed
-GEX/Vanna/Charm and a dealer hedging regime are emitted only when an explicit, auditable
-``dealer_sign`` column is supplied (+1 dealer long, -1 dealer short).  Otherwise the engine
-returns unsigned magnitude and withholds the regime.
+Public option-chain OI does not reveal whether dealers are long or short each contract. Signed
+GEX/Vanna/Charm and a dealer hedging regime are emitted only when every usable row carries
+explicit inventory provenance: ``dealer_sign`` (+1/-1), ``dealer_inventory_verified=True``,
+``dealer_sign_confidence>=0.80``, an approved ``dealer_sign_source`` and a fresh
+``inventory_observed_at`` timestamp. Otherwise the engine returns unsigned magnitude and
+withholds the regime.
 """
 from __future__ import annotations
+
+from datetime import datetime, timezone
 
 import numpy as np
 import pandas as pd
@@ -46,12 +50,48 @@ def _bucket(T_years: float) -> str:
     return "31P_DTE"
 
 
+_VERIFIED_SOURCES = {
+    "EXCHANGE_PARTICIPANT_OPEN_CLOSE",
+    "CLEARING_MEMBER_POSITION_FILE",
+    "SIGNED_DEALER_INVENTORY_FEED",
+    "AUDITED_POSITION_RECEIPT",
+}
+
+
+def _fresh_inventory_stamp(value, max_age_seconds: float = 86400.0) -> bool:
+    try:
+        dt = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        age = (datetime.now(timezone.utc) - dt.astimezone(timezone.utc)).total_seconds()
+        return -300 <= age <= max_age_seconds
+    except Exception:
+        return False
+
+
+def _row_sign_verified(row: pd.Series) -> bool:
+    try:
+        sign = float(row.get("dealer_sign"))
+        confidence = float(row.get("dealer_sign_confidence"))
+    except Exception:
+        return False
+    source = str(row.get("dealer_sign_source") or "").upper().strip()
+    return (
+        sign in {-1.0, 1.0}
+        and bool(row.get("dealer_inventory_verified"))
+        and confidence >= 0.80
+        and source in _VERIFIED_SOURCES
+        and _fresh_inventory_stamp(row.get("inventory_observed_at"))
+    )
+
+
 def run_dealer(chain: pd.DataFrame | None, spot: float, r: float = 0.04) -> dict:
     """Compute Greek exposure from an option chain.
 
-    Required columns: ``strike``, ``oi``, ``iv``, ``type``, ``T``.  Signed inventory additionally
-    requires ``dealer_sign`` for every usable row. Missing sign never falls back to the popular
-    but unverifiable assumption that calls are dealer-long and puts are dealer-short.
+    Required columns: ``strike``, ``oi``, ``iv``, ``type``, ``T``. Signed inventory additionally
+    requires verified provenance for every usable row. A bare ``dealer_sign`` column is rejected;
+    missing provenance never falls back to the popular but unverifiable assumption that calls are
+    dealer-long and puts are dealer-short.
     """
     if chain is None or len(chain) == 0 or not spot:
         return {"ok": False, "regime": "unknown", "reason": "no options chain (Greeks not fabricated)"}
@@ -59,7 +99,7 @@ def run_dealer(chain: pd.DataFrame | None, spot: float, r: float = 0.04) -> dict
     if not required.issubset(chain.columns):
         return {"ok": False, "regime": "unknown", "reason": f"missing required columns: {sorted(required-set(chain.columns))}"}
 
-    signed_available = "dealer_sign" in chain.columns and chain["dealer_sign"].notna().all()
+    signed_available = bool(len(chain)) and all(_row_sign_verified(row) for _, row in chain.iterrows())
     signed_gex = signed_vanna = signed_charm = 0.0
     unsigned_gamma = unsigned_vanna = unsigned_charm = 0.0
     net_by_strike: dict[float, float] = {}
@@ -89,9 +129,6 @@ def run_dealer(chain: pd.DataFrame | None, spot: float, r: float = 0.04) -> dict
         (calls if typ == "C" else puts)[K] = (calls if typ == "C" else puts).get(K, 0.0) + oi
         if signed_available:
             sign = float(row["dealer_sign"])
-            if sign not in {-1.0, 1.0}:
-                signed_available = False
-                continue
             signed_gex += sign * dg
             signed_vanna += sign * oi * va * 100
             signed_charm += sign * oi * ch * 100
@@ -99,7 +136,7 @@ def run_dealer(chain: pd.DataFrame | None, spot: float, r: float = 0.04) -> dict
 
     result = {
         "ok": True,
-        "dealer_sign_state": "EXPLICIT" if signed_available else "UNKNOWN",
+        "dealer_sign_state": "VERIFIED_PROVENANCE" if signed_available else "UNKNOWN",
         "ownership_state": "VERIFIED_INPUT" if signed_available else "UNVERIFIED",
         "unsigned_gamma_magnitude": round(unsigned_gamma, 1),
         "unsigned_vanna_magnitude": round(unsigned_vanna, 1),
@@ -107,7 +144,7 @@ def run_dealer(chain: pd.DataFrame | None, spot: float, r: float = 0.04) -> dict
         "dte_buckets": {k: {m: round(v, 2) for m, v in vals.items()} for k, vals in dte.items()},
         "call_wall": max(calls, key=calls.get) if calls else None,
         "put_wall": max(puts, key=puts.get) if puts else None,
-        "semantics": "Unsigned magnitude is descriptive. Signed regime requires explicit dealer_sign for every contract.",
+        "semantics": "Unsigned magnitude is descriptive. Signed regime requires verified dealer-inventory provenance for every contract; a bare sign column is insufficient.",
     }
     if not signed_available:
         result.update({"regime": "unknown", "gex": None, "gex_sign": None, "gamma_flip": None, "vanna": None, "charm": None})

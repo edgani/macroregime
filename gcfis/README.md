@@ -27,7 +27,7 @@
 | — orchestrator/adapter/run | `orchestrator.py`, `adapter_v40.py`, `run.py` | wires all 13 → full per-ticker contract + master ranking; CLI for your machine |
 
 ## Gamma-aware entry (the fix)
-- **GEX < 0 (momentum regime):** Breakout / Continuation valid (dealers amplify).
+- **Verified short-gamma inventory:** may reinforce expansion after spot moves; public OI cannot establish this state.
 - **GEX > 0 (mean-reversion regime):** Pullback / Mean-Reversion valid; **breakout flagged INVALID** ("dealers fade — likely to fail").
 - Every entry returns stop, target, R/R; R/R below threshold → invalid.
 - Counter-regime: bullish quad but smart-money distributing → flips to short / stand-aside.

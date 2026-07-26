@@ -1,0 +1,93 @@
+{
+  "files": [
+    {
+      "path": "evidence/formula_registry_active.json",
+      "sha256": "301194d8f5959084c7550c0f2c924cd0d75abacc3ee053f5b3f45cbf2cfb4691"
+    },
+    {
+      "path": "scripts/build_applicability.py",
+      "sha256": "295262317995e31d5119770586e02d3b8e45e5f65e3003963de3587ca2003294"
+    },
+    {
+      "path": "scripts/build_data_catalog.py",
+      "sha256": "a3e1588d359c81d030bcb4c19e56ff0d80443e9cb0bb46d99ffc77746ae1df24"
+    },
+    {
+      "path": "scripts/build_formula_registry.py",
+      "sha256": "73093b1a203254c3a8d3e547c58bb1226d27abede6fe953af0df858dd8194b6f"
+    },
+    {
+      "path": "scripts/build_market_matrix.py",
+      "sha256": "b0b22aaccdc69a85455ec82dc7316db505dfa0dd2b8691edd78894837dd20aeb"
+    },
+    {
+      "path": "scripts/check_import_boundaries.py",
+      "sha256": "2a75b53e1684679a9476db177018c4a574c02168678ad696e76c7be3571805dc"
+    },
+    {
+      "path": "scripts/check_trial_ledger.py",
+      "sha256": "539ffcdf89d2b017adcd708d96549eb808deb9dfa1ed48b55a09e89dc7c994ca"
+    },
+    {
+      "path": "src/warroom_v3/applicability.py",
+      "sha256": "f7c71df87ab8d0620e12b834e77ff11bf5da9ab22347ca13a834f7f72cf5f916"
+    },
+    {
+      "path": "src/warroom_v3/causality.py",
+      "sha256": "715564f2e1a60886ddc783a841a1aacfa917d862b43c521416a54807a75c5f8b"
+    },
+    {
+      "path": "src/warroom_v3/contracts.py",
+      "sha256": "9238714023e2e1479f459b6a28add16bb41faaa02d98bffd972db9731677a61f"
+    },
+    {
+      "path": "src/warroom_v3/data.py",
+      "sha256": "21ade0a41bb84d391c9399d6e69315ae368fd4648d640d552398b66b2e6e3c87"
+    },
+    {
+      "path": "src/warroom_v3/gates.py",
+      "sha256": "27a16a5313500078a4396a92ca5a69f267f09ebfd7b69a8997a5a9f5fe434d77"
+    },
+    {
+      "path": "src/warroom_v3/hashing.py",
+      "sha256": "aeb3da72fa6cc79f48b6cdf80f3798b948132baec850381722d268dc2f4611dd"
+    },
+    {
+      "path": "src/warroom_v3/mtf.py",
+      "sha256": "e747a46c5a7eeefdc9f0a5d46082ab1b77cb4ddffa99b3bb9ef001daf3fbaddd"
+    },
+    {
+      "path": "src/warroom_v3/pipeline.py",
+      "sha256": "5ab8e5f88f3c6b783dc96e6fe97c1f0db61e45800b61d74c8c55df2d58a5207b"
+    },
+    {
+      "path": "src/warroom_v3/registry.py",
+      "sha256": "d7ecb3a9a2411986b694967dc11b2c6ffdcf18650b17ddbb6c8b50d7f33b350f"
+    },
+    {
+      "path": "src/warroom_v3/sensors/momentum.py",
+      "sha256": "9ddfb9d12ea319d0afcbdf0e19e4a7a05c1582bf2dca69dc9d9ddc932ede116b"
+    },
+    {
+      "path": "src/warroom_v3/sensors/mqa.py",
+      "sha256": "ada439135e5606b3cbd2c9bdd549293f23e1a8fb7d4f1155192f119f8068b3b8"
+    },
+    {
+      "path": "src/warroom_v3/validation.py",
+      "sha256": "7dd03f8c86652243017a98dd26a4b66797a4c53bd5d04d95f9de9a8617c8f3c2"
+    },
+    {
+      "path": "validation/applicability_registry.json",
+      "sha256": "c0fa3f552c097f62b4b013884d47e6fdfdcc43135e247d331699b19b1d53dc68"
+    },
+    {
+      "path": "validation/data_catalog.json",
+      "sha256": "184f8de03ed1d9771cbd34e56daed768fa31c20fa05c335ee761269172dbce5a"
+    },
+    {
+      "path": "validation/market_matrix.json",
+      "sha256": "6e54071715d2bdeaac682e45192c1af9d0a9cab1514aedf3d4e5db8dde38f018"
+    }
+  ],
+  "release_hash": "31f7340a88fdd073a287e9729dcdcec0b95dbe11bb1ad20492a560bfee48a531"
+}

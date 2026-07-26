@@ -1,0 +1,8 @@
+{
+  "admission": "ARCHIVED_OFFICIAL_SERIES_RESEARCH_ONLY",
+  "bytes": 88949,
+  "file": "OVX_History.csv",
+  "not_sufficient_for_v62": true,
+  "reason": "The exact V62 protocol/source list is not mounted; this file cannot be assumed to be one of its frozen inputs.",
+  "sha256": "3fbc092901d0801cc65a667dc244c3c2782047963d727a0249bfada38b21c5f2"
+}

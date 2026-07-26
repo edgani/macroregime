@@ -36,8 +36,17 @@ def source_contract() -> None:
     check("setup_not_evidence_column", "SETUP / DATA" in html and '<th style="width:9%">EVIDENCE</th>' not in html)
     check("generic_context_claim_ceiling", "DESCRIPTIVE_PRICE_CONTEXT_ONLY" in ps and "directional_permission\": False" in ps)
     check("equal_weight_not_fitted", "mean(axis=1)" in ps and "NOT FITTED" in ps and "0.40" not in ps)
-    check("dealer_sign_required", "dealer_sign" in dealer and "UNKNOWN_UNLESS" not in dealer and "calls are dealer-long" in dealer)
-    check("fx_fail_closed", "selector_promoted" in fx and "DIRECTIONAL RESEARCH CONTEXT · NO TRADE" in fx)
+    check(
+        "dealer_sign_provenance_required",
+        all(token in dealer for token in [
+            "dealer_inventory_verified",
+            "dealer_sign_confidence",
+            "dealer_sign_source",
+            "inventory_observed_at",
+            "VERIFIED_PROVENANCE",
+        ]) and "calls are dealer-long" not in dealer,
+    )
+    check("fx_exact_scope_fail_closed", "authorize_direction" in fx and "direction_authorization" in fx and "direction_receipt" in fx)
     check("legacy_final_desk_not_exposed", '"desk_picks": {"picks": [], "state": "CAPITAL_BLOCKED"' in run)
     check("rotation_legacy_withheld", '"rotation_in": [], "rotation_out": []' in run)
     check("current_source_review_split", "source_verification" in (ROOT / "current_developments.py").read_text(encoding="utf-8") and "REVIEW_REQUIRED" in (ROOT / "current_developments.py").read_text(encoding="utf-8"))
@@ -77,12 +86,20 @@ def capability_contract() -> None:
     c = derive_market_capabilities(deepcopy(base))
     check("ihsg_options_disabled", c["idx"]["options_enabled"] is False and c["idx"]["options_data_state"] == "NOT_APPLICABLE", c["idx"])
     check("all_options_disabled_without_specific_data", all(c[m]["options_enabled"] is False for m in ("us", "crypto", "commodity", "fx")), c)
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     desk = deepcopy(base)
-    desk["live_intelligence"]["us_options"] = [{"ticker": "SPY", "state": "LIVE"}]
-    desk["live_intelligence"]["crypto_options"] = [{"ticker": "BTC-USD", "state": "LIVE", "venue": "X"}]
+    desk["live_intelligence"]["us_options"] = [{
+        "ticker": "SPY", "state": "LIVE", "observed_at": now,
+        "capability_evidence": {"row_level_validated": True, "exact_contracts": 12, "quote_rows": 12, "providers": ["fixture"], "observed_at": now},
+    }]
+    desk["live_intelligence"]["crypto_options"] = [{
+        "underlying": "BTC", "state": "LIVE", "venue": "Deribit", "observed_at": now,
+        "capability_evidence": {"row_level_validated": True, "exact_contracts": 8, "quote_rows": 8, "providers": ["fixture"], "venue": "Deribit", "observed_at": now},
+    }]
     c2 = derive_market_capabilities(desk)
     check("us_options_per_instrument", c2["us"]["options_enabled"] and c2["us"]["option_instruments"] == ["SPY"], c2["us"])
-    check("crypto_options_per_underlying", c2["crypto"]["options_enabled"] and c2["crypto"]["option_instruments"] == ["BTC"], c2["crypto"])
+    check("crypto_options_per_underlying_venue", c2["crypto"]["options_enabled"] and c2["crypto"]["option_instruments"] == ["BTC@Deribit"], c2["crypto"])
     desk = deepcopy(base)
     desk["full_live_data"]["statuses"] = [
         {"provider": "X", "dataset": "commodity futures COT", "state": "LIVE"},
@@ -103,9 +120,19 @@ def dealer_contract() -> None:
     u = run_dealer(chain, 100)
     check("unsigned_dealer_context", u.get("ok") and u.get("dealer_sign_state") == "UNKNOWN" and u.get("regime") == "unknown" and u.get("gex") is None, u)
     check("dte_buckets_present", set(u.get("dte_buckets", {})) == {"0DTE", "1_7DTE", "8_30DTE", "31P_DTE"}, u)
-    signed = chain.copy(); signed["dealer_sign"] = [-1, 1, -1]
+    bare = chain.copy(); bare["dealer_sign"] = [-1, 1, -1]
+    b = run_dealer(bare, 100)
+    check("bare_dealer_sign_rejected", b.get("dealer_sign_state") == "UNKNOWN" and b.get("gex") is None and b.get("regime") == "unknown", b)
+
+    from datetime import datetime, timezone
+    signed = chain.copy()
+    signed["dealer_sign"] = [-1, 1, -1]
+    signed["dealer_inventory_verified"] = True
+    signed["dealer_sign_confidence"] = 0.95
+    signed["dealer_sign_source"] = "AUDITED_POSITION_RECEIPT"
+    signed["inventory_observed_at"] = datetime.now(timezone.utc).isoformat()
     g = run_dealer(signed, 100)
-    check("signed_dealer_only_explicit", g.get("dealer_sign_state") == "EXPLICIT" and g.get("gex") is not None and g.get("regime") != "unknown", g)
+    check("signed_dealer_verified_provenance", g.get("dealer_sign_state") == "VERIFIED_PROVENANCE" and g.get("gex") is not None and g.get("regime") != "unknown", g)
 
 
 def valuation_and_proof_contract() -> None:
@@ -197,7 +224,7 @@ def main() -> None:
     check("snapshot_no_capital_picks", not (desk.get("desk_picks") or {}).get("picks"), desk.get("desk_picks"))
     check("current_developments_review_required", (desk.get("current_developments") or {}).get("review_required_count",0)>=1 and (desk.get("current_developments") or {}).get("reviewed_fresh_count",0)==0, desk.get("current_developments"))
     js_and_browser_contract(desk)
-    report={"version":"4.2","suite":"deep_reaudit_fail_closed","status":"PASS" if all(x["passed"] for x in CHECKS) else "FAIL","passed":sum(x["passed"] for x in CHECKS),"total":len(CHECKS),"checks":CHECKS,"software_permission":"READY_FOR_USER_REVIEW" if all(x["passed"] for x in CHECKS) else "BLOCKED","predictive_components_promoted":0,"capital_permission":"BLOCKED","proof_boundary":"Software contracts are tested. Predictive proof requires external PIT WFA, one-time lockbox, costs/capacity and matured prospective outcomes."}
+    report={"version":"5.2","suite":"real_source_hardened_fail_closed","status":"PASS" if all(x["passed"] for x in CHECKS) else "FAIL","passed":sum(x["passed"] for x in CHECKS),"total":len(CHECKS),"checks":CHECKS,"software_permission":"READY_FOR_USER_REVIEW" if all(x["passed"] for x in CHECKS) else "BLOCKED","predictive_components_promoted":0,"capital_permission":"BLOCKED","proof_boundary":"Software contracts are tested. Predictive proof requires external PIT WFA, one-time lockbox, costs/capacity and matured prospective outcomes."}
     (ROOT/"V42_DEEP_REAUDIT_VALIDATION_REPORT.json").write_text(json.dumps(report,indent=2),encoding="utf-8")
     if report["status"]!="PASS":raise SystemExit(1)
 

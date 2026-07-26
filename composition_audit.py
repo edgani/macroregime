@@ -12,9 +12,10 @@ Method = ABLATION: toggle each ingredient's feed and measure the change in the c
 S&P panel. A weight that never moves the output is not a real weight.
 """
 from __future__ import annotations
+from parquet_compat import read_parquet_compat
 import os, sys, warnings
 import numpy as np, pandas as pd
-warnings.filterwarnings("ignore")
+warnings.filterwarnings("error")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 RES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "research")
 
@@ -25,7 +26,7 @@ def row(comp, weight, status, detail=""):
 
 
 def _panel():
-    p = pd.read_parquet(os.path.join(RES, "sp500_panel.parquet")); p["date"] = pd.to_datetime(p["date"])
+    p = read_parquet_compat(os.path.join(RES, "sp500_panel.parquet")); p["date"] = pd.to_datetime(p["date"])
     close = p.pivot_table(index="date", columns="Name", values="close")
     vol = p.pivot_table(index="date", columns="Name", values="volume")
     keep = close.columns[close.notna().mean() > 0.9]

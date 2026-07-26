@@ -48,7 +48,8 @@ class TickerSignal:
     response: dict = field(default_factory=dict)
     bm: dict = field(default_factory=dict)   # BandarMetrics regime readout (idx)
     ev: float | None = None                  # expected value %: p·reward − (1−p)·risk (p=conv/100)
-    surge: float | None = None               # doc-20 pre-conditioning score (priors)
+    surge: float | None = None               # doc-20 descriptive pre-conditioning score (unpromoted)
+    position_lifecycle: dict = field(default_factory=dict)  # accumulation/build/surge/top context; live weight 0
     category: str = "WATCH"
     why_now: list = field(default_factory=list)
     whos_trapped: str = ""

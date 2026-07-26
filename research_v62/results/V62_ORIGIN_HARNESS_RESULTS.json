@@ -1,0 +1,14 @@
+{
+  "checks": {
+    "event_fail_closed": true,
+    "network_fail_closed": true,
+    "no_forward_shift_in_features": true,
+    "null_has_no_material_lift": true,
+    "pit_filing_date_guard": true,
+    "planted_origin_detected": true,
+    "post_event_liquidation_not_early": true
+  },
+  "market_evidence_status": "SYNTHETIC_CONTROL_ONLY_NOT_MARKET_PROOF",
+  "schema": "warroom.v62.origin_harness",
+  "status": "PASS"
+}

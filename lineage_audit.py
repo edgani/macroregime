@@ -15,8 +15,9 @@ Then two robustness tests Edward flagged:
 Run offline (constructs feed dicts, no live fetch needed): python lineage_audit.py
 """
 from __future__ import annotations
+from parquet_compat import read_parquet_compat
 import os, sys, warnings, numpy as np, pandas as pd
-warnings.filterwarnings("ignore")
+warnings.filterwarnings("error")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from run import build_desk
 
@@ -24,7 +25,7 @@ RES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "research")
 
 
 def _macro():
-    mp = pd.read_parquet(os.path.join(RES, "macro_panel.parquet"))
+    mp = read_parquet_compat(os.path.join(RES, "macro_panel.parquet"))
     return mp
 
 

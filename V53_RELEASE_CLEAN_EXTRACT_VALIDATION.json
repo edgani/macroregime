@@ -1,0 +1,172 @@
+{
+  "capital_permission": "BLOCKED",
+  "claim_boundary": "The attachment continuation is reconciled and visible. No failed/aborted study is promoted. V62 requires the exact registered v5.1 package/protocol binary; reconstruction is forbidden.",
+  "environment_blockers": [
+    "actual_streamlit_health",
+    "runtime_dependencies",
+    "parquet_semantic_recomputation"
+  ],
+  "failures": [],
+  "hardening_base": "5.2",
+  "predictive_components_promoted_to_live": 0,
+  "release_continuation_version": "5.3",
+  "release_verdict": "HARDENING_AND_RESEARCH_ACCOUNTING_PASS_CAPITAL_BLOCKED",
+  "research_accounting_base": "5.1",
+  "research_live_decision_weight": 0.0,
+  "schema": "warroom.release_clean_extract_validation.v53",
+  "source_manifest_files": 343,
+  "source_manifest_sha256": "8a9c2028e1b11c011527f500ee5a7028665af7f917e33efc1fdd3f3948432c1d",
+  "source_mutation_failures": [],
+  "status": "PASS",
+  "supported_historical_claims": 4,
+  "tests": [
+    {
+      "mutated_paths": [],
+      "name": "compile_all",
+      "returncode": 0,
+      "source_immutable": true,
+      "status": "PASS"
+    },
+    {
+      "mutated_paths": [],
+      "name": "hardening_adversarial_39",
+      "returncode": 0,
+      "source_immutable": true,
+      "status": "PASS"
+    },
+    {
+      "mutated_paths": [],
+      "name": "attachment_continuation_11",
+      "returncode": 0,
+      "source_immutable": true,
+      "status": "PASS"
+    },
+    {
+      "mutated_paths": [],
+      "name": "gcfis_warnings_as_errors",
+      "returncode": 0,
+      "source_immutable": true,
+      "status": "PASS"
+    },
+    {
+      "mutated_paths": [],
+      "name": "deep_reaudit_ui_and_contracts",
+      "returncode": 0,
+      "source_immutable": true,
+      "status": "PASS"
+    },
+    {
+      "mutated_paths": [],
+      "name": "bundled_data_container_integrity",
+      "returncode": 0,
+      "source_immutable": true,
+      "status": "PASS"
+    },
+    {
+      "mutated_paths": [],
+      "name": "synthetic_end_to_end",
+      "returncode": 0,
+      "source_immutable": true,
+      "status": "PASS"
+    },
+    {
+      "mutated_paths": [],
+      "name": "validator_positive_negative_controls",
+      "returncode": 0,
+      "source_immutable": true,
+      "status": "PASS"
+    },
+    {
+      "mutated_paths": [],
+      "name": "actual_streamlit_health",
+      "returncode": 2,
+      "source_immutable": true,
+      "status": "BLOCKED_BY_ENVIRONMENT"
+    },
+    {
+      "missing": [
+        "hmmlearn",
+        "pyarrow",
+        "streamlit",
+        "yfinance"
+      ],
+      "modules": {
+        "cryptography": {
+          "state": "AVAILABLE",
+          "version": "46.0.4"
+        },
+        "hmmlearn": {
+          "error": "ModuleNotFoundError: No module named 'hmmlearn'",
+          "state": "MISSING"
+        },
+        "networkx": {
+          "state": "AVAILABLE",
+          "version": "3.6.1"
+        },
+        "numpy": {
+          "state": "AVAILABLE",
+          "version": "2.3.5"
+        },
+        "pandas": {
+          "state": "AVAILABLE",
+          "version": "2.2.3"
+        },
+        "pyarrow": {
+          "error": "ModuleNotFoundError: No module named 'pyarrow'",
+          "state": "MISSING"
+        },
+        "python_dotenv": {
+          "state": "AVAILABLE",
+          "version": "UNKNOWN"
+        },
+        "requests": {
+          "state": "AVAILABLE",
+          "version": "2.32.5"
+        },
+        "scikit_learn": {
+          "state": "AVAILABLE",
+          "version": "1.8.0"
+        },
+        "scipy": {
+          "state": "AVAILABLE",
+          "version": "1.17.0"
+        },
+        "statsmodels": {
+          "state": "AVAILABLE",
+          "version": "0.14.6"
+        },
+        "streamlit": {
+          "error": "ModuleNotFoundError: No module named 'streamlit'",
+          "state": "MISSING"
+        },
+        "yfinance": {
+          "error": "ModuleNotFoundError: No module named 'yfinance'",
+          "state": "MISSING"
+        }
+      },
+      "name": "runtime_dependencies",
+      "status": "BLOCKED_BY_ENVIRONMENT"
+    },
+    {
+      "capital_authorized_components": [],
+      "capital_permission": "BLOCKED",
+      "name": "default_proof_and_research_state",
+      "predictive_components_promoted": [],
+      "research_live_decision_weight": 0.0,
+      "research_supported_historical_claims": 4,
+      "status": "PASS",
+      "v61_status": "NOT_PROVEN",
+      "v62_status": "ABORTED_BEFORE_OUTCOME_ANALYSIS"
+    },
+    {
+      "name": "parquet_semantic_recomputation",
+      "reason": "pyarrow missing; containers are structurally/hash verified, semantic battery cannot run in this environment",
+      "status": "BLOCKED_BY_ENVIRONMENT"
+    }
+  ],
+  "v61_fx_evz_exact_timing": "NOT_PROVEN",
+  "v62_crossmarket_generalization": "ABORTED_BEFORE_OUTCOME_ANALYSIS",
+  "validators_run_on_fresh_copies": true,
+  "visual_application_version": "4.2",
+  "warnings_as_errors": true
+}

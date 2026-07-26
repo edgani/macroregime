@@ -112,7 +112,8 @@ def theme_universe(domains=None):
 def load_intake(path):
     """User-appended candidates (CSV with column 'ticker'[, 'node', 'thesis'])."""
     try:
-        return [r for r in csv.DictReader(open(path)) if (r.get("ticker") or "").strip()]
+        with open(path, "r", encoding="utf-8", newline="") as fh:
+            return [r for r in csv.DictReader(fh) if (r.get("ticker") or "").strip()]
     except Exception:
         return []
 

@@ -1,47 +1,46 @@
-# War Room OS — Deep Re-audit v4.2
+# v5.3 attachment continuation
 
-War Room OS v4.2 is a research-first, fail-closed decision terminal. This release is a semantic and software hardening pass: it prevents descriptive metrics, structural maps, option-chain magnitudes, current developments and legacy research engines from silently becoming trade direction, probability, fair value or position size.
+This package now includes the reconciled v5.1 research ledger. Four narrow historical claims are visible as evidence only; V61 failed and V62 remains acquisition-blocked. Every such row has zero live decision weight and capital remains blocked. See `V53_ATTACHMENT_CONTINUATION_FINAL.md`.
 
-## Eight workspaces
+# War Room OS v5.3 — v5.2 Real-Source Hardening + v5.1 Research Accounting
 
-1. **Mission** — current state, disagreements and strongest evidence path.
-2. **Regime & Risk** — market-implied macro context and a blocked regime-model tournament.
-3. **Opportunities** — structural mechanism and value-capture research inventory.
-4. **Markets** — market-specific adapters; generic OHLCV output is descriptive only.
-5. **Flow & Positioning** — price leadership, actual sourced flow, derivatives pressure and institutional evidence remain separate.
-6. **Causal Map** — chokepoints and beneficiaries, with activation/value capture still requiring evidence.
-7. **Execution & Portfolio** — reference geometry and invalidation; size stays zero without promoted proof.
-8. **Research & Validation** — point-in-time lineage, baselines, experiment registry, WFA, lockbox and prospective gates.
+This package is the actual v4.2 application source with a v5.2 security, proof-governance, reproducibility and fail-closed hardening layer. The visual application header remains `DECISION-INTELLIGENCE OS · v4.2`; the hardening base is v5.2 and the reconciled continuation release is v5.3.
 
-## Major v4.2 corrections
+## What changed materially
 
-- Generic cross-market long/short fallback removed.
-- Setup rank separated from probability and evidence completeness.
-- All predictive selectors default to `BLOCKED` in a proof registry.
-- IHSG remains long-only and does not assume listed options.
-- Options are enabled per market/instrument only when an actual option feed exists.
-- Dealer sign is withheld unless explicit signed inventory is supplied.
-- Wasserstein HMM is a challenger in a tournament, not a production winner.
-- Alpha upside/EV/fair value/sizing are withheld without a complete scenario model and calibrated probabilities.
-- Current developments require human review and cannot generate direction automatically.
-- Legacy GCFIS engines are retained only for diagnostics/backward compatibility and are quarantined from capital output.
+- Persistent pickle/joblib/dill paths were removed from active code and replaced with canonical, schema-bound JSON snapshots.
+- Runtime snapshots are atomic and checked against a full SHA-256 content hash before the application accepts them.
+- Editable registry booleans no longer count as proof.
+- Predictive or capital promotion requires an Ed25519-signed exact-scope receipt, an out-of-band pinned trust-root hash, valid revocation state, role-bound artifact hashes, WFA, multiple-testing, costs/capacity, untouched lockbox, matured prospective evidence and human approval.
+- Price context cannot become `LONG`/`SHORT` without fresh lineage, market rules, valid entry/stop/target geometry and an exact-scope capital receipt.
+- Options capability is row-level and product-specific: US listed contracts; IHSG disabled; crypto requires underlying and venue; commodities require an exact futures-option contract; FX requires a listed option or valid vol-surface row. Spot cannot masquerade as options.
+- Technical geometry, scenario range, fair value, calibrated probability and expected value are separate objects.
+- Validators run with warnings-as-errors, check child return codes and timeouts, execute on fresh copies, and fail if they mutate immutable source.
+- Statistical validation includes both a negative-control noise factor and a planted positive-control factor; the validator exits nonzero if either control behaves incorrectly.
 
-## Run
+## Default state
 
-On Windows, double-click:
+```text
+predictive components promoted: 0
+capital permission: BLOCKED
+```
+
+That state is deliberate. Software hardening is not evidence of forecast skill or profitability.
+
+## Windows start
+
+Run:
 
 ```text
 CHECK_AND_RUN.bat
 ```
 
-For later starts:
+It installs the pinned runtime dependencies, verifies the v5.3 manifest, runs strict software/statistical tests, performs an offline collector cycle, checks the actual Streamlit `/_stcore/health` endpoint, and launches only after validation clears.
 
-```text
-RUN_WARROOM.bat
-```
+See `START_HERE.md`, `V53_ATTACHMENT_CONTINUATION_FINAL.md`, `V53_RELEASE_CLEAN_EXTRACT_VALIDATION.json`, and `WHAT_IS_AND_IS_NOT_PROVEN.md`.
 
-## Validation boundary
+## v5.5 options continuation
 
-The shipped master suite verifies source semantics, market capability gates, dealer-sign withholding, scenario valuation withholding, proof registry behavior, full Python compilation, an offline worker cycle, JavaScript/browser rendering of all 19 subviews and legacy compatibility.
+The supplied gamma-scalping video has been mapped into `options_volatility_flow.py` and a frozen V71 prospective protocol. Options output is volatility/range and mechanical-flow research only. Chain composition is not spot direction; public OI is unsigned; call/put concentration zones are not targets; capital remains blocked.
 
-A software PASS does **not** prove forecast skill or profitability. Exact-scope PIT walk-forward tests, realistic costs/capacity, a one-time untouched lockbox, matured prospective results and human approval are still required before any component can be promoted.
+See `V55_OPTIONS_VOLATILITY_FLOW_FINAL_STATUS.md` and `V55_VIDEO_TO_IMPLEMENTATION_MATRIX.md`.

@@ -3,12 +3,13 @@
 from __future__ import annotations
 import numpy as np, pandas as pd
 from ..core.change_core import robust_z, delta_z, last
+from ..core.numeric import log_returns
 
 def run_flow(prices: dict, bench: pd.Series, etf_flows: dict | None = None, lookback: int = 21) -> dict:
     rot = {}
-    b = np.log(pd.Series(bench)).diff()
+    b = log_returns(bench)
     for name, px in prices.items():
-        r = np.log(pd.Series(px)).diff()
+        r = log_returns(px)
         rs = (r.rolling(lookback).mean() - b.rolling(lookback).mean())
         rs_accel = last(delta_z(rs))                              # is RS accelerating? (rotation IN)
         flow_z = last(robust_z(pd.Series(etf_flows[name]))) if etf_flows and name in etf_flows else 0.0

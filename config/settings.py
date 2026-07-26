@@ -36,7 +36,7 @@ CRYPTOQUANT_KEY: str = os.environ.get("CRYPTOQUANT_KEY", "")
 PRICE_HISTORY_DAYS: int = 756
 FRED_HISTORY_MONTHS: int = 36
 CACHE_TTL_SECONDS: int = 3600
-SNAPSHOT_PATH: str = ".cache/snapshot.pkl"
+SNAPSHOT_PATH: str = ".cache/snapshot.json.gz"
 
 # ── FRED series ───────────────────────────────────────────────────────────────
 FRED_GROWTH_SERIES = {

@@ -101,8 +101,9 @@ def read_all(data: dict | None) -> dict:
             bias = "NO_DATA"
         elif fed_n := sum(1 for r in readings if r["reading_z"] is not None):
             full = fed_n >= 2
-            bias = (("LONG" if full else "LEAN_LONG") if score > 0.5 else
-                    ("SHORT" if full else "LEAN_SHORT") if score < -0.5 else "NEUTRAL")
+            # This is a descriptive driver composite, never a capital direction.
+            bias = (("POSITIVE_DRIVER_CONTEXT" if full else "PARTIAL_POSITIVE_DRIVER_CONTEXT") if score > 0.5 else
+                    ("NEGATIVE_DRIVER_CONTEXT" if full else "PARTIAL_NEGATIVE_DRIVER_CONTEXT") if score < -0.5 else "NEUTRAL")
         else:
             bias = "NO_DATA"
         out[mkt] = {"drivers": readings, "bias": bias, "score": score,

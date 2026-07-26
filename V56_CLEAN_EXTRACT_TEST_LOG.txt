@@ -1,0 +1,32 @@
+STATUS=PASS
+VERDICT=SIGNED_DEALER_RESEARCH_ENGINEERING_PASS_LICENSED_OUTCOMES_NOT_EVALUATED_CAPITAL_BLOCKED
+SOURCE_MANIFEST_SHA256=294b1593a97406027432be4ed568d463de7bcbbfd8f16a7520ff3ccad990f34c
+compile=PASS rc=0 immutable=True
+hardening39=PASS rc=0 immutable=True
+continuation11=PASS rc=0 immutable=True
+options29=PASS rc=0 immutable=True
+prospective19=PASS rc=0 immutable=True
+signed_dealer43=PASS rc=0 immutable=True
+outcome11=PASS rc=0 immutable=True
+runner19=PASS rc=0 immutable=True
+manifest14=PASS rc=0 immutable=True
+parquet36=PASS rc=0 immutable=True
+gcfis=PASS rc=0 immutable=True
+deep=PASS rc=0 immutable=True
+live_options=PASS rc=0 immutable=True
+bundled=PASS rc=0 immutable=True
+synthetic=PASS rc=0 immutable=True
+controls=PASS rc=0 immutable=True
+component=PASS rc=0 immutable=True
+composition=PASS rc=0 immutable=True
+filter=PASS rc=0 immutable=True
+real=PASS rc=0 immutable=True
+gem=PASS rc=0 immutable=True
+alpha=PASS rc=0 immutable=True
+streamlit=BLOCKED_BY_ENVIRONMENT rc=2 immutable=True
+dependency_inventory=PASS rc=- immutable=-
+proof_research_prospective_state=PASS rc=- immutable=-
+PREDICTIVE_COMPONENTS_PROMOTED=0
+RESEARCH_LIVE_DECISION_WEIGHT=0
+PROSPECTIVE_OBSERVATIONS=0
+CAPITAL_PERMISSION=BLOCKED

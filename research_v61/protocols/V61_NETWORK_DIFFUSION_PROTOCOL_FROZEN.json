@@ -1,0 +1,56 @@
+{
+  "baselines": [
+    "12-1 momentum with target orientation",
+    "ATR63 high-volatility capacity"
+  ],
+  "candidate_count": 1506,
+  "capital_permission": "BLOCKED",
+  "claim_limit": "The panel is survivor-biased and ends in 2018. A pass is diagnostic replication only, not production proof.",
+  "corporate_actions": "same exclusion logic as V60; flags are never predictive features",
+  "data": "bundled research/sp500_panel.parquet; fixed 483-symbol 2013-2018 diagnostic panel",
+  "frozen_at_utc": "2026-07-25T08:42:26.891766+00:00",
+  "frozen_before_outcome_open": true,
+  "live_decision_weight": 0.0,
+  "multiple_testing": "Bonferroni-normal simultaneous bound across every candidate x target x baseline comparison; non-overlapping 21-session block SE",
+  "network_construction": {
+    "cluster_counts": [
+      24,
+      48
+    ],
+    "correlation_neighbors": 20,
+    "distance": "sqrt(0.5*(1-correlation))",
+    "fit_period": "discovery only",
+    "linkage": "average"
+  },
+  "promotion_gate": [
+    "candidate contains network observable",
+    "validation adjusted lower bound >0 versus both baselines",
+    "lockbox adjusted lower bound >0 versus both baselines",
+    "minimum 10 selected events in validation and lockbox",
+    "no target or threshold retuning"
+  ],
+  "question": "Can discovery-only peer/network diffusion states identify future extreme winners or losers before the ticker move and beat momentum plus volatility baselines in validation and untouched lockbox?",
+  "schema": "warroom.v61.network_diffusion_protocol",
+  "score_rule": "daily percentile rank; pair/triple score is arithmetic mean of predeclared oriented ranks",
+  "selector": "top 5% cross-sectional candidate score each date",
+  "splits": {
+    "discovery": [
+      "2013-02-08",
+      "2015-12-31"
+    ],
+    "lockbox": [
+      "2017-01-01",
+      "2018-02-07"
+    ],
+    "validation": [
+      "2016-01-01",
+      "2016-12-31"
+    ]
+  },
+  "targets": {
+    "down20_63": "future min return <=-20% within 63 sessions",
+    "up20_21": "future max return >=20% within 21 sessions",
+    "up30_63": "future max return >=30% within 63 sessions",
+    "up50_126": "future max return >=50% within 126 sessions"
+  }
+}

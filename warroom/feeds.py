@@ -1,21 +1,18 @@
-"""warroom/feeds.py — load the live-feed snapshot built by build_feeds.py.
-No snapshot (sandbox / not built yet) → empty dict; every lens degrades to its price proxy.
-"""
+"""Load the tamper-evident live-feed snapshot built by build_feeds.py."""
 from __future__ import annotations
-import os, pickle
+from pathlib import Path
 
-SNAP = os.path.join("data", "feeds_snapshot.pkl")
+from safe_snapshot import read_safe_snapshot
+
+SNAP = Path(__file__).resolve().parents[1] / "data" / "feeds_snapshot.json.gz"
 
 
 def load_feeds():
     try:
-        if os.path.exists(SNAP):
-            with open(SNAP, "rb") as f:
-                d = pickle.load(f)
-            return d if isinstance(d, dict) else {}
+        d = read_safe_snapshot(SNAP, expected_schema="warroom.feeds_snapshot.v1")
+        return d if isinstance(d, dict) else {}
     except Exception:
-        pass
-    return {}
+        return {}
 
 
 def status(feeds):

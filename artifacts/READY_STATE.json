@@ -1,0 +1,75 @@
+{
+  "actionable": false,
+  "collection_starts_at": "2026-07-13T00:00:00+07:00",
+  "mode": "RESEARCH_ONLY",
+  "observations": 0,
+  "outcomes": 0,
+  "prospective_batches": 0,
+  "provider_registry_hash": "dcf439af86af8fa3af0f527016ac411b3fe6e11008cd45608ea50ffc8035d743",
+  "reason_codes": [
+    "FORMULAS_NOT_EVALUATED",
+    "PAPER_BLOCKED",
+    "LIVE_BLOCKED"
+  ],
+  "scopes": [
+    {
+      "asset": "BTCUSDT",
+      "bars": 0,
+      "fresh": false,
+      "last_bar": null,
+      "timeframe": "15m"
+    },
+    {
+      "asset": "BTCUSDT",
+      "bars": 0,
+      "fresh": false,
+      "last_bar": null,
+      "timeframe": "1h"
+    },
+    {
+      "asset": "BTCUSDT",
+      "bars": 0,
+      "fresh": false,
+      "last_bar": null,
+      "timeframe": "4h"
+    },
+    {
+      "asset": "BTCUSDT",
+      "bars": 0,
+      "fresh": false,
+      "last_bar": null,
+      "timeframe": "1d"
+    },
+    {
+      "asset": "ETHUSDT",
+      "bars": 0,
+      "fresh": false,
+      "last_bar": null,
+      "timeframe": "15m"
+    },
+    {
+      "asset": "ETHUSDT",
+      "bars": 0,
+      "fresh": false,
+      "last_bar": null,
+      "timeframe": "1h"
+    },
+    {
+      "asset": "ETHUSDT",
+      "bars": 0,
+      "fresh": false,
+      "last_bar": null,
+      "timeframe": "4h"
+    },
+    {
+      "asset": "ETHUSDT",
+      "bars": 0,
+      "fresh": false,
+      "last_bar": null,
+      "timeframe": "1d"
+    }
+  ],
+  "seal_status": "ARMED",
+  "store_errors": [],
+  "system": "War Room OS v3"
+}

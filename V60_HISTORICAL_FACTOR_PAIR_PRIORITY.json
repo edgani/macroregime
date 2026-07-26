@@ -1,0 +1,187 @@
+{
+  "claim_boundary": "Prioritization for fresh point-in-time stock-level reconstruction only; maintained aggregate factor histories can contain revision, implementation, microcap and capacity artifacts.",
+  "factor_frequency": [
+    {
+      "factor": "NetPayoutYield",
+      "strict_pair_frequency": 17
+    },
+    {
+      "factor": "XFIN",
+      "strict_pair_frequency": 10
+    },
+    {
+      "factor": "RIO_Volatility",
+      "strict_pair_frequency": 9
+    },
+    {
+      "factor": "ShareIss5Y",
+      "strict_pair_frequency": 7
+    },
+    {
+      "factor": "ExchSwitch",
+      "strict_pair_frequency": 6
+    },
+    {
+      "factor": "AgeIPO",
+      "strict_pair_frequency": 6
+    },
+    {
+      "factor": "Mom12mOffSeason",
+      "strict_pair_frequency": 5
+    },
+    {
+      "factor": "IO_ShortInterest",
+      "strict_pair_frequency": 4
+    },
+    {
+      "factor": "FirmAgeMom",
+      "strict_pair_frequency": 4
+    },
+    {
+      "factor": "STreversal",
+      "strict_pair_frequency": 4
+    },
+    {
+      "factor": "AssetGrowth",
+      "strict_pair_frequency": 3
+    },
+    {
+      "factor": "REV6",
+      "strict_pair_frequency": 3
+    },
+    {
+      "factor": "Mom12m",
+      "strict_pair_frequency": 3
+    },
+    {
+      "factor": "NetEquityFinance",
+      "strict_pair_frequency": 3
+    },
+    {
+      "factor": "roaq",
+      "strict_pair_frequency": 2
+    },
+    {
+      "factor": "DelEqu",
+      "strict_pair_frequency": 2
+    },
+    {
+      "factor": "ShareIss1Y",
+      "strict_pair_frequency": 2
+    },
+    {
+      "factor": "MomOffSeason06YrPlus",
+      "strict_pair_frequency": 2
+    },
+    {
+      "factor": "IndRetBig",
+      "strict_pair_frequency": 2
+    },
+    {
+      "factor": "RIO_MB",
+      "strict_pair_frequency": 2
+    },
+    {
+      "factor": "SurpriseRD",
+      "strict_pair_frequency": 2
+    },
+    {
+      "factor": "Price",
+      "strict_pair_frequency": 1
+    },
+    {
+      "factor": "zerotrade1M",
+      "strict_pair_frequency": 1
+    },
+    {
+      "factor": "zerotrade6M",
+      "strict_pair_frequency": 1
+    },
+    {
+      "factor": "zerotrade12M",
+      "strict_pair_frequency": 1
+    },
+    {
+      "factor": "AccrualsBM",
+      "strict_pair_frequency": 1
+    },
+    {
+      "factor": "cfp",
+      "strict_pair_frequency": 1
+    },
+    {
+      "factor": "OrderBacklogChg",
+      "strict_pair_frequency": 1
+    },
+    {
+      "factor": "TotalAccruals",
+      "strict_pair_frequency": 1
+    },
+    {
+      "factor": "fgr5yrLag",
+      "strict_pair_frequency": 1
+    },
+    {
+      "factor": "ShortInterest",
+      "strict_pair_frequency": 1
+    },
+    {
+      "factor": "ChEQ",
+      "strict_pair_frequency": 1
+    },
+    {
+      "factor": "MomOffSeason16YrPlus",
+      "strict_pair_frequency": 1
+    },
+    {
+      "factor": "Mom6m",
+      "strict_pair_frequency": 1
+    },
+    {
+      "factor": "tang",
+      "strict_pair_frequency": 1
+    },
+    {
+      "factor": "IntanEP",
+      "strict_pair_frequency": 1
+    },
+    {
+      "factor": "FR",
+      "strict_pair_frequency": 1
+    },
+    {
+      "factor": "InvGrowth",
+      "strict_pair_frequency": 1
+    },
+    {
+      "factor": "BPEBM",
+      "strict_pair_frequency": 1
+    },
+    {
+      "factor": "OrderBacklog",
+      "strict_pair_frequency": 1
+    },
+    {
+      "factor": "GP",
+      "strict_pair_frequency": 1
+    },
+    {
+      "factor": "RIO_Disp",
+      "strict_pair_frequency": 1
+    },
+    {
+      "factor": "NOA",
+      "strict_pair_frequency": 1
+    },
+    {
+      "factor": "ChTax",
+      "strict_pair_frequency": 1
+    },
+    {
+      "factor": "DebtIssuance",
+      "strict_pair_frequency": 1
+    }
+  ],
+  "schema": "warroom.v60.historical_factor_pair_priority",
+  "strict_survivor_pairs": 61
+}

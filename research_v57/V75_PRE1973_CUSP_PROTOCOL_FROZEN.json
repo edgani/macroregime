@@ -1,0 +1,78 @@
+{
+  "bootstrap": {
+    "block_months": 12,
+    "resamples": 4000,
+    "seed": 750075
+  },
+  "capital_permission": "BLOCKED",
+  "claim": "Cusp geometry adds crash-risk information in pre-modern U.S. equity history, testing the literature claim that bifurcation evidence may be regime-dependent and stronger in earlier market structure.",
+  "claim_accounting": {
+    "global_trial_increment": 1,
+    "new_claims": 1
+  },
+  "features": {
+    "alpha": [
+      "real_rate",
+      "drawdown12",
+      "cpi_yoy_change12"
+    ],
+    "baseline": [
+      "rv12",
+      "drawdown12",
+      "trend12",
+      "log_cape",
+      "real_rate",
+      "gold12",
+      "cpi_yoy_change12"
+    ],
+    "beta": [
+      "log_cape",
+      "trend12",
+      "gold12"
+    ]
+  },
+  "forbidden": [
+    "modify split around 1929 crash",
+    "reuse post-1973 outcome",
+    "promote to current market"
+  ],
+  "frozen_at_utc": "2026-07-25T01:41:01.048828+00:00",
+  "live_decision_weight": 0.0,
+  "model": "same frozen V73 cusp estimator, baseline logistic and smooth challenger",
+  "promotion": "historical regime support only; cannot authorize current War Room use",
+  "protocol_id": "V75.0_PRE1973_CUSP_REGIME_DEPENDENCE_FROZEN",
+  "protocol_sha256_without_self": "0aeb7a09f1359eff596b2ce789816b4a93bd9453a17d2dae4619b117d5b2ce0e",
+  "role": "historical_regime_dependence_test_only",
+  "sample": [
+    "1882-01-01",
+    "1972-12-01"
+  ],
+  "source": {
+    "path": "research/macro_panel.parquet",
+    "sha256": "3ee5d345976759c93e2f37ad77b7e110a891a05e5d36817204fa239768d5d802"
+  },
+  "splits": {
+    "lockbox": [
+      "1951-07-01",
+      "1972-06-01"
+    ],
+    "purge_1": [
+      "1929-01-01",
+      "1929-06-01"
+    ],
+    "purge_2": [
+      "1951-01-01",
+      "1951-06-01"
+    ],
+    "train": [
+      "1882-01-01",
+      "1928-12-01"
+    ],
+    "validation": [
+      "1929-07-01",
+      "1950-12-01"
+    ]
+  },
+  "status": "FROZEN_BEFORE_REAL_OUTCOME_EVALUATION",
+  "target": "next 6 month-end minimum SPX return <= -10%"
+}

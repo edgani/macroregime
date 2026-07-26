@@ -17,6 +17,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+from position_lifecycle import classify_position_lifecycle
 import csv, io, json, math, os, time
 
 import requests
@@ -407,6 +408,68 @@ CORE_DATASETS_BY_TAB = {
 }
 
 
+
+def _cftc_num(row: Dict[str, Any], *names: str):
+    for name in names:
+        value=row.get(name)
+        if value not in (None, ""):
+            try:return float(str(value).replace(",", ""))
+            except (TypeError,ValueError):pass
+    return None
+
+
+def _cftc_lifecycle(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Turn official weekly CFTC change buckets into descriptive lifecycle rows.
+
+    The output intentionally excludes price direction unless another plane supplies an aligned
+    weekly return. A long increase is therefore called position building, not a bullish forecast.
+    """
+    out={}
+    for dataset,payload in (data or {}).items():
+        report_date=(payload or {}).get("report_date")
+        for row in (payload or {}).get("rows") or []:
+            name=str(row.get("market_and_exchange_names") or row.get("contract_market_name") or "UNKNOWN").strip()
+            if dataset=="disaggregated_futures":
+                long_chg=_cftc_num(row,"change_in_m_money_long_all","change_in_m_money_long_fut","change_in_managed_money_long_all")
+                short_chg=_cftc_num(row,"change_in_m_money_short_all","change_in_m_money_short_fut","change_in_managed_money_short_all")
+                oi=_cftc_num(row,"open_interest_all","open_interest_futures")
+                oi_chg=_cftc_num(row,"change_in_open_interest_all","change_in_open_interest_futures")
+                participant="managed_money"
+                market="commodity"
+            else:
+                long_chg=_cftc_num(row,"change_in_lev_money_long_all","change_in_lev_money_long_fut","change_in_leveraged_funds_long_all")
+                short_chg=_cftc_num(row,"change_in_lev_money_short_all","change_in_lev_money_short_fut","change_in_leveraged_funds_short_all")
+                oi=_cftc_num(row,"open_interest_all","open_interest_futures")
+                oi_chg=_cftc_num(row,"change_in_open_interest_all","change_in_open_interest_futures")
+                participant="leveraged_funds"
+                market="fx" if any(x in name.upper() for x in ("EURO FX","JAPANESE YEN","BRITISH POUND","CANADIAN DOLLAR","SWISS FRANC","AUSTRALIAN DOLLAR","NZ DOLLAR","USD INDEX")) else "us"
+            obs={"participant_long_change":long_chg,"participant_short_change":short_chg}
+            if oi not in (None,0) and oi_chg is not None:obs["open_interest_change_pct"]=100.0*oi_chg/oi
+            life=classify_position_lifecycle(market,obs)
+            key=f"{dataset}:{name}"
+            out[key]={"contract":name,"dataset":dataset,"report_date":report_date,"participant":participant,
+                      "reporting_frequency":"WEEKLY","reporting_lag":"CFTC publication lag",
+                      "position_lifecycle":life,"raw_change_fields":{"long":long_chg,"short":short_chg,"oi":oi_chg}}
+    return out
+
+
+def _idx_lifecycle(rows_in: List[Dict[str, Any]]) -> Dict[str, Any]:
+    out={}
+    for i,row in enumerate(rows_in or []):
+        ticker=str(row.get("ticker") or row.get("symbol") or row.get("code") or f"IDX_ROW_{i}").upper()
+        broker=_cftc_num(row,"broker_net_flow","broker_net_buy","net_broker_flow","net_buy_value")
+        foreign=_cftc_num(row,"foreign_net_flow","foreign_net_buy","net_foreign_flow","foreign_net_value")
+        persistence=_cftc_num(row,"broker_inventory_persistence","inventory_persistence","persistence")
+        crossing=_cftc_num(row,"crossing_share","crossing_pct","negotiated_share")
+        obs={"broker_net_flow":broker,"foreign_net_flow":foreign,
+             "broker_inventory_persistence":persistence,"crossing_share":crossing}
+        # Prefer broker flow when available; otherwise use foreign flow as signed context.
+        obs["signed_flow"]=broker if broker is not None else foreign
+        life=classify_position_lifecycle("idx",obs)
+        out[ticker]={"ticker":ticker,"position_lifecycle":life,"raw":row,
+                     "semantics":"Licensed bridge fields are provider-defined; broker identity and controller intent remain unverified."}
+    return out
+
 def collect_full_live_data(desk:Dict[str,Any]):
     tickers=shortlist(desk); etfs=[x.strip().upper() for x in os.getenv("WARROOM_ETF_FLOW_WATCHLIST","SPY,QQQ,IWM,SMH,XLF,XLE,XLK,XLI,GLD,TLT,EEM,EIDO").split(",") if x.strip()]
     tasks={
@@ -483,11 +546,15 @@ def collect_full_live_data(desk:Dict[str,Any]):
                            "stale":sum(1 for x in related if x.get("state")=="STALE"),
                            "missing":sum(1 for x in related if x.get("state") in bad),
                            "optional_missing":len(optional_missing),"state":state}
+    cftc_data=results.get("cftc",{}).get("data") or {}
+    position_lifecycle=_cftc_lifecycle(cftc_data)
+    idx_data=results.get("idx",{}).get("data") or []
+    idx_position_lifecycle=_idx_lifecycle(idx_data)
     return {"generated":now_iso(),"overall_state":overall,"status_counts":{"live":live,"stale":stale,"error":errors,"total":len(statuses)},
             "watchlist":tickers,"etf_watchlist":etfs,"statuses":statuses,"tab_coverage":tab_coverage,"requirements":REQUIREMENTS,
             "sec_fundamentals":results.get("sec_fundamentals",{}).get("data") or [],
             "intrinio_companies":results.get("intrinio",{}).get("companies") or [],"etf_flows":results.get("intrinio",{}).get("etf_flows") or [],
-            "eia":results.get("eia",{}).get("data") or [],"cftc":results.get("cftc",{}).get("data") or {},
+            "eia":results.get("eia",{}).get("data") or [],"cftc":cftc_data,"position_lifecycle":position_lifecycle,
             "defillama":results.get("defillama",{}).get("data") or {},"databento":results.get("databento",{}).get("data") or [],
-            "idx_live":results.get("idx",{}).get("data") or [],
+            "idx_live":idx_data,"idx_position_lifecycle":idx_position_lifecycle,
             "rules":{"no_synthetic":True,"missing_is_not_neutral":True,"reporting_lags_explicit":True,"bridge_failure_isolated":True}}

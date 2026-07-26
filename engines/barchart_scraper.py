@@ -123,9 +123,16 @@ class BarchartOptionsData:
         """Serialize to plain dict for JSON/JSONL compatibility."""
         return {
             "ticker": self.ticker,
-            "gamma_flip": self.gamma_flip,
+            "provider_gamma_flip_claim": self.gamma_flip,
+            "gamma_flip": None,
+            "call_oi_concentration_reference": self.call_wall,
+            "put_oi_concentration_reference": self.put_wall,
             "call_wall": self.call_wall,
             "put_wall": self.put_wall,
+            "dealer_sign_state": "UNKNOWN",
+            "standalone_direction": "WITHHELD",
+            "live_decision_weight": 0.0,
+            "capital_permission": "BLOCKED",
             "iv": self.iv,
             "hv": self.hv,
             "iv_rank": self.iv_rank,

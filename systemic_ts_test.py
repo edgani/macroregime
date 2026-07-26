@@ -5,13 +5,14 @@ underlying the systemic engines (valuation-room, panic-bottom, dollar-hub, real-
 on the data actually available — not the full multi-feed engines. Whatever the IC is, it prints.
 """
 from __future__ import annotations
+from parquet_compat import read_parquet_compat
 import sys, os, warnings
-warnings.filterwarnings("ignore")
+warnings.filterwarnings("error")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import numpy as np, pandas as pd
 from scipy.stats import spearmanr
 
-df = pd.read_parquet(os.path.join("research", "macro_panel.parquet")).sort_index()
+df = read_parquet_compat(os.path.join("research", "macro_panel.parquet")).sort_index()
 spx = df["spx"].astype(float)
 
 ERAS = [("1881-1949", "1881", "1949"), ("1950-1999", "1950", "1999"), ("2000-2023", "2000", "2023")]

@@ -1,0 +1,437 @@
+{
+  "artifacts": {
+    "implementation": "research_v57/V73_IMPLEMENTATION_SPEC_FROZEN.json",
+    "predictions": "research_v57/results/V73_MONTHLY_PREDICTIONS.csv",
+    "protocol": "research_v57/V73_CUSP_STRUCTURAL_FRAGILITY_PROTOCOL_FROZEN.json"
+  },
+  "capital_permission": "BLOCKED",
+  "cusp_fit": {
+    "alpha_standardizer": {
+      "mean": [
+        3.138298251647015,
+        -0.04271230836540818,
+        -0.041551381716221435
+      ],
+      "std": [
+        3.0023526688670246,
+        0.06708155234192385,
+        2.3378927792971904
+      ]
+    },
+    "beta_standardizer": {
+      "mean": [
+        2.686446095330607,
+        0.0923273136958361,
+        0.07155094399414044
+      ],
+      "std": [
+        0.46639760060352164,
+        0.14859200424714702,
+        0.2801137736619295
+      ]
+    },
+    "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+    "nll": 460.20511390440674,
+    "params": [
+      0.6941446309199597,
+      -0.9269789555721039,
+      4.0,
+      -0.16466242928391234,
+      1.0401827434920234,
+      -0.08695655092795408,
+      -4.0,
+      0.12789261770515825,
+      -0.047706922249939464,
+      0.08620100929915804
+    ],
+    "starts": [
+      {
+        "fun": 460.20511390440674,
+        "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+        "nit": 59,
+        "seed": 0,
+        "success": true
+      },
+      {
+        "fun": 460.2051139045089,
+        "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+        "nit": 60,
+        "seed": 1,
+        "success": true
+      },
+      {
+        "fun": 460.2051139045549,
+        "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+        "nit": 50,
+        "seed": 2,
+        "success": true
+      },
+      {
+        "fun": 460.2051139044507,
+        "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+        "nit": 52,
+        "seed": 3,
+        "success": true
+      }
+    ],
+    "success": true
+  },
+  "gates": {
+    "all_four_point_improvements_positive": false,
+    "cusp_not_worse_than_smooth_challenger": false,
+    "ece_not_worse_by_more_than_0_01": true,
+    "equal_burden_cluster_recall_not_lower": true,
+    "shift60_placebo_does_not_pass": true,
+    "shuffle_placebo_does_not_pass": true,
+    "simultaneous_adjusted_lower_bounds_positive": false,
+    "structural_density_pass": true
+  },
+  "limitations": [
+    "Monthly data and bundled proxies are not an exact replication of intraday realized-volatility cusp literature.",
+    "No historical credit-spread, signed dealer-position, or broad-market breadth series is added after outcome opening.",
+    "Even a historical pass cannot authorize live capital without matured prospective evidence."
+  ],
+  "live_decision_weight": 0.0,
+  "metrics": {
+    "baseline": {
+      "lockbox": {
+        "decision": {
+          "alarm_months": 9,
+          "cluster_hits": 1,
+          "cluster_recall": 0.25,
+          "clusters": 4,
+          "false_defensive_months_per_year": 0.5581395348837209,
+          "positive_month_recall": 0.2,
+          "training_threshold": 0.20334268287038976
+        },
+        "probability": {
+          "brier": 0.09635147808651136,
+          "ece": 0.03718396732265924,
+          "log_loss": 0.3273128086900592,
+          "pr_auc": 0.27296055632727956,
+          "roc_auc": 0.7309941520467836
+        }
+      },
+      "train": {
+        "probability": {
+          "brier": 0.07374603801999552,
+          "ece": 0.03260758746120059,
+          "log_loss": 0.2662367048336277,
+          "pr_auc": 0.2685336506805226,
+          "roc_auc": 0.7235514895613417
+        }
+      },
+      "validation": {
+        "decision": {
+          "alarm_months": 9,
+          "cluster_hits": 1,
+          "cluster_recall": 0.14285714285714285,
+          "clusters": 7,
+          "false_defensive_months_per_year": 0.5217391304347826,
+          "positive_month_recall": 0.07894736842105263,
+          "training_threshold": 0.20334268287038976
+        },
+        "probability": {
+          "brier": 0.234748992373753,
+          "ece": 0.18316648125747836,
+          "log_loss": 0.7610922882204011,
+          "pr_auc": 0.28844425978622856,
+          "roc_auc": 0.4747368421052631
+        }
+      }
+    },
+    "cusp": {
+      "lockbox": {
+        "decision": {
+          "alarm_months": 15,
+          "cluster_hits": 1,
+          "cluster_recall": 0.25,
+          "clusters": 4,
+          "false_defensive_months_per_year": 1.0232558139534884,
+          "positive_month_recall": 0.26666666666666666,
+          "training_threshold": 0.1952322295068437
+        },
+        "probability": {
+          "brier": 0.09914614042050397,
+          "ece": 0.046138057211027324,
+          "log_loss": 0.3383460635999382,
+          "pr_auc": 0.23850469796274,
+          "roc_auc": 0.6900584795321637
+        }
+      },
+      "train": {
+        "probability": {
+          "brier": 0.07141003479194924,
+          "ece": 0.03450323166559835,
+          "log_loss": 0.2599007084771166,
+          "pr_auc": 0.3178786292548601,
+          "roc_auc": 0.7295331925873798
+        }
+      },
+      "validation": {
+        "decision": {
+          "alarm_months": 14,
+          "cluster_hits": 2,
+          "cluster_recall": 0.2857142857142857,
+          "clusters": 7,
+          "false_defensive_months_per_year": 0.8695652173913043,
+          "positive_month_recall": 0.10526315789473684,
+          "training_threshold": 0.1952322295068437
+        },
+        "probability": {
+          "brier": 0.23817542975563338,
+          "ece": 0.1827435331477724,
+          "log_loss": 0.829458645523866,
+          "pr_auc": 0.2930133501497445,
+          "roc_auc": 0.48921052631578954
+        }
+      }
+    },
+    "shift60_placebo": {
+      "lockbox": {
+        "decision": {
+          "alarm_months": 19,
+          "cluster_hits": 2,
+          "cluster_recall": 0.5,
+          "clusters": 4,
+          "false_defensive_months_per_year": 1.1162790697674418,
+          "positive_month_recall": 0.4666666666666667,
+          "training_threshold": 0.19132245490129793
+        },
+        "probability": {
+          "brier": 0.09133764940748634,
+          "ece": 0.03301709362166399,
+          "log_loss": 0.3027860511565732,
+          "pr_auc": 0.33420371364482765,
+          "roc_auc": 0.791812865497076
+        }
+      },
+      "train": {
+        "probability": {
+          "brier": 0.07282723305031868,
+          "ece": 0.03257266466573566,
+          "log_loss": 0.25827005582881635,
+          "pr_auc": 0.2651564444957215,
+          "roc_auc": 0.7619047619047619
+        }
+      },
+      "validation": {
+        "decision": {
+          "alarm_months": 10,
+          "cluster_hits": 2,
+          "cluster_recall": 0.2857142857142857,
+          "clusters": 7,
+          "false_defensive_months_per_year": 0.43478260869565216,
+          "positive_month_recall": 0.13157894736842105,
+          "training_threshold": 0.19132245490129793
+        },
+        "probability": {
+          "brier": 0.24047401944273633,
+          "ece": 0.1992265561221217,
+          "log_loss": 0.8250333802065094,
+          "pr_auc": 0.29967532381518236,
+          "roc_auc": 0.4860526315789474
+        }
+      }
+    },
+    "shuffle_placebo": {
+      "lockbox": {
+        "decision": {
+          "alarm_months": 8,
+          "cluster_hits": 1,
+          "cluster_recall": 0.25,
+          "clusters": 4,
+          "false_defensive_months_per_year": 0.5581395348837209,
+          "positive_month_recall": 0.13333333333333333,
+          "training_threshold": 0.2058354433505266
+        },
+        "probability": {
+          "brier": 0.09642186025096489,
+          "ece": 0.0371371687268161,
+          "log_loss": 0.32884662307607804,
+          "pr_auc": 0.2706124517133736,
+          "roc_auc": 0.7222222222222222
+        }
+      },
+      "train": {
+        "probability": {
+          "brier": 0.07376798049595203,
+          "ece": 0.03915737836713326,
+          "log_loss": 0.2661708924285501,
+          "pr_auc": 0.26686876705966367,
+          "roc_auc": 0.7233169129720853
+        }
+      },
+      "validation": {
+        "decision": {
+          "alarm_months": 7,
+          "cluster_hits": 1,
+          "cluster_recall": 0.14285714285714285,
+          "clusters": 7,
+          "false_defensive_months_per_year": 0.43478260869565216,
+          "positive_month_recall": 0.05263157894736842,
+          "training_threshold": 0.2058354433505266
+        },
+        "probability": {
+          "brier": 0.23552528623395325,
+          "ece": 0.18320301501389435,
+          "log_loss": 0.7667403407947347,
+          "pr_auc": 0.2820759451095689,
+          "roc_auc": 0.4618421052631579
+        }
+      }
+    },
+    "smooth": {
+      "lockbox": {
+        "decision": {
+          "alarm_months": 12,
+          "cluster_hits": 2,
+          "cluster_recall": 0.5,
+          "clusters": 4,
+          "false_defensive_months_per_year": 0.6511627906976745,
+          "positive_month_recall": 0.3333333333333333,
+          "training_threshold": 0.21261252786959153
+        },
+        "probability": {
+          "brier": 0.09744701746870015,
+          "ece": 0.05519926056441088,
+          "log_loss": 0.33609381889527845,
+          "pr_auc": 0.2613747747836829,
+          "roc_auc": 0.6877192982456141
+        }
+      },
+      "train": {
+        "probability": {
+          "brier": 0.07150129380947441,
+          "ece": 0.03226083280444081,
+          "log_loss": 0.26107691537580846,
+          "pr_auc": 0.31048143498300135,
+          "roc_auc": 0.7283603096410978
+        }
+      },
+      "validation": {
+        "decision": {
+          "alarm_months": 11,
+          "cluster_hits": 1,
+          "cluster_recall": 0.14285714285714285,
+          "clusters": 7,
+          "false_defensive_months_per_year": 0.6956521739130435,
+          "positive_month_recall": 0.07894736842105263,
+          "training_threshold": 0.21261252786959153
+        },
+        "probability": {
+          "brier": 0.2375927041346772,
+          "ece": 0.1945605012866385,
+          "log_loss": 0.786086068657884,
+          "pr_auc": 0.29415274997479307,
+          "roc_auc": 0.5326315789473683
+        }
+      }
+    }
+  },
+  "placebo_bootstrap": {
+    "shift60": {
+      "bootstrap_sd": [
+        0.004495421150404969,
+        0.04732432833640342,
+        0.003958253534258469,
+        0.014163259404965232
+      ],
+      "critical": 2.3051987319272333,
+      "observed": [
+        -0.005725027068983327,
+        -0.06394109198610849,
+        0.005013828679024993,
+        0.024526757533485943
+      ],
+      "simultaneous_lower": [
+        -0.016087866204375724,
+        -0.17303307365649367,
+        -0.00411073234879412,
+        -0.008122370086796376
+      ]
+    },
+    "shuffle": {
+      "bootstrap_sd": [
+        0.0003151048601743212,
+        0.0019432085776449803,
+        0.0002915857345108005,
+        0.0017325248290584998
+      ],
+      "critical": 2.3282760831790648,
+      "observed": [
+        -0.0007762938602002441,
+        -0.0056480525743337565,
+        -7.03821644535399e-05,
+        -0.0015338143860189294
+      ],
+      "simultaneous_lower": [
+        -0.0015099449698375996,
+        -0.010172378630292973,
+        -0.0007492742563112372,
+        -0.005567610509029732
+      ]
+    }
+  },
+  "promoted_historical": false,
+  "receipt_checks": {
+    "implementation_hash": true,
+    "macro_hash": true,
+    "protocol_hash": true,
+    "runner_hash": true
+  },
+  "simultaneous_bootstrap": {
+    "bootstrap_sd": [
+      0.004291259546738025,
+      0.05131178432744242,
+      0.002061633503675576,
+      0.010609612209681301
+    ],
+    "critical": 2.4876308696663636,
+    "observed": [
+      -0.0034264373818803802,
+      -0.06836635730346484,
+      -0.0027946623339926164,
+      -0.011033254909879074
+    ],
+    "simultaneous_lower": [
+      -0.014101507100096378,
+      -0.19601113597407333,
+      -0.007923245479674402,
+      -0.03742605375787144
+    ]
+  },
+  "source_rows": 602,
+  "split_positive_months": {
+    "lockbox": 15,
+    "train": 29,
+    "validation": 38
+  },
+  "split_rows": {
+    "lockbox": 129,
+    "train": 323,
+    "validation": 138
+  },
+  "structural_fit": {
+    "lockbox": {
+      "cusp_mean_log_density": -1.3952645258960348,
+      "linear_mean_log_density": -1.4334809188396065,
+      "quadratic_mean_log_density": -2.2403498985698325
+    },
+    "train": {
+      "cusp_bic": 978.18675104104,
+      "cusp_mean_log_density": -1.4247836343789682,
+      "linear_bic": 969.1465840131046,
+      "linear_mean_log_density": -1.4286770362652066,
+      "quadratic_bic": 1018.9783265632176,
+      "quadratic_mean_log_density": -1.3179975374454498
+    },
+    "validation": {
+      "cusp_mean_log_density": -1.5178923629384045,
+      "linear_mean_log_density": -1.5558550513395037,
+      "quadratic_mean_log_density": -3.475234090191111
+    }
+  },
+  "study_id": "V73_CUSP_STRUCTURAL_FRAGILITY_HISTORICAL",
+  "verdict": "NOT_PROVEN"
+}

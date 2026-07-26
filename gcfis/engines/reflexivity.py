@@ -4,6 +4,7 @@ PLTR/SNDK monster-move signature) with a non-contradicting cross-lag gain. Accel
 measured smoothly (momentum now vs momentum 20 bars ago) to avoid single-day noise."""
 from __future__ import annotations
 import numpy as np, pandas as pd
+from ..core.numeric import log_returns
 from ..core.change_core import to_100
 
 def _accel(s, n: int = 20) -> float:
@@ -11,7 +12,7 @@ def _accel(s, n: int = 20) -> float:
     x = pd.to_numeric(pd.Series(s), errors="coerce").dropna()
     if len(x) < 3 * n:
         return 0.0
-    chg = np.log(x).diff() if bool((x > 0).all()) else x.diff()
+    chg = log_returns(x) if bool((x > 0).all()) else x.diff()
     recent = chg.iloc[-n:].mean(); prev = chg.iloc[-2 * n:-n].mean()
     sd = chg.iloc[-3 * n:].std() or 1e-9
     return float((recent - prev) / sd)
@@ -26,7 +27,7 @@ def run_reflexivity(price, volume=None, options_oi=None, earnings_rev=None, soci
     px = pd.to_numeric(pd.Series(price), errors="coerce").dropna()
     if len(px) < 70:
         return {"ok": False, "reason": "insufficient history", "reflexivity": 50.0, "runaway": False}
-    r = np.log(px).diff()
+    r = log_returns(px)
     flow = _flow_proxy(px.index, volume, options_oi, social)
     # cross-lag gain: corr(Δprice_t, Δflow_{t+1}) * corr(Δflow_t, Δprice_{t+1})
     reflex_coef = 0.0

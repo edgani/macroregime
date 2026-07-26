@@ -1,0 +1,156 @@
+{
+  "version": "3.3.2",
+  "suite": "readability_semantic_integrity",
+  "status": "PASS",
+  "passed": 28,
+  "total": 28,
+  "checks": [
+    {
+      "name": "v332_header",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "small_text_enlarged",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "static_dashboard_synced",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "recovered_error_cleared",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "error_only_rendered_in_error_state",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "one_row_price_generator",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "low_price_precision",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "unsafe_setup_semantics_removed",
+      "passed": true,
+      "detail": "[]"
+    },
+    {
+      "name": "company_candidate_filter",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "dxy_excluded_from_fx_pair_table",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "provider_status_dedup",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "poor_rr_blocked",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "context_not_false_trade_direction",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "validation_exact_production",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "alpha_numeric_upside_withheld",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "javascript_parse",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "price_rows_unique",
+      "passed": true,
+      "detail": "['UP', 'LOW', 'MIX']"
+    },
+    {
+      "name": "no_ownership_intent_claim",
+      "passed": true,
+      "detail": "[{'tk': 'UP', 'act': 'WATCH_LONG', 'dir': 'long', 'conv': 70, 'e': 20.0196, 's': 19.7025, 't': 20.4783, 'rr': 1.45, 'ty': 'PRICE-CONTEXT', 'gm': 'unknown', 'valid': False, 'warn': 'R/R 1.45 < 1.5', 'phase': 'MIXED', 'phase_conf': 43, 'why': 'positive price-pressure proxy 20 \u00b7 12M RS 57% \u00b7 MIXED', 'conflicted': False, 'long_score': 70.0, 'short_score': 35.83, 'score_gap': 34.17, 'median_dollar_volume_20': 10514160.496585896, 'evidence_semantics': 'DESCRIPTIVE_PRICE_CONTEXT_ONLY; not ownership, institutional intent, or calibrated probability.'}, {'tk': 'LOW', 'act': 'WATCH_SHORT', 'dir': 'short', 'conv': 62, 'e': 0.00474661, 's': 0.00484937, 't': 0.00461211, 'rr': 1.31, 'ty': 'PRICE-CONTEXT', 'gm': 'unknown', 'valid': False, 'warn': 'R/R 1.31 < 1.5', 'phase': 'MIXED', 'phase_conf': 46, 'why': 'negative price-pressure proxy 80 \u00b7 12M RS -24% \u00b7 MIXED', 'conflicted': False, 'long_score': 46.67, 'short_score': 62.5, 'score_gap': 15.83, 'median_dollar_volume_20': 2262.5433318875703, 'evidence_semantics': 'DESCRIPTIVE_PRICE_CONTEXT_ONLY; not ownership, institutional intent, or calibrated probability.'}, {'tk': 'MIX', 'act': 'WATCH_SHORT', 'dir': 'short', 'conv': 62, 'e': 137.83, 's': 141.04, 't': 133.47, 'rr': 1.35, 'ty': 'PRICE-CONTEXT', 'gm': 'unknown', 'valid': False, 'warn': 'R/R 1.35 < 1.5', 'phase': 'MIXED', 'phase_conf': 57, 'why': 'negative price-pressure proxy 80 \u00b7 12M RS -1% \u00b7 MIXED', 'conflicted': False, 'long_score': 53.33, 'short_score': 61.67, 'score_gap': 8.33, 'median_dollar_volume_20': 72490535.36840168, 'evidence_semantics': 'DESCRIPTIVE_PRICE_CONTEXT_ONLY; not ownership, institutional intent, or calibrated probability.'}]"
+    },
+    {
+      "name": "crypto_like_precision_preserved",
+      "passed": true,
+      "detail": "{'tk': 'LOW', 'act': 'WATCH_SHORT', 'dir': 'short', 'conv': 62, 'e': 0.00474661, 's': 0.00484937, 't': 0.00461211, 'rr': 1.31, 'ty': 'PRICE-CONTEXT', 'gm': 'unknown', 'valid': False, 'warn': 'R/R 1.31 < 1.5', 'phase': 'MIXED', 'phase_conf': 46, 'why': 'negative price-pressure proxy 80 \u00b7 12M RS -24% \u00b7 MIXED', 'conflicted': False, 'long_score': 46.67, 'short_score': 62.5, 'score_gap': 15.83, 'median_dollar_volume_20': 2262.5433318875703, 'evidence_semantics': 'DESCRIPTIVE_PRICE_CONTEXT_ONLY; not ownership, institutional intent, or calibrated probability.'}"
+    },
+    {
+      "name": "browser_page_errors",
+      "passed": true,
+      "detail": "[]"
+    },
+    {
+      "name": "all_19_views_have_rows",
+      "passed": true,
+      "detail": "{'mc': 7, 'macro': 9, 'ew': 7, 'alpha': 3, 'co': 1, 'us': 2, 'ihsg': 2, 'crypto': 2, 'commod': 1, 'fx': 5, 'flow': 7, 'inst': 1, 'deriv': 1, 'sc': 1, 'kg': 1, 'execution': 7, 'research': 5, 'rc': 3, 'datahealth': 1}"
+    },
+    {
+      "name": "market_rows_no_duplicate_instruments",
+      "passed": true,
+      "detail": "{}"
+    },
+    {
+      "name": "company_intel_is_equity_only",
+      "passed": true,
+      "detail": "['NVDA']"
+    },
+    {
+      "name": "alpha_board_has_no_unproven_trade_direction",
+      "passed": true,
+      "detail": "['STRUCTURAL RESEARCH', 'EVIDENCE BUILDING', 'STRUCTURAL RESEARCH']"
+    },
+    {
+      "name": "macro_context_not_labeled_long_short",
+      "passed": true,
+      "detail": "['CONSTRUCTIVE', 'NEUTRAL', 'CONSTRUCTIVE', 'NEUTRAL', 'CONSTRUCTIVE', 'NEUTRAL', 'ADVERSE', 'NEUTRAL', 'BLOCKED']"
+    },
+    {
+      "name": "dated_current_developments_expanded",
+      "passed": true,
+      "detail": "[]"
+    },
+    {
+      "name": "official_source_radar_expanded",
+      "passed": true,
+      "detail": "{'count': 34, 'missing': []}"
+    },
+    {
+      "name": "coverage_taxonomy_present",
+      "passed": true,
+      "detail": "dict_keys(['crypto', 'us', 'idx', 'commodity', 'fx'])"
+    }
+  ],
+  "operational_permission": "READY_FOR_USER_REVIEW",
+  "capital_permission": "CAPITAL_BLOCKED",
+  "proof_boundary": [
+    "Readability and semantic integrity are not predictive edge.",
+    "Current-source coverage cannot guarantee that every future development is captured.",
+    "Point-in-time WFA, untouched lockbox, costs/capacity and mature prospective evidence remain separate gates."
+  ]
+}

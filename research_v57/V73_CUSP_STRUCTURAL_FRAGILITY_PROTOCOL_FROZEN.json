@@ -1,0 +1,198 @@
+{
+  "capital_permission": "BLOCKED",
+  "challengers": {
+    "baseline": "fixed L2 logistic regression, C=1.0, lbfgs, no class weighting",
+    "smooth_nonlinear": "baseline plus alpha, beta, alpha^2, beta^2, alpha*beta",
+    "structural_fit": [
+      "linear Gaussian density",
+      "quadratic smooth Gaussian density"
+    ]
+  },
+  "claim": "Cusp-derived geometry adds out-of-sample crash-risk information beyond a fixed War Room baseline using the same observable inputs.",
+  "claim_accounting": {
+    "failed_results_retained": true,
+    "global_trial_increment": 1,
+    "new_claims": 1
+  },
+  "cusp_model": {
+    "alpha": "linear in three frozen normal-factor controls plus intercept",
+    "beta": "linear in three frozen splitting-factor controls plus intercept",
+    "bounds": {
+      "control_coefficients": [
+        -4,
+        4
+      ],
+      "log_omega1": [
+        -2,
+        2
+      ],
+      "omega0": [
+        -2,
+        2
+      ]
+    },
+    "density": "f(y|x) proportional to exp(-0.25*y^4 + 0.5*beta(x)*y^2 + alpha(x)*y)",
+    "geometry_features": [
+      "inside_bifurcation",
+      "signed_fold_distance",
+      "inverse_stability_margin",
+      "stable_mode_separation"
+    ],
+    "integration_grid": {
+      "high": 8.0,
+      "low": -8.0,
+      "points": 801,
+      "rule": "trapezoid"
+    },
+    "maxiter": 1200,
+    "optimizer": "L-BFGS-B",
+    "starts": [
+      0,
+      1,
+      2,
+      3
+    ],
+    "state_transform": "y=omega0+exp(log_omega1)*z with Jacobian included"
+  },
+  "evaluation": {
+    "bootstrap_seed": 730073,
+    "decision_metrics": [
+      "positive_month_recall_at_training_10pct_alarm_burden",
+      "false_defensive_months_per_year",
+      "cluster_event_recall"
+    ],
+    "paired_uncertainty": "stationary/circular block bootstrap with 12-month blocks, 4000 deterministic resamples",
+    "probability_metrics": [
+      "Brier",
+      "log_loss",
+      "PR_AUC",
+      "ROC_AUC",
+      "ECE_10bin"
+    ],
+    "simultaneous_control": "max-stat across Brier and log-loss improvements and both validation/lockbox splits"
+  },
+  "forbidden": [
+    "retune dates/features/target after outcomes",
+    "select best horizon after outcomes",
+    "use full-sample normalization",
+    "promote historical fit as live direction",
+    "substitute unavailable credit/breadth data after seeing result"
+  ],
+  "frozen_at_utc": "2026-07-25T01:28:12.446370+00:00",
+  "live_decision_weight": 0.0,
+  "observable_features": {
+    "alpha_normal_factor": [
+      "real_rate",
+      "drawdown12",
+      "cpi_yoy_change12"
+    ],
+    "baseline": [
+      "rv12",
+      "drawdown12",
+      "trend12",
+      "log_cape",
+      "real_rate",
+      "dxy12",
+      "gold12"
+    ],
+    "beta_splitting_factor": [
+      "log_cape",
+      "trend12",
+      "gold_minus_dxy_12"
+    ],
+    "normalization": "means/stds estimated on training only and frozen"
+  },
+  "primary_dataset": {
+    "frequency": "monthly",
+    "path": "research/macro_panel.parquet",
+    "reason": "long fixed bundled history with SPX, valuation, inflation, rates, gold and DXY; no post-outcome source substitution",
+    "sample_end": "2023-09-01",
+    "sample_start": "1973-01-01"
+  },
+  "promotion_gate": [
+    "cusp structural predictive density beats both linear and quadratic smooth density on validation and lockbox",
+    "baseline+cusp Brier and log-loss improvements are positive on validation and lockbox",
+    "simultaneous adjusted 95% lower bound is above zero",
+    "baseline+cusp is not worse than smooth nonlinear challenger on Brier and log loss in either split",
+    "ECE does not worsen by more than 0.01 in either split",
+    "equal-burden cluster event recall is not lower than baseline in either split",
+    "placebo shuffled alpha/beta and future-shift controls do not pass",
+    "no result may change live_decision_weight or capital permission without separate matured prospective receipt"
+  ],
+  "protocol_id": "V73.0_CUSP_STRUCTURAL_FRAGILITY_FROZEN",
+  "protocol_sha256_without_self": "ff1667c08aaf5b80f8ccaae95a27e8d8e96cbdd2b3427c7fee378d350b4a6216",
+  "role": "research_only_structural_fragility_challenger",
+  "secondary_dataset": {
+    "frequency": "daily",
+    "path": "research/sp500_panel.parquet",
+    "sample_end": "2018-02-07",
+    "sample_start": "2013-02-08",
+    "use": "breadth sensitivity only; cannot promote primary claim because sample is short and survivorship-prone"
+  },
+  "sources": [
+    {
+      "path": "research/macro_panel.parquet",
+      "role": "input_or_mapping",
+      "sha256": "3ee5d345976759c93e2f37ad77b7e110a891a05e5d36817204fa239768d5d802"
+    },
+    {
+      "path": "research/macro_attribution.parquet",
+      "role": "input_or_mapping",
+      "sha256": "257c98959bd4d3c5233e8e922236efd0765fa3a7cb737042d56025e2b5774d67"
+    },
+    {
+      "path": "research/sp500_panel.parquet",
+      "role": "input_or_mapping",
+      "sha256": "db2a61d7f66d219354cfaad9dff01a5c9d5b01145ae11549cd11555588729420"
+    },
+    {
+      "path": "research/vix.csv",
+      "role": "input_or_mapping",
+      "sha256": "599b4954606a76bfad2ef3b8f961a65d0b0c3757a490e2bc3391baa601931308"
+    },
+    {
+      "path": "/mnt/data/Pasted text(162).txt",
+      "role": "input_or_mapping",
+      "sha256": "3da374d944752f4214f4f3d7ed5bac3f5c13ba0cdbd78e4d9089fe0477e0d4af"
+    }
+  ],
+  "splits": {
+    "lockbox": [
+      "2012-07-01",
+      "2023-03-01"
+    ],
+    "purge_1": [
+      "2000-01-01",
+      "2000-06-01"
+    ],
+    "purge_2": [
+      "2012-01-01",
+      "2012-06-01"
+    ],
+    "train": [
+      "1973-01-01",
+      "1999-12-01"
+    ],
+    "validation": [
+      "2000-07-01",
+      "2011-12-01"
+    ]
+  },
+  "state": {
+    "clip": [
+      -5.0,
+      5.0
+    ],
+    "normalization": "divide by trailing 12-month RMS return using only t-1 and earlier observations",
+    "raw": "monthly log SPX return"
+  },
+  "status": "FROZEN_BEFORE_REAL_OUTCOME_EVALUATION",
+  "target": {
+    "horizon_months": 6,
+    "primary": "minimum simple return from current month-end SPX to any of next 6 month-ends <= -10%",
+    "secondary_unpromotable": [
+      "3-month 5% correction",
+      "12-month 15% crash"
+    ]
+  }
+}

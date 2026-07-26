@@ -5,10 +5,11 @@ SQUEEZE (crowded wrong-way + acceleration) → early build, add on propagation
 DISTRIBUTION (climax volume, no progress / crowded rolling over) → reduce / avoid / tactical short"""
 from __future__ import annotations
 import numpy as np, pandas as pd
+from ..core.numeric import log_returns
 
 EXEC_MAP = {
-    "PINNING":      {"style": "MEAN_REVERT", "stop": "tight", "target": "opposite range", "note": "dealers dampen — fade extremes, don't chase breakouts"},
-    "EXPANSION":    {"style": "MOMENTUM", "stop": "wide", "target": "next liquidity / gamma wall", "note": "dealers amplify — continuation valid, add on acceptance"},
+    "PINNING":      {"style": "MEAN_REVERT", "stop": "tight", "target": "opposite range", "note": "compressed/non-trending tape; verified long-gamma inventory, if present, may reinforce damping"},
+    "EXPANSION":    {"style": "MOMENTUM", "stop": "wide", "target": "next validated liquidity zone", "note": "trend/volatility expansion; verified short-gamma inventory, if present, may reinforce movement"},
     "SQUEEZE":      {"style": "EARLY_BUILD", "stop": "squeeze fails to propagate", "target": "where crowding turns euphoric", "note": "forced flow possible — position before the chase"},
     "DISTRIBUTION": {"style": "REDUCE", "stop": "acceptance back above zone", "target": "liquidity vacuum below", "note": "upside reactions weak — reduce/avoid; tactical short only where shortable"},
     "MIXED":        {"style": "WAIT", "stop": "-", "target": "-", "note": "no dominant mode — lower aggression"},
@@ -18,15 +19,16 @@ def run_market_mode(price, dealer=None, flow=None, crowding=50.0, adoption_veloc
     px = pd.to_numeric(pd.Series(price), errors="coerce").dropna()
     if len(px) < 70:
         return {"ok": False, "mode": "MIXED", **EXEC_MAP["MIXED"]}
-    r = np.log(px).diff()
+    r = log_returns(px)
     s10, s30 = float(r.tail(10).std() or 0), float(r.tail(30).std() or 1e-9)
     vol_rising = s10 > 1.2 * s30
     rng10 = float(px.tail(10).max() - px.tail(10).min()); rng60 = float(px.tail(60).max() - px.tail(60).min() or 1e-9)
     compressed = (rng10 / rng60) < 0.30
     ret20z = float(r.tail(20).sum() / ((np.sqrt(20) * s30) + 1e-9)); trending = abs(ret20z) > 1.0
-    raw_sign = (dealer or {}).get("gex_sign")
+    sign_verified = str((dealer or {}).get("dealer_sign_state", "UNKNOWN")) == "VERIFIED_PROVENANCE"
+    raw_sign = (dealer or {}).get("gex_sign") if sign_verified else None
     gex_sign = int(raw_sign) if raw_sign in (-1, 1, -1.0, 1.0) else None
-    greg = str((dealer or {}).get("regime", "unknown"))
+    greg = str((dealer or {}).get("regime", "unknown")) if sign_verified else "unknown"
     ftype = (flow or {}).get("type", "NEUTRAL")
     crowd = float(crowding if crowding is not None else 50.0); vel = float(adoption_velocity or 0.0)
     if ftype == "DISTRIBUTION" or (crowd > 85 and vel < 0):
@@ -40,6 +42,7 @@ def run_market_mode(price, dealer=None, flow=None, crowding=50.0, adoption_veloc
     else:
         mode = "MIXED"
     out = {"ok": True, "mode": mode, "compressed": bool(compressed), "vol_rising": bool(vol_rising),
-           "trend_z": round(ret20z, 2), "gex_sign": gex_sign}
+           "trend_z": round(ret20z, 2), "gex_sign": gex_sign,
+           "dealer_sign_state": "VERIFIED_PROVENANCE" if sign_verified else "UNKNOWN"}
     out.update(EXEC_MAP[mode])
     return out

@@ -1,0 +1,8 @@
+{
+  "file": "Quality-Minus-Junk-Factors-Monthly.xlsx",
+  "sha256": "bddfe3a235ada05e31360e2d4994aca17616d7f1f767a77cb4f3c593068f3dcd",
+  "size_bytes": 2255724,
+  "source_origin": "AQR Data Library downloaded workbooks",
+  "source_role": "public maintained monthly research factor series",
+  "trust_boundary": "public research portfolio return series, not a live implementable portfolio audit"
+}

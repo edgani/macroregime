@@ -1258,7 +1258,8 @@ def briefing_embed():
     import os, streamlit.components.v1 as _c
     p = os.path.join(os.path.dirname(__file__), "..", "briefing.html")
     try:
-        html = open(p, encoding="utf-8").read()
+        with open(p, "r", encoding="utf-8") as fh:
+            html = fh.read()
         _c.html(html, height=720, scrolling=False)
     except Exception:
         st.markdown(CSS + "<div class='wr-note'>Briefing deck not generated yet — run a refresh.</div>", unsafe_allow_html=True)
@@ -1268,7 +1269,9 @@ def briefing_embed():
 def node_template(d):
     import json, os
     try:
-        chains = json.load(open(os.path.join(os.path.dirname(__file__), "..", "data", "chain_reactions.json")))["chains"]
+        path = os.path.join(os.path.dirname(__file__), "..", "data", "chain_reactions.json")
+        with open(path, "r", encoding="utf-8") as fh:
+            chains = json.load(fh)["chains"]
     except Exception:
         chains = []
     if not chains:
@@ -1377,30 +1380,62 @@ def _mc_color(m):
     return _MCC.get(m["name"], "#4493f8")
 
 
-def _confidence_panel():
-    """Signal Confidence — shows which signals passed testing (from certify.py). This is what gives the
-    reader confidence: every signal is labelled by its validation status, so you know what's proven vs
-    research vs rejected. Statuses reflect the actual test results in research/RESEARCH_FINDINGS.md."""
-    signals = [
-        ("Panic-bottom (fear → buy)", "PRODUCTION", "grn", "fwd63 +6% vs +3%, p<0.001"),
-        ("Cross-asset macro (dollar hub)", "PRODUCTION", "grn", "risk-regime predicts drawdown, p<0.001"),
-        ("Crash lead-time (24mo risk)", "PRODUCTION", "grn", "probabilistic, honestly bounded"),
-        ("Valuation room (CAPE context)", "PRODUCTION", "grn", "CAPE deciles → fwd returns, tested"),
-        ("Ticker RS top-decile", "RESEARCH", "amb", "lift 2x in tails, alpha not yet significant"),
-        ("Euphoria-top signal", "RESEARCH", "amb", "weak in bull data, needs 2008/2020/2022"),
-        ("Sector/asset rotation momentum", "RESEARCH", "amb", "descriptive; not proven predictive"),
-        ("Naive formation+RS BUY", "REJECTED", "red", "no edge (lift 0.85x) — does not drive BUYs"),
-    ]
+def _confidence_panel(d):
+    """Render evidence accounting from the runtime registries; never hard-code PRODUCTION claims."""
+    from html import escape
+
+    research = d.get("research_evidence_v53") or {}
+    options = d.get("options_research_v55") or {}
+    rows_data = []
+    for claim in research.get("claims") or []:
+        status = str(claim.get("status") or "NOT_PROVEN")
+        if "SUPPORTED" in status:
+            label, col, icon = "HISTORICAL SUPPORT", "#d6a429", "◐"
+        elif "ABORTED" in status:
+            label, col, icon = "ABORTED", "#8b97a7", "·"
+        else:
+            label, col, icon = "NOT PROVEN", "#f85149", "✕"
+        name = str(claim.get("study") or claim.get("claim") or "Research claim")
+        why = str(claim.get("claim_ceiling") or claim.get("claim") or "No live permission.")
+        rows_data.append((name, label, col, icon, why))
+    if options:
+        safe = options.get("status") == "IMPLEMENTED_RESEARCH_ONLY" and float(options.get("live_decision_weight", 1.0)) == 0.0
+        rows_data.append((
+            "Options volatility & mechanical flow V70",
+            "RESEARCH ONLY" if safe else "FAIL CLOSED",
+            "#d6a429" if safe else "#f85149",
+            "◐" if safe else "✕",
+            str(options.get("claim_ceiling") or "No standalone direction or profit claim."),
+        ))
+        signed = options.get("signed_dealer_v72") or {}
+        acquisition = signed.get("acquisition") or {}
+        v72_safe = (
+            signed.get("live_decision_weight") == 0.0
+            and signed.get("capital_permission") == "BLOCKED"
+            and signed.get("reconstruction_validation", {}).get("status") == "PASS"
+            and signed.get("outcome_evaluator_validation", {}).get("status") == "PASS"
+            and signed.get("release_runner_validation", {}).get("status") == "PASS"
+            and signed.get("frozen_calendar", {}).get("sessions") == 1440
+        )
+        rows_data.append((
+            "SPX signed-dealer reconstruction V72",
+            "DATA REQUIRED" if v72_safe and acquisition.get("licensed_files_present") == 0 else "READY TO TEST" if v72_safe else "FAIL CLOSED",
+            "#8b97a7" if v72_safe and acquisition.get("licensed_files_present") == 0 else "#d6a429" if v72_safe else "#f85149",
+            "·" if v72_safe and acquisition.get("licensed_files_present") == 0 else "◐" if v72_safe else "✕",
+            "Signed TBT positions, complete 1-minute Option Quotes surface marking, licensed-package preflight, and the frozen evaluator pass controls; licensed C1 TBT + ^SPX Quotes outcomes are not present, prospective observations are zero, and capital remains blocked.",
+        ))
+    if not rows_data:
+        rows_data = [("Research evidence registry", "UNAVAILABLE", "#f85149", "✕", "No verified registry loaded; all permissions withheld.")]
+
     rows = ""
-    for name, status, col, why in signals:
-        c = {"grn": "#3fb950", "amb": "#d6a429", "red": "#f85149"}[col]
-        icon = {"PRODUCTION": "✓", "RESEARCH": "◐", "REJECTED": "✕"}[status]
-        rows += (f"<div class='mcx-cfrow'><span class='mcx-cficon' style='color:{c}'>{icon}</span>"
-                 f"<span class='mcx-cfname'>{name}</span>"
-                 f"<span class='mcx-cfbadge' style='color:{c};background:{c}1a'>{status}</span>"
-                 f"<span class='mcx-cfwhy'>{why}</span></div>")
-    return (f"<div class='mcx-lbl'>Signal Confidence — what passed testing (run <code>certify.py</code>)</div>"
-            f"<div class='mcx-cf'>{rows}</div>")
+    for name, label, color, icon, why in rows_data[:16]:
+        rows += (f"<div class='mcx-cfrow'><span class='mcx-cficon' style='color:{color}'>{icon}</span>"
+                 f"<span class='mcx-cfname'>{escape(name)}</span>"
+                 f"<span class='mcx-cfbadge' style='color:{color};background:{color}1a'>{escape(label)}</span>"
+                 f"<span class='mcx-cfwhy'>{escape(why)}</span></div>")
+    return ("<div class='mcx-lbl'>Evidence ledger — historical support is not live permission</div>"
+            f"<div class='mcx-cf'>{rows}</div>"
+            "<div class='wr-note' style='margin-top:8px'>Live decision weight 0 · predictive promotions 0 · capital permission BLOCKED unless an exact signed matured receipt passes.</div>")
 
 
 def mission_control(d):
@@ -1704,15 +1739,11 @@ def early_warning_tab(d):
 
 
 def validation_tab(d):
-    """Validation tab — signal confidence + certification (blueprint Volume XVIII Validation Bible).
-    This is what gives the reader confidence: every signal labelled PRODUCTION/RESEARCH/REJECTED by test."""
+    """Validation tab backed by runtime evidence registries and fail-closed permissions."""
     hero = (f"<div class='mcx-hd'><span class='mcx-shield'>◆</span><div><div class='t'>VALIDATION</div>"
             f"<div class='d'>every signal labelled by test status — run <code>certify.py</code> for the full report</div></div></div>")
-    panel = _confidence_panel()
-    gate = ("<div class='wr-note' style='margin-top:14px'>4-fold gate (a signal reaches PRODUCTION only if all pass): "
-            "(1) economic mechanism, (2) statistically significant across periods/regimes, (3) adds decision value (EV, not just accuracy), "
-            "(4) survives out-of-sample. Fail one → status is RESEARCH, not production. Nothing is shown as a BUY unless it earned it. "
-            "This is why the naive formation+RS signal is REJECTED (lift 0.85x = no edge) and does not drive recommendations.</div>")
+    panel = _confidence_panel(d)
+    gate = ("<div class='wr-note' style='margin-top:14px'>Promotion requires an exact causal claim, frozen protocol, independent OOS/lockbox evidence, multiplicity correction, cost robustness, calibrated outputs, and matured signed prospective evidence. Historical support alone stays research-only.</div>")
     st.markdown(CSS + f"<div class='mcx'>{hero}{panel}{gate}</div>", unsafe_allow_html=True)
 
 
@@ -1722,7 +1753,8 @@ import json as _json_kc, os as _os_kc
 def _load_bottleneck():
     try:
         p = _os_kc.path.join(_os_kc.path.dirname(__file__), "..", "data", "bottleneck_reference.json")
-        return _json_kc.load(open(p))
+        with open(p, "r", encoding="utf-8") as fh:
+            return _json_kc.load(fh)
     except Exception:
         return {}
 

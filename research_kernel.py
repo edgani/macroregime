@@ -15,6 +15,9 @@ from fx_pair_state import attach_fx_pair_states
 from market_capabilities import attach_market_capabilities
 from proof_registry import attach_proof_registry, component_status
 from regime_tournament import attach_regime_tournament
+from research_evidence_v53 import attach_research_evidence_v53
+from research_evidence_v62 import attach_research_evidence_v62
+from options_research_evidence_v55 import attach_options_research_v55
 
 MARKET_DOCTRINE: dict[str, dict[str, Any]] = {
     "us": {
@@ -60,7 +63,6 @@ MARKET_DOCTRINE: dict[str, dict[str, Any]] = {
 }
 
 INVALID_DATA_STATES = {"", "NO_DATA", "UNAVAILABLE", "NOT_CONFIGURED", "NOT_ENTITLED", "ERROR", "OFFLINE", "INITIALIZING"}
-ACTIONABLE_PREFIXES = ("BUILD LONG", "BUILD SHORT")
 
 
 def _obj(value: Any) -> dict:
@@ -107,16 +109,10 @@ def _setup_action(market_id: str, market: dict, setup: dict) -> str:
         if direction == "short":
             return "NEGATIVE PRICE CONTEXT"
         return "MIXED PRICE CONTEXT"
-    selector = component_status({
-        "us": "us_directional_selector",
-        "idx": "ihsg_long_selector",
-        "crypto": "crypto_directional_selector",
-        "commodity": "commodity_directional_selector",
-        "fx": "fx_pair_selector",
-    }.get(market_id, "generic_price_context"))
-    if not selector.get("predictive_promoted"):
+    authorization = _obj(setup.get("direction_authorization"))
+    if authorization.get("authorized") is not True or authorization.get("capital_permission") != "HUMAN_APPROVED_LIMITED_PRODUCTION":
         return "DIRECTIONAL CLAIM WITHHELD"
-    return str(setup.get("research_action") or raw or "DIRECTIONAL RESEARCH CONTEXT")
+    return str(setup.get("research_action") or raw or "AUTHORIZED DIRECTIONAL RESEARCH CONTEXT")
 
 
 def _best_setup(market_id: str, market: dict) -> dict:
@@ -388,4 +384,6 @@ def attach_research_kernel(desk: dict) -> dict:
         "global_permission": "CAPITAL_BLOCKED",
         "semantics": "Research governance and decision context only; not alpha proof or autonomous trade permission.",
     }
-    return result
+    result = attach_research_evidence_v53(result)
+    result = attach_research_evidence_v62(result)
+    return attach_options_research_v55(result)

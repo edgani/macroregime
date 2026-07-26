@@ -3,10 +3,11 @@ Catches the PLTR/SNDK pattern: enter on Stage2->3 (uncrowded -> crowding) transi
 RS = alpha (not return ratio); VE signed by price; crowding velocity = the timing edge."""
 from __future__ import annotations
 import numpy as np, pandas as pd
+from ..core.numeric import log_returns, positive_series
 from ..core.change_core import robust_z, delta_z, pct_rank, last
 
 def _alpha_rs(price: pd.Series, bench: pd.Series, win: int = 63) -> float:
-    r = np.log(price).diff().dropna(); b = np.log(bench).diff().reindex(r.index).dropna(); r = r.reindex(b.index)
+    r = log_returns(price).dropna(); b = log_returns(bench).reindex(r.index).dropna(); r = r.reindex(b.index)
     if len(r) < win:
         return 0.0
     beta = np.cov(r.tail(win), b.tail(win))[0, 1] / (b.tail(win).var() or 1e-9)
@@ -23,7 +24,7 @@ def run_accumulation(ticker: str, price: pd.Series, bench: pd.Series, volume: pd
     ve = 0.0
     if volume is not None and len(volume) > 60:
         ve_raw = last(robust_z(volume.rolling(20).mean() / volume.rolling(252).mean()))
-        ptrend = np.sign(last(np.log(price).diff(20)))
+        ptrend = np.sign(last(np.log(positive_series(price)).diff(20)))
         ve = ptrend * ve_raw
     er = last(delta_z(earnings_rev)) if earnings_rev is not None else 0.0
     own = last(delta_z(inst_own)) if inst_own is not None else 0.0

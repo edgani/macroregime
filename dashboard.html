@@ -97,6 +97,8 @@ let sourceState = obj(D.data_health).overall || obj(D.meta).source || 'NO_DATA';
 let LI = obj(D.live_intelligence);
 let FLD = obj(D.full_live_data);
 let RK = obj(D.research_kernel);
+let RE = obj(D.research_evidence_v53);
+let RE62 = obj(D.research_evidence_v62);
 let lastRevision = Number(obj(D.runtime).snapshot_sequence || 0);
 let lastContentHash = String(obj(D.runtime).content_hash || '');
 let lastPollOkAt = Date.now();
@@ -185,10 +187,18 @@ function coverageFor(tab){return obj(obj(FLD.tab_coverage)[tab]);}
 function coverageRows(tab){return arr(coverageFor(tab).provider_statuses).map(x=>({time:x.fetched_at||FLD.generated,ticker:x.provider,desc:`${x.dataset} · ${x.note||''}`,state:x.state,raw:x}));}
 function coverageLabel(tab){const c=coverageFor(tab);return Object.keys(c).length?`${c.state||'NO_DATA'} · ${c.live||0} live · ${c.optional_missing||0} optional enrichment missing`:'NO COVERAGE CONTRACT';}
 function providerStatus(providerPattern,datasetPattern=''){return arr(FLD.statuses).find(x=>new RegExp(providerPattern,'i').test(String(x.provider||''))&&(!datasetPattern||new RegExp(datasetPattern,'i').test(String(x.dataset||''))))||null;}
+function macroObservation(...patterns){
+ const rows=Object.entries(obj(D.macro_observations));
+ for(const pattern of patterns){const re=new RegExp(pattern,'i');const hit=rows.find(([k,v])=>re.test(`${k} ${v?.series_id||''} ${v?.name||''} ${v?.label||''}`));if(hit)return obj(hit[1]);}
+ return null;
+}
+function macroObservedState(row){if(!row)return'NO_DATA';return String(row.state||'LIVE').toUpperCase();}
+function macroObservedValue(row){return row&&num(row.value)!==null?fmt(row.value):'NO_DATA';}
+
 function providerMatches(event,status){const ep=String(event?.provider||event?.source||event?.venue||'').toLowerCase(),ed=String(event?.dataset||event?.event_type||'').toLowerCase(),sp=String(status?.provider||'').toLowerCase(),sd=String(status?.dataset||'').toLowerCase();return Boolean((ep&&sp&&(ep.includes(sp)||sp.includes(ep)))||(ed&&sd&&(ed.includes(sd)||sd.includes(ed))));}
 function eventDescription(e){const x=obj(e);const parts=[x.description,x.note,x.summary,x.event_type||x.type,x.side,x.strike!=null?`strike ${fmt(x.strike)}`:'',x.expiry?`expiry ${x.expiry}`:'',x.premium!=null?`premium ${money(x.premium)}`:'',x.notional!=null?`notional ${money(x.notional)}`:''];return parts.filter(Boolean).join(' · ')||'Observed event; intent unverified.';}
 function eventState(e){const v=String(obj(e).state||obj(e).status||'OBSERVED').toUpperCase();if(/ERROR|NO_DATA|NOT_CONFIGURED|NOT_ENTITLED|ACTION_REQUIRED/.test(v))return v;if(/STALE/.test(v))return'STALE';return'OBSERVED';}
-function latestFundamental(ticker){return arr(FLD.sec_fundamentals).find(x=>String(x.ticker||'').toUpperCase()===String(ticker||'').toUpperCase())||null;}
+function latestFundamental(ticker){return arr(FLD.sec_fundamentals).filter(x=>String(x.ticker||'').toUpperCase()===String(ticker||'').toUpperCase()).sort((a,b)=>String(b.filed||b.filing_date||b.available_at||'').localeCompare(String(a.filed||a.filing_date||a.available_at||'')))[0]||null;}
 function breadthFor(id){return obj(obj(D.market_breadth)[id]);}
 function bestAvailabilityStatus(statuses, fallback='NO_DATA'){
  const states=arr(statuses).map(x=>String(x?.state||'').toUpperCase());
@@ -199,9 +209,9 @@ function marketDerivativeContext(id){
  const caps=obj(D.market_capabilities), cap=obj(caps[id]);
  const options={enabled:Boolean(cap.options_enabled),reason:cap.options_data_state||cap.options_scope||'NO_DATA',instruments:arr(cap.option_instruments)};
  const disabled=!options.enabled;
- if(id==='idx')return {rows:[],state:'NOT_APPLICABLE',label:'OPTIONS SKIPPED',note:options.reason||'No supported active listed options market/feed.'};
+ if(id==='idx'){const life=Object.values(obj(FLD.idx_position_lifecycle));return {rows:life,state:life.length?'PARTIAL':'NOT_APPLICABLE',label:'BROKER / FOREIGN LIFECYCLE · OPTIONS SKIPPED',note:options.reason||'No supported active listed options market/feed.'};}
  if(id==='us'){
-  const rows=arr(LI.us_options);return {rows,state:disabled?'NO_DATA':rows.some(x=>x.state==='LIVE')?'LIVE':rows.some(x=>x.state==='STALE')?'STALE':'PARTIAL',label:disabled?'OPTIONS NOT LOADED':'US LISTED OPTIONS',note:options.reason||''};
+  const rows=[...arr(LI.us_options),...arr(LI.us_squeeze)];return {rows,state:disabled?'NO_DATA':rows.some(x=>x.state==='LIVE')?'LIVE':rows.some(x=>x.state==='STALE')?'STALE':'PARTIAL',label:disabled?'OPTIONS / BORROW NOT LOADED':'US OPTIONS + SHORT/BORROW LIFECYCLE',note:options.reason||''};
  }
  if(id==='crypto'){
   const optionRows=arr(LI.crypto_options), perpRows=arr(LI.crypto_derivatives);
@@ -211,20 +221,22 @@ function marketDerivativeContext(id){
   const optionRows=[...arr(LI.commodity_options),...arr(obj(FLD).commodity_options)];
   const db=arr(FLD.databento).filter(x=>/CL|GC|SI|HG|NG|BZ|OIL|GOLD|SILVER|COPPER/i.test(String(x.symbol||x.raw_symbol||'')));
   const cot=Object.values(obj(FLD.cftc)).flatMap(x=>arr(obj(x).rows));
-  const rows=disabled?[...db,...cot]:[...optionRows,...db,...cot];
+  const life=Object.values(obj(FLD.position_lifecycle)).filter(x=>obj(x.position_lifecycle).market==='commodity');
+  const rows=disabled?[...life,...db,...cot]:[...optionRows,...life,...db,...cot];
   return {rows,state:rows.length?'PARTIAL':'NO_DATA',label:disabled?'FUTURES / COT · OPTIONS NOT LOADED':'OPTIONS ON FUTURES + FUTURES / COT',note:options.reason||''};
  }
  if(id==='fx'){
   const optionRows=[...arr(LI.fx_options),...arr(obj(FLD).fx_options),...arr(obj(FLD).fx_vol_surface)];
   const db=arr(FLD.databento).filter(x=>/6E|6J|6B|6A|DX|EUR|JPY|GBP|AUD|DOLLAR/i.test(String(x.symbol||x.raw_symbol||'')));
   const tff=arr(obj(obj(FLD.cftc).tff_futures).rows);
-  const rows=disabled?[...db,...tff]:[...optionRows,...db,...tff];
+  const life=Object.values(obj(FLD.position_lifecycle)).filter(x=>obj(x.position_lifecycle).market==='fx');
+  const rows=disabled?[...life,...db,...tff]:[...optionRows,...life,...db,...tff];
   return {rows,state:rows.length?'PARTIAL':'NO_DATA',label:disabled?'FX FUTURES / COT · VOL SURFACE NOT LOADED':'FX OPTIONS / VOL SURFACE + FUTURES / COT',note:options.reason||''};
  }
  return {rows:[],state:'NO_DATA',label:'DERIVATIVES',note:'No capability contract.'};
 }
 function marketDerivativeLedger(id){
- const c=marketDerivativeContext(id);return c.rows.slice(0,20).map(x=>({time:x.timestamp||x.report_date_as_yyyy_mm_dd||FLD.generated,ticker:x.symbol||x.market_and_exchange_names||x.ticker||c.label,desc:`${c.label} · ${x.stat_type||x.dataset||x.report_date_as_yyyy_mm_dd||'observed record'} · OI/positioning does not identify initiating side`,state:x.state||'LIVE',raw:x}));
+ const c=marketDerivativeContext(id);return c.rows.slice(0,20).map(x=>{const life=obj(x.position_lifecycle);return {time:x.timestamp||x.report_date||x.report_date_as_yyyy_mm_dd||FLD.generated,ticker:x.symbol||x.contract||x.market_and_exchange_names||x.ticker||c.label,desc:life.position_state?`${life.position_state} · surge ${life.surge_state} · top ${life.top_state} · ${life.claim_boundary||''}`:`${c.label} · ${x.stat_type||x.dataset||x.report_date_as_yyyy_mm_dd||'observed record'} · OI/positioning does not identify initiating side`,state:life.position_state||x.state||'LIVE',raw:x};});
 }
 
 
@@ -260,7 +272,12 @@ function dedupeSetups(rows,marketId){
  return out.sort((a,b)=>(num(b.conv)||0)-(num(a.conv)||0));
 }
 function marketSetups(id){return dedupeSetups(arr(obj(obj(D.markets)[id]).setups),id);}
-function isCompanyCandidate(c){const t=canonicalInstrument(c?.ticker),m=String(c?.market||'');return Boolean(t)&&!t.startsWith('^')&&!t.endsWith('=F')&&!t.endsWith('=X')&&!t.endsWith('-USD')&&!/DX-Y\.NYB/.test(t)&&(m==='us'||m==='idx'||t.endsWith('.JK'));}
+function isCompanyCandidate(c){
+ const t=canonicalInstrument(c?.ticker),m=String(c?.market||'');
+ const raw=obj(c?.raw),kind=String(raw.security_type||raw.instrument_type||raw.asset_type||raw.quote_type||'').toUpperCase();
+ const knownFunds=new Set(['SPY','QQQ','IWM','DIA','VTI','VOO','IVV','EEM','EFA','ARKK','GLD','SLV','USO','UNG','TLT','HYG','LQD','XLE','XLF','XLK','XLV','XLI','XLY','XLP','XLU','XLB','XLRE']);
+ return Boolean(t)&&!knownFunds.has(t)&&!/ETF|FUND|INDEX|TRUST|ETN/.test(kind)&&!t.startsWith('^')&&!t.endsWith('=F')&&!t.endsWith('=X')&&!t.endsWith('-USD')&&!/DX-Y\.NYB/.test(t)&&(m==='us'||m==='idx'||t.endsWith('.JK'));
+}
 function isFxPairName(value){const t=canonicalInstrument(value).replace(/[^A-Z]/g,'');return t.length>=6&&!t.startsWith('DXY')&&!t.startsWith('DX');}
 function metricLabel(value){const x=String(value??'').toUpperCase();if(!x||x==='NONE'||x==='NULL'||x==='NO_DATA')return'UNAVAILABLE';if(x.includes('RESEARCH_PENDING'))return'PENDING';return String(value);}
 function prettyState(value){return String(value??'').replaceAll('_',' ').replace(/\s+/g,' ').trim();}
@@ -388,7 +405,7 @@ function firstCandidates(limit=8){
 
 function modelMission(){
  const sys=obj(D.systemic), markets=obj(D.markets);
- const l0=[node('liq','GLOBAL LIQUIDITY','macro/liquidity observations',short(sys.liquidity||'NO_DATA',18),sys.liquidity,'observed',{raw:sys})];
+ const l0=[node('liq','GLOBAL LIQUIDITY','composite liquidity research context',short(sys.liquidity||'NO_DATA',18),sys.liquidity,'inferred',{raw:sys})];
  const l1=[node('regime','REGIME',`growth ${fmt(sys.growth_roc)} · inflation ${fmt(sys.infl_roc)}`,sys.quad_name||sys.quad||'NO_DATA',sys.quad_name||sys.quad,'inferred',{raw:sys})];
  const ids=[['us','US'],['idx','IHSG'],['crypto','CRYPTO'],['commodity','COMMOD'],['fx','FX']];
  const l2=ids.map(([id,label])=>{const m=obj(markets[id]),b=breadthFor(id);return node('m_'+id,label,`${obj(m.funnel).universe||b.coverage||0} loaded · ${obj(m.funnel).setups||0} surfaced`,marketContextValue(id,m,b),marketContextState(id,m,b),'inferred',{raw:m,market:id});});
@@ -411,19 +428,20 @@ function modelMission(){
  return {title:'MISSION CONTROL',sub:'World → regime → market → aligned candidate. Every candidate arrow now follows its actual market lineage; no index/modulo routing.',canvas:'GLOBAL CAPITAL STATE',badges:['observed','inferred'],graph:g,
   rail:basicRail(`Quad ${fmt(sys.quad||'—')} · ${fmt(sys.quad_name||'NO_DATA')}`,
    `Liquidity: ${fmt(sys.liquidity)}. Cross-asset: ${fmt(sys.cross_asset)}.`,
-   rotationsIn.length?`${leadershipLabel}: ${rotationsIn.join(', ')}`:'No validated leadership list.',
+   rotationsIn.length?`${leadershipLabel}: ${rotationsIn.join(', ')}`:'No observed relative-leadership list.',
    perMarket.map(x=>x.ticker).join(' → ')||'Wait for aligned data and conviction gates.',
    rotationsOut.length?`Relative laggards: ${rotationsOut.join(', ')}`:'Alternative path not confirmed.',
-   `Shock ${metricLabel(sys.shock_prob)} · Fragility ${metricLabel(sys.fragility)}`,'Driven by active regime horizon',55,'OPEN THE STRONGEST EVIDENCE PATH'),
+   `Shock ${metricLabel(sys.shock_prob)} · Fragility ${metricLabel(sys.fragility)}`,'Driven by active regime horizon',Math.round(100*perMarket.length/5),perMarket.length?'REVIEW EVIDENCE PATH · CAPITAL BLOCKED':'REVIEW SYSTEM STATE · NO CAPITAL'),
   ledger:arr(obj(D.data_health).sources).slice(0,14).map(x=>({time:obj(D.meta).generated,ticker:x.provider,desc:`${x.dataset}: ${x.note}`,state:x.state})), queue:firstCandidates(20).filter(x=>x.aligned).slice(0,8)};
 }
 
 function modelMacro(){
  const s=obj(D.systemic), mo=obj(D.macro_observations); const macroCount=Object.keys(mo).length;
- const growth=node('growth','GROWTH','rate of change',fmt(s.growth_roc),s.growth_roc>0?'constructive':s.growth_roc<0?'destructive':'NO_DATA','observed');
- const infl=node('infl','INFLATION','rate of change',fmt(s.infl_roc),s.infl_roc>0?'watch':s.infl_roc<0?'constructive':'NO_DATA','observed');
- const liq=node('liqm','LIQUIDITY','Fed/Treasury/credit',short(s.liquidity||'NO_DATA',16),s.liquidity,'observed');
- const credit=node('credit','CREDIT','HY OAS / funding',fmt(s.fragility),s.fragility,'observed');
+ const hy=macroObservation('BAMLH0A0HYM2','HIGH.YIELD.*OAS','HY.*OAS');
+ const growth=node('growth','GROWTH','legacy GROC research proxy',fmt(s.growth_roc),s.growth_roc>0?'constructive':s.growth_roc<0?'destructive':'NO_DATA','inferred',{raw:s});
+ const infl=node('infl','INFLATION','legacy IROC research proxy',fmt(s.infl_roc),s.infl_roc>0?'watch':s.infl_roc<0?'constructive':'NO_DATA','inferred',{raw:s});
+ const liq=node('liqm','LIQUIDITY','composite liquidity research context',short(s.liquidity||'NO_DATA',16),s.liquidity,'inferred',{raw:s});
+ const credit=node('credit','CREDIT','official HY OAS when loaded',macroObservedValue(hy),macroObservedState(hy),'observed',{raw:hy||{state:'NO_DATA',reason:'HY OAS series not loaded'}});
  const policy=node('policy','OFFICIAL MACRO FEEDS',`${macroCount} current series`,macroCount?'LIVE':'NO_DATA',macroCount?'constructive':'NO_DATA','observed',{raw:mo});
  const drivers=[growth,infl,liq,credit,policy];
  const regime=node('macroreg','FORWARD REGIME',`quad ${fmt(s.quad)}`,s.quad_name||'NO_DATA',s.quad_name,'inferred');
@@ -435,7 +453,7 @@ function modelMacro(){
  const macroRows=[...drivers,regime,...outputs].map(n=>({instrument:n.label,orientation:orientationFromText(n.state),action:prettyState(n.value||n.state),state:prettyState(n.state),why:n.sub,coverage:String(n.evidence||'observed').toUpperCase()==='OBSERVED'?85:55,total:100,trigger:'Confirm through price, breadth and credit before allocation.',stop:'Invalidate when the underlying driver direction reverses.',target:'—',freshness:obj(D.meta).generated,event:'',raw:n.raw||n}));
  return {title:'MACRO & REGIME',sub:'Only explicit model inputs/transmission paths are connected; the map no longer draws a full Cartesian web.',canvas:'MACRO TRANSMISSION MAP',badges:['observed','inferred'],graph:g,
  board:{kind:'macro',title:'MACRO & REGIME CONTEXT',note:'CONSTRUCTIVE/ADVERSE are context labels, not standalone LONG/SHORT trades.',rows:macroRows},
- rail:basicRail(s.quad_name||'NO_DATA',`Growth RoC ${fmt(s.growth_roc)} · Inflation RoC ${fmt(s.infl_roc)}.`, `Liquidity ${fmt(s.liquidity)}`,`Confirm through price, breadth and credit before allocation.`,`Market-implied regime can disagree with economic data.`,`Regime invalidates when its underlying driver directions reverse.`,'Structural / monthly / weekly / daily',50,'USE AS FILTER, NOT A STANDALONE TRADE'),
+ rail:basicRail(s.quad_name||'NO_DATA',`Growth RoC ${fmt(s.growth_roc)} · Inflation RoC ${fmt(s.infl_roc)}.`, `Liquidity ${fmt(s.liquidity)}`,`Confirm through price, breadth and credit before allocation.`,`Market-implied regime can disagree with economic data.`,`Regime invalidates when its underlying driver directions reverse.`,'Structural / monthly / weekly / daily',Math.round(100*[s.growth_roc,s.infl_roc,s.liquidity,hy?.value].filter(v=>v!==null&&v!==undefined&&v!==''&&String(v).toUpperCase()!=='NO_DATA').length/4),'REVIEW AS RESEARCH FILTER · NO CAPITAL'),
  ledger:[...Object.entries(mo).slice(0,30).map(([k,v])=>({time:v.timestamp,ticker:k,desc:`value ${fmt(v.value)} · 1p ${pct(v.change_1_period_pct)} · 4p ${pct(v.change_4_period_pct)}`,state:v.state||'LIVE',raw:v})),...coverageRows('macro_regime')],queue:[]};
 }
 
@@ -444,15 +462,17 @@ function modelEarly(){
  const valStatus=coverageFor('early_warning').state||'ACTION_REQUIRED';
  const val=node('val','VALUATION','requires point-in-time valuation feed',valStatus,valStatus,'observed',{raw:coverageFor('early_warning')});
  const breadth=node('breadth','BREADTH',`${b.coverage||0} loaded names`,b.state==='LIVE'?`${fmt(b.above_50d_pct)}% >50D`:'NO_DATA',b.advance_pct>=55?'constructive':b.advance_pct<45?'destructive':'watch','observed',{raw:b});
- const liq=node('liqstress','LIQUIDITY','funding condition',short(s.liquidity||'NO_DATA',14),s.liquidity,'observed',{raw:s});
+ const liq=node('liqstress','LIQUIDITY','composite funding/liquidity context',short(s.liquidity||'NO_DATA',14),s.liquidity,'inferred',{raw:s});
  const frag=node('frag','FRAGILITY','systemic',fmt(s.fragility),s.fragility,'inferred');
  const vol=node('vol','VOLATILITY','stress transmission',fmt(s.shock_prob),s.shock_prob,'inferred');
- const credit=node('credit2','CREDIT SPREADS','confirmation',fmt(s.fragility),s.fragility,'observed');
+ const hy=macroObservation('BAMLH0A0HYM2','HIGH.YIELD.*OAS','HY.*OAS');
+ const credit=node('credit2','CREDIT SPREADS','official HY OAS when loaded',macroObservedValue(hy),macroObservedState(hy),'observed',{raw:hy||{state:'NO_DATA',reason:'HY OAS series not loaded'}});
  const risk=node('riskstate','RISK STATE','not a forecast',s.defer_longs?'DEFER LONGS':'MONITOR',s.defer_longs?'destructive':'watch','inferred');
  const first=[val,breadth,liq,frag], mid=[vol,credit], end=[risk]; const g=layered([first,mid,end]);
+ const warningInputs=[val.value,breadth.value,liq.value,frag.value,vol.value,credit.value];const warningCoverage=Math.round(100*warningInputs.filter(v=>v!==null&&v!==undefined&&v!==''&&!/NO_DATA|ACTION_REQUIRED|NOT_ENTITLED|UNAVAILABLE/.test(String(v).toUpperCase())).length/warningInputs.length);
  connectPairs(g,[[breadth,vol,'watch','inferred','breadth stress'],[liq,credit,'watch','inferred','funding channel'],[frag,credit,'watch','inferred','fragility channel'],[credit,vol,'watch','inferred','credit-vol transmission'],[breadth,risk,'watch','inferred','confirmation'],[credit,risk,s.defer_longs?'destructive':'watch','inferred','confirmation'],[vol,risk,s.defer_longs?'destructive':'watch','inferred','confirmation']]);
  return {title:'EARLY WARNING',sub:'Explicit risk paths only. Missing liquidity/valuation nodes do not emit active causal arrows.',canvas:'RISK PROPAGATION NETWORK',badges:['observed','inferred'],graph:g,
- rail:basicRail(s.defer_longs?'DEFENSIVE POSTURE':'NO SYSTEMIC CONFIRMATION',`Shock research band: ${fmt(s.shock_prob)} · Fragility research band: ${fmt(s.fragility)}.`,`Current state is a conditional warning, not a crash prediction.`,`Watch breadth → credit → volatility sequence.`,`False alarm if breadth and credit recover while liquidity improves.`,`Invalidation comes from source metrics, not price narrative.`,'Event-dependent',s.defer_longs?70:35,s.defer_longs?'REDUCE FRAGILITY / DEFER NEW LONGS':'MONITOR CONFIRMATION'),
+ rail:basicRail(s.defer_longs?'DEFENSIVE POSTURE':'NO SYSTEMIC CONFIRMATION',`Shock research band: ${fmt(s.shock_prob)} · Fragility research band: ${fmt(s.fragility)}.`,`Current state is a conditional warning, not a crash prediction.`,`Watch breadth → credit → volatility sequence.`,`False alarm if breadth and credit recover while liquidity improves.`,`Invalidation comes from source metrics, not price narrative.`,'Event-dependent',warningCoverage,s.defer_longs?'RISK REVIEW · NO AUTO DE-RISK':'MONITOR CONFIRMATION · NO CAPITAL'),
  ledger:[...(b.constituents||[]).slice(0,20).map(x=>({time:obj(D.meta).generated,ticker:x.ticker,desc:`1D ${pct(x.ret_1d)} · 5D ${pct(x.ret_5d)} · >20D ${fmt(x.above_20d)}`,state:x.ret_1d>0?'constructive':x.ret_1d<0?'destructive':'neutral',raw:x})),...coverageRows('early_warning')],queue:[]};
 }
 
@@ -511,14 +531,14 @@ function modelInstitutional(){
 
 function derivativeLedgerRows(kind='all'){
  const rows=[];
- if(kind==='all'||kind==='crypto')arr(LI.crypto_derivatives).forEach(x=>rows.push({time:LI.generated,ticker:x.asset,desc:`${x.positioning_quadrant||'NO HISTORY'} · funding ${fmt(x.funding_rate_mean)} · OI Δ ${pct(x.oi_change_since_reference_pct)} · short/long squeeze ${fmt(x.short_squeeze_pressure)}/${fmt(x.long_squeeze_pressure)}`,state:x.state,raw:x}));
- if(kind==='all'||kind==='us')arr(LI.us_options).forEach(x=>{const c=obj(x.integrated_context);rows.push({time:LI.generated,ticker:x.ticker,desc:`${c.directional_context||x.directional_context||'NO DATA'} · ${c.volatility_context||'NO VEGA'} · ${c.gamma_context||x.gamma_context||'NO GAMMA'} · evidence ${fmt(c.evidence_completeness_pct)}% · ${c.horizon_context||('expiry '+fmt(x.nearest_expiry))}`,state:x.state,raw:x});});
+ if(kind==='all'||kind==='crypto')arr(LI.crypto_derivatives).forEach(x=>{const life=obj(x.position_lifecycle);rows.push({time:LI.generated,ticker:x.asset,desc:`${life.position_state||x.positioning_quadrant||'NO HISTORY'} · surge ${life.surge_state||'UNRESOLVED'} · top ${life.top_state||'UNRESOLVED'} · funding ${fmt(x.funding_rate_mean)} · OI Δ ${pct(x.oi_change_since_reference_pct)}`,state:x.state,raw:x});});
+ if(kind==='all'||kind==='us')arr(LI.us_options).forEach(x=>{const c=obj(x.integrated_context),vf=obj(x.options_volatility_flow),vp=obj(vf.volatility_pricing),mf=obj(vf.mechanical_flow);rows.push({time:LI.generated,ticker:x.ticker,desc:`${x.chain_composition_context||'CHAIN COMPOSITION N/A'} · IV ${fmt(vp.atm_iv)} · RV21 ${fmt(vp.realized_vol_21d)} · ${mf.hedge_regime||x.gamma_context||'DEALER SIGN UNKNOWN'} · expiry ${fmt(x.nearest_expiry)} · direction withheld`,state:x.state,raw:x});});
  if(kind==='all'||kind==='us')arr(LI.us_squeeze).forEach(x=>rows.push({time:LI.generated,ticker:x.ticker,desc:`short/long squeeze pressure ${fmt(x.short_squeeze_pressure)}/${fmt(x.long_squeeze_pressure)} · probability not calibrated`,state:x.state,raw:x}));
  return rows;
 }
 function derivativeQueue(kind='all'){
  const rows=[];
- if(kind==='all'||kind==='crypto')arr(LI.crypto_derivatives).forEach(x=>rows.push({ticker:x.asset,score:Math.max(num(x.short_squeeze_pressure)||0,num(x.long_squeeze_pressure)||0),why:`${x.positioning_quadrant||'NO HISTORY'} · S ${fmt(x.short_squeeze_pressure)} / L ${fmt(x.long_squeeze_pressure)}`,stage:'CRYPTO DERIVATIVES'}));
+ if(kind==='all'||kind==='crypto')arr(LI.crypto_derivatives).forEach(x=>{const life=obj(x.position_lifecycle);rows.push({ticker:x.asset,score:Math.max(num(x.short_squeeze_pressure)||0,num(x.long_squeeze_pressure)||0),why:`${life.position_state||x.positioning_quadrant||'NO HISTORY'} · ${life.surge_state||'SURGE UNRESOLVED'} · S ${fmt(x.short_squeeze_pressure)} / L ${fmt(x.long_squeeze_pressure)}`,stage:'CRYPTO DERIVATIVES'});});
  if(kind==='all'||kind==='us')arr(LI.us_squeeze).forEach(x=>rows.push({ticker:x.ticker,score:Math.max(num(x.short_squeeze_pressure)||0,num(x.long_squeeze_pressure)||0),why:`S ${fmt(x.short_squeeze_pressure)} / L ${fmt(x.long_squeeze_pressure)} · pressure only`,stage:'US SQUEEZE CONTEXT'}));
  return rows.sort((a,b)=>b.score-a.score).slice(0,10);
 }
@@ -568,7 +588,7 @@ function modelMarket(id,title){
  const devRows=arr(obj(obj(D.current_developments).by_market)[id]).filter(x=>x.freshness!=='STALE');
  const boardRows=allSetups.map(s=>{const a=executionAction(id,m.bias,s);return {instrument:s.tk,orientation:/NEGATIVE/.test(a)?'ADVERSE':/POSITIVE/.test(a)?'CONSTRUCTIVE':'NEUTRAL',action:a,state:s.execution_state||s.act||'DESCRIPTIVE',why:safeContextText(s.why),coverage:num(s.setup_rank??s.conv)||0,total:100,scoreLabel:'SETUP RANK',trigger:s.e,stop:s.s,target:s.t,freshness:obj(D.meta).generated,event:'',raw:s};});
  return {title,sub:special,canvas:`${title} RESEARCH CONTEXT`,badges:['observed','inferred'],graph:g,
-  board:{kind:id,rows:boardRows,developments:devRows,title:`${title} PRICE-CONTEXT MATRIX`,note:`Generic price context is descriptive and unvalidated as a directional selector. Selector promotion: ${promoted?'PROMOTED IN EXACT SCOPE':'BLOCKED'}. Reference target is geometry, not fair value.`},
+  board:{kind:id,rows:boardRows,developments:devRows,title:`${title} PRICE-CONTEXT MATRIX`,note:`Generic price context is descriptive and not production-proven as a directional selector. Selector promotion: ${promoted?'PROMOTED IN EXACT SCOPE':'BLOCKED'}. Reference target is geometry, not fair value.`},
   rail:{...basicRail(`${title}: ${posture}`,top?`${top.tk}: ${topAction}. Setup rank is not probability or evidence completeness.`:'No current context row.',`ACTION NOW: NO TRADE. ${promoted?'Exact-scope selector remains capital-blocked pending permission.':'Market-specific directional selector is not promoted.'}`,top?`Reference trigger ${fmt(top.e)} · stop ${fmt(top.s)} · geometry target ${fmt(top.t)} · R/R ${fmt(top.rr)}.`:'Wait for valid data and geometry.',`A price context can reverse and may be explained by beta, liquidity, news or crowding rather than alpha.`,top?(top.warn||`Invalidate the context at ${fmt(top.s)} or on feature reversal.`):'No row means no trade-level invalidation.','Setup-specific',top?Math.min(75,num(top.setup_rank??top.conv)||0):0,'NO TRADE · RESEARCH CONTEXT'),confidenceLabel:'SETUP RANK'},
   ledger:[...allSetups.map(s=>({time:obj(D.meta).generated,ticker:s.tk,desc:`${executionAction(id,m.bias,s)} · setup rank ${fmt(s.setup_rank??s.conv)} · ${safeContextText(s.why)} · reference geometry ${fmt(s.e)} / ${fmt(s.s)} / ${fmt(s.t)}`,state:'RESEARCH',raw:s})),...marketDerivativeLedger(id),...coverageRows(tab)],
   queue:candidatePool.map(s=>({ticker:s.tk,score:num(s.setup_rank??s.conv)||0,why:`research priority · agreement ${fmt(s.agreement_count)} · liquidity ${fmt(s.median_dollar_volume||s.median_volume)} · ${safeContextText(s.why)}`,stage:executionAction(id,m.bias,s)}))};
@@ -594,40 +614,40 @@ function modelFx(){
  pairNodes.forEach(n=>{if(edgeAllowed(spot,n))g.edges.push(edge(spot.id,n.id,n.state,'observed','pair state',1.2,{relation:'pair_state'}));});
  const lead=triggered[0]||watches[0]||rows[0];
  const boardRows=rows.map(r=>({instrument:r.pair,orientation:r.orientation,action:r.research_action,state:r.state,why:r.reason,coverage:r.driver_coverage,total:r.driver_total,trigger:r.entry_trigger,stop:r.trade_invalidation,target:r.reference_target,freshness:r.freshness,event:r.event_risks?.map(x=>x.title).join('; '),raw:r}));
- return {title:'FX',sub:'No aggregate FX call. Each pair shows descriptive orientation, driver coverage and event risk. Directional trade permission is withheld until the pair selector is proven in exact scope.',canvas:'FX PAIR DECISION BOARD',badges:['observed','inferred'],graph:g,
+ return {title:'FX',sub:'No aggregate FX call. Each pair shows descriptive orientation, driver coverage and event risk. Directional trade permission is withheld until a signed exact-scope proof receipt is valid.',canvas:'FX PAIR DECISION BOARD',badges:['observed','inferred'],graph:g,
   board:{kind:'fx',rows:boardRows,developments:eventRows,title:'PAIR-SPECIFIC FX STATES',note:'Price and multi-driver contexts are descriptive. No FX pair becomes a trade signal until the exact-scope selector is promoted; capital remains blocked.'},
-  rail:basicRail(lead?`${lead.pair}: ${lead.orientation} · ${lead.research_action}`:'FX: NO PAIR STATE',lead?`${lead.reason} Driver coverage ${lead.driver_coverage}/${lead.driver_total}.`:'No pair-specific evidence is loaded.',`Triggered ${triggered.length} · watches ${watches.length} · conflicted/blocked ${conflicts.length}.`,lead?`Trigger ${fmt(lead.entry_trigger)} · invalidation ${fmt(lead.trade_invalidation)} · reference ${fmt(lead.reference_target)}.`:'Load pair price and independent rate/carry inputs.',lead?.event_risks?.length?`Event risk: ${lead.event_risks.map(x=>x.title).join('; ')}`:'Different pairs can point in opposite directions; never apply one FX state to every pair.',lead?`Invalidate on driver disagreement, policy shock or price acceptance reversal.`:'No state, no invalidation.','Pair and catalyst specific',lead?Math.min(75,Math.round(100*lead.driver_coverage/Math.max(1,lead.driver_total))):0,lead?.research_action||'NO ACTION'),
+  rail:{...basicRail(lead?`${lead.pair}: ${lead.orientation} · ${lead.research_action}`:'FX: NO PAIR STATE',lead?`${lead.reason} Driver coverage ${lead.driver_coverage}/${lead.driver_total}.`:'No pair-specific evidence is loaded.',`Triggered ${triggered.length} · watches ${watches.length} · conflicted/blocked ${conflicts.length}.`,lead?`Trigger ${fmt(lead.entry_trigger)} · invalidation ${fmt(lead.trade_invalidation)} · reference ${fmt(lead.reference_target)}.`:'Load pair price and independent rate/carry inputs.',lead?.event_risks?.length?`Event risk: ${lead.event_risks.map(x=>x.title).join('; ')}`:'Different pairs can point in opposite directions; never apply one FX state to every pair.',lead?`Invalidate on driver disagreement, policy shock or price acceptance reversal.`:'No state, no invalidation.','Pair and catalyst specific',lead?Math.min(75,Math.round(100*lead.driver_coverage/Math.max(1,lead.driver_total))):0,lead?(/NO TRADE/i.test(String(lead.research_action||''))?lead.research_action:`${lead.research_action} · NO TRADE`):'NO ACTION'),confidenceLabel:'DRIVER COVERAGE'},
   ledger:[...rows.map(r=>({time:obj(D.meta).generated,ticker:r.pair,desc:`${r.research_action} · ${r.reason} · coverage ${r.driver_coverage}/${r.driver_total} · trigger ${fmt(r.entry_trigger)} / stop ${fmt(r.trade_invalidation)}`,state:r.state,raw:r})),...eventRows.map(x=>({time:x.date,ticker:x.category,desc:`${x.title} · ${x.why_it_matters}`,state:x.freshness,raw:x})),...marketDerivativeLedger('fx'),...coverageRows('fx')],
   queue:[...triggered,...watches].slice(0,10).map(r=>({ticker:r.pair,score:25*r.driver_coverage,why:`${r.reason} · trigger ${fmt(r.entry_trigger)} / stop ${fmt(r.trade_invalidation)}`,stage:r.research_action}))};
 }
 
 function modelFlow(){
  const s=obj(D.systemic), ins=arr(s.rotation_in), outs=arr(s.rotation_out), rot=obj(D.rotation_snapshot), rrows=arr(rot.rows);
- const l0=[node('cash','GLOBAL LIQUIDITY','macro impulse',short(s.liquidity||'NO_DATA',17),s.liquidity,'observed')];
+ const l0=[node('cash','GLOBAL LIQUIDITY','composite macro impulse',short(s.liquidity||'NO_DATA',17),s.liquidity,'inferred',{raw:s})];
  const out=node('out','ROTATING OUT','confirmed list',outs.length?outs.join(', '):'NO_DATA',outs.length?'destructive':'NO_DATA','inferred');
  const reg=node('reg','REGIME FILTER','cross asset',s.cross_asset||s.quad_name||'NO_DATA',s.cross_asset||s.quad_name,'inferred');
  const l1=[out,reg];
  const marketNodes=Object.entries(obj(D.markets)).map(([id,m])=>{const b=breadthFor(id);return node('fm_'+id,(m.label||id).toUpperCase(),`${obj(m.funnel).universe||b.coverage||0} loaded · ${obj(m.funnel).setups||0} setups`,marketContextValue(id,m,b),marketContextState(id,m,b),'inferred',{market:id,raw:m});});
  const optRot=arr(LI.options_sector_rotation).slice(0,8), observedRot=rrows.slice(0,10);
- const l3=optRot.length?optRot.slice(0,6).map((t,i)=>node('orin_'+i,String(t.key||'SECTOR').toUpperCase(),`options net premium ${money(t.net)}`,`${t.records||0} BUCKETS`,num(t.net)>=0?'constructive':'destructive','observed',{raw:t,market:'us'})):observedRot.length?observedRot.slice(0,6).map((t,i)=>node('rin_'+i,t.ticker,`20D ${pct(t.ret_20d_pct)} · 5D ${pct(t.ret_5d_pct)}`,`RANK ${t.rank_20d}`,t.ret_20d_pct>0?'constructive':'destructive','observed',{raw:t,market:t.market||null})):(ins.length?ins.slice(0,10).map((t,i)=>node('rin_'+i,t,'model rotation-in output','WATCH','watch','inferred',{raw:t,market:null})):[node('rin0','NO ROTATION-IN','no validated list','NO_DATA','NO_DATA')]);
- const flowClass=optRot.length?'OPTIONS-FLOW ROTATION':observedRot.length?'PRICE RELATIVE LEADERSHIP':'MODEL WATCHLIST';const leadNames=l3.filter(n=>!/^NO /.test(String(n.label||''))).map(n=>n.label).slice(0,5);const g=layered([l0,l1,marketNodes,l3]);
+ const l3=optRot.length?optRot.slice(0,6).map((t,i)=>node('orin_'+i,String(t.key||'SECTOR').toUpperCase(),`options net premium ${money(t.net)}`,`${t.records||0} BUCKETS`,num(t.net)>=0?'constructive':'destructive','observed',{raw:t,market:'us'})):observedRot.length?observedRot.slice(0,6).map((t,i)=>node('rin_'+i,t.ticker,`20D ${pct(t.ret_20d_pct)} · 5D ${pct(t.ret_5d_pct)}`,`RANK ${t.rank_20d}`,t.ret_20d_pct>0?'constructive':'destructive','observed',{raw:t,market:t.market||null})):(ins.length?ins.slice(0,10).map((t,i)=>node('rin_'+i,t,'model rotation-in output','WATCH','watch','inferred',{raw:t,market:null})):[node('rin0','NO ROTATION-IN','no observed relative-leadership list','NO_DATA','NO_DATA')]);
+ const flowClass=optRot.length?'OPTIONS-FLOW ROTATION':observedRot.length?'PRICE RELATIVE LEADERSHIP':'MODEL WATCHLIST';const leadNames=l3.filter(n=>!/^NO /.test(String(n.label||''))).map(n=>n.label).slice(0,5);const flowCoverage=optRot.length?Math.min(100,optRot.length*12):observedRot.length?Math.min(100,observedRot.length*10):0;const g=layered([l0,l1,marketNodes,l3]);
  if(edgeAllowed(l0[0],reg))g.edges.push(edge('cash','reg','watch','inferred','macro filter',1.7,{relation:'model_input'}));
  if(edgeAllowed(reg,out))g.edges.push(edge('reg','out','watch','inferred','rotation state',1.4,{relation:'rotation_state'}));
  marketNodes.forEach(m=>{if(edgeAllowed(reg,m))g.edges.push(edge('reg',m.id,m.state,'inferred','market filter',1.5,{relation:'market_filter'}));});
  l3.forEach(n=>{let parent=marketNodes.find(m=>m.market===n.market);if(!parent&&n.evidence==='inferred')return;if(parent&&edgeAllowed(parent,n))g.edges.push(edge(parent.id,n.id,n.state,n.evidence==='observed'?'observed':'inferred','rotation evidence',1.8,{active:n.evidence==='observed',relation:'rotation_lineage'}));});
  return {title:'FLOW & POSITIONING',sub:'Rotation arrows only connect a node to its identified market. Unmapped price/model outputs remain unconnected instead of being assigned arbitrarily.',canvas:'FLOW / RELATIVE-LEADERSHIP MAP',badges:['observed','inferred'],graph:g,
- rail:basicRail(leadNames.length?`${flowClass}: ${leadNames.join(', ')}`:'NO CONFIRMED FLOW / LEADERSHIP STATE',`Relative laggards: ${outs.join(', ')||'none confirmed'}.`,`Current flow view uses only available sources and does not pretend dollar flows reconcile across providers.`,`Follow the path with improving persistence and remaining return.`,`Price-only rotation can reverse without actual fund-flow confirmation.`,`Invalidate when driver and flow direction disagree.`,'Front-run → current → late → exhausted',ins.length?60:10,'OPEN MARKET PATH'),ledger:[...rrows.map(x=>({time:x.timestamp,ticker:x.ticker,desc:`1D ${pct(x.ret_1d_pct)} · 5D ${pct(x.ret_5d_pct)} · 20D ${pct(x.ret_20d_pct)} · price rotation only`,state:x.ret_20d_pct>0?'constructive':'destructive',raw:x})),...coverageRows('flow_rotation')],queue:firstCandidates(20).filter(x=>x.aligned).slice(0,8)};
+ rail:basicRail(leadNames.length?`${flowClass}: ${leadNames.join(', ')}`:'NO CONFIRMED FLOW / LEADERSHIP STATE',`Relative laggards: ${outs.join(', ')||'none confirmed'}.`,`Current flow view uses only available sources and does not pretend dollar flows reconcile across providers.`,`Follow the path with improving persistence and remaining return.`,`Price-only rotation can reverse without actual fund-flow confirmation.`,`Invalidate when driver and flow direction disagree.`,'Front-run → current → late → exhausted',flowCoverage,'REVIEW MARKET PATH · NO CAPITAL'),ledger:[...rrows.map(x=>({time:x.timestamp,ticker:x.ticker,desc:`1D ${pct(x.ret_1d_pct)} · 5D ${pct(x.ret_5d_pct)} · 20D ${pct(x.ret_20d_pct)} · price rotation only`,state:x.ret_20d_pct>0?'constructive':'destructive',raw:x})),...coverageRows('flow_rotation')],queue:firstCandidates(20).filter(x=>x.aligned).slice(0,8)};
 }
 
 function selectedChain(){const chains=arr(obj(obj(D.reference).chain_reactions).chains);return chains[0]||null;}
 function modelSupply(){
  const c=selectedChain(); if(!c)return emptyModel('SUPPLY CHAIN','No chain-reaction reference loaded.');
- const seq=arr(c.propagation_sequence).slice(0,7); const layers=[[node('trigger','TRIGGER',short(c.trigger_event,62),c.trigger_status||'STRUCTURAL',c.trigger_status,'structural',{raw:c})]];
- seq.forEach((s,i)=>layers.push([node('tier_'+i,`TIER ${s.tier} · STEP ${s.step}`,short(s.role,48),arr(s.tickers).slice(0,5).join(' · '),s.tier<=2?'constructive':'watch','structural',{raw:s})]));
+ const seq=arr(c.propagation_sequence).slice(0,7); const layers=[[node('trigger','TRIGGER',short(c.trigger_event,62),c.trigger_status||'STRUCTURAL REFERENCE','watch','structural',{raw:c})]];
+ seq.forEach((s,i)=>layers.push([node('tier_'+i,`TIER ${s.tier} · STEP ${s.step}`,short(s.role,48),arr(s.tickers).slice(0,5).join(' · '),'watch','structural',{raw:s})]));
  const g=layered(layers); for(let i=0;i<layers.length-1;i++)connectAll(g,layers[i],layers[i+1],'watch','structural');
  return {title:'SUPPLY CHAIN',sub:`Structural reference: ${c.name}. Topology is curated; live activation must be independently observed.`,canvas:'BOTTLENECK CASCADE',badges:['structural'],graph:g,
- rail:basicRail(c.name,short(c.mechanism,220),`Trigger status in reference: ${fmt(c.trigger_status)}.`,`Identify which tier is newly binding and still mispriced.`,`A theme can be real while a selected ticker fails to capture value.`,`Invalidate via capacity response, substitution, demand slowdown or broken pricing power.`,c.horizon||'Structural',45,'SELECT A TIER / VERIFY LIVE EVIDENCE'),
- ledger:seq.map(s=>({time:obj(obj(D.reference).chain_reactions)._schema_version,ticker:arr(s.tickers).slice(0,5).join(', '),desc:`${s.role} · ${s.rationale}`,state:'STRUCTURAL'})),queue:seq.flatMap(s=>arr(s.tickers).slice(0,2).map(t=>({ticker:t,score:Math.max(1,100-s.tier*14),why:s.role,stage:`TIER ${s.tier}`}))).slice(0,8)};
+ rail:basicRail(c.name,short(c.mechanism,220),`Trigger status in reference: ${fmt(c.trigger_status)}.`,`Identify which tier is newly binding and still mispriced.`,`A theme can be real while a selected ticker fails to capture value.`,`Invalidate via capacity response, substitution, demand slowdown or broken pricing power.`,c.horizon||'Structural',0,'VERIFY LIVE ACTIVATION · NO RANKING'),
+ ledger:seq.map(s=>({time:obj(obj(D.reference).chain_reactions)._schema_version,ticker:arr(s.tickers).slice(0,5).join(', '),desc:`${s.role} · ${s.rationale}`,state:'STRUCTURAL'})),queue:seq.flatMap(s=>arr(s.tickers).slice(0,2).map(t=>({ticker:t,score:0,why:s.role,stage:`STRUCTURAL REFERENCE · TIER ${s.tier}`}))).slice(0,8)};
 }
 
 function modelCompany(){
@@ -640,13 +660,14 @@ function modelCompany(){
  const fund=node('fund','FUNDAMENTALS','SEC filed XBRL',fundamental?'LIVE':fundamentalState,fundamental?'constructive':fundamentalState,'observed',{raw:fundamental||sec});
  const positionState=events.length?'LIVE':(instConfigured?'NO_SIGNAL':'NOT_ENTITLED');
  const pos=node('pos','POSITIONING','options / TRF / filings',events.length?`${events.length} EVENTS`:positionState,events.length?'watch':positionState,'observed');
- const valuation=node('valuation','VALUATION','expected vs market cap',alpha?.upside||'RESEARCH NOT MAPPED',alpha?'watch':'NO_SIGNAL','inferred');
+ const scenario=obj(alpha?.scenario_valuation);const valuationReady=scenario.output_kind==='READY'&&scenario.probability_status==='CALIBRATED';
+ const valuation=node('valuation','VALUATION','scenario status / market-cap headroom',valuationReady?`ER ${pct(scenario.expected_return_pct)}`:(scenario.state||scenario.output_kind||'WITHHELD'),valuationReady?'watch':'NO_SIGNAL','inferred',{raw:scenario});
  const price=node('price','PRICE STATE','entry / stop / target',setup?`${fmt(setup.e)} / ${fmt(setup.s)} / ${fmt(setup.t)}`:'NO_SIGNAL',setup?.act||'NO_SIGNAL','observed');
  const kill=node('kill','KILL THESIS','fundamental + price invalidation',setup?.warn||'NOT YET DEFINED',setup?.warn?'destructive':'NO_SIGNAL','inferred');
  const l0=[root],l1=[value,fund,pos],l2=[valuation,price,kill]; const g=layered([l0,l1,l2]);
  connectPairs(g,[[root,value,'watch',value.evidence,'structural role'],[root,fund,'watch','observed','filed facts'],[root,pos,'watch','observed','events'],[value,valuation,'watch','inferred','value capture'],[fund,valuation,'watch','inferred','valuation input'],[fund,kill,'watch','inferred','fundamental invalidation'],[price,kill,'watch','inferred','price invalidation'],[pos,price,'watch','inferred','confirmation only']]);
  return {title:'COMPANY INTEL',sub:'Explicit evidence relationships only; fundamentals, positioning and value capture no longer point to every output.',canvas:`${t} INVESTMENT MAP`,badges:['observed','structural','inferred'],graph:g,
- rail:{...basicRail(t,cand.why||'Candidate selected from current research queue.',setup?`ACTION: ${executionAction(cand.market||'us',obj(obj(D.markets)[cand.market||'us']).bias,setup)} · trigger ${fmt(setup.e)} · stop ${fmt(setup.s)}`:'NO TRADE — no executable setup.',events.length?`${events.length} institutional events require interpretation.`:'Wait for independent institutional evidence.',fundamental?'Filed fundamentals loaded; compare matched periods before valuation.':'No fundamentals loaded means the thesis cannot be considered complete.',setup?.warn||`Price invalidation ${fmt(setup?.s)}`,'Company-specific',Math.min(90,20+(fundamental?25:0)+(events.length?25:0)+(alpha?15:0)+(setup?15:0)),'OPEN EVIDENCE TRACE — NO AUTO TRADE'),confidenceLabel:'EVIDENCE COMPLETENESS'},
+ rail:{...basicRail(t,cand.why||'Candidate selected from current research queue.',setup?`ACTION: ${executionAction(cand.market||'us',obj(obj(D.markets)[cand.market||'us']).bias,setup)} · trigger ${fmt(setup.e)} · stop ${fmt(setup.s)}`:'NO TRADE — no executable setup.',events.length?`${events.length} institutional events require interpretation.`:'Wait for independent institutional evidence.',fundamental?'Filed fundamentals loaded; compare matched periods before valuation.':'No fundamentals loaded means the thesis cannot be considered complete.',setup?.warn||`Price invalidation ${fmt(setup?.s)}`,'Company-specific',Math.min(75,(fundamental?25:0)+(events.length?20:0)+(alpha?15:0)+(setup?15:0)),'OPEN EVIDENCE TRACE — NO AUTO TRADE'),confidenceLabel:'EVIDENCE COMPLETENESS'},
  ledger:[...(events.slice(0,10).map(e=>({time:e.timestamp,ticker:t,desc:eventDescription(e),state:eventState(e)}))),...(fundamental?[{time:obj(D.meta).generated,ticker:t,desc:`SEC facts · ${Object.keys(fundamental.facts||{}).join(', ')}`,state:'LIVE',raw:fundamental}]:[]),...(setup?[{time:obj(D.meta).generated,ticker:t,desc:`${setup.act} · ${setup.why}`,state:setup.act}]:[]),...coverageRows('company_intel')],queue:[cand]};
 }
 
@@ -656,29 +677,32 @@ function modelKnowledge(){
  seq.forEach((s,i)=>layers.push([node('k_'+i,short(s.role,34),arr(s.tickers).slice(0,4).join(' · '),`LAG ${s.horizon_quarters}Q`,'watch','structural',{raw:s})]));
  const g=layered(layers);for(let i=0;i<layers.length-1;i++)g.edges.push(edge(layers[i][0].id,layers[i+1][0].id,'watch','structural',i===0?'economic / physical':'value capture'));
  return {title:'KNOWLEDGE GRAPH',sub:'Edges distinguish observed flow from structural transmission. Structural truth does not imply current mispricing.',canvas:'CAUSAL KNOWLEDGE GRAPH',badges:['structural'],graph:g,
- rail:basicRail(c.name,short(c.mechanism,210),`Chain reference status: ${fmt(c.trigger_status)}.`,`Test each edge for current activation, lag and actual value capture.`,`Narrative/reflexive edges must not be treated like contractual or physical transmission.`,`Invalidate an edge when the mechanism or beneficiary link fails.`,c.horizon||'Variable',40,'TRACE EDGE → SOURCE → INVALIDATION'),ledger:[...seq.map(s=>({time:`+${s.horizon_quarters}Q`,ticker:arr(s.tickers).slice(0,4).join(', '),desc:s.rationale,state:'STRUCTURAL'})),...coverageRows('commodities')],queue:seq.flatMap(s=>arr(s.tickers).slice(0,1).map(t=>({ticker:t,score:100-s.tier*12,why:s.role,stage:`TIER ${s.tier}`})))};
+ rail:basicRail(c.name,short(c.mechanism,210),`Chain reference status: ${fmt(c.trigger_status)}.`,`Test each edge for current activation, lag and actual value capture.`,`Narrative/reflexive edges must not be treated like contractual or physical transmission.`,`Invalidate an edge when the mechanism or beneficiary link fails.`,c.horizon||'Variable',0,'TRACE EDGE → SOURCE → INVALIDATION'),ledger:[...seq.map(s=>({time:`+${s.horizon_quarters}Q`,ticker:arr(s.tickers).slice(0,4).join(', '),desc:s.rationale,state:'STRUCTURAL'})),...coverageRows('commodities')],queue:seq.flatMap(s=>arr(s.tickers).slice(0,1).map(t=>({ticker:t,score:0,why:s.role,stage:`STRUCTURAL REFERENCE · TIER ${s.tier}`})))};
 }
 
 function modelValidation(){
- const grades=obj(D.grades); const entries=Object.entries(grades).filter(([k,v])=>v&&typeof v==='object');
- if(!entries.length)return emptyModel('VALIDATION CENTER','No machine-readable metric grades were loaded.');
- const statusOf=v=>String(v.grade||v.status||v.verdict||'UNKNOWN').toUpperCase();
- const productionStates=new Set(['PRODUCTION','LIMITED_PRODUCTION']);const validated=entries.filter(([,v])=>productionStates.has(statusOf(v))).length;
- const partial=entries.filter(([,v])=>/PARTIAL|MONITOR|RESEARCH/.test(statusOf(v))).length;
- const rejected=entries.filter(([,v])=>/REJECT|FAILED|BROKEN/.test(statusOf(v))).length;
- const inventory=node('val_inv','RESEARCH INVENTORY',`${entries.length} machine-readable grade cards`,'FROZEN SPECS','watch','observed',{w:205});
- const oos=node('val_oos','OOS / LOCKBOX',`${validated} currently validated`,'REQUIRED','watch','observed',{w:195});
- const correction=node('val_corr','SELECTION CONTROL',`${partial} partial · ${rejected} rejected`,'DSR / PBO / FDR','watch','observed',{w:205});
- const displayed=entries.slice().sort((a,b)=>{
-   const rank=v=>/REJECT|FAILED|BROKEN/.test(statusOf(v))?0:/PARTIAL|MONITOR|RESEARCH/.test(statusOf(v))?1:2;
-   return rank(a[1])-rank(b[1]);
- }).slice(0,8);
- const nodes=displayed.map(([k,v],i)=>{const status=statusOf(v);return node('v_'+i,k.replaceAll('_',' ').toUpperCase(),short(v.note||v.reason||'open grade card',31),status,status,'observed',{raw:v,w:184});});
- const center=node('prod','PRODUCTION GATE','baseline + costs + OOS + prospective','FAIL CLOSED','watch','observed',{w:220});
- const g=layered([[inventory,oos,correction],nodes.slice(0,4),nodes.slice(4,8),[center]]);
- nodes.forEach(n=>g.edges.push(edge(n.id,center.id,n.state,'inferred','grade gate',1.25,{relation:'validation_gate'})));
- return {title:'VALIDATION CENTER',sub:'A component enters production only after its frozen specification beats the baseline out of sample.',canvas:'EVIDENCE LABORATORY',badges:['observed','inferred'],graph:g,
- rail:basicRail('PRODUCTION GATE',`${entries.length} graded components · ${validated} validated · ${partial} partial · ${rejected} rejected.`,`Only validated components may inform decisions inside their tested scope.`,`Monitor degradation, drift, calibration and untouched prospective outcomes.`,`Good in-sample results, attractive narratives and repeated tweaking are not production evidence.`,`Reject or downgrade on OOS failure, drift, broken lineage or failed prospective lockbox.`,'Continuous monitoring',Math.min(80,Math.round(validated/Math.max(1,entries.length)*100)),'OPEN GRADE CARD — NO AUTO PROMOTION'),ledger:[...entries.slice(0,30).map(([k,v])=>({time:obj(D.meta).generated,ticker:k,desc:v.note||v.reason||JSON.stringify(v),state:v.grade||v.status||'UNKNOWN'})),...arr(FLD.statuses).slice(0,30).map(x=>({time:x.fetched_at,ticker:x.provider,desc:`${x.dataset} · ${x.note}`,state:x.state,raw:x}))],queue:entries.slice(0,8).map(([k,v])=>({ticker:k,score:productionStates.has(statusOf(v))?90:/PARTIAL|MONITOR|RESEARCH/.test(statusOf(v))?55:15,why:v.note||v.reason||'',stage:v.grade||v.status||'UNKNOWN'}))};
+ const grades=obj(D.grades), gradeEntries=Object.entries(grades).filter(([k,v])=>v&&typeof v==='object');
+ const proofEntries=Object.entries(obj(obj(D.proof_registry).components));
+ const latest=arr(RE62.components);
+ const statusOf=v=>String(v.grade||v.status||v.verdict||v.state||'UNKNOWN').toUpperCase();
+ const productionStates=new Set(['PRODUCTION','LIMITED_PRODUCTION','LIMITED_PRODUCTION_ELIGIBLE','HUMAN_APPROVED_LIMITED_PRODUCTION']);
+ const all=[...gradeEntries.map(([k,v])=>[k,v,'LEGACY GRADE']),...proofEntries.map(([k,v])=>[k,v,'PROOF REGISTRY']),...latest.map(v=>[v.component,v,'V62 EVIDENCE'])];
+ if(!all.length)return emptyModel('VALIDATION CENTER','No machine-readable proof or grade records were loaded.');
+ const production=proofEntries.filter(([,v])=>(productionStates.has(statusOf(v))||v.predictive_promoted===true)&&String(v.capital_permission||'BLOCKED').toUpperCase()!=='BLOCKED').length;
+ const rejected=all.filter(([,v])=>/REJECT|FAILED|BROKEN|NOT_PROVEN/.test(statusOf(v))).length;
+ const blocked=all.filter(([,v])=>String(v.capital_permission||'BLOCKED').toUpperCase()==='BLOCKED').length;
+ const trial=obj(RE62.global_trial_accounting);const totalClaims=num(trial.total_empirical_claim_records)||0;
+ const inventory=node('val_inv','EVIDENCE INVENTORY',`${all.length} proof / grade records`,`${totalClaims} CLAIM RECORDS`,'watch','observed',{w:215,raw:{grades,proof:obj(D.proof_registry),latest:RE62}});
+ const oos=node('val_oos','PRODUCTION-ELIGIBLE',`${production} exact-scope components`,production?'LIMITED SCOPE':'ZERO','watch','observed',{w:205});
+ const correction=node('val_corr','SELECTION CONTROL',`${rejected} rejected · ${blocked} capital blocked`,'GLOBAL LEDGER','watch','observed',{w:215});
+ const displayed=all.slice().sort((a,b)=>{const rank=v=>/REJECT|FAILED|BROKEN|NOT_PROVEN/.test(statusOf(v))?0:/PIPELINE|DATA_CONTRACT/.test(statusOf(v))?1:2;return rank(a[1])-rank(b[1]);}).slice(0,8);
+ const nodes=displayed.map(([k,v,source],i)=>{const status=statusOf(v);return node('v_'+i,k.replaceAll('_',' ').toUpperCase(),short(`${source} · ${v.claim_limit||v.claim_boundary||v.note||v.reason||'open evidence record'}`,35),status,status,'observed',{raw:v,w:190});});
+ const center=node('prod','CAPITAL GATE','exact scope + costs + OOS + prospective + signed receipt',obj(D.proof_status).capital_permission||'BLOCKED','watch','observed',{w:245});
+ const g=layered([[inventory,oos,correction],nodes.slice(0,4),nodes.slice(4,8),[center]]);nodes.forEach(n=>g.edges.push(edge(n.id,center.id,n.state,'inferred','proof gate',1.25,{relation:'validation_gate'})));
+ return {title:'VALIDATION CENTER',sub:'Evidence accounting includes the latest V6.1/V6.2 negative results. Production means exact-scope proof—not a descriptive control, synthetic test, or attractive backtest.',canvas:'EVIDENCE LABORATORY',badges:['observed','inferred'],graph:g,
+ rail:{...basicRail('CAPITAL GATE',`${totalClaims} claim records · ${production} production-eligible · ${rejected} rejected/failed.`,`Latest V62 promoted components: ${num(RE62.production_promoted)||0}.`,`Open the exact component record, data lineage, baseline, lockbox and prospective state.`,`Pipeline validation or descriptive usefulness never grants future-return permission.`,`Reject/downgrade on OOS failure, drift, broken lineage, cost failure or absent signed receipt.`,'Continuous monitoring',production?Math.min(80,Math.round(100*production/Math.max(1,all.length))):0,'REVIEW EVIDENCE · NO AUTO PROMOTION'),confidenceLabel:'PRODUCTION COVERAGE'},
+ ledger:[...latest.map(v=>({time:RE62.created_at_utc||obj(D.meta).generated,ticker:v.component,desc:`${v.verdict} · ${v.claims||0} claims · ${v.claim_limit||''} · live weight ${v.live_decision_weight||0}`,state:v.verdict,raw:v})),...all.slice(0,30).map(([k,v,source])=>({time:obj(D.meta).generated,ticker:k,desc:`${source} · ${v.note||v.reason||v.claim_boundary||v.claim_limit||JSON.stringify(v)}`,state:statusOf(v),raw:v}))],
+ queue:displayed.map(([k,v,source])=>({ticker:k,score:(source==='PROOF REGISTRY'&&(productionStates.has(statusOf(v))||v.predictive_promoted===true)&&String(v.capital_permission||'BLOCKED').toUpperCase()!=='BLOCKED')?100:0,why:`${source} · ${v.claim_limit||v.claim_boundary||v.note||v.reason||''}`,stage:statusOf(v)}))};
 }
 
 function modelExecution(){
@@ -711,10 +735,14 @@ function modelResearchProcess(){
  const g=layered([[problem],[rain,tape,cp],[test,failure],[permission]]);
  [[problem,rain,'problem ownership'],[problem,tape,'historical mechanism'],[problem,cp,'adversarial framing'],[rain,test,'predict before test'],[tape,test,'conditions to test'],[cp,failure,'alternative explanation'],[test,failure,'inspect outputs'],[failure,permission,'prospective gate']].forEach(([a,b,l])=>g.edges.push(edge(a.id,b.id,'watch',a.evidence==='structural'?'structural':'inferred',l,1.4,{relation:'research_loop'})));
  const missing=entries.map(([id,k])=>({id,label:k.label||id,missing:arr(obj(k.validation).required).length,state:obj(k.validation).status||'RESEARCH_ONLY',reason:obj(k.validation).reason||''}));
+ const historicalClaims=arr(RE.claims);
+ const latestComponents=arr(RE62.components);
+ const trial=obj(RE62.global_trial_accounting);
+ const openResearch=arr(RE.open_work);
  return {title:'RESEARCH LOOP',sub:'The operating system optimizes speed of falsification—not the number of backtests—and records uncertainty before outcomes are known.',canvas:'UNIVERSAL RESEARCH KERNEL',badges:['structural','observed','inferred'],graph:g,
-  rail:basicRail('RESEARCH ONLY',`${entries.length} market-specific adapters share one discipline but not one formula.`,`Prediction, setup, expectation and contradictory evidence must be written before results are viewed.`,`Run the disposable version, tune the baseline, ablate complexity and attack the largest failure pile.`,`More experiments without a registry and untouched OOS increase p-hacking risk.`,`Invalidate on broken lineage, failed baseline lift, unstable regimes or failed prospective evidence.`,'Continuous',5,'FALSIFY CHEAPLY → DO NOT PROMOTE'),
-  ledger:entries.flatMap(([id,k])=>[{time:obj(D.meta).generated,ticker:(k.label||id),desc:`Problem: ${k.decision_problem}`,state:'RESEARCH'},{time:obj(D.meta).generated,ticker:(k.label||id),desc:`Next falsifier: ${obj(k.validation).next_cheapest_falsifier||'UNASSESSED'}`,state:obj(k.validation).status||'RESEARCH_ONLY'}]),
-  queue:missing.map(x=>({ticker:x.label,score:0,why:x.reason||'Prospective evidence missing',stage:x.state}))};
+  rail:basicRail('RESEARCH ONLY',`${entries.length} market adapters · ${num(trial.total_empirical_claim_records)||0} registered empirical claim records · ${num(RE62.production_promoted)||0} V62 promotions.`,`Prediction, setup, expectation and contradictory evidence must be written before results are viewed.`,`Run the disposable version, tune the baseline, ablate complexity and attack the largest failure pile.`,`More experiments without a registry and untouched OOS increase p-hacking risk.`,`Invalidate on broken lineage, failed baseline lift, unstable regimes or failed prospective evidence.`,'Continuous',0,'FALSIFY CHEAPLY → DO NOT PROMOTE'),
+  ledger:[...latestComponents.map(x=>({time:RE62.created_at_utc||obj(D.meta).generated,ticker:x.component||'V62',desc:`${x.verdict||''} · ${x.claims||0} claims · ${x.claim_limit||''} · live weight ${x.live_decision_weight||0}`,state:x.verdict||'RESEARCH_ONLY',raw:x})),...historicalClaims.map(x=>({time:obj(D.meta).generated,ticker:x.study||'HISTORICAL',desc:`${x.claim||''} · ${x.claim_ceiling||''} · live weight ${x.live_decision_weight||0}`,state:x.status||'RESEARCH_ONLY',raw:x})),...entries.flatMap(([id,k])=>[{time:obj(D.meta).generated,ticker:(k.label||id),desc:`Problem: ${k.decision_problem}`,state:'RESEARCH'},{time:obj(D.meta).generated,ticker:(k.label||id),desc:`Next falsifier: ${obj(k.validation).next_cheapest_falsifier||'UNASSESSED'}`,state:obj(k.validation).status||'RESEARCH_ONLY'}])],
+  queue:[...latestComponents.filter(x=>!/REJECTED/.test(String(x.verdict||''))).map(x=>({ticker:x.component,score:0,why:x.claim_limit||'',stage:x.verdict||'BLOCKED'})),...openResearch.map(x=>({ticker:x.study||'OPEN WORK',score:0,why:x.next_valid_action||'',stage:x.state||'BLOCKED'})),...missing.map(x=>({ticker:x.label,score:0,why:x.reason||'Prospective evidence missing',stage:x.state}))]};
 }
 
 function modelDataHealth(){
@@ -769,7 +797,18 @@ function renderResearchDock(model){
 }
 
 function emptyModel(title,message){const g=layered([[node('empty',title,message,'NO_DATA','NO_DATA')]]);return {title,sub:message,canvas:title,badges:['observed'],graph:g,rail:basicRail('NO DATA',message,'No action.','Connect or repair the required source.','Do not substitute a static narrative or synthetic series.','Data availability is the current invalidation.','Until source recovers',0,'NO ACTION'),ledger:[],queue:[]};}
-function getModel(){switch(state.view){case'mc':return modelMission();case'macro':return modelMacro();case'ew':return modelEarly();case'alpha':return modelAlpha();case'inst':return modelInstitutional();case'deriv':return modelDerivatives();case'us':return modelMarket('us','US STOCKS');case'ihsg':return modelMarket('idx','IHSG');case'crypto':return modelMarket('crypto','CRYPTO');case'commod':return modelMarket('commodity','COMMODITIES');case'fx':return modelFx();case'flow':return modelFlow();case'sc':return modelSupply();case'co':return modelCompany();case'kg':return modelKnowledge();case'execution':return modelExecution();case'research':return modelResearchProcess();case'datahealth':return modelDataHealth();case'rc':return modelValidation();default:return modelMission();}}
+function viewProofStatus(view){
+ const base={state:'RESEARCH_ONLY',capital:'BLOCKED',production:false};
+ const mapping={mc:'CONTROL_PLANE',macro:'RESEARCH_PROXY',ew:'RESEARCH_PROXY',alpha:'STRUCTURAL_RESEARCH',co:'EVIDENCE_WORKSPACE',flow:'DESCRIPTIVE_CONTROL',inst:'DESCRIPTIVE_CONTROL',deriv:'DESCRIPTIVE_CONTROL',sc:'STRUCTURAL_REFERENCE',kg:'STRUCTURAL_REFERENCE',execution:'CAPITAL_BLOCKED',research:'RESEARCH_GOVERNANCE',rc:'EVIDENCE_ACCOUNTING',datahealth:'INFRASTRUCTURE_CONTROL'};
+ if(['us','ihsg','crypto','commod','fx'].includes(view)){const id={us:'us',ihsg:'idx',crypto:'crypto',commod:'commodity',fx:'fx'}[view];const promoted=selectorPromoted(id);return {state:promoted?'EXACT_SCOPE_PROMOTED':'DESCRIPTIVE_CONTEXT_ONLY',capital:obj(D.proof_status).capital_permission||'BLOCKED',production:promoted};}
+ return {...base,state:mapping[view]||base.state,capital:obj(D.proof_status).capital_permission||'BLOCKED'};
+}
+function decorateModel(view,model){
+ const proof=viewProofStatus(view);model.proof=proof;model.sub=`${model.sub} · PROOF ${proof.state} · CAPITAL ${proof.capital}`;model.badges=[...new Set([...arr(model.badges),proof.production?'observed':proof.state==='STRUCTURAL_REFERENCE'?'structural':'inferred'])];
+ if(model.rail&&!model.rail.confidenceLabel){const labels={mc:'SYSTEM COVERAGE',macro:'MODEL INPUT COVERAGE',ew:'WARNING COMPLETENESS',alpha:'RESEARCH COVERAGE',co:'EVIDENCE COMPLETENESS',flow:'OBSERVATION COVERAGE',inst:'SOURCE COVERAGE',deriv:'EVIDENCE COMPLETENESS',sc:'TOPOLOGY COVERAGE',kg:'TOPOLOGY COVERAGE',execution:'CAPITAL PERMISSION',research:'RESEARCH MATURITY',rc:'PRODUCTION COVERAGE',datahealth:'SOURCE HEALTH'};model.rail.confidenceLabel=labels[view]||'CONTEXT COVERAGE';}
+ return model;
+}
+function getModel(){let model;switch(state.view){case'mc':model=modelMission();break;case'macro':model=modelMacro();break;case'ew':model=modelEarly();break;case'alpha':model=modelAlpha();break;case'inst':model=modelInstitutional();break;case'deriv':model=modelDerivatives();break;case'us':model=modelMarket('us','US STOCKS');break;case'ihsg':model=modelMarket('idx','IHSG');break;case'crypto':model=modelMarket('crypto','CRYPTO');break;case'commod':model=modelMarket('commodity','COMMODITIES');break;case'fx':model=modelFx();break;case'flow':model=modelFlow();break;case'sc':model=modelSupply();break;case'co':model=modelCompany();break;case'kg':model=modelKnowledge();break;case'execution':model=modelExecution();break;case'research':model=modelResearchProcess();break;case'datahealth':model=modelDataHealth();break;case'rc':model=modelValidation();break;default:model=modelMission();}return decorateModel(state.view,model);}
 
 
 function orientationClass(x){const v=String(x||'').toUpperCase();if(v==='LONG'||v==='CONSTRUCTIVE'||v==='LEADING')return'long';if(v==='SHORT'||v==='ADVERSE'||v==='LAGGING')return'short';if(v==='BLOCKED')return'blocked';return'neutral';}
@@ -841,7 +880,7 @@ function acceptSnapshot(next){
  if(!next||typeof next!=='object')return false;
  const rt=obj(next.runtime), revision=Number(rt.snapshot_sequence||0), hash=String(rt.content_hash||'');
  if((hash&&hash===lastContentHash)||(!hash&&revision===lastRevision))return false;
- D=next;LI=obj(D.live_intelligence);FLD=obj(D.full_live_data);RK=obj(D.research_kernel);sourceState=obj(D.data_health).overall||obj(D.meta).source||'NO_DATA';lastRevision=revision;lastContentHash=hash;lastPollOkAt=Date.now();
+ D=next;LI=obj(D.live_intelligence);FLD=obj(D.full_live_data);RK=obj(D.research_kernel);RE=obj(D.research_evidence_v53);RE62=obj(D.research_evidence_v62);sourceState=obj(D.data_health).overall||obj(D.meta).source||'NO_DATA';lastRevision=revision;lastContentHash=hash;lastPollOkAt=Date.now();
  requestAnimationFrame(render);return true;
 }
 async function fetchJsonBounded(url,timeoutMs=3500){

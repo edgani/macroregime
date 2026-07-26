@@ -1,7 +1,6 @@
 """entry.py — L13 Entry Engine. GCFIS: Entry = 0.25*Trend+0.25*Momentum+0.20*Dealer+0.15*Liquidity
 +0.15*Structure. Classifies Breakout/Pullback/Continuation/Mean-Reversion, GAMMA-AWARE:
-  GEX<0 (momentum regime) -> Breakout/Continuation valid (dealers amplify)
-  GEX>0 (mean-reversion regime) -> Pullback/Mean-Reversion valid (dealers fade)
+  Verified short-gamma inventory may reinforce Breakout/Continuation; verified long-gamma inventory may reinforce Pullback/Mean-Reversion. Unsigned public OI has zero dealer contribution.
 Risk-range (Hedgeye-style) gives stop & target -> R/R. Wrong-regime entries are flagged INVALID."""
 from __future__ import annotations
 import numpy as np, pandas as pd
@@ -75,10 +74,11 @@ def run_entry(price: pd.Series, direction: str, dealer: dict | None = None,
 
     trend = float(np.tanh((p / sma50 - 1) * 10) + np.sign(sma50 - sma200) * 0.3)
     mom = float(np.tanh((rsi - 50) / 20))
-    raw_dsign = (dealer or {}).get("gex_sign")
+    sign_verified = str((dealer or {}).get("dealer_sign_state", "UNKNOWN")) == "VERIFIED_PROVENANCE"
+    raw_dsign = (dealer or {}).get("gex_sign") if sign_verified else None
     dsign = float(raw_dsign) if raw_dsign in (-1, 1, -1.0, 1.0) else 0.0
-    gregime = str((dealer or {}).get("regime", "unknown"))
-    # Dealer contribution is zero unless contract-level dealer sign is explicitly supplied.
+    gregime = str((dealer or {}).get("regime", "unknown")) if sign_verified else "unknown"
+    # Dealer contribution is zero unless exact inventory sign has verified provenance.
     dealer_contrib = dsign * (1 if direction == "long" else -1) * -1
     liq = (liquidity_score - 50) / 50.0
     structure = float((pos - 0.5) * 2) if direction == "long" else float((0.5 - pos) * 2)

@@ -18,6 +18,7 @@ from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple
+from position_lifecycle import classify_position_lifecycle
 import hashlib
 import json
 import math
@@ -28,6 +29,8 @@ import time
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+
+from options_volatility_flow import analyze_options_volatility_flow
 
 HERE = Path(__file__).resolve().parent
 CACHE_DIR = HERE / ".cache" / "live_intelligence"
@@ -879,7 +882,7 @@ def summarize_uw_live_rows(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
     total_delta_values: List[float] = []
     dir_vega_values: List[float] = []
     total_vega_values: List[float] = []
-    gamma_values: List[float] = []
+    gamma_magnitude_values: List[float] = []
     vanna_values: List[float] = []
     charm_values: List[float] = []
     call_premium_values: List[float] = []
@@ -933,7 +936,7 @@ def summarize_uw_live_rows(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
         if total_delta is not None: total_delta_values.append(total_delta)
         if dir_vega is not None: dir_vega_values.append(dir_vega)
         if total_vega is not None: total_vega_values.append(total_vega)
-        if gamma is not None: gamma_values.append(gamma)
+        if gamma is not None: gamma_magnitude_values.append(abs(gamma))
         if vanna is not None: vanna_values.append(vanna)
         if charm is not None: charm_values.append(charm)
 
@@ -979,7 +982,7 @@ def summarize_uw_live_rows(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
         strike_gex = _first_number(payload, ("gamma_exposure", "gex", "net_gamma", "gamma_oi", "net_gex"))
         if strike is not None and strike_gex is not None:
             strikes.append({
-                "strike": strike, "gex": strike_gex,
+                "strike": strike, "gamma_magnitude": abs(strike_gex),
                 "expiry": expiry, "topic": topic,
             })
         zg = _first_number(payload, ("zero_gamma", "zero_gamma_level", "gamma_flip", "zeroGamma"))
@@ -1031,7 +1034,7 @@ def summarize_uw_live_rows(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
     total_delta_total = total(total_delta_values)
     dir_vega_total = total(dir_vega_values)
     total_vega_total = total(total_vega_values)
-    gamma_total = total(gamma_values)
+    gamma_magnitude_total = total(gamma_magnitude_values)
     vanna_total = total(vanna_values)
     charm_total = total(charm_values)
     call_premium_total = total(call_premium_values)
@@ -1040,8 +1043,7 @@ def summarize_uw_live_rows(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
     if premium_diff is None and (call_premium_total is not None or put_premium_total is not None):
         premium_diff = (call_premium_total or 0.0) - (put_premium_total or 0.0)
 
-    pos = max((x for x in strikes if x["gex"] >= 0), key=lambda x: x["gex"], default=None)
-    neg = min((x for x in strikes if x["gex"] < 0), key=lambda x: x["gex"], default=None)
+    gamma_concentration = max(strikes, key=lambda x: x["gamma_magnitude"], default=None)
     bucket_values = list(directional_buckets.values())
     if bucket_values:
         dominant_sign = 1 if sum(bucket_values) > 0 else -1 if sum(bucket_values) < 0 else 0
@@ -1056,9 +1058,7 @@ def summarize_uw_live_rows(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
     volatility_context = "NO_DATA"
     if dir_vega_total is not None:
         volatility_context = "VOLATILITY_DEMAND" if dir_vega_total > 0 else "VOLATILITY_SUPPLY" if dir_vega_total < 0 else "FLAT"
-    gamma_context = "NO_DATA"
-    if gamma_total is not None:
-        gamma_context = "POSITIVE_GAMMA_CONTEXT" if gamma_total > 0 else "NEGATIVE_GAMMA_CONTEXT" if gamma_total < 0 else "FLAT_GAMMA"
+    gamma_context = "UNSIGNED_MAGNITUDE_PROVIDER_MODEL" if gamma_magnitude_total is not None else "NO_DATA"
 
     return {
         "state": "LIVE", "records": len(rows), "topics": topics, "topic_counts": topic_counts,
@@ -1071,11 +1071,15 @@ def summarize_uw_live_rows(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
         "total_vega_flow": total_vega_total,
         "directional_vega_flow_direction": direction(dir_vega_total),
         "volatility_context": volatility_context,
-        "gamma_flow": gamma_total, "gamma_flow_direction": direction(gamma_total),
+        "gamma_flow": None, "gamma_flow_direction": "WITHHELD",
+        "unsigned_gamma_magnitude": gamma_magnitude_total,
         "gamma_context": gamma_context,
         "vanna": vanna_total, "charm": charm_total,
-        "largest_positive_gex": pos, "largest_negative_gex": neg,
+        "largest_positive_gex": None, "largest_negative_gex": None,
+        "largest_gamma_concentration": gamma_concentration,
         "zero_gamma_level": latest_zero_gamma,
+        "zero_gamma_semantics": "Provider model reference only; dealer inventory sign is not identified.",
+        "dealer_sign_state": "UNKNOWN",
         "net_call_premium": call_premium_total,
         "net_put_premium": put_premium_total,
         "net_option_premium_difference": premium_diff,
@@ -1090,7 +1094,7 @@ def summarize_uw_live_rows(rows: Sequence[Dict[str, Any]]) -> Dict[str, Any]:
         "calibrated_probability": None,
         "interpretation": (
             "Directional delta flow describes current option-side directional pressure; directional vega describes volatility demand/supply. "
-            "Both can reflect hedges, spreads, rolls or closing trades. GEX is exposure context, not observed dealer inventory."
+            "Both can reflect hedges, spreads, rolls or closing trades. Provider gamma fields are retained only as unsigned magnitude/model references, not observed dealer inventory."
         ),
     }
 
@@ -1102,7 +1106,7 @@ def integrate_option_context(chain: Dict[str, Any], live: Dict[str, Any]) -> Dic
     if not isinstance(live, dict):
         live = {"state": "NO_DATA", "records": 0}
 
-    score = _f(chain.get("context_score"), 50.0) or 50.0
+    composition_score = _f(chain.get("chain_composition_score"), 50.0) or 50.0
     drivers = list(chain.get("drivers") or [])
     evidence: List[str] = []
     if chain.get("state") == "LIVE":
@@ -1111,41 +1115,41 @@ def integrate_option_context(chain: Dict[str, Any], live: Dict[str, Any]) -> Dic
     ddf = _f(live.get("directional_delta_flow"))
     persistence = _f(live.get("directional_delta_persistence_5m"))
     if ddf is not None:
-        score += 8.0 if ddf > 0 else -8.0 if ddf < 0 else 0.0
+        composition_score += 8.0 if ddf > 0 else -8.0 if ddf < 0 else 0.0
         drivers.append(f"streamed directional delta {'positive' if ddf > 0 else 'negative' if ddf < 0 else 'flat'}")
         evidence.append("directional_delta_flow")
         if persistence is not None and live.get("directional_delta_buckets", 0) >= 2:
-            score += (4.0 if ddf > 0 else -4.0) * _clip(persistence, 0.0, 1.0)
+            composition_score += (4.0 if ddf > 0 else -4.0) * _clip(persistence, 0.0, 1.0)
             drivers.append(f"5m delta-flow persistence {persistence:.0%}")
 
     premium_diff = _f(live.get("net_option_premium_difference"))
     if premium_diff is not None:
-        score += 6.0 if premium_diff > 0 else -6.0 if premium_diff < 0 else 0.0
+        composition_score += 6.0 if premium_diff > 0 else -6.0 if premium_diff < 0 else 0.0
         drivers.append(f"streamed call-minus-put premium {'positive' if premium_diff > 0 else 'negative' if premium_diff < 0 else 'flat'}")
         evidence.append("net_option_premium")
 
     rr = _f(live.get("risk_reversal_skew"))
     if rr is not None:
         # Most providers encode positive call-over-put RR; keep contribution small because conventions vary.
-        score += _clip(rr * 20.0, -3.0, 3.0)
+        composition_score += _clip(rr * 20.0, -3.0, 3.0)
         drivers.append(f"risk-reversal skew {rr:+.4f}; provider convention must be checked")
         evidence.append("risk_reversal")
 
-    if live.get("gamma_flow") is not None or chain.get("gamma_proxy") is not None:
+    if live.get("unsigned_gamma_magnitude") is not None or chain.get("gamma_proxy") is not None:
         evidence.append("gamma_context")
     if live.get("directional_vega_flow") is not None:
         evidence.append("vega_context")
     if live.get("option_state_open_interest") is not None or chain.get("call_oi") is not None:
         evidence.append("open_interest")
 
-    score = _clip(score)
-    lean = "UPSIDE_PRESSURE_CONTEXT" if score >= 60 else "DOWNSIDE_PRESSURE_CONTEXT" if score <= 40 else "BALANCED_CONTEXT"
+    composition_score = _clip(composition_score)
+    composition = "CALL_HEAVY_FLOW_CONTEXT" if composition_score >= 60 else "PUT_HEAVY_FLOW_CONTEXT" if composition_score <= 40 else "BALANCED_FLOW_CONTEXT"
 
     zones = dict(chain.get("zones") or {})
     streamed_moves = live.get("expected_moves") or []
     if streamed_moves:
         zones["streamed_expected_moves"] = streamed_moves
-    for key in ("largest_positive_gex", "largest_negative_gex", "zero_gamma_level"):
+    for key in ("largest_gamma_concentration", "zero_gamma_level"):
         value = live.get(key)
         if value is not None:
             zones[f"stream_{key}"] = value
@@ -1169,8 +1173,12 @@ def integrate_option_context(chain: Dict[str, Any], live: Dict[str, Any]) -> Dic
     completeness = round(100 * len(set(evidence)) / 7, 1)
     return {
         "state": "LIVE" if evidence else "NO_DATA",
-        "context_score": round(score, 1),
-        "directional_context": lean,
+        "chain_composition_score": round(composition_score, 1),
+        "chain_composition_context": composition,
+        "context_score": None,
+        "directional_context": "WITHHELD",
+        "standalone_direction": "WITHHELD",
+        "live_decision_weight": 0.0,
         "volatility_context": live.get("volatility_context") or "NO_DATA",
         "gamma_context": live.get("gamma_context") or chain.get("gamma_context") or "NO_DATA",
         "reference_zones": zones,
@@ -1182,6 +1190,7 @@ def integrate_option_context(chain: Dict[str, Any], live: Dict[str, Any]) -> Dic
         "target_semantics": "Reference zones and expiry-implied ranges only; no guaranteed price target.",
         "duration_semantics": "Expiry/DTE and observed persistence define the context horizon; they do not predict exact move duration.",
         "calibrated_probability": None,
+        "semantics": "Observed option-side composition/flow context only; beneficiary intent and future spot direction are not identified.",
     }
 
 
@@ -1231,11 +1240,46 @@ def _expiry_sort(value: Any) -> str:
     return s[:10] if len(s) >= 10 else s
 
 
-def summarize_option_chain(ticker: str, rows: Sequence[Dict[str, Any]], flow_events: Sequence[Dict[str, Any]] = ()) -> Dict[str, Any]:
-    valid = [dict(r) for r in rows if _f(r.get("strike")) is not None]
+def summarize_option_chain(
+    ticker: str,
+    rows: Sequence[Dict[str, Any]],
+    flow_events: Sequence[Dict[str, Any]] = (),
+    *,
+    observed_at: Optional[str] = None,
+    feed_state: Optional[str] = None,
+    venue: Optional[str] = None,
+    market: str = "us",
+) -> Dict[str, Any]:
+    """Summarize exact option contracts without upgrading chain context into direction.
+
+    ``capability_evidence`` is intentionally row-level: a generic LIVE provider flag is not
+    enough.  Every accepted row needs an exact contract, expiry, strike and call/put type.
+    Quote counts are reported separately; public OI never establishes dealer sign.
+    """
+    valid: List[Dict[str, Any]] = []
+    quote_rows = 0
+    for raw in rows:
+        r = dict(raw)
+        strike = _f(r.get("strike"))
+        expiry = r.get("expiration") or r.get("expiry_code")
+        typ = str(r.get("option_type") or "").lower()
+        contract = str(r.get("contract") or "").strip()
+        if strike is None or strike <= 0 or not expiry or typ[:1] not in {"c", "p"} or not contract:
+            continue
+        bid, ask = _f(r.get("bid") or r.get("bid_price")), _f(r.get("ask") or r.get("ask_price"))
+        if bid is not None and ask is not None and bid >= 0 and ask >= bid:
+            quote_rows += 1
+        valid.append(r)
     if not valid:
-        return {"ticker": ticker, "state": "NO_DATA", "contracts": 0, "calibrated_probability": None,
-                "note": "No option-chain rows available."}
+        return {
+            "ticker": ticker, "state": "NO_DATA", "contracts": 0,
+            "observed_at": observed_at, "calibrated_probability": None,
+            "capability_evidence": {
+                "row_level_validated": False, "exact_contracts": 0, "quote_rows": 0,
+                "providers": [], "venues": [venue] if venue else [], "observed_at": observed_at,
+            },
+            "note": "No exact option-contract rows available.",
+        }
     spot = _median(_f(r.get("underlying_price")) for r in valid)
     expiries = sorted({str(r.get("expiration") or r.get("expiry_code") or "") for r in valid if r.get("expiration") or r.get("expiry_code")}, key=_expiry_sort)
     nearest = expiries[0] if expiries else None
@@ -1389,19 +1433,53 @@ def summarize_option_chain(ticker: str, rows: Sequence[Dict[str, Any]], flow_eve
         "expected_move_upper": spot + expected_move if spot is not None and expected_move is not None else None,
         "expected_move_lower": spot - expected_move if spot is not None and expected_move is not None else None,
     }
+    providers = sorted({str(r.get("provider") or "").strip() for r in valid if r.get("provider")})
+    venues = sorted({str(r.get("venue") or "").strip() for r in valid if r.get("venue")})
+    if venue and venue not in venues:
+        venues.append(venue)
+    effective_state = str(feed_state or "LIVE").upper()
+    if effective_state not in {"LIVE", "STALE"}:
+        effective_state = "NO_DATA"
+    evidence_time = observed_at or _utc_now()
+    research_rows: List[Dict[str, Any]] = []
+    for original in valid:
+        rr = dict(original)
+        rr.setdefault("state", effective_state)
+        rr.setdefault("observed_at", evidence_time)
+        rr.setdefault("venue", venue or ("CBOE_OR_OPRA" if market == "us" else None))
+        rr.setdefault("multiplier", 100.0 if market == "us" else _f(rr.get("contract_size"), 1.0))
+        if (_f(rr.get("open_interest"), 0.0) or 0.0) > 0 and rr.get("oi_reporting_note"):
+            rr.setdefault("open_interest_observed_at", evidence_time)
+        research_rows.append(rr)
+    volatility_flow = analyze_options_volatility_flow(research_rows, market)
     return {
-        "ticker": ticker, "state": "LIVE", "contracts": len(valid), "spot": spot,
+        "ticker": ticker, "underlying": ticker, "state": effective_state,
+        "observed_at": evidence_time, "contracts": len(valid), "spot": spot,
+        "capability_evidence": {
+            "row_level_validated": True,
+            "exact_contracts": len(valid),
+            "quote_rows": quote_rows,
+            "providers": providers,
+            "venues": venues,
+            "venue": venue,
+            "product_type": "LISTED_OPTION",
+            "underlying": ticker,
+            "observed_at": evidence_time,
+        },
         "nearest_expiry": nearest, "expiries_loaded": len(expiries),
         "call_oi": call_oi, "put_oi": put_oi, "put_call_oi": pcr_oi,
         "call_volume": call_vol, "put_volume": put_vol, "put_call_volume": pcr_vol,
         "gamma_magnitude": total_gamma, "gamma_proxy": total_gamma, "gamma_context": gamma_context,
+        "options_volatility_flow": volatility_flow,
         "call_minus_put_gamma_proxy": call_minus_put_gamma_proxy,
         "vanna_magnitude": total_vanna, "vanna_proxy": total_vanna,
         "charm_magnitude": total_charm, "charm_proxy": total_charm,
         "dte_buckets": dte_buckets,
         "dealer_sign_state": "UNKNOWN", "ownership_state": "UNVERIFIED",
         "skew_25d": skew_25d, "atm_iv_term": atm_iv_by_expiry, "term_slope": term_slope,
-        "flow_balance": flow_balance, "context_score": round(score, 1), "directional_context": lean,
+        "flow_balance": flow_balance, "chain_composition_score": round(score, 1),
+        "chain_composition_context": lean, "context_score": None, "directional_context": "WITHHELD",
+        "standalone_direction": "WITHHELD", "live_decision_weight": 0.0,
         "drivers": drivers, "zones": zones,
         "horizon_context": f"Nearest loaded expiry {nearest}; expected-move band is expiry-specific." if nearest else "No expiry horizon loaded.",
         "calibrated_probability": None,
@@ -1581,8 +1659,14 @@ def summarize_us_squeeze(ticker: str, short_row: Optional[Dict[str, Any]], optio
     if any(x in setup_state.upper() for x in ("SHORT", "SELL", "DISTRIB", "BREAKDOWN")):
         score_long += 6; long_drivers.append(f"price state {setup_state}")
     state = "LIVE" if (short_row or {}).get("state") == "LIVE" or opt.get("state") == "LIVE" else "PARTIAL"
+    _si_change=_f((short_row or {}).get("short_interest_change_pct"))
+    _life_obs={"participant_short_change":_si_change}
+    # Price setup labels are intentionally not converted into a numeric return. They can disclose
+    # context in the UI, but cannot manufacture a signed build or a confirmed top.
+    lifecycle=classify_position_lifecycle("us", _life_obs)
     return {
         "ticker": ticker, "state": state,
+        "position_lifecycle": lifecycle,
         "short_squeeze_pressure": round(_clip(score_short), 1),
         "long_squeeze_pressure": round(_clip(score_long), 1),
         "short_squeeze_drivers": short_drivers, "long_squeeze_drivers": long_drivers,
@@ -1687,8 +1771,10 @@ def collect_live_market_intelligence(desk: Dict[str, Any], institutional: Option
     statuses: List[Dict[str, Any]] = []
     crypto_rows: List[Dict[str, Any]] = []
     option_chains: Dict[str, List[Dict[str, Any]]] = {}
+    option_chain_status: Dict[str, Dict[str, Any]] = {}
     short_rows: Dict[str, Dict[str, Any]] = {}
     deribit_chains: Dict[str, List[Dict[str, Any]]] = {}
+    deribit_status: Dict[str, Dict[str, Any]] = {}
     coinglass: Dict[str, Any] = {}
 
     for key, result in results.items():
@@ -1702,9 +1788,11 @@ def collect_live_market_intelligence(desk: Dict[str, Any], institutional: Option
             statuses.extend(result.get("statuses") or [])
         elif prefix == "deribit":
             deribit_chains[name] = result.get("data") or []
+            deribit_status[name] = result.get("status") or {}
             statuses.append(result.get("status") or {})
         elif prefix in {"massive", "yfopt"}:
             option_chains[name] = result.get("data") or []
+            option_chain_status[name] = result.get("status") or {}
             statuses.append(result.get("status") or {})
         elif prefix in {"ortex", "intrinio"}:
             candidate = result.get("row")
@@ -1726,7 +1814,13 @@ def collect_live_market_intelligence(desk: Dict[str, Any], institutional: Option
     option_summaries: List[Dict[str, Any]] = []
     for ticker in option_tickers:
         chain = option_chains.get(ticker) or []
-        summary = summarize_option_chain(ticker, chain, flow_events)
+        chain_status = option_chain_status.get(ticker) or {}
+        summary = summarize_option_chain(
+            ticker, chain, flow_events,
+            observed_at=chain_status.get("fetched_at"),
+            feed_state=chain_status.get("state"),
+            market="us",
+        )
         # Merge normalized live state from the bridge without converting flow into dealer-position claims.
         bridge_rows: List[Dict[str, Any]] = []
         for r in all_uw_rows:
@@ -1746,15 +1840,24 @@ def collect_live_market_intelligence(desk: Dict[str, Any], institutional: Option
         summary["integrated_context"] = integrate_option_context(summary, live_context)
         # Promote the integrated labels for UI compatibility while preserving the original chain-only fields.
         if summary["integrated_context"].get("state") == "LIVE":
-            summary["integrated_directional_context"] = summary["integrated_context"].get("directional_context")
-            summary["integrated_context_score"] = summary["integrated_context"].get("context_score")
+            summary["integrated_chain_composition_context"] = summary["integrated_context"].get("chain_composition_context")
+            summary["integrated_chain_composition_score"] = summary["integrated_context"].get("chain_composition_score")
+            summary["integrated_directional_context"] = "WITHHELD"
+            summary["integrated_context_score"] = None
         option_summaries.append(summary)
 
     # Crypto option summaries from Deribit are separate venue snapshots.
     crypto_option_summaries: List[Dict[str, Any]] = []
     for currency, chain in deribit_chains.items():
-        s = summarize_option_chain(currency, chain, ())
+        chain_status = deribit_status.get(currency) or {}
+        s = summarize_option_chain(
+            currency, chain, (), venue="Deribit",
+            observed_at=chain_status.get("fetched_at"),
+            feed_state=chain_status.get("state"),
+            market="crypto",
+        )
         s["venue"] = "Deribit"
+        s["underlying"] = currency
         crypto_option_summaries.append(s)
 
     crypto_aggregates = [aggregate_crypto_asset(asset, crypto_rows) for asset in crypto_assets]
@@ -1766,6 +1869,16 @@ def collect_live_market_intelligence(desk: Dict[str, Any], institutional: Option
             row["liquidation_heatmap_available"] = bool(coinglass[row["asset"]])
         else:
             row["liquidation_heatmap_available"] = False
+        _taker=row.get("taker_buy_sell_ratio_median")
+        _aggr=(None if _taker is None or 0.90 <= float(_taker) <= 1.10 else float(_taker)-1.0)
+        row["position_lifecycle"] = classify_position_lifecycle("crypto", {
+            "price_change_pct": row.get("price_change_since_reference_pct"),
+            "open_interest_change_pct": row.get("oi_change_since_reference_pct"),
+            "funding_change": row.get("funding_rate_mean"),
+            "aggressor_flow": _aggr,
+            "liquidation_imbalance": ((row.get("coinglass") or {}).get("liquidation_imbalance")
+                                      if isinstance(row.get("coinglass"), dict) else None),
+        })
 
     # Build US squeeze summaries using current desk setup when available.
     setup_map: Dict[str, Dict[str, Any]] = {}
@@ -1787,8 +1900,8 @@ def collect_live_market_intelligence(desk: Dict[str, Any], institutional: Option
         if row.get("state") != "NO_DATA":
             events.append({
                 "event_type": "OPTIONS_STATE", "provider": "Option chain + optional UW bridge", "ticker": row.get("ticker"),
-                "timestamp": _utc_now(), "state": (row.get("integrated_context") or {}).get("directional_context") or row.get("directional_context"),
-                "description": f"{(row.get('integrated_context') or {}).get('directional_context') or row.get('directional_context')} · {(row.get('integrated_context') or {}).get('gamma_context') or row.get('gamma_context')} · context {(row.get('integrated_context') or {}).get('context_score') or row.get('context_score')}",
+                "timestamp": _utc_now(), "state": (row.get("integrated_context") or {}).get("chain_composition_context") or row.get("chain_composition_context") or "NO_DATA",
+                "description": f"{(row.get('integrated_context') or {}).get('chain_composition_context') or row.get('chain_composition_context') or 'NO_DATA'} · {(row.get('integrated_context') or {}).get('gamma_context') or row.get('gamma_context')} · composition {(row.get('integrated_context') or {}).get('chain_composition_score') if (row.get('integrated_context') or {}).get('chain_composition_score') is not None else row.get('chain_composition_score')}",
                 "observed": True, "position_inference": "CONTEXT_ONLY", "raw": row,
             })
     events.sort(key=lambda x: str(x.get("timestamp") or ""), reverse=True)

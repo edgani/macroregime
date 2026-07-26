@@ -77,7 +77,10 @@ def read_json(path: Path, *, include_age: bool = True) -> Optional[dict]:
 
 
 def read_snapshot() -> Optional[dict]:
-    return read_json(SNAPSHOT)
+    obj = read_json(SNAPSHOT)
+    if not obj or not snapshot_integrity_valid(obj):
+        return None
+    return obj
 
 
 def read_status() -> Optional[dict]:
@@ -118,7 +121,14 @@ def _stable_copy(value: Any, key_hint: str = "") -> Any:
 
 def content_hash(desk: dict) -> str:
     canonical = json.dumps(_stable_copy(desk), default=str, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
-    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:20]
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def snapshot_integrity_valid(desk: dict) -> bool:
+    if not isinstance(desk, dict):
+        return False
+    expected = str(((desk.get("runtime") or {}).get("content_hash") or ""))
+    return len(expected) == 64 and expected == content_hash(desk)
 
 
 def write_snapshot(desk: dict, *, force: bool = False) -> dict:

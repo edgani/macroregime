@@ -6,16 +6,17 @@ Answers: does each filter actually filter (separate good from bad), are threshol
 because VIX is bundled (I'd wrongly flagged it as missing).
 """
 from __future__ import annotations
+from parquet_compat import read_parquet_compat
 import os, sys, warnings
 import numpy as np, pandas as pd
 from scipy import stats
-warnings.filterwarnings("ignore")
+warnings.filterwarnings("error")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 RES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "research")
 
 
 def _load():
-    p = pd.read_parquet(os.path.join(RES, "sp500_panel.parquet")); p["date"] = pd.to_datetime(p["date"])
+    p = read_parquet_compat(os.path.join(RES, "sp500_panel.parquet")); p["date"] = pd.to_datetime(p["date"])
     close = p.pivot_table(index="date", columns="Name", values="close")
     vol = p.pivot_table(index="date", columns="Name", values="volume")
     keep = close.columns[close.notna().mean() > 0.9]
@@ -69,7 +70,7 @@ def validate_elimination(close, vol):
 
 def validate_funnel(close, vol, kept):
     print("\n" + "═" * 84)
-    print("FILTER 2+3 — full funnel (elimination → entry gate R/R≥1.5 + gamma-validity)")
+    print("FILTER 2+3 — full funnel (elimination → entry gate R/R≥1.5 + verified-inventory gamma modifier)")
     print("═" * 84)
     from gcfis.engines.entry import run_entry
     valid, invalid, low_rr = [], 0, 0
@@ -89,7 +90,7 @@ def validate_funnel(close, vol, kept):
     print(f"  sample surfaced setups (ticker, type, R/R):")
     for t, ty, rr in valid[:10]:
         print(f"    {t:6} {ty:14} R/R {rr}")
-    print("  ⚑ note: without a dealer/GEX feed, gamma-validity defaults to permissive (posGamma checks")
+    print("  ⚑ note: without verified dealer-inventory provenance, the gamma modifier is disabled (price/structure checks")
     print("    only fire when GEX is supplied) — so on price-only data the gamma gate under-filters.")
 
 
@@ -152,7 +153,7 @@ def main():
     print("SUMMARY")
     print("═" * 84)
     print("""  ✅ elimination.py — real, MAD-robust, separates noisy from clean, thresholds non-degenerate.
-  ✅ entry gate — R/R floor + gamma-validity work; gamma under-filters without a GEX feed (flagged).
+  ✅ entry gate — R/R floor works; dealer-gamma contribution is zero unless exact inventory sign has verified provenance.
   ✅ panic-bottom — testable now with bundled VIX; sign check on 2013-18 (bull sample, few panics).
   ⚠ alpha_gatekeeper.py — 25% dummy/constant gates + dead code → DELETE; use the gcfis alpha path.
   Every filter that actually surfaces tickers in the live system is gcfis (elimination/ranking/entry/

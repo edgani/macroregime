@@ -1,0 +1,43 @@
+{
+  "schema": "warroom.research.options_volatility_flow.v70",
+  "protocol_parent": "V69_OPTIONS_GAMMA_MAPPING",
+  "status": "IMPLEMENTED_RESEARCH_ONLY",
+  "implementation": {
+    "module": "options_volatility_flow.py",
+    "live_integration": "live_market_intelligence.summarize_option_chain",
+    "dealer_engine_hardening": "gcfis/engines/dealer.py",
+    "dashboard_semantics": "chain composition, IV/RV and mechanical regime; direction withheld",
+    "validation": "V70_OPTIONS_GAMMA_VALIDATION.json"
+  },
+  "implemented_metric_families": [
+    "tradable_atm_straddle_expected_move",
+    "atm_implied_vs_trailing_realized_volatility_context",
+    "unsigned_gamma_vanna_charm_magnitude",
+    "verified_signed_dealer_gamma_vanna_charm",
+    "liquidity_normalized_hedge_flow",
+    "strike_concentration_hhi",
+    "discrete_delta_hedge_path_diagnostic"
+  ],
+  "not_implemented_without_historical_exact_data": [
+    "calibrated_pin_vs_break_probability",
+    "calibrated_first_passage_probability",
+    "dealer_sign_inference_from_gross_oi",
+    "production_gamma_scalping_profit_forecast",
+    "standalone_direction"
+  ],
+  "dealer_sign_contract": {
+    "all_rows_required": true,
+    "dealer_inventory_verified": true,
+    "minimum_confidence": 0.8,
+    "approved_sources": [
+      "EXCHANGE_PARTICIPANT_OPEN_CLOSE",
+      "CLEARING_MEMBER_POSITION_FILE",
+      "SIGNED_DEALER_INVENTORY_FEED",
+      "AUDITED_POSITION_RECEIPT"
+    ],
+    "maximum_inventory_age_seconds": 86400
+  },
+  "live_decision_weight": 0.0,
+  "predictive_components_promoted": 0,
+  "capital_permission": "BLOCKED"
+}

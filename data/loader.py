@@ -15,15 +15,16 @@ from typing import Dict, Iterable, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import io
 import os
-import pickle
 import time
+
+from safe_snapshot import read_safe_snapshot, write_safe_snapshot
 
 import numpy as np
 import pandas as pd
 import requests
 
 _HERE = Path(__file__).resolve().parents[1]
-_CACHE_PATH = _HERE / ".cache" / "price_cache.pkl"
+_CACHE_PATH = _HERE / ".cache" / "price_cache.json.gz"
 _CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 # Yahoo changed/uses non-intuitive canonical symbols for several instruments. Keep the
@@ -352,14 +353,8 @@ def _load_disk_cache() -> dict[str, tuple[float, pd.DataFrame]]:
     if _DISK_CACHE is not None:
         return _DISK_CACHE
     try:
-        if _CACHE_PATH.exists():
-            raw = pickle.loads(_CACHE_PATH.read_bytes())
-            if isinstance(raw, dict):
-                _DISK_CACHE = raw
-            else:
-                _DISK_CACHE = {}
-        else:
-            _DISK_CACHE = {}
+        raw = read_safe_snapshot(_CACHE_PATH, expected_schema="warroom.price_cache.v1") if _CACHE_PATH.exists() else {}
+        _DISK_CACHE = raw if isinstance(raw, dict) else {}
     except Exception:
         _DISK_CACHE = {}
     return _DISK_CACHE
@@ -367,22 +362,9 @@ def _load_disk_cache() -> dict[str, tuple[float, pd.DataFrame]]:
 
 def _save_disk_cache(cache: dict[str, tuple[float, pd.DataFrame]]) -> None:
     try:
-        tmp = _CACHE_PATH.with_name(f"{_CACHE_PATH.name}.{os.getpid()}.tmp")
-        payload = pickle.dumps(cache, protocol=pickle.HIGHEST_PROTOCOL)
-        with open(tmp, "wb") as handle:
-            handle.write(payload)
-            handle.flush()
-            try:
-                os.fsync(handle.fileno())
-            except OSError:
-                pass
-        os.replace(tmp, _CACHE_PATH)
+        write_safe_snapshot(_CACHE_PATH, cache, schema="warroom.price_cache.v1", source="data.loader")
     except Exception:
-        try:
-            tmp.unlink()
-        except Exception:
-            pass
-
+        pass
 
 def load_bundle(tickers: Iterable[str], days: int = 756, progress_cb=None) -> dict[str, pd.DataFrame]:
     names = _clean_tickers(tickers)
@@ -457,30 +439,26 @@ def load_ohlcv(tickers, days=756):
 
 
 def load_snapshot(max_age_hours=12.0):
-    legacy_path = _HERE / ".cache" / "legacy_snapshot.pkl"
-    if not legacy_path.exists():
-        return None
+    legacy_path = _HERE / ".cache" / "legacy_snapshot.json.gz"
     try:
-        age_hours = (datetime.now().timestamp() - legacy_path.stat().st_mtime) / 3600
-        if age_hours > max_age_hours:
-            return None
-        with legacy_path.open("rb") as handle:
-            return pickle.load(handle)
+        return read_safe_snapshot(
+            legacy_path, expected_schema="warroom.legacy_snapshot.v1",
+            max_age_seconds=float(max_age_hours) * 3600,
+        )
     except Exception:
         return None
 
 
 def save_snapshot(obj):
     try:
-        legacy_path = _HERE / ".cache" / "legacy_snapshot.pkl"
-        with legacy_path.open("wb") as handle:
-            pickle.dump(obj, handle)
+        legacy_path = _HERE / ".cache" / "legacy_snapshot.json.gz"
+        write_safe_snapshot(legacy_path, obj, schema="warroom.legacy_snapshot.v1", source="data.loader")
     except Exception:
         pass
 
 
 def snapshot_age_str():
-    legacy_path = _HERE / ".cache" / "legacy_snapshot.pkl"
+    legacy_path = _HERE / ".cache" / "legacy_snapshot.json.gz"
     if not legacy_path.exists():
         return "no cache"
     try:
@@ -492,3 +470,4 @@ def snapshot_age_str():
         return f"{int(age / 3600)}h ago"
     except Exception:
         return "unknown"
+

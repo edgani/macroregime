@@ -16,7 +16,7 @@ def run_crash_bottom(systemic: dict, internals: dict | None, per_ticker: dict) -
     delev = bool(cross.get("defer_longs")) or str(cross.get("regime", "")).upper().startswith("DELEV")
     n = max(len(per_ticker), 1)
     crowd_hi = sum(1 for a in per_ticker.values() if float(a.get("crowding", 50) or 50) > 80) / n
-    gex_known = [a for a in per_ticker.values() if (a.get("dealer") or {}).get("gex_sign")]
+    gex_known = [a for a in per_ticker.values() if str((a.get("dealer") or {}).get("dealer_sign_state", "UNKNOWN")) == "VERIFIED_PROVENANCE" and (a.get("dealer") or {}).get("gex_sign") in (-1, 1)]
     gex_neg = (sum(1 for a in gex_known if a["dealer"]["gex_sign"] < 0) / len(gex_known)) if gex_known else 0.5
     dist_sh = sum(1 for a in per_ticker.values()
                   if (a.get("flow") or {}).get("type") in ("DISTRIBUTION", "PANIC_LIQUIDATION")) / n

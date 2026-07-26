@@ -1,0 +1,66 @@
+{
+  "capital_permission": "BLOCKED",
+  "patches": [
+    {
+      "fix": "Added fail-closed research_evidence_v62 attachment; Research Loop and Validation Center now ingest the latest registry and 232,468-trial accounting.",
+      "id": "V63-01",
+      "issue": "V61/V62 evidence existed on disk but was absent from live Research and Validation tabs",
+      "severity": "CRITICAL"
+    },
+    {
+      "fix": "Production count now comes only from exact proof-registry entries with non-blocked capital permission and valid promotion semantics.",
+      "id": "V63-02",
+      "issue": "Validation could count legacy grade labels as production-like states",
+      "severity": "HIGH"
+    },
+    {
+      "fix": "Added instrument-type and known-fund exclusions; deterministic guard proves AAPL is selected when SPY ranks higher.",
+      "id": "V63-03",
+      "issue": "Company Intel could select benchmark ETFs such as SPY as a company",
+      "severity": "HIGH"
+    },
+    {
+      "fix": "Credit nodes now use official HY OAS only when loaded; otherwise NO_DATA. GROC/IROC/liquidity composites are labeled inferred research proxies.",
+      "id": "V63-04",
+      "issue": "Macro and Early Warning displayed fragility composite as observed HY credit spread",
+      "severity": "HIGH"
+    },
+    {
+      "fix": "All structural chain nodes are neutral/watch references; queue scores are zero and stages explicitly say STRUCTURAL REFERENCE.",
+      "id": "V63-05",
+      "issue": "Structural supply-chain tiers received constructive colors and numerical ranking scores",
+      "severity": "HIGH"
+    },
+    {
+      "fix": "Valuation uses scenario_valuation only and remains WITHHELD unless output is READY and probability is CALIBRATED.",
+      "id": "V63-06",
+      "issue": "Company valuation could fall back to legacy upside field",
+      "severity": "MEDIUM"
+    },
+    {
+      "fix": "Actions now explicitly say no capital/no trade; metrics are relabeled as system/model/observation coverage and derived from available evidence.",
+      "id": "V63-07",
+      "issue": "Mission/flow/macro actions and confidence labels could look like predictive conviction",
+      "severity": "MEDIUM"
+    },
+    {
+      "fix": "All 19 view models now append exact proof class and capital permission to the subtitle and expose machine-readable proof metadata.",
+      "id": "V63-08",
+      "issue": "Every tab lacked a consistent proof-class banner",
+      "severity": "MEDIUM"
+    },
+    {
+      "fix": "FX action always includes NO TRADE until signed exact-scope proof exists; metric is DRIVER COVERAGE.",
+      "id": "V63-09",
+      "issue": "FX descriptive action could appear as a trade action",
+      "severity": "MEDIUM"
+    },
+    {
+      "fix": "Company Intel selects the latest filed/available point-in-time row.",
+      "id": "V63-10",
+      "issue": "Latest filed SEC fundamental row was not explicitly sorted by availability date",
+      "severity": "LOW"
+    }
+  ],
+  "schema": "warroom.v63.patch_ledger"
+}

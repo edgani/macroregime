@@ -1,0 +1,29 @@
+{
+  "sec_financial_statement_data": {
+    "base_url": "https://www.sec.gov/files/dera/data/financial-statement-data-sets/{year}q{quarter}.zip",
+    "grade": "OFFICIAL_AS_FILED",
+    "availability": "quarterly",
+    "notes": "Use filed/accepted timestamps. The SEC warns structured extracts may contain filer or extraction errors."
+  },
+  "sec_company_tickers_exchange": {
+    "url": "https://www.sec.gov/files/company_tickers_exchange.json",
+    "grade": "OFFICIAL_CURRENT_MAPPING",
+    "notes": "Current mapping only; never backfill historical ticker identity without filing-time confirmation."
+  },
+  "price_dataset": {
+    "parquet_api": "https://huggingface.co/api/datasets/paperswithbacktest/Stocks-Daily-Price/parquet/default/train",
+    "grade": "THIRD_PARTY_RESEARCH",
+    "notes": "Hash every shard. Cross-check coverage. Not exchange-grade and not sufficient for executable intraday claims."
+  },
+  "historical_membership": {
+    "included_file": "data/reference/sp500_ticker_start_end.csv",
+    "source": "https://github.com/fja05680/sp500",
+    "grade": "THIRD_PARTY_RESEARCH",
+    "notes": "Historical S&P membership since 1996. Repository itself notes early-history and price-data limitations."
+  },
+  "nasdaq_current_universe": {
+    "included_file": "data/reference/current_us_universe_2026-07-17.csv",
+    "grade": "OFFICIAL_CURRENT_SNAPSHOT",
+    "notes": "Engineering/current universe only; not a historical universe."
+  }
+}

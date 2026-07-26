@@ -65,7 +65,7 @@ A squeeze context requires crowding plus a forcing mechanism plus price confirma
 Displayed “targets” are reference zones:
 
 - expiry-implied expected move;
-- call/put wall;
+- call/put OI concentration reference;
 - positive/negative GEX concentration;
 - zero-gamma/gamma-flip level when supplied;
 - modeled liquidation clusters;

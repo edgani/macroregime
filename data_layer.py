@@ -116,25 +116,25 @@ def load_fred(allow_live=True):
 
 def _load_feeds(allow_live=True, fetch_live=False):
     """Specialized flow feeds (on-chain / COT / GEX / dark-pool) that otherwise leave metrics gated.
-    PRIMARY path: read data/feeds_snapshot.pkl — build it once on a networked machine (build_feeds.py),
+    PRIMARY path: read data/feeds_snapshot.json.gz — build it once on a networked machine (build_feeds.py),
     commit it; the deploy then reads it, which also sidesteps Yahoo blocking datacenter IPs on Cloud.
     OPT-IN live path (fetch_live=True): best-effort direct fetch; each wrapped so a failure just leaves
     that feed empty — never crashes, never blocks. Returns {feed: value, "_status": {feed: how}}."""
-    import os, pickle
+    import os
+    from safe_snapshot import read_safe_snapshot
     feeds, status = {}, {}
     if not allow_live:
         feeds["_status"] = {"_mode": "offline/test mode; specialized live snapshots disabled"}
         return feeds
-    snap = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "feeds_snapshot.pkl")
+    snap = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "feeds_snapshot.json.gz")
     try:
         if os.path.exists(snap):
-            with open(snap, "rb") as f:
-                snapd = pickle.load(f) or {}
+            snapd = read_safe_snapshot(snap, expected_schema="warroom.feeds_snapshot.v1") or {}
             for k in ("onchain", "cot", "gex", "finra", "typef", "fx_carry"):
                 if snapd.get(k):
                     feeds[k] = snapd[k]; status[k] = f"snapshot · {snapd.get('_saved_at', '?')}"
         else:
-            status["_snapshot"] = "absent (run build_feeds.py on a networked machine, commit the .pkl)"
+            status["_snapshot"] = "absent (run build_feeds.py on a networked machine, commit the safe snapshot)"
     except Exception as e:
         status["_snapshot_error"] = f"{type(e).__name__}: {e}"
     if allow_live and fetch_live:

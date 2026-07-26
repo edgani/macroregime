@@ -1,0 +1,31 @@
+{
+  "capital_permission": "BLOCKED",
+  "checks": {
+    "compileall": true,
+    "event_candidate_count": true,
+    "event_ledger_count": true,
+    "event_production_zero": true,
+    "event_protocol_bound": true,
+    "network_candidate_count": true,
+    "network_ledger_count": true,
+    "network_production_zero": true,
+    "network_protocol_bound": true,
+    "origin_harness": true,
+    "registry_fail_closed": true,
+    "sec_pit_pipeline": true,
+    "trial_accounting": true,
+    "v60_mechanical_regression": true,
+    "v60_release_contracts": true,
+    "v61_fail_closed": true,
+    "v61_grid_hash": true,
+    "v61_protocol_hash": true,
+    "v62_fail_closed": true,
+    "v62_grid_hash": true,
+    "v62_protocol_hash": true
+  },
+  "live_decision_weight": 0.0,
+  "passed": 21,
+  "schema": "warroom.v62.validation",
+  "status": "PASS",
+  "total": 21
+}

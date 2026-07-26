@@ -7,8 +7,9 @@ t-stat, % positive — exactly alphalens' IC summary. Momentum is included as a 
 against the bundled factor_ic.parquet. Nothing fabricated; whatever the IC is, it prints.
 """
 from __future__ import annotations
+from parquet_compat import read_parquet_compat
 import sys, os, warnings, time
-warnings.filterwarnings("ignore")
+warnings.filterwarnings("error")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import numpy as np, pandas as pd
 from scipy.stats import spearmanr
@@ -21,7 +22,7 @@ MIN_XS = 40      # min tickers in a cross-section to compute IC
 
 
 def load_panel():
-    df = pd.read_parquet(os.path.join("research", "sp500_panel.parquet"))
+    df = read_parquet_compat(os.path.join("research", "sp500_panel.parquet"))
     df["date"] = pd.to_datetime(df["date"])
     out = {}
     for tk, g in df.groupby("Name"):

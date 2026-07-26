@@ -1,0 +1,29 @@
+{
+  "schema": "warroom.external_evidence_register.v72",
+  "status": "REFERENCE_ONLY_NOT_INTERNAL_REPLICATION",
+  "sources": [
+    {
+      "source_id": "CBOE_2025_0DTE_GAMMA_PAPER",
+      "title": "0DTE Index Options and Market Volatility: How Large is Their Impact?",
+      "publisher": "Cboe Global Markets",
+      "published": "2025-01-25",
+      "sample": "SPX/SPXW, July 2020 through June 2023",
+      "method": "aggregate OMM positions from signed market-maker trades from series inception; one-minute gamma; conditional variance models",
+      "reported_boundary": "OMM gamma was typically positive and negatively related to conditional variance; reported maximum gamma-related increases were 3.3 percentage points annualized daily volatility and 6.4 percentage points annualized 30-minute volatility; effects were not represented as universal directional alpha.",
+      "role": "causal-mechanism and implementation reference",
+      "internal_replication": false,
+      "live_decision_weight": 0.0
+    },
+    {
+      "source_id": "CBOE_GAMMA_INDEX",
+      "title": "Cboe GAMMA Index",
+      "publisher": "Cboe Global Markets",
+      "reported_use": "indicator of profitability of holding and delta hedging short-dated at-the-money options",
+      "role": "external gamma-scalping benchmark/challenger",
+      "forbidden_role": "dealer inventory, dealer direction, or capital permission",
+      "internal_replication": false,
+      "live_decision_weight": 0.0
+    }
+  ],
+  "capital_permission": "BLOCKED"
+}

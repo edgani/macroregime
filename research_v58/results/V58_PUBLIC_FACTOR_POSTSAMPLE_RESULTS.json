@@ -1,0 +1,3884 @@
+{
+  "bonferroni_one_sided_z": 3.0156722472036894,
+  "capital_permission": "BLOCKED",
+  "claims": [
+    {
+      "available_end": "2026-05-29",
+      "available_start": "1985-01-31",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "TSMOM:TSMOM",
+        "dataset": "TSMOM",
+        "expected_sign": "positive",
+        "family": "time_series_momentum",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2018-01-01",
+        "original_sample_end": "2009-12-31",
+        "series": "TSMOM",
+        "validation_end": "2017-12-31",
+        "validation_start": "2010-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": 0.026590489877484857,
+            "annualized_sharpe": 0.2016115597577344,
+            "bonferroni_lower_bound": -0.009063278506267924,
+            "hac_se": 0.003740178553283997,
+            "hac_t": 0.5924514364458516,
+            "leave_one_year_out_min_mean": -0.00014459001992408007,
+            "max_drawdown": -0.2553645834461683,
+            "mean_monthly": 0.0022158741564570713,
+            "n": 101,
+            "positive_year_fraction": 0.5555555555555556
+          },
+          "0.0025": {
+            "annualized_mean": -0.0034095101225151488,
+            "annualized_sharpe": -0.02585122188335865,
+            "bonferroni_lower_bound": -0.011563278506267925,
+            "hac_se": 0.003740178553283997,
+            "hac_t": -0.07596585015799778,
+            "leave_one_year_out_min_mean": -0.0026445900199240815,
+            "max_drawdown": -0.30458796106587394,
+            "mean_monthly": -0.00028412584354292906,
+            "n": 101,
+            "positive_year_fraction": 0.4444444444444444
+          },
+          "0.005": {
+            "annualized_mean": -0.03340951012251514,
+            "annualized_sharpe": -0.2533140035244516,
+            "bonferroni_lower_bound": -0.014063278506267922,
+            "hac_se": 0.0037401785532839966,
+            "hac_t": -0.744383136761847,
+            "leave_one_year_out_min_mean": -0.005144590019924081,
+            "max_drawdown": -0.41739681597116285,
+            "mean_monthly": -0.0027841258435429284,
+            "n": 101,
+            "positive_year_fraction": 0.2222222222222222
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": 0.07978177005244928,
+            "annualized_sharpe": 0.6165905779733366,
+            "bonferroni_lower_bound": -0.004139907304558381,
+            "hac_se": 0.003577440536605436,
+            "hac_t": 1.8584462186512598,
+            "leave_one_year_out_min_mean": 0.005388087454901691,
+            "max_drawdown": -0.15802928397915117,
+            "mean_monthly": 0.006648480837704107,
+            "n": 96,
+            "positive_year_fraction": 0.625
+          },
+          "0.0025": {
+            "annualized_mean": 0.049781770052449284,
+            "annualized_sharpe": 0.3847366428320189,
+            "bonferroni_lower_bound": -0.0066399073045583824,
+            "hac_se": 0.0035774405366054366,
+            "hac_t": 1.159622583591709,
+            "leave_one_year_out_min_mean": 0.002888087454901692,
+            "max_drawdown": -0.19548944063513274,
+            "mean_monthly": 0.004148480837704107,
+            "n": 96,
+            "positive_year_fraction": 0.625
+          },
+          "0.005": {
+            "annualized_mean": 0.019781770052449278,
+            "annualized_sharpe": 0.1528827076907012,
+            "bonferroni_lower_bound": -0.009139907304558383,
+            "hac_se": 0.0035774405366054366,
+            "hac_t": 0.46079894853215864,
+            "leave_one_year_out_min_mean": 0.00038808745490169147,
+            "max_drawdown": -0.2313717149075647,
+            "mean_monthly": 0.0016484808377041065,
+            "n": 96,
+            "positive_year_fraction": 0.625
+          }
+        }
+      },
+      "tier": "DIRECTIONALLY_PERSISTENT_ONLY",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2026-05-29",
+      "available_start": "1985-01-31",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "TSMOM:TSMOM^CM",
+        "dataset": "TSMOM",
+        "expected_sign": "positive",
+        "family": "time_series_momentum",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2018-01-01",
+        "original_sample_end": "2009-12-31",
+        "series": "TSMOM^CM",
+        "validation_end": "2017-12-31",
+        "validation_start": "2010-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": 0.03855540781766381,
+            "annualized_sharpe": 0.24698937438995444,
+            "bonferroni_lower_bound": -0.009751465798859958,
+            "hac_se": 0.004299013748046831,
+            "hac_t": 0.74736924322043,
+            "leave_one_year_out_min_mean": 0.001284884183916972,
+            "max_drawdown": -0.30030992559616354,
+            "mean_monthly": 0.0032129506514719844,
+            "n": 101,
+            "positive_year_fraction": 0.5555555555555556
+          },
+          "0.0025": {
+            "annualized_mean": 0.008555407817663802,
+            "annualized_sharpe": 0.05480670401747411,
+            "bonferroni_lower_bound": -0.01225146579885996,
+            "hac_se": 0.004299013748046831,
+            "hac_t": 0.1658405144193591,
+            "leave_one_year_out_min_mean": -0.0012151158160830292,
+            "max_drawdown": -0.3466828793750406,
+            "mean_monthly": 0.0007129506514719835,
+            "n": 101,
+            "positive_year_fraction": 0.5555555555555556
+          },
+          "0.005": {
+            "annualized_mean": -0.021444592182336183,
+            "annualized_sharpe": -0.13737596635500607,
+            "bonferroni_lower_bound": -0.01475146579885996,
+            "hac_se": 0.004299013748046831,
+            "hac_t": -0.4156882143817113,
+            "leave_one_year_out_min_mean": -0.0037151158160830277,
+            "max_drawdown": -0.3931443738328577,
+            "mean_monthly": -0.0017870493485280152,
+            "n": 101,
+            "positive_year_fraction": 0.3333333333333333
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": 0.019282917389369658,
+            "annualized_sharpe": 0.11611668665306457,
+            "bonferroni_lower_bound": -0.013695552678210815,
+            "hac_se": 0.005074312195182232,
+            "hac_t": 0.3166753878433298,
+            "leave_one_year_out_min_mean": -0.0007692266299414056,
+            "max_drawdown": -0.32737339194244897,
+            "mean_monthly": 0.0016069097824474715,
+            "n": 96,
+            "positive_year_fraction": 0.625
+          },
+          "0.0025": {
+            "annualized_mean": -0.010717082610630346,
+            "annualized_sharpe": -0.06453546930712908,
+            "bonferroni_lower_bound": -0.016195552678210816,
+            "hac_se": 0.005074312195182232,
+            "hac_t": -0.17600222122723683,
+            "leave_one_year_out_min_mean": -0.003269226629941406,
+            "max_drawdown": -0.36344735005454254,
+            "mean_monthly": -0.0008930902175525289,
+            "n": 96,
+            "positive_year_fraction": 0.5
+          },
+          "0.005": {
+            "annualized_mean": -0.04071708261063034,
+            "annualized_sharpe": -0.24518762526732266,
+            "bonferroni_lower_bound": -0.018695552678210818,
+            "hac_se": 0.0050743121951822324,
+            "hac_t": -0.6686798302978032,
+            "leave_one_year_out_min_mean": -0.005769226629941404,
+            "max_drawdown": -0.47312355245262283,
+            "mean_monthly": -0.003393090217552528,
+            "n": 96,
+            "positive_year_fraction": 0.5
+          }
+        }
+      },
+      "tier": "DIRECTIONALLY_PERSISTENT_ONLY",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2026-05-29",
+      "available_start": "1985-01-31",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "TSMOM:TSMOM^EQ",
+        "dataset": "TSMOM",
+        "expected_sign": "positive",
+        "family": "time_series_momentum",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2018-01-01",
+        "original_sample_end": "2009-12-31",
+        "series": "TSMOM^EQ",
+        "validation_end": "2017-12-31",
+        "validation_start": "2010-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": -0.04156863593822961,
+            "annualized_sharpe": -0.14420643680717785,
+            "bonferroni_lower_bound": -0.02949714082112498,
+            "hac_se": 0.008632598536002027,
+            "hac_t": -0.40127581288597225,
+            "leave_one_year_out_min_mean": -0.00857758050073477,
+            "max_drawdown": -0.8045626754697655,
+            "mean_monthly": -0.0034640529948524674,
+            "n": 101,
+            "positive_year_fraction": 0.4444444444444444
+          },
+          "0.0025": {
+            "annualized_mean": -0.07156863593822961,
+            "annualized_sharpe": -0.24827992891415956,
+            "bonferroni_lower_bound": -0.03199714082112498,
+            "hac_se": 0.008632598536002027,
+            "hac_t": -0.6908757507927121,
+            "leave_one_year_out_min_mean": -0.011077580500734771,
+            "max_drawdown": -0.8363532827963456,
+            "mean_monthly": -0.005964052994852468,
+            "n": 101,
+            "positive_year_fraction": 0.4444444444444444
+          },
+          "0.005": {
+            "annualized_mean": -0.10156863593822957,
+            "annualized_sharpe": -0.35235342102114114,
+            "bonferroni_lower_bound": -0.034497140821124976,
+            "hac_se": 0.008632598536002027,
+            "hac_t": -0.9804756886994515,
+            "leave_one_year_out_min_mean": -0.013577580500734775,
+            "max_drawdown": -0.8630359603071396,
+            "mean_monthly": -0.008464052994852464,
+            "n": 101,
+            "positive_year_fraction": 0.4444444444444444
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": 0.09167353907049881,
+            "annualized_sharpe": 0.39458417272160645,
+            "bonferroni_lower_bound": -0.01478590888065225,
+            "hac_se": 0.007436275772559376,
+            "hac_t": 1.0273235989174359,
+            "leave_one_year_out_min_mean": 0.0014951186664495842,
+            "max_drawdown": -0.40409266616506323,
+            "mean_monthly": 0.0076394615892082345,
+            "n": 96,
+            "positive_year_fraction": 0.375
+          },
+          "0.0025": {
+            "annualized_mean": 0.06167353907049883,
+            "annualized_sharpe": 0.2654572152410527,
+            "bonferroni_lower_bound": -0.017285908880652248,
+            "hac_se": 0.007436275772559376,
+            "hac_t": 0.6911338076209302,
+            "leave_one_year_out_min_mean": -0.0010048813335504165,
+            "max_drawdown": -0.43286112612938477,
+            "mean_monthly": 0.005139461589208236,
+            "n": 96,
+            "positive_year_fraction": 0.375
+          },
+          "0.005": {
+            "annualized_mean": 0.03167353907049883,
+            "annualized_sharpe": 0.1363302577604988,
+            "bonferroni_lower_bound": -0.019785908880652247,
+            "hac_se": 0.007436275772559376,
+            "hac_t": 0.35494401632442424,
+            "leave_one_year_out_min_mean": -0.003504881333550416,
+            "max_drawdown": -0.4613852742026322,
+            "mean_monthly": 0.0026394615892082357,
+            "n": 96,
+            "positive_year_fraction": 0.375
+          }
+        }
+      },
+      "tier": "FAILED_OR_UNIDENTIFIABLE",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2026-05-29",
+      "available_start": "1985-01-31",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "TSMOM:TSMOM^FI",
+        "dataset": "TSMOM",
+        "expected_sign": "positive",
+        "family": "time_series_momentum",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2018-01-01",
+        "original_sample_end": "2009-12-31",
+        "series": "TSMOM^FI",
+        "validation_end": "2017-12-31",
+        "validation_start": "2010-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": 0.0832948930889014,
+            "annualized_sharpe": 0.26617508723014255,
+            "bonferroni_lower_bound": -0.023005299353799052,
+            "hac_se": 0.009930303424819806,
+            "hac_t": 0.698995870900867,
+            "leave_one_year_out_min_mean": -0.002606052772166658,
+            "max_drawdown": -0.5610980681640083,
+            "mean_monthly": 0.006941241090741783,
+            "n": 101,
+            "positive_year_fraction": 0.4444444444444444
+          },
+          "0.0025": {
+            "annualized_mean": 0.05329489308890135,
+            "annualized_sharpe": 0.17030783389947848,
+            "bonferroni_lower_bound": -0.02550529935379906,
+            "hac_se": 0.009930303424819808,
+            "hac_t": 0.44724122725609144,
+            "leave_one_year_out_min_mean": -0.005106052772166659,
+            "max_drawdown": -0.5792835078494274,
+            "mean_monthly": 0.004441241090741779,
+            "n": 101,
+            "positive_year_fraction": 0.4444444444444444
+          },
+          "0.005": {
+            "annualized_mean": 0.02329489308890141,
+            "annualized_sharpe": 0.07444058056881477,
+            "bonferroni_lower_bound": -0.028005299353799057,
+            "hac_se": 0.009930303424819808,
+            "hac_t": 0.19548658361131693,
+            "leave_one_year_out_min_mean": -0.007606052772166658,
+            "max_drawdown": -0.5992790425629918,
+            "mean_monthly": 0.0019412410907417841,
+            "n": 101,
+            "positive_year_fraction": 0.4444444444444444
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": 0.18431498259903728,
+            "annualized_sharpe": 0.6842148882312434,
+            "bonferroni_lower_bound": -0.009867156850886384,
+            "hac_se": 0.008365212352745304,
+            "hac_t": 1.8361257593433815,
+            "leave_one_year_out_min_mean": 0.011788436781269182,
+            "max_drawdown": -0.32614430239785597,
+            "mean_monthly": 0.015359581883253107,
+            "n": 96,
+            "positive_year_fraction": 0.75
+          },
+          "0.0025": {
+            "annualized_mean": 0.15431498259903725,
+            "annualized_sharpe": 0.5728487564198596,
+            "bonferroni_lower_bound": -0.012367156850886386,
+            "hac_se": 0.008365212352745304,
+            "hac_t": 1.5372690304786865,
+            "leave_one_year_out_min_mean": 0.009288436781269178,
+            "max_drawdown": -0.34840923711693517,
+            "mean_monthly": 0.012859581883253104,
+            "n": 96,
+            "positive_year_fraction": 0.75
+          },
+          "0.005": {
+            "annualized_mean": 0.12431498259903728,
+            "annualized_sharpe": 0.46148262460847583,
+            "bonferroni_lower_bound": -0.014867156850886383,
+            "hac_se": 0.008365212352745304,
+            "hac_t": 1.2384123016139919,
+            "leave_one_year_out_min_mean": 0.006788436781269177,
+            "max_drawdown": -0.369993547823513,
+            "mean_monthly": 0.010359581883253107,
+            "n": 96,
+            "positive_year_fraction": 0.75
+          }
+        }
+      },
+      "tier": "DIRECTIONALLY_PERSISTENT_ONLY",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2026-05-29",
+      "available_start": "1985-01-31",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "TSMOM:TSMOM^FX",
+        "dataset": "TSMOM",
+        "expected_sign": "positive",
+        "family": "time_series_momentum",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2018-01-01",
+        "original_sample_end": "2009-12-31",
+        "series": "TSMOM^FX",
+        "validation_end": "2017-12-31",
+        "validation_start": "2010-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": -0.007649771786788488,
+            "annualized_sharpe": -0.040623492722988964,
+            "bonferroni_lower_bound": -0.014467725302648686,
+            "hac_se": 0.004586123154875513,
+            "hac_t": -0.13900215077187086,
+            "leave_one_year_out_min_mean": -0.002124377872507349,
+            "max_drawdown": -0.47098973649317755,
+            "mean_monthly": -0.000637480982232374,
+            "n": 101,
+            "positive_year_fraction": 0.4444444444444444
+          },
+          "0.0025": {
+            "annualized_mean": -0.0376497717867885,
+            "annualized_sharpe": -0.1999360599023693,
+            "bonferroni_lower_bound": -0.016967725302648687,
+            "hac_se": 0.0045861231548755136,
+            "hac_t": -0.684124886375307,
+            "leave_one_year_out_min_mean": -0.00462437787250735,
+            "max_drawdown": -0.5512378692932864,
+            "mean_monthly": -0.003137480982232375,
+            "n": 101,
+            "positive_year_fraction": 0.3333333333333333
+          },
+          "0.005": {
+            "annualized_mean": -0.0676497717867885,
+            "annualized_sharpe": -0.35924862708174965,
+            "bonferroni_lower_bound": -0.019467725302648682,
+            "hac_se": 0.004586123154875512,
+            "hac_t": -1.2292476219787434,
+            "leave_one_year_out_min_mean": -0.00712437787250735,
+            "max_drawdown": -0.6278719639030186,
+            "mean_monthly": -0.0056374809822323756,
+            "n": 101,
+            "positive_year_fraction": 0.2222222222222222
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": 0.07861633502293439,
+            "annualized_sharpe": 0.4538035116384757,
+            "bonferroni_lower_bound": -0.009735898938180925,
+            "hac_se": 0.005400872128990357,
+            "hac_t": 1.2130191375473123,
+            "leave_one_year_out_min_mean": 0.004199390958771067,
+            "max_drawdown": -0.2276865423872425,
+            "mean_monthly": 0.006551361251911199,
+            "n": 96,
+            "positive_year_fraction": 0.625
+          },
+          "0.0025": {
+            "annualized_mean": 0.04861633502293437,
+            "annualized_sharpe": 0.28063205375783684,
+            "bonferroni_lower_bound": -0.012235898938180927,
+            "hac_se": 0.005400872128990357,
+            "hac_t": 0.7501309335143549,
+            "leave_one_year_out_min_mean": 0.0016993909587710659,
+            "max_drawdown": -0.27388503384570917,
+            "mean_monthly": 0.0040513612519111975,
+            "n": 96,
+            "positive_year_fraction": 0.625
+          },
+          "0.005": {
+            "annualized_mean": 0.01861633502293438,
+            "annualized_sharpe": 0.10746059587719808,
+            "bonferroni_lower_bound": -0.014735898938180926,
+            "hac_se": 0.005400872128990357,
+            "hac_t": 0.2872427294813979,
+            "leave_one_year_out_min_mean": -0.000800609041228934,
+            "max_drawdown": -0.325326943403925,
+            "mean_monthly": 0.0015513612519111985,
+            "n": 96,
+            "positive_year_fraction": 0.375
+          }
+        }
+      },
+      "tier": "FAILED_OR_UNIDENTIFIABLE",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2026-04-30",
+      "available_start": "1972-01-31",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "VME:VAL",
+        "dataset": "VME",
+        "expected_sign": "positive",
+        "family": "value_momentum_everywhere",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2011-12-31",
+        "series": "VAL",
+        "validation_end": "2018-12-31",
+        "validation_start": "2012-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": 0.013182156047446218,
+            "annualized_sharpe": 0.1799400699965901,
+            "bonferroni_lower_bound": -0.006139554252617905,
+            "hac_se": 0.0024001505015285806,
+            "hac_t": 0.4576850506892143,
+            "leave_one_year_out_min_mean": -0.00010530901207459952,
+            "max_drawdown": -0.18845139888209772,
+            "mean_monthly": 0.0010985130039538515,
+            "n": 88,
+            "positive_year_fraction": 0.625
+          },
+          "0.0025": {
+            "annualized_mean": -0.016817843952553785,
+            "annualized_sharpe": -0.2295682138128326,
+            "bonferroni_lower_bound": -0.008639554252617906,
+            "hac_se": 0.0024001505015285806,
+            "hac_t": -0.5839162982294592,
+            "leave_one_year_out_min_mean": -0.0026053090120746,
+            "max_drawdown": -0.2336788180624748,
+            "mean_monthly": -0.0014014869960461487,
+            "n": 88,
+            "positive_year_fraction": 0.625
+          },
+          "0.005": {
+            "annualized_mean": -0.04681784395255379,
+            "annualized_sharpe": -0.6390764976222553,
+            "bonferroni_lower_bound": -0.011139554252617905,
+            "hac_se": 0.0024001505015285806,
+            "hac_t": -1.6255176471481327,
+            "leave_one_year_out_min_mean": -0.0051053090120746,
+            "max_drawdown": -0.3700430048025313,
+            "mean_monthly": -0.0039014869960461492,
+            "n": 88,
+            "positive_year_fraction": 0.375
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": 0.00573405031202397,
+            "annualized_sharpe": 0.13303820315785336,
+            "bonferroni_lower_bound": -0.0036313595226683463,
+            "hac_se": 0.0013626139420424867,
+            "hac_t": 0.3506771149616627,
+            "leave_one_year_out_min_mean": -0.0010925904192219795,
+            "max_drawdown": -0.10120794132884348,
+            "mean_monthly": 0.00047783752600199755,
+            "n": 84,
+            "positive_year_fraction": 0.5714285714285714
+          },
+          "0.0025": {
+            "annualized_mean": -0.02426594968797603,
+            "annualized_sharpe": -0.5630048863780719,
+            "bonferroni_lower_bound": -0.006131359522668346,
+            "hac_se": 0.0013626139420424867,
+            "hac_t": -1.4840318388104021,
+            "leave_one_year_out_min_mean": -0.00359259041922198,
+            "max_drawdown": -0.16624946533178964,
+            "mean_monthly": -0.0020221624739980024,
+            "n": 84,
+            "positive_year_fraction": 0.14285714285714285
+          },
+          "0.005": {
+            "annualized_mean": -0.05426594968797603,
+            "annualized_sharpe": -1.2590479759139974,
+            "bonferroni_lower_bound": -0.008631359522668348,
+            "hac_se": 0.0013626139420424867,
+            "hac_t": -3.3187407925824677,
+            "leave_one_year_out_min_mean": -0.00609259041922198,
+            "max_drawdown": -0.3196089361549366,
+            "mean_monthly": -0.004522162473998003,
+            "n": 84,
+            "positive_year_fraction": 0.14285714285714285
+          }
+        }
+      },
+      "tier": "DIRECTIONALLY_PERSISTENT_ONLY",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2026-04-30",
+      "available_start": "1972-01-31",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "VME:MOM",
+        "dataset": "VME",
+        "expected_sign": "positive",
+        "family": "value_momentum_everywhere",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2011-12-31",
+        "series": "MOM",
+        "validation_end": "2018-12-31",
+        "validation_start": "2012-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": 0.04264748805451613,
+            "annualized_sharpe": 0.5717685462649846,
+            "bonferroni_lower_bound": -0.0041911215850107385,
+            "hac_se": 0.0025682760883808846,
+            "hac_t": 1.3837910004904737,
+            "leave_one_year_out_min_mean": 0.0015469059007245354,
+            "max_drawdown": -0.11425410802648306,
+            "mean_monthly": 0.0035539573378763445,
+            "n": 88,
+            "positive_year_fraction": 0.625
+          },
+          "0.0025": {
+            "annualized_mean": 0.01264748805451612,
+            "annualized_sharpe": 0.16956299629161092,
+            "bonferroni_lower_bound": -0.00669112158501074,
+            "hac_se": 0.0025682760883808846,
+            "hac_t": 0.4103754042038325,
+            "leave_one_year_out_min_mean": -0.0009530940992754644,
+            "max_drawdown": -0.1930095534040287,
+            "mean_monthly": 0.0010539573378763433,
+            "n": 88,
+            "positive_year_fraction": 0.5
+          },
+          "0.005": {
+            "annualized_mean": -0.017352511945483876,
+            "annualized_sharpe": -0.23264255368176256,
+            "bonferroni_lower_bound": -0.00919112158501074,
+            "hac_se": 0.0025682760883808846,
+            "hac_t": -0.5630401920828081,
+            "leave_one_year_out_min_mean": -0.003453094099275464,
+            "max_drawdown": -0.29189854202669296,
+            "mean_monthly": -0.0014460426621236563,
+            "n": 88,
+            "positive_year_fraction": 0.375
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": 0.01748993653982817,
+            "annualized_sharpe": 0.3284452538150975,
+            "bonferroni_lower_bound": -0.0027002971808894284,
+            "hac_se": 0.00137872804194724,
+            "hac_t": 1.0571299540653876,
+            "leave_one_year_out_min_mean": 0.00034174018535204767,
+            "max_drawdown": -0.09140904736167821,
+            "mean_monthly": 0.0014574947116523474,
+            "n": 84,
+            "positive_year_fraction": 0.7142857142857143
+          },
+          "0.0025": {
+            "annualized_mean": -0.012510063460171833,
+            "annualized_sharpe": -0.23492772309735793,
+            "bonferroni_lower_bound": -0.005200297180889428,
+            "hac_se": 0.0013787280419472398,
+            "hac_t": -0.7561355514864814,
+            "leave_one_year_out_min_mean": -0.002158259814647952,
+            "max_drawdown": -0.14861842815550752,
+            "mean_monthly": -0.0010425052883476528,
+            "n": 84,
+            "positive_year_fraction": 0.2857142857142857
+          },
+          "0.005": {
+            "annualized_mean": -0.042510063460171846,
+            "annualized_sharpe": -0.7983007000098136,
+            "bonferroni_lower_bound": -0.0077002971808894285,
+            "hac_se": 0.0013787280419472398,
+            "hac_t": -2.569401057038351,
+            "leave_one_year_out_min_mean": -0.004658259814647953,
+            "max_drawdown": -0.272022921724149,
+            "mean_monthly": -0.003542505288347654,
+            "n": 84,
+            "positive_year_fraction": 0.14285714285714285
+          }
+        }
+      },
+      "tier": "DIRECTIONALLY_PERSISTENT_ONLY",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2026-04-30",
+      "available_start": "1972-02-29",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "VME:VAL^SS",
+        "dataset": "VME",
+        "expected_sign": "positive",
+        "family": "value_momentum_everywhere",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2011-12-31",
+        "series": "VAL^SS",
+        "validation_end": "2018-12-31",
+        "validation_start": "2012-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": 0.006620624164615341,
+            "annualized_sharpe": 0.05354095976932957,
+            "bonferroni_lower_bound": -0.014197423438878474,
+            "hac_se": 0.004890830604333533,
+            "hac_t": 0.11280674491072332,
+            "leave_one_year_out_min_mean": -0.0029330151035863376,
+            "max_drawdown": -0.3907453345430678,
+            "mean_monthly": 0.0005517186803846117,
+            "n": 88,
+            "positive_year_fraction": 0.625
+          },
+          "0.0025": {
+            "annualized_mean": -0.023379375835384655,
+            "annualized_sharpe": -0.18906891403449613,
+            "bonferroni_lower_bound": -0.016697423438878475,
+            "hac_se": 0.004890830604333533,
+            "hac_t": -0.3983538742660823,
+            "leave_one_year_out_min_mean": -0.005433015103586337,
+            "max_drawdown": -0.4226852244888707,
+            "mean_monthly": -0.0019482813196153878,
+            "n": 88,
+            "positive_year_fraction": 0.625
+          },
+          "0.005": {
+            "annualized_mean": -0.05337937583538464,
+            "annualized_sharpe": -0.43167878783832186,
+            "bonferroni_lower_bound": -0.019197423438878473,
+            "hac_se": 0.004890830604333533,
+            "hac_t": -0.9095144934428879,
+            "leave_one_year_out_min_mean": -0.007933015103586336,
+            "max_drawdown": -0.466358443828367,
+            "mean_monthly": -0.004448281319615387,
+            "n": 88,
+            "positive_year_fraction": 0.25
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": -0.017693935207095828,
+            "annualized_sharpe": -0.23591871543316636,
+            "bonferroni_lower_bound": -0.008618140093597574,
+            "hac_se": 0.0023688401482058496,
+            "hac_t": -0.6224542427263805,
+            "leave_one_year_out_min_mean": -0.004473574411968091,
+            "max_drawdown": -0.19959201749731392,
+            "mean_monthly": -0.001474494600591319,
+            "n": 84,
+            "positive_year_fraction": 0.14285714285714285
+          },
+          "0.0025": {
+            "annualized_mean": -0.04769393520709584,
+            "annualized_sharpe": -0.6359180022032833,
+            "bonferroni_lower_bound": -0.011118140093597573,
+            "hac_se": 0.002368840148205849,
+            "hac_t": -1.6778230492258364,
+            "leave_one_year_out_min_mean": -0.0069735744119680905,
+            "max_drawdown": -0.314025395348822,
+            "mean_monthly": -0.00397449460059132,
+            "n": 84,
+            "positive_year_fraction": 0.14285714285714285
+          },
+          "0.005": {
+            "annualized_mean": -0.07769393520709586,
+            "annualized_sharpe": -1.0359172889734003,
+            "bonferroni_lower_bound": -0.013618140093597577,
+            "hac_se": 0.0023688401482058496,
+            "hac_t": -2.7331918557252917,
+            "leave_one_year_out_min_mean": -0.00947357441196809,
+            "max_drawdown": -0.43907026653110537,
+            "mean_monthly": -0.006474494600591321,
+            "n": 84,
+            "positive_year_fraction": 0.14285714285714285
+          }
+        }
+      },
+      "tier": "FAILED_OR_UNIDENTIFIABLE",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2026-04-30",
+      "available_start": "1972-01-31",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "VME:MOM^SS",
+        "dataset": "VME",
+        "expected_sign": "positive",
+        "family": "value_momentum_everywhere",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2011-12-31",
+        "series": "MOM^SS",
+        "validation_end": "2018-12-31",
+        "validation_start": "2012-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": 0.05869603360113108,
+            "annualized_sharpe": 0.5457517300511042,
+            "bonferroni_lower_bound": -0.00526850810243536,
+            "hac_se": 0.003369014734702606,
+            "hac_t": 1.4518595252921516,
+            "leave_one_year_out_min_mean": 0.0029479694008258403,
+            "max_drawdown": -0.18405132302456872,
+            "mean_monthly": 0.00489133613342759,
+            "n": 88,
+            "positive_year_fraction": 0.625
+          },
+          "0.0025": {
+            "annualized_mean": 0.028696033601131064,
+            "annualized_sharpe": 0.26681376956142583,
+            "bonferroni_lower_bound": -0.007768508102435361,
+            "hac_se": 0.003369014734702606,
+            "hac_t": 0.7098028123164857,
+            "leave_one_year_out_min_mean": 0.0004479694008258398,
+            "max_drawdown": -0.2474204696968184,
+            "mean_monthly": 0.002391336133427589,
+            "n": 88,
+            "positive_year_fraction": 0.625
+          },
+          "0.005": {
+            "annualized_mean": -0.0013039663988689326,
+            "annualized_sharpe": -0.012124190928252343,
+            "bonferroni_lower_bound": -0.010268508102435361,
+            "hac_se": 0.003369014734702606,
+            "hac_t": -0.03225390065917986,
+            "leave_one_year_out_min_mean": -0.0020520305991741598,
+            "max_drawdown": -0.31837233751012495,
+            "mean_monthly": -0.00010866386657241105,
+            "n": 88,
+            "positive_year_fraction": 0.625
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": 0.044971806458623184,
+            "annualized_sharpe": 0.46034878075694075,
+            "bonferroni_lower_bound": -0.003759162595593067,
+            "hac_se": 0.002489266909151825,
+            "hac_t": 1.5055237847095901,
+            "leave_one_year_out_min_mean": 0.0020582629619165516,
+            "max_drawdown": -0.14426061313246719,
+            "mean_monthly": 0.003747650538218599,
+            "n": 84,
+            "positive_year_fraction": 0.8571428571428571
+          },
+          "0.0025": {
+            "annualized_mean": 0.014971806458623178,
+            "annualized_sharpe": 0.15325719359966927,
+            "bonferroni_lower_bound": -0.006259162595593069,
+            "hac_se": 0.0024892669091518254,
+            "hac_t": 0.5012120370184464,
+            "leave_one_year_out_min_mean": -0.00044173703808344833,
+            "max_drawdown": -0.1751073702127941,
+            "mean_monthly": 0.0012476505382185983,
+            "n": 84,
+            "positive_year_fraction": 0.5714285714285714
+          },
+          "0.005": {
+            "annualized_mean": -0.01502819354137682,
+            "annualized_sharpe": -0.1538343935576021,
+            "bonferroni_lower_bound": -0.008759162595593067,
+            "hac_se": 0.002489266909151825,
+            "hac_t": -0.503099710672697,
+            "leave_one_year_out_min_mean": -0.002941737038083447,
+            "max_drawdown": -0.21384122972951392,
+            "mean_monthly": -0.0012523494617814018,
+            "n": 84,
+            "positive_year_fraction": 0.2857142857142857
+          }
+        }
+      },
+      "tier": "DIRECTIONALLY_PERSISTENT_ONLY",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2025-01-31",
+      "available_start": "1972-01-31",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "VME:VAL^AA",
+        "dataset": "VME",
+        "expected_sign": "positive",
+        "family": "value_momentum_everywhere",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2011-12-31",
+        "series": "VAL^AA",
+        "validation_end": "2018-12-31",
+        "validation_start": "2012-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": 0.00018470212858126512,
+            "annualized_sharpe": 0.0038750749725160512,
+            "bonferroni_lower_bound": -0.004014870572349494,
+            "hac_se": 0.0013364391372885538,
+            "hac_t": 0.011517055748357262,
+            "leave_one_year_out_min_mean": -0.0004135680785950606,
+            "max_drawdown": -0.0754241716455486,
+            "mean_monthly": 1.539184404843876e-05,
+            "n": 73,
+            "positive_year_fraction": 0.5714285714285714
+          },
+          "0.0025": {
+            "annualized_mean": -0.02981529787141873,
+            "annualized_sharpe": -0.6255288743400277,
+            "bonferroni_lower_bound": -0.006514870572349494,
+            "hac_se": 0.0013364391372885538,
+            "hac_t": -1.8591255573317613,
+            "leave_one_year_out_min_mean": -0.002913568078595061,
+            "max_drawdown": -0.17893060640063552,
+            "mean_monthly": -0.002484608155951561,
+            "n": 73,
+            "positive_year_fraction": 0.0
+          },
+          "0.005": {
+            "annualized_mean": -0.05981529787141873,
+            "annualized_sharpe": -1.2549328236525719,
+            "bonferroni_lower_bound": -0.009014870572349495,
+            "hac_se": 0.001336439137288554,
+            "hac_t": -3.7297681704118797,
+            "leave_one_year_out_min_mean": -0.005413568078595061,
+            "max_drawdown": -0.3146904222148894,
+            "mean_monthly": -0.004984608155951561,
+            "n": 73,
+            "positive_year_fraction": 0.0
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": 0.02173516220361459,
+            "annualized_sharpe": 0.6378947295796434,
+            "bonferroni_lower_bound": -0.0010689391972860858,
+            "hac_se": 0.0009550781643876132,
+            "hac_t": 1.8964557923164822,
+            "leave_one_year_out_min_mean": 0.001216592464959684,
+            "max_drawdown": -0.05004697112063217,
+            "mean_monthly": 0.0018112635169678824,
+            "n": 84,
+            "positive_year_fraction": 0.8571428571428571
+          },
+          "0.0025": {
+            "annualized_mean": -0.008264837796385413,
+            "annualized_sharpe": -0.24256071437406304,
+            "bonferroni_lower_bound": -0.0035689391972860865,
+            "hac_se": 0.0009550781643876133,
+            "hac_t": -0.7211310117991535,
+            "leave_one_year_out_min_mean": -0.0012834075350403164,
+            "max_drawdown": -0.10058932397890341,
+            "mean_monthly": -0.0006887364830321178,
+            "n": 84,
+            "positive_year_fraction": 0.42857142857142855
+          },
+          "0.005": {
+            "annualized_mean": -0.038264837796385405,
+            "annualized_sharpe": -1.1230161583277691,
+            "bonferroni_lower_bound": -0.006068939197286086,
+            "hac_se": 0.0009550781643876132,
+            "hac_t": -3.3387178159147886,
+            "leave_one_year_out_min_mean": -0.003783407535040317,
+            "max_drawdown": -0.23504023525376838,
+            "mean_monthly": -0.003188736483032117,
+            "n": 84,
+            "positive_year_fraction": 0.14285714285714285
+          }
+        }
+      },
+      "tier": "DIRECTIONALLY_PERSISTENT_ONLY",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2025-01-31",
+      "available_start": "1972-01-31",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "VME:MOM^AA",
+        "dataset": "VME",
+        "expected_sign": "positive",
+        "family": "value_momentum_everywhere",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2011-12-31",
+        "series": "MOM^AA",
+        "validation_end": "2018-12-31",
+        "validation_start": "2012-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": -0.005268475543631187,
+            "annualized_sharpe": -0.10536518349970164,
+            "bonferroni_lower_bound": -0.005528011244381536,
+            "hac_se": 0.0016875081900774864,
+            "hac_t": -0.26017036907878505,
+            "leave_one_year_out_min_mean": -0.0016131830373132872,
+            "max_drawdown": -0.12455495998162802,
+            "mean_monthly": -0.0004390396286359322,
+            "n": 73,
+            "positive_year_fraction": 0.42857142857142855
+          },
+          "0.0025": {
+            "annualized_mean": -0.03526847554363119,
+            "annualized_sharpe": -0.705340542370292,
+            "bonferroni_lower_bound": -0.008028011244381537,
+            "hac_se": 0.0016875081900774864,
+            "hac_t": -1.74164466040368,
+            "leave_one_year_out_min_mean": -0.004113183037313287,
+            "max_drawdown": -0.22123348912124263,
+            "mean_monthly": -0.0029390396286359324,
+            "n": 73,
+            "positive_year_fraction": 0.42857142857142855
+          },
+          "0.005": {
+            "annualized_mean": -0.06526847554363119,
+            "annualized_sharpe": -1.3053159012408824,
+            "bonferroni_lower_bound": -0.010528011244381536,
+            "hac_se": 0.0016875081900774862,
+            "hac_t": -3.2231189517285754,
+            "leave_one_year_out_min_mean": -0.006613183037313288,
+            "max_drawdown": -0.3355032589336413,
+            "mean_monthly": -0.005439039628635933,
+            "n": 73,
+            "positive_year_fraction": 0.14285714285714285
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": -0.0012799434057566166,
+            "annualized_sharpe": -0.03414115142091725,
+            "bonferroni_lower_bound": -0.0031943091696781784,
+            "hac_se": 0.001023866974291225,
+            "hac_t": -0.10417559424998067,
+            "leave_one_year_out_min_mean": -0.0008306300549256289,
+            "max_drawdown": -0.09245800024790318,
+            "mean_monthly": -0.00010666195047971804,
+            "n": 84,
+            "positive_year_fraction": 0.42857142857142855
+          },
+          "0.0025": {
+            "annualized_mean": -0.03127994340575661,
+            "annualized_sharpe": -0.8343597689167892,
+            "bonferroni_lower_bound": -0.0056943091696781785,
+            "hac_se": 0.001023866974291225,
+            "hac_t": -2.5458990434613713,
+            "leave_one_year_out_min_mean": -0.003330630054925629,
+            "max_drawdown": -0.21598828110397783,
+            "mean_monthly": -0.002606661950479718,
+            "n": 84,
+            "positive_year_fraction": 0.2857142857142857
+          },
+          "0.005": {
+            "annualized_mean": -0.061279943405756626,
+            "annualized_sharpe": -1.6345783864126613,
+            "bonferroni_lower_bound": -0.008194309169678178,
+            "hac_se": 0.001023866974291225,
+            "hac_t": -4.987622492672762,
+            "leave_one_year_out_min_mean": -0.005830630054925629,
+            "max_drawdown": -0.3558608693489014,
+            "mean_monthly": -0.0051066619504797186,
+            "n": 84,
+            "positive_year_fraction": 0.0
+          }
+        }
+      },
+      "tier": "FAILED_OR_UNIDENTIFIABLE",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2026-04-30",
+      "available_start": "1972-02-29",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "VME:VALLS_VME_US90",
+        "dataset": "VME",
+        "expected_sign": "positive",
+        "family": "value_momentum_everywhere",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2011-12-31",
+        "series": "VALLS_VME_US90",
+        "validation_end": "2018-12-31",
+        "validation_start": "2012-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": -0.022072733684303177,
+            "annualized_sharpe": -0.15073072842322435,
+            "bonferroni_lower_bound": -0.01845395594550846,
+            "hac_se": 0.005509405568600016,
+            "hac_t": -0.3338644161858892,
+            "leave_one_year_out_min_mean": -0.005670159624580263,
+            "max_drawdown": -0.39565179630367564,
+            "mean_monthly": -0.0018393944736919314,
+            "n": 88,
+            "positive_year_fraction": 0.5
+          },
+          "0.0025": {
+            "annualized_mean": -0.052072733684303193,
+            "annualized_sharpe": -0.35559533275234084,
+            "bonferroni_lower_bound": -0.020953955945508463,
+            "hac_se": 0.005509405568600015,
+            "hac_t": -0.7876338780400601,
+            "leave_one_year_out_min_mean": -0.008170159624580266,
+            "max_drawdown": -0.4597512857751591,
+            "mean_monthly": -0.004339394473691933,
+            "n": 88,
+            "positive_year_fraction": 0.375
+          },
+          "0.005": {
+            "annualized_mean": -0.08207273368430318,
+            "annualized_sharpe": -0.5604599370814571,
+            "bonferroni_lower_bound": -0.023453955945508462,
+            "hac_se": 0.005509405568600016,
+            "hac_t": -1.2414033398942304,
+            "leave_one_year_out_min_mean": -0.010670159624580263,
+            "max_drawdown": -0.5563402274580531,
+            "mean_monthly": -0.0068393944736919315,
+            "n": 88,
+            "positive_year_fraction": 0.375
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": -0.02936389930193571,
+            "annualized_sharpe": -0.33876377069593555,
+            "bonferroni_lower_bound": -0.011196049975300836,
+            "hac_se": 0.002901196698321192,
+            "hac_t": -0.8434421595442391,
+            "leave_one_year_out_min_mean": -0.005581108527927638,
+            "max_drawdown": -0.2793426572674912,
+            "mean_monthly": -0.0024469916084946426,
+            "n": 84,
+            "positive_year_fraction": 0.2857142857142857
+          },
+          "0.0025": {
+            "annualized_mean": -0.05936389930193572,
+            "annualized_sharpe": -0.6848660719052342,
+            "bonferroni_lower_bound": -0.013696049975300838,
+            "hac_se": 0.0029011966983211925,
+            "hac_t": -1.7051555350787733,
+            "leave_one_year_out_min_mean": -0.008081108527927637,
+            "max_drawdown": -0.36942833803759223,
+            "mean_monthly": -0.004946991608494643,
+            "n": 84,
+            "positive_year_fraction": 0.14285714285714285
+          },
+          "0.005": {
+            "annualized_mean": -0.0893638993019357,
+            "annualized_sharpe": -1.0309683731145327,
+            "bonferroni_lower_bound": -0.016196049975300837,
+            "hac_se": 0.002901196698321192,
+            "hac_t": -2.5668689106133074,
+            "leave_one_year_out_min_mean": -0.01058110852792764,
+            "max_drawdown": -0.47150235823329134,
+            "mean_monthly": -0.007446991608494642,
+            "n": 84,
+            "positive_year_fraction": 0.14285714285714285
+          }
+        }
+      },
+      "tier": "FAILED_OR_UNIDENTIFIABLE",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2026-04-30",
+      "available_start": "1972-02-29",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "VME:MOMLS_VME_US90",
+        "dataset": "VME",
+        "expected_sign": "positive",
+        "family": "value_momentum_everywhere",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2011-12-31",
+        "series": "MOMLS_VME_US90",
+        "validation_end": "2018-12-31",
+        "validation_start": "2012-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": 0.07795777387701135,
+            "annualized_sharpe": 0.5809927811518105,
+            "bonferroni_lower_bound": -0.004592216633984326,
+            "hac_se": 0.0036770235229256223,
+            "hac_t": 1.7667771543785746,
+            "leave_one_year_out_min_mean": 0.004272835214675596,
+            "max_drawdown": -0.19130104337561993,
+            "mean_monthly": 0.0064964811564176125,
+            "n": 88,
+            "positive_year_fraction": 0.625
+          },
+          "0.0025": {
+            "annualized_mean": 0.04795777387701136,
+            "annualized_sharpe": 0.35741298188699205,
+            "bonferroni_lower_bound": -0.007092216633984326,
+            "hac_se": 0.0036770235229256227,
+            "hac_t": 1.086879409799863,
+            "leave_one_year_out_min_mean": 0.0017728352146755947,
+            "max_drawdown": -0.21312629096694258,
+            "mean_monthly": 0.003996481156417614,
+            "n": 88,
+            "positive_year_fraction": 0.5
+          },
+          "0.005": {
+            "annualized_mean": 0.017957773877011352,
+            "annualized_sharpe": 0.13383318262217336,
+            "bonferroni_lower_bound": -0.009592216633984327,
+            "hac_se": 0.0036770235229256227,
+            "hac_t": 0.40698166522115087,
+            "leave_one_year_out_min_mean": -0.000727164785324406,
+            "max_drawdown": -0.25898222744878796,
+            "mean_monthly": 0.0014964811564176126,
+            "n": 88,
+            "positive_year_fraction": 0.5
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": 0.030878270359061433,
+            "annualized_sharpe": 0.29983867805216824,
+            "bonferroni_lower_bound": -0.005439076560212542,
+            "hac_se": 0.0026568755156434667,
+            "hac_t": 0.9685019796515585,
+            "leave_one_year_out_min_mean": 0.00037313155371194426,
+            "max_drawdown": -0.16087740319060806,
+            "mean_monthly": 0.0025731891965884526,
+            "n": 84,
+            "positive_year_fraction": 0.7142857142857143
+          },
+          "0.0025": {
+            "annualized_mean": 0.0008782703590614128,
+            "annualized_sharpe": 0.008528308754706478,
+            "bonferroni_lower_bound": -0.007939076560212545,
+            "hac_se": 0.002656875515643467,
+            "hac_t": 0.02754709287564247,
+            "leave_one_year_out_min_mean": -0.002126868446288056,
+            "max_drawdown": -0.19418779665245367,
+            "mean_monthly": 7.318919658845106e-05,
+            "n": 84,
+            "positive_year_fraction": 0.42857142857142855
+          },
+          "0.005": {
+            "annualized_mean": -0.029121729640938572,
+            "annualized_sharpe": -0.28278206054275495,
+            "bonferroni_lower_bound": -0.010439076560212543,
+            "hac_se": 0.002656875515643467,
+            "hac_t": -0.9134077939002723,
+            "leave_one_year_out_min_mean": -0.004626868446288055,
+            "max_drawdown": -0.24054759700154915,
+            "mean_monthly": -0.0024268108034115475,
+            "n": 84,
+            "positive_year_fraction": 0.42857142857142855
+          }
+        }
+      },
+      "tier": "DIRECTIONALLY_PERSISTENT_ONLY",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2026-04-30",
+      "available_start": "1981-07-31",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "VME:VALLS_VME_UK90",
+        "dataset": "VME",
+        "expected_sign": "positive",
+        "family": "value_momentum_everywhere",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2011-12-31",
+        "series": "VALLS_VME_UK90",
+        "validation_end": "2018-12-31",
+        "validation_start": "2012-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": -0.013775689285045913,
+            "annualized_sharpe": -0.0978607866084721,
+            "bonferroni_lower_bound": -0.018665463698942338,
+            "hac_se": 0.005808817456239961,
+            "hac_t": -0.19762612885243624,
+            "leave_one_year_out_min_mean": -0.005541525025336052,
+            "max_drawdown": -0.5298185322420643,
+            "mean_monthly": -0.0011479741070871594,
+            "n": 88,
+            "positive_year_fraction": 0.5
+          },
+          "0.0025": {
+            "annualized_mean": -0.04377568928504591,
+            "annualized_sharpe": -0.3109770624990094,
+            "bonferroni_lower_bound": -0.02116546369894234,
+            "hac_se": 0.005808817456239961,
+            "hac_t": -0.6280063256538428,
+            "leave_one_year_out_min_mean": -0.008041525025336052,
+            "max_drawdown": -0.5690354599060697,
+            "mean_monthly": -0.0036479741070871595,
+            "n": 88,
+            "positive_year_fraction": 0.25
+          },
+          "0.005": {
+            "annualized_mean": -0.07377568928504592,
+            "annualized_sharpe": -0.5240933383895467,
+            "bonferroni_lower_bound": -0.02366546369894234,
+            "hac_se": 0.005808817456239961,
+            "hac_t": -1.0583865224552493,
+            "leave_one_year_out_min_mean": -0.010541525025336052,
+            "max_drawdown": -0.6050698719421668,
+            "mean_monthly": -0.00614797410708716,
+            "n": 88,
+            "positive_year_fraction": 0.25
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": -0.006916021552239995,
+            "annualized_sharpe": -0.06881496607447547,
+            "bonferroni_lower_bound": -0.010582245652766234,
+            "hac_se": 0.0033179701582925587,
+            "hac_t": -0.173701119014861,
+            "leave_one_year_out_min_mean": -0.004879830818596112,
+            "max_drawdown": -0.3189833855303571,
+            "mean_monthly": -0.0005763351293533329,
+            "n": 84,
+            "positive_year_fraction": 0.2857142857142857
+          },
+          "0.0025": {
+            "annualized_mean": -0.03691602155224,
+            "annualized_sharpe": -0.36731735890834694,
+            "bonferroni_lower_bound": -0.013082245652766234,
+            "hac_se": 0.0033179701582925587,
+            "hac_t": -0.9271738390005376,
+            "leave_one_year_out_min_mean": -0.0073798308185961115,
+            "max_drawdown": -0.3951802030319205,
+            "mean_monthly": -0.003076335129353333,
+            "n": 84,
+            "positive_year_fraction": 0.2857142857142857
+          },
+          "0.005": {
+            "annualized_mean": -0.06691602155223998,
+            "annualized_sharpe": -0.6658197517422182,
+            "bonferroni_lower_bound": -0.015582245652766233,
+            "hac_se": 0.0033179701582925587,
+            "hac_t": -1.6806465589862138,
+            "leave_one_year_out_min_mean": -0.00987983081859611,
+            "max_drawdown": -0.4630130030146201,
+            "mean_monthly": -0.005576335129353332,
+            "n": 84,
+            "positive_year_fraction": 0.14285714285714285
+          }
+        }
+      },
+      "tier": "FAILED_OR_UNIDENTIFIABLE",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2026-04-30",
+      "available_start": "1972-01-31",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "VME:MOMLS_VME_UK90",
+        "dataset": "VME",
+        "expected_sign": "positive",
+        "family": "value_momentum_everywhere",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2011-12-31",
+        "series": "MOMLS_VME_UK90",
+        "validation_end": "2018-12-31",
+        "validation_start": "2012-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": 0.050508200623959554,
+            "annualized_sharpe": 0.3824508092421051,
+            "bonferroni_lower_bound": -0.009327014830828855,
+            "hac_se": 0.004488561899272563,
+            "hac_t": 0.9377205468293595,
+            "leave_one_year_out_min_mean": 0.0013954388704959218,
+            "max_drawdown": -0.326361705403312,
+            "mean_monthly": 0.004209016718663296,
+            "n": 88,
+            "positive_year_fraction": 0.5
+          },
+          "0.0025": {
+            "annualized_mean": 0.02050820062395955,
+            "annualized_sharpe": 0.15528919715686954,
+            "bonferroni_lower_bound": -0.011827014830828857,
+            "hac_se": 0.004488561899272564,
+            "hac_t": 0.3807492816218635,
+            "leave_one_year_out_min_mean": -0.0011045611295040782,
+            "max_drawdown": -0.40517563944852464,
+            "mean_monthly": 0.001709016718663296,
+            "n": 88,
+            "positive_year_fraction": 0.375
+          },
+          "0.005": {
+            "annualized_mean": -0.009491799376040453,
+            "annualized_sharpe": -0.0718724149283661,
+            "bonferroni_lower_bound": -0.014327014830828854,
+            "hac_se": 0.004488561899272563,
+            "hac_t": -0.17622198358563235,
+            "leave_one_year_out_min_mean": -0.003604561129504079,
+            "max_drawdown": -0.47588960186316664,
+            "mean_monthly": -0.0007909832813367044,
+            "n": 88,
+            "positive_year_fraction": 0.375
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": 0.1029849813319314,
+            "annualized_sharpe": 0.8393860260174864,
+            "bonferroni_lower_bound": -0.0023538394058313684,
+            "hac_se": 0.0036263626438956535,
+            "hac_t": 2.366581233155868,
+            "leave_one_year_out_min_mean": 0.005118427954705555,
+            "max_drawdown": -0.16021440740287463,
+            "mean_monthly": 0.00858208177766095,
+            "n": 84,
+            "positive_year_fraction": 0.8571428571428571
+          },
+          "0.0025": {
+            "annualized_mean": 0.07298498133193143,
+            "annualized_sharpe": 0.5948690056243702,
+            "bonferroni_lower_bound": -0.0048538394058313655,
+            "hac_se": 0.0036263626438956535,
+            "hac_t": 1.6771852059250258,
+            "leave_one_year_out_min_mean": 0.002618427954705555,
+            "max_drawdown": -0.1955871464663147,
+            "mean_monthly": 0.006082081777660953,
+            "n": 84,
+            "positive_year_fraction": 0.7142857142857143
+          },
+          "0.005": {
+            "annualized_mean": 0.04298498133193143,
+            "annualized_sharpe": 0.3503519852312536,
+            "bonferroni_lower_bound": -0.007353839405831366,
+            "hac_se": 0.0036263626438956535,
+            "hac_t": 0.9877891786941827,
+            "leave_one_year_out_min_mean": 0.00011842795470555452,
+            "max_drawdown": -0.22955425078167602,
+            "mean_monthly": 0.0035820817776609525,
+            "n": 84,
+            "positive_year_fraction": 0.7142857142857143
+          }
+        }
+      },
+      "tier": "DIRECTIONALLY_PERSISTENT_ONLY",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2026-04-30",
+      "available_start": "1981-07-31",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "VME:VALLS_VME_ROE90",
+        "dataset": "VME",
+        "expected_sign": "positive",
+        "family": "value_momentum_everywhere",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2011-12-31",
+        "series": "VALLS_VME_ROE90",
+        "validation_end": "2018-12-31",
+        "validation_start": "2012-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": 0.023582354291766812,
+            "annualized_sharpe": 0.18091659789450765,
+            "bonferroni_lower_bound": -0.012478101114595427,
+            "hac_se": 0.004789412151459323,
+            "hac_t": 0.41032095982421907,
+            "leave_one_year_out_min_mean": -0.0014161933176272375,
+            "max_drawdown": -0.3579242445081354,
+            "mean_monthly": 0.0019651961909805675,
+            "n": 88,
+            "positive_year_fraction": 0.625
+          },
+          "0.0025": {
+            "annualized_mean": -0.006417645708233197,
+            "annualized_sharpe": -0.04923421188830128,
+            "bonferroni_lower_bound": -0.014978101114595428,
+            "hac_se": 0.004789412151459323,
+            "hac_t": -0.11166376835129538,
+            "leave_one_year_out_min_mean": -0.003916193317627238,
+            "max_drawdown": -0.3915066439425011,
+            "mean_monthly": -0.0005348038090194331,
+            "n": 88,
+            "positive_year_fraction": 0.625
+          },
+          "0.005": {
+            "annualized_mean": -0.03641764570823318,
+            "annualized_sharpe": -0.27938502167111,
+            "bonferroni_lower_bound": -0.017478101114595426,
+            "hac_se": 0.004789412151459323,
+            "hac_t": -0.6336484965268094,
+            "leave_one_year_out_min_mean": -0.006416193317627237,
+            "max_drawdown": -0.42538439116870075,
+            "mean_monthly": -0.0030348038090194317,
+            "n": 88,
+            "positive_year_fraction": 0.375
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": -0.03225661742533001,
+            "annualized_sharpe": -0.3668176058438012,
+            "bonferroni_lower_bound": -0.010993256415956693,
+            "hac_se": 0.002754014456162117,
+            "hac_t": -0.9760484176458513,
+            "leave_one_year_out_min_mean": -0.005368468814623751,
+            "max_drawdown": -0.27304963815637895,
+            "mean_monthly": -0.002688051452110834,
+            "n": 84,
+            "positive_year_fraction": 0.2857142857142857
+          },
+          "0.0025": {
+            "annualized_mean": -0.062256617425329994,
+            "annualized_sharpe": -0.7079732834590416,
+            "bonferroni_lower_bound": -0.013493256415956691,
+            "hac_se": 0.002754014456162117,
+            "hac_t": -1.8838141682599194,
+            "leave_one_year_out_min_mean": -0.00786846881462375,
+            "max_drawdown": -0.3901204338860067,
+            "mean_monthly": -0.005188051452110833,
+            "n": 84,
+            "positive_year_fraction": 0.14285714285714285
+          },
+          "0.005": {
+            "annualized_mean": -0.09225661742533,
+            "annualized_sharpe": -1.0491289610742824,
+            "bonferroni_lower_bound": -0.015993256415956694,
+            "hac_se": 0.002754014456162117,
+            "hac_t": -2.7915799188739885,
+            "leave_one_year_out_min_mean": -0.010368468814623751,
+            "max_drawdown": -0.501451403542451,
+            "mean_monthly": -0.0076880514521108344,
+            "n": 84,
+            "positive_year_fraction": 0.14285714285714285
+          }
+        }
+      },
+      "tier": "FAILED_OR_UNIDENTIFIABLE",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2026-04-30",
+      "available_start": "1974-02-28",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "VME:MOMLS_VME_ROE90",
+        "dataset": "VME",
+        "expected_sign": "positive",
+        "family": "value_momentum_everywhere",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2011-12-31",
+        "series": "MOMLS_VME_ROE90",
+        "validation_end": "2018-12-31",
+        "validation_start": "2012-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": 0.07174981818369545,
+            "annualized_sharpe": 0.6323904531494968,
+            "bonferroni_lower_bound": -0.004026569448431145,
+            "hac_se": 0.003317907300110945,
+            "hac_t": 1.8020851622671985,
+            "leave_one_year_out_min_mean": 0.004339465089587262,
+            "max_drawdown": -0.18485650712184076,
+            "mean_monthly": 0.0059791515153079546,
+            "n": 88,
+            "positive_year_fraction": 0.75
+          },
+          "0.0025": {
+            "annualized_mean": 0.04174981818369545,
+            "annualized_sharpe": 0.3679756563633487,
+            "bonferroni_lower_bound": -0.006526569448431146,
+            "hac_se": 0.003317907300110945,
+            "hac_t": 1.0485981676436884,
+            "leave_one_year_out_min_mean": 0.0018394650895872614,
+            "max_drawdown": -0.2575814608782835,
+            "mean_monthly": 0.003479151515307954,
+            "n": 88,
+            "positive_year_fraction": 0.625
+          },
+          "0.005": {
+            "annualized_mean": 0.011749818183695453,
+            "annualized_sharpe": 0.1035608595772007,
+            "bonferroni_lower_bound": -0.009026569448431145,
+            "hac_se": 0.003317907300110945,
+            "hac_t": 0.29511117302017853,
+            "leave_one_year_out_min_mean": -0.0006605349104127379,
+            "max_drawdown": -0.32717602558479686,
+            "mean_monthly": 0.0009791515153079544,
+            "n": 88,
+            "positive_year_fraction": 0.625
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": 0.04549380160033999,
+            "annualized_sharpe": 0.41984949238948166,
+            "bonferroni_lower_bound": -0.0038159876385505044,
+            "hac_se": 0.0025225346617046866,
+            "hac_t": 1.5029129989435588,
+            "leave_one_year_out_min_mean": 0.0021734992480102783,
+            "max_drawdown": -0.13022512832774935,
+            "mean_monthly": 0.003791150133361666,
+            "n": 84,
+            "positive_year_fraction": 0.7142857142857143
+          },
+          "0.0025": {
+            "annualized_mean": 0.015493801600340001,
+            "annualized_sharpe": 0.14298793480115485,
+            "bonferroni_lower_bound": -0.006315987638550504,
+            "hac_se": 0.0025225346617046866,
+            "hac_t": 0.5118463397006918,
+            "leave_one_year_out_min_mean": -0.00032650075198972274,
+            "max_drawdown": -0.16814453177571775,
+            "mean_monthly": 0.0012911501333616668,
+            "n": 84,
+            "positive_year_fraction": 0.42857142857142855
+          },
+          "0.005": {
+            "annualized_mean": -0.01450619839965999,
+            "annualized_sharpe": -0.13387362278717202,
+            "bonferroni_lower_bound": -0.008815987638550505,
+            "hac_se": 0.002522534661704687,
+            "hac_t": -0.4792203195421751,
+            "leave_one_year_out_min_mean": -0.002826500751989722,
+            "max_drawdown": -0.21790980849520303,
+            "mean_monthly": -0.0012088498666383326,
+            "n": 84,
+            "positive_year_fraction": 0.42857142857142855
+          }
+        }
+      },
+      "tier": "DIRECTIONALLY_PERSISTENT_ONLY",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2026-04-30",
+      "available_start": "1981-07-31",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "VME:VALLS_VME_JP90",
+        "dataset": "VME",
+        "expected_sign": "positive",
+        "family": "value_momentum_everywhere",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2011-12-31",
+        "series": "VALLS_VME_JP90",
+        "validation_end": "2018-12-31",
+        "validation_start": "2012-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": 0.04610585532791183,
+            "annualized_sharpe": 0.33303908443940966,
+            "bonferroni_lower_bound": -0.010086491396794472,
+            "hac_se": 0.004618753254890103,
+            "hac_t": 0.8318596813093316,
+            "leave_one_year_out_min_mean": 0.0015967093681027627,
+            "max_drawdown": -0.35669146740948243,
+            "mean_monthly": 0.003842154610659319,
+            "n": 88,
+            "positive_year_fraction": 0.625
+          },
+          "0.0025": {
+            "annualized_mean": 0.016105855327911808,
+            "annualized_sharpe": 0.11633835386791144,
+            "bonferroni_lower_bound": -0.012586491396794474,
+            "hac_se": 0.004618753254890103,
+            "hac_t": 0.2905880735755502,
+            "leave_one_year_out_min_mean": -0.0009032906318972377,
+            "max_drawdown": -0.3918593839134562,
+            "mean_monthly": 0.0013421546106593173,
+            "n": 88,
+            "positive_year_fraction": 0.625
+          },
+          "0.005": {
+            "annualized_mean": -0.013894144672088191,
+            "annualized_sharpe": -0.10036237670358661,
+            "bonferroni_lower_bound": -0.015086491396794473,
+            "hac_se": 0.004618753254890103,
+            "hac_t": -0.25068353415823075,
+            "leave_one_year_out_min_mean": -0.0034032906318972366,
+            "max_drawdown": -0.42518765725227947,
+            "mean_monthly": -0.0011578453893406825,
+            "n": 88,
+            "positive_year_fraction": 0.625
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": 0.005795038347744285,
+            "annualized_sharpe": 0.05330065220584174,
+            "bonferroni_lower_bound": -0.008641641689036288,
+            "hac_se": 0.0030257139381804996,
+            "hac_t": 0.15960526083388624,
+            "leave_one_year_out_min_mean": -0.001449565209349306,
+            "max_drawdown": -0.19127253376256748,
+            "mean_monthly": 0.0004829198623120238,
+            "n": 84,
+            "positive_year_fraction": 0.2857142857142857
+          },
+          "0.0025": {
+            "annualized_mean": -0.02420496165225573,
+            "annualized_sharpe": -0.22262842198185026,
+            "bonferroni_lower_bound": -0.01114164168903629,
+            "hac_se": 0.0030257139381804996,
+            "hac_t": -0.6666460144282311,
+            "leave_one_year_out_min_mean": -0.003949565209349307,
+            "max_drawdown": -0.29039331990900674,
+            "mean_monthly": -0.0020170801376879774,
+            "n": 84,
+            "positive_year_fraction": 0.14285714285714285
+          },
+          "0.005": {
+            "annualized_mean": -0.05420496165225572,
+            "annualized_sharpe": -0.498557496169542,
+            "bonferroni_lower_bound": -0.013641641689036286,
+            "hac_se": 0.003025713938180499,
+            "hac_t": -1.4928972896903479,
+            "leave_one_year_out_min_mean": -0.006449565209349304,
+            "max_drawdown": -0.395641576217201,
+            "mean_monthly": -0.004517080137687976,
+            "n": 84,
+            "positive_year_fraction": 0.14285714285714285
+          }
+        }
+      },
+      "tier": "DIRECTIONALLY_PERSISTENT_ONLY",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2026-04-30",
+      "available_start": "1974-02-28",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "VME:MOMLS_VME_JP90",
+        "dataset": "VME",
+        "expected_sign": "positive",
+        "family": "value_momentum_everywhere",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2011-12-31",
+        "series": "MOMLS_VME_JP90",
+        "validation_end": "2018-12-31",
+        "validation_start": "2012-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": 0.023882429125778183,
+            "annualized_sharpe": 0.1927170360799781,
+            "bonferroni_lower_bound": -0.009065509537054673,
+            "hac_se": 0.0036660853892376295,
+            "hac_t": 0.5428685411940306,
+            "leave_one_year_out_min_mean": -0.0007492254706328577,
+            "max_drawdown": -0.22788137046315737,
+            "mean_monthly": 0.001990202427148182,
+            "n": 88,
+            "positive_year_fraction": 0.5
+          },
+          "0.0025": {
+            "annualized_mean": -0.006117570874221843,
+            "annualized_sharpe": -0.04936516803546963,
+            "bonferroni_lower_bound": -0.011565509537054675,
+            "hac_se": 0.003666085389237629,
+            "hac_t": -0.1390577465403319,
+            "leave_one_year_out_min_mean": -0.003249225470632858,
+            "max_drawdown": -0.2784787923666997,
+            "mean_monthly": -0.0005097975728518202,
+            "n": 88,
+            "positive_year_fraction": 0.375
+          },
+          "0.005": {
+            "annualized_mean": -0.03611757087422182,
+            "annualized_sharpe": -0.291447372150917,
+            "bonferroni_lower_bound": -0.014065509537054672,
+            "hac_se": 0.003666085389237629,
+            "hac_t": -0.8209840342746935,
+            "leave_one_year_out_min_mean": -0.0057492254706328575,
+            "max_drawdown": -0.3847824434657414,
+            "mean_monthly": -0.0030097975728518188,
+            "n": 88,
+            "positive_year_fraction": 0.25
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": 0.00798455118812857,
+            "annualized_sharpe": 0.06327173044168687,
+            "bonferroni_lower_bound": -0.009047721732349977,
+            "hac_se": 0.0032208742203447085,
+            "hac_t": 0.2065834367186713,
+            "leave_one_year_out_min_mean": -0.0007319403394922229,
+            "max_drawdown": -0.24610270689361013,
+            "mean_monthly": 0.0006653792656773808,
+            "n": 84,
+            "positive_year_fraction": 0.42857142857142855
+          },
+          "0.0025": {
+            "annualized_mean": -0.022015448811871438,
+            "annualized_sharpe": -0.1744563357360062,
+            "bonferroni_lower_bound": -0.011547721732349978,
+            "hac_se": 0.0032208742203447085,
+            "hac_t": -0.569603346425081,
+            "leave_one_year_out_min_mean": -0.0032319403394922225,
+            "max_drawdown": -0.32340760457841433,
+            "mean_monthly": -0.0018346207343226198,
+            "n": 84,
+            "positive_year_fraction": 0.42857142857142855
+          },
+          "0.005": {
+            "annualized_mean": -0.05201544881187142,
+            "annualized_sharpe": -0.41218440191369893,
+            "bonferroni_lower_bound": -0.014047721732349975,
+            "hac_se": 0.0032208742203447085,
+            "hac_t": -1.3457901295688328,
+            "leave_one_year_out_min_mean": -0.005731940339492223,
+            "max_drawdown": -0.4284921364989315,
+            "mean_monthly": -0.004334620734322618,
+            "n": 84,
+            "positive_year_fraction": 0.2857142857142857
+          }
+        }
+      },
+      "tier": "DIRECTIONALLY_PERSISTENT_ONLY",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2025-01-31",
+      "available_start": "1977-03-31",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "VME:VALLS_VME_EQ",
+        "dataset": "VME",
+        "expected_sign": "positive",
+        "family": "value_momentum_everywhere",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2011-12-31",
+        "series": "VALLS_VME_EQ",
+        "validation_end": "2018-12-31",
+        "validation_start": "2012-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": -0.01002606423446599,
+            "annualized_sharpe": -0.09185781766677237,
+            "bonferroni_lower_bound": -0.011761188023971074,
+            "hac_se": 0.0036229675427194886,
+            "hac_t": -0.23061353518089067,
+            "leave_one_year_out_min_mean": -0.003002706030691441,
+            "max_drawdown": -0.2643506850115399,
+            "mean_monthly": -0.0008355053528721658,
+            "n": 73,
+            "positive_year_fraction": 0.42857142857142855
+          },
+          "0.0025": {
+            "annualized_mean": -0.040026064234465995,
+            "annualized_sharpe": -0.36671487678374387,
+            "bonferroni_lower_bound": -0.014261188023971074,
+            "hac_se": 0.0036229675427194886,
+            "hac_t": -0.920655598909521,
+            "leave_one_year_out_min_mean": -0.005502706030691442,
+            "max_drawdown": -0.3405588891740534,
+            "mean_monthly": -0.0033355053528721663,
+            "n": 73,
+            "positive_year_fraction": 0.14285714285714285
+          },
+          "0.005": {
+            "annualized_mean": -0.070026064234466,
+            "annualized_sharpe": -0.6415719359007153,
+            "bonferroni_lower_bound": -0.016761188023971075,
+            "hac_se": 0.0036229675427194886,
+            "hac_t": -1.6106976626381513,
+            "leave_one_year_out_min_mean": -0.008002706030691442,
+            "max_drawdown": -0.4318298777206381,
+            "mean_monthly": -0.005835505352872167,
+            "n": 73,
+            "positive_year_fraction": 0.14285714285714285
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": -0.003936336493713017,
+            "annualized_sharpe": -0.04547881837330205,
+            "bonferroni_lower_bound": -0.008909025170014307,
+            "hac_se": 0.002845467420018328,
+            "hac_t": -0.1152808986091426,
+            "leave_one_year_out_min_mean": -0.0016899183748351225,
+            "max_drawdown": -0.24559156310010366,
+            "mean_monthly": -0.00032802804114275143,
+            "n": 84,
+            "positive_year_fraction": 0.5714285714285714
+          },
+          "0.0025": {
+            "annualized_mean": -0.03393633649371302,
+            "annualized_sharpe": -0.39208652159638235,
+            "bonferroni_lower_bound": -0.011409025170014308,
+            "hac_se": 0.002845467420018328,
+            "hac_t": -0.9938711725346469,
+            "leave_one_year_out_min_mean": -0.004189918374835123,
+            "max_drawdown": -0.32192324741222234,
+            "mean_monthly": -0.0028280280411427518,
+            "n": 84,
+            "positive_year_fraction": 0.2857142857142857
+          },
+          "0.005": {
+            "annualized_mean": -0.06393633649371301,
+            "annualized_sharpe": -0.7386942248194623,
+            "bonferroni_lower_bound": -0.013909025170014307,
+            "hac_se": 0.002845467420018328,
+            "hac_t": -1.8724614464601506,
+            "leave_one_year_out_min_mean": -0.006689918374835122,
+            "max_drawdown": -0.40677652517527874,
+            "mean_monthly": -0.005328028041142751,
+            "n": 84,
+            "positive_year_fraction": 0.14285714285714285
+          }
+        }
+      },
+      "tier": "FAILED_OR_UNIDENTIFIABLE",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2025-01-31",
+      "available_start": "1977-03-31",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "VME:MOMLS_VME_EQ",
+        "dataset": "VME",
+        "expected_sign": "positive",
+        "family": "value_momentum_everywhere",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2011-12-31",
+        "series": "MOMLS_VME_EQ",
+        "validation_end": "2018-12-31",
+        "validation_start": "2012-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": 0.022501932801919342,
+            "annualized_sharpe": 0.23737744630670474,
+            "bonferroni_lower_bound": -0.006391752751917855,
+            "hac_se": 0.002741317073302658,
+            "hac_t": 0.6840365476465928,
+            "leave_one_year_out_min_mean": 0.0005858098799651947,
+            "max_drawdown": -0.1479658344708984,
+            "mean_monthly": 0.001875161066826612,
+            "n": 73,
+            "positive_year_fraction": 0.5714285714285714
+          },
+          "0.0025": {
+            "annualized_mean": -0.007498067198080646,
+            "annualized_sharpe": -0.07909862941038714,
+            "bonferroni_lower_bound": -0.008891752751917854,
+            "hac_se": 0.002741317073302658,
+            "hac_t": -0.22793384218798143,
+            "leave_one_year_out_min_mean": -0.001914190120034805,
+            "max_drawdown": -0.2247563813835166,
+            "mean_monthly": -0.0006248389331733872,
+            "n": 73,
+            "positive_year_fraction": 0.42857142857142855
+          },
+          "0.005": {
+            "annualized_mean": -0.03749806719808066,
+            "annualized_sharpe": -0.3955747051274793,
+            "bonferroni_lower_bound": -0.011391752751917856,
+            "hac_se": 0.002741317073302658,
+            "hac_t": -1.1399042320225563,
+            "leave_one_year_out_min_mean": -0.004414190120034805,
+            "max_drawdown": -0.31300181355045176,
+            "mean_monthly": -0.003124838933173388,
+            "n": 73,
+            "positive_year_fraction": 0.14285714285714285
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": -0.004554114757283866,
+            "annualized_sharpe": -0.061882880782911084,
+            "bonferroni_lower_bound": -0.005467080499393322,
+            "hac_se": 0.0016870437233369212,
+            "hac_t": -0.2249553807392321,
+            "leave_one_year_out_min_mean": -0.0011813144777429645,
+            "max_drawdown": -0.14916109425748658,
+            "mean_monthly": -0.00037950956310698887,
+            "n": 84,
+            "positive_year_fraction": 0.7142857142857143
+          },
+          "0.0025": {
+            "annualized_mean": -0.03455411475728388,
+            "annualized_sharpe": -0.4695332195272439,
+            "bonferroni_lower_bound": -0.007967080499393323,
+            "hac_se": 0.0016870437233369212,
+            "hac_t": -1.7068375426639255,
+            "leave_one_year_out_min_mean": -0.0036813144777429643,
+            "max_drawdown": -0.2886478086609453,
+            "mean_monthly": -0.00287950956310699,
+            "n": 84,
+            "positive_year_fraction": 0.14285714285714285
+          },
+          "0.005": {
+            "annualized_mean": -0.06455411475728387,
+            "annualized_sharpe": -0.8771835582715765,
+            "bonferroni_lower_bound": -0.010467080499393322,
+            "hac_se": 0.0016870437233369212,
+            "hac_t": -3.1887197045886175,
+            "leave_one_year_out_min_mean": -0.006181314477742964,
+            "max_drawdown": -0.4084545123722241,
+            "mean_monthly": -0.005379509563106989,
+            "n": 84,
+            "positive_year_fraction": 0.0
+          }
+        }
+      },
+      "tier": "FAILED_OR_UNIDENTIFIABLE",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2025-01-31",
+      "available_start": "1979-01-31",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "VME:VALLS_VME_FX",
+        "dataset": "VME",
+        "expected_sign": "positive",
+        "family": "value_momentum_everywhere",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2011-12-31",
+        "series": "VALLS_VME_FX",
+        "validation_end": "2018-12-31",
+        "validation_start": "2012-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": -0.015908597322690565,
+            "annualized_sharpe": -0.24609784226825032,
+            "bonferroni_lower_bound": -0.006945275901839387,
+            "hac_se": 0.00186345166106583,
+            "hac_t": -0.711430551839098,
+            "leave_one_year_out_min_mean": -0.0022964072353379053,
+            "max_drawdown": -0.16429666702195844,
+            "mean_monthly": -0.0013257164435575472,
+            "n": 73,
+            "positive_year_fraction": 0.42857142857142855
+          },
+          "0.0025": {
+            "annualized_mean": -0.045908597322690564,
+            "annualized_sharpe": -0.7101824575421041,
+            "bonferroni_lower_bound": -0.009445275901839387,
+            "hac_se": 0.00186345166106583,
+            "hac_t": -2.053026930341391,
+            "leave_one_year_out_min_mean": -0.004796407235337904,
+            "max_drawdown": -0.2641070899201716,
+            "mean_monthly": -0.0038257164435575473,
+            "n": 73,
+            "positive_year_fraction": 0.42857142857142855
+          },
+          "0.005": {
+            "annualized_mean": -0.07590859732269055,
+            "annualized_sharpe": -1.1742670728159574,
+            "bonferroni_lower_bound": -0.011945275901839386,
+            "hac_se": 0.00186345166106583,
+            "hac_t": -3.3946233088436832,
+            "leave_one_year_out_min_mean": -0.007296407235337904,
+            "max_drawdown": -0.38442261400743494,
+            "mean_monthly": -0.006325716443557546,
+            "n": 73,
+            "positive_year_fraction": 0.14285714285714285
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": 0.012188649075190983,
+            "annualized_sharpe": 0.21328736711957721,
+            "bonferroni_lower_bound": -0.0044045842515588445,
+            "hac_se": 0.0017973786816026806,
+            "hac_t": 0.5651122752608931,
+            "leave_one_year_out_min_mean": 9.94261679313586e-05,
+            "max_drawdown": -0.14005859023492562,
+            "mean_monthly": 0.0010157207562659152,
+            "n": 84,
+            "positive_year_fraction": 0.5714285714285714
+          },
+          "0.0025": {
+            "annualized_mean": -0.01781135092480901,
+            "annualized_sharpe": -0.31167819502883143,
+            "bonferroni_lower_bound": -0.006904584251558845,
+            "hac_se": 0.0017973786816026808,
+            "hac_t": -0.825802185664396,
+            "leave_one_year_out_min_mean": -0.0024005738320686414,
+            "max_drawdown": -0.19463925552683803,
+            "mean_monthly": -0.0014842792437340844,
+            "n": 84,
+            "positive_year_fraction": 0.42857142857142855
+          },
+          "0.005": {
+            "annualized_mean": -0.047811350924809023,
+            "annualized_sharpe": -0.8366437571772403,
+            "bonferroni_lower_bound": -0.009404584251558847,
+            "hac_se": 0.0017973786816026808,
+            "hac_t": -2.2167166465896857,
+            "leave_one_year_out_min_mean": -0.0049005738320686415,
+            "max_drawdown": -0.3142412324775371,
+            "mean_monthly": -0.003984279243734085,
+            "n": 84,
+            "positive_year_fraction": 0.2857142857142857
+          }
+        }
+      },
+      "tier": "FAILED_OR_UNIDENTIFIABLE",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2025-01-31",
+      "available_start": "1979-01-31",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "VME:MOMLS_VME_FX",
+        "dataset": "VME",
+        "expected_sign": "positive",
+        "family": "value_momentum_everywhere",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2011-12-31",
+        "series": "MOMLS_VME_FX",
+        "validation_end": "2018-12-31",
+        "validation_start": "2012-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": -0.0035853547196864873,
+            "annualized_sharpe": -0.05916282782704574,
+            "bonferroni_lower_bound": -0.005744889871058339,
+            "hac_se": 0.0018059357465435519,
+            "hac_t": -0.16544307323542345,
+            "leave_one_year_out_min_mean": -0.0010141863319063666,
+            "max_drawdown": -0.17985242826835657,
+            "mean_monthly": -0.00029877955997387396,
+            "n": 73,
+            "positive_year_fraction": 0.42857142857142855
+          },
+          "0.0025": {
+            "annualized_mean": -0.03358535471968648,
+            "annualized_sharpe": -0.5542002714210711,
+            "bonferroni_lower_bound": -0.008244889871058338,
+            "hac_se": 0.0018059357465435516,
+            "hac_t": -1.5497669644839598,
+            "leave_one_year_out_min_mean": -0.0035141863319063673,
+            "max_drawdown": -0.24016909888314253,
+            "mean_monthly": -0.0027987795599738736,
+            "n": 73,
+            "positive_year_fraction": 0.14285714285714285
+          },
+          "0.005": {
+            "annualized_mean": -0.06358535471968649,
+            "annualized_sharpe": -1.0492377150150964,
+            "bonferroni_lower_bound": -0.010744889871058339,
+            "hac_se": 0.0018059357465435519,
+            "hac_t": -2.934090855732496,
+            "leave_one_year_out_min_mean": -0.006014186331906367,
+            "max_drawdown": -0.34314562198443976,
+            "mean_monthly": -0.005298779559973874,
+            "n": 73,
+            "positive_year_fraction": 0.0
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": -0.003947328632164628,
+            "annualized_sharpe": -0.064678329193719,
+            "bonferroni_lower_bound": -0.005038310148012247,
+            "hac_se": 0.001561630611449459,
+            "hac_t": -0.21064139641516733,
+            "leave_one_year_out_min_mean": -0.001144830575952887,
+            "max_drawdown": -0.15092159928365756,
+            "mean_monthly": -0.0003289440526803856,
+            "n": 84,
+            "positive_year_fraction": 0.42857142857142855
+          },
+          "0.0025": {
+            "annualized_mean": -0.033947328632164625,
+            "annualized_sharpe": -0.5562385859204373,
+            "bonferroni_lower_bound": -0.007538310148012248,
+            "hac_se": 0.0015616306114494595,
+            "hac_t": -1.8115321459116656,
+            "leave_one_year_out_min_mean": -0.0036448305759528873,
+            "max_drawdown": -0.2350006676501577,
+            "mean_monthly": -0.0028289440526803856,
+            "n": 84,
+            "positive_year_fraction": 0.14285714285714285
+          },
+          "0.005": {
+            "annualized_mean": -0.06394732863216462,
+            "annualized_sharpe": -1.0477988426471556,
+            "bonferroni_lower_bound": -0.010038310148012248,
+            "hac_se": 0.0015616306114494595,
+            "hac_t": -3.412422895408164,
+            "leave_one_year_out_min_mean": -0.006144830575952888,
+            "max_drawdown": -0.3786198950200912,
+            "mean_monthly": -0.005328944052680386,
+            "n": 84,
+            "positive_year_fraction": 0.0
+          }
+        }
+      },
+      "tier": "FAILED_OR_UNIDENTIFIABLE",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2025-01-31",
+      "available_start": "1983-01-31",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "VME:VALLS_VME_FI",
+        "dataset": "VME",
+        "expected_sign": "positive",
+        "family": "value_momentum_everywhere",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2011-12-31",
+        "series": "VALLS_VME_FI",
+        "validation_end": "2018-12-31",
+        "validation_start": "2012-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": -0.002010631068400457,
+            "annualized_sharpe": -0.07450563301265209,
+            "bonferroni_lower_bound": -0.002621554958890761,
+            "hac_se": 0.0008137496944944485,
+            "hac_t": -0.2059018764209373,
+            "leave_one_year_out_min_mean": -0.0006483031633949238,
+            "max_drawdown": -0.048846316894883834,
+            "mean_monthly": -0.0001675525890333714,
+            "n": 73,
+            "positive_year_fraction": 0.5714285714285714
+          },
+          "0.0025": {
+            "annualized_mean": -0.03201063106840046,
+            "annualized_sharpe": -1.1861809798766272,
+            "bonferroni_lower_bound": -0.005121554958890761,
+            "hac_se": 0.0008137496944944485,
+            "hac_t": -3.278099650397558,
+            "leave_one_year_out_min_mean": -0.003148303163394924,
+            "max_drawdown": -0.17425278883106332,
+            "mean_monthly": -0.0026675525890333712,
+            "n": 73,
+            "positive_year_fraction": 0.0
+          },
+          "0.005": {
+            "annualized_mean": -0.06201063106840046,
+            "annualized_sharpe": -2.297856326740603,
+            "bonferroni_lower_bound": -0.007621554958890761,
+            "hac_se": 0.0008137496944944485,
+            "hac_t": -6.35029742437418,
+            "leave_one_year_out_min_mean": -0.005648303163394925,
+            "max_drawdown": -0.3107684341615572,
+            "mean_monthly": -0.005167552589033372,
+            "n": 73,
+            "positive_year_fraction": 0.0
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": -0.0034397502459057186,
+            "annualized_sharpe": -0.1700043054798144,
+            "bonferroni_lower_bound": -0.0019491186405755576,
+            "hac_se": 0.0005512776755801711,
+            "hac_t": -0.5199663736134554,
+            "leave_one_year_out_min_mean": -0.0006720938593952919,
+            "max_drawdown": -0.05918457992950854,
+            "mean_monthly": -0.00028664585382547655,
+            "n": 84,
+            "positive_year_fraction": 0.5714285714285714
+          },
+          "0.0025": {
+            "annualized_mean": -0.03343975024590572,
+            "annualized_sharpe": -1.6527076414167874,
+            "bonferroni_lower_bound": -0.004449118640575557,
+            "hac_se": 0.0005512776755801711,
+            "hac_t": -5.054886089651241,
+            "leave_one_year_out_min_mean": -0.003172093859395292,
+            "max_drawdown": -0.2185074101350709,
+            "mean_monthly": -0.0027866458538254764,
+            "n": 84,
+            "positive_year_fraction": 0.0
+          },
+          "0.005": {
+            "annualized_mean": -0.06343975024590573,
+            "annualized_sharpe": -3.135410977353761,
+            "bonferroni_lower_bound": -0.006949118640575558,
+            "hac_se": 0.000551277675580171,
+            "hac_t": -9.589805805689029,
+            "leave_one_year_out_min_mean": -0.005672093859395292,
+            "max_drawdown": -0.36096744132768643,
+            "mean_monthly": -0.005286645853825477,
+            "n": 84,
+            "positive_year_fraction": 0.0
+          }
+        }
+      },
+      "tier": "FAILED_OR_UNIDENTIFIABLE",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2025-01-31",
+      "available_start": "1983-01-31",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "VME:MOMLS_VME_FI",
+        "dataset": "VME",
+        "expected_sign": "positive",
+        "family": "value_momentum_everywhere",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2011-12-31",
+        "series": "MOMLS_VME_FI",
+        "validation_end": "2018-12-31",
+        "validation_start": "2012-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": 0.005284908229875002,
+            "annualized_sharpe": 0.21026385194393704,
+            "bonferroni_lower_bound": -0.0025200066345025633,
+            "hac_se": 0.0009816768570934348,
+            "hac_t": 0.44862931826693003,
+            "leave_one_year_out_min_mean": -0.00025469387573353534,
+            "max_drawdown": -0.0702236216356934,
+            "mean_monthly": 0.00044040901915625016,
+            "n": 73,
+            "positive_year_fraction": 0.5714285714285714
+          },
+          "0.0025": {
+            "annualized_mean": -0.024715091770124993,
+            "annualized_sharpe": -0.9833075941334349,
+            "bonferroni_lower_bound": -0.005020006634502563,
+            "hac_se": 0.0009816768570934348,
+            "hac_t": -2.098033549392028,
+            "leave_one_year_out_min_mean": -0.002754693875733536,
+            "max_drawdown": -0.17403377611101012,
+            "mean_monthly": -0.0020595909808437496,
+            "n": 73,
+            "positive_year_fraction": 0.2857142857142857
+          },
+          "0.005": {
+            "annualized_mean": -0.054715091770125006,
+            "annualized_sharpe": -2.1768790402108076,
+            "bonferroni_lower_bound": -0.007520006634502564,
+            "hac_se": 0.0009816768570934348,
+            "hac_t": -4.644696417050987,
+            "leave_one_year_out_min_mean": -0.0052546938757335356,
+            "max_drawdown": -0.2906546102379375,
+            "mean_monthly": -0.0045595909808437505,
+            "n": 73,
+            "positive_year_fraction": 0.0
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": 0.0004561984331078598,
+            "annualized_sharpe": 0.023335359923140862,
+            "bonferroni_lower_bound": -0.0014402530938904061,
+            "hac_se": 0.0004901957204910008,
+            "hac_t": 0.0775537902579865,
+            "leave_one_year_out_min_mean": -0.0003135902514295567,
+            "max_drawdown": -0.04704265811061059,
+            "mean_monthly": 3.801653609232165e-05,
+            "n": 84,
+            "positive_year_fraction": 0.2857142857142857
+          },
+          "0.0025": {
+            "annualized_mean": -0.029543801566892146,
+            "annualized_sharpe": -1.5112179109529769,
+            "bonferroni_lower_bound": -0.003940253093890407,
+            "hac_se": 0.0004901957204910008,
+            "hac_t": -5.022449933756362,
+            "leave_one_year_out_min_mean": -0.0028135902514295572,
+            "max_drawdown": -0.18739490676311266,
+            "mean_monthly": -0.002461983463907679,
+            "n": 84,
+            "positive_year_fraction": 0.0
+          },
+          "0.005": {
+            "annualized_mean": -0.05954380156689213,
+            "annualized_sharpe": -3.045771181829094,
+            "bonferroni_lower_bound": -0.006440253093890406,
+            "hac_se": 0.0004901957204910008,
+            "hac_t": -10.122453657770707,
+            "leave_one_year_out_min_mean": -0.005313590251429557,
+            "max_drawdown": -0.3387326505780045,
+            "mean_monthly": -0.004961983463907678,
+            "n": 84,
+            "positive_year_fraction": 0.0
+          }
+        }
+      },
+      "tier": "DIRECTIONALLY_PERSISTENT_ONLY",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2025-01-31",
+      "available_start": "1972-01-31",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "VME:VALLS_VME_COM",
+        "dataset": "VME",
+        "expected_sign": "positive",
+        "family": "value_momentum_everywhere",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2011-12-31",
+        "series": "VALLS_VME_COM",
+        "validation_end": "2018-12-31",
+        "validation_start": "2012-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": 0.051257611756210214,
+            "annualized_sharpe": 0.2582868274563003,
+            "bonferroni_lower_bound": -0.01530812112099578,
+            "hac_se": 0.006492611650852307,
+            "hac_t": 0.6578966794957036,
+            "leave_one_year_out_min_mean": 0.00023061113364276477,
+            "max_drawdown": -0.29049193198843093,
+            "mean_monthly": 0.0042714676463508515,
+            "n": 73,
+            "positive_year_fraction": 0.5714285714285714
+          },
+          "0.0025": {
+            "annualized_mean": 0.021257611756210222,
+            "annualized_sharpe": 0.10711699027109024,
+            "bonferroni_lower_bound": -0.01780812112099578,
+            "hac_se": 0.006492611650852306,
+            "hac_t": 0.2728436169624138,
+            "leave_one_year_out_min_mean": -0.0022693888663572366,
+            "max_drawdown": -0.31726244613734633,
+            "mean_monthly": 0.0017714676463508518,
+            "n": 73,
+            "positive_year_fraction": 0.42857142857142855
+          },
+          "0.005": {
+            "annualized_mean": -0.00874238824378976,
+            "annualized_sharpe": -0.044052846914119766,
+            "bonferroni_lower_bound": -0.020308121120995778,
+            "hac_se": 0.006492611650852307,
+            "hac_t": -0.11220944557087591,
+            "leave_one_year_out_min_mean": -0.004769388866357236,
+            "max_drawdown": -0.3618495404026588,
+            "mean_monthly": -0.0007285323536491467,
+            "n": 73,
+            "positive_year_fraction": 0.42857142857142855
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": 0.14075689907004246,
+            "annualized_sharpe": 1.0118668186616717,
+            "bonferroni_lower_bound": 0.0011491034922884516,
+            "hac_se": 0.0035085504091808225,
+            "hac_t": 3.3431874196468705,
+            "leave_one_year_out_min_mean": 0.009544178400013049,
+            "max_drawdown": -0.14013300037694176,
+            "mean_monthly": 0.011729741589170206,
+            "n": 84,
+            "positive_year_fraction": 1.0
+          },
+          "0.0025": {
+            "annualized_mean": 0.11075689907004246,
+            "annualized_sharpe": 0.7962041778930325,
+            "bonferroni_lower_bound": -0.0013508965077115506,
+            "hac_se": 0.003508550409180823,
+            "hac_t": 2.630642434271072,
+            "leave_one_year_out_min_mean": 0.007044178400013047,
+            "max_drawdown": -0.1605561620200897,
+            "mean_monthly": 0.009229741589170205,
+            "n": 84,
+            "positive_year_fraction": 1.0
+          },
+          "0.005": {
+            "annualized_mean": 0.08075689907004246,
+            "annualized_sharpe": 0.5805415371243936,
+            "bonferroni_lower_bound": -0.0038508965077115485,
+            "hac_se": 0.0035085504091808225,
+            "hac_t": 1.918097448895274,
+            "leave_one_year_out_min_mean": 0.00454417840001305,
+            "max_drawdown": -0.18167945075592185,
+            "mean_monthly": 0.006729741589170206,
+            "n": 84,
+            "positive_year_fraction": 1.0
+          }
+        }
+      },
+      "tier": "DIRECTIONALLY_PERSISTENT_ONLY",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2025-01-31",
+      "available_start": "1972-01-31",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "VME:MOMLS_VME_COM",
+        "dataset": "VME",
+        "expected_sign": "positive",
+        "family": "value_momentum_everywhere",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2011-12-31",
+        "series": "MOMLS_VME_COM",
+        "validation_end": "2018-12-31",
+        "validation_start": "2012-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": -0.06735654490799214,
+            "annualized_sharpe": -0.30444165342984586,
+            "bonferroni_lower_bound": -0.029467699008610525,
+            "hac_se": 0.00791022751949607,
+            "hac_t": -0.7095934213225931,
+            "leave_one_year_out_min_mean": -0.011162876479867351,
+            "max_drawdown": -0.5501984313046875,
+            "mean_monthly": -0.005613045408999345,
+            "n": 73,
+            "positive_year_fraction": 0.42857142857142855
+          },
+          "0.0025": {
+            "annualized_mean": -0.09735654490799214,
+            "annualized_sharpe": -0.440037230895573,
+            "bonferroni_lower_bound": -0.031967699008610524,
+            "hac_se": 0.00791022751949607,
+            "hac_t": -1.0256399564997842,
+            "leave_one_year_out_min_mean": -0.013662876479867353,
+            "max_drawdown": -0.6128648909169243,
+            "mean_monthly": -0.008113045408999346,
+            "n": 73,
+            "positive_year_fraction": 0.42857142857142855
+          },
+          "0.005": {
+            "annualized_mean": -0.12735654490799217,
+            "annualized_sharpe": -0.5756328083613003,
+            "bonferroni_lower_bound": -0.034467699008610526,
+            "hac_se": 0.00791022751949607,
+            "hac_t": -1.3416864916769757,
+            "leave_one_year_out_min_mean": -0.01616287647986735,
+            "max_drawdown": -0.6669286547803179,
+            "mean_monthly": -0.010613045408999348,
+            "n": 73,
+            "positive_year_fraction": 0.42857142857142855
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": 0.0027159226193410723,
+            "annualized_sharpe": 0.019361094116962976,
+            "bonferroni_lower_bound": -0.0128978423141269,
+            "hac_se": 0.004351987922839261,
+            "hac_t": 0.05200540280852445,
+            "leave_one_year_out_min_mean": -0.001927367160716609,
+            "max_drawdown": -0.29915443324062096,
+            "mean_monthly": 0.00022632688494508935,
+            "n": 84,
+            "positive_year_fraction": 0.5714285714285714
+          },
+          "0.0025": {
+            "annualized_mean": -0.027284077380658935,
+            "annualized_sharpe": -0.19450097226613933,
+            "bonferroni_lower_bound": -0.0153978423141269,
+            "hac_se": 0.004351987922839261,
+            "hac_t": -0.5224447207499497,
+            "leave_one_year_out_min_mean": -0.00442736716071661,
+            "max_drawdown": -0.35695969105399505,
+            "mean_monthly": -0.0022736731150549113,
+            "n": 84,
+            "positive_year_fraction": 0.42857142857142855
+          },
+          "0.005": {
+            "annualized_mean": -0.05728407738065893,
+            "annualized_sharpe": -0.40836303864924156,
+            "bonferroni_lower_bound": -0.017897842314126902,
+            "hac_se": 0.004351987922839261,
+            "hac_t": -1.0968948443084237,
+            "leave_one_year_out_min_mean": -0.00692736716071661,
+            "max_drawdown": -0.4224156868277007,
+            "mean_monthly": -0.004773673115054911,
+            "n": 84,
+            "positive_year_fraction": 0.42857142857142855
+          }
+        }
+      },
+      "tier": "FAILED_OR_UNIDENTIFIABLE",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2026-04-30",
+      "available_start": "1930-12-31",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "BAB:USA",
+        "dataset": "BAB",
+        "expected_sign": "positive",
+        "family": "betting_against_beta",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2012-03-31",
+        "series": "USA",
+        "validation_end": "2018-12-31",
+        "validation_start": "2012-04-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": 0.018911207026181747,
+            "annualized_sharpe": 0.1879981918183672,
+            "bonferroni_lower_bound": -0.005626752024548129,
+            "hac_se": 0.002388418021910493,
+            "hac_t": 0.659823324221901,
+            "leave_one_year_out_min_mean": 0.00015464931479511362,
+            "max_drawdown": -0.15250958285456595,
+            "mean_monthly": 0.001575933918848479,
+            "n": 88,
+            "positive_year_fraction": 0.5
+          },
+          "0.0025": {
+            "annualized_mean": -0.011088792973818248,
+            "annualized_sharpe": -0.11023479493614056,
+            "bonferroni_lower_bound": -0.008126752024548128,
+            "hac_se": 0.002388418021910493,
+            "hac_t": -0.38689461923100094,
+            "leave_one_year_out_min_mean": -0.0023453506852048876,
+            "max_drawdown": -0.21211084922709966,
+            "mean_monthly": -0.0009240660811515207,
+            "n": 88,
+            "positive_year_fraction": 0.5
+          },
+          "0.005": {
+            "annualized_mean": -0.04108879297381825,
+            "annualized_sharpe": -0.40846778169064835,
+            "bonferroni_lower_bound": -0.010626752024548129,
+            "hac_se": 0.002388418021910493,
+            "hac_t": -1.4336125626839031,
+            "leave_one_year_out_min_mean": -0.004845350685204886,
+            "max_drawdown": -0.3396256108197183,
+            "mean_monthly": -0.0034240660811515207,
+            "n": 88,
+            "positive_year_fraction": 0.25
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": 0.10846133891795923,
+            "annualized_sharpe": 1.8114640451023265,
+            "bonferroni_lower_bound": 0.004355456760436533,
+            "hac_se": 0.001552883657610918,
+            "hac_t": 5.820426318179824,
+            "leave_one_year_out_min_mean": 0.007977434721033273,
+            "max_drawdown": -0.055635887919395555,
+            "mean_monthly": 0.009038444909829935,
+            "n": 81,
+            "positive_year_fraction": 1.0
+          },
+          "0.0025": {
+            "annualized_mean": 0.07846133891795921,
+            "annualized_sharpe": 1.3104198767818906,
+            "bonferroni_lower_bound": 0.0018554567604365324,
+            "hac_se": 0.001552883657610918,
+            "hac_t": 4.210518204492671,
+            "leave_one_year_out_min_mean": 0.005477434721033272,
+            "max_drawdown": -0.06283697199811522,
+            "mean_monthly": 0.0065384449098299345,
+            "n": 81,
+            "positive_year_fraction": 0.8571428571428571
+          },
+          "0.005": {
+            "annualized_mean": 0.04846133891795923,
+            "annualized_sharpe": 0.809375708461455,
+            "bonferroni_lower_bound": -0.0006445432395634663,
+            "hac_se": 0.001552883657610918,
+            "hac_t": 2.6006100908055187,
+            "leave_one_year_out_min_mean": 0.00297743472103327,
+            "max_drawdown": -0.07000135710461963,
+            "mean_monthly": 0.004038444909829936,
+            "n": 81,
+            "positive_year_fraction": 0.7142857142857143
+          }
+        }
+      },
+      "tier": "DIRECTIONALLY_PERSISTENT_ONLY",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2026-04-30",
+      "available_start": "1987-02-28",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "BAB:Global",
+        "dataset": "BAB",
+        "expected_sign": "positive",
+        "family": "betting_against_beta",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2012-03-31",
+        "series": "Global",
+        "validation_end": "2018-12-31",
+        "validation_start": "2012-04-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": 0.03557310526735135,
+            "annualized_sharpe": 0.4618461580337091,
+            "bonferroni_lower_bound": -0.003041772263270835,
+            "hac_se": 0.00199166129800282,
+            "hac_t": 1.488418458459069,
+            "leave_one_year_out_min_mean": 0.0013583176722006252,
+            "max_drawdown": -0.11721663899967849,
+            "mean_monthly": 0.0029644254389459457,
+            "n": 88,
+            "positive_year_fraction": 0.75
+          },
+          "0.0025": {
+            "annualized_mean": 0.005573105267351337,
+            "annualized_sharpe": 0.07235570908694212,
+            "bonferroni_lower_bound": -0.005541772263270836,
+            "hac_se": 0.00199166129800282,
+            "hac_t": 0.23318494937450313,
+            "leave_one_year_out_min_mean": -0.001141682327799375,
+            "max_drawdown": -0.14575152244398215,
+            "mean_monthly": 0.0004644254389459448,
+            "n": 88,
+            "positive_year_fraction": 0.625
+          },
+          "0.005": {
+            "annualized_mean": -0.02442689473264867,
+            "annualized_sharpe": -0.3171347398598248,
+            "bonferroni_lower_bound": -0.008041772263270837,
+            "hac_se": 0.00199166129800282,
+            "hac_t": -1.0220485597100626,
+            "leave_one_year_out_min_mean": -0.003641682327799375,
+            "max_drawdown": -0.23460459497407882,
+            "mean_monthly": -0.0020355745610540557,
+            "n": 88,
+            "positive_year_fraction": 0.25
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": 0.12034468352145275,
+            "annualized_sharpe": 2.86299351645034,
+            "bonferroni_lower_bound": 0.006041417072594606,
+            "hac_se": 0.0013221949294690066,
+            "hac_t": 7.584905525855604,
+            "leave_one_year_out_min_mean": 0.009153985535298304,
+            "max_drawdown": -0.01635657374547883,
+            "mean_monthly": 0.01002872362678773,
+            "n": 81,
+            "positive_year_fraction": 1.0
+          },
+          "0.0025": {
+            "annualized_mean": 0.09034468352145275,
+            "annualized_sharpe": 2.1492951379241347,
+            "bonferroni_lower_bound": 0.0035414170725946072,
+            "hac_se": 0.0013221949294690064,
+            "hac_t": 5.6941101943351615,
+            "leave_one_year_out_min_mean": 0.006653985535298303,
+            "max_drawdown": -0.023425746670669545,
+            "mean_monthly": 0.0075287236267877295,
+            "n": 81,
+            "positive_year_fraction": 1.0
+          },
+          "0.005": {
+            "annualized_mean": 0.06034468352145276,
+            "annualized_sharpe": 1.435596759397929,
+            "bonferroni_lower_bound": 0.0010414170725946076,
+            "hac_se": 0.0013221949294690064,
+            "hac_t": 3.803314862814718,
+            "leave_one_year_out_min_mean": 0.004153985535298303,
+            "max_drawdown": -0.03941129940707644,
+            "mean_monthly": 0.00502872362678773,
+            "n": 81,
+            "positive_year_fraction": 0.8571428571428571
+          }
+        }
+      },
+      "tier": "DIRECTIONALLY_PERSISTENT_ONLY",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2026-04-30",
+      "available_start": "1987-02-28",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "BAB:Global Ex USA",
+        "dataset": "BAB",
+        "expected_sign": "positive",
+        "family": "betting_against_beta",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2012-03-31",
+        "series": "Global Ex USA",
+        "validation_end": "2018-12-31",
+        "validation_start": "2012-04-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": 0.06039041244054748,
+            "annualized_sharpe": 0.8889216275358319,
+            "bonferroni_lower_bound": -0.0021877353618389916,
+            "hac_se": 0.0023942488241484724,
+            "hac_t": 2.1019262155575964,
+            "leave_one_year_out_min_mean": 0.003252684844305138,
+            "max_drawdown": -0.08932816650403053,
+            "mean_monthly": 0.0050325343700456234,
+            "n": 88,
+            "positive_year_fraction": 0.625
+          },
+          "0.0025": {
+            "annualized_mean": 0.030390412440547465,
+            "annualized_sharpe": 0.4473341677328631,
+            "bonferroni_lower_bound": -0.004687735361838993,
+            "hac_se": 0.0023942488241484724,
+            "hac_t": 1.057757382817691,
+            "leave_one_year_out_min_mean": 0.0007526848443051378,
+            "max_drawdown": -0.14896259030423886,
+            "mean_monthly": 0.002532534370045622,
+            "n": 88,
+            "positive_year_fraction": 0.5
+          },
+          "0.005": {
+            "annualized_mean": 0.00039041244054747255,
+            "annualized_sharpe": 0.005746707929894531,
+            "bonferroni_lower_bound": -0.007187735361838993,
+            "hac_se": 0.0023942488241484724,
+            "hac_t": 0.013588550077786397,
+            "leave_one_year_out_min_mean": -0.0017473151556948619,
+            "max_drawdown": -0.21374475687702477,
+            "mean_monthly": 3.2534370045622715e-05,
+            "n": 88,
+            "positive_year_fraction": 0.5
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": 0.13340893905585455,
+            "annualized_sharpe": 2.341435702030151,
+            "bonferroni_lower_bound": 0.004923822241543526,
+            "hac_se": 0.002053800558793289,
+            "hac_t": 5.413092103996658,
+            "leave_one_year_out_min_mean": 0.009179637101698009,
+            "max_drawdown": -0.033953703674702074,
+            "mean_monthly": 0.011117411587987878,
+            "n": 81,
+            "positive_year_fraction": 1.0
+          },
+          "0.0025": {
+            "annualized_mean": 0.10340893905585452,
+            "annualized_sharpe": 1.8149112310462707,
+            "bonferroni_lower_bound": 0.0024238222415435256,
+            "hac_se": 0.002053800558793289,
+            "hac_t": 4.195836616701984,
+            "leave_one_year_out_min_mean": 0.006679637101698008,
+            "max_drawdown": -0.04257086817532596,
+            "mean_monthly": 0.008617411587987877,
+            "n": 81,
+            "positive_year_fraction": 1.0
+          },
+          "0.005": {
+            "annualized_mean": 0.07340893905585454,
+            "annualized_sharpe": 1.2883867600623906,
+            "bonferroni_lower_bound": -7.617775845647403e-05,
+            "hac_se": 0.002053800558793289,
+            "hac_t": 2.978581129407309,
+            "leave_one_year_out_min_mean": 0.004179637101698007,
+            "max_drawdown": -0.0612837153541409,
+            "mean_monthly": 0.006117411587987878,
+            "n": 81,
+            "positive_year_fraction": 1.0
+          }
+        }
+      },
+      "tier": "DIRECTIONALLY_PERSISTENT_ONLY",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2026-04-30",
+      "available_start": "1989-02-28",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "BAB:Europe",
+        "dataset": "BAB",
+        "expected_sign": "positive",
+        "family": "betting_against_beta",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2012-03-31",
+        "series": "Europe",
+        "validation_end": "2018-12-31",
+        "validation_start": "2012-04-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": 0.07079581870334552,
+            "annualized_sharpe": 0.7758572235661443,
+            "bonferroni_lower_bound": -0.0033274690786260627,
+            "hac_se": 0.003059722635904523,
+            "hac_t": 1.9281654779365505,
+            "leave_one_year_out_min_mean": 0.0034827590329968424,
+            "max_drawdown": -0.15473829293537278,
+            "mean_monthly": 0.005899651558612127,
+            "n": 88,
+            "positive_year_fraction": 0.75
+          },
+          "0.0025": {
+            "annualized_mean": 0.040795818703345504,
+            "annualized_sharpe": 0.44708474613331495,
+            "bonferroni_lower_bound": -0.005827469078626064,
+            "hac_se": 0.003059722635904523,
+            "hac_t": 1.1110979533630543,
+            "leave_one_year_out_min_mean": 0.0009827590329968424,
+            "max_drawdown": -0.19837180158463963,
+            "mean_monthly": 0.0033996515586121254,
+            "n": 88,
+            "positive_year_fraction": 0.5
+          },
+          "0.005": {
+            "annualized_mean": 0.010795818703345507,
+            "annualized_sharpe": 0.11831226870048585,
+            "bonferroni_lower_bound": -0.008327469078626063,
+            "hac_se": 0.0030597226359045226,
+            "hac_t": 0.2940304287895587,
+            "leave_one_year_out_min_mean": -0.0015172409670031579,
+            "max_drawdown": -0.24408621209873493,
+            "mean_monthly": 0.0008996515586121256,
+            "n": 88,
+            "positive_year_fraction": 0.5
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": 0.10563630859402462,
+            "annualized_sharpe": 1.4914909431602437,
+            "bonferroni_lower_bound": 0.001660442505119839,
+            "hac_se": 0.0023684878944228464,
+            "hac_t": 3.7167281863240604,
+            "leave_one_year_out_min_mean": 0.006933185690909694,
+            "max_drawdown": -0.08146052154273686,
+            "mean_monthly": 0.008803025716168719,
+            "n": 81,
+            "positive_year_fraction": 1.0
+          },
+          "0.0025": {
+            "annualized_mean": 0.07563630859402462,
+            "annualized_sharpe": 1.0679175630380011,
+            "bonferroni_lower_bound": -0.0008395574948801615,
+            "hac_se": 0.0023684878944228464,
+            "hac_t": 2.6612024199113082,
+            "leave_one_year_out_min_mean": 0.004433185690909694,
+            "max_drawdown": -0.10067281038911646,
+            "mean_monthly": 0.006303025716168718,
+            "n": 81,
+            "positive_year_fraction": 1.0
+          },
+          "0.005": {
+            "annualized_mean": 0.04563630859402462,
+            "annualized_sharpe": 0.6443441829157587,
+            "bonferroni_lower_bound": -0.003339557494880161,
+            "hac_se": 0.0023684878944228464,
+            "hac_t": 1.6056766534985567,
+            "leave_one_year_out_min_mean": 0.0019331856909096932,
+            "max_drawdown": -0.12094301094195958,
+            "mean_monthly": 0.0038030257161687188,
+            "n": 81,
+            "positive_year_fraction": 0.8571428571428571
+          }
+        }
+      },
+      "tier": "DIRECTIONALLY_PERSISTENT_ONLY",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2026-04-30",
+      "available_start": "1987-02-28",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "BAB:North America",
+        "dataset": "BAB",
+        "expected_sign": "positive",
+        "family": "betting_against_beta",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2012-03-31",
+        "series": "North America",
+        "validation_end": "2018-12-31",
+        "validation_start": "2012-04-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": 0.030664940226982608,
+            "annualized_sharpe": 0.30878963581500074,
+            "bonferroni_lower_bound": -0.0047214841002376755,
+            "hac_se": 0.002413026081520341,
+            "hac_t": 1.0590070721373357,
+            "leave_one_year_out_min_mean": 0.0011498218578771115,
+            "max_drawdown": -0.14378937855983975,
+            "mean_monthly": 0.002555411685581884,
+            "n": 88,
+            "positive_year_fraction": 0.625
+          },
+          "0.0025": {
+            "annualized_mean": 0.0006649402269826084,
+            "annualized_sharpe": 0.00669581121009436,
+            "bonferroni_lower_bound": -0.007221484100237675,
+            "hac_se": 0.002413026081520341,
+            "hac_t": 0.022963566787049226,
+            "leave_one_year_out_min_mean": -0.0013501781421228893,
+            "max_drawdown": -0.1935912888419764,
+            "mean_monthly": 5.541168558188404e-05,
+            "n": 88,
+            "positive_year_fraction": 0.5
+          },
+          "0.005": {
+            "annualized_mean": -0.02933505977301739,
+            "annualized_sharpe": -0.29539801339481203,
+            "bonferroni_lower_bound": -0.009721484100237675,
+            "hac_se": 0.002413026081520341,
+            "hac_t": -1.0130799385632372,
+            "leave_one_year_out_min_mean": -0.003850178142122889,
+            "max_drawdown": -0.29311748243530633,
+            "mean_monthly": -0.002444588314418116,
+            "n": 88,
+            "positive_year_fraction": 0.375
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": 0.11933054893715994,
+            "annualized_sharpe": 2.150325759527359,
+            "bonferroni_lower_bound": 0.0056556476605603345,
+            "hac_se": 0.0014220924554537624,
+            "hac_t": 6.9926623780990305,
+            "leave_one_year_out_min_mean": 0.008989684114158823,
+            "max_drawdown": -0.040863460384452766,
+            "mean_monthly": 0.009944212411429995,
+            "n": 81,
+            "positive_year_fraction": 1.0
+          },
+          "0.0025": {
+            "annualized_mean": 0.08933054893715991,
+            "annualized_sharpe": 1.6097284576596536,
+            "bonferroni_lower_bound": 0.0031556476605603323,
+            "hac_se": 0.0014220924554537624,
+            "hac_t": 5.2346894766801135,
+            "leave_one_year_out_min_mean": 0.0064896841141588195,
+            "max_drawdown": -0.04813939731153993,
+            "mean_monthly": 0.007444212411429993,
+            "n": 81,
+            "positive_year_fraction": 0.8571428571428571
+          },
+          "0.005": {
+            "annualized_mean": 0.05933054893715993,
+            "annualized_sharpe": 1.0691311557919494,
+            "bonferroni_lower_bound": 0.0006556476605603344,
+            "hac_se": 0.0014220924554537622,
+            "hac_t": 3.4767165752611997,
+            "leave_one_year_out_min_mean": 0.003989684114158817,
+            "max_drawdown": -0.055718469600707254,
+            "mean_monthly": 0.004944212411429994,
+            "n": 81,
+            "positive_year_fraction": 0.8571428571428571
+          }
+        }
+      },
+      "tier": "DIRECTIONALLY_PERSISTENT_ONLY",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2026-04-30",
+      "available_start": "1988-12-31",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "BAB:Pacific",
+        "dataset": "BAB",
+        "expected_sign": "positive",
+        "family": "betting_against_beta",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2012-03-31",
+        "series": "Pacific",
+        "validation_end": "2018-12-31",
+        "validation_start": "2012-04-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": 0.01656273395900654,
+            "annualized_sharpe": 0.2552770324443672,
+            "bonferroni_lower_bound": -0.005014153929964131,
+            "hac_se": 0.002120383528352789,
+            "hac_t": 0.6509331031209414,
+            "leave_one_year_out_min_mean": -0.0003924399319044158,
+            "max_drawdown": -0.12951830526348074,
+            "mean_monthly": 0.0013802278299172117,
+            "n": 88,
+            "positive_year_fraction": 0.5
+          },
+          "0.0025": {
+            "annualized_mean": -0.013437266040993476,
+            "annualized_sharpe": -0.20710502309583892,
+            "bonferroni_lower_bound": -0.007514153929964133,
+            "hac_se": 0.002120383528352789,
+            "hac_t": -0.5280988816927285,
+            "leave_one_year_out_min_mean": -0.0028924399319044166,
+            "max_drawdown": -0.21789095464177843,
+            "mean_monthly": -0.0011197721700827896,
+            "n": 88,
+            "positive_year_fraction": 0.375
+          },
+          "0.005": {
+            "annualized_mean": -0.043437266040993475,
+            "annualized_sharpe": -0.6694870786360448,
+            "bonferroni_lower_bound": -0.010014153929964133,
+            "hac_se": 0.002120383528352789,
+            "hac_t": -1.7071308665063978,
+            "leave_one_year_out_min_mean": -0.005392439931904416,
+            "max_drawdown": -0.3327712330546573,
+            "mean_monthly": -0.0036197721700827897,
+            "n": 88,
+            "positive_year_fraction": 0.375
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": 0.14286098687955476,
+            "annualized_sharpe": 2.029727351779423,
+            "bonferroni_lower_bound": 0.005198785685327858,
+            "hac_se": 0.0022238147931538366,
+            "hac_t": 5.353450420697574,
+            "leave_one_year_out_min_mean": 0.010776480827280645,
+            "max_drawdown": -0.04796949850555099,
+            "mean_monthly": 0.011905082239962896,
+            "n": 81,
+            "positive_year_fraction": 1.0
+          },
+          "0.0025": {
+            "annualized_mean": 0.11286098687955473,
+            "annualized_sharpe": 1.603496077003754,
+            "bonferroni_lower_bound": 0.0026987856853278556,
+            "hac_se": 0.0022238147931538366,
+            "hac_t": 4.229256082348706,
+            "leave_one_year_out_min_mean": 0.008276480827280643,
+            "max_drawdown": -0.05698213087774873,
+            "mean_monthly": 0.009405082239962894,
+            "n": 81,
+            "positive_year_fraction": 1.0
+          },
+          "0.005": {
+            "annualized_mean": 0.08286098687955473,
+            "annualized_sharpe": 1.1772648022280856,
+            "bonferroni_lower_bound": 0.0001987856853278569,
+            "hac_se": 0.0022238147931538366,
+            "hac_t": 3.1050617439998396,
+            "leave_one_year_out_min_mean": 0.005776480827280643,
+            "max_drawdown": -0.07117883571935402,
+            "mean_monthly": 0.006905082239962895,
+            "n": 81,
+            "positive_year_fraction": 0.8571428571428571
+          }
+        }
+      },
+      "tier": "DIRECTIONALLY_PERSISTENT_ONLY",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2026-04-30",
+      "available_start": "1957-07-31",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "QMJ:USA",
+        "dataset": "QMJ",
+        "expected_sign": "positive",
+        "family": "quality_minus_junk",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2012-12-31",
+        "series": "USA",
+        "validation_end": "2018-12-31",
+        "validation_start": "2013-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": -0.007670314618519461,
+            "annualized_sharpe": -0.0690318630178128,
+            "bonferroni_lower_bound": -0.011235832338157366,
+            "hac_se": 0.003513856475320413,
+            "hac_t": -0.18190637249016742,
+            "leave_one_year_out_min_mean": -0.0035706881646286916,
+            "max_drawdown": -0.30649649887551544,
+            "mean_monthly": -0.0006391928848766218,
+            "n": 88,
+            "positive_year_fraction": 0.25
+          },
+          "0.0025": {
+            "annualized_mean": -0.037670314618519475,
+            "annualized_sharpe": -0.3390280748464907,
+            "bonferroni_lower_bound": -0.013735832338157367,
+            "hac_se": 0.0035138564753204125,
+            "hac_t": -0.8933753859683111,
+            "leave_one_year_out_min_mean": -0.006070688164628691,
+            "max_drawdown": -0.3572791615686839,
+            "mean_monthly": -0.0031391928848766228,
+            "n": 88,
+            "positive_year_fraction": 0.25
+          },
+          "0.005": {
+            "annualized_mean": -0.06767031461851945,
+            "annualized_sharpe": -0.6090242866751681,
+            "bonferroni_lower_bound": -0.016235832338157365,
+            "hac_se": 0.003513856475320413,
+            "hac_t": -1.6048443994464539,
+            "leave_one_year_out_min_mean": -0.00857068816462869,
+            "max_drawdown": -0.4064814987647124,
+            "mean_monthly": -0.005639192884876621,
+            "n": 88,
+            "positive_year_fraction": 0.25
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": 0.06763205154061176,
+            "annualized_sharpe": 0.9906257391655371,
+            "bonferroni_lower_bound": -0.0019157950377908552,
+            "hac_se": 0.002504184378738211,
+            "hac_t": 2.2506347148011545,
+            "leave_one_year_out_min_mean": 0.004669210610925275,
+            "max_drawdown": -0.08825282737768325,
+            "mean_monthly": 0.00563600429505098,
+            "n": 72,
+            "positive_year_fraction": 0.8333333333333334
+          },
+          "0.0025": {
+            "annualized_mean": 0.037632051540611756,
+            "annualized_sharpe": 0.5512072756117506,
+            "bonferroni_lower_bound": -0.004415795037790856,
+            "hac_se": 0.002504184378738211,
+            "hac_t": 1.2523056695334571,
+            "leave_one_year_out_min_mean": 0.0021692106109252748,
+            "max_drawdown": -0.10430156108911082,
+            "mean_monthly": 0.0031360042950509797,
+            "n": 72,
+            "positive_year_fraction": 0.8333333333333334
+          },
+          "0.005": {
+            "annualized_mean": 0.007632051540611763,
+            "annualized_sharpe": 0.11178881205796427,
+            "bonferroni_lower_bound": -0.006915795037790855,
+            "hac_se": 0.002504184378738211,
+            "hac_t": 0.25397662426576,
+            "leave_one_year_out_min_mean": -0.0003307893890747251,
+            "max_drawdown": -0.12720050893717605,
+            "mean_monthly": 0.0006360042950509802,
+            "n": 72,
+            "positive_year_fraction": 0.5
+          }
+        }
+      },
+      "tier": "FAILED_OR_UNIDENTIFIABLE",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2026-04-30",
+      "available_start": "1989-07-31",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "QMJ:Global",
+        "dataset": "QMJ",
+        "expected_sign": "positive",
+        "family": "quality_minus_junk",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2012-12-31",
+        "series": "Global",
+        "validation_end": "2018-12-31",
+        "validation_start": "2013-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": 0.00810250361275728,
+            "annualized_sharpe": 0.09868215878058718,
+            "bonferroni_lower_bound": -0.007140755505461468,
+            "hac_se": 0.0025917816987921466,
+            "hac_t": 0.2605190995488196,
+            "leave_one_year_out_min_mean": -0.0011737389636855143,
+            "max_drawdown": -0.21683970479881498,
+            "mean_monthly": 0.00067520863439644,
+            "n": 88,
+            "positive_year_fraction": 0.5
+          },
+          "0.0025": {
+            "annualized_mean": -0.02189749638724272,
+            "annualized_sharpe": -0.266694384681412,
+            "bonferroni_lower_bound": -0.009640755505461469,
+            "hac_se": 0.0025917816987921466,
+            "hac_t": -0.7040683119469403,
+            "leave_one_year_out_min_mean": -0.003673738963685515,
+            "max_drawdown": -0.2739540358239654,
+            "mean_monthly": -0.0018247913656035599,
+            "n": 88,
+            "positive_year_fraction": 0.25
+          },
+          "0.005": {
+            "annualized_mean": -0.05189749638724271,
+            "annualized_sharpe": -0.632070928143411,
+            "bonferroni_lower_bound": -0.012140755505461467,
+            "hac_se": 0.0025917816987921466,
+            "hac_t": -1.6686557234427,
+            "leave_one_year_out_min_mean": -0.006173738963685514,
+            "max_drawdown": -0.3305327123308286,
+            "mean_monthly": -0.004324791365603559,
+            "n": 88,
+            "positive_year_fraction": 0.25
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": 0.06841144655133062,
+            "annualized_sharpe": 1.3120695836671301,
+            "bonferroni_lower_bound": -1.8806227663240374e-05,
+            "hac_se": 0.0018966782985931224,
+            "hac_t": 3.0057568979970317,
+            "leave_one_year_out_min_mean": 0.005008195199243268,
+            "max_drawdown": -0.05339010669397026,
+            "mean_monthly": 0.005700953879277552,
+            "n": 72,
+            "positive_year_fraction": 1.0
+          },
+          "0.0025": {
+            "annualized_mean": 0.03841144655133061,
+            "annualized_sharpe": 0.7366967550794511,
+            "bonferroni_lower_bound": -0.0025188062276632413,
+            "hac_se": 0.0018966782985931224,
+            "hac_t": 1.6876630484209612,
+            "leave_one_year_out_min_mean": 0.0025081951992432664,
+            "max_drawdown": -0.07589459417497413,
+            "mean_monthly": 0.003200953879277551,
+            "n": 72,
+            "positive_year_fraction": 0.8333333333333334
+          },
+          "0.005": {
+            "annualized_mean": 0.008411446551330607,
+            "annualized_sharpe": 0.16132392649177224,
+            "bonferroni_lower_bound": -0.005018806227663241,
+            "hac_se": 0.0018966782985931224,
+            "hac_t": 0.3695691988448907,
+            "leave_one_year_out_min_mean": 8.195199243266292e-06,
+            "max_drawdown": -0.10567006119337086,
+            "mean_monthly": 0.0007009538792775507,
+            "n": 72,
+            "positive_year_fraction": 0.5
+          }
+        }
+      },
+      "tier": "DIRECTIONALLY_PERSISTENT_ONLY",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2026-04-30",
+      "available_start": "1989-07-31",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "QMJ:Global Ex USA",
+        "dataset": "QMJ",
+        "expected_sign": "positive",
+        "family": "quality_minus_junk",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2012-12-31",
+        "series": "Global Ex USA",
+        "validation_end": "2018-12-31",
+        "validation_start": "2013-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": 0.029544235524638064,
+            "annualized_sharpe": 0.4834634822136481,
+            "bonferroni_lower_bound": -0.00313826603826609,
+            "hac_se": 0.0018570604516164448,
+            "hac_t": 1.3257617030776525,
+            "leave_one_year_out_min_mean": 0.001872091034286312,
+            "max_drawdown": -0.11463198625935922,
+            "mean_monthly": 0.002462019627053172,
+            "n": 88,
+            "positive_year_fraction": 0.75
+          },
+          "0.0025": {
+            "annualized_mean": -0.0004557644753619371,
+            "annualized_sharpe": -0.007458154743723326,
+            "bonferroni_lower_bound": -0.005638266038266091,
+            "hac_se": 0.001857060451616445,
+            "hac_t": -0.020451877543226315,
+            "leave_one_year_out_min_mean": -0.0006279089657136874,
+            "max_drawdown": -0.1511344393398616,
+            "mean_monthly": -3.798037294682809e-05,
+            "n": 88,
+            "positive_year_fraction": 0.625
+          },
+          "0.005": {
+            "annualized_mean": -0.03045576447536194,
+            "annualized_sharpe": -0.4983797917010948,
+            "bonferroni_lower_bound": -0.008138266038266092,
+            "hac_se": 0.001857060451616445,
+            "hac_t": -1.366665458164105,
+            "leave_one_year_out_min_mean": -0.0031279089657136887,
+            "max_drawdown": -0.2601066248374363,
+            "mean_monthly": -0.0025379803729468284,
+            "n": 88,
+            "positive_year_fraction": 0.25
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": 0.06784475329118914,
+            "annualized_sharpe": 1.3791539375738635,
+            "bonferroni_lower_bound": 0.0008833647002709586,
+            "hac_se": 0.0015818578245977608,
+            "hac_t": 3.5741072004180108,
+            "leave_one_year_out_min_mean": 0.005013654815541071,
+            "max_drawdown": -0.04062144018900382,
+            "mean_monthly": 0.005653729440932427,
+            "n": 72,
+            "positive_year_fraction": 1.0
+          },
+          "0.0025": {
+            "annualized_mean": 0.037844753291189116,
+            "annualized_sharpe": 0.769311376136041,
+            "bonferroni_lower_bound": -0.0016166352997290423,
+            "hac_se": 0.0015818578245977608,
+            "hac_t": 1.993687038046144,
+            "leave_one_year_out_min_mean": 0.0025136548155410706,
+            "max_drawdown": -0.057383570998909894,
+            "mean_monthly": 0.0031537294409324265,
+            "n": 72,
+            "positive_year_fraction": 0.8333333333333334
+          },
+          "0.005": {
+            "annualized_mean": 0.007844753291189117,
+            "annualized_sharpe": 0.1594688146982186,
+            "bonferroni_lower_bound": -0.004116635299729042,
+            "hac_se": 0.0015818578245977608,
+            "hac_t": 0.41326687567427783,
+            "leave_one_year_out_min_mean": 1.3654815541070479e-05,
+            "max_drawdown": -0.10684442128586713,
+            "mean_monthly": 0.0006537294409324265,
+            "n": 72,
+            "positive_year_fraction": 0.5
+          }
+        }
+      },
+      "tier": "DIRECTIONALLY_PERSISTENT_ONLY",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2026-04-30",
+      "available_start": "1993-07-31",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "QMJ:Europe",
+        "dataset": "QMJ",
+        "expected_sign": "positive",
+        "family": "quality_minus_junk",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2012-12-31",
+        "series": "Europe",
+        "validation_end": "2018-12-31",
+        "validation_start": "2013-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": 0.040432411921169385,
+            "annualized_sharpe": 0.5214864115011362,
+            "bonferroni_lower_bound": -0.0028569717005146513,
+            "hac_se": 0.002064660496970628,
+            "hac_t": 1.6319233428649171,
+            "leave_one_year_out_min_mean": 0.0025738945412483293,
+            "max_drawdown": -0.13280907358909233,
+            "mean_monthly": 0.0033693676600974488,
+            "n": 88,
+            "positive_year_fraction": 0.75
+          },
+          "0.0025": {
+            "annualized_mean": 0.010432411921169392,
+            "annualized_sharpe": 0.1345544526673133,
+            "bonferroni_lower_bound": -0.005356971700514651,
+            "hac_se": 0.002064660496970628,
+            "hac_t": 0.4210705156479859,
+            "leave_one_year_out_min_mean": 7.389454124832953e-05,
+            "max_drawdown": -0.14391371150571897,
+            "mean_monthly": 0.0008693676600974493,
+            "n": 88,
+            "positive_year_fraction": 0.625
+          },
+          "0.005": {
+            "annualized_mean": -0.01956758807883061,
+            "annualized_sharpe": -0.25237750616650967,
+            "bonferroni_lower_bound": -0.00785697170051465,
+            "hac_se": 0.002064660496970628,
+            "hac_t": -0.7897823115689456,
+            "leave_one_year_out_min_mean": -0.0024261054587516708,
+            "max_drawdown": -0.22128053779895818,
+            "mean_monthly": -0.0016306323399025507,
+            "n": 88,
+            "positive_year_fraction": 0.5
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": 0.07450777891871475,
+            "annualized_sharpe": 1.24041244262096,
+            "bonferroni_lower_bound": -0.0003533556601743454,
+            "hac_se": 0.0021760777361727215,
+            "hac_t": 2.8532903367137514,
+            "leave_one_year_out_min_mean": 0.00529473834121968,
+            "max_drawdown": -0.059362918166422696,
+            "mean_monthly": 0.006208981576559563,
+            "n": 72,
+            "positive_year_fraction": 1.0
+          },
+          "0.0025": {
+            "annualized_mean": 0.044507778918714755,
+            "annualized_sharpe": 0.740969648611141,
+            "bonferroni_lower_bound": -0.002853355660174345,
+            "hac_se": 0.0021760777361727215,
+            "hac_t": 1.7044343200178629,
+            "leave_one_year_out_min_mean": 0.00279473834121968,
+            "max_drawdown": -0.08800084759054083,
+            "mean_monthly": 0.003708981576559563,
+            "n": 72,
+            "positive_year_fraction": 0.6666666666666666
+          },
+          "0.005": {
+            "annualized_mean": 0.014507778918714753,
+            "annualized_sharpe": 0.2415268546013216,
+            "bonferroni_lower_bound": -0.0053533556601743455,
+            "hac_se": 0.0021760777361727215,
+            "hac_t": 0.555578303321974,
+            "leave_one_year_out_min_mean": 0.0002947383412196787,
+            "max_drawdown": -0.12949264364139146,
+            "mean_monthly": 0.0012089815765595627,
+            "n": 72,
+            "positive_year_fraction": 0.5
+          }
+        }
+      },
+      "tier": "DIRECTIONALLY_PERSISTENT_ONLY",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2026-04-30",
+      "available_start": "1989-07-31",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "QMJ:North America",
+        "dataset": "QMJ",
+        "expected_sign": "positive",
+        "family": "quality_minus_junk",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2012-12-31",
+        "series": "North America",
+        "validation_end": "2018-12-31",
+        "validation_start": "2013-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": -0.006144858691267451,
+            "annualized_sharpe": -0.05652377522335429,
+            "bonferroni_lower_bound": -0.010901804873760036,
+            "hac_se": 0.0034452461887356602,
+            "hac_t": -0.14863133998373027,
+            "leave_one_year_out_min_mean": -0.0033661952103241515,
+            "max_drawdown": -0.2985754434117246,
+            "mean_monthly": -0.0005120715576056209,
+            "n": 88,
+            "positive_year_fraction": 0.25
+          },
+          "0.0025": {
+            "annualized_mean": -0.03614485869126745,
+            "annualized_sharpe": -0.33248020349898444,
+            "bonferroni_lower_bound": -0.013401804873760036,
+            "hac_se": 0.0034452461887356602,
+            "hac_t": -0.8742688889559425,
+            "leave_one_year_out_min_mean": -0.005866195210324153,
+            "max_drawdown": -0.349918230701739,
+            "mean_monthly": -0.003012071557605621,
+            "n": 88,
+            "positive_year_fraction": 0.25
+          },
+          "0.005": {
+            "annualized_mean": -0.06614485869126743,
+            "annualized_sharpe": -0.6084366317746145,
+            "bonferroni_lower_bound": -0.015901804873760035,
+            "hac_se": 0.0034452461887356607,
+            "hac_t": -1.5999064379281542,
+            "leave_one_year_out_min_mean": -0.008366195210324154,
+            "max_drawdown": -0.39862518978371675,
+            "mean_monthly": -0.00551207155760562,
+            "n": 88,
+            "positive_year_fraction": 0.25
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": 0.06936163830980532,
+            "annualized_sharpe": 1.00855171506613,
+            "bonferroni_lower_bound": -0.001585186270381238,
+            "hac_se": 0.0024423485685581094,
+            "hac_t": 2.366630463902019,
+            "leave_one_year_out_min_mean": 0.004914869552729875,
+            "max_drawdown": -0.09468717952336647,
+            "mean_monthly": 0.00578013652581711,
+            "n": 72,
+            "positive_year_fraction": 1.0
+          },
+          "0.0025": {
+            "annualized_mean": 0.039361638309805325,
+            "annualized_sharpe": 0.572337228366114,
+            "bonferroni_lower_bound": -0.004085186270381238,
+            "hac_se": 0.00244234856855811,
+            "hac_t": 1.3430255484595328,
+            "leave_one_year_out_min_mean": 0.0024148695527298745,
+            "max_drawdown": -0.11063916141728436,
+            "mean_monthly": 0.0032801365258171107,
+            "n": 72,
+            "positive_year_fraction": 0.8333333333333334
+          },
+          "0.005": {
+            "annualized_mean": 0.009361638309805322,
+            "annualized_sharpe": 0.1361227416660978,
+            "bonferroni_lower_bound": -0.006585186270381238,
+            "hac_se": 0.0024423485685581094,
+            "hac_t": 0.3194206330170471,
+            "leave_one_year_out_min_mean": -8.513044727012624e-05,
+            "max_drawdown": -0.1280096574197126,
+            "mean_monthly": 0.0007801365258171102,
+            "n": 72,
+            "positive_year_fraction": 0.5
+          }
+        }
+      },
+      "tier": "FAILED_OR_UNIDENTIFIABLE",
+      "zcrit": 3.0156722472036894
+    },
+    {
+      "available_end": "2026-04-30",
+      "available_start": "1993-07-31",
+      "capital_permission": "BLOCKED",
+      "claim": {
+        "claim_id": "QMJ:Pacific",
+        "dataset": "QMJ",
+        "expected_sign": "positive",
+        "family": "quality_minus_junk",
+        "lockbox_end": "LATEST_IN_FROZEN_FILE",
+        "lockbox_start": "2019-01-01",
+        "original_sample_end": "2012-12-31",
+        "series": "Pacific",
+        "validation_end": "2018-12-31",
+        "validation_start": "2013-01-01"
+      },
+      "historical_support": false,
+      "live_decision_weight": 0.0,
+      "splits": {
+        "lockbox": {
+          "0.0": {
+            "annualized_mean": 0.01761023407793476,
+            "annualized_sharpe": 0.30394832544271283,
+            "bonferroni_lower_bound": -0.004147092707172881,
+            "hac_se": 0.0018618111496942836,
+            "hac_t": 0.7882214620615715,
+            "leave_one_year_out_min_mean": 0.00042958727534556096,
+            "max_drawdown": -0.1416475052472338,
+            "mean_monthly": 0.0014675195064945635,
+            "n": 88,
+            "positive_year_fraction": 0.625
+          },
+          "0.0025": {
+            "annualized_mean": -0.012389765922065237,
+            "annualized_sharpe": -0.21384432415679494,
+            "bonferroni_lower_bound": -0.006647092707172882,
+            "hac_se": 0.0018618111496942838,
+            "hac_t": -0.5545570471392728,
+            "leave_one_year_out_min_mean": -0.002070412724654439,
+            "max_drawdown": -0.17978351037471485,
+            "mean_monthly": -0.0010324804935054365,
+            "n": 88,
+            "positive_year_fraction": 0.375
+          },
+          "0.005": {
+            "annualized_mean": -0.04238976592206524,
+            "annualized_sharpe": -0.7316369737563028,
+            "bonferroni_lower_bound": -0.009147092707172882,
+            "hac_se": 0.0018618111496942836,
+            "hac_t": -1.8973355563401173,
+            "leave_one_year_out_min_mean": -0.00457041272465444,
+            "max_drawdown": -0.2998660375301868,
+            "mean_monthly": -0.0035324804935054368,
+            "n": 88,
+            "positive_year_fraction": 0.25
+          }
+        },
+        "validation": {
+          "0.0": {
+            "annualized_mean": 0.05507171656944877,
+            "annualized_sharpe": 0.9532546408974223,
+            "bonferroni_lower_bound": -9.370627548388466e-05,
+            "hac_se": 0.0015528928894534167,
+            "hac_t": 2.9553292086591143,
+            "leave_one_year_out_min_mean": 0.004135571140742361,
+            "max_drawdown": -0.07011872662938812,
+            "mean_monthly": 0.004589309714120731,
+            "n": 72,
+            "positive_year_fraction": 1.0
+          },
+          "0.0025": {
+            "annualized_mean": 0.02507171656944878,
+            "annualized_sharpe": 0.4339746727333774,
+            "bonferroni_lower_bound": -0.0025937062754838847,
+            "hac_se": 0.001552892889453417,
+            "hac_t": 1.3454306657660862,
+            "leave_one_year_out_min_mean": 0.0016355711407423598,
+            "max_drawdown": -0.07894348584990452,
+            "mean_monthly": 0.002089309714120732,
+            "n": 72,
+            "positive_year_fraction": 0.8333333333333334
+          },
+          "0.005": {
+            "annualized_mean": -0.004928283430551221,
+            "annualized_sharpe": -0.08530529543066762,
+            "bonferroni_lower_bound": -0.005093706275483885,
+            "hac_se": 0.001552892889453417,
+            "hac_t": -0.26446787712694214,
+            "leave_one_year_out_min_mean": -0.0008644288592576405,
+            "max_drawdown": -0.11214321578240094,
+            "mean_monthly": -0.0004106902858792684,
+            "n": 72,
+            "positive_year_fraction": 0.3333333333333333
+          }
+        }
+      },
+      "tier": "DIRECTIONALLY_PERSISTENT_ONLY",
+      "zcrit": 3.0156722472036894
+    }
+  ],
+  "created_at_utc": "2026-07-25T02:34:50.186204+00:00",
+  "interpretation": {
+    "DIRECTIONALLY_PERSISTENT_ONLY": "Positive point means in both periods without simultaneous proof.",
+    "FAILED_OR_UNIDENTIFIABLE": "Did not maintain positive point means or lacked enough observations.",
+    "ROBUST_25BPS_POSTSAMPLE": "Strong historical persistence in maintained factor series under strict simultaneous gate and coarse cost sensitivity; still not an executable War Room edge.",
+    "ROBUST_GROSS_POSTSAMPLE": "Strong gross historical persistence but not robust to 25 bps/month sensitivity."
+  },
+  "predictive_components_promoted_to_live": 0,
+  "protocol_path": "/mnt/data/v58_work/research_v58/protocols/V58_PUBLIC_FACTOR_POSTSAMPLE_PROTOCOL_FROZEN.json",
+  "protocol_sha256": "e824f120d251fbe9f99f4afa484169ac3b2f79cd2531a50f46e70dee1d2cbf4f",
+  "registered_claims": 39,
+  "research_live_decision_weight": 0.0,
+  "schema": "warroom.v58.public_factor_postsample_results.v1",
+  "tier_counts": {
+    "DIRECTIONALLY_PERSISTENT_ONLY": 24,
+    "FAILED_OR_UNIDENTIFIABLE": 15
+  }
+}

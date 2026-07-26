@@ -1,0 +1,42 @@
+{
+  "total": 9,
+  "passed": 9,
+  "checks": [
+    {
+      "name": "planted_fit_finite",
+      "pass": true
+    },
+    {
+      "name": "planted_beta_correlates_driver",
+      "pass": true
+    },
+    {
+      "name": "geometry_finite",
+      "pass": true
+    },
+    {
+      "name": "geometry_has_inside_states",
+      "pass": true
+    },
+    {
+      "name": "stable_roots_three",
+      "pass": true
+    },
+    {
+      "name": "null_fit_finite",
+      "pass": true
+    },
+    {
+      "name": "null_no_holdout_density_advantage",
+      "pass": true
+    },
+    {
+      "name": "bootstrap_detects_planted_positive",
+      "pass": true
+    },
+    {
+      "name": "bootstrap_rejects_null",
+      "pass": true
+    }
+  ]
+}

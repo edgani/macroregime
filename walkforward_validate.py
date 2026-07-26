@@ -15,6 +15,7 @@ Grades:
 Run:  python walkforward_validate.py     → prints the card + writes metric_grades.json
 """
 from __future__ import annotations
+from parquet_compat import read_parquet_compat
 import json, os, numpy as np, pandas as pd
 from scipy import stats
 
@@ -23,9 +24,9 @@ RES = os.path.join(HERE, "research")
 
 
 def _load():
-    mp = pd.read_parquet(os.path.join(RES, "macro_panel.parquet"))
+    mp = read_parquet_compat(os.path.join(RES, "macro_panel.parquet"))
     try:
-        sp = pd.read_parquet(os.path.join(RES, "sp500_panel.parquet"))
+        sp = read_parquet_compat(os.path.join(RES, "sp500_panel.parquet"))
     except Exception:
         sp = None
     return mp, sp

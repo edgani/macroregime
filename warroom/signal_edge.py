@@ -30,7 +30,7 @@ except Exception:
 
 
 def _ew_benchmark(close):
-    dret = close.pct_change().fillna(0)
+    dret = close.pct_change(fill_method=None).fillna(0)
     return (1 + dret.mean(axis=1)).cumprod()
 
 
@@ -39,7 +39,7 @@ def surge_precision(close, signal_matrix, surge_thresh=0.30, horizon=63):
     Bandingkan vs base rate. signal_matrix: bool DataFrame [dates × tickers]. Return dict + verdict."""
     fwd = close.shift(-horizon) / close - 1
     base = (fwd >= surge_thresh).sum().sum() / max(1, fwd.notna().sum().sum())
-    turns = signal_matrix & ~signal_matrix.shift(1).fillna(False)
+    turns = signal_matrix & ~signal_matrix.shift(1, fill_value=False)
     hits = tot = 0
     for t in close.columns:
         for dt in turns[t][turns[t]].index:

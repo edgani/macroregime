@@ -1,0 +1,66 @@
+{
+  "capital_permission": "BLOCKED",
+  "created_at_utc": "2026-07-25T05:15:17.879615+00:00",
+  "historical_factor_pair_full_gate": 572,
+  "live_predictive_components_promoted": 0,
+  "maintained_factor_pair_claims": 89464,
+  "non_additivity_warning": "Some claim records reuse candidate definitions across different targets and studies; the total is an audit count, not independent evidence or a multiple-testing shortcut.",
+  "price_volume_extreme_move_claims": 125529,
+  "production_proven_early_move_drivers": 0,
+  "schema": "warroom.v60.global_trial_accounting",
+  "strict_factor_pair_robustness_survivors": 61,
+  "studies": [
+    {
+      "claims": 795,
+      "production_survivors": 0,
+      "scope": "mixed public data-ready candidate families",
+      "status": "0 after 25bps/month global stress",
+      "study": "V58_exhaustive_global"
+    },
+    {
+      "claims": 34322,
+      "production_survivors": 0,
+      "scope": "US fixed-panel price/volume monster-move target",
+      "status": "discovery diagnostic only",
+      "study": "V60_massive_move_price_volume"
+    },
+    {
+      "claims": 34322,
+      "production_survivors": 0,
+      "scope": "US relative future winner target",
+      "status": "0 full-gate survivors",
+      "study": "V60_relative_winner_price_volume"
+    },
+    {
+      "claims": 34322,
+      "production_survivors": 0,
+      "scope": "US absolute loser target",
+      "status": "0 full-gate survivors",
+      "study": "V60_absolute_loser_price_volume"
+    },
+    {
+      "claims": 16200,
+      "production_survivors": 0,
+      "scope": "univariate/pairwise OHLCV precursors across 4 extreme targets",
+      "status": "max-stat validation and lockbox",
+      "study": "V60_early_move_driver"
+    },
+    {
+      "claims": 6363,
+      "production_survivors": 0,
+      "scope": "303 OHLCV features x 7 targets x 3 selection fractions",
+      "status": "reused fixed-universe diagnostic",
+      "study": "V60_massive_move_precursor"
+    },
+    {
+      "claims": 89464,
+      "historical_full_gate": 572,
+      "production_survivors": 0,
+      "scope": "maintained aggregate factor portfolio pair histories",
+      "status": "not stock-level point-in-time proof",
+      "strict_robustness_survivors": 61,
+      "study": "V60_openap_factor_pairs"
+    }
+  ],
+  "total_empirical_claim_records": 215788
+}

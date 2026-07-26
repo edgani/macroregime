@@ -2,6 +2,7 @@
 Every engine call is wrapped: a rewel engine degrades to a flagged note, never crashes the app.
 """
 from __future__ import annotations
+from parquet_compat import read_parquet_compat
 import os, json, numpy as np, pandas as pd
 
 from warroom import data as D
@@ -365,7 +366,10 @@ def _bottleneck(us, fast=False):
     # leadlag discovery is expensive (~11s) and shown not predictive in testing — skip in interactive/fast mode
     leadlag = None if fast else _try(lambda: __import__("gcfis.engines.leadlag_discovery", fromlist=["run_leadlag_discovery"]).run_leadlag_discovery(closes), None)
     graph = _try(lambda: __import__("engines.supply_chain_graph_real", fromlist=["run_supply_chain_analysis"]).run_supply_chain_analysis(closes, None), None)
-    ref = _try(lambda: json.load(open(os.path.join(_DATADIR, "bottleneck_reference.json"))), {}) or {}
+    def _load_ref():
+        with open(os.path.join(_DATADIR, "bottleneck_reference.json"), "r", encoding="utf-8") as fh:
+            return json.load(fh)
+    ref = _try(_load_ref, {}) or {}
     edges = []
     if isinstance(leadlag, dict):
         for e in (leadlag.get("edges") or leadlag.get("lead_lag") or [])[:6]:
@@ -484,7 +488,7 @@ def run(us, idx, crypto, fx, commo, fred=None, feeds=None, fast=False):
         import pandas as pd, os
         mp = os.path.join(os.path.dirname(__file__), "..", "research", "macro_panel.parquet")
         if os.path.exists(mp):
-            base = pd.read_parquet(mp)
+            base = read_parquet_compat(mp)
         else:
             base = None
         # append live SPX proxy (EW of US names) so regime reflects current tape when panel is stale
@@ -502,7 +506,7 @@ def run(us, idx, crypto, fx, commo, fred=None, feeds=None, fast=False):
         from warroom import crash_lead as CL
         import pandas as pd, os
         mp = os.path.join(os.path.dirname(__file__), "..", "research", "macro_panel.parquet")
-        return CL.build(pd.read_parquet(mp)) if os.path.exists(mp) else {}
+        return CL.build(read_parquet_compat(mp)) if os.path.exists(mp) else {}
     out["crash_lead"] = _try(_crash_lead) or {}
     out["beta_plays"] = _try(lambda: BP.analyze_themes(allpx)) or {}
     out["thesis_beta"] = _try(lambda: TB.compute(allpx, out.get("beta_plays") or {})) or {}

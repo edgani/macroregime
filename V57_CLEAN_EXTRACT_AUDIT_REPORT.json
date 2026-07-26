@@ -1,0 +1,36 @@
+{
+  "schema": "warroom.clean_extract_audit.v57",
+  "status": "PASS",
+  "release_verdict": "CUSP_HYPOTHESIS_FALSIFIED_ENGINEERING_PASS_PREDICTIVE_MODULE_REJECTED_CAPITAL_BLOCKED",
+  "visual_application_version": "4.2",
+  "release_version": "5.7",
+  "attachment_162_status": "COMPLETE_NEGATIVE_RESULT",
+  "cusp_studies": {
+    "V73_modern_macro": "NOT_PROVEN",
+    "V74_fixed_universe_breadth": "NOT_PROVEN_LOCKBOX_NOT_IDENTIFIABLE",
+    "V75_pre1973_disjoint_history": "NOT_PROVEN"
+  },
+  "cusp_engineering_controls": "9/9 PASS",
+  "cusp_final_evidence_controls": "15/15 PASS",
+  "hardening_checks": "39/39 PASS",
+  "attachment_continuation_checks": "11/11 PASS",
+  "options_v70_checks": "29/29 PASS",
+  "options_v71_checks": "19/19 PASS",
+  "parquet_checks": "36/36 PASS",
+  "v72_signed_dealer_checks": "43/43 PASS",
+  "v72_outcome_fixture_checks": "11/11 PASS",
+  "v72_runner_checks": "19/19 PASS",
+  "v72_manifest_checks": "14/14 PASS",
+  "deep_ui_market_contracts": "PASS",
+  "bundled_data_integrity": "PASS",
+  "environment_blockers": [
+    "actual_streamlit_http_health",
+    "live_yfinance_feed",
+    "pyarrow_native_recomputation",
+    "hmmlearn_optional_models"
+  ],
+  "scientific_stop_rule": "Decision-value, cross-market and prospective cusp promotion stages were not opened because upstream incremental-prediction gates failed. Retuning endpoints or controls after three failures is forbidden.",
+  "predictive_components_promoted_to_live": 0,
+  "research_live_decision_weight": 0.0,
+  "capital_permission": "BLOCKED"
+}

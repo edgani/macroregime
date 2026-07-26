@@ -13,7 +13,9 @@ def _s(x) -> pd.Series:
 
 def robust_z(x, window: int | None = None) -> pd.Series:
     """Median/MAD z-score (outlier-tolerant). Rolling if window given, else full-sample."""
-    s = _s(x).astype(float)
+    s = pd.to_numeric(_s(x), errors="coerce").replace([np.inf, -np.inf], np.nan)
+    if s.notna().sum() == 0:
+        return pd.Series(np.nan, index=s.index, dtype=float)
     if window:
         med = s.rolling(window, min_periods=max(5, window // 3)).median()
         mad = (s - med).abs().rolling(window, min_periods=max(5, window // 3)).median()
@@ -46,7 +48,9 @@ def to_100(z, k: float = 1.0):
     return 100.0 * logistic(z, k)
 
 def winsorize(x, z: float = 6.0) -> pd.Series:
-    s = _s(x).astype(float)
+    s = pd.to_numeric(_s(x), errors="coerce").replace([np.inf, -np.inf], np.nan)
+    if s.notna().sum() == 0:
+        return pd.Series(np.nan, index=s.index, dtype=float)
     med = s.median(); mad = (s - med).abs().median() or 1e-9
     lim = z * mad / 0.6745
     return s.clip(med - lim, med + lim)

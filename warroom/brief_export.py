@@ -230,8 +230,10 @@ def brief_dict(d):
 def export(d, out_path=None):
     out_path = out_path or os.path.join(_DIR, "briefing.html")
     data = brief_dict(d)
-    html = open(_TEMPLATE, encoding="utf-8").read()
+    with open(_TEMPLATE, "r", encoding="utf-8") as fh:
+        html = fh.read()
     inject = "<script>window.BRIEF=" + json.dumps(data) + ";</script>\n</head>"
     html = html.replace("</head>", inject, 1)
-    open(out_path, "w", encoding="utf-8").write(html)
+    with open(out_path, "w", encoding="utf-8") as fh:
+        fh.write(html)
     return out_path

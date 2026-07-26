@@ -1,0 +1,235 @@
+{
+  "rows": [
+    {
+      "availability": "AVAILABLE_BUNDLED_DIAGNOSTIC",
+      "blocker_or_use": "Existing fixed panel is not survivorship-safe or current.",
+      "capital_permission": "BLOCKED",
+      "dataset_family": "OHLCV/corporate actions",
+      "frequency": "daily",
+      "live_decision_weight": 0.0,
+      "market": "us_equities",
+      "source_class": "public/mixed"
+    },
+    {
+      "availability": "PUBLIC_ACQUIRABLE",
+      "blocker_or_use": "Fresh filing parser and vintage timestamps required.",
+      "capital_permission": "BLOCKED",
+      "dataset_family": "SEC fundamentals/guidance/customer qualification",
+      "frequency": "event/daily",
+      "live_decision_weight": 0.0,
+      "market": "us_equities",
+      "source_class": "official"
+    },
+    {
+      "availability": "LICENSED_OR_SPECIALIZED",
+      "blocker_or_use": "Needed for expectation-gap replication and SNDK-like discovery.",
+      "capital_permission": "BLOCKED",
+      "dataset_family": "analyst estimates/revisions",
+      "frequency": "daily",
+      "live_decision_weight": 0.0,
+      "market": "us_equities",
+      "source_class": "vendor"
+    },
+    {
+      "availability": "PUBLIC_SPARSE",
+      "blocker_or_use": "Snapshot is slow and omits borrow fee/utilization.",
+      "capital_permission": "BLOCKED",
+      "dataset_family": "short interest",
+      "frequency": "semi-monthly",
+      "live_decision_weight": 0.0,
+      "market": "us_equities",
+      "source_class": "FINRA/SRO"
+    },
+    {
+      "availability": "LICENSED",
+      "blocker_or_use": "Required to distinguish negative information from squeeze scarcity.",
+      "capital_permission": "BLOCKED",
+      "dataset_family": "borrow fee/utilization/locates",
+      "frequency": "intraday/daily",
+      "live_decision_weight": 0.0,
+      "market": "us_equities",
+      "source_class": "securities lending vendor"
+    },
+    {
+      "availability": "LICENSED",
+      "blocker_or_use": "Gross OI shortcut forbidden.",
+      "capital_permission": "BLOCKED",
+      "dataset_family": "signed options trades/dealer inventory",
+      "frequency": "trade-by-trade",
+      "live_decision_weight": 0.0,
+      "market": "us_equities",
+      "source_class": "exchange/vendor"
+    },
+    {
+      "availability": "LICENSED",
+      "blocker_or_use": "Execution/transmission horizon only.",
+      "capital_permission": "BLOCKED",
+      "dataset_family": "full depth/signed equity flow",
+      "frequency": "intraday",
+      "live_decision_weight": 0.0,
+      "market": "us_equities",
+      "source_class": "exchange/vendor"
+    },
+    {
+      "availability": "PUBLIC_CURRENT_HISTORY_NEEDED",
+      "blocker_or_use": "Historical ticker-by-broker inventory and crossing adjustments required.",
+      "capital_permission": "BLOCKED",
+      "dataset_family": "broker summary",
+      "frequency": "daily",
+      "live_decision_weight": 0.0,
+      "market": "ihsg",
+      "source_class": "IDX"
+    },
+    {
+      "availability": "PUBLIC_OR_VENDOR",
+      "blocker_or_use": "Point-in-time ticker history required.",
+      "capital_permission": "BLOCKED",
+      "dataset_family": "foreign flow",
+      "frequency": "daily",
+      "live_decision_weight": 0.0,
+      "market": "ihsg",
+      "source_class": "IDX/vendor"
+    },
+    {
+      "availability": "LICENSED_OR_PLATFORM",
+      "blocker_or_use": "Needed for fake-retail/crossing and absorption tests.",
+      "capital_permission": "BLOCKED",
+      "dataset_family": "done detail/order book",
+      "frequency": "intraday",
+      "live_decision_weight": 0.0,
+      "market": "ihsg",
+      "source_class": "broker/platform"
+    },
+    {
+      "availability": "PUBLIC_ACQUIRABLE",
+      "blocker_or_use": "Vintage reconstruction required.",
+      "capital_permission": "BLOCKED",
+      "dataset_family": "ownership/free float/controller",
+      "frequency": "filing/event",
+      "live_decision_weight": 0.0,
+      "market": "ihsg",
+      "source_class": "IDX issuer filings"
+    },
+    {
+      "availability": "PUBLIC_ACQUIRABLE",
+      "blocker_or_use": "Tuesday snapshot and publication lag; useful state, weak exact trigger.",
+      "capital_permission": "BLOCKED",
+      "dataset_family": "CFTC disaggregated COT/TFF",
+      "frequency": "weekly",
+      "live_decision_weight": 0.0,
+      "market": "commodity",
+      "source_class": "CFTC"
+    },
+    {
+      "availability": "PUBLIC_OR_EXCHANGE",
+      "blocker_or_use": "OI is non-directional without participant/signed flow.",
+      "capital_permission": "BLOCKED",
+      "dataset_family": "futures curve/OI/volume",
+      "frequency": "daily/intraday",
+      "live_decision_weight": 0.0,
+      "market": "commodity",
+      "source_class": "exchange"
+    },
+    {
+      "availability": "PUBLIC_ACQUIRABLE",
+      "blocker_or_use": "Vintage surprise and release timestamp required.",
+      "capital_permission": "BLOCKED",
+      "dataset_family": "inventory/production/refinery",
+      "frequency": "weekly/monthly/event",
+      "live_decision_weight": 0.0,
+      "market": "commodity",
+      "source_class": "EIA/official agencies"
+    },
+    {
+      "availability": "LICENSED_OR_SPECIALIZED",
+      "blocker_or_use": "Core for scarcity and topping; currently absent.",
+      "capital_permission": "BLOCKED",
+      "dataset_family": "physical basis/freight/storage",
+      "frequency": "daily",
+      "live_decision_weight": 0.0,
+      "market": "commodity",
+      "source_class": "physical market vendor"
+    },
+    {
+      "availability": "PUBLIC_ACQUIRABLE",
+      "blocker_or_use": "Positioning state; lagged.",
+      "capital_permission": "BLOCKED",
+      "dataset_family": "CFTC TFF",
+      "frequency": "weekly",
+      "live_decision_weight": 0.0,
+      "market": "fx",
+      "source_class": "CFTC"
+    },
+    {
+      "availability": "PUBLIC_ACQUIRABLE",
+      "blocker_or_use": "Surprise construction required.",
+      "capital_permission": "BLOCKED",
+      "dataset_family": "macro release vintages/rate path",
+      "frequency": "event/daily",
+      "live_decision_weight": 0.0,
+      "market": "fx",
+      "source_class": "official central banks/stat agencies"
+    },
+    {
+      "availability": "LICENSED",
+      "blocker_or_use": "Needed for distribution and barrier/hedging tests.",
+      "capital_permission": "BLOCKED",
+      "dataset_family": "options surface/risk reversal",
+      "frequency": "intraday/daily",
+      "live_decision_weight": 0.0,
+      "market": "fx",
+      "source_class": "exchange/vendor"
+    },
+    {
+      "availability": "LICENSED_FRAGMENTED",
+      "blocker_or_use": "No universal consolidated tape.",
+      "capital_permission": "BLOCKED",
+      "dataset_family": "OTC signed order flow",
+      "frequency": "intraday",
+      "live_decision_weight": 0.0,
+      "market": "fx",
+      "source_class": "dealer/platform"
+    },
+    {
+      "availability": "PUBLIC_RECENT_LIMITED",
+      "blocker_or_use": "Binance endpoints generally expose only recent windows; archive must be collected prospectively.",
+      "capital_permission": "BLOCKED",
+      "dataset_family": "OI/funding/basis/top-trader ratios",
+      "frequency": "5m+",
+      "live_decision_weight": 0.0,
+      "market": "crypto",
+      "source_class": "exchange APIs"
+    },
+    {
+      "availability": "PUBLIC_LIVE_RECENT_LIMITED",
+      "blocker_or_use": "Realized liquidation is usually contemporaneous amplification.",
+      "capital_permission": "BLOCKED",
+      "dataset_family": "side-specific liquidations",
+      "frequency": "real-time",
+      "live_decision_weight": 0.0,
+      "market": "crypto",
+      "source_class": "exchange streams/APIs"
+    },
+    {
+      "availability": "PUBLIC_LIVE",
+      "blocker_or_use": "Must archive continuously and normalize across venues.",
+      "capital_permission": "BLOCKED",
+      "dataset_family": "taker flow/order book depth",
+      "frequency": "real-time",
+      "live_decision_weight": 0.0,
+      "market": "crypto",
+      "source_class": "exchange APIs"
+    },
+    {
+      "availability": "PUBLIC_OR_VENDOR",
+      "blocker_or_use": "Address tagging and revision policy required.",
+      "capital_permission": "BLOCKED",
+      "dataset_family": "on-chain/stablecoin/exchange flows",
+      "frequency": "block/daily",
+      "live_decision_weight": 0.0,
+      "market": "crypto",
+      "source_class": "chain/vendor"
+    }
+  ],
+  "schema": "warroom.v60.data_readiness"
+}

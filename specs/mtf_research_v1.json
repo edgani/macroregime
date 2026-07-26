@@ -1,0 +1,13 @@
+{
+  "spec_id": "MTF-RESEARCH-V1-NEWZIP",
+  "purpose": "Describe cross-timeframe alignment before any future decision policy",
+  "roles": ["structural", "trend", "tactical", "execution"],
+  "conflict_policy": {
+    "structural_trend": 0.0,
+    "higher_tactical": 0.25,
+    "tactical_execution": 0.5,
+    "aligned": 1.0
+  },
+  "forbidden_outputs": ["trade_direction", "entry", "target", "stop", "probability"],
+  "claim_ceiling": "DESCRIPTIVE_ONLY"
+}

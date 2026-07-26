@@ -1,0 +1,24 @@
+market,dataset_family,availability,frequency,source_class,blocker_or_use,live_decision_weight,capital_permission
+us_equities,OHLCV/corporate actions,AVAILABLE_BUNDLED_DIAGNOSTIC,daily,public/mixed,Existing fixed panel is not survivorship-safe or current.,0.0,BLOCKED
+us_equities,SEC fundamentals/guidance/customer qualification,PUBLIC_ACQUIRABLE,event/daily,official,Fresh filing parser and vintage timestamps required.,0.0,BLOCKED
+us_equities,analyst estimates/revisions,LICENSED_OR_SPECIALIZED,daily,vendor,Needed for expectation-gap replication and SNDK-like discovery.,0.0,BLOCKED
+us_equities,short interest,PUBLIC_SPARSE,semi-monthly,FINRA/SRO,Snapshot is slow and omits borrow fee/utilization.,0.0,BLOCKED
+us_equities,borrow fee/utilization/locates,LICENSED,intraday/daily,securities lending vendor,Required to distinguish negative information from squeeze scarcity.,0.0,BLOCKED
+us_equities,signed options trades/dealer inventory,LICENSED,trade-by-trade,exchange/vendor,Gross OI shortcut forbidden.,0.0,BLOCKED
+us_equities,full depth/signed equity flow,LICENSED,intraday,exchange/vendor,Execution/transmission horizon only.,0.0,BLOCKED
+ihsg,broker summary,PUBLIC_CURRENT_HISTORY_NEEDED,daily,IDX,Historical ticker-by-broker inventory and crossing adjustments required.,0.0,BLOCKED
+ihsg,foreign flow,PUBLIC_OR_VENDOR,daily,IDX/vendor,Point-in-time ticker history required.,0.0,BLOCKED
+ihsg,done detail/order book,LICENSED_OR_PLATFORM,intraday,broker/platform,Needed for fake-retail/crossing and absorption tests.,0.0,BLOCKED
+ihsg,ownership/free float/controller,PUBLIC_ACQUIRABLE,filing/event,IDX issuer filings,Vintage reconstruction required.,0.0,BLOCKED
+commodity,CFTC disaggregated COT/TFF,PUBLIC_ACQUIRABLE,weekly,CFTC,"Tuesday snapshot and publication lag; useful state, weak exact trigger.",0.0,BLOCKED
+commodity,futures curve/OI/volume,PUBLIC_OR_EXCHANGE,daily/intraday,exchange,OI is non-directional without participant/signed flow.,0.0,BLOCKED
+commodity,inventory/production/refinery,PUBLIC_ACQUIRABLE,weekly/monthly/event,EIA/official agencies,Vintage surprise and release timestamp required.,0.0,BLOCKED
+commodity,physical basis/freight/storage,LICENSED_OR_SPECIALIZED,daily,physical market vendor,Core for scarcity and topping; currently absent.,0.0,BLOCKED
+fx,CFTC TFF,PUBLIC_ACQUIRABLE,weekly,CFTC,Positioning state; lagged.,0.0,BLOCKED
+fx,macro release vintages/rate path,PUBLIC_ACQUIRABLE,event/daily,official central banks/stat agencies,Surprise construction required.,0.0,BLOCKED
+fx,options surface/risk reversal,LICENSED,intraday/daily,exchange/vendor,Needed for distribution and barrier/hedging tests.,0.0,BLOCKED
+fx,OTC signed order flow,LICENSED_FRAGMENTED,intraday,dealer/platform,No universal consolidated tape.,0.0,BLOCKED
+crypto,OI/funding/basis/top-trader ratios,PUBLIC_RECENT_LIMITED,5m+,exchange APIs,Binance endpoints generally expose only recent windows; archive must be collected prospectively.,0.0,BLOCKED
+crypto,side-specific liquidations,PUBLIC_LIVE_RECENT_LIMITED,real-time,exchange streams/APIs,Realized liquidation is usually contemporaneous amplification.,0.0,BLOCKED
+crypto,taker flow/order book depth,PUBLIC_LIVE,real-time,exchange APIs,Must archive continuously and normalize across venues.,0.0,BLOCKED
+crypto,on-chain/stablecoin/exchange flows,PUBLIC_OR_VENDOR,block/daily,chain/vendor,Address tagging and revision policy required.,0.0,BLOCKED

@@ -1,0 +1,11 @@
+priority,market,phase,work,deliverable,promotion_gate,status
+1,US Stocks,US-1,Build dated entity/universe master from SEC/Nasdaq and corporate-action receipts,Historical eligibility panel with coverage audit,Survivorship-safe test frame,STARTED_CURRENT_SNAPSHOT
+2,US Stocks,US-2,Build SEC filed-time financial quality panel,Revenue/margin/cash/accrual/leverage/dilution components,Component tournament ready,QUEUED
+3,US Stocks,US-3,Build guidance/backlog/text and ownership panels,"Filing-demand, 13F/N-PORT, insider and short-state components",Full free component family panel,QUEUED
+4,US Stocks,US-4,Run component and selector WFA against frozen baselines,KEEP/CONTEXT/REDUNDANT/DROP verdicts and Top-K selector,One-shot historical lockbox,QUEUED
+5,US Stocks,US-5,Start prospective immutable Top-K receipts,Sequential signal/outcome ledger,Prospective component/selector proof,READY_NOW
+6,IHSG,ID-1,"Build IDX/KSEI free universe, corporate-action and ownership panel",Long-only free selector frame without broker component,IHSG component tournament,QUEUED_AFTER_US_FACTORY
+7,Crypto,CR-1,"Build contract-address lifecycle, protocol, liquidity, leverage and unlock panel",Archetype-specific token selector frame,Crypto component tournament,QUEUED_AFTER_US_FACTORY
+8,Commodities,CO-1,Build per-commodity physical/curve/COT/PortWatch panels,Bottleneck and beneficiary selector frames,Commodity-specific WFA,QUEUED_AFTER_US_FACTORY
+9,FX,FX-1,Build pair-relative macro/rate/funding/COT panel,Daily/weekly pair selector frame,FX WFA,QUEUED_AFTER_US_FACTORY
+10,System,SYS-1,"Promote only proven components into Alpha, Flow, Supply Chain, Knowledge Graph and Mission Control",No duplicated ranking or permission leakage,System-wide prospective proof,BLOCKED_BY_MARKET_PROOF

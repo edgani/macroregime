@@ -2,12 +2,13 @@
 BEHAVES at the band, not that it touched it. Zone = 20d ref ± 1σ (same base the entry engine uses)."""
 from __future__ import annotations
 import numpy as np, pandas as pd
+from ..core.numeric import log_returns
 
 def run_response_zone(price) -> dict:
     px = pd.to_numeric(pd.Series(price), errors="coerce").dropna()
     if len(px) < 70:
         return {"ok": False, "response": "UNKNOWN", "quality": 0}
-    r = np.log(px).diff()
+    r = log_returns(px)
     ref = float(px.tail(20).mean()); sigma = float(px.pct_change().tail(20).std() * ref or px.std() * 0.02)
     lo, hi = ref - sigma, ref + sigma
     p = float(px.iloc[-1]); pos = (p - lo) / ((hi - lo) or 1e-9)

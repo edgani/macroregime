@@ -1,0 +1,25 @@
+{
+  "capital_permission": "BLOCKED",
+  "checked_at_utc": "2026-07-24T19:30:00Z",
+  "historical_outcomes_opened": false,
+  "licensed_files_present": 0,
+  "live_decision_weight": 0.0,
+  "next_state_when_data_is_supplied": "READY_TO_VALIDATE_SOURCE_MANIFEST_AND_RUN_FROZEN_V72",
+  "optional_crosscheck": "Cboe C1 US Options Trade-by-Trade Greeks (GRK)",
+  "predictive_components_promoted": 0,
+  "public_chain_proxy_permitted": false,
+  "public_open_interest_dealer_sign_permitted": false,
+  "required_products": [
+    "Cboe C1 Enhanced US Options Trade-by-Trade Execution Detail",
+    "Cboe Option Quotes for ^SPX, 1-minute, Include Calcs + Include Open Interest, per-day",
+    "SPX/ES one-minute underlier and ES liquidity records"
+  ],
+  "required_quote_fields_addendum": "Open Interest is mandatory only for unsigned topology baseline/placebo; it is forbidden as dealer sign.",
+  "sample_endpoint_discovery": {
+    "open_close_sample": "https://datashop.cboe.com/download/sample/218",
+    "role": "schema demonstration only; not sufficient for historical inference",
+    "tbt_sample": "https://datashop.cboe.com/download/sample/289"
+  },
+  "schema": "warroom.v72_data_acquisition_status",
+  "status": "LICENSED_HISTORY_NOT_PRESENT"
+}

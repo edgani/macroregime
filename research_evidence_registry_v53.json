@@ -1,0 +1,286 @@
+{
+  "capital_permission": "BLOCKED",
+  "claims": [
+    {
+      "capital_permission": "BLOCKED",
+      "claim": "next_month_large_excursion_occurrence",
+      "claim_ceiling": "Historical oil-complex proxy occurrence support only; not direction, exact target, current regime, or profit.",
+      "live_decision_weight": 0.0,
+      "prospective_pass": false,
+      "status": "HISTORICAL_PROXY_REPLICATION_SUPPORTED",
+      "study": "V52_OIL_OVX"
+    },
+    {
+      "capital_permission": "BLOCKED",
+      "claim": "physical_range_21d",
+      "claim_ceiling": "Historical fixed 483-name US-equity panel only; not point-in-time universe or individual-chain target proof.",
+      "live_decision_weight": 0.0,
+      "prospective_pass": false,
+      "status": "HISTORICAL_FIXED_UNIVERSE_SUPPORTED",
+      "study": "V55_US_EQUITY_VIX_REPLICATION"
+    },
+    {
+      "capital_permission": "BLOCKED",
+      "claim": "integrated_first_passage_day_5_10_20",
+      "claim_ceiling": "Historical OVX-to-WTI proxy timing evidence only; not direction, exact options-on-futures chain proof, or profit.",
+      "live_decision_weight": 0.0,
+      "prospective_pass": false,
+      "status": "HISTORICAL_PROXY_REPLICATION_SUPPORTED",
+      "study": "V58_OIL_OVX_EXACT_TIMING"
+    },
+    {
+      "capital_permission": "BLOCKED",
+      "claim": "equal_weight_three_asset_12m_tsmom_net_return",
+      "claim_ceiling": "Pre-1987 three-asset portfolio result; fragile to leave-one-asset diagnostics and not current-regime proof.",
+      "live_decision_weight": 0.0,
+      "prospective_pass": false,
+      "status": "HISTORICAL_PRE1987_PORTFOLIO_DIRECTION_SUPPORTED",
+      "study": "V60_PRE1987_DIRECTIONAL_PORTFOLIO"
+    },
+    {
+      "capital_permission": "BLOCKED",
+      "claim": "integrated_first_passage_day_5_10_20",
+      "claim_ceiling": "Historical EUR/USD-EVZ proxy timing test failed its promotion gate.",
+      "live_decision_weight": 0.0,
+      "prospective_pass": false,
+      "result_artifact_sha256": "b6320d054ab6de3be326f0f7f2a05ed92f347f56d52c20251266fa42a99cec5a",
+      "status": "NOT_PROVEN",
+      "study": "V61_FX_EVZ_EXACT_TIMING"
+    },
+    {
+      "abort_artifact_sha256": "78c1d9e2c64f9cfa372900ee4b49927c2efd4ed5b5c07bac8bc8851c58db0bbf",
+      "capital_permission": "BLOCKED",
+      "claim": "pooled_five_market_large_excursion_generalization",
+      "claim_ceiling": "No outcomes inspected and no source substitution allowed; exact frozen protocol and archival price sources are required.",
+      "live_decision_weight": 0.0,
+      "prospective_pass": false,
+      "protocol_artifact_sha256": "34d6925eb5dec62cfa84fd9ea40a8bd9b7910904900fde368621bde3356174a3",
+      "status": "ABORTED_BEFORE_OUTCOME_ANALYSIS",
+      "study": "V62_ETF_VOL_CROSSMARKET"
+    },
+    {
+      "capital_permission": "BLOCKED",
+      "claim": "equal_weight_five_signal_spx_direction_vs_12m_trend",
+      "claim_ceiling": "Historical revised public macro history only; failed promotion and is not options direction or current-regime proof.",
+      "live_decision_weight": 0.0,
+      "prospective_pass": false,
+      "status": "NOT_PROVEN",
+      "study": "V63_SPX_CAUSAL_DIRECTION_ENSEMBLE"
+    },
+    {
+      "capital_permission": "BLOCKED",
+      "claim": "cusp_fragility_incremental_6m_10pct_drawdown_probability",
+      "claim_ceiling": "Cusp density fit was descriptively better than linear density in validation/lockbox, but baseline+cusp worsened Brier and log loss versus the frozen War Room baseline and smooth nonlinear challenger.",
+      "live_decision_weight": 0.0,
+      "prospective_pass": false,
+      "protocol_artifact_sha256": "6c3ab960c28f1fd81c80a2b8f23cbb2f6352ee6e331f24dcb8c99bca2628e3e9",
+      "result_artifact_sha256": "b89b6eb24e2d4405653ec9fed40bf9620c2ccf381baa1ed89ed2659279e0ff7c",
+      "status": "NOT_PROVEN",
+      "study": "V73_CUSP_STRUCTURAL_FRAGILITY_HISTORICAL"
+    },
+    {
+      "capital_permission": "BLOCKED",
+      "claim": "breadth_cusp_incremental_20d_extreme_volatility_transition",
+      "claim_ceiling": "The fixed 483-name breadth panel did not support cusp density or incremental prediction; the untouched 2017\u20132018 lockbox contained zero preregistered target events, so the claim was not identifiable and was not retuned.",
+      "live_decision_weight": 0.0,
+      "prospective_pass": false,
+      "protocol_artifact_sha256": "a952e77564aaf3e82581ead79d5854e5f6dace82bb5b3bce07aa9a443de9bfdf",
+      "result_artifact_sha256": "a2497d8b08235fd1873d7c1b5e5ca3a27dc775ffed4c6b51a4c77f041451f206",
+      "status": "NOT_PROVEN",
+      "study": "V74_BREADTH_CUSP_VOLATILITY_TRANSITION"
+    },
+    {
+      "capital_permission": "BLOCKED",
+      "claim": "pre1973_cusp_incremental_6m_10pct_drawdown_probability",
+      "claim_ceiling": "On disjoint 1882\u20131972 history, cusp again improved descriptive density but worsened predictive Brier/log loss in validation and lockbox; no pre-modern regime exception was supported.",
+      "live_decision_weight": 0.0,
+      "prospective_pass": false,
+      "protocol_artifact_sha256": "530fff9e19dff52f3293b477ce2f675b1e391c4807e6e91a17eb2527d77b42fd",
+      "result_artifact_sha256": "e9e97691166c3c3497f82e205fcd83bc59affed0abd4e2bc1185898751f301f4",
+      "status": "NOT_PROVEN",
+      "study": "V75_PRE1973_CUSP_REGIME_DEPENDENCE"
+    },
+    {
+      "capital_permission": "BLOCKED",
+      "claim": "AnnouncementReturn_maintained_portfolio_postsample_persistence",
+      "claim_ceiling": "Survived the global 795-claim gross lower-bound screen (validation 0.004962, lockbox 0.002157) but failed the coarse 25 bps/month global cost gate and lacks fresh stock-level point-in-time replication, turnover, capacity and prospective evidence.",
+      "global_trial_ledger_sha256": "d093b42f873aa8bd5fb9cc30ef5fc356aad39a8058a9a9fe2f47aa233183b2ed",
+      "live_decision_weight": 0.0,
+      "prospective_pass": false,
+      "protocol_artifact_sha256": "b8317a649c9aadf35f639eb91262f1abdf064c785f943c027d1070d186e77105",
+      "result_artifact_sha256": "41496b6c06b30e6864ef3041ffa8815015903f173b2f248b1d802284976eef9a",
+      "status": "GROSS_PERSISTENCE_CANDIDATE_NOT_PROVEN",
+      "study": "V58_OPENAP_GLOBAL_ANNOUNCEMENTRETURN"
+    },
+    {
+      "capital_permission": "BLOCKED",
+      "claim": "AnalystRevision_maintained_portfolio_postsample_persistence",
+      "claim_ceiling": "Survived the global 795-claim gross lower-bound screen (validation 0.004649, lockbox 0.000857) but failed the coarse 25 bps/month global cost gate and lacks fresh stock-level point-in-time replication, turnover, capacity and prospective evidence.",
+      "global_trial_ledger_sha256": "d093b42f873aa8bd5fb9cc30ef5fc356aad39a8058a9a9fe2f47aa233183b2ed",
+      "live_decision_weight": 0.0,
+      "prospective_pass": false,
+      "protocol_artifact_sha256": "b8317a649c9aadf35f639eb91262f1abdf064c785f943c027d1070d186e77105",
+      "result_artifact_sha256": "41496b6c06b30e6864ef3041ffa8815015903f173b2f248b1d802284976eef9a",
+      "status": "GROSS_PERSISTENCE_CANDIDATE_NOT_PROVEN",
+      "study": "V58_OPENAP_GLOBAL_ANALYSTREVISION"
+    },
+    {
+      "capital_permission": "BLOCKED",
+      "claim": "DivYieldST_maintained_portfolio_postsample_persistence",
+      "claim_ceiling": "Survived the global 795-claim gross lower-bound screen (validation 0.001359, lockbox 0.003242) but failed the coarse 25 bps/month global cost gate and lacks fresh stock-level point-in-time replication, turnover, capacity and prospective evidence.",
+      "global_trial_ledger_sha256": "d093b42f873aa8bd5fb9cc30ef5fc356aad39a8058a9a9fe2f47aa233183b2ed",
+      "live_decision_weight": 0.0,
+      "prospective_pass": false,
+      "protocol_artifact_sha256": "b8317a649c9aadf35f639eb91262f1abdf064c785f943c027d1070d186e77105",
+      "result_artifact_sha256": "41496b6c06b30e6864ef3041ffa8815015903f173b2f248b1d802284976eef9a",
+      "status": "GROSS_PERSISTENCE_CANDIDATE_NOT_PROVEN",
+      "study": "V58_OPENAP_GLOBAL_DIVYIELDST"
+    }
+  ],
+  "continuation_battery": {
+    "expected_zip_sha256": "ec8eff9006e097199388b1394ac3004e2e909846e91996493080e3bef71fa728",
+    "interpretation": "Separate continuation battery. It does not erase the earlier narrow global claims and cannot be pooled post hoc to rescue them.",
+    "package": "War_Room_OS_v51_Continuation_Audit.zip",
+    "runner_result_sha256": "d3ce574f0ddffa926ea3478a773c3aa172be56bfeccdea3f55e6bfcf64835ced",
+    "studies": [
+      {
+        "claims_promoted": 0,
+        "claims_tested": 5,
+        "study": "V51_PANEL_483_VIX"
+      },
+      {
+        "claims_promoted": 0,
+        "claims_tested": 9,
+        "study": "V51_UNIFIED_SPX_WTI_GOLD_MONTHLY"
+      },
+      {
+        "claims_promoted": 0,
+        "claims_tested": 1,
+        "lockbox_global_lower_bound": -0.029005379195716146,
+        "lockbox_mean_improvement": 0.045678705793983136,
+        "study": "V51_WTI_OVX_EXACT_FIRST_PASSAGE",
+        "validation_global_lower_bound": -0.040192672309835704,
+        "validation_mean_improvement": 0.048602950283769465
+      },
+      {
+        "claims_promoted": 0,
+        "claims_tested": 3,
+        "lockbox_excess_vs_long": -0.001511,
+        "lockbox_global_lower_bound": -0.006958,
+        "lockbox_net_mean_monthly": 0.001239,
+        "study": "V51_CROSS_ASSET_DIRECTIONAL_MOMENTUM",
+        "validation_global_lower_bound": -0.004149,
+        "validation_net_mean_monthly": 0.003924
+      }
+    ],
+    "total_claims_promoted": 0,
+    "total_claims_tested": 18
+  },
+  "cusp_research_v57": {
+    "capital_permission": "BLOCKED",
+    "crash_meter_inclusion": "REJECTED",
+    "decision_value_test": "STOPPED_BY_SEQUENTIAL_GATE",
+    "incremental_prediction_support_count": 0,
+    "live_decision_weight": 0.0,
+    "reason": "Across modern macro, fixed-universe breadth, and disjoint pre-1973 samples, cusp geometry did not improve untouched crash/transition prediction over frozen baselines. Continuing to change endpoints or controls would be post-outcome data mining.",
+    "research_only_descriptive_use": "ALLOWED_WITH_ZERO_WEIGHT",
+    "status": "REJECTED_AS_INCREMENTAL_PREDICTIVE_MODULE",
+    "structural_density_support_count": 2,
+    "studies_promoted": 0,
+    "studies_tested": 3
+  },
+  "global_accounting": {
+    "cross_market_options_generalization": "NOT_PROVEN",
+    "current_regime_stability": "NOT_PROVEN",
+    "cusp_claims_promoted": 0,
+    "cusp_claims_tested": 3,
+    "cusp_structural_fragility": "REJECTED_INCREMENTAL_PREDICTION",
+    "evaluated_statistical_claims": 28,
+    "exact_signed_physical_point_target": "NOT_PROVEN",
+    "historically_supported_narrow_claims": 4,
+    "prospective_net_profitability": "NOT_PROVEN",
+    "registered_primary_claims_through_v63": 29,
+    "robust_current_directional_alpha": "NOT_PROVEN",
+    "v58_global_cost_robust_candidates": 0,
+    "v58_global_gross_candidates": 3,
+    "v58_live_promotions": 0,
+    "v58_mapped_candidates": 868,
+    "v58_registered_claims": 795
+  },
+  "open_work": [
+    {
+      "next_valid_action": "Acquire exact point-in-time IBES/CRSP or equivalent archived sources and execute the frozen AnnouncementReturn, AnalystRevision and DivYieldST replications; keep all three at zero live weight.",
+      "priority": 1,
+      "state": "DATA_ACQUISITION_REQUIRED",
+      "study": "V59_FRESH_POINT_IN_TIME_REPLICATION"
+    },
+    {
+      "next_valid_action": "Mount the exact global-claim ZIP, verify SHA-256, recover the exact frozen protocol, archive every required price source, then run without model or source substitution.",
+      "priority": 2,
+      "state": "ACQUISITION_BLOCKED",
+      "study": "V62_ETF_VOL_CROSSMARKET"
+    },
+    {
+      "next_valid_action": "Collect future signed exact-scope predictions and outcomes; historical retuning cannot substitute.",
+      "priority": 3,
+      "state": "NOT_MATURED",
+      "study": "PROSPECTIVE_LOCKBOX"
+    }
+  ],
+  "predictive_components_promoted_to_live": 0,
+  "release": "War_Room_OS_v58_Exhaustive_Reverse_Engineering",
+  "research_live_decision_weight": 0.0,
+  "retired_candidates": [
+    {
+      "module": "CUSP_STRUCTURAL_FRAGILITY",
+      "reason": "Three frozen OOS/lockbox studies produced zero incremental predictive support; descriptive density fit alone is insufficient.",
+      "state": "REJECTED_FROM_PREDICTIVE_STACK"
+    }
+  ],
+  "schema": "warroom.research_evidence_registry.v53",
+  "source_boundary": {
+    "admission": "Metadata and claim states are reconciled; no missing binary, protocol, runner, or raw dataset is silently reconstructed.",
+    "attachment": "Pasted text(161).txt ending at the v5.1 continuation audit",
+    "cusp_attachment": "Pasted text(162).txt \u2014 Zeeman/cusp catastrophe reverse engineering for War Room",
+    "cusp_data": "Bundled immutable monthly macro panel (1881\u20132023) and fixed 483-name daily panel (2013\u20132018); no post-outcome source substitution.",
+    "exact_global_zip_mounted_in_this_build": false,
+    "expected_global_package_sha256": "4f97add774a50690baf88e642e807be68eac3399b66628a2be2d61d9b116df99",
+    "global_claim_package": "War_Room_OS_v51_Global_Claim_Accounting.zip"
+  },
+  "status": "RECONCILED_RESEARCH_EVIDENCE_ONLY",
+  "supported_historical_claims": 4,
+  "v58_exhaustive_research": {
+    "alternative_portfolio_constructions_tested": 0,
+    "capital_permission": "BLOCKED",
+    "data_boundary": "All 212 predictor aggregate returns were tested. The 114 placebo and 5 drop definitions were mapped, but no trustworthy public precomputed placebo-wide return file or official alternative portfolio archive was acquired in this environment; no proxy was substituted.",
+    "family_gate_survivors": [
+      "AnnouncementReturn",
+      "AnalystRevision",
+      "DivYieldST",
+      "ShortInterest"
+    ],
+    "global_795_25bps_survivors": [],
+    "global_795_gross_survivors": [
+      "AnnouncementReturn",
+      "AnalystRevision",
+      "DivYieldST"
+    ],
+    "live_decision_weight": 0.0,
+    "macro_claims_tested": 344,
+    "macro_survivors": 0,
+    "mapped_candidates": 868,
+    "openap_predictors_tested": 212,
+    "placebo_return_series_tested": 0,
+    "predictive_components_promoted_to_live": 0,
+    "price_volume_claims_tested": 200,
+    "price_volume_survivors": 0,
+    "public_factor_claims_tested": 39,
+    "public_factor_strict_survivors": 0,
+    "registered_claims": 795,
+    "replication_queue_sha256": "ee0f50cb628c6c983b3914358a38f88f15c1125e9d5072bb0ab6943fd1d1d5af",
+    "status": "CURRENT_DATA_READY_BATTERIES_COMPLETE",
+    "trial_ledger_sha256": "bd75ab33331346b42b94fe82813bdf29b50f00819091aa12b6b903aa48a561c3"
+  },
+  "v61_status": "NOT_PROVEN",
+  "v62_status": "ABORTED_BEFORE_OUTCOME_ANALYSIS"
+}

@@ -4,16 +4,17 @@ Each engine is RUN on research/sp500_panel.parquet (+ macro + VIX), and we repor
 runs? deterministic? output sane? and — where it's a signal — does it have forward edge (IC)?
 """
 from __future__ import annotations
+from parquet_compat import read_parquet_compat
 import os, sys, warnings
 import numpy as np, pandas as pd
-warnings.filterwarnings("ignore")
+warnings.filterwarnings("error")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 RES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "research")
 from gcfis.backtest import cross_sectional_ic, permutation_pvalue, forward_return
 
 
 def _panel():
-    p = pd.read_parquet(os.path.join(RES, "sp500_panel.parquet")); p["date"] = pd.to_datetime(p["date"])
+    p = read_parquet_compat(os.path.join(RES, "sp500_panel.parquet")); p["date"] = pd.to_datetime(p["date"])
     piv = lambda c: p.pivot_table(index="date", columns="Name", values=c)
     close, vol, hi, lo, op = piv("close"), piv("volume"), piv("high"), piv("low"), piv("open")
     keep = close.columns[close.notna().mean() > 0.9]
@@ -45,7 +46,7 @@ def v_validation_engine(close):
 def v_markov(close, vol):
     print("\n" + "═" * 82 + "\nGEM 2 — markov_regime_engine_v3.py (HSMM + BOCPD, upgrade over Gaussian HMM)\n" + "═" * 82)
     from engines import markov_regime_engine_v3 as MK
-    mp = pd.read_parquet(os.path.join(RES, "macro_panel.parquet"))
+    mp = read_parquet_compat(os.path.join(RES, "macro_panel.parquet"))
     # build a 'fred'-like dict from macro panel (DXY, rate) + prices dict from panel
     prices = {t: close[t].dropna() for t in list(close.columns[:15])}
     prices["SPX"] = close.mean(axis=1)
@@ -59,7 +60,8 @@ def v_markov(close, vol):
         r2 = MK.run_markov_v3(prices, fred, lookback_days=252)
         st1 = getattr(r1, "current_state", getattr(r1, "state", None))
         det = st1 == getattr(r2, "current_state", getattr(r2, "state", None))
-        print(f"  ✓ RUNS. current_state={st1} label={getattr(r1,'label','?')} "
+        state_mark = "DATA-BLOCKED" if st1 is None else "RUNS"
+        print(f"  {state_mark}. current_state={st1} label={getattr(r1,'label','?')} "
               f"n_states={getattr(r1,'n_states','?')}")
         print(f"  BOCPD changepoint prob={getattr(r1,'changepoint_prob', getattr(r1,'cp_prob','?'))} | "
               f"expected_duration={getattr(r1,'expected_duration','?')}")
@@ -80,10 +82,14 @@ def v_bandarmetrics(close, vol, hi, lo, op):
     print(f"    ADL slope, CMF, ignition={out.get('ignition')}, stealth_accum={out.get('stealth_accumulation')}, "
           f"markup_readiness={mk}")
     # forward edge: does markup_readiness rank predict forward return, cross-sectionally?
-    dates = close.index[252::42]; sig = {}
+    # Bounded deterministic diagnostic: fixed alphabetical 60-name subset and 126-day spacing.
+    # This preserves the engine formula while keeping the validation harness operational.
+    dates = close.index[252::126]
+    diagnostic_tickers = list(sorted(close.columns))[:60]
+    sig = {}
     for d in dates:
         row = {}
-        for t in close.columns[:150]:
+        for t in diagnostic_tickers:
             sub = pd.DataFrame({"Open": op[t].loc[:d], "High": hi[t].loc[:d], "Low": lo[t].loc[:d],
                                 "Close": close[t].loc[:d], "Volume": vol[t].loc[:d]}).dropna()
             if len(sub) < 120:
@@ -102,9 +108,9 @@ def v_bandarmetrics(close, vol, hi, lo, op):
     if sdf.notna().sum().sum() > 200:
         fwd = forward_return(close, 42)
         ic, _ = cross_sectional_ic(sdf, fwd, 42)
-        pp = permutation_pvalue(sdf, fwd, 42, ic, n=120)
+        pp = permutation_pvalue(sdf, fwd, 42, ic, n=200)
         v = "EDGE" if (pp < 0.05 and ic > 0) else "no significant edge"
-        print(f"  forward edge (markup_readiness → fwd-42d): IC={round(ic,4)} perm_p={round(pp,3)} → {v}")
+        print(f"  bounded diagnostic (60 names, 126d spacing; markup_readiness → fwd-42d): IC={round(ic,4)} perm_p={round(pp,3)} → {v}")
     else:
         print("  forward edge: markup_readiness too sparse on this subset to score (needs fuller run).")
 
@@ -141,13 +147,13 @@ def main():
     v_antifragility(close)
     v_reflexivity(close, vol)
     print("\n" + "═" * 82 + "\nVERDICT — additions worth keeping (validated by data)\n" + "═" * 82)
-    print("""  KEEP + WIRE:
-    • validation_engine.py  → auto KEEP/OVERFIT/FRAGILE per weight (add to the validation stack)
-    • markov_regime_engine_v3.py → HSMM+BOCPD, upgrade over the Gaussian HMM in gcfis
-    • bandarmetrics_engine.py → bandarmology from OHLCV — IHSG smart-money WITHOUT a Type-F feed
-    • anti_fragility_engine.py → portfolio AFS (Mission Control risk panel)
-    • reflexivity_coefficient.py → RC gate (avoid directional bets when reflexivity is high)
-  Each RUNS on real data above — kept because the output is real, not because the name sounds good.""")
+    print("""  IMPLEMENTATION STATUS ONLY — NOT LIVE EDGE PERMISSION:
+    • validation_engine.py: operational research validator; individual KEEP labels are not alpha proof.
+    • markov_regime_engine_v3.py: DATA-BLOCKED when aligned emissions are absent; no regime claim.
+    • bandarmetrics_engine.py: bounded diagnostic only; promote only if corrected OOS edge passes.
+    • anti_fragility_engine.py: descriptive portfolio-risk context.
+    • reflexivity_coefficient.py: descriptive context; no standalone direction.
+  All outputs retain zero live decision weight until exact-scope independent/prospective evidence passes.""")
 
 
 if __name__ == "__main__":

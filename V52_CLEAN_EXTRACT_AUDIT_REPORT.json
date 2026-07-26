@@ -1,0 +1,153 @@
+{
+  "capital_permission": "BLOCKED",
+  "claim_boundary": "Software hardening can pass; predictive edge and prospective profitability cannot be promoted without signed exact-scope matured evidence.",
+  "environment_blockers": [
+    "actual_streamlit_health",
+    "runtime_dependencies",
+    "parquet_semantic_recomputation"
+  ],
+  "executable_failures": [],
+  "full_release_status": "BLOCKED",
+  "hardening_status": "PASS",
+  "predictive_components_promoted": 0,
+  "schema": "warroom.clean_extract_audit.v52",
+  "source_manifest_files": 329,
+  "source_manifest_sha256": "c422f728795320905e89dec64c06d9fcabdb8cbd7f940f66e57678d8b278c32c",
+  "source_mutation_failures": [],
+  "tests": [
+    {
+      "mutated_paths": [],
+      "name": "compile_all",
+      "returncode": 0,
+      "source_immutable": true,
+      "status": "PASS"
+    },
+    {
+      "mutated_paths": [],
+      "name": "hardening_adversarial_39",
+      "returncode": 0,
+      "source_immutable": true,
+      "status": "PASS"
+    },
+    {
+      "mutated_paths": [],
+      "name": "gcfis_warnings_as_errors",
+      "returncode": 0,
+      "source_immutable": true,
+      "status": "PASS"
+    },
+    {
+      "mutated_paths": [],
+      "name": "deep_reaudit_ui_and_contracts",
+      "returncode": 0,
+      "source_immutable": true,
+      "status": "PASS"
+    },
+    {
+      "mutated_paths": [],
+      "name": "bundled_data_container_integrity",
+      "returncode": 0,
+      "source_immutable": true,
+      "status": "PASS"
+    },
+    {
+      "mutated_paths": [],
+      "name": "synthetic_end_to_end",
+      "returncode": 0,
+      "source_immutable": true,
+      "status": "PASS"
+    },
+    {
+      "mutated_paths": [],
+      "name": "validator_positive_negative_controls",
+      "returncode": 0,
+      "source_immutable": true,
+      "status": "PASS"
+    },
+    {
+      "mutated_paths": [],
+      "name": "actual_streamlit_health",
+      "returncode": 2,
+      "source_immutable": true,
+      "status": "BLOCKED_BY_ENVIRONMENT"
+    },
+    {
+      "missing": [
+        "hmmlearn",
+        "pyarrow",
+        "streamlit",
+        "yfinance"
+      ],
+      "modules": {
+        "cryptography": {
+          "state": "AVAILABLE",
+          "version": "46.0.4"
+        },
+        "hmmlearn": {
+          "error": "ModuleNotFoundError: No module named 'hmmlearn'",
+          "state": "MISSING"
+        },
+        "networkx": {
+          "state": "AVAILABLE",
+          "version": "3.6.1"
+        },
+        "numpy": {
+          "state": "AVAILABLE",
+          "version": "2.3.5"
+        },
+        "pandas": {
+          "state": "AVAILABLE",
+          "version": "2.2.3"
+        },
+        "pyarrow": {
+          "error": "ModuleNotFoundError: No module named 'pyarrow'",
+          "state": "MISSING"
+        },
+        "python_dotenv": {
+          "state": "AVAILABLE",
+          "version": "UNKNOWN"
+        },
+        "requests": {
+          "state": "AVAILABLE",
+          "version": "2.32.5"
+        },
+        "scikit_learn": {
+          "state": "AVAILABLE",
+          "version": "1.8.0"
+        },
+        "scipy": {
+          "state": "AVAILABLE",
+          "version": "1.17.0"
+        },
+        "statsmodels": {
+          "state": "AVAILABLE",
+          "version": "0.14.6"
+        },
+        "streamlit": {
+          "error": "ModuleNotFoundError: No module named 'streamlit'",
+          "state": "MISSING"
+        },
+        "yfinance": {
+          "error": "ModuleNotFoundError: No module named 'yfinance'",
+          "state": "MISSING"
+        }
+      },
+      "name": "runtime_dependencies",
+      "status": "BLOCKED_BY_ENVIRONMENT"
+    },
+    {
+      "capital_authorized_components": [],
+      "name": "default_proof_state",
+      "predictive_components_promoted": [],
+      "status": "PASS"
+    },
+    {
+      "name": "parquet_semantic_recomputation",
+      "reason": "pyarrow missing; Parquet containers are hash/structure verified but semantic batteries cannot run",
+      "status": "BLOCKED_BY_ENVIRONMENT"
+    }
+  ],
+  "validators_run_on_fresh_copies": true,
+  "verdict": "HARDENING_PASS_FULL_RELEASE_BLOCKED",
+  "warnings_as_errors": true
+}

@@ -1,0 +1,23 @@
+{
+  "candidate_grid": "all unordered pairs among 212 series, four sign quadrants; equal-weight monthly returns",
+  "capital_permission": "BLOCKED",
+  "claim_limit": "Portfolio-level maintained-return falsification only. Not stock-level point-in-time replication, capacity proof, SNDK detection, or capital permission.",
+  "cost_stress": "25 bps per month deducted from combination return",
+  "falsification_window": "2020-01 through 2024-12",
+  "full_gate": [
+    "validation BH q<0.05",
+    "validation mean >0",
+    "falsification mean >0",
+    "falsification HAC-like t >2 using Newey-West lag 6",
+    "falsification mean after 25bps/month >0",
+    "positive return in >=3 of 5 falsification calendar years"
+  ],
+  "live_decision_weight": 0.0,
+  "minimum_months_each_window": 48,
+  "primary_test": "one-sided mean return t-test in validation, BH-FDR globally across all pair/sign trials",
+  "purpose": "Falsify or identify robust combinations among every pair of the 212 maintained Open Source Asset Pricing long-short predictor returns.",
+  "registered_claims": 89464,
+  "source": "research_v58/data/PredictorLSretWide.csv",
+  "study_id": "V60_OPENAP_ALL_PAIR_SIGN_COMBINATIONS",
+  "validation": "2010-01 through 2019-12"
+}

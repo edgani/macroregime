@@ -1,0 +1,43 @@
+{
+  "candidate_families": [
+    "OI change/level normalized by depth",
+    "signed taker imbalance",
+    "participant long/short changes",
+    "funding and basis crowding",
+    "liquidation distance and side-specific forced flow",
+    "physical/fundamental/expectation origin",
+    "broker/foreign flow",
+    "interactions constrained by causal order"
+  ],
+  "capital_permission": "BLOCKED",
+  "causal_order": [
+    "origin",
+    "vulnerability",
+    "trigger",
+    "transmission",
+    "realized liquidation",
+    "exhaustion"
+  ],
+  "forbidden_shortcuts": [
+    "total OI as direction",
+    "price up plus OI up equals long accumulation",
+    "realized liquidation as proof of the original trigger",
+    "gross options OI as dealer sign",
+    "volume as institutional identity"
+  ],
+  "frozen_before_real_outcome_data": true,
+  "live_decision_weight": 0.0,
+  "primary_question": "Do origin, vulnerability, signed positioning and forced-flow variables improve calibrated prediction of future massive moves over simple price/volatility baselines?",
+  "promotion_gate": [
+    "incremental validation improvement",
+    "incremental lockbox improvement",
+    "simultaneous lower bound above zero",
+    "calibration not worse",
+    "lead time positive and useful",
+    "baseline beaten",
+    "no-retuning replication",
+    "prospective evidence"
+  ],
+  "schema": "warroom.v60.derivatives_driver_protocol",
+  "splits": "chronological discovery/validation/untouched lockbox"
+}

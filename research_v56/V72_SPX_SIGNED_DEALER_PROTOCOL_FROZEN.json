@@ -1,0 +1,299 @@
+{
+  "capital_permission": "BLOCKED",
+  "claim_limits": [
+    "No claim predicts the sign of the initiating spot move.",
+    "No gross-open-interest construction is accepted as dealer inventory.",
+    "No gamma wall is a guaranteed support, resistance, magnet, or target.",
+    "Historical support cannot authorize capital until the separate prospective protocol matures.",
+    "Trade-level GRK observations alone cannot represent aggregate minute-level dealer gamma; a complete one-minute option surface is mandatory."
+  ],
+  "claims": [
+    {
+      "baselines": [
+        "intraday seasonal variance + lagged variance",
+        "baseline + unsigned gamma magnitude",
+        "baseline + gross OI topology"
+      ],
+      "claim_id": "V72_C1_VERIFIED_GAMMA_RESPONSE",
+      "estimand": "incremental post-shock realized-variance and continuation response associated with lagged verified OMM gamma and gamma-by-spot-shock interaction",
+      "horizons_minutes": [
+        5,
+        15,
+        30
+      ],
+      "primary_loss": "day-clustered out-of-sample squared-return/realized-variance loss improvement"
+    },
+    {
+      "baselines": [
+        "distance-to-strike + time-to-expiry",
+        "baseline + expected move + realized volatility",
+        "baseline + unsigned gamma concentration"
+      ],
+      "claim_id": "V72_C2_INCREMENTAL_PIN_BREAK",
+      "estimand": "incremental calibrated probability of pin versus break after a preregistered standardized approach event",
+      "horizons_minutes": [
+        15,
+        30,
+        60
+      ],
+      "primary_loss": "Brier-score improvement"
+    },
+    {
+      "baselines": [
+        "always buy ATM straddle and delta hedge",
+        "never trade",
+        "simple trailing realized-volatility minus implied-volatility rule",
+        "Cboe GAMMA Index directionally aligned benchmark where licensed/available"
+      ],
+      "claim_id": "V72_C3_NET_GAMMA_SCALP",
+      "estimand": "net executable PnL of delta-hedged long-gamma episodes selected only by an ex-ante realized-variance forecast versus implied variance",
+      "primary_loss": "net PnL and proper-score improvement after option spread, hedge spread, slippage, latency, fees, and financing"
+    }
+  ],
+  "data_integrity": {
+    "burn_in": {
+      "analysis_start": "2020-07-01",
+      "legacy_series_quarantine": true,
+      "source_accumulation_start": "2019-10-07"
+    },
+    "complete_daily_file_calendar_required": true,
+    "duplicate_exact_rows": "FAIL",
+    "file_hashes_required": true,
+    "frozen_expected_calendar": {
+      "calendar_basis": "XNYS regular trading sessions used as frozen SPX/C1 RTH common-session calendar; any vendor exception must be documented before lockbox opening and cannot silently change the list.",
+      "end": "2025-06-30",
+      "path": "research_v56/V72_C1_RTH_EXPECTED_CALENDAR.csv",
+      "sessions": 1440,
+      "sha256": "92f743d8bcc11436812a5187c491ecedc6204659a18737ba61379dacd11e70d7",
+      "start": "2019-10-07"
+    },
+    "grk_forward_match_seconds": 5,
+    "grk_minimum_match_rate": 0.995,
+    "market_maker_capacity_codes": [
+      "M",
+      "N",
+      "MARKETMAKER",
+      "MARKET_MAKER"
+    ],
+    "only_osi_roots": [
+      "SPX",
+      "SPXW"
+    ],
+    "only_session": [
+      "RTH"
+    ],
+    "only_underlyings": [
+      "SPX"
+    ],
+    "position_increment": "MM buy +size; MM sell -size",
+    "provisional_trade_type": "FAIL_UNLESS_FINAL_CORRECTION_FILE_CONFIRMED",
+    "quote_surface": {
+      "calcs_required": true,
+      "complete_active_series_snapshot_required": true,
+      "crossed_or_missing_nbbo": "REJECT_ROW_AND_FAIL_IF_COVERAGE_BELOW_99.5_PERCENT",
+      "gross_open_interest_role": "UNSIGNED_BASELINE_AND_PLACEBO_ONLY",
+      "interval_minutes": 1,
+      "minimum_series_mark_coverage": 0.995,
+      "open_interest_required": true,
+      "position_join": "exact formatted_symbol, latest position state at or before quote minute",
+      "stale_position_rows": "permitted only for still-active unexpired series because position is a state",
+      "trade_level_GRK_is_not_surface_substitute": true
+    },
+    "series_inception_rule": "Only series whose complete trade history is present from first observed trade are admissible; series already active at acquisition start are quarantined through expiry."
+  },
+  "decision_purpose": [
+    "test whether verified aggregate options-market-maker gamma changes post-shock volatility response",
+    "test whether verified signed gamma concentration adds incremental pin/break information",
+    "test whether an ex-ante volatility forecast can identify net profitable delta-hedged long-gamma episodes"
+  ],
+  "frozen_at_utc": "2026-07-24T19:30:00Z",
+  "inference": {
+    "bootstrap": "stationary/day-cluster max-stat bootstrap",
+    "confidence": 0.95,
+    "correction": "Holm plus max-stat family-wise control",
+    "independent_cluster": "trading_day",
+    "multiple_testing_family": "all V72 claims, horizons, candidate specifications, and all earlier related trials",
+    "placebos": [
+      "dealer sign permutation by day",
+      "future-shifted gamma",
+      "random strike topology",
+      "pre-shock outcome",
+      "gross-OI pseudo dealer sign"
+    ]
+  },
+  "live_decision_weight": 0.0,
+  "pre_outcome_amendment": {
+    "changes": [
+      "Option Quotes 1-minute Include Calcs made mandatory for full surface marks",
+      "Frozen RTH calendar added for independent daily completeness verification",
+      "GRK retained only as optional trade-time QA",
+      "Option Quotes Include Open Interest made mandatory for the preregistered gross-OI topology baseline and pseudo-sign placebo"
+    ],
+    "historical_outcomes_opened_at_amendment": false,
+    "licensed_files_present_at_amendment": 0,
+    "reason": "Trade-level Greeks cannot mark inactive series; manifest-supplied calendars cannot detect synchronized missing days; and the frozen gross-OI baseline/placebo cannot be computed without explicit open interest.",
+    "status": "FROZEN_V72_2_BEFORE_LICENSED_DATA_OR_OUTCOMES"
+  },
+  "predictive_components_promoted": 0,
+  "primary_sources": {
+    "external_benchmark": {
+      "allowed_role": "gamma-scalping profitability benchmark/challenger only",
+      "forbidden_role": "dealer direction or dealer inventory",
+      "name": "Cboe GAMMA Index"
+    },
+    "minute_option_surface": {
+      "historical_start": "2012-01-01",
+      "license": "PROPRIETARY_INTERNAL_USE_NO_RAW_REDISTRIBUTION",
+      "product": "Cboe Option Quotes",
+      "purpose": "mark every active SPX/SPXW series each minute, including non-traded series; provide unsigned OI topology baseline without inferring dealer sign",
+      "required_fields": [
+        "underlying_symbol",
+        "quote_datetime",
+        "root",
+        "expiration",
+        "strike",
+        "option_type",
+        "bid_size",
+        "bid",
+        "ask_size",
+        "ask",
+        "open_interest",
+        "active_underlying_price",
+        "implied_volatility",
+        "delta",
+        "gamma",
+        "theta",
+        "vega",
+        "rho"
+      ],
+      "selection": "^SPX, 1-minute interval, Include Calcs + Include Open Interest, per-day files"
+    },
+    "trade_greeks_optional_crosscheck": {
+      "exchange": "C1",
+      "historical_start": "2019-10-07",
+      "join": {
+        "equality_keys": [
+          "trading_dt",
+          "formatted_symbol",
+          "price"
+        ],
+        "maximum_seconds": 5,
+        "time_match": "FORWARD_ASOF"
+      },
+      "license": "PROPRIETARY_INTERNAL_USE_NO_RAW_REDISTRIBUTION",
+      "product": "Cboe US Options Trade-by-Trade Greeks",
+      "required_fields": [
+        "transact_time",
+        "trading_dt",
+        "formatted_symbol",
+        "price",
+        "delta",
+        "gamma",
+        "vega",
+        "rho",
+        "theta",
+        "theo_price"
+      ],
+      "required_for_primary_exposure": false,
+      "role": "trade-time join QA and executable-trade analytics; never a substitute for full one-minute surface marks"
+    },
+    "trade_records": {
+      "exchange": "C1",
+      "historical_start": "2019-10-07",
+      "license": "PROPRIETARY_INTERNAL_USE_NO_RAW_REDISTRIBUTION",
+      "product": "Cboe Enhanced US Options Trade-by-Trade Execution Detail",
+      "required_fields": [
+        "transact_time",
+        "trading_dt",
+        "underlying",
+        "osi_root",
+        "expire_date",
+        "call_put_flag",
+        "strike_price",
+        "size",
+        "price",
+        "nbbo_bid",
+        "nbbo_ask",
+        "bbo_bid",
+        "bbo_ask",
+        "side",
+        "open_close",
+        "capacity",
+        "trade_type",
+        "exec_id",
+        "complex_exec_id",
+        "session",
+        "trading_segment"
+      ]
+    },
+    "underlier_and_liquidity": {
+      "contract_alignment": "SPX_OPTIONS_TO_SPX_OR_FRONT_ES_WITH_DOCUMENTED_ROLL",
+      "required": [
+        "active_underlying_price from licensed ^SPX Option Quotes/CGIF or separately licensed one-minute SPX",
+        "one-minute ES traded notional",
+        "one-minute executable ES spread or depth proxy"
+      ]
+    }
+  },
+  "promotion_gate": {
+    "minimum_events": {
+      "V72_C1_VERIFIED_GAMMA_RESPONSE": 1500,
+      "V72_C2_INCREMENTAL_PIN_BREAK": 1000,
+      "V72_C3_NET_GAMMA_SCALP": 300
+    },
+    "minimum_independent_dates": {
+      "V72_C1_VERIFIED_GAMMA_RESPONSE": 250,
+      "V72_C2_INCREMENTAL_PIN_BREAK": 250,
+      "V72_C3_NET_GAMMA_SCALP": 200
+    },
+    "required_all": [
+      "validation improvement over every preregistered baseline is positive",
+      "untouched-lockbox improvement over every preregistered baseline is positive",
+      "family-wise adjusted 95% lower confidence bound is above zero",
+      "effect sign agrees with the causal mechanism",
+      "verified dealer sign materially outperforms unsigned gamma and gross-OI pseudo sign",
+      "all preregistered placebo controls fail to create the claimed edge",
+      "result remains positive with one-bar latency and double estimated transaction costs",
+      "no single month contributes more than 30% of aggregate improvement",
+      "minimum independent-date and event counts are met",
+      "full trial ledger and failed specifications are retained"
+    ],
+    "strategy_specific": {
+      "deflated_sharpe_probability_min": 0.95,
+      "double_cost_net_pnl_must_be_positive": true,
+      "probability_backtest_overfitting_max": 0.1
+    }
+  },
+  "prospective_requirement": {
+    "live_decision_weight_until_maturity": 0.0,
+    "minimum_independent_dates": 250,
+    "minimum_observations": 1000,
+    "protocol": "V71 signed append-only ledger or later compatible successor",
+    "retuning_after_first_prediction": "FORBIDDEN"
+  },
+  "protocol_version": "72.2.0",
+  "research_market": "US_SPX_SPXW_C1_RTH",
+  "schema": "warroom.options_signed_dealer_protocol.v72",
+  "status": "FROZEN_UNEVALUATED_DATA_LICENSE_REQUIRED",
+  "temporal_design": {
+    "burn_in": [
+      "2019-10-07",
+      "2020-06-30"
+    ],
+    "discovery": [
+      "2020-07-01",
+      "2022-06-30"
+    ],
+    "embargo_trading_days": 5,
+    "lockbox_open_rule": "one time after code, hashes, trial ledger, and promotion thresholds are frozen",
+    "purge_minutes": 60,
+    "untouched_lockbox": [
+      "2023-07-01",
+      "2025-06-30"
+    ],
+    "validation": [
+      "2022-07-01",
+      "2023-06-30"
+    ]
+  }
+}

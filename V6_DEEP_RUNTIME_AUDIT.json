@@ -1,0 +1,95 @@
+{
+  "pass": true,
+  "passed": 22,
+  "total": 22,
+  "checks": {
+    "14 navigation tabs": {
+      "pass": true,
+      "detail": ""
+    },
+    "original visual shell retained": {
+      "pass": true,
+      "detail": ""
+    },
+    "legacy hard-coded payload removed": {
+      "pass": true,
+      "detail": ""
+    },
+    "rich Mission Control restored": {
+      "pass": true,
+      "detail": ""
+    },
+    "Alpha has runtime and foundry layers": {
+      "pass": true,
+      "detail": ""
+    },
+    "major non-market tabs restored": {
+      "pass": true,
+      "detail": ""
+    },
+    "research-only header": {
+      "pass": true,
+      "detail": ""
+    },
+    "funnel population reconciled": {
+      "pass": true,
+      "detail": ""
+    },
+    "data health labels present": {
+      "pass": true,
+      "detail": ""
+    },
+    "no mock current-state fallback": {
+      "pass": true,
+      "detail": ""
+    },
+    "Alpha Foundry historical membership reference present": {
+      "pass": true,
+      "detail": ""
+    },
+    "desk schema version": {
+      "pass": true,
+      "detail": ""
+    },
+    "Alpha no longer forced empty": {
+      "pass": true,
+      "detail": "8"
+    },
+    "Alpha watch is not proven": {
+      "pass": true,
+      "detail": ""
+    },
+    "Alpha watch only uses surviving setups": {
+      "pass": true,
+      "detail": ""
+    },
+    "rich backend payload exposed": {
+      "pass": true,
+      "detail": ""
+    },
+    "engine outputs no longer discarded": {
+      "pass": true,
+      "detail": ""
+    },
+    "reference chains marked non-current": {
+      "pass": true,
+      "detail": ""
+    },
+    "US ETF filtered": {
+      "pass": true,
+      "detail": ""
+    },
+    "IHSG index filtered": {
+      "pass": true,
+      "detail": ""
+    },
+    "consistency pass": {
+      "pass": true,
+      "detail": "{'ok': True, 'critical_errors': [], 'errors': [], 'warnings': [], 'quarantined_setups': [], 'quarantined_count': 0, 'surfaced_tickers': ['AAPL', 'ANTM.JK', 'BBCA.JK', 'BTC-USD', 'CL=F', 'ETH-USD', 'GC=F', 'MSFT']}"
+    },
+    "rich browser render contract": {
+      "pass": true,
+      "detail": "PASS\n"
+    }
+  }
+}

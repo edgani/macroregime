@@ -282,8 +282,15 @@ def run_controls(verbose=True):
     return out
 
 
+def controls_pass(results):
+    neg = results.get("NEGATIVE (noise)") or {}
+    pos = results.get("POSITIVE (planted factor)") or {}
+    return bool(str(neg.get("VERDICT") or "").startswith("NOISE") and pos.get("VERDICT") == "TRADEABLE")
+
+
 if __name__ == "__main__":
     print("=" * 70)
     print("VALIDATION-PLUS — guideline battery + negative/positive controls")
     print("=" * 70)
-    run_controls()
+    results = run_controls()
+    raise SystemExit(0 if controls_pass(results) else 1)

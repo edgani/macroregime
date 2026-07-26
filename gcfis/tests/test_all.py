@@ -53,9 +53,16 @@ def t_l8_dealer():
     assert unsigned["dealer_sign_state"]=="UNKNOWN" and unsigned["regime"]=="unknown"
     assert unsigned["gex"] is None and unsigned["gex_sign"] is None
     assert unsigned["unsigned_gamma_magnitude"]>0 and unsigned["unsigned_charm_magnitude"]>0
+    bare_sign=chain.copy(); bare_sign["dealer_sign"]=1
+    rejected_sign=run_dealer(bare_sign,100)
+    assert rejected_sign["dealer_sign_state"]=="UNKNOWN" and rejected_sign["gex_sign"] is None
     signed_chain=chain.copy(); signed_chain["dealer_sign"]=1
+    signed_chain["dealer_inventory_verified"]=True
+    signed_chain["dealer_sign_confidence"]=0.95
+    signed_chain["dealer_sign_source"]="AUDITED_POSITION_RECEIPT"
+    signed_chain["inventory_observed_at"]=pd.Timestamp.now(tz="UTC").isoformat()
     signed=run_dealer(signed_chain,100)
-    assert signed["dealer_sign_state"]=="EXPLICIT" and signed["gex_sign"]==1
+    assert signed["dealer_sign_state"]=="VERIFIED_PROVENANCE" and signed["gex_sign"]==1
     assert signed["regime"]=="mean_reversion_context" and signed["gamma_flip"] is not None
     assert run_dealer(None,100)["regime"]=="unknown"
     print(f"  L8 dealer unsigned={unsigned['unsigned_gamma_magnitude']} sign=UNKNOWN | explicit regime={signed['regime']}  OK")
@@ -78,8 +85,8 @@ def t_broker():
     print(f"  broker_flow {lab} owner/intent=UNVERIFIED  OK")
 def t_l13_entry():
     up=S(100*np.exp(np.cumsum(rng.normal(0.0015,0.01,N))))
-    e=run_entry(up,"long",dealer={"gex_sign":-1,"regime":"momentum"}); assert e["ok"] and e["entry_type"] in("BREAKOUT","CONTINUATION")
-    bad=run_entry(up,"long",dealer={"gex_sign":1,"regime":"mean_reversion"}); assert not bad["valid"]  # gamma-aware reject
+    e=run_entry(up,"long",dealer={"gex_sign":-1,"regime":"momentum","dealer_sign_state":"VERIFIED_PROVENANCE"}); assert e["ok"] and e["entry_type"] in("BREAKOUT","CONTINUATION")
+    bad=run_entry(up,"long",dealer={"gex_sign":1,"regime":"mean_reversion","dealer_sign_state":"VERIFIED_PROVENANCE"}); assert not bad["valid"]  # gamma-aware reject
     print(f"  L13 entry: momentum->{e['entry_type']} rr={e['rr']} | posGamma breakout flagged invalid={not bad['valid']}  OK")
 def t_end_to_end():
     strong=S(100*np.exp(np.cumsum(rng.normal(0.003,0.012,N)))); weak=S(100*np.exp(np.cumsum(rng.normal(-0.001,0.012,N))))
@@ -267,7 +274,7 @@ def t_driver_map():
     dxy = S(np.cumsum(r.normal(0.1, 0.3, N)))                 # dollar squeezing UP
     out = read_all({"DXY": dxy, "TIPS10Y": S(np.cumsum(r.normal(0.05, 0.2, N)))})
     g = out["gold"]
-    assert g["fed"] >= 2 and g["score"] is not None and g["bias"] in ("LONG", "SHORT", "NEUTRAL")
+    assert g["fed"] >= 2 and g["score"] is not None and g["bias"] in ("POSITIVE_DRIVER_CONTEXT", "NEGATIVE_DRIVER_CONTEXT", "NEUTRAL")
     assert out["us"]["drivers"][0]["reading_z"] is None        # unfed series stays None (never fabricated)
     nod = read_all(None)
     assert all(v["bias"] == "NO_DATA" for v in nod.values())
@@ -374,11 +381,11 @@ def t_surge_crash():
             "stage": "RETAIL_MANIA", "acceleration": -0.5, "reflexivity": 95}
     s_hi = run_surge(a_hi, sys_hi); s_lo = run_surge(a_lo, {"liquidity": 30, "fragility": 70, "shock_prob": 60})
     assert s_hi["score"] >= 65 and s_hi["score"] > s_lo["score"] + 25, (s_hi, s_lo)
-    pt_bad = {f"T{i}": dict(a_lo, dealer={"gex_sign": -1}) for i in range(6)}
+    pt_bad = {f"T{i}": dict(a_lo, dealer={"gex_sign": -1, "dealer_sign_state": "VERIFIED_PROVENANCE"}) for i in range(6)}
     cr = run_crash_bottom({"liquidity": 25, "fragility": 80, "shock_prob": 70,
                            "cross_asset": {"defer_longs": True}}, {"breadth": 0.30, "divergences": ["x", "y"]}, pt_bad)
     assert cr["pressure"] >= 65 and cr["type"] == "SYSTEMIC", cr
-    pt_calm = {f"T{i}": dict(a_hi, dealer={"gex_sign": 1}, response={"response": "FAILED_BREAKDOWN_RECLAIM"}) for i in range(6)}
+    pt_calm = {f"T{i}": dict(a_hi, dealer={"gex_sign": 1, "dealer_sign_state": "VERIFIED_PROVENANCE"}, response={"response": "FAILED_BREAKDOWN_RECLAIM"}) for i in range(6)}
     cb = run_crash_bottom({"liquidity": 65, "fragility": 35, "shock_prob": 40, "cross_asset": {}},
                           {"breadth": 0.62, "divergences": []}, pt_calm)
     assert cb["pressure"] <= 40 and cb["bottom"]["state"] == "DURABLE_BOTTOM_FORMING", cb

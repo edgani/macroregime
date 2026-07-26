@@ -1,0 +1,72 @@
+[
+  {
+    "component": "legacy_mqa_risk_range",
+    "spec_id": "LEGACY-MQA-V25.1-NEWZIP",
+    "formula_hash": "sha256:pending-source-bound-hash",
+    "status": "REJECTED",
+    "allowed_use": ["parity_regression", "failure_analysis", "historical_reference"],
+    "forbidden_use": ["entry", "stop", "target", "probability", "paper", "live"],
+    "evidence": {
+      "oos_observations": 133308,
+      "candidate_coverage": 0.5029555616,
+      "candidate_interval_score": 5.240430747,
+      "atr_interval_score": 3.738157935,
+      "score_ratio": 1.401875158,
+      "tickers_beating_local_atr": "0/483",
+      "block_bootstrap_diff_ci95": [1.303996775, 1.739432307]
+    }
+  },
+  {
+    "component": "legacy_entry_risk_range_integration",
+    "spec_id": "ENTRY-OHLC-PATCH-NEWZIP",
+    "formula_hash": "sha256:pending-source-bound-hash",
+    "status": "REJECTED",
+    "allowed_use": ["research_adapter"],
+    "forbidden_use": ["production_default"],
+    "evidence": {
+      "reason": "activates rejected MQA without an evidence gate; dashboard recomputes a different fallback entry; source provenance is dropped"
+    }
+  },
+  {
+    "component": "factor_momentum_126",
+    "spec_id": "LEGACY-GRADE-MOM126",
+    "formula_hash": "sha256:metric-grade-static",
+    "status": "REJECTED",
+    "allowed_use": ["descriptive_context", "research_baseline"],
+    "forbidden_use": ["validated_numeric_signal"],
+    "evidence": {
+      "naive_p": 0.0117042344,
+      "lag1_autocorrelation": 0.9296139859,
+      "hac_p_21": 0.4074951946,
+      "nonoverlap_p": 0.7076627034,
+      "block_bootstrap_p": 0.4054
+    }
+  },
+  {
+    "component": "crash_pressure",
+    "spec_id": "LEGACY-GRADE-CRASH24M",
+    "formula_hash": "sha256:metric-grade-static",
+    "status": "RESEARCH_ONLY",
+    "allowed_use": ["banded_descriptive_risk_context"],
+    "forbidden_use": ["calibrated_crash_probability", "position_sizing"],
+    "evidence": {
+      "naive_ic": 0.1002166885,
+      "hac_p_24": 0.2453620077,
+      "circular_shift_p": 0.4357128574,
+      "block_bootstrap_ci95": [-0.0713330008, 0.2532967502]
+    }
+  },
+  {
+    "component": "panic_bottom",
+    "spec_id": "LEGACY-GRADE-PANIC",
+    "formula_hash": "sha256:metric-grade-static",
+    "status": "RESEARCH_ONLY",
+    "allowed_use": ["descriptive_fear_context"],
+    "forbidden_use": ["bottom_probability", "entry_signal"],
+    "evidence": {
+      "horizon_3m_naive_p": 0.1003978765,
+      "circular_shift_p": 0.1969606079,
+      "holm_adjusted_p": 0.3939212158
+    }
+  }
+]

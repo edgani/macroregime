@@ -1,0 +1,539 @@
+{
+  "capital_permission": "BLOCKED",
+  "dataset": "bundled fixed 483-name US equity OHLCV panel 2013-02 to 2018-02",
+  "feature_count": 100,
+  "features": [
+    {
+      "family": "momentum",
+      "feature": "mom_1",
+      "formula": "close/close.shift(1)-1"
+    },
+    {
+      "family": "momentum",
+      "feature": "mom_3",
+      "formula": "close/close.shift(3)-1"
+    },
+    {
+      "family": "momentum",
+      "feature": "mom_5",
+      "formula": "close/close.shift(5)-1"
+    },
+    {
+      "family": "momentum",
+      "feature": "mom_10",
+      "formula": "close/close.shift(10)-1"
+    },
+    {
+      "family": "momentum",
+      "feature": "mom_21",
+      "formula": "close/close.shift(21)-1"
+    },
+    {
+      "family": "momentum",
+      "feature": "mom_42",
+      "formula": "close/close.shift(42)-1"
+    },
+    {
+      "family": "momentum",
+      "feature": "mom_63",
+      "formula": "close/close.shift(63)-1"
+    },
+    {
+      "family": "momentum",
+      "feature": "mom_126",
+      "formula": "close/close.shift(126)-1"
+    },
+    {
+      "family": "momentum",
+      "feature": "mom_252",
+      "formula": "close/close.shift(252)-1"
+    },
+    {
+      "family": "reversal",
+      "feature": "reversal_1",
+      "formula": "-(close/close.shift(1)-1)"
+    },
+    {
+      "family": "reversal",
+      "feature": "reversal_3",
+      "formula": "-(close/close.shift(3)-1)"
+    },
+    {
+      "family": "reversal",
+      "feature": "reversal_5",
+      "formula": "-(close/close.shift(5)-1)"
+    },
+    {
+      "family": "reversal",
+      "feature": "reversal_10",
+      "formula": "-(close/close.shift(10)-1)"
+    },
+    {
+      "family": "reversal",
+      "feature": "reversal_21",
+      "formula": "-(close/close.shift(21)-1)"
+    },
+    {
+      "family": "momentum",
+      "feature": "mom_63_skip_5",
+      "formula": "close.shift(5)/close.shift(63)-1"
+    },
+    {
+      "family": "momentum",
+      "feature": "mom_126_skip_21",
+      "formula": "close.shift(21)/close.shift(126)-1"
+    },
+    {
+      "family": "momentum",
+      "feature": "mom_252_skip_21",
+      "formula": "close.shift(21)/close.shift(252)-1"
+    },
+    {
+      "family": "volatility",
+      "feature": "vol_5",
+      "formula": "ret.rolling(5).std()"
+    },
+    {
+      "family": "volatility",
+      "feature": "downvol_5",
+      "formula": "min(ret,0).rolling(5).std()"
+    },
+    {
+      "family": "volatility",
+      "feature": "vol_10",
+      "formula": "ret.rolling(10).std()"
+    },
+    {
+      "family": "volatility",
+      "feature": "downvol_10",
+      "formula": "min(ret,0).rolling(10).std()"
+    },
+    {
+      "family": "volatility",
+      "feature": "vol_21",
+      "formula": "ret.rolling(21).std()"
+    },
+    {
+      "family": "volatility",
+      "feature": "downvol_21",
+      "formula": "min(ret,0).rolling(21).std()"
+    },
+    {
+      "family": "volatility",
+      "feature": "vol_42",
+      "formula": "ret.rolling(42).std()"
+    },
+    {
+      "family": "volatility",
+      "feature": "downvol_42",
+      "formula": "min(ret,0).rolling(42).std()"
+    },
+    {
+      "family": "volatility",
+      "feature": "vol_63",
+      "formula": "ret.rolling(63).std()"
+    },
+    {
+      "family": "volatility",
+      "feature": "downvol_63",
+      "formula": "min(ret,0).rolling(63).std()"
+    },
+    {
+      "family": "volatility",
+      "feature": "vol_126",
+      "formula": "ret.rolling(126).std()"
+    },
+    {
+      "family": "volatility",
+      "feature": "downvol_126",
+      "formula": "min(ret,0).rolling(126).std()"
+    },
+    {
+      "family": "distribution",
+      "feature": "skew_21",
+      "formula": "ret.rolling(21).skew()"
+    },
+    {
+      "family": "distribution",
+      "feature": "kurt_21",
+      "formula": "ret.rolling(21).kurt()"
+    },
+    {
+      "family": "distribution",
+      "feature": "maxret_21",
+      "formula": "ret.rolling(21).max()"
+    },
+    {
+      "family": "distribution",
+      "feature": "minret_21",
+      "formula": "ret.rolling(21).min()"
+    },
+    {
+      "family": "distribution",
+      "feature": "skew_63",
+      "formula": "ret.rolling(63).skew()"
+    },
+    {
+      "family": "distribution",
+      "feature": "kurt_63",
+      "formula": "ret.rolling(63).kurt()"
+    },
+    {
+      "family": "distribution",
+      "feature": "maxret_63",
+      "formula": "ret.rolling(63).max()"
+    },
+    {
+      "family": "distribution",
+      "feature": "minret_63",
+      "formula": "ret.rolling(63).min()"
+    },
+    {
+      "family": "breakout",
+      "feature": "dist_high_21",
+      "formula": "close/close.rolling(21).max()-1"
+    },
+    {
+      "family": "breakout",
+      "feature": "dist_low_21",
+      "formula": "close/close.rolling(21).min()-1"
+    },
+    {
+      "family": "breakout",
+      "feature": "dist_high_63",
+      "formula": "close/close.rolling(63).max()-1"
+    },
+    {
+      "family": "breakout",
+      "feature": "dist_low_63",
+      "formula": "close/close.rolling(63).min()-1"
+    },
+    {
+      "family": "breakout",
+      "feature": "dist_high_126",
+      "formula": "close/close.rolling(126).max()-1"
+    },
+    {
+      "family": "breakout",
+      "feature": "dist_low_126",
+      "formula": "close/close.rolling(126).min()-1"
+    },
+    {
+      "family": "breakout",
+      "feature": "dist_high_252",
+      "formula": "close/close.rolling(252).max()-1"
+    },
+    {
+      "family": "breakout",
+      "feature": "dist_low_252",
+      "formula": "close/close.rolling(252).min()-1"
+    },
+    {
+      "family": "trend",
+      "feature": "sma_dist_5",
+      "formula": "close/close.rolling(5).mean()-1"
+    },
+    {
+      "family": "trend",
+      "feature": "sma_dist_10",
+      "formula": "close/close.rolling(10).mean()-1"
+    },
+    {
+      "family": "trend",
+      "feature": "sma_dist_21",
+      "formula": "close/close.rolling(21).mean()-1"
+    },
+    {
+      "family": "trend",
+      "feature": "sma_dist_42",
+      "formula": "close/close.rolling(42).mean()-1"
+    },
+    {
+      "family": "trend",
+      "feature": "sma_dist_63",
+      "formula": "close/close.rolling(63).mean()-1"
+    },
+    {
+      "family": "trend",
+      "feature": "sma_dist_126",
+      "formula": "close/close.rolling(126).mean()-1"
+    },
+    {
+      "family": "trend",
+      "feature": "sma_dist_252",
+      "formula": "close/close.rolling(252).mean()-1"
+    },
+    {
+      "family": "path",
+      "feature": "efficiency_10",
+      "formula": "abs(close/shift(10)-1)/sum(abs(ret),10)"
+    },
+    {
+      "family": "path",
+      "feature": "efficiency_21",
+      "formula": "abs(close/shift(21)-1)/sum(abs(ret),21)"
+    },
+    {
+      "family": "path",
+      "feature": "efficiency_42",
+      "formula": "abs(close/shift(42)-1)/sum(abs(ret),42)"
+    },
+    {
+      "family": "path",
+      "feature": "efficiency_63",
+      "formula": "abs(close/shift(63)-1)/sum(abs(ret),63)"
+    },
+    {
+      "family": "path",
+      "feature": "efficiency_126",
+      "formula": "abs(close/shift(126)-1)/sum(abs(ret),126)"
+    },
+    {
+      "family": "volume",
+      "feature": "volume_z_5",
+      "formula": "(log_volume-mean_5)/std_5"
+    },
+    {
+      "family": "liquidity",
+      "feature": "dollar_volume_5",
+      "formula": "rolling mean(close*volume,5)"
+    },
+    {
+      "family": "liquidity",
+      "feature": "amihud_5",
+      "formula": "rolling mean(abs(ret)/(close*volume),5)"
+    },
+    {
+      "family": "range",
+      "feature": "range_5",
+      "formula": "rolling mean((high-low)/close,5)"
+    },
+    {
+      "family": "microstructure",
+      "feature": "clv_5",
+      "formula": "rolling mean((close-low)/(high-low),5)"
+    },
+    {
+      "family": "volume",
+      "feature": "volume_z_21",
+      "formula": "(log_volume-mean_21)/std_21"
+    },
+    {
+      "family": "liquidity",
+      "feature": "dollar_volume_21",
+      "formula": "rolling mean(close*volume,21)"
+    },
+    {
+      "family": "liquidity",
+      "feature": "amihud_21",
+      "formula": "rolling mean(abs(ret)/(close*volume),21)"
+    },
+    {
+      "family": "range",
+      "feature": "range_21",
+      "formula": "rolling mean((high-low)/close,21)"
+    },
+    {
+      "family": "microstructure",
+      "feature": "clv_21",
+      "formula": "rolling mean((close-low)/(high-low),21)"
+    },
+    {
+      "family": "volume",
+      "feature": "volume_z_63",
+      "formula": "(log_volume-mean_63)/std_63"
+    },
+    {
+      "family": "liquidity",
+      "feature": "dollar_volume_63",
+      "formula": "rolling mean(close*volume,63)"
+    },
+    {
+      "family": "liquidity",
+      "feature": "amihud_63",
+      "formula": "rolling mean(abs(ret)/(close*volume),63)"
+    },
+    {
+      "family": "range",
+      "feature": "range_63",
+      "formula": "rolling mean((high-low)/close,63)"
+    },
+    {
+      "family": "microstructure",
+      "feature": "clv_63",
+      "formula": "rolling mean((close-low)/(high-low),63)"
+    },
+    {
+      "family": "volume",
+      "feature": "volume_ratio_5_21",
+      "formula": "mean_volume_5/mean_volume_21"
+    },
+    {
+      "family": "volume",
+      "feature": "volume_ratio_10_63",
+      "formula": "mean_volume_10/mean_volume_63"
+    },
+    {
+      "family": "volume",
+      "feature": "volume_ratio_21_63",
+      "formula": "mean_volume_21/mean_volume_63"
+    },
+    {
+      "family": "session",
+      "feature": "intraday_5",
+      "formula": "rolling mean(close/open-1,5)"
+    },
+    {
+      "family": "session",
+      "feature": "overnight_5",
+      "formula": "rolling mean(open/prev_close-1,5)"
+    },
+    {
+      "family": "session",
+      "feature": "intraday_21",
+      "formula": "rolling mean(close/open-1,21)"
+    },
+    {
+      "family": "session",
+      "feature": "overnight_21",
+      "formula": "rolling mean(open/prev_close-1,21)"
+    },
+    {
+      "family": "session",
+      "feature": "intraday_63",
+      "formula": "rolling mean(close/open-1,63)"
+    },
+    {
+      "family": "session",
+      "feature": "overnight_63",
+      "formula": "rolling mean(open/prev_close-1,63)"
+    },
+    {
+      "family": "market",
+      "feature": "beta_21",
+      "formula": "rolling cov(ret,market_ret,21)/rolling var(market_ret,21)"
+    },
+    {
+      "family": "market",
+      "feature": "beta_63",
+      "formula": "rolling cov(ret,market_ret,63)/rolling var(market_ret,63)"
+    },
+    {
+      "family": "market",
+      "feature": "beta_126",
+      "formula": "rolling cov(ret,market_ret,126)/rolling var(market_ret,126)"
+    },
+    {
+      "family": "market",
+      "feature": "residual_mom_21",
+      "formula": "mom_21-beta_21*market_mom_21"
+    },
+    {
+      "family": "market",
+      "feature": "residual_mom_63",
+      "formula": "mom_63-beta_63*market_mom_63"
+    },
+    {
+      "family": "market",
+      "feature": "residual_mom_126",
+      "formula": "mom_126-beta_126*market_mom_126"
+    },
+    {
+      "family": "mom_vol",
+      "feature": "mom63_over_vol21",
+      "formula": "mom_63/vol_21"
+    },
+    {
+      "family": "mom_vol",
+      "feature": "mom126_over_vol63",
+      "formula": "mom_126/vol_63"
+    },
+    {
+      "family": "mom_vol",
+      "feature": "mom252_over_vol63",
+      "formula": "mom_252/vol_63"
+    },
+    {
+      "family": "interaction",
+      "feature": "mom63_x_volumez21",
+      "formula": "mom_63*volume_z_21"
+    },
+    {
+      "family": "interaction",
+      "feature": "dist_high63_x_volumez21",
+      "formula": "dist_high_63*volume_z_21"
+    },
+    {
+      "family": "interaction",
+      "feature": "reversal5_x_amihud21",
+      "formula": "reversal_5*rank(amihud_21)"
+    },
+    {
+      "family": "interaction",
+      "feature": "lowvol21_x_mom63",
+      "formula": "-vol_21+mom_63"
+    },
+    {
+      "family": "interaction",
+      "feature": "range21_x_mom21",
+      "formula": "range_21*mom_21"
+    },
+    {
+      "family": "interaction",
+      "feature": "clv21_x_volumez21",
+      "formula": "clv_21*volume_z_21"
+    },
+    {
+      "family": "placebo",
+      "feature": "price_level",
+      "formula": "log(close)"
+    },
+    {
+      "family": "placebo",
+      "feature": "alphabetical_ticker",
+      "formula": "ticker lexical rank"
+    },
+    {
+      "family": "placebo",
+      "feature": "calendar_month",
+      "formula": "month number"
+    },
+    {
+      "family": "placebo",
+      "feature": "deterministic_hash_noise",
+      "formula": "sha256(ticker,date) mapped to uniform"
+    }
+  ],
+  "forbidden": [
+    "promotion to live",
+    "claim point-in-time universe",
+    "ignore placebos",
+    "drop negative trials",
+    "retune from diagnostic holdout"
+  ],
+  "frozen_at_utc": "2026-07-25T02:41:45.567229+00:00",
+  "live_decision_weight": 0.0,
+  "multiplicity": "one-sided Bonferroni over all registered feature-target claims",
+  "orientation": "feature sign chosen only from discovery mean Spearman IC, then frozen for validation and diagnostic holdout",
+  "primary_metric": "monthly cross-sectional Spearman IC",
+  "registered_claims": 200,
+  "sampling": "last available observation per calendar month",
+  "schema": "warroom.v58.price_volume_sweep_protocol.v1",
+  "secondary_metric": "monthly top-minus-bottom quintile future return",
+  "splits": {
+    "diagnostic_holdout": "2017-01-01/2018-02-28",
+    "discovery": "2014-01-01/2015-12-31",
+    "validation": "2016-01-01/2016-12-31"
+  },
+  "status_limit": "REUSED_FIXED_UNIVERSE_DIAGNOSTIC_ONLY; panel has survivorship/corporate-action limitations and has been used previously; no result is untouched proof",
+  "targets": [
+    {
+      "horizon_days": 21,
+      "name": "future_21d_return"
+    },
+    {
+      "horizon_days": 63,
+      "name": "future_63d_return"
+    }
+  ]
+}

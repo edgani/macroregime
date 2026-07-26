@@ -1,32 +1,48 @@
-# How to validate War Room OS v4.2
+> Release continuation: v5.3. The visual application contract remains v4.2; v5.3 denotes hardening + research-evidence integration.
 
-## User-machine release check
+# How to validate War Room OS v5.2
 
-On Windows, run:
+## Windows user-machine gate
+
+Run:
 
 ```text
 CHECK_EVERYTHING.bat
 ```
 
-It installs dependencies in `.venv`, verifies the package manifest, compiles Python, runs the quarantined legacy compatibility suite, performs one offline worker cycle and checks a real Streamlit health endpoint.
+The script creates `.venv`, installs `requirements.txt`, resets runtime state, and runs `validate_user_v53.py`.
 
-Required output:
+The verifier checks:
 
-```text
-status: PASS
-software_permission: READY_FOR_USER_REVIEW
-predictive_components_promoted: 0
-capital_permission: BLOCKED
-```
+- strict v5.2 package manifest;
+- complete Python compilation;
+- 39 adversarial hardening checks;
+- GCFIS compatibility under warnings-as-errors;
+- bundled data container integrity;
+- statistical negative/positive controls;
+- offline collector plus runtime snapshot integrity;
+- actual Streamlit `/_stcore/health`;
+- full legacy Parquet semantic batteries when `pyarrow` is installed;
+- default zero-promotion/capital-blocked proof state.
+
+A missing required dependency is `BLOCKED_BY_ENVIRONMENT`, not PASS.
 
 ## Build-environment deep audit
 
 ```bash
-python run_master_reaudit_v42.py
+python run_v52_hardened_audit.py
 ```
 
-This additionally runs the 43-contract source/browser suite. It proves UI, code, capability and fail-closed semantics—not predictive edge.
+Every executable validator is copied into its own fresh temporary package. The source is hashed before and after execution; any mutation fails the audit.
+
+## Manifest-only check
+
+```bash
+python verify_manifest_v53.py
+```
+
+The verifier rejects unsafe paths, duplicate entries, missing files, unexpected protected files, byte-size changes, hash changes and a forged manifest row digest.
 
 ## Predictive proof
 
-Use the templates in `evidence_templates/` and follow `PROOF_PLAN.md`. No component can be promoted from a good backtest alone. Exact-scope point-in-time lineage, repeated purged walk-forward OOS, a strong baseline, multiple-testing correction, realistic costs/capacity, a one-time untouched lockbox, matured prospective outcomes and human approval are mandatory.
+Software tests cannot create alpha. Follow `PROOF_PLAN.md`, then issue an exact-scope signed receipt only after the full proof path in `proof/receipts/README.md` is satisfied.

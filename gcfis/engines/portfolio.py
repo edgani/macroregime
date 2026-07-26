@@ -4,13 +4,14 @@ reports effective number of independent bets, flags concentration, and emits an 
 correlated cluster isn't oversized (1/cluster_size). Uses returns only — no new data."""
 from __future__ import annotations
 import numpy as np, pandas as pd
+from ..core.numeric import log_returns
 
 def run_portfolio(long_tickers, prices, rho_thresh: float = 0.6, window: int = 120) -> dict:
     ts = [t for t in long_tickers if t in prices and len(pd.Series(prices[t]).dropna()) > 30]
     if len(ts) < 2:
         return {"ok": True, "effective_bets": len(ts), "clusters": [[t] for t in ts],
                 "warning": None, "alloc_mult": {t: 1.0 for t in ts}}
-    rets = pd.DataFrame({t: np.log(pd.to_numeric(prices[t], errors="coerce")).diff() for t in ts}).dropna()
+    rets = pd.DataFrame({t: log_returns(prices[t]) for t in ts}).dropna()
     if len(rets) < 30:
         return {"ok": True, "effective_bets": len(ts), "clusters": [[t] for t in ts],
                 "warning": None, "alloc_mult": {t: 1.0 for t in ts}}

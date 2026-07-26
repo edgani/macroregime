@@ -8,6 +8,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from proof_receipts import verify_receipt
+
 
 EQUITY_REQUIRED = ("demand", "share", "margin", "multiple", "net_debt", "future_diluted_shares")
 TOKEN_REQUIRED = ("economic_activity", "capture_rate", "net_costs", "multiple", "future_diluted_supply")
@@ -26,7 +28,8 @@ def _probabilities_valid(scenarios: dict[str, dict]) -> bool:
     return all(x is not None and 0 <= x <= 1 for x in probs) and abs(sum(probs) - 1.0) <= 1e-9
 
 
-def equity_scenarios(current_diluted_equity_value: Any, scenarios: dict[str, dict]) -> dict:
+def equity_scenarios(current_diluted_equity_value: Any, scenarios: dict[str, dict], *,
+                     calibration_receipt: dict | str | None = None, calibration_scope: str | None = None) -> dict:
     current = _num(current_diluted_equity_value)
     missing: dict[str, list[str]] = {}
     rows = {}
@@ -55,14 +58,25 @@ def equity_scenarios(current_diluted_equity_value: Any, scenarios: dict[str, dic
         }
     if missing or len(rows) != 3:
         return {"state": "WITHHELD", "reason": "scenario inputs incomplete", "missing": missing, "scenarios": rows}
-    out = {"state": "SCENARIO_RANGE", "scenarios": rows, "probability_status": "UNCALIBRATED", "expected_return_pct": None}
-    if _probabilities_valid(scenarios) and all(bool((scenarios.get(k) or {}).get("probability_calibrated")) for k in rows):
-        out["probability_status"] = "EXTERNALLY_CALIBRATED"
+    out = {
+        "state": "SCENARIO_RANGE", "output_kind": "ECONOMIC_SCENARIO_RANGE", "scenarios": rows,
+        "technical_target": None, "fair_value_status": "SCENARIO_DEPENDENT_NOT_POINT_ESTIMATE",
+        "probability_status": "UNCALIBRATED", "probability_receipt": None, "expected_return_pct": None,
+    }
+    proof = verify_receipt(
+        calibration_receipt, component="equity_scenario_probability_calibration",
+        scope=str(calibration_scope or ""), claim_type="PROBABILITY_CALIBRATION",
+    ) if calibration_scope else {"valid": False, "reasons": ["calibration scope missing"]}
+    out["probability_receipt"] = proof
+    # Editable booleans such as probability_calibrated=true are intentionally ignored.
+    if _probabilities_valid(scenarios) and proof.get("valid"):
+        out["probability_status"] = "SIGNED_EXACT_SCOPE_CALIBRATION"
         out["expected_return_pct"] = sum(rows[k]["headroom_pct"] * float(rows[k]["probability"]) for k in rows)
     return out
 
 
-def token_scenarios(current_diluted_token_value: Any, scenarios: dict[str, dict]) -> dict:
+def token_scenarios(current_diluted_token_value: Any, scenarios: dict[str, dict], *,
+                    calibration_receipt: dict | str | None = None, calibration_scope: str | None = None) -> dict:
     current = _num(current_diluted_token_value)
     missing: dict[str, list[str]] = {}
     rows = {}
@@ -91,9 +105,19 @@ def token_scenarios(current_diluted_token_value: Any, scenarios: dict[str, dict]
         }
     if missing or len(rows) != 3:
         return {"state": "WITHHELD", "reason": "scenario inputs incomplete", "missing": missing, "scenarios": rows}
-    out = {"state": "SCENARIO_RANGE", "scenarios": rows, "probability_status": "UNCALIBRATED", "expected_return_pct": None}
-    if _probabilities_valid(scenarios) and all(bool((scenarios.get(k) or {}).get("probability_calibrated")) for k in rows):
-        out["probability_status"] = "EXTERNALLY_CALIBRATED"
+    out = {
+        "state": "SCENARIO_RANGE", "output_kind": "ECONOMIC_SCENARIO_RANGE", "scenarios": rows,
+        "technical_target": None, "fair_value_status": "SCENARIO_DEPENDENT_NOT_POINT_ESTIMATE",
+        "probability_status": "UNCALIBRATED", "probability_receipt": None, "expected_return_pct": None,
+    }
+    proof = verify_receipt(
+        calibration_receipt, component="token_scenario_probability_calibration",
+        scope=str(calibration_scope or ""), claim_type="PROBABILITY_CALIBRATION",
+    ) if calibration_scope else {"valid": False, "reasons": ["calibration scope missing"]}
+    out["probability_receipt"] = proof
+    # Editable booleans such as probability_calibrated=true are intentionally ignored.
+    if _probabilities_valid(scenarios) and proof.get("valid"):
+        out["probability_status"] = "SIGNED_EXACT_SCOPE_CALIBRATION"
         out["expected_return_pct"] = sum(rows[k]["headroom_pct"] * float(rows[k]["probability"]) for k in rows)
     return out
 
@@ -101,6 +125,9 @@ def token_scenarios(current_diluted_token_value: Any, scenarios: dict[str, dict]
 def withheld(kind: str, reason: str = "point-in-time economic inputs not loaded") -> dict:
     return {
         "kind": kind,
+        "output_kind": "WITHHELD",
+        "technical_target": None,
+        "fair_value_status": "WITHHELD",
         "state": "WITHHELD",
         "reason": reason,
         "bear": None,

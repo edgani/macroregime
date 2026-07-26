@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from typing import Any
 
 from proof_registry import component_status
+from direction_authorization import authorize_direction
 
 PAIR_ALIASES = {
     "EURUSD": "EURUSD=X", "EURUSD=X": "EURUSD=X",
@@ -153,7 +154,7 @@ def build_fx_pair_states(desk: dict) -> dict:
         independent = len(drivers)
         conflict = long_votes and short_votes
 
-        selector_promoted = bool(component_status("fx_pair_selector").get("predictive_promoted"))
+        selector_status = component_status("fx_pair_selector")
         if not price:
             orientation, state, action = "BLOCKED", "NO_PRICE_DATA", "NO ACTION"
             reason = "No current pair-price observation."
@@ -182,13 +183,33 @@ def build_fx_pair_states(desk: dict) -> dict:
             orientation, state, action = "NEUTRAL", "NO_SIGNAL", "NO TRADE"
             reason = "Available drivers do not form a directional pair state."
 
-        # Reference geometry is shown for research, but cannot promote an unvalidated selector.
-        setup_valid = bool(setup) and setup.get("e") is not None and setup.get("s") is not None
-        directional_permission = bool(selector_promoted and independent >= 2 and setup_valid and not event_risk and not conflict)
-        if directional_permission and orientation in {"LONG", "SHORT"}:
-            state = f"TRIGGERED_RESEARCH_{orientation}"
-            action = f"TRIGGERED RESEARCH {orientation}"
-            reason += " Exact-scope selector promotion exists; capital still requires human approval."
+        # Reference geometry is never trade permission.  The exact pair/horizon/orientation must
+        # carry a signed CAPITAL_PERMISSION receipt and a fresh, hash-bound data contract.
+        direction_receipts = _obj(desk.get("direction_receipts"))
+        receipt = direction_receipts.get(pair) or setup.get("direction_receipt_id") or setup.get("direction_receipt")
+        authorization = {
+            "authorized": False, "directional_permission": False, "capital_permission": "BLOCKED",
+            "reasons": ["no eligible directional context"],
+        }
+        if orientation in {"LONG", "SHORT"} and independent >= 2 and not event_risk and not conflict:
+            authorization = authorize_direction(
+                component="fx_pair_selector",
+                scope="FX_PAIR_SPECIFIC",
+                market="fx",
+                instrument=pair,
+                horizon="DAILY",
+                orientation=orientation,
+                data_contract=_obj((price or {}).get("data_contract")),
+                execution_geometry={"entry": setup.get("e"), "stop": setup.get("s"), "target": setup.get("t")},
+                receipt=receipt,
+            )
+        directional_permission = bool(authorization.get("authorized"))
+        if directional_permission:
+            state = f"AUTHORIZED_RESEARCH_{orientation}"
+            action = f"AUTHORIZED RESEARCH {orientation}"
+            reason += " Exact-scope signed authorization and data/execution contracts passed."
+        elif orientation in {"LONG", "SHORT"} and independent >= 2 and not event_risk and not conflict:
+            reason += " Direction withheld: " + "; ".join(authorization.get("reasons") or ["authorization failed"])
 
         rows.append({
             "pair": pair,
@@ -197,7 +218,8 @@ def build_fx_pair_states(desk: dict) -> dict:
             "research_action": action,
             "capital_permission": "BLOCKED",
             "directional_permission": directional_permission,
-            "selector_state": component_status("fx_pair_selector").get("state"),
+            "selector_state": selector_status.get("state"),
+            "direction_authorization": authorization,
             "reason": reason,
             "driver_coverage": independent,
             "driver_total": 4,

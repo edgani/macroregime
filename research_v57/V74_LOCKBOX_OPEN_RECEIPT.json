@@ -1,0 +1,11 @@
+{
+  "capital_permission": "BLOCKED",
+  "created_at_utc": "2026-07-25T01:39:05.396287+00:00",
+  "live_decision_weight": 0.0,
+  "overwrite_forbidden": true,
+  "panel_sha256": "db2a61d7f66d219354cfaad9dff01a5c9d5b01145ae11549cd11555588729420",
+  "protocol_sha256": "a952e77564aaf3e82581ead79d5854e5f6dace82bb5b3bce07aa9a443de9bfdf",
+  "receipt_id": "V74_ONE_TIME_LOCKBOX",
+  "runner_sha256": "16f2628e2094a6fcc76d4b86cfadd13a24ac232b923e6e8bec05b5e138e88944",
+  "vix_sha256": "599b4954606a76bfad2ef3b8f961a65d0b0c3757a490e2bc3391baa601931308"
+}

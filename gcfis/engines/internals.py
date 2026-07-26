@@ -2,13 +2,14 @@
 multi-horizon alignment · relative-pair engine · divergence engine · dispersion-lite."""
 from __future__ import annotations
 import numpy as np, pandas as pd
+from ..core.numeric import log_returns
 
 def run_horizon(price) -> dict:
     """Multi-timeframe trend agreement (daily/weekly/monthly z) → alignment 0-100."""
     px = pd.to_numeric(pd.Series(price), errors="coerce").dropna()
     if len(px) < 130:
         return {"ok": False, "alignment": 50}
-    r = np.log(px).diff()
+    r = log_returns(px)
     sd = float(r.tail(120).std() or 1e-9)
     signs, zs = {}, {}
     for name, n in (("daily", 20), ("weekly", 60), ("monthly", 120)):

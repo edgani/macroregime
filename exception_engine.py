@@ -18,8 +18,8 @@ Four steps (this structure generalizes to crash meter, tickers, bottleneck — e
 Run offline (no live feeds): python exception_engine.py
 """
 from __future__ import annotations
+from parquet_compat import read_parquet_compat
 import os, warnings, numpy as np, pandas as pd
-warnings.filterwarnings("ignore")
 try:
     from scipy import stats
     _SP = True
@@ -41,7 +41,7 @@ def _spearman(x, y):
 
 
 def load():
-    mp = pd.read_parquet(os.path.join(RES, "macro_panel.parquet"))
+    mp = read_parquet_compat(os.path.join(RES, "macro_panel.parquet"))
     # DATA-INTEGRITY FIX: gold was PEGGED (~$35) until the gold window closed Aug-1971. Pre-1971 gold
     # returns are ~0 by construction and would dilute every statistic. Restrict to the floating era.
     mp = mp[mp.index >= "1971-09-01"]

@@ -24,6 +24,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import pandas as pd
 import requests
+from safe_snapshot import read_safe_snapshot, write_safe_snapshot
 
 logger = logging.getLogger(__name__)
 
@@ -130,55 +131,31 @@ CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def _cache_load(nice: str, max_age_h: float = 24) -> Optional[pd.Series]:
-    """Load a real cached series from parquet or the dependency-light pickle fallback."""
-    candidates = [CACHE_DIR / f"{nice}.parquet", CACHE_DIR / f"{nice}.pkl"]
-    existing = [fp for fp in candidates if fp.exists()]
-    if not existing:
-        return None
-    # Prefer the newest valid representation. This also survives pyarrow import failures on hosts.
-    for fp in sorted(existing, key=lambda x: x.stat().st_mtime, reverse=True):
-        try:
-            age_h = (time.time() - fp.stat().st_mtime) / 3600
-            if age_h > max_age_h:
-                continue
-            df = pd.read_parquet(fp) if fp.suffix == ".parquet" else pd.read_pickle(fp)
-            if df.empty or "value" not in df.columns:
-                continue
-            series = pd.Series(df["value"].values, index=pd.to_datetime(df.index), name=nice).dropna()
-            if len(series) > 0:
-                return series
-        except Exception:
-            continue
+    """Load a tamper-evident JSON cache. Persistent pickle is forbidden."""
+    fp = CACHE_DIR / f"{nice}.json.gz"
+    try:
+        value = read_safe_snapshot(
+            fp, expected_schema="warroom.fred_series.v1",
+            max_age_seconds=float(max_age_h) * 3600,
+        )
+        if isinstance(value, pd.Series) and not value.empty:
+            value.name = nice
+            return value.dropna()
+    except Exception:
+        pass
     return None
 
 
 def _cache_save(nice: str, s: pd.Series):
     if s is None or s.empty:
         return
-    df = pd.DataFrame({"value": s.values}, index=s.index)
-    parquet = CACHE_DIR / f"{nice}.parquet"
     try:
-        tmp = parquet.with_name(f"{parquet.name}.{os.getpid()}.tmp")
-        df.to_parquet(tmp, compression="zstd")
-        os.replace(tmp, parquet)
-        return
-    except Exception as e:
-        logger.debug(f"FRED parquet cache failed for {nice}: {e}; using pickle fallback")
-        try:
-            tmp.unlink()
-        except Exception:
-            pass
-    fallback = CACHE_DIR / f"{nice}.pkl"
-    try:
-        tmp = fallback.with_name(f"{fallback.name}.{os.getpid()}.tmp")
-        df.to_pickle(tmp)
-        os.replace(tmp, fallback)
-    except Exception as e:
-        logger.debug(f"FRED cache save failed for {nice}: {e}")
-        try:
-            tmp.unlink()
-        except Exception:
-            pass
+        write_safe_snapshot(
+            CACHE_DIR / f"{nice}.json.gz", pd.Series(s, name=nice),
+            schema="warroom.fred_series.v1", source="data.fred_loader",
+        )
+    except Exception as exc:
+        logger.debug(f"FRED safe cache save failed for {nice}: {exc}")
 
 
 # ── Session ───────────────────────────────────────────────────────────────

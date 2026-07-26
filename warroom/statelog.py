@@ -94,7 +94,8 @@ def record_and_diff(d, path=None):
     hist = []
     try:
         if os.path.exists(path):
-            hist = json.load(open(path)) or []
+            with open(path, "r", encoding="utf-8") as fh:
+                hist = json.load(fh) or []
     except Exception:
         hist = []
     prev = hist[-1] if hist else None
@@ -104,7 +105,8 @@ def record_and_diff(d, path=None):
     hist = hist[-_MAX:]
     try:
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        json.dump(hist, open(path, "w"))
+        with open(path, "w", encoding="utf-8") as fh:
+            json.dump(hist, fh)
     except Exception:
         pass
     return changes, (prev.get("ts") if prev else None)

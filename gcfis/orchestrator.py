@@ -22,6 +22,7 @@ from .engines.elimination import run_elimination
 from .engines.response_zone import run_response_zone
 from .engines.internals import run_internals, run_horizon
 from .engines.surge import run_surge
+from .engines.position_lifecycle import classify_position_lifecycle
 from .engines.crash_bottom import run_crash_bottom
 from .meta.final_desk import build_final_desk
 from .meta.decision_stack import build_decision_stack
@@ -49,7 +50,8 @@ def run_gcfis(prices: dict, bench: pd.Series, regime_posterior: dict,
               ticker_node_map=None, subthemes=None,
               earnings_rev_by_ticker=None, inst_own_by_ticker=None, etf_flow_by_ticker=None,
               options_oi_by_ticker=None, social_by_ticker=None, short_int_by_ticker=None, lev_etf_set=None,
-              leadlag_cfg=None, dealer_by_ticker=None, bottleneck_node_history=None, market_hints=None, driver_data=None, typef_by_ticker=None, confluence_min=55.0):
+              leadlag_cfg=None, dealer_by_ticker=None, bottleneck_node_history=None, market_hints=None, driver_data=None, typef_by_ticker=None, confluence_min=55.0,
+              lifecycle_inputs_by_ticker=None):
     si = systemic_inputs or {}
     # --- SYSTEMIC / CONTEXT (L1-L6, L10) ---
     frag = run_fragility(si, returns_matrix, index_returns)
@@ -77,6 +79,8 @@ def run_gcfis(prices: dict, bench: pd.Series, regime_posterior: dict,
         else:
             kept[_tkr] = _px
     prices = kept
+    # Internals must exist before per-ticker diagnostics are stamped into signal rows.
+    internals = run_internals(prices, bench)
 
     # --- PER-TICKER (L7,L9,L8,B5, broker, flow, mode, response) ---
     bott_scores = bott.get("scores", {}) if bott.get("ok") else {}
@@ -93,7 +97,11 @@ def run_gcfis(prices: dict, bench: pd.Series, regime_posterior: dict,
                              lev_etf_exists=(tkr in (lev_etf_set or set())))
         pos = run_positioning(tkr, **(cot_by_ticker.get(tkr, {}) if cot_by_ticker else {}))
         if dealer_by_ticker and tkr in dealer_by_ticker:
-            d = dealer_by_ticker[tkr]                      # use v40's already-computed GEX/walls (flagged real vs proxy)
+            d = dict(dealer_by_ticker[tkr])
+            # Third-party/provider gamma fields are not dealer inventory unless exact provenance is verified.
+            if str(d.get("dealer_sign_state", "UNKNOWN")) != "VERIFIED_PROVENANCE":
+                d.update({"gex": None, "gex_sign": None, "gamma_flip": None, "regime": "unknown",
+                          "dealer_sign_state": "UNKNOWN", "ownership_state": "UNVERIFIED"})
         elif options_chains:
             d = run_dealer((options_chains or {}).get(tkr), spot=float(px.iloc[-1]))
         else:
@@ -103,7 +111,7 @@ def run_gcfis(prices: dict, bench: pd.Series, regime_posterior: dict,
         th = _ticker_theme(tkr, theme_baskets)
         a.update({"theme": th, "subtheme": (subthemes or {}).get(tkr, ""),
                   "theme_score": theme.get("themes", {}).get(th, {}).get("strength", 0.0) if theme.get("ok") else None,
-                  "dealer_sign": d.get("gex_sign", 0), "cot_extreme_long": pos.get("extreme_long", False),
+                  "dealer_sign": d.get("gex_sign") if d.get("dealer_sign_state") == "VERIFIED_PROVENANCE" else None, "cot_extreme_long": pos.get("extreme_long", False),
                   "cot_index": pos.get("cot_index"), "positioning_oi_roc": pos.get("oi_roc_z"),
                   "reflexivity": refl.get("reflexivity") if refl.get("ok") else None,
                   "runaway": bool(refl.get("runaway", False))})
@@ -129,6 +137,23 @@ def run_gcfis(prices: dict, bench: pd.Series, regime_posterior: dict,
         a["response"] = run_response_zone(px)
         a["dealer"] = d
         a["horizon"] = run_horizon(px)
+        # Surge is diagnostic only and is computed before signal serialization. Missing inputs remain
+        # disclosed by the surge component; it does not participate in live selection or ranking.
+        a["surge"] = run_surge(a, systemic, internals)
+        _lc_obs = dict((lifecycle_inputs_by_ticker or {}).get(tkr) or {})
+        if "price_change_pct" not in _lc_obs and len(px) > 1:
+            try:
+                _lc_obs["price_change_pct"] = float((px.iloc[-1] / px.iloc[-2] - 1.0) * 100.0)
+            except Exception:
+                pass
+        # COT inputs may contain explicit participant changes; generic net/OI levels are not upgraded
+        # into signed accumulation claims.
+        if cot_by_ticker and tkr in cot_by_ticker:
+            for _k in ("participant_long_change", "participant_short_change", "managed_money_long_change",
+                       "managed_money_short_change", "open_interest_change_pct", "oi_change_pct"):
+                if _k not in _lc_obs and _k in cot_by_ticker[tkr]:
+                    _lc_obs[_k] = cot_by_ticker[tkr].get(_k)
+        a["position_lifecycle"] = classify_position_lifecycle(a["market"], _lc_obs)
         # BandarMetrics REDESIGN (IDX only, needs Type-F fb/fs): regime-conditioned flow replaces the proxy
         if a["market"] == "idx" and typef_by_ticker and tkr in typef_by_ticker:
             try:
@@ -199,7 +224,7 @@ def run_gcfis(prices: dict, bench: pd.Series, regime_posterior: dict,
         a = per_ticker[sig.ticker]
         # complete Scores panel (liquidity/dealer/positioning) — full GCFIS Scores contract
         sig.scores["liquidity"] = round(liq_score, 1)
-        sig.scores["dealer"] = d.get("gex_sign")
+        sig.scores["dealer"] = d.get("gex_sign") if d.get("dealer_sign_state") == "VERIFIED_PROVENANCE" else None
         if a.get("cot_index") is not None: sig.scores["positioning"] = a.get("cot_index")
         # institutional detail (revision/ownership_Δ/etf_flow surface when data supplied)
         er = (earnings_rev_by_ticker or {}).get(sig.ticker)
@@ -219,6 +244,7 @@ def run_gcfis(prices: dict, bench: pd.Series, regime_posterior: dict,
         sig.response = a.get("response", {})
         sig.bm = a.get("bm", {})
         sig.surge = (a.get("surge") or {}).get("score")
+        sig.position_lifecycle = a.get("position_lifecycle", {})
         build_decision_stack(sig, a)                       # doc 6: SO WHAT DO I DO NOW
         try:
             if sig.entry_valid and sig.entry and sig.stop and sig.target and sig.entry > 0:
@@ -264,11 +290,9 @@ def run_gcfis(prices: dict, bench: pd.Series, regime_posterior: dict,
                 "distribution_warning": shorts + avoided}
     from .market_drivers import read_all as _read_drivers
     drivers = _read_drivers(driver_data)
-    internals = run_internals(prices, bench)
-    for _t, _a in per_ticker.items():
-        _a["surge"] = run_surge(_a, systemic, internals)
     crash = run_crash_bottom(systemic, internals, per_ticker)
-    return {"ok": True, "drivers": drivers, "internals": internals, "crash": crash, "systemic_flat": systemic, "final_desk": build_final_desk(ranking, per_ticker, regime_posterior),
+    _final_ranking = {"master_long": longs, "master_short": shorts}
+    return {"ok": True, "drivers": drivers, "internals": internals, "crash": crash, "systemic_flat": systemic, "final_desk": build_final_desk(_final_ranking, per_ticker, regime_posterior),
             "systemic": {"fragility": frag, "shock": shock, "forward_macro": fwd, "liquidity": liq,
                          "flow": flow, "theme": theme, "bottleneck": bott, "bottleneck_migration": bott_mig, "crypto": crypto, "cross_asset": cross},
             "ranking": {"regime_weights": ranking["regime_weights"], "systemic_stress": ranking["systemic_stress"],

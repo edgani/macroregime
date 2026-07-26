@@ -23,7 +23,7 @@ Each ticker carries the COMPLETE contract, rendered as a multi-panel card (not a
 - **Identity**: ticker, theme, subtheme
 - **Scores**: meta, accumulation, theme, bottleneck, reflexivity, **liquidity, dealer, positioning**, confluence
 - **Institutional**: adoption_stage, crowding, adoption_velocity, **revision, ownership_Δ, etf_flow** (surface when data supplied; also feed accumulation crowding)
-- **Options** (real chain only, else "n/a" — never fabricated): call_wall, put_wall, GEX, gex_sign, **gamma, gamma_flip, vanna, charm**, is_real
+- **Options** (real chain only, else "n/a" — never fabricated): call/put OI concentration references, unsigned gamma/vanna/charm magnitude, and signed dealer fields only with verified provenance
 - **Macro** (stamped per ticker): quad, liquidity_regime, fragility, shock_prob, cross_asset_regime
 - **Entry**: type, gamma_regime, entry_px, stop, target, RR
 - **Opportunity**: bear / base / bull / supercycle (vol-scaled price fan)

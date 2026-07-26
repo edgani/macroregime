@@ -1,0 +1,45 @@
+from __future__ import annotations
+import json,hashlib,datetime,csv
+from pathlib import Path
+ROOT=Path(__file__).resolve().parents[2]
+R61=ROOT/'research_v61';R62=ROOT/'research_v62'
+net=json.loads((R61/'results/V61_NETWORK_DIFFUSION_RESULTS.json').read_text())
+evt=json.loads((R62/'results/V62_EVENT_ORIGIN_RESULTS.json').read_text())
+old=json.loads((ROOT/'V60_GLOBAL_TRIAL_ACCOUNTING.json').read_text())
+now=datetime.datetime.now(datetime.timezone.utc).isoformat()
+newstudies=old['studies']+[
+ {'study':'V61_price_derived_network_diffusion','claims':net['registered_claims'],'scope':'discovery-fitted correlation clusters and weighted peers across four extreme-move targets','status':f"{net['diagnostic_promoted_claims']} diagnostic survivors; generic price-derived network test",'production_survivors':0},
+ {'study':'V62_discrete_event_origin_proxy','claims':evt['registered_claims'],'scope':'gap-volume-close-location event impulses, persistence, hold/fade and interactions across four targets','status':f"{evt['diagnostic_promoted_claims']} diagnostic survivors; proxy lacks event labels and PIT fundamentals",'production_survivors':0}]
+acct={
+ 'schema':'warroom.v62.global_trial_accounting','created_at_utc':now,
+ 'parent_v60_total_empirical_claim_records':old['total_empirical_claim_records'],
+ 'network_diffusion_claims':net['registered_claims'],'event_origin_claims':evt['registered_claims'],
+ 'total_empirical_claim_records':old['total_empirical_claim_records']+net['registered_claims']+evt['registered_claims'],
+ 'comparison_records_not_claims':net['comparison_count']+evt['comparison_count'],
+ 'production_proven_early_move_drivers':0,'live_predictive_components_promoted':0,
+ 'non_additivity_warning':old['non_additivity_warning'],'studies':newstudies,'capital_permission':'BLOCKED'}
+(ROOT/'V62_GLOBAL_TRIAL_ACCOUNTING.json').write_text(json.dumps(acct,indent=2,sort_keys=True)+'\n')
+
+def best_summary(d):
+    if not d.get('best_50'):return None
+    b=d['best_50'][0]
+    lbs=[b['splits'][s][x]['adjusted_lb'] for s in ['validation','lockbox'] for x in ['vs_momentum','vs_atr']]
+    return {'claim_id':b['claim_id'],'candidate_id':b['candidate_id'],'target':b['target'],'minimum_adjusted_lower_bound':min(lbs),
+      'validation_precision':b['splits']['validation']['vs_momentum']['precision'],'lockbox_precision':b['splits']['lockbox']['vs_momentum']['precision'],
+      'validation_lbs':{x:b['splits']['validation'][x]['adjusted_lb'] for x in ['vs_momentum','vs_atr']},
+      'lockbox_lbs':{x:b['splits']['lockbox'][x]['adjusted_lb'] for x in ['vs_momentum','vs_atr']}}
+reg={'schema':'warroom.v62.research_evidence_registry','created_at_utc':now,'components':[
+ {'component':'price_derived_network_diffusion','primary_role':'transmission/lead-lag','claims':net['registered_claims'],'diagnostic_survivors':net['diagnostic_promoted_claims'],'production_survivors':0,'verdict':'REJECTED_AS_UNIVERSAL_EARLY_MOVE_DETECTOR' if net['diagnostic_promoted_claims']==0 else 'DIAGNOSTIC_ONLY','best':best_summary(net),'claim_limit':'does not test actual customer-supplier links','live_decision_weight':0.0},
+ {'component':'discrete_event_origin_proxy','primary_role':'event/underreaction','claims':evt['registered_claims'],'diagnostic_survivors':evt['diagnostic_promoted_claims'],'production_survivors':0,'verdict':'NOT_PROMOTED' if evt['diagnostic_promoted_claims'] else 'REJECTED_IN_FIXED_PANEL','best':best_summary(evt),'claim_limit':'gap-volume proxy does not identify earnings, guidance or fundamental origin','live_decision_weight':0.0},
+ {'component':'sec_point_in_time_fundamentals','primary_role':'origin/value capture','claims':0,'diagnostic_survivors':0,'production_survivors':0,'verdict':'PIPELINE_VALIDATED_DATA_ACQUISITION_BLOCKED','claim_limit':'synthetic pipeline validation is not market proof','live_decision_weight':0.0}],
+ 'production_promoted':0,'capital_permission':'BLOCKED'}
+(ROOT/'V62_RESEARCH_EVIDENCE_REGISTRY.json').write_text(json.dumps(reg,indent=2,sort_keys=True)+'\n')
+# Patch outcome sentence in gap audit.
+gap=ROOT/'V62_MECHANISM_GAP_AUDIT.md';text=gap.read_text();text=text.replace('Outcome is written only by the frozen V6.2 runner and must match the frozen protocol hash.',f"**Result: {evt['diagnostic_promoted_claims']} diagnostic survivors; 0 production survivors.** The exact best candidate and lower bounds are recorded in `V62_RESEARCH_EVIDENCE_REGISTRY.json`. No result receives live weight because the proxy lacks event identity and point-in-time fundamental/expectation data.")
+gap.write_text(text)
+netbest=best_summary(net);evtbest=best_summary(evt)
+report=f'''# War Room OS V6.2 — Deeper Early-Move Research\n\n## BLUF\n\nThe deeper search did not produce a production-proven early-move ticker selector. It did falsify two additional shortcuts and built the first filing-date point-in-time fundamental pipeline.\n\n- Price-derived network diffusion: **{net['diagnostic_promoted_claims']}/{net['registered_claims']} diagnostic claims promoted**.\n- Discrete event-origin proxy: **{evt['diagnostic_promoted_claims']}/{evt['registered_claims']} diagnostic claims promoted**.\n- Production-promoted components: **0**.\n- Live decision weight: **0**.\n- Capital permission: **BLOCKED**.\n\n## V6.1 network diffusion\n\nA discovery-only network was built from 24/48 correlation clusters and top-20 weighted peers. Peer breadth, acceleration, breakout share, volume wake, follower gaps and network residuals were tested against directional 12-1 momentum and ATR63.\n\nRegistered claims: **{net['registered_claims']}**. Diagnostic survivors: **{net['diagnostic_promoted_claims']}**.\n\nBest raw candidate: `{netbest['candidate_id']}` on `{netbest['target']}`. Its minimum simultaneous lower bound across validation/lockbox and both baselines was **{netbest['minimum_adjusted_lower_bound']:.6f}**, so it failed.\n\nInterpretation: correlation-derived peers cannot substitute for dated economic customer-supplier links.\n\n## V6.2 event-origin proxy\n\nThe frozen battery used discrete overnight gap surprise, abnormal volume, event-day close location, impulse decay, gap persistence, hold/fade and interaction states. It was tested against the same two baselines and untouched lockbox.\n\nRegistered claims: **{evt['registered_claims']}**. Diagnostic survivors: **{evt['diagnostic_promoted_claims']}**.\n\nBest raw candidate: `{evtbest['candidate_id']}` on `{evtbest['target']}`. Its minimum simultaneous lower bound was **{evtbest['minimum_adjusted_lower_bound']:.6f}**.\n\nEven if an event proxy survives diagnostic gates, it cannot be called an earnings/guidance origin because no event labels or point-in-time consensus data exist in the panel. Production survivors remain zero.\n\n## Point-in-time SEC pipeline\n\nAdded:\n\n- `research_v62/code/build_sec_pit_fact_ledger.py`\n- `research_v62/code/build_sec_pit_quarterly_features.py`\n- `test_v62_sec_pit_pipeline.py`\n\nThe pipeline uses filing date—not period end—as availability, preserves accession/amendment identity, applies a quarterly-duration guard, and derives conservative growth/margin/inventory/capex/share-supply features. Synthetic validation: **5/5 PASS**. Actual official SEC bulk archives were not acquired in this restricted runtime, so no market outcome is claimed.\n\n## Updated trial accounting\n\nParent V6.0: **{old['total_empirical_claim_records']:,}** claim records.\n\nV6.1 + V6.2 added: **{net['registered_claims']+evt['registered_claims']:,}**.\n\nUpdated total: **{acct['total_empirical_claim_records']:,}** empirical claim records. This is an audit count, not independent evidence.\n\n## Strongest inference\n\nThe missing edge is increasingly localized to variables that the current price panel cannot observe:\n\n1. filing-time fundamental inflection;\n2. expectations and revision velocity;\n3. actual customer/supplier qualification and capacity;\n4. borrow scarcity and lendable supply;\n5. signed option/customer/dealer flow;\n6. market-specific inventory data such as IHSG broker persistence or commodity physical basis.\n\nAdding more transformations of the same OHLCV panel is now low priority.\n'''
+(ROOT/'V62_DEEPER_RESEARCH_FINAL.md').write_text(report)
+status=f'''# V6.2 Final Status\n\n- Parent V6.0 SHA-256: `72fa075da84be8fbbab233eb9a30a8f07270cd67ff005a44b9adcd31fe69a5e3`\n- V6.1 network claims: {net['registered_claims']}\n- V6.1 diagnostic survivors: {net['diagnostic_promoted_claims']}\n- V6.2 event-origin claims: {evt['registered_claims']}\n- V6.2 diagnostic survivors: {evt['diagnostic_promoted_claims']}\n- Updated empirical claim audit count: {acct['total_empirical_claim_records']:,}\n- Origin harness: 7/7 PASS\n- SEC PIT synthetic pipeline: 5/5 PASS\n- Production-proven early-move drivers: 0\n- Live predictive weight: 0\n- Capital permission: BLOCKED\n\nVerdict: `DEEPER_FALSIFICATION_PASS_PRODUCTION_EDGE_NOT_YET_PROVEN`\n'''
+(ROOT/'V62_FINAL_STATUS.md').write_text(status)
+print(json.dumps({'total_claims':acct['total_empirical_claim_records'],'network_survivors':net['diagnostic_promoted_claims'],'event_survivors':evt['diagnostic_promoted_claims']},indent=2))

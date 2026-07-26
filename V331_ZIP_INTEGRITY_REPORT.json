@@ -1,0 +1,12 @@
+{
+  "package": "War_Room_OS_Decision_Intelligence_v3_3_1",
+  "version": "3.3.1",
+  "status": "PASS",
+  "zip": "War_Room_OS_Decision_Intelligence_v3_3_1.zip",
+  "zip_bytes": 11834013,
+  "zip_sha256": "c84b9314eabc91ef3902b7b84b163031828457df4dd83e7843b4785d61aa0a88",
+  "manifest_file_count": 284,
+  "hash_mismatches": [],
+  "python_compile_errors": [],
+  "javascript_parse": "PASS"
+}

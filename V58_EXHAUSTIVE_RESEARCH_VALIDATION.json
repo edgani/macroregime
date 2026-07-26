@@ -1,0 +1,215 @@
+{
+  "capital_permission": "BLOCKED",
+  "checks": [
+    {
+      "detail": "",
+      "name": "universe_count_868",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "universe_literal_completeness_false",
+      "status": "PASS"
+    },
+    {
+      "detail": "{'DROP': 5, 'PLACEBO': 114, 'PREDICTOR': 212}",
+      "name": "signal_class_counts",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "universe_zero_live",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "universe_capital_blocked",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "readiness_count",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "global_registered_795",
+      "status": "PASS"
+    },
+    {
+      "detail": "{'V58_MACRO_SWEEP': {'historical_support': 0, 'registered': 344, 'survivors': 0}, 'V58_OPENAP_212_POSTSAMPLE': {'historical_support': 4, 'registered': 212, 'survivors': 4}, 'V58_PRICE_VOLUME_SWEEP': {'historical_support': 0, 'registered': 200, 'survivors': 0}, 'V58_PUBLIC_FACTOR_POSTSAMPLE': {'historical_support': 0, 'registered': 39, 'survivors': 0}}",
+      "name": "study_counts_exact",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "study_result_claim_counts",
+      "status": "PASS"
+    },
+    {
+      "detail": "['AnalystRevision', 'AnnouncementReturn', 'DivYieldST']",
+      "name": "global_gross_exact_three",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "global_25bps_none",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "global_narrative_matches_count",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "ledger_zero_live",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "ledger_capital_blocked",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "ledger_no_live_promotion",
+      "status": "PASS"
+    },
+    {
+      "detail": "expected=bd75ab33331346b42b94fe82813bdf29b50f00819091aa12b6b903aa48a561c3 actual=bd75ab33331346b42b94fe82813bdf29b50f00819091aa12b6b903aa48a561c3",
+      "name": "ledger_hash_matches",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "ledger_csv_hash_matches",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "readiness_hash_matches",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "source_hash_SignalDoc.csv",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "source_hash_PredictorLSretWide.csv",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "source_hash_Betting-Against-Beta-Equity-Factors-Monthly.xlsx",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "source_hash_Quality-Minus-Junk-Factors-Monthly.xlsx",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "source_hash_Time-Series-Momentum-Factors-Monthly.xlsx",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "source_hash_Value-and-Momentum-Everywhere-Factors-Monthly.xlsx",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "source_hash_Value-and-Momentum-Everywhere-Portfolios-Monthly.xlsx",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "queue_exact_three",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "queue_source_hash_matches",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "queue_zero_live",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "announcement_bias_controls_present",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "placebo_defs_accounted",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "placebo_returns_not_fabricated",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "alt_construction_not_fabricated",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "acquisition_capital_blocked",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "untested_queue_count_656",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "untested_queue_zero_live",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "untested_queue_covers_placebo_drop",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "registry_counts",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "registry_survivors",
+      "status": "PASS"
+    },
+    {
+      "detail": "registry=bd75ab33331346b42b94fe82813bdf29b50f00819091aa12b6b903aa48a561c3 ledger=bd75ab33331346b42b94fe82813bdf29b50f00819091aa12b6b903aa48a561c3",
+      "name": "registry_hash_matches",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "registry_queue_hash_matches",
+      "status": "PASS"
+    },
+    {
+      "detail": "",
+      "name": "registry_zero_live",
+      "status": "PASS"
+    }
+  ],
+  "failed": 0,
+  "passed": 41,
+  "predictive_components_promoted_to_live": 0,
+  "schema": "warroom.v58_exhaustive_validation",
+  "status": "PASS"
+}

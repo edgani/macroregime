@@ -3,7 +3,8 @@ Complete-but-light: reads a local parquet cache first (built by build_cache.py, 
 then live yfinance, then deterministic synthetic so the app ALWAYS renders.
 """
 from __future__ import annotations
-import os, numpy as np, pandas as pd
+from parquet_compat import read_parquet_compat
+import os, hashlib, numpy as np, pandas as pd
 
 _CACHE = os.path.join(os.path.dirname(__file__), "..", "cache")
 
@@ -21,7 +22,9 @@ US_NAMES = ["NVDA", "AMD", "AVGO", "MRVL", "SMH", "SOXX", "MU", "TSM", "INTC",
 def _dynamic_us():
     import os, json
     try:
-        d = json.load(open(os.path.join(os.path.dirname(__file__), "..", "data", "extended_universe.json")))
+        path = os.path.join(os.path.dirname(__file__), "..", "data", "extended_universe.json")
+        with open(path, "r", encoding="utf-8") as fh:
+            d = json.load(fh)
         ks = list((d.get("tier_2_discovered") or {}).keys()) + list((d.get("tier_3_user_requested") or {}).keys())
         return [k.upper() for k in ks if isinstance(k, str) and k.isalpha() and 1 <= len(k) <= 5 and k.upper() not in US_NAMES and k.upper() != "HYNIX"]
     except Exception:
@@ -58,7 +61,8 @@ COMMO_UNIVERSE = ["GLD", "SLV", "USO", "UNG", "CPER", "DBC", "WEAT", "URA"]
 def _synth(t, n=420):
     idx = pd.bdate_range(end=pd.Timestamp.today().normalize(), periods=int(n))
     m = len(idx)
-    r = np.random.default_rng(abs(hash(t)) % (2**32))
+    seed = int.from_bytes(hashlib.sha256(str(t).encode("utf-8")).digest()[:4], "big")
+    r = np.random.default_rng(seed)
     rets = r.normal(r.uniform(-0.0008, 0.0013), r.uniform(0.011, 0.032), m)
     c = 100 * np.exp(np.cumsum(rets)); intr = np.abs(r.normal(0, 0.018, m)) * c; loc = r.uniform(.2, .8, m)
     h = c + intr * (1 - loc); l = c - intr * loc; o = l + (h - l) * r.uniform(.2, .8, m)
@@ -71,7 +75,7 @@ def _from_cache(tickers):
     if not os.path.exists(path):
         return out
     try:
-        df = pd.read_parquet(path)
+        df = read_parquet_compat(path)
         for t in tickers:
             if t in df.columns.get_level_values(0):
                 d = df[t][["Open","High","Low","Close","Volume"]].dropna()

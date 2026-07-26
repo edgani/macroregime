@@ -1,0 +1,479 @@
+{
+  "capital_permission": "BLOCKED",
+  "checks": {
+    "all_19_views_evaluated": {
+      "detail": [
+        "alpha",
+        "co",
+        "commod",
+        "crypto",
+        "datahealth",
+        "deriv",
+        "ew",
+        "execution",
+        "flow",
+        "fx",
+        "ihsg",
+        "inst",
+        "kg",
+        "macro",
+        "mc",
+        "rc",
+        "research",
+        "sc",
+        "us"
+      ],
+      "passed": true
+    },
+    "all_tab_model_runner": {
+      "detail": "",
+      "passed": true
+    },
+    "all_views_have_graph_and_rail": {
+      "detail": {
+        "alpha": [
+          9,
+          true
+        ],
+        "co": [
+          7,
+          true
+        ],
+        "commod": [
+          4,
+          true
+        ],
+        "crypto": [
+          4,
+          true
+        ],
+        "datahealth": [
+          7,
+          true
+        ],
+        "deriv": [
+          9,
+          true
+        ],
+        "ew": [
+          7,
+          true
+        ],
+        "execution": [
+          8,
+          true
+        ],
+        "flow": [
+          9,
+          true
+        ],
+        "fx": [
+          10,
+          true
+        ],
+        "ihsg": [
+          4,
+          true
+        ],
+        "inst": [
+          5,
+          true
+        ],
+        "kg": [
+          7,
+          true
+        ],
+        "macro": [
+          9,
+          true
+        ],
+        "mc": [
+          8,
+          true
+        ],
+        "rc": [
+          12,
+          true
+        ],
+        "research": [
+          7,
+          true
+        ],
+        "sc": [
+          8,
+          true
+        ],
+        "us": [
+          5,
+          true
+        ]
+      },
+      "passed": true
+    },
+    "all_views_show_proof_and_capital": {
+      "detail": null,
+      "passed": true
+    },
+    "company_excludes_benchmark_etf": {
+      "detail": "AAPL",
+      "passed": true
+    },
+    "company_valuation_fail_closed": {
+      "detail": [
+        {
+          "evidence": "observed",
+          "id": "co",
+          "label": "COMPANY / TOKEN",
+          "raw": {
+            "cand": {
+              "aligned": false,
+              "bias": "NEUTRAL",
+              "evidence": "observed",
+              "market": "us",
+              "raw": {
+                "act": "POSITIVE_PRICE_CONTEXT",
+                "capital_permission": "BLOCKED",
+                "conv": 80,
+                "dir": "long",
+                "directional_permission": false,
+                "market": "us",
+                "setup_rank": 80,
+                "tk": "AAPL",
+                "valid": false,
+                "why": "company guard fixture"
+              },
+              "score": 80,
+              "stage": "POSITIVE PRICE CONTEXT \u00b7 NO EXECUTABLE SETUP",
+              "ticker": "AAPL",
+              "why": "company guard fixture"
+            },
+            "events": [],
+            "setup": {
+              "act": "POSITIVE_PRICE_CONTEXT",
+              "capital_permission": "BLOCKED",
+              "conv": 80,
+              "dir": "long",
+              "directional_permission": false,
+              "market": "us",
+              "setup_rank": 80,
+              "tk": "AAPL",
+              "valid": false,
+              "why": "company guard fixture"
+            }
+          },
+          "state": "watch",
+          "sub": "company guard fixture",
+          "value": "AAPL",
+          "x": 500,
+          "y": 55
+        },
+        {
+          "evidence": "observed",
+          "id": "value",
+          "label": "VALUE CAPTURE",
+          "state": "watch",
+          "sub": "bottleneck / role",
+          "value": "RESEARCH NOT MAPPED",
+          "x": 72,
+          "y": 305
+        },
+        {
+          "evidence": "observed",
+          "id": "fund",
+          "label": "FUNDAMENTALS",
+          "raw": null,
+          "state": "watch",
+          "sub": "SEC filed XBRL",
+          "value": "ACTION_REQUIRED",
+          "x": 500,
+          "y": 305
+        },
+        {
+          "evidence": "observed",
+          "id": "pos",
+          "label": "POSITIONING",
+          "state": "no_data",
+          "sub": "options / TRF / filings",
+          "value": "NOT_ENTITLED",
+          "x": 928,
+          "y": 305
+        },
+        {
+          "evidence": "inferred",
+          "id": "valuation",
+          "label": "VALUATION",
+          "raw": {},
+          "state": "watch",
+          "sub": "scenario status / market-cap headroom",
+          "value": "WITHHELD",
+          "x": 72,
+          "y": 555
+        },
+        {
+          "evidence": "observed",
+          "id": "price",
+          "label": "PRICE STATE",
+          "state": "constructive",
+          "sub": "entry / stop / target",
+          "value": "\u2014 / \u2014 / \u2014",
+          "x": 500,
+          "y": 555
+        },
+        {
+          "evidence": "inferred",
+          "id": "kill",
+          "label": "KILL THESIS",
+          "state": "watch",
+          "sub": "fundamental + price invalidation",
+          "value": "NOT YET DEFINED",
+          "x": 928,
+          "y": 555
+        }
+      ],
+      "passed": true
+    },
+    "early_credit_not_fragility_proxy": {
+      "detail": {
+        "evidence": "observed",
+        "id": "credit2",
+        "label": "CREDIT SPREADS",
+        "raw": {
+          "reason": "HY OAS series not loaded",
+          "state": "NO_DATA"
+        },
+        "state": "no_data",
+        "sub": "official HY OAS when loaded",
+        "value": "NO_DATA",
+        "x": 928,
+        "y": 305
+      },
+      "passed": true
+    },
+    "global_capital_blocked": {
+      "detail": {
+        "capital_authorized_components": [],
+        "capital_permission": "BLOCKED",
+        "claim_ceiling": "RESEARCH_ONLY_UNTIL_SIGNED_EXACT_SCOPE_GATES_PASS",
+        "editable_boolean_flags_are_evidence": false,
+        "predictive_components_promoted": 0,
+        "promoted_components": [],
+        "software_is_not_alpha": true
+      },
+      "passed": true
+    },
+    "javascript_parse": {
+      "detail": "",
+      "passed": true
+    },
+    "macro_credit_not_fragility_proxy": {
+      "detail": {
+        "evidence": "observed",
+        "id": "credit",
+        "label": "CREDIT",
+        "raw": {
+          "reason": "HY OAS series not loaded",
+          "state": "NO_DATA"
+        },
+        "state": "no_data",
+        "sub": "official HY OAS when loaded",
+        "value": "NO_DATA",
+        "x": 714,
+        "y": 55
+      },
+      "passed": true
+    },
+    "macro_roc_labeled_inferred": {
+      "detail": null,
+      "passed": true
+    },
+    "market_tabs_not_promoted": {
+      "detail": {
+        "commod": {
+          "capital": "BLOCKED",
+          "production": false,
+          "state": "DESCRIPTIVE_CONTEXT_ONLY"
+        },
+        "crypto": {
+          "capital": "BLOCKED",
+          "production": false,
+          "state": "DESCRIPTIVE_CONTEXT_ONLY"
+        },
+        "fx": {
+          "capital": "BLOCKED",
+          "production": false,
+          "state": "DESCRIPTIVE_CONTEXT_ONLY"
+        },
+        "ihsg": {
+          "capital": "BLOCKED",
+          "production": false,
+          "state": "DESCRIPTIVE_CONTEXT_ONLY"
+        },
+        "us": {
+          "capital": "BLOCKED",
+          "production": false,
+          "state": "DESCRIPTIVE_CONTEXT_ONLY"
+        }
+      },
+      "passed": true
+    },
+    "mission_no_capital_action": {
+      "detail": {
+        "action": "REVIEW SYSTEM STATE \u00b7 NO CAPITAL",
+        "alternative": "Alternative path not confirmed.",
+        "confidence": 0,
+        "confidenceLabel": "SYSTEM COVERAGE",
+        "current": "No observed relative-leadership list.",
+        "desc": "Liquidity: NO_DATA. Cross-asset: \u2014.",
+        "invalidation": "Shock MODERATE_RESEARCH_BAND \u00b7 Fragility MODERATE_RESEARCH_BAND",
+        "next": "Wait for aligned data and conviction gates.",
+        "title": "Quad Q2 \u00b7 Reflation",
+        "window": "Driven by active regime horizon"
+      },
+      "passed": true
+    },
+    "research_includes_v61_v62": {
+      "detail": null,
+      "passed": true
+    },
+    "structural_knowledge_not_ranked": {
+      "detail": [
+        {
+          "score": 0,
+          "stage": "STRUCTURAL REFERENCE \u00b7 TIER 1",
+          "ticker": "NVDA",
+          "why": "GPU Monopolist (CUDA moat)"
+        },
+        {
+          "score": 0,
+          "stage": "STRUCTURAL REFERENCE \u00b7 TIER 2",
+          "ticker": "AMD",
+          "why": "2nd-source accelerators + custom silicon + networking"
+        },
+        {
+          "score": 0,
+          "stage": "STRUCTURAL REFERENCE \u00b7 TIER 3",
+          "ticker": "MU",
+          "why": "HBM Memory bottleneck"
+        },
+        {
+          "score": 0,
+          "stage": "STRUCTURAL REFERENCE \u00b7 TIER 3",
+          "ticker": "LITE",
+          "why": "AI Optical Interconnect (800G/1.6T modules)"
+        },
+        {
+          "score": 0,
+          "stage": "STRUCTURAL REFERENCE \u00b7 TIER 4",
+          "ticker": "AMAT",
+          "why": "Wafer fab + advanced packaging tools"
+        },
+        {
+          "score": 0,
+          "stage": "STRUCTURAL REFERENCE \u00b7 TIER 4",
+          "ticker": "AXTI",
+          "why": "Substrate materials + glass + InP"
+        }
+      ],
+      "passed": true
+    },
+    "structural_supply_not_ranked": {
+      "detail": [
+        {
+          "score": 0,
+          "stage": "STRUCTURAL REFERENCE \u00b7 TIER 1",
+          "ticker": "NVDA",
+          "why": "GPU Monopolist (CUDA moat)"
+        },
+        {
+          "score": 0,
+          "stage": "STRUCTURAL REFERENCE \u00b7 TIER 2",
+          "ticker": "AMD",
+          "why": "2nd-source accelerators + custom silicon + networking"
+        },
+        {
+          "score": 0,
+          "stage": "STRUCTURAL REFERENCE \u00b7 TIER 2",
+          "ticker": "AVGO",
+          "why": "2nd-source accelerators + custom silicon + networking"
+        },
+        {
+          "score": 0,
+          "stage": "STRUCTURAL REFERENCE \u00b7 TIER 3",
+          "ticker": "MU",
+          "why": "HBM Memory bottleneck"
+        },
+        {
+          "score": 0,
+          "stage": "STRUCTURAL REFERENCE \u00b7 TIER 3",
+          "ticker": "HYNIX",
+          "why": "HBM Memory bottleneck"
+        },
+        {
+          "score": 0,
+          "stage": "STRUCTURAL REFERENCE \u00b7 TIER 3",
+          "ticker": "LITE",
+          "why": "AI Optical Interconnect (800G/1.6T modules)"
+        },
+        {
+          "score": 0,
+          "stage": "STRUCTURAL REFERENCE \u00b7 TIER 3",
+          "ticker": "COHR",
+          "why": "AI Optical Interconnect (800G/1.6T modules)"
+        },
+        {
+          "score": 0,
+          "stage": "STRUCTURAL REFERENCE \u00b7 TIER 4",
+          "ticker": "AMAT",
+          "why": "Wafer fab + advanced packaging tools"
+        }
+      ],
+      "passed": true
+    },
+    "validation_includes_v61_v62": {
+      "detail": null,
+      "passed": true
+    },
+    "validation_zero_production": {
+      "detail": {
+        "action": "REVIEW EVIDENCE \u00b7 NO AUTO PROMOTION",
+        "alternative": "Pipeline validation or descriptive usefulness never grants future-return permission.",
+        "confidence": 0,
+        "confidenceLabel": "PRODUCTION COVERAGE",
+        "current": "Latest V62 promoted components: 0.",
+        "desc": "232468 claim records \u00b7 0 production-eligible \u00b7 7 rejected/failed.",
+        "invalidation": "Reject/downgrade on OOS failure, drift, broken lineage, cost failure or absent signed receipt.",
+        "next": "Open the exact component record, data lineage, baseline, lockbox and prospective state.",
+        "title": "CAPITAL GATE",
+        "window": "Continuous monitoring"
+      },
+      "passed": true
+    }
+  },
+  "claim_boundary": "All tabs are contract-checked and proof-labeled. This is software/UI correctness, not predictive proof.",
+  "passed": 18,
+  "predictive_components_promoted": 0,
+  "schema": "warroom.v63.all_tab_reaudit",
+  "status": "PASS",
+  "total": 18,
+  "views": [
+    "mc",
+    "macro",
+    "ew",
+    "alpha",
+    "co",
+    "us",
+    "ihsg",
+    "crypto",
+    "commod",
+    "fx",
+    "flow",
+    "inst",
+    "deriv",
+    "sc",
+    "kg",
+    "execution",
+    "research",
+    "rc",
+    "datahealth"
+  ]
+}

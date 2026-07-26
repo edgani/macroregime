@@ -2,18 +2,19 @@
 Cohort RS = the theme basket's relative strength vs benchmark (change-centric)."""
 from __future__ import annotations
 import numpy as np, pandas as pd
+from ..core.numeric import log_returns
 from ..core.change_core import robust_z, delta_z, last
 
 def run_theme(theme_baskets: dict, prices: dict, bench: pd.Series,
               earnings_rev: dict | None = None, flows: dict | None = None,
               narrative: dict | None = None) -> dict:
-    b = np.log(pd.Series(bench)).diff()
+    b = log_returns(bench)
     out = {}
     for theme, tickers in theme_baskets.items():
         rs_vals = []
         for t in tickers:
             if t in prices:
-                r = np.log(pd.Series(prices[t])).diff()
+                r = log_returns(prices[t])
                 rs_vals.append(last(robust_z((r.rolling(63).mean() - b.rolling(63).mean()))))
         cohort_rs = float(np.mean(rs_vals)) if rs_vals else 0.0
         er = last(delta_z(pd.Series(earnings_rev[theme]))) if earnings_rev and theme in earnings_rev else 0.0

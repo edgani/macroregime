@@ -1,0 +1,20 @@
+{
+  "batteries": {
+    "OpenAP_all_pair_signs": 89464,
+    "absolute_extreme_loser": 34322,
+    "absolute_extreme_winner": 34322,
+    "relative_top5_winner": 34322
+  },
+  "capital_permission": "BLOCKED",
+  "correction": "Benjamini-Hochberg FDR across every available validation p-value from all four batteries",
+  "limits": [
+    "Different endpoints and data structures are pooled conservatively for accounting",
+    "Earlier V58 795 trials lack compatible per-claim validation p-values and are counted in cumulative trial history but not recomputed here",
+    "OpenAP maintained portfolio returns are not stock-level signals",
+    "Price-volume panel is fixed-universe 2013-2018 and likely survivorship-biased"
+  ],
+  "live_decision_weight": 0.0,
+  "purpose": "Place all new data-ready V60 trials into one global discovery budget instead of correcting each attractive family in isolation.",
+  "study_id": "V62_UNIFIED_GLOBAL_MULTIPLE_TESTING_ACCOUNTING",
+  "total_registered": 192430
+}

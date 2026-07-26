@@ -1,68 +1,74 @@
-# Start Here — War Room OS v4.2 Deep Re-audit
+# War Room OS V5.9 — Position Lifecycle Continuation
+
+This release is built directly from the exact V5.8 source package. It fixes surge/final-desk wiring and adds fail-closed cross-market position-building, surge and topping diagnostics. Lifecycle output remains descriptive, has zero live decision weight and capital remains BLOCKED. Start with `V59_FINAL_STATUS.md`, `V59_POSITION_LIFECYCLE_MAPPING.md`, and `V59_OIL_2026_CASE_AUDIT.json`.
+
+# War Room OS v5.7 — Cusp Falsification Continuation
+
+The visual application remains v4.2. This release adds the completed Attachment 162 cusp-catastrophe research program. Three frozen OOS/lockbox studies produced zero incremental predictive support. Cusp is therefore excluded from Crash Meter and live regime-transition logic; it remains descriptive research only with zero live weight. See `V57_CUSP_RESEARCH_FINAL.md`.
+
+# War Room OS v5.3 — Start Here
+
+The visual application remains v4.2. This release combines the v5.2 hardening base with the reconciled v5.1 research ledger. Historical evidence has zero live decision weight; V61 failed, V62 is acquisition-blocked, and capital remains blocked.
+
+# v5.3 attachment continuation
+
+This package now includes the reconciled v5.1 research ledger. Four narrow historical claims are visible as evidence only; V61 failed and V62 remains acquisition-blocked. Every such row has zero live decision weight and capital remains blocked. See `V53_ATTACHMENT_CONTINUATION_FINAL.md`.
+
+# Start Here — War Room OS v5.2 Hardened Release
 
 ## First run on Windows
 
-1. Extract the ZIP into a new writable folder. Do not overwrite an older War Room folder.
-2. Keep API keys outside the repository; use environment variables or Streamlit secrets.
+1. Extract the ZIP into a new writable directory. Do not overlay it on an older War Room folder.
+2. Do not add proof keys, receipts, API keys or old runtime snapshots yet.
 3. Double-click `CHECK_AND_RUN.bat`.
-4. The script creates `.venv`, installs dependencies, verifies the package, runs the offline collector, starts a real Streamlit health check, and launches the app only if every user-machine check passes.
+4. Review `V52_USER_VALIDATION_REPORT.json`.
+5. Launch is allowed only when the report has no failures or environment blockers.
 
-The header must read:
+The dashboard header intentionally remains:
 
 ```text
 DECISION-INTELLIGENCE OS · v4.2
 ```
 
-## Read the interface in this order
+The codebase is the v4.2 app; v5.2 identifies this real-source hardening/audit release.
 
-```text
-BOARD → MAP → EVIDENCE
-```
+## Read the interface as BOARD → MAP → EVIDENCE
 
-- **BOARD**: current descriptive state, missing proof, next falsifier and invalidation.
-- **MAP**: causal or transmission hypothesis.
-- **EVIDENCE**: lineage, source review, validation grade and failure records.
+- **BOARD**: descriptive state and missing proof, not automatic trade permission.
+- **MAP**: mechanism, transmission, beneficiary/value-capture path, lag and invalidation.
+- **EVIDENCE**: source lineage, freshness, falsification, validation grade and proof artifacts.
 
-## Critical claim boundary
-
-Generic market rows are **descriptive price context**, not trade calls:
+Generic rows remain descriptive:
 
 ```text
 POSITIVE PRICE CONTEXT
 NEGATIVE PRICE CONTEXT
-NO TRADE · CONFLICTED
-LOW LIQUIDITY · CONTEXT ONLY
+POSITIVE_DRIVER_CONTEXT
+NEGATIVE_DRIVER_CONTEXT
+NEUTRAL
+NO_DATA
 ```
 
-They are not calibrated probability, evidence completeness, expected return or capital permission. Reference targets are geometry only—not fair value.
+They are not calibrated probability, expected return, fair value or capital authorization.
 
-Alpha Center is a structural research inventory. Numeric upside, probability, EV, target and sizing remain `WITHHELD` until a complete point-in-time scenario model and exact-scope proof gates exist.
-
-## Options capability
-
-Options modules appear only where a real supported product and instrument-level feed exist:
-
-- US: listed equity/ETF/index options, per instrument.
-- IHSG: disabled; no active supported listed-option chain is assumed.
-- Crypto: per underlying and per venue only.
-- Commodities: options-on-futures feed only; futures/COT alone do not enable options.
-- FX: listed-option or vol-surface feed only; spot alone does not enable options.
-
-Unsigned Greek magnitude may be displayed. Signed dealer gamma/vanna/charm requires an explicit signed-inventory input. Call/put OI never supplies dealer ownership by assumption.
-
-## Proof ladder
-
-A component may influence capital only after all exact-scope gates pass:
+## Required proof path
 
 ```text
-point-in-time data contract
-→ frozen specification and baseline
-→ repeated walk-forward OOS
-→ multiple-testing correction
-→ realistic costs, slippage and capacity
+point-in-time lineage
+→ frozen formula/specification and baseline
+→ repeated purged/embargoed walk-forward OOS
+→ complete discovery ledger and multiple-testing correction
+→ costs, slippage, capacity and execution constraints
 → one-time untouched lockbox
-→ matured prospective evidence
+→ matured prospective observations
+→ role-bound artifact hashes
+→ Ed25519 signature from a pinned trust root
 → human approval
 ```
 
-The shipped build has **zero promoted predictive components** and **capital permission BLOCKED** by design. See `WHAT_IS_AND_IS_NOT_PROVEN.md` and `PROOF_PLAN.md`.
+The shipped trust store is empty and all components are blocked. Custom proof operations are documented in `proof/receipts/README.md`.
+
+## V5.8 exhaustive reverse-engineering continuation
+
+V5.8 maps 868 candidates and executes 795 current data-ready claims, including broad weak/controversial families and negative controls. Three aggregate OpenAP candidates survive the global gross gate, none survives a coarse 25 bps/month global stress, and all live/capital permissions remain blocked. Start with `V58_FINAL_STATUS.md` and `V58_EXHAUSTIVE_REVERSE_ENGINEERING_FINAL.md`.
+

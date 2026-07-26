@@ -1,0 +1,158 @@
+{
+  "version": "3.2",
+  "suite": "research_first_release_contract",
+  "status": "PASS",
+  "passed": 28,
+  "total": 28,
+  "checks": [
+    {
+      "name": "python_compile",
+      "passed": true,
+      "detail": "186 files; 0 errors"
+    },
+    {
+      "name": "dashboard_script_present",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "javascript_parse",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "v32_header",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "eight_workspaces",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "research_dock",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "current_rain",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "study_the_tape",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "counterparty_challenge",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "cost_of_staying",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "capital_gate",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "ihsg_long_only",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "observed_inferred_separation",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "no_provider_error_canvas",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "execution_workspace",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "data_lineage_workspace",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "five_market_adapters",
+      "passed": true,
+      "detail": "['commodity', 'crypto', 'fx', 'idx', 'us']"
+    },
+    {
+      "name": "global_capital_blocked",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "market_specific_baselines",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "all_markets_have_counterparty",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "all_markets_have_tape",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "all_markets_research_only",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "fixture_actions_not_orders",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "browser_workspace_count",
+      "passed": true,
+      "detail": "8"
+    },
+    {
+      "name": "browser_subview_count",
+      "passed": true,
+      "detail": "19"
+    },
+    {
+      "name": "browser_research_cards",
+      "passed": true,
+      "detail": "6"
+    },
+    {
+      "name": "browser_page_errors",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "name": "browser_geometry",
+      "passed": true,
+      "detail": "[{\"workspace\": \"mission\", \"view\": \"mc\", \"nodes\": 11, \"overlaps\": 0}, {\"workspace\": \"regime\", \"view\": \"macro\", \"nodes\": 9, \"overlaps\": 0}, {\"workspace\": \"regime\", \"view\": \"ew\", \"nodes\": 7, \"overlaps\": 0}, {\"workspace\": \"opportunities\", \"view\": \"alpha\", \"nodes\": 7, \"overlaps\": 0}, {\"workspace\": \"opportunities\", \"view\": \"co\", \"nodes\": 6, \"overlaps\": 0}, {\"workspace\": \"markets\", \"view\": \"us\", \"nodes\": 5, \"overlaps\": 0}, {\"workspace\": \"markets\", \"view\": \"ihsg\", \"nodes\": 5, \"overlaps\": 0}, {\"workspace\": \"markets\", \"view\": \"crypto\", \"nodes\": 5, \"overlaps\": 0}, {\"workspace\": \"markets\", \"view\": \"commod\", \"nodes\": 4, \"overlaps\": 0}, {\"workspace\": \"markets\", \"view\": \"fx\", \"nodes\": 6, \"overlaps\": 0}, {\"workspace\": \"positioning\", \"view\": \"flow\", \"nodes\": 10, \"overlaps\": 0}, {\"workspace\": \"positioning\", \"view\": \"inst\", \"nodes\": 5, \"overlaps\": 0}, {\"workspace\": \"positioning\", \"view\": \"deriv\", \"nodes\": 9, \"overlaps\": 0}, {\"workspace\": \"causal\", \"view\": \"sc\", \"nodes\": 1, \"overlaps\": 0}, {\"workspace\": \"causal\", \"view\": \"kg\", \"nodes\": 1, \"overlaps\": 0}, {\"workspace\": \"execution\", \"view\": \"execution\", \"nodes\": 11, \"overlaps\": 0}, {\"workspace\": \"research\", \"view\": \"research\", \"nodes\": 7, \"overlaps\": 0}, {\"workspace\": \"research\", \"view\": \"rc\", \"nodes\": 7, \"overlaps\": 0}, {\"workspace\": \"research\", \"view\": \"datahealth\", \"nodes\": 7, \"overlaps\": 0}]"
+    }
+  ],
+  "release_posture": "OPERATIONAL RESEARCH OS; CAPITAL BLOCKED; PREDICTIVE EDGE NOT PROVEN BY THIS SUITE",
+  "not_verified_without_external_evidence": [
+    "authenticated paid-provider responses and entitlements",
+    "public internet reachability from the user's deployment",
+    "point-in-time full-universe datasets for every market",
+    "market-specific purged/embargoed walk-forward results for every component",
+    "untouched lockbox and mature prospective outcomes",
+    "autonomous capital allocation"
+  ]
+}

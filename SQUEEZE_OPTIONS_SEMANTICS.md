@@ -15,7 +15,7 @@ For each configured underlying, the engine calculates:
 - Black–Scholes vanna and charm proxies;
 - observed options-flow balance when a trade-level feed is present.
 
-The directional output is named `directional_context`, not a price forecast. True dealer gamma requires position-side/dealer inventory information. A chain snapshot alone cannot prove it.
+The chain output is `chain_composition_context`; `directional_context` is always WITHHELD. True dealer gamma requires position-side/dealer inventory information. A chain snapshot alone cannot prove it.
 
 ## US squeeze context
 

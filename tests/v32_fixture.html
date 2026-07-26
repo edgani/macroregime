@@ -497,7 +497,7 @@ function modelInstitutional(){
 function derivativeLedgerRows(kind='all'){
  const rows=[];
  if(kind==='all'||kind==='crypto')arr(LI.crypto_derivatives).forEach(x=>rows.push({time:LI.generated,ticker:x.asset,desc:`${x.positioning_quadrant||'NO HISTORY'} · funding ${fmt(x.funding_rate_mean)} · OI Δ ${pct(x.oi_change_since_reference_pct)} · short/long squeeze ${fmt(x.short_squeeze_pressure)}/${fmt(x.long_squeeze_pressure)}`,state:x.state,raw:x}));
- if(kind==='all'||kind==='us')arr(LI.us_options).forEach(x=>{const c=obj(x.integrated_context);rows.push({time:LI.generated,ticker:x.ticker,desc:`${c.directional_context||x.directional_context||'NO DATA'} · ${c.volatility_context||'NO VEGA'} · ${c.gamma_context||x.gamma_context||'NO GAMMA'} · evidence ${fmt(c.evidence_completeness_pct)}% · ${c.horizon_context||('expiry '+fmt(x.nearest_expiry))}`,state:x.state,raw:x});});
+ if(kind==='all'||kind==='us')arr(LI.us_options).forEach(x=>{const c=obj(x.integrated_context),vf=obj(x.options_volatility_flow),vp=obj(vf.volatility_pricing),mf=obj(vf.mechanical_flow);rows.push({time:LI.generated,ticker:x.ticker,desc:`${c.chain_composition_context||x.chain_composition_context||'CHAIN COMPOSITION N/A'} · IV ${fmt(vp.atm_iv)} · RV21 ${fmt(vp.realized_vol_21d)} · ${mf.hedge_regime||x.gamma_context||'DEALER SIGN UNKNOWN'} · expiry ${fmt(x.nearest_expiry)} · direction withheld`,state:x.state,raw:x});});
  if(kind==='all'||kind==='us')arr(LI.us_squeeze).forEach(x=>rows.push({time:LI.generated,ticker:x.ticker,desc:`short/long squeeze pressure ${fmt(x.short_squeeze_pressure)}/${fmt(x.long_squeeze_pressure)} · probability not calibrated`,state:x.state,raw:x}));
  return rows;
 }

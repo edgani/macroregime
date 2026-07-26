@@ -1,0 +1,39 @@
+{
+  "schema": "warroom.patch_ledger.v59",
+  "release": "War_Room_OS_v59_Position_Lifecycle_from_v58",
+  "added": [
+    "position_lifecycle.py",
+    "gcfis/engines/position_lifecycle.py",
+    "hardening_tests/test_position_lifecycle_v59.py",
+    "V59_POSITION_LIFECYCLE_MAPPING.md",
+    "V59_OIL_2026_CASE_AUDIT.json",
+    "V59_FINAL_STATUS.md",
+    "V59_SOURCE_ANCESTRY.json",
+    "V59_PATCH_LEDGER.json",
+    "validate_v59_position_lifecycle.py",
+    "validate_user_v59.py",
+    "verify_manifest_v59.py",
+    "build_release_v59.py"
+  ],
+  "modified": [
+    "COMPONENT_PROOF_REGISTRY_DEFAULT.json",
+    "FORMULA_AND_SELECTOR_REGISTER.json",
+    "dashboard.html",
+    "static/dashboard_live.html",
+    "full_live_data_hub.py",
+    "live_market_intelligence.py",
+    "gcfis/core/contracts.py",
+    "gcfis/meta/final_desk.py",
+    "gcfis/orchestrator.py",
+    "START_HERE.md",
+    "CHECK_EVERYTHING.bat"
+  ],
+  "behavioral_changes": [
+    "Compute surge before signal/ranking serialization.",
+    "Pass actual master_long/master_short rows into final desk.",
+    "Remove unproven surge from final-desk score.",
+    "Add fail-closed market-specific position/surge/top lifecycle diagnostics.",
+    "Keep lifecycle live decision weight at zero and capital blocked."
+  ],
+  "design_preservation": "No visual redesign. Existing V4.2 dashboard structure and research artifacts are retained."
+}

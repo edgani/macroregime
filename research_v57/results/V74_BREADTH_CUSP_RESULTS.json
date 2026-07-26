@@ -1,0 +1,353 @@
+{
+  "bootstrap": {
+    "bootstrap_sd": [
+      0.003838452865952685,
+      0.012379309749902407,
+      0.0003011199425600545,
+      0.0008840392717316943
+    ],
+    "critical": 2.0676933093258243,
+    "observed": [
+      0.004617549613038046,
+      0.012434492540769412,
+      -0.0012244251717692136,
+      -0.006325360228527083
+    ],
+    "simultaneous_lower": [
+      -0.003319193696054856,
+      -0.013162123403175739,
+      -0.0018470488623052147,
+      -0.008153282315867982
+    ]
+  },
+  "capital_permission": "BLOCKED",
+  "cusp_fit": {
+    "nll": 723.1375876046695,
+    "params": [
+      -0.28285471093938896,
+      -0.8029476005681109,
+      -1.103904158687825,
+      -0.1096812007238162,
+      0.24646977958261768,
+      -0.058937374627421116,
+      -4.0,
+      -0.7411385723879298,
+      -1.9867011770548342,
+      0.22778361962005483
+    ],
+    "starts": [
+      {
+        "fun": 723.1375876046695,
+        "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+        "nit": 70,
+        "seed": 0,
+        "success": true
+      },
+      {
+        "fun": 723.1375876057166,
+        "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+        "nit": 91,
+        "seed": 1,
+        "success": true
+      },
+      {
+        "fun": 723.1375876053598,
+        "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+        "nit": 65,
+        "seed": 2,
+        "success": true
+      },
+      {
+        "fun": 723.1375876047136,
+        "message": "CONVERGENCE: RELATIVE REDUCTION OF F <= FACTR*EPSMCH",
+        "nit": 80,
+        "seed": 3,
+        "success": true
+      }
+    ],
+    "success": true
+  },
+  "gates": {
+    "four_point_improvements_positive": false,
+    "not_worse_than_smooth": false,
+    "placebo_shift_fails": true,
+    "placebo_shuffle_fails": true,
+    "simultaneous_lower_positive": false,
+    "structural_density_pass": false
+  },
+  "limitations": [
+    "fixed constituent panel is survivorship-prone",
+    "short 2014-2018 period",
+    "volatility-transition claim is distinct from crash-direction claim"
+  ],
+  "live_decision_weight": 0.0,
+  "metrics": {
+    "baseline": {
+      "lockbox": {
+        "decision": {
+          "alarm_months": 0,
+          "cluster_hits": 0,
+          "cluster_recall": NaN,
+          "clusters": 0,
+          "false_defensive_months_per_year": 0.0,
+          "positive_month_recall": NaN,
+          "training_threshold": 0.3042138575399834
+        },
+        "probability": {
+          "brier": 0.010864161714691121,
+          "ece": 0.0851482056100958,
+          "log_loss": 0.09130359751532025,
+          "pr_auc": 0.0,
+          "roc_auc": NaN
+        }
+      },
+      "validation": {
+        "decision": {
+          "alarm_months": 36,
+          "cluster_hits": 1,
+          "cluster_recall": 0.5,
+          "clusters": 2,
+          "false_defensive_months_per_year": 1.390557939914163,
+          "positive_month_recall": 0.3333333333333333,
+          "training_threshold": 0.3042138575399834
+        },
+        "probability": {
+          "brier": 0.12371672529905663,
+          "ece": 0.17109000771304153,
+          "log_loss": 0.42591657703155117,
+          "pr_auc": 0.33359591263600896,
+          "roc_auc": 0.5789284430061129
+        }
+      }
+    },
+    "cusp": {
+      "lockbox": {
+        "decision": {
+          "alarm_months": 1,
+          "cluster_hits": 0,
+          "cluster_recall": NaN,
+          "clusters": 0,
+          "false_defensive_months_per_year": 0.05063291139240506,
+          "positive_month_recall": NaN,
+          "training_threshold": 0.29595600860592963
+        },
+        "probability": {
+          "brier": 0.012088586886460334,
+          "ece": 0.0907513643872899,
+          "log_loss": 0.0976289577438473,
+          "pr_auc": 0.0,
+          "roc_auc": NaN
+        }
+      },
+      "validation": {
+        "decision": {
+          "alarm_months": 37,
+          "cluster_hits": 1,
+          "cluster_recall": 0.5,
+          "clusters": 2,
+          "false_defensive_months_per_year": 1.4420600858369097,
+          "positive_month_recall": 0.3333333333333333,
+          "training_threshold": 0.29595600860592963
+        },
+        "probability": {
+          "brier": 0.11909917568601858,
+          "ece": 0.16481044186557706,
+          "log_loss": 0.4134820844907816,
+          "pr_auc": 0.3401492839356597,
+          "roc_auc": 0.5659834591873426
+        }
+      }
+    },
+    "shift60": {
+      "lockbox": {
+        "decision": {
+          "alarm_months": 11,
+          "cluster_hits": 0,
+          "cluster_recall": NaN,
+          "clusters": 0,
+          "false_defensive_months_per_year": 0.5569620253164557,
+          "positive_month_recall": NaN,
+          "training_threshold": 0.31790323299593964
+        },
+        "probability": {
+          "brier": 0.016179613851272673,
+          "ece": 0.09299787594586535,
+          "log_loss": 0.10291327023094606,
+          "pr_auc": 0.0,
+          "roc_auc": NaN
+        }
+      },
+      "validation": {
+        "decision": {
+          "alarm_months": 44,
+          "cluster_hits": 1,
+          "cluster_recall": 0.5,
+          "clusters": 2,
+          "false_defensive_months_per_year": 1.8025751072961371,
+          "positive_month_recall": 0.3333333333333333,
+          "training_threshold": 0.31790323299593964
+        },
+        "probability": {
+          "brier": 0.13376814004297738,
+          "ece": 0.18860988500427223,
+          "log_loss": 0.4662357102873996,
+          "pr_auc": 0.3098683328410762,
+          "roc_auc": 0.5551959726717008
+        }
+      }
+    },
+    "shuffle": {
+      "lockbox": {
+        "decision": {
+          "alarm_months": 0,
+          "cluster_hits": 0,
+          "cluster_recall": NaN,
+          "clusters": 0,
+          "false_defensive_months_per_year": 0.0,
+          "positive_month_recall": NaN,
+          "training_threshold": 0.31513564443804704
+        },
+        "probability": {
+          "brier": 0.011848025106411735,
+          "ece": 0.08608740895479014,
+          "log_loss": 0.09288802612896456,
+          "pr_auc": 0.0,
+          "roc_auc": NaN
+        }
+      },
+      "validation": {
+        "decision": {
+          "alarm_months": 38,
+          "cluster_hits": 1,
+          "cluster_recall": 0.5,
+          "clusters": 2,
+          "false_defensive_months_per_year": 1.4935622317596566,
+          "positive_month_recall": 0.3333333333333333,
+          "training_threshold": 0.31513564443804704
+        },
+        "probability": {
+          "brier": 0.12598909286478324,
+          "ece": 0.1665678650409656,
+          "log_loss": 0.43184913377742135,
+          "pr_auc": 0.3283118709031397,
+          "roc_auc": 0.6005034160373967
+        }
+      }
+    },
+    "smooth": {
+      "lockbox": {
+        "decision": {
+          "alarm_months": 0,
+          "cluster_hits": 0,
+          "cluster_recall": NaN,
+          "clusters": 0,
+          "false_defensive_months_per_year": 0.0,
+          "positive_month_recall": NaN,
+          "training_threshold": 0.3099693489915202
+        },
+        "probability": {
+          "brier": 0.009632535495912432,
+          "ece": 0.07943121358006355,
+          "log_loss": 0.08486314261270764,
+          "pr_auc": 0.0,
+          "roc_auc": NaN
+        }
+      },
+      "validation": {
+        "decision": {
+          "alarm_months": 34,
+          "cluster_hits": 1,
+          "cluster_recall": 0.5,
+          "clusters": 2,
+          "false_defensive_months_per_year": 1.2875536480686693,
+          "positive_month_recall": 0.3333333333333333,
+          "training_threshold": 0.3099693489915202
+        },
+        "probability": {
+          "brier": 0.1243015145605806,
+          "ece": 0.15994447495689512,
+          "log_loss": 0.4253277837712891,
+          "pr_auc": 0.2660238979530811,
+          "roc_auc": 0.5958288385472852
+        }
+      }
+    }
+  },
+  "narrow_mechanism_support": false,
+  "placebos": {
+    "shift60": {
+      "bootstrap_sd": [
+        0.007509901906376791,
+        0.029421621257128935,
+        0.0036784796227154826,
+        0.009997425684627803
+      ],
+      "critical": 2.476109892182557,
+      "observed": [
+        -0.010051414743920767,
+        -0.04031913325584851,
+        -0.005315452136581549,
+        -0.011609672715625826
+      ],
+      "simultaneous_lower": [
+        -0.02864675714362098,
+        -0.11317030069467407,
+        -0.014423771918579315,
+        -0.0363643973496927
+      ]
+    },
+    "shuffle": {
+      "bootstrap_sd": [
+        0.0018838671509915626,
+        0.009917500082425984,
+        0.0005153217894930974,
+        0.001677597675794612
+      ],
+      "critical": 2.5255430534602428,
+      "observed": [
+        -0.0022723675657265845,
+        -0.005932556745870196,
+        -0.0009838633917206182,
+        -0.0015844286136443282
+      ],
+      "simultaneous_lower": [
+        -0.007030155162555263,
+        -0.030979630186732526,
+        -0.002285330757471612,
+        -0.005821273770248459
+      ]
+    }
+  },
+  "positive_rows": {
+    "lockbox": 0,
+    "train": 51,
+    "validation": 27
+  },
+  "promoted_live": false,
+  "receipt_checks": {
+    "panel": true,
+    "protocol": true,
+    "runner": true,
+    "vix": true
+  },
+  "rows": {
+    "lockbox": 237,
+    "train": 504,
+    "validation": 233
+  },
+  "structural_fit": {
+    "lockbox": {
+      "cusp": -1.4927664924858672,
+      "linear": -1.4332114694746918,
+      "quadratic": -1.4213783340383563
+    },
+    "validation": {
+      "cusp": -1.4586109752740686,
+      "linear": -1.394400702422998,
+      "quadratic": -1.5547262056651057
+    }
+  },
+  "study_id": "V74_BREADTH_CUSP_VOLATILITY_TRANSITION",
+  "threshold_future_rv20": 0.19185595131681132,
+  "verdict": "NOT_PROVEN"
+}

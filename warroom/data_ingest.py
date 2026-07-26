@@ -17,6 +17,7 @@ Di mesin LU, ini jalan penuh: tiap ticker baru yang muncul (dari discovery/rekom
 & masuk cache. Cache = parquet per-ticker di data/cache/, plus panel gabungan buat backtest.
 """
 from __future__ import annotations
+from parquet_compat import read_parquet_compat
 import os
 import pandas as pd
 
@@ -98,7 +99,7 @@ def update_cache(max_age_days=1):
 
 def load_cached(symbol):
     p = _cache_path(symbol)
-    return pd.read_parquet(p) if os.path.exists(p) else None
+    return read_parquet_compat(p) if os.path.exists(p) else None
 
 
 def build_panel(symbols=None):

@@ -1,0 +1,9 @@
+{
+  "file": "PredictorLSretWide.csv",
+  "license_boundary": "public research output; no stock-level point-in-time constituents",
+  "sha256": "79aa0896d79924e1efa83f9afe51a3b4ce94137adfd2c5c3fd2d5d350532ee18",
+  "size_bytes": 3293172,
+  "source_origin": "public GitHub mirror of the OpenAP-named current wide return file",
+  "source_role": "maintained monthly long-short return series for all 212 predictor acronyms",
+  "trust_boundary": "mirror file hash pinned; not independently authenticated as an official point-in-time archive"
+}

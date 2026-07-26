@@ -112,10 +112,14 @@ def _execution(sig, a, category, mode_info):
     size = round(min(1.0, (sig.conviction / 100.0)) * float(a.get("_alloc_mult", 1.0)), 2)
     opp = sig.opportunity or {}
     targets = {"near": sig.target or opp.get("base"), "expansion": opp.get("bull"), "convex": opp.get("supercycle")}
-    if (sig.options or {}).get("call_wall"):
-        targets["expansion"] = sig.options["call_wall"]
+    option_reference_zones = {
+        "call_oi_concentration": (sig.options or {}).get("call_wall"),
+        "put_oi_concentration": (sig.options or {}).get("put_wall"),
+        "semantics": "OI concentration references only; never automatic targets, support, resistance, or dealer walls.",
+    }
     return {"mode": em, "aggression": aggr, "size_x": size, "holding": HOLDING[category],
-            "style": mode_info.get("style", "—"), "targets": targets}
+            "style": mode_info.get("style", "—"), "targets": targets,
+            "option_reference_zones": option_reference_zones}
 
 def build_decision_stack(sig, a) -> None:
     """Mutates the TickerSignal with the full doc-6 decision stack."""

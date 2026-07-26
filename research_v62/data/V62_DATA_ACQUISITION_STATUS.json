@@ -1,0 +1,95 @@
+{
+  "capital_permission": "BLOCKED",
+  "created_at_utc": "2026-07-25T09:04:46.625420+00:00",
+  "live_decision_weight": 0.0,
+  "rows": [
+    {
+      "availability": "PUBLIC_BULK",
+      "current_status": "PIPELINE_READY_DATA_NOT_ACQUIRED_IN_RUNTIME",
+      "market": "us_equities",
+      "mechanism": "as-filed fundamental inflection",
+      "official_or_primary_source": "SEC EDGAR companyfacts/submissions",
+      "proof_use": "origin/value-capture",
+      "required_fields": "filing date, accession, revenue, gross profit, operating income, inventory, capex, shares, debt"
+    },
+    {
+      "availability": "LICENSED",
+      "current_status": "BLOCKED_DATA",
+      "market": "us_equities",
+      "mechanism": "expectation gap and revision velocity",
+      "official_or_primary_source": "I/B/E/S or equivalent PIT estimate vendor",
+      "proof_use": "origin/expectations",
+      "required_fields": "PIT consensus EPS/revenue, estimate counts, revisions, dispersion, guidance"
+    },
+    {
+      "availability": "PUBLIC_TEXT_PLUS_SPECIALIZED_MAPPING",
+      "current_status": "TEXT_PIPELINE_NOT_BUILT",
+      "market": "us_equities",
+      "mechanism": "customer-supplier qualification diffusion",
+      "official_or_primary_source": "SEC 10-K/10-Q exhibits plus supplier/customer mapping",
+      "proof_use": "transmission/value capture",
+      "required_fields": "dated customer links, revenue concentration, qualification events, customer demand"
+    },
+    {
+      "availability": "LICENSED_PLUS_PUBLIC_LAGGED",
+      "current_status": "BLOCKED_DATA",
+      "market": "us_equities",
+      "mechanism": "short-demand versus squeeze scarcity",
+      "official_or_primary_source": "securities-lending vendor plus FINRA/SRO short interest",
+      "proof_use": "vulnerability/direction",
+      "required_fields": "borrow fee, utilization, lendable supply, short demand, recalls, days to cover"
+    },
+    {
+      "availability": "LICENSED",
+      "current_status": "BLOCKED_DATA",
+      "market": "us_equities",
+      "mechanism": "signed options demand and dealer hedge flow",
+      "official_or_primary_source": "Cboe DataShop enhanced TBT/open-close plus OCC OI",
+      "proof_use": "trigger/transmission/range",
+      "required_fields": "buy/sell, open/close, participant capacity, NBBO, Greeks, OI vintage"
+    },
+    {
+      "availability": "PUBLIC_CURRENT_HISTORY_ACQUISITION_REQUIRED",
+      "current_status": "BLOCKED_HISTORICAL_PANEL",
+      "market": "ihsg",
+      "mechanism": "broker inventory persistence and crossing-adjusted accumulation",
+      "official_or_primary_source": "IDX broker summary and issuer disclosures",
+      "proof_use": "position build/value capture",
+      "required_fields": "ticker-broker buy/sell value/lot, negotiated/crossing, foreign flow, free float, corporate actions"
+    },
+    {
+      "availability": "MIXED_PUBLIC_LICENSED",
+      "current_status": "PARTIAL_COT_ONLY",
+      "market": "commodities",
+      "mechanism": "physical scarcity versus speculative covering",
+      "official_or_primary_source": "CFTC/exchange/EIA plus physical vendor",
+      "proof_use": "origin/positioning/transmission/topping",
+      "required_fields": "curve, OI, participant long/short, inventory vintage, basis, freight, storage, options"
+    },
+    {
+      "availability": "MIXED",
+      "current_status": "PARTIAL",
+      "market": "fx",
+      "mechanism": "policy and funding surprise with positioning vulnerability",
+      "official_or_primary_source": "central banks/CFTC/exchange/vendor",
+      "proof_use": "origin/vulnerability/direction",
+      "required_fields": "rate-path surprise, TFF, cross-currency basis, risk reversal, reserves/intervention"
+    },
+    {
+      "availability": "PUBLIC_OR_VENDOR_VENUE_SPECIFIC",
+      "current_status": "HISTORICAL_ARCHIVE_NOT_BUNDLED",
+      "market": "crypto",
+      "mechanism": "leveraged build, liquidation vulnerability, forced-flow cascade",
+      "official_or_primary_source": "venue APIs and on-chain archives",
+      "proof_use": "vulnerability/transmission/exhaustion",
+      "required_fields": "venue OI, funding, basis, aggressor side, liquidation flag/side, depth, exchange flows, unlocks"
+    }
+  ],
+  "schema": "warroom.v62.acquisition_status",
+  "sec_pipeline": {
+    "actual_bulk_data": "NOT_ACQUIRED_RUNTIME_NETWORK_RESTRICTED",
+    "fact_ledger_script": "research_v62/code/build_sec_pit_fact_ledger.py",
+    "quarterly_feature_script": "research_v62/code/build_sec_pit_quarterly_features.py",
+    "synthetic_validation": "5/5 PASS"
+  }
+}

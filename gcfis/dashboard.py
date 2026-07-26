@@ -68,9 +68,9 @@ def card_html(r: dict, deferred: bool = False) -> str:
     if opt.get("is_real"):
         options = (_chip("γmag", opt.get("unsigned_gamma_magnitude"), "#a371f7")
                    + _chip("dealer sign", opt.get("dealer_sign_state", "UNKNOWN"), "#a371f7")
-                   + _chip("call_wall", opt.get("call_wall"), "#a371f7")
-                   + _chip("put_wall", opt.get("put_wall"), "#a371f7"))
-        if opt.get("dealer_sign_state") == "EXPLICIT":
+                   + _chip("call OI concentration", opt.get("call_wall"), "#a371f7")
+                   + _chip("put OI concentration", opt.get("put_wall"), "#a371f7"))
+        if opt.get("dealer_sign_state") == "VERIFIED_PROVENANCE":
             options += (_chip("signed GEX", opt.get("gex"), "#a371f7")
                         + _chip("γflip", opt.get("gamma_flip"), "#a371f7")
                         + _chip("vanna", opt.get("vanna"), "#a371f7")

@@ -1,4 +1,4 @@
-"""build_feeds.py — fetch all LIVE feeds once → data/feeds_snapshot.pkl (dashboard reads it, stays fast).
+"""build_feeds.py — fetch all LIVE feeds once → data/feeds_snapshot.json.gz (dashboard reads it, stays fast).
 
 Run on a machine WITH network (sandbox blocks idx.co.id / fred / defillama / cftc):
     export FRED_API_KEY=your_key            # FRED (you have this)
@@ -11,12 +11,13 @@ FINRA aggregate short-volume (descriptive only; not dark-pool prints or institut
 First IDX Type-F warm-up (~120 sessions) is slow once, then per-day CSV cached.
 """
 from __future__ import annotations
-import os, sys, pickle, json, datetime as dt
+import os, sys, json, datetime as dt
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from warroom import data as D
+from safe_snapshot import write_safe_snapshot
 
-OUT = os.path.join("data", "feeds_snapshot.pkl")
+OUT = os.path.join("data", "feeds_snapshot.json.gz")
 STATUS = os.path.join("data", "feeds_status.json")
 
 
@@ -88,8 +89,7 @@ def main():
 
     feeds["_saved_at"] = dt.datetime.now().isoformat(timespec="seconds")
     os.makedirs("data", exist_ok=True)
-    with open(OUT, "wb") as f:
-        pickle.dump(feeds, f)
+    write_safe_snapshot(OUT, feeds, schema="warroom.feeds_snapshot.v1", source="build_feeds")
     status = {k: (feeds.get(k) is not None) for k in feeds if not k.startswith("_")}
     status["saved_at"] = feeds["_saved_at"]
     with open(STATUS, "w") as f:

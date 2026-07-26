@@ -1,0 +1,39 @@
+{
+  "candidate_columns": [
+    "open_interest",
+    "open_interest_notional",
+    "funding_rate",
+    "basis",
+    "taker_buy_notional",
+    "taker_sell_notional",
+    "long_liquidation_notional",
+    "short_liquidation_notional",
+    "depth_1pct_notional",
+    "participant_long",
+    "participant_short",
+    "inventory_surprise",
+    "physical_basis",
+    "earnings_revision",
+    "guidance_surprise",
+    "broker_net_flow",
+    "foreign_net_flow",
+    "stablecoin_flow",
+    "exchange_netflow"
+  ],
+  "minimum_history": "enough for discovery, validation and untouched lockbox with events in every split",
+  "required_columns": [
+    "timestamp",
+    "market",
+    "symbol",
+    "close"
+  ],
+  "requirements": [
+    "timestamps must be event-time point-in-time",
+    "venue and contract identifiers retained",
+    "liquidation side uses position liquidated, not aggressor side",
+    "no forward-filled event releases before publication",
+    "delisted/dead instruments retained",
+    "fees/slippage handled only after predictive gate"
+  ],
+  "schema": "warroom.v60.derivatives_panel_schema"
+}

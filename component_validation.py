@@ -6,9 +6,10 @@ IC/perm/DSR edge. Runs on the bundled real S&P panel + macro panel. Engines that
 not in the zip (IHSG flow, crypto on-chain, COT) are flagged NEEDS-FEED, not faked.
 """
 from __future__ import annotations
+from parquet_compat import read_parquet_compat
 import os, sys, warnings, traceback
 import numpy as np, pandas as pd
-warnings.filterwarnings("ignore")
+warnings.filterwarnings("error")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 RES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "research")
 
@@ -22,7 +23,7 @@ def rec(engine, check, status, detail=""):
     print(f"  {tag} {engine:<26} {check:<22} {detail}")
 
 def _panel():
-    p = pd.read_parquet(os.path.join(RES, "sp500_panel.parquet"))
+    p = read_parquet_compat(os.path.join(RES, "sp500_panel.parquet"))
     p["date"] = pd.to_datetime(p["date"])
     close = p.pivot_table(index="date", columns="Name", values="close")
     vol = p.pivot_table(index="date", columns="Name", values="volume")
@@ -251,6 +252,8 @@ def main():
             print(f"  ✗ {e} — {ch}: {d}")
     else:
         print("\n\033[92mNo component FAILED to run/validate.\033[0m Edge verdicts are honest (NOISE where no edge).")
+    if fails:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

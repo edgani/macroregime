@@ -17,7 +17,6 @@ from typing import Any, Callable
 import argparse
 import multiprocessing as mp
 import os
-import pickle
 import signal
 import sys
 import tempfile
@@ -35,6 +34,7 @@ except Exception:
     pass
 
 from research_kernel import attach_research_kernel
+from safe_snapshot import read_safe_snapshot, write_safe_snapshot
 from runtime_store import (
     PID, claim_worker_instance, consume_force_refresh, force_refresh_requested, now_iso,
     read_snapshot, read_status, release_worker_instance, write_snapshot, write_status,
@@ -155,8 +155,8 @@ def _child_call(kind: str, payload: Any, result_path: str) -> None:
     """Collector child writes its result to a file, avoiding multiprocessing Queue deadlocks.
 
     Several War Room planes are multi-megabyte dictionaries. Waiting for a child to exit before
-    draining a Queue can block forever when the pipe buffer fills. A temporary pickle is bounded,
-    atomic enough for a private child result, and works on Windows spawn as well as POSIX fork.
+    draining a Queue can block forever when the pipe buffer fills. A temporary tamper-evident JSON packet is bounded, avoids unsafe deserialization,
+    and works on Windows spawn as well as POSIX.
     """
     # The parent installs a graceful SIGTERM handler for the long-running loop. A bounded child must
     # restore the default handler or process.terminate() only flips STOP and leaves it orphaned.
@@ -189,15 +189,10 @@ def _child_call(kind: str, payload: Any, result_path: str) -> None:
     except BaseException as exc:
         packet = (False, f"{type(exc).__name__}: {exc}")
     try:
-        tmp = result_path + f".{os.getpid()}.tmp"
-        with open(tmp, "wb") as fh:
-            pickle.dump(packet, fh, protocol=pickle.HIGHEST_PROTOCOL)
-            fh.flush()
-            try:
-                os.fsync(fh.fileno())
-            except OSError:
-                pass
-        os.replace(tmp, result_path)
+        write_safe_snapshot(
+            result_path, packet, schema="warroom.collector_packet.v1",
+            source=f"warroom_data_worker:{kind}", write_sidecar=False,
+        )
     except BaseException:
         # Parent will report the missing result file. Never keep a half-written packet.
         pass
@@ -247,7 +242,7 @@ def run_bounded(kind: str, payload: Any, timeout: int) -> dict:
         context = mp.get_context(start_method)
     except ValueError:
         context = mp.get_context("spawn")
-    fd, result_path = tempfile.mkstemp(prefix=f"warroom_{kind}_", suffix=".pkl", dir=str(HERE / "runtime"))
+    fd, result_path = tempfile.mkstemp(prefix=f"warroom_{kind}_", suffix=".json", dir=str(HERE / "runtime"))
     os.close(fd)
     try:
         os.unlink(result_path)
@@ -284,8 +279,9 @@ def run_bounded(kind: str, payload: Any, timeout: int) -> dict:
         if not os.path.exists(result_path):
             raise RuntimeError(f"{kind} child exited with code {process.exitcode} without a result")
         try:
-            with open(result_path, "rb") as fh:
-                ok, value = pickle.load(fh)
+            ok, value = read_safe_snapshot(
+                result_path, expected_schema="warroom.collector_packet.v1", require_sidecar=False,
+            )
         except Exception as exc:
             raise RuntimeError(f"{kind} produced an unreadable result: {type(exc).__name__}: {exc}") from exc
         finally:

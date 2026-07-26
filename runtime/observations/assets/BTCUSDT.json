@@ -1,0 +1,36 @@
+{
+  "actionable": false,
+  "asset": "BTCUSDT",
+  "claim_ceiling": "DESCRIPTIVE_ONLY",
+  "generated_at": "2026-07-12T17:24:50.999954+00:00",
+  "last_prices": {
+    "15m": null,
+    "1d": null,
+    "1h": null,
+    "4h": null
+  },
+  "mtf": {
+    "alignment_score": 0.0,
+    "claim_ceiling": "DESCRIPTIVE_ONLY",
+    "conflict_codes": [
+      "MTF_INCOMPLETE"
+    ],
+    "execution": "UNAVAILABLE",
+    "risk_multiplier_ceiling": 0.0,
+    "structural": "UNAVAILABLE",
+    "tactical": "UNAVAILABLE",
+    "trend": "UNAVAILABLE"
+  },
+  "reason_codes": [
+    "NO_CALIBRATED_PROBABILITY",
+    "NO_EXECUTION_MAP",
+    "SCOPE_NOT_EVALUATED"
+  ],
+  "snapshot_hash": "808f9addcc904585a656b03debda4336d7b19ce8294caeaf395c3ca9d7307147",
+  "timeframes": {
+    "15m": null,
+    "1d": null,
+    "1h": null,
+    "4h": null
+  }
+}

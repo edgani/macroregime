@@ -1,0 +1,300 @@
+{
+  "bootstrap": {
+    "bootstrap_sd": [
+      0.004939643767096917,
+      0.05838624107996513,
+      0.0009357740614113561,
+      0.009556941358584689
+    ],
+    "critical": 2.4397920632963834,
+    "observed": [
+      -0.0053868016992146325,
+      -0.12295147469018138,
+      -0.0008339229807506842,
+      -0.014990341037481845
+    ],
+    "simultaneous_lower": [
+      -0.01743850535768914,
+      -0.26540176228278956,
+      -0.0031170171088207334,
+      -0.03830729071354573
+    ]
+  },
+  "capital_permission": "BLOCKED",
+  "gates": {
+    "four_point_positive": false,
+    "not_worse_than_smooth": false,
+    "placebo_shift_fails": true,
+    "placebo_shuffle_fails": true,
+    "simultaneous_lower_positive": false,
+    "structural_density_pass": true
+  },
+  "historical_regime_support": false,
+  "live_decision_weight": 0.0,
+  "metrics": {
+    "baseline": {
+      "lockbox": {
+        "decision": {
+          "alarm_months": 39,
+          "cluster_hits": 1,
+          "cluster_recall": 0.16666666666666666,
+          "clusters": 6,
+          "false_defensive_months_per_year": 1.8095238095238095,
+          "positive_month_recall": 0.038461538461538464,
+          "training_threshold": 0.3633759784751696
+        },
+        "probability": {
+          "brier": 0.2229048139845812,
+          "ece": 0.16982755169286307,
+          "log_loss": 1.2500399904356931,
+          "pr_auc": 0.09602555764454583,
+          "roc_auc": 0.46153846153846156
+        }
+      },
+      "validation": {
+        "decision": {
+          "alarm_months": 47,
+          "cluster_hits": 6,
+          "cluster_recall": 0.46153846153846156,
+          "clusters": 13,
+          "false_defensive_months_per_year": 1.5813953488372092,
+          "positive_month_recall": 0.14942528735632185,
+          "training_threshold": 0.3633759784751696
+        },
+        "probability": {
+          "brier": 0.35417623490739153,
+          "ece": 0.3488058558662167,
+          "log_loss": 2.0497674535116177,
+          "pr_auc": 0.32054267971918593,
+          "roc_auc": 0.42905155609329837
+        }
+      }
+    },
+    "cusp": {
+      "lockbox": {
+        "decision": {
+          "alarm_months": 39,
+          "cluster_hits": 1,
+          "cluster_recall": 0.16666666666666666,
+          "clusters": 6,
+          "false_defensive_months_per_year": 1.8095238095238095,
+          "positive_month_recall": 0.038461538461538464,
+          "training_threshold": 0.37396911348302886
+        },
+        "probability": {
+          "brier": 0.22373873696647587,
+          "ece": 0.17419687160281971,
+          "log_loss": 1.2650303314731752,
+          "pr_auc": 0.09492335205067375,
+          "roc_auc": 0.458645336963921
+        }
+      },
+      "validation": {
+        "decision": {
+          "alarm_months": 41,
+          "cluster_hits": 6,
+          "cluster_recall": 0.46153846153846156,
+          "clusters": 13,
+          "false_defensive_months_per_year": 1.3953488372093024,
+          "positive_month_recall": 0.12643678160919541,
+          "training_threshold": 0.37396911348302886
+        },
+        "probability": {
+          "brier": 0.359562970163787,
+          "ece": 0.3421879677959897,
+          "log_loss": 2.172718928201799,
+          "pr_auc": 0.29749519185984274,
+          "roc_auc": 0.4066007931706661
+        }
+      }
+    },
+    "shift60": {
+      "lockbox": {
+        "decision": {
+          "alarm_months": 39,
+          "cluster_hits": 1,
+          "cluster_recall": 0.16666666666666666,
+          "clusters": 6,
+          "false_defensive_months_per_year": 1.8095238095238095,
+          "positive_month_recall": 0.038461538461538464,
+          "training_threshold": 0.3866443397903048
+        },
+        "probability": {
+          "brier": 0.22383589044923144,
+          "ece": 0.1886445440651804,
+          "log_loss": 1.3080540793937994,
+          "pr_auc": 0.09212179899707332,
+          "roc_auc": 0.4424778761061947
+        }
+      },
+      "validation": {
+        "decision": {
+          "alarm_months": 59,
+          "cluster_hits": 7,
+          "cluster_recall": 0.5384615384615384,
+          "clusters": 13,
+          "false_defensive_months_per_year": 2.046511627906977,
+          "positive_month_recall": 0.1724137931034483,
+          "training_threshold": 0.3866443397903048
+        },
+        "probability": {
+          "brier": 0.35510636844938454,
+          "ece": 0.33921677659779026,
+          "log_loss": 2.0523674678596304,
+          "pr_auc": 0.3226524310234923,
+          "roc_auc": 0.4293204275055455
+        }
+      }
+    },
+    "shuffle": {
+      "lockbox": {
+        "decision": {
+          "alarm_months": 39,
+          "cluster_hits": 1,
+          "cluster_recall": 0.16666666666666666,
+          "clusters": 6,
+          "false_defensive_months_per_year": 1.8095238095238095,
+          "positive_month_recall": 0.038461538461538464,
+          "training_threshold": 0.36965756818143886
+        },
+        "probability": {
+          "brier": 0.224488368719627,
+          "ece": 0.16792853874806038,
+          "log_loss": 1.2804579325106922,
+          "pr_auc": 0.09395358366468892,
+          "roc_auc": 0.45405037440435664
+        }
+      },
+      "validation": {
+        "decision": {
+          "alarm_months": 47,
+          "cluster_hits": 6,
+          "cluster_recall": 0.46153846153846156,
+          "clusters": 13,
+          "false_defensive_months_per_year": 1.5813953488372092,
+          "positive_month_recall": 0.14942528735632185,
+          "training_threshold": 0.36965756818143886
+        },
+        "probability": {
+          "brier": 0.35579809363605686,
+          "ece": 0.34310159694300374,
+          "log_loss": 2.0762298968105686,
+          "pr_auc": 0.32286850253937177,
+          "roc_auc": 0.431538616656584
+        }
+      }
+    },
+    "smooth": {
+      "lockbox": {
+        "decision": {
+          "alarm_months": 39,
+          "cluster_hits": 1,
+          "cluster_recall": 0.16666666666666666,
+          "clusters": 6,
+          "false_defensive_months_per_year": 1.8095238095238095,
+          "positive_month_recall": 0.038461538461538464,
+          "training_threshold": 0.3713817681502783
+        },
+        "probability": {
+          "brier": 0.22243702395608228,
+          "ece": 0.16975312494339662,
+          "log_loss": 1.2408092926255052,
+          "pr_auc": 0.09631018767029845,
+          "roc_auc": 0.46238938053097345
+        }
+      },
+      "validation": {
+        "decision": {
+          "alarm_months": 44,
+          "cluster_hits": 6,
+          "cluster_recall": 0.46153846153846156,
+          "clusters": 13,
+          "false_defensive_months_per_year": 1.441860465116279,
+          "positive_month_recall": 0.14942528735632185,
+          "training_threshold": 0.3713817681502783
+        },
+        "probability": {
+          "brier": 0.3504220955224837,
+          "ece": 0.3339414717479607,
+          "log_loss": 2.0414424574944414,
+          "pr_auc": 0.31462908814346613,
+          "roc_auc": 0.42320360287692416
+        }
+      }
+    }
+  },
+  "placebos": {
+    "shift60": {
+      "bootstrap_sd": [
+        0.009519858582278986,
+        0.043749533938737886,
+        0.0016487698186283767,
+        0.027931341309726843
+      ],
+      "critical": 2.2932337460108587,
+      "observed": [
+        -0.0009301599328160003,
+        -0.0026000143480128927,
+        -0.0009310800440832258,
+        -0.058014088958105975
+      ],
+      "simultaneous_lower": [
+        -0.022761420890949263,
+        -0.10292792194857397,
+        -0.004712094631566023,
+        -0.12206718342091871
+      ]
+    },
+    "shuffle": {
+      "bootstrap_sd": [
+        0.0010975682095047917,
+        0.00941330170166229,
+        0.0009378156914062959,
+        0.012960546789775517
+      ],
+      "critical": 2.4572726545917147,
+      "observed": [
+        -0.0016218714656204237,
+        -0.02646244329895048,
+        -0.0015835576869113004,
+        -0.030417942074998986
+      ],
+      "simultaneous_lower": [
+        -0.004318895813385739,
+        -0.04959349215986688,
+        -0.003888026540451013,
+        -0.062265539290070795
+      ]
+    }
+  },
+  "positive_rows": {
+    "lockbox": 26,
+    "train": 85,
+    "validation": 87
+  },
+  "promoted_current": false,
+  "receipt_checks": {
+    "macro": true,
+    "protocol": true,
+    "runner": true
+  },
+  "rows": {
+    "lockbox": 252,
+    "train": 552,
+    "validation": 258
+  },
+  "structural_fit": {
+    "lockbox": {
+      "cusp": -1.3711897105036501,
+      "linear": -1.387307386265781,
+      "quadratic": -69.46867557957955
+    },
+    "validation": {
+      "cusp": -1.670459038117402,
+      "linear": -1.7383311557150032,
+      "quadratic": -49.285653473676504
+    }
+  },
+  "study_id": "V75_PRE1973_CUSP_REGIME_DEPENDENCE",
+  "verdict": "NOT_PROVEN"
+}

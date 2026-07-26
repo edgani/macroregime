@@ -1,0 +1,22 @@
+{
+  "candidate_set": "61 V61 strict robustness survivors, no discretionary selection",
+  "capital_permission": "BLOCKED",
+  "claim_limit": "Cannot replace value-weighted, liquidity-screened, stock-level point-in-time replication.",
+  "cost_stress_bps_per_month": [
+    25,
+    50,
+    100
+  ],
+  "gates": [
+    "falsification NW t>2",
+    "after 100bps positive",
+    "4/5 positive years",
+    "both 2020-22 and 2023-24 positive",
+    "rolling 24-month means positive >=80%",
+    "delete best month then after 25bps positive"
+  ],
+  "live_decision_weight": 0.0,
+  "registration_note": "Post-discovery stress test; not untouched proof.",
+  "study_id": "V61_OPENAP_PAIR_CAPACITY_OUTLIER_STRESS",
+  "transform": "clip each signed constituent monthly return to +/-20% before equal weighting"
+}

@@ -24,23 +24,37 @@ def cross_sectional_ic(signal: pd.DataFrame, fwd: pd.DataFrame, rebalance: int) 
 
 def permutation_pvalue(signal: pd.DataFrame, fwd: pd.DataFrame, rebalance: int,
                        observed_ic: float, n: int = 300, seed: int = 0) -> float:
-    """Shuffle signal cross-sectionally each date; fraction of shuffles with |IC|>=|observed|."""
+    """Cross-sectional Spearman permutation test, vectorized across trials.
+
+    The historical implementation rebuilt pandas Series and ranks inside every trial/date loop,
+    making the validator take tens of minutes. Ranking is invariant under permutation, so rank
+    vectors are computed once per date and only their order is shuffled. The statistic and null
+    hypothesis are unchanged.
+    """
     rng = np.random.default_rng(seed)
-    dates = signal.index[::rebalance]; ge = 0
-    for _ in range(n):
-        ics = []
-        for d in dates:
-            s = signal.loc[d].dropna(); f = fwd.loc[d].dropna()
-            common = s.index.intersection(f.index)
-            if len(common) < 20:
-                continue
-            perm = rng.permutation(s[common].values)
-            ic = pd.Series(perm, index=common).rank().corr(f[common].rank())
-            if np.isfinite(ic):
-                ics.append(ic)
-        if ics and abs(np.mean(ics)) >= abs(observed_ic):
-            ge += 1
-    return (ge + 1) / (n + 1)
+    prepared: list[tuple[np.ndarray, np.ndarray, float]] = []
+    for d in signal.index[::rebalance]:
+        s = signal.loc[d].dropna(); f = fwd.loc[d].dropna()
+        common = s.index.intersection(f.index)
+        if len(common) < 20:
+            continue
+        xr = pd.Series(s[common].to_numpy()).rank(method="average").to_numpy(dtype=float)
+        yr = pd.Series(f[common].to_numpy()).rank(method="average").to_numpy(dtype=float)
+        xr -= xr.mean(); yr -= yr.mean()
+        denom = float(np.sqrt(np.dot(xr, xr) * np.dot(yr, yr)))
+        if denom > 0 and np.isfinite(denom):
+            prepared.append((xr, yr, denom))
+    if not prepared or n <= 0:
+        return 1.0
+    null_sum = np.zeros(int(n), dtype=float)
+    for xr, yr, denom in prepared:
+        perms = np.empty((int(n), len(xr)), dtype=float)
+        for i in range(int(n)):
+            perms[i] = rng.permutation(xr)
+        null_sum += (perms @ yr) / denom
+    null_mean = null_sum / len(prepared)
+    ge = int(np.sum(np.abs(null_mean) >= abs(float(observed_ic))))
+    return (ge + 1) / (int(n) + 1)
 
 def long_short_decile(signal: pd.DataFrame, fwd: pd.DataFrame, rebalance: int) -> dict:
     """Top-decile minus bottom-decile, held `rebalance` days (non-overlapping). Honest Sharpe + DSR."""

@@ -249,8 +249,9 @@ def _macro_observations(data):
 
 
 def _market_breadth(data):
-    """Breadth from the actually loaded universe; coverage is always disclosed."""
+    """Breadth from the actually loaded universe; coverage and lineage are disclosed."""
     import pandas as pd
+    from direction_authorization import lineage_digest
     output = {}
     for market, rows in (data.get("prices") or {}).items():
         if market.startswith("_") or not isinstance(rows, dict):
@@ -266,6 +267,15 @@ def _market_breadth(data):
                 if len(x) < 22:
                     continue
                 last = float(x.iloc[-1]); prev = float(x.iloc[-2])
+                as_of = str(x.index[-1])
+                data_contract = {
+                    "source": "loaded_price_panel",
+                    "dataset": f"{market}:{ticker}:daily_close",
+                    "as_of": as_of,
+                    "max_age_seconds": 345600.0,
+                    "observations": int(len(x)),
+                }
+                data_contract["lineage_hash"] = lineage_digest(data_contract)
                 row = {
                     "ticker": ticker, "ret_1d": (last / prev - 1) * 100 if prev else None,
                     "ret_5d": (last / float(x.iloc[-6]) - 1) * 100 if len(x) >= 6 and x.iloc[-6] else None,
@@ -275,6 +285,8 @@ def _market_breadth(data):
                     "above_200d": last > float(x.tail(200).mean()) if len(x) >= 200 else None,
                     "new_20d_high": last >= float(x.tail(20).max()),
                     "new_20d_low": last <= float(x.tail(20).min()),
+                    "as_of": as_of,
+                    "data_contract": data_contract,
                 }
                 stats.append(row)
             except Exception:
@@ -558,16 +570,16 @@ def build_fast_desk(data, top_per_market=12):
         if adv is None and above is None:
             bias = "NO_DATA"
         elif (adv or 0) >= 55 and (above is None or above >= 50):
-            bias = "LEAN_LONG"
+            bias = "POSITIVE_BREADTH_CONTEXT"
         elif (adv or 100) <= 45 and (above is None or above < 50):
-            bias = "WAIT" if cfg.get("long_only") else "LEAN_SHORT"
+            bias = "WAIT_FOR_LONG_SETUP" if cfg.get("long_only") else "NEGATIVE_BREADTH_CONTEXT"
         else:
             bias = "NEUTRAL"
         markets[market] = {
             "label": cfg.get("label", market), "long_only": bool(cfg.get("long_only")),
             "drivers": cfg.get("drivers", []), "bias": bias,
             "data_state": b.get("state") or ("LIVE" if prices.get(market) else "NO_DATA"),
-            "bias_state": "FAST_PRICE_CONTEXT" if bias != "NO_DATA" else "PARTIAL",
+            "bias_state": "DESCRIPTIVE_FAST_PRICE_CONTEXT" if bias != "NO_DATA" else "PARTIAL",
             "driver_coverage": None, "driver_total": len(cfg.get("drivers", [])),
             "funnel": {"universe": len(prices.get(market) or {}), "eliminated": 0, "setups": len(setups)},
             "setups": setups,
@@ -756,13 +768,15 @@ def render_dashboard(desk, template_path, out_path):
     if not os.path.exists(template_path):
         sys.stderr.write(f"[run] template {template_path} not found — skipping HTML render\n")
         return False
-    html = open(template_path, encoding="utf-8").read()
+    with open(template_path, "r", encoding="utf-8") as fh:
+        html = fh.read()
     payload = "window.DASHBOARD_DATA = " + json.dumps(desk) + ";"
     if "/*__INJECT_DATA__*/" in html:
         html = html.replace("/*__INJECT_DATA__*/", payload)
     else:  # inject right after <body>
         html = html.replace("<body>", "<body>\n<script>" + payload + "</script>", 1)
-    open(out_path, "w", encoding="utf-8").write(html)
+    with open(out_path, "w", encoding="utf-8") as fh:
+        fh.write(html)
     return True
 
 
@@ -816,7 +830,12 @@ def main():
         from institutional_data import collect_institutional_data
         desk["institutional"] = collect_institutional_data(desk)
 
-    json.dump(desk, open(args.out, "w"), indent=2, default=str)
+    for output_path in (args.out, args.html):
+        parent = os.path.dirname(os.path.abspath(output_path))
+        if parent:
+            os.makedirs(parent, exist_ok=True)
+    with open(args.out, "w", encoding="utf-8") as fh:
+        json.dump(desk, fh, indent=2, default=str)
     rendered = render_dashboard(desk, args.template, args.html)
     print_summary(desk)
     print(f"→ desk_data.json written: {args.out}")

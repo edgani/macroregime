@@ -1,0 +1,19 @@
+services:
+  streamlit:
+    build: .
+    restart: unless-stopped
+    environment:
+      WARROOM_ROOT: /opt/warroom
+      # WARROOM_OPERATOR_PIN: change-me
+    ports:
+      - "127.0.0.1:8501:8501"
+    volumes:
+      - ./runtime:/opt/warroom/runtime
+  collector:
+    build: .
+    restart: unless-stopped
+    environment:
+      WARROOM_ROOT: /opt/warroom
+    volumes:
+      - ./runtime:/opt/warroom/runtime
+    command: ["sh","-c","while true; do warroom collect-all; sleep 300; done"]

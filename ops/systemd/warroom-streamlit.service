@@ -1,0 +1,24 @@
+[Unit]
+Description=War Room OS v3 Streamlit trading workstation
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=warroom
+Group=warroom
+WorkingDirectory=/opt/warroom
+Environment=WARROOM_ROOT=/opt/warroom
+Environment=PYTHONPATH=/opt/warroom/src
+Environment=HOME=/var/lib/warroom
+ExecStart=/opt/warroom/.venv/bin/python -m streamlit run /opt/warroom/streamlit_app.py --server.address=127.0.0.1 --server.port=8501 --server.headless=true --server.fileWatcherType=none
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/warroom/runtime /var/lib/warroom
+
+[Install]
+WantedBy=multi-user.target

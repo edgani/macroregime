@@ -76,7 +76,8 @@ def validate_uw_integrated_context():
     assert_true(live["sector_rotation"][0]["key"] == "Technology", "UW sector rotation failed")
     chain = L.summarize_option_chain("TEST", option_fixture(), ())
     integrated = L.integrate_option_context(chain, live)
-    assert_true(integrated["directional_context"] == "UPSIDE_PRESSURE_CONTEXT", "integrated direction failed")
+    assert_true(integrated["directional_context"] == "WITHHELD", "option direction must be withheld")
+    assert_true(integrated["chain_composition_context"] == "CALL_HEAVY_FLOW_CONTEXT", "integrated composition failed")
     assert_true(integrated["calibrated_probability"] is None, "integrated context mislabeled as probability")
     assert_true(integrated["reference_zones"].get("stream_zero_gamma_level") == 99, "streamed gamma level missing")
     return integrated
@@ -192,7 +193,7 @@ def main():
         "status":"PASS",
         "offline_scope":["options analytics","streamed Greek-flow integration","sector options rotation","crypto pressure context","full tab-coverage hub","provider payload parsers","liquidation zones","stale last-good failover","Python compile","dashboard JS syntax"],
         "not_verified_without_credentials_or_network":["provider authentication","entitlements","exchange reachability","live payload schema changes"],
-        "sample":{"options_context":options["directional_context"],"integrated_context":integrated["directional_context"],"evidence_completeness_pct":integrated["evidence_completeness_pct"],"gamma_context":options["gamma_context"],"crypto_short_squeeze_pressure":crypto["short_squeeze_pressure"],"tab_coverage_count":len(full_hub["tab_coverage"])}
+        "sample":{"options_context":options["chain_composition_context"],"integrated_context":integrated["chain_composition_context"],"evidence_completeness_pct":integrated["evidence_completeness_pct"],"gamma_context":options["gamma_context"],"crypto_short_squeeze_pressure":crypto["short_squeeze_pressure"],"tab_coverage_count":len(full_hub["tab_coverage"])}
     }
     print(json.dumps(result,indent=2))
 

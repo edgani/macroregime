@@ -1,7 +1,8 @@
 """final_desk.py — THE answer, not an inventory. ≤10 cross-market picks (long/short),
 every pick must carry a VALID reason block: ≥2 evidence lines + invalidation + valid entry + EV.
 If only N<10 clear the bar, output N — no padding with garbage to hit a quota.
-desk_score = 0.45·tanh(EV/10) + 0.30·conviction + 0.15·surge + 0.10·response-quality (priors)."""
+desk_score = 0.55·tanh(EV/10) + 0.35·conviction + 0.10·response-quality.
+Surge/lifecycle are displayed as diagnostics only because they have no promoted forward-outcome proof."""
 from __future__ import annotations
 import numpy as np
 
@@ -30,9 +31,8 @@ def _valid(r: dict, a: dict) -> tuple[bool, str]:
 def _score(r: dict) -> float:
     ev = float(r.get("ev") or 0.0)
     conv = float(r.get("conviction") or 0.0) / 100.0
-    surge = float(r.get("surge") or 50.0) / 100.0
     rq = float(((r.get("response") or {}).get("quality", 50)) or 50) / 100.0
-    return float(0.45 * np.tanh(ev / 10.0) + 0.30 * conv + 0.15 * surge + 0.10 * rq)
+    return float(0.55 * np.tanh(ev / 10.0) + 0.35 * conv + 0.10 * rq)
 
 def build_final_desk(ranking: dict, per_ticker: dict, posterior: dict | None = None) -> dict:
     risk_on = float((posterior or {}).get("risk_on", 0) or 0)
@@ -56,7 +56,7 @@ def build_final_desk(ranking: dict, per_ticker: dict, posterior: dict | None = N
         thm_n[th] = thm_n.get(th, 0) + 1
         picks.append({"rank": len(picks) + 1, "ticker": r["ticker"], "side": r.get("direction", ""),
                       "action": r.get("action"), "conviction": r.get("conviction"), "ev": r.get("ev"),
-                      "surge": r.get("surge"), "market": m, "theme": r.get("theme") or "—",
+                      "surge": r.get("surge"), "position_lifecycle": r.get("position_lifecycle") or {}, "market": m, "theme": r.get("theme") or "—",
                       "entry": r.get("entry"), "stop": r.get("stop"),
                       "targets": r.get("targets") or [x for x in (r.get("target"),) if x],
                       "size_x": r.get("size_x", r.get("size")), "hold": r.get("hold"),

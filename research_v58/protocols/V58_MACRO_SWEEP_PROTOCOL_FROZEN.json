@@ -1,0 +1,476 @@
+{
+  "HAC_lags": 12,
+  "capital_permission": "BLOCKED",
+  "dataset": "bundled revised monthly macro panel 1881-2023",
+  "feature_count": 86,
+  "features": [
+    {
+      "family": "trend",
+      "feature": "spx_mom_1",
+      "formula": "spx pct change 1m"
+    },
+    {
+      "family": "trend",
+      "feature": "spx_mom_3",
+      "formula": "spx pct change 3m"
+    },
+    {
+      "family": "trend",
+      "feature": "spx_mom_6",
+      "formula": "spx pct change 6m"
+    },
+    {
+      "family": "trend",
+      "feature": "spx_mom_12",
+      "formula": "spx pct change 12m"
+    },
+    {
+      "family": "trend",
+      "feature": "spx_mom_24",
+      "formula": "spx pct change 24m"
+    },
+    {
+      "family": "trend",
+      "feature": "spx_mom_36",
+      "formula": "spx pct change 36m"
+    },
+    {
+      "family": "trend",
+      "feature": "spx_mom_60",
+      "formula": "spx pct change 60m"
+    },
+    {
+      "family": "volatility",
+      "feature": "spx_vol_3",
+      "formula": "spx monthly return rolling std 3m"
+    },
+    {
+      "family": "volatility",
+      "feature": "spx_vol_6",
+      "formula": "spx monthly return rolling std 6m"
+    },
+    {
+      "family": "volatility",
+      "feature": "spx_vol_12",
+      "formula": "spx monthly return rolling std 12m"
+    },
+    {
+      "family": "volatility",
+      "feature": "spx_vol_24",
+      "formula": "spx monthly return rolling std 24m"
+    },
+    {
+      "family": "volatility",
+      "feature": "spx_vol_36",
+      "formula": "spx monthly return rolling std 36m"
+    },
+    {
+      "family": "volatility",
+      "feature": "spx_vol_60",
+      "formula": "spx monthly return rolling std 60m"
+    },
+    {
+      "family": "fragility",
+      "feature": "spx_drawdown_12",
+      "formula": "spx / rolling max 12m - 1"
+    },
+    {
+      "family": "fragility",
+      "feature": "spx_drawdown_24",
+      "formula": "spx / rolling max 24m - 1"
+    },
+    {
+      "family": "fragility",
+      "feature": "spx_drawdown_60",
+      "formula": "spx / rolling max 60m - 1"
+    },
+    {
+      "family": "fragility",
+      "feature": "spx_drawdown_120",
+      "formula": "spx / rolling max 120m - 1"
+    },
+    {
+      "family": "valuation",
+      "feature": "cape_z_12",
+      "formula": "CAPE rolling z 12m"
+    },
+    {
+      "family": "valuation",
+      "feature": "cape_z_24",
+      "formula": "CAPE rolling z 24m"
+    },
+    {
+      "family": "valuation",
+      "feature": "cape_z_60",
+      "formula": "CAPE rolling z 60m"
+    },
+    {
+      "family": "valuation",
+      "feature": "cape_z_120",
+      "formula": "CAPE rolling z 120m"
+    },
+    {
+      "family": "valuation",
+      "feature": "cape_level",
+      "formula": "CAPE level"
+    },
+    {
+      "family": "valuation",
+      "feature": "cape_change_12",
+      "formula": "CAPE 12m change"
+    },
+    {
+      "family": "macro",
+      "feature": "cpi_yoy_level",
+      "formula": "cpi_yoy level"
+    },
+    {
+      "family": "macro",
+      "feature": "cpi_yoy_change_3",
+      "formula": "cpi_yoy change 3m"
+    },
+    {
+      "family": "macro",
+      "feature": "cpi_yoy_change_6",
+      "formula": "cpi_yoy change 6m"
+    },
+    {
+      "family": "macro",
+      "feature": "cpi_yoy_change_12",
+      "formula": "cpi_yoy change 12m"
+    },
+    {
+      "family": "macro",
+      "feature": "cpi_yoy_change_24",
+      "formula": "cpi_yoy change 24m"
+    },
+    {
+      "family": "macro",
+      "feature": "rate10_level",
+      "formula": "rate10 level"
+    },
+    {
+      "family": "macro",
+      "feature": "rate10_change_3",
+      "formula": "rate10 change 3m"
+    },
+    {
+      "family": "macro",
+      "feature": "rate10_change_6",
+      "formula": "rate10 change 6m"
+    },
+    {
+      "family": "macro",
+      "feature": "rate10_change_12",
+      "formula": "rate10 change 12m"
+    },
+    {
+      "family": "macro",
+      "feature": "rate10_change_24",
+      "formula": "rate10 change 24m"
+    },
+    {
+      "family": "macro",
+      "feature": "real_rate",
+      "formula": "rate10-cpi_yoy"
+    },
+    {
+      "family": "macro",
+      "feature": "real_rate_change_12",
+      "formula": "12m change of rate10-cpi_yoy"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "gold_mom_1",
+      "formula": "gold pct change 1m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "gold_mom_3",
+      "formula": "gold pct change 3m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "gold_mom_6",
+      "formula": "gold pct change 6m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "gold_mom_12",
+      "formula": "gold pct change 12m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "gold_mom_24",
+      "formula": "gold pct change 24m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "gold_mom_36",
+      "formula": "gold pct change 36m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "gold_vol_6",
+      "formula": "gold monthly return rolling std 6m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "gold_vol_12",
+      "formula": "gold monthly return rolling std 12m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "gold_vol_24",
+      "formula": "gold monthly return rolling std 24m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "oil_mom_1",
+      "formula": "oil pct change 1m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "oil_mom_3",
+      "formula": "oil pct change 3m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "oil_mom_6",
+      "formula": "oil pct change 6m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "oil_mom_12",
+      "formula": "oil pct change 12m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "oil_mom_24",
+      "formula": "oil pct change 24m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "oil_mom_36",
+      "formula": "oil pct change 36m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "oil_vol_6",
+      "formula": "oil monthly return rolling std 6m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "oil_vol_12",
+      "formula": "oil monthly return rolling std 12m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "oil_vol_24",
+      "formula": "oil monthly return rolling std 24m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "gas_mom_1",
+      "formula": "gas pct change 1m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "gas_mom_3",
+      "formula": "gas pct change 3m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "gas_mom_6",
+      "formula": "gas pct change 6m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "gas_mom_12",
+      "formula": "gas pct change 12m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "gas_mom_24",
+      "formula": "gas pct change 24m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "gas_mom_36",
+      "formula": "gas pct change 36m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "gas_vol_6",
+      "formula": "gas monthly return rolling std 6m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "gas_vol_12",
+      "formula": "gas monthly return rolling std 12m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "gas_vol_24",
+      "formula": "gas monthly return rolling std 24m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "dxy_mom_1",
+      "formula": "dxy pct change 1m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "dxy_mom_3",
+      "formula": "dxy pct change 3m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "dxy_mom_6",
+      "formula": "dxy pct change 6m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "dxy_mom_12",
+      "formula": "dxy pct change 12m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "dxy_mom_24",
+      "formula": "dxy pct change 24m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "dxy_mom_36",
+      "formula": "dxy pct change 36m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "dxy_vol_6",
+      "formula": "dxy monthly return rolling std 6m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "dxy_vol_12",
+      "formula": "dxy monthly return rolling std 12m"
+    },
+    {
+      "family": "cross_asset",
+      "feature": "dxy_vol_24",
+      "formula": "dxy monthly return rolling std 24m"
+    },
+    {
+      "family": "interaction_or_placebo",
+      "feature": "oil_gold_ratio_mom12",
+      "formula": "oil/gold ratio 12m change"
+    },
+    {
+      "family": "interaction_or_placebo",
+      "feature": "gas_oil_ratio_mom12",
+      "formula": "gas/oil ratio 12m change"
+    },
+    {
+      "family": "interaction_or_placebo",
+      "feature": "commodity_dxy_divergence",
+      "formula": "mean gold/oil/gas 12m momentum minus dxy 12m momentum"
+    },
+    {
+      "family": "interaction_or_placebo",
+      "feature": "inflation_oil_gap",
+      "formula": "cpi_yoy minus oil 12m momentum"
+    },
+    {
+      "family": "interaction_or_placebo",
+      "feature": "rate_inflation_gap",
+      "formula": "rate10 minus cpi_yoy"
+    },
+    {
+      "family": "interaction_or_placebo",
+      "feature": "valuation_rate_interaction",
+      "formula": "cape z120 times rate10"
+    },
+    {
+      "family": "interaction_or_placebo",
+      "feature": "valuation_momentum_interaction",
+      "formula": "-cape z120 plus spx mom12"
+    },
+    {
+      "family": "interaction_or_placebo",
+      "feature": "inflation_momentum_interaction",
+      "formula": "-cpi_yoy plus spx mom12"
+    },
+    {
+      "family": "interaction_or_placebo",
+      "feature": "cross_asset_stress",
+      "formula": "dxy mom6 minus mean gold/oil/gas mom6"
+    },
+    {
+      "family": "interaction_or_placebo",
+      "feature": "commodity_dispersion",
+      "formula": "cross-sectional std gold/oil/gas 12m momentum"
+    },
+    {
+      "family": "interaction_or_placebo",
+      "feature": "calendar_month_placebo",
+      "formula": "month number"
+    },
+    {
+      "family": "interaction_or_placebo",
+      "feature": "linear_time_placebo",
+      "formula": "sequential month index"
+    },
+    {
+      "family": "interaction_or_placebo",
+      "feature": "fourier_7y_placebo",
+      "formula": "sinusoid 84m"
+    },
+    {
+      "family": "interaction_or_placebo",
+      "feature": "fourier_10y_placebo",
+      "formula": "sinusoid 120m"
+    },
+    {
+      "family": "interaction_or_placebo",
+      "feature": "deterministic_noise_placebo",
+      "formula": "fixed hash-like sine"
+    }
+  ],
+  "forbidden": [
+    "live promotion",
+    "retune holdout",
+    "claim realtime availability",
+    "ignore overlapping horizons",
+    "drop placebos"
+  ],
+  "frozen_at_utc": "2026-07-25T02:47:10.629587+00:00",
+  "live_decision_weight": 0.0,
+  "multiplicity": "one-sided Bonferroni over all registered feature-target claims",
+  "orientation": "sign chosen from discovery Spearman correlation and frozen",
+  "primary_metric": "monthly Spearman association with future target",
+  "registered_claims": 344,
+  "schema": "warroom.v58.macro_sweep_protocol.v1",
+  "splits": {
+    "diagnostic_holdout": "2008-01/2023-09",
+    "discovery": "1973-01/1994-12",
+    "validation": "1995-01/2007-12"
+  },
+  "status_limit": "REVISED_REUSED_MACRO_DIAGNOSTIC_ONLY; no vintage data and panel used in prior research",
+  "targets": [
+    {
+      "horizon": 6,
+      "name": "future_6m_return"
+    },
+    {
+      "horizon": 12,
+      "name": "future_12m_return"
+    },
+    {
+      "horizon": 6,
+      "name": "future_6m_drawdown_loss"
+    },
+    {
+      "horizon": 6,
+      "name": "future_6m_realized_vol"
+    }
+  ]
+}

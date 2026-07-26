@@ -53,7 +53,7 @@ def _fetch_one_option_yf(ticker: str):
             return ticker, None
         today = dt.date.today()
         near_exps = exps[:2]
-        total_call_oi = {}; total_put_oi = {}; gex_by_strike = {}
+        total_call_oi = {}; total_put_oi = {}; gamma_magnitude_by_strike = {}; call_gamma = 0.0; put_gamma = 0.0
         atm_iv = None; atm_call_price = atm_put_price = None; min_atm_dist = 1e9
         for exp_str in near_exps:
             try:
@@ -66,7 +66,9 @@ def _fetch_one_option_yf(ticker: str):
                     iv = float(row.get("impliedVolatility", 0) or 0)
                     total_call_oi[K] = total_call_oi.get(K, 0) + oi
                     gamma = _bs_gamma(spot, K, T, 0.05, iv if iv > 0 else 0.5)
-                    gex_by_strike[K] = gex_by_strike.get(K, 0) + gamma * oi * 100 * spot * spot * 0.01
+                    gamma_notional = abs(gamma * oi * 100 * spot * spot * 0.01)
+                    gamma_magnitude_by_strike[K] = gamma_magnitude_by_strike.get(K, 0) + gamma_notional
+                    call_gamma += gamma_notional
                     dist = abs(K - spot)
                     if dist < min_atm_dist:
                         min_atm_dist = dist; atm_iv = iv
@@ -76,7 +78,9 @@ def _fetch_one_option_yf(ticker: str):
                     iv = float(row.get("impliedVolatility", 0) or 0)
                     total_put_oi[K] = total_put_oi.get(K, 0) + oi
                     gamma = _bs_gamma(spot, K, T, 0.05, iv if iv > 0 else 0.5)
-                    gex_by_strike[K] = gex_by_strike.get(K, 0) - gamma * oi * 100 * spot * spot * 0.01
+                    gamma_notional = abs(gamma * oi * 100 * spot * spot * 0.01)
+                    gamma_magnitude_by_strike[K] = gamma_magnitude_by_strike.get(K, 0) + gamma_notional
+                    put_gamma += gamma_notional
                     if abs(K - spot) < 0.01 * spot:
                         atm_put_price = float(row.get("lastPrice", 0) or 0)
             except Exception:
@@ -87,12 +91,9 @@ def _fetch_one_option_yf(ticker: str):
         call_wall = max(calls_above, key=calls_above.get) if calls_above else None
         puts_below = {k: v for k, v in total_put_oi.items() if k <= spot}
         put_wall = max(puts_below, key=puts_below.get) if puts_below else None
-        net_gex = sum(gex_by_strike.values())
-        gamma_flip = None; cum = 0
-        for k in sorted(gex_by_strike.keys()):
-            prev_cum = cum; cum += gex_by_strike[k]
-            if prev_cum < 0 <= cum and gamma_flip is None:
-                gamma_flip = k; break
+        total_gamma_magnitude = sum(gamma_magnitude_by_strike.values())
+        call_minus_put_gamma_composition = call_gamma - put_gamma
+        gamma_concentration_strike = max(gamma_magnitude_by_strike, key=gamma_magnitude_by_strike.get) if gamma_magnitude_by_strike else None
         all_strikes = sorted(set(list(total_call_oi.keys()) + list(total_put_oi.keys())))
         max_pain = None; min_pain = 1e18
         for K_test in all_strikes:
@@ -117,21 +118,23 @@ def _fetch_one_option_yf(ticker: str):
             "put_wall": round(put_wall, 2) if put_wall else None,
             "put_wall_strike": round(put_wall, 2) if put_wall else None,
             "max_pain": round(max_pain, 2) if max_pain else None,
-            "gamma_flip": round(gamma_flip, 2) if gamma_flip else None,
-            "gex_proxy": net_gex, "net_gex_proxy": net_gex,
-            # Backward-compatible aliases. These are explicitly OI-implied proxies, not observed dealer books.
-            "gex": net_gex, "net_gex": net_gex,
+            "gamma_flip": None,
+            "unsigned_gamma_magnitude": total_gamma_magnitude,
+            "call_minus_put_gamma_composition": call_minus_put_gamma_composition,
+            "gamma_concentration_strike": round(gamma_concentration_strike, 2) if gamma_concentration_strike else None,
+            "gex_proxy": None, "net_gex_proxy": None, "gex": None, "net_gex": None,
+            "dealer_sign_state": "UNKNOWN", "ownership_state": "UNVERIFIED",
             "put_call_ratio": round(pcr, 2) if pcr else None,
             "pc_ratio": round(pcr, 2) if pcr else None,
             "atm_iv": round(atm_iv, 4) if atm_iv else None,
             "iv_30d": round(atm_iv, 4) if atm_iv else None,
             "expected_move_pct": round(expected_move_pct, 2) if expected_move_pct else None,
             "total_call_oi": int(tot_call), "total_put_oi": int(tot_put),
-            "gex_by_strike": {round(float(k), 2): round(float(v), 0) for k, v in gex_by_strike.items()},
+            "gamma_magnitude_by_strike": {round(float(k), 2): round(float(v), 0) for k, v in gamma_magnitude_by_strike.items()},
             "call_oi_by_strike": {round(float(k), 2): int(v) for k, v in total_call_oi.items()},
             "put_oi_by_strike": {round(float(k), 2): int(v) for k, v in total_put_oi.items()},
             "source": "yfinance_option_chain",
-            "data_semantics": "OI_IMPLIED_GAMMA_PROXY_NOT_DEALER_POSITION",
+            "data_semantics": "PUBLIC_OI_UNSIGNED_GAMMA_MAGNITUDE; CALL_PUT_COMPOSITION_NOT_DEALER_POSITION_OR_DIRECTION",
         }
     except Exception as e:
         logger.debug(f"options fetch {ticker}: {e}")
@@ -139,10 +142,10 @@ def _fetch_one_option_yf(ticker: str):
 
 
 def fetch_options_yf(tickers: List[str], max_tickers: int = 30, max_workers: int = 12) -> Dict:
-    """Fetch option-chain OI/IV via yfinance and calculate walls, max-pain and an OI-implied gamma proxy.
+    """Fetch option-chain OI/IV via yfinance and calculate descriptive concentration zones.
 
-    The gamma proxy assumes calls positive and puts negative; it is *not* an observed dealer inventory
-    or a substitute for trade-level options flow. Threading only reduces I/O latency.
+    Public OI produces unsigned Greek magnitude only. Call/put composition is retained separately and
+    never converted into dealer sign, net GEX, gamma flip, spot direction, or capital permission.
     """
     try:
         import yfinance as yf  # noqa: F401
@@ -430,11 +433,13 @@ def fetch_flashalpha_gex(tickers: List[str], api_key: str = None, max_calls: int
         try:
             g = fa.gex(t)
             out[t] = {
-                "net_gex": g.get("net_gex") or g.get("total_gex"),
-                "gamma_flip": g.get("gamma_flip"),
+                "provider_net_gex_claim": g.get("net_gex") or g.get("total_gex"),
+                "provider_gamma_flip_claim": g.get("gamma_flip"),
+                "net_gex": None, "gex": None, "gamma_flip": None,
                 "call_wall": g.get("call_wall"),
                 "put_wall": g.get("put_wall"),
-                "dealer_regime": g.get("dealer_regime") or g.get("regime"),
+                "provider_dealer_regime_claim": g.get("dealer_regime") or g.get("regime"),
+                "dealer_regime": "unknown", "dealer_sign_state": "UNKNOWN",
                 "source": "flashalpha",
                 "data_semantics": "THIRD_PARTY_MODEL_OUTPUT_NOT_OBSERVED_DEALER_BOOK",
             }

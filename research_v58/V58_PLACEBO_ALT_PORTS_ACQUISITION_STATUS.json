@@ -1,0 +1,52 @@
+{
+  "schema": "warroom.openap_additional_data_acquisition.v58",
+  "created_at_utc": "2026-07-25T03:15:00Z",
+  "source_project": "Open Source Asset Pricing",
+  "requested_negative_controls": {
+    "placebo_definitions": 114,
+    "drop_definitions": 5,
+    "definition_catalog_status": "PRESENT_AND_HASH_PINNED",
+    "precomputed_wide_placebo_return_file_status": "NOT_FOUND_IN_PUBLIC_RELEASE_CATALOG",
+    "stock_level_placebo_signal_status": "PUBLIC_PROJECT_DOCUMENTS_PLACEBOSINDIV_AS_AVAILABLE_BUT_FILE_NOT_ACQUIRED_IN_THIS_ENVIRONMENT",
+    "raw_reconstruction_boundary": "Many source inputs require WRDS or equivalent licensed point-in-time databases. No predictor return is substituted for a placebo return."
+  },
+  "official_alternative_portfolio_files_documented": [
+    "PredictorAltPorts_Deciles.zip",
+    "PredictorAltPorts_DecilesVW.zip",
+    "PredictorAltPorts_LiqScreen_ME_gt_NYSE20pct.zip",
+    "PredictorAltPorts_LiqScreen_NYSEonly.zip",
+    "PredictorAltPorts_LiqScreen_Price_gt_5.zip",
+    "PredictorAltPorts_Quintiles.zip",
+    "PredictorAltPorts_QuintilesVW.zip"
+  ],
+  "alternative_portfolio_file_status": "DOCUMENTED_BY_OFFICIAL_MAINTAINER_DOWNLOAD_PACKAGES_BUT_NOT_ACQUIRED",
+  "acquisition_attempts": [
+    {
+      "method": "official Google Drive release folder through container network",
+      "status": "BLOCKED",
+      "reason": "Build container has no external DNS resolution."
+    },
+    {
+      "method": "web search for exact public mirror filenames",
+      "status": "NOT_FOUND",
+      "reason": "No trustworthy file-level mirror result was found for the alternative portfolio archives."
+    },
+    {
+      "method": "official CRAN/Python download package source inspection",
+      "status": "PASS_FOR_CATALOG_ONLY",
+      "reason": "Dataset names and official download support were verified, but file IDs/content were not obtainable through the current runtime."
+    }
+  ],
+  "research_consequence": {
+    "placebo_return_trials_added": 0,
+    "alternative_construction_trials_added": 0,
+    "must_not_claim": [
+      "All 114 placebo return portfolios were tested",
+      "The three gross candidates survived value weighting, liquidity screens, or alternative quantile construction",
+      "The public maintained predictor file is an executable point-in-time strategy"
+    ],
+    "next_valid_action": "Acquire hash-pinned official PlacebosIndiv and alternative portfolio archives, freeze the expanded trial budget before opening returns, then rerun global correction."
+  },
+  "live_decision_weight": 0.0,
+  "capital_permission": "BLOCKED"
+}

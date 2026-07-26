@@ -1,0 +1,10 @@
+{
+  "spec_id": "DATA-POLICY-V1-NEWZIP",
+  "required_timestamps": ["observed_at", "available_at", "ingested_at"],
+  "prospective_rules": [
+    "available_at must not exceed replay cutoff",
+    "LATEST_ONLY revision semantics are forbidden for prospective macro evidence",
+    "raw and normalized payload hashes are immutable",
+    "unknown or stale data fail closed"
+  ]
+}

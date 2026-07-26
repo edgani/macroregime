@@ -1,27 +1,22 @@
-# Deploy War Room OS v4.2
+# Deploy War Room OS v5.2
 
-Deploy by clean replacement. Never overlay v4.2 on an older folder because stale snapshots, static HTML, locks or legacy reports can preserve prior semantics.
+Deploy only by clean replacement.
 
-## Required procedure
+1. Extract the release into a new folder.
+2. Run `CHECK_EVERYTHING.bat` before adding old caches, proof keys, receipts or secrets.
+3. Require `V52_USER_VALIDATION_REPORT.json` to show no failures and no environment blockers.
+4. Configure live-data credentials outside source control.
+5. Keep all execution/capital integration disabled; the default proof state promotes zero components.
+6. After any source change, dependency change, trusted-key change or proof-receipt change, rerun validation and retain the new report.
 
-1. Extract to a new directory.
-2. Configure secrets outside the package.
-3. Run `CHECK_EVERYTHING.bat` on the target machine.
-4. Deploy `app.py` only after `V42_USER_VALIDATION_REPORT.json` is `PASS`.
-5. Keep capital integration disabled; the default proof registry promotes zero predictive components.
+Missing or unavailable feeds must remain `NO_DATA`, `NOT_CONFIGURED`, `NOT_ENTITLED`, `STALE` or `ACTION_REQUIRED`. They may not be silently imputed into a predictive claim.
 
-## Data behavior
+A source-page change or current-development item is a review event only. It does not create direction.
 
-Missing credentials must remain `NO_DATA`, `NOT_CONFIGURED`, `NOT_ENTITLED` or `ACTION_REQUIRED`. Optional source failures may not block independent domains, but they may not be silently imputed into claims.
-
-## Official-source radar
-
-A source-page hash change is a review alert only. A dated development remains `REVIEW_REQUIRED` until a human verifies the source, interpretation, beneficiary mapping and claim boundary. It never creates long/short direction by itself.
-
-## Required deployment result
+Required deployment state:
 
 ```text
-software_permission: READY_FOR_USER_REVIEW
+software_permission: READY_FOR_RESEARCH_REVIEW
 predictive_components_promoted: 0
 capital_permission: BLOCKED
 ```

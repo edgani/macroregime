@@ -19,6 +19,7 @@ result is therefore flagged pending a forward/post-cutoff confirmation.
 Run:  python research_harness.py   → prints the card + writes research_results.json
 """
 from __future__ import annotations
+from parquet_compat import read_parquet_compat
 import json, os, numpy as np, pandas as pd
 from scipy import stats
 
@@ -67,7 +68,7 @@ def _factors(close: pd.DataFrame, vol: pd.DataFrame):
 
 
 def _run():
-    sp = pd.read_parquet(os.path.join(RES, "sp500_panel.parquet")).copy()
+    sp = read_parquet_compat(os.path.join(RES, "sp500_panel.parquet")).copy()
     sp["date"] = pd.to_datetime(sp["date"])
     close = sp.pivot_table(index="date", columns="Name", values="close").sort_index()
     vol = sp.pivot_table(index="date", columns="Name", values="volume").sort_index()

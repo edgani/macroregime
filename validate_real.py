@@ -11,10 +11,11 @@ point of the anti-overfit gate (perm_p<0.05 AND DSR>=0.95). Run pointed at your 
 extend to IHSG/crypto/FX/commodity + live/current prices.
 """
 from __future__ import annotations
+from parquet_compat import read_parquet_compat
 import os, sys, warnings
 import numpy as np, pandas as pd
 from scipy import stats
-warnings.filterwarnings("ignore")
+warnings.filterwarnings("error")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import validation_plus as V
@@ -27,7 +28,7 @@ def _line(): print("─" * 80)
 
 
 def equity_battery():
-    panel = pd.read_parquet(os.path.join(RES, "sp500_panel.parquet"))
+    panel = read_parquet_compat(os.path.join(RES, "sp500_panel.parquet"))
     panel["date"] = pd.to_datetime(panel["date"])
     close = panel.pivot_table(index="date", columns="Name", values="close")
     close = close[close.columns[close.notna().mean() > 0.9]].sort_index()
@@ -40,7 +41,7 @@ def equity_battery():
     signals = {"mom_126": lr.rolling(126).sum(), "mom_63": lr.rolling(63).sum(),
                "mom_252": lr.rolling(252).sum(), "mom_21": lr.rolling(21).sum(),
                "reversal_5": -lr.rolling(5).sum()}
-    prior = pd.read_parquet(os.path.join(RES, "factor_ic.parquet"))["mean_IC"].to_dict()
+    prior = read_parquet_compat(os.path.join(RES, "factor_ic.parquet"))["mean_IC"].to_dict()
     print(f"{'signal':<11}{'myIC':>7}{'prior':>7}{'ok':>4} | {'perm_p':>7}{'DSR':>6}{'RC_p':>7}{'SPA_p':>7}{'FDR':>5}  VERDICT")
     _line()
     for name, sig in signals.items():
@@ -57,14 +58,14 @@ def equity_battery():
         print(f"\n  RS top-decile surge(≥50%/63d) LIFT = {prec.get('lift')} (tail edge — RESEARCH grade)")
     except Exception as e:
         print("  RS lift:", e)
-    vt = pd.read_parquet(os.path.join(RES, "validated_tickers.parquet"))
+    vt = read_parquet_compat(os.path.join(RES, "validated_tickers.parquet"))
     print(f"  prior per-ticker bootstrap: {int(vt['PASS'].sum())}/{len(vt)} passed "
           f"({vt['PASS'].mean()*100:.0f}%) — most 'edges' are noise")
 
 
 def macro_battery():
-    mp = pd.read_parquet(os.path.join(RES, "macro_panel.parquet"))
-    ma = pd.read_parquet(os.path.join(RES, "macro_attribution.parquet"))
+    mp = read_parquet_compat(os.path.join(RES, "macro_panel.parquet"))
+    ma = read_parquet_compat(os.path.join(RES, "macro_attribution.parquet"))
     print("\n" + "═" * 80)
     print("MACRO BATTERY — real macro panel (1881-2023)")
     print("═" * 80)
@@ -95,8 +96,8 @@ def verdict():
     print("═" * 80)
     print("""  ✅ Implementation VALIDATED — IC reproduces prior factor_ic.parquet exactly (5/5).
   ✅ Reconciles prior work — dollar-hub p<0.001, crash-attribution R²=0.033.
-  PRODUCTION : dollar-hub cross-asset (p<0.001) · CAPE long-horizon valuation (p~1e-43).
-  RESEARCH   : RS top-decile surge-catch (LIFT ~3x, tail edge — not a mean-return edge).
+  HISTORICAL CONTEXT ONLY: dollar-hub correlation and CAPE long-horizon association.
+  RESEARCH ONLY          : RS top-decile tail lift — not a mean-return or live alpha edge.
   REJECTED   : momentum/reversal long-short factors → NOISE (DSR<0.95, deflation kills them).
 
   DATA STILL NEEDED (not in the zip): non-US prices (IHSG/crypto/FX/commodity),

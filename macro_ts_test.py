@@ -7,13 +7,14 @@ fragility primitive from change_core, tested as a market-timing signal. Non-over
 avoid overlap-induced fake significance. No-lookahead: signals use only data ≤ t.
 """
 from __future__ import annotations
+from parquet_compat import read_parquet_compat
 import sys, os, warnings
-warnings.filterwarnings("ignore")
+warnings.filterwarnings("error")
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import numpy as np, pandas as pd
 from scipy.stats import spearmanr
 
-df = pd.read_parquet(os.path.join("research", "macro_panel.parquet")).sort_index()
+df = read_parquet_compat(os.path.join("research", "macro_panel.parquet")).sort_index()
 spx = df["spx"].astype(float)
 ret = spx.pct_change()
 H = 12  # forward months

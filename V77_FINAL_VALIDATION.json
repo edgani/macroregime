@@ -46,7 +46,7 @@
       "status": "PASS"
     },
     {
-      "detail": "{'dashboard_bytes': 147953, 'static_bytes': 147953}",
+      "detail": "{'dashboard_bytes': 148418, 'static_bytes': 148418}",
       "name": "dashboard_static_copy_synced",
       "status": "PASS"
     },

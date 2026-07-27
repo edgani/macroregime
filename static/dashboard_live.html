@@ -59,7 +59,7 @@ button,input,select{font:inherit}.mono{font-family:var(--mono)}
 <script>/*__INJECT_DATA__*/</script>
 <div id="app">
   <header class="topbar">
-    <div class="brand"><div class="brandmark">W</div><div><div class="brandname">WAR ROOM <b>OS</b></div><div class="brandver">DECISION-INTELLIGENCE OS · v7.7 HUMAN-READABLE FINAL</div></div></div>
+    <div class="brand"><div class="brandmark">W</div><div><div class="brandname">WAR ROOM <b>OS</b></div><div class="brandver">DECISION-INTELLIGENCE OS · v7.8 PROOF EXPANSION · NOT FINAL</div></div></div>
     <div class="top-metrics" id="topMetrics"></div>
     <span id="dataSync" class="top-chip">SYNC <b>BOOTING</b></span><input class="search" id="search" placeholder="CARI TICKER / TEMA / PERISTIWA" />
   </header>
@@ -119,6 +119,8 @@ let RE65 = obj(D.research_evidence_v65);
 let RE66 = obj(D.research_evidence_v66);
 let RE76 = obj(D.release_contract_v76);
 let RE77 = obj(D.release_contract_v77);
+let RE78 = obj(D.release_contract_v78);
+let EV78 = obj(D.research_evidence_v78);
 let lastRevision = Number(obj(D.runtime).snapshot_sequence || 0);
 let lastContentHash = String(obj(D.runtime).content_hash || '');
 let lastPollOkAt = Date.now();
@@ -755,7 +757,7 @@ function modelValidation(){
  const latest=arr(RE62.components);
  const scopedClaims=arr(RE64.claims);
  const proofKernelClaims=arr(RE65.evidence_active_research_claims);
- const riskControls=arr(RE66.decision_active_risk_controls); const riskControl=riskControls[0]||{}; const riskDecision=obj(riskControl.current_decision);
+ const riskControls=arr(RE66.decision_active_risk_controls); const v78=obj(D.research_evidence_v78); const v78Contract=obj(D.release_contract_v78); const riskControl=riskControls[0]||{}; const riskDecision=obj(riskControl.current_decision);
  const statusOf=v=>String(v.grade||v.status||v.verdict||v.state||v.proof_scope||'UNKNOWN').toUpperCase();
  const productionStates=new Set(['PRODUCTION','LIMITED_PRODUCTION','LIMITED_PRODUCTION_ELIGIBLE','HUMAN_APPROVED_LIMITED_PRODUCTION']);
  const all=[...gradeEntries.map(([k,v])=>[k,v,'LEGACY GRADE']),...proofEntries.map(([k,v])=>[k,v,'PROOF REGISTRY']),...latest.map(v=>[v.component,v,'V62 EVIDENCE']),...scopedClaims.map(v=>[v.claim_id,v,'V64 SCOPED PROOF']),...proofKernelClaims.map(v=>[v.claim_id,v,'V65 PROOF-FIRST KERNEL']),...riskControls.map(v=>[v.component_id,v,'V66 SCOPED RISK CONTROL'])];
@@ -769,12 +771,13 @@ function modelValidation(){
  const oos=node('val_oos','PROOF-FIRST KERNEL',`${stable10bp} aggregate evidence modules · ${selectorProven} PIT selectors`,stable10bp?'ARCHIVE SUPPORTED':'ZERO','watch','observed',{w:225,raw:RE65});
  const risk=node('val_risk','SCOPED US RISK CAP',riskControl.component_id?`${riskDecision.status||'NO_PERMISSION'} · ${riskDecision.observed_month||'NO DATE'}`:'NO CONFIRMED CONTROL',riskControl.component_id?'CONFIRMED':'ZERO',riskControl.component_id?'constructive':'watch','observed',{w:225,raw:RE66});
  const correction=node('val_corr','SELECTION CONTROL',`${rejected} rejected · ${blocked} capital blocked`,'GLOBAL LEDGER','watch','observed',{w:215});
+ const expansion=node('val_v78','V7.8 PROOF EXPANSION',`3 confirmatory families · ${num(v78.new_promoted_components)||0} promoted`,'NOT FINAL','watch','observed',{w:225,raw:v78});
  const displayed=all.slice().sort((a,b)=>{const rank=v=>/REJECT|FAILED|BROKEN|NOT_PROVEN/.test(statusOf(v))?0:/PIPELINE|DATA_CONTRACT/.test(statusOf(v))?1:2;return rank(a[1])-rank(b[1]);}).slice(0,8);
  const nodes=displayed.map(([k,v,source],i)=>{const status=statusOf(v);return node('v_'+i,k.replaceAll('_',' ').toUpperCase(),short(`${source} · ${v.claim_limit||v.claim_boundary||v.note||v.reason||'open evidence record'}`,35),status,status,'observed',{raw:v,w:190});});
  const center=node('prod','CAPITAL GATE','exact scope + costs + OOS + prospective + signed receipt',obj(D.proof_status).capital_permission||'BLOCKED','watch','observed',{w:245});
- const g=layered([[inventory,oos,risk,correction],nodes.slice(0,4),nodes.slice(4,8),[center]]);nodes.forEach(n=>g.edges.push(edge(n.id,center.id,n.state,'inferred','proof gate',1.25,{relation:'validation_gate'})));
- return {title:'VALIDATION CENTER',sub:'V7.7 is the human-readable successor to V7.6 and inherits the same exact proven scope: the V6.6 broad-US-equity monthly risk cap. Three aggregate option/information modules remain evidence-only; zero PIT ticker selectors or directional-alpha capital components are active.',canvas:'EVIDENCE LABORATORY',badges:['observed','inferred'],graph:g,
- rail:{...basicRail('V7.7 HUMAN-READABLE FINAL · DIRECTIONAL CAPITAL BLOCKED',`${totalClaims} claim records · ${stable10bp} modern archive-supported aggregate evidence modules · ${riskControls.length} scoped decision control · 0 production-eligible ticker alpha · ${selectorProven} PIT selectors.`,`The V6.6 SMA10 control may only cap broad US equity exposure at completed monthly rebalances; ticker and directional promotions remain ${production}.`,`Open the exact component record, data lineage, baseline, lockbox and prospective state.`,`Pipeline validation or descriptive usefulness never grants future-return permission.`,`Reject/downgrade on OOS failure, drift, broken lineage, cost failure or absent signed receipt.`,'Continuous monitoring',production?Math.min(80,Math.round(100*production/Math.max(1,all.length))):0,'REVIEW EVIDENCE · NO AUTO PROMOTION'),confidenceLabel:'PRODUCTION COVERAGE'},
+ const g=layered([[inventory,oos,risk,correction,expansion],nodes.slice(0,4),nodes.slice(4,8),[center]]);nodes.forEach(n=>g.edges.push(edge(n.id,center.id,n.state,'inferred','proof gate',1.25,{relation:'validation_gate'})));
+ return {title:'VALIDATION CENTER',sub:'V7.8 is a proof-expansion checkpoint, not a final trading system. Three new confirmatory families produced zero promotions. The only inherited usable scope remains the V6.6 broad-US-equity monthly SMA10 exposure cap.',canvas:'EVIDENCE LABORATORY',badges:['observed','inferred'],graph:g,
+ rail:{...basicRail('V7.8 CHECKPOINT · NOT FINAL · DIRECTIONAL CAPITAL BLOCKED',`${totalClaims} claim records · ${stable10bp} modern archive-supported aggregate evidence modules · ${riskControls.length} scoped decision control · 0 production-eligible ticker alpha · ${selectorProven} PIT selectors.`,`The V6.6 SMA10 control may only cap broad US equity exposure at completed monthly rebalances; ticker and directional promotions remain ${production}.`,`Open the exact component record, data lineage, baseline, lockbox and prospective state.`,`Pipeline validation or descriptive usefulness never grants future-return permission.`,`Reject/downgrade on OOS failure, drift, broken lineage, cost failure or absent signed receipt.`,'Continuous monitoring',production?Math.min(80,Math.round(100*production/Math.max(1,all.length))):0,'REVIEW EVIDENCE · NO AUTO PROMOTION'),confidenceLabel:'PRODUCTION COVERAGE'},
  ledger:[...riskControls.map(v=>({time:obj(v.current_decision).observed_month||obj(D.meta).generated,ticker:v.component_id,desc:`${obj(v.current_decision).status||'NO_PERMISSION'} · close ${fmt(obj(v.current_decision).close)} · SMA10 ${fmt(obj(v.current_decision).sma10)} · max multiplier ${fmt(obj(v.current_decision).max_broad_us_equity_multiplier)} · no ticker/short/crash permission`,state:v.capital_permission,raw:v})),...proofKernelClaims.map(v=>({time:obj(D.meta).generated,ticker:v.claim_id,desc:`GLOBAL 216-FAMILY 10BP PASS · STABILITY PASS · PIT ${v.point_in_time_ticker_selector_proven?'PASS':'FAIL'} · decision active ${v.decision_active?'YES':'NO'}`,state:v.proof_scope,raw:v})),...scopedClaims.map(v=>({time:RE64.created_at_utc||obj(D.meta).generated,ticker:v.claim_id,desc:`HISTORICAL GROSS PROVEN · modern ${v.modern_all_stock_gross_proven?'PASS':'FAIL'} · PIT selector ${v.stock_level_pit_selector_proven?'PASS':'FAIL'} · capital ${v.capital_permission}`,state:v.proof_scope,raw:v})),...latest.map(v=>({time:RE62.created_at_utc||obj(D.meta).generated,ticker:v.component,desc:`${v.verdict} · ${v.claims||0} claims · ${v.claim_limit||''} · live weight ${v.live_decision_weight||0}`,state:v.verdict,raw:v})),...all.slice(0,30).map(([k,v,source])=>({time:obj(D.meta).generated,ticker:k,desc:`${source} · ${v.note||v.reason||v.claim_boundary||v.claim_limit||JSON.stringify(v)}`,state:statusOf(v),raw:v}))],
  queue:displayed.map(([k,v,source])=>({ticker:k,score:(source==='PROOF REGISTRY'&&(productionStates.has(statusOf(v))||v.predictive_promoted===true)&&String(v.capital_permission||'BLOCKED').toUpperCase()!=='BLOCKED')?100:0,why:`${source} · ${v.claim_limit||v.claim_boundary||v.note||v.reason||''}`,stage:statusOf(v)}))};
 }
@@ -814,7 +817,7 @@ function modelResearchProcess(){
  const latestComponents=arr(RE62.components);
  const scopedClaims=arr(RE64.claims);
  const proofKernelClaims=arr(RE65.evidence_active_research_claims);
- const riskControls=arr(RE66.decision_active_risk_controls); const riskControl=riskControls[0]||{}; const riskDecision=obj(riskControl.current_decision);
+ const riskControls=arr(RE66.decision_active_risk_controls); const v78=obj(D.research_evidence_v78); const v78Contract=obj(D.release_contract_v78); const riskControl=riskControls[0]||{}; const riskDecision=obj(riskControl.current_decision);
  const trial=obj(RE62.global_trial_accounting);
  const totalResearchClaims=num(RE64.total_empirical_claim_records)||num(trial.total_empirical_claim_records)||0;
  const openResearch=arr(RE.open_work);
@@ -967,7 +970,7 @@ function acceptSnapshot(next){
  if(!next||typeof next!=='object')return false;
  const rt=obj(next.runtime), revision=Number(rt.snapshot_sequence||0), hash=String(rt.content_hash||'');
  if((hash&&hash===lastContentHash)||(!hash&&revision===lastRevision))return false;
- D=next;LI=obj(D.live_intelligence);FLD=obj(D.full_live_data);RK=obj(D.research_kernel);RE=obj(D.research_evidence_v53);RE62=obj(D.research_evidence_v62);RE64=obj(D.research_evidence_v64);RE65=obj(D.research_evidence_v65);RE66=obj(D.research_evidence_v66);RE76=obj(D.release_contract_v76);RE77=obj(D.release_contract_v77);sourceState=obj(D.data_health).overall||obj(D.meta).source||'NO_DATA';lastRevision=revision;lastContentHash=hash;lastPollOkAt=Date.now();
+ D=next;LI=obj(D.live_intelligence);FLD=obj(D.full_live_data);RK=obj(D.research_kernel);RE=obj(D.research_evidence_v53);RE62=obj(D.research_evidence_v62);RE64=obj(D.research_evidence_v64);RE65=obj(D.research_evidence_v65);RE66=obj(D.research_evidence_v66);RE76=obj(D.release_contract_v76);RE77=obj(D.release_contract_v77);RE78=obj(D.release_contract_v78);EV78=obj(D.research_evidence_v78);sourceState=obj(D.data_health).overall||obj(D.meta).source||'NO_DATA';lastRevision=revision;lastContentHash=hash;lastPollOkAt=Date.now();
  requestAnimationFrame(render);return true;
 }
 async function fetchJsonBounded(url,timeoutMs=3500){

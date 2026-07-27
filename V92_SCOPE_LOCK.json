@@ -1,0 +1,50 @@
+{
+  "schema": "warroom.v92.scope_lock.v1",
+  "release": "WAR_ROOM_OS_V92_FIVE_MARKET_EXECUTION_ROUTE",
+  "principle": "Prove one exact executable sleeve per market before expanding coverage.",
+  "technical_predictors": 0,
+  "markets": {
+    "us": {
+      "execution_scope": "US listed common stocks and REITs; long and selective short only where borrow proof exists; monthly/earnings-event decisions",
+      "historical_core": ["survivor_free_security_master", "corporate_actions_delistings", "pit_fundamentals", "sec_narrative_events", "valuation_snapshot", "eod_prices", "execution_cost_model"],
+      "preferred_route": ["Nasdaq Data Link Sharadar SF1", "Sharadar SEP/TICKERS", "SEC EDGAR", "broker fill export"],
+      "institutional_upgrade": ["CRSP", "LSEG Point-in-Time Fundamentals", "I/B/E/S PIT", "TAQ or LSEG Tick History", "Cboe DataShop", "securities lending data"],
+      "extreme_winner_cases": ["SNDK", "PLTR"],
+      "proof_transfer": "US_ONLY"
+    },
+    "idx": {
+      "execution_scope": "IDX cash equities; long-only until borrow/short-sale availability is independently proven",
+      "historical_core": ["idx_security_master", "corporate_actions", "issuer_fundamentals", "controller_free_float", "foreign_flow", "eod_or_log_prices", "execution_cost_model"],
+      "preferred_route": ["IDX Data Reference", "IDX Historical/EOD/Log Data", "IDX issuer filings", "KSEI disclosures", "broker fill export"],
+      "optional_addons": ["historical broker summary", "done detail", "negotiated crossing"],
+      "proof_transfer": "IDX_ONLY"
+    },
+    "commodity": {
+      "execution_scope": "CME/NYMEX/COMEX futures sleeves: WTI crude, gold and copper; contract-specific, fully collateralized",
+      "historical_core": ["contract_master", "official_stock_flow_vintages", "inventory_surprise", "release_lagged_cot", "fundamental_expectations", "cme_settlement_and_volume", "roll_and_execution_costs"],
+      "preferred_route": ["EIA/USDA/CFTC official data", "CME DataMine", "broker fill export"],
+      "optional_addons": ["Argus/Platts physical basis", "freight/storage", "CME options"],
+      "proof_transfer": "EXACT_CONTRACT_FAMILY_ONLY"
+    },
+    "fx": {
+      "execution_scope": "CME currency futures for EUR, JPY, GBP, AUD and CAD; no OTC proof transfer",
+      "historical_core": ["contract_master", "relative_macro_vintages", "balance_of_payments", "reserves_intervention", "release_lagged_tff", "valuation_anchor", "cme_prices_and_costs"],
+      "preferred_route": ["ALFRED", "BIS SDMX", "central banks/IMF", "CFTC TFF", "CME DataMine", "broker fill export"],
+      "optional_addons": ["FX options", "dealer flow", "Reuters polls"],
+      "proof_transfer": "CME_FUTURES_ONLY"
+    },
+    "crypto": {
+      "execution_scope": "BTC and ETH spot/perpetual on explicitly named Binance and Deribit accounts; venue-specific",
+      "historical_core": ["venue_instrument_lifecycle", "spot_and_derivatives_tape", "funding_basis_oi_liquidations", "protocol_value_capture", "stablecoin_liquidity", "token_supply", "depth_cost_model", "account_fills"],
+      "preferred_route": ["Binance Public Data", "Deribit API/history", "Coin Metrics Community or paid", "DefiLlama/protocol disclosures", "exchange account exports"],
+      "institutional_upgrade": ["Kaiko L1/L2", "Coin Metrics Market Data", "entity-labelled on-chain data"],
+      "proof_transfer": "VENUE_AND_INSTRUMENT_ONLY"
+    }
+  },
+  "promotion_levels": {
+    "DATA_ADMITTED": "All historical core roles pass point-in-time, identity and lineage checks.",
+    "HISTORICAL_BLIND_PROVEN": "Frozen model passes sealed OOS/lockbox, target calibration, extreme-winner or large-move benchmark, costs and drawdown.",
+    "LIMITED_PRODUCTION_READY": "Prospective shadow and small-capital execution receipts pass exact-scope gates.",
+    "FULLY_PROVEN": "At least 200 closed prospective trades, at least 24 months, at least four regimes, net PF >= 1.50, bootstrap PF lower bound >= 1.20, normal MDD <= 15%, stress MDD <= 20%."
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "forecast_id": "F95_REPLACE_WITH_UNIQUE_ID",
+  "shadow_order_id": "SO_REPLACE_WITH_UNIQUE_ID",
+  "filled_at": "2026-07-27T00:00:00Z",
+  "quantity": 1,
+  "price": 1.0,
+  "commission": 0.0,
+  "fees": 0.0,
+  "spread_cost": 0.0,
+  "slippage_cost": 0.0,
+  "source_snapshot_hash": "REPLACE_WITH_64_HEX"
+}

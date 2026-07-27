@@ -1,0 +1,87 @@
+{
+  "schema": "warroom.v85.official_source_matrix.v1",
+  "as_of": "2026-07-27",
+  "policy": "Official or contractually licensed sources only for confirmatory proof; aggregators may be used for debugging but never as the sole proof source.",
+  "sources": [
+    {
+      "market": "US_STOCKS",
+      "domain": "filings_and_fundamentals",
+      "provider": "SEC EDGAR",
+      "official_url": "https://www.sec.gov/search-filings/edgar-application-programming-interfaces",
+      "access": "PUBLIC; application/contact User-Agent required",
+      "pit_semantics": "acceptanceDateTime is the filing availability timestamp",
+      "implementation": "official_source_connectors.fetch_sec_submissions and fetch_sec_companyfacts",
+      "confirmatory_readiness": "CONNECTOR_READY_HISTORY_RECONSTRUCTION_REQUIRED"
+    },
+    {
+      "market": "CROSS_MARKET",
+      "domain": "macro_vintages",
+      "provider": "FRED/ALFRED",
+      "official_url": "https://fred.stlouisfed.org/docs/api/fred/alfred.html",
+      "access": "FRED_API_KEY required",
+      "pit_semantics": "realtime_start/realtime_end and vintage dates",
+      "implementation": "official_source_connectors.fetch_fred_alfred_observations",
+      "confirmatory_readiness": "CONNECTOR_READY_KEY_REQUIRED"
+    },
+    {
+      "market": "CROSS_MARKET",
+      "domain": "labor_and_inflation_releases",
+      "provider": "U.S. Bureau of Labor Statistics",
+      "official_url": "https://www.bls.gov/developers/",
+      "access": "Public API; registration increases limits",
+      "pit_semantics": "release-calendar timestamp must be joined to observations",
+      "implementation": "official_source_connectors.fetch_bls_series",
+      "confirmatory_readiness": "RAW_CONNECTOR_READY_RELEASE_CALENDAR_JOIN_REQUIRED"
+    },
+    {
+      "market": "COMMODITIES_AND_FX",
+      "domain": "positioning",
+      "provider": "CFTC Commitments of Traders",
+      "official_url": "https://www.cftc.gov/MarketReports/CommitmentsofTraders/index.htm",
+      "access": "Public annual files or Socrata; optional app token",
+      "pit_semantics": "report date is usually Tuesday; actual publication timestamp is normally Friday 15:30 ET and must be recorded",
+      "implementation": "official_source_connectors.fetch_cftc_socrata",
+      "confirmatory_readiness": "CONNECTOR_READY_RELEASE_SCHEDULE_JOIN_REQUIRED"
+    },
+    {
+      "market": "COMMODITIES",
+      "domain": "physical_stock_flow",
+      "provider": "U.S. Energy Information Administration",
+      "official_url": "https://www.eia.gov/opendata/",
+      "access": "EIA_API_KEY required for API",
+      "pit_semantics": "weekly/monthly release timestamp and later revisions must be retained separately",
+      "implementation": "official_source_connectors.fetch_eia_v2",
+      "confirmatory_readiness": "CONNECTOR_READY_KEY_AND_RELEASE_SCHEDULE_REQUIRED"
+    },
+    {
+      "market": "IHSG",
+      "domain": "official_market_and_broker_data",
+      "provider": "Indonesia Stock Exchange Data Services",
+      "official_url": "https://www.idx.co.id/en/products/idx-data-services/",
+      "access": "Subscription/license likely required for complete real-time, end-of-day and historical products",
+      "pit_semantics": "exchange timestamp, historical symbol/security master, corporate actions and broker records required",
+      "implementation": "NOT_BUNDLED; licensed ingestion adapter contract only",
+      "confirmatory_readiness": "BLOCKED_PENDING_LICENSED_HISTORY"
+    },
+    {
+      "market": "CRYPTO",
+      "domain": "options_futures_and_trades",
+      "provider": "Deribit official API",
+      "official_url": "https://docs.deribit.com/",
+      "access": "Public market-data endpoints; authenticated access for private account/fill records",
+      "pit_semantics": "venue timestamp, instrument metadata, trade sequence and contract lifecycle must be preserved",
+      "implementation": "PLANNED_AFTER_VENUE_SPECIFIC_MAPPING",
+      "confirmatory_readiness": "PUBLIC_SHADOW_DATA_POSSIBLE_REAL_FILL_LEDGER_REQUIRES_ACCOUNT_EXPORT"
+    },
+    {
+      "market": "US_STOCKS",
+      "domain": "options_signed_flow_borrow_and_execution_cost",
+      "provider": "Licensed exchange/stock-loan datasets",
+      "official_url": "https://datashop.cboe.com/",
+      "access": "Commercial license required for historical quote/trade/open-close and detailed options datasets",
+      "pit_semantics": "trade/quote timestamp, NBBO, participant/open-close classification and revisions",
+      "implementation": "NOT_BUNDLED; licensed ingestion adapter contract only",
+      "confirmatory_readiness": "BLOCKED_PENDING_LICENSED_HISTORY"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "schema": "warroom.v90.validation_summary.v1",
+  "root_cause_controls": {
+    "passed": 9,
+    "total": 9,
+    "all_pass": true
+  },
+  "real_data_admission_regression": {
+    "passed": 14,
+    "total": 14,
+    "all_pass": true
+  },
+  "all_market_projection_regression": {
+    "passed": 70,
+    "total": 70,
+    "all_pass": true
+  },
+  "combined": {
+    "passed": 93,
+    "total": 93,
+    "all_pass": true
+  },
+  "compile": "PASS",
+  "current_data_admitted_markets": 0,
+  "current_empirically_failed_models": 0,
+  "capital_permission": "BLOCKED",
+  "claim": "Validation proves corrected data/proof machinery, not trading edge."
+}

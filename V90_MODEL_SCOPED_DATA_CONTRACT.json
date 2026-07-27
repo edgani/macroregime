@@ -1,0 +1,57 @@
+{
+  "schema": "warroom.v90.model_scoped_data_contract.v1",
+  "change_from_v89": "Admission is model-scoped. Core roles are mandatory for that exact model; optional roles are separate add-on candidates and cannot block a core test. Outcomes are isolated from predictor admission.",
+  "row_level_pit": {
+    "required_predictor_fields": [
+      "record_id",
+      "instrument_id",
+      "observation_at",
+      "available_at",
+      "source_id",
+      "source_record_id",
+      "field_id",
+      "value",
+      "unit",
+      "revision_id"
+    ],
+    "required_forecast_fields": [
+      "forecast_id",
+      "model_hash",
+      "market",
+      "instrument_id",
+      "decision_time",
+      "horizon_end",
+      "universe_hash",
+      "feature_snapshot_hash"
+    ],
+    "rule": "For every forecast, each predictor row must satisfy available_at <= decision_time. A single end-of-history decision_time is prohibited."
+  },
+  "outcome_isolation": {
+    "predictor_manifest_must_exclude": [
+      "outcome_prices",
+      "realized_return",
+      "peak_return",
+      "drawdown_after_decision"
+    ],
+    "outcome_manifest": "separate custodian file opened only after forecast and code hashes are frozen",
+    "rule": "The LLM and selector cannot read outcomes during discovery, fitting or ranking."
+  },
+  "proof_levels": [
+    {
+      "level": "DATA_ADMITTED",
+      "meaning": "identity, lineage and PIT semantics pass; no edge claim"
+    },
+    {
+      "level": "HISTORICAL_RESEARCH_PASS",
+      "meaning": "nested WFA/OOS and sealed historical lockbox pass; paper only"
+    },
+    {
+      "level": "PROSPECTIVE_SHADOW_PASS",
+      "meaning": "post-freeze forecasts mature; still no automatic live capital"
+    },
+    {
+      "level": "LIMITED_PRODUCTION_PASS",
+      "meaning": "actual fills, PF, drawdown, capacity and drift gates pass for exact scope"
+    }
+  ]
+}

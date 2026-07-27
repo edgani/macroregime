@@ -1,0 +1,1 @@
+89c856f79964af5f03356958515ddcb82ec065c95fdbfe80d8f3a6f478ab285d  /mnt/data/v78work/research_v78/protocols/V78_US_EQUITY_VOL12_RISK_CAP_PROTOCOL_FROZEN.json

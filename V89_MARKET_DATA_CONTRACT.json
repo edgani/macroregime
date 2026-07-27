@@ -1,0 +1,16 @@
+{
+  "schema": "warroom.v89.market_data_contract.v1",
+  "evidence_mode": "REAL_POINT_IN_TIME_BLIND",
+  "common_columns": [
+    "record_id", "instrument_id", "observation_at", "available_at", "source_id",
+    "source_record_id", "field_id", "value", "unit", "revision_id"
+  ],
+  "markets": {
+    "us": ["security_master", "corporate_actions", "filing_fundamentals", "expectations", "bottleneck_transmission", "positioning_amplification", "valuation_snapshot", "execution_costs_capacity", "outcome_prices"],
+    "idx": ["security_master", "corporate_actions", "issuer_fundamentals", "controller_free_float", "broker_inventory", "foreign_flow", "bottleneck_transmission", "valuation_snapshot", "execution_costs_capacity", "outcome_prices"],
+    "commodity": ["contract_master", "stock_flow_balance", "inventory_surprise", "physical_basis", "freight_storage_capacity", "positioning", "expectations", "execution_costs_capacity", "outcome_prices"],
+    "fx": ["pair_master", "relative_macro_vintages", "policy_expectations", "balance_of_payments", "reserves_intervention", "funding_positioning", "valuation_anchor", "execution_costs_capacity", "outcome_prices"],
+    "crypto": ["asset_venue_master", "protocol_financials", "token_supply_unlocks", "stablecoin_liquidity", "entity_adjusted_flows", "funding_basis_oi_liquidations", "valuation_snapshot", "execution_costs_capacity", "counterparty_risk", "outcome_prices"]
+  },
+  "prohibited": ["synthetic evidence", "test fixtures", "future availability", "technical indicators", "current constituent survivorship", "post-outcome backfill"]
+}

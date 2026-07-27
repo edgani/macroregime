@@ -1,7 +1,7 @@
 {
   "checks": [
     {
-      "detail": "{'files': 346, 'failures': []}",
+      "detail": "{'files': 357, 'failures': []}",
       "name": "python_compile_all",
       "status": "PASS"
     },
@@ -61,7 +61,7 @@
       "status": "PASS"
     },
     {
-      "detail": "{'README': '> **Current release: V7.7 Human-Readable Final.** It inherits the exact V7.6 proof boundary (`US_SMA10_MONTHLY_RISK_CAP`', 'START': '> **Current release: V7.7 Human-Readable Final.** Run `CHECK_FINAL_V77.bat` first. It inherits the exact V7.6 proof boun'}",
+      "detail": "{'README': '# V7.8 CURRENT RELEASE STATUS\\n\\n**Proof Expansion Checkpoint \u2014 not a final proven trading system.** V7.8 added bounded ne', 'START': '# V7.8 CURRENT RELEASE STATUS\\n\\n**Proof Expansion Checkpoint \u2014 not a final proven trading system.** V7.8 added bounded ne'}",
       "name": "release_identity_consistent",
       "status": "PASS"
     },

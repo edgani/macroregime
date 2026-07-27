@@ -1,0 +1,179 @@
+{
+  "schema": "warroom.v85.validation.v1",
+  "passed": 34,
+  "total": 34,
+  "all_pass": true,
+  "checks": [
+    {
+      "name": "trial_ledger_valid",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "trial_duplicate_rejected",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "trial_tamper_detected",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "blind_mapping_roundtrip",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "public_registry_has_no_names",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "blind_mapping_wrong_key_rejected",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "pit_valid",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "pit_future_information_rejected",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "pit_duplicate_rejected",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "prospective_early_outcome_rejected",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "prospective_ledger_valid",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "prospective_tamper_detected",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "real_trade_ledger_valid",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "real_profit_factor_gate_passes_fixture",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "profit_factor_bootstrap_gate_passes_fixture",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "drawdown_gates_pass_fixture",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "all_risk_profit_gates_pass_fixture",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "insufficient_trades_fail",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "promotion_gate_accepts_complete_fixture",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "promotion_gate_blocks_low_pf",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "sec_filing_acceptance_timestamp_preserved",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "sec_normalized_record_passes_pit",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "v84_revocation_audit_runs",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "v84_confirmatory_proof_still_revoked",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "v83_risk_audit_runs",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "v83_live_trading_gates_still_fail",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "snapshot_v85_evidence_factory",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "snapshot_capital_blocked",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "snapshot_zero_predictive_components",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "snapshot_no_picks",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "python_compile",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "dashboard_v85",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "dashboard_javascript_parse",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "active_decision_files_zero_technical_features",
+      "pass": true,
+      "detail": ""
+    }
+  ],
+  "claim_limit": "Software/evidence-production validation only; not predictive or trading proof."
+}

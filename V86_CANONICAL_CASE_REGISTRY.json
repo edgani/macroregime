@@ -1,0 +1,68 @@
+{
+  "schema": "warroom.v86.known_case_registry.v1",
+  "claim_limit": "Availability anchors only. These facts do not assert that the current War Room detected the stock.",
+  "cases": [
+    {
+      "case_id": "KNOWN_SNDK_2025_2026",
+      "ticker": "SNDK",
+      "security_id": "US_SNDK_POST_SPIN_2025",
+      "market": "US",
+      "eligibility_anchor": "2025-02-24T14:30:00Z",
+      "mechanism_hypothesis": [
+        "independent flash-company valuation reset",
+        "NAND supply discipline and ASP inflection",
+        "AI datacenter qualification and enterprise SSD demand",
+        "large operating leverage from revenue and gross-margin acceleration"
+      ],
+      "point_in_time_checkpoints": [
+        {
+          "available_at": "2025-08-14T20:00:00Z",
+          "facts": "Fiscal Q4 revenue was $1.90B, up 12% sequentially and above guidance; fiscal Q1 revenue guidance was $2.10B-$2.20B; management said demand was improving and industry fundamentals were strengthening.",
+          "source": "https://www.sec.gov/Archives/edgar/data/2023554/000119312525180782/d926236dex991.htm"
+        },
+        {
+          "available_at": "2025-11-06T21:00:00Z",
+          "facts": "Fiscal Q1 revenue rose 21% sequentially to $2.31B; datacenter revenue rose 26%; hyperscaler qualifications and a much stronger fiscal Q2 outlook were disclosed.",
+          "source": "https://www.sec.gov/Archives/edgar/data/2023554/000162828025050180/sndkq1fy26ex991-pressrelea.htm"
+        },
+        {
+          "available_at": "2026-01-29T21:07:00Z",
+          "facts": "Fiscal Q2 revenue rose 31% sequentially; gross margin reached 50.9%; datacenter revenue rose 64%; fiscal Q3 revenue guidance was $4.4B-$4.8B.",
+          "source": "https://investor.sandisk.com/news-releases/news-release-details/sandisk-reports-fiscal-second-quarter-2026-financial-results"
+        }
+      ],
+      "mandatory_result": "Must be captured within top 50 while at least +200% forward upside remains and no more than 30% of the eligibility-to-peak window has elapsed."
+    },
+    {
+      "case_id": "KNOWN_PLTR_2023_PLUS",
+      "ticker": "PLTR",
+      "security_id": "US_PLTR_CLASS_A",
+      "market": "US",
+      "eligibility_anchor": "2023-05-08T20:00:00Z",
+      "mechanism_hypothesis": [
+        "transition to sustained GAAP profitability",
+        "commercial customer expansion and operating leverage",
+        "AIP product demand and faster enterprise adoption",
+        "large cash balance with no debt and rising free cash flow"
+      ],
+      "point_in_time_checkpoints": [
+        {
+          "available_at": "2023-05-08T20:00:00Z",
+          "facts": "Second consecutive positive GAAP net-income quarter, first positive GAAP operating-income quarter, US commercial customer count up 50% year over year, and management described AIP demand as unprecedented.",
+          "source": "https://www.sec.gov/Archives/edgar/data/1321655/000132165523000042/a2023q1ex991earningsrelease.htm"
+        },
+        {
+          "available_at": "2023-11-02T20:00:00Z",
+          "facts": "Fourth consecutive GAAP-profitable quarter, third consecutive positive GAAP operating-income quarter, US commercial revenue up 33%, and adjusted operating margin continued to expand.",
+          "source": "https://www.sec.gov/Archives/edgar/data/1321655/000132165523000115/a2023q3ex991earningsrelease.htm"
+        },
+        {
+          "available_at": "2024-02-05T21:00:00Z",
+          "facts": "US commercial revenue grew 70%, customer count grew 55%, TCV grew 107%, GAAP operating margin reached 11%, and adjusted free-cash-flow margin reached 50%.",
+          "source": "https://www.sec.gov/Archives/edgar/data/1321655/000132165524000010/a2023q4ex991earningsrelease.htm"
+        }
+      ],
+      "mandatory_result": "Must be captured within top 50 while at least +200% forward upside remains and no more than 30% of the eligibility-to-peak window has elapsed."
+    }
+  ]
+}

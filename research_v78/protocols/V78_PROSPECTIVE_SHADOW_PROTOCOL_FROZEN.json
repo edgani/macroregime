@@ -1,0 +1,39 @@
+{
+  "schema": "warroom.v78.prospective_shadow_protocol.v1",
+  "frozen_at_utc": "2026-07-26T00:00:00Z",
+  "purpose": "Accumulate genuinely prospective, immutable evidence for ticker, direction, accumulation, surge, topping, target, timing and risk-control claims.",
+  "forecast_schema": "warroom.v78.prospective_forecast.v1",
+  "outcome_schema": "warroom.v78.prospective_outcome.v1",
+  "capital_permission": "SHADOW_ONLY_ZERO_CAPITAL",
+  "backfill_policy": "Forecast and outcome creation timestamps must be within 300 seconds of wall-clock time; historical backfill is rejected.",
+  "separate_outcome_chain": true,
+  "required_before_forecast": [
+    "frozen component_id and formula",
+    "market and instrument",
+    "decision timestamp and data cutoff timestamp",
+    "orientation and horizon",
+    "outcome metric and neutral band",
+    "feature, data and code SHA-256 hashes",
+    "entry/target/invalidation when the component claims them"
+  ],
+  "required_at_outcome": [
+    "realized return",
+    "frozen outcome value",
+    "MAE",
+    "MFE",
+    "resolution timestamp after maturity",
+    "exact forecast row hash"
+  ],
+  "minimum_review_gate": {
+    "matured_forecasts": 200,
+    "distinct_regimes": 4,
+    "baseline_not_worse": true,
+    "simultaneous_lower_bound_positive": true,
+    "calibration_pass": true,
+    "actual_cost_capacity_pass": true,
+    "untouched_prospective_lockbox": true,
+    "human_signed_exact_scope_receipt": true
+  },
+  "automatic_promotion": false,
+  "claim_boundary": "Meeting the count gate only opens human proof review. It never grants capital automatically."
+}

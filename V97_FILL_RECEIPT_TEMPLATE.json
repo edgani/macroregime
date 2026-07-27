@@ -1,0 +1,16 @@
+{
+  "schema": "warroom.v97.fill_receipt.v1",
+  "order_id": "ord-replace",
+  "broker_order_id_hash": "replace-with-sha256-of-broker-order-id",
+  "account_id_hash": "replace-with-one-way-account-hash",
+  "market": "us",
+  "instrument": "SPY",
+  "venue": "MANUAL_BROKER_EXPORT",
+  "side": "BUY",
+  "filled_quantity": 1.0,
+  "fill_price": 1.0,
+  "fees": 0.0,
+  "filled_at": "2026-07-27T00:00:00Z",
+  "source": "BROKER_EXPORT",
+  "live": true
+}

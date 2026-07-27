@@ -1,0 +1,8 @@
+"""Single source of truth for War Room OS release identity."""
+from __future__ import annotations
+RELEASE_VERSION = "9.7"
+RELEASE_NAME = "Limited-Production Trading Control Plane"
+RELEASE_ID = f"War Room OS V{RELEASE_VERSION}"
+SCHEMA_PREFIX = "warroom.v97"
+CAPITAL_PERMISSION = "BLOCKED_UNTIL_EXACT_PROOF_AND_HUMAN_APPROVAL"
+OPERATIONAL_PERMISSION = "QUOTE_REFRESH_RISK_CHECK_MANUAL_ORDER_EXPORT_RECONCILIATION"

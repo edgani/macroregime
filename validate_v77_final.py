@@ -60,7 +60,7 @@ def dashboard_checks() -> None:
     dash = (ROOT / "dashboard.html").read_text(encoding="utf-8")
     static_dash = (ROOT / "static" / "dashboard_live.html").read_text(encoding="utf-8")
     add("dashboard_static_copy_synced", dash == static_dash, {"dashboard_bytes": len(dash), "static_bytes": len(static_dash)})
-    add("dashboard_v77_brand", "v7.7 HUMAN-READABLE FINAL" in dash and "release_contract_v77" in dash, "brand and contract binding")
+    add("dashboard_v77_brand", ("v7.7 HUMAN-READABLE FINAL" in dash or "v7.8 PROOF EXPANSION" in dash) and "release_contract_v77" in dash, "brand and contract binding")
     required = [
         "KESIMPULAN PALING SEDERHANA", "YANG DILAKUKAN SEKARANG", "KELENGKAPAN DATA", "STATUS PENGGUNAAN",
         "CARA BACA KONDISI SEKARANG", "ARTINYA", "YANG DILAKUKAN", "LIHAT DETAIL TEKNIS / MODE LANJUTAN",

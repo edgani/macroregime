@@ -1,0 +1,78 @@
+{
+  "schema": "warroom.v89.validation.v1",
+  "passed": 14,
+  "total": 14,
+  "all_pass": true,
+  "checks": [
+    {
+      "name": "shipped package has zero admitted markets",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "name": "shipped package capital blocked",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "all-market admission false",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "structurally real PIT evidence can pass admission",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "name": "test fixture evidence rejected",
+      "pass": true,
+      "detail": "['bottleneck_transmission: test fixture prohibited', 'corporate_actions: test fixture prohibited', 'execution_costs_capacity: test fixture prohibited', 'expectations: test fixture prohibited', 'filing_fundamentals: test fixture prohibited', 'outcome_prices: test fixture prohibited', 'positioning_amplification: test fixture prohibited', 'security_master: test fixture prohibited', 'valuation_snapshot: test fixture prohibited']"
+    },
+    {
+      "name": "synthetic row rejected",
+      "pass": true,
+      "detail": "['bottleneck_transmission: synthetic evidence prohibited', 'corporate_actions: synthetic evidence prohibited', 'execution_costs_capacity: synthetic evidence prohibited', 'expectations: synthetic evidence prohibited', 'filing_fundamentals: synthetic evidence prohibited', 'outcome_prices: synthetic evidence prohibited', 'positioning_amplification: synthetic evidence prohibited', 'security_master: synthetic evidence prohibited', 'valuation_snapshot: synthetic evidence prohibited']"
+    },
+    {
+      "name": "future information rejected",
+      "pass": true,
+      "detail": "['bottleneck_transmission: future information relative to decision_time', 'corporate_actions: future information relative to decision_time', 'execution_costs_capacity: future information relative to decision_time', 'expectations: future information relative to decision_time', 'filing_fundamentals: future information relative to decision_time', 'outcome_prices: future information relative to decision_time', 'positioning_amplification: future information relative to decision_time', 'security_master: future information relative to decision_time', 'valuation_snapshot: future information relative to decision_time']"
+    },
+    {
+      "name": "technical feature domain rejected",
+      "pass": true,
+      "detail": "['bottleneck_transmission: technical predictor domain prohibited: price_momentum: price_momentum', 'corporate_actions: technical predictor domain prohibited: price_momentum: price_momentum', 'execution_costs_capacity: technical predictor domain prohibited: price_momentum: price_momentum', 'expectations: technical predictor domain prohibited: price_momentum: price_momentum', 'filing_fundamentals: technical predictor domain prohibited: price_momentum: price_momentum', 'outcome_prices: technical predictor domain prohibited: price_momentum: price_momentum', 'positioning_amplification: technical predictor domain prohibited: price_momentum: price_momentum', 'security_master: technical predictor domain prohibited: price_momentum: price_momentum', 'valuation_snapshot: technical predictor domain prohibited: price_momentum: price_momentum']"
+    },
+    {
+      "name": "file hash mismatch rejected",
+      "pass": true,
+      "detail": "['bottleneck_transmission: sha256 mismatch', 'corporate_actions: sha256 mismatch', 'execution_costs_capacity: sha256 mismatch', 'expectations: sha256 mismatch', 'filing_fundamentals: sha256 mismatch', 'outcome_prices: sha256 mismatch', 'positioning_amplification: sha256 mismatch', 'security_master: sha256 mismatch', 'valuation_snapshot: sha256 mismatch']"
+    },
+    {
+      "name": "licensed export normalizer creates PIT table",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "normalizer never marks synthetic or fixture",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "empty promotion receipt rejected",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "permission remains blocked",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "promotion rejects test fixture flag",
+      "pass": true,
+      "detail": ""
+    }
+  ]
+}

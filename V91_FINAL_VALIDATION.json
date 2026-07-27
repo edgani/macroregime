@@ -1,0 +1,422 @@
+{
+  "schema": "warroom.v91.proof_plane_validation.v1",
+  "checks": [
+    {
+      "name": "builder_output_passes_forecast_local_admission",
+      "status": "PASS",
+      "detail": []
+    },
+    {
+      "name": "historical_proof_ready_is_reachable",
+      "status": "PASS",
+      "detail": {
+        "schema": "warroom.v91.data_admission.v1",
+        "valid": true,
+        "collection_admitted": true,
+        "historical_proof_ready": true,
+        "market": "us",
+        "model_id": "US_TEST_CORE",
+        "core_roles": [
+          "security_master",
+          "corporate_actions",
+          "filing_fundamentals",
+          "bottleneck_transmission",
+          "valuation_snapshot",
+          "execution_costs_capacity"
+        ],
+        "optional_roles": [
+          "expectations",
+          "positioning_amplification",
+          "options_surface",
+          "borrow_lending"
+        ],
+        "missing_core_roles": [],
+        "roles_audited": {
+          "bottleneck_transmission": {
+            "role": "bottleneck_transmission",
+            "valid": true,
+            "path": "/tmp/tmp0mwxm1eo/evidence.csv",
+            "rows": 1,
+            "instruments": 1,
+            "min_observation_at": "2010-01-01T00:00:00+00:00",
+            "max_available_at": "2010-01-02T00:00:00+00:00",
+            "forecast_coverage": 1.0,
+            "sha256": "c65102aa69deda9f6c5f232a4e9407d71e8677212b8c03fd6545ef63ce333056",
+            "errors": []
+          },
+          "corporate_actions": {
+            "role": "corporate_actions",
+            "valid": true,
+            "path": "/tmp/tmp0mwxm1eo/evidence.csv",
+            "rows": 1,
+            "instruments": 1,
+            "min_observation_at": "2010-01-01T00:00:00+00:00",
+            "max_available_at": "2010-01-02T00:00:00+00:00",
+            "forecast_coverage": 1.0,
+            "sha256": "c65102aa69deda9f6c5f232a4e9407d71e8677212b8c03fd6545ef63ce333056",
+            "errors": []
+          },
+          "execution_costs_capacity": {
+            "role": "execution_costs_capacity",
+            "valid": true,
+            "path": "/tmp/tmp0mwxm1eo/evidence.csv",
+            "rows": 1,
+            "instruments": 1,
+            "min_observation_at": "2010-01-01T00:00:00+00:00",
+            "max_available_at": "2010-01-02T00:00:00+00:00",
+            "forecast_coverage": 1.0,
+            "sha256": "c65102aa69deda9f6c5f232a4e9407d71e8677212b8c03fd6545ef63ce333056",
+            "errors": []
+          },
+          "filing_fundamentals": {
+            "role": "filing_fundamentals",
+            "valid": true,
+            "path": "/tmp/tmp0mwxm1eo/evidence.csv",
+            "rows": 1,
+            "instruments": 1,
+            "min_observation_at": "2010-01-01T00:00:00+00:00",
+            "max_available_at": "2010-01-02T00:00:00+00:00",
+            "forecast_coverage": 1.0,
+            "sha256": "c65102aa69deda9f6c5f232a4e9407d71e8677212b8c03fd6545ef63ce333056",
+            "errors": []
+          },
+          "security_master": {
+            "role": "security_master",
+            "valid": true,
+            "path": "/tmp/tmp0mwxm1eo/evidence.csv",
+            "rows": 1,
+            "instruments": 1,
+            "min_observation_at": "2010-01-01T00:00:00+00:00",
+            "max_available_at": "2010-01-02T00:00:00+00:00",
+            "forecast_coverage": 1.0,
+            "sha256": "c65102aa69deda9f6c5f232a4e9407d71e8677212b8c03fd6545ef63ce333056",
+            "errors": []
+          },
+          "valuation_snapshot": {
+            "role": "valuation_snapshot",
+            "valid": true,
+            "path": "/tmp/tmp0mwxm1eo/evidence.csv",
+            "rows": 1,
+            "instruments": 1,
+            "min_observation_at": "2010-01-01T00:00:00+00:00",
+            "max_available_at": "2010-01-02T00:00:00+00:00",
+            "forecast_coverage": 1.0,
+            "sha256": "c65102aa69deda9f6c5f232a4e9407d71e8677212b8c03fd6545ef63ce333056",
+            "errors": []
+          }
+        },
+        "decision_forecasts": 240,
+        "decision_months": 240,
+        "decision_regimes": 4,
+        "history_years": 20.0,
+        "errors": [],
+        "proof_ceiling": "HISTORICAL_BLIND_PROOF_READY",
+        "claim_limit": "Admission proves portable, forecast-local PIT data usability only. Outcomes, target accuracy, profit factor and trading edge require separate sealed adjudication.",
+        "admission_hash": "62f65f83939ad92bf9e11b180c31390a3084d8c8b876057e7d00c8df6d4c8251"
+      }
+    },
+    {
+      "name": "optional_addons_do_not_block_core",
+      "status": "PASS",
+      "detail": [
+        "expectations",
+        "positioning_amplification",
+        "options_surface",
+        "borrow_lending"
+      ]
+    },
+    {
+      "name": "outcomes_absent_from_predictor_manifest",
+      "status": "PASS",
+      "detail": "dict_keys(['security_master', 'corporate_actions', 'filing_fundamentals', 'bottleneck_transmission', 'valuation_snapshot', 'execution_costs_capacity'])"
+    },
+    {
+      "name": "portable_relative_paths",
+      "status": "PASS",
+      "detail": {
+        "security_master": {
+          "path": "evidence.csv",
+          "sha256": "c65102aa69deda9f6c5f232a4e9407d71e8677212b8c03fd6545ef63ce333056",
+          "minimum_rows": 1
+        },
+        "corporate_actions": {
+          "path": "evidence.csv",
+          "sha256": "c65102aa69deda9f6c5f232a4e9407d71e8677212b8c03fd6545ef63ce333056",
+          "minimum_rows": 1
+        },
+        "filing_fundamentals": {
+          "path": "evidence.csv",
+          "sha256": "c65102aa69deda9f6c5f232a4e9407d71e8677212b8c03fd6545ef63ce333056",
+          "minimum_rows": 1
+        },
+        "bottleneck_transmission": {
+          "path": "evidence.csv",
+          "sha256": "c65102aa69deda9f6c5f232a4e9407d71e8677212b8c03fd6545ef63ce333056",
+          "minimum_rows": 1
+        },
+        "valuation_snapshot": {
+          "path": "evidence.csv",
+          "sha256": "c65102aa69deda9f6c5f232a4e9407d71e8677212b8c03fd6545ef63ce333056",
+          "minimum_rows": 1
+        },
+        "execution_costs_capacity": {
+          "path": "evidence.csv",
+          "sha256": "c65102aa69deda9f6c5f232a4e9407d71e8677212b8c03fd6545ef63ce333056",
+          "minimum_rows": 1
+        }
+      }
+    },
+    {
+      "name": "missing_core_role_blocks",
+      "status": "PASS",
+      "detail": {
+        "schema": "warroom.v91.data_admission.v1",
+        "valid": false,
+        "collection_admitted": false,
+        "historical_proof_ready": false,
+        "market": "us",
+        "model_id": "US_TEST_CORE",
+        "core_roles": [
+          "security_master",
+          "corporate_actions",
+          "filing_fundamentals",
+          "bottleneck_transmission",
+          "valuation_snapshot",
+          "execution_costs_capacity"
+        ],
+        "optional_roles": [
+          "expectations",
+          "positioning_amplification",
+          "options_surface",
+          "borrow_lending"
+        ],
+        "missing_core_roles": [
+          "security_master"
+        ],
+        "roles_audited": {
+          "bottleneck_transmission": {
+            "role": "bottleneck_transmission",
+            "valid": true,
+            "path": "/tmp/tmp0mwxm1eo/evidence.csv",
+            "rows": 1,
+            "instruments": 1,
+            "min_observation_at": "2010-01-01T00:00:00+00:00",
+            "max_available_at": "2010-01-02T00:00:00+00:00",
+            "forecast_coverage": 1.0,
+            "sha256": "c65102aa69deda9f6c5f232a4e9407d71e8677212b8c03fd6545ef63ce333056",
+            "errors": []
+          },
+          "corporate_actions": {
+            "role": "corporate_actions",
+            "valid": true,
+            "path": "/tmp/tmp0mwxm1eo/evidence.csv",
+            "rows": 1,
+            "instruments": 1,
+            "min_observation_at": "2010-01-01T00:00:00+00:00",
+            "max_available_at": "2010-01-02T00:00:00+00:00",
+            "forecast_coverage": 1.0,
+            "sha256": "c65102aa69deda9f6c5f232a4e9407d71e8677212b8c03fd6545ef63ce333056",
+            "errors": []
+          },
+          "execution_costs_capacity": {
+            "role": "execution_costs_capacity",
+            "valid": true,
+            "path": "/tmp/tmp0mwxm1eo/evidence.csv",
+            "rows": 1,
+            "instruments": 1,
+            "min_observation_at": "2010-01-01T00:00:00+00:00",
+            "max_available_at": "2010-01-02T00:00:00+00:00",
+            "forecast_coverage": 1.0,
+            "sha256": "c65102aa69deda9f6c5f232a4e9407d71e8677212b8c03fd6545ef63ce333056",
+            "errors": []
+          },
+          "filing_fundamentals": {
+            "role": "filing_fundamentals",
+            "valid": true,
+            "path": "/tmp/tmp0mwxm1eo/evidence.csv",
+            "rows": 1,
+            "instruments": 1,
+            "min_observation_at": "2010-01-01T00:00:00+00:00",
+            "max_available_at": "2010-01-02T00:00:00+00:00",
+            "forecast_coverage": 1.0,
+            "sha256": "c65102aa69deda9f6c5f232a4e9407d71e8677212b8c03fd6545ef63ce333056",
+            "errors": []
+          },
+          "valuation_snapshot": {
+            "role": "valuation_snapshot",
+            "valid": true,
+            "path": "/tmp/tmp0mwxm1eo/evidence.csv",
+            "rows": 1,
+            "instruments": 1,
+            "min_observation_at": "2010-01-01T00:00:00+00:00",
+            "max_available_at": "2010-01-02T00:00:00+00:00",
+            "forecast_coverage": 1.0,
+            "sha256": "c65102aa69deda9f6c5f232a4e9407d71e8677212b8c03fd6545ef63ce333056",
+            "errors": []
+          }
+        },
+        "decision_forecasts": 240,
+        "decision_months": 240,
+        "decision_regimes": 4,
+        "history_years": 20.0,
+        "errors": [
+          "missing core roles: security_master"
+        ],
+        "proof_ceiling": "BLOCKED_DATA",
+        "claim_limit": "Admission proves portable, forecast-local PIT data usability only. Outcomes, target accuracy, profit factor and trading edge require separate sealed adjudication.",
+        "admission_hash": "830b58ad2dff915d843b3b639a6e5948543b4991eea2d2939ca4572e2ce58156"
+      }
+    },
+    {
+      "name": "predictor_builder_rejects_outcome_roles",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "future_rows_excluded_forecast_locally",
+      "status": "PASS",
+      "detail": {
+        "schema": "warroom.v90.asof_audit.v1",
+        "forecast_count": 240,
+        "snapshot_rows": 240,
+        "snapshot_hash": "20ee410d1c8e1f858c200de4c30b32a4d431ca483b33ae92170455f504f6c3bc",
+        "future_rows": 0
+      }
+    },
+    {
+      "name": "separate_outcome_manifest_passes",
+      "status": "PASS",
+      "detail": {
+        "schema": "warroom.v91.outcome_admission.v1",
+        "valid": true,
+        "market": "us",
+        "predictor_manifest_hash": "00d94757b67b742fd2b80a68f316f3b465832b05fd017cc2c65de5ed1cb95046",
+        "forecast_seal_hash": "e3958a731f5a239fec056855f0b103247071937c9ba1ee1464efac1934d35856",
+        "roles": {
+          "delisting_outcomes": {
+            "valid": true,
+            "rows": 240,
+            "sha256": "a52f15eebb8eb68a952801365a78783c9b66d961f3ddffd98d8fd647aa3d5bfc"
+          },
+          "outcome_prices": {
+            "valid": true,
+            "rows": 240,
+            "sha256": "a52f15eebb8eb68a952801365a78783c9b66d961f3ddffd98d8fd647aa3d5bfc"
+          }
+        },
+        "errors": [],
+        "claim_limit": "Outcome admission only proves sealed outcome identity. It does not prove model quality.",
+        "admission_hash": "ea8b102c45e90561a9f45fe1448f36c07c5dd4aa86b0a5e3cab425da07a9e6cb"
+      }
+    },
+    {
+      "name": "outcome_seal_mismatch_blocks",
+      "status": "PASS",
+      "detail": {
+        "schema": "warroom.v91.outcome_admission.v1",
+        "valid": false,
+        "market": "us",
+        "predictor_manifest_hash": "00d94757b67b742fd2b80a68f316f3b465832b05fd017cc2c65de5ed1cb95046",
+        "forecast_seal_hash": "8810ad581e59f2bc3928b261707a71308f7e139eb04820366dc4d5c18d980225",
+        "roles": {
+          "delisting_outcomes": {
+            "valid": true,
+            "rows": 240,
+            "sha256": "a52f15eebb8eb68a952801365a78783c9b66d961f3ddffd98d8fd647aa3d5bfc"
+          },
+          "outcome_prices": {
+            "valid": true,
+            "rows": 240,
+            "sha256": "a52f15eebb8eb68a952801365a78783c9b66d961f3ddffd98d8fd647aa3d5bfc"
+          }
+        },
+        "errors": [
+          "forecast seal mismatch"
+        ],
+        "claim_limit": "Outcome admission only proves sealed outcome identity. It does not prove model quality.",
+        "admission_hash": "892d00ae7a6e979168cb8a687f80b43fe371438ca0d1b7ec84ca64458a5f6c11"
+      }
+    },
+    {
+      "name": "exact_market_projection_scoring_reachable",
+      "status": "PASS",
+      "detail": {
+        "schema": "warroom.v91.projection_benchmark.v1",
+        "valid": true,
+        "market": "us",
+        "rows": 240,
+        "metrics": {
+          "market": "us",
+          "count": 240,
+          "months": 240,
+          "regimes": 4,
+          "median_expected_abs_log_error": 0.005012541823544048,
+          "median_base_abs_log_error": 0.0,
+          "median_no_change_abs_log_error": 0.35417120753270037,
+          "error_improvement_vs_no_change": 0.9858471221913734,
+          "interval_coverage": 0.75,
+          "scenario_brier": 0.13666666666666666,
+          "direction_accuracy": 1.0,
+          "spearman_projected_vs_realized_return": 0.9995286376499593,
+          "median_realized_return": 0.42500000000000004,
+          "median_projected_return": 0.4178200836820083,
+          "severe_loss_rate": 0.0,
+          "gates": {
+            "minimum_200_predictions": true,
+            "minimum_24_months": true,
+            "minimum_4_regimes": true,
+            "target_error_within_market_limit": true,
+            "beats_no_change_error_by_10pct": true,
+            "interval_coverage_between_70_and_90pct": true,
+            "scenario_brier_at_most_0_20": true,
+            "direction_accuracy_at_least_55pct": true,
+            "projected_realized_rank_correlation_positive": true,
+            "severe_loss_rate_at_most_15pct": true
+          },
+          "all_projection_gates_pass": true
+        },
+        "market_pass": true,
+        "errors": [],
+        "claim_limit": "Projection proof is exact-market, exact-universe and exact-horizon only."
+      }
+    },
+    {
+      "name": "exact_market_file_rejects_cross_market_mix",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "real_us_bootstrap_snapshot_present",
+      "status": "PASS",
+      "detail": {
+        "schema": "warroom.v91.bootstrap_public_evidence.v1",
+        "role": "security_master",
+        "market": "us",
+        "rows": 26110,
+        "instruments": 13055,
+        "available_at": "2026-07-24T21:31:00Z",
+        "sha256": "212879d642a5f759f7708f60344f5e91abe373dfea5ac4a47f35aef13399ddb4",
+        "proof_ceiling": "CURRENT_SNAPSHOT_BOOTSTRAP_ONLY",
+        "claim_limit": "Current Nasdaq symbol directories are real public evidence but are not survivor-free historical security-master proof."
+      }
+    },
+    {
+      "name": "bootstrap_not_mislabeled_historical_proof",
+      "status": "PASS",
+      "detail": {
+        "schema": "warroom.v91.bootstrap_public_evidence.v1",
+        "role": "security_master",
+        "market": "us",
+        "rows": 26110,
+        "instruments": 13055,
+        "available_at": "2026-07-24T21:31:00Z",
+        "sha256": "212879d642a5f759f7708f60344f5e91abe373dfea5ac4a47f35aef13399ddb4",
+        "proof_ceiling": "CURRENT_SNAPSHOT_BOOTSTRAP_ONLY",
+        "claim_limit": "Current Nasdaq symbol directories are real public evidence but are not survivor-free historical security-master proof."
+      }
+    }
+  ],
+  "passed": 14,
+  "failed": 0,
+  "all_pass": true
+}

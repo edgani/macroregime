@@ -22,10 +22,17 @@ HERE = Path(__file__).resolve().parent
 TRUST_STORE = HERE / "proof" / "trusted_public_keys.json"
 REVOCATIONS = HERE / "proof" / "revoked_receipts.json"
 RECEIPTS_DIR = HERE / "proof" / "receipts"
-SCHEMA = "warroom.proof_receipt.v2"
+SCHEMA = "warroom.proof_receipt.v3"
 TRUST_SCHEMA = "warroom.trusted_keys.v1"
 REVOCATION_SCHEMA = "warroom.revocations.v1"
-REQUIRED_GATES = ("wfa_pass", "lockbox_pass", "prospective_pass", "cost_model_pass", "multiple_testing_pass")
+REQUIRED_GATES = (
+    "wfa_pass", "lockbox_pass", "prospective_pass", "cost_model_pass",
+    "multiple_testing_pass", "calibration_pass", "false_alarm_pass",
+    "lead_time_pass", "remaining_return_lower_bound_positive",
+    "expected_shortfall_pass", "capacity_pass", "market_specific_large_move_discovery_pass",
+    "narrative_incremental_timing_pass", "market_specific_projection_pass",
+    "bottleneck_value_bridge_pass", "projection_calibration_pass",
+)
 ARTIFACT_HASH_ROLES = {
     "formula_sha256": "formula",
     "code_manifest_sha256": "code_manifest",
@@ -33,6 +40,10 @@ ARTIFACT_HASH_ROLES = {
     "frozen_spec_sha256": "frozen_spec",
     "trial_ledger_sha256": "trial_ledger",
     "prospective_evidence_sha256": "prospective_evidence",
+    "large_move_benchmark_sha256": "large_move_benchmark",
+    "narrative_timing_benchmark_sha256": "narrative_timing_benchmark",
+    "projection_spec_sha256": "projection_spec",
+    "projection_benchmark_sha256": "projection_benchmark",
 }
 
 
@@ -200,8 +211,144 @@ def verify_receipt(receipt: dict | str | Path | None, *, component: str | None =
         result["reasons"].append("prospective evidence window missing or invalid")
     elif prospective_end > now:
         result["reasons"].append("prospective evidence has not matured")
-    if prospective_observations < 20:
-        result["reasons"].append("insufficient prospective observations")
+    if prospective_observations < 200:
+        result["reasons"].append("insufficient prospective observations; minimum is 200")
+    try:
+        prospective_regime_count = int(proof.get("prospective_regime_count") or 0)
+    except (TypeError, ValueError):
+        prospective_regime_count = 0
+    if prospective_regime_count < 4:
+        result["reasons"].append("insufficient prospective regime coverage; minimum is four")
+    try:
+        oos_max_drawdown = float(proof.get("oos_max_drawdown"))
+        stress_max_drawdown = float(proof.get("stress_max_drawdown"))
+    except (TypeError, ValueError):
+        oos_max_drawdown = stress_max_drawdown = float("inf")
+    if oos_max_drawdown > 0.15:
+        result["reasons"].append("primary OOS maximum drawdown exceeds 15%")
+    if stress_max_drawdown > 0.20:
+        result["reasons"].append("stress maximum drawdown exceeds 20%")
+
+    component_name = str(receipt.get("component") or component or "").lower()
+    stock_like_scope = component_name.startswith(("us_", "idx_", "crypto_"))
+    if stock_like_scope:
+        # Extreme-winner discovery is mandatory for stock/token Alpha Center scopes.
+        ew = proof.get("extreme_winner_metrics") or {}
+        try:
+            ew_recall20 = float(ew.get("recall_at_20_5x_36m"))
+            ew_recall50 = float(ew.get("recall_at_50_5x_36m"))
+            ew_precision20 = float(ew.get("precision_at_20_5x_36m"))
+            ew_remaining = float(ew.get("median_remaining_return"))
+            ew_known = bool(ew.get("mandatory_known_cases_captured"))
+        except (TypeError, ValueError):
+            ew_recall20 = ew_recall50 = ew_precision20 = ew_remaining = float("-inf")
+            ew_known = False
+        if ew_recall20 < 0.25:
+            result["reasons"].append("extreme-winner Recall@20 below 25%")
+        if ew_recall50 < 0.45:
+            result["reasons"].append("extreme-winner Recall@50 below 45%")
+        if ew_precision20 < 0.08:
+            result["reasons"].append("extreme-winner Precision@20 below 8%")
+        if ew_remaining < 3.0:
+            result["reasons"].append("extreme-winner median remaining return below 300%")
+        if not ew_known:
+            result["reasons"].append("mandatory post-freeze known-case diagnostics not captured early")
+    else:
+        large_move = proof.get("large_move_metrics") or {}
+        try:
+            lm_recall = float(large_move.get("recall_at_20"))
+            lm_precision = float(large_move.get("precision_at_20"))
+        except (TypeError, ValueError):
+            lm_recall = lm_precision = float("-inf")
+        if lm_recall < 0.25:
+            result["reasons"].append("large-move Recall@20 below 25%")
+        if lm_precision < 0.10:
+            result["reasons"].append("large-move Precision@20 below 10%")
+
+    # A structural bottleneck is not sufficient. The signed proof must show that the
+    # non-price activation state adds incremental timing value versus matched dormant
+    # bottleneck controls.
+    nt = proof.get("narrative_timing_metrics") or {}
+    try:
+        nt_hit = float(nt.get("timing_ready_50pct_hit_rate_12m"))
+        nt_delta = float(nt.get("incremental_hit_rate_vs_dormant"))
+        nt_lower = float(nt.get("incremental_bootstrap_lower"))
+        nt_days = float(nt.get("median_days_to_50pct"))
+        nt_mae = float(nt.get("median_mae"))
+    except (TypeError, ValueError):
+        nt_hit = nt_delta = nt_lower = float("-inf")
+        nt_days = nt_mae = float("inf")
+    if nt_hit < 0.35:
+        result["reasons"].append("narrative timing-ready 12m +50% hit rate below 35%")
+    if nt_delta < 0.15:
+        result["reasons"].append("narrative timing uplift versus dormant bottlenecks below 15%")
+    if nt_lower <= 0:
+        result["reasons"].append("narrative timing bootstrap incremental lower bound is not positive")
+    if nt_days > 180:
+        result["reasons"].append("narrative median time to +50% exceeds 180 days")
+    if nt_mae > 0.25:
+        result["reasons"].append("narrative median MAE exceeds 25%")
+
+    realized = proof.get("realized_performance_metrics") or {}
+    try:
+        closed_trades = int(realized.get("closed_trades"))
+        realized_months = int(realized.get("months"))
+        realized_regimes = int(realized.get("regimes"))
+        real_pf = float(realized.get("real_net_profit_factor"))
+        pf_lower = float(realized.get("profit_factor_bootstrap_95pct_lower"))
+    except (TypeError, ValueError):
+        closed_trades = realized_months = realized_regimes = 0
+        real_pf = pf_lower = float("-inf")
+    if closed_trades < 200:
+        result["reasons"].append("fewer than 200 actual closed trades")
+    if realized_months < 24:
+        result["reasons"].append("realized trade history shorter than 24 months")
+    if realized_regimes < 4:
+        result["reasons"].append("realized trade history covers fewer than four regimes")
+    if real_pf < 1.50:
+        result["reasons"].append("real net profit factor below 1.50")
+    if pf_lower < 1.20:
+        result["reasons"].append("profit-factor bootstrap 95% lower bound below 1.20")
+
+    projection = proof.get("projection_metrics") or {}
+    market_name = component_name.split("_", 1)[0] if component_name else ""
+    error_limits = {"us": 0.35, "idx": 0.40, "commodity": 0.22, "fx": 0.12, "crypto": 0.45}
+    try:
+        projection_count = int(projection.get("count"))
+        projection_months = int(projection.get("months"))
+        projection_regimes = int(projection.get("regimes"))
+        projection_error = float(projection.get("median_abs_log_error"))
+        projection_improvement = float(projection.get("error_improvement_vs_no_change"))
+        projection_coverage = float(projection.get("interval_coverage"))
+        projection_brier = float(projection.get("scenario_brier"))
+        projection_direction = float(projection.get("direction_accuracy"))
+        projection_rank = float(projection.get("projected_realized_rank_correlation"))
+        projection_severe = float(projection.get("severe_loss_rate"))
+    except (TypeError, ValueError):
+        projection_count = projection_months = projection_regimes = 0
+        projection_error = projection_brier = projection_severe = float("inf")
+        projection_improvement = projection_direction = projection_rank = float("-inf")
+        projection_coverage = float("-inf")
+    if projection_count < 200:
+        result["reasons"].append("fewer than 200 matured price projections")
+    if projection_months < 24:
+        result["reasons"].append("projection benchmark shorter than 24 months")
+    if projection_regimes < 4:
+        result["reasons"].append("projection benchmark covers fewer than four regimes")
+    if market_name in error_limits and projection_error > error_limits[market_name]:
+        result["reasons"].append("projection median target error above market-specific ceiling")
+    if projection_improvement < 0.10:
+        result["reasons"].append("projection does not beat no-change baseline error by 10%")
+    if not 0.70 <= projection_coverage <= 0.90:
+        result["reasons"].append("projection interval coverage outside 70%-90% calibration band")
+    if projection_brier > 0.20:
+        result["reasons"].append("projection scenario Brier score above 0.20")
+    if projection_direction < 0.55:
+        result["reasons"].append("projection direction accuracy below 55%")
+    if projection_rank <= 0:
+        result["reasons"].append("projected-versus-realized return rank correlation is not positive")
+    if projection_severe > 0.15:
+        result["reasons"].append("projection severe-loss rate above 15%")
 
     if claim_type and claim_type.upper() == "CAPITAL_PERMISSION":
         approval = receipt.get("human_approval") or {}

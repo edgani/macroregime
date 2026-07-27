@@ -1,0 +1,81 @@
+{
+  "schema": "warroom.v88.all_market_projection_protocol.v1",
+  "frozen_at": "2026-07-27T00:00:00Z",
+  "purpose": "Prove that point-in-time bottleneck narratives can produce calibrated market-specific price projections and tradable outcomes without chart-derived predictors.",
+  "markets": {
+    "us": {
+      "allowed_methods": ["equity_earnings_bridge", "equity_sales_bridge", "equity_fcf_bridge"],
+      "bottleneck_archetypes": ["capacity", "qualification", "lead_time", "pricing_power", "supplier concentration", "regulatory approval", "distribution access"],
+      "target_unit": "price per diluted share",
+      "large_move_benchmark": "blind extreme-winner universe including active, inactive and delisted securities"
+    },
+    "idx": {
+      "allowed_methods": ["equity_earnings_bridge", "equity_sales_bridge", "equity_fcf_bridge"],
+      "bottleneck_archetypes": ["free float", "controller supply", "broker inventory persistence", "import dependency", "capacity", "license/concession", "distribution access"],
+      "target_unit": "IDR per diluted share",
+      "large_move_benchmark": "blind extreme-winner universe with historical free float, corporate actions and delistings"
+    },
+    "commodity": {
+      "allowed_methods": ["commodity_scarcity_bridge"],
+      "bottleneck_archetypes": ["production capacity", "inventory cover", "storage", "grade/location mismatch", "freight/insurance", "sanctions", "weather", "refining/processing capacity"],
+      "target_unit": "quoted contract or physical grade price",
+      "large_move_benchmark": "blind supply-shock and physical-scarcity episodes"
+    },
+    "fx": {
+      "allowed_methods": ["fx_external_balance_bridge"],
+      "bottleneck_archetypes": ["foreign-currency funding", "reserve adequacy", "intervention capacity", "balance-of-payments financing", "policy credibility", "hedging demand", "trade settlement liquidity"],
+      "target_unit": "pair quote under an explicit quote convention",
+      "large_move_benchmark": "blind devaluation, squeeze and macro-repricing episodes"
+    },
+    "crypto": {
+      "allowed_methods": ["crypto_value_capture_bridge"],
+      "bottleneck_archetypes": ["blockspace", "sequencer/prover capacity", "token-required access", "validator collateral", "liquidity bridge", "stablecoin settlement", "unlock supply", "exchange collateral"],
+      "target_unit": "price per projected diluted token",
+      "large_move_benchmark": "blind token extreme-winner universe including failed and delisted projects"
+    }
+  },
+  "common_projection_requirements": [
+    "origin-to-beneficiary causal chain",
+    "point-in-time availability timestamps",
+    "explicit bottleneck persistence and supply-response lag",
+    "beneficiary value-capture bridge",
+    "low/base/high scenarios with probabilities summing to one",
+    "component-level target explanation",
+    "pre-registered invalidation",
+    "matched dormant and negative-control cases",
+    "no chart-derived predictor"
+  ],
+  "projection_gates_per_market": {
+    "minimum_matured_predictions": 200,
+    "minimum_months": 24,
+    "minimum_regimes": 4,
+    "error_improvement_vs_no_change": 0.10,
+    "interval_coverage_min": 0.70,
+    "interval_coverage_max": 0.90,
+    "scenario_brier_max": 0.20,
+    "direction_accuracy_min": 0.55,
+    "projected_realized_rank_correlation": "strictly positive",
+    "severe_loss_rate_max": 0.15,
+    "median_abs_log_error_ceiling": {
+      "us": 0.35,
+      "idx": 0.40,
+      "commodity": 0.22,
+      "fx": 0.12,
+      "crypto": 0.45
+    }
+  },
+  "real_trading_gates_per_market": {
+    "closed_trades_min": 200,
+    "prospective_months_min": 24,
+    "regimes_min": 4,
+    "real_net_profit_factor_min": 1.50,
+    "profit_factor_bootstrap_95pct_lower_min": 1.20,
+    "normal_max_drawdown_max": 0.15,
+    "stress_max_drawdown_max": 0.20,
+    "actual_costs_borrow_impact_capacity": true,
+    "independent_reviewer_approval": true
+  },
+  "global_completion_rule": "All five exact-scope market receipts must independently pass. Proof cannot be transferred between markets.",
+  "technical_indicator_count": 0,
+  "capital_default": "BLOCKED"
+}

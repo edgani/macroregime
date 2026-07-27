@@ -1,0 +1,3 @@
+permanent_id,ticker,effective_from,effective_to,security_type,exchange,currency,source,available_at_utc
+PERM_AAA,AAA,2020-01-01,,COMMON_STOCK,NYSE,USD,TEST_FIXTURE,2020-01-01T00:00:00Z
+PERM_BBB,BBB,2020-01-01,2020-03-31,COMMON_STOCK,NASDAQ,USD,TEST_FIXTURE,2020-01-01T00:00:00Z

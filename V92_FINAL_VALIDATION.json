@@ -1,0 +1,43 @@
+{
+  "schema": "warroom.v92.route_validation.v1",
+  "status": "PASS",
+  "checks": [
+    {
+      "name": "five_exact_market_scopes",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "zero_technical_predictors",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "four_promotion_levels",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "five_provider_routes",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "empty_environment_fails_closed",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "route_can_reach_five_of_five_provider_ready",
+      "status": "PASS",
+      "detail": ""
+    },
+    {
+      "name": "provider_ready_never_equals_trading_ready",
+      "status": "PASS",
+      "detail": ""
+    }
+  ],
+  "passed": 7,
+  "total": 7
+}

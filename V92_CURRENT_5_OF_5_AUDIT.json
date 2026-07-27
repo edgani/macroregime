@@ -1,0 +1,310 @@
+{
+  "schema": "warroom.v92.provider_readiness.v1",
+  "markets": [
+    {
+      "market": "us",
+      "data_route_ready": false,
+      "required": {
+        "SEC_EVENT_ARCHIVE": {
+          "id": "SEC_EVENT_ARCHIVE",
+          "ready": false,
+          "reason": "path not configured"
+        },
+        "BROKER_FILLS_US": {
+          "id": "BROKER_FILLS_US",
+          "ready": false,
+          "reason": "path not configured"
+        }
+      },
+      "required_any_of": [
+        {
+          "group": "survivor_free_equity_bundle",
+          "ready": false,
+          "bundles": [
+            {
+              "id": "SHARADAR_BUNDLE",
+              "ready": false,
+              "items": [
+                {
+                  "id": "SHARADAR_SF1.csv",
+                  "ready": false,
+                  "reason": "path not configured"
+                },
+                {
+                  "id": "SHARADAR_SEP.csv",
+                  "ready": false,
+                  "reason": "path not configured"
+                },
+                {
+                  "id": "SHARADAR_TICKERS.csv",
+                  "ready": false,
+                  "reason": "path not configured"
+                }
+              ]
+            },
+            {
+              "id": "INSTITUTIONAL_US_BUNDLE",
+              "ready": false,
+              "items": [
+                {
+                  "id": "US_SECURITY_MASTER.csv",
+                  "ready": false,
+                  "reason": "path not configured"
+                },
+                {
+                  "id": "US_PIT_FUNDAMENTALS.csv",
+                  "ready": false,
+                  "reason": "path not configured"
+                },
+                {
+                  "id": "US_PRICES.csv",
+                  "ready": false,
+                  "reason": "path not configured"
+                },
+                {
+                  "id": "US_CORPORATE_ACTIONS.csv",
+                  "ready": false,
+                  "reason": "path not configured"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "optional": {
+        "IBES_PIT": {
+          "id": "IBES_PIT",
+          "ready": false,
+          "reason": "path not configured"
+        },
+        "CBOE_OPTIONS": {
+          "id": "CBOE_OPTIONS",
+          "ready": false,
+          "reason": "path not configured"
+        },
+        "BORROW_HISTORY": {
+          "id": "BORROW_HISTORY",
+          "ready": false,
+          "reason": "path not configured"
+        }
+      },
+      "next_stage": "ACQUIRE_OR_EXPORT_MISSING_DATA",
+      "trading_ready": false,
+      "claim_limit": "Provider readiness is not historical proof or trading permission."
+    },
+    {
+      "market": "idx",
+      "data_route_ready": false,
+      "required": {
+        "IDX_REFERENCE": {
+          "id": "IDX_REFERENCE",
+          "ready": false,
+          "reason": "path not configured"
+        },
+        "IDX_HISTORICAL_EOD_OR_LOG": {
+          "id": "IDX_HISTORICAL_EOD_OR_LOG",
+          "ready": false,
+          "reason": "path not configured"
+        },
+        "IDX_CORPORATE_ACTIONS": {
+          "id": "IDX_CORPORATE_ACTIONS",
+          "ready": false,
+          "reason": "path not configured"
+        },
+        "IDX_ISSUER_FUNDAMENTALS": {
+          "id": "IDX_ISSUER_FUNDAMENTALS",
+          "ready": false,
+          "reason": "path not configured"
+        },
+        "IDX_CONTROLLER_FREE_FLOAT": {
+          "id": "IDX_CONTROLLER_FREE_FLOAT",
+          "ready": false,
+          "reason": "path not configured"
+        },
+        "BROKER_FILLS_IDX": {
+          "id": "BROKER_FILLS_IDX",
+          "ready": false,
+          "reason": "path not configured"
+        }
+      },
+      "required_any_of": [],
+      "optional": {
+        "IDX_BROKER_SUMMARY": {
+          "id": "IDX_BROKER_SUMMARY",
+          "ready": false,
+          "reason": "path not configured"
+        },
+        "IDX_DONE_DETAIL": {
+          "id": "IDX_DONE_DETAIL",
+          "ready": false,
+          "reason": "path not configured"
+        },
+        "KSEI_OWNERSHIP_HISTORY": {
+          "id": "KSEI_OWNERSHIP_HISTORY",
+          "ready": false,
+          "reason": "path not configured"
+        }
+      },
+      "next_stage": "ACQUIRE_OR_EXPORT_MISSING_DATA",
+      "trading_ready": false,
+      "claim_limit": "Provider readiness is not historical proof or trading permission."
+    },
+    {
+      "market": "commodity",
+      "data_route_ready": false,
+      "required": {
+        "OFFICIAL_PHYSICAL_VINTAGES": {
+          "id": "OFFICIAL_PHYSICAL_VINTAGES",
+          "ready": false,
+          "reason": "path not configured"
+        },
+        "CFTC_COT_HISTORY": {
+          "id": "CFTC_COT_HISTORY",
+          "ready": false,
+          "reason": "path not configured"
+        },
+        "CME_COMMODITY_HISTORY": {
+          "id": "CME_COMMODITY_HISTORY",
+          "ready": false,
+          "reason": "path not configured"
+        },
+        "BROKER_FILLS_COMMODITY": {
+          "id": "BROKER_FILLS_COMMODITY",
+          "ready": false,
+          "reason": "path not configured"
+        }
+      },
+      "required_any_of": [],
+      "optional": {
+        "PHYSICAL_BASIS": {
+          "id": "PHYSICAL_BASIS",
+          "ready": false,
+          "reason": "path not configured"
+        },
+        "FREIGHT_STORAGE": {
+          "id": "FREIGHT_STORAGE",
+          "ready": false,
+          "reason": "path not configured"
+        },
+        "CME_COMMODITY_OPTIONS": {
+          "id": "CME_COMMODITY_OPTIONS",
+          "ready": false,
+          "reason": "path not configured"
+        }
+      },
+      "next_stage": "ACQUIRE_OR_EXPORT_MISSING_DATA",
+      "trading_ready": false,
+      "claim_limit": "Provider readiness is not historical proof or trading permission."
+    },
+    {
+      "market": "fx",
+      "data_route_ready": false,
+      "required": {
+        "ALFRED_MACRO_VINTAGES": {
+          "id": "ALFRED_MACRO_VINTAGES",
+          "ready": false,
+          "reason": "path not configured"
+        },
+        "BIS_AND_CENTRAL_BANK_HISTORY": {
+          "id": "BIS_AND_CENTRAL_BANK_HISTORY",
+          "ready": false,
+          "reason": "path not configured"
+        },
+        "CFTC_TFF_HISTORY": {
+          "id": "CFTC_TFF_HISTORY",
+          "ready": false,
+          "reason": "path not configured"
+        },
+        "CME_FX_HISTORY": {
+          "id": "CME_FX_HISTORY",
+          "ready": false,
+          "reason": "path not configured"
+        },
+        "BROKER_FILLS_FX": {
+          "id": "BROKER_FILLS_FX",
+          "ready": false,
+          "reason": "path not configured"
+        }
+      },
+      "required_any_of": [],
+      "optional": {
+        "FX_OPTIONS": {
+          "id": "FX_OPTIONS",
+          "ready": false,
+          "reason": "path not configured"
+        },
+        "DEALER_FLOW": {
+          "id": "DEALER_FLOW",
+          "ready": false,
+          "reason": "path not configured"
+        },
+        "REUTERS_POLL_HISTORY": {
+          "id": "REUTERS_POLL_HISTORY",
+          "ready": false,
+          "reason": "path not configured"
+        }
+      },
+      "next_stage": "ACQUIRE_OR_EXPORT_MISSING_DATA",
+      "trading_ready": false,
+      "claim_limit": "Provider readiness is not historical proof or trading permission."
+    },
+    {
+      "market": "crypto",
+      "data_route_ready": false,
+      "required": {
+        "BINANCE_PUBLIC_HISTORY": {
+          "id": "BINANCE_PUBLIC_HISTORY",
+          "ready": false,
+          "reason": "path not configured"
+        },
+        "DERIBIT_HISTORY": {
+          "id": "DERIBIT_HISTORY",
+          "ready": false,
+          "reason": "path not configured"
+        },
+        "CRYPTO_PROTOCOL_FUNDAMENTALS": {
+          "id": "CRYPTO_PROTOCOL_FUNDAMENTALS",
+          "ready": false,
+          "reason": "path not configured"
+        },
+        "CRYPTO_SUPPLY_UNLOCK_HISTORY": {
+          "id": "CRYPTO_SUPPLY_UNLOCK_HISTORY",
+          "ready": false,
+          "reason": "path not configured"
+        },
+        "CRYPTO_ACCOUNT_FILLS": {
+          "id": "CRYPTO_ACCOUNT_FILLS",
+          "ready": false,
+          "reason": "path not configured"
+        }
+      },
+      "required_any_of": [],
+      "optional": {
+        "KAIKO_L2": {
+          "id": "KAIKO_L2",
+          "ready": false,
+          "reason": "path not configured"
+        },
+        "COIN_METRICS_MARKET_DATA": {
+          "id": "COIN_METRICS_MARKET_DATA",
+          "ready": false,
+          "reason": "path not configured"
+        },
+        "ENTITY_LABELLED_ONCHAIN": {
+          "id": "ENTITY_LABELLED_ONCHAIN",
+          "ready": false,
+          "reason": "path not configured"
+        }
+      },
+      "next_stage": "ACQUIRE_OR_EXPORT_MISSING_DATA",
+      "trading_ready": false,
+      "claim_limit": "Provider readiness is not historical proof or trading permission."
+    }
+  ],
+  "data_route_ready_markets": 0,
+  "historical_blind_proven_markets": 0,
+  "limited_production_ready_markets": 0,
+  "fully_proven_markets": 0,
+  "capital_permission": "BLOCKED",
+  "claim_limit": "5/5 provider readiness only starts proof production; it never substitutes for sealed outcomes and real fills."
+}

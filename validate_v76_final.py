@@ -136,8 +136,8 @@ def documentation_checks() -> None:
     start = (ROOT / "START_HERE.md").read_text(encoding="utf-8")
     dash = (ROOT / "dashboard.html").read_text(encoding="utf-8")
     kernel = (ROOT / "research_kernel.py").read_text(encoding="utf-8")
-    add("release_identity_consistent", all(("V7.6" in text or "v7.6" in text or "V7.7" in text or "v7.7" in text or '"version": "7.6"' in text) for text in (readme, start, dash, kernel)), {"README": readme[:120], "START": start[:120]})
-    add("dashboard_final_safe_brand", ("v7.6 FINAL SAFE KERNEL" in dash or "v7.7 HUMAN-READABLE FINAL" in dash) and "release_contract_v76" in dash, "dashboard identity and contract binding")
+    add("release_identity_consistent", all(("V7.6" in text or "v7.6" in text or "V7.7" in text or "v7.7" in text or "V7.8" in text or "v7.8" in text or '"version": "7.6"' in text or '"version": "7.8"' in text) for text in (readme, start, dash, kernel)), {"README": readme[:120], "START": start[:120]})
+    add("dashboard_final_safe_brand", ("v7.6 FINAL SAFE KERNEL" in dash or "v7.7 HUMAN-READABLE FINAL" in dash or "v7.8 PROOF EXPANSION" in dash) and "release_contract_v76" in dash, "dashboard identity and contract binding")
     add("no_v65_current_release_banner", "Current release: V6.5" not in readme and "Current release: V6.5" not in start, "legacy current-release banner removed")
 
 

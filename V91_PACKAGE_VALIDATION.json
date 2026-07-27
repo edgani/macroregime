@@ -1,0 +1,25 @@
+{
+  "schema": "warroom.v91.package_validation.v1",
+  "release": "WAR_ROOM_OS_V91_EXECUTABLE_PROOF_PLANE",
+  "source_root": "clean relative package root",
+  "manifest_algorithm": "SHA-256",
+  "manifest_excludes": [
+    "PACKAGE_MANIFEST.json"
+  ],
+  "python_compile": "PASS",
+  "dashboard_javascript_parse": "PASS",
+  "offline_cli_startup": "PASS",
+  "v91_proof_plane": "14/14 PASS",
+  "v90_root_cause_regression": "9/9 PASS",
+  "v89_real_data_anti_fixture_regression": "14/14 PASS",
+  "v91_all_market_projection_enforcement_regression": "70/70 PASS",
+  "clean_extract_manifest": "PASS",
+  "no_unlisted_zip_members": "PASS",
+  "deterministic_rebuild": "BYTE_FOR_BYTE_IDENTICAL",
+  "technical_predictors": 0,
+  "market_proof": "0/5",
+  "capital_permission": "BLOCKED",
+  "claim_limit": "Package validation is software/integrity proof only; it is not trading proof.",
+  "manifest_payload_files": 126,
+  "expected_zip_members": 127
+}

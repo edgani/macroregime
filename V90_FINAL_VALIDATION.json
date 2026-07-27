@@ -1,0 +1,53 @@
+{
+  "schema": "warroom.v90.validation.v1",
+  "passed": 9,
+  "total": 9,
+  "all_pass": true,
+  "checks": [
+    {
+      "name": "US core can be data-admitted without optional options/borrow",
+      "pass": true,
+      "detail": "{'schema': 'warroom.v90.route_resolution.v1', 'market': 'us', 'model_id': 'US_CORE', 'core_roles': ['security_master', 'corporate_actions', 'filing_fundamentals', 'bottleneck_transmission', 'valuation_snapshot', 'execution_costs_capacity'], 'missing_core': [], 'optional_addons_present': [], 'data_admission_possible': True, 'proof_ceiling': 'DATA_ADMITTED', 'routes': {'security_master': {'institutional': ['CRSP US Stock Databases'], 'bootstrap': ['SEC submissions/company tickers', 'Nasdaq Trader symbol directory plus self-archived snapshots'], 'ceiling': 'Bootstrap cannot prove full survivor-free history by itself.'}, 'corporate_actions': {'institutional': ['CRSP', 'LSEG/Datastream'], 'bootstrap': ['SEC filings', 'Nasdaq Trader', 'exchange notices'], 'ceiling': 'Free route requires reconstruction and coverage audit.'}, 'filing_fundamentals': {'institutional': ['Compustat point-in-time', 'LSEG Worldscope PIT'], 'bootstrap': ['SEC EDGAR submissions, companyfacts and filing text'], 'ceiling': 'SEC route is valid but taxonomy/entity normalization is substantial.'}, 'expectations': {'institutional': ['LSEG I/B/E/S Point-in-Time', 'FactSet Estimates'], 'bootstrap': ['prospective snapshots only'], 'ceiling': 'No clean free historical pre-release consensus archive.'}, 'options_surface': {'institutional': ['Cboe DataShop option quotes, trades, open-close and volatility surfaces'], 'bootstrap': ['prospective Cboe/venue snapshots'], 'ceiling': 'Current/free chains do not create historical PIT proof.'}, 'borrow_lending': {'institutional': ['S&P Global Securities Finance', 'S3 Partners', 'EquiLend DataLend'], 'bootstrap': ['FINRA published short interest as delayed context'], 'ceiling': 'FINRA is not borrow availability or fee.'}, 'execution_costs_capacity': {'institutional': ['NYSE TAQ or equivalent consolidated trades/quotes', 'broker fills'], 'bootstrap': ['daily bar plus conservative spread bounds; research ceiling only'], 'ceiling': 'Full trading-ready proof needs quotes/fills and delisting returns.'}}, 'claim_limit': 'Optional add-ons cannot be silently imputed or transferred from another market.'}"
+    },
+    {
+      "name": "missing core remains blocked",
+      "pass": true,
+      "detail": "['security_master', 'corporate_actions', 'issuer_fundamentals', 'controller_free_float', 'foreign_flow', 'bottleneck_transmission', 'valuation_snapshot', 'execution_costs_capacity']"
+    },
+    {
+      "name": "forecast-local as-of join excludes future revision",
+      "pass": true,
+      "detail": "{'schema': 'warroom.v90.asof_audit.v1', 'forecast_count': 1, 'snapshot_rows': 1, 'snapshot_hash': '525b1bbe4875c96ed60326ccdc613326f961d6c88bf08fdb44f38a45ab07e10f', 'future_rows': 0}"
+    },
+    {
+      "name": "as-of audit has zero future rows",
+      "pass": true,
+      "detail": "{'schema': 'warroom.v90.asof_audit.v1', 'forecast_count': 1, 'snapshot_rows': 1, 'snapshot_hash': '525b1bbe4875c96ed60326ccdc613326f961d6c88bf08fdb44f38a45ab07e10f', 'future_rows': 0}"
+    },
+    {
+      "name": "outcomes rejected from predictor evidence",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "manifest builder isolates outcomes",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "root-cause report exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "source route registry covers five markets",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "technical-analysis policy retained",
+      "pass": true,
+      "detail": ""
+    }
+  ]
+}

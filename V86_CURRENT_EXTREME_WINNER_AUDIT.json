@@ -1,0 +1,19 @@
+{
+  "schema": "warroom.v86.current_extreme_winner_audit.v1",
+  "state": "FAIL_NO_PIT_SELECTOR_OR_BLIND_OUTCOME_PANEL",
+  "all_extreme_winner_gates_pass": false,
+  "mandatory_known_cases": {
+    "SNDK": "NOT_TESTABLE_CURRENTLY",
+    "PLTR": "NOT_TESTABLE_CURRENTLY"
+  },
+  "blind_universe": {
+    "status": "MISSING_COMPLETE_SURVIVOR_BIAS_FREE_POINT_IN_TIME_PANEL",
+    "Recall@20": null,
+    "Recall@50": null,
+    "Precision@20": null,
+    "median_remaining_return": null,
+    "median_lead_days": null
+  },
+  "reason": "V8.5 has no promoted selector, no stock-level prediction ledger and no complete blind outcome panel. Therefore it cannot claim that it would have found SNDK, PLTR or other extreme winners.",
+  "capital_permission": "BLOCKED"
+}

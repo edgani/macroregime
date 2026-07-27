@@ -1,0 +1,359 @@
+{
+  "schema": "warroom.v88.final_validation.v1",
+  "passed": 68,
+  "total": 70,
+  "all_pass": false,
+  "tests": [
+    {
+      "name": "us projection valid",
+      "pass": true,
+      "detail": "()"
+    },
+    {
+      "name": "us targets ordered",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "us target has bridge reasons",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "us capital remains blocked",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "idx projection valid",
+      "pass": true,
+      "detail": "()"
+    },
+    {
+      "name": "idx targets ordered",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "idx target has bridge reasons",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "idx capital remains blocked",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "commodity projection valid",
+      "pass": true,
+      "detail": "()"
+    },
+    {
+      "name": "commodity targets ordered",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "commodity target has bridge reasons",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "commodity capital remains blocked",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "fx projection valid",
+      "pass": true,
+      "detail": "()"
+    },
+    {
+      "name": "fx targets ordered",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "fx target has bridge reasons",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "fx capital remains blocked",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "crypto projection valid",
+      "pass": true,
+      "detail": "()"
+    },
+    {
+      "name": "crypto targets ordered",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "crypto target has bridge reasons",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "crypto capital remains blocked",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "future evidence rejected",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "chart-derived predictor rejected",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "probabilities not summing to one rejected",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "cross-market valuation method rejected",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "zero diluted supply rejected",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "dormant bottleneck can be valued but is not timing ready",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "fundamental target survives sanitizer",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "technical target removed by sanitizer",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "benchmark fixture structurally valid",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "name": "commodity benchmark gate implementation can pass",
+      "pass": true,
+      "detail": "{\"beats_no_change_error_by_10pct\": true, \"direction_accuracy_at_least_55pct\": true, \"interval_coverage_between_70_and_90pct\": true, \"minimum_200_predictions\": true, \"minimum_24_months\": true, \"minimum_4_regimes\": true, \"projected_realized_rank_correlation_positive\": true, \"scenario_brier_at_most_0_20\": true, \"severe_loss_rate_at_most_15pct\": true, \"target_error_within_market_limit\": true}"
+    },
+    {
+      "name": "crypto benchmark gate implementation can pass",
+      "pass": true,
+      "detail": "{\"beats_no_change_error_by_10pct\": true, \"direction_accuracy_at_least_55pct\": true, \"interval_coverage_between_70_and_90pct\": true, \"minimum_200_predictions\": true, \"minimum_24_months\": true, \"minimum_4_regimes\": true, \"projected_realized_rank_correlation_positive\": true, \"scenario_brier_at_most_0_20\": true, \"severe_loss_rate_at_most_15pct\": true, \"target_error_within_market_limit\": true}"
+    },
+    {
+      "name": "fx benchmark gate implementation can pass",
+      "pass": true,
+      "detail": "{\"beats_no_change_error_by_10pct\": true, \"direction_accuracy_at_least_55pct\": true, \"interval_coverage_between_70_and_90pct\": true, \"minimum_200_predictions\": true, \"minimum_24_months\": true, \"minimum_4_regimes\": true, \"projected_realized_rank_correlation_positive\": true, \"scenario_brier_at_most_0_20\": true, \"severe_loss_rate_at_most_15pct\": true, \"target_error_within_market_limit\": true}"
+    },
+    {
+      "name": "idx benchmark gate implementation can pass",
+      "pass": true,
+      "detail": "{\"beats_no_change_error_by_10pct\": true, \"direction_accuracy_at_least_55pct\": true, \"interval_coverage_between_70_and_90pct\": true, \"minimum_200_predictions\": true, \"minimum_24_months\": true, \"minimum_4_regimes\": true, \"projected_realized_rank_correlation_positive\": true, \"scenario_brier_at_most_0_20\": true, \"severe_loss_rate_at_most_15pct\": true, \"target_error_within_market_limit\": true}"
+    },
+    {
+      "name": "us benchmark gate implementation can pass",
+      "pass": true,
+      "detail": "{\"beats_no_change_error_by_10pct\": true, \"direction_accuracy_at_least_55pct\": true, \"interval_coverage_between_70_and_90pct\": true, \"minimum_200_predictions\": true, \"minimum_24_months\": true, \"minimum_4_regimes\": true, \"projected_realized_rank_correlation_positive\": true, \"scenario_brier_at_most_0_20\": true, \"severe_loss_rate_at_most_15pct\": true, \"target_error_within_market_limit\": true}"
+    },
+    {
+      "name": "benchmark missing outcome lineage rejected",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "benchmark post-outcome model rejected",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "us promotion gate pass fixture",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "us profit factor below 1.50 blocked",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "us drawdown above 15pct blocked",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "us projection not beating baseline blocked",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "idx promotion gate pass fixture",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "idx profit factor below 1.50 blocked",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "idx drawdown above 15pct blocked",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "idx projection not beating baseline blocked",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "commodity promotion gate pass fixture",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "commodity profit factor below 1.50 blocked",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "commodity drawdown above 15pct blocked",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "commodity projection not beating baseline blocked",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "fx promotion gate pass fixture",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "fx profit factor below 1.50 blocked",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "fx drawdown above 15pct blocked",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "fx projection not beating baseline blocked",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "crypto promotion gate pass fixture",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "crypto profit factor below 1.50 blocked",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "crypto drawdown above 15pct blocked",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "crypto projection not beating baseline blocked",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "global gate pass fixture requires all five",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "global gate blocks one missing market",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "empty trust store blocks all market components",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "global final false without all five receipts",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "five exact market components registered",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "legacy technical factor dataset absent",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "active import graph contains no legacy chart engine",
+      "pass": true,
+      "detail": "__future__,json,os,sys,threading,pathlib,streamlit,streamlit.components.v1,run,runtime_store,warroom.no_technical_policy,warroom_data_worker,__future__,argparse,datetime,json,os,pathlib,typing,data_layer,research_kernel,proof_readiness_audit,audit_all_markets_v91,pandas,__future__,copy,typing,research_evidence_v83,research_evidence_v84,research_evidence_v85,research_evidence_v86,research_evidence_v87,research_evidence_v88,proof_registry,__future__,dataclasses,typing,hashlib,json,math,re,warroom.no_technical_policy,pandas,__future__,typing,math,numpy,pandas,__future__,typing,hashlib,json,math,__future__,typing,hashlib,json,promotion_gate_v88,__future__,json,pathlib,typing,proof_receipts,__future__,datetime,pathlib,typing,base64,hashlib,json,os,cryptography.hazmat.primitives.asymmetric.ed25519,cryptography.exceptions"
+    },
+    {
+      "name": "all Python files compile",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "CLI identifies V9.0",
+      "pass": false,
+      "detail": ""
+    },
+    {
+      "name": "Windows operator scripts present",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "README preserves capital-blocked claim limit",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "dashboard identifies V9.0",
+      "pass": false,
+      "detail": ""
+    },
+    {
+      "name": "dashboard exposes low base high explanation",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "dashboard JavaScript parses",
+      "pass": true,
+      "detail": ""
+    }
+  ],
+  "claim_limit": "Software/enforcement validation only. It does not prove trading edge, target accuracy, profit factor or drawdown in any market."
+}

@@ -1,0 +1,113 @@
+{
+  "schema": "warroom.v94.validation.v1",
+  "passed": 21,
+  "total": 21,
+  "all_pass": true,
+  "checks": [
+    {
+      "name": "five_market_routes",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "every_market_has_public_core",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "every_market_has_nonpublic_truth",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "no_active_stochastic",
+      "pass": true,
+      "detail": "occurrences=1"
+    },
+    {
+      "name": "no_active_ema",
+      "pass": true,
+      "detail": "occurrences=1"
+    },
+    {
+      "name": "no_active_candlestick",
+      "pass": true,
+      "detail": "occurrences=1"
+    },
+    {
+      "name": "no_active_price_momentum",
+      "pass": true,
+      "detail": "occurrences=1"
+    },
+    {
+      "name": "no_active_vwap_signal",
+      "pass": true,
+      "detail": "occurrences=1"
+    },
+    {
+      "name": "no_active_support_resistance",
+      "pass": true,
+      "detail": "occurrences=1"
+    },
+    {
+      "name": "no_active_chart_pattern",
+      "pass": true,
+      "detail": "occurrences=1"
+    },
+    {
+      "name": "no_active_breakout",
+      "pass": true,
+      "detail": "occurrences=1"
+    },
+    {
+      "name": "no_active_moving_average",
+      "pass": true,
+      "detail": "occurrences=1"
+    },
+    {
+      "name": "no_active_sma",
+      "pass": true,
+      "detail": "occurrences=1"
+    },
+    {
+      "name": "no_active_rsi",
+      "pass": true,
+      "detail": "occurrences=1"
+    },
+    {
+      "name": "no_active_bollinger",
+      "pass": true,
+      "detail": "occurrences=1"
+    },
+    {
+      "name": "no_active_macd",
+      "pass": true,
+      "detail": "occurrences=1"
+    },
+    {
+      "name": "compile_autonomous_public_data_plane_v94.py",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "compile_V94_BROWSER_EXPORT_IMPORT.py",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "real_nasdaq_snapshot_files",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "current_snapshot_not_trading_proof",
+      "pass": true,
+      "detail": "enforced by V94 readiness ladder"
+    },
+    {
+      "name": "capital_fail_closed",
+      "pass": true,
+      "detail": ""
+    }
+  ]
+}

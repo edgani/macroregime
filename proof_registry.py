@@ -1,153 +1,120 @@
-"""Exact-scope proof and promotion registry.
+"""V9.5 exact-scope proof registry.
 
-The JSON registry is configuration only.  Boolean fields in it are never treated as evidence.
-Predictive promotion requires a valid Ed25519-signed proof receipt bound to the exact component,
-scope, code/data/spec/trial hashes, expiry, revocation state, prospective evidence, and human approval.
+The dashboard consumes only hash-bound V9.5 proof-run outputs. Legacy receipt booleans and raw
+editable metrics cannot activate a component. The global result is fail-closed unless all five exact
+market proof runs independently pass the V9.5 cryptographic and recomputation firewall.
 """
 from __future__ import annotations
 
+import hashlib
 import json
 from pathlib import Path
 from typing import Any
 
-from proof_receipts import find_receipt, verify_receipt
+from global_market_promotion_gate_v95 import evaluate_all
 
 HERE = Path(__file__).resolve().parent
-REGISTRY_PATH = HERE / "component_registry_v42.json"
-
-PROMOTION_LADDER = [
-    "DESIGN_ONLY",
-    "DATA_CONTRACT_VERIFIED",
-    "DESCRIPTIVE_CONTROL",
-    "OOS_CANDIDATE",
-    "LOCKBOX_PASS",
-    "PROSPECTIVE_WATCH",
-    "LIMITED_PRODUCTION_ELIGIBLE",
-    "HUMAN_APPROVED_LIMITED_PRODUCTION",
-]
-PRODUCTION_STATES = {"LIMITED_PRODUCTION_ELIGIBLE", "HUMAN_APPROVED_LIMITED_PRODUCTION"}
+REGISTRY_PATH = HERE / "component_registry_v95.json"
+POLICY_PATH = HERE / "NO_TECHNICAL_ANALYSIS_POLICY.json"
 
 
-_COMPONENTS = {
-    "generic_price_context": ("ALL_MARKETS_DESCRIPTIVE", "DESCRIPTIVE_CONTROL"),
-    "us_directional_selector": ("US_EQUITIES_DAILY", "DESIGN_ONLY"),
-    "ihsg_long_selector": ("IHSG_LONG_ONLY_DAILY", "DESIGN_ONLY"),
-    "crypto_directional_selector": ("CRYPTO_PER_ASSET_PER_VENUE", "DESIGN_ONLY"),
-    "commodity_directional_selector": ("FUTURES_PER_CONTRACT", "DESIGN_ONLY"),
-    "fx_pair_selector": ("FX_PAIR_SPECIFIC", "DESIGN_ONLY"),
-    "wasserstein_hmm": ("CROSS_ASSET_DAILY_ALLOCATION_CHALLENGER", "DESIGN_ONLY"),
-    "simple_hmm": ("CROSS_ASSET_DAILY_CONTEXT_CHALLENGER", "DESIGN_ONLY"),
-    "volatility_risk_premium": ("OPTIONS_PER_INSTRUMENT", "DESIGN_ONLY"),
-    "dealer_greeks": ("OPTIONS_PER_INSTRUMENT", "DESCRIPTIVE_CONTROL"),
-    "order_flow_imbalance": ("VENUE_SPECIFIC_EXECUTION", "DESIGN_ONLY"),
-    "failed_breakout": ("MARKET_SPECIFIC_EXECUTION_PATTERN", "DESIGN_ONLY"),
-    "merton_structural_credit": ("COMPANY_SPECIFIC_CREDIT_CONTEXT", "DESIGN_ONLY"),
-    "alpha_scenario_valuation": ("COMPANY_OR_TOKEN_SPECIFIC", "DESIGN_ONLY"),
-    "equity_scenario_probability_calibration": ("COMPANY_SPECIFIC_SCENARIO_PROBABILITY", "DESIGN_ONLY"),
-    "token_scenario_probability_calibration": ("TOKEN_SPECIFIC_SCENARIO_PROBABILITY", "DESIGN_ONLY"),
-    "portfolio_allocator": ("VALIDATED_RETURN_STREAMS_ONLY", "DESIGN_ONLY"),
-    "position_lifecycle_v59": ("MARKET_SPECIFIC_POSITION_BUILD_SURGE_TOP_CONTEXT", "DESCRIPTIVE_CONTROL"),
-    "mechanical_flow_driver_v60": ("ALL_MARKETS_MARKET_SPECIFIC_INPUT_CONTRACTS", "DESCRIPTIVE_CONTROL"),
-    "early_move_driver_research_v60": ("CROSS_MARKET_ORIGIN_VULNERABILITY_TRIGGER_TRANSMISSION", "DESIGN_ONLY"),
-    "price_derived_network_diffusion_v61": ("US_FIXED_PANEL_PRICE_DERIVED_NETWORK", "DESIGN_ONLY"),
-    "discrete_event_origin_proxy_v62": ("US_FIXED_PANEL_GAP_VOLUME_EVENT_PROXY", "DESIGN_ONLY"),
-    "sec_point_in_time_fundamentals_v62": ("US_SEC_XBRL_POINT_IN_TIME_PIPELINE", "DESIGN_ONLY"),
-    "smile_slope_archive_v65": ("US_OPTIONS_AGGREGATE_MAINTAINED_ARCHIVE_2006_2023", "DESCRIPTIVE_CONTROL"),
-    "smile_announcement_archive_v65": ("US_OPTIONS_INFORMATION_ORIGIN_AGGREGATE_MAINTAINED_ARCHIVE_2006_2023", "DESCRIPTIVE_CONTROL"),
-    "smile_expectations_div_archive_v65": ("US_OPTIONS_EXPECTATIONS_DISTRIBUTION_AGGREGATE_MAINTAINED_ARCHIVE_2006_2023", "DESCRIPTIVE_CONTROL"),
-}
+def _sha(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            h.update(chunk)
+    return h.hexdigest()
 
 
-def default_registry() -> dict[str, Any]:
-    components: dict[str, dict[str, Any]] = {}
-    for name, (scope, state) in _COMPONENTS.items():
-        components[name] = {
-            "scope": scope,
-            "state": state,
-            "receipt_id": None,
-            "proof_receipt_valid": False,
-            "predictive_promoted": False,
-            "capital_permission": "BLOCKED",
-        }
-    return {
-        "version": "6.5",
-        "claim_ceiling": "RESEARCH_ONLY_UNTIL_SIGNED_EXACT_SCOPE_GATES_PASS",
-        "promotion_ladder": PROMOTION_LADDER,
-        "registry_semantics": "CONFIGURATION_ONLY_NOT_EVIDENCE",
-        "components": components,
-    }
+def _safe_path(relative: str) -> Path | None:
+    try:
+        path = (HERE / relative).resolve(); path.relative_to(HERE.resolve())
+        return path
+    except Exception:
+        return None
 
 
 def load_registry() -> dict[str, Any]:
-    """Load only non-evidentiary configuration fields from the editable registry."""
-    base = default_registry()
-    if not REGISTRY_PATH.exists():
-        return base
     try:
         raw = json.loads(REGISTRY_PATH.read_text(encoding="utf-8"))
     except Exception:
-        return base
-    for key, row in (raw.get("components") or {}).items():
-        if key not in base["components"] or not isinstance(row, dict):
-            continue
-        # Only a receipt pointer and free-text note are accepted from editable JSON.  All pass flags,
-        # states and permissions are intentionally ignored.
-        if row.get("receipt_id"):
-            base["components"][key]["receipt_id"] = str(row["receipt_id"])
-        if row.get("note"):
-            base["components"][key]["note"] = str(row["note"])
-        ignored = sorted(set(row) - {"receipt_id", "note"})
-        if ignored:
-            base["components"][key]["untrusted_fields_ignored"] = ignored
-    return base
+        raw = {"version": "9.5", "schema": "warroom.v95.component_registry.v1", "components": {}}
+    if raw.get("schema") != "warroom.v95.component_registry.v1" or not isinstance(raw.get("components"), dict):
+        return {"version": "9.5", "schema": "warroom.v95.component_registry.v1", "components": {}}
+    return raw
 
 
-def component_status(name: str) -> dict[str, Any]:
-    reg = load_registry()
-    row = dict((reg.get("components") or {}).get(name) or {})
-    if not row:
-        return {"state": "UNKNOWN_COMPONENT", "predictive_promoted": False, "capital_permission": "BLOCKED"}
-
-    # Descriptive controls never become trade permission merely because they are useful in the UI.
-    if row.get("state") == "DESCRIPTIVE_CONTROL":
-        row.update({
-            "proof_receipt_valid": False,
-            "predictive_promoted": False,
-            "capital_permission": "BLOCKED",
-            "promotion_reason": "descriptive component; no predictive/capital semantics",
-        })
-        return row
-
-    receipt_path = find_receipt(row.get("receipt_id"))
-    proof = verify_receipt(
-        receipt_path,
-        component=name,
-        scope=str(row.get("scope") or ""),
-        claim_type="CAPITAL_PERMISSION",
-    )
-    row["proof_receipt"] = proof
-    row["proof_receipt_valid"] = bool(proof.get("valid"))
-    row["predictive_promoted"] = bool(proof.get("valid"))
-    row["state"] = "HUMAN_APPROVED_LIMITED_PRODUCTION" if proof.get("valid") else "DESIGN_ONLY"
-    row["capital_permission"] = "HUMAN_APPROVED_LIMITED_PRODUCTION" if proof.get("valid") else "BLOCKED"
-    return row
+def component_status(component: str, row: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any] | None]:
+    out = dict(row); market = str(out.get("market") or "").lower()
+    out.update({"decision_active": False, "capital_permission": "BLOCKED", "live_weight": 0.0})
+    relative = str(out.get("proof_run_path") or "")
+    expected = str(out.get("proof_run_sha256") or "").lower()
+    path = _safe_path(relative) if relative else None
+    run: dict[str, Any] | None = None
+    reasons: list[str] = []
+    if path is None or not path.is_file():
+        reasons.append("V9.5 proof run not installed")
+    elif len(expected) != 64 or _sha(path) != expected:
+        reasons.append("proof-run hash missing or mismatched")
+    else:
+        try:
+            raw = json.loads(path.read_text(encoding="utf-8"))
+            if not isinstance(raw, dict):
+                raise ValueError("proof run root is not an object")
+            run = raw
+        except Exception as exc:
+            reasons.append(f"proof run unreadable: {type(exc).__name__}: {exc}")
+    if run is not None:
+        if run.get("schema") != "warroom.v95.blind_proof_run.v1":
+            reasons.append("wrong proof-run schema")
+        if str(run.get("market") or "").lower() != market:
+            reasons.append("proof-run market mismatch")
+        if run.get("trading_ready") is not True or run.get("capital_permission") != "LIMITED_PRODUCTION_ELIGIBLE":
+            reasons.append("proof run did not pass")
+        if (run.get("signed_receipt_verification") or {}).get("valid") is not True:
+            reasons.append("signed receipt is not valid")
+        if run.get("errors"):
+            reasons.append("proof run contains errors")
+    valid = not reasons and run is not None
+    out.update({
+        "proof_run_valid": valid,
+        "proof_run_hash": expected if valid else None,
+        "proof_run_reasons": sorted(set(reasons)),
+        "decision_active": valid,
+        "capital_permission": "HUMAN_APPROVED_LIMITED_PRODUCTION" if valid else "BLOCKED",
+        "live_weight": 1.0 if valid else 0.0,
+        "state": "HUMAN_APPROVED_LIMITED_PRODUCTION" if valid else "AWAITING_BOUND_V95_PROOF",
+    })
+    return out, run if valid else None
 
 
 def attach_proof_registry(desk: dict) -> dict:
     if not isinstance(desk, dict):
         return desk
-    reg = load_registry()
-    statuses = {name: component_status(name) for name in reg.get("components") or {}}
-    promoted = [name for name, row in statuses.items() if row.get("predictive_promoted")]
-    capital = [name for name, row in statuses.items() if row.get("capital_permission") != "BLOCKED"]
-    desk["proof_registry"] = {**reg, "components": statuses}
+    registry = load_registry(); statuses: dict[str, Any] = {}; runs: dict[str, dict[str, Any]] = {}
+    for name, row in registry["components"].items():
+        status, run = component_status(name, row if isinstance(row, dict) else {})
+        statuses[name] = status
+        if run is not None:
+            runs[str(status.get("market"))] = run
+    global_result = evaluate_all(runs)
+    authorized = sorted(name for name, row in statuses.items() if row.get("decision_active") is True)
+    desk["proof_registry"] = {**registry, "components": statuses, "global_adjudication": global_result}
+    try:
+        desk["no_technical_analysis_policy"] = json.loads(POLICY_PATH.read_text(encoding="utf-8"))
+    except Exception:
+        desk["no_technical_analysis_policy"] = {"capital_default": "BLOCKED", "effective_version": "9.5"}
     desk["proof_status"] = {
-        "predictive_components_promoted": len(promoted),
-        "promoted_components": promoted,
-        "capital_authorized_components": capital,
-        "capital_permission": "HUMAN_APPROVED_LIMITED_PRODUCTION" if capital else "BLOCKED",
+        "final_trading_system": bool(global_result["global_trading_ready"]),
+        "all_market_trading_ready": bool(global_result["global_trading_ready"]),
+        "predictive_components_promoted": len(authorized),
+        "decision_active_predictive_components": len(authorized),
+        "capital_authorized_components": authorized,
+        "missing_market_components": [m for m in ("us", "idx", "commodity", "fx", "crypto") if m not in runs],
+        "capital_permission": global_result["capital_permission"],
+        "operational_permission": "SHADOW_TRADING_READY",
         "software_is_not_alpha": True,
-        "claim_ceiling": reg.get("claim_ceiling"),
-        "editable_boolean_flags_are_evidence": False,
+        "evidence_production_runtime_ready": True,
+        "proof_firewall_version": "9.5",
     }
     return desk

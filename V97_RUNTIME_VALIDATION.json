@@ -1,0 +1,11 @@
+{
+  "schema": "warroom.v97.runtime_validation.v1",
+  "offline_synthetic_desk_build": "PASS",
+  "five_market_desk_count": 5,
+  "dashboard_html_render": "PASS",
+  "dashboard_javascript_syntax": "PASS",
+  "streamlit_http_health": "NOT_RUN_STREAMLIT_EXECUTABLE_ABSENT_IN_BUILD_CONTAINER",
+  "live_quote_endpoint_test": "NOT_AVAILABLE_EXTERNAL_DNS_DISABLED_IN_BUILD_CONTAINER",
+  "failure_policy": "FAIL_CLOSED_NO_FABRICATED_QUOTES",
+  "capital_permission": "BLOCKED_UNTIL_EXACT_PROOF_AND_HUMAN_APPROVAL"
+}

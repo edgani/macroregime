@@ -1,0 +1,28 @@
+{
+  "schema": "warroom.v90.clean_extract_validation.v1",
+  "manifest_files": 101,
+  "zip_members": 102,
+  "manifest_mismatches": [],
+  "deterministic_rebuild": true,
+  "runs": [
+    {
+      "script": "validate_v90_root_cause.py",
+      "returncode": 0,
+      "stdout_tail": "ma': 'warroom.v90.asof_audit.v1', 'forecast_count': 1, 'snapshot_rows': 1, 'snapshot_hash': '525b1bbe4875c96ed60326ccdc613326f961d6c88bf08fdb44f38a45ab07e10f', 'future_rows': 0}\"\n    },\n    {\n      \"name\": \"as-of audit has zero future rows\",\n      \"pass\": true,\n      \"detail\": \"{'schema': 'warroom.v90.asof_audit.v1', 'forecast_count': 1, 'snapshot_rows': 1, 'snapshot_hash': '525b1bbe4875c96ed60326ccdc613326f961d6c88bf08fdb44f38a45ab07e10f', 'future_rows': 0}\"\n    },\n    {\n      \"name\": \"outcomes rejected from predictor evidence\",\n      \"pass\": true,\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"manifest builder isolates outcomes\",\n      \"pass\": true,\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"root-cause report exists\",\n      \"pass\": true,\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"source route registry covers five markets\",\n      \"pass\": true,\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"technical-analysis policy retained\",\n      \"pass\": true,\n      \"detail\": \"\"\n    }\n  ]\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "script": "validate_v89_real_data_runner.py",
+      "returncode": 0,
+      "stdout_tail": "m']\"\n    },\n    {\n      \"name\": \"file hash mismatch rejected\",\n      \"pass\": true,\n      \"detail\": \"['bottleneck_transmission: sha256 mismatch', 'corporate_actions: sha256 mismatch', 'execution_costs_capacity: sha256 mismatch', 'expectations: sha256 mismatch', 'filing_fundamentals: sha256 mismatch', 'outcome_prices: sha256 mismatch', 'positioning_amplification: sha256 mismatch', 'security_master: sha256 mismatch', 'valuation_snapshot: sha256 mismatch']\"\n    },\n    {\n      \"name\": \"licensed export normalizer creates PIT table\",\n      \"pass\": true,\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"normalizer never marks synthetic or fixture\",\n      \"pass\": true,\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"empty promotion receipt rejected\",\n      \"pass\": true,\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"permission remains blocked\",\n      \"pass\": true,\n      \"detail\": \"\"\n    },\n    {\n      \"name\": \"promotion rejects test fixture flag\",\n      \"pass\": true,\n      \"detail\": \"\"\n    }\n  ]\n}\n",
+      "stderr_tail": ""
+    },
+    {
+      "script": "validate_v89_all_market_projection.py",
+      "returncode": 0,
+      "stdout_tail": "{\n  \"passed\": 70,\n  \"total\": 70,\n  \"all_pass\": true\n}\n",
+      "stderr_tail": ""
+    }
+  ],
+  "all_pass": true
+}

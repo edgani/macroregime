@@ -1,0 +1,25 @@
+{
+  "schema": "warroom.v78.membership_source.v1",
+  "dataset": "sp500_ticker_start_end.csv",
+  "source_repository": "fja05680/sp500",
+  "source_url": "https://raw.githubusercontent.com/fja05680/sp500/refs/heads/master/sp500_ticker_start_end.csv",
+  "license": "MIT",
+  "accessed_utc": "2026-07-26T00:00:00Z",
+  "sha256": "39c488ebd6ce6838599e54751adbe8c8e4b68d5801dd77d29b6d137dd77388ac",
+  "rows_excluding_header": 1259,
+  "scope": "Historical S&P 500 ticker membership intervals used only as a survivorship-bias guard and research cross-check.",
+  "not_sufficient_for": [
+    "official index membership proof",
+    "security-master identity continuity",
+    "delisting-return reconstruction",
+    "corporate-action-adjusted price history",
+    "production trading permission"
+  ],
+  "capital_permission": "BLOCKED",
+  "limitations": [
+    "Community-maintained rather than official S&P DJI constituent history.",
+    "Ticker symbols are not permanent security identifiers.",
+    "Historical price data for removed or renamed securities must come from a survivor-bias-free source.",
+    "Membership dates alone cannot prevent look-ahead unless joined using observation-date and availability-time rules."
+  ]
+}

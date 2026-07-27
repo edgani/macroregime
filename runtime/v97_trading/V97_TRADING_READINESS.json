@@ -1,0 +1,83 @@
+{
+  "schema": "warroom.v97.trading_readiness.v1",
+  "release": "War Room OS V9.7 Limited-Production Trading Control Plane",
+  "generated_at": "2026-07-27T06:44:48Z",
+  "markets": {
+    "us": {
+      "market": "us",
+      "route_defined": true,
+      "execution_reference_route_defined": true,
+      "current_quote_count": 0,
+      "proof_component_defined": true,
+      "bound_proof_runs": 0,
+      "operational_control_plane_ready": true,
+      "limited_production_signal_ready": false,
+      "capital_permission": "AWAITING_BOUND_PROOF"
+    },
+    "idx": {
+      "market": "idx",
+      "route_defined": true,
+      "execution_reference_route_defined": true,
+      "current_quote_count": 0,
+      "proof_component_defined": true,
+      "bound_proof_runs": 0,
+      "operational_control_plane_ready": true,
+      "limited_production_signal_ready": false,
+      "capital_permission": "AWAITING_BOUND_PROOF"
+    },
+    "commodity": {
+      "market": "commodity",
+      "route_defined": true,
+      "execution_reference_route_defined": true,
+      "current_quote_count": 0,
+      "proof_component_defined": true,
+      "bound_proof_runs": 0,
+      "operational_control_plane_ready": true,
+      "limited_production_signal_ready": false,
+      "capital_permission": "AWAITING_BOUND_PROOF"
+    },
+    "fx": {
+      "market": "fx",
+      "route_defined": true,
+      "execution_reference_route_defined": true,
+      "current_quote_count": 0,
+      "proof_component_defined": true,
+      "bound_proof_runs": 0,
+      "operational_control_plane_ready": true,
+      "limited_production_signal_ready": false,
+      "capital_permission": "AWAITING_BOUND_PROOF"
+    },
+    "crypto": {
+      "market": "crypto",
+      "route_defined": true,
+      "execution_reference_route_defined": true,
+      "current_quote_count": 0,
+      "proof_component_defined": true,
+      "bound_proof_runs": 0,
+      "operational_control_plane_ready": true,
+      "limited_production_signal_ready": false,
+      "capital_permission": "AWAITING_BOUND_PROOF"
+    }
+  },
+  "operational_control_plane_ready_markets": 5,
+  "current_execution_quote_markets": 0,
+  "bound_proof_markets": 0,
+  "limited_production_signal_ready_markets": 0,
+  "auto_submit_enabled": false,
+  "broker_neutral_export_only": true,
+  "kill_switch_engaged": false,
+  "ledger_integrity": {
+    "valid": true,
+    "events": 0,
+    "last_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "errors": []
+  },
+  "required_files_missing": [],
+  "software_state": "LIMITED_PRODUCTION_CONTROL_PLANE_READY",
+  "alpha_state": "NO_APPROVED_ALPHA",
+  "operational_permission": "QUOTE_REFRESH_RISK_CHECK_MANUAL_ORDER_EXPORT_RECONCILIATION",
+  "capital_permission": "BLOCKED_UNTIL_EXACT_PROOF_AND_HUMAN_APPROVAL",
+  "fully_proven_markets": 0,
+  "claim_limit": "V9.7 can safely prepare and reconcile limited-production orders. It does not create a profitable strategy and will not export an order without bound proof and human approval.",
+  "status_hash": "fadd5b5b2700a5e024803901be31eb032cabd97302df283b82dc84f456e34c18"
+}

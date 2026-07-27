@@ -1,0 +1,17 @@
+{
+  "schema": "warroom.v95.equity_mapping.v1",
+  "columns": {
+    "timestamp": "Timestamp",
+    "net_liquidation_value": "NetLiquidationValue",
+    "stress_net_liquidation_value": "StressNetLiquidationValue",
+    "external_cash_flow": "ExternalCashFlow",
+    "account_id": "AccountID",
+    "is_live": "IsLive",
+    "paper": "Paper",
+    "synthetic": "Synthetic"
+  },
+  "constants": {
+    "execution_source": "BROKER_EXPORT",
+    "stress_model_hash": "REPLACE_WITH_64_HEX"
+  }
+}

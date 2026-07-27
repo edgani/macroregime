@@ -1,0 +1,63 @@
+{
+  "schema": "warroom.v95.current_status.v1",
+  "release": "War Room OS V9.5 Proof Firewall & Shadow Trading Runtime",
+  "source_routes_defined": 5,
+  "public_collectors_implemented": 5,
+  "prospective_shadow_lanes_ready": 5,
+  "proof_firewalls_ready": 5,
+  "bundled_real_public_snapshot_markets": 1,
+  "historical_point_in_time_admitted_markets": 0,
+  "historical_blind_proven_markets": 0,
+  "limited_production_eligible_markets": 0,
+  "fully_trading_ready_markets": 0,
+  "operational_permission": "SHADOW_TRADING_READY",
+  "capital_permission": "BLOCKED",
+  "market_status": {
+    "us": {
+      "public_route": "READY",
+      "collector": "READY",
+      "bundled_snapshot": "CURRENT_NASDAQ_SECURITY_MASTER_ONLY",
+      "shadow_lane": "READY",
+      "bound_proof_run": "MISSING",
+      "capital_permission": "BLOCKED"
+    },
+    "idx": {
+      "public_route": "READY_WITH_BROWSER_HANDOFF",
+      "collector": "READY",
+      "bundled_snapshot": "NONE",
+      "shadow_lane": "READY",
+      "bound_proof_run": "MISSING",
+      "capital_permission": "BLOCKED"
+    },
+    "commodity": {
+      "public_route": "READY",
+      "collector": "READY",
+      "bundled_snapshot": "NONE",
+      "shadow_lane": "READY",
+      "bound_proof_run": "MISSING",
+      "capital_permission": "BLOCKED"
+    },
+    "fx": {
+      "public_route": "READY",
+      "collector": "READY",
+      "bundled_snapshot": "NONE",
+      "shadow_lane": "READY",
+      "bound_proof_run": "MISSING",
+      "capital_permission": "BLOCKED"
+    },
+    "crypto": {
+      "public_route": "READY",
+      "collector": "READY",
+      "bundled_snapshot": "NONE",
+      "shadow_lane": "READY",
+      "bound_proof_run": "MISSING",
+      "capital_permission": "BLOCKED"
+    }
+  },
+  "meaning_of_5_of_5": {
+    "software_and_shadow_pipeline": "5/5 READY",
+    "real_historical_evidence": "0/5 PROVEN",
+    "live_capital": "0/5 AUTHORIZED"
+  },
+  "claim_limit": "V9.5 is operationally ready for prospective shadow trading across five exact market lanes. It is not live-capital ready until each lane accumulates and passes genuine point-in-time, sealed-outcome, actual-fill and prospective proof."
+}

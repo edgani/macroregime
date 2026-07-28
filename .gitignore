@@ -1,0 +1,22 @@
+# Python bytecode / caches
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Virtualenvs
+.venv/
+venv/
+
+# Generated run outputs (regenerable by hardening tests / validators)
+/V55_PARQUET_COMPAT_VALIDATION.json
+/V71_OPTIONS_PROSPECTIVE_VALIDATION.json
+/V72_MANIFEST_GENERATOR_VALIDATION.json
+/V72_OUTCOME_EVALUATOR_VALIDATION.json
+/V72_RELEASE_RUNNER_VALIDATION.json
+/V72_SIGNED_DEALER_VALIDATION.json
+
+# OS / editor
+Thumbs.db
+.DS_Store
+*.bak

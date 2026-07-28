@@ -1,0 +1,637 @@
+{
+ "schema": "warroom.alpha_center_r7.v1",
+ "rule": "WATCH is not alpha; DATA_GATED weight 0; no universal score; preliminary tournament is not a signal",
+ "markets": {
+  "us": {
+   "schema": "warroom.alpha_family_board.v1",
+   "market": "us",
+   "exact_claim": "select US equities whose bottleneck/expectation-gap thesis delivers positive lower-confidence-bound excess return vs S&P 500 within 1-8 quarters",
+   "baseline": [
+    "spy_total_return",
+    "equal_weight_sleeve",
+    "random_same_turnover"
+   ],
+   "trial_budget_total": 40,
+   "families": [
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "us",
+     "family_id": "capacity_qualification_bottleneck",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "us",
+     "family_id": "backlog_order_acceleration",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "us",
+     "family_id": "earnings_sales_fcf_expectation_gap",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "us",
+     "family_id": "asp_cost_spread",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "us",
+     "family_id": "margin_convexity",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "us",
+     "family_id": "pricing_power",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "us",
+     "family_id": "customer_supplier_concentration",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "us",
+     "family_id": "balance_sheet_refinancing",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "us",
+     "family_id": "dilution_supply_response",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "us",
+     "family_id": "options_borrow_positioning",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "us",
+     "family_id": "extreme_winner_discovery",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "us",
+     "family_id": "downside_short_thesis",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    }
+   ],
+   "summary": {
+    "families": 12,
+    "data_gated": 12,
+    "testable": 0
+   },
+   "note": "WATCH is not alpha; gated families have weight 0 and cannot affect capital"
+  },
+  "ihsg": {
+   "schema": "warroom.alpha_family_board.v1",
+   "market": "ihsg",
+   "exact_claim": "select IDX equities (long-only) with controller/flow/structure catalysts delivering positive excess return vs JCI within 1-6 quarters",
+   "baseline": [
+    "jci_total_return",
+    "equal_weight_sleeve",
+    "random_same_turnover"
+   ],
+   "trial_budget_total": 30,
+   "families": [
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "ihsg",
+     "family_id": "controller_conglomerate_catalyst",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "ihsg",
+     "family_id": "free_float_scarcity",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "ihsg",
+     "family_id": "crossing_adjusted_broker_inventory",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "ihsg",
+     "family_id": "broker_persistence",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "ihsg",
+     "family_id": "foreign_flow",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "ihsg",
+     "family_id": "institutional_retail_split",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "ihsg",
+     "family_id": "fake_retail_done_detail",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "ihsg",
+     "family_id": "corporate_actions",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "ihsg",
+     "family_id": "project_contract_award",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "ihsg",
+     "family_id": "commodity_input_passthrough",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "ihsg",
+     "family_id": "import_dependency",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "ihsg",
+     "family_id": "balance_sheet",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "ihsg",
+     "family_id": "liquidity_impact",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    }
+   ],
+   "summary": {
+    "families": 13,
+    "data_gated": 13,
+    "testable": 0
+   },
+   "note": "WATCH is not alpha; gated families have weight 0 and cannot affect capital"
+  },
+  "crypto": {
+   "schema": "warroom.alpha_family_board.v1",
+   "market": "crypto",
+   "exact_claim": "select venue-specific crypto instruments with real value-capture and admitted positioning delivering positive excess return vs BTC/ETH equal weight within 1-4 quarters",
+   "baseline": [
+    "btc_eth_ew",
+    "random_same_turnover"
+   ],
+   "trial_budget_total": 30,
+   "families": [
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "crypto",
+     "family_id": "protocol_usage_value_capture",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "crypto",
+     "family_id": "fee_revenue",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "crypto",
+     "family_id": "token_required_demand",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "crypto",
+     "family_id": "stablecoin_liquidity",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "crypto",
+     "family_id": "supply_unlocks_emissions",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "crypto",
+     "family_id": "treasury_entity_flow",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "crypto",
+     "family_id": "funding_basis_oi",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "crypto",
+     "family_id": "liquidation_crowding",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "crypto",
+     "family_id": "protocol_resource_bottleneck",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "crypto",
+     "family_id": "adoption_expectation_gap",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "crypto",
+     "family_id": "counterparty_custody_risk",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    }
+   ],
+   "summary": {
+    "families": 11,
+    "data_gated": 11,
+    "testable": 0
+   },
+   "note": "WATCH is not alpha; gated families have weight 0 and cannot affect capital"
+  },
+  "commodities": {
+   "schema": "warroom.alpha_family_board.v1",
+   "market": "commodities",
+   "exact_claim": "select exact-contract (CL/GC/HG) long/short positions on stock-flow/physical theses delivering positive excess return vs BCOM within 1-4 quarters",
+   "baseline": [
+    "bcom_total_return",
+    "random_same_turnover"
+   ],
+   "trial_budget_total": 25,
+   "families": [
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "commodities",
+     "family_id": "stock_flow_deficit",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "commodities",
+     "family_id": "inventory_surprise",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "commodities",
+     "family_id": "spare_capacity_scarcity",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "commodities",
+     "family_id": "grade_location_basis",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "commodities",
+     "family_id": "freight_storage",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "commodities",
+     "family_id": "processing_refinery_constraint",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "commodities",
+     "family_id": "weather_geopolitical_shock",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "commodities",
+     "family_id": "curve_roll",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "commodities",
+     "family_id": "producer_consumer_hedging",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "commodities",
+     "family_id": "cftc_positioning",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    },
+    {
+     "schema": "warroom.alpha_candidate.v1",
+     "market": "commodities",
+     "family_id": "option_implied_distribution",
+     "status": "DATA_GATED",
+     "weight": 0,
+     "reason": "admitted PIT feed missing (see data/coverage/gap_registry.json)",
+     "execution_eligible": false,
+     "proof_state": "UNAVAILABLE"
+    }
+   ],
+   "summary": {
+    "families": 11,
+    "data_gated": 11,
+    "testable": 0
+   },
+   "note": "WATCH is not alpha; gated families have weight 0 and cannot affect capital"
+  },
+  "fx": {
+   "schema": "warroom.alpha_family_board.v1",
+   "market": "fx",
+   "families_tested": 1,
+   "trials_logged": 2,
+   "results": [
+    {
+     "family": "carry_policy_differential",
+     "params": {
+      "formation_months": 1,
+      "rebalance": "monthly",
+      "legs": "long2_short1",
+      "cost_bps_per_leg": 1.0
+     },
+     "results": {
+      "ann_return": 0.0252,
+      "ann_vol": 0.0804,
+      "sharpe": 0.313,
+      "max_drawdown": -0.1147,
+      "hit_rate": 0.5909,
+      "bench_equal_weight_ann": 0.0242,
+      "excess_vs_bench": 0.001
+     },
+     "verdict": "PRELIMINARY_IN_SAMPLE_ONLY",
+     "promoted": false
+    },
+    {
+     "family": "carry_policy_differential",
+     "params": {
+      "formation_months": 1,
+      "rebalance": "monthly",
+      "legs": "long2_short1",
+      "cost_bps_per_leg": 1.0
+     },
+     "results": {
+      "ann_return": 0.0252,
+      "ann_vol": 0.0804,
+      "sharpe": 0.313,
+      "max_drawdown": -0.1147,
+      "hit_rate": 0.5909,
+      "bench_equal_weight_ann": 0.0242,
+      "excess_vs_bench": 0.001
+     },
+     "verdict": "PRELIMINARY_IN_SAMPLE_ONLY",
+     "promoted": false
+    }
+   ],
+   "note": "Sharpe 0.31 / n=22 / excess~0 vs equal-weight baseline: no edge demonstrated; family weight 0 pending OOS + lockbox (R10)",
+   "candidates": [
+    {
+     "market": "fx",
+     "instrument": "USDJPY",
+     "direction": "NO_TRADE",
+     "stage": "RESEARCH_ONLY",
+     "reason": "carry family in preliminary tournament; no OOS/lockbox pass yet",
+     "proof_state": "MAPPED",
+     "execution_eligible": false
+    },
+    {
+     "market": "fx",
+     "instrument": "EURUSD",
+     "direction": "NO_TRADE",
+     "stage": "RESEARCH_ONLY",
+     "reason": "carry family in preliminary tournament; no OOS/lockbox pass yet",
+     "proof_state": "MAPPED",
+     "execution_eligible": false
+    },
+    {
+     "market": "fx",
+     "instrument": "GBPUSD",
+     "direction": "NO_TRADE",
+     "stage": "RESEARCH_ONLY",
+     "reason": "carry family in preliminary tournament; no OOS/lockbox pass yet",
+     "proof_state": "MAPPED",
+     "execution_eligible": false
+    },
+    {
+     "market": "fx",
+     "instrument": "AUDUSD",
+     "direction": "NO_TRADE",
+     "stage": "RESEARCH_ONLY",
+     "reason": "carry family in preliminary tournament; no OOS/lockbox pass yet",
+     "proof_state": "MAPPED",
+     "execution_eligible": false
+    }
+   ]
+  }
+ }
+}

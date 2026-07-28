@@ -112,4 +112,21 @@ Environment: same venv. Run at commit a60f413 + phase-3 repairs (uncommitted at 
 
 ### Final end-to-end (Phase 8)
 
-(pending)
+Run at HEAD of `kimi-warroom-final-audit` (2026-07-28):
+
+- `pytest tests/ -q`: **134 passed, 0 failed** (124 kernel + 10 paper trading), ~6s.
+- Hardening scripts: **12/12 exit 0, 0 FAIL lines, 0 tracebacks**.
+- Offline desk build smoke: PASS.
+- Production app boot smoke: `streamlit.testing.v1.AppTest.from_file('app.py').run()` —
+  no exception (one upstream deprecation notice for `st.components.v1.html`; non-blocking).
+  Boot regenerated `runtime/desk_snapshot.json` (+ static mirror, worker_status) from an
+  offline desk build — committed as the smoke-run state.
+- v3 workstation boot: covered by `tests/test_streamlit_release.py` (empty state + finalized bars).
+- `git diff --check`: clean.
+- Secrets scan (git grep over tracked non-archive files for credential literals and PEM
+  blocks): no findings; only env-var name references in examples/config.
+- Junk scan: no tracked `.pyc`/`__pycache__`/`.pytest_cache`/`.bak`; worker pid/lock
+  gitignored.
+- Paper-trading instructions: `docs/audit/PAPER_TRADING.md` verified end-to-end by
+  `tests/test_shadow_paper_trading.py`.
+- Evidence labels: `docs/audit/CLAIM_EVIDENCE_AUDIT.md`; no module labeled PROVEN.

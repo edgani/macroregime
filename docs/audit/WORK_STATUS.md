@@ -1,25 +1,36 @@
-# Work Status — War Room Final Audit (updated 2026-07-28, recovery session)
+# Work Status — War Room Final Audit (final, 2026-07-28)
 
 | Phase | Scope | Status | Evidence |
 |---|---|---|---|
-| 0 | Baseline inventory + manifest | COMPLETED_AND_VERIFIED | commit 5e7b86f, docs/audit/baseline/ |
-| 1 | Architecture map, import graph, baseline tests | COMPLETED_AND_VERIFIED | commit 55f74d6, ARCHITECTURE_MAP.md, TEST_RESULTS.md |
-| 2 | Cleanup: archive reorg + junk deletion + .gitignore | IMPLEMENTED_NOT_VERIFIED | staged in index, cleanup_plan.json; NOT committed |
-| 3 | Post-change test reproduction | PARTIALLY_IMPLEMENTED | baseline recorded; post-change runs pending |
-| 4 | Data lineage report | NOT_STARTED | ARCHITECTURE_MAP.md §5 is the seed |
-| 5 | Claim re-audit + WriteVerso failure-mode audit | NOT_STARTED | mandate requirement |
-| 6 | Application repair (streamlit_release 5 failures) | NOT_STARTED | TEST_RESULTS.md |
-| 7 | Paper-trading framework completion | PARTIALLY_IMPLEMENTED | shadow_runner_v101.py exists; no runtime ledger, no schema/replay/eval runs |
-| 8 | Final e2e + git delivery prep | NOT_STARTED | TEST_RESULTS.md placeholders |
+| 0 | Baseline inventory + manifest | COMPLETED_AND_VERIFIED | commit 5e7b86f |
+| 1 | Architecture map, import graph, baseline tests | COMPLETED_AND_VERIFIED | commit 55f74d6 |
+| 2 | Cleanup: archive reorg + junk deletion + .gitignore | COMPLETED_AND_VERIFIED | commit a60f413; DEAD_CODE_AND_BLOAT_REPORT.md |
+| 3 | Post-change test reproduction + repairs | COMPLETED_AND_VERIFIED | commit 9ca1a8e; 12/12 hardening green |
+| 4 | Data lineage report | COMPLETED_AND_VERIFIED | commit 47aa2c6; DATA_LINEAGE_REPORT.md |
+| 5 | Claim re-audit + WriteVerso failure-mode audit | COMPLETED_AND_VERIFIED | commit 735defc; CLAIM_EVIDENCE_AUDIT.md |
+| 6 | Application repair (streamlit_app.py, deps, manifest) | COMPLETED_AND_VERIFIED | commit 7925c41; 124/124 pytest |
+| 7 | Paper-trading framework completion | COMPLETED_AND_VERIFIED | commit ff27fb6; 10/10 tests; PAPER_TRADING.md |
+| 8 | Final e2e + delivery prep | COMPLETED_AND_VERIFIED | TEST_RESULTS.md Phase 8 section |
 
-## Priority queue (from mandate)
-1. Startup blockers — none known; confirm via post-cleanup smoke.
-2. False PROVEN claims — Phase 5.
-3. Data lineage & reliability — Phase 4.
-4. test_hardening_v52 false-green — Phase 3/6.
-5. Paper trading — Phase 7.
+## Terminal evidence status by module
 
-## Evidence-label policy (binding)
-No module may carry PROVEN unless Phase 5 reproduces its evidence from a
-controlled run and the WriteVerso audit clears all 12 failure modes.
-Default label for unaudited predictive modules: PROSPECTIVE_EVIDENCE_PENDING.
+- HISTORICALLY_VALIDATED_OOS: US_BROAD_EQUITY_SMA10_LONG_CASH_V79 (capital BLOCKED)
+- RECONSTRUCTED_HISTORICAL_EVIDENCE: V64 AnalystRevision / AnnouncementReturn / DivYieldST / SmileSlope (gross only)
+- REJECTED (terminal negatives): cusp fragility V73/V74/V75, crash meter, V66 long-history
+  risk gate, V78 proof expansion, V82/V83 full-causal factor portfolio (V84 revocation)
+- CONDITIONAL: options infrastructure v70/v71/v72 (fail-closed verified; signals unaudited)
+- PROSPECTIVE_EVIDENCE_PENDING: carry engine V101, quad transition, chain reaction,
+  bottleneck, alpha center, timing edge, directional alpha, all prospective profitability
+- PROVEN: none
+
+## Open external blockers
+
+- Live data collectors (Yahoo/Binance/CoinGecko/yfinance/CFTC/CB scrape) unverified —
+  network-dependent; offline path fully verified.
+- First real prospective shadow snapshot requires one live `warroom_data_worker_v101.py`
+  cycle; framework otherwise complete and tested.
+
+## Delivery
+
+Branch `kimi-warroom-final-audit`, 9 commits, ready for review/push.
+Push command: `git push -u origin kimi-warroom-final-audit`

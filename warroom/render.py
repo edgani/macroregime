@@ -768,25 +768,85 @@ def command_center(d, source):
     st.markdown(CSS + html, unsafe_allow_html=True)
 
 
+def _load_json_rel(rel):
+    import json as _json, os as _os
+    p = _os.path.join(_os.path.dirname(__file__), "..", rel)
+    try:
+        with open(p, "r", encoding="utf-8") as fh:
+            return _json.load(fh)
+    except Exception:
+        return None
+
+
 def alpha(d):
-    dmax = _dmax(d)
-    funnel = (_tile("Scanned", d["scanned"]) + _tile("Ranked", d.get("ranked", 0))
-              + _tile("Conviction", len(d["conviction"])) + _tile("Watchlist", len(d["watchlist"])))
-    cards = "".join(_xcard(r, dmax) for r in d["conviction"]) or "<div class='wr-note'>no long/short setups.</div>"
-    rows = ""
-    for r in d["watchlist"]:
-        disp = 10 * r.get("score", 0) / dmax if dmax else 0
-        rows += (f"<div class='wr-row'><span class='wr-mono' style='font-weight:600;min-width:62px;color:#e8edf2;'>{r['ticker']}</span>"
-                 f"{_b(r['_dir'], _DIRK.get(r['_dir'],'inf'))}<span class='wr-badge b-gry'>{r.get('market','')}</span>"
-                 f"<span class='wr-mono' style='color:#9aa6b2;'>{disp:.1f}</span>"
-                 f"<span style='color:#9aa6b2;'>RS {r.get('rs',0):+.0f}% · entry {r.get('entry','')}</span></div>")
-    val = d.get("validation", {})
-    val_html = (f"<div class='wr-note' style='margin-bottom:4px;'>Walk-forward gatekeeper ({val.get('method','path-dependent')}): "
-                f"{val.get('passed',0)}/{val.get('checked',0)} conviction setups PASS. Each card shows its WF gate.</div>") if val.get("checked") else ""
-    html = (f"<div class='wr-top'><b>Alpha center</b><span>cross-market competitive ranking</span></div>"
-            f"<div class='wr-grid'>{funnel}</div><div class='wr-lbl'>Highest conviction — best across all markets</div>{val_html}{cards}"
-            f"{decision_market_panel(d)}"
-            f"<div class='wr-lbl'>Watchlist</div><div class='wr-rows'>{rows}</div>")
+    """R7.1: Alpha center = thesis/bottleneck/activation board.
+
+    No momentum score cards, no duplicate tickers, no generic entry/target.
+    Tradable Now is explicit NO TRADE until a component is PROVEN_FOR_EXACT_CLAIM.
+    """
+    astate = d.get("alpha_state") or {}
+    board = _load_json_rel("data/alpha/alpha_center_r7.json") or {}
+    act = _load_json_rel("data/bottleneck/activation_board.json") or {}
+
+    # funnel: honest counts
+    mkts = board.get("markets", {})
+    n_gated = sum(b.get("summary", {}).get("data_gated", 0) for b in mkts.values() if isinstance(b, dict))
+    n_testable = sum(b.get("summary", {}).get("testable", 0) for b in mkts.values() if isinstance(b, dict))
+    funnel = (_tile("Tradable now", len(astate.get("tradable_now", [])))
+              + _tile("Families gated", n_gated) + _tile("Families testable", n_testable)
+              + _tile("Research theses", len(act.get("board", []))))
+
+    # Tradable Now / NO TRADE
+    if astate.get("no_trade", True):
+        tradable = (f"<div class='wr-row'><span class='wr-badge b-red'>NO TRADE</span>"
+                    f"<span style='color:#9aa6b2;'>{astate.get('no_trade_reason', 'no proven component')}</span></div>")
+    else:
+        tradable = "".join(
+            f"<div class='wr-row'><b>{c.get('instrument')}</b><span class='wr-badge b-grn'>{c.get('direction')}</span>"
+            f"<span style='color:#9aa6b2;'>{c.get('selection_reason','')}</span></div>"
+            for c in astate.get("tradable_now", []))
+
+    # Activation board (traffic lights)
+    lamp = {"RED_NOT_READY": "b-red", "YELLOW_ARMING": "b-amb", "GREEN_ACTIVATE": "b-grn",
+            "GREEN_ACTIVE_HOLD_ADD": "b-grn", "AMBER_LATE_TRIM": "b-amb", "BLACK_INVALIDATED_EXIT": "b-red"}
+    arows = ""
+    for b in (act.get("board") or [])[:12]:
+        missing = len(b.get("missing_inputs", []))
+        arows += (f"<div class='wr-row'><span class='wr-mono' style='font-weight:600;min-width:150px;color:#e8edf2;'>{b.get('bottleneck_id')}</span>"
+                  f"<span class='wr-badge {lamp.get(b.get('state'), 'b-gry')}'>{b.get('state')}</span>"
+                  f"<span class='wr-badge b-gry'>{b.get('market')}</span>"
+                  f"<span style='color:#9aa6b2;'>{b.get('reason','')[:90]} · {missing} inputs gated</span></div>")
+
+    # Five-market coverage
+    cov = ""
+    for m, b in mkts.items():
+        s = b.get("summary", {})
+        cov += (f"<div class='wr-row'><span class='wr-mono' style='font-weight:600;min-width:100px;color:#e8edf2;'>{m.upper()}</span>"
+                f"<span class='wr-badge b-gry'>{s.get('families', b.get('families_tested', 0))} families</span>"
+                f"<span class='wr-badge b-amb'>{s.get('data_gated', 0)} gated</span>"
+                f"<span class='wr-badge b-gry'>{s.get('testable', b.get('trials_logged', 0))} tested</span></div>")
+
+    # Excluded / missing data (from gated family reasons)
+    excl = ""
+    seen = set()
+    for m, b in mkts.items():
+        for f in (b.get("families") or []):
+            r = f.get("reason")
+            if r and r not in seen:
+                seen.add(r)
+                excl += f"<div class='wr-row'><span class='wr-badge b-gry'>{m}</span><span style='color:#9aa6b2;'>{f.get('family_id')}: {r[:80]}</span></div>"
+
+    legacy = d.get("legacy_momentum_scan") or {}
+    html = (f"<div class='wr-top'><b>Alpha center</b><span>thesis · bottleneck · activation — no proven component yet</span></div>"
+            f"<div class='wr-grid'>{funnel}</div>"
+            f"<div class='wr-lbl'>Tradable now</div><div class='wr-rows'>{tradable}</div>"
+            f"<div class='wr-lbl'>Activation board (research theses — WATCH is not alpha)</div><div class='wr-rows'>{arows or '<div class=wr-note>activation board artifact missing</div>'}</div>"
+            f"<div class='wr-lbl'>Five-market coverage</div><div class='wr-rows'>{cov}</div>"
+            f"<div class='wr-lbl'>Excluded / missing data</div><div class='wr-rows'>{excl or '<div class=wr-note>none</div>'}</div>"
+            f"<div class='wr-note'>Legacy price-momentum scan retained in compute output "
+            f"({legacy.get('pool_size', 0)} names) with alpha weight 0 — not shown as a signal. "
+            f"Confidence values are uncalibrated unless a proof artifact says otherwise.</div>"
+            f"{decision_market_panel(d)}")
     st.markdown(CSS + html, unsafe_allow_html=True)
 
 def _lens_rows(items, fmt):

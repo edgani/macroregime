@@ -28,6 +28,8 @@ def main():
         fred = feeds.get("fred") or F.fetch()
         d = C.run(us, idx, cp, fxp, commo, fred, feeds)
         # forward-test logger: log today's conviction point-in-time, then resolve open signals on later bars
+        # R7.1: conviction now contains ONLY proof-gated candidates (currently none); legacy
+        # momentum-scan rows can no longer enter the prospective signal DB.
         allpx = {**commo, **fxp, **cp, **idx, **us}
         try:
             TR.log_signals(d["conviction"], d["regime"])

@@ -389,7 +389,8 @@ def run(us, idx, crypto, fx, commo, fred=None, feeds=None, fast=False):
     quad = reg["structural"]
     out = {
         "regime": reg, "rows": rows,
-        "scanned": len(D.US_NAMES), "conviction": rows[:4], "watchlist": rows[4:12],
+        # conviction/watchlist set to honest empty state in the pool block below (R7.1)
+        "scanned": len(D.US_NAMES), "conviction": [], "watchlist": [],
         "methodology": _methodology(us, quad),
         "us_lens": _us_lens(us),
         "crypto": _crypto_lens(crypto), "commo": _commo_lens(commo, us), "fx": _fx_lens(fx),
@@ -407,7 +408,10 @@ def run(us, idx, crypto, fx, commo, fred=None, feeds=None, fast=False):
     out["forward"] = _forward_macro(us)
     out["crash"] = _crash(us, vix)
     out["discovery"] = _discovery(us, vix)
-    # CROSS-MARKET competitive ranking (vision: best across ALL markets, not US-only)
+    # R7.1 INTEGRITY REPAIR: the five-lens "score" pool is a price/technicals-driven
+    # legacy scan (momentum, SMA trend, RS63). Per the definitive master prompt it is
+    # NOT alpha and must not feed conviction/watchlist/shadow. Preserved for forensic
+    # continuity with alpha_weight 0; disconnected from every decision surface.
     pool = []
     for mkt, key in [("US", "us_lens"), ("Crypto", "crypto"), ("Commodities", "commo"), ("FX", "fx"), ("IHSG", "idx")]:
         for s in (out.get(key, {}).get("setups") or []):
@@ -416,12 +420,29 @@ def run(us, idx, crypto, fx, commo, fred=None, feeds=None, fast=False):
                 s2["frameworks"] = out["methodology"].get(s["ticker"], []) if mkt == "US" else []
                 pool.append(s2)
     pool.sort(key=lambda x: x["score"], reverse=True)
-    out["ranked"] = len(pool)
-    out["conviction"] = pool[:5]
-    # Fair Value (FREE data via yfinance) for top US-listed conviction names — fills the Company Page
-    _us_conv = [r.get("ticker") for r in out["conviction"] if r.get("ticker") and "." not in r["ticker"] and "-USD" not in r["ticker"]]
-    out["fair_value"] = _try(lambda: FV.for_names(_us_conv, limit=6)) or {}
-    out["watchlist"] = pool[5:14]
+    out["legacy_momentum_scan"] = {
+        "label": "LEGACY_PRICE_MOMENTUM_SCAN_NOT_ALPHA",
+        "alpha_weight": 0,
+        "pool_size": len(pool),
+        "pool": pool,
+        "note": ("price/technicals-driven legacy scan preserved for continuity; "
+                 "zero alpha weight; not eligible for conviction, watchlist, shadow, or execution"),
+    }
+    # Honest alpha state: nothing is PROVEN_FOR_EXACT_CLAIM yet -> explicit NO TRADE.
+    out["ranked"] = 0
+    out["conviction"] = []
+    out["watchlist"] = []
+    out["alpha_state"] = {
+        "tradable_now": [],
+        "no_trade": True,
+        "no_trade_reason": ("no component is PROVEN_FOR_EXACT_CLAIM; 47/48 candidate "
+                            "families DATA_GATED, 1 family preliminary (no edge). See "
+                            "data/alpha/alpha_center_r7.json"),
+        "board_artifact": "data/alpha/alpha_center_r7.json",
+        "activation_board": "data/bottleneck/activation_board.json",
+        "proof_required": ["HISTORICAL_OOS_PASS", "BLIND_LOCKBOX_PASS", "SHADOW_READY"],
+    }
+    out["fair_value"] = {}
     allpx = {}
     for dd in (us, idx, crypto, fx, commo):
         for k, v in (dd or {}).items():

@@ -135,9 +135,27 @@ def _r(x, nd=4):
 def candidate_board(trials: list) -> list:
     """Canonical candidate records. FX emits NO_TRADE until a family passes OOS —
     preliminary in-sample tournament results are NOT tradable signals."""
+    from engines.alpha_base import CANDIDATE_SCHEMA
     return [{
+        "schema": CANDIDATE_SCHEMA,
         "market": "fx", "instrument": p, "direction": "NO_TRADE",
         "stage": "RESEARCH_ONLY",
+        "causal_thesis": "carry/policy differential (preliminary tournament only)",
+        "bottleneck": "NO_DATA",
+        "expectation_gap": "NO_DATA",
+        "activation_stage": "RED_NOT_READY",
+        "current_quote": "NO_DATA",
+        "projection_low_base_high": None,
+        "probability_weighted_target": None,
+        "lcb_expected_return": None,
+        "horizon": "1-4 quarters (contract)",
+        "return_velocity": None,
+        "entry": None, "stop": None, "invalidation": "policy path reversal; carry compression",
+        "expected_shortfall": None,
+        "liquidity_capacity": "major pairs deep; NO_DATA for current depth",
+        "selection_reason": "none — carry family has no demonstrated edge (excess ~0 vs baseline)",
+        "exclusion_reason": "preliminary in-sample only; OOS + lockbox required (R10)",
+        "missing_feeds": ["ois_policy_path", "cftc_tff", "fx_options", "bop_reserves_pit"],
         "reason": "carry family in preliminary tournament; no OOS/lockbox pass yet",
         "proof_state": "MAPPED",
         "execution_eligible": False,

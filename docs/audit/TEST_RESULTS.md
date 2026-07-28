@@ -58,7 +58,41 @@ pass/fail, skips and reasons.
 
 ### After Phase 2 cleanup
 
-(pending)
+Environment: same venv. Run at commit a60f413 + phase-3 repairs (uncommitted at run time).
+
+- `pytest tests/ -q` immediately after cleanup commit: **118 passed, 6 failed**.
+  - Same 5 `test_streamlit_release.py` failures as baseline (missing `streamlit_app.py`, plotly).
+  - NEW failure: `test_release_ready.py::test_release_manifest_binds_operational_core` —
+    cleanup deleted generated `artifacts/release_manifest_ready.json`; the manifest is
+    regenerable via `scripts/build_release_manifest.py` (deferred to Phase 6, which also
+    supplies `streamlit_app.py` required by the generator's INCLUDE list).
+- Offline desk build smoke: PASS ("desk ok"), unchanged.
+- Hardening scripts after cleanup: 4 regressions surfaced and repaired in Phase 3:
+  1. `test_attachment_continuation_v53` + `test_cusp_research_v57` — cleanup moved the LIVE
+     registry `research_evidence_registry_v53.json` into `research/archive/` while kept code
+     `research_evidence_v53.py` reads it from repo root. Fix: registry restored to root
+     (misclassification in cleanup plan corrected). 11/11 and 15/15 PASS.
+  2. `test_parquet_compat_v55` — `projection_semantics` failed: pyarrow-backed read yields
+     `datetime64[us]`, the pure-Python fallback reader yields `datetime64[ns]`, and
+     `DataFrame.equals` is dtype-strict. Fix: `parquet_compat.read_parquet_compat` now
+     normalizes all datetime64 columns to ns (backend-independent). 36/36 PASS.
+  3. `test_hardening_v52` — was FALSE-GREEN at baseline (TypeError in
+     `registry_and_valuation_tests`, exit masked). Repairs:
+     - `component_status()` called with the forged registry row (current two-arg API);
+       forgery assertion now checks fail-closed outputs (capital BLOCKED, decision_active
+       False, live_weight 0.0, proof_run_valid False).
+     - Receipt fixture updated to current `proof_receipts.REQUIRED_GATES` (16 gates),
+       artifact hash roles (4 extra roles), prospective thresholds (obs>=200, regimes>=4,
+       drawdown caps) and metric blocks (large_move/narrative_timing/realized/projection).
+     - Static scan scope: excluded `.venv`/`node_modules`/`research/archive` (quarantined
+       legacy) and allowlisted non-production legacy `data/resilient_market_data.py`
+       (.pkl cache strings — recorded here as a finding: local self-written pickle cache,
+       0 production references per docs/audit/production_reachable.json).
+     - `PROOF_GATED` added to the deny-by-default permission set (run.py default state,
+       does not authorize capital).
+     - Scoped risk-cap file list updated for `research/archive/` paths.
+     Result: **39/39 PASS, genuine exit 0** (previously crashed before static tests ran).
+- Full hardening re-run after repairs: **12/12 scripts exit 0, 0 FAIL lines, 0 tracebacks**.
 
 ### After Phase 6 application repair
 

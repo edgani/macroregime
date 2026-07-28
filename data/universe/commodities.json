@@ -1,0 +1,147 @@
+{
+ "meta": {
+  "market": "commodities",
+  "built_at": "2026-07-28T13:17:58+00:00",
+  "instrument_count": 11,
+  "tiers": {
+   "TIER_A_FULL_DECISION": 8,
+   "TIER_B_RESEARCH_DISCOVERY": 3
+  },
+  "schema": "warroom.universe_master.v1"
+ },
+ "instruments": [
+  {
+   "instrument": "CL",
+   "market": "commodities",
+   "venue": "NYMEX",
+   "tier": "TIER_B_RESEARCH_DISCOVERY",
+   "as_of": "2026-07-28T13:17:58+00:00",
+   "source": "CME contract specs (static reference)",
+   "data_state": "CURRENT",
+   "instrument_kind": "future",
+   "name": "WTI Crude Oil",
+   "multiplier": 1000,
+   "unit": "USD/bbl",
+   "delivery": "physical (Cushing)",
+   "note": "exact contract spec registered; continuous price history via proxy"
+  },
+  {
+   "instrument": "GC",
+   "market": "commodities",
+   "venue": "COMEX",
+   "tier": "TIER_B_RESEARCH_DISCOVERY",
+   "as_of": "2026-07-28T13:17:58+00:00",
+   "source": "CME contract specs (static reference)",
+   "data_state": "CURRENT",
+   "instrument_kind": "future",
+   "name": "Gold",
+   "multiplier": 100,
+   "unit": "USD/troy oz",
+   "delivery": "physical",
+   "note": "exact contract spec registered; continuous price history via proxy"
+  },
+  {
+   "instrument": "HG",
+   "market": "commodities",
+   "venue": "COMEX",
+   "tier": "TIER_B_RESEARCH_DISCOVERY",
+   "as_of": "2026-07-28T13:17:58+00:00",
+   "source": "CME contract specs (static reference)",
+   "data_state": "CURRENT",
+   "instrument_kind": "future",
+   "name": "Copper",
+   "multiplier": 25000,
+   "unit": "USD/lb",
+   "delivery": "physical",
+   "note": "exact contract spec registered; continuous price history via proxy"
+  },
+  {
+   "instrument": "CPER",
+   "market": "commodities",
+   "venue": "yahoo-etf",
+   "tier": "TIER_A_FULL_DECISION",
+   "as_of": "2026-07-28T13:17:58+00:00",
+   "source": "warroom/data.py COMMO_UNIVERSE",
+   "data_state": "CURRENT",
+   "instrument_kind": "etf_proxy",
+   "note": "labelled proxy \u2014 NOT the exact deliverable contract"
+  },
+  {
+   "instrument": "DBC",
+   "market": "commodities",
+   "venue": "yahoo-etf",
+   "tier": "TIER_A_FULL_DECISION",
+   "as_of": "2026-07-28T13:17:58+00:00",
+   "source": "warroom/data.py COMMO_UNIVERSE",
+   "data_state": "CURRENT",
+   "instrument_kind": "etf_proxy",
+   "note": "labelled proxy \u2014 NOT the exact deliverable contract"
+  },
+  {
+   "instrument": "GLD",
+   "market": "commodities",
+   "venue": "yahoo-etf",
+   "tier": "TIER_A_FULL_DECISION",
+   "as_of": "2026-07-28T13:17:58+00:00",
+   "source": "warroom/data.py COMMO_UNIVERSE",
+   "data_state": "CURRENT",
+   "instrument_kind": "etf_proxy",
+   "note": "labelled proxy \u2014 NOT the exact deliverable contract"
+  },
+  {
+   "instrument": "SLV",
+   "market": "commodities",
+   "venue": "yahoo-etf",
+   "tier": "TIER_A_FULL_DECISION",
+   "as_of": "2026-07-28T13:17:58+00:00",
+   "source": "warroom/data.py COMMO_UNIVERSE",
+   "data_state": "CURRENT",
+   "instrument_kind": "etf_proxy",
+   "note": "labelled proxy \u2014 NOT the exact deliverable contract"
+  },
+  {
+   "instrument": "UNG",
+   "market": "commodities",
+   "venue": "yahoo-etf",
+   "tier": "TIER_A_FULL_DECISION",
+   "as_of": "2026-07-28T13:17:58+00:00",
+   "source": "warroom/data.py COMMO_UNIVERSE",
+   "data_state": "CURRENT",
+   "instrument_kind": "etf_proxy",
+   "note": "labelled proxy \u2014 NOT the exact deliverable contract"
+  },
+  {
+   "instrument": "URA",
+   "market": "commodities",
+   "venue": "yahoo-etf",
+   "tier": "TIER_A_FULL_DECISION",
+   "as_of": "2026-07-28T13:17:58+00:00",
+   "source": "warroom/data.py COMMO_UNIVERSE",
+   "data_state": "CURRENT",
+   "instrument_kind": "etf_proxy",
+   "note": "labelled proxy \u2014 NOT the exact deliverable contract"
+  },
+  {
+   "instrument": "USO",
+   "market": "commodities",
+   "venue": "yahoo-etf",
+   "tier": "TIER_A_FULL_DECISION",
+   "as_of": "2026-07-28T13:17:58+00:00",
+   "source": "warroom/data.py COMMO_UNIVERSE",
+   "data_state": "CURRENT",
+   "instrument_kind": "etf_proxy",
+   "note": "labelled proxy \u2014 NOT the exact deliverable contract"
+  },
+  {
+   "instrument": "WEAT",
+   "market": "commodities",
+   "venue": "yahoo-etf",
+   "tier": "TIER_A_FULL_DECISION",
+   "as_of": "2026-07-28T13:17:58+00:00",
+   "source": "warroom/data.py COMMO_UNIVERSE",
+   "data_state": "CURRENT",
+   "instrument_kind": "etf_proxy",
+   "note": "labelled proxy \u2014 NOT the exact deliverable contract"
+  }
+ ]
+}

@@ -45,25 +45,28 @@ ACTUAL_MARGIN_EXPANSION = {
 # SELLERS OF SHORTAGE classification
 # ════════════════════════════════════════════════════════════════════════
 
+# R5 NOTE: "curator_prior" values below are hand-picked research opinions (MAPPED,
+# unvalidated, zero capital weight). They are NOT tournament scores and must not be
+# presented as proven alpha. Replacement requires frozen R6/R7 tournaments.
 SHORTAGE_SELLERS = {
     # Tier S: Durable structural moat
-    "NVDA": {"category": "GPU Software Moat", "moat": "CUDA", "decay_risk": "LOW", "score": 95},
-    "AVGO": {"category": "Custom Silicon", "moat": "Hyperscaler partnerships", "decay_risk": "LOW", "score": 90},
+    "NVDA": {"category": "GPU Software Moat", "moat": "CUDA", "decay_risk": "LOW", "curator_prior": 95},
+    "AVGO": {"category": "Custom Silicon", "moat": "Hyperscaler partnerships", "decay_risk": "LOW", "curator_prior": 90},
     
     # Tier A: Critical bottleneck but cyclical
-    "TSM":  {"category": "Foundry", "moat": "Manufacturing monopoly", "decay_risk": "LOW", "score": 92},
-    "BE":   {"category": "Fuel Cells", "moat": "On-site power", "decay_risk": "LOW", "score": 88},
-    "VST":  {"category": "Power Gen", "moat": "Texas grid + nuclear", "decay_risk": "LOW", "score": 85},
-    "CEG":  {"category": "Nuclear", "moat": "Existing reactor fleet", "decay_risk": "LOW", "score": 88},
+    "TSM":  {"category": "Foundry", "moat": "Manufacturing monopoly", "decay_risk": "LOW", "curator_prior": 92},
+    "BE":   {"category": "Fuel Cells", "moat": "On-site power", "decay_risk": "LOW", "curator_prior": 88},
+    "VST":  {"category": "Power Gen", "moat": "Texas grid + nuclear", "decay_risk": "LOW", "curator_prior": 85},
+    "CEG":  {"category": "Nuclear", "moat": "Existing reactor fleet", "decay_risk": "LOW", "curator_prior": 88},
     
     # Tier B: Cyclical with shortage decay risk
-    "MU":   {"category": "Memory Cyclical", "moat": "Cyclical pricing", "decay_risk": "HIGH", "score": 70},
-    "STX":  {"category": "Storage", "moat": "None durable", "decay_risk": "HIGH", "score": 65},
-    "SNDK": {"category": "NAND", "moat": "None durable", "decay_risk": "HIGH", "score": 60},
-    "LITE": {"category": "Optical", "moat": "Photonic capacity", "decay_risk": "MEDIUM", "score": 78},
-    "COHR": {"category": "Photonic", "moat": "Capacity constraint", "decay_risk": "MEDIUM", "score": 75},
-    "MRVL": {"category": "Optical DSP", "moat": "Datacenter networking", "decay_risk": "MEDIUM", "score": 72},
-    "GEV":  {"category": "Grid Equipment", "moat": "Power gen", "decay_risk": "LOW", "score": 82},
+    "MU":   {"category": "Memory Cyclical", "moat": "Cyclical pricing", "decay_risk": "HIGH", "curator_prior": 70},
+    "STX":  {"category": "Storage", "moat": "None durable", "decay_risk": "HIGH", "curator_prior": 65},
+    "SNDK": {"category": "NAND", "moat": "None durable", "decay_risk": "HIGH", "curator_prior": 60},
+    "LITE": {"category": "Optical", "moat": "Photonic capacity", "decay_risk": "MEDIUM", "curator_prior": 78},
+    "COHR": {"category": "Photonic", "moat": "Capacity constraint", "decay_risk": "MEDIUM", "curator_prior": 75},
+    "MRVL": {"category": "Optical DSP", "moat": "Datacenter networking", "decay_risk": "MEDIUM", "curator_prior": 72},
+    "GEV":  {"category": "Grid Equipment", "moat": "Power gen", "decay_risk": "LOW", "curator_prior": 82},
 }
 
 
@@ -72,11 +75,11 @@ SHORTAGE_SELLERS = {
 # ════════════════════════════════════════════════════════════════════════
 
 SHORTAGE_BUYERS = {
-    "GOOGL": {"score": 90, "rationale": "TPU + Gemini + Cloud 63% YoY + Waymo physical AI. Cleanest buyer."},
-    "AMZN":  {"score": 87, "rationale": "AWS fastest growth 15Q + Trainium + agentic commerce"},
-    "MSFT":  {"score": 70, "rationale": "Largest AI rev but OpenAI partnership divergence risk"},
-    "META":  {"score": 55, "rationale": "Defensive capex protecting ad business — no enterprise AI monetization"},
-    "ORCL":  {"score": 60, "rationale": "Sub-scale OCI, dependent on Nvidia/OpenAI hosting"},
+    "GOOGL": {"curator_prior": 90, "rationale": "TPU + Gemini + Cloud 63% YoY + Waymo physical AI. Cleanest buyer."},
+    "AMZN":  {"curator_prior": 87, "rationale": "AWS fastest growth 15Q + Trainium + agentic commerce"},
+    "MSFT":  {"curator_prior": 70, "rationale": "Largest AI rev but OpenAI partnership divergence risk"},
+    "META":  {"curator_prior": 55, "rationale": "Defensive capex protecting ad business — no enterprise AI monetization"},
+    "ORCL":  {"curator_prior": 60, "rationale": "Sub-scale OCI, dependent on Nvidia/OpenAI hosting"},
 }
 
 
@@ -85,10 +88,10 @@ SHORTAGE_BUYERS = {
 # ════════════════════════════════════════════════════════════════════════
 
 AGENTIC_ROTATION_PLAYS = {
-    "AMD":  {"thesis": "CPU rotation cleanest pure-play — server share 50%+, taking from Intel", "score": 90},
-    "MU":   {"thesis": "Agentic context windows = RAM-intensive HBM demand", "score": 80},
-    "000660.KS": {"thesis": "SK Hynix HBM3E lead", "score": 82},
-    "ANET": {"thesis": "Networking for agentic clusters", "score": 75},
+    "AMD":  {"thesis": "CPU rotation cleanest pure-play — server share 50%+, taking from Intel", "curator_prior": 90},
+    "MU":   {"thesis": "Agentic context windows = RAM-intensive HBM demand", "curator_prior": 80},
+    "000660.KS": {"thesis": "SK Hynix HBM3E lead", "curator_prior": 82},
+    "ANET": {"thesis": "Networking for agentic clusters", "curator_prior": 75},
 }
 
 
@@ -257,6 +260,7 @@ def evaluate_coatue_methodology(ticker: str, prices_series=None) -> Dict:
         "decay_status": None,
         "agentic_play": None,
         "rationale": [],
+        "score_provenance": "CURATOR_PRIOR_UNVALIDATED",
     }
     
     t = ticker.upper()
@@ -265,7 +269,7 @@ def evaluate_coatue_methodology(ticker: str, prices_series=None) -> Dict:
     if t in SHORTAGE_SELLERS:
         d = SHORTAGE_SELLERS[t]
         out["matched"] = True
-        out["coatue_score"] = d["score"]
+        out["coatue_score"] = d["curator_prior"]
         out["role"] = f"Seller of Shortage — {d['category']}"
         out["moat"] = d["moat"]
         out["rationale"].append(f"COATUE seller of shortage. Moat: {d['moat']}. Decay risk: {d['decay_risk']}.")
@@ -286,7 +290,7 @@ def evaluate_coatue_methodology(ticker: str, prices_series=None) -> Dict:
     elif t in SHORTAGE_BUYERS:
         d = SHORTAGE_BUYERS[t]
         out["matched"] = True
-        out["coatue_score"] = d["score"]
+        out["coatue_score"] = d["curator_prior"]
         out["role"] = "Buyer of Shortage"
         out["rationale"].append(d["rationale"])
     
@@ -295,7 +299,7 @@ def evaluate_coatue_methodology(ticker: str, prices_series=None) -> Dict:
         d = AGENTIC_ROTATION_PLAYS[t]
         out["agentic_play"] = d
         out["matched"] = True
-        out["coatue_score"] = max(out["coatue_score"], d["score"])
+        out["coatue_score"] = max(out["coatue_score"], d["curator_prior"])
         out["rationale"].append(f"Agentic Big Bang: {d['thesis']}")
     
     out["coatue_score"] = round(out["coatue_score"], 1)

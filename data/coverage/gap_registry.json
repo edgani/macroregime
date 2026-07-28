@@ -1,0 +1,71 @@
+{
+ "schema": "warroom.coverage_gap_registry.v1",
+ "built_at": "2026-07-28T13:17:58+00:00",
+ "gaps": [
+  {
+   "domain": "us.delisted_history_full_market",
+   "status": "UNSUPPORTED_LICENSE_REQUIRED",
+   "reason": "full-market delisted history + survivorship-free fundamentals require licensed data (CRSP/Sharadar/Compustat); repo holds S&P 500 membership history only (research grade)",
+   "present": "S&P 500 membership history with 756 delisted entries (third-party, research ceiling)",
+   "provider_required": "CRSP or Sharadar or Compustat",
+   "recall_impact": "HIGH for extreme-winner cohort construction outside S&P 500; failed-lookalike and delisted cohorts incomplete"
+  },
+  {
+   "domain": "us.pit_fundamentals",
+   "status": "UNSUPPORTED_LICENSE_REQUIRED",
+   "reason": "point-in-time SEC fundamentals (backlog/guidance/revisions) need licensed PIT store; EDGAR scraping admitted but not yet wired",
+   "provider_required": "SEC EDGAR full-text + PIT fundamentals vendor",
+   "recall_impact": "HIGH for bottleneck activation inputs (orders/backlog/ASP evidence)"
+  },
+  {
+   "domain": "ihsg.full_universe_master",
+   "status": "UNSUPPORTED_LICENSE_REQUIRED",
+   "reason": "complete IDX listed universe (~900 issuers) with listing/delisting history, boards, free float, and controller data requires IDX/RTI/KESEI licensed feed; current master covers price-fed sleeve only",
+   "present": "15 instruments price-fed",
+   "provider_required": "IDX data feed or licensed aggregator",
+   "recall_impact": "HIGH: most IDX multibaggers historically came from small/mid caps outside the current sleeve"
+  },
+  {
+   "domain": "ihsg.broker_summary_done_detail",
+   "status": "UNSUPPORTED_LICENSE_REQUIRED",
+   "reason": "broker inventory, done-detail, crossing-adjusted accumulation require licensed IDX broker-summary data",
+   "provider_required": "IDX broker summary / RTI",
+   "recall_impact": "MEDIUM-HIGH for flow-based activation on IDX"
+  },
+  {
+   "domain": "crypto.venue_exact_derivatives",
+   "status": "UNSUPPORTED_LICENSE_REQUIRED",
+   "reason": "perp/futures/options with funding, basis, OI, liquidations require venue-exact feeds (Binance/Bybit/Deribit APIs admitted but not wired)",
+   "provider_required": "venue APIs (Binance/Deribit) or CCXT integration",
+   "recall_impact": "MEDIUM: positioning-based timing signals unavailable"
+  },
+  {
+   "domain": "crypto.onchain_fees_usage",
+   "status": "UNSUPPORTED_LICENSE_REQUIRED",
+   "reason": "protocol usage/fees/value-capture require on-chain analytics (Artemis/TokenTerminal/DeFiLlama admitted not wired)",
+   "provider_required": "DeFiLlama/Artemis API",
+   "recall_impact": "MEDIUM-HIGH for crypto bottleneck/value-capture theses"
+  },
+  {
+   "domain": "commodities.exact_futures_history",
+   "status": "UNSUPPORTED_LICENSE_REQUIRED",
+   "reason": "continuous exact-contract series (CL/GC/HG individual months, roll rules, curve) require CME/Datastream/Quandl licensed feed; ETF proxies currently carry price discovery",
+   "provider_required": "CME Datamine or Nasdaq Data Link (CHRIS)",
+   "recall_impact": "MEDIUM: curve/roll and physical-basis signals unavailable"
+  },
+  {
+   "domain": "commodities.physical_inventories",
+   "status": "UNSUPPORTED_LICENSE_REQUIRED",
+   "reason": "EIA/USDA/LME inventory series admitted but not wired as PIT feeds",
+   "provider_required": "EIA API (free, key required), USDA, LME licensed",
+   "recall_impact": "HIGH for physical-shock subcomponent of crash meter and commodity theses"
+  },
+  {
+   "domain": "fx.forwards_options_tff",
+   "status": "UNSUPPORTED_LICENSE_REQUIRED",
+   "reason": "deliverable/NDF forwards, FX options, and CFTC TFF positioning require licensed feeds; COT (futures) admitted via build_feeds but not wired live",
+   "provider_required": "CFTC TFF public reports + Bloomberg/Refinitiv for forwards/options",
+   "recall_impact": "MEDIUM for carry crowding and intervention-risk signals"
+  }
+ ]
+}

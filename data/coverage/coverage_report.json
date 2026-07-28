@@ -1,0 +1,53 @@
+{
+ "schema": "warroom.coverage_report.v1",
+ "built_at": "2026-07-28T13:17:58+00:00",
+ "markets": {
+  "us": {
+   "instrument_count": 13021,
+   "tiers": {
+    "TIER_A_FULL_DECISION": 197,
+    "TIER_B_RESEARCH_DISCOVERY": 4998,
+    "TIER_C_REFERENCE_ONLY": 7826,
+    "UNSUPPORTED_LICENSE_REQUIRED": 0
+   },
+   "gaps": 2
+  },
+  "ihsg": {
+   "instrument_count": 15,
+   "tiers": {
+    "TIER_A_FULL_DECISION": 15
+   },
+   "gaps": 2
+  },
+  "crypto": {
+   "instrument_count": 103,
+   "tiers": {
+    "TIER_A_FULL_DECISION": 7,
+    "TIER_B_RESEARCH_DISCOVERY": 96
+   },
+   "gaps": 2
+  },
+  "commodities": {
+   "instrument_count": 11,
+   "tiers": {
+    "TIER_A_FULL_DECISION": 8,
+    "TIER_B_RESEARCH_DISCOVERY": 3
+   },
+   "gaps": 2
+  },
+  "fx": {
+   "instrument_count": 6,
+   "tiers": {
+    "TIER_A_FULL_DECISION": 6
+   },
+   "gaps": 1
+  }
+ },
+ "recall_risk": {
+  "us": "S&P 500 sleeve has delisted history; outside it, delisted/failed-lookalike recall unquantified until licensed PIT source (likely material for small-cap surges)",
+  "ihsg": "HIGH recall loss: full IDX ~900 issuers vs price-fed sleeve; small/mid-cap multibaggers systematically missed",
+  "crypto": "top-100 discovery via CoinGecko live; long-tail venue listings missed without venue APIs",
+  "commodities": "3 exact contracts registered (WTI/Gold/Copper scope); other commodities reference-only",
+  "fx": "6 majors/EM pairs; exotics reference-only"
+ }
+}

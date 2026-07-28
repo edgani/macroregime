@@ -1,0 +1,163 @@
+{
+ "meta": {
+  "market": "ihsg",
+  "built_at": "2026-07-28T13:17:58+00:00",
+  "instrument_count": 15,
+  "tiers": {
+   "TIER_A_FULL_DECISION": 15
+  },
+  "schema": "warroom.universe_master.v1"
+ },
+ "instruments": [
+  {
+   "instrument": "ADRO.JK",
+   "market": "ihsg",
+   "venue": "IDX",
+   "tier": "TIER_A_FULL_DECISION",
+   "as_of": "2026-07-28T13:17:58+00:00",
+   "source": "warroom/data.py IDX_UNIVERSE (price-fed via yfinance .JK)",
+   "data_state": "CURRENT",
+   "security_class": "COMMON"
+  },
+  {
+   "instrument": "AMMN.JK",
+   "market": "ihsg",
+   "venue": "IDX",
+   "tier": "TIER_A_FULL_DECISION",
+   "as_of": "2026-07-28T13:17:58+00:00",
+   "source": "warroom/data.py IDX_UNIVERSE (price-fed via yfinance .JK)",
+   "data_state": "CURRENT",
+   "security_class": "COMMON"
+  },
+  {
+   "instrument": "ANTM.JK",
+   "market": "ihsg",
+   "venue": "IDX",
+   "tier": "TIER_A_FULL_DECISION",
+   "as_of": "2026-07-28T13:17:58+00:00",
+   "source": "warroom/data.py IDX_UNIVERSE (price-fed via yfinance .JK)",
+   "data_state": "CURRENT",
+   "security_class": "COMMON"
+  },
+  {
+   "instrument": "ASII.JK",
+   "market": "ihsg",
+   "venue": "IDX",
+   "tier": "TIER_A_FULL_DECISION",
+   "as_of": "2026-07-28T13:17:58+00:00",
+   "source": "warroom/data.py IDX_UNIVERSE (price-fed via yfinance .JK)",
+   "data_state": "CURRENT",
+   "security_class": "COMMON"
+  },
+  {
+   "instrument": "BBCA.JK",
+   "market": "ihsg",
+   "venue": "IDX",
+   "tier": "TIER_A_FULL_DECISION",
+   "as_of": "2026-07-28T13:17:58+00:00",
+   "source": "warroom/data.py IDX_UNIVERSE (price-fed via yfinance .JK)",
+   "data_state": "CURRENT",
+   "security_class": "COMMON"
+  },
+  {
+   "instrument": "BBNI.JK",
+   "market": "ihsg",
+   "venue": "IDX",
+   "tier": "TIER_A_FULL_DECISION",
+   "as_of": "2026-07-28T13:17:58+00:00",
+   "source": "warroom/data.py IDX_UNIVERSE (price-fed via yfinance .JK)",
+   "data_state": "CURRENT",
+   "security_class": "COMMON"
+  },
+  {
+   "instrument": "BBRI.JK",
+   "market": "ihsg",
+   "venue": "IDX",
+   "tier": "TIER_A_FULL_DECISION",
+   "as_of": "2026-07-28T13:17:58+00:00",
+   "source": "warroom/data.py IDX_UNIVERSE (price-fed via yfinance .JK)",
+   "data_state": "CURRENT",
+   "security_class": "COMMON"
+  },
+  {
+   "instrument": "BMRI.JK",
+   "market": "ihsg",
+   "venue": "IDX",
+   "tier": "TIER_A_FULL_DECISION",
+   "as_of": "2026-07-28T13:17:58+00:00",
+   "source": "warroom/data.py IDX_UNIVERSE (price-fed via yfinance .JK)",
+   "data_state": "CURRENT",
+   "security_class": "COMMON"
+  },
+  {
+   "instrument": "BREN.JK",
+   "market": "ihsg",
+   "venue": "IDX",
+   "tier": "TIER_A_FULL_DECISION",
+   "as_of": "2026-07-28T13:17:58+00:00",
+   "source": "warroom/data.py IDX_UNIVERSE (price-fed via yfinance .JK)",
+   "data_state": "CURRENT",
+   "security_class": "COMMON"
+  },
+  {
+   "instrument": "BUMI.JK",
+   "market": "ihsg",
+   "venue": "IDX",
+   "tier": "TIER_A_FULL_DECISION",
+   "as_of": "2026-07-28T13:17:58+00:00",
+   "source": "warroom/data.py IDX_UNIVERSE (price-fed via yfinance .JK)",
+   "data_state": "CURRENT",
+   "security_class": "COMMON"
+  },
+  {
+   "instrument": "GOTO.JK",
+   "market": "ihsg",
+   "venue": "IDX",
+   "tier": "TIER_A_FULL_DECISION",
+   "as_of": "2026-07-28T13:17:58+00:00",
+   "source": "warroom/data.py IDX_UNIVERSE (price-fed via yfinance .JK)",
+   "data_state": "CURRENT",
+   "security_class": "COMMON"
+  },
+  {
+   "instrument": "HUMI.JK",
+   "market": "ihsg",
+   "venue": "IDX",
+   "tier": "TIER_A_FULL_DECISION",
+   "as_of": "2026-07-28T13:17:58+00:00",
+   "source": "warroom/data.py IDX_UNIVERSE (price-fed via yfinance .JK)",
+   "data_state": "CURRENT",
+   "security_class": "COMMON"
+  },
+  {
+   "instrument": "MDKA.JK",
+   "market": "ihsg",
+   "venue": "IDX",
+   "tier": "TIER_A_FULL_DECISION",
+   "as_of": "2026-07-28T13:17:58+00:00",
+   "source": "warroom/data.py IDX_UNIVERSE (price-fed via yfinance .JK)",
+   "data_state": "CURRENT",
+   "security_class": "COMMON"
+  },
+  {
+   "instrument": "TLKM.JK",
+   "market": "ihsg",
+   "venue": "IDX",
+   "tier": "TIER_A_FULL_DECISION",
+   "as_of": "2026-07-28T13:17:58+00:00",
+   "source": "warroom/data.py IDX_UNIVERSE (price-fed via yfinance .JK)",
+   "data_state": "CURRENT",
+   "security_class": "COMMON"
+  },
+  {
+   "instrument": "^JKSE",
+   "market": "ihsg",
+   "venue": "IDX",
+   "tier": "TIER_A_FULL_DECISION",
+   "as_of": "2026-07-28T13:17:58+00:00",
+   "source": "warroom/data.py IDX_UNIVERSE (price-fed via yfinance .JK)",
+   "data_state": "CURRENT",
+   "security_class": "INDEX"
+  }
+ ]
+}

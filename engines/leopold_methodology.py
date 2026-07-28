@@ -94,14 +94,14 @@ BOTTLENECK_LAYERS = {
             "Long capacity buildout (5+ years)",
         ],
         "tickers": {
-            "BE": {"role": "On-site fuel cells (Oracle validated)", "score": 95},
-            "VST": {"role": "Texas grid + gas baseload", "score": 90},
-            "CEG": {"role": "Existing nuclear fleet", "score": 92},
-            "TLN": {"role": "Nuclear restart story", "score": 85},
-            "GEV": {"role": "Grid + turbine equipment", "score": 88},
-            "PWR": {"role": "Grid construction services", "score": 78},
-            "ETN": {"role": "Electrical equipment", "score": 75},
-            "VRT": {"role": "Datacenter power + cooling", "score": 82},
+            "BE": {"role": "On-site fuel cells (Oracle validated)", "curator_prior": 95},
+            "VST": {"role": "Texas grid + gas baseload", "curator_prior": 90},
+            "CEG": {"role": "Existing nuclear fleet", "curator_prior": 92},
+            "TLN": {"role": "Nuclear restart story", "curator_prior": 85},
+            "GEV": {"role": "Grid + turbine equipment", "curator_prior": 88},
+            "PWR": {"role": "Grid construction services", "curator_prior": 78},
+            "ETN": {"role": "Electrical equipment", "curator_prior": 75},
+            "VRT": {"role": "Datacenter power + cooling", "curator_prior": 82},
         },
         "entry_logic": "Grid-bypass story + datacenter offtake validation",
     },
@@ -113,13 +113,13 @@ BOTTLENECK_LAYERS = {
             "AI hosting deals announced or in progress",
         ],
         "tickers": {
-            "CORZ": {"role": "Core Scientific — 12-yr CoreWeave HPC contracts", "score": 95},
-            "IREN": {"role": "Iren AI hosting hybrid", "score": 88},
-            "APLD": {"role": "Applied Digital AI pivot", "score": 85},
-            "CIFR": {"role": "Cipher Mining power-first", "score": 80},
-            "RIOT": {"role": "Riot Platforms stranded power", "score": 75},
-            "MARA": {"role": "MARA Exaion stake", "score": 78},
-            "BTDR": {"role": "Bitdeer pivot", "score": 73},
+            "CORZ": {"role": "Core Scientific — 12-yr CoreWeave HPC contracts", "curator_prior": 95},
+            "IREN": {"role": "Iren AI hosting hybrid", "curator_prior": 88},
+            "APLD": {"role": "Applied Digital AI pivot", "curator_prior": 85},
+            "CIFR": {"role": "Cipher Mining power-first", "curator_prior": 80},
+            "RIOT": {"role": "Riot Platforms stranded power", "curator_prior": 75},
+            "MARA": {"role": "MARA Exaion stake", "curator_prior": 78},
+            "BTDR": {"role": "Bitdeer pivot", "curator_prior": 73},
         },
         "entry_logic": "Already have power infra, AI hosting can't replicate cost+timeline",
     },
@@ -131,10 +131,10 @@ BOTTLENECK_LAYERS = {
             "Specialty foundry / custom silicon role",
         ],
         "tickers": {
-            "INTC": {"role": "US gov-backed fab turnaround", "score": 90, "asymmetry": "calls only"},
-            "TSEM": {"role": "Tower analog/specialty foundry", "score": 80},
-            "AVGO": {"role": "Custom silicon for hyperscaler ASICs", "score": 88},
-            "GFS": {"role": "GlobalFoundries specialty nodes", "score": 75},
+            "INTC": {"role": "US gov-backed fab turnaround", "curator_prior": 90, "asymmetry": "calls only"},
+            "TSEM": {"role": "Tower analog/specialty foundry", "curator_prior": 80},
+            "AVGO": {"role": "Custom silicon for hyperscaler ASICs", "curator_prior": 88},
+            "GFS": {"role": "GlobalFoundries specialty nodes", "curator_prior": 75},
         },
         "entry_logic": "Contrarian. Beli saat analyst rating 'sell'. Options untuk binary outcome.",
     },
@@ -146,13 +146,13 @@ BOTTLENECK_LAYERS = {
             "NAND storage for AI inference data",
         ],
         "tickers": {
-            "LITE": {"role": "Lumentum — Nvidia $2B optics investment", "score": 92},
-            "COHR": {"role": "Coherent — hyperscale photonics", "score": 88},
-            "MRVL": {"role": "Marvell — optical DSP", "score": 82},
-            "MU": {"role": "Micron HBM3 demand", "score": 85},
-            "STX": {"role": "Seagate mass storage for training", "score": 75},
-            "SNDK": {"role": "SanDisk NAND for inference", "score": 78},
-            "WDC": {"role": "WDC hyperscaler HDD/SSD", "score": 72},
+            "LITE": {"role": "Lumentum — Nvidia $2B optics investment", "curator_prior": 92},
+            "COHR": {"role": "Coherent — hyperscale photonics", "curator_prior": 88},
+            "MRVL": {"role": "Marvell — optical DSP", "curator_prior": 82},
+            "MU": {"role": "Micron HBM3 demand", "curator_prior": 85},
+            "STX": {"role": "Seagate mass storage for training", "curator_prior": 75},
+            "SNDK": {"role": "SanDisk NAND for inference", "curator_prior": 78},
+            "WDC": {"role": "WDC hyperscaler HDD/SSD", "curator_prior": 72},
         },
         "entry_logic": "Datacenter buildout DEMANDS optics + memory. Compounder type holdings.",
     },
@@ -169,7 +169,7 @@ def classify_bottleneck_layer(ticker: str) -> Optional[Dict]:
                 "layer": layer_name,
                 "layer_description": layer_data["description"],
                 "role": ticker_info["role"],
-                "score": ticker_info["score"],
+                "prior": ticker_info["curator_prior"],
                 "entry_logic": layer_data["entry_logic"],
                 "asymmetry_recommended": "calls only" in ticker_info.get("asymmetry", ""),
             }
@@ -292,7 +292,7 @@ def evaluate_leopold_methodology(ticker: str, prices_series=None) -> Dict:
     if layer:
         out["bottleneck_layer"] = layer
         out["matched"] = True
-        out["leopold_score"] += layer["score"] * 0.5  # 50% of score from layer
+        out["leopold_score"] += layer["curator_prior"] * 0.5  # 50% of score from layer
         out["rules_passed"].append(f"Layer {layer['layer'].split('_')[0]}: {layer['role']}")
     
     # Step 3: Upstream Distance

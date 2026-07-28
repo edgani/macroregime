@@ -1,0 +1,353 @@
+{
+ "schema": "warroom.r8_tournament.v1",
+ "prereg_hash": "bc4614e7c6a813baec043117b07f2e1c0ee36ec74b1061e81c4cac4e540b32ff",
+ "universe": {
+  "size": 230,
+  "range": [
+   "2024-07-03",
+   "2026-07-28"
+  ],
+  "case_tickers_excluded": [
+   "PLTR",
+   "SNDK",
+   "SPXC"
+  ]
+ },
+ "baseline_results": [
+  {
+   "k": 10,
+   "aggregate": {
+    "precision_at_k": 0.46,
+    "recall_at_k": 0.1205,
+    "lift_vs_random": 3.0789,
+    "mae_pct": -28.83,
+    "mfe_pct": 156.3489,
+    "lead_time_days": 143.2222,
+    "remaining_return_pct": 159.47,
+    "false_discovery_rate": 0.54,
+    "regime_precision": {
+     "2024H2": 0.5,
+     "2025H1": 0.383,
+     "2025H2": 0.8
+    },
+    "n_decision_dates": 10
+   },
+   "per_decision_date": [
+    {
+     "date": "2024-10-01",
+     "k": 10,
+     "precision_at_k": 0.1,
+     "recall_at_k": 0.0345,
+     "base_rate": 0.1261,
+     "lift_vs_random": 0.793,
+     "winners_total": 29,
+     "mae_pct": -33.12,
+     "mfe_pct": 20.36,
+     "lead_time_days": 234.0,
+     "remaining_return_pct": 36.67,
+     "false_discovery_rate": 0.9
+    },
+    {
+     "date": "2024-11-01",
+     "k": 10,
+     "precision_at_k": 0.8,
+     "recall_at_k": 0.2667,
+     "base_rate": 0.1304,
+     "lift_vs_random": 6.133,
+     "winners_total": 30,
+     "mae_pct": -27.07,
+     "mfe_pct": 168.52,
+     "lead_time_days": 119.0,
+     "remaining_return_pct": 103.76,
+     "false_discovery_rate": 0.2
+    },
+    {
+     "date": "2024-12-02",
+     "k": 10,
+     "precision_at_k": 0.6,
+     "recall_at_k": 0.2609,
+     "base_rate": 0.1,
+     "lift_vs_random": 6.0,
+     "winners_total": 23,
+     "mae_pct": -34.53,
+     "mfe_pct": 199.14,
+     "lead_time_days": 102.7,
+     "remaining_return_pct": 202.39,
+     "false_discovery_rate": 0.4
+    },
+    {
+     "date": "2025-01-02",
+     "k": 10,
+     "precision_at_k": 0.5,
+     "recall_at_k": 0.1515,
+     "base_rate": 0.1435,
+     "lift_vs_random": 3.485,
+     "winners_total": 33,
+     "mae_pct": -51.74,
+     "mfe_pct": 157.49,
+     "lead_time_days": 181.0,
+     "remaining_return_pct": 160.43,
+     "false_discovery_rate": 0.5
+    },
+    {
+     "date": "2025-02-03",
+     "k": 10,
+     "precision_at_k": 0.8,
+     "recall_at_k": 0.2051,
+     "base_rate": 0.1696,
+     "lift_vs_random": 4.718,
+     "winners_total": 39,
+     "mae_pct": -42.17,
+     "mfe_pct": 262.72,
+     "lead_time_days": 192.4,
+     "remaining_return_pct": 206.58,
+     "false_discovery_rate": 0.2
+    },
+    {
+     "date": "2025-03-03",
+     "k": 10,
+     "precision_at_k": 0.4,
+     "recall_at_k": 0.0645,
+     "base_rate": 0.2696,
+     "lift_vs_random": 1.484,
+     "winners_total": 62,
+     "mae_pct": -24.22,
+     "mfe_pct": 223.12,
+     "lead_time_days": 70.2,
+     "remaining_return_pct": 417.0,
+     "false_discovery_rate": 0.6
+    },
+    {
+     "date": "2025-04-01",
+     "k": 10,
+     "precision_at_k": 0.4,
+     "recall_at_k": 0.058,
+     "base_rate": 0.3,
+     "lift_vs_random": 1.333,
+     "winners_total": 69,
+     "mae_pct": -15.03,
+     "mfe_pct": 140.31,
+     "lead_time_days": 88.8,
+     "remaining_return_pct": 159.83,
+     "false_discovery_rate": 0.6
+    },
+    {
+     "date": "2025-05-01",
+     "k": 10,
+     "precision_at_k": 0.2,
+     "recall_at_k": 0.0303,
+     "base_rate": 0.287,
+     "lift_vs_random": 0.697,
+     "winners_total": 66,
+     "mae_pct": -14.47,
+     "mfe_pct": 69.05,
+     "lead_time_days": 184.5,
+     "remaining_return_pct": 55.02,
+     "false_discovery_rate": 0.8
+    },
+    {
+     "date": "2025-06-01",
+     "k": 10,
+     "precision_at_k": 0.0,
+     "recall_at_k": 0.0,
+     "base_rate": 0.0,
+     "lift_vs_random": null,
+     "winners_total": 0,
+     "mae_pct": null,
+     "mfe_pct": null,
+     "lead_time_days": null,
+     "remaining_return_pct": null,
+     "false_discovery_rate": 1.0
+    },
+    {
+     "date": "2025-07-01",
+     "k": 10,
+     "precision_at_k": 0.8,
+     "recall_at_k": 0.1333,
+     "base_rate": 0.2609,
+     "lift_vs_random": 3.067,
+     "winners_total": 60,
+     "mae_pct": -17.12,
+     "mfe_pct": 166.43,
+     "lead_time_days": 116.4,
+     "remaining_return_pct": 93.55,
+     "false_discovery_rate": 0.2
+    }
+   ]
+  },
+  {
+   "k": 20,
+   "aggregate": {
+    "precision_at_k": 0.34,
+    "recall_at_k": 0.1752,
+    "lift_vs_random": 2.2392,
+    "mae_pct": -27.5756,
+    "mfe_pct": 113.8556,
+    "lead_time_days": 154.2222,
+    "remaining_return_pct": 128.1122,
+    "false_discovery_rate": 0.66,
+    "regime_precision": {
+     "2024H2": 0.367,
+     "2025H1": 0.275,
+     "2025H2": 0.65
+    },
+    "n_decision_dates": 10
+   },
+   "per_decision_date": [
+    {
+     "date": "2024-10-01",
+     "k": 20,
+     "precision_at_k": 0.05,
+     "recall_at_k": 0.0345,
+     "base_rate": 0.1261,
+     "lift_vs_random": 0.397,
+     "winners_total": 29,
+     "mae_pct": -32.05,
+     "mfe_pct": 18.91,
+     "lead_time_days": 234.0,
+     "remaining_return_pct": 36.67,
+     "false_discovery_rate": 0.95
+    },
+    {
+     "date": "2024-11-01",
+     "k": 20,
+     "precision_at_k": 0.55,
+     "recall_at_k": 0.3667,
+     "base_rate": 0.1304,
+     "lift_vs_random": 4.217,
+     "winners_total": 30,
+     "mae_pct": -27.97,
+     "mfe_pct": 136.4,
+     "lead_time_days": 116.5,
+     "remaining_return_pct": 106.05,
+     "false_discovery_rate": 0.45
+    },
+    {
+     "date": "2024-12-02",
+     "k": 20,
+     "precision_at_k": 0.5,
+     "recall_at_k": 0.4348,
+     "base_rate": 0.1,
+     "lift_vs_random": 5.0,
+     "winners_total": 23,
+     "mae_pct": -37.61,
+     "mfe_pct": 139.94,
+     "lead_time_days": 139.5,
+     "remaining_return_pct": 147.12,
+     "false_discovery_rate": 0.5
+    },
+    {
+     "date": "2025-01-02",
+     "k": 20,
+     "precision_at_k": 0.3,
+     "recall_at_k": 0.1818,
+     "base_rate": 0.1435,
+     "lift_vs_random": 2.091,
+     "winners_total": 33,
+     "mae_pct": -45.98,
+     "mfe_pct": 102.96,
+     "lead_time_days": 185.5,
+     "remaining_return_pct": 146.5,
+     "false_discovery_rate": 0.7
+    },
+    {
+     "date": "2025-02-03",
+     "k": 20,
+     "precision_at_k": 0.5,
+     "recall_at_k": 0.2564,
+     "base_rate": 0.1696,
+     "lift_vs_random": 2.949,
+     "winners_total": 39,
+     "mae_pct": -41.89,
+     "mfe_pct": 162.41,
+     "lead_time_days": 194.3,
+     "remaining_return_pct": 181.63,
+     "false_discovery_rate": 0.5
+    },
+    {
+     "date": "2025-03-03",
+     "k": 20,
+     "precision_at_k": 0.4,
+     "recall_at_k": 0.129,
+     "base_rate": 0.2696,
+     "lift_vs_random": 1.484,
+     "winners_total": 62,
+     "mae_pct": -19.93,
+     "mfe_pct": 167.81,
+     "lead_time_days": 103.8,
+     "remaining_return_pct": 274.76,
+     "false_discovery_rate": 0.6
+    },
+    {
+     "date": "2025-04-01",
+     "k": 20,
+     "precision_at_k": 0.3,
+     "recall_at_k": 0.087,
+     "base_rate": 0.3,
+     "lift_vs_random": 1.0,
+     "winners_total": 69,
+     "mae_pct": -17.12,
+     "mfe_pct": 87.74,
+     "lead_time_days": 99.2,
+     "remaining_return_pct": 109.43,
+     "false_discovery_rate": 0.7
+    },
+    {
+     "date": "2025-05-01",
+     "k": 20,
+     "precision_at_k": 0.15,
+     "recall_at_k": 0.0455,
+     "base_rate": 0.287,
+     "lift_vs_random": 0.523,
+     "winners_total": 66,
+     "mae_pct": -9.56,
+     "mfe_pct": 50.0,
+     "lead_time_days": 201.3,
+     "remaining_return_pct": 40.71,
+     "false_discovery_rate": 0.85
+    },
+    {
+     "date": "2025-06-01",
+     "k": 20,
+     "precision_at_k": 0.0,
+     "recall_at_k": 0.0,
+     "base_rate": 0.0,
+     "lift_vs_random": null,
+     "winners_total": 0,
+     "mae_pct": null,
+     "mfe_pct": null,
+     "lead_time_days": null,
+     "remaining_return_pct": null,
+     "false_discovery_rate": 1.0
+    },
+    {
+     "date": "2025-07-01",
+     "k": 20,
+     "precision_at_k": 0.65,
+     "recall_at_k": 0.2167,
+     "base_rate": 0.2609,
+     "lift_vs_random": 2.492,
+     "winners_total": 60,
+     "mae_pct": -16.07,
+     "mfe_pct": 158.53,
+     "lead_time_days": 113.9,
+     "remaining_return_pct": 110.14,
+     "false_discovery_rate": 0.35
+    }
+   ]
+  }
+ ],
+ "causal_families": [
+  {
+   "family_id": "extreme_winner_discovery_causal",
+   "status": "DATA_GATED",
+   "reason": "requires PIT fundamentals (backlog, ASP, inventory, consensus): sec_edgar_pit, consensus_estimates_pit, trendforce_contract_prices"
+  },
+  {
+   "family_id": "downside_short_detector_causal",
+   "status": "DATA_GATED",
+   "reason": "requires PIT balance sheet/dilution/delisting data"
+  }
+ ],
+ "honesty_note": "momentum baseline is measurement-only (weight 0). Causal extreme-winner detection is DATA_GATED: no Top-K causal ranking exists, so no detection claim is made for SNDK/PLTR/SPXC or any cohort member."
+}

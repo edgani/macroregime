@@ -1,0 +1,100 @@
+{
+ "schema": "warroom.research.prereg.v1",
+ "phase": "R8_EXTREME_WINNER_LOSER_TOURNAMENT",
+ "frozen_at": "2026-07-29",
+ "frozen_before_any_evaluation": true,
+ "evaluation_cases": {
+  "tickers": [
+   "SNDK",
+   "PLTR",
+   "SPXC"
+  ],
+  "rule": "evaluation only; forbidden for formula/parameter selection",
+  "spxc_decision_dates": [
+   "2025-01-02",
+   "2025-07-01",
+   "2026-01-02"
+  ],
+  "spxc_dates_rule": "generic quarter-starts chosen without inspecting outcomes",
+  "sndk_pltr_dates": "inherited from R6 frozen case files (data/bottleneck/case_studies/)"
+ },
+ "winner_definitions_pct": [
+  100,
+  200,
+  300,
+  500
+ ],
+ "loser_definitions_pct": [
+  -50,
+  -70
+ ],
+ "delisting_bankruptcy": "DATA_GATED \u2014 requires delisting feed (CRSP/Compustat or equivalent); cache universe is active-only",
+ "horizons": {
+  "tournament_months": 12,
+  "cohort_membership_months": 24,
+  "loser_months": 12
+ },
+ "top_k": [
+  10,
+  20
+ ],
+ "liquidity_floor": "median 20d dollar volume > 0 (report-only; PIT market cap DATA_GATED)",
+ "market_cap_buckets": "DATA_GATED \u2014 requires PIT market cap (shares outstanding history)",
+ "listing_age_rules": "report-only from price history length",
+ "benchmark": {
+  "random": "base rate of +100%-within-12m events at each decision date",
+  "simple_baseline": "baseline_momentum_topk (63d return rank)"
+ },
+ "candidate_families": [
+  {
+   "family_id": "extreme_winner_discovery_causal",
+   "status": "DATA_GATED",
+   "weight": 0,
+   "reason": "requires PIT fundamentals (backlog, ASP, inventory, consensus): sec_edgar_pit, consensus_estimates_pit, trendforce_contract_prices",
+   "trial_budget": 0
+  },
+  {
+   "family_id": "downside_short_detector_causal",
+   "status": "DATA_GATED",
+   "weight": 0,
+   "reason": "requires PIT balance sheet/dilution/delisting data",
+   "trial_budget": 0
+  },
+  {
+   "family_id": "baseline_momentum_topk",
+   "status": "BASELINE_MEASUREMENT_NOT_ALPHA",
+   "weight": 0,
+   "reason": "price-derived; measured ONLY as reference lift comparator; forbidden as alpha input",
+   "formula": "rank by 63-trading-day total return at decision date",
+   "parameter_range": {
+    "K": [
+     10,
+     20
+    ]
+   },
+   "trial_budget": 2
+  }
+ ],
+ "matched_controls": {
+  "status": "DATA_GATED_PARTIAL",
+  "note": "exact matching needs PIT sector/market cap/valuation (gated); approximate liquidity-matched controls reported and labelled APPROXIMATE"
+ },
+ "costs": "not applicable (detection tournament, not execution)",
+ "evaluation_metrics": [
+  "precision_at_k",
+  "recall_at_k",
+  "lift_vs_random",
+  "lead_time_days",
+  "remaining_return_pct",
+  "mae_pct",
+  "mfe_pct",
+  "false_discovery_rate",
+  "return_velocity",
+  "regime_stability",
+  "concentration"
+ ],
+ "early_detection_rule": "detection counts only if decision date precedes the +100% crossing; crossing before decision = LATE, not detection",
+ "lockbox": "none for R8 measurement baseline (no promoted claim); causal families unlock lockbox in R11 with admitted data",
+ "trial_ledger": "data/research/trial_ledger.jsonl (hash-chained, append-only)",
+ "frozen_hash": "bc4614e7c6a813baec043117b07f2e1c0ee36ec74b1061e81c4cac4e540b32ff"
+}

@@ -36,6 +36,8 @@ class TrialLedger:
 
     def record(self, trial: dict) -> dict:
         """Append one trial. Returns the stored entry."""
+        trial = dict(trial)
+        trial.setdefault("type", "trial")  # schema normalization (R8 fix)
         entry = {
             "schema": SCHEMA,
             "recorded_at": utcnow(),

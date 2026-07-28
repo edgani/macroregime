@@ -100,9 +100,9 @@ def compute_structural_levels(px, sma20, std20, max_pain=None, call_wall=None, p
         "put_wall": round(put_wall, 4),
         "note": (
             f"Vol Trigger @ {round(vt_upper if px > max_pain else vt_lower, 2)} "
-            f"({"BROKEN" if near_vt else "HOLDING"}). "
+            f"({'BROKEN' if near_vt else 'HOLDING'}). "
             f"Risk Zone: [{round(rp_lower, 2)}, {round(rp_upper, 2)}] "
-            f"({zone_status.replace("_", " ").title()})."
+            f"({zone_status.replace('_', ' ').title()})."
         )
     }
 

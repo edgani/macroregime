@@ -58,7 +58,29 @@ CRYPTO_UNIVERSE = ["BTC-USD", "ETH-USD", "SOL-USD", "BNB-USD", "COIN", "IBIT", "
 FX_UNIVERSE = ["DX-Y.NYB", "EURUSD=X", "USDJPY=X", "GBPUSD=X", "AUDUSD=X", "USDIDR=X"]
 COMMO_UNIVERSE = ["GLD", "SLV", "USO", "UNG", "CPER", "DBC", "WEAT", "URA"]
 
-def _synth(t, n=420):
+# ---------------------------------------------------------------------------
+# Data states (master prompt §9). Production NEVER fabricates prices.
+# Synthetic frames exist only behind WARROOM_DATA_TEST_FIXTURE=1 and are tagged
+# TEST_FIXTURE so nothing downstream (dashboard, ranking, shadow, live) can
+# mistake them for market data.
+# ---------------------------------------------------------------------------
+CURRENT = "CURRENT"
+STALE_LAST_KNOWN = "STALE_LAST_KNOWN"
+HISTORICAL_REFERENCE = "HISTORICAL_REFERENCE"
+PARTIAL = "PARTIAL"
+NO_DATA = "NO_DATA"
+ERROR = "ERROR"
+TEST_FIXTURE = "TEST_FIXTURE"
+
+STALE_AFTER_DAYS = 7          # daily bars older than this are stale
+MIN_BARS = 80
+
+LAST_STATES: dict = {}        # per-ticker state map from the most recent load* call
+LAST_ERRORS: list = []        # exact provider errors from the most recent load* call
+
+
+def _test_fixture_frame(t, n=420):
+    """Deterministic synthetic OHLCV. TEST FIXTURE ONLY — gated by env var."""
     idx = pd.bdate_range(end=pd.Timestamp.today().normalize(), periods=int(n))
     m = len(idx)
     seed = int.from_bytes(hashlib.sha256(str(t).encode("utf-8")).digest()[:4], "big")
@@ -69,7 +91,36 @@ def _synth(t, n=420):
     v = (r.uniform(1e6, 6e7, m) * (1 + np.abs(rets) / 0.02 * 0.5)).round()
     return pd.DataFrame({"Open": o, "High": h, "Low": l, "Close": c, "Volume": v}, index=idx)
 
-def _from_cache(tickers):
+
+def _test_fixtures_enabled() -> bool:
+    return os.getenv("WARROOM_DATA_TEST_FIXTURE", "").lower() in {"1", "true", "yes"}
+
+
+def _offline() -> bool:
+    return os.getenv("WARROOM_OFFLINE", "").lower() in {"1", "true", "yes"}
+
+
+def _frame_state(df) -> str:
+    try:
+        last = pd.Timestamp(df.index[-1])
+        age = (pd.Timestamp.today().normalize() - last.normalize()).days
+        return CURRENT if age <= STALE_AFTER_DAYS else STALE_LAST_KNOWN
+    except Exception:
+        return NO_DATA
+
+
+def _record(states, ticker, state, source, df=None, error=None):
+    states[ticker] = {
+        "state": state,
+        "source": source,
+        "last_bar": str(df.index[-1].date()) if df is not None and len(df) else None,
+        "bars": int(len(df)) if df is not None else 0,
+        "retrieved_at": pd.Timestamp.utcnow().isoformat(),
+        "error": error,
+    }
+
+
+def _from_cache(tickers, states=None):
     out = {}
     path = os.path.join(_CACHE, "prices.parquet")
     if not os.path.exists(path):
@@ -78,38 +129,83 @@ def _from_cache(tickers):
         df = read_parquet_compat(path)
         for t in tickers:
             if t in df.columns.get_level_values(0):
-                d = df[t][["Open","High","Low","Close","Volume"]].dropna()
-                if len(d) > 80:
+                d = df[t][["Open", "High", "Low", "Close", "Volume"]].dropna()
+                if len(d) > MIN_BARS:
                     out[t] = d
-    except Exception:
-        pass
+                    if states is not None:
+                        _record(states, t, _frame_state(d), "cache/prices.parquet", d)
+    except Exception as exc:
+        if states is not None:
+            LAST_ERRORS.append(f"cache read failed: {type(exc).__name__}: {exc}")
     return out
 
-def load(tickers, days=420):
+
+def load_with_states(tickers, days=420, allow_live=True):
+    """Load OHLCV with honest per-ticker data states.
+
+    Order: local parquet cache (last-known-good is never erased) -> live yfinance
+    (only when allow_live) -> NO_DATA. No synthetic output in production.
+    Returns (frames, source, states).
+    """
+    global LAST_STATES, LAST_ERRORS
+    allow_live = allow_live and not _offline()
     tickers = list(dict.fromkeys(tickers))
-    cached = _from_cache(tickers)
+    states: dict = {}
+    LAST_ERRORS = []
+    cached = _from_cache(tickers, states)
     missing = [t for t in tickers if t not in cached]
-    if not missing:
-        return cached, "cache · parquet"
-    try:
-        import yfinance as yf
-        raw = yf.download(missing, period=f"{days}d", interval="1d", auto_adjust=False,
-                          progress=False, group_by="ticker", threads=True)
-        if isinstance(raw.columns, pd.MultiIndex):
+    frames = dict(cached)
+
+    if missing and allow_live:
+        try:
+            import yfinance as yf
+            raw = yf.download(missing, period=f"{days}d", interval="1d", auto_adjust=False,
+                              progress=False, group_by="ticker", threads=True)
+            got = set()
+            if isinstance(raw.columns, pd.MultiIndex):
+                for t in missing:
+                    if t in raw.columns.get_level_values(0):
+                        d = raw[t][["Open", "High", "Low", "Close", "Volume"]].dropna()
+                        if len(d) > MIN_BARS:
+                            frames[t] = d; got.add(t)
+                            _record(states, t, _frame_state(d), "yfinance live", d)
+            elif len(missing) == 1:
+                d = raw[["Open", "High", "Low", "Close", "Volume"]].dropna()
+                if len(d) > MIN_BARS:
+                    frames[missing[0]] = d; got.add(missing[0])
+                    _record(states, missing[0], _frame_state(d), "yfinance live", d)
             for t in missing:
-                if t in raw.columns.get_level_values(0):
-                    d = raw[t][["Open","High","Low","Close","Volume"]].dropna()
-                    if len(d) > 80: cached[t] = d
-        elif missing:
-            d = raw[["Open","High","Low","Close","Volume"]].dropna()
-            if len(d) > 80: cached[missing[0]] = d
-        if len(cached) >= max(4, len(tickers)//2):
-            src = "cache + yfinance" if _from_cache(tickers) else "yfinance · live"
-            for t in tickers:
-                cached.setdefault(t, _synth(t, days))
-            return cached, src
-    except Exception:
-        pass
+                if t not in got:
+                    LAST_ERRORS.append(f"yfinance: no usable bars for {t}")
+        except Exception as exc:
+            LAST_ERRORS.append(f"yfinance download failed: {type(exc).__name__}: {exc}")
+    elif missing and not allow_live:
+        for t in missing:
+            LAST_ERRORS.append(f"live disabled: no cached data for {t}")
+
+    if _test_fixtures_enabled():
+        for t in tickers:
+            if t not in frames:
+                frames[t] = _test_fixture_frame(t, days)
+                _record(states, t, TEST_FIXTURE, "synthetic test fixture", frames[t])
+
     for t in tickers:
-        cached.setdefault(t, _synth(t, days))
-    return cached, ("synthetic · demo (no live feed)" if not _from_cache(tickers) else "cache + synthetic")
+        if t not in frames:
+            _record(states, t, NO_DATA, None, None)
+
+    n_cur = sum(1 for t in tickers if states.get(t, {}).get("state") == CURRENT)
+    n_stale = sum(1 for t in tickers if states.get(t, {}).get("state") == STALE_LAST_KNOWN)
+    if not frames:
+        source = "NO_DATA (no cache, no live)"
+    elif n_cur == len(tickers):
+        source = "current (cache/live)"
+    else:
+        source = f"partial: {n_cur} current, {n_stale} stale, {len(tickers) - n_cur - n_stale} no-data"
+    LAST_STATES = states
+    return frames, source, states
+
+
+def load(tickers, days=420, allow_live=True):
+    """Backwards-compatible wrapper: returns (frames, source)."""
+    frames, source, _ = load_with_states(tickers, days=days, allow_live=allow_live)
+    return frames, source

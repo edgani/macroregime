@@ -603,17 +603,23 @@ def decision_market_panel(d):
             continue
         rows = ""
         for r in cands:
-            tcol = "grn" if "GENERATIONAL" in r["alpha_tier"] else ("grn" if "STRATEGIC" in r["alpha_tier"] else "amb" if "TACTICAL" in r["alpha_tier"] else "gry")
-            evc = "grn" if r["ev_pct"] > 0 else "red"
-            tg = r["targets"]
+            tier = r.get("alpha_tier") or ("UNASSESSED" if r.get("status") else "")
+            tcol = "grn" if "GENERATIONAL" in tier else ("grn" if "STRATEGIC" in tier else "amb" if "TACTICAL" in tier else "gry")
+            ev = r.get("ev_pct")
+            tg = r.get("targets") or {}
+            w = r.get("weight")
+            price = tg.get("price") if tg else r.get("price")
+            bull = tg.get("bull"); bear = tg.get("bear")
+            ev_html = (f"<span class='wr-mono b-{'grn' if ev > 0 else 'red'}' style='min-width:70px;'>EV {ev:+.0f}%</span>") if ev is not None else ""
+            tgt_html = (f"<span class='wr-sub' style='min-width:150px;'>bull <b class='b-grn'>${bull}</b> / bear <b class='b-red'>${bear}</b></span>") if bull is not None and bear is not None else ""
+            tail = r.get("tail_ratio")
+            tail_html = (f"<span class='wr-sub' style='min-width:56px;'>tail {tail}</span>") if tail is not None else ""
+            size_html = (f"<span class='wr-sub' style='margin-left:auto;'>size {w*100:.1f}%</span>") if w is not None else (f"<span class='wr-sub' style='margin-left:auto;'>{r.get('permission') or r.get('status') or ''}</span>")
             rows += (f"<div class='wr-row' style='gap:10px;align-items:baseline;'>"
                      f"<span class='wr-mono' style='min-width:56px;color:#e8edf2;font-weight:600;'>{r['ticker']}</span>"
-                     f"<span class='wr-mono' style='min-width:64px;'>${tg['price']}</span>"
-                     f"<span class='wr-sub' style='min-width:150px;'>bull <b class='b-grn'>${tg['bull']}</b> / bear <b class='b-red'>${tg['bear']}</b></span>"
-                     f"<span class='wr-mono b-{evc}' style='min-width:70px;'>EV {r['ev_pct']:+.0f}%</span>"
-                     f"<span class='wr-sub' style='min-width:56px;'>tail {r['tail_ratio']}</span>"
-                     f"{_b(r['alpha_tier'], tcol)}"
-                     f"<span class='wr-sub' style='margin-left:auto;'>size {r['weight']*100:.1f}%</span></div>")
+                     + (f"<span class='wr-mono' style='min-width:64px;'>${price}</span>" if price is not None else "")
+                     + tgt_html + ev_html + tail_html
+                     + f"{_b(tier, tcol) if tier else ''}{size_html}</div>")
         frontier_html = ""
         if fr:
             frontier_html = (

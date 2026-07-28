@@ -28,3 +28,7 @@ Thumbs.db
 # Worker process artifacts
 /runtime/worker.instance.lock
 /runtime/worker.pid
+
+# Price cache (regenerable via build_cache.py; lineage metadata is committed)
+/cache/*.parquet
+/cache/*.tmp

@@ -1,37 +1,72 @@
-"""War Room OS V10.1 Streamlit shell for operational research and shadow trading."""
-from __future__ import annotations
-import json, os, sys, threading
-from pathlib import Path
-HERE=Path(__file__).resolve().parent;sys.path.insert(0,str(HERE))
+"""
+War Room — entry point.  Run:  streamlit run app.py
+
+Architecture:
+  • Design + ranking  = mine (warroom/render.py, warroom/compute.py) — verdict-first mockup.
+  • Formula engines   = your zip (engines/, gcfis/) called as providers: Hedgeye GIP (structural+
+    monthly), Hedgeye Risk Range, GEX/greeks, methodology (Citrini/Yves/Soros/Coatue/Druck via
+    thought_process), lead-lag (Granger+TE) + supply-chain-graph for propagation, value-based LPM.
+  • NO old UI, NO old ticker-filter/elimination pipeline.
+Data: parquet cache (build_cache.py) → yfinance live → honest NO_DATA/STALE states.
+No synthetic production output (R2 data contract; test fixtures behind WARROOM_DATA_TEST_FIXTURE=1).
+Set WARROOM_OFFLINE=1 to disable live fetching (cache-only mode). FRED via fredgraph (no key).
+"""
 import streamlit as st
-import streamlit.components.v1 as components
-from run import build_desk
-from runtime_store import read_snapshot,write_snapshot,write_status
-from warroom.no_technical_policy import assert_registry_has_no_active_technical_components,enforce_payload
-DASHBOARD=HERE/'dashboard.html'
-st.set_page_config(page_title='War Room OS V10.1 Operational Trading System',layout='wide',initial_sidebar_state='collapsed')
-st.markdown("""<style>.stApp{background:#050811}header[data-testid="stHeader"]{display:none}.block-container{padding:0!important;max-width:100%!important}#MainMenu,footer,[data-testid="stToolbar"]{display:none!important}</style>""",unsafe_allow_html=True)
+from warroom import data as D, compute as C, render as R, fred as F, feeds as FEEDS, tracker as TR, statelog as SL
+from warroom import brief_export as BE
 
-def _empty_data()->dict:
-    markets=['us','idx','crypto','commodity','fx']
-    return {'markets':markets,'fred':{},'fred_source':'NO_DATA','feeds':{'_status':{}},'quotes':{'markets':{m:{} for m in markets}},'public_sources':{'markets':{m:{'state':'ROUTE_ONLY','items':[],'valid_items':0} for m in markets},'markets_with_real_snapshot':0},'universe_summary':{},'sources':{},'overall_source':'INITIALIZING'}
 
-def _seed_snapshot()->dict:
-    registry=json.loads((HERE/'component_registry_v99.json').read_text(encoding='utf-8'));assert_registry_has_no_active_technical_components(registry)
-    import data_layer_v101 as DL
-    snapshot=build_desk(DL.load_all(markets=['us','idx','crypto','commodity','fx'],allow_live=False,allow_synthetic=False));enforce_payload(snapshot);return snapshot
+def main():
+    st.set_page_config(page_title="War Room", layout="wide", initial_sidebar_state="collapsed")
+    with st.spinner("Loading prices + running engines…"):
+        us, source = D.load(D.US_UNIVERSE)
+        idx, _ = D.load(D.IDX_UNIVERSE)
+        cp, _ = D.load(D.CRYPTO_UNIVERSE)
+        fxp, _ = D.load(D.FX_UNIVERSE)
+        commo, _ = D.load(D.COMMO_UNIVERSE)
+        feeds = FEEDS.load_feeds()                     # live-feed snapshot (build_feeds.py); empty = proxy
+        fred = feeds.get("fred") or F.fetch()
+        d = C.run(us, idx, cp, fxp, commo, fred, feeds)
+        # forward-test logger: log today's conviction point-in-time, then resolve open signals on later bars
+        allpx = {**commo, **fxp, **cp, **idx, **us}
+        try:
+            TR.log_signals(d["conviction"], d["regime"])
+            TR.update_outcomes(allpx)
+        except Exception:
+            pass
+        try:
+            d["whatchanged"], d["whatchanged_prev_ts"] = SL.record_and_diff(d)
+        except Exception:
+            d["whatchanged"], d["whatchanged_prev_ts"] = [], None
+        try:
+            BE.export(d)   # regenerate the interactive briefing deck (briefing.html) with today's data
+        except Exception:
+            pass
+    tabs = st.tabs(["Mission Control", "Morning Brief", "Briefing", "Command Center", "Alpha Center", "Cross-Asset Rotation",
+                    "Causal Chains", "US Stocks", "Crypto", "Commodities", "FX", "IHSG", "Flow", "Bottleneck",
+                    "Market State", "Track Record", "Risk & Health"])
+    with tabs[0]: R.mission_control(d)
+    with tabs[1]: R.morning_brief(d)
+    with tabs[2]: R.briefing_embed()
+    with tabs[3]: R.command_center(d, source)
+    with tabs[4]: R.alpha(d)
+    with tabs[5]: R.cycle_rotation(d)
+    with tabs[6]: R.causal_chains(d)
+    with tabs[7]:
+        R.us_stocks(d)
+        R.fair_value_cards(d)
+    with tabs[8]: R.crypto(d)
+    with tabs[9]: R.commodities(d)
+    with tabs[10]: R.fx(d)
+    with tabs[11]: R.ihsg(d)
+    with tabs[12]: R.flow(d)
+    with tabs[13]:
+        R.bottleneck(d)
+        R.node_template(d)
+    with tabs[14]: R.market_state(d)
+    with tabs[15]: R.track_record(TR.performance(), TR.open_positions(), TR.closed_trades())
+    with tabs[16]: R.risk_health(d)
 
-def _worker()->None:
-    try:
-        from warroom_data_worker_v101 import loop
-        loop()
-    except BaseException as exc:write_status(state='WORKER_FATAL',error=f'{type(exc).__name__}: {exc}',capital_permission='PROOF_GATED')
-@st.cache_resource(show_spinner=False)
-def _start_worker()->threading.Thread|None:
-    if os.getenv('WARROOM_DISABLE_AUTOSTART','0').lower() in {'1','true','yes'}:return None
-    thread=threading.Thread(target=_worker,name='warroom-v101-data-worker',daemon=True);thread.start();return thread
-if read_snapshot() is None:write_snapshot(_seed_snapshot(),force=True)
-_start_worker();snapshot=read_snapshot() or _seed_snapshot();enforce_payload(snapshot)
-payload=json.dumps(snapshot,default=str,separators=(',',':'),ensure_ascii=False).replace('</','<\\/')
-html=DASHBOARD.read_text(encoding='utf-8').replace('/*__INJECT_DATA__*/',f'window.DASHBOARD_DATA={payload};',1)
-components.html(html,height=1320,scrolling=True)
+
+if __name__ == "__main__":
+    main()

@@ -1,4 +1,4 @@
-"""R2 screenshot tool: boot the 17-tab app with the real cache and capture every tab.
+"""R4 screenshot tool: boot the final 11-tab app with the real cache and capture every tab.
 
 Usage:
     .venv/Scripts/python.exe tools/screenshot_tabs.py
@@ -19,9 +19,9 @@ OUT = ROOT / "docs" / "audit" / "screenshots"
 OUT.mkdir(parents=True, exist_ok=True)
 
 TAB_NAMES = [
-    "mission_control", "morning_brief", "briefing", "command_center", "alpha_center",
-    "cross_asset_rotation", "causal_chains", "us_stocks", "crypto", "commodities",
-    "fx", "ihsg", "flow", "bottleneck", "market_state", "track_record", "risk_health",
+    "mission_control", "macro_regime", "alpha_center", "us_stocks", "crypto",
+    "commodities", "fx", "ihsg", "flow_bottleneck", "rotation_chains",
+    "portfolio_proof",
 ]
 
 

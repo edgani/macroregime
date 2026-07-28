@@ -1,4 +1,33 @@
-# Preservation Matrix — Original 17-Tab War Room (R2, 2026-07-28)
+# Preservation Matrix — Original 17-Tab War Room
+
+R4 update (2026-07-28): consolidated to the final 11-tab design. Every original
+render function is still invoked exactly once — parity enforced by
+tests/test_r4_consolidation.py (source-level exact-call check + boot markers +
+screenshots before/after). Final locations in the rightmost column.
+
+| # | Original tab | Render fn | Final tab (R4) | Parity status |
+|---|--------------|-----------|----------------|---------------|
+| 1 | Mission Control | mission_control | Mission Control (section 1) | PRESERVED |
+| 2 | Morning Brief | morning_brief | Mission Control (section 2) | PRESERVED |
+| 3 | Briefing | briefing_embed | Mission Control (section 4) | PRESERVED |
+| 4 | Command Center | command_center | Mission Control (section 3) | PRESERVED |
+| 5 | Alpha Center | alpha | Alpha Center | PRESERVED (unchanged) |
+| 6 | Cross-Asset Rotation | cycle_rotation | Rotation & Chains (section 1) | PRESERVED |
+| 7 | Causal Chains | causal_chains | Rotation & Chains (section 2) | PRESERVED |
+| 8 | US Stocks | us_stocks + fair_value_cards | US Stocks | PRESERVED (unchanged) |
+| 9 | Crypto | crypto | Crypto | PRESERVED (unchanged) |
+| 10 | Commodities | commodities | Commodities | PRESERVED (unchanged) |
+| 11 | FX | fx | FX | PRESERVED (unchanged) |
+| 12 | IHSG | ihsg | IHSG | PRESERVED (unchanged) |
+| 13 | Flow | flow | Flow & Bottleneck (section 1) | PRESERVED |
+| 14 | Bottleneck | bottleneck + node_template | Flow & Bottleneck (section 2) | PRESERVED |
+| 15 | Market State | market_state | Macro & Regime | PRESERVED |
+| 16 | Track Record | track_record + validation_tab | Portfolio & Proof (sections 1-2) | PRESERVED |
+| 17 | Risk & Health | risk_health + early_warning_tab | Portfolio & Proof (sections 3-4) | PRESERVED |
+
+No render function deleted, renamed, or rewritten. No formula touched in R4.
+Screenshots: pre-merge set at docs/audit/screenshots_r2_17tab/, post-merge set at
+docs/audit/screenshots/ (11 tabs).
 
 Source of truth: commit d3bee91 (last complete original), warroom/render.py at HEAD
 (superset — includes additional views), ZIP warroom_os_COMPLETE (6).zip as secondary

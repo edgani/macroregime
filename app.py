@@ -42,33 +42,46 @@ def main():
             BE.export(d)   # regenerate the interactive briefing deck (briefing.html) with today's data
         except Exception:
             pass
-    tabs = st.tabs(["Mission Control", "Morning Brief", "Briefing", "Command Center", "Alpha Center", "Cross-Asset Rotation",
-                    "Causal Chains", "US Stocks", "Crypto", "Commodities", "FX", "IHSG", "Flow", "Bottleneck",
-                    "Market State", "Track Record", "Risk & Health"])
-    with tabs[0]: R.mission_control(d)
-    with tabs[1]: R.morning_brief(d)
-    with tabs[2]: R.briefing_embed()
-    with tabs[3]: R.command_center(d, source)
-    with tabs[4]: R.alpha(d)
-    with tabs[5]: R.cycle_rotation(d)
-    with tabs[6]: R.causal_chains(d)
-    with tabs[7]:
+    # R4 final design: 17 original tabs consolidated to 11 — every original render
+    # function is still invoked exactly once (parity by construction; see
+    # docs/audit/PRESERVATION_MATRIX.md and tests/test_r4_consolidation.py).
+    # No formulas changed; sections are composed, not rewritten.
+    tabs = st.tabs(["Mission Control", "Macro & Regime", "Alpha Center", "US Stocks",
+                    "Crypto", "Commodities", "FX", "IHSG", "Flow & Bottleneck",
+                    "Rotation & Chains", "Portfolio & Proof"])
+    with tabs[0]:  # was: Mission Control + Morning Brief + Briefing + Command Center
+        R.mission_control(d)
+        st.divider()
+        R.morning_brief(d)
+        st.divider()
+        R.command_center(d, source)
+        st.divider()
+        R.briefing_embed()
+    with tabs[1]: R.market_state(d)          # was: Market State
+    with tabs[2]: R.alpha(d)                 # unchanged
+    with tabs[3]:                            # unchanged
         R.us_stocks(d)
         R.fair_value_cards(d)
-    with tabs[8]: R.crypto(d)
-    with tabs[9]: R.commodities(d)
-    with tabs[10]: R.fx(d)
-    with tabs[11]: R.ihsg(d)
-    with tabs[12]: R.flow(d)
-    with tabs[13]:
+    with tabs[4]: R.crypto(d)
+    with tabs[5]: R.commodities(d)
+    with tabs[6]: R.fx(d)
+    with tabs[7]: R.ihsg(d)
+    with tabs[8]:                            # was: Flow + Bottleneck
+        R.flow(d)
+        st.divider()
         R.bottleneck(d)
         R.node_template(d)
-    with tabs[14]: R.market_state(d)
-    with tabs[15]:
+    with tabs[9]:                            # was: Cross-Asset Rotation + Causal Chains
+        R.cycle_rotation(d)
+        st.divider()
+        R.causal_chains(d)
+    with tabs[10]:                           # was: Track Record + Risk & Health
         R.track_record(TR.performance(), TR.open_positions(), TR.closed_trades())
+        st.divider()
         R.validation_tab(d)
-    with tabs[16]:
+        st.divider()
         R.risk_health(d)
+        st.divider()
         R.early_warning_tab(d)
 
 

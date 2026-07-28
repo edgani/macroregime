@@ -139,13 +139,15 @@ def test_alpha_watch_excluded_distinction():
 # ---- integration boot ----
 
 @pytest.mark.skipif(os.getenv("RUN_SLOW") != "1", reason="slow integration boot; RUN_SLOW=1 to enable")
-def test_app_boot_17_tabs_and_markers():
+def test_app_boot_tabs_and_markers():
     os.environ["WARROOM_OFFLINE"] = "1"
     os.environ["WARROOM_AUTO_SHADOW"] = "0"
     from streamlit.testing.v1 import AppTest
     app = AppTest.from_file(str(ROOT / "app.py"), default_timeout=280).run()
     assert not app.exception
-    assert len(app.tabs) == 17
+    # R4 consolidated the original 17 tabs into the final 11-tab design;
+    # all original sections remain (see test_r4_consolidation.py parity tests)
+    assert len(app.tabs) == 11
     md = " ".join(m.value for m in app.markdown).lower()
     for marker in ("crash meter", "structural", "tactical", "transition", "carry",
                    "alpha center", "validation", "early warning"):

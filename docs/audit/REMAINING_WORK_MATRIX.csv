@@ -22,10 +22,10 @@ claims,timing_edge,unverified,descriptive_only,unknown,PROSPECTIVE_EVIDENCE_PEND
 claims,research_v64_three_survivors,proven_claimed,ledger_verified,implemented,RECONSTRUCTED_HISTORICAL_EVIDENCE,"V64_PROVEN_CLAIM_LEDGER.csv: gross only, 25bp fail, capital BLOCKED; audit item 2",none,none,none - terminal label,terminal label assigned
 claims,research_v66_tsmom_crisis,candidate_claimed,survivor_count_0,implemented,REJECTED,V66_LONG_HISTORY survivor_count=0; V78 NOT_PROMOTED; audit items 5-6,none,none,none - terminal negative,terminal label assigned
 claims,research_v78_pit_proof,protocol_frozen,NOT_PROMOTED,implemented,REJECTED,V78 results status NOT_PROMOTED; audit item 6,none,none,none - terminal negative,terminal label assigned
-papertrading,shadow_ledger_code,implemented,not_run,implemented,unverified,shadow_execution_ledger_v95.py; shadow_runner_v101.py,none,none,phase 7: schema test + dry-run,schema test passes
-papertrading,runtime_ledger,absent,confirmed_absent,not_started,unverified,runtime/v101_shadow/ missing,none,none,phase 7: dry-run creates ledger,append-only ledger exists with verify
-papertrading,historical_replay,not_started,not_run,not_started,unverified,none,none,none,phase 7: replay infra test,replay runs on frozen historical snapshot
-papertrading,evaluation_report,not_started,not_run,not_started,unverified,none,none,none,phase 7: eval report generator,report generated from ledger
+papertrading,shadow_ledger_code,implemented,verified,implemented,verified,tests/test_shadow_paper_trading.py 10/10; docs/audit/PAPER_TRADING.md,none,none,none,schema test passes
+papertrading,runtime_ledger,absent,NO_SNAPSHOT_honest,not_started,BLOCKED_EXTERNAL,shadow_runner live run: NO_SNAPSHOT (desk snapshot is INITIALIZING placeholder; needs live data worker),none,no live collector data offline,"run warroom_data_worker_v101 with network, then shadow_runner",append-only ledger exists with verify
+papertrading,historical_replay,not_started,verified,complete,verified,"test_historical_replay_evaluation: 3 matured forecasts, hit rate 2/3 reproduced",none,none,none,replay runs on frozen historical snapshot
+papertrading,evaluation_report,not_started,verified,complete,verified,tools/paper_trading/evaluate_shadow_ledger.py; refuses claims <30 obs,none,none,none,report generated from ledger
 papertrading,prospective_profitability,not_proven,not_run,not_started,PROSPECTIVE_EVIDENCE_PENDING,none,none,needs future observations,keep label until sufficient future obs,label stays PROSPECTIVE_EVIDENCE_PENDING
 delivery,final_e2e,not_started,not_run,not_started,unverified,none,none,none,phase 8 checklist,all phase 8 gates pass
 delivery,secrets_scan,not_started,not_run,not_started,unverified,none,none,none,phase 8: scan tracked files,no secrets found

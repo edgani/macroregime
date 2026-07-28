@@ -21,3 +21,6 @@ venv/
 Thumbs.db
 .DS_Store
 *.bak
+
+# Runtime-generated shadow run reports (ledger itself is committed deliberately when created)
+/runtime/v101_shadow/last_run.json

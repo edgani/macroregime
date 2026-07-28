@@ -1,0 +1,7 @@
+{
+  "python_files": 624,
+  "requirements_txt": "streamlit>=1.56,<2\npandas>=2.0,<3\nnumpy>=1.26,<3\nscipy>=1.11,<2\nstatsmodels>=0.14,<1\npython-dotenv>=1.0,<2\ncryptography>=42,<47\n\npyarrow>=15,<24\nyfinance>=0.2.54,<1\nrequests>=2.31,<3\n",
+  "requirements_dev_txt": "-r requirements.txt\npytest>=8,<10\nhttpx>=0.27,<1\nPyYAML>=6,<7\n",
+  "requirements_streaming_txt": "\nconfluent-kafka>=2.3\ndatabento>=0.50\nwebsocket-client>=1.8\n",
+  "pyproject_dependencies": "[build-system]\nrequires = [\"setuptools>=75\", \"wheel\"]\nbuild-backend = \"setuptools.build_meta\"\n\n[project]\nname = \"warroom-os-v3\"\nversion = \"3.0.0\"\ndescription = \"Fail-closed market research and prospective evidence system\"\nrequires-python = \">=3.11\"\ndependencies = [\n  \"fastapi>=0.115,<1\",\n  \"uvicorn[standard]>=0.30,<1\",\n  \"streamlit>=1.50,<2\",\n  \"pandas>=2.2,<3\",\n  \"plotly>=5.24,<7\",\n]\n\n[project.optional-dependencies]\ndev = [\"pytest>=8,<10\", \"httpx>=0.27,<1\"]\n\n[project.scripts]\nwarroom = \"warroom_v3.cli:main\"\n\n[tool.setuptools]\npackage-dir = {\"\" = \"src\"}\n\n[tool.setuptools.packages.find]\nwhere = [\"src\"]\n\n[tool.pytest.ini_options]\npythonpath = [\"src\"]\ntestpaths = [\"tests\"]\n"
+}

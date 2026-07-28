@@ -1,0 +1,58 @@
+{
+  "schema": "warroom.v98.current_status.v1",
+  "release": "War Room OS V9.8 Unified Decision Packet",
+  "generated_at": "2026-07-27T12:57:30Z",
+  "architecture": {
+    "primary_tabs_ready": 8,
+    "primary_tabs_required": 8,
+    "unified_ticker_packet_markets": 5,
+    "unified_ticker_packet_required": 5,
+    "ticker_packets_built": 17,
+    "price_projection_ticker_bound": true,
+    "flow_positioning_ticker_bound": true,
+    "causal_chain_ticker_bound": true,
+    "risk_execution_ticker_bound": true,
+    "proof_ticker_bound": true,
+    "data_and_proof_advanced_drawer": true
+  },
+  "data_plane": {
+    "official_public_source_routes_defined_markets": 5,
+    "bundled_real_public_snapshot_markets": 1,
+    "current_execution_quote_markets_in_build": 0,
+    "failed_refresh_preserves_stale_context": true,
+    "stale_context_execution_eligible": false,
+    "synthetic_data": false
+  },
+  "proof_and_capital": {
+    "bound_proof_markets": 0,
+    "limited_production_signal_ready_markets": 0,
+    "fully_proven_markets": 0,
+    "capital_permission": "BLOCKED_UNTIL_EXACT_PROOF_AND_HUMAN_APPROVAL",
+    "auto_submit_enabled": false
+  },
+  "validation": {
+    "control_plane_passed": 40,
+    "control_plane_total": 40,
+    "unified_packet_passed": 33,
+    "unified_packet_total": 33,
+    "combined_passed": 73,
+    "combined_total": 73,
+    "all_passed": true
+  },
+  "current_runtime": {
+    "decision": "NO_TRADE",
+    "plain_language": "Belum ada ticker yang boleh dieksekusi. Data dan quote yang tersedia tetap ditampilkan untuk riset, bukan dihapus menjadi layar kosong.",
+    "context_markets": 1,
+    "quote_markets": 0,
+    "promoted_tickers": 0,
+    "capital_permission": "BLOCKED",
+    "next_actions": [
+      "Refresh official sources and quotes",
+      "Complete point-in-time ticker evidence",
+      "Install a pre-registered ticker value bridge",
+      "Run blind proof and prospective shadow evidence"
+    ]
+  },
+  "claim_limit": "V9.8 fixes the disconnected UI/data architecture and is ready to display unified research context. It does not claim proven alpha or grant capital permission without exact-scope proof and prospective evidence.",
+  "status_hash": "aa73237775e38f96316660f16c3f0c17384d0b4748b521a150e30511d837a2cb"
+}

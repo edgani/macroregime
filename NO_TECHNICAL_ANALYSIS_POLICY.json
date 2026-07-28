@@ -1,6 +1,6 @@
 {
   "schema": "warroom.v88.no_technical_analysis_policy.v1",
-  "effective_version": "8.8",
+  "effective_version": "9.8",
   "decision_rule": "No chart-derived or price-transformation feature may enter a projection, direction, selection, allocation, trigger, target, invalidation or capital decision. Fundamental/physical/macro scenario value may produce a price target; current price is only the denominator used to compare value with market recognition.",
   "forbidden_as_decision_inputs": [
     "SMA",

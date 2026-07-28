@@ -1,9 +1,9 @@
-# War Room OS V9.7
+# War Room OS V10.1 — Carry-Aware Operational Research & Shadow Trading
 
-Five-market causal research, anti-overfit proof firewall and limited-production trading control plane.
+V10.1 extends the unified ticker decision packet with a causal carry-trade engine:
 
-V9.7 is operationally ready to refresh execution references, validate exact-scope decisions, size positions, enforce risk limits, obtain human approval, export manual broker-neutral order tickets, engage a kill switch and reconcile live fills.
+`rate/funding differential → funding currency → target currency/asset → beneficiaries → crowding → unwind risk → current direction → invalidation`.
 
-It does not manufacture alpha. With no valid bound proof, it returns `NO_TRADE` / `BLOCKED`.
+It supports EURUSD, GBPUSD, AUDUSD, USDCAD, USDJPY, USDCHF, USDIDR, AUDJPY, CADJPY, GBPJPY and EURJPY references. Current carry direction is a research output. Systematic capital remains exact-proof gated.
 
-Start with `START_HERE.md` and run `CHECK_V97.bat`.
+Start with `START_HERE.md` and `V101_OPERATOR_GUIDE.md`.

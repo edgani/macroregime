@@ -1,0 +1,212 @@
+{
+  "schema": "warroom.v98.final_validation.v1",
+  "release": "War Room OS V9.8 Unified Decision Packet",
+  "generated_at": "2026-07-27T12:55:26Z",
+  "tests": [
+    {
+      "name": "policy schema and auto-submit disabled",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "five market execution routes defined",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "flat decision produces no trade",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "valid exact-scope fixture reaches human approval only",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "sizing respects one percent notional cap",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "stale decision rejected",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "future decision rejected",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "stale quote rejected",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "future quote rejected",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "quote hash tamper rejected",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "missing quote rejected",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "proof hash mismatch rejected",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "unbound proof rejected",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "invalid signed receipt rejected",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "technical predictor rejected",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "missing causal field rejected",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "invalid long geometry rejected",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "low reward-risk rejected",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "low expected return rejected",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "negative lower bound rejected",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "entry too far from quote rejected",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "stale account state rejected",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "daily loss kill threshold enforced",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "weekly loss kill threshold enforced",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "drawdown kill threshold enforced",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "daily order count enforced",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "maximum open positions enforced",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "market notional cap enforced",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "portfolio gross cap enforced",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "total open risk cap enforced",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "manual kill switch blocks order",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "valid HMAC approval verifies",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "approval tamper rejected",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "order export is manual-only",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "duplicate order export rejected",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "paper fill rejected",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "fill instrument mismatch rejected",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "live account fill reconciles",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "execution ledger hash chain valid",
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "readiness keeps alpha separate from software",
+      "passed": true,
+      "error": null
+    }
+  ],
+  "passed": 40,
+  "total": 40,
+  "all_passed": true,
+  "capital_claim": "NO_ALPHA_CLAIM; CONTROL_PLANE_ONLY",
+  "validation_hash": "a37f2fed8fe8b7d44bc0cbbe0457c990c09b14f41ed6b46dc99c52e31c21e494"
+}

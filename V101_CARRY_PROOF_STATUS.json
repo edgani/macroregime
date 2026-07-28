@@ -1,0 +1,14 @@
+{
+  "schema": "warroom.v101.carry_proof_status.v1",
+  "version": "10.1",
+  "mapping_frozen": true,
+  "formula_family_registered": true,
+  "point_in_time_history_admitted": false,
+  "historical_anti_overfit_pass": false,
+  "untouched_lockbox_pass": false,
+  "prospective_shadow_pass": false,
+  "actual_fill_pass": false,
+  "carry_module_proven": false,
+  "systematic_live_permission": "PROOF_GATED",
+  "reason": "The package contains the engine and admission/proof path, but no point-in-time carry panel or future prospective outcomes were fabricated."
+}

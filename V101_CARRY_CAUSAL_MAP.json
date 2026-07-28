@@ -1,0 +1,163 @@
+{
+  "schema": "warroom.v101.carry_causal_map.v1",
+  "version": "10.1",
+  "frozen": true,
+  "decision_purpose": "Identify cross-currency carry direction, beneficiaries, crowding and unwind risk without using chart-derived predictors.",
+  "causal_roles": [
+    "funding cost",
+    "target yield",
+    "forward/cross-currency basis",
+    "volatility/funding stress",
+    "external balance and reserves",
+    "positioning/crowding",
+    "liquidity transmission"
+  ],
+  "transmission": [
+    "borrow or synthetically sell low-yield funding currency",
+    "buy target currency or target-currency asset",
+    "inflows support target FX/bonds/liquid risk assets",
+    "funding currency tends to weaken while carry is expanding",
+    "volatility or funding shock forces deleveraging",
+    "funding currency strengthens and target assets unwind"
+  ],
+  "state_machine": [
+    "INCOMPLETE",
+    "LOW_CARRY",
+    "CARRY_ON",
+    "SELECTIVE_CARRY",
+    "CROWDED_CARRY",
+    "UNWIND_RISK",
+    "UNWIND_ACTIVE"
+  ],
+  "required_inputs": {
+    "minimum": [
+      "policy/money-market rates",
+      "current FX quote",
+      "global volatility/funding stress"
+    ],
+    "promotion": [
+      "release-lagged positioning",
+      "forward points or cross-currency basis",
+      "external balance/reserves",
+      "point-in-time policy history",
+      "execution costs"
+    ]
+  },
+  "claim_limits": [
+    "Interest differential is an incentive, not proof of return.",
+    "CFTC reports Tuesday positions on Friday and cannot be treated as real-time.",
+    "BIS banking/derivatives statistics are indirect and do not reveal exact speculative use.",
+    "Missing basis, reserves or point-in-time history caps confidence and blocks systematic proof."
+  ],
+  "pairs": {
+    "EURUSD_REFERENCE": {
+      "base": "EUR",
+      "quote": "USD",
+      "provider_symbol": "EURUSD=X"
+    },
+    "GBPUSD_REFERENCE": {
+      "base": "GBP",
+      "quote": "USD",
+      "provider_symbol": "GBPUSD=X"
+    },
+    "AUDUSD_REFERENCE": {
+      "base": "AUD",
+      "quote": "USD",
+      "provider_symbol": "AUDUSD=X"
+    },
+    "USDCAD_REFERENCE": {
+      "base": "USD",
+      "quote": "CAD",
+      "provider_symbol": "CAD=X"
+    },
+    "USDJPY_REFERENCE": {
+      "base": "USD",
+      "quote": "JPY",
+      "provider_symbol": "JPY=X"
+    },
+    "USDCHF_REFERENCE": {
+      "base": "USD",
+      "quote": "CHF",
+      "provider_symbol": "CHF=X"
+    },
+    "USDIDR_REFERENCE": {
+      "base": "USD",
+      "quote": "IDR",
+      "provider_symbol": "IDR=X"
+    },
+    "AUDJPY_REFERENCE": {
+      "base": "AUD",
+      "quote": "JPY",
+      "provider_symbol": "AUDJPY=X"
+    },
+    "CADJPY_REFERENCE": {
+      "base": "CAD",
+      "quote": "JPY",
+      "provider_symbol": "CADJPY=X"
+    },
+    "GBPJPY_REFERENCE": {
+      "base": "GBP",
+      "quote": "JPY",
+      "provider_symbol": "GBPJPY=X"
+    },
+    "EURJPY_REFERENCE": {
+      "base": "EUR",
+      "quote": "JPY",
+      "provider_symbol": "EURJPY=X"
+    }
+  },
+  "currency_rates": {
+    "USD": {
+      "series": "DFF",
+      "source": "FRED/Federal Reserve"
+    },
+    "EUR": {
+      "series": "ECBDFR",
+      "source": "FRED/ECB"
+    },
+    "JPY": {
+      "series": "IRSTCI01JPM156N",
+      "source": "FRED/OECD-BoJ context"
+    },
+    "GBP": {
+      "series": "IRSTCI01GBM156N",
+      "source": "FRED/OECD-BoE context"
+    },
+    "AUD": {
+      "series": "IRSTCI01AUM156N",
+      "source": "FRED/OECD-RBA context"
+    },
+    "CAD": {
+      "series": "IRSTCI01CAM156N",
+      "source": "FRED/OECD-BoC context"
+    },
+    "CHF": {
+      "official_key": "SNB_POLICY_RATE",
+      "source": "SNB"
+    },
+    "IDR": {
+      "official_key": "BI_7DRR",
+      "source": "Bank Indonesia"
+    }
+  },
+  "beneficiary_rules": {
+    "carry_on": [
+      "target currency",
+      "target local government bonds subject to duration risk",
+      "liquid target-country banks and equities if external balance is not deteriorating",
+      "funding-country exporters from weaker funding currency",
+      "high-beta assets only when global liquidity and funding stress are supportive"
+    ],
+    "unwind": [
+      "funding currency",
+      "volatility hedges",
+      "high-quality liquid assets"
+    ],
+    "unwind_losers": [
+      "target currency",
+      "leveraged local bonds/equities",
+      "crowded high-beta and crypto exposures",
+      "funding-country exporters if funding currency surges"
+    ]
+  }
+}

@@ -1,0 +1,286 @@
+{
+  "schema": "warroom.v101.carry_validation.v1",
+  "generated_at": "2026-07-28T06:55:50.732923+00:00",
+  "passed": 55,
+  "total": 55,
+  "all_pass": true,
+  "market_alpha_proven": false,
+  "results": [
+    {
+      "name": "Carry causal map frozen",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Carry thresholds frozen",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "USDJPY funding currency is JPY",
+      "pass": true,
+      "detail": "{'schema': 'warroom.v101.carry_pair.v1', 'pair': 'USDJPY_REFERENCE', 'base': 'USD', 'quote': 'JPY', 'base_rate': 5.25, 'quote_rate': 0.1, 'rate_spread_pct': 5.15, 'annual_carry_abs_pct': 5.15, 'funding_currency': 'JPY', 'target_currency': 'USD', 'pair_direction': 'LONG_PAIR', 'carry_direction': 'LONG_PAIR', 'unwind_direction': 'SHORT_PAIR', 'current_direction': 'LONG_PAIR', 'recommended_action': 'CARRY_EXPRESSION_RESEARCH', 'stage': 'ACTIVE', 'trade_expression': 'LONG_PAIR USDJPY / fund JPY / own USD', 'state': 'CARRY_ON', 'carry_score': 0.775, 'unwind_risk_score': 0.0875, 'directional_score': 0.775, 'confidence_cap': 0.55, 'price': 158.0, 'fresh_quote': True, 'policy_spread_change_3': 0.0, 'global_stress': {'score': 0.175, 'vix': 14.0, 'vix_score': 0.0, 'hy_oas': 2.0, 'hy_oas_score': 0.25, 'liquidity_score': 0.6, 'risk_asset_score': 0.5}, 'funding_positioning': None, 'target_positioning': None, 'beneficiaries': ['USD currency', 'US Treasury bills/notes', 'liquid US banks and domestically funded equities', 'Japanese exporters', 'high-beta equities only while funding stress remains contained', 'selected commodities and crypto only when global liquidity confirms'], 'direct_beneficiaries': ['USD currency', 'US Treasury bills/notes', 'liquid US banks and domestically funded equities'], 'secondary_beneficiaries': ['Japanese exporters', 'high-beta equities only while funding stress remains contained', 'selected commodities and crypto only when global liquidity confirms'], 'at_risk': ['JPY currency', 'carry hedges/long volatility'], 'unwind_winners': ['JPY currency', 'volatility hedges', 'high-quality liquid assets and cash equivalents'], 'unwind_losers': ['USD currency', 'US Treasury bills/notes', 'liquid US banks and domestically funded equities', 'leveraged high-beta and crypto exposures', 'Japanese exporters'], 'target_region': 'United States', 'funding_region': 'Japan', 'transmission_chain': ['fund or sell JPY', 'buy USD or USD-currency assets', 'inflows support USD FX/bonds and selected liquid risk assets', 'if stress rises, deleveraging buys back JPY and sells USD assets'], 'missing_promotion_inputs': ['CFTC_POSITIONING', 'FORWARD_POINTS_OR_CROSS_CURRENCY_BASIS', 'EXTERNAL_BALANCE_AND_RESERVES', 'POINT_IN_TIME_HISTORY'], 'invalidation': ['policy differential compresses materially', 'funding stress or volatility jumps', 'funding currency positioning becomes one-sided', 'target external balance/reserves deteriorate'], 'proof_state': 'NOT_PROVEN', 'claim_limit': 'Current carry map and direction; systematic capital requires point-in-time historical and prospective proof.'}"
+    },
+    {
+      "name": "USDJPY target currency is USD",
+      "pass": true,
+      "detail": "{'schema': 'warroom.v101.carry_pair.v1', 'pair': 'USDJPY_REFERENCE', 'base': 'USD', 'quote': 'JPY', 'base_rate': 5.25, 'quote_rate': 0.1, 'rate_spread_pct': 5.15, 'annual_carry_abs_pct': 5.15, 'funding_currency': 'JPY', 'target_currency': 'USD', 'pair_direction': 'LONG_PAIR', 'carry_direction': 'LONG_PAIR', 'unwind_direction': 'SHORT_PAIR', 'current_direction': 'LONG_PAIR', 'recommended_action': 'CARRY_EXPRESSION_RESEARCH', 'stage': 'ACTIVE', 'trade_expression': 'LONG_PAIR USDJPY / fund JPY / own USD', 'state': 'CARRY_ON', 'carry_score': 0.775, 'unwind_risk_score': 0.0875, 'directional_score': 0.775, 'confidence_cap': 0.55, 'price': 158.0, 'fresh_quote': True, 'policy_spread_change_3': 0.0, 'global_stress': {'score': 0.175, 'vix': 14.0, 'vix_score': 0.0, 'hy_oas': 2.0, 'hy_oas_score': 0.25, 'liquidity_score': 0.6, 'risk_asset_score': 0.5}, 'funding_positioning': None, 'target_positioning': None, 'beneficiaries': ['USD currency', 'US Treasury bills/notes', 'liquid US banks and domestically funded equities', 'Japanese exporters', 'high-beta equities only while funding stress remains contained', 'selected commodities and crypto only when global liquidity confirms'], 'direct_beneficiaries': ['USD currency', 'US Treasury bills/notes', 'liquid US banks and domestically funded equities'], 'secondary_beneficiaries': ['Japanese exporters', 'high-beta equities only while funding stress remains contained', 'selected commodities and crypto only when global liquidity confirms'], 'at_risk': ['JPY currency', 'carry hedges/long volatility'], 'unwind_winners': ['JPY currency', 'volatility hedges', 'high-quality liquid assets and cash equivalents'], 'unwind_losers': ['USD currency', 'US Treasury bills/notes', 'liquid US banks and domestically funded equities', 'leveraged high-beta and crypto exposures', 'Japanese exporters'], 'target_region': 'United States', 'funding_region': 'Japan', 'transmission_chain': ['fund or sell JPY', 'buy USD or USD-currency assets', 'inflows support USD FX/bonds and selected liquid risk assets', 'if stress rises, deleveraging buys back JPY and sells USD assets'], 'missing_promotion_inputs': ['CFTC_POSITIONING', 'FORWARD_POINTS_OR_CROSS_CURRENCY_BASIS', 'EXTERNAL_BALANCE_AND_RESERVES', 'POINT_IN_TIME_HISTORY'], 'invalidation': ['policy differential compresses materially', 'funding stress or volatility jumps', 'funding currency positioning becomes one-sided', 'target external balance/reserves deteriorate'], 'proof_state': 'NOT_PROVEN', 'claim_limit': 'Current carry map and direction; systematic capital requires point-in-time historical and prospective proof.'}"
+    },
+    {
+      "name": "USDJPY carry direction is long pair",
+      "pass": true,
+      "detail": "{'schema': 'warroom.v101.carry_pair.v1', 'pair': 'USDJPY_REFERENCE', 'base': 'USD', 'quote': 'JPY', 'base_rate': 5.25, 'quote_rate': 0.1, 'rate_spread_pct': 5.15, 'annual_carry_abs_pct': 5.15, 'funding_currency': 'JPY', 'target_currency': 'USD', 'pair_direction': 'LONG_PAIR', 'carry_direction': 'LONG_PAIR', 'unwind_direction': 'SHORT_PAIR', 'current_direction': 'LONG_PAIR', 'recommended_action': 'CARRY_EXPRESSION_RESEARCH', 'stage': 'ACTIVE', 'trade_expression': 'LONG_PAIR USDJPY / fund JPY / own USD', 'state': 'CARRY_ON', 'carry_score': 0.775, 'unwind_risk_score': 0.0875, 'directional_score': 0.775, 'confidence_cap': 0.55, 'price': 158.0, 'fresh_quote': True, 'policy_spread_change_3': 0.0, 'global_stress': {'score': 0.175, 'vix': 14.0, 'vix_score': 0.0, 'hy_oas': 2.0, 'hy_oas_score': 0.25, 'liquidity_score': 0.6, 'risk_asset_score': 0.5}, 'funding_positioning': None, 'target_positioning': None, 'beneficiaries': ['USD currency', 'US Treasury bills/notes', 'liquid US banks and domestically funded equities', 'Japanese exporters', 'high-beta equities only while funding stress remains contained', 'selected commodities and crypto only when global liquidity confirms'], 'direct_beneficiaries': ['USD currency', 'US Treasury bills/notes', 'liquid US banks and domestically funded equities'], 'secondary_beneficiaries': ['Japanese exporters', 'high-beta equities only while funding stress remains contained', 'selected commodities and crypto only when global liquidity confirms'], 'at_risk': ['JPY currency', 'carry hedges/long volatility'], 'unwind_winners': ['JPY currency', 'volatility hedges', 'high-quality liquid assets and cash equivalents'], 'unwind_losers': ['USD currency', 'US Treasury bills/notes', 'liquid US banks and domestically funded equities', 'leveraged high-beta and crypto exposures', 'Japanese exporters'], 'target_region': 'United States', 'funding_region': 'Japan', 'transmission_chain': ['fund or sell JPY', 'buy USD or USD-currency assets', 'inflows support USD FX/bonds and selected liquid risk assets', 'if stress rises, deleveraging buys back JPY and sells USD assets'], 'missing_promotion_inputs': ['CFTC_POSITIONING', 'FORWARD_POINTS_OR_CROSS_CURRENCY_BASIS', 'EXTERNAL_BALANCE_AND_RESERVES', 'POINT_IN_TIME_HISTORY'], 'invalidation': ['policy differential compresses materially', 'funding stress or volatility jumps', 'funding currency positioning becomes one-sided', 'target external balance/reserves deteriorate'], 'proof_state': 'NOT_PROVEN', 'claim_limit': 'Current carry map and direction; systematic capital requires point-in-time historical and prospective proof.'}"
+    },
+    {
+      "name": "USDJPY current direction follows carry under low stress",
+      "pass": true,
+      "detail": "{'schema': 'warroom.v101.carry_pair.v1', 'pair': 'USDJPY_REFERENCE', 'base': 'USD', 'quote': 'JPY', 'base_rate': 5.25, 'quote_rate': 0.1, 'rate_spread_pct': 5.15, 'annual_carry_abs_pct': 5.15, 'funding_currency': 'JPY', 'target_currency': 'USD', 'pair_direction': 'LONG_PAIR', 'carry_direction': 'LONG_PAIR', 'unwind_direction': 'SHORT_PAIR', 'current_direction': 'LONG_PAIR', 'recommended_action': 'CARRY_EXPRESSION_RESEARCH', 'stage': 'ACTIVE', 'trade_expression': 'LONG_PAIR USDJPY / fund JPY / own USD', 'state': 'CARRY_ON', 'carry_score': 0.775, 'unwind_risk_score': 0.0875, 'directional_score': 0.775, 'confidence_cap': 0.55, 'price': 158.0, 'fresh_quote': True, 'policy_spread_change_3': 0.0, 'global_stress': {'score': 0.175, 'vix': 14.0, 'vix_score': 0.0, 'hy_oas': 2.0, 'hy_oas_score': 0.25, 'liquidity_score': 0.6, 'risk_asset_score': 0.5}, 'funding_positioning': None, 'target_positioning': None, 'beneficiaries': ['USD currency', 'US Treasury bills/notes', 'liquid US banks and domestically funded equities', 'Japanese exporters', 'high-beta equities only while funding stress remains contained', 'selected commodities and crypto only when global liquidity confirms'], 'direct_beneficiaries': ['USD currency', 'US Treasury bills/notes', 'liquid US banks and domestically funded equities'], 'secondary_beneficiaries': ['Japanese exporters', 'high-beta equities only while funding stress remains contained', 'selected commodities and crypto only when global liquidity confirms'], 'at_risk': ['JPY currency', 'carry hedges/long volatility'], 'unwind_winners': ['JPY currency', 'volatility hedges', 'high-quality liquid assets and cash equivalents'], 'unwind_losers': ['USD currency', 'US Treasury bills/notes', 'liquid US banks and domestically funded equities', 'leveraged high-beta and crypto exposures', 'Japanese exporters'], 'target_region': 'United States', 'funding_region': 'Japan', 'transmission_chain': ['fund or sell JPY', 'buy USD or USD-currency assets', 'inflows support USD FX/bonds and selected liquid risk assets', 'if stress rises, deleveraging buys back JPY and sells USD assets'], 'missing_promotion_inputs': ['CFTC_POSITIONING', 'FORWARD_POINTS_OR_CROSS_CURRENCY_BASIS', 'EXTERNAL_BALANCE_AND_RESERVES', 'POINT_IN_TIME_HISTORY'], 'invalidation': ['policy differential compresses materially', 'funding stress or volatility jumps', 'funding currency positioning becomes one-sided', 'target external balance/reserves deteriorate'], 'proof_state': 'NOT_PROVEN', 'claim_limit': 'Current carry map and direction; systematic capital requires point-in-time historical and prospective proof.'}"
+    },
+    {
+      "name": "Carry trade lists direct beneficiaries",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Carry trade lists unwind winners and losers",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Carry chain is explicit",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Carry confidence is capped for missing promotion inputs",
+      "pass": true,
+      "detail": "0.55"
+    },
+    {
+      "name": "Carry proof remains not proven",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "AUDUSD funding currency is AUD when USD rate higher",
+      "pass": true,
+      "detail": "{'schema': 'warroom.v101.carry_pair.v1', 'pair': 'AUDUSD_REFERENCE', 'base': 'AUD', 'quote': 'USD', 'base_rate': 4.35, 'quote_rate': 5.25, 'rate_spread_pct': -0.9000000000000004, 'annual_carry_abs_pct': 0.9000000000000004, 'funding_currency': 'AUD', 'target_currency': 'USD', 'pair_direction': 'SHORT_PAIR', 'carry_direction': 'SHORT_PAIR', 'unwind_direction': 'LONG_PAIR', 'current_direction': 'SHORT_PAIR', 'recommended_action': 'CARRY_EXPRESSION_RESEARCH', 'stage': 'ACTIVE', 'trade_expression': 'SHORT_PAIR AUDUSD / fund AUD / own USD', 'state': 'CARRY_ON', 'carry_score': 0.46666666666666673, 'unwind_risk_score': 0.0875, 'directional_score': -0.46666666666666673, 'confidence_cap': 0.55, 'price': 0.66, 'fresh_quote': True, 'policy_spread_change_3': 0.0, 'global_stress': {'score': 0.175, 'vix': 14.0, 'vix_score': 0.0, 'hy_oas': 2.0, 'hy_oas_score': 0.25, 'liquidity_score': 0.6, 'risk_asset_score': 0.5}, 'funding_positioning': None, 'target_positioning': None, 'beneficiaries': ['USD currency', 'US Treasury bills/notes', 'liquid US banks and domestically funded equities', 'Australian exporters/resource producers', 'high-beta equities only while funding stress remains contained', 'selected commodities and crypto only when global liquidity confirms'], 'direct_beneficiaries': ['USD currency', 'US Treasury bills/notes', 'liquid US banks and domestically funded equities'], 'secondary_beneficiaries': ['Australian exporters/resource producers', 'high-beta equities only while funding stress remains contained', 'selected commodities and crypto only when global liquidity confirms'], 'at_risk': ['AUD currency', 'carry hedges/long volatility'], 'unwind_winners': ['AUD currency', 'volatility hedges', 'high-quality liquid assets and cash equivalents'], 'unwind_losers': ['USD currency', 'US Treasury bills/notes', 'liquid US banks and domestically funded equities', 'leveraged high-beta and crypto exposures', 'Australian exporters/resource producers'], 'target_region': 'United States', 'funding_region': 'Australia', 'transmission_chain': ['fund or sell AUD', 'buy USD or USD-currency assets', 'inflows support USD FX/bonds and selected liquid risk assets', 'if stress rises, deleveraging buys back AUD and sells USD assets'], 'missing_promotion_inputs': ['CFTC_POSITIONING', 'FORWARD_POINTS_OR_CROSS_CURRENCY_BASIS', 'EXTERNAL_BALANCE_AND_RESERVES', 'POINT_IN_TIME_HISTORY'], 'invalidation': ['policy differential compresses materially', 'funding stress or volatility jumps', 'funding currency positioning becomes one-sided', 'target external balance/reserves deteriorate'], 'proof_state': 'NOT_PROVEN', 'claim_limit': 'Current carry map and direction; systematic capital requires point-in-time historical and prospective proof.'}"
+    },
+    {
+      "name": "AUDUSD target currency is USD when USD rate higher",
+      "pass": true,
+      "detail": "{'schema': 'warroom.v101.carry_pair.v1', 'pair': 'AUDUSD_REFERENCE', 'base': 'AUD', 'quote': 'USD', 'base_rate': 4.35, 'quote_rate': 5.25, 'rate_spread_pct': -0.9000000000000004, 'annual_carry_abs_pct': 0.9000000000000004, 'funding_currency': 'AUD', 'target_currency': 'USD', 'pair_direction': 'SHORT_PAIR', 'carry_direction': 'SHORT_PAIR', 'unwind_direction': 'LONG_PAIR', 'current_direction': 'SHORT_PAIR', 'recommended_action': 'CARRY_EXPRESSION_RESEARCH', 'stage': 'ACTIVE', 'trade_expression': 'SHORT_PAIR AUDUSD / fund AUD / own USD', 'state': 'CARRY_ON', 'carry_score': 0.46666666666666673, 'unwind_risk_score': 0.0875, 'directional_score': -0.46666666666666673, 'confidence_cap': 0.55, 'price': 0.66, 'fresh_quote': True, 'policy_spread_change_3': 0.0, 'global_stress': {'score': 0.175, 'vix': 14.0, 'vix_score': 0.0, 'hy_oas': 2.0, 'hy_oas_score': 0.25, 'liquidity_score': 0.6, 'risk_asset_score': 0.5}, 'funding_positioning': None, 'target_positioning': None, 'beneficiaries': ['USD currency', 'US Treasury bills/notes', 'liquid US banks and domestically funded equities', 'Australian exporters/resource producers', 'high-beta equities only while funding stress remains contained', 'selected commodities and crypto only when global liquidity confirms'], 'direct_beneficiaries': ['USD currency', 'US Treasury bills/notes', 'liquid US banks and domestically funded equities'], 'secondary_beneficiaries': ['Australian exporters/resource producers', 'high-beta equities only while funding stress remains contained', 'selected commodities and crypto only when global liquidity confirms'], 'at_risk': ['AUD currency', 'carry hedges/long volatility'], 'unwind_winners': ['AUD currency', 'volatility hedges', 'high-quality liquid assets and cash equivalents'], 'unwind_losers': ['USD currency', 'US Treasury bills/notes', 'liquid US banks and domestically funded equities', 'leveraged high-beta and crypto exposures', 'Australian exporters/resource producers'], 'target_region': 'United States', 'funding_region': 'Australia', 'transmission_chain': ['fund or sell AUD', 'buy USD or USD-currency assets', 'inflows support USD FX/bonds and selected liquid risk assets', 'if stress rises, deleveraging buys back AUD and sells USD assets'], 'missing_promotion_inputs': ['CFTC_POSITIONING', 'FORWARD_POINTS_OR_CROSS_CURRENCY_BASIS', 'EXTERNAL_BALANCE_AND_RESERVES', 'POINT_IN_TIME_HISTORY'], 'invalidation': ['policy differential compresses materially', 'funding stress or volatility jumps', 'funding currency positioning becomes one-sided', 'target external balance/reserves deteriorate'], 'proof_state': 'NOT_PROVEN', 'claim_limit': 'Current carry map and direction; systematic capital requires point-in-time historical and prospective proof.'}"
+    },
+    {
+      "name": "AUDUSD carry direction is short pair",
+      "pass": true,
+      "detail": "{'schema': 'warroom.v101.carry_pair.v1', 'pair': 'AUDUSD_REFERENCE', 'base': 'AUD', 'quote': 'USD', 'base_rate': 4.35, 'quote_rate': 5.25, 'rate_spread_pct': -0.9000000000000004, 'annual_carry_abs_pct': 0.9000000000000004, 'funding_currency': 'AUD', 'target_currency': 'USD', 'pair_direction': 'SHORT_PAIR', 'carry_direction': 'SHORT_PAIR', 'unwind_direction': 'LONG_PAIR', 'current_direction': 'SHORT_PAIR', 'recommended_action': 'CARRY_EXPRESSION_RESEARCH', 'stage': 'ACTIVE', 'trade_expression': 'SHORT_PAIR AUDUSD / fund AUD / own USD', 'state': 'CARRY_ON', 'carry_score': 0.46666666666666673, 'unwind_risk_score': 0.0875, 'directional_score': -0.46666666666666673, 'confidence_cap': 0.55, 'price': 0.66, 'fresh_quote': True, 'policy_spread_change_3': 0.0, 'global_stress': {'score': 0.175, 'vix': 14.0, 'vix_score': 0.0, 'hy_oas': 2.0, 'hy_oas_score': 0.25, 'liquidity_score': 0.6, 'risk_asset_score': 0.5}, 'funding_positioning': None, 'target_positioning': None, 'beneficiaries': ['USD currency', 'US Treasury bills/notes', 'liquid US banks and domestically funded equities', 'Australian exporters/resource producers', 'high-beta equities only while funding stress remains contained', 'selected commodities and crypto only when global liquidity confirms'], 'direct_beneficiaries': ['USD currency', 'US Treasury bills/notes', 'liquid US banks and domestically funded equities'], 'secondary_beneficiaries': ['Australian exporters/resource producers', 'high-beta equities only while funding stress remains contained', 'selected commodities and crypto only when global liquidity confirms'], 'at_risk': ['AUD currency', 'carry hedges/long volatility'], 'unwind_winners': ['AUD currency', 'volatility hedges', 'high-quality liquid assets and cash equivalents'], 'unwind_losers': ['USD currency', 'US Treasury bills/notes', 'liquid US banks and domestically funded equities', 'leveraged high-beta and crypto exposures', 'Australian exporters/resource producers'], 'target_region': 'United States', 'funding_region': 'Australia', 'transmission_chain': ['fund or sell AUD', 'buy USD or USD-currency assets', 'inflows support USD FX/bonds and selected liquid risk assets', 'if stress rises, deleveraging buys back AUD and sells USD assets'], 'missing_promotion_inputs': ['CFTC_POSITIONING', 'FORWARD_POINTS_OR_CROSS_CURRENCY_BASIS', 'EXTERNAL_BALANCE_AND_RESERVES', 'POINT_IN_TIME_HISTORY'], 'invalidation': ['policy differential compresses materially', 'funding stress or volatility jumps', 'funding currency positioning becomes one-sided', 'target external balance/reserves deteriorate'], 'proof_state': 'NOT_PROVEN', 'claim_limit': 'Current carry map and direction; systematic capital requires point-in-time historical and prospective proof.'}"
+    },
+    {
+      "name": "Official BI rate is admitted into current map",
+      "pass": true,
+      "detail": "{'schema': 'warroom.v101.carry_pair.v1', 'pair': 'USDIDR_REFERENCE', 'base': 'USD', 'quote': 'IDR', 'base_rate': 5.25, 'quote_rate': 6.25, 'rate_spread_pct': -1.0, 'annual_carry_abs_pct': 1.0, 'funding_currency': 'USD', 'target_currency': 'IDR', 'pair_direction': 'SHORT_PAIR', 'carry_direction': 'SHORT_PAIR', 'unwind_direction': 'LONG_PAIR', 'current_direction': 'SHORT_PAIR', 'recommended_action': 'CARRY_EXPRESSION_RESEARCH', 'stage': 'ACTIVE', 'trade_expression': 'SHORT_PAIR USDIDR / fund USD / own IDR', 'state': 'CARRY_ON', 'carry_score': 0.475, 'unwind_risk_score': 0.175, 'directional_score': -0.475, 'confidence_cap': 0.55, 'price': 16200.0, 'fresh_quote': True, 'policy_spread_change_3': None, 'global_stress': {'score': 0.175, 'vix': 14.0, 'vix_score': 0.0, 'hy_oas': 2.0, 'hy_oas_score': 0.25, 'liquidity_score': 0.6, 'risk_asset_score': 0.5}, 'funding_positioning': None, 'target_positioning': None, 'beneficiaries': ['IDR currency', 'Indonesian government bonds after FX/liquidity review', 'liquid Indonesian banks and domestic-demand equities', 'US exporters', 'high-beta equities only while funding stress remains contained', 'selected commodities and crypto only when global liquidity confirms'], 'direct_beneficiaries': ['IDR currency', 'Indonesian government bonds after FX/liquidity review', 'liquid Indonesian banks and domestic-demand equities'], 'secondary_beneficiaries': ['US exporters', 'high-beta equities only while funding stress remains contained', 'selected commodities and crypto only when global liquidity confirms'], 'at_risk': ['USD currency', 'carry hedges/long volatility'], 'unwind_winners': ['USD currency', 'volatility hedges', 'high-quality liquid assets and cash equivalents'], 'unwind_losers': ['IDR currency', 'Indonesian government bonds after FX/liquidity review', 'liquid Indonesian banks and domestic-demand equities', 'leveraged high-beta and crypto exposures', 'US exporters'], 'target_region': 'Indonesia', 'funding_region': 'United States', 'transmission_chain': ['fund or sell USD', 'buy IDR or IDR-currency assets', 'inflows support IDR FX/bonds and selected liquid risk assets', 'if stress rises, deleveraging buys back USD and sells IDR assets'], 'missing_promotion_inputs': ['CFTC_POSITIONING', 'FORWARD_POINTS_OR_CROSS_CURRENCY_BASIS', 'EXTERNAL_BALANCE_AND_RESERVES', 'POINT_IN_TIME_HISTORY'], 'invalidation': ['policy differential compresses materially', 'funding stress or volatility jumps', 'funding currency positioning becomes one-sided', 'target external balance/reserves deteriorate'], 'proof_state': 'NOT_PROVEN', 'claim_limit': 'Current carry map and direction; systematic capital requires point-in-time historical and prospective proof.'}"
+    },
+    {
+      "name": "USDIDR direction reflects higher IDR yield",
+      "pass": true,
+      "detail": "{'schema': 'warroom.v101.carry_pair.v1', 'pair': 'USDIDR_REFERENCE', 'base': 'USD', 'quote': 'IDR', 'base_rate': 5.25, 'quote_rate': 6.25, 'rate_spread_pct': -1.0, 'annual_carry_abs_pct': 1.0, 'funding_currency': 'USD', 'target_currency': 'IDR', 'pair_direction': 'SHORT_PAIR', 'carry_direction': 'SHORT_PAIR', 'unwind_direction': 'LONG_PAIR', 'current_direction': 'SHORT_PAIR', 'recommended_action': 'CARRY_EXPRESSION_RESEARCH', 'stage': 'ACTIVE', 'trade_expression': 'SHORT_PAIR USDIDR / fund USD / own IDR', 'state': 'CARRY_ON', 'carry_score': 0.475, 'unwind_risk_score': 0.175, 'directional_score': -0.475, 'confidence_cap': 0.55, 'price': 16200.0, 'fresh_quote': True, 'policy_spread_change_3': None, 'global_stress': {'score': 0.175, 'vix': 14.0, 'vix_score': 0.0, 'hy_oas': 2.0, 'hy_oas_score': 0.25, 'liquidity_score': 0.6, 'risk_asset_score': 0.5}, 'funding_positioning': None, 'target_positioning': None, 'beneficiaries': ['IDR currency', 'Indonesian government bonds after FX/liquidity review', 'liquid Indonesian banks and domestic-demand equities', 'US exporters', 'high-beta equities only while funding stress remains contained', 'selected commodities and crypto only when global liquidity confirms'], 'direct_beneficiaries': ['IDR currency', 'Indonesian government bonds after FX/liquidity review', 'liquid Indonesian banks and domestic-demand equities'], 'secondary_beneficiaries': ['US exporters', 'high-beta equities only while funding stress remains contained', 'selected commodities and crypto only when global liquidity confirms'], 'at_risk': ['USD currency', 'carry hedges/long volatility'], 'unwind_winners': ['USD currency', 'volatility hedges', 'high-quality liquid assets and cash equivalents'], 'unwind_losers': ['IDR currency', 'Indonesian government bonds after FX/liquidity review', 'liquid Indonesian banks and domestic-demand equities', 'leveraged high-beta and crypto exposures', 'US exporters'], 'target_region': 'Indonesia', 'funding_region': 'United States', 'transmission_chain': ['fund or sell USD', 'buy IDR or IDR-currency assets', 'inflows support IDR FX/bonds and selected liquid risk assets', 'if stress rises, deleveraging buys back USD and sells IDR assets'], 'missing_promotion_inputs': ['CFTC_POSITIONING', 'FORWARD_POINTS_OR_CROSS_CURRENCY_BASIS', 'EXTERNAL_BALANCE_AND_RESERVES', 'POINT_IN_TIME_HISTORY'], 'invalidation': ['policy differential compresses materially', 'funding stress or volatility jumps', 'funding currency positioning becomes one-sided', 'target external balance/reserves deteriorate'], 'proof_state': 'NOT_PROVEN', 'claim_limit': 'Current carry map and direction; systematic capital requires point-in-time historical and prospective proof.'}"
+    },
+    {
+      "name": "Official SNB rate is admitted into current map",
+      "pass": true,
+      "detail": "{'schema': 'warroom.v101.carry_pair.v1', 'pair': 'USDCHF_REFERENCE', 'base': 'USD', 'quote': 'CHF', 'base_rate': 5.25, 'quote_rate': 1.25, 'rate_spread_pct': 4.0, 'annual_carry_abs_pct': 4.0, 'funding_currency': 'CHF', 'target_currency': 'USD', 'pair_direction': 'LONG_PAIR', 'carry_direction': 'LONG_PAIR', 'unwind_direction': 'SHORT_PAIR', 'current_direction': 'LONG_PAIR', 'recommended_action': 'CARRY_EXPRESSION_RESEARCH', 'stage': 'ACTIVE', 'trade_expression': 'LONG_PAIR USDCHF / fund CHF / own USD', 'state': 'CARRY_ON', 'carry_score': 0.9125, 'unwind_risk_score': 0.175, 'directional_score': 0.9125, 'confidence_cap': 0.55, 'price': 0.88, 'fresh_quote': True, 'policy_spread_change_3': None, 'global_stress': {'score': 0.175, 'vix': 14.0, 'vix_score': 0.0, 'hy_oas': 2.0, 'hy_oas_score': 0.25, 'liquidity_score': 0.6, 'risk_asset_score': 0.5}, 'funding_positioning': None, 'target_positioning': None, 'beneficiaries': ['USD currency', 'US Treasury bills/notes', 'liquid US banks and domestically funded equities', 'Swiss exporters', 'high-beta equities only while funding stress remains contained', 'selected commodities and crypto only when global liquidity confirms'], 'direct_beneficiaries': ['USD currency', 'US Treasury bills/notes', 'liquid US banks and domestically funded equities'], 'secondary_beneficiaries': ['Swiss exporters', 'high-beta equities only while funding stress remains contained', 'selected commodities and crypto only when global liquidity confirms'], 'at_risk': ['CHF currency', 'carry hedges/long volatility'], 'unwind_winners': ['CHF currency', 'volatility hedges', 'high-quality liquid assets and cash equivalents'], 'unwind_losers': ['USD currency', 'US Treasury bills/notes', 'liquid US banks and domestically funded equities', 'leveraged high-beta and crypto exposures', 'Swiss exporters'], 'target_region': 'United States', 'funding_region': 'Switzerland', 'transmission_chain': ['fund or sell CHF', 'buy USD or USD-currency assets', 'inflows support USD FX/bonds and selected liquid risk assets', 'if stress rises, deleveraging buys back CHF and sells USD assets'], 'missing_promotion_inputs': ['CFTC_POSITIONING', 'FORWARD_POINTS_OR_CROSS_CURRENCY_BASIS', 'EXTERNAL_BALANCE_AND_RESERVES', 'POINT_IN_TIME_HISTORY'], 'invalidation': ['policy differential compresses materially', 'funding stress or volatility jumps', 'funding currency positioning becomes one-sided', 'target external balance/reserves deteriorate'], 'proof_state': 'NOT_PROVEN', 'claim_limit': 'Current carry map and direction; systematic capital requires point-in-time historical and prospective proof.'}"
+    },
+    {
+      "name": "High stress and crowding flags unwind",
+      "pass": true,
+      "detail": "{'schema': 'warroom.v101.carry_pair.v1', 'pair': 'USDJPY_REFERENCE', 'base': 'USD', 'quote': 'JPY', 'base_rate': 5.25, 'quote_rate': 0.1, 'rate_spread_pct': 5.15, 'annual_carry_abs_pct': 5.15, 'funding_currency': 'JPY', 'target_currency': 'USD', 'pair_direction': 'LONG_PAIR', 'carry_direction': 'LONG_PAIR', 'unwind_direction': 'SHORT_PAIR', 'current_direction': 'REDUCE_OR_HEDGE_CARRY', 'recommended_action': 'DE_RISK_AND_WAIT', 'stage': 'EXIT_WARNING', 'trade_expression': 'REDUCE_OR_HEDGE_CARRY USDJPY / fund JPY / own USD', 'state': 'UNWIND_RISK', 'carry_score': 0.5166666666666667, 'unwind_risk_score': 0.7375, 'directional_score': -0.05489583333333343, 'confidence_cap': 0.55, 'price': 158.0, 'fresh_quote': True, 'policy_spread_change_3': 0.0, 'global_stress': {'score': 0.95, 'vix': 36.0, 'vix_score': 1.0, 'hy_oas': 7.0, 'hy_oas_score': 1.0, 'liquidity_score': -0.8, 'risk_asset_score': -0.8}, 'funding_positioning': {'leveraged_net_share': -0.35, 'asset_manager_net_share': -0.15, 'open_interest': 100.0, 'report_date': '2026-07-21', 'release_lagged': True, 'market_name': 'JAPANESE YEN - CME  '}, 'target_positioning': {'leveraged_net_share': 0.35, 'asset_manager_net_share': 0.15, 'open_interest': 100.0, 'report_date': '2026-07-21', 'release_lagged': True, 'market_name': 'U.S. DOLLAR INDEX - ICE  '}, 'beneficiaries': ['JPY currency', 'volatility hedges', 'high-quality liquid assets and cash equivalents'], 'direct_beneficiaries': ['JPY currency', 'volatility hedges', 'high-quality liquid assets and cash equivalents'], 'secondary_beneficiaries': [], 'at_risk': ['USD currency', 'US Treasury bills/notes', 'liquid US banks and domestically funded equities', 'leveraged high-beta and crypto exposures', 'Japanese exporters'], 'unwind_winners': ['JPY currency', 'volatility hedges', 'high-quality liquid assets and cash equivalents'], 'unwind_losers': ['USD currency', 'US Treasury bills/notes', 'liquid US banks and domestically funded equities', 'leveraged high-beta and crypto exposures', 'Japanese exporters'], 'target_region': 'United States', 'funding_region': 'Japan', 'transmission_chain': ['fund or sell JPY', 'buy USD or USD-currency assets', 'inflows support USD FX/bonds and selected liquid risk assets', 'if stress rises, deleveraging buys back JPY and sells USD assets'], 'missing_promotion_inputs': ['FORWARD_POINTS_OR_CROSS_CURRENCY_BASIS', 'EXTERNAL_BALANCE_AND_RESERVES', 'POINT_IN_TIME_HISTORY'], 'invalidation': ['policy differential compresses materially', 'funding stress or volatility jumps', 'funding currency positioning becomes one-sided', 'target external balance/reserves deteriorate'], 'proof_state': 'NOT_PROVEN', 'claim_limit': 'Current carry map and direction; systematic capital requires point-in-time historical and prospective proof.'}"
+    },
+    {
+      "name": "Active unwind reverses or de-risks carry direction",
+      "pass": true,
+      "detail": "{'schema': 'warroom.v101.carry_pair.v1', 'pair': 'USDJPY_REFERENCE', 'base': 'USD', 'quote': 'JPY', 'base_rate': 5.25, 'quote_rate': 0.1, 'rate_spread_pct': 5.15, 'annual_carry_abs_pct': 5.15, 'funding_currency': 'JPY', 'target_currency': 'USD', 'pair_direction': 'LONG_PAIR', 'carry_direction': 'LONG_PAIR', 'unwind_direction': 'SHORT_PAIR', 'current_direction': 'REDUCE_OR_HEDGE_CARRY', 'recommended_action': 'DE_RISK_AND_WAIT', 'stage': 'EXIT_WARNING', 'trade_expression': 'REDUCE_OR_HEDGE_CARRY USDJPY / fund JPY / own USD', 'state': 'UNWIND_RISK', 'carry_score': 0.5166666666666667, 'unwind_risk_score': 0.7375, 'directional_score': -0.05489583333333343, 'confidence_cap': 0.55, 'price': 158.0, 'fresh_quote': True, 'policy_spread_change_3': 0.0, 'global_stress': {'score': 0.95, 'vix': 36.0, 'vix_score': 1.0, 'hy_oas': 7.0, 'hy_oas_score': 1.0, 'liquidity_score': -0.8, 'risk_asset_score': -0.8}, 'funding_positioning': {'leveraged_net_share': -0.35, 'asset_manager_net_share': -0.15, 'open_interest': 100.0, 'report_date': '2026-07-21', 'release_lagged': True, 'market_name': 'JAPANESE YEN - CME  '}, 'target_positioning': {'leveraged_net_share': 0.35, 'asset_manager_net_share': 0.15, 'open_interest': 100.0, 'report_date': '2026-07-21', 'release_lagged': True, 'market_name': 'U.S. DOLLAR INDEX - ICE  '}, 'beneficiaries': ['JPY currency', 'volatility hedges', 'high-quality liquid assets and cash equivalents'], 'direct_beneficiaries': ['JPY currency', 'volatility hedges', 'high-quality liquid assets and cash equivalents'], 'secondary_beneficiaries': [], 'at_risk': ['USD currency', 'US Treasury bills/notes', 'liquid US banks and domestically funded equities', 'leveraged high-beta and crypto exposures', 'Japanese exporters'], 'unwind_winners': ['JPY currency', 'volatility hedges', 'high-quality liquid assets and cash equivalents'], 'unwind_losers': ['USD currency', 'US Treasury bills/notes', 'liquid US banks and domestically funded equities', 'leveraged high-beta and crypto exposures', 'Japanese exporters'], 'target_region': 'United States', 'funding_region': 'Japan', 'transmission_chain': ['fund or sell JPY', 'buy USD or USD-currency assets', 'inflows support USD FX/bonds and selected liquid risk assets', 'if stress rises, deleveraging buys back JPY and sells USD assets'], 'missing_promotion_inputs': ['FORWARD_POINTS_OR_CROSS_CURRENCY_BASIS', 'EXTERNAL_BALANCE_AND_RESERVES', 'POINT_IN_TIME_HISTORY'], 'invalidation': ['policy differential compresses materially', 'funding stress or volatility jumps', 'funding currency positioning becomes one-sided', 'target external balance/reserves deteriorate'], 'proof_state': 'NOT_PROVEN', 'claim_limit': 'Current carry map and direction; systematic capital requires point-in-time historical and prospective proof.'}"
+    },
+    {
+      "name": "CFTC positioning is explicitly release-lagged",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Unwind benefits funding currency",
+      "pass": true,
+      "detail": "['JPY currency', 'volatility hedges', 'high-quality liquid assets and cash equivalents']"
+    },
+    {
+      "name": "Missing policy rate becomes incomplete",
+      "pass": true,
+      "detail": "{'schema': 'warroom.v101.carry_pair.v1', 'pair': 'USDJPY_REFERENCE', 'base': 'USD', 'quote': 'JPY', 'state': 'INCOMPLETE', 'reason': 'POLICY_RATE_MISSING', 'base_rate': 5.25, 'quote_rate': None, 'price': 158.0, 'fresh_quote': True, 'directional_score': None, 'proof_state': 'NOT_PROVEN'}"
+    },
+    {
+      "name": "Carry book covers all registered pairs",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Carry book identifies funding and target currencies",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Carry book does not promote systematic alpha",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Valid PIT carry panel admitted",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Complete candidate family emitted",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Each observation contains every registered candidate",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Proof preparation stays capital blocked",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Look-ahead input rejected",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Non-PIT row rejected",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Final-revised source rejected as proof",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Packaged carry alpha status is explicitly unproven",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Systematic carry capital is proof-gated",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "FX action embeds carry map",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Current carry action can produce research bias/watch",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Unproven carry remains systematic proof-gated",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Unified FX packet carries the same pair map",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Carry projection/risk stays ticker-bound",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Global action state includes carry book",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Dashboard is V10.1 carry-aware",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Dashboard shows carry direction and beneficiaries",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Carry remains inside FX ticker packet",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "App uses V101 worker",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Runtime uses V101 data layer",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Technical features remain forbidden",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Price role remains non-predictive",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Auto-submit remains disabled",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Dashboard JavaScript parses",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "All Python sources compile",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Offline bundled research remains available",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Offline desk contains carry module",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Offline missing current carry data is incomplete, not fabricated",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Five market packet maps remain present",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "FX universe includes carry crosses",
+      "pass": true,
+      "detail": ""
+    }
+  ],
+  "claim_limit": "Software/state/proof-firewall validation only. No fixture is market alpha proof."
+}

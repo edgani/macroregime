@@ -1,0 +1,13 @@
+{
+  "schema": "warroom.v101.package_validation.v1",
+  "version": "10.1",
+  "carry_validation": "55/55 PASS",
+  "all_python_compile": true,
+  "dashboard_javascript_parse": true,
+  "clean_extract_manifest": true,
+  "clean_extract_validator_returncode": 0,
+  "deterministic_rebuild": true,
+  "manifest_entries_before_manifest": 393,
+  "market_alpha_proven": false,
+  "claim_limit": "Package integrity and software validation are not market-alpha proof."
+}

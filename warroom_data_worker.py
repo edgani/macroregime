@@ -1,147 +1,80 @@
-"""Bounded collector for War Room OS v9.7 all-market bottleneck projection runtime."""
+"""Bounded V9.9 collector: quotes first, unified packet second, official context in the slow lane."""
 from __future__ import annotations
-
-import argparse
-import os
-import signal
-import sys
-import time
+import argparse, os, signal, sys, time
 from pathlib import Path
-
-HERE = Path(__file__).resolve().parent
-sys.path.insert(0, str(HERE))
+HERE=Path(__file__).resolve().parent; sys.path.insert(0,str(HERE))
 try:
     from dotenv import load_dotenv
-    load_dotenv(HERE / ".env", override=False)
-except Exception:
-    pass
-
+    load_dotenv(HERE/'.env',override=False)
+except Exception:pass
 from runtime_sanitizer import sanitize_runtime_payload
-from runtime_store import (
-    claim_worker_instance, consume_force_refresh, force_refresh_requested, now_iso,
-    release_worker_instance, write_snapshot, write_status,
-)
+from runtime_store import claim_worker_instance,consume_force_refresh,force_refresh_requested,now_iso,release_worker_instance,write_snapshot,write_status
+STOP=False
+MARKETS=['us','idx','crypto','commodity','fx']
+REFRESH_SECONDS=max(300,int(os.getenv('WARROOM_CORE_REFRESH_SECONDS','900')))
+PUBLIC_REFRESH_SECONDS=max(3600,int(os.getenv('WARROOM_PUBLIC_REFRESH_SECONDS','21600')))
 
-STOP = False
-MARKETS = ["us", "idx", "crypto", "commodity", "fx"]
-REFRESH_SECONDS = max(300, int(os.getenv("WARROOM_CORE_REFRESH_SECONDS", "900")))
+def _stop(*_args):
+    global STOP; STOP=True
 
+def _install_signals():
+    try:signal.signal(signal.SIGTERM,_stop);signal.signal(signal.SIGINT,_stop)
+    except (ValueError,OSError):pass
 
-def _stop(*_args) -> None:
-    global STOP
-    STOP = True
-
-
-def _install_signals() -> None:
+def _refresh_quotes()->None:
     try:
-        signal.signal(signal.SIGTERM, _stop)
-        signal.signal(signal.SIGINT, _stop)
-    except (ValueError, OSError):
-        pass
+        from execution_quote_collector_v99 import collect
+        result=collect(); write_status(quote_count=result.get('quote_count',0),quote_markets=result.get('markets_with_quote',0),quote_refresh_error=None)
+    except Exception as exc:
+        write_status(quote_refresh_error=f'{type(exc).__name__}: {exc}')
 
-
-def build_core(fast: bool = True, bootstrap: bool = False, refresh_context: bool = False) -> dict:
-    del refresh_context
+def build_core(*,allow_live:bool=True)->dict:
     import data_layer as DL
     from run import build_fast_desk
-
-    data = DL.load_all(
-        markets=MARKETS,
-        allow_live=True,
-        fetch_live_feeds=not bootstrap,
-        allow_synthetic=False,
-        fast_core=fast,
-        skip_slow_context=False,
-        bootstrap_core=bootstrap,
-    )
-    try:
-        from execution_quote_collector_v97 import collect as collect_execution_quotes
-        collect_execution_quotes()
-    except Exception as exc:
-        # Quote failure is visible and fail-closed; macro/evidence refresh still survives.
-        from runtime_store import write_status
-        write_status(quote_refresh_error=f"{type(exc).__name__}: {exc}")
-    desk = build_fast_desk(data)
-    desk.setdefault("runtime", {}).update({
-        "core_collected_at": now_iso(),
-        "core_profile": "BOOTSTRAP" if bootstrap else "NONTECHNICAL_EVIDENCE_AND_EXECUTION_REFERENCE_REFRESH",
-    })
+    if allow_live:_refresh_quotes()
+    data=DL.load_all(markets=MARKETS,allow_live=allow_live,allow_synthetic=False)
+    desk=build_fast_desk(data)
+    desk.setdefault('runtime',{}).update({'core_collected_at':now_iso(),'core_profile':'UNIFIED_DECISION_PACKET_CURRENT_CONTEXT'})
     return sanitize_runtime_payload(desk)
 
+def _public_due()->bool:
+    manifests=sorted((HERE/'runtime'/'v99_public_acquisition').glob('*/v99_public_acquisition_manifest.json'),key=lambda p:p.stat().st_mtime,reverse=True)
+    return not manifests or time.time()-manifests[0].stat().st_mtime>=PUBLIC_REFRESH_SECONDS
 
-def collect_event_planes(core: dict) -> dict:
-    del core
-    return {
-        "institutional": {
-            "overall_state": "DISABLED_PENDING_NONTECHNICAL_SOURCE_AUDIT",
-            "statuses": [], "events": [],
-        },
-        "live_intelligence": {
-            "overall_state": "DISABLED_PENDING_NONTECHNICAL_SOURCE_AUDIT",
-            "statuses": [], "events": [],
-        },
-    }
-
-
-def collect_slow_plane(core: dict) -> dict:
-    del core
-    return {
-        "overall_state": "DISABLED_PENDING_NONTECHNICAL_SOURCE_AUDIT",
-        "statuses": [], "tab_coverage": {},
-    }
-
-
-def run_once(*, bootstrap: bool = False) -> dict:
-    write_status(state="COLLECTING", last_attempt_at=now_iso(), error=None)
+def refresh_public_context()->dict|None:
+    if os.getenv('WARROOM_DISABLE_PUBLIC_REFRESH','0').lower() in {'1','true','yes'} or not _public_due():return None
     try:
-        desk = build_core(True, bootstrap=bootstrap)
-        result = write_snapshot(desk, force=True)
-        write_status(
-            state="READY_EVIDENCE_PRODUCTION",
-            last_success=now_iso(),
-            revision=result.get("revision"),
-            content_hash=result.get("content_hash"),
-            capital_permission="BLOCKED_UNTIL_EXACT_PROOF_AND_HUMAN_APPROVAL",
-            error=None,
-        )
-        return desk
-    except BaseException as exc:
-        write_status(state="WORKER_FATAL", error=f"{type(exc).__name__}: {exc}", capital_permission="BLOCKED_UNTIL_EXACT_PROOF_AND_HUMAN_APPROVAL")
-        raise
+        from public_context_collector_v99 import collect
+        result=collect(); write_status(public_source_markets=result.get('markets_with_at_least_one_real_snapshot',0),public_refresh_error=None); return result
+    except Exception as exc:
+        write_status(public_refresh_error=f'{type(exc).__name__}: {exc}'); return None
 
+def run_once(*,allow_live:bool=True)->dict:
+    write_status(state='COLLECTING',last_attempt_at=now_iso(),error=None)
+    desk=build_core(allow_live=allow_live); result=write_snapshot(desk,force=True)
+    write_status(state='READY_UNIFIED_CONTEXT',last_success=now_iso(),revision=result.get('revision'),content_hash=result.get('content_hash'),capital_permission='BLOCKED_UNTIL_EXACT_PROOF_AND_HUMAN_APPROVAL',error=None)
+    return desk
 
-def loop() -> None:
+def loop()->None:
     _install_signals()
     if not claim_worker_instance():
-        write_status(state="ALREADY_RUNNING", capital_permission="BLOCKED_UNTIL_EXACT_PROOF_AND_HUMAN_APPROVAL")
-        return
+        write_status(state='ALREADY_RUNNING',capital_permission='BLOCKED_UNTIL_EXACT_PROOF_AND_HUMAN_APPROVAL');return
     try:
-        run_once(bootstrap=True)
-        next_run = time.monotonic() + REFRESH_SECONDS
+        run_once(allow_live=True)
+        if refresh_public_context() is not None:run_once(allow_live=False)
+        next_run=time.monotonic()+REFRESH_SECONDS
         while not STOP:
-            if force_refresh_requested():
-                consume_force_refresh()
-                next_run = 0.0
-            if time.monotonic() >= next_run:
-                run_once(bootstrap=False)
-                next_run = time.monotonic() + REFRESH_SECONDS
-            write_status(state="READY_EVIDENCE_PRODUCTION", heartbeat_at=now_iso(), capital_permission="BLOCKED_UNTIL_EXACT_PROOF_AND_HUMAN_APPROVAL")
-            time.sleep(2.0)
+            if force_refresh_requested():consume_force_refresh();next_run=0.0
+            if time.monotonic()>=next_run:
+                run_once(allow_live=True)
+                if refresh_public_context() is not None:run_once(allow_live=False)
+                next_run=time.monotonic()+REFRESH_SECONDS
+            write_status(state='READY_UNIFIED_CONTEXT',heartbeat_at=now_iso(),capital_permission='BLOCKED_UNTIL_EXACT_PROOF_AND_HUMAN_APPROVAL');time.sleep(2.0)
     finally:
-        release_worker_instance()
-        write_status(state="STOPPED", capital_permission="BLOCKED_UNTIL_EXACT_PROOF_AND_HUMAN_APPROVAL")
+        release_worker_instance();write_status(state='STOPPED',capital_permission='BLOCKED_UNTIL_EXACT_PROOF_AND_HUMAN_APPROVAL')
 
-
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--once", action="store_true")
-    parser.add_argument("--bootstrap", action="store_true")
-    args = parser.parse_args()
-    if args.once:
-        run_once(bootstrap=args.bootstrap)
-    else:
-        loop()
-
-
-if __name__ == "__main__":
-    main()
+def main():
+    parser=argparse.ArgumentParser();parser.add_argument('--once',action='store_true');parser.add_argument('--offline',action='store_true');args=parser.parse_args()
+    if args.once:run_once(allow_live=not args.offline)
+    else:loop()
+if __name__=='__main__':main()

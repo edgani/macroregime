@@ -1,0 +1,16 @@
+{
+  "schema": "warroom.v99.final_build_report.v1",
+  "generated_at": "2026-07-27T18:27:50Z",
+  "release": "War Room OS V9.9 Actual Data Integration",
+  "bundled_datasets_present": 14,
+  "research_markets": 5,
+  "current_quote_markets_at_build": 0,
+  "bound_proof_markets": 0,
+  "promoted_packets": 0,
+  "capital_permission": "BLOCKED",
+  "actual_data_validation": "37/37 PASS",
+  "browser_render": "PASS",
+  "deterministic_archive": "PASS",
+  "clean_extract": "PASS",
+  "claim_limit": "V9.9 fixes data wiring and state classification. It does not manufacture live proof."
+}

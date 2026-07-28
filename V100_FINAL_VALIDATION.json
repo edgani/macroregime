@@ -1,0 +1,244 @@
+{
+  "schema": "warroom.v100.operational_validation.v1",
+  "generated_at": "2026-07-28T06:17:39.685963+00:00",
+  "passed": 47,
+  "total": 47,
+  "all_pass": true,
+  "results": [
+    {
+      "name": "US fixture produces LONG_BIAS",
+      "pass": true,
+      "detail": "LONG_BIAS"
+    },
+    {
+      "name": "US value bridge valid",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "US risk plan valid",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "US shadow eligible",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Systematic live proof gated",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Auto submit disabled",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Data quality bounded",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Position risk fixed at or below 0.25%",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Position notional cap at or below 10%",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Reward/risk shadow gate respected",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Stale quote rejected for shadow",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Stale quote still allows research action",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Missing value bridge becomes WATCH",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Missing current evidence does not become live",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Crypto current action exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Crypto bridge has no chart input",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Commodity scenario produced",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "FX scenario produced",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Exact proof can make systematic-live eligible",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Experimental manual defaults disabled by environment",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Experimental risk cap at or below 0.10%",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Experimental exporter exists and cannot auto-submit",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Experimental mode is environment-gated",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Unified V100 packet schema",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Projection remains ticker-bound",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Risk remains ticker-bound",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Alpha Center separates shadow candidates",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Technical features forbidden",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Synthetic evidence forbidden",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Manual override of systematic proof forbidden",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Eight primary tabs",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "UI does not globally label everything BLOCKED",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "UI shows three permission layers",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Projection is inside ticker packet",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Flow/causal/execution are not separate tabs",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "App uses V100 worker",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "App uses integrated data layer",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Auto submit absent from dashboard",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Dashboard JavaScript parses",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "All Python sources compile",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Prospective shadow ledger verifies",
+      "pass": true,
+      "detail": "{'schema': 'warroom.v95.shadow_ledger_verification.v1', 'valid': True, 'rows': 3, 'forecasts': 1, 'order_intents': 1, 'shadow_fills': 1, 'outcomes': 0, 'last_hash': '76ccaeeb0e88f446391f46c049dfa93dc33e8476afcf897b4eb18b58c1588640', 'errors': [], 'capital_permission': 'BLOCKED'}"
+    },
+    {
+      "name": "Backfilled forecast rejected",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Offline bundled research remains available",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Offline research permission active",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Offline systematic live named PROOF_GATED not global block",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "Five markets carry packets",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "name": "No synthetic data enabled",
+      "pass": true,
+      "detail": ""
+    }
+  ]
+}

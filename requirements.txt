@@ -7,3 +7,5 @@ python-dotenv>=1.0,<2
 cryptography>=42,<47
 
 pyarrow>=15,<24
+yfinance>=0.2.54,<1
+requests>=2.31,<3

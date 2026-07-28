@@ -1,0 +1,29 @@
+{
+  "schema": "warroom.v99.current_status.v1",
+  "release": "War Room OS V9.9 Actual Data Integration",
+  "research_data_status": "AVAILABLE",
+  "capital_permission": "BLOCKED",
+  "bundled_datasets_present": 14,
+  "bundled_datasets_loaded_in_build_environment": 8,
+  "markets_with_research_context": 5,
+  "packet_counts": {
+    "us": 141,
+    "idx": 105,
+    "crypto": 10,
+    "commodity": 5,
+    "fx": 6
+  },
+  "reference_counts": {
+    "ticker_contexts": 275,
+    "chains": 10,
+    "ihsg_conglomerates": 21,
+    "bottleneck_heatmap": 68
+  },
+  "current_quote_markets_at_build": 0,
+  "bound_proof_markets": 0,
+  "promoted_packets": 0,
+  "auto_submit_enabled": false,
+  "technical_predictors_active": 0,
+  "synthetic_data_active": false,
+  "claim_limit": "Bundled data availability is proven by file/hash/read checks. Trading profitability and live capital readiness are not proven."
+}

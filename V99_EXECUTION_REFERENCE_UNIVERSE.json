@@ -1,0 +1,152 @@
+{
+  "schema": "warroom.v99.execution_reference_universe.v1",
+  "us": [
+    {
+      "instrument": "SPY",
+      "provider": "YAHOO",
+      "provider_symbol": "SPY",
+      "asset_type": "US_UNLEVERED_ETF"
+    },
+    {
+      "instrument": "QQQ",
+      "provider": "YAHOO",
+      "provider_symbol": "QQQ",
+      "asset_type": "US_UNLEVERED_ETF"
+    }
+  ],
+  "idx": [
+    {
+      "instrument": "JKSE",
+      "provider": "YAHOO",
+      "provider_symbol": "^JKSE",
+      "asset_type": "IDX_INDEX_REFERENCE"
+    },
+    {
+      "instrument": "BBCA",
+      "provider": "YAHOO",
+      "provider_symbol": "BBCA.JK",
+      "asset_type": "IDX_CASH_EQUITY"
+    },
+    {
+      "instrument": "BMRI",
+      "provider": "YAHOO",
+      "provider_symbol": "BMRI.JK",
+      "asset_type": "IDX_CASH_EQUITY"
+    },
+    {
+      "instrument": "TLKM",
+      "provider": "YAHOO",
+      "provider_symbol": "TLKM.JK",
+      "asset_type": "IDX_CASH_EQUITY"
+    },
+    {
+      "instrument": "HUMI",
+      "provider": "YAHOO",
+      "provider_symbol": "HUMI.JK",
+      "asset_type": "IDX_CASH_EQUITY"
+    }
+  ],
+  "commodity": [
+    {
+      "instrument": "WTI_REFERENCE",
+      "provider": "YAHOO",
+      "provider_symbol": "CL=F",
+      "asset_type": "REFERENCE_ONLY"
+    },
+    {
+      "instrument": "GOLD_REFERENCE",
+      "provider": "YAHOO",
+      "provider_symbol": "GC=F",
+      "asset_type": "REFERENCE_ONLY"
+    },
+    {
+      "instrument": "COPPER_REFERENCE",
+      "provider": "YAHOO",
+      "provider_symbol": "HG=F",
+      "asset_type": "REFERENCE_ONLY"
+    }
+  ],
+  "fx": [
+    {
+      "instrument": "AUDJPY_REFERENCE",
+      "provider": "YAHOO",
+      "provider_symbol": "AUDJPY=X",
+      "asset_type": "REFERENCE_ONLY"
+    },
+    {
+      "instrument": "AUDUSD_REFERENCE",
+      "provider": "YAHOO",
+      "provider_symbol": "AUDUSD=X",
+      "asset_type": "REFERENCE_ONLY"
+    },
+    {
+      "instrument": "CADJPY_REFERENCE",
+      "provider": "YAHOO",
+      "provider_symbol": "CADJPY=X",
+      "asset_type": "REFERENCE_ONLY"
+    },
+    {
+      "instrument": "EURJPY_REFERENCE",
+      "provider": "YAHOO",
+      "provider_symbol": "EURJPY=X",
+      "asset_type": "REFERENCE_ONLY"
+    },
+    {
+      "instrument": "EURUSD_REFERENCE",
+      "provider": "YAHOO",
+      "provider_symbol": "EURUSD=X",
+      "asset_type": "REFERENCE_ONLY"
+    },
+    {
+      "instrument": "GBPJPY_REFERENCE",
+      "provider": "YAHOO",
+      "provider_symbol": "GBPJPY=X",
+      "asset_type": "REFERENCE_ONLY"
+    },
+    {
+      "instrument": "GBPUSD_REFERENCE",
+      "provider": "YAHOO",
+      "provider_symbol": "GBPUSD=X",
+      "asset_type": "REFERENCE_ONLY"
+    },
+    {
+      "instrument": "USDCAD_REFERENCE",
+      "provider": "YAHOO",
+      "provider_symbol": "CAD=X",
+      "asset_type": "REFERENCE_ONLY"
+    },
+    {
+      "instrument": "USDCHF_REFERENCE",
+      "provider": "YAHOO",
+      "provider_symbol": "CHF=X",
+      "asset_type": "REFERENCE_ONLY"
+    },
+    {
+      "instrument": "USDIDR_REFERENCE",
+      "provider": "YAHOO",
+      "provider_symbol": "IDR=X",
+      "asset_type": "REFERENCE_ONLY"
+    },
+    {
+      "instrument": "USDJPY_REFERENCE",
+      "provider": "YAHOO",
+      "provider_symbol": "JPY=X",
+      "asset_type": "REFERENCE_ONLY"
+    }
+  ],
+  "crypto": [
+    {
+      "instrument": "BTCUSDT",
+      "provider": "BINANCE",
+      "provider_symbol": "BTCUSDT",
+      "asset_type": "BINANCE_SPOT"
+    },
+    {
+      "instrument": "ETHUSDT",
+      "provider": "BINANCE",
+      "provider_symbol": "ETHUSDT",
+      "asset_type": "BINANCE_SPOT"
+    }
+  ],
+  "claim_limit": "Explicit execution-reference instruments only. Research universe coverage is shown separately and no inclusion is a recommendation."
+}

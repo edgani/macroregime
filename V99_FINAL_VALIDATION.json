@@ -1,0 +1,158 @@
+{
+  "schema": "warroom.v99.actual_data_validation.v1",
+  "release": "War Room OS V9.9 Actual Data Integration",
+  "passed": 37,
+  "total": 37,
+  "all_pass": true,
+  "results": [
+    {
+      "name": "release identity is V9.9",
+      "status": "PASS"
+    },
+    {
+      "name": "fourteen real bundled datasets are inventoried",
+      "status": "PASS"
+    },
+    {
+      "name": "every inventoried bundled file exists and is nonempty",
+      "status": "PASS"
+    },
+    {
+      "name": "S&P historical panel is physically bundled",
+      "status": "PASS"
+    },
+    {
+      "name": "VIX history is loaded with expected long coverage",
+      "status": "PASS"
+    },
+    {
+      "name": "Shiller history is loaded with expected long coverage",
+      "status": "PASS"
+    },
+    {
+      "name": "Parquet dependency is declared",
+      "status": "PASS"
+    },
+    {
+      "name": "bundled causal-chain references are present",
+      "status": "PASS"
+    },
+    {
+      "name": "IHSG conglomerate/controller references are present",
+      "status": "PASS"
+    },
+    {
+      "name": "bottleneck heatmap references are present",
+      "status": "PASS"
+    },
+    {
+      "name": "research data and capital permission are separate states",
+      "status": "PASS"
+    },
+    {
+      "name": "all five markets expose bundled research context",
+      "status": "PASS"
+    },
+    {
+      "name": "US historical research is not mislabeled NO_DATA",
+      "status": "PASS"
+    },
+    {
+      "name": "other markets expose partial context instead of false completeness",
+      "status": "PASS"
+    },
+    {
+      "name": "research packet universe is materially populated",
+      "status": "PASS"
+    },
+    {
+      "name": "HUMI is available as an IHSG research packet",
+      "status": "PASS"
+    },
+    {
+      "name": "every packet keeps thesis projection flow risk execution and proof together",
+      "status": "PASS"
+    },
+    {
+      "name": "research context score is not exposed as trade readiness",
+      "status": "PASS"
+    },
+    {
+      "name": "ticker projection is withheld without proven value bridge",
+      "status": "PASS"
+    },
+    {
+      "name": "no packet is promoted without bound proof",
+      "status": "PASS"
+    },
+    {
+      "name": "missing live quote never erases bundled research",
+      "status": "PASS"
+    },
+    {
+      "name": "synthetic evidence is absent from active payload",
+      "status": "PASS"
+    },
+    {
+      "name": "technical analysis is not active",
+      "status": "PASS"
+    },
+    {
+      "name": "V9.9 proof registry is active",
+      "status": "PASS"
+    },
+    {
+      "name": "V9.9 execution policy is fail closed",
+      "status": "PASS"
+    },
+    {
+      "name": "five market execution control routes are defined",
+      "status": "PASS"
+    },
+    {
+      "name": "trading readiness remains honest",
+      "status": "PASS"
+    },
+    {
+      "name": "dashboard has exactly eight primary tabs",
+      "status": "PASS"
+    },
+    {
+      "name": "data and proof remain an advanced drawer",
+      "status": "PASS"
+    },
+    {
+      "name": "dashboard wording distinguishes data from capital",
+      "status": "PASS"
+    },
+    {
+      "name": "app seeds offline bundled data before network worker",
+      "status": "PASS"
+    },
+    {
+      "name": "V9.9 quote collector writes V9.9 runtime and universe",
+      "status": "PASS"
+    },
+    {
+      "name": "V9.9 public collector writes V9.9 acquisition runtime",
+      "status": "PASS"
+    },
+    {
+      "name": "runtime snapshot integrity is valid",
+      "status": "PASS"
+    },
+    {
+      "name": "static mirror contains V9.9 data rather than stale V9.8 snapshot",
+      "status": "PASS"
+    },
+    {
+      "name": "all Python source files compile",
+      "status": "PASS"
+    },
+    {
+      "name": "dashboard JavaScript parses",
+      "status": "PASS"
+    }
+  ],
+  "claim_limit": "These checks validate data wiring, state separation, fail-closed controls and package integrity. They do not prove trading profitability."
+}

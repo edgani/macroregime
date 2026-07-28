@@ -64,8 +64,12 @@ def main():
         R.bottleneck(d)
         R.node_template(d)
     with tabs[14]: R.market_state(d)
-    with tabs[15]: R.track_record(TR.performance(), TR.open_positions(), TR.closed_trades())
-    with tabs[16]: R.risk_health(d)
+    with tabs[15]:
+        R.track_record(TR.performance(), TR.open_positions(), TR.closed_trades())
+        R.validation_tab(d)
+    with tabs[16]:
+        R.risk_health(d)
+        R.early_warning_tab(d)
 
 
 if __name__ == "__main__":

@@ -1028,6 +1028,38 @@ def track_record(perf, opos, closed):
     st.markdown(CSS + html, unsafe_allow_html=True)
 
 
+def _crash_meter_panel(d):
+    """Crash Meter detail: subcomponents, drivers, disconfirming, invalidation, action.
+    Severity gauge — NOT a calibrated probability. RESEARCH_ONLY until R5 calibration."""
+    cm = d.get("crash_meter") or {}
+    if not cm:
+        return ""
+    val = cm.get("value")
+    num = f"{val}" if val is not None else "n/a"
+    col = {"grn": "#3fb950", "inf": "#4493f8", "amb": "#d6a429", "red": "#f85149", "gry": "#5b6675"}.get(cm.get("color"), "#5b6675")
+    w = max(0, min(100, val or 0))
+    subs = cm.get("subcomponents") or {}
+    rows = ""
+    for k, s in subs.items():
+        v = s.get("value")
+        bar = f"<div style='height:5px;background:#1e2530;border-radius:3px;flex:1'><div style='width:{v or 0}%;height:5px;background:{col};border-radius:3px'></div></div>"
+        rows += (f"<div class='wr-row' style='gap:8px;align-items:center;'>"
+                 f"<span class='wr-sub' style='min-width:120px;'>{k.replace('_',' ')}</span>{bar}"
+                 f"<span class='wr-mono' style='min-width:34px;text-align:right;'>{v if v is not None else 'n/a'}</span></div>")
+    drv = " · ".join(f"{x['component']} {x['value']}" for x in (cm.get("drivers") or [])) or "—"
+    dis = " · ".join(f"{x['component']} {x['value']}" for x in (cm.get("disconfirming") or [])) or "—"
+    return (f"<div class='wr-lbl' style='margin-top:0;'>Crash Meter — {cm.get('severity','')} "
+            f"<span style='color:{col};font-size:20px;font-family:ui-monospace;'>{num}</span><span class='wr-sub'>/100 · {cm.get('coverage','')}</span></div>"
+            f"<div style='height:12px;background:#0a0e14;border-radius:6px;margin:6px 0 12px;'>"
+            f"<div style='width:{w}%;height:12px;background:{col};border-radius:6px'></div></div>"
+            f"<div class='wr-rows' style='margin-bottom:10px;'>{rows}</div>"
+            f"<div class='wr-note'><b>Drivers:</b> {drv}</div>"
+            f"<div class='wr-note'><b>Disconfirming:</b> {dis}</div>"
+            f"<div class='wr-note'><b>Action:</b> {cm.get('action_hint','')} · <b>Invalidation:</b> {cm.get('invalidation','')}</div>"
+            f"<div class='wr-note' style='color:#d6a429;'>{cm.get('claim_limit','')} Proof: {cm.get('proof_status','')} · "
+            f"false-alarm context: {cm.get('false_alarm_context','')}</div>")
+
+
 def risk_health(d):
     r = d.get("risk", {}) or {}
     diag = d.get("diagnostics", {}) or {}
@@ -1058,8 +1090,9 @@ def risk_health(d):
     byeng = diag.get("by_engine", {})
     byeng_line = " · ".join(f"{k}×{v}" for k, v in byeng.items()) if byeng else ""
     errs = "".join(f"<div class='wr-row'><span class='wr-mono' style='color:#d8c08a;min-width:150px;'>{e['engine']}</span><span class='wr-sub'>{e['error']}</span></div>" for e in diag.get("samples", [])) or "<span class='wr-note'>no engine exceptions this run.</span>"
-    html = (f"<div class='wr-top'><b>Risk & Health</b><span>portfolio risk · observability</span></div>"
-            f"<div class='wr-lbl' style='margin-top:0;'>Portfolio risk — conviction book</div>"
+    html = (f"<div class='wr-top'><b>Risk & Health</b><span>crash meter · portfolio risk · observability</span></div>"
+            + _crash_meter_panel(d) +
+            f"<div class='wr-lbl'>Portfolio risk — conviction book</div>"
             f"<div style='margin-bottom:10px;'>{verdict}</div>{risk_html}"
             f"<div class='wr-lbl'>System health</div><div style='margin-bottom:8px;'>{hverd} &nbsp; {fresh_b}</div>"
             f"<div class='wr-note'>{fresh} · {feed_line}</div>"
@@ -1541,6 +1574,28 @@ def mission_control(d):
               f"<div><div class='t'>WAR ROOM</div><div class='d'>{date} &middot; Mission Control</div></div>"
               f"<span class='mcx-badge' style='background:{risk_hex}22;color:{risk_hex}'>{risk}</span></div>")
     tiles = "<div class='mcx-tiles'>" + "".join(tile(m) for m in top5) + "</div>"
+
+    # R3 world-state strip: quads + transition + carry + shock (summary; detail lives in own tabs)
+    reg = d.get("regime") or {}
+    rt = d.get("regime_transition") or {}
+    carry = (d.get("fx") or {}).get("carry") or {}
+    cm_sum = d.get("crash_meter") or {}
+    def _ws(label, val):
+        return (f"<span style='margin-right:18px;'><span style='color:#8b97a7;font-size:11px;'>{label} </span>"
+                f"<span style='color:#e6edf3;font-weight:600;font-size:12.5px;'>{val}</span></span>")
+    _nxt = rt.get("next_quad") or rt.get("next") or "—"
+    _alt = rt.get("alt_quad") or rt.get("alternate") or "—"
+    world = ("<div style='margin:-8px 0 18px;padding:11px 16px;background:#0f1520;border:1px solid #1e2530;border-radius:11px;'>"
+             + _ws("Structural", reg.get("structural", "—"))
+             + _ws("Tactical", reg.get("monthly", "—"))
+             + _ws("Next", _nxt)
+             + _ws("Alternate", _alt)
+             + _ws("Transition", rt.get("stage", "—"))
+             + _ws("Carry", (carry.get("stage") or "—") if carry else "no feed")
+             + _ws("Shock", d.get("shock_prob", "—"))
+             + _ws("Posture", d.get("posture", "—"))
+             + _ws("Crash", f"{cm_sum.get('value', 'n/a')} {cm_sum.get('severity', '')}" if cm_sum.get("value") is not None else "Crash n/a")
+             + "</div>")
     meters_html = "<div class='mcx-lbl'>Meters</div>" + "".join(meter(m) for m in meters)
 
     # recommendations from conviction — now enriched with decision package (convexity, alpha tier, kill)
@@ -1628,7 +1683,7 @@ def mission_control(d):
             "cross-sectional RS for ticker edge (lift 2x). The naive formation+RS signal FAILED testing (no edge) and does not drive BUYs. "
             "Every number is traceable to a walk-forward/bootstrap test — run `python certify.py` to regenerate the full report.</div>")
 
-    html = f"<div class='mcx'>{header}{att_html}{tiles}{recs_html}{vr_html}{flow_html}{meters_html}{chains_html}{note}</div>"
+    html = f"<div class='mcx'>{header}{att_html}{tiles}{world}{recs_html}{vr_html}{flow_html}{meters_html}{chains_html}{note}</div>"
     st.markdown(css + html, unsafe_allow_html=True)
 
 

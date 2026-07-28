@@ -668,6 +668,12 @@ def run(us, idx, crypto, fx, commo, fred=None, feeds=None, fast=False):
     # Today's Attention (#396) — 6 things that matter today, ranked from all engines above
     from warroom import attention as ATT
     out["attention"] = _try(lambda: ATT.build(out)) or {}
+    # R3: Crash Meter (decision-severity gauge, composed from existing outputs) +
+    # canonical component registry (one schema, one source of truth per engine)
+    from warroom import crash_meter as CM
+    out["crash_meter"] = _try(lambda: CM.build(out)) or {}
+    from warroom import component_registry as REG
+    out["components"] = _try(lambda: REG.build(out)) or []
     return out
 
 

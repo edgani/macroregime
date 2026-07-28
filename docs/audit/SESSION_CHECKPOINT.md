@@ -38,11 +38,15 @@ This file is the authoritative resume point. Update after every phase.
 - Offline desk build smoke: PASS (~1s), research_permission=ACTIVE, shadow_permission=WATCH_ONLY, packets=0
 
 ## 8. Tests failing
-- tests/test_streamlit_release.py: 5 failures — `streamlit_app.py` for src/warroom_v3 never committed; `plotly` absent from requirements.txt.
+- None in pytest suite: **124/124 pass** as of Phase 6 (commit pending).
+- (Resolved in Phase 3) 4 hardening regressions from cleanup.
+- (Resolved in Phase 6) 5 streamlit_release failures + release manifest binding.
 
 ## 9. Application startup status
-- Production path (`app.py` + worker) builds offline desk OK. Streamlit UI boot NOT yet smoke-tested post-cleanup.
-- v3 kernel Streamlit UI missing (see §8). v3 CLI/FastAPI present in src/warroom_v3.
+- Production path (`app.py` + worker) builds offline desk OK. Full Streamlit boot smoke pending (Phase 8).
+- v3 kernel Streamlit UI `streamlit_app.py` CREATED in Phase 6; AppTest boots in empty state and
+  with finalized bars (tests test_streamlit_release.py 6/6 pass).
+- `.streamlit/config.toml` now localhost-only with XSRF protection.
 
 ## 10. Data adapters tested
 - data_layer_v101 offline load (bundled + FRED current-vintage): PASS, no synthetic admitted.

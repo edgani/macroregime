@@ -15,7 +15,7 @@ INCLUDE=[
  'scripts/build_data_catalog.py','scripts/build_market_matrix.py','scripts/build_applicability.py','scripts/build_collection_plan.py',
  'scripts/check_provider_registry.py','scripts/check_runtime_store.py','static/index.html','config/providers.json','config/collection_plan.json',
  'evidence/formula_registry_active.json','validation/data_catalog.json','validation/market_matrix.json','validation/applicability_registry.json',
- 'README.md','.env.example','Makefile','requirements-dev.txt','READY_STATUS_2026-07-12.md','STREAMLIT_TRADING_STATUS_2026-07-13.md','ops/README.md','pyproject.toml','requirements.txt',
+ 'README.md','.env.example','Makefile','requirements-dev.txt','research/archive/READY_STATUS_2026-07-12.md','research/archive/STREAMLIT_TRADING_STATUS_2026-07-13.md','ops/README.md','pyproject.toml','requirements.txt',
  'Dockerfile','docker-compose.yml','ops/systemd/warroom-api.service','ops/systemd/warroom-streamlit.service',
  'ops/systemd/warroom-collector.service','ops/systemd/warroom-collector.timer','ops/install_oracle_ubuntu.sh'
 ]

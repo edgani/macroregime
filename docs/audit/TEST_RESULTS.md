@@ -96,7 +96,19 @@ Environment: same venv. Run at commit a60f413 + phase-3 repairs (uncommitted at 
 
 ### After Phase 6 application repair
 
-(pending)
+- `streamlit_app.py` created at repo root (was never committed): read-only workstation over
+  the v3 kernel. Pages: Market Overview (8 metrics across 4 timeframes, UNAVAILABLE placeholders
+  in empty state), Execution Planner (operator-supplied direction; `build_structural_template`
+  + `calculate_manual_trade_plan`, claim ceiling OPERATOR_PLANNING_ONLY). Fail-closed: no
+  finalized bars -> no template.
+- `.streamlit/config.toml` aligned to the release contract: address 127.0.0.1, port 8501,
+  enableXsrfProtection=true (matches ops/systemd + docker-compose localhost-only posture).
+- `requirements.txt`: added plotly (was declared only in pyproject.toml).
+- `scripts/build_release_manifest.py`: INCLUDE paths for the two historical status docs
+  updated to their `research/archive/` locations; manifest regenerated to
+  `artifacts/release_manifest_ready.json` (committed).
+- `pytest tests/ -q`: **124 passed, 0 failed** (was 119 passed / 5 failed at baseline).
+- Hardening scripts: 12/12 still exit 0 after Phase 6 (no interaction).
 
 ### Final end-to-end (Phase 8)
 

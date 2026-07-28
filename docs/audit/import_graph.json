@@ -1,0 +1,2037 @@
+{
+ "schema": "warroom.audit.import_graph.v1",
+ "tracked_py_files": 625,
+ "seed_count": 70,
+ "reachable_count": 125,
+ "unreachable_count": 500,
+ "unreachable_files": [
+  "IDX_BROWSER_EXPORT_IMPORT_V95.py",
+  "V94_BROWSER_EXPORT_IMPORT.py",
+  "action_engine_v100.py",
+  "alpha_discovery_test.py",
+  "alpha_foundry/__init__.py",
+  "alpha_foundry/run_pipeline.py",
+  "alpha_foundry/src/__init__.py",
+  "alpha_foundry/src/build_entity_master.py",
+  "alpha_foundry/src/build_panel.py",
+  "alpha_foundry/src/build_prices.py",
+  "alpha_foundry/src/build_sec_features.py",
+  "alpha_foundry/src/common.py",
+  "alpha_foundry/src/download_data.py",
+  "alpha_foundry/src/open_lockbox.py",
+  "alpha_foundry/src/prospective.py",
+  "alpha_foundry/src/run_current_selector.py",
+  "alpha_foundry/src/run_tournament.py",
+  "alpha_foundry/tests/conftest.py",
+  "alpha_foundry/tests/generate_synthetic_demo.py",
+  "alpha_foundry/tests/test_pipeline.py",
+  "alpha_foundry_adapter.py",
+  "anti_overfit_gate_v96.py",
+  "anti_overfit_seal_v96.py",
+  "asof_panel_builder_v90.py",
+  "audit_all_markets_v90.py",
+  "audit_all_markets_v91.py",
+  "audit_no_hardcoded_outputs.py",
+  "audit_v4.py",
+  "audit_v55_chunk.py",
+  "audit_v56_chunk.py",
+  "audit_v6.py",
+  "audit_v7.py",
+  "autonomous_public_data_plane_v94.py",
+  "autonomous_public_data_plane_v95.py",
+  "autonomous_public_data_plane_v96.py",
+  "autonomous_research_factory_v96.py",
+  "blind_proof_runner_v89.py",
+  "blind_proof_runner_v91.py",
+  "blind_proof_runner_v95.py",
+  "blind_proof_runner_v96.py",
+  "blind_signal_custodian.py",
+  "bootstrap_public_evidence_v91.py",
+  "build_cache.py",
+  "build_dataset_manifest_v90.py",
+  "build_dataset_manifest_v91.py",
+  "build_feeds.py",
+  "build_outcome_manifest_v91.py",
+  "build_outcome_manifest_v95.py",
+  "build_release_v53.py",
+  "build_release_v55.py",
+  "build_release_v56.py",
+  "build_release_v57.py",
+  "build_release_v58.py",
+  "build_release_v59.py",
+  "build_release_v60.py",
+  "build_release_v62.py",
+  "build_release_v63.py",
+  "build_release_v64.py",
+  "build_release_v65.py",
+  "build_release_v66.py",
+  "build_release_v76.py",
+  "build_release_v77.py",
+  "build_release_v78.py",
+  "build_release_v79.py",
+  "build_release_v95.py",
+  "build_release_v96.py",
+  "build_release_v97.py",
+  "build_v101_package.py",
+  "build_v60_driver_research.py",
+  "build_v65_artifacts.py",
+  "build_v99_package.py",
+  "carry_proof_v101.py",
+  "causal_research_lifecycle_v96.py",
+  "collect_official_evidence.py",
+  "component_validation.py",
+  "composition_audit.py",
+  "config/__init__.py",
+  "config/autonomy_settings.py",
+  "config/narrative_universe.py",
+  "consistency_guard.py",
+  "current_developments.py",
+  "data/fred_loader.py",
+  "data/loader.py",
+  "data/resilient_market_data.py",
+  "data_route_resolver_v90.py",
+  "decision_packet_v100.py",
+  "decision_packet_v98.py",
+  "desk_runtime.py",
+  "diagnose_no_data.py",
+  "engine_ic_test.py",
+  "engines/aaii_scraper.py",
+  "engines/anti_fragility_engine.py",
+  "engines/bandarmetrics_engine.py",
+  "engines/barchart_scraper.py",
+  "engines/cftc_cot_scraper.py",
+  "engines/cme_scraper.py",
+  "engines/defillama_scraper.py",
+  "engines/fx_carry_engine.py",
+  "engines/gip_engine.py",
+  "engines/inventory_transfer_engine.py",
+  "engines/laevitas_scraper.py",
+  "engines/live_data_engine.py",
+  "engines/markov_regime_engine_v3.py",
+  "engines/onchain_engine.py",
+  "engines/quad_explainer.py",
+  "engines/reflexivity_coefficient.py",
+  "engines/regime_transition_engine.py",
+  "engines/scenario_discovery_engine.py",
+  "engines/thought_process_engine.py",
+  "engines/treasury_liquidity.py",
+  "engines/validation_engine.py",
+  "engines/vix_bucket_engine.py",
+  "equity_ledger_normalizer_v95.py",
+  "exception_engine.py",
+  "execution_quote_collector_v97.py",
+  "execution_quote_collector_v98.py",
+  "execution_reconciliation_v97.py",
+  "execution_reconciliation_v98.py",
+  "experimental_order_export_v100.py",
+  "experimental_order_export_v101.py",
+  "extreme_winner_benchmark.py",
+  "feed_doctor.py",
+  "fill_normalizer_v93.py",
+  "filter_validation.py",
+  "final_trading_core_v79.py",
+  "finalize_v55_audit.py",
+  "finalize_v56_audit.py",
+  "finalize_v60_driver_research.py",
+  "forecast_seal_v95.py",
+  "fx_pair_state.py",
+  "gcfis/__init__.py",
+  "gcfis/adapter_v40.py",
+  "gcfis/backtest.py",
+  "gcfis/core/__init__.py",
+  "gcfis/core/change_core.py",
+  "gcfis/core/numeric.py",
+  "gcfis/dashboard.py",
+  "gcfis/data/__init__.py",
+  "gcfis/data/moonshot_universe.py",
+  "gcfis/data/universe_sources.py",
+  "gcfis/engines/__init__.py",
+  "gcfis/engines/accumulation.py",
+  "gcfis/engines/asymmetric_discovery.py",
+  "gcfis/engines/bottleneck_engine.py",
+  "gcfis/engines/broker_flow.py",
+  "gcfis/engines/change_detection.py",
+  "gcfis/engines/competitive_ranking_engine.py",
+  "gcfis/engines/crash_bottom.py",
+  "gcfis/engines/cross_asset.py",
+  "gcfis/engines/crypto.py",
+  "gcfis/engines/elimination.py",
+  "gcfis/engines/entry.py",
+  "gcfis/engines/flow.py",
+  "gcfis/engines/flow_regime.py",
+  "gcfis/engines/flow_type.py",
+  "gcfis/engines/forward_macro.py",
+  "gcfis/engines/fragility.py",
+  "gcfis/engines/internals.py",
+  "gcfis/engines/leadlag_discovery.py",
+  "gcfis/engines/liquidity.py",
+  "gcfis/engines/market_mode.py",
+  "gcfis/engines/mechanical_flow_driver.py",
+  "gcfis/engines/narrative.py",
+  "gcfis/engines/portfolio.py",
+  "gcfis/engines/position_lifecycle.py",
+  "gcfis/engines/positioning.py",
+  "gcfis/engines/reflexivity.py",
+  "gcfis/engines/regime_hmm.py",
+  "gcfis/engines/response_zone.py",
+  "gcfis/engines/risk_range_hedgeye.py",
+  "gcfis/engines/rotation.py",
+  "gcfis/engines/shock.py",
+  "gcfis/engines/surge.py",
+  "gcfis/engines/theme.py",
+  "gcfis/feeds/__init__.py",
+  "gcfis/feeds/fred_feed.py",
+  "gcfis/feeds/typef_idx.py",
+  "gcfis/meta/__init__.py",
+  "gcfis/meta/decision_stack.py",
+  "gcfis/meta/regime_meta.py",
+  "gcfis/run.py",
+  "gcfis/sizing.py",
+  "gcfis/tests/__init__.py",
+  "gcfis/tests/test_all.py",
+  "gem_validation.py",
+  "generate_v63_reports.py",
+  "generate_v72_derived_manifest.py",
+  "generate_v72_source_manifest.py",
+  "global_market_promotion_gate.py",
+  "global_market_promotion_gate_v96.py",
+  "global_market_promotion_gate_v97.py",
+  "global_market_promotion_gate_v98.py",
+  "global_trial_ledger.py",
+  "install_proof_run_v95.py",
+  "install_proof_run_v96.py",
+  "institutional_data.py",
+  "legacy_v42_audit/validate_user_v42.py",
+  "legacy_v52_release/build_release_v52.py",
+  "legacy_v52_release/validate_user_v52.py",
+  "legacy_v52_release/verify_manifest_v52.py",
+  "lineage_audit.py",
+  "live_trade_normalizer_v95.py",
+  "macro_inputs.py",
+  "macro_ts_test.py",
+  "market_data_admission.py",
+  "market_data_admission_v91.py",
+  "market_projection_benchmark.py",
+  "market_projection_benchmark_v91.py",
+  "narrative_repricing_engine.py",
+  "narrative_timing_benchmark.py",
+  "normalize_external_table.py",
+  "official_source_connectors.py",
+  "official_source_radar.py",
+  "ops/connectivity_probe.py",
+  "options_research_evidence_v55.py",
+  "order_review_export_v100.py",
+  "order_review_export_v101.py",
+  "outcome_custodian_v90.py",
+  "outcome_data_admission_v91.py",
+  "outcome_data_admission_v95.py",
+  "pit_evidence_contract.py",
+  "price_setups.py",
+  "promotion_gate_v88.py",
+  "promotion_gate_v89.py",
+  "proof_readiness_audit.py",
+  "proof_registry_v96.py",
+  "proof_registry_v97.py",
+  "proof_registry_v98.py",
+  "prospective_evidence_ledger.py",
+  "prospective_shadow_v66.py",
+  "prospective_shadow_v78.py",
+  "provider_gap_solver_v93.py",
+  "provider_onboarding_v92.py",
+  "public_context_collector_v98.py",
+  "public_data_bootstrap_v93.py",
+  "realized_performance_gate.py",
+  "realized_performance_gate_v95.py",
+  "refresh_desk_supervisor.py",
+  "refresh_desk_worker.py",
+  "regime_multitf.py",
+  "regime_tournament.py",
+  "regional_regime.py",
+  "release_contract_v76.py",
+  "release_contract_v77.py",
+  "release_contract_v78.py",
+  "release_contract_v79.py",
+  "release_meta.py",
+  "release_validate_v6.py",
+  "release_validate_v7.py",
+  "research/development_sensor_diagnostics.py",
+  "research/fetch_sample_data.py",
+  "research_evidence_v62.py",
+  "research_evidence_v64.py",
+  "research_evidence_v65.py",
+  "research_evidence_v66.py",
+  "research_evidence_v76.py",
+  "research_evidence_v77.py",
+  "research_evidence_v78.py",
+  "research_evidence_v79.py",
+  "research_evidence_v83.py",
+  "research_evidence_v84.py",
+  "research_evidence_v85.py",
+  "research_evidence_v86.py",
+  "research_evidence_v87.py",
+  "research_evidence_v88.py",
+  "research_harness.py",
+  "research_lifecycle_cli_v96.py",
+  "research_v58/code/build_v58_global_ledger.py",
+  "research_v58/code/build_v58_universe.py",
+  "research_v58/code/build_v59_replication_queue.py",
+  "research_v58/code/build_v60_all_untested_queue.py",
+  "research_v58/code/freeze_v58_macro_sweep.py",
+  "research_v58/code/freeze_v58_openap_212_protocol.py",
+  "research_v58/code/freeze_v58_price_volume_sweep.py",
+  "research_v58/code/freeze_v58_public_factor_protocol.py",
+  "research_v58/code/run_v58_macro_sweep.py",
+  "research_v58/code/run_v58_openap_212_postsample.py",
+  "research_v58/code/run_v58_openap_survivor_stress.py",
+  "research_v58/code/run_v58_price_volume_sweep.py",
+  "research_v58/code/run_v58_public_factor_postsample.py",
+  "research_v60/code/build_v62_global_research.py",
+  "research_v60/code/combine_v60_massive_move_chunks.py",
+  "research_v60/code/freeze_v60_massive_move_sweep.py",
+  "research_v60/code/run_v60_alternate_targets.py",
+  "research_v60/code/run_v60_massive_move_sweep.py",
+  "research_v60/code/run_v61_capacity_stress.py",
+  "research_v60/code/run_v61_openap_pair_robustness.py",
+  "research_v61/code/freeze_v61_network_diffusion.py",
+  "research_v61/code/run_v61_network_diffusion.py",
+  "research_v61/code/run_v61_network_diffusion_fast.py",
+  "research_v62/code/build_sec_pit_fact_ledger.py",
+  "research_v62/code/build_sec_pit_quarterly_features.py",
+  "research_v62/code/finalize_v62_artifacts.py",
+  "research_v62/code/freeze_v62_event_origin.py",
+  "research_v62/code/run_v62_event_origin_fast.py",
+  "research_v64/scripts/run_v64_modern_212_factor_confirmation.py",
+  "research_v64/scripts/run_v64_three_survivor_confirmation.py",
+  "research_v64/scripts/run_v64_tsmom_crisis_overlay.py",
+  "research_v65/scripts/adjudicate_v65_global_selection.py",
+  "research_v65/scripts/run_v65_information_origin_ensemble.py",
+  "research_v65/scripts/run_v65_stability_falsification.py",
+  "research_v66/code/run_v66_diversified_sleeve.py",
+  "research_v66/code/run_v66_factor_momentum.py",
+  "research_v66/code/run_v66_global_equity_risk_gate.py",
+  "research_v66/code/run_v66_long_history_equity_risk_gate.py",
+  "research_v66/code/run_v66_sma10_risk_reduction_confirmation.py",
+  "research_v66/code/run_v66_style_parity.py",
+  "research_v66/code/run_v66_tsmom_crisis_defense.py",
+  "research_v78/code/run_cross_market_sma10_risk_cap.py",
+  "research_v78/code/run_cross_market_tsmom_confirmatory.py",
+  "research_v78/code/run_us_equity_vol12_risk_cap.py",
+  "research_v78/data_acquisition/membership_guard_v78.py",
+  "research_v78/data_acquisition/pit_data_contract_v78.py",
+  "run_master_reaudit_v42.py",
+  "run_pipeline.py",
+  "run_v52_hardened_audit.py",
+  "run_v53_attachment_audit.py",
+  "run_v55_options_audit.py",
+  "run_v60_derivatives_driver_study.py",
+  "run_v60_early_move_driver_study.py",
+  "run_v66_risk_cap.py",
+  "run_v72_frozen_evaluation.py",
+  "run_v73_cusp_study.py",
+  "run_v74_breadth_cusp.py",
+  "run_v75_pre1973_cusp.py",
+  "run_v79_trading_core.py",
+  "run_v99_preserved.py",
+  "scrapers_local/__init__.py",
+  "scrapers_local/local_data_scraper.py",
+  "scripts/build_applicability.py",
+  "scripts/build_collection_plan.py",
+  "scripts/build_data_catalog.py",
+  "scripts/build_formula_registry.py",
+  "scripts/build_market_matrix.py",
+  "scripts/build_not_armed_seal.py",
+  "scripts/build_prospective_seal.py",
+  "scripts/build_release_manifest.py",
+  "scripts/check_import_boundaries.py",
+  "scripts/check_provider_registry.py",
+  "scripts/check_runtime_store.py",
+  "scripts/check_streamlit_app.py",
+  "scripts/check_trial_ledger.py",
+  "scripts/demo_research_observation.py",
+  "scripts/validate_all.py",
+  "scripts/warroom.py",
+  "setup_v79.py",
+  "stream_workers/databento_bridge.py",
+  "stream_workers/massive_ws_bridge.py",
+  "stream_workers/uw_kafka_bridge.py",
+  "stream_workers/uw_websocket_bridge.py",
+  "systemic_ts_test.py",
+  "test_app_first_render_v7.py",
+  "test_nonblocking_runtime_v7.py",
+  "test_resilient_feeds.py",
+  "test_resilient_feeds_v5.py",
+  "test_resilient_integration.py",
+  "test_resilient_integration_v5.py",
+  "test_supervisor_timeout_v7.py",
+  "test_v60_derivatives_harness.py",
+  "test_v60_mechanical_flow.py",
+  "test_v62_origin_harness.py",
+  "test_v62_sec_pit_pipeline.py",
+  "test_v66_scoped_risk_and_shadow.py",
+  "test_v78_proof_expansion.py",
+  "test_v79_final_core.py",
+  "tools/audit/build_baseline.py",
+  "trading_control_plane_v97.py",
+  "trading_control_plane_v98.py",
+  "trading_control_plane_v99.py",
+  "trading_readiness_v97.py",
+  "trading_readiness_v98.py",
+  "us_broad_equity_live_feed_v79.py",
+  "us_equity_risk_cap_v66.py",
+  "validate_arrow_lineage.py",
+  "validate_bundled_data_v52.py",
+  "validate_live_stack.py",
+  "validate_package.py",
+  "validate_package_v97.py",
+  "validate_real.py",
+  "validate_redesign.py",
+  "validate_release_v32.py",
+  "validate_release_v33.py",
+  "validate_release_v331.py",
+  "validate_release_v332.py",
+  "validate_streamlit_health_v52.py",
+  "validate_user_v332.py",
+  "validate_user_v42.py",
+  "validate_user_v53.py",
+  "validate_user_v59.py",
+  "validate_user_v60.py",
+  "validate_v100_operational.py",
+  "validate_v101_carry.py",
+  "validate_v23_no_data_and_speed.py",
+  "validate_v24_stability.py",
+  "validate_v25_deployment.py",
+  "validate_v27_full.py",
+  "validate_v27_startup.py",
+  "validate_v28_fx_alpha.py",
+  "validate_v28_startup.py",
+  "validate_v29_decision_first.py",
+  "validate_v32_research_first.py",
+  "validate_v32_startup.py",
+  "validate_v331_hotfix.py",
+  "validate_v332_readability_semantics.py",
+  "validate_v33_decision_intelligence.py",
+  "validate_v42_deep_reaudit.py",
+  "validate_v58_exhaustive_research.py",
+  "validate_v59_position_lifecycle.py",
+  "validate_v60_deep_driver.py",
+  "validate_v60_exhaustive_causal_discovery.py",
+  "validate_v60_release_contracts.py",
+  "validate_v62_deeper_research.py",
+  "validate_v63_all_tabs.py",
+  "validate_v64_scoped_proof.py",
+  "validate_v65_proof_first.py",
+  "validate_v66_scoped_usable.py",
+  "validate_v72_licensed_package.py",
+  "validate_v76_final.py",
+  "validate_v77_final.py",
+  "validate_v78_proof_expansion.py",
+  "validate_v79_final_core.py",
+  "validate_v88_all_market_projection.py",
+  "validate_v89_all_market_projection.py",
+  "validate_v89_real_data_runner.py",
+  "validate_v90_root_cause.py",
+  "validate_v91_all_market_projection_regression.py",
+  "validate_v91_proof_plane.py",
+  "validate_v92_route.py",
+  "validate_v93_public_bootstrap.py",
+  "validate_v94_autonomous_sources.py",
+  "validate_v95_release.py",
+  "validate_v96_release.py",
+  "validate_v97_limited_production.py",
+  "validate_v98_limited_production.py",
+  "validate_v98_unified_packet.py",
+  "validate_v99_actual_data.py",
+  "validation_plus.py",
+  "verify_live_connections.py",
+  "verify_manifest_v53.py",
+  "verify_manifest_v55.py",
+  "verify_manifest_v56.py",
+  "verify_manifest_v57.py",
+  "verify_manifest_v58.py",
+  "verify_manifest_v59.py",
+  "verify_manifest_v60.py",
+  "verify_manifest_v62.py",
+  "walkforward_validate.py",
+  "warroom/__init__.py",
+  "warroom/attention.py",
+  "warroom/backtest.py",
+  "warroom/beta_play.py",
+  "warroom/brief_export.py",
+  "warroom/calibrate_lpm.py",
+  "warroom/causal_attribution.py",
+  "warroom/causal_chain.py",
+  "warroom/compute.py",
+  "warroom/country_regime.py",
+  "warroom/crash_lead.py",
+  "warroom/crowd.py",
+  "warroom/cycle_rotation.py",
+  "warroom/data.py",
+  "warroom/data_ingest.py",
+  "warroom/decision_center.py",
+  "warroom/decision_engine.py",
+  "warroom/decision_journal.py",
+  "warroom/drivers.py",
+  "warroom/early_warning.py",
+  "warroom/fair_value.py",
+  "warroom/feeds.py",
+  "warroom/feeds_free.py",
+  "warroom/fred.py",
+  "warroom/funding_stress.py",
+  "warroom/internals.py",
+  "warroom/intervention.py",
+  "warroom/investment_memo.py",
+  "warroom/knowledge_graph.py",
+  "warroom/liquidity.py",
+  "warroom/lpm.py",
+  "warroom/macro_data.py",
+  "warroom/macro_regime.py",
+  "warroom/market_cap_target.py",
+  "warroom/mechanical.py",
+  "warroom/meters.py",
+  "warroom/optimal_entry.py",
+  "warroom/policy.py",
+  "warroom/price_action.py",
+  "warroom/render.py",
+  "warroom/risk.py",
+  "warroom/rotation.py",
+  "warroom/secular_map.py",
+  "warroom/signal_edge.py",
+  "warroom/statelog.py",
+  "warroom/structure.py",
+  "warroom/synthesis.py",
+  "warroom/themes.py",
+  "warroom/thesis_beta.py",
+  "warroom/thesis_playbook.py",
+  "warroom/timing.py",
+  "warroom/tracker.py",
+  "warroom/walkforward.py"
+ ],
+ "edges": {
+  "IDX_BROWSER_EXPORT_IMPORT_V95.py": [],
+  "V94_BROWSER_EXPORT_IMPORT.py": [],
+  "action_engine_v100.py": [],
+  "action_engine_v101.py": [
+   "carry_trade_engine_v101.py"
+  ],
+  "alpha_discovery_test.py": [
+   "parquet_compat.py"
+  ],
+  "alpha_foundry/__init__.py": [],
+  "alpha_foundry/run_pipeline.py": [],
+  "alpha_foundry/src/__init__.py": [],
+  "alpha_foundry/src/build_entity_master.py": [
+   "src/common.py"
+  ],
+  "alpha_foundry/src/build_panel.py": [
+   "src/common.py"
+  ],
+  "alpha_foundry/src/build_prices.py": [
+   "src/common.py"
+  ],
+  "alpha_foundry/src/build_sec_features.py": [
+   "src/build_entity_master.py",
+   "src/common.py"
+  ],
+  "alpha_foundry/src/common.py": [],
+  "alpha_foundry/src/download_data.py": [
+   "src/common.py"
+  ],
+  "alpha_foundry/src/open_lockbox.py": [
+   "run.py",
+   "src/common.py",
+   "src/run_tournament.py"
+  ],
+  "alpha_foundry/src/prospective.py": [
+   "src/common.py"
+  ],
+  "alpha_foundry/src/run_current_selector.py": [
+   "src/common.py"
+  ],
+  "alpha_foundry/src/run_tournament.py": [
+   "src/common.py"
+  ],
+  "alpha_foundry/tests/conftest.py": [],
+  "alpha_foundry/tests/generate_synthetic_demo.py": [],
+  "alpha_foundry/tests/test_pipeline.py": [],
+  "alpha_foundry_adapter.py": [],
+  "anti_overfit_gate_v96.py": [
+   "causal_research_lifecycle_v96.py"
+  ],
+  "anti_overfit_seal_v96.py": [
+   "causal_research_lifecycle_v96.py"
+  ],
+  "app.py": [
+   "data_layer_v101.py",
+   "run.py",
+   "runtime_store.py",
+   "warroom/no_technical_policy.py",
+   "warroom_data_worker_v101.py"
+  ],
+  "asof_panel_builder_v90.py": [],
+  "audit_all_markets_v90.py": [
+   "data_route_resolver_v90.py"
+  ],
+  "audit_all_markets_v91.py": [
+   "data_route_resolver_v90.py",
+   "market_data_admission_v91.py"
+  ],
+  "audit_no_hardcoded_outputs.py": [],
+  "audit_v4.py": [
+   "alpha_foundry_adapter.py",
+   "gcfis/market_drivers.py",
+   "price_setups.py",
+   "run.py"
+  ],
+  "audit_v55_chunk.py": [],
+  "audit_v56_chunk.py": [],
+  "audit_v6.py": [
+   "alpha_foundry_adapter.py",
+   "consistency_guard.py",
+   "run.py"
+  ],
+  "audit_v7.py": [
+   "alpha_foundry_adapter.py",
+   "consistency_guard.py",
+   "run.py"
+  ],
+  "autonomous_public_data_plane_v94.py": [],
+  "autonomous_public_data_plane_v95.py": [],
+  "autonomous_public_data_plane_v96.py": [],
+  "autonomous_research_factory_v96.py": [
+   "anti_overfit_gate_v96.py",
+   "causal_research_lifecycle_v96.py"
+  ],
+  "blind_proof_runner_v89.py": [
+   "market_data_admission.py",
+   "market_projection_benchmark.py",
+   "promotion_gate_v89.py",
+   "realized_performance_gate.py"
+  ],
+  "blind_proof_runner_v91.py": [
+   "market_data_admission_v91.py",
+   "market_projection_benchmark_v91.py",
+   "outcome_data_admission_v91.py",
+   "promotion_gate_v89.py",
+   "realized_performance_gate.py"
+  ],
+  "blind_proof_runner_v95.py": [
+   "market_data_admission_v91.py",
+   "market_projection_benchmark_v91.py",
+   "outcome_data_admission_v95.py",
+   "proof_receipts.py",
+   "realized_performance_gate_v95.py"
+  ],
+  "blind_proof_runner_v96.py": [
+   "market_data_admission_v91.py",
+   "market_projection_benchmark_v91.py",
+   "outcome_data_admission_v95.py",
+   "proof_receipts.py",
+   "realized_performance_gate_v95.py"
+  ],
+  "blind_signal_custodian.py": [],
+  "bootstrap_public_evidence_v91.py": [],
+  "build_cache.py": [
+   "warroom/__init__.py"
+  ],
+  "build_dataset_manifest_v90.py": [],
+  "build_dataset_manifest_v91.py": [],
+  "build_feeds.py": [
+   "data/fred_loader.py",
+   "engines/cftc_cot_scraper.py",
+   "engines/fx_carry_engine.py",
+   "engines/live_data_engine.py",
+   "gcfis/feeds/typef_idx.py",
+   "safe_snapshot.py",
+   "warroom/__init__.py"
+  ],
+  "build_outcome_manifest_v91.py": [],
+  "build_outcome_manifest_v95.py": [],
+  "build_release_v53.py": [
+   "verify_manifest_v53.py"
+  ],
+  "build_release_v55.py": [
+   "verify_manifest_v55.py"
+  ],
+  "build_release_v56.py": [
+   "verify_manifest_v56.py"
+  ],
+  "build_release_v57.py": [
+   "verify_manifest_v57.py"
+  ],
+  "build_release_v58.py": [
+   "verify_manifest_v58.py"
+  ],
+  "build_release_v59.py": [
+   "verify_manifest_v59.py"
+  ],
+  "build_release_v60.py": [
+   "verify_manifest_v60.py"
+  ],
+  "build_release_v62.py": [],
+  "build_release_v63.py": [],
+  "build_release_v64.py": [],
+  "build_release_v65.py": [],
+  "build_release_v66.py": [],
+  "build_release_v76.py": [],
+  "build_release_v77.py": [],
+  "build_release_v78.py": [],
+  "build_release_v79.py": [],
+  "build_release_v95.py": [],
+  "build_release_v96.py": [],
+  "build_release_v97.py": [],
+  "build_v101_package.py": [],
+  "build_v60_driver_research.py": [],
+  "build_v65_artifacts.py": [],
+  "build_v99_package.py": [],
+  "bundled_research_reader_v99.py": [],
+  "carry_proof_v101.py": [],
+  "carry_trade_engine_v101.py": [],
+  "causal_research_lifecycle_v96.py": [
+   "warroom/no_technical_policy.py"
+  ],
+  "collect_official_evidence.py": [
+   "official_source_connectors.py",
+   "pit_evidence_contract.py"
+  ],
+  "component_validation.py": [
+   "gcfis/backtest.py",
+   "gcfis/engines/accumulation.py",
+   "gcfis/engines/bottleneck_engine.py",
+   "gcfis/engines/entry.py",
+   "gcfis/engines/reflexivity.py",
+   "gcfis/engines/regime_hmm.py",
+   "gcfis/engines/risk_range_hedgeye.py",
+   "gcfis/engines/surge.py",
+   "parquet_compat.py",
+   "warroom/__init__.py"
+  ],
+  "composition_audit.py": [
+   "gcfis/engines/accumulation.py",
+   "gcfis/engines/entry.py",
+   "parquet_compat.py",
+   "warroom/__init__.py"
+  ],
+  "config/__init__.py": [],
+  "config/autonomy_settings.py": [],
+  "config/narrative_universe.py": [],
+  "config/settings.py": [],
+  "consistency_guard.py": [],
+  "current_context_v100.py": [
+   "bundled_research_reader_v99.py"
+  ],
+  "current_context_v101.py": [
+   "bundled_research_reader_v99.py"
+  ],
+  "current_developments.py": [],
+  "cusp_fragility_v73.py": [],
+  "data/__init__.py": [],
+  "data/fred_loader.py": [
+   "config/settings.py",
+   "safe_snapshot.py"
+  ],
+  "data/loader.py": [
+   "safe_snapshot.py"
+  ],
+  "data/resilient_market_data.py": [],
+  "data_layer.py": [
+   "bundled_research_reader_v99.py",
+   "public_snapshot_reader_v98.py"
+  ],
+  "data_layer_v100.py": [
+   "current_context_v100.py",
+   "data_layer.py"
+  ],
+  "data_layer_v101.py": [
+   "current_context_v101.py",
+   "data_layer.py"
+  ],
+  "data_route_resolver_v90.py": [],
+  "dealer_gamma_research_v72.py": [],
+  "decision_packet_v100.py": [
+   "action_engine_v100.py",
+   "decision_packet_v99.py"
+  ],
+  "decision_packet_v101.py": [
+   "action_engine_v101.py",
+   "decision_packet_v99.py"
+  ],
+  "decision_packet_v98.py": [
+   "market_projection_engine.py"
+  ],
+  "decision_packet_v99.py": [
+   "bundled_research_reader_v99.py",
+   "market_projection_engine.py"
+  ],
+  "desk_runtime.py": [],
+  "diagnose_no_data.py": [
+   "runtime_store.py"
+  ],
+  "direction_authorization.py": [
+   "proof_receipts.py"
+  ],
+  "engine_ic_test.py": [
+   "engines/__init__.py",
+   "gcfis/engines/accumulation.py",
+   "gcfis/engines/flow_type.py",
+   "gcfis/engines/reflexivity.py",
+   "parquet_compat.py"
+  ],
+  "engines/__init__.py": [],
+  "engines/aaii_scraper.py": [],
+  "engines/anti_fragility_engine.py": [],
+  "engines/bandarmetrics_engine.py": [],
+  "engines/barchart_scraper.py": [],
+  "engines/bottleneck_engine.py": [
+   "config/settings.py"
+  ],
+  "engines/cftc_cot_scraper.py": [],
+  "engines/cme_scraper.py": [],
+  "engines/defillama_scraper.py": [],
+  "engines/fx_carry_engine.py": [],
+  "engines/gip_engine.py": [
+   "config/settings.py"
+  ],
+  "engines/inventory_transfer_engine.py": [],
+  "engines/laevitas_scraper.py": [],
+  "engines/live_data_engine.py": [
+   "engines/cftc_cot_scraper.py"
+  ],
+  "engines/markov_regime_engine_v3.py": [],
+  "engines/onchain_engine.py": [],
+  "engines/quad_explainer.py": [],
+  "engines/reflexivity_coefficient.py": [],
+  "engines/regime_transition_engine.py": [],
+  "engines/scenario_discovery_engine.py": [],
+  "engines/thought_process_engine.py": [
+   "engines/__init__.py"
+  ],
+  "engines/treasury_liquidity.py": [],
+  "engines/validation_engine.py": [],
+  "engines/vix_bucket_engine.py": [],
+  "equity_ledger_normalizer_v95.py": [
+   "realized_performance_gate_v95.py"
+  ],
+  "exception_engine.py": [
+   "parquet_compat.py"
+  ],
+  "execution_quote_collector_v97.py": [],
+  "execution_quote_collector_v98.py": [],
+  "execution_quote_collector_v99.py": [],
+  "execution_reconciliation_v97.py": [],
+  "execution_reconciliation_v98.py": [],
+  "execution_reconciliation_v99.py": [],
+  "experimental_order_export_v100.py": [
+   "runtime_store.py"
+  ],
+  "experimental_order_export_v101.py": [
+   "runtime_store.py"
+  ],
+  "extreme_winner_benchmark.py": [
+   "warroom/no_technical_policy.py"
+  ],
+  "feed_doctor.py": [
+   "data/resilient_market_data.py",
+   "data_layer.py"
+  ],
+  "fill_normalizer_v93.py": [],
+  "filter_validation.py": [
+   "gcfis/engines/elimination.py",
+   "gcfis/engines/entry.py",
+   "parquet_compat.py"
+  ],
+  "final_trading_core_v79.py": [
+   "us_equity_risk_cap_v66.py"
+  ],
+  "finalize_v55_audit.py": [
+   "audit_v55_chunk.py",
+   "options_research_evidence_v55.py",
+   "proof_registry.py",
+   "research_evidence_v53.py"
+  ],
+  "finalize_v56_audit.py": [
+   "audit_v56_chunk.py",
+   "options_research_evidence_v55.py",
+   "proof_registry.py",
+   "research_evidence_v53.py"
+  ],
+  "finalize_v60_driver_research.py": [],
+  "forecast_seal_v95.py": [],
+  "full_live_data_hub.py": [
+   "position_lifecycle.py"
+  ],
+  "fx_pair_state.py": [
+   "direction_authorization.py",
+   "proof_registry.py"
+  ],
+  "gcfis/__init__.py": [],
+  "gcfis/adapter_v40.py": [
+   "gcfis/orchestrator.py"
+  ],
+  "gcfis/backtest.py": [],
+  "gcfis/core/__init__.py": [],
+  "gcfis/core/change_core.py": [],
+  "gcfis/core/contracts.py": [],
+  "gcfis/core/numeric.py": [],
+  "gcfis/dashboard.py": [],
+  "gcfis/data/__init__.py": [],
+  "gcfis/data/moonshot_universe.py": [],
+  "gcfis/data/universe_sources.py": [],
+  "gcfis/engines/__init__.py": [],
+  "gcfis/engines/accumulation.py": [],
+  "gcfis/engines/asymmetric_discovery.py": [
+   "data/__init__.py"
+  ],
+  "gcfis/engines/bottleneck_engine.py": [],
+  "gcfis/engines/broker_flow.py": [],
+  "gcfis/engines/change_detection.py": [],
+  "gcfis/engines/competitive_ranking_engine.py": [],
+  "gcfis/engines/crash_bottom.py": [],
+  "gcfis/engines/cross_asset.py": [],
+  "gcfis/engines/crypto.py": [],
+  "gcfis/engines/dealer.py": [],
+  "gcfis/engines/elimination.py": [],
+  "gcfis/engines/entry.py": [
+   "gcfis/engines/risk_range_hedgeye.py"
+  ],
+  "gcfis/engines/flow.py": [],
+  "gcfis/engines/flow_regime.py": [],
+  "gcfis/engines/flow_type.py": [],
+  "gcfis/engines/forward_macro.py": [],
+  "gcfis/engines/fragility.py": [],
+  "gcfis/engines/internals.py": [],
+  "gcfis/engines/leadlag_discovery.py": [],
+  "gcfis/engines/liquidity.py": [],
+  "gcfis/engines/market_mode.py": [],
+  "gcfis/engines/mechanical_flow_driver.py": [
+   "mechanical_flow_driver.py"
+  ],
+  "gcfis/engines/narrative.py": [],
+  "gcfis/engines/portfolio.py": [],
+  "gcfis/engines/position_lifecycle.py": [
+   "position_lifecycle.py"
+  ],
+  "gcfis/engines/positioning.py": [],
+  "gcfis/engines/reflexivity.py": [],
+  "gcfis/engines/regime_hmm.py": [],
+  "gcfis/engines/response_zone.py": [],
+  "gcfis/engines/risk_range_hedgeye.py": [],
+  "gcfis/engines/rotation.py": [],
+  "gcfis/engines/shock.py": [],
+  "gcfis/engines/surge.py": [],
+  "gcfis/engines/theme.py": [],
+  "gcfis/feeds/__init__.py": [],
+  "gcfis/feeds/fred_feed.py": [],
+  "gcfis/feeds/typef_idx.py": [],
+  "gcfis/market_drivers.py": [],
+  "gcfis/markets.py": [],
+  "gcfis/meta/__init__.py": [],
+  "gcfis/meta/decision_stack.py": [],
+  "gcfis/meta/final_desk.py": [],
+  "gcfis/meta/regime_meta.py": [],
+  "gcfis/orchestrator.py": [
+   "engines/__init__.py",
+   "engines/bottleneck_engine.py",
+   "gcfis/market_drivers.py",
+   "gcfis/markets.py"
+  ],
+  "gcfis/run.py": [
+   "gcfis/orchestrator.py"
+  ],
+  "gcfis/sizing.py": [],
+  "gcfis/tests/__init__.py": [],
+  "gcfis/tests/test_all.py": [
+   "gcfis/core/contracts.py",
+   "gcfis/dashboard.py",
+   "gcfis/engines/accumulation.py",
+   "gcfis/engines/bottleneck_engine.py",
+   "gcfis/engines/broker_flow.py",
+   "gcfis/engines/change_detection.py",
+   "gcfis/engines/crash_bottom.py",
+   "gcfis/engines/cross_asset.py",
+   "gcfis/engines/crypto.py",
+   "gcfis/engines/dealer.py",
+   "gcfis/engines/entry.py",
+   "gcfis/engines/flow.py",
+   "gcfis/engines/flow_regime.py",
+   "gcfis/engines/flow_type.py",
+   "gcfis/engines/forward_macro.py",
+   "gcfis/engines/fragility.py",
+   "gcfis/engines/internals.py",
+   "gcfis/engines/liquidity.py",
+   "gcfis/engines/narrative.py",
+   "gcfis/engines/portfolio.py",
+   "gcfis/engines/positioning.py",
+   "gcfis/engines/reflexivity.py",
+   "gcfis/engines/rotation.py",
+   "gcfis/engines/shock.py",
+   "gcfis/engines/surge.py",
+   "gcfis/engines/theme.py",
+   "gcfis/feeds/fred_feed.py",
+   "gcfis/feeds/typef_idx.py",
+   "gcfis/market_drivers.py",
+   "gcfis/markets.py",
+   "gcfis/meta/final_desk.py",
+   "gcfis/orchestrator.py"
+  ],
+  "gem_validation.py": [
+   "engines/__init__.py",
+   "engines/anti_fragility_engine.py",
+   "engines/reflexivity_coefficient.py",
+   "gcfis/backtest.py",
+   "parquet_compat.py"
+  ],
+  "generate_v63_reports.py": [],
+  "generate_v72_derived_manifest.py": [
+   "v72_release_runners.py"
+  ],
+  "generate_v72_source_manifest.py": [
+   "v72_release_runners.py"
+  ],
+  "global_market_promotion_gate.py": [
+   "promotion_gate_v88.py"
+  ],
+  "global_market_promotion_gate_v95.py": [],
+  "global_market_promotion_gate_v96.py": [],
+  "global_market_promotion_gate_v97.py": [],
+  "global_market_promotion_gate_v98.py": [],
+  "global_market_promotion_gate_v99.py": [],
+  "global_trial_ledger.py": [],
+  "hardening_tests/test_attachment_continuation_v53.py": [
+   "recover_v62_exact.py",
+   "research_evidence_v53.py"
+  ],
+  "hardening_tests/test_cusp_fragility_v73.py": [
+   "cusp_fragility_v73.py"
+  ],
+  "hardening_tests/test_cusp_research_v57.py": [
+   "research_evidence_v53.py"
+  ],
+  "hardening_tests/test_hardening_v52.py": [
+   "direction_authorization.py",
+   "live_market_intelligence.py",
+   "market_capabilities.py",
+   "proof_receipts.py",
+   "proof_registry.py",
+   "runtime_store.py",
+   "safe_snapshot.py",
+   "scenario_valuation.py"
+  ],
+  "hardening_tests/test_options_gamma_v70.py": [
+   "gcfis/engines/dealer.py",
+   "live_market_intelligence.py",
+   "options_volatility_flow.py"
+  ],
+  "hardening_tests/test_options_prospective_v71.py": [
+   "options_prospective_ledger_v71.py"
+  ],
+  "hardening_tests/test_parquet_compat_v55.py": [
+   "parquet_compat.py",
+   "research_v55/flat_parquet_snappy.py"
+  ],
+  "hardening_tests/test_position_lifecycle_v59.py": [
+   "full_live_data_hub.py",
+   "gcfis/meta/final_desk.py",
+   "gcfis/orchestrator.py",
+   "position_lifecycle.py"
+  ],
+  "hardening_tests/test_signed_dealer_v72.py": [
+   "dealer_gamma_research_v72.py"
+  ],
+  "hardening_tests/test_v72_manifest_generators.py": [
+   "v72_release_runners.py"
+  ],
+  "hardening_tests/test_v72_outcome_evaluator.py": [
+   "v72_outcome_evaluator.py"
+  ],
+  "hardening_tests/test_v72_release_runners.py": [
+   "v72_release_runners.py"
+  ],
+  "install_proof_run_v95.py": [],
+  "install_proof_run_v96.py": [],
+  "institutional_data.py": [],
+  "legacy_v42_audit/validate_user_v42.py": [],
+  "legacy_v52_release/build_release_v52.py": [
+   "legacy_v52_release/verify_manifest_v52.py"
+  ],
+  "legacy_v52_release/validate_user_v52.py": [
+   "proof_registry.py",
+   "runtime_store.py"
+  ],
+  "legacy_v52_release/verify_manifest_v52.py": [],
+  "lineage_audit.py": [
+   "parquet_compat.py",
+   "run.py"
+  ],
+  "live_market_intelligence.py": [
+   "options_volatility_flow.py",
+   "position_lifecycle.py"
+  ],
+  "live_trade_normalizer_v95.py": [
+   "realized_performance_gate_v95.py"
+  ],
+  "macro_inputs.py": [],
+  "macro_ts_test.py": [
+   "gcfis/core/change_core.py",
+   "parquet_compat.py"
+  ],
+  "market_capabilities.py": [],
+  "market_data_admission.py": [
+   "warroom/no_technical_policy.py"
+  ],
+  "market_data_admission_v91.py": [
+   "warroom/no_technical_policy.py"
+  ],
+  "market_projection_benchmark.py": [],
+  "market_projection_benchmark_v91.py": [
+   "market_projection_benchmark.py"
+  ],
+  "market_projection_engine.py": [
+   "warroom/no_technical_policy.py"
+  ],
+  "mechanical_flow_driver.py": [],
+  "narrative_repricing_engine.py": [
+   "warroom/no_technical_policy.py"
+  ],
+  "narrative_timing_benchmark.py": [],
+  "normalize_external_table.py": [],
+  "official_source_connectors.py": [],
+  "official_source_radar.py": [],
+  "ops/connectivity_probe.py": [],
+  "options_prospective_ledger_v71.py": [],
+  "options_research_evidence_v55.py": [],
+  "options_volatility_flow.py": [],
+  "order_review_export_v100.py": [
+   "runtime_store.py"
+  ],
+  "order_review_export_v101.py": [
+   "runtime_store.py"
+  ],
+  "outcome_custodian_v90.py": [],
+  "outcome_data_admission_v91.py": [],
+  "outcome_data_admission_v95.py": [],
+  "parquet_compat.py": [
+   "research_v55/flat_parquet_snappy.py"
+  ],
+  "pit_evidence_contract.py": [],
+  "position_lifecycle.py": [
+   "mechanical_flow_driver.py"
+  ],
+  "price_setups.py": [
+   "engines/__init__.py",
+   "engines/inventory_transfer_engine.py",
+   "gcfis/engines/entry.py"
+  ],
+  "promotion_gate_v88.py": [],
+  "promotion_gate_v89.py": [
+   "promotion_gate_v88.py"
+  ],
+  "proof_readiness_audit.py": [
+   "market_data_admission.py"
+  ],
+  "proof_receipts.py": [],
+  "proof_registry.py": [
+   "global_market_promotion_gate_v95.py"
+  ],
+  "proof_registry_v96.py": [
+   "global_market_promotion_gate_v96.py"
+  ],
+  "proof_registry_v97.py": [
+   "global_market_promotion_gate_v97.py"
+  ],
+  "proof_registry_v98.py": [
+   "global_market_promotion_gate_v98.py"
+  ],
+  "proof_registry_v99.py": [
+   "global_market_promotion_gate_v99.py"
+  ],
+  "prospective_evidence_ledger.py": [],
+  "prospective_shadow_v66.py": [],
+  "prospective_shadow_v78.py": [],
+  "provider_gap_solver_v93.py": [],
+  "provider_onboarding_v92.py": [],
+  "public_context_collector_v98.py": [],
+  "public_context_collector_v99.py": [],
+  "public_data_bootstrap_v93.py": [],
+  "public_snapshot_reader_v98.py": [],
+  "realized_performance_gate.py": [],
+  "realized_performance_gate_v95.py": [],
+  "recover_v62_exact.py": [],
+  "refresh_desk_supervisor.py": [
+   "desk_runtime.py"
+  ],
+  "refresh_desk_worker.py": [
+   "alpha_foundry_adapter.py",
+   "consistency_guard.py",
+   "data/resilient_market_data.py",
+   "data_layer.py",
+   "desk_runtime.py",
+   "run.py"
+  ],
+  "regime_multitf.py": [
+   "engines/gip_engine.py"
+  ],
+  "regime_tournament.py": [],
+  "regional_regime.py": [],
+  "release_contract_v76.py": [
+   "research_evidence_v66.py"
+  ],
+  "release_contract_v77.py": [
+   "release_contract_v76.py"
+  ],
+  "release_contract_v78.py": [
+   "release_contract_v77.py"
+  ],
+  "release_contract_v79.py": [
+   "release_contract_v78.py"
+  ],
+  "release_meta.py": [],
+  "release_validate_v6.py": [],
+  "release_validate_v7.py": [],
+  "research/development_sensor_diagnostics.py": [
+   "src/warroom_v3/hashing.py",
+   "src/warroom_v3/sensors/__init__.py"
+  ],
+  "research/fetch_sample_data.py": [],
+  "research_evidence_v53.py": [],
+  "research_evidence_v62.py": [],
+  "research_evidence_v64.py": [],
+  "research_evidence_v65.py": [],
+  "research_evidence_v66.py": [
+   "us_equity_risk_cap_v66.py"
+  ],
+  "research_evidence_v76.py": [
+   "release_contract_v76.py"
+  ],
+  "research_evidence_v77.py": [
+   "release_contract_v77.py"
+  ],
+  "research_evidence_v78.py": [
+   "release_contract_v78.py"
+  ],
+  "research_evidence_v79.py": [
+   "final_trading_core_v79.py",
+   "release_contract_v79.py",
+   "us_broad_equity_live_feed_v79.py"
+  ],
+  "research_evidence_v83.py": [],
+  "research_evidence_v84.py": [],
+  "research_evidence_v85.py": [],
+  "research_evidence_v86.py": [],
+  "research_evidence_v87.py": [],
+  "research_evidence_v88.py": [],
+  "research_harness.py": [
+   "parquet_compat.py"
+  ],
+  "research_kernel.py": [
+   "decision_packet_v99.py",
+   "proof_registry_v99.py"
+  ],
+  "research_lifecycle_cli_v96.py": [
+   "causal_research_lifecycle_v96.py"
+  ],
+  "research_v55/flat_parquet_snappy.py": [],
+  "research_v58/code/build_v58_global_ledger.py": [],
+  "research_v58/code/build_v58_universe.py": [],
+  "research_v58/code/build_v59_replication_queue.py": [],
+  "research_v58/code/build_v60_all_untested_queue.py": [],
+  "research_v58/code/freeze_v58_macro_sweep.py": [],
+  "research_v58/code/freeze_v58_openap_212_protocol.py": [],
+  "research_v58/code/freeze_v58_price_volume_sweep.py": [],
+  "research_v58/code/freeze_v58_public_factor_protocol.py": [],
+  "research_v58/code/run_v58_macro_sweep.py": [
+   "research_v55/flat_parquet_snappy.py"
+  ],
+  "research_v58/code/run_v58_openap_212_postsample.py": [],
+  "research_v58/code/run_v58_openap_survivor_stress.py": [],
+  "research_v58/code/run_v58_price_volume_sweep.py": [
+   "research_v55/flat_parquet_snappy.py"
+  ],
+  "research_v58/code/run_v58_public_factor_postsample.py": [],
+  "research_v60/code/build_v62_global_research.py": [],
+  "research_v60/code/combine_v60_massive_move_chunks.py": [],
+  "research_v60/code/freeze_v60_massive_move_sweep.py": [],
+  "research_v60/code/run_v60_alternate_targets.py": [],
+  "research_v60/code/run_v60_massive_move_sweep.py": [
+   "research_v55/flat_parquet_snappy.py"
+  ],
+  "research_v60/code/run_v61_capacity_stress.py": [],
+  "research_v60/code/run_v61_openap_pair_robustness.py": [],
+  "research_v61/code/freeze_v61_network_diffusion.py": [],
+  "research_v61/code/run_v61_network_diffusion.py": [
+   "parquet_compat.py"
+  ],
+  "research_v61/code/run_v61_network_diffusion_fast.py": [
+   "parquet_compat.py"
+  ],
+  "research_v62/code/build_sec_pit_fact_ledger.py": [],
+  "research_v62/code/build_sec_pit_quarterly_features.py": [],
+  "research_v62/code/finalize_v62_artifacts.py": [],
+  "research_v62/code/freeze_v62_event_origin.py": [],
+  "research_v62/code/run_v62_event_origin_fast.py": [
+   "parquet_compat.py"
+  ],
+  "research_v64/scripts/run_v64_modern_212_factor_confirmation.py": [],
+  "research_v64/scripts/run_v64_three_survivor_confirmation.py": [],
+  "research_v64/scripts/run_v64_tsmom_crisis_overlay.py": [],
+  "research_v65/scripts/adjudicate_v65_global_selection.py": [],
+  "research_v65/scripts/run_v65_information_origin_ensemble.py": [],
+  "research_v65/scripts/run_v65_stability_falsification.py": [],
+  "research_v66/code/run_v66_diversified_sleeve.py": [],
+  "research_v66/code/run_v66_factor_momentum.py": [],
+  "research_v66/code/run_v66_global_equity_risk_gate.py": [],
+  "research_v66/code/run_v66_long_history_equity_risk_gate.py": [],
+  "research_v66/code/run_v66_sma10_risk_reduction_confirmation.py": [],
+  "research_v66/code/run_v66_style_parity.py": [],
+  "research_v66/code/run_v66_tsmom_crisis_defense.py": [],
+  "research_v78/code/run_cross_market_sma10_risk_cap.py": [
+   "parquet_compat.py"
+  ],
+  "research_v78/code/run_cross_market_tsmom_confirmatory.py": [],
+  "research_v78/code/run_us_equity_vol12_risk_cap.py": [],
+  "research_v78/data_acquisition/membership_guard_v78.py": [],
+  "research_v78/data_acquisition/pit_data_contract_v78.py": [],
+  "run.py": [
+   "bundled_research_reader_v99.py",
+   "data_layer_v101.py",
+   "decision_packet_v101.py",
+   "research_kernel.py",
+   "trading_readiness_v99.py"
+  ],
+  "run_master_reaudit_v42.py": [],
+  "run_pipeline.py": [],
+  "run_v52_hardened_audit.py": [
+   "proof_registry.py"
+  ],
+  "run_v53_attachment_audit.py": [
+   "proof_registry.py",
+   "research_evidence_v53.py"
+  ],
+  "run_v55_options_audit.py": [
+   "options_research_evidence_v55.py",
+   "proof_registry.py",
+   "research_evidence_v53.py"
+  ],
+  "run_v60_derivatives_driver_study.py": [],
+  "run_v60_early_move_driver_study.py": [
+   "parquet_compat.py"
+  ],
+  "run_v66_risk_cap.py": [
+   "us_equity_risk_cap_v66.py"
+  ],
+  "run_v72_frozen_evaluation.py": [
+   "v72_release_runners.py"
+  ],
+  "run_v73_cusp_study.py": [
+   "cusp_fragility_v73.py",
+   "research_v55/flat_parquet_snappy.py"
+  ],
+  "run_v74_breadth_cusp.py": [
+   "cusp_fragility_v73.py",
+   "research_v55/flat_parquet_snappy.py"
+  ],
+  "run_v75_pre1973_cusp.py": [
+   "cusp_fragility_v73.py",
+   "research_v55/flat_parquet_snappy.py"
+  ],
+  "run_v79_trading_core.py": [
+   "final_trading_core_v79.py",
+   "release_contract_v79.py",
+   "us_broad_equity_live_feed_v79.py"
+  ],
+  "run_v99_preserved.py": [
+   "bundled_research_reader_v99.py",
+   "data_layer.py",
+   "decision_packet_v99.py",
+   "research_kernel.py",
+   "trading_readiness_v99.py"
+  ],
+  "runtime_sanitizer.py": [],
+  "runtime_store.py": [],
+  "safe_snapshot.py": [],
+  "scenario_valuation.py": [
+   "proof_receipts.py"
+  ],
+  "scrapers_local/__init__.py": [],
+  "scrapers_local/local_data_scraper.py": [],
+  "scripts/build_applicability.py": [
+   "src/warroom_v3/hashing.py"
+  ],
+  "scripts/build_collection_plan.py": [
+   "src/warroom_v3/hashing.py"
+  ],
+  "scripts/build_data_catalog.py": [
+   "src/warroom_v3/hashing.py"
+  ],
+  "scripts/build_formula_registry.py": [
+   "src/warroom_v3/hashing.py"
+  ],
+  "scripts/build_market_matrix.py": [
+   "src/warroom_v3/hashing.py"
+  ],
+  "scripts/build_not_armed_seal.py": [
+   "src/warroom_v3/hashing.py"
+  ],
+  "scripts/build_prospective_seal.py": [
+   "src/warroom_v3/hashing.py",
+   "src/warroom_v3/providers.py"
+  ],
+  "scripts/build_release_manifest.py": [
+   "src/warroom_v3/hashing.py"
+  ],
+  "scripts/check_import_boundaries.py": [],
+  "scripts/check_provider_registry.py": [
+   "src/warroom_v3/providers.py"
+  ],
+  "scripts/check_runtime_store.py": [
+   "src/warroom_v3/storage.py",
+   "src/warroom_v3/trading.py"
+  ],
+  "scripts/check_streamlit_app.py": [],
+  "scripts/check_trial_ledger.py": [
+   "src/warroom_v3/hashing.py"
+  ],
+  "scripts/demo_research_observation.py": [
+   "src/warroom_v3/data.py",
+   "src/warroom_v3/pipeline.py"
+  ],
+  "scripts/validate_all.py": [
+   "src/warroom_v3/validation.py"
+  ],
+  "scripts/warroom.py": [
+   "src/warroom_v3/cli.py"
+  ],
+  "setup_v79.py": [],
+  "shadow_execution_ledger_v95.py": [],
+  "shadow_runner_v100.py": [
+   "runtime_store.py",
+   "shadow_execution_ledger_v95.py"
+  ],
+  "shadow_runner_v101.py": [
+   "runtime_store.py",
+   "shadow_execution_ledger_v95.py"
+  ],
+  "src/__init__.py": [],
+  "src/build_entity_master.py": [
+   "src/common.py"
+  ],
+  "src/build_panel.py": [
+   "src/common.py"
+  ],
+  "src/build_prices.py": [
+   "src/common.py"
+  ],
+  "src/build_sec_features.py": [
+   "src/build_entity_master.py",
+   "src/common.py"
+  ],
+  "src/common.py": [],
+  "src/download_data.py": [
+   "src/common.py"
+  ],
+  "src/open_lockbox.py": [
+   "run.py",
+   "src/common.py",
+   "src/run_tournament.py"
+  ],
+  "src/prospective.py": [
+   "src/common.py"
+  ],
+  "src/run_current_selector.py": [
+   "src/common.py"
+  ],
+  "src/run_tournament.py": [
+   "src/common.py"
+  ],
+  "src/warroom_v3/__init__.py": [
+   "data/__init__.py",
+   "gcfis/core/contracts.py",
+   "src/warroom_v3/gates.py",
+   "src/warroom_v3/mtf.py",
+   "src/warroom_v3/pipeline.py"
+  ],
+  "src/warroom_v3/api.py": [
+   "src/warroom_v3/evaluation.py",
+   "src/warroom_v3/runtime.py",
+   "src/warroom_v3/storage.py"
+  ],
+  "src/warroom_v3/applicability.py": [
+   "gcfis/core/contracts.py",
+   "src/warroom_v3/hashing.py"
+  ],
+  "src/warroom_v3/causality.py": [],
+  "src/warroom_v3/cli.py": [
+   "src/warroom_v3/evaluation.py",
+   "src/warroom_v3/hashing.py",
+   "src/warroom_v3/runtime.py",
+   "src/warroom_v3/storage.py"
+  ],
+  "src/warroom_v3/contracts.py": [],
+  "src/warroom_v3/data.py": [
+   "src/warroom_v3/hashing.py"
+  ],
+  "src/warroom_v3/evaluation.py": [
+   "src/warroom_v3/hashing.py",
+   "src/warroom_v3/storage.py"
+  ],
+  "src/warroom_v3/gates.py": [
+   "gcfis/core/contracts.py"
+  ],
+  "src/warroom_v3/hashing.py": [],
+  "src/warroom_v3/mtf.py": [
+   "src/warroom_v3/hashing.py"
+  ],
+  "src/warroom_v3/pipeline.py": [
+   "data/__init__.py",
+   "gcfis/core/contracts.py",
+   "src/warroom_v3/hashing.py"
+  ],
+  "src/warroom_v3/providers.py": [
+   "data/__init__.py",
+   "src/warroom_v3/hashing.py"
+  ],
+  "src/warroom_v3/registry.py": [],
+  "src/warroom_v3/release.py": [],
+  "src/warroom_v3/runtime.py": [
+   "data/__init__.py",
+   "gcfis/core/contracts.py",
+   "src/warroom_v3/hashing.py",
+   "src/warroom_v3/mtf.py",
+   "src/warroom_v3/pipeline.py",
+   "src/warroom_v3/providers.py",
+   "src/warroom_v3/registry.py",
+   "src/warroom_v3/storage.py",
+   "src/warroom_v3/trading.py"
+  ],
+  "src/warroom_v3/sensors/__init__.py": [
+   "src/warroom_v3/sensors/momentum.py",
+   "src/warroom_v3/sensors/mqa.py"
+  ],
+  "src/warroom_v3/sensors/momentum.py": [
+   "src/warroom_v3/hashing.py"
+  ],
+  "src/warroom_v3/sensors/mqa.py": [
+   "src/warroom_v3/hashing.py"
+  ],
+  "src/warroom_v3/storage.py": [
+   "data/__init__.py",
+   "src/warroom_v3/hashing.py"
+  ],
+  "src/warroom_v3/trading.py": [
+   "src/warroom_v3/hashing.py",
+   "src/warroom_v3/storage.py"
+  ],
+  "src/warroom_v3/validation.py": [],
+  "stream_workers/databento_bridge.py": [],
+  "stream_workers/massive_ws_bridge.py": [],
+  "stream_workers/uw_kafka_bridge.py": [],
+  "stream_workers/uw_websocket_bridge.py": [],
+  "systemic_ts_test.py": [
+   "parquet_compat.py"
+  ],
+  "test_app_first_render_v7.py": [
+   "data/resilient_market_data.py",
+   "desk_runtime.py"
+  ],
+  "test_nonblocking_runtime_v7.py": [
+   "desk_runtime.py"
+  ],
+  "test_resilient_feeds.py": [
+   "data/__init__.py"
+  ],
+  "test_resilient_feeds_v5.py": [
+   "data/__init__.py"
+  ],
+  "test_resilient_integration.py": [
+   "data/resilient_market_data.py",
+   "data_layer.py",
+   "warroom/data.py"
+  ],
+  "test_resilient_integration_v5.py": [
+   "data/resilient_market_data.py",
+   "data_layer.py",
+   "warroom/data.py"
+  ],
+  "test_supervisor_timeout_v7.py": [
+   "refresh_desk_supervisor.py"
+  ],
+  "test_v60_derivatives_harness.py": [],
+  "test_v60_mechanical_flow.py": [
+   "mechanical_flow_driver.py"
+  ],
+  "test_v62_origin_harness.py": [],
+  "test_v62_sec_pit_pipeline.py": [],
+  "test_v66_scoped_risk_and_shadow.py": [
+   "prospective_shadow_v66.py",
+   "us_equity_risk_cap_v66.py"
+  ],
+  "test_v78_proof_expansion.py": [
+   "prospective_shadow_v78.py",
+   "research_v78/data_acquisition/membership_guard_v78.py",
+   "research_v78/data_acquisition/pit_data_contract_v78.py"
+  ],
+  "test_v79_final_core.py": [
+   "final_trading_core_v79.py",
+   "release_contract_v79.py",
+   "research_evidence_v79.py",
+   "us_broad_equity_live_feed_v79.py"
+  ],
+  "tests/conftest.py": [],
+  "tests/generate_synthetic_demo.py": [],
+  "tests/test_causality_harness_power.py": [
+   "src/warroom_v3/causality.py"
+  ],
+  "tests/test_contracts.py": [
+   "src/warroom_v3/contracts.py"
+  ],
+  "tests/test_data_foundation.py": [
+   "src/warroom_v3/data.py"
+  ],
+  "tests/test_evaluation_ready.py": [
+   "src/warroom_v3/evaluation.py"
+  ],
+  "tests/test_evidence_controls.py": [
+   "src/warroom_v3/applicability.py",
+   "src/warroom_v3/contracts.py",
+   "src/warroom_v3/hashing.py"
+  ],
+  "tests/test_gates.py": [
+   "src/warroom_v3/contracts.py",
+   "src/warroom_v3/gates.py"
+  ],
+  "tests/test_momentum_axes.py": [
+   "src/warroom_v3/causality.py",
+   "src/warroom_v3/data.py",
+   "src/warroom_v3/sensors/__init__.py"
+  ],
+  "tests/test_mqa_benchmarks.py": [
+   "src/warroom_v3/causality.py",
+   "src/warroom_v3/data.py",
+   "src/warroom_v3/sensors/mqa.py"
+  ],
+  "tests/test_mtf_pipeline.py": [
+   "src/warroom_v3/data.py",
+   "src/warroom_v3/mtf.py",
+   "src/warroom_v3/pipeline.py"
+  ],
+  "tests/test_operational_ready.py": [
+   "src/warroom_v3/api.py",
+   "src/warroom_v3/data.py",
+   "src/warroom_v3/hashing.py",
+   "src/warroom_v3/providers.py",
+   "src/warroom_v3/runtime.py",
+   "src/warroom_v3/storage.py"
+  ],
+  "tests/test_pipeline.py": [],
+  "tests/test_registry_release.py": [
+   "src/warroom_v3/registry.py",
+   "src/warroom_v3/release.py"
+  ],
+  "tests/test_release_ready.py": [
+   "src/warroom_v3/hashing.py",
+   "src/warroom_v3/providers.py"
+  ],
+  "tests/test_streamlit_release.py": [
+   "src/warroom_v3/data.py",
+   "src/warroom_v3/storage.py"
+  ],
+  "tests/test_trading_workstation.py": [
+   "src/warroom_v3/trading.py"
+  ],
+  "tools/audit/build_baseline.py": [],
+  "trading_control_plane_v97.py": [
+   "warroom/no_technical_policy.py"
+  ],
+  "trading_control_plane_v98.py": [
+   "warroom/no_technical_policy.py"
+  ],
+  "trading_control_plane_v99.py": [
+   "warroom/no_technical_policy.py"
+  ],
+  "trading_readiness_v97.py": [
+   "execution_reconciliation_v97.py"
+  ],
+  "trading_readiness_v98.py": [
+   "execution_reconciliation_v98.py"
+  ],
+  "trading_readiness_v99.py": [
+   "execution_reconciliation_v99.py"
+  ],
+  "us_broad_equity_live_feed_v79.py": [],
+  "us_equity_risk_cap_v66.py": [],
+  "v72_outcome_evaluator.py": [],
+  "v72_release_runners.py": [
+   "dealer_gamma_research_v72.py",
+   "v72_outcome_evaluator.py"
+  ],
+  "validate.py": [],
+  "validate_all.py": [],
+  "validate_arrow_lineage.py": [],
+  "validate_bundled_data_v52.py": [],
+  "validate_live_stack.py": [
+   "full_live_data_hub.py",
+   "live_market_intelligence.py"
+  ],
+  "validate_package.py": [],
+  "validate_package_v97.py": [],
+  "validate_real.py": [
+   "gcfis/backtest.py",
+   "parquet_compat.py",
+   "validation_plus.py",
+   "warroom/__init__.py"
+  ],
+  "validate_redesign.py": [
+   "institutional_data.py"
+  ],
+  "validate_release_v32.py": [
+   "gcfis/engines/broker_flow.py",
+   "warroom/__init__.py",
+   "warroom/decision_center.py"
+  ],
+  "validate_release_v33.py": [],
+  "validate_release_v331.py": [],
+  "validate_release_v332.py": [
+   "validate_user_v332.py"
+  ],
+  "validate_streamlit_health_v52.py": [],
+  "validate_user_v332.py": [],
+  "validate_user_v42.py": [],
+  "validate_user_v53.py": [],
+  "validate_user_v59.py": [],
+  "validate_user_v60.py": [],
+  "validate_v100_operational.py": [
+   "action_engine_v100.py",
+   "data_layer_v100.py",
+   "run.py",
+   "shadow_execution_ledger_v95.py"
+  ],
+  "validate_v101_carry.py": [
+   "action_engine_v101.py",
+   "carry_proof_v101.py",
+   "carry_trade_engine_v101.py",
+   "data_layer_v101.py",
+   "run.py"
+  ],
+  "validate_v23_no_data_and_speed.py": [],
+  "validate_v24_stability.py": [],
+  "validate_v25_deployment.py": [
+   "validate_v27_full.py"
+  ],
+  "validate_v27_full.py": [
+   "data/loader.py",
+   "runtime_store.py",
+   "warroom_data_worker.py"
+  ],
+  "validate_v27_startup.py": [
+   "data/loader.py"
+  ],
+  "validate_v28_fx_alpha.py": [
+   "data/loader.py",
+   "run.py"
+  ],
+  "validate_v28_startup.py": [
+   "data/loader.py"
+  ],
+  "validate_v29_decision_first.py": [],
+  "validate_v32_research_first.py": [
+   "research_kernel.py"
+  ],
+  "validate_v32_startup.py": [
+   "data/loader.py"
+  ],
+  "validate_v331_hotfix.py": [
+   "data_layer.py",
+   "run.py"
+  ],
+  "validate_v332_readability_semantics.py": [
+   "price_setups.py"
+  ],
+  "validate_v33_decision_intelligence.py": [
+   "current_developments.py",
+   "research_kernel.py"
+  ],
+  "validate_v42_deep_reaudit.py": [
+   "gcfis/engines/dealer.py",
+   "market_capabilities.py",
+   "price_setups.py",
+   "proof_registry.py",
+   "regime_tournament.py",
+   "research_kernel.py",
+   "scenario_valuation.py"
+  ],
+  "validate_v58_exhaustive_research.py": [],
+  "validate_v59_position_lifecycle.py": [],
+  "validate_v60_deep_driver.py": [],
+  "validate_v60_exhaustive_causal_discovery.py": [],
+  "validate_v60_release_contracts.py": [],
+  "validate_v62_deeper_research.py": [],
+  "validate_v63_all_tabs.py": [],
+  "validate_v64_scoped_proof.py": [
+   "research_evidence_v64.py"
+  ],
+  "validate_v65_proof_first.py": [
+   "research_evidence_v65.py",
+   "research_kernel.py"
+  ],
+  "validate_v66_scoped_usable.py": [
+   "research_evidence_v66.py",
+   "research_kernel.py"
+  ],
+  "validate_v72_licensed_package.py": [
+   "v72_release_runners.py"
+  ],
+  "validate_v76_final.py": [
+   "release_contract_v76.py",
+   "research_kernel.py",
+   "validate_v59_position_lifecycle.py"
+  ],
+  "validate_v77_final.py": [
+   "release_contract_v77.py",
+   "research_kernel.py"
+  ],
+  "validate_v78_proof_expansion.py": [
+   "release_contract_v78.py",
+   "research_kernel.py"
+  ],
+  "validate_v79_final_core.py": [
+   "research_kernel.py"
+  ],
+  "validate_v88_all_market_projection.py": [
+   "global_market_promotion_gate.py",
+   "market_projection_benchmark.py",
+   "market_projection_engine.py",
+   "promotion_gate_v88.py",
+   "proof_registry.py",
+   "runtime_sanitizer.py"
+  ],
+  "validate_v89_all_market_projection.py": [
+   "global_market_promotion_gate.py",
+   "market_projection_benchmark.py",
+   "market_projection_engine.py",
+   "promotion_gate_v88.py",
+   "proof_registry.py",
+   "runtime_sanitizer.py"
+  ],
+  "validate_v89_real_data_runner.py": [
+   "market_data_admission.py",
+   "normalize_external_table.py",
+   "promotion_gate_v89.py",
+   "proof_readiness_audit.py"
+  ],
+  "validate_v90_root_cause.py": [
+   "asof_panel_builder_v90.py",
+   "build_dataset_manifest_v90.py",
+   "data_route_resolver_v90.py"
+  ],
+  "validate_v91_all_market_projection_regression.py": [
+   "global_market_promotion_gate.py",
+   "market_projection_benchmark.py",
+   "market_projection_engine.py",
+   "promotion_gate_v88.py",
+   "proof_registry.py",
+   "runtime_sanitizer.py"
+  ],
+  "validate_v91_proof_plane.py": [
+   "asof_panel_builder_v90.py",
+   "build_dataset_manifest_v91.py",
+   "build_outcome_manifest_v91.py",
+   "market_data_admission_v91.py",
+   "market_projection_benchmark_v91.py",
+   "outcome_data_admission_v91.py"
+  ],
+  "validate_v92_route.py": [
+   "provider_onboarding_v92.py"
+  ],
+  "validate_v93_public_bootstrap.py": [
+   "fill_normalizer_v93.py",
+   "provider_gap_solver_v93.py"
+  ],
+  "validate_v94_autonomous_sources.py": [
+   "autonomous_public_data_plane_v94.py"
+  ],
+  "validate_v95_release.py": [
+   "IDX_BROWSER_EXPORT_IMPORT_V95.py",
+   "autonomous_public_data_plane_v95.py",
+   "blind_proof_runner_v95.py",
+   "equity_ledger_normalizer_v95.py",
+   "global_market_promotion_gate_v95.py",
+   "live_trade_normalizer_v95.py",
+   "proof_registry.py",
+   "realized_performance_gate_v95.py",
+   "shadow_execution_ledger_v95.py"
+  ],
+  "validate_v96_release.py": [
+   "anti_overfit_gate_v96.py",
+   "anti_overfit_seal_v96.py",
+   "autonomous_research_factory_v96.py",
+   "blind_proof_runner_v96.py",
+   "causal_research_lifecycle_v96.py",
+   "global_market_promotion_gate_v96.py",
+   "proof_registry_v96.py",
+   "run.py",
+   "warroom/no_technical_policy.py"
+  ],
+  "validate_v97_limited_production.py": [
+   "execution_reconciliation_v97.py",
+   "trading_control_plane_v97.py",
+   "trading_readiness_v97.py"
+  ],
+  "validate_v98_limited_production.py": [
+   "execution_reconciliation_v98.py",
+   "trading_control_plane_v98.py",
+   "trading_readiness_v98.py"
+  ],
+  "validate_v98_unified_packet.py": [
+   "data_layer.py",
+   "execution_quote_collector_v98.py",
+   "public_snapshot_reader_v98.py",
+   "run.py",
+   "runtime_sanitizer.py",
+   "warroom/no_technical_policy.py"
+  ],
+  "validate_v99_actual_data.py": [
+   "bundled_research_reader_v99.py",
+   "runtime_store.py",
+   "trading_readiness_v99.py",
+   "warroom/no_technical_policy.py"
+  ],
+  "validation_plus.py": [
+   "gcfis/backtest.py"
+  ],
+  "verify_live_connections.py": [
+   "full_live_data_hub.py",
+   "institutional_data.py",
+   "live_market_intelligence.py"
+  ],
+  "verify_manifest_v53.py": [],
+  "verify_manifest_v55.py": [],
+  "verify_manifest_v56.py": [],
+  "verify_manifest_v57.py": [],
+  "verify_manifest_v58.py": [],
+  "verify_manifest_v59.py": [],
+  "verify_manifest_v60.py": [],
+  "verify_manifest_v62.py": [],
+  "walkforward_validate.py": [
+   "parquet_compat.py"
+  ],
+  "warroom/__init__.py": [],
+  "warroom/attention.py": [
+   "warroom/render.py"
+  ],
+  "warroom/backtest.py": [],
+  "warroom/beta_play.py": [],
+  "warroom/brief_export.py": [
+   "warroom/__init__.py"
+  ],
+  "warroom/calibrate_lpm.py": [
+   "warroom/lpm.py"
+  ],
+  "warroom/causal_attribution.py": [],
+  "warroom/causal_chain.py": [],
+  "warroom/compute.py": [
+   "engines/gip_engine.py",
+   "engines/thought_process_engine.py",
+   "engines/vix_bucket_engine.py",
+   "gcfis/engines/crash_bottom.py",
+   "gcfis/engines/forward_macro.py",
+   "gcfis/engines/internals.py",
+   "gcfis/engines/regime_hmm.py",
+   "gcfis/engines/risk_range_hedgeye.py",
+   "gcfis/engines/shock.py",
+   "parquet_compat.py",
+   "warroom/__init__.py",
+   "warroom/lpm.py"
+  ],
+  "warroom/country_regime.py": [],
+  "warroom/crash_lead.py": [],
+  "warroom/crowd.py": [],
+  "warroom/cycle_rotation.py": [],
+  "warroom/data.py": [
+   "parquet_compat.py"
+  ],
+  "warroom/data_ingest.py": [
+   "parquet_compat.py"
+  ],
+  "warroom/decision_center.py": [
+   "warroom/__init__.py"
+  ],
+  "warroom/decision_engine.py": [
+   "warroom/__init__.py"
+  ],
+  "warroom/decision_journal.py": [],
+  "warroom/drivers.py": [],
+  "warroom/early_warning.py": [],
+  "warroom/fair_value.py": [
+   "warroom/__init__.py"
+  ],
+  "warroom/feeds.py": [
+   "safe_snapshot.py"
+  ],
+  "warroom/feeds_free.py": [],
+  "warroom/fred.py": [
+   "data/fred_loader.py",
+   "warroom/macro_data.py",
+   "warroom/policy.py"
+  ],
+  "warroom/funding_stress.py": [],
+  "warroom/internals.py": [],
+  "warroom/intervention.py": [],
+  "warroom/investment_memo.py": [
+   "warroom/__init__.py"
+  ],
+  "warroom/knowledge_graph.py": [],
+  "warroom/liquidity.py": [],
+  "warroom/lpm.py": [],
+  "warroom/macro_data.py": [],
+  "warroom/macro_regime.py": [],
+  "warroom/market_cap_target.py": [],
+  "warroom/mechanical.py": [],
+  "warroom/meters.py": [
+   "warroom/__init__.py"
+  ],
+  "warroom/no_technical_policy.py": [],
+  "warroom/optimal_entry.py": [
+   "gcfis/engines/risk_range_hedgeye.py",
+   "warroom/__init__.py"
+  ],
+  "warroom/policy.py": [],
+  "warroom/price_action.py": [],
+  "warroom/render.py": [
+   "warroom/__init__.py"
+  ],
+  "warroom/risk.py": [],
+  "warroom/rotation.py": [],
+  "warroom/secular_map.py": [],
+  "warroom/signal_edge.py": [],
+  "warroom/statelog.py": [],
+  "warroom/structure.py": [],
+  "warroom/synthesis.py": [],
+  "warroom/themes.py": [],
+  "warroom/thesis_beta.py": [],
+  "warroom/thesis_playbook.py": [],
+  "warroom/timing.py": [],
+  "warroom/tracker.py": [],
+  "warroom/walkforward.py": [],
+  "warroom_data_worker.py": [
+   "data_layer.py",
+   "execution_quote_collector_v99.py",
+   "public_context_collector_v99.py",
+   "run.py",
+   "runtime_sanitizer.py",
+   "runtime_store.py"
+  ],
+  "warroom_data_worker_v100.py": [
+   "current_context_v100.py",
+   "data_layer_v100.py",
+   "run.py",
+   "runtime_store.py",
+   "shadow_runner_v100.py"
+  ],
+  "warroom_data_worker_v101.py": [
+   "current_context_v101.py",
+   "data_layer_v101.py",
+   "run.py",
+   "runtime_store.py",
+   "shadow_runner_v101.py"
+  ]
+ }
+}

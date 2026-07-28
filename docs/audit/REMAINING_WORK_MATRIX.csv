@@ -1,31 +1,34 @@
 area,component,claimed_status,reproduced_status,implementation_status,validation_status,evidence,failing_test,blocker,next_action,completion_criteria
-repo,baseline_inventory,complete,verified,complete,verified,"commit 5e7b86f; docs/audit/baseline/",none,none,none,committed+reproducible
-repo,architecture_map,complete,verified,complete,verified,"commit 55f74d6; ARCHITECTURE_MAP.md; import_graph.json",none,none,none,committed+reproducible
-repo,phase2_cleanup_reorg,implemented,staged_uncommitted,complete,unverified,"git index: 763 renames + 238 deletes; cleanup_plan.json",none,none,"add .gitignore; commit; rerun tests","committed; tests stable vs baseline"
-repo,gitignore,missing,confirmed_missing,not_started,unverified,"BASELINE_INVENTORY.md",none,none,"write .gitignore; commit","no pycache/generated tracked"
-tests,v3_kernel_pytest,119_passed_5_failed,reproduced_at_baseline,complete,partial,"TEST_RESULTS.md","test_streamlit_release.py (5)",streamlit_app.py never committed,"phase 6: provide streamlit_app.py or re-scope tests","124/124 or justified re-scope"
-tests,hardening_scripts,12_exit_0,reproduced_at_baseline,complete,partial,"TEST_RESULTS.md","test_hardening_v52 FALSE-GREEN (TypeError printed, exit 0)",script-style not pytest,"phase 3/6: fix component_status() call; assert no traceback","exit 0 AND clean stdout"
-app,offline_desk_build,pass,reproduced_at_baseline,complete,verified,"TEST_RESULTS.md; ~1s build; no synthetic admitted",none,none,"re-run post-cleanup",still passes post-cleanup
-app,streamlit_full_smoke,untested,not_run,unknown,unverified,none,none,none,"phase 8: streamlit run app.py smoke","app boots; dashboard renders"
-data,data_layer_v101_offline,pass,reproduced_at_baseline,complete,verified,"TEST_RESULTS.md",none,none,none,passes post-cleanup
-data,live_collectors,untested,not_run,implemented,unverified,"current_context_v101.py",none,network dependency,"optional live probe; else document",documented as network-dependent
-data,fred_current_vintage,flagged_not_pit,confirmed,implemented,verified,"ARCHITECTURE_MAP.md sec5; run.py flags point_in_time_eligible=False",none,none,"phase 4: lineage report documents this",documented
-lineage,data_lineage_report,not_started,not_run,not_started,unverified,none,none,none,"phase 4: write DATA_LINEAGE_REPORT.md","report covers all production sources with vintage+pit status"
-claims,cusp_fragility_v73,engineering_pass,9_of_9_checks_pass,implemented,PROSPECTIVE_EVIDENCE_PENDING,"research_v57/results/V73_ENGINEERING_VALIDATION.json; V73_CUSP_HISTORICAL_RESULTS.json",none,none,"phase 5 WriteVerso audit; label RECONSTRUCTED_HISTORICAL_EVIDENCE max unless prospective","honest terminal label assigned"
-claims,carry_trade_engine_v101,implemented,not_reproduced,implemented,unverified,"carry_trade_engine_v101.py; V101_CARRY_CAUSAL_MAP.json",none,none,"phase 5 audit + functional test","terminal label assigned"
-claims,crash_meter,unverified,not_reproduced,unknown,unverified,none,none,none,"phase 5: locate module; audit","terminal label assigned"
-claims,quad_transition,unverified,not_reproduced,unknown,unverified,none,none,none,"phase 5: locate module; audit","terminal label assigned"
-claims,chain_reaction_engine,unverified,not_reproduced,unknown,unverified,none,none,none,"phase 5: locate module; audit","terminal label assigned"
-claims,bottleneck_engine,unverified,not_reproduced,unknown,unverified,"engines/ bottleneck per BASELINE",none,none,"phase 5: locate module; audit","terminal label assigned"
-claims,alpha_center,implemented,not_reproduced,implemented,unverified,"action_engine_v101.py",none,none,"phase 5 audit","terminal label assigned"
-claims,timing_edge,unverified,not_reproduced,unknown,unverified,"warroom/timing.py exists (archived?)",none,none,"phase 5: locate module; audit","terminal label assigned"
-claims,research_v64_three_survivors,proven_claimed,not_reproduced,implemented,PROSPECTIVE_EVIDENCE_PENDING,"research_v64/ledgers/V64_PROVEN_CLAIM_LEDGER.csv",none,none,"phase 5: rerun confirmation scripts; WriteVerso audit","honest terminal label assigned"
-claims,research_v66_tsmom_crisis,candidate_claimed,not_reproduced,implemented,PROSPECTIVE_EVIDENCE_PENDING,"research_v66/results/",none,none,"phase 5: rerun; audit","honest terminal label assigned"
-claims,research_v78_pit_proof,protocol_frozen,not_reproduced,implemented,unverified,"research_v78/protocols/; results/",none,none,"phase 5: rerun PIT proof; audit","honest terminal label assigned"
-papertrading,shadow_ledger_code,implemented,not_run,implemented,unverified,"shadow_execution_ledger_v95.py; shadow_runner_v101.py",none,none,"phase 7: schema test + dry-run","schema test passes"
-papertrading,runtime_ledger,absent,confirmed_absent,not_started,unverified,"runtime/v101_shadow/ missing",none,none,"phase 7: dry-run creates ledger","append-only ledger exists with verify"
-papertrading,historical_replay,not_started,not_run,not_started,unverified,none,none,none,"phase 7: replay infra test","replay runs on frozen historical snapshot"
-papertrading,evaluation_report,not_started,not_run,not_started,unverified,none,none,none,"phase 7: eval report generator","report generated from ledger"
-papertrading,prospective_profitability,not_proven,not_run,not_started,PROSPECTIVE_EVIDENCE_PENDING,none,none,needs future observations,"keep label until sufficient future obs","label stays PROSPECTIVE_EVIDENCE_PENDING"
-delivery,final_e2e,not_started,not_run,not_started,unverified,none,none,none,"phase 8 checklist","all phase 8 gates pass"
-delivery,secrets_scan,not_started,not_run,not_started,unverified,none,none,none,"phase 8: scan tracked files","no secrets found"
+repo,baseline_inventory,complete,verified,complete,verified,commit 5e7b86f; docs/audit/baseline/,none,none,none,committed+reproducible
+repo,architecture_map,complete,verified,complete,verified,commit 55f74d6; ARCHITECTURE_MAP.md; import_graph.json,none,none,none,committed+reproducible
+repo,phase2_cleanup_reorg,implemented,staged_uncommitted,complete,unverified,git index: 763 renames + 238 deletes; cleanup_plan.json,none,none,add .gitignore; commit; rerun tests,committed; tests stable vs baseline
+repo,gitignore,missing,confirmed_missing,not_started,unverified,BASELINE_INVENTORY.md,none,none,write .gitignore; commit,no pycache/generated tracked
+tests,v3_kernel_pytest,119_passed_5_failed,124_passed_0_failed,complete,verified,commit 7925c41; streamlit_app.py created; manifest regenerated,none,none,none,124/124
+tests,hardening_scripts,12_exit_0,12_of_12_exit_0_clean,complete,verified,commit 9ca1a8e; v52 39/39 genuine,none,none,none,exit 0 AND clean stdout
+app,offline_desk_build,pass,reproduced_at_baseline,complete,verified,TEST_RESULTS.md; ~1s build; no synthetic admitted,none,none,re-run post-cleanup,still passes post-cleanup
+app,streamlit_full_smoke,untested,not_run,unknown,unverified,none,none,none,phase 8: streamlit run app.py smoke,app boots; dashboard renders
+data,data_layer_v101_offline,pass,reproduced_at_baseline,complete,verified,TEST_RESULTS.md,none,none,none,passes post-cleanup
+data,live_collectors,untested,not_run,implemented,unverified,current_context_v101.py,none,network dependency,optional live probe; else document,documented as network-dependent
+data,fred_current_vintage,flagged_not_pit,confirmed,implemented,verified,ARCHITECTURE_MAP.md sec5; run.py flags point_in_time_eligible=False,none,none,phase 4: lineage report documents this,documented
+lineage,data_lineage_report,not_started,verified,complete,verified,docs/audit/DATA_LINEAGE_REPORT.md committed 47aa2c6,none,none,none,report covers all production sources
+claims,cusp_fragility_v73,engineering_pass,9_of_9_checks_pass,implemented,REJECTED,V73 verdict NOT_PROVEN; gates failed; placebo controls honored; docs/audit/CLAIM_EVIDENCE_AUDIT.md item 4,none,none,none - terminal negative,terminal label assigned
+claims,carry_trade_engine_v101,implemented,code_self_labels_NOT_PROVEN,implemented,PROSPECTIVE_EVIDENCE_PENDING,carry_trade_engine_v101.py proof_state NOT_PROVEN; CLAIM_EVIDENCE_AUDIT.md item 8,none,none,paper-trade shadow path only,terminal label assigned
+claims,crash_meter,unverified,registry_REJECTED,unknown,REJECTED,research_evidence_registry_v53 crash_meter_inclusion=REJECTED; audit item 4,none,none,none - terminal negative,terminal label assigned
+claims,quad_transition,unverified,descriptive_only,unknown,PROSPECTIVE_EVIDENCE_PENDING,CLAIM_EVIDENCE_AUDIT.md item 9; no validation study,none,none,frozen protocol study or stay descriptive,terminal label assigned
+claims,chain_reaction_engine,unverified,descriptive_only,unknown,PROSPECTIVE_EVIDENCE_PENDING,CLAIM_EVIDENCE_AUDIT.md item 9,none,none,frozen protocol study or stay descriptive,terminal label assigned
+claims,bottleneck_engine,unverified,descriptive_only,unknown,PROSPECTIVE_EVIDENCE_PENDING,CLAIM_EVIDENCE_AUDIT.md item 9,none,none,frozen protocol study or stay descriptive,terminal label assigned
+claims,alpha_center,implemented,descriptive_only,implemented,PROSPECTIVE_EVIDENCE_PENDING,action_engine_v101 UNPROVEN_CURRENT_RESEARCH_BRIDGE; audit item 9,none,none,frozen protocol study or stay descriptive,terminal label assigned
+claims,timing_edge,unverified,descriptive_only,unknown,PROSPECTIVE_EVIDENCE_PENDING,CLAIM_EVIDENCE_AUDIT.md item 9,none,none,frozen protocol study or stay descriptive,terminal label assigned
+claims,research_v64_three_survivors,proven_claimed,ledger_verified,implemented,RECONSTRUCTED_HISTORICAL_EVIDENCE,"V64_PROVEN_CLAIM_LEDGER.csv: gross only, 25bp fail, capital BLOCKED; audit item 2",none,none,none - terminal label,terminal label assigned
+claims,research_v66_tsmom_crisis,candidate_claimed,survivor_count_0,implemented,REJECTED,V66_LONG_HISTORY survivor_count=0; V78 NOT_PROMOTED; audit items 5-6,none,none,none - terminal negative,terminal label assigned
+claims,research_v78_pit_proof,protocol_frozen,NOT_PROMOTED,implemented,REJECTED,V78 results status NOT_PROMOTED; audit item 6,none,none,none - terminal negative,terminal label assigned
+papertrading,shadow_ledger_code,implemented,not_run,implemented,unverified,shadow_execution_ledger_v95.py; shadow_runner_v101.py,none,none,phase 7: schema test + dry-run,schema test passes
+papertrading,runtime_ledger,absent,confirmed_absent,not_started,unverified,runtime/v101_shadow/ missing,none,none,phase 7: dry-run creates ledger,append-only ledger exists with verify
+papertrading,historical_replay,not_started,not_run,not_started,unverified,none,none,none,phase 7: replay infra test,replay runs on frozen historical snapshot
+papertrading,evaluation_report,not_started,not_run,not_started,unverified,none,none,none,phase 7: eval report generator,report generated from ledger
+papertrading,prospective_profitability,not_proven,not_run,not_started,PROSPECTIVE_EVIDENCE_PENDING,none,none,needs future observations,keep label until sufficient future obs,label stays PROSPECTIVE_EVIDENCE_PENDING
+delivery,final_e2e,not_started,not_run,not_started,unverified,none,none,none,phase 8 checklist,all phase 8 gates pass
+delivery,secrets_scan,not_started,not_run,not_started,unverified,none,none,none,phase 8: scan tracked files,no secrets found
+claims,US_BROAD_EQUITY_SMA10_LONG_CASH_V79,proven_decision_active,gates_pass_but_public_rule,complete,HISTORICALLY_VALIDATED_OOS,V66 SMA10 12/12 gates; V83 lockbox familywise pass; V84 revocation of sibling claim; WHAT_IS_AND_IS_NOT_PROVEN.md corrected,V83 real_trade_profit_factor FAIL_MISSING_TRADE_LEDGER,no real fill ledger; no prospective record,prospective shadow via paper trading,terminal label assigned; capital stays BLOCKED
+claims,V82_V83_full_causal_positioned,confirmatory_proven,revoked_by_V84,complete,REJECTED,V84_ANTI_OVERFIT_AUDIT_RESULTS.json confirmatory_proof_status=REVOKED,contamination_control_pass=false,LLM contamination; incomplete trial ledger,none - terminal negative,terminal label assigned
+claims,options_derived_v70_v71_v72,infrastructure_only,fail_closed_verified,complete,CONDITIONAL,hardening v70/v71 capital BLOCKED as expected; v72 signed dealer pass; audit item 10,none,no signal validation,prospective ledger only,terminal label assigned

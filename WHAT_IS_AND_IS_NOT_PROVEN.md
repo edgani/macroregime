@@ -1,6 +1,14 @@
 # What Is and Is Not Proven — V7.9
 
-## Proven and decision-active
+> **CORRECTION (2026-07-28, final audit Phase 5):** the claim below is downgraded from
+> "Proven and decision-active" to **HISTORICALLY_VALIDATED_OOS** (historical drawdown /
+> left-tail reduction of the frozen monthly rule at tested costs). It is a confirmation of a
+> published public rule (memorized-public-relationship failure mode), capital remains BLOCKED
+> (V83: no real trade ledger; V84: contamination controls failed), and prospective
+> profitability is PROSPECTIVE_EVIDENCE_PENDING. Full adjudication:
+> `docs/audit/CLAIM_EVIDENCE_AUDIT.md` item 1.
+
+## Proven and decision-active (see correction above)
 
 `US_BROAD_EQUITY_SMA10_LONG_CASH_V79`
 

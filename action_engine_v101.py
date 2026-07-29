@@ -102,6 +102,106 @@ def quote_state(record: Mapping[str, Any] | None, market: str) -> dict[str, Any]
     }
 
 
+# ---------------------------------------------------------------------------
+# Thesis lifecycle (operator "lampu merah"): where each thesis sits in its
+# operational journey. Derived ONLY from existing gates — never from chart
+# signals. States:
+#   NOT_READY         (RED)    — thesis belum mau jalan: no valid value-bridge
+#                                projection or no usable current quote
+#   PREPARING         (YELLOW) — siap-siap mau jalan: projection valid + quote
+#                                usable, but below shadow-eligibility
+#   LIVE              (GREEN)  — sudah jalan: shadow-eligible (tracked in the
+#                                prospective shadow ledger)
+#   LIVE_JUST_STARTED (BLUE)   — baru mau jalan: shadow-eligible and the first
+#                                ledger forecast is <= JUST_STARTED_DAYS old
+# ---------------------------------------------------------------------------
+JUST_STARTED_DAYS = 14
+LIFECYCLE_LAMP = {"NOT_READY": "RED", "PREPARING": "YELLOW", "LIVE": "GREEN", "LIVE_JUST_STARTED": "BLUE"}
+LIFECYCLE_LABEL_ID = {"NOT_READY": "BELUM SIAP", "PREPARING": "SIAP-SIAP", "LIVE": "SUDAH JALAN", "LIVE_JUST_STARTED": "BARU JALAN"}
+
+
+def shadow_first_forecast_dates(ledger_path: str | Path | None = None) -> dict[str, str]:
+    """ticker -> earliest FORECAST recorded_at in the shadow ledger (ISO date).
+    Missing/unreadable ledger -> empty map (lifecycle still works, just never
+    reports LIVE_JUST_STARTED)."""
+    path = Path(ledger_path) if ledger_path else HERE / "runtime" / "v101_shadow" / "shadow_ledger.jsonl"
+    first: dict[str, str] = {}
+    try:
+        with path.open(encoding="utf-8") as fh:
+            for line in fh:
+                try:
+                    row = json.loads(line)
+                except ValueError:
+                    continue
+                if row.get("record_type") != "FORECAST":
+                    continue
+                ticker = str(row.get("security_id") or "")
+                day = str(row.get("recorded_at") or "")[:10]
+                if ticker and day and (ticker not in first or day < first[ticker]):
+                    first[ticker] = day
+    except OSError:
+        pass
+    return first
+
+
+def thesis_lifecycle(*, shadow_permission: str, projection_valid: bool, quote_usable: bool,
+                     tracked_since: str | None, today: dt.date | None = None) -> dict[str, Any]:
+    """Pure lifecycle classifier. Reasons list what blocks advancement."""
+    today = today or dt.datetime.now(UTC).date()
+    reasons: list[str] = []
+    if shadow_permission == "ELIGIBLE":
+        state = "LIVE"
+        if tracked_since:
+            try:
+                age = (today - dt.date.fromisoformat(str(tracked_since)[:10])).days
+                if 0 <= age <= JUST_STARTED_DAYS:
+                    state = "LIVE_JUST_STARTED"
+            except ValueError:
+                pass
+    elif not projection_valid:
+        state = "NOT_READY"
+        reasons.append("VALUE_BRIDGE_PROJECTION_INVALID_OR_MISSING")
+    elif not quote_usable:
+        state = "NOT_READY"
+        reasons.append("NO_USABLE_CURRENT_QUOTE")
+    else:
+        state = "PREPARING"
+        reasons.append("BELOW_SHADOW_ELIGIBILITY_THRESHOLD")
+    return {
+        "state": state,
+        "lamp": LIFECYCLE_LAMP[state],
+        "label_id": LIFECYCLE_LABEL_ID[state],
+        "tracked_since": tracked_since,
+        "advance_blockers": reasons,
+        "claim_limit": "Operational thesis stage derived from evidence gates; not a signal, not alpha.",
+    }
+
+
+def thesis_frame(*, projection: Mapping[str, Any], risk_plan: Mapping[str, Any], horizon_days: Any) -> dict[str, Any]:
+    """Operator format: 'if the thesis holds, projection to price X; invalidation
+    at price Y'. Numbers come from the engine's own value bridge and risk plan —
+    nothing is invented. The invalidation price is the engine's hard loss-control
+    reference (labelled as such), not a chart stop."""
+    proj = dict(projection or {})
+    valid = proj.get("valid") is True
+    target = _finite(proj.get("expected_target_price"))
+    low = _finite(proj.get("target_low"))
+    high = _finite(proj.get("target_high"))
+    inv_price = _finite((risk_plan or {}).get("stop"))
+    return {
+        "projection_price": target if valid else None,
+        "projection_range": [low, high] if valid and low is not None and high is not None else None,
+        "projection_basis": proj.get("state"),
+        "horizon_days": horizon_days if horizon_days is not None else proj.get("horizon_days"),
+        "invalidation_price": inv_price,
+        "invalidation_price_basis": "HARD_LOSS_CONTROL_REFERENCE" if inv_price is not None else "NOT_COMPUTED",
+        "invalidation_text": (risk_plan or {}).get("invalidation"),
+        "claim_limit": "Projection = peer value-bridge scenario, not a price target promise. "
+                       "Invalidation price = hard loss-control reference from the research order plan.",
+    }
+
+
+
 def _series(current: Mapping[str, Any], series_id: str) -> Mapping[str, Any]:
     row = (((current.get("macro") or {}).get("series") or {}).get(series_id))
     return row if isinstance(row, Mapping) else {}
@@ -466,6 +566,7 @@ def load_policy(path: Path = HERE / "V101_ACTION_POLICY.json") -> dict[str, Any]
 def enrich_packets(packets: Mapping[str, Mapping[str, Any]], current: Mapping[str, Any], policy: Mapping[str, Any] | None = None) -> tuple[dict[str, dict[str, Any]], dict[str, Any]]:
     policy = dict(policy or load_policy()); macro = macro_states(current); carry_book = build_carry_book(current, macro)
     peers = {m: _equity_peer_table(current, m) for m in ("us", "idx")}
+    first_forecasts = shadow_first_forecast_dates()
     output: dict[str, dict[str, Any]] = {m: {} for m in MARKETS}; all_rows: list[dict[str, Any]] = []
     for market in MARKETS:
         for ticker, raw in (packets.get(market) or {}).items():
@@ -486,6 +587,16 @@ def enrich_packets(packets: Mapping[str, Mapping[str, Any]], current: Mapping[st
             packet["fundamental_value_capture"] = {**dict(packet.get("fundamental_value_capture") or {}), "state": action["projection"].get("state"), "current_inputs": action["inputs"]}
             packet["projection"] = action["projection"]
             packet["risk_execution"] = {**action["risk_plan"], "shadow_order_state": action["permissions"]["shadow_trading"], "systematic_live_state": action["permissions"]["systematic_live"], "manual_export_only": True}
+            packet["thesis_lifecycle"] = thesis_lifecycle(
+                shadow_permission=action["permissions"]["shadow_trading"],
+                projection_valid=(action["projection"] or {}).get("valid") is True,
+                quote_usable=(action["quote_state"] or {}).get("reference_available") is True,
+                tracked_since=first_forecasts.get(ticker),
+            )
+            packet["thesis_frame"] = thesis_frame(
+                projection=action["projection"], risk_plan=action["risk_plan"],
+                horizon_days=(packet.get("decision") or {}).get("horizon_days"),
+            )
             packet["proof_data"] = {**dict(packet.get("proof_data") or {}), "current_action_claim": action["claim_limit"]}
             output[market][ticker] = packet; all_rows.append(packet)
         output[market] = dict(sorted(output[market].items(), key=lambda kv: (

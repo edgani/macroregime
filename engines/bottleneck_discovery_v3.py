@@ -99,7 +99,10 @@ class BottleneckDiscoveryV3:
                 if ind.lower().replace("=", "") in name:
                     scores["news_signal"] += 0.3
         scores["news_signal"] = min(1.0, scores["news_signal"])
-        # Macro alignment
+        # Macro alignment (fred may be None when the caller has no FRED frame —
+        # treat as "no macro data", never crash; missing series already handled
+        # by the `is not None` guards below)
+        fred = fred or {}
         thresholds = template.get("thresholds", {})
         if "unrate" in thresholds:
             unrate = fred.get("UNRATE")

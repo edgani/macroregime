@@ -1,0 +1,686 @@
+{
+  "generated_at": "2026-07-29T09:01:47+00:00",
+  "series_failures": {},
+  "cut_cycles": [
+    {
+      "first_cut_month": "1969-07-01",
+      "rate_before": 8.9,
+      "rate_after": 8.61,
+      "plateau_peak_24m": 8.9,
+      "months_since_prev_cut": 7,
+      "sp_fwd_3m": -0.0217,
+      "sp_fwd_6m": 0.0557,
+      "sp_fwd_12m": 0.1365,
+      "sp_fwd_24m": 0.2894,
+      "sp_max_dd_12m": -0.0479,
+      "cut_6m_pp": 0.0,
+      "style": "SLOW"
+    },
+    {
+      "first_cut_month": "1973-10-01",
+      "rate_before": 10.78,
+      "rate_after": 10.01,
+      "plateau_peak_24m": 10.78,
+      "months_since_prev_cut": 19,
+      "sp_fwd_3m": -0.0217,
+      "sp_fwd_6m": 0.0557,
+      "sp_fwd_12m": 0.1365,
+      "sp_fwd_24m": 0.2894,
+      "sp_max_dd_12m": -0.0479,
+      "cut_6m_pp": 1.04,
+      "style": "EMERGENCY"
+    },
+    {
+      "first_cut_month": "1974-08-01",
+      "rate_before": 12.92,
+      "rate_after": 12.01,
+      "plateau_peak_24m": 12.92,
+      "months_since_prev_cut": 5,
+      "sp_fwd_3m": -0.0217,
+      "sp_fwd_6m": 0.0557,
+      "sp_fwd_12m": 0.1365,
+      "sp_fwd_24m": 0.2894,
+      "sp_max_dd_12m": -0.0479,
+      "cut_6m_pp": 5.77,
+      "style": "EMERGENCY"
+    },
+    {
+      "first_cut_month": "1975-10-01",
+      "rate_before": 6.24,
+      "rate_after": 5.82,
+      "plateau_peak_24m": 12.92,
+      "months_since_prev_cut": 4,
+      "sp_fwd_3m": -0.0217,
+      "sp_fwd_6m": 0.0557,
+      "sp_fwd_12m": 0.1365,
+      "sp_fwd_24m": 0.2894,
+      "sp_max_dd_12m": -0.0479,
+      "cut_6m_pp": 1.05,
+      "style": "EMERGENCY"
+    },
+    {
+      "first_cut_month": "1979-11-01",
+      "rate_before": 13.77,
+      "rate_after": 13.18,
+      "plateau_peak_24m": 13.77,
+      "months_since_prev_cut": 6,
+      "sp_fwd_3m": -0.0217,
+      "sp_fwd_6m": 0.0557,
+      "sp_fwd_12m": 0.1365,
+      "sp_fwd_24m": 0.2894,
+      "sp_max_dd_12m": -0.0479,
+      "cut_6m_pp": 2.2,
+      "style": "EMERGENCY"
+    },
+    {
+      "first_cut_month": "1980-05-01",
+      "rate_before": 17.61,
+      "rate_after": 10.98,
+      "plateau_peak_24m": 17.61,
+      "months_since_prev_cut": 5,
+      "sp_fwd_3m": -0.0217,
+      "sp_fwd_6m": 0.0557,
+      "sp_fwd_12m": 0.1365,
+      "sp_fwd_24m": 0.2894,
+      "sp_max_dd_12m": -0.0479,
+      "cut_6m_pp": 1.95,
+      "style": "EMERGENCY"
+    },
+    {
+      "first_cut_month": "1981-02-01",
+      "rate_before": 19.08,
+      "rate_after": 15.93,
+      "plateau_peak_24m": 19.08,
+      "months_since_prev_cut": 6,
+      "sp_fwd_3m": -0.0217,
+      "sp_fwd_6m": 0.0557,
+      "sp_fwd_12m": 0.1365,
+      "sp_fwd_24m": 0.2894,
+      "sp_max_dd_12m": -0.0479,
+      "cut_6m_pp": 1.23,
+      "style": "EMERGENCY"
+    },
+    {
+      "first_cut_month": "1984-09-01",
+      "rate_before": 11.64,
+      "rate_after": 11.3,
+      "plateau_peak_24m": 11.64,
+      "months_since_prev_cut": 9,
+      "sp_fwd_3m": -0.0217,
+      "sp_fwd_6m": 0.0557,
+      "sp_fwd_12m": 0.1365,
+      "sp_fwd_24m": 0.2894,
+      "sp_max_dd_12m": -0.0479,
+      "cut_6m_pp": 2.95,
+      "style": "EMERGENCY"
+    },
+    {
+      "first_cut_month": "2024-09-01",
+      "rate_before": 5.33,
+      "rate_after": 5.13,
+      "plateau_peak_24m": 5.33,
+      "months_since_prev_cut": 35,
+      "sp_fwd_3m": 0.0942,
+      "sp_fwd_6m": 0.0451,
+      "sp_fwd_12m": 0.1663,
+      "sp_fwd_24m": null,
+      "sp_max_dd_12m": -0.189,
+      "cut_6m_pp": 0.8,
+      "style": "SLOW"
+    }
+  ],
+  "post_cut_forward_stats": {
+    "3m": {
+      "n": 9,
+      "mean": -0.0088,
+      "median": -0.0217,
+      "prob_positive": 0.1111,
+      "min": -0.0217,
+      "max": 0.0942
+    },
+    "6m": {
+      "n": 9,
+      "mean": 0.0545,
+      "median": 0.0557,
+      "prob_positive": 1.0,
+      "min": 0.0451,
+      "max": 0.0557
+    },
+    "12m": {
+      "n": 9,
+      "mean": 0.1398,
+      "median": 0.1365,
+      "prob_positive": 1.0,
+      "min": 0.1365,
+      "max": 0.1663
+    },
+    "24m": {
+      "n": 8,
+      "mean": 0.2894,
+      "median": 0.2894,
+      "prob_positive": 1.0,
+      "min": 0.2894,
+      "max": 0.2894
+    }
+  },
+  "post_cut_max_dd_12m": {
+    "n": 9,
+    "mean": -0.0636,
+    "median": -0.0479,
+    "prob_positive": 0.0,
+    "min": -0.189,
+    "max": -0.0479
+  },
+  "slow_cut_12m": {
+    "n": 2,
+    "mean": 0.1514,
+    "median": 0.1514,
+    "prob_positive": 1.0,
+    "min": 0.1365,
+    "max": 0.1663
+  },
+  "emergency_cut_12m": {
+    "n": 7,
+    "mean": 0.1365,
+    "median": 0.1365,
+    "prob_positive": 1.0,
+    "min": 0.1365,
+    "max": 0.1365
+  },
+  "gold_crisis_windows": [
+    {
+      "window": "1987_crash",
+      "gold_6m_before": null,
+      "gold_6m_after": null,
+      "sp500_6m_after": 0.0557
+    },
+    {
+      "window": "2000_dotcom",
+      "gold_6m_before": null,
+      "gold_6m_after": null,
+      "sp500_6m_after": 0.0557
+    },
+    {
+      "window": "2008_gfc",
+      "gold_6m_before": null,
+      "gold_6m_after": null,
+      "sp500_6m_after": 0.0557
+    },
+    {
+      "window": "2011_euro",
+      "gold_6m_before": null,
+      "gold_6m_after": null,
+      "sp500_6m_after": 0.0557
+    },
+    {
+      "window": "2020_covid",
+      "gold_6m_before": null,
+      "gold_6m_after": null,
+      "sp500_6m_after": 0.0141
+    },
+    {
+      "window": "2022_bear",
+      "gold_6m_before": null,
+      "gold_6m_after": null,
+      "sp500_6m_after": -0.2012
+    }
+  ],
+  "curve_10y3m_inversions": [
+    {
+      "inversion_start": "1982-02-01",
+      "uninversion": "1982-02-03",
+      "next_recession_start": "1990-08-01",
+      "months_uninvert_to_recession": 101.9
+    },
+    {
+      "inversion_start": "1982-02-08",
+      "uninversion": "1982-02-09",
+      "next_recession_start": "1990-08-01",
+      "months_uninvert_to_recession": 101.7
+    },
+    {
+      "inversion_start": "1982-02-10",
+      "uninversion": "1982-02-19",
+      "next_recession_start": "1990-08-01",
+      "months_uninvert_to_recession": 101.3
+    },
+    {
+      "inversion_start": "1989-03-27",
+      "uninversion": "1989-03-28",
+      "next_recession_start": "1990-08-01",
+      "months_uninvert_to_recession": 16.1
+    },
+    {
+      "inversion_start": "1989-05-22",
+      "uninversion": "1989-05-23",
+      "next_recession_start": "1990-08-01",
+      "months_uninvert_to_recession": 14.3
+    },
+    {
+      "inversion_start": "1989-05-24",
+      "uninversion": "1989-07-05",
+      "next_recession_start": "1990-08-01",
+      "months_uninvert_to_recession": 12.9
+    },
+    {
+      "inversion_start": "1989-07-10",
+      "uninversion": "1989-07-12",
+      "next_recession_start": "1990-08-01",
+      "months_uninvert_to_recession": 12.6
+    },
+    {
+      "inversion_start": "1989-07-13",
+      "uninversion": "1989-08-17",
+      "next_recession_start": "1990-08-01",
+      "months_uninvert_to_recession": 11.5
+    },
+    {
+      "inversion_start": "1989-08-22",
+      "uninversion": "1989-08-28",
+      "next_recession_start": "1990-08-01",
+      "months_uninvert_to_recession": 11.1
+    },
+    {
+      "inversion_start": "1989-10-27",
+      "uninversion": "1989-11-24",
+      "next_recession_start": "1990-08-01",
+      "months_uninvert_to_recession": 8.2
+    },
+    {
+      "inversion_start": "1989-11-27",
+      "uninversion": "1989-11-30",
+      "next_recession_start": "1990-08-01",
+      "months_uninvert_to_recession": 8.0
+    },
+    {
+      "inversion_start": "1989-12-06",
+      "uninversion": "1989-12-29",
+      "next_recession_start": "1990-08-01",
+      "months_uninvert_to_recession": 7.1
+    },
+    {
+      "inversion_start": "1998-09-10",
+      "uninversion": "1998-09-14",
+      "next_recession_start": "2001-04-01",
+      "months_uninvert_to_recession": 30.6
+    },
+    {
+      "inversion_start": "1998-09-21",
+      "uninversion": "1998-09-23",
+      "next_recession_start": "2001-04-01",
+      "months_uninvert_to_recession": 30.3
+    },
+    {
+      "inversion_start": "1998-10-05",
+      "uninversion": "1998-10-06",
+      "next_recession_start": "2001-04-01",
+      "months_uninvert_to_recession": 29.8
+    },
+    {
+      "inversion_start": "2000-04-07",
+      "uninversion": "2000-04-11",
+      "next_recession_start": "2001-04-01",
+      "months_uninvert_to_recession": 11.7
+    },
+    {
+      "inversion_start": "2000-07-07",
+      "uninversion": "2000-07-17",
+      "next_recession_start": "2001-04-01",
+      "months_uninvert_to_recession": 8.5
+    },
+    {
+      "inversion_start": "2000-07-19",
+      "uninversion": "2001-01-22",
+      "next_recession_start": "2001-04-01",
+      "months_uninvert_to_recession": 2.3
+    },
+    {
+      "inversion_start": "2001-02-09",
+      "uninversion": "2001-02-12",
+      "next_recession_start": "2001-04-01",
+      "months_uninvert_to_recession": 1.6
+    },
+    {
+      "inversion_start": "2006-01-17",
+      "uninversion": "2006-01-19",
+      "next_recession_start": "2008-01-01",
+      "months_uninvert_to_recession": 23.4
+    },
+    {
+      "inversion_start": "2006-01-23",
+      "uninversion": "2006-01-24",
+      "next_recession_start": "2008-01-01",
+      "months_uninvert_to_recession": 23.2
+    },
+    {
+      "inversion_start": "2006-02-22",
+      "uninversion": "2006-03-02",
+      "next_recession_start": "2008-01-01",
+      "months_uninvert_to_recession": 22.0
+    },
+    {
+      "inversion_start": "2006-07-17",
+      "uninversion": "2006-07-18",
+      "next_recession_start": "2008-01-01",
+      "months_uninvert_to_recession": 17.5
+    },
+    {
+      "inversion_start": "2006-07-19",
+      "uninversion": "2007-05-30",
+      "next_recession_start": "2008-01-01",
+      "months_uninvert_to_recession": 7.1
+    },
+    {
+      "inversion_start": "2007-07-20",
+      "uninversion": "2007-08-10",
+      "next_recession_start": "2008-01-01",
+      "months_uninvert_to_recession": 4.7
+    },
+    {
+      "inversion_start": "2007-08-27",
+      "uninversion": "2007-08-28",
+      "next_recession_start": "2008-01-01",
+      "months_uninvert_to_recession": 4.1
+    },
+    {
+      "inversion_start": "2019-03-22",
+      "uninversion": "2019-03-29",
+      "next_recession_start": "2020-03-01",
+      "months_uninvert_to_recession": 11.1
+    },
+    {
+      "inversion_start": "2019-05-13",
+      "uninversion": "2019-05-14",
+      "next_recession_start": "2020-03-01",
+      "months_uninvert_to_recession": 9.6
+    },
+    {
+      "inversion_start": "2019-05-15",
+      "uninversion": "2019-05-16",
+      "next_recession_start": "2020-03-01",
+      "months_uninvert_to_recession": 9.5
+    },
+    {
+      "inversion_start": "2019-05-23",
+      "uninversion": "2019-07-23",
+      "next_recession_start": "2020-03-01",
+      "months_uninvert_to_recession": 7.3
+    },
+    {
+      "inversion_start": "2019-07-24",
+      "uninversion": "2019-10-11",
+      "next_recession_start": "2020-03-01",
+      "months_uninvert_to_recession": 4.7
+    },
+    {
+      "inversion_start": "2020-01-31",
+      "uninversion": "2020-02-04",
+      "next_recession_start": "2020-03-01",
+      "months_uninvert_to_recession": 0.9
+    },
+    {
+      "inversion_start": "2020-02-10",
+      "uninversion": "2020-02-11",
+      "next_recession_start": "2020-03-01",
+      "months_uninvert_to_recession": 0.6
+    },
+    {
+      "inversion_start": "2020-02-18",
+      "uninversion": "2020-03-03",
+      "next_recession_start": null
+    },
+    {
+      "inversion_start": "2022-10-18",
+      "uninversion": "2022-10-19",
+      "next_recession_start": null
+    },
+    {
+      "inversion_start": "2022-10-25",
+      "uninversion": "2024-12-13",
+      "next_recession_start": null
+    },
+    {
+      "inversion_start": "2025-02-26",
+      "uninversion": "2025-03-24",
+      "next_recession_start": null
+    },
+    {
+      "inversion_start": "2025-03-25",
+      "uninversion": "2025-03-26",
+      "next_recession_start": null
+    },
+    {
+      "inversion_start": "2025-03-28",
+      "uninversion": "2025-04-10",
+      "next_recession_start": null
+    },
+    {
+      "inversion_start": "2025-04-16",
+      "uninversion": "2025-04-17",
+      "next_recession_start": null
+    },
+    {
+      "inversion_start": "2025-04-25",
+      "uninversion": "2025-05-02",
+      "next_recession_start": null
+    },
+    {
+      "inversion_start": "2025-05-06",
+      "uninversion": "2025-05-08",
+      "next_recession_start": null
+    },
+    {
+      "inversion_start": "2025-06-04",
+      "uninversion": "2025-06-06",
+      "next_recession_start": null
+    },
+    {
+      "inversion_start": "2025-06-11",
+      "uninversion": "2025-06-16",
+      "next_recession_start": null
+    },
+    {
+      "inversion_start": "2025-06-17",
+      "uninversion": "2025-07-08",
+      "next_recession_start": null
+    },
+    {
+      "inversion_start": "2025-07-09",
+      "uninversion": "2025-07-11",
+      "next_recession_start": null
+    },
+    {
+      "inversion_start": "2025-07-21",
+      "uninversion": "2025-07-24",
+      "next_recession_start": null
+    },
+    {
+      "inversion_start": "2025-07-25",
+      "uninversion": "2025-07-28",
+      "next_recession_start": null
+    },
+    {
+      "inversion_start": "2025-07-29",
+      "uninversion": "2025-08-15",
+      "next_recession_start": null
+    },
+    {
+      "inversion_start": "2025-08-20",
+      "uninversion": "2025-08-21",
+      "next_recession_start": null
+    },
+    {
+      "inversion_start": "2025-08-22",
+      "uninversion": "2025-08-29",
+      "next_recession_start": null
+    },
+    {
+      "inversion_start": "2025-09-08",
+      "uninversion": "2025-09-16",
+      "next_recession_start": null
+    },
+    {
+      "inversion_start": "2025-10-16",
+      "uninversion": "2025-10-17",
+      "next_recession_start": null
+    }
+  ],
+  "snapshot": {
+    "DFF": {
+      "date": "2026-07-27",
+      "value": 3.63
+    },
+    "FEDFUNDS": {
+      "date": "2026-06-01",
+      "value": 3.63
+    },
+    "DGS10": {
+      "date": "2026-07-27",
+      "value": 4.65
+    },
+    "DGS2": {
+      "date": "2026-07-27",
+      "value": 4.31
+    },
+    "T10Y2Y": {
+      "date": "2026-07-28",
+      "value": 0.35
+    },
+    "T10Y3M": {
+      "date": "2026-07-28",
+      "value": 0.71
+    },
+    "USREC": {
+      "date": "2026-06-01",
+      "value": 0.0
+    },
+    "SP500": {
+      "date": "2026-07-28",
+      "value": 7428.78
+    },
+    "NASDAQCOM": {
+      "date": "2026-07-28",
+      "value": 24876.91
+    },
+    "VIXCLS": {
+      "date": "2026-07-27",
+      "value": 18.67
+    },
+    "BAMLH0A0HYM2": {
+      "date": "2026-07-27",
+      "value": 2.81
+    },
+    "BAMLC0A0CM": {
+      "date": "2026-07-27",
+      "value": 0.81
+    },
+    "DCOILWTICO": {
+      "date": "2026-07-20",
+      "value": 84.38
+    },
+    "DTWEXBGS": {
+      "date": "2026-07-24",
+      "value": 120.7105
+    },
+    "UNRATE": {
+      "date": "2026-06-01",
+      "value": 4.2
+    },
+    "PAYEMS": {
+      "date": "2026-06-01",
+      "value": 158984.0
+    },
+    "CIVPART": {
+      "date": "2026-06-01",
+      "value": 61.5
+    },
+    "CES0500000003": {
+      "date": "2026-06-01",
+      "value": 37.64
+    },
+    "ICSA": {
+      "date": "2026-07-18",
+      "value": 187000.0
+    },
+    "CCSA": {
+      "date": "2026-07-11",
+      "value": 1796000.0
+    },
+    "JTSJOL": {
+      "date": "2026-05-01",
+      "value": 7594.0
+    },
+    "JTSQUR": {
+      "date": "2026-05-01",
+      "value": 1.9
+    },
+    "CPIAUCSL": {
+      "date": "2026-06-01",
+      "value": 332.568
+    },
+    "CPILFESL": {
+      "date": "2026-06-01",
+      "value": 336.065
+    },
+    "PCEPILFE": {
+      "date": "2026-05-01",
+      "value": 130.082
+    },
+    "GDP": {
+      "date": "2026-01-01",
+      "value": 31865.721
+    },
+    "INDPRO": {
+      "date": "2026-06-01",
+      "value": 102.6395
+    },
+    "USSLIND": {
+      "date": "2020-02-01",
+      "value": 1.72
+    },
+    "HOUST": {
+      "date": "2026-06-01",
+      "value": 1427.0
+    },
+    "CSUSHPINSA": {
+      "date": "2026-05-01",
+      "value": 335.104
+    },
+    "WALCL": {
+      "date": "2026-07-22",
+      "value": 6747378.0
+    },
+    "RRPONTSYD": {
+      "date": "2026-07-28",
+      "value": 1.126
+    },
+    "WRESBAL": {
+      "date": "2026-07-22",
+      "value": 3062149.0
+    },
+    "M2SL": {
+      "date": "2026-06-01",
+      "value": 23155.2
+    },
+    "WTREGEN": {
+      "date": "2026-07-22",
+      "value": 829623.0
+    },
+    "HDTGPDUSQ163N": {
+      "date": "2025-04-01",
+      "value": 68.54846214249969
+    },
+    "HY_spread_percentile_10y": 20.9,
+    "IG_spread_percentile_10y": 27.8,
+    "VIX_percentile_10y": 61.5,
+    "SP500_yoy": 0.1628,
+    "gold_yoy": null,
+    "M2_yoy": 0.0553,
+    "CPI_yoy": 0.0373,
+    "core_CPI_yoy": 0.0281,
+    "core_PCE_yoy": 0.0341,
+    "payroll_3m_avg_change_k": 111.3,
+    "LEI_yoy": 0.5636,
+    "WALCL_12m_change_bn": 89663.0
+  }
+}

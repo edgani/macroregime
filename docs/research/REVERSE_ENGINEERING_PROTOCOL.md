@@ -65,3 +65,30 @@ Any new signal or policy change follows this exact order, enforced by code:
 - Any technical-indicator signal or entry baseline (operator constraint).
 - Any intent classifier claiming manipulation detection (unsupported).
 - Any unlabeled proxy presented as truth.
+
+## Addendum R11 — operator article verdicts (2026-07-29)
+
+Article A ("OBBB + FOMC", Indonesian market letter, ~Aug 2025): MOSTLY ADOPTED.
+- Facts verified against FRED: OBBB deficit math, Jul-2025 hold 4.25-4.50%,
+  Waller+Bowman dissent, Q2'25 GDP 3.0% with weak final sales — accurate.
+  Its cut prediction validated ex-post (DFF 3.63 by 2026-07-29).
+- ADOPTED: (1) fiscal-liquidity channel as macro input (deficit/issuance
+  series backlog: FYFSD, GFDEBTN) — mechanism is fiscal, NOT QE, the article's
+  framing is corrected; (2) priced-vs-surprise principle -> policy expectation
+  gap proxy DGS2-DFF (data already collected); (3) JPY carry funding US
+  refinancing -> strengthens existing carry_trade_engine_v101 inputs.
+- REJECTED: "UST 2Y issuance signals 0% by 2027" (weak inference), "10-year x
+  100-year cycle crossing 2027" (numerology), conspiracy framing (unfalsifiable).
+
+Article B ("History rhymes: years ending 00-01 / 07-08"): REJECTED as signal.
+- Selection bias, multiple comparisons across 10 year-digit buckets, ad-hoc
+  reclassification (1914->1917, 1929 counted as 27-28), and the author himself
+  lists 1974-75 as a break. The NBER base rate (recession every ~6-7y) explains
+  the "2027-2029 crisis" hit rate without numerology. Fails
+  parameter-perturbation falsification by construction.
+- KEPT (data-driven rebuild, not narrative): (1) crisis-episode database
+  computed from SP500 history (all >=15% drawdown episodes: start, trough,
+  depth, duration, recovery) -> crash-meter calibration reference;
+  (2) Sep/Oct seasonality -> candidate only, requires a registered trial;
+  (3) debt-crisis-2027+ thesis -> Bayesian scenario (Estimate) in the macro
+  investigation, never a date.

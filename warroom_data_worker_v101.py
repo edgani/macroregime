@@ -21,6 +21,11 @@ def _build(fast:bool)->dict:
  import data_layer_v101 as DL
  CC.collect_all(fast=fast)
  desk=build_desk(DL.load_all(allow_live=False,allow_synthetic=False))
+ try:
+  from warroom6_bridge import build_market_intelligence
+  desk['market_intelligence']=build_market_intelligence()
+ except Exception as exc:
+  desk['market_intelligence']={'state':'UNAVAILABLE','error':f'{type(exc).__name__}: {exc}','macro_quad':None,'crash_meter':None}
  desk.setdefault('runtime',{}).update({'core_collected_at':now_iso(),'core_profile':'V101_OPERATIONAL_CURRENT_ACTION','refresh_type':'FAST' if fast else 'FULL'})
  return desk
 

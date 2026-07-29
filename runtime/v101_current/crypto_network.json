@@ -1,6 +1,6 @@
 {
   "schema": "warroom.v101.crypto_network.v1",
-  "generated_at": "2026-07-29T11:21:23Z",
+  "generated_at": "2026-07-29T12:44:41Z",
   "assets": {},
   "record_count": 0,
   "failures": [
@@ -9,5 +9,5 @@
     }
   ],
   "claim_limit": "Network collector unavailable; last-known records, if any, remain stale research context.",
-  "manifest_hash": "e158dbe28019826a7fd6ad7e95dbe44ee1026f779b68ae346e5628bb83c7400a"
+  "manifest_hash": "352b9faecaba8504f54065ce5b32fcae0fa6a59a04de33b9386c606bca2257eb"
 }

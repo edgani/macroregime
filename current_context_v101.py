@@ -55,10 +55,12 @@ FRED_SERIES: dict[str, dict[str, str]] = {
     "IRSTCI01CAM156N": {"market": "fx", "role": "cad_policy", "label": "Canada short-term interest rate"},
     # Commodity prices and physical proxies (economic/physical context, not alpha from chart patterns)
     "DCOILWTICO": {"market": "commodity", "role": "wti_spot", "label": "WTI spot price"},
-    "GOLDAMGBD228NLBM": {"market": "commodity", "role": "gold_spot", "label": "London gold price"},
     "PCOPPUSDM": {"market": "commodity", "role": "copper_global", "label": "Global copper price"},
+    "PWHEAMTUSDM": {"market": "commodity", "role": "wheat_global", "label": "Global wheat price"},
+    # US fiscal channel (reverse-engineered thesis: deficit + debt level pressure long yields)
+    "FYFSD": {"market": "us", "role": "fiscal_deficit", "label": "US federal surplus or deficit"},
+    "GFDEBTN": {"market": "us", "role": "fiscal_debt", "label": "US federal debt total public debt"},
     "DHHNGSP": {"market": "commodity", "role": "natgas_spot", "label": "Henry Hub natural gas"},
-    "WCESTUS1": {"market": "commodity", "role": "crude_inventory", "label": "US crude oil stocks excluding SPR"},
 }
 
 
@@ -249,7 +251,7 @@ def prioritized_universe(max_symbols: int | None = None) -> dict[str, list[dict[
     from bundled_research_reader_v99 import packet_universe, ticker_context_map
     core = json.loads((HERE / "V99_EXECUTION_REFERENCE_UNIVERSE.json").read_text(encoding="utf-8"))
     research = packet_universe(); contexts = ticker_context_map()
-    limit = max_symbols or max(20, int(os.getenv("WARROOM_SCAN_MAX_SYMBOLS", "300")))
+    limit = max_symbols or max(20, int(os.getenv("WARROOM_SCAN_MAX_SYMBOLS", "4000")))
     out: dict[str, list[dict[str, Any]]] = {m: [] for m in MARKETS}; seen: dict[str, set[str]] = {m: set() for m in MARKETS}
     for market in MARKETS:
         for row in core.get(market) or []:
@@ -275,6 +277,32 @@ def prioritized_universe(max_symbols: int | None = None) -> dict[str, list[dict[
         if not ticker or ticker in seen[market] or total >= limit:
             continue
         out[market].append(row); seen[market].add(ticker); total += 1
+
+    # Expanded bundled universe (universe_full.json): full IDX list, S&P500+NDX,
+    # top-100 crypto, 28 FX pairs, liquid futures. IDX listings misbucketed as
+    # US by the research layer are reclassified so quotes resolve via .JK.
+    try:
+        expanded = (json.loads((HERE / "universe_full.json").read_text(encoding="utf-8")).get("markets")) or {}
+    except Exception:
+        expanded = {}
+    idx_codes = {str(r.get("instrument") or "") for r in expanded.get("idx") or []}
+    if idx_codes:
+        rebucketed = []
+        for row in out["us"]:
+            t = str(row.get("instrument") or "")
+            if t in idx_codes:
+                if t not in seen["idx"] and total < limit:
+                    new = dict(row); new["instrument"] = t; new["provider_symbol"] = t + ".JK"; new["provider"] = "YAHOO"; new["asset_type"] = "EQUITY"
+                    out["idx"].append(new); seen["idx"].add(t); total += 1
+                seen["us"].discard(t)
+            else:
+                rebucketed.append(row)
+        out["us"] = rebucketed
+    for market in MARKETS:
+        for row in expanded.get(market) or []:
+            t = str(row.get("instrument") or "")
+            if t and t not in seen[market] and total < limit:
+                out[market].append(dict(row)); seen[market].add(t); total += 1
     return out
 
 

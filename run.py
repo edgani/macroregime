@@ -19,6 +19,46 @@ HERE = Path(__file__).resolve().parent
 MARKETS = ("us", "idx", "crypto", "commodity", "fx")
 
 
+def expanded_universe() -> dict[str, list[dict[str, Any]]]:
+    """Bundled expanded universe (tools_build_universe.py output)."""
+    try:
+        payload = json.loads((HERE / "universe_full.json").read_text(encoding="utf-8"))
+        markets = payload.get("markets") if isinstance(payload, Mapping) else None
+        return {m: list((markets or {}).get(m) or []) for m in MARKETS}
+    except Exception:
+        return {m: [] for m in MARKETS}
+
+
+def full_packet_universe() -> dict[str, list[dict[str, Any]]]:
+    """Research universe + expanded bundled universe, deduped.
+
+    Research rows win on duplicates. IDX listings that entered the research
+    layer misbucketed as US are reclassified to idx so quotes resolve via .JK.
+    """
+    research = packet_universe()
+    expanded = expanded_universe()
+    idx_codes = {str(r.get("instrument") or "") for r in expanded["idx"]}
+    out: dict[str, list[dict[str, Any]]] = {m: [] for m in MARKETS}
+    seen: dict[str, set[str]] = {m: set() for m in MARKETS}
+    for market in MARKETS:
+        for row in research.get(market) or []:
+            t = str(row.get("instrument") or "")
+            if not t:
+                continue
+            if market == "us" and t in idx_codes:
+                if t not in seen["idx"]:
+                    out["idx"].append({**dict(row), "instrument": t, "market": "idx"}); seen["idx"].add(t)
+                continue
+            if t not in seen[market]:
+                out[market].append(dict(row)); seen[market].add(t)
+    for market in MARKETS:
+        for row in expanded.get(market) or []:
+            t = str(row.get("instrument") or "")
+            if t and t not in seen[market]:
+                out[market].append(dict(row)); seen[market].add(t)
+    return out
+
+
 def _utc_now() -> str:
     return dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
@@ -177,7 +217,7 @@ def build_desk(data: Mapping[str, Any], top_per_market: int = 0) -> dict[str, An
             "release": "War Room OS V10.1 Carry-Aware Operational Research and Shadow Trading", "version": "10.1", "generated": _utc_now(),
             "source": str(data.get("overall_source") or "BUNDLED_RESEARCH_AVAILABLE"), "sources": dict(data.get("sources") or {}),
             "fred_source": str(data.get("fred_source") or "NO_CURRENT_FRED"),
-            "universe_n": sum(len(v) for v in packet_universe().values()),
+            "universe_n": sum(len(v) for v in full_packet_universe().values()),
             "note": "Real bundled research is shown even when capital is blocked. Economics, fundamentals, expectations, flow, positioning, bottlenecks, valuation and causal transmission only; price is reference/outcome, never the active predictor.",
         },
         "systemic": {
@@ -189,11 +229,11 @@ def build_desk(data: Mapping[str, Any], top_per_market: int = 0) -> dict[str, An
         },
         "macro_observations": _macro_observations(data), "markets": markets,
         "execution_quotes": data.get("quotes") or {}, "public_sources": data.get("public_sources") or {},
-        "bundled_research": bundled, "universe_summary": {"research_universe": {m: len(v) for m, v in packet_universe().items()}, "reference_counts": refs},
+        "bundled_research": bundled, "universe_summary": {"research_universe": {m: len(v) for m, v in packet_universe().items()}, "expanded_universe": {m: len(v) for m, v in expanded_universe().items()}, "reference_counts": refs},
         "data_health": {}, "validation_context": _validation_summary(data),
     }
     desk["data_health"] = _data_health(data); desk = attach_research_kernel(desk)
-    packets, alpha_center, action_state = build_packets(markets=markets, quotes=desk.get("execution_quotes") or {}, universe=packet_universe(), proof_registry=desk.get("proof_registry") or {}, current_context=data.get("current_context") or {})
+    packets, alpha_center, action_state = build_packets(markets=markets, quotes=desk.get("execution_quotes") or {}, universe=full_packet_universe(), proof_registry=desk.get("proof_registry") or {}, current_context=data.get("current_context") or {})
     desk["ticker_packets"] = packets; desk["alpha_center"] = alpha_center; desk["current_action_state"] = action_state; desk["carry_trade"] = action_state.get("carry_trade") or {}; desk["current_context"] = data.get("current_context") or {}
     try:
         from trading_readiness_v99 import audit as audit_trading
@@ -234,6 +274,45 @@ def build_desk(data: Mapping[str, Any], top_per_market: int = 0) -> dict[str, An
         "next_actions": ["Refresh current context", "Review carry direction and unwind risk", "Review current LONG/SHORT biases", "Record eligible shadow trades prospectively", "Promote systematic live only after exact proof"],
     }
     desk["data_and_proof"] = {"source_health": desk["data_health"], "public_source_summary": desk["public_sources"], "bundled_inventory": inv, "validation_context": desk["validation_context"], "proof_registry": desk.get("proof_registry") or {}, "trading_readiness": desk.get("trading_readiness") or {}, "claim_limit": "Data availability and capital permission are intentionally separate."}
+    return _slim_for_snapshot(desk)
+
+
+_SLIM_PACKET_KEYS = ("decision", "current_action", "thesis_frame", "thesis_lifecycle", "projection", "research_context", "quote")
+_SLIM_ROW_KEYS = ("market", "market_label", "ticker", "data_status", "current_action", "thesis_frame", "thesis_lifecycle")
+
+
+def _slim_for_snapshot(desk: dict[str, Any]) -> dict[str, Any]:
+    """Keep the serialized snapshot browser-sized with the full universe.
+
+    The desk used to embed the same per-ticker payload three times
+    (ticker_packets, alpha_center, current_action_state.alpha_center) —
+    fine at 272 tickers, 55MB at 1700.  Research-context tickers keep full
+    packets; the rest keep thesis/lifecycle/quote/decision (the packet view
+    renders missing sections as honest '—').  The watchlist renders only the
+    top 30 in the UI, so only those are embedded (total kept as a count).
+    """
+    research_set = {m: {str(r.get("instrument") or "") for r in rows} for m, rows in packet_universe().items()}
+    packets = desk.get("ticker_packets") or {}
+    for market, pk in packets.items():
+        rs = research_set.get(market) or set()
+        for ticker, packet in list(pk.items()):
+            if ticker not in rs and isinstance(packet, dict):
+                pk[ticker] = {k: packet[k] for k in _SLIM_PACKET_KEYS if k in packet}
+    alpha = dict(desk.get("alpha_center") or {})
+
+    def _row(r: Mapping[str, Any]) -> dict[str, Any]:
+        return {k: r[k] for k in _SLIM_ROW_KEYS if k in r}
+
+    watch = alpha.get("research_watchlist") or []
+    alpha["research_watchlist_total"] = len(watch)
+    alpha["research_watchlist"] = [_row(r) for r in watch[:30]]
+    alpha["research_biases"] = [_row(r) for r in (alpha.get("research_biases") or [])]
+    alpha["shadow_candidates"] = [_row(r) for r in (alpha.get("shadow_candidates") or [])]
+    desk["alpha_center"] = alpha
+    action_state = dict(desk.get("current_action_state") or {})
+    if "alpha_center" in action_state:
+        action_state["alpha_center"] = {"note": "single source of truth: desk.alpha_center", "research_watchlist_total": alpha["research_watchlist_total"]}
+    desk["current_action_state"] = action_state
     return desk
 
 

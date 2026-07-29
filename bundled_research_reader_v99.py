@@ -401,6 +401,16 @@ def ticker_context(ticker: str, market: str) -> dict[str, Any]:
     return row
 
 
+def _quarantine() -> set[str]:
+    """Tickers verified as invalid references (absent from the IDX registry and
+    unresolvable on public quote sources).  Fail-closed: skip, don't guess."""
+    try:
+        payload = json.loads((HERE / "universe_quarantine.json").read_text(encoding="utf-8"))
+        return {str(t).strip().upper() for t in (payload.get("tickers") or [])}
+    except Exception:
+        return set()
+
+
 def packet_universe() -> dict[str, list[dict[str, Any]]]:
     """Research packet universe.  This is deliberately distinct from the quote-collection universe."""
     contexts = ticker_context_map()
@@ -415,6 +425,8 @@ def packet_universe() -> dict[str, list[dict[str, Any]]]:
         if ticker.endswith(".JK"):
             market = "idx"; ticker = ticker[:-3]
         if ticker in {"BTC-USD", "ETH-USD", "SOL-USD", "CL=F", "BZ=F"}:
+            continue
+        if ticker.upper() in _quarantine():
             continue
         if market == "us" and (not re.fullmatch(r"[A-Z]{1,5}", ticker) or ticker in non_us_reference_names):
             continue

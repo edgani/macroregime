@@ -1,6 +1,6 @@
 {
   "schema": "warroom.v101.current_macro.v1",
-  "generated_at": "2026-07-29T11:21:22Z",
+  "generated_at": "2026-07-29T12:35:22Z",
   "series": {
     "BAMLH0A0HYM2": {
       "series_id": "BAMLH0A0HYM2",
@@ -15,12 +15,12 @@
       "pct_change_3": 0.04850746268656714,
       "pct_change_12": 0.040740740740740744,
       "observation_timestamp": "2026-07-27T00:00:00",
-      "collected_at": "2026-07-29T11:21:08Z",
+      "collected_at": "2026-07-29T12:35:19Z",
       "source": {
         "http_status": 200,
         "content_type": "application/csv",
         "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=BAMLH0A0HYM2",
-        "latency_ms": 203.0,
+        "latency_ms": 469.0,
         "raw_sha256": "b8698c7f4613d89fa58fa3222c29b17883dde17030f6095d52db30dfd9c8fa11"
       },
       "point_in_time_eligible": false,
@@ -39,12 +39,12 @@
       "pct_change_3": 0.006887823841255969,
       "pct_change_12": 0.037265298484186804,
       "observation_timestamp": "2026-06-01T00:00:00",
-      "collected_at": "2026-07-29T11:21:08Z",
+      "collected_at": "2026-07-29T12:35:17Z",
       "source": {
         "http_status": 200,
         "content_type": "application/csv",
         "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=CPIAUCSL",
-        "latency_ms": 282.0,
+        "latency_ms": 485.0,
         "raw_sha256": "2efffad3305f5adef58e84b06f268811123534805d5d7358f633cdb7e8c1aedb"
       },
       "point_in_time_eligible": false,
@@ -63,12 +63,12 @@
       "pct_change_3": 0.045212436516784305,
       "pct_change_12": 0.20992256954402078,
       "observation_timestamp": "2026-07-20T00:00:00",
-      "collected_at": "2026-07-29T11:21:10Z",
+      "collected_at": "2026-07-29T12:35:21Z",
       "source": {
         "http_status": 200,
         "content_type": "application/csv",
         "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DCOILWTICO",
-        "latency_ms": 422.0,
+        "latency_ms": 594.0,
         "raw_sha256": "644ca4ba9d2094688d3f968cc4e8e6d880aea8fd20e8bc9391121b0e987ea76d"
       },
       "point_in_time_eligible": false,
@@ -87,12 +87,12 @@
       "pct_change_3": 0.0,
       "pct_change_12": 0.0,
       "observation_timestamp": "2026-07-27T00:00:00",
-      "collected_at": "2026-07-29T11:21:09Z",
+      "collected_at": "2026-07-29T12:35:19Z",
       "source": {
         "http_status": 200,
         "content_type": "application/csv",
         "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFF",
-        "latency_ms": 625.0,
+        "latency_ms": 844.0,
         "raw_sha256": "480f78e82c63192decf8a9c001fad88c238667e14ccb58184879546c67b03028"
       },
       "point_in_time_eligible": false,
@@ -111,12 +111,12 @@
       "pct_change_3": 0.02092050209205021,
       "pct_change_12": 0.05627705627705626,
       "observation_timestamp": "2026-07-27T00:00:00",
-      "collected_at": "2026-07-29T11:21:08Z",
+      "collected_at": "2026-07-29T12:35:18Z",
       "source": {
         "http_status": 200,
         "content_type": "application/csv",
         "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFII10",
-        "latency_ms": 343.0,
+        "latency_ms": 547.0,
         "raw_sha256": "e29681efcaeb24e82f4f90697dfe687d959ecb8d23632a28f459618fbeae9daf"
       },
       "point_in_time_eligible": false,
@@ -135,12 +135,12 @@
       "pct_change_3": -0.004282655246252598,
       "pct_change_12": 0.02422907488986792,
       "observation_timestamp": "2026-07-27T00:00:00",
-      "collected_at": "2026-07-29T11:21:09Z",
+      "collected_at": "2026-07-29T12:35:19Z",
       "source": {
         "http_status": 200,
         "content_type": "application/csv",
         "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS10",
-        "latency_ms": 500.0,
+        "latency_ms": 734.0,
         "raw_sha256": "f5430a285309b0fa83a0b082d59049e4c4f77cb52092c0c7a06b7838a8a7a027"
       },
       "point_in_time_eligible": false,
@@ -159,12 +159,12 @@
       "pct_change_3": 0.0,
       "pct_change_12": 0.03605769230769207,
       "observation_timestamp": "2026-07-27T00:00:00",
-      "collected_at": "2026-07-29T11:21:09Z",
+      "collected_at": "2026-07-29T12:35:19Z",
       "source": {
         "http_status": 200,
         "content_type": "application/csv",
         "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS2",
-        "latency_ms": 438.0,
+        "latency_ms": 719.0,
         "raw_sha256": "d6a8ac411b6036591c1e6b8a919a38853627d85ee58d77de3f68e50c6b566b36"
       },
       "point_in_time_eligible": false,
@@ -183,12 +183,12 @@
       "pct_change_3": 0.0,
       "pct_change_12": -0.16167664670658688,
       "observation_timestamp": "2026-07-20T00:00:00",
-      "collected_at": "2026-07-29T11:21:10Z",
+      "collected_at": "2026-07-29T12:35:22Z",
       "source": {
         "http_status": 200,
         "content_type": "application/csv",
         "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DHHNGSP",
-        "latency_ms": 390.0,
+        "latency_ms": 594.0,
         "raw_sha256": "744bf72aa80cf53e89e2504768d2b9f72ab82659f13e76cf8ccba287e3e520d0"
       },
       "point_in_time_eligible": false,
@@ -207,12 +207,12 @@
       "pct_change_3": 0.00109970400877768,
       "pct_change_12": -0.003468980200725391,
       "observation_timestamp": "2026-07-24T00:00:00",
-      "collected_at": "2026-07-29T11:21:09Z",
+      "collected_at": "2026-07-29T12:35:20Z",
       "source": {
         "http_status": 200,
         "content_type": "application/csv",
         "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DTWEXBGS",
-        "latency_ms": 359.0,
+        "latency_ms": 531.0,
         "raw_sha256": "d9cc6a2f607514cdcf528b36492812ddde37ec1447b3218533a0fc9705049bbb"
       },
       "point_in_time_eligible": false,
@@ -230,14 +230,62 @@
       "change_12": 0.0,
       "pct_change_3": 0.0,
       "pct_change_12": 0.0,
-      "observation_timestamp": "2026-07-28T00:00:00",
-      "collected_at": "2026-07-29T11:21:09Z",
+      "observation_timestamp": "2026-07-29T00:00:00",
+      "collected_at": "2026-07-29T12:35:22Z",
       "source": {
         "http_status": 200,
         "content_type": "application/csv",
         "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=ECBDFR",
-        "latency_ms": 454.0,
-        "raw_sha256": "9f08f2466f43a5703d37f987916cf855ce40e01b915f46f255816fd1319119da"
+        "latency_ms": 2641.0,
+        "raw_sha256": "5217a56bbe8ee3dd7580ad9a516e407c408f3e61fb691c0fde6ac3de2ffde7e4"
+      },
+      "point_in_time_eligible": false,
+      "availability_semantics": "Current-vintage context; historical proof requires vintages/available_at."
+    },
+    "FYFSD": {
+      "series_id": "FYFSD",
+      "market": "us",
+      "role": "fiscal_deficit",
+      "label": "US federal surplus or deficit",
+      "value": -1774684.0,
+      "previous": -1815377.0,
+      "change_1": 40693.0,
+      "change_3": -400513.0,
+      "change_12": -1094909.0,
+      "pct_change_3": 0.29145790443838493,
+      "pct_change_12": 1.6106932440881172,
+      "observation_timestamp": "2025-09-30T00:00:00",
+      "collected_at": "2026-07-29T12:35:22Z",
+      "source": {
+        "http_status": 200,
+        "content_type": "application/csv",
+        "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=FYFSD",
+        "latency_ms": 656.0,
+        "raw_sha256": "f4e5b30165d969da81b40df3618399e7f68746e2594b07e8e3515ae8deaf4e5a"
+      },
+      "point_in_time_eligible": false,
+      "availability_semantics": "Current-vintage context; historical proof requires vintages/available_at."
+    },
+    "GFDEBTN": {
+      "series_id": "GFDEBTN",
+      "market": "us",
+      "role": "fiscal_debt",
+      "label": "US federal debt total public debt",
+      "value": 39065421.0,
+      "previous": 38514009.0,
+      "change_1": 551412.0,
+      "change_3": 2853952.0,
+      "change_12": 7606983.0,
+      "pct_change_3": 0.0788134830984073,
+      "pct_change_12": 0.24181057559183317,
+      "observation_timestamp": "2026-01-01T00:00:00",
+      "collected_at": "2026-07-29T12:35:22Z",
+      "source": {
+        "http_status": 200,
+        "content_type": "application/csv",
+        "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=GFDEBTN",
+        "latency_ms": 438.0,
+        "raw_sha256": "2bac89ada53a9fd94affe958254a389275d87ca842f9c5943c834cc4f115a9ef"
       },
       "point_in_time_eligible": false,
       "availability_semantics": "Current-vintage context; historical proof requires vintages/available_at."
@@ -255,12 +303,12 @@
       "pct_change_3": 0.010060304751557725,
       "pct_change_12": 0.011440847075981697,
       "observation_timestamp": "2026-06-01T00:00:00",
-      "collected_at": "2026-07-29T11:21:08Z",
+      "collected_at": "2026-07-29T12:35:18Z",
       "source": {
         "http_status": 200,
         "content_type": "application/csv",
         "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=INDPRO",
-        "latency_ms": 344.0,
+        "latency_ms": 531.0,
         "raw_sha256": "a31dbb5933696e55a60e2dc44536ddde300a024e6c40022eabde1d2a0fd0e8f5"
       },
       "point_in_time_eligible": false,
@@ -279,12 +327,12 @@
       "pct_change_3": 0.0984848484848484,
       "pct_change_12": 0.1298701298701297,
       "observation_timestamp": "2026-06-01T00:00:00",
-      "collected_at": "2026-07-29T11:21:09Z",
+      "collected_at": "2026-07-29T12:35:20Z",
       "source": {
         "http_status": 200,
         "content_type": "application/csv",
         "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=IRSTCI01AUM156N",
-        "latency_ms": 234.0,
+        "latency_ms": 797.0,
         "raw_sha256": "493fba833b84b8a992a0c13c0e5abfd6dbec6ca0170016259af68085cd235859"
       },
       "point_in_time_eligible": false,
@@ -303,12 +351,12 @@
       "pct_change_3": 0.0050973959897089305,
       "pct_change_12": -0.17376759440623135,
       "observation_timestamp": "2026-06-01T00:00:00",
-      "collected_at": "2026-07-29T11:21:09Z",
+      "collected_at": "2026-07-29T12:35:21Z",
       "source": {
         "http_status": 200,
         "content_type": "application/csv",
         "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=IRSTCI01CAM156N",
-        "latency_ms": 235.0,
+        "latency_ms": 875.0,
         "raw_sha256": "4e6315fa3da8ded0121a6243322f98f3bac52dbc95090d2acdc5c4e76e232b6d"
       },
       "point_in_time_eligible": false,
@@ -327,12 +375,12 @@
       "pct_change_3": 0.00024135804124547633,
       "pct_change_12": -0.11498671222475332,
       "observation_timestamp": "2026-06-01T00:00:00",
-      "collected_at": "2026-07-29T11:21:09Z",
+      "collected_at": "2026-07-29T12:35:20Z",
       "source": {
         "http_status": 200,
         "content_type": "application/csv",
         "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=IRSTCI01GBM156N",
-        "latency_ms": 250.0,
+        "latency_ms": 718.0,
         "raw_sha256": "4bbd2e25504afebb59a84632b8a85a5a529a6d54f7ae595434538bac5faf28fb"
       },
       "point_in_time_eligible": false,
@@ -351,12 +399,12 @@
       "pct_change_3": 0.1552197802197801,
       "pct_change_12": 0.7631027253668763,
       "observation_timestamp": "2026-06-01T00:00:00",
-      "collected_at": "2026-07-29T11:21:09Z",
+      "collected_at": "2026-07-29T12:35:20Z",
       "source": {
         "http_status": 200,
         "content_type": "application/csv",
         "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=IRSTCI01JPM156N",
-        "latency_ms": 218.0,
+        "latency_ms": 703.0,
         "raw_sha256": "ddead0b09f4a9fc148c528944b91ce73302841b5d43ee249650f0c07e17888b6"
       },
       "point_in_time_eligible": false,
@@ -375,12 +423,12 @@
       "pct_change_3": 0.002105263157894832,
       "pct_change_12": 0.003192872196771779,
       "observation_timestamp": "2026-06-01T00:00:00",
-      "collected_at": "2026-07-29T11:21:08Z",
+      "collected_at": "2026-07-29T12:35:18Z",
       "source": {
         "http_status": 200,
         "content_type": "application/csv",
         "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=PAYEMS",
-        "latency_ms": 297.0,
+        "latency_ms": 516.0,
         "raw_sha256": "177efe81de346565992ed81e5f62fbfe6740d300762f898bf9cca6be304b4d69"
       },
       "point_in_time_eligible": false,
@@ -399,12 +447,12 @@
       "pct_change_3": 0.015346729556349858,
       "pct_change_12": 0.04072638075644863,
       "observation_timestamp": "2026-05-01T00:00:00",
-      "collected_at": "2026-07-29T11:21:08Z",
+      "collected_at": "2026-07-29T12:35:18Z",
       "source": {
         "http_status": 200,
         "content_type": "application/csv",
         "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=PCEPI",
-        "latency_ms": 234.0,
+        "latency_ms": 547.0,
         "raw_sha256": "19efa5fc5c979683589de9d8bd8c513ad755e41bc1173ad2fd0f34c38645c333"
       },
       "point_in_time_eligible": false,
@@ -423,13 +471,37 @@
       "pct_change_3": 0.0816789119361161,
       "pct_change_12": 0.3779305621333202,
       "observation_timestamp": "2026-06-01T00:00:00",
-      "collected_at": "2026-07-29T11:21:10Z",
+      "collected_at": "2026-07-29T12:35:21Z",
       "source": {
         "http_status": 200,
         "content_type": "application/csv",
         "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=PCOPPUSDM",
-        "latency_ms": 203.0,
+        "latency_ms": 796.0,
         "raw_sha256": "0a2515207f7c83c3da27cd4ba1f298bce40629810b5c38df47af5889b41b8117"
+      },
+      "point_in_time_eligible": false,
+      "availability_semantics": "Current-vintage context; historical proof requires vintages/available_at."
+    },
+    "PWHEAMTUSDM": {
+      "series_id": "PWHEAMTUSDM",
+      "market": "commodity",
+      "role": "wheat_global",
+      "label": "Global wheat price",
+      "value": 199.6482875619048,
+      "previous": 220.88455216666657,
+      "change_1": -21.23626460476177,
+      "change_3": 5.77116547857139,
+      "change_12": 26.453524080238196,
+      "pct_change_3": 0.029767129904531897,
+      "pct_change_12": 0.15273859063896245,
+      "observation_timestamp": "2026-06-01T00:00:00",
+      "collected_at": "2026-07-29T12:35:22Z",
+      "source": {
+        "http_status": 200,
+        "content_type": "application/csv",
+        "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=PWHEAMTUSDM",
+        "latency_ms": 891.0,
+        "raw_sha256": "88e73eb019300b3299cfe7b5089af55ad694b7ac293a73b338ad8181050050d1"
       },
       "point_in_time_eligible": false,
       "availability_semantics": "Current-vintage context; historical proof requires vintages/available_at."
@@ -447,12 +519,12 @@
       "pct_change_3": 0.24557522123893794,
       "pct_change_12": 1.0660550458715594,
       "observation_timestamp": "2026-07-28T00:00:00",
-      "collected_at": "2026-07-29T11:21:08Z",
+      "collected_at": "2026-07-29T12:35:18Z",
       "source": {
         "http_status": 200,
         "content_type": "application/csv",
         "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=RRPONTSYD",
-        "latency_ms": 360.0,
+        "latency_ms": 532.0,
         "raw_sha256": "7c08844c17990463cee16629384a6fec1d691071659d99d68b416af4871aa422"
       },
       "point_in_time_eligible": false,
@@ -471,12 +543,12 @@
       "pct_change_3": -0.0350877192982455,
       "pct_change_12": -0.017857142857142905,
       "observation_timestamp": "2026-07-28T00:00:00",
-      "collected_at": "2026-07-29T11:21:08Z",
+      "collected_at": "2026-07-29T12:35:19Z",
       "source": {
         "http_status": 200,
         "content_type": "application/csv",
         "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=T10YIE",
-        "latency_ms": 375.0,
+        "latency_ms": 578.0,
         "raw_sha256": "ac89737525b06dc77161dbfc23e8a32dfcf9f6fdec5455076398bf4707ea4916"
       },
       "point_in_time_eligible": false,
@@ -495,12 +567,12 @@
       "pct_change_3": 0.12199519230769229,
       "pct_change_12": 0.17866161616161635,
       "observation_timestamp": "2026-07-27T00:00:00",
-      "collected_at": "2026-07-29T11:21:09Z",
+      "collected_at": "2026-07-29T12:35:19Z",
       "source": {
         "http_status": 200,
         "content_type": "application/csv",
         "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=VIXCLS",
-        "latency_ms": 437.0,
+        "latency_ms": 610.0,
         "raw_sha256": "36739bdf4575f1aac09b11afc338cf692f097d8465a1703d19462c7940fdc076"
       },
       "point_in_time_eligible": false,
@@ -519,12 +591,12 @@
       "pct_change_3": 0.0033926363106961954,
       "pct_change_12": 0.007078858797453735,
       "observation_timestamp": "2026-07-22T00:00:00",
-      "collected_at": "2026-07-29T11:21:08Z",
+      "collected_at": "2026-07-29T12:35:18Z",
       "source": {
         "http_status": 200,
         "content_type": "application/csv",
         "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=WALCL",
-        "latency_ms": 250.0,
+        "latency_ms": 453.0,
         "raw_sha256": "c851a2b364e356ebcecf0c4a957f2f917c0b87fb2755d2b99c3d03887b289cc4"
       },
       "point_in_time_eligible": false,
@@ -543,29 +615,20 @@
       "pct_change_3": -0.05750042318148407,
       "pct_change_12": -0.15510897427410741,
       "observation_timestamp": "2026-07-22T00:00:00",
-      "collected_at": "2026-07-29T11:21:08Z",
+      "collected_at": "2026-07-29T12:35:18Z",
       "source": {
         "http_status": 200,
         "content_type": "application/csv",
         "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=WTREGEN",
-        "latency_ms": 281.0,
+        "latency_ms": 859.0,
         "raw_sha256": "d7c89c666bc61dbe9938a231262a04a90c90d42a38883ce9cab88c3ee36257c7"
       },
       "point_in_time_eligible": false,
       "availability_semantics": "Current-vintage context; historical proof requires vintages/available_at."
     }
   },
-  "series_count": 23,
-  "failures": [
-    {
-      "series_id": "GOLDAMGBD228NLBM",
-      "error": "HTTPError: HTTP Error 404: Not Found"
-    },
-    {
-      "series_id": "WCESTUS1",
-      "error": "HTTPError: HTTP Error 404: Not Found"
-    }
-  ],
+  "series_count": 26,
+  "failures": [],
   "claim_limit": "Current-vintage macro/physical observations are research context, not reconstructed historical release evidence.",
-  "manifest_hash": "1cdf0db434fbb6178f9c9c27383d71723b2970bdf3bd38f13cb4d9cd4a7dad0b"
+  "manifest_hash": "faaa370edbd06bc2a2440c0ac06f2049f8b34a4847ea4b856061209ff47ceb97"
 }

@@ -1,6 +1,6 @@
 {
   "schema": "warroom.v101.official_policy_rates.v1",
-  "generated_at": "2026-07-29T11:22:03Z",
+  "generated_at": "2026-07-29T12:45:20Z",
   "rates": {
     "BI_7DRR": {
       "label": "Bank Indonesia 7-Day Reverse Repo Rate",
@@ -31,5 +31,5 @@
     }
   ],
   "claim_limit": "Current policy anchors only; no historical point-in-time proof is inferred.",
-  "manifest_hash": "61855643ecf3312457d32de2c3bea0a44ca98bb3b5465e7576f4180e4d1117d6"
+  "manifest_hash": "bf86922988a64b066fbff990a8c18626222ff02a442fdbf35e26002189413a97"
 }

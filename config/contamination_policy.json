@@ -1,0 +1,21 @@
+{
+  "schema": "warroom.contamination_policy.v1",
+  "attested_by": "operator",
+  "attested_at": "2026-07-29T02:45:00Z",
+  "assumed_max_model_training_cutoff": "2026-01-01",
+  "attestations": {
+    "llm_in_signal_path": false,
+    "named_factor_semantics_visible_to_llm": true,
+    "model_blind_signal_ids_used": false,
+    "independent_data_custodian_used": false,
+    "low_contamination_asset_holdout": false
+  },
+  "notes": {
+    "llm_in_signal_path": "V10.1 signal path is a fixed JSON policy plus a deterministic Python engine (action_engine_v101.py); no LLM scores, ranks, selects, or sizes any shadow position.",
+    "named_factor_semantics_visible_to_llm": "Honest true: the research/design phase used public factor names and LLM-assisted development. This is exactly the V84 failure mode; it blocks the capital tier until mitigated by blind IDs, a custodian, and holdouts.",
+    "model_blind_signal_ids_used": "Tickers are named in forecasts. Acceptable for shadow scoring while llm_in_signal_path is false; insufficient for capital.",
+    "independent_data_custodian_used": "Single-operator infrastructure. Required before any capital tier pass.",
+    "low_contamination_asset_holdout": "Not yet established. Required before any capital tier pass.",
+    "assumed_max_model_training_cutoff": "Conservative bound: frontier model cutoffs extend into late 2025. Shadow outcomes mature 2026-10-27 or later, i.e. strictly after this bound."
+  }
+}

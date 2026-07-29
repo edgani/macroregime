@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
 from shadow_execution_ledger_v95 import verify  # noqa: E402
+from warroom.research.contamination_gates import evaluate_contamination  # noqa: E402
 
 MANDATE_FORECAST_FIELDS = (
     "forecast_id", "trial_id", "market", "security_id", "generated_at", "decision_at",
@@ -113,6 +114,7 @@ def build_evaluation(ledger_path: str | Path) -> dict:
         "evidence_status": evidence_status,
         "note": note,
         "capital_permission": "BLOCKED",
+        "contamination": evaluate_contamination(path),
         "field_coverage": field_coverage,
         "summary": summary,
         "matured": matured,

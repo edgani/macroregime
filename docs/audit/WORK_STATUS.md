@@ -36,5 +36,5 @@
 
 Branch `kimi-warroom-final-audit`, R0-R8 audit commits + R9.0-R9.4.
 Prospective accumulation: ACTIVE (12 shadow forecasts/day cap, first outcomes
-mature ~2026-10-27). Capital: BLOCKED (contamination capital tier fails on
+mature ~2027-01-25). Capital: BLOCKED (contamination capital tier fails on
 custodian/blind-ID/holdout gates, honestly attested).

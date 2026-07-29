@@ -41,14 +41,14 @@ close the gaps identified against the WriteVerso LLM-contamination article
 | Immutable ledger, tamper-evident | DONE (hash chains, full recompute verification) |
 | Purged walk-forward + embargo + lockbox | PRE-EXISTING (warroom/research/walkforward.py) |
 | PBO / DSR vs true trial count | PARTIAL: local implementations exist (V84); DSR wired to global count is future work (R10 candidate) |
-| Prospective outcomes primary | DONE (ledger + recorder; first outcomes mature ~2026-10-27) |
+| Prospective outcomes primary | DONE (ledger + recorder; first outcomes mature ~2027-01-25) |
 | LLM out of truth-bearing computation | DONE for V10.1 path (deterministic engine, attested, gate-enforced) |
 | Schema isolation / clean model for text | NOT APPLICABLE yet (no LLM in signal path); required design constraint if an LLM is ever added (R10 candidate) |
 | Human gate before capital | PRE-EXISTING + re-asserted (capital BLOCKED everywhere; no broker path) |
 
 ## What is NOT done (honest)
 
-- No matured outcomes exist. First maturity ~2026-10-27 (90D horizon).
+- No matured outcomes exist. First maturity ~2027-01-25 (180D horizon, per V10.1 policy).
 - >=30 matured observations required before the evaluator permits even a
   forming-sample label; capital evaluation requires the capital tier of the
   contamination verdict plus a pre-registered evaluation window.

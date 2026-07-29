@@ -56,7 +56,7 @@
 ## Verification results (2026-07-29, R9)
 
 1. First live cycle committed (R9.0): 12 FORECAST + 12 ORDER_INTENT + 12 SHADOW_FILL,
-   hash-chain verify valid, zero errors. First outcomes mature ~2026-10-27 (90D horizon).
+   hash-chain verify valid, zero errors. First outcomes mature ~2027-01-25 (180D horizon, per V10.1 policy).
 2. Outcome recorder (R9.1): 10/10 tests; live dry-run reports 12 pending unmatured, 0 created.
 3. Trial counter (R9.2): both registry chains verify (full hash recompute);
    `V101_FIXED_ACTION_POLICY` registered prospectively (entry 6); shadow_runner refuses

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<title>War Room — Thesis Board (Lampu Merah)</title>
+<style>
+  :root{--bg:#050811;--panel:#0b1220;--line:#1c2942;--txt:#dbe4f5;--dim:#7d8db0;
+        --red:#ff5a5a;--yel:#ffc94d;--grn:#39d98a;--blu:#4da3ff;}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.45 ui-monospace,Consolas,monospace;padding:18px}
+  h1{font-size:18px;margin:0 0 4px}
+  .sub{color:var(--dim);font-size:12px;margin-bottom:14px}
+  .cards{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:10px 14px;min-width:180px}
+  .card b{font-size:20px}
+  .lamp{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+  .RED{background:var(--red)}.YELLOW{background:var(--yel)}.GREEN{background:var(--grn)}.BLUE{background:var(--blu)}
+  .tabs{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+  .tabs button{background:var(--panel);color:var(--dim);border:1px solid var(--line);border-radius:6px;padding:5px 12px;cursor:pointer;font:inherit}
+  .tabs button.on{color:var(--txt);border-color:var(--blu)}
+  table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  th,td{padding:7px 10px;text-align:left;border-bottom:1px solid var(--line);font-size:12.5px;vertical-align:top}
+  th{color:var(--dim);font-weight:600;position:sticky;top:0;background:var(--panel)}
+  tr:last-child td{border-bottom:none}
+  .num{text-align:right;font-variant-numeric:tabular-nums}
+  .dim{color:var(--dim)}
+  .group{margin:18px 0 6px;font-size:13px;font-weight:700}
+  .badge{border:1px solid var(--line);border-radius:4px;padding:1px 6px;font-size:11px}
+  .err{color:var(--red)}
+</style>
+</head>
+<body>
+<h1>War Room — Thesis Board</h1>
+<div class="sub" id="meta">memuat…</div>
+
+<div class="cards" id="intel"></div>
+<div class="cards" id="counts"></div>
+
+<div class="tabs" id="tabs"></div>
+<div id="board"></div>
+
+<script>
+const LAMPS = {LIVE_JUST_STARTED:'BLUE', LIVE:'GREEN', PREPARING:'YELLOW', NOT_READY:'RED'};
+const ORDER = ['LIVE_JUST_STARTED','LIVE','PREPARING','NOT_READY'];
+const LABEL = {LIVE_JUST_STARTED:'BARU JALAN', LIVE:'SUDAH JALAN', PREPARING:'SIAP-SIAP', NOT_READY:'BELUM SIAP'};
+const MARKETS = ['all','us','idx','crypto','commodity','fx'];
+let DATA=null, TAB='all';
+
+const fmt=(v,d=2)=> (v===null||v===undefined||isNaN(v)) ? '—' : Number(v).toLocaleString('en-US',{maximumFractionDigits:d});
+const esc=s=>String(s??'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+function packets(){
+  const tp=(DATA&&DATA.ticker_packets)||{};
+  const rows=[];
+  for(const m of MARKETS.slice(1)){
+    for(const [t,p] of Object.entries(tp[m]||{})){
+      rows.push({market:m,ticker:t,...p});
+    }
+  }
+  return rows;
+}
+
+function renderIntel(){
+  const mi=(DATA&&DATA.market_intelligence)||{};
+  const quad=mi.macro_quad||{}, cm=mi.crash_meter||{};
+  document.getElementById('intel').innerHTML=`
+    <div class="card"><div class="dim">Macro Quad</div><b>${esc(quad.quad||'—')}</b>
+      <div class="dim">long ${esc(quad.long||'—')} · short ${esc(quad.short||'—')}</div></div>
+    <div class="card"><div class="dim">Crash Meter <span class="badge">severity gauge, bukan probabilitas</span></div>
+      <b>${fmt(cm.value,0)}</b> ${esc(cm.severity||'')}
+      <div class="dim">${esc(cm.coverage||'')}</div></div>
+    <div class="card"><div class="dim">Market Intelligence</div><b>${esc(mi.state||'—')}</b>
+      <div class="dim">${esc(mi.computed_at||'')}</div></div>`;
+}
+
+function renderCounts(rows){
+  const c={};ORDER.forEach(k=>c[k]=0);
+  rows.forEach(p=>{const s=((p.thesis_lifecycle||{}).state)||'NOT_READY';c[s]=(c[s]||0)+1;});
+  document.getElementById('counts').innerHTML=ORDER.map(k=>
+    `<div class="card"><span class="lamp ${LAMPS[k]}"></span><b>${c[k]}</b> <span class="dim">${LABEL[k]}</span></div>`).join('');
+}
+
+function renderTabs(){
+  document.getElementById('tabs').innerHTML=MARKETS.map(m=>
+    `<button class="${m===TAB?'on':''}" onclick="TAB='${m}';render()">${m.toUpperCase()}</button>`).join('');
+}
+
+function render(){
+  const rows=packets().filter(p=>TAB==='all'||p.market===TAB);
+  renderCounts(rows);
+  let html='';
+  for(const state of ORDER){
+    const group=rows.filter(p=>(((p.thesis_lifecycle||{}).state)||'NOT_READY')===state);
+    if(!group.length)continue;
+    html+=`<div class="group"><span class="lamp ${LAMPS[state]}"></span>${LABEL[state]} (${group.length})</div><table>
+      <tr><th>Ticker</th><th>Mkt</th><th>Arah</th><th class="num">Harga</th><th>Quote</th>
+      <th class="num">Proyeksi</th><th class="num">Range</th><th class="num">Invalidasi</th><th>Sejak</th><th>Blocker</th></tr>`;
+    group.sort((a,b)=>Math.abs((b.decision||{}).conviction||0)-Math.abs((a.decision||{}).conviction||0));
+    for(const p of group){
+      const d=p.decision||{}, q=p.quote||{}, f=p.thesis_frame||{}, lc=p.thesis_lifecycle||{};
+      const range=f.projection_range?fmt(f.projection_range[0],0)+' – '+fmt(f.projection_range[1],0):'—';
+      html+=`<tr><td><b>${esc(p.ticker)}</b></td><td class="dim">${esc(p.market)}</td>
+        <td>${esc(d.direction||d.state||'—')}</td>
+        <td class="num">${fmt(q.price)}</td><td class="dim">${esc(q.state||'—')}</td>
+        <td class="num">${fmt(f.projection_price,0)}</td><td class="num dim">${range}</td>
+        <td class="num">${fmt(f.invalidation_price)}</td>
+        <td class="dim">${esc(lc.tracked_since||'—')}</td>
+        <td class="dim">${esc((lc.advance_blockers||[]).join(', ')||(d.blockers||[]).slice(0,2).join(', '))}</td></tr>`;
+    }
+    html+='</table>';
+  }
+  document.getElementById('board').innerHTML=html||'<div class="dim">tidak ada packet</div>';
+}
+
+fetch('desk_snapshot.json').then(r=>r.json()).then(d=>{
+  DATA=d;
+  const g=((d.meta||{}).generated)||(d.runtime||{}).core_collected_at||'';
+  document.getElementById('meta').textContent='snapshot: '+g+' · sumber: desk_snapshot.json · lifecycle dari evidence gates, bukan sinyal chart';
+  renderIntel();renderTabs();render();
+}).catch(e=>{
+  document.getElementById('meta').innerHTML='<span class="err">gagal memuat desk_snapshot.json: '+esc(e)+'</span>';
+});
+</script>
+</body>
+</html>

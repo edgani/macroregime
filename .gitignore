@@ -30,6 +30,10 @@ Thumbs.db
 /runtime/worker.instance.lock
 /runtime/worker.pid
 
+# Operational logs and regenerable daily evaluation reports
+/logs/
+/runtime/v101_shadow/evaluations/
+
 # Price cache (regenerable via build_cache.py; lineage metadata is committed)
 /cache/*.parquet
 /cache/*.tmp

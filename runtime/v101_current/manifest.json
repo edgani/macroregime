@@ -1,6 +1,6 @@
 {
   "schema": "warroom.v101.current_context_manifest.v1",
-  "generated_at": "2026-07-29T09:48:16Z",
+  "generated_at": "2026-07-29T10:22:34Z",
   "paths": {
     "quotes": "runtime/v101_current/quotes.json",
     "macro": "runtime/v101_current/macro.json",
@@ -21,5 +21,5 @@
   "markets_with_current_quote": 5,
   "markets_with_fresh_quote": 5,
   "claim_limit": "Acquisition completeness is not profitability proof. Decision and permission layers remain separate.",
-  "manifest_hash": "e5e39ca02ef8117c29ee7d5ac211c69fdb0dc44e360d913e07cb3b31e18aee36"
+  "manifest_hash": "9f73f013f5b23122a1b17b4b9338fe053350290474b985b8ee3682caea0d8e53"
 }

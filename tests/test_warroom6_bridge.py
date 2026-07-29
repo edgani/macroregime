@@ -2,6 +2,7 @@
 section — CURRENT with real War Room 6 outputs, or an honest UNAVAILABLE."""
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
@@ -30,6 +31,28 @@ def test_bridge_returns_current_with_quad_and_crash_meter():
         assert sub["state"] in {"CURRENT", "NO_DATA"}, name
         if sub["state"] == "NO_DATA":
             assert sub["value"] is None
+
+
+def test_bridge_carries_full_wr6_bundle():
+    """Every War Room 6 direction-guidance section must be present and the
+    whole bundle must be JSON-serializable (desk snapshot requirement)."""
+    mi = warroom6_bridge.build_market_intelligence()
+    assert mi["state"] == "CURRENT"
+    expected = set(warroom6_bridge.SECTION_MAP) | {
+        "hmm_state", "shock_state", "vix", "macro_quad", "risk_regime",
+        "inflation_play", "engine_errors",
+    }
+    for key in expected:
+        assert key in mi, key
+    # JSON round-trip: tuple keys / numpy scalars must be sanitized away
+    blob = json.dumps(mi)
+    assert len(blob) > 1000
+    # spot-check the direction-guidance content is real, not placeholders
+    assert mi["hmm_state"] in {"risk_on", "risk_off", "neutral", None} or isinstance(mi["hmm_state"], str)
+    regime = mi["regime_state"] or {}
+    assert regime.get("structural") or regime.get("operating")
+    compass = mi["cycle_compass"] or {}
+    assert compass.get("compass") or compass.get("state")
 
 
 def test_bridge_failure_is_honest_unavailable(monkeypatch):

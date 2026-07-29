@@ -1,6 +1,6 @@
 {
   "schema": "warroom.v101.current_macro.v1",
-  "generated_at": "2026-07-29T09:47:10Z",
+  "generated_at": "2026-07-29T10:21:43Z",
   "series": {},
   "series_count": 0,
   "failures": [
@@ -106,5 +106,5 @@
     }
   ],
   "claim_limit": "Current-vintage macro/physical observations are research context, not reconstructed historical release evidence.",
-  "manifest_hash": "40f6049ea890f6203973e738098e5a5818f4613545062689c84835a7ddb7c69f"
+  "manifest_hash": "1b204d33c438676d84fee542947943576c7136a644c888b9e16de72584c044a4"
 }

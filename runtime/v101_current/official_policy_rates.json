@@ -1,35 +1,29 @@
 {
   "schema": "warroom.v101.official_policy_rates.v1",
-  "generated_at": "2026-07-29T09:48:06Z",
+  "generated_at": "2026-07-29T10:22:25Z",
   "rates": {
     "BI_7DRR": {
       "label": "Bank Indonesia 7-Day Reverse Repo Rate",
       "value": 5.75,
-      "collected_at": "2026-07-29T09:42:07Z",
+      "collected_at": "2026-07-29T10:22:24Z",
       "source": {
         "http_status": 200,
         "content_type": "text/html; charset=utf-8",
         "final_url": "https://www.bi.go.id/en/statistik/indikator/bi-rate.aspx",
-        "latency_ms": 531.0,
-        "raw_sha256": "55f365278acb20e124ba613fb419f0f091b9b2986184f024556f66a03fc0cdba"
+        "latency_ms": 609.0,
+        "raw_sha256": "49b9e19ea962e44256ce6e6e4cd468e2c88796c40c91208dbadfe975483e4117"
       },
       "point_in_time_eligible": false,
-      "availability_semantics": "Current official policy-rate page; historical proof requires decision-date archive.",
-      "state": "STALE_LAST_KNOWN",
-      "refresh_error": "TimeoutError: The read operation timed out"
+      "availability_semantics": "Current official policy-rate page; historical proof requires decision-date archive."
     }
   },
   "record_count": 1,
   "failures": [
-    {
-      "rate": "BI_7DRR",
-      "error": "TimeoutError: The read operation timed out"
-    },
     {
       "rate": "SNB_POLICY_RATE",
       "error": "URLError: <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1016)>"
     }
   ],
   "claim_limit": "Current policy anchors only; no historical point-in-time proof is inferred.",
-  "manifest_hash": "53c3873c5bfe1cc13c29a604c76a534cd4549c699c36b5cbd956ab14a06c26a8"
+  "manifest_hash": "d763bf348f0731f899762f4451640d993e88c19e0754fd74b37329df926f5e8d"
 }

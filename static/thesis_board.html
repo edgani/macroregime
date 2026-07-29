@@ -34,6 +34,7 @@
 <div class="sub" id="meta">memuat…</div>
 
 <div class="cards" id="intel"></div>
+<div id="intelDetail"></div>
 <div class="cards" id="counts"></div>
 
 <div class="tabs" id="tabs"></div>
@@ -60,17 +61,86 @@ function packets(){
   return rows;
 }
 
+function card(title, main, sub){
+  return `<div class="card"><div class="dim">${title}</div><b>${main}</b><div class="dim">${sub||''}</div></div>`;
+}
+
 function renderIntel(){
   const mi=(DATA&&DATA.market_intelligence)||{};
-  const quad=mi.macro_quad||{}, cm=mi.crash_meter||{};
-  document.getElementById('intel').innerHTML=`
-    <div class="card"><div class="dim">Macro Quad</div><b>${esc(quad.quad||'—')}</b>
-      <div class="dim">long ${esc(quad.long||'—')} · short ${esc(quad.short||'—')}</div></div>
-    <div class="card"><div class="dim">Crash Meter <span class="badge">severity gauge, bukan probabilitas</span></div>
-      <b>${fmt(cm.value,0)}</b> ${esc(cm.severity||'')}
-      <div class="dim">${esc(cm.coverage||'')}</div></div>
-    <div class="card"><div class="dim">Market Intelligence</div><b>${esc(mi.state||'—')}</b>
-      <div class="dim">${esc(mi.computed_at||'')}</div></div>`;
+  if(mi.state==='UNAVAILABLE'){
+    document.getElementById('intel').innerHTML=card('Market Intelligence','UNAVAILABLE',esc(mi.error||''));
+    return;
+  }
+  const quad=mi.macro_quad||{}, cm=mi.crash_meter||{}, reg=mi.regime_state||{},
+        rr=mi.risk_regime||{}, fwd=mi.forward_quad||{}, cp=mi.crash_pressure||{},
+        cl=(mi.crash_lead||{}).crash_lead||{}, cc=mi.cycle_compass||{},
+        xa=mi.cross_asset||{}, fu=mi.funding||{}, cr=mi.crowding||{},
+        mc=mi.market_character||{}, mh=mi.market_health||{}, ew=mi.early_warning||{},
+        fg=ew.fear_greed||{};
+  document.getElementById('intel').innerHTML=[
+    card('Structural / Monthly', esc(reg.structural||'—')+' / '+esc(reg.monthly||'—'), esc(reg.operating||'')+(reg.divergence?' · '+esc(reg.divergence):'')),
+    card('Macro Quad (fwd)', esc(quad.quad||fwd.forward_quad||'—'), 'long '+esc(quad.long||'—')+' · short '+esc(quad.short||'—')),
+    card('Risk Regime', esc(rr.verdict||'—'), 'score '+esc(rr.score??'—')+'/'+esc(rr.max_score??'—')+' · exp 6mo DD '+esc(rr.expected_fwd6_maxDD||'—')),
+    card('HMM / Shock', esc(mi.hmm_state||'—')+' / '+esc(mi.shock_state||'—'), 'VIX '+fmt(mi.vix,1)),
+    card('Crash Meter', fmt(cm.value,0)+' '+esc(cm.severity||''), esc(cm.coverage||'')+' · severity gauge, bukan probabilitas'),
+    card('Crash Pressure', esc(cp.type||'—'), 'pressure '+fmt(cp.pressure,0)+' · '+esc(cp.basis||'')),
+    card('Crash Lead', esc(cl.risk_level||'—'), cl.crash_prob?('12mo '+Math.round((cl.crash_prob['12']||0)*100)+'% · 24mo '+Math.round((cl.crash_prob['24']||0)*100)+'% · 36mo '+Math.round((cl.crash_prob['36']||0)*100)+'% (base '+(cl.base_prob?Math.round((cl.base_prob['24']||0)*100)+'% 24mo':'—')+')':''),
+    card('Fear/Greed', fmt(fg.value,0)+' '+esc(fg.state||''), esc(fg.signal||'')),
+  ].join('');
+
+  // detail tables
+  let h='';
+  h+='<div class="group">Cycle &amp; Cross-Asset</div><div class="cards">'
+    +card('Cycle Compass', esc(cc.compass||'—'), esc(cc.meaning||'').slice(0,140))
+    +card('Cross-Asset', esc(xa.regime||'—'), esc(xa.why||'').slice(0,140))
+    +card('Funding', esc(fu.label||'—'), 'score '+fmt(fu.score,0)+' · EFFR '+fmt(fu.effr,2)+' · '+esc((fu.signals||[]).join(', ')))
+    +card('Crowding', esc(cr.state||'—'), 'heat '+fmt(cr.heat,0)+' · '+esc(cr.verdict||'').slice(0,90))
+    +card('Market Health', 'bull '+esc(mh.bull??'—')+' / bear '+esc(mh.bear??'—'), 'breadth '+esc(mh.breadth??'—')+'%')
+    +card('Character', esc(mc.character||'—'), esc(mc.summary||'').slice(0,120))
+    +'</div>';
+
+  const secs=((mi.sector_rotation||{}).sectors)||[];
+  if(secs.length){
+    h+='<div class="group">Sector Rotation (RS × Momentum)</div><table><tr><th>Sektor</th><th class="num">RS</th><th class="num">Mom</th><th>Quadrant</th></tr>';
+    secs.forEach(s=>{h+=`<tr><td><b>${esc(s.ticker)}</b> <span class="dim">${esc(s.name||'')}</span></td><td class="num">${fmt(s.rs,1)}</td><td class="num">${fmt(s.mom,1)}</td><td class="dim">${esc(s.quadrant||'')}</td></tr>`;});
+    h+='</table>';
+  }
+
+  const cells=((mi.country_regimes||{}).cells)||[];
+  if(cells.length){
+    h+='<div class="group">Country Regimes</div><div class="cards">'
+      +cells.map(c=>card(esc(c.country), esc(c.label||c.state||'—'), esc(c.proxy||'')+' · g '+fmt(c.g,1)+' · i '+fmt(c.i,1))).join('')+'</div>';
+  }
+
+  const items=((mi.macro_focus||{}).items)||[];
+  if(items.length){
+    h+='<div class="group">Macro Focus</div><table><tr><th>Topik</th><th>Status</th><th class="num">Urgency</th></tr>';
+    items.slice(0,8).forEach(i=>{h+=`<tr><td><b>${esc(i.title)}</b></td><td class="dim">${esc(i.status||'')}</td><td class="num">${fmt(i.urg,0)}</td></tr>`;});
+    h+='</table>';
+  }
+
+  const meters=mi.meters||{};
+  const mkeys=Object.keys(meters);
+  if(mkeys.length){
+    h+='<div class="group">Computed Meters</div><div class="cards">'
+      +mkeys.map(k=>{const m=meters[k]||{};return card(esc(m.name||k), fmt(m.value,0), esc(m.status||'')+' · '+esc(m.basis||'').slice(0,80));}).join('')+'</div>';
+  }
+
+  const drv=((mi.asset_drivers||{}).assets)||[];
+  if(drv.length){
+    h+='<div class="group">Asset Drivers</div><table><tr><th>Asset</th><th>Driver</th><th>Status</th><th class="num">σ resid</th></tr>';
+    drv.slice(0,10).forEach(a=>{h+=`<tr><td><b>${esc(a.display||a.asset)}</b></td><td class="dim">${esc(a.driver_text||'')}</td><td class="dim">${esc(a.status||'')}</td><td class="num">${fmt(a.std_resid,1)}</td></tr>`;});
+    h+='</table>';
+  }
+
+  const as=mi.alpha_state||{};
+  h+='<div class="group">Data &amp; Evidence</div><div class="cards">'
+    +card('Alpha State', as.no_trade?'NO TRADE':'ACTIVE', esc(as.no_trade_reason||'').slice(0,120))
+    +card('Data As-Of', esc(((mi.data_asof||{}).prices)||((mi.data_asof||{}).as_of)||'—'), esc(mi.source||''))
+    +card('Feeds', Object.keys(mi.feeds_status||{}).length+' feed groups', esc(mi.computed_at||''))
+    +'</div>';
+
+  document.getElementById('intelDetail').innerHTML=h;
 }
 
 function renderCounts(rows){

@@ -1,0 +1,29 @@
+{
+  "schema": "warroom.v101.official_policy_rates.v1",
+  "generated_at": "2026-07-29T01:54:52Z",
+  "rates": {
+    "BI_7DRR": {
+      "label": "Bank Indonesia 7-Day Reverse Repo Rate",
+      "value": 5.75,
+      "collected_at": "2026-07-29T01:54:51Z",
+      "source": {
+        "http_status": 200,
+        "content_type": "text/html; charset=utf-8",
+        "final_url": "https://www.bi.go.id/en/statistik/indikator/bi-rate.aspx",
+        "latency_ms": 531.0,
+        "raw_sha256": "9f62fd87fb7ef04c6c857c3d3233b7d48f131972b43661d432b07b0af68dde0c"
+      },
+      "point_in_time_eligible": false,
+      "availability_semantics": "Current official policy-rate page; historical proof requires decision-date archive."
+    }
+  },
+  "record_count": 1,
+  "failures": [
+    {
+      "rate": "SNB_POLICY_RATE",
+      "error": "URLError: <urlopen error [SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: unable to get local issuer certificate (_ssl.c:1016)>"
+    }
+  ],
+  "claim_limit": "Current policy anchors only; no historical point-in-time proof is inferred.",
+  "manifest_hash": "1592097eb20e216c121611507f0ef7bc682b8b40042e3bf451df2d5ddafdd0d9"
+}

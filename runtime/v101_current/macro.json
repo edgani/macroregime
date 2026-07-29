@@ -1,0 +1,110 @@
+{
+  "schema": "warroom.v101.current_macro.v1",
+  "generated_at": "2026-07-29T01:54:09Z",
+  "series": {},
+  "series_count": 0,
+  "failures": [
+    {
+      "series_id": "BAMLH0A0HYM2",
+      "error": "TimeoutError: The read operation timed out"
+    },
+    {
+      "series_id": "CPIAUCSL",
+      "error": "TimeoutError: The read operation timed out"
+    },
+    {
+      "series_id": "DCOILWTICO",
+      "error": "TimeoutError: The read operation timed out"
+    },
+    {
+      "series_id": "DFF",
+      "error": "TimeoutError: The read operation timed out"
+    },
+    {
+      "series_id": "DFII10",
+      "error": "TimeoutError: The read operation timed out"
+    },
+    {
+      "series_id": "DGS10",
+      "error": "TimeoutError: The read operation timed out"
+    },
+    {
+      "series_id": "DGS2",
+      "error": "TimeoutError: The read operation timed out"
+    },
+    {
+      "series_id": "DHHNGSP",
+      "error": "TimeoutError: The read operation timed out"
+    },
+    {
+      "series_id": "DTWEXBGS",
+      "error": "TimeoutError: The read operation timed out"
+    },
+    {
+      "series_id": "ECBDFR",
+      "error": "TimeoutError: The read operation timed out"
+    },
+    {
+      "series_id": "GOLDAMGBD228NLBM",
+      "error": "TimeoutError: The read operation timed out"
+    },
+    {
+      "series_id": "INDPRO",
+      "error": "TimeoutError: The read operation timed out"
+    },
+    {
+      "series_id": "IRSTCI01AUM156N",
+      "error": "TimeoutError: The read operation timed out"
+    },
+    {
+      "series_id": "IRSTCI01CAM156N",
+      "error": "TimeoutError: The read operation timed out"
+    },
+    {
+      "series_id": "IRSTCI01GBM156N",
+      "error": "TimeoutError: The read operation timed out"
+    },
+    {
+      "series_id": "IRSTCI01JPM156N",
+      "error": "TimeoutError: The read operation timed out"
+    },
+    {
+      "series_id": "PAYEMS",
+      "error": "TimeoutError: The read operation timed out"
+    },
+    {
+      "series_id": "PCEPI",
+      "error": "TimeoutError: The read operation timed out"
+    },
+    {
+      "series_id": "PCOPPUSDM",
+      "error": "TimeoutError: The read operation timed out"
+    },
+    {
+      "series_id": "RRPONTSYD",
+      "error": "TimeoutError: The read operation timed out"
+    },
+    {
+      "series_id": "T10YIE",
+      "error": "TimeoutError: The read operation timed out"
+    },
+    {
+      "series_id": "VIXCLS",
+      "error": "TimeoutError: The read operation timed out"
+    },
+    {
+      "series_id": "WALCL",
+      "error": "TimeoutError: The read operation timed out"
+    },
+    {
+      "series_id": "WCESTUS1",
+      "error": "TimeoutError: The read operation timed out"
+    },
+    {
+      "series_id": "WTREGEN",
+      "error": "TimeoutError: The read operation timed out"
+    }
+  ],
+  "claim_limit": "Current-vintage macro/physical observations are research context, not reconstructed historical release evidence.",
+  "manifest_hash": "fe2b4ea5326225bedb78592bc359c7832c28ba0b85757373556578b14838436a"
+}

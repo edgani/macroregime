@@ -1,0 +1,13 @@
+{
+  "schema": "warroom.v101.crypto_network.v1",
+  "generated_at": "2026-07-29T01:54:09Z",
+  "assets": {},
+  "record_count": 0,
+  "failures": [
+    {
+      "error": "HTTPError: HTTP Error 403: Forbidden"
+    }
+  ],
+  "claim_limit": "Network collector unavailable; last-known records, if any, remain stale research context.",
+  "manifest_hash": "339cf0fccfd3550f197639385ec73668f7eeaf051ba4af7bb510650432959787"
+}

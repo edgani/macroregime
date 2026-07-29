@@ -1,6 +1,6 @@
 {
   "schema": "warroom.v101.positioning.v1",
-  "generated_at": "2026-07-29T02:51:28Z",
+  "generated_at": "2026-07-29T09:20:18Z",
   "datasets": {
     "disaggregated": {
       "provider": "CFTC_PUBLIC_REPORTING",
@@ -51613,7 +51613,7 @@
         "http_status": 200,
         "content_type": "application/json;charset=utf-8",
         "final_url": "https://publicreporting.cftc.gov/resource/72hh-3qpy.json?%24limit=1000&%24order=report_date_as_yyyy_mm_dd+DESC",
-        "latency_ms": 27687.0,
+        "latency_ms": 25656.0,
         "raw_sha256": "3c75e80f919cfb918e673773b241916f755eafc4979464f6872d1a50f639f95a"
       },
       "release_lag_semantics": "COT positions are release-lagged and must not be treated as real-time."
@@ -67198,7 +67198,7 @@
         "http_status": 200,
         "content_type": "application/json;charset=utf-8",
         "final_url": "https://publicreporting.cftc.gov/resource/udgc-27he.json?%24limit=1000&%24order=report_date_as_yyyy_mm_dd+DESC",
-        "latency_ms": 13579.0,
+        "latency_ms": 12406.0,
         "raw_sha256": "63efee39abb3e167260b9c457fc7bc2ea15be93e7b880eb90db8559b266265f5"
       },
       "release_lag_semantics": "COT positions are release-lagged and must not be treated as real-time."
@@ -67206,5 +67206,5 @@
   },
   "failures": [],
   "claim_limit": "Release-lagged positioning is an amplification/context input, never a standalone signal.",
-  "manifest_hash": "bbe27b1d121822190601aeec13af1f5a038060013d53ba702d215aa35f62ec16"
+  "manifest_hash": "ef8fe59addf9770d2d807018d3ccfae057496bbc38f54a64bf24487c18fa4f8e"
 }

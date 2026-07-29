@@ -48,6 +48,15 @@ def _parse_time(value: Any) -> dt.datetime | None:
         return None
 
 
+# Both quote producers are accepted: the v99 execution collector writes
+# VALID_EXECUTION_REFERENCE / CONTEXT_REFERENCE_ONLY; the v101 current-context
+# collector writes VALID_CURRENT_REFERENCE. A single-vocabulary gate here
+# silently discarded 258 live quotes and fell back to 2018 research-panel
+# prices (found in the 2026-07-29 re-audit).
+FRESH_QUOTE_VALIDATIONS = {"VALID_EXECUTION_REFERENCE", "VALID_CURRENT_REFERENCE"}
+REFERENCE_QUOTE_VALIDATIONS = FRESH_QUOTE_VALIDATIONS | {"CONTEXT_REFERENCE_ONLY", "STALE_LAST_KNOWN_REFERENCE"}
+
+
 def _quote_status(record: Mapping[str, Any] | None, market: str) -> dict[str, Any]:
     if not isinstance(record, Mapping):
         return {"state": "NO_CURRENT_QUOTE", "reference_available": False, "execution_fresh": False, "reason": "No current execution-reference record is loaded."}
@@ -57,8 +66,8 @@ def _quote_status(record: Mapping[str, Any] | None, market: str) -> dict[str, An
     receive_limit = 900 if market == "crypto" else 4 * 3600
     provider_limit = 900 if market == "crypto" else 36 * 3600
     validation = str(record.get("validation") or "")
-    reference_available = validation in {"VALID_EXECUTION_REFERENCE", "CONTEXT_REFERENCE_ONLY", "STALE_LAST_KNOWN_REFERENCE"} and float(record.get("price") or 0) > 0
-    fresh = bool(validation == "VALID_EXECUTION_REFERENCE" and reference_available and receive_age is not None and provider_age is not None and receive_age <= receive_limit and provider_age <= provider_limit)
+    reference_available = validation in REFERENCE_QUOTE_VALIDATIONS and float(record.get("price") or 0) > 0
+    fresh = bool(validation in FRESH_QUOTE_VALIDATIONS and reference_available and receive_age is not None and provider_age is not None and receive_age <= receive_limit and provider_age <= provider_limit)
     return {
         "state": "EXECUTION_FRESH" if fresh else "CURRENT_REFERENCE_STALE" if reference_available else "INVALID_CURRENT_QUOTE",
         "reference_available": reference_available,

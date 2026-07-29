@@ -1,17 +1,17 @@
 {
   "schema": "warroom.v101.official_policy_rates.v1",
-  "generated_at": "2026-07-29T02:51:29Z",
+  "generated_at": "2026-07-29T09:20:19Z",
   "rates": {
     "BI_7DRR": {
       "label": "Bank Indonesia 7-Day Reverse Repo Rate",
       "value": 5.75,
-      "collected_at": "2026-07-29T02:51:28Z",
+      "collected_at": "2026-07-29T09:20:19Z",
       "source": {
         "http_status": 200,
         "content_type": "text/html; charset=utf-8",
         "final_url": "https://www.bi.go.id/en/statistik/indikator/bi-rate.aspx",
-        "latency_ms": 500.0,
-        "raw_sha256": "f91248f4cee2017820f8772c4a9aee0b1727a28ba936923237f57d79feb32cec"
+        "latency_ms": 547.0,
+        "raw_sha256": "527b07eba5077ebd9732ce2bca05e884b3632dc5653d7b9ec4830db4ecd350e9"
       },
       "point_in_time_eligible": false,
       "availability_semantics": "Current official policy-rate page; historical proof requires decision-date archive."
@@ -25,5 +25,5 @@
     }
   ],
   "claim_limit": "Current policy anchors only; no historical point-in-time proof is inferred.",
-  "manifest_hash": "6a3070435a22b6f88e1906686816fd0eadea37984444dd0f26d0c40fa882d497"
+  "manifest_hash": "4eb79eaf0a5a7ce6adbacd7941bc77e7e3c7526b51b9414b2aa129c58441151b"
 }

@@ -210,7 +210,7 @@ def build_desk(data: Mapping[str, Any], top_per_market: int = 0) -> dict[str, An
     shadow_count = len(alpha_center.get("shadow_candidates") or [])
     bias_count = len(alpha_center.get("research_biases") or [])
     promoted = len(alpha_center.get("promoted") or [])
-    for market, row in markets.items():
+    for market, row in (desk.get("markets") or {}).items():
         market_packets = packets.get(market) or {}
         row["research_actions"] = sum(p.get("current_action", {}).get("direction") in {"LONG_BIAS", "SHORT_BIAS"} for p in market_packets.values())
         row["shadow_candidates"] = sum(p.get("current_action", {}).get("permissions", {}).get("shadow_trading") == "ELIGIBLE" for p in market_packets.values())

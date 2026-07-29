@@ -27,7 +27,7 @@ import pandas as pd
 HERE = Path(__file__).resolve().parent
 ROOT = HERE / "runtime" / "v101_current"
 UTC = dt.timezone.utc
-USER_AGENT = "WarRoomOS/10.1 current-context; research-and-execution-reference-only"
+USER_AGENT = "curl/8.5.0 WarRoomOS/10.1"
 MARKETS = ("us", "idx", "crypto", "commodity", "fx")
 
 FRED_SERIES: dict[str, dict[str, str]] = {
@@ -164,6 +164,55 @@ def yahoo_quote(symbol: str) -> dict[str, Any]:
     raise RuntimeError(" | ".join(failures))
 
 
+def yahoo_quotes_batch(symbols: list[str], *, chunk_size: int = 40) -> tuple[dict[str, dict[str, Any]], dict[str, str]]:
+    """Batch current quotes via v7/finance/quote (~40 symbols/request).
+
+    Returns (records, errors) keyed by symbol. Per-symbol v8 chart remains the
+    fallback for symbols the batch does not return. This cuts per-build Yahoo
+    traffic ~70x and is the primary defense against 429 IP throttling.
+    """
+    records: dict[str, dict[str, Any]] = {}
+    errors: dict[str, str] = {}
+    for start in range(0, len(symbols), chunk_size):
+        chunk = symbols[start:start + chunk_size]
+        joined = urllib.parse.quote(",".join(chunk))
+        chunk_ok = False
+        for host in ("query1.finance.yahoo.com", "query2.finance.yahoo.com"):
+            url = f"https://{host}/v7/finance/quote?symbols={joined}"
+            try:
+                payload, meta = get_json(url, timeout=20.0)
+                rows = (((payload or {}).get("quoteResponse") or {}).get("result")) or []
+                for q in rows:
+                    sym = str(q.get("symbol") or "")
+                    price = q.get("regularMarketPrice")
+                    stamp = q.get("regularMarketTime")
+                    if not sym or price is None or stamp is None:
+                        continue
+                    try:
+                        price = float(price)
+                    except (TypeError, ValueError):
+                        continue
+                    if not math.isfinite(price) or price <= 0:
+                        continue
+                    records[sym] = {
+                        "price": price, "currency": str(q.get("currency") or ""),
+                        "provider_timestamp": iso(dt.datetime.fromtimestamp(int(stamp), tz=UTC)),
+                        "provider": "YAHOO_QUOTE_BATCH", "source": {**meta, "route": host},
+                        "exchange_name": q.get("fullExchangeName") or q.get("exchangeName"),
+                        "instrument_type": q.get("instrumentType") or q.get("quoteType"),
+                        "market_state": q.get("marketState"), "predictor_eligible": False,
+                    }
+                chunk_ok = True
+                break
+            except Exception as exc:
+                errors[f"chunk@{start}:{host}"] = f"{type(exc).__name__}: {exc}"
+        if not chunk_ok:
+            for sym in chunk:
+                errors.setdefault(sym, "batch failed on all hosts")
+        time.sleep(0.4)  # gentle pacing between chunks
+    return records, errors
+
+
 def binance_quote(symbol: str) -> dict[str, Any]:
     urls = [
         "https://data-api.binance.vision/api/v3/ticker/price?" + urllib.parse.urlencode({"symbol": symbol}),
@@ -229,11 +278,40 @@ def prioritized_universe(max_symbols: int | None = None) -> dict[str, list[dict[
     return out
 
 
-def collect_quotes(output: Path = ROOT / "quotes.json", *, max_symbols: int | None = None) -> dict[str, Any]:
+def collect_quotes(output: Path = ROOT / "quotes.json", *, max_symbols: int | None = None, fast: bool = False) -> dict[str, Any]:
     universe = prioritized_universe(max_symbols)
     previous = read_valid(output) or {"markets": {m: {} for m in MARKETS}}
     previous_markets = previous.get("markets") if isinstance(previous.get("markets"), Mapping) else {}
     collected_at = now(); results: dict[str, dict[str, Any]] = {m: {} for m in MARKETS}; failures: list[dict[str, str]] = []
+
+    # Fast-cycle TTL reuse: quotes younger than the TTL are kept as-is instead
+    # of refetching the whole universe every 15 minutes (Yahoo 429 defense).
+    quote_ttl_hours = max(1.0, float(os.getenv("WARROOM_QUOTE_TTL_HOURS", "6")))
+    reused = 0
+    tasks: list[tuple[str, dict[str, Any]]] = []
+    for m, rows in universe.items():
+        for r in rows:
+            instrument = str(r.get("instrument") or "")
+            old = ((previous_markets.get(m) or {}).get(instrument)) if isinstance(previous_markets, Mapping) else None
+            if fast and isinstance(old, Mapping) and old.get("validation") == "VALID_CURRENT_REFERENCE":
+                try:
+                    received = dt.datetime.fromisoformat(str(old.get("received_at") or old.get("provider_timestamp") or "").replace("Z", "+00:00")).astimezone(UTC)
+                    if (collected_at - received).total_seconds() < quote_ttl_hours * 3600:
+                        results[m][instrument] = dict(old); reused += 1
+                        continue
+                except Exception:
+                    pass
+            tasks.append((m, r))
+
+    # Batch-first for YAHOO providers: ~7 requests instead of ~270.
+    yahoo_tasks = [(m, r) for m, r in tasks if str(r.get("provider") or "YAHOO").upper() != "BINANCE"]
+    batch_records: dict[str, dict[str, Any]] = {}
+    if yahoo_tasks:
+        symbol_map = {str(r.get("provider_symbol") or r.get("instrument")): (m, r) for m, r in yahoo_tasks}
+        batch_records, batch_errors = yahoo_quotes_batch(sorted(symbol_map))
+        for sym, err in batch_errors.items():
+            if sym in symbol_map:
+                failures.append({"market": symbol_map[sym][0], "instrument": str(symbol_map[sym][1].get("instrument") or ""), "error": f"batch: {err}"})
 
     def fetch(market: str, row: dict[str, Any]) -> tuple[str, str, dict[str, Any] | None, str | None]:
         instrument = str(row.get("instrument") or ""); symbol = str(row.get("provider_symbol") or instrument); provider = str(row.get("provider") or "YAHOO").upper()
@@ -243,7 +321,7 @@ def collect_quotes(output: Path = ROOT / "quotes.json", *, max_symbols: int | No
                 except Exception as first:
                     record = coingecko_quote(symbol); record["fallback_reason"] = f"Binance failed: {type(first).__name__}: {first}"
             else:
-                record = yahoo_quote(symbol)
+                record = batch_records.get(symbol) or yahoo_quote(symbol)
             provider_time = dt.datetime.fromisoformat(str(record["provider_timestamp"]).replace("Z", "+00:00")).astimezone(UTC)
             record.update({
                 "instrument": instrument, "provider_symbol": symbol, "asset_type": row.get("asset_type"),
@@ -255,10 +333,13 @@ def collect_quotes(output: Path = ROOT / "quotes.json", *, max_symbols: int | No
         except Exception as exc:
             return market, instrument, None, f"{type(exc).__name__}: {exc}"
 
-    tasks = [(m, r) for m, rows in universe.items() for r in rows]
+    # Every task goes through fetch() for uniform enrichment; batch-covered
+    # symbols short-circuit on batch_records without any network call, so only
+    # batch-missed and BINANCE symbols actually hit the network.
+    remaining = tasks
     workers = min(max(1, int(os.getenv("WARROOM_QUOTE_WORKERS", "10"))), 16)
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        future_map = [pool.submit(fetch, m, dict(r)) for m, r in tasks]
+        future_map = [pool.submit(fetch, m, dict(r)) for m, r in remaining]
         for future in as_completed(future_map):
             market, instrument, record, error = future.result()
             if record is not None:
@@ -287,8 +368,17 @@ def collect_quotes(output: Path = ROOT / "quotes.json", *, max_symbols: int | No
 
 def _fred_series(series_id: str) -> tuple[str, dict[str, Any] | None, str | None]:
     url = f"https://fred.stlouisfed.org/graph/fredgraph.csv?id={urllib.parse.quote(series_id)}"
+    raw = None; meta: dict[str, Any] = {}; last_exc: Exception | None = None
+    for attempt in range(3):
+        try:
+            raw, meta = get_bytes(url, timeout=30.0)
+            break
+        except Exception as exc:  # noqa: PERF203 - retry whole fetch on timeout/throttle
+            last_exc = exc
+            time.sleep(2.0 * (attempt + 1))
+    if raw is None:
+        return series_id, None, f"{type(last_exc).__name__}: {last_exc}"
     try:
-        raw, meta = get_bytes(url, timeout=10.0)
         frame = pd.read_csv(io.BytesIO(raw))
         if frame.shape[1] < 2:
             raise ValueError("malformed FRED CSV")
@@ -316,10 +406,21 @@ def _fred_series(series_id: str) -> tuple[str, dict[str, Any] | None, str | None
         return series_id, None, f"{type(exc).__name__}: {exc}"
 
 
-def collect_macro(output: Path = ROOT / "macro.json") -> dict[str, Any]:
-    previous = read_valid(output) or {}; old_rows = previous.get("series") if isinstance(previous.get("series"), Mapping) else {}
+def collect_macro(output: Path = ROOT / "macro.json", *, ttl_hours: float | None = None) -> dict[str, Any]:
+    previous = read_valid(output) or {}
+    # FRED series are daily/monthly — refetching every 15 minutes is pure
+    # throttle pressure. Skip the fetch when the manifest is fresh enough.
+    ttl = ttl_hours if ttl_hours is not None else max(1.0, float(os.getenv("WARROOM_MACRO_TTL_HOURS", "12")))
+    if isinstance(previous.get("series"), Mapping) and previous.get("series"):
+        try:
+            generated = dt.datetime.fromisoformat(str(previous.get("generated_at") or "").replace("Z", "+00:00")).astimezone(UTC)
+            if (now() - generated).total_seconds() < ttl * 3600:
+                return previous
+        except Exception:
+            pass
+    old_rows = previous.get("series") if isinstance(previous.get("series"), Mapping) else {}
     rows: dict[str, Any] = {}; failures: list[dict[str, str]] = []
-    with ThreadPoolExecutor(max_workers=8) as pool:
+    with ThreadPoolExecutor(max_workers=4) as pool:
         futures = [pool.submit(_fred_series, sid) for sid in FRED_SERIES]
         for f in as_completed(futures):
             sid, row, error = f.result()
@@ -537,7 +638,7 @@ def collect_official_policy_rates(output: Path = ROOT / "official_policy_rates.j
 
 def collect_all(*, fast: bool = False) -> dict[str, Any]:
     ROOT.mkdir(parents=True, exist_ok=True)
-    quotes = collect_quotes()
+    quotes = collect_quotes(fast=fast)
     macro = collect_macro()
     crypto = collect_crypto_network()
     positioning = collect_positioning()

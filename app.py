@@ -48,10 +48,19 @@ def main():
     # function is still invoked exactly once (parity by construction; see
     # docs/audit/PRESERVATION_MATRIX.md and tests/test_r4_consolidation.py).
     # No formulas changed; sections are composed, not rewritten.
-    tabs = st.tabs(["Mission Control", "Macro & Regime", "Alpha Center", "US Stocks",
+    # Operational desk (thesis lifecycle, current quotes, carry, macro) is
+    # embedded as the first tab so `streamlit run app.py` is the single entry
+    # point — same dashboard.html + snapshot as app_v101.py.
+    tabs = st.tabs(["Operational Desk", "Mission Control", "Macro & Regime", "Alpha Center", "US Stocks",
                     "Crypto", "Commodities", "FX", "IHSG", "Flow & Bottleneck",
                     "Rotation & Chains", "Portfolio & Proof"])
-    with tabs[0]:  # was: Mission Control + Morning Brief + Briefing + Command Center
+    with tabs[0]:
+        try:
+            from desk_embed import render_desk
+            render_desk()
+        except Exception as exc:
+            st.error(f"Operational desk unavailable: {type(exc).__name__}: {exc}")
+    with tabs[1]:  # was: Mission Control + Morning Brief + Briefing + Command Center
         R.mission_control(d)
         st.divider()
         R.morning_brief(d)
@@ -59,25 +68,25 @@ def main():
         R.command_center(d, source)
         st.divider()
         R.briefing_embed()
-    with tabs[1]: R.market_state(d)          # was: Market State
-    with tabs[2]: R.alpha(d)                 # unchanged
-    with tabs[3]:                            # unchanged
+    with tabs[2]: R.market_state(d)          # was: Market State
+    with tabs[3]: R.alpha(d)                 # unchanged
+    with tabs[4]:                            # unchanged
         R.us_stocks(d)
         R.fair_value_cards(d)
-    with tabs[4]: R.crypto(d)
-    with tabs[5]: R.commodities(d)
-    with tabs[6]: R.fx(d)
-    with tabs[7]: R.ihsg(d)
-    with tabs[8]:                            # was: Flow + Bottleneck
+    with tabs[5]: R.crypto(d)
+    with tabs[6]: R.commodities(d)
+    with tabs[7]: R.fx(d)
+    with tabs[8]: R.ihsg(d)
+    with tabs[9]:                            # was: Flow + Bottleneck
         R.flow(d)
         st.divider()
         R.bottleneck(d)
         R.node_template(d)
-    with tabs[9]:                            # was: Cross-Asset Rotation + Causal Chains
+    with tabs[10]:                           # was: Cross-Asset Rotation + Causal Chains
         R.cycle_rotation(d)
         st.divider()
         R.causal_chains(d)
-    with tabs[10]:                           # was: Track Record + Risk & Health
+    with tabs[11]:                           # was: Track Record + Risk & Health
         R.track_record(TR.performance(), TR.open_positions(), TR.closed_trades())
         st.divider()
         R.validation_tab(d)

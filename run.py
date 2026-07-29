@@ -281,6 +281,72 @@ _SLIM_PACKET_KEYS = ("decision", "current_action", "thesis_frame", "thesis_lifec
 _SLIM_ROW_KEYS = ("market", "market_label", "ticker", "data_status", "current_action", "thesis_frame", "thesis_lifecycle")
 
 
+def _jarvis_brief(desk: Mapping[str, Any]) -> list[str]:
+    """Plain-Indonesian daily brief for a non-technical operator (JARVIS layer).
+
+    Every sentence is composed from real desk fields only — when a component
+    has no current data its sentence is simply omitted (fail-closed).
+    """
+    out: list[str] = []
+    mi = desk.get("market_intelligence") or {}
+    quad_id = {
+        "Q1": "pertumbuhan naik, inflasi turun (Goldilocks) — biasanya bagus untuk saham",
+        "Q2": "pertumbuhan naik, inflasi naik (Reflation) — biasanya bagus untuk saham dan komoditas, buruk untuk dollar",
+        "Q3": "pertumbuhan turun, inflasi turun (Deflasi) — biasanya bagus untuk obligasi, buruk untuk saham",
+        "Q4": "pertumbuhan turun, inflasi naik (Stagflasi) — fase tersulit; biasanya bagus untuk emas/energi, buruk untuk saham",
+    }
+    compass_id = {
+        "RISK-ON · DOWN the curve": "uang besar sedang berani mengambil risiko dan bergerak ke aset ber-beta tinggi (emerging markets, small-cap, cyclical) — fase pergerakan mengejar (catch-up) biasanya terjadi di sini.",
+        "RISK-OFF · UP the curve": "uang besar sedang defensif dan bergerak ke aset aman (cash, bonds, mega-cap) — fase bertahan, bukan fase menyerang.",
+    }
+    if str(mi.get("state")) == "CURRENT":
+        quad = mi.get("macro_quad") or {}
+        if quad.get("quad"):
+            token = str(quad["quad"]).split()[0]
+            out.append(f"Kondisi ekonomi sekarang: {quad['quad']} — {quad_id.get(token) or (quad.get('note') or 'fase siklus ekonomi')}.")
+        compass = mi.get("cycle_compass") or {}
+        if compass.get("compass"):
+            out.append(f"Arah rotasi uang besar: {compass['compass']} — {compass_id.get(str(compass['compass'])) or (compass.get('meaning') or '')}")
+        cm = mi.get("crash_meter") or {}
+        if cm.get("value") is not None:
+            val = float(cm["value"])
+            level = "RENDAH — kondisi normal" if val < 33 else ("SEDANG — pantau, jangan agresif" if val < 66 else "TINGGI — kurangi risiko")
+            out.append(f"Risiko pasar jatuh (crash meter): {val:.0f}/100 → {level}. Cakupan: {cm.get('coverage') or 'terbatas'}.")
+        fg = (mi.get("early_warning") or {}).get("fear_greed") or {}
+        if fg.get("value") is not None:
+            out.append(f"Psikologi pasar (fear & greed): {float(fg['value']):.0f} → {fg.get('state') or '—'} ({fg.get('signal') or 'tanpa sinyal kontrarian'}).")
+    carry = desk.get("carry_trade") or {}
+    if carry.get("state") and carry.get("state") != "INCOMPLETE":
+        top = (carry.get("top_carry_trades") or [{}])[0]
+        expr = top.get("trade_expression") or ""
+        spread = top.get("annual_carry_abs_pct")
+        spread_txt = f" (selisih bunga ±{float(spread):.1f}%/tahun)" if spread is not None else ""
+        out.append(f"Carry trade: {carry['state']} — strategi pinjam di mata uang berbunga rendah untuk memegang yang berbunga tinggi sedang aktif. "
+                   f"Ekspresi utama: {expr or '—'}{spread_txt}.")
+    counts: dict[str, int] = {}
+    shadow = 0
+    for _m, pk in (desk.get("ticker_packets") or {}).items():
+        for _t, p in pk.items():
+            st_ = (p.get("thesis_lifecycle") or {}).get("state") or "NOT_READY"
+            counts[st_] = counts.get(st_, 0) + 1
+            if (((p.get("current_action") or {}).get("permissions") or {}).get("shadow_trading")) == "ELIGIBLE":
+                shadow += 1
+    total = sum(counts.values())
+    live = counts.get("LIVE", 0) + counts.get("LIVE_JUST_STARTED", 0)
+    prep = counts.get("PREPARING", 0)
+    if total:
+        out.append(f"Dari {total} ticker yang dipantau: {live} thesis sedang berjalan live, {prep} sedang disiapkan, "
+                   f"sisanya menunggu data cukup. Kandidat shadow trading hari ini: {shadow}.")
+    out.append("Modal sungguhan MASIH TERKUNCI: sistem harus membuktikan diri dulu lewat minimal 30 forecast shadow yang matang "
+               "(forecast aktif: 36, maturity pertama ±25 Jan 2027). Sampai saat itu semua output bersifat riset/shadow, bukan perintah beli/jual.")
+    health = desk.get("data_health") or {}
+    stale = [k for k, v in health.items() if isinstance(v, str) and "STALE" in v.upper()]
+    if stale:
+        out.append(f"Perhatian: {len(stale)} sumber data berstatus STALE (terakhir berhasil sebelumnya dipakai apa adanya). "
+                   "Angka di layar tetap jujur apa adanya — bukan berarti pasar berhenti.")
+    return out
+
+
 def _slim_for_snapshot(desk: dict[str, Any]) -> dict[str, Any]:
     """Keep the serialized snapshot browser-sized with the full universe.
 
@@ -313,6 +379,7 @@ def _slim_for_snapshot(desk: dict[str, Any]) -> dict[str, Any]:
     if "alpha_center" in action_state:
         action_state["alpha_center"] = {"note": "single source of truth: desk.alpha_center", "research_watchlist_total": alpha["research_watchlist_total"]}
     desk["current_action_state"] = action_state
+    desk["jarvis_brief"] = _jarvis_brief(desk)
     return desk
 
 

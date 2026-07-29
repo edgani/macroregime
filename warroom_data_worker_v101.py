@@ -26,6 +26,8 @@ def _build(fast:bool)->dict:
   desk['market_intelligence']=build_market_intelligence()
  except Exception as exc:
   desk['market_intelligence']={'state':'UNAVAILABLE','error':f'{type(exc).__name__}: {exc}','macro_quad':None,'crash_meter':None}
+ from run import _jarvis_brief
+ desk['jarvis_brief']=_jarvis_brief(desk)
  desk.setdefault('runtime',{}).update({'core_collected_at':now_iso(),'core_profile':'V101_OPERATIONAL_CURRENT_ACTION','refresh_type':'FAST' if fast else 'FULL'})
  return desk
 

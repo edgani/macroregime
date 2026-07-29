@@ -85,10 +85,17 @@ def test_alpha_board_json_integrity():
 
 
 def test_shadow_infra_separated_from_eligibility():
-    """tracker.log_signals must receive only the gated conviction list, which is
-    empty until a component is proof-gated — no unproven rows enter the DB."""
+    """No unproven rows may enter the prospective signal DB.
+
+    Single-page desk architecture (2026-07-29): app.py no longer boots the WR6
+    compute/tracker stack at all, so the only admissible state is that app.py
+    contains no tracker logging call — or, if one is ever reintroduced, it must
+    be the gated conviction list.  compute.py must keep conviction honestly
+    empty regardless.
+    """
     app = (ROOT / "app.py").read_text(encoding="utf-8")
-    assert 'TR.log_signals(d["conviction"]' in app
+    calls = re.findall(r"TR\.log_signals\(([^)]*)\)", app)
+    assert all('d["conviction"]' in c for c in calls), f"ungated tracker logging in app.py: {calls}"
     comp = (ROOT / "warroom" / "compute.py").read_text(encoding="utf-8")
     # conviction is assigned the honest empty list, never pool/rows
     assigns = re.findall(r'out\["conviction"\]\s*=\s*([^\n]+)', comp)

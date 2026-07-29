@@ -24,6 +24,7 @@ Thumbs.db
 
 # Runtime-generated shadow run reports (ledger itself is committed deliberately when created)
 /runtime/v101_shadow/last_run.json
+/runtime/v101_shadow/last_outcome_run.json
 
 # Worker process artifacts
 /runtime/worker.instance.lock

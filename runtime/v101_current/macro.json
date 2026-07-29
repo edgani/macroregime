@@ -1,110 +1,571 @@
 {
   "schema": "warroom.v101.current_macro.v1",
-  "generated_at": "2026-07-29T10:21:43Z",
-  "series": {},
-  "series_count": 0,
+  "generated_at": "2026-07-29T11:21:22Z",
+  "series": {
+    "BAMLH0A0HYM2": {
+      "series_id": "BAMLH0A0HYM2",
+      "market": "us",
+      "role": "credit",
+      "label": "US high-yield OAS",
+      "value": 2.81,
+      "previous": 2.79,
+      "change_1": 0.020000000000000018,
+      "change_3": 0.1299999999999999,
+      "change_12": 0.10999999999999988,
+      "pct_change_3": 0.04850746268656714,
+      "pct_change_12": 0.040740740740740744,
+      "observation_timestamp": "2026-07-27T00:00:00",
+      "collected_at": "2026-07-29T11:21:08Z",
+      "source": {
+        "http_status": 200,
+        "content_type": "application/csv",
+        "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=BAMLH0A0HYM2",
+        "latency_ms": 203.0,
+        "raw_sha256": "b8698c7f4613d89fa58fa3222c29b17883dde17030f6095d52db30dfd9c8fa11"
+      },
+      "point_in_time_eligible": false,
+      "availability_semantics": "Current-vintage context; historical proof requires vintages/available_at."
+    },
+    "CPIAUCSL": {
+      "series_id": "CPIAUCSL",
+      "market": "us",
+      "role": "inflation",
+      "label": "US CPI",
+      "value": 332.568,
+      "previous": 333.979,
+      "change_1": -1.4110000000000014,
+      "change_3": 2.2749999999999773,
+      "change_12": 11.947999999999979,
+      "pct_change_3": 0.006887823841255969,
+      "pct_change_12": 0.037265298484186804,
+      "observation_timestamp": "2026-06-01T00:00:00",
+      "collected_at": "2026-07-29T11:21:08Z",
+      "source": {
+        "http_status": 200,
+        "content_type": "application/csv",
+        "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=CPIAUCSL",
+        "latency_ms": 282.0,
+        "raw_sha256": "2efffad3305f5adef58e84b06f268811123534805d5d7358f633cdb7e8c1aedb"
+      },
+      "point_in_time_eligible": false,
+      "availability_semantics": "Current-vintage context; historical proof requires vintages/available_at."
+    },
+    "DCOILWTICO": {
+      "series_id": "DCOILWTICO",
+      "market": "commodity",
+      "role": "wti_spot",
+      "label": "WTI spot price",
+      "value": 84.38,
+      "previous": 83.43,
+      "change_1": 0.9499999999999886,
+      "change_3": 3.6499999999999915,
+      "change_12": 14.64,
+      "pct_change_3": 0.045212436516784305,
+      "pct_change_12": 0.20992256954402078,
+      "observation_timestamp": "2026-07-20T00:00:00",
+      "collected_at": "2026-07-29T11:21:10Z",
+      "source": {
+        "http_status": 200,
+        "content_type": "application/csv",
+        "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DCOILWTICO",
+        "latency_ms": 422.0,
+        "raw_sha256": "644ca4ba9d2094688d3f968cc4e8e6d880aea8fd20e8bc9391121b0e987ea76d"
+      },
+      "point_in_time_eligible": false,
+      "availability_semantics": "Current-vintage context; historical proof requires vintages/available_at."
+    },
+    "DFF": {
+      "series_id": "DFF",
+      "market": "us",
+      "role": "policy",
+      "label": "Effective federal funds rate",
+      "value": 3.63,
+      "previous": 3.63,
+      "change_1": 0.0,
+      "change_3": 0.0,
+      "change_12": 0.0,
+      "pct_change_3": 0.0,
+      "pct_change_12": 0.0,
+      "observation_timestamp": "2026-07-27T00:00:00",
+      "collected_at": "2026-07-29T11:21:09Z",
+      "source": {
+        "http_status": 200,
+        "content_type": "application/csv",
+        "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFF",
+        "latency_ms": 625.0,
+        "raw_sha256": "480f78e82c63192decf8a9c001fad88c238667e14ccb58184879546c67b03028"
+      },
+      "point_in_time_eligible": false,
+      "availability_semantics": "Current-vintage context; historical proof requires vintages/available_at."
+    },
+    "DFII10": {
+      "series_id": "DFII10",
+      "market": "us",
+      "role": "real_rate",
+      "label": "US 10-year real yield",
+      "value": 2.44,
+      "previous": 2.43,
+      "change_1": 0.009999999999999787,
+      "change_3": 0.04999999999999982,
+      "change_12": 0.1299999999999999,
+      "pct_change_3": 0.02092050209205021,
+      "pct_change_12": 0.05627705627705626,
+      "observation_timestamp": "2026-07-27T00:00:00",
+      "collected_at": "2026-07-29T11:21:08Z",
+      "source": {
+        "http_status": 200,
+        "content_type": "application/csv",
+        "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DFII10",
+        "latency_ms": 343.0,
+        "raw_sha256": "e29681efcaeb24e82f4f90697dfe687d959ecb8d23632a28f459618fbeae9daf"
+      },
+      "point_in_time_eligible": false,
+      "availability_semantics": "Current-vintage context; historical proof requires vintages/available_at."
+    },
+    "DGS10": {
+      "series_id": "DGS10",
+      "market": "us",
+      "role": "policy",
+      "label": "US 10-year yield",
+      "value": 4.65,
+      "previous": 4.69,
+      "change_1": -0.040000000000000036,
+      "change_3": -0.019999999999999574,
+      "change_12": 0.11000000000000032,
+      "pct_change_3": -0.004282655246252598,
+      "pct_change_12": 0.02422907488986792,
+      "observation_timestamp": "2026-07-27T00:00:00",
+      "collected_at": "2026-07-29T11:21:09Z",
+      "source": {
+        "http_status": 200,
+        "content_type": "application/csv",
+        "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS10",
+        "latency_ms": 500.0,
+        "raw_sha256": "f5430a285309b0fa83a0b082d59049e4c4f77cb52092c0c7a06b7838a8a7a027"
+      },
+      "point_in_time_eligible": false,
+      "availability_semantics": "Current-vintage context; historical proof requires vintages/available_at."
+    },
+    "DGS2": {
+      "series_id": "DGS2",
+      "market": "us",
+      "role": "policy",
+      "label": "US 2-year yield",
+      "value": 4.31,
+      "previous": 4.33,
+      "change_1": -0.020000000000000462,
+      "change_3": 0.0,
+      "change_12": 0.14999999999999947,
+      "pct_change_3": 0.0,
+      "pct_change_12": 0.03605769230769207,
+      "observation_timestamp": "2026-07-27T00:00:00",
+      "collected_at": "2026-07-29T11:21:09Z",
+      "source": {
+        "http_status": 200,
+        "content_type": "application/csv",
+        "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DGS2",
+        "latency_ms": 438.0,
+        "raw_sha256": "d6a8ac411b6036591c1e6b8a919a38853627d85ee58d77de3f68e50c6b566b36"
+      },
+      "point_in_time_eligible": false,
+      "availability_semantics": "Current-vintage context; historical proof requires vintages/available_at."
+    },
+    "DHHNGSP": {
+      "series_id": "DHHNGSP",
+      "market": "commodity",
+      "role": "natgas_spot",
+      "label": "Henry Hub natural gas",
+      "value": 2.8,
+      "previous": 2.75,
+      "change_1": 0.04999999999999982,
+      "change_3": 0.0,
+      "change_12": -0.54,
+      "pct_change_3": 0.0,
+      "pct_change_12": -0.16167664670658688,
+      "observation_timestamp": "2026-07-20T00:00:00",
+      "collected_at": "2026-07-29T11:21:10Z",
+      "source": {
+        "http_status": 200,
+        "content_type": "application/csv",
+        "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DHHNGSP",
+        "latency_ms": 390.0,
+        "raw_sha256": "744bf72aa80cf53e89e2504768d2b9f72ab82659f13e76cf8ccba287e3e520d0"
+      },
+      "point_in_time_eligible": false,
+      "availability_semantics": "Current-vintage context; historical proof requires vintages/available_at."
+    },
+    "DTWEXBGS": {
+      "series_id": "DTWEXBGS",
+      "market": "fx",
+      "role": "usd",
+      "label": "Trade-weighted US dollar",
+      "value": 120.7105,
+      "previous": 120.9075,
+      "change_1": -0.19700000000000273,
+      "change_3": 0.1325999999999965,
+      "change_12": -0.42020000000000834,
+      "pct_change_3": 0.00109970400877768,
+      "pct_change_12": -0.003468980200725391,
+      "observation_timestamp": "2026-07-24T00:00:00",
+      "collected_at": "2026-07-29T11:21:09Z",
+      "source": {
+        "http_status": 200,
+        "content_type": "application/csv",
+        "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=DTWEXBGS",
+        "latency_ms": 359.0,
+        "raw_sha256": "d9cc6a2f607514cdcf528b36492812ddde37ec1447b3218533a0fc9705049bbb"
+      },
+      "point_in_time_eligible": false,
+      "availability_semantics": "Current-vintage context; historical proof requires vintages/available_at."
+    },
+    "ECBDFR": {
+      "series_id": "ECBDFR",
+      "market": "fx",
+      "role": "eur_policy",
+      "label": "ECB deposit facility rate",
+      "value": 2.25,
+      "previous": 2.25,
+      "change_1": 0.0,
+      "change_3": 0.0,
+      "change_12": 0.0,
+      "pct_change_3": 0.0,
+      "pct_change_12": 0.0,
+      "observation_timestamp": "2026-07-28T00:00:00",
+      "collected_at": "2026-07-29T11:21:09Z",
+      "source": {
+        "http_status": 200,
+        "content_type": "application/csv",
+        "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=ECBDFR",
+        "latency_ms": 454.0,
+        "raw_sha256": "9f08f2466f43a5703d37f987916cf855ce40e01b915f46f255816fd1319119da"
+      },
+      "point_in_time_eligible": false,
+      "availability_semantics": "Current-vintage context; historical proof requires vintages/available_at."
+    },
+    "INDPRO": {
+      "series_id": "INDPRO",
+      "market": "us",
+      "role": "growth",
+      "label": "US industrial production",
+      "value": 102.6395,
+      "previous": 102.5606,
+      "change_1": 0.07890000000000441,
+      "change_3": 1.0223000000000013,
+      "change_12": 1.1610000000000014,
+      "pct_change_3": 0.010060304751557725,
+      "pct_change_12": 0.011440847075981697,
+      "observation_timestamp": "2026-06-01T00:00:00",
+      "collected_at": "2026-07-29T11:21:08Z",
+      "source": {
+        "http_status": 200,
+        "content_type": "application/csv",
+        "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=INDPRO",
+        "latency_ms": 344.0,
+        "raw_sha256": "a31dbb5933696e55a60e2dc44536ddde300a024e6c40022eabde1d2a0fd0e8f5"
+      },
+      "point_in_time_eligible": false,
+      "availability_semantics": "Current-vintage context; historical proof requires vintages/available_at."
+    },
+    "IRSTCI01AUM156N": {
+      "series_id": "IRSTCI01AUM156N",
+      "market": "fx",
+      "role": "aud_policy",
+      "label": "Australia short-term interest rate",
+      "value": 4.35,
+      "previous": 4.31,
+      "change_1": 0.040000000000000036,
+      "change_3": 0.3899999999999997,
+      "change_12": 0.49999999999999956,
+      "pct_change_3": 0.0984848484848484,
+      "pct_change_12": 0.1298701298701297,
+      "observation_timestamp": "2026-06-01T00:00:00",
+      "collected_at": "2026-07-29T11:21:09Z",
+      "source": {
+        "http_status": 200,
+        "content_type": "application/csv",
+        "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=IRSTCI01AUM156N",
+        "latency_ms": 234.0,
+        "raw_sha256": "493fba833b84b8a992a0c13c0e5abfd6dbec6ca0170016259af68085cd235859"
+      },
+      "point_in_time_eligible": false,
+      "availability_semantics": "Current-vintage context; historical proof requires vintages/available_at."
+    },
+    "IRSTCI01CAM156N": {
+      "series_id": "IRSTCI01CAM156N",
+      "market": "fx",
+      "role": "cad_policy",
+      "label": "Canada short-term interest rate",
+      "value": 2.267285,
+      "previous": 2.244805,
+      "change_1": 0.022480000000000278,
+      "change_3": 0.011498636363640014,
+      "change_12": -0.4768399999999997,
+      "pct_change_3": 0.0050973959897089305,
+      "pct_change_12": -0.17376759440623135,
+      "observation_timestamp": "2026-06-01T00:00:00",
+      "collected_at": "2026-07-29T11:21:09Z",
+      "source": {
+        "http_status": 200,
+        "content_type": "application/csv",
+        "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=IRSTCI01CAM156N",
+        "latency_ms": 235.0,
+        "raw_sha256": "4e6315fa3da8ded0121a6243322f98f3bac52dbc95090d2acdc5c4e76e232b6d"
+      },
+      "point_in_time_eligible": false,
+      "availability_semantics": "Current-vintage context; historical proof requires vintages/available_at."
+    },
+    "IRSTCI01GBM156N": {
+      "series_id": "IRSTCI01GBM156N",
+      "market": "fx",
+      "role": "gbp_policy",
+      "label": "United Kingdom short-term interest rate",
+      "value": 3.7298,
+      "previous": 3.7296,
+      "change_1": 0.00019999999999997797,
+      "change_3": 0.0009000000000001229,
+      "change_12": -0.48460000000000036,
+      "pct_change_3": 0.00024135804124547633,
+      "pct_change_12": -0.11498671222475332,
+      "observation_timestamp": "2026-06-01T00:00:00",
+      "collected_at": "2026-07-29T11:21:09Z",
+      "source": {
+        "http_status": 200,
+        "content_type": "application/csv",
+        "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=IRSTCI01GBM156N",
+        "latency_ms": 250.0,
+        "raw_sha256": "4bbd2e25504afebb59a84632b8a85a5a529a6d54f7ae595434538bac5faf28fb"
+      },
+      "point_in_time_eligible": false,
+      "availability_semantics": "Current-vintage context; historical proof requires vintages/available_at."
+    },
+    "IRSTCI01JPM156N": {
+      "series_id": "IRSTCI01JPM156N",
+      "market": "fx",
+      "role": "jpy_policy",
+      "label": "Japan short-term interest rate",
+      "value": 0.841,
+      "previous": 0.727,
+      "change_1": 0.11399999999999999,
+      "change_3": 0.11299999999999999,
+      "change_12": 0.364,
+      "pct_change_3": 0.1552197802197801,
+      "pct_change_12": 0.7631027253668763,
+      "observation_timestamp": "2026-06-01T00:00:00",
+      "collected_at": "2026-07-29T11:21:09Z",
+      "source": {
+        "http_status": 200,
+        "content_type": "application/csv",
+        "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=IRSTCI01JPM156N",
+        "latency_ms": 218.0,
+        "raw_sha256": "ddead0b09f4a9fc148c528944b91ce73302841b5d43ee249650f0c07e17888b6"
+      },
+      "point_in_time_eligible": false,
+      "availability_semantics": "Current-vintage context; historical proof requires vintages/available_at."
+    },
+    "PAYEMS": {
+      "series_id": "PAYEMS",
+      "market": "us",
+      "role": "growth",
+      "label": "US nonfarm payrolls",
+      "value": 158984.0,
+      "previous": 158927.0,
+      "change_1": 57.0,
+      "change_3": 334.0,
+      "change_12": 506.0,
+      "pct_change_3": 0.002105263157894832,
+      "pct_change_12": 0.003192872196771779,
+      "observation_timestamp": "2026-06-01T00:00:00",
+      "collected_at": "2026-07-29T11:21:08Z",
+      "source": {
+        "http_status": 200,
+        "content_type": "application/csv",
+        "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=PAYEMS",
+        "latency_ms": 297.0,
+        "raw_sha256": "177efe81de346565992ed81e5f62fbfe6740d300762f898bf9cca6be304b4d69"
+      },
+      "point_in_time_eligible": false,
+      "availability_semantics": "Current-vintage context; historical proof requires vintages/available_at."
+    },
+    "PCEPI": {
+      "series_id": "PCEPI",
+      "market": "us",
+      "role": "inflation",
+      "label": "US PCE price index",
+      "value": 131.527,
+      "previous": 130.938,
+      "change_1": 0.5889999999999986,
+      "change_3": 1.9879999999999995,
+      "change_12": 5.146999999999991,
+      "pct_change_3": 0.015346729556349858,
+      "pct_change_12": 0.04072638075644863,
+      "observation_timestamp": "2026-05-01T00:00:00",
+      "collected_at": "2026-07-29T11:21:08Z",
+      "source": {
+        "http_status": 200,
+        "content_type": "application/csv",
+        "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=PCEPI",
+        "latency_ms": 234.0,
+        "raw_sha256": "19efa5fc5c979683589de9d8bd8c513ad755e41bc1173ad2fd0f34c38645c333"
+      },
+      "point_in_time_eligible": false,
+      "availability_semantics": "Current-vintage context; historical proof requires vintages/available_at."
+    },
+    "PCOPPUSDM": {
+      "series_id": "PCOPPUSDM",
+      "market": "commodity",
+      "role": "copper_global",
+      "label": "Global copper price",
+      "value": 13552.040909090912,
+      "previous": 13512.156190476187,
+      "change_1": 39.88471861472499,
+      "change_3": 1023.33136363636,
+      "change_12": 3716.972813852817,
+      "pct_change_3": 0.0816789119361161,
+      "pct_change_12": 0.3779305621333202,
+      "observation_timestamp": "2026-06-01T00:00:00",
+      "collected_at": "2026-07-29T11:21:10Z",
+      "source": {
+        "http_status": 200,
+        "content_type": "application/csv",
+        "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=PCOPPUSDM",
+        "latency_ms": 203.0,
+        "raw_sha256": "0a2515207f7c83c3da27cd4ba1f298bce40629810b5c38df47af5889b41b8117"
+      },
+      "point_in_time_eligible": false,
+      "availability_semantics": "Current-vintage context; historical proof requires vintages/available_at."
+    },
+    "RRPONTSYD": {
+      "series_id": "RRPONTSYD",
+      "market": "us",
+      "role": "liquidity",
+      "label": "Overnight reverse repo",
+      "value": 1.126,
+      "previous": 1.38,
+      "change_1": -0.254,
+      "change_3": 0.22199999999999986,
+      "change_12": 0.5809999999999998,
+      "pct_change_3": 0.24557522123893794,
+      "pct_change_12": 1.0660550458715594,
+      "observation_timestamp": "2026-07-28T00:00:00",
+      "collected_at": "2026-07-29T11:21:08Z",
+      "source": {
+        "http_status": 200,
+        "content_type": "application/csv",
+        "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=RRPONTSYD",
+        "latency_ms": 360.0,
+        "raw_sha256": "7c08844c17990463cee16629384a6fec1d691071659d99d68b416af4871aa422"
+      },
+      "point_in_time_eligible": false,
+      "availability_semantics": "Current-vintage context; historical proof requires vintages/available_at."
+    },
+    "T10YIE": {
+      "series_id": "T10YIE",
+      "market": "us",
+      "role": "inflation_expectation",
+      "label": "US 10-year breakeven",
+      "value": 2.2,
+      "previous": 2.21,
+      "change_1": -0.009999999999999787,
+      "change_3": -0.07999999999999963,
+      "change_12": -0.040000000000000036,
+      "pct_change_3": -0.0350877192982455,
+      "pct_change_12": -0.017857142857142905,
+      "observation_timestamp": "2026-07-28T00:00:00",
+      "collected_at": "2026-07-29T11:21:08Z",
+      "source": {
+        "http_status": 200,
+        "content_type": "application/csv",
+        "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=T10YIE",
+        "latency_ms": 375.0,
+        "raw_sha256": "ac89737525b06dc77161dbfc23e8a32dfcf9f6fdec5455076398bf4707ea4916"
+      },
+      "point_in_time_eligible": false,
+      "availability_semantics": "Current-vintage context; historical proof requires vintages/available_at."
+    },
+    "VIXCLS": {
+      "series_id": "VIXCLS",
+      "market": "us",
+      "role": "option_implied_stress",
+      "label": "CBOE VIX close",
+      "value": 18.67,
+      "previous": 18.58,
+      "change_1": 0.09000000000000341,
+      "change_3": 2.030000000000001,
+      "change_12": 2.830000000000002,
+      "pct_change_3": 0.12199519230769229,
+      "pct_change_12": 0.17866161616161635,
+      "observation_timestamp": "2026-07-27T00:00:00",
+      "collected_at": "2026-07-29T11:21:09Z",
+      "source": {
+        "http_status": 200,
+        "content_type": "application/csv",
+        "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=VIXCLS",
+        "latency_ms": 437.0,
+        "raw_sha256": "36739bdf4575f1aac09b11afc338cf692f097d8465a1703d19462c7940fdc076"
+      },
+      "point_in_time_eligible": false,
+      "availability_semantics": "Current-vintage context; historical proof requires vintages/available_at."
+    },
+    "WALCL": {
+      "series_id": "WALCL",
+      "market": "us",
+      "role": "liquidity",
+      "label": "Federal Reserve total assets",
+      "value": 6747378.0,
+      "previous": 6743028.0,
+      "change_1": 4350.0,
+      "change_3": 22814.0,
+      "change_12": 47428.0,
+      "pct_change_3": 0.0033926363106961954,
+      "pct_change_12": 0.007078858797453735,
+      "observation_timestamp": "2026-07-22T00:00:00",
+      "collected_at": "2026-07-29T11:21:08Z",
+      "source": {
+        "http_status": 200,
+        "content_type": "application/csv",
+        "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=WALCL",
+        "latency_ms": 250.0,
+        "raw_sha256": "c851a2b364e356ebcecf0c4a957f2f917c0b87fb2755d2b99c3d03887b289cc4"
+      },
+      "point_in_time_eligible": false,
+      "availability_semantics": "Current-vintage context; historical proof requires vintages/available_at."
+    },
+    "WTREGEN": {
+      "series_id": "WTREGEN",
+      "market": "us",
+      "role": "liquidity",
+      "label": "Treasury General Account",
+      "value": 829623.0,
+      "previous": 756218.0,
+      "change_1": 73405.0,
+      "change_3": -50614.0,
+      "change_12": -152306.0,
+      "pct_change_3": -0.05750042318148407,
+      "pct_change_12": -0.15510897427410741,
+      "observation_timestamp": "2026-07-22T00:00:00",
+      "collected_at": "2026-07-29T11:21:08Z",
+      "source": {
+        "http_status": 200,
+        "content_type": "application/csv",
+        "final_url": "https://fred.stlouisfed.org/graph/fredgraph.csv?id=WTREGEN",
+        "latency_ms": 281.0,
+        "raw_sha256": "d7c89c666bc61dbe9938a231262a04a90c90d42a38883ce9cab88c3ee36257c7"
+      },
+      "point_in_time_eligible": false,
+      "availability_semantics": "Current-vintage context; historical proof requires vintages/available_at."
+    }
+  },
+  "series_count": 23,
   "failures": [
     {
-      "series_id": "BAMLH0A0HYM2",
-      "error": "TimeoutError: The read operation timed out"
-    },
-    {
-      "series_id": "CPIAUCSL",
-      "error": "TimeoutError: The read operation timed out"
-    },
-    {
-      "series_id": "DCOILWTICO",
-      "error": "TimeoutError: The read operation timed out"
-    },
-    {
-      "series_id": "DFF",
-      "error": "TimeoutError: The read operation timed out"
-    },
-    {
-      "series_id": "DFII10",
-      "error": "TimeoutError: The read operation timed out"
-    },
-    {
-      "series_id": "DGS10",
-      "error": "TimeoutError: The read operation timed out"
-    },
-    {
-      "series_id": "DGS2",
-      "error": "TimeoutError: The read operation timed out"
-    },
-    {
-      "series_id": "DHHNGSP",
-      "error": "TimeoutError: The read operation timed out"
-    },
-    {
-      "series_id": "DTWEXBGS",
-      "error": "TimeoutError: The read operation timed out"
-    },
-    {
-      "series_id": "ECBDFR",
-      "error": "TimeoutError: The read operation timed out"
-    },
-    {
       "series_id": "GOLDAMGBD228NLBM",
-      "error": "TimeoutError: The read operation timed out"
-    },
-    {
-      "series_id": "INDPRO",
-      "error": "TimeoutError: The read operation timed out"
-    },
-    {
-      "series_id": "IRSTCI01AUM156N",
-      "error": "TimeoutError: The read operation timed out"
-    },
-    {
-      "series_id": "IRSTCI01CAM156N",
-      "error": "TimeoutError: The read operation timed out"
-    },
-    {
-      "series_id": "IRSTCI01GBM156N",
-      "error": "TimeoutError: The read operation timed out"
-    },
-    {
-      "series_id": "IRSTCI01JPM156N",
-      "error": "TimeoutError: The read operation timed out"
-    },
-    {
-      "series_id": "PAYEMS",
-      "error": "TimeoutError: The read operation timed out"
-    },
-    {
-      "series_id": "PCEPI",
-      "error": "TimeoutError: The read operation timed out"
-    },
-    {
-      "series_id": "PCOPPUSDM",
-      "error": "TimeoutError: The read operation timed out"
-    },
-    {
-      "series_id": "RRPONTSYD",
-      "error": "TimeoutError: The read operation timed out"
-    },
-    {
-      "series_id": "T10YIE",
-      "error": "TimeoutError: The read operation timed out"
-    },
-    {
-      "series_id": "VIXCLS",
-      "error": "TimeoutError: The read operation timed out"
-    },
-    {
-      "series_id": "WALCL",
-      "error": "TimeoutError: The read operation timed out"
+      "error": "HTTPError: HTTP Error 404: Not Found"
     },
     {
       "series_id": "WCESTUS1",
-      "error": "TimeoutError: The read operation timed out"
-    },
-    {
-      "series_id": "WTREGEN",
-      "error": "TimeoutError: The read operation timed out"
+      "error": "HTTPError: HTTP Error 404: Not Found"
     }
   ],
   "claim_limit": "Current-vintage macro/physical observations are research context, not reconstructed historical release evidence.",
-  "manifest_hash": "1b204d33c438676d84fee542947943576c7136a644c888b9e16de72584c044a4"
+  "manifest_hash": "1cdf0db434fbb6178f9c9c27383d71723b2970bdf3bd38f13cb4d9cd4a7dad0b"
 }

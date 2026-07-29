@@ -10,10 +10,12 @@ from typing import Any, Mapping
 
 from runtime_store import read_snapshot
 from shadow_execution_ledger_v95 import append_forecast, append_order_intent, append_shadow_fill, verify
+from warroom.research import trial_counter
 
 HERE = Path(__file__).resolve().parent
 LEDGER = HERE / "runtime" / "v101_shadow" / "shadow_ledger.jsonl"
 UTC = dt.timezone.utc
+TRIAL_ID = "V101_FIXED_ACTION_POLICY"
 
 
 def _canonical(value: Any) -> bytes:
@@ -50,16 +52,21 @@ def _git_commit() -> str:
         return "UNKNOWN"
 
 
-def record(snapshot: Mapping[str, Any] | None = None, *, max_new: int = 12, simulate_fill: bool = True) -> dict[str, Any]:
+def record(snapshot: Mapping[str, Any] | None = None, *, max_new: int = 12, simulate_fill: bool = True, trial_registries: tuple | None = None) -> dict[str, Any]:
     snapshot = dict(snapshot or read_snapshot() or {})
     if not snapshot:
         return {"state":"NO_SNAPSHOT","created":0,"verification":verify(LEDGER)}
+    registries = trial_registries if trial_registries is not None else trial_counter.DEFAULT_REGISTRIES
+    try:
+        trial_counter.require_registered(TRIAL_ID, registries)
+    except trial_counter.TrialNotRegistered as exc:
+        return {"state":"TRIAL_NOT_REGISTERED","created":0,"error":str(exc),"verification":verify(LEDGER)}
     candidates=list(((snapshot.get("alpha_center") or {}).get("shadow_candidates") or []))
     now=dt.datetime.now(UTC); existing=_existing_ids(LEDGER); created=[]; skipped=[]
     data_hash=_hash_value({"current_context":snapshot.get("current_context"),"generated":snapshot.get("meta",{}).get("generated")})
     code_hash=_file_hash(HERE/"action_engine_v101.py")
     model_hash=_file_hash(HERE/"V101_ACTION_POLICY.json")
-    trial_hash=_file_hash(HERE/"V101_ACTION_POLICY.json")
+    trial_hash=trial_counter.content_hash(registries)
     for packet in candidates[:max_new]:
         action=packet.get("current_action") or {}; risk=action.get("risk_plan") or {}; projection=action.get("projection") or {}
         market=str(packet.get("market") or ""); ticker=str(packet.get("ticker") or "")
@@ -76,7 +83,7 @@ def record(snapshot: Mapping[str, Any] | None = None, *, max_new: int = 12, simu
         entry_ref=float(risk.get("entry") or 0.0)
         target_price=round(entry_ref*(1.0+expected), 10) if entry_ref>0 else None
         forecast={
-            "forecast_id":fid,"trial_id":"V101_FIXED_ACTION_POLICY","market":market,"security_id":ticker,
+            "forecast_id":fid,"trial_id":TRIAL_ID,"market":market,"security_id":ticker,
             "generated_at":generated.isoformat().replace("+00:00","Z"),"decision_at":decision.isoformat().replace("+00:00","Z"),
             "outcome_start":outcome_start.isoformat().replace("+00:00","Z"),"outcome_end":outcome_end.isoformat().replace("+00:00","Z"),
             "horizon":f"{horizon_days}D","direction":direction,"probability":float(action.get("confidence") or 0.0),

@@ -26,6 +26,7 @@ from shadow_execution_ledger_v95 import (
     verify,
 )
 from tools.paper_trading.evaluate_shadow_ledger import build_evaluation
+from warroom.research import trial_counter
 
 UTC = dt.timezone.utc
 T0 = dt.datetime(2026, 1, 10, 12, 0, 0, tzinfo=UTC)
@@ -219,7 +220,9 @@ def _fixture_snapshot():
 def test_shadow_runner_dry_run(tmp_path, monkeypatch):
     """Dry-run the production recorder against a fixture snapshot on a temp ledger."""
     monkeypatch.setattr(shadow_runner_v101, "LEDGER", tmp_path / "shadow_ledger.jsonl")
-    result = shadow_runner_v101.record(snapshot=_fixture_snapshot())
+    registry = tmp_path / "trials.jsonl"
+    trial_counter.register("V101_FIXED_ACTION_POLICY", {"policy": "test"}, registry=registry)
+    result = shadow_runner_v101.record(snapshot=_fixture_snapshot(), trial_registries=(registry,))
     assert result["created"] == 1, result
     assert result["verification"]["valid"]
     rows = [json.loads(line) for line in (tmp_path / "shadow_ledger.jsonl").read_text().splitlines()]
@@ -228,10 +231,22 @@ def test_shadow_runner_dry_run(tmp_path, monkeypatch):
     assert forecast["target_price"] == pytest.approx(525.0)
     assert forecast["lower_confidence_bound_return"] == pytest.approx(0.01)
     assert len(forecast["git_commit"]) == 40
+    # The forecast binds the actual global trial registry content, not a policy file.
+    assert forecast["global_trial_ledger_hash"] == trial_counter.content_hash((registry,))
     # Idempotency: a second run the same day records nothing new.
-    again = shadow_runner_v101.record(snapshot=_fixture_snapshot())
+    again = shadow_runner_v101.record(snapshot=_fixture_snapshot(), trial_registries=(registry,))
     assert again["created"] == 0
     assert again["skipped"] and again["skipped"][0]["reason"] == "ALREADY_RECORDED_TODAY"
+
+
+def test_shadow_runner_refuses_unregistered_trial(tmp_path, monkeypatch):
+    """Fail-closed: no prospective trial registration, no shadow records."""
+    monkeypatch.setattr(shadow_runner_v101, "LEDGER", tmp_path / "shadow_ledger.jsonl")
+    empty_registry = tmp_path / "trials.jsonl"
+    result = shadow_runner_v101.record(snapshot=_fixture_snapshot(), trial_registries=(empty_registry,))
+    assert result["state"] == "TRIAL_NOT_REGISTERED"
+    assert result["created"] == 0
+    assert not (tmp_path / "shadow_ledger.jsonl").exists()
 
 
 def test_evaluation_on_empty_ledger_is_pending(tmp_path):

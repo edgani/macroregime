@@ -11,6 +11,7 @@
 | 6 | Application repair (streamlit_app.py, deps, manifest) | COMPLETED_AND_VERIFIED | commit 7925c41; 124/124 pytest |
 | 7 | Paper-trading framework completion | COMPLETED_AND_VERIFIED | commit ff27fb6; 10/10 tests; PAPER_TRADING.md |
 | 8 | Final e2e + delivery prep | COMPLETED_AND_VERIFIED | TEST_RESULTS.md Phase 8 section |
+| 9 | Prospective accumulation infrastructure (R9.0-R9.4) | COMPLETED_AND_VERIFIED | docs/audit/R9_ACCEPTANCE.md; commits 3919f10..3768d90; 230/230 pytest |
 
 ## Terminal evidence status by module
 
@@ -25,12 +26,15 @@
 
 ## Open external blockers
 
-- Live data collectors (Yahoo/Binance/CoinGecko/yfinance/CFTC/CB scrape) unverified —
-  network-dependent; offline path fully verified.
-- First real prospective shadow snapshot requires one live `warroom_data_worker_v101.py`
-  cycle; framework otherwise complete and tested.
+- None blocking operation. Live collectors verified 2026-07-29 (R9.0); daily
+  cycle automated via WarRoomDailyCycle (07:00 local) through
+  tools/worker_supervisor.py with retry + fail-closed postconditions.
+- Known reliability item: intermittent worker native crash (EXIT=139, ~1/3 of
+  fast cycles observed); supervisor retry mitigates; root cause open.
 
 ## Delivery
 
-Branch `kimi-warroom-final-audit`, 9 commits, ready for review/push.
-Push command: `git push -u origin kimi-warroom-final-audit`
+Branch `kimi-warroom-final-audit`, R0-R8 audit commits + R9.0-R9.4.
+Prospective accumulation: ACTIVE (12 shadow forecasts/day cap, first outcomes
+mature ~2026-10-27). Capital: BLOCKED (contamination capital tier fails on
+custodian/blind-ID/holdout gates, honestly attested).

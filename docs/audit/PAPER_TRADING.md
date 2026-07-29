@@ -5,9 +5,13 @@
 | Component | Path | Status |
 |---|---|---|
 | Append-only hash-chained ledger | `shadow_execution_ledger_v95.py` | VERIFIED (schema test) |
-| Production recorder (V10.1 packets) | `shadow_runner_v101.py` | VERIFIED (dry-run) |
-| Evaluation report generator | `tools/paper_trading/evaluate_shadow_ledger.py` | VERIFIED |
-| Test suite (10 tests) | `tests/test_shadow_paper_trading.py` | 10/10 PASS |
+| Production recorder (V10.1 packets) | `shadow_runner_v101.py` | VERIFIED (dry-run + live; trial-gate enforced) |
+| Outcome recorder (R9.1) | `shadow_outcome_recorder_v101.py` | VERIFIED (10 tests; live dry-run) |
+| Global trial counter (R9.2) | `warroom/research/trial_counter.py` | VERIFIED (8 tests; both chains valid) |
+| Contamination gates (R9.3) | `warroom/research/contamination_gates.py` | VERIFIED (7 tests; live verdict) |
+| Daily cycle supervisor (R9.4) | `tools/worker_supervisor.py` | VERIFIED (5 tests; live cycle 4/4; scheduled 07:00) |
+| Evaluation report generator | `tools/paper_trading/evaluate_shadow_ledger.py` | VERIFIED (carries contamination verdict) |
+| Test suites | `tests/test_shadow_paper_trading.py`, `test_shadow_outcome_recorder.py`, `test_trial_counter.py`, `test_contamination_gates.py`, `test_worker_supervisor.py` | 33/33 PASS |
 
 ## Mandate field coverage (forecast record)
 
@@ -48,6 +52,20 @@
 5. Evaluation report: on the empty/missing ledger the generator returns
    `evidence_status=PROSPECTIVE_EVIDENCE_PENDING`, capital BLOCKED — no profitability claim
    is possible until >=30 matured prospective observations exist.
+
+## Verification results (2026-07-29, R9)
+
+1. First live cycle committed (R9.0): 12 FORECAST + 12 ORDER_INTENT + 12 SHADOW_FILL,
+   hash-chain verify valid, zero errors. First outcomes mature ~2026-10-27 (90D horizon).
+2. Outcome recorder (R9.1): 10/10 tests; live dry-run reports 12 pending unmatured, 0 created.
+3. Trial counter (R9.2): both registry chains verify (full hash recompute);
+   `V101_FIXED_ACTION_POLICY` registered prospectively (entry 6); shadow_runner refuses
+   unregistered trials (fail-closed, zero rows written).
+4. Contamination verdict (R9.3, live): shadow_pass=True, capital_pass=False; blocking capital
+   gates are custodian / blind IDs / low-contamination holdout / post-cutoff holdout (the
+   last passes automatically once outcomes mature).
+5. Daily automation (R9.4): supervisor cycle 4/4 stages ok; Windows task `WarRoomDailyCycle`
+   installed, daily 07:00 local, next run verified 2026-07-30.
 
 ## Rules
 

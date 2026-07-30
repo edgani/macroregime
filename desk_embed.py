@@ -25,6 +25,7 @@ from warroom.no_technical_policy import (  # noqa: E402
 )
 
 DASHBOARD = HERE / "dashboard.html"
+CMV3_IMAGES = HERE / "assets" / "crashmeter_v3" / "backtests_b64.json"
 MARKETS = ["us", "idx", "crypto", "commodity", "fx"]
 
 _worker_lock = threading.Lock()
@@ -80,7 +81,13 @@ def current_snapshot() -> dict:
 
 def desk_html(snapshot: dict) -> str:
     payload = json.dumps(snapshot, default=str, separators=(",", ":"), ensure_ascii=False).replace("</", "<\\/")
-    return DASHBOARD.read_text(encoding="utf-8").replace("/*__INJECT_DATA__*/", f"window.DASHBOARD_DATA={payload};", 1)
+    html = DASHBOARD.read_text(encoding="utf-8").replace("/*__INJECT_DATA__*/", f"window.DASHBOARD_DATA={payload};", 1)
+    images = "[]"
+    try:
+        images = CMV3_IMAGES.read_text(encoding="utf-8")
+    except OSError:
+        pass
+    return html.replace("/*__INJECT_CMV3_IMG__*/", f"window.CMV3_IMG={images};", 1)
 
 
 def render_desk(height: int = 1320) -> None:

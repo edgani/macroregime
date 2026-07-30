@@ -28,6 +28,11 @@ def _build(fast:bool)->dict:
   desk['market_intelligence']={'state':'UNAVAILABLE','error':f'{type(exc).__name__}: {exc}','macro_quad':None,'crash_meter':None}
  from run import _jarvis_brief
  desk['jarvis_brief']=_jarvis_brief(desk)
+ try:
+  from warroom.research import btc_monday
+  desk['btc_monday']=btc_monday.current_state()
+ except Exception as exc:
+  desk['btc_monday']={'state':'UNAVAILABLE','reason':f'{type(exc).__name__}: {exc}'}
  desk.setdefault('runtime',{}).update({'core_collected_at':now_iso(),'core_profile':'V101_OPERATIONAL_CURRENT_ACTION','refresh_type':'FAST' if fast else 'FULL'})
  return desk
 

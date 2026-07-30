@@ -315,6 +315,16 @@ def _jarvis_brief(desk: Mapping[str, Any]) -> list[str]:
         fg = (mi.get("early_warning") or {}).get("fear_greed") or {}
         if fg.get("value") is not None:
             out.append(f"Psikologi pasar (fear & greed): {float(fg['value']):.0f} → {fg.get('state') or '—'} ({fg.get('signal') or 'tanpa sinyal kontrarian'}).")
+        v3 = mi.get("crashmeter_v3") or {}
+        if v3.get("state") == "CURRENT" and (v3.get("score") or 0) >= 2:
+            causes = []
+            if v3.get("c"):
+                causes.append(f"valuasi S&P500 mahal (CAPE {v3.get('cape')}, batas bahaya 35)")
+            if v3.get("a2"):
+                causes.append(f"yield curve baru {v3.get('months_since_inversion_end')} bulan lepas dari inversi (fase rawan <18 bulan)")
+            if v3.get("b1") or v3.get("b2"):
+                causes.append("credit spread HY melebar")
+            out.append(f"Peringatan valuasi & siklus (Crashmeter v3): skor {v3['score']}/4 = {v3.get('label')} — penyebab: {'; '.join(causes)}.")
     carry = desk.get("carry_trade") or {}
     if carry.get("state") and carry.get("state") != "INCOMPLETE":
         top = (carry.get("top_carry_trades") or [{}])[0]

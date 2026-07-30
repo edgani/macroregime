@@ -128,6 +128,11 @@ def build_market_intelligence() -> dict[str, Any]:
         bundle["risk_regime"] = mr.get("risk_regime")
         bundle["inflation_play"] = mr.get("inflation_play")
         bundle["engine_errors"] = list(getattr(C, "_DIAG", []))[:10]
+        try:
+            from warroom.research import crashmeter_v3
+            bundle["crashmeter_v3"] = crashmeter_v3.current_state()
+        except Exception as exc:
+            bundle["crashmeter_v3"] = {"state": "UNAVAILABLE", "reason": f"{type(exc).__name__}: {exc}"}
         return bundle
     except Exception as exc:  # honest failure, never break the worker
         return {

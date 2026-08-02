@@ -19,6 +19,7 @@ STATUS_ICONS = {
     "PARTIAL": "PARTIAL",
     "STALE": "STALE",
     "NO_DATA": "NO DATA",
+    "LOCKED": "LOCKED",
 }
 
 

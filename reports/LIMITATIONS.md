@@ -6,6 +6,7 @@
 - Synthetic mode and execution lock are explicit and testable.
 - Core PIT, data-health, narrative-firewall, competing-thesis, mechanism-graph, conservative-EV, waiting, exposure, scenario, registry, and replay contracts exist.
 - The repository can represent global markets and additional mechanisms through registries.
+- Public benchmark adapters load US, IHSG, crypto, FX, commodities, and rates/volatility with provider, observation time, freshness, and last-good fallback.
 
 ## What this build does not prove
 
@@ -14,7 +15,8 @@
 - No live global point-in-time data estate is complete.
 - No expected-return or probability output has sufficient prospective calibration.
 - No private portfolio data, tax situation, broker access, borrow, or liquidity constraints are loaded.
-- The synthetic dashboard is not current market analysis.
+- The frozen synthetic fixture is not current market analysis.
+- Public benchmark prices are monitoring observations, not a complete point-in-time macro evidence estate or an investment recommendation.
 
 ## Material data debt
 

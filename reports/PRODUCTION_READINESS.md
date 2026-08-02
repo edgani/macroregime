@@ -13,12 +13,13 @@ This report separates software readiness from evidence readiness. A runnable int
 | Registry-driven global baseline | PASS | Integration tests for universe and dataset registries |
 | PIT availability behavior | PASS | Leakage tests |
 | Feed-health fail-closed behavior | PASS | Unit tests |
+| Public benchmark market adapters | PASS | Six market groups, provider isolation, freshness labels, and stale-cache regression tests |
 | Narrative firewall | PASS | Unit tests |
 | Competing hypotheses including null | PASS | Unit tests |
 | Evidence-family de-duplication | PASS | Unit tests |
 | Conservative EV including all costs | PASS | Unit tests |
 | No technical indicators | PASS | Regression source scan |
-| Global live data adapters | FAIL | Material data debt |
+| Global PIT macro evidence adapters | FAIL | Material data debt beyond public benchmark prices |
 | Full license/entitlement enforcement | FAIL | Registry metadata only |
 | Legacy formula replication | PARTIAL | Baseline unit tests; inherited result corpus not fully replicated |
 | Historical multi-country frozen replay | FAIL | Holdout corpus absent |

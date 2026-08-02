@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import streamlit as st
 
-from eros.app.state import DashboardState, load_dashboard_state
+from eros.app.state import DashboardState, build_public_data_state, load_dashboard_state
 from eros.app.theme import APP_CSS
+from eros.data.public_markets import fetch_public_market_snapshot
 
 PRODUCT_NAME = "EROS"
 MAIN_TABS = (
@@ -20,6 +21,12 @@ MAIN_TABS = (
 def build_demo_state() -> DashboardState:
     """Backward-compatible state factory backed by the validated snapshot."""
     return load_dashboard_state()
+
+
+@st.cache_data(ttl=300, show_spinner=False)
+def _load_runtime_state() -> DashboardState:
+    """Refresh public feeds every five minutes with last-good fallback."""
+    return build_public_data_state(load_dashboard_state(), fetch_public_market_snapshot())
 
 
 def _hero(state: DashboardState) -> None:
@@ -46,10 +53,15 @@ def render_app() -> None:
     st.set_page_config(page_title="EROS v3.0", page_icon=None, layout="wide")
     st.markdown(APP_CSS, unsafe_allow_html=True)
 
-    state = load_dashboard_state()
+    state = _load_runtime_state()
     _hero(state)
     if state.mode == "SYNTHETIC_DEMO":
-        st.warning("SYNTHETIC DEMO — NO LIVE DECISION DATA — EXECUTION LOCKED")
+        st.warning(state.banner)
+    elif state.mode == "PUBLIC_DATA":
+        st.warning(
+            "PUBLIC DATA + FROZEN SYNTHETIC RESEARCH FIXTURE — "
+            "BENCHMARK OBSERVATIONS LOADED — CAUSAL REGIME UNKNOWN — EXECUTION LOCKED"
+        )
 
     tabs = st.tabs(MAIN_TABS)
     from eros.app.command_center import render as render_command_center

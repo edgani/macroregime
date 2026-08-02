@@ -12,9 +12,22 @@ def test_app_bootstraps_src_layout_without_installed_project(tmp_path: Path) -> 
     """The entry point must find eros when only third-party modules are importable."""
     fake_modules = tmp_path / "fake_modules"
     fake_modules.mkdir()
-    (fake_modules / "streamlit.py").write_text("", encoding="utf-8")
+    (fake_modules / "streamlit.py").write_text(
+        "def cache_data(*args, **kwargs):\n"
+        "    def decorator(function):\n"
+        "        function.clear = lambda: None\n"
+        "        return function\n"
+        "    return decorator\n",
+        encoding="utf-8",
+    )
     (fake_modules / "pydantic.py").write_text(
-        "class BaseModel:\n    pass\n\ndef Field(*args, **kwargs):\n    return None\n",
+        "class BaseModel:\n    pass\n\n"
+        "FiniteFloat = float\n\n"
+        "def Field(*args, **kwargs):\n    return None\n",
+        encoding="utf-8",
+    )
+    (fake_modules / "yaml.py").write_text(
+        "def safe_load(value):\n    return {}\n",
         encoding="utf-8",
     )
 

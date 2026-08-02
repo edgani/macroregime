@@ -4,8 +4,10 @@ from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
 
+from eros.app import shell
 from eros.app.shell import MAIN_TABS, PRODUCT_NAME
-from eros.app.state import load_dashboard_state
+from eros.app.state import build_public_data_state, load_dashboard_state
+from eros.data.public_markets import MarketObservation, MarketSnapshot
 
 EXPECTED_TABS = (
     "Command Center",
@@ -33,7 +35,8 @@ def test_dashboard_fixture_preserves_uncertainty_and_execution_lock() -> None:
     assert len(state.regime_dimensions) == 8
 
 
-def test_streamlit_app_runs_with_five_decision_tabs() -> None:
+def test_streamlit_app_runs_with_five_decision_tabs(monkeypatch) -> None:
+    monkeypatch.setattr(shell, "_load_runtime_state", load_dashboard_state)
     app_path = Path(__file__).parents[2] / "app.py"
     app = AppTest.from_file(str(app_path)).run(timeout=30)
 
@@ -43,3 +46,53 @@ def test_streamlit_app_runs_with_five_decision_tabs() -> None:
     assert all(label in labels for label in EXPECTED_TABS)
     assert any("SYNTHETIC DEMO" in item.value for item in app.warning)
     assert any("NO QUALIFIED OPPORTUNITY" in item.value for item in app.warning)
+
+
+def test_public_market_snapshot_is_visible_in_command_center(monkeypatch) -> None:
+    public_state = build_public_data_state(
+        load_dashboard_state(),
+        MarketSnapshot(
+            fetched_at="2026-08-02T16:01:00Z",
+            observations=[
+                MarketObservation(
+                    market_group="US",
+                    instrument="S&P 500",
+                    symbol="^GSPC",
+                    value=7489.72,
+                    currency="USD",
+                    change_pct=0.8,
+                    observed_at="2026-08-02T16:00:00Z",
+                    fetched_at="2026-08-02T16:01:00Z",
+                    provider="public-test",
+                    status="LIVE",
+                )
+            ],
+        ),
+    )
+    monkeypatch.setattr(shell, "_load_runtime_state", lambda: public_state)
+    app_path = Path(__file__).parents[2] / "app.py"
+
+    app = AppTest.from_file(str(app_path)).run(timeout=30)
+
+    assert not app.exception
+    assert any("PUBLIC MARKET SNAPSHOT" in item.value for item in app.markdown)
+    assert any("PUBLIC DATA" in item.value for item in app.warning)
+    assert any("FROZEN SYNTHETIC RESEARCH FIXTURE" in item.value for item in app.warning)
+    assert any("CAUSAL REGIME UNKNOWN" in item.value for item in app.warning)
+
+
+def test_total_provider_outage_remains_visible_without_market_rows(monkeypatch) -> None:
+    failed_state = build_public_data_state(
+        load_dashboard_state(),
+        MarketSnapshot(
+            fetched_at="2026-08-02T16:01:00Z",
+            failures={"Public providers": "all requests failed"},
+        ),
+    )
+    monkeypatch.setattr(shell, "_load_runtime_state", lambda: failed_state)
+    app_path = Path(__file__).parents[2] / "app.py"
+
+    app = AppTest.from_file(str(app_path)).run(timeout=30)
+
+    assert not app.exception
+    assert any("Provider failures isolated: Public providers" in item.value for item in app.warning)

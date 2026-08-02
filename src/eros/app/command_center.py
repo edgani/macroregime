@@ -10,13 +10,19 @@ from eros.app.state import DashboardState
 
 def _decision_brief(state: DashboardState) -> None:
     live_ratio = f"{state.data_health.live_feeds}/{state.data_health.total_feeds}"
+    if state.market_snapshot:
+        condition = (
+            f"{len(state.market_snapshot)} public benchmark observations loaded; "
+            "causal regime remains UNKNOWN until macro evidence passes admission."
+        )
+    else:
+        condition = "UNKNOWN. Belum ada panel point-in-time global yang lolos."
     st.markdown(
         f"""
         <div class="brief">
           <h3>Ringkasan keputusan 30 detik</h3>
           <ul>
-            <li><b>Kondisi global:</b> UNKNOWN. Belum ada panel point-in-time global
-            yang lolos.</li>
+            <li><b>Kondisi global:</b> {condition}</li>
             <li><b>Peluang:</b> tidak ada qualified opportunity; kandidat masih gagal
             evidence gate.</li>
             <li><b>Tindakan:</b> WAIT / RESEARCH ONLY. Execution tetap dikunci.</li>
@@ -54,13 +60,42 @@ def render(state: DashboardState) -> None:
             "Execution",
             state.execution.permission,
             "Human approval remains mandatory",
-            "BUSTED_AS_TESTED" if state.execution.permission == "LOCKED" else "CANDIDATE",
+            "LOCKED" if state.execution.permission == "LOCKED" else "CANDIDATE",
         ),
         ("Material unknowns", str(len(state.unknowns)), "Visible, never imputed", "DATA_DEBT"),
     )
     for column, card in zip(columns, cards, strict=True):
         with column:
             status_card(*card)
+
+    if state.market_snapshot:
+        section_header(
+            "Observed data",
+            "PUBLIC MARKET SNAPSHOT",
+            "Provider-labelled benchmarks across US, IHSG, crypto, FX, commodities, and rates.",
+        )
+        market_rows = [
+            {
+                "Market": item.market_group,
+                "Instrument": item.instrument,
+                "Symbol": item.symbol,
+                "Value": item.value,
+                "Currency": item.currency,
+                "Change %": item.change_pct,
+                "Observed at": item.observed_at,
+                "Provider": item.provider,
+                "Status": item.status,
+            }
+            for item in state.market_snapshot
+        ]
+        st.dataframe(market_rows, width="stretch", hide_index=True)
+        st.caption(
+            "Monitoring data only. Public benchmark prices do not establish causal regime state "
+            "or execution permission."
+        )
+    if state.feed_failures:
+        failed = ", ".join(sorted(state.feed_failures))
+        st.warning(f"Provider failures isolated: {failed}")
 
     section_header(
         "World state", "Global Regime", "Eight dimensions, each with evidence and uncertainty"

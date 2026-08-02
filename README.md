@@ -14,7 +14,7 @@ The Streamlit application has exactly five main tabs:
 4. **Portfolio** — hidden exposure, scenarios, liquidity, hedges, and decision journal.
 5. **Research Lab** — evidence firewall, experiments, failures, data health, and proof gates.
 
-The bundled state is a visibly labelled synthetic fixture. It demonstrates the product contract without pretending that live evidence exists.
+The bundled state remains a visibly labelled synthetic fixture. At runtime, EROS overlays provider-labelled public benchmark observations for US equities, IHSG, crypto, FX, commodities, and rates/volatility. Provider failures are isolated and may fall back to explicitly `STALE` last-good data. These observations support monitoring only; they do not establish a causal regime or unlock execution.
 
 ## Quick start
 

@@ -189,6 +189,12 @@ def test_public_fetcher_loads_every_market_group_from_provider_payloads() -> Non
     assert snapshot.failures == {}
     assert all(item.provider for item in snapshot.observations)
     assert all(item.status == "LIVE" for item in snapshot.observations)
+    spx = next(item for item in snapshot.observations if item.symbol == "^GSPC")
+    assert [point.value for point in spx.history] == [100.0, 101.0]
+    assert [point.observed_at for point in spx.history] == [
+        "2026-08-01T16:00:00Z",
+        "2026-08-02T16:00:00Z",
+    ]
 
 
 def test_public_fetcher_uses_stale_last_good_data_when_providers_fail(tmp_path) -> None:

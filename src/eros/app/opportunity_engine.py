@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pandas as pd
 import streamlit as st
 
 from eros.app.components import section_header
@@ -25,6 +26,23 @@ def render(state: DashboardState) -> None:
         "Opportunity Engine",
         "Which opportunity has positive conservative EV after every friction?",
     )
+    section_header(
+        "Promotion evidence",
+        "ADMISSION GATE MAP",
+        "How many required gates pass, remain partial, or fail before capital is considered?",
+    )
+    gate_counts = (
+        pd.DataFrame(state.acceptance_gates)
+        .groupby("status", dropna=False)
+        .size()
+        .reset_index(name="Gates")
+    )
+    st.bar_chart(gate_counts, x="status", y="Gates", height=280)
+    st.caption(
+        "Gate counts come from the frozen research contract. They do not become live merely "
+        "because public prices are available."
+    )
+
     filters = st.tabs(
         (
             "Leaderboard",

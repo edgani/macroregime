@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pandas as pd
 import streamlit as st
 
 from eros.app.components import bullet_list, section_header
@@ -14,6 +15,25 @@ def render(state: DashboardState) -> None:
         "Research Lab",
         "What is known, what failed, and what must be learned next?",
     )
+    section_header(
+        "Evidence inventory",
+        "RESEARCH EVIDENCE MAP",
+        "Status distribution by research object; missing proof stays visible.",
+    )
+    evidence_rows = [
+        {"Domain": "Thesis", "Status": item.evidence_label} for item in state.theses
+    ] + [
+        {"Domain": "Mechanism", "Status": str(item.get("status", "UNKNOWN"))}
+        for item in state.mechanisms
+    ]
+    evidence_counts = (
+        pd.DataFrame(evidence_rows)
+        .groupby(["Domain", "Status"], dropna=False)
+        .size()
+        .reset_index(name="Objects")
+    )
+    st.bar_chart(evidence_counts, x="Domain", y="Objects", color="Status", height=290)
+
     sections = st.tabs(
         (
             "Thesis Discovery",

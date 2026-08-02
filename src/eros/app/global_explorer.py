@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pandas as pd
 import streamlit as st
 
 from eros.app.components import section_header
@@ -14,6 +15,31 @@ def render(state: DashboardState) -> None:
         "Global Explorer",
         "Move from mechanism to country, sector, supply chain, company, and instrument.",
     )
+    section_header(
+        "Registry versus observation",
+        "GLOBAL COVERAGE OVERVIEW",
+        "Where live public benchmarks exist and where evidence is still missing.",
+    )
+    country_counts = (
+        pd.DataFrame(state.countries)
+        .groupby(["region", "coverage"], dropna=False)
+        .size()
+        .reset_index(name="Markets")
+    )
+    asset_counts = (
+        pd.DataFrame(state.asset_classes)
+        .groupby("state", dropna=False)
+        .size()
+        .reset_index(name="Asset classes")
+    )
+    country_chart, asset_chart = st.columns(2)
+    with country_chart:
+        st.caption("Country registry by region and observed coverage")
+        st.bar_chart(country_counts, x="region", y="Markets", color="coverage", height=290)
+    with asset_chart:
+        st.caption("Asset-class registry by evidence state")
+        st.bar_chart(asset_counts, x="state", y="Asset classes", height=290)
+
     sections = st.tabs(
         (
             "Countries",

@@ -63,6 +63,13 @@ YAHOO_INSTRUMENTS: dict[str, tuple[MarketGroup, str]] = {
 RequestBytes = Callable[[str], bytes]
 
 
+class MarketPoint(BaseModel):
+    """One provider-sourced point retained for short live market paths."""
+
+    observed_at: str
+    value: FiniteFloat
+
+
 class MarketObservation(BaseModel):
     """One provider-labelled market observation with explicit freshness state."""
 
@@ -76,6 +83,7 @@ class MarketObservation(BaseModel):
     fetched_at: str
     provider: str
     status: Literal["LIVE", "STALE"]
+    history: list[MarketPoint] = Field(default_factory=list)
 
 
 class MarketSnapshot(BaseModel):
@@ -168,6 +176,13 @@ def _yahoo_observation(
     observed_at = datetime.fromtimestamp(valid[-1][0], tz=UTC)
     previous = valid[-2][1] if len(valid) > 1 else None
     change_pct = None if previous is None or previous == 0 else (valid[-1][1] / previous - 1) * 100
+    history = [
+        MarketPoint(
+            observed_at=_iso(datetime.fromtimestamp(timestamp, tz=UTC)),
+            value=close,
+        )
+        for timestamp, close in valid
+    ]
     return MarketObservation(
         market_group=market_group,
         instrument=instrument,
@@ -179,6 +194,7 @@ def _yahoo_observation(
         fetched_at=_iso(now),
         provider="Yahoo Finance chart",
         status=_freshness_status(observed_at, now, market_group),
+        history=history,
     )
 
 

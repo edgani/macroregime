@@ -1,8 +1,0 @@
-{
-  "file": "Value-and-Momentum-Everywhere-Factors-Monthly.xlsx",
-  "sha256": "9ca57dcd4b9675f5c6ef083e5db7d181366e3fcdf993fd971491039171e7171c",
-  "size_bytes": 254689,
-  "source_origin": "AQR Data Library downloaded workbooks",
-  "source_role": "public maintained monthly research factor series",
-  "trust_boundary": "public research portfolio return series, not a live implementable portfolio audit"
-}

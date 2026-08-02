@@ -1,0 +1,15 @@
+{
+  "capital_permission": "BLOCKED",
+  "checks_passed": 43,
+  "checks_total": 43,
+  "failures": [],
+  "grk_match_rate": 1.0,
+  "historical_edge": "NOT_EVALUATED_LICENSED_DATA_REQUIRED",
+  "live_decision_weight": 0.0,
+  "position_known_answer_final_contracts": 6.0,
+  "predictive_components_promoted": 0,
+  "prospective_observations": 0,
+  "schema": "warroom.v72_signed_dealer_validation",
+  "status": "PASS",
+  "tbt_rows": 4
+}

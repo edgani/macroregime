@@ -1,0 +1,70 @@
+{
+  "schema": "warroom.v101.shadow_run.v1",
+  "generated_at": "2026-07-29T02:51:41.294278Z",
+  "created": 0,
+  "created_rows": [],
+  "skipped": [
+    {
+      "ticker": "MU",
+      "reason": "ALREADY_RECORDED_TODAY"
+    },
+    {
+      "ticker": "COHR",
+      "reason": "ALREADY_RECORDED_TODAY"
+    },
+    {
+      "ticker": "MTRN",
+      "reason": "ALREADY_RECORDED_TODAY"
+    },
+    {
+      "ticker": "AMCR",
+      "reason": "ALREADY_RECORDED_TODAY"
+    },
+    {
+      "ticker": "AMGN",
+      "reason": "ALREADY_RECORDED_TODAY"
+    },
+    {
+      "ticker": "CEG",
+      "reason": "ALREADY_RECORDED_TODAY"
+    },
+    {
+      "ticker": "EMR",
+      "reason": "ALREADY_RECORDED_TODAY"
+    },
+    {
+      "ticker": "POET",
+      "reason": "ALREADY_RECORDED_TODAY"
+    },
+    {
+      "ticker": "AOS",
+      "reason": "ALREADY_RECORDED_TODAY"
+    },
+    {
+      "ticker": "CCJ",
+      "reason": "ALREADY_RECORDED_TODAY"
+    },
+    {
+      "ticker": "ETN",
+      "reason": "ALREADY_RECORDED_TODAY"
+    },
+    {
+      "ticker": "ADM",
+      "reason": "ALREADY_RECORDED_TODAY"
+    }
+  ],
+  "verification": {
+    "schema": "warroom.v95.shadow_ledger_verification.v1",
+    "valid": true,
+    "rows": 36,
+    "forecasts": 12,
+    "order_intents": 12,
+    "shadow_fills": 12,
+    "outcomes": 0,
+    "last_hash": "e39b3a9d7dadfbce88d02d27288c58d7fd443e37411bed42c38a92c5c43d3f2a",
+    "errors": [],
+    "capital_permission": "BLOCKED"
+  },
+  "ledger": "runtime\\v101_shadow\\shadow_ledger.jsonl",
+  "claim_limit": "Prospective shadow simulation only; not live performance."
+}

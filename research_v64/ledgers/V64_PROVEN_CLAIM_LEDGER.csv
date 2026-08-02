@@ -1,4 +1,0 @@
-claim_id,historical_gross_proven,modern_all_stock_gross_proven,proof_scope,modern_non_micro_investable_proven,stock_level_pit_selector_proven,operational_ready,capital_permission
-AnalystRevision,True,False,HISTORICAL_GROSS_MARKET_CLAIM_PROVEN,False,False,False,BLOCKED
-AnnouncementReturn,True,False,HISTORICAL_GROSS_MARKET_CLAIM_PROVEN,False,False,False,BLOCKED
-DivYieldST,True,False,HISTORICAL_GROSS_MARKET_CLAIM_PROVEN,False,False,False,BLOCKED

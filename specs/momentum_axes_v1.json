@@ -1,9 +1,0 @@
-{
-  "spec_id": "MOMENTUM-AXES-V1-NEWZIP",
-  "purpose": "Separate descriptive momentum dimensions without a weighted alpha composite",
-  "inputs": ["close", "true_range"],
-  "outputs": ["trend_context", "acceleration", "release_rank", "signed_persistence", "path_efficiency", "noise_ratio", "exhaustion_risk"],
-  "forbidden_outputs": ["buy_sell", "directional_probability", "composite_alpha_score", "entry", "target", "stop"],
-  "parameters": {"lookback": 20, "rank_window": 63},
-  "claim_ceiling": "DESCRIPTIVE_ONLY"
-}

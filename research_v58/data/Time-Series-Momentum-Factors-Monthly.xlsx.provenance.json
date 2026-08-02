@@ -1,8 +1,0 @@
-{
-  "file": "Time-Series-Momentum-Factors-Monthly.xlsx",
-  "sha256": "33470930e2269c0d97be4732ec2d9c27ddbc69ac8133b059a263e27400263eeb",
-  "size_bytes": 139830,
-  "source_origin": "AQR Data Library downloaded workbooks",
-  "source_role": "public maintained monthly research factor series",
-  "trust_boundary": "public research portfolio return series, not a live implementable portfolio audit"
-}

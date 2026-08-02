@@ -1,5 +1,0 @@
-claim_id,historical_gross_proven,modern_all_stock_gross_proven,proof_scope,modern_non_micro_investable_proven,stock_level_pit_selector_proven,operational_ready,capital_permission,independent_external_lockbox,flat_10bp_hurdle_pass,flat_25bp_hurdle_pass
-AnalystRevision,True,False,HISTORICAL_GROSS_MARKET_CLAIM_PROVEN,False,False,False,BLOCKED,False,True,False
-AnnouncementReturn,True,False,HISTORICAL_GROSS_MARKET_CLAIM_PROVEN,False,False,False,BLOCKED,False,True,False
-DivYieldST,True,False,HISTORICAL_GROSS_MARKET_CLAIM_PROVEN,False,False,False,BLOCKED,False,True,False
-SmileSlope,True,True,MODERN_ALL_STOCK_AGGREGATE_GROSS_CLAIM_SUPPORTED,False,False,False,BLOCKED,False,False,False

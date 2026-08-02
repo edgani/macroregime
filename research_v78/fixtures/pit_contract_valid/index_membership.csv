@@ -1,3 +1,0 @@
-index_id,permanent_id,member_from,member_to,source,available_at_utc
-SP500,PERM_AAA,2020-01-01,,TEST_FIXTURE,2020-01-01T00:00:00Z
-SP500,PERM_BBB,2020-01-01,2020-03-31,TEST_FIXTURE,2020-01-01T00:00:00Z

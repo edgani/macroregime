@@ -1,9 +1,0 @@
-{
-  "spec_id": "MQA-BENCHMARKS-V1-NEWZIP",
-  "purpose": "Descriptive benchmark range and volatility state; not a trade engine",
-  "inputs": ["high", "low", "close"],
-  "outputs": ["wilder_atr", "fixed_atr_interval", "past_only_conformal_interval", "volatility_percentile", "prior_range_location"],
-  "forbidden_outputs": ["directional_probability", "entry", "stop", "target", "position_size"],
-  "parameters": {"atr_period": 14, "fixed_multiplier": 1.0, "calibration_window": 63, "coverage": 0.68, "location_window": 20},
-  "claim_ceiling": "DESCRIPTIVE_ONLY"
-}

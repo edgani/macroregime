@@ -1,7 +1,0 @@
-{
- "schema": "warroom.universe_quarantine.v1",
- "verified_at": "2026-07-29",
- "verification": "absent from IDX listed-company registry (963 emiten) AND unresolved on Google Finance IDX quotes",
- "note": "Research-layer tickers that reference no real listed instrument. Packets for these are skipped (fail-closed: invalid reference, not a data gap). ABB stays in the US universe (valid NYSE listing).",
- "tickers": ["BESI", "JEN", "SIVE", "AYAR", "BERY", "LPK", "RPI", "SMHN", "THK", "TUC", "HFC", "AMNT", "BSBI", "CTRP", "CTRS", "RAPP"]
-}

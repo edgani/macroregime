@@ -1,0 +1,107 @@
+{
+  "capital_permission": "BLOCKED",
+  "checks": [
+    {
+      "check": "prediction_forces_zero_live_weight",
+      "detail": null,
+      "status": "PASS"
+    },
+    {
+      "check": "protocol_hash_bound",
+      "detail": null,
+      "status": "PASS"
+    },
+    {
+      "check": "single_row_verifies",
+      "detail": null,
+      "status": "PASS"
+    },
+    {
+      "check": "prediction_plus_forward_outcome_verifies",
+      "detail": null,
+      "status": "PASS"
+    },
+    {
+      "check": "append_and_read_roundtrip",
+      "detail": null,
+      "status": "PASS"
+    },
+    {
+      "check": "append_rejects_chain_fork",
+      "detail": null,
+      "status": "PASS"
+    },
+    {
+      "check": "content_tamper_rejected",
+      "detail": null,
+      "status": "PASS"
+    },
+    {
+      "check": "signature_tamper_rejected",
+      "detail": null,
+      "status": "PASS"
+    },
+    {
+      "check": "protocol_substitution_rejected",
+      "detail": null,
+      "status": "PASS"
+    },
+    {
+      "check": "bad_source_hash_rejected",
+      "detail": null,
+      "status": "PASS"
+    },
+    {
+      "check": "permission_escalation_rejected",
+      "detail": null,
+      "status": "PASS"
+    },
+    {
+      "check": "unknown_key_rejected",
+      "detail": null,
+      "status": "PASS"
+    },
+    {
+      "check": "unmatched_outcome_rejected",
+      "detail": null,
+      "status": "PASS"
+    },
+    {
+      "check": "backdated_outcome_rejected",
+      "detail": null,
+      "status": "PASS"
+    },
+    {
+      "check": "duplicate_prediction_id_rejected",
+      "detail": null,
+      "status": "PASS"
+    },
+    {
+      "check": "ihsg_disabled_in_builder",
+      "detail": null,
+      "status": "PASS"
+    },
+    {
+      "check": "exact_scope_required_option_contract",
+      "detail": null,
+      "status": "PASS"
+    },
+    {
+      "check": "exact_scope_required_venue",
+      "detail": null,
+      "status": "PASS"
+    },
+    {
+      "check": "exact_scope_required_source_schema",
+      "detail": null,
+      "status": "PASS"
+    }
+  ],
+  "checks_passed": 19,
+  "checks_total": 19,
+  "live_decision_weight": 0.0,
+  "predictive_components_promoted": 0,
+  "prospective_observations_collected": 0,
+  "schema": "warroom.validation.options_prospective_v71",
+  "status": "PASS"
+}

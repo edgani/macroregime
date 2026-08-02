@@ -1,1 +1,0 @@
-prediction_id,market,instrument_id,as_of,horizon_end,regime,current_price,target_low,target_base,target_high,expected_target_price,probability_low,probability_base,probability_high,realized_price,point_in_time_valid,model_frozen_before_outcome,projection_hash,outcome_source_hash

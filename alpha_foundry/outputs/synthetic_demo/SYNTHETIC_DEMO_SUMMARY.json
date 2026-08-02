@@ -1,8 +1,0 @@
-{
-  "status": "SYNTHETIC_ENGINEERING_ONLY",
-  "rows": 7560,
-  "oos_predictions": 5040,
-  "oos_months": 72,
-  "mean_rank_ic": 0.49429281000009717,
-  "purpose": "Proves the pipeline can recover an injected causal signal without granting any real-market claim."
-}

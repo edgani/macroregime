@@ -1,8 +1,0 @@
-{
-  "file": "Value-and-Momentum-Everywhere-Portfolios-Monthly.xlsx",
-  "sha256": "c0cf694bfeed2c1499aaec40e4dd5e9d3143f157544f6d9137779fe35e455bab",
-  "size_bytes": 464555,
-  "source_origin": "AQR Data Library downloaded workbooks",
-  "source_role": "public maintained monthly research factor series",
-  "trust_boundary": "public research portfolio return series, not a live implementable portfolio audit"
-}

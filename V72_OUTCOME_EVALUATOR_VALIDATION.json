@@ -1,0 +1,13 @@
+{
+  "capital_permission": "BLOCKED",
+  "checks_passed": 11,
+  "checks_total": 11,
+  "failures": [],
+  "live_decision_weight": 0.0,
+  "null_fixture_status": "NOT_PROMOTED",
+  "planted_fixture_status": "HISTORICAL_GATE_PASS_REQUIRES_PLACEBO_AND_PROSPECTIVE",
+  "predictive_components_promoted": 0,
+  "production_outcomes": "NOT_EVALUATED_LICENSED_DATA_REQUIRED",
+  "schema": "warroom.v72_outcome_evaluator_validation",
+  "status": "PASS"
+}

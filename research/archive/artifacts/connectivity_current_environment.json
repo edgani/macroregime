@@ -1,6 +1,0 @@
-{
-  "ok": false,
-  "url": "https://data-api.binance.vision/api/v3/time",
-  "error_type": "URLError",
-  "message": "<urlopen error [Errno -3] Temporary failure in name resolution>"
-}

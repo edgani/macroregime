@@ -1,5 +1,6 @@
 """Conservative net expected-value calculations."""
-from pydantic import BaseModel, Field, model_validator
+
+from pydantic import BaseModel, Field
 
 
 class CostBreakdown(BaseModel):
@@ -12,7 +13,14 @@ class CostBreakdown(BaseModel):
 
     @property
     def total(self) -> float:
-        return sum(self.model_dump().values())
+        return (
+            self.transaction
+            + self.funding
+            + self.borrow
+            + self.tax
+            + self.fx
+            + self.liquidity_impact
+        )
 
 
 class ExpectedValueInput(BaseModel):
@@ -33,7 +41,20 @@ class ExpectedValueResult(BaseModel):
 
 
 def evaluate_expected_value(inputs: ExpectedValueInput) -> ExpectedValueResult:
-    gross = inputs.probability_win * inputs.expected_win + (1.0 - inputs.probability_win) * inputs.expected_loss
+    gross = (
+        inputs.probability_win * inputs.expected_win
+        + (1.0 - inputs.probability_win) * inputs.expected_loss
+    )
     net = gross - inputs.costs.total
-    conservative = net - inputs.lower_confidence_adjustment - inputs.tail_risk_penalty - inputs.model_uncertainty_penalty
-    return ExpectedValueResult(gross_ev=round(gross, 12), total_cost=round(inputs.costs.total, 12), net_ev=round(net, 12), conservative_ev=round(conservative, 12))
+    conservative = (
+        net
+        - inputs.lower_confidence_adjustment
+        - inputs.tail_risk_penalty
+        - inputs.model_uncertainty_penalty
+    )
+    return ExpectedValueResult(
+        gross_ev=round(gross, 12),
+        total_cost=round(inputs.costs.total, 12),
+        net_ev=round(net, 12),
+        conservative_ev=round(conservative, 12),
+    )

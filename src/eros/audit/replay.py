@@ -1,8 +1,9 @@
 """Immutable decision snapshot storage and replay."""
+
 import hashlib
-import json
 from datetime import datetime
 from pathlib import Path
+
 from pydantic import BaseModel
 
 
@@ -36,7 +37,9 @@ class SnapshotRepository:
         return StoredSnapshot(path=path, checksum=hashlib.sha256(payload.encode()).hexdigest())
 
     def replay(self, decision_id: str) -> DecisionSnapshot:
-        return DecisionSnapshot.model_validate_json(self._path(decision_id).read_text(encoding="utf-8"))
+        return DecisionSnapshot.model_validate_json(
+            self._path(decision_id).read_text(encoding="utf-8")
+        )
 
     def verify(self, decision_id: str, checksum: str) -> bool:
         payload = self._path(decision_id).read_text(encoding="utf-8")

@@ -1,0 +1,20 @@
+version: "3.0"
+source_priority:
+  - observed_transaction_or_physical_flow
+  - official_primary_data_or_filing
+  - exchange_central_bank_treasury_or_company_filing
+  - named_source_wire
+  - peer_reviewed_or_credible_working_paper
+  - institutional_research_note
+  - journalist_interpretation
+  - social_media
+  - anonymous_claim
+permissions:
+  social_media: research_only
+  journalist_interpretation: context_only
+  anonymous_claim: blocked
+hard_rules:
+  require_falsifiable_prediction: true
+  deduplicate_source_chains: true
+  material_probability_change_from_single_article: false
+  narrative_can_change_allocation: false

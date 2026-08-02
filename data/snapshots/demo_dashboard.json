@@ -1,0 +1,106 @@
+{
+  "mode": "SYNTHETIC_DEMO",
+  "generated_at": "2026-08-02T16:00:00Z",
+  "data_health": {
+    "overall_status": "NO_DATA",
+    "as_of": "Frozen fixture — not a live timestamp",
+    "live_feeds": 0,
+    "total_feeds": 6,
+    "feeds": [
+      {"name": "FRED / ALFRED", "status": "NO_DATA", "last_observation": "UNKNOWN", "next_release": "UNKNOWN", "vintage_status": "Adapter not admitted", "disabled_components": ["US macro state"]},
+      {"name": "Global central banks", "status": "NO_DATA", "last_observation": "UNKNOWN", "next_release": "UNKNOWN", "vintage_status": "Registry only", "disabled_components": ["Policy comparison"]},
+      {"name": "Official capital flows", "status": "NO_DATA", "last_observation": "UNKNOWN", "next_release": "UNKNOWN", "vintage_status": "License review pending", "disabled_components": ["Global Capital Map"]},
+      {"name": "Corporate filings", "status": "NO_DATA", "last_observation": "UNKNOWN", "next_release": "UNKNOWN", "vintage_status": "PIT filing adapter pending", "disabled_components": ["Company dossiers"]},
+      {"name": "Physical systems", "status": "NO_DATA", "last_observation": "UNKNOWN", "next_release": "UNKNOWN", "vintage_status": "Source contracts pending", "disabled_components": ["Constraint scanner"]},
+      {"name": "Market-implied expectations", "status": "NO_DATA", "last_observation": "UNKNOWN", "next_release": "UNKNOWN", "vintage_status": "Entitlements unavailable", "disabled_components": ["Priced-in engine"]}
+    ]
+  },
+  "execution": {
+    "permission": "LOCKED",
+    "human_approval_required": true,
+    "reason": "No qualified opportunity and no prospective evidence have passed the capital gate."
+  },
+  "regime_dimensions": [
+    {"name": "Growth", "state": "UNKNOWN", "evidence_label": "DATA_DEBT", "uncertainty": "UNKNOWN", "interpretation": "No admitted global PIT growth panel."},
+    {"name": "Inflation", "state": "UNKNOWN", "evidence_label": "DATA_DEBT", "uncertainty": "UNKNOWN", "interpretation": "Vintage-safe cross-country inflation data are absent."},
+    {"name": "Liquidity", "state": "UNKNOWN", "evidence_label": "DATA_DEBT", "uncertainty": "HIGH", "interpretation": "Funding and central-bank balance-sheet families are incomplete."},
+    {"name": "Credit", "state": "UNKNOWN", "evidence_label": "DATA_DEBT", "uncertainty": "HIGH", "interpretation": "No licensed global credit panel is active."},
+    {"name": "Funding", "state": "UNKNOWN", "evidence_label": "DATA_DEBT", "uncertainty": "HIGH", "interpretation": "Cross-currency and secured funding coverage are missing."},
+    {"name": "Policy", "state": "UNKNOWN", "evidence_label": "CANDIDATE", "uncertainty": "HIGH", "interpretation": "Policy actions require official-source verification."},
+    {"name": "Volatility", "state": "UNKNOWN", "evidence_label": "DATA_DEBT", "uncertainty": "UNKNOWN", "interpretation": "Contract-implied expectations are not admitted."},
+    {"name": "Geopolitics", "state": "UNKNOWN", "evidence_label": "CANDIDATE", "uncertainty": "HIGH", "interpretation": "Narratives may open tickets but cannot set regime state."}
+  ],
+  "changes": [
+    {"title": "Architecture reset", "delta": "Legacy dashboard replaced by EROS contracts", "evidence_label": "CANDIDATE", "decision_impact": "No capital impact; research infrastructure only."},
+    {"title": "Technical-signal removal", "delta": "Standalone price-derived direction prohibited", "evidence_label": "PROVEN_SCOPE_LIMITED", "decision_impact": "Blocks indicator-based actions."}
+  ],
+  "theses": [
+    {"thesis_id": "TH-20260802-0001", "claim": "A durable JPY carry unwind requires funding stress and position reduction, not intervention headlines alone.", "status": "PLAUSIBLE", "posterior": 0.35, "interval": "0.15–0.55", "change": 0.0, "evidence_label": "CANDIDATE", "missing_evidence": ["PIT cross-currency basis", "Official operations", "Independent positioning family"], "next_observation": "Verified change in funding basis after an official operation", "decision_permission": "research_only"},
+    {"thesis_id": "TH-20260802-0002", "claim": "Oil disruption becomes durable only when route constraints coincide with low commercial inventory and limited spare capacity.", "status": "OBSERVATION", "posterior": 0.3, "interval": "0.10–0.50", "change": 0.0, "evidence_label": "DATA_DEBT", "missing_evidence": ["Route-level physical flow", "Comparable historical base rate"], "next_observation": "Persistent physical-flow shortfall independent of headlines", "decision_permission": "blocked"},
+    {"thesis_id": "TH-20260802-0003", "claim": "Observed changes are noise until independent physical, funding, or policy evidence arrives.", "status": "PLAUSIBLE", "posterior": 0.35, "interval": "0.20–0.60", "change": 0.0, "evidence_label": "CANDIDATE", "missing_evidence": ["Independent evidence families"], "next_observation": "A discriminating observation that rejects the null", "decision_permission": "research_only"}
+  ],
+  "capital_flows": [
+    {"source": "Global cash", "target": "Sovereign bonds", "mechanism": "Real-yield and liquidity preference", "status": "DATA_DEBT"},
+    {"source": "Funding currencies", "target": "Carry assets", "mechanism": "Rate differential net of hedge and funding stress", "status": "CANDIDATE"},
+    {"source": "Policy balance sheets", "target": "Risk capacity", "mechanism": "Collateral and financing conditions", "status": "DATA_DEBT"}
+  ],
+  "qualified_opportunities": [],
+  "rejected_opportunities": [
+    {"candidate": "JPY carry unwind hedge", "reason": "Funding, positioning, and catalyst evidence are incomplete.", "failed_gate": "Evidence completeness"},
+    {"candidate": "Oil bottleneck beneficiaries", "reason": "Physical disruption and priced-in evidence are unavailable.", "failed_gate": "Mechanism validation"},
+    {"candidate": "Gold fiscal-dominance allocation", "reason": "Inherited debt-to-gold claim is busted as tested.", "failed_gate": "Legacy replication"}
+  ],
+  "unknowns": [
+    "Global point-in-time source coverage is incomplete.",
+    "No opportunity model has sufficient prospective calibration.",
+    "Cross-country capital-flow independence is unverified.",
+    "Portfolio holdings, tax, liquidity, and access constraints are not loaded."
+  ],
+  "risks": [
+    "False confidence from synthetic or stale data.",
+    "Narrative duplication masquerading as independent evidence.",
+    "Hidden factor overlap across apparently different instruments.",
+    "Structural change invalidating historically supported mechanisms."
+  ],
+  "catalysts": [
+    {"date": "UNKNOWN", "event": "Next verified policy action", "decision": "Re-evaluate policy and funding theses", "status": "DATA_DEBT"},
+    {"date": "UNKNOWN", "event": "First matured prospective forecast", "decision": "Update calibration evidence", "status": "PROSPECTIVE_PENDING"}
+  ],
+  "countries": [
+    {"market": "United States", "classification": "Developed", "coverage": "DATA_DEBT", "access": "Registry baseline"},
+    {"market": "Indonesia / IHSG", "classification": "Emerging", "coverage": "DATA_DEBT", "access": "IDX and official-source adapters pending"},
+    {"market": "Japan", "classification": "Developed", "coverage": "DATA_DEBT", "access": "BOJ/MOF adapters pending"},
+    {"market": "China A/H", "classification": "Emerging", "coverage": "DATA_DEBT", "access": "PBOC/SAFE/exchange adapters pending"},
+    {"market": "Eurozone", "classification": "Developed", "coverage": "DATA_DEBT", "access": "ECB/Eurostat adapters pending"}
+  ],
+  "asset_classes": [
+    {"asset_class": "Equities", "state": "UNKNOWN", "coverage": "Registry only"},
+    {"asset_class": "Sovereign bonds", "state": "UNKNOWN", "coverage": "Registry only"},
+    {"asset_class": "Credit", "state": "UNKNOWN", "coverage": "DATA_DEBT"},
+    {"asset_class": "FX", "state": "UNKNOWN", "coverage": "Registry only"},
+    {"asset_class": "Commodities / physical", "state": "UNKNOWN", "coverage": "DATA_DEBT"},
+    {"asset_class": "Crypto", "state": "UNKNOWN", "coverage": "DATA_DEBT"}
+  ],
+  "mechanisms": [
+    {"mechanism_id": "MECH-FUNDING-001", "mechanism": "Funding differential to carry allocation", "status": "CANDIDATE", "lineage": "No admitted experiment"},
+    {"mechanism_id": "MECH-OIL-001", "mechanism": "Route disruption to physical scarcity", "status": "DATA_DEBT", "lineage": "Research ticket only"},
+    {"mechanism_id": "MECH-POLICY-001", "mechanism": "Policy action to financing conditions", "status": "CANDIDATE", "lineage": "Scope not validated"}
+  ],
+  "scenarios": [
+    {"scenario": "Inflation re-acceleration", "probability": "UNKNOWN", "portfolio_impact": "Not computed — no portfolio"},
+    {"scenario": "Credit event", "probability": "UNKNOWN", "portfolio_impact": "Not computed — no portfolio"},
+    {"scenario": "Dollar funding shortage", "probability": "UNKNOWN", "portfolio_impact": "Not computed — no portfolio"},
+    {"scenario": "JPY carry unwind", "probability": "UNKNOWN", "portfolio_impact": "Not computed — no portfolio"},
+    {"scenario": "Oil supply disruption", "probability": "UNKNOWN", "portfolio_impact": "Not computed — no portfolio"}
+  ],
+  "acceptance_gates": [
+    {"gate": "Architecture", "status": "PASS", "evidence": "Five-tab UI and typed state"},
+    {"gate": "Data", "status": "FAIL", "evidence": "Global PIT adapters incomplete"},
+    {"gate": "Research", "status": "PARTIAL", "evidence": "Contracts exist; calibration incomplete"},
+    {"gate": "Legacy replication", "status": "PARTIAL", "evidence": "Baseline formulas tested; inherited claims unresolved"},
+    {"gate": "Historical replay", "status": "FAIL", "evidence": "Frozen multi-country holdouts absent"},
+    {"gate": "Opportunity", "status": "PASS_EMPTY", "evidence": "No qualified opportunity renders"},
+    {"gate": "Portfolio", "status": "PARTIAL", "evidence": "Exposure/scenario contracts; no holdings"},
+    {"gate": "Prospective", "status": "FAIL", "evidence": "No matured sealed forecasts"}
+  ]
+}

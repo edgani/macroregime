@@ -1,6 +1,8 @@
 """YAML-backed extensible registries."""
+
 from pathlib import Path
 from typing import TypeVar
+
 import yaml
 from pydantic import BaseModel
 

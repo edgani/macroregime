@@ -1,6 +1,8 @@
 """Registry schemas shared across storage and UI."""
+
 from datetime import datetime
 from enum import StrEnum
+
 from pydantic import BaseModel, Field
 
 

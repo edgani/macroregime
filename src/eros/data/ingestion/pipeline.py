@@ -1,7 +1,10 @@
 """Immutable RAW-to-decision pipeline contracts."""
+
 import hashlib
 from pathlib import Path
+
 from pydantic import BaseModel
+
 from eros.data.adapters.base import SourceAdapter
 
 
@@ -19,4 +22,9 @@ def ingest_raw(adapter: SourceAdapter, dataset_id: str, raw_root: Path) -> RawRe
     destination.parent.mkdir(parents=True, exist_ok=True)
     if not destination.exists():
         destination.write_bytes(payload)
-    return RawReceipt(dataset_id=dataset_id, path=destination, sha256=checksum, source_id=adapter.metadata.source_id)
+    return RawReceipt(
+        dataset_id=dataset_id,
+        path=destination,
+        sha256=checksum,
+        source_id=adapter.metadata.source_id,
+    )

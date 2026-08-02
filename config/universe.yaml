@@ -1,0 +1,130 @@
+version: "3.0"
+classification_source: "Registry baseline; verify against the current index provider before live use"
+markets:
+  - name: United States
+    region: North America
+    classification: developed
+    classification_source: MSCI-style baseline
+    effective_at: 2026-08-02
+    currency: USD
+  - name: Canada
+    region: North America
+    classification: developed
+    classification_source: MSCI-style baseline
+    effective_at: 2026-08-02
+    currency: CAD
+  - name: Eurozone
+    region: Europe
+    classification: developed
+    classification_source: multi-country economic region
+    effective_at: 2026-08-02
+    currency: EUR
+  - name: United Kingdom
+    region: Europe
+    classification: developed
+    classification_source: MSCI-style baseline
+    effective_at: 2026-08-02
+    currency: GBP
+  - name: Japan
+    region: Asia Pacific
+    classification: developed
+    classification_source: MSCI-style baseline
+    effective_at: 2026-08-02
+    currency: JPY
+  - name: Australia
+    region: Asia Pacific
+    classification: developed
+    classification_source: MSCI-style baseline
+    effective_at: 2026-08-02
+    currency: AUD
+  - name: Singapore
+    region: Asia Pacific
+    classification: developed
+    classification_source: MSCI-style baseline
+    effective_at: 2026-08-02
+    currency: SGD
+  - name: China
+    region: Asia Pacific
+    classification: emerging
+    classification_source: MSCI-style baseline
+    effective_at: 2026-08-02
+    currency: CNY
+  - name: India
+    region: Asia Pacific
+    classification: emerging
+    classification_source: MSCI-style baseline
+    effective_at: 2026-08-02
+    currency: INR
+  - name: Indonesia
+    region: Asia Pacific
+    classification: emerging
+    classification_source: MSCI-style baseline
+    effective_at: 2026-08-02
+    currency: IDR
+  - name: South Korea
+    region: Asia Pacific
+    classification: emerging
+    classification_source: project baseline; provider classifications differ
+    effective_at: 2026-08-02
+    currency: KRW
+  - name: Taiwan
+    region: Asia Pacific
+    classification: emerging
+    classification_source: MSCI-style baseline
+    effective_at: 2026-08-02
+    currency: TWD
+  - name: Brazil
+    region: Latin America
+    classification: emerging
+    classification_source: MSCI-style baseline
+    effective_at: 2026-08-02
+    currency: BRL
+  - name: Mexico
+    region: Latin America
+    classification: emerging
+    classification_source: MSCI-style baseline
+    effective_at: 2026-08-02
+    currency: MXN
+  - name: South Africa
+    region: Africa
+    classification: emerging
+    classification_source: MSCI-style baseline
+    effective_at: 2026-08-02
+    currency: ZAR
+asset_classes:
+  - equities
+  - sovereign_bonds
+  - corporate_credit
+  - fx
+  - commodities
+  - energy
+  - agriculture
+  - metals
+  - crypto
+  - etfs
+  - reits
+  - infrastructure
+  - listed_options
+  - futures
+  - volatility_products
+  - freight
+  - shipping
+  - carbon
+  - power
+required_market_metadata:
+  - exchange
+  - timezone
+  - currency
+  - settlement
+  - lot_size
+  - liquidity
+  - shortability
+  - borrow
+  - derivatives_availability
+  - foreign_ownership_limits
+  - tax
+  - capital_controls
+  - trading_hours
+  - market_holidays
+  - circuit_breakers
+  - data_license

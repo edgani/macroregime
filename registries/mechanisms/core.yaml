@@ -1,0 +1,19 @@
+mechanisms:
+  - mechanism_id: MECH-FUNDING-001
+    definition: Funding differential transmits through leverage and hedge costs into carry allocation.
+    actors: [banks, dealers, hedge_funds, asset_managers]
+    constraints: [funding_cost, collateral, cross_currency_basis, volatility]
+    causal_path: funding_differential -> leverage_capacity -> target_asset_demand
+    alternative_explanations: [growth_repricing, policy_surprise, idiosyncratic_flow]
+    horizon: 2_to_12_weeks
+    evidence_status: CANDIDATE
+    kill_switch: funding and positioning evidence do not move after the proposed catalyst
+  - mechanism_id: MECH-PHYSICAL-001
+    definition: Physical route disruption causes scarcity only when inventory and spare capacity cannot absorb it.
+    actors: [producers, shippers, refiners, consumers, governments]
+    constraints: [route_capacity, inventory, spare_capacity, insurance]
+    causal_path: route_disruption -> delivered_supply_shortfall -> beneficiary_and_loser_cashflows
+    alternative_explanations: [headline_premium, temporary_speculation, demand_shock]
+    horizon: 1_day_to_12_months
+    evidence_status: DATA_DEBT
+    kill_switch: physical flows normalize without inventory or capacity stress

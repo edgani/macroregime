@@ -1,5 +1,7 @@
 """Global ontology entity contracts."""
+
 from enum import StrEnum
+
 from pydantic import BaseModel, Field
 
 

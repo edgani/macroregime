@@ -1,5 +1,7 @@
 """Point-in-time availability alignment."""
+
 from datetime import datetime
+
 from pydantic import BaseModel
 
 
@@ -10,8 +12,26 @@ class PointInTimeObservation(BaseModel):
     value: float
     vintage: str = "original"
 
+    def __init__(
+        self,
+        series_id: str,
+        effective_at: datetime,
+        available_at: datetime,
+        value: float,
+        vintage: str = "original",
+    ) -> None:
+        super().__init__(
+            series_id=series_id,
+            effective_at=effective_at,
+            available_at=available_at,
+            value=value,
+            vintage=vintage,
+        )
 
-def available_as_of(observations: list[PointInTimeObservation], decision_at: datetime, latest_vintage: bool = False) -> list[PointInTimeObservation]:
+
+def available_as_of(
+    observations: list[PointInTimeObservation], decision_at: datetime, latest_vintage: bool = False
+) -> list[PointInTimeObservation]:
     eligible = [row for row in observations if row.available_at <= decision_at]
     if not latest_vintage:
         return sorted(eligible, key=lambda row: (row.series_id, row.effective_at, row.available_at))

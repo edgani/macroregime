@@ -1,4 +1,5 @@
 """Pre-registered experiment contracts."""
+
 from pydantic import BaseModel, Field
 
 

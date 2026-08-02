@@ -2,7 +2,13 @@ from eros.app.shell import MAIN_TABS, build_demo_state
 
 
 def test_app_has_exactly_five_tabs() -> None:
-    assert MAIN_TABS == ("Command Center", "Global Explorer", "Opportunity Engine", "Portfolio", "Research Lab")
+    assert MAIN_TABS == (
+        "Command Center",
+        "Global Explorer",
+        "Opportunity Engine",
+        "Portfolio",
+        "Research Lab",
+    )
 
 
 def test_demo_is_visibly_synthetic_and_execution_locked() -> None:

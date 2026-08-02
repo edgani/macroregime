@@ -1,5 +1,7 @@
 """Complete opportunity packet contract."""
+
 from pydantic import BaseModel, Field
+
 from eros.opportunity.ev import CostBreakdown, ExpectedValueResult
 
 

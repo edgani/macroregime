@@ -1,4 +1,5 @@
 """Hidden-factor exposure decomposition."""
+
 from pydantic import BaseModel, Field
 
 

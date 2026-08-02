@@ -1,5 +1,7 @@
 """Economic mechanism registry contracts."""
+
 from enum import StrEnum
+
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -32,10 +34,19 @@ class MechanismEdge(BaseModel):
 
     @model_validator(mode="after")
     def require_lineage_for_validated_edge(self) -> "MechanismEdge":
-        if self.evidence_status in {EvidenceStatus.PROVEN_SCOPE_LIMITED, EvidenceStatus.REPLICATED_OOS} and not self.experiment_ids:
+        if (
+            self.evidence_status
+            in {EvidenceStatus.PROVEN_SCOPE_LIMITED, EvidenceStatus.REPLICATED_OOS}
+            and not self.experiment_ids
+        ):
             raise ValueError("validated edge requires experiment lineage")
         return self
 
     @property
     def visual_style(self) -> str:
-        return {EvidenceStatus.PROVEN_SCOPE_LIMITED: "solid", EvidenceStatus.REPLICATED_OOS: "solid", EvidenceStatus.CANDIDATE: "dashed", EvidenceStatus.BUSTED_AS_TESTED: "red-crossed"}.get(self.evidence_status, "grey")
+        return {
+            EvidenceStatus.PROVEN_SCOPE_LIMITED: "solid",
+            EvidenceStatus.REPLICATED_OOS: "solid",
+            EvidenceStatus.CANDIDATE: "dashed",
+            EvidenceStatus.BUSTED_AS_TESTED: "red-crossed",
+        }.get(self.evidence_status, "grey")

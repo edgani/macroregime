@@ -1,15 +1,76 @@
 # EROS v3.0
 
-EROS is a global economic reasoning and capital allocation decision-support system.
+EROS is a global economic reasoning and capital-allocation decision-support system. It is not a charting terminal, indicator collection, or autonomous broker.
 
-Status: Phase 2 — Prove Everything. The system fails closed, never fabricates missing data, and is not approved for autonomous or live-capital execution.
+Current phase: **Phase 2 — Prove Everything**. The application deliberately fails closed, preserves `UNKNOWN`, and keeps execution locked until point-in-time, out-of-sample, replication, prospective, and human-approval gates pass.
+
+## Product surface
+
+The Streamlit application has exactly five main tabs:
+
+1. **Command Center** — what changed, what matters, top theses, unknowns, and action gate.
+2. **Global Explorer** — registry-driven countries, asset classes, mechanisms, and dossiers.
+3. **Opportunity Engine** — conservative net-EV packets and rejected candidates.
+4. **Portfolio** — hidden exposure, scenarios, liquidity, hedges, and decision journal.
+5. **Research Lab** — evidence firewall, experiments, failures, data health, and proof gates.
+
+The bundled state is a visibly labelled synthetic fixture. It demonstrates the product contract without pretending that live evidence exists.
 
 ## Quick start
 
+Requirements: Python 3.12 and [uv](https://docs.astral.sh/uv/).
+
 ```bash
 uv sync --extra dev
-uv run pytest
+uv run pytest -q
 uv run streamlit run app.py
 ```
 
-See `docs/REQUIREMENTS_TRACEABILITY.md`, `reports/PRODUCTION_READINESS.md`, and `reports/LIMITATIONS.md` before using any output.
+Open `http://localhost:8501`.
+
+## Quality gates
+
+```bash
+uv run ruff check src tests app.py
+uv run mypy
+uv run pytest -q
+```
+
+## Architecture
+
+```text
+app.py
+config/                       # runtime, universe, evidence, validation policy
+registries/                   # datasets and economic mechanisms
+data/snapshots/               # frozen synthetic decision snapshot
+src/eros/
+  app/                        # five-tab Streamlit decision interface
+  data/                       # adapters, ingestion, PIT alignment, health
+  ontology/ + mechanisms/     # mechanism-first economic graph
+  thesis/                     # competing hypotheses, Bayesian update, firewall
+  research/                   # experiments and inherited-formula replication
+  opportunity/ + allocation/  # costs, conservative EV, waiting, conflicts
+  portfolio/                  # hidden exposure and scenarios
+  audit/ + registries/        # replay and registry contracts
+tests/                        # unit, integration, leakage, regression, e2e
+reports/                      # limitations and production-readiness evidence
+```
+
+## Hard rules
+
+- Mechanism over correlation.
+- Evidence over narrative.
+- Three to seven competing hypotheses, including a null.
+- No standalone price-derived alpha or technical indicators.
+- Point-in-time availability and vintages are mandatory.
+- All costs and losses enter net EV.
+- Missing or stale data disables downstream decisions.
+- No model approves itself.
+- Human approval remains mandatory for execution.
+
+## Read before using outputs
+
+- `docs/REQUIREMENTS_TRACEABILITY.md`
+- `reports/PRODUCTION_READINESS.md`
+- `reports/LIMITATIONS.md`
+- `reports/CLEANUP_MANIFEST.md`

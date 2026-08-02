@@ -1,5 +1,7 @@
 """Audited thesis lifecycle transitions."""
+
 from enum import StrEnum
+
 from pydantic import BaseModel
 
 
@@ -21,7 +23,11 @@ class ThesisStatus(StrEnum):
 _FORWARD = {
     ThesisStatus.IDEA: {ThesisStatus.OBSERVATION, ThesisStatus.ARCHIVED},
     ThesisStatus.OBSERVATION: {ThesisStatus.PLAUSIBLE, ThesisStatus.BUSTED, ThesisStatus.ARCHIVED},
-    ThesisStatus.PLAUSIBLE: {ThesisStatus.TESTABLE_THESIS, ThesisStatus.BUSTED, ThesisStatus.ARCHIVED},
+    ThesisStatus.PLAUSIBLE: {
+        ThesisStatus.TESTABLE_THESIS,
+        ThesisStatus.BUSTED,
+        ThesisStatus.ARCHIVED,
+    },
     ThesisStatus.TESTABLE_THESIS: {ThesisStatus.HISTORICALLY_SUPPORTED, ThesisStatus.BUSTED},
     ThesisStatus.HISTORICALLY_SUPPORTED: {ThesisStatus.CONDITIONAL, ThesisStatus.WEAKENING},
     ThesisStatus.CONDITIONAL: {ThesisStatus.PROSPECTIVE_PENDING, ThesisStatus.WEAKENING},
@@ -42,7 +48,15 @@ class ThesisChange(BaseModel):
     evidence_id: str
 
 
-def transition_thesis(thesis_id: str, current: ThesisStatus, target: ThesisStatus, rationale: str, evidence_id: str) -> ThesisChange:
+def transition_thesis(
+    thesis_id: str, current: ThesisStatus, target: ThesisStatus, rationale: str, evidence_id: str
+) -> ThesisChange:
     if target not in _FORWARD[current]:
         raise ValueError(f"invalid thesis transition: {current} -> {target}")
-    return ThesisChange(thesis_id=thesis_id, before=current, after=target, rationale=rationale, evidence_id=evidence_id)
+    return ThesisChange(
+        thesis_id=thesis_id,
+        before=current,
+        after=target,
+        rationale=rationale,
+        evidence_id=evidence_id,
+    )

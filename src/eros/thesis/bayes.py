@@ -1,5 +1,7 @@
 """Transparent probability updates with evidence-family de-duplication."""
+
 import math
+
 from pydantic import BaseModel, Field
 
 
@@ -10,6 +12,24 @@ class EvidenceUpdate(BaseModel):
     freshness: float = Field(ge=0.0, le=1.0)
     cluster: str
     regime_applicability: float = Field(default=1.0, ge=0.0, le=1.0)
+
+    def __init__(
+        self,
+        evidence_id: str,
+        likelihood_ratio: float,
+        reliability: float,
+        freshness: float,
+        cluster: str,
+        regime_applicability: float = 1.0,
+    ) -> None:
+        super().__init__(
+            evidence_id=evidence_id,
+            likelihood_ratio=likelihood_ratio,
+            reliability=reliability,
+            freshness=freshness,
+            cluster=cluster,
+            regime_applicability=regime_applicability,
+        )
 
 
 class BayesianUpdateResult(BaseModel):
@@ -25,12 +45,24 @@ def _logit(probability: float) -> float:
     return math.log(probability / (1.0 - probability))
 
 
-def update_probability(prior_probability: float, evidence: list[EvidenceUpdate], missing_evidence_penalty: float = 0.0) -> BayesianUpdateResult:
+def update_probability(
+    prior_probability: float, evidence: list[EvidenceUpdate], missing_evidence_penalty: float = 0.0
+) -> BayesianUpdateResult:
     by_cluster: dict[str, list[float]] = {}
     for item in evidence:
-        adjusted = math.log(item.likelihood_ratio) * item.reliability * item.freshness * item.regime_applicability
+        adjusted = (
+            math.log(item.likelihood_ratio)
+            * item.reliability
+            * item.freshness
+            * item.regime_applicability
+        )
         by_cluster.setdefault(item.cluster, []).append(adjusted)
     cluster_updates = [max(values, key=abs) for values in by_cluster.values()]
     total = sum(cluster_updates) - missing_evidence_penalty
     posterior = 1.0 / (1.0 + math.exp(-(_logit(prior_probability) + total)))
-    return BayesianUpdateResult(prior_probability=prior_probability, posterior_probability=posterior, cluster_count=len(by_cluster), adjusted_log_likelihood=total)
+    return BayesianUpdateResult(
+        prior_probability=prior_probability,
+        posterior_probability=posterior,
+        cluster_count=len(by_cluster),
+        adjusted_log_likelihood=total,
+    )

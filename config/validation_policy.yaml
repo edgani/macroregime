@@ -1,0 +1,15 @@
+version: "3.0"
+promotion:
+  highest_label: PROVEN_SCOPE_LIMITED
+  require_point_in_time: true
+  require_out_of_sample: true
+  require_replication: true
+  require_prospective_before_live_capital: true
+  minimum_independent_evidence_families: 2
+multiple_testing:
+  correction_required: true
+  trial_ledger_required: true
+execution:
+  human_approval_required: true
+  unknown_disables_downstream: true
+  stale_disables_downstream: true

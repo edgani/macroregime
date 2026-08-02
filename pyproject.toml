@@ -21,9 +21,12 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "mypy>=1.17,<2",
+  "pandas-stubs>=2.3,<3",
   "pytest>=8.4,<9",
   "pytest-cov>=6.2,<8",
   "ruff>=0.12,<1",
+  "types-networkx>=3.4,<4",
+  "types-pyyaml>=6.0,<7",
 ]
 
 [tool.hatch.build.targets.wheel]

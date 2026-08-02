@@ -1,0 +1,15 @@
+version: "3.0"
+default_mode: SYNTHETIC_DEMO
+execution:
+  enabled: false
+  human_approval_required: true
+  fail_closed: true
+storage:
+  engine: duckdb
+  database_path: data/eros.duckdb
+  immutable_raw_path: data/raw
+  snapshots_path: data/snapshots
+application:
+  title: EROS v3.0
+  timezone: UTC
+  max_cached_state_seconds: 300

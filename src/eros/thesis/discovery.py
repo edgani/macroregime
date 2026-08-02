@@ -1,4 +1,5 @@
 """Competing-thesis discovery contracts."""
+
 from pydantic import BaseModel, Field
 
 

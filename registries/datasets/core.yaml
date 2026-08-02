@@ -1,0 +1,65 @@
+datasets:
+  - dataset_id: FRED_ALFRED_MACRO
+    name: US macroeconomic vintages
+    source: Federal Reserve Economic Data / ALFRED
+    license: Public terms; verify redistribution per series
+    frequency: mixed
+    coverage: United States
+    release_lag: series-specific
+    revision_policy: preserve every admitted vintage
+    vintage_available: true
+    reliability_grade: A
+    missingness: UNKNOWN
+    survivorship_risk: low
+    proxy_for: [growth, inflation, liquidity, credit]
+    owner: data_governance
+    update_sla: series-specific
+    status: DATA_DEBT
+  - dataset_id: IDX_OFFICIAL
+    name: Indonesia exchange and issuer disclosures
+    source: Indonesia Stock Exchange and official issuer filings
+    license: Public access; redistribution review required
+    frequency: event-driven
+    coverage: Indonesia / IHSG
+    release_lag: filing-specific
+    revision_policy: preserve filing availability timestamp
+    vintage_available: false
+    reliability_grade: A
+    missingness: UNKNOWN
+    survivorship_risk: medium
+    proxy_for: [company_fundamentals, market_access]
+    owner: data_governance
+    update_sla: daily
+    status: DATA_DEBT
+  - dataset_id: GLOBAL_POLICY_ACTIONS
+    name: Official central-bank and treasury actions
+    source: Country central banks and finance ministries
+    license: Source-specific public terms
+    frequency: event-driven
+    coverage: global_registry
+    release_lag: source-specific
+    revision_policy: append corrections; never overwrite original
+    vintage_available: false
+    reliability_grade: A
+    missingness: material
+    survivorship_risk: low
+    proxy_for: [policy, funding]
+    owner: data_governance
+    update_sla: event-driven
+    status: DATA_DEBT
+  - dataset_id: CRYPTO_PUBLIC_CHAIN
+    name: Public blockchain and official ETF disclosures
+    source: Public chains, regulators, and fund issuers
+    license: Source-specific public terms
+    frequency: mixed
+    coverage: crypto
+    release_lag: source-specific
+    revision_policy: immutable chain data plus filing vintages
+    vintage_available: true
+    reliability_grade: B
+    missingness: UNKNOWN
+    survivorship_risk: medium
+    proxy_for: [on_chain_flows, institutional_flows]
+    owner: data_governance
+    update_sla: daily
+    status: DATA_DEBT

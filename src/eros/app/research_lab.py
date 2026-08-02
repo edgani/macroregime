@@ -1,16 +1,80 @@
-"""Proof center and research-governance interface."""
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from eros.app.shell import DemoState
+"""Research governance, proof, failures, and data-health interface."""
+
+from __future__ import annotations
+
+import streamlit as st
+
+from eros.app.components import bullet_list, section_header
+from eros.app.state import DashboardState
 
 
-def render(state: "DemoState") -> None:
-    import streamlit as st
-    st.title("Research Lab")
-    sections = st.tabs(("Thesis Discovery", "Evidence Firewall", "Mechanisms", "Experiments", "Prediction Journal", "Failures", "Data Health", "Coverage Gaps", "Models", "Agent IQ"))
-    messages = ["3–7 competing hypotheses including null are mandatory.", "Narratives cannot directly change sizing or action.", "No validated edge without experiment lineage.", "Holdouts are sealed; failed variants remain in the trial ledger.", "No matured prospective forecasts.", "Legacy claims remain unverified until reproduced.", "All live feeds: NO_DATA.", "Global PIT coverage and licensed flow data are material gaps.", "No model may approve itself.", "Calibration, replication, blind-spot, and decay metrics are UNKNOWN."]
-    for section, message in zip(sections, messages, strict=True):
-        with section:
-            st.write(message)
-    st.subheader("Acceptance battery")
-    st.dataframe([{"gate": gate, "status": status} for gate, status in [("Architecture", "PASS"), ("Data", "FAIL"), ("Research", "PARTIAL"), ("Legacy replication", "FAIL"), ("Historical replay", "FAIL"), ("Opportunity", "PASS-EMPTY"), ("Portfolio", "PARTIAL"), ("Prospective", "FAIL")]], use_container_width=True, hide_index=True)
+def render(state: DashboardState) -> None:
+    section_header(
+        "Proof center",
+        "Research Lab",
+        "What is known, what failed, and what must be learned next?",
+    )
+    sections = st.tabs(
+        (
+            "Thesis Discovery",
+            "Evidence Firewall",
+            "Mechanisms",
+            "Experiments",
+            "Prediction Journal",
+            "Failures",
+            "Data Health",
+            "Coverage Gaps",
+            "Models",
+            "Agent IQ",
+        )
+    )
+    with sections[0]:
+        st.write("Every material observation requires 3-7 competing hypotheses including a null.")
+        st.dataframe(
+            [
+                {
+                    "Thesis": item.thesis_id,
+                    "Status": item.status,
+                    "Posterior": f"{item.posterior:.0%}",
+                    "Interval": item.interval,
+                    "Permission": item.decision_permission,
+                }
+                for item in state.theses
+            ],
+            width="stretch",
+            hide_index=True,
+        )
+    with sections[1]:
+        st.info("Narratives open research tickets; they cannot change score, sizing, or action.")
+    with sections[2]:
+        st.dataframe(state.mechanisms, width="stretch", hide_index=True)
+    with sections[3]:
+        st.warning("No experiment is eligible for PROVEN_SCOPE_LIMITED promotion in this snapshot.")
+    with sections[4]:
+        st.info("No matured sealed prospective forecast. Capital remains locked.")
+    with sections[5]:
+        st.write("Busted as tested: debt/GDP-to-gold shortcut and price-derived direction rules.")
+    with sections[6]:
+        feed_rows = [item.model_dump() for item in state.data_health.feeds]
+        st.dataframe(feed_rows, width="stretch", hide_index=True)
+    with sections[7]:
+        bullet_list(state.unknowns)
+    with sections[8]:
+        st.info(
+            "Every model requires owner, scope, assumptions, challenger, review date, "
+            "and kill switch."
+        )
+    with sections[9]:
+        st.dataframe(
+            [
+                {"Metric": "Calibration", "Status": "UNKNOWN"},
+                {"Metric": "Replication rate", "Status": "UNKNOWN"},
+                {"Metric": "Blind-spot score", "Status": "DATA_DEBT"},
+                {"Metric": "Model decay", "Status": "UNKNOWN"},
+            ],
+            width="stretch",
+            hide_index=True,
+        )
+
+    section_header("Governance", "Acceptance Battery", "Code running is not proof")
+    st.dataframe(state.acceptance_gates, width="stretch", hide_index=True)

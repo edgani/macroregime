@@ -1,5 +1,7 @@
 """Narrative-to-evidence permission firewall."""
+
 from enum import StrEnum
+
 from pydantic import BaseModel, Field
 
 
@@ -43,9 +45,29 @@ class ClaimAssessment(BaseModel):
 
 def assess_claim(claim: Claim) -> ClaimAssessment:
     if not claim.testable_predictions:
-        return ClaimAssessment(verification_status="UNTESTABLE_ARCHIVE", decision_permission="blocked", material_probability_update_allowed=False, rationale="No falsifiable prediction.")
+        return ClaimAssessment(
+            verification_status="UNTESTABLE_ARCHIVE",
+            decision_permission="blocked",
+            material_probability_update_allowed=False,
+            rationale="No falsifiable prediction.",
+        )
     if claim.source_type in {SourceType.SOCIAL_MEDIA, SourceType.ANONYMOUS}:
-        return ClaimAssessment(verification_status="RESEARCH_TICKET", decision_permission="research_only", material_probability_update_allowed=False, rationale="Narrative source requires independent primary evidence.")
+        return ClaimAssessment(
+            verification_status="RESEARCH_TICKET",
+            decision_permission="research_only",
+            material_probability_update_allowed=False,
+            rationale="Narrative source requires independent primary evidence.",
+        )
     if claim.source_type in {SourceType.JOURNALIST_INTERPRETATION, SourceType.RESEARCH_NOTE}:
-        return ClaimAssessment(verification_status="CONTEXT_PENDING", decision_permission="context_only", material_probability_update_allowed=False, rationale="Interpretation may guide research but not allocation.")
-    return ClaimAssessment(verification_status="VERIFICATION_REQUIRED", decision_permission="eligible", material_probability_update_allowed=True, rationale="Primary-class source is eligible after verification and independence checks.")
+        return ClaimAssessment(
+            verification_status="CONTEXT_PENDING",
+            decision_permission="context_only",
+            material_probability_update_allowed=False,
+            rationale="Interpretation may guide research but not allocation.",
+        )
+    return ClaimAssessment(
+        verification_status="VERIFICATION_REQUIRED",
+        decision_permission="eligible",
+        material_probability_update_allowed=True,
+        rationale="Primary-class source is eligible after verification and independence checks.",
+    )

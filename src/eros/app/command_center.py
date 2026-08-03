@@ -6,12 +6,19 @@ import pandas as pd
 import streamlit as st
 
 from eros.app.components import bullet_list, evidence_badge, section_header, status_card
+from eros.app.opportunity_engine import _valid_qualified_packets
 from eros.app.state import DashboardState
 from eros.data.public_markets import EXPECTED_SYMBOLS_BY_GROUP, MARKET_GROUPS
 
 
 def _dot_escape(value: str) -> str:
     return value.replace("\\", "\\\\").replace('"', '\\"').replace("\n", " ")
+
+
+def _command_center_qualified_packets(state: DashboardState) -> list[dict[str, object]]:
+    """Return packets currently presented by the Command Center."""
+
+    return _valid_qualified_packets(state)
 
 
 def _capital_flow_dot(state: DashboardState) -> str:
@@ -43,24 +50,56 @@ def _capital_flow_dot(state: DashboardState) -> str:
 
 def _decision_brief(state: DashboardState) -> None:
     live_ratio = f"{state.data_health.live_feeds}/{state.data_health.total_feeds}"
-    if state.market_snapshot:
-        condition = (
-            f"{len(state.market_snapshot)} public benchmark observations loaded; "
-            "causal regime remains UNKNOWN until macro evidence passes admission."
+    observed_by_group = {
+        group: {
+            item.symbol
+            for item in state.market_snapshot
+            if item.market_group == group and item.status == "LIVE"
+        }
+        for group in MARKET_GROUPS
+    }
+    market_status = "".join(
+        "<li><b>"
+        f"{group}:</b> {len(observed_by_group[group] & EXPECTED_SYMBOLS_BY_GROUP[group])}/"
+        f"{len(EXPECTED_SYMBOLS_BY_GROUP[group])} benchmark live</li>"
+        for group in MARKET_GROUPS
+    )
+    rejected_count = len(state.rejected_opportunities)
+    qualified_count = len(_command_center_qualified_packets(state))
+    qualification_copy = (
+        "Angka nol berarti tidak ada candidate yang dipromosikan oleh engine saat ini."
+        if qualified_count == 0
+        else (
+            "Hanya packet yang lolos schema, evidence, mechanism, valuation, dan sizing gates "
+            "dihitung."
         )
-    else:
-        condition = "UNKNOWN. Belum ada panel point-in-time global yang lolos."
+    )
+    qualification_heading = (
+        "0 QUALIFIED BUKAN 0 PELUANG"
+        if qualified_count == 0
+        else f"{qualified_count} QUALIFIED BUKAN JUMLAH SELURUH PELUANG"
+    )
+    unknown_dimensions = sum(item.state == "UNKNOWN" for item in state.regime_dimensions)
     st.markdown(
         f"""
         <div class="brief">
-          <h3>Ringkasan keputusan 30 detik</h3>
-          <ul>
-            <li><b>Kondisi global:</b> {condition}</li>
-            <li><b>Peluang:</b> tidak ada qualified opportunity; kandidat masih gagal
-            evidence gate.</li>
-            <li><b>Tindakan:</b> WAIT / RESEARCH ONLY. Execution tetap dikunci.</li>
-            <li><b>Data aktif:</b> {live_ratio} feed. Missing data tidak diganti neutral score.</li>
-          </ul>
+          <h3>DEFAULT ACTION SEKARANG</h3>
+          <p><b>NO EROS-GENERATED TRADE / PRESERVE OPTIONALITY.</b> Jangan membuka alokasi baru
+          hanya dari benchmark prices. Posisi yang sudah dimiliki belum dapat dinilai karena private
+          portfolio belum dimuat.</p>
+          <h4>KENAPA REGIME MASIH UNKNOWN</h4>
+          <p>{unknown_dimensions}/{len(state.regime_dimensions)} causal dimensions belum memiliki
+          point-in-time macro evidence yang lolos admission. Harga publik adalah market monitoring,
+          bukan bukti growth, inflation, liquidity, credit, funding, policy, volatility, atau
+          geopolitics.</p>
+          <h4>{qualification_heading}</h4>
+          <p>{qualification_copy}
+          {rejected_count} candidate fixture ditolak karena evidence/mechanism gates; ini bukan
+          kesimpulan bahwa seluruh market buruk atau tidak memiliki opportunity.</p>
+          <h4>ENAM MARKET TETAP DIMONITOR</h4>
+          <ul>{market_status}</ul>
+          <p><b>Data health {live_ratio}</b> hanya menghitung completeness enam benchmark group,
+          bukan completeness seluruh causal, fundamental, valuation, flow, dan opportunity data.</p>
         </div>
         """,
         unsafe_allow_html=True,
@@ -69,6 +108,7 @@ def _decision_brief(state: DashboardState) -> None:
 
 def render(state: DashboardState) -> None:
     _decision_brief(state)
+    qualified_packets = _command_center_qualified_packets(state)
     section_header(
         "Decision surface",
         "Command Center",
@@ -85,7 +125,7 @@ def render(state: DashboardState) -> None:
         ),
         (
             "Qualified opportunities",
-            str(len(state.qualified_opportunities)),
+            str(len(qualified_packets)),
             "Conservative net-EV gate",
             "UNKNOWN",
         ),
@@ -102,39 +142,6 @@ def render(state: DashboardState) -> None:
             status_card(*card)
 
     if state.market_snapshot:
-        path_rows: list[dict[str, object]] = []
-        for observation in state.market_snapshot:
-            if len(observation.history) < 2 or observation.history[0].value == 0:
-                continue
-            base = float(observation.history[0].value)
-            path_rows.extend(
-                {
-                    "Observed at": point.observed_at,
-                    "Instrument": observation.instrument,
-                    "Normalized return %": (float(point.value) / base - 1.0) * 100.0,
-                }
-                for point in observation.history
-            )
-        if path_rows:
-            section_header(
-                "Provider history",
-                "LIVE 5-DAY MARKET PATHS",
-                "Normalized provider closes; comparable direction without mixing price units.",
-            )
-            path_frame = pd.DataFrame(path_rows)
-            path_frame["Observed at"] = pd.to_datetime(path_frame["Observed at"], utc=True)
-            st.line_chart(
-                path_frame,
-                x="Observed at",
-                y="Normalized return %",
-                color="Instrument",
-                height=390,
-            )
-            st.caption(
-                "Source: each instrument's labelled public provider. "
-                "This monitoring path does not establish a causal signal."
-            )
-
         section_header(
             "Live provider observations",
             "LIVE CROSS-MARKET PULSE",
@@ -287,10 +294,10 @@ def render(state: DashboardState) -> None:
         section_header(
             "Conservative EV", "Opportunity Board", "No candidate is promoted by narrative"
         )
-        if not state.qualified_opportunities:
+        if not qualified_packets:
             st.warning("NO QUALIFIED OPPORTUNITY")
         else:
-            st.dataframe(state.qualified_opportunities, width="stretch", hide_index=True)
+            st.dataframe(qualified_packets, width="stretch", hide_index=True)
     with action:
         section_header("Human gate", "Action Queue", "Actions remain reviewable and reversible")
         st.error(f"{state.execution.permission} — {state.execution.reason}")

@@ -13,7 +13,7 @@ import os
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import suppress
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from threading import Lock
 from typing import Literal
@@ -146,11 +146,21 @@ def _default_request(url: str) -> bytes:
 def _freshness_status(
     observed_at: datetime, now: datetime, market_group: MarketGroup
 ) -> Literal["LIVE", "STALE"]:
-    max_age_hours = 3 if market_group == "Crypto" else 72
     age_hours = (now - observed_at).total_seconds() / 3600
     if age_hours < -(5 / 60):
         return "STALE"
-    return "LIVE" if age_hours <= max_age_hours else "STALE"
+    if market_group == "Crypto":
+        return "LIVE" if age_hours <= 3 else "STALE"
+
+    completed_business_dates = 0
+    cursor = observed_at.date() + timedelta(days=1)
+    while cursor < now.date():
+        if cursor.weekday() < 5:
+            completed_business_dates += 1
+        cursor += timedelta(days=1)
+    # Holidays are not assumed without an exchange calendar. The conservative fallback
+    # can mark a holiday-delayed observation stale, but never promotes an older session.
+    return "LIVE" if completed_business_dates == 0 else "STALE"
 
 
 def _yahoo_observation(

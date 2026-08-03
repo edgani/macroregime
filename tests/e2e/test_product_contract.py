@@ -82,6 +82,10 @@ def test_public_market_snapshot_is_visible_in_command_center(monkeypatch) -> Non
     assert not app.exception
     assert any("LIVE CROSS-MARKET PULSE" in item.value for item in app.markdown)
     assert any("LIVE 5-DAY MARKET PATHS" in item.value for item in app.markdown)
+    assert any("DEFAULT ACTION SEKARANG" in item.value for item in app.markdown)
+    assert any("KENAPA REGIME MASIH UNKNOWN" in item.value for item in app.markdown)
+    assert any("0 QUALIFIED BUKAN 0 PELUANG" in item.value for item in app.markdown)
+    assert any("ENAM MARKET TETAP DIMONITOR" in item.value for item in app.markdown)
     assert any("PUBLIC MARKET SNAPSHOT" in item.value for item in app.markdown)
     assert any("MARKET COVERAGE MAP" in item.value for item in app.markdown)
     assert any("GLOBAL COVERAGE OVERVIEW" in item.value for item in app.markdown)
@@ -115,6 +119,21 @@ def test_opportunity_tab_visualizes_admission_gates(monkeypatch) -> None:
 
     assert not app.exception
     assert any("ADMISSION GATE MAP" in item.value for item in app.markdown)
+    assert any("SCENARIO HORIZON MATRIX" in item.value for item in app.markdown)
+    assert any("QUALIFICATION FAILURE LEDGER" in item.value for item in app.markdown)
+    assert any("TRIGGER / INVALIDATION / VALUATION CONTRACT" in item.value for item in app.markdown)
+
+
+def test_portfolio_tab_exposes_fail_closed_input_and_rebalance_controls(monkeypatch) -> None:
+    monkeypatch.setattr(shell, "_load_runtime_state", load_dashboard_state)
+    app_path = Path(__file__).parents[2] / "app.py"
+
+    app = AppTest.from_file(str(app_path)).run(timeout=30)
+
+    assert not app.exception
+    assert any("PORTFOLIO INPUT CONTRACT" in item.value for item in app.markdown)
+    assert any("SCENARIO HORIZON CONTROLS" in item.value for item in app.markdown)
+    assert any("PORTFOLIO REBALANCE TRIPWIRES" in item.value for item in app.markdown)
 
 
 def test_research_tab_visualizes_evidence_status(monkeypatch) -> None:
@@ -125,3 +144,40 @@ def test_research_tab_visualizes_evidence_status(monkeypatch) -> None:
 
     assert not app.exception
     assert any("RESEARCH EVIDENCE MAP" in item.value for item in app.markdown)
+
+
+def test_research_tab_labels_legacy_crashmeter_without_promoting_it_to_bcm(monkeypatch) -> None:
+    monkeypatch.setattr(shell, "_load_runtime_state", load_dashboard_state)
+    app_path = Path(__file__).parents[2] / "app.py"
+
+    app = AppTest.from_file(str(app_path)).run(timeout=30)
+
+    assert not app.exception
+    assert any("LEGACY CRASHMETER V3 SCORE TIMELINE" in item.value for item in app.markdown)
+    assert any("LEGACY CRASHMETER V3 DRIVER ATTRIBUTION" in item.value for item in app.markdown)
+
+
+def test_research_tab_renders_backtests_as_claim_exhibits(monkeypatch) -> None:
+    monkeypatch.setattr(shell, "_load_runtime_state", load_dashboard_state)
+    app_path = Path(__file__).parents[2] / "app.py"
+
+    app = AppTest.from_file(str(app_path)).run(timeout=30)
+
+    assert not app.exception
+    assert any("LEGACY BACKTEST CLAIM EXHIBITS" in item.value for item in app.markdown)
+    assert any("ARITHMETIC DISCREPANCY" in item.value for item in app.error)
+
+
+def test_research_tab_exposes_reproducible_crashmeter_proof_contract(monkeypatch) -> None:
+    monkeypatch.setattr(shell, "_load_runtime_state", load_dashboard_state)
+    app_path = Path(__file__).parents[2] / "app.py"
+
+    app = AppTest.from_file(str(app_path)).run(timeout=30)
+
+    assert not app.exception
+    headings = [item.value for item in app.markdown]
+    assert any("LEGACY CRASHMETER THRESHOLD BANDS" in value for value in headings)
+    assert any("DERIVED RISK WINDOWS" in value for value in headings)
+    assert any("REPRODUCIBLE SPX DRAWDOWN OVERLAP" in value for value in headings)
+    assert any("REPLICATION VERDICT" in value for value in headings)
+    assert any("SOURCE CHECKSUMS" in value for value in headings)

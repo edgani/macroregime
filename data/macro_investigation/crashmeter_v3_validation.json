@@ -1,0 +1,50 @@
+{
+ "claims": {
+  "dotcom_2000": {
+   "first_score_ge3": null
+  },
+  "gfc_2008": {
+   "first_score_ge3": null
+  },
+  "covid_2020": {
+   "first_score_ge3": null
+  }
+ },
+ "false_alarm_check": [
+  {
+   "cluster_start": "2024-12-12",
+   "worst_forward_12m_pct": -10.7,
+   "real_20pct_crash": false
+  },
+  {
+   "cluster_start": "2026-02-10",
+   "worst_forward_12m_pct": -3.5,
+   "real_20pct_crash": false
+  }
+ ],
+ "current": {
+  "date": "2026-07-28",
+  "t10y3m": 0.71,
+  "hy_oas": 2.84,
+  "cape": 40.73,
+  "a1": 0,
+  "a2": 1,
+  "b1": 0,
+  "b2": 0,
+  "c": 1,
+  "score": 2
+ },
+ "score_rows": 748,
+ "latest": {
+  "date": "2026-07-28",
+  "t10y3m": 0.71,
+  "hy_oas": 2.84,
+  "cape": 40.73,
+  "a1": 0,
+  "a2": 1,
+  "b1": 0,
+  "b2": 0,
+  "c": 1,
+  "score": 2
+ }
+}

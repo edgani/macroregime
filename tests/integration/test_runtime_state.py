@@ -294,6 +294,17 @@ def test_95_hour_old_and_future_observations_are_stale() -> None:
     assert _freshness_status(datetime(2026, 8, 2, 17, 6, tzinfo=UTC), now, "US") == "STALE"
 
 
+def test_non_crypto_freshness_requires_latest_completed_business_date() -> None:
+    monday = datetime(2026, 8, 3, 3, 0, tzinfo=UTC)
+
+    assert (
+        _freshness_status(datetime(2026, 7, 30, 0, 0, tzinfo=UTC), monday, "Rates & Volatility")
+        == "STALE"
+    )
+    assert _freshness_status(datetime(2026, 7, 31, 0, 0, tzinfo=UTC), monday, "FX") == "LIVE"
+    assert _freshness_status(datetime(2026, 8, 2, 23, 0, tzinfo=UTC), monday, "Crypto") == "STALE"
+
+
 @pytest.mark.parametrize("invalid_value", [float("nan"), float("inf"), float("-inf")])
 def test_market_observation_rejects_non_finite_values(invalid_value: float) -> None:
     with pytest.raises(ValidationError):

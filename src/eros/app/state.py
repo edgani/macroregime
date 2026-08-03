@@ -114,6 +114,7 @@ class DashboardState(BaseModel):
     mechanisms: list[dict[str, str]]
     scenarios: list[dict[str, str]]
     acceptance_gates: list[dict[str, str]]
+    portfolio_positions: list[dict[str, Any]] = Field(default_factory=list)
     market_snapshot: list[MarketObservation] = Field(default_factory=list)
     feed_failures: dict[str, str] = Field(default_factory=dict)
 

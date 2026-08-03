@@ -62,6 +62,14 @@ YAHOO_INSTRUMENTS: dict[str, tuple[MarketGroup, str]] = {
     "^VIX": ("Rates & Volatility", "CBOE VIX"),
 }
 
+# Canonical FX symbol -> (Yahoo quote symbol, instrument label). Used only when the
+# primary Frankfurter/ECB request fails, so a single-provider outage cannot blank FX.
+YAHOO_FX_FALLBACK: dict[str, tuple[str, str]] = {
+    "USDIDR": ("IDR=X", "USD/IDR"),
+    "EURUSD": ("EURUSD=X", "EUR/USD"),
+    "USDJPY": ("JPY=X", "USD/JPY"),
+}
+
 RequestBytes = Callable[[str], bytes]
 Sleep = Callable[[float], None]
 
@@ -395,6 +403,40 @@ def fetch_public_market_snapshot(
                 )
             except Exception as exc:
                 failures[f"Yahoo crypto fallback {symbol}"] = f"{type(exc).__name__}: {exc}"
+
+    if "Frankfurter FX" in failures:
+        for symbol, (yahoo_symbol, instrument) in YAHOO_FX_FALLBACK.items():
+            try:
+                fallback = _yahoo_observation(
+                    yahoo_symbol, "FX", instrument, request, fetched_at
+                )
+                observations.append(
+                    fallback.model_copy(
+                        update={
+                            "symbol": symbol,
+                            "provider": "Yahoo Finance chart fallback",
+                        }
+                    )
+                )
+            except Exception as exc:
+                failures[f"Yahoo FX fallback {symbol}"] = f"{type(exc).__name__}: {exc}"
+
+    if "FRED rates" in failures:
+        try:
+            fallback = _yahoo_observation(
+                "^TNX", "Rates & Volatility", "US 10Y Treasury yield", request, fetched_at
+            )
+            observations.append(
+                fallback.model_copy(
+                    update={
+                        "symbol": "DGS10",
+                        "currency": "%",
+                        "provider": "Yahoo Finance chart fallback",
+                    }
+                )
+            )
+        except Exception as exc:
+            failures["Yahoo rates fallback ^TNX"] = f"{type(exc).__name__}: {exc}"
 
     if failures:
         cached = _load_cache(cache_path)

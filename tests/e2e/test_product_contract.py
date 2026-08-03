@@ -2,6 +2,7 @@
 
 from pathlib import Path
 
+from packet_factory import qualified_packet
 from streamlit.testing.v1 import AppTest
 
 from eros.app import shell
@@ -47,6 +48,46 @@ def test_streamlit_app_runs_with_five_decision_tabs(monkeypatch) -> None:
     assert any("SYNTHETIC DEMO" in item.value for item in app.warning)
     assert any("NO QUALIFIED OPPORTUNITY" in item.value for item in app.warning)
     assert any("MECHANISM MAP" in item.value for item in app.markdown)
+
+
+def test_opportunity_engine_positive_path_shows_complete_packet(monkeypatch) -> None:
+    """A complete canonical packet must surface as qualified, never as zero."""
+
+    qualified_state = load_dashboard_state().model_copy(
+        update={
+            "qualified_opportunities": [qualified_packet()],
+            "execution": ExecutionState(
+                permission="HUMAN_REVIEW",
+                human_approval_required=True,
+                reason="Qualified packet awaits approval.",
+            ),
+        }
+    )
+    monkeypatch.setattr(shell, "_load_runtime_state", lambda: qualified_state)
+    app_path = Path(__file__).parents[2] / "app.py"
+
+    app = AppTest.from_file(str(app_path)).run(timeout=30)
+
+    assert not app.exception
+    assert all(
+        "NO QUALIFIED OPPORTUNITY" not in item.value for item in app.warning
+    )
+    permission_frames = [
+        frame.value
+        for frame in app.dataframe
+        if "Permission" in getattr(frame.value, "columns", [])
+    ]
+    assert any(
+        (frame["Permission"] == "HUMAN_REVIEW").any() for frame in permission_frames
+    )
+    contract_frames = [
+        frame.value
+        for frame in app.dataframe
+        if "Current value" in getattr(frame.value, "columns", [])
+    ]
+    assert any(
+        (frame["Current value"] == "ENTER").any() for frame in contract_frames
+    )
 
 
 def test_approved_metadata_never_leaks_as_open_execution_when_policy_blocks(

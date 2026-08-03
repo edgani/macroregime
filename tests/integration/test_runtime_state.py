@@ -269,6 +269,69 @@ def test_crypto_uses_yahoo_fallback_when_coingecko_fails() -> None:
     assert "CoinGecko crypto" in snapshot.failures
 
 
+def _yahoo_chart_payload(currency: str = "USD") -> bytes:
+    return json.dumps(
+        {
+            "chart": {
+                "result": [
+                    {
+                        "meta": {"currency": currency},
+                        "timestamp": [1785682800, 1785686400],
+                        "indicators": {"quote": [{"close": [100.0, 101.0]}]},
+                    }
+                ]
+            }
+        }
+    ).encode()
+
+
+def test_fx_uses_yahoo_fallback_when_frankfurter_fails() -> None:
+    def fallback_request(url: str) -> bytes:
+        if "frankfurter" in url:
+            raise OSError("Frankfurter unavailable")
+        if "finance.yahoo.com" in url and any(
+            quote in url for quote in ("IDR%3DX", "EURUSD%3DX", "JPY%3DX")
+        ):
+            return _yahoo_chart_payload()
+        raise OSError("provider unavailable")
+
+    snapshot = fetch_public_market_snapshot(
+        request=fallback_request,
+        now=datetime(2026, 8, 2, 17, 0, tzinfo=UTC),
+        cache_path=None,
+    )
+    fx = [item for item in snapshot.observations if item.market_group == "FX"]
+
+    assert {item.symbol for item in fx} == {"USDIDR", "EURUSD", "USDJPY"}
+    assert {item.provider for item in fx} == {"Yahoo Finance chart fallback"}
+    assert "Frankfurter FX" in snapshot.failures
+
+
+def test_rates_uses_yahoo_tnx_fallback_when_fred_fails() -> None:
+    def fallback_request(url: str) -> bytes:
+        if "fred.stlouisfed.org" in url:
+            raise OSError("FRED unavailable")
+        if "finance.yahoo.com" in url and "%5ETNX" in url:
+            return _yahoo_chart_payload(currency="%")
+        raise OSError("provider unavailable")
+
+    snapshot = fetch_public_market_snapshot(
+        request=fallback_request,
+        now=datetime(2026, 8, 2, 17, 0, tzinfo=UTC),
+        cache_path=None,
+    )
+    rates = [
+        item
+        for item in snapshot.observations
+        if item.market_group == "Rates & Volatility"
+    ]
+
+    assert {item.symbol for item in rates} == {"DGS10"}
+    assert rates[0].currency == "%"
+    assert rates[0].provider == "Yahoo Finance chart fallback"
+    assert "FRED rates" in snapshot.failures
+
+
 def test_public_fetcher_uses_stale_last_good_data_when_providers_fail(tmp_path) -> None:
     cached = MarketSnapshot(
         fetched_at="2026-08-02T16:00:00Z",

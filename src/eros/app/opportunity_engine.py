@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-import math
-import re
-
 import pandas as pd
 import streamlit as st
 
 from eros.app.components import section_header
 from eros.app.state import DashboardState
+from eros.opportunity.packet import validate_qualified_packet
 
 PACKET_FIELDS = (
     "Mechanism and competing thesis",
@@ -36,44 +34,18 @@ NEXT_EVIDENCE_BY_GATE = {
     "Legacy replication": "Reproduce the inherited claim on point-in-time source history.",
 }
 
-REQUIRED_PACKET_TEXT_FIELDS = {
-    "holding_horizon",
-    "entry_trigger",
-    "invalidation",
-    "valuation_basis",
-    "alternative_action",
-}
-ALLOWED_QUALIFIED_DECISIONS = {"ENTER", "TRIM"}
-
-
 def _valid_qualified_packets(state: DashboardState) -> list[dict[str, object]]:
-    """Return only complete decision packets; malformed dicts remain inadmissible."""
+    """Return only packets that satisfy the full research admission contract."""
 
     valid: list[dict[str, object]] = []
     for packet in state.qualified_opportunities:
         if not isinstance(packet, dict):
             continue
-        decision = packet.get("decision")
-        if (
-            type(decision) is not str
-            or decision.strip().upper() not in ALLOWED_QUALIFIED_DECISIONS
-        ):
+        try:
+            canonical = validate_qualified_packet(packet)
+        except ValueError:
             continue
-        if any(
-            type(packet.get(field)) is not str or not str(packet[field]).strip()
-            for field in REQUIRED_PACKET_TEXT_FIELDS
-        ):
-            continue
-        sizing = packet.get("sizing")
-        if type(sizing) is not str:
-            continue
-        match = re.fullmatch(r"\s*(\d+(?:\.\d+)?)%\s*(?:NAV)?\s*", sizing)
-        if match is None:
-            continue
-        sizing_value = float(match.group(1))
-        if not math.isfinite(sizing_value) or not 0 < sizing_value <= 100:
-            continue
-        valid.append(packet)
+        valid.append(canonical.model_dump(mode="json"))
     return valid
 
 
@@ -84,12 +56,15 @@ def _horizon_rows(state: DashboardState) -> list[dict[str, object]]:
     qualified_count = len(qualified_packets)
     permission: str
     if qualified_count:
-        permission = state.execution.permission
-        if permission == "APPROVED" and state.execution.human_approval_required:
+        if state.execution_enabled:
+            permission = "APPROVED"
+        elif state.execution.human_approval_required:
             permission = "HUMAN_REVIEW"
+        else:
+            permission = "WAIT / RESEARCH ONLY"
         reason = (
-            f"{qualified_count} qualified packet exists; execution state is "
-            f"{state.execution.permission}."
+            f"{qualified_count} qualified packet exists; canonical execution gate is "
+            f"{'OPEN' if state.execution_enabled else 'LOCKED'}."
         )
     else:
         permission = "WAIT / RESEARCH ONLY"
@@ -103,6 +78,74 @@ def _horizon_rows(state: DashboardState) -> list[dict[str, object]]:
             "Reason": reason,
         }
         for name, window in HORIZONS
+    ]
+
+
+def _qualification_root_cause_rows(state: DashboardState) -> list[dict[str, str]]:
+    """Disclose runtime capability blockers behind an empty qualified set."""
+
+    qualified_count = len(_valid_qualified_packets(state))
+    return [
+        {
+            "Component": "Public benchmark monitoring",
+            "Status": state.data_health.overall_status,
+            "Why it matters": "Observations monitor markets but are not causal evidence.",
+            "Required fix": "Keep provider, freshness, fallback, and lineage checks healthy.",
+        },
+        {
+            "Component": "Point-in-time causal feature panel",
+            "Status": "NOT_IMPLEMENTED",
+            "Why it matters": (
+                "Regime probabilities cannot be estimated from benchmark prices alone."
+            ),
+            "Required fix": (
+                "Ingest release-vintaged macro, credit, liquidity, flow, and policy sources."
+            ),
+        },
+        {
+            "Component": "Global candidate generator",
+            "Status": "NOT_IMPLEMENTED",
+            "Why it matters": "No live process creates investable cross-market thesis packets.",
+            "Required fix": (
+                "Generate versioned candidates from admitted mechanisms and instruments."
+            ),
+        },
+        {
+            "Component": "Candidate admission",
+            "Status": f"{qualified_count} QUALIFIED",
+            "Why it matters": "Only full canonical packets may reach decision surfaces.",
+            "Required fix": (
+                "Pass evidence, probability, cost, valuation, snapshot, and sizing contracts."
+            ),
+        },
+        {
+            "Component": "Global conservative-EV ranker",
+            "Status": "READY" if qualified_count else "NOT_RUN",
+            "Why it matters": (
+                "The highest-EV action cannot be selected without admitted candidates."
+            ),
+            "Required fix": (
+                "Rank admitted candidates against cash after costs and uncertainty haircuts."
+            ),
+        },
+        {
+            "Component": "Private portfolio contract",
+            "Status": "UNVALIDATED" if state.portfolio_positions else "MISSING",
+            "Why it matters": (
+                "Account-specific sizing, overlap, tax, liquidity, and hedges need holdings."
+            ),
+            "Required fix": (
+                "Load private holdings with prices, access, tax, liquidity, and factor lineage."
+            ),
+        },
+        {
+            "Component": "Execution approval verifier",
+            "Status": "SCHEMA_ONLY",
+            "Why it matters": (
+                "Approval metadata is validated, but no broker or signature verifier exists."
+            ),
+            "Required fix": "Verify signed approval against the exact immutable decision snapshot.",
+        },
     ]
 
 
@@ -185,6 +228,14 @@ def render(state: DashboardState) -> None:
         "Gate counts come from the frozen research contract. They do not become live merely "
         "because public prices are available."
     )
+
+    section_header(
+        "System-level blockers",
+        "ZERO-QUALIFIED ROOT CAUSE LEDGER",
+        "This distinguishes unavailable runtime capabilities from candidates that "
+        "genuinely failed.",
+    )
+    st.dataframe(_qualification_root_cause_rows(state), width="stretch", hide_index=True)
 
     section_header(
         "Decision horizons",

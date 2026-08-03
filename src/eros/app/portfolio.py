@@ -3,14 +3,16 @@
 from __future__ import annotations
 
 import math
-import re
 from collections.abc import Mapping, Sequence
+from datetime import UTC, datetime
+from typing import cast
 
 import streamlit as st
 
 from eros.app.components import section_header
 from eros.app.opportunity_engine import _valid_qualified_packets
 from eros.app.state import DashboardState
+from eros.data.identifiers import validate_storage_identifier
 
 HORIZONS = ("Now", "Week", "Month", "Quarter", "Year+")
 REQUIRED_POSITION_FIELDS = {
@@ -24,6 +26,25 @@ REQUIRED_POSITION_FIELDS = {
     "tax_treatment",
     "days_to_exit",
 }
+POSITION_ADMISSION_FIELDS = REQUIRED_POSITION_FIELDS | {
+    "current_price",
+    "market_value",
+    "spread_bps",
+    "estimated_slippage_bps",
+    "tax_rate_pct",
+    "broker_access",
+    "settlement_days",
+    "capacity_usd",
+    "factor_exposures",
+    "position_snapshot_id",
+    "valuation_source_id",
+    "liquidity_source_id",
+    "risk_model_id",
+    "decision_snapshot_id",
+    "price_observed_at",
+    "borrow_available",
+    "borrow_rate_pct",
+}
 POSITION_TEXT_FIELDS = {
     "instrument",
     "currency",
@@ -32,8 +53,7 @@ POSITION_TEXT_FIELDS = {
     "account",
     "tax_treatment",
 }
-PROBABILITY_PATTERN = re.compile(r"(?:0(?:\.\d+)?|1(?:\.0+)?)")
-IMPACT_PATTERN = re.compile(r"[-+]?\d+(?:\.\d+)?%")
+VALIDATED_EVIDENCE = {"REPLICATED_OOS", "PROVEN_SCOPE_LIMITED"}
 
 
 def _finite_number(value: object) -> float | None:
@@ -70,31 +90,156 @@ def _positions_are_valid(positions: list[dict[str, object]]) -> bool:
     return True
 
 
-def _scenario_text(value: object) -> str:
-    return value.strip() if type(value) is str and value.strip() else "UNKNOWN"
-
-
-def _scenarios_are_valid(scenarios: Sequence[Mapping[str, object]]) -> bool:
-    if not scenarios:
+def _position_inputs_complete(positions: list[dict[str, object]]) -> bool:
+    if not _positions_are_valid(positions):
         return False
-    for scenario in scenarios:
-        name = scenario.get("scenario")
-        probability = scenario.get("probability")
-        impact = scenario.get("portfolio_impact")
-        if type(name) is not str or not name.strip():
+    for position in positions:
+        if not set(position) >= POSITION_ADMISSION_FIELDS:
             return False
+        numeric_fields = {
+            field: _finite_number(position.get(field))
+            for field in (
+                "quantity",
+                "current_price",
+                "market_value",
+                "spread_bps",
+                "estimated_slippage_bps",
+                "tax_rate_pct",
+                "capacity_usd",
+                "borrow_rate_pct",
+            )
+        }
+        if any(value is None for value in numeric_fields.values()):
+            return False
+        complete_numbers = cast(dict[str, float], numeric_fields)
+        quantity = complete_numbers["quantity"]
+        current_price = complete_numbers["current_price"]
+        market_value = complete_numbers["market_value"]
         if (
-            type(probability) is not str
-            or PROBABILITY_PATTERN.fullmatch(probability.strip()) is None
+            current_price <= 0
+            or not math.isclose(market_value, quantity * current_price, rel_tol=1e-6)
+            or complete_numbers["spread_bps"] < 0
+            or complete_numbers["estimated_slippage_bps"] < 0
+            or not 0 <= complete_numbers["tax_rate_pct"] <= 100
+            or complete_numbers["capacity_usd"] < abs(market_value)
+            or complete_numbers["borrow_rate_pct"] < 0
         ):
             return False
-        if type(impact) is not str or IMPACT_PATTERN.fullmatch(impact.strip()) is None:
+        if type(position.get("broker_access")) is not bool or not position["broker_access"]:
             return False
-        probability_number = float(probability)
-        impact_number = float(impact.strip().removesuffix("%"))
-        if not math.isfinite(probability_number) or not 0 <= probability_number <= 1:
+        settlement_days = position.get("settlement_days")
+        if type(settlement_days) is not int or not 0 <= settlement_days <= 10:
             return False
-        if not math.isfinite(impact_number):
+        borrow_available = position.get("borrow_available")
+        if type(borrow_available) is not bool or (quantity < 0 and not borrow_available):
+            return False
+        factors = position.get("factor_exposures")
+        if not isinstance(factors, dict) or not factors:
+            return False
+        if any(
+            type(name) is not str
+            or not name.strip()
+            or _finite_number(value) is None
+            for name, value in factors.items()
+        ):
+            return False
+        lineage_fields = (
+            "position_snapshot_id",
+            "valuation_source_id",
+            "liquidity_source_id",
+            "risk_model_id",
+            "decision_snapshot_id",
+        )
+        if any(
+            type(position.get(field)) is not str or not str(position[field]).strip()
+            for field in (*lineage_fields, "price_observed_at")
+        ):
+            return False
+        try:
+            for field in lineage_fields:
+                validate_storage_identifier(str(position[field]), field)
+            observed_at = datetime.fromisoformat(
+                str(position["price_observed_at"]).replace("Z", "+00:00")
+            )
+        except ValueError:
+            return False
+        if (
+            observed_at.tzinfo is None
+            or observed_at.utcoffset() is None
+            or observed_at.astimezone(UTC) > datetime.now(UTC)
+        ):
+            return False
+    return True
+
+
+def _scenario_text(value: object) -> str:
+    if type(value) is str and value.strip():
+        return value.strip()
+    number = _finite_number(value)
+    return f"{number:g}" if number is not None else "UNKNOWN"
+
+
+def _scenarios_are_valid(
+    positions: list[dict[str, object]], scenarios: Sequence[Mapping[str, object]]
+) -> bool:
+    if not scenarios or not _position_inputs_complete(positions):
+        return False
+    market_values = [_finite_number(position.get("market_value")) for position in positions]
+    if any(value is None for value in market_values):
+        return False
+    complete_market_values = cast(list[float], market_values)
+    gross_value = sum(abs(value) for value in complete_market_values)
+    if gross_value <= 0:
+        return False
+    snapshot_ids = {str(position["decision_snapshot_id"]) for position in positions}
+    if len(snapshot_ids) != 1:
+        return False
+    exposures: dict[str, float] = {}
+    for position, market_value in zip(positions, complete_market_values, strict=True):
+        weight = market_value / gross_value
+        factors = position["factor_exposures"]
+        assert isinstance(factors, dict)
+        for factor, loading in factors.items():
+            parsed_loading = _finite_number(loading)
+            assert parsed_loading is not None
+            exposures[str(factor)] = (
+                exposures.get(str(factor), 0.0) + weight * parsed_loading
+            )
+
+    for scenario in scenarios:
+        name = scenario.get("scenario")
+        probability = _finite_number(scenario.get("probability"))
+        impact = _finite_number(scenario.get("portfolio_impact_pct"))
+        if type(name) is not str or not name.strip():
+            return False
+        if probability is None or not 0 <= probability <= 1 or impact is None:
+            return False
+        if scenario.get("evidence_status") not in VALIDATED_EVIDENCE:
+            return False
+        mechanism_id = scenario.get("mechanism_id")
+        if type(mechanism_id) is not str or not mechanism_id.strip():
+            return False
+        if scenario.get("decision_snapshot_id") not in snapshot_ids:
+            return False
+        triggers = scenario.get("triggers")
+        if not isinstance(triggers, list) or not triggers or any(
+            type(trigger) is not str or not trigger.strip() for trigger in triggers
+        ):
+            return False
+        shocks = scenario.get("factor_shocks")
+        if not isinstance(shocks, dict) or not shocks:
+            return False
+        parsed_shocks: dict[str, float] = {}
+        for factor, shock in shocks.items():
+            parsed = _finite_number(shock)
+            if type(factor) is not str or not factor.strip() or parsed is None:
+                return False
+            parsed_shocks[factor] = parsed
+        computed_impact_pct = (
+            sum(exposures.get(factor, 0.0) * shock for factor, shock in parsed_shocks.items())
+            * 100
+        )
+        if not math.isclose(computed_impact_pct, impact, abs_tol=0.01):
             return False
     return True
 
@@ -103,9 +248,8 @@ def _scenario_rows(state: DashboardState) -> list[dict[str, str]]:
     ready = (
         _positions_are_valid(state.portfolio_positions)
         and bool(_valid_qualified_packets(state))
-        and _scenarios_are_valid(state.scenarios)
-        and state.execution.permission == "APPROVED"
-        and not state.execution.human_approval_required
+        and _scenarios_are_valid(state.portfolio_positions, state.scenarios)
+        and state.execution_enabled
     )
     permission = "APPROVED FOR EXPLICIT REVIEW" if ready else "NO REBALANCE"
     return [
@@ -113,7 +257,9 @@ def _scenario_rows(state: DashboardState) -> list[dict[str, str]]:
             "Horizon": horizon,
             "Scenario": _scenario_text(scenario.get("scenario")),
             "Probability": _scenario_text(scenario.get("probability")),
-            "Portfolio impact": _scenario_text(scenario.get("portfolio_impact")),
+            "Portfolio impact": _scenario_text(
+                scenario.get("portfolio_impact_pct", scenario.get("portfolio_impact"))
+            ),
             "Permission": permission,
         }
         for horizon in HORIZONS
@@ -125,11 +271,12 @@ def _tripwire_rows(state: DashboardState) -> list[dict[str, str]]:
     """Derive rebalance blockers from holdings, evidence, and execution state."""
 
     holdings_loaded = _positions_are_valid(state.portfolio_positions)
-    position_inputs_complete = holdings_loaded
+    position_inputs_complete = _position_inputs_complete(state.portfolio_positions)
     qualified = bool(_valid_qualified_packets(state))
-    scenario_validated = _scenarios_are_valid(state.scenarios)
-    execution_open = state.execution.permission == "APPROVED"
+    scenario_validated = _scenarios_are_valid(state.portfolio_positions, state.scenarios)
+    execution_open = state.execution_enabled
     approval_cleared = not state.execution.human_approval_required
+    contamination_ready = state.contamination_policy_ready
 
     def status(passed: bool) -> str:
         return "PASS" if passed else "FAIL"
@@ -161,8 +308,17 @@ def _tripwire_rows(state: DashboardState) -> list[dict[str, str]]:
         },
         {
             "Tripwire": "Execution permission",
-            "Status": state.execution.permission,
+            "Status": "APPROVED" if execution_open else "LOCKED",
             "Consequence": "Execution gate open" if execution_open else "Queue remains locked",
+        },
+        {
+            "Tripwire": "Anti-contamination policy",
+            "Status": status(contamination_ready),
+            "Consequence": (
+                "Research promotion controls enforced"
+                if contamination_ready
+                else "No live-capital promotion"
+            ),
         },
         {
             "Tripwire": "Human approval",

@@ -30,6 +30,10 @@ def _load_runtime_state() -> DashboardState:
 
 
 def _hero(state: DashboardState) -> None:
+    execution_status = "APPROVED" if state.execution_enabled else "LOCKED"
+    approval_status = (
+        "REQUIRED" if state.execution.human_approval_required else "CLEARED"
+    )
     st.markdown(
         f"""
         <div class="hero">
@@ -39,8 +43,8 @@ def _hero(state: DashboardState) -> None:
           <div class="mode-strip">
             <span class="mode-pill">MODE: {state.mode}</span>
             <span class="mode-pill">AS OF: {state.data_health.as_of}</span>
-            <span class="mode-pill">EXECUTION: {state.execution.permission}</span>
-            <span class="mode-pill">HUMAN APPROVAL: REQUIRED</span>
+            <span class="mode-pill">EXECUTION: {execution_status}</span>
+            <span class="mode-pill">HUMAN APPROVAL: {approval_status}</span>
           </div>
         </div>
         """,

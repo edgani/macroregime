@@ -1,8 +1,9 @@
 """Economic mechanism registry contracts."""
 
+import math
 from enum import StrEnum
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 class EvidenceStatus(StrEnum):
@@ -32,8 +33,57 @@ class MechanismEdge(BaseModel):
     experiment_ids: list[str] = Field(default_factory=list)
     counterexamples: list[str] = Field(default_factory=list)
 
+    @field_validator("sign", mode="before")
+    @classmethod
+    def reject_boolean_sign(cls, value: object) -> object:
+        if isinstance(value, bool):
+            raise ValueError("mechanism sign cannot be boolean")
+        return value
+
+    @field_validator("elasticity_estimate", mode="before")
+    @classmethod
+    def reject_boolean_elasticity(cls, value: object) -> object:
+        if isinstance(value, bool):
+            raise ValueError("mechanism elasticity cannot be boolean")
+        return value
+
+    @field_validator("expected_lag_distribution", mode="before")
+    @classmethod
+    def reject_boolean_lags(cls, value: object) -> object:
+        if isinstance(value, dict) and any(
+            isinstance(lag, bool) for lag in value.values()
+        ):
+            raise ValueError("mechanism lag values cannot be boolean")
+        return value
+
+    @field_validator("confidence_interval", mode="before")
+    @classmethod
+    def reject_boolean_interval(cls, value: object) -> object:
+        if isinstance(value, (tuple, list)) and any(
+            isinstance(bound, bool) for bound in value
+        ):
+            raise ValueError("mechanism confidence bounds cannot be boolean")
+        return value
+
     @model_validator(mode="after")
     def require_lineage_for_validated_edge(self) -> "MechanismEdge":
+        if any(
+            not value.strip()
+            for value in (
+                self.source_entity,
+                self.target_entity,
+                self.relationship_type,
+                self.mechanism_id,
+            )
+        ):
+            raise ValueError("mechanism identity fields must be nonblank")
+        numeric_values = [*self.expected_lag_distribution.values()]
+        if self.elasticity_estimate is not None:
+            numeric_values.append(self.elasticity_estimate)
+        if self.confidence_interval is not None:
+            numeric_values.extend(self.confidence_interval)
+        if any(not math.isfinite(value) for value in numeric_values):
+            raise ValueError("mechanism numeric estimates must be finite")
         if (
             self.evidence_status
             in {EvidenceStatus.PROVEN_SCOPE_LIMITED, EvidenceStatus.REPLICATED_OOS}

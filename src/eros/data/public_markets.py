@@ -10,6 +10,7 @@ import csv
 import io
 import json
 import os
+import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import suppress
@@ -17,6 +18,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from threading import Lock
 from typing import Literal
+from urllib.error import HTTPError
 from urllib.parse import quote
 from urllib.request import Request, urlopen
 from uuid import uuid4
@@ -61,6 +63,7 @@ YAHOO_INSTRUMENTS: dict[str, tuple[MarketGroup, str]] = {
 }
 
 RequestBytes = Callable[[str], bytes]
+Sleep = Callable[[float], None]
 
 
 class MarketPoint(BaseModel):
@@ -128,7 +131,33 @@ def _iso(value: datetime) -> str:
     return value.astimezone(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def _default_request(url: str) -> bytes:
+def _request_with_retry(
+    request: RequestBytes,
+    url: str,
+    *,
+    attempts: int = 3,
+    sleep: Sleep = time.sleep,
+) -> bytes:
+    """Retry transient provider transport failures with bounded exponential backoff."""
+
+    if attempts < 1:
+        raise ValueError("attempts must be at least one")
+    for attempt in range(attempts):
+        try:
+            return request(url)
+        except HTTPError as exc:
+            if exc.code != 429 and not 500 <= exc.code < 600:
+                raise
+            error: OSError = exc
+        except OSError as exc:
+            error = exc
+        if attempt == attempts - 1:
+            raise error
+        sleep(0.25 * (2**attempt))
+    raise RuntimeError("unreachable retry state")
+
+
+def _request_once(url: str) -> bytes:
     request = Request(
         url,
         headers={
@@ -143,8 +172,16 @@ def _default_request(url: str) -> bytes:
     return data
 
 
+def _default_request(url: str) -> bytes:
+    return _request_with_retry(_request_once, url)
+
+
 def _freshness_status(
-    observed_at: datetime, now: datetime, market_group: MarketGroup
+    observed_at: datetime,
+    now: datetime,
+    market_group: MarketGroup,
+    *,
+    allowed_completed_business_dates: int = 0,
 ) -> Literal["LIVE", "STALE"]:
     age_hours = (now - observed_at).total_seconds() / 3600
     if age_hours < -(5 / 60):
@@ -160,7 +197,11 @@ def _freshness_status(
         cursor += timedelta(days=1)
     # Holidays are not assumed without an exchange calendar. The conservative fallback
     # can mark a holiday-delayed observation stale, but never promotes an older session.
-    return "LIVE" if completed_business_dates == 0 else "STALE"
+    return (
+        "LIVE"
+        if completed_business_dates <= allowed_completed_business_dates
+        else "STALE"
+    )
 
 
 def _yahoo_observation(
@@ -306,7 +347,12 @@ def _fetch_rates(request: RequestBytes, now: datetime) -> list[MarketObservation
             observed_at=_iso(observed_at),
             fetched_at=_iso(now),
             provider="FRED / Federal Reserve Board",
-            status=_freshness_status(observed_at, now, "Rates & Volatility"),
+            status=_freshness_status(
+                observed_at,
+                now,
+                "Rates & Volatility",
+                allowed_completed_business_dates=1,
+            ),
         )
     ]
 
@@ -340,6 +386,16 @@ def fetch_public_market_snapshot(
             except Exception as exc:
                 failures[name] = f"{type(exc).__name__}: {exc}"
 
+    if "CoinGecko crypto" in failures:
+        for symbol, instrument in (("BTC-USD", "Bitcoin"), ("ETH-USD", "Ethereum")):
+            try:
+                fallback = _yahoo_observation(symbol, "Crypto", instrument, request, fetched_at)
+                observations.append(
+                    fallback.model_copy(update={"provider": "Yahoo Finance chart fallback"})
+                )
+            except Exception as exc:
+                failures[f"Yahoo crypto fallback {symbol}"] = f"{type(exc).__name__}: {exc}"
+
     if failures:
         cached = _load_cache(cache_path)
         if cached is not None:
@@ -362,8 +418,17 @@ def fetch_public_market_snapshot(
         observations=observations,
         failures=failures,
     )
-    if not failures:
-        cache_failure = _write_cache(cache_path, snapshot)
-        if cache_failure is not None:
-            snapshot.failures["Last-good cache"] = cache_failure
+    cache_snapshot = MarketSnapshot(
+        fetched_at=snapshot.fetched_at,
+        observations=[
+            item.model_copy(
+                update={"provider": item.provider.removesuffix(" (last good cache)")}
+            )
+            for item in snapshot.observations
+        ],
+        failures={},
+    )
+    cache_failure = _write_cache(cache_path, cache_snapshot)
+    if cache_failure is not None:
+        snapshot.failures["Last-good cache"] = cache_failure
     return snapshot

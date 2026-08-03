@@ -14,6 +14,13 @@ class EconomicGraph:
         self.graph.add_node(entity.entity_id, **entity.model_dump())
 
     def add_mechanism_edge(self, edge: MechanismEdge) -> None:
+        missing = {
+            endpoint
+            for endpoint in (edge.source_entity, edge.target_entity)
+            if endpoint not in self.graph
+        }
+        if missing:
+            raise ValueError(f"mechanism edge endpoint is not registered: {sorted(missing)}")
         self.graph.add_edge(
             edge.source_entity,
             edge.target_entity,

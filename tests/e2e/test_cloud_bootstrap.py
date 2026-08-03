@@ -23,7 +23,14 @@ def test_app_bootstraps_src_layout_without_installed_project(tmp_path: Path) -> 
     (fake_modules / "pydantic.py").write_text(
         "class BaseModel:\n    pass\n\n"
         "FiniteFloat = float\n\n"
-        "def Field(*args, **kwargs):\n    return None\n",
+        "def ConfigDict(**kwargs):\n    return kwargs\n\n"
+        "def Field(*args, **kwargs):\n    return None\n\n"
+        "def field_validator(*args, **kwargs):\n"
+        "    def decorator(function):\n        return function\n"
+        "    return decorator\n\n"
+        "def model_validator(*args, **kwargs):\n"
+        "    def decorator(function):\n        return function\n"
+        "    return decorator\n",
         encoding="utf-8",
     )
     (fake_modules / "yaml.py").write_text(

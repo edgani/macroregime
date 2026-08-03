@@ -1,0 +1,85 @@
+version: "1.0"
+source:
+  title: "LLMs that remember too much"
+  url: "https://www.writeverso.now/p/quant"
+  accessed_at: "2026-08-03"
+principle: >-
+  Frontier LLM output is never truth-bearing evidence. Live-capital promotion requires
+  deterministic point-in-time computation, prospective trial accounting, sealed
+  validation, realistic costs, and human approval.
+controls:
+  - control_id: no_runtime_llm_truth_authority
+    failure_mode: contaminated model output treated as market truth
+    enforcement: runtime contains no LLM inference path and narrative cannot change allocation
+    status: ENFORCED
+    blocks_live_capital: true
+  - control_id: schema_isolated_frontier_model
+    failure_mode: frontier LLM sees raw prices, returns, news, transcripts, or equity curves
+    enforcement: future frontier model may receive schemas and research interfaces only
+    status: NOT_IMPLEMENTED
+    blocks_live_capital: true
+  - control_id: chronologically_clean_text_model
+    failure_mode: sentiment or regime labels leak memorized future outcomes
+    enforcement: text judgment requires a model vintage trained before the observation date
+    status: NOT_IMPLEMENTED
+    blocks_live_capital: true
+  - control_id: orchestrator_as_of_token
+    failure_mode: strategy queries data not available at decision time
+    enforcement: every data query requires an immutable orchestrator-issued AsOf token
+    status: NOT_IMPLEMENTED
+    blocks_live_capital: true
+  - control_id: point_in_time_universe
+    failure_mode: survivorship bias from current constituents and omitted delistings
+    enforcement: each replay requires historical constituents, delistings, and release vintages
+    status: NOT_IMPLEMENTED
+    blocks_live_capital: true
+  - control_id: append_only_global_trial_counter
+    failure_mode: uncounted multiple testing and retrospective false-discovery correction
+    enforcement: every attempted strategy is registered before evaluation and cannot be updated or deleted
+    status: NOT_IMPLEMENTED
+    blocks_live_capital: true
+  - control_id: structural_strategy_hash
+    failure_mode: cosmetic code variants evade the trial counter
+    enforcement: logical operators, fields, windows, and transformations define the strategy identity
+    status: NOT_IMPLEMENTED
+    blocks_live_capital: true
+  - control_id: cpcv_purge_embargo
+    failure_mode: temporal leakage and single-path validation theater
+    enforcement: combinatorial purged cross-validation with label-horizon purge and embargo
+    status: NOT_IMPLEMENTED
+    blocks_live_capital: true
+  - control_id: probability_backtest_overfitting
+    failure_mode: best in-sample configuration collapses out of sample
+    enforcement: deterministic PBO must be below the configured promotion threshold
+    status: NOT_IMPLEMENTED
+    blocks_live_capital: true
+  - control_id: deflated_probabilistic_sharpe
+    failure_mode: Sharpe selected from many trials is mistaken for alpha
+    enforcement: DSR and PSR are adjusted for effective independent trial count and non-normality
+    status: NOT_IMPLEMENTED
+    blocks_live_capital: true
+  - control_id: realistic_total_cost_model
+    failure_mode: spread, impact, slippage, borrow, funding, tax, and turnover are ignored
+    enforcement: net returns include instrument- and size-specific total execution costs
+    status: PARTIAL
+    blocks_live_capital: true
+  - control_id: one_shot_sealed_lockbox
+    failure_mode: holdout data is repeatedly inspected until a strategy passes
+    enforcement: lockbox starts after research begins, has no research-phase read access, and permits one evaluation
+    status: NOT_IMPLEMENTED
+    blocks_live_capital: true
+  - control_id: prospective_paper_journal
+    failure_mode: historical backtest contamination survives all retrospective checks
+    enforcement: timestamped predictions mature prospectively before capital promotion
+    status: NOT_IMPLEMENTED
+    blocks_live_capital: true
+  - control_id: narrative_firewall
+    failure_mode: confident post-hoc explanation is promoted as causal evidence
+    enforcement: narratives can open research tickets but cannot change scores, sizing, action, or execution
+    status: ENFORCED
+    blocks_live_capital: true
+  - control_id: signed_human_approval
+    failure_mode: autonomous model or stale approval opens live execution
+    enforcement: approval schema requires identity, timestamp, method, and evidence checksum; signature verification remains absent
+    status: PARTIAL
+    blocks_live_capital: true

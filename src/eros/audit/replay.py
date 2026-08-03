@@ -6,6 +6,8 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
+from eros.data.identifiers import validate_storage_identifier
+
 
 class DecisionSnapshot(BaseModel):
     decision_id: str
@@ -26,7 +28,8 @@ class SnapshotRepository:
         self.root.mkdir(parents=True, exist_ok=True)
 
     def _path(self, decision_id: str) -> Path:
-        return self.root / f"{decision_id}.json"
+        safe_id = validate_storage_identifier(decision_id, "decision_id")
+        return self.root / f"{safe_id}.json"
 
     def store(self, snapshot: DecisionSnapshot) -> StoredSnapshot:
         path = self._path(snapshot.decision_id)

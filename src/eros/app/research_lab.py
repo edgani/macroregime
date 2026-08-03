@@ -15,6 +15,7 @@ from PIL import Image, UnidentifiedImageError
 
 from eros.app.components import bullet_list, section_header
 from eros.app.state import DashboardState
+from eros.research.contamination import load_contamination_policy
 from eros.research.crashmeter import load_crashmeter_evidence
 
 MAX_EXHIBIT_BYTES = 2 * 1024 * 1024
@@ -107,6 +108,50 @@ def render(state: DashboardState) -> None:
         st.caption(
             "Source: each instrument's labelled public provider. This outcome path does not "
             "establish a causal signal, target, entry, or exit."
+        )
+
+    contamination_path = (
+        Path(__file__).parents[3] / "config" / "contamination_policy.yaml"
+    )
+    section_header(
+        "LLM and backtest defenses",
+        "ANTI-CONTAMINATION LIVE-CAPITAL GATES",
+        "Typed controls derived from look-ahead, memorization, multiple-testing, and "
+        "holdout-reuse failure modes.",
+    )
+    try:
+        contamination_policy = load_contamination_policy(contamination_path)
+        if contamination_policy.live_capital_ready:
+            st.success("ANTI-CONTAMINATION POLICY ENFORCED — validation may continue.")
+        else:
+            st.error(
+                "LIVE CAPITAL BLOCKED — "
+                f"{len(contamination_policy.unresolved_blockers)} anti-contamination "
+                "controls are not fully enforced."
+            )
+        st.dataframe(
+            [
+                {
+                    "Control": item.control_id,
+                    "Failure mode": item.failure_mode,
+                    "Enforcement": item.enforcement,
+                    "Status": item.status,
+                    "Blocks live capital": item.blocks_live_capital,
+                }
+                for item in contamination_policy.controls
+            ],
+            width="stretch",
+            hide_index=True,
+        )
+        st.caption(
+            "Source: LLMs that remember too much · writeverso.now/p/quant · accessed "
+            f"{contamination_policy.source.accessed_at}. Frontier LLM output is not "
+            "truth-bearing evidence."
+        )
+    except (OSError, ValueError) as exc:
+        st.error(
+            "LIVE CAPITAL BLOCKED — anti-contamination policy unavailable: "
+            f"{type(exc).__name__}."
         )
 
     legacy_dir = Path(__file__).parents[3] / "data" / "macro_investigation"

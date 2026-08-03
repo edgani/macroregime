@@ -6,7 +6,7 @@ from streamlit.testing.v1 import AppTest
 
 from eros.app import shell
 from eros.app.shell import MAIN_TABS, PRODUCT_NAME
-from eros.app.state import build_public_data_state, load_dashboard_state
+from eros.app.state import ExecutionState, build_public_data_state, load_dashboard_state
 from eros.data.public_markets import MarketObservation, MarketPoint, MarketSnapshot
 
 EXPECTED_TABS = (
@@ -47,6 +47,37 @@ def test_streamlit_app_runs_with_five_decision_tabs(monkeypatch) -> None:
     assert any("SYNTHETIC DEMO" in item.value for item in app.warning)
     assert any("NO QUALIFIED OPPORTUNITY" in item.value for item in app.warning)
     assert any("MECHANISM MAP" in item.value for item in app.markdown)
+
+
+def test_approved_metadata_never_leaks_as_open_execution_when_policy_blocks(
+    monkeypatch,
+) -> None:
+    blocked = load_dashboard_state().model_copy(
+        update={
+            "execution": ExecutionState(
+                permission="APPROVED",
+                human_approval_required=False,
+                reason="Approved metadata reproduction.",
+                approval_id="APPROVAL-E2E-1",
+                approved_by="reviewer@example.test",
+                approved_at="2026-08-03T06:00:00+00:00",
+                approval_method="SIGNED_ATTESTATION",
+                approval_evidence_checksum="a" * 64,
+            )
+        }
+    )
+    monkeypatch.setattr(shell, "_load_runtime_state", lambda: blocked)
+    app_path = Path(__file__).parents[2] / "app.py"
+
+    app = AppTest.from_file(str(app_path)).run(timeout=30)
+
+    assert not app.exception
+    assert any("EXECUTION: LOCKED" in item.value for item in app.markdown)
+    assert all("EXECUTION: APPROVED" not in item.value for item in app.markdown)
+    assert any(
+        "LOCKED — Anti-contamination policy blocks live-capital promotion." in item.value
+        for item in app.error
+    )
 
 
 def test_public_market_snapshot_is_visible_in_command_center(monkeypatch) -> None:
@@ -144,6 +175,11 @@ def test_research_tab_visualizes_evidence_status(monkeypatch) -> None:
 
     assert not app.exception
     assert any("RESEARCH EVIDENCE MAP" in item.value for item in app.markdown)
+    assert any(
+        "ANTI-CONTAMINATION LIVE-CAPITAL GATES" in item.value
+        for item in app.markdown
+    )
+    assert any("LIVE CAPITAL BLOCKED" in item.value for item in app.error)
 
 
 def test_research_tab_labels_legacy_crashmeter_without_promoting_it_to_bcm(monkeypatch) -> None:

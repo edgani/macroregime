@@ -3,6 +3,7 @@
 import json
 from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
+from urllib.error import HTTPError
 
 import pytest
 from pydantic import ValidationError
@@ -13,9 +14,42 @@ from eros.data.public_markets import (
     MarketObservation,
     MarketSnapshot,
     _freshness_status,
+    _request_with_retry,
     _write_cache,
     fetch_public_market_snapshot,
 )
+
+
+def test_transient_request_is_retried_with_a_bounded_attempt_count() -> None:
+    attempts = 0
+
+    def flaky_request(url: str) -> bytes:
+        nonlocal attempts
+        attempts += 1
+        if attempts < 3:
+            raise OSError(f"temporary failure for {url}")
+        return b"ok"
+
+    delays: list[float] = []
+    result = _request_with_retry(flaky_request, "https://provider.test", sleep=delays.append)
+
+    assert result == b"ok"
+    assert attempts == 3
+    assert delays == [0.25, 0.5]
+
+
+def test_non_transient_http_error_is_not_retried() -> None:
+    attempts = 0
+
+    def rejected_request(url: str) -> bytes:
+        nonlocal attempts
+        attempts += 1
+        raise HTTPError(url, 404, "not found", {}, None)
+
+    with pytest.raises(HTTPError):
+        _request_with_retry(rejected_request, "https://provider.test", sleep=lambda _: None)
+
+    assert attempts == 1
 
 
 def test_dashboard_loads_every_configured_country_and_asset_class() -> None:
@@ -124,6 +158,11 @@ def test_partial_rates_feed_does_not_overstate_health_or_bond_coverage() -> None
     assert state.data_health.overall_status == "PARTIAL"
     assert state.data_health.live_feeds == 0
     assert rates_feed.status == "PARTIAL"
+    assert rates_feed.expected_symbols == ["DGS10", "^VIX"]
+    assert rates_feed.live_symbols == ["^VIX"]
+    assert rates_feed.missing_symbols == ["DGS10"]
+    assert rates_feed.blocking_symbols == ["DGS10"]
+    assert rates_feed.disabled_components == ["No current observation: DGS10"]
     assert sovereign_bonds["state"] == "UNKNOWN"
     assert volatility["state"] == "OBSERVED"
 
@@ -197,6 +236,39 @@ def test_public_fetcher_loads_every_market_group_from_provider_payloads() -> Non
     ]
 
 
+def test_crypto_uses_yahoo_fallback_when_coingecko_fails() -> None:
+    def fallback_request(url: str) -> bytes:
+        if "coingecko" in url:
+            raise OSError("CoinGecko unavailable")
+        if "finance.yahoo.com" in url and ("BTC-USD" in url or "ETH-USD" in url):
+            currency = "USD"
+            return json.dumps(
+                {
+                    "chart": {
+                        "result": [
+                            {
+                                "meta": {"currency": currency},
+                                "timestamp": [1785682800, 1785686400],
+                                "indicators": {"quote": [{"close": [100.0, 101.0]}]},
+                            }
+                        ]
+                    }
+                }
+            ).encode()
+        raise OSError("provider unavailable")
+
+    snapshot = fetch_public_market_snapshot(
+        request=fallback_request,
+        now=datetime(2026, 8, 2, 17, 0, tzinfo=UTC),
+        cache_path=None,
+    )
+    crypto = [item for item in snapshot.observations if item.market_group == "Crypto"]
+
+    assert {item.symbol for item in crypto} == {"BTC-USD", "ETH-USD"}
+    assert {item.provider for item in crypto} == {"Yahoo Finance chart fallback"}
+    assert "CoinGecko crypto" in snapshot.failures
+
+
 def test_public_fetcher_uses_stale_last_good_data_when_providers_fail(tmp_path) -> None:
     cached = MarketSnapshot(
         fetched_at="2026-08-02T16:00:00Z",
@@ -247,6 +319,55 @@ def test_public_fetcher_uses_stale_last_good_data_when_providers_fail(tmp_path) 
     assert stale_state.data_health.overall_status == "PARTIAL"
     assert stale_state.data_health.live_feeds == 0
     assert "CAUSAL REGIME UNKNOWN" in stale_state.banner
+
+
+def test_partial_provider_success_refreshes_last_good_cache(tmp_path) -> None:
+    cache_path = tmp_path / "public_market_snapshot.json"
+    cached = MarketSnapshot(
+        fetched_at="2026-08-01T16:00:00Z",
+        observations=[
+            MarketObservation(
+                market_group="US",
+                instrument="S&P 500",
+                symbol="^GSPC",
+                value=90.0,
+                currency="USD",
+                observed_at="2026-08-01T16:00:00Z",
+                fetched_at="2026-08-01T16:00:00Z",
+                provider="old-provider",
+                status="LIVE",
+            )
+        ],
+    )
+    cache_path.write_text(cached.model_dump_json(), encoding="utf-8")
+
+    def partial_request(url: str) -> bytes:
+        if "%5EGSPC" in url:
+            return json.dumps(
+                {
+                    "chart": {
+                        "result": [
+                            {
+                                "meta": {"currency": "USD"},
+                                "timestamp": [1785600000, 1785686400],
+                                "indicators": {"quote": [{"close": [100.0, 101.0]}]},
+                            }
+                        ]
+                    }
+                }
+            ).encode()
+        raise OSError("provider unavailable")
+
+    snapshot = fetch_public_market_snapshot(
+        request=partial_request,
+        now=datetime(2026, 8, 2, 17, 0, tzinfo=UTC),
+        cache_path=cache_path,
+    )
+    persisted = MarketSnapshot.model_validate_json(cache_path.read_text(encoding="utf-8"))
+
+    assert snapshot.failures
+    assert next(item for item in persisted.observations if item.symbol == "^GSPC").value == 101.0
+    assert all("last good cache" not in item.provider for item in persisted.observations)
 
 
 def test_unsupported_cached_market_group_is_rejected_without_crashing(tmp_path) -> None:
@@ -303,6 +424,31 @@ def test_non_crypto_freshness_requires_latest_completed_business_date() -> None:
     )
     assert _freshness_status(datetime(2026, 7, 31, 0, 0, tzinfo=UTC), monday, "FX") == "LIVE"
     assert _freshness_status(datetime(2026, 8, 2, 23, 0, tzinfo=UTC), monday, "Crypto") == "STALE"
+
+
+def test_fred_daily_release_lag_allows_one_completed_business_date_only() -> None:
+    monday = datetime(2026, 8, 3, 3, 0, tzinfo=UTC)
+    tuesday = datetime(2026, 8, 4, 3, 0, tzinfo=UTC)
+    observed = datetime(2026, 7, 30, 0, 0, tzinfo=UTC)
+
+    assert (
+        _freshness_status(
+            observed,
+            monday,
+            "Rates & Volatility",
+            allowed_completed_business_dates=1,
+        )
+        == "LIVE"
+    )
+    assert (
+        _freshness_status(
+            observed,
+            tuesday,
+            "Rates & Volatility",
+            allowed_completed_business_dates=1,
+        )
+        == "STALE"
+    )
 
 
 @pytest.mark.parametrize("invalid_value", [float("nan"), float("inf"), float("-inf")])

@@ -3,12 +3,14 @@
 from __future__ import annotations
 
 import json
+import re
+from datetime import date, datetime
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal
 
 import yaml
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from eros.data.public_markets import (
     EXPECTED_SYMBOLS_BY_GROUP,
@@ -37,6 +39,12 @@ class FeedState(BaseModel):
     next_release: str
     vintage_status: str
     disabled_components: list[str] = Field(default_factory=list)
+    expected_symbols: list[str] = Field(default_factory=list)
+    observed_symbols: list[str] = Field(default_factory=list)
+    live_symbols: list[str] = Field(default_factory=list)
+    stale_symbols: list[str] = Field(default_factory=list)
+    missing_symbols: list[str] = Field(default_factory=list)
+    blocking_symbols: list[str] = Field(default_factory=list)
 
 
 class DataHealthState(BaseModel):
@@ -48,9 +56,49 @@ class DataHealthState(BaseModel):
 
 
 class ExecutionState(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     permission: Literal["LOCKED", "HUMAN_REVIEW", "APPROVED"]
     human_approval_required: bool
     reason: str
+    approval_id: str | None = None
+    approved_by: str | None = None
+    approved_at: datetime | None = None
+    approval_method: Literal["SIGNED_ATTESTATION"] | None = None
+    approval_evidence_checksum: str | None = None
+
+    @model_validator(mode="after")
+    def enforce_approval_contract(self) -> ExecutionState:
+        if not self.reason.strip():
+            raise ValueError("execution reason must be nonblank")
+        approval_values = (
+            self.approval_id,
+            self.approved_by,
+            self.approved_at,
+            self.approval_method,
+            self.approval_evidence_checksum,
+        )
+        if self.permission == "APPROVED":
+            if self.human_approval_required:
+                raise ValueError("approved execution cannot retain human approval requirement")
+            if any(value is None for value in approval_values):
+                raise ValueError("approved execution requires complete approval evidence")
+            assert self.approval_id is not None
+            assert self.approved_by is not None
+            assert self.approved_at is not None
+            assert self.approval_evidence_checksum is not None
+            if not self.approval_id.strip() or not self.approved_by.strip():
+                raise ValueError("approval identity fields must be nonblank")
+            if self.approved_at.tzinfo is None or self.approved_at.utcoffset() is None:
+                raise ValueError("approval timestamp must be timezone-aware")
+            if re.fullmatch(r"[0-9a-fA-F]{64}", self.approval_evidence_checksum) is None:
+                raise ValueError("approval evidence checksum must be 64 hexadecimal characters")
+        else:
+            if not self.human_approval_required:
+                raise ValueError("non-approved execution must require human approval")
+            if any(value is not None for value in approval_values):
+                raise ValueError("non-approved execution cannot retain approval evidence")
+        return self
 
 
 class RegimeDimension(BaseModel):
@@ -89,7 +137,7 @@ class CapitalFlow(BaseModel):
 
 
 class Catalyst(BaseModel):
-    date: str
+    date: date | Literal["UNKNOWN"]
     event: str
     decision: str
     status: str
@@ -134,9 +182,31 @@ class DashboardState(BaseModel):
         return "SYNTHETIC DEMO — NO LIVE DECISION DATA — EXECUTION LOCKED"
 
     @property
+    def contamination_policy_ready(self) -> bool:
+        """Expose validated policy readiness without allowing caller mutation."""
+
+        return _contamination_policy_ready()
+
+    @property
     def execution_enabled(self) -> bool:
         """Execution is enabled only after explicit approval."""
-        return self.execution.permission == "APPROVED"
+        return (
+            self.execution.permission == "APPROVED"
+            and not self.execution.human_approval_required
+            and self.contamination_policy_ready
+        )
+
+
+def _contamination_policy_ready() -> bool:
+    """Resolve the repository policy at execution time and fail closed."""
+
+    policy_path = Path(__file__).parents[3] / "config" / "contamination_policy.yaml"
+    try:
+        from eros.research.contamination import load_contamination_policy
+
+        return load_contamination_policy(policy_path).live_capital_ready
+    except (ImportError, OSError, ValueError):
+        return False
 
 
 def build_public_data_state(base: DashboardState, snapshot: MarketSnapshot) -> DashboardState:
@@ -148,7 +218,11 @@ def build_public_data_state(base: DashboardState, snapshot: MarketSnapshot) -> D
         rows = [item for item in snapshot.observations if item.market_group == group]
         live_rows = [item for item in rows if item.status == "LIVE"]
         expected_symbols = EXPECTED_SYMBOLS_BY_GROUP[group]
+        observed_symbols = {item.symbol for item in rows}
         live_symbols = {item.symbol for item in live_rows}
+        stale_symbols = {item.symbol for item in rows if item.status == "STALE"}
+        missing_symbols = expected_symbols - observed_symbols
+        blocking_symbols = expected_symbols - live_symbols
         complete = expected_symbols <= live_symbols
         if complete:
             live_groups += 1
@@ -167,7 +241,15 @@ def build_public_data_state(base: DashboardState, snapshot: MarketSnapshot) -> D
                 "last_observation": latest,
                 "next_release": "Provider dependent",
                 "vintage_status": providers,
-                "disabled_components": [] if rows else [f"{group} market snapshot"],
+                "disabled_components": [
+                    f"No current observation: {symbol}" for symbol in sorted(blocking_symbols)
+                ],
+                "expected_symbols": sorted(expected_symbols),
+                "observed_symbols": sorted(observed_symbols),
+                "live_symbols": sorted(live_symbols),
+                "stale_symbols": sorted(stale_symbols),
+                "missing_symbols": sorted(missing_symbols),
+                "blocking_symbols": sorted(blocking_symbols),
             }
         )
 

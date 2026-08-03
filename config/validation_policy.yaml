@@ -9,6 +9,10 @@ promotion:
 multiple_testing:
   correction_required: true
   trial_ledger_required: true
+contamination:
+  policy_file: config/contamination_policy.yaml
+  all_live_capital_controls_must_be_enforced: true
+  frontier_llm_output_is_truth_bearing: false
 execution:
   human_approval_required: true
   unknown_disables_downstream: true

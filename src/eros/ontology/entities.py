@@ -2,7 +2,7 @@
 
 from enum import StrEnum
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 
 class EntityType(StrEnum):
@@ -28,3 +28,9 @@ class Entity(BaseModel):
     entity_type: EntityType
     country_codes: list[str] = Field(default_factory=list)
     metadata: dict[str, str] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_identity(self) -> "Entity":
+        if not self.entity_id.strip() or not self.name.strip():
+            raise ValueError("entity identity fields must be nonblank")
+        return self

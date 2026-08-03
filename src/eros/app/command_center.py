@@ -21,6 +21,24 @@ def _command_center_qualified_packets(state: DashboardState) -> list[dict[str, o
     return _valid_qualified_packets(state)
 
 
+def _feed_root_cause_rows(state: DashboardState) -> list[dict[str, str]]:
+    """Expose exact symbol-level reasons a feed group is not live."""
+
+    return [
+        {
+            "Feed group": feed.name,
+            "Status": feed.status,
+            "Expected": ", ".join(feed.expected_symbols) or "UNSPECIFIED",
+            "Live": ", ".join(feed.live_symbols) or "NONE",
+            "Stale": ", ".join(feed.stale_symbols) or "NONE",
+            "Absent": ", ".join(feed.missing_symbols) or "NONE",
+            "Blocking": ", ".join(feed.blocking_symbols) or "NONE",
+            "Disabled consequence": ", ".join(feed.disabled_components) or "NONE",
+        }
+        for feed in state.data_health.feeds
+    ]
+
+
 def _capital_flow_dot(state: DashboardState) -> str:
     lines = [
         "digraph CapitalMap {",
@@ -116,6 +134,7 @@ def render(state: DashboardState) -> None:
     )
 
     columns = st.columns(4)
+    execution_status = "APPROVED" if state.execution_enabled else "LOCKED"
     cards = (
         (
             "Data health",
@@ -131,9 +150,9 @@ def render(state: DashboardState) -> None:
         ),
         (
             "Execution",
-            state.execution.permission,
-            "Human approval remains mandatory",
-            "LOCKED" if state.execution.permission == "LOCKED" else "CANDIDATE",
+            execution_status,
+            "Human approval and anti-contamination gates are mandatory",
+            execution_status,
         ),
         ("Material unknowns", str(len(state.unknowns)), "Visible, never imputed", "DATA_DEBT"),
     )
@@ -232,6 +251,13 @@ def render(state: DashboardState) -> None:
         st.warning(f"Provider failures isolated: {failed}")
 
     section_header(
+        "Failure decomposition",
+        "FEED ROOT CAUSE MATRIX",
+        "Expected, live, stale, absent, and decision-blocking symbols by feed contract.",
+    )
+    st.dataframe(_feed_root_cause_rows(state), width="stretch", hide_index=True)
+
+    section_header(
         "World state", "Global Regime", "Eight dimensions, each with evidence and uncertainty"
     )
     rows = [
@@ -300,7 +326,11 @@ def render(state: DashboardState) -> None:
             st.dataframe(qualified_packets, width="stretch", hide_index=True)
     with action:
         section_header("Human gate", "Action Queue", "Actions remain reviewable and reversible")
-        st.error(f"{state.execution.permission} — {state.execution.reason}")
+        execution_status = "APPROVED" if state.execution_enabled else "LOCKED"
+        execution_reason = state.execution.reason
+        if state.execution.permission == "APPROVED" and not state.execution_enabled:
+            execution_reason = "Anti-contamination policy blocks live-capital promotion."
+        st.error(f"{execution_status} — {execution_reason}")
 
     risks, unknowns = st.columns(2)
     with risks:

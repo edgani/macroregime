@@ -10,6 +10,11 @@ class ConflictResolution(BaseModel):
 
 
 def resolve_conflict(family_directions: dict[str, int]) -> ConflictResolution:
+    if any(
+        type(value) is not int or value not in {-1, 0, 1}
+        for value in family_directions.values()
+    ):
+        raise ValueError("evidence directions must be -1, 0, or 1")
     directions = {value for value in family_directions.values() if value != 0}
     if len(directions) > 1:
         return ConflictResolution(

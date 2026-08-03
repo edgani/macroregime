@@ -3,6 +3,7 @@
 from pathlib import Path
 
 from eros.data.adapters.base import AdapterMetadata, SourceAdapter
+from eros.data.identifiers import validate_storage_identifier
 
 
 class FixtureAdapter(SourceAdapter):
@@ -18,7 +19,8 @@ class FixtureAdapter(SourceAdapter):
         self.root = root
 
     def fetch(self, dataset_id: str) -> bytes:
-        path = self.root / f"{dataset_id}.csv"
+        safe_id = validate_storage_identifier(dataset_id, "dataset_id")
+        path = self.root / f"{safe_id}.csv"
         if not path.is_file():
             raise FileNotFoundError(dataset_id)
         return path.read_bytes()

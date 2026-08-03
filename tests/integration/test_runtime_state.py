@@ -384,6 +384,69 @@ def test_public_fetcher_uses_stale_last_good_data_when_providers_fail(tmp_path) 
     assert "CAUSAL REGIME UNKNOWN" in stale_state.banner
 
 
+def test_fallback_wins_over_stale_cache_without_duplicate_keys(tmp_path) -> None:
+    """A fresh fallback observation must replace, not duplicate, its cached key."""
+
+    cached = MarketSnapshot(
+        fetched_at="2026-08-02T16:00:00Z",
+        observations=[
+            MarketObservation(
+                market_group="FX",
+                instrument="USD/IDR",
+                symbol="USDIDR",
+                value=15000.0,
+                currency="IDR",
+                observed_at="2026-08-02T16:00:00Z",
+                fetched_at="2026-08-02T16:00:00Z",
+                provider="Frankfurter / ECB reference rates",
+                status="LIVE",
+            ),
+            MarketObservation(
+                market_group="US",
+                instrument="S&P 500",
+                symbol="^GSPC",
+                value=100.0,
+                currency="USD",
+                observed_at="2026-08-02T16:00:00Z",
+                fetched_at="2026-08-02T16:00:00Z",
+                provider="Yahoo Finance chart",
+                status="LIVE",
+            ),
+        ],
+    )
+    cache_path = tmp_path / "public_market_snapshot.json"
+    cache_path.write_text(cached.model_dump_json(), encoding="utf-8")
+
+    def fallback_request(url: str) -> bytes:
+        if "frankfurter" in url:
+            raise OSError("Frankfurter unavailable")
+        if "finance.yahoo.com" in url and any(
+            quote in url for quote in ("IDR%3DX", "EURUSD%3DX", "JPY%3DX")
+        ):
+            return _yahoo_chart_payload(currency="IDR")
+        raise OSError("provider unavailable")
+
+    snapshot = fetch_public_market_snapshot(
+        request=fallback_request,
+        now=datetime(2026, 8, 2, 17, 0, tzinfo=UTC),
+        cache_path=cache_path,
+    )
+    usdidr_rows = [
+        item for item in snapshot.observations if item.symbol == "USDIDR"
+    ]
+    gspc_rows = [item for item in snapshot.observations if item.symbol == "^GSPC"]
+
+    assert len(usdidr_rows) == 1
+    assert usdidr_rows[0].provider == "Yahoo Finance chart fallback"
+    assert usdidr_rows[0].status == "LIVE"
+    assert len(gspc_rows) == 1
+    assert gspc_rows[0].status == "STALE"
+    assert gspc_rows[0].provider.endswith("(last good cache)")
+
+    persisted = MarketSnapshot.model_validate_json(cache_path.read_text(encoding="utf-8"))
+    assert len([item for item in persisted.observations if item.symbol == "USDIDR"]) == 1
+
+
 def test_partial_provider_success_refreshes_last_good_cache(tmp_path) -> None:
     cache_path = tmp_path / "public_market_snapshot.json"
     cached = MarketSnapshot(

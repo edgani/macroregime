@@ -80,17 +80,17 @@ def _compute_meters() -> MetersSnapshot:
     return compute_meters_snapshot()
 
 
-def _load_meters() -> MetersSnapshot | None:
-    """Return the proven meters; None means the engine itself is NO_DATA.
+def _load_meters() -> tuple[MetersSnapshot | None, str | None]:
+    """Return (meters, error). error is the engine failure signature, if any.
 
     A failed computation is deliberately NOT cached, so a transient outage does
     not extend itself across the full TTL.
     """
 
     try:
-        return _compute_meters()
-    except Exception:
-        return None
+        return _compute_meters(), None
+    except Exception as exc:
+        return None, f"{type(exc).__name__}: {exc}"
 
 
 def _zone(value: float | None) -> str:
@@ -548,7 +548,9 @@ def _action_queue(state: DashboardState, meters: MetersSnapshot | None) -> None:
 
 
 def render(state: DashboardState) -> None:
-    meters = _load_meters()
+    meters, meters_error = _load_meters()
+    if meters is None and meters_error is not None:
+        st.error(f"METER ENGINE GAGAL (fail-closed): {meters_error}")
     _decision_brief(state, meters)
     _gate_strip(meters)
     _meters_row(meters)

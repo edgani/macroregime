@@ -24,7 +24,7 @@ EXPECTED_TABS = (
 def _no_live_meter_fetch(monkeypatch: pytest.MonkeyPatch) -> None:
     """Keep AppTest runs deterministic; tests override when they need live meters."""
 
-    monkeypatch.setattr(command_center, "_load_meters", lambda: None)
+    monkeypatch.setattr(command_center, "_load_meters", lambda: (None, "SimulatedOutage: test"))
 
 
 def test_product_identity_and_exact_navigation_contract() -> None:
@@ -46,7 +46,7 @@ def test_dashboard_fixture_preserves_uncertainty_and_execution_lock() -> None:
 
 def test_streamlit_app_runs_with_five_decision_tabs(monkeypatch) -> None:
     monkeypatch.setattr(shell, "_load_runtime_state", load_dashboard_state)
-    monkeypatch.setattr(command_center, "_load_meters", lambda: None)
+    monkeypatch.setattr(command_center, "_load_meters", lambda: (None, "SimulatedOutage: test"))
     app_path = Path(__file__).parents[2] / "app.py"
     app = AppTest.from_file(str(app_path)).run(timeout=30)
 
@@ -63,7 +63,7 @@ def test_command_center_decision_first_contract_renders(monkeypatch) -> None:
     """The rebuilt Command Center must answer before it shows raw data."""
 
     monkeypatch.setattr(shell, "_load_runtime_state", load_dashboard_state)
-    monkeypatch.setattr(command_center, "_load_meters", meters_snapshot)
+    monkeypatch.setattr(command_center, "_load_meters", lambda: (meters_snapshot(), None))
     app_path = Path(__file__).parents[2] / "app.py"
 
     app = AppTest.from_file(str(app_path)).run(timeout=30)
@@ -85,7 +85,7 @@ def test_command_center_decision_first_contract_renders(monkeypatch) -> None:
 
 def test_command_center_fails_closed_when_meter_engine_is_down(monkeypatch) -> None:
     monkeypatch.setattr(shell, "_load_runtime_state", load_dashboard_state)
-    monkeypatch.setattr(command_center, "_load_meters", lambda: None)
+    monkeypatch.setattr(command_center, "_load_meters", lambda: (None, "SimulatedOutage: test"))
     app_path = Path(__file__).parents[2] / "app.py"
 
     app = AppTest.from_file(str(app_path)).run(timeout=30)

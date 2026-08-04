@@ -1,4 +1,9 @@
-"""Decision-first Command Center."""
+"""Decision-first Command Center.
+
+Layout order follows the sealed product contract: the operator must be able to
+read the page top-down in 30 seconds and know what to do. Evidence and raw data
+live below the decision panels, never above them.
+"""
 
 from __future__ import annotations
 
@@ -8,7 +13,7 @@ import streamlit as st
 from eros.app.components import bullet_list, evidence_badge, section_header, status_card
 from eros.app.opportunity_engine import _valid_qualified_packets
 from eros.app.state import DashboardState
-from eros.data.public_markets import EXPECTED_SYMBOLS_BY_GROUP, MARKET_GROUPS
+from eros.meters.snapshot import MetersSnapshot
 
 
 def _dot_escape(value: str) -> str:
@@ -66,71 +71,496 @@ def _capital_flow_dot(state: DashboardState) -> str:
     return "\n".join(lines)
 
 
-def _decision_brief(state: DashboardState) -> None:
-    live_ratio = f"{state.data_health.live_feeds}/{state.data_health.total_feeds}"
-    observed_by_group = {
-        group: {
-            item.symbol
-            for item in state.market_snapshot
-            if item.market_group == group and item.status == "LIVE"
-        }
-        for group in MARKET_GROUPS
-    }
-    market_status = "".join(
-        "<li><b>"
-        f"{group}:</b> {len(observed_by_group[group] & EXPECTED_SYMBOLS_BY_GROUP[group])}/"
-        f"{len(EXPECTED_SYMBOLS_BY_GROUP[group])} benchmark live</li>"
-        for group in MARKET_GROUPS
-    )
-    rejected_count = len(state.rejected_opportunities)
-    qualified_count = len(_command_center_qualified_packets(state))
-    qualification_copy = (
-        "Angka nol berarti tidak ada candidate yang dipromosikan oleh engine saat ini."
-        if qualified_count == 0
-        else (
-            "Hanya packet yang lolos schema, evidence, mechanism, valuation, dan sizing gates "
-            "dihitung."
+@st.cache_data(ttl=1800, show_spinner="Menghitung meter proven dari sumber publik...")
+def _compute_meters() -> MetersSnapshot:
+    """Cached only on success; exceptions never enter the cache."""
+
+    from eros.meters.snapshot import compute_meters_snapshot
+
+    return compute_meters_snapshot()
+
+
+def _load_meters() -> MetersSnapshot | None:
+    """Return the proven meters; None means the engine itself is NO_DATA.
+
+    A failed computation is deliberately NOT cached, so a transient outage does
+    not extend itself across the full TTL.
+    """
+
+    try:
+        return _compute_meters()
+    except Exception:
+        return None
+
+
+def _zone(value: float | None) -> str:
+    if value is None:
+        return "NO_DATA"
+    if value >= 0.8:
+        return "MERAH"
+    if value >= 0.5:
+        return "KUNING"
+    return "HIJAU"
+
+
+def _fmt(value: float | None) -> str:
+    return f"{value:.2f}" if value is not None else "NO_DATA"
+
+
+def _headline_action(meters: MetersSnapshot | None, qualified_count: int) -> tuple[str, str]:
+    """One plain-Indonesian headline plus its reason, derived only from machine state."""
+
+    if meters is None:
+        return (
+            "DATA METER TIDAK TERSEDIA — tahan semua keputusan baru.",
+            "Engine tidak dapat menjangkau sumber publik; sistem fail-closed, bukan menebak.",
         )
+    exposure = meters.exposure
+    bcm = meters.bcm.value
+    frag = meters.fragility_reading.value
+    if bcm is None or frag is None or exposure is None:
+        return (
+            "GATE TIDAK LENGKAP — tahan keputusan baru sampai BCM/FRAGILITY terisi.",
+            (
+                f"BCM {_fmt(bcm)}, FRAGILITY {_fmt(frag)}, exposure belum dapat dihitung. "
+                "Sistem fail-closed: tanpa gate lengkap tidak ada headline aksi."
+            ),
+        )
+    if exposure == 0.0:
+        return (
+            "GATE MERAH — ekuitas 0%. Jangan tambah posisi saham; fokus lindungi modal.",
+            (
+                f"BCM {bcm:.2f} dan FRAGILITY {frag:.2f}: stress sistemik di atas valuasi "
+                "ekstrem. Rule R2 memaksa keluar."
+            ),
+        )
+    if meters.fear_entry:
+        return (
+            "FEAR-ENTRY AKTIF — nyicil posisi secara bertahap sesuai rule, bukan sekaligus.",
+            (
+                "VIX di zona ekstrem sementara inflasi rendah: secara historis ini titik "
+                "akumulasi terbaik, bukan momen panik."
+            ),
+        )
+    if exposure == 0.5:
+        return (
+            "TRANSISI — ekuitas maksimal 50%. Tambah hanya lewat re-entry rule R2.",
+            (
+                f"BCM {bcm:.2f} sedang turun dari zona merah; sistem masuk kembali "
+                "bertahap, bukan langsung penuh."
+            ),
+        )
+    actions: list[str] = []
+    if meters.gold.value is not None and meters.gold.value >= 0.85:
+        actions.append("TRIM emas bertahap")
+    if exposure == 1.0:
+        actions.append("pertahankan ekuitas")
+    if qualified_count == 0:
+        actions.append("belum ada conviction play baru yang lolos bukti")
+    headline = "; ".join(actions).upper() + "."
+    reason = (
+        f"BCM {bcm:.2f} (gate terbuka), FRAGILITY {frag:.2f} (valuasi ekstrem), "
+        f"GOLD {_fmt(meters.gold.value)}. Mesin membolehkan posisi, tetapi zona ekstrem "
+        "adalah area panen, bukan entry baru."
     )
-    qualification_heading = (
-        "0 QUALIFIED BUKAN 0 PELUANG"
-        if qualified_count == 0
-        else f"{qualified_count} QUALIFIED BUKAN JUMLAH SELURUH PELUANG"
-    )
-    unknown_dimensions = sum(item.state == "UNKNOWN" for item in state.regime_dimensions)
+    return headline, reason
+
+
+def _scenario_rows(meters: MetersSnapshot | None) -> list[dict[str, str]]:
+    """Deterministic 1-week / 1-month / 1-year+ guidance from machine state only."""
+
+    if meters is None:
+        return [
+            {"Horizon": "1 MINGGU", "Sikap": "TAHAN",
+             "Dasar": "Data meter tidak tersedia; fail-closed."},
+            {"Horizon": "1 BULAN", "Sikap": "TAHAN",
+             "Dasar": "Data meter tidak tersedia; fail-closed."},
+            {
+                "Horizon": "1 TAHUN+",
+                "Sikap": "TAHAN",
+                "Dasar": "Data meter tidak tersedia; fail-closed.",
+            },
+        ]
+    gold = meters.gold.value
+    bcm = meters.bcm.value
+    frag = meters.fragility_reading.value
+    exposure = meters.exposure
+
+    if bcm is None or frag is None or exposure is None:
+        return [
+            {"Horizon": "1 MINGGU", "Sikap": "TAHAN",
+             "Dasar": "Gate tidak lengkap; fail-closed."},
+            {"Horizon": "1 BULAN", "Sikap": "TAHAN",
+             "Dasar": "Gate tidak lengkap; fail-closed."},
+            {"Horizon": "1 TAHUN+", "Sikap": "TAHAN",
+             "Dasar": "Gate tidak lengkap; fail-closed."},
+        ]
+
+    if exposure == 0.0:
+        week = (
+            "DEFENSIF",
+            "Gate merah: tanpa posisi ekuitas baru. Siapkan daftar beli untuk re-entry "
+            "R2 (BCM < 0.60).",
+        )
+    elif meters.fear_entry:
+        week = (
+            "NYICIL",
+            "FEAR-ENTRY menyala: akumulasi bertahap sesuai rule, jangan langsung penuh.",
+        )
+    else:
+        parts = ["Pertahankan posisi inti"]
+        if gold is not None and gold >= 0.85:
+            parts.append("trim emas bertahap di zona ekstrem")
+        parts.append("tidak ada sinyal keluar dari mesin")
+        week = ("HOLD + PANEN ZONA EKSTREM", "; ".join(parts) + ".")
+
+    tilt = meters.tilt
+    if tilt:
+        top = max(tilt, key=lambda name: tilt[name])
+        month = (
+            f"REBALANCE SESUAI TILT — porsi terbesar: {top} {tilt[top]:.0%}",
+            (
+                f"Tilt bulan ini: SPX {tilt.get('SPX', 0):.0%} / TLT {tilt.get('TLT', 0):.0%} "
+                f"/ COMM {tilt.get('COMM', 0):.0%} / GLD {tilt.get('GLD', 0):.0%}. "
+                "Rebalance hanya lewat mesin, bukan feeling."
+            ),
+        )
+    else:
+        month = ("TAHAN", "Tilt tidak dapat dihitung; tidak ada rebalance tanpa data.")
+
+    if frag is not None and frag >= 0.8 and (bcm is not None and bcm < 0.65):
+        year = (
+            "BARBELL — bangun cash dari panen, siapkan dry powder.",
+            (
+                f"FRAGILITY {frag:.2f} berarti valuasi historis ekstrem, tetapi BCM {bcm:.2f} "
+                "berarti belum ada stress sistemik. Secara historis ini fase 'mahal tapi "
+                "belum pecah': panen zona ekstrem, simpan mesin FEAR-ENTRY untuk momen "
+                "crash, jangan all-in baru."
+            ),
+        )
+    elif exposure == 0.0:
+        year = (
+            "DEFENSIF PENUH",
+            "Gate merah aktif: modal dilindungi dulu, opportunity dicari di sisi "
+            "short/defensif yang lolos bukti.",
+        )
+    else:
+        year = (
+            "NORMAL",
+            "Valuasi tidak ekstrem dan gate terbuka: posture risk-on biasa dengan sizing standar.",
+        )
+    return [
+        {"Horizon": "1 MINGGU", "Sikap": week[0], "Dasar": week[1]},
+        {"Horizon": "1 BULAN", "Sikap": month[0], "Dasar": month[1]},
+        {"Horizon": "1 TAHUN+", "Sikap": year[0], "Dasar": year[1]},
+    ]
+
+
+def _action_rows(
+    meters: MetersSnapshot | None, qualified_count: int, execution_enabled: bool
+) -> list[dict[str, str]]:
+    """Action queue with explicit ACTION pills and machine-readable reasons."""
+
+    rows: list[dict[str, str]] = []
+    if meters is None:
+        return [
+            {
+                "Aset": "SEMUA",
+                "Aksi": "VETO",
+                "Alasan": "Meter engine NO_DATA — tidak ada aksi baru tanpa data.",
+                "Bukti": "fail-closed",
+            }
+        ]
+    gold = meters.gold.value
+    if gold is not None:
+        if gold >= 0.85:
+            rows.append(
+                {
+                    "Aset": "Emas (GLD)",
+                    "Aksi": "TRIM",
+                    "Alasan": (
+                        f"Gold Meter {gold:.2f} di zona ekstrem historis — area panen "
+                        "bertahap, bukan entry baru."
+                    ),
+                    "Bukti": "PROVEN meter v2",
+                }
+            )
+        elif gold <= 0.35:
+            rows.append(
+                {
+                    "Aset": "Emas (GLD)",
+                    "Aksi": "WAIT",
+                    "Alasan": (
+                        f"Gold Meter {gold:.2f} zona akumulasi — tunggu konfirmasi thesis "
+                        "sebelum tambah."
+                    ),
+                    "Bukti": "PROVEN meter v2",
+                }
+            )
+        else:
+            rows.append(
+                {
+                    "Aset": "Emas (GLD)",
+                    "Aksi": "HOLD",
+                    "Alasan": f"Gold Meter {gold:.2f} zona tengah — tidak ada aksi dari mesin.",
+                    "Bukti": "PROVEN meter v2",
+                }
+            )
+    dollar = meters.dollar.value
+    if dollar is not None and dollar >= 0.70:
+        rows.append(
+            {
+                "Aset": "Dollar / EM / Komoditas",
+                "Aksi": "WATCH",
+                "Alasan": (
+                    f"Dollar Meter {dollar:.2f} mendekati zona top (kondisi paling tight) — "
+                    "tekanan ke EM dan komoditas."
+                ),
+                "Bukti": "PROVEN meter v1",
+            }
+        )
+    exposure = meters.exposure
+    bcm_value = meters.bcm.value
+    if exposure is None or bcm_value is None:
+        rows.append(
+            {
+                "Aset": "Ekuitas (SPX)",
+                "Aksi": "VETO",
+                "Alasan": "Gate tidak dapat dihitung lengkap — fail-closed.",
+                "Bukti": "PROVEN_SCOPE_LIMITED BCM v3.2",
+            }
+        )
+    elif exposure == 1.0:
+        rows.append(
+            {
+                "Aset": "Ekuitas (SPX)",
+                "Aksi": "HOLD",
+                "Alasan": (
+                    f"Gate terbuka: BCM {bcm_value:.2f} < 0.65. Porsi maksimal 100% "
+                    "sesuai R2."
+                ),
+                "Bukti": "PROVEN_SCOPE_LIMITED BCM v3.2",
+            }
+        )
+    elif exposure == 0.5:
+        rows.append(
+            {
+                "Aset": "Ekuitas (SPX)",
+                "Aksi": "WAIT",
+                "Alasan": "Re-entry bertahap: penuh hanya setelah BCM < 0.50.",
+                "Bukti": "PROVEN_SCOPE_LIMITED BCM v3.2",
+            }
+        )
+    else:
+        rows.append(
+            {
+                "Aset": "Ekuitas (SPX)",
+                "Aksi": "SKIP",
+                "Alasan": "Gate merah: tanpa posisi ekuitas.",
+                "Bukti": "PROVEN_SCOPE_LIMITED BCM v3.2",
+            }
+        )
+    if meters.fear_entry:
+        rows.append(
+            {
+                "Aset": "Ekuitas (akumulasi)",
+                "Aksi": "ENTER BERTAHAP",
+                "Alasan": (
+                    "FEAR-ENTRY aktif: VIX ekstrem + inflasi rendah — sinyal nyicil "
+                    "historis terkuat."
+                ),
+                "Bukti": "PROVEN fear-entry",
+            }
+        )
+    if qualified_count == 0:
+        rows.append(
+            {
+                "Aset": "Saham individual",
+                "Aksi": "WAIT",
+                "Alasan": (
+                    "Belum ada packet conviction yang lolos evidence gate — bukan berarti "
+                    "tidak ada peluang, berarti belum terbukti."
+                ),
+                "Bukti": "canonical admission",
+            }
+        )
+    if not execution_enabled:
+        rows.append(
+            {
+                "Aset": "Eksekusi",
+                "Aksi": "VETO",
+                "Alasan": (
+                    "Execution locked: anti-contamination policy dan human approval belum "
+                    "lengkap."
+                ),
+                "Bukti": "policy gate",
+            }
+        )
+    return rows
+
+
+def _decision_brief(state: DashboardState, meters: MetersSnapshot | None) -> None:
+    qualified_count = len(_command_center_qualified_packets(state))
+    headline, reason = _headline_action(meters, qualified_count)
     st.markdown(
         f"""
         <div class="brief">
-          <h3>DEFAULT ACTION SEKARANG</h3>
-          <p><b>NO EROS-GENERATED TRADE / PRESERVE OPTIONALITY.</b> Jangan membuka alokasi baru
-          hanya dari benchmark prices. Posisi yang sudah dimiliki belum dapat dinilai karena private
-          portfolio belum dimuat.</p>
-          <h4>KENAPA REGIME MASIH UNKNOWN</h4>
-          <p>{unknown_dimensions}/{len(state.regime_dimensions)} causal dimensions belum memiliki
-          point-in-time macro evidence yang lolos admission. Harga publik adalah market monitoring,
-          bukan bukti growth, inflation, liquidity, credit, funding, policy, volatility, atau
-          geopolitics.</p>
-          <h4>{qualification_heading}</h4>
-          <p>{qualification_copy}
-          {rejected_count} candidate fixture ditolak karena evidence/mechanism gates; ini bukan
-          kesimpulan bahwa seluruh market buruk atau tidak memiliki opportunity.</p>
-          <h4>ENAM MARKET TETAP DIMONITOR</h4>
-          <ul>{market_status}</ul>
-          <p><b>Data health {live_ratio}</b> hanya menghitung completeness enam benchmark group,
-          bukan completeness seluruh causal, fundamental, valuation, flow, dan opportunity data.</p>
+          <h3>HARI INI: {headline}</h3>
+          <p><b>Kenapa:</b> {reason}</p>
+          <p><b>Aturan mainnya:</b> aksi hanya boleh berubah kalau data berubah — bukan
+          karena berita,
+          bukan karena feeling. Semua angka di halaman ini bisa ditelusuri ke sumbernya di bagian
+          DATA &amp; BUKTI di bawah.</p>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
 
+def _gate_strip(meters: MetersSnapshot | None) -> None:
+    section_header(
+        "Satpam ekuitas",
+        "CRASH GATE (BCM v3.2)",
+        "Boleh main atau tidak. Dua sumbu: STRESS harian x FRAGILITY valuasi.",
+    )
+    if meters is None:
+        st.error("METER ENGINE: NO_DATA — gate tidak dapat dihitung, fail-closed.")
+        return
+    col_bcm, col_frag, col_expo, col_fear = st.columns(4)
+    bcm = meters.bcm.value
+    frag = meters.fragility_reading.value
+    with col_bcm:
+        st.metric(
+            "BCM STRESS",
+            f"{bcm:.2f}" if bcm is not None else "NO_DATA",
+            help="0-1 percentile historis; >=0.65 bersama FRAGILITY>=0.8 = exit",
+        )
+        if bcm is not None:
+            st.progress(min(max(bcm, 0.0), 1.0))
+        st.caption(f"Zona: {_zone(bcm)} · exit di ≥0.65")
+    with col_frag:
+        st.metric(
+            "FRAGILITY",
+            f"{frag:.2f}" if frag is not None else "NO_DATA",
+            help="Buffett x CAPE; valuasi ekstrem = kondisi rapuh",
+        )
+        if frag is not None:
+            st.progress(min(max(frag, 0.0), 1.0))
+        status_note = (
+            "PARTIAL — CAPE unavailable"
+            if "CAPE" in meters.fragility_reading.missing
+            else "LIVE"
+        )
+        st.caption(f"Zona: {_zone(frag)} · rapuh di ≥0.80 · {status_note}")
+    with col_expo:
+        exposure = meters.exposure
+        label = "NO_DATA" if exposure is None else {1.0: "100%", 0.5: "50%", 0.0: "0%"}[exposure]
+        st.metric(
+            "PORSI MAKSIMAL EKUITAS (R2)",
+            label,
+            help="Output state machine R2: exit / 50% re-entry / 100% / re-exit",
+        )
+        st.caption("Angka ini satu-satunya penentu porsi ekuitas hari ini.")
+    with col_fear:
+        fear = meters.fear_entry
+        st.metric(
+            "FEAR-ENTRY",
+            "AKTIF" if fear else "STANDBY",
+            help="Nyicil saat VIX ekstrem + inflasi rendah (hit historis 100%, n=29)",
+        )
+        st.caption("Pemicu: pct(VIX)>0.80 dan INFL≤0.50")
+    if meters.blocks:
+        st.caption(
+            "Blok BCM: "
+            + " · ".join(f"{name} {value:.2f}" for name, value in sorted(meters.blocks.items()))
+        )
+    st.caption(
+        f"Checksum port vs referensi riset: {meters.checksum_status} — {meters.checksum_note}"
+    )
+
+
+def _meters_row(meters: MetersSnapshot | None) -> None:
+    section_header(
+        "Kondisi tiap kelas aset",
+        "ASSET METERS",
+        "0-1 percentile historis per aset. Slot abu-abu = jujur belum ada bukti.",
+    )
+    if meters is None:
+        st.info("Meters tidak tersedia — NO_DATA.")
+        return
+    readings = [meters.gold, meters.dollar, meters.duration]
+    cols = st.columns(len(readings) + 2)
+    for col, reading in zip(cols, readings, strict=False):
+        with col:
+            st.metric(
+                reading.label,
+                f"{reading.value:.2f}" if reading.value is not None else "NO_DATA",
+            )
+            if reading.value is not None:
+                st.progress(min(max(reading.value, 0.0), 1.0))
+            missing = f" · missing: {', '.join(reading.missing)}" if reading.missing else ""
+            st.caption(f"{reading.status} · as of {reading.as_of}{missing}")
+    with cols[-2]:
+        st.metric("CRYPTO", "NO PROVEN SIGNAL")
+        st.caption(
+            "Belum ada meter crypto yang lolos promotion bar — jangan disentuh dari dashboard ini."
+        )
+    with cols[-1]:
+        st.metric("IHSG", "NO PROVEN SIGNAL")
+        st.caption("Butuh broker summary + fundamental PIT IDX — terdaftar sebagai data debt.")
+
+
+def _tilt_card(meters: MetersSnapshot | None) -> None:
+    section_header(
+        "Rotasi makro bulanan",
+        "TILT ENGINE",
+        "Bobot baseline 4 aset dari INFL dan GROWTH. Rebalance hanya dari sini.",
+    )
+    if meters is None or not meters.tilt:
+        st.info("Tilt tidak dapat dihitung — NO_DATA.")
+        return
+    for asset, weight in meters.tilt.items():
+        label, bar = st.columns([0.18, 0.82])
+        with label:
+            st.markdown(f"**{asset}** {weight:.0%}")
+        with bar:
+            st.progress(min(max(weight, 0.0), 1.0))
+
+
+def _scenario_panel(meters: MetersSnapshot | None) -> None:
+    section_header(
+        "Harus ngapain",
+        "SKENARIO & SIKAP",
+        "Jawaban mesin untuk tiga horizon. Berubah hanya kalau data berubah.",
+    )
+    st.dataframe(_scenario_rows(meters), width="stretch", hide_index=True)
+
+
+def _action_queue(state: DashboardState, meters: MetersSnapshot | None) -> None:
+    section_header(
+        "Antrian keputusan",
+        "ACTION QUEUE",
+        "ENTER/WAIT/SKIP/TRIM/VETO — setiap baris punya alasan dan label bukti.",
+    )
+    qualified_count = len(_command_center_qualified_packets(state))
+    rows = _action_rows(meters, qualified_count, state.execution_enabled)
+    st.dataframe(rows, width="stretch", hide_index=True)
+
+
 def render(state: DashboardState) -> None:
-    _decision_brief(state)
+    meters = _load_meters()
+    _decision_brief(state, meters)
+    _gate_strip(meters)
+    _meters_row(meters)
+    _tilt_card(meters)
+    _scenario_panel(meters)
+    _action_queue(state, meters)
+
     qualified_packets = _command_center_qualified_packets(state)
     section_header(
         "Decision surface",
-        "Command Center",
-        "What changed, what matters, and what should I do?",
+        "Command Center — status mesin",
+        "Ringkasan teknis; keputusan sudah dijawab panel di atas.",
     )
 
     columns = st.columns(4)
@@ -160,6 +590,12 @@ def render(state: DashboardState) -> None:
         with column:
             status_card(*card)
 
+    section_header(
+        "Evidence",
+        "DATA & BUKTI",
+        "Semua angka di atas ditelusuri di sini. Monitoring bukan sinyal.",
+    )
+
     if state.market_snapshot:
         section_header(
             "Live provider observations",
@@ -185,42 +621,6 @@ def render(state: DashboardState) -> None:
             )
         else:
             st.info("Live levels are available, but providers did not supply comparable changes.")
-
-        section_header(
-            "Coverage by contract",
-            "MARKET COVERAGE MAP",
-            "Observed symbols versus the expected benchmark contract for every market group.",
-        )
-        coverage_rows = []
-        for group in MARKET_GROUPS:
-            expected = EXPECTED_SYMBOLS_BY_GROUP[group]
-            observed = {
-                item.symbol
-                for item in state.market_snapshot
-                if item.market_group == group and item.status == "LIVE"
-            }
-            coverage_rows.extend(
-                [
-                    {
-                        "Market group": group,
-                        "Metric": "Observed live",
-                        "Symbols": len(expected & observed),
-                    },
-                    {
-                        "Market group": group,
-                        "Metric": "Expected",
-                        "Symbols": len(expected),
-                    },
-                ]
-            )
-        st.bar_chart(
-            pd.DataFrame(coverage_rows),
-            x="Market group",
-            y="Symbols",
-            color="Metric",
-            height=300,
-            stack=False,
-        )
 
         section_header(
             "Observed data",
@@ -325,7 +725,7 @@ def render(state: DashboardState) -> None:
         else:
             st.dataframe(qualified_packets, width="stretch", hide_index=True)
     with action:
-        section_header("Human gate", "Action Queue", "Actions remain reviewable and reversible")
+        section_header("Human gate", "Execution Gate", "Actions remain reviewable and reversible")
         execution_status = "APPROVED" if state.execution_enabled else "LOCKED"
         execution_reason = state.execution.reason
         if state.execution.permission == "APPROVED" and not state.execution_enabled:

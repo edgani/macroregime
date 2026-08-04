@@ -2,10 +2,11 @@
 
 from pathlib import Path
 
-from packet_factory import qualified_packet
+import pytest
+from packet_factory import meters_snapshot, qualified_packet
 from streamlit.testing.v1 import AppTest
 
-from eros.app import shell
+from eros.app import command_center, shell
 from eros.app.shell import MAIN_TABS, PRODUCT_NAME
 from eros.app.state import ExecutionState, build_public_data_state, load_dashboard_state
 from eros.data.public_markets import MarketObservation, MarketPoint, MarketSnapshot
@@ -17,6 +18,13 @@ EXPECTED_TABS = (
     "Portfolio",
     "Research Lab",
 )
+
+
+@pytest.fixture(autouse=True)
+def _no_live_meter_fetch(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep AppTest runs deterministic; tests override when they need live meters."""
+
+    monkeypatch.setattr(command_center, "_load_meters", lambda: None)
 
 
 def test_product_identity_and_exact_navigation_contract() -> None:
@@ -38,6 +46,7 @@ def test_dashboard_fixture_preserves_uncertainty_and_execution_lock() -> None:
 
 def test_streamlit_app_runs_with_five_decision_tabs(monkeypatch) -> None:
     monkeypatch.setattr(shell, "_load_runtime_state", load_dashboard_state)
+    monkeypatch.setattr(command_center, "_load_meters", lambda: None)
     app_path = Path(__file__).parents[2] / "app.py"
     app = AppTest.from_file(str(app_path)).run(timeout=30)
 
@@ -48,6 +57,42 @@ def test_streamlit_app_runs_with_five_decision_tabs(monkeypatch) -> None:
     assert any("SYNTHETIC DEMO" in item.value for item in app.warning)
     assert any("NO QUALIFIED OPPORTUNITY" in item.value for item in app.warning)
     assert any("MECHANISM MAP" in item.value for item in app.markdown)
+
+
+def test_command_center_decision_first_contract_renders(monkeypatch) -> None:
+    """The rebuilt Command Center must answer before it shows raw data."""
+
+    monkeypatch.setattr(shell, "_load_runtime_state", load_dashboard_state)
+    monkeypatch.setattr(command_center, "_load_meters", meters_snapshot)
+    app_path = Path(__file__).parents[2] / "app.py"
+
+    app = AppTest.from_file(str(app_path)).run(timeout=30)
+
+    assert not app.exception
+    markdown = [item.value for item in app.markdown]
+    assert any("HARI INI:" in item for item in markdown)
+    assert any("TRIM EMAS" in item for item in markdown)
+    assert any("CRASH GATE (BCM v3.2)" in item for item in markdown)
+    assert any("ASSET METERS" in item for item in markdown)
+    assert any("TILT ENGINE" in item for item in markdown)
+    assert any("SKENARIO & SIKAP" in item for item in markdown)
+    assert any("ACTION QUEUE" in item for item in markdown)
+    assert any("FEAR-ENTRY" in item.label for item in app.metric)
+    assert any("NO PROVEN SIGNAL" in str(item.value) for item in app.metric)
+    assert any("BARBELL" in str(frame.value.to_dict()) for frame in app.dataframe)
+    assert any("TRIM" in str(frame.value.to_dict()) for frame in app.dataframe)
+
+
+def test_command_center_fails_closed_when_meter_engine_is_down(monkeypatch) -> None:
+    monkeypatch.setattr(shell, "_load_runtime_state", load_dashboard_state)
+    monkeypatch.setattr(command_center, "_load_meters", lambda: None)
+    app_path = Path(__file__).parents[2] / "app.py"
+
+    app = AppTest.from_file(str(app_path)).run(timeout=30)
+
+    assert not app.exception
+    assert any("TIDAK TERSEDIA" in item.value for item in app.markdown)
+    assert any("NO_DATA" in item.value for item in app.error)
 
 
 def test_opportunity_engine_positive_path_shows_complete_packet(monkeypatch) -> None:
@@ -153,13 +198,10 @@ def test_public_market_snapshot_is_visible_in_command_center(monkeypatch) -> Non
 
     assert not app.exception
     assert any("LIVE CROSS-MARKET PULSE" in item.value for item in app.markdown)
-    assert any("LIVE 5-DAY MARKET PATHS" in item.value for item in app.markdown)
-    assert any("DEFAULT ACTION SEKARANG" in item.value for item in app.markdown)
-    assert any("KENAPA REGIME MASIH UNKNOWN" in item.value for item in app.markdown)
-    assert any("0 QUALIFIED BUKAN 0 PELUANG" in item.value for item in app.markdown)
-    assert any("ENAM MARKET TETAP DIMONITOR" in item.value for item in app.markdown)
+    assert any("HARI INI:" in item.value for item in app.markdown)
+    assert any("DATA & BUKTI" in item.value for item in app.markdown)
     assert any("PUBLIC MARKET SNAPSHOT" in item.value for item in app.markdown)
-    assert any("MARKET COVERAGE MAP" in item.value for item in app.markdown)
+    assert any("FEED ROOT CAUSE MATRIX" in item.value for item in app.markdown)
     assert any("GLOBAL COVERAGE OVERVIEW" in item.value for item in app.markdown)
     assert any("PUBLIC DATA" in item.value for item in app.warning)
     assert any("FROZEN SYNTHETIC RESEARCH FIXTURE" in item.value for item in app.warning)

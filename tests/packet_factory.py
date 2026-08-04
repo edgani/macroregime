@@ -73,3 +73,60 @@ def qualified_packet() -> dict[str, object]:
         "evidence_label": "REPLICATED_OOS",
         "decision_snapshot_id": "DEC-TEST-1",
     }
+
+
+def meters_snapshot(**overrides):
+    """Return a minimal live MetersSnapshot for decision-surface tests."""
+
+    from eros.meters.engines import MeterReading
+    from eros.meters.snapshot import MetersSnapshot
+
+    def reading(
+        meter_id: str,
+        label: str,
+        value: float,
+        *,
+        status: str = "LIVE",
+        evidence: str = "PROVEN",
+        missing: list[str] | None = None,
+    ) -> MeterReading:
+        return MeterReading(
+            meter_id=meter_id,
+            label=label,
+            value=value,
+            status=status,
+            components={},
+            missing=missing or [],
+            as_of="2026-07-31",
+            evidence=evidence,
+            note="",
+        )
+
+    base = {
+        "fetched_at": "2026-07-31T00:00:00Z",
+        "growth": reading("GROWTH", "Growth composite", 0.62, evidence="PROVEN_CONTEXT"),
+        "inflation": reading("INFL", "Inflation composite", 0.48, evidence="PROVEN_CONTEXT"),
+        "tilt": {"SPX": 0.25, "TLT": 0.25, "COMM": 0.25, "GLD": 0.25},
+        "gold": reading("GOLD", "Gold Meter v2", 0.96),
+        "dollar": reading("DOLLAR", "Dollar Meter v1", 0.60),
+        "duration": reading("DURATION", "Duration Dial", 0.30),
+        "bcm": reading("BCM", "BCM v3.2", 0.40, evidence="PROVEN_SCOPE_LIMITED"),
+        "fragility_reading": reading(
+            "FRAGILITY", "Fragility axis", 0.97, evidence="PROVEN_SCOPE_LIMITED"
+        ),
+        "exposure": 1.0,
+        "fear_entry": False,
+        "blocks": {
+            "POLICY": 0.68,
+            "STRESS": 0.19,
+            "CREDIT": 0.36,
+            "REAL": 0.27,
+            "LIQ": 0.34,
+            "VOL": 0.51,
+        },
+        "failures": {},
+        "checksum_status": "MATCH",
+        "checksum_note": "BCM port 0.4042 vs reference 0.388: delta 0.0162, tolerance 0.03.",
+    }
+    base.update(overrides)
+    return MetersSnapshot(**base)

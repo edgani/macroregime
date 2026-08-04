@@ -29,3 +29,5 @@ data/gold/
 .idea/
 .DS_Store
 Thumbs.db
+.hermes/
+.tmp-*/

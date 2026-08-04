@@ -10,6 +10,7 @@ from __future__ import annotations
 import io
 from collections.abc import Callable
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Literal
 
 import pandas as pd
@@ -30,8 +31,10 @@ from eros.meters.engines import (
     spx_realized_vol,
     tilt_weights,
 )
-from eros.meters.fred import PUBLICATION_LAG_DAYS, fetch_many
+from eros.meters.fred import DEFAULT_CACHE_DIR, PUBLICATION_LAG_DAYS, fetch_many
 from eros.meters.transforms import apply_publication_lag, expanding_pct
+
+DEFAULT_CACHE_SENTINEL: Path = Path("__default__")
 
 RequestBytes = Callable[[str], bytes]
 
@@ -195,6 +198,7 @@ def compute_meters_snapshot(
     *,
     request: RequestBytes | None = None,
     now: datetime | None = None,
+    cache_dir: Path | None = DEFAULT_CACHE_SENTINEL,
 ) -> MetersSnapshot:
     """Compute every proven meter from live sources with explicit status."""
 
@@ -202,13 +206,16 @@ def compute_meters_snapshot(
 
     req = request or _default_request
     fetched_at = now or datetime.now(UTC)
-    series, failures = fetch_many(FRED_SERIES, request=req)
+    resolved_cache = DEFAULT_CACHE_DIR if cache_dir is DEFAULT_CACHE_SENTINEL else cache_dir
+    series, failures = fetch_many(FRED_SERIES, request=req, cache_dir=resolved_cache)
     lags = PUBLICATION_LAG_DAYS
 
     def need(sid: str) -> pd.Series:
         if sid not in series:
             failures.setdefault(sid, "fetch failed")
-            return pd.Series(dtype="float64")
+            return pd.Series(
+                dtype="float64", index=pd.DatetimeIndex([], name="date"), name=sid
+            )
         return series[sid]
 
     growth = growth_index(need("CFNAI"), need("NEWORDER"), need("UNRATE"), need("ICSA"), lags)

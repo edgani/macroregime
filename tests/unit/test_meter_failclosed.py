@@ -101,3 +101,21 @@ def test_checksum_match_requires_unblocked_complete_bcm() -> None:
 
     differs_status, _ = checksum_verdict(0.75, 0.5, bcm_blocked=False)
     assert differs_status == "DIFFERS"
+
+
+def test_total_source_outage_yields_no_data_snapshot_without_exception(tmp_path) -> None:
+    """A full provider outage must degrade every meter, never crash the engine."""
+
+    from eros.meters.snapshot import compute_meters_snapshot
+
+    def failing_request(url: str) -> bytes:
+        raise ConnectionError("all sources down")
+
+    snapshot = compute_meters_snapshot(request=failing_request, cache_dir=tmp_path)
+
+    assert snapshot.bcm.status == "NO_DATA"
+    assert snapshot.gold.status == "NO_DATA"
+    assert snapshot.exposure is None
+    assert snapshot.fear_entry is None
+    assert snapshot.checksum_status == "UNVERIFIED_PORT"
+    assert snapshot.failures

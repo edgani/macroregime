@@ -1,0 +1,104 @@
+{
+  "fetched_at": "2026-08-04T05:08:55Z",
+  "source": "LIVE",
+  "growth": {
+    "meter_id": "GROWTH",
+    "label": "Economic growth composite",
+    "value": 0.7283142389525368,
+    "status": "LIVE",
+    "components": {},
+    "missing": [],
+    "as_of": "2026-07-29",
+    "evidence": "PROVEN_CONTEXT",
+    "note": ""
+  },
+  "inflation": {
+    "meter_id": "INFL",
+    "label": "Inflation pressure composite",
+    "value": 0.5359382946262078,
+    "status": "LIVE",
+    "components": {},
+    "missing": [],
+    "as_of": "2026-08-03",
+    "evidence": "PROVEN_CONTEXT",
+    "note": ""
+  },
+  "tilt": {
+    "SPX": 0.22340781886024422,
+    "TLT": 0.21478662558420022,
+    "COMM": 0.34270833333333334,
+    "GLD": 0.21909722222222222
+  },
+  "gold": {
+    "meter_id": "GOLD",
+    "label": "Gold Meter v2",
+    "value": 0.9762631400474737,
+    "status": "LIVE",
+    "components": {},
+    "missing": [],
+    "as_of": "2026-07-31",
+    "evidence": "PROVEN",
+    "note": ""
+  },
+  "dollar": {
+    "meter_id": "DOLLAR",
+    "label": "Dollar Meter v1",
+    "value": 0.5359382946262078,
+    "status": "LIVE",
+    "components": {},
+    "missing": [],
+    "as_of": "2026-08-03",
+    "evidence": "PROVEN",
+    "note": ""
+  },
+  "duration": {
+    "meter_id": "DURATION",
+    "label": "Duration Dial (ACM term premium)",
+    "value": 0.29743589743589743,
+    "status": "LIVE",
+    "components": {},
+    "missing": [],
+    "as_of": "2026-06-30",
+    "evidence": "PROVEN",
+    "note": ""
+  },
+  "bcm": {
+    "meter_id": "BCM",
+    "label": "BCM v3.2 stress axis",
+    "value": 0.4193486066424659,
+    "status": "LIVE",
+    "components": {},
+    "missing": [],
+    "as_of": "2026-08-05",
+    "evidence": "PROVEN_SCOPE_LIMITED",
+    "note": "Port from sealed formula; checksum against research reference pending"
+  },
+  "fragility_reading": {
+    "meter_id": "FRAGILITY",
+    "label": "Fragility axis (Buffett x CAPE)",
+    "value": 0.9933554817275747,
+    "status": "PARTIAL",
+    "components": {},
+    "missing": [
+      "CAPE"
+    ],
+    "as_of": "2026-03-17",
+    "evidence": "PROVEN_SCOPE_LIMITED",
+    "note": ""
+  },
+  "exposure": 1.0,
+  "fear_entry": false,
+  "blocks": {
+    "POLICY": 0.5978888487910502,
+    "STRESS": 0.18809810179413783,
+    "CREDIT": 0.4896551724137931,
+    "REAL": 0.2716857610474632,
+    "LIQ": 0.33751568381430364,
+    "VOL": 0.5405622489959839
+  },
+  "failures": {
+    "CAPE": "Shiller workbook unavailable; FRAGILITY is Buffett-only"
+  },
+  "checksum_status": "DIFFERS",
+  "checksum_note": "BCM port 0.4193 vs research reference 0.388 (fixed reference date 2026-07-29; drift is expected as new data arrives). Delta 0.0313, tolerance 0.03. Gold Meter port 0.9763 vs reference 0.966."
+}

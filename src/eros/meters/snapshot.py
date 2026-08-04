@@ -36,7 +36,28 @@ from eros.meters.transforms import apply_publication_lag, expanding_pct
 
 DEFAULT_CACHE_SENTINEL: Path = Path("__default__")
 
+REPO_ROOT = Path(__file__).resolve().parents[3]
+PRECOMPUTED_PATH = REPO_ROOT / "data" / "meters_latest.json"
+
 RequestBytes = Callable[[str], bytes]
+
+
+def write_precomputed(snapshot: MetersSnapshot, path: Path = PRECOMPUTED_PATH) -> Path:
+    """Persist a locally computed snapshot as the honest cloud fallback."""
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(snapshot.model_dump_json(indent=2), encoding="utf-8")
+    return path
+
+
+def load_precomputed(path: Path = PRECOMPUTED_PATH) -> MetersSnapshot | None:
+    """Load the committed snapshot; None when absent or malformed."""
+
+    try:
+        snapshot = MetersSnapshot.model_validate_json(path.read_text(encoding="utf-8"))
+    except Exception:
+        return None
+    return snapshot.model_copy(update={"source": "PRECOMPUTED"})
 
 FRED_SERIES = [
     "CFNAI",
@@ -71,6 +92,7 @@ class MetersSnapshot(BaseModel):
     """Everything the decision surface needs from the proven engines."""
 
     fetched_at: str
+    source: Literal["LIVE", "PRECOMPUTED"] = "LIVE"
     growth: MeterReading
     inflation: MeterReading
     tilt: dict[str, float] = Field(default_factory=dict)
@@ -148,7 +170,8 @@ def checksum_verdict(
     gold_text = f"{gold_value:.4f}" if gold_value is not None else "NO_DATA"
     return status, (
         f"BCM port {bcm_value:.4f} vs research reference {BCM_REFERENCE:.3f} "
-        f"(July 2026): delta {delta:.4f}, tolerance {CHECKSUM_TOLERANCE}. "
+        f"(fixed reference date 2026-07-29; drift is expected as new data arrives). "
+        f"Delta {delta:.4f}, tolerance {CHECKSUM_TOLERANCE}. "
         f"Gold Meter port {gold_text} vs reference {GOLD_REFERENCE}."
     )
 
@@ -297,6 +320,7 @@ def compute_meters_snapshot(
         fetched_at=(
             fetched_at.astimezone(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
         ),
+        source="LIVE",
         growth=_reading(
             "GROWTH", "Economic growth composite", growth, "PROVEN_CONTEXT",
             ["CFNAI", "NEWORDER", "UNRATE", "ICSA"], failures,

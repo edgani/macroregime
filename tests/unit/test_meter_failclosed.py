@@ -119,3 +119,17 @@ def test_total_source_outage_yields_no_data_snapshot_without_exception(tmp_path)
     assert snapshot.fear_entry is None
     assert snapshot.checksum_status == "UNVERIFIED_PORT"
     assert snapshot.failures
+
+
+def test_precomputed_roundtrip_marks_source_honestly(tmp_path) -> None:
+    from packet_factory import meters_snapshot
+
+    from eros.meters.snapshot import load_precomputed, write_precomputed
+
+    path = write_precomputed(meters_snapshot(), tmp_path / "meters.json")
+    loaded = load_precomputed(path)
+
+    assert loaded is not None
+    assert loaded.source == "PRECOMPUTED"
+    assert loaded.bcm.value == 0.40
+    assert load_precomputed(tmp_path / "missing.json") is None

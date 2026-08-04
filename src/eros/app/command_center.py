@@ -73,11 +73,27 @@ def _capital_flow_dot(state: DashboardState) -> str:
 
 @st.cache_data(ttl=1800, show_spinner="Menghitung meter proven dari sumber publik...")
 def _compute_meters() -> MetersSnapshot:
-    """Cached only on success; exceptions never enter the cache."""
+    """Live computation first; committed precomputed snapshot as fallback.
 
-    from eros.meters.snapshot import compute_meters_snapshot
+    FRED blocks Streamlit Cloud egress, so the public deploy computes meters
+    from the committed snapshot (clearly labelled PRECOMPUTED with its as-of
+    dates) while local runs stay live. Cached only on success.
+    """
 
-    return compute_meters_snapshot()
+    from eros.meters.snapshot import compute_meters_snapshot, load_precomputed
+
+    try:
+        live = compute_meters_snapshot()
+    except Exception:
+        live = None
+    if live is not None and live.bcm.value is not None:
+        return live
+    precomputed = load_precomputed()
+    if precomputed is not None:
+        return precomputed
+    if live is not None:
+        return live
+    raise RuntimeError("meter engine unavailable and no precomputed snapshot")
 
 
 def _load_meters() -> tuple[MetersSnapshot | None, str | None]:
@@ -473,6 +489,12 @@ def _gate_strip(meters: MetersSnapshot | None) -> None:
         st.caption(
             "Blok BCM: "
             + " · ".join(f"{name} {value:.2f}" for name, value in sorted(meters.blocks.items()))
+        )
+    if meters.source == "PRECOMPUTED":
+        st.warning(
+            f"METER PRECOMPUTED — dihitung {meters.fetched_at} dari lingkungan yang dapat "
+            "menjangkau FRED; refresh live dari cloud sedang tidak tersedia. Angka tetap "
+            "berlabel as-of per meter."
         )
     st.caption(
         f"Checksum port vs referensi riset: {meters.checksum_status} — {meters.checksum_note}"

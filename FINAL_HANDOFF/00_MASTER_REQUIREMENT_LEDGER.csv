@@ -1,0 +1,28 @@
+requirement_id,category,requirement,status,evidence_or_reason
+DATA_FACTUAL,DATA,Use factual data for science,PASS_SCOPE_LIMITED,Shiller/VIX factual local; current verified evidence snapshots; broader panels DATA_DEBT
+DATA_LINEAGE,DATA,Hash/source lineage,PASS_SCOPE_LIMITED,03_FACTUAL_DATA_INVENTORY.csv
+PIT,PIT,PIT/vintage integrity,DATA_DEBT_DOCUMENTED,Legacy monthly data partial; full ALFRED/release vintage not ingested
+METRIC_UNIVERSE,METRICS,Broad global metric/source registry,PASS_SCOPE_LIMITED,68 mapped metrics + 55 dataset requirements; not all ingested/tested
+ENGINE_REGISTRY,ENGINES,Canonical engine registry,PASS,01_ENGINE_REGISTRY.csv
+LEAKAGE,SCIENCE,Target leakage audit,PASS_SCOPE_LIMITED,05_TARGET_LEAKAGE_AUDIT.csv; audited active self-run paths and known legacy hazards
+CRASH_TESTS,CRASH,Factual crash/fragility research,PASS_SCOPE_LIMITED,81 US-only specs with dependence/FDR/negative controls
+CROSS_MARKET,SCIENCE,Cross-market validation,DATA_DEBT_DOCUMENTED,Required before PROVEN; unavailable in current readable runtime
+FAILURE_LIBRARY,SCIENCE,Record failed specs,PASS,08_BUSTED_LIBRARY.csv
+GMIS,SCIENCE,Prune redundant research evidence,PASS_SCOPE_LIMITED,10_GMIS_FINAL.csv research-only
+REALITY,REALITY_RECONCILIATION,Reality reconciliation,PASS_SCOPE_LIMITED,32/33 current acceptance cases
+SCENARIO_DISCOVERY,SCENARIOS,Discover competing scenarios from evidence,PASS,Four attachment-driven scenario cases pass acceptance
+SCENARIO_PROB,SCENARIO_PROBABILITY,Calibrated probabilities,PROSPECTIVE_PENDING,Numeric probabilities intentionally null
+SCENARIO_TIMING,SCENARIO_TIMING,Calibrated timing,PROSPECTIVE_PENDING,Unknown until historical/event-calendar calibration
+SCENARIO_DURATION,SCENARIO_DURATION,Calibrated duration,PROSPECTIVE_PENDING,Unknown until duration calibration
+ASSET,ASSET_THESIS,Asset transmission validation,DATA_DEBT_DOCUMENTED,Candidates documented; no trade status
+TICKER,TICKER_THESIS,Company/ticker PIT validation,DATA_DEBT_DOCUMENTED,PIT company panels not ingested
+PRICED_IN,PRICED_IN,Priced-in engine,DATA_DEBT_DOCUMENTED,Requires consensus/flow/valuation/PIT market data
+EV,EXPECTED_VALUE,Expected value,PASS_SCOPE_LIMITED,Fail-closed: no EV without calibrated opportunity
+PORTFOLIO,PORTFOLIO,Portfolio decision,DATA_DEBT_DOCUMENTED,No qualified trade; portfolio action not fabricated
+TECH_ALPHA,PRODUCTION_SAFETY,No classic technical directional alpha,PASS,Legacy quarantined; final_core production entry excludes it
+GEX_ROLE,PRODUCTION_SAFETY,GEX only timing/fragility/execution,PASS,Scenario acceptance test
+FAIL_CLOSED,PRODUCTION_SAFETY,Missing evidence cannot create trade,PASS,NO QUALIFIED OPPORTUNITY; production entry forces WAIT
+LEGACY_TEST,CODE,Legacy compile/functional regression,PASS,47_LEGACY_FUNCTIONAL_TESTS.log
+FINAL_ACCEPTANCE,FINAL_AUDIT,Automated acceptance,PASS,97_FINAL_ACCEPTANCE_RESULT.json; 65/65 checks pass
+RED_TEAM,FINAL_AUDIT,Independent-style red team,PASS_SCOPE_LIMITED,98_RED_TEAM_AUDIT.md
+EVENT_ROUTER,SCENARIOS,Raw headline/claim routing to candidate mechanisms with verification gate,PASS,final_core/event_router.py + 30_EVENT_ROUTER_ACCEPTANCE_TEST.log

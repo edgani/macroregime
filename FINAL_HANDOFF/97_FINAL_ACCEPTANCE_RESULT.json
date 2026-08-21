@@ -1,0 +1,347 @@
+{
+  "pass": true,
+  "checks": 68,
+  "failed": [],
+  "details": [
+    {
+      "check": "file:00_MASTER_REQUIREMENT_LEDGER.csv",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:01_ENGINE_REGISTRY.csv",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:02_METRIC_MASTER_REGISTRY.csv",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:03_FACTUAL_DATA_INVENTORY.csv",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:04_FACTUAL_DATA_COVERAGE.csv",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:05_TARGET_LEAKAGE_AUDIT.csv",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:06_COMPLETE_EXPERIMENT_LEDGER.csv",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:07_METRIC_ROLE_ENGINE_MATRIX.csv",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:08_BUSTED_LIBRARY.csv",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:09_DATA_DEBT.csv",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:10_GMIS_FINAL.csv",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:11_UNIVARIATE_US_LONGRUN_RESULTS.csv",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:12_MECHANISM_COMBO_US_LONGRUN_RESULTS.csv",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:13_SURVIVING_US_ONLY_CANDIDATES.csv",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:14_SCIENTIFIC_VALIDATION_SUMMARY.json",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:32_CURRENT_EVIDENCE.json",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:32_REALITY_RECONCILIATION_CURRENT.csv",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:33_REALITY_CONTRADICTION_HISTORY.csv",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:34_SCENARIO_REGISTRY.json",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:34_SCENARIO_REGISTRY.csv",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:35_SCENARIO_ACCEPTANCE_TEST.log",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:35_SCENARIO_PROBABILITY_VALIDATION.md",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:36_SCENARIO_TIMING_VALIDATION.md",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:37_SCENARIO_DURATION_VALIDATION.md",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:38_ASSET_THESIS_VALIDATION.csv",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:39_TICKER_THESIS_VALIDATION.csv",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:40_TICKER_FILTER_RESULTS.csv",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:41_TICKER_RANKING_REPLAY.csv",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:42_CURRENT_QUALIFIED_OPPORTUNITIES.csv",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:43_REJECTED_OPPORTUNITIES.csv",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:44_EXPECTED_VALUE_VALIDATION.md",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:45_WALK_FORWARD_OOS.md",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:46_ROBUSTNESS.md",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:47_PRODUCTION_PATCH_VERIFICATION.md",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:48_PROSPECTIVE_PENDING.csv",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:49_FINAL_AUDIT_PACKET.md",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:98_RED_TEAM_AUDIT.md",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:99_FINAL_ACCEPTANCE_SCORECARD.md",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:30_EVENT_ROUTER_ACCEPTANCE_TEST.log",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:31_ATTACHMENT_ACCEPTANCE_CASES.md",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:LEGACY_QUARANTINE.md",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "compile:scientific_validation.py",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "compile:scenario_discovery.py",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "compile:build_handoff.py",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "compile:production_entry.py",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "compile:event_router.py",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_acceptance_runtime",
+      "pass": true,
+      "detail": "PASS: 4 attachment-driven scenario acceptance cases\n"
+    },
+    {
+      "check": "event_router_acceptance_runtime",
+      "pass": true,
+      "detail": "PASS: event router classified all attachment narrative families and remains verification-gated\n"
+    },
+    {
+      "check": "science:no_false_positive_negative_controls",
+      "pass": true,
+      "detail": "{'dataset_shiller_sha256': '28d16941c581bda9bdcae4e0f9e3cc4b61204f8484e8c2249abdde2efe2cc3c4', 'dataset_vix_sha256': '599b4954606a76bfad2ef3b8f961a65d0b0c3757a490e2bc3391baa601931308', 'univariate_specs': 60, 'combo_specs': 21, 'negative_control_false_positive_count': 0, 'survivors_us_only': 19, 'pr"
+    },
+    {
+      "check": "science:no_premature_proven",
+      "pass": true,
+      "detail": "{'dataset_shiller_sha256': '28d16941c581bda9bdcae4e0f9e3cc4b61204f8484e8c2249abdde2efe2cc3c4', 'dataset_vix_sha256': '599b4954606a76bfad2ef3b8f961a65d0b0c3757a490e2bc3391baa601931308', 'univariate_specs': 60, 'combo_specs': 21, 'negative_control_false_positive_count': 0, 'survivors_us_only': 19, 'pr"
+    },
+    {
+      "check": "science:81_factual_experiments",
+      "pass": true,
+      "detail": "n=81"
+    },
+    {
+      "check": "science:has_oos_methods",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "leakage:GOLD_SPOT_PRICE_YOY_forbidden",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "leakage:CLASSIC_TECHNICAL_FEATURES_forbidden",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "leakage:gex_direction_forbidden",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario:all_attachment_cases",
+      "pass": true,
+      "detail": "{'SCN_MEGA_IPO_CAPITAL_SUPPLY_INDEX_REFLEXIVITY', 'SCN_DEALER_GAMMA_VOLATILITY_REGIME', 'SCN_AI_DATACENTER_LEVERAGE_FRAGILITY', 'SCN_POLICY_CONFLICTED_REACTION_FUNCTION'}"
+    },
+    {
+      "check": "scenario:no_fake_probability",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario:no_forced_trade",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario:gex_roles_restricted",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario:2008_analogue_not_equivalence",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario:no_index_support_obligation_claim",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "decision:no_qualified_opportunity",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "scope:cross_market_data_debt",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "scope:gex_data_debt",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "requirements:no_unexplained_pending",
+      "pass": true,
+      "detail": "[]"
+    },
+    {
+      "check": "production:no_legacy_import",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "production:legacy_quarantine",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "redteam:no_unresolved_internal_critical_high",
+      "pass": true,
+      "detail": ""
+    }
+  ]
+}

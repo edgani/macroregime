@@ -1,0 +1,5 @@
+record_id,conflict,reconciliation,status,production_rule
+RC001,Weak housing/labor vs sticky inflation/hawkish dissent,A weak growth impulse conflicts with still-elevated inflation constraint,CONFLICTED_POLICY_STATE,Do not infer automatic dovish pivot
+RC002,Mega IPO valuation motive vs index methodology,"Issuer valuation incentives exist, but index support is conditional/mechanical and no obligation to hold index up is evidenced",UNVERIFIED_MOTIVE_REJECTED,Model IPO supply + conditional passive flows
+RC003,Data-center securitization vs 2008 analogy,"Leverage/opacity/maturity mismatch are analogous fragility channels, but no evidence yet of systemwide loss transmission comparable to 2008",ANALOGUE_CANDIDATE,Require underwriting deterioration + losses + forced transmission
+RC004,GEX directional narrative vs macro direction,GEX may influence short-horizon volatility/execution; it does not establish macro direction,ROLE_CONFLICT,Research-only timing modifier

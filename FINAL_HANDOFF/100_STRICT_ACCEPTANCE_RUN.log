@@ -1,0 +1,97 @@
+{
+  "software_acceptance": "PASS",
+  "scientific_full_scope_acceptance": "BLOCKED_DATA_DEBT",
+  "release_status": "FINAL_SOFTWARE_SCOPE_LIMITED",
+  "checks": [
+    {
+      "check": "attachment_scenarios",
+      "pass": true,
+      "detail": "PASS: 5 attachment-driven scenario acceptance cases"
+    },
+    {
+      "check": "general_scenarios",
+      "pass": true,
+      "detail": "GENERAL_SCENARIO_DISCOVERY: PASS 8 cases"
+    },
+    {
+      "check": "attachment_router",
+      "pass": true,
+      "detail": "PASS: event router classified all attachment narrative families and remains verification-gated"
+    },
+    {
+      "check": "general_router",
+      "pass": true,
+      "detail": "EVENT_ROUTER_GENERAL: PASS 5"
+    },
+    {
+      "check": "ticker_fail_closed",
+      "pass": true,
+      "detail": "TICKER_FAIL_CLOSED: PASS"
+    },
+    {
+      "check": "multi_engine_validation_artifact_exists",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "production_entry_executes",
+      "pass": true,
+      "detail": "{\n  \"system_status\": \"PASS_SCOPE_LIMITED_FAIL_CLOSED\",\n  \"scenario_count\": 5,\n  \"asset_candidate_count\": 2,\n  \"qualified_opportunity_count\": 0,\n  \"current_action\": \"NO_QUALIFIED_OPPORTUNITY\"\n}"
+    },
+    {
+      "check": "multi_engine_count>=8",
+      "pass": true,
+      "detail": "9"
+    },
+    {
+      "check": "production_proven_not_fabricated",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "factual_snapshot_coverage_present",
+      "pass": true,
+      "detail": "ready_or_scope=12"
+    },
+    {
+      "check": "generalized_scenario_case_count>=8",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "scenario_probabilities_fail_closed",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "ticker_missing_data_no_rank",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "five_tab_ui",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "no_old_absolute_self_path",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "current_no_fabricated_ticker",
+      "pass": true,
+      "detail": ""
+    }
+  ],
+  "factual_rows_scope_ready": 12,
+  "data_debt_rows": 43,
+  "multi_engine_count": 9,
+  "full_scope_blockers": [
+    "43 dataset requirements remain DATA_DEBT_NOT_INGESTED",
+    "0 production-proven cross-market scientific models",
+    "IHSG/crypto/FX full PIT outcome panels not available in runtime",
+    "modern PIT company fundamentals + historical return ranker validation not complete",
+    "scenario probability/timing/duration calibration remains prospective/data-dependent"
+  ]
+}

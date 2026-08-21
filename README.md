@@ -1,76 +1,35 @@
-# EROS v3.0
+# EROS Final Software Build — Scope-Limited Scientific Evidence
 
-EROS is a global economic reasoning and capital-allocation decision-support system. It is not a charting terminal, indicator collection, or autonomous broker.
+This package is the portable EROS research/decision engine built from the audited Warroom/EROS work.
 
-Current phase: **Phase 2 — Prove Everything**. The application deliberately fails closed, preserves `UNKNOWN`, and keeps execution locked until point-in-time, out-of-sample, replication, prospective, and human-approval gates pass.
+## Run
 
-## Product surface
-
-The Streamlit application has exactly five main tabs:
-
-1. **Command Center** — what changed, what matters, top theses, unknowns, and action gate.
-2. **Global Explorer** — registry-driven countries, asset classes, mechanisms, and dossiers.
-3. **Opportunity Engine** — conservative net-EV packets and rejected candidates.
-4. **Portfolio** — hidden exposure, scenarios, liquidity, hedges, and decision journal.
-5. **Research Lab** — evidence firewall, experiments, failures, data health, and proof gates.
-
-The bundled state remains a visibly labelled synthetic fixture. At runtime, EROS overlays provider-labelled public benchmark observations for US equities, IHSG, crypto, FX, commodities, and rates/volatility. Provider failures are isolated and may fall back to explicitly `STALE` last-good data. These observations support monitoring only; they do not establish a causal regime or unlock execution.
-
-## Quick start
-
-Requirements: Python 3.12 and [uv](https://docs.astral.sh/uv/).
-
+Linux/macOS:
 ```bash
-uv sync --extra dev
-uv run pytest -q
-uv run streamlit run app.py
+python -m pip install -r requirements.txt
+./run_eros.sh
 ```
 
-Open `http://localhost:8501`.
-
-## Quality gates
-
-```bash
-uv run ruff check src tests app.py
-uv run mypy
-uv run pytest -q
+Windows:
+```bat
+py -m pip install -r requirements.txt
+run_eros.bat
 ```
 
-## Architecture
+Open `dashboard.html` for the five-tab static current-state view.
 
-```text
-app.py
-config/                       # runtime, universe, evidence, validation policy
-registries/                   # datasets and economic mechanisms
-data/snapshots/               # frozen synthetic decision snapshot
-src/eros/
-  app/                        # five-tab Streamlit decision interface
-  data/                       # adapters, ingestion, PIT alignment, health
-  ontology/ + mechanisms/     # mechanism-first economic graph
-  thesis/                     # competing hypotheses, Bayesian update, firewall
-  research/                   # experiments and inherited-formula replication
-  opportunity/ + allocation/  # costs, conservative EV, waiting, conflicts
-  portfolio/                  # hidden exposure and scenarios
-  audit/ + registries/        # replay and registry contracts
-tests/                        # unit, integration, leakage, regression, e2e
-reports/                      # limitations and production-readiness evidence
-```
+## What is production-safe now
+- Fail-closed scenario/ticker behavior.
+- General claim/event routing that requires verification before scenario formation.
+- Generalized causal scenario discovery plus the user-supplied acceptance cases.
+- Historical scope-limited multi-engine validation artifacts.
+- No classic technical indicator as production directional alpha.
+- No numeric probability if calibration is absent.
+- No ticker recommendation if company/PIT/priced-in/EV evidence is absent.
+- Public-source fetch adapters for BLS, World Bank, SEC, Treasury FiscalData and optional FRED.
 
-## Hard rules
+## Scientific scope
+`FINAL_HANDOFF/100_STRICT_ACCEPTANCE_RESULT.json` is authoritative.
+Software acceptance passes. Full scientific scope remains blocked by documented data debt (notably full PIT-vintage global panels, IHSG/crypto/FX outcomes, modern PIT company fundamentals and calibrated ticker ranker history).
 
-- Mechanism over correlation.
-- Evidence over narrative.
-- Three to seven competing hypotheses, including a null.
-- No standalone price-derived alpha or technical indicators.
-- Point-in-time availability and vintages are mandatory.
-- All costs and losses enter net EV.
-- Missing or stale data disables downstream decisions.
-- No model approves itself.
-- Human approval remains mandatory for execution.
-
-## Read before using outputs
-
-- `docs/REQUIREMENTS_TRACEABILITY.md`
-- `reports/PRODUCTION_READINESS.md`
-- `reports/LIMITATIONS.md`
-- `reports/CLEANUP_MANIFEST.md`
+This package must not silently convert that missing evidence into a trade. Current output is `NO_QUALIFIED_OPPORTUNITY` until all ticker gates are factual and calibrated.

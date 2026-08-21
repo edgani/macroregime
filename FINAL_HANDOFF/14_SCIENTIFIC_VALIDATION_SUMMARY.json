@@ -1,0 +1,10 @@
+{
+  "dataset_shiller_sha256": "28d16941c581bda9bdcae4e0f9e3cc4b61204f8484e8c2249abdde2efe2cc3c4",
+  "dataset_vix_sha256": "599b4954606a76bfad2ef3b8f961a65d0b0c3757a490e2bc3391baa601931308",
+  "univariate_specs": 60,
+  "combo_specs": 21,
+  "negative_control_false_positive_count": 0,
+  "survivors_us_only": 19,
+  "production_proven_count": 0,
+  "reason_no_proven": "Project doctrine requires cross-market/cross-regime validation before proven/final scientific status; this self-run environment only has directly readable long-run US Shiller/VIX factual data. Survivors are US-only evidence and are not production proof."
+}

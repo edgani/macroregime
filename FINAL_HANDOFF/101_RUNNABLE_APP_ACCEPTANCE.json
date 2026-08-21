@@ -1,0 +1,130 @@
+{
+  "pass": true,
+  "checks": [
+    {
+      "check": "file:app.py",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:run.py",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:run_eros.bat",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:setup_windows.bat",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:run_cli.bat",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:run_eros.sh",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "file:requirements.txt",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "ast:app.py",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "ast:run.py",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "ast:run_eros.py",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "ast:final_core/app_model.py",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "ast:final_core/build_dashboard.py",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "legacy_not_imported_in_active",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "cli_run",
+      "pass": true,
+      "detail": "{\n  \"system_status\": \"PASS_SCOPE_LIMITED_FAIL_CLOSED\",\n  \"current_action\": \"NO_QUALIFIED_OPPORTUNITY\",\n  \"scenario_count\": 5,\n  \"qualified_opportunity_count\": 0,\n  \"dashboard\": \"/mnt/data/EROS_WARROOM_FINAL_RUNNABLE_20260822/dashboard.html\"\n}\n"
+    },
+    {
+      "check": "app_model_sections",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "app_model_current_action",
+      "pass": true,
+      "detail": "NO_QUALIFIED_OPPORTUNITY"
+    },
+    {
+      "check": "legacy_preserved:legacy_warroom_original/app.py",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "legacy_preserved:legacy_warroom_original/run.py",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "legacy_preserved:legacy_warroom_original/data_layer.py",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "legacy_preserved:legacy_warroom_original/warroom/decision_engine.py",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "legacy_preserved:legacy_warroom_original/gcfis/orchestrator.py",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "dashboard_five_tabs",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "dashboard_has_payload",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "requirements_streamlit",
+      "pass": true,
+      "detail": ""
+    },
+    {
+      "check": "requirements_pyarrow",
+      "pass": true,
+      "detail": ""
+    }
+  ]
+}

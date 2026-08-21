@@ -1,0 +1,18 @@
+EROS WARROOM — START HERE
+
+WINDOWS:
+1) Extract this ZIP completely.
+2) Double-click: run_eros.bat
+3) First run installs dependencies into .venv.
+4) Open: http://localhost:8501
+
+CLI / diagnostic run:
+- Double-click run_cli.bat
+
+Main application:
+- app.py
+
+Original Warroom source:
+- legacy_warroom_original/ (preserved, quarantined from active production)
+
+If the app displays NO QUALIFIED OPPORTUNITY, that can be the correct fail-closed result; it is not necessarily a startup failure.

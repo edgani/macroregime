@@ -1,0 +1,119 @@
+{
+  "split": "2016-01-29",
+  "reality_check_p": 0.0004997501249375312,
+  "best_abs_ic": 0.05536012827381096,
+  "factors": {
+    "mom_252_21": {
+      "mech": "underreaction to slow-diffusing news (12-1 momentum)",
+      "mean_ic": -0.023578799073956623,
+      "t": -2.6882895470665304,
+      "p_raw": 0.007427452018781714,
+      "n_days": 489,
+      "p_fdr": 0.0103984328262944
+    },
+    "mom_126": {
+      "mech": "intermediate momentum / trend persistence",
+      "mean_ic": -0.0007844279439338685,
+      "t": -0.09225895700558831,
+      "p_raw": 0.9265301575619423,
+      "n_days": 489,
+      "p_fdr": 0.9265301575619423
+    },
+    "rev_5": {
+      "mech": "short-term overreaction & liquidity provision (1wk reversal)",
+      "mean_ic": 0.031714903187758714,
+      "t": 4.872146660648844,
+      "p_raw": 1.4946219253782405e-06,
+      "n_days": 489,
+      "p_fdr": 4.184941391059074e-06
+    },
+    "rev_21": {
+      "mech": "1-month mean reversion",
+      "mean_ic": 0.025695930323842237,
+      "t": 3.610411716526556,
+      "p_raw": 0.00033732127058004905,
+      "n_days": 489,
+      "p_fdr": 0.000524721976457854
+    },
+    "lowvol_60": {
+      "mech": "betting-against-beta: leverage-constrained buyers overpay for high-vol (Frazzini-Pedersen)",
+      "mean_ic": -0.049323481835180094,
+      "t": -5.395355290617257,
+      "p_raw": 1.0684208510882792e-07,
+      "n_days": 489,
+      "p_fdr": 3.739472978808977e-07
+    },
+    "lowvol_120": {
+      "mech": "low-volatility anomaly, slower window",
+      "mean_ic": -0.053320035822908,
+      "t": -5.491339267542451,
+      "p_raw": 6.427608006811794e-08,
+      "n_days": 489,
+      "p_fdr": 2.9995504031788374e-07
+    },
+    "vov_60": {
+      "mech": "vol-of-vol: unstable-regime names underperform (less-discussed)",
+      "mean_ic": -0.05536012827381096,
+      "t": -8.451765537152886,
+      "p_raw": 3.331237897122946e-16,
+      "n_days": 489,
+      "p_fdr": 4.663733055972124e-15
+    },
+    "accel": {
+      "mech": "momentum term-structure: accelerating trend (21d mom minus 63d mom)",
+      "mean_ic": -0.012072870720872942,
+      "t": -1.6630711850937774,
+      "p_raw": 0.09694024332642057,
+      "n_days": 489,
+      "p_fdr": 0.11309695054749065
+    },
+    "range_loc": {
+      "mech": "effort/absorption: closing high-in-range = accumulation footprint (bandar mechanism, less-discussed)",
+      "mean_ic": -0.028889847934081097,
+      "t": -4.143789188994532,
+      "p_raw": 4.027111570306506e-05,
+      "n_days": 489,
+      "p_fdr": 9.396593664048513e-05
+    },
+    "vol_trend_div": {
+      "mech": "effort-result divergence: price up on FALLING volume = distribution, fade it (bandar mechanism)",
+      "mean_ic": -0.0039055673111780256,
+      "t": -0.9691457337992532,
+      "p_raw": 0.33295255773334376,
+      "n_days": 489,
+      "p_fdr": 0.358564292943601
+    },
+    "maxret_21": {
+      "mech": "lottery / MAX effect: high max-daily-return names overpriced (Bali-Cakici-Whitelaw)",
+      "mean_ic": -0.028064108002269477,
+      "t": -4.051431124385057,
+      "p_raw": 5.92148411235476e-05,
+      "n_days": 489,
+      "p_fdr": 0.0001184296822470952
+    },
+    "illiq": {
+      "mech": "Amihud illiquidity premium: |ret|/dollar-vol",
+      "mean_ic": 0.019396508430425168,
+      "t": 3.8389619482425075,
+      "p_raw": 0.0001398147713143868,
+      "n_days": 489,
+      "p_fdr": 0.0002446758498001769
+    },
+    "skew_60": {
+      "mech": "idiosyncratic skewness preference: high positive skew overpriced (less-discussed)",
+      "mean_ic": 0.03356475726426685,
+      "t": 6.773152349791845,
+      "p_raw": 3.6352235755660884e-11,
+      "n_days": 489,
+      "p_fdr": 2.544656502896262e-10
+    },
+    "dd_recover": {
+      "mech": "drawdown-recovery asymmetry: distance below 120d high, mean-reverting",
+      "mean_ic": -0.01796333793759313,
+      "t": -2.0013800168344775,
+      "p_raw": 0.04590464140131579,
+      "n_days": 489,
+      "p_fdr": 0.058424089056220097
+    }
+  }
+}

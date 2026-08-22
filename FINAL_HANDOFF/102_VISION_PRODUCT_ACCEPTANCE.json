@@ -1,0 +1,27 @@
+{
+  "status": "PASS",
+  "passed": 19,
+  "total": 19,
+  "checks": {
+    "ROOT_APP_EXISTS": true,
+    "WINDOWS_ONE_CLICK_EXISTS": true,
+    "FIVE_TABS": true,
+    "NO_MANUAL_COMPANY_JSON_UPLOAD": true,
+    "NO_SYNTHETIC_PRODUCTION": true,
+    "NO_CLASSIC_TECH_ALPHA": true,
+    "AUTO_FACTUAL_FETCH": true,
+    "GENERAL_EVENT_ROUTER": true,
+    "GENERAL_CAUSAL_GRAPH": true,
+    "GENERAL_NEWS_SCENARIO_DISCOVERY": true,
+    "AUTO_ASSET_ENGINE": true,
+    "AUTO_TICKER_CANDIDATES": true,
+    "NO_FAKE_QUALIFICATION": true,
+    "LEGACY_WARROOM_PRESERVED": true,
+    "TEST_NO_SYNTHETIC": true,
+    "TEST_PRODUCT_SHAPE": true,
+    "TEST_VISION_SCENARIOS": true,
+    "TEST_END_TO_END": true,
+    "TEST_FAIL_CLOSED": true
+  },
+  "scope_note": "Product/behavior acceptance. Does not convert unresolved PIT/scenario-calibration/ticker-OOS data debt into scientific proof."
+}

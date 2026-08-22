@@ -1,2 +1,0 @@
-ticker,status,reason,p_mechanism_true,p_catalyst_within_horizon,p_not_fully_priced,p_trade_profitable_net,ev_net,action
-,NO_QUALIFIED_OPPORTUNITY,NO_FULLY_CALIBRATED_TICKER_PIPELINE_INPUT,,,,,,WAIT

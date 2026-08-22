@@ -1,7 +1,0 @@
-pending_id,model_or_hypothesis,prospective_test,production_restriction
-PP001,Cross-market replication of US-only crash candidates,Seal current candidate list; evaluate on independently acquired US stocks/IHSG/commodities/futures/crypto/FX panels,PROVEN status prohibited until pass
-PP002,Scenario probability calibration,Build historical event ontology and seal scenario definitions before prospective evaluation,Current scenario probabilities remain UNKNOWN
-PP003,Scenario timing/duration calibration,Estimate historical lag/duration distributions by event family,Current timing/duration remain UNKNOWN
-PP004,GEX market-structure modifier,Acquire PIT provider-independent or raw-options-derived history; pre-register volatility/execution outcomes,GEX remains RESEARCH_DIAGNOSTIC_ONLY
-PP005,Mega IPO scenario,Evaluate actual filings/pricing/index inclusion/rebalance flows once events occur,No obligation motive claim allowed
-PP006,AI data-center credit fragility,"Track issuance, covenants, spreads, defaults, lease/tenant concentration, refinancing",Analogue candidate only until losses/transmission observed

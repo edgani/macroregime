@@ -1,9 +1,0 @@
-data_debt_id,missing_or_blocked,reason,affected_area,impact
-DD001,Cross-market factual macro/outcome panels,"Required cross-market replication (US stocks, IHSG, commodities/futures, crypto, FX). Existing bundled panels are Parquet but runtime lacks parquet engine and network package install is unavailable.",All PROVEN statuses,BLOCKS_PROVEN_STATUS
-DD002,PIT/vintage macro history,ALFRED/official release-vintage panels not locally ingested in this runtime.,PIT scientific upgrades,BLOCKS_FULL_PIT_PROOF
-DD003,Indonesia official historical panels,BI/BPS/OJK/IDX/KSEI/BKPM full PIT datasets not locally ingested.,Indonesia engine/ticker ranking,BLOCKS_INDONESIA_PRODUCTION
-DD004,Company fundamental PIT panels,SEC/IDX filing-acceptance historical panels not locally ingested.,Ticker qualification/ranking/EV,BLOCKS_TICKER_PRODUCTION
-DD005,Historical GEX/options dealer positioning,No trustworthy provider-independent PIT GEX history available in local bundle.,Market-structure timing,BLOCKS_GEX_PRODUCTION
-DD006,Scenario outcome dataset,No preregistered historical event/scenario ontology outcome panel sufficient for probability/timing/duration calibration.,Scenario numeric probabilities/timing/duration,BLOCKS_NUMERIC_SCENARIO_CALIBRATION
-DD007,Institutional options/dealer datasets,Potentially licensed/proprietary; no verified local history.,Options positioning/dealer flow,OPTIONAL_DATA_DEBT
-DD008,Parquet conversion tooling,pyarrow/fastparquet/duckdb absent; installation failed due network/DNS limits.,Legacy panel audit,RUNTIME_TOOLING_LIMITATION

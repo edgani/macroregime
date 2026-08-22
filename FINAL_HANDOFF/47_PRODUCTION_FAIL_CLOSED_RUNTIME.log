@@ -1,5 +1,0 @@
-scenarios 4
-actions ['WAIT']
-probabilities [None, None, None, None]
-router production eligible False
-PASS: production fail-closed

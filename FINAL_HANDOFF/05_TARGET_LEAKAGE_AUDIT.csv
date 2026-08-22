@@ -1,9 +1,0 @@
-audit_id,metric_id,engine_id,feature,target,leakage_type,allowed,status,reason
-TL001,GOLD_SPOT_PRICE_YOY,GOLD_MACRO,past gold return,future gold return,SELF_TARGET_PRICE_MOMENTUM,NO,RESEARCH_DIAGNOSTIC_ONLY,Forbidden standalone directional price alpha
-TL002,CLASSIC_TECHNICAL_FEATURES,ASSET_TRANSMISSION,RSI/MACD/EMA/momentum/breakout,future same-asset direction,PRICE_DERIVED_DIRECTIONAL_ALPHA,NO,QUARANTINED,Forbidden by EROS doctrine
-TL003,GEX_OPTIONS_POSITIONING,MARKET_STRUCTURE_TIMING,dealer gamma estimate,short-horizon realized volatility/execution,PROVIDER_MODEL_DEPENDENCE,CONDITIONAL,RESEARCH_DIAGNOSTIC_ONLY,Allowed only as timing/fragility/execution after PIT OOS validation
-TL004,GEX_OPTIONS_POSITIONING,ASSET_TRANSMISSION,dealer gamma estimate,macro/asset direction,DIRECTIONAL_PROXY_RISK,NO,QUARANTINED,Never macro directional alpha by itself
-TL005,US_CPI_DERIVED,SYSTEMIC_CRASH_RISK,PIT-available CPI transforms,future SPX drawdown severity,NONE_IDENTIFIED,YES,TESTED_US_ONLY,Outcome is future market drawdown; feature is economic data
-TL006,US_DGS10_DERIVED,SYSTEMIC_CRASH_RISK,long-rate level/change,future SPX drawdown severity,NONE_IDENTIFIED,YES,TESTED_US_ONLY,Economic/rates feature vs future outcome
-TL007,VIX_STATE,SYSTEMIC_CRASH_RISK,VIX state/percentile,future SPX drawdown severity,MARKET_IMPLIED_SAME_MARKET_CONTEXT,YES_CONDITIONAL,TESTED_US_ONLY,Market-implied stress context allowed; not classic technical alpha
-TL008,SHILLER_CAPE,SYSTEMIC_CRASH_RISK,valuation state,future SPX drawdown severity,NONE_IDENTIFIED,YES,TESTED_US_ONLY,Valuation/fragility context allowed

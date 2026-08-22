@@ -1,2 +1,0 @@
-# Only needed if you intentionally execute quarantined legacy_warroom_original modules.
-hmmlearn>=0.3

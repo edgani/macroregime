@@ -1,6 +1,0 @@
-spec,horizon_m,status,production_eligible,role,reason
-inflation_pressure_eq,6,HISTORICALLY_SUPPORTED_US_ONLY,NO,US crash fragility research,Representative of a distinct/partly distinct mechanism; final orthogonality requires cross-market data
-inflation_rate_shock_eq,12,HISTORICALLY_SUPPORTED_US_ONLY,NO,US crash fragility research,Representative of a distinct/partly distinct mechanism; final orthogonality requires cross-market data
-inflation_vix_eq,6,HISTORICALLY_SUPPORTED_US_ONLY,NO,US crash fragility research,Representative of a distinct/partly distinct mechanism; final orthogonality requires cross-market data
-rate10_chg_6m,12,CONDITIONAL_US_ONLY,NO,US crash fragility research,Representative of a distinct/partly distinct mechanism; final orthogonality requires cross-market data
-dividend_decel_6m,6,HISTORICALLY_SUPPORTED_US_ONLY,NO,US crash fragility research,Representative of a distinct/partly distinct mechanism; final orthogonality requires cross-market data

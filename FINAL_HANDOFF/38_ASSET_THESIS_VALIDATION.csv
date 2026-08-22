@@ -1,5 +1,0 @@
-asset_theme,scenario_id,status,reason
-US duration/rate-sensitive assets,SCN_POLICY_CONFLICTED_REACTION_FUNCTION,NOT_VALIDATED_AS_TRADE,No cross-market asset-transmission validation/current calibrated probability.
-Broad AI/tech equity and index liquidity,SCN_MEGA_IPO_CAPITAL_SUPPLY_INDEX_REFLEXIVITY,NOT_VALIDATED_AS_TRADE,IPO timing/size/index inclusion/passive flow not finalized; no obligation claim.
-AI/data-center credit and equity,SCN_AI_DATACENTER_LEVERAGE_FRAGILITY,NOT_VALIDATED_AS_TRADE,Fragility hypothesis lacks realized loss/refinancing transmission and calibrated asset payoff.
-QQQ execution/volatility context,SCN_DEALER_GAMMA_VOLATILITY_REGIME,RESEARCH_DIAGNOSTIC_ONLY,No PIT/OOS GEX history; directional use forbidden.

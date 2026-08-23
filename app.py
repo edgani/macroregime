@@ -36,7 +36,7 @@ except Exception:
     yf = None
 
 # ============================================================
-# OPPORTUNITY INTELLIGENCE ENGINE v1
+# OPPORTUNITY INTELLIGENCE ENGINE v1.1
 # ------------------------------------------------------------
 # Goal: high-recall discovery of exceptional opportunities, then
 # high-precision confirmation. No classic technical indicators.
@@ -265,11 +265,11 @@ def _ttm(s: Optional[pd.Series]) -> float:
 
 
 @st.cache_data(ttl=1800, show_spinner=False)
-def fetch_yfinance_snapshot(market: str, symbol: str, name: str) -> AssetSnapshot:
+def fetch_yfinance_snapshot(market: str, symbol: str, name: str) -> Dict[str, Any]:
     snap = AssetSnapshot(market=market, symbol=symbol, name=name)
     if yf is None:
         snap.error = "yfinance is not installed"
-        return snap
+        return dict(snap.__dict__)
     try:
         t = yf.Ticker(symbol)
         hist = t.history(period="2y", auto_adjust=True, actions=False)
@@ -320,10 +320,10 @@ def fetch_yfinance_snapshot(market: str, symbol: str, name: str) -> AssetSnapsho
             snap.trailing_pe = snap.price / snap.eps_ttm
         valid = sum(np.isfinite(v) for v in [snap.price, snap.revenue_growth_yoy, snap.gross_margin, snap.eps_ttm, snap.market_cap])
         snap.data_quality = "HIGH" if valid >= 5 else ("MEDIUM" if valid >= 3 else "LOW")
-        return snap
+        return dict(snap.__dict__)
     except Exception as e:
         snap.error = str(e)
-        return snap
+        return dict(snap.__dict__)
 
 
 @st.cache_data(ttl=1800, show_spinner=False)
@@ -658,7 +658,7 @@ def build_snapshot_frame(rows: pd.DataFrame, max_assets: int = 20) -> pd.DataFra
             s = fetch_yfinance_snapshot(market, symbol, name)
         else:
             s = fetch_yfinance_snapshot(market, symbol, name)
-        snaps.append(s.__dict__)
+        snaps.append(dict(s))
     return pd.DataFrame(snaps)
 
 
@@ -857,9 +857,8 @@ markets_available = [m for m in ["US","IHSG","FX","Commodity","Crypto"] if m in 
 st.sidebar.markdown("### Live scanner")
 selected_markets = st.sidebar.multiselect("Markets", markets_available, default=markets_available[:2] + (["Crypto"] if "Crypto" in markets_available else []))
 max_assets = st.sidebar.slider("Max assets per scan", 5, 40, 18, 1)
-scan_btn = st.sidebar.button("Run / refresh live scan", use_container_width=True)
-if scan_btn:
-    st.cache_data.clear()
+scan_btn = st.sidebar.button("Run / refresh live scan", use_container_width=True, type="primary")
+st.sidebar.caption("The app loads first. Network-heavy market scanning runs only when you press the button, so deploy/local startup cannot hang on Yahoo/API calls.")
 
 st.sidebar.markdown("### Research gates")
 st.sidebar.write("Action model", "✅" if PRODUCTION_ACTION_MODEL_VALIDATED else "🔒 research state")
@@ -879,8 +878,20 @@ for m in selected_markets:
     parts.append(scan_universe[scan_universe["market"]==m].head(per_market))
 scan_input=pd.concat(parts,ignore_index=True) if parts else scan_universe
 
-with st.spinner("Scanning public market/fundamental data…"):
-    scan_raw=build_snapshot_frame(scan_input,max_assets=max_assets) if not scan_input.empty else pd.DataFrame()
+scan_signature = (tuple(selected_markets), int(max_assets))
+if scan_btn:
+    # Clear only the network adapter we are explicitly refreshing.  Do not nuke every app cache.
+    try:
+        fetch_yfinance_snapshot.clear()
+    except Exception:
+        pass
+    with st.spinner("Scanning public market/fundamental data…"):
+        fresh_scan = build_snapshot_frame(scan_input, max_assets=max_assets) if not scan_input.empty else pd.DataFrame()
+    st.session_state["live_scan_records"] = fresh_scan.to_dict("records")
+    st.session_state["live_scan_signature"] = scan_signature
+
+scan_raw = pd.DataFrame(st.session_state.get("live_scan_records", []))
+scan_stale = bool(not scan_raw.empty and st.session_state.get("live_scan_signature") != scan_signature)
 scan=action_from_relative_rank(add_cross_sectional_evidence(scan_raw)) if not scan_raw.empty else pd.DataFrame()
 
 # -----------------------------
@@ -893,7 +904,9 @@ tab_control, tab_chain, tab_scen, tab_replay, tab_research = st.tabs([
 with tab_control:
     st.markdown("<div class='section'>What should I look at now?</div>", unsafe_allow_html=True)
     if scan.empty:
-        st.warning("No live scan rows. Install requirements / check network, then refresh. The causal/scenario/replay tabs still work offline.")
+        st.info("Scanner ready. Choose markets in the sidebar and press **Run / refresh live scan**. The app intentionally does not hit Yahoo/API endpoints during startup.")
+    elif scan_stale:
+        st.warning("The displayed scan is from a different market/max-assets selection. Press **Run / refresh live scan** to update it.")
     else:
         usable=scan[scan["error"].fillna("")==""] if "error" in scan else scan
         build_count=int(usable["research_action"].str.contains("BUILD",na=False).sum()) if not usable.empty else 0
@@ -1051,10 +1064,20 @@ with tab_scen:
     st.markdown("<div class='section'>Automatic scenario discovery — scenario list changes with live evidence</div>",unsafe_allow_html=True)
     st.markdown("<div class='gate'>The engine scans broad causal queries, clusters headlines into known themes, and also surfaces recurring unmapped terms as <b>NOVEL CLUSTERS</b>. A novel cluster is a research hypothesis, not a probability. It must be mapped to a causal chain and falsifier before it can affect action.</div>",unsafe_allow_html=True)
     maxq=st.slider("Broad discovery query families",4,15,10,key="disc_q")
-    with st.spinner("Scanning broad public-news themes…"):
-        discovered=discover_live_scenarios(max_queries=maxq)
+    discover_btn = st.button("Run live scenario discovery", key="run_scenario_discovery", type="primary")
+    st.caption("Like the ticker scan, this network-heavy step is manual so the app always renders immediately on local and cloud deploys.")
+    if discover_btn:
+        try:
+            discover_live_scenarios.clear()
+        except Exception:
+            pass
+        with st.spinner("Scanning broad public-news themes…"):
+            fresh_discovered = discover_live_scenarios(max_queries=maxq)
+        st.session_state["scenario_discovery_records"] = fresh_discovered.to_dict("records")
+        st.session_state["scenario_discovery_maxq"] = int(maxq)
+    discovered = pd.DataFrame(st.session_state.get("scenario_discovery_records", []))
     if discovered.empty:
-        st.warning("Live scenario feed unavailable. The engine will not invent active scenarios; try again when the deployment has internet access.")
+        st.info("Scenario discovery is ready. Press **Run live scenario discovery** when you want a fresh public-news scan; nothing is fabricated while it is idle.")
     else:
         persist_scenario_memory(discovered)
         st.dataframe(discovered[["theme","root","evidence_count","source_count","novelty","latest_headline","sources"]],use_container_width=True,hide_index=True)
@@ -1126,4 +1149,4 @@ The architecture is intentionally built so missing data becomes grey / research-
 </div>
 """,unsafe_allow_html=True)
 
-st.caption("Opportunity Intelligence v1 · causal-first, projection-aware, scenario-adaptive, no classic technical indicators.")
+st.caption("Opportunity Intelligence v1.1 · causal-first, projection-aware, scenario-adaptive, no classic technical indicators.")

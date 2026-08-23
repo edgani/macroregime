@@ -84,3 +84,11 @@ The ZIP also contains `pages/2_Macro_Control_Room.py`, the latest Macro Control 
 ## Important limitations
 
 This v1 is an inspectable working research product, not a claim that the full multi-market scanner is statistically proven. Production promotion still requires point-in-time data, negative controls, holdout winners, false-alarm accounting, lead-time analysis and purged/embargoed OOS validation.
+
+## v1.1 startup/runtime fix
+
+- Fixed `UnserializableReturnValueError` from `st.cache_data`: the Yahoo adapter now caches only a plain dictionary, never the custom `AssetSnapshot` dataclass.
+- Live ticker scan no longer runs during app startup. Press **Run / refresh live scan** after the UI loads.
+- Auto Scenario Discovery no longer fires 4–15 external news queries on every Streamlit rerun/tab render. Press **Run live scenario discovery** when needed.
+- Added `pyarrow<25` plus Python 3.12 preference files for safer cloud deployment.
+- Result: both local and cloud deployments should render the UI immediately instead of sitting in a startup spinner while external APIs are queried.

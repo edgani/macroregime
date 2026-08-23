@@ -1,3 +1,18 @@
+# Opportunity Intelligence Engine v1.2 — Unified
+
+Macro is now embedded in the same Streamlit app. There is no separate Macro Control Room page in the sidebar. Use the top in-app workspace navigation:
+
+- MACRO + ACTION
+- OPPORTUNITY CONTROL ROOM
+- CAUSAL CHAINS
+- AUTO SCENARIO DISCOVERY
+- HISTORICAL REPLAY
+- RESEARCH / GATES
+
+The macro action snapshot flows into the Opportunity Control Room as a gate/sizing-expression modifier.
+
+This version also fixes the `gap_rank` KeyError and defensively repairs stale session-state scan schemas.
+
 # Opportunity Intelligence Engine v1
 
 A causal-first multi-market opportunity scanner for:

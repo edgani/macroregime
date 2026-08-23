@@ -36,7 +36,7 @@ except Exception:
     yf = None
 
 # ============================================================
-# OPPORTUNITY INTELLIGENCE ENGINE v1.1
+# OPPORTUNITY INTELLIGENCE ENGINE v1.2 UNIFIED
 # ------------------------------------------------------------
 # Goal: high-recall discovery of exceptional opportunities, then
 # high-precision confirmation. No classic technical indicators.
@@ -62,6 +62,8 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+from macro_embedded import render_macro_control_room
 
 HEADERS = {
     "User-Agent": "OpportunityIntelligence/1.0 research-dashboard contact=local-user",
@@ -841,7 +843,7 @@ st.markdown(
     f"""
 <div class='hero'>
  <div class='hero-title'>Opportunity Intelligence Engine</div>
- <div class='sub'>Find the economic change first → trace the entire beneficiary/loser chain → project fundamentals → reverse-engineer what price already assumes → choose the expression.</div>
+ <div class='sub'>Macro action gate → discover the economic change → trace beneficiary/loser chains → project fundamentals → reverse-engineer what price assumes → choose the expression.</div>
  <div class='legend'>
    {badge('DISCOVERY = high recall','blue')}
    {badge('CONFIRMATION = evidence agreement','green')}
@@ -892,16 +894,62 @@ if scan_btn:
 
 scan_raw = pd.DataFrame(st.session_state.get("live_scan_records", []))
 scan_stale = bool(not scan_raw.empty and st.session_state.get("live_scan_signature") != scan_signature)
-scan=action_from_relative_rank(add_cross_sectional_evidence(scan_raw)) if not scan_raw.empty else pd.DataFrame()
+if not scan_raw.empty:
+    try:
+        scan = action_from_relative_rank(add_cross_sectional_evidence(scan_raw))
+    except Exception as _scan_err:
+        # Old/incomplete session rows should never crash the whole dashboard.
+        scan = scan_raw.copy()
+        scan["error"] = scan.get("error", "")
+        scan["stage"] = scan.get("stage", "DISCOVERED / NEEDS MORE EVIDENCE")
+        scan["research_action"] = scan.get("research_action", "WATCH / NO FORCED TRADE")
+        scan["evidence_families"] = pd.to_numeric(scan.get("evidence_families", 0), errors="coerce").fillna(0) if isinstance(scan.get("evidence_families", 0), pd.Series) else 0
+        scan["gap_rank"] = np.nan
+        scan["expectation_gap"] = np.nan
+        st.warning(f"Live scan schema was repaired from an older/incomplete session snapshot: {_scan_err}")
+else:
+    scan = pd.DataFrame()
 
 # -----------------------------
 # Tabs
 # -----------------------------
-tab_control, tab_chain, tab_scen, tab_replay, tab_research = st.tabs([
-    "OPPORTUNITY CONTROL ROOM","CAUSAL CHAINS","AUTO SCENARIO DISCOVERY","HISTORICAL REPLAY","RESEARCH / GATES"
-])
+NAV_OPTIONS = [
+    "MACRO + ACTION",
+    "OPPORTUNITY CONTROL ROOM",
+    "CAUSAL CHAINS",
+    "AUTO SCENARIO DISCOVERY",
+    "HISTORICAL REPLAY",
+    "RESEARCH / GATES",
+]
+nav = st.radio(
+    "Workspace",
+    NAV_OPTIONS,
+    horizontal=True,
+    label_visibility="collapsed",
+    key="unified_workspace",
+)
 
-with tab_control:
+if nav == "MACRO + ACTION":
+    render_macro_control_room()
+
+elif nav == "OPPORTUNITY CONTROL ROOM":
+    _mg = st.session_state.get("macro_gate_snapshot")
+    if _mg:
+        _tone = _mg.get("action_tone", "gray")
+        _event = _mg.get("event_override") or "None"
+        st.markdown(
+            "<div class='panel'><div class='ptitle'>MACRO GATE → OPPORTUNITY EXPRESSION</div>"
+            f"<div class='kpis'>"
+            f"{kpi('Macro action', _mg.get('action_label','—'), fmt_num(safe_float(_mg.get('action_score')),0)+'/100', _mg.get('headline',''), _tone)}"
+            f"{kpi('Macro regime', _mg.get('regime','—'), '', _mg.get('regime_explain',''), 'blue')}"
+            f"{kpi('Crash state', _mg.get('crash_state','—'), '', 'Credit: '+str(_mg.get('credit_state','—')), _mg.get('crash_tone','gray'))}"
+            f"{kpi('Event override', str(_event), '', 'This can downgrade/alter the preferred expression.', 'amber' if _event != 'None' else 'green')}"
+            "</div><div class='gate' style='margin-top:6px'>Macro is a <b>gate and sizing/expression modifier</b>, not a reason to kill a strong secular bottom-up thesis. Refresh it in <b>MACRO + ACTION</b>.</div></div>",
+            unsafe_allow_html=True,
+        )
+    else:
+        st.info("Macro gate has not been loaded in this session yet. Open **MACRO + ACTION** once; its action state will then flow into this opportunity view.")
+
     st.markdown("<div class='section'>What should I look at now?</div>", unsafe_allow_html=True)
     if scan.empty:
         st.info("Scanner ready. Choose markets in the sidebar and press **Run / refresh live scan**. The app intentionally does not hit Yahoo/API endpoints during startup.")
@@ -931,7 +979,9 @@ with tab_control:
             display["GM Δ"] = display["gross_margin_change"].map(lambda x: pct(x))
             display["gap"] = display["expectation_gap"].map(lambda x: pct(x))
             cols=["market","symbol","name","stage","research_action","price","rev YoY","EPS YoY","GM Δ","gap","data_quality"]
-            st.dataframe(display[cols].sort_values(["evidence_families","gap_rank"],ascending=False),use_container_width=True,hide_index=True)
+            _sort_cols=[c for c in ["evidence_families","gap_rank"] if c in display.columns]
+            _table=display.sort_values(_sort_cols,ascending=[False]*len(_sort_cols)) if _sort_cols else display
+            st.dataframe(_table[cols],use_container_width=True,hide_index=True)
 
             st.markdown("<div class='section'>Deep-dive one candidate</div>", unsafe_allow_html=True)
             symbols=display["symbol"].tolist()
@@ -1019,7 +1069,7 @@ Fair-value bands are deliberately wide and assumption-visible; they are not prod
                 with st.expander("Live evidence headlines"):
                     st.dataframe(pd.DataFrame(ev["items"])[["source","title","pubDate"]],use_container_width=True,hide_index=True)
 
-with tab_chain:
+elif nav == "CAUSAL CHAINS":
     st.markdown("<div class='section'>Chain engine — direct, second-order, third-order and losers</div>",unsafe_allow_html=True)
     presets=[
         "AI adoption","Electrical load","Networking bandwidth","CPO price","War escalation","Protocol usage","Private asset usage","Currency depreciation speed","Consumer mobility recovery"
@@ -1060,7 +1110,7 @@ with tab_chain:
     if not dc.empty:
         st.dataframe(dc[["source","target","mechanism","role","lag","condition"]],use_container_width=True,hide_index=True)
 
-with tab_scen:
+elif nav == "AUTO SCENARIO DISCOVERY":
     st.markdown("<div class='section'>Automatic scenario discovery — scenario list changes with live evidence</div>",unsafe_allow_html=True)
     st.markdown("<div class='gate'>The engine scans broad causal queries, clusters headlines into known themes, and also surfaces recurring unmapped terms as <b>NOVEL CLUSTERS</b>. A novel cluster is a research hypothesis, not a probability. It must be mapped to a causal chain and falsifier before it can affect action.</div>",unsafe_allow_html=True)
     maxq=st.slider("Broad discovery query families",4,15,10,key="disc_q")
@@ -1102,7 +1152,7 @@ with tab_scen:
     if mem.empty: st.caption("No persistent scenario memory yet.")
     else: st.dataframe(mem.head(40),use_container_width=True,hide_index=True)
 
-with tab_replay:
+elif nav == "HISTORICAL REPLAY":
     st.markdown("<div class='section'>Acceptance tests — examples are tests, never training labels</div>",unsafe_allow_html=True)
     st.dataframe(ACCEPTANCE,use_container_width=True,hide_index=True)
     st.markdown("<div class='gate'>PASS requires point-in-time evidence known on that date, a pre-frozen rule, negative controls, false-positive burden and lead time. The table below is the replay manifest / causal timeline; it is not yet a statistical proof by itself.</div>",unsafe_allow_html=True)
@@ -1123,7 +1173,7 @@ with tab_replay:
 </div>
 """,unsafe_allow_html=True)
 
-with tab_research:
+elif nav == "RESEARCH / GATES":
     st.markdown("<div class='section'>Frozen principles</div>",unsafe_allow_html=True)
     st.markdown("""
 <div class='grid3'>

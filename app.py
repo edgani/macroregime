@@ -30,7 +30,7 @@ from engines.visual_engine import (
 )
 
 HERE = Path(__file__).resolve().parent
-st.set_page_config(page_title='Macro Decision OS v5', page_icon='◈', layout='wide', initial_sidebar_state='expanded')
+st.set_page_config(page_title='Macro Decision OS v5.1', page_icon='◈', layout='wide', initial_sidebar_state='expanded')
 
 st.markdown('''
 <style>
@@ -108,13 +108,13 @@ crash = crash_conclusion(state)
 
 
 # ── Header ─────────────────────────────────────────────────────────────────
-st.title('Macro Decision OS v5')
+st.title('Macro Decision OS v5.1')
 st.caption('One-screen decision board first; proof and data lineage stay available behind it. No classic TA alpha. Missing critical data fails closed.')
 
 fred_loaded = len(fred)
 price_loaded = len(flat)
 if fred_loaded == 0:
-    st.error('Macro feed is unavailable: FRED loaded 0 series. V5 already tries FRED API → fredgraph → DBnomics; add `FRED_API_KEY` in Streamlit Secrets for the most reliable cloud path. No synthetic macro values are substituted.')
+    st.error('Macro feed is unavailable: FRED loaded 0 series. V5.1 tries FRED API → fredgraph → DBnomics; add `FRED_API_KEY` in Streamlit Secrets for the most reliable cloud path. No synthetic macro values are substituted.')
 elif fred_loaded < 10:
     st.warning(f'Partial macro feed: only {fred_loaded} FRED series loaded. Interpret scenario/correlation panels cautiously.')
 
@@ -259,16 +259,43 @@ with T[1]:
         asset = b.selectbox('Asset', asset_choices)
         d = relationship_scatter(fred, flat[asset], factor, years, horizon)
         if len(d) >= 24:
-            fig = px.scatter(d.reset_index(), x='factor_value', y='forward_return', hover_data=['index'])
-            x = d['factor_value'].values; y = d['forward_return'].values
-            ok = np.isfinite(x) & np.isfinite(y)
-            if ok.sum() >= 3 and np.nanstd(x[ok]) > 0:
-                m, q = np.polyfit(x[ok], y[ok], 1)
-                xx = np.linspace(np.nanmin(x[ok]), np.nanmax(x[ok]), 100)
-                fig.add_trace(go.Scatter(x=xx, y=m*xx+q, mode='lines', name='Linear association'))
-            corr = d['factor_value'].corr(d['forward_return'])
-            fig.update_layout(height=440, title=f'{factor} vs {asset} forward {horizon}M return · corr={corr:.2f}', xaxis_title=factor, yaxis_title='Forward return')
-            st.plotly_chart(fig, use_container_width=True)
+            # Plotly Express must receive an actual column name for hover_data.
+            # FRED/DBnomics histories can carry different DatetimeIndex names
+            # (DATE, observation_date, None, etc.), so normalize it explicitly.
+            try:
+                plot_d = d[['factor_value', 'forward_return']].copy()
+                plot_d.index = pd.to_datetime(plot_d.index, errors='coerce')
+                plot_d = plot_d.loc[plot_d.index.notna()].copy()
+                plot_d.index.name = 'date'
+                plot_d = plot_d.reset_index()
+                plot_d['factor_value'] = pd.to_numeric(plot_d['factor_value'], errors='coerce')
+                plot_d['forward_return'] = pd.to_numeric(plot_d['forward_return'], errors='coerce')
+                plot_d = plot_d.replace([np.inf, -np.inf], np.nan).dropna(subset=['factor_value', 'forward_return'])
+
+                if len(plot_d) < 24:
+                    st.info('Not enough clean observations for this pair.')
+                else:
+                    fig = px.scatter(
+                        plot_d, x='factor_value', y='forward_return', hover_data=['date'],
+                        labels={'factor_value': factor, 'forward_return': f'{horizon}M forward return'},
+                    )
+                    x = plot_d['factor_value'].to_numpy(dtype=float)
+                    y = plot_d['forward_return'].to_numpy(dtype=float)
+                    ok = np.isfinite(x) & np.isfinite(y)
+                    if ok.sum() >= 3 and np.nanstd(x[ok]) > 0:
+                        m, q = np.polyfit(x[ok], y[ok], 1)
+                        xx = np.linspace(np.nanmin(x[ok]), np.nanmax(x[ok]), 100)
+                        fig.add_trace(go.Scatter(x=xx, y=m*xx+q, mode='lines', name='Linear association'))
+                    corr = plot_d['factor_value'].corr(plot_d['forward_return'])
+                    corr_txt = f'{corr:.2f}' if np.isfinite(corr) else 'N/A'
+                    fig.update_layout(
+                        height=440,
+                        title=f'{factor} vs {asset} forward {horizon}M return · corr={corr_txt}',
+                        xaxis_title=factor, yaxis_title='Forward return',
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
+            except Exception as exc:
+                st.warning(f'Relationship chart unavailable for this pair: {type(exc).__name__}. The rest of the app remains available.')
         else:
             st.info('Not enough observations for this pair.')
     else:

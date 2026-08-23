@@ -1,6 +1,5 @@
 from __future__ import annotations
 from pathlib import Path
-from datetime import datetime, timezone
 import numpy as np
 import pandas as pd
 import streamlit as st
@@ -8,17 +7,15 @@ import plotly.express as px
 import plotly.graph_objects as go
 
 from config.metric_registry_v4 import METRIC_FAMILIES
-from data_layer_v4 import build_data_bundle, load_universes, strict_prices
+from data_layer_v4 import build_data_bundle, strict_prices
 from providers.options_public import snapshot as option_snapshot
 from engines.state_engine import current_state
 from engines.scenario_engine import live_evidence
-from engines.thesis_engine import lifecycle
 from engines.crash_engine import crash_matrix, crash_conclusion
-from engines.projection_engine import analog_distribution, walkforward_calibration
-from engines.cross_market_engine import bottleneck_matrix
+from engines.projection_engine import analog_distribution, walkforward_calibration, opportunity_radar, normalized_projection_path
+from engines.cross_market_engine import bottleneck_matrix, empirical_sensitivities
 from engines.bottleneck_engine import investigate
 from engines.opportunity_engine import OBJECTIVES
-from engines.runway_engine import remaining_runway
 from engines.experiment_registry import (
     load_experiments, load_failures, load_search_ledger,
     load_governance_overrides, proof_summary,
@@ -28,432 +25,401 @@ from engines.visual_engine import (
     macro_correlation, macro_asset_relationships, relationship_scatter,
     bundled_longrun_correlation,
 )
+from engines.decision_engine import (
+    operational_posture, heatmap_guidance, shock_guidance,
+    scenario_guidance, projection_guidance, company_gate_guidance,
+)
 
 HERE = Path(__file__).resolve().parent
-st.set_page_config(page_title='Macro Decision OS v5.1', page_icon='◈', layout='wide', initial_sidebar_state='expanded')
+st.set_page_config(page_title='Macro Decision OS v5.2', page_icon='◈', layout='wide', initial_sidebar_state='expanded')
 
 st.markdown('''
 <style>
-.block-container {padding-top: 1.4rem; padding-bottom: 2rem; max-width: 1550px;}
-[data-testid="stMetric"] {border: 1px solid rgba(128,128,128,.22); border-radius: 12px; padding: 9px 12px;}
-.small {font-size: .83rem; opacity: .75;}
-div[data-testid="stTabs"] button {font-size: .95rem;}
+.block-container {padding-top: 1.1rem; padding-bottom: 2rem; max-width: 1540px;}
+[data-testid="stMetric"] {border:1px solid rgba(128,128,128,.22); border-radius:12px; padding:9px 12px;}
+div[data-testid="stTabs"] button {font-size:.96rem;}
+.decision-title {font-size:.78rem; opacity:.65; margin-bottom:.1rem;}
+.decision-text {font-size:.98rem; line-height:1.45;}
 </style>
 ''', unsafe_allow_html=True)
 
 
 def finite(x):
-    try:
-        return np.isfinite(float(x))
-    except Exception:
-        return False
+    try:return np.isfinite(float(x))
+    except Exception:return False
 
 
-def fmt_num(x, digits=2, pct=False):
-    if not finite(x):
-        return 'N/A'
+def fmt_num(x,digits=2,pct=False):
+    if not finite(x):return 'N/A'
     return f'{float(x):.{digits}%}' if pct else f'{float(x):.{digits}f}'
 
 
 def flatten_prices(bundle):
-    out = {}
-    for d in bundle.get('prices', {}).values():
-        out.update(d or {})
+    out={}
+    for d in bundle.get('prices',{}).values():out.update(d or {})
     return out
 
 
-def scenario_counts(row):
-    sup = str(row.get('supporting_evidence', ''))
-    con = str(row.get('contradicting_evidence', ''))
-    ns = 0 if not sup or sup.startswith('None') else len([x for x in sup.split(';') if x.strip()])
-    nc = 0 if not con or con.startswith('None') else len([x for x in con.split(';') if x.strip()])
-    return ns, nc
+def guidance(read, do, nxt, title='How to use this'):
+    st.markdown(f'**{title}**')
+    a,b,c=st.columns(3)
+    with a:
+        st.markdown('**READ**')
+        st.caption(read)
+    with b:
+        st.markdown('**DO**')
+        st.caption(do)
+    with c:
+        st.markdown('**NEXT**')
+        st.caption(nxt)
 
 
-def relationship_heatmap(df, title, zmin=-1, zmax=1):
+def relationship_heatmap(df,title,zmin=-1,zmax=1,height=430):
     if df is None or df.empty:
-        st.info('Not enough overlapping data for this matrix.')
-        return
-    fig = px.imshow(df, text_auto='.2f', aspect='auto', zmin=zmin, zmax=zmax, title=title)
-    fig.update_layout(height=max(420, 32 * len(df.index) + 180), margin=dict(l=10, r=10, t=55, b=10))
-    st.plotly_chart(fig, use_container_width=True)
+        st.info('Not enough overlapping data for this matrix.');return False
+    fig=px.imshow(df,text_auto='.2f',aspect='auto',zmin=zmin,zmax=zmax,title=title)
+    fig.update_layout(height=max(height,31*len(df.index)+160),margin=dict(l=10,r=10,t=55,b=10))
+    st.plotly_chart(fig,use_container_width=True);return True
 
 
-# ── Sidebar: only decisions; advanced controls hidden ──────────────────────
+def projection_fan(stats,title='Forward projection — normalized current value = 100'):
+    path=normalized_projection_path(stats)
+    if path.empty:
+        st.info('Projection fan unavailable.');return
+    fig=go.Figure()
+    fig.add_trace(go.Scatter(x=path.month,y=path.p90,mode='lines',line=dict(width=0),showlegend=False,hovertemplate='P90 %{y:.1f}<extra></extra>'))
+    fig.add_trace(go.Scatter(x=path.month,y=path.p10,mode='lines',line=dict(width=0),fill='tonexty',name='P10–P90 range',hovertemplate='P10 %{y:.1f}<extra></extra>'))
+    fig.add_trace(go.Scatter(x=path.month,y=path['median'],mode='lines+markers',name='Median',hovertemplate='Median %{y:.1f}<extra></extra>'))
+    fig.add_hline(y=100,line_width=1,line_dash='dot')
+    fig.update_xaxes(tickvals=[0,1,3,6,12],ticktext=['Now','1M','3M','6M','12M'],title=None)
+    fig.update_layout(height=390,margin=dict(l=10,r=10,t=55,b=10),title=title,yaxis_title='Normalized outcome')
+    st.plotly_chart(fig,use_container_width=True)
+
+
+def compact_projection_metrics(stats,horizon='3M'):
+    g=projection_guidance(stats,horizon)
+    r=g.get('row')
+    if r is None:return g
+    cols=st.columns(4)
+    cols[0].metric(f'{horizon} median',fmt_num(r.get('median'),1,True))
+    cols[1].metric('P(positive)',fmt_num(r.get('p_positive'),0,True))
+    cols[2].metric('P(loss >10%)',fmt_num(r.get('p_loss10'),0,True))
+    cols[3].metric('P90 outcome',fmt_num(r.get('p90'),1,True))
+    return g
+
+
+# Sidebar — only controls that change a decision view.
 st.sidebar.markdown('### Decision setup')
-objective = st.sidebar.selectbox('Objective', OBJECTIVES)
-markets = st.sidebar.multiselect('Markets', ['us', 'idx', 'crypto', 'commodity', 'fx'], default=['us', 'idx', 'crypto', 'commodity', 'fx'])
-with st.sidebar.expander('Data controls', expanded=False):
-    cap = st.slider('Live symbols / market', 5, 35, 20, 5)
-    special = st.toggle('Specialized public feeds', True)
-    st.caption('Optional: add FRED_API_KEY in Streamlit Secrets for the most reliable macro feed.')
-if st.sidebar.button('Refresh data', use_container_width=True):
-    st.cache_data.clear()
-    st.rerun()
+objective=st.sidebar.selectbox('Objective',OBJECTIVES)
+markets=st.sidebar.multiselect('Markets',['us','idx','crypto','commodity','fx'],default=['us','idx','crypto','commodity','fx'])
+with st.sidebar.expander('Advanced data controls',expanded=False):
+    cap=st.slider('Live symbols / market',5,35,20,5)
+    special=st.toggle('Specialized public feeds',True)
+    st.caption('FRED_API_KEY in Streamlit Secrets is recommended for reliable macro data.')
+if st.sidebar.button('Refresh data',use_container_width=True):
+    st.cache_data.clear();st.rerun()
 
-
-@st.cache_data(ttl=1800, show_spinner=False)
-def load_bundle(m, c, s):
-    return build_data_bundle(m, c, s)
-
+@st.cache_data(ttl=1800,show_spinner=False)
+def load_bundle(m,c,s):return build_data_bundle(m,c,s)
 
 with st.spinner('Loading live / public data…'):
-    bundle = load_bundle(markets, cap, special)
-state = current_state(bundle)
-fred = bundle.get('fred', {})
-flat = flatten_prices(bundle)
-lineage = bundle.get('lineage', pd.DataFrame())
-head = headline_states(state)
-crash = crash_conclusion(state)
+    bundle=load_bundle(markets,cap,special)
+state=current_state(bundle);fred=bundle.get('fred',{});flat=flatten_prices(bundle);lineage=bundle.get('lineage',pd.DataFrame())
+head=headline_states(state);scenarios=live_evidence(state);crash=crash_conclusion(state);posture=operational_posture(state,scenarios,crash)
+fred_loaded=len(fred);price_loaded=len(flat)
 
+# Header
+st.title('Macro Decision OS v5.2')
+st.caption('Decision-first view: state → what to do → next projection → opportunity → invalidation. Research proof stays behind the interface.')
+if fred_loaded==0:
+    st.error('Macro feed unavailable. Add FRED_API_KEY in Streamlit Secrets. No synthetic macro values are substituted.')
+elif fred_loaded<10:
+    st.warning(f'Partial macro feed: {fred_loaded} series loaded. Projection and scenario panels may be incomplete.')
 
-# ── Header ─────────────────────────────────────────────────────────────────
-st.title('Macro Decision OS v5.1')
-st.caption('One-screen decision board first; proof and data lineage stay available behind it. No classic TA alpha. Missing critical data fails closed.')
+h1,h2,h3,h4=st.columns(4)
+h1.metric('Operational posture',posture['posture'])
+h2.metric('Macro coverage',f'{fred_loaded} series')
+h3.metric('Market coverage',f'{price_loaded} symbols')
+h4.metric('Trade action',posture['trade_action'])
 
-fred_loaded = len(fred)
-price_loaded = len(flat)
-if fred_loaded == 0:
-    st.error('Macro feed is unavailable: FRED loaded 0 series. V5.1 tries FRED API → fredgraph → DBnomics; add `FRED_API_KEY` in Streamlit Secrets for the most reliable cloud path. No synthetic macro values are substituted.')
-elif fred_loaded < 10:
-    st.warning(f'Partial macro feed: only {fred_loaded} FRED series loaded. Interpret scenario/correlation panels cautiously.')
+guidance(posture['read'],posture['do'],posture['next'],'What the system says now')
 
-# Compact system status row
-s1, s2, s3, s4 = st.columns(4)
-s1.metric('Macro data', f'{fred_loaded}/{len(getattr(__import__("data_layer_v4"), "FRED", {})) or 29} series')
-s2.metric('Market prices', f'{price_loaded} symbols')
-s3.metric('Crash trigger', 'ACTIVE' if crash.get('active_phases') else ('WATCH' if crash.get('watch_phases') else 'NO ACTIVE TRIGGER'))
-s4.metric('Decision default', 'NO TRADE' if not crash.get('active_phases') else 'RISK REVIEW')
+T=st.tabs(['Dashboard','Scenarios & Relationships','Opportunities','Research & Data'])
 
-T = st.tabs(['Dashboard', 'Scenarios & Relationships', 'Opportunities', 'Research & Data'])
-
-
-# ═══════════════════════════════════════════════════════════════════════════
-# 1. DASHBOARD
-# ═══════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════
+# DASHBOARD
+# ══════════════════════════════════════════════════════════════════════════
 with T[0]:
-    st.subheader('Live Macro Board')
-    st.caption('Labels are descriptive state summaries, not trade signals or probabilities.')
+    st.subheader('1 · Current State')
+    cols=st.columns(6)
+    for col,label in zip(cols,['Growth','Inflation','Rates','Credit','Funding','Volatility']):
+        lab,raw=head[label]
+        raw_txt=fmt_num(raw,1,True) if label=='Inflation' else (f'{fmt_num(raw,2)} pp' if label=='Funding' else fmt_num(raw,2))
+        col.metric(label,lab,raw_txt)
 
-    cols = st.columns(6)
-    labels = ['Growth', 'Inflation', 'Rates', 'Credit', 'Funding', 'Volatility']
-    for col, label in zip(cols, labels):
-        state_label, raw = head[label]
-        if label == 'Inflation':
-            raw_txt = fmt_num(raw, 1, pct=True)
-        elif label in ('Funding',):
-            raw_txt = f'{fmt_num(raw, 2)} pp'
-        elif label == 'Volatility':
-            raw_txt = fmt_num(raw, 1)
-        else:
-            raw_txt = fmt_num(raw, 2)
-        col.metric(label, state_label, raw_txt)
-
-    left, right = st.columns([1.15, 1])
+    left,right=st.columns(2)
     with left:
-        st.markdown('#### Relative-state heatmap')
-        h = percentile_strip(state).dropna(subset=['percentile'])
+        st.markdown('#### A. Relative-state heatmap')
+        h=percentile_strip(state).dropna(subset=['percentile'])
         if len(h):
-            z = h.set_index('driver')[['percentile']].T
-            fig = px.imshow(z, text_auto='.0%', aspect='auto', zmin=0, zmax=1)
-            fig.update_layout(height=210, margin=dict(l=10, r=10, t=10, b=10), xaxis_title=None, yaxis_title=None)
-            st.plotly_chart(fig, use_container_width=True)
-            st.caption('Own-history percentile. High percentile means high relative level, not automatically bullish/bearish.')
-        else:
-            st.info('Relative-state heatmap requires macro data.')
+            z=h.set_index('driver')[['percentile']].T
+            fig=px.imshow(z,text_auto='.0%',aspect='auto',zmin=0,zmax=1)
+            fig.update_layout(height=205,margin=dict(l=8,r=8,t=8,b=8),xaxis_title=None,yaxis_title=None)
+            st.plotly_chart(fig,use_container_width=True)
+        else:st.info('Needs macro data.')
+        g=heatmap_guidance(h)
+        guidance(g['read'],g['do'],g['next'])
 
     with right:
-        st.markdown('#### 13-week macro shocks')
-        sh = standardized_shocks(fred).dropna(subset=['z_13w'])
+        st.markdown('#### B. What changed most recently?')
+        sh=standardized_shocks(fred).dropna(subset=['z_13w'])
         if len(sh):
-            sh = sh.sort_values('z_13w')
-            fig = px.bar(sh, x='z_13w', y='driver', orientation='h', hover_data=['series', 'raw_change'])
-            fig.add_vline(x=0, line_width=1)
-            fig.update_layout(height=330, margin=dict(l=10, r=10, t=10, b=10), xaxis_title='Current 13w change, z-score vs own history', yaxis_title=None)
-            st.plotly_chart(fig, use_container_width=True)
-        else:
-            st.info('Shock chart requires macro history.')
-
-    st.markdown('#### Competing thesis — evidence, not storytelling')
-    le = live_evidence(state)
-    if len(le):
-        card_cols = st.columns(4)
-        for col, (_, row) in zip(card_cols, le.iterrows()):
-            ns, nc = scenario_counts(row)
-            with col:
-                st.markdown(f"**{row['type']}**")
-                st.write(row['scenario'])
-                st.metric('Support / contradiction', f'{ns} / {nc}')
-                with st.expander('Evidence'):
-                    st.write('**Supports:**', row['supporting_evidence'])
-                    st.write('**Contradicts:**', row['contradicting_evidence'])
-        st.info('Numerical scenario probabilities remain unavailable until a live-compatible calibrated model exists. Evidence counts are not probabilities.')
-
-    st.markdown('#### Crash mechanism')
-    cm = crash_matrix(state)
-    phase_map = {'DATA_GATED': 0, 'NO ACTIVE EVIDENCE IN LOADED SUBSET': 1, 'WATCH': 2, 'ACTIVE / INVESTIGATE': 3}
-    cmv = cm[['phase', 'status']].copy()
-    cmv['level'] = cmv['status'].map(phase_map).fillna(0)
-    fig = px.bar(cmv, x='phase', y='level', text='status')
-    fig.update_yaxes(tickvals=[0,1,2,3], ticktext=['GATED','CLEAR','WATCH','ACTIVE'], range=[0,3.4])
-    fig.update_layout(height=330, margin=dict(l=10, r=10, t=10, b=10), yaxis_title=None, xaxis_title=None)
-    st.plotly_chart(fig, use_container_width=True)
-    with st.expander('Crash evidence details'):
-        st.dataframe(cm, use_container_width=True, hide_index=True)
-
-
-# ═══════════════════════════════════════════════════════════════════════════
-# 2. SCENARIOS & RELATIONSHIPS
-# ═══════════════════════════════════════════════════════════════════════════
-with T[1]:
-    st.subheader('Scenarios & Relationships')
-    st.caption('Correlation/association panels are research context. They do not replace causal transmission or PIT validation.')
-
-    # Scenario balance visual
-    le = lifecycle(state)
-    sb = []
-    for _, row in le.iterrows():
-        ns, nc = scenario_counts(row)
-        sb.append({'scenario': row['scenario'], 'type': row['type'], 'support': ns, 'contradiction': -nc})
-    sb = pd.DataFrame(sb)
-    if len(sb):
-        sb_long = sb.melt(id_vars=['scenario','type'], value_vars=['support','contradiction'], var_name='evidence', value_name='count')
-        fig = px.bar(sb_long, x='count', y='scenario', color='evidence', orientation='h', barmode='relative', title='Live scenario evidence balance')
-        fig.add_vline(x=0, line_width=1)
-        fig.update_layout(height=360, margin=dict(l=10, r=10, t=50, b=10), xaxis_title='Evidence count (not probability)', yaxis_title=None)
-        st.plotly_chart(fig, use_container_width=True)
-
-    c1, c2, c3 = st.columns([1,1,1])
-    years = c1.selectbox('Relationship window', [5, 10, 15], index=1)
-    horizon = c2.selectbox('Forward asset horizon', [1, 3, 6], index=0, format_func=lambda x: f'{x} month' if x == 1 else f'{x} months')
-    source_mode = c3.selectbox('Matrix', ['Macro ↔ Assets', 'Macro ↔ Macro', 'Long-run bundled research'])
-
-    if source_mode == 'Macro ↔ Macro':
-        relationship_heatmap(macro_correlation(fred, years), f'Macro driver correlation — last {years}y')
-    elif source_mode == 'Long-run bundled research':
-        relationship_heatmap(bundled_longrun_correlation(), 'Bundled long-run macro / asset relationship matrix')
-        st.caption('Bundled War Room research panel is historical research context, not live PIT evidence.')
-    else:
-        rel = macro_asset_relationships(fred, flat, years, horizon)
-        if len(rel):
-            # Keep a concise set of liquid representative instruments first.
-            preferred = ['SPY','IWM','QQQ','TLT','GLD','USO','UUP','^JKSE','BTC-USD','ETH-USD']
-            avail = [x for x in preferred if x in rel.instrument.unique()]
-            if not avail:
-                avail = list(rel.instrument.unique())[:10]
-            p = rel[rel.instrument.isin(avail)].pivot(index='factor', columns='instrument', values='correlation')
-            relationship_heatmap(p, f'Macro change ↔ {horizon}M forward asset return correlation, last {years}y')
-            st.caption('Forward outcome correlation only. A stable sign still does not prove a causal trade mapping.')
-        else:
-            st.info('Macro ↔ asset matrix needs overlapping macro and price history.')
-
-    st.markdown('#### Relationship explorer')
-    if fred_loaded:
-        factors = list(macro_correlation(fred, years).columns)
-    else:
-        factors = []
-    asset_choices = [x for x in ['SPY','IWM','QQQ','TLT','GLD','USO','UUP','^JKSE','BTC-USD','ETH-USD'] if x in flat]
-    if factors and asset_choices:
-        a, b = st.columns(2)
-        factor = a.selectbox('Macro driver', factors)
-        asset = b.selectbox('Asset', asset_choices)
-        d = relationship_scatter(fred, flat[asset], factor, years, horizon)
-        if len(d) >= 24:
-            # Plotly Express must receive an actual column name for hover_data.
-            # FRED/DBnomics histories can carry different DatetimeIndex names
-            # (DATE, observation_date, None, etc.), so normalize it explicitly.
-            try:
-                plot_d = d[['factor_value', 'forward_return']].copy()
-                plot_d.index = pd.to_datetime(plot_d.index, errors='coerce')
-                plot_d = plot_d.loc[plot_d.index.notna()].copy()
-                plot_d.index.name = 'date'
-                plot_d = plot_d.reset_index()
-                plot_d['factor_value'] = pd.to_numeric(plot_d['factor_value'], errors='coerce')
-                plot_d['forward_return'] = pd.to_numeric(plot_d['forward_return'], errors='coerce')
-                plot_d = plot_d.replace([np.inf, -np.inf], np.nan).dropna(subset=['factor_value', 'forward_return'])
-
-                if len(plot_d) < 24:
-                    st.info('Not enough clean observations for this pair.')
-                else:
-                    fig = px.scatter(
-                        plot_d, x='factor_value', y='forward_return', hover_data=['date'],
-                        labels={'factor_value': factor, 'forward_return': f'{horizon}M forward return'},
-                    )
-                    x = plot_d['factor_value'].to_numpy(dtype=float)
-                    y = plot_d['forward_return'].to_numpy(dtype=float)
-                    ok = np.isfinite(x) & np.isfinite(y)
-                    if ok.sum() >= 3 and np.nanstd(x[ok]) > 0:
-                        m, q = np.polyfit(x[ok], y[ok], 1)
-                        xx = np.linspace(np.nanmin(x[ok]), np.nanmax(x[ok]), 100)
-                        fig.add_trace(go.Scatter(x=xx, y=m*xx+q, mode='lines', name='Linear association'))
-                    corr = plot_d['factor_value'].corr(plot_d['forward_return'])
-                    corr_txt = f'{corr:.2f}' if np.isfinite(corr) else 'N/A'
-                    fig.update_layout(
-                        height=440,
-                        title=f'{factor} vs {asset} forward {horizon}M return · corr={corr_txt}',
-                        xaxis_title=factor, yaxis_title='Forward return',
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
-            except Exception as exc:
-                st.warning(f'Relationship chart unavailable for this pair: {type(exc).__name__}. The rest of the app remains available.')
-        else:
-            st.info('Not enough observations for this pair.')
-    else:
-        st.info('Relationship explorer will activate once macro and asset histories overlap.')
-
-
-# ═══════════════════════════════════════════════════════════════════════════
-# 3. OPPORTUNITIES
-# ═══════════════════════════════════════════════════════════════════════════
-with T[2]:
-    st.subheader('Opportunity Board')
-    st.caption('Mechanism first. A candidate can be interesting and still finish as NO TRADE when pricing, catalyst or runway is not defensible.')
-
-    bm = bottleneck_matrix(state)
-    if len(bm):
-        cards = st.columns(min(5, len(bm)))
-        for col, (_, row) in zip(cards, bm.iterrows()):
-            with col:
-                st.markdown(f"**{row['market']}**")
-                st.write(row['candidate_binding_channel'])
-                st.metric('Status', row['status'])
-                st.caption(row['evidence'])
-                with st.expander('Next check'):
-                    st.write(row['next_discriminating_observation'])
+            sh=sh.sort_values('z_13w')
+            fig=px.bar(sh,x='z_13w',y='driver',orientation='h',hover_data=['series','raw_change'])
+            fig.add_vline(x=0,line_width=1)
+            fig.update_layout(height=315,margin=dict(l=8,r=8,t=8,b=8),xaxis_title='13w move vs own history (z-score)',yaxis_title=None)
+            st.plotly_chart(fig,use_container_width=True)
+        else:st.info('Needs macro history.')
+        g=shock_guidance(sh)
+        guidance(g['read'],g['do'],g['next'])
 
     st.divider()
-    st.markdown('### Company bottleneck / winner-loser')
-    txt = st.text_input('US candidates', 'SNDK, PLTR, GNRC, MOD, POWL')
-    if st.button('Analyze company evidence', type='primary'):
-        tickers = [x.strip().upper() for x in txt.split(',') if x.strip()][:10]
-        with st.spinner('Reading SEC filings + filed-date Company Facts…'):
-            df, det = investigate(tickers)
-        st.session_state['v5_bdf'] = df
-        st.session_state['v5_bdet'] = det
+    st.subheader('2 · Competing Scenario')
+    if len(scenarios):
+        bal=[]
+        for _,r in scenarios.iterrows():
+            sup=str(r.get('supporting_evidence',''));con=str(r.get('contradicting_evidence',''))
+            ns=0 if sup.startswith('None') else len([x for x in sup.split(';') if x.strip()]);nc=0 if con.startswith('None') else len([x for x in con.split(';') if x.strip()])
+            bal.append({'type':r['type'],'scenario':r['scenario'],'support':ns,'contradiction':-nc})
+        d=pd.DataFrame(bal).melt(id_vars=['type','scenario'],value_vars=['support','contradiction'],var_name='evidence',value_name='count')
+        fig=px.bar(d,x='count',y='scenario',color='evidence',orientation='h',barmode='relative')
+        fig.add_vline(x=0,line_width=1);fig.update_layout(height=310,margin=dict(l=8,r=8,t=8,b=8),xaxis_title='Evidence balance — not probability',yaxis_title=None)
+        st.plotly_chart(fig,use_container_width=True)
+    g=scenario_guidance(scenarios)
+    guidance(g['read'],g['do'],g['next'])
 
-    df = st.session_state.get('v5_bdf')
-    det = st.session_state.get('v5_bdet', {})
-    if isinstance(df, pd.DataFrame) and len(df):
-        chart = df.copy()
-        chart['SEC_revenue_yoy'] = pd.to_numeric(chart['SEC_revenue_yoy'], errors='coerce')
-        chart['SEC_operating_income_yoy'] = pd.to_numeric(chart['SEC_operating_income_yoy'], errors='coerce')
-        chart['drawdown_abs'] = pd.to_numeric(chart['drawdown_5y_peak'], errors='coerce').abs().fillna(0.05).clip(lower=.03)
-        if chart[['SEC_revenue_yoy','SEC_operating_income_yoy']].notna().any().any():
-            fig = px.scatter(chart, x='SEC_revenue_yoy', y='SEC_operating_income_yoy', size='drawdown_abs', text='ticker', hover_data=['evidence_status','action','price'])
-            fig.add_hline(y=0, line_width=1); fig.add_vline(x=0, line_width=1)
-            fig.update_layout(height=450, xaxis_tickformat='.0%', yaxis_tickformat='.0%', xaxis_title='SEC revenue YoY', yaxis_title='SEC operating income YoY')
-            st.plotly_chart(fig, use_container_width=True)
-
-        short_cols = [c for c in ['ticker','evidence_status','action','price','drawdown_5y_peak','SEC_revenue_yoy','SEC_operating_income_yoy','filing_date'] if c in df.columns]
-        view = df[short_cols].copy()
-        for c in ['drawdown_5y_peak','SEC_revenue_yoy','SEC_operating_income_yoy']:
-            if c in view.columns:
-                view[c] = pd.to_numeric(view[c], errors='coerce').map(lambda x: f'{x:.1%}' if finite(x) else 'N/A')
-        st.dataframe(view, use_container_width=True, hide_index=True)
-
-        pick = st.selectbox('Inspect one candidate', df.ticker.tolist())
-        d = det.get(pick, {})
-        if d:
-            a,b,c = st.columns(3)
-            a.metric('Evidence', d.get('reason','N/A'))
-            b.metric('Action', d.get('action','NO TRADE'))
-            cur = d.get('current',{})
-            btm = d.get('sec_facts',{})
-            c.metric('Revenue YoY', fmt_num(btm.get('revenue_yoy'), 1, pct=True))
-
-            chain = d.get('chain', {})
-            chain_df = pd.DataFrame([{'stage': k.replace('_',' '), 'observed': bool(v)} for k,v in chain.items()])
-            fig = px.bar(chain_df, x='stage', y=chain_df['observed'].astype(int), text=chain_df['observed'].map({True:'YES',False:'NO'}))
-            fig.update_yaxes(tickvals=[0,1], ticktext=['NO','YES'], range=[0,1.25])
-            fig.update_layout(height=310, xaxis_title=None, yaxis_title='Evidence chain')
-            st.plotly_chart(fig, use_container_width=True)
-
-            st.write('**Competing thesis:**', d.get('competing_thesis','N/A'))
-            st.write('**Why action is still NO TRADE:**', d.get('action_reason','N/A'))
-            with st.expander('Kill switches & SEC snippets'):
-                for x in d.get('kill_switches',[]):
-                    st.write('•', x)
-                for x in d.get('filing',{}).get('snippets',[])[:8]:
-                    st.write(f"**{x['group']} / {x['term']}** — {x['snippet']}")
-
-            # Forward analog for selected candidate in same screen.
-            st.markdown('#### Forward outcome context')
-            pxs = flat.get(pick)
-            if pxs is None:
-                pp, _ = strict_prices([pick])
-                pxs = pp.get(pick)
-            if pxs is not None and fred_loaded:
-                stats, analogs, meta = analog_distribution(fred, pxs, 20)
-                if len(stats):
-                    graph = stats.copy()
-                    keep = [c for c in ['horizon','p_positive','p_gt25','p_gt50','p_gt100','p_loss10'] if c in graph.columns]
-                    long = graph[keep].melt(id_vars=['horizon'], var_name='outcome', value_name='probability')
-                    fig = px.bar(long, x='horizon', y='probability', color='outcome', barmode='group')
-                    fig.update_yaxes(tickformat='.0%')
-                    fig.update_layout(height=370, yaxis_title='Historical analog frequency', xaxis_title=None)
-                    st.plotly_chart(fig, use_container_width=True)
-                    st.caption(meta.get('warning','Historical analog context only; not calibrated remaining runway.'))
-                else:
-                    st.info('No usable macro analog distribution for this ticker.')
-            else:
-                st.info('Forward analog needs both macro history and ticker history.')
-
-            # Options integrated here instead of separate tab.
-            if st.button(f'Load {pick} options context'):
-                with st.spinner('Loading current option chain…'):
-                    st.session_state['v5_opt'] = (pick, option_snapshot(pick))
-            if st.session_state.get('v5_opt', (None,None))[0] == pick:
-                with st.expander('Options execution context', expanded=True):
-                    st.json(st.session_state['v5_opt'][1])
-                    st.caption('Instrument-specific execution/risk context only; no universal GEX direction claim.')
+    st.divider()
+    st.subheader('3 · Next Projection')
+    projection_assets=[x for x in ['IWM','SPY','QQQ','TLT','GLD','USO','UUP','^JKSE','BTC-USD','ETH-USD'] if x in flat]
+    if projection_assets and fred_loaded:
+        p1,p2=st.columns([1,3])
+        proj_asset=p1.selectbox('Projection instrument',projection_assets,index=0,key='dash_proj_asset')
+        proj_h=p1.selectbox('Decision horizon',['1M','3M','6M','12M'],index=1,key='dash_proj_h')
+        with st.spinner('Finding historically similar macro states…'):
+            stats,analogs,meta=analog_distribution(fred,flat[proj_asset],20)
+        with p2:
+            projection_fan(stats,f'{proj_asset} — historical macro-analog fan')
+        g=compact_projection_metrics(stats,proj_h)
+        guidance(g['read'],g['do'],g['next'])
+        st.caption('Projection is a historical conditional distribution from revised public history. It is research context until PIT/vintage calibration is available.')
     else:
-        st.info('Analyze a short candidate list to populate the visual company board.')
+        st.info('Projection needs both macro history and asset price history.')
 
+    st.divider()
+    st.subheader('4 · Crash / Risk Gate')
+    cm=crash_matrix(state)
+    phase_map={'DATA_GATED':0,'NO ACTIVE EVIDENCE IN LOADED SUBSET':1,'WATCH':2,'ACTIVE / INVESTIGATE':3}
+    if len(cm):
+        cmv=cm[['phase','status']].copy();cmv['level']=cmv.status.map(phase_map).fillna(0)
+        fig=px.bar(cmv,x='phase',y='level',text='status')
+        fig.update_yaxes(tickvals=[0,1,2,3],ticktext=['GATED','CLEAR','WATCH','ACTIVE'],range=[0,3.4])
+        fig.update_layout(height=300,margin=dict(l=8,r=8,t=8,b=8),yaxis_title=None,xaxis_title=None)
+        st.plotly_chart(fig,use_container_width=True)
+    if crash.get('active_phases'):
+        guidance('Acute crash evidence is active.','Risk/hedge review takes priority over new directional exposure.','Look for credit/funding/liquidation normalization before re-entry research.')
+    elif crash.get('watch_phases'):
+        guidance('Some crash phases are on WATCH but no calibrated crash probability exists.','Keep position sizing selective; do not confuse fragility with an imminent crash.','Escalate only if funding/credit acute-trigger evidence appears.')
+    else:
+        guidance('No active acute trigger is visible in the loaded subset.','Do not short simply because fragility metrics exist. Continue scenario/opportunity selection.','Watch for credit velocity, funding dislocation and forced-deleveraging evidence.')
 
-# ═══════════════════════════════════════════════════════════════════════════
-# 4. RESEARCH & DATA
-# ═══════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════
+# SCENARIOS & RELATIONSHIPS
+# ══════════════════════════════════════════════════════════════════════════
+with T[1]:
+    st.subheader('Scenario & Relationship Map')
+    st.caption('Use relationships to identify sensitivity, then return to causal scenario and opportunity gates. Correlation alone never becomes LONG/SHORT.')
+
+    c1,c2=st.columns([1,1])
+    years=c1.selectbox('History window',[5,10,15],index=1)
+    horizon=c2.selectbox('Forward outcome horizon',[1,3,6],index=1,format_func=lambda x:f'{x}M')
+
+    rel=macro_asset_relationships(fred,flat,years,horizon) if fred_loaded else pd.DataFrame()
+    preferred=['SPY','IWM','QQQ','TLT','GLD','USO','UUP','^JKSE','BTC-USD','ETH-USD']
+    if len(rel):
+        avail=[x for x in preferred if x in rel.instrument.unique()] or list(rel.instrument.unique())[:10]
+        p=rel[rel.instrument.isin(avail)].pivot(index='factor',columns='instrument',values='correlation')
+        ok=relationship_heatmap(p,f'Macro driver change ↔ {horizon}M forward asset outcome')
+        if ok:
+            flat_rel=rel[rel.instrument.isin(avail)].dropna(subset=['correlation']).copy();flat_rel['abs_corr']=flat_rel.correlation.abs()
+            top=flat_rel.sort_values('abs_corr',ascending=False).head(5)
+            read='Strongest raw associations: '+', '.join(f"{r.factor}→{r.instrument} {r.correlation:+.2f}" for _,r in top.iterrows())+'.'
+            guidance(read,'Use the strongest cells only as sensitivity hypotheses. Open one pair below and inspect stability/sample before acting.','If the sign flips across windows or causal confirmation is absent, discard the relationship.')
+    else:st.info('Macro ↔ asset matrix needs overlapping history.')
+
+    st.markdown('#### Drill into one relationship')
+    factors=list(macro_correlation(fred,years).columns) if fred_loaded else []
+    assets=[x for x in preferred if x in flat]
+    if factors and assets:
+        a,b=st.columns(2);factor=a.selectbox('Driver',factors);asset=b.selectbox('Asset',assets)
+        d=relationship_scatter(fred,flat[asset],factor,years,horizon)
+        if len(d)>=24:
+            plot_d=d[['factor_value','forward_return']].copy();plot_d.index=pd.to_datetime(plot_d.index,errors='coerce');plot_d=plot_d.loc[plot_d.index.notna()];plot_d.index.name='date';plot_d=plot_d.reset_index().replace([np.inf,-np.inf],np.nan).dropna()
+            fig=px.scatter(plot_d,x='factor_value',y='forward_return',hover_data=['date'])
+            corr=plot_d.factor_value.corr(plot_d.forward_return)
+            x=plot_d.factor_value.to_numpy(float);y=plot_d.forward_return.to_numpy(float);good=np.isfinite(x)&np.isfinite(y)
+            if good.sum()>=3 and np.nanstd(x[good])>0:
+                m,q=np.polyfit(x[good],y[good],1);xx=np.linspace(np.nanmin(x[good]),np.nanmax(x[good]),100);fig.add_trace(go.Scatter(x=xx,y=m*xx+q,mode='lines',name='Linear association'))
+            fig.update_layout(height=420,title=f'{factor} vs {asset} {horizon}M outcome · corr={corr:.2f}',xaxis_title=factor,yaxis_title='Forward return')
+            st.plotly_chart(fig,use_container_width=True)
+
+            sens=empirical_sensitivities(fred,{asset:flat[asset]})
+            stable=sens[sens.sign_stable_across_windows] if len(sens) else pd.DataFrame()
+            if len(stable):
+                st.dataframe(stable[['macro_factor','beta_5y','beta_10y','beta_full','sign_stable_across_windows']],use_container_width=True,hide_index=True)
+                stability='The selected asset has at least some factor sensitivities with stable sign across 5Y/10Y/full windows.'
+            else:stability='No stable-sign sensitivity was confirmed by the simple multi-window check.'
+            guidance(f'Pair correlation is {corr:+.2f} over this window. {stability}','Do not trade the scatter. Use it to identify which macro variable should confirm or contradict an asset thesis.','Re-check after the next driver shock; reject the relationship if sign/sample stability deteriorates.')
+        else:st.info('Not enough clean observations for this pair.')
+
+    with st.expander('Macro ↔ macro and long-run research matrices'):
+        relationship_heatmap(macro_correlation(fred,years),f'Macro ↔ macro — {years}Y')
+        relationship_heatmap(bundled_longrun_correlation(),'Bundled long-run research matrix')
+
+# ══════════════════════════════════════════════════════════════════════════
+# OPPORTUNITIES
+# ══════════════════════════════════════════════════════════════════════════
+with T[2]:
+    st.subheader('Opportunity Decision Board')
+    st.caption('The board first asks: where is historical payoff asymmetry attractive? Then: is there a causal mechanism? Then: what is still missing before execution?')
+
+    st.markdown('### A. Cross-market payoff vs downside')
+    horizon=st.selectbox('Opportunity horizon',['1M','3M','6M','12M'],index=1,key='opp_horizon')
+    radar_assets=[x for x in ['SPY','IWM','QQQ','TLT','GLD','USO','UUP','^JKSE','BTC-USD','ETH-USD'] if x in flat]
+    radar=opportunity_radar(fred,flat,radar_assets,horizon,20) if fred_loaded else pd.DataFrame()
+    if len(radar):
+        fig=px.scatter(radar,x='p_loss10',y='median',size='p_positive',text='instrument',color='pareto_candidate',
+                       hover_data=['p10','p90','p_gt25','n','research_priority'])
+        fig.update_xaxes(tickformat='.0%',title='P(loss >10%)  ← lower is better')
+        fig.update_yaxes(tickformat='.1%',title=f'{horizon} median outcome  ↑ higher is better')
+        fig.update_layout(height=500,title='Upper-left = better historical analog asymmetry · highlighted points are Pareto-efficient')
+        st.plotly_chart(fig,use_container_width=True)
+
+        pareto=radar[radar.pareto_candidate]
+        worst=radar.sort_values(['p_loss10','median'],ascending=[False,True]).head(2)
+        a,b,c=st.columns(3)
+        a.metric('Inspect first',', '.join(pareto.instrument.tolist()) or 'None')
+        b.metric('Highest downside watch',', '.join(worst.instrument.tolist()))
+        c.metric('Universe',f'{len(radar)} instruments')
+        guidance('Upper-left instruments have higher historical median outcome with lower >10% loss frequency in states similar to today.','Inspect Pareto-frontier assets first. This is a research queue, not an automatic trade ranking.','Before execution, require causal fit + pricing/catalyst evidence. The frontier can change after the next macro release.')
+
+        sel=st.selectbox('Inspect market opportunity',radar.instrument.tolist(),key='radar_pick')
+        rr=radar[radar.instrument==sel].iloc[0]
+        stats,analogs,meta=analog_distribution(fred,flat[sel],20)
+        l,r=st.columns([1.4,1])
+        with l:projection_fan(stats,f'{sel} — next outcome distribution')
+        with r:
+            g=compact_projection_metrics(stats,horizon)
+            st.markdown('**Decision interpretation**')
+            st.write(g['do'])
+            st.markdown('**What changes the view**')
+            st.write(g['next'])
+            st.markdown('**Trade action**')
+            st.error('NO TRADE until causal/pricing/catalyst gates pass')
+
+        sens=empirical_sensitivities(fred,{sel:flat[sel]})
+        if len(sens):
+            sens=sens.copy();sens['abs_beta']=sens.beta_full.abs();stable=sens[sens.sign_stable_across_windows].sort_values('abs_beta',ascending=False).head(4)
+            if len(stable):
+                st.markdown('**Macro drivers to watch for this asset**')
+                st.dataframe(stable[['macro_factor','beta_5y','beta_10y','beta_full']],use_container_width=True,hide_index=True)
+                st.caption('Stable-sign association across windows; still not proof of causality.')
+    else:
+        st.info('Cross-market opportunity radar needs live macro history and price histories.')
+
+    st.divider()
+    st.markdown('### B. Company bottleneck / monster-winner search')
+    st.caption('This section answers whether a company actually captures a binding constraint. It does not reward hype, backlog headlines, or prior price performance.')
+    txt=st.text_input('US candidates','SNDK, PLTR, GNRC, MOD, POWL')
+    if st.button('Analyze company evidence',type='primary'):
+        tickers=[x.strip().upper() for x in txt.split(',') if x.strip()][:10]
+        with st.spinner('Reading SEC filings + filed-date Company Facts…'):
+            df,det=investigate(tickers)
+        st.session_state['v52_bdf']=df;st.session_state['v52_bdet']=det
+
+    df=st.session_state.get('v52_bdf');det=st.session_state.get('v52_bdet',{})
+    if isinstance(df,pd.DataFrame) and len(df):
+        chart=df.copy();chart['SEC_revenue_yoy']=pd.to_numeric(chart.SEC_revenue_yoy,errors='coerce');chart['SEC_operating_income_yoy']=pd.to_numeric(chart.SEC_operating_income_yoy,errors='coerce')
+        chart['drawdown_abs']=pd.to_numeric(chart.drawdown_5y_peak,errors='coerce').abs().fillna(.05).clip(lower=.03)
+        if chart[['SEC_revenue_yoy','SEC_operating_income_yoy']].notna().any().any():
+            fig=px.scatter(chart,x='SEC_revenue_yoy',y='SEC_operating_income_yoy',size='drawdown_abs',text='ticker',color='evidence_status',hover_data=['drawdown_vol_units','price','filing_date'])
+            fig.add_hline(y=0,line_width=1);fig.add_vline(x=0,line_width=1)
+            fig.update_layout(height=455,xaxis_tickformat='.0%',yaxis_tickformat='.0%',xaxis_title='Revenue capture (SEC YoY)',yaxis_title='Operating-income capture (SEC YoY)',title='Upper-right + verified mechanism = bottleneck monetization worth deeper work')
+            st.plotly_chart(fig,use_container_width=True)
+        guidance('Upper-right means revenue and operating capture are both improving; color shows whether filing evidence supports the underlying bottleneck mechanism.','Prioritize companies with confirmed mechanism + monetization. Do not use drawdown alone as a reload signal.','Next unlock is PIT pricing/revisions + catalyst timing; failure of revenue/operating capture kills the thesis.')
+
+        pick=st.selectbox('Inspect company',df.ticker.tolist(),key='company_pick');d=det.get(pick,{})
+        if d:
+            pxs=flat.get(pick)
+            if pxs is None:
+                pp,_=strict_prices([pick]);pxs=pp.get(pick)
+            stats=pd.DataFrame();analogs=pd.DataFrame();meta={}
+            if pxs is not None and fred_loaded:stats,analogs,meta=analog_distribution(fred,pxs,20)
+            gate=company_gate_guidance(d,projection_available=not stats.empty)
+
+            st.markdown(f'#### {pick} · {gate["research_state"]}')
+            stage_cols=st.columns(5)
+            for col,(stage,status) in zip(stage_cols,gate['stages']):
+                col.metric(stage,status)
+            guidance(gate['read'],gate['do'],'Re-check only when the first missing gate gets new evidence; do not skip directly from mechanism to trade.')
+
+            cur=d.get('current',{});facts=d.get('sec_facts',{})
+            m1,m2,m3,m4=st.columns(4)
+            m1.metric('Price',fmt_num(cur.get('price'),2))
+            m2.metric('Drawdown from 5Y peak',fmt_num(cur.get('drawdown_5y_peak'),1,True))
+            m3.metric('Drawdown / expected 3M vol',fmt_num(cur.get('drawdown_vol_units'),1))
+            m4.metric('SEC revenue YoY',fmt_num(facts.get('revenue_yoy'),1,True))
+
+            if not stats.empty:
+                projection_fan(stats,f'{pick} — macro-analog forward context')
+                g=compact_projection_metrics(stats,horizon)
+                guidance(g['read'],g['do'],'For a prior winner/reload, require this payoff context PLUS intact mechanism, pricing reset and positive PIT revisions.')
+
+            with st.expander('Why / competing thesis / kill switches'):
+                st.write('**Why it is interesting:**',d.get('reason','N/A'))
+                st.write('**Competing thesis:**',d.get('competing_thesis','N/A'))
+                st.write('**Why trade action is not unlocked:**',d.get('action_reason','N/A'))
+                for x in d.get('kill_switches',[]):st.write('•',x)
+                for x in d.get('filing',{}).get('snippets',[])[:6]:st.write(f"**{x['group']} / {x['term']}** — {x['snippet']}")
+
+            if st.button(f'Load {pick} options execution context'):
+                with st.spinner('Loading current option chain…'):st.session_state['v52_opt']=(pick,option_snapshot(pick))
+            if st.session_state.get('v52_opt',(None,None))[0]==pick:
+                with st.expander('Options execution context',expanded=True):
+                    st.json(st.session_state['v52_opt'][1]);st.caption('Execution/risk context only; not a universal GEX directional signal.')
+    else:
+        st.info('Analyze a small candidate list to populate the company decision funnel.')
+
+# ══════════════════════════════════════════════════════════════════════════
+# RESEARCH & DATA
+# ══════════════════════════════════════════════════════════════════════════
 with T[3]:
     st.subheader('Research & Data Health')
-    st.caption('Everything needed for auditability remains here, without dominating the decision screen.')
-
-    h1,h2,h3,h4 = st.columns(4)
-    h1.metric('Metric families', len(METRIC_FAMILIES))
-    h2.metric('Experiments', len(load_experiments()))
-    h3.metric('FRED failures', len(bundle.get('fred_errors',{})))
-    h4.metric('Synthetic fallback', 'NONE')
+    a,b,c,d=st.columns(4);a.metric('Metric families',len(METRIC_FAMILIES));b.metric('Experiments',len(load_experiments()));c.metric('FRED failures',len(bundle.get('fred_errors',{})));d.metric('Synthetic fallback','NONE')
 
     if bundle.get('fred_errors'):
-        with st.expander('Macro feed errors / setup', expanded=(fred_loaded==0)):
-            st.json(bundle['fred_errors'])
-            st.markdown('**Best Streamlit Cloud fix:** add a `FRED_API_KEY` secret. V5 also tries anonymous fredgraph and DBnomics as real-data fallbacks. If all fail, the system stays blank rather than generating macro data.')
-
-    with st.expander('Proof summary', expanded=True):
-        st.dataframe(proof_summary(), use_container_width=True, hide_index=True)
-
-    with st.expander('Experiment registry'):
-        st.dataframe(load_experiments(), use_container_width=True, hide_index=True, height=450)
-
-    with st.expander('Failure library / governance overrides'):
-        st.markdown('**Failed / rejected ideas**')
-        st.dataframe(load_failures(), use_container_width=True, hide_index=True)
-        st.markdown('**Governance overrides**')
-        st.dataframe(load_governance_overrides(), use_container_width=True, hide_index=True)
-        st.markdown('**Search ledger**')
-        st.dataframe(load_search_ledger(), use_container_width=True, hide_index=True)
-
+        with st.expander('Macro feed errors / setup',expanded=(fred_loaded==0)):
+            st.json(bundle['fred_errors']);st.markdown('Best cloud fix: add `FRED_API_KEY` in Streamlit Secrets. If all real-data routes fail, macro state stays blank.')
+    with st.expander('Proof summary',expanded=True):st.dataframe(proof_summary(),use_container_width=True,hide_index=True)
+    with st.expander('Experiment registry'):st.dataframe(load_experiments(),use_container_width=True,hide_index=True,height=430)
+    with st.expander('Failure library / governance'):
+        st.dataframe(load_failures(),use_container_width=True,hide_index=True);st.dataframe(load_governance_overrides(),use_container_width=True,hide_index=True);st.dataframe(load_search_ledger(),use_container_width=True,hide_index=True)
     with st.expander('Data lineage'):
-        st.dataframe(lineage, use_container_width=True, hide_index=True, height=520)
-        st.warning('Latest/revised macro history is explicitly not PIT-safe. It can support monitoring/research, not final historical proof.')
-
+        st.dataframe(lineage,use_container_width=True,hide_index=True,height=500);st.warning('Latest/revised macro history is not PIT-safe. Monitoring/research only until vintage data are available.')
     with st.expander('Critical data gaps'):
-        for x in bundle.get('data_gaps',[]):
-            st.write('•', x)
-
-    cp = HERE / 'research' / 'spec_compliance_v4.csv'
+        for x in bundle.get('data_gaps',[]):st.write('•',x)
+    cp=HERE/'research'/'spec_compliance_v4.csv'
     if cp.exists():
-        with st.expander('Framework compliance'):
-            st.dataframe(pd.read_csv(cp), use_container_width=True, hide_index=True)
+        with st.expander('Framework compliance'):st.dataframe(pd.read_csv(cp),use_container_width=True,hide_index=True)
 
 st.divider()
-st.caption('v5 visual layer: current state → competing mechanisms → relationships → opportunities. Research proof remains accessible but no longer overwhelms the decision screen.')
+st.caption('v5.2: every major visual has READ → DO → NEXT. Opportunity selection uses payoff/downside Pareto logic first, then causal/pricing/catalyst gates; no arbitrary composite alpha score.')

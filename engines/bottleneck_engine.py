@@ -58,7 +58,16 @@ def _current(t):
     try:
         import yfinance as yf
         q=yf.Ticker(t);info=q.info or {};h=q.history(period='5y',auto_adjust=True);c=pd.to_numeric(h['Close'],errors='coerce').dropna()
-        return {'ok':len(c)>0,'price':float(c.iloc[-1]) if len(c) else np.nan,'drawdown_5y_peak':float(c.iloc[-1]/c.max()-1) if len(c) else np.nan,'revenue_growth':info.get('revenueGrowth'),'earnings_growth':info.get('earningsGrowth'),'gross_margin':info.get('grossMargins'),'operating_margin':info.get('operatingMargins'),'fcf':info.get('freeCashflow')}
+        
+        if len(c):
+            ret=c.pct_change().dropna()
+            rv63=float(ret.tail(63).std(ddof=1)*np.sqrt(252)) if len(ret.tail(63))>=20 else np.nan
+            dd=float(c.iloc[-1]/c.max()-1)
+            exp3=rv63*np.sqrt(63/252) if np.isfinite(rv63) else np.nan
+            dd_units=abs(dd)/exp3 if np.isfinite(exp3) and exp3>0 else np.nan
+        else:
+            rv63=dd=exp3=dd_units=np.nan
+        return {'ok':len(c)>0,'price':float(c.iloc[-1]) if len(c) else np.nan,'drawdown_5y_peak':dd,'realized_vol_63d_ann':rv63,'expected_3m_vol':exp3,'drawdown_vol_units':dd_units,'revenue_growth':info.get('revenueGrowth'),'earnings_growth':info.get('earningsGrowth'),'gross_margin':info.get('grossMargins'),'operating_margin':info.get('operatingMargins'),'fcf':info.get('freeCashflow')}
     except Exception as e:return {'ok':False,'reason':str(e)[:160]}
 
 def investigate(tickers):
@@ -70,6 +79,6 @@ def investigate(tickers):
         status='MONETIZATION_CONFIRMED' if mech and mon else ('MECHANISM_EVIDENCE_FOUND' if mech else 'WATCH / INSUFFICIENT EVIDENCE')
         reason='SEC filing supports constraint→capture and SEC filed-date facts confirm revenue/operating monetization.' if status=='MONETIZATION_CONFIRMED' else ('Constraint/capture language found, but filed-date monetization is not fully confirmed.' if mech else 'No complete constraint→capture chain found in the latest filing.')
         action='NO TRADE';action_reason='P(NotFullyPriced), PIT estimate revisions, catalyst probability and calibrated runway are not available.'
-        rows.append({'ticker':t,'evidence_status':status,'action':action,'price':cur.get('price'),'drawdown_5y_peak':cur.get('drawdown_5y_peak'),'SEC_revenue_yoy':facts.get('revenue_yoy'),'SEC_operating_income_yoy':facts.get('operating_income_yoy'),'filing_date':filing.get('filed')})
+        rows.append({'ticker':t,'evidence_status':status,'action':action,'price':cur.get('price'),'drawdown_5y_peak':cur.get('drawdown_5y_peak'),'drawdown_vol_units':cur.get('drawdown_vol_units'),'SEC_revenue_yoy':facts.get('revenue_yoy'),'SEC_operating_income_yoy':facts.get('operating_income_yoy'),'filing_date':filing.get('filed')})
         details[t]={'filing':filing,'sec_facts':facts,'current':cur,'chain':chain,'reason':reason,'competing_thesis':'The constraint may resolve, demand may be cyclical, capacity may catch up, or valuation may already discount the rents.','action':action,'action_reason':action_reason,'kill_switches':['Demand-capture evidence reverses','Revenue/operating/FCF capture deteriorates','Capacity/inventory evidence shows the bottleneck resolving','Credit/funding stress breaks the transmission','Pricing consumes the remaining payoff before catalyst realization']}
     return pd.DataFrame(rows),details

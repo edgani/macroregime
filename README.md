@@ -32,3 +32,7 @@ streamlit run app.py
 
 ## Research warning
 Correlation matrices are explicitly association/research panels. They do not create fixed macro→asset sign rules. Latest/revised macro history is not final PIT proof.
+
+
+## v5.2 UX
+Every decision chart exposes READ → DO → NEXT. Opportunities use a payoff/downside Pareto frontier and a company gate funnel instead of an opaque score.

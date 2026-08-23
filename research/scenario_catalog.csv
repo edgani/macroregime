@@ -1,0 +1,37 @@
+scenario_id,engine,scenario,horizon,minimal_set,status
+SCN-001,Macro,Growth resilient + cooling inflation,1-4Q,"Growth, inflation, credit",RESEARCH
+SCN-002,Macro,Growth resilient + sticky inflation / long-rate pressure,1-4Q,"Growth, inflation, real yields, term premium",RESEARCH
+SCN-003,Macro,Growth slowdown + benign credit,1-4Q,"Growth, credit, funding",RESEARCH
+SCN-004,Macro,Growth slowdown + credit/funding stress,Days-4Q,"Growth, HY/EBP, funding",RESEARCH
+SCN-005,Rates,Bull steepener after restrictive policy,1-6M,"Curve decomposition, front-end rates",RESEARCH
+SCN-006,Rates,Bear steepener / term-premium shock,1-12M,"Long yield, real yield, term premium",RESEARCH
+SCN-007,Crash,High volatility without credit confirmation,Days-3M,"Vol state, HY velocity, funding",PLACEMENT_SUPPORTED
+SCN-008,Crash,High volatility + credit deterioration,Days-6M,"Vol state, HY velocity, funding",PLACEMENT_SUPPORTED
+SCN-009,Crash,Credit deterioration before equity stress,1-12M,"HY/EBP, NFCI, lending",RESEARCH
+SCN-010,Crash,Funding dislocation + correlation shock,Days-1M,"SOFR-IORB, basis, correlation",DATA_GATED
+SCN-011,Crash,Post-liquidation normalization,Days-6M,Funding/credit normalization,RESEARCH_WEAK_SAMPLE
+SCN-012,Index research,First ATH after long gap,3-12M,Price outcome state + macro controls,RESEARCH_ONLY_PRICE_STATE
+SCN-013,Index research,Repeated ATH cluster,3-12M,Price outcome state + macro controls,WEAK_STANDALONE
+SCN-014,Index research,ATH + long-rate shock,3-12M,ATH state + real yield shock,NEGATIVE_MODIFIER_CANDIDATE
+SCN-015,Ticker,Binding bottleneck + profitable monetization,1-12M,SEC constraint + orders + revenue/margin/FCF,CORE_RESEARCH
+SCN-016,Ticker,Backlog without monetization,1-12M,Backlog + cash conversion + margin,NEGATIVE_CONTROL
+SCN-017,Ticker,Prior winner reload after pricing reset,1-6M,Mechanism intact + PIT pricing/revisions,DATA_GATED
+SCN-018,Ticker,Bottleneck resolution / capacity catches demand,1-12M,"Capacity, inventory, pricing",DATA_GATED
+SCN-019,Ticker,Second-order capex bottleneck migration,3-18M,Capex chain + orders + capacity,CORE_RESEARCH
+SCN-020,Commodity,Low inventory + persistent physical demand,1-6M,"Inventory, demand, curve",DATA_GATED
+SCN-021,Commodity,Destock to restock transition,1-12M,"Inventory, orders, utilization",DATA_GATED
+SCN-022,Commodity,Supply response resolves scarcity,1-12M,"Production, spare capacity, inventories",DATA_GATED
+SCN-023,FX,Rate differential repricing rejected by FX,Days-3M,Relative rates + event response,DATA_GATED
+SCN-024,FX,Dollar funding squeeze,Days-6M,"USD, cross-currency basis, credit",DATA_GATED
+SCN-025,Crypto,Stablecoin/spot-led demand with modest leverage,Days-3M,"Stablecoins, DEX/spot, leverage",PARTIAL_LIVE
+SCN-026,Crypto,Leverage-led move without native demand,Days-1M,OI/funding + weak activity,DATA_GATED
+SCN-027,Fiscal,Fiscal impulse + term-premium shock,1-12M,"Issuance, term premium, real yields",DATA_GATED
+SCN-028,Credit,Lending tightening but market credit benign,1-6Q,"SLOOS, HY/IG, loan growth",RESEARCH
+SCN-029,Credit,Credit improves before growth data,1-6M,HY/EBP/NFCI vs growth,RESEARCH
+SCN-030,Inflation,Near-term supply-chain inflation impulse,1M-1Q,"Supply bottleneck evidence, core inflation",DATA_GATED
+SCN-031,Market-implied,Option event premium elevated vs realized,Days-1M,"IV, realized vol, event calendar",DATA_GATED_HISTORY
+SCN-032,Market-implied,Skew reprices downside without credit stress,Days-3M,"Skew, HY, vol",DATA_GATED_HISTORY
+SCN-033,Cross-market,Real-yield shock with stable growth,1-6M,"Real yield, growth, credit",RESEARCH
+SCN-034,Cross-market,USD tightening + external vulnerability,1-6M,"USD, reserves/debt/current account",DATA_GATED
+SCN-035,IHSG,Foreign-flow accumulation with fundamental confirmation,1-6M,IDX Type-F + filings/fundamentals,DATA_GATED
+SCN-036,Null,Mixed signals / fully priced / no discriminating edge,Any,All available evidence,ALWAYS_ALLOWED

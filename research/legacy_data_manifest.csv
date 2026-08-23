@@ -1,0 +1,6 @@
+dataset,description,status,reason
+vix.csv,VIX daily history,RESEARCH_CONTEXT,Observed market series; not sufficient for causal proof
+shiller.csv,Long-run equity valuation/rates history,RESEARCH_CONTEXT,Long-horizon context; not market timing
+sp500_panel.parquet,482-stock 2013-2018 OHLCV,EXCLUDED_FROM_PRODUCTION,Fixed-survivor snapshot; survivorship + LLM contamination risk
+macro_panel.parquet,1881-2023 macro/market panel,EXCLUDED_FROM_DEPLOY,"Latest historical panel, not PIT vintage"
+macro_attribution.parquet,Long-run attribution panel,EXCLUDED_FROM_DEPLOY,Useful research context but not PIT

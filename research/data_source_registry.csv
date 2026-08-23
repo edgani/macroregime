@@ -1,0 +1,11 @@
+source,use,status,governance
+FRED public CSV,macro/rates/credit/funding,LIVE,Latest/revised; final historical proof requires vintages
+US Treasury FiscalData,TGA,LIVE_OPTIONAL,Raw plumbing only
+NY Fed Markets API,RRP/SOFR,LIVE_OPTIONAL,Raw funding/plumbing only
+Yahoo Finance/yfinance,market prices/options/current fundamentals,LIVE_OPTIONAL,Retail-grade; adjusted prices used only in allowed contexts
+SEC EDGAR submissions,filing evidence,LIVE,Filed-date source
+SEC Company Facts,quarterly monetization,LIVE,Filed-date + quarter-duration filtered
+DeFiLlama,stablecoins/TVL/DEX,LIVE_OPTIONAL,Crypto-native context; no directional hardcode
+IDX Type-F,foreign flow,DATA_GATED,Historical database not connected
+ALFRED,macro vintages,DATA_GATED,Required for final PIT proof
+Analyst estimate PIT vendor,revisions/consensus,DATA_GATED,Required for winner/loser expectation-gap proof

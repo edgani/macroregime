@@ -6,3 +6,6 @@ FAIL-004,Backlog alone = bottleneck winner,Can reflect inability to deliver; no 
 FAIL-005,All features improve soft-landing model,Added variables reduced OOS discrimination,Prefer minimal sufficient set
 FAIL-006,Stagflation high-confidence classifier,Rare events / insufficient OOS sample,Tail scenario with wide uncertainty only
 FAIL-007,Dealer gamma = deterministic direction,Dealer inventory/sign assumptions not observed,Execution context only
+FAIL-008,Price-derived momentum factor as macro alpha,Split-dependent OOS result and explicitly prohibited by framework governance,Keep out of production; do not resurrect via alternate lookbacks
+FAIL-009,Price-derived bandarmetrics composite inside macro framework,CMF/OBV/markup-style price logic violates no-TA scope,Only real foreign-flow/ownership data may be reconsidered separately
+FAIL-010,Hard-coded scenario probabilities,Creates false precision without current-compatible calibration,Probability must remain DATA_GATED until empirical calibration exists

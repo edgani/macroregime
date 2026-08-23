@@ -1,0 +1,19 @@
+Scenario,Role,Screening result,Evidence strength,Decision
+ATH alone,Crash trigger,REJECT STANDALONE,HIGH,Long-run evidence says ATH itself is not bearish; use only as context.
+Russell / IWM ATH alone,Crash trigger,REJECT STANDALONE,MEDIUM,"Small-cap ATH is not enough; condition on breadth, rates, credit, earnings."
+Breadth strength / breadth failure,Market state,KEEP CORE STATE,HIGH,"Breadth has cross-market predictive evidence; use as confirmation/state, not a lone crash call."
+Credit widening / EBP deterioration,Macro + crash transmission,KEEP CORE,HIGH,Strong forward information for downturn risk; useful before headline macro cracks.
+ATH + credit deterioration,Conditional crash scenario,KEEP / VALIDATE INCREMENT,MEDIUM-HIGH,Causally coherent divergence; exact incremental crash value still needs bespoke OOS test.
+Long-yield / term-premium shock + high valuation,Fragility scenario,KEEP CORE,HIGH,Official stability frameworks flag valuation + rate/liquidity interaction.
+Low VIX alone,Crash trigger,REJECT STANDALONE,HIGH,Calm volatility is not itself a crash signal.
+Low VIX + high leverage / vol-targeting,Fragility scenario,KEEP CORE,HIGH,Supported volatility-paradox mechanism: calm can encourage leverage and procyclical deleveraging.
+High leverage alone,Crash trigger,SUPPORTING ONLY,HIGH,"Vulnerability, not timing trigger."
+Funding/liquidity deterioration + leverage,Crash transmission,KEEP CORE,HIGH,Strong causal amplification mechanism in financial-stability frameworks.
+Momentum melt-up -> crash,Crash scenario,REVISE / REJECT ORIGINAL,HIGH,"Published momentum-crash evidence points to panic states after market declines + high vol + rebounds, not simple ATH melt-ups."
+Failed ATH breakout,Market structure,RESEARCH ONLY,LOW-MEDIUM,Intuitive but insufficient robust evidence to promote yet.
+Earnings-revision divergence,Market confirmation,SUPPORTING ONLY,MEDIUM,Useful expectation/fundamental confirmation; not proven as standalone crash predictor.
+Concentration + narrowing breadth,Fragility / market structure,CONDITIONAL,MEDIUM-HIGH,Potential vulnerability; needs interaction with credit/liquidity/earnings.
+Russell relative leadership / catch-up,Cycle / broadening,SUPPORTING,MEDIUM-HIGH,"Useful as cyclical/broadening state, not a crash trigger."
+Correlation spike + falling liquidity,Crash transmission,KEEP / VALIDATE INCREMENT,MEDIUM-HIGH,Plausible cascade mechanism; exact threshold/timing needs OOS calibration.
+Energy shock + sticky inflation + rising yields,Event transmission,KEEP EVENT SCENARIO,HIGH,"Macro shock can transmit through inflation, rates, growth and valuation."
+Private-credit stress,Event / credit risk,MONITOR / RESEARCH,MEDIUM,"Currently salient, but long point-in-time history is less mature for robust crash calibration."

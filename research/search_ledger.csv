@@ -1,5 +1,0 @@
-family,attempts_logged,search_process,holdout_status,multiple_testing_status
-Macro scenarios,16,Existing expanding-OOS variants,UNTOUCHED_FINAL_HOLDOUT_NOT_AVAILABLE,FDR_NOT_YET_APPLIED
-ATH / price states,36,Episode tests,RESEARCH_ONLY_PRICE_STATE,FDR_NOT_YET_APPLIED
-Bottleneck selection,0,No broad PIT cross-sectional trial yet,LOCKED_PENDING_DATA,NOT_APPLICABLE_YET
-Options structure,0,No historical PIT option trial yet,LOCKED_PENDING_DATA,NOT_APPLICABLE_YET

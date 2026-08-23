@@ -1,6 +1,0 @@
-item,legacy_status,v4_status,reason
-factor_momentum,LEGACY_VALIDATED,OUT_OF_SCOPE / REJECT,Newer disciplined split shows split-dependence; framework also bans price-derived momentum alpha
-dollar_hub,LEGACY_VALIDATED,ASSOCIATION_ONLY,USD-gold relation cannot be a fixed sign causal mapping
-crash_pressure_fixed_weights,LEGACY_VALIDATED,SUPERSEDED,"V3/V4 crash design requires phase separation and incremental validation, not arbitrary composite"
-bandarmetrics_price_composite,LEGACY_FEED_GATED,OUT_OF_SCOPE,Price-derived CMF/OBV/markup logic violates no-TA governance; real foreign-flow may be used separately
-net_liquidity_formula,LEGACY_ACTIVE,REJECT_STANDALONE,Fed assets-TGA-RRP components are plumbing diagnostics only

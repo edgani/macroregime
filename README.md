@@ -1,40 +1,25 @@
-# Macro Decision Engine — fixed deploy build
+# Macro Decision OS v3
 
-## Why the previous build failed
-`app.py` imported local modules such as:
-- `config.metric_registry_v2`
-- `data_layer_v2`
-- `engines.scenario_matrix_v2`
-- `engines.projection_engine_v2`
-- `engines.bottleneck_engine_v2`
-- `data.eia_physical`
+This build implements the causal research/decision specification.
 
-Those files were missing from the deploy package.
+## Deployment
+Upload the entire folder contents to the repo root and set Streamlit main file to `app.py`.
 
-## Streamlit Cloud
-Upload the **entire contents of this folder** to the repo root, not only `app.py`.
-
-Required repo structure:
-```
-app.py
-requirements.txt
-data_layer_v2.py
-config/
-engines/
-data/
-research/
-.streamlit/
+```bash
+pip install -r requirements.txt
+streamlit run app.py
 ```
 
-Set Main file path to:
-`app.py`
+## Key design constraints
+- no RSI/MACD/EMA/Bollinger/candlestick/Fibonacci/chart-pattern alpha
+- price is not a macro regime classifier; ATH lives only in Experiment Registry research
+- no synthetic fallback
+- no hard-coded regime→asset trade map
+- no arbitrary confidence/probability scores
+- scenario probability remains DATA_GATED unless calibrated evidence exists
+- bottleneck evidence != LONG; pricing/catalyst/runway/risk are separate
+- NO TRADE is a first-class output
+- every failed experiment is retained in `research/failure_library.csv`
 
-Optional secrets/environment:
-- `SEC_USER_AGENT`
-- `EIA_API_KEY` (physical-energy layer remains fail-closed until exact EIA routes are mapped)
-
-Data policy:
-- no synthetic price fallback
-- missing data => NO DATA / DATA_GATED
-- discovery priors cannot score a ticker
-- bottleneck verification != automatic LONG
+## Important data limitation
+Public latest/revised macro history is not point-in-time vintage-safe. Final proof still requires ALFRED/equivalent, PIT analyst revisions, historical universes/delistings, and other asset-specific PIT datasets listed in Data Lineage.

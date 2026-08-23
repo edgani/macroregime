@@ -1,0 +1,8 @@
+failure_id,idea,failure_reason,reuse_policy
+FAIL-001,VIX > fixed threshold = bearish/crash,"Threshold instability; contemporaneous stress, not directional oracle",Do not retry without preregistered new mechanism
+FAIL-002,Fed assets - TGA - RRP = universal liquidity trade,Plumbing identity lacks stable transmission,Components diagnostic only
+FAIL-003,CAPE = short timing,Valuation horizon mismatch,Use long-horizon asymmetry/severity only
+FAIL-004,Backlog alone = bottleneck winner,Can reflect inability to deliver; no monetization proof,Require revenue/margin/FCF conversion
+FAIL-005,All features improve soft-landing model,Added variables reduced OOS discrimination,Prefer minimal sufficient set
+FAIL-006,Stagflation high-confidence classifier,Rare events / insufficient OOS sample,Tail scenario with wide uncertainty only
+FAIL-007,Dealer gamma = deterministic direction,Dealer inventory/sign assumptions not observed,Execution context only

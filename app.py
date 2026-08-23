@@ -34,6 +34,7 @@ FRED_API_URL = "https://api.stlouisfed.org/fred/series/observations"
 FED_EBP_URL = "https://www.federalreserve.gov/econres/notes/feds-notes/ebp_csv.csv"
 FED_FCIG_URL = "https://www.federalreserve.gov/econres/notes/feds-notes/fci_g_public_monthly_3yr.csv"
 TREASURY_DEBT_URL = "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/debt_to_penny"
+AI_GPR_MONTHLY_URL = "https://www.matteoiacoviello.com/ai_gpr_files/ai_gpr_data_monthly.csv"
 
 # Current-law reference, not a fitted model input.
 # P.L. 119-21 set the statutory limit at $41.104tn on 2025-07-04.
@@ -97,6 +98,9 @@ SERIES: Dict[str, SeriesSpec] = {
     "GFDEGDQ188S": SeriesSpec("Federal Debt / GDP", "1966-01-01", "% GDP"),
     "FYFSGDA188S": SeriesSpec("Federal Deficit / GDP", "1940-01-01", "% GDP"),
     "FYOIGDA188S": SeriesSpec("Federal Interest Outlays / GDP", "1940-01-01", "% GDP"),
+    # Event / supply / uncertainty context
+    "GSCPI": SeriesSpec("Global Supply Chain Pressure Index", "1997-01-01", "σ"),
+    "USEPUINDXD": SeriesSpec("US Economic Policy Uncertainty", "1985-01-01", "index"),
 }
 
 # Scenario library is intentionally broad. Inclusion here is NOT proof.
@@ -246,6 +250,22 @@ def fetch_yahoo(symbol: str, start: str = "2000-01-01") -> pd.Series:
     return s
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def fetch_ai_gpr_monthly() -> pd.DataFrame:
+    """Optional public geopolitical-risk feed. It informs event activity, not political intent."""
+    r = requests.get(AI_GPR_MONTHLY_URL, headers=HEADERS, timeout=20)
+    r.raise_for_status()
+    df = pd.read_csv(io.StringIO(r.text))
+    if df.empty:
+        raise ValueError("Empty AI-GPR data")
+    date_col = next((c for c in df.columns if "date" in c.lower()), df.columns[0])
+    df[date_col] = pd.to_datetime(df[date_col], errors="coerce")
+    df = df.dropna(subset=[date_col]).sort_values(date_col).set_index(date_col)
+    for c in df.columns:
+        df[c] = pd.to_numeric(df[c], errors="ignore")
+    return df
+
+
 def load_all():
     data, research, market, errors = {}, {}, {}, {}
     for sid, spec in SERIES.items():
@@ -268,7 +288,12 @@ def load_all():
     except Exception as exc:
         debt_now, debt_date = np.nan, None
         errors["TreasuryDebt"] = str(exc)
-    return data, research, market, debt_now, debt_date, errors
+    try:
+        gpr = fetch_ai_gpr_monthly()
+    except Exception as exc:
+        gpr = pd.DataFrame()
+        errors["AI-GPR"] = str(exc)
+    return data, research, market, gpr, debt_now, debt_date, errors
 
 
 # ----------------------------- helpers -----------------------------
@@ -452,6 +477,132 @@ def energy_pressure_score(oil_pctile: float, oil_3m: float, breakeven_pctile: fl
     return float(np.mean(parts)) if parts else np.nan
 
 
+
+
+def pct_change_over(s: Optional[pd.Series], months: int = 3) -> float:
+    if s is None or s.empty:
+        return np.nan
+    x = s.dropna()
+    old = x[x.index <= x.index[-1] - pd.DateOffset(months=months)]
+    if old.empty or old.iloc[-1] == 0:
+        return np.nan
+    return float((x.iloc[-1] / old.iloc[-1] - 1) * 100)
+
+
+def level_change_over(s: Optional[pd.Series], months: int = 3) -> float:
+    if s is None or s.empty:
+        return np.nan
+    x = s.dropna()
+    old = x[x.index <= x.index[-1] - pd.DateOffset(months=months)]
+    if old.empty:
+        return np.nan
+    return float(x.iloc[-1] - old.iloc[-1])
+
+
+def first_numeric_col(df: pd.DataFrame, includes: tuple[str, ...], excludes: tuple[str, ...] = ()) -> Optional[str]:
+    for c in df.columns:
+        low = c.lower().replace("-", "_")
+        if all(k.lower() in low for k in includes) and not any(k.lower() in low for k in excludes):
+            if pd.api.types.is_numeric_dtype(df[c]):
+                return c
+    return None
+
+
+def gpr_readings(gpr: pd.DataFrame) -> dict:
+    out = {"gpr": np.nan, "gpr_pct": np.nan, "gpr_change": np.nan, "oil_gpr": np.nan, "acts": np.nan, "threats": np.nan}
+    if gpr is None or gpr.empty:
+        return out
+    numeric = gpr.select_dtypes(include=[np.number])
+    if numeric.empty:
+        return out
+    main_col = first_numeric_col(gpr, ("gpr", "ai"), ("oil", "non", "threat", "act", "orig"))
+    if main_col is None:
+        main_col = first_numeric_col(gpr, ("gpr",), ("oil", "non", "threat", "act", "orig"))
+    oil_col = first_numeric_col(gpr, ("oil", "gpr"))
+    act_col = first_numeric_col(gpr, ("act", "gpr")) or first_numeric_col(gpr, ("gpr", "act"))
+    threat_col = first_numeric_col(gpr, ("threat", "gpr")) or first_numeric_col(gpr, ("gpr", "threat"))
+    if main_col:
+        x = pd.to_numeric(gpr[main_col], errors="coerce").dropna()
+        if len(x):
+            out["gpr"] = float(x.iloc[-1])
+            hist = x[x.index >= x.index[-1] - pd.DateOffset(years=10)]
+            if len(hist) >= 12:
+                out["gpr_pct"] = float((hist <= hist.iloc[-1]).mean() * 100)
+            old = x[x.index <= x.index[-1] - pd.DateOffset(months=3)]
+            if len(old):
+                out["gpr_change"] = float(x.iloc[-1] - old.iloc[-1])
+    for key, col in [("oil_gpr", oil_col), ("acts", act_col), ("threats", threat_col)]:
+        if col:
+            x = pd.to_numeric(gpr[col], errors="coerce").dropna()
+            if len(x): out[key] = float(x.iloc[-1])
+    return out
+
+
+def crash_state_name(stress: float, fragility: float) -> tuple[str, str, str]:
+    if stress >= 65 and fragility >= 65:
+        return "CRASH DANGER", "red", "Stress is active while the system is already fragile."
+    if stress < 50 and fragility >= 65:
+        return "POWDER KEG", "amber", "Fragile, but the active-stress cascade is not yet present."
+    if stress >= 65 and fragility < 65:
+        return "SHOCK / STRESS", "red", "Stress is high, but structural fragility is less extreme."
+    if stress >= 45 or fragility >= 50:
+        return "WATCH", "amber", "Some vulnerability is present; no full crash configuration."
+    return "RESILIENT", "green", "Low stress and lower structural fragility."
+
+
+def plain_regime(growth: str, lead: str, credit_tone: str, stress_score: float) -> tuple[str, str]:
+    if "RECESSION" in growth or "CONTRACT" in growth:
+        return "ECONOMY CONTRACTING", "Growth has crossed into contractionary territory."
+    if "BELOW" in growth or "BELOW" in lead:
+        if credit_tone == "red" or stress_score >= 65:
+            return "SLOWING · STRESS BUILDING", "Growth momentum is weak and financial stress is reinforcing it."
+        return "GROWING · LOSING MOMENTUM", "The economy is still expanding, but leading growth is softer."
+    if "ABOVE" in growth and "ABOVE" in lead:
+        return "EXPANDING · MOMENTUM HEALTHY", "Growth and leading activity are both above trend."
+    return "TRANSITION · NEED CONFIRMATION", "The data do not yet agree on a single clean path."
+
+
+def adaptive_scenarios(*, growth: str, lead_value: float, lead_delta: float, wei: float, inflation_dir: str,
+                       claims: float, claims_3m: float, ebp_prob: float, hy: float, hy_3m: float,
+                       fcig: float, market_structure: str, fiscal_score: float, rates_score: float,
+                       energy_score: float, funding_score: float, gpr_pct: float, gpr_change: float,
+                       gscpi: float, gscpi_delta: float, epu_pct: float, spy_ath: float) -> list[dict]:
+    """Heuristic evidence ranking only. score is NOT probability."""
+    scenarios = []
+    def add(name, family, impact, rules, confirms, invalidates, transmission, confidence="SCREENED"):
+        hits = [r for r in rules if r[0]]
+        total = len(rules)
+        score = int(round(100 * len(hits) / total)) if total else 0
+        direction = "↑" if len(hits) >= max(1, total//2) else "→"
+        tone = "red" if impact == "SEVERE" and score >= 50 else ("amber" if score >= 40 else ("green" if family in ["Positive", "Market"] and score >= 50 else "blue"))
+        scenarios.append({"name":name,"family":family,"impact":impact,"score":score,"hits":[r[1] for r in hits],"total":total,"direction":direction,"tone":tone,"confirms":confirms,"invalidates":invalidates,"transmission":transmission,"confidence":confidence})
+    weak_growth = any(k in growth for k in ["BELOW","MIXED","CONTRACT","RECESSION"])
+    claims_worse = np.isfinite(claims) and np.isfinite(claims_3m) and claims > claims_3m
+    hy_worse = np.isfinite(hy) and np.isfinite(hy_3m) and hy > hy_3m
+    lead_improving = np.isfinite(lead_delta) and lead_delta > 0
+    gpr_high = np.isfinite(gpr_pct) and gpr_pct >= 70
+    gpr_rising = np.isfinite(gpr_change) and gpr_change > 0
+    supply_stress = (np.isfinite(gscpi) and gscpi > 1) or (np.isfinite(gscpi_delta) and gscpi_delta > .5)
+    epu_high = np.isfinite(epu_pct) and epu_pct >= 75
+    near_ath = np.isfinite(spy_ath) and spy_ath >= -2
+    add("Disinflationary slowdown","Macro","MEDIUM",[(weak_growth,"growth below/near trend"),(inflation_dir=="COOLING","inflation cooling"),(np.isfinite(lead_value) and lead_value<0,"leading growth below trend"),(fcig<0,"financial conditions still cushion growth")],"Claims/lead stay soft while inflation keeps cooling.","Leading growth reaccelerates and labor breadth improves.","Growth ↓ + inflation ↓; duration support can coexist with weaker cyclicals.")
+    add("Reacceleration","Positive","POSITIVE",[(lead_improving,"leading growth improving"),(np.isfinite(wei) and wei>0,"high-frequency activity positive"),("IMPROVING" in market_structure or "BROAD" in market_structure,"market breadth improving"),(fcig<0,"financial conditions supportive")],"Lead/WEI/breadth improve together.","Credit widens or inflation re-heats before growth confirms.","Growth breadth ↑ → earnings breadth ↑ → cyclicals/small caps can catch up.")
+    add("Recession / credit crack","Macro","SEVERE",[(np.isfinite(lead_value) and lead_value<=-1,"BBK lead at recession-risk zone"),(claims_worse,"claims worsening"),(np.isfinite(ebp_prob) and ebp_prob>=25,"EBP recession benchmark elevated"),(hy_worse,"HY spreads widening"),(funding_score>=65,"funding stress elevated")],"Labor + credit + funding deteriorate together.","Credit calms and claims/leading growth stabilize.","Credit ↓ → hiring/capex ↓ → earnings ↓ → broader drawdown risk.")
+    add("Inflation resurgence / policy bind","Macro","HIGH",[(inflation_dir=="HEATING","underlying inflation heating"),(energy_score>=65,"energy pressure elevated"),(supply_stress,"global supply pressure elevated"),(rates_score>=65,"rates/term premium elevated")],"Core/trimmed PCE, oil/supply and breakevens rise together.","Energy/supply normalize and underlying inflation keeps falling.","Inflation ↑ → easing delayed → yields/discount rates ↑ → growth/valuation pressure.")
+    add("Rates / term-premium shock","Fiscal","HIGH",[(rates_score>=65,"long-rate/term-premium pressure elevated"),(fiscal_score>=65,"fiscal pressure elevated"),(epu_high,"policy uncertainty elevated"),(near_ath,"risk assets near highs")],"Term premium and long yields rise while funding/credit begin to weaken.","Long yields/term premium reverse without credit damage.","Long yields ↑ → mortgage/capex/valuation pressure ↑ → fragility rises.")
+    add("War / energy stagflation","Geopolitical","SEVERE",[(gpr_high,"geopolitical risk high"),(gpr_rising,"geopolitical risk rising"),(energy_score>=65,"energy pressure elevated"),(supply_stress,"supply-chain pressure elevated")],"GPR + oil-GPR/energy + supply pressure rise together.","GPR/energy/supply stress normalize.","Conflict → energy/supply shock → inflation ↑ + growth ↓ → policy bind.", confidence="EVENT FEED")
+    add("Fiscal crowding-out","Fiscal","HIGH",[(fiscal_score>=65,"fiscal pressure elevated"),(rates_score>=65,"rates/term premium elevated"),(np.isfinite(interest_gdp) and interest_gdp>=3,"interest burden high"),(epu_high,"policy uncertainty elevated")],"Issuance/term premium and private borrowing costs rise together.","Funding demand absorbs issuance and term premium falls.","Fiscal financing ↑ → long rates ↑ → housing/capex/private credit ↓.")
+    add("Fiscal pressure → de-escalation incentive","Geopolitical","HIGH",[(fiscal_score>=65,"fiscal constraint elevated"),(rates_score>=65,"rates pressure elevated"),(gpr_high,"geopolitical conflict risk elevated"),(energy_score>=65,"war/energy cost channel elevated")],"Conflict feed confirms an active costly conflict while fiscal/rate constraints tighten.","Conflict de-escalates for diplomatic reasons or financing/rates normalize.","War cost + interest/funding burden ↑ → economic/political incentive to shrink conflict ↑.", confidence="CONDITIONAL — NOT POLITICAL PREDICTION")
+    add("ATH + credit divergence","Market","HIGH",[(near_ath,"SPY near ATH"),(hy_worse,"HY widening"),(np.isfinite(ebp_prob) and ebp_prob>=20,"EBP recession benchmark non-trivial"),("DETERIORATING" in market_structure or "NARROW" in market_structure,"breadth/leadership fragile")],"Price stays high while credit/breadth deteriorate.","Credit tightens and breadth broadens.","Price optimism vs financing deterioration → fragile breakout / repricing risk.")
+    add("Funding / deleveraging cascade","Market","SEVERE",[(funding_score>=65,"funding/stress elevated"),(stress_score>=65,"market stress elevated"),(fragility_score>=65,"system fragility elevated"),(credit_score>=65,"credit pressure elevated")],"Stress, credit and funding rise together.","Funding/stress normalize quickly.","Volatility ↑ → liquidity ↓ → deleveraging ↑ → correlations ↑ → drawdown amplification.")
+    scenarios.sort(key=lambda x:(x["score"], 1 if x["impact"]=="SEVERE" else 0), reverse=True)
+    return scenarios
+
+
+def attention_items(items: list[tuple[str,float,str,str]]) -> list[tuple[str,float,str,str]]:
+    clean=[x for x in items if np.isfinite(x[1])]
+    return sorted(clean,key=lambda x:x[1],reverse=True)[:3]
+
 # ----------------------------- UI -----------------------------
 COLORS = {
     "green": ("#20d58b", "rgba(32,213,139,.12)"),
@@ -525,296 +676,246 @@ st.sidebar.write("Event probability:", "✅" if EVENT_PROBABILITY_MODEL_VALIDATE
 st.sidebar.write("Market expectation gap:", "✅" if EXPECTATION_GAP_VALIDATED else "🔒")
 st.sidebar.caption("Grey means gated / unavailable — not neutral.")
 
+
 with st.spinner("Loading official/public macro data…"):
-    data, research, market, treasury_debt_tn, treasury_debt_date, errors = load_all()
+    data, research, market, gpr_df, treasury_debt_tn, treasury_debt_date, errors = load_all()
 
-# Current readings
-bbk_gdp, _ = latest(data.get("BBKMGDP"))
-bbk_co, _ = latest(data.get("BBKMCOIX"))
-bbk_lead, _ = latest(data.get("BBKMLEIX"))
-wei, _ = latest(data.get("WEI"))
-trimmed, _ = latest(data.get("PCETRIM12M159SFRBDAL"))
-core_pce = yoy_from_index(data.get("PCEPILFE"))
-trimmed_3m = lag_value(data.get("PCETRIM12M159SFRBDAL"), 3)
-core_3m = yoy_at_lag(data.get("PCEPILFE"), 3)
-sahm, _ = latest(data.get("SAHMREALTIME"))
-claims, _ = latest(data.get("ICSA"))
-claims_3m = months_ago(data.get("ICSA"), 3)
-sloos, _ = latest(data.get("DRTSCILM"))
-nfci, _ = latest(data.get("NFCIRISK"))
-vix, _ = latest(data.get("VIXCLS"))
-hy, _ = latest(data.get("BAMLH0A0HYM2"))
-hy_3m = months_ago(data.get("BAMLH0A0HYM2"), 3)
-breakeven, _ = latest(data.get("T5YIE"))
-d10, _ = latest(data.get("DGS10"))
-d2, _ = latest(data.get("DGS2"))
-fedfunds, _ = latest(data.get("FEDFUNDS"))
-term_premium, _ = latest(data.get("THREEFYTP10"))
-oil, _ = latest(data.get("DCOILWTICO"))
-oil_3m = months_ago(data.get("DCOILWTICO"), 3)
-oil_chg_3m = (oil / oil_3m - 1) * 100 if np.isfinite(oil) and np.isfinite(oil_3m) and oil_3m != 0 else np.nan
-debt_gdp, _ = latest(data.get("GFDEGDQ188S"))
-deficit_gdp, _ = latest(data.get("FYFSGDA188S"))
-interest_gdp, _ = latest(data.get("FYOIGDA188S"))
-curve = d10 - d2 if np.isfinite(d10) and np.isfinite(d2) else np.nan
+# ----------------------------- live readings -----------------------------
+bbk_gdp, _ = latest(data.get("BBKMGDP")); bbk_co, _ = latest(data.get("BBKMCOIX")); bbk_lead, _ = latest(data.get("BBKMLEIX")); wei, _ = latest(data.get("WEI"))
+trimmed, _ = latest(data.get("PCETRIM12M159SFRBDAL")); core_pce = yoy_from_index(data.get("PCEPILFE")); trimmed_3m = lag_value(data.get("PCETRIM12M159SFRBDAL"), 3); core_3m = yoy_at_lag(data.get("PCEPILFE"), 3)
+sahm, _ = latest(data.get("SAHMREALTIME")); claims, _ = latest(data.get("ICSA")); claims_3m = months_ago(data.get("ICSA"), 3); sloos, _ = latest(data.get("DRTSCILM"))
+nfci, _ = latest(data.get("NFCIRISK")); vix, _ = latest(data.get("VIXCLS")); hy, _ = latest(data.get("BAMLH0A0HYM2")); hy_3m = months_ago(data.get("BAMLH0A0HYM2"), 3)
+breakeven, _ = latest(data.get("T5YIE")); d10, _ = latest(data.get("DGS10")); d2, _ = latest(data.get("DGS2")); fedfunds, _ = latest(data.get("FEDFUNDS")); term_premium, _ = latest(data.get("THREEFYTP10"))
+oil, _ = latest(data.get("DCOILWTICO")); oil_3m = months_ago(data.get("DCOILWTICO"), 3); oil_chg_3m = (oil/oil_3m-1)*100 if np.isfinite(oil) and np.isfinite(oil_3m) and oil_3m!=0 else np.nan
+debt_gdp, _ = latest(data.get("GFDEGDQ188S")); deficit_gdp, _ = latest(data.get("FYFSGDA188S")); interest_gdp, _ = latest(data.get("FYOIGDA188S")); curve = d10-d2 if np.isfinite(d10) and np.isfinite(d2) else np.nan
+gscpi, _ = latest(data.get("GSCPI")); gscpi_delta = level_change_over(data.get("GSCPI"), 3)
+epu, _ = latest(data.get("USEPUINDXD")); epu_pct = hist_pct(data.get("USEPUINDXD"), 10)
+gpr = gpr_readings(gpr_df)
 
-# Fed published model outputs
+# Fed published outputs
 ebp_prob = ebp = np.nan
 if "EBP" in research and not research["EBP"].empty:
-    edf = research["EBP"].copy()
-    for c in ["ebp", "est_prob"]:
-        if c in edf:
-            edf[c] = pd.to_numeric(edf[c], errors="coerce")
-    ec = edf.dropna(subset=["est_prob"])
-    if len(ec):
-        ebp_prob = float(ec.iloc[-1]["est_prob"]) * 100
-        ebp = float(ec.iloc[-1]["ebp"])
-
-fcig = np.nan
+    edf=research["EBP"].copy()
+    for c in ["ebp","est_prob"]:
+        if c in edf: edf[c]=pd.to_numeric(edf[c],errors="coerce")
+    ec=edf.dropna(subset=["est_prob"])
+    if len(ec): ebp_prob=float(ec.iloc[-1]["est_prob"])*100; ebp=float(ec.iloc[-1]["ebp"])
+fcig=np.nan
 if "FCIG" in research and not research["FCIG"].empty:
-    fdf = research["FCIG"].copy()
-    fcol = next((c for c in fdf.columns if c.startswith("FCI-G Index")), None)
+    fdf=research["FCIG"].copy(); fcol=next((c for c in fdf.columns if c.startswith("FCI-G Index")),None)
     if fcol:
-        fdf[fcol] = pd.to_numeric(fdf[fcol], errors="coerce")
-        fc = fdf.dropna(subset=[fcol])
-        if len(fc):
-            fcig = float(fc.iloc[-1][fcol])
+        fdf[fcol]=pd.to_numeric(fdf[fcol],errors="coerce"); fc=fdf.dropna(subset=[fcol])
+        if len(fc): fcig=float(fc.iloc[-1][fcol])
 
-# States
-growth, growth_tone = growth_state(bbk_gdp, bbk_co, wei)
-lead, lead_tone = lead_state(bbk_lead)
-inflation, inflation_tone, inflation_dir = inflation_state(trimmed, core_pce, trimmed_3m, core_3m)
-labor, labor_tone = labor_state(sahm)
-fc_state, fc_tone = fcig_state(fcig)
-regime = regime_name(growth, inflation_dir)
-credit_tone = "red" if (np.isfinite(ebp_prob) and ebp_prob >= 35) else ("amber" if np.isfinite(hy) and np.isfinite(hy_3m) and hy > hy_3m else "green")
-credit_state = "STRESS" if credit_tone == "red" else ("WIDENING / WATCH" if credit_tone == "amber" else "CALM")
-stress_score = np.nanmean([hist_pct(data.get("VIXCLS")), hist_pct(data.get("NFCIRISK")), hist_pct(data.get("BAMLH0A0HYM2"))])
-fragility_score = np.nanmean([hist_pct(data.get("DGS10")), hist_pct(data.get("THREEFYTP10")), hist_pct(data.get("BAMLH0A0HYM2"))])
-if not np.isfinite(stress_score): stress_score = 50.0
-if not np.isfinite(fragility_score): fragility_score = 50.0
+# states
+growth,growth_tone=growth_state(bbk_gdp,bbk_co,wei); lead,lead_tone=lead_state(bbk_lead); inflation,inflation_tone,inflation_dir=inflation_state(trimmed,core_pce,trimmed_3m,core_3m); labor,labor_tone=labor_state(sahm); fc_state,fc_tone=fcig_state(fcig); regime=regime_name(growth,inflation_dir)
+lead_delta = bbk_lead - lag_value(data.get("BBKMLEIX"),1) if np.isfinite(bbk_lead) and np.isfinite(lag_value(data.get("BBKMLEIX"),1)) else np.nan
+credit_tone="red" if (np.isfinite(ebp_prob) and ebp_prob>=35) else ("amber" if np.isfinite(hy) and np.isfinite(hy_3m) and hy>hy_3m else "green")
+credit_state="STRESS" if credit_tone=="red" else ("WIDENING / WATCH" if credit_tone=="amber" else "CALM")
+stress_score=np.nanmean([hist_pct(data.get("VIXCLS")),hist_pct(data.get("NFCIRISK")),hist_pct(data.get("BAMLH0A0HYM2"))]); fragility_score=np.nanmean([hist_pct(data.get("DGS10")),hist_pct(data.get("THREEFYTP10")),hist_pct(data.get("BAMLH0A0HYM2"))])
+if not np.isfinite(stress_score): stress_score=50.0
+if not np.isfinite(fragility_score): fragility_score=50.0
+crash_state, crash_tone, crash_explain = crash_state_name(stress_score,fragility_score)
+fiscal_score=fiscal_constraint_score(debt_gdp,deficit_gdp,interest_gdp,term_premium); fiscal_tone=tone_from_score(fiscal_score)
+energy_score=energy_pressure_score(hist_pct(data.get("DCOILWTICO")),oil_chg_3m,hist_pct(data.get("T5YIE"))); energy_tone=tone_from_score(energy_score)
+rates_score=np.nanmean([hist_pct(data.get("DGS10")),hist_pct(data.get("THREEFYTP10"))]); rates_tone=tone_from_score(rates_score)
+credit_score=np.nanmean([hist_pct(data.get("BAMLH0A0HYM2")),ebp_prob]); credit_pressure_tone=tone_from_score(credit_score)
+funding_score=np.nanmean([hist_pct(data.get("NFCIRISK")),hist_pct(data.get("VIXCLS"))]); funding_tone=tone_from_score(funding_score)
+geo_score=np.nanmean([gpr.get("gpr_pct",np.nan), hist_pct(data.get("USEPUINDXD"),10)]); geo_tone=tone_from_score(geo_score)
 
-# Fiscal / event constraint scores
-fiscal_score = fiscal_constraint_score(debt_gdp, deficit_gdp, interest_gdp, term_premium)
-fiscal_tone = tone_from_score(fiscal_score)
-energy_score = energy_pressure_score(hist_pct(data.get("DCOILWTICO")), oil_chg_3m, hist_pct(data.get("T5YIE")))
-energy_tone = tone_from_score(energy_score)
-rates_score = np.nanmean([hist_pct(data.get("DGS10")), hist_pct(data.get("THREEFYTP10"))])
-rates_tone = tone_from_score(rates_score)
-credit_score = np.nanmean([hist_pct(data.get("BAMLH0A0HYM2")), ebp_prob])
-credit_score = float(credit_score) if np.isfinite(credit_score) else np.nan
-credit_pressure_tone = tone_from_score(credit_score)
-funding_score = np.nanmean([hist_pct(data.get("NFCIRISK")), hist_pct(data.get("VIXCLS"))])
-funding_tone = tone_from_score(funding_score)
+rough_gross_headroom=STATUTORY_DEBT_LIMIT_TN-treasury_debt_tn if np.isfinite(treasury_debt_tn) else np.nan
 
-# Debt limit context: gross debt is not debt-subject-to-limit; show as context only.
-rough_gross_headroom = STATUTORY_DEBT_LIMIT_TN - treasury_debt_tn if np.isfinite(treasury_debt_tn) else np.nan
-rough_headroom_pct = rough_gross_headroom / STATUTORY_DEBT_LIMIT_TN * 100 if np.isfinite(rough_gross_headroom) else np.nan
+# market structure
+spy,iwm,rsp=market.get("SPY"),market.get("IWM"),market.get("RSP"); spy_ath,iwm_ath,rsp_ath=dist_to_ath(spy),dist_to_ath(iwm),dist_to_ath(rsp); iwm_rel=relative_change(iwm,spy,3); rsp_rel=relative_change(rsp,spy,3)
+if all(np.isfinite(x) for x in [spy_ath,iwm_ath,rsp_ath]) and spy_ath>=-1.5 and iwm_ath>=-1.5 and rsp_ath>=-1.5: market_structure,market_tone="BROAD ATH / BROADENING","green"
+elif np.isfinite(spy_ath) and spy_ath>=-1.5 and ((np.isfinite(iwm_ath) and iwm_ath<-5) or (np.isfinite(rsp_ath) and rsp_ath<-5)): market_structure,market_tone="NARROW LEADERSHIP","amber"
+elif np.isfinite(iwm_rel) and np.isfinite(rsp_rel) and iwm_rel>0 and rsp_rel>0: market_structure,market_tone="BREADTH IMPROVING","green"
+elif np.isfinite(iwm_rel) and np.isfinite(rsp_rel) and iwm_rel<0 and rsp_rel<0: market_structure,market_tone="BREADTH DETERIORATING","amber"
+else: market_structure,market_tone="MIXED / OPTIONAL FEED","blue"
 
-# Optional market structure
-spy, iwm, rsp = market.get("SPY"), market.get("IWM"), market.get("RSP")
-spy_ath, iwm_ath, rsp_ath = dist_to_ath(spy), dist_to_ath(iwm), dist_to_ath(rsp)
-iwm_rel = relative_change(iwm, spy, 3)
-rsp_rel = relative_change(rsp, spy, 3)
-if all(np.isfinite(x) for x in [spy_ath, iwm_ath, rsp_ath]) and spy_ath >= -1.5 and iwm_ath >= -1.5 and rsp_ath >= -1.5:
-    market_structure, market_tone = "BROAD ATH / BROADENING", "green"
-elif np.isfinite(spy_ath) and spy_ath >= -1.5 and ((np.isfinite(iwm_ath) and iwm_ath < -5) or (np.isfinite(rsp_ath) and rsp_ath < -5)):
-    market_structure, market_tone = "NARROW LEADERSHIP", "amber"
-elif np.isfinite(iwm_rel) and np.isfinite(rsp_rel) and iwm_rel > 0 and rsp_rel > 0:
-    market_structure, market_tone = "BREADTH IMPROVING", "green"
-elif np.isfinite(iwm_rel) and np.isfinite(rsp_rel) and iwm_rel < 0 and rsp_rel < 0:
-    market_structure, market_tone = "BREADTH DETERIORATING", "amber"
-else:
-    market_structure, market_tone = "MIXED / OPTIONAL FEED", "blue"
+coverage=(len(data)+len(research)+(0 if gpr_df.empty else 1))/(len(SERIES)+3); coverage_tone="green" if coverage>=.85 else "amber"
+plain_state, plain_explain = plain_regime(growth,lead,credit_tone,stress_score)
 
-coverage = (len(data) + len(research)) / (len(SERIES) + 2)
-coverage_tone = "green" if coverage >= .85 else "amber"
+# adaptive scenario ranking
+scenarios=adaptive_scenarios(growth=growth,lead_value=bbk_lead,lead_delta=lead_delta,wei=wei,inflation_dir=inflation_dir,claims=claims,claims_3m=claims_3m,ebp_prob=ebp_prob,hy=hy,hy_3m=hy_3m,fcig=fcig,market_structure=market_structure,fiscal_score=fiscal_score,rates_score=rates_score,energy_score=energy_score,funding_score=funding_score,gpr_pct=gpr.get("gpr_pct",np.nan),gpr_change=gpr.get("gpr_change",np.nan),gscpi=gscpi,gscpi_delta=gscpi_delta,epu_pct=epu_pct,spy_ath=spy_ath)
+macro_scen=[x for x in scenarios if x["family"] in ["Macro","Positive"]][:3]
+event_scen=[x for x in scenarios if x["family"] in ["Geopolitical","Fiscal"] and x["score"]>=25][:4]
+market_scen=[x for x in scenarios if x["family"]=="Market"][:2]
+
+# top attention drivers
+growth_attention=np.nanmean([100-hist_pct(data.get("BBKMLEIX")), 65 if (np.isfinite(claims) and np.isfinite(claims_3m) and claims>claims_3m) else 25])
+attention=attention_items([
+    ("Rates / term premium",rates_score,"Long yields and term premium","Rates"),
+    ("Fiscal pressure",fiscal_score,"Debt, deficit and interest burden","Fiscal"),
+    ("Growth momentum",growth_attention,"Leading growth + claims","Growth"),
+    ("Credit",credit_score,"HY OAS + EBP","Credit"),
+    ("Funding / stress",funding_score,"NFCI + VIX","Funding"),
+    ("Energy / supply",np.nanmean([energy_score, hist_pct(data.get("GSCPI"))]),"Oil + global supply chain","Energy"),
+    ("Geopolitical / policy uncertainty",geo_score,"AI-GPR + EPU","World events"),
+])
+
+# event override
+override_candidates=[x for x in event_scen if x["score"]>=50]
+event_override=override_candidates[0] if override_candidates else None
 
 # ----------------------------- HEADER -----------------------------
-st.markdown(
-    f"""
+st.markdown(f"""
 <div class='hero'>
   <div class='hero-title'>Macro Intelligence</div>
-  <div class='sub'>Landing Page 1 · compact control room · macro projection + crash anatomy + world/event scenario constraints.</div>
-  <div class='legend'>
-    {badge('GREEN = supportive / resilient / improving','green')}
-    {badge('AMBER = caution / transition / monitor','amber')}
-    {badge('RED = stress / deterioration / adverse','red')}
-    {badge('BLUE = information / base state','blue')}
-    {badge('GREY = gated / not validated / unavailable','gray')}
-  </div>
-  <div class='sub' style='margin-top:6px'><b>Colors describe each component.</b> Green is not automatically BUY; red is not automatically SELL.</div>
-</div>
-""",
-    unsafe_allow_html=True,
-)
+  <div class='sub'>Landing Page 1 · low-scroll control room · state → projection → scenarios → crash transmission.</div>
+  <div class='legend'>{badge('GREEN = supportive / resilient / improving','green')}{badge('AMBER = caution / transition / monitor','amber')}{badge('RED = stress / deterioration / adverse','red')}{badge('BLUE = information / base state','blue')}{badge('GREY = not released / unvalidated / unavailable','gray')}</div>
+  <div class='sub' style='margin-top:5px'><b>Colors describe the component, not a trade.</b> Green ≠ automatic buy. Red ≠ automatic sell.</div>
+</div>""",unsafe_allow_html=True)
 
-# Tabs keep page low-scroll.
-tab_control, tab_world, tab_research = st.tabs(["CONTROL ROOM", "WORLD / EVENT SCENARIOS", "RESEARCH / RAW"])
+tab_control,tab_events,tab_research=st.tabs(["CONTROL ROOM","ACTIVE EVENTS","RESEARCH"])
 
 # ============================================================
-# TAB 1 — CONTROL ROOM
+# CONTROL ROOM
 # ============================================================
 with tab_control:
-    st.markdown("<div class='section'>Control strip</div>", unsafe_allow_html=True)
-    html = "<div class='summary-grid'>"
-    html += summary_card("Current regime", regime, "", f"Growth {growth.lower()} · inflation {inflation_dir.lower()}", "blue")
-    html += summary_card("Growth lead", lead, signed(bbk_lead,2,"σ"), "Main medium-horizon anchor", lead_tone)
-    html += summary_card("Market structure", market_structure, "", "ATH is context; breadth/credit decide whether it is healthy or fragile", market_tone)
-    html += summary_card("Crash state", "STRESS × FRAGILITY", f"{int(stress_score)}/{int(fragility_score)}", "State map only; exact crash probability remains gated", tone_from_score(max(stress_score, fragility_score)))
-    html += summary_card("Fiscal constraint", "PRESSURE", fmt(fiscal_score,0,"/100"), f"Debt/deficit/interest/term-premium context", fiscal_tone)
-    html += summary_card("Data health", "LIVE", f"{coverage:.0%}", "Latest state; point-in-time backtest is separate", coverage_tone)
-    html += "</div>"
-    st.markdown(html, unsafe_allow_html=True)
+    # Right now translation
+    rt_tone = "red" if crash_tone=="red" else ("amber" if "LOSING" in plain_state or "WATCH" in crash_state or crash_state=="POWDER KEG" else "green")
+    st.markdown("<div class='section'>Right now</div>",unsafe_allow_html=True)
+    st.markdown(f"<div class='panel'><div class='ptitle' style='font-size:.95rem'>{badge(plain_state,rt_tone)} &nbsp; {badge(crash_state,crash_tone)}</div><div style='font-size:.78rem;line-height:1.45;color:#d8e1ec'><b>{plain_explain}</b> {crash_explain} " + (f"<b>Event override:</b> {event_override['name']}." if event_override else "<b>Event override:</b> none active from admitted feeds.") + "</div></div>",unsafe_allow_html=True)
 
-    st.markdown("<div class='section'>Projection + crash map</div>", unsafe_allow_html=True)
-    left, right = st.columns([1.75, 1])
+    # Top 3 matters + compact strip
+    st.markdown("<div class='section'>Top 3 things that matter now</div>",unsafe_allow_html=True)
+    cols=st.columns(3)
+    for col,(name,score,note,fam) in zip(cols,attention):
+        with col:
+            tone=tone_from_score(score)
+            st.markdown(summary_card(f"#{attention.index((name,score,note,fam))+1} · {fam}",name,fmt(score,0,"/100"),note+" · attention score, not probability",tone),unsafe_allow_html=True)
+
+    st.markdown("<div class='section'>Projection + crash map</div>",unsafe_allow_html=True)
+    left,right=st.columns([1.75,1])
     with left:
-        claims_dir = "WEAKENING" if np.isfinite(claims) and np.isfinite(claims_3m) and claims > claims_3m else "STABLE / IMPROVING"
-        claims_tone = "amber" if claims_dir == "WEAKENING" else "green"
-        hy_dir = "WIDENING" if np.isfinite(hy) and np.isfinite(hy_3m) and hy > hy_3m else "CALM / TIGHTER"
-        hy_tone = "amber" if hy_dir == "WIDENING" else "green"
-        rows = []
-        rows.append("<tr><td><div class='rowname'>Growth</div></td>" + state_cell(growth, f"BBK GDP {fmt(bbk_gdp,2,'%')}", growth_tone) + state_cell("CURRENT BIAS", "near-term broad state", growth_tone) + state_cell(lead, f"BBK lead {signed(bbk_lead,2,'σ')}", lead_tone) + state_cell("12M BENCHMARK", f"EBP recession {fmt(ebp_prob,1,'%')}", "amber" if ebp_prob >= 20 else "green") + "</tr>")
-        rows.append("<tr><td><div class='rowname'>Inflation</div></td>" + state_cell(inflation, f"Trim/Core {fmt(trimmed,1,'%')}/{fmt(core_pce,1,'%')}", inflation_tone) + state_cell(inflation_dir, "observed direction", "green" if inflation_dir == "COOLING" else ("red" if inflation_dir == "HEATING" else "amber")) + state_cell("GATED", "pipeline model pending", "gray") + state_cell("GATED", "longer projection pending", "gray") + "</tr>")
-        rows.append("<tr><td><div class='rowname'>Labor</div></td>" + state_cell(labor, f"Sahm {signed(sahm,2)}", labor_tone) + state_cell(claims_dir, f"Claims {fmt(claims,0)}", claims_tone) + state_cell("GATED", "leading labor composite pending", "gray") + state_cell("GATED", "long horizon pending", "gray") + "</tr>")
-        rows.append("<tr><td><div class='rowname'>Credit</div></td>" + state_cell(credit_state, f"EBP {signed(ebp,2)} · HY {fmt(hy,2,'%')}", credit_tone) + state_cell(hy_dir, "HY OAS 3M direction", hy_tone) + state_cell("GATED", "credit impulse model pending", "gray") + state_cell("EBP CONTEXT", f"12M recession {fmt(ebp_prob,1,'%')}", "amber" if ebp_prob >= 20 else "green") + "</tr>")
-        rows.append("<tr><td><div class='rowname'>Financial conditions</div></td>" + state_cell(fc_state, f"FCI-G {signed(fcig,2)}", fc_tone) + state_cell(fc_state, "current conditions carry near-term", fc_tone) + state_cell("GATED", "no invented +2Q path", "gray") + state_cell(fc_state, "published 12M impulse", fc_tone) + "</tr>")
-        rows.append("<tr><td><div class='rowname'>Fiscal pressure</div></td>" + state_cell("ELEVATED" if fiscal_score >= 65 else ("WATCH" if fiscal_score >= 40 else "LOW"), f"Debt/GDP {fmt(debt_gdp,1,'%')}", fiscal_tone) + state_cell("WATCH", f"10Y {fmt(d10,2,'%')} · TP {fmt(term_premium,2,'%')}", rates_tone) + state_cell("GATED", "fiscal-path model pending", "gray") + state_cell("STRUCTURAL", f"Interest/GDP {fmt(interest_gdp,2,'%')}", fiscal_tone) + "</tr>")
-        st.markdown("<div class='panel'><div class='ptitle'>Projection Matrix · NOW → +1Q → +2Q → +4Q</div><table class='matrix'><thead><tr><th>Engine</th><th>NOW</th><th>+1Q</th><th>+2Q</th><th>+4Q</th></tr></thead><tbody>" + "".join(rows) + "</tbody></table></div>", unsafe_allow_html=True)
-
+        claims_dir="WEAKENING" if np.isfinite(claims) and np.isfinite(claims_3m) and claims>claims_3m else "STABLE / IMPROVING"; claims_tone="amber" if claims_dir=="WEAKENING" else "green"
+        hy_dir="WIDENING" if np.isfinite(hy) and np.isfinite(hy_3m) and hy>hy_3m else "CALM / TIGHTER"; hy_tone="amber" if hy_dir=="WIDENING" else "green"
+        dash=lambda note: state_cell("—",note,"gray")
+        rows=[]
+        rows.append("<tr><td><div class='rowname'>Growth</div></td>"+state_cell(growth,f"BBK GDP {fmt(bbk_gdp,2,'%')}",growth_tone)+state_cell("CURRENT BIAS","broad/high-frequency state",growth_tone)+state_cell(lead,f"BBK lead {signed(bbk_lead,2,'σ')}",lead_tone)+dash("proprietary +4Q not released")+"</tr>")
+        rows.append("<tr><td><div class='rowname'>Inflation</div></td>"+state_cell(inflation,f"Trim/Core {fmt(trimmed,1,'%')}/{fmt(core_pce,1,'%')}",inflation_tone)+state_cell(inflation_dir,"observed 3M direction","green" if inflation_dir=="COOLING" else ("red" if inflation_dir=="HEATING" else "amber"))+dash("pipeline projection pending")+dash("long projection pending")+"</tr>")
+        rows.append("<tr><td><div class='rowname'>Labor</div></td>"+state_cell(labor,f"Sahm {signed(sahm,2)}",labor_tone)+state_cell(claims_dir,f"Claims {fmt(claims,0)}",claims_tone)+dash("leading composite pending")+dash("long projection pending")+"</tr>")
+        rows.append("<tr><td><div class='rowname'>Credit</div></td>"+state_cell(credit_state,f"EBP {signed(ebp,2)} · HY {fmt(hy,2,'%')}",credit_tone)+state_cell(hy_dir,"HY 3M direction",hy_tone)+dash("credit impulse pending")+dash("proprietary path pending")+"</tr>")
+        rows.append("<tr><td><div class='rowname'>Financial conditions</div></td>"+state_cell(fc_state,f"FCI-G {signed(fcig,2)}",fc_tone)+state_cell(fc_state,"near-term carry",fc_tone)+dash("+2Q model pending")+dash("+4Q model pending")+"</tr>")
+        st.markdown("<div class='panel'><div class='ptitle'>Projection Matrix · NOW → +1Q → +2Q → +4Q</div><table class='matrix'><thead><tr><th>Engine</th><th>NOW</th><th>+1Q</th><th>+2Q</th><th>+4Q</th></tr></thead><tbody>"+"".join(rows)+"</tbody></table><div class='gate' style='margin-top:5px'><b>12M supporting benchmarks:</b> Fed EBP recession "+fmt(ebp_prob,1,"%")+" · FCI-G "+signed(fcig,2)+". These support the horizon; they are not mislabeled as our +4Q projection.</div></div>",unsafe_allow_html=True)
     with right:
-        dot_tone = tone_from_score(max(stress_score, fragility_score))
-        dot_color = COLORS[dot_tone][0]
-        x = max(3, min(97, fragility_score)); y = max(3, min(97, 100 - stress_score))
-        st.markdown(f"""
-<div class='panel'><div class='ptitle'>Crash Map · Fragility × Immediate Stress</div>
-<div class='quad'><div class='qv'></div><div class='qh'></div>
-<div class='qlabel' style='left:7px;top:7px'>Shock / stress</div><div class='qlabel' style='right:7px;top:7px'>Crash danger</div>
-<div class='qlabel' style='left:7px;bottom:7px'>Healthy</div><div class='qlabel' style='right:7px;bottom:7px'>Powder keg</div>
-<div class='dot' style='left:{x}%;top:{y}%;background:{dot_color}'></div></div>
-<div class='rowline'><div class='muted'>Immediate stress</div><div class='right'><b>{int(stress_score)}/100</b></div></div>
-<div class='rowline'><div class='muted'>Fragility proxy</div><div class='right'><b>{int(fragility_score)}/100</b></div></div>
-<div class='rowline'><div class='muted'>Exact &gt;20% crash probability</div><div class='right'>{badge('GATED','gray')}</div></div>
-<div class='gate' style='margin-top:6px'>Low stress + high fragility = vulnerable but not imminent. High stress + high fragility = dangerous. This is a state map, not a crash-probability model.</div></div>
-""", unsafe_allow_html=True)
+        dot_color=COLORS[crash_tone][0]; x=max(3,min(97,fragility_score)); y=max(3,min(97,100-stress_score))
+        st.markdown(f"""<div class='panel'><div class='ptitle'>Crash Map · {crash_state}</div><div class='quad'><div class='qv'></div><div class='qh'></div><div class='qlabel' style='left:7px;top:7px'>Shock / stress</div><div class='qlabel' style='right:7px;top:7px'>Crash danger</div><div class='qlabel' style='left:7px;bottom:7px'>Healthy</div><div class='qlabel' style='right:7px;bottom:7px'>Powder keg</div><div class='dot' style='left:{x}%;top:{y}%;background:{dot_color}'></div></div><div class='rowline'><div>Immediate stress</div><div class='right'><b>{int(stress_score)}/100 · {('LOW' if stress_score<40 else 'MED' if stress_score<65 else 'HIGH')}</b></div></div><div class='rowline'><div>Fragility</div><div class='right'><b>{int(fragility_score)}/100 · {('LOW' if fragility_score<40 else 'MED' if fragility_score<65 else 'HIGH')}</b></div></div><div class='gate' style='margin-top:5px'>{crash_explain} Exact &gt;20% drawdown probability stays grey until validated.</div></div>""",unsafe_allow_html=True)
 
-    st.markdown("<div class='section'>Macro scenarios + constraint map</div>", unsafe_allow_html=True)
-    c1, c2 = st.columns([1.25, 1])
-    with c1:
-        alt = "REACCELERATION" if regime != "GOLDILOCKS / DISINFLATION" else "SLOWDOWN"
-        sc = "<div class='scenario-grid'>"
-        sc += scenario_card("BASE", regime, "Best current description. Numerical probability stays gated until projection OOS validation.", "blue")
-        sc += scenario_card("ALTERNATIVE", alt, "Requires a clear turn in leading growth, breadth, credit and inflation consistency.", "green")
-        sc += scenario_card("TAIL", "GROWTH / CREDIT CRACK", "Labor + credit deterioration must reinforce each other; one headline alone is insufficient.", "red")
-        sc += "</div>"
-        st.markdown("<div class='panel'><div class='ptitle'>Top Macro Paths</div>" + sc + "</div>", unsafe_allow_html=True)
-    with c2:
-        constraints = "<div class='constraint-grid'>"
-        constraints += constraint_card("Fiscal", "ELEVATED" if fiscal_score >= 65 else ("WATCH" if fiscal_score >= 40 else "LOW"), f"Debt/GDP {fmt(debt_gdp,1,'%')} · deficit {fmt(deficit_gdp,1,'%')}", fiscal_tone)
-        constraints += constraint_card("Rates / term premium", "ELEVATED" if rates_score >= 65 else ("WATCH" if rates_score >= 40 else "LOW"), f"10Y {fmt(d10,2,'%')} · TP {fmt(term_premium,2,'%')}", rates_tone)
-        constraints += constraint_card("Energy", "ELEVATED" if energy_score >= 65 else ("WATCH" if energy_score >= 40 else "LOW"), f"WTI {fmt(oil,1,'$')} · 3M {signed(oil_chg_3m,1,'%')}", energy_tone)
-        constraints += constraint_card("Credit", "ELEVATED" if credit_score >= 65 else ("WATCH" if credit_score >= 40 else "LOW"), f"HY {fmt(hy,2,'%')} · EBP rec. {fmt(ebp_prob,1,'%')}", credit_pressure_tone)
-        constraints += constraint_card("Funding / stress", "ELEVATED" if funding_score >= 65 else ("WATCH" if funding_score >= 40 else "LOW"), f"NFCI {signed(nfci,2)} · VIX {fmt(vix,1)}", funding_tone)
-        constraints += constraint_card("Geopolitical choice", "GATED", "Economic data can constrain choices; it cannot determine political intent alone.", "gray")
-        constraints += "</div>"
-        st.markdown("<div class='panel'><div class='ptitle'>Constraint Map</div>" + constraints + "</div>", unsafe_allow_html=True)
+    # scenarios + driver relationship map
+    st.markdown("<div class='section'>Scenarios + driver map</div>",unsafe_allow_html=True)
+    s1,s2=st.columns([1.1,1.25])
+    with s1:
+        html="<div class='scenario-grid'>"
+        for i,sc in enumerate(macro_scen[:3]):
+            tag="BASE / ACTIVE" if i==0 else ("ALTERNATIVE" if i==1 else "TAIL")
+            note=f"Evidence {len(sc['hits'])}/{sc['total']} · {sc['direction']} · {sc['transmission']}"
+            html+=scenario_card(tag,sc['name'],note,sc['tone'])
+        html+="</div>"
+        st.markdown("<div class='panel'><div class='ptitle'>Adaptive Macro Paths</div>"+html+"<div class='gate' style='margin-top:5px'>Rank is evidence activation, <b>not probability</b>. Candidates automatically rise/fall as inputs change.</div></div>",unsafe_allow_html=True)
+    with s2:
+        # compact driver-scenario transmission map
+        st.markdown("<div class='panel'><div class='ptitle'>Driver → Scenario Map</div>",unsafe_allow_html=True)
+        dm=pd.DataFrame({
+            "Slowdown":["++","+","++","+","−"],
+            "Reaccel":["−−","0","−−","−","++"],
+            "Stagflation":["+","+++","+","++","0"],
+            "Crash cascade":["+","+","+++","++","−−"],
+            "Fiscal / war constraint":["0","++","+","+++","0"],
+        },index=["Growth weakness","Energy / supply","Credit / funding","Rates / fiscal","Liquidity support"])
+        def map_cell(v):
+            if v in ["+++","++"]: return "#ff6d7430" if v=="+++" else "#f4b45f25"
+            if v in ["−−","−"]: return "#20d58b22"
+            return "#75a9ff16"
+        # HTML table
+        h="<table class='matrix'><thead><tr><th>Driver</th>"+"".join(f"<th>{c}</th>" for c in dm.columns)+"</tr></thead><tbody>"
+        for idxr,row in dm.iterrows():
+            h+=f"<tr><td><div class='rowname'>{idxr}</div></td>"+"".join(f"<td style='background:{map_cell(v)}'><div class='cellv'>{v}</div></td>" for v in row)+"</tr>"
+        h+="</tbody></table><div class='gate' style='margin-top:5px'><b>Legend:</b> + increases that scenario pressure; − buffers it; more signs = stronger structural transmission assumption. This is a causal map, not a raw correlation matrix.</div></div>"
+        st.markdown(h,unsafe_allow_html=True)
 
-    st.markdown("<div class='section'>What changes the answer?</div>", unsafe_allow_html=True)
-    w1, w2 = st.columns(2)
-    with w1:
-        st.markdown("<div class='panel'><div class='ptitle'>Confirmation / invalidation</div><div class='watch-grid'>" +
-                    "<div class='watch'><div class='watch-title'>Growth</div><div class='watch-note'>BBK Leading + WEI + claims must converge before the path gets upgraded/downgraded.</div></div>" +
-                    "<div class='watch'><div class='watch-title'>Inflation</div><div class='watch-note'>Cooling must persist; re-heating changes the policy/fiscal branch.</div></div>" +
-                    "<div class='watch'><div class='watch-title'>Credit</div><div class='watch-note'>Watch EBP/HY widening before headline macro cracks.</div></div>" +
-                    "<div class='watch'><div class='watch-title'>Market structure</div><div class='watch-note'>ATH is not bearish by itself; breadth + credit decide whether it is healthy or fragile.</div></div></div></div>", unsafe_allow_html=True)
-    with w2:
-        st.markdown(f"""
-<div class='panel'><div class='ptitle'>Market Pricing · compact</div>
-<div class='rowline'><div>5Y breakeven<div class='muted'>market inflation pricing</div></div><div class='right'><b>{fmt(breakeven,2,'%')}</b></div></div>
-<div class='rowline'><div>10Y Treasury<div class='muted'>long-end pressure</div></div><div class='right'><b>{fmt(d10,2,'%')}</b></div></div>
-<div class='rowline'><div>2Y Treasury<div class='muted'>front-end context</div></div><div class='right'><b>{fmt(d2,2,'%')}</b></div></div>
-<div class='rowline'><div>Fed funds<div class='muted'>policy anchor</div></div><div class='right'><b>{fmt(fedfunds,2,'%')}</b></div></div>
-<div class='gate' style='margin-top:6px'>{badge('EXPECTATION GAP GATED','gray')} No “market is wrong” call until mapping is validated.</div></div>
-""", unsafe_allow_html=True)
-
-# ============================================================
-# TAB 2 — WORLD / EVENT SCENARIOS
-# ============================================================
-with tab_world:
-    st.markdown("<div class='section'>World / event scenario engine</div>", unsafe_allow_html=True)
-    st.markdown("<div class='gate'><b>Key rule:</b> economic data can tell us whether a scenario is becoming easier/harder to sustain and how it would transmit. It cannot, by itself, tell us that a political actor 'must' choose war or peace. Therefore event probabilities remain grey until the geopolitical/event hazard model is validated.</div>", unsafe_allow_html=True)
-
-    top, side = st.columns([1.35, 1])
-    with top:
-        st.markdown("<div class='panel'><div class='ptitle'>Scenario Constellation · examples are conditional, not deterministic</div>", unsafe_allow_html=True)
-        event_cards = "<div class='scenario-grid'>"
-        event_cards += scenario_card("CONFLICT", "War continues · financing manageable", "Possible if financing demand remains absorbable, rates/funding stay contained, and energy disruption is limited.", "blue")
-        event_cards += scenario_card("CONFLICT", "War + energy stagflation", "Becomes more dangerous if oil/supply stress lifts inflation while growth and credit weaken.", energy_tone if energy_tone != "green" else "amber")
-        event_cards += scenario_card("FISCAL", "Fiscal-forced de-escalation", "Probability can rise if fiscal headroom, term premium, interest burden and political funding become binding together. Not implied by debt level alone.", fiscal_tone)
-        event_cards += scenario_card("PEACE", "Diplomatic ceasefire / peace dividend", "If diplomacy resolves the conflict before macro damage: risk premium, oil/freight pressure and inflation expectations can normalize.", "green")
-        event_cards += scenario_card("PEACE", "Crisis-forced ceasefire", "Same ceasefire headline, different economics: if de-escalation is forced by fiscal/credit stress, markets need not react bullishly.", "amber")
-        event_cards += scenario_card("FISCAL", "Debt-limit confrontation", f"Current-law ceiling is ${STATUTORY_DEBT_LIMIT_TN:.3f}tn; CBO baseline says Treasury reaches the limit {CBO_BASELINE_LIMIT_TIMING}. Exact legal headroom requires debt-subject-to-limit data.", "amber")
-        event_cards += "</div>"
-        st.markdown(event_cards + "</div>", unsafe_allow_html=True)
-
-    with side:
-        st.markdown(f"""
-<div class='panel'><div class='ptitle'>Fiscal–War Constraint Monitor</div>
-<div class='rowline'><div>Gross federal debt / GDP</div><div class='right'><b>{fmt(debt_gdp,1,'%')}</b></div></div>
-<div class='rowline'><div>Federal deficit / GDP</div><div class='right'><b>{fmt(deficit_gdp,1,'%')}</b></div></div>
-<div class='rowline'><div>Interest outlays / GDP</div><div class='right'><b>{fmt(interest_gdp,2,'%')}</b></div></div>
-<div class='rowline'><div>10Y term premium</div><div class='right'><b>{fmt(term_premium,2,'%')}</b></div></div>
-<div class='rowline'><div>Daily gross debt (Treasury)</div><div class='right'><b>{fmt(treasury_debt_tn,2,' tn')}</b></div></div>
-<div class='rowline'><div>Statutory debt limit reference</div><div class='right'><b>${STATUTORY_DEBT_LIMIT_TN:.3f}tn</b><div class='muted'>{DEBT_LIMIT_REFERENCE_DATE}</div></div></div>
-<div class='rowline'><div>Gross-debt vs ceiling difference</div><div class='right'><b>{signed(rough_gross_headroom,2,' tn')}</b><div class='muted'>rough context only — not legal headroom</div></div></div>
-<div class='gate' style='margin-top:6px'><b>Do not read gross-debt difference as exact debt-ceiling headroom.</b> Debt subject to limit differs from total public debt. This box is a fiscal-pressure context until the legal debt-limit feed is wired.</div></div>
-""", unsafe_allow_html=True)
-
-    st.markdown("<div class='section'>How a conflict scenario transmits</div>", unsafe_allow_html=True)
-    ch1, ch2, ch3 = st.columns(3)
-    with ch1:
-        st.markdown("<div class='panel'><div class='ptitle'>A · Financing remains manageable</div><div class='chain'>War spending ↑ → deficit ↑ → issuance ↑ → demand absorbs issuance → yields/funding contained → <b>no binding fiscal constraint yet</b>.</div><div class='gate' style='margin-top:6px'>Confirmation: auction/funding demand remains healthy, term premium stable, energy disruption limited.</div></div>", unsafe_allow_html=True)
-    with ch2:
-        st.markdown("<div class='panel'><div class='ptitle'>B · Crowding-out / stagflation</div><div class='chain'>War + supply disruption → oil/freight ↑ → inflation ↑ + growth ↓ → easing becomes harder → yields/credit cost ↑ → valuations/housing/capex weaken.</div><div class='gate' style='margin-top:6px'>Confirmation: energy + breakevens + term premium + credit stress rise together.</div></div>", unsafe_allow_html=True)
-    with ch3:
-        st.markdown("<div class='panel'><div class='ptitle'>C · Fiscal pressure raises de-escalation incentive</div><div class='chain'>War burn-rate ↑ + deficit/interest burden ↑ + legal/political funding constraint ↑ → economic cost becomes harder to absorb → <b>de-escalation pressure rises</b>.</div><div class='gate' style='margin-top:6px'>Not deterministic: government can also raise/suspend ceiling, borrow more, cut other spending, raise revenue, or shift burden to allies.</div></div>", unsafe_allow_html=True)
-
-    st.markdown("<div class='section'>Other scenario families the engine should discover/test</div>", unsafe_allow_html=True)
-    library_df = pd.DataFrame(SCENARIO_LIBRARY, columns=["Family", "Scenario", "Mechanism", "Key data / trigger family"])
-    st.dataframe(library_df, use_container_width=True, hide_index=True, height=420)
+    # event override + next confirmations
+    st.markdown("<div class='section'>Event override + next confirmations</div>",unsafe_allow_html=True)
+    e1,e2=st.columns([1,1.3])
+    with e1:
+        if event_override:
+            ev_note = f"Evidence {len(event_override['hits'])}/{event_override['total']} · {event_override['transmission']}"
+            ev_card = scenario_card(event_override['family'], event_override['name'], ev_note, event_override['tone'])
+            st.markdown(f"<div class='panel'><div class='ptitle'>⚠ Event Override Active</div>{ev_card}<div class='gate' style='margin-top:5px'><b>Confirm:</b> {event_override['confirms']}<br><b>Breaks if:</b> {event_override['invalidates']}</div></div>", unsafe_allow_html=True)
+        else:
+            st.markdown("<div class='panel'><div class='ptitle'>Event Override</div>"+scenario_card("CURRENT","NONE ACTIVE","No admitted world-event scenario currently has enough live evidence to override the base macro path.","green")+"</div>",unsafe_allow_html=True)
+    with e2:
+        nexts=[
+            ("Growth", "Need BBK lead + WEI + claims to converge.", lead_tone),
+            ("Inflation", "Need Trimmed/Core PCE to move together; supply shock can change the branch.", inflation_tone),
+            ("Credit", "Danger if HY/EBP widen before headline macro cracks.", credit_tone),
+            ("World events", "AI-GPR + oil/supply pressure must confirm an event transmission, not just headlines.", geo_tone),
+        ]
+        html="<div class='watch-grid'>"+"".join(f"<div class='watch'><div class='watch-title' style='color:{COLORS[t][0]}'>{n}</div><div class='watch-note'>{txt}</div></div>" for n,txt,t in nexts)+"</div>"
+        st.markdown("<div class='panel'><div class='ptitle'>What changes the answer?</div>"+html+"</div>",unsafe_allow_html=True)
 
 # ============================================================
-# TAB 3 — RESEARCH
+# ACTIVE EVENTS — only material live scenarios
+# ============================================================
+with tab_events:
+    st.markdown("<div class='section'>Active event radar</div>",unsafe_allow_html=True)
+    st.markdown("<div class='gate'><b>Adaptive by design:</b> this tab shows only scenarios with live evidence. The full library is hidden in Research. Economic/event data can score activation and transmission; political intent probabilities remain gated.</div>",unsafe_allow_html=True)
+    if event_scen:
+        cols=st.columns(min(4,len(event_scen)))
+        for col,sc in zip(cols,event_scen[:4]):
+            with col:
+                tone=sc['tone']; c=COLORS[tone][0]
+                st.markdown(f"<div class='scenario' style='min-height:170px'><div>{badge(sc['family'],tone)}</div><div class='scenario-title' style='color:{c};font-size:.83rem'>{sc['name']}</div><div class='snum'>{sc['score']}/100</div><div class='snote'>Activation score · not probability · impact {sc['impact']} · {sc['direction']}</div><div class='scenario-note'><b>Live evidence:</b> {', '.join(sc['hits'][:3]) if sc['hits'] else 'insufficient'}.</div></div>",unsafe_allow_html=True)
+    else:
+        st.success("No material event scenario is active from currently admitted feeds.")
+
+    st.markdown("<div class='section'>World-event sensors</div>",unsafe_allow_html=True)
+    s1,s2,s3,s4=st.columns(4)
+    sensors=[
+        (s1,"Geopolitical risk",gpr.get('gpr_pct',np.nan),f"AI-GPR {fmt(gpr.get('gpr',np.nan),1)} · 3M Δ {signed(gpr.get('gpr_change',np.nan),1)}",geo_tone),
+        (s2,"Supply-chain pressure",hist_pct(data.get('GSCPI')),f"GSCPI {signed(gscpi,2)} · 3M Δ {signed(gscpi_delta,2)}",tone_from_score(hist_pct(data.get('GSCPI')))),
+        (s3,"Energy pressure",energy_score,f"WTI {fmt(oil,1,'$')} · 3M {signed(oil_chg_3m,1,'%')}",energy_tone),
+        (s4,"Policy uncertainty",epu_pct,f"EPU {fmt(epu,0)}",tone_from_score(epu_pct)),
+    ]
+    for col,name,score,note,tone in sensors:
+        with col: st.markdown(summary_card(name,"LIVE SENSOR",fmt(score,0,"/100"),note,tone),unsafe_allow_html=True)
+
+    st.markdown("<div class='section'>Dominant transmission</div>",unsafe_allow_html=True)
+    if event_scen:
+        top=event_scen[0]
+        st.markdown(f"<div class='panel'><div class='ptitle'>{top['name']}</div><div class='chain'>{top['transmission']}</div><div class='constraint-grid' style='margin-top:6px'>{constraint_card('CONFIRM', 'WATCH', top['confirms'], 'amber')}{constraint_card('INVALIDATE', 'BREAK', top['invalidates'], 'green')}{constraint_card('CONFIDENCE', top['confidence'], 'Activation is not political probability.', 'gray')}</div></div>",unsafe_allow_html=True)
+    else:
+        st.markdown("<div class='panel'><div class='ptitle'>No dominant event transmission</div><div class='chain'>Base macro path currently dominates the dashboard.</div></div>",unsafe_allow_html=True)
+
+    with st.expander(f"Dormant scenario library · {len(SCENARIO_LIBRARY)} candidates"):
+        st.dataframe(pd.DataFrame(SCENARIO_LIBRARY,columns=["Family","Scenario","Mechanism","Key data / trigger family"]),use_container_width=True,hide_index=True,height=420)
+
+# ============================================================
+# RESEARCH
 # ============================================================
 with tab_research:
-    st.markdown("<div class='section'>Scenario screening</div>", unsafe_allow_html=True)
-    screen_df = pd.DataFrame(SCENARIO_SCREEN, columns=["Scenario", "Decision", "Evidence strength", "Why"])
-    st.dataframe(screen_df, use_container_width=True, hide_index=True)
+    st.markdown("<div class='section'>Validation status</div>",unsafe_allow_html=True)
+    status=pd.DataFrame([
+        ["Live state","RELEASED","Official/public latest data"],
+        ["Adaptive scenario activation","HEURISTIC / SCREENING","Evidence-count ranking; not probability"],
+        ["Macro probability +1Q/+2Q/+4Q","LOCKED","Needs point-in-time OOS calibration"],
+        ["Crash probability","LOCKED","Needs target/frequency/calibration tournament"],
+        ["Political event probability","LOCKED","Economic/GPR data do not determine intent"],
+        ["Expectation gap","LOCKED","Needs validated model-vs-market mapping"],
+    ],columns=["Layer","Status","Meaning"])
+    st.dataframe(status,use_container_width=True,hide_index=True)
 
-    st.markdown("<div class='section'>Raw readings</div>", unsafe_allow_html=True)
-    raw = pd.DataFrame([
-        ["BBK Monthly GDP", bbk_gdp, "% annualized"], ["BBK Coincident", bbk_co, "σ"], ["BBK Leading", bbk_lead, "σ"], ["WEI", wei, "%"],
-        ["Trimmed Mean PCE", trimmed, "% y/y"], ["Core PCE", core_pce, "% y/y"], ["Sahm", sahm, "pp"], ["Initial Claims", claims, "claims"],
-        ["SLOOS", sloos, "net %"], ["EBP", ebp, "index"], ["EBP recession benchmark", ebp_prob, "%"], ["FCI-G", fcig, "pp impulse"],
-        ["NFCI Risk", nfci, "index"], ["VIX", vix, "index"], ["HY OAS", hy, "%"], ["5Y Breakeven", breakeven, "%"],
-        ["10Y Treasury", d10, "%"], ["2Y Treasury", d2, "%"], ["Fed Funds", fedfunds, "%"], ["10Y Term Premium", term_premium, "%"],
-        ["WTI Oil", oil, "$/bbl"], ["Debt / GDP", debt_gdp, "% GDP"], ["Deficit / GDP", deficit_gdp, "% GDP"], ["Interest Outlays / GDP", interest_gdp, "% GDP"],
-        ["Treasury daily gross debt", treasury_debt_tn, "trillion USD"],
-    ], columns=["Series", "Latest", "Unit"])
-    st.dataframe(raw, use_container_width=True, hide_index=True)
+    st.markdown("<div class='section'>Scenario screening</div>",unsafe_allow_html=True)
+    st.dataframe(pd.DataFrame(SCENARIO_SCREEN,columns=["Scenario","Decision","Evidence strength","Why"]),use_container_width=True,hide_index=True)
 
-    st.markdown("<div class='section'>Research gates</div>", unsafe_allow_html=True)
-    st.markdown("""
-- **Projection probability:** locked until point-in-time / vintage walk-forward validation.
-- **Crash probability:** locked until drawdown target definition, calibration and OOS tests are frozen.
-- **Event probability:** locked until geopolitical/event-frequency data and historical base rates are validated.
-- **War sustainability vs war choice:** separate models. Economic constraints can change feasibility/incentives; they do not determine political intent.
-- **Scenario discovery:** broad candidate universe is allowed, but production only admits scenarios with incremental OOS information and stable transmission logic.
-""")
-
+    st.markdown("<div class='section'>Raw readings</div>",unsafe_allow_html=True)
+    raw=pd.DataFrame([
+        ["BBK Monthly GDP",bbk_gdp,"% ann."],["BBK Coincident",bbk_co,"σ"],["BBK Leading",bbk_lead,"σ"],["WEI",wei,"%"],["Trimmed PCE",trimmed,"% y/y"],["Core PCE",core_pce,"% y/y"],["Sahm",sahm,"pp"],["Claims",claims,"claims"],["SLOOS",sloos,"net %"],["EBP",ebp,"index"],["EBP recession benchmark",ebp_prob,"%"],["FCI-G",fcig,"pp impulse"],["NFCI Risk",nfci,"index"],["VIX",vix,"index"],["HY OAS",hy,"%"],["5Y breakeven",breakeven,"%"],["10Y Treasury",d10,"%"],["2Y Treasury",d2,"%"],["Fed Funds",fedfunds,"%"],["10Y Term Premium",term_premium,"%"],["WTI",oil,"$/bbl"],["GSCPI",gscpi,"σ"],["EPU",epu,"index"],["AI-GPR",gpr.get('gpr',np.nan),"index"],["Debt/GDP",debt_gdp,"%"],["Deficit/GDP",deficit_gdp,"%"],["Interest/GDP",interest_gdp,"%"],["Treasury gross debt",treasury_debt_tn,"tn USD"],
+    ],columns=["Series","Latest","Unit"])
+    st.dataframe(raw,use_container_width=True,hide_index=True)
     if errors:
         with st.expander(f"Data / optional feed errors ({len(errors)})"):
-            st.dataframe(pd.DataFrame([{"Source": k, "Error": v} for k, v in errors.items()]), use_container_width=True, hide_index=True)
+            st.dataframe(pd.DataFrame([{"Source":k,"Error":v} for k,v in errors.items()]),use_container_width=True,hide_index=True)
 
-st.caption("Landing v3 is a visual prototype: live states are official/public benchmarks; proprietary future probabilities stay grey until validated. World/event scenarios are conditional transmission maps, not political predictions.")
+st.caption("Landing v4: one control room for plain-English state, explicit projection, adaptive scenarios, event override and crash anatomy. Numerical probabilities remain locked until proven out-of-sample.")

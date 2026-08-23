@@ -1,37 +1,34 @@
+# Macro Decision OS v5 — Visual Decision Board
 
-# Macro Decision OS v4
+V5 keeps the v4 mechanism-first / fail-closed research architecture but replaces the 11-tab UI with four screens:
 
-Causal macro/fundamental decision framework for US equities, IHSG, commodities, FX and crypto.
+1. **Dashboard** — live states, percentile heatmap, standardized shocks, competing thesis cards, crash mechanism.
+2. **Scenarios & Relationships** — scenario evidence balance, macro↔macro and macro↔asset correlation matrices, relationship explorer.
+3. **Opportunities** — cross-market bottleneck board, SEC company evidence, forward outcome context, options execution context.
+4. **Research & Data** — proof registry, failures, lineage, data gaps and compliance.
+
+## Important FRED cloud fix
+V4 used anonymous `fredgraph.csv`, which can return zero series on Streamlit Cloud. V5 tries real sources in this order:
+
+1. FRED API when `FRED_API_KEY` is available in Streamlit Secrets/environment.
+2. FRED fredgraph CSV.
+3. DBnomics FRED mirror.
+
+There is **no synthetic macro fallback**.
+
+For Streamlit Cloud, add this secret for the most reliable route:
+
+```toml
+FRED_API_KEY="your_fred_api_key"
+```
 
 ## Deploy
-Upload **the entire folder contents** to the GitHub repo used by Streamlit, with `app.py` at repo root.
+Upload the entire project, install `requirements.txt`, and keep main file path as `app.py`.
 
 ```bash
 pip install -r requirements.txt
 streamlit run app.py
 ```
 
-## What changed vs v3
-- larger strict public macro/credit/funding panel (SOFR/IORB, IG/CCC credit, bank credit, ANFCI)
-- official US Treasury/NY Fed plumbing adapter; components only, no net-liquidity trade rule
-- DeFiLlama crypto-native live adapter (stablecoins/TVL/DEX) with no regime hardcode
-- instrument-specific current options context (IV / expected range / skew / OI concentration); no deterministic GEX claim
-- SEC filed-date Company Facts added to bottleneck monetization verification
-- temporal walk-forward calibration harness for macro analog distributions; explicitly revision-unsafe until PIT vintages exist
-- 36-scenario candidate registry separated from live Base/Competing/Tail/Null evidence
-- governance overrides supersede contradictory legacy validation files from the older War Room
-- data lineage includes staleness and revision-vintage flags
-
-## Non-negotiable governance
-- no RSI/MACD/EMA/Bollinger/candlestick/Fibonacci/chart-pattern alpha
-- price is not a macro regime classifier
-- ATH/price-state studies are research-only outcome-state experiments
-- no synthetic fallback
-- no hard-coded regime→asset mappings
-- no arbitrary scenario probabilities or confidence scores
-- bottleneck evidence is not a LONG signal
-- remaining runway is a distribution and stays DATA_GATED until calibrated inputs exist
-- `NO TRADE` is first-class
-
-## Still data-gated
-ALFRED/PIT macro vintages, pre-release consensus history, PIT analyst revisions, historical constituents/delistings, historical options/dealer inventory, cross-currency basis, broad physical commodity history, historical backlog/RPO/order database, crypto unlock/emission/exchange balances, IDX Type-F history.
+## Research warning
+Correlation matrices are explicitly association/research panels. They do not create fixed macro→asset sign rules. Latest/revised macro history is not final PIT proof.

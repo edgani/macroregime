@@ -1,6 +1,7 @@
 
 from __future__ import annotations
 import io, os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 import numpy as np,pandas as pd,requests
@@ -26,8 +27,52 @@ SYSTEM_TICKERS=['^VIX9D','^VIX3M','^VVIX','^MOVE']
 
 def load_universes():return {k:list(v) for k,v in UNIVERSES.items()}
 
+def _fred_api_key():
+    key=os.getenv('FRED_API_KEY','').strip()
+    if key:return key
+    try:
+        import streamlit as st
+        x=st.secrets.get('FRED_API_KEY',None)
+        return str(x).strip() if x else None
+    except Exception:return None
+
+def _parse_date_value(d,sid):
+    if d is None or d.empty:return None
+    date_col=d.columns[0];value_col=d.columns[1] if len(d.columns)>1 else None
+    if value_col is None:return None
+    dt=pd.to_datetime(d[date_col],errors='coerce');val=pd.to_numeric(d[value_col],errors='coerce')
+    s=pd.Series(val.values,index=dt,name=sid).dropna();s=s[~s.index.isna()].sort_index()
+    return s if len(s)>10 else None
+
 def _fred(sid):
-    u=f'https://fred.stlouisfed.org/graph/fredgraph.csv?id={sid}';r=requests.get(u,headers=HEAD,timeout=20);r.raise_for_status();d=pd.read_csv(io.StringIO(r.text));d.iloc[:,0]=pd.to_datetime(d.iloc[:,0],errors='coerce');d.iloc[:,1]=pd.to_numeric(d.iloc[:,1],errors='coerce');s=d.dropna().set_index(d.columns[0])[d.columns[1]].sort_index();s.name=sid;return s,u
+    session=requests.Session();session.headers.update({'User-Agent':'MacroDecisionOS/5.0 data-research','Accept':'application/json,text/csv,*/*'})
+    key=_fred_api_key()
+    if key:
+        u='https://api.stlouisfed.org/fred/series/observations'
+        try:
+            r=session.get(u,params={'series_id':sid,'api_key':key,'file_type':'json','observation_start':'1990-01-01'},timeout=10)
+            if r.status_code==200:
+                obs=r.json().get('observations',[]);rows=[(o.get('date'),o.get('value')) for o in obs if o.get('value') not in (None,'','.')];d=pd.DataFrame(rows,columns=['DATE',sid]);s=_parse_date_value(d,sid)
+                if s is not None:return s,'FRED API',r.url
+        except Exception:pass
+    u=f'https://fred.stlouisfed.org/graph/fredgraph.csv?id={sid}'
+    try:
+        r=session.get(u,timeout=7);r.raise_for_status();s=_parse_date_value(pd.read_csv(io.StringIO(r.text)),sid)
+        if s is not None:return s,'FRED fredgraph',u
+    except Exception:pass
+    for provider in ('FRED','FED'):
+        u=f'https://api.db.nomics.world/v22/series/{provider}/{sid}?observations=1'
+        try:
+            r=session.get(u,timeout=9)
+            if r.status_code!=200:continue
+            j=r.json();docs=j.get('series',{}).get('docs',[]) or j.get('dataset',{}).get('series',{}).get('docs',[])
+            if not docs:continue
+            doc=docs[0];period=doc.get('period',[]);value=doc.get('value',[])
+            if period and value and len(period)==len(value):
+                d=pd.DataFrame({'DATE':period,sid:value});s=_parse_date_value(d,sid)
+                if s is not None:return s,'DBnomics mirror',u
+        except Exception:pass
+    raise RuntimeError('FRED API, fredgraph and DBnomics all unavailable')
 
 def strict_prices(tickers,period='max'):
     out={};meta={}
@@ -58,9 +103,18 @@ def _lineage(name,source,url,series,freq,revision,transform='RAW'):
 
 def build_data_bundle(markets=None,max_per_market=30,fetch_specialized=True):
     markets=markets or list(UNIVERSES);fred={};ferr={};line=[]
-    for sid,(role,freq,rev) in FRED.items():
-        try:s,u=_fred(sid);fred[sid]=s;line.append(_lineage(sid,'FRED',u,s,freq,rev))
-        except Exception as e:ferr[sid]=str(e)[:160]
+    def _one(item):
+        sid,(role,freq,rev)=item
+        try:
+            s,src,u=_fred(sid);return sid,s,src,u,freq,rev,None
+        except Exception as e:return sid,None,None,None,freq,rev,str(e)[:160]
+    with ThreadPoolExecutor(max_workers=6) as ex:
+        futs=[ex.submit(_one,it) for it in FRED.items()]
+        for fut in as_completed(futs):
+            sid,s,src,u,freq,rev,err=fut.result()
+            if s is not None:
+                fred[sid]=s;line.append(_lineage(sid,src,u,s,freq,rev))
+            else:ferr[sid]=err or 'unknown FRED error'
     prices={};pmeta={}
     for m in markets:
         p,meta=strict_prices(UNIVERSES.get(m,[])[:max_per_market]);prices[m]=p;pmeta[m]=meta
